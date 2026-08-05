@@ -34,7 +34,8 @@ PK = /mnt/ssd-disk/liyang/projects/paint_tips     ← 工作空间根
 - 手改 `$PK/docs/TASKS.md`（用下面的脚本，并发手改会互相覆盖）
 - 修改不属于你当前任务的 target
 - 任何与当前任务无关的改动——包括"顺手"重构、改格式、修无关 bug
-- 合并到 `main` 或 `integration`；**不要 `git push`**（凭据未配，只在本地 worktree 分支上提交）
+- 合并到 `strip-qt`（主干）或 `integration`；**不要 `git push`**
+  —— 凭据虽已配好，但合并路径是 `worktree 分支 → integration → strip-qt`，最后一段只由人做
 
 **必须**：
 - 遵守 `superpowers:verification-before-completion`：声称完成前真的跑命令并确认输出
