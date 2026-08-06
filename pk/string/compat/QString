@@ -1,0 +1,25 @@
+#pragma once
+#include "../PkString.h"
+
+// 兼容垫片：让真实调用点的 `#include <QString>` 在**一个字都不改**的前提下
+// 解析到 PkString。文件名刻意没有扩展名 —— 调用点写的就是 <QString>。
+//
+// 用宏而不是 `using QString = PkString;`：KoProgressProxy.h 第 12 行有
+// `class QString;` 前置声明，类型别名遇到它会报
+// "QString redeclared as different kind of entity"；宏则把那一行原样改写成
+// `class PkString;`，前置声明照样成立。
+#define QString PkString
+
+#define QStringLiteral(str) PkString(str)
+
+// KritaVersionWrapper.cpp 第 28 行是
+//   #if defined(KRITA_STABLE) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+// 预处理器会对**整个**表达式求值（没有短路），这两个宏缺一个就报
+// "missing binary operator before token '('"。
+#ifndef QT_VERSION_CHECK
+#define QT_VERSION_CHECK(major, minor, patch) \
+    (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef QT_VERSION
+#define QT_VERSION QT_VERSION_CHECK(0, 0, 0)
+#endif
