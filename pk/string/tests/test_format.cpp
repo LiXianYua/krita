@@ -1,6 +1,35 @@
 #include "../PkString.h"
 #include "test_util.h"
 
+#include <clocale>
+#include <cstdio>
+
+namespace {
+
+// 切到一个「小数点是逗号」的 locale。系统没装任何这类 locale 就返回 nullptr。
+// 注意：C++ 程序的 C locale 默认恒为 "C"，**与环境变量无关**——不显式
+// setlocale 的话，toDouble/arg(double) 的 LC_NUMERIC 缺陷在测试里永远看不见。
+// 而 Krita 运行时 Qt 会 setlocale(LC_ALL, "")，跑的正是另一个 locale。
+const char* pkEnterCommaLocale()
+{
+    static const char* const kCandidates[] = {
+        "de_DE.UTF-8", "de_DE.utf8", "fr_FR.UTF-8", "fr_FR.utf8",
+        "ru_RU.UTF-8", "es_ES.UTF-8", "it_IT.UTF-8", "nl_NL.UTF-8",
+        "pt_BR.UTF-8", "tr_TR.UTF-8", "de_DE",      "fr_FR",
+    };
+    const std::size_t n = sizeof(kCandidates) / sizeof(kCandidates[0]);
+    for (std::size_t i = 0; i < n; ++i) {
+        if (std::setlocale(LC_NUMERIC, kCandidates[i]) != nullptr
+            && std::localeconv()->decimal_point[0] == ',') {
+            return kCandidates[i];
+        }
+    }
+    std::setlocale(LC_NUMERIC, "C");
+    return nullptr;
+}
+
+} // namespace
+
 void run_format_tests()
 {
     PkString base("ab");
@@ -62,6 +91,10 @@ void run_format_tests()
     _expect(PkString("n=%1").arg(42) == PkString("n=42"), "arg(int)");
     _expect(PkString("n=%1").arg(-7) == PkString("n=-7"), "arg(int) handles negatives");
     _expect(PkString("d=%1").arg(1.5) == PkString("d=1.5"), "arg(double)");
+    // arg(double) 必须与 C locale 下的 printf "%g"（精度 6）逐字一致
+    _expect(PkString("%1").arg(1.0) == PkString("1"), "arg(double) drops a trailing .0 like %g");
+    _expect(PkString("%1").arg(0.0001) == PkString("0.0001"), "arg(double) keeps small decimals like %g");
+    _expect(PkString("%1").arg(1000000.0) == PkString("1e+06"), "arg(double) switches to exponent like %g");
 
     // toInt / toDouble
     bool ok = false;
@@ -87,4 +120,43 @@ void run_format_tests()
     _expect(PkString("1.5x").toDouble(&ok) == 0.0, "toDouble rejects trailing garbage");
     _expect(!ok, "toDouble sets ok=false on trailing garbage");
     _expect(PkString("2.25").toDouble() == 2.25, "toDouble works with null ok pointer");
+    _expect(PkString("+3.5").toDouble(&ok) == 3.5, "toDouble tolerates a leading plus");
+    _expect(PkString(" 2.5 ").toDouble(&ok) == 2.5, "toDouble tolerates surrounding whitespace");
+    _expect(PkString("+8").toInt(&ok) == 8, "toInt tolerates a leading plus");
+    _expect(PkString("99999999999999999999").toInt(&ok) == 0, "toInt rejects out-of-range values");
+    _expect(!ok, "out-of-range toInt sets ok=false");
+
+    // ── LC_NUMERIC 免疫 ───────────────────────────────────────────
+    // QString::toDouble / QString::arg(double) 硬编码 C locale
+    // （Qt 内部走 QLocaleData::c()），不受进程全局 locale 影响。
+    // strtod / snprintf("%g") 则相反：小数点字符由 LC_NUMERIC 决定。
+    // Krita 运行时 Qt 的 initLocale 会 setlocale(LC_ALL, "")，所以德语等
+    // 系统上这个差异是**会真实触发**的：曾经的实现在 de_DE 下把
+    // toDouble("0.75") 解析成 0（ok=false）、把 arg(0.75) 输出成 "0,75"，
+    // 而 kis_properties_configuration.cc 与 kis_predefined_brush_factory.cpp
+    // 正是靠 toDouble 读预设/笔刷参数的 —— 会静默归零。
+    const char* commaLocale = pkEnterCommaLocale();
+    if (commaLocale != nullptr) {
+        bool lok = false;
+        _expect(PkString("0.75").toDouble(&lok) == 0.75,
+                "toDouble ignores LC_NUMERIC under a comma-decimal locale");
+        _expect(lok, "toDouble sets ok=true under a comma-decimal locale");
+        _expect(PkString("-0.25").toDouble(&lok) == -0.25,
+                "toDouble parses negatives under a comma-decimal locale");
+        _expect(PkString("%1").arg(0.75) == PkString("0.75"),
+                "arg(double) emits a dot under a comma-decimal locale");
+        _expect(PkString("0,75").toDouble(&lok) == 0.0,
+                "a comma is never a decimal separator, not even in a comma locale");
+        _expect(!lok, "comma-separated input sets ok=false");
+        _expect(PkString("123").toInt(&lok) == 123, "toInt is unaffected by LC_NUMERIC");
+        _expect(PkString("n=%1").arg(42) == PkString("n=42"), "arg(int) is unaffected by LC_NUMERIC");
+        std::setlocale(LC_NUMERIC, "C");
+    } else {
+        // 这一组是本文件里最强的一项检查。没跑到就必须看得见——
+        // 「判据指着一个不存在的东西时它不报错，它放行」正是要避免的失效方式。
+        std::printf("NOTE: 本机没装小数点为逗号的 locale，LC_NUMERIC 免疫检查未跑到。\n");
+        std::printf("      本机造一个（无需 sudo）：\n");
+        std::printf("        localedef -i de_DE -f UTF-8 <dir>/de_DE.UTF-8\n");
+        std::printf("        LOCPATH=<dir> LC_ALL=de_DE.UTF-8 ./test_pkstring\n");
+    }
 }

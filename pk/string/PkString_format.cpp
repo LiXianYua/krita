@@ -3,12 +3,10 @@
 #include "PkStringData.h"
 
 #include <algorithm>
-#include <cctype>
-#include <cerrno>
-#include <climits>
-#include <cstdio>
-#include <cstdlib>
+#include <charconv>
+#include <cstddef>
 #include <map>
+#include <system_error>
 
 namespace {
 
@@ -93,15 +91,34 @@ std::vector<char16_t> pkSubstitute(const std::vector<char16_t>& src,
     return out;
 }
 
-bool pkTailIsBlank(const char* p)
+// 刻意不使用 std::isspace：它受 LC_CTYPE 影响。数值解析的每一个环节都必须
+// 与进程 locale 无关（理由见下面 toDouble 的注释）。
+bool pkIsAsciiBlank(char c)
 {
-    while (*p != '\0') {
-        if (std::isspace(static_cast<unsigned char>(*p)) == 0) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
+}
+
+bool pkTailIsBlank(const char* p, const char* end)
+{
+    while (p != end) {
+        if (!pkIsAsciiBlank(*p)) {
             return false;
         }
         ++p;
     }
     return true;
+}
+
+// 跳过前导空白与可选的 '+'。from_chars 两者都不接受，而 QString 两者都容忍。
+const char* pkSkipLeading(const char* p, const char* end)
+{
+    while (p != end && pkIsAsciiBlank(*p)) {
+        ++p;
+    }
+    if (p != end && *p == '+') {
+        ++p;
+    }
+    return p;
 }
 
 } // namespace
@@ -136,44 +153,57 @@ PkString PkString::arg(const PkString& a, const PkString& b) const
 PkString PkString::arg(int v) const
 {
     char tmp[32];
-    std::snprintf(tmp, sizeof(tmp), "%d", v);
-    return arg(PkString(tmp));
+    const std::to_chars_result r = std::to_chars(tmp, tmp + sizeof(tmp), v);
+    return arg(PkString::PkFromUtf8(tmp, static_cast<int>(r.ptr - tmp)));
 }
 
+// 不能用 snprintf("%g")：printf 族的小数点字符由 LC_NUMERIC 决定，
+// 在 de_DE 这类 locale 下会输出 "0,75"。QString::arg(double) 走的是
+// QLocaleData::c()（固定 C locale），必须对齐。std::to_chars 由标准保证
+// 与 locale 无关，general + 精度 6 等价于 C locale 下的 "%g"。
 PkString PkString::arg(double v) const
 {
     char tmp[64];
-    std::snprintf(tmp, sizeof(tmp), "%g", v);
-    return arg(PkString(tmp));
+    const std::to_chars_result r =
+        std::to_chars(tmp, tmp + sizeof(tmp), v, std::chars_format::general, 6);
+    if (r.ec != std::errc()) {
+        return *this;
+    }
+    return arg(PkString::PkFromUtf8(tmp, static_cast<int>(r.ptr - tmp)));
 }
 
-// ok 出参语义（不是异常）：所以用 strtol/strtod 而不是 std::stoi。
-// 与 QString::toInt 一致地**拒绝尾随垃圾**，但容忍首尾空白。
+// ok 出参语义（不是异常）：所以不用 std::stoi。
+// 也**不用 strtol/strtod**：它们的小数点/数字分类由 LC_NUMERIC 决定，而
+// Krita 运行时会 setlocale(LC_ALL, "")（Qt 的 initLocale），非英语系统下
+// LC_NUMERIC 就不是 "C" 了 —— 那时 strtod("0.75") 会在小数点处停下、返回 0。
+// QString::toDouble 硬编码 C locale（QLocaleData::c()），我们必须一样。
+// std::from_chars 由标准保证与 locale 无关，是唯一不依赖全局状态的选择。
+// 与 QString 一致地**拒绝尾随垃圾**，但容忍首尾空白与前导 '+'。
 int PkString::toInt(bool* ok) const
 {
     const std::string s = PkToUtf8();
-    const char* begin = s.c_str();
-    char* end = nullptr;
-    errno = 0;
-    const long v = std::strtol(begin, &end, 10);
-    bool good = (end != begin) && pkTailIsBlank(end);
-    if (good && (errno == ERANGE || v < static_cast<long>(INT_MIN) || v > static_cast<long>(INT_MAX))) {
-        good = false;
-    }
+    const char* const end = s.data() + s.size();
+    const char* const begin = pkSkipLeading(s.data(), end);
+
+    int v = 0;
+    const std::from_chars_result r = std::from_chars(begin, end, v, 10);
+    const bool good = (r.ec == std::errc()) && pkTailIsBlank(r.ptr, end);
     if (ok != nullptr) {
         *ok = good;
     }
-    return good ? static_cast<int>(v) : 0;
+    return good ? v : 0;
 }
 
 double PkString::toDouble(bool* ok) const
 {
     const std::string s = PkToUtf8();
-    const char* begin = s.c_str();
-    char* end = nullptr;
-    errno = 0;
-    const double v = std::strtod(begin, &end);
-    bool good = (end != begin) && pkTailIsBlank(end) && errno != ERANGE;
+    const char* const end = s.data() + s.size();
+    const char* const begin = pkSkipLeading(s.data(), end);
+
+    double v = 0.0;
+    const std::from_chars_result r =
+        std::from_chars(begin, end, v, std::chars_format::general);
+    const bool good = (r.ec == std::errc()) && pkTailIsBlank(r.ptr, end);
     if (ok != nullptr) {
         *ok = good;
     }
