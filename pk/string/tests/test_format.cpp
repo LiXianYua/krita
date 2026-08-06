@@ -129,6 +129,41 @@ void run_format_tests()
     _expect(!ok, "hex float input sets ok=false");
     _expect(PkString("-0X2").toDouble(&ok) == 0.0, "toDouble rejects signed uppercase hex");
     _expect(!ok, "signed hex input sets ok=false");
+    // 十六进制闸门必须建在 strtod 真正开始消费的位置上。若在外面先剥掉 '+'，
+    // strtod 会重开一轮「跳空白 + 认符号」，下面这些就会从闸门底下溜过去。
+    _expect(PkString("+ 0x10").toDouble(&ok) == 0.0, "hex after sign-then-space is still rejected");
+    _expect(!ok, "sign-space-hex sets ok=false");
+    _expect(PkString("+\t0x1p3").toDouble(&ok) == 0.0, "hex after sign-then-tab is still rejected");
+    _expect(!ok, "sign-tab-hex sets ok=false");
+    // 同根因：C 的 strtod 文法是「空白 → 一个符号 → 数字」，符号后不许再有
+    // 空白或第二个符号。QString 同样不接受，这几条都必须失败。
+    _expect(PkString("++3.5").toDouble(&ok) == 0.0, "a doubled sign is not a number");
+    _expect(!ok, "doubled sign sets ok=false");
+    _expect(PkString("+ 3.5").toDouble(&ok) == 0.0, "whitespace after the sign is not a number");
+    _expect(!ok, "sign-then-space sets ok=false");
+    _expect(PkString("+  -2.5").toDouble(&ok) == 0.0, "sign, spaces, then another sign is not a number");
+    _expect(!ok, "sign-spaces-sign sets ok=false");
+    _expect(PkString("+\n7").toDouble(&ok) == 0.0, "a newline after the sign is not a number");
+    _expect(!ok, "sign-then-newline sets ok=false");
+
+    // 次正规数（渐进下溢）：glibc 的 strtod 会置 ERANGE，但那是**成功**的解析。
+    // 把 ERANGE 一刀切当失败会把这两个真值误杀成 0/false。边界卡在 DBL_MIN 上。
+    _expect(PkString("1e-310").toDouble(&ok) != 0.0, "a subnormal parses to a non-zero value");
+    _expect(ok, "gradual underflow to a subnormal is a success, not a failure");
+    _expect(PkString("4.9e-324").toDouble(&ok) != 0.0, "the smallest subnormal still parses");
+    _expect(ok, "denormal-min sets ok=true");
+    // 两头才是真失败：全下溢（返回 0）与上溢（返回 ±inf）。
+    _expect(PkString("1e-400").toDouble(&ok) == 0.0, "total underflow is a failure");
+    _expect(!ok, "underflow to zero sets ok=false");
+    _expect(PkString("1e400").toDouble(&ok) == 0.0, "overflow is a failure");
+    _expect(!ok, "overflow to infinity sets ok=false");
+    // 合法的零不会置 ERANGE，不能被上面的规则连累
+    _expect(PkString("0").toDouble(&ok) == 0.0, "a literal zero parses");
+    _expect(ok, "a literal zero sets ok=true");
+    _expect(PkString("0.0").toDouble(&ok) == 0.0, "a literal 0.0 parses");
+    _expect(ok, "a literal 0.0 sets ok=true");
+    _expect(PkString("-0.0").toDouble(&ok) == 0.0, "a literal -0.0 parses");
+    _expect(ok, "a literal -0.0 sets ok=true");
     // 串里嵌了 U+0000 时，NUL 之后的垃圾必须照样被拒——解析函数在 NUL 处停下，
     // 但尾随判定要按真实长度算，不能按 C 串长度算。
     _expect(PkString::PkFromUtf8("1.5\0xx", 6).toDouble(&ok) == 0.0,

@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cmath>
 #include <cstddef>
 #include <map>
 #include <system_error>
@@ -137,13 +138,30 @@ bool pkTailIsBlank(const char* p, const char* end)
     return true;
 }
 
-// 跳过前导空白与可选的 '+'。from_chars 两者都不接受，而 QString 两者都容忍。
+// 跳过前导空白与可选的 '+'。**只给整数 from_chars 用**：它自己既不跳空白也不
+// 认 '+'，而 QString 两者都容忍，所以要在外面补齐。
+// **不要给 strtod_l 用**——它自己就会跳空白、认符号，再在外面补一遍等于允许
+// 「符号 + 空白 + 符号」这种 C 语法不接受的组合溜进去，见 pkNumberStart。
 const char* pkSkipLeading(const char* p, const char* end)
 {
     while (p != end && pkIsAsciiBlank(*p)) {
         ++p;
     }
     if (p != end && *p == '+') {
+        ++p;
+    }
+    return p;
+}
+
+// strtod_l 真正开始消费数字的位置：先跳空白，再认**一个**符号，然后就该是数字了
+// （C 的 strtod 文法不允许符号后面再有空白）。十六进制闸门必须建在这个位置上，
+// 只查「我们自己跳过之后的那一个位置」是不够的 —— 那样 "+ 0x10" 会从底下溜过去。
+const char* pkNumberStart(const char* p, const char* end)
+{
+    while (p != end && pkIsAsciiBlank(*p)) {
+        ++p;
+    }
+    if (p != end && (*p == '+' || *p == '-')) {
         ++p;
     }
     return p;
@@ -229,20 +247,22 @@ double PkString::toDouble(bool* ok) const
     // 仍用 s.size() 算出的 end** —— 串里若嵌了 U+0000，strtod 会在那儿停下，
     // 而 end 在更后面，NUL 本身不是空白，于是「NUL 之后还有字符」会被正确拒收。
     const std::string s = PkToUtf8();
-    const char* const end = s.c_str() + s.size();
-    const char* const begin = pkSkipLeading(s.c_str(), end);
+    const char* const begin = s.c_str();
+    const char* const end = begin + s.size();
 
+    // **原样把整个串交给 strtod_l**，不预先剥掉空白或 '+'。预剥会让 strtod
+    // 重新开一轮「跳空白 + 认符号」，于是 "+ 0x10" "++3.5" "+  -2.5" "+\n7"
+    // 这些 C 文法本不接受的组合全被放行（QString 也不接受）。
+    //
     // strtod 会把 "0x10" / "0x1p3" 当十六进制浮点吃掉，QString::toDouble 不接受
-    // 十六进制。from_chars(general) 天然不认，换回 strtod_l 就必须自己挡住。
-    const std::ptrdiff_t n = end - begin;
-    const bool looksHex =
-        (n >= 2 && begin[0] == '0' && (begin[1] == 'x' || begin[1] == 'X'))
-        || (n >= 3 && begin[0] == '-' && begin[1] == '0'
-            && (begin[2] == 'x' || begin[2] == 'X'));
+    // 十六进制。闸门建在 strtod 真正开始消费数字的位置上。
+    const char* const numStart = pkNumberStart(begin, end);
+    const bool looksHex = (end - numStart) >= 2 && numStart[0] == '0'
+                          && (numStart[1] == 'x' || numStart[1] == 'X');
 
     bool good = false;
     double v = 0.0;
-    if (!looksHex && begin != end) {
+    if (!looksHex) {
         const locale_t cloc = pkCLocale();
         char* stop = nullptr;
         errno = 0;
@@ -251,7 +271,17 @@ double PkString::toDouble(bool* ok) const
         const double parsed = (cloc != static_cast<locale_t>(0))
                                   ? ::strtod_l(begin, &stop, cloc)
                                   : ::strtod(begin, &stop);
-        if (stop != begin && errno != ERANGE && pkTailIsBlank(stop, end)) {
+
+        // ERANGE 不能一刀切当失败：glibc 对**渐进下溢**（结果是次正规数、仍能
+        // 精确表示，如 "1e-310" "4.9e-324"）也置 ERANGE，可那是成功的解析。
+        // 真正该判失败的只有两头：上溢（返回 ±inf）与全下溢（返回 0）。
+        // 合法的零（"0" "0.0"）根本不会置 ERANGE，所以不必单独排除。
+        bool rangeOk = true;
+        if (errno == ERANGE) {
+            rangeOk = (parsed != 0.0) && std::isfinite(parsed);
+        }
+
+        if (stop != begin && rangeOk && pkTailIsBlank(stop, end)) {
             v = parsed;
             good = true;
         }
