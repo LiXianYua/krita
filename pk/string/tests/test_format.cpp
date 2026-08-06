@@ -1,1 +1,4 @@
-// placeholder — filled in by a later R-01 task
+// 本轮由 R-01 Task4 填充
+void run_format_tests()
+{
+}
