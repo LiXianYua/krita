@@ -138,19 +138,31 @@ bool pkTailIsBlank(const char* p, const char* end)
     return true;
 }
 
-// 跳过前导空白与可选的 '+'。**只给整数 from_chars 用**：它自己既不跳空白也不
-// 认 '+'，而 QString 两者都容忍，所以要在外面补齐。
-// **不要给 strtod_l 用**——它自己就会跳空白、认符号，再在外面补一遍等于允许
-// 「符号 + 空白 + 符号」这种 C 语法不接受的组合溜进去，见 pkNumberStart。
-const char* pkSkipLeading(const char* p, const char* end)
+// 整数路径的起点校验。文法与 strtod 一致：空白 → **一个**符号 → 数字。
+// 返回该交给 from_chars 的起点；文法不合返回 nullptr。
+//
+// 为什么不能只是「跳空白 + 剥掉一个 '+'」：整数 from_chars 不认 '+'，
+// **但认 '-'**。只剥 '+' 的话 "+-3" 剩下 "-3"，被 from_chars 正常解析成 -3,
+// 双重符号就这么溜过去了（QString 是 0/false）。
+// 这跟 toDouble 那边「预剥符号让 strtod_l 重开一轮前缀扫描」是同一个坑的
+// 两个分支：**在一个自己也做前缀扫描的解析器外面再做一遍前缀处理 = 放宽文法**。
+const char* pkIntStart(const char* p, const char* end)
 {
     while (p != end && pkIsAsciiBlank(*p)) {
         ++p;
     }
-    if (p != end && *p == '+') {
-        ++p;
+    const char* afterSign = p;
+    bool negative = false;
+    if (afterSign != end && (*afterSign == '+' || *afterSign == '-')) {
+        negative = (*afterSign == '-');
+        ++afterSign;
     }
-    return p;
+    if (afterSign == end || *afterSign < '0' || *afterSign > '9') {
+        return nullptr;   // 符号后面不是数字 —— 文法不合，直接判失败
+    }
+    // from_chars 认 '-' 不认 '+'：负数连符号一起交给它（这样 INT_MIN 才正确，
+    // 自己取负会溢出）；正数与无符号从第一个数字交起。
+    return negative ? p : afterSign;
 }
 
 // strtod_l 真正开始消费数字的位置：先跳空白，再认**一个**符号，然后就该是数字了
@@ -225,16 +237,20 @@ PkString PkString::arg(double v) const
 // 这里用**整数** from_chars：它由标准保证与 locale 无关，且整数重载 libc++ v7
 // 起就有，NDK 上没问题 —— 只有浮点重载要等 libc++ v20，那条见 toDouble 上面的
 // 注释与 pkCLocale()。
-// 与 QString 一致地**拒绝尾随垃圾**，但容忍首尾空白与前导 '+'。
+// 与 QString 一致地**拒绝尾随垃圾**，但容忍首尾空白与前导 '+'（只许一个符号，
+// 且符号后必须紧跟数字 —— 见 pkIntStart）。
 int PkString::toInt(bool* ok) const
 {
     const std::string s = PkToUtf8();
     const char* const end = s.data() + s.size();
-    const char* const begin = pkSkipLeading(s.data(), end);
+    const char* const begin = pkIntStart(s.data(), end);
 
     int v = 0;
-    const std::from_chars_result r = std::from_chars(begin, end, v, 10);
-    const bool good = (r.ec == std::errc()) && pkTailIsBlank(r.ptr, end);
+    bool good = false;
+    if (begin != nullptr) {
+        const std::from_chars_result r = std::from_chars(begin, end, v, 10);
+        good = (r.ec == std::errc()) && pkTailIsBlank(r.ptr, end);
+    }
     if (ok != nullptr) {
         *ok = good;
     }

@@ -174,6 +174,37 @@ void run_format_tests()
     _expect(!ok, "embedded-NUL garbage sets toInt ok=false");
     _expect(PkString(" 2.5 ").toDouble(&ok) == 2.5, "toDouble tolerates surrounding whitespace");
     _expect(PkString("+8").toInt(&ok) == 8, "toInt tolerates a leading plus");
+    // toInt 的符号文法必须和 toDouble 一样严：空白 → 一个符号 → 数字。
+    // 整数 from_chars 不认 '+' 但**认 '-'**，所以只在外面剥掉一个 '+' 是不够的：
+    // "+-3" 剩下 "-3" 会被正常解析成 -3。QString 这些全是 0/false。
+    _expect(PkString("+-3").toInt(&ok) == 0, "toInt rejects a plus followed by a minus");
+    _expect(!ok, "plus-minus sets toInt ok=false");
+    _expect(PkString("+-0").toInt(&ok) == 0, "toInt rejects plus-minus even when the digits are zero");
+    _expect(!ok, "plus-minus-zero sets toInt ok=false");
+    _expect(PkString(" +-3").toInt(&ok) == 0, "leading blanks do not excuse a double sign");
+    _expect(!ok, "blank-plus-minus sets toInt ok=false");
+    _expect(PkString("-+3").toInt(&ok) == 0, "toInt rejects a minus followed by a plus");
+    _expect(!ok, "minus-plus sets toInt ok=false");
+    _expect(PkString("++3").toInt(&ok) == 0, "toInt rejects a doubled plus");
+    _expect(!ok, "doubled plus sets toInt ok=false");
+    _expect(PkString("--3").toInt(&ok) == 0, "toInt rejects a doubled minus");
+    _expect(!ok, "doubled minus sets toInt ok=false");
+    _expect(PkString("+ 3").toInt(&ok) == 0, "toInt rejects whitespace between sign and digits");
+    _expect(!ok, "sign-space-digit sets toInt ok=false");
+    _expect(PkString("+").toInt(&ok) == 0, "a lone sign is not a number");
+    _expect(!ok, "a lone sign sets toInt ok=false");
+    // 负数要连符号一起交给 from_chars，自己取负会在 INT_MIN 上溢出
+    _expect(PkString("-2147483648").toInt(&ok) == -2147483648, "toInt parses INT_MIN");
+    _expect(ok, "INT_MIN sets ok=true");
+    _expect(PkString("+2147483647").toInt(&ok) == 2147483647, "toInt parses INT_MAX with a plus");
+    _expect(ok, "INT_MAX sets ok=true");
+    // 对称：toDouble 侧的同一组也钉住（strtod 自己就拦，但别让它悄悄退化）
+    _expect(PkString("+-3.5").toDouble(&ok) == 0.0, "toDouble rejects a plus followed by a minus");
+    _expect(!ok, "plus-minus sets toDouble ok=false");
+    _expect(PkString("-+3.5").toDouble(&ok) == 0.0, "toDouble rejects a minus followed by a plus");
+    _expect(!ok, "minus-plus sets toDouble ok=false");
+    _expect(PkString("--3.5").toDouble(&ok) == 0.0, "toDouble rejects a doubled minus");
+    _expect(!ok, "doubled minus sets toDouble ok=false");
     _expect(PkString("99999999999999999999").toInt(&ok) == 0, "toInt rejects out-of-range values");
     _expect(!ok, "out-of-range toInt sets ok=false");
 
