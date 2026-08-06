@@ -201,11 +201,12 @@ PkString PkString::arg(double v) const
 }
 
 // ok 出参语义（不是异常）：所以不用 std::stoi。
-// 也**不用 strtol/strtod**：它们的小数点/数字分类由 LC_NUMERIC 决定，而
-// Krita 运行时会 setlocale(LC_ALL, "")（Qt 的 initLocale），非英语系统下
-// LC_NUMERIC 就不是 "C" 了 —— 那时 strtod("0.75") 会在小数点处停下、返回 0。
-// QString::toDouble 硬编码 C locale（QLocaleData::c()），我们必须一样。
-// std::from_chars 由标准保证与 locale 无关，是唯一不依赖全局状态的选择。
+// 也**不用裸的 strtol**：它的数字分类受 LC_NUMERIC 影响，而 Krita 运行时会
+// setlocale(LC_ALL, "")（Qt 的 initLocale），非英语系统下 LC_NUMERIC 不是 "C"；
+// QString::toInt 则硬编码 C locale（QLocaleData::c()），我们必须一样。
+// 这里用**整数** from_chars：它由标准保证与 locale 无关，且整数重载 libc++ v7
+// 起就有，NDK 上没问题 —— 只有浮点重载要等 libc++ v20，那条见 toDouble 上面的
+// 注释与 pkCLocale()。
 // 与 QString 一致地**拒绝尾随垃圾**，但容忍首尾空白与前导 '+'。
 int PkString::toInt(bool* ok) const
 {
