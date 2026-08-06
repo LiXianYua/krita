@@ -8,7 +8,35 @@
 #include <map>
 #include <system_error>
 
+// POSIX 的 per-locale 解析接口。用 C 头而不是 <clocale>/<cstdlib>：
+// newlocale/locale_t 只在 <locale.h> 里，strtod_l 只在 <stdlib.h> 里，
+// 对应的 C++ 包装头不保证暴露这些 POSIX 扩展。
+#include <cerrno>
+#include <locale.h>
+#include <stdlib.h>
+
 namespace {
+
+// ── 为什么解析走 strtod_l 而不是 std::from_chars ──────────────────
+// 目标平台是 Android NDK（bionic + libc++）。libc++ 的 from_chars **浮点**重载
+// 直到 LLVM 20 才实现，而 NDK r27/r28 只带 Clang 18/19 —— 在那上面
+// std::from_chars(..., double&, ...) 是编译期错误（no matching function），
+// 不是运行时问题。宿主机 g++/libstdc++ 从 GCC 11 起就有浮点 from_chars，
+// 所以整条判据链路（replacement.sh 全程用宿主工具链）看不见这个差异。
+//
+// strtod_l + newlocale("C") 是 glibc / bionic / MSVC(_strtod_l) 都提供的老接口，
+// 与 libc++ 版本无关。它同时满足「不受 LC_NUMERIC 影响」这条硬要求：
+// 传进去的是显式的 C locale，不读进程全局 locale。
+//
+// **只有解析方向换回来。** to_chars（写方向，arg(double)/arg(int) 用）
+// libc++ v14 起就有，NDK 上没问题，不动。整数 from_chars 同理（libc++ v7 起）。
+locale_t pkCLocale()
+{
+    // 进程生命周期缓存一份；不 freelocale（故意的，就一个对象）。
+    // 函数内 static 的初始化由 C++11 保证线程安全。
+    static locale_t loc = ::newlocale(LC_ALL_MASK, "C", static_cast<locale_t>(0));
+    return loc;
+}
 
 struct PkPlaceholder {
     std::size_t pos;   // '%' 的下标
@@ -196,14 +224,37 @@ int PkString::toInt(bool* ok) const
 
 double PkString::toDouble(bool* ok) const
 {
+    // c_str() 而不是 data()：strtod_l 要一个 NUL 结尾的串。但**尾随垃圾的判定
+    // 仍用 s.size() 算出的 end** —— 串里若嵌了 U+0000，strtod 会在那儿停下，
+    // 而 end 在更后面，NUL 本身不是空白，于是「NUL 之后还有字符」会被正确拒收。
     const std::string s = PkToUtf8();
-    const char* const end = s.data() + s.size();
-    const char* const begin = pkSkipLeading(s.data(), end);
+    const char* const end = s.c_str() + s.size();
+    const char* const begin = pkSkipLeading(s.c_str(), end);
 
+    // strtod 会把 "0x10" / "0x1p3" 当十六进制浮点吃掉，QString::toDouble 不接受
+    // 十六进制。from_chars(general) 天然不认，换回 strtod_l 就必须自己挡住。
+    const std::ptrdiff_t n = end - begin;
+    const bool looksHex =
+        (n >= 2 && begin[0] == '0' && (begin[1] == 'x' || begin[1] == 'X'))
+        || (n >= 3 && begin[0] == '-' && begin[1] == '0'
+            && (begin[2] == 'x' || begin[2] == 'X'));
+
+    bool good = false;
     double v = 0.0;
-    const std::from_chars_result r =
-        std::from_chars(begin, end, v, std::chars_format::general);
-    const bool good = (r.ec == std::errc()) && pkTailIsBlank(r.ptr, end);
+    if (!looksHex && begin != end) {
+        const locale_t cloc = pkCLocale();
+        char* stop = nullptr;
+        errno = 0;
+        // newlocale 失败（基本不可能）时退回普通 strtod：宁可在那种环境下
+        // 退化成受 locale 影响，也好过给 strtod_l 传一个空 locale_t（UB）。
+        const double parsed = (cloc != static_cast<locale_t>(0))
+                                  ? ::strtod_l(begin, &stop, cloc)
+                                  : ::strtod(begin, &stop);
+        if (stop != begin && errno != ERANGE && pkTailIsBlank(stop, end)) {
+            v = parsed;
+            good = true;
+        }
+    }
     if (ok != nullptr) {
         *ok = good;
     }

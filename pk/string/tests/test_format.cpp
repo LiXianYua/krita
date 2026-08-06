@@ -121,6 +121,22 @@ void run_format_tests()
     _expect(!ok, "toDouble sets ok=false on trailing garbage");
     _expect(PkString("2.25").toDouble() == 2.25, "toDouble works with null ok pointer");
     _expect(PkString("+3.5").toDouble(&ok) == 3.5, "toDouble tolerates a leading plus");
+    // strtod 家族会把这些当十六进制浮点吃掉，QString::toDouble 不接受十六进制。
+    // 解析实现换来换去时这两条最容易被悄悄放行，所以钉死。
+    _expect(PkString("0x10").toDouble(&ok) == 0.0, "toDouble rejects hex literals");
+    _expect(!ok, "hex input sets ok=false");
+    _expect(PkString("0x1p3").toDouble(&ok) == 0.0, "toDouble rejects hex float literals");
+    _expect(!ok, "hex float input sets ok=false");
+    _expect(PkString("-0X2").toDouble(&ok) == 0.0, "toDouble rejects signed uppercase hex");
+    _expect(!ok, "signed hex input sets ok=false");
+    // 串里嵌了 U+0000 时，NUL 之后的垃圾必须照样被拒——解析函数在 NUL 处停下，
+    // 但尾随判定要按真实长度算，不能按 C 串长度算。
+    _expect(PkString::PkFromUtf8("1.5\0xx", 6).toDouble(&ok) == 0.0,
+            "toDouble rejects garbage after an embedded NUL");
+    _expect(!ok, "embedded-NUL garbage sets ok=false");
+    _expect(PkString::PkFromUtf8("12\0zz", 5).toInt(&ok) == 0,
+            "toInt rejects garbage after an embedded NUL");
+    _expect(!ok, "embedded-NUL garbage sets toInt ok=false");
     _expect(PkString(" 2.5 ").toDouble(&ok) == 2.5, "toDouble tolerates surrounding whitespace");
     _expect(PkString("+8").toInt(&ok) == 8, "toInt tolerates a leading plus");
     _expect(PkString("99999999999999999999").toInt(&ok) == 0, "toInt rejects out-of-range values");

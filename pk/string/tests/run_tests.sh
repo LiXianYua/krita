@@ -32,4 +32,27 @@ if [ -d "$LOCDIR/de_DE.UTF-8" ]; then
     export LOCPATH
 fi
 
-exec "./$BIN"
+# 不能 exec：跑完还要判断「LC_NUMERIC 免疫那一组到底跑没跑」。
+out=$("./$BIN" 2>&1)
+rc=$?
+printf '%s\n' "$out"
+if [ "$rc" -ne 0 ]; then
+    exit "$rc"
+fi
+
+# 测试全绿 ≠ 判据够强。上面那一组没跑到时测试也会绿，而 replacement.sh ⑨ 把
+# stdout 和 stderr 都重定向进 /dev/null —— 连测试自己打印的 NOTE 都看不见。
+# 所以这里把「最强的一组没跑到」升格成非 0 退出：偏离可以，无声无息不行。
+# 确实无法造 locale 的环境（没 localedef / 没 i18n 源）可以显式
+# PKSTRING_ALLOW_NO_LOCALE=1 放行 —— 那是一个要有人主动做的决定。
+if printf '%s' "$out" | grep -q 'LC_NUMERIC 免疫检查未跑到'; then
+    if [ "${PKSTRING_ALLOW_NO_LOCALE:-0}" = "1" ]; then
+        printf 'run_tests.sh: LC_NUMERIC 免疫检查未跑到，已按 PKSTRING_ALLOW_NO_LOCALE=1 放行\n' >&2
+    else
+        printf 'run_tests.sh: LC_NUMERIC 免疫检查未跑到，判为失败。\n' >&2
+        printf '  装 localedef 与 /usr/share/i18n/locales/de_DE 后重跑，或显式设\n' >&2
+        printf '  PKSTRING_ALLOW_NO_LOCALE=1 承认这一轮没验到这一项。\n' >&2
+        exit 1
+    fi
+fi
+exit 0
