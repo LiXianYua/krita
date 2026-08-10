@@ -20,7 +20,7 @@
 #include <kis_types.h>
 #include <KisViewManager.h>
 #include <kis_image.h>
-#include <kis_wavelet_kernel.h>
+#include <KisWaveletKernel.h>
 #include <kis_action.h>
 #include <KisDocument.h>
 #include <kis_node.h>

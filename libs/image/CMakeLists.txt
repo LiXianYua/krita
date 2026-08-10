@@ -172,6 +172,8 @@ set(kritaimage_LIB_SRCS
    kis_convolution_painter.cc
    kis_gaussian_kernel.cpp
    kis_edge_detection_kernel.cpp
+   KisWaveletKernel.cpp
+   KisWaveletKernel.h
    kis_cubic_curve.cpp
    KisLevelsCurve.cpp
    KisAutoLevels.cpp

@@ -4,7 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_wavelet_kernel.h"
+#include "KisWaveletKernel.h"
 
 #include "kis_convolution_kernel.h"
 #include <kis_convolution_painter.h>

@@ -1,7 +1,6 @@
 set(kritawaveletdecompose_SOURCES
     waveletdecompose.cpp
     dlg_waveletdecompose.cpp
-    kis_wavelet_kernel.cpp
     )
 
 ki18n_wrap_ui(kritawaveletdecompose_SOURCES
