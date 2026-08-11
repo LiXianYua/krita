@@ -12,6 +12,8 @@ void PkTestCase::beginRun()
     m_failedFunctions = 0;
     m_passedFunctions = 0;
     m_skippedFunctions = 0;
+    m_lastSkipped = false;
+    m_inFunction = false;
 }
 
 void PkTestCase::beginFunction(const char *className, const char *functionName)
@@ -22,10 +24,14 @@ void PkTestCase::beginFunction(const char *className, const char *functionName)
     m_currentSkipped = false;
     m_expectFailArmed = false;
     m_currentDataTag.clear();
+    m_currentDataRow = NoDataRow;
+    m_inFunction = true;
 }
 
 bool PkTestCase::endFunction()
 {
+    m_inFunction = false;
+    m_lastSkipped = m_currentSkipped;
     if (m_currentSkipped) {
         ++m_skippedFunctions;
         return false;
@@ -42,6 +48,14 @@ bool PkTestCase::endFunction()
 
 void PkTestCase::recordFailure(const char *file, int line, const std::string &message)
 {
+    if (!m_inFunction) {
+        // 契约违反（见头文件）：没有活动函数就没有归属对象，m_currentFailed 会被
+        // 下一次 beginFunction 抹掉。直接计一次失败并打印，宁可吵也不能静默。
+        ++m_failedFunctions;
+        std::printf("FAIL!  : <no active test function> %s\n   Loc: [%s(%d)]\n",
+                    message.c_str(), file, line);
+        return;
+    }
     m_currentFailed = true;
     std::printf("FAIL!  : %s::%s %s\n   Loc: [%s(%d)]\n",
                 m_className.c_str(), m_functionName.c_str(),
@@ -100,7 +114,8 @@ void PkTestCase::skipCurrent(const char *message, const char *file, int line)
                 message ? message : "", file, line);
 }
 
-void PkTestCase::setCurrentDataTag(const char *tag)
+void PkTestCase::setCurrentDataRow(std::size_t index, const char *tag)
 {
+    m_currentDataRow = index;
     m_currentDataTag = tag ? tag : "";
 }

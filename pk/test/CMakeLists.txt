@@ -61,6 +61,7 @@ add_executable(selftest_pktest
     tests/selftest_expectfail.cpp
     tests/selftest_data.cpp
     tests/selftest_compat.cpp
+    tests/selftest_runner.cpp
 )
 target_link_libraries(selftest_pktest PRIVATE pktest)
 

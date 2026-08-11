@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <string>
 
 // XFAIL 之后的执行策略：QTest::Continue 继续执行函数体，QTest::Abort 立即 return。
@@ -22,7 +23,14 @@ public:
     void beginFunction(const char *className, const char *functionName);
     // 返回该函数是否失败
     bool endFunction();
+    // 刚结束的那个函数是不是被 PK_SKIP 跳过的。单独一个查询而不是塞进
+    // endFunction 的返回值：调用方要区分"失败"与"跳过"两种不同的后续策略
+    // （initTestCase 被跳过 → 整个测试类不跑，但 rc 仍是 0）。
+    bool lastFunctionSkipped() const { return m_lastSkipped; }
 
+    // 没有活动函数上下文时调用是**契约违反**：失败会被记进上一个函数的残留状态、
+    // 再被下一次 beginFunction 抹掉，最终 Totals 报 0 failed。这种情况下本函数
+    // 直接计一次失败并打印，让接缝第一次出现就响。
     void recordFailure(const char *file, int line, const std::string &message);
 
     // 断言结果的统一入口。返回 true 表示"调用方应当 return"。
@@ -39,9 +47,15 @@ public:
 
     void skipCurrent(const char *message, const char *file, int line);
 
-    // 当前数据行的 tag，供 expectFail 的 dataIndex 匹配、也供 PkTestData 按 tag 找行。
-    void setCurrentDataTag(const char *tag);
+    // 当前数据行。**行号是取值的唯一依据**，tag 只用于 expectFail 的 dataIndex
+    // 匹配与打印——按 tag 反查行会让重复 tag 的行全部读到第一行的值
+    // （真实调用点确有重复 tag：libs/image/tests/TestAslStorage.cpp）。
+    void setCurrentDataRow(std::size_t index, const char *tag);
+    std::size_t currentDataRow() const { return m_currentDataRow; }
     const std::string &currentDataTag() const { return m_currentDataTag; }
+
+    // "当前不是数据驱动的调用"的行号哨兵值。
+    static constexpr std::size_t NoDataRow = static_cast<std::size_t>(-1);
 
     int failedFunctionCount() const { return m_failedFunctions; }
     int passedFunctionCount() const { return m_passedFunctions; }
@@ -61,6 +75,9 @@ private:
     PkTestFailMode m_expectFailMode = PkTestContinueMode;
 
     std::string m_currentDataTag;
+    std::size_t m_currentDataRow = NoDataRow;
     bool m_currentSkipped = false;
+    bool m_lastSkipped = false;
+    bool m_inFunction = false;
     int m_skippedFunctions = 0;
 };
