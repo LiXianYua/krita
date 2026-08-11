@@ -10,11 +10,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 add_library(pktest STATIC
     PkTestCase.cpp
     PkTestRunner.cpp
+    PkTestCompare.cpp
 )
 target_include_directories(pktest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(selftest_pktest
     tests/selftest_main.cpp
     tests/selftest_assert.cpp
+    tests/selftest_compare.cpp
 )
 target_link_libraries(selftest_pktest PRIVATE pktest)

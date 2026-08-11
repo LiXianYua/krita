@@ -2,6 +2,7 @@
 
 #include "PkTestObject.h"
 #include "PkTestCase.h"
+#include "PkTestCompare.h"
 
 // 每个测试类由生成器（pk_test_moc.py）特化一个 PkTestBinder。
 // 只前置声明：Q_OBJECT 展开成对它的 friend 声明，所以它必须先可见。
@@ -65,4 +66,16 @@ int qExec(T *obj, int argc = 0, char **argv = nullptr)
     do {                                                              \
         PkTestCase::current().recordFailure(__FILE__, __LINE__, (message)); \
         return;                                                       \
+    } while (false)
+
+#define PK_COMPARE(actual, expected)                                        \
+    do {                                                                    \
+        if (!pkTestCompare((actual), (expected))) {                         \
+            PkTestCase::current().recordFailure(                            \
+                __FILE__, __LINE__,                                         \
+                pkTestCompareFailureMessage(#actual, #expected,             \
+                                            pkTestToString(actual),         \
+                                            pkTestToString(expected)));     \
+            return;                                                         \
+        }                                                                   \
     } while (false)

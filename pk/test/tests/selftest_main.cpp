@@ -3,10 +3,12 @@
 int g_selftestFailures = 0;
 
 void run_assert_selftests();
+void run_compare_selftests();
 
 int main()
 {
     run_assert_selftests();
+    run_compare_selftests();
     if (g_selftestFailures == 0) {
         std::printf("all pktest selftests passed\n");
         return 0;
