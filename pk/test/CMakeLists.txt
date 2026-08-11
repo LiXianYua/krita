@@ -15,6 +15,36 @@ add_library(pktest STATIC
 )
 target_include_directories(pktest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+# 测试发现走 pk_test_moc.py（替代 moc），不走 Qt 的元对象系统。
+# Python3 而非 C++：产物是纯 .cpp，交叉编译到 Android 时 host 侧生成器零额外工具链成本。
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(PKTEST_MOC_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/pk_test_moc.py" CACHE INTERNAL "")
+
+# pk_test_generate(<out_var> <header>...)
+# 为每个测试头生成一个 PkTestBinder<T> 特化 .cpp，把产物路径追加进 out_var。
+function(pk_test_generate out_var)
+    set(generated "")
+    foreach(header ${ARGN})
+        get_filename_component(base "${header}" NAME_WE)
+        set(out "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_${base}.cpp")
+        add_custom_command(
+            OUTPUT "${out}"
+            COMMAND ${Python3_EXECUTABLE}
+                    "${PKTEST_MOC_SCRIPT}" "${header}" -o "${out}"
+            DEPENDS "${header}" "${PKTEST_MOC_SCRIPT}"
+            COMMENT "pk_test_moc ${header}"
+            VERBATIM)
+        list(APPEND generated "${out}")
+    endforeach()
+    set(${out_var} "${generated}" PARENT_SCOPE)
+endfunction()
+
+# SelfAssertCase 的 binder 由生成器产出（对照组见 tests/generator_cases/self_assert_case.h
+# 与 tests/selftest_assert.cpp 头部的说明）——证明生成器产出的 binder 与手写等价，
+# 也证明 Q_OBJECT 展开成的 friend 模板真的让生成的 lambda 能访问 private 成员。
+pk_test_generate(PKTEST_GENERATED_SELFTEST_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/generator_cases/self_assert_case.h")
+
 add_executable(selftest_pktest
     tests/selftest_main.cpp
     tests/selftest_assert.cpp
@@ -23,3 +53,13 @@ add_executable(selftest_pktest
     tests/selftest_data.cpp
 )
 target_link_libraries(selftest_pktest PRIVATE pktest)
+
+# 生成的 binder .cpp 不作为独立翻译单元编译进可执行文件：PkTestBinder<T> 是
+# 显式特化，qExec<T> 实例化处必须"看见"它的完整定义——分开编译成独立目标
+# 文件的话，qExec 所在的 TU 只看得到 PkTestBinder<T> 的前置声明（不完整类型），
+# 编不过。做法与 Qt moc 的 "#include moc_X.cpp" 惯例一致：调用 qExec<T> 的
+# .cpp 自己 #include 生成的 binder .cpp，两者同一个 TU。
+# out_var 仍返回生成产物路径——这里只用它补上构建期依赖，让生成先于编译发生。
+target_include_directories(selftest_pktest PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+set_source_files_properties(tests/selftest_assert.cpp PROPERTIES
+    OBJECT_DEPENDS "${PKTEST_GENERATED_SELFTEST_SOURCES}")

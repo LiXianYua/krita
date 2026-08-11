@@ -1,43 +1,21 @@
-#include "../PkTest.h"
+#include "generator_cases/self_assert_case.h"
 #include "selftest_util.h"
 
-// 全局标记必须先于类声明可见：内联成员函数体虽按"完整类之后"延迟处理，
-// 那只让本类的后续成员对前面的成员可见，不会让文件里更晚出现的全局变量
-// 提前可见——放在类后面会是一处真正的编译错误，不是风格问题。
+// PkTestBinder<SelfAssertCase> 特化由 pk_test_moc.py 生成（CMake 的
+// pk_test_generate 触发构建），像 Qt moc 输出一样直接 #include 进本 TU——
+// 显式特化必须在 qExec<SelfAssertCase> 实例化前对本 TU 可见，分开编译成
+// 独立目标文件的话这里只看得到前置声明（不完整类型），编不过。
+#include "pk_binder_self_assert_case.cpp"
+
+// 类声明在 generator_cases/self_assert_case.h（生成器的输入），
+// 这里只放成员函数的定义与自测本体。
+
 bool g_reachedAfterFailure = false;
 
-// 一个手写的"测试类"，形状与 Krita 真实测试类一致，但 binder 手写而非生成。
-// Task 5 上生成器之后，这个手写 binder 仍然保留 —— 它是生成器的对照组。
-class SelfAssertCase : public PkTestObject
-{
-    template <typename PkTestBinderArgT> friend struct PkTestBinder;
-private:
-    void passingVerify()  { PK_VERIFY(1 + 1 == 2); }
-    void failingVerify()  { PK_VERIFY(1 + 1 == 3); }
-    void unconditionalFail() { PK_FAIL("deliberate"); }
-    void stopsAtFirstFailure() { PK_VERIFY(false); g_reachedAfterFailure = true; }
-};
-
-template <> struct PkTestBinder<SelfAssertCase> {
-    static const char *className() { return "SelfAssertCase"; }
-    static const PkTestFunction *functions() {
-        static const PkTestFunction fns[] = {
-            {"passingVerify",      [](PkTestObject *o){ static_cast<SelfAssertCase*>(o)->passingVerify(); },      nullptr},
-            {"failingVerify",      [](PkTestObject *o){ static_cast<SelfAssertCase*>(o)->failingVerify(); },      nullptr},
-            {"unconditionalFail",  [](PkTestObject *o){ static_cast<SelfAssertCase*>(o)->unconditionalFail(); },  nullptr},
-            {"stopsAtFirstFailure",[](PkTestObject *o){ static_cast<SelfAssertCase*>(o)->stopsAtFirstFailure(); },nullptr},
-        };
-        return fns;
-    }
-    static int count() { return 4; }
-    static const PkTestFunction *dataFunctions() { return nullptr; }
-    static int dataCount() { return 0; }
-    static const PkTestFunction *initTestCase()     { return nullptr; }
-    static const PkTestFunction *cleanupTestCase()  { return nullptr; }
-    static const PkTestFunction *initFn()           { return nullptr; }
-    static const PkTestFunction *cleanupFn()        { return nullptr; }
-    static const PkTestFunction *initTestCaseData() { return nullptr; }
-};
+void SelfAssertCase::passingVerify()  { PK_VERIFY(1 + 1 == 2); }
+void SelfAssertCase::failingVerify()  { PK_VERIFY(1 + 1 == 3); }
+void SelfAssertCase::unconditionalFail() { PK_FAIL("deliberate"); }
+void SelfAssertCase::stopsAtFirstFailure() { PK_VERIFY(false); g_reachedAfterFailure = true; }
 
 void run_assert_selftests()
 {
