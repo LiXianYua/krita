@@ -18,12 +18,17 @@ public:
     template <typename T>
     PkTestDataRow &operator<<(const T &value)
     {
-        appendValue(std::any(value), typeid(T).name());
+        // 类型身份只取 std::any 自己 decay 之后的 value.type()（appendValue 内部
+        // 用它比对列类型）——不再额外传 typeid(T).name()：T 是模板推导出来的
+        // 原始类型（数组字面量推出来是 char[N]，未 decay），而 std::any(value)
+        // 内部会把它 decay 成指针再存。两个身份不一致会导致同一个值在这里通过
+        // 校验、valueAt() 取值时却因类型名对不上而被判定为不同类型。
+        appendValue(std::any(value));
         return *this;
     }
 
 private:
-    void appendValue(std::any value, const char *typeName);
+    void appendValue(std::any value);
 
     class PkTestTable *m_table;
     std::string m_tag;
@@ -83,9 +88,16 @@ const std::any *fetchData(const char *columnName, const char *typeName);
 // 让函数体能继续走到下一个断言（那个断言必然失败，错误信息不会丢）。
 // 宏参数不能叫 name——预处理器是纯文本替换，会把宏体里 `typeid(Type).name()`
 // 的那个 `.name()` 成员调用也当成参数名替换掉。
+// 默认值不能直接写 `Type()`（或 `Type{}`）：Type 可以是指针类型（如
+// `const char*`），两者都要求类型名是单个 simple-type-specifier，指针
+// 声明符不满足——`Type()` 会被解析成函数类型声明而报语法错，`Type{}`
+// 则只能靠非标准的 GNU 复合字面量扩展才编得过。改成先声明一个具名局部
+// 变量 `Type pkFetchDefault{};` 再在三目表达式里引用它：声明语句里的
+// 花括号初始化对任意类型（含指针）都是标准语法，没有这条限制。
 #define PK_FETCH(Type, pkFetchVarName)                                        \
     Type pkFetchVarName = [] {                                                \
         const std::any *pkFetched =                                          \
             PkTest::fetchData(#pkFetchVarName, typeid(Type).name());         \
-        return pkFetched ? std::any_cast<Type>(*pkFetched) : Type();          \
+        Type pkFetchDefault{};                                               \
+        return pkFetched ? std::any_cast<Type>(*pkFetched) : pkFetchDefault; \
     }()

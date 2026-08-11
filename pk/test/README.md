@@ -3,7 +3,7 @@
 零 Qt 依赖的 QTest 兼容测试层（宏名 `PK_*`）+ 一个替代 moc 做测试发现的代码生成器
 （`pk_test_moc.py`）。独立 `project(pktest)` 薄壳工程，不接入 Krita 主构建。
 
-## 1. API 范围表（16 项，一项不多一项不少）
+## 1. API 范围表（17 项，一项不多一项不少）
 
 口径：`git ls-files '*.cpp' '*.h' '*.cc'` 取路径含 `tests/`、`benchmarks/`、
 `sdk/tests/` 的 805 个文件，逐 token 做 `grep -oh -w` 统计。与
@@ -32,16 +32,23 @@
 | 14 | `QTest::qExec` | `PkTest::qExec` | 3 |
 | 15 | `qFuzzyCompare` | `pkFuzzyCompare` | 28 |
 | 16 | `QTest::currentDataTag` | `PkTest::currentDataTag` | 15 |
+| 17 | `QTest::qFail` | `PkTest::qFail` | 1 |
 
-### 这张表是 16 项，D-30 记的是 15 项
+### 这张表是 17 项，D-30 记的是 15 项
 
 `docs/迁移执行计划.md` D-30 ① 写的是「API 面实测 15 个」，但从未逐项枚举是哪 15 个；
-本表是实测导出的，逐项列全之后是 **16 项**，多出来的那一项是 `QTest::currentDataTag`
-（15 处真实调用点，分布在 6 个文件：`libs/flake/tests/TestSvgParser.cpp`、
-`TestSvgTextShape.cpp`、`libs/image/tests/kis_clone_layer_test.cpp`、
-`kis_liquify_transform_worker_test.cpp`、
-`plugins/color/lcms2engine/tests/TestIccFromColorimetryConversion.cpp`、
-`plugins/paintops/libpaintop/tests/kis_linked_pattern_manager_test.cpp`）。
+本表是实测导出的，逐项列全之后是 **17 项**，多出来的两项：
+
+- `QTest::currentDataTag`（15 处真实调用点，分布在 6 个文件：
+  `libs/flake/tests/TestSvgParser.cpp`、`TestSvgTextShape.cpp`、
+  `libs/image/tests/kis_clone_layer_test.cpp`、
+  `kis_liquify_transform_worker_test.cpp`、
+  `plugins/color/lcms2engine/tests/TestIccFromColorimetryConversion.cpp`、
+  `plugins/paintops/libpaintop/tests/kis_linked_pattern_manager_test.cpp`）
+- `QTest::qFail`（R-11 复评补登，1 处真实调用点：
+  `libs/pigment/tests/TestColorConversionSystem.cpp:85`，`QVERIFY2`/`QCOMPARE`
+  等断言宏在 Qt 里内部就是靠它记失败，这里是**唯二**被真实调用点直接调用、
+  不经宏的 `QTest::` 成员之一——另一个是下面 §2 判定排除的 `QTest::qCompare`）
 
 计数口径：`git ls-files '*.cpp' '*.h' '*.cc'` 里路径含 `tests/`、`benchmarks/`、
 `sdk/tests/` 的文件，逐 token `grep -oh -w` 统计，用量 > 0 且属于 QTest 语义面的
@@ -61,7 +68,7 @@
 | `KISTEST_MAIN` | 127 | `sdk/tests/kistest.h` 定义。本任务只给一个转发到 `PK_TEST_MAIN` 的最小垫片，资源目录那套归 S0 |
 | `QObject` / `Q_OBJECT` / `Q_SLOTS` | 354 个 `private Q_SLOTS:` | 测试类的基类与访问控制。只给测试用最小垫片，真正的 `PkObject` 归 R-05 |
 
-## 2. 明确排除的 8 项 —— 每项都有理由与归属
+## 2. 明确排除的 9 项 —— 每项都有理由与归属
 
 | Qt 名 | 用量 | 排除理由 | 归属 |
 |---|---|---|---|
@@ -73,13 +80,33 @@
 | `QTest::keyClicks` | 12 | GUI 键盘事件模拟，要的是 `QWidget` + 事件循环，零 Qt 之后没有可模拟的对象。唯一调用点 `libs/widgetutils/tests/kis_parse_spin_boxes_test.cpp` 测的是 `QDoubleSpinBox` 子类，属 D3 判定「随 `libs/ui` 一起删除的 GUI 测试」 | 随 GUI 测试删除 |
 | `QTest::currentTestFunction` | 4 | 返回当前测试函数名。唯一调用点 `plugins/paintops/libpaintop/tests/kis_linked_pattern_manager_test.cpp` 拿它拼临时资源文件名——那条路径依赖的是 S0 才交付的资源目录，在资源系统剥完之前实现这个取值器没有可验证的调用点 | S0 |
 | `QTest::currentTestFailed` | 1 | 返回当前测试函数是否已失败。唯一调用点 `libs/image/tests/kis_mask_similarity_test.cpp` 用它决定失败时是否落盘对比图，是**诊断产物**而非判定逻辑，去掉不改变任何测试的通过/失败结论 | 不实现 |
+| `QTest::qCompare` | 1 | R-11 复评补登。唯一调用点是 `sdk/tests/testutil.h:59` 的 `KIS_COMPARE_FLT` 宏（`libs/*` 全仓 24 处调用该宏），但该宏体自己还依赖 `qreal`/`qRound`——这两个 Qt 标量类型本表 §3 已经记过「零真实调用点不预先实现，归 R-02/R-03」，`qCompare` 现在有了调用点，但依赖它的宏本身还编不过，实现了也没有可跑的真实调用点验证。等 `qreal`/`qRound` 落地后随 `KIS_COMPARE_FLT` 一起补 | R-02/R-03（跟随 `qreal`/`qRound`） |
 
 未出现在 Krita 里、因此不实现（实测计数为 0）：`QTRY_COMPARE`、`QTRY_VERIFY`、
 `QWARN`、`QFETCH_GLOBAL`。
 
-上表加实现的 16 项，覆盖了实测有真实用量的全部 `QTest::` 成员与 `Q*` 测试宏——
-**没有第三类「既没实现也没登记」的条目**。这条是判据①的凭据，新增或删减
-任何一项都要同时改这两张表与 `graft/rename.sed`。
+**`QTest::` 命名空间成员这一部分，本次复评已重新核实完整**：按本节开头同样的
+口径（`git ls-files '*.cpp' '*.h' '*.cc'`，路径含 `tests/`/`benchmarks/`/
+`sdk/tests/`，排除 `pk/` 自身，本次重新枚举命中 796 个文件——与本文档别处的
+805、复评员的 816 有几个百分点出入，来源同 §1 已说明的文件集边界问题，量级
+一致）对全部 `\bQTest::[A-Za-z_][A-Za-z0-9_]*` 做过一次去重枚举：命中的 12
+个不同成员——`addColumn`/`addRow`/`newRow`/`currentDataTag`/`qExec`/`qFail`
+（本表 §1，6 项）、`qWait`/`qSleep`/`keyClicks`/`currentTestFunction`/
+`currentTestFailed`/`qCompare`（本表 §2，6 项）——与两张表的登记逐一对上，
+没有第 13 个 `QTest::` 成员。
+
+**不带命名空间前缀的 `Q*` 测试宏这一部分，本次复评没有重新逐项核实**——
+沿用的是本文档原有的口径与结论。用同样的口径顺手扫了一遍作为交叉检查时，
+额外发现一个**本次未处理**的缺口：`QCOMPARE_NE`（Qt 6.4+ 新增的比较宏族之一，
+`QCOMPARE_EQ`/`_LT`/`_LE`/`_GT`/`_GE` 的同族成员，语义上仍属 QTest 的一部分，
+只是不带 `QTest::` 前缀所以没被上面那条枚举命中），唯一调用点
+`libs/ui/tests/kis_coordinates_converter_test.cpp`（4 处）。这不是 R-11 复评
+点名的两项之一，登记与实现判断留给下一次任务处理，这里只诚实记下"发现了但
+没修"，不把它悄悄归零。
+
+综上：`QTest::` 命名空间成员这一类，**没有第三类「既没实现也没登记」的条目**
+（已验证）；`Q*` 宏这一类，**已知还有 `QCOMPARE_NE` 未登记**（本轮范围之外，
+留给后续）。新增或删减任何一项都要同时改这两张表与 `graft/rename.sed`。
 
 ## 3. 覆盖度缺口
 
@@ -108,6 +135,18 @@
   项）。`qint8..quint64`/`qreal` 这批标量 typedef 与 `qMin`/`qMax` 不在这里：
   零真实调用点的东西不预先实现（线级 spec 判据①），这批类型归 R-02（容器）/
   R-03（几何）交付。
+- **`PkTestDataRow::operator<<` 没有 Qt 那条非模板重载**：Qt 的
+  `QTestData& operator<<(QTestData&, const char*)`（`qtestdata.h:81-86`）会把
+  字符串字面量自动转成 `QString` 再存；pk 目前只有 `operator<<` 那一个模板，
+  字符串字面量走的是模板推导（数组类型，`std::any` 里存的是 decay 后的
+  `const char*`，不是任何字符串类型）。S-00 全量接入时，凡是数据行喂字符串
+  字面量、且对应列是 `QString`（或将来的 pk 字符串类型）的调用点都会撞上
+  ——**实测 `addColumn<QString>` 全仓 89 处**（本次复评重新核过，口径：
+  `xargs grep -c 'addColumn<QString>'` 对 §1 口径下的文件集求和），**数据行
+  喂字符串字面量约 329 行**（复评员给出的数字，未重新核实其精确 grep 口径，
+  量级上与 89 处 `QString` 列合理对应）。归属：等 R-02 的字符串类型落地后，
+  给 `PkTestDataRow` 补一条 `operator<<(const char*)` 非模板重载，把字符串
+  字面量转成那时候的 pk 字符串类型再存。
 - **本轮明确不修、留给后续的三条**（不是缺陷分类里的"未知"，是已定位、已决定不在
   R-11 处理的）：
   - 生成的 `.inc` 里 `#include` 写的是**绝对路径**，对 ccache 不友好（同一份源码
@@ -159,8 +198,9 @@
 
 `graft_run.sh` 把 `libs/global/tests/KisValueCacheTest.{h,cpp}`（target
 `kritaglobal`）与 `libs/pigment/tests/TestKoIntegerMaths.{h,cpp}`（target
-`kritapigment`）复制到构建目录，在副本上跑 `rename.sed`（D-23 的 16 条机械改名，
-唯一允许的改动），编译时定义 `PK_TEST_NO_QT_MACRO_ALIASES` 关掉 `compat/QTest`
+`kritapigment`）复制到构建目录，在副本上跑 `rename.sed`（D-23 的 17 条实现规则
++ 1 条 `QTest::qCompare` 排除但仍改名的规则，见 §6，唯一允许的改动），编译时
+定义 `PK_TEST_NO_QT_MACRO_ALIASES` 关掉 `compat/QTest`
 里的 `QCOMPARE→PK_COMPARE` 一类别名——sed 若漏改一处，编译立刻报
 `'QCOMPARE' was not declared`，这样试接才真正证明 D-23 的 sed 是机械可行的，
 而不是靠别名把漏改的地方悄悄编过。结尾 `git diff --quiet` 自证源树零改动。
@@ -173,10 +213,12 @@
 
 ## 6. S-00 要接手什么
 
-- **`pk/test/graft/rename.sed` 就是 D-23 全量 sed 的规则表**：16 条规则，与 §1 的
-  实现表一一对应，顺序有讲究（`QVERIFY2` 必须排在 `QVERIFY` 前，
-  `QTEST_APPLESS_MAIN`/`QTEST_GUILESS_MAIN` 必须排在 `QTEST_MAIN` 前），S-00
-  可以直接复用这份表对全仓跑 sed。§1 的表加一项，这里就要加一条。
+- **`pk/test/graft/rename.sed` 就是 D-23 全量 sed 的规则表**：18 条规则——17 条与
+  §1 的实现表一一对应，另 1 条是 §2 判定排除但仍需要改名的 `QTest::qCompare`
+  （原因见该行的表内说明与 sed 文件里那条规则上方的注释）。规则集本身对匹配
+  顺序不敏感（各条模式后面都跟着硬边界，不存在互相吃掉前缀的情况，见
+  `rename.sed` 文件头注释），S-00 可以直接复用这份表对全仓跑 sed。§1 的表加
+  一项，这里就要加一条；§2 新增排除项若有真实调用点，也要加一条。
 - **`QEXPECT_FAIL` 的第三参数不用改名**：Qt 的调用点写的是**裸** `Continue`/`Abort`
   （实测全仓零处写 `QTest::Continue`），命名空间由宏体自己拼。`PK_EXPECT_FAIL`
   照抄了这条，所以 sed 只改宏名就够，不要额外去动第三参数。

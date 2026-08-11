@@ -202,4 +202,13 @@ int execPlan(PkTestObject *obj, const PkTestPlan &plan, int argc, char **argv)
     return state.failedFunctionCount();
 }
 
+// Qt 里 QTest::qFail 是 QFAIL/QVERIFY2 等宏内部实际调用的记录函数，返回值恒为
+// false（调用方靠它省一次分支）。这里直接复用 recordFailure——它就是
+// checkResult() 失败分支背后那同一条记录路径，PK_FAIL 也走它。
+bool qFail(const char *message, const char *file, int line)
+{
+    PkTestCase::current().recordFailure(file, line, message ? message : "");
+    return false;
+}
+
 } // namespace PkTest

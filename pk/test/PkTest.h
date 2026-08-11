@@ -41,6 +41,12 @@ namespace PkTest {
 
 int execPlan(PkTestObject *obj, const PkTestPlan &plan, int argc, char **argv);
 
+// QTest::qFail 的对应物——QFAIL/QVERIFY2 等宏在 Qt 里就是靠它记失败，也是
+// 唯二两个被真实调用点**直接调用**（不经宏）的 QTest:: 成员之一（另一个是
+// qCompare，R-11 判定排除，见 pk/test/README.md §2）。message 为 nullptr 时
+// 按空字符串处理，不做额外校验——与 recordFailure 本身的容错口径一致。
+bool qFail(const char *message, const char *file, int line);
+
 template <typename T>
 int qExec(T *obj, int argc = 0, char **argv = nullptr)
 {

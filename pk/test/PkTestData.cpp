@@ -9,7 +9,7 @@ PkTestDataRow::PkTestDataRow(PkTestTable *table, std::string tag)
     table->m_rows.push_back(PkTestTable::Row{m_tag, {}});
 }
 
-void PkTestDataRow::appendValue(std::any value, const char *typeName)
+void PkTestDataRow::appendValue(std::any value)
 {
     // 入表阶段就校验列数与类型，与 Qt 一致（QTestData::append 对越界与类型不符都
     // 直接 qFatal）。写错的行在 _data() 里就被点名，而不是等到每一行调用
@@ -25,7 +25,11 @@ void PkTestDataRow::appendValue(std::any value, const char *typeName)
     }
 
     const PkTestTable::Column &column = m_table->m_columns[columnIndex];
-    if (column.typeName != (typeName ? typeName : "")) {
+    // 比对用 value.type().name()（std::any 内部已 decay 过的类型），不用调用方
+    // 传来的 typeid(T).name()——后者是模板推导出的原始类型，数组字面量场景下
+    // 与 std::any 实际存的类型不是同一个身份，会跟 valueAt() 的比对口径对不上
+    // （valueAt() 比的就是 value.type().name()，见下方）。
+    if (column.typeName != value.type().name()) {
         PkTestCase::current().recordFailure(
             "<PkTest::newRow>", 0,
             std::string("data row '") + m_tag + "': value type does not match column '"

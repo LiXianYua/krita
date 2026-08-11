@@ -22,6 +22,7 @@ private Q_SLOTS:
     void failingVerify();
     void unconditionalFail();
     void stopsAtFirstFailure();
+    void callsQFailDirectly();
 };
 
 #undef Q_SLOTS

@@ -1,6 +1,7 @@
 #include "../PkTest.h"
 #include "../PkTestData.h"
 #include "selftest_util.h"
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -216,6 +217,52 @@ template <> struct PkTestBinder<SelfBrokenDataCase> {
     static const PkTestFunction *initTestCaseData() { return nullptr; }
 };
 
+// 字符串字面量喂进数据行：operator<< 里 T 由模板推导（数组字面量推出来是
+// char[N]，未 decay），但 std::any(value) 内部把它 decay 成 const char*
+// 再存。appendValue 与 valueAt() 必须用同一个已 decay 的类型身份比对，
+// 否则这一行值在入表阶段就会被当成"类型不符"拒收
+// （见 PkTestData.cpp 的 appendValue 注释）。
+static std::string g_cstrFetched;
+
+class SelfDataConstCharCase : public PkTestObject
+{
+    template <typename PkTestBinderArgT> friend struct PkTestBinder;
+private:
+    void cstr_data()
+    {
+        PkTest::addColumn<const char*>("s");
+        PkTest::newRow("r") << "hello";
+    }
+    void cstr()
+    {
+        PK_FETCH(const char*, s);
+        g_cstrFetched = s ? s : "";
+    }
+};
+
+template <> struct PkTestBinder<SelfDataConstCharCase> {
+    static const char *className() { return "SelfDataConstCharCase"; }
+    static const PkTestFunction *functions() {
+        static const PkTestFunction fns[] = {
+            {"cstr", [](PkTestObject *o){ static_cast<SelfDataConstCharCase*>(o)->cstr(); }, "cstr_data"},
+        };
+        return fns;
+    }
+    static int count() { return 1; }
+    static const PkTestFunction *dataFunctions() {
+        static const PkTestFunction fns[] = {
+            {"cstr_data", [](PkTestObject *o){ static_cast<SelfDataConstCharCase*>(o)->cstr_data(); }, nullptr},
+        };
+        return fns;
+    }
+    static int dataCount() { return 1; }
+    static const PkTestFunction *initTestCase()     { return nullptr; }
+    static const PkTestFunction *cleanupTestCase()  { return nullptr; }
+    static const PkTestFunction *initFn()           { return nullptr; }
+    static const PkTestFunction *cleanupFn()        { return nullptr; }
+    static const PkTestFunction *initTestCaseData() { return nullptr; }
+};
+
 void run_data_selftests()
 {
     SelfDataCase tc;
@@ -265,4 +312,11 @@ void run_data_selftests()
                 "建表挂了之后该测试函数不再逐行执行");
     SELF_EXPECT(g_afterWrongColumnTypeRuns == 0,
                 "列类型不符时该测试函数不再逐行执行");
+
+    SelfDataConstCharCase cstrCase;
+    const int cstrRc = PkTest::qExec(&cstrCase, 1, const_cast<char **>(argv));
+    SELF_EXPECT(cstrRc == 0,
+                "addColumn<const char*> + 字符串字面量数据行应正常入表、正常取回，"
+                "不应因 appendValue/valueAt 两处类型身份不一致而被判定类型不符");
+    SELF_EXPECT(g_cstrFetched == "hello", "取回的值就是喂进去的字符串字面量");
 }
