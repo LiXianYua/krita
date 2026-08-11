@@ -45,7 +45,7 @@ private:
     }
     void partialExpectFail()
     {
-        PK_EXPECT_FAIL("bad", "只有这一行已知会挂", PkTest::Continue);
+        PK_EXPECT_FAIL("bad", "只有这一行已知会挂", Continue);
         PK_FETCH(int, v);
         PK_COMPARE(v, 1);
     }
@@ -121,6 +121,101 @@ template <> struct PkTestBinder<SelfDataTypeMismatchCase> {
     static const PkTestFunction *initTestCaseData() { return nullptr; }
 };
 
+// 重复 tag：两行同名，取值必须按行号而不是按 tag 反查
+// （真实调用点：libs/image/tests/TestAslStorage.cpp 的 testResource_data）。
+static std::vector<int> g_dupTagValues;
+
+class SelfDupTagCase : public PkTestObject
+{
+    template <typename PkTestBinderArgT> friend struct PkTestBinder;
+private:
+    void dup_data()
+    {
+        PkTest::addColumn<int>("v");
+        PkTest::newRow("dup") << 1;
+        PkTest::newRow("dup") << 2;
+    }
+    void dup()
+    {
+        PK_FETCH(int, v);
+        g_dupTagValues.push_back(v);
+    }
+};
+
+template <> struct PkTestBinder<SelfDupTagCase> {
+    static const char *className() { return "SelfDupTagCase"; }
+    static const PkTestFunction *functions() {
+        static const PkTestFunction fns[] = {
+            {"dup", [](PkTestObject *o){ static_cast<SelfDupTagCase*>(o)->dup(); }, "dup_data"},
+        };
+        return fns;
+    }
+    static int count() { return 1; }
+    static const PkTestFunction *dataFunctions() {
+        static const PkTestFunction fns[] = {
+            {"dup_data", [](PkTestObject *o){ static_cast<SelfDupTagCase*>(o)->dup_data(); }, nullptr},
+        };
+        return fns;
+    }
+    static int dataCount() { return 1; }
+    static const PkTestFunction *initTestCase()     { return nullptr; }
+    static const PkTestFunction *cleanupTestCase()  { return nullptr; }
+    static const PkTestFunction *initFn()           { return nullptr; }
+    static const PkTestFunction *cleanupFn()        { return nullptr; }
+    static const PkTestFunction *initTestCaseData() { return nullptr; }
+};
+
+// _data() 函数体里的断言失败必须被归属与计数，且该测试函数不再逐行执行
+// （真实调用点：libs/ui/tests/KisMultiFeedRssModelTest.cpp 的 testAddFeed_data）。
+static int g_afterFailedDataRuns = 0;
+// 值的类型与 addColumn 登记的列类型不符：入表阶段就该点名（与 Qt 一致）。
+static int g_afterWrongColumnTypeRuns = 0;
+
+class SelfBrokenDataCase : public PkTestObject
+{
+    template <typename PkTestBinderArgT> friend struct PkTestBinder;
+private:
+    void failingBuild_data()
+    {
+        PkTest::addColumn<int>("v");
+        PkTest::newRow("row") << 1;
+        PK_VERIFY(false);          // 建表阶段就挂
+    }
+    void failingBuild() { ++g_afterFailedDataRuns; }
+
+    void wrongColumnType_data()
+    {
+        PkTest::addColumn<int>("v");
+        PkTest::newRow("row") << 2.5;   // double 值进 int 列
+    }
+    void wrongColumnType() { ++g_afterWrongColumnTypeRuns; }
+};
+
+template <> struct PkTestBinder<SelfBrokenDataCase> {
+    static const char *className() { return "SelfBrokenDataCase"; }
+    static const PkTestFunction *functions() {
+        static const PkTestFunction fns[] = {
+            {"failingBuild",    [](PkTestObject *o){ static_cast<SelfBrokenDataCase*>(o)->failingBuild(); },    "failingBuild_data"},
+            {"wrongColumnType", [](PkTestObject *o){ static_cast<SelfBrokenDataCase*>(o)->wrongColumnType(); }, "wrongColumnType_data"},
+        };
+        return fns;
+    }
+    static int count() { return 2; }
+    static const PkTestFunction *dataFunctions() {
+        static const PkTestFunction fns[] = {
+            {"failingBuild_data",    [](PkTestObject *o){ static_cast<SelfBrokenDataCase*>(o)->failingBuild_data(); },    nullptr},
+            {"wrongColumnType_data", [](PkTestObject *o){ static_cast<SelfBrokenDataCase*>(o)->wrongColumnType_data(); }, nullptr},
+        };
+        return fns;
+    }
+    static int dataCount() { return 2; }
+    static const PkTestFunction *initTestCase()     { return nullptr; }
+    static const PkTestFunction *cleanupTestCase()  { return nullptr; }
+    static const PkTestFunction *initFn()           { return nullptr; }
+    static const PkTestFunction *cleanupFn()        { return nullptr; }
+    static const PkTestFunction *initTestCaseData() { return nullptr; }
+};
+
 void run_data_selftests()
 {
     SelfDataCase tc;
@@ -131,9 +226,13 @@ void run_data_selftests()
                 "数据驱动的三行都应通过；partialExpectFail 的 good/bad 两行"
                 "（一行真通过、一行按 dataIndex 精确匹配被豁免成 XFAIL）也都不计入失败");
     SELF_EXPECT(g_seenTags.size() == 3, "三行数据 → 测试函数跑三次");
-    SELF_EXPECT(g_seenTags[0] == "zero"      , "第一行 tag");
-    SELF_EXPECT(g_seenTags[1] == "positive"  , "第二行 tag");
-    SELF_EXPECT(g_seenTags[2] == "gen-7"     , "addRow 的 printf 风格 tag");
+    // SELF_EXPECT 不中断执行，所以下标访问必须自己守住 size ——
+    // 上一条断言挂掉时无条件索引 [0]..[2] 是自测自身的 UB。
+    if (g_seenTags.size() == 3) {
+        SELF_EXPECT(g_seenTags[0] == "zero"      , "第一行 tag");
+        SELF_EXPECT(g_seenTags[1] == "positive"  , "第二行 tag");
+        SELF_EXPECT(g_seenTags[2] == "gen-7"     , "addRow 的 printf 风格 tag");
+    }
     SELF_EXPECT(g_sumOfInputs == 0 + 0 + 2 + 3 + 7 + 1, "每行的值都正确取到");
     SELF_EXPECT(g_emptyTableRuns == 0,
                 "有 _data() 但表为空时，测试函数一次都不跑");
@@ -146,4 +245,24 @@ void run_data_selftests()
                 "类型不符后进程没有崩溃/抛异常，函数体继续跑到了下一条语句");
     SELF_EXPECT(g_typeMismatchFetchedValue == 0.0,
                 "类型不符时 PK_FETCH 退化成值初始化的默认值（double() == 0.0），不是垃圾值");
+
+    SelfDupTagCase dupCase;
+    const int dupRc = PkTest::qExec(&dupCase, 1, const_cast<char **>(argv));
+    SELF_EXPECT(dupRc == 0, "重复 tag 的两行都该正常跑完");
+    SELF_EXPECT(g_dupTagValues.size() == 2, "两行 → 跑两次");
+    if (g_dupTagValues.size() == 2) {
+        SELF_EXPECT(g_dupTagValues[0] == 1 && g_dupTagValues[1] == 2,
+                    "重复 tag 时取值必须按行号：两行分别读到 1 和 2，"
+                    "而不是都读到第一个 tag 相符的行");
+    }
+
+    SelfBrokenDataCase brokenCase;
+    const int brokenRc = PkTest::qExec(&brokenCase, 1, const_cast<char **>(argv));
+    SELF_EXPECT(brokenRc == 2,
+                "_data() 里的断言失败与列类型不符各计一次失败——"
+                "落在 beginFunction/endFunction 之外的话两条都会被静默吞掉，Totals 报 0 failed");
+    SELF_EXPECT(g_afterFailedDataRuns == 0,
+                "建表挂了之后该测试函数不再逐行执行");
+    SELF_EXPECT(g_afterWrongColumnTypeRuns == 0,
+                "列类型不符时该测试函数不再逐行执行");
 }

@@ -11,10 +11,29 @@ PkTestDataRow::PkTestDataRow(PkTestTable *table, std::string tag)
 
 void PkTestDataRow::appendValue(std::any value, const char *typeName)
 {
-    // 类型信息已经在 std::any 里带着（typeid(T)），append 阶段不用再存一遍——
-    // 真正的类型校验发生在 valueAt()：拿运行时的 any.type() 和 PK_FETCH 要的类型比。
-    (void)typeName;
-    m_table->m_rows[m_rowIndex].values.push_back(std::move(value));
+    // 入表阶段就校验列数与类型，与 Qt 一致（QTestData::append 对越界与类型不符都
+    // 直接 qFatal）。写错的行在 _data() 里就被点名，而不是等到每一行调用
+    // PK_FETCH 时才报一次——同一个错误报 N 次、且指向的是取值点不是建表点。
+    PkTestTable::Row &row = m_table->m_rows[m_rowIndex];
+    const std::size_t columnIndex = row.values.size();
+
+    if (columnIndex >= m_table->m_columns.size()) {
+        PkTestCase::current().recordFailure(
+            "<PkTest::newRow>", 0,
+            std::string("data row '") + m_tag + "' has more values than declared columns");
+        return;
+    }
+
+    const PkTestTable::Column &column = m_table->m_columns[columnIndex];
+    if (column.typeName != (typeName ? typeName : "")) {
+        PkTestCase::current().recordFailure(
+            "<PkTest::newRow>", 0,
+            std::string("data row '") + m_tag + "': value type does not match column '"
+                + column.name + "'");
+        return;
+    }
+
+    row.values.push_back(std::move(value));
 }
 
 void PkTestTable::addColumn(const char *name, const char *typeName)
@@ -24,9 +43,9 @@ void PkTestTable::addColumn(const char *name, const char *typeName)
 
 PkTestDataRow &PkTestTable::newRow(const char *tag)
 {
-    // 存进 m_rowHandles 只为了让返回的引用活过这一条语句（`newRow(...) << a << b;`）。
-    // 下一次 newRow/addRow 的 push_back 可能重新分配、搬走这个对象，但那时上一行的
-    // 引用早已用完，不存在悬空访问。
+    // 存进 m_rowHandles 是为了让返回的引用活过这一条语句（`newRow(...) << a << b;`）。
+    // 容器是 deque：它的 push_back 不使已有元素的引用失效，所以引用的有效性
+    // 不依赖"调用点都在一条链式语句里用完"这条约定（见 PkTestData.h）。
     m_rowHandles.emplace_back(this, std::string(tag ? tag : ""));
     return m_rowHandles.back();
 }
@@ -101,21 +120,23 @@ PkTestDataRow &addRow(const char *format, ...)
 
 const char *currentDataTag()
 {
-    return PkTestCase::current().currentDataTag().c_str();
+    // 按行号取，不用 PkTestCase 里那份 tag 副本：两者本该一致，但只留一条
+    // 取值路径就不会有"副本漂移"这种可能。
+    const std::size_t rowIndex = PkTestCase::current().currentDataRow();
+    const PkTestTable &table = PkTestTable::current();
+    if (rowIndex < table.rowCount()) {
+        return table.tagAt(rowIndex).c_str();
+    }
+    return "";
 }
 
 const std::any *fetchData(const char *columnName, const char *typeName)
 {
-    const std::string &tag = PkTestCase::current().currentDataTag();
+    // 按**行号**取值，不按 tag 反查。tag 可以重复（真实调用点见
+    // libs/image/tests/TestAslStorage.cpp 的 testResource_data），线性反查会让
+    // 重复 tag 的每一行都读到第一行的值；顺带也消掉了 O(行数×列数) 的查找。
+    const std::size_t rowIndex = PkTestCase::current().currentDataRow();
     const PkTestTable &table = PkTestTable::current();
-
-    std::size_t rowIndex = table.rowCount();
-    for (std::size_t i = 0; i < table.rowCount(); ++i) {
-        if (table.tagAt(i) == tag) {
-            rowIndex = i;
-            break;
-        }
-    }
 
     std::string error;
     const std::any *value = nullptr;

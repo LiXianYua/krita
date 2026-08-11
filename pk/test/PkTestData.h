@@ -2,6 +2,7 @@
 
 #include <any>
 #include <cstdarg>
+#include <deque>
 #include <string>
 #include <typeinfo>
 #include <vector>
@@ -20,8 +21,6 @@ public:
         appendValue(std::any(value), typeid(T).name());
         return *this;
     }
-
-    const std::string &tag() const { return m_tag; }
 
 private:
     void appendValue(std::any value, const char *typeName);
@@ -54,7 +53,10 @@ private:
 
     std::vector<Column> m_columns;
     std::vector<Row> m_rows;
-    std::vector<PkTestDataRow> m_rowHandles;
+    // deque 而非 vector：newRow 返回 m_rowHandles.back() 的引用，vector 扩容会
+    // 搬走元素、让上一行拿到的引用失效。deque 的 push_back 不使旧元素引用失效，
+    // 于是"引用只在同一条链式语句里用完"从一条约定变成一条机制保证。
+    std::deque<PkTestDataRow> m_rowHandles;
 };
 
 namespace PkTest {
