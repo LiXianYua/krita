@@ -17,10 +17,11 @@ struct PkTestFunction
     const char *dataName;
 };
 
-namespace PkTest {
-
 // qExec 的类型无关部分。模板 qExec 只负责把 PkTestBinder<T> 的静态信息
 // 拆成普通指针传进来 —— 这样 runner 的实现全在 .cpp 里，不随每个测试类实例化一遍。
+//
+// 全局作用域而非 namespace PkTest：它是纯内部管道类型，不是「QTest::addColumn
+// 这一族本来就是 namespace 里的函数」那个例外，类名照全局 Pk 前缀的规则走。
 struct PkTestPlan
 {
     const char *className;
@@ -35,6 +36,8 @@ struct PkTestPlan
     const PkTestFunction *cleanupFn;
     const PkTestFunction *initTestCaseData;
 };
+
+namespace PkTest {
 
 int execPlan(PkTestObject *obj, const PkTestPlan &plan, int argc, char **argv);
 
