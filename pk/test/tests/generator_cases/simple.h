@@ -19,6 +19,10 @@ private Q_SLOTS:
     void testBeta_data();
     /* void commentedOutBlock(); */
     // void commentedOutLine();
+    // 见 /* KisFoo 那边的说明        —— 行注释里出现的 `/*` 不是块注释起点
+    void testAfterBlockOpenInLineComment();
+    /* 真正的块注释 */
+    void testAfterRealBlockComment();
     void cleanup();
 private:
     void notATestFunction();

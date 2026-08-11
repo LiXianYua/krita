@@ -54,6 +54,15 @@ fi
 if grep -qF -- 'commentedOutLine' "$OUT"; then
     echo "误收 commentedOutLine（在行注释 // 里，说明注释没被剥掉）"; exit 1
 fi
+# 剥注释必须是单趟扫描：行注释里出现的 `/*` 不是块注释起点。两条互不知情的
+# 正则先后 sub 时，`// 见 /* ...` 的 `/*` 会被当块起点一路吃到下一个 `*/`，
+# 把中间的 testAfterBlockOpenInLineComment 静默吞掉。
+if ! grep -q '"testAfterBlockOpenInLineComment"' "$OUT"; then
+    echo "漏了 testAfterBlockOpenInLineComment（行注释里的 /* 被误当成块注释起点）"; exit 1
+fi
+if ! grep -q '"testAfterRealBlockComment"' "$OUT"; then
+    echo "漏了 testAfterRealBlockComment"; exit 1
+fi
 
 # ---- 裸 Q_SIGNALS:（不带访问关键字）必须被当成块边界，不是槽的延续。
 # SignalBoundaryTest：private Q_SLOTS: void realTest(); / Q_SIGNALS: void changed();
@@ -105,3 +114,16 @@ funcs=$(awk -F'\t'   '{f+=$3} END{print f+0}' "$BUILD/scan.tsv")
 printf '全量扫描（已排除 pk/ 自身）：%d 个测试头，发现 %d 个测试类 / %d 个测试函数，生成器失败 %d 次\n' \
        "$headerCount" "$classes" "$funcs" "$failed"
 [ "$failed" -eq 0 ] || exit 1
+
+# 只打数字不判定的自证等于没自证：把生成器改成对 libs/ 下的头一律返回 0 个类，
+# 上面那行照样打印、照样 exit 0。下限取 D-30 记的 341 类 / 2168 函数（实测值更
+# 高：见 pk/test/README.md §4），低于就是出事了——生成器退化、或 Krita 侧真的
+# 少了测试，两种都该拦下；正常波动在下限之上，不会误报。
+MIN_CLASSES=341
+MIN_FUNCS=2168
+if [ "$classes" -lt "$MIN_CLASSES" ] || [ "$funcs" -lt "$MIN_FUNCS" ]; then
+    printf '全量扫描低于下限：实测 %d 类 / %d 函数，下限 %d 类 / %d 函数（D-30 的口径）。\n' \
+           "$classes" "$funcs" "$MIN_CLASSES" "$MIN_FUNCS" >&2
+    printf '要么生成器退化了（该发现的类/函数没发现），要么 Krita 侧测试面真的变小了——先查清是哪一种。\n' >&2
+    exit 1
+fi

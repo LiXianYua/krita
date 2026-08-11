@@ -29,10 +29,6 @@ _FIXTURE_ACCESSORS = (
     ("initTestCase_data", "initTestCaseData"),
 )
 
-# 注释剥离：先干掉 /* */ 与 //，避免注释里的 `void foo();` 被误收。
-_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
-_LINE_COMMENT = re.compile(r"//[^\n]*")
-
 _CLASS_HEAD = re.compile(r"\bclass\s+(?:\w+_EXPORT\s+)?(\w+)\s*(?::[^{]*)?\{")
 
 # 访问区边界。真实 Krita 代码里 Q_SIGNALS:/signals: 经常裸写、不带
@@ -49,7 +45,39 @@ _FUNC = re.compile(r"\bvoid\s+(\w+)\s*\(\s*\)\s*;")
 
 
 def strip_comments(text):
-    return _LINE_COMMENT.sub("", _BLOCK_COMMENT.sub("", text))
+    """剥掉注释，避免注释里的 `void foo();` 被误收。
+
+    单趟从左到右扫描：遇到 `//` 吃到行尾、遇到 `/*` 吃到 `*/`，谁先出现谁生效。
+    不能用两条互不知情的正则先后 sub —— 那样
+
+        // 见 /* KisFoo 那边的说明
+        void testAlpha();
+        /* 真正的块注释 */
+
+    里的 `/*` 会先被块注释规则当成块起点，一路吃到下一个 `*/`，把中间真实的
+    函数声明静默吞掉（漏测，不是报错）。
+
+    块注释按其行数换成等量换行，保持后续匹配看到的行结构与源文件一致。
+    """
+    out = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] == "/" and i + 1 < n:
+            nxt = text[i + 1]
+            if nxt == "/":
+                end = text.find("\n", i)
+                i = n if end < 0 else end
+                continue
+            if nxt == "*":
+                end = text.find("*/", i + 2)
+                block = text[i:] if end < 0 else text[i:end + 2]
+                out.append("\n" * block.count("\n"))
+                i = n if end < 0 else end + 2
+                continue
+        out.append(text[i])
+        i += 1
+    return "".join(out)
 
 
 def class_body(text, open_brace_index):
