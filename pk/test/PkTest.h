@@ -86,15 +86,23 @@ constexpr PkTestFailMode Abort    = PkTestAbortMode;
         }                                                             \
     } while (false)
 
+// 两侧各**只求值一次**，与 QCOMPARE 一致（Qt 把实参按引用传给 qCompare）。
+// 先绑到 const auto & 局部量再比较与字符串化——直接在失败分支里重新写
+// `pkTestToString(actual)` 会让带副作用的表达式（`PK_COMPARE(list.takeFirst(), x)`）
+// 一失败就多推进一次状态。变量名带 pkCompare 前缀避免与用户表达式撞名
+// （PK_FETCH 的 pkFetchVarName 踩过同一个坑）。
 #define PK_COMPARE(actual, expected)                                        \
     do {                                                                    \
-        const bool pkCompareOk_ = pkTestCompare((actual), (expected));      \
+        const auto &pkCompareActual_ = (actual);                            \
+        const auto &pkCompareExpected_ = (expected);                        \
+        const bool pkCompareOk_ =                                           \
+            pkTestCompare(pkCompareActual_, pkCompareExpected_);            \
         if (PkTestCase::current().checkResult(                             \
                 pkCompareOk_, __FILE__, __LINE__,                          \
                 pkCompareOk_ ? std::string()                               \
                              : pkTestCompareFailureMessage(#actual, #expected, \
-                                            pkTestToString(actual),         \
-                                            pkTestToString(expected)))) {   \
+                                            pkTestToString(pkCompareActual_), \
+                                            pkTestToString(pkCompareExpected_)))) { \
             return;                                                         \
         }                                                                   \
     } while (false)
@@ -115,8 +123,13 @@ constexpr PkTestFailMode Abort    = PkTestAbortMode;
         return;                                                       \
     } while (false)
 
-#define PK_EXPECT_FAIL(dataIndex, comment, mode)                      \
-    PkTestCase::current().expectFail((dataIndex), (comment), (mode), __FILE__, __LINE__)
+// mode 是**拼接**出 `PkTest::mode`，不是原样透传——Qt 的 QEXPECT_FAIL 宏体里写的是
+// `QTest::mode`，所以真实调用点写的是裸 `Continue` / `Abort`（实测 Krita 全仓
+// 零处写 `QTest::Continue`）。原样透传会让每一个真实调用点报
+// "'Continue' was not declared in this scope"，而改名 sed 与 `#define QTest PkTest`
+// 都救不了——调用点根本没写命名空间。
+#define PK_EXPECT_FAIL(dataIndex, comment, mode)                       \
+    PkTestCase::current().expectFail((dataIndex), (comment), PkTest::mode, __FILE__, __LINE__)
 
 // ---- PK_TEST_MAIN 家族 ----
 //

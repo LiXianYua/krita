@@ -11,6 +11,20 @@ struct Case : public PkTestObject {
     void run() { PK_COMPARE(1, 2); g_compareReached = true; }
 };
 
+// 副作用计数：PK_COMPARE 的两侧各只能求值一次（QCOMPARE 把实参按引用传给
+// qCompare，只求值一次）。**必须走失败分支**——失败分支才要字符串化，
+// 二次求值就藏在那里。
+static int g_sideEffectCalls = 0;
+static int bumpAndReturn(int value)
+{
+    ++g_sideEffectCalls;
+    return value;
+}
+
+struct SideEffectCase : public PkTestObject {
+    void run() { PK_COMPARE(bumpAndReturn(1), 2); }
+};
+
 void run_compare_selftests()
 {
     // ---- 整数与指针：严格相等 ----
@@ -62,4 +76,14 @@ void run_compare_selftests()
     c.run();
     PkTestCase::current().endFunction();
     SELF_EXPECT(!g_compareReached, "PK_COMPARE 失败后必须 return");
+
+    // ---- PK_COMPARE 的实参只求值一次，失败分支也不例外 ----
+    SideEffectCase sc;
+    g_sideEffectCalls = 0;
+    PkTestCase::current().beginFunction("SideEffectCase", "run");
+    sc.run();
+    PkTestCase::current().endFunction();
+    SELF_EXPECT(g_sideEffectCalls == 1,
+                "PK_COMPARE 两侧各只求值一次——失败分支再求一次会让 "
+                "PK_COMPARE(list.takeFirst(), x) 这类调用点多推进一次状态");
 }
