@@ -1,4 +1,6 @@
 # D-23 的机械改名规则，唯一允许对副本做的改动（源树本身不碰）。
+# 规则集与 pk/test/README.md §1 的实现表（16 项）一一对应：那张表加一项，
+# 这里就要加一条，否则 S-00 拿这份表跑全量 sed 会漏掉它。
 #
 # 顺序有讲究：QVERIFY2 必须排在 QVERIFY 前（否则 QVERIFY 的规则先把
 # QVERIFY2( 错吃成 PK_VERIFY2(... 不对，是吃成 PK_VERIFY2( 里多一个左括号
@@ -17,6 +19,7 @@ s/\bQTEST_APPLESS_MAIN(/PK_TEST_APPLESS_MAIN(/g
 s/\bQTEST_GUILESS_MAIN(/PK_TEST_GUILESS_MAIN(/g
 s/\bQTEST_MAIN(/PK_TEST_MAIN(/g
 s/\bQTest::addColumn/PkTest::addColumn/g
+s/\bQTest::currentDataTag/PkTest::currentDataTag/g
 s/\bQTest::addRow/PkTest::addRow/g
 s/\bQTest::newRow/PkTest::newRow/g
 s/\bQTest::qExec/PkTest::qExec/g

@@ -33,7 +33,7 @@ run_one() {
     # ④ 编译链接。PK_TEST_NO_QT_MACRO_ALIASES 关掉 compat 里的 QCOMPARE 别名，
     #    让 sed 漏改的地方编译期就炸 —— 那正是 D-23 想要的效果。
     "$CXX" -std=c++17 -DPK_TEST_NO_QT_MACRO_ALIASES \
-        -I pk/test -I pk/test/compat -I pk/test/graft/stubs \
+        -I pk/test -I pk/test/compat \
         -I "$incdir" -I "$srcdir" -I "$work" \
         "$work/driver.cpp" \
         pk/test/build/libpktest.a -o "$work/$name" 2>"$work/compile.log" || {
@@ -54,7 +54,12 @@ run_one() {
         return
     fi
 
-    # ⑥ 判据③：产物不得有 Qt 未定义符号
+    # ⑥ 判据③：产物不得有 Qt 未定义符号。
+    #
+    # **对这个静态链接的可执行文件，这条断言是恒真的**：链接行里根本没有任何 Qt
+    # 库，真出现未定义的 Qt 符号会在链接期就失败，走不到这里。留着它是因为判据
+    # 要求这种形式的证据，但别把它当成"我们查过了"——真正有判别力的是
+    # run_tests.sh 里对 libpktest.a 的那条（静态库允许有未定义符号，那里查得出来）。
     local undef
     undef=$(nm -u "$work/$name" 2>/dev/null | grep -i qt || true)
     if [ -n "$undef" ]; then
