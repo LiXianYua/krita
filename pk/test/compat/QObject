@@ -1,6 +1,12 @@
 #pragma once
 #include "../PkTestObject.h"
 #include "../PkTest.h"
+// 真实 Qt 里 <QObject> 传递 include 了 qglobal.h，qAbs/qMin/qMax 这些标量工具
+// 因此在只 #include <QObject> 的调用点上也可见——TestKoIntegerMaths.cpp 就是
+// 这么用 qAbs 的，它自己没有 #include <QtGlobal>。复刻这条传递性，否则
+// "能不能编过"会错误地压到调用点身上（那不是它的问题，是 Qt 的传递 include
+// 关系没被复刻全）。
+#include "QtGlobal"
 
 // 兼容垫片：让真实测试类的 `#include <QObject>` 在一个字不改的前提下解析到
 // PkTestObject。文件名刻意没有扩展名 —— 调用点写的就是 <QObject>。

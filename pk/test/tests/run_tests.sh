@@ -16,3 +16,10 @@ if [ -n "$undef" ]; then
     exit 1
 fi
 printf 'nm -u libpktest.a | grep -i qt: 无输出\n'
+
+# 生成器的行为测试 + 全量扫描自证。
+./pk/test/tests/selftest_generator.sh
+
+# 判据②：至少一个真实 Krita 测试类跑绿。源树零改动、Qt 符号自证都在
+# graft_run.sh 内部完成，失败时它自己 exit 非 0。
+./pk/test/graft/graft_run.sh
