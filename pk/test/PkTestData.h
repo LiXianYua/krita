@@ -80,7 +80,7 @@ const std::any *fetchData(const char *columnName, const char *typeName);
 // 我们对齐：fetchData 记失败并返回 nullptr，这里退化成值初始化的默认值，
 // 让函数体能继续走到下一个断言（那个断言必然失败，错误信息不会丢）。
 // 宏参数不能叫 name——预处理器是纯文本替换，会把宏体里 `typeid(Type).name()`
-// 的那个 `.name()` 成员调用也当成参数名替换掉（照抄计划原文会编不过，已在此改名修复）。
+// 的那个 `.name()` 成员调用也当成参数名替换掉。
 #define PK_FETCH(Type, pkFetchVarName)                                        \
     Type pkFetchVarName = [] {                                                \
         const std::any *pkFetched =                                          \

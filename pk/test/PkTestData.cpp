@@ -126,7 +126,7 @@ const std::any *fetchData(const char *columnName, const char *typeName)
     }
 
     if (!value) {
-        // fetchData 的签名（照抄计划）不带 file/line，PK_FETCH 宏也没有传——
+        // fetchData 不带 file/line 参数，PK_FETCH 宏调用它时也没有传——
         // 位置信息只能退化成一个占位标记，不冒充调用点。
         PkTestCase::current().recordFailure("<PK_FETCH>", 0, error);
     }
