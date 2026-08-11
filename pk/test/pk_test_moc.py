@@ -34,7 +34,17 @@ _BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
 _LINE_COMMENT = re.compile(r"//[^\n]*")
 
 _CLASS_HEAD = re.compile(r"\bclass\s+(?:\w+_EXPORT\s+)?(\w+)\s*(?::[^{]*)?\{")
-_ACCESS = re.compile(r"\b(public|protected|private)\s*(Q_SLOTS|Q_SIGNALS|slots|signals)?\s*:")
+
+# 访问区边界。真实 Krita 代码里 Q_SIGNALS:/signals: 经常裸写、不带
+# public/protected/private 前缀（跟在 private Q_SLOTS: 段后面直接出现）；
+# 两个捕获组分别对应"带访问关键字"和"裸写关键字"两条分支，取其一为 kind。
+# 两条分支都要求至少出现 public/protected/private/Q_SLOTS/Q_SIGNALS/slots/signals
+# 之一——不能让访问关键字与 kind 全部可选，那样会退化成匹配任意冒号
+# （三目表达式、初始化列表、位域全中招）。
+_ACCESS = re.compile(
+    r"\b(?:(?:public|protected|private)\s*(Q_SLOTS|Q_SIGNALS|slots|signals)?"
+    r"|(Q_SLOTS|Q_SIGNALS|slots|signals))\s*:"
+)
 _FUNC = re.compile(r"\bvoid\s+(\w+)\s*\(\s*\)\s*;")
 
 
@@ -63,8 +73,10 @@ def class_body(text, open_brace_index):
 def collect_slot_functions(body):
     """只取 `private Q_SLOTS:`（含其余 *_SLOTS 变体）段里的无参 void 函数。
 
-    段之间用 public:/protected:/private: 等访问区切分——`private Q_SLOTS:`
-    之后再出现别的访问说明符即视为块结束，其后的函数不算测试。
+    段之间用访问区边界切分：Q_SLOTS:/slots: 开块；Q_SIGNALS:/signals:/
+    public:/protected:/private: 关块——`private Q_SLOTS:` 之后再出现其中
+    任何一种，都视为块结束，其后的函数不算测试。信号不是槽，就算它紧跟在
+    private Q_SLOTS: 后面裸写也不算数。
     """
     names = []
     in_slots = False
@@ -73,7 +85,8 @@ def collect_slot_functions(body):
         segment = body[last:m.start()]
         if in_slots:
             names.extend(_FUNC.findall(segment))
-        in_slots = m.group(2) in ("Q_SLOTS", "slots")
+        kind = m.group(1) or m.group(2)
+        in_slots = kind in ("Q_SLOTS", "slots")
         last = m.end()
     if in_slots:
         names.extend(_FUNC.findall(body[last:]))

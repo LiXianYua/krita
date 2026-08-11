@@ -5,7 +5,7 @@
 // PkTestBinder<CompatShapeCase> 由 pk_test_moc.py 生成，做法与 selftest_assert.cpp
 // 相同：显式特化必须在 qExec<CompatShapeCase> 实例化前对本 TU 可见，所以
 // #include 生成的 binder .cpp 而不是把它编成独立目标文件（见 Task 5 报告）。
-#include "pk_binder_compat_shape_case.cpp"
+#include "pk_binder_compat_shape_case.inc"
 
 // 走 Qt 拼法：QCOMPARE/QVERIFY 展开成 PK_COMPARE/PK_VERIFY，QTest 展开成 PkTest。
 void CompatShapeCase::testPasses() { QCOMPARE(2 + 2, 4); QVERIFY(true); }

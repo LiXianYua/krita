@@ -19,15 +19,16 @@ run_one() {
     # ② D-23 机械改名，只此一项改动
     sed -i -f "$SED" "$work/$hdr" "$work/$src"
 
-    # ③ 生成 binder（替代 moc 的测试发现）
-    python3 pk/test/pk_test_moc.py "$work/$hdr" -o "$work/binder.cpp"
+    # ③ 生成 binder（替代 moc 的测试发现）。.inc 而非 .cpp：产物全是类内定义
+    #    （隐式 inline），只能被 #include，不能作为独立翻译单元编译。
+    python3 pk/test/pk_test_moc.py "$work/$hdr" -o "$work/binder.inc"
 
     # ③.5 driver.cpp：PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须在同一
     #     翻译单元里看见它的完整定义（Task 5 报告里的 ODR 硬规则）。真实测试类
     #     的 .cpp 只允许 rename.sed 的机械改名，不能往里加 #include —— 所以这层
     #     "把两者塞进同一个 TU" 的粘合只能由 graft 自己的 driver.cpp 来做，
     #     它不是复制自源树的文件，是本 harness 拥有的构建期胶水。
-    printf '#include "%s"\n#include "binder.cpp"\n' "$src" > "$work/driver.cpp"
+    printf '#include "%s"\n#include "binder.inc"\n' "$src" > "$work/driver.cpp"
 
     # ④ 编译链接。PK_TEST_NO_QT_MACRO_ALIASES 关掉 compat 里的 QCOMPARE 别名，
     #    让 sed 漏改的地方编译期就炸 —— 那正是 D-23 想要的效果。

@@ -26,7 +26,11 @@ function(pk_test_generate out_var)
     set(generated "")
     foreach(header ${ARGN})
         get_filename_component(base "${header}" NAME_WE)
-        set(out "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_${base}.cpp")
+        # .inc 而非 .cpp：产物全是类内定义（隐式 inline），契约上绝不能作为
+        # 独立翻译单元编译，只能被调用 qExec<T> 的那个 .cpp #include 进去
+        # （ODR 硬规则见下方 selftest_pktest 的说明）。扩展名把这条约束
+        # 钉在文件名层面，免得日后有人写 file(GLOB "*.cpp") 原样踩回去。
+        set(out "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_${base}.inc")
         add_custom_command(
             OUTPUT "${out}"
             COMMAND ${Python3_EXECUTABLE}
@@ -72,6 +76,6 @@ target_include_directories(selftest_pktest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/c
 # out_var 仍返回生成产物路径——这里只用它补上构建期依赖，让生成先于编译发生。
 target_include_directories(selftest_pktest PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 set_source_files_properties(tests/selftest_assert.cpp PROPERTIES
-    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_self_assert_case.cpp")
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_self_assert_case.inc")
 set_source_files_properties(tests/selftest_compat.cpp PROPERTIES
-    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_compat_shape_case.cpp")
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_compat_shape_case.inc")

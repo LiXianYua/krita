@@ -5,7 +5,7 @@
 // pk_test_generate 触发构建），像 Qt moc 输出一样直接 #include 进本 TU——
 // 显式特化必须在 qExec<SelfAssertCase> 实例化前对本 TU 可见，分开编译成
 // 独立目标文件的话这里只看得到前置声明（不完整类型），编不过。
-#include "pk_binder_self_assert_case.cpp"
+#include "pk_binder_self_assert_case.inc"
 
 // 类声明在 generator_cases/self_assert_case.h（生成器的输入），
 // 这里只放成员函数的定义与自测本体。
