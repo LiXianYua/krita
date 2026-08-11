@@ -53,6 +53,7 @@ int execPlan(PkTestObject *obj, const PkTestPlan &plan, int argc, char **argv)
     std::printf("********* Start testing of %s *********\n", plan.className);
 
     PkTestCase &state = PkTestCase::current();
+    state.beginRun();
 
     state.beginFunction(plan.className, "initTestCase");
     invokeIfPresent(obj, plan.initTestCase);

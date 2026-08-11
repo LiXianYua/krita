@@ -46,36 +46,66 @@ int qExec(T *obj, int argc = 0, char **argv = nullptr)
     return execPlan(obj, plan, argc, argv);
 }
 
+// QTest::Continue / QTest::Abort 的对应物。放在 namespace 里而非全局：
+// Continue / Abort 是极易撞名的标识符。
+constexpr PkTestFailMode Continue = PkTestContinueMode;
+constexpr PkTestFailMode Abort    = PkTestAbortMode;
+
 } // namespace PkTest
 
 // ---- 断言宏 ----
 //
 // QTest 语义：断言失败时**从当前测试函数 return**（不是 abort、不是抛异常）。
 // 所以这些宏只能用在返回 void 的测试函数体内 —— 与 QTest 完全一致。
+//
+// 全部经 PkTestCase::checkResult() 统一入口，而不是各自直接 recordFailure——
+// 否则 PK_EXPECT_FAIL 只能豁免它认识的宏，漏掉的宏永远不会被判成 XFAIL/XPASS。
 
 #define PK_VERIFY(statement)                                          \
     do {                                                              \
-        if (!static_cast<bool>(statement)) {                          \
-            PkTestCase::current().recordFailure(                      \
-                __FILE__, __LINE__, "'" #statement "' returned FALSE"); \
+        if (PkTestCase::current().checkResult(                       \
+                static_cast<bool>(statement), __FILE__, __LINE__,     \
+                "'" #statement "' returned FALSE")) {                 \
             return;                                                   \
         }                                                             \
     } while (false)
 
 #define PK_FAIL(message)                                              \
     do {                                                              \
-        PkTestCase::current().recordFailure(__FILE__, __LINE__, (message)); \
-        return;                                                       \
+        if (PkTestCase::current().checkResult(                       \
+                false, __FILE__, __LINE__, (message))) {              \
+            return;                                                   \
+        }                                                             \
     } while (false)
 
 #define PK_COMPARE(actual, expected)                                        \
     do {                                                                    \
-        if (!pkTestCompare((actual), (expected))) {                         \
-            PkTestCase::current().recordFailure(                            \
-                __FILE__, __LINE__,                                         \
-                pkTestCompareFailureMessage(#actual, #expected,             \
+        const bool pkCompareOk_ = pkTestCompare((actual), (expected));      \
+        if (PkTestCase::current().checkResult(                             \
+                pkCompareOk_, __FILE__, __LINE__,                          \
+                pkCompareOk_ ? std::string()                               \
+                             : pkTestCompareFailureMessage(#actual, #expected, \
                                             pkTestToString(actual),         \
-                                            pkTestToString(expected)));     \
+                                            pkTestToString(expected)))) {   \
             return;                                                         \
         }                                                                   \
     } while (false)
+
+#define PK_VERIFY2(statement, description)                            \
+    do {                                                              \
+        if (PkTestCase::current().checkResult(                        \
+                static_cast<bool>(statement), __FILE__, __LINE__,     \
+                std::string("'" #statement "' returned FALSE (")      \
+                    + (description) + ")")) {                         \
+            return;                                                   \
+        }                                                             \
+    } while (false)
+
+#define PK_SKIP(description)                                          \
+    do {                                                              \
+        PkTestCase::current().skipCurrent((description), __FILE__, __LINE__); \
+        return;                                                       \
+    } while (false)
+
+#define PK_EXPECT_FAIL(dataIndex, comment, mode)                      \
+    PkTestCase::current().expectFail((dataIndex), (comment), (mode), __FILE__, __LINE__)
