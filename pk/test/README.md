@@ -75,11 +75,16 @@
   `.cpp` 里，不建头）则发现不到，需要人工确认 Krita 测试是否有这种写法后再补。
 - **`compat/QObject` 不是 R-05 的 `PkObject`**：没有信号槽、没有对象树、没有属性
   系统，只是"测试类有个带虚析构的公共基类"这一件事。R-05 交付真正的对象系统
-  之后，`compat/QObject` 应改指过去。
-- **`compat/QtGlobal` 只给了测试路径上真正用到的标量**：`qint8..quint64`、
-  `qreal`、`qAbs`/`qMin`/`qMax`、`qFuzzyCompare`/`qFuzzyIsNull` 的别名。不实现
-  `QtGlobal` 的其余部分——多实现一项就是一项没有调用点、没有测试压力、却要跟着
-  Qt 语义走的负债。R-02/R-03 交付各自类型时，这里的重叠部分应让给它们。
+  之后，`compat/QObject` 应改指过去。`Q_UNUSED` 曾在这里给过一个垫片，评审
+  核实两个试接目标、被测头、`pk/test/tests/` 全部 harness 自测里零调用点，
+  已删——需要时按调用点现补。
+- **`compat/QtGlobal` 只给了测试路径上真正用到的两项**：`qAbs`（真实调用点
+  见该文件头部注释）与 `qFuzzyCompare`/`qFuzzyIsNull`（R-11 API 范围表第 15
+  项）。`qint8..quint64`/`qreal` 这批标量 typedef 与 `qMin`/`qMax` 原样照抄了
+  实施计划的示例代码，但评审 grep 核实两个试接目标、被测头、`pk/test/tests/`
+  全部 harness 自测里零真实调用点，已删——计划的示例代码与线级 spec 判据①
+  矛盾时以判据为准。这批类型归 R-02（容器）/R-03（几何）交付时提供，R-11
+  不预先实现。
 
 ## 4. 生成器全量扫描：实测数字与口径
 

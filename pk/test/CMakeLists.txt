@@ -64,8 +64,10 @@ add_executable(selftest_pktest
 )
 target_link_libraries(selftest_pktest PRIVATE pktest)
 
-# compat 自测唯一用到 -I pk/test/compat：其余源文件用的是 Pk 原生 API，
-# 不应该看见 QObject/QTest 这些改写宏，避免它们意外影响别的 TU。
+# 这条 -I 是 target 级的，selftest_pktest 的全部源文件都能看见 pk/test/compat。
+# 其余源文件不受影响，靠的不是路径范围，而是它们本来就没有
+# #include <QObject>/<QTest>——只有 tests/selftest_compat.cpp 写了这两个
+# include，也只有它会解析到 compat/ 下的改写宏。
 target_include_directories(selftest_pktest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/compat)
 
 # 生成的 binder .cpp 不作为独立翻译单元编译进可执行文件：PkTestBinder<T> 是
