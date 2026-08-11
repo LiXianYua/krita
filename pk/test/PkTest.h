@@ -3,6 +3,7 @@
 #include "PkTestObject.h"
 #include "PkTestCase.h"
 #include "PkTestCompare.h"
+#include "PkTestData.h"
 
 // 每个测试类由生成器（pk_test_moc.py）特化一个 PkTestBinder。
 // 只前置声明：Q_OBJECT 展开成对它的 friend 声明，所以它必须先可见。
@@ -25,6 +26,9 @@ struct PkTestPlan
     const char *className;
     const PkTestFunction *functions;
     int count;
+    // 数据函数（"xxx_data"）单独一张表，runner 按 PkTestFunction::dataName 查。
+    const PkTestFunction *dataFunctions;
+    int dataCount;
     const PkTestFunction *initTestCase;
     const PkTestFunction *cleanupTestCase;
     const PkTestFunction *initFn;
@@ -40,6 +44,7 @@ int qExec(T *obj, int argc = 0, char **argv = nullptr)
     using B = PkTestBinder<T>;
     const PkTestPlan plan{
         B::className(), B::functions(), B::count(),
+        B::dataFunctions(), B::dataCount(),
         B::initTestCase(), B::cleanupTestCase(),
         B::initFn(), B::cleanupFn(), B::initTestCaseData()
     };

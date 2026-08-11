@@ -1,4 +1,5 @@
 #include "PkTest.h"
+#include "PkTestData.h"
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -44,6 +45,35 @@ bool selected(const std::vector<std::string> &filters, const char *name)
     return false;
 }
 
+const PkTestFunction *findByName(const PkTestFunction *fns, int count, const char *name)
+{
+    if (!name || !fns) {
+        return nullptr;
+    }
+    for (int i = 0; i < count; ++i) {
+        if (fns[i].name && std::strcmp(fns[i].name, name) == 0) {
+            return &fns[i];
+        }
+    }
+    return nullptr;
+}
+
+// 一次测试函数调用：数据驱动的每一行、以及非数据驱动的唯一一次，都走这里。
+// dataTag 为 nullptr 表示非数据驱动 —— beginFunction 已经把上一次的 tag 清掉，
+// 不用再显式设置一次空串。
+void runOnce(PkTestObject *obj, const PkTestPlan &plan, PkTestCase &state,
+            const PkTestFunction &fn, const std::string &displayName, const char *dataTag)
+{
+    state.beginFunction(plan.className, displayName.c_str());
+    if (dataTag) {
+        state.setCurrentDataTag(dataTag);
+    }
+    invokeIfPresent(obj, plan.initFn);
+    fn.invoke(obj);
+    invokeIfPresent(obj, plan.cleanupFn);
+    state.endFunction();
+}
+
 } // namespace
 
 int execPlan(PkTestObject *obj, const PkTestPlan &plan, int argc, char **argv)
@@ -55,7 +85,7 @@ int execPlan(PkTestObject *obj, const PkTestPlan &plan, int argc, char **argv)
     PkTestCase &state = PkTestCase::current();
     state.beginRun();
 
-    state.beginFunction(plan.className, "initTestCase");
+    state.beginFunction(plan.className, "initTestCase()");
     invokeIfPresent(obj, plan.initTestCase);
     const bool initFailed = state.endFunction();
 
@@ -65,15 +95,29 @@ int execPlan(PkTestObject *obj, const PkTestPlan &plan, int argc, char **argv)
             if (!selected(filters, fn.name)) {
                 continue;
             }
-            state.beginFunction(plan.className, fn.name);
-            invokeIfPresent(obj, plan.initFn);
-            fn.invoke(obj);
-            invokeIfPresent(obj, plan.cleanupFn);
-            state.endFunction();
+
+            if (!fn.dataName) {
+                runOnce(obj, plan, state, fn, std::string(fn.name) + "()", nullptr);
+                continue;
+            }
+
+            // 数据驱动：先建表，表为空则这个测试函数一次都不跑
+            // （QTest 语义——漏了这条会让空表静默退化成一次无参调用）。
+            PkTestTable::current().clear();
+            const PkTestFunction *dataFn =
+                findByName(plan.dataFunctions, plan.dataCount, fn.dataName);
+            invokeIfPresent(obj, dataFn);
+
+            const PkTestTable &table = PkTestTable::current();
+            const std::size_t rowCount = table.rowCount();
+            for (std::size_t r = 0; r < rowCount; ++r) {
+                const std::string tag = table.tagAt(r);
+                runOnce(obj, plan, state, fn, fn.name + ("(" + tag + ")"), tag.c_str());
+            }
         }
     }
 
-    state.beginFunction(plan.className, "cleanupTestCase");
+    state.beginFunction(plan.className, "cleanupTestCase()");
     invokeIfPresent(obj, plan.cleanupTestCase);
     state.endFunction();
 

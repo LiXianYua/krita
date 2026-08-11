@@ -32,10 +32,10 @@ bool PkTestCase::endFunction()
     }
     if (m_currentFailed) {
         ++m_failedFunctions;
-        std::printf("FAIL!  : %s::%s()\n", m_className.c_str(), m_functionName.c_str());
+        std::printf("FAIL!  : %s::%s\n", m_className.c_str(), m_functionName.c_str());
     } else {
         ++m_passedFunctions;
-        std::printf("PASS   : %s::%s()\n", m_className.c_str(), m_functionName.c_str());
+        std::printf("PASS   : %s::%s\n", m_className.c_str(), m_functionName.c_str());
     }
     return m_currentFailed;
 }
@@ -43,7 +43,7 @@ bool PkTestCase::endFunction()
 void PkTestCase::recordFailure(const char *file, int line, const std::string &message)
 {
     m_currentFailed = true;
-    std::printf("FAIL!  : %s::%s() %s\n   Loc: [%s(%d)]\n",
+    std::printf("FAIL!  : %s::%s %s\n   Loc: [%s(%d)]\n",
                 m_className.c_str(), m_functionName.c_str(),
                 message.c_str(), file, line);
 }
@@ -65,7 +65,7 @@ bool PkTestCase::checkResult(bool ok, const char *file, int line, const std::str
             return true;
         }
         // XFAIL：不计入失败。
-        std::printf("XFAIL  : %s::%s() %s\n   Loc: [%s(%d)]\n",
+        std::printf("XFAIL  : %s::%s %s\n   Loc: [%s(%d)]\n",
                     m_className.c_str(), m_functionName.c_str(), comment.c_str(), file, line);
         return !wasContinueMode;
     }
@@ -95,7 +95,7 @@ void PkTestCase::expectFail(const char *dataIndex, const char *comment, PkTestFa
 void PkTestCase::skipCurrent(const char *message, const char *file, int line)
 {
     m_currentSkipped = true;
-    std::printf("SKIP   : %s::%s() %s\n   Loc: [%s(%d)]\n",
+    std::printf("SKIP   : %s::%s %s\n   Loc: [%s(%d)]\n",
                 m_className.c_str(), m_functionName.c_str(),
                 message ? message : "", file, line);
 }

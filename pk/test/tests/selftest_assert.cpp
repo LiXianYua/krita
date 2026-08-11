@@ -30,6 +30,8 @@ template <> struct PkTestBinder<SelfAssertCase> {
         return fns;
     }
     static int count() { return 4; }
+    static const PkTestFunction *dataFunctions() { return nullptr; }
+    static int dataCount() { return 0; }
     static const PkTestFunction *initTestCase()     { return nullptr; }
     static const PkTestFunction *cleanupTestCase()  { return nullptr; }
     static const PkTestFunction *initFn()           { return nullptr; }

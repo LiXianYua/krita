@@ -54,6 +54,8 @@ template <> struct PkTestBinder<SelfExpectFailCase> {
         return fns;
     }
     static int count() { return 5; }
+    static const PkTestFunction *dataFunctions() { return nullptr; }
+    static int dataCount() { return 0; }
     static const PkTestFunction *initTestCase()     { return nullptr; }
     static const PkTestFunction *cleanupTestCase()  { return nullptr; }
     static const PkTestFunction *initFn()           { return nullptr; }
@@ -81,6 +83,8 @@ template <> struct PkTestBinder<SelfSkipCase> {
         return fns;
     }
     static int count() { return 1; }
+    static const PkTestFunction *dataFunctions() { return nullptr; }
+    static int dataCount() { return 0; }
     static const PkTestFunction *initTestCase()     { return nullptr; }
     static const PkTestFunction *cleanupTestCase()  { return nullptr; }
     static const PkTestFunction *initFn()           { return nullptr; }

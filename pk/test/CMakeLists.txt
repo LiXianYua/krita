@@ -11,6 +11,7 @@ add_library(pktest STATIC
     PkTestCase.cpp
     PkTestRunner.cpp
     PkTestCompare.cpp
+    PkTestData.cpp
 )
 target_include_directories(pktest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -19,5 +20,6 @@ add_executable(selftest_pktest
     tests/selftest_assert.cpp
     tests/selftest_compare.cpp
     tests/selftest_expectfail.cpp
+    tests/selftest_data.cpp
 )
 target_link_libraries(selftest_pktest PRIVATE pktest)

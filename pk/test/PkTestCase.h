@@ -39,8 +39,9 @@ public:
 
     void skipCurrent(const char *message, const char *file, int line);
 
-    // 当前数据行的 tag，供 expectFail 的 dataIndex 匹配（Task 4 的 runner 逐行设置）。
+    // 当前数据行的 tag，供 expectFail 的 dataIndex 匹配、也供 PkTestData 按 tag 找行。
     void setCurrentDataTag(const char *tag);
+    const std::string &currentDataTag() const { return m_currentDataTag; }
 
     int failedFunctionCount() const { return m_failedFunctions; }
     int passedFunctionCount() const { return m_passedFunctions; }
