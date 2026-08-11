@@ -6,6 +6,7 @@ void run_assert_selftests();
 void run_compare_selftests();
 void run_expectfail_selftests();
 void run_data_selftests();
+void run_compat_selftests();
 
 int main()
 {
@@ -13,6 +14,7 @@ int main()
     run_compare_selftests();
     run_expectfail_selftests();
     run_data_selftests();
+    run_compat_selftests();
     if (g_selftestFailures == 0) {
         std::printf("all pktest selftests passed\n");
         return 0;

@@ -1,0 +1,24 @@
+#pragma once
+#include "../PkTestObject.h"
+#include "../PkTest.h"
+
+// 兼容垫片：让真实测试类的 `#include <QObject>` 在一个字不改的前提下解析到
+// PkTestObject。文件名刻意没有扩展名 —— 调用点写的就是 <QObject>。
+//
+// 用宏而不是 `using QObject = PkTestObject;`：与 pk/string/compat/QString 同因，
+// Krita 头里有 `class QObject;` 前置声明，类型别名遇到它会报
+// "redeclared as different kind of entity"；宏把那一行原样改写成
+// `class PkTestObject;`，前置声明照样成立。
+#define QObject PkTestObject
+
+// Q_OBJECT 的唯一职责：让生成的 PkTestBinder<T> 能访问 private Q_SLOTS 里的函数。
+// friend 声明不改变当前 access specifier，放在 class 的默认 private 区里合法。
+#define Q_OBJECT template <typename PkTestBinderArgT> friend struct PkTestBinder;
+
+// 访问控制关键字退化成空 —— `private Q_SLOTS:` 变成 `private:`。
+#define Q_SLOTS
+#define Q_SIGNALS
+#define slots
+#define signals
+
+#define Q_UNUSED(x) (void)(x);

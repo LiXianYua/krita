@@ -42,8 +42,13 @@ endfunction()
 # SelfAssertCase 的 binder 由生成器产出（对照组见 tests/generator_cases/self_assert_case.h
 # 与 tests/selftest_assert.cpp 头部的说明）——证明生成器产出的 binder 与手写等价，
 # 也证明 Q_OBJECT 展开成的 friend 模板真的让生成的 lambda 能访问 private 成员。
+#
+# CompatShapeCase 额外证明一件事：不是靠本地 #define 等价展开、而是走真实
+# compat/QObject 垫片（-I pk/test/compat 下 <QObject> 解析到我们的实现）时，
+# 生成器与 Q_OBJECT 展开的 friend 声明仍然严丝合缝。
 pk_test_generate(PKTEST_GENERATED_SELFTEST_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/generator_cases/self_assert_case.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/generator_cases/self_assert_case.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/generator_cases/compat_shape_case.h")
 
 add_executable(selftest_pktest
     tests/selftest_main.cpp
@@ -51,8 +56,13 @@ add_executable(selftest_pktest
     tests/selftest_compare.cpp
     tests/selftest_expectfail.cpp
     tests/selftest_data.cpp
+    tests/selftest_compat.cpp
 )
 target_link_libraries(selftest_pktest PRIVATE pktest)
+
+# compat 自测唯一用到 -I pk/test/compat：其余源文件用的是 Pk 原生 API，
+# 不应该看见 QObject/QTest 这些改写宏，避免它们意外影响别的 TU。
+target_include_directories(selftest_pktest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/compat)
 
 # 生成的 binder .cpp 不作为独立翻译单元编译进可执行文件：PkTestBinder<T> 是
 # 显式特化，qExec<T> 实例化处必须"看见"它的完整定义——分开编译成独立目标
@@ -62,4 +72,6 @@ target_link_libraries(selftest_pktest PRIVATE pktest)
 # out_var 仍返回生成产物路径——这里只用它补上构建期依赖，让生成先于编译发生。
 target_include_directories(selftest_pktest PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 set_source_files_properties(tests/selftest_assert.cpp PROPERTIES
-    OBJECT_DEPENDS "${PKTEST_GENERATED_SELFTEST_SOURCES}")
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_self_assert_case.cpp")
+set_source_files_properties(tests/selftest_compat.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_compat_shape_case.cpp")

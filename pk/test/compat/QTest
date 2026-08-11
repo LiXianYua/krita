@@ -1,0 +1,27 @@
+#pragma once
+#include "../PkTest.h"
+#include "../PkTestData.h"
+
+// QTest:: 这一族本来就是 namespace 里的**函数**，不是类型，没有前置声明问题，
+// 所以这里是唯一允许出现 namespace 的地方（线级 spec §工程形态 的显式例外）。
+#define QTest PkTest
+
+// D-23 定的是把宏名改成 PK_*，S-00 做全量 sed。在 sed 之前，
+// 这些别名让还没改名的调用点也能编过。
+//
+// **这不是绕过 D-23**：垫片只在 pk/test/compat 的 -I 路径下可见，
+// 真正的剥离产物不会带上它。R-11 的试接（pk/test/graft）故意**不用**这一段
+// （graft_run.sh 编译时定义 PK_TEST_NO_QT_MACRO_ALIASES 把它关掉，先跑 sed 再编译），
+// 留着它是给 S-00 分批 sed 期间的过渡用。
+#ifndef PK_TEST_NO_QT_MACRO_ALIASES
+#define QCOMPARE      PK_COMPARE
+#define QVERIFY       PK_VERIFY
+#define QVERIFY2      PK_VERIFY2
+#define QFETCH        PK_FETCH
+#define QFAIL         PK_FAIL
+#define QSKIP         PK_SKIP
+#define QEXPECT_FAIL  PK_EXPECT_FAIL
+#define QTEST_MAIN            PK_TEST_MAIN
+#define QTEST_APPLESS_MAIN    PK_TEST_APPLESS_MAIN
+#define QTEST_GUILESS_MAIN    PK_TEST_GUILESS_MAIN
+#endif

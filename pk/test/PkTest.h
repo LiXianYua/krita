@@ -117,3 +117,20 @@ constexpr PkTestFailMode Abort    = PkTestAbortMode;
 
 #define PK_EXPECT_FAIL(dataIndex, comment, mode)                      \
     PkTestCase::current().expectFail((dataIndex), (comment), (mode), __FILE__, __LINE__)
+
+// ---- PK_TEST_MAIN 家族 ----
+//
+// Qt 里 QTEST_MAIN/QTEST_APPLESS_MAIN/QTEST_GUILESS_MAIN 的区别只是创建
+// QApplication / 什么都不创建 / 创建 QCoreApplication。零 Qt 之后没有 app
+// 对象可创建，三者退化成完全相同的代码。仍然保留三个名字：D-23 的全量 sed
+// 是一对一改名，合并成一个宏会让调用点需要人工判断改成哪个。
+
+#define PK_TEST_MAIN(TestObject)                        \
+    int main(int argc, char *argv[])                    \
+    {                                                   \
+        TestObject tc;                                  \
+        return PkTest::qExec(&tc, argc, argv);          \
+    }
+
+#define PK_TEST_APPLESS_MAIN(TestObject) PK_TEST_MAIN(TestObject)
+#define PK_TEST_GUILESS_MAIN(TestObject) PK_TEST_MAIN(TestObject)
