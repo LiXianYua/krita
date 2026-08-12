@@ -15,6 +15,20 @@ add_library(pkgeometry STATIC
 )
 target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+# ⚠ **-fwrapv 是必需的，不是调优，而且是 PUBLIC**（消费者也要带上）。
+# QPoint::manhattanLength 是 qAbs(x)+qAbs(y)、operator+ 是裸的 int 相加、
+# dotProduct 是裸的 int 乘加 —— 在 INT_MIN/INT_MAX 上全是**有符号整数溢出 UB**，
+# 而这批输入正是最该钉住的形态（Qt 自己就这么写，替代品逐字照抄）。
+# 不加时优化器会拿"溢出不可能发生"去推导取值范围，实测：`-Os` 下
+# pointManhattanLength() 变红，`-Os -fwrapv` 全绿；对拍那边 `-O2` 无 -fwrapv 时
+# std::to_string 打印溢出后的负数直接段错误。
+# 加上之后两侧都按二补数回绕，比的仍是同一件事，取值与 -O0 逐字相同。
+#
+# **它只挡住整数溢出这一类 UB。** 浮点→int 越界（int(inf)、int(2147483648.0)）
+# 是另一类，-fwrapv 管不着，靠 tests/test_point.cpp 的 noFold() 把转换压到运行期。
+# 两条都写进了 README 的覆盖度缺口。
+target_compile_options(pkgeometry PUBLIC -fwrapv)
+
 # ---------------------------------------------------------------------------
 # 复用 pk/test（R-11）的 harness 与生成器 —— **只用，不改**。
 # EXCLUDE_FROM_ALL：pk/test 自己的 selftest_pktest 不跟着构建，只把 pktest

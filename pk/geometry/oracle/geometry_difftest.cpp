@@ -99,7 +99,7 @@ static void rec(const char *api, bool same, const std::string &tag,
 
 // **位精确**比较 double：`==` 会把 +0/-0 判等、把 NaN 判不等，两者都不是我们要的。
 // 几何类型里零号的符号位是真的会传播出去的（一元 +/-、manhattanLength、
-// transposed 都保号），用 `==` 比等于把这一整类差异永久豁免。
+// dotProduct 都保号），用 `==` 比等于把这一整类差异永久豁免。
 static bool same_double(double a, double b)
 {
     std::uint64_t ba, bb;
@@ -168,24 +168,44 @@ static bool manhattanOverflows(int x, int y)
     return s > INT_MAX;
 }
 
-// 两个 double 里挑最"特殊"的那种形态命名 —— 优先级从最能解释差异的往下排
-static std::string shapeOfD(double a, double b)
+// ── shapeOf*：通用形态分流（**Task 3–6 照抄这个约定**）────────────────────
+//
+// **约定：一个 API 的 shape 必须由它「全部参与分量」算出，取其中最特殊的那种
+// 形态命名 —— 不是只取第一对分量。** 所以签名是 initializer_list 而不是两个
+// 标量：调用点被迫把参与的分量一个不落地列出来，漏一个是看得见的，
+// 而 `shapeOfD(ax, bx)` 那种写法漏掉 ay/by 是看不见的。
+//
+// 为什么这条是硬要求（Task 2 复评实测）：`F::operator+` 的四个分量里只往
+// shapeOfD 喂了 x 那一对，注入「只在 **y** 是 NaN 时出错」的缺陷后，8 036 次
+// 差异被贴成 `F::operator+ finite` —— 与真实根因完全相反的标签。今天白名单是
+// 空的所以不影响检出，可一旦有人往 .deviation 写下 `<api> finite` 这样一行，
+// 「y 分量上的非有限缺陷」这一整片就被永久白名单化，**正是规则二要防的形状**。
+// Rect（二元 8 个分量）/ Transform（二元 18 个分量）照抄会成倍恶化。
+//
+// 优先级从最能解释差异的往下排。新增形态往前插时想清楚它是不是比下面几条更
+// 能解释根因 —— 排序就是"这次差异该归咎于谁"的判断。
+static std::string shapeOfD(std::initializer_list<double> vs)
 {
-    if (nonFinite(a) || nonFinite(b)) return "nonfinite";
-    if (signedZero(a) || signedZero(b)) return "signed-zero";
-    if (subnormal(a) || subnormal(b)) return "subnormal";
-    if (a == 0.0 || b == 0.0) return "zero";
-    if (std::fabs(a) > 1e300 || std::fabs(b) > 1e300) return "huge";
+    for (double v : vs) if (nonFinite(v)) return "nonfinite";
+    for (double v : vs) if (signedZero(v)) return "signed-zero";
+    for (double v : vs) if (subnormal(v)) return "subnormal";
+    for (double v : vs) if (v == 0.0) return "zero";
+    for (double v : vs) if (std::fabs(v) > 1e300) return "huge";
     return "finite";
 }
-static std::string shapeOfD(double a) { return shapeOfD(a, a); }
 
-static std::string shapeOfI(int a, int b)
+static std::string shapeOfI(std::initializer_list<int> vs)
 {
-    if (intExtremum(a) || intExtremum(b)) return "int-extremum";
-    if (a == 0 && b == 0) return "origin";
-    return "ordinary";
+    for (int v : vs) if (intExtremum(v)) return "int-extremum";
+    for (int v : vs) if (v != 0) return "ordinary";
+    return "origin";
 }
+
+// 同时吃整数与浮点分量的 API（跨类型运算）：两族各取最特殊形态，拼起来。
+// 只取其中一族会把另一族的根因整片盖掉 —— 与上面那条是同一个道理。
+static std::string shapeOfMixed(std::initializer_list<int> is,
+                                std::initializer_list<double> ds)
+{ return shapeOfI(is) + "+" + shapeOfD(ds); }
 
 // ═══ Point 族：逐 API 对拍 ═════════════════════════════════════════════════
 //
@@ -199,13 +219,11 @@ static void cmp_point_unary(int x, int y)
     const QPoint  q(x, y);
     const PkPoint p(x, y);
     const std::string in = "(" + istr(x) + "," + istr(y) + ")";
-    const std::string sh = shapeOfI(x, y);
+    const std::string sh = shapeOfI({x, y});
 
     rec("x", q.x() == p.x(), sh, in, istr(q.x()), istr(p.x()));
     rec("y", q.y() == p.y(), sh, in, istr(q.y()), istr(p.y()));
     rec("isNull", q.isNull() == p.isNull(), sh, in, bstr(q.isNull()), bstr(p.isNull()));
-    rec("transposed", same_pt(q.transposed(), p.transposed()), sh, in,
-        qstr(q.transposed()), qstr(p.transposed()));
 
     // manhattanLength 唯一会分家的形态是溢出（qAbs(INT_MIN) 回绕、两绝对值相加溢出）
     rec("manhattanLength", q.manhattanLength() == p.manhattanLength(),
@@ -232,33 +250,33 @@ static void cmp_point_binary(int ax, int ay, int bx, int by)
     const PkPoint pa(ax, ay), pb(bx, by);
     const std::string in = "(" + istr(ax) + "," + istr(ay) + ")|("
                          + istr(bx) + "," + istr(by) + ")";
+    // ⚠ **四个分量都参与**，不是只取 x 那一对（约定见 shapeOfI 上方）。
+    const std::string sh = shapeOfI({ax, ay, bx, by});
 
     rec("operator+", same_pt(qa + qb, pa + pb),
-        (addOverflows(ax, bx) || addOverflows(ay, by)) ? "int-overflow"
-                                                       : shapeOfI(ax, bx),
+        (addOverflows(ax, bx) || addOverflows(ay, by)) ? "int-overflow" : sh,
         in, qstr(qa + qb), qstr(pa + pb));
     rec("operator-", same_pt(qa - qb, pa - pb),
-        (subOverflows(ax, bx) || subOverflows(ay, by)) ? "int-overflow"
-                                                       : shapeOfI(ax, bx),
+        (subOverflows(ax, bx) || subOverflows(ay, by)) ? "int-overflow" : sh,
         in, qstr(qa - qb), qstr(pa - pb));
-    rec("operator==", (qa == qb) == (pa == pb), shapeOfI(ax, bx),
+    rec("operator==", (qa == qb) == (pa == pb), sh,
         in, bstr(qa == qb), bstr(pa == pb));
-    rec("operator!=", (qa != qb) == (pa != pb), shapeOfI(ax, bx),
+    rec("operator!=", (qa != qb) == (pa != pb), sh,
         in, bstr(qa != qb), bstr(pa != pb));
     { QPoint q2 = qa; PkPoint p2 = pa; q2 += qb; p2 += pb;
       rec("operator+=", same_pt(q2, p2),
-          (addOverflows(ax, bx) || addOverflows(ay, by)) ? "int-overflow" : shapeOfI(ax, bx),
+          (addOverflows(ax, bx) || addOverflows(ay, by)) ? "int-overflow" : sh,
           in, qstr(q2), qstr(p2)); }
     { QPoint q2 = qa; PkPoint p2 = pa; q2 -= qb; p2 -= pb;
       rec("operator-=", same_pt(q2, p2),
-          (subOverflows(ax, bx) || subOverflows(ay, by)) ? "int-overflow" : shapeOfI(ax, bx),
+          (subOverflows(ax, bx) || subOverflows(ay, by)) ? "int-overflow" : sh,
           in, qstr(q2), qstr(p2)); }
 
     // dotProduct：静态成员，不防溢出（乘法与加法都可能溢出）
     rec("dotProduct", QPoint::dotProduct(qa, qb) == PkPoint::dotProduct(pa, pb),
         (mulOverflows(ax, bx) || mulOverflows(ay, by)
          || addOverflows((int)((long long)ax * bx), (int)((long long)ay * by)))
-            ? "int-overflow" : shapeOfI(ax, bx),
+            ? "int-overflow" : sh,
         in, istr(QPoint::dotProduct(qa, qb)), istr(PkPoint::dotProduct(pa, pb)));
 }
 
@@ -328,7 +346,7 @@ static void cmp_pointf_unary(double x, double y)
     const QPointF  q(x, y);
     const PkPointF p(x, y);
     const std::string in = "(" + dstr(x) + "," + dstr(y) + ")";
-    const std::string sh = shapeOfD(x, y);
+    const std::string sh = shapeOfD({x, y});
 
     rec("F::x", same_double(q.x(), p.x()), sh, in, dstr(q.x()), dstr(p.x()));
     rec("F::y", same_double(q.y(), p.y()), sh, in, dstr(q.y()), dstr(p.y()));
@@ -340,8 +358,6 @@ static void cmp_pointf_unary(double x, double y)
         : (subnormal(x) || subnormal(y)) ? "subnormal" : sh,
         in, bstr(q.isNull()), bstr(p.isNull()));
 
-    rec("F::transposed", same_ptf(q.transposed(), p.transposed()), sh, in,
-        qstr(q.transposed()), qstr(p.transposed()));
     rec("F::manhattanLength", same_double(q.manhattanLength(), p.manhattanLength()),
         sh, in, dstr(q.manhattanLength()), dstr(p.manhattanLength()));
 
@@ -370,7 +386,9 @@ static void cmp_pointf_binary(double ax, double ay, double bx, double by)
     const PkPointF pa(ax, ay), pb(bx, by);
     const std::string in = "(" + dstr(ax) + "," + dstr(ay) + ")|("
                          + dstr(bx) + "," + dstr(by) + ")";
-    const std::string sh = shapeOfD(ax, bx);
+    // ⚠ **四个分量都参与**，不是只取 x 那一对（约定见 shapeOfD 上方；只喂 x 时
+    // 「只在 y 上出错」的缺陷会被贴成 finite —— 复评实测抓到 8 036 次错标）。
+    const std::string sh = shapeOfD({ax, ay, bx, by});
 
     rec("F::operator+", same_ptf(qa + qb, pa + pb), sh, in, qstr(qa + qb), qstr(pa + pb));
     rec("F::operator-", same_ptf(qa - qb, pa - pb), sh, in, qstr(qa - qb), qstr(pa - pb));
@@ -400,7 +418,8 @@ static void cmp_pointf_binary(double ax, double ay, double bx, double by)
         (nonFinite(ax) || nonFinite(ay) || nonFinite(bx) || nonFinite(by)) ? "nonfinite"
         : (signedZero(ax) || signedZero(ay) || signedZero(bx) || signedZero(by)) ? "signed-zero"
         : (subnormal(ax) || subnormal(ay) || subnormal(bx) || subnormal(by)) ? "subnormal"
-        : (std::fabs(ax) > 1e150 || std::fabs(bx) > 1e150) ? "overflow-prone" : "finite",
+        : (std::fabs(ax) > 1e150 || std::fabs(ay) > 1e150
+           || std::fabs(bx) > 1e150 || std::fabs(by) > 1e150) ? "overflow-prone" : "finite",
         in, dstr(QPointF::dotProduct(qa, qb)), dstr(PkPointF::dotProduct(pa, pb)));
 }
 
@@ -409,7 +428,8 @@ static void cmp_pointf_scale(double x, double y, double c)
     const QPointF  q(x, y);
     const PkPointF p(x, y);
     const std::string in = "(" + dstr(x) + "," + dstr(y) + ")*" + dstr(c);
-    const std::string sh = shapeOfD(x, c);
+    // 参与分量是 x、y 与标量 c 三个，一个都不能漏（约定见 shapeOfD 上方）。
+    const std::string sh = shapeOfD({x, y, c});
 
     rec("F::operator*", same_ptf(q * c, p * c), sh, in, qstr(q * c), qstr(p * c));
     rec("F::operator*(rev)", same_ptf(c * q, c * p), sh, in, qstr(c * q), qstr(c * p));
@@ -431,10 +451,13 @@ static void cmp_promotion(int x, int y, double cx, double cy)
     const PkPointF pf = pi;
     const std::string in = "(" + istr(x) + "," + istr(y) + ")+("
                          + dstr(cx) + "," + dstr(cy) + ")";
-    const std::string sh = shapeOfI(x, y);
+    // fromPoint / roundTrip 只有 (x,y) 参与；mixedAdd 四个分量都参与，所以它
+    // 用跨族的 shapeOfMixed —— 只喂 (cx,cy) 会把 int 侧的根因整片盖掉。
+    const std::string sh = shapeOfI({x, y});
     rec("F::fromPoint", same_ptf(qf, pf), sh, in, qstr(qf), qstr(pf));
     rec("F::mixedAdd", same_ptf(QPointF(cx, cy) + qi, PkPointF(cx, cy) + pi),
-        shapeOfD(cx, cy), in, qstr(QPointF(cx, cy) + qi), qstr(PkPointF(cx, cy) + pi));
+        shapeOfMixed({x, y}, {cx, cy}), in,
+        qstr(QPointF(cx, cy) + qi), qstr(PkPointF(cx, cy) + pi));
     // 往返：提升再 toPoint 必须回到原点（除非 int 值域边界上的 double 表示丢精度）
     rec("F::roundTrip", same_pt(qf.toPoint(), pf.toPoint()), sh, in,
         qstr(qf.toPoint()), qstr(pf.toPoint()));
@@ -535,24 +558,55 @@ int main()
     const int nTokD = countOf(kTokD), nTokI = countOf(kTokI);
     const int nFacD = countOf(kFacD), nFacF = countOf(kFacF), nFacI = countOf(kFacI);
 
-    // ── Group 1：手挑用例，两两配对喂给二元 API ──
-    for (int i = 0; i < nHandD; ++i) {
-        const double x = kHandD[i], y = kHandD[(i + 1) % nHandD];
-        const double bx = kHandD[(i + 3) % nHandD], by = kHandD[(i + 7) % nHandD];
-        cmp_pointf_unary(x, y);
-        cmp_pointf_binary(x, y, bx, by);
-        for (int f = 0; f < nFacD; ++f) cmp_pointf_scale(x, y, kFacD[f]);
-    }
-    for (int i = 0; i < nHandI; ++i) {
-        const int x = kHandI[i], y = kHandI[(i + 1) % nHandI];
-        cmp_point_unary(x, y);
-        cmp_point_binary(x, y, kHandI[(i + 3) % nHandI], kHandI[(i + 7) % nHandI]);
-        for (int f = 0; f < nFacD; ++f) cmp_point_scale_double(x, y, kFacD[f]);
-        for (int f = 0; f < nFacF; ++f) cmp_point_scale_float(x, y, kFacF[f]);
-        for (int f = 0; f < nFacI; ++f) cmp_point_scale_int(x, y, kFacI[f]);
-        for (int d = 0; d < nHandD; ++d)
-            cmp_promotion(x, y, kHandD[d], kHandD[(d + 5) % nHandD]);
-    }
+    // ── Group 1：手挑对抗用例的**全组合**（不是索引轮转）──────────────────
+    //
+    // ⚠ **Task 3–6 照抄这个形状。** 第一版写的是 `x = kHand[i], y = kHand[(i+1)%n]`
+    // 这种索引轮转，44 个手挑值只产生 44 个点而不是 44² 个 —— 后果是
+    // **kHand 里那批 kTok 没有的值永远无法同时出现在 x 和 y 上**
+    //（0.5000000000000001、1e-323、2.2250738585072014e-308、2147483647/8.0、
+    //  -2147483649.0、4294967296.0、1.0+1e-13、2e-12、±0.25、±3.5 …）。
+    // 复评实测：注入一个只在 `x == y == 2147483648.0`（手挑独有值）时触发的
+    // toPoint 缺陷，对拍**全绿 exit=0**，连跑两遍一致。旁证：manhattanLength 用
+    // fabs 的真缺陷全场只抓到 1 次，落在 (-0.0,-0.0) —— 纯粹因为 -0.0 恰好也在
+    // kTok 里；若它只在手挑集里，那个真缺陷会全绿溜过。
+    //
+    // Point 是二元的（一元 API 2 个分量、二元 API 4 个），所以这里直接做满：
+    // 一元 44² / 26²，二元 44⁴ / 26⁴。**分量更多时不要退回轮转** —— Rect 的二元
+    // API 有 8 个分量、44⁸ 显然做不了，那就至少做「手挑 × token」的交叉
+    //（手挑值必须能出现在每一个分量位上），绝不能让某个分量位永远取不到手挑值。
+    for (int i = 0; i < nHandD; ++i)
+        for (int j = 0; j < nHandD; ++j)
+            cmp_pointf_unary(kHandD[i], kHandD[j]);
+    for (int i = 0; i < nHandD; ++i)
+        for (int j = 0; j < nHandD; ++j)
+            for (int k = 0; k < nHandD; ++k)
+                for (int l = 0; l < nHandD; ++l)
+                    cmp_pointf_binary(kHandD[i], kHandD[j], kHandD[k], kHandD[l]);
+    for (int i = 0; i < nHandD; ++i)
+        for (int j = 0; j < nHandD; ++j)
+            for (int f = 0; f < nFacD; ++f)
+                cmp_pointf_scale(kHandD[i], kHandD[j], kFacD[f]);
+
+    for (int i = 0; i < nHandI; ++i)
+        for (int j = 0; j < nHandI; ++j)
+            cmp_point_unary(kHandI[i], kHandI[j]);
+    for (int i = 0; i < nHandI; ++i)
+        for (int j = 0; j < nHandI; ++j)
+            for (int k = 0; k < nHandI; ++k)
+                for (int l = 0; l < nHandI; ++l)
+                    cmp_point_binary(kHandI[i], kHandI[j], kHandI[k], kHandI[l]);
+    for (int i = 0; i < nHandI; ++i)
+        for (int j = 0; j < nHandI; ++j) {
+            for (int f = 0; f < nFacD; ++f) cmp_point_scale_double(kHandI[i], kHandI[j], kFacD[f]);
+            for (int f = 0; f < nFacF; ++f) cmp_point_scale_float(kHandI[i], kHandI[j], kFacF[f]);
+            for (int f = 0; f < nFacI; ++f) cmp_point_scale_int(kHandI[i], kHandI[j], kFacI[f]);
+        }
+    // 跨类型：整数点全组合 × 浮点分量全组合。
+    for (int i = 0; i < nHandI; ++i)
+        for (int j = 0; j < nHandI; ++j)
+            for (int a = 0; a < nHandD; ++a)
+                for (int b = 0; b < nHandD; ++b)
+                    cmp_promotion(kHandI[i], kHandI[j], kHandD[a], kHandD[b]);
 
     // ── Group 2a：一元 API 走 token² 个点 ──
     for (int a = 0; a < nTokD; ++a)

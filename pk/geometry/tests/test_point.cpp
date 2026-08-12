@@ -38,6 +38,22 @@ bool sameBits(double a, double b)
     return (a != a) && (b != b);   // 两侧都是 NaN 就算同（载荷可以不同）
 }
 
+// 挡住常量折叠。**越界的 double→int 转换（`int(inf)`、`int(2147483648.0)`）是 UB，
+// 编译期折叠与运行期 `cvttsd2si` 给的答案不一样**：整条表达式都是字面量时
+// `-O1` 及以上会在编译期算，实测把
+// `PkPointF(2147483648.0,2147483648.0).toPoint() == PkPoint(INT_MIN,INT_MIN)`
+// 判成 false（`-O0` 为 true）。真 Qt 侧的调用点拿到的是运行期算出来的值，
+// 所以要对齐的也是运行期那条路径 —— 把输入经一次 volatile 读送进去，转换就一定
+// 发生在运行期。不这么做，这批断言事实上把整套单测锁死在 `-O0`。
+//
+// 探针实测（真 Qt 5.15.7，同一个 volatile 屏障，`-O0` 与 `-O2` 逐字一致）：
+//   2147483648.0/1e308/+inf/4294967296.0 → INT_MIN；-1e308/-inf/nan → 0。
+double noFold(double d)
+{
+    volatile double v = d;
+    return v;
+}
+
 const double kInf = std::numeric_limits<double>::infinity();
 const double kNaN = std::numeric_limits<double>::quiet_NaN();
 
@@ -93,15 +109,6 @@ void PkPointCase::pointIsNull()
     PK_VERIFY(!PkPoint(-1, -1).isNull());
 }
 
-void PkPointCase::pointTransposed()
-{
-    // 实测 QPoint(3,-7).transposed() == (-7,3)
-    PK_COMPARE(PkPoint(3, -7).transposed().x(), -7);
-    PK_COMPARE(PkPoint(3, -7).transposed().y(), 3);
-    PK_VERIFY(PkPoint(0, 0).transposed().isNull());
-    PK_VERIFY(PkPoint(5, 5).transposed() == PkPoint(5, 5));
-}
-
 void PkPointCase::pointManhattanLength()
 {
     // 实测 QPoint(-3,4).manhattanLength() == 7
@@ -154,6 +161,21 @@ void PkPointCase::pointScalingRoundsLikeQt()
     PK_VERIFY(PkPoint(5, 5) * 0.5 == PkPoint(3, 3));
     PK_VERIFY(PkPoint(-5, -5) * 0.5 == PkPoint(-2, -2));
     PK_VERIFY(PkPoint(-7, -7) * 0.5 == PkPoint(-3, -3));
+
+    // ⚠ **半值用例单独一组是不够的**：把 qRound 换成 `int(v*f + 0.5)`（= 丢掉负
+    // 分支、"半值远离零"那种直觉写法）时，上面每一条的取值都**恰好不变**
+    //（-1*0.5=-0.5 → int(0)=0 ✓；-3*0.5=-1.5 → int(-1)=-1 ✓），28 条单测全绿，
+    // 只有对拍抓得到。分辨这两种实现要靠**负数非半值**：小数部分不是 ±0.5 时
+    // 两条公式才分家。下面三条实测真 Qt 5.15.7（探针 probe_fix1.cpp，-O0/-O2 一致），
+    // `int(v*f+0.5)` 变体分别给 0 / -1 / -1，逐条冲突。
+    PK_VERIFY(PkPoint(-3, -3) * 0.25 == PkPoint(-1, -1));    // -0.75 → -1（变体给 0）
+    PK_VERIFY(PkPoint(-3, -3) * 0.75 == PkPoint(-2, -2));    // -2.25 → -2（变体给 -1）
+    PK_VERIFY(PkPoint(-7, -7) * 0.25 == PkPoint(-2, -2));    // -1.75 → -2（变体给 -1）
+    PK_VERIFY(PkPoint(3, 3) * 0.25 == PkPoint(1, 1));        // 正侧对照：0.75 → 1
+    PK_VERIFY(0.25 * PkPoint(-3, -3) == PkPoint(-1, -1));    // 左乘同语义
+    PK_VERIFY(PkPoint(-3, -3) / 4.0 == PkPoint(-1, -1));     // 除法走同一条 qRound
+    { PkPoint n(-3, -3); n *= 0.25; PK_VERIFY(n == PkPoint(-1, -1)); }
+    { PkPoint n(-3, -3); n /= 4.0;  PK_VERIFY(n == PkPoint(-1, -1)); }
 
     // 左乘与右乘同语义
     PK_VERIFY(0.5 * PkPoint(-5, -5) == PkPoint(-2, -2));
@@ -213,10 +235,12 @@ void PkPointCase::pointDivisionByZeroMatchesQt()
     //   QPoint(-1,-1)/0.0 → (0, 0)                -1/0.0 = -inf 走 qRound 负分支
     //   QPoint(0,0)/0.0   → (0, 0)                 0/0.0 = nan
     //   QPoint(1,1)/-0.0  → (0, 0)                 1/-0.0 = -inf
-    PK_VERIFY(PkPoint(1, 1) / 0.0 == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPoint(-1, -1) / 0.0 == PkPoint(0, 0));
-    PK_VERIFY(PkPoint(0, 0) / 0.0 == PkPoint(0, 0));
-    PK_VERIFY(PkPoint(1, 1) / -0.0 == PkPoint(0, 0));
+    // 除数经 noFold 送进去：`int(±inf)` 是 UB，全字面量的表达式在 -O1 及以上会被
+    // 编译期折叠成另一个答案（见 noFold 上方注释）。
+    PK_VERIFY(PkPoint(1, 1) / noFold(0.0) == PkPoint(INT_MIN, INT_MIN));
+    PK_VERIFY(PkPoint(-1, -1) / noFold(0.0) == PkPoint(0, 0));
+    PK_VERIFY(PkPoint(0, 0) / noFold(0.0) == PkPoint(0, 0));
+    PK_VERIFY(PkPoint(1, 1) / noFold(-0.0) == PkPoint(0, 0));
 }
 
 void PkPointCase::pointEquality()
@@ -316,18 +340,6 @@ void PkPointCase::pointfIsNull()
     PK_VERIFY(!PkPointF(5e-324, 0.0).isNull());
     PK_VERIFY(!PkPointF(kNaN, 0.0).isNull());
     PK_VERIFY(!PkPointF(1.0, 0.0).isNull());
-}
-
-void PkPointCase::pointfTransposed()
-{
-    // 实测 QPointF(1.5,-2.5).transposed() == (-2.5,1.5)
-    const PkPointF t = PkPointF(1.5, -2.5).transposed();
-    PK_VERIFY(sameBits(t.x(), -2.5));
-    PK_VERIFY(sameBits(t.y(), 1.5));
-    // 零号的符号位也要原样搬过去（transposed 只是换位置）
-    const PkPointF z = PkPointF(-0.0, 0.0).transposed();
-    PK_VERIFY(!std::signbit(z.x()));
-    PK_VERIFY(std::signbit(z.y()));
 }
 
 void PkPointCase::pointfManhattanLength()
@@ -478,18 +490,24 @@ void PkPointCase::pointfToPointMatchesQt()
     PK_VERIFY(PkPointF(0.49999999999999994, 0.0).toPoint() == PkPoint(1, 0));
     PK_VERIFY(PkPointF(-0.49999999999999994, 0.0).toPoint() == PkPoint(0, 0));
 
-    // 越界与特值上的实测取值（C++ 层面是 UB，但两侧必须给同一个答案）：
-    //   2147483647.0 → INT_MAX；2147483648.0 → INT_MIN；-2147483648.0 → INT_MIN
-    //   +1e308 / +inf → INT_MIN；-1e308 / -inf / nan → 0
-    PK_VERIFY(PkPointF(2147483647.0, 2147483647.0).toPoint() == PkPoint(INT_MAX, INT_MAX));
-    PK_VERIFY(PkPointF(2147483648.0, 2147483648.0).toPoint() == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPointF(-2147483648.0, -2147483648.0).toPoint() == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPointF(1e308, 1e308).toPoint() == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPointF(-1e308, -1e308).toPoint() == PkPoint(0, 0));
-    PK_VERIFY(PkPointF(kInf, kInf).toPoint() == PkPoint(INT_MIN, INT_MIN));
-    PK_VERIFY(PkPointF(-kInf, -kInf).toPoint() == PkPoint(0, 0));
-    PK_VERIFY(PkPointF(kNaN, kNaN).toPoint() == PkPoint(0, 0));
-    // 次正规数向零收
+    // 越界与特值上的实测取值（C++ 层面是 UB，但两侧必须给同一个答案）。
+    // ⚠ 全部经 noFold 送进去：越界的 double→int 是 UB，编译期折叠与运行期
+    // cvttsd2si 的答案不一样，不加屏障时 -O1 及以上会红（见 noFold 上方注释）。
+    // 探针实测真 Qt 5.15.7（同一屏障，-O0/-O2 逐字一致）：
+    //   2147483647.0 → INT_MAX；2147483648.0 / 4294967296.0 → INT_MIN；
+    //   -2147483648.0 / -2147483649.0 → INT_MIN；+1e308 / +inf → INT_MIN；
+    //   -1e308 / -inf / nan → 0
+    PK_VERIFY(PkPointF(noFold(2147483647.0), noFold(2147483647.0)).toPoint() == PkPoint(INT_MAX, INT_MAX));
+    PK_VERIFY(PkPointF(noFold(2147483648.0), noFold(2147483648.0)).toPoint() == PkPoint(INT_MIN, INT_MIN));
+    PK_VERIFY(PkPointF(noFold(4294967296.0), noFold(4294967296.0)).toPoint() == PkPoint(INT_MIN, INT_MIN));
+    PK_VERIFY(PkPointF(noFold(-2147483648.0), noFold(-2147483648.0)).toPoint() == PkPoint(INT_MIN, INT_MIN));
+    PK_VERIFY(PkPointF(noFold(-2147483649.0), noFold(-2147483649.0)).toPoint() == PkPoint(INT_MIN, INT_MIN));
+    PK_VERIFY(PkPointF(noFold(1e308), noFold(1e308)).toPoint() == PkPoint(INT_MIN, INT_MIN));
+    PK_VERIFY(PkPointF(noFold(-1e308), noFold(-1e308)).toPoint() == PkPoint(0, 0));
+    PK_VERIFY(PkPointF(noFold(kInf), noFold(kInf)).toPoint() == PkPoint(INT_MIN, INT_MIN));
+    PK_VERIFY(PkPointF(noFold(-kInf), noFold(-kInf)).toPoint() == PkPoint(0, 0));
+    PK_VERIFY(PkPointF(noFold(kNaN), noFold(kNaN)).toPoint() == PkPoint(0, 0));
+    // 次正规数向零收（这一条在 int 值域内，不是 UB，不需要屏障）
     PK_VERIFY(PkPointF(5e-324, -5e-324).toPoint() == PkPoint(0, 0));
 }
 

@@ -39,10 +39,14 @@ for i in "${INCS[@]}"; do INCFLAGS+=("-I$i"); done
 # 那批输入正是最该对拍的形态（Qt 自己就这么写，替代品照抄）。不加 -fwrapv 时
 # -O2 会拿"溢出不可能发生"去推导取值范围，实测的表现是 std::to_string 在打印
 # 溢出后的负数时**段错误**（GCC 13 把 __to_chars_len 的分支优化没了）。
-# 加上之后两侧都按二补数回绕，比的仍然是同一件事，且结果与 -O0 逐字相同
-#（Task 2 报告里贴了 -O0/-O2 两次的 total 与 mismatch 对照）。
-# 浮点→int 越界（int(inf)）是另一类 UB，-fwrapv 管不着；实机上两侧都编成
-# 同一条 cvttsd2si，取值一致。这条写进 README 的覆盖度缺口。
+# 加上之后两侧都按二补数回绕，比的仍然是同一件事，且结果与 -O0 逐字相同。
+# **两侧本来都是 UB，我们比的是"钉死之后的行为"，这不等于 Krita 发布构建里的
+# 行为**（那边不带 -fwrapv）—— 完整口径写在 README 的覆盖度缺口。
+# pk/geometry/CMakeLists.txt 里同样带着这个旗标（target_compile_options PUBLIC），
+# 两边必须一致，否则对拍与单测钉的不是同一套行为。
+# 浮点→int 越界（int(inf)）是另一类 UB，-fwrapv 管不着；实机上运行期两侧都编成
+# 同一条 cvttsd2si，取值一致，但编译期常量折叠给的是另一个答案 —— 对拍的输入
+# 来自运行期数组，天然不会被折叠；单测那边靠 noFold() 顶。
 CXXFLAGS_ORACLE=(-std=c++17 -O2 -fwrapv -fPIC)
 
 mkdir -p pk/geometry/build

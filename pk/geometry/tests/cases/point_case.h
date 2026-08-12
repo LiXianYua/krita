@@ -19,7 +19,6 @@ private Q_SLOTS:
     void pointConstruction();
     void pointAccessorsAndReferences();
     void pointIsNull();
-    void pointTransposed();
     void pointManhattanLength();
     void pointAdditiveOperators();
     void pointScalingRoundsLikeQt();
@@ -34,7 +33,6 @@ private Q_SLOTS:
     void pointfPromotionFromPkPoint();
     void pointfAccessorsAndReferences();
     void pointfIsNull();
-    void pointfTransposed();
     void pointfManhattanLength();
     void pointfAdditiveOperators();
     void pointfScalarOperators();

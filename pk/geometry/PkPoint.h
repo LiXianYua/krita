@@ -23,8 +23,17 @@
 //   Q_CORE_EXPORT / Q_DECLARE_TYPEINFO / QT_WARNING_* → 去掉（可见性、容器移动
 //   优化提示、-Wfloat-equal 的诊断压制，都不进入可观察行为）
 //
-// 明确不实现（族内实测用量 0）：dotProduct / fromCGPoint / toCGPoint，
-// 以及 qHash、QDataStream 的 <<>>、QDebug 的 <<（归 R-02 / R-12 / R-08）。
+// 明确不实现：
+//   · fromCGPoint / toCGPoint —— 族内实测用量 0（macOS 专用桥接）。
+//   · transposed —— 族内实测用量 0。保留范围（3 325 个文件）内 `.transposed(`
+//     5 处**全是 `QTransform::transposed()`**（`libs/global/kis_algebra_2d.cpp:935`
+//     加 `plugins/tools/tool_transform2/kis_free_transform_strategy_gsl_helpers.cpp`
+//     的 4 处），`QPoint`/`QPointF` 上 0 处；`.transpose(` 的 5 处则全是 Eigen 矩阵。
+//     那个名字归 Task 6 的 PkTransform，不归 Point 族（判据①「一项不多」）。
+//   · qHash、QDataStream 的 <<>>、QDebug 的 <<（归 R-02 / R-12 / R-08）。
+// ⚠ **dotProduct 是实现了的**（qpoint.h:81-82 / 247-248）：计划把它列进「0 次」是
+// 错的，真实调用点见下方 dotProduct 上方那段注释。抄这个头做模板的 Task 3–6
+// 注意：「不实现」清单必须自己重跑一遍实测，别照抄计划。
 // 详见 README.md 的「覆盖度缺口」。
 // ---------------------------------------------------------------------------
 
@@ -42,9 +51,6 @@ public:
     constexpr inline void setY(int y);
 
     constexpr inline int manhattanLength() const;
-
-    // qpoint.h:67
-    constexpr PkPoint transposed() const noexcept { return {yp, xp}; }
 
     constexpr inline int &rx();
     constexpr inline int &ry();
@@ -204,8 +210,6 @@ public:
     constexpr inline qreal y() const;
     constexpr inline void setX(qreal x);
     constexpr inline void setY(qreal y);
-
-    constexpr PkPointF transposed() const noexcept { return {yp, xp}; }
 
     constexpr inline qreal &rx();
     constexpr inline qreal &ry();

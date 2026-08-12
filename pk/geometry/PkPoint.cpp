@@ -33,7 +33,6 @@ static_assert(std::is_same<decltype(PkPoint().x()), int>::value, "PkPoint::x() �
 static_assert(PkPoint().isNull(), "默认构造是 (0,0)");
 static_assert(PkPoint(3, 4).x() == 3 && PkPoint(3, 4).y() == 4, "两参构造");
 static_assert(PkPoint(-3, 4).manhattanLength() == 7, "实测 QPoint(-3,4).manhattanLength()==7");
-static_assert(PkPoint(3, -7).transposed() == PkPoint(-7, 3), "transposed 交换两个分量");
 static_assert(PkPoint(1, 1) == PkPoint(1, 1) && PkPoint(1, 1) != PkPoint(1, 2), "整数点用位相等");
 
 // 放宽的 constexpr（C++14 起）：setX/rx 能在编译期改状态。
@@ -49,7 +48,6 @@ static_assert(0.5 * PkPoint(-5, -5) == PkPoint(-2, -2), "qRound(-2.5)==-2，且�
 static_assert(PkPoint(-3, -3) / 2.0 == PkPoint(-1, -1), "除法同样走 qRound");
 
 // PkPointF 的 constexpr 面。isNull() 照 Qt **不是** constexpr，故不在此列。
-static_assert(PkPointF(1.5, -2.5).transposed().x() == -2.5, "PkPointF::transposed");
 static_assert(PkPointF(-0.5, -0.5).toPoint() == PkPoint(0, 0), "实测 QPointF(-0.5,-0.5).toPoint()==(0,0)");
 static_assert(PkPointF(0.5, 0.5).toPoint() == PkPoint(1, 1), "实测 QPointF(0.5,0.5).toPoint()==(1,1)");
 static_assert(PkPointF(PkPoint(3, -4)).y() == -4.0, "PkPoint → PkPointF 隐式提升");
