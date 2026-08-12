@@ -21,8 +21,6 @@
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 
-#include "ui_wdgcolortoalphabase.h"
-#include "kis_wdg_color_to_alpha.h"
 #include <kis_iterator_ng.h>
 #include <KisSequentialIteratorProgress.h>
 
@@ -33,11 +31,6 @@ KisFilterColorToAlpha::KisFilterColorToAlpha()
     setSupportsAdjustmentLayers(true);
     setSupportsLevelOfDetail(true);
     setColorSpaceIndependence(FULLY_INDEPENDENT);
-}
-
-KisConfigWidget * KisFilterColorToAlpha::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    return new KisWdgColorToAlpha(parent);
 }
 
 KisFilterConfigurationSP KisFilterColorToAlpha::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

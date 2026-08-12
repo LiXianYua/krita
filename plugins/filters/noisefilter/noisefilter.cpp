@@ -22,10 +22,6 @@
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
 
-#include "kis_wdg_noise.h"
-#include "ui_wdgnoiseoptions.h"
-
-
 K_PLUGIN_FACTORY_WITH_JSON(KritaNoiseFilterFactory, "kritanoisefilter.json", registerPlugin<KritaNoiseFilter>();)
 
 KritaNoiseFilter::KritaNoiseFilter(QObject *parent, const QVariantList &)
@@ -56,12 +52,6 @@ KisFilterConfigurationSP KisFilterNoise::defaultConfiguration(KisResourcesInterf
     config->setProperty("seedBlue", rand());
     config->setProperty("grayscale", false);
     return config;
-}
-
-KisConfigWidget * KisFilterNoise::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisWdgNoise((KisFilter*)this, (QWidget*)parent);
 }
 
 void KisFilterNoise::processImpl(KisPaintDeviceSP device,

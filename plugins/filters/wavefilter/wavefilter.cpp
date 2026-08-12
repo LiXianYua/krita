@@ -30,8 +30,6 @@
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
-#include "kis_wdg_wave.h"
-#include "ui_wdgwaveoptions.h"
 #include <kis_iterator_ng.h>
 #include <KisSequentialIteratorProgress.h>
 
@@ -113,11 +111,6 @@ KisFilterConfigurationSP KisFilterWave::defaultConfiguration(KisResourcesInterfa
     config->setProperty("verticalamplitude", 4);
     config->setProperty("verticalshape", 0);
     return config;
-}
-
-KisConfigWidget * KisFilterWave::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    return new KisWdgWave((KisFilter*)this, (QWidget*)parent);
 }
 
 void KisFilterWave::processImpl(KisPaintDeviceSP device,

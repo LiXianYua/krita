@@ -28,8 +28,6 @@
 #include "kis_lod_transform.h"
 #include <KoCompositeOpRegistry.h>
 
-#include "wdg_gaussianhighpass.h"
-#include "ui_wdggaussianhighpass.h"
 #include "KoColorSpaceTraits.h"
 #include <KisSequentialIteratorProgress.h>
 
@@ -41,11 +39,6 @@ KisGaussianHighPassFilter::KisGaussianHighPassFilter() : KisFilter(id(), Filters
     setSupportsThreading(true);
     setSupportsLevelOfDetail(true);
     setColorSpaceIndependence(FULLY_INDEPENDENT);
-}
-
-KisConfigWidget * KisGaussianHighPassFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool /* useForMasks */) const
-{
-    return new KisWdgGaussianHighPass(parent);
 }
 
 KisFilterConfigurationSP KisGaussianHighPassFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

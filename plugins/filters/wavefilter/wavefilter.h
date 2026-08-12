@@ -43,8 +43,6 @@ public:
 public:
     QRect changedRect(const QRect& rect, const KisFilterConfigurationSP config = 0, int lod = 0) const override;
     QRect neededRect(const QRect& rect, const KisFilterConfigurationSP config = 0, int lod = 0) const override;
-
-    KisConfigWidget * createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
 };
 
 #endif

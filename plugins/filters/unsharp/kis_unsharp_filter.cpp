@@ -22,8 +22,6 @@
 #include <kis_paint_device.h>
 #include "kis_lod_transform.h"
 
-#include "kis_wdg_unsharp.h"
-#include "ui_wdgunsharp.h"
 #include "KoColorSpaceTraits.h"
 #include <KisSequentialIteratorProgress.h>
 
@@ -43,11 +41,6 @@ KisUnsharpFilter::KisUnsharpFilter() : KisFilter(id(), FiltersCategoryEnhanceId,
      */
     setSupportsLevelOfDetail(false);
     setColorSpaceIndependence(FULLY_INDEPENDENT);
-}
-
-KisConfigWidget * KisUnsharpFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    return new KisWdgUnsharp(parent);
 }
 
 KisFilterConfigurationSP KisUnsharpFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

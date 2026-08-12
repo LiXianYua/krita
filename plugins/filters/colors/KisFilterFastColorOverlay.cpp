@@ -16,8 +16,6 @@
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
 
-#include "KisWdgFilterFastColorOverlay.h"
-
 KisFilterFastColorOverlay::KisFilterFastColorOverlay()
     : KisFilter(id(), FiltersCategoryColorId, i18n("Fast Color &Overlay..."))
 {
@@ -77,13 +75,6 @@ void KisFilterFastColorOverlay::processImpl(KisPaintDeviceSP device, const QRect
         dstY_ += rows;
         rowsRemaining -= rows;
     }
-}
-
-KisConfigWidget *KisFilterFastColorOverlay::createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool useForMasks) const
-{
-    Q_UNUSED(dev);
-    Q_UNUSED(useForMasks);
-    return new KisWdgFilterFastColorOverlay(parent);
 }
 
 KisFilterConfigurationSP KisFilterFastColorOverlay::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

@@ -34,8 +34,6 @@
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 
-#include "kis_wdg_random_pick.h"
-#include "ui_wdgrandompickoptions.h"
 #include <kis_iterator_ng.h>
 #include <KisSequentialIteratorProgress.h>
 
@@ -107,12 +105,6 @@ void KisFilterRandomPick::processImpl(KisPaintDeviceSP device,
         }
     }
 
-}
-
-KisConfigWidget * KisFilterRandomPick::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisWdgRandomPick((KisFilter*)this, (QWidget*)parent);
 }
 
 KisFilterConfigurationSP KisFilterRandomPick::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

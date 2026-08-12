@@ -28,7 +28,6 @@ public:
         return KoID("fastcoloroverlay", i18n("Fast Color Overlay"));
     }
 
-    KisConfigWidget * createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 };
 
