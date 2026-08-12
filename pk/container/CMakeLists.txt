@@ -11,6 +11,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # 自证——静态库允许留未定义符号，真混进 Qt 依赖就会在那里现形。
 add_library(pkcontainer STATIC
     PkArrayData.cpp
+    PkVector.cpp
+    PkList.cpp
 )
 target_include_directories(pkcontainer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -27,20 +29,34 @@ add_subdirectory(${PKTEST_DIR} ${CMAKE_BINARY_DIR}/pktest EXCLUDE_FROM_ALL)
 # pk_test_generate 由 pk/test 定义：为测试头生成 PkTestBinder<T> 特化 .inc。
 # 产物落在**本目录**的 binary dir（函数体里用的是调用方的 CMAKE_CURRENT_BINARY_DIR）。
 pk_test_generate(PKCONTAINER_GENERATED_TEST_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkArrayDataTest.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkArrayDataTest.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkVectorTest.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkListTest.h")
 
-add_executable(test_pkcontainer
-    tests/test_arraydata.cpp
-)
-target_link_libraries(test_pkcontainer PRIVATE pkcontainer pktest)
+# 一个测试类一个可执行文件：PK_TEST_MAIN 展开出 main()，两个测试类塞进同一个
+# 目标就是两个 main。与 pk/test 的既有形态一致。
+#
+# pk_test_add_executable(<target> <源文件> <测试类名>)
+# 三件事一次做齐：建目标、链 pkcontainer+pktest、把 compat/ 与生成目录挂上
+# include 路径，并把生成的 binder 挂成源文件的构建期依赖。
+function(pk_test_add_executable target source test_class)
+    add_executable(${target} ${source})
+    target_link_libraries(${target} PRIVATE pkcontainer pktest)
 
-# compat/：让测试头里的 `#include <QObject>` 解析到 pk/test 的垫片
-# （Q_OBJECT → friend 模板，QObject → PkTestObject）。
-target_include_directories(test_pkcontainer PRIVATE ${PKTEST_DIR}/compat)
+    # compat/：让测试头里的 `#include <QObject>` 解析到 pk/test 的垫片
+    # （Q_OBJECT → friend 模板，QObject → PkTestObject）。
+    # CMAKE_CURRENT_BINARY_DIR：生成的 binder .inc 落在那里。
+    target_include_directories(${target} PRIVATE
+        ${PKTEST_DIR}/compat
+        ${CMAKE_CURRENT_BINARY_DIR})
 
-# 生成的 binder 是显式特化，必须与调用 qExec<T> 的那个 .cpp 同一个 TU
-# （做法与 Qt moc 的 `#include moc_X.cpp` 惯例一致），所以只补 include 路径
-# 与构建期依赖，不把它当独立源文件编译。
-target_include_directories(test_pkcontainer PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-set_source_files_properties(tests/test_arraydata.cpp PROPERTIES
-    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_PkArrayDataTest.inc")
+    # 生成的 binder 是显式特化，必须与调用 qExec<T> 的那个 .cpp 同一个 TU
+    # （做法与 Qt moc 的 `#include moc_X.cpp` 惯例一致），所以只补 include 路径
+    # 与构建期依赖，不把它当独立源文件编译。
+    set_source_files_properties(${source} PROPERTIES
+        OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_${test_class}.inc")
+endfunction()
+
+pk_test_add_executable(test_pkcontainer tests/test_arraydata.cpp PkArrayDataTest)
+pk_test_add_executable(test_pkvector    tests/test_pkvector.cpp  PkVectorTest)
+pk_test_add_executable(test_pklist      tests/test_pklist.cpp    PkListTest)
