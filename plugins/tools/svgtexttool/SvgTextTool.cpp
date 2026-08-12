@@ -112,7 +112,6 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
     }
 
     const QStringList extraActions = {
-        "svg_insert_special_character",
         "svg_paste_rich_text",
         "svg_paste_plain_text",
         "svg_remove_transforms_from_range",
@@ -164,9 +163,20 @@ void SvgTextTool::activate(const QSet<KoShape *> &shapes)
     KoToolBase::activate(shapes);
     m_canvasConnections.addConnection(canvas()->selectedShapesProxy(), SIGNAL(selectionChanged()), this, SLOT(slotShapeSelectionChanged()));
 
-    m_optionsData.loadConfig(this->toolId());
-    slotUpdateVisualCursor();
-    slotUpdateTextPasteBehaviour();
+    // toolId() only becomes valid once KoToolManager has set the tool's
+    // factory, which happens after construction (KoToolBase::toolId() reads
+    // d->factory, set by KoToolManager::Private::createTool() post-ctor; see
+    // KoToolBase.cpp / KoToolManager.cpp). So this cannot move to the
+    // constructor. Guard it to run only once per tool instance, matching the
+    // original "load once, lazily" semantics of the deleted options panel
+    // (whose createOptionWidget() was itself only ever called once per tool
+    // instance and cached by KoToolBase::optionWidgets()).
+    if (!m_optionsDataLoaded) {
+        m_optionsData.loadConfig(this->toolId());
+        slotUpdateVisualCursor();
+        slotUpdateTextPasteBehaviour();
+        m_optionsDataLoaded = true;
+    }
 
     KisCanvas2 *canvas2 = qobject_cast<KisCanvas2 *>(this->canvas());
     if (canvas2) {
@@ -610,11 +620,12 @@ void SvgTextTool::paint(QPainter &gc, const KoViewConverter &converter)
         gc.restore();
     }
 
-    // Paint debug outline. The character/line debug toggles had no UI besides
-    // the removed tool options panel, so debug elements are always off.
+    // Paint debug outline. Character-bbox debug was on by default whenever
+    // KRITA_DEBUG_TEXTTOOL was set (line-box debug was off by default); there
+    // is no UI to change either anymore, so these defaults are now fixed.
     if (debugEnabled() && shape) {
         gc.save();
-        KoSvgTextShape::DebugElements el{};
+        const KoSvgTextShape::DebugElements el{KoSvgTextShape::DebugElement::CharBbox};
 
         gc.setTransform(shape->absoluteTransformation(), true);
         shape->paintDebug(gc, el);

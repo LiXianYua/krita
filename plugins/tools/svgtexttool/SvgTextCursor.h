@@ -315,8 +315,6 @@ Q_SIGNALS:
     /// Sents an update selection was changed.
     void selectionChanged();
 
-    /// Called by actions, tells the parent tool to open the glyph palette.
-    void sigOpenGlyphPalette();
 private Q_SLOTS:
     /// Called by timer, toggles the text cursor visible or invisible.
     void blinkCursor();

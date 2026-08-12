@@ -12,16 +12,6 @@
       <isCheckable>false</isCheckable>
       <statusTip/>
     </Action>
-    <Action name="svg_insert_special_character">
-      <iconText>Glyph Palette...</iconText>
-      <shortcut>Alt+Shift+G</shortcut>
-      <toolTip>Insert one or more symbols or characters not found on the keyboard</toolTip>
-      <icon>character-set</icon>
-      <whatsThis>Insert one or more symbols or characters not found on the keyboard.</whatsThis>
-      <statusTip/>
-      <isCheckable>false</isCheckable>
-      <text>Glyph Palette...</text>
-    </Action>
     <Action name="svg_align_right">
       <iconText>Align Right</iconText>
       <shortcut>Ctrl+Alt+R</shortcut>

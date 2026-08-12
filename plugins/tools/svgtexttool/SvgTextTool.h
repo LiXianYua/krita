@@ -189,6 +189,7 @@ private:
     };
 
     SvgTextToolOptionsData m_optionsData;
+    bool m_optionsDataLoaded {false};
     QPointF m_lastMousePos;
     DragMode m_dragging {DragMode::None};
     std::unique_ptr<KoInteractionStrategy> m_interactionStrategy;
