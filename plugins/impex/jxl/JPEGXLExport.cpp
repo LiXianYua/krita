@@ -54,7 +54,6 @@
 #include <kis_raster_keyframe_channel.h>
 #include <kis_time_span.h>
 
-#include "kis_wdg_options_jpegxl.h"
 #include "kis_jpegxl_export_tools.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_jxl_export.json", registerPlugin<JPEGXLExport>();)
@@ -1078,12 +1077,6 @@ void JPEGXLExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("FillLayerTypeCheck/pattern")->create(KisExportCheckBase::PARTIALLY));
     addCapability(KisExportCheckRegistry::instance()->get("FillLayerTypeCheck/gradient")->create(KisExportCheckBase::PARTIALLY));
     addCapability(KisExportCheckRegistry::instance()->get("LayerOpacityCheck")->create(KisExportCheckBase::PARTIALLY));
-}
-
-KisConfigWidget *
-JPEGXLExport::createConfigurationWidget(QWidget *parent, const QByteArray & /*from*/, const QByteArray & /*to*/) const
-{
-    return new KisWdgOptionsJPEGXL(parent);
 }
 
 KisPropertiesConfigurationSP JPEGXLExport::defaultConfiguration(const QByteArray &, const QByteArray &) const
