@@ -10,8 +10,6 @@
 #include <kis_brush_based_paintop_settings.h>
 #include <kis_types.h>
 
-#include "kis_sketch_paintop_settings_widget.h"
-
 
 class KisSketchPaintOpSettings : public KisBrushBasedPaintOpSettings
 {

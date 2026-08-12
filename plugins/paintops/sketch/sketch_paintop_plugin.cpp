@@ -16,6 +16,8 @@
 
 #include "kis_sketch_paintop.h"
 #include "kis_simple_paintop_factory.h"
+#include <kis_image.h>
+#include <kis_node.h>
 
 #include "kis_global.h"
 
