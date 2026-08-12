@@ -10,11 +10,13 @@
 
 #include <QDomDocument>
 #include <QMultiHash>
+#include <QFile>
 
 #include <QBuffer>
 #include <KoMD5Generator.h>
 
 #include <KisResourceModel.h>
+#include <KisGlobalResourcesInterface.h>
 
 #include <resources/KoAbstractGradient.h>
 #include <resources/KoSegmentGradient.h>
