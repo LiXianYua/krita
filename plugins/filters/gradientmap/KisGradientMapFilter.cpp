@@ -23,7 +23,6 @@
 #include <KoCachedGradient.h>
 
 #include "KisGradientMapFilter.h"
-#include "KisGradientMapFilterConfigWidget.h"
 #include "KisGradientMapFilterConfiguration.h"
 #include "KisGradientMapFilterNearestCachedGradient.h"
 #include "KisGradientMapFilterDitherCachedGradient.h"
@@ -179,9 +178,4 @@ KisFilterConfigurationSP KisGradientMapFilter::defaultConfiguration(KisResources
     KisGradientMapFilterConfigurationSP config = new KisGradientMapFilterConfiguration(resourcesInterface);
     config->setDefaults();
     return config;
-}
-
-KisConfigWidget* KisGradientMapFilter::createConfigurationWidget(QWidget * parent, const KisPaintDeviceSP, bool) const
-{
-    return new KisGradientMapFilterConfigWidget(parent);
 }

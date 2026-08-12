@@ -1,14 +1,9 @@
 set(kritagradientmap_SOURCES
     KisGradientMapFilter.cpp
-    KisGradientMapFilterConfigWidget.cpp
     KisGradientMapFilterConfiguration.cpp
     KisGradientMapFilterPlugin.cpp
     KisGradientMapFilterNearestCachedGradient.cpp
     KisGradientMapFilterDitherCachedGradient.cpp
-)
-
-ki18n_wrap_ui(kritagradientmap_SOURCES
-    KisGradientMapFilterConfigWidget.ui
 )
 
 kis_add_library(kritagradientmap MODULE ${kritagradientmap_SOURCES})

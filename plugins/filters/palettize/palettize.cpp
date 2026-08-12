@@ -16,11 +16,11 @@
 #include <kis_filter_category_ids.h>
 #include <KoUpdater.h>
 #include <KisSequentialIteratorProgress.h>
-#include <KisResourceItemChooser.h>
 #include <KoColorSet.h>
 #include <KoPattern.h>
 #include <KisRandomGenerator2D.h>
 #include <KisDitherUtil.h>
+#include <KisDitherWidget.h>
 #include <KisGlobalResourcesInterface.h>
 #include <KoResourceLoadResult.h>
 
@@ -82,106 +82,6 @@ public:
         return resources;
     }
 };
-
-/*******************************************************************************/
-/*                      KisPalettizeWidget                                     */
-/*******************************************************************************/
-
-KisPalettizeWidget::KisPalettizeWidget(QWidget* parent)
-    : KisConfigWidget(parent)
-{
-    Q_UNUSED(m_ditherPatternWidget);
-    setupUi(this);
-
-    paletteIconWidget->setFixedSize(32, 32);
-    m_paletteWidget = new KisResourceItemChooser(ResourceType::Palettes, false, this);
-    paletteIconWidget->setPopupWidget(m_paletteWidget);
-    QObject::connect(m_paletteWidget, &KisResourceItemChooser::resourceSelected, paletteIconWidget, &KisIconWidget::setResource);
-    QObject::connect(m_paletteWidget, &KisResourceItemChooser::resourceSelected, this, &KisConfigWidget::sigConfigurationItemChanged);
-
-    QObject::connect(colorspaceComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KisConfigWidget::sigConfigurationItemChanged);
-
-    QObject::connect(ditherGroupBox, &QGroupBox::toggled, this, &KisConfigWidget::sigConfigurationItemChanged);
-
-    QObject::connect(ditherWidget, &KisDitherWidget::sigConfigurationItemChanged, this, &KisConfigWidget::sigConfigurationItemChanged);
-
-    QObject::connect(colorModeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KisConfigWidget::sigConfigurationItemChanged);
-
-    offsetScaleSpinBox->setPrefix(QString("%1  ").arg(i18n("Offset Scale:")));
-    offsetScaleSpinBox->setRange(0.0, 1.0, 3);
-    offsetScaleSpinBox->setSingleStep(0.125);
-    QObject::connect(offsetScaleSpinBox, QOverload<double>::of(&KisDoubleSliderSpinBox::valueChanged), this, &KisConfigWidget::sigConfigurationItemChanged);
-
-    QObject::connect(alphaGroupBox, &QGroupBox::toggled, this, &KisConfigWidget::sigConfigurationItemChanged);
-
-    QObject::connect(alphaModeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &KisConfigWidget::sigConfigurationItemChanged);
-
-    alphaClipSpinBox->setPrefix(QString("%1  ").arg(i18n("Clip:")));
-    alphaClipSpinBox->setRange(0.0, 1.0, 3);
-    alphaClipSpinBox->setSingleStep(0.125);
-    QObject::connect(alphaClipSpinBox, QOverload<double>::of(&KisDoubleSliderSpinBox::valueChanged), this, &KisConfigWidget::sigConfigurationItemChanged);
-
-    alphaIndexSpinBox->setPrefix(QString("%1  ").arg(i18nc("Index as in Index Color", "Index:")));
-    alphaIndexSpinBox->setRange(0, 255);
-    QObject::connect(alphaIndexSpinBox, QOverload<int>::of(&KisSliderSpinBox::valueChanged), this, &KisConfigWidget::sigConfigurationItemChanged);
-    QObject::connect(m_paletteWidget, &KisResourceItemChooser::resourceSelected, [this](){
-        const KoColorSetSP palette = m_paletteWidget->currentResource().staticCast<KoColorSet>();
-        alphaIndexSpinBox->setMaximum(palette ? int(palette->colorCount() - 1) : 0);
-        alphaIndexSpinBox->setValue(std::min(alphaIndexSpinBox->value(), alphaIndexSpinBox->maximum()));
-    });
-
-    QObject::connect(alphaDitherWidget, &KisDitherWidget::sigConfigurationItemChanged, this, &KisConfigWidget::sigConfigurationItemChanged);
-}
-
-void KisPalettizeWidget::setConfiguration(const KisPropertiesConfigurationSP _config)
-{
-    const KisFilterPalettizeConfiguration *config = dynamic_cast<const KisFilterPalettizeConfiguration*>(_config.data());
-    KIS_SAFE_ASSERT_RECOVER_RETURN(config);
-
-    KoColorSetSP palette = config->palette();
-    if (palette) m_paletteWidget->setCurrentResource(palette);
-    colorspaceComboBox->setCurrentIndex(config->getInt("colorspace"));
-    ditherGroupBox->setChecked(config->getBool("ditherEnabled"));
-    ditherWidget->setConfiguration(*config, "dither/");
-    colorModeComboBox->setCurrentIndex(config->getInt("dither/colorMode"));
-    offsetScaleSpinBox->setValue(config->getDouble("dither/offsetScale"));
-    alphaGroupBox->setChecked(config->getBool("alphaEnabled"));
-    alphaModeComboBox->setCurrentIndex(config->getInt("alphaMode"));
-    alphaClipSpinBox->setValue(config->getDouble("alphaClip"));
-    alphaIndexSpinBox->setValue(config->getInt("alphaIndex"));
-    alphaDitherWidget->setConfiguration(*config, "alphaDither/");
-}
-
-KisPropertiesConfigurationSP KisPalettizeWidget::configuration() const
-{
-    KisFilterSP filter = KisFilterRegistry::instance()->get("palettize");
-    KisFilterConfigurationSP config = filter->factoryConfiguration(KisGlobalResourcesInterface::instance());
-
-    if (m_paletteWidget->currentResource()) {
-        config->setProperty("md5sum", QVariant(m_paletteWidget->currentResource()->md5Sum()));
-        config->setProperty("palette", QVariant(m_paletteWidget->currentResource()->name()));
-    }
-    config->setProperty("colorspace", colorspaceComboBox->currentIndex());
-    config->setProperty("ditherEnabled", ditherGroupBox->isChecked());
-    ditherWidget->configuration(*config, "dither/");
-    config->setProperty("dither/colorMode", colorModeComboBox->currentIndex());
-    config->setProperty("dither/offsetScale", offsetScaleSpinBox->value());
-    config->setProperty("alphaEnabled", alphaGroupBox->isChecked());
-    config->setProperty("alphaMode", alphaModeComboBox->currentIndex());
-    config->setProperty("alphaClip", alphaClipSpinBox->value());
-    config->setProperty("alphaIndex", alphaIndexSpinBox->value());
-    alphaDitherWidget->configuration(*config, "alphaDither/");
-
-    return config;
-}
-
-KisConfigWidget* KisFilterPalettize::createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool useForMasks) const
-{
-    Q_UNUSED(dev);
-    Q_UNUSED(useForMasks);
-
-    return new KisPalettizeWidget(parent);
-}
 
 /*******************************************************************************/
 /*                      KisFilterPalettize                                     */
