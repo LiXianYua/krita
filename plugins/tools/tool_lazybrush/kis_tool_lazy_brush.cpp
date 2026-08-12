@@ -24,7 +24,6 @@
 #include "kis_layer_properties_icons.h"
 
 #include "kis_canvas_resource_provider.h"
-#include "kis_tool_lazy_brush_options_widget.h"
 
 #include "lazybrush/kis_colorize_mask.h"
 #include "kis_signal_auto_connection.h"
@@ -341,23 +340,4 @@ void KisToolLazyBrush::explicitUserStrokeEndRequest()
         KisLayerPropertiesIcons::setNodePropertyAutoUndo(node, KisLayerPropertiesIcons::colorizeNeedsUpdate, false, image());
     }
 }
-
-QWidget * KisToolLazyBrush::createOptionWidget()
-{
-    KisCanvas2 * kiscanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_ASSERT(kiscanvas);
-
-    QWidget *optionsWidget = new KisToolLazyBrushOptionsWidget(kiscanvas->viewManager()->canvasResourceProvider(), 0);
-    optionsWidget->setObjectName(toolId() + "option widget");
-
-    // // See https://bugs.kde.org/show_bug.cgi?id=316896
-    // QWidget *specialSpacer = new QWidget(optionsWidget);
-    // specialSpacer->setObjectName("SpecialSpacer");
-    // specialSpacer->setFixedSize(0, 0);
-    // optionsWidget->layout()->addWidget(specialSpacer);
-
-
-    return optionsWidget;
-}
-
 

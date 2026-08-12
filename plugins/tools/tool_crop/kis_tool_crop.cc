@@ -124,6 +124,13 @@ KisToolCrop::KisToolCrop(KoCanvasBase * canvas)
     
     lockRatioToggleOption = new KisAction(i18n("Lock Ratio"));
     lockRatioToggleOption->setCheckable(true);
+
+    connect(applyCrop, SIGNAL(triggered(bool)), this, SLOT(crop()));
+    connect(centerToggleOption, SIGNAL(triggered(bool)), this, SLOT(setGrowCenter(bool)));
+    connect(growToggleOption, SIGNAL(triggered(bool)), this, SLOT(setAllowGrow(bool)));
+    connect(lockWidthToggleOption, SIGNAL(triggered(bool)), this, SLOT(setLockWidth(bool)));
+    connect(lockHeightToggleOption, SIGNAL(triggered(bool)), this, SLOT(setLockHeight(bool)));
+    connect(lockRatioToggleOption, SIGNAL(triggered(bool)), this, SLOT(setLockRatio(bool)));
 }
 
 KisToolCrop::~KisToolCrop()
@@ -724,53 +731,14 @@ void KisToolCrop::showSizeOnCanvas()
     Q_ASSERT(kisCanvas);
     if(m_mouseOnHandleType == 9) {
         kisCanvas->viewManager()->showFloatingMessage(i18n("X: %1\nY: %2"
-                                                       , optionsWidget->intX->text(), optionsWidget->intY->text())
+                                                       , cropX(), cropY())
                                                        , QIcon(), 1000, KisFloatingMessage::High, Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
     }
     else {
         kisCanvas->viewManager()->showFloatingMessage(i18n("Width: %1\nHeight: %2"
-                                                   , optionsWidget->intWidth->text(), optionsWidget->intHeight->text())
+                                                   , cropWidth(), cropHeight())
                                                    , QIcon(), 1000, KisFloatingMessage::High, Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
     }
-}
-
-QWidget* KisToolCrop::createOptionWidget()
-{
-    optionsWidget = new KisToolCropConfigWidget(0, this);
-    // See https://bugs.kde.org/show_bug.cgi?id=316896
-    QWidget *specialSpacer = new QWidget(optionsWidget);
-    specialSpacer->setObjectName("SpecialSpacer");
-    specialSpacer->setFixedSize(0, 0);
-    optionsWidget->layout()->addWidget(specialSpacer);
-
-    Q_CHECK_PTR(optionsWidget);
-    optionsWidget->setObjectName(toolId() + " option widget");
-
-    connect(optionsWidget->bnCrop, SIGNAL(clicked()), this, SLOT(crop()));
-
-    connect(optionsWidget, SIGNAL(cropTypeChanged(int)), this, SLOT(setCropTypeLegacy(int)));
-    connect(optionsWidget, SIGNAL(cropXChanged(int)), this, SLOT(setCropX(int)));
-    connect(optionsWidget, SIGNAL(cropYChanged(int)), this, SLOT(setCropY(int)));
-    connect(optionsWidget, SIGNAL(cropHeightChanged(int)), this, SLOT(setCropHeight(int)));
-    connect(optionsWidget, SIGNAL(lockHeightChanged(bool)), this, SLOT(setLockHeight(bool)));
-    connect(optionsWidget, SIGNAL(cropWidthChanged(int)), this, SLOT(setCropWidth(int)));
-    connect(optionsWidget, SIGNAL(lockWidthChanged(bool)), this, SLOT(setLockWidth(bool)));
-    connect(optionsWidget, SIGNAL(ratioChanged(double)), this, SLOT(setRatio(double)));
-    connect(optionsWidget, SIGNAL(lockRatioChanged(bool)), this, SLOT(setLockRatio(bool)));
-    connect(optionsWidget, SIGNAL(decorationChanged(int)), this, SLOT(setDecoration(int)));
-    connect(optionsWidget, SIGNAL(allowGrowChanged(bool)), this, SLOT(setAllowGrow(bool)));
-    connect(optionsWidget, SIGNAL(growCenterChanged(bool)), this, SLOT(setGrowCenter(bool)));
-
-    optionsWidget->setFixedHeight(optionsWidget->sizeHint().height());
-
-    connect(applyCrop, SIGNAL(triggered(bool)), this, SLOT(crop()));
-    connect(centerToggleOption, SIGNAL(triggered(bool)), this, SLOT(setGrowCenter(bool)));
-    connect(growToggleOption, SIGNAL(triggered(bool)), this, SLOT(setAllowGrow(bool)));
-    connect(lockWidthToggleOption, SIGNAL(triggered(bool)), this, SLOT(setLockWidth(bool)));
-    connect(lockHeightToggleOption, SIGNAL(triggered(bool)), this, SLOT(setLockHeight(bool)));
-    connect(lockRatioToggleOption, SIGNAL(triggered(bool)), this, SLOT(setLockRatio(bool)));
-
-    return optionsWidget;
 }
 
 QRectF KisToolCrop::lowerRightHandleRect(QRectF cropBorderRect)

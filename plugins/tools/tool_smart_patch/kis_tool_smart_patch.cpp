@@ -28,7 +28,6 @@
 #include "KoColorSpaceRegistry.h"
 #include <KisCursorOverrideLock.h>
 
-#include "kis_tool_smart_patch_options_widget.h"
 #include "libs/image/kis_paint_device_debug_utils.h"
 
 #include "kis_paint_layer.h"
@@ -58,7 +57,6 @@ struct KisToolSmartPatch::Private {
     KisPaintDeviceSP maskDev = nullptr;
     KisPainter maskDevPainter;
     float brushRadius = 50.; //initial default. actually read from ui.
-    KisToolSmartPatchOptionsWidget *optionsWidget = nullptr;
     QRectF oldOutlineRect;
     QPainterPath brushOutline;
 };
@@ -80,7 +78,6 @@ KisToolSmartPatch::KisToolSmartPatch(KoCanvasBase * canvas)
 
 KisToolSmartPatch::~KisToolSmartPatch()
 {
-    m_d->optionsWidget = nullptr;
     m_d->maskDevPainter.end();
 }
 
@@ -158,13 +155,8 @@ void KisToolSmartPatch::endPrimaryAction(KoPointerEvent *event)
 
     KisCursorOverrideLock cursorLock(KisCursor::waitCursor());
 
-    int accuracy = 50; //default accuracy - middle value
-    int patchRadius = 4; //default radius, which works well for most cases tested
-
-    if (m_d->optionsWidget) {
-        accuracy = m_d->optionsWidget->getAccuracy();
-        patchRadius = m_d->optionsWidget->getPatchRadius();
-    }
+    const int accuracy = 50; //default accuracy - middle value
+    const int patchRadius = 4; //default radius, which works well for most cases tested
 
     KisResourcesSnapshotSP resources =
         new KisResourcesSnapshot(image(), currentNode(), this->canvas()->resourceManager());
@@ -260,16 +252,5 @@ void KisToolSmartPatch::paint(QPainter &painter, const KoViewConverter &converte
         painter.drawImage(pixelToView(m_d->maskDev->exactBounds()), img);
     }
     painter.restore();
-}
-
-QWidget * KisToolSmartPatch::createOptionWidget()
-{
-    KisCanvas2 * kiscanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_ASSERT(kiscanvas);
-
-    m_d->optionsWidget = new KisToolSmartPatchOptionsWidget(kiscanvas->viewManager()->canvasResourceProvider(), 0);
-    m_d->optionsWidget->setObjectName(toolId() + "option widget");
-
-    return m_d->optionsWidget;
 }
 

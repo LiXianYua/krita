@@ -31,23 +31,22 @@
 #include "KoColorSpaceRegistry.h"
 #include <KisCursorOverrideLock.h>
 
-#include "KisToolKnifeOptionsWidget.h"
 #include "libs/image/kis_paint_device_debug_utils.h"
 
 #include <KoSelectedShapesProxy.h>
 
 #include "CutThroughShapeStrategy.h"
-#include "RemoveGutterStrategy.h"
 
 #include "kis_paint_layer.h"
 #include "kis_algebra_2d.h"
 #include "kis_resources_snapshot.h"
 #include <KoSelection.h>
 #include <KoShapeManager.h>
+#include <KoUnit.h>
+#include <ksharedconfig.h>
 
 
 struct KisToolKnife::Private {
-    KisToolKnifeOptionsWidget *optionsWidget = nullptr;
     QPointF startPoint = QPointF(0, 0);
     QPointF endPoint = QPointF(0, 0);
     QRectF previousLineDirtyRect = QRectF();
@@ -65,7 +64,6 @@ KisToolKnife::KisToolKnife(KoCanvasBase * canvas)
 
 KisToolKnife::~KisToolKnife()
 {
-    m_d->optionsWidget = nullptr;
 }
 
 void paintSelectedEdge(QPainter &painter, const KoViewConverter &converter, const QLineF &lineSegment)
@@ -252,13 +250,30 @@ KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
 {
     QList<KoShape*> shapes = canvas()->shapeManager()->shapes();
 
-    if (m_d->optionsWidget->getToolMode() == KisToolKnifeOptionsWidget::ToolMode::AddGutter) {
-        return new CutThroughShapeStrategy(this, canvas()->selectedShapesProxy()->selection(), shapes, event->point, m_d->optionsWidget->getCurrentWidthsConfig());
-    } else {
-        return new RemoveGutterStrategy(this, canvas()->selectedShapesProxy()->selection(), shapes, event->point);
+    KisCanvas2 *kiscanvas = dynamic_cast<KisCanvas2*>(canvas());
+    KIS_ASSERT(kiscanvas);
+    qreal resolution = 1.0;
+    if (kiscanvas->image()) {
+        // we're going to assume isotropic image
+        resolution = kiscanvas->image()->xRes();
     }
 
-    //return NULL;
+    // Options panel removed. This reproduces the panel's default state as it
+    // stood at construction (KisToolKnifeOptionsWidget::Private::readFromConfig()):
+    // mode = AddGutter, width type = "thick", read from the same config keys/
+    // defaults so any value the user had already saved is still honoured.
+    KConfigGroup configGroup = KSharedConfig::openConfig()->group(toolId());
+    QString unitSymbol = configGroup.readEntry("gutter_unit_symbol", "px");
+    bool unitConversionSuccess = false;
+    KoUnit unit = KoUnit::fromSymbol(unitSymbol, &unitConversionSuccess);
+    if (!unitConversionSuccess) {
+        unit = KoUnit::fromSymbol("px");
+    }
+    const qreal thickGutterWidth = configGroup.readEntry("thick_gutter_width", 40.0f);
+    const qreal gutterAngleDegrees = configGroup.readEntry("automatic_gutter_angle", 2.0f);
+
+    GutterWidthsConfig widthsConfig(unit, resolution, thickGutterWidth, gutterAngleDegrees);
+    return new CutThroughShapeStrategy(this, canvas()->selectedShapesProxy()->selection(), shapes, event->point, widthsConfig);
 }
 
 bool KisToolKnife::isValidForCurrentLayer() const
@@ -267,22 +282,5 @@ bool KisToolKnife::isValidForCurrentLayer() const
     KisNodeSP node = kisCanvas->viewManager()->canvasResourceProvider()->currentNode();
     const KisShapeLayer *shapeLayer = qobject_cast<const KisShapeLayer*>(node.data());
     return (shapeLayer != nullptr);
-}
-
-QWidget * KisToolKnife::createOptionWidget()
-{
-    KisCanvas2 * kiscanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_ASSERT(kiscanvas);
-    qreal resolution = 1.0;
-    if (kiscanvas->image()) {
-        // we're going to assume isotropic image
-        resolution = kiscanvas->image()->xRes();
-    }
-
-    m_d->optionsWidget = new KisToolKnifeOptionsWidget(kiscanvas->viewManager()->canvasResourceProvider(), 0, toolId(), resolution);
-    m_d->optionsWidget->setObjectName(toolId() + "option widget");
-
-
-    return m_d->optionsWidget;
 }
 

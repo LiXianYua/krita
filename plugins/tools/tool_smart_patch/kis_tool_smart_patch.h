@@ -35,8 +35,6 @@ public:
     KisToolSmartPatch(KoCanvasBase * canvas);
     ~KisToolSmartPatch() override;
 
-    QWidget * createOptionWidget() override;
-
     void activatePrimaryAction() override;
     void deactivatePrimaryAction() override;
 

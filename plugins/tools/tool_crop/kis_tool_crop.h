@@ -21,10 +21,8 @@
 #include <KoToolFactoryBase.h>
 #include "kis_tool.h"
 #include "flake/kis_node_shape.h"
-#include "ui_wdg_tool_crop.h"
 #include "kis_constrained_rect.h"
 #include "kis_action.h"
-#include "kistoolcropconfigwidget.h"
 
 class QRect;
 struct DecorationLine;
@@ -60,8 +58,6 @@ public:
 
     KisToolCrop(KoCanvasBase * canvas);
     ~KisToolCrop() override;
-
-    QWidget* createOptionWidget() override;
 
     void beginPrimaryAction(KoPointerEvent *event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
@@ -177,7 +173,6 @@ private:
     QRect m_lastCanvasUpdateRect;
 
     KConfigGroup configGroup;
-    KisToolCropConfigWidget* optionsWidget {nullptr};
 
     QScopedPointer<QMenu> m_contextMenu;
     KisAction* applyCrop {nullptr};

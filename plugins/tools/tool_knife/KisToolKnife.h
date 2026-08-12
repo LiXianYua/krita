@@ -36,8 +36,6 @@ public:
     KisToolKnife(KoCanvasBase * canvas);
     ~KisToolKnife() override;
 
-    QWidget * createOptionWidget() override;
-
     void paint(QPainter &painter, const KoViewConverter &converter) override;
 
 protected Q_SLOTS:
@@ -52,8 +50,6 @@ public Q_SLOTS:
     KoInteractionStrategy *createStrategy(KoPointerEvent *event) override;
 
     bool isValidForCurrentLayer() const;
-private:
-    //friend class KisToolKnifeOptionsWidget;
 private:
     struct Private;
     const QScopedPointer<Private> m_d;
