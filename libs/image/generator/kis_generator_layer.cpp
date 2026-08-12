@@ -13,8 +13,6 @@
 #include <klocalizedstring.h>
 #include "kis_debug.h"
 
-#include <KoIcon.h>
-#include <kis_icon.h>
 #include "kis_selection.h"
 #include "filter/kis_filter_configuration.h"
 #include "kis_processing_information.h"
@@ -187,11 +185,6 @@ bool KisGeneratorLayer::accept(KisNodeVisitor & v)
 void KisGeneratorLayer::accept(KisProcessingVisitor &visitor, KisUndoAdapter *undoAdapter)
 {
     return visitor.visit(this, undoAdapter);
-}
-
-QIcon KisGeneratorLayer::icon() const
-{
-    return KisIconUtils::loadIcon("fillLayer");
 }
 
 KisBaseNode::PropertyList KisGeneratorLayer::sectionModelProperties() const

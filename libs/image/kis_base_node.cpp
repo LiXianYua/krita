@@ -8,7 +8,6 @@
 #include <klocalizedstring.h>
 
 #include <kis_image.h>
-#include <kis_icon.h>
 #include <KoProperties.h>
 #include <KisAnimatedOpacityProperty.h>
 #include <KoColorSpace.h>

@@ -6,8 +6,6 @@
 
 #include <QMutex>
 #include <QMutexLocker>
-#include <KoIcon.h>
-#include <kis_icon.h>
 #include <KoCompositeOpRegistry.h>
 
 #include "kis_filter_mask.h"
@@ -47,11 +45,6 @@ KisFilterMask::KisFilterMask(const KisFilterMask& rhs)
 }
 
 KisFilterMask::~KisFilterMask() = default;
-
-QIcon KisFilterMask::icon() const
-{
-    return KisIconUtils::loadIcon("filterMask");
-}
 
 bool KisFilterMask::filterNeedsTransparentPixels() const
 {

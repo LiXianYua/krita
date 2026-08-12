@@ -13,8 +13,6 @@
 #include <KoColorSpaceRegistry.h>
 #include "kis_pixel_selection.h"
 
-#include "kis_icon_utils.h"
-
 #include "kis_node_visitor.h"
 #include "kis_processing_visitor.h"
 #include "kis_painter.h"
@@ -477,12 +475,6 @@ KisPaintDeviceSP KisColorizeMask::colorSampleSourceDevice() const
         m_d->shouldShowColoring() && !m_d->coloringProjection->extent().isEmpty() ?
             m_d->coloringProjection : projection();
 }
-
-QIcon KisColorizeMask::icon() const
-{
-    return KisIconUtils::loadIcon("colorizeMask");
-}
-
 
 bool KisColorizeMask::accept(KisNodeVisitor &v)
 {

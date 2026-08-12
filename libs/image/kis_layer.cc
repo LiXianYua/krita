@@ -17,8 +17,6 @@
 #include <QReadLocker>
 #include <QWriteLocker>
 
-#include <KoIcon.h>
-#include <kis_icon.h>
 #include <KoProperties.h>
 #include <KoCompositeOpRegistry.h>
 #include <KoColorSpace.h>

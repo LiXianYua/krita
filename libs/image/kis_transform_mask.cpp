@@ -7,8 +7,6 @@
 
 #include <QMutex>
 #include <QMutexLocker>
-#include <KoIcon.h>
-#include <kis_icon.h>
 #include <KoCompositeOpRegistry.h>
 
 #include "kis_layer.h"
@@ -238,11 +236,6 @@ KisTransformMask::KisTransformMask(const KisTransformMask& rhs)
 KisPaintDeviceSP KisTransformMask::paintDevice() const
 {
     return 0;
-}
-
-QIcon KisTransformMask::icon() const
-{
-    return KisIconUtils::loadIcon("transformMask");
 }
 
 void KisTransformMask::setTransformParamsWithUndo(KisTransformMaskParamsInterfaceSP params, KUndo2Command *parentCommand)

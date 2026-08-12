@@ -70,7 +70,6 @@ public:
 
     bool needProjection() const override;
 
-    QIcon icon() const override;
     void setImage(KisImageWSP image) override;
 
     KisBaseNode::PropertyList sectionModelProperties() const override;

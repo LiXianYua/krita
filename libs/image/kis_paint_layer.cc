@@ -11,9 +11,6 @@
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
-
-#include <KoIcon.h>
-#include <kis_icon.h>
 #include <KoColorSpace.h>
 #include <KoColorProfile.h>
 #include <KoCompositeOpRegistry.h>
@@ -177,11 +174,6 @@ void KisPaintLayer::copyOriginalToProjection(const KisPaintDeviceSP original,
         (m_d->contentChannel->keyframeCount() <= 1) || !onionSkinEnabled()) {
         m_d->onionSkinCache.reset();
     }
-}
-
-QIcon KisPaintLayer::icon() const
-{
-    return KisIconUtils::loadIcon("paintLayer");
 }
 
 void KisPaintLayer::setImage(KisImageWSP image)

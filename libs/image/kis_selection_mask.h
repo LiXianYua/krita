@@ -33,8 +33,6 @@ public:
     ~KisSelectionMask() override;
     KisSelectionMask(const KisSelectionMask& rhs);
 
-    QIcon icon() const override;
-
     KisNodeSP clone() const override {
         return KisNodeSP(new KisSelectionMask(*this));
     }

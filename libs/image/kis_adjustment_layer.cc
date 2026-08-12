@@ -10,8 +10,6 @@
 #include <klocalizedstring.h>
 #include "kis_debug.h"
 
-#include <KoIcon.h>
-#include <kis_icon.h>
 #include <KoCompositeOpRegistry.h>
 
 #include "kis_image.h"
@@ -109,11 +107,6 @@ bool KisAdjustmentLayer::accept(KisNodeVisitor & v)
 void KisAdjustmentLayer::accept(KisProcessingVisitor &visitor, KisUndoAdapter *undoAdapter)
 {
     return visitor.visit(this, undoAdapter);
-}
-
-QIcon KisAdjustmentLayer::icon() const
-{
-    return KisIconUtils::loadIcon("filterLayer");
 }
 
 KisBaseNode::PropertyList KisAdjustmentLayer::sectionModelProperties() const

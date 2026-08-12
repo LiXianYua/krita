@@ -52,11 +52,6 @@ public:
         return KisNodeSP(new KisAdjustmentLayer(*this));
     }
 
-    /**
-     * gets the adjustmentLayer's tool filter
-     * @return QIcon returns the QIcon tool filter
-     */
-    QIcon icon() const override;
 
     /**
      * gets the AdjustmentLayer properties describing whether

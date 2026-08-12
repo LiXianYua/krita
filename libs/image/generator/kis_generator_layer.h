@@ -55,7 +55,6 @@ public:
     bool accept(KisNodeVisitor &) override;
     void accept(KisProcessingVisitor &visitor, KisUndoAdapter *undoAdapter) override;
 
-    QIcon icon() const override;
     KisBaseNode::PropertyList sectionModelProperties() const override;
 
     /**

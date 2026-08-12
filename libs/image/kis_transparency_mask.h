@@ -39,7 +39,6 @@ public:
                        const QRect & rc,
                        PositionToFilthy maskPos,
                        KisRenderPassFlags flags) const override;
-    QIcon icon() const override;
     bool accept(KisNodeVisitor &v) override;
     void accept(KisProcessingVisitor &visitor, KisUndoAdapter *undoAdapter) override;
 

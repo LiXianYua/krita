@@ -9,8 +9,6 @@
 #include <kis_debug.h>
 #include <klocalizedstring.h>
 
-#include <KoIcon.h>
-#include <kis_icon.h>
 
 #include <KoColorSpace.h>
 #include <KoCompositeOpRegistry.h>
@@ -317,11 +315,6 @@ void KisCloneLayer::setCopyFromInfo(KisNodeUuidInfo info)
 {
     Q_ASSERT(!m_d->copyFrom);
     m_d->copyFromInfo = info;
-}
-
-QIcon KisCloneLayer::icon() const
-{
-    return KisIconUtils::loadIcon("cloneLayer");
 }
 
 KisBaseNode::PropertyList KisCloneLayer::sectionModelProperties() const

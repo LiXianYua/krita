@@ -33,8 +33,6 @@ public:
 
     bool allowAsChild(KisNodeSP) const override;
 
-    QIcon icon() const override;
-
     KisBaseNode::PropertyList sectionModelProperties() const override;
     void setSectionModelProperties(const KisBaseNode::PropertyList &properties) override;
 

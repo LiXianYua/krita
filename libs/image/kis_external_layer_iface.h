@@ -7,15 +7,12 @@
 #ifndef KIS_EXTERNAL_LAYER_IFACE_
 #define KIS_EXTERNAL_LAYER_IFACE_
 
-#include "kis_icon_utils.h"
-
 #include "kis_types.h"
 
 #include "kis_image.h"
 #include "kis_layer.h"
 
 class QString;
-class QIcon;
 class KUndo2Command;
 
 /**
@@ -28,10 +25,6 @@ class KRITAIMAGE_EXPORT KisExternalLayer : public KisLayer
 public:
     KisExternalLayer(KisImageWSP image, const QString &name, quint8 opacity)
             : KisLayer(image, name, opacity) {}
-
-    QIcon icon() const override {
-        return KisIconUtils::loadIcon("view-refresh");
-    }
 
     virtual void resetCache(const KoColorSpace *colorSpace = 0);
 

@@ -19,8 +19,6 @@
 #include "kis_processing_visitor.h"
 #include "kis_pixel_selection.h"
 #include "kis_undo_adapter.h"
-#include <KoIcon.h>
-#include <kis_icon.h>
 #include "kis_thread_safe_signal_compressor.h"
 #include "kis_layer_properties_icons.h"
 #include "kis_cached_paint_device.h"
@@ -81,10 +79,6 @@ KisSelectionMask::~KisSelectionMask()
 {
     m_d->updatesCompressor->deleteLater();
     delete m_d;
-}
-
-QIcon KisSelectionMask::icon() const {
-    return KisIconUtils::loadIcon("selectionMask");
 }
 
 void KisSelectionMask::mergeInMaskInternal(KisPaintDeviceSP projection,

@@ -7,9 +7,6 @@
  */
 
 #include "kis_group_layer.h"
-
-#include <KoIcon.h>
-#include <kis_icon.h>
 #include <KoCompositeOpRegistry.h>
 #include <KoColorSpace.h>
 #include <KoColor.h>
@@ -142,11 +139,6 @@ bool KisGroupLayer::allowAsChild(KisNodeSP node) const
 const KoColorSpace * KisGroupLayer::colorSpace() const
 {
     return m_d->paintDevice->colorSpace();
-}
-
-QIcon KisGroupLayer::icon() const
-{
-    return KisIconUtils::loadIcon("groupLayer");
 }
 
 void KisGroupLayer::setImage(KisImageWSP image)

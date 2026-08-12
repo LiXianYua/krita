@@ -7,9 +7,6 @@
 #include "kis_transparency_mask.h"
 
 #include "kis_debug.h"
-
-#include <KoIcon.h>
-#include <kis_icon.h>
 #include <KoColor.h>
 #include <KoColorSpace.h>
 #include <KoCompositeOpRegistry.h>
@@ -81,11 +78,6 @@ QRect KisTransparencyMask::needRect(const QRect &rect, PositionToFilthy pos) con
 bool KisTransparencyMask::paintsOutsideSelection() const
 {
     return true;
-}
-
-QIcon KisTransparencyMask::icon() const
-{
-    return KisIconUtils::loadIcon("transparencyMask");
 }
 
 bool KisTransparencyMask::accept(KisNodeVisitor &v)

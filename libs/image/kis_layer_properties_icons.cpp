@@ -14,7 +14,6 @@ Q_GLOBAL_STATIC(KisLayerPropertiesIcons, s_instance)
 #include <KoColorSpace.h>
 #include <KoColorProfile.h>
 
-#include <kis_icon_utils.h>
 #include <kis_node.h>
 #include <commands/kis_node_property_list_command.h>
 #include "kis_image.h"
@@ -72,23 +71,16 @@ KisLayerPropertiesIcons *KisLayerPropertiesIcons::instance()
 
 void KisLayerPropertiesIcons::updateIcons()
 {
+    // D-005：libs/image 断开对 kritawidgetutils 的反向依赖，图标加载
+    // （KisIconUtils::loadIcon，定义在 kritawidgetutils）不能再留在这里。
+    // 这里刻意留空，不是没清理干净：
+    //   - m_d->icons 保持为空 map，getProperty() 用 QMap::operator[] 取值，
+    //     key 不存在时会默认构造一个 IconsPair（两个 QIcon 都是空图标），
+    //     所有调用方照常工作、拿到空图标，正是本任务裁定的行为后果。
+    //   - updateIcons() 函数本身、IconsPair 结构体、getIcon() 都保留不动，
+    //     因为它们是 public API，libs/ui 等处仍在调用。
+    //   - KisLayerPropertiesIcons 的彻底清理归 D-03（它锁 libs/ui）。
     m_d->icons.clear();
-    m_d->icons.insert(locked.id(), IconsPair(KisIconUtils::loadIcon("layer-locked"), KisIconUtils::loadIcon("layer-unlocked")));
-    m_d->icons.insert(visible.id(), IconsPair(KisIconUtils::loadIcon("visible"), KisIconUtils::loadIcon("novisible")));
-    m_d->icons.insert(layerStyle.id(), IconsPair(KisIconUtils::loadIcon("layer-style-enabled"), KisIconUtils::loadIcon("layer-style-disabled")));
-    m_d->icons.insert(inheritAlpha.id(), IconsPair(KisIconUtils::loadIcon("transparency-disabled"), KisIconUtils::loadIcon("transparency-enabled")));
-    m_d->icons.insert(alphaLocked.id(), IconsPair(KisIconUtils::loadIcon("transparency-locked"), KisIconUtils::loadIcon("transparency-unlocked")));
-    m_d->icons.insert(onionSkins.id(), IconsPair(KisIconUtils::loadIcon("onionOn"), KisIconUtils::loadIcon("onionOff")));
-    m_d->icons.insert(passThrough.id(), IconsPair(KisIconUtils::loadIcon("passthrough-enabled"), KisIconUtils::loadIcon("passthrough-disabled")));
-    m_d->icons.insert(selectionActive.id(), IconsPair(KisIconUtils::loadIcon("local-selection-active"), KisIconUtils::loadIcon("local-selection-inactive")));
-    m_d->icons.insert(colorizeNeedsUpdate.id(), IconsPair(KisIconUtils::loadIcon("updateColorize"), KisIconUtils::loadIcon("updateColorize")));
-    m_d->icons.insert(colorizeEditKeyStrokes.id(), IconsPair(KisIconUtils::loadIcon("showMarks"), KisIconUtils::loadIcon("showMarksOff")));
-    m_d->icons.insert(colorizeShowColoring.id(), IconsPair(KisIconUtils::loadIcon("showColoring"), KisIconUtils::loadIcon("showColoringOff")));
-    m_d->icons.insert(openFileLayerFile.id(), IconsPair(KisIconUtils::loadIcon("document-open"), KisIconUtils::loadIcon("document-open")));
-    m_d->icons.insert(layerError.id(), IconsPair(KisIconUtils::loadIcon("warning"), KisIconUtils::loadIcon("warning")));
-    m_d->icons.insert(layerColorSpaceMismatch.id(), IconsPair(KisIconUtils::loadIcon("different-colorspace"), KisIconUtils::loadIcon("different-colorspace")));
-    m_d->icons.insert(antialiased.id(), IconsPair(KisIconUtils::loadIcon("select-shape"), KisIconUtils::loadIcon("select-pixel")));
-    // No static icons for colorOverlay.
 }
 
 KisBaseNode::Property KisLayerPropertiesIcons::getProperty(const KoID &id, bool state)

@@ -58,8 +58,6 @@ public:
         return KisNodeSP(new KisColorizeMask(*this));
     }
 
-    QIcon icon() const override;
-
     void setImage(KisImageWSP image) override;
     bool accept(KisNodeVisitor &v) override;
     void accept(KisProcessingVisitor &visitor, KisUndoAdapter *undoAdapter) override;

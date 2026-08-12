@@ -62,7 +62,6 @@ public:
 
     const KoColorSpace* colorSpace() const override;
 
-    QIcon icon() const override;
     KisBaseNode::PropertyList sectionModelProperties() const override;
 
     qint32 x() const override;

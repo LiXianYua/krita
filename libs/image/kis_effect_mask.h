@@ -31,8 +31,6 @@ public:
     ~KisEffectMask() override;
     KisEffectMask(const KisEffectMask& rhs);
 
-    QIcon icon() const override;
-
     using KisMask::apply;
 };
 

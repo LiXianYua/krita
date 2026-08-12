@@ -34,8 +34,6 @@ public:
 
     ~KisFilterMask() override;
 
-    QIcon icon() const override;
-
     KisNodeSP clone() const override {
         return KisNodeSP(new KisFilterMask(*this));
     }

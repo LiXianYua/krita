@@ -31,8 +31,6 @@ public:
 
     ~KisTransformMask() override;
 
-    QIcon icon() const override;
-
     KisNodeSP clone() const override {
         return KisNodeSP(new KisTransformMask(*this));
     }
