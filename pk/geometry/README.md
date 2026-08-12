@@ -179,16 +179,20 @@ Point 族没有对应物）。已补两条 `rec()`（`cmp_point_constants`），
 `#pragma once`，认的是文件身份，两个不同文件各自都会落地一次；而那份文件不在 R-03 的
 `locks` 里，不能改。
 
-代之以两个机制，完整说明在 `PkGlobal.h` 顶部，两种 include 顺序各有一个 TU
-（`tests/coexist_test_first.cpp` / `coexist_geometry_first.cpp`）编译并核对取值。
-**这两个 TU 能编过本身就是断言的一半**——去掉任一机制它们立刻编译失败。
+代之以两个机制，完整说明在 `PkGlobal.h` 顶部，**三种** include 顺序各有一个 TU
+（`tests/coexist_test_first.cpp` / `coexist_geometry_first.cpp` /
+`coexist_compat_rect_first.cpp`）编译并核对取值。
+**这三个 TU 能编过本身就是断言的一半**——去掉任一机制它们立刻编译失败。
 
-**第三种顺序**（先直接 `#include "../PkGlobal.h"`、之后才撞上 `pk/test` 那份垫片）
-**不覆盖**：Krita 源码写的是 `#include <QRect>` / `#include <QtGlobal>`，一定经过
-compat 垫片，落在上面两种里；够得到第三种顺序的只有手写库头路径的 TU，而那种 TU
-只存在于本目录自己的测试里（唯一消费者就是测它自己的那个 TU，自我指涉）。
-判据①「一项不多一项不少」——没有真实场景就不做。Task 7 试接时若真撞上这个形态，
-把 `pk/geometry/compat/QtGlobal` 的那两行 `__has_include` 抄进库头即可，代价很小。
+**第三种顺序是真实调用点的顺序**：先 `#include <QRect>`（经 `compat/QRect`）、
+之后才 `#include <QtGlobal>`（经 `compat/QtGlobal` → `pk/test` 那份）。例如
+`libs/global/KisRectsGrid.h:10` 加 `libs/global/kis_assert.h:10` 就是这个形态，
+任何 Krita 测试 TU 都走得到。它靠的是**「`compat/` 的每一个垫片都在包各自的 Pk 头
+之前先包 `compat/QtGlobal`」这条纪律**（同时也是对真 Qt「每个公开头先包
+`qglobal.h`」的复刻）——少了那行 include，`PkGlobal.h` 先自己定义 `qAbs`、
+`pk/test` 那份随后再定义一次，硬错。`coexist_compat_rect_first.cpp` 兼做这条纪律的
+回归守卫：拿掉 `compat/QRect` 的 `#include "QtGlobal"` 或 `#include "QSize"`，
+它当场变红。**新增 compat 垫片必须照做。**
 
 **另一半断言必须包含零侧语义。** 这两条路径上 `qAbs`/`qFuzzyCompare`/`qFuzzyIsNull`
 都让位给了 `pk/test` 的实现，而 `pk/test` 不在 R-03 的 `locks` 里、R-11 随时可能动它。
@@ -543,9 +547,11 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 - **`qFuzzyCompare` 只有 `double`/`float` 两个重载**（和 Qt 一样）。Qt 另有
   `QPointF`/`QSizeF`/`QRectF`/`QTransform` 等类型的同名重载，散在各自的头文件里，
   归对应类型的 Task，不在本文件。
-- **共存只覆盖两种 include 顺序**（见上「与 `pk/test/compat/QtGlobal` 的共存」）。
-  第三种顺序没有真实场景，故意不做；真撞上的表现是响亮的编译错误
-  （`qAbs` 重定义），不是静默错行为。
+- **共存覆盖三种 include 顺序**（见上「与 `pk/test/compat/QtGlobal` 的共存」），
+  三个 `tests/coexist_*.cpp` 各测一条。**没有第四种**：`compat/` 是 Krita 源码
+  够得到 `PkGlobal.h` 的唯一入口，而三个 TU 已经把「`pk/test` 先」「`compat/QtGlobal`
+  先」「`compat/QRect` 一类类型垫片先」三条入口路径占全。真撞上没覆盖的形态时，
+  表现是响亮的编译错误（`qAbs` 重定义），不是静默错行为。
   **另一条同类的、两个 coexist TU 都没有覆盖的形态**：`PkGlobal.h` 的
   `namespace Qt { enum AspectRatioMode }` 与**真 Qt 的 `qnamespace.h`** 落进同一个
   TU 时是**重定义硬错**（偏离清单第 12 条）。目前唯一有这个形态的编译行是

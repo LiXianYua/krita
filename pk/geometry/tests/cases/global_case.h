@@ -30,6 +30,7 @@ private Q_SLOTS:
     void infMatchesQt();
     void coexistWithPkTestShimFirst();
     void coexistWithGeometryShimFirst();
+    void coexistWithCompatRectFirst();
 };
 
 #undef Q_SLOTS

@@ -7,8 +7,10 @@
 // 谁先进翻译单元、两份会不会互相重定义，是 Task 7 真会撞上的问题——这里用两个
 // 独立 TU 把两种顺序各编译一遍：
 //
-//   tests/coexist_test_first.cpp      pk/test 那份在前（走 PkGlobal.h 的机制①）
-//   tests/coexist_geometry_first.cpp  pk/geometry 那份在前（走机制②）
+//   tests/coexist_test_first.cpp          pk/test 那份在前（走 PkGlobal.h 的机制①）
+//   tests/coexist_geometry_first.cpp      pk/geometry 那份在前（走机制②）
+//   tests/coexist_compat_rect_first.cpp   compat/QRect 一类**类型垫片**在前
+//                                         —— 真实调用点的顺序，见该文件顶部
 //
 // **能编过本身就是断言的一半**（重复定义 qAbs 是硬错误，qFuzzyCompare 那个
 // #define 打架会把函数名当场改写掉）；另一半是两条路径必须给出同一组取值，
@@ -45,6 +47,29 @@ struct PkCoexistProbe
 
 PkCoexistProbe pkCoexistTestShimFirst();
 PkCoexistProbe pkCoexistGeometryShimFirst();
+
+// ── 第三条路径的探针 ────────────────────────────────────────────────────────
+//
+// 与上面两个不同，它**不测标量取值**，测的是 compat/ 的传递 include 纪律
+//（「每个类型垫片先包 compat/QtGlobal」「qrect.h 包 qsize.h/qpoint.h」）。
+// 两条被守的事都在 coexist_compat_rect_first.cpp 编译期就见分晓；下面这几个
+// 取值是为了让那个 TU 必须真的被链接进可执行文件、且被一个测试函数调用 ——
+// 否则它可以被悄悄从 CMakeLists 里漏掉而没人发现。
+//
+// 取值刻意只用整数/浮点四则，**不碰 qAbs / qFuzzy* / qRound**：那个 TU 里
+// 这些名字来自 pk/test 那份垫片、而别的 TU 里来自 PkGlobal.h，函数体不同、
+// 都以弱符号发射 —— 一旦 odr-use 就是 coexist.h 末尾说的那类 ODR 违反。
+// 该 TU 因此也不能整体塞进匿名 namespace（PkRect/PkRectF 的类定义会跟着变成
+// 内部链接，与 PkRect.cpp 里的 out-of-line 成员对不上）。
+struct PkCompatIncludeProbe
+{
+    int rectRight;      // QRect(QPoint(1,2), QSize(3,4)).right()      → 3
+    int rectBottom;     // 同上 .bottom()                              → 5
+    double rectFRight;  // QRectF(QPointF(1.5,2.5), QSizeF(3.5,4.5)).right()  → 5.0
+    double rectFBottom; // 同上 .bottom()                              → 7.0
+};
+
+PkCompatIncludeProbe pkCompatRectFirstProbe();
 
 // ── 为什么两个探针 TU 都要匿名 namespace（**Task 3–6 抄这个形状**）──────────
 //

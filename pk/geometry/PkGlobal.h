@@ -37,12 +37,18 @@
 //   ② pk/geometry/compat/QtGlobal 先把 pk/test 那份 #include 进来（#pragma once
 //      之后再解析到它就空转），再包本头。覆盖「pk/geometry 那份先进 TU」。
 //
-// 两种顺序各有一个 TU 在 tests/coexist_*.cpp 里编译并核对取值。
+// **机制 ② 生效的前提是「compat/ 的每一个垫片都先包 compat/QtGlobal」这条纪律，
+// 不是「compat/QtGlobal 自己被谁包」。** compat/QRect / QPoint / QSize / QTransform
+// 这些垫片直接包各自的 Pk 头 → 本头，少了那行 include 就整个绕开机制 ②：真实
+// 调用点里 `#include <QRect>` 在前、`#include <QtGlobal>` 在后（如
+// libs/global/KisRectsGrid.h:10 + libs/global/kis_assert.h:10）时，本头先自己
+// 定义 qAbs，pk/test 那份随后再定义一次 —— "redefinition of qAbs" 硬错。
+// **新增 compat 垫片必须照做**；这同时也是对真 Qt 的忠实复刻（Qt 的每个公开头
+// 都以 #include <QtCore/qglobal.h> 开头）。
 //
-// 「直接包本头、之后才撞上 pk/test 那份垫片」这第三种顺序**不覆盖**：Krita 源码
-// 写的是 #include <QRect> / #include <QtGlobal>，一定经过 compat 垫片，落在 ①②
-// 里；够得到第三种顺序的只有手写 #include "../PkGlobal.h" 的 TU，而那种 TU 只
-// 存在于本目录自己的测试里（自我指涉）。判据①「一项不多」——没有真实场景就不做。
+// 三条 include 路径各有一个 TU 在 tests/coexist_*.cpp 里编译并核对取值，
+// 其中 coexist_compat_rect_first.cpp 走的就是上面那条真实调用点顺序，
+// 兼做「compat/QRect 少了那行 include 就变红」的回归守卫。
 //
 // 让位时的语义差（两处都不构成行为差异，核对过）：
 //   · pk/test 的 qAbs 写作 `t >= T(0)`、Qt 写作 `t >= 0`，对全部算术类型等价

@@ -72,6 +72,10 @@ add_executable(test_pkgeometry
     # 断言的一半，所以必须真的作为独立翻译单元编译，不能合并。
     tests/coexist_test_first.cpp
     tests/coexist_geometry_first.cpp
+    # 第三条 include 路径：真实调用点的顺序（先 <QRect> 后 <QtGlobal>）。同时是
+    # compat/ 两条传递 include 纪律的回归守卫 —— 拿掉 compat/QRect 里的
+    # #include "QtGlobal" 或 #include "QSize"，这个 TU 当场编译失败。
+    tests/coexist_compat_rect_first.cpp
     # 「PkPointF::operator== 没被 qFuzzy* 那两个 #define 改写」的探针。要证明的
     # 事情发生在预处理期，只能在一个**自己控制 include 顺序**的 TU 里测。
     tests/point_macro_proof.cpp

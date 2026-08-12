@@ -265,6 +265,24 @@ void PkGlobalCase::coexistWithGeometryShimFirst()
     PK_CHECK_COEXIST_PROBE(pkCoexistGeometryShimFirst());
 }
 
+// 第三条 include 路径（真实调用点的顺序：先 <QRect> 后 <QtGlobal>）。
+//
+// **真正的断言在编译期** —— tests/coexist_compat_rect_first.cpp 能编过，就说明
+// compat/ 的两条传递 include 纪律都还在（详见那个文件顶部）。这里这四个取值
+// 只是把那个 TU 钉进可执行文件、并让它必须被一个测试函数调用，否则它可以被
+// 悄悄从 CMakeLists 里漏掉而没有任何东西变红。
+//
+// 取值刻意不碰 qAbs / qFuzzy* / qRound（那个 TU 里这些名字来自 pk/test 那份
+// 垫片，odr-use 会造成 ODR 违反，理由见 coexist.h）。
+void PkGlobalCase::coexistWithCompatRectFirst()
+{
+    const PkCompatIncludeProbe p = pkCompatRectFirstProbe();
+    PK_COMPARE(p.rectRight, 3);
+    PK_COMPARE(p.rectBottom, 5);
+    PK_COMPARE(p.rectFRight, 5.0);
+    PK_COMPARE(p.rectFBottom, 7.0);
+}
+
 int run_global_tests()
 {
     PkGlobalCase tc;
