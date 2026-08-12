@@ -201,6 +201,30 @@ ccache -s | grep -E 'Hits:|Misses:'    # 全量构建后 Hits 应远大于 0
 grep COMPILER_LAUNCHER <build 目录>/CMakeCache.txt   # 两行都要在
 ```
 
+### ⚠ `ninja … | tail -N` 之后的 `$?` 是 **`tail` 的**退出码，不是 ninja 的
+
+省 token 的规则要你只看结果行（`… | tail -3`），**这条与「拿退出码判构建过没过」
+直接冲突**：管道的退出码默认取**最后一个命令**的。实测——
+
+```
+$ false | tail -5 ; echo $?
+0                      ← 前面明明失败了
+```
+
+**于是失败的构建会报成「`ninja` 编过」**，而判据 1 正是 D/S 两线用得最多的一条。
+D-02-b 撞到两次（第一次是评审员看出来的）。
+
+**两种写法都对，任选**：
+
+```bash
+ninja -C <build> 2>&1 | tail -5 ; echo "ninja exit=${PIPESTATUS[0]}"
+set -o pipefail; ninja -C <build> 2>&1 | tail -5 ; echo "ninja exit=$?"
+```
+
+**同样适用于 `ctest | tail`、`grep | tail` 等任何「拿退出码当证据」的管道。**
+贴进报告的那行必须是**真实的**退出码——`echo exit=$?` 紧跟在带管道的命令后面
+就已经错了。
+
 已经建好的 build 目录补这两个 `-D` 会触发一次全量重建（ninja 认为命令行变了）——
 **不要在任务中途补**，那一次只会更慢；建新 build 目录时带上即可。
 
