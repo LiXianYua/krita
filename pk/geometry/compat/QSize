@@ -1,0 +1,21 @@
+#pragma once
+#include "../PkSize.h"
+
+// 兼容垫片：让真实调用点的 `#include <QSize>` 在**一个字都不改**的前提下解析到
+// PkSize。文件名刻意没有扩展名 —— 调用点写的就是 <QSize>。做法照 compat/QPoint。
+//
+// 用宏而不是 `using QSize = PkSize;`：Krita 里有 `class QSize;` 这类前置声明，
+// 类型别名遇到它会报 "redeclared as different kind of entity"；宏则把那一行原样
+// 改写成 `class PkSize;`，前置声明照样成立。
+//
+// **两个名字都在这里定义**，与 Qt 一致：Qt 的 <QSize> 与 <QSizeF> 都只是
+// qsize.h 的转发头，包任一个都能同时拿到 QSize 与 QSizeF。
+//
+// `Qt::AspectRatioMode`（`QSize::scaled` 的参数类型）经 ../PkSize.h → PkGlobal.h
+// 一起进来，与 Qt 的形态一致（qsize.h 自己 #include <QtCore/qnamespace.h>）。
+#ifndef QSize
+#define QSize PkSize
+#endif
+#ifndef QSizeF
+#define QSizeF PkSizeF
+#endif

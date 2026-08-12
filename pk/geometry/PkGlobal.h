@@ -116,6 +116,37 @@ constexpr inline bool qFuzzyIsNull(double d) { return pkQtFuzzyIsNull(d); }
 constexpr inline bool qFuzzyIsNull(float f) { return pkQtFuzzyIsNull(f); }
 #endif
 
+// ---------------------------------------------------------------------------
+// qnamespace.h:1235-1239 —— `Qt::AspectRatioMode`，**逐字照抄**（枚举名与顺序
+// 都不能动：调用点写的是 `Qt::KeepAspectRatio` 这个限定名，取值 0/1/2 还会经
+// QSize::scaled 的 `mode == Qt::IgnoreAspectRatio` 比较进入行为）。
+// 实测真 Qt 5.15.7：IgnoreAspectRatio=0 KeepAspectRatio=1
+// KeepAspectRatioByExpanding=2，sizeof=4、底层类型无符号。
+//
+// **这是全项目唯一一个真 `namespace`**，与「全局 Pk 前缀、不引 namespace」那条
+// 不冲突：那条针对的是我们自己的类型（compat 垫片靠 `#define QRect PkRect`，
+// 而 Krita 里有 `class QRect;` 前置声明），而这个枚举在调用点上**本来就是
+// `Qt::` 限定的**，不套 namespace 反而对不上。
+//
+// 为什么放 PkGlobal.h 而不是 compat/QtGlobal：PkSize.h 的成员签名要用它
+// （`scaled(const PkSize &, Qt::AspectRatioMode)`），而几何头**不许依赖
+// compat/**（对拍的 -I 里绝不能有 compat，否则两侧解析成同一个类型）。
+// 放这里 compat/QtGlobal 与 compat/QSize 都能经 PkGlobal.h 拿到它，
+// 与 Qt 的形态一致（qsize.h 自己 #include <QtCore/qnamespace.h>）。
+//
+// 实测用量（口径：R-03 文件集 3 325 个文件）：`Qt::AspectRatioMode` 这个类型名
+// 22 次，`Qt::IgnoreAspectRatio` 12 次、`Qt::KeepAspectRatio` 18 次、
+// `Qt::KeepAspectRatioByExpanding` 3 次 —— 都 > 0，所以不退化成"只留默认参数
+// 所需的定义"。`qnamespace.h` 的其余几百个枚举一概不做（判据①）。
+// ---------------------------------------------------------------------------
+namespace Qt {
+enum AspectRatioMode {
+    IgnoreAspectRatio,
+    KeepAspectRatio,
+    KeepAspectRatioByExpanding
+};
+}
+
 // qnumeric.h:48 与 qnumeric.h:59。Qt 里这两个是 Q_CORE_EXPORT 的**非 inline**
 // 函数（实现在 qnumeric_p.h 的 qt_is_nan / qt_inf，就是 std::isnan 与
 // std::numeric_limits<double>::infinity()），照同样的形态放 PkGlobal.cpp：

@@ -12,6 +12,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 add_library(pkgeometry STATIC
     PkGlobal.cpp
     PkPoint.cpp
+    PkSize.cpp
 )
 target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -42,12 +43,14 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../test
 
 pk_test_generate(PKGEOMETRY_GENERATED_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/global_case.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/point_case.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/point_case.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/size_case.h")
 
 add_executable(test_pkgeometry
     tests/test_main.cpp
     tests/test_global.cpp
     tests/test_point.cpp
+    tests/test_size.cpp
     # 两种 include 顺序下的「两份 compat/QtGlobal 共存」TU。它们能编过本身就是
     # 断言的一半，所以必须真的作为独立翻译单元编译，不能合并。
     tests/coexist_test_first.cpp
@@ -55,6 +58,9 @@ add_executable(test_pkgeometry
     # 「PkPointF::operator== 没被 qFuzzy* 那两个 #define 改写」的探针。要证明的
     # 事情发生在预处理期，只能在一个**自己控制 include 顺序**的 TU 里测。
     tests/point_macro_proof.cpp
+    # 同一件事的 Size 版：PkSizeF::operator== 的公式不能被 qFuzzy* 那两个
+    # #define 在预处理期换掉。期望值与 Point 版不同（QSizeF 的 == 没有零分支）。
+    tests/size_macro_proof.cpp
 )
 target_link_libraries(test_pkgeometry PRIVATE pkgeometry pktest)
 
@@ -66,3 +72,5 @@ set_source_files_properties(tests/test_global.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_global_case.inc")
 set_source_files_properties(tests/test_point.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_point_case.inc")
+set_source_files_properties(tests/test_size.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_size_case.inc")

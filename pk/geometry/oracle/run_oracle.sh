@@ -47,7 +47,17 @@ for i in "${INCS[@]}"; do INCFLAGS+=("-I$i"); done
 # 浮点→int 越界（int(inf)）是另一类 UB，-fwrapv 管不着；实机上运行期两侧都编成
 # 同一条 cvttsd2si，取值一致，但编译期常量折叠给的是另一个答案 —— 对拍的输入
 # 来自运行期数组，天然不会被折叠；单测那边靠 noFold() 顶。
-CXXFLAGS_ORACLE=(-std=c++17 -O2 -fwrapv -fPIC)
+# ⚠ **-DQT_NO_DEBUG 是必需的，从 Task 3（Size 族）起。** qsize.h 的
+# `operator/` 与 `operator/=` 里有 `Q_ASSERT(!qFuzzyIsNull(c))`，不定义这个宏时
+# Q_ASSERT 展开成 qt_assert(...) → **abort()**：对拍一喂"除以 0"就整个程序死掉，
+# 那一整片输入永远比不了。定义之后 Q_ASSERT 展开成 `(void)(false && cond)`，
+# 与 **Krita 发布构建里的形态完全一致**（Qt5 的 cmake 模块给任何非 Debug 构建
+# 追加 -DQT_NO_DEBUG，见 krita 根 CMakeLists.txt:968 那条 option 的说明文字）。
+# pk/geometry 不实现 Q_ASSERT（断言设施归 R-08），这条登记在 README 偏离清单。
+# 它只作用于**头文件里的 inline 代码**（libQt5Core 里的 out-of-line 实现是
+# 编好的，不受影响），且 qpoint.h 里一个 Q_ASSERT 都没有 —— 实测加它前后
+# Point 族的 total/mismatch 逐字不变。
+CXXFLAGS_ORACLE=(-std=c++17 -O2 -fwrapv -fPIC -DQT_NO_DEBUG)
 
 mkdir -p pk/geometry/build
 printf '编译：g++ %s %s %s\n' "${CXXFLAGS_ORACLE[*]}" "${INCFLAGS[*]}" "$SRC"

@@ -5,12 +5,14 @@
 // 各自加一行，不改这里的结构。
 int run_global_tests();
 int run_point_tests();
+int run_size_tests();
 
 int main()
 {
     int failures = 0;
     failures += run_global_tests();
     failures += run_point_tests();
+    failures += run_size_tests();
 
     if (failures == 0) {
         std::printf("all pkgeometry tests passed\n");

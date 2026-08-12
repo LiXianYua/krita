@@ -40,12 +40,12 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 
 | 口径 | 数 | 怎么数的 |
 |---|---:|---|
-| 测试函数 | 36 | `tests/cases/*.h` 里 `private Q_SLOTS:` 下声明的 slot 个数 = `global_case.h` 12 + `point_case.h` 24 |
-| 断言（展开后） | 315 | `test_global.cpp` 116（= 直接写在函数体里的 92 + 共享宏 `PK_CHECK_COEXIST_PROBE` 体内 12 条被两个 coexist 测试函数各展开一次 = 24）+ `test_point.cpp` 199（无共享宏） |
-| `static_assert` | 29 | `PkPoint.cpp` 26（布局 / constexpr 能力，只有在一个 TU 里才落得了地）+ `oracle/geometry_difftest.cpp` 3 |
-| 运行输出 `Totals` 行 | 14 + 26 | harness 的口径：每个测试类的 slot 数 + `initTestCase` + `cleanupTestCase`，**不是**测试函数数，也不是断言数 |
-| 翻译单元 | 6 | `test_main` `test_global` `test_point` `coexist_test_first` `coexist_geometry_first` `point_macro_proof` |
-| 对拍比对次数 | 35 569 662 | `run_oracle.sh` 输出的 `DIFF total=`，其中 `mismatch=3` 全是 canary（见下） |
+| 测试函数 | 67 | `tests/cases/*.h` 里 `private Q_SLOTS:` 下声明的 slot 个数 = `global_case.h` 12 + `point_case.h` 24 + `size_case.h` 31 |
+| 断言（展开后） | 526 | `test_global.cpp` 116（= 直接写在函数体里的 92 + 共享宏 `PK_CHECK_COEXIST_PROBE` 体内 12 条被两个 coexist 测试函数各展开一次 = 24）+ `test_point.cpp` 199 + `test_size.cpp` 211（后两个无共享宏） |
+| `static_assert` | 76 | `PkPoint.cpp` 26 + `PkSize.cpp` 42（布局 / 枚举取值 / constexpr 能力 / **noexcept 面**，只有在一个 TU 里才落得了地）+ `oracle/geometry_difftest.cpp` 8 |
+| 运行输出 `Totals` 行 | 14 + 26 + 33 | harness 的口径：每个测试类的 slot 数 + `initTestCase` + `cleanupTestCase`，**不是**测试函数数，也不是断言数 |
+| 翻译单元 | 8 | `test_main` `test_global` `test_point` `test_size` `coexist_test_first` `coexist_geometry_first` `point_macro_proof` `size_macro_proof` |
+| 对拍比对次数 | 93 630 039 | `run_oracle.sh` 输出的 `DIFF total=`，其中 `mismatch=3` 全是 canary（见下）。拆开：Point 族 35 569 662（Task 2 的基线，逐字不变）+ Size 族 58 060 377。挂钟约 55 秒 |
 
 **优化档矩阵**（`-fwrapv` 由 `CMakeLists.txt` 的 `target_compile_options(... PUBLIC)`
 统一带上；`-fno-wrapv` 那一列是手工编译出来的对照，不是可用配置）：
@@ -69,12 +69,37 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 |---|---|
 | `PkGlobal.h` / `PkGlobal.cpp` | `qreal` `qAbs` `qMin` `qMax` `qBound` `qRound` `qFuzzyCompare` `qFuzzyIsNull` `qIsNaN` `qInf`，以及**宏改写不到**的 `pkQtFuzzyCompare` / `pkQtFuzzyIsNull`（见下） |
 | `PkPoint.h` / `PkPoint.cpp` | `PkPoint`（两个 `int`）与 `PkPointF`（两个 `qreal`），逐字抄自 `qpoint.h` |
-| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` | `#define` 垫片，无扩展名 |
-| `tests/` | `test_global.cpp`（12 函数 / 116 断言）、`test_point.cpp`（24 函数 / 199 断言）、两个共存 TU `coexist_*.cpp`、宏改写探针 `point_macro_proof.cpp` |
-| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point 族）、`run_oracle.sh`、`geometry.deviation` |
+| `PkSize.h` / `PkSize.cpp` | `PkSize`（两个 `int`）与 `PkSizeF`（两个 `qreal`），逐字抄自 `qsize.h`；两个 `scaled(const Pk*&, mode)` 照 Qt 的形态放在 `.cpp` 里（`QSize::scaled` 定义在 `qsize.cpp`） |
+| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` | `#define` 垫片，无扩展名 |
+| `tests/` | `test_global.cpp`（12 函数 / 116 断言）、`test_point.cpp`（24 / 199）、`test_size.cpp`（31 / 211）、两个共存 TU `coexist_*.cpp`、两个宏改写探针 `point_macro_proof.cpp` 与 `size_macro_proof.cpp` |
+| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point 族 + Size 族）、`run_oracle.sh`、`geometry.deviation` |
 
-`PkSize`/`PkRect`/`PkRectF`/`PkTransform`、`graft/` 试接由后续 Task 交付；
+`PkRect`/`PkRectF`/`PkTransform`、`graft/` 试接由后续 Task 交付；
 它们往 `oracle/geometry_difftest.cpp` 里**加节**，不另起文件。
+
+### `Qt::AspectRatioMode`：**全项目唯一一个真 `namespace`**
+
+`QSize::scaled` 的签名里有 `Qt::AspectRatioMode`，而调用点写的就是
+`Qt::KeepAspectRatio` 这个限定名 —— 不套 `namespace Qt` 对不上。与「全局 `Pk`
+前缀、不引 namespace」那条不冲突：那条针对的是**我们自己的类型**（compat 垫片靠
+`#define QRect PkRect`，而 Krita 里有 `class QRect;` 前置声明）。
+
+它放在 `PkGlobal.h` 而不是 `compat/QtGlobal`：`PkSize.h` 的成员签名要用它，而
+**几何头不许依赖 `compat/`**（对拍的 `-I` 里绝不能有 compat）。放 `PkGlobal.h`
+之后 `compat/QtGlobal` 与 `compat/QSize` 都能经它拿到，与 Qt 的形态一致
+（`qsize.h` 自己 `#include <QtCore/qnamespace.h>`）。
+
+实测用量（口径：保留范围 3 325 个文件）：类型名 `Qt::AspectRatioMode` **22 次**、
+`Qt::IgnoreAspectRatio` **12 次**、`Qt::KeepAspectRatio` **18 次**、
+`Qt::KeepAspectRatioByExpanding` **3 次** —— 都 > 0，所以没有退化成"只留默认参数
+所需的定义"。取值实测真 Qt 5.15.7 为 **0/1/2**、`sizeof==4`、底层类型**无符号**
+（`PkSize.cpp` 用 `static_assert` 钉住，对拍再用一条跨侧 `static_assert` 核对两侧
+取值一致）。`qnamespace.h` 的其余几百个枚举一概不做（判据①）。
+
+⚠ 副作用：一个 TU 若同时包含 `PkGlobal.h` 与**真 Qt 的** `qnamespace.h`，
+`Qt::AspectRatioMode` 会重定义。对拍是唯一有这个形态的地方，它把替代品整包塞进
+`namespace pkoracle`（于是那份是 `pkoracle::Qt::AspectRatioMode`），已经解决。
+剥离完成后的 Krita 里不存在"真 Qt 与替代品共存"的编译行。
 
 ### `pkQtFuzzyCompare` / `pkQtFuzzyIsNull`：为什么几何类型不能写 `qFuzzy*`
 
@@ -125,6 +150,46 @@ compat 垫片，落在上面两种里；够得到第三种顺序的只有手写�
 `fuzzyZeroA`/`fuzzyZeroB` 两个字段，钉住 `qFuzzyCompare(0.0, 1e-300)` 与反向都是
 `false`（真 Qt 5.15.7 实测）。
 
+## Size 族成员名的**接收者归属**（判据①两个方向都要守）
+
+实施计划的「按族取并集」规则有个副作用：**原始测量按名字数，不区分接收者类型**，
+于是别的类上的同名调用被吸进了 Size 族的必做清单。Task 2 已经实测证伪过两例
+（`transposed` 全是 `QTransform` 的、`scaled` 绝大多数是 `QImage`/`QPixmap` 的）。
+本 Task 动手前把 Size 族的每个候选名重新归属了一遍。
+
+口径：保留范围 3 325 个文件，三种调用形态 `.name(` / `->name(` / `::name(`，
+接收者按「本文件里该变量的声明类型 / `QSize(...)` 临时量 / `xxx.size()` 链」判定。
+
+| 成员名 | 三形态总命中 | 本族（QSize/QSizeF）真实调用点 | 判定 | 依据 |
+|---|---:|---:|---|---|
+| `width` | 1 292 | ≥ 276 | **实现** | `QSizeVar` 241 + `size-call` 35；其余大头是 `QRect`(509)/`QRectF`(97)/`QImage`(40) |
+| `height` | 1 026 | ≥ 245 | **实现** | 同上（`QSizeVar` 220 + `size-call` 25） |
+| `setWidth` | 85 | ≥ 18 | **实现** | 例 `libs/flake/KoPatternBackground.cpp:36`；其余是 `QPen`(13)/`QPainterPathStroker`(11)/`QRectF`(5) |
+| `setHeight` | 46 | ≥ 17 | **实现** | 同上 |
+| `rwidth` | 5 | **5** | **实现** | 5 处全是 QSize：`KisBezierMesh.h:868,888`、`KisBezierPatch.cpp:45,136`、`kis_motion_blur_filter.cpp:70` |
+| `rheight` | 5 | **5** | **实现** | 同上（`:820,904`、`:46,137`、`:71`） |
+| `isEmpty` | 1 616 | **8** | **实现** | `KoSvgTextShape.cpp:2148`、`kis_image.cc:1765`、`kis_paint_device.cc:1737/1773(×2)`、`kra_converter.cpp:137/294`、`kis_tool_smart_patch.cpp:259`；其余大头是 `QString`(335)/`QRect`(105) |
+| `isNull` | 475 | **1** | **实现** | `libs/flake/KoShapeGroup.cpp:152` 的 `oldSize.isNull()`；其余是 `QDomElement`(71)/`QDomNode`(52)/`QString`(35) 等 |
+| `isValid` | 292 | **2**（+1 在注释里） | **实现** | `SvgParser.cpp:1437`、`KisResourceThumbnailCache.cpp:196`；`KoSnapStrategy.cpp:633` 那条被注释掉了。其余是 `QModelIndex`(49)/`QRect`(17) 等 |
+| `scale` | 139 | **4** | **实现** | `kis_paint_device.cc:1731/1767`、`ora_converter.cpp:88`、`kis_auto_brush.cpp:386`；其余大头是 `QTransform::scale`(43+46 未定名接收者) |
+| `scaled` | 20 | **2** | **实现** | `kra_converter.cpp:297`（`newSize.scaled(QSize(256,256),Keep)`）与 **`kis_paint_device.cc:1822`**（`deviceExtent.size().scaled(maxw,maxh,mode)`，`deviceExtent` 是 `QRect` → `.size()` 是 `QSize`）。⚠ **简报说只有 1 处，实测是 2 处**。其余 18 处是 `QImage::scaled`/`QPixmap::scaled` |
+| `expandedTo` | 2 | **2** | **实现** | `kra_converter.cpp:297`（接收者是 `QSize::scaled` 的返回值，写法是 `.expandedTo({1,1})` —— 花括号初始化，要求构造函数非 `explicit`）、`kis_brush_selection_widget.cpp:156`（实参是 `widget->sizeHint()`，返回 `QSize`） |
+| `toSize` | 4 | **4** | **实现** | 全部是 `<QRectF>.size().toSize()`：`KoMeshPatchesRenderer.h:43`、`KoPatternBackground.cpp:250/256`、`SvgWriter.cpp:283` |
+| `transposed` | 5 | **0** | **不实现** | 5 处全是 `QTransform::transposed()`（`kis_algebra_2d.cpp:935` + `kis_free_transform_strategy_gsl_helpers.cpp:356-359`）。**那个名字归 Task 6 的 `PkTransform`** |
+| `transpose` | 5 | **0** | **不实现** | 5 处全是 **Eigen 矩阵**的 `.transpose()`（`KisBezierUtils.cpp:1201`×2、`kis_algebra_2d.cpp:949` 与 :957 的注释、`kis_selection_filters.cpp:525`），与 Qt 无关 |
+| `boundedTo` | 0 | 0 | **不实现** | 三形态实测 0 |
+| `grownBy` / `shrunkBy` | 0 | 0 | **不实现** | 三形态实测 0（且需要 `QMargins`，不在 R-03 范围） |
+| `fromCGSize` / `toCGSize` | 0 | 0 | **不实现** | 三形态实测 0（macOS 专用桥接） |
+
+零用量清单的复查命令与原始输出（`xargs -a fileset.txt grep -ohE
+"(\.|->|::)[[:space:]]*<名字>[[:space:]]*\(" | wc -l`）：
+`boundedTo 0`、`fromCGSize 0`、`grownBy 0`、`shrunkBy 0`、`toCGSize 0` —— 与计划一致。
+
+**`transpose`/`transposed` 不实现这条要特别说明**：`QSize::transpose()` 在 Qt 里是
+out-of-line 的（`qsize.cpp`），Task 4/5 的 `PkRect` 也不需要它。真到了 S 线替换
+调用点时若冒出新的 `QSize::transposed()` 调用点，按判据①补上即可（照抄
+`return PkSize(ht, wd);` 与 `qSwap(wd, ht)`，两行）。
+
 ## Qt 语义里必须照抄、看着像 bug 的地方
 
 都已在 `tests/test_global.cpp` 里逐条钉住，防止后来者"顺手修正"：
@@ -150,6 +215,29 @@ compat 垫片，落在上面两种里；够得到第三种顺序的只有手写�
 - **`qMin`/`qMax`/`qBound` 返回 `const T&`**：实参是字面量时返回的引用只在那条
   full-expression 内有效，跨语句用就悬垂。测试里对字面量调用先拷进具名变量。
 
+Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐条钉住）：
+
+- **`QSize()` 是 `(-1,-1)`，`QSizeF()` 是 `(-1.,-1.)`** —— 不是 `(0,0)`。
+  默认构造出来的尺寸 `isValid()==false`，Krita 里 `QSize s;` 之后判 `isValid()`
+  的写法靠这个哨兵值。实施计划与简报都没提到这一条。
+- **`isNull` / `isEmpty` / `isValid` 三条公式互不相同**，且
+  **`QSize(0,0).isValid()` 是 `true`** —— 而 `QRect(0,0,0,0).isValid()` 是 `false`。
+  照搬矩形的语义过来会翻车（注入自证第 2 组就是这个，抓到 46 处差异）。
+- **整数版 `isEmpty` 是 `wd<1||ht<1`，浮点版是 `wd<=0.||ht<=0.`**。整数上两者
+  等价（注入自证第 1a 组把整数版改成 `<=0` 跑出**零差异**，等价性是实测的），
+  **浮点上不等价**：`(0.5,0.5)` 在整数公式下会被误判成空（第 1b 组抓到 624 处）。
+- **源尺寸任一分量为 0 时 `scaled` 直接返回目标尺寸**，不做比例运算 ——
+  `QSize(0,0).scaled(30,30,Keep) == 30x30`，反直觉但实测如此。浮点版的判据是
+  `qIsNull`（`== 0.0`，**`-0.0` 也走这条**），而次正规数 `5e-324` **不走**。
+- **`QSize::scaled` 的中间量是 `qint64`，整数除法截断**（`(3,7)→10x10 Keep` 得
+  `(4,10)` 而不是 `(4.28…)` 的四舍五入 `(4,10)`… 具体见单测里那 3 条），
+  回窄到 `int` 时按二补数回绕（`(INT_MAX,2).scaled(2,INT_MAX,Expand)` 实测得
+  `(INT_MIN, INT_MAX)`）。改成四舍五入的注入抓到 **570 248** 处差异。
+- **`QSizeF::operator==` 是逐分量各一次 `qFuzzyCompare`，没有零分支** ——
+  与 `QPointF::operator==`（任一侧为 0 就改走 `fuzzyIsNull`）**不是同一个公式**：
+  `QPointF(0,0)==QPointF(1e-300,0)` 是 `true`，`QSizeF` 上同样的值是 **`false`**。
+  两边恰好都是 0 时仍相等。抄错族会静默改掉整片相等语义。
+
 ## 偏离清单
 
 | # | 偏离 | 理由 |
@@ -160,7 +248,11 @@ compat 垫片，落在上面两种里；够得到第三种顺序的只有手写�
 | 4 | `pk/test/compat/QtGlobal` 先进 TU 时，`qAbs`/`qFuzzyCompare`/`qFuzzyIsNull` 用的是它那份实现 | 写法不同、语义等价，两处差异已逐条核对：`t >= T(0)` vs `t >= 0` 对全部算术类型等价（含 `-0.0`，两边都原样返回 `-0.0`）；`std::fabs`/`std::fmin` vs `qAbs`/`qMin` 只在实参含 NaN 时取值不同，而那种情况下两边的 `<=` 都被 NaN 拉成 false。**无行为差异。** 这条不是口头断言：`tests/coexist.h` 的探针把让位路径上的取值（含零侧语义 `fuzzyZeroA`/`fuzzyZeroB`）逐条钉住，`pk/test` 漂离 Qt 时两个 coexist TU 会变红。 |
 | 5 | Qt 的宏映射到 C++17：`Q_DECL_CONSTEXPR`→`constexpr`、`Q_DECL_RELAXED_CONSTEXPR`→`constexpr`、去掉 `Q_CORE_EXPORT` / `Q_DECLARE_TYPEINFO` / `QT_WARNING_*` | 分别是可见性属性、容器移动优化提示、`-Wfloat-equal` 的诊断压制。**都不进入可观察行为**，且 35 569 662 次逐输入对拍零真实差异。`Q_DECL_RELAXED_CONSTEXPR` 在 C++14 起就是 `constexpr`，`PkPoint.cpp` 用 `static_assert` 钉住"放宽 constexpr 真的能在编译期改状态"。 |
 | 6 | **运算符按 Qt 头文件全集实现**，不按实测调用点裁剪 | 运算符无法按调用点 grep 归属（`a + b` 认不出类型），因此**没有实测用量数字**可依。这违反判据①「一项不多」的字面要求，**登记在案请 reviewer 判**。理由：运算符是值类型的基本语法面，漏一个就让调用点编不过，而"哪些漏了"在替换之前无法测量。范围 = `qpoint.h` 里为 `QPoint`/`QPointF` 声明的全部运算符，一个不多一个不少。 |
-| 7 | `PkPointF::isNull()` 直接写 `xp == 0.0 && yp == 0.0`，不引入 `qIsNull` 这个名字 | `qglobal.h:925-928` 的 `qIsNull(double d)` 就是 `d == 0.0`，逐字等价（实测 `QPointF(-0.0,-0.0).isNull() == true`、`5e-324` 为 `false`，两侧一致）。不把 `qIsNull` 提进 `compat/` 是因为它在保留范围内实测 **0 调用点**，导出去才是违反判据①。 |
+| 7 | `PkPointF::isNull()` 直接写 `xp == 0.0 && yp == 0.0`，不引入 `qIsNull` 这个名字（`PkSizeF::isNull()` 同样处理） | `qglobal.h:925-928` 的 `qIsNull(double d)` 就是 `d == 0.0`，逐字等价（实测 `QPointF(-0.0,-0.0).isNull() == true`、`5e-324` 为 `false`，两侧一致）。不把 `qIsNull` 提进 `compat/` 是因为它在保留范围内实测 **0 调用点**，导出去才是违反判据①。 |
+| 8 | **不实现 `QSize`/`QSizeF` 两个除法里的 `Q_ASSERT(!qFuzzyIsNull(c))`**，且**对拍以 `-DQT_NO_DEBUG` 编 Qt 头** | 断言设施归 R-08，`pk/geometry` 里没有。Krita 的**发布构建里这条断言整条编译掉**（Qt5 的 cmake 模块给任何非 Debug 构建追加 `-DQT_NO_DEBUG`，见 krita 根 `CMakeLists.txt:968` 那条 option 的说明文字），所以对齐的是发布形态：除以 0 得 `qRound(±inf)`，实测两侧都是 `INT_MIN`。**未对齐的部分诚实登记**：Debug 构建下 Qt 会 `qt_assert` 中止而 `PkSize` 不会 —— 这是行为差异，只是它发生在 Krita 不发布的那种构建里。不加 `-DQT_NO_DEBUG` 时对拍**根本跑不完**（一喂"除以 0"就 `abort()`）。实测：加它前后 Point 族 `total=35569662 mismatch=3` 逐字不变（`qpoint.h` 里一个 `Q_ASSERT` 都没有）。 |
+| 9 | `PkSize`/`PkSizeF` **照抄 `noexcept`**，`PkPoint`/`PkPointF` 没有 | 不是不一致：`qsize.h` 几乎每个成员都标了 `noexcept`，`qpoint.h` 只有 `transposed` 标了 —— 两边都是**逐字照抄各自的头**。`noexcept` 是可观察的（`noexcept` 运算符、容器移动选择），所以连"带 `Q_ASSERT` 的两个除法 Qt 恰好没标 `noexcept`"这个不对称也抄了，`PkSize.cpp` 用 7 条 `static_assert` 钉住。 |
+| 10 | `PkSize::scaled` 里用 `long long` 而不是 `qint64` | `qint8`..`quint64` 那批 typedef 按用量表归 R-02，R-03 不预先实现（判据①）。本平台 `qint64` 就是 `long long`，逐字等价。**换平台要重看**（LP64/LLP64 上 `long long` 恒 64 位，与 `qint64` 一致）。 |
+| 11 | 对拍 TU 里 `#include "PkSize.cpp"`（在 `namespace pkoracle` 内） | 两个 `scaled(const Pk*&, mode)` 是 out-of-line 的（照 Qt 的形态）。`libpkgeometry.a` 里那份是 `::PkSize::scaled`，而对拍需要的是 `pkoracle::PkSize::scaled` —— 两个不同符号，链不上。把 `.cpp` 一起包进 namespace 是**唯一**能让对拍压到那两个函数的办法（改成 header-only 就不是"照抄 Qt 的结构"了）。纪律：`PkSize.cpp` 的系统头（只有 `<type_traits>`）必须在对拍的系统头区里已经出现过。 |
 
 ## 覆盖度缺口
 
@@ -227,7 +319,9 @@ compat 垫片，落在上面两种里；够得到第三种顺序的只有手写�
   手挑对抗集 44 个 double / 25 个 int，token 集 21 个 double / 20 个 int；
   一元 API 走 44²+21² = 2 377 个 double 点、25²+20² = 1 025 个 int 点，
   二元 API 走 44⁴+21⁴ = 3 942 577 组 double 两点、25⁴+20⁴ = 550 625 组 int 两点，
-  带标量参数的 API 做三层，合计 35 569 662 次比对。
+  带标量参数的 API 做三层，Point 族合计 35 569 662 次比对；Size 族又加了
+  58 060 377 次（一元/二元/带标量参数的部分与 Point 同形，`scaled`/`scale`
+  那四个 API 走「手挑 × token 双向交叉」，见下），总计 **93 630 039**。
   **手挑集必须做全组合，不能只做索引轮转** —— 轮转时 44 个手挑值只产生 44 个点，
   `kHandD` 里那批 `kTokD` 没有的值（`0.5000000000000001`、`1e-323`、
   `2.2250738585072014e-308`、`-2147483649.0`、`4294967296.0`、`1.0+1e-13`、
@@ -242,7 +336,28 @@ compat 垫片，落在上面两种里；够得到第三种顺序的只有手写�
   `qFuzzy*` 那两个 `#define` 永远不生效，所以「几何类型的 `==` 被改写到 `pk/test`
   的实现上」这类问题对拍看不见。靠 `tests/point_macro_proof.cpp` 单独钉住。
 - **`graft/` 试接还没做**（Task 7）。现在证明 API 形状对不对的只有本目录自己的
-  单测与对拍，没有一个真实 Krita 调用点编译过 `PkPoint`。
+  单测与对拍，没有一个真实 Krita 调用点编译过 `PkPoint` / `PkSize`。
+- **Size 族的 `scaled`/`scale` 对拍走的是「手挑 × token 双向交叉」，不是全组合。**
+  这四个 API 有 4 个分量 + 1 个 mode，`25⁴×25⁴` 做不了。做法：源取手挑对 × 目标取
+  token 对，再反过来一遍，×3 个 mode —— **每个分量位上都取得到手挑值**（README
+  上面那条纪律的要求），但"某个手挑源尺寸 × 某个手挑目标尺寸"这一格没覆盖。
+  规模：int 25²×20²×2×3 = 1 500 000 组，double 44²×21²×2×3 = 5 122 656 组。
+  注入自证第 3 组（`scaled` 改成四舍五入）在这个输入集上抓到 570 248 处差异、
+  分布在 8 个根因 tag 上，说明这个交叉对"取整/分支"类缺陷是够用的；
+  **对"只在两个手挑值同时出现时才触发"的缺陷则可能漏**。
+- **`Q_ASSERT` 那条差异只在 Debug 构建里存在**（偏离清单第 8 条）：对拍以
+  `-DQT_NO_DEBUG` 编 Qt 头，比的是 Krita 发布构建的形态。Debug 构建下真 Qt 的
+  `QSize(1,1)/0.0` 会 `qt_assert` 中止，`PkSize` 不会 —— **这一片没有对拍覆盖**，
+  也不打算覆盖（断言设施归 R-08）。
+- **`qint64 → int` 的窄化是实现定义行为，不是 `-fwrapv` 管的那一类。**
+  `PkSize::scaled` 的返回值里有一次窄化（实测 `(INT_MAX,2).scaled(2,INT_MAX,Expand)`
+  两侧都得 `(INT_MIN,INT_MAX)`）。C++17 里它由实现定义（C++20 起才规定为二补数），
+  GCC 在所有档位上都取二补数。**换编译器/平台要重测**，与下面那条 Android/ARM 一起。
+- **`qHash` / `QDataStream` / `QDebug` 配 `QSize*` 的实测用量全是 0**（口径同上
+  3 325 个文件）：`QHash<QSize`、`QSet<QSize`、`QMap<QSize`、`qHash(const QSize`、
+  `QDataStream` 与 `QSize` 同行、`QVariant` 与 `QSize` 同行 —— **各 0 次**。
+  所以 Size 族这三组不实现不欠 R-02/R-12 任何东西（`QRect` 那边欠 1 处，见上）。
+  `qDebug() << <某个 size>` 形态的行有 16 处，归 R-08 日志线。
 
 ## 与决策文档 / 实施计划的差异（**只报告，不修改那些文档**）
 
@@ -263,8 +378,9 @@ compat 垫片，落在上面两种里；够得到第三种顺序的只有手写�
    **`dotProduct` 的完整实测**（口径：上面那 3 325 个文件，数
    `.dotProduct(` / `->dotProduct(` / `::dotProduct(` 三形态）：合计 **13 处 / 7 个文件**，
    全部是 `::` 形态。归属拆开是 `QPointF::dotProduct` **1 处**（`kis_tool_measure.cc:139`，
-   本 Task 实现的就是它）、Krita 自备的 `KisAlgebra2D::dotProduct` **5 处**、
-   `QVector2D::dotProduct` **4 处**、`QVector3D::dotProduct` **3 处**
+   Task 2 实现的就是它）、Krita 自备的 `KisAlgebra2D::dotProduct` **6 处**、
+   `QVector2D::dotProduct` **3 处**、`QVector3D::dotProduct` **3 处**
+   （**Task 3 复核修正**：这两个数原来写成 5 与 4，方向相反，总数 13 与文件数 7 侥幸还对）
    ——后 12 处都不是 `QPoint` 族，`QVector2D/3D` 还不在 R-03 交付范围内（见上文）。
 
 3. **⚠ 实施计划把 `transposed` 列进 Point 族「有用量、必须实现」——实测证伪，
@@ -279,3 +395,22 @@ compat 垫片，落在上面两种里；够得到第三种顺序的只有手写�
    `kis_selection_filters.cpp:525`），与 Qt 无关。
    按判据①「一项不多」，Point 族的 `transposed` 删掉；**那个名字的调用点属于
    `QTransform`，归 Task 6 的 `PkTransform`**，到时候按这 5 处实现。
+
+4. **⚠ 实施计划把 `transpose` / `transposed` 列进 Size 族「有用量、必须实现」——
+   实测证伪，本 Task 不实现它们。** 归属表见上：`transposed` 的 5 处全是
+   `QTransform`，`transpose` 的 5 处全是 Eigen 矩阵，Size 族各 **0 处**。
+   与 Point 族那条是同一个根因（按名字数、不区分接收者类型）。
+
+5. **⚠ `QSize::scaled` 的真实调用点是 2 处，不是 1 处。** Task 2 复评给出的清单说
+   `QSize::scaled` 只有 `plugins/impex/libkra/kra_converter.cpp:297` 一处；实测还有
+   **`libs/image/kis_paint_device.cc:1822`**：
+   `const QSize thumbnailSize = deviceExtent.size().scaled(maxw, maxh, aspectRatioMode);`
+   —— `deviceExtent` 是 `QRect`，`.size()` 返回 `QSize`，走的是 `QSize::scaled(int,int,mode)`
+   这个**另一个重载**。按接收者归属时"链式调用的返回值类型"这一类最容易漏，
+   Task 4–6 注意（`.size()` / `.rect()` / `.boundingRect()` 这类链）。
+
+6. **⚠ `QSize()` / `QSizeF()` 的默认值是 `(-1,-1)`，实施计划与简报都没提。**
+   计划的 Task 3 清单里只点了 `isNull`/`isEmpty`/`isValid` 三条公式，没提默认构造
+   不是零值。这不是文档错误（它没写反），但它是本 Task 最容易照直觉写错的一条，
+   记在这里给 Task 4/5 提个醒：**`QRect()` 是 `(0,0,-1,-1)`，也不是全零**，
+   到时候一样要先问探针。

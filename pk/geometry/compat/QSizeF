@@ -1,0 +1,12 @@
+#pragma once
+#include "../PkSize.h"
+
+// <QSizeF> 的垫片。与 compat/QSize 内容等同（Qt 那两个转发头也都指向同一份
+// qsize.h），完整理由见 compat/QSize。两份都写出来是因为调用点两种写法都有，
+// 而垫片是按**文件名**被找到的，宏改写不了 #include 的路径。
+#ifndef QSize
+#define QSize PkSize
+#endif
+#ifndef QSizeF
+#define QSizeF PkSizeF
+#endif

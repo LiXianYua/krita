@@ -40,6 +40,7 @@
 
 // ── 真 Qt 侧 + 系统头（都必须在 namespace 之外）────────────────────────
 #include <QPoint>
+#include <QSize>
 #include <QString>
 #include <QtGlobal>
 #include <QMessageLogContext>
@@ -57,23 +58,50 @@
 
 // 垫片一旦混进 -I，<QPoint> 会解析到 compat/QPoint，而那份是两个 #define。
 // 两侧于是解析成同一个类型，跑出来必然零差异且看不出破绽。成本三行。
-#if defined(QPoint) || defined(QPointF)
+#if defined(QPoint) || defined(QPointF) || defined(QSize) || defined(QSizeF)
 #  error "对拍两侧解析成了同一个类型 —— -I 里混进了 pk/geometry/compat"
 #endif
 
 // ── 替代品侧 ───────────────────────────────────────────────────────────
 namespace pkoracle {
 #include "PkPoint.h"
+#include "PkSize.h"
+// ⚠ **PkSize.cpp 也要进来**：两个 scaled(const Pk*&, mode) 是 out-of-line 的
+//（照 Qt 的形态，QSize::scaled 定义在 qsize.cpp 里）。libpkgeometry.a 里那份
+// 定义的是 `::PkSize::scaled`，而本 TU 需要的是 `pkoracle::PkSize::scaled`
+// —— 两个不同的符号，链不上（第一版就是这么炸的）。
+// 纪律与 namespace 那条完全一样：**PkSize.cpp 里的系统头必须在上面的系统头区
+// 里已经出现过**（它只 #include <type_traits>，上面有），否则会造出 pkoracle::std。
+// 顺带好处：PkSize.cpp 里那批 static_assert 也在这个 TU 里编一遍。
+#include "PkSize.cpp"
 }
 
 using PkPoint  = pkoracle::PkPoint;
 using PkPointF = pkoracle::PkPointF;
+using PkSize   = pkoracle::PkSize;
+using PkSizeF  = pkoracle::PkSizeF;
 
 static_assert(!std::is_same<QPoint,  PkPoint >::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
 static_assert(!std::is_same<QPointF, PkPointF>::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
 static_assert(sizeof(QPointF) == sizeof(PkPointF), "两侧布局不一致");
+static_assert(!std::is_same<QSize,  PkSize >::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
+static_assert(!std::is_same<QSizeF, PkSizeF>::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
+static_assert(sizeof(QSizeF) == sizeof(PkSizeF), "两侧布局不一致");
+// ⚠ 枚举也必须是两个不同的类型（替代品那份落在 pkoracle::Qt 里）。若哪天
+// 替代品改成 `using Qt::AspectRatioMode = ::Qt::AspectRatioMode` 之类的转发，
+// 下面这条会立刻炸 —— 那种写法等于把对拍的 mode 一侧接到真 Qt 上，白比。
+static_assert(!std::is_same<Qt::AspectRatioMode,
+                            pkoracle::Qt::AspectRatioMode>::value,
+              "AspectRatioMode 两侧解析成了同一个类型");
+static_assert((int)Qt::IgnoreAspectRatio == (int)pkoracle::Qt::IgnoreAspectRatio
+              && (int)Qt::KeepAspectRatio == (int)pkoracle::Qt::KeepAspectRatio
+              && (int)Qt::KeepAspectRatioByExpanding
+                     == (int)pkoracle::Qt::KeepAspectRatioByExpanding,
+              "AspectRatioMode 的枚举取值两侧不一致");
 
 // ═══ 计数与记录 ════════════════════════════════════════════════════════════
 
@@ -129,6 +157,16 @@ static bool same_pt(const QPoint &q, const PkPoint &p)
 { return q.x() == p.x() && q.y() == p.y(); }
 static bool same_ptf(const QPointF &q, const PkPointF &p)
 { return same_double(q.x(), p.x()) && same_double(q.y(), p.y()); }
+
+static std::string qstr(const QSize &s)   { return istr(s.width()) + "x" + istr(s.height()); }
+static std::string qstr(const PkSize &s)  { return istr(s.width()) + "x" + istr(s.height()); }
+static std::string qstr(const QSizeF &s)  { return dstr(s.width()) + "x" + dstr(s.height()); }
+static std::string qstr(const PkSizeF &s) { return dstr(s.width()) + "x" + dstr(s.height()); }
+
+static bool same_sz(const QSize &q, const PkSize &p)
+{ return q.width() == p.width() && q.height() == p.height(); }
+static bool same_szf(const QSizeF &q, const PkSizeF &p)
+{ return same_double(q.width(), p.width()) && same_double(q.height(), p.height()); }
 
 // ═══ tag 谓词：**全部由输入的形态算出来**，没有一个是字面量常量 ═══════════
 
@@ -463,6 +501,366 @@ static void cmp_promotion(int x, int y, double cx, double cy)
         qstr(qf.toPoint()), qstr(pf.toPoint()));
 }
 
+// ═══ Size 族：逐 API 对拍 ══════════════════════════════════════════════════
+//
+// 与 Point 族的三处结构性不同，直接决定了这一节的 tag 怎么设计：
+//   ① **三条谓词的分界线互不相同**（isNull 只认 0、isEmpty 的门槛是 `<1`／浮点
+//      `<=0.`、isValid 是 `>=0`）。所以 0 / 1 / 负 是三个独立的根因，
+//      不能压成 shapeOf* 里的一档 —— 各谓词用各自的边界谓词做 tag。
+//   ② **scaled/scale 多了一个 mode 参数**，而三种 mode 走的是三条不同的分支
+//      （Ignore 直接返回目标；Keep/Expand 只差比较方向）。mode 是输入的一部分，
+//      必须参与 tag（规则一），否则一种 mode 上的偏离会把另外两种一起罩住。
+//   ③ 整数版 scaled 内部有 **qint64 中间量**再窄回 int，浮点版没有。
+//      "窄化会不会回绕"是整数版独有的根因，单独一档。
+static const Qt::AspectRatioMode kQtModes[3] = {
+    Qt::IgnoreAspectRatio, Qt::KeepAspectRatio, Qt::KeepAspectRatioByExpanding };
+static const pkoracle::Qt::AspectRatioMode kPkModes[3] = {
+    pkoracle::Qt::IgnoreAspectRatio, pkoracle::Qt::KeepAspectRatio,
+    pkoracle::Qt::KeepAspectRatioByExpanding };
+static const char *kModeName[3] = { "ignore", "keep", "expand" };
+
+// Size 版的通用形态分流。与 shapeOfI/shapeOfD 分开：Point 那两个把 0 与负数
+// 归成同一档（"ordinary"），而尺寸的语义里这两者是完全不同的东西。
+static std::string shapeOfSizeI(std::initializer_list<int> vs)
+{
+    for (int v : vs) if (intExtremum(v)) return "int-extremum";
+    for (int v : vs) if (v < 0) return "negative-dim";
+    for (int v : vs) if (v == 0) return "zero-dim";
+    for (int v : vs) if (v == 1) return "unit-dim";      // isEmpty 的 `<1` 边界
+    return "ordinary";
+}
+
+static std::string shapeOfSizeD(std::initializer_list<double> vs)
+{
+    for (double v : vs) if (nonFinite(v)) return "nonfinite";
+    for (double v : vs) if (signedZero(v)) return "signed-zero";
+    for (double v : vs) if (subnormal(v)) return "subnormal";
+    for (double v : vs) if (v == 0.0) return "zero-dim";
+    for (double v : vs) if (v < 0.0) return "negative-dim";
+    for (double v : vs) if (std::fabs(v) > 1e300) return "huge";
+    return "finite";
+}
+
+// 无输入的 API（默认构造）：**只有一种输入形态**，所以 tag 退化成常量是这条
+// 规则的边界情形而不是违反 —— 规则一禁的是"有输入却不让输入参与 tag"。
+// 只跑一次。
+static void cmp_size_constants()
+{
+    rec("S::defaultCtor", same_sz(QSize(), PkSize()), "no-input",
+        "QSize()", qstr(QSize()), qstr(PkSize()));
+    rec("SF::defaultCtor", same_szf(QSizeF(), PkSizeF()), "no-input",
+        "QSizeF()", qstr(QSizeF()), qstr(PkSizeF()));
+    rec("S::defaultPredicates",
+        QSize().isNull() == PkSize().isNull()
+        && QSize().isEmpty() == PkSize().isEmpty()
+        && QSize().isValid() == PkSize().isValid(),
+        "no-input", "QSize()",
+        bstr(QSize().isNull()) + bstr(QSize().isEmpty()) + bstr(QSize().isValid()),
+        bstr(PkSize().isNull()) + bstr(PkSize().isEmpty()) + bstr(PkSize().isValid()));
+    rec("SF::defaultPredicates",
+        QSizeF().isNull() == PkSizeF().isNull()
+        && QSizeF().isEmpty() == PkSizeF().isEmpty()
+        && QSizeF().isValid() == PkSizeF().isValid(),
+        "no-input", "QSizeF()",
+        bstr(QSizeF().isNull()) + bstr(QSizeF().isEmpty()) + bstr(QSizeF().isValid()),
+        bstr(PkSizeF().isNull()) + bstr(PkSizeF().isEmpty()) + bstr(PkSizeF().isValid()));
+}
+
+static void cmp_size_unary(int w, int h)
+{
+    const QSize  q(w, h);
+    const PkSize p(w, h);
+    const std::string in = istr(w) + "x" + istr(h);
+    const std::string sh = shapeOfSizeI({w, h});
+    const bool extremum = intExtremum(w) || intExtremum(h);
+
+    rec("S::width", q.width() == p.width(), sh, in, istr(q.width()), istr(p.width()));
+    rec("S::height", q.height() == p.height(), sh, in, istr(q.height()), istr(p.height()));
+
+    // 三条谓词的边界各不相同，各用各的（把它们压成同一个 tag 就等于允许
+    // 「isValid 抄了 isEmpty 的门槛」这类偏离藏在同一片白名单下）。
+    rec("S::isNull", q.isNull() == p.isNull(),
+        extremum ? std::string("int-extremum") : (w == 0 || h == 0) ? std::string("zero-dim") : sh,
+        in, bstr(q.isNull()), bstr(p.isNull()));
+    rec("S::isEmpty", q.isEmpty() == p.isEmpty(),
+        extremum ? std::string("int-extremum")
+                 : (w <= 1 || h <= 1) ? std::string("empty-boundary") : sh,
+        in, bstr(q.isEmpty()), bstr(p.isEmpty()));
+    rec("S::isValid", q.isValid() == p.isValid(),
+        extremum ? std::string("int-extremum")
+                 : (w <= 0 || h <= 0) ? std::string("valid-boundary") : sh,
+        in, bstr(q.isValid()), bstr(p.isValid()));
+
+    { QSize q2 = q; PkSize p2 = p; q2.setWidth(h); p2.setWidth(h);
+      q2.setHeight(w); p2.setHeight(w);
+      rec("S::setWidth/setHeight", same_sz(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QSize q2 = q; PkSize p2 = p; q2.rwidth() += 1; p2.rwidth() += 1;
+      q2.rheight() -= 1; p2.rheight() -= 1;
+      rec("S::rwidth/rheight", same_sz(q2, p2),
+          (w == INT_MAX || h == INT_MIN) ? std::string("int-overflow") : sh,
+          in, qstr(q2), qstr(p2)); }
+}
+
+static void cmp_size_binary(int aw, int ah, int bw, int bh)
+{
+    const QSize  qa(aw, ah), qb(bw, bh);
+    const PkSize pa(aw, ah), pb(bw, bh);
+    const std::string in = istr(aw) + "x" + istr(ah) + "|" + istr(bw) + "x" + istr(bh);
+    // ⚠ **四个分量都参与**（约定见 shapeOfI 上方那段）。
+    const std::string sh = shapeOfSizeI({aw, ah, bw, bh});
+
+    rec("S::operator+", same_sz(qa + qb, pa + pb),
+        (addOverflows(aw, bw) || addOverflows(ah, bh)) ? std::string("int-overflow") : sh,
+        in, qstr(qa + qb), qstr(pa + pb));
+    rec("S::operator-", same_sz(qa - qb, pa - pb),
+        (subOverflows(aw, bw) || subOverflows(ah, bh)) ? std::string("int-overflow") : sh,
+        in, qstr(qa - qb), qstr(pa - pb));
+    rec("S::operator==", (qa == qb) == (pa == pb), sh, in, bstr(qa == qb), bstr(pa == pb));
+    rec("S::operator!=", (qa != qb) == (pa != pb), sh, in, bstr(qa != qb), bstr(pa != pb));
+    { QSize q2 = qa; PkSize p2 = pa; q2 += qb; p2 += pb;
+      rec("S::operator+=", same_sz(q2, p2),
+          (addOverflows(aw, bw) || addOverflows(ah, bh)) ? std::string("int-overflow") : sh,
+          in, qstr(q2), qstr(p2)); }
+    { QSize q2 = qa; PkSize p2 = pa; q2 -= qb; p2 -= pb;
+      rec("S::operator-=", same_sz(q2, p2),
+          (subOverflows(aw, bw) || subOverflows(ah, bh)) ? std::string("int-overflow") : sh,
+          in, qstr(q2), qstr(p2)); }
+    // expandedTo 是 qMax 逐分量：唯一会分家的形态是"两侧相等/一侧更大"的选择，
+    // 由分量形态解释即可。
+    rec("S::expandedTo", same_sz(qa.expandedTo(qb), pa.expandedTo(pb)), sh,
+        in, qstr(qa.expandedTo(qb)), qstr(pa.expandedTo(pb)));
+}
+
+// QSize 的缩放：只有 qreal 一个重载（不像 QPoint 有 float/double/int 三个），
+// 但除法那两条在 Qt 里带 Q_ASSERT —— 对拍用 -DQT_NO_DEBUG 编（= Krita 发布构建
+// 的形态，理由见 run_oracle.sh 与 README 偏离清单），断言整条编译掉。
+static void cmp_size_scale(int w, int h, double c)
+{
+    const QSize  q(w, h);
+    const PkSize p(w, h);
+    const std::string in = istr(w) + "x" + istr(h) + "*" + dstr(c);
+    const double pw = (double)w * c, ph = (double)h * c;
+    const std::string mtag =
+          (nonFinite(pw) || nonFinite(ph))         ? "nonfinite-product"
+        : (outOfIntRange(pw) || outOfIntRange(ph)) ? "product-out-of-int-range"
+        : (halfBoundary(pw) || halfBoundary(ph))   ? "half-boundary"
+        : (nearHalfUlp(pw) || nearHalfUlp(ph))     ? "near-half-ulp"
+                                                    : "in-range";
+    rec("S::operator*", same_sz(q * c, p * c), mtag, in, qstr(q * c), qstr(p * c));
+    rec("S::operator*(rev)", same_sz(c * q, c * p), mtag, in, qstr(c * q), qstr(c * p));
+    { QSize q2 = q; PkSize p2 = p; q2 *= c; p2 *= c;
+      rec("S::operator*=", same_sz(q2, p2), mtag, in, qstr(q2), qstr(p2)); }
+
+    const double dw = (double)w / c, dh = (double)h / c;
+    const std::string dtag =
+          (c == 0.0)                               ? "divisor-zero"
+        : (nonFinite(dw) || nonFinite(dh))         ? "nonfinite-quotient"
+        : (outOfIntRange(dw) || outOfIntRange(dh)) ? "quotient-out-of-int-range"
+        : (halfBoundary(dw) || halfBoundary(dh))   ? "half-boundary"
+        : (nearHalfUlp(dw) || nearHalfUlp(dh))     ? "near-half-ulp"
+                                                    : "in-range";
+    rec("S::operator/", same_sz(q / c, p / c), dtag, in, qstr(q / c), qstr(p / c));
+    { QSize q2 = q; PkSize p2 = p; q2 /= c; p2 /= c;
+      rec("S::operator/=", same_sz(q2, p2), dtag, in, qstr(q2), qstr(p2)); }
+}
+
+// scaled/scale：**mode 参与 tag**，且分支形态（退化源 / qint64 窄化 / 负分量）
+// 各自成一档 —— 这三条分支在 Qt 里走的是完全不同的代码，混成一个 tag 等于
+// 把三片行为一起白名单化（规则二）。
+static void cmp_size_scaled(int sw, int sh, int tw, int th, int mi)
+{
+    const QSize  qs(sw, sh), qt(tw, th);
+    const PkSize ps(sw, sh), pt(tw, th);
+    const std::string in = istr(sw) + "x" + istr(sh) + "->" + istr(tw) + "x" + istr(th);
+
+    // qint64 中间量是否越出 int 值域（越出就要靠窄化回绕，是独立的根因）
+    bool narrows = false;
+    if (sw != 0 && sh != 0) {
+        const long long rw = (long long)th * (long long)sw / (long long)sh;
+        const long long rh = (long long)tw * (long long)sh / (long long)sw;
+        narrows = rw < INT_MIN || rw > INT_MAX || rh < INT_MIN || rh > INT_MAX;
+    }
+    const std::string branch =
+          (mi == 0)                  ? "ignore-returns-target"
+        : (sw == 0 || sh == 0)       ? "degenerate-source"
+        : narrows                    ? "int64-narrowing"
+        : (sw < 0 || sh < 0 || tw < 0 || th < 0) ? "negative-dim"
+        : (intExtremum(sw) || intExtremum(sh) || intExtremum(tw) || intExtremum(th))
+                                     ? "int-extremum"
+                                     : "ordinary";
+    const std::string tag = std::string(kModeName[mi]) + "/" + branch;
+
+    rec("S::scaled(size)", same_sz(qs.scaled(qt, kQtModes[mi]), ps.scaled(pt, kPkModes[mi])),
+        tag, in, qstr(qs.scaled(qt, kQtModes[mi])), qstr(ps.scaled(pt, kPkModes[mi])));
+    rec("S::scaled(w,h)",
+        same_sz(qs.scaled(tw, th, kQtModes[mi]), ps.scaled(tw, th, kPkModes[mi])),
+        tag, in, qstr(qs.scaled(tw, th, kQtModes[mi])), qstr(ps.scaled(tw, th, kPkModes[mi])));
+    { QSize q2 = qs; PkSize p2 = ps;
+      q2.scale(qt, kQtModes[mi]); p2.scale(pt, kPkModes[mi]);
+      rec("S::scale(size)", same_sz(q2, p2), tag, in, qstr(q2), qstr(p2)); }
+    { QSize q2 = qs; PkSize p2 = ps;
+      q2.scale(tw, th, kQtModes[mi]); p2.scale(tw, th, kPkModes[mi]);
+      rec("S::scale(w,h)", same_sz(q2, p2), tag, in, qstr(q2), qstr(p2)); }
+}
+
+static void cmp_sizef_unary(double w, double h)
+{
+    const QSizeF  q(w, h);
+    const PkSizeF p(w, h);
+    const std::string in = dstr(w) + "x" + dstr(h);
+    const std::string sh = shapeOfSizeD({w, h});
+
+    rec("SF::width", same_double(q.width(), p.width()), sh, in, dstr(q.width()), dstr(p.width()));
+    rec("SF::height", same_double(q.height(), p.height()), sh, in, dstr(q.height()), dstr(p.height()));
+
+    // isNull 用 qIsNull（== 0.0）：-0.0 算 null、次正规不算 —— 与 isEmpty 的
+    // `<= 0.`、isValid 的 `>= 0.` 三条门槛互不相同，各用各的 tag。
+    rec("SF::isNull", q.isNull() == p.isNull(),
+        (signedZero(w) || signedZero(h)) ? std::string("signed-zero")
+        : (subnormal(w) || subnormal(h)) ? std::string("subnormal")
+        : (w == 0.0 || h == 0.0)         ? std::string("zero-dim") : sh,
+        in, bstr(q.isNull()), bstr(p.isNull()));
+    rec("SF::isEmpty", q.isEmpty() == p.isEmpty(),
+        (std::isnan(w) || std::isnan(h)) ? std::string("nan-dim")
+        : (w <= 0.0 || h <= 0.0)         ? std::string("empty-boundary") : sh,
+        in, bstr(q.isEmpty()), bstr(p.isEmpty()));
+    rec("SF::isValid", q.isValid() == p.isValid(),
+        (std::isnan(w) || std::isnan(h)) ? std::string("nan-dim")
+        : (w <= 0.0 || h <= 0.0)         ? std::string("valid-boundary") : sh,
+        in, bstr(q.isValid()), bstr(p.isValid()));
+
+    // toSize 走 qRound：半值方向、越出 int 值域、差一个 ulp 的半值是三个根因。
+    rec("SF::toSize", same_sz(q.toSize(), p.toSize()),
+        (outOfIntRange(w) || outOfIntRange(h)) ? std::string("out-of-int-range")
+        : (halfBoundary(w) || halfBoundary(h)) ? std::string("half-boundary")
+        : (nearHalfUlp(w) || nearHalfUlp(h))   ? std::string("near-half-ulp")
+        : (subnormal(w) || subnormal(h))       ? std::string("subnormal")
+                                                : std::string("in-range"),
+        in, qstr(q.toSize()), qstr(p.toSize()));
+
+    { QSizeF q2 = q; PkSizeF p2 = p; q2.setWidth(h); p2.setWidth(h);
+      q2.setHeight(w); p2.setHeight(w);
+      rec("SF::setWidth/setHeight", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QSizeF q2 = q; PkSizeF p2 = p; q2.rwidth() += 1.0; p2.rwidth() += 1.0;
+      q2.rheight() -= 1.0; p2.rheight() -= 1.0;
+      rec("SF::rwidth/rheight", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+}
+
+static void cmp_sizef_binary(double aw, double ah, double bw, double bh)
+{
+    const QSizeF  qa(aw, ah), qb(bw, bh);
+    const PkSizeF pa(aw, ah), pb(bw, bh);
+    const std::string in = dstr(aw) + "x" + dstr(ah) + "|" + dstr(bw) + "x" + dstr(bh);
+    const std::string sh = shapeOfSizeD({aw, ah, bw, bh});
+
+    rec("SF::operator+", same_szf(qa + qb, pa + pb), sh, in, qstr(qa + qb), qstr(pa + pb));
+    rec("SF::operator-", same_szf(qa - qb, pa - pb), sh, in, qstr(qa - qb), qstr(pa - pb));
+
+    // ⚠ QSizeF::operator== 是**两个分量各一次 qFuzzyCompare，没有零分支**
+    //（与 QPointF 不同，那边任一侧为 0 时改走 fuzzyIsNull）。qFuzzyCompare 的
+    // 右端取 qMin(|a|,|b|)，所以"恰好一侧是 0"与"两侧都是 0"是两个截然不同的
+    // 结局（前者恒 false、后者恒 true），必须分成两个 tag。
+    const bool zeroW = (aw == 0.0 || bw == 0.0), bothZeroW = (aw == 0.0 && bw == 0.0);
+    const bool zeroH = (ah == 0.0 || bh == 0.0), bothZeroH = (ah == 0.0 && bh == 0.0);
+    const std::string eqtag =
+          (nonFinite(aw) || nonFinite(bw) || nonFinite(ah) || nonFinite(bh)) ? "nonfinite"
+        : ((zeroW && !bothZeroW) || (zeroH && !bothZeroH))                   ? "one-side-zero"
+        : (bothZeroW || bothZeroH)                                           ? "both-zero"
+        : (subnormal(aw) || subnormal(bw) || subnormal(ah) || subnormal(bh)) ? "subnormal"
+                                                                             : "relative-branch";
+    rec("SF::operator==", (qa == qb) == (pa == pb), eqtag, in, bstr(qa == qb), bstr(pa == pb));
+    rec("SF::operator!=", (qa != qb) == (pa != pb), eqtag, in, bstr(qa != qb), bstr(pa != pb));
+
+    { QSizeF q2 = qa; PkSizeF p2 = pa; q2 += qb; p2 += pb;
+      rec("SF::operator+=", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QSizeF q2 = qa; PkSizeF p2 = pa; q2 -= qb; p2 -= pb;
+      rec("SF::operator-=", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+
+    // expandedTo 是 qMax（`(a<b)?b:a`），**NaN 上不可交换、零号上保号** ——
+    // 这两类正是它唯一会分家的地方，让它们参与 tag。
+    rec("SF::expandedTo", same_szf(qa.expandedTo(qb), pa.expandedTo(pb)),
+        (std::isnan(aw) || std::isnan(bw) || std::isnan(ah) || std::isnan(bh))
+            ? std::string("nan-dim")
+        : (signedZero(aw) || signedZero(bw) || signedZero(ah) || signedZero(bh))
+            ? std::string("signed-zero") : sh,
+        in, qstr(qa.expandedTo(qb)), qstr(pa.expandedTo(pb)));
+}
+
+static void cmp_sizef_scale(double w, double h, double c)
+{
+    const QSizeF  q(w, h);
+    const PkSizeF p(w, h);
+    const std::string in = dstr(w) + "x" + dstr(h) + "*" + dstr(c);
+    const std::string sh = shapeOfSizeD({w, h, c});
+
+    rec("SF::operator*", same_szf(q * c, p * c), sh, in, qstr(q * c), qstr(p * c));
+    rec("SF::operator*(rev)", same_szf(c * q, c * p), sh, in, qstr(c * q), qstr(c * p));
+    { QSizeF q2 = q; PkSizeF p2 = p; q2 *= c; p2 *= c;
+      rec("SF::operator*=", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    rec("SF::operator/", same_szf(q / c, p / c),
+        (c == 0.0) ? std::string("divisor-zero") : sh, in, qstr(q / c), qstr(p / c));
+    { QSizeF q2 = q; PkSizeF p2 = p; q2 /= c; p2 /= c;
+      rec("SF::operator/=", same_szf(q2, p2),
+          (c == 0.0) ? std::string("divisor-zero") : sh, in, qstr(q2), qstr(p2)); }
+}
+
+static void cmp_sizef_scaled(double sw, double sh, double tw, double th, int mi)
+{
+    const QSizeF  qs(sw, sh), qt(tw, th);
+    const PkSizeF ps(sw, sh), pt(tw, th);
+    const std::string in = dstr(sw) + "x" + dstr(sh) + "->" + dstr(tw) + "x" + dstr(th);
+    // 浮点版的分支条件是 qIsNull（== 0.0，含 -0.0），**次正规不走那条**；
+    // 而 NaN 会让 `rw <= s.wd` 恒假从而自动落到 else 分支 —— 两者根因不同。
+    const std::string branch =
+          (mi == 0)                          ? "ignore-returns-target"
+        : (sw == 0.0 || sh == 0.0)           ? "degenerate-source"
+        : (std::isnan(sw) || std::isnan(sh) || std::isnan(tw) || std::isnan(th))
+                                             ? "nan-dim"
+        : (nonFinite(sw) || nonFinite(sh) || nonFinite(tw) || nonFinite(th))
+                                             ? "infinite-dim"
+        : (subnormal(sw) || subnormal(sh) || subnormal(tw) || subnormal(th))
+                                             ? "subnormal"
+        : (sw < 0.0 || sh < 0.0 || tw < 0.0 || th < 0.0) ? "negative-dim"
+                                             : "ordinary";
+    const std::string tag = std::string(kModeName[mi]) + "/" + branch;
+
+    rec("SF::scaled(size)", same_szf(qs.scaled(qt, kQtModes[mi]), ps.scaled(pt, kPkModes[mi])),
+        tag, in, qstr(qs.scaled(qt, kQtModes[mi])), qstr(ps.scaled(pt, kPkModes[mi])));
+    rec("SF::scaled(w,h)",
+        same_szf(qs.scaled(tw, th, kQtModes[mi]), ps.scaled(tw, th, kPkModes[mi])),
+        tag, in, qstr(qs.scaled(tw, th, kQtModes[mi])), qstr(ps.scaled(tw, th, kPkModes[mi])));
+    { QSizeF q2 = qs; PkSizeF p2 = ps;
+      q2.scale(qt, kQtModes[mi]); p2.scale(pt, kPkModes[mi]);
+      rec("SF::scale(size)", same_szf(q2, p2), tag, in, qstr(q2), qstr(p2)); }
+}
+
+// PkSize → PkSizeF 的隐式提升（Task 4/5 的 PkRectF 靠这条），以及往返。
+static void cmp_size_promotion(int w, int h, double fw, double fh)
+{
+    const QSizeF  qf = QSize(w, h);      // 隐式
+    const PkSizeF pf = PkSize(w, h);
+    const std::string in = istr(w) + "x" + istr(h) + "+" + dstr(fw) + "x" + dstr(fh);
+    const std::string sh = shapeOfSizeI({w, h});
+
+    rec("SF::fromSize", same_szf(qf, pf), sh, in, qstr(qf), qstr(pf));
+    // 往返：提升再 toSize 必须回到原值（int 全值域内都是精确的）
+    rec("SF::roundTrip", same_sz(qf.toSize(), pf.toSize()), sh, in,
+        qstr(qf.toSize()), qstr(pf.toSize()));
+    // 混合二元：浮点尺寸与**隐式提升上来的**整数尺寸做 expandedTo。
+    // 两族分量都参与 tag（约定见 shapeOfMixed 上方）。
+    rec("SF::mixedExpandedTo",
+        same_szf(QSizeF(fw, fh).expandedTo(QSize(w, h)),
+                 PkSizeF(fw, fh).expandedTo(PkSize(w, h))),
+        shapeOfSizeI({w, h}) + "+" + shapeOfSizeD({fw, fh}), in,
+        qstr(QSizeF(fw, fh).expandedTo(QSize(w, h))),
+        qstr(PkSizeF(fw, fh).expandedTo(PkSize(w, h))));
+    rec("SF::mixedEquality",
+        (QSizeF(fw, fh) == QSizeF(QSize(w, h))) == (PkSizeF(fw, fh) == PkSizeF(PkSize(w, h))),
+        shapeOfSizeI({w, h}) + "+" + shapeOfSizeD({fw, fh}), in,
+        bstr(QSizeF(fw, fh) == QSizeF(QSize(w, h))),
+        bstr(PkSizeF(fw, fh) == PkSizeF(PkSize(w, h))));
+}
+
 // ═══ canary：证明比较管道是活的 ════════════════════════════════════════════
 //
 // 走的是与真实 API 完全相同的 rec() 与比较原语。三条都必须出现在 DIFFTAG 里，
@@ -571,9 +969,12 @@ int main()
     // kTok 里；若它只在手挑集里，那个真缺陷会全绿溜过。
     //
     // Point 是二元的（一元 API 2 个分量、二元 API 4 个），所以这里直接做满：
-    // 一元 44² / 26²，二元 44⁴ / 26⁴。**分量更多时不要退回轮转** —— Rect 的二元
-    // API 有 8 个分量、44⁸ 显然做不了，那就至少做「手挑 × token」的交叉
-    //（手挑值必须能出现在每一个分量位上），绝不能让某个分量位永远取不到手挑值。
+    // 一元 44²（double）/ 25²（int），二元 44⁴ / 25⁴ —— **数字以 kHandD/kHandI
+    // 的实际元素个数为准**（countOf 算的，44 与 25）。**分量更多时不要退回轮转**
+    // —— Rect 的二元 API 有 8 个分量、44⁸ 显然做不了，那就至少做
+    //「手挑 × token」的交叉（手挑值必须能出现在每一个分量位上），
+    // 绝不能让某个分量位永远取不到手挑值。Size 族的 scaled 就是这么做的
+    //（4 个分量 + mode，见下面 Size 那几段）。
     for (int i = 0; i < nHandD; ++i)
         for (int j = 0; j < nHandD; ++j)
             cmp_pointf_unary(kHandD[i], kHandD[j]);
@@ -645,6 +1046,99 @@ int main()
         for (int b = 0; b < nTokI; ++b)
             for (int d = 0; d < nTokD; ++d)
                 cmp_promotion(kTokI[a], kTokI[b], kTokD[d], kTokD[(d + 3) % nTokD]);
+
+    // ═══ Size 族 ═══════════════════════════════════════════════════════════
+    // 输入集与 Point 族**共用**（kHandI/kTokI/kHandD/kTokD/kFacD）：尺寸的
+    // 关键边界（0、±1、INT_MIN/MAX、±0.0、nan、inf、次正规）它们都覆盖到了，
+    // 另起一套只会多一份要维护的东西。
+    cmp_size_constants();
+
+    // 一元：手挑² + token²（与 Point 同形）
+    for (int i = 0; i < nHandI; ++i)
+        for (int j = 0; j < nHandI; ++j)
+            cmp_size_unary(kHandI[i], kHandI[j]);
+    for (int a = 0; a < nTokI; ++a)
+        for (int b = 0; b < nTokI; ++b)
+            cmp_size_unary(kTokI[a], kTokI[b]);
+    for (int i = 0; i < nHandD; ++i)
+        for (int j = 0; j < nHandD; ++j)
+            cmp_sizef_unary(kHandD[i], kHandD[j]);
+    for (int a = 0; a < nTokD; ++a)
+        for (int b = 0; b < nTokD; ++b)
+            cmp_sizef_unary(kTokD[a], kTokD[b]);
+
+    // 二元：手挑⁴ + token⁴（做满，与 Point 同形）
+    for (int i = 0; i < nHandI; ++i)
+        for (int j = 0; j < nHandI; ++j)
+            for (int k = 0; k < nHandI; ++k)
+                for (int l = 0; l < nHandI; ++l)
+                    cmp_size_binary(kHandI[i], kHandI[j], kHandI[k], kHandI[l]);
+    for (int a = 0; a < nTokI; ++a)
+        for (int b = 0; b < nTokI; ++b)
+            for (int c = 0; c < nTokI; ++c)
+                for (int d = 0; d < nTokI; ++d)
+                    cmp_size_binary(kTokI[a], kTokI[b], kTokI[c], kTokI[d]);
+    for (int i = 0; i < nHandD; ++i)
+        for (int j = 0; j < nHandD; ++j)
+            for (int k = 0; k < nHandD; ++k)
+                for (int l = 0; l < nHandD; ++l)
+                    cmp_sizef_binary(kHandD[i], kHandD[j], kHandD[k], kHandD[l]);
+    for (int a = 0; a < nTokD; ++a)
+        for (int b = 0; b < nTokD; ++b)
+            for (int c = 0; c < nTokD; ++c)
+                for (int d = 0; d < nTokD; ++d)
+                    cmp_sizef_binary(kTokD[a], kTokD[b], kTokD[c], kTokD[d]);
+
+    // 带标量参数的缩放：尺寸两层 + 参数一层（与 Point 同形）
+    for (int i = 0; i < nHandI; ++i)
+        for (int j = 0; j < nHandI; ++j)
+            for (int f = 0; f < nFacD; ++f)
+                cmp_size_scale(kHandI[i], kHandI[j], kFacD[f]);
+    for (int a = 0; a < nTokI; ++a)
+        for (int b = 0; b < nTokI; ++b)
+            for (int f = 0; f < nFacD; ++f)
+                cmp_size_scale(kTokI[a], kTokI[b], kFacD[f]);
+    for (int i = 0; i < nHandD; ++i)
+        for (int j = 0; j < nHandD; ++j)
+            for (int f = 0; f < nFacD; ++f)
+                cmp_sizef_scale(kHandD[i], kHandD[j], kFacD[f]);
+    for (int a = 0; a < nTokD; ++a)
+        for (int b = 0; b < nTokD; ++b)
+            for (int f = 0; f < nFacD; ++f)
+                cmp_sizef_scale(kTokD[a], kTokD[b], kFacD[f]);
+
+    // ── scaled/scale：4 个分量 + mode，做不了 25⁴×25⁴ ─────────────────────
+    // 按 README 那条约定做**「手挑 × token」双向交叉**：源取手挑对、目标取
+    // token 对，再反过来一遍 —— 于是**每个分量位上都取得到手挑值**，
+    // 而不是像索引轮转那样让某些手挑值永远进不了某个位置。
+    // 规模：int 25²×20²×2×3 模式 = 1 500 000 组；double 44²×21²×2×3 = 5 122 656 组。
+    for (int mi = 0; mi < 3; ++mi) {
+        for (int i = 0; i < nHandI; ++i)
+            for (int j = 0; j < nHandI; ++j)
+                for (int a = 0; a < nTokI; ++a)
+                    for (int b = 0; b < nTokI; ++b) {
+                        cmp_size_scaled(kHandI[i], kHandI[j], kTokI[a], kTokI[b], mi);
+                        cmp_size_scaled(kTokI[a], kTokI[b], kHandI[i], kHandI[j], mi);
+                    }
+        for (int i = 0; i < nHandD; ++i)
+            for (int j = 0; j < nHandD; ++j)
+                for (int a = 0; a < nTokD; ++a)
+                    for (int b = 0; b < nTokD; ++b) {
+                        cmp_sizef_scaled(kHandD[i], kHandD[j], kTokD[a], kTokD[b], mi);
+                        cmp_sizef_scaled(kTokD[a], kTokD[b], kHandD[i], kHandD[j], mi);
+                    }
+    }
+
+    // 跨类型：整数尺寸全组合 × 浮点分量全组合（与 Point 的 cmp_promotion 同形）
+    for (int i = 0; i < nHandI; ++i)
+        for (int j = 0; j < nHandI; ++j)
+            for (int a = 0; a < nHandD; ++a)
+                for (int b = 0; b < nHandD; ++b)
+                    cmp_size_promotion(kHandI[i], kHandI[j], kHandD[a], kHandD[b]);
+    for (int a = 0; a < nTokI; ++a)
+        for (int b = 0; b < nTokI; ++b)
+            for (int d = 0; d < nTokD; ++d)
+                cmp_size_promotion(kTokI[a], kTokI[b], kTokD[d], kTokD[(d + 3) % nTokD]);
 
     for (const auto &kv : g_tags)
         std::printf("DIFFTAG %s %ld\n", kv.first.c_str(), kv.second);
