@@ -1,0 +1,109 @@
+#ifndef PK_GEOMETRY_PKGLOBAL_H
+#define PK_GEOMETRY_PKGLOBAL_H
+
+// ---------------------------------------------------------------------------
+// R-03 的标量工具：qreal / qAbs / qMin / qMax / qBound / qRound /
+// qFuzzyCompare / qFuzzyIsNull / qIsNaN / qInf。
+//
+// **逐字抄自真 Qt 5.15.7**（/mnt/ssd-disk/liyang/projects/krita-ci-env/_install/
+// include/QtCore/qglobal.h 与 qnumeric.h，QT_VERSION_STR "5.15.7"），来源行号
+// 标在各项上方。对齐口径：与 Qt 的任何行为差异默认都是缺陷 —— 所以 Qt 那些
+// 看着像 bug 的地方也照抄（qRound 对负半值向 +∞ 取整、int(d+0.5) 让
+// 0.49999999999999994 进位到 1），并在 tests/test_global.cpp 里逐条钉住，
+// 免得以后有人"顺手修正"。
+//
+// 范围：只做实测有调用点的项。qRound64 实测 0 次 → 不做；qIsNull / qIsInf /
+// qIsFinite / qQNaN / qSNaN / qFpClassify / qFloatDistance 同理不在本头。
+//
+// 全局作用域、无 namespace：compat 垫片靠 `#define QRect PkRect` 这类改写工作，
+// 而 Krita 里有 `class QRect;` 前置声明，套 namespace 这个技巧就废。
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// 与 pk/test/compat/QtGlobal（R-11 交付）的共存
+//
+// 那份垫片也提供 qAbs（函数模板）与 qFuzzyCompare / qFuzzyIsNull（指向
+// pkFuzzyCompare / pkFuzzyIsNull 的 #define）。试接时编译行会同时有
+// -I pk/test/compat 与 -I pk/geometry/compat，两份垫片可能落进同一个 TU。
+//
+// 「两份共用同一个 include guard 宏名、让后来者空转」这条路走不通：pk/test 那份
+// 用的是 #pragma once，认的是文件身份，两个不同文件各自都会落地一次；而它不在
+// R-03 的 locks 里，不能改。于是用三个方向的机制：
+//
+//   ① 本头检测 pk/test 那份唯一可探测的痕迹 —— 宏 qFuzzyCompare。已经生效就
+//      整段让位，不重复定义 qAbs / qFuzzyCompare / qFuzzyIsNull（重复定义函数
+//      模板是硬错误；而那个 #define 会把本头的函数名当场改写成 pkFuzzyCompare，
+//      与 PkTestCompare.h 里的真身撞签名）。覆盖「pk/test 那份先进 TU」。
+//   ② pk/geometry/compat/QtGlobal 先把 pk/test 那份 #include 进来（#pragma once
+//      之后再解析到它就空转），再包本头。覆盖「pk/geometry 那份先进 TU」。
+//   ③ 直接包本头、之后才撞上 pk/test 那份垫片的 TU，①② 都够不着。这种编译行
+//      显式定义 PK_GEOMETRY_WITH_PKTEST_COMPAT，本头就走 ② 的同一条路。
+//      这是个开关而不是默认行为：默认拉 pk/test 的头进来，等于让几何库对测试
+//      框架产生编译期依赖。
+//
+// 三种顺序各有一个 TU 在 tests/coexist_*.cpp 里编译并核对取值。
+//
+// 让位时的语义差（两处都不构成行为差异，核对过）：
+//   · pk/test 的 qAbs 写作 `t >= T(0)`、Qt 写作 `t >= 0`，对全部算术类型等价；
+//   · pkFuzzyCompare 用 std::fabs/std::fmin，Qt 用 qAbs/qMin。只有实参含 NaN 时
+//     fmin 与 qMin 的取值不同，而那种情况下两边的 <= 都被 NaN 拉成 false。
+// ---------------------------------------------------------------------------
+#if defined(PK_GEOMETRY_WITH_PKTEST_COMPAT) && !defined(qFuzzyCompare)
+#  include "../test/compat/QtGlobal"
+#endif
+
+#if defined(qFuzzyCompare) || defined(qFuzzyIsNull)
+#  define PK_GLOBAL_SCALARS_FROM_PKTEST
+#endif
+
+// qglobal.h:279-283 —— QT_COORD_TYPE 是嵌入式配置项，桌面与 Android 都不定义。
+typedef double qreal;
+
+#ifndef PK_GLOBAL_SCALARS_FROM_PKTEST
+// qglobal.h:657-658
+template <typename T>
+constexpr inline T qAbs(const T &t) { return t >= 0 ? t : -t; }
+#endif
+
+// qglobal.h:660-663。**不是** std::round：负半值向 +∞ 取整（qRound(-0.5) == 0、
+// qRound(-1.5) == -1），且 int(d + 0.5) 让 0.49999999999999994 进位到 1。
+// float 重载不是摆设：它按 float 精度做加法，0.49999997f 会进位而提升到 double
+// 后不会。qRound64 实测 0 调用点，不做。
+constexpr inline int qRound(double d)
+{ return d >= 0.0 ? int(d + 0.5) : int(d - double(int(d - 1)) + 0.5) + int(d - 1); }
+constexpr inline int qRound(float d)
+{ return d >= 0.0f ? int(d + 0.5f) : int(d - float(int(d - 1)) + 0.5f) + int(d - 1); }
+
+// qglobal.h:670-677。返回 const T& 是 Qt 的签名，照抄——改成按值返回会给大对象
+// 加拷贝，也会让 `const T &r = qMin(a, b)` 这类调用点的语义变化。
+// 由此而来的陷阱：实参是临时量（字面量）时，返回的引用只在那条 full-expression
+// 内有效，跨语句用就悬垂。tests 里对 qBound 的字面量调用都先拷进具名变量。
+template <typename T>
+constexpr inline const T &qMin(const T &a, const T &b) { return (a < b) ? a : b; }
+template <typename T>
+constexpr inline const T &qMax(const T &a, const T &b) { return (a < b) ? b : a; }
+template <typename T>
+constexpr inline const T &qBound(const T &min, const T &val, const T &max)
+{ return qMax(min, qMin(max, val)); }
+
+#ifndef PK_GLOBAL_SCALARS_FROM_PKTEST
+// qglobal.h:900-917。相对误差，右端取 qMin(|p1|, |p2|)：任何一侧是 0 时永远
+// 不成立（两个方向都是 false）。double 的相对阈值 1e-12、float 的 1e-5。
+constexpr inline bool qFuzzyCompare(double p1, double p2)
+{ return (qAbs(p1 - p2) * 1000000000000. <= qMin(qAbs(p1), qAbs(p2))); }
+constexpr inline bool qFuzzyCompare(float p1, float p2)
+{ return (qAbs(p1 - p2) * 100000.f <= qMin(qAbs(p1), qAbs(p2))); }
+constexpr inline bool qFuzzyIsNull(double d) { return qAbs(d) <= 0.000000000001; }
+constexpr inline bool qFuzzyIsNull(float f) { return qAbs(f) <= 0.00001f; }
+#endif
+
+// qnumeric.h:48 与 qnumeric.h:59。Qt 里这两个是 Q_CORE_EXPORT 的**非 inline**
+// 函数（实现在 qnumeric_p.h 的 qt_is_nan / qt_inf，就是 std::isnan 与
+// std::numeric_limits<double>::infinity()），照同样的形态放 PkGlobal.cpp：
+// 改成 inline 会让它们跟着调用方的 -ffast-math 一起被优化掉，而 Qt 的不会。
+// 实测用量 qIsNaN 19 次、qInf 1 次，实参都是 double，因此不做 float 重载
+//（float 实参隐式提升到 double，取值一致）。
+bool qIsNaN(double d);
+double qInf();
+
+#endif // PK_GEOMETRY_PKGLOBAL_H

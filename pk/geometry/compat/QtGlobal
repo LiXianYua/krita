@@ -1,0 +1,28 @@
+#pragma once
+
+// pk/geometry 的 <QtGlobal> 垫片。**必须是 pk/test/compat/QtGlobal 的超集。**
+//
+// 试接时编译行同时有 -I pk/test/compat 与 -I pk/geometry/compat，而
+// `#include <QtGlobal>` 只会命中其中一份（谁在 -I 里靠前谁赢）。命中本份时，
+// pk/test 那份提供的东西（qAbs、qFuzzyCompare、qFuzzyIsNull）也必须在，
+// 否则 harness 侧的调用点编不过。
+//
+// 做法：先把 pk/test 那份拉进本 TU —— 它用 #pragma once，之后 <QtGlobal> 再
+// 解析到它就空转 —— 再包 PkGlobal.h。于是两份垫片以任意顺序进入同一个 TU
+// 都不会重复定义 qAbs、也不会让那两个 #define 把函数名改写坏。
+// pk/test 不在时（本工程单独构建、或将来搬走）__has_include 为假，
+// PkGlobal.h 自己提供那三项，超集关系照样成立。
+//
+// 完整设计说明在 PkGlobal.h 顶部「与 pk/test/compat/QtGlobal 的共存」一节；
+// 三种 include 顺序各有一个 TU 在 ../tests/coexist_*.cpp 里编译并核对取值。
+//
+// 本文件不提供 qint8..quint64 那批整数 typedef：R-03 的实测用量表里它们归
+// R-02（容器），这里不预先实现（线级 spec 判据①）。
+
+#if defined(__has_include)
+#  if __has_include("../../test/compat/QtGlobal")
+#    include "../../test/compat/QtGlobal"
+#  endif
+#endif
+
+#include "../PkGlobal.h"
