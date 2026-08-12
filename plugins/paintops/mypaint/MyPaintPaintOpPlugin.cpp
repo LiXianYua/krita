@@ -20,7 +20,6 @@
 #include "MyPaintPaintOpFactory.h"
 #include "MyPaintPaintOpPreset.h"
 #include "MyPaintPaintOpSettings.h"
-#include "MyPaintPaintOpSettingsWidget.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(MyPaintOpPluginFactory, "kritamypaintop.json", registerPlugin<MyPaintOpPlugin>();)
 

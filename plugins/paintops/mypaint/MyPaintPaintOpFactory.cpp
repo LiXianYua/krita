@@ -16,11 +16,12 @@
 #include <KoResourceServerProvider.h>
 #include <KisResourceServerProvider.h>
 #include <KoResourceLoadResult.h>
+#include <kis_image.h>
+#include <kis_node.h>
 
 #include "MyPaintPaintOp.h"
 #include "MyPaintPaintOpPreset.h"
 #include "MyPaintPaintOpSettings.h"
-#include "MyPaintPaintOpSettingsWidget.h"
 
 class KisMyPaintOpFactory::Private {
 };
@@ -50,12 +51,11 @@ KisPaintOpSettingsSP KisMyPaintOpFactory::createSettings(KisResourcesInterfaceSP
 
 KisPaintOpConfigWidget* KisMyPaintOpFactory::createConfigWidget(QWidget* parent, KisResourcesInterfaceSP resourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface) {
 
-    KisPaintOpConfigWidget *widget = new KisMyPaintOpSettingsWidget(parent);
+    Q_UNUSED(parent);
+    Q_UNUSED(resourcesInterface);
+    Q_UNUSED(canvasResourcesInterface);
 
-    widget->setResourcesInterface(resourcesInterface);
-    widget->setCanvasResourcesInterface(canvasResourcesInterface);
-
-    return widget;
+    return nullptr;
 }
 
 QString KisMyPaintOpFactory::id() const {

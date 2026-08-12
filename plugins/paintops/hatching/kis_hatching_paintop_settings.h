@@ -11,8 +11,6 @@
 #include <brushengine/kis_paintop_settings.h>
 #include <kis_brush_based_paintop_settings.h>
 
-#include "kis_hatching_paintop_settings_widget.h"
-
 #include <QScopedPointer>
 
 

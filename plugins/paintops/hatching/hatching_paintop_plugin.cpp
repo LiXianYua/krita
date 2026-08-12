@@ -18,6 +18,8 @@
 #include "kis_simple_paintop_factory.h"
 
 #include "kis_global.h"
+#include <kis_image.h>
+#include <kis_node.h>
 
 K_PLUGIN_FACTORY_WITH_JSON(HatchingPaintOpPluginFactory, "kritahatchingpaintop.json", registerPlugin<HatchingPaintOpPlugin>();)
 
