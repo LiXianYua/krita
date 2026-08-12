@@ -89,6 +89,28 @@ static_assert(!std::is_same<decltype(std::declval<const IntVecData &>().PkConst(
                             std::vector<int> &>::value,
               "const 对象不得拿到可写引用");
 
+// ---- 五个特殊成员都还在（这组断言守的是一个真陷阱）----
+//
+// 用户一旦声明移动构造，隐式的**拷贝**构造与拷贝赋值就会被定义为 deleted
+// （[class.copy.ctor]/8）。而「拷贝 O(1)」是 2286 处 Q_FOREACH 的命根子。
+// 漏写 `= default` 的报错会出现在遥远的调用点上（"use of deleted function"），
+// 在这里钉死，让它在地基自己的编译期就现形。
+static_assert(std::is_copy_constructible<IntVecData>::value,
+              "拷贝构造必须存在——声明移动构造会把它 deleted 掉");
+static_assert(std::is_copy_assignable<IntVecData>::value,
+              "拷贝赋值必须存在——同上");
+static_assert(std::is_nothrow_copy_constructible<IntVecData>::value,
+              "拷贝构造必须 noexcept（只拷 shared_ptr）");
+static_assert(std::is_nothrow_copy_assignable<IntVecData>::value,
+              "拷贝赋值必须 noexcept（只拷 shared_ptr）");
+static_assert(std::is_move_constructible<IntVecData>::value, "移动构造必须存在");
+static_assert(std::is_move_assignable<IntVecData>::value, "移动赋值必须存在");
+static_assert(std::is_nothrow_destructible<IntVecData>::value, "析构必须 noexcept");
+
+// PkSwap 是 noexcept 的零分配交换：Task 2–6 的 swap() 靠它，别退回 std::swap。
+static_assert(noexcept(std::declval<IntVecData &>().PkSwap(std::declval<IntVecData &>())),
+              "PkSwap() 必须 noexcept");
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -356,67 +378,208 @@ void PkArrayDataTest::selfAssignmentWhileSharedIsSafe()
 }
 
 // ---------------------------------------------------------------------------
-// 7. 移动之后源对象仍可析构、可再赋值
+// 7. 移动：源变成「空且完全可用」的容器（Qt 语义），不是空 shared_ptr
 // ---------------------------------------------------------------------------
 
-void PkArrayDataTest::moveConstructLeavesSourceUsable()
+void PkArrayDataTest::moveConstructLeavesSourceEmptyAndUsable()
 {
     IntVecData a(std::vector<int>{1, 2, 3});
     IntVecData b(std::move(a));
 
+    // 目标拿到全部内容，且独占
     PK_COMPARE(b.PkUseCount(), 1L);
     PK_VERIFY((b.PkConst() == std::vector<int>{1, 2, 3}));
 
-    // 被移动走的 a：契约只承诺"可析构的有效状态"。PkUseCount()/PkIsSharedWith()
-    // 是 shared_ptr 上的良定义查询，对空指针也能安全调用；PkConst()/PkMut()
-    // 不在承诺之内（见 PkArrayData.h 顶部关于移动后状态的说明）。
-    PK_COMPARE(a.PkUseCount(), 0L);
+    // 源：空容器 + 独占，四个访问器全都能调（这一条正是本次修改的目标——
+    // 隐式移动会让 d 变成 nullptr，下面每一行都会解空指针）
+    PK_COMPARE(a.PkUseCount(), 1L);
+    PK_VERIFY(a.PkConst().empty());
+    PK_COMPARE(a.PkConst().size(), std::size_t(0));
+    a.PkDetach();                     // 独占时零成本，且不得崩
+    PK_COMPARE(a.PkUseCount(), 1L);
+    PK_VERIFY(a.PkMut().empty());     // 可写通路也是活的
     PK_VERIFY(!a.PkIsSharedWith(b));
 
-    // 可以再赋值，赋完就完全正常
-    a = b;
-    PK_COMPARE(a.PkUseCount(), 2L);
-    PK_VERIFY(a.PkIsSharedWith(b));
-    PK_VERIFY((a.PkConst() == std::vector<int>{1, 2, 3}));
-    a.PkMut().push_back(4);
-    PK_VERIFY(!a.PkIsSharedWith(b));
+    // 源作为一个正常的空容器继续用：能写、能共享、COW 照常
+    a.PkMut().push_back(42);
+    PK_VERIFY((a.PkConst() == std::vector<int>{42}));
     PK_VERIFY((b.PkConst() == std::vector<int>{1, 2, 3}));
-
-    // 移动是 O(1)：一个元素都不拷
-    CountedVecData c = makeCounted(6);
-    Counted::s_copies = 0;
-    CountedVecData d(std::move(c));
-    PK_COMPARE(Counted::s_copies, 0);
-    PK_COMPARE(d.PkUseCount(), 1L);
+    IntVecData c(a);
+    PK_COMPARE(a.PkUseCount(), 2L);
+    a.PkMut().push_back(43);
+    PK_VERIFY(!a.PkIsSharedWith(c));
+    PK_VERIFY((c.PkConst() == std::vector<int>{42}));
 }
 
-void PkArrayDataTest::moveAssignLeavesSourceUsable()
+void PkArrayDataTest::moveAssignLeavesSourceEmptyAndUsable()
 {
     IntVecData a(std::vector<int>{1, 2});
     IntVecData b(std::vector<int>{9, 9, 9});
 
     b = std::move(a);
+
+    // 目标拿到源的内容，旧内容被释放
     PK_COMPARE(b.PkUseCount(), 1L);
     PK_VERIFY((b.PkConst() == std::vector<int>{1, 2}));
 
-    PK_COMPARE(a.PkUseCount(), 0L);
+    // 源：空且完全可用，与移动构造同一套保证
+    PK_COMPARE(a.PkUseCount(), 1L);
+    PK_VERIFY(a.PkConst().empty());
+    a.PkDetach();
+    PK_VERIFY(a.PkMut().empty());
     PK_VERIFY(!a.PkIsSharedWith(b));
 
-    // 源可以被重新赋成一个全新的值，并作为独立实例继续用
+    a.PkMut().push_back(7);
+    PK_VERIFY((a.PkConst() == std::vector<int>{7}));
+    PK_VERIFY((b.PkConst() == std::vector<int>{1, 2}));
+
+    // 源也可以被整体重新赋值，行为与普通实例无异
     a = IntVecData(std::vector<int>{3});
     PK_COMPARE(a.PkUseCount(), 1L);
     PK_VERIFY((a.PkConst() == std::vector<int>{3}));
+}
+
+void PkArrayDataTest::moveIsConstantTime()
+{
+    // 移动构造：零元素拷贝
+    CountedVecData a = makeCounted(6);
+    Counted::s_copies = 0;
+    CountedVecData b(std::move(a));
+    PK_COMPARE(Counted::s_copies, 0);
+    PK_COMPARE(b.PkUseCount(), 1L);
+    PK_COMPARE(b.PkConst().size(), std::size_t(6));
+    PK_VERIFY(a.PkConst().empty());
+
+    // 移动赋值：同样零元素拷贝（源、目标都非空，两侧的元素都不该被拷）
+    CountedVecData c = makeCounted(4);
+    CountedVecData d = makeCounted(5);
+    Counted::s_copies = 0;
+    d = std::move(c);
+    PK_COMPARE(Counted::s_copies, 0);
+    PK_COMPARE(d.PkConst().size(), std::size_t(4));
+    PK_VERIFY(c.PkConst().empty());
+
+    // PkSwap：零分配也零拷贝
+    CountedVecData e = makeCounted(3);
+    CountedVecData f = makeCounted(9);
+    Counted::s_copies = 0;
+    e.PkSwap(f);
+    PK_COMPARE(Counted::s_copies, 0);
+    PK_COMPARE(e.PkConst().size(), std::size_t(9));
+    PK_COMPARE(f.PkConst().size(), std::size_t(3));
+}
+
+void PkArrayDataTest::moveCarriesSharingToTarget()
+{
+    // 源原本与第三方 x 共享 —— 移动之后这份共享关系必须跟着目标走，
+    // 而不是留在被掏空的源身上，也不是凭空断掉。
+    IntVecData x(std::vector<int>{8});
+    IntVecData a(x);
+    PK_COMPARE(x.PkUseCount(), 2L);
+    PK_VERIFY(a.PkIsSharedWith(x));
+
+    IntVecData b(std::move(a));
+
+    PK_VERIFY(b.PkIsSharedWith(x));
+    PK_VERIFY(x.PkIsSharedWith(b));
+    PK_COMPARE(x.PkUseCount(), 2L);
+    PK_COMPARE(b.PkUseCount(), 2L);
+    // 源已经脱离这段共享，自己独占一个空的
+    PK_VERIFY(!a.PkIsSharedWith(x));
+    PK_VERIFY(!a.PkIsSharedWith(b));
+    PK_COMPARE(a.PkUseCount(), 1L);
+    // 第三方内容不受影响
+    PK_VERIFY((x.PkConst() == std::vector<int>{8}));
+
+    // 移动赋值路径同样：共享跟着目标走
+    IntVecData y(std::vector<int>{5});
+    IntVecData p(y);
+    PK_COMPARE(y.PkUseCount(), 2L);
+    IntVecData q;
+    q = std::move(p);
+    PK_COMPARE(q.PkUseCount(), 2L);
+    PK_VERIFY(q.PkIsSharedWith(y));
+    PK_COMPARE(p.PkUseCount(), 1L);
+    PK_VERIFY(p.PkConst().empty());
+    PK_VERIFY((y.PkConst() == std::vector<int>{5}));
+
+    // 共享着的目标被写 → 照常 detach，第三方不受污染
+    q.PkMut().push_back(6);
+    PK_VERIFY(!q.PkIsSharedWith(y));
+    PK_VERIFY((y.PkConst() == std::vector<int>{5}));
+}
+
+void PkArrayDataTest::selfMoveAssignmentIsSafe()
+{
+    // 经引用绕一道：直接写 a = std::move(a) 会被 -Wself-move 拦下。
+    IntVecData a(std::vector<int>{1, 2, 3});
+    IntVecData &alias = a;
+    a = std::move(alias);
+
+    // 自移动必须是 no-op：内容与计数原样（没有把自己的数据搬走再塞个空的进来）
+    PK_COMPARE(a.PkUseCount(), 1L);
+    PK_VERIFY((a.PkConst() == std::vector<int>{1, 2, 3}));
+
+    // 自移动之后照常可写
+    a.PkMut().push_back(4);
+    PK_VERIFY((a.PkConst() == std::vector<int>{1, 2, 3, 4}));
+
+    // 共享状态下的自移动：共享关系与内容都不该被破坏
+    IntVecData b(std::vector<int>{5, 6});
+    IntVecData c(b);
+    IntVecData &bAlias = b;
+    b = std::move(bAlias);
+    PK_COMPARE(b.PkUseCount(), 2L);
+    PK_VERIFY(b.PkIsSharedWith(c));
+    PK_VERIFY((b.PkConst() == std::vector<int>{5, 6}));
+    PK_VERIFY((c.PkConst() == std::vector<int>{5, 6}));
+}
+
+void PkArrayDataTest::movedFromSourceIsIndependentOfTarget()
+{
+    // 源与目标绝不能共享同一块缓冲区——否则「源是空容器」会变成
+    // 「源和目标是同一个容器」，往源里写就污染了目标。
+    IntVecData a(std::vector<int>{1, 2, 3});
+    IntVecData b(std::move(a));
     PK_VERIFY(!a.PkIsSharedWith(b));
 
-    // 移动赋值不释放共享给别人的那一份：源被移走后，其余持有者不受影响
-    IntVecData x(std::vector<int>{8});
-    IntVecData y(x);
-    PK_COMPARE(x.PkUseCount(), 2L);
-    IntVecData z;
-    z = std::move(x);
-    PK_COMPARE(z.PkUseCount(), 2L);
-    PK_VERIFY(z.PkIsSharedWith(y));
-    PK_VERIFY((y.PkConst() == std::vector<int>{8}));
+    a.PkMut().push_back(99);
+    PK_VERIFY((b.PkConst() == std::vector<int>{1, 2, 3}));
+    b.PkMut().push_back(4);
+    PK_VERIFY((a.PkConst() == std::vector<int>{99}));
+
+    // 两个各自被移动走的源之间也必须互相独立（不是共用某个全局空哨兵）
+    IntVecData p(std::vector<int>{1});
+    IntVecData q(std::vector<int>{2});
+    IntVecData pMoved(std::move(p));
+    IntVecData qMoved(std::move(q));
+    PK_VERIFY(!p.PkIsSharedWith(q));
+    PK_COMPARE(p.PkUseCount(), 1L);
+    PK_COMPARE(q.PkUseCount(), 1L);
+    p.PkMut().push_back(7);
+    PK_VERIFY(q.PkConst().empty());
+}
+
+void PkArrayDataTest::swapExchangesBuffers()
+{
+    IntVecData a(std::vector<int>{1, 2});
+    IntVecData b(std::vector<int>{3});
+    IntVecData aShare(a);   // a 的共享伙伴，交换后应当跟着缓冲区走到 b 那边
+
+    a.PkSwap(b);
+
+    PK_VERIFY((a.PkConst() == std::vector<int>{3}));
+    PK_VERIFY((b.PkConst() == std::vector<int>{1, 2}));
+    PK_VERIFY(b.PkIsSharedWith(aShare));
+    PK_VERIFY(!a.PkIsSharedWith(aShare));
+    PK_COMPARE(b.PkUseCount(), 2L);
+    PK_COMPARE(a.PkUseCount(), 1L);
+
+    // 自交换安全
+    IntVecData &aAlias = a;
+    a.PkSwap(aAlias);
+    PK_VERIFY((a.PkConst() == std::vector<int>{3}));
+    PK_COMPARE(a.PkUseCount(), 1L);
 }
 
 PK_TEST_MAIN(PkArrayDataTest)

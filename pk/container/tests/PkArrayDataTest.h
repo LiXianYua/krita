@@ -36,7 +36,18 @@ private Q_SLOTS:
     void selfAssignmentIsSafe();
     void selfAssignmentWhileSharedIsSafe();
 
-    // 7. 移动之后源对象可析构、可再赋值
-    void moveConstructLeavesSourceUsable();
-    void moveAssignLeavesSourceUsable();
+    // 7. 移动之后源对象是「空且完全可用」的容器（Qt 语义），不是空 shared_ptr
+    void moveConstructLeavesSourceEmptyAndUsable();
+    void moveAssignLeavesSourceEmptyAndUsable();
+    // 移动必须 O(1)：一个元素都不拷
+    void moveIsConstantTime();
+    // 源原本与第三方共享时，那份共享关系跟着目标走
+    void moveCarriesSharingToTarget();
+    // 自移动安全
+    void selfMoveAssignmentIsSafe();
+    // 移动之后源与目标彻底独立
+    void movedFromSourceIsIndependentOfTarget();
+
+    // PkSwap：零分配、noexcept，Task 2–6 实现 Qt 的 swap() 走它
+    void swapExchangesBuffers();
 };
