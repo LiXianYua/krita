@@ -23,6 +23,12 @@
 // 所以 planSeq() 里这些指令带 `run=false` 的守卫，**输入集里根本不生成它们**。
 // 可以对拍的越界形态由 `value(i)` / `value(i,def)` / `indexOf(t,from)` /
 // `lastIndexOf(t,from)` 承担 —— 这四个在 Qt 里对任意下标都有定义。
+//
+// **非 const `operator[]` 写入（`c[i] = v`）在 `[0, size)` 内生成，越界不生成。**
+// 越界的非 const `operator[]` 与 `at()` 一样是 Qt 未定义的格子（debug 下 rc=134
+// ASSERT、release 下返回垃圾值），生成它只会造出虚假 mismatch。而**在范围内的写入
+// 必须生成**：它是 COW 最容易漏掉的写入口（S-02 机械替换后调用量极大），
+// 「写穿到 alias」只有在共享用例的 alias dump 上才现形。
 
 #include <QVector>
 #include <QList>
@@ -55,7 +61,7 @@ static_assert(!std::is_same<QQueue<int>, PkQueue<int>>::value, "QQueue/PkQueue �
 enum SeqKind {
     K_APPEND = 0, K_PREPEND, K_INSERT, K_CLEAR, K_VALUE, K_VALUE_DEF,
     K_INDEXOF, K_LASTINDEXOF, K_CONTAINS, K_COUNT_T, K_SIZE, K_ISEMPTY,
-    K_AT, K_FIRST, K_LAST, K_ERASE_AT, K_APPEND_OTHER, K_APPEND_SELF,
+    K_AT, K_BRACKET_WRITE, K_FIRST, K_LAST, K_ERASE_AT, K_APPEND_OTHER, K_APPEND_SELF,
     K_ASSIGN_SELF, K_RESERVE, K_SHL, K_EQ_OTHER,
     // QVector 专有
     K_VREMOVE, K_VREMOVE_N, K_RESIZE, K_FILL, K_FILL_N,
@@ -149,6 +155,13 @@ static SeqPlan planSeq(const SeqOp &op, const std::vector<std::string> &elems,
         pl.api = "at";
         pl.shape = pkIdxShape(pl.a, n);
         pl.run = (pl.a >= 0 && pl.a < n);   // 越界 at() 在 Qt 里没有定义行为
+        break;
+    case K_BRACKET_WRITE:
+        // 非 const operator[]：**写入口**，共享态下必须先 detach。
+        // 越界与 at() 同属 Qt 未定义的格子，守卫拒掉（形态照样记录在案）。
+        pl.api = "bracket-write";
+        pl.shape = pkIdxShape(pl.a, n);
+        pl.run = (pl.a >= 0 && pl.a < n);
         break;
     case K_ERASE_AT:
         pl.api = "erase-at";
@@ -260,6 +273,9 @@ static std::string execCore(C &c, const SeqOp &op, int a, int b)
     case K_CONTAINS: return es(c.contains(v));
     case K_COUNT_T:  return es(c.count(v));
     case K_AT:    return es(c.at(a));
+    // 非 const operator[] 写入。返回值取写完之后**再读一遍**同一格：这样返回值这一维
+    // 也压住「写进去的到底是不是这个值」，不只靠 dump。
+    case K_BRACKET_WRITE: { c[a] = v; return es(c.at(a)); }
     case K_FIRST: return es(c.first());
     case K_LAST:  return es(c.last());
     case K_ERASE_AT: c.erase(c.begin() + a); return "-";
@@ -455,6 +471,13 @@ static void addCommon(std::vector<SeqOp> &v)
     v.push_back(mk(K_ISEMPTY));
     v.push_back(mk(K_AT, 0));
     v.push_back(mk(K_AT, PK_IDX_SIZE_M1));
+    // 非 const operator[] 写入：COW 最易漏的写入口，共享用例的 alias dump 是唯一
+    // 能让「不 detach」现形的地方。后两条越界，守卫会拒掉，留着是为了记录形态。
+    v.push_back(mk(K_BRACKET_WRITE, 0, 0, 5));
+    v.push_back(mk(K_BRACKET_WRITE, 1, 0, 2));
+    v.push_back(mk(K_BRACKET_WRITE, PK_IDX_SIZE_M1, 0, 3));
+    v.push_back(mk(K_BRACKET_WRITE, PK_IDX_SIZE, 0, 5));
+    v.push_back(mk(K_BRACKET_WRITE, -1, 0, 5));
     v.push_back(mk(K_FIRST));
     v.push_back(mk(K_LAST));
     v.push_back(mk(K_ERASE_AT, 0));
