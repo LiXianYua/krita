@@ -25,3 +25,32 @@ inline void qt_noop() {}
 #ifndef Q_DECL_HIDDEN
 #define Q_DECL_HIDDEN __attribute__((visibility("hidden")))
 #endif
+
+// Task 6b（kis_shared.h/.cpp、kis_shared_ptr.h）要用到的四个基础断言/模板宏。
+// 跟 Q_DECL_HIDDEN 同一档——QtGlobal 自己的编译器宏，不是某个 Qt 类的功能垫片，
+// 所以放在这里而不是 tests/graft/stubs/ 下另立"有意偏离"文件。
+//
+// kis_debug.h:158 的 `#ifndef QT_NO_DEBUG #undef Q_ASSERT #define Q_ASSERT(...)`
+// 只在**没有**定义 QT_NO_DEBUG 时才重定义 Q_ASSERT——本仓库所有 graft 编译行
+// 统一带 -DQT_NO_DEBUG（理由见 kis_debug_build.sh），那段重定义永远不激活，
+// 所以 Q_ASSERT 必须先有一份"基础版"存在，真 Qt 里这份基础版由 qglobal.h 提供。
+// 这里按 QT_NO_DEBUG 语义复刻：release 分支是空操作，debug 分支退化到标准
+// assert()（不是 Qt 真实的 qt_assert()/qt_assert_x() 那两个要单独实现的符号——
+// 本仓库所有编译行都带 QT_NO_DEBUG，debug 分支实际不会被编译到，留着只是让
+// 宏在语义上完整，不是新增了一份要维护的实现）。
+#ifdef QT_NO_DEBUG
+#define Q_ASSERT(cond) qt_noop()
+#define Q_ASSERT_X(cond, where, what) qt_noop()
+#else
+#include <cassert>
+#define Q_ASSERT(cond) assert(cond)
+#define Q_ASSERT_X(cond, where, what) assert(cond)
+#endif
+
+// kis_shared_ptr.h:185 :197 :222，KisSharedPtr<T>::ref/deref 静态重载里给
+// HAVE_MEMORY_LEAK_TRACKER 关闭分支的哑参数消警告用。
+#define Q_UNUSED(x) (void)(x)
+
+// kis_shared_ptr.h:484 :503 :514，KisSharedPtr<T> 类外定义的成员函数模板前缀。
+// 真 Qt（Qt5 qglobal.h）就是把它定义成 inline。
+#define Q_INLINE_TEMPLATE inline

@@ -146,6 +146,17 @@ run_one KisRandomGenerator2DTest \
     "libs/image,libs/global" \
     "libs/image/KisRandomGenerator2D.cpp,libs/global/kis_debug.cpp"
 
+# Task 6b：kis_shared_ptr_test.cpp 不 #include <QScopedPointer>/<QVector>——
+# 真 Qt 靠别的头透传把它们带进来，我们没有复刻那条透传链，只能整体前置绕开
+# （同 QString/QtGlobal 那两条的手法，是编译参数不是对调用点的改动）。
+# kis_shared_ptr.h:479 直接用 QAtomicInt 却不 #include <QAtomicInt>（真 Qt 靠
+# 别的头把它带进来），同样的坑同样的手法。
+run_one KisSharedPtrTest \
+    libs/image/tests kis_shared_ptr_test.h kis_shared_ptr_test.cpp \
+    "libs/global,libs/image" \
+    "libs/global/kis_shared.cpp,libs/global/kis_debug.cpp" \
+    "$STUBS/QAtomicInt,$STUBS/QScopedPointer,$STUBS/QVector"
+
 # 源树零改动自证
 if ! git diff --quiet -- libs/image/tests libs/image libs/global; then
     printf '  源树被改动了 —— 试接必须零改动\n' >&2

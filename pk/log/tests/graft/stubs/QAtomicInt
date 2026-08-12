@@ -1,0 +1,34 @@
+#pragma once
+// ⚠ 这是 **graft 局部的构建期胶水**，不是 pk/log 的 API，刻意放在
+// tests/graft/stubs/ 而不是 pk/log/compat/。R-02（容器）与 R-10（并发）
+// 交付真品后，这个文件应当被删掉、试接改链真品。
+// 线级 spec「试接怎么做」写的是「测试依赖了别的未替代能力就换一个测试类」；
+// 这里没换，是因为全仓扫下来"不同 target + 闭包干净 + 压日志"三条无解，
+// 而本测试是唯一能验证 warnKrita/.noquote()/kisBacktrace()/用户 operator<<
+// 的调用点。**这是有意的偏离，请 reviewer 判。**
+//
+// 用量表（libs/global/kis_shared.h、libs/global/kis_shared_ptr.h 实测确认，
+// 只加真正用到的方法，判据①同样管垫片）：
+//   QAtomicInt()              kis_shared.h:44 _ref 默认构造、:36 new QAtomicInt()
+//   ref() / deref()           kis_shared.h:26 :30——Qt 语义：返回的是"新值"是否
+//                              非零，不是旧值、不是成功与否
+//   operator int() const      kis_shared.h:23 :29（隐式转换）、
+//                              kis_shared_ptr.h:407 :431 :471（(int)*ptr 显式转换）
+//   fetchAndAddOrdered(int)   kis_shared_ptr.h:439 :468——Qt 语义：返回**相加前**
+//                              的旧值，跟 ref()/deref() 的"新值"语义不同，别搞混
+#include <atomic>
+
+class QAtomicInt {
+public:
+    QAtomicInt(int v = 0) : _v(v) {}
+
+    bool ref()   { return ++_v != 0; }
+    bool deref() { return --_v != 0; }
+
+    operator int() const { return _v.load(); }
+
+    int fetchAndAddOrdered(int valueToAdd) { return _v.fetch_add(valueToAdd); }
+
+private:
+    std::atomic<int> _v;
+};

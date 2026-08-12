@@ -1,0 +1,26 @@
+#pragma once
+// ⚠ 这是 **graft 局部的构建期胶水**，不是 pk/log 的 API，刻意放在
+// tests/graft/stubs/ 而不是 pk/log/compat/。R-02（容器）与 R-10（并发）
+// 交付真品后，这个文件应当被删掉、试接改链真品。
+// 线级 spec「试接怎么做」写的是「测试依赖了别的未替代能力就换一个测试类」；
+// 这里没换，是因为全仓扫下来"不同 target + 闭包干净 + 压日志"三条无解，
+// 而本测试是唯一能验证 warnKrita/.noquote()/kisBacktrace()/用户 operator<<
+// 的调用点。**这是有意的偏离，请 reviewer 判。**
+//
+// 用量表（libs/image/tests/kis_shared_ptr_test.cpp:262 :283 实测确认，只加
+// 真正用到的成员）：构造(T*)、data()、析构时释放。没有用到 reset()/operator->/
+// operator*/operator bool，一个都没加。不可拷贝，避免误用导致的二次释放。
+template <class T>
+class QScopedPointer {
+public:
+    explicit QScopedPointer(T *p = nullptr) : _p(p) {}
+    ~QScopedPointer() { delete _p; }
+
+    QScopedPointer(const QScopedPointer &) = delete;
+    QScopedPointer &operator=(const QScopedPointer &) = delete;
+
+    T *data() const { return _p; }
+
+private:
+    T *_p;
+};
