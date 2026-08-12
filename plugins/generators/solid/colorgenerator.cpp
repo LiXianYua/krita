@@ -26,9 +26,6 @@
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 
-#include "kis_wdg_color.h"
-#include "ui_wdgcoloroptions.h"
-
 K_PLUGIN_FACTORY_WITH_JSON(KritaColorGeneratorFactory, "kritacolorgenerator.json", registerPlugin<KritaColorGenerator>();)
 
 KritaColorGenerator::KritaColorGenerator(QObject *parent, const QVariantList &)
@@ -55,12 +52,6 @@ KisFilterConfigurationSP KisColorGenerator::defaultConfiguration(KisResourcesInt
     v.setValue(KoColor());
     config->setProperty("color", v);
     return config;
-}
-
-KisConfigWidget * KisColorGenerator::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisWdgColor(parent);
 }
 
 void KisColorGenerator::generate(KisProcessingInformation dstInfo,
