@@ -14,6 +14,8 @@ private Q_SLOTS:
     void defaultConstructedUseCountIsOne();
     // explicit C 构造：接管内层容器，仍然独占
     void explicitInitTakesOwnership();
+    // 且是真的「接管」——不得拷贝元素
+    void explicitInitDoesNotCopyElements();
 
     // 2. 拷贝后两边 use_count==2 且互相 PkIsSharedWith
     void copyConstructShares();
@@ -36,18 +38,26 @@ private Q_SLOTS:
     void selfAssignmentIsSafe();
     void selfAssignmentWhileSharedIsSafe();
 
-    // 7. 移动之后源对象是「空且完全可用」的容器（Qt 语义），不是空 shared_ptr
+    // 7. 移动：源是「空且完全可用」的容器（Qt 语义），走共享空哨兵
+    //    最小冒烟断言放在移动组最前面：这一组一旦回归成解空指针，进程会崩，
+    //    有它至少能在输出里看到崩在移动组、而不是一片空白。
+    void moveSmokeSourceObserversDoNotCrash();
     void moveConstructLeavesSourceEmptyAndUsable();
     void moveAssignLeavesSourceEmptyAndUsable();
-    // 移动必须 O(1)：一个元素都不拷
     void moveIsConstantTime();
-    // 源原本与第三方共享时，那份共享关系跟着目标走
     void moveCarriesSharingToTarget();
-    // 自移动安全
     void selfMoveAssignmentIsSafe();
-    // 移动之后源与目标彻底独立
     void movedFromSourceIsIndependentOfTarget();
+    // 哨兵不会被写污染：多个 moved-from 各自写入互不影响
+    void movedFromContainersDoNotShareSentinelOnWrite();
 
     // PkSwap：零分配、noexcept，Task 2–6 实现 Qt 的 swap() 走它
     void swapExchangesBuffers();
+
+    // 8. 堆分配探针 —— 把「零分配」的承诺变成有牙的断言。
+    //    docs/Qt替代品选型.md §5 点名的唯一性能不确定项就在这一组里。
+    void copyDoesNotAllocate();
+    void moveDoesNotAllocate();
+    void swapDoesNotAllocate();
+    void detachAllocationCounts();
 };

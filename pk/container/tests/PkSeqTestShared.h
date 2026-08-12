@@ -821,9 +821,14 @@ void pkSeqTestMoveLeavesSourceUsable()
     // 源：空容器，且完全可用
     PK_COMPARE(a.size(), 0);
     PK_VERIFY(a.isEmpty());
-    PK_COMPARE(a.PkUseCount(), 1L);
+    // 不断言 moved-from 的 PkUseCount()：源拿到的是 PkArrayData 进程内共享的
+    // 空哨兵（这样移动才能 noexcept + 零分配，与 Qt 的 sharedNull 同构），
+    // 计数是「1 + 当前活着的 moved-from 个数」，会随别处的测试浮动。
+    // 要断言的是真实语义——空、可读、可写、写后自动 detach 成独占。
+    PK_VERIFY(a.PkUseCount() >= 1L);
     PK_VERIFY(a.begin() == a.end());
     a.append(42);
+    PK_COMPARE(a.PkUseCount(), 1L);   // 写入让源从哨兵上 detach 出来，成为独占
     PK_VERIFY((a == Seq<int>{42}));
     PK_VERIFY((b == Seq<int>{1, 2, 3}));
     PK_VERIFY(!a.PkIsSharedWith(b));

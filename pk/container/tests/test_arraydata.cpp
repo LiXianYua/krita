@@ -3,6 +3,9 @@
 #include "../PkArrayData.h"
 
 #include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <new>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -11,6 +14,49 @@
 // pk_test_generate 触发）。显式特化必须在 qExec<PkArrayDataTest> 实例化前对本
 // TU 可见，所以像 moc 的 `#include moc_X.cpp` 惯例一样直接包进来。
 #include "pk_binder_PkArrayDataTest.inc"
+
+// ---------------------------------------------------------------------------
+// 堆分配探针
+//
+// 替换全局 operator new/delete 来数分配次数。这是**程序级**替换（一个 TU 里
+// 定义就对整个可执行文件生效），所以测量一律用「窗口前后取差」，不要指望
+// 计数器只统计被测代码。
+//
+// 为什么需要它：`docs/Qt替代品选型.md` §5 点名的唯一性能不确定项就是分配次数
+// （QArrayData 把引用计数与数据放同一块分配里 = 1 次 malloc，shared_ptr 默认 2 次）。
+// 只数元素拷贝的话，「实现换成三次移动」这种把 O(1) 换成 3 次分配的退化查不出来。
+//
+// 未替换 over-aligned 版本（operator new(size_t, align_val_t)）：本测试涉及的
+// 类型对齐都不超过 max_align_t，走不到那条路径；替换一半会导致 new/delete 配对
+// 不上，比漏数更危险。
+// ---------------------------------------------------------------------------
+
+static long g_pkAllocCount = 0;   // 常量初始化，先于任何动态初始化，无需担心初始化顺序
+
+void *operator new(std::size_t n)
+{
+    ++g_pkAllocCount;
+    void *p = std::malloc(n != 0 ? n : 1);
+    if (p == nullptr) {
+        throw std::bad_alloc();
+    }
+    return p;
+}
+
+void *operator new[](std::size_t n)
+{
+    ++g_pkAllocCount;
+    void *p = std::malloc(n != 0 ? n : 1);
+    if (p == nullptr) {
+        throw std::bad_alloc();
+    }
+    return p;
+}
+
+void operator delete(void *p) noexcept { std::free(p); }
+void operator delete[](void *p) noexcept { std::free(p); }
+void operator delete(void *p, std::size_t) noexcept { std::free(p); }
+void operator delete[](void *p, std::size_t) noexcept { std::free(p); }
 
 namespace {
 
@@ -46,6 +92,24 @@ int Counted::s_copies = 0;
 using IntVecData = PkArrayData<std::vector<int>>;
 using CountedVecData = PkArrayData<std::vector<Counted>>;
 
+// 只服务 swapDoesNotAllocate 的探针元素类型。
+//
+// 关键性质：`PkArrayData<std::vector<PkSwapOnlyProbe>>` 在整个测试进程里
+// **从不被移动**，所以它的共享空哨兵始终是「冷」的（从未初始化）。这让
+// 「PkSwap 有没有偷偷走移动路径」重新变得可观测：真正的 PkSwap 只换指针、
+// 0 次分配；任何退回移动的实现（std::swap、三次移动）都会第一次用到哨兵，
+// 触发一次 make_shared —— 计数窗口里就会看到 1。
+//
+// **不要在别处移动这个类型**（也不要给它加显式实例化）：哨兵一旦被预热，
+// 这条断言就退化成恒真。移动改用哨兵之后，单看分配次数已经分不出
+// 「1 次指针交换」与「3 次移动」，这是唯一还有判别力的角度。
+struct PkSwapOnlyProbe
+{
+    int v = 0;
+};
+
+using SwapProbeData = PkArrayData<std::vector<PkSwapOnlyProbe>>;
+
 CountedVecData makeCounted(int n)
 {
     std::vector<Counted> init;
@@ -55,6 +119,25 @@ CountedVecData makeCounted(int n)
     }
     return CountedVecData(std::move(init));
 }
+
+// 让 PkArrayData<C> 的共享空哨兵在计数窗口之前完成首次初始化。
+// 哨兵是函数局部 static，第一次使用时 make_shared 一次；不预热的话
+// 「移动零分配」的断言会在第一次跑到时莫名其妙多出 1。
+template <typename Data>
+void warmUpSentinel()
+{
+    Data warm;
+    Data taken(std::move(warm));
+    (void)taken;
+}
+
+// stdout 改成行缓冲。默认在管道下是全缓冲，进程崩溃时缓冲区丢失、
+// stdout 一片空白，排障时连"崩在哪个测试"都看不到（评审的 M5 变异就是这样）。
+// 只影响本可执行文件，不动 pk/test。
+const int g_stdoutLineBuffered = []() {
+    std::setvbuf(stdout, nullptr, _IOLBF, 0);
+    return 0;
+}();
 
 // ---- 契约的编译期部分（签名形状，不是行为）----
 
@@ -84,10 +167,24 @@ static_assert(std::is_same<decltype(std::declval<const IntVecData &>().PkUseCoun
                            long>::value,
               "PkUseCount() 必须返回 long");
 
-// PkMut() 是唯一写入口：const 对象上不得有可写通路。
-static_assert(!std::is_same<decltype(std::declval<const IntVecData &>().PkConst()),
-                            std::vector<int> &>::value,
-              "const 对象不得拿到可写引用");
+// PkMut() 是唯一写入口：const 对象上不得存在任何 PkMut() 通路。
+// 用 SFINAE 探测「const 对象上能否调 PkMut()」——直接比较返回类型是恒真的
+// （const T& 与 T& 本来就永远不同型），查不出「有人加了个 const 重载」。
+template <typename T, typename = void>
+struct PkHasConstMut : std::false_type {};
+
+template <typename T>
+struct PkHasConstMut<T, decltype(void(std::declval<const T &>().PkMut()))> : std::true_type {};
+
+// 探测器自身的正向对照：有 const PkMut() 的类型必须被认出来，
+// 否则上面那条断言又变成恒真的。
+struct PkConstMutProbe
+{
+    int &PkMut() const;
+};
+
+static_assert(PkHasConstMut<PkConstMutProbe>::value, "探测器失灵：const PkMut() 没被认出来");
+static_assert(!PkHasConstMut<IntVecData>::value, "const 对象上不得存在 PkMut() 通路");
 
 // ---- 五个特殊成员都还在（这组断言守的是一个真陷阱）----
 //
@@ -103,9 +200,21 @@ static_assert(std::is_nothrow_copy_constructible<IntVecData>::value,
               "拷贝构造必须 noexcept（只拷 shared_ptr）");
 static_assert(std::is_nothrow_copy_assignable<IntVecData>::value,
               "拷贝赋值必须 noexcept（只拷 shared_ptr）");
-static_assert(std::is_move_constructible<IntVecData>::value, "移动构造必须存在");
-static_assert(std::is_move_assignable<IntVecData>::value, "移动赋值必须存在");
 static_assert(std::is_nothrow_destructible<IntVecData>::value, "析构必须 noexcept");
+
+// ---- 移动必须 noexcept（I1 的编译期机器证据）----
+//
+// Qt 的 QVector/QList 这两个 trait 都是 true。移动一旦不是 noexcept，
+// std::vector<PkVector<T>> 扩容会走 move_if_noexcept 退回拷贝路径。
+// 这两条同时也钉住了"别把共享空哨兵改回每次新分配一个空 C"。
+static_assert(std::is_nothrow_move_constructible<IntVecData>::value,
+              "移动构造必须 noexcept（共享空哨兵，零分配）");
+static_assert(std::is_nothrow_move_assignable<IntVecData>::value,
+              "移动赋值必须 noexcept（共享空哨兵，零分配）");
+static_assert(std::is_nothrow_move_constructible<CountedVecData>::value,
+              "非平凡元素类型也必须 noexcept 移动");
+static_assert(std::is_nothrow_move_assignable<CountedVecData>::value,
+              "非平凡元素类型也必须 noexcept 移动");
 
 // PkSwap 是 noexcept 的零分配交换：Task 2–6 的 swap() 靠它，别退回 std::swap。
 static_assert(noexcept(std::declval<IntVecData &>().PkSwap(std::declval<IntVecData &>())),
@@ -114,7 +223,7 @@ static_assert(noexcept(std::declval<IntVecData &>().PkSwap(std::declval<IntVecDa
 } // namespace
 
 // ---------------------------------------------------------------------------
-// 1. 默认构造
+// 1. 默认构造 / explicit C 构造
 // ---------------------------------------------------------------------------
 
 void PkArrayDataTest::defaultConstructedUseCountIsOne()
@@ -124,6 +233,7 @@ void PkArrayDataTest::defaultConstructedUseCountIsOne()
     PK_VERIFY(a.PkConst().empty());
 
     // 两个默认构造的实例各自持有一份缓冲区，不是共享同一个空单例
+    // （默认构造**不**走哨兵——哨兵只给 moved-from 用）
     IntVecData b;
     PK_COMPARE(b.PkUseCount(), 1L);
     PK_VERIFY(!a.PkIsSharedWith(b));
@@ -138,6 +248,35 @@ void PkArrayDataTest::explicitInitTakesOwnership()
     PK_COMPARE(a.PkConst().size(), std::size_t(3));
     PK_COMPARE(a.PkConst()[0], 4);
     PK_COMPARE(a.PkConst()[2], 6);
+}
+
+void PkArrayDataTest::explicitInitDoesNotCopyElements()
+{
+    // 名字承诺的是「接管所有权」，就得真的一个元素都不拷。
+    // 把实现从 make_shared<C>(std::move(init)) 改成 make_shared<C>(init)
+    // 只有这条断言看得见——只查 size 与元素值的话，拷贝版本一样全绿。
+    std::vector<Counted> init;
+    init.reserve(4);
+    for (int i = 0; i < 4; ++i) {
+        init.emplace_back(i);
+    }
+
+    Counted::s_copies = 0;
+    CountedVecData a(std::move(init));
+    PK_COMPARE(Counted::s_copies, 0);
+    PK_COMPARE(a.PkConst().size(), std::size_t(4));
+    PK_COMPARE(a.PkConst()[3].v, 3);
+    PK_COMPARE(a.PkUseCount(), 1L);
+
+    // 正向对照：传左值时按值形参会拷一次，证明计数器在这条路径上确实有效
+    std::vector<Counted> lvalue;
+    lvalue.reserve(2);
+    lvalue.emplace_back(7);
+    lvalue.emplace_back(8);
+    Counted::s_copies = 0;
+    CountedVecData b(lvalue);
+    PK_COMPARE(Counted::s_copies, 2);
+    PK_COMPARE(b.PkConst().size(), std::size_t(2));
 }
 
 // ---------------------------------------------------------------------------
@@ -378,8 +517,25 @@ void PkArrayDataTest::selfAssignmentWhileSharedIsSafe()
 }
 
 // ---------------------------------------------------------------------------
-// 7. 移动：源变成「空且完全可用」的容器（Qt 语义），不是空 shared_ptr
+// 7. 移动：源是「空且完全可用」的容器，走共享空哨兵
+//
+// 注意：**不要断言 moved-from 的 PkUseCount()**。它拿到的是进程内共享的空哨兵，
+// 计数是「1 + 当前活着的 moved-from 个数」，随别的测试/别的作用域浮动。
+// 要断言的是真实语义：空、可读、可写、写后能 detach、互不影响。
 // ---------------------------------------------------------------------------
+
+void PkArrayDataTest::moveSmokeSourceObserversDoNotCrash()
+{
+    // 移动组里最小的一条：移动之后源的观测器不得解空指针。
+    // 放在本组最前面，是为了让"移动语义回归成隐式 steal"这类事故有个落点——
+    // 那种回归会直接段错误，有这条至少能看出崩在移动组的第一步。
+    IntVecData a(std::vector<int>{1});
+    IntVecData b(std::move(a));
+
+    PK_VERIFY(a.PkUseCount() >= 1L);   // 不崩即达标，具体数值不做断言
+    PK_VERIFY(a.PkConst().empty());
+    PK_VERIFY(!b.PkConst().empty());
+}
 
 void PkArrayDataTest::moveConstructLeavesSourceEmptyAndUsable()
 {
@@ -390,13 +546,13 @@ void PkArrayDataTest::moveConstructLeavesSourceEmptyAndUsable()
     PK_COMPARE(b.PkUseCount(), 1L);
     PK_VERIFY((b.PkConst() == std::vector<int>{1, 2, 3}));
 
-    // 源：空容器 + 独占，四个访问器全都能调（这一条正是本次修改的目标——
+    // 源：空容器，四个访问器全都能调（这一条正是哨兵方案要守住的——
     // 隐式移动会让 d 变成 nullptr，下面每一行都会解空指针）
-    PK_COMPARE(a.PkUseCount(), 1L);
     PK_VERIFY(a.PkConst().empty());
     PK_COMPARE(a.PkConst().size(), std::size_t(0));
-    a.PkDetach();                     // 独占时零成本，且不得崩
-    PK_COMPARE(a.PkUseCount(), 1L);
+    PK_VERIFY(a.PkUseCount() >= 1L);
+    a.PkDetach();                     // 从哨兵上分裂出来，不得崩
+    PK_COMPARE(a.PkUseCount(), 1L);   // detach 之后才是独占的
     PK_VERIFY(a.PkMut().empty());     // 可写通路也是活的
     PK_VERIFY(!a.PkIsSharedWith(b));
 
@@ -423,12 +579,14 @@ void PkArrayDataTest::moveAssignLeavesSourceEmptyAndUsable()
     PK_VERIFY((b.PkConst() == std::vector<int>{1, 2}));
 
     // 源：空且完全可用，与移动构造同一套保证
-    PK_COMPARE(a.PkUseCount(), 1L);
     PK_VERIFY(a.PkConst().empty());
+    PK_VERIFY(a.PkUseCount() >= 1L);
     a.PkDetach();
+    PK_COMPARE(a.PkUseCount(), 1L);
     PK_VERIFY(a.PkMut().empty());
     PK_VERIFY(!a.PkIsSharedWith(b));
 
+    // 不先 detach、直接写也必须安全（PkMut 自己会 detach）
     a.PkMut().push_back(7);
     PK_VERIFY((a.PkConst() == std::vector<int>{7}));
     PK_VERIFY((b.PkConst() == std::vector<int>{1, 2}));
@@ -484,10 +642,10 @@ void PkArrayDataTest::moveCarriesSharingToTarget()
     PK_VERIFY(x.PkIsSharedWith(b));
     PK_COMPARE(x.PkUseCount(), 2L);
     PK_COMPARE(b.PkUseCount(), 2L);
-    // 源已经脱离这段共享，自己独占一个空的
+    // 源已经脱离这段共享
     PK_VERIFY(!a.PkIsSharedWith(x));
     PK_VERIFY(!a.PkIsSharedWith(b));
-    PK_COMPARE(a.PkUseCount(), 1L);
+    PK_VERIFY(a.PkConst().empty());
     // 第三方内容不受影响
     PK_VERIFY((x.PkConst() == std::vector<int>{8}));
 
@@ -499,8 +657,8 @@ void PkArrayDataTest::moveCarriesSharingToTarget()
     q = std::move(p);
     PK_COMPARE(q.PkUseCount(), 2L);
     PK_VERIFY(q.PkIsSharedWith(y));
-    PK_COMPARE(p.PkUseCount(), 1L);
     PK_VERIFY(p.PkConst().empty());
+    PK_VERIFY(!p.PkIsSharedWith(y));
     PK_VERIFY((y.PkConst() == std::vector<int>{5}));
 
     // 共享着的目标被写 → 照常 detach，第三方不受污染
@@ -516,7 +674,7 @@ void PkArrayDataTest::selfMoveAssignmentIsSafe()
     IntVecData &alias = a;
     a = std::move(alias);
 
-    // 自移动必须是 no-op：内容与计数原样（没有把自己的数据搬走再塞个空的进来）
+    // 自移动必须是 no-op：内容与计数原样（没有把自己的数据搬走再塞个哨兵进来）
     PK_COMPARE(a.PkUseCount(), 1L);
     PK_VERIFY((a.PkConst() == std::vector<int>{1, 2, 3}));
 
@@ -547,17 +705,43 @@ void PkArrayDataTest::movedFromSourceIsIndependentOfTarget()
     PK_VERIFY((b.PkConst() == std::vector<int>{1, 2, 3}));
     b.PkMut().push_back(4);
     PK_VERIFY((a.PkConst() == std::vector<int>{99}));
+}
 
-    // 两个各自被移动走的源之间也必须互相独立（不是共用某个全局空哨兵）
-    IntVecData p(std::vector<int>{1});
-    IntVecData q(std::vector<int>{2});
-    IntVecData pMoved(std::move(p));
-    IntVecData qMoved(std::move(q));
-    PK_VERIFY(!p.PkIsSharedWith(q));
-    PK_COMPARE(p.PkUseCount(), 1L);
-    PK_COMPARE(q.PkUseCount(), 1L);
-    p.PkMut().push_back(7);
-    PK_VERIFY(q.PkConst().empty());
+void PkArrayDataTest::movedFromContainersDoNotShareSentinelOnWrite()
+{
+    // 哨兵是全进程共享的一份空 C。这条测的是它**不会被写污染**：
+    // 任何持有哨兵的容器 use_count() 都 ≥ 2（哨兵自己长期持一份），
+    // 所以第一次写入必然 detach 出私有副本。
+    IntVecData a(std::vector<int>{1, 2, 3});
+    IntVecData b(std::vector<int>{4, 5});
+    IntVecData aTaken(std::move(a));
+    IntVecData bTaken(std::move(b));
+
+    // 两个 moved-from 此刻确实指向同一个哨兵——这是机制本身，不是缺陷
+    PK_VERIFY(a.PkIsSharedWith(b));
+    PK_VERIFY(a.PkConst().empty());
+    PK_VERIFY(b.PkConst().empty());
+    PK_VERIFY(a.PkUseCount() >= 2L);   // 哨兵自己那一份 + 至少 a、b
+
+    // 各自写入 → 各自 detach → 互不影响，且都不再是空
+    a.PkMut().push_back(11);
+    b.PkMut().push_back(22);
+    PK_VERIFY(!a.PkIsSharedWith(b));
+    PK_VERIFY(!a.PkConst().empty());
+    PK_VERIFY(!b.PkConst().empty());
+    PK_VERIFY((a.PkConst() == std::vector<int>{11}));
+    PK_VERIFY((b.PkConst() == std::vector<int>{22}));
+
+    // 关键：哨兵本身没被那两次写入改掉——新的 moved-from 拿到的仍是干净的空
+    IntVecData c(std::vector<int>{9});
+    IntVecData cTaken(std::move(c));
+    PK_VERIFY(c.PkConst().empty());
+    PK_COMPARE(c.PkConst().size(), std::size_t(0));
+
+    // 目标全都不受影响
+    PK_VERIFY((aTaken.PkConst() == std::vector<int>{1, 2, 3}));
+    PK_VERIFY((bTaken.PkConst() == std::vector<int>{4, 5}));
+    PK_VERIFY((cTaken.PkConst() == std::vector<int>{9}));
 }
 
 void PkArrayDataTest::swapExchangesBuffers()
@@ -580,6 +764,131 @@ void PkArrayDataTest::swapExchangesBuffers()
     a.PkSwap(aAlias);
     PK_VERIFY((a.PkConst() == std::vector<int>{3}));
     PK_COMPARE(a.PkUseCount(), 1L);
+}
+
+// ---------------------------------------------------------------------------
+// 8. 堆分配探针
+//
+// 每条都是「窗口前后取差」，且**先把差值存进局部量再交给 PK_COMPARE**——
+// PK_COMPARE 失败路径要拼 std::string，自己会分配，写在同一条语句里会污染读数。
+// ---------------------------------------------------------------------------
+
+void PkArrayDataTest::copyDoesNotAllocate()
+{
+    IntVecData a(std::vector<int>{1, 2, 3});
+
+    const long beforeCtor = g_pkAllocCount;
+    IntVecData b(a);
+    const long ctorAllocs = g_pkAllocCount - beforeCtor;
+    PK_COMPARE(ctorAllocs, 0L);
+
+    IntVecData c;
+    const long beforeAssign = g_pkAllocCount;
+    c = a;
+    const long assignAllocs = g_pkAllocCount - beforeAssign;
+    PK_COMPARE(assignAllocs, 0L);
+
+    PK_COMPARE(a.PkUseCount(), 3L);
+}
+
+void PkArrayDataTest::moveDoesNotAllocate()
+{
+    // 哨兵首次使用时会 make_shared 一次；不预热的话这一次会被算进窗口。
+    warmUpSentinel<IntVecData>();
+
+    IntVecData a(std::vector<int>{1, 2, 3});
+    const long beforeCtor = g_pkAllocCount;
+    IntVecData b(std::move(a));
+    const long ctorAllocs = g_pkAllocCount - beforeCtor;
+    PK_COMPARE(ctorAllocs, 0L);
+
+    IntVecData c(std::vector<int>{7});
+    IntVecData d(std::vector<int>{8, 9});
+    const long beforeAssign = g_pkAllocCount;
+    d = std::move(c);
+    const long assignAllocs = g_pkAllocCount - beforeAssign;
+    PK_COMPARE(assignAllocs, 0L);
+
+    // 内容仍然对，别让"零分配"是靠什么都没做换来的
+    PK_VERIFY((b.PkConst() == std::vector<int>{1, 2, 3}));
+    PK_VERIFY((d.PkConst() == std::vector<int>{7}));
+    PK_VERIFY(a.PkConst().empty());
+    PK_VERIFY(c.PkConst().empty());
+}
+
+void PkArrayDataTest::swapDoesNotAllocate()
+{
+    // 冷哨兵探针：SwapProbeData 在本进程里从不被移动，所以它的共享空哨兵
+    // 从未初始化。真正的 PkSwap 只换指针 → 0 次分配；任何退回移动的实现
+    // （std::swap、三次移动）都会在这里第一次用到哨兵、触发一次 make_shared。
+    // 这是移动改用哨兵之后，唯一还能把两者区分开的角度——单看「有没有多分配」
+    // 已经分不出来了，因为移动本身也不分配了。
+    //
+    // 本函数**必须**是全进程第一个也是唯一一个碰 SwapProbeData 的地方。
+    SwapProbeData p(std::vector<PkSwapOnlyProbe>{PkSwapOnlyProbe{1}});
+    SwapProbeData q(std::vector<PkSwapOnlyProbe>{PkSwapOnlyProbe{2}});
+
+    const long beforeCold = g_pkAllocCount;
+    p.PkSwap(q);
+    const long coldAllocs = g_pkAllocCount - beforeCold;
+    PK_COMPARE(coldAllocs, 0L);
+    PK_COMPARE(p.PkConst()[0].v, 2);
+    PK_COMPARE(q.PkConst()[0].v, 1);
+
+    // 常规路径（哨兵早已预热）也断言 0 次
+    IntVecData a(std::vector<int>{1, 2});
+    IntVecData b(std::vector<int>{3});
+
+    const long before = g_pkAllocCount;
+    a.PkSwap(b);
+    const long allocs = g_pkAllocCount - before;
+    PK_COMPARE(allocs, 0L);
+
+    PK_VERIFY((a.PkConst() == std::vector<int>{3}));
+    PK_VERIFY((b.PkConst() == std::vector<int>{1, 2}));
+}
+
+void PkArrayDataTest::detachAllocationCounts()
+{
+    // 独占：0 次
+    IntVecData a(std::vector<int>{1, 2, 3});
+    const long beforeExclusive = g_pkAllocCount;
+    a.PkDetach();
+    const long exclusiveAllocs = g_pkAllocCount - beforeExclusive;
+    PK_COMPARE(exclusiveAllocs, 0L);
+
+    // 共享 + 非空：**2 次**（正向对照，防计数器本身失灵）。
+    //
+    // 这 2 次是 docs/Qt替代品选型.md §5 点名的那笔账：
+    //   1) make_shared<C> —— 控制块与 C 对象**融在同一块**分配里（这一半 Qt 也要）
+    //   2) std::vector 的拷贝构造为元素缓冲区单独分配
+    // Qt 的 QArrayData 把引用计数、头部与元素数据放进**同一块** malloc，
+    // 所以同一次 detach 在 Qt 那边是 1 次。这是替代品相对 Qt 的已知差距，
+    // 数值写死在这里，将来若把内层换成自定义的融合分配器，这条会立刻失败提醒改判。
+    IntVecData shared(std::vector<int>{1, 2, 3});
+    IntVecData sharer(shared);
+    const long beforeShared = g_pkAllocCount;
+    sharer.PkDetach();
+    const long sharedAllocs = g_pkAllocCount - beforeShared;
+    PK_COMPARE(sharedAllocs, 2L);
+    PK_VERIFY(!sharer.PkIsSharedWith(shared));
+
+    // 共享 + 空容器：1 次（只有 make_shared，空 vector 不分配元素缓冲）
+    IntVecData empty;
+    IntVecData emptySharer(empty);
+    const long beforeEmpty = g_pkAllocCount;
+    emptySharer.PkDetach();
+    const long emptyAllocs = g_pkAllocCount - beforeEmpty;
+    PK_COMPARE(emptyAllocs, 1L);
+
+    // 默认构造：1 次（make_shared）
+    const long beforeDefault = g_pkAllocCount;
+    {
+        IntVecData fresh;
+        (void)fresh;
+    }
+    const long defaultAllocs = g_pkAllocCount - beforeDefault;
+    PK_COMPARE(defaultAllocs, 1L);
 }
 
 PK_TEST_MAIN(PkArrayDataTest)
