@@ -1,0 +1,85 @@
+# PkRectF 类体声明 → 对拍 rec() 标签的映射（规则三的机器闸门，人维护那一半）。
+#
+# 格式与 rect_api.map / point_api.map / size_api.map **完全一致**（同一个解析器、
+# 同一份闸门代码）：<类名>::<声明指纹>\t<对拍 api 标签>[;<标签>...]，**tab 分隔**，
+# # 开头为注释。多标签之间用 `;` 不是逗号（标签名自己含逗号）。
+# 声明指纹由 run_oracle.sh 从 PkRect.h 的**类体**里机械解析出来，不是人手抄的。
+#
+# ⚠ 与 rect_api.map 的两处结构性差别（不是笔误）：
+#   ① **contains 一族只有三行、且没有 proper 变体** —— QRectF::contains 没有
+#      proper 参数。整数版那两行 `contains(const PkRect&,bool)` 映射到两个标签
+#      （proper=false / proper=true 两条分支），浮点版一行一个标签。
+#   ② 多了 `PkRectF(const PkRect&)`（隐式提升）与 `toRect()` / `toAlignedRect()`
+#      三条 —— 整数版没有对应物。toRect 与 toAlignedRect **各自一条 rec**：
+#      它们在同一批输入上系统性地给不同答案，并成一条会让"toAlignedRect 抄成
+#      toRect"这类注入无法归因。
+#
+# 规则三：**每个已实现的重载都要有自己的 rec()**。run_oracle.sh 做三件事，
+# 任一不成立就 FAIL：
+#   ① PkRect.h 里 PkRectF 的每一条声明都在这里有一行  ← 加了重载忘写 rec() 在这里现形
+#   ② 这里的每一行都对得上一条声明（删了成员却留着行也现形）
+#   ③ 这里列的每个标签都真的出现在程序打出的 APISEEN 里
+PkRectF::PkRectF()	RF::defaultCtor
+PkRectF::PkRectF(const PkPointF&,const PkSizeF&)	RF::ctorPointSize
+PkRectF::PkRectF(const PkPointF&,const PkPointF&)	RF::ctorPoints
+PkRectF::PkRectF(qreal,qreal,qreal,qreal)	RF::ctorLTWH
+PkRectF::PkRectF(const PkRect&)	RF::ctorFromRect
+PkRectF::isNull()	RF::isNull
+PkRectF::isEmpty()	RF::isEmpty
+PkRectF::isValid()	RF::isValid
+PkRectF::normalized()	RF::normalized
+PkRectF::left()	RF::left
+PkRectF::top()	RF::top
+PkRectF::right()	RF::right
+PkRectF::bottom()	RF::bottom
+PkRectF::x()	RF::x
+PkRectF::y()	RF::y
+PkRectF::setLeft(qreal)	RF::setLeft
+PkRectF::setTop(qreal)	RF::setTop
+PkRectF::setRight(qreal)	RF::setRight
+PkRectF::setBottom(qreal)	RF::setBottom
+PkRectF::setX(qreal)	RF::setX
+PkRectF::setY(qreal)	RF::setY
+PkRectF::topLeft()	RF::topLeft
+PkRectF::bottomRight()	RF::bottomRight
+PkRectF::topRight()	RF::topRight
+PkRectF::bottomLeft()	RF::bottomLeft
+PkRectF::center()	RF::center
+PkRectF::setTopLeft(const PkPointF&)	RF::setTopLeft
+PkRectF::setBottomRight(const PkPointF&)	RF::setBottomRight
+PkRectF::moveLeft(qreal)	RF::moveLeft
+PkRectF::moveTop(qreal)	RF::moveTop
+PkRectF::moveTopLeft(const PkPointF&)	RF::moveTopLeft
+PkRectF::moveCenter(const PkPointF&)	RF::moveCenter
+PkRectF::translate(qreal,qreal)	RF::translateXY
+PkRectF::translate(const PkPointF&)	RF::translatePoint
+PkRectF::translated(qreal,qreal)	RF::translatedXY
+PkRectF::translated(const PkPointF&)	RF::translatedPoint
+PkRectF::moveTo(qreal,qreal)	RF::moveToXY
+PkRectF::moveTo(const PkPointF&)	RF::moveToPoint
+PkRectF::setRect(qreal,qreal,qreal,qreal)	RF::setRect
+PkRectF::getRect(qreal*,qreal*,qreal*,qreal*)	RF::getRect
+PkRectF::setCoords(qreal,qreal,qreal,qreal)	RF::setCoords
+PkRectF::getCoords(qreal*,qreal*,qreal*,qreal*)	RF::getCoords
+PkRectF::adjust(qreal,qreal,qreal,qreal)	RF::adjust
+PkRectF::adjusted(qreal,qreal,qreal,qreal)	RF::adjusted
+PkRectF::size()	RF::size
+PkRectF::width()	RF::width
+PkRectF::height()	RF::height
+PkRectF::setWidth(qreal)	RF::setWidth
+PkRectF::setHeight(qreal)	RF::setHeight
+PkRectF::setSize(const PkSizeF&)	RF::setSize
+PkRectF::operator|(const PkRectF&)	RF::operator|
+PkRectF::operator&(const PkRectF&)	RF::operator&
+PkRectF::operator|=(const PkRectF&)	RF::operator|=
+PkRectF::operator&=(const PkRectF&)	RF::operator&=
+PkRectF::contains(const PkRectF&)	RF::containsRect
+PkRectF::contains(const PkPointF&)	RF::containsPoint
+PkRectF::contains(qreal,qreal)	RF::containsXY
+PkRectF::united(const PkRectF&)	RF::united
+PkRectF::intersected(const PkRectF&)	RF::intersected
+PkRectF::intersects(const PkRectF&)	RF::intersects
+PkRectF::operator==(const PkRectF&,const PkRectF&)	RF::operator==
+PkRectF::operator!=(const PkRectF&,const PkRectF&)	RF::operator!=
+PkRectF::toRect()	RF::toRect
+PkRectF::toAlignedRect()	RF::toAlignedRect

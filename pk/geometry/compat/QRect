@@ -8,14 +8,17 @@
 //（如 libs/flake/KoCanvasBase.h），类型别名遇到它会报 "redeclared as different
 // kind of entity"；宏则把那一行原样改写成 `class PkRect;`，前置声明照样成立。
 //
-// **QRectF 还没有。** Qt 的 <QRect> 与 <QRectF> 都只是 qrect.h 的转发头，包任一个
-// 都能同时拿到两个名字；这里只定义 QRect 是因为 PkRectF 是 Task 5 的交付物。
-// Task 5 补上 `#define QRectF PkRectF` 与 compat/QRectF，形态与 compat/QPoint、
-// compat/QSize 对齐（那两份都是两个名字一起给）。在那之前，`#include <QRect>`
-// 之后直接用 QRectF 的调用点会编不过 —— 这是**已知且有主的缺口**，不是漏项。
+// **两个名字一起给**（Task 5 补齐）。Qt 的 <QRect> 与 <QRectF> 都只是 qrect.h 的
+// 转发头，包任一个都能同时拿到 QRect 与 QRectF —— 只定义一个的话
+// `#include <QRect>` 之后用 QRectF 的调用点会编不过。形态与 compat/QPoint、
+// compat/QSize 对齐（那两份也都是两个名字一起给）。
 //
-// `PkPoint` / `PkSize`（PkRect 的参数与返回类型）经 ../PkRect.h 一起进来，
-// 与 Qt 的形态一致（qrect.h 自己 #include <QtCore/qpoint.h> 与 <QtCore/qsize.h>）。
+// `PkPoint` / `PkSize` / `PkPointF` / `PkSizeF`（PkRect / PkRectF 的参数与返回
+// 类型）经 ../PkRect.h 一起进来，与 Qt 的形态一致（qrect.h 自己
+// #include <QtCore/qpoint.h> 与 <QtCore/qsize.h>）。
 #ifndef QRect
 #define QRect PkRect
+#endif
+#ifndef QRectF
+#define QRectF PkRectF
 #endif

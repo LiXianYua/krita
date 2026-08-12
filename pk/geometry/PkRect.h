@@ -440,4 +440,440 @@ constexpr inline bool operator!=(const PkRect &r1, const PkRect &r2) noexcept
     return r1.x1!=r2.x1 || r1.x2!=r2.x2 || r1.y1!=r2.y1 || r1.y2!=r2.y2;
 }
 
+// ---------------------------------------------------------------------------
+// PkRectF —— QRectF 的零 Qt 替代。
+//
+// **逐字抄自真 Qt 5.15.7** 的 include/QtCore/qrect.h:511-875（QRectF 那一半），
+// 来源行号标在各项上方；七个 out-of-line 成员（normalized / operator| /
+// operator& / contains ×2 / intersects / toAlignedRect）在 PkRect.cpp。
+//
+// ⚠ **它与上面的 PkRect 几乎处处不同，抄错一条整片语义就走样。** 逐条列出
+// （每一条都有 probe_rectf.cpp 的实测输出撑着，见 Task 5 报告 §2）：
+//
+//   · **内部存的是 xp/yp/w/h（左上角 + 宽高），不是四个边界坐标。** 这是与
+//     PkRect 最根本的不对称 —— Qt 自己就是这么不对称的。后果：
+//     `setLeft` 在 PkRectF 里**保右边界、改宽度**（`diff = pos - xp; xp += diff;
+//     w -= diff;`），在 PkRect 里只摆一个坐标；`setWidth` 在 PkRectF 里就是
+//     `w = aw`，在 PkRect 里是 `x2 = x1 + w - 1`。
+//   · **right() == xp + w，没有差一**（PkRect 是 x1 + width() - 1）。实测
+//     `QRectF(0,0,10,10).right() == 10`，而 `QRect(0,0,10,10).right() == 9`。
+//     Krita 里最常见的一格误差就来自这两者混用。
+//   · **三谓词的公式与 PkRect 全不一样**：
+//       isNull  = `w == 0. && h == 0.`     （PkRect：x2 == x1-1 && y2 == y1-1）
+//       isEmpty = `w <= 0. || h <= 0.`     （PkRect：x1 > x2 || y1 > y2，等价于 <1）
+//       isValid = `w > 0. && h > 0.`       （PkRect：x1 <= x2 && y1 <= y2，等价于 >=0）
+//     实测：`(0,0,-0.0,-0.0)` **isNull=1**（-0.0 == 0. 为真）；
+//     `(0,0,5e-324,5e-324)` isValid=**1**（次正规也算正宽高）；
+//     `(0,0,nan,1)` isEmpty=**0** 且 isValid=**0**（NaN 让两个比较都为假 ——
+//     **三谓词在 NaN 上互不为补**，抄成 `!isValid()` 会错整片）。
+//   · **默认构造是 (0.,0.,0.,0.)**，不是 PkRect 的 (0,0,-1,-1) 哨兵。
+//   · normalized() 的条件是 **`w < 0`**（PkRect 是 `x2 < x1 - 1`），交换后
+//     `xp += w; w = -w;`。实测：`(0,0,-0.0,1).normalized()` **不交换**且
+//     w 仍是 -0.0；`(0,0,nan,1)` 原样返回。
+//   · **toRect() 不是"对 x/y/w/h 各做一次 qRound"**（那是个流传很广的误解）：
+//     它是 `PkRect(PkPoint(qRound(xp), qRound(yp)),
+//                  PkPoint(qRound(xp+w)-1, qRound(yp+h)-1))` ——
+//     取整发生在**四条边**上，右下角再各减 1 换成 PkRect 的坐标表示。
+//   · **toAlignedRect() 是 floor(left)/floor(top)/ceil(right)/ceil(bottom) 向外扩**，
+//     与 toRect 常常不同：实测 `(-1.5,-1.5,1,1)` toRect=(-1,-1,1,1) 而
+//     toAlignedRect=(-2,-2,2,2)。边界恰为整数时 ceil 不进位
+//     （`(0,0,10,10).toAlignedRect()` 就是 (0,0,10,10)）。
+//     实测调用点 toAlignedRect **64 次** / toRect **18 次**，都是真调用点。
+//   · **operator== 是模糊比较**（四个分量各一次 pkQtFuzzyCompare），不是位相等：
+//     实测 `(1,1,1,1)==(1+1e-13,1,1,1)` 为真、`(inf,0,1,1)==(-inf,0,1,1)` 也为真
+//     （两侧差为 nan，`nan <= x` 恒假 …… 实为 `qAbs(inf-(-inf))*1e12 <= inf`
+//     即 `inf <= inf` 为**真**）。**用 pkQtFuzzy* 而不是 qFuzzy***：后者在共存
+//     路径上是 #define，会在预处理期把函数体换掉（tests/rectf_macro_proof.cpp
+//     钉住这一条；理由全文在 PkGlobal.h 的 pkQtFuzzyCompare 上方）。
+//   · **getRect / getCoords 同样没有 noexcept**，其余成员（含 contains /
+//     intersects / operator| / operator& / normalized / toRect / toAlignedRect）
+//     全有 —— 实测 probe_rectf2.cpp §noexcept。
+//   · contains 一族**没有 proper 参数**（PkRect 那边有），所以只有三个重载。
+//
+// 明确不实现（与 PkRect 同一份归属表，Rect 族实测调用点 0；表在 README）：
+//   · setTopRight / setBottomLeft
+//   · moveRight / moveBottom / moveTopRight / moveBottomRight / moveBottomLeft
+//   · transposed —— 三形态命中的 5 处接收者全不是 Rect 族
+//   · unite / intersect（Qt5 已废弃的别名）
+//   · marginsAdded / marginsRemoved / operator±=(QMarginsF) / operator±(QMarginsF)
+//   · toCGRect / fromCGRect（Darwin 专有）
+//   · qHash / QDataStream 的 <<>> / QDebug 的 <<（归 R-02 / R-12 / R-08）
+// ---------------------------------------------------------------------------
+
+class PkRectF
+{
+public:
+    // qrect.h:514 —— ⚠ **(0.,0.,0.,0.)**：与 PkRect 的 (0,0,-1,-1) 哨兵不同。
+    // Qt 把函数体写在类体里，这里挪到下面与其余四个构造并排 —— 理由与 PkRect()
+    // 那条相同（run_oracle.sh 的规则三闸门按**类体里的纯声明**解析重载清单）。
+    constexpr PkRectF() noexcept;
+    constexpr PkRectF(const PkPointF &topleft, const PkSizeF &size) noexcept;
+    constexpr PkRectF(const PkPointF &topleft, const PkPointF &bottomRight) noexcept;
+    constexpr PkRectF(qreal left, qreal top, qreal width, qreal height) noexcept;
+    // qrect.h:518 —— **非 explicit**：PkRect 到 PkRectF 是隐式提升，
+    // `QRectF r = someQRect;` 这类调用点靠它。
+    constexpr PkRectF(const PkRect &rect) noexcept;
+
+    constexpr inline bool isNull() const noexcept;
+    constexpr inline bool isEmpty() const noexcept;
+    constexpr inline bool isValid() const noexcept;
+    // qrect.h:523 —— out-of-line，**不是** constexpr。定义在 PkRect.cpp。
+    PkRectF normalized() const noexcept;
+
+    constexpr inline qreal left() const noexcept;
+    constexpr inline qreal top() const noexcept;
+    constexpr inline qreal right() const noexcept;
+    constexpr inline qreal bottom() const noexcept;
+
+    constexpr inline qreal x() const noexcept;
+    constexpr inline qreal y() const noexcept;
+    constexpr inline void setLeft(qreal pos) noexcept;
+    constexpr inline void setTop(qreal pos) noexcept;
+    constexpr inline void setRight(qreal pos) noexcept;
+    constexpr inline void setBottom(qreal pos) noexcept;
+    constexpr inline void setX(qreal pos) noexcept;
+    constexpr inline void setY(qreal pos) noexcept;
+
+    constexpr inline PkPointF topLeft() const noexcept;
+    constexpr inline PkPointF bottomRight() const noexcept;
+    constexpr inline PkPointF topRight() const noexcept;
+    constexpr inline PkPointF bottomLeft() const noexcept;
+    constexpr inline PkPointF center() const noexcept;
+
+    constexpr inline void setTopLeft(const PkPointF &p) noexcept;
+    constexpr inline void setBottomRight(const PkPointF &p) noexcept;
+
+    constexpr inline void moveLeft(qreal pos) noexcept;
+    constexpr inline void moveTop(qreal pos) noexcept;
+    constexpr inline void moveTopLeft(const PkPointF &p) noexcept;
+    constexpr inline void moveCenter(const PkPointF &p) noexcept;
+
+    constexpr inline void translate(qreal dx, qreal dy) noexcept;
+    constexpr inline void translate(const PkPointF &p) noexcept;
+    constexpr inline PkRectF translated(qreal dx, qreal dy) const noexcept;
+    constexpr inline PkRectF translated(const PkPointF &p) const noexcept;
+
+    constexpr inline void moveTo(qreal x, qreal y) noexcept;
+    constexpr inline void moveTo(const PkPointF &p) noexcept;
+
+    constexpr inline void setRect(qreal x, qreal y, qreal w, qreal h) noexcept;
+    // qrect.h:572 —— ⚠ **没有 noexcept**（同一对的 setRect 有）。与 PkRect 同一处
+    // 不对称，实测 probe_rectf2.cpp 确认 getRect=0 / setRect=1。
+    constexpr inline void getRect(qreal *x, qreal *y, qreal *w, qreal *h) const;
+
+    constexpr inline void setCoords(qreal x1, qreal y1, qreal x2, qreal y2) noexcept;
+    // qrect.h:575 —— ⚠ 同样**没有 noexcept**。
+    constexpr inline void getCoords(qreal *x1, qreal *y1, qreal *x2, qreal *y2) const;
+
+    constexpr inline void adjust(qreal x1, qreal y1, qreal x2, qreal y2) noexcept;
+    constexpr inline PkRectF adjusted(qreal x1, qreal y1, qreal x2, qreal y2) const noexcept;
+
+    constexpr inline PkSizeF size() const noexcept;
+    constexpr inline qreal width() const noexcept;
+    constexpr inline qreal height() const noexcept;
+    constexpr inline void setWidth(qreal w) noexcept;
+    constexpr inline void setHeight(qreal h) noexcept;
+    constexpr inline void setSize(const PkSizeF &s) noexcept;
+
+    // qrect.h:587-590 —— 前两个 out-of-line（PkRect.cpp），后两个转发到前两个。
+    PkRectF operator|(const PkRectF &r) const noexcept;
+    PkRectF operator&(const PkRectF &r) const noexcept;
+    inline PkRectF &operator|=(const PkRectF &r) noexcept;
+    inline PkRectF &operator&=(const PkRectF &r) noexcept;
+
+    // qrect.h:592-594 —— ⚠ **没有 proper 参数**（PkRect 那边有）。
+    bool contains(const PkRectF &r) const noexcept;
+    bool contains(const PkPointF &p) const noexcept;
+    inline bool contains(qreal x, qreal y) const noexcept;
+    inline PkRectF united(const PkRectF &other) const noexcept;
+    inline PkRectF intersected(const PkRectF &other) const noexcept;
+    bool intersects(const PkRectF &r) const noexcept;
+
+    friend constexpr inline bool operator==(const PkRectF &, const PkRectF &) noexcept;
+    friend constexpr inline bool operator!=(const PkRectF &, const PkRectF &) noexcept;
+
+    constexpr inline PkRect toRect() const noexcept;
+    // qrect.h:613 —— out-of-line（qrect.cpp），**不是** constexpr。
+    PkRect toAlignedRect() const noexcept;
+
+private:
+    // qrect.h:621-624。⚠ **左上角 + 宽高**，与 PkRect 的四坐标表示不同。
+    qreal xp;
+    qreal yp;
+    qreal w;
+    qreal h;
+};
+
+// ── PkRectF inline 成员（qrect.h:644-875）────────────────────────────────
+
+constexpr inline PkRectF::PkRectF() noexcept : xp(0.), yp(0.), w(0.), h(0.) {}
+
+// qrect.h:644-663 —— 四个带参构造。⚠ 只有 (topLeft,bottomRight) 那一个做减法
+// （`w = br.x() - tl.x()`），(l,t,w,h) 与 (topLeft,size) 直接摆四个字段，
+// PkRect 那边的 **+w-1** 在这里一个都没有。
+constexpr inline PkRectF::PkRectF(qreal aleft, qreal atop, qreal awidth, qreal aheight) noexcept
+    : xp(aleft), yp(atop), w(awidth), h(aheight) {}
+
+constexpr inline PkRectF::PkRectF(const PkPointF &atopLeft, const PkSizeF &asize) noexcept
+    : xp(atopLeft.x()), yp(atopLeft.y()), w(asize.width()), h(asize.height()) {}
+
+constexpr inline PkRectF::PkRectF(const PkPointF &atopLeft, const PkPointF &abottomRight) noexcept
+    : xp(atopLeft.x()), yp(atopLeft.y()),
+      w(abottomRight.x() - atopLeft.x()), h(abottomRight.y() - atopLeft.y()) {}
+
+// qrect.h:660-663 —— ⚠ 走的是 PkRect 的 **x()/y()/width()/height()**（差一已经
+//在 width() 里算过了），不是 left()/right()。实测
+// `PkRectF(PkRect(0,0,10,10)).right() == 10` 而 `PkRect(0,0,10,10).right() == 9`。
+constexpr inline PkRectF::PkRectF(const PkRect &r) noexcept
+    : xp(r.x()), yp(r.y()), w(r.width()), h(r.height()) {}
+
+// qrect.h:670-679 —— **三条公式逐字照抄**。Qt 在这两条上关掉了 -Wfloat-equal
+// （`w == 0.` 是有意的浮点相等），我们没有那套 pragma 宏，行为一致。
+// ⚠ 三者在 NaN 上**互不为补**：w=nan 时 isEmpty 与 isValid 同时为假。
+constexpr inline bool PkRectF::isNull() const noexcept
+{ return w == 0. && h == 0.; }
+
+constexpr inline bool PkRectF::isEmpty() const noexcept
+{ return w <= 0. || h <= 0.; }
+
+constexpr inline bool PkRectF::isValid() const noexcept
+{ return w > 0. && h > 0.; }
+
+// qrect.h:525-528 —— ⚠ **没有差一**：right() 就是 xp + w。
+constexpr inline qreal PkRectF::left() const noexcept
+{ return xp; }
+
+constexpr inline qreal PkRectF::top() const noexcept
+{ return yp; }
+
+constexpr inline qreal PkRectF::right() const noexcept
+{ return xp + w; }
+
+constexpr inline qreal PkRectF::bottom() const noexcept
+{ return yp + h; }
+
+constexpr inline qreal PkRectF::x() const noexcept
+{ return xp; }
+
+constexpr inline qreal PkRectF::y() const noexcept
+{ return yp; }
+
+// qrect.h:687-697 —— ⚠ set* 一族在这里**保住对边、改宽高**（PkRect 那边是
+// 只摆一个坐标）。setLeft 走 `diff` 中间量而不是 `w = w + xp - pos`：
+// 浮点下两者不等价（(xp+diff)-xp 与 xp+(diff-...) 的舍入不同），照抄。
+constexpr inline void PkRectF::setLeft(qreal pos) noexcept
+{ qreal diff = pos - xp; xp += diff; w -= diff; }
+
+constexpr inline void PkRectF::setRight(qreal pos) noexcept
+{ w = pos - xp; }
+
+constexpr inline void PkRectF::setTop(qreal pos) noexcept
+{ qreal diff = pos - yp; yp += diff; h -= diff; }
+
+constexpr inline void PkRectF::setBottom(qreal pos) noexcept
+{ h = pos - yp; }
+
+// qrect.h:536-537 —— setX/setY 是 setLeft/setTop 的别名（**不是**直接写 xp：
+// 它们跟着改宽高）。这与 PkRect 的 setX/setLeft 关系一致，但语义完全不同。
+constexpr inline void PkRectF::setX(qreal pos) noexcept
+{ setLeft(pos); }
+
+constexpr inline void PkRectF::setY(qreal pos) noexcept
+{ setTop(pos); }
+
+constexpr inline void PkRectF::setTopLeft(const PkPointF &p) noexcept
+{ setLeft(p.x()); setTop(p.y()); }
+
+constexpr inline void PkRectF::setBottomRight(const PkPointF &p) noexcept
+{ setRight(p.x()); setBottom(p.y()); }
+
+constexpr inline PkPointF PkRectF::topLeft() const noexcept
+{ return PkPointF(xp, yp); }
+
+constexpr inline PkPointF PkRectF::bottomRight() const noexcept
+{ return PkPointF(xp + w, yp + h); }
+
+constexpr inline PkPointF PkRectF::topRight() const noexcept
+{ return PkPointF(xp + w, yp); }
+
+constexpr inline PkPointF PkRectF::bottomLeft() const noexcept
+{ return PkPointF(xp, yp + h); }
+
+// qrect.h:711-712 —— ⚠ **`xp + w/2`**（先除后加），不是 `(left+right)/2`。
+// 浮点下两者的舍入不同，且 PkRect 那边走的是 qint64 中间量 —— 三种写法互不等价。
+constexpr inline PkPointF PkRectF::center() const noexcept
+{ return PkPointF(xp + w/2, yp + h/2); }
+
+// qrect.h:714-718 —— move* 一族只摆位置，宽高天然不变。
+constexpr inline void PkRectF::moveLeft(qreal pos) noexcept
+{ xp = pos; }
+
+constexpr inline void PkRectF::moveTop(qreal pos) noexcept
+{ yp = pos; }
+
+constexpr inline void PkRectF::moveTopLeft(const PkPointF &p) noexcept
+{ moveLeft(p.x()); moveTop(p.y()); }
+
+// qrect.h:738-739 —— ⚠ 用的是 **w/2**（真的一半），PkRect 那边用的是不带 +1 的
+// 跨距 x2-x1。实测 `(1,2,3,4).moveCenter(0,0)` → x=-1.5 y=-2。
+constexpr inline void PkRectF::moveCenter(const PkPointF &p) noexcept
+{ xp = p.x() - w/2; yp = p.y() - h/2; }
+
+constexpr inline qreal PkRectF::width() const noexcept
+{ return w; }
+
+constexpr inline qreal PkRectF::height() const noexcept
+{ return h; }
+
+constexpr inline PkSizeF PkRectF::size() const noexcept
+{ return PkSizeF(w, h); }
+
+// qrect.h:750-772 —— translate / moveTo 只动 xp/yp。
+constexpr inline void PkRectF::translate(qreal dx, qreal dy) noexcept
+{
+    xp += dx;
+    yp += dy;
+}
+
+constexpr inline void PkRectF::translate(const PkPointF &p) noexcept
+{
+    xp += p.x();
+    yp += p.y();
+}
+
+constexpr inline void PkRectF::moveTo(qreal ax, qreal ay) noexcept
+{
+    xp = ax;
+    yp = ay;
+}
+
+constexpr inline void PkRectF::moveTo(const PkPointF &p) noexcept
+{
+    xp = p.x();
+    yp = p.y();
+}
+
+constexpr inline PkRectF PkRectF::translated(qreal dx, qreal dy) const noexcept
+{ return PkRectF(xp + dx, yp + dy, w, h); }
+
+constexpr inline PkRectF PkRectF::translated(const PkPointF &p) const noexcept
+{ return PkRectF(xp + p.x(), yp + p.y(), w, h); }
+
+// qrect.h:783-813 —— getRect/setRect 说的是 (x,y,w,h)、getCoords/setCoords 说的
+// 是 (x1,y1,x2,y2)。⚠ 与 PkRect 不同的是这里**差的是加减法而不是 ±1**：
+// getCoords 输出 `xp + w`，setCoords 存 `xp2 - xp1`。
+constexpr inline void PkRectF::getRect(qreal *ax, qreal *ay, qreal *aaw, qreal *aah) const
+{
+    *ax = this->xp;
+    *ay = this->yp;
+    *aaw = this->w;
+    *aah = this->h;
+}
+
+constexpr inline void PkRectF::setRect(qreal ax, qreal ay, qreal aaw, qreal aah) noexcept
+{
+    this->xp = ax;
+    this->yp = ay;
+    this->w = aaw;
+    this->h = aah;
+}
+
+constexpr inline void PkRectF::getCoords(qreal *xp1, qreal *yp1, qreal *xp2, qreal *yp2) const
+{
+    *xp1 = xp;
+    *yp1 = yp;
+    *xp2 = xp + w;
+    *yp2 = yp + h;
+}
+
+constexpr inline void PkRectF::setCoords(qreal xp1, qreal yp1, qreal xp2, qreal yp2) noexcept
+{
+    xp = xp1;
+    yp = yp1;
+    w = xp2 - xp1;
+    h = yp2 - yp1;
+}
+
+// qrect.h:815-819 —— ⚠ 宽高的增量是 **xp2 - xp1**（两个增量之差），
+// 不是 PkRect 那种"四个坐标各加各的"。写成 `w += xp2` 会让 adjust(1,1,1,1)
+// 变成放大而不是平移（实测真 Qt：`(1,2,3,4).adjust(1,1,1,1)` → (2,3,3,4)，宽高不变）。
+constexpr inline void PkRectF::adjust(qreal xp1, qreal yp1, qreal xp2, qreal yp2) noexcept
+{ xp += xp1; yp += yp1; w += xp2 - xp1; h += yp2 - yp1; }
+
+constexpr inline PkRectF PkRectF::adjusted(qreal xp1, qreal yp1, qreal xp2, qreal yp2) const noexcept
+{ return PkRectF(xp + xp1, yp + yp1, w + xp2 - xp1, h + yp2 - yp1); }
+
+// qrect.h:821-831 —— ⚠ 直接写字段，**锚定的是左上角**（与 PkRect 语义相同，
+// 但那边要算 x2 = x1 + w - 1）。
+constexpr inline void PkRectF::setWidth(qreal aw) noexcept
+{ this->w = aw; }
+
+constexpr inline void PkRectF::setHeight(qreal ah) noexcept
+{ this->h = ah; }
+
+constexpr inline void PkRectF::setSize(const PkSizeF &s) noexcept
+{
+    w = s.width();
+    h = s.height();
+}
+
+// qrect.h:833-836 —— 转发到 contains(PkPointF)。**仍然自己一条 rec()**（规则三）。
+inline bool PkRectF::contains(qreal ax, qreal ay) const noexcept
+{
+    return contains(PkPointF(ax, ay));
+}
+
+inline PkRectF &PkRectF::operator|=(const PkRectF &r) noexcept
+{
+    *this = *this | r;
+    return *this;
+}
+
+inline PkRectF &PkRectF::operator&=(const PkRectF &r) noexcept
+{
+    *this = *this & r;
+    return *this;
+}
+
+inline PkRectF PkRectF::intersected(const PkRectF &r) const noexcept
+{
+    return *this & r;
+}
+
+inline PkRectF PkRectF::united(const PkRectF &r) const noexcept
+{
+    return *this | r;
+}
+
+// qrect.h:860-870 —— ⚠ **模糊比较**，四个分量各一次；PkRect 那边是整数精确相等。
+// **用 pkQtFuzzyCompare 而不是 qFuzzyCompare**：后者在「pk/test 的垫片先进 TU」
+// 那条真实共存路径上是 #define，会在**预处理期**把这里的函数体换成 pk/test 的
+// 实现（阈值相同但零侧分支不同）。对拍覆盖不到这类偷换 —— 编译行里根本没有那份
+// 垫片；钉住它的是 tests/rectf_macro_proof.cpp。
+// != **不是** ==(的取反)：它是四条 `!fuzzy` 的或，与 Qt 逐字一致（NaN 上两者
+// 可以同时为真/假，取反写法会分家）。
+constexpr inline bool operator==(const PkRectF &r1, const PkRectF &r2) noexcept
+{
+    return pkQtFuzzyCompare(r1.xp, r2.xp) && pkQtFuzzyCompare(r1.yp, r2.yp)
+           && pkQtFuzzyCompare(r1.w, r2.w) && pkQtFuzzyCompare(r1.h, r2.h);
+}
+
+constexpr inline bool operator!=(const PkRectF &r1, const PkRectF &r2) noexcept
+{
+    return !pkQtFuzzyCompare(r1.xp, r2.xp) || !pkQtFuzzyCompare(r1.yp, r2.yp)
+           || !pkQtFuzzyCompare(r1.w, r2.w) || !pkQtFuzzyCompare(r1.h, r2.h);
+}
+
+// qrect.h:872-875 —— ⚠ **不是"对 x/y/w/h 各做一次 qRound"**。取整发生在四条边
+// 上：左上角 qRound(xp)/qRound(yp)，右下角 qRound(xp+w)-1 / qRound(yp+h)-1
+// （-1 是换成 PkRect 的坐标表示）。走的是 (topLeft,bottomRight) 构造，所以
+// 构造那边不会再减一次。实测 `(0.49999999999999994,0,1,1).toRect()` 的内部坐标
+// 是 (1,0,1,0)：qRound 在左边界进位到 1，而 xp+w 在 double 里恰好舍入成 1.5、
+// qRound 给 2、减 1 得 1 —— 分开对 w 取整得不到这个结果。
+constexpr inline PkRect PkRectF::toRect() const noexcept
+{
+    return PkRect(PkPoint(qRound(xp), qRound(yp)),
+                  PkPoint(qRound(xp + w) - 1, qRound(yp + h) - 1));
+}
+
 #endif // PK_GEOMETRY_PKRECT_H

@@ -107,6 +107,7 @@ using PkPointF = pkoracle::PkPointF;
 using PkSize   = pkoracle::PkSize;
 using PkSizeF  = pkoracle::PkSizeF;
 using PkRect   = pkoracle::PkRect;
+using PkRectF  = pkoracle::PkRectF;
 
 static_assert(!std::is_same<QPoint,  PkPoint >::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
@@ -132,6 +133,18 @@ static_assert((int)Qt::IgnoreAspectRatio == (int)pkoracle::Qt::IgnoreAspectRatio
 static_assert(!std::is_same<QRect, PkRect>::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
 static_assert(sizeof(QRect) == sizeof(PkRect), "两侧布局不一致");
+static_assert(!std::is_same<QRectF, PkRectF>::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
+static_assert(sizeof(QRectF) == sizeof(PkRectF), "两侧布局不一致");
+// 提升方向两侧必须一致：整数矩形能隐式变浮点矩形，反向不行。
+// 若哪天替代品给 PkRect 加了吃 PkRectF 的构造，下面第二条会当场炸 ——
+// 那种"多一档能力"的偏离对拍本身看不见（它只比取值）。
+static_assert(std::is_convertible<QRect, QRectF>::value
+              == std::is_convertible<PkRect, PkRectF>::value,
+              "PkRect → PkRectF 的隐式提升与 Qt 不一致");
+static_assert(std::is_convertible<QRectF, QRect>::value
+              == std::is_convertible<PkRectF, PkRect>::value,
+              "PkRectF → PkRect 的隐式转换与 Qt 不一致");
 
 // ═══ 计数与记录 ════════════════════════════════════════════════════════════
 
@@ -237,6 +250,35 @@ static bool same_rect(const QRect &q, const PkRect &p)
 // 也有一条 rec()，坏了会单独现形。
 static QRect mkQ(int a, int b, int c, int d) { QRect r; r.setCoords(a, b, c, d); return r; }
 static PkRect mkP(int a, int b, int c, int d) { PkRect r; r.setCoords(a, b, c, d); return r; }
+
+// ── RectF ────────────────────────────────────────────────────────────────
+// ⚠ 浮点矩形一律按**四个内部字段 x/y/w/h** 打印与比较，不按 left/top/right/
+// bottom：后者带一次加法（right() == xp + w），拿它当比较手段会让"加法本身
+// 的舍入差"与"字段存错了"混成一件事，也会把 -0.0 这类只在字段里看得见的差异
+// 抹掉（-0.0 + 0.0 == +0.0）。四条取值器 x()/y()/width()/height() 各自独立、
+// 一行、无算术，正好当地基 —— 与整数版拿 left/top/right/bottom 当地基同理。
+// 比较走 same_double（**位**比较），不是 `==`：`==` 会把 +0/-0 判等、把 NaN
+// 判不等，而这两类正是 PkRectF 里真的会传播出去的（normalized 不翻正 -0.0、
+// 三谓词在 NaN 上互不为补）。
+static std::string qstr(const QRectF &r)
+{ return "[" + dstr(r.x()) + "," + dstr(r.y()) + ","
+              + dstr(r.width()) + "," + dstr(r.height()) + "]"; }
+static std::string qstr(const PkRectF &r)
+{ return "[" + dstr(r.x()) + "," + dstr(r.y()) + ","
+              + dstr(r.width()) + "," + dstr(r.height()) + "]"; }
+
+static bool same_rectf(const QRectF &q, const PkRectF &p)
+{
+    return same_double(q.x(), p.x()) && same_double(q.y(), p.y())
+        && same_double(q.width(), p.width()) && same_double(q.height(), p.height());
+}
+
+// 两侧都用 (l,t,w,h) 构造建矩形。**与整数版不同，这里不需要 setCoords**：
+// QRectF 内部存的就是 x/y/w/h，这个构造直接摆四个字段，够得到全部内部状态
+//（整数版必须走 setCoords，因为 (l,t,w,h) 构造做了 +w-1，摸不到 x2==x1-1
+// 那一档）。构造自己也各有一条 rec()，坏了会单独现形。
+static QRectF mkQF(double x, double y, double w, double h) { return QRectF(x, y, w, h); }
+static PkRectF mkPF(double x, double y, double w, double h) { return PkRectF(x, y, w, h); }
 
 // ═══ tag 谓词：**全部由输入的形态算出来**，没有一个是字面量常量 ═══════════
 
@@ -1354,6 +1396,399 @@ static void cmp_rect_contains_point(int x1, int y1, int x2, int y2, int px, int 
         bstr(q.contains(px, py, true)), bstr(p.contains(px, py, true)));
 }
 
+// ═══ RectF 族：tag 谓词 ════════════════════════════════════════════════════
+//
+// **整套骨架、语料生成器、tag 约定全部复用 Rect 族的**（shapeOf* 的
+// initializer_list 约定、`shape/` 前缀、双向交叉的输入形状、规则三一个重载一条
+// rec）。这一节只补**浮点矩形特有的谓词差异** —— 整数版的 axisShape 说的是
+// "跨距是 -1 / < -1 / 0 / 极值"，浮点版没有跨距这回事，说的是
+// "位置或尺寸是 nan / ±0.0/ 次正规 / 恰好 0 / 负 / 极大"。
+//
+// 一个轴的形态由**位置与尺寸两个分量**算出（约定见 shapeOfD 上方那段：
+// 一个 API 的 shape 必须由它全部参与分量算出，取最特殊的那种）。优先级从最能
+// 解释差异的往下排：非有限 > 符号零 > 次正规 > 尺寸恰好 0（三谓词与 &/contains
+// 的判空分界）> 尺寸为负（normalized / 翻正分支的分界）> 极大 > 普通。
+static std::string axisShapeF(double pos, double dim)
+{
+    if (nonFinite(pos) || nonFinite(dim)) return "nonfinite";
+    if (signedZero(pos) || signedZero(dim)) return "signed-zero";
+    if (subnormal(pos) || subnormal(dim)) return "subnormal";
+    if (dim == 0.0) return "zero-dim";
+    if (dim < 0.0) return "negative-dim";
+    if (std::fabs(pos) > 1e300 || std::fabs(dim) > 1e300) return "huge";
+    return "normal";
+}
+
+static std::string shapeOfRectF(double x, double y, double w, double h)
+{ return axisShapeF(x, w) + "-" + axisShapeF(y, h); }
+
+// 按 **Qt 自己的翻正规则**（`dim < 0` 时摊成 [pos+dim, pos]）算出一个轴上的
+// 闭区间。纯 double 算术，**不调用两侧任何一个实现** —— 所以拿它做 tag 不构成
+// "用被测物给自己贴标签"。⚠ 判据是 `< 0` 不是 `<= 0`：-0.0 走的是正宽那一支，
+// 这正是 normalized/operator& 里那条线。
+static void qtIntervalF(double pos, double dim, double &l, double &r)
+{ if (dim < 0) { l = pos + dim; r = pos; } else { l = pos; r = pos + dim; } }
+
+static std::string axisRelF(double ap, double ad, double bp, double bd)
+{
+    double l1, r1, l2, r2;
+    qtIntervalF(ap, ad, l1, r1);
+    qtIntervalF(bp, bd, l2, r2);
+    // NaN 单开一档：`<`/`>=`/`==` 在 NaN 上全为假，Qt 的每一条提前返回都不会
+    // 触发，于是含 NaN 的输入一路走到底。把它们混进 disjoint/partial 会让标签
+    // 说的事比事实宽（规则二）。
+    if (std::isnan(l1) || std::isnan(r1) || std::isnan(l2) || std::isnan(r2))
+        return "nan-axis";
+    // Qt 的 operator& / contains / intersects 在**任一轴 l == r** 时提前返回
+    //（不是 isNull()）—— 这一档要单独看得见。
+    if (l1 == r1 || l2 == r2) return "degenerate-axis";
+    if (l1 >= r2 || l2 >= r1) return "disjoint";
+    if (l1 == l2 && r1 == r2) return "same";
+    if (l2 >= l1 && r2 <= r1) return "a-covers-b";
+    if (l1 >= l2 && r1 <= r2) return "b-covers-a";
+    return "partial";
+}
+
+// 双目 tag。形状与整数版的 pairTag 逐字同构，只是换了浮点的形态谓词。
+static std::string pairTagF(double ax, double ay, double aw, double ah,
+                            double bx, double by, double bw, double bh)
+{
+    return "shape/" + shapeOfRectF(ax, ay, aw, ah)
+         + "^" + shapeOfRectF(bx, by, bw, bh)
+         + "/" + axisRelF(ax, aw, bx, bw) + "," + axisRelF(ay, ah, by, bh);
+}
+
+// normalized 专用：直接把"这个轴交不交换"做成 tag。boundary-zero 与 swap 只差
+// 一格，正是 `dim < 0` 写成 `dim <= 0` 时会挪动的那条线；signed-zero 单开一档
+// 是因为 -0.0 **不**交换而且宽度的符号位要原样留着。
+static std::string swapAxisF(double dim)
+{
+    if (std::isnan(dim)) return "nan";
+    if (signedZero(dim)) return "signed-zero";
+    if (dim == 0.0) return "boundary-zero";
+    if (dim < 0.0) return "swap";
+    return "keep";
+}
+
+// contains(point) 专用：点相对于翻正后区间落在哪。at-lo / at-hi 两档就是
+// **闭区间**的两条边（PkRectF 含边界、PkRect 因差一不含，两族在这里相反）。
+static std::string edgeTagF(double pos, double dim, double p)
+{
+    double l, r;
+    qtIntervalF(pos, dim, l, r);
+    if (std::isnan(l) || std::isnan(r) || std::isnan(p)) return "nan";
+    if (l == r) return "degenerate-axis";
+    if (p < l) return "below";
+    if (p == l) return "at-lo";
+    if (p == r) return "at-hi";
+    if (p > r) return "above";
+    return "inside";
+}
+
+// toRect / toAlignedRect 专用：取整只看**四条边**（qRound 在 x/y/x+w/y+h 上，
+// floor/ceil 同），所以 tag 也只由四条边算。
+// ⚠ out-of-int-range 一档是**两侧都 UB**（浮点→int 越界）：-fwrapv 管不着它，
+// 我们靠的是"两侧在本机编成同一条 cvttsd2si"。标签写实，不叫 "defined"。
+static std::string roundShapeF(double x, double y, double w, double h)
+{
+    const double edges[4] = { x, y, x + w, y + h };
+    for (double e : edges) if (nonFinite(e)) return "nonfinite-edge";
+    for (double e : edges) if (outOfIntRange(e)) return "out-of-int-range";
+    for (double e : edges) if (halfBoundary(e)) return "half-boundary";
+    for (double e : edges) if (nearHalfUlp(e)) return "near-half-ulp";
+    for (double e : edges) if (signedZero(e)) return "signed-zero-edge";
+    // 边界恰为整数 —— ceil 不进位的那一档，toAlignedRect 最在意的一格
+    for (double e : edges) if (e == std::floor(e)) return "exact-integer-edge";
+    return "fractional";
+}
+
+// 修改器实参的形态（与整数版 argShape 同构）
+static std::string argShapeF(std::initializer_list<double> vs)
+{
+    for (double v : vs) if (nonFinite(v)) return "nonfinite";
+    for (double v : vs) if (signedZero(v)) return "signed-zero";
+    for (double v : vs) if (subnormal(v)) return "subnormal";
+    for (double v : vs) if (v == 0.0) return "zero";
+    for (double v : vs) if (std::fabs(v) > 1e300) return "huge";
+    for (double v : vs) if (v < 0.0) return "negative";
+    return "positive";
+}
+
+static std::string rfin(double a, double b, double c, double d)
+{ return "[" + dstr(a) + "," + dstr(b) + "," + dstr(c) + "," + dstr(d) + "]"; }
+
+// ═══ RectF 族：逐 API 对拍 ════════════════════════════════════════════════
+
+// 无输入的 API（默认构造）：口径同 cmp_rect_constants。只跑一次。
+static void cmp_rectf_constants()
+{
+    rec("RF::defaultCtor", same_rectf(QRectF(), PkRectF()), "no-input", "QRectF()",
+        qstr(QRectF()), qstr(PkRectF()));
+}
+
+// 三个吃浮点的构造。**三条各自一个 rec**（规则三）：只有 (topLeft,bottomRight)
+// 做减法，另外两个直接摆字段 —— 做的事不一样。
+static void cmp_rectf_ctor(double a, double b, double c, double d)
+{
+    const std::string in = rfin(a, b, c, d);
+    const std::string sh = shapeOfRectF(a, b, c, d);
+    // (topLeft,bottomRight) 的宽高是**减出来**的，形态要按减法后的量判
+    const std::string shp = shapeOfRectF(a, b, c - a, d - b);
+
+    rec("RF::ctorLTWH", same_rectf(QRectF(a, b, c, d), PkRectF(a, b, c, d)), sh, in,
+        qstr(QRectF(a, b, c, d)), qstr(PkRectF(a, b, c, d)));
+    rec("RF::ctorPoints",
+        same_rectf(QRectF(QPointF(a, b), QPointF(c, d)),
+                   PkRectF(PkPointF(a, b), PkPointF(c, d))),
+        shp, in,
+        qstr(QRectF(QPointF(a, b), QPointF(c, d))),
+        qstr(PkRectF(PkPointF(a, b), PkPointF(c, d))));
+    rec("RF::ctorPointSize",
+        same_rectf(QRectF(QPointF(a, b), QSizeF(c, d)),
+                   PkRectF(PkPointF(a, b), PkSizeF(c, d))),
+        sh, in,
+        qstr(QRectF(QPointF(a, b), QSizeF(c, d))),
+        qstr(PkRectF(PkPointF(a, b), PkSizeF(c, d))));
+}
+
+// PkRect → PkRectF 的隐式提升。输入是**整数矩形的内部坐标**（走 setCoords，
+// 与 cmp_rect_* 同一套语料），这样才够得到 x2 == x1-1 那些整数侧的退化形态。
+static void cmp_rectf_from_rect(int x1, int y1, int x2, int y2)
+{
+    const QRect  q = mkQ(x1, y1, x2, y2);
+    const PkRect p = mkP(x1, y1, x2, y2);
+    rec("RF::ctorFromRect", same_rectf(QRectF(q), PkRectF(p)),
+        shapeOfRect(x1, y1, x2, y2), rin(x1, y1, x2, y2),
+        qstr(QRectF(q)), qstr(PkRectF(p)));
+}
+
+// 一元取值器 + normalized + 两个取整。输入是**四个字段** (x,y,w,h)。
+static void cmp_rectf_unary(double x, double y, double w, double h)
+{
+    const QRectF  q = mkQF(x, y, w, h);
+    const PkRectF p = mkPF(x, y, w, h);
+    const std::string in = rfin(x, y, w, h);
+    const std::string sh = shapeOfRectF(x, y, w, h);
+
+    rec("RF::left", same_double(q.left(), p.left()), sh, in,
+        dstr(q.left()), dstr(p.left()));
+    rec("RF::top", same_double(q.top(), p.top()), sh, in, dstr(q.top()), dstr(p.top()));
+    // ⚠ right/bottom 带一次加法，且**没有差一** —— 注入把它写成 xp+w-1 时
+    // 这两条（且只有这两条）会红，tag 落在普通形态上，一眼看得出不是特值问题。
+    rec("RF::right", same_double(q.right(), p.right()), sh, in,
+        dstr(q.right()), dstr(p.right()));
+    rec("RF::bottom", same_double(q.bottom(), p.bottom()), sh, in,
+        dstr(q.bottom()), dstr(p.bottom()));
+    rec("RF::x", same_double(q.x(), p.x()), sh, in, dstr(q.x()), dstr(p.x()));
+    rec("RF::y", same_double(q.y(), p.y()), sh, in, dstr(q.y()), dstr(p.y()));
+    rec("RF::width", same_double(q.width(), p.width()), sh, in,
+        dstr(q.width()), dstr(p.width()));
+    rec("RF::height", same_double(q.height(), p.height()), sh, in,
+        dstr(q.height()), dstr(p.height()));
+    rec("RF::size", same_szf(q.size(), p.size()), sh, in, qstr(q.size()), qstr(p.size()));
+
+    // 三条谓词的分界线各不相同，**各用各的 tag**。⚠ 浮点版的分界与整数版全不同：
+    // isNull 看 `w==0 && h==0`（-0.0 也算）、isEmpty 看 `<=0`、isValid 看 `>0`，
+    // 而三者在 NaN 上**同时为假**，所以 nan 一档要单独看得见。
+    rec("RF::isNull", q.isNull() == p.isNull(),
+        (w == 0.0 && h == 0.0) ? std::string("null-side") : sh,
+        in, bstr(q.isNull()), bstr(p.isNull()));
+    rec("RF::isEmpty", q.isEmpty() == p.isEmpty(),
+        (std::isnan(w) || std::isnan(h)) ? std::string("nan-side")
+        : (w <= 0.0 || h <= 0.0) ? std::string("empty-side")
+                                 : std::string("nonempty-side"),
+        in, bstr(q.isEmpty()), bstr(p.isEmpty()));
+    rec("RF::isValid", q.isValid() == p.isValid(),
+        (std::isnan(w) || std::isnan(h)) ? std::string("nan-side")
+        : (w > 0.0 && h > 0.0) ? std::string("valid-side")
+                               : std::string("invalid-side"),
+        in, bstr(q.isValid()), bstr(p.isValid()));
+
+    rec("RF::topLeft", same_ptf(q.topLeft(), p.topLeft()), sh, in,
+        qstr(q.topLeft()), qstr(p.topLeft()));
+    rec("RF::topRight", same_ptf(q.topRight(), p.topRight()), sh, in,
+        qstr(q.topRight()), qstr(p.topRight()));
+    rec("RF::bottomLeft", same_ptf(q.bottomLeft(), p.bottomLeft()), sh, in,
+        qstr(q.bottomLeft()), qstr(p.bottomLeft()));
+    rec("RF::bottomRight", same_ptf(q.bottomRight(), p.bottomRight()), sh, in,
+        qstr(q.bottomRight()), qstr(p.bottomRight()));
+
+    // center 是 `xp + w/2`（先除后加）—— 写成 (left+right)/2 会在极大值上溢出
+    // 到 inf，所以 huge 一档要看得见。
+    rec("RF::center", same_ptf(q.center(), p.center()), sh, in,
+        qstr(q.center()), qstr(p.center()));
+
+    rec("RF::normalized", same_rectf(q.normalized(), p.normalized()),
+        "x-" + swapAxisF(w) + "/y-" + swapAxisF(h),
+        in, qstr(q.normalized()), qstr(p.normalized()));
+
+    { double a1, b1, c1, d1, a2, b2, c2, d2;
+      q.getRect(&a1, &b1, &c1, &d1); p.getRect(&a2, &b2, &c2, &d2);
+      rec("RF::getRect", same_double(a1, a2) && same_double(b1, b2)
+                      && same_double(c1, c2) && same_double(d1, d2), sh, in,
+          rfin(a1, b1, c1, d1), rfin(a2, b2, c2, d2)); }
+    { double a1, b1, c1, d1, a2, b2, c2, d2;
+      q.getCoords(&a1, &b1, &c1, &d1); p.getCoords(&a2, &b2, &c2, &d2);
+      rec("RF::getCoords", same_double(a1, a2) && same_double(b1, b2)
+                        && same_double(c1, c2) && same_double(d1, d2), sh, in,
+          rfin(a1, b1, c1, d1), rfin(a2, b2, c2, d2)); }
+
+    // ⚠ 两个取整**各一条 rec 且共用同一个 roundShapeF**：它们在同一批输入上
+    // 系统性地给不同答案，把它们并成一条会让"toAlignedRect 抄成 toRect"这类
+    // 注入无法归因（注入实验 C 组正是这个）。
+    const std::string rsh = roundShapeF(x, y, w, h);
+    rec("RF::toRect", same_rect(q.toRect(), p.toRect()), rsh, in,
+        qstr(q.toRect()), qstr(p.toRect()));
+    rec("RF::toAlignedRect", same_rect(q.toAlignedRect(), p.toAlignedRect()), rsh, in,
+        qstr(q.toAlignedRect()), qstr(p.toAlignedRect()));
+}
+
+// 全部带标量/点/尺寸参数的修改器。**一个重载一条 rec**（规则三）。
+static void cmp_rectf_mutate(double x, double y, double w, double h, double a, double b)
+{
+    const QRectF  q0 = mkQF(x, y, w, h);
+    const PkRectF p0 = mkPF(x, y, w, h);
+    const std::string in = rfin(x, y, w, h) + "+(" + dstr(a) + "," + dstr(b) + ")";
+    const std::string sh = shapeOfRectF(x, y, w, h) + "^" + argShapeF({a, b});
+
+// 与整数版的 PK_MUT2 同一个理由：把**同一段源码**分别在 QRectF 与 PkRectF 上跑，
+// 两侧写成两段代码时"改了一侧忘改另一侧"是静默的。
+#define PK_MUTF2(label, ...)                                                  \
+    do { QRectF q2 = q0; PkRectF p2 = p0;                                     \
+         { QRectF &r = q2; __VA_ARGS__; }                                     \
+         { PkRectF &r = p2; __VA_ARGS__; }                                    \
+         rec(label, same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); } while (0)
+
+    // ⚠ set* 一族在浮点版里**保对边、改宽高**（整数版只摆一个坐标）——
+    // setLeft 还走 `diff` 中间量，舍入与 `w = w + xp - pos` 不等价。
+    PK_MUTF2("RF::setLeft", r.setLeft(a));
+    PK_MUTF2("RF::setTop", r.setTop(a));
+    PK_MUTF2("RF::setRight", r.setRight(a));
+    PK_MUTF2("RF::setBottom", r.setBottom(a));
+    PK_MUTF2("RF::setX", r.setX(a));
+    PK_MUTF2("RF::setY", r.setY(a));
+    PK_MUTF2("RF::setWidth", r.setWidth(a));
+    PK_MUTF2("RF::setHeight", r.setHeight(a));
+    PK_MUTF2("RF::moveLeft", r.moveLeft(a));
+    PK_MUTF2("RF::moveTop", r.moveTop(a));
+    PK_MUTF2("RF::moveToXY", r.moveTo(a, b));
+    PK_MUTF2("RF::setRect", r.setRect(a, b, a, b));
+    PK_MUTF2("RF::setCoords", r.setCoords(a, b, a, b));
+    PK_MUTF2("RF::translateXY", r.translate(a, b));
+    PK_MUTF2("RF::translatedXY", r = r.translated(a, b));
+
+    // 吃 QPointF / QSizeF 的那几个：两侧的实参类型不同，宏套不进来，逐条写。
+    { QRectF q2 = q0; PkRectF p2 = p0;
+      q2.setTopLeft(QPointF(a, b)); p2.setTopLeft(PkPointF(a, b));
+      rec("RF::setTopLeft", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRectF q2 = q0; PkRectF p2 = p0;
+      q2.setBottomRight(QPointF(a, b)); p2.setBottomRight(PkPointF(a, b));
+      rec("RF::setBottomRight", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRectF q2 = q0; PkRectF p2 = p0;
+      q2.moveTopLeft(QPointF(a, b)); p2.moveTopLeft(PkPointF(a, b));
+      rec("RF::moveTopLeft", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRectF q2 = q0; PkRectF p2 = p0;
+      q2.moveCenter(QPointF(a, b)); p2.moveCenter(PkPointF(a, b));
+      rec("RF::moveCenter", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRectF q2 = q0; PkRectF p2 = p0;
+      q2.moveTo(QPointF(a, b)); p2.moveTo(PkPointF(a, b));
+      rec("RF::moveToPoint", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRectF q2 = q0; PkRectF p2 = p0;
+      q2.translate(QPointF(a, b)); p2.translate(PkPointF(a, b));
+      rec("RF::translatePoint", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { const QRectF q2 = q0.translated(QPointF(a, b));
+      const PkRectF p2 = p0.translated(PkPointF(a, b));
+      rec("RF::translatedPoint", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRectF q2 = q0; PkRectF p2 = p0;
+      q2.setSize(QSizeF(a, b)); p2.setSize(PkSizeF(a, b));
+      rec("RF::setSize", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+
+#undef PK_MUTF2
+}
+
+// adjust / adjusted：四个增量，单独一层输入。
+// ⚠ 浮点版的宽高增量是 **xp2 - xp1**（两个增量之差），整数版是四个坐标各加各的。
+static void cmp_rectf_adjust(double x, double y, double w, double h,
+                             double d1, double d2, double d3, double d4)
+{
+    const QRectF  q0 = mkQF(x, y, w, h);
+    const PkRectF p0 = mkPF(x, y, w, h);
+    const std::string in = rfin(x, y, w, h) + "+" + rfin(d1, d2, d3, d4);
+    const std::string sh = shapeOfRectF(x, y, w, h) + "^" + argShapeF({d1, d2, d3, d4});
+
+    { QRectF q2 = q0; PkRectF p2 = p0;
+      q2.adjust(d1, d2, d3, d4); p2.adjust(d1, d2, d3, d4);
+      rec("RF::adjust", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { const QRectF q2 = q0.adjusted(d1, d2, d3, d4);
+      const PkRectF p2 = p0.adjusted(d1, d2, d3, d4);
+      rec("RF::adjusted", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+}
+
+// 双目：| & |= &= united intersected intersects contains(rect) == !=
+static void cmp_rectf_binary(double ax, double ay, double aw, double ah,
+                             double bx, double by, double bw, double bh)
+{
+    const QRectF  qa = mkQF(ax, ay, aw, ah), qb = mkQF(bx, by, bw, bh);
+    const PkRectF pa = mkPF(ax, ay, aw, ah), pb = mkPF(bx, by, bw, bh);
+    const std::string in = rfin(ax, ay, aw, ah) + "|" + rfin(bx, by, bw, bh);
+    const std::string tag = pairTagF(ax, ay, aw, ah, bx, by, bw, bh);
+
+    rec("RF::operator|", same_rectf(qa | qb, pa | pb), tag, in,
+        qstr(qa | qb), qstr(pa | pb));
+    rec("RF::operator&", same_rectf(qa & qb, pa & pb), tag, in,
+        qstr(qa & qb), qstr(pa & pb));
+    // united / intersected 是 | / & 的转发，**仍然各写一条 rec**（规则三：
+    // 转发链上坏掉的可能正是转发那一跳）。
+    rec("RF::united", same_rectf(qa.united(qb), pa.united(pb)), tag, in,
+        qstr(qa.united(qb)), qstr(pa.united(pb)));
+    rec("RF::intersected", same_rectf(qa.intersected(qb), pa.intersected(pb)), tag, in,
+        qstr(qa.intersected(qb)), qstr(pa.intersected(pb)));
+    { QRectF q2 = qa; PkRectF p2 = pa; q2 |= qb; p2 |= pb;
+      rec("RF::operator|=", same_rectf(q2, p2), tag, in, qstr(q2), qstr(p2)); }
+    { QRectF q2 = qa; PkRectF p2 = pa; q2 &= qb; p2 &= pb;
+      rec("RF::operator&=", same_rectf(q2, p2), tag, in, qstr(q2), qstr(p2)); }
+
+    rec("RF::intersects", qa.intersects(qb) == pa.intersects(pb), tag, in,
+        bstr(qa.intersects(qb)), bstr(pa.intersects(pb)));
+    // ⚠ contains(rect) **没有 proper 参数**（整数版有两条 rec，这里只有一条）。
+    // 它与 intersects 只差排除条件，抄串了正好在 "partial" 那一档上分家。
+    rec("RF::containsRect", qa.contains(qb) == pa.contains(pb), tag, in,
+        bstr(qa.contains(qb)), bstr(pa.contains(pb)));
+
+    // == / != 是**模糊比较**，与相对位置无关：tag 用形态对 + 逐分量的 fuzzy 关系
+    //（**自己算**，不调用两侧任何一个 operator==，否则等于用被测物给自己贴标签）。
+    auto fuzzyEq = [](double u, double v) {
+        const double au = std::fabs(u), av = std::fabs(v);
+        return std::fabs(u - v) * 1000000000000. <= (au < av ? au : av);
+    };
+    const int nEq = int(fuzzyEq(ax, bx)) + int(fuzzyEq(ay, by))
+                  + int(fuzzyEq(aw, bw)) + int(fuzzyEq(ah, bh));
+    const std::string eqtag = shapeOfRectF(ax, ay, aw, ah) + "^"
+                            + shapeOfRectF(bx, by, bw, bh) + "/fuzzy-"
+                            + std::to_string(nEq) + "of4";
+    rec("RF::operator==", (qa == qb) == (pa == pb), eqtag, in,
+        bstr(qa == qb), bstr(pa == pb));
+    rec("RF::operator!=", (qa != qb) == (pa != pb), eqtag, in,
+        bstr(qa != qb), bstr(pa != pb));
+}
+
+// contains(point) 的两个重载。**各一条 rec**（规则三）：contains(qreal,qreal)
+// 转发到 contains(PkPointF)，而**转发那一跳本身可能坏**。
+static void cmp_rectf_contains_point(double x, double y, double w, double h,
+                                     double px, double py)
+{
+    const QRectF  q = mkQF(x, y, w, h);
+    const PkRectF p = mkPF(x, y, w, h);
+    const std::string in = rfin(x, y, w, h) + "@(" + dstr(px) + "," + dstr(py) + ")";
+    const std::string tag = "x-" + edgeTagF(x, w, px) + "/y-" + edgeTagF(y, h, py);
+
+    rec("RF::containsPoint", q.contains(QPointF(px, py)) == p.contains(PkPointF(px, py)),
+        tag, in,
+        bstr(q.contains(QPointF(px, py))), bstr(p.contains(PkPointF(px, py))));
+    rec("RF::containsXY", q.contains(px, py) == p.contains(px, py), tag, in,
+        bstr(q.contains(px, py)), bstr(p.contains(px, py)));
+}
+
 // ═══ canary：证明比较管道是活的 ════════════════════════════════════════════
 //
 // 走的是与真实 API 完全相同的 rec() 与比较原语。三条都必须出现在 DIFFTAG 里，
@@ -1473,6 +1908,62 @@ static const int kHandRect[][4] = {
     {  0,  0, INT_MAX, INT_MAX },             // 跨距溢出
     { INT_MIN, INT_MIN, INT_MAX, INT_MAX },   // 跨距溢出到 0，center 靠 qint64
     { INT_MAX, INT_MAX, INT_MIN, INT_MIN },   // 反向极值：要交换且溢出
+};
+
+// ── Group 4：RectF 族的分量 token ────────────────────────────────────────
+//
+// **形状照抄 Group 3**（密集小域做满 + 特值域做满 + 手挑集与两个域双向交叉），
+// 换的只是 token 的内容：整数矩形关心的是"跨距是 -1 / < -1 / 极值"，浮点矩形
+// 关心的是"尺寸恰好 0 / 负 / ±0.0 / 次正规 / nan / inf / 半值边界"。
+// 四个字段共用同一套 token（位置与尺寸轮流取它们），这样每个分量位上都取得到
+// 每一个值 —— 与 Group 3 的理由完全相同。
+//
+// 密集小域：6 个 → 6⁴ = 1 296 个矩形，双目做满 1 296² ≈ 168 万组。
+// 这批值覆盖了尺寸相对 0 的全部关键位置（-1 = 负宽要翻正、-0.0 = 不翻正但符号
+// 位要留住、0.0 = 三谓词与 & 的判空分界、0.5 = 整数版够不到的小正宽、
+// 2.0 = 普通、inf = 非有限）。
+static const double kRectFTok6[] = { -1.0, -0.0, 0.0, 0.5, 2.0, INFINITY };
+// 特值域：5 个 → 5⁴ = 625 个矩形，双目做满 625² ≈ 39 万组。
+// NaN 单独放这里而不是塞进 kRectFTok6：混进密集域会让 168 万组里绝大多数都带
+// NaN（四个字段任一是 NaN 就整片走同一条路），把普通形态的覆盖度挤掉。
+static const double kRectFTok5[] = { NAN, -INFINITY, 1e308, 5e-324, 1.0 };
+// 一元/构造/修改器的底座域：10 个 → 10⁴ = 10 000 个矩形。一元 API 只有 4 个
+// 分量，做得起更大的域，正好把 toRect/toAlignedRect 最在意的**半值**塞进来。
+static const double kRectFTokU[] = {
+    -1.5, -1.0, -0.5, -0.0, 0.0, 0.5, 1.0, 2.5, INFINITY, NAN,
+};
+// 修改器/点的实参 token（含特值，让 setLeft(inf)、moveTo(nan) 这类走到）
+static const double kRectFArg[] = { -1.5, -0.0, 0.0, 0.5, INFINITY, NAN };
+// adjust 的增量：5⁴ = 625 组
+static const double kAdjDF[] = { -1.0, -0.0, 0.0, 0.5, NAN };
+// adjust 的矩形底座（4⁴ = 256，再乘 625 已经是 16 万组）
+static const double kRectFTok4[] = { -1.0, 0.0, 0.5, 2.0 };
+
+// 手挑对抗矩形，以 **(x, y, w, h) 四个字段**给出。每一条都对应一个已实测的
+// 语义分界，注释写的就是它守着哪一条（实测输出在 Task 5 报告 §2）。
+static const double kHandRectF[][4] = {
+    {  0,    0,    0,    0    },   // QRectF()：isNull，| 的偏心分支
+    {  5,    5,    0,    0    },   // null 但不在原点
+    {  0,    0,   -0.0, -0.0  },   // ⚠ -0.0 也算 isNull（`-0.0 == 0.` 为真）
+    {  0,    0,   -0.0,  1    },   // 只有一个轴是 -0.0：不翻正、符号位要留住
+    {  0,    0,   10,   10    },   // 差一的标准样本（right 必须是 10 不是 9）
+    {  0,    0,   -1,   -1    },   // empty 非 null，两个轴都要翻正
+    {  5,    5,   -3,   -3    },   // 负宽高且不在原点：翻正后是 (2,2,3,3)
+    { 20,   20,    5,    5    },   // 与上面几个完全不相交
+    {  0,    0,    0,   10    },   // 一个轴恰好退化成线：& / contains 的提前返回
+    {  0,    0,    0.5,  0.5  },   // ⚠ 整数矩形够不到的"小正宽"：isEmpty 必须为假
+    {  0,    0,    5e-324, 5e-324 }, // 次正规宽高：isValid 仍是真
+    { -1.5, -1.5,  1,    1    },   // toRect / toAlignedRect 分家的标准样本
+    { -0.5, -0.5,  1,    1    },   // 半值边界（负半值向 +∞ 取整）
+    {  0.5,  0.5,  1,    1    },
+    {  2.5,  2.5,  1,    1    },
+    {  0.49999999999999994, 0, 1, 1 }, // ⚠ qRound 进位 + xp+w 恰好舍入成 1.5
+    {  1e308, 0,  -1e308, 1   },   // 翻正后仍是有限量
+    { -1e308, 0,   1e308, 1   },   // right() 溢出到 inf
+    {  0,    0,    NAN,  1    },   // 三谓词在 NaN 上互不为补
+    {  0,    0,    INFINITY, INFINITY }, // isValid 为真的非有限矩形
+    { -INFINITY, -INFINITY, INFINITY, INFINITY }, // right() = nan
+    {  1e10,  0,   1,    1    },   // 取整越出 int 值域（两侧都是 UB）
 };
 
 template <typename T, std::size_t N>
@@ -1836,6 +2327,196 @@ int main()
         for (int g = 0; g < nHR; ++g)
             cmp_rect_binary(kHandRect[h][0], kHandRect[h][1], kHandRect[h][2], kHandRect[h][3],
                             kHandRect[g][0], kHandRect[g][1], kHandRect[g][2], kHandRect[g][3]);
+    }
+
+    // ═══ RectF 族（浮点）══════════════════════════════════════════════════
+    // 形状与上面的 Rect 族逐段对应，只换 token（理由见 Group 4 上方那段）。
+    const int nF6 = countOf(kRectFTok6), nF5 = countOf(kRectFTok5);
+    const int nFU = countOf(kRectFTokU), nF4 = countOf(kRectFTok4);
+    const int nFArg = countOf(kRectFArg), nAdjF = countOf(kAdjDF);
+    const int nHRF = countOf(kHandRectF);
+
+    cmp_rectf_constants();
+
+    // 构造函数：底座域 10⁴ 做满 + 手挑集
+    for (int i = 0; i < nFU; ++i)
+        for (int j = 0; j < nFU; ++j)
+            for (int k = 0; k < nFU; ++k)
+                for (int l = 0; l < nFU; ++l)
+                    cmp_rectf_ctor(kRectFTokU[i], kRectFTokU[j],
+                                   kRectFTokU[k], kRectFTokU[l]);
+    for (int h = 0; h < nHRF; ++h)
+        cmp_rectf_ctor(kHandRectF[h][0], kHandRectF[h][1],
+                       kHandRectF[h][2], kHandRectF[h][3]);
+
+    // PkRect → PkRectF 的提升：输入沿用**整数**语料（那边的退化形态才是重点）
+    for (int i = 0; i < nR6; ++i)
+        for (int j = 0; j < nR6; ++j)
+            for (int k = 0; k < nR6; ++k)
+                for (int l = 0; l < nR6; ++l)
+                    cmp_rectf_from_rect(kRectTok6[i], kRectTok6[j],
+                                        kRectTok6[k], kRectTok6[l]);
+    for (int i = 0; i < nRX; ++i)
+        for (int j = 0; j < nRX; ++j)
+            for (int k = 0; k < nRX; ++k)
+                for (int l = 0; l < nRX; ++l)
+                    cmp_rectf_from_rect(kRectTokX[i], kRectTokX[j],
+                                        kRectTokX[k], kRectTokX[l]);
+    for (int h = 0; h < nHR; ++h)
+        cmp_rectf_from_rect(kHandRect[h][0], kHandRect[h][1],
+                            kHandRect[h][2], kHandRect[h][3]);
+
+    // ── 一元：底座域 10 000 + 特值域 625 + 手挑 ──
+    for (int i = 0; i < nFU; ++i)
+        for (int j = 0; j < nFU; ++j)
+            for (int k = 0; k < nFU; ++k)
+                for (int l = 0; l < nFU; ++l)
+                    cmp_rectf_unary(kRectFTokU[i], kRectFTokU[j],
+                                    kRectFTokU[k], kRectFTokU[l]);
+    for (int i = 0; i < nF5; ++i)
+        for (int j = 0; j < nF5; ++j)
+            for (int k = 0; k < nF5; ++k)
+                for (int l = 0; l < nF5; ++l)
+                    cmp_rectf_unary(kRectFTok5[i], kRectFTok5[j],
+                                    kRectFTok5[k], kRectFTok5[l]);
+    for (int h = 0; h < nHRF; ++h)
+        cmp_rectf_unary(kHandRectF[h][0], kHandRectF[h][1],
+                        kHandRectF[h][2], kHandRectF[h][3]);
+
+    // ── 修改器：矩形 6⁴ × 实参 6²，再加特值域与手挑 ──
+    for (int i = 0; i < nF6; ++i)
+        for (int j = 0; j < nF6; ++j)
+            for (int k = 0; k < nF6; ++k)
+                for (int l = 0; l < nF6; ++l)
+                    for (int a = 0; a < nFArg; ++a)
+                        for (int b = 0; b < nFArg; ++b)
+                            cmp_rectf_mutate(kRectFTok6[i], kRectFTok6[j], kRectFTok6[k],
+                                             kRectFTok6[l], kRectFArg[a], kRectFArg[b]);
+    for (int i = 0; i < nF5; ++i)
+        for (int j = 0; j < nF5; ++j)
+            for (int k = 0; k < nF5; ++k)
+                for (int l = 0; l < nF5; ++l)
+                    for (int a = 0; a < nFArg; ++a)
+                        for (int b = 0; b < nFArg; ++b)
+                            cmp_rectf_mutate(kRectFTok5[i], kRectFTok5[j], kRectFTok5[k],
+                                             kRectFTok5[l], kRectFArg[a], kRectFArg[b]);
+    for (int h = 0; h < nHRF; ++h)
+        for (int a = 0; a < nFArg; ++a)
+            for (int b = 0; b < nFArg; ++b)
+                cmp_rectf_mutate(kHandRectF[h][0], kHandRectF[h][1], kHandRectF[h][2],
+                                 kHandRectF[h][3], kRectFArg[a], kRectFArg[b]);
+
+    // ── adjust：矩形 4⁴ / 手挑 × 增量 5⁴ ──
+    for (int i = 0; i < nF4; ++i)
+        for (int j = 0; j < nF4; ++j)
+            for (int k = 0; k < nF4; ++k)
+                for (int l = 0; l < nF4; ++l)
+                    for (int a = 0; a < nAdjF; ++a)
+                        for (int b = 0; b < nAdjF; ++b)
+                            for (int c = 0; c < nAdjF; ++c)
+                                for (int d = 0; d < nAdjF; ++d)
+                                    cmp_rectf_adjust(kRectFTok4[i], kRectFTok4[j],
+                                                     kRectFTok4[k], kRectFTok4[l],
+                                                     kAdjDF[a], kAdjDF[b],
+                                                     kAdjDF[c], kAdjDF[d]);
+    for (int h = 0; h < nHRF; ++h)
+        for (int a = 0; a < nAdjF; ++a)
+            for (int b = 0; b < nAdjF; ++b)
+                for (int c = 0; c < nAdjF; ++c)
+                    for (int d = 0; d < nAdjF; ++d)
+                        cmp_rectf_adjust(kHandRectF[h][0], kHandRectF[h][1],
+                                         kHandRectF[h][2], kHandRectF[h][3],
+                                         kAdjDF[a], kAdjDF[b], kAdjDF[c], kAdjDF[d]);
+
+    // ── contains(point)：点坐标由**矩形自己翻正后的区间**导出（l-0.5 / l / 中点
+    // / r / r+0.5），外加 NaN —— 这样闭区间的两条边在每个矩形上都真的被踩到；
+    // 固定 token 集做不到这一点。形状照抄整数版的 pointsAround。
+    {
+        auto runContainsF = [](double x, double y, double w, double h) {
+            double lx, rx, ly, ry;
+            qtIntervalF(x, w, lx, rx);
+            qtIntervalF(y, h, ly, ry);
+            const double xs[6] = { lx - 0.5, lx, (lx + rx) / 2, rx, rx + 0.5, NAN };
+            const double ys[6] = { ly - 0.5, ly, (ly + ry) / 2, ry, ry + 0.5, NAN };
+            for (int a = 0; a < 6; ++a)
+                for (int b = 0; b < 6; ++b)
+                    cmp_rectf_contains_point(x, y, w, h, xs[a], ys[b]);
+        };
+        for (int i = 0; i < nF6; ++i)
+            for (int j = 0; j < nF6; ++j)
+                for (int k = 0; k < nF6; ++k)
+                    for (int l = 0; l < nF6; ++l)
+                        runContainsF(kRectFTok6[i], kRectFTok6[j],
+                                     kRectFTok6[k], kRectFTok6[l]);
+        for (int i = 0; i < nF5; ++i)
+            for (int j = 0; j < nF5; ++j)
+                for (int k = 0; k < nF5; ++k)
+                    for (int l = 0; l < nF5; ++l)
+                        runContainsF(kRectFTok5[i], kRectFTok5[j],
+                                     kRectFTok5[k], kRectFTok5[l]);
+        for (int h = 0; h < nHRF; ++h)
+            runContainsF(kHandRectF[h][0], kHandRectF[h][1],
+                         kHandRectF[h][2], kHandRectF[h][3]);
+    }
+
+    // ── 双目：密集域做满 1 296²，特值域做满 625²，再加手挑 × 两个域的
+    // **双向**交叉（手挑值必须能出现在 a 侧和 b 侧的每一个分量位上）──
+    for (int i = 0; i < nF6; ++i)
+        for (int j = 0; j < nF6; ++j)
+            for (int k = 0; k < nF6; ++k)
+                for (int l = 0; l < nF6; ++l)
+                    for (int m = 0; m < nF6; ++m)
+                        for (int n = 0; n < nF6; ++n)
+                            for (int o = 0; o < nF6; ++o)
+                                for (int p = 0; p < nF6; ++p)
+                                    cmp_rectf_binary(kRectFTok6[i], kRectFTok6[j],
+                                                     kRectFTok6[k], kRectFTok6[l],
+                                                     kRectFTok6[m], kRectFTok6[n],
+                                                     kRectFTok6[o], kRectFTok6[p]);
+    for (int i = 0; i < nF5; ++i)
+        for (int j = 0; j < nF5; ++j)
+            for (int k = 0; k < nF5; ++k)
+                for (int l = 0; l < nF5; ++l)
+                    for (int m = 0; m < nF5; ++m)
+                        for (int n = 0; n < nF5; ++n)
+                            for (int o = 0; o < nF5; ++o)
+                                for (int p = 0; p < nF5; ++p)
+                                    cmp_rectf_binary(kRectFTok5[i], kRectFTok5[j],
+                                                     kRectFTok5[k], kRectFTok5[l],
+                                                     kRectFTok5[m], kRectFTok5[n],
+                                                     kRectFTok5[o], kRectFTok5[p]);
+    for (int h = 0; h < nHRF; ++h) {
+        for (int i = 0; i < nF6; ++i)
+            for (int j = 0; j < nF6; ++j)
+                for (int k = 0; k < nF6; ++k)
+                    for (int l = 0; l < nF6; ++l) {
+                        cmp_rectf_binary(kHandRectF[h][0], kHandRectF[h][1],
+                                         kHandRectF[h][2], kHandRectF[h][3],
+                                         kRectFTok6[i], kRectFTok6[j],
+                                         kRectFTok6[k], kRectFTok6[l]);
+                        cmp_rectf_binary(kRectFTok6[i], kRectFTok6[j],
+                                         kRectFTok6[k], kRectFTok6[l],
+                                         kHandRectF[h][0], kHandRectF[h][1],
+                                         kHandRectF[h][2], kHandRectF[h][3]);
+                    }
+        for (int i = 0; i < nF5; ++i)
+            for (int j = 0; j < nF5; ++j)
+                for (int k = 0; k < nF5; ++k)
+                    for (int l = 0; l < nF5; ++l) {
+                        cmp_rectf_binary(kHandRectF[h][0], kHandRectF[h][1],
+                                         kHandRectF[h][2], kHandRectF[h][3],
+                                         kRectFTok5[i], kRectFTok5[j],
+                                         kRectFTok5[k], kRectFTok5[l]);
+                        cmp_rectf_binary(kRectFTok5[i], kRectFTok5[j],
+                                         kRectFTok5[k], kRectFTok5[l],
+                                         kHandRectF[h][0], kHandRectF[h][1],
+                                         kHandRectF[h][2], kHandRectF[h][3]);
+                    }
+        for (int g = 0; g < nHRF; ++g)
+            cmp_rectf_binary(kHandRectF[h][0], kHandRectF[h][1],
+                             kHandRectF[h][2], kHandRectF[h][3],
+                             kHandRectF[g][0], kHandRectF[g][1],
+                             kHandRectF[g][2], kHandRectF[g][3]);
     }
 
     for (const auto &kv : g_tags)

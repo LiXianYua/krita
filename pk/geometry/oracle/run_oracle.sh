@@ -16,12 +16,17 @@ OUT=pk/geometry/build/geometry_difftest
 LOG=pk/geometry/build/geometry_difftest.out
 # 规则三（每个已实现的重载都要有自己的 rec()）的机器闸门，见下面 §APISEEN
 APIEXP=pk/geometry/oracle/api_seen.expected
-# 三族各一组 `<头文件>|<类名,类名…>|<map 文件>`。**加一族就在这里加一行**，
+# 每组一行 `<头文件>|<类名,类名…>|<map 文件>`。**加一族就在这里加一行**，
 # 闸门代码只有一份。Task 4 修复轮之前只有 Rect 一行（评审 M-4）。
+# ⚠ PkRect.h **出现两次**（PkRect 一行、PkRectF 一行）：解析器按
+# `class <名字>\s*\{ … private:` 定位类体，一个头文件里的两个类各查各的 map。
+# 不合成一行是有意的：两个类的重载集差得远（contains 一族的 proper 参数、
+# toRect/toAlignedRect），合成一份 map 之后"哪条声明属于哪个类"就只能靠人读了。
 API_GROUPS=(
     "pk/geometry/PkRect.h|PkRect|pk/geometry/oracle/rect_api.map"
     "pk/geometry/PkPoint.h|PkPoint,PkPointF|pk/geometry/oracle/point_api.map"
     "pk/geometry/PkSize.h|PkSize,PkSizeF|pk/geometry/oracle/size_api.map"
+    "pk/geometry/PkRect.h|PkRectF|pk/geometry/oracle/rectf_api.map"
 )
 
 [ -f "$QT/include/QtCore/qpoint.h" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/qpoint.h" >&2; exit 1; }

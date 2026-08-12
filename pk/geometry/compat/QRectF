@@ -1,0 +1,13 @@
+#pragma once
+#include "../PkRect.h"
+
+// <QRectF> 的垫片。与 compat/QRect 内容等同（Qt 那两个转发头也都指向同一份
+// qrect.h），完整理由见 compat/QRect。两份都写出来是因为调用点两种写法都有，
+// 而垫片是按**文件名**被找到的，宏改写不了 #include 的路径 —— 与
+// compat/QSize + compat/QSizeF、compat/QPoint + compat/QPointF 同一个形态。
+#ifndef QRect
+#define QRect PkRect
+#endif
+#ifndef QRectF
+#define QRectF PkRectF
+#endif

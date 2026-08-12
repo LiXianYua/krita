@@ -75,12 +75,12 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 | `PkGlobal.h` / `PkGlobal.cpp` | `qreal` `qAbs` `qMin` `qMax` `qBound` `qRound` `qFuzzyCompare` `qFuzzyIsNull` `qIsNaN` `qInf`，以及**宏改写不到**的 `pkQtFuzzyCompare` / `pkQtFuzzyIsNull`（见下） |
 | `PkPoint.h` / `PkPoint.cpp` | `PkPoint`（两个 `int`）与 `PkPointF`（两个 `qreal`），逐字抄自 `qpoint.h` |
 | `PkSize.h` / `PkSize.cpp` | `PkSize`（两个 `int`）与 `PkSizeF`（两个 `qreal`），逐字抄自 `qsize.h`；两个 `scaled(const Pk*&, mode)` 照 Qt 的形态放在 `.cpp` 里（`QSize::scaled` 定义在 `qsize.cpp`） |
-| `PkRect.h` / `PkRect.cpp` | `PkRect`（**四个 `int` 边界坐标 `x1/y1/x2/y2`，不是 x/y/w/h**），逐字抄自 `qrect.h`；`normalized` / `operator|` / `operator&` / `contains` ×2 / `intersects` 六个照 Qt 的形态放在 `.cpp` 里（Qt 那六个编在 `libQt5Core.so`，本机没有 `qrect.cpp` 源码，它们是**靠对拍逐输入逼出来的**） |
-| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` | `#define` 垫片，无扩展名。**`compat/QRect` 目前只定义 `QRect`**，`QRectF` 等 Task 5 |
-| `tests/` | `test_global.cpp`（12 函数 / 116 断言）、`test_point.cpp`（24 / 199）、`test_size.cpp`（31 / 214）、`test_rect.cpp`（38 / 见下）、两个共存 TU `coexist_*.cpp`、两个宏改写探针 `point_macro_proof.cpp` 与 `size_macro_proof.cpp` |
-| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect 三族）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `rect_api.map` / `point_api.map` / `size_api.map`（规则三的机器闸门，三族各一份，见下）** |
+| `PkRect.h` / `PkRect.cpp` | `PkRect`（**四个 `int` 边界坐标 `x1/y1/x2/y2`**）与 `PkRectF`（**四个 `qreal` 的左上角 + 宽高 `xp/yp/w/h`** —— ⚠ **两者内部表示不同，Qt 就是这么不对称的**），逐字抄自 `qrect.h`；`normalized` / `operator\|` / `operator&` / `contains` / `intersects` 两族各一套、外加 `PkRectF::toAlignedRect`，照 Qt 的形态放在 `.cpp` 里（Qt 那些编在 `libQt5Core.so`，本机没有 `qrect.cpp` 源码，它们是**靠对拍逐输入逼出来的**） |
+| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` `compat/QRectF` | `#define` 垫片，无扩展名。**六个几何垫片现在形态一致**：每个都把孪生的两个名字一起给（Qt 的转发头也是这样，包任一个都能拿到两个名字）。Task 5 补齐了 `QRectF`（偏离 16 已消） |
+| `tests/` | `test_global.cpp`（12 函数）、`test_point.cpp`（24）、`test_size.cpp`（31）、`test_rect.cpp`（38）、`test_rectf.cpp`（46）、两个共存 TU `coexist_*.cpp`、**三个**宏改写探针 `point_macro_proof.cpp` / `size_macro_proof.cpp` / `rectf_macro_proof.cpp`（口径：函数个数按 `cases/*_case.h` 的 `private Q_SLOTS:` 声明数，不含 harness 自带的 `initTestCase`/`cleanupTestCase`；`run_tests.sh` 打的 `Totals: N passed` 是 N = 函数数 + 2） |
+| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect / RectF 四族）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `rect_api.map` / `point_api.map` / `size_api.map` / `rectf_api.map`（规则三的机器闸门，四族各一份，见下）** |
 
-`PkRectF`/`PkTransform`、`graft/` 试接由后续 Task 交付；
+`PkTransform`、`graft/` 试接由后续 Task 交付；
 它们往 `oracle/geometry_difftest.cpp` 里**加节**，不另起文件。
 
 ### 规则三的机器闸门（Task 4 新增）
@@ -286,6 +286,56 @@ out-of-line 的（`qsize.cpp`），Task 4/5 的 `PkRect` 也不需要它。真�
 > `toRect` / `toAlignedRect` 有用量（18 / 64）但**接收者全是 `QRectF`**，
 > 那两个是 Task 5 的 `PkRectF` 的事，`QRect` 本身没有这两个成员。
 
+## RectF 族成员名的**接收者归属**（Task 5，判据①两个方向都要守）
+
+口径与 Rect 族**完全相同**：保留范围 **3 325 个文件**（`git ls-files` ∩ 保留前缀 ∩
+`.cpp`/`.h`/`.cc` − `tests/`|`benchmarks/` − `pk/`，**`.cc` 算在内**），三种调用形态
+`.name(` / `->name(` / `::name(`。
+
+**为什么大部分成员不用重查一遍**：实施计划的「API 面 = 族内并集」规则是按**族**算的
+（`QRect` 与 `QRectF` 是同一概念的整数/浮点孪生，调用点在两者间自由转换）。
+Task 4 已经把 Rect 族 51 个有用量的名字逐个归属到 Rect 族接收者，那份结论对
+`PkRectF` 一样有效 —— 所以 Task 5 只需要重查**两类**：① Task 4 判为 0 的那批是不是
+仍然是 0（防"多实现"）；② `QRectF` 独有、`QRect` 没有的成员（防"漏实现"）。
+两类的原始命中数都在下表，命令是
+`xargs -a fileset.txt grep -nE "(\.|->|::)[[:space:]]*<名字>[[:space:]]*\("`。
+
+### ② `QRectF` 独有的成员（Task 4 没有归属过，本 Task 新查）
+
+| 成员名 | 三形态总命中 | 本族真实调用点 | 判定 | 依据（原始行） |
+|---|---:|---:|---|---|
+| `toAlignedRect` | **64** | **64** | **实现** | 接收者全是 `QRectF`：`kis_qimage_pyramid.cpp:128` `rect.toAlignedRect()`、`KoClipMaskPainter.cpp:45` `globalClipRect.toAlignedRect()`、`KoSvgTextShape_p_output.cpp:93/180/613` `painter.transform().mapRect(...).toAlignedRect()`、`kis_global.h:325/326/342/343`、`KoBakedShapeRenderer.h:45/46`。`QRect` 本身没有这个成员，所以命中数与归属数相等 |
+| `toRect` | **18** | **18** | **实现** | 同上，接收者全是 `QRectF`：`SvgWriter.cpp:271` `SvgUtil::toUserSpace(bbox).toRect()`、`kis_liquify_transform_worker.cpp:446/453/570`（`.exactBounds()` / `.boundingRect()` 都返回 `QRectF`）、`kis_tool_select_rectangular.cc:49` `rect.normalized().toRect()`、`multigridpatterngenerator.cpp:215`、`CutThroughShapeStrategy.cpp:169` |
+| `QRectF(const QRect&)`（隐式提升） | 数不出来 | —— | **实现** | 构造无法按调用点 grep 归属（与偏离 6/14/19 同一个性质）。**照 Qt 头文件全集实现**，登记为偏离 19 |
+
+### ① Task 4 判为 0 的那批，Task 5 重查仍为 0
+
+复查命令与原始输出（`… | wc -l`，口径同上）：
+`setTopRight 0`、`setBottomLeft 0`、`moveRight 0`、`moveBottom 0`、`moveTopRight 0`、
+`moveBottomLeft 0`、`moveBottomRight 0`、`marginsAdded 0`、`marginsRemoved 0`、
+`fromCGRect 0`、`toCGRect 0` —— **与 Task 4 逐字一致，全部不实现**。
+
+另有三个命中非 0 但**接收者不在 Rect 族**的，Task 5 逐条复核后结论与 Task 4 相同：
+
+| 成员名 | 三形态总命中 | 本族真实调用点 | 判定 | 依据（原始行） |
+|---|---:|---:|---|---|
+| `transposed` | 5 | **0** | **不实现** | `kis_algebra_2d.cpp:935` 是 `QTransform::transposed()`；`kis_free_transform_strategy_gsl_helpers.cpp:356/357/358/359` 四处是 Eigen 矩阵的 `.transposed()`。**该名字归 Task 6 的 `PkTransform`** |
+| `unite` | 2 | **0** | **不实现** | `kis_layer_utils.cpp:1384` 是 `QSet<int>::unite`；`kis_transform_worker.cc:214` 的 `dstBounds` 声明在 `:207` 是 `KisFilterWeightsApplicator::LinePos` |
+| `intersect` | 1 | **0** | **不实现** | `kis_layer_utils.cpp:2567` 是 `QSet<int>::intersect`（`allKeyframeTimes().intersect(times)`） |
+
+### 与 `PkRect` 的重载集差别（不是笔误，是 Qt 的形状）
+
+- **`contains` 一族在 `QRectF` 上没有 `proper` 参数**：`QRect` 有
+  `contains(QRect,bool)` / `contains(QPoint,bool)` / `contains(int,int)` /
+  `contains(int,int,bool)` 四个；`QRectF` 只有 `contains(QRectF)` /
+  `contains(QPointF)` / `contains(qreal,qreal)` 三个。`rectf_api.map` 比
+  `rect_api.map` 少一行、且没有 `*Proper` 标签，是照抄的结果。
+- **`toRect` / `toAlignedRect` 只在 `QRectF` 上有**；`QRect` 没有反向的转换成员
+  （提升是构造函数的事）。
+- 合计：`PkRect` 类体 **62** 条声明、`PkRectF` **64** 条（口径：`run_oracle.sh` 的
+  规则三解析器从类体的纯声明里机械数出来的，不是人手数的；两份 `*_api.map` 的行数
+  与它逐条对账，不一致即 FAIL）。
+
 ## Qt 语义里必须照抄、看着像 bug 的地方
 
 都已在 `tests/test_global.cpp` 里逐条钉住，防止后来者"顺手修正"：
@@ -353,8 +403,11 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 13 | **对拍侧不带 `-fwrapv`，库与单测侧带** —— 同一个目录里两套编译旗标，刻意不一致 | 这一条**取代了 Task 4 初版登记的"9 行 `span-overflow-ub` 偏离"**（那 9 行连同 704 589 次差异已随本轮删除，完整来龙去脉见下面「对拍侧为什么不带 `-fwrapv`」）。为什么不统一：**对拍要与 `libQt5Core.so` 对等**，而那份 `.so` 是编好的、旗标改不动——`operator\|`/`operator&`/`contains(QRect)`/`intersects` 的实现就住在里面。对拍 TU 带 `-fwrapv` 时，同一条 `x2 - x1 + 1 < 0` 判据两侧取值不同，凭空造出 704 589 条与 `PkRect` 行为无关的差异；去掉之后 `mismatch=3`（只剩 canary）。**库/单测侧则必须带**：那边没有 `.so` 对等物的问题，而 `-Os` 无 `-fwrapv` 时 `pointManhattanLength()` 变红（Task 2 裁决，本轮复核仍复现）。两个旗标各自服务于一个目的，统一反而两边都不对。代价另见覆盖度缺口。 |
 | 14 | **`PkRect` 的四个构造函数按 Qt 头文件全集实现**，不按实测调用点裁剪 | 与偏离 6（运算符）同一个理由、同一个性质：构造函数无法按调用点 grep 归属（`QRect(a,b,c,d)` 这种写法数不出接收者），因此**没有实测用量数字**可依。范围 = `qrect.h` 里为 `QRect` 声明的全部构造，一个不多一个不少（Darwin 专有的 `fromCGRect` 除外，那个有 `#if defined(Q_OS_DARWIN)` 卫兵且实测 0）。 |
 | 15 | **`PkRect` 不实现 `unite` / `intersect`**（Qt5 已废弃的两个别名），与实施计划的字面要求相反 | 计划写的是「实测各 1–2 处调用点，**用量 > 0 就实现**」。本 Task 按三形态重新归属，**实测证伪**：`intersect` 唯一命中是 `QSet<int>::intersect`（`kis_layer_utils.cpp:2567`），`unite` 两处分别是 `QSet<int>::unite`（`kis_layer_utils.cpp:1384`）与 `KisFilterWeightsApplicator::LinePos::unite`（`kis_transform_worker.cc:214`，`dstBounds` 的声明在 `:207`）。**Rect 族真实调用点 0**，按判据①「一项不多」不实现。这是执行判据①，不是缩范围。 |
-| 16 | **`compat/QRect` 目前只 `#define QRect`，没有 `QRectF`** | `PkRectF` 是 Task 5 的交付物，现在还不存在。与 `compat/QPoint`（同时给 `QPoint`/`QPointF`）、`compat/QSize`（同时给两个）的形态**暂时不一致**，**Task 5 必须补齐 —— 这是本条的指派对象，别让它跨 Task 沉下去**。后果说清楚：在那之前 `#include <QRect>` 之后直接用 `QRectF` 的调用点会编不过 —— **已知且有主的缺口，不是漏项**。刻意**不加 `#error`**：垫片是给试接与 S 线用的，`#error` 会把"用到 `QRect` 的 TU"也一并打死，而那些 TU 现在是能用的；编不过时的报错（`QRectF 未声明`）已经足够指向这里。复评同意这个判断。 |
+| 16 | ~~**`compat/QRect` 目前只 `#define QRect`，没有 `QRectF`**~~ —— **Task 5 已补齐，本条不再是偏离** | 原文登记的是一条**跨 Task 的半成品**：`PkRectF` 当时还不存在，`compat/QRect` 只给了 `QRect` 一个名字，于是 `#include <QRect>` 之后直接用 `QRectF` 的调用点会编不过。Task 5 交付 `PkRectF` 的同时补上了 `#define QRectF PkRectF`，并新建 `compat/QRectF`（内容与 `compat/QRect` 等同 —— 垫片是按**文件名**被找到的，宏改写不了 `#include` 的路径）。六个几何垫片现在形态一致：每个都把孪生的两个名字一起给。保留本行而不是删掉，是为了让「这条曾经存在、被指派给谁、什么时候消的」在 README 里留痕。 |
 | 17 | `PkRect` 的默认构造函数**函数体挪到类体外**（Qt 写在类体里） | 取值一字不差（`x1(0), y1(0), x2(-1), y2(-1)`），改的只是位置。理由是工程性的：`run_oracle.sh` 的规则三闸门要从 `PkRect.h` 的**类体**机械解析出重载清单，类体里混着初始化列表会让那个解析多一条只为它存在的特例。**无行为差异**，`tests/test_rect.cpp` 的 `rectDefaultIsNullSentinel` 与 `PkRect.cpp` 的 `static_assert(PkRect().isNull())` 各钉一遍。 |
+| 18 | **`PkRectF::toAlignedRect` 用 `std::floor` / `std::ceil`，Qt 用 `qFloor` / `qCeil`（`qmath.h`）** | `qmath.h` 的 `qFloor(qreal v)` 就是 `int(std::floor(v))`、`qCeil` 同（只是把 `int(...)` 收进函数里），逐字等价。不把 `qFloor`/`qCeil` 提进 `PkGlobal.h` 是因为它们在保留范围内于 **Rect 族没有调用点** —— 导出去才是违反判据①（与偏离 7 的 `qIsNull` 同一个处理）。`qmath.h` 整体归谁未定，本条同时是给后续线的提醒。取值一致由 149 255 069 次对拍里 `RF::toAlignedRect` 那条 `rec()` 逐输入证明（零真实差异），并被注入实验 C 组反证（抄成 `toRect()` 的实现 → 8 548 次差异、5 个未声明 tag）。 |
+| 19 | **`PkRectF` 的五个构造函数按 Qt 头文件全集实现**，不按实测调用点裁剪 | 与偏离 6（运算符）、偏离 14（`PkRect` 的构造）同一个理由、同一个性质：构造函数无法按调用点 grep 归属。范围 = `qrect.h` 里为 `QRectF` 声明的全部构造，一个不多一个不少（Darwin 专有的 `fromCGRect` 除外，有 `#if defined(Q_OS_DARWIN)` 卫兵且实测 0）。 |
+| 20 | `PkRectF` 的默认构造函数**函数体挪到类体外**（Qt 写在类体里） | 与偏离 17（`PkRect`）逐字同理：取值一字不差（`xp(0.), yp(0.), w(0.), h(0.)`），改的只是位置，为的是让 `run_oracle.sh` 的规则三闸门能从**类体的纯声明**机械解析出重载清单。**无行为差异**，`tests/test_rectf.cpp` 的 `rectfDefaultIsAllZero` 与 `PkRect.cpp` 的 `static_assert(PkRectF().isNull())` 各钉一遍。 |
 
 ## 覆盖度缺口
 
@@ -570,6 +623,43 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
   `QDataStream` 与 `QSize` 同行、`QVariant` 与 `QSize` 同行 —— **各 0 次**。
   所以 Size 族这三组不实现不欠 R-02/R-12 任何东西（`QRect` 那边欠 1 处，见上）。
   `qDebug() << <某个 size>` 形态的行有 16 处，归 R-08 日志线。
+
+### Task 5（RectF 族）的结构性缺口
+
+1. **`toRect` / `toAlignedRect` 在越界输入上两侧都是 UB，`-fwrapv` 管不着。**
+   浮点→`int` 的越界转换（`int(std::floor(1e10))`、`qRound(1e10)`）是未定义行为的
+   另一类，`-fwrapv` 只管整数溢出。我们靠的是"两侧在本机都编成同一条 `cvttsd2si`"，
+   实测取值一致（对拍里这批输入贴 `out-of-int-range` 这个 tag，零真实差异）。
+   **这不等于换一个编译器/架构也一致** —— 与 `-fwrapv` 那条同类，标签写实、不叫
+   "defined"。更麻烦的一点：`toAlignedRect` 是 **out-of-line**（Qt 那份编在
+   `libQt5Core.so` 里），它内部的 `xmax - xmin` 是有符号减法，两侧旗标不对等的
+   风险与 Task 4 的 `operator|`/`operator&` 完全同型 —— 本轮 `run_oracle.sh` 不带
+   `-fwrapv`（与 `.so` 同旗标），实测 `RF::toAlignedRect` 零真实差异。
+2. **`PK_COMPARE` 对 `double` 走的是 `pk/test` 的模糊比较（相对 1e-12），不是位相等。**
+   RectF 族几乎所有量都是 `double`，所以 `test_rectf.cpp` 里凡是要主张"位一致"
+   （±0.0、NaN、次正规）的断言一律用 `PK_VERIFY` + 本地的 `sameD()`（`memcpy` 到
+   `uint64_t` 比位）。这是 R-11 harness 的能力边界，跨线，R-03 内不修。
+3. **注入实验 E 是一次"假注入"，记在这里当反例。**
+   把 `operator&` 的第一处判空 `if (l1 == r1)` 改成 `if (l1 >= r1)`，单测与对拍
+   **双双全绿（`exit=0`、`mismatch=3` 只剩 canary）**。复核后确认这**不是覆盖漏洞，
+   而是一次语义等价改写**：Qt 的摊平步骤保证了 `l1 > r1` 不可达 —— `w >= 0`（含
+   `+0.0`/`-0.0`/`NaN`）走 `r1 = xp + w`，IEEE 加法单调，`xp + w >= xp`；`w < 0` 走
+   `l1 = xp + w <= xp = r1`；任一侧出 `NaN` 时两个比较都为假、分支一致。
+   于是 `l1 >= r1` 与 `l1 == r1` 在全部可达状态上同真同假。**留这条是因为"改了源码
+   却没变红"第一反应容易写成覆盖缺口** —— 先证明这个改写是不是等价，再下结论。
+   真正的 NaN 短路注入（E2：把 `l1 >= r2 || l2 >= r1` 改写成德摩根形式
+   `!(l1 < r2 && l2 < r1)`，只在 NaN 上分家）被抓到 **215 970 次差异 / 1 554 个未声明
+   tag，全部落在 `nan-axis` 那一档**，单测也红了一条。
+4. **`operator==` 的模糊比较在对拍里只比"两侧结论一致"，不比阈值本身。**
+   `RF::operator==` 的 `rec()` 比的是 `(qa == qb) == (pa == pb)`，所以"两侧用了同一
+   个错阈值"这种情况对拍看不见。堵这个洞的是 `tests/rectf_macro_proof.cpp`（预处理期
+   宏改写探针）与 `test_rectf.cpp::rectfEqualityIsFuzzy` 的实测期望值，不是对拍。
+5. **`qHash(QRectF)` / `QDataStream` 的 `<<`/`>>` / `QDebug` 的 `<<` 不实现**，
+   与 Rect 族同一个理由（归 R-02 / R-12 / R-08）。本 Task 实测（口径同上：3 325 个
+   文件，裸 `grep -ohE` 计行）：`QHash<QRectF` **0**、`QSet<QRectF` **0**、
+   `qHash(...QRectF` **0**、同一行同时出现 `qDebug` 与 `QRectF` 的 **0**；
+   对照 `QHash<QRect` **1**（那一处归 R-02 接哈希容器时处理）。
+   **所以 RectF 这一侧目前没有任何调用点在等这三组**，比 Rect 那侧还干净。
 
 ## 与决策文档 / 实施计划的差异（**只报告，不修改那些文档**）
 
