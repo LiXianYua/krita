@@ -33,7 +33,6 @@
 #include "kis_action.h"
 #include <KisCursorOverrideLock.h>
 
-#include "ToolReferenceImagesWidget.h"
 #include "KisReferenceImageCollection.h"
 
 ToolReferenceImages::ToolReferenceImages(KoCanvasBase * canvas)
@@ -266,27 +265,7 @@ void ToolReferenceImages::slotSelectionChanged()
     auto layer = m_layer.toStrongRef();
     if (!layer) return;
 
-    m_optionsWidget->selectionChanged(layer->shapeManager()->selection());
     updateActions();
-}
-
-QList<QPointer<QWidget>> ToolReferenceImages::createOptionWidgets()
-{
-    // Instead of inheriting DefaultTool's multi-tab implementation, inherit straight from KoToolBase
-    return KoToolBase::createOptionWidgets();
-}
-
-QWidget *ToolReferenceImages::createOptionWidget()
-{
-    if (!m_optionsWidget) {
-        m_optionsWidget = new ToolReferenceImagesWidget(this);
-        // See https://bugs.kde.org/show_bug.cgi?id=316896
-        QWidget *specialSpacer = new QWidget(m_optionsWidget);
-        specialSpacer->setObjectName("SpecialSpacer");
-        specialSpacer->setFixedSize(0, 0);
-        m_optionsWidget->layout()->addWidget(specialSpacer);
-    }
-    return m_optionsWidget;
 }
 
 bool ToolReferenceImages::isValidForCurrentLayer() const

@@ -20,7 +20,6 @@
 #include <defaulttool/DefaultTool.h>
 #include <defaulttool/DefaultToolFactory.h>
 
-class ToolReferenceImagesWidget;
 class KisReferenceImagesLayer;
 
 class ToolReferenceImages : public DefaultTool
@@ -44,9 +43,6 @@ public:
     QMenu* popupActionsMenu() override;
 
 protected:
-    QList<QPointer<QWidget>> createOptionWidgets() override;
-    QWidget *createOptionWidget() override;
-
     bool isValidForCurrentLayer() const override;
     KoShapeManager *shapeManager() const override;
     KoSelection *koSelection() const override;
@@ -79,8 +75,6 @@ public Q_SLOTS:
 
 
 private:
-    friend class ToolReferenceImagesWidget;
-    ToolReferenceImagesWidget *m_optionsWidget = nullptr;
     KisWeakSharedPtr<KisReferenceImagesLayer> m_layer;
 
     KisDocument *document() const;

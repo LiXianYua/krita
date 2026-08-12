@@ -9,8 +9,6 @@
 */
 
 #include "DefaultTool.h"
-#include "DefaultToolGeometryWidget.h"
-#include "DefaultToolTabbedWidget.h"
 #include "SelectionDecorator.h"
 #include "ShapeMoveStrategy.h"
 #include "ShapeRotateStrategy.h"
@@ -426,7 +424,6 @@ DefaultTool::DefaultTool(KoCanvasBase *canvas, bool connectToSelectedShapesProxy
     , m_mouseWasInsideHandles(false)
     , m_textOutlineHelper(new KoSvgTextShapeOutlineHelper(canvas))
     , m_selectionHandler(new SelectionHandler(this))
-    , m_tabbedOptionWidget(0)
     , m_textPropertyInterface(new DefaultToolTextPropertiesInterface(this))
 {
     setupActions();
@@ -515,14 +512,10 @@ void DefaultTool::slotActivateEditStrokeGradient(bool value)
 void DefaultTool::slotActivateEditFillMeshGradient(bool value)
 {
     if (value) {
-        connect(this, SIGNAL(meshgradientHandleSelected(KoShapeMeshGradientHandles::Handle)),
-                m_tabbedOptionWidget, SLOT(slotMeshGradientHandleSelected(KoShapeMeshGradientHandles::Handle)));
         addInteractionFactory(
             new MoveMeshGradientHandleInteractionFactory(KoFlake::Fill, 1,
                                                          EditFillMeshGradientFactoryId, this));
     } else {
-        disconnect(this, SIGNAL(meshgradientHandleSelected(KoShapeMeshGradientHandles::Handle)),
-                   m_tabbedOptionWidget, SLOT(slotMeshGradientHandleSelected(KoShapeMeshGradientHandles::Handle)));
         removeInteractionFactory(EditFillMeshGradientFactoryId);
     }
 }
@@ -1531,10 +1524,6 @@ void DefaultTool::activate(const QSet<KoShape *> &shapes)
         canvas2->viewManager()->textPropertyManager()->setTextPropertiesInterface(m_textPropertyInterface);
         m_textPropertyInterface->slotSelectionChanged();
     }
-
-    if (m_tabbedOptionWidget) {
-        m_tabbedOptionWidget->activate();
-    }
 }
 
 void DefaultTool::deactivate()
@@ -1584,10 +1573,6 @@ void DefaultTool::deactivate()
     if (canvas2) {
         canvas2->viewManager()->textPropertyManager()->setTextPropertiesInterface(nullptr);
         m_textPropertyInterface->clearSelection();
-    }
-
-    if (m_tabbedOptionWidget) {
-        m_tabbedOptionWidget->deactivate();
     }
 }
 
@@ -1943,37 +1928,6 @@ void DefaultTool::selectionReorder(KoShapeReorderCommand::MoveShapeType order)
     }
 }
 
-QList<QPointer<QWidget> > DefaultTool::createOptionWidgets()
-{
-    QList<QPointer<QWidget> > widgets;
-
-    m_tabbedOptionWidget = new DefaultToolTabbedWidget(this);
-
-    if (isActivated()) {
-        m_tabbedOptionWidget->activate();
-    }
-    widgets.append(m_tabbedOptionWidget);
-
-    connect(m_tabbedOptionWidget,
-            SIGNAL(sigSwitchModeEditFillGradient(bool)),
-            SLOT(slotActivateEditFillGradient(bool)));
-
-    connect(m_tabbedOptionWidget,
-            SIGNAL(sigSwitchModeEditStrokeGradient(bool)),
-            SLOT(slotActivateEditStrokeGradient(bool)));
-
-    connect(m_tabbedOptionWidget,
-            SIGNAL(sigSwitchModeEditFillGradient(bool)),
-            SLOT(slotActivateEditFillMeshGradient(bool)));
-    // TODO: strokes!!
-
-    connect(m_tabbedOptionWidget,
-            SIGNAL(sigMeshGradientResetted()),
-            SLOT(slotResetMeshGradientState()));
-
-    return widgets;
-}
-
 void DefaultTool::canvasResourceChanged(int key, const QVariant &res)
 {
     if (key == HotPosition) {
@@ -2051,7 +2005,8 @@ KoInteractionStrategy *DefaultTool::createStrategy(KoPointerEvent *event)
         if (handle != KoFlake::NoHandle) {
             // resizing or shearing only with left mouse button
             if (insideSelection) {
-                bool forceUniformScaling = m_tabbedOptionWidget && m_tabbedOptionWidget->useUniformScaling();
+                // 几何面板（uniform-scaling 复选框）已删除；面板不存在时原逻辑本就恒为 false
+                bool forceUniformScaling = false;
                 return new ShapeResizeStrategy(this, selection, event->point, handle, forceUniformScaling);
             }
 

@@ -26,7 +26,6 @@ class KisSignalMapper;
 class KoInteractionStrategy;
 class KoShapeMoveCommand;
 class KoSelection;
-class DefaultToolTabbedWidget;
 class KisViewManager;
 class DefaultToolTextPropertiesInterface;
 
@@ -147,8 +146,6 @@ public: // Events
 
     void explicitUserStrokeEndRequest() override;
 protected:
-    QList<QPointer<QWidget> > createOptionWidgets() override;
-
     KoInteractionStrategy *createStrategy(KoPointerEvent *event) override;
 
 protected:
@@ -207,8 +204,6 @@ private:
     qreal m_angle;
     KoToolSelection *m_selectionHandler;
     friend class SelectionHandler;
-
-    DefaultToolTabbedWidget *m_tabbedOptionWidget;
 
     KisSignalMapper *m_alignSignalsMapper {0};
     KisSignalMapper *m_distributeSignalsMapper {0};
