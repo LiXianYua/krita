@@ -12,6 +12,7 @@
 #include "SvgTextTool.h"
 #include <qmath.h>
 #include <QDebug>
+#include <QVector2D>
 
 SvgChangeTextPathInfoStrategy::SvgChangeTextPathInfoStrategy(SvgTextTool *tool, KoSvgTextShape *shape, const QPointF &clicked, int textCursorPos)
     :KoInteractionStrategy(tool)

@@ -20,7 +20,6 @@
 #include "SvgTextRemoveCommand.h"
 #include "KoSvgConvertTextTypeCommand.h"
 #include "SvgTextShortCuts.h"
-#include "SvgTextToolOptionsModel.h"
 #include "SvgTextTypeSettingStrategy.h"
 #include "SvgTextChangeTransformsOnRange.h"
 #include "SvgChangeTextPathInfoStrategy.h"
@@ -31,8 +30,6 @@
 #include <QDesktopServices>
 #include <QApplication>
 #include <QStyle>
-#include <QDockWidget>
-#include <QQuickItem>
 #include <QActionGroup>
 
 #include <klocalizedstring.h>
@@ -68,9 +65,6 @@
 
 #include <KisTextPropertiesManager.h>
 #include <KisViewManager.h>
-#include <KisQQuickWidget.h>
-#include <QQmlError>
-#include <KisMainWindow.h>
 
 #include "KisHandlePainterHelper.h"
 #include "kis_tool_utils.h"
@@ -98,7 +92,6 @@ static bool debugEnabled()
 
 SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
     : KoToolBase(canvas)
-    , m_optionManager(new SvgTextToolOptionsManager(this))
     , m_textCursor(canvas)
     , m_textOutlineHelper(new KoSvgTextShapeOutlineHelper(canvas))
 {
@@ -125,7 +118,6 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
         "svg_remove_transforms_from_range",
         "svg_clear_formatting"
     };
-    connect(&m_textCursor, SIGNAL(sigOpenGlyphPalette()), this, SLOT(showGlyphPalette()));
     Q_FOREACH (const QString name, extraActions) {
         QAction *a = action(name);
         if (a) {
@@ -165,9 +157,6 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
 
 SvgTextTool::~SvgTextTool()
 {
-    if(m_glyphPalette) {
-        m_glyphPalette->close();
-    }
 }
 
 void SvgTextTool::activate(const QSet<KoShape *> &shapes)
@@ -175,14 +164,14 @@ void SvgTextTool::activate(const QSet<KoShape *> &shapes)
     KoToolBase::activate(shapes);
     m_canvasConnections.addConnection(canvas()->selectedShapesProxy(), SIGNAL(selectionChanged()), this, SLOT(slotShapeSelectionChanged()));
 
+    m_optionsData.loadConfig(this->toolId());
+    slotUpdateVisualCursor();
+    slotUpdateTextPasteBehaviour();
+
     KisCanvas2 *canvas2 = qobject_cast<KisCanvas2 *>(this->canvas());
     if (canvas2) {
         canvas2->setCurrentShapeManagerOwnerShape(nullptr);
         canvas2->viewManager()->textPropertyManager()->setTextPropertiesInterface(m_textCursor.textPropertyInterface());
-        QDockWidget *docker = canvas2->viewManager()->mainWindow()->dockWidget("TextProperties");
-        if (docker && m_optionManager) {
-            m_optionManager->setTextPropertiesOpen(docker->isVisible());
-        }
     }
 
     connect(m_textTypeSignalsMapper.data(), SIGNAL(mapped(int)), this, SLOT(slotConvertType(int)));
@@ -231,52 +220,6 @@ void SvgTextTool::inputMethodEvent(QInputMethodEvent *event)
     m_textCursor.inputMethodEvent(event);
 }
 
-QWidget *SvgTextTool::createOptionWidget()
-{
-    KisQQuickWidget *optionWidget = new KisQQuickWidget();
-    optionWidget->setMinimumWidth(100);
-    optionWidget->setMinimumHeight(100);
-
-    optionWidget->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
-    optionWidget->setSource(QUrl("qrc:/SvgTextToolOptions.qml"));
-
-    m_optionManager->optionsModel()->setConfigName(this->toolId());
-    m_optionManager->setShowDebug(debugEnabled());
-    if (optionWidget->errors().isEmpty()) {
-        optionWidget->rootObject()->setProperty("manager", QVariant::fromValue(m_optionManager.data()));
-        optionWidget->connectMinimumHeightToRootObject();
-    } else {
-        qWarning() << optionWidget->errors();
-    }
-
-
-    connect(m_optionManager.data(), SIGNAL(openGlyphPalette()), SLOT(showGlyphPalette()));
-
-    connect(m_optionManager.data(), SIGNAL(convertTextType(int)), SLOT(slotConvertType(int)));
-    connect(m_optionManager.data(), SIGNAL(typeSettingModeChanged()), SLOT(slotUpdateTypeSettingMode()));
-    connect(m_optionManager->optionsModel(), SIGNAL(useVisualBidiCursorChanged(bool)), this, SLOT(slotUpdateVisualCursor()));
-    connect(m_optionManager->optionsModel(), SIGNAL(pasteRichtTextByDefaultChanged(bool)), this, SLOT(slotUpdateTextPasteBehaviour()));
-    const KisCanvas2 *canvas2 = qobject_cast<const KisCanvas2 *>(this->canvas());
-    if (canvas2 && canvas2->viewManager()->mainWindow()) {
-        QDockWidget *docker = canvas2->viewManager()->mainWindow()->dockWidget("TextProperties");
-        m_optionManager->setShowTextPropertyButton((docker));
-        if (docker) {
-            optionWidget->setPalette(docker->palette());
-            m_optionManager->setTextPropertiesOpen(docker->isVisible());
-            connect(m_optionManager.data(), &SvgTextToolOptionsManager::openTextPropertiesDocker, [docker](){
-                        docker->setVisible(!docker->isVisible());
-                    });
-            // Once we have docker toggling actions, we should revisit this.
-        }
-    }
-    slotUpdateVisualCursor();
-    slotUpdateTextPasteBehaviour();
-    slotTextTypeUpdated();
-
-
-    return optionWidget;
-}
-
 KoSelection *SvgTextTool::koSelection() const
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(canvas(), 0);
@@ -298,50 +241,9 @@ KoSvgTextShape *SvgTextTool::selectedShape() const
     return textShape;
 }
 
-void SvgTextTool::showGlyphPalette()
-{
-    if (!m_glyphPalette) {
-        m_glyphPalette = new GlyphPaletteDialog(QApplication::activeWindow());
-        m_glyphPalette->setAttribute( Qt::WA_QuitOnClose, false );
-
-        connect(&m_textCursor, SIGNAL(selectionChanged()), this, SLOT(updateGlyphPalette()));
-        connect(m_glyphPalette, SIGNAL(signalInsertRichText(KoSvgTextShape*, bool)), this, SLOT(insertRichText(KoSvgTextShape*, bool)));
-
-        m_glyphPalette->activateWindow();
-    }
-    if (!m_glyphPalette->isVisible()) {
-        m_glyphPalette->show();
-        updateGlyphPalette();
-    }
-}
-
-void SvgTextTool::updateGlyphPalette()
-{
-    if (m_glyphPalette && m_glyphPalette->isVisible()) {
-        QString grapheme = QString();
-        if (m_textCursor.shape()) {
-            int pos = m_textCursor.getPos();
-            int pos2 = pos > 0? m_textCursor.shape()->posLeft(pos, false): m_textCursor.shape()->posRight(pos, false);
-            int start = m_textCursor.shape()->indexForPos(qMin(pos, pos2));
-            int end   = m_textCursor.shape()->indexForPos(qMax(pos, pos2));
-            grapheme = m_textCursor.shape()->plainText().mid(start, end-start);
-        }
-        m_glyphPalette->setGlyphModelFromProperties(m_textCursor.currentTextProperties(), grapheme);
-    }
-}
-
 void SvgTextTool::updateTextPathHelper()
 {
     m_textOnPathHelper.setPos(m_textCursor.getPos());
-}
-
-void SvgTextTool::insertRichText(KoSvgTextShape *richText, bool replaceLastGlyph)
-{
-    if (replaceLastGlyph) {
-        m_textCursor.setPos(m_textCursor.getPos(), m_textCursor.getPos());
-        m_textCursor.moveCursor(m_textCursor.getPos() == 0? SvgTextCursor::MoveNextChar : SvgTextCursor::MovePreviousChar, false);
-    }
-    m_textCursor.insertRichText(richText, true);
 }
 
 QString SvgTextTool::generateDefs(const KoSvgTextProperties &properties)
@@ -361,8 +263,8 @@ QString SvgTextTool::generateDefs(const KoSvgTextProperties &properties)
 
 KoSvgTextProperties SvgTextTool::propertiesForNewText() const
 {
-    const bool useCurrent = m_optionManager->optionsModel()->useCurrentTextProperties();
-    const QString presetName = m_optionManager->optionsModel()->cssStylePresetName();
+    const bool useCurrent = m_optionsData.useCurrentTextProperties;
+    const QString presetName = m_optionsData.cssStylePresetName;
 
     KoSvgTextProperties props;
     if (useCurrent || presetName.isEmpty()) {
@@ -520,12 +422,12 @@ void SvgTextTool::slotConvertType(int index) {
 
 void SvgTextTool::slotUpdateVisualCursor()
 {
-    m_textCursor.setVisualMode(m_optionManager->optionsModel()->useVisualBidiCursor());
+    m_textCursor.setVisualMode(m_optionsData.useVisualBidiCursor);
 }
 
 void SvgTextTool::slotUpdateTextPasteBehaviour()
 {
-    m_textCursor.setPasteRichTextByDefault(m_optionManager->optionsModel()->pasteRichtTextByDefault());
+    m_textCursor.setPasteRichTextByDefault(m_optionsData.pasteRichtTextByDefault);
 }
 
 void SvgTextTool::slotTextTypeUpdated()
@@ -538,29 +440,25 @@ void SvgTextTool::slotTextTypeUpdated()
             a->setCheckable(true);
         }
     }
-    if (m_optionManager) {
-        if (shape) {
-            m_optionManager->convertToTextType(int(shape->textType()));
-            if (typeConvertGroup) {
-                typeConvertGroup->setEnabled(true);
-            }
-            action("text_type_preformatted")->setChecked(shape->textType() == KoSvgTextShape::PreformattedText);
-            action("text_type_pre_positioned")->setChecked(shape->textType() == KoSvgTextShape::PrePositionedText);
-            action("text_type_inline_wrap")->setChecked(shape->textType() == KoSvgTextShape::InlineWrap);
+    if (shape) {
+        if (typeConvertGroup) {
+            typeConvertGroup->setEnabled(true);
+        }
+        action("text_type_preformatted")->setChecked(shape->textType() == KoSvgTextShape::PreformattedText);
+        action("text_type_pre_positioned")->setChecked(shape->textType() == KoSvgTextShape::PrePositionedText);
+        action("text_type_inline_wrap")->setChecked(shape->textType() == KoSvgTextShape::InlineWrap);
 
-        } else {
-            m_optionManager->convertToTextType(-1);
-            if (typeConvertGroup) {
-                typeConvertGroup->setEnabled(false);
-            }
+    } else {
+        if (typeConvertGroup) {
+            typeConvertGroup->setEnabled(false);
         }
-        const bool enableTypeSetting = (m_optionManager->typeSettingMode() && shape && (shape->textType() == KoSvgTextShape::PreformattedText ||shape->textType() == KoSvgTextShape::PrePositionedText));
-        QActionGroup *svgTypeSettingGroup = action("svg_type_setting_move_selection_start_down_1_px")->actionGroup();
-        if (svgTypeSettingGroup) {
-            svgTypeSettingGroup->setEnabled(enableTypeSetting);
-        }
-        m_textCursor.updateTypeSettingDecorFromShape();
     }
+    // Typesetting mode has no UI to activate it, so it is always disabled.
+    QActionGroup *svgTypeSettingGroup = action("svg_type_setting_move_selection_start_down_1_px")->actionGroup();
+    if (svgTypeSettingGroup) {
+        svgTypeSettingGroup->setEnabled(false);
+    }
+    m_textCursor.updateTypeSettingDecorFromShape();
 }
 
 void SvgTextTool::slotMoveTextSelection(int index)
@@ -590,12 +488,6 @@ void SvgTextTool::slotMoveTextSelection(int index)
     new KoKeepShapesSelectedCommand({}, {selectedShape()}, canvas()->selectedShapesProxy(), KisCommandUtils::FlipFlopCommand::State::FINALIZING, parentCommand);
     parentCommand->setText(cmd->text());
     canvas()->addCommand(parentCommand);
-}
-
-void SvgTextTool::slotUpdateTypeSettingMode()
-{
-    m_textCursor.setTypeSettingModeActive(m_optionManager->typeSettingMode());
-    slotTextTypeUpdated();
 }
 
 bool SvgTextTool::nodeEditable()
@@ -718,17 +610,11 @@ void SvgTextTool::paint(QPainter &gc, const KoViewConverter &converter)
         gc.restore();
     }
 
-    // Paint debug outline
+    // Paint debug outline. The character/line debug toggles had no UI besides
+    // the removed tool options panel, so debug elements are always off.
     if (debugEnabled() && shape) {
         gc.save();
-        using Element = KoSvgTextShape::DebugElement;
         KoSvgTextShape::DebugElements el{};
-        if (m_optionManager->showCharacterDebug()) {
-            el |= Element::CharBbox;
-        }
-        if (m_optionManager->showLineDebug()) {
-            el |= Element::LineBox;
-        }
 
         gc.setTransform(shape->absoluteTransformation(), true);
         shape->paintDebug(gc, el);

@@ -21,18 +21,12 @@ set (SvgTextTool_SRCS
     SvgTextShapeManagerBlocker.cpp
     SvgTextShortCuts.cpp
     SvgTextToolOptionsData.cpp
-    SvgTextToolOptionsModel.cpp
-    SvgTextToolOptionsManager.cpp
     SvgTextChangeTransformsOnRange.cpp
     SvgTextTypeSettingStrategy.cpp
     SvgTextRemoveTransformsFromRange.cpp
     SvgChangeTextPathInfoStrategy.cpp
     SvgTextOnPathDecorationHelper.cpp
     SvgChangeTextPaddingMarginStrategy.cpp
-
-    glyphpalette/GlyphPaletteDialog.cpp
-    glyphpalette/GlyphPaletteProxyModel.cpp
-    glyphpalette/GlyphPaletteAltPopup.cpp
 )
 
 install( FILES
@@ -52,10 +46,7 @@ generate_export_header(krita_tool_svgtext_static BASE_NAME kritatoolsvgtext)
 
 target_link_libraries(krita_tool_svgtext_static
     kritaui
-    kritaqmlwidgets
     Qt${QT_MAJOR_VERSION}::Quick
-    Qt${QT_MAJOR_VERSION}::QuickWidgets
-    Qt${QT_MAJOR_VERSION}::QuickControls2
     Qt${QT_MAJOR_VERSION}::Qml
     KF${KF_MAJOR}::I18n)
 

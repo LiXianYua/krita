@@ -11,6 +11,7 @@
 
 #include <KConfigGroup>
 #include <KoToolBase.h>
+#include <QCursor>
 #include <QPointer>
 
 #include <KoSvgTextShapeOutlineHelper.h>
@@ -19,9 +20,8 @@
 #include <KisSignalMapper.h>
 
 #include "SvgTextCursor.h"
-#include "SvgTextToolOptionsManager.h"
+#include "SvgTextToolOptionsData.h"
 #include "SvgTextOnPathDecorationHelper.h"
-#include "glyphpalette/GlyphPaletteDialog.h"
 
 #include <memory>
 
@@ -91,9 +91,6 @@ public:
     void requestStrokeCancellation() override;
 
 protected:
-    /// reimplemented from KoToolBase
-    virtual QWidget *createOptionWidget() override;
-
     KoSelection *koSelection() const;
     KoSvgTextShape *selectedShape() const;
 
@@ -113,25 +110,7 @@ private:
 
 private Q_SLOTS:
 
-    /**
-     * @brief showGlyphPalette
-     * Shows the glyph palette dialog.
-     */
-    void showGlyphPalette();
-    /**
-     * @brief updateGlyphPalette
-     * update the glyph palette dialog from the current selection.
-     */
-    void updateGlyphPalette();
-
     void updateTextPathHelper();
-    /**
-     * @brief insertRichText
-     * Insert a rich text shape, used by the glyph palette..
-     * @param richText -- rich text shape.
-     * @param replaceLastGlyph -- whether to replace the last glyph or to fully insert.
-     */
-    void insertRichText(KoSvgTextShape *richText, bool replaceLastGlyph = false);
 
     /**
      * @brief generateDefs
@@ -190,12 +169,6 @@ private Q_SLOTS:
      */
     void slotMoveTextSelection(int index);
 
-    /**
-     * @brief slotUpdateTypeSettingMode
-     * Enable typesetting mode from the tool options.
-     */
-    void slotUpdateTypeSettingMode();
-
 private:
     enum class DragMode {
         None = 0,
@@ -215,8 +188,7 @@ private:
         TypeSettingHandle,
     };
 
-    QScopedPointer<SvgTextToolOptionsManager>m_optionManager;
-    QPointer<GlyphPaletteDialog> m_glyphPalette;
+    SvgTextToolOptionsData m_optionsData;
     QPointF m_lastMousePos;
     DragMode m_dragging {DragMode::None};
     std::unique_ptr<KoInteractionStrategy> m_interactionStrategy;
