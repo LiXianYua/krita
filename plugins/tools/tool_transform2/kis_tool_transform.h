@@ -37,7 +37,6 @@
 
 #include "tool_transform_args.h"
 #include "KisToolChangesTracker.h"
-#include "kis_tool_transform_config_widget.h"
 #include "transform_transaction_properties.h"
 #include "kis_signal_auto_connection.h"
 
@@ -133,8 +132,6 @@ public:
     bool wantsAutoScroll() const override {
         return false;
     }
-
-    QWidget* createOptionWidget() override;
 
     void mousePressEvent(KoPointerEvent *e) override;
     void mouseMoveEvent(KoPointerEvent *e) override;
@@ -275,8 +272,12 @@ private:
 
     QPainterPath m_selectionPath; // original (unscaled) selection outline, used for painting decorations
 
-    KisToolTransformConfigWidget *m_optionsWidget {0};
     QPointer<KisCanvas2> m_canvas;
+
+    // Cached scaleX/scaleY ratio used to keep the aspect ratio locked while
+    // one axis is being changed programmatically (setScaleX/setScaleY).
+    // Ported from the deleted options panel's KisToolTransformConfigWidget::m_scaleRatio.
+    qreal m_scaleRatio {1.0};
 
     TransformTransactionProperties m_transaction;
     KisToolChangesTracker m_changesTracker;
@@ -356,6 +357,18 @@ private Q_SLOTS:
     void slotUpdateToLiquifyType();
     void slotUpdateToMeshType();
     void slotUpdateToCageType();
+
+    // "a few extra context click options if free transform is active"
+    // (mirrorHorizontalAction/mirrorVerticalAction/rotateNinetyCWAction/
+    // rotateNinetyCCWAction/keepAspectRatioAction). Ported from the deleted
+    // options panel's KisToolTransformConfigWidget::slotFlipX/slotFlipY/
+    // slotRotateCW/slotRotateCCW/slotSetKeepAspectRatio so the context menu
+    // keeps working without the panel.
+    void slotFlipHorizontal();
+    void slotFlipVertical();
+    void slotRotateNinetyCW();
+    void slotRotateNinetyCCW();
+    void slotSetKeepAspectRatio(bool value);
 };
 
 class KisToolTransformFactory : public KisToolPaintFactoryBase

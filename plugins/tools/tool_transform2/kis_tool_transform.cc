@@ -117,7 +117,6 @@ KisToolTransform::KisToolTransform(KoCanvasBase * canvas)
     Q_ASSERT(m_canvas);
 
     setObjectName("tool_transform");
-    m_optionsWidget = 0;
 
     warpAction = new KisAction(i18nc("Warp Transform Tab Label", "Warp"));
     liquifyAction = new KisAction(i18nc("Liquify Transform Tab Label", "Liquify"));
@@ -164,6 +163,27 @@ KisToolTransform::KisToolTransform(KoCanvasBase * canvas)
             this, SLOT(slotTrackerChangedConfig(KisToolChangesTrackerDataSP)));
 
     connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(slotGlobalConfigChanged()));
+
+    // Context menu actions (popupActionsMenu()). These used to be connected
+    // inside createOptionWidget(), which only ran when the (now-deleted)
+    // options panel was created; wiring them here keeps the context menu
+    // working on its own regardless of any panel.
+    connect(mirrorHorizontalAction, SIGNAL(triggered(bool)), this, SLOT(slotFlipHorizontal()));
+    connect(mirrorVerticalAction, SIGNAL(triggered(bool)), this, SLOT(slotFlipVertical()));
+    connect(rotateNinetyCWAction, SIGNAL(triggered(bool)), this, SLOT(slotRotateNinetyCW()));
+    connect(rotateNinetyCCWAction, SIGNAL(triggered(bool)), this, SLOT(slotRotateNinetyCCW()));
+
+    connect(keepAspectRatioAction, SIGNAL(triggered(bool)), this, SLOT(slotSetKeepAspectRatio(bool)));
+
+    connect(warpAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToWarpType()));
+    connect(perspectiveAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToPerspectiveType()));
+    connect(freeTransformAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToFreeTransformType()));
+    connect(liquifyAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToLiquifyType()));
+    connect(meshAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToMeshType()));
+    connect(cageAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToCageType()));
+
+    connect(applyTransformation, SIGNAL(triggered(bool)), this, SLOT(slotApplyTransform()));
+    connect(resetTransformation, SIGNAL(triggered(bool)), this, SLOT(slotCancelTransform()));
 }
 
 KisToolTransform::~KisToolTransform()
@@ -210,14 +230,15 @@ void KisToolTransform::slotGlobalConfigChanged()
 
 void KisToolTransform::resetRotationCenterButtonsRequested()
 {
-    if (!m_optionsWidget) return;
-    m_optionsWidget->resetRotationCenterButtons();
+    // Was forwarded to the options panel's rotation-center button group;
+    // the panel has been removed, nothing left to reset.
 }
 
 void KisToolTransform::imageTooBigRequested(bool value)
 {
-    if (!m_optionsWidget) return;
-    m_optionsWidget->setTooBigLabelVisible(value);
+    Q_UNUSED(value);
+    // Was forwarded to the options panel's "image too big" warning label;
+    // the panel has been removed, nothing left to show.
 }
 
 void KisToolTransform::convexHullCalculationRequested()
@@ -681,19 +702,10 @@ void KisToolTransform::setTransformMode(KisToolTransform::TransformToolMode newM
     ToolTransformArgs::TransformMode mode = toArgsMode(newMode);
 
     if( mode != m_currentArgs.mode() ) {
-        if( newMode == FreeTransformMode ) {
-            m_optionsWidget->slotSetFreeTransformModeButtonClicked( true );
-        } else if( newMode == WarpTransformMode ) {
-            m_optionsWidget->slotSetWarpModeButtonClicked( true );
-        } else if( newMode == CageTransformMode ) {
-            m_optionsWidget->slotSetCageModeButtonClicked( true );
-        } else if( newMode == LiquifyTransformMode ) {
-            m_optionsWidget->slotSetLiquifyModeButtonClicked( true );
-        } else if( newMode == PerspectiveTransformMode ) {
-            m_optionsWidget->slotSetPerspectiveModeButtonClicked( true );
-        } else if( newMode == MeshTransformMode ) {
-            m_optionsWidget->slotSetMeshModeButtonClicked( true );
-        }
+        // Was routed through the options panel's mode buttons, each of which
+        // just did Q_EMIT sigResetTransform(<mode>) connected to
+        // slotResetTransform(). Call it directly now that the panel is gone.
+        slotResetTransform(mode);
 
         Q_EMIT transformModeChanged();
     }
@@ -738,7 +750,11 @@ void KisToolTransform::setWarpFlexibility( double flexibility )
 
 void KisToolTransform::setWarpPointDensity( int density )
 {
-    m_optionsWidget->slotSetWarpDensity(density);
+    // Was forwarded to the options panel's slotSetWarpDensity(), which just
+    // called KisTransformUtils::setDefaultWarpPoints() -- call it directly.
+    ToolTransformArgs *config = m_transaction.currentConfig();
+    KisTransformUtils::setDefaultWarpPoints(density, &m_transaction, config);
+    slotUiChangedConfig(true);
 }
 
 void KisToolTransform::initTransformMode(ToolTransformArgs::TransformMode mode)
@@ -1170,89 +1186,16 @@ void KisToolTransform::slotTrackerChangedConfig(KisToolChangesTrackerDataSP stat
     updateOptionWidget();
 }
 
-QWidget* KisToolTransform::createOptionWidget()
-{
-    if (!m_canvas) return 0;
-     
-    m_optionsWidget = new KisToolTransformConfigWidget(&m_transaction, m_canvas, 0);
-    Q_CHECK_PTR(m_optionsWidget);
-    m_optionsWidget->setObjectName(toolId() + " option widget");
-
-    // See https://bugs.kde.org/show_bug.cgi?id=316896
-    QWidget *specialSpacer = new QWidget(m_optionsWidget);
-    specialSpacer->setObjectName("SpecialSpacer");
-    specialSpacer->setFixedSize(0, 0);
-    m_optionsWidget->layout()->addWidget(specialSpacer);
-
-
-    connect(m_optionsWidget, SIGNAL(sigConfigChanged(bool)),
-            this, SLOT(slotUiChangedConfig(bool)));
-
-    connect(m_optionsWidget, SIGNAL(sigApplyTransform()),
-            this, SLOT(slotApplyTransform()));
-
-    connect(m_optionsWidget, SIGNAL(sigResetTransform(ToolTransformArgs::TransformMode)),
-            this, SLOT(slotResetTransform(ToolTransformArgs::TransformMode)));
-
-    connect(m_optionsWidget, SIGNAL(sigCancelTransform()),
-            this, SLOT(slotCancelTransform()));
-
-    connect(m_optionsWidget, SIGNAL(sigRestartTransform()),
-            this, SLOT(slotRestartTransform()));
-
-    connect(m_optionsWidget, SIGNAL(sigUpdateGlobalConfig()),
-            this, SLOT(slotGlobalConfigChanged()));
-
-    connect(m_optionsWidget, SIGNAL(sigRestartAndContinueTransform()),
-            this, SLOT(slotRestartAndContinueTransform()));
-
-    connect(m_optionsWidget, SIGNAL(sigEditingFinished()),
-            this, SLOT(slotEditingFinished()));
-
-
-    connect(mirrorHorizontalAction, SIGNAL(triggered(bool)), m_optionsWidget, SLOT(slotFlipX()));
-    connect(mirrorVerticalAction, SIGNAL(triggered(bool)), m_optionsWidget, SLOT(slotFlipY()));
-    connect(rotateNinetyCWAction, SIGNAL(triggered(bool)), m_optionsWidget, SLOT(slotRotateCW()));
-    connect(rotateNinetyCCWAction, SIGNAL(triggered(bool)), m_optionsWidget, SLOT(slotRotateCCW()));
-
-    connect(keepAspectRatioAction, SIGNAL(triggered(bool)), m_optionsWidget, SLOT(slotSetKeepAspectRatio(bool)));
-
-
-    connect(warpAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToWarpType()));
-    connect(perspectiveAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToPerspectiveType()));
-    connect(freeTransformAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToFreeTransformType()));
-    connect(liquifyAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToLiquifyType()));
-    connect(meshAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToMeshType()));
-    connect(cageAction, SIGNAL(triggered(bool)), this, SLOT(slotUpdateToCageType()));
-
-    connect(applyTransformation, SIGNAL(triggered(bool)), this, SLOT(slotApplyTransform()));
-    connect(resetTransformation, SIGNAL(triggered(bool)), this, SLOT(slotCancelTransform()));
-
-
-    updateOptionWidget();
-
-    return m_optionsWidget;
-}
-
 void KisToolTransform::updateOptionWidget()
-{    
-    if (!m_optionsWidget) return;
-
-    if (!currentNode()) {
-        m_optionsWidget->setEnabled(false);
-        return;
-    }
-    else {
-        m_optionsWidget->setEnabled(true);
-        m_optionsWidget->updateConfig(m_currentArgs);
-    }
+{
+    // Was forwarded to the options panel (enable/disable + updateConfig());
+    // the panel has been removed, nothing left to update.
 }
 
 void KisToolTransform::updateApplyResetAvailability()
 {
-    if (m_optionsWidget) {
-        m_optionsWidget->setApplyResetDisabled(m_currentArgs.isIdentity());
-    }
+    // Was forwarded to the options panel's Apply/Reset buttons;
+    // the panel has been removed, nothing left to update.
 }
 
 void KisToolTransform::slotUiChangedConfig(bool needsPreviewRecalculation)
@@ -1365,6 +1308,79 @@ void KisToolTransform::slotEditingFinished()
     commitChanges();
 }
 
+// The following five slots are ported from the deleted options panel's
+// KisToolTransformConfigWidget::slotFlipX/slotFlipY/slotRotateCW/
+// slotRotateCCW/slotSetKeepAspectRatio. They back the "extra context click
+// options" (mirrorHorizontalAction/mirrorVerticalAction/rotateNinetyCWAction/
+// rotateNinetyCCWAction/keepAspectRatioAction) added to popupActionsMenu()
+// when free transform is active -- a context-menu entry point independent of
+// the panel, so it must keep working after the panel is deleted.
+void KisToolTransform::slotFlipHorizontal()
+{
+    ToolTransformArgs *config = m_transaction.currentConfig();
+
+    {
+        KisTransformUtils::AnchorHolder keeper(config->transformAroundRotationCenter(), config);
+        config->setScaleX(config->scaleX() * -1);
+    }
+
+    slotUiChangedConfig(true);
+    slotEditingFinished();
+}
+
+void KisToolTransform::slotFlipVertical()
+{
+    ToolTransformArgs *config = m_transaction.currentConfig();
+
+    {
+        KisTransformUtils::AnchorHolder keeper(config->transformAroundRotationCenter(), config);
+        config->setScaleY(config->scaleY() * -1);
+    }
+
+    slotUiChangedConfig(true);
+    slotEditingFinished();
+}
+
+void KisToolTransform::slotRotateNinetyCW()
+{
+    ToolTransformArgs *config = m_transaction.currentConfig();
+
+    {
+        KisTransformUtils::AnchorHolder keeper(config->transformAroundRotationCenter(), config);
+        config->setAZ(normalizeAngle(config->aZ() + M_PI_2));
+    }
+
+    slotUiChangedConfig(true);
+    slotEditingFinished();
+}
+
+void KisToolTransform::slotRotateNinetyCCW()
+{
+    ToolTransformArgs *config = m_transaction.currentConfig();
+
+    {
+        KisTransformUtils::AnchorHolder keeper(config->transformAroundRotationCenter(), config);
+        config->setAZ(normalizeAngle(config->aZ() - M_PI_2));
+    }
+
+    slotUiChangedConfig(true);
+    slotEditingFinished();
+}
+
+void KisToolTransform::slotSetKeepAspectRatio(bool value)
+{
+    ToolTransformArgs *config = m_transaction.currentConfig();
+    config->setKeepAspectRatio(value);
+
+    if (value) {
+        // Cache the current scaleX/scaleY ratio so setScaleX()/setScaleY()
+        // can keep the other axis in sync while it is locked.
+        m_scaleRatio = config->scaleY() != 0 ? config->scaleX() / config->scaleY() : 1.0;
+    }
+
+    slotUiChangedConfig(true);
+}
+
 void KisToolTransform::slotMoveDiscreteUp()
 {
     setTranslateY(translateY()-1.0);
@@ -1445,24 +1461,67 @@ void KisToolTransform::slotUpdateToCageType()
     setTransformMode(KisToolTransform::TransformToolMode::CageTransformMode);
 }
 
+// Ported from the deleted options panel's KisToolTransformConfigWidget::
+// slotSetShearY/slotSetShearX/slotSetScaleY/slotSetScaleX. Values are in the
+// panel's original percent-like convention (e.g. 100.0 == no scale), divided
+// by 100 to get the ratio ToolTransformArgs stores -- this is why scaleX()/
+// scaleY() (which return the raw ratio) and setScaleX()/setScaleY() (which
+// take this percent-like value) don't share units; that mismatch predates
+// this change and is preserved as-is, not fixed here.
 void KisToolTransform::setShearY(double shear)
 {
-    m_optionsWidget->slotSetShearY(shear);
+    ToolTransformArgs *config = m_transaction.currentConfig();
+    KisTransformUtils::AnchorHolder keeper(config->transformAroundRotationCenter(), config);
+    config->setShearY(shear / 100.);
+    slotUiChangedConfig(true);
+    slotEditingFinished();
 }
 
 void KisToolTransform::setShearX(double shear)
 {
-    m_optionsWidget->slotSetShearX(shear);
+    ToolTransformArgs *config = m_transaction.currentConfig();
+    KisTransformUtils::AnchorHolder keeper(config->transformAroundRotationCenter(), config);
+    config->setShearX(shear / 100.);
+    slotUiChangedConfig(true);
+    slotEditingFinished();
 }
 
 void KisToolTransform::setScaleY(double scale)
 {
-    m_optionsWidget->slotSetScaleY(scale);
+    ToolTransformArgs *config = m_transaction.currentConfig();
+
+    {
+        KisTransformUtils::AnchorHolder keeper(config->transformAroundRotationCenter(), config);
+        config->setScaleY(scale / 100.);
+    }
+
+    if (config->keepAspectRatio()) {
+        const double calculatedValue = m_scaleRatio * scale;
+        KisTransformUtils::AnchorHolder keeper(config->transformAroundRotationCenter(), config);
+        config->setScaleX(calculatedValue / 100.);
+    }
+
+    slotUiChangedConfig(true);
+    slotEditingFinished();
 }
 
 void KisToolTransform::setScaleX(double scale)
 {
-    m_optionsWidget->slotSetScaleX(scale);
+    ToolTransformArgs *config = m_transaction.currentConfig();
+
+    {
+        KisTransformUtils::AnchorHolder keeper(config->transformAroundRotationCenter(), config);
+        config->setScaleX(scale / 100.);
+    }
+
+    if (config->keepAspectRatio()) {
+        const double calculatedValue = m_scaleRatio != 0 ? scale / m_scaleRatio : scale;
+        KisTransformUtils::AnchorHolder keeper(config->transformAroundRotationCenter(), config);
+        config->setScaleY(calculatedValue / 100.);
+    }
+
+    slotUiChangedConfig(true);
+    slotEditingFinished();
 }
 
 void KisToolTransform::setTranslateY(double translation)

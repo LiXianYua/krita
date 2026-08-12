@@ -5,7 +5,6 @@ set(kritatooltransform_static_SRCS
     kis_transform_mask_adapter.cpp
     KisAnimatedTransformMaskParamsHolder.cpp
     kis_tool_transform.cc
-    kis_tool_transform_config_widget.cpp
     kis_transform_strategy_base.cpp
     kis_warp_transform_strategy.cpp
     kis_cage_transform_strategy.cpp
@@ -22,8 +21,6 @@ set(kritatooltransform_static_SRCS
     strokes/transform_stroke_strategy.cpp
     strokes/inplace_transform_stroke_strategy.cpp
     )
-
-ki18n_wrap_ui(kritatooltransform_static_SRCS wdg_tool_transform.ui)
 
 kis_add_library(kritatooltransform_static STATIC ${kritatooltransform_static_SRCS})
 generate_export_header(kritatooltransform_static BASE_NAME kritatooltransform)
