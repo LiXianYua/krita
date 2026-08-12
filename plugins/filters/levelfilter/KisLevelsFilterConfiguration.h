@@ -9,10 +9,14 @@
 #ifndef KIS_LEVELS_FILTER_CONFIGURATION_H
 #define KIS_LEVELS_FILTER_CONFIGURATION_H
 
+#include <optional>
+
 #include <filter/kis_color_transformation_configuration.h>
 #include <kis_paint_device.h>
 #include <KisLevelsCurve.h>
 #include <KisAutoLevels.h>
+
+#include "../colorsfilters/virtual_channel_info.h"
 
 class KisLevelsFilterConfiguration : public KisColorTransformationConfiguration
 {
@@ -57,13 +61,15 @@ public:
 
     struct AutoLevelsDefaults
     {
-        qreal maximumInputBlackAndWhiteOffset;
-        KisAutoLevels::MidtonesAdjustmentMethod midtonesAdjustmentMethod;
-        qreal midtonesAdjustmentAmount;
+        std::optional<qreal> maximumInputBlackAndWhiteOffset;
+        std::optional<KisAutoLevels::MidtonesAdjustmentMethod> midtonesAdjustmentMethod;
+        std::optional<qreal> midtonesAdjustmentAmount;
     };
     /// 自动色阶的经验参数（摘自 D-02-b 删除的 KisLevelsConfigWidget）
     /// 上游原注释：These were selected empirically, there is no strong reason why they should be like this
-    static AutoLevelsDefaults autoLevelsDefaults(const KoColorSpace *cs, int channelIndex);
+    /// 字段为 std::optional：某个字段是 nullopt 表示原代码在对应分支下根本不调用
+    /// 对应的 setter，调用方应保留自己的既有值，不是被这个函数强行覆盖成某个值。
+    static AutoLevelsDefaults autoLevelsDefaults(const KoColorSpace *cs, bool lightnessMode, const VirtualChannelInfo &channel);
 
 private:
     QVector<QVector<quint16>> m_transfers;

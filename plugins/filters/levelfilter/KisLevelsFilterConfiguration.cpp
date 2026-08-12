@@ -374,26 +374,24 @@ void KisLevelsFilterConfiguration::setDefaults()
 }
 
 KisLevelsFilterConfiguration::AutoLevelsDefaults
-KisLevelsFilterConfiguration::autoLevelsDefaults(const KoColorSpace *cs, int channelIndex)
+KisLevelsFilterConfiguration::autoLevelsDefaults(const KoColorSpace *cs, bool lightnessMode, const VirtualChannelInfo &channel)
 {
-    // These are the values KisAutoLevelsWidget itself is constructed with
-    // (libs/ui/widgets/KisAutoLevelsWidget.cpp), used when none of the
-    // per-channel branches below apply (e.g. R/G/B of an RGBA color space).
-    AutoLevelsDefaults defaults{100.0, KisAutoLevels::MidtonesAdjustmentMethod_None, 50.0};
+    AutoLevelsDefaults defaults;
 
     // Set some default parameters based on the selected channel. These were
     // selected empirically, there is no strong reason why they should be like this
-    if (channelIndex == -1 ||
-        (cs->colorModelId() == LABAColorModelID && channelIndex == 0) ||
-        (cs->colorModelId() == CMYKAColorModelID && channelIndex == 3) ||
-        (cs->colorModelId() == GrayAColorModelID && channelIndex == 0)) {
+    if (lightnessMode ||
+        channel.type() == VirtualChannelInfo::LIGHTNESS ||
+        (cs->colorModelId() == LABAColorModelID && channel.pixelIndex() == 0) ||
+        (cs->colorModelId() == CMYKAColorModelID && channel.pixelIndex() == 3) ||
+        (cs->colorModelId() == GrayAColorModelID && channel.pixelIndex() == 0)) {
         defaults.maximumInputBlackAndWhiteOffset = 10.0;
         defaults.midtonesAdjustmentMethod = KisAutoLevels::MidtonesAdjustmentMethod_UseMedian;
         defaults.midtonesAdjustmentAmount = 25.0;
     } else if (cs->colorModelId() == CMYKAColorModelID) {
-        if (channelIndex == 0 ||
-            channelIndex == 1 ||
-            channelIndex == 2) {
+        if (channel.pixelIndex() == 0 ||
+            channel.pixelIndex() == 1 ||
+            channel.pixelIndex() == 2) {
             defaults.maximumInputBlackAndWhiteOffset = 25.0;
         }
     }
