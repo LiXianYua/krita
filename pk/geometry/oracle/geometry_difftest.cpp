@@ -186,7 +186,19 @@ static_assert((int)Qt::XAxis == (int)pkoracle::Qt::XAxis
 // ═══ 计数与记录 ════════════════════════════════════════════════════════════
 
 static long g_total = 0, g_mismatch = 0;
-static std::map<std::string, long> g_tags;   // "<api> <tag>" -> count
+static std::map<std::string, long> g_tags;   // "<api> <tag>" -> **分家**次数（分子）
+// 「该 tag 的谓词命中过多少次比对」= **分母**（Task 6 修复轮 1，评审 Important 2）。
+//
+// 为什么需要它：geometry.deviation 第三列的额度规矩写着「那个数字要能说清为什么
+// 恰好是这么多，不能填个大概」。光有分子说不清 —— 「分家 12 799 次」既可能是
+// 「喂了 12 800 次几乎全分家」，也可能是「喂了 200 万次里只有这么点分家」，
+// 两者对偏离范围的含义天差地别。有了分母，每一行都能读成
+// **「命中 N 次里分家 M 次」**，N 与 M 各自漂移都会被额度闸门抓住（N 由
+// run_oracle.sh 打出来给人看，M 是机器双向比较的那一列）。
+//
+// 代价：每条 rec 多一次 map 查找（键与分子共用同一个字符串）。实测整份对拍
+// 从 1m32s 到 2m06s，仍远在 timeout 600 之内。
+static std::map<std::string, long> g_tag_seen;
 static long g_printed = 0;
 
 // 规则三的**机器闸门**（Task 4 新增）。规则三是「每个已实现的重载都要有自己的
@@ -208,9 +220,11 @@ static void rec(const char *api, bool same, const std::string &tag,
 {
     ++g_total;
     g_apis.insert(api);
+    const std::string key = std::string(api) + " " + tag;
+    ++g_tag_seen[key];              // 分母：谓词命中就记，不管同不同
     if (same) return;
     ++g_mismatch;
-    ++g_tags[std::string(api) + " " + tag];
+    ++g_tags[key];                  // 分子：只记分家
     if (g_printed < 40) {           // 明细只打前 40 条，run_oracle.sh 不读它
         ++g_printed;
         std::printf("MISMATCH: %s [%s] in=%s qt=%s pk=%s\n",
@@ -1932,6 +1946,13 @@ static std::string shapeOfInv(const double m[9])
     return shapeOfTf(m) + "/" + sing;
 }
 
+// rotate 的直角特判是本族最尖锐的一条，所以「角度是不是 Qt 特判的那五个之一」
+// 必须参与 tag 构造（规则一）。
+// ⚠ 谓词写的是 Qt 源码里那五个字面量（90/-270/270/-90/180），**不是**「90 的
+// 整数倍」：-180 与 360 不在特判里，把它们算进来就比理由宽了。
+static bool tfSpecialAngle(double a)
+{ return a == 90. || a == -270. || a == 270. || a == -90. || a == 180.; }
+
 // ═══ Transform 族：逐 API 对拍 ════════════════════════════════════════════
 
 // 无输入的 API（默认构造），口径同 cmp_rect_constants。只跑一次。
@@ -2041,27 +2062,81 @@ static void cmp_tf_unary(const double m[9])
     }
 }
 
+// ── I-1：四个标量运算符各自的"制造过期"路径 ──────────────────────────────
+//
+// 四个对 m_dirty 的写法互不相同，所以"档位会不会过期、什么时候过期"在四个上
+// 各不相同，**必须四个都喂序列**（修复轮 1 之前只有 *= 一条）：
+//   · `*=` 条件抬升到 TxScale（`if (m_dirty < TxScale)`）—— 原矩阵档位高于
+//     TxScale 时就会留下过期值
+//   · `/=` 转发给 `*=`，但多一道 `div == 0` 的提前返回
+//   · `+=` / `-=` **无条件**把 m_dirty 钉成 TxProject —— 于是它们**永远不会**
+//     留下过期值（下一次 type() 必定全量重算）。这一条与上面两条正好相反，
+//     不喂就证明不了"我们抄的是无条件赋值而不是条件抬升"
+// 四个各自还有提前返回（num==1 / div==0 / num==0），提前返回时 m_dirty
+// **一个字都不动** —— 那是第三种档位演化，tag 里必须看得见。
+static const char *kTfOpName[4] = { "mul", "div", "add", "sub" };
+
+static void tfApplyQ(QTransform &q, double s, int op)
+{
+    switch (op) {
+    case 0: q *= s; break;
+    case 1: q /= s; break;
+    case 2: q += s; break;
+    default: q -= s; break;
+    }
+}
+static void tfApplyP(PkTransform &p, double s, int op)
+{
+    switch (op) {
+    case 0: p *= s; break;
+    case 1: p /= s; break;
+    case 2: p += s; break;
+    default: p -= s; break;
+    }
+}
+// 这一次是不是提前返回（= m_dirty 一个字不动）。判据照抄四个运算符各自的第一行。
+static bool tfOpIsNoop(double s, int op)
+{
+    if (op == 0) return s == 1.;
+    if (op == 1) return s == 0;
+    return s == 0;
+}
+
 // 惰性缓存专用：喂**序列**而不是单个矩阵。
 // 序列 A：type() → *= 0.5 → type()   （档位可能过期）
 // 序列 B：           *= 0.5 → type()   （全量重算）
 // 两条必须逐输入一致，且 A 与 B 在同一批输入上**本来就该给不同答案** ——
 // 那正是"缓存是可观测语义"的形状。
-static void cmp_tf_cache(const double m[9], double s)
+static void cmp_tf_cache(const double m[9], double s, int op)
 {
-    const std::string in = tfin(m) + "*" + dstr(s);
-    const std::string sh = shapeOfTf(m);
+    const std::string in = tfin(m) + "#" + kTfOpName[op] + dstr(s);
+    // tag 由输入形态构造（规则一）：矩阵形态 × 哪个运算符 × 这一次是不是提前返回。
+    // 后两个都是从实参算出来的，不是常量。
+    const std::string sh = shapeOfTf(m) + "/" + kTfOpName[op] + "/"
+        + (tfOpIsNoop(s, op) ? "no-op" : "applied");
 
+    // ── 分支一：**中间问过 type()**（把 m_dirty 清零、m_type 钉住），
+    //           于是接下来的写入可能留下过期值
     {
         QTransform q = mkQT(m); PkTransform p = mkPT(m);
         (void)q.type(); (void)p.type();
-        q *= s; p *= s;
+        tfApplyQ(q, s, op); tfApplyP(p, s, op);
         rec("T::type(stale)", (int)q.type() == (int)p.type(), sh, in,
+            istr((int)q.type()), istr((int)p.type()));
+    }
+    // ── 分支二：**中间不问**，m_dirty 仍是构造时的 TxProject，走全量重算。
+    //           两条分支在同一批输入上**本来就该给不同答案** —— 那正是
+    //           "缓存是可观测语义"的形状；缺了这一条，分支一自己证明不了什么。
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        tfApplyQ(q, s, op); tfApplyP(p, s, op);
+        rec("T::type(fresh)", (int)q.type() == (int)p.type(), sh, in,
             istr((int)q.type()), istr((int)p.type()));
     }
     {
         QTransform q = mkQT(m); PkTransform p = mkPT(m);
         (void)q.type(); (void)p.type();
-        q *= s; p *= s;
+        tfApplyQ(q, s, op); tfApplyP(p, s, op);
         rec("T::isIdentity(stale)", q.isIdentity() == p.isIdentity(), sh, in,
             bstr(q.isIdentity()), bstr(p.isIdentity()));
     }
@@ -2069,7 +2144,7 @@ static void cmp_tf_cache(const double m[9], double s)
         // 过期档位会传染到 map：这一条比的是**取值**，走的是被过期档位选中的分支。
         QTransform q = mkQT(m); PkTransform p = mkPT(m);
         (void)q.type(); (void)p.type();
-        q *= s; p *= s;
+        tfApplyQ(q, s, op); tfApplyP(p, s, op);
         rec("T::map(stale)", same_ptf(q.map(QPointF(3, 4)), p.map(PkPointF(3, 4))), sh, in,
             qstr(q.map(QPointF(3, 4))), qstr(p.map(PkPointF(3, 4))));
     }
@@ -2078,10 +2153,70 @@ static void cmp_tf_cache(const double m[9], double s)
         // 我们靠编译器生成的拷贝 —— 这条 rec 就是那个等价性的判据）。
         QTransform q = mkQT(m); PkTransform p = mkPT(m);
         (void)q.type(); (void)p.type();
-        q *= s; p *= s;
+        tfApplyQ(q, s, op); tfApplyP(p, s, op);
         const QTransform qc = q; const PkTransform pc = p;
         rec("T::copy(stale)", (int)qc.type() == (int)pc.type(), sh, in,
             istr((int)qc.type()), istr((int)pc.type()));
+    }
+}
+
+// ── I-1：旋转往返序列（brief 点名的 type/after-roundtrip）───────────────────
+//
+// `rotate(a)` 之后 `rotate(-a)`：直角特判下矩阵**精确**回到起点，于是 type()
+// 也回到起点；走 sin/cos 的角度上回不到精确起点。两条分支（中间问过 type() /
+// 不问）都要比 —— 中间那一问会把 m_type 钉在 TxRotate 上，而 rotate 的
+// `if (m_dirty < TxRotate)` 是条件抬升，两者叠起来才是真实的调用形态。
+static void cmp_tf_roundtrip(const double m[9], double ang)
+{
+    const std::string in = tfin(m) + "@rt" + dstr(ang);
+    const std::string sh = shapeOfTf(m) + "/"
+        + (tfSpecialAngle(ang) ? "right-angle"
+           : ang == 0. ? std::string("zero-angle") : shapeOfD({ang}))
+        + "/after-roundtrip";
+
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.rotate(ang); q.rotate(-ang);
+        p.rotate(ang); p.rotate(-ang);
+        rec("T::rotate(roundtrip)", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.rotate(ang); (void)q.type(); q.rotate(-ang);
+        p.rotate(ang); (void)p.type(); p.rotate(-ang);
+        rec("T::rotate(roundtrip-asked)", same_tf(q, p) && (int)q.type() == (int)p.type(),
+            sh, in, qstr(q) + "|" + istr((int)q.type()),
+            qstr(p) + "|" + istr((int)p.type()));
+    }
+}
+
+// ── I-1：连续 mutator 链 ───────────────────────────────────────────────────
+//
+// translate → scale → shear → rotate 四步连着走，每一步都按 inline_type() 分档
+// 选公式，而档位又被上一步的 m_dirty 写法决定 —— **档位错一步，后面三步的公式
+// 全错**。两条分支：每步之后都问一次 type()（把缓存钉住）/ 全程不问（一路带着
+// 脏标志）。单点调用证明不了这个。
+static void cmp_tf_chain(const double m[9], double a)
+{
+    const std::string in = tfin(m) + "@chain" + dstr(a);
+    const std::string sh = shapeOfTf(m) + "/" + shapeOfD({a}) + "/chain";
+
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.translate(a, a); q.scale(a, a); q.shear(a, a); q.rotate(a);
+        p.translate(a, a); p.scale(a, a); p.shear(a, a); p.rotate(a);
+        rec("T::type(chain)", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.translate(a, a); (void)q.type(); q.scale(a, a); (void)q.type();
+        q.shear(a, a); (void)q.type(); q.rotate(a);
+        p.translate(a, a); (void)p.type(); p.scale(a, a); (void)p.type();
+        p.shear(a, a); (void)p.type(); p.rotate(a);
+        rec("T::type(chain-asked)", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
     }
 }
 
@@ -2113,14 +2248,9 @@ static void cmp_tf_mutate(const double m[9], double a, double b)
     }
 }
 
-// rotate / rotateRadians。**直角特判**是本族最尖锐的一条，所以 tag 里
-// 「角度是不是 Qt 特判的那五个之一」必须参与构造 —— 去掉特判之后差异全部落在
-// right-angle 这个桶里，一眼看得出根因。
-// ⚠ 谓词写的是 Qt 源码里那五个字面量（90/-270/270/-90/180），**不是**「90 的
-// 整数倍」：-180 与 360 不在特判里，把它们算进来就比理由宽了。
-static bool tfSpecialAngle(double a)
-{ return a == 90. || a == -270. || a == 270. || a == -90. || a == 180.; }
-
+// rotate / rotateRadians。**直角特判**是本族最尖锐的一条（tfSpecialAngle
+// 定义在上面的 tag 谓词一节）—— 去掉特判之后差异全部落在 right-angle 这个桶里，
+// 一眼看得出根因。
 static void cmp_tf_rotate(const double m[9], double ang)
 {
     const std::string in = tfin(m) + "@" + dstr(ang);
@@ -2284,8 +2414,12 @@ static void cmp_tf_maprect(const double m[9], double x, double y, double w, doub
     const std::string in = tfin(m) + "R(" + dstr(x) + "," + dstr(y) + ","
                          + dstr(w) + "," + dstr(h) + ")";
     const bool clip = tfFreshIsProject(m) && tfNeedsClip(m, x, x + w, y, y + h);
+    // ⚠ **矩形那四个分量也要参与**（约定见 shapeOfD 上方那段：一个 API 的 shape
+    // 必须由它全部参与分量算出）。修复轮 1 之前 persp-clip 这一支把矩形形态丢了
+    // —— 那是全文件唯一一处破这条约定的地方，而"缺陷只在某种矩形上触发"正好
+    // 会被贴成与根因无关的标签。
     const std::string base = shapeOfTf(m) + "/" + shapeOfD({x, y, w, h});
-    const std::string sh = clip ? ("persp-clip/" + shapeOfTf(m)) : base;
+    const std::string sh = clip ? ("persp-clip/" + base) : base;
 
     rec("T::mapRect(PkRectF)",
         same_rectf(q.mapRect(QRectF(x, y, w, h)), p.mapRect(PkRectF(x, y, w, h))),
@@ -2304,8 +2438,9 @@ static void cmp_tf_maprect_int(const double m[9], int x1, int y1, int x2, int y2
     const bool clip = tfFreshIsProject(m)
         && tfNeedsClip(m, qr.x(), (double)qr.x() + qr.width(),
                        qr.y(), (double)qr.y() + qr.height());
+    // ⚠ 矩形那四个分量也要参与，理由同浮点版。
     const std::string base = shapeOfTf(m) + "/" + shapeOfRect(x1, y1, x2, y2);
-    const std::string sh = clip ? ("persp-clip/" + shapeOfTf(m)) : base;
+    const std::string sh = clip ? ("persp-clip/" + base) : base;
 
     rec("T::mapRect(PkRect)", same_rect(q.mapRect(qr), p.mapRect(pr)), sh, in,
         qstr(q.mapRect(qr)), qstr(p.mapRect(pr)));
@@ -3278,8 +3413,16 @@ int main()
 
             for (int a = 0; a < nSca; ++a) {
                 cmp_tf_scalar(mm, kTfSca[a]);
-                cmp_tf_cache(mm, kTfSca[a]);
+                // I-1：四个标量运算符各自的"制造过期"路径都要喂
+                for (int op = 0; op < 4; ++op)
+                    cmp_tf_cache(mm, kTfSca[a], op);
             }
+
+            // I-1：旋转往返（type/after-roundtrip）与连续 mutator 链
+            for (int a = 0; a < nAng; ++a)
+                cmp_tf_roundtrip(mm, kTfAng[a]);
+            for (int a = 0; a < nArg; ++a)
+                cmp_tf_chain(mm, kTfArg[a]);
 
             for (int r = 0; r < nRF; ++r)
                 cmp_tf_maprect(mm, kTfRectF[r][0], kTfRectF[r][1],
@@ -3313,6 +3456,11 @@ int main()
 
     for (const auto &kv : g_tags)
         std::printf("DIFFTAG %s %ld\n", kv.first.c_str(), kv.second);
+    // 分母行。**契约上是新增的第三种行**：run_oracle.sh 只把 DIFFTAG / DIFF
+    // 当判据，DIFFDEN 纯粹是给人读的（"命中 N 次里分家 M 次"），
+    // 加它不影响既有的两条契约。只为**出现过差异**的 tag 打，不是全量。
+    for (const auto &kv : g_tags)
+        std::printf("DIFFDEN %s %ld\n", kv.first.c_str(), g_tag_seen[kv.first]);
     // 规则三的机器闸门：见 g_apis 上方那段。run_oracle.sh 拿这批行与
     // oracle/api_seen.expected、oracle/rect_api.map 三向核对。
     for (const auto &a : g_apis)

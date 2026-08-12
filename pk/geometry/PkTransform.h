@@ -251,6 +251,15 @@ private:
     // 与 inverted() 另外两条路径的 qFuzzyIsNull 门槛不同，别统一。
     void invertedAffine(PkTransform &out, bool *invertible) const;
 
+    // 四角包围盒 —— qtransform.cpp:1963-1985 与 2033-2054 那一段。抽成成员是为了
+    // 让 mapRect 保住 Qt 原本的**三分支**结构（`t <= TxTranslate` / `t <= TxScale` /
+    // `t < TxProject || !needsPerspectiveClipping(...)` / else），
+    // 而那第四支（Qt 走 QPainterPath 的那一支）在本类里落回同一个四角包围盒。
+    // 不抽的话只能把两段一模一样的代码写两遍、或者把分支合掉 ——
+    // 合掉之后**那条已声明的偏离在代码里就不显形了**。
+    PkRect mapRectCorners(const PkRect &rect, TransformationType t) const;
+    PkRectF mapRectCorners(const PkRectF &rect, TransformationType t) const;
+
     qreal m_11, m_12;
     qreal m_21, m_22;
     qreal m_dx, m_dy;

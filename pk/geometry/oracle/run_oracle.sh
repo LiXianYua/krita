@@ -98,6 +98,28 @@ printf '编译：g++ %s %s %s\n' "${CXXFLAGS_ORACLE[*]}" "${INCFLAGS[*]}" "$SRC"
 g++ "${CXXFLAGS_ORACLE[@]}" "${INCFLAGS[@]}" -o "$OUT" "$SRC" \
     -L"$QT/lib" -Wl,-rpath-link,"$QT/lib" -Wl,-rpath,"$QT/lib" $QT_LIBS
 
+# ── §CONSTEXPR：PkTransform.h 不得出现 constexpr ─────────────────────────
+#
+# QTransform **一个 constexpr 成员都没有**（qtransform.h 里连 Q_DECL_CONSTEXPR
+# 都没出现过），而 PkPoint/PkSize/PkRect 三族全是 constexpr —— 恰好相反。
+# 给替代品顺手加一个 constexpr 就是**比 Qt 多一档能力**：调用点能把它用进常量
+# 表达式，换回真 Qt 时当场编不过，而"多一档"这个方向对拍看不见（它只比取值）。
+#
+# 为什么是文本闸门而不是断言：C++17 里**没法用 static_assert 反证「某表达式不是
+# 常量表达式」**（能断言"是"，不能断言"不是"）。tests/test_transform.cpp 的
+# transformConstexprSurfaceIsGatedByText 只负责证明 harness 分得开两种情况，
+# 真正守住这条的是下面这三行。
+#
+# 去注释再查：头文件的说明文字里本来就会提到这个词（`Q_DECL_CONSTEXPR`、
+# 「一个 constexpr 都没有」），直接 grep 会恒真。
+if sed 's|//.*||' pk/geometry/PkTransform.h | grep -q 'constexpr'; then
+    echo "run_oracle.sh: PkTransform.h 里出现了 constexpr —— QTransform 一个都没有，" >&2
+    echo "  加上去等于替代品比 Qt 多一档能力（说明见本脚本 §CONSTEXPR）：" >&2
+    sed 's|//.*||' pk/geometry/PkTransform.h | grep -n 'constexpr' >&2
+    exit 1
+fi
+printf 'PkTransform.h 去注释后无 constexpr：与 qtransform.h 的能力面一致\n'
+
 # 判据：**真的链上了 Qt**。链不上说明两侧都编到了替代品，零差异是假的。
 printf '\nldd %s | grep -i qt:\n' "$OUT"
 LD_LIBRARY_PATH="$QT/lib" ldd "$OUT" | grep -i qt || true
@@ -126,7 +148,7 @@ if [ "$rc" -ne 0 ]; then
     tail -20 "$LOG" >&2
     exit 1
 fi
-grep -E '^(DIFFTAG|DIFF) ' "$LOG" || true
+grep -E '^(DIFFTAG|DIFFDEN|DIFF) ' "$LOG" || true
 
 # ── §APISEEN：规则三的机器闸门 ───────────────────────────────────────────
 #
@@ -332,9 +354,19 @@ import sys
 
 log, dev = sys.argv[1], sys.argv[2]
 
-seen, diff_lines = {}, []
+seen, den, diff_lines = {}, {}, []
 for line in open(log, encoding='utf-8', errors='replace'):
-    if line.startswith('DIFFTAG '):
+    # DIFFDEN 是**分母**（该 tag 的谓词命中过多少次比对），Task 6 修复轮 1 新增。
+    # ⚠ 它**不进闸门**：第三列的额度仍然只比分子（DIFFTAG）。分母是给人推导
+    # 「为什么恰好是这么多」用的 —— 光有分子说不清"喂了多少次里分家这么多"。
+    # 必须在 DIFFTAG 那条 elif 之前判，否则 startswith('DIFF ') 那条也吃不到它
+    # （'DIFFDEN ' 不以 'DIFF ' 开头，所以其实无所谓，但顺序写清楚免得以后踩）。
+    if line.startswith('DIFFDEN '):
+        parts = line.split()
+        if len(parts) != 4:
+            print(f'FAIL: DIFFDEN 行格式不对：{line.rstrip()}', file=sys.stderr); sys.exit(1)
+        den[(parts[1], parts[2])] = int(parts[3])
+    elif line.startswith('DIFFTAG '):
         parts = line.split()
         if len(parts) != 4:
             print(f'FAIL: DIFFTAG 行格式不对：{line.rstrip()}', file=sys.stderr); sys.exit(1)
@@ -399,7 +431,13 @@ print(f'\n对拍结论：total={total} mismatch={mismatch} '
 for k, v in sorted(seen.items()):
     kind = 'canary' if k[0] == 'canary' else ('已声明' if k in declared else '**未声明**')
     want = f'，期望 {declared[k][0]}' if k in declared else ''
-    print(f'  {k[0]} {k[1]} {v}{want}  [{kind}]')
+    # 「命中 N 次里分家 M 次」—— 额度那一列为什么恰好是这么多，靠这个读。
+    n = den.get(k)
+    ratio = f'（命中 {n} 次{"，命中即分家" if n == v else f"，另 {n - v} 次两侧相同"}）' \
+        if n is not None else ''
+    print(f'  {k[0]} {k[1]} {v}{want}{ratio}  [{kind}]')
+if den:
+    print(f'  ── 分母合计 {sum(den.values())}，分子合计 {sum(seen.values())}')
 
 ok = True
 if missing_canary:

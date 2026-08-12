@@ -998,7 +998,7 @@ void PkTransformCase::transformEqualityIsExactNotFuzzy()
 {
     // 实测（probe3）：m33 差 5e-12 时 `==` 为假、qFuzzyCompare 为真。
     // ⚠ 差 1e-16 时**两者都为真** —— 因为 9+1e-16 在 double 里就是 9，
-    // 拿它当"精确 vs 模糊"的分界会得到一个恒真的测试（第一版就这么写过）。
+    // 拿它当"精确 vs 模糊"的分界只会得到一条恒真的测试，分不开这两条门槛。
     const PkTransform a(1, 2, 3, 4, 5, 6, 7, 8, 9);
     const PkTransform b(1, 2, 3, 4, 5, 6, 7, 8, 9);
     const PkTransform c(1, 2, 3, 4, 5, 6, 7, 8, 9 + 5e-12);
@@ -1084,25 +1084,32 @@ void PkTransformCase::transformNoexceptSurfaceMatchesQt()
     PK_VERIFY(std::is_nothrow_copy_assignable<PkTransform>::value);
 }
 
-void PkTransformCase::transformConstexprSurfaceMatchesQt()
+void PkTransformCase::transformConstexprSurfaceIsGatedByText()
 {
-    // QTransform **一个 constexpr 成员都没有**（qtransform.h 里连
-    // Q_DECL_CONSTEXPR 都没出现过）——与 PkPoint/PkSize/PkRect 三族全是
-    // constexpr 恰好相反。所以本类也一个都不加。
+    // QTransform **一个 constexpr 成员都没有**（qtransform.h 里连 Q_DECL_CONSTEXPR
+    // 都没出现过）——与 PkPoint/PkSize/PkRect 三族全是 constexpr 恰好相反。
+    // 所以本类也一个都不加：多一个 constexpr 就是替代品比 Qt 多一档能力。
     //
-    // 「不是 constexpr」没法用 static_assert 反证（不能断言某表达式**不是**常量
-    // 表达式），这条测试用运行期的方式记账：下面这些都只能是运行期变量。
-    // 哪天有人给取值器顺手加了 constexpr，把它们改成 `constexpr` 变量就能编过
-    // —— 那时候这条注释就是发现它的地方。
+    // ⚠ **这条判据不住在这里，住在 run_oracle.sh 的 §CONSTEXPR 文本闸门里。**
+    // C++17 没法用 static_assert 反证「某表达式不是常量表达式」，所以真正守住
+    // 「没人顺手加 constexpr」的是那道 `grep constexpr PkTransform.h` ——
+    // 函数名如实说明这一点，别把它读成"这里断言了 PkTransform 不是 constexpr"。
+    //
+    // 本函数负责的是**另一半**：证明 harness 分得开这两种情况。下面三族的
+    // constexpr 变量能编过、Transform 那边只能是运行期变量 —— 哪天有人把
+    // PkTransform 的取值器改成 constexpr，文本闸门当场 FAIL，而这里的对照
+    // 说明"分得开"这件事本身是成立的（不是因为 harness 根本测不了）。
+    constexpr PkPointF p(1, 2);
+    constexpr PkRectF r(1, 2, 3, 4);
+    constexpr PkRect ri(1, 2, 3, 4);
+    PK_COMPARE(p.x(), 1.0);
+    PK_COMPARE(r.width(), 3.0);
+    PK_COMPARE(ri.width(), 3);
+
+    // Transform 侧只能是运行期的。
     const PkTransform t(1, 2, 3, 4, 5, 6, 7, 8, 9);
     const double v = t.m11();
     PK_COMPARE(v, 1.0);
-
-    // 与三个 POD 族的对照（那边确实是 constexpr，这里顺手钉住对比关系）：
-    constexpr PkPointF p(1, 2);
-    constexpr PkRectF r(1, 2, 3, 4);
-    PK_COMPARE(p.x(), 1.0);
-    PK_COMPARE(r.width(), 3.0);
 }
 
 int run_transform_tests()

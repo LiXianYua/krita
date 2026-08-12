@@ -98,7 +98,7 @@ private Q_SLOTS:
 
     // ── 跨切面 ──
     void transformNoexceptSurfaceMatchesQt();
-    void transformConstexprSurfaceMatchesQt();
+    void transformConstexprSurfaceIsGatedByText();
 };
 
 #undef Q_SLOTS

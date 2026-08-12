@@ -266,6 +266,8 @@ T::operator==
 T::reset
 T::rotate
 T::rotate(axis)
+T::rotate(roundtrip)
+T::rotate(roundtrip-asked)
 T::rotateRadians
 T::rotateRadians(axis)
 T::scale
@@ -274,6 +276,9 @@ T::shear
 T::translate
 T::transposed
 T::type
+T::type(chain)
+T::type(chain-asked)
+T::type(fresh)
 T::type(stale)
 canary
 canary-negative

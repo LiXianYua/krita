@@ -916,30 +916,10 @@ static inline bool pkNeedsPerspectiveClipping(const PkRectF &rect, const PkTrans
 // **不是**把这片输入从对拍里拿掉 —— 那样谁都看不见这个洞有多大。
 // ═══════════════════════════════════════════════════════════════════════════
 
-// qtransform.cpp:1942-1991
-PkRect PkTransform::mapRect(const PkRect &rect) const
+// qtransform.cpp:1963-1985 的四角包围盒。抽成成员的理由见 PkTransform.h 的私有段：
+// 让 mapRect 保住 Qt 原本的四分支结构，那条已声明的偏离才在代码里显形。
+PkRect PkTransform::mapRectCorners(const PkRect &rect, TransformationType t) const
 {
-    TransformationType t = inline_type();
-    if (t <= TxTranslate)
-        return rect.translated(qRound(m_dx), qRound(m_dy));
-
-    if (t <= TxScale) {
-        int x = qRound(m_11 * rect.x() + m_dx);
-        int y = qRound(m_22 * rect.y() + m_dy);
-        int w = qRound(m_11 * rect.width());
-        int h = qRound(m_22 * rect.height());
-        if (w < 0) {
-            w = -w;
-            x -= w;
-        }
-        if (h < 0) {
-            h = -h;
-            y -= h;
-        }
-        return PkRect(x, y, w, h);
-    } else {
-        // ⚠ Qt 这里是 `else if (t < TxProject || !pkNeedsPerspectiveClipping(...))`，
-        // 另有一支走 QPainterPath —— 见上方那段，本类落回四角包围盒。
         // see mapToPolygon for explanations of the algorithm.
         qreal x = 0, y = 0;
         PK_MAP(rect.left(), rect.top(), x, y);
@@ -964,22 +944,20 @@ PkRect PkTransform::mapRect(const PkRect &rect) const
         ymax = qMax(ymax, y);
         return PkRect(qRound(xmin), qRound(ymin), qRound(xmax) - qRound(xmin),
                       qRound(ymax) - qRound(ymin));
-    }
 }
 
-// qtransform.cpp:2012-2060。⚠ 与整数版的两处不同：四角用的是 x+w / y+h
-// （**没有** +1 的差一补偿），且全程不 qRound。
-PkRectF PkTransform::mapRect(const PkRectF &rect) const
+// qtransform.cpp:1942-1991
+PkRect PkTransform::mapRect(const PkRect &rect) const
 {
     TransformationType t = inline_type();
     if (t <= TxTranslate)
-        return rect.translated(m_dx, m_dy);
+        return rect.translated(qRound(m_dx), qRound(m_dy));
 
     if (t <= TxScale) {
-        qreal x = m_11 * rect.x() + m_dx;
-        qreal y = m_22 * rect.y() + m_dy;
-        qreal w = m_11 * rect.width();
-        qreal h = m_22 * rect.height();
+        int x = qRound(m_11 * rect.x() + m_dx);
+        int y = qRound(m_22 * rect.y() + m_dy);
+        int w = qRound(m_11 * rect.width());
+        int h = qRound(m_22 * rect.height());
         if (w < 0) {
             w = -w;
             x -= w;
@@ -988,9 +966,25 @@ PkRectF PkTransform::mapRect(const PkRectF &rect) const
             h = -h;
             y -= h;
         }
-        return PkRectF(x, y, w, h);
+        return PkRect(x, y, w, h);
+    } else if (t < TxProject || !pkNeedsPerspectiveClipping(rect, *this)) {
+        return mapRectCorners(rect, t);
     } else {
-        // 同整数版：Qt 的 QPainterPath 一支不实现，落回四角包围盒。
+        // ⚠⚠ **已声明的偏离就住在这一支** ⚠⚠
+        // Qt 在这里是：QPainterPath path; path.addRect(rect);
+        //              return map(path).boundingRect().toRect();
+        // QPainterPath 不在 R-03 交付范围（归属未定），本类落回四角包围盒。
+        // 分支保留成 Qt 的原样、而不是把两支合掉，就是为了让这一支在代码里
+        // **看得见**：读到这里的人不必翻 .deviation 才知道有个洞。
+        // 量化在 oracle/geometry.deviation 的 persp-clip 那 23 行（含分母）。
+        return mapRectCorners(rect, t);
+    }
+}
+
+// qtransform.cpp:2033-2054 的四角包围盒。⚠ 与整数版的两处不同：四角用的是
+// x+w / y+h（**没有** +1 的差一补偿），且全程不 qRound。
+PkRectF PkTransform::mapRectCorners(const PkRectF &rect, TransformationType t) const
+{
         qreal x = 0, y = 0;
         PK_MAP(rect.x(), rect.y(), x, y);
         qreal xmin = x;
@@ -1013,6 +1007,34 @@ PkRectF PkTransform::mapRect(const PkRectF &rect) const
         xmax = qMax(xmax, x);
         ymax = qMax(ymax, y);
         return PkRectF(xmin, ymin, xmax - xmin, ymax - ymin);
+}
+
+// qtransform.cpp:2012-2060
+PkRectF PkTransform::mapRect(const PkRectF &rect) const
+{
+    TransformationType t = inline_type();
+    if (t <= TxTranslate)
+        return rect.translated(m_dx, m_dy);
+
+    if (t <= TxScale) {
+        qreal x = m_11 * rect.x() + m_dx;
+        qreal y = m_22 * rect.y() + m_dy;
+        qreal w = m_11 * rect.width();
+        qreal h = m_22 * rect.height();
+        if (w < 0) {
+            w = -w;
+            x -= w;
+        }
+        if (h < 0) {
+            h = -h;
+            y -= h;
+        }
+        return PkRectF(x, y, w, h);
+    } else if (t < TxProject || !pkNeedsPerspectiveClipping(rect, *this)) {
+        return mapRectCorners(rect, t);
+    } else {
+        // ⚠⚠ **已声明的偏离就住在这一支** ⚠⚠ 与整数版逐字同理。
+        return mapRectCorners(rect, t);
     }
 }
 

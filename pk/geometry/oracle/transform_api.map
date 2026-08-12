@@ -36,7 +36,7 @@ PkTransform::PkTransform(qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal)	
 PkTransform::PkTransform(qreal,qreal,qreal,qreal,qreal,qreal)	T::ctor6
 PkTransform::isAffine()	T::isAffine
 PkTransform::isIdentity()	T::isIdentity;T::isIdentity(stale)
-PkTransform::type()	T::type;T::type(stale);T::copy(stale)
+PkTransform::type()	T::type;T::type(stale);T::type(fresh);T::copy(stale);T::type(chain);T::type(chain-asked)
 PkTransform::determinant()	T::determinant
 PkTransform::m11()	T::m11
 PkTransform::m12()	T::m12
@@ -55,7 +55,7 @@ PkTransform::transposed()	T::transposed
 PkTransform::translate(qreal,qreal)	T::translate
 PkTransform::scale(qreal,qreal)	T::scale
 PkTransform::shear(qreal,qreal)	T::shear
-PkTransform::rotate(qreal,Qt::Axis)	T::rotate;T::rotate(axis)
+PkTransform::rotate(qreal,Qt::Axis)	T::rotate;T::rotate(axis);T::rotate(roundtrip);T::rotate(roundtrip-asked)
 PkTransform::rotateRadians(qreal,Qt::Axis)	T::rotateRadians;T::rotateRadians(axis)
 PkTransform::operator==(const PkTransform&)	T::operator==
 PkTransform::operator!=(const PkTransform&)	T::operator!=

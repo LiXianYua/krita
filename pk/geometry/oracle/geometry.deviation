@@ -86,7 +86,7 @@ canary	int-value	1	比较管道自证：故意拿 QPoint(1,2) 与 PkPoint(1,3) �
 canary	double-bits-signed-zero	1	比较管道自证：+0.0 与 -0.0 按位不同但 == 判等，这一条能出现才说明 same_double 走的是 memcpy 位比较而不是退化成了 ==
 canary	nan-vs-number	1	比较管道自证：NaN 与 1.0 必须判成不同，这一条能出现才说明 NaN 分支没有把一切都判成相同（NaN 判等只在两侧都是 NaN 时成立）
 # ══════════════════════════════════════════════════════════════════════════
-# **Task 6（Transform 族）写下了 R-03 的第一条真实偏离**，五行，根因只有一个。
+# **Task 6（Transform 族）写下了 R-03 的第一条真实偏离** —— 23 行，根因只有一个。
 #
 # `QTransform::mapRect` 的两个重载在
 #   `type() == TxProject` **且** `needsPerspectiveClipping(rect, *this)` 为真
@@ -96,6 +96,11 @@ canary	nan-vs-number	1	比较管道自证：NaN 与 1.0 必须判成不同，这
 # 落回四角包围盒的话，被夹持到 1e-6 的那个角会把包围盒撑到 1e7 量级，而 Qt
 # 裁出来的是 1e6 量级：实测 t(1,0,-1, 0,1,0, 0,0,1) 对 (0,0,10,10)，
 # Qt 给 (0,0,999999.0000000007,1e7)，四角包围盒给 (0,0,1e7,1e7)。
+#
+# **这一支在代码里是显形的**：PkTransform.cpp 的两个 mapRect 保住了 Qt 原本的
+# 四分支结构（`t <= TxTranslate` / `t <= TxScale` /
+# `t < TxProject || !pkNeedsPerspectiveClipping(...)` / else），最后那一支
+# 就是本条偏离，注释直接指到这里。合并分支会省掉几行、也会让这个洞消失在视野里。
 #
 # **为什么这条站得住（唯一站得住的偏离理由：决策文档已明确划在范围外）**：
 # `QPainterPath` 不在 `Qt替代品选型.md` §1 几何那一行点名的四个类型
@@ -113,21 +118,61 @@ canary	nan-vs-number	1	比较管道自证：NaN 与 1.0 必须判成不同，这
 # 同时成立时才构造，**两个限定词都在，一个不多**。两侧都是拿**输入的九个 double**
 # 重算的，不问被测对象的 type() —— 问它的话被测对象坏掉时 tag 会跟着坏。
 #
-# **额度为什么恰好是这么多**：输入是固定的（Group 5 的缩减扫描集 3 778 个矩阵
-# × kTfRectF 的 12 个浮点矩形 / kTfRectI 的 10 个整数矩形），命中"投影且需裁剪"
-# 的组合数是确定的；其中**取值恰好相同的那些不计**（rec 只在不等时记数），
-# 所以额度是"真的分家了多少次"而不是"喂了多少次"。五行按
-# `<重载>` × `<矩阵九分量的形态>` 分开，形态由 shapeOfD 给出 ——
-# 分开是为了让"某一片形态上的差异忽然多了/少了"单独现形。
+# ══════════════════════════════════════════════════════════════════════════
+# **额度「为什么恰好是这么多」怎么读**（修复轮 1，评审 Important 2）
 #
-# ⚠ **这五行不豁免任何别的东西。** Transform 一节跑了 28 083 469 次比对
-# （= 153 421 834 - Task 4 修复轮的 125 338 365），除了这 25 495 次之外
-# **一次都没分家** —— 包括惰性缓存那一整类序列、直角特判、inverted 的三条路径、
-# map 四个重载的夹持与不夹持。
+# 之前这里只有 5 行、理由是定性的，说不出那个数字**为什么恰好是这么多**。
+# 两处改动让它可推导：
+#
+# ① **对拍程序多打一种行：`DIFFDEN <api> <tag> <分母>`** —— 该 tag 的谓词
+#    命中过多少次比对（分子只数分家的那些）。`run_oracle.sh` 把它印在结论块里，
+#    于是每一行都能读成「**命中 N 次里分家 M 次**」。分母不进闸门（第三列仍然
+#    只比分子），它是给人推导用的：分子孤零零一个数，既可能是"喂了 12 800 次
+#    几乎全分家"，也可能是"喂了 200 万次只有这么点"，两者对偏离范围的含义
+#    天差地别。
+# ② **tag 把矩形那族形态也带上了**（原来只有矩阵形态，是全文件唯一一处破
+#    「一个 API 的 shape 由它全部参与分量算出」这条约定的地方）。5 行于是裂成
+#    23 行，每一行的分母都小到能对着输入集数出来。
+#
+# **实测（修复轮 1）：这 23 行的分母合计 27 492、分子合计 25 495。**
+# （run_oracle.sh 结论块末尾打的是 27 495 / 25 498 —— 那是**含三条 canary**的
+#  合计，差的正好是那 3 条。两个数字都对，口径不同，别拿来互相对账。）
+# **23 行里有 12 行分子 == 分母**（命中即分家，合计 1 547 次）—— 那几片输入上
+# 被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，没有一次与 Qt 的裁剪结果相同。
+# 剩下 11 行分子 < 分母，差额（27 492 - 25 495 = 1 997 次）是**裁剪前后包围盒
+# 重合**的输入：被夹持的那个角落在已有包围盒之内，裁不裁都不改变四个边界。
+#
+# 分母 N 自己的来源是数得出来的：输入是固定的（Group 5 的缩减扫描集 3 778 个
+# 矩阵 × kTfRectF 的 12 个浮点矩形 / kTfRectI 的 10 个整数矩形），
+# 命中「投影且需裁剪」的组合数由 tfFreshIsProject × tfNeedsClip 两个谓词唯一确定。
+#
+# ⚠ **这 23 行不豁免任何别的东西。** Transform 一节跑了 29 020 413 次比对
+# （= 154 358 778 - Task 4 修复轮的 125 338 365），除了这 25 495 次之外
+# **一次都没分家** —— 包括惰性缓存那一整类**多步序列**（四个标量运算符各自的
+# 过期路径 × 问过/没问过两条分支、旋转往返、连续 mutator 链）、直角特判、
+# inverted 的三条路径、map 四个重载的夹持与不夹持。
 # ══════════════════════════════════════════════════════════════════════════
 
-T::mapRect(PkRect)	persp-clip/proj-finite	609	整数版 mapRect 在「投影且需透视裁剪」且矩阵九分量全为有限非零值时，Qt 走 QPainterPath 裁剪，本类落回四角包围盒；QPainterPath 归属未定、不在 R-03 交付范围
-T::mapRect(PkRect)	persp-clip/proj-zero	12799	同上，矩阵里含至少一个 +0.0 分量（shapeOfD 的 zero 档）的那一片；分档是为了让某一片形态上的差异数忽然变化时单独现形，不与其他档混在一起
-T::mapRect(PkRectF)	persp-clip/proj-finite	696	浮点版 mapRect 的同一条根因；与整数版分开计数是因为两者的四角取法不同（整数版用 right()+1 且全程 qRound），差异数没有理由相等
-T::mapRect(PkRectF)	persp-clip/proj-signed-zero	7	浮点版、矩阵里含 -0.0 分量的那一片；只有七次，因为 -0.0 只出现在手挑集的两个矩阵上，而它们里面同时满足投影与需裁剪的组合很少
-T::mapRect(PkRectF)	persp-clip/proj-zero	11384	浮点版、矩阵里含 +0.0 分量的那一片；数量最大是因为缩减扫描的 token 集里 0.0 占五分之一，三个槽位上都取得到
+T::mapRect(PkRect)	persp-clip/proj-finite/negative-unit	65	整数版 mapRect，矩阵九分量全是有限非零值、一轴负跨距一轴单像素。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 65 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRect)	persp-clip/proj-finite/normal-normal	428	整数版 mapRect，矩阵九分量全是有限非零值、两轴都是正常区间。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 428 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRect)	persp-clip/proj-finite/span-overflow-span-overflow	44	整数版 mapRect，矩阵九分量全是有限非零值、两轴跨距都越出 int。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 194 次里分家 44 次；另外 150 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+T::mapRect(PkRect)	persp-clip/proj-finite/unit-unit	40	整数版 mapRect，矩阵九分量全是有限非零值、两轴都是单像素。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 40 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRect)	persp-clip/proj-finite/zero-zero	32	整数版 mapRect，矩阵九分量全是有限非零值、两轴跨距都为零。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 32 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRect)	persp-clip/proj-zero/negative-unit	1225	整数版 mapRect，矩阵含 +0.0 分量、一轴负跨距一轴单像素。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 1284 次里分家 1225 次；另外 59 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+T::mapRect(PkRect)	persp-clip/proj-zero/normal-normal	7104	整数版 mapRect，矩阵含 +0.0 分量、两轴都是正常区间。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 7313 次里分家 7104 次；另外 209 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+T::mapRect(PkRect)	persp-clip/proj-zero/span-overflow-span-overflow	1603	整数版 mapRect，矩阵含 +0.0 分量、两轴跨距都越出 int。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 2549 次里分家 1603 次；另外 946 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+T::mapRect(PkRect)	persp-clip/proj-zero/unit-unit	1110	整数版 mapRect，矩阵含 +0.0 分量、两轴都是单像素。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 1183 次里分家 1110 次；另外 73 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+T::mapRect(PkRect)	persp-clip/proj-zero/zero-zero	1757	整数版 mapRect，矩阵含 +0.0 分量、两轴跨距都为零。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 1883 次里分家 1757 次；另外 126 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+T::mapRect(PkRectF)	persp-clip/proj-finite/finite	246	浮点版 mapRect，矩阵九分量全是有限非零值、四个字段全是有限非零值。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 246 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRectF)	persp-clip/proj-finite/nonfinite	80	浮点版 mapRect，矩阵九分量全是有限非零值、含 inf 或 nan 字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 80 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRectF)	persp-clip/proj-finite/signed-zero	32	浮点版 mapRect，矩阵九分量全是有限非零值、含 -0.0 字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 32 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRectF)	persp-clip/proj-finite/subnormal	32	浮点版 mapRect，矩阵九分量全是有限非零值、含次正规字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 32 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRectF)	persp-clip/proj-finite/zero	306	浮点版 mapRect，矩阵九分量全是有限非零值、含 +0.0 字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 306 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRectF)	persp-clip/proj-signed-zero/finite	2	浮点版 mapRect，矩阵含 -0.0 分量、四个字段全是有限非零值。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 3 次里分家 2 次；另外 1 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+T::mapRect(PkRectF)	persp-clip/proj-signed-zero/subnormal	1	浮点版 mapRect，矩阵含 -0.0 分量、含次正规字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 1 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRectF)	persp-clip/proj-signed-zero/zero	4	浮点版 mapRect，矩阵含 -0.0 分量、含 +0.0 字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 4 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRectF)	persp-clip/proj-zero/finite	4828	浮点版 mapRect，矩阵含 +0.0 分量、四个字段全是有限非零值。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 4945 次里分家 4828 次；另外 117 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+T::mapRect(PkRectF)	persp-clip/proj-zero/nonfinite	281	浮点版 mapRect，矩阵含 +0.0 分量、含 inf 或 nan 字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 281 次**全部**分家（分子=分母）：这一片输入上被夹到 1e-6 的角必定把包围盒撑到 1e6 量级以上，四角包围盒与 Qt 裁出来的结果没有一次相同
+T::mapRect(PkRectF)	persp-clip/proj-zero/signed-zero	598	浮点版 mapRect，矩阵含 +0.0 分量、含 -0.0 字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 720 次里分家 598 次；另外 122 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+T::mapRect(PkRectF)	persp-clip/proj-zero/subnormal	719	浮点版 mapRect，矩阵含 +0.0 分量、含次正规字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 720 次里分家 719 次；另外 1 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+T::mapRect(PkRectF)	persp-clip/proj-zero/zero	4958	浮点版 mapRect，矩阵含 +0.0 分量、含 +0.0 字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 5151 次里分家 4958 次；另外 193 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
