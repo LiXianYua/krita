@@ -29,12 +29,8 @@
 #include <kis_types.h>
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
-#include <kis_pattern_chooser.h>
 #include <KisResourcesInterface.h>
 #include <KoResourceLoadResult.h>
-
-#include "kis_wdg_pattern.h"
-#include "ui_wdgpatternoptions.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaPatternGeneratorFactory, "kritapatterngenerator.json", registerPlugin<KritaPatternGenerator>();)
 
@@ -240,12 +236,6 @@ KisFilterConfigurationSP PatternGenerator::defaultConfiguration(KisResourcesInte
     config->setProperty("transform_align_to_pixel_grid_y", QVariant::fromValue(1));
 
     return config;
-}
-
-KisConfigWidget * PatternGenerator::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisWdgPattern(parent);
 }
 
 void PatternGenerator::generate(KisProcessingInformation dstInfo,

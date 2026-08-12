@@ -32,10 +32,6 @@
 #include <kis_progress_update_helper.h>
 #include <KoStopGradient.h>
 
-#include "kis_wdg_multigrid_pattern.h"
-#include "ui_wdgmultigridpatternoptions.h"
-
-
 K_PLUGIN_FACTORY_WITH_JSON(KritaMultigridPatternGeneratorFactory, "kritamultigridpatterngenerator.json", registerPlugin<KritaMultigridPatternGenerator>();)
 
 KritaMultigridPatternGenerator::KritaMultigridPatternGenerator(QObject *parent, const QVariantList &)
@@ -87,12 +83,6 @@ KisFilterConfigurationSP KisMultigridPatternGenerator::defaultConfiguration(KisR
     config->setProperty("connectorType", Connector::None);
     config->setProperty("connectorWidth", 1);
     return config;
-}
-
-KisConfigWidget * KisMultigridPatternGenerator::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisWdgMultigridPattern(parent);
 }
 
 void KisMultigridPatternGenerator::generate(KisProcessingInformation dstInfo,
