@@ -18,8 +18,6 @@
 #include <KoCompositeOpRegistry.h>
 
 #include <kis_image.h>
-#include <kis_brush_option_widget.h>
-#include <kis_paintop_settings_widget.h>
 #include <kis_dom_utils.h>
 #include <KisOptimizedBrushOutline.h>
 

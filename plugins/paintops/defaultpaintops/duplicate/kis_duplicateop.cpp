@@ -15,10 +15,7 @@
 #include <memory>
 
 #include <QRect>
-#include <QLayout>
-#include <QCheckBox>
 #include <QDomElement>
-#include <QHBoxLayout>
 
 #include <kis_image.h>
 #include <kis_debug.h>
@@ -37,8 +34,6 @@
 #include <brushengine/kis_paintop.h>
 #include <kis_properties_configuration.h>
 #include <kis_selection.h>
-#include <kis_brush_option_widget.h>
-#include <kis_paintop_settings_widget.h>
 #include <kis_random_sub_accessor.h>
 #include <kis_fixed_paint_device.h>
 #include <kis_iterator_ng.h>

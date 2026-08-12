@@ -20,7 +20,7 @@
 #include <brushengine/kis_paintop_settings.h>
 #include <KisOpacityOption.h>
 #include <KisRotationOption.h>
-#include <KisSizeOptionWidget.h>
+#include <KisStandardOptions.h>
 #include <KisDuplicateOptionData.h>
 
 
