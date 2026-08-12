@@ -1,0 +1,26 @@
+#pragma once
+#include "../PkDebug.h"
+#include "../PkMessageLogger.h"
+
+// 兼容垫片：让真实调用点的 `#include <QDebug>` 在一个字都不改的前提下解析到
+// PkDebug。文件名刻意没有扩展名 —— 调用点写的就是 <QDebug>。
+//
+// 用宏而不是 `using QDebug = PkDebug;`：与 pk/string/compat/QString 同因，
+// Krita 头里有 `class QDebug;` 前置声明（例：libs/global/KisForest.h:201 的
+// friend 声明），类型别名遇到它会报 "redeclared as different kind of entity"；
+// 宏把那一行原样改写成 `class PkDebug;`，前置声明照样成立。
+#define QDebug PkDebug
+
+// QtMsgType 的五个取值——实测按名字映射而不是数值：真 Qt 里 QtInfoMsg==4，
+// 不在 QtDebugMsg<QtWarningMsg<QtCriticalMsg<QtFatalMsg (0/1/2/3) 这条严重性
+// 顺序上；PkLogLevel 刻意保持单调（Debug<Info<Warning<Critical<Fatal），按
+// 数值搬会把 QtInfoMsg 错位成介于 Critical 与 Fatal 之间。
+#define QtMsgType     PkLogLevel
+#define QtDebugMsg    PkLogDebug
+#define QtInfoMsg     PkLogInfo
+#define QtWarningMsg  PkLogWarning
+#define QtCriticalMsg PkLogCritical
+#define QtFatalMsg    PkLogFatal
+
+// QMessageLogContext 的对应物——qInstallMessageHandler 的 handler 签名里要用。
+#define QMessageLogContext PkLogContext

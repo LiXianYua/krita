@@ -1,0 +1,16 @@
+#pragma once
+#include "../PkLoggingCategory.h"
+
+// 兼容垫片：让真实调用点的 `#include <QLoggingCategory>` 在一个字都不改的
+// 前提下解析到 PkLoggingCategory。文件名刻意没有扩展名——调用点写的就是
+// <QLoggingCategory>。用宏而不是 `using` 别名的理由与 compat/QDebug 同一条：
+// 前置声明（真 Qt 头文件里常见 `class QLoggingCategory;`）遇到类型别名会报
+// "redeclared as different kind of entity"，宏把那一行原样改写成
+// `class PkLoggingCategory;`，前置声明照样成立。
+#define QLoggingCategory PkLoggingCategory
+
+// Q_DECLARE_LOGGING_CATEGORY(name) / Q_LOGGING_CATEGORY(name, ...)：
+// kis_debug.h 里 21 个分类的声明/定义宏，直接转发到 PK_* 版本
+// （PkLoggingCategory.h 里已经实现了两参/三参两种形态的重载）。
+#define Q_DECLARE_LOGGING_CATEGORY PK_DECLARE_LOGGING_CATEGORY
+#define Q_LOGGING_CATEGORY         PK_LOGGING_CATEGORY

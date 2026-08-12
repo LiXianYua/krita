@@ -45,22 +45,32 @@ add_subdirectory(${PKTEST_DIR} ${CMAKE_BINARY_DIR}/pktest)
 pk_test_generate(PKLOG_BINDERS
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_sink.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_stream.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_category.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_category.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_compat.h)
 
 add_executable(test_pklog
     tests/test_main.cpp
     tests/test_sink.cpp
     tests/test_stream.cpp
     tests/test_category.cpp
+    tests/test_compat.cpp
 )
 target_link_libraries(test_pklog PRIVATE pklog pktest)
 # ${PKTEST_DIR}/compat：让测试头里的 `#include <QObject>` 解析到 pk/test 的垫片，
 # Q_OBJECT / private Q_SLOTS: 才有定义（生成器靠这两个字面 token 认测试类）。
+# compat：Task 4 本任务的垫片——只有 tests/test_compat.cpp 写了
+# `#include <QDebug>`/`#include <QLoggingCategory>`，也只有它会解析到这里；
+# 其余源文件不受影响（它们本来就没写这两个 include）。target 级而不是全局，
+# 照 pk/test/CMakeLists.txt:68-72 的做法：别让全部源文件都看见垫片，那会把
+# "能不能编过" 的压力错误地转移掉。
 target_include_directories(test_pklog PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests ${PKTEST_DIR}/compat)
+    ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${PKTEST_DIR}/compat ${CMAKE_CURRENT_SOURCE_DIR}/compat)
 set_source_files_properties(tests/test_sink.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_sink.inc")
 set_source_files_properties(tests/test_stream.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_stream.inc")
 set_source_files_properties(tests/test_category.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_category.inc")
+set_source_files_properties(tests/test_compat.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_compat.inc")
