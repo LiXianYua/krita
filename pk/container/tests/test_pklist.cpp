@@ -40,6 +40,28 @@ static_assert(std::is_same<decltype(std::declval<IntList &>().removeOne(0)), boo
 static_assert(std::is_same<decltype(std::declval<IntList &>().takeAt(0)), int>::value,
               "takeAt() 必须按值返回 T");
 
+// **Qt5 的 QList 没有 remove(int)**（只有 removeAt；remove 是 QVector 的）。
+// 于是 `QList::remove(...)` 在 Qt 下根本编不过 —— 调用点里不可能存在这种写法，
+// 我们给出它就是凭空多一项零调用点的 API，违反线级 spec 判据①。
+//
+// 这条断言不是注释：它用探测惯用法把"PkList 不许长出 remove(int)"钉在编译期。
+// 光删掉实现不够 —— 以后谁把它挪回共同基类 PkArrayContainer，这里会立刻报错。
+template <typename L, typename = void>
+struct PkHasRemoveInt : std::false_type {
+};
+template <typename L>
+struct PkHasRemoveInt<L, std::void_t<decltype(std::declval<L &>().remove(0))>>
+    : std::true_type {
+};
+
+static_assert(!PkHasRemoveInt<PkList<int>>::value,
+              "QList 没有 remove(int)：PkList 不得提供它（只有 removeAt）");
+static_assert(!PkHasRemoveInt<PkList<std::string>>::value,
+              "QList 没有 remove(int)：PkList 不得提供它（只有 removeAt）");
+// 反面对照：探测惯用法本身没写坏 —— QVector 确实有 remove(int)。
+static_assert(PkHasRemoveInt<PkVector<int>>::value,
+              "QVector 有 remove(int)：探测惯用法若这里为假，说明它整个失灵了");
+
 static_assert(std::is_copy_constructible<IntList>::value, "拷贝构造必须存在");
 static_assert(std::is_copy_assignable<IntList>::value, "拷贝赋值必须存在");
 static_assert(std::is_move_constructible<IntList>::value, "移动构造必须存在");
@@ -69,6 +91,7 @@ void PkListTest::cowIsolation() { pkSeqTestCowIsolation<PkList>(); }
 void PkListTest::copyIsConstantTime() { pkSeqTestCopyIsConstantTime<PkList>(); }
 void PkListTest::constNeverDetaches() { pkSeqTestConstNeverDetaches<PkList>(); }
 void PkListTest::everyWriterDetaches() { pkSeqTestEveryWriterDetaches<PkList>(); }
+void PkListTest::reserveDetachRules() { pkSeqTestReserveDetachRules<PkList>(); }
 void PkListTest::swap() { pkSeqTestSwap<PkList>(); }
 void PkListTest::selfAssignment() { pkSeqTestSelfAssignment<PkList>(); }
 void PkListTest::moveLeavesSourceUsable() { pkSeqTestMoveLeavesSourceUsable<PkList>(); }
@@ -243,20 +266,31 @@ void PkListTest::listWritersDetach()
 {
     using L = PkList<int>;
 
-    pkSeqCheckDetaches<PkList>("removeAt", [](L &s) { s.removeAt(0); });
-    pkSeqCheckDetaches<PkList>("removeAll", [](L &s) { s.removeAll(2); });
-    pkSeqCheckDetaches<PkList>("removeAll(不命中)", [](L &s) { s.removeAll(99); });
-    pkSeqCheckDetaches<PkList>("removeOne", [](L &s) { s.removeOne(2); });
-    pkSeqCheckDetaches<PkList>("removeFirst", [](L &s) { s.removeFirst(); });
-    pkSeqCheckDetaches<PkList>("removeLast", [](L &s) { s.removeLast(); });
-    pkSeqCheckDetaches<PkList>("takeAt", [](L &s) { (void)s.takeAt(1); });
-    pkSeqCheckDetaches<PkList>("takeFirst", [](L &s) { (void)s.takeFirst(); });
-    pkSeqCheckDetaches<PkList>("takeLast", [](L &s) { (void)s.takeLast(); });
-    pkSeqCheckDetaches<PkList>("pop_back", [](L &s) { s.pop_back(); });
-    pkSeqCheckDetaches<PkList>("pop_front", [](L &s) { s.pop_front(); });
-    pkSeqCheckDetaches<PkList>("move", [](L &s) { s.move(0, 2); });
-    // from == to 也要 detach：非 const 方法一律经 PkMut()，不留例外
-    pkSeqCheckDetaches<PkList>("move(from==to)", [](L &s) { s.move(1, 1); });
+    static const PkSeqCowCase<PkList> cases[] = {
+        {"removeAt", [](L &s) { s.removeAt(0); }, true},
+        {"removeAll(命中)", [](L &s) { (void)s.removeAll(2); }, true},
+        {"removeAll(不命中)", [](L &s) { (void)s.removeAll(99); }, true},
+        {"removeOne(命中)", [](L &s) { (void)s.removeOne(2); }, true},
+        // **`removeOne(不命中)` 刻意不在表里**，因为它这一格没有实测依据：
+        // 我们的 removeOne 在 indexOf 失败时直接 return false，**不 detach**；
+        // 而 removeAll 无论命中与否都先 PkMut()，**一律 detach**。两条"删不到东西"
+        // 的路径行为不一致，只有一份真 Qt 5.15.7 的探针输出能裁决该统一到哪边。
+        // 在拿到那份实测之前，写任何一侧的断言都是把推断当依据 —— 线级 spec
+        // 反复强调的正是这一点。这一格要么由人补一次实测，要么继续空着。
+        {"removeFirst", [](L &s) { s.removeFirst(); }, true},
+        {"removeLast", [](L &s) { s.removeLast(); }, true},
+        {"takeAt", [](L &s) { (void)s.takeAt(1); }, true},
+        {"takeFirst", [](L &s) { (void)s.takeFirst(); }, true},
+        {"takeLast", [](L &s) { (void)s.takeLast(); }, true},
+        {"pop_back", [](L &s) { s.pop_back(); }, true},
+        {"pop_front", [](L &s) { s.pop_front(); }, true},
+        {"move(from != to)", [](L &s) { s.move(0, 2); }, true},
+        // move(i, i) **必须 detach**：实测真 Qt 5.15.7 的 QList::move(i, i)
+        // 共享态下元素拷贝 2 次、isDetached 0→1。它不是 no-op。
+        {"move(from == to)", [](L &s) { s.move(1, 1); }, true},
+    };
+
+    pkSeqRunCowCases<PkList>(cases);
 }
 
 PK_TEST_MAIN(PkListTest)

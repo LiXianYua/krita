@@ -84,9 +84,23 @@ public:
     bool isEmpty() const noexcept { return m_d.PkConst().empty(); }
     bool empty() const noexcept { return isEmpty(); }
 
+    // reserve(n) 在 **n <= capacity() 时直接返回，不碰 PkMut()、不 detach**。
+    //
+    // 这条不是推断，是实测：ci-env 的真 Qt 5.15.7 上带拷贝计数器的探针给出
+    //   QVector::reserve(小于 cap)  → 元素拷贝 0 次，isDetached 保持 0
+    //   QVector::reserve(大于 cap)  → 元素拷贝 1 次，isDetached 0→1
+    // 也就是说 Qt 的 QVector::reserve 只有真要扩容才 detach。
+    //
+    // **对照**：同一组探针测出 `QVector::clear()` 共享态下元素拷贝 3 次、
+    // isDetached 0→1，`QList::move(i, i)` 共享态下元素拷贝 2 次、isDetached 0→1
+    // ——这两个 Qt **确实** detach，所以它们照常走 PkMut()，不在这里开例外。
     void reserve(int n)
     {
-        m_d.PkMut().reserve(n > 0 ? static_cast<std::size_t>(n) : 0);
+        const std::size_t want = n > 0 ? static_cast<std::size_t>(n) : 0;
+        if (want <= m_d.PkConst().capacity()) {
+            return;
+        }
+        m_d.PkMut().reserve(want);
     }
 
     // ---- 元素访问 ----
@@ -216,21 +230,34 @@ public:
     }
 
     // ---- 删 ----
-
-    void remove(int i)
+    //
+    // 按下标删的两个原语是 **protected** 的（pkRemoveAt / pkRemoveRange），
+    // 不是公开 API：**Qt5 的 QList 没有 remove(int)**（只有 removeAt），
+    // 只有 QVector 有。把 remove 放在共同基类里等于凭空给 PkList 多造两个
+    // 零调用点的方法（Qt 下 `QList::remove(...)` 根本编不过），违反线级 spec
+    // 判据①「一项不多一项不少」。
+    //
+    // 于是：PkVector 用 `remove(int)` / `remove(int, int)` 把它们公开出去，
+    // PkList 只用 `removeAt` 等自己的名字转调，两边共用同一份实现。
+protected:
+    void pkRemoveAt(int i)
     {
         assert(i >= 0 && i < size());
         PkInner &v = m_d.PkMut();
         v.erase(v.begin() + i);
     }
 
-    void remove(int i, int n)
+    void pkRemoveRange(int i, int n)
     {
         assert(i >= 0 && n >= 0 && i + n <= size());
         PkInner &v = m_d.PkMut();
         v.erase(v.begin() + i, v.begin() + i + n);
     }
 
+public:
+    // clear() 走 PkMut()，共享态下**会 detach**——这与 Qt 一致，不是缺陷。
+    // 实测（真 Qt 5.15.7 + 拷贝计数器）：QVector::clear() 共享态元素拷贝 3 次、
+    // isDetached 0→1。别改成"换一份全新空缓冲区"，那反倒制造一条与 Qt 的偏离。
     void clear() { m_d.PkMut().clear(); }
 
     iterator erase(const_iterator pos)

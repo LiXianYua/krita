@@ -215,7 +215,9 @@ void pkSeqTestAppendAndPrepend()
     const int lvalue5 = 5;
     v.push_back(lvalue5);
     PK_VERIFY((v == Seq<int>{1, 2, 3, 4, 5}));
-    v.remove(v.size() - 1);
+    // 这里用 erase 而不是 remove(int)：**QList 没有 remove(int)**，共同用例只能
+    // 用两边都有的方法。remove(int)/remove(int,int) 的语义在 PkVectorTest 单列。
+    v.erase(v.end() - 1);
     PK_VERIFY((v == Seq<int>{1, 2, 3, 4}));
 
     v.prepend(0);
@@ -266,11 +268,13 @@ void pkSeqTestInsertAndRemove()
     PK_COMPARE(static_cast<int>(it - v.begin()), 1);
     PK_VERIFY((v == Seq<int>{0, 8, 1, 9, 2, 3, 4}));
 
-    v.remove(1);
+    // 删走 erase：**QList 没有 remove(int)**，共同用例只能用两边都有的方法。
+    // remove(int)/remove(int,int) 是 QVector 专有，语义在 PkVectorTest 单列。
+    v.erase(v.begin() + 1);
     PK_VERIFY((v == Seq<int>{0, 1, 9, 2, 3, 4}));
-    v.remove(2, 2);
+    v.erase(v.begin() + 2, v.begin() + 4);
     PK_VERIFY((v == Seq<int>{0, 1, 3, 4}));
-    v.remove(0, 0);   // n==0 是 no-op
+    v.erase(v.begin(), v.begin());   // 空区间是 no-op
     PK_VERIFY((v == Seq<int>{0, 1, 3, 4}));
 
     v.clear();
@@ -652,84 +656,220 @@ void pkSeqTestConstNeverDetaches()
     PK_VERIFY((a == Seq<int>{1, 2, 3}));
 }
 
-// 每一个非 const 方法逐个验证：共享状态下调用之后两边不再共享，且另一边内容不变。
-// 这是查 PkMut() 漏用的唯一办法——漏一个方法就是一个 COW 漏洞。
-template <template <typename> class Seq, typename F>
-void pkSeqCheckDetaches(const char *what, F mutate)
+// ---------------------------------------------------------------------------
+// COW 清单：两侧同表 —— {名字, 怎么调, 期望是否 detach}
+//
+// 为什么做成数据驱动而不是一行一个断言：清单会腐烂。以后加一个方法却忘了登记，
+// 表里的空缺比散落在几十行里的断言显眼得多；而且「该不该 detach」被逼成必须
+// 显式写出来的一格，不能靠"没写就是不用管"混过去。
+//
+// **反面（expectDetach == false）与正面同样重要**：Qt 的 reserve(n <= capacity)
+// 实测不 detach（元素拷贝 0 次、isDetached 保持 0），我们要么对上，要么就是一条
+// 与 Qt 的偏离。只压正面的表看不出这一格被写错。
+//
+// lambda 一律无捕获 → 隐式转函数指针，整张表才能是同一类型的数组。
+// ---------------------------------------------------------------------------
+
+template <template <typename> class Seq>
+struct PkSeqCowCase
+{
+    const char *name;
+    void (*call)(Seq<int> &);
+    bool expectDetach;
+};
+
+// 单条：共享一份缓冲区，在 b 上调一次，按期望核对共享状态，
+// 并且**无论哪一侧**都确认 a 的内容一个字节没变。
+template <template <typename> class Seq>
+void pkSeqRunCowCase(const PkSeqCowCase<Seq> &c)
 {
     Seq<int> a{1, 2, 3};
     Seq<int> b(a);
-    PK_VERIFY2(a.PkIsSharedWith(b), what);
+    PK_VERIFY2(a.PkIsSharedWith(b), c.name);
+    PK_VERIFY2(a.PkUseCount() == 2L, c.name);
 
-    mutate(b);
+    c.call(b);
 
-    PK_VERIFY2(!a.PkIsSharedWith(b), what);
-    PK_VERIFY2(a.PkUseCount() == 1L, what);
-    PK_VERIFY2((a == Seq<int>{1, 2, 3}), what);
-    PK_VERIFY2(a.size() == 3, what);
+    if (c.expectDetach) {
+        PK_VERIFY2(!a.PkIsSharedWith(b), c.name);
+        PK_VERIFY2(a.PkUseCount() == 1L, c.name);
+    } else {
+        PK_VERIFY2(a.PkIsSharedWith(b), c.name);
+        PK_VERIFY2(a.PkUseCount() == 2L, c.name);
+    }
+
+    PK_VERIFY2((a == Seq<int>{1, 2, 3}), c.name);
+    PK_VERIFY2(a.size() == 3, c.name);
 }
 
+template <template <typename> class Seq, std::size_t N>
+void pkSeqRunCowCases(const PkSeqCowCase<Seq> (&cases)[N])
+{
+    for (std::size_t i = 0; i < N; ++i) {
+        pkSeqRunCowCase<Seq>(cases[i]);
+    }
+}
+
+// 每一个非 const 方法逐个验证：共享状态下调用之后两边不再共享，且另一边内容不变。
+// 这是查 PkMut() 漏用的唯一办法——漏一个方法就是一个 COW 漏洞。
+//
+// **可写访问器（operator[]/first/last/front/back/data/begin/end/rbegin/rend）
+// 的用例只"调"、不"写"**：拿到可写引用本身就该 detach。写成 `s[0] = 9` 的话，
+// 有人把非 const operator[] 改成走 PkConst() + const_cast，测试照样全绿，而那
+// 会让共享的两个容器**通过引用互相污染**——最难查的一类 bug。
 template <template <typename> class Seq>
 void pkSeqTestEveryWriterDetaches()
 {
     using S = Seq<int>;
 
-    pkSeqCheckDetaches<Seq>("reserve", [](S &s) { s.reserve(64); });
-    pkSeqCheckDetaches<Seq>("operator[]", [](S &s) { s[0] = 9; });
-    pkSeqCheckDetaches<Seq>("data", [](S &s) { *s.data() = 9; });
-    pkSeqCheckDetaches<Seq>("first", [](S &s) { s.first() = 9; });
-    pkSeqCheckDetaches<Seq>("last", [](S &s) { s.last() = 9; });
-    pkSeqCheckDetaches<Seq>("front", [](S &s) { s.front() = 9; });
-    pkSeqCheckDetaches<Seq>("back", [](S &s) { s.back() = 9; });
-    // append/push_back 各有 const T& 与 T&& 两个重载，**必须分别压**：
-    // `s.append(4)` 里的 4 是右值，走的是 T&& 那条，const T& 那条一个字都没被
-    // 执行到。这个陷阱是变异测试（把 append(const T&) 改成绕过 PkMut()）压出来的
-    // ——改坏了它，只有 operator+= / operator<< 报错，两条 append 用例全绿。
-    pkSeqCheckDetaches<Seq>("append(const T&)", [](S &s) {
-        const int x = 4;
-        s.append(x);
-    });
-    pkSeqCheckDetaches<Seq>("append(T&&)", [](S &s) {
-        int x = 4;
-        s.append(std::move(x));
-    });
-    pkSeqCheckDetaches<Seq>("append(container)", [](S &s) {
-        S o{7, 8};
-        s.append(o);
-    });
-    pkSeqCheckDetaches<Seq>("push_back(const T&)", [](S &s) {
-        const int x = 4;
-        s.push_back(x);
-    });
-    pkSeqCheckDetaches<Seq>("push_back(T&&)", [](S &s) {
-        int x = 4;
-        s.push_back(std::move(x));
-    });
-    pkSeqCheckDetaches<Seq>("prepend", [](S &s) { s.prepend(0); });
-    pkSeqCheckDetaches<Seq>("push_front", [](S &s) { s.push_front(0); });
-    pkSeqCheckDetaches<Seq>("insert(int, const T&)", [](S &s) { s.insert(1, 9); });
-    pkSeqCheckDetaches<Seq>("insert(iterator, const T&)",
-                            [](S &s) { s.insert(s.begin(), 9); });
-    pkSeqCheckDetaches<Seq>("remove(int)", [](S &s) { s.remove(0); });
-    pkSeqCheckDetaches<Seq>("remove(int, int)", [](S &s) { s.remove(0, 2); });
-    pkSeqCheckDetaches<Seq>("clear", [](S &s) { s.clear(); });
-    pkSeqCheckDetaches<Seq>("begin", [](S &s) { *s.begin() = 9; });
-    pkSeqCheckDetaches<Seq>("end", [](S &s) { *(s.end() - 1) = 9; });
-    pkSeqCheckDetaches<Seq>("rbegin", [](S &s) { *s.rbegin() = 9; });
-    pkSeqCheckDetaches<Seq>("rend", [](S &s) { *(s.rend() - 1) = 9; });
-    pkSeqCheckDetaches<Seq>("erase(pos)", [](S &s) { s.erase(s.begin()); });
-    pkSeqCheckDetaches<Seq>("erase(first, last)",
-                            [](S &s) { s.erase(s.begin(), s.begin() + 2); });
-    pkSeqCheckDetaches<Seq>("operator+=(const T&)", [](S &s) { s += 4; });
-    pkSeqCheckDetaches<Seq>("operator+=(container)", [](S &s) {
-        S o{7};
-        s += o;
-    });
-    pkSeqCheckDetaches<Seq>("operator<<(const T&)", [](S &s) { s << 4; });
-    pkSeqCheckDetaches<Seq>("operator<<(container)", [](S &s) {
-        S o{7};
-        s << o;
-    });
+    static const PkSeqCowCase<Seq> cases[] = {
+        // ---- 可写访问器：调用本身即视为写 ----
+        {"operator[](int)", [](S &s) { (void)s[0]; }, true},
+        {"first()", [](S &s) { (void)s.first(); }, true},
+        {"last()", [](S &s) { (void)s.last(); }, true},
+        {"front()", [](S &s) { (void)s.front(); }, true},
+        {"back()", [](S &s) { (void)s.back(); }, true},
+        {"data()", [](S &s) { (void)s.data(); }, true},
+        {"begin()", [](S &s) { (void)s.begin(); }, true},
+        {"end()", [](S &s) { (void)s.end(); }, true},
+        {"rbegin()", [](S &s) { (void)s.rbegin(); }, true},
+        {"rend()", [](S &s) { (void)s.rend(); }, true},
+
+        // ---- 容量 ----
+        // 实测 Qt：reserve(大于 cap) 元素拷贝 1 次、isDetached 0→1；
+        //          reserve(小于 cap) 元素拷贝 0 次、isDetached 保持 0。
+        {"reserve(n > capacity)", [](S &s) { s.reserve(1024); }, true},
+        {"reserve(n <= capacity)", [](S &s) { s.reserve(3); }, false},
+        {"reserve(n < size)", [](S &s) { s.reserve(1); }, false},
+        {"reserve(0)", [](S &s) { s.reserve(0); }, false},
+        {"reserve(负数)", [](S &s) { s.reserve(-5); }, false},
+
+        // ---- 增 ----
+        // append/push_back 各有 const T& 与 T&& 两个重载，**必须分别压**：
+        // `s.append(4)` 里的 4 是右值，走的是 T&& 那条，const T& 那条一个字都
+        // 没被执行到。这个陷阱是变异测试（把 append(const T&) 改成绕过 PkMut()）
+        // 压出来的——改坏了它，只有 operator+= / operator<< 报错，两条 append
+        // 用例全绿。
+        {"append(const T&)",
+         [](S &s) {
+             const int x = 4;
+             s.append(x);
+         },
+         true},
+        {"append(T&&)",
+         [](S &s) {
+             int x = 4;
+             s.append(std::move(x));
+         },
+         true},
+        {"append(container)",
+         [](S &s) {
+             S o{7, 8};
+             s.append(o);
+         },
+         true},
+        {"push_back(const T&)",
+         [](S &s) {
+             const int x = 4;
+             s.push_back(x);
+         },
+         true},
+        {"push_back(T&&)",
+         [](S &s) {
+             int x = 4;
+             s.push_back(std::move(x));
+         },
+         true},
+        {"prepend", [](S &s) { s.prepend(0); }, true},
+        {"push_front", [](S &s) { s.push_front(0); }, true},
+        {"insert(int, const T&)", [](S &s) { s.insert(1, 9); }, true},
+        {"insert(iterator, const T&)", [](S &s) { s.insert(s.cbegin(), 9); }, true},
+
+        // ---- 删 ----
+        // clear() **必须 detach**：实测真 Qt 5.15.7 的 QVector::clear() 共享态
+        // 元素拷贝 3 次、isDetached 0→1。它不是"换成空 shared null"。
+        {"clear", [](S &s) { s.clear(); }, true},
+        {"erase(pos)", [](S &s) { s.erase(s.cbegin()); }, true},
+        {"erase(first, last)", [](S &s) { s.erase(s.cbegin(), s.cbegin() + 2); }, true},
+
+        // ---- 追加运算符 ----
+        {"operator+=(const T&)", [](S &s) { s += 4; }, true},
+        {"operator+=(container)",
+         [](S &s) {
+             S o{7};
+             s += o;
+         },
+         true},
+        {"operator<<(const T&)", [](S &s) { s << 4; }, true},
+        {"operator<<(container)",
+         [](S &s) {
+             S o{7};
+             s << o;
+         },
+         true},
+    };
+
+    pkSeqRunCowCases<Seq>(cases);
+}
+
+// reserve 的三条 detach 规则，按 Qt 5.15.7 的实测逐条压。
+//
+// 实测输出（ci-env 的真 Qt + 拷贝计数器探针）：
+//   QVector::reserve(小于 cap) → 元素拷贝 0 次，isDetached 保持 0
+//   QVector::reserve(大于 cap) → 元素拷贝 1 次，isDetached 0→1
+// 对照组同一次实测：QVector::clear() 与 QList::move(i, i) 都是 isDetached 0→1，
+// 所以那两个照常 detach（在上面那张表 / listWritersDetach 里）。
+template <template <typename> class Seq>
+void pkSeqTestReserveDetachRules()
+{
+    // ① 共享态 + n <= capacity()：仍然共享，且**元素零拷贝**
+    //    （只看 PkIsSharedWith 不够——它证明不了"没走深拷贝这条路"）
+    Seq<PkSeqCounted> a;
+    a.reserve(8);
+    for (int i = 0; i < 3; ++i) {
+        a.append(PkSeqCounted(i));
+    }
+    Seq<PkSeqCounted> b(a);
+    PK_VERIFY(a.PkIsSharedWith(b));
+
+    PkSeqCounted::s_copies = 0;
+    b.reserve(8);
+    b.reserve(3);
+    b.reserve(0);
+    PK_COMPARE(PkSeqCounted::s_copies, 0);
+    PK_VERIFY(a.PkIsSharedWith(b));
+    PK_COMPARE(a.PkUseCount(), 2L);
+
+    // ② 共享态 + n > capacity()：脱离共享，另一边内容不变
+    PkSeqCounted::s_copies = 0;
+    b.reserve(4096);
+    PK_VERIFY(!a.PkIsSharedWith(b));
+    PK_COMPARE(a.PkUseCount(), 1L);
+    PK_COMPARE(a.size(), 3);
+    PK_COMPARE(a.at(0).v, 0);
+    PK_COMPARE(a.at(2).v, 2);
+    PK_COMPARE(b.size(), 3);
+    PK_COMPARE(b.at(2).v, 2);
+    // 深拷贝确实发生了（3 个元素），计数器本身没失灵
+    PK_COMPARE(PkSeqCounted::s_copies, 3);
+
+    // ③ 独占态：三个方法的可观察行为一个字节都不变
+    Seq<int> solo{1, 2, 3};
+    solo.reserve(1);            // 不扩容
+    PK_COMPARE(solo.size(), 3);
+    PK_VERIFY((solo == Seq<int>{1, 2, 3}));
+    PK_COMPARE(solo.PkUseCount(), 1L);
+    solo.reserve(256);          // 扩容
+    PK_COMPARE(solo.size(), 3);
+    PK_VERIFY((solo == Seq<int>{1, 2, 3}));
+    PK_COMPARE(solo.PkUseCount(), 1L);
+    solo.reserve(-1);           // 负数按 0 算，什么都不做
+    PK_VERIFY((solo == Seq<int>{1, 2, 3}));
+    solo.clear();               // 独占态 clear 照常清空
+    PK_VERIFY(solo.isEmpty());
+    PK_COMPARE(solo.size(), 0);
+    solo.append(7);
+    PK_VERIFY((solo == Seq<int>{7}));
 }
 
 // swap 不在上面那张表里：它交换的是缓冲区指针本身，Qt 下同样**不 detach**，

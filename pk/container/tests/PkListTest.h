@@ -27,6 +27,7 @@ private Q_SLOTS:
     void copyIsConstantTime();
     void constNeverDetaches();
     void everyWriterDetaches();
+    void reserveDetachRules();
     void swap();
     void selfAssignment();
     void moveLeavesSourceUsable();

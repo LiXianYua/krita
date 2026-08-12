@@ -47,8 +47,11 @@ public:
     PkList &operator=(PkList &&) = default;
 
     // ---- QList 专有 ----
+    //
+    // **QList 没有 remove(int)**（Qt5 里只有 QVector 有），所以本类不公开它，
+    // 按下标删一律走基类的 protected 原语 pkRemoveAt。
 
-    void removeAt(int i) { this->remove(i); }
+    void removeAt(int i) { this->pkRemoveAt(i); }
 
     // Qt5：返回删掉了几个。
     // `const T copy(t)` 不是多余的：t 可能指向本容器的某个元素
@@ -70,20 +73,20 @@ public:
         if (i < 0) {
             return false;
         }
-        this->remove(i);
+        this->pkRemoveAt(i);
         return true;
     }
 
     void removeFirst()
     {
         assert(!this->isEmpty());
-        this->remove(0);
+        this->pkRemoveAt(0);
     }
 
     void removeLast()
     {
         assert(!this->isEmpty());
-        this->remove(this->size() - 1);
+        this->pkRemoveAt(this->size() - 1);
     }
 
     // 取走并返回。空容器上 Qt 是 Q_ASSERT + release 下 UB，这里由断言兜住。

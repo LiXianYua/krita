@@ -81,6 +81,7 @@ void PkVectorTest::cowIsolation() { pkSeqTestCowIsolation<PkVector>(); }
 void PkVectorTest::copyIsConstantTime() { pkSeqTestCopyIsConstantTime<PkVector>(); }
 void PkVectorTest::constNeverDetaches() { pkSeqTestConstNeverDetaches<PkVector>(); }
 void PkVectorTest::everyWriterDetaches() { pkSeqTestEveryWriterDetaches<PkVector>(); }
+void PkVectorTest::reserveDetachRules() { pkSeqTestReserveDetachRules<PkVector>(); }
 void PkVectorTest::swap() { pkSeqTestSwap<PkVector>(); }
 void PkVectorTest::selfAssignment() { pkSeqTestSelfAssignment<PkVector>(); }
 void PkVectorTest::moveLeavesSourceUsable() { pkSeqTestMoveLeavesSourceUsable<PkVector>(); }
@@ -111,6 +112,37 @@ void PkVectorTest::sizedConstructors()
     PkVector<std::string> strings(2, std::string("x"));
     PK_COMPARE(strings.size(), 2);
     PK_VERIFY(strings.at(1) == "x");
+}
+
+// remove(int) / remove(int, int) 只有 QVector 有 —— QList 没有（Qt5 里
+// `QList::remove(...)` 根本编不过，所以调用点里不可能存在）。上面的
+// PkListHasNoRemoveInt 断言把"PkList 不许有它"钉在编译期，这里压 PkVector 的语义。
+void PkVectorTest::removeByIndex()
+{
+    PkVector<int> v{0, 1, 9, 2, 3, 4};
+
+    v.remove(2);
+    PK_VERIFY((v == PkVector<int>{0, 1, 2, 3, 4}));
+
+    v.remove(1, 2);
+    PK_VERIFY((v == PkVector<int>{0, 3, 4}));
+
+    v.remove(0, 0);   // n == 0 是 no-op
+    PK_VERIFY((v == PkVector<int>{0, 3, 4}));
+
+    // 删到只剩空
+    v.remove(0, v.size());
+    PK_VERIFY(v.isEmpty());
+    PK_COMPARE(v.size(), 0);
+
+    // 删空之后照常可用
+    v.append(7);
+    PK_VERIFY((v == PkVector<int>{7}));
+
+    // 末尾一个
+    PkVector<int> t{1, 2, 3};
+    t.remove(t.size() - 1);
+    PK_VERIFY((t == PkVector<int>{1, 2}));
 }
 
 void PkVectorTest::resize()
@@ -213,10 +245,21 @@ void PkVectorTest::toList()
 
 void PkVectorTest::vectorWritersDetach()
 {
-    pkSeqCheckDetaches<PkVector>("resize(bigger)", [](PkVector<int> &s) { s.resize(5); });
-    pkSeqCheckDetaches<PkVector>("resize(smaller)", [](PkVector<int> &s) { s.resize(1); });
-    pkSeqCheckDetaches<PkVector>("fill", [](PkVector<int> &s) { s.fill(9); });
-    pkSeqCheckDetaches<PkVector>("fill(t, size)", [](PkVector<int> &s) { s.fill(9, 2); });
+    using V = PkVector<int>;
+
+    static const PkSeqCowCase<PkVector> cases[] = {
+        {"resize(bigger)", [](V &s) { s.resize(5); }, true},
+        {"resize(smaller)", [](V &s) { s.resize(1); }, true},
+        {"resize(same)", [](V &s) { s.resize(3); }, true},
+        {"fill(t)", [](V &s) { s.fill(9); }, true},
+        {"fill(t, size)", [](V &s) { s.fill(9, 2); }, true},
+        {"remove(int)", [](V &s) { s.remove(0); }, true},
+        {"remove(int, int)", [](V &s) { s.remove(0, 2); }, true},
+        // 反面：capacity() 是 const 方法，绝不能 detach
+        {"capacity() const", [](V &s) { (void)s.capacity(); }, false},
+    };
+
+    pkSeqRunCowCases<PkVector>(cases);
 }
 
 PK_TEST_MAIN(PkVectorTest)

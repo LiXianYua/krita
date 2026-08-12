@@ -64,6 +64,12 @@ public:
 
     // ---- QVector 专有 ----
 
+    // remove(int) / remove(int, int) 只有 QVector 有，QList 没有（Qt5 里
+    // `QList::remove(...)` 根本编不过，所以调用点里不可能存在）。实现是共同
+    // 基类的 pkRemoveAt / pkRemoveRange，这里只做公开。
+    void remove(int i) { this->pkRemoveAt(i); }
+    void remove(int i, int n) { this->pkRemoveRange(i, n); }
+
     void resize(int size)
     {
         assert(size >= 0);
