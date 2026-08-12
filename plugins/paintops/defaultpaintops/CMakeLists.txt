@@ -8,20 +8,14 @@ set(kritadefaultpaintops_SOURCES
 	brush/kis_brushop.cpp
         brush/KisBrushOpResources.cpp
         brush/KisBrushOpSettings.cpp
-	brush/kis_brushop_settings_widget.cpp
         brush/KisDabRenderingQueue.cpp
         brush/KisDabRenderingQueueCache.cpp
         brush/KisDabRenderingJob.cpp
         brush/KisDabRenderingExecutor.cpp
         duplicate/kis_duplicateop.cpp
         duplicate/kis_duplicateop_settings.cpp
-        duplicate/kis_duplicateop_settings_widget.cpp
         duplicate/KisDuplicateOptionData.cpp
-        duplicate/KisDuplicateOptionModel.cpp
-        duplicate/KisDuplicateOptionWidget.cpp
     )
-
-ki18n_wrap_ui(kritadefaultpaintops_SOURCES duplicate/wdgduplicateop.ui )
 
 kis_add_library(kritadefaultpaintops_static STATIC ${kritadefaultpaintops_SOURCES})
 generate_export_header(kritadefaultpaintops_static BASE_NAME kritadefaultpaintops EXPORT_MACRO_NAME KRITADEFAULTPAINTOPS_EXPORT)

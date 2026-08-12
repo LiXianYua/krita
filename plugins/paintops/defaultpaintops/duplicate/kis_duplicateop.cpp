@@ -45,7 +45,6 @@
 #include <kis_spacing_information.h>
 
 #include "kis_duplicateop_settings.h"
-#include "kis_duplicateop_settings_widget.h"
 #include <KisDuplicateOptionData.h>
 
 KisDuplicateOp::KisDuplicateOp(const KisPaintOpSettingsSP settings, KisPainter *painter, KisNodeSP node, KisImageSP image)
