@@ -14,6 +14,7 @@ add_library(pkgeometry STATIC
     PkPoint.cpp
     PkSize.cpp
     PkRect.cpp
+    PkTransform.cpp
 )
 target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -56,7 +57,8 @@ pk_test_generate(PKGEOMETRY_GENERATED_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/point_case.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/size_case.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/rect_case.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/rectf_case.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/rectf_case.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/transform_case.h")
 
 add_executable(test_pkgeometry
     tests/test_main.cpp
@@ -65,6 +67,7 @@ add_executable(test_pkgeometry
     tests/test_size.cpp
     tests/test_rect.cpp
     tests/test_rectf.cpp
+    tests/test_transform.cpp
     # 两种 include 顺序下的「两份 compat/QtGlobal 共存」TU。它们能编过本身就是
     # 断言的一半，所以必须真的作为独立翻译单元编译，不能合并。
     tests/coexist_test_first.cpp
@@ -96,3 +99,5 @@ set_source_files_properties(tests/test_rect.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_rect_case.inc")
 set_source_files_properties(tests/test_rectf.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_rectf_case.inc")
+set_source_files_properties(tests/test_transform.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_transform_case.inc")

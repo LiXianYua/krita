@@ -85,3 +85,49 @@
 canary	int-value	1	比较管道自证：故意拿 QPoint(1,2) 与 PkPoint(1,3) 相比，整数分量比较与计数链路活着才会出现这一条，消失即判据失效
 canary	double-bits-signed-zero	1	比较管道自证：+0.0 与 -0.0 按位不同但 == 判等，这一条能出现才说明 same_double 走的是 memcpy 位比较而不是退化成了 ==
 canary	nan-vs-number	1	比较管道自证：NaN 与 1.0 必须判成不同，这一条能出现才说明 NaN 分支没有把一切都判成相同（NaN 判等只在两侧都是 NaN 时成立）
+# ══════════════════════════════════════════════════════════════════════════
+# **Task 6（Transform 族）写下了 R-03 的第一条真实偏离**，五行，根因只有一个。
+#
+# `QTransform::mapRect` 的两个重载在
+#   `type() == TxProject` **且** `needsPerspectiveClipping(rect, *this)` 为真
+# 时，不走四角包围盒，而是
+#     QPainterPath path; path.addRect(rect); return map(path).boundingRect();
+# —— 把矩形当路径、在近裁剪面（w = 1e-6）上真的**裁**一刀再取包围盒。
+# 落回四角包围盒的话，被夹持到 1e-6 的那个角会把包围盒撑到 1e7 量级，而 Qt
+# 裁出来的是 1e6 量级：实测 t(1,0,-1, 0,1,0, 0,0,1) 对 (0,0,10,10)，
+# Qt 给 (0,0,999999.0000000007,1e7)，四角包围盒给 (0,0,1e7,1e7)。
+#
+# **为什么这条站得住（唯一站得住的偏离理由：决策文档已明确划在范围外）**：
+# `QPainterPath` 不在 `Qt替代品选型.md` §1 几何那一行点名的四个类型
+# （QRect/QPointF/QSize/QTransform）里，**归属未定**，R-03.md §覆盖度缺口
+# 把它与 QLineF/QPolygonF/QRegion 一起列为"要报回主会话的归属问题"
+# （实测 766 次 / 168 文件，是一个独立子系统，不是一个函数）。
+# 它不是"我们写错了"，是"这一跳的被调方还没有人认领"。
+#
+# **谓词与理由逐个限定词对齐（规则二）**：tag 只在
+#   tfFreshIsProject(m)  ——`!qFuzzyIsNull(m13) || !qFuzzyIsNull(m23) || !qFuzzyIsNull(m33-1)`，
+#                          与 Qt 的 type() 第一档**逐字相同**的模糊门槛
+#   && tfNeedsClip(m, l, r, t, b) —— qtransform.cpp:1934-1940 的就地重算，
+#                          连 qMin 用 `(a<b)?a:b` 而不是 std::fmin 都照抄
+#                          （NaN 上两者取值不同，而这里真会吃到 NaN）
+# 同时成立时才构造，**两个限定词都在，一个不多**。两侧都是拿**输入的九个 double**
+# 重算的，不问被测对象的 type() —— 问它的话被测对象坏掉时 tag 会跟着坏。
+#
+# **额度为什么恰好是这么多**：输入是固定的（Group 5 的缩减扫描集 3 778 个矩阵
+# × kTfRectF 的 12 个浮点矩形 / kTfRectI 的 10 个整数矩形），命中"投影且需裁剪"
+# 的组合数是确定的；其中**取值恰好相同的那些不计**（rec 只在不等时记数），
+# 所以额度是"真的分家了多少次"而不是"喂了多少次"。五行按
+# `<重载>` × `<矩阵九分量的形态>` 分开，形态由 shapeOfD 给出 ——
+# 分开是为了让"某一片形态上的差异忽然多了/少了"单独现形。
+#
+# ⚠ **这五行不豁免任何别的东西。** Transform 一节跑了 28 083 469 次比对
+# （= 153 421 834 - Task 4 修复轮的 125 338 365），除了这 25 495 次之外
+# **一次都没分家** —— 包括惰性缓存那一整类序列、直角特判、inverted 的三条路径、
+# map 四个重载的夹持与不夹持。
+# ══════════════════════════════════════════════════════════════════════════
+
+T::mapRect(PkRect)	persp-clip/proj-finite	609	整数版 mapRect 在「投影且需透视裁剪」且矩阵九分量全为有限非零值时，Qt 走 QPainterPath 裁剪，本类落回四角包围盒；QPainterPath 归属未定、不在 R-03 交付范围
+T::mapRect(PkRect)	persp-clip/proj-zero	12799	同上，矩阵里含至少一个 +0.0 分量（shapeOfD 的 zero 档）的那一片；分档是为了让某一片形态上的差异数忽然变化时单独现形，不与其他档混在一起
+T::mapRect(PkRectF)	persp-clip/proj-finite	696	浮点版 mapRect 的同一条根因；与整数版分开计数是因为两者的四角取法不同（整数版用 right()+1 且全程 qRound），差异数没有理由相等
+T::mapRect(PkRectF)	persp-clip/proj-signed-zero	7	浮点版、矩阵里含 -0.0 分量的那一片；只有七次，因为 -0.0 只出现在手挑集的两个矩阵上，而它们里面同时满足投影与需裁剪的组合很少
+T::mapRect(PkRectF)	persp-clip/proj-zero	11384	浮点版、矩阵里含 +0.0 分量的那一片；数量最大是因为缩减扫描的 token 集里 0.0 占五分之一，三个槽位上都取得到

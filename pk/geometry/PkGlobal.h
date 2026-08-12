@@ -139,11 +139,36 @@ constexpr inline bool qFuzzyIsNull(float f) { return pkQtFuzzyIsNull(f); }
 // `Qt::KeepAspectRatioByExpanding` 3 次 —— 都 > 0，所以不退化成"只留默认参数
 // 所需的定义"。`qnamespace.h` 的其余几百个枚举一概不做（判据①）。
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// qnamespace.h:1386-1390 —— `Qt::Axis`，同样逐字照抄（XAxis=0 YAxis=1 ZAxis=2）。
+//
+// ⚠ **这一条与上面的 AspectRatioMode 不同：它的直接调用点实测是 0。**
+//   口径：fork 全仓（含 tests/ 与 benchmarks/）
+//   `git grep -o 'Qt::[XYZ]Axis' -- '*.cpp' '*.h' '*.cc' | wc -l` → **0**；
+//   `git grep -n 'rotate([^)]*Qt::[XYZ]Axis'` → **0 处**。
+//
+// 那为什么还是做了：它不是一个独立交付项，而是 `PkTransform::rotate` 与
+// `rotateRadians` **签名里的形参类型**（`rotate(qreal a, Qt::Axis axis = Qt::ZAxis)`）。
+// 判据①「一项不多」拦的是「多实现一个 API」，而这里的两个选项是：
+//   ① 照 Qt 的签名做 → 多一个 0 用量的枚举；
+//   ② 把形参砍掉、只留 `rotate(qreal)` → 这是**签名偏离**，将来任何一处
+//      `t.rotate(90, Qt::YAxis)` 会在替换时编不过，而"哪些会漏"在替换之前测不出来。
+// 选 ①，理由与 R-03.md §「运算符：按 Qt 头文件全集实现」那条登记在案的范围偏离
+// 完全同形（同样是"签名面不能按调用点 grep 归属"），**同样逐条登记进 README 请
+// reviewer 判**。非 Z 轴那条路径本身也不是摆设：它走 `result * *this` 且把
+// m_type 直接钉成 TxProject，与 Z 轴路径是两套算法，对拍里各有各的 tag。
+// ---------------------------------------------------------------------------
 namespace Qt {
 enum AspectRatioMode {
     IgnoreAspectRatio,
     KeepAspectRatio,
     KeepAspectRatioByExpanding
+};
+
+enum Axis {
+    XAxis,
+    YAxis,
+    ZAxis
 };
 }
 

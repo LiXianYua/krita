@@ -58,6 +58,7 @@
 #include <QPoint>
 #include <QSize>
 #include <QRect>
+#include <QTransform>
 #include <QString>
 #include <QtGlobal>
 #include <QMessageLogContext>
@@ -77,7 +78,7 @@
 // 垫片一旦混进 -I，<QPoint> 会解析到 compat/QPoint，而那份是两个 #define。
 // 两侧于是解析成同一个类型，跑出来必然零差异且看不出破绽。成本三行。
 #if defined(QPoint) || defined(QPointF) || defined(QSize) || defined(QSizeF) \
-    || defined(QRect) || defined(QRectF)
+    || defined(QRect) || defined(QRectF) || defined(QTransform)
 #  error "对拍两侧解析成了同一个类型 —— -I 里混进了 pk/geometry/compat"
 #endif
 
@@ -100,6 +101,15 @@ namespace pkoracle {
 // `pkoracle::PkRect::normalized` —— 两个不同的符号，链不上。
 // 纪律同上：PkRect.cpp 只 #include <type_traits>（上面的系统头区已有）。
 #include "PkRect.cpp"
+#include "PkTransform.h"
+// ⚠ 同理 **PkTransform.cpp 也要进来**：这一族几乎全是 out-of-line 的（照 Qt 的
+// 形态，qtransform.h 只留了取值器与四个标量运算符，其余编在 libQt5Gui 里）。
+// libpkgeometry.a 里那份定义的是 `::PkTransform::map`，本 TU 需要的是
+// `pkoracle::PkTransform::map` —— 两个不同的符号，链不上。
+// 纪律同上：PkTransform.cpp 只 #include <cmath> 与 <type_traits>，上面的系统头
+// 区两个都有。顺带好处：它尾部那批 static_assert（枚举位标志、布局、noexcept 面）
+// 也在这个 TU 里编一遍。
+#include "PkTransform.cpp"
 }
 
 using PkPoint  = pkoracle::PkPoint;
@@ -108,6 +118,7 @@ using PkSize   = pkoracle::PkSize;
 using PkSizeF  = pkoracle::PkSizeF;
 using PkRect   = pkoracle::PkRect;
 using PkRectF  = pkoracle::PkRectF;
+using PkTransform = pkoracle::PkTransform;
 
 static_assert(!std::is_same<QPoint,  PkPoint >::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
@@ -145,6 +156,32 @@ static_assert(std::is_convertible<QRect, QRectF>::value
 static_assert(std::is_convertible<QRectF, QRect>::value
               == std::is_convertible<PkRectF, PkRect>::value,
               "PkRectF → PkRect 的隐式转换与 Qt 不一致");
+static_assert(!std::is_same<QTransform, PkTransform>::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
+// ⚠ **这里没有 sizeof 相等那一条**（Point/Size/Rect 三族都有），不是漏了：
+// Qt5 的 QTransform 尾部有一个恒为 nullptr 的 `Private *d`（Qt6 已删），
+// 替代品不留它，于是 sizeof 是 80 而 Qt 是 88。它不经任何 API 露出来，
+// 登记在 PkTransform.h 头部与 README 偏离清单。下面这条把"差的正好是一个指针"
+// 钉住 —— 哪天 Qt 那侧的布局变了（或者我们不小心多塞了字段），它会响。
+static_assert(sizeof(QTransform) == sizeof(PkTransform) + sizeof(void *),
+              "两侧布局差的应当恰好是 Qt5 那个 Private *d");
+// 枚举也必须是两个不同的类型，取值必须逐档相同（**位标志，不是 0..5**）。
+static_assert(!std::is_same<QTransform::TransformationType,
+                            PkTransform::TransformationType>::value,
+              "TransformationType 两侧解析成了同一个类型");
+static_assert((int)QTransform::TxNone      == (int)PkTransform::TxNone
+              && (int)QTransform::TxTranslate == (int)PkTransform::TxTranslate
+              && (int)QTransform::TxScale     == (int)PkTransform::TxScale
+              && (int)QTransform::TxRotate    == (int)PkTransform::TxRotate
+              && (int)QTransform::TxShear     == (int)PkTransform::TxShear
+              && (int)QTransform::TxProject   == (int)PkTransform::TxProject,
+              "TransformationType 的枚举取值两侧不一致");
+static_assert(!std::is_same<Qt::Axis, pkoracle::Qt::Axis>::value,
+              "Qt::Axis 两侧解析成了同一个类型");
+static_assert((int)Qt::XAxis == (int)pkoracle::Qt::XAxis
+              && (int)Qt::YAxis == (int)pkoracle::Qt::YAxis
+              && (int)Qt::ZAxis == (int)pkoracle::Qt::ZAxis,
+              "Qt::Axis 的枚举取值两侧不一致");
 
 // ═══ 计数与记录 ════════════════════════════════════════════════════════════
 
@@ -1789,6 +1826,541 @@ static void cmp_rectf_contains_point(double x, double y, double w, double h,
         bstr(q.contains(px, py)), bstr(p.contains(px, py)));
 }
 
+// ═══ Transform 族：比较原语与 tag 谓词 ════════════════════════════════════
+//
+// ⚠ **矩阵一律按九个分量按位比较与打印**，不按 type()/isIdentity() 那些派生量：
+// 派生量是多对一的（无穷多个矩阵同为 TxScale），用它们比会把一整类差异静默豁免。
+// 九个取值器各自是一行、无算术，正好当地基 —— 与 Point/Rect 三族同一条口径。
+//
+// ⚠ **type() 单独有一条 rec**，而且它是**有状态**的（见 PkTransform.h 的
+// 「惰性缓存」）：同一个矩阵、问过与没问过 type()，后续答案不同。所以
+//   · 凡是"只想比这一个 API"的 rec，两侧各自**新建**一对对象，避免上一条 rec
+//     留下的缓存状态串到下一条；
+//   · 缓存本身由 cmp_tf_cache() 专门喂序列去比。
+// 两条合起来才既比得干净、又不放过缓存语义。
+
+static std::string qstr(const QTransform &t)
+{
+    return "{" + dstr(t.m11()) + "," + dstr(t.m12()) + "," + dstr(t.m13()) + ";"
+               + dstr(t.m21()) + "," + dstr(t.m22()) + "," + dstr(t.m23()) + ";"
+               + dstr(t.m31()) + "," + dstr(t.m32()) + "," + dstr(t.m33()) + "}";
+}
+static std::string qstr(const PkTransform &t)
+{
+    return "{" + dstr(t.m11()) + "," + dstr(t.m12()) + "," + dstr(t.m13()) + ";"
+               + dstr(t.m21()) + "," + dstr(t.m22()) + "," + dstr(t.m23()) + ";"
+               + dstr(t.m31()) + "," + dstr(t.m32()) + "," + dstr(t.m33()) + "}";
+}
+
+static bool same_tf(const QTransform &q, const PkTransform &p)
+{
+    return same_double(q.m11(), p.m11()) && same_double(q.m12(), p.m12())
+        && same_double(q.m13(), p.m13()) && same_double(q.m21(), p.m21())
+        && same_double(q.m22(), p.m22()) && same_double(q.m23(), p.m23())
+        && same_double(q.m31(), p.m31()) && same_double(q.m32(), p.m32())
+        && same_double(q.m33(), p.m33());
+}
+
+// 九参构造：**两侧唯一够得到全部九个分量的入口**（六参构造摸不到 m13/m23/m33）。
+static QTransform mkQT(const double m[9])
+{ return QTransform(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]); }
+static PkTransform mkPT(const double m[9])
+{ return PkTransform(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]); }
+
+static std::string tfin(const double m[9])
+{
+    std::string s = "{";
+    for (int i = 0; i < 9; ++i) { s += dstr(m[i]); if (i != 8) s += ","; }
+    return s + "}";
+}
+
+// ── tag 谓词：**全部从输入的九个分量算出来**，一个都不问被测对象 ────────────
+//
+// ⚠ 关键纪律：不能写 `q.type() == QTransform::TxProject` 这种 —— 那是拿**被测
+// 的一侧**去构造 tag，被测对象坏掉时 tag 会跟着一起坏（差异被贴到别的桶里，
+// 或者干脆两侧 tag 不同而没人发现）。下面几条都是拿原始 double 重算的。
+
+// qglobal.h 的 qFuzzyIsNull(double)：|d| <= 1e-12。type() 的四道门槛都用它。
+static bool tfFuzzyIsNull(double d) { return std::fabs(d) <= 0.000000000001; }
+
+// Qt 的 qMin 是 `(a < b) ? a : b`，**不是** std::fmin —— NaN 上两者取值不同，
+// 而 needsPerspectiveClipping 正好可能吃到 NaN。照抄 qMin 的形状。
+static double tfMin(double a, double b) { return (a < b) ? a : b; }
+
+// 三阶行列式，展开顺序照抄 qtransform.h:250-254（浮点加减不结合，换写法换取值）。
+static double tfDet(const double m[9])
+{
+    return m[0] * (m[8] * m[4] - m[7] * m[5]) -
+        m[3] * (m[8] * m[1] - m[7] * m[2]) + m[6] * (m[5] * m[1] - m[4] * m[2]);
+}
+
+// 「**新构造**的九参矩阵的 type() 是不是 TxProject」——
+// 这条只对 m_dirty == TxProject 的对象成立（九参构造与 setMatrix 之后），
+// 下面凡是用它的地方喂的都是这种对象。用在别处会算错，别抄走。
+static bool tfFreshIsProject(const double m[9])
+{ return !tfFuzzyIsNull(m[2]) || !tfFuzzyIsNull(m[5]) || !tfFuzzyIsNull(m[8] - 1); }
+
+// qtransform.cpp:1934-1940 的 needsPerspectiveClipping，就地重算。
+// ⚠ 传进来的是 **QRectF 口径的 left/right/top/bottom**（left=x, right=x+w），
+// 整数矩形那一侧也是先提升成 QRectF 再算的，所以口径一致。
+static bool tfNeedsClip(const double m[9], double l, double r, double t, double b)
+{
+    const double wx = tfMin(m[2] * l, m[2] * r);
+    const double wy = tfMin(m[5] * t, m[5] * b);
+    return wx + wy + m[8] < 0.000001;
+}
+
+// 结构形态：投影 vs 仿射，用**精确**判据（m13/m23 非 0 或 m33 != 1）。
+// 与上面 tfFreshIsProject 的模糊判据是两条线：这条给通用 tag 用（宽一点没关系，
+// 它不为任何偏离背书），那条只给 persp-clip 那一条偏离用（必须与 Qt 的判据同宽）。
+static std::string shapeOfTf(const double m[9])
+{
+    const bool proj = (m[2] != 0.0 || m[5] != 0.0 || m[8] != 1.0);
+    return std::string(proj ? "proj" : "aff") + "-"
+        + shapeOfD({m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]});
+}
+
+// inverted 专用：三条路径的门槛互不相同，tag 要能把它们分开。
+static std::string shapeOfInv(const double m[9])
+{
+    const double det = tfDet(m);
+    std::string sing;
+    if (det != det)                      sing = "det-nan";
+    else if (det == 0.0)                 sing = "singular";
+    else if (std::fabs(det) < 1e-12)     sing = "near-singular";
+    else                                 sing = "regular";
+    return shapeOfTf(m) + "/" + sing;
+}
+
+// ═══ Transform 族：逐 API 对拍 ════════════════════════════════════════════
+
+// 无输入的 API（默认构造），口径同 cmp_rect_constants。只跑一次。
+static void cmp_tf_constants()
+{
+    rec("T::defaultCtor", same_tf(QTransform(), PkTransform()), "no-input",
+        "QTransform()", qstr(QTransform()), qstr(PkTransform()));
+}
+
+// 两个公开构造各一条 rec（规则三）。**它们不是一件事**：九参摸得到 m13/m23/m33
+// 且把 m_dirty 播成 TxProject，六参摸不到、播成 TxShear。
+static void cmp_tf_ctor(const double m[9])
+{
+    const std::string in = tfin(m);
+    const std::string sh = shapeOfTf(m);
+
+    rec("T::ctor9", same_tf(mkQT(m), mkPT(m)), sh, in, qstr(mkQT(m)), qstr(mkPT(m)));
+
+    // 六参构造取 (m11,m12,m21,m22,dx,dy)，也就是 m[0],m[1],m[3],m[4],m[6],m[7]。
+    const QTransform q6(m[0], m[1], m[3], m[4], m[6], m[7]);
+    const PkTransform p6(m[0], m[1], m[3], m[4], m[6], m[7]);
+    rec("T::ctor6", same_tf(q6, p6), sh, in, qstr(q6), qstr(p6));
+}
+
+// 九个取值器 + dx/dy + determinant + type + isAffine + isIdentity +
+// transposed + reset + setMatrix + inverted。
+// ⚠ **每条 rec 各自新建一对对象**：type()/isAffine()/isIdentity() 都会改写缓存，
+// 共用一个对象的话上一条的副作用会串到下一条，差异归因就乱了。
+static void cmp_tf_unary(const double m[9])
+{
+    const std::string in = tfin(m);
+    const std::string sh = shapeOfTf(m);
+
+    {
+        const QTransform q = mkQT(m); const PkTransform p = mkPT(m);
+        rec("T::m11", same_double(q.m11(), p.m11()), sh, in, dstr(q.m11()), dstr(p.m11()));
+        rec("T::m12", same_double(q.m12(), p.m12()), sh, in, dstr(q.m12()), dstr(p.m12()));
+        rec("T::m13", same_double(q.m13(), p.m13()), sh, in, dstr(q.m13()), dstr(p.m13()));
+        rec("T::m21", same_double(q.m21(), p.m21()), sh, in, dstr(q.m21()), dstr(p.m21()));
+        rec("T::m22", same_double(q.m22(), p.m22()), sh, in, dstr(q.m22()), dstr(p.m22()));
+        rec("T::m23", same_double(q.m23(), p.m23()), sh, in, dstr(q.m23()), dstr(p.m23()));
+        rec("T::m31", same_double(q.m31(), p.m31()), sh, in, dstr(q.m31()), dstr(p.m31()));
+        rec("T::m32", same_double(q.m32(), p.m32()), sh, in, dstr(q.m32()), dstr(p.m32()));
+        rec("T::m33", same_double(q.m33(), p.m33()), sh, in, dstr(q.m33()), dstr(p.m33()));
+        rec("T::dx", same_double(q.dx(), p.dx()), sh, in, dstr(q.dx()), dstr(p.dx()));
+        rec("T::dy", same_double(q.dy(), p.dy()), sh, in, dstr(q.dy()), dstr(p.dy()));
+        rec("T::determinant", same_double(q.determinant(), p.determinant()), sh, in,
+            dstr(q.determinant()), dstr(p.determinant()));
+    }
+    {
+        const QTransform q = mkQT(m); const PkTransform p = mkPT(m);
+        rec("T::type", (int)q.type() == (int)p.type(), sh, in,
+            istr((int)q.type()), istr((int)p.type()));
+    }
+    {
+        const QTransform q = mkQT(m); const PkTransform p = mkPT(m);
+        rec("T::isAffine", q.isAffine() == p.isAffine(), sh, in,
+            bstr(q.isAffine()), bstr(p.isAffine()));
+    }
+    {
+        const QTransform q = mkQT(m); const PkTransform p = mkPT(m);
+        rec("T::isIdentity", q.isIdentity() == p.isIdentity(), sh, in,
+            bstr(q.isIdentity()), bstr(p.isIdentity()));
+    }
+    {
+        const QTransform q = mkQT(m); const PkTransform p = mkPT(m);
+        rec("T::transposed", same_tf(q.transposed(), p.transposed()), sh, in,
+            qstr(q.transposed()), qstr(p.transposed()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.reset(); p.reset();
+        // 取值必然是单位阵；这条 rec 真正要抓的是"reset 有没有把缓存也清掉"，
+        // 所以连 type() 一起比。
+        rec("T::reset", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q; PkTransform p;
+        q.setMatrix(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
+        p.setMatrix(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
+        rec("T::setMatrix", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        // ⚠ 规则二的靶子：**出参、结果矩阵、结果档位三样一起比**。
+        // 只比 `invertible` 标志位的话，"成功路径上矩阵整体乘 2"这类缺陷全绿
+        //（Step 8 第三组注入专门验这一条）；只比矩阵不比档位的话，
+        // "失败时把源档位拷过去了"这类缺陷看不见。
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        bool qok = false, pok = false;
+        const QTransform qi = q.inverted(&qok);
+        const PkTransform pi = p.inverted(&pok);
+        const bool same = (qok == pok) && same_tf(qi, pi)
+                       && (int)qi.type() == (int)pi.type();
+        rec("T::inverted", same, shapeOfInv(m), in,
+            bstr(qok) + qstr(qi) + "|" + istr((int)qi.type()),
+            bstr(pok) + qstr(pi) + "|" + istr((int)pi.type()));
+    }
+    {
+        // 同一条声明的另一个用法：不传出参（默认实参 nullptr）。
+        // 单独一条 label，挂在同一条声明上（transform_api.map 里两个标签）。
+        const QTransform qi = mkQT(m).inverted();
+        const PkTransform pi = mkPT(m).inverted();
+        rec("T::inverted(noflag)", same_tf(qi, pi), shapeOfInv(m), in,
+            qstr(qi), qstr(pi));
+    }
+}
+
+// 惰性缓存专用：喂**序列**而不是单个矩阵。
+// 序列 A：type() → *= 0.5 → type()   （档位可能过期）
+// 序列 B：           *= 0.5 → type()   （全量重算）
+// 两条必须逐输入一致，且 A 与 B 在同一批输入上**本来就该给不同答案** ——
+// 那正是"缓存是可观测语义"的形状。
+static void cmp_tf_cache(const double m[9], double s)
+{
+    const std::string in = tfin(m) + "*" + dstr(s);
+    const std::string sh = shapeOfTf(m);
+
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        (void)q.type(); (void)p.type();
+        q *= s; p *= s;
+        rec("T::type(stale)", (int)q.type() == (int)p.type(), sh, in,
+            istr((int)q.type()), istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        (void)q.type(); (void)p.type();
+        q *= s; p *= s;
+        rec("T::isIdentity(stale)", q.isIdentity() == p.isIdentity(), sh, in,
+            bstr(q.isIdentity()), bstr(p.isIdentity()));
+    }
+    {
+        // 过期档位会传染到 map：这一条比的是**取值**，走的是被过期档位选中的分支。
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        (void)q.type(); (void)p.type();
+        q *= s; p *= s;
+        rec("T::map(stale)", same_ptf(q.map(QPointF(3, 4)), p.map(PkPointF(3, 4))), sh, in,
+            qstr(q.map(QPointF(3, 4))), qstr(p.map(PkPointF(3, 4))));
+    }
+    {
+        // 拷贝要把缓存状态一起带走（Qt 手写的 operator= 逐字段拷 m_type/m_dirty，
+        // 我们靠编译器生成的拷贝 —— 这条 rec 就是那个等价性的判据）。
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        (void)q.type(); (void)p.type();
+        q *= s; p *= s;
+        const QTransform qc = q; const PkTransform pc = p;
+        rec("T::copy(stale)", (int)qc.type() == (int)pc.type(), sh, in,
+            istr((int)qc.type()), istr((int)pc.type()));
+    }
+}
+
+// translate / scale / shear：三条各自一条 rec（规则三），各自新建一对对象。
+// 结果连 type() 一起比 —— 这三个的末尾都是**条件抬升** `if (m_dirty < TxN)`，
+// 写成无条件赋值时矩阵取值不变、只有档位会变，不比档位就抓不到。
+static void cmp_tf_mutate(const double m[9], double a, double b)
+{
+    const std::string in = tfin(m) + "(" + dstr(a) + "," + dstr(b) + ")";
+    const std::string sh = shapeOfTf(m) + "/" + shapeOfD({a, b});
+
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.translate(a, b); p.translate(a, b);
+        rec("T::translate", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.scale(a, b); p.scale(a, b);
+        rec("T::scale", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.shear(a, b); p.shear(a, b);
+        rec("T::shear", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+}
+
+// rotate / rotateRadians。**直角特判**是本族最尖锐的一条，所以 tag 里
+// 「角度是不是 Qt 特判的那五个之一」必须参与构造 —— 去掉特判之后差异全部落在
+// right-angle 这个桶里，一眼看得出根因。
+// ⚠ 谓词写的是 Qt 源码里那五个字面量（90/-270/270/-90/180），**不是**「90 的
+// 整数倍」：-180 与 360 不在特判里，把它们算进来就比理由宽了。
+static bool tfSpecialAngle(double a)
+{ return a == 90. || a == -270. || a == 270. || a == -90. || a == 180.; }
+
+static void cmp_tf_rotate(const double m[9], double ang)
+{
+    const std::string in = tfin(m) + "@" + dstr(ang);
+    const std::string sh = shapeOfTf(m) + "/"
+        + (tfSpecialAngle(ang) ? "right-angle"
+           : ang == 0. ? std::string("zero-angle") : shapeOfD({ang}));
+
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.rotate(ang); p.rotate(ang);
+        rec("T::rotate", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.rotateRadians(ang); p.rotateRadians(ang);
+        rec("T::rotateRadians", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    // 非 Z 轴：同一条声明的另一条路径（造 result 再 result * *this），
+    // 单独一个 label 挂在同一条声明上。
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.rotate(ang, Qt::YAxis); p.rotate(ang, pkoracle::Qt::YAxis);
+        rec("T::rotate(axis)", same_tf(q, p) && (int)q.type() == (int)p.type(),
+            sh + "/y", in, qstr(q) + "|" + istr((int)q.type()),
+            qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.rotate(ang, Qt::XAxis); p.rotate(ang, pkoracle::Qt::XAxis);
+        rec("T::rotate(axis)", same_tf(q, p) && (int)q.type() == (int)p.type(),
+            sh + "/x", in, qstr(q) + "|" + istr((int)q.type()),
+            qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q.rotateRadians(ang, Qt::YAxis); p.rotateRadians(ang, pkoracle::Qt::YAxis);
+        rec("T::rotateRadians(axis)", same_tf(q, p) && (int)q.type() == (int)p.type(),
+            sh + "/y", in, qstr(q) + "|" + istr((int)q.type()),
+            qstr(p) + "|" + istr((int)p.type()));
+    }
+}
+
+// 四个静态/自由的标量运算符，各自一条 rec（规则三）。
+// ⚠ 四个对 m_dirty 的写法互不相同（*= 条件抬升、/= 转发、+= 与 -= 无条件钉死），
+// 所以四条都连 type() 一起比。
+static void cmp_tf_scalar(const double m[9], double s)
+{
+    const std::string in = tfin(m) + "#" + dstr(s);
+    const std::string sh = shapeOfTf(m) + "/" + shapeOfD({s});
+
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q *= s; p *= s;
+        rec("T::operator*=(qreal)", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q /= s; p /= s;
+        rec("T::operator/=(qreal)", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q += s; p += s;
+        rec("T::operator+=(qreal)", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(m); PkTransform p = mkPT(m);
+        q -= s; p -= s;
+        rec("T::operator-=(qreal)", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    // 四个自由函数（头文件里的 operator* / / / + / - (T, qreal)）。它们不在类体里，
+    // 规则三的机器闸门看不见它们，但一样各给一条 rec —— 转发链坏在"拷一份"那一跳
+    // 时复合版是好的、自由版是坏的。
+    {
+        rec("T::free*(qreal)", same_tf(mkQT(m) * s, mkPT(m) * s), sh, in,
+            qstr(mkQT(m) * s), qstr(mkPT(m) * s));
+        rec("T::free/(qreal)", same_tf(mkQT(m) / s, mkPT(m) / s), sh, in,
+            qstr(mkQT(m) / s), qstr(mkPT(m) / s));
+        rec("T::free+(qreal)", same_tf(mkQT(m) + s, mkPT(m) + s), sh, in,
+            qstr(mkQT(m) + s), qstr(mkPT(m) + s));
+        rec("T::free-(qreal)", same_tf(mkQT(m) - s, mkPT(m) - s), sh, in,
+            qstr(mkQT(m) - s), qstr(mkPT(m) - s));
+    }
+}
+
+// 四个 map 重载。**分两族**：map(点) 不夹持 w、map(指针出参) 夹持到 1e-6，
+// 所以 tag 里「这次是不是投影阵」必须参与构造。
+static void cmp_tf_map(const double m[9], double x, double y)
+{
+    const QTransform q = mkQT(m);
+    const PkTransform p = mkPT(m);
+    const std::string in = tfin(m) + "@(" + dstr(x) + "," + dstr(y) + ")";
+    // 分母 w 的取值是这一族唯一会分家的形态，所以它参与 tag：
+    // 大于夹持阈值 / 落进夹持区（含负与 0）/ 非有限。
+    const double w = m[2] * x + m[5] * y + m[8];
+    const std::string wtag = (w != w) ? "w-nan"
+        : std::isinf(w) ? "w-inf"
+        : (w < 0.000001) ? "w-clipped" : "w-plain";
+    const std::string sh = shapeOfTf(m) + "/" + wtag + "/" + shapeOfD({x, y});
+
+    rec("T::map(PkPointF)", same_ptf(q.map(QPointF(x, y)), p.map(PkPointF(x, y))), sh, in,
+        qstr(q.map(QPointF(x, y))), qstr(p.map(PkPointF(x, y))));
+
+    {
+        qreal qtx = 0, qty = 0, ptx = 0, pty = 0;
+        q.map(x, y, &qtx, &qty);
+        p.map(x, y, &ptx, &pty);
+        rec("T::map(qreal*)", same_double(qtx, ptx) && same_double(qty, pty), sh, in,
+            "(" + dstr(qtx) + "," + dstr(qty) + ")",
+            "(" + dstr(ptx) + "," + dstr(pty) + ")");
+    }
+    // 自由函数 operator*(QPointF, QTransform) 只是转发，单独一条 rec。
+    rec("T::freePointF*", same_ptf(QPointF(x, y) * q, PkPointF(x, y) * p), sh, in,
+        qstr(QPointF(x, y) * q), qstr(PkPointF(x, y) * p));
+}
+
+// 整数版的两个 map 重载（走 qRound，落进 int 值域之外是另一类 UB，
+// 与 Point 族同一条口径：两侧运行期同一条指令，编译期折叠不参与）。
+static void cmp_tf_map_int(const double m[9], int x, int y)
+{
+    const QTransform q = mkQT(m);
+    const PkTransform p = mkPT(m);
+    const std::string in = tfin(m) + "@i(" + istr(x) + "," + istr(y) + ")";
+    const double w = m[2] * x + m[5] * y + m[8];
+    const std::string wtag = (w != w) ? "w-nan"
+        : std::isinf(w) ? "w-inf"
+        : (w < 0.000001) ? "w-clipped" : "w-plain";
+    const std::string sh = shapeOfTf(m) + "/" + wtag + "/" + shapeOfI({x, y});
+
+    rec("T::map(PkPoint)", same_pt(q.map(QPoint(x, y)), p.map(PkPoint(x, y))), sh, in,
+        qstr(q.map(QPoint(x, y))), qstr(p.map(PkPoint(x, y))));
+
+    {
+        int qtx = 0, qty = 0, ptx = 0, pty = 0;
+        q.map(x, y, &qtx, &qty);
+        p.map(x, y, &ptx, &pty);
+        rec("T::map(int*)", qtx == ptx && qty == pty, sh, in,
+            "(" + istr(qtx) + "," + istr(qty) + ")",
+            "(" + istr(ptx) + "," + istr(pty) + ")");
+    }
+    rec("T::freePoint*", same_pt(QPoint(x, y) * q, PkPoint(x, y) * p), sh, in,
+        qstr(QPoint(x, y) * q), qstr(PkPoint(x, y) * p));
+}
+
+// 两个 mapRect 重载。
+// ⚠ **本族唯一一处已声明的行为偏离住在这里**：Qt 在
+// 「type()==TxProject 且 needsPerspectiveClipping(rect)」时走 QPainterPath，
+// 我们落回四角包围盒。tag 的谓词就是这条判据本身（tfFreshIsProject 用的是
+// 与 Qt 的 type() 逐字相同的模糊门槛，tfNeedsClip 是 qtransform.cpp:1934-1940
+// 的就地重算），**一个限定词都不宽**。
+static void cmp_tf_maprect(const double m[9], double x, double y, double w, double h)
+{
+    const QTransform q = mkQT(m);
+    const PkTransform p = mkPT(m);
+    const std::string in = tfin(m) + "R(" + dstr(x) + "," + dstr(y) + ","
+                         + dstr(w) + "," + dstr(h) + ")";
+    const bool clip = tfFreshIsProject(m) && tfNeedsClip(m, x, x + w, y, y + h);
+    const std::string base = shapeOfTf(m) + "/" + shapeOfD({x, y, w, h});
+    const std::string sh = clip ? ("persp-clip/" + shapeOfTf(m)) : base;
+
+    rec("T::mapRect(PkRectF)",
+        same_rectf(q.mapRect(QRectF(x, y, w, h)), p.mapRect(PkRectF(x, y, w, h))),
+        sh, in, qstr(q.mapRect(QRectF(x, y, w, h))), qstr(p.mapRect(PkRectF(x, y, w, h))));
+}
+
+static void cmp_tf_maprect_int(const double m[9], int x1, int y1, int x2, int y2)
+{
+    const QTransform q = mkQT(m);
+    const PkTransform p = mkPT(m);
+    const QRect qr = mkQ(x1, y1, x2, y2);
+    const PkRect pr = mkP(x1, y1, x2, y2);
+    const std::string in = tfin(m) + "Ri" + rin(x1, y1, x2, y2);
+    // 整数矩形提升成 QRectF 时用的是 x/y/w/h（left=x, right=x+w），
+    // 与 needsPerspectiveClipping 那一侧口径一致。
+    const bool clip = tfFreshIsProject(m)
+        && tfNeedsClip(m, qr.x(), (double)qr.x() + qr.width(),
+                       qr.y(), (double)qr.y() + qr.height());
+    const std::string base = shapeOfTf(m) + "/" + shapeOfRect(x1, y1, x2, y2);
+    const std::string sh = clip ? ("persp-clip/" + shapeOfTf(m)) : base;
+
+    rec("T::mapRect(PkRect)", same_rect(q.mapRect(qr), p.mapRect(pr)), sh, in,
+        qstr(q.mapRect(qr)), qstr(p.mapRect(pr)));
+}
+
+// 二元：乘法与相等。
+static void cmp_tf_binary(const double a[9], const double b[9])
+{
+    const std::string in = tfin(a) + "x" + tfin(b);
+    // ⚠ **十八个分量全部参与**形态判定（约定见 shapeOfD 上方那段）——
+    // 只取第一个矩阵会把"缺陷只在第二个矩阵的某个分量上触发"贴成相反的标签。
+    const std::string sh = shapeOfTf(a) + "x" + shapeOfTf(b);
+
+    {
+        const QTransform q = mkQT(a) * mkQT(b);
+        const PkTransform p = mkPT(a) * mkPT(b);
+        rec("T::operator*", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        QTransform q = mkQT(a); PkTransform p = mkPT(a);
+        q *= mkQT(b); p *= mkPT(b);
+        rec("T::operator*=", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    rec("T::operator==", (mkQT(a) == mkQT(b)) == (mkPT(a) == mkPT(b)), sh, in,
+        bstr(mkQT(a) == mkQT(b)), bstr(mkPT(a) == mkPT(b)));
+    rec("T::operator!=", (mkQT(a) != mkQT(b)) == (mkPT(a) != mkPT(b)), sh, in,
+        bstr(mkQT(a) != mkQT(b)), bstr(mkPT(a) != mkPT(b)));
+    // 自由函数 qFuzzyCompare(T,T)：不在类体里，规则三的闸门看不见它，
+    // 但它是 operator== 的模糊对照物，坏了会静默 —— 给一条自己的 rec。
+    rec("T::freeFuzzyCompare",
+        qFuzzyCompare(mkQT(a), mkQT(b)) == qFuzzyCompare(mkPT(a), mkPT(b)), sh, in,
+        bstr(qFuzzyCompare(mkQT(a), mkQT(b))), bstr(qFuzzyCompare(mkPT(a), mkPT(b))));
+}
+
+// 两个静态工厂：**它们不走构造那条重算路径**，直接钉档位，所以连 type() 一起比。
+static void cmp_tf_static(double a, double b)
+{
+    const std::string in = "(" + dstr(a) + "," + dstr(b) + ")";
+    const std::string sh = shapeOfD({a, b});
+    {
+        const QTransform q = QTransform::fromTranslate(a, b);
+        const PkTransform p = PkTransform::fromTranslate(a, b);
+        rec("T::fromTranslate", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+    {
+        const QTransform q = QTransform::fromScale(a, b);
+        const PkTransform p = PkTransform::fromScale(a, b);
+        rec("T::fromScale", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
+            qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
+    }
+}
+
 // ═══ canary：证明比较管道是活的 ════════════════════════════════════════════
 //
 // 走的是与真实 API 完全相同的 rec() 与比较原语。三条都必须出现在 DIFFTAG 里，
@@ -1964,6 +2536,107 @@ static const double kHandRectF[][4] = {
     {  0,    0,    INFINITY, INFINITY }, // isValid 为真的非有限矩形
     { -INFINITY, -INFINITY, INFINITY, INFINITY }, // right() = nan
     {  1e10,  0,   1,    1    },   // 取整越出 int 值域（两侧都是 UB）
+};
+
+
+// ── Group 5：Transform 族的输入 ──────────────────────────────────────────
+//
+// 九个分量做不了全组合（7⁹ = 4 千万个矩阵，再乘点集直接爆），所以照计划
+// R-03.md §Task6 那条：**每次只让 3 个分量变化、其余固定成几组基底**。
+// 三件事一起构成覆盖：
+//   ① 基底集 kTfBase —— 十个"有名字的形态"（单位/平移/缩放/负缩放/直角旋转/
+//      斜旋转/切变/投影/奇异/含特值），每一个都是真实调用点上会出现的东西；
+//   ② 槽位分组 kTfSlots —— 把九个分量切成三组各三个，每组在基底上做满 token³。
+//      三组合起来**每个分量位都被扫过**，不会有某个分量永远等于基底值；
+//   ③ 手挑集 kTfHand —— 基底扫不到的对抗形态（全 nan、全 inf、m33=0、
+//      刚好落在 qFuzzyIsNull 门槛两侧的 1e-12/1e-13 等）。
+// ⚠ 手挑集同时充当**二元 API 的 a 侧**，与扫描集做双向交叉 ——
+// 与 Rect/RectF 两族「手挑值必须能出现在每一个分量位上」是同一条约定。
+
+// 计划点名的七元 token。
+static const double kTfTok[] = { -2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0 };
+// 重活用的缩减 token（5 个），理由：重活那几个 API 的 rec 代价是 Point 族的
+// 十几倍（每条要打九个分量），全用 7³ 会把单次运行拖到分钟级。
+static const double kTfTokS[] = { -2.0, -0.5, 0.0, 1.0, 2.0 };
+// 特值：塞进单个分量位，逐位扫过九个位置。
+static const double kTfSpecial[] = { -0.0, 5e-324, 1e308, INFINITY, -INFINITY, NAN,
+                                     1e-12, 1e-13, 1.0 + 1e-13 };
+
+// 顺序：m11 m12 m13 m21 m22 m23 m31 m32 m33
+static const double kTfBase[][9] = {
+    { 1, 0, 0,   0, 1, 0,   0, 0, 1 },          // 单位
+    { 1, 0, 0,   0, 1, 0,   5, 7, 1 },          // 纯平移
+    { 2, 0, 0,   0, 3, 0,   0, 0, 1 },          // 纯缩放
+    { -2, 0, 0,  0, 3, 0,   0, 0, 1 },          // 负缩放
+    { 0, 1, 0,  -1, 0, 0,   0, 0, 1 },          // rotate(90) 的精确结果
+    { 0.70710678118654757, 0.70710678118654746, 0,
+      -0.70710678118654746, 0.70710678118654757, 0, 0, 0, 1 },   // rotate(45)
+    { 1, 2, 0,   1, 1, 0,   0, 0, 1 },          // 切变
+    { 1, 0, 0.5, 0, 1, 0.25, 0, 0, 1 },         // 投影
+    { 1, 2, 3,   2, 4, 6,   3, 6, 9 },          // 奇异（三行成比例，det = 0）
+    { 1, 0, -1,  0, 1, 0,   0, 0, 1 },          // 需要透视裁剪的投影（w = -x+1）
+};
+
+// 九个分量切成三组，三组合起来盖满九个位置。
+static const int kTfSlots[][3] = { { 0, 4, 6 }, { 1, 3, 2 }, { 5, 8, 7 } };
+
+static const double kTfHand[][9] = {
+    { 1, 0, 0,   0, 1, 0,   0, 0, 1 },
+    { 0, 0, 0,   0, 0, 0,   0, 0, 0 },          // 全零（det = 0，m33 = 0）
+    { 1, 0, 0,   0, 1, 0,   0, 0, 0 },          // m33 = 0 —— 投影且 w 恒为 0
+    { 1, 0, 0,   0, 1, 0,   0, 0, 3 },          // 只有 m33 != 1
+    { 1, 0, 1e-13, 0, 1, 0,  0, 0, 1 },         // m13 恰在 qFuzzyIsNull 门槛内
+    { 1, 0, 1e-12, 0, 1, 0,  0, 0, 1 },         // m13 恰在门槛上（<= 1e-12 为真）
+    { 1, 0, 1e-11, 0, 1, 0,  0, 0, 1 },         // m13 越过门槛
+    { 1 + 1e-13, 0, 0, 0, 1, 0, 0, 0, 1 },      // m11 - 1 落在门槛内
+    { 2, 1, 0,  -1, 2, 0,   0, 0, 1 },          // dot = 0 -> TxRotate
+    { 2, 1, 0,   2, 1, 0,   0, 0, 1 },          // dot = 5 -> TxShear
+    { 1, 2, 0,   2, 4, 0,   0, 0, 1 },          // 二阶式为 0 的切变（affine 奇异）
+    { 1, 1, 0,   1, 1 + 1e-16, 0, 0, 0, 1 },    // 二阶式**精确**为 0（1+1e-16 == 1）
+    { 1e-300, 0, 0, 0, 1, 0, 0, 0, 1 },         // 缩放轴 qFuzzyIsNull 但非 0
+    { NAN, 0, 0,  0, 1, 0,   0, 0, 1 },
+    { 0, 0, 0,   0, 0, 0,   0, 0, NAN },
+    { NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN },
+    { INFINITY, 0, 0, 0, 1, 0, 0, 0, 1 },
+    { INFINITY, INFINITY, INFINITY, INFINITY, INFINITY, INFINITY,
+      INFINITY, INFINITY, INFINITY },
+    { -INFINITY, 0, 0, 0, -INFINITY, 0, 0, 0, 1 },
+    { -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0 },
+    { 1, 0, 0,   0, 1, 0,  -0.0, -0.0, 1 },     // 平移分量是 -0.0
+    { 5e-324, 0, 0, 0, 5e-324, 0, 0, 0, 1 },    // 次正规
+    { 1e308, 0, 0, 0, 1e308, 0, 0, 0, 1 },      // 相乘会溢出到 inf
+    { 1, 0, -1,  0, 1, -1,  0, 0, 1 },          // 两个方向都要裁剪
+    { 1, 0, 0.01, 0, 1, 0,  0, 0, 1 },          // 投影但**不**需要裁剪
+    { 1, 2, 3,   4, 5, 6,   7, 8, 9 },          // 计划里反复出现的那个奇异阵
+    { 9, 8, 7,   6, 5, 4,   3, 2, 1 },
+    { 2, 3, 0,   5, 7, 0,  11, 13, 1 },         // 探针 §I 的非对称阵
+};
+
+// map 的点 token（浮点与整数各一套）。
+static const double kTfPt[] = { -2.0, -1.0, -0.0, 0.0, 1.0, 2.0, INFINITY, NAN };
+static const int kTfPtI[] = { INT_MIN, -2, -1, 0, 1, 2, INT_MAX };
+// translate/scale/shear 的实参、以及 fromTranslate/fromScale 的实参。
+static const double kTfArg[] = { -2.0, -1.0, -0.0, 0.0, 1.0, 2.0, NAN };
+// 标量运算符的实参（1 与 0 是三条提前返回的分界）。
+static const double kTfSca[] = { -2.0, -1.0, -0.0, 0.0, 0.5, 1.0, 2.0, 3.0,
+                                 INFINITY, NAN, 1e-300, 1e308 };
+// rotate 的角度：五个特判值、它们的邻居、以及非特判的常见角。
+static const double kTfAng[] = { 0.0, -0.0, 90.0, -90.0, 180.0, -180.0, 270.0, -270.0,
+                                 89.999999999999986, 90.000000000000014, 360.0, 45.0,
+                                 30.0, 1.0, -1.0, 1e-300, 1e308, INFINITY, NAN,
+                                 0.017453292519943295, 3.141592653589793 };
+// mapRect 的浮点矩形（x,y,w,h）与整数矩形（内部四坐标）。
+static const double kTfRectF[][4] = {
+    { 0, 0, 10, 10 }, { 0, 0, 0, 0 }, { 0, 0, -1, -1 }, { -5, -5, 10, 10 },
+    { 0.5, 0.5, 1.5, 1.5 }, { 0, 0, 1e308, 1e308 }, { 0, 0, INFINITY, INFINITY },
+    { NAN, 0, 10, 10 }, { 0, 0, NAN, 10 }, { -0.0, -0.0, -0.0, -0.0 },
+    { 1, 2, 3, 4 }, { 0, 0, 5e-324, 5e-324 },
+};
+static const int kTfRectI[][4] = {
+    { 0, 0, 9, 9 }, { 0, 0, -1, -1 }, { 5, 5, 4, 4 }, { 0, 0, 0, 0 },
+    { -5, -5, 5, 5 }, { INT_MIN, INT_MIN, INT_MAX, INT_MAX },
+    { INT_MAX, INT_MAX, INT_MIN, INT_MIN }, { 0, 0, -2, 0 },
+    { 1, 2, 3, 4 }, { -1, -1, 1, 1 },
 };
 
 template <typename T, std::size_t N>
@@ -2517,6 +3190,125 @@ int main()
                              kHandRectF[h][2], kHandRectF[h][3],
                              kHandRectF[g][0], kHandRectF[g][1],
                              kHandRectF[g][2], kHandRectF[g][3]);
+    }
+
+
+    // ═══ Transform 族 ══════════════════════════════════════════════════════
+    //
+    // 三层输入（说明见 Group 5 上方）：
+    //   · 全量扫描 sweepFull —— 10 基底 × 3 槽位组 × 7³ = 10 290 个矩阵，
+    //     喂给两个构造与全部一元 API（每个矩阵 22 条 rec）
+    //   · 缩减扫描 sweepWork —— 10 × 3 × 5³ + 手挑 28 = 3 778 个矩阵，
+    //     喂给重活（map / mapRect / mutate / rotate / scalar / cache / binary）。
+    //     缩减不是偷懒：这一族每条 rec 要打九个分量，代价是 Point 族的十几倍，
+    //     全量喂重活会把单次运行拖到分钟级而覆盖的形态并不多
+    //   · 特值逐位扫 —— 九个分量位 × 9 个特值 × 10 基底，专打 nan/inf/±0/门槛值
+    {
+        const int nTfTok = countOf(kTfTok), nTfTokS = countOf(kTfTokS);
+        const int nTfBase = countOf(kTfBase), nTfSlot = countOf(kTfSlots);
+        const int nTfHand = countOf(kTfHand), nTfSpec = countOf(kTfSpecial);
+
+        std::vector<double> sweepFull, sweepWork;
+        double m[9];
+        for (int b = 0; b < nTfBase; ++b) {
+            for (int sl = 0; sl < nTfSlot; ++sl) {
+                for (int i = 0; i < nTfTok; ++i)
+                    for (int j = 0; j < nTfTok; ++j)
+                        for (int k = 0; k < nTfTok; ++k) {
+                            for (int c = 0; c < 9; ++c) m[c] = kTfBase[b][c];
+                            m[kTfSlots[sl][0]] = kTfTok[i];
+                            m[kTfSlots[sl][1]] = kTfTok[j];
+                            m[kTfSlots[sl][2]] = kTfTok[k];
+                            sweepFull.insert(sweepFull.end(), m, m + 9);
+                        }
+                for (int i = 0; i < nTfTokS; ++i)
+                    for (int j = 0; j < nTfTokS; ++j)
+                        for (int k = 0; k < nTfTokS; ++k) {
+                            for (int c = 0; c < 9; ++c) m[c] = kTfBase[b][c];
+                            m[kTfSlots[sl][0]] = kTfTokS[i];
+                            m[kTfSlots[sl][1]] = kTfTokS[j];
+                            m[kTfSlots[sl][2]] = kTfTokS[k];
+                            sweepWork.insert(sweepWork.end(), m, m + 9);
+                        }
+            }
+        }
+        // 特值逐位扫：九个分量位一个都不落（只改一位，其余留基底值）。
+        for (int b = 0; b < nTfBase; ++b)
+            for (int pos = 0; pos < 9; ++pos)
+                for (int v = 0; v < nTfSpec; ++v) {
+                    for (int c = 0; c < 9; ++c) m[c] = kTfBase[b][c];
+                    m[pos] = kTfSpecial[v];
+                    sweepFull.insert(sweepFull.end(), m, m + 9);
+                }
+        for (int h = 0; h < nTfHand; ++h) {
+            sweepFull.insert(sweepFull.end(), kTfHand[h], kTfHand[h] + 9);
+            sweepWork.insert(sweepWork.end(), kTfHand[h], kTfHand[h] + 9);
+        }
+        const int nFull = (int)(sweepFull.size() / 9);
+        const int nWork = (int)(sweepWork.size() / 9);
+
+        cmp_tf_constants();
+
+        for (int i = 0; i < nFull; ++i) {
+            const double *mm = &sweepFull[9 * i];
+            cmp_tf_ctor(mm);
+            cmp_tf_unary(mm);
+        }
+
+        const int nPt = countOf(kTfPt), nPtI = countOf(kTfPtI);
+        const int nArg = countOf(kTfArg), nSca = countOf(kTfSca), nAng = countOf(kTfAng);
+        const int nRF = countOf(kTfRectF), nRI = countOf(kTfRectI);
+
+        for (int i = 0; i < nWork; ++i) {
+            const double *mm = &sweepWork[9 * i];
+
+            for (int a = 0; a < nPt; ++a)
+                for (int b = 0; b < nPt; ++b)
+                    cmp_tf_map(mm, kTfPt[a], kTfPt[b]);
+            for (int a = 0; a < nPtI; ++a)
+                for (int b = 0; b < nPtI; ++b)
+                    cmp_tf_map_int(mm, kTfPtI[a], kTfPtI[b]);
+
+            for (int a = 0; a < nArg; ++a)
+                for (int b = 0; b < nArg; ++b)
+                    cmp_tf_mutate(mm, kTfArg[a], kTfArg[b]);
+
+            for (int a = 0; a < nAng; ++a)
+                cmp_tf_rotate(mm, kTfAng[a]);
+
+            for (int a = 0; a < nSca; ++a) {
+                cmp_tf_scalar(mm, kTfSca[a]);
+                cmp_tf_cache(mm, kTfSca[a]);
+            }
+
+            for (int r = 0; r < nRF; ++r)
+                cmp_tf_maprect(mm, kTfRectF[r][0], kTfRectF[r][1],
+                               kTfRectF[r][2], kTfRectF[r][3]);
+            for (int r = 0; r < nRI; ++r)
+                cmp_tf_maprect_int(mm, kTfRectI[r][0], kTfRectI[r][1],
+                                   kTfRectI[r][2], kTfRectI[r][3]);
+        }
+
+        // 二元：手挑集 × 缩减扫描集，**双向**（手挑值必须能出现在 a 侧和 b 侧）。
+        for (int h = 0; h < nTfHand; ++h)
+            for (int i = 0; i < nWork; ++i) {
+                cmp_tf_binary(kTfHand[h], &sweepWork[9 * i]);
+                cmp_tf_binary(&sweepWork[9 * i], kTfHand[h]);
+            }
+        // 手挑 × 手挑做满（28² = 784 组）。
+        for (int h = 0; h < nTfHand; ++h)
+            for (int g = 0; g < nTfHand; ++g)
+                cmp_tf_binary(kTfHand[h], kTfHand[g]);
+
+        // 两个静态工厂：实参全组合（含 nan/inf/±0）。
+        {
+            static const double kFactory[] = { -2.0, -1.0, -0.0, 0.0, 1.0, 2.0,
+                                               INFINITY, -INFINITY, NAN, 1e308, 5e-324 };
+            const int n = countOf(kFactory);
+            for (int a = 0; a < n; ++a)
+                for (int b = 0; b < n; ++b)
+                    cmp_tf_static(kFactory[a], kFactory[b]);
+        }
     }
 
     for (const auto &kv : g_tags)

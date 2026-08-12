@@ -27,14 +27,18 @@ API_GROUPS=(
     "pk/geometry/PkPoint.h|PkPoint,PkPointF|pk/geometry/oracle/point_api.map"
     "pk/geometry/PkSize.h|PkSize,PkSizeF|pk/geometry/oracle/size_api.map"
     "pk/geometry/PkRect.h|PkRectF|pk/geometry/oracle/rectf_api.map"
+    "pk/geometry/PkTransform.h|PkTransform|pk/geometry/oracle/transform_api.map"
 )
 
 [ -f "$QT/include/QtCore/qpoint.h" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/qpoint.h" >&2; exit 1; }
 [ -f "$QT/lib/libQt5Core.so" ]       || { echo "找不到真 Qt5 的库：$QT/lib/libQt5Core.so" >&2; exit 1; }
 
-# Task 6（PkTransform）要把 -lQt5Gui 加进来，并把 REQUIRE 改成两个库都查。
-QT_LIBS="-lQt5Core"
-LDD_REQUIRE="libQt5Core"
+# ⚠ **QTransform 住在 libQt5Gui 里**（QPoint/QSize/QRect 在 libQt5Core），
+# 所以 Task 6 起两个库都要链、两个库都要查。**两个都查**这一点要紧：只查
+# Core 的话，Gui 没链上时 Transform 那一整节会在链接期就炸（不是静默放行），
+# 但万一哪天 Transform 的符号被别的库满足了，只查 Core 就成了空判据。
+QT_LIBS="-lQt5Core -lQt5Gui"
+LDD_REQUIRE="libQt5Core libQt5Gui"
 
 # ⚠ **-I 里绝不能出现 compat**：垫片一旦被拉进来，<QPoint> 会解析到
 # compat/QPoint（两个 #define），两侧变成同一个类型，跑出来必然零差异且看不出
@@ -97,10 +101,12 @@ g++ "${CXXFLAGS_ORACLE[@]}" "${INCFLAGS[@]}" -o "$OUT" "$SRC" \
 # 判据：**真的链上了 Qt**。链不上说明两侧都编到了替代品，零差异是假的。
 printf '\nldd %s | grep -i qt:\n' "$OUT"
 LD_LIBRARY_PATH="$QT/lib" ldd "$OUT" | grep -i qt || true
-if ! LD_LIBRARY_PATH="$QT/lib" ldd "$OUT" | grep -q "$LDD_REQUIRE"; then
-    echo "run_oracle.sh: ldd 里看不到 $LDD_REQUIRE —— 没有真的链上 Qt" >&2
-    exit 1
-fi
+for lib in $LDD_REQUIRE; do
+    if ! LD_LIBRARY_PATH="$QT/lib" ldd "$OUT" | grep -q "$lib"; then
+        echo "run_oracle.sh: ldd 里看不到 $lib —— 没有真的链上 Qt" >&2
+        exit 1
+    fi
+done
 
 printf '\n跑对拍：\n'
 # ⚠ **`|| rc=$?` 不是可有可无的写法。** `set -e` 之下 `cmd > log` 一旦非零就
@@ -212,6 +218,21 @@ def parse_decls(hdr_path, cls):
     for stmt in strip_bodies(m.group(1)).split(';'):
         stmt = ' '.join(stmt.split())
         if not stmt:
+            continue
+        # ⚠ **枚举声明跳过**（Task 6 起，PkTransform::TransformationType 是第一个）。
+        # strip_bodies 按花括号剥函数体，枚举体也被它剥掉，剩下 `enum X` 这一句
+        # —— 它匹配不上下面的函数声明正则，会掉进 miss 里把闸门整个判 FAIL。
+        # 枚举没有"重载"可言、也没有对应的 rec()，规则三本来就管不着它，
+        # 所以这里放行，**但只放行严格长成 `enum [class] 名字 [: 底层类型]`
+        # 这一种**：多一个括号、多一个星号都不匹配，函数声明伪装不成枚举。
+        # 枚举取值本身由 PkTransform.cpp 尾部的 static_assert 与
+        # geometry_difftest.cpp 顶部「两侧枚举取值一致」那条 static_assert 守。
+        # ⚠ 前缀 `public:` 要一起吃掉：类体第一条声明前面就是它，而按 `;` 切
+        # 不会把访问说明符切开（它后面是 `:` 不是 `;`）。函数声明那条正则用的是
+        # re.search，前缀天然被跳过；这里是 fullmatch，必须显式写出来。
+        if re.fullmatch(r'(?:(?:public|protected|private)\s*:\s*)?'
+                        r'enum(\s+class)?\s+[A-Za-z_][A-Za-z0-9_]*'
+                        r'(\s*:\s*[A-Za-z_][A-Za-z0-9_ ]*)?', stmt):
             continue
         mm = re.search(r'(operator[^\s(]*|~?[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)'
                        r'\s*(?:const)?\s*(?:noexcept)?\s*$', stmt)

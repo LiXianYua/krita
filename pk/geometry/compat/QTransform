@@ -1,0 +1,17 @@
+#pragma once
+#include "../PkTransform.h"
+
+// <QTransform> 的垫片，与 compat/QRect 等同形（完整理由在 compat/QRect）：
+// 靠 `#define` 把类型名改写掉，而不是靠 namespace —— Krita 里有
+// `class QTransform;` 这样的前置声明，套 namespace 那个技巧就废。
+//
+// ⚠ **只改写 QTransform 这一个名字。** 调用点写的 `QTransform::TxRotate`
+// 会跟着变成 `PkTransform::TxRotate`，不需要额外的 #define；而
+// `Qt::ZAxis` / `Qt::AspectRatioMode` 这类限定名本来就落在 PkGlobal.h 的
+// `namespace Qt` 里，也不需要改写。
+//
+// ⚠ 本文件**不**提供 QMatrix：`QTransform(const QMatrix&)` 与 `toAffine()`
+// 实测 0 用量、不实现（说明在 PkTransform.h 的「明确不实现」一节）。
+#ifndef QTransform
+#define QTransform PkTransform
+#endif

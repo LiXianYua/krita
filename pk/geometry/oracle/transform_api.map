@@ -1,0 +1,76 @@
+# PkTransform 类体声明 → 对拍 rec() 标签的映射（规则三的机器闸门，人维护那一半）。
+#
+# 格式与 rect_api.map / point_api.map / size_api.map / rectf_api.map **完全一致**
+# （同一个解析器、同一份闸门代码）：<类名>::<声明指纹>\t<对拍 api 标签>[;<标签>...]，
+# **tab 分隔**，# 开头为注释。多标签之间用 `;` 不是逗号（标签名自己含逗号）。
+# 声明指纹由 run_oracle.sh 从 PkTransform.h 的**类体**里机械解析出来，不是人手抄的。
+#
+# ⚠ 与前四份 map 的三处结构性差别（不是笔误）：
+#   ① **枚举 TransformationType 不在这里。** run_oracle.sh 的解析器从 Task 6 起
+#      显式跳过 `enum X` 这一种声明：枚举没有"重载"可言、也没有对应的 rec()，
+#      规则三本来就管不着它。它的取值由 PkTransform.cpp 尾部的六条 static_assert
+#      与 geometry_difftest.cpp 顶部「两侧枚举取值一致」那条 static_assert 守。
+#   ② **好几条声明映射到两个标签**，因为同一个重载有两条真实走法：
+#      · inverted(bool*) → 传出参 / 不传出参（默认实参 nullptr）
+#      · rotate / rotateRadians → Z 轴 / 非 Z 轴（后者走 result * *this，是另一套代码）
+#      · operator*=(qreal) 一族 → 复合版 / 头文件里那个转发给它的自由函数
+#      · map(const PkPointF&) → 直接调 / 自由函数 operator*(PkPointF,PkTransform)
+#        / 缓存过期状态下调（走的是被过期档位选中的分支）
+#      合并成一个标签的话，坏在"转发那一跳"上的缺陷会被另一跳的绿灯盖住。
+#   ③ **type() 挂了三个标签**，多出来的两个是缓存语义：type(stale) 喂的是
+#      「先问一次 type() 再改矩阵」这种序列，copy(stale) 比的是拷贝有没有把
+#      m_type/m_dirty 一起带走（拷贝构造是编译器生成的、不在类体里，
+#      但它可观测的后果全部经由 type()，所以挂在这条声明上）。
+#
+# ⚠ **不在这里、也不该在这里的标签**：`T::freeFuzzyCompare`。
+# 自由函数 qFuzzyCompare(PkTransform, PkTransform) 不是类成员，写进来会被
+# 闸门当成"对不上任何声明的孤行"而 FAIL。它只登记在 api_seen.expected 里。
+#
+# 规则三：**每个已实现的重载都要有自己的 rec()**。run_oracle.sh 做三件事，
+# 任一不成立就 FAIL：
+#   ① PkTransform.h 里 PkTransform 的每一条声明都在这里有一行  ← 加了重载忘写 rec() 在这里现形
+#   ② 这里的每一行都对得上一条声明（删了成员却留着行也现形）
+#   ③ 这里列的每个标签都真的出现在程序打出的 APISEEN 里
+PkTransform::PkTransform()	T::defaultCtor
+PkTransform::PkTransform(qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal)	T::ctor9
+PkTransform::PkTransform(qreal,qreal,qreal,qreal,qreal,qreal)	T::ctor6
+PkTransform::isAffine()	T::isAffine
+PkTransform::isIdentity()	T::isIdentity;T::isIdentity(stale)
+PkTransform::type()	T::type;T::type(stale);T::copy(stale)
+PkTransform::determinant()	T::determinant
+PkTransform::m11()	T::m11
+PkTransform::m12()	T::m12
+PkTransform::m13()	T::m13
+PkTransform::m21()	T::m21
+PkTransform::m22()	T::m22
+PkTransform::m23()	T::m23
+PkTransform::m31()	T::m31
+PkTransform::m32()	T::m32
+PkTransform::m33()	T::m33
+PkTransform::dx()	T::dx
+PkTransform::dy()	T::dy
+PkTransform::setMatrix(qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal,qreal)	T::setMatrix
+PkTransform::inverted(bool*)	T::inverted;T::inverted(noflag)
+PkTransform::transposed()	T::transposed
+PkTransform::translate(qreal,qreal)	T::translate
+PkTransform::scale(qreal,qreal)	T::scale
+PkTransform::shear(qreal,qreal)	T::shear
+PkTransform::rotate(qreal,Qt::Axis)	T::rotate;T::rotate(axis)
+PkTransform::rotateRadians(qreal,Qt::Axis)	T::rotateRadians;T::rotateRadians(axis)
+PkTransform::operator==(const PkTransform&)	T::operator==
+PkTransform::operator!=(const PkTransform&)	T::operator!=
+PkTransform::operator*=(const PkTransform&)	T::operator*=
+PkTransform::operator*(const PkTransform&)	T::operator*
+PkTransform::reset()	T::reset
+PkTransform::map(const PkPoint&)	T::map(PkPoint);T::freePoint*
+PkTransform::map(const PkPointF&)	T::map(PkPointF);T::freePointF*;T::map(stale)
+PkTransform::map(int,int,int*,int*)	T::map(int*)
+PkTransform::map(qreal,qreal,qreal*,qreal*)	T::map(qreal*)
+PkTransform::mapRect(const PkRect&)	T::mapRect(PkRect)
+PkTransform::mapRect(const PkRectF&)	T::mapRect(PkRectF)
+PkTransform::operator*=(qreal)	T::operator*=(qreal);T::free*(qreal)
+PkTransform::operator/=(qreal)	T::operator/=(qreal);T::free/(qreal)
+PkTransform::operator+=(qreal)	T::operator+=(qreal);T::free+(qreal)
+PkTransform::operator-=(qreal)	T::operator-=(qreal);T::free-(qreal)
+PkTransform::fromTranslate(qreal,qreal)	T::fromTranslate
+PkTransform::fromScale(qreal,qreal)	T::fromScale
