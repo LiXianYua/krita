@@ -9,6 +9,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # 零 Qt：本工程不得出现 find_package(Qt...)。判据③ 靠
 #   nm -u <build>/libpkcontainer.a | grep -i qt
 # 自证——静态库允许留未定义符号，真混进 Qt 依赖就会在那里现形。
+#
+# PkStringList.h / PkPair.h 刻意**不**在这张表里：
+#  - PkStringList.h 要 include pk/string 的 PkString.h，而 libpkcontainer.a
+#    刻意不依赖 pkstring（理由见下面那段）。它与 PkStringHash.h 一样是纯
+#    inline 头，由需要它的测试目标自己额外链 pkstring。
+#  - PkPair.h 只有一个类型别名与一个函数模板，没有可实例化的类，加 .cpp 也
+#    生不出任何符号。
 add_library(pkcontainer STATIC
     PkArrayData.cpp
     PkVector.cpp
@@ -16,6 +23,8 @@ add_library(pkcontainer STATIC
     PkMap.cpp
     PkHash.cpp
     PkSet.cpp
+    PkStack.cpp
+    PkQueue.cpp
 )
 target_include_directories(pkcontainer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -52,7 +61,11 @@ pk_test_generate(PKCONTAINER_GENERATED_TEST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkListTest.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkMapTest.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkHashTest.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkSetTest.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkSetTest.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkStackTest.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkQueueTest.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkPairTest.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkStringListTest.h")
 
 # 一个测试类一个可执行文件：PK_TEST_MAIN 展开出 main()，两个测试类塞进同一个
 # 目标就是两个 main。与 pk/test 的既有形态一致。
@@ -82,6 +95,12 @@ pk_test_add_executable(test_pkcontainer tests/test_arraydata.cpp PkArrayDataTest
 pk_test_add_executable(test_pkvector    tests/test_pkvector.cpp  PkVectorTest)
 pk_test_add_executable(test_pklist      tests/test_pklist.cpp    PkListTest)
 pk_test_add_executable(test_pkmap       tests/test_pkmap.cpp     PkMapTest)
-# 后两个额外链 pkstring：它们压 qHash(const PkString &) 那条链路（PkStringHash.h）。
+pk_test_add_executable(test_pkstack     tests/test_pkstack.cpp   PkStackTest)
+pk_test_add_executable(test_pkqueue     tests/test_pkqueue.cpp   PkQueueTest)
+pk_test_add_executable(test_pkpair      tests/test_pkpair.cpp    PkPairTest)
+# 下面三个额外链 pkstring：
+#  - test_pkhash / test_pkset 压 qHash(const PkString &) 那条链路（PkStringHash.h）
+#  - test_pkstringlist 的被测类型 PkStringList 本身就是 PkList<PkString>
 pk_test_add_executable(test_pkhash      tests/test_pkhash.cpp    PkHashTest  pkstring)
 pk_test_add_executable(test_pkset       tests/test_pkset.cpp     PkSetTest   pkstring)
+pk_test_add_executable(test_pkstringlist tests/test_pkstringlist.cpp PkStringListTest pkstring)
