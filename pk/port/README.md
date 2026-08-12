@@ -26,7 +26,8 @@ FreeType 完成度量，按端口判据（"这个能力在不同平台有没有�
 `bestMatch`）+ ⑥字体集枚举（2 个：`allFonts`）+ ⑦字符集（`coversCodepoint`）
 + ⑧语言集（并入 `FontEntry::languages`，见 `allFonts()`）。
 ④模式构造与属性读写（32 处、占比最大的一族）整族归零，换成 `PkFontQuery`
-结构体（family/weight/slant/width/size/pixelsize/lang/charset 八个固定属性）。
+结构体（family/weight/slant/width/size/pixelsize/lang 七个固定属性——评审
+I-5 删掉了零调用点的 `charset` 字段，从八个收窄为七个）。
 ①初始化/生命周期的 4 个 `FcXxxDestroy`、③目录列表迭代 `FcStrList`、
 `FcFontRenderPrepare`（零命中）、`FcWeightToOpenType`/`FcWeightFromOpenType`
 （纯数学，调用方自行内联）、`FcPatternHash`（调用方内部缓存键）——全部
@@ -34,9 +35,18 @@ FreeType 完成度量，按端口判据（"这个能力在不同平台有没有�
 
 **一处判断，不是实测**：`PkFontQuery::families` 在
 `getCssDataForPostScriptName()`（KoFontRegistry.cpp:1197-1234）那个调用点
-实际查的是 `FC_POSTSCRIPT_NAME` 而不是 `FC_FAMILY`——8 字段预算里没有单独
-的 postscript 字段，选择让 `families[0]` 兼载这个语义（由具体实现决定按
-哪个 fontconfig 属性精确匹配），见该字段注释。
+实际查的是 `FC_POSTSCRIPT_NAME` 而不是 `FC_FAMILY`——查询侧 7 字段预算里
+没有单独的 postscript 字段，选择让 `families[0]` 兼载这个语义（由具体实现
+决定按哪个 fontconfig 属性精确匹配），见该字段注释。
+
+**评审修复后 `FontEntry` 的字段分工**（C-2/I-6）：`sortedMatches()`/
+`allFonts()` 路径只读 `handle`/`familyName`/`languages`；`bestMatch()`
+路径（`getCssDataForPostScriptName()` 唯一调用点）读
+`familyName`/`postScriptName`/`weight`/`width`/`slant`，不读
+`handle`/`languages`——两条路径共用同一个结构体，但字段语义按调用路径钉死
+在类头注释里，不留"由实现决定"的空子。`sortedMatches()` 的过滤契约（I-1）：
+非缩放位图字体、且 `query.pixelSize` 与候选自身像素大小不相等时，实现必须
+在返回前自己内部排除，不能指望调用方再做一遍。
 
 ## `PkResourceStorage`——资源定位与目录枚举
 
@@ -66,11 +76,10 @@ FreeType 完成度量，按端口判据（"这个能力在不同平台有没有�
 
 | 缺口 | 原因 | 由谁补 |
 |---|---|---|
-| `QDir::rmpath`（1 处，`KoResourcePaths.cpp:282`） | `mkpath` 失败后的"尽力而为"兜底清理，调用点没检查返回值，没有测试压力 | 需要时再加，不阻塞任何已知消费者 |
+| `QDir::rmpath`（1 处，`KoResourcePaths.cpp:282`） | 评审 M-4：调用点数与 `remove()` 一样都是 1 处、返回值都未被检查——排除理由不能是"1 处/没检查"（那对 `remove()` 同样成立却被留下了），真正的区别是**能力必要性**：`remove()` 删单个文件是 `mkpath()`（建目录）的对称能力，属于存储抽象必须能做的核心 CRUD；`rmpath()` 只是 `mkpath` **已经失败之后**的兜底清理，它是否执行不影响任何后续正确性——最坏结果只是留几个空目录，不是"资源定位与目录枚举"要保证的东西 | 需要时再加，不阻塞任何已知消费者 |
 | `QDir::tempPath`（3 处，`kis_image_config.cpp` 的 swap 目录） | 不在上级给定的 7 个 `PlatformDir` kind 里（`QStandardPaths` 没有直接对应的 TempLocation 命中，`QDir::tempPath()` 是独立的 OS 临时目录概念）——按给定范围未纳入 | 若后续任务需要 swap 目录定位，另开一个 kind 或专门的 API |
 | `ResourceIterator::type()`（先例字段） | 目录枚举没有"逐条目反查类型"的真实调用点，过滤发生在查询级（`EntryKind` 参数），按"范围上界=实测"不加 | 无——如果出现真实需要，那时再加 |
 | `TagIterator` / `resource()`（`KoResourceSP` 加载） | Task 4 范围是"资源定位与目录枚举"，不含资源加载/版本化/标签，没有测量材料 | 归属未来批次（资源加载相关端口） |
-| `QDir::cleanPath` 的精确语义 | 本任务没有对它重新跑真链 Qt 探针（不像 `PkStream.h` 那批有 `probe_qiodevice.cpp`），`PkResourceStorage::cleanPath()` 按 Qt 文档 + 常识实现（折叠连续分隔符、解析 `.`/`..`、绝对路径上越界的 `..` 丢弃），已用变异测试验证对当前测试用例的杀伤力，但没有对照真实 `QDir::cleanPath` 的边界行为（例如 UNC 路径、纯 `..` 输入）逐条核验 | 若后续批次发现行为分歧，按真链探针补 |
 
 ### 与 `task-4-brief.md` 口径不同的两处（已用实测数覆盖）
 

@@ -42,15 +42,25 @@ class RecordingSink : public PkEventSink
 {
 public:
     std::vector<std::string> calls;
+    // 评审 I-3：nodeHasBeenAdded 新增的 dontActivateNode 位，记录最近一次
+    // 收到的值，用来断言这一位被真正转发（不是被端口默默吞掉）。
+    bool lastDontActivateNode = false;
 
     void aboutToAddANode(KisNode *, int) override { calls.push_back("aboutToAddANode"); }
-    void nodeHasBeenAdded(KisNode *, int) override { calls.push_back("nodeHasBeenAdded"); }
+    void nodeHasBeenAdded(KisNode *, int, bool dontActivateNode = false) override
+    {
+        calls.push_back("nodeHasBeenAdded");
+        lastDontActivateNode = dontActivateNode;
+    }
     void aboutToRemoveANode(KisNode *, int) override { calls.push_back("aboutToRemoveANode"); }
     void nodeHasBeenRemoved(KisNode *, int) override { calls.push_back("nodeHasBeenRemoved"); }
     void aboutToMoveNode(KisNode *, int, int) override { calls.push_back("aboutToMoveNode"); }
     void nodeHasBeenMoved(KisNode *, int, int) override { calls.push_back("nodeHasBeenMoved"); }
     void nodeChanged(KisNode *) override { calls.push_back("nodeChanged"); }
     void historyStateChanged() override { calls.push_back("historyStateChanged"); }
+    // 评审 I-4：libs/image/commands/kis_image_change_layers_command.cpp 的
+    // redo/undo 整棵图层栈替换事件,不伴随任何 per-node 增删事件。
+    void layersChanged() override { calls.push_back("layersChanged"); }
 };
 
 } // namespace
@@ -78,6 +88,14 @@ public:
 
     // 裸指针参数只传递身份，不解引用：同一个假指针值原样传到 override。
     void testNodePointerIdentityIsPreserved();
+
+    // 评审 I-3：nodeHasBeenAdded 新增的 dontActivateNode 位必须被转发到
+    // override，不能被端口默默吞掉——默认值 false、显式传 true 都要能收到。
+    void testNodeHasBeenAddedForwardsDontActivateNodeFlag();
+
+    // 评审 I-4：layersChanged() 是独立事件，不伴随任何 per-node 增删事件，
+    // 与其它事件混调时顺序必须原样保留。
+    void testLayersChangedIsIndependentEventPreservingOrder();
 };
 
 void PkEventSinkTestCase::testMinimalOverrideCompilesAndDispatches()
@@ -96,7 +114,9 @@ void PkEventSinkTestCase::testMinimalOverrideCompilesAndDispatches()
 
 void PkEventSinkTestCase::testNoOverrideAtAllStillCallable()
 {
-    PkEventSink sink;   // 直接实例化基类本身：验证它不是抽象类（design choice①）。
+    PkEventSink sink;   // 直接实例化基类本身：验证它不是抽象类（design choice①），
+                        // 这一步能编译通过本身就是证据——若有未定义的纯虚函数，
+                        // 这行会在编译期报错，不需要额外断言。
     sink.aboutToAddANode(kFakeParent, 0);
     sink.nodeHasBeenAdded(kFakeParent, 0);
     sink.aboutToRemoveANode(kFakeParent, 1);
@@ -105,9 +125,22 @@ void PkEventSinkTestCase::testNoOverrideAtAllStillCallable()
     sink.nodeHasBeenMoved(kFakeNode, 0, 2);
     sink.nodeChanged(kFakeNode);
     sink.historyStateChanged();
-    // 跑到这里没有崩溃/断言失败就是通过；PK_VERIFY(true) 只是给这个用例一
-    // 个显式的断言点，避免它变成"空跑一遍就算过"的哑测试。
-    PK_VERIFY(true);
+    sink.layersChanged();
+
+    // 评审 M-3：上面全跑一遍不崩溃只证明"没有崩"，PK_VERIFY(true) 是恒真
+    // 断言、测不出任何回归。换一个可观测通道：RecordingSink 记录调用序列，
+    // 断言调用次数——这样"某个事件的空默认实现被误删/漏写"会让这里变红。
+    RecordingSink recorder;
+    recorder.aboutToAddANode(kFakeParent, 0);
+    recorder.nodeHasBeenAdded(kFakeParent, 0);
+    recorder.aboutToRemoveANode(kFakeParent, 1);
+    recorder.nodeHasBeenRemoved(kFakeParent, 1);
+    recorder.aboutToMoveNode(kFakeNode, 0, 2);
+    recorder.nodeHasBeenMoved(kFakeNode, 0, 2);
+    recorder.nodeChanged(kFakeNode);
+    recorder.historyStateChanged();
+    recorder.layersChanged();
+    PK_COMPARE((int)recorder.calls.size(), 9);
 }
 
 void PkEventSinkTestCase::testAddPairCalledInOrder()
@@ -169,6 +202,36 @@ void PkEventSinkTestCase::testNodePointerIdentityIsPreserved()
     PK_VERIFY(sink.lastNode == kFakeNode);
 }
 
+void PkEventSinkTestCase::testNodeHasBeenAddedForwardsDontActivateNodeFlag()
+{
+    RecordingSink sink;
+
+    sink.nodeHasBeenAdded(kFakeParent, 0);   // 不传：默认值 false（对应真 Qt
+                                              // "新增图层后照常激活"的默认行为）。
+    PK_VERIFY(!sink.lastDontActivateNode);
+
+    sink.nodeHasBeenAdded(kFakeParent, 1, true);   // 显式传 true 必须被转发到 override。
+    PK_VERIFY(sink.lastDontActivateNode);
+}
+
+void PkEventSinkTestCase::testLayersChangedIsIndependentEventPreservingOrder()
+{
+    RecordingSink sink;
+    sink.aboutToAddANode(kFakeParent, 0);
+    sink.nodeHasBeenAdded(kFakeParent, 0);
+    sink.layersChanged();          // 拼合/撤销触发的整棵图层栈替换，穿插在
+                                    // per-node 事件之间，不改变调用顺序。
+    sink.nodeChanged(kFakeNode);
+
+    const std::vector<std::string> expected = {
+        "aboutToAddANode", "nodeHasBeenAdded", "layersChanged", "nodeChanged"
+    };
+    PK_COMPARE((int)sink.calls.size(), (int)expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        PK_COMPARE(sink.calls[i], expected[i]);
+    }
+}
+
 // PkTestBinder<PkEventSinkTestCase> 特化——手写，形状对照
 // pk/test/pk_test_moc.py 的 emit_binder() 输出（同 test_stream.cpp 的做法）。
 template <>
@@ -201,10 +264,20 @@ struct PkTestBinder<PkEventSinkTestCase> {
             {"testNodePointerIdentityIsPreserved",
              [](PkTestObject *o) { static_cast<PkEventSinkTestCase *>(o)->testNodePointerIdentityIsPreserved(); },
              nullptr},
+            {"testNodeHasBeenAddedForwardsDontActivateNodeFlag",
+             [](PkTestObject *o) {
+                 static_cast<PkEventSinkTestCase *>(o)->testNodeHasBeenAddedForwardsDontActivateNodeFlag();
+             },
+             nullptr},
+            {"testLayersChangedIsIndependentEventPreservingOrder",
+             [](PkTestObject *o) {
+                 static_cast<PkEventSinkTestCase *>(o)->testLayersChangedIsIndependentEventPreservingOrder();
+             },
+             nullptr},
         };
         return fns;
     }
-    static int count() { return 7; }
+    static int count() { return 9; }
 
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }

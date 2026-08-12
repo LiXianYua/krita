@@ -271,10 +271,12 @@ public:
 
     // ⑤ 路径拼接静态工具
     void testJoinPathTrailingLeadingSlashCombinations();
+    void testJoinPathAbsoluteLeafIgnoresDir();
     void testCleanPathCollapsesSlashesAndDotSegments();
-    void testCleanPathDropsDotDotPastAbsoluteRoot();
+    void testCleanPathKeepsDotDotPastAbsoluteRoot();
     void testRelativePathComputesDotDotClimb();
     void testRelativePathSameDirectoryYieldsDot();
+    void testRelativePathTargetIsAncestorOfBaseYieldsTrailingSlash();
 };
 
 void PkResourceStorageTestCase::testIteratorHasNextNextUrlLastModified()
@@ -461,13 +463,20 @@ void PkResourceStorageTestCase::testJoinPathTrailingLeadingSlashCombinations()
                std::string("/root/a"));
     PK_COMPARE(PkResourceStorage::joinPath(PkString("/root/"), PkString("a")).PkToUtf8(),
                std::string("/root/a"));
-    PK_COMPARE(PkResourceStorage::joinPath(PkString("/root"), PkString("/a")).PkToUtf8(),
-               std::string("/root/a"));
-    PK_COMPARE(PkResourceStorage::joinPath(PkString("/root/"), PkString("/a")).PkToUtf8(),
-               std::string("/root/a"));
     PK_COMPARE(PkResourceStorage::joinPath(PkString(""), PkString("a")).PkToUtf8(), std::string("a"));
     PK_COMPARE(PkResourceStorage::joinPath(PkString("/root"), PkString("")).PkToUtf8(),
                std::string("/root"));
+}
+
+// 评审 I-2：真 Qt `QDir::filePath`/`absoluteFilePath` 在 name 是绝对路径时
+// 原样返回 name，完全不看 dir——`joinPath("/root", "/a")` 必须是 "/a"，
+// 不是 "/root/a"。真链 Qt 探针见 pk/port/probe/probe_qdir.cpp。
+void PkResourceStorageTestCase::testJoinPathAbsoluteLeafIgnoresDir()
+{
+    PK_COMPARE(PkResourceStorage::joinPath(PkString("/root"), PkString("/a")).PkToUtf8(),
+               std::string("/a"));
+    PK_COMPARE(PkResourceStorage::joinPath(PkString("/root/"), PkString("/a")).PkToUtf8(),
+               std::string("/a"));
 }
 
 void PkResourceStorageTestCase::testCleanPathCollapsesSlashesAndDotSegments()
@@ -477,9 +486,14 @@ void PkResourceStorageTestCase::testCleanPathCollapsesSlashesAndDotSegments()
     PK_COMPARE(PkResourceStorage::cleanPath(PkString("a/../../b")).PkToUtf8(), std::string("../b"));
 }
 
-void PkResourceStorageTestCase::testCleanPathDropsDotDotPastAbsoluteRoot()
+// 评审 C-1：真 Qt `QDir::cleanPath` 不折叠越过根的 ".."，原样保留——之前
+// 这里的实现按"Qt 文档 + 常识"猜的是丢弃，与真 Qt 相反。真链 Qt 探针见
+// pk/port/probe/probe_qdir.cpp。
+void PkResourceStorageTestCase::testCleanPathKeepsDotDotPastAbsoluteRoot()
 {
-    PK_COMPARE(PkResourceStorage::cleanPath(PkString("/../a")).PkToUtf8(), std::string("/a"));
+    PK_COMPARE(PkResourceStorage::cleanPath(PkString("/../a")).PkToUtf8(), std::string("/../a"));
+    PK_COMPARE(PkResourceStorage::cleanPath(PkString("/..")).PkToUtf8(), std::string("/.."));
+    PK_COMPARE(PkResourceStorage::cleanPath(PkString("/a/../..")).PkToUtf8(), std::string("/.."));
 }
 
 void PkResourceStorageTestCase::testRelativePathComputesDotDotClimb()
@@ -494,6 +508,18 @@ void PkResourceStorageTestCase::testRelativePathSameDirectoryYieldsDot()
 {
     PK_COMPARE(PkResourceStorage::relativePath(PkString("/a/b/c"), PkString("/a/b/c")).PkToUtf8(),
                std::string("."));
+}
+
+// 评审 M-2：真 Qt `QDir::relativeFilePath` 在 target 是 base 的祖先目录时，
+// 结果带一个多余的尾部 "/"——之前这个形态完全没被测（变异测试证明这一点）。
+// 真链 Qt 探针见 pk/port/probe/probe_qdir.cpp：只有"爬完 .. 之后 target 侧
+// 没有剩余段可拼"这一种形态才带尾部斜杠。
+void PkResourceStorageTestCase::testRelativePathTargetIsAncestorOfBaseYieldsTrailingSlash()
+{
+    PK_COMPARE(PkResourceStorage::relativePath(PkString("/a/b/c"), PkString("/a")).PkToUtf8(),
+               std::string("../../"));
+    PK_COMPARE(PkResourceStorage::relativePath(PkString("/a/b"), PkString("/a")).PkToUtf8(),
+               std::string("../"));
 }
 
 // PkTestBinder<PkResourceStorageTestCase> 特化——手写，形状对照
@@ -576,14 +602,19 @@ struct PkTestBinder<PkResourceStorageTestCase> {
                  static_cast<PkResourceStorageTestCase *>(o)->testJoinPathTrailingLeadingSlashCombinations();
              },
              nullptr},
+            {"testJoinPathAbsoluteLeafIgnoresDir",
+             [](PkTestObject *o) {
+                 static_cast<PkResourceStorageTestCase *>(o)->testJoinPathAbsoluteLeafIgnoresDir();
+             },
+             nullptr},
             {"testCleanPathCollapsesSlashesAndDotSegments",
              [](PkTestObject *o) {
                  static_cast<PkResourceStorageTestCase *>(o)->testCleanPathCollapsesSlashesAndDotSegments();
              },
              nullptr},
-            {"testCleanPathDropsDotDotPastAbsoluteRoot",
+            {"testCleanPathKeepsDotDotPastAbsoluteRoot",
              [](PkTestObject *o) {
-                 static_cast<PkResourceStorageTestCase *>(o)->testCleanPathDropsDotDotPastAbsoluteRoot();
+                 static_cast<PkResourceStorageTestCase *>(o)->testCleanPathKeepsDotDotPastAbsoluteRoot();
              },
              nullptr},
             {"testRelativePathComputesDotDotClimb",
@@ -596,10 +627,16 @@ struct PkTestBinder<PkResourceStorageTestCase> {
                  static_cast<PkResourceStorageTestCase *>(o)->testRelativePathSameDirectoryYieldsDot();
              },
              nullptr},
+            {"testRelativePathTargetIsAncestorOfBaseYieldsTrailingSlash",
+             [](PkTestObject *o) {
+                 static_cast<PkResourceStorageTestCase *>(o)
+                     ->testRelativePathTargetIsAncestorOfBaseYieldsTrailingSlash();
+             },
+             nullptr},
         };
         return fns;
     }
-    static int count() { return 17; }
+    static int count() { return 19; }
 
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }

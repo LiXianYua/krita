@@ -3,12 +3,18 @@
 // pk_test_moc.py。
 //
 // FakeFontProvider 是内存里的假字体提供者：注册表按家族名分组，每条记录带
-// 权重/语言/字符集覆盖（用一个码点集合表示）。断言覆盖任务要求的三类行为：
-// ① 按家族名匹配、② 匹配不到指定家族时落到候选列表里的通用回退家族、
-// ③ 字符集覆盖查询——外加候选排序（按权重距离，不是"谁先注册谁在前"这种
-// 会被偷懒实现蒙混过去的顺序）、query.charset 过滤、bestMatch 的
-// 真/假两支、allFonts 枚举、②配置与路径族的几个方法。全部断言基于具体输入
-// 输出比对，不写恒真断言。
+// 权重/语言/字符集覆盖（用一个码点集合表示）/PostScript 名/宽度/倾斜/
+// 缩放性/固定像素大小。断言覆盖任务要求的三类行为：① 按家族名匹配、
+// ② 匹配不到指定家族时落到候选列表里的通用回退家族、③ coversCodepoint()
+// 字符集覆盖查询——外加候选排序（按权重距离，不是"谁先注册谁在前"这种会被
+// 偷懒实现蒙混过去的顺序）、sortedMatches() 对非缩放位图字体的强制过滤
+// 契约（评审 I-1）、bestMatch() 的真/假两支及其专属描述字段（评审 C-2：
+// postScriptName/weight/width/slant）、allFonts 枚举、②配置与路径族的
+// 几个方法。全部断言基于具体输入输出比对，不写恒真断言。
+//
+// 评审 I-5：PkFontQuery 曾经有一个 charset 字段（"query.charset 过滤"），
+// 零调用点已删——本文件不再测这个字段，coversCodepoint() 仍然是逐码点
+// 覆盖查询的唯一入口。
 #include "../PkFontProvider.h"
 #include "PkString.h"
 #include "PkTest.h"
@@ -33,6 +39,16 @@ struct FakeFontRecord
     int weight;
     std::vector<std::string> languages;
     std::set<char32_t> charset;
+
+    // 评审 C-2：bestMatch() 路径需要的描述属性。
+    std::string postScriptName;
+    int width = 100;
+    PkFontProvider::Slant slant = PkFontProvider::Slant::Normal;
+
+    // 评审 I-1：sortedMatches() 的强制过滤契约需要的字段——非缩放位图字体
+    // 且 pixelSize 与请求值不等时必须被排除在结果之外。
+    bool scalable = true;
+    double pixelSize = -1.0;
 };
 
 // 内存里的假字体提供者。sortedMatches() 的匹配/回退/排序/charset 过滤逻辑
@@ -42,7 +58,9 @@ class FakeFontProvider : public PkFontProvider
 public:
     void registerFont(const std::string &family, const std::string &filePath, int faceIndex,
                        int weight, std::vector<std::string> languages = {},
-                       std::set<char32_t> charset = {})
+                       std::set<char32_t> charset = {}, std::string postScriptName = "",
+                       int width = 100, PkFontProvider::Slant slant = PkFontProvider::Slant::Normal,
+                       bool scalable = true, double pixelSize = -1.0)
     {
         FakeFontRecord rec;
         rec.family = family;
@@ -51,6 +69,11 @@ public:
         rec.weight = weight;
         rec.languages = std::move(languages);
         rec.charset = std::move(charset);
+        rec.postScriptName = std::move(postScriptName);
+        rec.width = width;
+        rec.slant = slant;
+        rec.scalable = scalable;
+        rec.pixelSize = pixelSize;
         m_records.push_back(std::move(rec));
     }
 
@@ -119,12 +142,16 @@ public:
             }
         }
 
-        if (query.charset != 0) {
+        // 评审 I-1：sortedMatches() 的强制过滤契约——非缩放位图字体且请求了
+        // 具体 pixelSize、候选自身像素大小又与请求值不等时，必须在返回前
+        // 排除，不能留给调用方再过滤一遍。
+        if (query.pixelSize >= 0) {
             std::vector<const FakeFontRecord *> filtered;
             for (const FakeFontRecord *rec : candidates) {
-                if (rec->charset.count(query.charset) > 0) {
-                    filtered.push_back(rec);
+                if (!rec->scalable && rec->pixelSize != query.pixelSize) {
+                    continue;
                 }
+                filtered.push_back(rec);
             }
             candidates = std::move(filtered);
         }
@@ -142,6 +169,13 @@ public:
             for (const std::string &lang : rec->languages) {
                 entry.languages.push_back(PkString(lang.c_str()));
             }
+            // 评审 C-2：bestMatch() 路径需要的描述属性，sortedMatches()/
+            // allFonts() 路径的消费者不读这几个字段，但既然有值就一并带上
+            // ——两条路径共用同一个结构体本来就是本任务的既有设计。
+            entry.postScriptName = PkString(rec->postScriptName.c_str());
+            entry.weight = rec->weight;
+            entry.width = rec->width;
+            entry.slant = rec->slant;
             out.push_back(std::move(entry));
         }
         return out;
@@ -198,14 +232,14 @@ private:
 };
 
 PkFontProvider::PkFontQuery familyQuery(std::initializer_list<const char *> families, int weight = 400,
-                                          char32_t charset = 0)
+                                          double pixelSize = -1.0)
 {
     PkFontProvider::PkFontQuery q;
     for (const char *f : families) {
         q.families.push_back(PkString(f));
     }
     q.weight = weight;
-    q.charset = charset;
+    q.pixelSize = pixelSize;
     return q;
 }
 
@@ -227,11 +261,19 @@ public:
 
     // ③ 字符集覆盖查询
     void testCoversCodepointTrueForRegisteredCharAndFalseForOther();
-    void testSortedMatchesFiltersByRequestedCharsetInQuery();
+
+    // 评审 I-1：sortedMatches() 强制过滤契约——非缩放位图字体且请求了具体
+    // pixelSize、候选自身像素大小与请求值不等时必须被排除。
+    void testSortedMatchesFiltersNonScalableBitmapFontsWithMismatchedPixelSize();
 
     // bestMatch
     void testBestMatchReturnsFirstSortedCandidate();
     void testBestMatchReturnsFalseWhenNoMatch();
+
+    // 评审 C-2：bestMatch() 唯一调用点（getCssDataForPostScriptName()）要读
+    // 的 5 个字段里，familyName 之外的 postScriptName/weight/width/slant
+    // 必须能从结果里拿到。
+    void testBestMatchReturnsPostScriptNameWeightWidthSlant();
 
     // 枚举
     void testAllFontsReturnsFamilyNameAndLanguagesForEveryRegisteredFont();
@@ -316,19 +358,29 @@ void PkFontProviderTestCase::testCoversCodepointTrueForRegisteredCharAndFalseFor
     PK_VERIFY(!provider.coversCodepoint(handle, U'Z'));
 }
 
-void PkFontProviderTestCase::testSortedMatchesFiltersByRequestedCharsetInQuery()
+// 评审 I-1：KoFontRegistry.cpp:465-470 用 FC_SCALABLE/FC_PIXEL_SIZE 跳过
+// "非缩放且 pixelSize 不等于请求值"的位图字体——这是 sortedMatches() 的强制
+// 过滤契约，不是可选优化。两个同家族候选：一个可缩放（矢量字体，任何请求
+// 像素大小都该留下）、一个不可缩放且固定 12px（位图字体，只有请求正好 12px
+// 才该留下）。
+void PkFontProviderTestCase::testSortedMatchesFiltersNonScalableBitmapFontsWithMismatchedPixelSize()
 {
     FakeFontProvider provider;
-    // 两个字体同一家族、同权重,只有一个覆盖 U+4E2D("中")。对应
-    // facesForCSSValues() 逐 grapheme 回退匹配时用 FcCharSetHasChar 从共享
-    // 候选列表里挑出真正能显示该字符的字体(KoFontRegistry.cpp:474,490)。
-    provider.registerFont("Sans", "/fonts/latin-only.ttf", 0, 400, {}, {U'A'});
-    provider.registerFont("Sans", "/fonts/cjk.ttf", 0, 400, {}, {U'A', U'中'});
+    provider.registerFont("Sans", "/fonts/sans-scalable.ttf", 0, 400, {}, {},
+                           /*postScriptName=*/"", /*width=*/100, PkFontProvider::Slant::Normal,
+                           /*scalable=*/true, /*pixelSize=*/-1.0);
+    provider.registerFont("Sans", "/fonts/sans-bitmap-12px.bdf", 0, 400, {}, {},
+                           /*postScriptName=*/"", /*width=*/100, PkFontProvider::Slant::Normal,
+                           /*scalable=*/false, /*pixelSize=*/12.0);
 
-    std::vector<PkFontProvider::FontEntry> matches = provider.sortedMatches(familyQuery({"Sans"}, 400, U'中'));
+    // 请求 16px：位图字体（固定 12px）不满足，矢量字体不受影响,必须被排除。
+    std::vector<PkFontProvider::FontEntry> matches16 = provider.sortedMatches(familyQuery({"Sans"}, 400, 16.0));
+    PK_COMPARE((int)matches16.size(), 1);
+    PK_COMPARE(matches16[0].handle.filePath.PkToUtf8(), std::string("/fonts/sans-scalable.ttf"));
 
-    PK_COMPARE((int)matches.size(), 1);
-    PK_COMPARE(matches[0].handle.filePath.PkToUtf8(), std::string("/fonts/cjk.ttf"));
+    // 请求 12px：位图字体正好匹配，两个候选都该留下。
+    std::vector<PkFontProvider::FontEntry> matches12 = provider.sortedMatches(familyQuery({"Sans"}, 400, 12.0));
+    PK_COMPARE((int)matches12.size(), 2);
 }
 
 void PkFontProviderTestCase::testBestMatchReturnsFirstSortedCandidate()
@@ -349,6 +401,26 @@ void PkFontProviderTestCase::testBestMatchReturnsFalseWhenNoMatch()
 
     PkFontProvider::FontEntry entry;
     PK_VERIFY(!provider.bestMatch(familyQuery({"NoSuchFamily"}), &entry));
+}
+
+// 评审 C-2：bestMatch() 唯一调用点 getCssDataForPostScriptName()
+// （KoFontRegistry.cpp:1197-1234）从匹配结果读 FC_FAMILY/FC_POSTSCRIPT_NAME/
+// FC_WEIGHT/FC_WIDTH/FC_SLANT，且从不读 FC_FILE/FC_INDEX——FontEntry 此前
+// 只有 familyName + handle，5 个要读的字段缺 4 个。
+void PkFontProviderTestCase::testBestMatchReturnsPostScriptNameWeightWidthSlant()
+{
+    FakeFontProvider provider;
+    provider.registerFont("Helvetica Neue", "/fonts/helv-bold-italic.ttf", 0, 700, {}, {},
+                           /*postScriptName=*/"HelveticaNeue-BoldItalic", /*width=*/75,
+                           PkFontProvider::Slant::Italic);
+
+    PkFontProvider::FontEntry entry;
+    PK_VERIFY(provider.bestMatch(familyQuery({"Helvetica Neue"}), &entry));
+    PK_COMPARE(entry.familyName.PkToUtf8(), std::string("Helvetica Neue"));
+    PK_COMPARE(entry.postScriptName.PkToUtf8(), std::string("HelveticaNeue-BoldItalic"));
+    PK_COMPARE(entry.weight, 700);
+    PK_COMPARE(entry.width, 75);
+    PK_VERIFY(entry.slant == PkFontProvider::Slant::Italic);
 }
 
 void PkFontProviderTestCase::testAllFontsReturnsFamilyNameAndLanguagesForEveryRegisteredFont()
@@ -442,9 +514,10 @@ struct PkTestBinder<PkFontProviderTestCase> {
                  static_cast<PkFontProviderTestCase *>(o)->testCoversCodepointTrueForRegisteredCharAndFalseForOther();
              },
              nullptr},
-            {"testSortedMatchesFiltersByRequestedCharsetInQuery",
+            {"testSortedMatchesFiltersNonScalableBitmapFontsWithMismatchedPixelSize",
              [](PkTestObject *o) {
-                 static_cast<PkFontProviderTestCase *>(o)->testSortedMatchesFiltersByRequestedCharsetInQuery();
+                 static_cast<PkFontProviderTestCase *>(o)
+                     ->testSortedMatchesFiltersNonScalableBitmapFontsWithMismatchedPixelSize();
              },
              nullptr},
             {"testBestMatchReturnsFirstSortedCandidate",
@@ -455,6 +528,11 @@ struct PkTestBinder<PkFontProviderTestCase> {
             {"testBestMatchReturnsFalseWhenNoMatch",
              [](PkTestObject *o) {
                  static_cast<PkFontProviderTestCase *>(o)->testBestMatchReturnsFalseWhenNoMatch();
+             },
+             nullptr},
+            {"testBestMatchReturnsPostScriptNameWeightWidthSlant",
+             [](PkTestObject *o) {
+                 static_cast<PkFontProviderTestCase *>(o)->testBestMatchReturnsPostScriptNameWeightWidthSlant();
              },
              nullptr},
             {"testAllFontsReturnsFamilyNameAndLanguagesForEveryRegisteredFont",
@@ -481,7 +559,7 @@ struct PkTestBinder<PkFontProviderTestCase> {
         };
         return fns;
     }
-    static int count() { return 13; }
+    static int count() { return 14; }
 
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }

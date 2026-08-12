@@ -19,7 +19,15 @@ LD_LIBRARY_PATH=$QT/lib/x86_64-linux-gnu ldd "$OUT/probe_qiodevice" | grep -i qt
 ```
 
 最后那条 `ldd` **必须看到 `libQt5Core`** —— 看不到就说明比的不是真 Qt，结论作废。
-`probe_qdatastream_openmode.cpp` 用同样的命令行。
+`probe_qdatastream_openmode.cpp` 用同样的命令行。`probe_qdir.cpp`（评审 C-1
+补的）也用同样的命令行，只是换成链接目标：
+
+```bash
+g++ -fPIC -std=c++17 pk/port/probe/probe_qdir.cpp -o "$OUT/probe_qdir" \
+  -I$QT/include/x86_64-linux-gnu/qt5 -I$QT/include/x86_64-linux-gnu/qt5/QtCore \
+  -L$QT/lib/x86_64-linux-gnu -lQt5Core
+LD_LIBRARY_PATH=$QT/lib/x86_64-linux-gnu "$OUT/probe_qdir"
+```
 
 实测环境：Qt 5.15.13（运行时与编译期一致），g++ 13.3.0。
 
@@ -45,3 +53,27 @@ LD_LIBRARY_PATH=$QT/lib/x86_64-linux-gnu ldd "$OUT/probe_qiodevice" | grep -i qt
    探针踩过一次真事故：把 `QBuffer` 子类的 `isSequential()` 改成 `true` 之后
    `readAll()` 死循环、吐了 64MB —— 因为 `QBuffer::readData` 用 `pos()` 索引，pos 不动就永远重发第 0 字节。
    → **`isSequential()==true` 时 `readData()` 必须自己维护游标，这条要写进 `PkStream` 的接口契约。**
+
+## `probe_qdir.cpp` —— `PkResourceStorage` 路径工具对齐用的真 Qt 探针
+
+评审 R-12 Task 4 时补的（C-1）：`PkResourceStorage::cleanPath()` 此前按 Qt
+**文档 + 常识**实现，从未拿真 Qt 核对过越过根的 `".."` 该怎么处理——这正是 R
+线「Qt 的行为一律去问真 Qt，不许推断」要拦的那类漏洞。跑法见上一节，产物
+`/tmp/pkport-probe/probe_qdir` 同样不进版控。
+
+**三条结论**（Qt 5.15.13 实测，完整输出见 commit 里贴的原始日志）：
+
+1. **`QDir::cleanPath` 不折叠越过根的 `".."`，原样保留**：`"/.."` → `"/.."`、
+   `"/../.."` → `"/../.."`、`"/../a"` → `"/../a"`、`"/a/../.."` → `"/.."`。
+   （其余 37 种既有形态——`"//"`、结尾 `"/"`、`"."`、空串、`"../.."`、
+   `"a/./b"`、`"a/b/../.."`——都和 `PkResourceStorage::cleanPath()` 改之前的
+   实现一致，只有越根 `".."` 这一类不一致。）
+2. **`QDir::filePath`/`absoluteFilePath` 在 `name` 是绝对路径时原样返回
+   `name`，完全不管 `dir` 是什么（哪怕 `dir` 带不带结尾 `/`）**：
+   `QDir("/root").filePath("/a")` = `QDir("/root/").filePath("/a")` = `"/a"`。
+3. **`QDir::relativeFilePath` 在 `target` 是 `base` 的祖先目录时，结果带一个
+   多余的尾部 `"/"`**：`QDir("/a/b/c").relativeFilePath("/a")` = `"../../"`
+   （不是 `"../.."`）、`QDir("/a/b").relativeFilePath("/a")` = `"../"`（不是
+   `".."`）。这个尾部斜杠只在「爬完 `".."` 之后，`target` 侧没有剩余段可拼」
+   这一种形态出现——`target` 有剩余段（`"../d/e"`）或 base==target（`"."`）
+   都没有这条尾部斜杠。

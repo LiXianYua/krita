@@ -59,6 +59,12 @@ PkString PkResourceStorage::joinPath(const PkString &dirPath, const PkString &na
     if (dir.empty()) {
         return fromUtf8(leaf);
     }
+    // 真 Qt QDir::filePath/absoluteFilePath 在 name 是绝对路径时原样返回
+    // name，完全不管 dir 是什么——评审 I-2，真链 Qt 探针见
+    // pk/port/probe/probe_qdir.cpp。
+    if (!leaf.empty() && leaf.front() == '/') {
+        return fromUtf8(leaf);
+    }
     if (leaf.empty()) {
         return fromUtf8(dir);
     }
@@ -73,9 +79,13 @@ PkString PkResourceStorage::joinPath(const PkString &dirPath, const PkString &na
     return fromUtf8(dir + "/" + leaf);
 }
 
-// 折叠连续分隔符、解析 "." 与 ".."。绝对路径上多余的 ".."（越过根）被丢弃
-// ——同 QDir::cleanPath 的实测行为一致（真链 Qt 未在本任务里重新探针，按
-// Qt 文档 + 常识行为实现，登记见 pk/port/README.md「哪些地方是猜的」）。
+// 折叠连续分隔符、解析 "." 与 ".."。**真 Qt `QDir::cleanPath` 不折叠越过根
+// 的 ".."，原样保留**——评审 C-1：这里此前按"Qt 文档 + 常识"猜的是丢弃，
+// 与真 Qt 相反；真链 Qt 5.15.13 探针见 pk/port/probe/probe_qdir.cpp（
+// `"/.."` → `"/.."`、`"/../.."` → `"/../.."`、`"/../a"` → `"/../a"`、
+// `"/a/../.."` → `"/.."`），其余既有形态（`"//"`、结尾 `"/"`、`"."`、
+// 空串、`"../.."`、`"a/./b"`、`"a/b/../.."`）都与探针结果一致，唯独越根
+// ".." 这一类之前是反的。
 PkString PkResourceStorage::cleanPath(const PkString &path)
 {
     const std::string in = toUtf8(path);
@@ -94,10 +104,11 @@ PkString PkResourceStorage::cleanPath(const PkString &path)
         if (seg == "..") {
             if (!segments.empty() && segments.back() != "..") {
                 segments.pop_back();
-            } else if (!absolute) {
+            } else {
+                // 没有可回退的段：无论 absolute 与否都保留这个 ".."（真 Qt
+                // 在绝对路径上也不丢弃越根的 ".."）。
                 segments.push_back("..");
             }
-            // absolute 且没有可回退的段：越过根，丢弃这个 ".."。
             continue;
         }
         segments.push_back(seg);
@@ -143,12 +154,14 @@ PkString PkResourceStorage::relativePath(const PkString &basePath, const PkStrin
     }
 
     std::string out;
+    const bool hasClimb = common < baseSegs.size();
     for (std::size_t i = common; i < baseSegs.size(); ++i) {
         if (!out.empty()) {
             out += "/";
         }
         out += "..";
     }
+    const bool hasTargetRemainder = common < targetSegs.size();
     for (std::size_t i = common; i < targetSegs.size(); ++i) {
         if (!out.empty()) {
             out += "/";
@@ -157,6 +170,12 @@ PkString PkResourceStorage::relativePath(const PkString &basePath, const PkStrin
     }
     if (out.empty()) {
         out = ".";
+    } else if (hasClimb && !hasTargetRemainder) {
+        // 评审 M-2：真 Qt QDir::relativeFilePath 在 target 是 base 祖先目录
+        // 时（爬完 ".." 之后 target 侧没有剩余段可拼）结果带一个多余的尾部
+        // "/"——真链 Qt 探针见 pk/port/probe/probe_qdir.cpp：
+        // "/a/b/c"→"/a" 得 "../../"，"/a/b"→"/a" 得 "../"。
+        out += "/";
     }
     return fromUtf8(out);
 }

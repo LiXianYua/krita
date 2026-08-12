@@ -55,22 +55,35 @@ public:
     // 全部 6 个方法来源：libs/image/kis_node_graph_listener.h 的对应同名方法
     // （行号见各方法注释）。同时对照 libs/image/kis_image_signal_router.h
     // 的 3 个 emitXxx() 方法确认这是真实调用面：emitNodeHasBeenAdded()、
-    // emitAboutToRemoveANode()、emitNodeChanged()——router 的另外 5 个
-    // emitXxx()（emitNotification 系列的图像属性变更调度、emitRequestLod-
-    // PlanesSyncBlocked、emitNotifyBatchUpdateStarted/Ended）不在这三类分组
-    // 之内（前者是 KisImage 尺寸/色彩空间/分辨率变更的调度器，后两者是画布
-    // LOD/批量重绘调度，都不是「图层树变更」），本任务不做。
+    // emitAboutToRemoveANode()、emitNodeChanged()——router 的另外 4 个
+    // emitXxx()（emitNotification/emitNotifications 系列里除
+    // LayersChangedSignal 外的图像属性变更调度、emitRequestLodPlanes-
+    // SyncBlocked、emitNotifyBatchUpdateStarted/Ended）不在这三类分组之内
+    // （前者是 KisImage 尺寸/色彩空间/分辨率变更的调度器，后两者是画布 LOD/
+    // 批量重绘调度，都不是「图层树变更」），本任务不做。
+    //
+    // 评审 I-4：原先这里写"另外 5 个 emitXxx 不做"，第 5 个是
+    // `emitNotification(LayersChangedSignal)`——`KisImage::notifyLayersChanged()`
+    // （kis_image.cc:1793）就是走这条路径，由
+    // `libs/image/commands/kis_image_change_layers_command.cpp:28,38` 在
+    // redo/undo 整棵图层栈替换（拼合、合并全部）时发出，不伴随任何 per-node
+    // 增删事件。消费者 `kis_dummies_facade_base.cpp:99` 正是维护图层树镜像
+    // 那一层——少这一个，图层树镜像在拼合/撤销后会静默过期。现在已经用
+    // `layersChanged()` 纳入，剩下真正不做的是另外 4 个。
 
     // 来源：kis_node_graph_listener.h:45 aboutToAddANode()。
     virtual void aboutToAddANode(KisNode *parent, int index);
 
     // 来源：kis_node_graph_listener.h:50 nodeHasBeenAdded() +
     // kis_image_signal_router.h:94 emitNodeHasBeenAdded()（确认真实调用面）。
-    // 省略原型上的 KisNodeAdditionFlags flags 参数：该类型是
-    // QFlags<KisNodeAdditionFlag>（Qt 模板，来自 <QFlags>），本任务硬约束
-    // 只允许前置声明 KisNode 与 PkRect 两个类型，没有材料证明需要再造一个
-    // Pk 版本的 flags 类型——这是本任务的一处范围裁剪，不是遗漏，见任务报告。
-    virtual void nodeHasBeenAdded(KisNode *parent, int index);
+    //
+    // 评审 I-3：原型上的 KisNodeAdditionFlags 参数（libs/image/
+    // KisNodeAdditionFlags.h:13）**只有一个位**——DontActivateNode。消费点
+    // kis_dummies_facade_base.cpp:159 `if (flags.testFlag(DontActivateNode))
+    // return;`——语义是"新增图层后不要把它设为当前图层"，防腐层要转发给
+    // Flutter 的恰恰是这一位，不能整族裁掉。只有一个位不需要 QFlags 归口，
+    // 一个 bool 就能带上语义，比再造一个 Pk 版本的 flags 类型便宜得多。
+    virtual void nodeHasBeenAdded(KisNode *parent, int index, bool dontActivateNode = false);
 
     // 来源：kis_node_graph_listener.h:55 aboutToRemoveANode() +
     // kis_image_signal_router.h:109 emitAboutToRemoveANode()。
@@ -90,6 +103,15 @@ public:
     // kis_image_signal_router.h:29/89 emitNodeChanged()/sigNodeChanged(KisNodeSP)
     // ——节点参数按裁决②从 KisNodeSP 降成裸 KisNode*。
     virtual void nodeChanged(KisNode *node);
+
+    // 来源：KisImage::notifyLayersChanged()（kis_image.cc:1793，走
+    // signalRouter.emitNotification(LayersChangedSignal)）+
+    // kis_image_change_layers_command.cpp:28,38——redo/undo 整棵图层栈替换
+    // （拼合、合并全部）时发出，不伴随任何 per-node 增删事件，因此是单个
+    // 事件而不是 aboutToXxx/xxxHasBeenDone 那种成对事件。消费者
+    // kis_dummies_facade_base.cpp:99 维护图层树镜像，评审 I-4 指出漏了这个
+    // 会导致镜像在拼合/撤销后静默过期。
+    virtual void layersChanged();
 
     // ── ② 区域重绘完成 ────────────────────────────────────────────────
     // 来源：libs/image/kis_image.h:818 sigImageUpdated(const QRect &)，原注

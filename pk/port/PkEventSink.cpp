@@ -12,7 +12,7 @@ PkEventSink::~PkEventSink() = default;
 
 void PkEventSink::aboutToAddANode(KisNode *, int) {}
 
-void PkEventSink::nodeHasBeenAdded(KisNode *, int) {}
+void PkEventSink::nodeHasBeenAdded(KisNode *, int, bool) {}
 
 void PkEventSink::aboutToRemoveANode(KisNode *, int) {}
 
@@ -23,6 +23,8 @@ void PkEventSink::aboutToMoveNode(KisNode *, int, int) {}
 void PkEventSink::nodeHasBeenMoved(KisNode *, int, int) {}
 
 void PkEventSink::nodeChanged(KisNode *) {}
+
+void PkEventSink::layersChanged() {}
 
 void PkEventSink::imageUpdated(const PkRect &) {}
 

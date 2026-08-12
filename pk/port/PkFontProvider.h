@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <vector>
 
 // PkString 归 R-01（pk/string），已交付、零 Qt 依赖、纯 C++17。与
@@ -34,7 +33,17 @@
 // 返回的是字体文件标识（FontHandle：路径 + face index，ttc/otc 合集字体的
 // 子字体序号）。FreeType 打开（FT_New_Face）在端口之外，由调用方
 // （KoFontRegistry 的 Pk 化版本）拿到 FontHandle 后自己做——这样四个平台
-// 实现都能满足同一个端口形状，KoFontRegistry 的调用者一行不改。
+// 实现都能满足同一个端口形状。
+//
+// 评审 M-5：**不是所有 KoFontRegistry 侧调用者都不改一行**——
+// `KoFFWWSConverter::addFontFromPattern`（`KoFFWWSConverter.cpp:331-337`）
+// 要把整个 `FcCharSet` 存下来喂 `addSupportedLanguagesByFile()`，本端口只
+// 给了逐码点的 `coversCodepoint()`（族⑦，见 `sortedMatches()`/
+// `coversCodepoint()` 注释），没有"整个字符集"这个粒度——这一处调用方必须
+// 重构（要么改成逐码点查询驱动 `addSupportedLanguagesByFile()`，要么改
+// `addSupportedLanguagesByFile()` 的输入形状去接受一个能逐码点查询的谓词，
+// 具体做法留给消费本端口的批次决定）。"调用者一行不改"只对走
+// `FT_New_Face(FontHandle)` 这条主干路径的调用点成立。
 //
 // ────────────────────────────────────────────────────────────────────────
 // 范围口径（实测，见 .superpowers/sdd/R-12/task-5-report.md 的逐处核验）
@@ -66,7 +75,8 @@
 //     迭代器类型。
 //   ④模式构造与属性读写（FcPatternCreate/AddString/AddInteger/AddDouble/
 //     AddWeak/GetString/GetInteger/GetDouble/GetBool/GetCharSet/Hash，32 处，
-//     占比最大的一族）：**整族归零**，换成 PkFontQuery（8 个固定属性）。
+//     占比最大的一族）：**整族归零**，换成 PkFontQuery（7 个固定属性——
+//     评审 I-5 删掉了零调用点的 charset 字段后从 8 个收窄为 7 个）。
 //   FcFontRenderPrepare：零命中，不复刻 pattern-merge 语义——sortedMatches()
 //     返回的每个 FontEntry 就是候选本身，不做"与最终 pattern 合并"这一步。
 //   FcWeightToOpenType/FcWeightFromOpenType（KoFontRegistry.cpp:395,1222）：
@@ -90,7 +100,8 @@ public:
     enum class Slant { Normal, Italic, Oblique };
 
     // 一次「拿到字体」查询的条件。族④（32 处 FcPatternAdd*/FcPatternGet*）
-    // 归零后的替代品——**八个固定属性，不做 1:1 映射**。
+    // 归零后的替代品——**七个固定属性，不做 1:1 映射**（评审 I-5：原先的
+    // charset 字段零调用点，已删，从八个收窄为七个）。
     struct PkFontQuery
     {
         // 优先级排序的候选标识符列表：通常是家族名，第一顺位没找到就试下一个
@@ -103,13 +114,17 @@ public:
         //
         // 唯一例外：getCssDataForPostScriptName()（KoFontRegistry.cpp:1197-
         // 1234）用的是 FC_POSTSCRIPT_NAME 而不是 FC_FAMILY——PostScript 名是
-        // 精确标识符，语义上和"家族名模糊匹配"不是一回事。8 字段预算里没有
-        // 单独的 postscript 字段，这里的处理是把它也塞进 families[0]：
+        // 精确标识符，语义上和"家族名模糊匹配"不是一回事。查询侧 7 字段
+        // 预算里没有单独的 postscript 字段，这里的处理是把它也塞进
+        // families[0]：
         // families 在本结构体里统一表示"要精确/模糊匹配的标识符"，具体查的
         // 是 FC_FAMILY 还是 FC_POSTSCRIPT_NAME 由实现按调用形态决定（比如只
         // 有一个候选、且调用方经由 bestMatch() 而不是 sortedMatches() 时，
-        // 实现可以选择按 postscript name 精确匹配）。**这是本任务 8 字段
-        // 预算内的收窄，不是遗漏**——已在任务报告里标注为判断，不是实测。
+        // 实现可以选择按 postscript name 精确匹配）。**这是本任务查询侧 7
+        // 字段预算内的收窄，不是遗漏**——已在任务报告里标注为判断，不是
+        // 实测。结果侧不受此收窄影响：FontEntry::postScriptName（评审 C-2）
+        // 是独立字段，bestMatch() 命中后原样把匹配到的 PostScript 名还给
+        // 调用方。
         std::vector<PkString> families;
 
         // OpenType weight（1–1000）。来源：FC_WEIGHT，KoFontRegistry.cpp:395
@@ -137,23 +152,16 @@ public:
 
         // 语言标签提示（空串表示不限制）。来源：facesForCSSValues() 的
         // language 形参（KoFontRegistry.h:55/107），配合族⑧
-        // FcPatternGetLangSet/FcLangSetGetLangs 对候选语言集的读取——具体
-        // 实现可以用它优先排序候选（同语言的字体排前面），端口不规定必须
-        // 强制过滤掉不匹配的候选。
+        // FcPatternGetLangSet/FcLangSetGetLangs 对候选语言集的读取。
+        //
+        // 评审 I-5：**仅用于候选排序，实现不得据此过滤**——不能写成"过滤
+        // 或排序二选一由实现决定"这种把行为选择权交给实现的措辞（端口契约
+        // 里不允许"实现可以/应该"这类模糊表述，调用方无法依赖任何一种）。
+        // 排序：同语言的候选排前面；过滤：绝对不行，因为一个字体完全可能
+        // 不带 lang 提示对应的语言标签、却仍然是该语言的正确候选（fontconfig
+        // 的语言标签本身就是不完整的元数据，不是"这个字体能不能显示这个
+        // 语言"的可靠判据）。
         PkString lang;
-
-        // 必须覆盖的码点（0 表示不限制）。来源：facesForCSSValues() 逐
-        // grapheme 回退匹配循环里的 `FcCharSetHasChar(set, unicode)`
-        // （KoFontRegistry.cpp:490，族⑦）——真实调用形态是"用一个不带
-        // charset 约束的 query 拿到候选列表一次，候选列表在多个 grapheme
-        // 间复用，charset 判断按 grapheme 逐个做"，不是"charset 进
-        // query、每个 grapheme 都重新 sortedMatches() 一次"。这个字段是给
-        // 简单场景（一次查询只关心一个码点）的便捷入口：非 0 时实现应该只
-        // 返回/优先返回覆盖该码点的候选，内部等价于对每个候选调用
-        // coversCodepoint()。真正的逐 grapheme 复用场景请调用方自己缓存
-        // sortedMatches() 的结果、对每个 grapheme 调用 coversCodepoint()
-        // ——见该方法注释。
-        char32_t charset = 0;
     };
 
     // 字体文件标识：路径 + face index（ttc/otc 合集字体的子字体序号）。
@@ -167,9 +175,23 @@ public:
         int faceIndex = 0;
     };
 
-    // 一条枚举结果：字体文件标识 + 供调用方做 WWS 家族归并用的描述属性。
-    // **归并逻辑本身不在本端口范围内**（那是 KoFFWWSConverter 的事，R-12
-    // 只出接口），这里只出归并要读的原始字段。
+    // 一条匹配/枚举结果：字体文件标识 + 供调用方做 WWS 家族归并或按
+    // PostScript 名精确匹配用的描述属性。**归并逻辑本身不在本端口范围内**
+    // （那是 KoFFWWSConverter 的事，R-12 只出接口），这里只出要读的原始
+    // 字段。
+    //
+    // 评审 I-6：这个结构体被 sortedMatches()/allFonts() 与 bestMatch() 两条
+    // 路径共用，但两条路径实际读的字段不是同一组——**哪些字段在哪条路径上
+    // 有意义，钉死在这里，不写成"由具体实现决定"**：
+    //   - sortedMatches()/allFonts() 路径（WWS 家族归并，
+    //     KoFFWWSConverter::addFontFromPattern()）：读 handle、familyName、
+    //     languages。不读 postScriptName/weight/width/slant——归并只关心
+    //     "这个文件属于哪个家族、支持哪些语言"。
+    //   - bestMatch() 路径（getCssDataForPostScriptName()，
+    //     KoFontRegistry.cpp:1197-1234）：读 familyName、postScriptName、
+    //     weight、width、slant。**不读 handle（FC_FILE/FC_INDEX 从不被这个
+    //     调用点使用）、不读 languages**——这条路径要的是 CSS 层面的描述
+    //     属性，不是文件位置。
     struct FontEntry
     {
         FontHandle handle;
@@ -184,6 +206,32 @@ public:
         // FcPatternGetLangSet + FcLangSetGetLangs（族⑧），
         // KoFFWWSConverter.cpp:315-323 addFontFromPattern()。
         std::vector<PkString> languages;
+
+        // ── 评审 C-2：bestMatch() 路径专用的描述属性 ──────────────────
+        // getCssDataForPostScriptName()（KoFontRegistry.cpp:1197-1234，经
+        // libs/psdutils/cos/psd_text_data_converter.cpp:858 可达）从匹配
+        // 结果读的是 FC_FAMILY/FC_POSTSCRIPT_NAME/FC_WEIGHT/FC_WIDTH/
+        // FC_SLANT，且从不读 FC_FILE/FC_INDEX——这四个字段补全 bestMatch()
+        // 唯一来源调用点实际需要的返回信息（此前 FontEntry 只有 familyName
+        // + FontHandle，5 个要读的字段缺 4 个，唯一提供的 FontHandle 那处
+        // 根本不用）。
+
+        // 来源：FC_POSTSCRIPT_NAME。PostScript 名是精确标识符，语义上和
+        // "家族名模糊匹配"不是一回事，8 字段查询预算里没有单独的 postscript
+        // 查询字段（见 PkFontQuery::families 注释），但结果侧必须能把它
+        // 还给调用方。
+        PkString postScriptName;
+
+        // 来源：FC_WEIGHT，同 PkFontQuery::weight 的取值空间（OpenType
+        // weight，1–1000）。
+        int weight = 400;
+
+        // 来源：FC_WIDTH，同 PkFontQuery::width 的取值空间（OpenType
+        // width，100 = normal）。
+        int width = 100;
+
+        // 来源：FC_SLANT。
+        Slant slant = Slant::Normal;
     };
 
     PkFontProvider();
@@ -230,13 +278,27 @@ public:
     // 以及 :213-223 `fallbackFont()`（`families` 只给 "sans-serif" 时的
     // 兜底路径——如前所述，回退不是独立方法，是用更宽的 query 再调一次这
     // 同一个方法）。**不复刻 FcFontRenderPrepare 的 pattern-merge 语义**
-    // （零命中）：结果里的每个 FontEntry 就是候选本身。
+    // （零命中）：结果里的每个 FontEntry 就是候选本身。返回结果只保证
+    // handle/familyName/languages 有意义（见 FontEntry 类头注释 I-6 的分工
+    // 表），postScriptName/weight/width/slant 是否填充由实现决定。
+    //
+    // 评审 I-1（契约，实现必须遵守）：KoFontRegistry.cpp:465-470 用
+    // FC_SCALABLE/FC_PIXEL_SIZE 跳过"非缩放且 pixelSize 不等于请求值"的
+    // 位图字体（这是修正 fontconfig 一个已知偏差的过滤，不是可选优化）。
+    // **实现必须在返回前自己内部做这层过滤**：候选是非缩放位图字体、且
+    // `query.pixelSize >= 0`、且候选自身的像素大小与 `query.pixelSize` 不
+    // 相等时，不得出现在返回结果里——调用方拿到的列表已经是过滤后的最终
+    // 候选，不需要（也没有材料支撑）自己再做一遍这层判断。
     virtual std::vector<FontEntry> sortedMatches(const PkFontQuery &query) const = 0;
 
     // 单个最佳匹配，返回 false 表示无匹配（对应 FcResultNoMatch）。来源：
     // FcFontMatch + FcDefaultSubstitute，KoFontRegistry.cpp:1200-1207
     // `getCssDataForPostScriptName()`——按 PostScript 名找最接近的字体（见
     // `PkFontQuery::families` 注释里关于 postscript name 的收窄说明）。
+    // 这条路径的唯一调用点读 familyName/postScriptName/weight/width/slant，
+    // 从不读 handle/languages（见 FontEntry 类头注释 I-6 的分工表）——
+    // 评审 C-2：此前 FontEntry 只有 familyName + handle，服务不了这个调用点
+    // 实际要读的 5 个字段。
     virtual bool bestMatch(const PkFontQuery &query, FontEntry *outEntry) const = 0;
 
     // ── ⑥字体集枚举 ──────────────────────────────────────────────────
@@ -252,8 +314,9 @@ public:
     // 这个字体是否覆盖给定码点。来源：FcCharSetHasChar，
     // KoFontRegistry.cpp:474,490——facesForCSSValues() 逐 grapheme 回退匹配
     // 时用它从一个共享的候选列表里挑出真正能显示该 grapheme 的字体，不是
-    // 每个 grapheme 都重新排序一次候选。调用方典型用法：先用不带 charset
-    // 约束的 query 调 sortedMatches() 拿到候选列表一次，之后对每个
-    // grapheme 的首个码点循环调这个方法测试各候选。
+    // 每个 grapheme 都重新排序一次候选。调用方典型用法：先调
+    // sortedMatches() 拿到候选列表一次（PkFontQuery 没有单独的 charset
+    // 约束字段，评审 I-5：零调用点，已删），之后对每个 grapheme 的首个码点
+    // 循环调这个方法测试各候选。
     virtual bool coversCodepoint(const FontHandle &font, char32_t codepoint) const = 0;
 };

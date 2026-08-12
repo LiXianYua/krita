@@ -139,9 +139,13 @@ public:
     virtual bool mkpath(const PkString &path) const = 0;
 
     // 来源：QDir::remove，1 处（kis_update_time_monitor.cpp:103，删除单个
-    // 文件）。不覆盖 QDir::rmpath（1 处，KoResourcePaths.cpp:282，mkpath 失败
-    // 之后的兜底清理，返回值未被调用点检查）——1 处且是"尽力而为"的错误路径
-    // 清理，没有测试压力，登记为缺口，见 pk/port/README.md。
+    // 文件）。不覆盖 QDir::rmpath（1 处，KoResourcePaths.cpp:282）——两者
+    // 调用点数、返回值检查情况都相同（评审 M-4：不能拿"1 处/没检查"当排除
+    // 理由，那对 remove() 同样成立），真正的区别是能力必要性：remove() 删
+    // 单个文件是 mkpath()（建目录）的对称能力，是存储抽象要保证的核心
+    // CRUD；rmpath() 只是 mkpath 已经失败之后的兜底清理，它做不做不影响
+    // 任何后续正确性——最坏结果是留几个空目录，不是本端口要保证的东西。
+    // 登记为缺口，见 pk/port/README.md。
     virtual bool remove(const PkString &path) const = 0;
 
     // 来源：QDir::absolutePath（9 处）+ QDir::canonicalPath（1 处，
