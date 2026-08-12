@@ -6,6 +6,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+# ctest 集成：`ninja && ctest` 是「比基线」这类完成判定的标准跑法，没有
+# enable_testing() 的话 ctest 只会报 `No tests were found!!!`，只能一个一个手跑
+# 13 个可执行文件。**必须在 add_test() 之前调用**，且必须在**本工程的**顶层
+# CMakeLists 里调用（pk/test、pk/string 是 add_subdirectory 进来的子目录，
+# 它们各自的 enable_testing() 不管本目录）。
+enable_testing()
+
 # 零 Qt：本工程不得出现 find_package(Qt...)。判据③ 靠
 #   nm -u <build>/libpkcontainer.a | grep -i qt
 # 自证——静态库允许留未定义符号，真混进 Qt 依赖就会在那里现形。
@@ -74,11 +81,16 @@ pk_test_generate(PKCONTAINER_GENERATED_TEST_SOURCES
 # 目标就是两个 main。与 pk/test 的既有形态一致。
 #
 # pk_test_add_executable(<target> <源文件> <测试类名> [额外要链的库...])
-# 三件事一次做齐：建目标、链 pkcontainer+pktest（+ ARGN 里的额外库）、把
-# compat/ 与生成目录挂上 include 路径，并把生成的 binder 挂成源文件的构建期依赖。
+# 四件事一次做齐：建目标、链 pkcontainer+pktest（+ ARGN 里的额外库）、把
+# compat/ 与生成目录挂上 include 路径（并把生成的 binder 挂成源文件的构建期
+# 依赖）、注册成 ctest 用例。
 function(pk_test_add_executable target source test_class)
     add_executable(${target} ${source})
     target_link_libraries(${target} PRIVATE pkcontainer pktest ${ARGN})
+
+    # 注册进 ctest。PK_TEST_MAIN 展开出的 main() 全绿返回 0、有失败返回非 0，
+    # 正好是 ctest 的成败判据，不需要额外的 PASS_REGULAR_EXPRESSION。
+    add_test(NAME ${target} COMMAND ${target})
 
     # compat/：让测试头里的 `#include <QObject>` 解析到 pk/test 的垫片
     # （Q_OBJECT → friend 模板，QObject → PkTestObject）。

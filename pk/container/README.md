@@ -240,11 +240,11 @@ token）**全部 0 次命中**。
 
 ## 4. 对拍（`oracle/`）：跑法与**覆盖度限制**
 
-对拍拿真 Qt 5.15.7 当 oracle，逐输入比对。基线 **2 672 959 次比对，mismatch 36**，
+对拍拿真 Qt 5.15.7 当 oracle，逐输入比对。基线 **3 447 803 次比对，mismatch 36**，
 全部落在一条已声明的偏离上（`replaceInStrings` 空 `before`，见 `oracle/R-02.deviation`）。
 五组注入实验全部产生未声明 tag（判据有效性自证，明细同文件）。
 
-**说不出覆盖不到什么的对拍，说明还没想清楚。** 以下 8 条是已知的覆盖度限制
+**说不出覆盖不到什么的对拍，说明还没想清楚。** 以下 9 条是已知的覆盖度限制
 （原文与更详细的论证在 `oracle/R-02.deviation`，此处是索引，不要两边各写一份）：
 
 1. **越界 `at()` / `operator[]()` / 空容器 `first()`/`last()`/`takeFirst()` 不可对拍**
@@ -252,7 +252,8 @@ token）**全部 0 次命中**。
    `-DQT_NO_DEBUG` 下返回垃圾值继续跑。release 下不崩比崩更麻烦：两侧各自返回不同
    的垃圾会产生**虚假 mismatch**。输入集里根本不生成这些调用。可对拍的越界形态由
    `value(i)` / `value(i,def)` / `indexOf(t,from)` / `lastIndexOf(t,from)` 承担
-   （这四个对任意下标都有定义）。
+   （这四个对任意下标都有定义）。**这条只管越界**：非 const `operator[]` 的**范围内
+   写入**（`c[i] = x`）在指令表里，它是 COW 最容易漏的写入口。
 2. **`QHash` / `QSet` 的迭代顺序不可对拍**：Qt5 的 `QHash` 带随机化种子，同一段代码
    在 5.15.7 下打出 `6,7,4,5,2,3,0,1`，5.15.13 下打出 `4,5,6,7,0,1,2,3`——**跨补丁
    版本就变**。hash/set 通道只比**排序后的集合**。连带退化两处：`erase(find(k))` 的
@@ -272,6 +273,13 @@ token）**全部 0 次命中**。
    **§0 已核实这 6 条在保留范围内都没有调用点**，所以不补。
 8. **`QStringList` 只跑了 5 个专属方法**（`join`/`filter`/`sort`/`removeDuplicates`/
    `replaceInStrings`），正则相关的重载（`QRegExp`/`QRegularExpression`）整片不在范围内。
+9. **指令表覆盖面**：前 8 条讲「什么形态不可对拍」，这一条讲「哪些**保留范围内的
+   API** 压根没进指令表、只有单测把守」——`swap` / `data` / `constData` / `count()` /
+   `toList` / `toVector` / `capacity` / STL 别名族 / `operator!=` / `operator+=` /
+   迭代器本身 / `lowerBound` / `upperBound` / const `operator[]` 等。
+   **「单测把守」证明的是「行为符合我以为的样子」，「对拍把守」证明的是「行为和真
+   Qt 5.15.7 一样」**——机械替换（S-02）落在哪一格上，风险等级不同。
+   **逐条清单在 `oracle/R-02.deviation` 第 9 条**，此处不复制。
 
 ---
 
@@ -515,8 +523,10 @@ include 禁区头 + 容器计数 ≥6」筛出 91 个，取最密的 40 个逐�
 
 1. **`replaceInStrings` 的空 `before`** —— 对拍咬出来的**真实不一致**（不是设计上
    接受的等价行为）。Qt 5.15.7 实测把 `after` 插到**每一个 UTF-16 码元之间以及首尾**
-   （`"a".replace("","b") == "bab"`），替代品原样返回输入。不复刻的理由：Qt 那套
-   会把 🎨 这种代理对**从中间劈开**；Krita 唯一调用点传字面量 `"output_"`，走不到。
+   （`"a".replace("","b") == "bab"`），替代品原样返回输入。本轮不复刻的理由：Qt 那套
+   会把 🎨 这种代理对**从中间劈开**，复刻它等于把孤立代理的处置一并搬进来。
+   **影响面（陈述，不是理由）**：Krita 唯一调用点 `KisDlgImportVideoAnimation.cpp:246`
+   传字面量 `"output_"`——这只说明排期不急，**不构成「可以不改」的依据**。
    **R-13 决定是补上还是显式不支持。** 全文与谓词细节在 `oracle/R-02.deviation`。
 2. **`filter(..., PkCaseInsensitive)` 只做 ASCII 折叠** —— 需要
    `QString::toCaseFolded()` 的对应物，而 `pk/string` 不归 R-02 改。
@@ -540,9 +550,13 @@ include 禁区头 + 容器计数 ≥6」筛出 91 个，取最密的 40 个逐�
 cmake -S pk/container -B pk/container/build -G Ninja
 cmake --build pk/container/build
 
-# ② 单测：一个测试类一个可执行文件（PK_TEST_MAIN 展开出 main）
+# ② 单测：13 个套件全在 ctest 里（CMakeLists 的 pk_test_add_executable 顺手
+#    add_test()，顶层 enable_testing()）。13 个套件 / 266 条断言。
+ctest --test-dir pk/container/build --output-on-failure
+
+#    要看单个套件的逐条输出就直接跑它——一个测试类一个可执行文件
+#    （PK_TEST_MAIN 展开出 main，全绿返回 0，正是 ctest 的成败判据）：
 for t in pk/container/build/test_*; do "$t"; done
-#   13 个套件 / 266 条
 
 # ③ 判据③：库里不得有 Qt 未定义符号。**必须无输出。**
 nm -u pk/container/build/libpkcontainer.a | grep -i qt
