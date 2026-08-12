@@ -35,8 +35,6 @@
 #include <kis_properties_configuration.h>
 #include <kis_sequential_iterator.h>
 
-#include "kis_wdg_options_rgbe.h"
-
 K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_rgbe_export.json", registerPlugin<RGBEExport>();)
 
 namespace RGBE
@@ -257,12 +255,6 @@ void RGBEExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("TiffExifCheck")->create(KisExportCheckBase::PARTIALLY));
     supportedColorModels << QPair<KoID, KoID>() << QPair<KoID, KoID>(RGBAColorModelID, Float32BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "RGBE");
-}
-
-KisConfigWidget *
-RGBEExport::createConfigurationWidget(QWidget *parent, const QByteArray & /*from*/, const QByteArray & /*to*/) const
-{
-    return new KisWdgOptionsRGBE(parent);
 }
 
 KisPropertiesConfigurationSP RGBEExport::defaultConfiguration(const QByteArray &, const QByteArray &) const

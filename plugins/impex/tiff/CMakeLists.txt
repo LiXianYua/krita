@@ -45,7 +45,6 @@ set(kritatiffexport_SOURCES
     kis_tiff_converter.cc
     kis_tiff_writer_visitor.cpp
     kis_tiff_export.cc
-    kis_dlg_options_tiff.cpp
 )
 
 if(TIFF_CAN_WRITE_PSD_TAGS)
@@ -54,8 +53,6 @@ set(kritatiffexport_SOURCES
     kis_tiff_psd_writer_visitor.cpp
 )
 endif()
-
-ki18n_wrap_ui(kritatiffexport_SOURCES kis_wdg_options_tiff.ui)
 
 kis_add_library(kritatiffexport MODULE ${kritatiffexport_SOURCES})
 

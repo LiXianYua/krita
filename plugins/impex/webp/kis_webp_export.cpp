@@ -36,7 +36,6 @@
 #include <kis_raster_keyframe_channel.h>
 #include <kis_time_span.h>
 
-#include "kis_wdg_options_webp.h"
 #include "kis_webp_export.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(KisWebPExportFactory, "krita_webp_export.json", registerPlugin<KisWebPExport>();)
@@ -111,11 +110,6 @@ KisPropertiesConfigurationSP KisWebPExport::defaultConfiguration(const QByteArra
     cfg->setProperty("filters", "");
 
     return cfg;
-}
-
-KisConfigWidget *KisWebPExport::createConfigurationWidget(QWidget *parent, const QByteArray & /*from*/, const QByteArray & /*to*/) const
-{
-    return new KisWdgOptionsWebP(parent);
 }
 
 // RAII a WebPPicture.

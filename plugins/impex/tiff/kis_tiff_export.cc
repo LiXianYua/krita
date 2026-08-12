@@ -36,7 +36,6 @@
 #include "kis_tiff_psd_writer_visitor.h"
 #endif
 
-#include "kis_dlg_options_tiff.h"
 #include "kis_tiff_converter.h"
 #include "kis_tiff_logger.h"
 
@@ -261,11 +260,6 @@ KisPropertiesConfigurationSP KisTIFFExport::defaultConfiguration(const QByteArra
 {
     KisTIFFOptions options;
     return options.toProperties();
-}
-
-KisConfigWidget *KisTIFFExport::createConfigurationWidget(QWidget *parent, const QByteArray &/*from*/, const QByteArray &/*to*/) const
-{
-    return new KisTIFFOptionsWidget(parent);
 }
 
 void KisTIFFExport::initializeCapabilities()

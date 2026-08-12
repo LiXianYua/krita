@@ -1,10 +1,8 @@
 add_subdirectory(tests)
 
 set(kritawebpexport_SOURCES
-    kis_wdg_options_webp.cpp
     kis_webp_export.cpp
 )
-ki18n_wrap_ui(kritawebpexport_SOURCES kis_wdg_options_webp.ui)
 
 add_library(kritawebpexport MODULE ${kritawebpexport_SOURCES})
 target_link_libraries(kritawebpexport kritaui kritalibkra kritaimpex WebP::webp WebP::libwebpmux)
