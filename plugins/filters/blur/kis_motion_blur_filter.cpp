@@ -8,14 +8,11 @@
 
 
 #include "kis_motion_blur_filter.h"
-#include "kis_wdg_motion_blur.h"
 
 #include <KoCompositeOp.h>
 
 #include <kis_convolution_kernel.h>
 #include <kis_convolution_painter.h>
-
-#include "ui_wdg_motion_blur.h"
 
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
@@ -36,11 +33,6 @@ KisMotionBlurFilter::KisMotionBlurFilter() : KisFilter(id(), FiltersCategoryBlur
     setSupportsAdjustmentLayers(true);
     setSupportsLevelOfDetail(true);
     setColorSpaceIndependence(FULLY_INDEPENDENT);
-}
-
-KisConfigWidget * KisMotionBlurFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    return new KisWdgMotionBlur(parent);
 }
 
 KisFilterConfigurationSP KisMotionBlurFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

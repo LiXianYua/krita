@@ -8,14 +8,11 @@
 
 
 #include "kis_lens_blur_filter.h"
-#include "kis_wdg_lens_blur.h"
 
 #include <KoCompositeOp.h>
 
 #include <kis_convolution_kernel.h>
 #include <kis_convolution_painter.h>
-
-#include "ui_wdg_lens_blur.h"
 
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
@@ -37,11 +34,6 @@ KisLensBlurFilter::KisLensBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, 
     setSupportsLevelOfDetail(true);
     setColorSpaceIndependence(FULLY_INDEPENDENT);
 
-}
-
-KisConfigWidget * KisLensBlurFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    return new KisWdgLensBlur(parent);
 }
 
 QSize KisLensBlurFilter::getKernelHalfSize(const KisFilterConfigurationSP config, int lod)

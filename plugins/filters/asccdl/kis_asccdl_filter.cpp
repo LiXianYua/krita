@@ -5,7 +5,6 @@
  */
 
 #include "kis_asccdl_filter.h"
-#include "kis_wdg_asccdl.h"
 #include <kpluginfactory.h>
 #include <klocalizedstring.h>
 #include <filter/kis_filter_category_ids.h>
@@ -47,11 +46,6 @@ KoColorTransformation *KisFilterASCCDL::createTransformation(const KoColorSpace 
                                        config->getColor("slope", black),
                                        config->getColor("offset", white),
                                        config->getColor("power", black));
-}
-
-KisConfigWidget *KisFilterASCCDL::createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool) const
-{
-    return new KisASCCDLConfigWidget(parent, dev->colorSpace());
 }
 
 bool KisFilterASCCDL::needsTransparentPixels(const KisFilterConfigurationSP config, const KoColorSpace *cs) const

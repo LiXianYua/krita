@@ -11,7 +11,6 @@
 #define KIS_LENS_BLUR_FILTER_H
 
 #include "filter/kis_filter.h"
-#include "ui_wdg_lens_blur.h"
 
 #include <Eigen/Core>
 
@@ -36,9 +35,6 @@ public:
 
     QRect neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
     QRect changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
-
-public:
-    KisConfigWidget * createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
 
 private:
     static QPolygonF getIrisPolygon(const KisFilterConfigurationSP config, int lod);

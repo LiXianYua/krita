@@ -13,8 +13,6 @@
 #include <kis_convolution_kernel.h>
 #include <kis_convolution_painter.h>
 
-#include "kis_wdg_blur.h"
-#include "ui_wdgblur.h"
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
 #include <kis_selection.h>
@@ -30,11 +28,6 @@ KisBlurFilter::KisBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, i18n("&B
     setSupportsAdjustmentLayers(true);
     setSupportsLevelOfDetail(true);
     setColorSpaceIndependence(FULLY_INDEPENDENT);
-}
-
-KisConfigWidget * KisBlurFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    return new KisWdgBlur(parent);
 }
 
 KisFilterConfigurationSP KisBlurFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

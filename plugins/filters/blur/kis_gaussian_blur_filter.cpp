@@ -8,15 +8,12 @@
 
 
 #include "kis_gaussian_blur_filter.h"
-#include "kis_wdg_gaussian_blur.h"
 
 #include <KoCompositeOp.h>
 
 #include <kis_convolution_kernel.h>
 #include <kis_convolution_painter.h>
 #include <kis_gaussian_kernel.h>
-
-#include "ui_wdg_gaussian_blur.h"
 
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
@@ -35,11 +32,6 @@ KisGaussianBlurFilter::KisGaussianBlurFilter() : KisFilter(id(), FiltersCategory
     setSupportsAdjustmentLayers(true);
     setSupportsLevelOfDetail(true);
     setColorSpaceIndependence(FULLY_INDEPENDENT);
-}
-
-KisConfigWidget * KisGaussianBlurFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool usedForMasks) const
-{
-    return new KisWdgGaussianBlur(usedForMasks, parent);
 }
 
 KisFilterConfigurationSP KisGaussianBlurFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

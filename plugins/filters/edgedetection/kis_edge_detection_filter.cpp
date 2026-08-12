@@ -4,7 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "kis_edge_detection_filter.h"
-#include "kis_wdg_edge_detection.h"
 #include <kis_edge_detection_kernel.h>
 #include <kis_convolution_kernel.h>
 #include <kis_convolution_painter.h>
@@ -107,12 +106,6 @@ KisFilterConfigurationSP KisEdgeDetectionFilter::defaultConfiguration(KisResourc
     config->setProperty("transparency", false);
 
     return config;
-}
-
-KisConfigWidget *KisEdgeDetectionFilter::createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisWdgEdgeDetection(parent);
 }
 
 QRect KisEdgeDetectionFilter::neededRect(const QRect &rect, const KisFilterConfigurationSP _config, int lod) const

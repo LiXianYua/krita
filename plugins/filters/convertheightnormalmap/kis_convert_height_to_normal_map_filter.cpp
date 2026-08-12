@@ -4,7 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "kis_convert_height_to_normal_map_filter.h"
-#include "kis_wdg_convert_height_to_normal_map.h"
 #include <kpluginfactory.h>
 #include <klocalizedstring.h>
 #include <filter/kis_filter_category_ids.h>
@@ -133,16 +132,13 @@ KisFilterConfigurationSP KisConvertHeightToNormalMapFilter::defaultConfiguration
     config->setProperty("type", "sobol");
     config->setProperty("channelToConvert", 0);
     config->setProperty("lockAspect", true);
-    config->setProperty("redSwizzle", KisWdgConvertHeightToNormalMap::xPlus);
-    config->setProperty("greenSwizzle", KisWdgConvertHeightToNormalMap::yPlus);
-    config->setProperty("blueSwizzle", KisWdgConvertHeightToNormalMap::zPlus);
+    // 原值来自 KisWdgConvertHeightToNormalMap::swizzle 枚举（面板已删）：
+    // xPlus=0（redSwizzle 现有 getInt fallback）、yPlus=2（greenSwizzle fallback）、zPlus=4（blueSwizzle fallback）
+    config->setProperty("redSwizzle", 0);
+    config->setProperty("greenSwizzle", 2);
+    config->setProperty("blueSwizzle", 4);
 
     return config;
-}
-
-KisConfigWidget *KisConvertHeightToNormalMapFilter::createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool) const
-{
-    return new KisWdgConvertHeightToNormalMap(parent, dev->colorSpace());
 }
 
 QRect KisConvertHeightToNormalMapFilter::neededRect(const QRect &rect, const KisFilterConfigurationSP _config, int lod) const
