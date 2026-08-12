@@ -23,9 +23,6 @@ set(kritaheifexport_SOURCES
     HeifError.cpp
 )
 
-ki18n_wrap_ui(kritaheifexport_SOURCES WdgHeifExport.ui)
-
-
 kis_add_library(kritaheifexport MODULE ${kritaheifexport_SOURCES})
 
 target_link_libraries(kritaheifexport kritaui kritalibkra kritaimpex HEIF::heif)

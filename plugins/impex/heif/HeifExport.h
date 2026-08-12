@@ -13,42 +13,8 @@
 #include <QVariant>
 
 #include <KisImportExportFilter.h>
-#include <kis_config_widget.h>
 
 #include "kis_heif_export_tools.h"
-#include "ui_WdgHeifExport.h"
-
-class KisWdgOptionsHeif : public KisConfigWidget, public Ui::WdgHeifExport
-{
-    Q_OBJECT
-
-public:
-    KisWdgOptionsHeif(QWidget *parent)
-        : KisConfigWidget(parent)
-    {
-        setupUi(this);
-        connect(chkLossless, SIGNAL(toggled(bool)), SLOT(toggleQualitySlider(bool)));
-        connect(chkHLGOOTF, SIGNAL(toggled(bool)), SLOT(toggleQualitySlider(bool)));
-        connect(cmbConversionPolicy, SIGNAL(currentIndexChanged(int)), SLOT(toggleExtraHDROptions(int)));
-        sliderQuality->setRange(0, 100, 0);
-    }
-
-    void setConfiguration(const KisPropertiesConfigurationSP  cfg) override;
-    KisPropertiesConfigurationSP configuration() const override;
-
-private Q_SLOTS:
-
-    void toggleQualitySlider(bool toggle);
-    // Disable HLG OOTF options when the toggle is off.
-    void toggleHLGOptions(bool toggle);
-    // Disable all HLG options when the index is not for an HLG option.
-    void toggleExtraHDROptions(int index);
-private:
-
-    bool m_hasAlpha {false};
-
-};
-
 
 class HeifExport : public KisImportExportFilter
 {
@@ -62,7 +28,6 @@ public:
 
     KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
     KisPropertiesConfigurationSP defaultConfiguration(const QByteArray& from = "", const QByteArray& to = "") const override;
-    KisConfigWidget *createConfigurationWidget(QWidget *parent, const QByteArray& from = "", const QByteArray& to = "") const override;
     void initializeCapabilities() override;
 };
 

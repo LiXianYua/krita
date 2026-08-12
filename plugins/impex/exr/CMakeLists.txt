@@ -22,8 +22,6 @@ set(kritaexrexport_SOURCES
     ${libkritaconverter_LIB_SRCS}
     )
 
-ki18n_wrap_ui(kritaexrexport_SOURCES exr_export_widget.ui )
-
 kis_add_library(kritaexrexport MODULE ${kritaexrexport_SOURCES})
 
 target_link_libraries(kritaexrexport kritaui kritalibkra kritaimpex OpenEXR::IlmImf)

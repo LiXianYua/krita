@@ -47,11 +47,6 @@ KisPropertiesConfigurationSP EXRExport::defaultConfiguration(const QByteArray &/
     return cfg;
 }
 
-KisConfigWidget *EXRExport::createConfigurationWidget(QWidget *parent, const QByteArray &/*from*/, const QByteArray &/*to*/) const
-{
-    return new KisWdgOptionsExr(parent);
-}
-
 KisImportExportErrorCode EXRExport::convert(KisDocument *document, QIODevice */*io*/,  KisPropertiesConfigurationSP configuration)
 {
     Q_ASSERT(document);
@@ -98,21 +93,6 @@ void EXRExport::initializeCapabilities()
             << QPair<KoID, KoID>(XYZAColorModelID, Float16BitsColorDepthID)
             << QPair<KoID, KoID>(XYZAColorModelID, Float32BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "EXR");
-}
-
-
-
-
-void KisWdgOptionsExr::setConfiguration(const KisPropertiesConfigurationSP cfg)
-{
-    chkFlatten->setChecked(cfg->getBool("flatten", false));
-}
-
-KisPropertiesConfigurationSP KisWdgOptionsExr::configuration() const
-{
-    KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
-    cfg->setProperty("flatten", chkFlatten->isChecked());
-    return cfg;
 }
 
 #include <exr_export.moc>
