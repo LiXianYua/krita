@@ -26,7 +26,6 @@
 #include <canvas/kis_canvas2.h>
 #include <kis_canvas_resource_provider.h>
 #include <kis_cursor.h>
-#include <widgets/kis_cmb_composite.h>
 
 #include <processing/fill_processing_visitor.h>
 #include <kis_command_utils.h>
@@ -84,30 +83,12 @@ void KisToolFill::activate(const QSet<KoShape*> &shapes)
     KisToolPaint::activate(shapes);
     m_configGroup = KSharedConfig::openConfig()->group(toolId());
     loadConfiguration();
-    KisCanvas2 *kisCanvas = static_cast<KisCanvas2*>(canvas());
-    KisCanvasResourceProvider *resourceProvider = kisCanvas->viewManager()->canvasResourceProvider();
-    if (resourceProvider) {
-        connect(resourceProvider,
-                SIGNAL(sigNodeChanged(const KisNodeSP)),
-                this,
-                SLOT(slot_currentNodeChanged(const KisNodeSP)));
-        slot_currentNodeChanged(currentNode());
-    }
 }
 
 void KisToolFill::deactivate()
 {
     m_referencePaintDevice = nullptr;
     m_referenceNodeList = nullptr;
-    KisCanvas2 *kisCanvas = static_cast<KisCanvas2*>(canvas());
-    KisCanvasResourceProvider *resourceProvider = kisCanvas->viewManager()->canvasResourceProvider();
-    if (resourceProvider) {
-        disconnect(resourceProvider,
-                   SIGNAL(sigNodeChanged(const KisNodeSP)),
-                   this,
-                   SLOT(slot_currentNodeChanged(const KisNodeSP)));
-    }
-    slot_currentNodeChanged(nullptr);
     KisToolPaint::deactivate();
 }
 
@@ -614,38 +595,5 @@ KoColor KisToolFill::loadContiguousFillBoundaryColorFromConfig()
         }
     }
     return KoColor();
-}
-
-void KisToolFill::slot_currentNodeChanged(const KisNodeSP node)
-{
-    if (m_previousNode && m_previousNode->paintDevice()) {
-        disconnect(m_previousNode->paintDevice().data(),
-                   SIGNAL(colorSpaceChanged(const KoColorSpace*)),
-                   this,
-                   SLOT(slot_colorSpaceChanged(const KoColorSpace*)));
-    }
-    if (node && node->paintDevice()) {
-        connect(node->paintDevice().data(),
-                SIGNAL(colorSpaceChanged(const KoColorSpace*)),
-                this,
-                SLOT(slot_colorSpaceChanged(const KoColorSpace*)));
-        slot_colorSpaceChanged(node->paintDevice()->colorSpace());
-    }
-    m_previousNode = node;
-}
-
-void KisToolFill::slot_colorSpaceChanged(const KoColorSpace *colorSpace)
-{
-    if (!m_comboBoxCustomCompositeOp) {
-        return;
-    }
-    const KoColorSpace *compositionSpace = colorSpace;
-    if (currentNode() && currentNode()->paintDevice()) {
-        // Currently, composition source is enough to determine the available blending mode,
-        // because either destination is the same (paint layers), or composition happens
-        // in source space (masks).
-        compositionSpace = currentNode()->paintDevice()->compositionSourceColorSpace();
-    }
-    m_comboBoxCustomCompositeOp->validate(compositionSpace);
 }
 

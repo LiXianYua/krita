@@ -57,7 +57,7 @@ KisToolGradient::KisToolGradient(KoCanvasBase * canvas)
     m_reverse = false;
     m_shape = KisGradientPainter::GradientShapeLinear;
     m_repeat = KisGradientPainter::GradientRepeatNone;
-    m_antiAliasThreshold = 0.2;
+    m_antiAliasThreshold = 0.0;
 
     KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas);
 

@@ -111,7 +111,7 @@ void KisToolMeasure::showDistanceAngleOnCanvas()
 {
     KisCanvas2 *kisCanvas = qobject_cast<KisCanvas2*>(canvas());
     QString message = i18nc("%1=distance %2=unit of distance %3=angle in degrees", "%1 %2\n%3°",
-                            KritaUtils::prettyFormatReal(distance()),
+                            KritaUtils::prettyFormatReal(distance() / currentImage()->xRes()),
                             KoUnit(KoUnit::Pixel).symbol(),
                             QString::number(angle(),'f',1));
     kisCanvas->viewManager()->showFloatingMessage(message, QIcon(), 2000, KisFloatingMessage::High);

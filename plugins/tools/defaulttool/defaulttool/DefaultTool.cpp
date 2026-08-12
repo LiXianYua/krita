@@ -293,8 +293,6 @@ public:
     {
         m_currentHandle = handleAt(ev->point);
         q->m_selectedMeshHandle = m_currentHandle;
-        Q_EMIT q->meshgradientHandleSelected(m_currentHandle);
-
 
         if (m_currentHandle.type != KoShapeMeshGradientHandles::Handle::None) {
             KoShape *shape = onlyEditableShape();
@@ -2005,8 +2003,13 @@ KoInteractionStrategy *DefaultTool::createStrategy(KoPointerEvent *event)
         if (handle != KoFlake::NoHandle) {
             // resizing or shearing only with left mouse button
             if (insideSelection) {
-                // 几何面板（uniform-scaling 复选框）已删除；面板不存在时原逻辑本就恒为 false
-                bool forceUniformScaling = false;
+                // uniform-scaling 面板复选框已删除，但要保住原行为：DefaultToolGeometryWidget
+                // 原先在 (shapes.size() > 1 || onlyGroupShape) 时强制勾上该复选框。多选的情况
+                // 已经由 ShapeResizeStrategy 内部 (m_selectedShapes.size() > 1) 单独覆盖，这里
+                // 只需要补上「单选且选中的是一个 group shape」这一种也应为 true 的情形。
+                const QList<KoShape*> selectedShapesForScaling = selection->selectedEditableShapes();
+                bool forceUniformScaling = selectedShapesForScaling.size() == 1 &&
+                    dynamic_cast<KoShapeGroup*>(selectedShapesForScaling.first());
                 return new ShapeResizeStrategy(this, selection, event->point, handle, forceUniformScaling);
             }
 

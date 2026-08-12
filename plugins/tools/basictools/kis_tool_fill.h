@@ -25,8 +25,6 @@
 #include <commands_new/KisMergeLabeledLayersCommand.h>
 #include <KoCompositeOpRegistry.h>
 
-class KisCompositeOpComboBox;
-
 class KisToolFill : public KisToolPaint
 {
     Q_OBJECT
@@ -134,12 +132,8 @@ private:
     QSharedPointer<QRect> m_dirtyRect;
     QVector<QPoint> m_seedPoints;
     KisStrokeId m_fillStrokeId;
-    KisNodeSP m_previousNode {nullptr};
 
     KConfigGroup m_configGroup;
-
-    // Always null; slot_colorSpaceChanged() guards on it before use.
-    KisCompositeOpComboBox *m_comboBoxCustomCompositeOp {nullptr};
 
     void beginFilling(const QPoint &seedPoint);
     void addFillingOperation(const QPoint &seedPoint);
@@ -149,10 +143,6 @@ private:
 
     void loadConfiguration();
     KoColor loadContiguousFillBoundaryColorFromConfig();
-
-private Q_SLOTS:
-    void slot_currentNodeChanged(const KisNodeSP node);
-    void slot_colorSpaceChanged(const KoColorSpace *colorSpace);
 };
 
 

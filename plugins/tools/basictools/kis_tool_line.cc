@@ -216,20 +216,18 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
     }
     m_endPoint = pos;
 
-    // Draw preview if requested
-    if (true) {
-        // If the cursor has moved a significant amount, immediately clear the
-        // current preview and redraw. Otherwise, do slow redraws periodically.
-        auto updateDistance = (pixelToView(m_lastUpdatedPoint) - pixelToView(pos)).manhattanLength();
-        if (updateDistance > 10) {
-            m_helper->clearPaint();
-            m_longStrokeUpdateCompressor.stop();
-            m_strokeUpdateCompressor.start();
-            m_lastUpdatedPoint = pos;
-        } else if (updateDistance > 1 &&  !m_strokeUpdateCompressor.isActive() && !m_longStrokeUpdateCompressor.isActive()) {
-            m_longStrokeUpdateCompressor.start();
-            m_lastUpdatedPoint = pos;
-        }
+    // Draw preview (showPreview panel checkbox removed; its config default was true)
+    // If the cursor has moved a significant amount, immediately clear the
+    // current preview and redraw. Otherwise, do slow redraws periodically.
+    auto updateDistance = (pixelToView(m_lastUpdatedPoint) - pixelToView(pos)).manhattanLength();
+    if (updateDistance > 10) {
+        m_helper->clearPaint();
+        m_longStrokeUpdateCompressor.stop();
+        m_strokeUpdateCompressor.start();
+        m_lastUpdatedPoint = pos;
+    } else if (updateDistance > 1 &&  !m_strokeUpdateCompressor.isActive() && !m_longStrokeUpdateCompressor.isActive()) {
+        m_longStrokeUpdateCompressor.start();
+        m_lastUpdatedPoint = pos;
     }
 
     if(effectiveModifiers == Qt::AltModifier) {

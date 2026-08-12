@@ -98,9 +98,6 @@ public Q_SLOTS:
     void activate(const QSet<KoShape *> &shapes) override;
     void deactivate() override;
 
-Q_SIGNALS:
-    void meshgradientHandleSelected(KoShapeMeshGradientHandles::Handle);
-
 private Q_SLOTS:
     void selectionAlign(int _align);
     void selectionDistribute(int _distribute);
