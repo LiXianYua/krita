@@ -1,23 +1,44 @@
 # pk/geometry 与真 Qt5 的已声明差异清单
 #
-# 格式：<api>\t<tag>\t<≥20 UTF-8 码点理由>，**tab 分隔**，# 开头为注释。
-# tag 由对拍源的作者按根因命名，run_oracle.sh 不解释它，只做双向核对：
+# 格式：<api>\t<tag>\t<期望计数>\t<≥20 UTF-8 码点理由>，**tab 分隔**，# 开头为注释。
+# tag 由对拍源的作者按根因命名，run_oracle.sh 不解释它，只做核对：
 #   · 出现过的 DIFFTAG 必须在这里 —— 否则 FAIL（**未声明的差异 = 没人判断过
 #     它可不可接受**）
+#   · **观察到的计数必须等于这里写的期望计数** —— 否则 FAIL（见下面「为什么有
+#     第三列」）
 #   · 这里声明了但这次没观察到的出 WARN（白名单过期，或对拍没走到那条路径）
 #
 # ══════════════════════════════════════════════════════════════════════════
-# **Point / Size 两族一条真实偏离都没有，这是正确结果、不是漏测。**
-# 与 R-01 的根本不同：PkString 是重写，行为差异不可避免；而 PkPoint/PkPointF
-# 是**逐字照抄 qpoint.h**（连 qAbs(INT_MIN) 回绕、int(inf) 这类 UB 都照抄），
-# 逐输入对拍下来本来就该是零差异。
+# **为什么有「期望计数」这一列（Task 4 修复轮，评审 Important 1）**
 #
-# **Task 3（Size 族）之后仍然是零真实偏离**：PkSize/PkSizeF 同样是逐字照抄
-# qsize.h 与 qsize.cpp（连 QSize() == (-1,-1)、isEmpty 的 `<1` 与浮点版 `<=0.`
-# 不一致、scaled 在退化源上直接返回目标、qint64 中间量窄化回绕都照抄），
-# 98 759 499 次逐输入比对下来 mismatch 仍然只有那 3 条 canary。
-# 判别力靠注入自证：5 组变异里 4 组产生了未声明的新 tag（第 5 组是"整数版
-# isEmpty 的 <1 改成 <=0"，那两条公式在整数上**本来就等价**，零差异是正确结果）。
+# 在此之前 run_oracle.sh 只核对 (api, tag) 这个**键**在不在清单里，计数只打印、
+# 不判定 —— 也就是说**一条已声明的 tag 是张无限额度的白名单**：同一个 tag 下
+# 差异从一千条涨到一百万条，闸门一声不吭。
+#
+# 这不是假设。评审员实测（I8）：把 4 个 .so 侧 API 的翻正判据全部加宽成
+# `(long long)x2 - x1 + 1 < 0`（16 处源码），与真 Qt 的分家从 704 589 抬到
+# **1 485 313（2.1 倍）**，`run_tests.sh` 与 `run_oracle.sh` **双双 exit=0 放行**。
+# 当时唯一发现它的办法是人盯着那个数字 —— 那不是判据，那是运气。
+#
+# 这是 Task 3 那个洞换一层重演（那次是「漏一个 rec() 没人报」，这次是
+# 「数字翻倍没人报」），所以同样要用机器堵：**计数写进清单，漂移即 FAIL**。
+#
+# 三条 canary 的期望计数都是 1：它们各是一次故意不相等的比对，跑一次、红一次。
+#
+# ══════════════════════════════════════════════════════════════════════════
+# **R-03 至今（截至 Task 4 修复轮）零真实偏离 —— 这是正确结果，不是漏测。**
+#
+# 与 R-01 的根本不同：PkString 是重写，行为差异不可避免；而 PkPoint/PkPointF、
+# PkSize/PkSizeF、PkRect 都是**逐字照抄 Qt 头文件与实现**（连 qAbs(INT_MIN)
+# 回绕、int(inf)、QSize() == (-1,-1)、isEmpty 的 `<1` 与浮点版 `<=0.` 不一致、
+# scaled 在退化源上直接返回目标、qint64 中间量窄化回绕、QRect 的差一语义与
+# normalized 的 `x2 < x1-1` 交换边界都照抄），逐输入对拍下来本来就该是零差异。
+#
+# 逐 Task 的比对规模（**历史陈述，各是当时那一轮的实测值，不跟着后续基线漂**）：
+#   · 截至 Task 2（Point 族）      total =  35 569 662，mismatch = 3（canary）
+#   · 截至 Task 3（+ Size 族）     total =  98 759 499，mismatch = 3（canary）
+#   · 截至 Task 4 修复轮（+ Rect） total = 125 338 363，mismatch = 3（canary）
+# 判别力靠注入自证，不靠这些数字本身 —— 数字只说明"喂进去的输入不是几条"。
 #
 # canary 是三条故意不相等的比对，走的是与真实 API 完全相同的 rec()/比较原语/
 # tag 构造路径 —— 它们的作用不是记录偏离，而是证明「mismatch 这个数字是活的」：
@@ -25,61 +46,39 @@
 # run_oracle.sh 就 FAIL。
 #
 # ══════════════════════════════════════════════════════════════════════════
-# **Task 4（Rect 族）写下了 R-03 的第一批非 canary 行 —— 9 条，全部同一个根因。**
+# **Task 4 一度写下过 9 条非 canary 行（`span-overflow-ub`），修复轮把它们删了。**
 #
-# 它**不是 PkRect 的行为偏离**，是**对拍装置自身够不到的一块**，证据是决定性的：
+# 那 9 行声称的是：`operator|` / `operator&` / `contains(QRect)` / `intersects`
+# （及转发到它们的 united / intersected / |= / &=）在"跨距越出 int"的输入上与
+# Qt 分家 704 589 次，根因是**旗标不对等** —— 这四个的实现编在 libQt5Core.so
+# 里，对拍 TU 的 `-fwrapv` 到不了那侧，同一条 `x2 - x1 + 1 < 0` 判据两侧取值不同。
 #
-#   同一份源码、同一批输入（total=125 338 363）：
-#     · `-O2 -fwrapv`（现行旗标）  → mismatch = 704 589
-#     · `-O2`（去掉 -fwrapv）      → mismatch = **3**（只剩 canary）
-#   唯一的变量是编译旗标。也就是说 PkRect 的源码在 Qt 自己的旗标下与 Qt
-#   **逐输入完全一致**，一条差异都没有。
+# 根因诊断是对的，处置是错的：既然根因是旗标，就该**把旗标改掉**，而不是把
+# 那片输入白名单化。修复轮去掉了对拍侧的 `-fwrapv`（库与单测那份保留，`-Os`
+# 那一档需要它），同一份源码、同一批输入 mismatch 直接回到 **3（只剩 canary）**。
 #
-# 机理：`operator|` / `operator&` / `contains(QRect)` / `intersects` 这四个
-# （以及转发到它们的 united / intersected / |= / &=）**不在头文件里，实现编在
-# libQt5Core.so 里**（`nm -DC libQt5Core.so.5 | grep 'QRect::operator|'` 看得到）。
-# 对拍 TU 的 `-fwrapv` 只作用于头文件里的 inline 代码，**到不了那份 .so**。
-# 而这四个的翻正判据写作 `x2 - x1 + 1 < 0`，跨距越出 int 时是有符号溢出 UB：
-# 我们这侧按二补数回绕、Qt 那侧按"溢出不会发生"推导，两个取值都合法。
+# 代价这样记：那 9 行原本豁免的是 **3 286 575 次比对（占 total 的 2.62%，实测
+# 计数）** —— 注意不是 704 589，那是**差异**次数；当初的报告拿差异次数当盲区
+# 规模写，把它低估了 4.7 倍。这正是「豁免档必须量化、而且要量对量」的理由。
+# 现在这 328 万次是真比对，任何差异都会是新 tag 而 FAIL。
 #
-# 三条旁证把根因钉死在"旗标"而不是"我们抄错了"：
-#   · 同样住在 .so 里、但判据写作 `x2 < x1 - 1` 的 normalized() 与
-#     contains(QPoint) **一条 mismatch 都没有**；
-#   · 全部 inline 成员（width / isNull / center / adjust / moveTo …）全绿；
-#   · 专门写的扫描程序在 9⁸ = 43 046 721 组极值坐标双目输入上确认：
-#     **跨距不溢出时分家次数为 0**。
+# 换来的新代价（登记在 README 覆盖度缺口）：溢出输入上"两侧一致"从"被旗标钉死"
+# 变成了"同编译器同旗标下的巧合"，换一个 GCC 编出来的 Qt 可能冒出新 tag ——
+# **但那是 FAIL（响的）不是静默放行，失败方向是对的。**
 #
-# 试过"把判据加宽到 long long 去凑 Qt 那侧"——mismatch 从 704 589 涨到
-# 1 485 313，说明 Qt 那侧也不是统一的"不回绕"，是逐点依赖 GCC 在各 inline 点
-# 上做了什么。**源码层面无解**，所以登记成偏离而不是回去改实现。
-#
-# 谓词宽度（方法论规则二）：tag `span-overflow-ub` 的判定就是
-# `spanOverflows(a) || spanOverflows(b)`，而 spanOverflows 查的正是
-# `x2-x1` 与 `x2-x1+1` 这**两个**中间量是否越出 int —— 与上面这句理由逐字对齐，
-# 一格都没多。有定义的那一侧仍然带着完整的细粒度 tag（`defined/<形态对>/<相对
-# 位置>`），真出现偏离时必然是**新 tag**，照样 FAIL。
-# ⚠ 代价说清楚：这一档等于把"跨距溢出的矩形"上这九个 API 的差异整片豁免了。
-# 可接受的理由是**那片输入两侧都是 UB，"正确"在那里没有定义**；不可接受的用法
-# 是拿它去盖别的东西 —— 所以谓词不许再放宽一格。
-#
-# ⚠ 抄这份骨架的后续 Task（Size/Rect/RectF/Transform）注意：
+# ══════════════════════════════════════════════════════════════════════════
+# ⚠ 抄这份骨架的后续 Task（RectF / Transform）注意：
 #   · 往这里加行之前先问「这条差异是不是缺陷」。默认答案是**是**，回去改替代品。
 #     唯一站得住的偏离理由是决策文档已明确划在范围外的东西。
 #   · 加行之后回头把理由里的**每个限定词**对一遍谓词（方法论规则二）。理由说
 #     「退化矩形」，谓词就不能是「任何矩形」——宽一格就等于把那一整片行为
 #     永久白名单化，注入真 bug 也看不见。
+#   · **谓词宽度对了还不够，额度也要对**：第三列的期望计数就是额度。写下一条
+#     真实偏离时，那个数字要能说清"为什么恰好是这么多"，不能填个大概。
+#   · 差异如果来自**两侧编译旗标不一样**，那不是偏离，是装置缺陷 —— 先把旗标
+#     对齐（Task 4 修复轮就是这么收的），对不齐再谈声明。
 # ══════════════════════════════════════════════════════════════════════════
 
-canary	int-value	比较管道自证：故意拿 QPoint(1,2) 与 PkPoint(1,3) 相比，整数分量比较与计数链路活着才会出现这一条，消失即判据失效
-canary	double-bits-signed-zero	比较管道自证：+0.0 与 -0.0 按位不同但 == 判等，这一条能出现才说明 same_double 走的是 memcpy 位比较而不是退化成了 ==
-canary	nan-vs-number	比较管道自证：NaN 与 1.0 必须判成不同，这一条能出现才说明 NaN 分支没有把一切都判成相同（NaN 判等只在两侧都是 NaN 时成立）
-
-R::operator|	span-overflow-ub	operator| 编在 libQt5Core.so 里，对拍 TU 的 -fwrapv 到不了那侧；它的翻正判据 x2-x1+1<0 在跨距越出 int 时是有符号溢出 UB，我们回绕、Qt 按无溢出推导。去掉 -fwrapv 重编同一份源码，mismatch 从 704589 降到 3，证明源码本身与 Qt 逐输入一致
-R::operator|=	span-overflow-ub	operator|= 是 *this = *this | r 的转发，差异整条来自 operator| 那一跳，根因与旗标口径同 R::operator| 那一行，不另立说法
-R::united	span-overflow-ub	united 是 operator| 的具名别名（qrect.h:449），差异逐条与 operator| 同源，跨距不溢出时实测零差异
-R::operator&	span-overflow-ub	operator& 同样编在 libQt5Core.so 里，翻正判据 x2-x1+1<0 在跨距溢出时两侧旗标不同取值不同；对照组去掉 -fwrapv 后该 API 零差异
-R::operator&=	span-overflow-ub	operator&= 是 *this = *this & r 的转发，差异整条来自 operator& 那一跳，根因与旗标口径同 R::operator& 那一行
-R::intersected	span-overflow-ub	intersected 是 operator& 的具名别名（qrect.h:444），差异逐条与 operator& 同源，跨距不溢出时实测零差异
-R::intersects	span-overflow-ub	intersects 与 operator& 是 qrect.cpp 里两段同样的判断，同住 .so、同一条 x2-x1+1<0 判据，跨距溢出时旗标差异导致选支不同
-R::containsRect	span-overflow-ub/proper-false	contains(QRect,false) 编在 libQt5Core.so 里，翻正判据 x2-x1+1<0 在跨距溢出时两侧旗标不同；proper 两个取值走两条分支，各自一行
-R::containsRectProper	span-overflow-ub/proper-true	contains(QRect,true) 与 proper=false 走的是不同的比较分支（<= 而不是 <），单独一行；根因同为 .so 侧够不到 -fwrapv 的有符号溢出 UB
+canary	int-value	1	比较管道自证：故意拿 QPoint(1,2) 与 PkPoint(1,3) 相比，整数分量比较与计数链路活着才会出现这一条，消失即判据失效
+canary	double-bits-signed-zero	1	比较管道自证：+0.0 与 -0.0 按位不同但 == 判等，这一条能出现才说明 same_double 走的是 memcpy 位比较而不是退化成了 ==
+canary	nan-vs-number	1	比较管道自证：NaN 与 1.0 必须判成不同，这一条能出现才说明 NaN 分支没有把一切都判成相同（NaN 判等只在两侧都是 NaN 时成立）

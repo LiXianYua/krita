@@ -16,8 +16,13 @@ OUT=pk/geometry/build/geometry_difftest
 LOG=pk/geometry/build/geometry_difftest.out
 # 规则三（每个已实现的重载都要有自己的 rec()）的机器闸门，见下面 §APISEEN
 APIEXP=pk/geometry/oracle/api_seen.expected
-RECTMAP=pk/geometry/oracle/rect_api.map
-RECTHDR=pk/geometry/PkRect.h
+# 三族各一组 `<头文件>|<类名,类名…>|<map 文件>`。**加一族就在这里加一行**，
+# 闸门代码只有一份。Task 4 修复轮之前只有 Rect 一行（评审 M-4）。
+API_GROUPS=(
+    "pk/geometry/PkRect.h|PkRect|pk/geometry/oracle/rect_api.map"
+    "pk/geometry/PkPoint.h|PkPoint,PkPointF|pk/geometry/oracle/point_api.map"
+    "pk/geometry/PkSize.h|PkSize,PkSizeF|pk/geometry/oracle/size_api.map"
+)
 
 [ -f "$QT/include/QtCore/qpoint.h" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/qpoint.h" >&2; exit 1; }
 [ -f "$QT/lib/libQt5Core.so" ]       || { echo "找不到真 Qt5 的库：$QT/lib/libQt5Core.so" >&2; exit 1; }
@@ -38,16 +43,32 @@ done
 INCFLAGS=()
 for i in "${INCS[@]}"; do INCFLAGS+=("-I$i"); done
 
-# ⚠ **-fwrapv 是必需的，不是调优。** QPoint::manhattanLength 是 qAbs(x)+qAbs(y)，
-# operator+ 是裸的 int 相加 —— 在 INT_MIN/INT_MAX 上都是**有符号溢出 UB**，而
-# 那批输入正是最该对拍的形态（Qt 自己就这么写，替代品照抄）。不加 -fwrapv 时
-# -O2 会拿"溢出不可能发生"去推导取值范围，实测的表现是 std::to_string 在打印
-# 溢出后的负数时**段错误**（GCC 13 把 __to_chars_len 的分支优化没了）。
-# 加上之后两侧都按二补数回绕，比的仍然是同一件事，且结果与 -O0 逐字相同。
-# **两侧本来都是 UB，我们比的是"钉死之后的行为"，这不等于 Krita 发布构建里的
-# 行为**（那边不带 -fwrapv）—— 完整口径写在 README 的覆盖度缺口。
-# pk/geometry/CMakeLists.txt 里同样带着这个旗标（target_compile_options PUBLIC），
-# 两边必须一致，否则对拍与单测钉的不是同一套行为。
+# ⚠ **对拍侧刻意不带 -fwrapv**（Task 4 修复轮的 controller 裁决，与库/单测侧相反）。
+#
+# 背景：`operator|` / `operator&` / `contains(QRect)` / `intersects` 的实现不在头
+# 文件里，**编在 libQt5Core.so 里**，对拍 TU 的旗标到不了那侧。它们的翻正判据
+# 写作 `x2 - x1 + 1 < 0`，跨距越出 int 时是有符号溢出 UB —— 对拍 TU 带 -fwrapv
+# 时我们这侧按二补数回绕、.so 那侧按"溢出不会发生"推导，于是凭空多出
+# **704 589 条差异**，而它们不是 PkRect 的行为偏离，纯粹是旗标不对等。
+#
+# 去掉 -fwrapv 之后同一份源码、同一批输入 mismatch = **3（只剩 canary）**：
+# 对拍 TU 与 libQt5Core.so 现在带的是同一套旗标，比的是同一件事。
+#   · geometry.deviation 回到全 R-03 canary-only，「任何非 canary tag = FAIL」
+#     这条 R 线 spec 的地基保住；
+#   · 原本被 `span-overflow-ub` 整片豁免的 **3 286 575 次比对（占 2.62%）**
+#     现在是真比对（实测计数，不是估算）；
+#   · 与 **Krita 发布构建的旗标一致**（那边同样不带 -fwrapv），对拍证明的东西
+#     离出货形态更近。
+# **代价**（写进 README）：溢出输入上"两侧一致"变成了「同编译器同旗标下的巧合」，
+# 换一个 GCC 编出来的 Qt 可能冒出新 tag —— 但那是 FAIL（响的）不是静默放行。
+#
+# ⚠ **pk/geometry/CMakeLists.txt 里库与单测那份 -fwrapv 保留不变**，两边刻意不
+# 一致：库侧没有 .so 对等物的问题，而 `-Os` 无 -fwrapv 时 pointManhattanLength()
+# 会变红（Task 2 裁决，实测仍复现）。
+#
+# 曾经写在这里的另一条理由 ——「对拍这边 -O2 无 -fwrapv 时 std::to_string 打印
+# 溢出后的负数直接段错误」—— **已不复现**：本轮跑满 125 338 363 次比对退出码 0。
+# 那句现在时陈述随本轮删除，别再拿它当保留 -fwrapv 的依据。
 # 浮点→int 越界（int(inf)）是另一类 UB，-fwrapv 管不着；实机上运行期两侧都编成
 # 同一条 cvttsd2si，取值一致，但编译期常量折叠给的是另一个答案 —— 对拍的输入
 # 来自运行期数组，天然不会被折叠；单测那边靠 noFold() 顶。
@@ -61,7 +82,7 @@ for i in "${INCS[@]}"; do INCFLAGS+=("-I$i"); done
 # 它只作用于**头文件里的 inline 代码**（libQt5Core 里的 out-of-line 实现是
 # 编好的，不受影响），且 qpoint.h 里一个 Q_ASSERT 都没有 —— 实测加它前后
 # Point 族的 total/mismatch 逐字不变。
-CXXFLAGS_ORACLE=(-std=c++17 -O2 -fwrapv -fPIC -DQT_NO_DEBUG)
+CXXFLAGS_ORACLE=(-std=c++17 -O2 -fPIC -DQT_NO_DEBUG)
 
 mkdir -p pk/geometry/build
 printf '编译：g++ %s %s %s\n' "${CXXFLAGS_ORACLE[*]}" "${INCFLAGS[*]}" "$SRC"
@@ -105,15 +126,21 @@ grep -E '^(DIFFTAG|DIFF) ' "$LOG" || true
 #
 # 这里把它变成机器对账，三件事任一不成立就 FAIL：
 #   ① 程序打出的 APISEEN 集合 == api_seen.expected（多一条少一条都算漂移）
-#   ② PkRect.h **类体里的每一条声明**都在 rect_api.map 里有一行，反之亦然
+#   ② **每个头文件类体里的每一条声明**都在对应的 <族>_api.map 里有一行，反之亦然
 #      —— 这一条才是真正堵住 Task 3 那个洞的：加了重载却没写 rec() 时，
 #      新声明在 map 里找不到对应行，当场 FAIL
-#   ③ rect_api.map 里列的每个标签都真的出现在 APISEEN 里
+#   ③ map 里列的每个标签都真的出现在 APISEEN 里
 # 期望清单仍然是人维护的，但**漂移由机器抓** —— 机器查机械的那一半。
-python3 - "$LOG" "$APIEXP" "$RECTMAP" "$RECTHDR" <<'PY'
+#
+# ⚠ **Task 4 修复轮（评审 M-4）：②③ 从只管 Rect 扩到 Point / Size 三族。**
+# 在那之前 Point/Size 只有 api_seen.expected 这一份清单，而它的内容来自对拍
+# 程序自己打出的 APISEEN —— 用 rec() 去证明 rec() 没漏，是自证循环。
+# 接进同一个解析器之后三族同一条判据：头文件声明是**独立来源**。
+python3 - "$LOG" "$APIEXP" "${API_GROUPS[@]}" <<'PY'
 import re, sys
 
-log, exp_path, map_path, hdr_path = sys.argv[1:5]
+log, exp_path = sys.argv[1], sys.argv[2]
+groups = [g.split('|') for g in sys.argv[3:]]
 
 seen = {l[len('APISEEN '):].strip()
         for l in open(log, encoding='utf-8', errors='replace')
@@ -130,72 +157,126 @@ if seen != expected:
     for a in sorted(expected - seen):
         print('  清单里有但程序没打出：%s' % a, file=sys.stderr)
 
-# PkRect.h 类体里的声明指纹：去注释 → 取 class 体 public 段 → 逐条声明
+
+# 内联函数体：**换成 `;` 而不是删掉**。删掉的话 `int f(...) { ... }` 后面没有
+# 分号，它会跟下一条声明黏成一个语句，而正则只认末尾那一个 —— 前一条声明就
+# **静默消失**（实测：PkPoint::dotProduct 与 PkPointF::dotProduct 两条这样丢过，
+# 闸门看不见它们还照样打印"全部对上"）。换成 `;` 才让每条声明各自成句。
+def strip_bodies(s):
+    out, depth = [], 0
+    for ch in s:
+        if ch == '{':
+            depth += 1; continue
+        if ch == '}':
+            depth -= 1
+            if depth == 0:
+                out.append(';')
+            continue
+        if depth == 0:
+            out.append(ch)
+    return ''.join(out)
+
+
+# 类体里的声明指纹：去注释 → 取 class 体 public 段 → 去内联函数体 → 逐条声明
 # 规范化（去形参名、去默认实参、把 `T &x` / `T *x` 收成 `T&` / `T*`）。
-src = re.sub(r'//[^\n]*', '', open(hdr_path, encoding='utf-8').read())
-m = re.search(r'class PkRect\s*\{(.*?)\n\s*private:', src, re.S)
-if not m:
-    print('FAIL: 解析不出 PkRect 的类体 —— 头文件结构变了，闸门失效', file=sys.stderr)
-    sys.exit(1)
-decls, miss = [], []
-for stmt in m.group(1).split(';'):
-    stmt = ' '.join(stmt.split())
-    if not stmt:
-        continue
-    mm = re.search(r'(operator[^\s(]*|~?[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)'
-                   r'\s*(?:const)?\s*(?:noexcept)?\s*$', stmt)
-    if not mm:
-        miss.append(stmt); continue
-    ps = []
-    for p in mm.group(2).split(','):
-        p = ' '.join(p.split('=')[0].split())
-        p = re.sub(r'\s+[A-Za-z_][A-Za-z0-9_]*$', '', p)
-        p = p.replace(' &', '&').replace(' *', '*')
-        p = re.sub(r'([&*])[A-Za-z_][A-Za-z0-9_]*$', r'\1', p)
-        if p:
-            ps.append(p)
-    decls.append('%s(%s)' % (mm.group(1), ','.join(ps)))
-if miss:
-    ok = False
-    print('FAIL: PkRect.h 类体里有解析不了的声明（闸门会漏掉它们）：', file=sys.stderr)
-    for s in miss:
-        print('  ' + s, file=sys.stderr)
+# 键带类名前缀：PkPoint/PkPointF 这类孪生类有大量同名同参声明，不带前缀会撞键。
+def parse_decls(hdr_path, cls):
+    src = re.sub(r'//[^\n]*', '', open(hdr_path, encoding='utf-8').read())
+    m = re.search(r'class %s\s*\{(.*?)\n\s*private:' % re.escape(cls), src, re.S)
+    if m is None:
+        return None, None
+    decls, miss = [], []
+    for stmt in strip_bodies(m.group(1)).split(';'):
+        stmt = ' '.join(stmt.split())
+        if not stmt:
+            continue
+        mm = re.search(r'(operator[^\s(]*|~?[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)'
+                       r'\s*(?:const)?\s*(?:noexcept)?\s*$', stmt)
+        if not mm:
+            miss.append(stmt); continue
+        ps = []
+        for p in mm.group(2).split(','):
+            p = ' '.join(p.split('=')[0].split())
+            p = re.sub(r'\s+[A-Za-z_][A-Za-z0-9_]*$', '', p)
+            p = p.replace(' &', '&').replace(' *', '*')
+            p = re.sub(r'([&*])[A-Za-z_][A-Za-z0-9_]*$', r'\1', p)
+            if p:
+                ps.append(p)
+        decls.append('%s::%s(%s)' % (cls, mm.group(1), ','.join(ps)))
+    return decls, miss
 
-mapping = {}
-for n, line in enumerate(open(map_path, encoding='utf-8'), 1):
-    if line.startswith('#') or not line.strip():
-        continue
-    cols = line.rstrip('\n').split('\t')
-    if len(cols) != 2:
-        print('FAIL: %s:%d 不是两列 tab 分隔' % (map_path, n), file=sys.stderr)
-        sys.exit(1)
-    mapping[cols[0]] = [x for x in cols[1].split(',') if x]
 
-undeclared = [d for d in decls if d not in mapping]
-orphan = [k for k in mapping if k not in decls]
-if undeclared:
-    ok = False
-    print('FAIL: PkRect.h 里有声明在 %s 里没有对应行（规则三闸门 ②）——' % map_path,
-          file=sys.stderr)
-    print('      新加的重载必须同时有一条自己的 rec() 和这里的一行：', file=sys.stderr)
-    for d in undeclared:
-        print('  ' + d, file=sys.stderr)
-if orphan:
-    ok = False
-    print('FAIL: %s 里有行对不上 PkRect.h 的任何声明（成员删了却留着行）：' % map_path,
-          file=sys.stderr)
-    for k in orphan:
-        print('  ' + k, file=sys.stderr)
-
-for d in decls:
-    for lab in mapping.get(d, []):
-        if lab not in seen:
+summary = []
+for hdr_path, classes, map_path in groups:
+    decls, miss = [], []
+    for cls in classes.split(','):
+        d, ms = parse_decls(hdr_path, cls)
+        if d is None:
             ok = False
-            print('FAIL: %s 映射到标签 %s，但对拍里根本没有这条 rec()（闸门 ③）'
-                  % (d, lab), file=sys.stderr)
+            print('FAIL: 解析不出 %s 的类体（%s）—— 头文件结构变了，闸门失效'
+                  % (cls, hdr_path), file=sys.stderr)
+            continue
+        decls += d
+        miss += ms
+    dup = sorted({d for d in decls if decls.count(d) > 1})
+    if dup:
+        ok = False
+        print('FAIL: %s 解析出重复的声明指纹（会让 map 少一行也查不出来）：' % hdr_path,
+              file=sys.stderr)
+        for d in dup:
+            print('  ' + d, file=sys.stderr)
+    if miss:
+        ok = False
+        print('FAIL: %s 类体里有解析不了的声明（闸门会漏掉它们）：' % hdr_path,
+              file=sys.stderr)
+        for s in miss:
+            print('  ' + s, file=sys.stderr)
 
-print('\n规则三机器对账：PkRect.h 声明 %d 条，rect_api.map %d 行，'
-      'APISEEN %d 个（期望 %d）' % (len(decls), len(mapping), len(seen), len(expected)))
+    mapping = {}
+    for n, line in enumerate(open(map_path, encoding='utf-8'), 1):
+        if line.startswith('#') or not line.strip():
+            continue
+        cols = line.rstrip('\n').split('\t')
+        if len(cols) != 2:
+            print('FAIL: %s:%d 不是两列 tab 分隔' % (map_path, n), file=sys.stderr)
+            sys.exit(1)
+        if not cols[1].strip():
+            print('FAIL: %s:%d 标签列为空 —— 每条声明都必须落到至少一条 rec()'
+                  % (map_path, n), file=sys.stderr)
+            sys.exit(1)
+        # ⚠ 多标签用 **`;`** 分隔，不能用逗号：标签名自己就含逗号
+        # （`operator*(float,rev)`、`S::scale(w,h)`），用逗号切会把一个标签
+        # 劈成两半，然后闸门③ 拿两个不存在的名字去查 —— 实测踩过。
+        mapping[cols[0]] = [x for x in cols[1].split(';') if x]
+
+    undeclared = [d for d in decls if d not in mapping]
+    orphan = [k for k in mapping if k not in decls]
+    if undeclared:
+        ok = False
+        print('FAIL: %s 里有声明在 %s 里没有对应行（规则三闸门 ②）——'
+              % (hdr_path, map_path), file=sys.stderr)
+        print('      新加的重载必须同时有一条自己的 rec() 和这里的一行：', file=sys.stderr)
+        for d in undeclared:
+            print('  ' + d, file=sys.stderr)
+    if orphan:
+        ok = False
+        print('FAIL: %s 里有行对不上 %s 的任何声明（成员删了却留着行）：'
+              % (map_path, hdr_path), file=sys.stderr)
+        for k in orphan:
+            print('  ' + k, file=sys.stderr)
+
+    for d in decls:
+        for lab in mapping.get(d, []):
+            if lab not in seen:
+                ok = False
+                print('FAIL: %s 映射到标签 %s，但对拍里根本没有这条 rec()（闸门 ③）'
+                      % (d, lab), file=sys.stderr)
+    summary.append('%s 声明 %d 条 / %s %d 行'
+                   % (hdr_path.rsplit('/', 1)[-1], len(decls),
+                      map_path.rsplit('/', 1)[-1], len(mapping)))
+
+print('\n规则三机器对账：' + '；'.join(summary))
+print('                APISEEN %d 个（期望 %d）' % (len(seen), len(expected)))
 sys.exit(0 if ok else 1)
 PY
 
@@ -229,15 +310,25 @@ for n, line in enumerate(open(dev, encoding='utf-8'), 1):
     if line.startswith('#') or not line.strip():
         continue
     cols = line.rstrip('\n').split('\t')
-    if len(cols) != 3:
-        print(f'FAIL: {dev}:{n} 不是三列 tab 分隔', file=sys.stderr); sys.exit(1)
-    api, tag, reason = cols
+    if len(cols) != 4:
+        print(f'FAIL: {dev}:{n} 不是四列 tab 分隔'
+              f'（<api> <tag> <期望计数> <理由>）', file=sys.stderr); sys.exit(1)
+    api, tag, want, reason = cols
+    if not want.strip().isdigit():
+        print(f'FAIL: {dev}:{n} 第三列「{want}」不是十进制整数计数', file=sys.stderr)
+        sys.exit(1)
     if len(reason) < 20:                      # str 的长度就是码点数
         print(f'FAIL: {dev}:{n} 理由只有 {len(reason)} 个码点，门槛 20', file=sys.stderr); sys.exit(1)
-    declared[(api, tag)] = reason
+    declared[(api, tag)] = (int(want), reason)
 
 undeclared = sorted(k for k in seen if k not in declared)
 stale      = sorted(k for k in declared if k not in seen)
+# **额度闸门**（Task 4 修复轮，评审 Important 1）：已声明的 tag 曾经是**无限
+# 额度**的白名单 —— 键在清单里就放行，计数只打印。评审员实测把 4 个 .so 侧
+# API 的判据加宽（16 处源码），差异从 704 589 涨到 1 485 313（2.1 倍），
+# **两个脚本双双 exit=0**。现在计数写进 geometry.deviation 第三列，漂移即 FAIL。
+drift = sorted((k, declared[k][0], seen[k]) for k in seen
+               if k in declared and seen[k] != declared[k][0])
 
 # canary 必须全部出现：它们是「比较管道还活着」的自证，消失就说明 mismatch
 # 这个数字已经不反映任何东西了。
@@ -248,7 +339,8 @@ print(f'\n对拍结论：total={total} mismatch={mismatch} '
       f'tag={len(seen)}（其中 canary {len(canaries)}）')
 for k, v in sorted(seen.items()):
     kind = 'canary' if k[0] == 'canary' else ('已声明' if k in declared else '**未声明**')
-    print(f'  {k[0]} {k[1]} {v}  [{kind}]')
+    want = f'，期望 {declared[k][0]}' if k in declared else ''
+    print(f'  {k[0]} {k[1]} {v}{want}  [{kind}]')
 
 ok = True
 if missing_canary:
@@ -260,6 +352,12 @@ if undeclared:
           file=sys.stderr)
     for a, t in undeclared:
         print(f'  {a} {t} {seen[(a, t)]}', file=sys.stderr)
+    ok = False
+if drift:
+    print('FAIL: 已声明的 tag 计数漂移（额度用超/用少 = 行为变了却没人判断过）：',
+          file=sys.stderr)
+    for (a, t), want, got in drift:
+        print(f'  {a} {t} 期望 {want}，实得 {got}（差 {got - want:+d}）', file=sys.stderr)
     ok = False
 if stale:
     print('WARN: 声明了却没观察到（白名单过期，或对拍没走到那条路径）：'

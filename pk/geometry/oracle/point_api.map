@@ -1,0 +1,77 @@
+# PkPoint / PkPointF 类体声明 → 对拍 rec() 标签的映射（规则三的机器闸门）
+#
+# 格式与口径同 oracle/rect_api.map，那份是本格式的正本，这里只记本文件特有的事。
+#
+# **Task 4 修复轮新增（评审 M-4）**：在此之前只有 Rect 一族有「头文件声明 →
+# rec() 标签」的独立来源，Point / Size 两族在 api_seen.expected 里只有一份
+# **由对拍程序自己打出来的**名字清单 —— 那份清单证明不了「PkPoint.h 里新加
+# 的成员有没有 rec()」，因为它的来源就是 rec() 本身（自证循环）。接进同一个
+# 解析器之后，三族用的是同一条判据：**头文件里的每一条声明都必须在这里有一行**。
+#
+# 上线当场抓到一个真实缺口：`PkPoint()` 与 `PkPointF()` 两个默认构造在
+# Task 2 里**从来没被对拍比过**（Size 族有 S::defaultCtor / SF::defaultCtor，
+# Point 族没有对应物）。补了两条 rec（cmp_point_constants），不是把缺口写进注释了事。
+#
+# 一条声明映射到多个标签 = 那条声明的行为由这几条 rec 共同盯着。
+# 带参构造没有自己的 rec：它是**每一条** rec 的输入构造路径（`QPoint(x,y)` vs
+# `PkPoint(x,y)`），构造错了 x/y 两条当场变红，所以映射到 `x;y` 而不是留空。
+# 这与「一个重载一条 rec」不冲突 —— 规则三管的是**被调用的重载**，构造函数在
+# 这里是 fixture 而不是被测项。
+
+PkPoint::PkPoint()	defaultCtor
+PkPoint::PkPoint(int,int)	x;y
+PkPoint::isNull()	isNull
+PkPoint::x()	x
+PkPoint::y()	y
+PkPoint::setX(int)	setX/setY
+PkPoint::setY(int)	setX/setY
+PkPoint::manhattanLength()	manhattanLength
+PkPoint::rx()	rx/ry
+PkPoint::ry()	rx/ry
+PkPoint::dotProduct(const PkPoint&,const PkPoint&)	dotProduct
+PkPoint::operator+=(const PkPoint&)	operator+=
+PkPoint::operator-=(const PkPoint&)	operator-=
+PkPoint::operator*=(float)	operator*=(float)
+PkPoint::operator*=(double)	operator*=(double)
+PkPoint::operator*=(int)	operator*=(int)
+PkPoint::operator/=(qreal)	operator/=
+PkPoint::operator==(const PkPoint&,const PkPoint&)	operator==
+PkPoint::operator!=(const PkPoint&,const PkPoint&)	operator!=
+PkPoint::operator+(const PkPoint&,const PkPoint&)	operator+
+PkPoint::operator-(const PkPoint&,const PkPoint&)	operator-
+PkPoint::operator*(const PkPoint&,float)	operator*(float)
+PkPoint::operator*(float,const PkPoint&)	operator*(float,rev)
+PkPoint::operator*(const PkPoint&,double)	operator*(double)
+PkPoint::operator*(double,const PkPoint&)	operator*(double,rev)
+PkPoint::operator*(const PkPoint&,int)	operator*(int)
+PkPoint::operator*(int,const PkPoint&)	operator*(int,rev)
+PkPoint::operator+(const PkPoint&)	operator+unary
+PkPoint::operator-(const PkPoint&)	operator-unary
+PkPoint::operator/(const PkPoint&,qreal)	operator/
+
+PkPointF::PkPointF()	F::defaultCtor
+PkPointF::PkPointF(const PkPoint&)	F::fromPoint
+PkPointF::PkPointF(qreal,qreal)	F::x;F::y
+PkPointF::manhattanLength()	F::manhattanLength
+PkPointF::isNull()	F::isNull
+PkPointF::x()	F::x
+PkPointF::y()	F::y
+PkPointF::setX(qreal)	F::setX/setY
+PkPointF::setY(qreal)	F::setX/setY
+PkPointF::rx()	F::rx/ry
+PkPointF::ry()	F::rx/ry
+PkPointF::toPoint()	F::toPoint;F::roundTrip
+PkPointF::dotProduct(const PkPointF&,const PkPointF&)	F::dotProduct
+PkPointF::operator+=(const PkPointF&)	F::operator+=
+PkPointF::operator-=(const PkPointF&)	F::operator-=
+PkPointF::operator*=(qreal)	F::operator*=
+PkPointF::operator/=(qreal)	F::operator/=
+PkPointF::operator==(const PkPointF&,const PkPointF&)	F::operator==
+PkPointF::operator!=(const PkPointF&,const PkPointF&)	F::operator!=
+PkPointF::operator+(const PkPointF&,const PkPointF&)	F::operator+;F::mixedAdd
+PkPointF::operator-(const PkPointF&,const PkPointF&)	F::operator-
+PkPointF::operator*(qreal,const PkPointF&)	F::operator*(rev)
+PkPointF::operator*(const PkPointF&,qreal)	F::operator*
+PkPointF::operator+(const PkPointF&)	F::operator+unary
+PkPointF::operator-(const PkPointF&)	F::operator-unary
+PkPointF::operator/(const PkPointF&,qreal)	F::operator/

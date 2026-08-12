@@ -550,6 +550,27 @@ void PkRectCase::rectContainsRect()
     PK_VERIFY(PkRect(0, 0, 10, 10).contains(PkRect(0, 0, 10, 10)));
     PK_VERIFY(!PkRect(0, 0, 10, 10).contains(PkRect(0, 0, 10, 10), true));
 
+    // ⚠ **proper 必须逐轴单独测。**（Task 4 修复轮，评审 M-1）
+    // 上面那条 `contains(自己, true)` 是**两轴同时**贴边，于是 proper 的四条
+    // 严格判断里**任意一条**成立就返回 false —— 把其中任意一条改坏（比如
+    // 左边界的 `<=` 写成 `<`），另一条照样让它返回 false，**单测全绿**。
+    // 评审员实测（I6）复现过：只有对拍抓得到，单测一片绿。
+    // 下面四条各只让**一个轴**贴边、另一个轴严格在内，于是每一条都唯一地
+    // 盯住一个边界判断，改坏哪个就红哪个。
+    // 期望值是真 Qt 探针实测的（Qt 5.15.7，见报告「M-1 探针」一节）：
+    //   (0,0,10,10).contains((0,2,10,5), true) = false，而 proper=false 时 = true
+    PK_VERIFY(PkRect(0, 0, 10, 10).contains(PkRect(0, 2, 10, 5)));          // 左右共边
+    PK_VERIFY(!PkRect(0, 0, 10, 10).contains(PkRect(0, 2, 10, 5), true));
+    PK_VERIFY(PkRect(0, 0, 10, 10).contains(PkRect(2, 0, 5, 10)));          // 上下共边
+    PK_VERIFY(!PkRect(0, 0, 10, 10).contains(PkRect(2, 0, 5, 10), true));
+    PK_VERIFY(!PkRect(0, 0, 10, 10).contains(PkRect(0, 2, 5, 5), true));    // 仅左共边
+    PK_VERIFY(!PkRect(0, 0, 10, 10).contains(PkRect(2, 2, 8, 5), true));    // 仅右共边
+    PK_VERIFY(!PkRect(0, 0, 10, 10).contains(PkRect(2, 0, 5, 5), true));    // 仅上共边
+    PK_VERIFY(!PkRect(0, 0, 10, 10).contains(PkRect(2, 2, 5, 8), true));    // 仅下共边
+    // 正对照：四边全严格在内才是 true —— 少了它，把 proper 写成"恒 false"
+    // 也能让上面八条全绿。
+    PK_VERIFY(PkRect(0, 0, 10, 10).contains(PkRect(2, 2, 5, 5), true));
+
     PK_VERIFY(PkRect(0, 0, 10, 10).contains(PkRect(0, 0, 1, 1)));
     PK_VERIFY(!PkRect(0, 0, 1, 1).contains(PkRect(0, 0, 10, 10)));
     PK_VERIFY(!PkRect(0, 0, 10, 10).contains(PkRect(20, 20, 5, 5)));

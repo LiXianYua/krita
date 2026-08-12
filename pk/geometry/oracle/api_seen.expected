@@ -6,6 +6,7 @@
 #
 # 加新 API 时**先跑一次对拍**、把新出现的名字补进来，再提交 —— 这份清单是人
 # 维护的，机器只负责发现它与现实不一致。
+F::defaultCtor
 F::dotProduct
 F::fromPoint
 F::isNull
@@ -155,6 +156,7 @@ SF::toSize
 SF::width
 canary
 canary-negative
+defaultCtor
 dotProduct
 isNull
 manhattanLength

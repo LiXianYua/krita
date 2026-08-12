@@ -322,6 +322,19 @@ static std::string shapeOfMixed(std::initializer_list<int> is,
 // 让它参与 tag；想不出来就写 shapeOfD/shapeOfI 那种通用形态分流 —— 但**绝不能**
 // 写成一个与输入无关的常量（那等于把这个 API 整个退出对拍）。
 
+// 无输入的 API（默认构造），口径同 cmp_size_constants。只跑一次。
+// **Task 4 修复轮补**：M-4 把 PkPoint.h 接进规则三的机器闸门之后，
+// `PkPoint()` / `PkPointF()` 两条声明在 point_api.map 里找不到任何标签 ——
+// 也就是说这两个默认构造**从来没被对拍比过**（Task 2 漏了，Size 族有、Point
+// 族没有）。闸门刚上线就抓到了一个真实缺口，这两条 rec 是补上它。
+static void cmp_point_constants()
+{
+    rec("defaultCtor", same_pt(QPoint(), PkPoint()), "no-input",
+        "QPoint()", qstr(QPoint()), qstr(PkPoint()));
+    rec("F::defaultCtor", same_ptf(QPointF(), PkPointF()), "no-input",
+        "QPointF()", qstr(QPointF()), qstr(PkPointF()));
+}
+
 static void cmp_point_unary(int x, int y)
 {
     const QPoint  q(x, y);
@@ -969,8 +982,10 @@ static void cmp_size_promotion(int w, int h, double fw, double fh)
 // 跨距是否越出 int。⚠ **两个量都要查**：`x2 - x1` 这个中间量自己就可能溢出，
 // 而最终的 `x2 - x1 + 1` 反而回到值域里 —— 例如 x1=1、x2=INT_MIN 时
 // x2-x1 = -2147483649（越界），+1 之后是 INT_MIN（在界内）。
-// 只查后者会漏掉一整片 UB 输入，而漏掉的表现是**差异被贴上 "defined"（= 声称
-// 这里行为有定义）的标签**——那正是规则二要防的形状：标签比事实宽一格。
+// 只查后者会漏掉一整片跨距溢出的输入，让它们混进 `extremum` / `normal` 两档 ——
+// 那正是规则二要防的形状：标签比事实宽一格，两类根因不同的输入压成同一个 tag。
+// （它现在**只用来给 tag 分档**，不再有任何豁免作用：曾经基于它的 spanUB()
+// 白名单随 Task 4 修复轮删除，见下面 pairTag 的长注释。）
 static bool spanOverflows(int lo, int hi)
 {
     const long long d = (long long)hi - lo;
@@ -1020,40 +1035,30 @@ static std::string axisRel(int alo, int ahi, int blo, int bhi)
     return "partial";
 }
 
-// ⚠ **这一族独有的一道分水岭，必须做成 tag 的第一段。**
+// 双目 tag。**全部输入一律走细粒度 `shape/<形态对>/<相对位置>`，没有豁免档。**
 //
-// operator| / operator& / contains(QRect) / intersects 四个（以及转发到它们的
-// united / intersected / |= / &=）的实现**住在 libQt5Core.so 里**（qrect.cpp
-// 编出来的，见 `nm -DC libQt5Core.so.5 | grep 'QRect::operator|'`）。
-// 对拍 TU 的 `-fwrapv` **到不了那边** —— 它只作用于头文件里的 inline 代码。
-// 而这四个的翻正判据写作 `x2 - x1 + 1 < 0`，在跨距越出 int 时是有符号溢出 UB：
-//   · 我们这侧（-fwrapv）按二补数回绕，`INT_MAX - INT_MIN + 1` 判成负；
-//   · Qt 那侧（发布构建不带 -fwrapv、-O2）由 GCC 按"溢出不会发生"推导，判成正。
-// 两个取值都合法，差别纯粹来自旗标，**源码层面无解**：实测过把判据加宽到
-// long long（想去凑 Qt 那侧），mismatch 从 704 589 反而涨到 1 485 313 ——
-// 说明 Qt 那侧也不是统一的"不回绕"，是逐点依赖 GCC 在各 inline 点上做了什么。
+// ⚠ 前缀从 `defined/` 改名成 `shape/`：跨距溢出的输入两侧**仍然都是 UB**
+// （只是现在两侧同旗标，UB 的取值恰好一致），叫 "defined" 等于让标签比事实
+// 宽一格 —— 正是方法论规则二要防的形状。`shape/` 只声称"这是按输入形态贴的"。
 //
-// 对照组恰好把根因钉死了：**同样住在 .so 里、但判据写作 `x2 < x1 - 1` 的
-// normalized() 与 contains(QPoint) 一条 mismatch 都没有**；而所有 inline 成员
-// （width / isNull / center / adjust …）也全绿 —— 它们在对拍 TU 里两侧同旗标。
+// 曾经这里有一个 `spanUB()` 分支，把"任一侧跨距越出 int"的输入整片塌成单个
+// tag `span-overflow-ub` 并在 geometry.deviation 里按 9 个 API 各声明一行。
+// 那套机制随 Task 4 修复轮**整个删掉**，原因是它解决的问题已经从根上没了：
 //
-// 所以这一档必须**单独成 tag 并登记成偏离**，而且谓词要恰好是"跨距溢出"这一句，
-// 不能顺带把别的输入白名单化（方法论规则二）。
-static bool spanUB(int x1, int y1, int x2, int y2)
-{ return spanOverflows(x1, x2) || spanOverflows(y1, y2); }
-
-// 双目 tag。**溢出那一档刻意塌成一个字符串、不带后缀**：整档只有一个根因
-//（旗标差异），细分下去会变成两万多个 tag，而 geometry.deviation 是按
-//（api, tag）精确配对的 —— 那等于要写两万多行白名单，没人读得动，也谈不上
-// "有人判断过"。塌成一档之后每个 API 只要一行声明。
-// 有定义的那一侧仍然保留完整的细粒度 tag：真出现偏离时它必须是**新 tag**
-// 才会被 run_oracle.sh 判 FAIL，粗了就白名单化了（规则二）。
+//   那 704 589 条差异全部来自**旗标不对等** —— operator| / operator& /
+//   contains(QRect) / intersects 的实现编在 libQt5Core.so 里，对拍 TU 的
+//   `-fwrapv` 到不了那侧，于是同一条 `x2 - x1 + 1 < 0` 判据两侧取值不同。
+//   run_oracle.sh 去掉 `-fwrapv` 之后两侧同旗标，mismatch 直接回到 3（只剩
+//   canary）—— **不需要豁免任何输入**。
+//
+// 删掉它的收益是可量的：那一档原本覆盖 **3 286 575 次比对（占 total 的 2.62%，
+// 实测计数）**，这些比对现在全都是真比对，任何差异都会是**新 tag** 而 FAIL。
+// （历史记录：修复前的报告写的 704 589 是**差异**次数，不是被覆盖的**比对**
+// 次数，把盲区规模低估了 4.7 倍 —— 这正是"豁免档必须量化"的理由。）
 static std::string pairTag(int ax1, int ay1, int ax2, int ay2,
                            int bx1, int by1, int bx2, int by2)
 {
-    if (spanUB(ax1, ay1, ax2, ay2) || spanUB(bx1, by1, bx2, by2))
-        return "span-overflow-ub";
-    return "defined/" + shapeOfRect(ax1, ay1, ax2, ay2)
+    return "shape/" + shapeOfRect(ax1, ay1, ax2, ay2)
          + "^" + shapeOfRect(bx1, by1, bx2, by2)
          + "/" + axisRel(ax1, ax2, bx1, bx2) + "," + axisRel(ay1, ay2, by1, by2);
 }
@@ -1144,7 +1149,8 @@ static void cmp_rect_unary(int x1, int y1, int x2, int y2)
     rec("R::x", q.x() == p.x(), sh, in, istr(q.x()), istr(p.x()));
     rec("R::y", q.y() == p.y(), sh, in, istr(q.y()), istr(p.y()));
 
-    // 差一：width/height 是 x2-x1+1，在极值坐标上溢出（两侧都靠 -fwrapv 钉住）
+    // 差一：width/height 是 x2-x1+1，在极值坐标上溢出（两侧都是 UB，对拍靠
+    // "两侧同旗标"比同取值，不靠 -fwrapv 钉死 —— 见 run_oracle.sh 的旗标注释）
     rec("R::width", q.width() == p.width(), sh, in, istr(q.width()), istr(p.width()));
     rec("R::height", q.height() == p.height(), sh, in, istr(q.height()), istr(p.height()));
     rec("R::size", same_sz(q.size(), p.size()), sh, in, qstr(q.size()), qstr(p.size()));
@@ -1517,6 +1523,7 @@ int main()
             for (int f = 0; f < nFacD; ++f)
                 cmp_pointf_scale(kHandD[i], kHandD[j], kFacD[f]);
 
+    cmp_point_constants();
     for (int i = 0; i < nHandI; ++i)
         for (int j = 0; j < nHandI; ++j)
             cmp_point_unary(kHandI[i], kHandI[j]);

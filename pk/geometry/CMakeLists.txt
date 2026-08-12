@@ -22,9 +22,18 @@ target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # dotProduct 是裸的 int 乘加 —— 在 INT_MIN/INT_MAX 上全是**有符号整数溢出 UB**，
 # 而这批输入正是最该钉住的形态（Qt 自己就这么写，替代品逐字照抄）。
 # 不加时优化器会拿"溢出不可能发生"去推导取值范围，实测：`-Os` 下
-# pointManhattanLength() 变红，`-Os -fwrapv` 全绿；对拍那边 `-O2` 无 -fwrapv 时
-# std::to_string 打印溢出后的负数直接段错误。
-# 加上之后两侧都按二补数回绕，比的仍是同一件事，取值与 -O0 逐字相同。
+# pointManhattanLength() 变红，`-Os -fwrapv` 全绿。**这条是本旗标在库/单测侧的
+# 全部依据**，Task 4 修复轮复核仍然复现。
+# 加上之后取值按二补数回绕，与 -O0 逐字相同。
+#
+# ⚠ **对拍侧刻意相反：oracle/run_oracle.sh 不带 -fwrapv。** 两边不一致是有意的，
+# 不是漂移 —— 对拍要与 libQt5Core.so（编好的、旗标改不动）对等，带上 -fwrapv
+# 反而凭空造出 704 589 条与 PkRect 行为无关的差异。理由全文在 run_oracle.sh
+# 的 CXXFLAGS_ORACLE 上方与 README「对拍侧为什么不带 -fwrapv」。
+#
+# 曾经写在这里的「对拍那边 -O2 无 -fwrapv 时 std::to_string 打印溢出后的负数
+# 直接段错误」**已不复现**（Task 4 修复轮实测：不带 -fwrapv 跑满 125 338 363 次
+# 比对，退出码 0）。那句现在时陈述已删除，别再拿它当依据。
 #
 # **它只挡住整数溢出这一类 UB。** 浮点→int 越界（int(inf)、int(2147483648.0)）
 # 是另一类，-fwrapv 管不着，靠 tests/test_point.cpp 的 noFold() 把转换压到运行期。

@@ -31,8 +31,13 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 ```
 
 它链**真 Qt5** 做逐输入对拍：定位真 Qt → 编译（`ldd` 必须看得到 `libQt5Core`）→ 跑 →
-把每条 `DIFFTAG` 与 `oracle/geometry.deviation` 双向核对。出现未声明的差异就 FAIL。
+把每条 `DIFFTAG` 与 `oracle/geometry.deviation` 双向核对。**未声明的差异**、
+**已声明 tag 的计数漂移**、**canary 消失**三者任一出现就 FAIL。
 方法论与 tag 的两条硬规则写在 `oracle/geometry_difftest.cpp` 的文件头。
+
+> `geometry.deviation` 是**四列** tab 分隔：`<api>`、`<tag>`、`<期望计数>`、`<≥20 码点理由>`。
+> 第三列是 Task 4 修复轮加的额度闸门 —— 在那之前"键在清单里"等于**无限额度**，
+> 同一个 tag 下差异翻 2.1 倍照样 exit=0（实测，见覆盖度缺口）。
 
 **测试规模的口径**（数字随代码变，改完重跑以实际值为准）。计数口径：
 **先去掉 `//` 注释再数** `PK_VERIFY|PK_VERIFY2|PK_COMPARE` 的出现次数——注释里
@@ -73,7 +78,7 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 | `PkRect.h` / `PkRect.cpp` | `PkRect`（**四个 `int` 边界坐标 `x1/y1/x2/y2`，不是 x/y/w/h**），逐字抄自 `qrect.h`；`normalized` / `operator|` / `operator&` / `contains` ×2 / `intersects` 六个照 Qt 的形态放在 `.cpp` 里（Qt 那六个编在 `libQt5Core.so`，本机没有 `qrect.cpp` 源码，它们是**靠对拍逐输入逼出来的**） |
 | `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` | `#define` 垫片，无扩展名。**`compat/QRect` 目前只定义 `QRect`**，`QRectF` 等 Task 5 |
 | `tests/` | `test_global.cpp`（12 函数 / 116 断言）、`test_point.cpp`（24 / 199）、`test_size.cpp`（31 / 214）、`test_rect.cpp`（38 / 见下）、两个共存 TU `coexist_*.cpp`、两个宏改写探针 `point_macro_proof.cpp` 与 `size_macro_proof.cpp` |
-| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect 三族）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `rect_api.map`（规则三的机器闸门，见下）** |
+| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect 三族）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `rect_api.map` / `point_api.map` / `size_api.map`（规则三的机器闸门，三族各一份，见下）** |
 
 `PkRectF`/`PkTransform`、`graft/` 试接由后续 Task 交付；
 它们往 `oracle/geometry_difftest.cpp` 里**加节**，不另起文件。
@@ -88,14 +93,36 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 现在它是机器对账的：对拍程序末尾多打一批 `APISEEN <name>` 行（不影响
 `DIFF`/`DIFFTAG` 的输出契约），`run_oracle.sh` 做三向核对 ——
 ① `APISEEN` 集合必须等于 `oracle/api_seen.expected`；
-② `PkRect.h` **类体里每一条声明**都要在 `oracle/rect_api.map` 里有一行（反之亦然）；
-③ `rect_api.map` 里每个标签都要真的出现在 `APISEEN` 里。
-声明指纹由脚本从头文件机械解析（去注释、去形参名、去默认实参），不是人手抄的。
+② **三个头文件的类体里每一条声明**都要在对应的 `oracle/<族>_api.map` 里有一行
+   （反之亦然）；
+③ 各 map 里每个标签都要真的出现在 `APISEEN` 里。
+声明指纹由脚本从头文件机械解析（去注释、**去内联函数体**、去形参名、去默认实参），
+不是人手抄的；键带类名前缀，因为 `PkPoint`/`PkPointF` 这类孪生类有大量同名同参声明。
 
-**闸门自证**（注入实验 E）：往 `PkRect.h` 加一个已实现的 `moveBottom(int)` 重载、
-不给它写 `rec()` —— `run_tests.sh` **退出码 0 全绿**、对拍的 `DIFF` 行**逐字不变**
-（`total=125338363 mismatch=704589`，因为它压根没被比到），而闸门 ② 当场 FAIL：
-`PkRect.h 声明 63 条，rect_api.map 62 行`。这正是 Task 3 那个洞的形状。
+**②③ 覆盖三族**（Task 4 修复轮扩的，评审 M-4）。在那之前只有 `PkRect.h` 有独立
+来源，Point/Size 两族只有 `api_seen.expected` —— 而那份清单的内容来自对拍程序自己
+打出的 `APISEEN`，**用 `rec()` 去证明 `rec()` 没漏是自证循环**。三族接进同一个解析器
+之后判据统一：头文件声明是独立来源。规模：
+
+| map | 头文件 | 类 | 声明 / 行 |
+|---|---|---|---|
+| `oracle/rect_api.map` | `PkRect.h` | `PkRect` | 62 |
+| `oracle/point_api.map` | `PkPoint.h` | `PkPoint`、`PkPointF` | 56 |
+| `oracle/size_api.map` | `PkSize.h` | `PkSize`、`PkSizeF` | 56 |
+
+**扩过去当场抓到一个真实缺口**：`PkPoint()` 与 `PkPointF()` 两个默认构造
+**从 Task 2 起就没被对拍比过**（Size 族有 `S::defaultCtor`/`SF::defaultCtor`，
+Point 族没有对应物）。已补两条 `rec()`（`cmp_point_constants`），不是写进注释了事。
+
+**闸门自证**（注入实验，两族各一次，`run_tests.sh` 与 `run_oracle.sh` 都跑）：
+
+| 注入 | `run_tests.sh` | `run_oracle.sh` |
+|---|---|---|
+| `PkRect.h` 加已实现的 `areaHint()`，不写 `rec()` | 退出码 0 全绿 | **FAIL**（闸门②，`PkRect.h 声明 63 条 / rect_api.map 62 行`），`DIFF` 行逐字不变 |
+| `PkPoint.h` 加已实现的 `chebyshevLength()`，不写 `rec()` | 退出码 0 全绿 | **FAIL**（闸门②，`PkPoint.h 声明 57 条 / point_api.map 56 行`），`DIFF` 行逐字不变 |
+
+两组都是 Task 3 那个洞的形状：**新成员压根没被比到，所以 `mismatch` 一动不动**，
+只有闸门看得见。第二组在 Task 4 修复轮之前是**完全看不见的**。
 
 ### `Qt::AspectRatioMode`：**全项目唯一一个真 `namespace`**
 
@@ -323,30 +350,72 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 10 | `PkSize::scaled` 里用 `long long` 而不是 `qint64` | `qint8`..`quint64` 那批 typedef 按用量表归 R-02，R-03 不预先实现（判据①）。本平台 `qint64` 就是 `long long`，逐字等价。**换平台要重看**（LP64/LLP64 上 `long long` 恒 64 位，与 `qint64` 一致）。 |
 | 11 | 对拍 TU 里 `#include "PkSize.cpp"`（在 `namespace pkoracle` 内） | 两个 `scaled(const Pk*&, mode)` 是 out-of-line 的（照 Qt 的形态）。`libpkgeometry.a` 里那份是 `::PkSize::scaled`，而对拍需要的是 `pkoracle::PkSize::scaled` —— 两个不同符号，链不上。把 `.cpp` 一起包进 namespace 是**唯一**能让对拍压到那两个函数的办法（改成 header-only 就不是"照抄 Qt 的结构"了）。纪律：`PkSize.cpp` 的系统头（只有 `<type_traits>`）必须在对拍的系统头区里已经出现过。 |
 | 12 | **`PkGlobal.h` 里有一个真 C++ `namespace Qt`**（只装 `AspectRatioMode` 一个枚举）—— 这是「全局 `Pk` 前缀、不引 namespace」那条架构约束在本目录里的**唯一例外** | `QSize::scaled`/`scale` 的签名里就写着 `Qt::AspectRatioMode`，调用点写的是 `Qt::KeepAspectRatio` 这个**限定名**（实测用量：类型名 22 次、`IgnoreAspectRatio` 12 次、`KeepAspectRatio` 18 次、`KeepAspectRatioByExpanding` 3 次，口径 3 325 个文件），不套 `namespace Qt` 对不上。与那条约束不冲突：约束针对的是**我们自己的类型** —— compat 垫片靠 `#define QRect PkRect`，而 Krita 里有 `class QRect;` 前置声明，套 namespace 这个技巧就废；枚举没有前置声明这个问题。完整论证见上「`Qt::AspectRatioMode`：全项目唯一一个真 `namespace`」一节。**⚠ 共存副作用**：同一个 TU 里若同时出现 `PkGlobal.h` 与**真 Qt 的** `qnamespace.h`，`Qt::AspectRatioMode` 是**重定义硬错**；对拍是唯一有这个形态的编译行，靠把替代品整包塞进 `namespace pkoracle` 绕开。表现是响亮的编译错误、不是静默错行为，所以只登记、不改代码。**Task 4–6 的 reviewer 注意：这一条 Task 3 交付时漏进了本表，是复评补的。** |
-| 13 | **对拍在"跨距溢出"那片输入上与 Qt 分家 704 589 次，登记为偏离而不是回去改实现** —— `geometry.deviation` 里 9 行 `span-overflow-ub` | 这是 R-03 的**第一批非 canary 偏离行**，而且**不是 `PkRect` 的行为偏离**。证据是决定性的：同一份源码、同一批输入（`total=125338363`），`-O2 -fwrapv` 下 `mismatch=704589`，**去掉 `-fwrapv` 后 `mismatch=3`（只剩 canary）**，唯一变量是编译旗标。机理：`operator|`/`operator&`/`contains(QRect)`/`intersects` 这四个（以及转发到它们的 `united`/`intersected`/`|=`/`&=`）**实现编在 `libQt5Core.so` 里**，对拍 TU 的 `-fwrapv` **到不了那侧**；而它们的翻正判据写作 `x2 - x1 + 1 < 0`，跨距越出 `int` 时是有符号溢出 UB —— 我们按二补数回绕、Qt 按"溢出不会发生"推导，两个取值都合法。旁证三条：同住 `.so` 但判据写作 `x2 < x1 - 1` 的 `normalized()` 与 `contains(QPoint)` **零 mismatch**；全部 inline 成员零 mismatch；专门的扫描程序在 `9⁸ = 43 046 721` 组极值坐标双目输入上确认**跨距不溢出时分家次数为 0**。试过把判据加宽到 `long long` 去凑 Qt 那侧，`mismatch` 反而从 704 589 涨到 1 485 313 —— Qt 那侧不是统一的"不回绕"，是逐点依赖 GCC 做了什么，**源码层面无解**。谓词宽度与理由逐字对齐（见 `geometry.deviation` 的长注释）。**留给 controller 的一句**：若判定"对拍不该带 `-fwrapv`"，这 9 行连同 704 589 次差异会一起消失 —— 但那是 Task 2 controller 裁决过的事，本 Task 不擅自反转。 |
+| 13 | **对拍侧不带 `-fwrapv`，库与单测侧带** —— 同一个目录里两套编译旗标，刻意不一致 | 这一条**取代了 Task 4 初版登记的"9 行 `span-overflow-ub` 偏离"**（那 9 行连同 704 589 次差异已随本轮删除，完整来龙去脉见下面「对拍侧为什么不带 `-fwrapv`」）。为什么不统一：**对拍要与 `libQt5Core.so` 对等**，而那份 `.so` 是编好的、旗标改不动——`operator\|`/`operator&`/`contains(QRect)`/`intersects` 的实现就住在里面。对拍 TU 带 `-fwrapv` 时，同一条 `x2 - x1 + 1 < 0` 判据两侧取值不同，凭空造出 704 589 条与 `PkRect` 行为无关的差异；去掉之后 `mismatch=3`（只剩 canary）。**库/单测侧则必须带**：那边没有 `.so` 对等物的问题，而 `-Os` 无 `-fwrapv` 时 `pointManhattanLength()` 变红（Task 2 裁决，本轮复核仍复现）。两个旗标各自服务于一个目的，统一反而两边都不对。代价另见覆盖度缺口。 |
 | 14 | **`PkRect` 的四个构造函数按 Qt 头文件全集实现**，不按实测调用点裁剪 | 与偏离 6（运算符）同一个理由、同一个性质：构造函数无法按调用点 grep 归属（`QRect(a,b,c,d)` 这种写法数不出接收者），因此**没有实测用量数字**可依。范围 = `qrect.h` 里为 `QRect` 声明的全部构造，一个不多一个不少（Darwin 专有的 `fromCGRect` 除外，那个有 `#if defined(Q_OS_DARWIN)` 卫兵且实测 0）。 |
 | 15 | **`PkRect` 不实现 `unite` / `intersect`**（Qt5 已废弃的两个别名），与实施计划的字面要求相反 | 计划写的是「实测各 1–2 处调用点，**用量 > 0 就实现**」。本 Task 按三形态重新归属，**实测证伪**：`intersect` 唯一命中是 `QSet<int>::intersect`（`kis_layer_utils.cpp:2567`），`unite` 两处分别是 `QSet<int>::unite`（`kis_layer_utils.cpp:1384`）与 `KisFilterWeightsApplicator::LinePos::unite`（`kis_transform_worker.cc:214`，`dstBounds` 的声明在 `:207`）。**Rect 族真实调用点 0**，按判据①「一项不多」不实现。这是执行判据①，不是缩范围。 |
-| 16 | **`compat/QRect` 目前只 `#define QRect`，没有 `QRectF`** | `PkRectF` 是 Task 5 的交付物，现在还不存在。与 `compat/QPoint`（同时给 `QPoint`/`QPointF`）、`compat/QSize`（同时给两个）的形态**暂时不一致**，Task 5 补齐。后果说清楚：在那之前 `#include <QRect>` 之后直接用 `QRectF` 的调用点会编不过 —— **已知且有主的缺口，不是漏项**。 |
+| 16 | **`compat/QRect` 目前只 `#define QRect`，没有 `QRectF`** | `PkRectF` 是 Task 5 的交付物，现在还不存在。与 `compat/QPoint`（同时给 `QPoint`/`QPointF`）、`compat/QSize`（同时给两个）的形态**暂时不一致**，**Task 5 必须补齐 —— 这是本条的指派对象，别让它跨 Task 沉下去**。后果说清楚：在那之前 `#include <QRect>` 之后直接用 `QRectF` 的调用点会编不过 —— **已知且有主的缺口，不是漏项**。刻意**不加 `#error`**：垫片是给试接与 S 线用的，`#error` 会把"用到 `QRect` 的 TU"也一并打死，而那些 TU 现在是能用的；编不过时的报错（`QRectF 未声明`）已经足够指向这里。复评同意这个判断。 |
 | 17 | `PkRect` 的默认构造函数**函数体挪到类体外**（Qt 写在类体里） | 取值一字不差（`x1(0), y1(0), x2(-1), y2(-1)`），改的只是位置。理由是工程性的：`run_oracle.sh` 的规则三闸门要从 `PkRect.h` 的**类体**机械解析出重载清单，类体里混着初始化列表会让那个解析多一条只为它存在的特例。**无行为差异**，`tests/test_rect.cpp` 的 `rectDefaultIsNullSentinel` 与 `PkRect.cpp` 的 `static_assert(PkRect().isNull())` 各钉一遍。 |
 
 ## 覆盖度缺口
 
 「说不出覆盖不到什么的，说明还没想清楚」：
 
-### Task 4（Rect 族）新增的缺口
+### 对拍侧为什么不带 `-fwrapv`（Task 4 修复轮的裁决，**给 Task 5/6 与 S 线看**）
 
-- **`-fwrapv` 只管住对拍 TU 里的 inline 代码，管不住 `libQt5Core.so`。**
-  Point/Size 两族全部成员都是头文件 inline 的，所以那两族两侧同旗标、逐输入零差异；
-  而 `QRect` 有六个成员编在 `.so` 里（`normalized`、`operator|`、`operator&`、
-  `contains` ×2、`intersects`）。**这是 Rect 族独有的一块结构性缺口**，
-  Task 5（`QRectF` 同样有 `.cpp`）与 Task 6（`QTransform` 的 `.cpp` 更大）会
-  原样撞上，**别当成新发现重新查一遍**。落地表现见偏离 13 与
-  `geometry.deviation` 里那 9 行。
-- **`x2 - x1` 与 `x2 - x1 + 1` 溢出那片输入上，"正确"没有定义。** 两侧都是 UB，
-  我们用 `-fwrapv` 把自己这侧钉死，Qt 那侧钉不住。**这不等于 Krita 发布构建里的
-  行为**（那边也不带 `-fwrapv`）。是否存在真依赖回绕的调用点归 S 线查。
-  实务上这片输入要求矩形跨距超过 2³¹ 像素，Krita 的图像坐标到不了 —— 但我们
-  **不拿这条当豁免理由**，豁免理由是"那里 UB"。
+**Task 4 初版走过一条错路，这一节把它连同数字一起留在这里，因为下一族会原样撞上。**
+
+初版的处置是：把「跨距溢出」那片输入整片豁免 —— `geometry.deviation` 里 9 行
+`span-overflow-ub`，声称那 704 589 次差异是旗标造成的、源码层面无解。
+**根因诊断是对的，处置是错的**：既然根因是旗标，就该把旗标改掉，而不是把那片
+输入白名单化。修复轮去掉对拍侧的 `-fwrapv`，同一份源码同一批输入
+`mismatch` 从 704 589 直接回到 **3（只剩 canary）**。
+
+**盲区规模必须量对量 —— 初版这里错了一个数量级。**
+
+| 口径 | 数字 | 占当时的 `total=125 338 363` |
+|---|---:|---:|
+| 初版报告写的「盲区」（其实是**差异**次数） | 704 589 | 0.56% |
+| 被 `span-overflow-ub` 实际覆盖的**比对**次数（实测计数器） | **3 286 575** | **2.62%** |
+
+**差 4.7 倍。** 白名单豁免的是"比对"不是"差异"——一条已声明的 tag 底下，今天
+零差异的那些比对明天变红也照样被吞掉。**报豁免规模要报被覆盖的比对数**，
+这是「说不出覆盖不到什么就是没想清楚」在这一族的具体形态。
+（那 328 万次现在全是真比对。）
+
+去掉之后连带修好的三件事：
+
+1. `geometry.deviation` 回到**全 R-03 canary-only**，「任何非 canary tag = FAIL」
+   这条 R 线 spec 的地基保住 —— 它原本要在 Rect 这一族第一次被破例。
+2. 与 **Krita 发布构建的旗标一致**（那边同样不带 `-fwrapv`），对拍证明的东西
+   离出货形态更近。
+3. 对拍挂钟从 2 分 10 秒降到 1 分 08 秒（少一个旗标，优化器放得开）。
+
+**换来的新代价，诚实登记：**
+
+- 溢出输入上"两侧一致"从「被 `-fwrapv` 钉死」变成了
+  **「同编译器同旗标下的巧合」**。换一个 GCC 版本编出来的 Qt，或换一档优化，
+  可能冒出新 tag。**但那是 FAIL（响的）不是静默放行 —— 失败方向是对的。**
+- `x2 - x1` 与 `x2 - x1 + 1` 溢出那片输入上，**两侧仍然都是 UB**，"正确"在那里
+  没有定义。我们现在证明的是"同旗标下逐输入同取值"，不是"行为有定义"。
+  对拍源里那一档 tag 因此叫 `shape/…` 而不再叫 `defined/…`（标签不许比事实宽）。
+- 是否存在真依赖回绕的调用点归 S 线查。实务上这片输入要求矩形跨距超过
+  2³¹ 像素，Krita 的图像坐标到不了 —— 但**不拿这条当理由**。
+
+**Task 5/6 直接照做**：`QRectF` 同样有 `.cpp`、`QTransform` 的 `.cpp` 更大，
+`.so` 侧够不到对拍 TU 旗标这件事会原样重演。**对拍侧保持不带 `-fwrapv`**，
+遇到"两侧分家"先查旗标对不对等，**旗标不对等是装置缺陷，不是偏离**。
+
+### Task 4（Rect 族）其余的结构性缺口
+
+- **对拍 TU 的旗标管不住 `libQt5Core.so`。** Point/Size 两族全部成员都是头文件
+  inline 的，两侧天然同旗标；而 `QRect` 有六个成员编在 `.so` 里（`normalized`、
+  `operator|`、`operator&`、`contains` ×2、`intersects`）——**对这六个，我们能做的
+  只有"让对拍 TU 的旗标与 `.so` 尽量一致"**，做不到"钉死"。这是 Rect 族独有的
+  一块结构性缺口，Task 5/6 原样撞上，**别当成新发现重新查一遍**。
+- **已声明 tag 的额度由 `geometry.deviation` 第三列守着**（Task 4 修复轮新增）。
+  在那之前"键在清单里"就等于无限额度：实测把 4 个 `.so` 侧 API 的判据加宽成
+  `(long long)x2 - x1 + 1 < 0`（16 处源码），差异从 704 589 涨到 1 485 313（2.1 倍），
+  **两个脚本双双 exit=0 放行**。现在同一注入产生 22 984 个未声明 tag 并 FAIL。
 - **`toRect` / `toAlignedRect` / `QRectF` 相关的一切不在本 Task**。它们有实测
   用量（18 / 64）但接收者全是 `QRectF`，归 Task 5。
 - **`QRect` 与 `QMargins` 的四个互操作（`marginsAdded`/`marginsRemoved`/
@@ -373,18 +442,22 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
   压到 `qRound`/`qAbs`/`qFuzzy*` 的（`toPoint`、`operator*`、`operator==` 都调它们），
   但 `qMin`/`qMax`/`qBound`/`qIsNaN`/`qInf` 一次都没被对拍碰到。后续 Task 可以在
   `geometry_difftest.cpp` 里加一节直接对拍标量工具，成本很低。
-- **⚠ 整数溢出这一整类，我们比的是"钉死之后的行为"，`pkgeometry` 与对拍程序
-  都用 `-fwrapv` 编译（`CMakeLists.txt` 里 `target_compile_options(pkgeometry
-  PUBLIC -fwrapv)`，对拍在 `run_oracle.sh` 的 `CXXFLAGS_ORACLE` 里）。**
-  `manhattanLength`/`operator+`/`dotProduct` 在 `INT_MIN`/`INT_MAX` 上是有符号
-  溢出 —— **两侧（Qt 与替代品）都是 UB**，编译器有权给出任何结果。`-fwrapv` 把
-  两侧一起钉成二补数回绕，之后再比，于是"逐输入一致"这句话才有确定的含义。
-  **这不等于 Krita 发布构建里的行为**：Krita 不带 `-fwrapv`，同一段 Qt 代码在
-  那里的取值由优化器自由裁量，可能与本目录测出来的不同。我们保证的是
-  "在同一组旗标下两侧一致"，不是"和 Krita 线上跑出来的一样"，更不是语言保证。
-  不加 `-fwrapv` 的实测后果：`-Os` 下 `pointManhattanLength()` 变红；对拍那边
-  `-O2` 无 `-fwrapv` 时 `std::to_string` 打印溢出后的负数直接**段错误**。
-  加上之后各 `-O` 档取值与 `-O0` 逐字相同（矩阵见上），说明它只挡优化器、不改取值。
+- **⚠ 整数溢出这一整类，两侧（Qt 与替代品）都是 UB，编译器有权给出任何结果。**
+  `manhattanLength`/`operator+`/`dotProduct` 在 `INT_MIN`/`INT_MAX` 上就是这类。
+  **两侧的旗标口径从 Task 4 修复轮起是分开的**（偏离 13）：
+  - **库与单测**：`CMakeLists.txt` 的 `target_compile_options(pkgeometry PUBLIC
+    -fwrapv)` 把取值钉成二补数回绕。依据是 `-Os` 无 `-fwrapv` 时
+    `pointManhattanLength()` 变红（本轮复核仍复现），加上之后各 `-O` 档取值与
+    `-O0` 逐字相同（矩阵见上）—— 它只挡优化器、不改取值。
+  - **对拍**：`run_oracle.sh` 的 `CXXFLAGS_ORACLE` **不带** `-fwrapv`，为的是与
+    `libQt5Core.so` 旗标对等（理由全文见下面「对拍侧为什么不带 `-fwrapv`」）。
+    于是对拍保证的是「**同一组旗标下两侧逐输入同取值**」，**不是**"行为有定义"，
+    也不是语言保证。
+  - **两者都不等于 Krita 发布构建里的行为**（那边同样不带 `-fwrapv`，取值由优化器
+    自由裁量）—— 只是对拍这一侧现在与发布形态更近了一步。
+  > 曾经写在这里的「对拍那边 `-O2` 无 `-fwrapv` 时 `std::to_string` 打印溢出后的
+  > 负数直接段错误」**已不复现**：Task 4 修复轮不带 `-fwrapv` 跑满 125 338 365 次
+  > 比对、退出码 0。这句现在时陈述已订正，别再拿它当依据。
 - **浮点→int 越界（`int(inf)`、`int(2147483648.0)`）是另一类 UB，`-fwrapv` 管不着。**
   实机上运行期两侧都编成同一条 `cvttsd2si`，取值一致（`+inf`/`2147483648.0`→`INT_MIN`、
   `-inf`/`nan`→`0`）；但**编译期常量折叠给的是另一个答案**，所以单测里这批断言
