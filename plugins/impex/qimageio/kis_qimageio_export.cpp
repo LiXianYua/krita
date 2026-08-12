@@ -5,7 +5,6 @@
  */
 
 #include "kis_qimageio_export.h"
-#include "ui_kis_wdg_options_qimageio.h"
 
 #include <QCheckBox>
 #include <QSlider>
@@ -20,40 +19,8 @@
 #include <KisDocument.h>
 #include <kis_image.h>
 #include <kis_paint_layer.h>
-#include <kis_config_widget.h>
 
 K_PLUGIN_FACTORY_WITH_JSON(KisQImageIOExportFactory, "krita_qimageio_export.json", registerPlugin<KisQImageIOExport>();)
-
-class KisWdgOptionsQImageIO : public KisConfigWidget, public Ui::KisWdgOptionsQImageIO
-{
-    Q_OBJECT
-
-public:
-    KisWdgOptionsQImageIO(QWidget *parent);
-
-    void setConfiguration(const KisPropertiesConfigurationSP  cfg) override;
-    KisPropertiesConfigurationSP configuration() const override;
-};
-
-KisWdgOptionsQImageIO::KisWdgOptionsQImageIO(QWidget *parent)
-    : KisConfigWidget(parent)
-{
-    setupUi(this);
-    imageQuality->setRange(1, 100, 0);
-}
-
-KisPropertiesConfigurationSP KisWdgOptionsQImageIO::configuration() const
-{
-    KisPropertiesConfigurationSP cfg(new KisPropertiesConfiguration());
-
-    cfg->setProperty("quality", (int)imageQuality->value());
-    return cfg;
-}
-
-void KisWdgOptionsQImageIO::setConfiguration(const KisPropertiesConfigurationSP cfg)
-{
-    imageQuality->setValue(cfg->getInt("quality", 75));
-}
 
 KisQImageIOExport::KisQImageIOExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
 {
@@ -88,15 +55,6 @@ void KisQImageIOExport::initializeCapabilities()
             << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, KisMimeDatabase::descriptionForMimeType(mimeType()));
     addCapability(KisExportCheckRegistry::instance()->get("ColorModelPerLayerCheck/" + RGBAColorModelID.id() + "/" + Integer8BitsColorDepthID.id())->create(KisExportCheckBase::SUPPORTED));
-}
-
-KisConfigWidget *KisQImageIOExport::createConfigurationWidget(QWidget *parent, const QByteArray& /*from*/, const QByteArray& /*to*/) const
-{
-    if (mimeType() == "image/webp") {
-        return new KisWdgOptionsQImageIO(parent);
-    }
-
-    return 0;
 }
 
 KisPropertiesConfigurationSP KisQImageIOExport::defaultConfiguration(const QByteArray &, const QByteArray &) const

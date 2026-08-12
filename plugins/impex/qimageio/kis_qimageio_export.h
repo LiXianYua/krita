@@ -19,7 +19,6 @@ public:
     ~KisQImageIOExport() override;
 
     KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
-    KisConfigWidget *createConfigurationWidget(QWidget *parent, const QByteArray& from, const QByteArray& to) const override;
     KisPropertiesConfigurationSP defaultConfiguration(const QByteArray &, const QByteArray &) const override;
     void initializeCapabilities() override;
 };

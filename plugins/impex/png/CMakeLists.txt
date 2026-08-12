@@ -18,8 +18,6 @@ set(kritapngexport_SOURCES
     kis_png_export.cc
 )
 
-ki18n_wrap_ui(kritapngexport_SOURCES kis_wdg_options_png.ui )
-
 kis_add_library(kritapngexport MODULE ${kritapngexport_SOURCES})
 
 target_link_libraries(kritapngexport kritaui kritaimpex ${PNG_LIBRARIES})

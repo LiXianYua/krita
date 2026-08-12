@@ -110,11 +110,6 @@ KisPropertiesConfigurationSP KisPNGExport::defaultConfiguration(const QByteArray
     return cfg;
 }
 
-KisConfigWidget *KisPNGExport::createConfigurationWidget(QWidget *parent, const QByteArray &, const QByteArray &) const
-{
-    return new KisWdgOptionsPNG(parent);
-}
-
 void KisPNGExport::initializeCapabilities()
 {
     addCapability(KisExportCheckRegistry::instance()->get("sRGBProfileCheck")->create(KisExportCheckBase::SUPPORTED));
@@ -125,113 +120,6 @@ void KisPNGExport::initializeCapabilities()
             << QPair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
             << QPair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "PNG");
-}
-
-KisWdgOptionsPNG::KisWdgOptionsPNG(QWidget *parent)
-    : KisConfigWidget(parent)
-{
-    setupUi(this);
-
-    connect(chkSaveAsHDR, SIGNAL(toggled(bool)), this, SLOT(slotUseHDRChanged(bool)));
-}
-
-void KisWdgOptionsPNG::setConfiguration(const KisPropertiesConfigurationSP cfg)
-{
-    // the export manager should have prepared some info for us!
-    KIS_SAFE_ASSERT_RECOVER_NOOP(cfg->hasProperty(KisImportExportFilter::ImageContainsTransparencyTag));
-    KIS_SAFE_ASSERT_RECOVER_NOOP(cfg->hasProperty(KisImportExportFilter::ColorModelIDTag));
-    KIS_SAFE_ASSERT_RECOVER_NOOP(cfg->hasProperty(KisImportExportFilter::sRGBTag));
-
-    const bool isThereAlpha = cfg->getBool(KisImportExportFilter::ImageContainsTransparencyTag);
-
-    alpha->setChecked(cfg->getBool("alpha", isThereAlpha));
-
-    bnTransparencyFillColor->setEnabled(!alpha->isChecked());
-
-    if (cfg->getString(KisImportExportFilter::ColorModelIDTag) == RGBAColorModelID.id()) {
-        tryToSaveAsIndexed->setVisible(true);
-        if (alpha->isChecked()) {
-            tryToSaveAsIndexed->setChecked(false);
-        }
-        else {
-            tryToSaveAsIndexed->setChecked(cfg->getBool("indexed", false));
-        }
-    }
-    else {
-        tryToSaveAsIndexed->setVisible(false);
-    }
-    interlacing->setChecked(cfg->getBool("interlaced", false));
-    compressionLevel->setValue(cfg->getInt("compression", 3));
-    compressionLevel->setRange(1, 9, 0);
-
-    tryToSaveAsIndexed->setVisible(!isThereAlpha);
-
-    //const bool sRGB = cfg->getBool(KisImportExportFilter::sRGBTag, false);
-
-    //chkSRGB->setEnabled(sRGB);
-    chkSRGB->setChecked(cfg->getBool("saveSRGBProfile", true));
-
-    //chkForceSRGB->setEnabled(!sRGB);
-    chkForceSRGB->setChecked(cfg->getBool("forceSRGB", false));
-
-    chkSaveAsHDR->setChecked(cfg->getBool("saveAsHDR", false));
-    slotUseHDRChanged(chkSaveAsHDR->isChecked());
-
-    chkAuthor->setChecked(cfg->getBool("storeAuthor", false));
-    chkMetaData->setChecked(cfg->getBool("storeMetaData", false));
-
-    KoColor background(KoColorSpaceRegistry::instance()->rgb8());
-    background.fromQColor(Qt::white);
-    bnTransparencyFillColor->setDefaultColor(background);
-    bnTransparencyFillColor->setColor(cfg->getColor("transparencyFillcolor", background));
-
-    chkDownsample->setChecked(cfg->getBool("downsample", false));
-}
-
-KisPropertiesConfigurationSP KisWdgOptionsPNG::configuration() const
-{
-
-    KisPropertiesConfigurationSP cfg(new KisPropertiesConfiguration());
-
-    bool alpha = this->alpha->isChecked();
-    bool interlace = interlacing->isChecked();
-    int compression = (int)compressionLevel->value();
-    bool saveAsHDR = chkSaveAsHDR->isChecked();
-    bool tryToSaveAsIndexed = !saveAsHDR && this->tryToSaveAsIndexed->isChecked();
-    bool saveSRGB = !saveAsHDR && chkSRGB->isChecked();
-    bool forceSRGB = !saveAsHDR && chkForceSRGB->isChecked();
-    bool storeAuthor = chkAuthor->isChecked();
-    bool storeMetaData = chkMetaData->isChecked();
-    bool downsample = chkDownsample->isChecked();
-
-
-    QVariant transparencyFillcolor;
-    transparencyFillcolor.setValue(bnTransparencyFillColor->color());
-
-    cfg->setProperty("alpha", alpha);
-    cfg->setProperty("indexed", tryToSaveAsIndexed);
-    cfg->setProperty("compression", compression);
-    cfg->setProperty("interlaced", interlace);
-    cfg->setProperty("transparencyFillcolor", transparencyFillcolor);
-    cfg->setProperty("saveAsHDR", saveAsHDR);
-    cfg->setProperty("saveSRGBProfile", saveSRGB);
-    cfg->setProperty("forceSRGB", forceSRGB);
-    cfg->setProperty("storeAuthor", storeAuthor);
-    cfg->setProperty("storeMetaData", storeMetaData);
-    cfg->setProperty("downsample", downsample);
-    return cfg;
-}
-
-void KisWdgOptionsPNG::on_alpha_toggled(bool checked)
-{
-    bnTransparencyFillColor->setEnabled(!checked);
-}
-
-void KisWdgOptionsPNG::slotUseHDRChanged(bool value)
-{
-    tryToSaveAsIndexed->setDisabled(value);
-    chkForceSRGB->setDisabled(value);
-    chkSRGB->setDisabled(value);
 }
 
 #include "kis_png_export.moc"

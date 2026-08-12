@@ -187,11 +187,6 @@ KisPropertiesConfigurationSP KisJPEGExport::defaultConfiguration(const QByteArra
     return cfg;
 }
 
-KisConfigWidget *KisJPEGExport::createConfigurationWidget(QWidget *parent, const QByteArray &/*from*/, const QByteArray &/*to*/) const
-{
-    return new KisWdgOptionsJPEG(parent);
-}
-
 void KisJPEGExport::initializeCapabilities()
 {
     addCapability(KisExportCheckRegistry::instance()->get("sRGBProfileCheck")->create(KisExportCheckBase::SUPPORTED));
@@ -205,73 +200,4 @@ void KisJPEGExport::initializeCapabilities()
     addSupportedColorModels(supportedColorModels, "JPEG");
 }
 
-
-KisWdgOptionsJPEG::KisWdgOptionsJPEG(QWidget *parent)
-    : KisConfigWidget(parent)
-{
-    setupUi(this);
-
-    metaDataFilters->setModel(&m_filterRegistryModel);
-    qualityLevel->setRange(0, 100, 0);
-    KisSpinBoxI18nHelper::setText(qualityLevel, i18nc("{n} is the number value, % is the percent sign", "{n}%"));
-    smoothLevel->setRange(0, 100, 0);
-    KisSpinBoxI18nHelper::setText(smoothLevel, i18nc("{n} is the number value, % is the percent sign", "{n}%"));
-}
-
-
-void KisWdgOptionsJPEG::setConfiguration(const KisPropertiesConfigurationSP cfg)
-{
-    progressive->setChecked(cfg->getBool("progressive", false));
-    qualityLevel->setValue(cfg->getInt("quality", 80));
-    optimize->setChecked(cfg->getBool("optimize", true));
-    smoothLevel->setValue(cfg->getInt("smoothing", 0));
-    baseLineJPEG->setChecked(cfg->getBool("baseline", true));
-    subsampling->setCurrentIndex(cfg->getInt("subsampling", 0));
-    exif->setChecked(cfg->getBool("exif", true));
-    iptc->setChecked(cfg->getBool("iptc", true));
-    xmp->setChecked(cfg->getBool("xmp", true));
-    chkForceSRGB->setVisible(cfg->getBool("is_sRGB"));
-    chkForceSRGB->setChecked(cfg->getBool("forceSRGB", false));
-    chkSaveProfile->setChecked(cfg->getBool("saveProfile", true));
-    KoColor background(KoColorSpaceRegistry::instance()->rgb8());
-    background.fromQColor(Qt::white);
-    bnTransparencyFillColor->setDefaultColor(background);
-    bnTransparencyFillColor->setColor(cfg->getColor("transparencyFillcolor", background));
-    chkAuthor->setChecked(cfg->getBool("storeAuthor", false));
-    chkMetaData->setChecked(cfg->getBool("storeMetaData", false));
-
-    m_filterRegistryModel.setEnabledFilters(cfg->getString("filters").split(','));
-
-}
-
-KisPropertiesConfigurationSP KisWdgOptionsJPEG::configuration() const
-{
-    KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
-
-    QVariant transparencyFillcolor;
-    transparencyFillcolor.setValue(bnTransparencyFillColor->color());
-
-    cfg->setProperty("progressive", progressive->isChecked());
-    cfg->setProperty("quality", (int)qualityLevel->value());
-    cfg->setProperty("forceSRGB", chkForceSRGB->isChecked());
-    cfg->setProperty("saveProfile", chkSaveProfile->isChecked());
-    cfg->setProperty("optimize", optimize->isChecked());
-    cfg->setProperty("smoothing", (int)smoothLevel->value());
-    cfg->setProperty("baseline", baseLineJPEG->isChecked());
-    cfg->setProperty("subsampling", subsampling->currentIndex());
-    cfg->setProperty("exif", exif->isChecked());
-    cfg->setProperty("iptc", iptc->isChecked());
-    cfg->setProperty("xmp", xmp->isChecked());
-    cfg->setProperty("transparencyFillcolor", transparencyFillcolor);
-    cfg->setProperty("storeAuthor", chkAuthor->isChecked());
-    cfg->setProperty("storeMetaData", chkMetaData->isChecked());
-
-    QString enabledFilters;
-    Q_FOREACH (const KisMetaData::Filter* filter, m_filterRegistryModel.enabledFilters()) {
-        enabledFilters = enabledFilters + filter->id() + ',';
-    }
-    cfg->setProperty("filters", enabledFilters);
-
-    return cfg;
-}
 #include <kis_jpeg_export.moc>
