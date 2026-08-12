@@ -25,8 +25,6 @@
 
 #include "SeExprExpressionContext.h"
 #include "generator.h"
-#include "kis_wdg_seexpr.h"
-#include "ui_wdgseexpr.h"
 
 /****************************************************************************/
 /*              KisSeExprGeneratorConfiguration                             */
@@ -88,12 +86,6 @@ KisFilterConfigurationSP KisSeExprGenerator::defaultConfiguration(KisResourcesIn
     v.setValue(QString("Disney_noisecolor2"));
     config->setProperty("pattern", v);
     return config;
-}
-
-KisConfigWidget *KisSeExprGenerator::createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisWdgSeExpr(parent);
 }
 
 void KisSeExprGenerator::generate(KisProcessingInformation dstInfo, const QSize &size, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const

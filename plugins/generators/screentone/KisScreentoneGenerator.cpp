@@ -20,7 +20,6 @@
 #include <KisImageResolutionProxy.h>
 
 #include "KisScreentoneGenerator.h"
-#include "KisScreentoneConfigWidget.h"
 #include "KisScreentoneBrightnessContrastFunctions.h"
 #include "KisScreentoneScreentoneFunctions.h"
 #include "KisScreentoneGeneratorFunctionSampler.h"
@@ -370,10 +369,4 @@ KisFilterConfigurationSP KisScreentoneGenerator::defaultConfiguration(KisResourc
         dynamic_cast<KisScreentoneGeneratorConfiguration*>(factoryConfiguration(resourcesInterface).data());
     config->setDefaults();
     return config;
-}
-
-KisConfigWidget * KisScreentoneGenerator::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisScreentoneConfigWidget(parent);
 }
