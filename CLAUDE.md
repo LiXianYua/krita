@@ -80,6 +80,36 @@ PK = /mnt/ssd-disk/liyang/projects/paint_tips     ← 工作空间根
 
 **没有验收脚本。** 不要去找 `$PK/.exec/verify/`，它不存在。
 
+## 跑测试：排掉基线本来就红的，别手抄名单
+
+```bash
+cd <你的 worktree>
+LD_LIBRARY_PATH="$(pwd)/<build 目录>/bin:$LD_LIBRARY_PATH" QT_QPA_PLATFORM=offscreen \
+  ctest --test-dir <build 目录> --output-on-failure \
+    -E "$(python3 /mnt/ssd-disk/liyang/projects/paint_tips/.exec/baseline/known_failures.py)"
+```
+
+三段各自防一件事，**一段都不能省**：
+
+| 那一段 | 防什么 |
+|---|---|
+| `-E "$(known_failures.py)"` | 基线里**本来就红**的测试不在任何判据的判定范围内（判据只要求「基线里绿的仍然绿」），却是耗时大户——`libs-ui-kis_shape_layer_test` 会死锁、挂满 ctest 默认超时 **1500 秒**，`libs-flake-TestSvgParser` 三兄弟再耗约 12 分钟 |
+| `LD_LIBRARY_PATH=<自己的 bin>:...` | 共享前缀 `krita-ci-env/_install` 里有旧的基线库（`libkritaglobal.so` 等），而 `LD_LIBRARY_PATH` 优先级**高于**可执行文件自己的 `RUNPATH`。不排前面会加载到旧库、报一片假的 `undefined symbol`——改了导出符号的任务必然撞 |
+| `QT_QPA_PLATFORM=offscreen` | 无头环境下 QtTest 默认连 X11 会直接崩 |
+
+**名单是算出来的，不要手抄。** 它跟着 `.exec/baseline/tests.txt` 走，基线一重建
+（换机器、改构建配置、删掉带测试的 target）名单就变，抄下来的那份**漂了也不会
+有人报错**。脚本读不到基线时打印的是「谁都不排除」的安全值并以非 0 退出——
+失败方向一律偏向多跑测试。
+
+**报告里要点名**：被排掉的那些是「基线即红、不在判定范围」，**不能算成
+「测试丢了」**。还有 **「未跑到」不是「跑绿了」**——有测试没结果就单独重跑确认，
+别混着报。
+
+> 测试 I/O 已经改道 SSD（`~/.qttest` 是指向 `/mnt/ssd-disk/liyang/.qttest` 的
+> 符号链接），**你什么都不用做**。改道前 `libs/flake` 那批资源库 I/O 密集的测试
+> 单个要 250–600 秒，改道后 3–4 秒。
+
 ## 构建：configure 时必须挂上 ccache
 
 **每次 `cmake` 配置新 build 目录都要带这两个 `-D`**，一次都不能漏：
