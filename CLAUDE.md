@@ -80,6 +80,39 @@ PK = /mnt/ssd-disk/liyang/projects/paint_tips     ← 工作空间根
 
 **没有验收脚本。** 不要去找 `$PK/.exec/verify/`，它不存在。
 
+## 构建：configure 时必须挂上 ccache
+
+**每次 `cmake` 配置新 build 目录都要带这两个 `-D`**，一次都不能漏：
+
+```bash
+source /mnt/ssd-disk/liyang/projects/krita-ci-env/env   # PATH/LD_LIBRARY_PATH/CMAKE_PREFIX_PATH
+export CCACHE_DIR="$KDECI_CC_CACHE"                     # ccache 认的是这个，不是 KDECI_CC_CACHE
+
+cmake -B <build 目录> -G Ninja \
+  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+  ...其余按 $PK/docs/构建环境配置.md
+```
+
+**为什么这条写在这里**：每个任务一份 worktree，各自全量构建约 9 分钟（7 212 个对象
+文件）；而各 worktree 之间只有你 `locks` 内的几十个文件不同，其余 3 000 多个源文件逐
+字节相同。缓存已按多 worktree 场景配好（`base_dir` + `hash_dir=false`，实测跨 worktree
+命中），**漏了这两个 `-D` 就等于把别人已经编好的东西再编一遍**。
+
+**验证你确实用上了**（声称完成前跑一次，属于 `verification-before-completion`）：
+
+```bash
+ccache -s | grep -E 'Hits:|Misses:'    # 全量构建后 Hits 应远大于 0
+grep COMPILER_LAUNCHER <build 目录>/CMakeCache.txt   # 两行都要在
+```
+
+已经建好的 build 目录补这两个 `-D` 会触发一次全量重建（ninja 认为命令行变了）——
+**不要在任务中途补**，那一次只会更慢；建新 build 目录时带上即可。
+
+调试信息有一处代价：`DW_AT_comp_dir` 指向第一个填缓存的 worktree，gdb 单步要
+`set substitute-path` 才找得到源文件。`ctest`、benchmark、backtrace 的函数名与行号
+都不受影响。
+
 ## 这个仓库的两个特殊之处
 
 **① 是 shallow clone（`depth=1` @ `v6.0.3`）。**
