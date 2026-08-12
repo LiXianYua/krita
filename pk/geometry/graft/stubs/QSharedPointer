@@ -1,0 +1,16 @@
+#pragma once
+// 试接垫片 —— **不是 R-03 的交付物**。`QSharedPointer` / `QWeakPointer` 归
+// **R-02 之后的智能指针面**（`docs/Qt替代品选型.md` §1 把它与容器放在一起），
+// R-03 一个字都不碰。
+//
+// 为什么会撞上它：libs/global/kis_global.h:346 `#include "kis_pointer_utils.h"`，
+// 而那个头第 10 行 `#include <QSharedPointer>`。kis_pointer_utils.h 里全是**模板**
+// （toQShared / listToQShared / listStrongToWeak / KisSharedPointerTraits …），
+// 一个都没被两个试接目标实例化，所以**前置声明就够** —— 模板体里的
+// `QSharedPointer<T>(ptr)`、`.data()` 都是依赖名，要到实例化时才查。
+//
+// 刻意不写类体：写了就要维护 data()/isNull()/dynamicCast() 一整套语义，而那些
+// 语义一次都没被压到，纯负债。**如果将来某个试接目标真的实例化了这些模板，
+// 编译会在那一刻报"incomplete type"** —— 那正是我们想要的信号，不是要绕过的坑。
+template <class T> class QSharedPointer;
+template <class T> class QWeakPointer;

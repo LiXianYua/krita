@@ -1,0 +1,75 @@
+#pragma once
+// ============================================================================
+// 试接垫片 —— **不是 R-03 的交付物**，而且**不是 QString 的替代品**：
+// QString 的替代品是 **R-01 的 PkString**，本文件把它原样用上，只补一个它缺的
+// 重载。之所以要在 R-03 的试接里出现这个文件，是因为试接压出了 R-01 的一个缺口。
+//
+// ── 缺口 ──────────────────────────────────────────────────────────────────
+// 真实调用点 libs/global/KisRectsGrid.cpp:23
+//     KisUsageLogger::log(QString("… Grid size: %1, log grid size: %2 …")
+//                         .arg(gridSize, m_logGridSize));
+// 走的是 Qt 的 `QString::arg(int a, int fieldWidth = 0, int base = 10,
+// QChar fillChar = QLatin1Char(' '))` —— **第二个 int 是 fieldWidth，不是第二个
+// 占位符的值**（Krita 这行本身大概率是笔误，但笔误也得编过）。
+// R-01 的 PkString 只有四个 arg：
+//     arg(const PkString&) / arg(const PkString&, const PkString&) /
+//     arg(int) / arg(double)
+// 没有 (int, int) 形态，于是重载决议去试 arg(const PkString&, const PkString&)，
+// 报 "invalid user-defined conversion from 'int' to 'const PkString&'"。
+// 原始输出见 .superpowers/sdd/R-03/task-78-report.md 的第二轮。
+//
+// ── 为什么用**继承**而不是整个替换掉 QString ────────────────────────────────
+// 整份 std::string 垫片能让试接编过，但那样 R-01 就完全没被压到，试接也就
+// 证明不了"我们的字符串替代品接得住真实调用点"。继承 PkString、只加缺的那一个
+// 重载，能把缺口精确到一个函数签名上 —— 这正是试接该产出的东西。
+// 不覆盖 pk/string 的任何行为：所有其它 arg 靠 `using PkString::arg;` 原样透传。
+//
+// **PkString 没有虚析构**，所以这个派生类绝不能被多态 delete。试接里它只作为
+// 值/const 引用出现（QString(...)、const QString& 形参），不存在这种用法。
+// ============================================================================
+#include "../../../string/PkString.h"
+
+#include <string>
+
+// pk/string/compat/QString 里的两个版本宏也要有 —— 那份文件被本文件遮住了
+// （-I 顺序里 stubs 在 pk/string/compat 之前），而 libs/global/kis_global.h:19 与
+// libs/global/kis_pointer_utils.h:11 的 #if 要用它们。两边都是 #ifndef 守卫，
+// 与 stubs/QtGlobal 里那份不冲突。
+#ifndef QT_VERSION_CHECK
+#define QT_VERSION_CHECK(major, minor, patch) \
+    (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef QT_VERSION
+#define QT_VERSION QT_VERSION_CHECK(0, 0, 0)
+#endif
+
+class PkGraftQString : public PkString
+{
+public:
+    using PkString::PkString;
+    using PkString::arg;
+
+    PkGraftQString() = default;
+    PkGraftQString(const PkString &s) : PkString(s) {}
+
+    // Qt 5.15 QString::arg(int a, int fieldWidth, int base, QChar fillChar)：
+    // 把 a 按 base 转成字符串，再用 fillChar 补到 |fieldWidth| 宽
+    // （fieldWidth > 0 右对齐、< 0 左对齐），最后填进编号最小的那个 %n。
+    // 这里只做 base == 10、fillChar == ' ' 的那一支 —— 唯一的调用点就是这样。
+    // 填充逻辑之后转交 PkString::arg(const PkString&)，占位符替换仍然是 R-01 的实现。
+    PkGraftQString arg(int a, int fieldWidth) const
+    {
+        std::string s = std::to_string(a);
+        const std::size_t width =
+            static_cast<std::size_t>(fieldWidth < 0 ? -fieldWidth : fieldWidth);
+        if (s.size() < width) {
+            const std::string pad(width - s.size(), ' ');
+            s = (fieldWidth < 0) ? (s + pad) : (pad + s);
+        }
+        return PkGraftQString(PkString::arg(PkString(s.c_str())));
+    }
+};
+
+#ifndef QString
+#define QString PkGraftQString
+#endif

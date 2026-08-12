@@ -1,0 +1,85 @@
+#pragma once
+// ============================================================================
+// 试接垫片 —— **不是 R-03 的交付物**。`QVector` 的替代品归 **R-02（容器）**，
+// 那条线还没合并，所以这里给一个 std::vector 的薄包装先把试接顶过去。
+//
+// **范围刻意压到"两个试接目标真用到的"**（判据①「一项不多」在垫片上同样适用，
+// 多写一个成员就是多一处将来与 R-02 的真品对不上的机会）：
+//   append / size / operator[] / at / begin / end / isEmpty / clear /
+//   resize / fill / operator<< / operator== / operator!=
+//   + 默认构造 / explicit QVector(int) / initializer_list 构造
+//
+// 真实调用点：
+//   · libs/global/KisRectsGrid.h:111 `QVector<quint8> m_mapping`
+//   · libs/global/KisRectsGrid.cpp:33 `QVector<quint8> newMapping(w*h)`（值初始化成 0）
+//   · libs/global/KisRectsGrid.cpp:64/74/130 `QVector<QRect>()` / append
+//   · libs/global/tests/KisRectsGridTest.cpp:19 `QVector<QRect>({QRect(...)})` 与
+//     PK_COMPARE 需要的 operator==
+//   · QPolygonF 在真 Qt 里就是 `class QPolygonF : public QVector<QPointF>`
+//     （Qt 5.15.7 QtGui/qpolygon.h），本目录的 stubs/QPolygon 照抄这个形态，
+//     `polygon << QPointF(...)` 与 `polygon[1]` 都是从这里继承来的。
+//
+// **与真 QVector 的已知语义差**（不影响这两个目标，但 R-02 别照抄本文件）：
+//   · 没有隐式共享（COW），拷贝就是深拷贝；
+//   · `resize` 增长时值初始化，与 Qt 一致；但 Qt 的 `fill` 在 size 为 -1 时
+//     保持原大小，这里的 fill 只做"全部填成同一个值 / 指定大小"这一半；
+//   · 没有 QList 互转、没有 detach/reserve/squeeze/capacity。
+// ============================================================================
+#include <QtGlobal>
+
+#include <cstddef>
+// <cstring>：复刻 Qt 的传递 include。libs/global/KisRectsGrid.cpp:45 用 memcpy
+// 却没有 #include <cstring>/<string.h> —— 它吃的是真 Qt 里 qvector.h →
+// qarraydata.h → <string.h> 这条传递性。不复刻就会报 "'memcpy' was not declared
+// in this scope"，而那不是调用点的错（试接第一轮压出来的，与 R-11 在
+// compat/QObject 里复刻 <QObject> → qglobal.h 是同一类事）。
+#include <cstring>
+#include <initializer_list>
+#include <vector>
+
+template <typename T>
+class QVector
+{
+public:
+    QVector() = default;
+    explicit QVector(int size) : m_d(static_cast<std::size_t>(size)) {}
+    QVector(std::initializer_list<T> args) : m_d(args) {}
+
+    void append(const T &v) { m_d.push_back(v); }
+    QVector &operator<<(const T &v) { m_d.push_back(v); return *this; }
+
+    int size() const { return static_cast<int>(m_d.size()); }
+    // Qt 的 QVector::length() 是 size() 的同义词。真实调用点：
+    // libs/image/tests/KisFourPointInterpolatorTest.cpp:195 与 :257 的
+    // `for (int i = 0; i < src.length(); i++)`。
+    int length() const { return size(); }
+    bool isEmpty() const { return m_d.empty(); }
+    void clear() { m_d.clear(); }
+    void resize(int n) { m_d.resize(static_cast<std::size_t>(n)); }
+
+    // Qt 的 QVector::fill(value, size = -1)：size < 0 时保持当前大小。
+    QVector &fill(const T &v, int n = -1)
+    {
+        if (n >= 0) {
+            m_d.assign(static_cast<std::size_t>(n), v);
+        } else {
+            m_d.assign(m_d.size(), v);
+        }
+        return *this;
+    }
+
+    T &operator[](int i) { return m_d[static_cast<std::size_t>(i)]; }
+    const T &operator[](int i) const { return m_d[static_cast<std::size_t>(i)]; }
+    const T &at(int i) const { return m_d[static_cast<std::size_t>(i)]; }
+
+    typename std::vector<T>::iterator begin() { return m_d.begin(); }
+    typename std::vector<T>::iterator end() { return m_d.end(); }
+    typename std::vector<T>::const_iterator begin() const { return m_d.begin(); }
+    typename std::vector<T>::const_iterator end() const { return m_d.end(); }
+
+    bool operator==(const QVector &o) const { return m_d == o.m_d; }
+    bool operator!=(const QVector &o) const { return !(*this == o); }
+
+private:
+    std::vector<T> m_d;
+};

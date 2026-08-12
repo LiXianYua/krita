@@ -1,0 +1,97 @@
+#pragma once
+// ============================================================================
+// 试接垫片 —— **不是 R-03 的交付物**，不要拿它当替代品。
+//
+// 真 Qt 的 qglobal.h（`#include <QtGlobal>`）里混着三类东西，归属完全不同：
+//
+//   ① 标量工具 qreal / qAbs / qMin / qMax / qBound / qRound / qFuzzyCompare …
+//      —— **归 R-03**，已经交付在 pk/geometry/PkGlobal.h + pk/geometry/compat/QtGlobal。
+//      本文件一项都不重复实现，第一行就把那份**交付物**包进来，
+//      所以试接真正编译的是 R-03 的实现，不是垫片。
+//
+//   ② 定长整数 typedef quint8 / quint16 / qint32 / quint64 …
+//      —— **归 R-02（容器与基础类型）**。pk/geometry/compat/QtGlobal 末尾明写
+//      「本文件不提供 qint8..quint64 那批整数 typedef」，试接期在这里补最小垫片。
+//      真实调用点：libs/global/KisRectsGrid.h:111 的 `QVector<quint8> m_mapping`、
+//      libs/global/kis_global.h:24-34 的一批 `quint8_MAX` 常量。
+//
+//   ③ 版本宏 QT_VERSION / QT_VERSION_CHECK、qt_noop()、Q_FOREACH / Q_UNUSED
+//      —— 归 S-00 的全量替换面（R-01 已经在 pk/string/compat/QString 里放过
+//      一份 QT_VERSION，同样是"哪条线先撞上谁就先垫"的临时安排）。
+//
+// **为什么必须挂在 <QtGlobal> 这个名字上**：libs/global/kis_assert.h:10 写的就是
+// `#include <QtGlobal>`，它是本次两个试接目标的公共上游。而 ③ 里那两个版本宏
+// 不能省：libs/global/kis_global.h:19 与 libs/global/kis_pointer_utils.h:11 都写着
+// `#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)`，预处理器对**整个**表达式求值
+// （没有短路），缺 QT_VERSION_CHECK 就报 "missing binary operator before token '('"。
+//
+// ⚠ 顺带纠正一条流传的说法：Task 8 brief 里说「kis_global.h:19 的 <QStringConverter>
+//   被 #if QT_VERSION >= 6 挡住，而 pk/string/compat/QString 已把 QT_VERSION 定成
+//   0.0.0，这个坑自动消失」。**实测：不自动。** 那两个宏只在 <QString> 进过本 TU
+//   时才存在，而两个试接目标的 include 闭包里都没有 <QString> 走在 kis_global.h
+//   前面（目标①的 <KisUsageLogger.h> 在 kis_global.h **之后**才被包进来，
+//   目标②根本不碰字符串）。挡住 <QStringConverter> 的是本文件这两行，不是 R-01。
+// ============================================================================
+
+// ① R-03 的交付物 —— 标量工具的**真身**在这里，不在本文件。
+#include "../../compat/QtGlobal"
+
+// ② 定长整数 typedef（归 R-02）。取值按 LP64 Linux 上的真 Qt 5.15.7。
+typedef signed char        qint8;
+typedef unsigned char      quint8;
+typedef short              qint16;
+typedef unsigned short     quint16;
+typedef int                qint32;
+typedef unsigned int       quint32;
+typedef long long          qint64;
+typedef unsigned long long quint64;
+typedef qint64             qlonglong;
+typedef quint64            qulonglong;
+
+// ③ 版本宏。定成 0.0.0 与 pk/string/compat/QString 里那份一致 —— 两处都带
+//    #ifndef 守卫，同一个 TU 里两份垫片都在也不冲突。
+#ifndef QT_VERSION_CHECK
+#define QT_VERSION_CHECK(major, minor, patch) \
+    (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef QT_VERSION
+#define QT_VERSION QT_VERSION_CHECK(0, 0, 0)
+#endif
+
+// ③ qt_noop()：KIS_ASSERT 家族的宏体里全是它（kis_assert.h:33/97/130）。
+inline void qt_noop() {}
+
+// ③ Q_FOREACH：libs/global/kis_pointer_utils.h 的四个模板里用到。它是**宏**，
+//    没有定义就是语法错误，哪怕那些模板一次都没实例化。
+#ifndef Q_FOREACH
+#define Q_FOREACH(variable, container) for (variable : container)
+#endif
+
+#ifndef Q_UNUSED
+#define Q_UNUSED(x) (void)(x);
+#endif
+
+// ---------------------------------------------------------------------------
+// ⚠ 这一项与上面三类都不同：它是**试接压出来的一个 R-03 范围缺口**，
+//    不是"别的线的东西暂时垫一下"。放在这里是为了不擅自改 R-03 的交付面，
+//    **请 reviewer 判该不该收进 PkGlobal.h**。
+//
+//    PkGlobal.h 头部写着：「qIsNull / qIsInf / qIsFinite / qQNaN / qSNaN /
+//    qFpClassify / qFloatDistance 同理不在本头」，依据是"实测 0 调用点"。
+//    但试接目标②里有两处真实调用点：
+//        libs/image/tests/KisFourPointInterpolatorTest.cpp:347
+//            PK_VERIFY(qIsFinite(srcPtJustBwd.x()));
+//        libs/image/tests/KisFourPointInterpolatorTest.cpp:348
+//            PK_VERIFY(qIsFinite(srcPtJustBwd.y()));
+//    两处都在 tests/ 下 —— 而 CLAUDE.md 的口径要求「统计要排除 tests/ 和
+//    benchmarks/」，所以 R-03 那个 0 很可能是**对的**（在它自己的口径下），
+//    缺的是"测试代码也要能编"这一层。S-00 做全量替换时会连 tests/ 一起编，
+//    那时这个缺口一定会再次撞上，不会自己消失。
+//
+//    实现按真 Qt 5.15.7 qnumeric.h:49（`bool qIsFinite(double)`，非 inline 的
+//    导出函数，实现就是 std::isfinite）。这里写成 inline 只是因为垫片没有 .cpp；
+//    真要收进 PkGlobal.h 的话应该照 qIsNaN / qInf 的先例放 PkGlobal.cpp。
+// ---------------------------------------------------------------------------
+#include <cmath>
+inline bool qIsFinite(double d) { return std::isfinite(d); }
+inline bool qIsFinite(float f) { return std::isfinite(f); }
