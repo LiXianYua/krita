@@ -1,0 +1,12 @@
+#pragma once
+#include "../PkStream.h"
+
+// 兼容垫片：让真实调用点的 `#include <QIODevice>` 在**一个字都不改**的前提下
+// 解析到 PkStream。文件名刻意没有扩展名 —— 调用点写的就是 <QIODevice>。
+//
+// 用宏而不是 `using QIODevice = PkStream;`：kis_meta_data_io_backend.h 第 13
+// 行有 `class QIODevice;` 前置声明，类型别名遇到它会报
+// "QIODevice redeclared as different kind of entity"；宏则把那一行原样改写成
+// `class PkStream;`，前置声明照样成立。成因与 pk/string/compat/QString 对
+// `class QString;` 的处理完全相同。
+#define QIODevice PkStream
