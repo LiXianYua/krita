@@ -16,7 +16,6 @@
 
 #include <KisResourceModel.h>
 
-#include <KoResourceServerProvider.h>
 #include <resources/KoAbstractGradient.h>
 #include <resources/KoSegmentGradient.h>
 #include <resources/KoStopGradient.h>
