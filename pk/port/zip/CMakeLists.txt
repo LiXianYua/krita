@@ -61,7 +61,7 @@ target_include_directories(pkzip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../strin
 
 # 零 Qt：minizip-ng 是纯 C 库，不引入任何 Qt 符号。
 #
-# 评审 I-3：libpkzip.a（连带 PkZipArchive.cpp，本分支最大的一块真逻辑）是
+# 评审 I-3：libpkzip.a（连带 PkZipArchive.cpp，本分支最大的一块真逻辑，450 行）是
 # 独立静态库，不在 libpkport.a 里——但这不是「所以不用查」的理由，只是「查
 # 的时候要连它一起查」的理由。run_tests.sh 的 `nm -u` 判据现在同时查
 # libpkport.a 和 libpkzip.a（minizip-ng 自己的 libminizip.a 是纯 C 第三方库，

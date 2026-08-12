@@ -16,10 +16,19 @@ cmake --build "$BUILD" -j"$(nproc)" >/dev/null
 #
 # 评审 I-3：libpkport.a 只含 4 个 Pk*.o + 4 个 PkString*.o——不含
 # PkZipArchive.o（zip/CMakeLists.txt 把它单独编进 libpkzip.a）。这个断言此前
-# 只查了 libpkport.a，本分支最大的一块真逻辑（PkZipArchive.cpp，438 行）从没
+# 只查了 libpkport.a，本分支最大的一块真逻辑（PkZipArchive.cpp，450 行）从没
 # 被这道闸门覆盖过——今天三个库实测都干净，但 S-01 往 PkZipArchive.cpp 里混
 # 进 Qt 时这个断言原本不会响。libpkzip.a 现在一起查。
-undef=$(nm -u "$BUILD/libpkport.a" "$BUILD/zip/libpkzip.a" 2>/dev/null | grep -i qt || true)
+
+# 检查文件存在性：路径错误会立刻失败而不是被 2>/dev/null 吞掉
+for lib in "$BUILD/libpkport.a" "$BUILD/libpkzip.a"; do
+    if [ ! -f "$lib" ]; then
+        printf '零 Qt 闸门失效：找不到 %s\n' "$lib" >&2
+        exit 1
+    fi
+done
+
+undef=$(nm -u "$BUILD/libpkport.a" "$BUILD/libpkzip.a" | grep -i qt || true)
 if [ -n "$undef" ]; then
     printf 'nm -u libpkport.a/libpkzip.a 里有 Qt 符号：\n%s\n' "$undef" >&2
     exit 1

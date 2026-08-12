@@ -149,8 +149,8 @@ fontconfig 全部函数**。
 `AddWeak`/`GetString`/`GetInteger`/`GetDouble`/`GetBool`/`GetCharSet`/`Hash`，32 处，
 占比最大的一族）——**整族归零**，评审 I-5 删掉零调用点的 `charset` 字段后从 8 个收窄为 7 个。
 
-测试：16 个（`pk/port/tests/test_fontprovider.cpp`）。**`PkFontProvider` 10/10 方法都是纯虚，
-`.cpp` 只有构造/析构 6 行**——这 16 个用例全部跑在测试自建的 `FakeFontProvider` 上，验证的是
+测试：16 个（`pk/port/tests/test_fontprovider.cpp`）。**`PkFontProvider` 有 9 个纯虚方法，
+第 10 个是虚析构（非纯虚）；`.cpp` 只有构造/析构 6 行**——这 16 个用例全部跑在测试自建的 `FakeFontProvider` 上，验证的是
 "这个接口形状能不能被实现出预期行为"（接口可实现性），不是"某个具体实现（fontconfig/
 Android/DirectWrite/CoreText 适配器）对不对"（实现正确性）——那些适配器不在本任务交付范围
 内。`PkEventSink` 的 11 个用例同理：默认实现全是空函数体，测试同样跑在自建的假实现上。这对
