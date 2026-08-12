@@ -92,7 +92,7 @@ done
 check_expect_fail libs/store/KoStore.h                                       'QByteArray'     'R-02'
 check_expect_fail libs/store/KoStoreDevice.h                                 'QByteArray'     'R-02'
 check_expect_fail libs/store/KoDirectoryStore.h                              'QByteArray'     'R-02'
-check_expect_fail libs/image/tiles3/swap/kis_abstract_compression.h          'QtGlobal'       'R-02/R-03'
+check_expect_fail libs/image/tiles3/swap/kis_abstract_compression.h          'QtGlobal'       'R-18'
 check_expect_fail libs/brush/kis_png_brush.h                                 'QImage'         'R-15'
 check_expect_fail libs/brush/kis_svg_brush.h                                 'QImage'         'R-15'
 check_expect_fail libs/image/kis_composite_progress_proxy.h                  'QList'          'R-02'

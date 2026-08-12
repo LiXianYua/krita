@@ -228,7 +228,7 @@ Android/DirectWrite/CoreText 适配器）对不对"（实现正确性）——�
   | `libs/store/KoStore.h` | `QByteArray` | R-02 |
   | `libs/store/KoStoreDevice.h` | `QByteArray` | R-02 |
   | `libs/store/KoDirectoryStore.h` | `QByteArray` | R-02 |
-  | `libs/image/tiles3/swap/kis_abstract_compression.h` | `QtGlobal` | R-02/R-03 |
+  | `libs/image/tiles3/swap/kis_abstract_compression.h` | `QtGlobal` | R-18 |
   | `libs/brush/kis_png_brush.h` | `QImage` | R-15 |
   | `libs/brush/kis_svg_brush.h` | `QImage` | R-15 |
   | `libs/image/kis_composite_progress_proxy.h` | `QList` | R-02 |
@@ -426,7 +426,7 @@ nm -u libpkport.a libpkzip.a | grep -i qt: 无输出
   graft 按登记失败: libs/store/KoStore.h（卡在 QByteArray → R-02）
   graft 按登记失败: libs/store/KoStoreDevice.h（卡在 QByteArray → R-02）
   graft 按登记失败: libs/store/KoDirectoryStore.h（卡在 QByteArray → R-02）
-  graft 按登记失败: libs/image/tiles3/swap/kis_abstract_compression.h（卡在 QtGlobal → R-02/R-03）
+  graft 按登记失败: libs/image/tiles3/swap/kis_abstract_compression.h（卡在 QtGlobal → R-18）
   graft 按登记失败: libs/brush/kis_png_brush.h（卡在 QImage → R-15）
   graft 按登记失败: libs/brush/kis_svg_brush.h（卡在 QImage → R-15）
   graft 按登记失败: libs/image/kis_composite_progress_proxy.h（卡在 QList → R-02）
