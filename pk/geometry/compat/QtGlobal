@@ -14,7 +14,8 @@
 // PkGlobal.h 自己提供那三项，超集关系照样成立。
 //
 // 完整设计说明在 PkGlobal.h 顶部「与 pk/test/compat/QtGlobal 的共存」一节；
-// 三种 include 顺序各有一个 TU 在 ../tests/coexist_*.cpp 里编译并核对取值。
+// **两种** include 顺序各有一个 TU 在 ../tests/coexist_*.cpp 里编译并核对取值
+//（第三种顺序没有真实场景，故意不做，理由见 README 的「覆盖度缺口」）。
 //
 // 本文件不提供 qint8..quint64 那批整数 typedef：R-03 的实测用量表里它们归
 // R-02（容器），这里不预先实现（线级 spec 判据①）。

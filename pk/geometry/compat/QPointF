@@ -1,0 +1,12 @@
+#pragma once
+#include "../PkPoint.h"
+
+// <QPointF> 的垫片。与 compat/QPoint 内容等同（Qt 那两个转发头也都指向同一份
+// qpoint.h），完整理由见 compat/QPoint。两份都写出来是因为调用点两种写法都有，
+// 而垫片是按**文件名**被找到的，宏改写不了 #include 的路径。
+#ifndef QPoint
+#define QPoint PkPoint
+#endif
+#ifndef QPointF
+#define QPointF PkPointF
+#endif

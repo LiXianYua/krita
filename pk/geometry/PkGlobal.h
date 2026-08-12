@@ -89,15 +89,31 @@ template <typename T>
 constexpr inline const T &qBound(const T &min, const T &val, const T &max)
 { return qMax(min, qMin(max, val)); }
 
-#ifndef PK_GLOBAL_SCALARS_FROM_PKTEST
 // qglobal.h:900-917。相对误差，右端取 qMin(|p1|, |p2|)：任何一侧是 0 时永远
 // 不成立（两个方向都是 false）。double 的相对阈值 1e-12、float 的 1e-5。
-constexpr inline bool qFuzzyCompare(double p1, double p2)
+//
+// **公式住在 pkQt* 这组名字里，而不是 qFuzzy* 里** —— 这不是风格，是必需：
+// `qFuzzyCompare`/`qFuzzyIsNull` 在「pk/test 那份垫片先进 TU」的路径上是
+// **两个 #define**（→ pkFuzzyCompare / pkFuzzyIsNull），凡是写这两个名字的
+// 函数体都会被预处理器当场改写。PkPointF/PkSizeF/PkRectF 的 operator== 照
+// Qt 抄的正是这两个名字，一旦被改写，几何类型的相等语义就静默换成 pk/test
+// 那套（阈值相同但零侧分支不同，且 pk/test 不在 R-03 的 locks 里、R-11 随时
+// 可能动它）。几何类型内部一律走 pkQt*，宏改写不到，语义钉死在 Qt 上。
+// 这条不是口头断言：tests/test_point.cpp 的 fuzzyEqualityIsMacroProof 与
+// tests/coexist.h 的探针一起钉住。
+constexpr inline bool pkQtFuzzyCompare(double p1, double p2)
 { return (qAbs(p1 - p2) * 1000000000000. <= qMin(qAbs(p1), qAbs(p2))); }
-constexpr inline bool qFuzzyCompare(float p1, float p2)
+constexpr inline bool pkQtFuzzyCompare(float p1, float p2)
 { return (qAbs(p1 - p2) * 100000.f <= qMin(qAbs(p1), qAbs(p2))); }
-constexpr inline bool qFuzzyIsNull(double d) { return qAbs(d) <= 0.000000000001; }
-constexpr inline bool qFuzzyIsNull(float f) { return qAbs(f) <= 0.00001f; }
+constexpr inline bool pkQtFuzzyIsNull(double d) { return qAbs(d) <= 0.000000000001; }
+constexpr inline bool pkQtFuzzyIsNull(float f) { return qAbs(f) <= 0.00001f; }
+
+#ifndef PK_GLOBAL_SCALARS_FROM_PKTEST
+// 对外的 Qt 名字只是转发，公式不重复第二遍（两份公式必然漂移）。
+constexpr inline bool qFuzzyCompare(double p1, double p2) { return pkQtFuzzyCompare(p1, p2); }
+constexpr inline bool qFuzzyCompare(float p1, float p2) { return pkQtFuzzyCompare(p1, p2); }
+constexpr inline bool qFuzzyIsNull(double d) { return pkQtFuzzyIsNull(d); }
+constexpr inline bool qFuzzyIsNull(float f) { return pkQtFuzzyIsNull(f); }
 #endif
 
 // qnumeric.h:48 与 qnumeric.h:59。Qt 里这两个是 Q_CORE_EXPORT 的**非 inline**
