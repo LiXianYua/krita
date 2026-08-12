@@ -9,9 +9,6 @@
 #include <kis_debug.h>
 #include <klocalizedstring.h>
 
-#include <KisOptionCollectionWidget.h>
-#include <KoGroupButton.h>
-
 #include <ksharedconfig.h>
 
 #include <KoCanvasBase.h>
@@ -26,9 +23,6 @@
 #include <canvas/kis_canvas2.h>
 #include <kis_cursor.h>
 #include "kis_resources_snapshot.h"
-#include <kis_color_button.h>
-#include <kis_color_label_selector_widget.h>
-#include <kis_cmb_composite.h>
 #include <kis_image_animation_interface.h>
 
 #include <kis_stroke_strategy_undo_command_based.h>
@@ -625,60 +619,6 @@ KisToolEncloseAndFill::Reference KisToolEncloseAndFill::configStringToReference(
     return CurrentLayer;
 }
 
-void KisToolEncloseAndFill::slot_optionButtonStripEnclosingMethod_buttonToggled(
-    KoGroupButton *button,
-    bool checked)
-{
-    if (!checked) {
-        return;
-    }
-
-    if (button == m_buttonEnclosingMethodRectangle) {
-        m_enclosingMethod = Rectangle;
-    } else if (button == m_buttonEnclosingMethodEllipse) {
-        m_enclosingMethod = Ellipse;
-    } else if (button == m_buttonEnclosingMethodPath) {
-        m_enclosingMethod = Path;
-    } else if (button == m_buttonEnclosingMethodLasso) {
-        m_enclosingMethod = Lasso;
-    } else {
-        m_enclosingMethod = Brush;
-    }
-
-    saveEnclosingMethodToConfig(m_enclosingMethod);
-    setupEnclosingSubtool();
-}
-
-void KisToolEncloseAndFill::slot_comboBoxRegionSelectionMethod_currentIndexChanged(int)
-{
-    m_regionSelectionMethod = static_cast<RegionSelectionMethod>(m_comboBoxRegionSelectionMethod->currentData().toInt());
-
-    KisOptionCollectionWidgetWithHeader *sectionWhatToFill =
-        m_optionWidget->widgetAs<KisOptionCollectionWidgetWithHeader*>("sectionWhatToFill");
-    sectionWhatToFill->setWidgetVisible("buttonRegionSelectionColor",
-        m_regionSelectionMethod == RegionSelectionMethod::SelectRegionsFilledWithSpecificColor ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectRegionsFilledWithSpecificColorOrTransparent ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectAllRegionsExceptFilledWithSpecificColor ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectAllRegionsExceptFilledWithSpecificColorOrTransparent ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectRegionsSurroundedBySpecificColor ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectRegionsSurroundedBySpecificColorOrTransparent
-    );
-    sectionWhatToFill->setWidgetVisible(
-        "checkBoxRegionSelectionIncludeContourRegions",
-        m_regionSelectionMethod == RegionSelectionMethod::SelectAllRegions ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectRegionsFilledWithSpecificColor ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectRegionsFilledWithTransparent ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectRegionsFilledWithSpecificColorOrTransparent ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectAllRegionsExceptFilledWithSpecificColor ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectAllRegionsExceptFilledWithTransparent ||
-        m_regionSelectionMethod == RegionSelectionMethod::SelectAllRegionsExceptFilledWithSpecificColorOrTransparent
-    );
-
-    m_comboBoxRegionSelectionMethod->setToolTip(m_comboBoxRegionSelectionMethod->currentText());
-
-    saveRegionSelectionMethodToConfig(m_regionSelectionMethod);
-}
-
 void KisToolEncloseAndFill::slot_buttonRegionSelectionColor_changed(const KoColor &color)
 {
     if (color == m_regionSelectionColor) {
@@ -706,28 +646,6 @@ void KisToolEncloseAndFill::slot_checkBoxRegionSelectionIncludeContourRegions_to
     m_configGroup.writeEntry("regionSelectionIncludeContourRegions", checked);
 }
 
-void KisToolEncloseAndFill::slot_optionButtonStripFillWith_buttonToggled(
-    KoGroupButton *button,
-    bool checked)
-{
-    if (!checked) {
-        return;
-    }
-    const bool visible = button == m_buttonFillWithPattern;
-    KisOptionCollectionWidgetWithHeader *sectionFillWith =
-        m_optionWidget->widgetAs<KisOptionCollectionWidgetWithHeader*>("sectionFillWith");
-    sectionFillWith->setWidgetVisible("sliderPatternScale", visible);
-    sectionFillWith->setWidgetVisible("angleSelectorPatternRotation", visible);
-    
-    m_fillType = button == m_buttonFillWithFG ? FillWithForegroundColor
-                                              : (button == m_buttonFillWithBG ? FillWithBackgroundColor : FillWithPattern);
-
-    m_configGroup.writeEntry(
-        "fillWith",
-        button == m_buttonFillWithFG ? "foregroundColor" : (button == m_buttonFillWithBG ? "backgroundColor" : "pattern")
-    );
-}
-
 void KisToolEncloseAndFill::slot_sliderPatternScale_valueChanged(double value)
 {
     if (value == m_patternScale) {
@@ -746,16 +664,6 @@ void KisToolEncloseAndFill::slot_angleSelectorPatternRotation_angleChanged(doubl
     m_configGroup.writeEntry("patternRotate", value);
 }
 
-void KisToolEncloseAndFill::slot_checkBoxUseCustomBlendingOptions_toggled(bool checked)
-{
-    KisOptionCollectionWidgetWithHeader *sectionFillWith =
-        m_optionWidget->widgetAs<KisOptionCollectionWidgetWithHeader*>("sectionFillWith");
-    sectionFillWith->setWidgetVisible("sliderCustomOpacity", checked);
-    sectionFillWith->setWidgetVisible("comboBoxCustomCompositeOp", checked);
-    m_useCustomBlendingOptions = checked;
-    m_configGroup.writeEntry("useCustomBlendingOptions", checked);
-}
-
 void KisToolEncloseAndFill::slot_sliderCustomOpacity_valueChanged(int value)
 {
     if (value == m_customOpacity) {
@@ -763,17 +671,6 @@ void KisToolEncloseAndFill::slot_sliderCustomOpacity_valueChanged(int value)
     }
     m_customOpacity = value;
     m_configGroup.writeEntry("customOpacity", value);
-}
-
-void KisToolEncloseAndFill::slot_comboBoxCustomCompositeOp_currentIndexChanged(int index)
-{
-    Q_UNUSED(index);
-    const QString compositeOpId = m_comboBoxCustomCompositeOp->selectedCompositeOp().id();
-    if (compositeOpId == m_customCompositeOp) {
-        return;
-    }
-    m_customCompositeOp = compositeOpId;
-    m_configGroup.writeEntry("customCompositeOp", compositeOpId);
 }
 
 void KisToolEncloseAndFill::slot_sliderFillThreshold_valueChanged(int value)
@@ -848,70 +745,6 @@ void KisToolEncloseAndFill::slot_sliderFeather_valueChanged(int value)
     m_configGroup.writeEntry("feather", value);
 }
 
-void KisToolEncloseAndFill::slot_optionButtonStripReference_buttonToggled(
-    KoGroupButton *button,
-    bool checked)
-{
-    if (!checked) {
-        return;
-    }
-    KisOptionCollectionWidgetWithHeader *sectionReference =
-        m_optionWidget->widgetAs<KisOptionCollectionWidgetWithHeader*>("sectionReference");
-    sectionReference->setWidgetVisible("widgetLabels", button == m_buttonReferenceLabeled);
-    
-    m_reference = button == m_buttonReferenceCurrent ? CurrentLayer
-                                                     : (button == m_buttonReferenceAll ? AllLayers : ColorLabeledLayers);
-
-    m_configGroup.writeEntry(
-        "reference",
-        button == m_buttonReferenceCurrent ? "currentLayer" : (button == m_buttonReferenceAll ? "allLayers" : "colorLabeledLayers")
-    );
-}
-
-void KisToolEncloseAndFill::slot_widgetLabels_selectionChanged()
-{
-    QList<int> labels = m_widgetLabels->selection();
-    if (labels == m_selectedColorLabels) {
-        return;
-    }
-    m_selectedColorLabels = labels;
-    if (labels.isEmpty()) {
-        return;
-    }
-    QString colorLabels = QString::number(labels.first());
-    for (int i = 1; i < labels.size(); ++i) {
-        colorLabels += "," + QString::number(labels[i]);
-    }
-    m_configGroup.writeEntry("colorLabels", colorLabels);
-}
-
-void KisToolEncloseAndFill::slot_buttonReset_clicked()
-{
-    m_buttonEnclosingMethodLasso->setChecked(true);
-    m_comboBoxRegionSelectionMethod->setCurrentIndex(
-        m_comboBoxRegionSelectionMethod->findData(static_cast<int>(RegionSelectionMethod::SelectAllRegions))
-    );
-    m_buttonRegionSelectionColor->setColor(KoColor());
-    m_checkBoxRegionSelectionInvert->setChecked(false);
-    m_checkBoxRegionSelectionIncludeContourRegions->setChecked(false);
-    m_buttonFillWithFG->setChecked(true);
-    m_sliderPatternScale->setValue(100.0);
-    m_angleSelectorPatternRotation->setAngle(0.0);
-    m_checkBoxCustomBlendingOptions->setChecked(false);
-    m_sliderCustomOpacity->setValue(100);
-    m_comboBoxCustomCompositeOp->selectCompositeOp(KoID(COMPOSITE_OVER));
-    m_sliderFillThreshold->setValue(8);
-    m_sliderFillOpacitySpread->setValue(100);
-    m_sliderCloseGap->setValue(0);
-    m_checkBoxSelectionAsBoundary->setChecked(true);
-    m_checkBoxAntiAlias->setChecked(false);
-    m_sliderExpand->setValue(0);
-    m_buttonStopGrowingAtDarkestPixel->setChecked(false);
-    m_sliderFeather->setValue(0);
-    m_buttonReferenceCurrent->setChecked(true);
-    m_widgetLabels->setSelection({});
-}
-
 void KisToolEncloseAndFill::slot_currentNodeChanged(const KisNodeSP node)
 {
     if (m_previousNode && m_previousNode->paintDevice()) {
@@ -932,17 +765,12 @@ void KisToolEncloseAndFill::slot_currentNodeChanged(const KisNodeSP node)
 
 void KisToolEncloseAndFill::slot_colorSpaceChanged(const KoColorSpace *colorSpace)
 {
-    if (!m_comboBoxCustomCompositeOp) {
-        return;
-    }
-    const KoColorSpace *compositionSpace = colorSpace;
-    if (currentNode() && currentNode()->paintDevice()) {
-        // Currently, composition source is enough to determine the available blending mode,
-        // because either destination is the same (paint layers), or composition happens
-        // in source space (masks).
-        compositionSpace = currentNode()->paintDevice()->compositionSourceColorSpace();
-    }
-    m_comboBoxCustomCompositeOp->validate(compositionSpace);
+    Q_UNUSED(colorSpace);
+    // Was forwarded to the options panel's composite-op combobox (grey out
+    // composite ops unsupported by the current color space); the panel has
+    // been removed, nothing left to validate against. Still connected from
+    // slot_currentNodeChanged() on every real node/color-space change --
+    // kept as a documented no-op rather than removing that live connection.
 }
 
 void KisToolEncloseAndFill::slot_checkBoxUseActiveLayer_toggled(bool checked)

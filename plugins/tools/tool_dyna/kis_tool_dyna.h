@@ -17,12 +17,6 @@
 #include <kconfig.h>
 #include <kconfiggroup.h>
 
-
-class KisDoubleSliderSpinBox;
-class QCheckBox;
-class QGridLayout;
-class KisAngleSelector;
-
 class KoCanvasBase;
 
 class DynaFilter
@@ -82,14 +76,6 @@ private Q_SLOTS:
     void slotSetFixedAngle(bool fixedAngle);
 
 private:
-    QGridLayout* m_optionLayout {nullptr};
-
-    // dyna gui
-    QCheckBox * m_chkFixedAngle {nullptr};
-    KisDoubleSliderSpinBox * m_massSPBox {nullptr};
-    KisDoubleSliderSpinBox * m_dragSPBox {nullptr};
-    KisAngleSelector * m_angleSelector {nullptr};
-
     // dyna algorithm
     QVector<QPointF> m_prevPosition;
     qreal m_odelx {0.0};

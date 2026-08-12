@@ -16,10 +16,6 @@
 #include <QApplication>
 #include <QVBoxLayout>
 
-#include <KisOptionButtonStrip.h>
-#include <KisOptionCollectionWidget.h>
-#include <KoGroupButton.h>
-
 #include <kis_debug.h>
 #include <klocalizedstring.h>
 #include <ksharedconfig.h>
@@ -322,31 +318,6 @@ void KisToolSelectContiguous::slotSetUseSelectionAsBoundary(bool useSelectionAsB
     m_configGroup.writeEntry("useSelectionAsBoundary", useSelectionAsBoundary);
 }
 
-void KisToolSelectContiguous::slot_optionButtonStripContiguousSelectionMode_buttonToggled(
-    KoGroupButton *button,
-    bool checked)
-{
-    if (!checked) {
-        return;
-    }
-
-    KisOptionCollectionWidgetWithHeader *sectionSelectionExtent =
-        selectionOptionWidget()->widgetAs<KisOptionCollectionWidgetWithHeader*>(
-            "sectionSelectionExtent"
-        );
-    const KoGroupButton *buttonContiguousSelectionModeBoundaryFill =
-        sectionSelectionExtent->primaryWidgetAs<KisOptionButtonStrip*>()->button(1);
-    const bool visible = button == buttonContiguousSelectionModeBoundaryFill;
-    sectionSelectionExtent->setWidgetVisible(
-        "buttonContiguousSelectionBoundaryColor", visible
-    );
-
-    slotSetContiguousSelectionMode(
-        button == buttonContiguousSelectionModeBoundaryFill
-        ? BoundaryFill
-        : FloodFill
-    );
-}
 
 KoColor KisToolSelectContiguous::loadContiguousSelectionBoundaryColorFromConfig()
 {

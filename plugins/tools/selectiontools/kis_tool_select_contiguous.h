@@ -18,8 +18,6 @@
 #include <kconfiggroup.h>
 #include <commands_new/KisMergeLabeledLayersCommand.h>
 
-class KoGroupButton;
-
 /**
  * The 'magic wand' selection tool -- in fact just
  * a floodfill that only creates a selection.
@@ -80,11 +78,6 @@ private:
     int m_previousTime;
 
     KoColor loadContiguousSelectionBoundaryColorFromConfig();
-
-private Q_SLOTS:
-    void slot_optionButtonStripContiguousSelectionMode_buttonToggled(
-        KoGroupButton*, bool
-    );
 };
 
 class KisToolSelectContiguousFactory : public KisSelectionToolFactoryBase

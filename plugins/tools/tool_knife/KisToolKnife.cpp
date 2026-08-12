@@ -246,6 +246,28 @@ void KisToolKnife::mouseReleaseEvent(KoPointerEvent *event)
     m_d->previousLineDirtyRect = dirtyRect;
 }
 
+namespace {
+
+// Mirrors the deleted KisToolKnifeOptionsWidget::Private::widthTypeFromString():
+// same four config strings, same "thick" fallback for anything else.
+enum class GutterWidthType { Thick, Thin, Special, Automatic };
+
+GutterWidthType gutterWidthTypeFromConfigString(const QString &type)
+{
+    if (type == "thick") {
+        return GutterWidthType::Thick;
+    } else if (type == "thin") {
+        return GutterWidthType::Thin;
+    } else if (type == "special") {
+        return GutterWidthType::Special;
+    } else if (type == "automatic") {
+        return GutterWidthType::Automatic;
+    }
+    return GutterWidthType::Thick;
+}
+
+} // namespace
+
 KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
 {
     QList<KoShape*> shapes = canvas()->shapeManager()->shapes();
@@ -259,9 +281,12 @@ KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
     }
 
     // Options panel removed. This reproduces the panel's default state as it
-    // stood at construction (KisToolKnifeOptionsWidget::Private::readFromConfig()):
-    // mode = AddGutter, width type = "thick", read from the same config keys/
-    // defaults so any value the user had already saved is still honoured.
+    // stood at construction (KisToolKnifeOptionsWidget::Private::readFromConfig()
+    // + getCurrentWidthsConfig()): mode = AddGutter, and the width/angle read
+    // from the same config keys/defaults, dispatched on the same
+    // "current_gutter_width_type" the panel used to pick which of
+    // thick/thin/special/automatic was active -- so any value the user had
+    // already saved (including a non-default width type) is still honoured.
     KConfigGroup configGroup = KSharedConfig::openConfig()->group(toolId());
     QString unitSymbol = configGroup.readEntry("gutter_unit_symbol", "px");
     bool unitConversionSuccess = false;
@@ -269,10 +294,49 @@ KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
     if (!unitConversionSuccess) {
         unit = KoUnit::fromSymbol("px");
     }
-    const qreal thickGutterWidth = configGroup.readEntry("thick_gutter_width", 40.0f);
-    const qreal gutterAngleDegrees = configGroup.readEntry("automatic_gutter_angle", 2.0f);
 
-    GutterWidthsConfig widthsConfig(unit, resolution, thickGutterWidth, gutterAngleDegrees);
+    const qreal thickGutterWidth = configGroup.readEntry("thick_gutter_width", 40.0);
+    const qreal thinGutterWidth = configGroup.readEntry("thin_gutter_width", 15.0);
+    const qreal specialGutterWidth = configGroup.readEntry("special_gutter_width", 70.0);
+    const qreal gutterAngleDegrees = configGroup.readEntry("automatic_gutter_angle", 2.0);
+
+    auto widthForType = [&](GutterWidthType type) -> qreal {
+        switch (type) {
+        case GutterWidthType::Thick:
+            return thickGutterWidth;
+        case GutterWidthType::Thin:
+            return thinGutterWidth;
+        case GutterWidthType::Special:
+            return specialGutterWidth;
+        default:
+            // Matches the panel's getWidthForType(): Automatic (and any
+            // other value) falls back to the "special" width here too --
+            // Automatic itself is handled per-axis below and never reaches
+            // this branch.
+            return specialGutterWidth;
+        }
+    };
+
+    const GutterWidthType currentWidthType =
+        gutterWidthTypeFromConfigString(configGroup.readEntry("current_gutter_width_type", "thick"));
+
+    GutterWidthsConfig widthsConfig = [&]() {
+        if (currentWidthType == GutterWidthType::Automatic) {
+            const GutterWidthType horizontalType =
+                gutterWidthTypeFromConfigString(configGroup.readEntry("automatic_horizontal_type", "thick"));
+            const GutterWidthType verticalType =
+                gutterWidthTypeFromConfigString(configGroup.readEntry("automatic_vertical_type", "thin"));
+            const GutterWidthType diagonalType =
+                gutterWidthTypeFromConfigString(configGroup.readEntry("automatic_diagonal_type", "thin"));
+            return GutterWidthsConfig(unit, resolution,
+                                       widthForType(horizontalType),
+                                       widthForType(verticalType),
+                                       widthForType(diagonalType),
+                                       gutterAngleDegrees);
+        }
+        return GutterWidthsConfig(unit, resolution, widthForType(currentWidthType), gutterAngleDegrees);
+    }();
+
     return new CutThroughShapeStrategy(this, canvas()->selectedShapesProxy()->selection(), shapes, event->point, widthsConfig);
 }
 

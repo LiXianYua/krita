@@ -24,19 +24,6 @@
 
 #include "subtools/KisDynamicDelegatedTool.h"
 
-class KisOptionCollectionWidget;
-class KisColorButton;
-class KoGroupButton;
-class KisDoubleSliderSpinBox;
-class KisAngleSelector;
-class KisSliderSpinBox;
-class QCheckBox;
-class KisColorLabelSelectorWidget;
-class QPushButton;
-class QToolButton;
-class QComboBox;
-class KisCompositeOpComboBox;
-
 class KisToolEncloseAndFill : public KisDynamicDelegatedTool<KisToolShape>
 {
     Q_OBJECT
@@ -120,44 +107,6 @@ private:
     QSharedPointer<QRect> m_dirtyRect {nullptr};
     KisStrokeId m_fillStrokeId {nullptr};
 
-    KisOptionCollectionWidget *m_optionWidget {nullptr};
-
-    KoGroupButton *m_buttonEnclosingMethodRectangle{nullptr};
-    KoGroupButton *m_buttonEnclosingMethodEllipse{nullptr};
-    KoGroupButton *m_buttonEnclosingMethodPath{nullptr};
-    KoGroupButton *m_buttonEnclosingMethodLasso{nullptr};
-    KoGroupButton *m_buttonEnclosingMethodBrush{nullptr};
-
-    QComboBox *m_comboBoxRegionSelectionMethod {nullptr};
-    KisColorButton *m_buttonRegionSelectionColor {nullptr};
-    QCheckBox *m_checkBoxRegionSelectionInvert {nullptr};
-    QCheckBox *m_checkBoxRegionSelectionIncludeContourRegions {nullptr};
-
-    KoGroupButton *m_buttonFillWithFG{nullptr};
-    KoGroupButton *m_buttonFillWithBG{nullptr};
-    KoGroupButton *m_buttonFillWithPattern{nullptr};
-    KisDoubleSliderSpinBox *m_sliderPatternScale {nullptr};
-    KisAngleSelector *m_angleSelectorPatternRotation {nullptr};
-    QCheckBox *m_checkBoxCustomBlendingOptions {nullptr};
-    KisSliderSpinBox *m_sliderCustomOpacity {nullptr};
-    KisCompositeOpComboBox *m_comboBoxCustomCompositeOp {nullptr};
-
-    KisSliderSpinBox *m_sliderFillThreshold {nullptr};
-    KisSliderSpinBox *m_sliderFillOpacitySpread {nullptr};
-    KisSliderSpinBox *m_sliderCloseGap {nullptr};
-    QCheckBox *m_checkBoxSelectionAsBoundary {nullptr};
-
-    QCheckBox *m_checkBoxAntiAlias {nullptr};
-    KisSliderSpinBox *m_sliderExpand {nullptr};
-    QToolButton *m_buttonStopGrowingAtDarkestPixel {nullptr};
-    KisSliderSpinBox *m_sliderFeather {nullptr};
-
-    KoGroupButton *m_buttonReferenceCurrent{nullptr};
-    KoGroupButton *m_buttonReferenceAll{nullptr};
-    KoGroupButton *m_buttonReferenceLabeled{nullptr};
-    KisColorLabelSelectorWidget *m_widgetLabels {nullptr};
-    QCheckBox *m_checkBoxUseActiveLayer {nullptr};
-
     KConfigGroup m_configGroup;
     
     bool m_alternateActionStarted {false};
@@ -192,20 +141,12 @@ private:
     void loadConfiguration();
 
 private Q_SLOTS:
-    void
-    slot_optionButtonStripEnclosingMethod_buttonToggled(KoGroupButton *button,
-                                                        bool checked);
-    void slot_comboBoxRegionSelectionMethod_currentIndexChanged(int);
     void slot_buttonRegionSelectionColor_changed(const KoColor &color);
     void slot_checkBoxRegionSelectionInvert_toggled(bool checked);
     void slot_checkBoxRegionSelectionIncludeContourRegions_toggled(bool checked);
-    void slot_optionButtonStripFillWith_buttonToggled(KoGroupButton *button,
-                                                      bool checked);
     void slot_sliderPatternScale_valueChanged(double value);
     void slot_angleSelectorPatternRotation_angleChanged(double value);
-    void slot_checkBoxUseCustomBlendingOptions_toggled(bool checked);
     void slot_sliderCustomOpacity_valueChanged(int value);
-    void slot_comboBoxCustomCompositeOp_currentIndexChanged(int index);
     void slot_sliderFillThreshold_valueChanged(int value);
     void slot_sliderFillOpacitySpread_valueChanged(int value);
     void slot_sliderCloseGap_valueChanged(int value);
@@ -214,10 +155,6 @@ private Q_SLOTS:
     void slot_sliderExpand_valueChanged(int value);
     void slot_buttonStopGrowingAtDarkestPixel_toggled(bool enabled);
     void slot_sliderFeather_valueChanged(int value);
-    void slot_optionButtonStripReference_buttonToggled(KoGroupButton *button,
-                                                       bool checked);
-    void slot_widgetLabels_selectionChanged();
-    void slot_buttonReset_clicked();
 
     void slot_currentNodeChanged(const KisNodeSP node);
     void slot_colorSpaceChanged(const KoColorSpace *colorSpace);
