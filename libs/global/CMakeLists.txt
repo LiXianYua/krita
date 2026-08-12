@@ -46,6 +46,12 @@ set(kritaglobal_LIB_SRCS
     kis_random_source.cpp
     KisMessageBoxWrapper.cpp
     KisTransformComponents.cpp
+    KoProgressProxy.cpp
+    KoFakeProgressProxy.cpp
+    KoProgressUpdater.cpp
+    KoUpdater.cpp
+    KoUpdaterPrivate_p.cpp
+    KoProperties.cpp
 )
 
 if(WIN32)

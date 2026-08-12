@@ -7,7 +7,7 @@
 #ifndef KO_PROGRESS_PROXY
 #define KO_PROGRESS_PROXY
 
-#include "kritawidgetutils_export.h"
+#include "kritaglobal_export.h"
 
 class QString;
 
@@ -16,7 +16,7 @@ class QString;
  * a widget such as a KoProgressProxy childclass that also inherits this
  * interface, or something that prints progress to stdout.
  */
-class KRITAWIDGETUTILS_EXPORT KoProgressProxy
+class KRITAGLOBAL_EXPORT KoProgressProxy
 {
 
 public:

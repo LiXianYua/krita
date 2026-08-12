@@ -13,13 +13,7 @@ set(kritawidgetutils_LIB_SRCS
     kis_action_registry.cpp
     KisActionsSnapshot.cpp
     KoGroupButton.cpp
-    KoProgressProxy.cpp
-    KoFakeProgressProxy.cpp
     KoProgressBar.cpp
-    KoProgressUpdater.cpp
-    KoUpdater.cpp
-    KoUpdaterPrivate_p.cpp
-    KoProperties.cpp
     KoFileDialog.cpp
     KisPreviewFileDialog.cpp
     KisKineticScroller.cpp

@@ -10,7 +10,7 @@
 #include <QString>
 #include <QMap>
 #include <QVariant>
-#include "kritawidgetutils_export.h"
+#include "kritaglobal_export.h"
 
 class QDomElement;
 
@@ -18,7 +18,7 @@ class QDomElement;
  * A KoProperties is the (de-)serializable representation of
  * a key-value map. The serialisation format is XML.
  */
-class KRITAWIDGETUTILS_EXPORT KoProperties
+class KRITAGLOBAL_EXPORT KoProperties
 {
 public:
 

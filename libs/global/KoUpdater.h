@@ -33,7 +33,7 @@ class KoUpdaterPrivate;
  *
  * @see KoProgressUpdater::startSubtask()
  */
-class KRITAWIDGETUTILS_EXPORT KoUpdater : public QObject, public KoProgressProxy {
+class KRITAGLOBAL_EXPORT KoUpdater : public QObject, public KoProgressProxy {
 
     Q_OBJECT
 
@@ -112,7 +112,7 @@ private:
 };
 
 /// A holder for an updater that does nothing
-class KRITAWIDGETUTILS_EXPORT KoDummyUpdaterHolder
+class KRITAGLOBAL_EXPORT KoDummyUpdaterHolder
 {
 public:
     KoDummyUpdaterHolder();

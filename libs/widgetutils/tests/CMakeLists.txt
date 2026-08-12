@@ -1,10 +1,9 @@
 kis_add_tests(
     KisActionsSnapshotTest.cpp
-    KoPropertiesTest.cpp
     kis_simple_math_parser_test.cpp # FIXME this test should be in the ui directory
-    TestKoProgressUpdater.cpp
     TestSqueezedComboBox.cpp
     kis_parse_spin_boxes_test.cpp
+    TestKoProgressUpdater.cpp
     LINK_LIBRARIES kritawidgetutils kritaimage kritatestsdk
 )
 

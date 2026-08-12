@@ -20,7 +20,7 @@
  * you introduce any state, please make sure singleton object is removed from
  * the API.
  */
-class KRITAWIDGETUTILS_EXPORT KoFakeProgressProxy : public KoProgressProxy
+class KRITAGLOBAL_EXPORT KoFakeProgressProxy : public KoProgressProxy
 {
 public:
     int maximum() const override;
