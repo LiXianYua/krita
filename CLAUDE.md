@@ -116,9 +116,20 @@ grep COMPILER_LAUNCHER <build 目录>/CMakeCache.txt   # 两行都要在
 ## 这个仓库的两个特殊之处
 
 **① 是 shallow clone（`depth=1` @ `v6.0.3`）。**
-`git log` 只有一个根提交，**`git blame` 查不到 Krita 的历史**——想知道某段代码为什么这么写，
-去 `$PK/docs/krita/` 的架构知识库，或 GitHub 上的 `KDE/krita`。**不要 `git fetch --unshallow`**
-（9.5 GB，且 D-18 本来就要截断历史）。
+`git log` 只有一个根提交，**`git blame` 查不到 Krita 的历史**——想知道某段代码为什么这么写：
+
+```bash
+cd /home/liyang/projects-ssd/krita && codegraph explore "<符号名或问题>"
+```
+
+官方只读 clone 有 codegraph 索引（基点 `v6.0.3`，与本仓同源），一次调用给出相关符号
+原文加调用路径，**含 grep 追不到的动态分派**。**本仓库与各 worktree 都没有
+`.codegraph/`**，所以全局 `CLAUDE.md` 那条「没索引就跳过」说的是这里，不是说没索引可用。
+索引反映**未删减的原始 Krita**：问「原来怎么设计的」它权威，问「现在还剩什么」要在本仓库数。
+那个 clone 只读，**不许改它的源码**。
+
+再往上是 `$PK/docs/krita/` 的架构知识库，或 GitHub 上的 `KDE/krita`。
+**不要 `git fetch --unshallow`**（9.5 GB，且 D-18 本来就要截断历史）。
 
 **② 剥离期整树编译不过是正常的（D-19）。**
 每个 target 用 `$PK/.exec/shell/<target>/` 的独立薄壳 CMake 工程构建（I-01 产出，未完成前不存在），
