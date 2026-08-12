@@ -1,6 +1,5 @@
 add_subdirectory( assistants )
 add_subdirectory( color )
-add_subdirectory( dockers )
 add_subdirectory( extensions )
 add_subdirectory( filters )
 add_subdirectory( flake )
