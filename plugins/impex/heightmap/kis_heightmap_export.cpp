@@ -29,9 +29,7 @@
 #include <kis_config.h>
 #include <kis_iterator_ng.h>
 #include <kis_random_accessor_ng.h>
-#include <kis_config_widget.h>
 
-#include "kis_wdg_options_heightmap.h"
 #include "kis_heightmap_utils.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(KisHeightMapExportFactory, "krita_heightmap_export.json", registerPlugin<KisHeightMapExport>();)
@@ -62,15 +60,6 @@ KisPropertiesConfigurationSP KisHeightMapExport::defaultConfiguration(const QByt
     KisPropertiesConfigurationSP cfg = new KisPropertiesConfiguration();
     cfg->setProperty("endianness", 0);
     return cfg;
-}
-
-KisConfigWidget *KisHeightMapExport::createConfigurationWidget(QWidget *parent, const QByteArray &from, const QByteArray &to) const
-{
-    Q_UNUSED(from);
-    Q_UNUSED(to);
-    bool export_mode = true;
-    KisWdgOptionsHeightmap* wdg = new KisWdgOptionsHeightmap(parent, export_mode);
-    return wdg;
 }
 
 void KisHeightMapExport::initializeCapabilities()

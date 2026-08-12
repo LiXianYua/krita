@@ -11,7 +11,6 @@
 #include <QVariant>
 
 #include <KisImportExportFilter.h>
-#include <kis_config_widget.h>
 
 class KisHeightMapExport : public KisImportExportFilter
 {
@@ -20,7 +19,6 @@ public:
     KisHeightMapExport(QObject *parent, const QVariantList &);
     ~KisHeightMapExport() override;
     KisPropertiesConfigurationSP defaultConfiguration(const QByteArray& from = "", const QByteArray& to = "") const override;
-    KisConfigWidget *createConfigurationWidget(QWidget *parent, const QByteArray& from = "", const QByteArray& to = "") const override;
     void initializeCapabilities() override;
     
     KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
