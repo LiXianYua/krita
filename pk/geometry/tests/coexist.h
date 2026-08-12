@@ -71,12 +71,12 @@ struct PkCompatIncludeProbe
 
 PkCompatIncludeProbe pkCompatRectFirstProbe();
 
-// ── 为什么两个探针 TU 都要匿名 namespace（**Task 3–6 抄这个形状**）──────────
+// ── 哪些探针 TU 要落匿名 namespace、哪个必须不落（判据见 README 同名一节）────
 //
 // 两个 TU 里 `qAbs` 都来自 pk/test 那份垫片（`t >= T(0)`），而 test_point.cpp /
 // test_global.cpp 里的 `qAbs` 来自 PkGlobal.h（`t >= 0`）——**同名同签名、函数体
 // 不同**，且都是 inline/模板，以弱符号发射。链接器只保留其中一份，于是：
-//   · 三个 TU 实际调用的是同一份实现，「两种 include 顺序各测一遍」这句话不成立；
+//   · 多个 TU 实际调用的是同一份实现，「每种 include 顺序各测一遍」这句话不成立；
 //   · 谁赢由链接顺序决定，换链接器 / 加 -flto / 改源文件顺序都可能翻盘（这类
 //     ODR 违反在 point_macro_proof.cpp 上已实测复现，见那个文件顶部）。
 // 把两份 compat/QtGlobal 包进匿名 namespace，它们落地的一切（qAbs / qRound /

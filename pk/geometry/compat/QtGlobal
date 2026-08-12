@@ -14,25 +14,25 @@
 // PkGlobal.h 自己提供那三项，超集关系照样成立。
 //
 // 完整设计说明在 PkGlobal.h 顶部「与 pk/test/compat/QtGlobal 的共存」一节；
-// **两种** include 顺序各有一个 TU 在 ../tests/coexist_*.cpp 里编译并核对取值。
+// **三种** include 顺序各有一个 TU 在 ../tests/coexist_*.cpp 里编译并核对取值。
 //
-// ⚠ **「第三种顺序没有真实场景」这个判断是错的，Task 78 试接当场证伪。**
-//   PkGlobal.h 那段推理是：「Krita 源码写的是 #include <QRect> / #include <QtGlobal>，
-//   一定经过 compat 垫片，落在 ①② 里」。漏掉的一步是：`#include <QRect>` 经过的是
-//   **compat/QRect**，而 compat/QRect 直接包 ../PkRect.h → ../PkGlobal.h ——
-//   **绕开了本文件**，机制 ② 根本没被触发。于是
+// ⚠ **纪律：七个类型垫片（QPoint/QPointF/QSize/QSizeF/QRect/QRectF/QTransform）
+//   必须在包各自的 Pk 头之前先包本文件。新增 compat 垫片照做。**
+//
+//   为什么：`#include <QRect>` 经过的是 **compat/QRect**，而 compat/QRect 直接包
+//   ../PkRect.h → ../PkGlobal.h —— **绕开本文件**，机制 ② 不被触发。于是
 //       libs/global/KisRectsGrid.h:10   #include <QRect>      → PkGlobal.h 自己定义 qAbs
 //       libs/global/kis_assert.h:10     #include <QtGlobal>   → 本文件 → pk/test 那份
 //   在同一个 TU 里撞出 "redefinition of 'template<class T> constexpr T qAbs'"。
-//   这不是试接环境的人造顺序：任何 Krita 测试 TU（-I 里必然有 pk/test/compat）
-//   只要先 include 一个几何头再 include <QtGlobal>，就走这条路，S-00 会踩满地。
+//   这不是人造顺序：任何 Krita 测试 TU（-I 里必然有 pk/test/compat）只要先 include
+//   一个几何头再 include <QtGlobal> 就走这条路，S-00 会踩满地。
 //
-//   修法：**七个 compat 垫片（QPoint/QPointF/QSize/QSizeF/QRect/QRectF/QTransform）
-//   在包各自的 Pk 头之前，先包本文件。** 这既是修复，也是对 Qt 的忠实复刻 ——
-//   真 Qt 的每个公开头都以 `#include <QtCore/qglobal.h>` 开头（qrect.h:42 经
-//   qmargins.h、qpoint.h:42 直接包）。补上之后，无论调用点先写 <QRect> 还是
-//   先写 <QtGlobal>，pk/test 那份都先落地、机制 ① 的 `#if defined(qFuzzyCompare)`
-//   随即生效，PkGlobal.h 让位，不再有重复定义。
+//   先包本文件之后，无论调用点先写 <QRect> 还是先写 <QtGlobal>，pk/test 那份都
+//   先落地、机制 ① 的 `#if defined(qFuzzyCompare)` 随即生效，PkGlobal.h 让位。
+//   这既是修复也是对 Qt 的忠实复刻 —— 真 Qt 的每个公开头都以
+//   `#include <QtCore/qglobal.h>` 开头（qrect.h:42 经 qmargins.h、qpoint.h:42 直接包）。
+//
+//   回归守卫：../tests/coexist_compat_rect_first.cpp（拿掉那行 include 它当场变红）。
 //
 // 本文件不提供 qint8..quint64 那批整数 typedef：R-03 的实测用量表里它们归
 // R-02（容器），这里不预先实现（线级 spec 判据①）。

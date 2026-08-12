@@ -68,7 +68,7 @@ add_executable(test_pkgeometry
     tests/test_rect.cpp
     tests/test_rectf.cpp
     tests/test_transform.cpp
-    # 两种 include 顺序下的「两份 compat/QtGlobal 共存」TU。它们能编过本身就是
+    # 前两种 include 顺序下的「两份 compat/QtGlobal 共存」TU。它们能编过本身就是
     # 断言的一半，所以必须真的作为独立翻译单元编译，不能合并。
     tests/coexist_test_first.cpp
     tests/coexist_geometry_first.cpp

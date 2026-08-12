@@ -229,8 +229,8 @@ void PkGlobalCase::infMatchesQt()
 }
 
 // ---------------------------------------------------------------------------
-// 两份 compat/QtGlobal 共存：两种 include 顺序各一个 TU（tests/coexist_*.cpp）。
-// 两个 TU 能编过本身就是一半断言；这里核对它们给出的取值一致且与真 Qt 一致。
+// 两份 compat/QtGlobal 共存：三种 include 顺序各一个 TU（tests/coexist_*.cpp）。
+// 三个 TU 能编过本身就是一半断言；这里核对它们给出的取值一致且与真 Qt 一致。
 // 用宏共享检查体，让失败信息的 file:line 落回各自的调用点。
 //
 // 这两条路径上 qFuzzyCompare / qFuzzyIsNull / qAbs 让位给了 pk/test 的实现

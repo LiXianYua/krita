@@ -67,7 +67,7 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 | 运行输出 `Totals` 行 | 15 / 26 / 33 / 40 / 48 / 58 | harness 的口径：每个测试类的 slot 数 + `initTestCase` + `cleanupTestCase`，**不是**测试函数数，也不是断言数。六个类合计 220 |
 | 翻译单元 | 13 | `test_main` `test_global` `test_point` `test_size` `test_rect` `test_rectf` `test_transform` + 三个 `coexist_*` + 三个 `*_macro_proof` |
 | 对拍比对次数 | 154 358 778 | `run_oracle.sh` 输出的 `DIFF total=`，`mismatch=25 498`（= 3 条 canary + 23 条已声明偏离共 25 495 次，全部落在 `T::mapRect` 的透视裁剪那一支，见偏离清单 21）。拆开：Point 族 35 569 662 + Size 族 63 189 837 + Rect/RectF 两族 26 578 866 + Transform 族 29 020 413 |
-| 规则三 map 的声明数 | 56 / 56 / 62 / 64 / 43 | `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map` 的非注释行数，与对应头文件类体里的纯声明逐条对账（不一致即 FAIL）。`api_seen.expected` 303 行 |
+| 规则三 map 的声明数 | 56 / 56 / 62 / 64 / 43 | `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map` 的非注释行数，与对应头文件类体里的纯声明逐条对账（不一致即 FAIL）。`api_seen.expected` **303 行（同口径：非注释非空行；裸 `wc -l` 是 311，差的 8 行是注释）** |
 
 **优化档矩阵**（`-fwrapv` 由 `CMakeLists.txt` 的 `target_compile_options(... PUBLIC)`
 统一带上；`-fno-wrapv` 那一列是手工编译出来的对照，不是可用配置）：
@@ -180,15 +180,40 @@ Point 族没有对应物）。已补两条 `rec()`（`cmp_point_constants`），
 这个独立 TU 钉住：它把宏指向一对恒返回 `false` 的破坏版实现，再核对
 `PkPointF::operator==` 的取值仍与真 Qt 一致。
 
-**⚠ 被污染的 include 必须落进匿名 `namespace`。**
-在预处理期改写过语义的 TU 会编出**同名同签名、函数体却不同**的 inline 实体
-（`operator==(const PkPointF&, const PkPointF&)`、`qAbs<double>` …）。它们默认以
+### ⚠ 被污染的 include 与匿名 `namespace`：**一条规则加一个必须记住的例外**
+
+**问题**：在预处理期改写过语义的 TU 会编出**同名同签名、函数体却不同**的 inline
+实体（`operator==(const PkPointF&, const PkPointF&)`、`qAbs<double>` …）。它们默认以
 **弱符号**发射，链接器只保留一份，于是：探针调到的可能根本不是自己编出来的那份
 （判别力归零：把 `pkQtFuzzy*` 改回 `qFuzzy*` 时单测与对拍会一起绿灯放过），
-反过来破坏版也可能赢、把干净 TU 的断言变成假红。把整包 include 包进匿名
-`namespace` 就压成内部链接，链接顺序再影响不了任何东西。三个 TU
-（`point_macro_proof.cpp`、两个 `coexist_*.cpp`）都这么做，纪律只有一条：
-**系统头留在 `namespace` 之外**，否则会造出 `(anonymous)::std`。
+反过来破坏版也可能赢、把干净 TU 的断言变成假红。
+
+**判据：看这个被污染的 include 带进来的东西，有没有编在别处的 out-of-line 定义。**
+
+| 带进来的是 | 落匿名 `namespace`？ | 为什么 |
+|---|---|---|
+| **只有函数式内容**（`compat/QtGlobal` → `PkGlobal.h` 的标量工具，全是 inline / 模板） | **必须落** | 压成内部链接，链接顺序再影响不了任何东西 |
+| **还有类型定义**（`compat/QRect` 一类**类型垫片** → `PkRect.h`） | **必须不落** | 类定义会跟着变内部链接，与 `PkRect.cpp` 里的 out-of-line 成员（`normalized` / `operator\|` / `operator&` / `contains` / `intersects` / `toAlignedRect`）对不上，链接期报未定义符号 |
+
+**现状：六个受污染 TU，五落一不落。**
+落的五个：`point_macro_proof.cpp`、`size_macro_proof.cpp`、`rectf_macro_proof.cpp`、
+`coexist_test_first.cpp`、`coexist_geometry_first.cpp`。
+**不落的一个：`coexist_compat_rect_first.cpp`** —— 它第一个进 TU 的就是类型垫片
+`compat/QRect`，正好落在上表第二行。
+
+**不落的那个 TU 要付的代价，是配套纪律的另一半**：它的 `qAbs` / `qRound` /
+`qFuzzy*` 留在全局作用域、且来自 `pk/test` 那份垫片（与别的 TU 来自 `PkGlobal.h`
+的同名弱符号函数体不同）——**所以那个 TU 里这些名字一个都不许 odr-use，
+连间接的也不行**：
+
+> ⚠ **「不许用 `qAbs`/`qRound`/`qFuzzy*`」这句话比它看起来的范围大。**
+> `PkPointF` / `PkSizeF` / `PkRectF` 的三个 `operator==` 函数体里走的是
+> `pkQtFuzzyCompare`，而那个函数体里含 `qAbs` / `qMin` —— **所以那三个 `==`
+> 同样不许用**。当前探针合规（取值只用整数/浮点四则运算），
+> 但下一个人在那个 TU 里随手加一条 `rf == rf` 就会踩。
+
+**落的那五个，纪律只有一条：系统头留在 `namespace` 之外**，否则会造出
+`(anonymous)::std`。
 
 ## 与 `pk/test/compat/QtGlobal` 的共存
 
@@ -436,9 +461,13 @@ Task 4 已经把 Rect 族 51 个有用量的名字逐个归属到 Rect 族接收
 > `transform_api.map` 一行、对拍一条 `rec()`、单测 6 处引用。
 > **本 Task 不改它**：删一个已实现的成员要同时动头文件、`api_seen.expected`、
 > `transform_api.map`、对拍与单测五处，属于交付面变更而不是收口。
-> **列在这里请人裁决**：要么按判据①删掉，要么记成一条有意的偏离。
+> **已作为偏离清单第 25 条登记**（人做裁决时从头扫的是那张表，不是这里）：
+> 要么按判据①删掉，要么改判为一条有意的偏离并在那里补上理由。
 > 注意它与 `adjoint` 不同 —— `adjoint` 是 `inverted` 的 TxProject 路径**内部要用**
-> 所以留成私有 helper，`isAffine` 没有任何内部调用者。
+> 所以留成私有 helper，`isAffine` **没有任何内部调用者**
+> （`PkTransform.cpp:1065` 出现的 `isAffine` 只是一条 `static_assert` 的消息字符串）。
+> 另外：**实施计划把 `isAffine` 列进了「必须实现」清单**，所以这是**计划的实测错误**，
+> 与 `dotProduct`（计划说 0、实际非 0）方向相反。
 
 ## 明确不实现的清单
 
@@ -594,8 +623,10 @@ KisUsageLogger::log(QString("… Grid size: %1, log grid size: %2 …")
 ## `graft/` 的 stub 清单：每个是什么、真正的归属在哪条线
 
 判据②要求「真实调用点试接、零改动」。零改动意味着**上游依赖一个都不能改**，
-只能在编译行外面垫。下面 13 个垫片**没有一个是 R-03 的交付物**，
-每一个的头注释里都写着自己的归属：
+只能在编译行外面垫。下面这些垫片**没有一个是 R-03 的交付物**，每一个的头注释里
+都写着自己的归属。**口径：`git ls-files pk/geometry/graft/stubs` 得 14 个文件，
+下表 13 行** —— `QPolygon` 与 `QPolygonF` 合成了一行（真 Qt 里两个名字也指向
+同一个 `qpolygon.h`）：
 
 | stub | 是什么 | 真正的归属 |
 |---|---|---|
@@ -698,7 +729,7 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | # | 偏离 | 理由 |
 |---|---|---|
 | 1 | `qFuzzyCompare`/`qFuzzyIsNull` 去掉 Qt 原文的 `static` / `Q_REQUIRED_RESULT` / `Q_DECL_UNUSED` | `static` 只影响链接性（每 TU 一份内部副本），另两个是编译器诊断属性。**无行为差异。** |
-| 2 | 不做 `qIsNaN(float)` / `qIsFinite` / `qIsInf` 等 `qnumeric.h` 的其余成员 | 用量表只点名 `qIsNaN`(19)/`qInf`(1)，且实参都是 `double`；`float` 实参隐式提升到 `double`，取值一致。**少做一项，不是行为差异。** |
+| 2 | 不做 `qIsNaN(float)` / `qIsFinite` / `qIsInf` 等 `qnumeric.h` 的其余成员 | 用量表只点名 `qIsNaN`/`qInf`，且实参都是 `double`。**`qIsNaN` 的 19 是裸词口径**（`grep -ohE "\bqIsNaN\b"`，3 325 文件），**调用形态口径是 17** —— 两个数都 > 0，判定不受口径选择影响，但**报的时候必须说清是哪一个**；`qInf` 同口径 1；`float` 实参隐式提升到 `double`，取值一致。**少做一项，不是行为差异。** |
 | 3 | 不实现 `qRound64` | 实测 0 调用点（R-03 用量表）。判据①「一项不多」。 |
 | 4 | `pk/test/compat/QtGlobal` 先进 TU 时，`qAbs`/`qFuzzyCompare`/`qFuzzyIsNull` 用的是它那份实现 | 写法不同、语义等价，两处差异已逐条核对：`t >= T(0)` vs `t >= 0` 对全部算术类型等价（含 `-0.0`，两边都原样返回 `-0.0`）；`std::fabs`/`std::fmin` vs `qAbs`/`qMin` 只在实参含 NaN 时取值不同，而那种情况下两边的 `<=` 都被 NaN 拉成 false。**无行为差异。** 这条不是口头断言：`tests/coexist.h` 的探针把让位路径上的取值（含零侧语义 `fuzzyZeroA`/`fuzzyZeroB`）逐条钉住，`pk/test` 漂离 Qt 时两个 coexist TU 会变红。 |
 | 5 | Qt 的宏映射到 C++17：`Q_DECL_CONSTEXPR`→`constexpr`、`Q_DECL_RELAXED_CONSTEXPR`→`constexpr`、去掉 `Q_CORE_EXPORT` / `Q_DECLARE_TYPEINFO` / `QT_WARNING_*` | 分别是可见性属性、容器移动优化提示、`-Wfloat-equal` 的诊断压制。**都不进入可观察行为**，且 35 569 662 次逐输入对拍零真实差异。`Q_DECL_RELAXED_CONSTEXPR` 在 C++14 起就是 `constexpr`，`PkPoint.cpp` 用 `static_assert` 钉住"放宽 constexpr 真的能在编译期改状态"。 |
@@ -720,7 +751,8 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 21 | **`PkTransform::mapRect` 的两个重载在「`type() == TxProject` 且需要透视裁剪」那一支落回四角包围盒，Qt 走 `QPainterPath`** —— R-03 唯一一条**真实**的行为偏离，`geometry.deviation` 里那 23 行全是它 | **唯一站得住的偏离理由：决策文档已明确划在范围外。** `QPainterPath` 不在 `Qt替代品选型.md` §1 几何那一行点名的四个类型里，**归属未定**（实测 766 次 / 168 文件，是一个独立子系统，不是一个函数）。它不是"我们写错了"，是"这一跳的被调方还没有人认领"。**没有别的处置**：Qt 在这一支里把矩形当路径、在近裁剪面 `w = 1e-6` 上真的裁一刀再取包围盒；落回四角包围盒时被夹持到 `1e-6` 的那个角会把包围盒撑到 `1e7` 量级，而 Qt 裁出来的是 `1e6` 量级（实测 `t(1,0,-1, 0,1,0, 0,0,1)` 对 `(0,0,10,10)`：Qt 给 `(0,0,999999.0000000007,1e7)`，四角包围盒给 `(0,0,1e7,1e7)`）。**这一支在代码里是显形的**：`PkTransform.cpp` 的两个 `mapRect` 保住了 Qt 原本的四分支结构，合并分支会省几行、也会让这个洞消失在视野里。逐条对齐见下面「偏离清单里那 23 行怎么读」。 |
 | 22 | **`PkTransform` 不留 Qt5 那个永远是 `nullptr` 的 `Private *d`**，代价是 `sizeof(PkTransform) != sizeof(QTransform)` | 那个字段不经任何 API 露出来（Qt6 已删）。**代价诚实登记**：对拍里 Transform 族**没有** `sizeof` 相等的 `static_assert`，而 Point/Size/Rect 三族都有。**无行为差异**，但「布局一致」这条在这一族上确实弱一档。 |
 | 23 | **`PkTransform` 不复刻 `#ifndef QT_NO_DEBUG` 的七个 NaN 早退分支** | 与偏离 8（`Q_ASSERT`）同一条口径：实测本机 `libQt5Gui.so` 是带 `QT_NO_DEBUG` 编的（探针：`translate(NaN,1)` 之后 `dx == nan`，说明早退分支不在），Krita 的发布构建同样带 `QT_NO_DEBUG`。对齐的是**发布形态**。**未对齐的部分**：Debug 构建下 Qt 会 `nanWarning()` 并早退而 `PkTransform` 不会 —— 行为差异，只是它发生在 Krita 不发布的那种构建里。 |
-| 24 | **`graft/stubs/` 里 13 个垫片不是 R-03 的交付物**，其中 `stubs/QtGlobal` 末尾的 `qIsFinite` 是一条**试接压出来的 R-03 范围缺口** | 垫片本身不是偏离（它们顶的是别条线的东西，清单与归属见上面「`graft/` 的 stub 清单」）。**真正要判的是 `qIsFinite` 那一条**：它不是"别的线的东西暂时垫一下"，而是 R-03 自己的口径缺口 —— 完整论证见上面「要转给别条线的两个缺口」②。放在垫片里而不是直接收进 `PkGlobal.h`，是为了**不擅自改 R-03 的交付面**，请人裁决。 |
+| 24 | **`graft/stubs/` 里 14 个垫片不是 R-03 的交付物**，其中 `stubs/QtGlobal` 末尾的 `qIsFinite` 是一条**试接压出来的 R-03 范围缺口** | 垫片本身不是偏离（它们顶的是别条线的东西，清单与归属见上面「`graft/` 的 stub 清单」）。**真正要判的是 `qIsFinite` 那一条**：它不是"别的线的东西暂时垫一下"，而是 R-03 自己的口径缺口 —— 完整论证见上面「要转给别条线的两个缺口」②。放在垫片里而不是直接收进 `PkGlobal.h`，是为了**不擅自改 R-03 的交付面**，请人裁决。 |
+| 25 | **`PkTransform::isAffine()` 实现了，但 Transform 族实测调用点 = 0** —— **这条违反判据①「一项不多」，没有站得住的理由，登记在案等人裁决** | **这不是一条有理由的偏离，是一个未闭合的口子。** 三形态 6 处命中没有一处是 `QTransform`：`kis_transform_mask.cpp:459/512/578/634` 与 `inplace_transform_stroke_strategy.cpp:1003` 是 `KisTransformMaskParamsInterface::isAffine()`，`kis_transform_mask_adapter.cpp:52` 是 `KisTransformMaskAdapter` 自己的定义行。形状与 `unite`/`intersect`（都是 `QSet` 的）一模一样：**实施计划把它列进了「必须实现」清单，那是计划的实测错误** —— 与 `dotProduct`（计划说 0、实际非 0）方向相反。**它没有任何内部调用者**（与 `adjoint` 不同 —— 那个是 `inverted` 的 TxProject 路径要用才留成私有 helper，`PkTransform.cpp:1065` 出现的 `isAffine` 只是一条 `static_assert` 的消息字符串）。**收口时才查出来，本 Task 没删**：删一个已实现成员要同时动 `PkTransform.h`、`api_seen.expected`、`transform_api.map`、对拍 `rec()` 与单测五处，属于交付面变更而非收口。**两条出路二选一，由人定**：按判据①删掉，或改判为一条有意的偏离并在这里补上理由。 |
 
 ### 偏离清单里那 23 行怎么读（`oracle/geometry.deviation`）
 
@@ -884,7 +916,7 @@ tag 按输入形态切成了 23 格**——切细是为了让额度可推导，�
   够得到 `PkGlobal.h` 的唯一入口，而三个 TU 已经把「`pk/test` 先」「`compat/QtGlobal`
   先」「`compat/QRect` 一类类型垫片先」三条入口路径占全。真撞上没覆盖的形态时，
   表现是响亮的编译错误（`qAbs` 重定义），不是静默错行为。
-  **另一条同类的、两个 coexist TU 都没有覆盖的形态**：`PkGlobal.h` 的
+  **另一条同类的、三个 coexist TU 都没有覆盖的形态**：`PkGlobal.h` 的
   `namespace Qt { enum AspectRatioMode }` 与**真 Qt 的 `qnamespace.h`** 落进同一个
   TU 时是**重定义硬错**（偏离清单第 12 条）。目前唯一有这个形态的编译行是
   `oracle/`，它靠把替代品整包塞进 `namespace pkoracle` 绕开 —— 于是这条从来没被
