@@ -22,7 +22,6 @@
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorSpaceTraits.h>
-#include <KoDialog.h>
 #include <KoUpdater.h>
 #include <kis_debug.h>
 #include <kis_group_layer.h>
@@ -59,23 +58,11 @@ K_PLUGIN_FACTORY_WITH_JSON(KisRawImportFactory, "krita_raw_import.json", registe
 
 KisRawImport::KisRawImport(QObject *parent, const QVariantList &)
     : KisImportExportFilter(parent)
-    , m_dialog(new KoDialog())
-    , m_rawWidget(new WdgRawImport())
 {
-    m_dialog->setButtons(KoDialog::Ok | KoDialog::Cancel | KoDialog::Apply);
-    m_dialog->setDefaultButton(KoDialog::Ok);
-
-    m_dialog->setMainWidget(m_rawWidget);
-    connect(m_dialog, &KoDialog::applyClicked, this, &KisRawImport::slotUpdatePreview);
-    connect(m_rawWidget, &WdgRawImport::paint, this, &KisRawImport::slotUpdatePreview);
-    connect(m_rawWidget->rawSettings, &DcrawSettingsWidget::signalSettingsChanged, [&]() {
-        m_dialog->enableButtonApply(true);
-    });
 }
 
 KisRawImport::~KisRawImport()
 {
-    delete m_dialog;
 }
 
 inline quint16 correctIndian(quint16 v)
@@ -90,23 +77,12 @@ inline quint16 correctIndian(quint16 v)
 KisImportExportErrorCode
 KisRawImport::convert(KisDocument *document, QIODevice * /*io*/, KisPropertiesConfigurationSP /*configuration*/)
 {
-#if KDCRAW_VERSION < 0x010200
-    m_rawWidget->rawSettings->setDefaultSettings();
-#else
-    m_rawWidget->rawSettings->resetToDefault();
-#endif
-
-    int r = QDialog::Accepted;
-    if (!batchMode()) {
-        r = m_dialog->exec();
-    }
-
-    if (r == QDialog::Accepted) {
+    {
         KisCursorOverrideLock cursorLock(Qt::WaitCursor);
 
         // Do the decoding
         QByteArray imageData;
-        RawDecodingSettings settings = rawDecodingSettings();
+        RawDecodingSettings settings;
         settings.sixteenBitsImage = true;
         int width = 0;
         int height = 0;
@@ -303,65 +279,6 @@ KisRawImport::convert(KisDocument *document, QIODevice * /*io*/, KisPropertiesCo
     }
 
     return ImportExportCodes::Cancelled;
-}
-
-void KisRawImport::slotUpdatePreview()
-{
-    QByteArray imageData;
-    RawDecodingSettings settings = rawDecodingSettings();
-    settings.sixteenBitsImage = false;
-    int width = 0;
-    int height = 0;
-    int rgbmax = 0;
-    KDcraw dcraw;
-    if (dcraw.decodeHalfRAWImage(filename(), settings, imageData, width, height, rgbmax)) {
-        QImage image(width, height, QImage::Format_RGB32);
-        quint8 *ptr = reinterpret_cast<quint8 *>(imageData.data());
-        for (int y = 0; y < height; ++y) {
-            QRgb *pixel = reinterpret_cast<QRgb *>(image.scanLine(y));
-            for (int x = 0; x < width; ++x) {
-                pixel[x] = qRgb(ptr[0], ptr[1], ptr[2]);
-                ptr += 3;
-            }
-        }
-        const QSize previewSize = m_rawWidget->preview->size() * m_rawWidget->preview->devicePixelRatioF();
-        QPixmap img = QPixmap::fromImage(image).scaled(previewSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        img.setDevicePixelRatio(m_rawWidget->preview->devicePixelRatioF());
-        m_rawWidget->preview->setPixmap(img);
-    }
-
-    m_dialog->enableButtonApply(false);
-}
-
-RawDecodingSettings KisRawImport::rawDecodingSettings()
-{
-#if KDCRAW_VERSION < 0x010200
-    RawDecodingSettings settings;
-    settings.sixteenBitsImage = true;
-    settings.brightness = m_rawWidget->rawSettings->brightness();
-    settings.RAWQuality = m_rawWidget->rawSettings->quality();
-    settings.outputColorSpace = m_rawWidget->rawSettings->outputColorSpace();
-    settings.RGBInterpolate4Colors = m_rawWidget->rawSettings->useFourColor();
-    settings.DontStretchPixels = m_rawWidget->rawSettings->useDontStretchPixels();
-    settings.unclipColors = m_rawWidget->rawSettings->unclipColor();
-    settings.whiteBalance = m_rawWidget->rawSettings->whiteBalance();
-    settings.customWhiteBalance = m_rawWidget->rawSettings->customWhiteBalance();
-    settings.customWhiteBalanceGreen = m_rawWidget->rawSettings->customWhiteBalanceGreen();
-
-    settings.enableBlackPoint = m_rawWidget->rawSettings->useBlackPoint();
-    settings.blackPoint = m_rawWidget->rawSettings->blackPoint();
-
-    settings.enableNoiseReduction = m_rawWidget->rawSettings->useNoiseReduction();
-    settings.NRThreshold = m_rawWidget->rawSettings->NRThreshold();
-
-    settings.enableCACorrection = m_rawWidget->rawSettings->useCACorrection();
-    settings.caMultiplier[0] = m_rawWidget->rawSettings->caRedMultiplier();
-    settings.caMultiplier[1] = m_rawWidget->rawSettings->caBlueMultiplier();
-
-    return settings;
-#else
-    return m_rawWidget->rawSettings->settings();
-#endif
 }
 
 #include "kis_raw_import.moc"
