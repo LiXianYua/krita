@@ -441,6 +441,14 @@ void PkFontProviderTestCase::testAllFontsReturnsFamilyNameAndLanguagesForEveryRe
     PK_COMPARE(all[1].handle.faceIndex, 3);
     PK_COMPARE((int)all[1].languages.size(), 1);
     PK_COMPARE(all[1].languages[0].PkToUtf8(), std::string("zh-Hans"));
+
+    // 评审 I-4：FakeFontProvider::allFonts()（同真实实现按 §1.5 分工表的约定）
+    // 不填 weight/width/slant——这几个字段必须落回越界哨兵，而不是「像真的」
+    // 的 400/100/Normal。这条断言就是锁「未填」与「读到的确实是默认值」在
+    // 类型层面可区分：改回旧的「看起来合法」默认值，这里就会变绿变红。
+    PK_COMPARE(all[0].weight, -1);
+    PK_COMPARE(all[0].width, -1);
+    PK_VERIFY(all[0].slant == PkFontProvider::Slant::Unknown);
 }
 
 void PkFontProviderTestCase::testInitializeRecordsConfigSearchPath()

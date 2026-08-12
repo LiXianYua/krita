@@ -77,3 +77,16 @@ LD_LIBRARY_PATH=$QT/lib/x86_64-linux-gnu "$OUT/probe_qdir"
    `".."`）。这个尾部斜杠只在「爬完 `".."` 之后，`target` 侧没有剩余段可拼」
    这一种形态出现——`target` 有剩余段（`"../d/e"`）或 base==target（`"."`）
    都没有这条尾部斜杠。
+4. **`PkResourceStorage::joinPath()` 与 `QDir::filePath()` 有 3 处真分歧**
+   （评审 R-12 全分支最终评审 M-1，2026-08-12 补测）：空目录/空 leaf 走的是
+   `QDir()` 隐式等价 `QDir(".")` 这条"当前目录"语义，拼出来的结果带 `.`
+   前缀或去掉目录侧多余的尾部斜杠——`QDir().filePath("a")` = `"./a"`
+   （pk `"a"`）、`QDir().filePath("")` = `"."`（pk `""`）、
+   `QDir("/root/").filePath("")` = `"/root"`（pk `"/root/"`）。**登记为有意
+   收窄，不对齐**：本端口没有"当前目录"这个隐式概念，也没有已知调用点会传
+   空目录，见 `pk/port/README.md` §3 与 `PkResourceStorage.cpp` joinPath()
+   头注释。另外 4 个同类形态（`dir="/root/"`，leaf 分别是
+   `"a/"`/`"./a"`/`"../a"`/`"a/b"`）探针实测跟本实现**完全一致**，不是分歧
+   ——`QDir("/root/").filePath("a/")` = `"/root/a/"`，其余三个同理，均无
+   `cleanPath()` 那样的路径折叠（`filePath()` 只做字符串拼接，不解析
+   `.`/`..`）。

@@ -65,6 +65,15 @@ int main()
     fp("/root/", "/a");
     afp("/root/", "/a");
 
+    printf("\n---- filePath：joinPath() 与真 Qt 的 7 处未登记分歧（评审 M-1）----\n");
+    fp("", "a");
+    fp("", "");
+    fp("/root/", "");
+    fp("/root/", "a/");
+    fp("/root/", "./a");
+    fp("/root/", "../a");
+    fp("/root/", "a/b");
+
     printf("\n---- relativeFilePath：target 是 base 的祖先（M-2 尾部斜杠）----\n");
     rel("/a/b/c", "/a");
     rel("/a/b", "/a");

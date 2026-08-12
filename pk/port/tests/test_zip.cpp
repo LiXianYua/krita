@@ -106,6 +106,8 @@ public:
     void testLocateMissingEntryFailsAndReportsError();
     void testCannotOpenSecondEntryWhileFirstStillOpen();
     void testZip64EnabledStillRoundTrips();
+    void testOpenStreamRejectsUnopenedStream();
+    void testEntryNamesDoesNotDisturbLocatedEntry();
 };
 
 void PkZipArchiveTestCase::testEndToEndWriteThenReadBackViaPkStream()
@@ -357,6 +359,63 @@ void PkZipArchiveTestCase::testZip64EnabledStillRoundTrips()
     std::remove(path.c_str());
 }
 
+// 评审 I-1：openStream() 头注释写了「调用前 stream 必须已经处于 open 状态」，
+// 但没有任何东西真的拦——直到本次修复前，传一个没 open() 的 PkStream 进去，
+// openStream() 照样返回 true，等到 openEntryForWrite() 才失败、产出 0 字节
+// 归档。这里直接复现「未 open」这一种情形，锁死契约。
+void PkZipArchiveTestCase::testOpenStreamRejectsUnopenedStream()
+{
+    TestMemoryStream mem;
+    PK_VERIFY(!mem.isOpen());
+
+    PkZipArchive writer(PkZipArchive::Write);
+    PK_VERIFY(!writer.openStream(&mem));
+    PK_VERIFY(!writer.isOpen());
+}
+
+// 评审 I-2：entryNames() 是 const 方法，但底层 minizip-ng 遍历会把「当前条目」
+// 游标推到列表尾——不还原的话，locateEntry() 定位好的条目会被 entryNames()
+// 悄悄破坏。复现评审给出的具体失败序列：locateEntry → entryNames() →
+// openEntryForRead() 此前会返回 nullptr（lastError=-102 MZ_PARAM_ERROR）。
+void PkZipArchiveTestCase::testEntryNamesDoesNotDisturbLocatedEntry()
+{
+    const std::string path = uniqueTempPath("_entrynames_locate.zip");
+    const std::string content = "AAAA-alpha";
+
+    {
+        PkZipArchive writer(PkZipArchive::Write);
+        PK_VERIFY(writer.openFile(PkString(path.c_str())));
+        PkStream *a = writer.openEntryForWrite(PkString("alpha.txt"), 0444, true);
+        PK_VERIFY(a != nullptr);
+        a->write(content.data(), (PkStream::pk_int64)content.size());
+        delete a;
+        PkStream *b = writer.openEntryForWrite(PkString("beta.txt"), 0444, true);
+        PK_VERIFY(b != nullptr);
+        b->write("beta", 4);
+        delete b;
+        PK_VERIFY(writer.close());
+    }
+
+    {
+        PkZipArchive reader(PkZipArchive::Read);
+        PK_VERIFY(reader.openFile(PkString(path.c_str())));
+        PK_VERIFY(reader.locateEntry(PkString("alpha.txt")));
+
+        // 中间插一次 entryNames() 调用——这是本条断言要锁的行为：调用后
+        // locateEntry() 定位的条目必须仍然是 alpha.txt。
+        std::vector<PkString> names = reader.entryNames();
+        PK_COMPARE((int)names.size(), 2);
+
+        PkStream *s = reader.openEntryForRead();
+        PK_VERIFY(s != nullptr);
+        PK_COMPARE(readAllFromStream(s), content);
+        delete s;
+        PK_VERIFY(reader.close());
+    }
+
+    std::remove(path.c_str());
+}
+
 // PkTestBinder<PkZipArchiveTestCase> 特化——手写，形状对照
 // pk/test/pk_test_moc.py 的 emit_binder() 输出（同其余测试文件的做法）。
 template <>
@@ -400,10 +459,18 @@ struct PkTestBinder<PkZipArchiveTestCase> {
             {"testZip64EnabledStillRoundTrips",
              [](PkTestObject *o) { static_cast<PkZipArchiveTestCase *>(o)->testZip64EnabledStillRoundTrips(); },
              nullptr},
+            {"testOpenStreamRejectsUnopenedStream",
+             [](PkTestObject *o) { static_cast<PkZipArchiveTestCase *>(o)->testOpenStreamRejectsUnopenedStream(); },
+             nullptr},
+            {"testEntryNamesDoesNotDisturbLocatedEntry",
+             [](PkTestObject *o) {
+                 static_cast<PkZipArchiveTestCase *>(o)->testEntryNamesDoesNotDisturbLocatedEntry();
+             },
+             nullptr},
         };
         return fns;
     }
-    static int count() { return 8; }
+    static int count() { return 10; }
 
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }

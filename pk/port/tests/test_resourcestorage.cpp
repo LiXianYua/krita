@@ -463,9 +463,32 @@ void PkResourceStorageTestCase::testJoinPathTrailingLeadingSlashCombinations()
                std::string("/root/a"));
     PK_COMPARE(PkResourceStorage::joinPath(PkString("/root/"), PkString("a")).PkToUtf8(),
                std::string("/root/a"));
+    // 评审 M-1：这一条把与真 Qt 相反的行为锁进了测试——真 Qt
+    // `QDir().filePath("a")` = "./a"，本实现是 "a"。**有意收窄，不是遗漏**：
+    // 空目录没有已知调用点，也没有"当前目录"这个隐式概念，见
+    // PkResourceStorage.cpp joinPath() 头注释与 README.md §3 的登记、真链 Qt
+    // 探针 pk/port/probe/probe_qdir.cpp「7 处未登记分歧」一节。
     PK_COMPARE(PkResourceStorage::joinPath(PkString(""), PkString("a")).PkToUtf8(), std::string("a"));
     PK_COMPARE(PkResourceStorage::joinPath(PkString("/root"), PkString("")).PkToUtf8(),
                std::string("/root"));
+
+    // 评审 M-1：同一处收窄的另外两个形态——真 Qt `QDir().filePath("")` = "."，
+    // `QDir("/root/").filePath("")` = "/root"（去掉尾部斜杠）；本实现分别是
+    // "" 与 "/root/"，同样是有意收窄，不跟 QDir 的隐式默认目录语义走。
+    PK_COMPARE(PkResourceStorage::joinPath(PkString(""), PkString("")).PkToUtf8(), std::string(""));
+    PK_COMPARE(PkResourceStorage::joinPath(PkString("/root/"), PkString("")).PkToUtf8(),
+               std::string("/root/"));
+
+    // 评审 M-1：探针额外核验的 4 个同类形态（dir="/root/"，不同 leaf）——
+    // 这几个跟真 Qt 完全一致，不在收窄范围内，回归锁死避免以后被误改。
+    PK_COMPARE(PkResourceStorage::joinPath(PkString("/root/"), PkString("a/")).PkToUtf8(),
+               std::string("/root/a/"));
+    PK_COMPARE(PkResourceStorage::joinPath(PkString("/root/"), PkString("./a")).PkToUtf8(),
+               std::string("/root/./a"));
+    PK_COMPARE(PkResourceStorage::joinPath(PkString("/root/"), PkString("../a")).PkToUtf8(),
+               std::string("/root/../a"));
+    PK_COMPARE(PkResourceStorage::joinPath(PkString("/root/"), PkString("a/b")).PkToUtf8(),
+               std::string("/root/a/b"));
 }
 
 // 评审 I-2：真 Qt `QDir::filePath`/`absoluteFilePath` 在 name 是绝对路径时

@@ -56,6 +56,20 @@ PkString PkResourceStorage::joinPath(const PkString &dirPath, const PkString &na
 {
     const std::string dir = toUtf8(dirPath);
     const std::string leaf = toUtf8(name);
+    // 评审 M-1：**有意收窄，不是遗漏**——真 Qt `QDir::filePath()` 对空目录/
+    // 空 leaf 走的是"当前目录是 QDir 的隐式默认值"这条语义（`QDir()` 等价于
+    // `QDir(".")`），拼出来的结果会带上 `.`/`./` 前缀或去掉目录侧多余的尾部
+    // 斜杠。真链 Qt 5.15.13 探针（`pk/port/probe/probe_qdir.cpp` "joinPath()
+    // 与真 Qt 的 7 处未登记分歧"一节，2026-08-12 实测）：
+    //   joinPath("",       "a")  pk="a"        真 Qt QDir().filePath("a")        = "./a"
+    //   joinPath("",       "")   pk=""         真 Qt QDir().filePath("")         = "."
+    //   joinPath("/root/", "")   pk="/root/"   真 Qt QDir("/root/").filePath("") = "/root"
+    // 本端口没有"当前目录"这个隐式概念（调用方总是显式传目录），也没有已知
+    // 调用点会传空目录字符串——跟着 QDir 的隐式默认值走反而会让空目录输入
+    // 拼出带 "." 前缀的结果，对资源路径拼接没有实际意义。**保持简单收窄**：
+    // 空 dir 原样返回 leaf、空 leaf 原样返回 dir，不模拟 QDir 的隐式默认目录
+    // 语义。另外 4 个同类形态（"a/"、"./a"、"../a"、"a/b"，dir 均为
+    // "/root/"）探针实测跟本实现**完全一致**，不在收窄范围内，见探针输出。
     if (dir.empty()) {
         return fromUtf8(leaf);
     }

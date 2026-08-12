@@ -230,6 +230,17 @@ void PkStreamTestCase::testSequentialDevicePosStaysZero()
     PK_COMPARE(dev.read(buf + 2, 3), (PkStream::pk_int64)3);
     PK_VERIFY(std::memcmp(buf, "hello", 5) == 0);
     PK_COMPARE(dev.read(buf, 8), (PkStream::pk_int64)0);   // 读完之后 EOF
+
+    // 评审台账 minor：bytesAvailable() 的顺序设备分支
+    // （`return m_ungetBuffer.size();`）此前没有任何断言覆盖——改成
+    // `return 0;` 测试照样全绿。顺序设备上 unget 缓冲里的字节就是「可用」，
+    // 这里直接验证：先确认没有 unget 时是 0，ungetChar 两次后必须变成 2。
+    SequentialMemoryStream dev4("xyz");
+    dev4.open(PkStream::ReadOnly);
+    PK_COMPARE(dev4.bytesAvailable(), (PkStream::pk_int64)0);
+    dev4.ungetChar('B');
+    dev4.ungetChar('A');
+    PK_COMPARE(dev4.bytesAvailable(), (PkStream::pk_int64)2);
 }
 
 void PkStreamTestCase::testWriteInvalidatesUngetBuffer()
@@ -379,6 +390,19 @@ void PkStreamTestCase::testWriteAtNegativePosReturnsMinusOne()
     PK_COMPARE(dev2.pos(), (PkStream::pk_int64)-1);
     PK_VERIFY(!dev2.putChar('X'));
     PK_COMPARE(dev2.pos(), (PkStream::pk_int64)-1);
+
+    // 评审台账 minor：write() 的实现里 pos()<0 检查特意排在 maxSize==0 判断
+    // 之前（write() 注释「真 Qt 连 write(buf,0) 在负 pos 上也返回 -1」），但
+    // 此前没有断言真的用 maxSize==0 触发过这条路径——把检查顺序换回
+    // "maxSize==0 先短路成 0" 这里也会全绿。0 字节写在负 pos 上必须仍是 -1，
+    // 不能被 maxSize==0 提前短路成 0。
+    MemoryStream dev3("abcdef");
+    dev3.open(PkStream::ReadWrite);
+    dev3.ungetChar('Y');
+    PK_COMPARE(dev3.pos(), (PkStream::pk_int64)-1);
+    char zeroBuf[1] = {'Z'};
+    PK_COMPARE(dev3.write(zeroBuf, 0), (PkStream::pk_int64)-1);
+    PK_COMPARE(dev3.pos(), (PkStream::pk_int64)-1);
 }
 
 void PkStreamTestCase::testBytesAvailableDoesNotDoubleCountUngetForNonSequential()

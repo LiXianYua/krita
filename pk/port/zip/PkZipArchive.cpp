@@ -292,6 +292,12 @@ bool PkZipArchive::openStream(PkStream *stream)
     if (m_impl->open || !stream) {
         return false;
     }
+    // 评审 I-1：头注释写了「调用前 stream 必须已经处于 open 状态」，但 minizip-ng
+    // 从不对传入的 stream 调 ->vtbl->open——契约没有任何东西真的拦。未 open 的
+    // stream 会在 openEntryForWrite() 才失败、产出 0 字节归档，错误现在拦在门口。
+    if (!stream->isOpen()) {
+        return false;
+    }
     m_impl->customStream.stream.vtbl = &g_pkMzVtbl;
     m_impl->customStream.stream.base = nullptr;
     m_impl->customStream.pkStream = stream;
@@ -378,6 +384,11 @@ std::vector<PkString> PkZipArchive::entryNames() const
     if (!m_impl->open) {
         return names;
     }
+    // 评审 I-2：这是个 const 方法，但底下 mz_zip_goto_first/next_entry() 会
+    // 把 minizip-ng 的「当前条目」游标推到列表尾——不还原的话，调用方之前
+    // locateEntry() 定位好的条目就被悄悄改掉了（m_entryOpen 那道防护管不到
+    // 这个游标）。先存游标、遍历完再还原，让 entryNames() 真的表现成只读。
+    const int64_t savedEntry = mz_zip_get_entry(m_impl->zip);
     int32_t rc = mz_zip_goto_first_entry(m_impl->zip);
     while (rc == MZ_OK) {
         mz_zip_file *info = nullptr;
@@ -386,6 +397,7 @@ std::vector<PkString> PkZipArchive::entryNames() const
         }
         rc = mz_zip_goto_next_entry(m_impl->zip);
     }
+    mz_zip_goto_entry(m_impl->zip, savedEntry);
     return names;
 }
 

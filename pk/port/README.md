@@ -14,7 +14,7 @@ R-12 交付五个端口的**接口定义**（不含产品级实现/适配器）+
 | `PkFontProvider` | `libs/flake/text/KoFontRegistry.cpp`/`KoFFWWSConverter.cpp` 里 fontconfig 承担的那部分（不含度量） | Task 5 | `pk/port/PkFontProvider.h` |
 | `PkZipArchive`（Q-5） | `QuaZip`（`libs/store/KoQuaZipStore.cpp`） | Task 6 | `pk/port/zip/PkZipArchive.h` |
 
-跑法见 §4。全部 5 个测试套件当前 **80 passed, 0 failed**（22+11+21+16+10，实测数字见 §4 原始输出，
+跑法见 §4。全部 5 个测试套件当前 **82 passed, 0 failed**（22+11+21+16+12，实测数字见 §4 原始输出，
 非历史记录——测试数会随后续 fix round 变化，报告前一律重新跑）。
 
 ---
@@ -149,7 +149,13 @@ fontconfig 全部函数**。
 `AddWeak`/`GetString`/`GetInteger`/`GetDouble`/`GetBool`/`GetCharSet`/`Hash`，32 处，
 占比最大的一族）——**整族归零**，评审 I-5 删掉零调用点的 `charset` 字段后从 8 个收窄为 7 个。
 
-测试：16 个（`pk/port/tests/test_fontprovider.cpp`）。
+测试：16 个（`pk/port/tests/test_fontprovider.cpp`）。**`PkFontProvider` 10/10 方法都是纯虚，
+`.cpp` 只有构造/析构 6 行**——这 16 个用例全部跑在测试自建的 `FakeFontProvider` 上，验证的是
+"这个接口形状能不能被实现出预期行为"（接口可实现性），不是"某个具体实现（fontconfig/
+Android/DirectWrite/CoreText 适配器）对不对"（实现正确性）——那些适配器不在本任务交付范围
+内。`PkEventSink` 的 11 个用例同理：默认实现全是空函数体，测试同样跑在自建的假实现上。这对
+"只出接口"的交付合理且不可避免，但 §4 的"82 passed"容易被误读成 82 个用例都在验证已交付
+实现的正确性，这里点明一句。
 
 ### 1.6 `PkZipArchive`（Q-5，替换 QuaZip）
 
@@ -178,8 +184,9 @@ fontconfig 全部函数**。
 开着**：继承自真 QuaZip 的约束（`KoQuaZipStore.cpp:76-86` 析构注释引用 `QuaZipFile` 文档），
 不是本类新引入的限制。
 
-测试：10 个（`pk/port/tests/test_zip.cpp`），含一条端到端"写 zip→读回→内容一致，且条目流
-真的是 `PkStream`"。
+测试：12 个（`pk/port/tests/test_zip.cpp`），含一条端到端"写 zip→读回→内容一致，且条目流
+真的是 `PkStream`"，另有评审 I-1（`openStream()` 拒绝未 `open()` 的 stream）与 I-2
+（`entryNames()` 不破坏 `locateEntry()` 定位的条目）两条契约回归。
 
 ---
 
@@ -262,6 +269,23 @@ fontconfig 全部函数**。
   `".."`，原样保留（`"/.."` → `"/.."`，探针 `probe_qdir.cpp` 实测）——这是评审 C-1 修复后
   的当前行为，登记是因为它此前一度按文档/常识实现、与真 Qt 相反，R 线"实测优先"硬规则在
   这里真的抓到过一次偏差。
+- **`joinPath()` 空目录/空 leaf 有意收窄，不跟 `QDir::filePath()` 的隐式"当前目录"语义**
+  （评审 M-1）：真链 Qt 5.15.13 探针（`probe_qdir.cpp`「joinPath() 与真 Qt 的 7 处未登记
+  分歧」，2026-08-12 实测）——`joinPath("","a")` 真 Qt `"./a"` 本实现 `"a"`；
+  `joinPath("","")` 真 Qt `"."` 本实现 `""`；`joinPath("/root/","")` 真 Qt `"/root"`
+  （去掉尾部斜杠）本实现 `"/root/"`。**没有已知调用点会传空目录**，本端口没有"当前目录"这个
+  隐式概念，跟着 QDir 的默认值走只会让空目录拼出带 `.` 前缀的结果——保持简单收窄。测试
+  `test_resourcestorage.cpp` `testJoinPathTrailingLeadingSlashCombinations()` 把这 3 个
+  形态锁死为当前行为。另探针额外核验的 4 个同类形态（`dir="/root/"`，leaf 分别是
+  `"a/"`/`"./a"`/`"../a"`/`"a/b"`）与真 Qt **完全一致**，不在收窄范围内。
+- **`FontEntry::weight`/`width`/`slant` 默认值改成越界哨兵**（评审 I-4，此前是 `400`/`100`/
+  `Slant::Normal`——三个都是合法可信的真实取值，`sortedMatches()`/`allFonts()` 路径按 §1.5
+  分工表不填这几个字段时，误读会拿到"每个字体都是 Regular 400"这种静默错数据，不会有编译期
+  /运行期信号）：现在是 `-1`/`-1`/`Slant::Unknown`，`weight`/`width` 的合法取值空间都是正
+  整数，`-1` 落在区间外；`Slant` 新增 `Unknown` 枚举值，仅用于结果侧默认值，`PkFontQuery::
+  slant`（查询侧）不受影响、默认仍是 `Normal`。`test_fontprovider.cpp`
+  `testAllFontsReturnsFamilyNameAndLanguagesForEveryRegisteredFont()` 断言未填字段确实是
+  哨兵值。
 - **`entryNames()` 不缓存**：真 QuaZip 只在 Read 模式缓存，Write 模式每次重扫；本类两种
   模式都不缓存——功能等价，只是少一层调用开销优化，**这是判断，不是从实测口径直接导出的**。
 - **`openEntryForWrite` 的 `unixPermissions` 是原始 `uint32_t`，不是枚举**：真实调用点固定
@@ -286,7 +310,8 @@ fontconfig 全部函数**。
 ./pk/port/graft/graft_check.sh  # 判据②：候选头文件试接（EXPECT_PASS/EXPECT_FAIL）
 ```
 
-**`run_tests.sh` 真实输出**（本次任务实测，2026-08-12）：
+**`run_tests.sh` 真实输出**（本次评审修复实测，2026-08-12，R-12 全分支最终评审 6 条修复
+落地后重跑）：
 
 ```
 ********* Start testing of PkStreamTestCase *********
@@ -381,13 +406,16 @@ PASS   : PkZipArchiveTestCase::testOpenFromPkStreamRoundTrips()
 PASS   : PkZipArchiveTestCase::testLocateMissingEntryFailsAndReportsError()
 PASS   : PkZipArchiveTestCase::testCannotOpenSecondEntryWhileFirstStillOpen()
 PASS   : PkZipArchiveTestCase::testZip64EnabledStillRoundTrips()
+PASS   : PkZipArchiveTestCase::testOpenStreamRejectsUnopenedStream()
+PASS   : PkZipArchiveTestCase::testEntryNamesDoesNotDisturbLocatedEntry()
 PASS   : PkZipArchiveTestCase::cleanupTestCase()
-Totals: 10 passed, 0 failed, 0 skipped
+Totals: 12 passed, 0 failed, 0 skipped
 ********* Finished testing of PkZipArchiveTestCase *********
-nm -u libpkport.a | grep -i qt: 无输出
+nm -u libpkport.a libpkzip.a | grep -i qt: 无输出
 ```
 
-5 个测试套件合计 **80 passed, 0 failed, 0 skipped**。
+5 个测试套件合计 **82 passed, 0 failed, 0 skipped**（22+11+21+16+12——评审 I-1/I-2 各给
+`PkZipArchiveTestCase` 添了一条回归，zip 从 10 个变成 12 个，其余四个套件数量不变）。
 
 **`graft_check.sh` 真实输出**（本次任务实测，退出码 0）：
 
@@ -490,7 +518,9 @@ pk/port/compat/QIODevice` 这条编译参数注入到全量构建里**，不是�
   - `PkFontQuery::families` 兼载 `FC_POSTSCRIPT_NAME` 查询是判断不是实测，见 §3。
   - `FontEntry` 的字段分工按调用路径钉死（`sortedMatches()`/`allFonts()` 不读
     `postScriptName`/`weight`/`width`/`slant`，`bestMatch()` 不读 `handle`/`languages`）
-    ——不要假设"结构体里的字段都会被填"。
+    ——不要假设"结构体里的字段都会被填"。**评审 I-4：不填的字段读到的是越界哨兵
+    （`weight`/`width` = `-1`，`slant` = `Slant::Unknown`），不是"看起来合法"的
+    `400`/`100`/`Normal`**，误用可以按值域检出，见 §3。
   - `.kra` 文字图层的 `.kpp` 预设持久化用 `QFont::toString()`/`fromString()`，本端口不管
     这件事（见 §3，归 S-07-a）。
 

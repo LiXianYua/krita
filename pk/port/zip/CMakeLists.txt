@@ -59,7 +59,11 @@ target_include_directories(pkzip PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # 补一份 PRIVATE，避免 pkzip 反过来依赖 pkport 的 target 属性传播顺序。
 target_include_directories(pkzip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../string)
 
-# 零 Qt：minizip-ng 是纯 C 库，不引入任何 Qt 符号，链它不影响
-# pk/port/tests/run_tests.sh 的 `nm -u libpkport.a | grep -i qt` 判据
-# （libpkzip.a/libminizip.a 是独立的静态库，不在 libpkport.a 里）。
+# 零 Qt：minizip-ng 是纯 C 库，不引入任何 Qt 符号。
+#
+# 评审 I-3：libpkzip.a（连带 PkZipArchive.cpp，本分支最大的一块真逻辑）是
+# 独立静态库，不在 libpkport.a 里——但这不是「所以不用查」的理由，只是「查
+# 的时候要连它一起查」的理由。run_tests.sh 的 `nm -u` 判据现在同时查
+# libpkport.a 和 libpkzip.a（minizip-ng 自己的 libminizip.a 是纯 C 第三方库，
+# 不必单独查，但查了也无害）。
 target_link_libraries(pkzip PUBLIC MINIZIP::minizip)

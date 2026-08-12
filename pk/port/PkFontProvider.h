@@ -97,7 +97,10 @@ public:
     // 来源：FC_SLANT 的三个取值 FC_SLANT_ROMAN/ITALIC/OBLIQUE
     // （KoFontRegistry.cpp:388-393 facesForCSSValues()，:1227-1228
     // getCssDataForPostScriptName()）。
-    enum class Slant { Normal, Italic, Oblique };
+    // 评审 I-4：Unknown 只用在 FontEntry::slant 的默认值（结果侧「未填」的
+    // 哨兵）——PkFontQuery::slant（查询侧）永远不该是 Unknown，调用方总要
+    // 明确指定查询条件，默认仍是 Normal。
+    enum class Slant { Normal, Italic, Oblique, Unknown };
 
     // 一次「拿到字体」查询的条件。族④（32 处 FcPatternAdd*/FcPatternGet*）
     // 归零后的替代品——**七个固定属性，不做 1:1 映射**（评审 I-5：原先的
@@ -224,14 +227,24 @@ public:
 
         // 来源：FC_WEIGHT，同 PkFontQuery::weight 的取值空间（OpenType
         // weight，1–1000）。
-        int weight = 400;
+        //
+        // 评审 I-4：默认值是**越界哨兵**，不是「像真的」的取值——
+        // sortedMatches()/allFonts() 路径按 I-6 分工表不填这个字段，此前的
+        // 默认值 400 恰好是合法的 Regular weight，调用方若误读会拿到「每个
+        // 字体都是 Regular」这种静默错数据，编译期/运行期都不会有任何信号。
+        // 1–1000 是合法取值空间，-1 落在区间外，误用可被检出（对照
+        // PkFontQuery::size/pixelSize 的 -1.0 哨兵，口径一致）。
+        int weight = -1;
 
         // 来源：FC_WIDTH，同 PkFontQuery::width 的取值空间（OpenType
-        // width，100 = normal）。
-        int width = 100;
+        // width，100 = normal）。评审 I-4：同 weight，默认值是越界哨兵
+        // （合法取值空间为正整数，-1 落在区间外），不是「像真的」的 100。
+        int width = -1;
 
-        // 来源：FC_SLANT。
-        Slant slant = Slant::Normal;
+        // 来源：FC_SLANT。评审 I-4：默认值是 Unknown 哨兵，不是「像真的」的
+        // Normal——sortedMatches()/allFonts() 路径不填这个字段（见 I-6 分工
+        // 表），Unknown 让「没读」和「读到的确实是 Normal」在类型层面可区分。
+        Slant slant = Slant::Unknown;
     };
 
     PkFontProvider();
