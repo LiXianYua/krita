@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+# Task 6a/6b：真实 Krita 测试类经 pk/log + pk/string + pk/test 试接，源树零改动。
+# 结构照抄 pk/test/graft/graft_run.sh 的六步（复制→rename.sed 机械改名→生成
+# binder→driver.cpp→编译→跑→nm -u 自证），差别：
+#   1. 编译行多链 pk/log + pk/string（-I 与静态库）
+#   2. 除测试的 .h/.cpp 外，被测实现（非测试文件）原地编译进产物，不复制不改名
+#   3. 加 -DQT_NO_DEBUG（理由见 pk/log/tests/graft/kis_debug_build.sh）
+set -eu
+cd "$(dirname "$0")/../../../.." || exit 1     # → fork 仓库根
+
+BUILD=pk/log/tests/graft/build
+SED=pk/test/graft/rename.sed
+STUBS=pk/log/tests/graft/stubs
+CXX=${CXX:-g++}
+rc=0
+
+# 三个依赖静态库，缺了就地建（run_tests.sh 通常已经建过）。
+if [ ! -f pk/test/build/libpktest.a ]; then
+    cmake -S pk/test -B pk/test/build -DCMAKE_BUILD_TYPE=Debug >/dev/null
+    cmake --build pk/test/build -j"$(nproc)" >/dev/null
+fi
+if [ ! -f pk/string/build/libpkstring.a ]; then
+    cmake -S pk/string -B pk/string/build -DCMAKE_BUILD_TYPE=Debug >/dev/null
+    cmake --build pk/string/build -j"$(nproc)" >/dev/null
+fi
+if [ ! -f pk/log/build/libpklog.a ]; then
+    cmake -S pk/log -B pk/log/build -DCMAKE_BUILD_TYPE=Debug >/dev/null
+    cmake --build pk/log/build -j"$(nproc)" >/dev/null
+fi
+
+# $STUBS 必须排在 pk/test/compat 前面：两边都有一个叫 QtGlobal 的文件（pk/test/
+# compat/QtGlobal 只给 pk/test 自己用的最小标量集，没有 quint64/qint64 等），
+# 角括号 <QtGlobal> 按 -I 顺序查找，谁在前谁赢。我们的 QtGlobal 会自己再用相对
+# 路径 quote-include 到 pk/test/compat/QtGlobal（有 #pragma once 兜底），所以
+# pk/test 自己内部需要的 qAbs/qFuzzyCompare 仍然可见，顺序调换不丢东西。
+COMMON_INC=(-I pk/log -I pk/log/compat -I pk/string -I pk/string/compat -I "$STUBS" -I pk/test -I pk/test/compat)
+# kis_debug.h 从没写过 #include <QString>，真 Qt 靠 <QDebug>/<QLoggingCategory>
+# 透传把它带进来——同 pk/log/tests/graft/kis_debug_build.sh 的手法，编译参数，
+# 不是对调用点的改动。
+#
+# 第二条 -include 是本试接特有的坑：真实测试头（KisRandomGenerator2DTest.h）
+# 直接用 quint64 却不 #include <QtGlobal>——真 Qt 里这条透传链是
+# <simpletest.h> → "QObject"(quote) → "QtGlobal"(quote，同目录) 带进来的。
+# pk/test/compat/QtGlobal 只放了 pk/test 自己用的最小标量集（qAbs 等），quote-
+# include 按"同目录优先"规则，不管 -I 顺序怎么排都会先命中它，我们扩展过的
+# pk/log/tests/graft/stubs/QtGlobal（quint64 等在里面）根本插不进这条链。
+# -include 把我们的 QtGlobal 提到翻译单元最前面，绕开这条链路——同 QString
+# 那条一样，是编译参数，不是对调用点的改动。
+FORCE_INCLUDE=(-include "$STUBS/QtGlobal" -include pk/string/compat/QString)
+DEFS=(-DQT_NO_DEBUG)
+LIBS=(pk/test/build/libpktest.a pk/log/build/libpklog.a pk/string/build/libpkstring.a pk/log/build/libspdlogd.a)
+
+# run_one：试接一个真实测试类。
+#   $1 name          试接名，也是产物名
+#   $2 srcdir        测试 .h/.cpp 所在目录
+#   $3 hdr           测试头文件名
+#   $4 src           测试源文件名
+#   $5 extra_incdirs 逗号分隔，测试 #include "X.h" 需要的额外 -I（被测实现所在目录）
+#   $6 extra_sources 逗号分隔，被测实现的 .cpp（原地编译，不复制不改名）
+#   $7 extra_force   逗号分隔，只对本试接的 driver 生效的额外 -include（相对仓库根）
+run_one() {
+    local name="$1" srcdir="$2" hdr="$3" src="$4" extra_incdirs="$5" extra_sources="$6" extra_force="${7:-}"
+    local work="$BUILD/$name"
+    rm -rf "$work"; mkdir -p "$work"
+
+    # ① 复制 —— 源树一个字节都不动
+    cp "$srcdir/$hdr" "$srcdir/$src" "$work/"
+
+    # ② D-23 机械改名，只此一项改动
+    sed -i -f "$SED" "$work/$hdr" "$work/$src"
+
+    # ③ 生成 binder（替代 moc 的测试发现）
+    python3 pk/test/pk_test_moc.py "$work/$hdr" -o "$work/binder.inc"
+
+    # ③.5 driver.cpp：把改名后的测试 .cpp 与 binder.inc 塞进同一个 TU
+    printf '#include "%s"\n#include "binder.inc"\n' "$src" > "$work/driver.cpp"
+
+    local extra_inc_flags=()
+    if [ -n "$extra_incdirs" ]; then
+        local d; IFS=',' read -ra _dirs <<< "$extra_incdirs"
+        for d in "${_dirs[@]}"; do extra_inc_flags+=(-I "$d"); done
+    fi
+
+    local driver_force=("${FORCE_INCLUDE[@]}")
+    if [ -n "$extra_force" ]; then
+        local f; IFS=',' read -ra _forces <<< "$extra_force"
+        for f in "${_forces[@]}"; do driver_force+=(-include "$f"); done
+    fi
+
+    # ④ 编译 driver（测试 TU）
+    local objs=("$work/driver.o")
+    if ! "$CXX" -std=c++17 -DPK_TEST_NO_QT_MACRO_ALIASES "${DEFS[@]}" "${driver_force[@]}" \
+        "${COMMON_INC[@]}" "${extra_inc_flags[@]}" -I "$srcdir" -I "$work" \
+        -c "$work/driver.cpp" -o "$work/driver.o" 2>"$work/compile_driver.log"; then
+        printf '  试接编译失败: %s (driver)\n' "$name"
+        sed 's/^/    /' "$work/compile_driver.log" | head -80
+        rc=1; return
+    fi
+
+    # 被测实现：原地编译（不复制、不改名），一起进产物
+    if [ -n "$extra_sources" ]; then
+        local es; IFS=',' read -ra _extra_srcs <<< "$extra_sources"
+        for es in "${_extra_srcs[@]}"; do
+            local objname; objname="$work/$(basename "$es" .cpp).o"
+            if ! "$CXX" -std=c++17 "${DEFS[@]}" "${FORCE_INCLUDE[@]}" \
+                "${COMMON_INC[@]}" "${extra_inc_flags[@]}" \
+                -c "$es" -o "$objname" 2>"$work/compile_$(basename "$es" .cpp).log"; then
+                printf '  试接编译失败: %s (%s)\n' "$name" "$es"
+                sed 's/^/    /' "$work/compile_$(basename "$es" .cpp).log" | head -80
+                rc=1; return
+            fi
+            objs+=("$objname")
+        done
+    fi
+
+    # ⑤ 链接
+    if ! "$CXX" -std=c++17 "${objs[@]}" "${LIBS[@]}" -o "$work/$name" 2>"$work/link.log"; then
+        printf '  试接链接失败: %s\n' "$name"
+        sed 's/^/    /' "$work/link.log" | head -80
+        rc=1; return
+    fi
+
+    # 跑
+    if "./$work/$name" >"$work/run.log" 2>&1; then
+        printf '  试接跑绿: %s (%s)\n' "$name" "$srcdir"
+        grep -E '^(PASS|FAIL|Totals)' "$work/run.log" | sed 's/^/    /'
+    else
+        printf '  试接跑挂: %s\n' "$name"
+        sed 's/^/    /' "$work/run.log" | head -40
+        rc=1; return
+    fi
+
+    # ⑥ 判据③：产物不得有 Qt 未定义符号。
+    local undef
+    undef=$(nm -u "$work/$name" 2>/dev/null | grep -i qt || true)
+    if [ -n "$undef" ]; then
+        printf '  试接产物含 Qt 符号: %s\n%s\n' "$name" "$undef"
+        rc=1
+    else
+        printf '    nm -u %s | grep -i qt: 无输出\n' "$name"
+    fi
+}
+
+run_one KisRandomGenerator2DTest \
+    libs/image/tests KisRandomGenerator2DTest.h KisRandomGenerator2DTest.cpp \
+    "libs/image,libs/global" \
+    "libs/image/KisRandomGenerator2D.cpp,libs/global/kis_debug.cpp"
+
+# 源树零改动自证
+if ! git diff --quiet -- libs/image/tests libs/image libs/global; then
+    printf '  源树被改动了 —— 试接必须零改动\n' >&2
+    git diff --stat -- libs/image/tests libs/image libs/global >&2
+    rc=1
+fi
+
+exit "$rc"

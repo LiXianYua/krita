@@ -20,3 +20,6 @@ printf 'nm -u libpklog.a | grep -i qt: 无输出\n'
 # Task 5：真实 kis_debug.h/.cpp 零改动试接——它自己会按需建 pk/string，
 # 并对 libs/global 做 git diff --quiet 自证。
 ./pk/log/tests/graft/kis_debug_build.sh
+
+echo "== Task 6：真实 Krita 测试类经 pk/log + pk/string + pk/test 试接 =="
+./pk/log/tests/graft/graft_run.sh

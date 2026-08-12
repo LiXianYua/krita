@@ -19,3 +19,9 @@ using quint64 = std::uint64_t;
 using qreal   = double;
 
 inline void qt_noop() {}
+
+// KisRandomGenerator2D.cpp:32 修饰 struct Private。属于 QtGlobal 的编译器
+// 属性宏那一档，不是新 Qt 类型。
+#ifndef Q_DECL_HIDDEN
+#define Q_DECL_HIDDEN __attribute__((visibility("hidden")))
+#endif
