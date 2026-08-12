@@ -1639,7 +1639,6 @@ include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}
 add_subdirectory(sdk/tests)
 
 add_subdirectory(libs)
-add_subdirectory(qmlmodules)
 add_subdirectory(plugins)
 if (BUILD_TESTING)
     add_subdirectory(benchmarks)
