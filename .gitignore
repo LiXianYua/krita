@@ -6,6 +6,10 @@ __pycache__
 *.trace
 build
 qtcreator-build
+# 每任务一个构建目录（build-d01/ build-r03/ …）。不加这条，收尾时
+# git status 把 9 G 构建产物报成「未跟踪改动」，finish 会当成工作成果拒绝清理。
+/build-*/
+!/build-tools/
 *.kdev4
 *~
 .kateconfig
