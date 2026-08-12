@@ -28,6 +28,8 @@ add_library(pklog STATIC
     PkLogSink.cpp
     PkLogBackend.cpp
     PkDebug.cpp
+    PkLoggingCategory.cpp
+    PkMessageLogger.cpp
 )
 target_include_directories(pklog PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # PRIVATE：spdlog 只被 PkLogBackend.cpp 看见，pklog 的使用者对它一无所知。
@@ -42,12 +44,14 @@ add_subdirectory(${PKTEST_DIR} ${CMAKE_BINARY_DIR}/pktest)
 # 每个测试类的 binder 由 pk/test 的生成器产出（替代 moc）。
 pk_test_generate(PKLOG_BINDERS
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_sink.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_stream.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_stream.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_category.h)
 
 add_executable(test_pklog
     tests/test_main.cpp
     tests/test_sink.cpp
     tests/test_stream.cpp
+    tests/test_category.cpp
 )
 target_link_libraries(test_pklog PRIVATE pklog pktest)
 # ${PKTEST_DIR}/compat：让测试头里的 `#include <QObject>` 解析到 pk/test 的垫片，
@@ -58,3 +62,5 @@ set_source_files_properties(tests/test_sink.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_sink.inc")
 set_source_files_properties(tests/test_stream.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_stream.inc")
+set_source_files_properties(tests/test_category.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_category.inc")

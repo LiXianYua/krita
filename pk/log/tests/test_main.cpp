@@ -5,11 +5,13 @@
 // #include 生成的 binder，并各自导出一个 run_xxx() 给这里调。
 int run_sink_tests(int argc, char **argv);
 int run_stream_tests(int argc, char **argv);
+int run_category_tests(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
     int rc = 0;
     rc |= run_sink_tests(argc, argv);
     rc |= run_stream_tests(argc, argv);
+    rc |= run_category_tests(argc, argv);
     return rc;
 }
