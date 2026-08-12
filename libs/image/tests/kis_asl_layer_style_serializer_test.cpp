@@ -10,6 +10,7 @@
 
 #include <QDomDocument>
 #include <QRegularExpression>
+#include <QFile>
 
 #include <KoCompositeOpRegistry.h>
 #include <resources/KoAbstractGradient.h>
@@ -245,9 +246,6 @@ void KisAslLayerStyleSerializerTest::testWriting()
     QEXPECT_FAIL("", "Tried to compare two xml files, which are not the same. The order of attributes when serializing is undefined", Continue);
     QCOMPARE(resultXMLDoc, refXMLDoc);
 }
-
-#include <KoResourceServerProvider.h>
-
 
 void KisAslLayerStyleSerializerTest::testWritingGlobalPatterns()
 {
