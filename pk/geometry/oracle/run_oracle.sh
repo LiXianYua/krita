@@ -67,7 +67,7 @@ for i in "${INCS[@]}"; do INCFLAGS+=("-I$i"); done
 # 会变红（Task 2 裁决，实测仍复现）。
 #
 # 曾经写在这里的另一条理由 ——「对拍这边 -O2 无 -fwrapv 时 std::to_string 打印
-# 溢出后的负数直接段错误」—— **已不复现**：本轮跑满 125 338 363 次比对退出码 0。
+# 溢出后的负数直接段错误」—— **已不复现**：本轮跑满 125 338 365 次比对退出码 0。
 # 那句现在时陈述随本轮删除，别再拿它当保留 -fwrapv 的依据。
 # 浮点→int 越界（int(inf)）是另一类 UB，-fwrapv 管不着；实机上运行期两侧都编成
 # 同一条 cvttsd2si，取值一致，但编译期常量折叠给的是另一个答案 —— 对拍的输入
@@ -158,10 +158,21 @@ if seen != expected:
         print('  清单里有但程序没打出：%s' % a, file=sys.stderr)
 
 
-# 内联函数体：**换成 `;` 而不是删掉**。删掉的话 `int f(...) { ... }` 后面没有
-# 分号，它会跟下一条声明黏成一个语句，而正则只认末尾那一个 —— 前一条声明就
-# **静默消失**（实测：PkPoint::dotProduct 与 PkPointF::dotProduct 两条这样丢过，
-# 闸门看不见它们还照样打印"全部对上"）。换成 `;` 才让每条声明各自成句。
+# 内联函数体：**换成 `;` 而不是留着**。留着的话按 `;` 切会切进函数体内部，
+# 声明与半截体粘成一句、正则匹配不上 —— 那条声明从 decls 里**消失**，闸门就
+# 不再守它。实测两条这样丢过：PkPoint::dotProduct 与 PkPointF::dotProduct。
+#
+# ⚠ 失败模式是**响的，不是静默的**：丢掉的那条同时在 miss 里留下一个碎片，而
+# miss 非空 → ok=False → FAIL。逐头文件核过 `旧 decls + 旧 miss == 新 decls`
+# （PkPoint 29+1=30、PkPointF 25+1=26、Size/Rect 三个类 miss=0、前后逐字不变）。
+# 这个缺陷在父提交上从未被触发：解析器当时**只指向 PkRect.h**，而 PkRect.h 类体
+# 里没有内联函数体 —— 缺陷是潜伏的，不是被触发了却没报。换成 `;` 是为了把类体
+# 带内联实现的头文件（PkPoint.h/PkSize.h）也纳进来，不是为了堵一个静默放行的洞。
+#
+# ⚠ **结构性前提①**：按字符数花括号，**块注释 `/* */` 里的花括号会打乱 depth**
+# （`//` 行注释在进来之前已经去掉了，`{` `}` 出现在字符串/字符字面量里同理）。
+# 三个头文件现在都没有块注释，所以现在成立 —— 将来抄这套骨架的头文件里一旦出现
+# 块注释，depth 会算错、整段类体被吃掉，届时要先去块注释再进这里。
 def strip_bodies(s):
     out, depth = [], 0
     for ch in s:
@@ -180,6 +191,13 @@ def strip_bodies(s):
 # 类体里的声明指纹：去注释 → 取 class 体 public 段 → 去内联函数体 → 逐条声明
 # 规范化（去形参名、去默认实参、把 `T &x` / `T *x` 收成 `T&` / `T*`）。
 # 键带类名前缀：PkPoint/PkPointF 这类孪生类有大量同名同参声明，不带前缀会撞键。
+#
+# ⚠ **结构性前提②**（继承自 Task 3 的骨架，非本轮引入）：下面那条 `class X {(.*?)
+# \n\s*private:` 是**非贪婪**的，停在**第一个** `private:`。三个头文件现在都是
+# 「public 段一整块 + 末尾一个 private:」的形态，所以现在成立 —— 将来若出现
+# `private:` 之后**再开 `public:`** 的段，那些成员会**静默**漏掉（不是 miss、不是
+# FAIL：它们压根没进 m.group(1)，闸门①②③三道都看不见它们）。抄这套骨架前先确认
+# 头文件是不是这个形态；不是就得改成扫全类体、按访问说明符切段。
 def parse_decls(hdr_path, cls):
     src = re.sub(r'//[^\n]*', '', open(hdr_path, encoding='utf-8').read())
     m = re.search(r'class %s\s*\{(.*?)\n\s*private:' % re.escape(cls), src, re.S)
@@ -322,13 +340,28 @@ for n, line in enumerate(open(dev, encoding='utf-8'), 1):
     declared[(api, tag)] = (int(want), reason)
 
 undeclared = sorted(k for k in seen if k not in declared)
-stale      = sorted(k for k in declared if k not in seen)
 # **额度闸门**（Task 4 修复轮，评审 Important 1）：已声明的 tag 曾经是**无限
 # 额度**的白名单 —— 键在清单里就放行，计数只打印。评审员实测把 4 个 .so 侧
 # API 的判据加宽（16 处源码），差异从 704 589 涨到 1 485 313（2.1 倍），
 # **两个脚本双双 exit=0**。现在计数写进 geometry.deviation 第三列，漂移即 FAIL。
-drift = sorted((k, declared[k][0], seen[k]) for k in seen
-               if k in declared and seen[k] != declared[k][0])
+#
+# **「掉到 0」也是漂移**（Task 4 修复轮 2，复评 Important B）：drift 曾经只
+# 遍历 `seen`，于是「声明 500 次、实得 499 次」FAIL，而「声明 500 次、实得
+# **0** 次」只落进下面的 stale WARN、exit 0 —— **幅度最大的那一档反而最松**。
+# 第三列是**额度**不是上限：用少了与用超了一样说明行为变了却没人判断过（那条
+# 路径被优化掉、输入生成器改窄、判据被改宽到不再触发，都长这样）。所以 drift
+# 现在覆盖 `declared` 全集，没观察到的按**实得 0** 计。
+drift = sorted((k, declared[k][0], seen.get(k, 0)) for k in declared
+               if seen.get(k, 0) != declared[k][0])
+# 与 drift 的分工（**同一条差异不会既 FAIL 又 WARN**）：
+#   · 额度 > 0 却一次没观察到 → 上面的 drift **FAIL**（期望 N、实得 0），不到这里；
+#   · 额度写着 **0** 且确实没观察到 → 才落到这里 WARN。这种行对闸门没有任何
+#     作用：同一个 tag 真出现时，声明了走 drift FAIL、没声明走 undeclared FAIL，
+#     结果一样 —— 所以它只是一行死配置，提醒删掉，不是错误。
+# canary 行（额度 1）若消失会同时触发 drift 与下面的 missing_canary，两条都是
+# FAIL、不矛盾：drift 报的是数字，missing_canary 报的是「比较管道已经死了」这个
+# 具体诊断，后者才是要看的那句。
+stale = sorted(k for k in declared if k not in seen and declared[k][0] == 0)
 
 # canary 必须全部出现：它们是「比较管道还活着」的自证，消失就说明 mismatch
 # 这个数字已经不反映任何东西了。
@@ -360,7 +393,8 @@ if drift:
         print(f'  {a} {t} 期望 {want}，实得 {got}（差 {got - want:+d}）', file=sys.stderr)
     ok = False
 if stale:
-    print('WARN: 声明了却没观察到（白名单过期，或对拍没走到那条路径）：'
+    print('WARN: 额度写着 0 又确实没观察到 —— 这行对闸门不起作用（真出现时无论'
+          '声明与否都 FAIL），建议删掉：'
           + ', '.join(f'{a} {t}' for a, t in stale), file=sys.stderr)
 
 sys.exit(0 if ok else 1)

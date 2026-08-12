@@ -32,7 +32,7 @@ target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # 的 CXXFLAGS_ORACLE 上方与 README「对拍侧为什么不带 -fwrapv」。
 #
 # 曾经写在这里的「对拍那边 -O2 无 -fwrapv 时 std::to_string 打印溢出后的负数
-# 直接段错误」**已不复现**（Task 4 修复轮实测：不带 -fwrapv 跑满 125 338 363 次
+# 直接段错误」**已不复现**（Task 4 修复轮实测：不带 -fwrapv 跑满 125 338 365 次
 # 比对，退出码 0）。那句现在时陈述已删除，别再拿它当依据。
 #
 # **它只挡住整数溢出这一类 UB。** 浮点→int 越界（int(inf)、int(2147483648.0)）
