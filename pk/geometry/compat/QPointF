@@ -1,4 +1,6 @@
 #pragma once
+// 必须先于 ../PkPoint.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
 #include "../PkPoint.h"
 
 // <QPointF> 的垫片。与 compat/QPoint 内容等同（Qt 那两个转发头也都指向同一份

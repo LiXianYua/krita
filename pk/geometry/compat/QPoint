@@ -1,4 +1,8 @@
 #pragma once
+// 必须**先于** ../PkPoint.h —— 真 Qt 的 qpoint.h:42 也是先 #include <QtCore/qglobal.h>。
+// 少了这一行，「先 <QPoint> 后 <QtGlobal>」的 TU 会撞 qAbs 重复定义，
+// 完整理由见 compat/QtGlobal 里那段 ⚠（Task 78 试接压出来的）。
+#include "QtGlobal"
 #include "../PkPoint.h"
 
 // 兼容垫片：让真实调用点的 `#include <QPoint>` 在**一个字都不改**的前提下解析到

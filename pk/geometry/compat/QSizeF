@@ -1,4 +1,6 @@
 #pragma once
+// 必须先于 ../PkSize.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
 #include "../PkSize.h"
 
 // <QSizeF> 的垫片。与 compat/QSize 内容等同（Qt 那两个转发头也都指向同一份

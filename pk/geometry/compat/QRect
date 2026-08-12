@@ -1,4 +1,6 @@
 #pragma once
+// 必须先于 ../PkRect.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
 #include "../PkRect.h"
 
 // 兼容垫片：让真实调用点的 `#include <QRect>` 在**一个字都不改**的前提下解析到
@@ -16,6 +18,19 @@
 // `PkPoint` / `PkSize` / `PkPointF` / `PkSizeF`（PkRect / PkRectF 的参数与返回
 // 类型）经 ../PkRect.h 一起进来，与 Qt 的形态一致（qrect.h 自己
 // #include <QtCore/qpoint.h> 与 <QtCore/qsize.h>）。
+//
+// **但只有类型进来还不够，`QPoint`/`QSize` 这四个名字也得进来。** Qt 的
+// qrect.h:44-45 include 了 qsize.h 与 qpoint.h，所以真实调用点里
+// `#include <QRect>` 之后直接写 `QSize` 是**合法的**，很多地方就是这么写的：
+//   libs/global/kis_global.h:315  `QSize trimmedSize = QSize(width, ...)`
+//   （那个文件只 include 了 <QPoint> <QPointF> 与（经 kis_algebra_2d.h 的）<QRect>）
+// 少了下面这两行，那一处就报 "'QSize' was not declared in this scope"。
+// **这是 Task 78 试接第一轮压出来的**，与 R-11 在 compat/QObject 里复刻
+// "<QObject> 传递 include qglobal.h" 是同一类事：Qt 的传递 include 关系本身
+// 就是调用点依赖的一部分，不复刻就会把"编不过"错误地记到调用点头上。
+#include "QPoint"
+#include "QSize"
+
 #ifndef QRect
 #define QRect PkRect
 #endif

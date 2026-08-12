@@ -1,4 +1,6 @@
 #pragma once
+// 必须先于 ../PkTransform.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
 #include "../PkTransform.h"
 
 // <QTransform> 的垫片，与 compat/QRect 等同形（完整理由在 compat/QRect）：

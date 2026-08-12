@@ -1,10 +1,18 @@
 #pragma once
+// 必须先于 ../PkRect.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
 #include "../PkRect.h"
 
 // <QRectF> 的垫片。与 compat/QRect 内容等同（Qt 那两个转发头也都指向同一份
 // qrect.h），完整理由见 compat/QRect。两份都写出来是因为调用点两种写法都有，
 // 而垫片是按**文件名**被找到的，宏改写不了 #include 的路径 —— 与
 // compat/QSize + compat/QSizeF、compat/QPoint + compat/QPointF 同一个形态。
+//
+// 传递 include（qrect.h:44-45 的 qsize.h / qpoint.h）也照 compat/QRect 复刻，
+// 理由见那份文件里的长注释（Task 78 试接压出来的）。
+#include "QPoint"
+#include "QSize"
+
 #ifndef QRect
 #define QRect PkRect
 #endif
