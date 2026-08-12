@@ -17,21 +17,18 @@
 
 #include <KoColorSpace.h>
 #include <KisCursorOverrideLock.h>
-#include <KisSpinBoxI18nHelper.h>
 
 #include "kis_canvas2.h"
 #include "kis_command_utils.h"
 #include "kis_image.h"
 #include "kis_iterator_ng.h"
 #include "kis_selection_tool_helper.h"
-#include "kis_slider_spin_box.h"
 #include "krita_utils.h"
 #include <KoPointerEvent.h>
 #include <kis_cursor.h>
 #include <kis_paint_device.h>
 #include <kis_pixel_selection.h>
 #include <kis_selection_filters.h>
-#include <kis_selection_options.h>
 #include <kis_image_animation_interface.h>
 #include <kis_default_bounds.h>
 #include <kis_fill_painter.h>
@@ -50,6 +47,17 @@ void KisToolSelectSimilar::activate(const QSet<KoShape*> &shapes)
 {
     KisToolSelect::activate(shapes);
     m_configGroup =  KSharedConfig::openConfig()->group(toolId());
+
+    // Was read in createOptionWidget() (now deleted) when the options panel
+    // was created; that ran on every tool activation, so these are the
+    // effective defaults with no panel too -- same keys, same fallbacks
+    // (including the legacy "fuzziness" -> "threshold" migration).
+    if (m_configGroup.hasKey("threshold")) {
+        m_threshold = m_configGroup.readEntry("threshold", 20);
+    } else {
+        m_threshold = m_configGroup.readEntry("fuzziness", 20);
+    }
+    m_opacitySpread = m_configGroup.readEntry("opacitySpread", 100);
 }
 
 void KisToolSelectSimilar::deactivate()
@@ -217,73 +225,6 @@ void KisToolSelectSimilar::slotSetOpacitySpread(int opacitySpread)
 {
     m_opacitySpread = opacitySpread;
     m_configGroup.writeEntry("opacitySpread", opacitySpread);
-}
-
-QWidget* KisToolSelectSimilar::createOptionWidget()
-{
-    KisToolSelectBase::createOptionWidget();
-    KisSelectionOptions *selectionWidget = selectionOptionWidget();
-
-    selectionWidget->setStopGrowingAtDarkestPixelButtonVisible(true);
-
-    // Create widgets
-    KisSliderSpinBox *sliderThreshold = new KisSliderSpinBox;
-    sliderThreshold->setPrefix(i18nc(
-        "The 'threshold' spinbox prefix in similar selection tool options",
-        "Threshold: "));
-    sliderThreshold->setRange(1, 100);
-    sliderThreshold->setSingleStep(1);
-    sliderThreshold->setToolTip(
-        i18n("Set the color similarity tolerance of the selection. "
-             "Increasing threshold increases the range of similar colors to be selected."));
-
-    KisSliderSpinBox *sliderSpread = new KisSliderSpinBox;
-    sliderSpread->setRange(0, 100);
-    KisSpinBoxI18nHelper::setText(sliderSpread,
-                                  i18nc("The 'spread' spinbox in similar color selection tool options; {n} is the "
-                                        "number value, % is the percent sign",
-                                        "Spread: {n}%"));
-
-    // Set the tooltips
-    sliderThreshold->setToolTip(
-        i18n("Set the color similarity tolerance of the selection. "
-             "Increasing threshold increases the range of similar colors to be selected."));
-    sliderSpread->setToolTip(
-        i18n("Set the extent of the opaque portion of the selection. "
-             "Decreasing spread decreases opacity of selection areas depending on color similarity."));
-
-    // Construct the option widget
-    KisOptionCollectionWidgetWithHeader *sectionSelectionExtent =
-        new KisOptionCollectionWidgetWithHeader(
-            i18nc("The 'selection extent' section label in similar selection "
-                  "tool options",
-                  "Selection extent"));
-    sectionSelectionExtent->appendWidget("sliderThreshold", sliderThreshold);
-    sectionSelectionExtent->appendWidget("sliderSpread", sliderSpread);
-    selectionWidget->insertWidget(3, "sectionSelectionExtent", sectionSelectionExtent);
-
-    // load setting from config
-    if (m_configGroup.hasKey("threshold")) {
-        m_threshold = m_configGroup.readEntry("threshold", 20);
-    } else {
-        m_threshold = m_configGroup.readEntry("fuzziness", 20);
-    }
-    sliderThreshold->setValue(m_threshold);
-
-    m_opacitySpread = m_configGroup.readEntry("opacitySpread", 100);
-    sliderSpread->setValue(m_opacitySpread);
-
-    // Make connections
-    connect(sliderThreshold,
-            SIGNAL(valueChanged(int)),
-            this,
-            SLOT(slotSetThreshold(int)));
-    connect(sliderSpread,
-            SIGNAL(valueChanged(int)),
-            this,
-            SLOT(slotSetOpacitySpread(int)));
-
-    return selectionWidget;
 }
 
 void KisToolSelectSimilar::resetCursorStyle()

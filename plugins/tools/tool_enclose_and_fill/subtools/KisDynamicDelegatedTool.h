@@ -306,12 +306,6 @@ public Q_SLOTS:
     }
 
 protected:
-    QWidget* createOptionWidget() override
-    {
-        if (m_delegateTool) return m_delegateTool->createOptionWidget();
-        return nullptr;
-    }
-
     bool listeningToModifiers() override
     {
         if (m_delegateTool) return m_delegateTool->listeningToModifiers();

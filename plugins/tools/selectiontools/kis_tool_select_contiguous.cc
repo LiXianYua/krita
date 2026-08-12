@@ -14,14 +14,11 @@
 #include <QPainter>
 #include <QLayout>
 #include <QApplication>
-#include <QCheckBox>
 #include <QVBoxLayout>
 
 #include <KisOptionButtonStrip.h>
 #include <KisOptionCollectionWidget.h>
 #include <KoGroupButton.h>
-#include <KisSpinBoxI18nHelper.h>
-#include <kis_color_button.h>
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
@@ -35,12 +32,10 @@
 #include "kis_image.h"
 #include "canvas/kis_canvas2.h"
 #include "kis_layer.h"
-#include "kis_selection_options.h"
 #include "kis_paint_device.h"
 #include "kis_fill_painter.h"
 #include "kis_pixel_selection.h"
 #include "kis_selection_tool_helper.h"
-#include "kis_slider_spin_box.h"
 #include "tiles3/kis_hline_iterator.h"
 #include "kis_image.h"
 #include "kis_undo_stores.h"
@@ -73,6 +68,28 @@ void KisToolSelectContiguous::activate(const QSet<KoShape*> &shapes)
 {
     KisToolSelect::activate(shapes);
     m_configGroup =  KSharedConfig::openConfig()->group(toolId());
+
+    // Was read in createOptionWidget() (now deleted) when the options panel
+    // was created; that ran on every tool activation, so these are the
+    // effective defaults with no panel too -- same keys, same fallbacks
+    // (including the legacy "fuzziness" -> "threshold" migration).
+    const QString contiguousSelectionModeStr =
+        m_configGroup.readEntry<QString>("contiguousSelectionMode", "");
+    m_contiguousSelectionMode =
+        contiguousSelectionModeStr == "boundaryFill"
+        ? BoundaryFill
+        : FloodFill;
+    m_contiguousSelectionBoundaryColor =
+        loadContiguousSelectionBoundaryColorFromConfig();
+    if (m_configGroup.hasKey("threshold")) {
+        m_threshold = m_configGroup.readEntry("threshold", 8);
+    } else {
+        m_threshold = m_configGroup.readEntry("fuzziness", 8);
+    }
+    m_opacitySpread = m_configGroup.readEntry("opacitySpread", 100);
+    m_closeGap = m_configGroup.readEntry("closeGapAmount", 0);
+    m_useSelectionAsBoundary =
+        m_configGroup.readEntry("useSelectionAsBoundary", false);
 }
 
 void KisToolSelectContiguous::deactivate()
@@ -350,156 +367,6 @@ KoColor KisToolSelectContiguous::loadContiguousSelectionBoundaryColorFromConfig(
         }
     }
     return KoColor();
-}
-
-QWidget* KisToolSelectContiguous::createOptionWidget()
-{
-    KisToolSelectBase::createOptionWidget();
-    KisSelectionOptions *selectionWidget = selectionOptionWidget();
-
-    selectionWidget->setStopGrowingAtDarkestPixelButtonVisible(true);
-
-    // Create widgets
-    KisOptionButtonStrip *optionButtonStripContiguousSelectionMode =
-        new KisOptionButtonStrip;
-    KoGroupButton *buttonContiguousSelectionModeFloodFill =
-        optionButtonStripContiguousSelectionMode->addButton(
-            KisIconUtils::loadIcon("region-filling-flood-fill")
-        );
-    KoGroupButton *buttonContiguousSelectionModeBoundaryFill =
-        optionButtonStripContiguousSelectionMode->addButton(
-            KisIconUtils::loadIcon("region-filling-boundary-fill")
-        );
-    buttonContiguousSelectionModeFloodFill->setChecked(true);
-    KisColorButton *buttonContiguousSelectionBoundaryColor = new KisColorButton;
-    KisSliderSpinBox *sliderThreshold = new KisSliderSpinBox;
-    sliderThreshold->setPrefix(i18nc(
-        "The 'threshold' spinbox prefix in contiguous selection tool options",
-        "Threshold: "));
-    sliderThreshold->setRange(1, 100);
-    KisSliderSpinBox *sliderSpread = new KisSliderSpinBox;
-    sliderSpread->setRange(0, 100);
-    KisSpinBoxI18nHelper::setText(
-        sliderSpread,
-        i18nc(
-            "The 'spread' spinbox in contiguous selection tool options; {n} is the number value, % is the percent sign",
-            "Spread: {n}%"));
-    QCheckBox *checkBoxSelectionAsBoundary = new QCheckBox(i18nc(
-        "The 'use selection as boundary' checkbox in contiguous selection tool "
-        "to use selection borders as boundary when filling",
-        "Use selection as boundary"));
-    checkBoxSelectionAsBoundary->setSizePolicy(QSizePolicy::Ignored,
-                                               QSizePolicy::Preferred);
-
-    // Set the tooltips
-    buttonContiguousSelectionModeFloodFill->setToolTip(
-        i18n("Select regions similar in color to the clicked region"));
-    buttonContiguousSelectionModeBoundaryFill->setToolTip(
-        i18n("Select all regions until a specific boundary color"));
-    buttonContiguousSelectionBoundaryColor->setToolTip(i18n("Boundary color"));
-    sliderThreshold->setToolTip(
-        i18n("Set the color similarity tolerance of the selection. "
-             "Increasing threshold increases the range of similar colors to be selected."));
-    sliderSpread->setToolTip(i18n(
-        "Set the extent of the opaque portion of the selection. "
-        "Decreasing spread decreases opacity of selection areas depending on color similarity."));
-    checkBoxSelectionAsBoundary->setToolTip(
-        i18n("Set if the contour of the active selection should be treated as "
-             "a boundary when making a new selection"));
-
-
-    KisSliderSpinBox *sliderCloseGap = new KisSliderSpinBox;
-    sliderCloseGap->setPrefix(i18nc("The 'close gap' spinbox prefix in contiguous selection tool options", "Close Gap: "));
-    sliderCloseGap->setRange(0, 32);
-    sliderCloseGap->setSuffix(i18n(" px"));
-
-    // Construct the option widget
-    KisOptionCollectionWidgetWithHeader *sectionSelectionExtent =
-        new KisOptionCollectionWidgetWithHeader(
-            i18nc("The 'selection extent' section label in contiguous "
-                  "selection tool options",
-                  "Selection extent"));
-    sectionSelectionExtent->setPrimaryWidget(
-        optionButtonStripContiguousSelectionMode
-    );
-    sectionSelectionExtent->appendWidget(
-        "buttonContiguousSelectionBoundaryColor",
-        buttonContiguousSelectionBoundaryColor
-    );
-    sectionSelectionExtent->setWidgetVisible(
-        "buttonContiguousSelectionBoundaryColor",
-        false
-    );
-    sectionSelectionExtent->appendWidget("sliderThreshold", sliderThreshold);
-    sectionSelectionExtent->appendWidget("sliderSpread", sliderSpread);
-    sectionSelectionExtent->appendWidget("sliderCloseGap", sliderCloseGap);
-    sectionSelectionExtent->appendWidget("checkBoxSelectionAsBoundary",
-                                         checkBoxSelectionAsBoundary);
-
-    selectionWidget->insertWidget(3,
-                                  "sectionSelectionExtent",
-                                  sectionSelectionExtent);
-
-    // Load configuration settings into tool options
-    const QString contiguousSelectionModeStr =
-        m_configGroup.readEntry<QString>("contiguousSelectionMode", "");
-    m_contiguousSelectionMode =
-        contiguousSelectionModeStr == "boundaryFill"
-        ? BoundaryFill
-        : FloodFill;
-    m_contiguousSelectionBoundaryColor =
-        loadContiguousSelectionBoundaryColorFromConfig();
-    if (m_configGroup.hasKey("threshold")) {
-        m_threshold = m_configGroup.readEntry("threshold", 8);
-    } else {
-        m_threshold = m_configGroup.readEntry("fuzziness", 8);
-    }
-    m_opacitySpread = m_configGroup.readEntry("opacitySpread", 100);
-    m_closeGap = m_configGroup.readEntry("closeGapAmount", 0);
-    m_useSelectionAsBoundary =
-        m_configGroup.readEntry("useSelectionAsBoundary", false);
-
-    if (m_contiguousSelectionMode == BoundaryFill) {
-        buttonContiguousSelectionModeBoundaryFill->setChecked(true);
-        sectionSelectionExtent->setWidgetVisible(
-            "buttonContiguousSelectionBoundaryColor",
-            true
-        );
-    }
-    buttonContiguousSelectionBoundaryColor->setColor(
-        m_contiguousSelectionBoundaryColor
-    );
-    sliderThreshold->setValue(m_threshold);
-    sliderSpread->setValue(m_opacitySpread);
-    sliderCloseGap->setValue(m_closeGap);
-    checkBoxSelectionAsBoundary->setChecked(m_useSelectionAsBoundary);
-
-    // Make connections
-    connect(optionButtonStripContiguousSelectionMode,
-            SIGNAL(buttonToggled(KoGroupButton*, bool)),
-            SLOT(slot_optionButtonStripContiguousSelectionMode_buttonToggled(
-                    KoGroupButton*, bool)));
-    connect(buttonContiguousSelectionBoundaryColor,
-            SIGNAL(changed(const KoColor&)),
-            SLOT(slotSetContiguousSelectionBoundaryColor(const KoColor&)));
-    connect(sliderThreshold,
-            SIGNAL(valueChanged(int)),
-            this,
-            SLOT(slotSetThreshold(int)));
-    connect(sliderSpread,
-            SIGNAL(valueChanged(int)),
-            this,
-            SLOT(slotSetOpacitySpread(int)));
-    connect(sliderCloseGap,
-            SIGNAL(valueChanged(int)),
-            this,
-            SLOT(slotSetCloseGap(int)));
-    connect(checkBoxSelectionAsBoundary,
-            SIGNAL(toggled(bool)),
-            this,
-            SLOT(slotSetUseSelectionAsBoundary(bool)));
-
-    return selectionWidget;
 }
 
 void KisToolSelectContiguous::resetCursorStyle()

@@ -26,7 +26,6 @@ public:
     void beginPrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
     void paint(QPainter&, const KoViewConverter &) override {}
-    QWidget* createOptionWidget() override;
     void resetCursorStyle() override;
 
 public Q_SLOTS:

@@ -79,7 +79,6 @@ public:
     void beginAlternateDoubleClickAction(KoPointerEvent *event, AlternateAction action) override;
 
     int flags() const override;
-    QWidget* createOptionWidget() override;
 
 public Q_SLOTS:
     void activate(const QSet<KoShape*> &shapes) override;

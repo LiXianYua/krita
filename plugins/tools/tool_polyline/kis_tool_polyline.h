@@ -25,7 +25,6 @@ public:
     bool supportsPaintingAssistants() const override;
 
 protected:
-    QWidget* createOptionWidget() override;
     void finishPolyline(const QVector<QPointF>& points) override;
 
 protected Q_SLOTS:

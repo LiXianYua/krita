@@ -41,11 +41,6 @@ void KisToolPolyline::resetCursorStyle()
     overrideCursorIfNotEditable();
 }
 
-QWidget* KisToolPolyline::createOptionWidget()
-{
-    return KisToolPolylineBase::createOptionWidget();
-}
-
 void KisToolPolyline::finishPolyline(const QVector<QPointF>& points)
 {
     const KisToolShape::ShapeAddInfo info =

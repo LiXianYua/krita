@@ -8,10 +8,6 @@
 
 #include "kis_tool_dyna.h"
 
-#include <QCheckBox>
-#include <QDoubleSpinBox>
-#include <QLabel>
-
 #include <klocalizedstring.h>
 #include <ksharedconfig.h>
 
@@ -19,8 +15,6 @@
 #include "kundo2magicstring.h"
 
 #include "kis_cursor.h"
-#include <kis_slider_spin_box.h>
-#include <KisAngleSelector.h>
 
 
 #define MAXIMUM_SMOOTHNESS 1000
@@ -71,6 +65,18 @@ void KisToolDyna::activate(const QSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
     m_configGroup =  KSharedConfig::openConfig()->group(toolId());
+
+    // Was read in createOptionWidget() (now deleted) when the options panel
+    // was created; that ran on every tool activation, so these are the
+    // effective defaults with no panel too -- same keys, same fallbacks.
+    // Note these differ from the initDyna() constants (mass 0.5, drag 0.15,
+    // angle giving xangle/yangle 0.60/0.20): createOptionWidget() always ran
+    // on activation and overwrote them with the values below, so those were
+    // the values actually seen in practice.
+    slotSetMass(m_configGroup.readEntry("massAmount", 0.01));
+    slotSetDrag(m_configGroup.readEntry("dragAmount", .98));
+    slotSetFixedAngle(m_configGroup.readEntry("useFixedAngle", false));
+    slotSetAngle(m_configGroup.readEntry("angleAmount", 20));
 }
 
 void KisToolDyna::initStroke(KoPointerEvent *event)
@@ -259,76 +265,9 @@ void KisToolDyna::slotSetWidthRange(double widthRange)
 void KisToolDyna::slotSetFixedAngle(bool fixedAngle)
 {
     m_mouse.fixedangle = fixedAngle;
-    m_angleSelector->setEnabled(fixedAngle);
+    // Was m_angleSelector->setEnabled(fixedAngle) -- the options panel that
+    // owned m_angleSelector has been removed, so there is no widget to update.
     m_configGroup.writeEntry("useFixedAngle", fixedAngle);
-}
-
-QWidget * KisToolDyna::createOptionWidget()
-{
-
-    QWidget * optionsWidget = KisToolFreehand::createOptionWidget();
-    optionsWidget->setObjectName(toolId() + " option widget");
-
-    m_optionLayout = new QGridLayout();
-
-    m_optionLayout->setContentsMargins(0, 0, 0, 0);
-    m_optionLayout->setSpacing(2);
-    KisToolFreehand::addOptionWidgetLayout(m_optionLayout);
-
-    QLabel* massLbl = new QLabel(i18n("Mass:"), optionsWidget);
-    m_massSPBox = new KisDoubleSliderSpinBox(optionsWidget);
-    m_massSPBox->setRange(0.0,1.0,2);
-    m_massSPBox->setSingleStep(0.01);
-    connect(m_massSPBox, SIGNAL(valueChanged(qreal)), this, SLOT(slotSetMass(qreal)));
-    KisToolFreehand::addOptionWidgetOption(m_massSPBox,massLbl);
-
-    QLabel* dragLbl = new QLabel(i18n("Drag:"), optionsWidget);
-    m_dragSPBox = new KisDoubleSliderSpinBox(optionsWidget);
-    m_dragSPBox->setRange(0.0,1.0,2);
-    m_dragSPBox->setSingleStep(0.01);
-    connect(m_dragSPBox, SIGNAL(valueChanged(qreal)), this, SLOT(slotSetDrag(qreal)));
-    KisToolFreehand::addOptionWidgetOption(m_dragSPBox,dragLbl);
-
-    //NOTE: so far unused, waiting for the changes to propagate rotation/pressure to freehand tool
-    // fixed angle might be for 2.4, but the later one for 2.5
-    m_chkFixedAngle = new QCheckBox(i18n("Fixed angle:"), optionsWidget);
-    m_chkFixedAngle->setEnabled(false);
-    connect(m_chkFixedAngle, SIGNAL(toggled(bool)), this, SLOT(slotSetFixedAngle(bool)));
-
-    m_angleSelector = new KisAngleSelector(optionsWidget);
-    m_angleSelector->setDecimals(0);
-    m_angleSelector->setFlipOptionsMode(KisAngleSelector::FlipOptionsMode_MenuButton);
-    m_angleSelector->setIncreasingDirection(KisAngleGauge::IncreasingDirection_Clockwise);
-    m_angleSelector->setEnabled(false);
-    connect(m_angleSelector, SIGNAL(angleChanged(qreal)), this, SLOT(slotSetAngle(qreal)));
-
-    KisToolFreehand::addOptionWidgetOption(m_angleSelector,m_chkFixedAngle);
-
-    // read settings in from config
-    m_massSPBox->setValue(m_configGroup.readEntry("massAmount", 0.01));
-    m_dragSPBox->setValue(m_configGroup.readEntry("dragAmount", .98));
-    m_chkFixedAngle->setChecked((bool)m_configGroup.readEntry("useFixedAngle", false));
-    m_angleSelector->setAngle(m_configGroup.readEntry("angleAmount", 20));
-
-
-#if 0
-    QLabel* initWidthLbl = new QLabel(i18n("Initial width:"), optionWidget);
-    m_initWidthSPBox = new QDoubleSpinBox(optionWidget);   
-    connect(m_initWidthSPBox, SIGNAL(valueChanged(double)), this, SLOT(slotSetDynaWidth(double)));
-    KisToolFreehand::addOptionWidgetOption(m_initWidthSPBox,initWidthLbl);
-
-    QLabel* widthRangeLbl = new QLabel(i18n("Width range:"), optionWidget);
-    m_widthRangeSPBox = new QDoubleSpinBox(optionWidget);
-    connect(m_widthRangeSPBox, SIGNAL(valueChanged(double)), this, SLOT(slotSetWidthRange(double)));
-    //KisToolFreehand::addOptionWidgetOption(m_widthRangeSPBox,widthRangeLbl);
-
-    m_initWidthSPBox->setValue(m_configGroup.readEntry("initWidth", 10));
-    m_widthRangeSPBox->setValue(m_configGroup.readEntry("initWidthRange", 20));
-
-
-#endif
-
-    return optionsWidget;
 }
 
 void KisToolDyna::slotSetAngle(qreal angle)

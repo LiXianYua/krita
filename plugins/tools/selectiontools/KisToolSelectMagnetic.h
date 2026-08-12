@@ -38,7 +38,6 @@ public:
     void resetCursorStyle() override;
     void requestStrokeEnd() override;
     void requestStrokeCancellation() override;
-    QWidget *createOptionWidget() override;
 
 Q_SIGNALS:
     void setButtonsEnabled(bool);

@@ -39,7 +39,6 @@ public:
     KisToolSelectContiguous(KoCanvasBase *canvas);
     ~KisToolSelectContiguous() override;
 
-    QWidget* createOptionWidget() override;
     void paint(QPainter &painter, const KoViewConverter &converter) override;
 
     void beginPrimaryAction(KoPointerEvent *event) override;
