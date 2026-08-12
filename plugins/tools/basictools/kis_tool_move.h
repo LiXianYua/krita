@@ -15,7 +15,6 @@
 #include <flake/kis_node_shape.h>
 #include <kis_icon.h>
 #include <QKeySequence>
-#include <QWidget>
 #include <QGroupBox>
 #include <QRadioButton>
 #include "KisToolChangesTracker.h"

@@ -10,7 +10,6 @@
 #include <math.h>
 
 #include <QPainter>
-#include <QWidget>
 #include <QPainterPath>
 
 #include <KoUnit.h>

@@ -67,6 +67,16 @@ void KisToolColorSampler::slotColorPickerSelectedColor(const KoColor &color)
 void KisToolColorSampler::slotColorPickerSelectionFinished(const KoColor &color)
 {
     Q_UNUSED(color);
+
+    // Body removed with the options panel (now deleted): it used to add the
+    // sampled colour as a swatch to whichever palette the panel's cmbPalette
+    // had selected, guarded by m_config->addColorToCurrentPalette. Only the
+    // palette chooser lived in the panel; the guard itself is in the untouched
+    // KisToolUtils::ColorSamplerConfig (key "addPalette", default false), so
+    // the out-of-the-box behaviour is unchanged -- users who had switched it on
+    // silently stop getting swatches until the S-line UI supplies a palette
+    // chooser again. The connect() in the constructor is deliberately kept so
+    // that re-wiring only has to fill this body back in.
 }
 
 void KisToolColorSampler::paint(QPainter &gc, const KoViewConverter &converter)
