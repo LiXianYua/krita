@@ -13,8 +13,6 @@
 
 #include "kis_tool_shape.h"
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
 #include <QScopedPointer>
 #include <kis_global.h>
 #include <kis_types.h>
@@ -26,7 +24,6 @@
 
 class QPoint;
 class KoCanvasBase;
-class QCheckBox;
 class KisPaintingInformationBuilder;
 class KisToolLineHelper;
 
@@ -60,21 +57,13 @@ protected Q_SLOTS:
 
 private Q_SLOTS:
     void updateStroke();
-    void setUseSensors(bool value);
-    void setShowPreview(bool value);
-    void setShowGuideline(bool value);
-    void setSnapToAssistants(bool value);
-    void setSnapEraser(bool value);
-
 
 private:
     void paintLine(QPainter& gc, const QRect& rc);
     QPointF straightLine(QPointF point);
-    QPointF snapToAssistants(QPointF point);
     void updateGuideline();
     void showSize();
     void updatePreviewTimer(bool showGuide);
-    QWidget* createOptionWidget() override;
 
     void endStroke();
     void cancelStroke();
@@ -84,25 +73,15 @@ private:
 
     QPointF m_startPoint; // start point to use when painting (after the line was snapped to assistant already)
     QPointF m_endPoint;
-    QPointF m_originalStartPoint; // original starting point (to use when searching for suitable assistant)
     QPointF m_lastUpdatedPoint;
 
     bool m_strokeIsRunning {false};
     bool m_altInitiallyHeld {false};
 
-
-    QCheckBox *m_chkUseSensors {nullptr};
-    QCheckBox *m_chkShowPreview {nullptr};
-    QCheckBox *m_chkShowGuideline {nullptr};
-    QCheckBox *m_chkSnapToAssistants {nullptr};
-    QCheckBox *m_chkSnapEraser {nullptr};
-
     QScopedPointer<KisPaintingInformationBuilder> m_infoBuilder;
     QScopedPointer<KisToolLineHelper> m_helper;
     KisSignalCompressor m_strokeUpdateCompressor;
     KisSignalCompressor m_longStrokeUpdateCompressor;
-
-    KConfigGroup configGroup;
 };
 
 

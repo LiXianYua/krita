@@ -27,7 +27,6 @@
 
 
 class KoCanvasBase;
-class MoveToolOptionsWidget;
 class KisDocument;
 
 class KisToolMove : public KisTool
@@ -93,7 +92,6 @@ public:
 
     void paint(QPainter& gc, const KoViewConverter &converter) override;
 
-    QWidget *createOptionWidget() override;
     void updateUIUnit(int newUnit);
 
     MoveToolMode moveToolMode() const;
@@ -102,9 +100,6 @@ public:
 
 public Q_SLOTS:
     void moveDiscrete(MoveDirection direction, bool big);
-
-    void moveBySpinX(int newX);
-    void moveBySpinY(int newY);
 
     void slotNodeChanged(const KisNodeList &nodes);
     void slotSelectionChanged();
@@ -116,7 +111,6 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     void moveToolModeChanged();
-    void moveInNewPosition(QPoint);
 
 private:
     void drag(const QPoint& newPos);
@@ -146,7 +140,6 @@ private Q_SLOTS:
 
 private:
 
-    MoveToolOptionsWidget* m_optionsWidget {0};
     QPoint m_dragStart; ///< Point where current cursor dragging began
     QPoint m_accumulatedOffset; ///< Total offset including multiple clicks, up/down/left/right keys, etc. added together
 

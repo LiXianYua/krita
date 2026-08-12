@@ -12,16 +12,12 @@ set(kritadefaulttools_static_SRCS
     kis_tool_measure.cc
     kis_tool_path.cc
     kis_tool_move.cc
-    kis_tool_movetooloptionswidget.cpp
     strokes/move_selection_stroke_strategy.cpp
     KisMoveBoundsCalculationJob.cpp
     kis_tool_multihand.cpp
-    kis_tool_multihand_config.cpp
     kis_tool_pencil.cc
     kis_tool_pan.cpp
 )
-
-ki18n_wrap_ui(kritadefaulttools_static_SRCS wdgcolorsampler.ui wdgmovetool.ui wdgmultihandtool.ui)
 
 kis_add_library(kritadefaulttools_static STATIC ${kritadefaulttools_static_SRCS})
 

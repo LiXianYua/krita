@@ -10,11 +10,10 @@
 #include <math.h>
 
 #include <QPainter>
-#include <QLayout>
 #include <QWidget>
-#include <QLabel>
 #include <QPainterPath>
-#include <kcombobox.h>
+
+#include <KoUnit.h>
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
@@ -32,69 +31,6 @@
 #include <KisOptimizedBrushOutline.h>
 
 #define INNER_RADIUS 50
-
-KisToolMeasureOptionsWidget::KisToolMeasureOptionsWidget(QWidget* parent, KisImageWSP image)
-        : QWidget(parent),
-        m_resolution(image->xRes()),
-        m_unit(KoUnit::Pixel)
-{
-    m_distance = 0.0;
-
-    QGridLayout* optionLayout = new QGridLayout(this);
-    Q_CHECK_PTR(optionLayout);
-    optionLayout->setContentsMargins(0, 0, 0, 0);
-
-    optionLayout->addWidget(new QLabel(i18n("Distance:"), this), 0, 0);
-    optionLayout->addWidget(new QLabel(i18n("Angle:"), this), 1, 0);
-
-    m_distanceLabel = new QLabel(this);
-    m_distanceLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    optionLayout->addWidget(m_distanceLabel, 0, 1);
-
-    m_angleLabel = new QLabel(this);
-    m_angleLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    optionLayout->addWidget(m_angleLabel, 1, 1);
-
-    KComboBox* unitBox = new KComboBox(this);
-    unitBox->addItems(KoUnit::listOfUnitNameForUi(KoUnit::ListAll));
-    connect(unitBox, SIGNAL(currentIndexChanged(int)), this, SLOT(slotUnitChanged(int)));
-    unitBox->setCurrentIndex(m_unit.indexInListForUi(KoUnit::ListAll));
-
-    optionLayout->addWidget(unitBox, 0, 2);
-    optionLayout->addItem(new QSpacerItem(1, 1, QSizePolicy::Fixed, QSizePolicy::Expanding), 2, 0, 1, 2);
-
-    connect(image, SIGNAL(sigResolutionChanged(double, double)), this, SLOT(slotResolutionChanged(double, double)));
-}
-
-void KisToolMeasureOptionsWidget::slotSetDistance(double distance)
-{
-    m_distance = distance;
-    updateDistance();
-}
-
-void KisToolMeasureOptionsWidget::slotSetAngle(double angle)
-{
-    m_angleLabel->setText(i18nc("angle value in degrees", "%1°", KritaUtils::prettyFormatReal(angle)));
-}
-
-void KisToolMeasureOptionsWidget::slotUnitChanged(int index)
-{
-    m_unit = KoUnit::fromListForUi(index, KoUnit::ListAll, m_resolution);
-    updateDistance();
-}
-
-void KisToolMeasureOptionsWidget::slotResolutionChanged(double xRes, double /*yRes*/)
-{
-    m_resolution = xRes;
-    updateDistance();
-}
-
-void KisToolMeasureOptionsWidget::updateDistance()
-{
-    double distance = m_distance / m_resolution;
-    m_distanceLabel->setText(KritaUtils::prettyFormatReal(m_unit.toUserValue(distance)));
-}
-
 
 KisToolMeasure::KisToolMeasure(KoCanvasBase * canvas)
     : KisTool(canvas, KisCursor::crossCursor())
@@ -175,8 +111,8 @@ void KisToolMeasure::showDistanceAngleOnCanvas()
 {
     KisCanvas2 *kisCanvas = qobject_cast<KisCanvas2*>(canvas());
     QString message = i18nc("%1=distance %2=unit of distance %3=angle in degrees", "%1 %2\n%3°",
-                            m_optionsWidget->m_distanceLabel->text(),
-                            m_optionsWidget->m_unit.symbol(),
+                            KritaUtils::prettyFormatReal(distance()),
+                            KoUnit(KoUnit::Pixel).symbol(),
                             QString::number(angle(),'f',1));
     kisCanvas->viewManager()->showFloatingMessage(message, QIcon(), 2000, KisFloatingMessage::High);
 }
@@ -190,9 +126,6 @@ void KisToolMeasure::beginPrimaryAction(KoPointerEvent *event)
     m_startPos = convertToPixelCoord(event);
     m_endPos = m_startPos;
     m_baseLineVec = QVector2D(1.0f, 0.0f);
-
-    Q_EMIT sigDistanceChanged(0.0);
-    Q_EMIT sigAngleChanged(0.0);
 }
 
 void KisToolMeasure::continuePrimaryAction(KoPointerEvent *event)
@@ -222,8 +155,6 @@ void KisToolMeasure::continuePrimaryAction(KoPointerEvent *event)
     }
 
     canvas()->updateCanvas(convertToPt(boundingRect()));
-    Q_EMIT sigDistanceChanged(distance());
-    Q_EMIT sigAngleChanged(angle());
     showDistanceAngleOnCanvas();
 }
 
@@ -233,25 +164,6 @@ void KisToolMeasure::endPrimaryAction(KoPointerEvent *event)
 
     Q_UNUSED(event);
     setMode(KisTool::HOVER_MODE);
-}
-
-QWidget* KisToolMeasure::createOptionWidget()
-{
-    if (!currentImage())
-        return nullptr;
-    m_optionsWidget = new KisToolMeasureOptionsWidget(nullptr, currentImage());
-
-    // See https://bugs.kde.org/show_bug.cgi?id=316896
-    QWidget *specialSpacer = new QWidget(m_optionsWidget);
-    specialSpacer->setObjectName("SpecialSpacer");
-    specialSpacer->setFixedSize(0, 0);
-    m_optionsWidget->layout()->addWidget(specialSpacer);
-
-    m_optionsWidget->setObjectName(toolId() + " option widget");
-    connect(this, SIGNAL(sigDistanceChanged(double)), m_optionsWidget, SLOT(slotSetDistance(double)));
-    connect(this, SIGNAL(sigAngleChanged(double)), m_optionsWidget, SLOT(slotSetAngle(double)));
-    m_optionsWidget->setFixedHeight(m_optionsWidget->sizeHint().height());
-    return m_optionsWidget;
 }
 
 double KisToolMeasure::angle()

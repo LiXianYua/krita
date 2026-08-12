@@ -8,10 +8,6 @@
 #ifndef KIS_TOOL_MEASURE_H_
 #define KIS_TOOL_MEASURE_H_
 
-#include <QLabel>
-
-#include <KoUnit.h>
-
 #include "kis_tool.h"
 #include "kis_global.h"
 #include "kis_types.h"
@@ -27,30 +23,6 @@ class QVector2D;
 
 class KoCanvasBase;
 
-
-class KisToolMeasureOptionsWidget : public QWidget
-{
-    Q_OBJECT
-
-public:
-    KisToolMeasureOptionsWidget(QWidget* parent, KisImageWSP image);
-
-public Q_SLOTS:
-    void slotSetDistance(double distance);
-    void slotSetAngle(double angle);
-    void slotUnitChanged(int index);
-    void slotResolutionChanged(double xRes, double yRes);
-
-private:
-    void updateDistance();
-
-    QLabel* m_angleLabel {nullptr};
-    double m_distance {0.0};
-public:
-    QLabel* m_distanceLabel {nullptr};
-    double m_resolution;
-    KoUnit m_unit;
-};
 
 class KisToolMeasure : public KisTool
 {
@@ -70,20 +42,12 @@ public:
 
     void paint(QPainter& gc, const KoViewConverter &converter) override;
 
-    QWidget * createOptionWidget() override;
-
-Q_SIGNALS:
-    void sigDistanceChanged(double distance);
-    void sigAngleChanged(double angle);
-
 private:
     QRectF boundingRect();
     double angle();
     double distance();
 
 private:
-    KisToolMeasureOptionsWidget *m_optionsWidget {nullptr};
-
     QPointF m_startPos {QPointF(0, 0)};
     QPointF m_endPos {QPointF(0, 0)}; 
     QVector2D m_baseLineVec {QPointF(1, 0)};

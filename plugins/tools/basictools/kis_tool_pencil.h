@@ -55,8 +55,6 @@ public:
     void continuePrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;
 
-    QList<QPointer<QWidget> > createOptionWidgets() override;
-
 protected Q_SLOTS:
     void resetCursorStyle() override;
 

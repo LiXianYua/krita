@@ -15,14 +15,11 @@
 
 #include <QApplication>
 #include <QPainter>
-#include <QLabel>
 #include <QLayout>
-#include <QCheckBox>
 
 #include <kis_transaction.h>
 #include <kis_debug.h>
 #include <klocalizedstring.h>
-#include <kcombobox.h>
 
 
 #include <KoPointerEvent.h>
@@ -40,8 +37,6 @@
 
 #include <canvas/kis_canvas2.h>
 #include <KisViewManager.h>
-#include <widgets/kis_cmb_composite.h>
-#include <kis_slider_spin_box.h>
 #include <kis_cursor.h>
 #include <kis_config.h>
 #include "kis_resources_snapshot.h"
@@ -87,7 +82,6 @@ void KisToolGradient::resetCursorStyle()
 void KisToolGradient::activate(const QSet<KoShape*> &shapes)
 {
     KisToolPaint::activate(shapes);
-    m_configGroup =  KSharedConfig::openConfig()->group(toolId());
 }
 
 void KisToolGradient::paint(QPainter &painter, const KoViewConverter &converter)
@@ -229,99 +223,5 @@ void KisToolGradient::updateGuideline()
     }
 }
 
-QWidget* KisToolGradient::createOptionWidget()
-{
-    QWidget *widget = KisToolPaint::createOptionWidget();
-    Q_CHECK_PTR(widget);
-    widget->setObjectName(toolId() + " option widget");
-
-
-    // Make sure to create the connections last after everything is set up. The initialized values
-    // won't be loaded from the configuration file if you add the widget before the connection
-    m_lbShape = new QLabel(i18n("Shape:"), widget);
-    m_cmbShape = new KComboBox(widget);
-    m_cmbShape->setObjectName("shape_combo");
-    m_cmbShape->addItem(i18nc("the gradient will be drawn linearly", "Linear"));
-    m_cmbShape->addItem(i18nc("the gradient will be drawn bilinearly", "Bi-Linear"));
-    m_cmbShape->addItem(i18nc("the gradient will be drawn radially", "Radial"));
-    m_cmbShape->addItem(i18nc("the gradient will be drawn in a square around a centre", "Square"));
-    m_cmbShape->addItem(i18nc("the gradient will be drawn as an asymmetric cone", "Conical"));
-    m_cmbShape->addItem(i18nc("the gradient will be drawn as a symmetric cone", "Conical Symmetric"));
-    m_cmbShape->addItem(i18nc("the gradient will be drawn as a spiral", "Spiral"));
-    m_cmbShape->addItem(i18nc("the gradient will be drawn as a reverse spiral", "Reverse Spiral"));
-    m_cmbShape->addItem(i18nc("the gradient will be drawn in a selection outline", "Shaped"));
-    addOptionWidgetOption(m_cmbShape, m_lbShape);
-    connect(m_cmbShape, SIGNAL(currentIndexChanged(int)), this, SLOT(slotSetShape(int)));
-
-    m_lbRepeat = new QLabel(i18n("Repeat:"), widget);
-    m_cmbRepeat = new KComboBox(widget);
-    m_cmbRepeat->setObjectName("repeat_combo");
-    m_cmbRepeat->addItem(i18nc("The gradient will not repeat", "None"));
-    m_cmbRepeat->addItem(i18nc("The gradient will repeat forwards", "Forwards"));
-    m_cmbRepeat->addItem(i18nc("The gradient will repeat alternatingly", "Alternating"));
-    addOptionWidgetOption(m_cmbRepeat, m_lbRepeat);
-    connect(m_cmbRepeat, SIGNAL(currentIndexChanged(int)), this, SLOT(slotSetRepeat(int)));
-
-
-    m_lbAntiAliasThreshold = new QLabel(i18n("Anti-alias threshold:"), widget);
-    m_slAntiAliasThreshold = new KisDoubleSliderSpinBox(widget);
-    m_slAntiAliasThreshold->setObjectName("threshold_slider");
-    m_slAntiAliasThreshold->setRange(0, 1, 3);
-    m_slAntiAliasThreshold->setSingleStep(0.001);
-    addOptionWidgetOption(m_slAntiAliasThreshold, m_lbAntiAliasThreshold);
-    connect(m_slAntiAliasThreshold, SIGNAL(valueChanged(qreal)), this, SLOT(slotSetAntiAliasThreshold(qreal)));
-
-    m_ckReverse = new QCheckBox(i18nc("the gradient will be drawn with the color order reversed", "Reverse"), widget);
-    m_ckReverse->setObjectName("reverse_check");
-    connect(m_ckReverse, SIGNAL(toggled(bool)), this, SLOT(slotSetReverse(bool)));
-    addOptionWidgetOption(m_ckReverse);
-
-    m_ckDither = new QCheckBox(i18nc("the gradient will be dithered", "Dither"), widget);
-    m_ckDither->setObjectName("dither_check");
-    connect(m_ckDither, SIGNAL(toggled(bool)), this, SLOT(slotSetDither(bool)));
-    addOptionWidgetOption(m_ckDither);
-
-    widget->setFixedHeight(widget->sizeHint().height());
-
-
-    // load configuration settings into widget (updating UI will update internal variables from signals/slots)
-    m_ckDither->setChecked(m_configGroup.readEntry<bool>("dither", false));
-    m_ckReverse->setChecked((bool)m_configGroup.readEntry("reverse", false));
-    m_cmbShape->setCurrentIndex((int)m_configGroup.readEntry("shape", 0));
-    m_cmbRepeat->setCurrentIndex((int)m_configGroup.readEntry("repeat", 0));
-    m_slAntiAliasThreshold->setValue((qreal)m_configGroup.readEntry("antialiasThreshold", 0.0));
-
-    return widget;
-}
-
-void KisToolGradient::slotSetShape(int shape)
-{
-    m_shape = static_cast<KisGradientPainter::enumGradientShape>(shape);
-    m_configGroup.writeEntry("shape", shape);
-}
-
-void KisToolGradient::slotSetRepeat(int repeat)
-{
-    m_repeat = static_cast<KisGradientPainter::enumGradientRepeat>(repeat);
-    m_configGroup.writeEntry("repeat", repeat);
-}
-
-void KisToolGradient::slotSetReverse(bool state)
-{
-    m_reverse = state;
-    m_configGroup.writeEntry("reverse", state);
-}
-
-void KisToolGradient::slotSetDither(bool state)
-{
-    m_dither = state;
-    m_configGroup.writeEntry("dither", state);
-}
-
-void KisToolGradient::slotSetAntiAliasThreshold(qreal value)
-{
-    m_antiAliasThreshold = value;
-    m_configGroup.writeEntry("antialiasThreshold", value);
-}
 
 

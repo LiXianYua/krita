@@ -23,16 +23,10 @@
 #include <kis_gradient_painter.h>
 #include <flake/kis_node_shape.h>
 #include <kis_icon.h>
-#include <kconfig.h>
-#include <kconfiggroup.h>
 
 
-class QLabel;
 class QPoint;
 class QWidget;
-class QCheckBox;
-class KComboBox;
-class KisDoubleSliderSpinBox;
 
 class KisToolGradient : public KisToolPaint
 {
@@ -49,16 +43,8 @@ public:
 
     void paint(QPainter &painter, const KoViewConverter &converter) override;
 
-    QWidget* createOptionWidget() override;
-
 public Q_SLOTS:
     void activate(const QSet<KoShape*> &shapes) override;
-private Q_SLOTS:
-    void slotSetShape(int);
-    void slotSetRepeat(int);
-    void slotSetReverse(bool);
-    void slotSetDither(bool);
-    void slotSetAntiAliasThreshold(qreal);
 protected Q_SLOTS:
     void resetCursorStyle() override;
 
@@ -85,16 +71,6 @@ private:
     bool m_dither {false};
     bool m_reverse {false};
     double m_antiAliasThreshold {0.0};
-
-    QLabel *m_lbShape {nullptr};
-    QLabel *m_lbRepeat {nullptr};
-    QCheckBox *m_ckDither {nullptr};
-    QCheckBox *m_ckReverse {nullptr};
-    KComboBox *m_cmbShape {nullptr};
-    KComboBox *m_cmbRepeat {nullptr};
-    QLabel *m_lbAntiAliasThreshold {nullptr};
-    KisDoubleSliderSpinBox *m_slAntiAliasThreshold {nullptr};
-    KConfigGroup m_configGroup;
 };
 
 class KisToolGradientFactory : public KisToolPaintFactoryBase

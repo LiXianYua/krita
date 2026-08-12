@@ -8,11 +8,6 @@
 
 #include <QTransform>
 
-#include <QPushButton>
-#include <QFormLayout>
-#include <QStackedWidget>
-#include <kis_slider_spin_box.h>
-#include "kis_aspect_ratio_locker.h"
 #include "kis_canvas2.h"
 #include "kis_cursor.h"
 #include "KisViewManager.h"
@@ -39,7 +34,6 @@ KisToolMultihand::KisToolMultihand(KoCanvasBase *canvas)
       m_intervalX(0),
       m_intervalY(0)
     , m_randomGenerator(QRandomGenerator::global()->generate())
-    , customUI(0)
 {
 
 
@@ -50,6 +44,7 @@ KisToolMultihand::KisToolMultihand(KoCanvasBase *canvas)
     resetHelper(m_helper);
     if (image()) {
         m_axesPoint = QPointF(0.5 * image()->width(), 0.5 * image()->height());
+        connect(image(), SIGNAL(sigSizeChanged(QPointF,QPointF)), this, SLOT(resetAxes()));
     }
 
 }
@@ -424,102 +419,6 @@ void KisToolMultihand::initTransformations()
     m_helper->setupTransformations(transformations);
 }
 
-QWidget* KisToolMultihand::createOptionWidget()
-{
-    QWidget *widget = KisToolBrush::createOptionWidget();
-
-    customUI = new KisToolMultiHandConfigWidget();
-
-    // brush smoothing option.
-    //customUI->layout()->addWidget(widget);
-    customUI->smoothingOptionsLayout->addWidget(widget);
-
-
-    // setup common parameters that all of the modes will see
-    connect(customUI->showAxesCheckbox, SIGNAL(toggled(bool)), this, SLOT(slotSetAxesVisible(bool)));
-    customUI->showAxesCheckbox->setChecked((bool)m_configGroup.readEntry("showAxes", false));
-
-    connect(image(), SIGNAL(sigSizeChanged(QPointF,QPointF)), this, SLOT(resetAxes()));
-
-    customUI->moveOriginButton->setCheckable(true);
-    connect(customUI->moveOriginButton, SIGNAL(clicked(bool)),this, SLOT(activateAxesPointModeSetup()));
-
-    connect(customUI->resetOriginButton, SIGNAL(released()), this, SLOT(resetAxes()));
-
-    customUI->multihandTypeCombobox->addItem(i18n("Symmetry"),int(SYMMETRY));  // axis mode
-    customUI->multihandTypeCombobox->addItem(i18nc("Label of Mirror in Multihand brush tool options", "Mirror"),int(MIRROR));
-    customUI->multihandTypeCombobox->addItem(i18n("Translate"),int(TRANSLATE));
-    customUI->multihandTypeCombobox->addItem(i18n("Snowflake"),int(SNOWFLAKE));
-    customUI->multihandTypeCombobox->addItem(i18n("Copy Translate"),int(COPYTRANSLATE));
-    customUI->multihandTypeCombobox->addItem(i18n("Copy Translate at Intervals"),int(COPYTRANSLATEINTERVALS));
-    connect(customUI->multihandTypeCombobox,SIGNAL(currentIndexChanged(int)),this, SLOT(slotSetTransformMode(int)));
-    customUI->multihandTypeCombobox->setCurrentIndex(m_configGroup.readEntry("transformMode", 0));
-
-
-    customUI->axisRotationAngleSelector->setRange(0.0, 90.0);
-    customUI->axisRotationAngleSelector->setDecimals(1);
-    customUI->axisRotationAngleSelector->setWrapping(false);
-    customUI->axisRotationAngleSelector->setFlipOptionsMode(KisAngleSelector::FlipOptionsMode_NoFlipOptions);
-    connect(customUI->axisRotationAngleSelector, SIGNAL(angleChanged(qreal)), this, SLOT(slotSetAxesAngle(qreal)));
-    customUI->axisRotationAngleSelector->setAngle(m_configGroup.readEntry("axesAngle", 0.0));
-
-
-    // symmetry mode options
-    customUI->brushCountSpinBox->setRange(1, MAXIMUM_BRUSHES);
-    connect(customUI->brushCountSpinBox, SIGNAL(valueChanged(int)),this, SLOT(slotSetHandsCount(int)));
-    customUI->brushCountSpinBox->setValue(m_configGroup.readEntry("handsCount", 4));
-
-    // mirror mode specific options
-    connect(customUI->horizontalCheckbox, SIGNAL(toggled(bool)), this, SLOT(slotSetMirrorHorizontally(bool)));
-    customUI->horizontalCheckbox->setChecked((bool)m_configGroup.readEntry("mirrorHorizontally", false));
-
-    connect(customUI->verticalCheckbox, SIGNAL(toggled(bool)), this, SLOT(slotSetMirrorVertically(bool)));
-    customUI->verticalCheckbox->setChecked((bool)m_configGroup.readEntry("mirrorVertically", false));
-
-    // translate mode options
-    customUI->translationRadiusSpinbox->setRange(0, 200);
-    customUI->translationRadiusSpinbox->setSuffix(i18n(" px"));
-
-    connect(customUI->translationRadiusSpinbox,SIGNAL(valueChanged(int)),this,SLOT(slotSetTranslateRadius(int)));
-    customUI->translationRadiusSpinbox->setValue(m_configGroup.readEntry("translateRadius", 0));
-
-    // Copy translate mode options and actions
-    connect(customUI->addSubbrushButton, &QPushButton::clicked, this, &KisToolMultihand::slotAddSubbrushesMode);
-    connect(customUI->removeSubbrushButton, &QPushButton::clicked, this, &KisToolMultihand::slotRemoveAllSubbrushes);
-
-    // Copy translate at intervals mode options and actions
-    customUI->intervalXSpinBox->setRange(0, 2000);
-    customUI->intervalXSpinBox->setSuffix(i18n(" px"));
-    customUI->intervalYSpinBox->setRange(0, 2000);
-    customUI->intervalYSpinBox->setSuffix(i18n(" px"));
-
-    KisAspectRatioLocker *intervalAspectLocker = new KisAspectRatioLocker(this);
-    intervalAspectLocker->connectSpinBoxes(customUI->intervalXSpinBox, customUI->intervalYSpinBox, customUI->intervalAspectButton);
-
-    customUI->intervalXSpinBox->setValue(m_configGroup.readEntry("intervalX", 0));
-    customUI->intervalYSpinBox->setValue(m_configGroup.readEntry("intervalY", 0));
-    connect(intervalAspectLocker, SIGNAL(sliderValueChanged()), this, SLOT(slotSetIntervals()));
-    slotSetIntervals(); // X and Y need to be set at the same time.
-    connect(intervalAspectLocker, SIGNAL(aspectButtonChanged()), this, SLOT(slotSetKeepAspect()));
-    customUI->intervalAspectButton->setKeepAspectRatio(m_configGroup.readEntry("intervalKeepAspect", false));
-
-    // snowflake re-uses the existing options, so there is no special parameters for that...
-
-
-    return static_cast<QWidget*>(customUI); // keeping it in the native class until the end allows us to access the UI components
-}
-
-void KisToolMultihand::activateAxesPointModeSetup()
-{
-    if (customUI->moveOriginButton->isChecked()){
-        m_setupAxesFlag = true;
-        useCursor(KisCursor::crossCursor());
-        updateCanvas();
-    } else {
-        finishAxesSetup();
-    }
-}
-
 void KisToolMultihand::resetAxes()
 {
     m_axesPoint = QPointF(0.5 * image()->width(), 0.5 * image()->height());
@@ -530,7 +429,6 @@ void KisToolMultihand::resetAxes()
 void KisToolMultihand::finishAxesSetup()
 {
     m_setupAxesFlag = false;
-    customUI->moveOriginButton->setChecked(false);
     resetCursorStyle();
     updateCanvas();
 }
@@ -540,7 +438,7 @@ void KisToolMultihand::updateCanvas()
     KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
     Q_ASSERT(kisCanvas);
     kisCanvas->updateCanvas();
-    if(customUI->moveOriginButton->isChecked())
+    if (m_setupAxesFlag)
     {
         kisCanvas->viewManager()->showFloatingMessage(i18n("X: %1 px\nY: %2 px"
                 , QString::number(this->m_axesPoint.x(),'f',1),QString::number(this->m_axesPoint.y(),'f',1))
@@ -579,116 +477,3 @@ QVector<QPoint> KisToolMultihand::intervalLocations()
     return intervalLocations;
 }
 
-void KisToolMultihand::slotSetHandsCount(int count)
-{
-    m_handsCount = count;
-    m_configGroup.writeEntry("handsCount", count);
-    updateCanvas();
-}
-
-void KisToolMultihand::slotSetAxesAngle(qreal angle)
-{
-    //negative so axes rotates counter clockwise
-    m_angle = -angle*M_PI/180;
-    updateCanvas();
-    m_configGroup.writeEntry("axesAngle", angle);
-}
-
-void KisToolMultihand::slotSetTransformMode(int index)
-{
-    m_transformMode = enumTransformModes(customUI->multihandTypeCombobox->itemData(index).toInt());
-    m_configGroup.writeEntry("transformMode", index);
-
-    // turn on or off what we need
-
-    bool vis = index == MIRROR;
-    customUI->horizontalCheckbox->setVisible(vis);
-    customUI->verticalCheckbox->setVisible(vis);
-
-    vis = index == TRANSLATE;
-    customUI->translationRadiusSpinbox->setVisible(vis);
-    customUI->radiusLabel->setVisible(vis);
-    customUI->brushCountSpinBox->setVisible(vis);
-    customUI->brushesLabel->setVisible(vis);
-
-    vis = index == SYMMETRY || index == SNOWFLAKE || index == TRANSLATE;
-    customUI->brushCountSpinBox->setVisible(vis);
-    customUI->brushesLabel->setVisible(vis);
-    
-    vis = index == COPYTRANSLATE;
-    customUI->subbrushLabel->setVisible(vis);
-    customUI->addSubbrushButton->setVisible(vis);
-    customUI->addSubbrushButton->setChecked(m_addSubbrushesMode);
-    customUI->removeSubbrushButton->setVisible(vis);
-
-    vis = index == COPYTRANSLATEINTERVALS;
-    customUI->intervalXLabel->setVisible(vis);
-    customUI->intervalYLabel->setVisible(vis);
-    customUI->intervalXSpinBox->setVisible(vis);
-    customUI->intervalYSpinBox->setVisible(vis);
-    customUI->intervalAspectButton->setVisible(vis);
-
-    vis = index != COPYTRANSLATEINTERVALS;
-    customUI->label->setVisible(vis); // the origin label
-    customUI->moveOriginButton->setVisible(vis);
-    customUI->resetOriginButton->setVisible(vis);
-    customUI->axisRotationLabel->setVisible(vis);
-    customUI->axisRotationAngleSelector->setVisible(vis);
-
-}
-
-void KisToolMultihand::slotSetAxesVisible(bool vis)
-{
-    m_showAxes = vis;
-    updateCanvas();
-    m_configGroup.writeEntry("showAxes", vis);
-}
-
-
-void KisToolMultihand::slotSetMirrorVertically(bool mirror)
-{
-    m_mirrorVertically = mirror;
-    updateCanvas();
-    m_configGroup.writeEntry("mirrorVertically", mirror);
-}
-
-void KisToolMultihand::slotSetMirrorHorizontally(bool mirror)
-{
-    m_mirrorHorizontally = mirror;
-    updateCanvas();
-    m_configGroup.writeEntry("mirrorHorizontally", mirror);
-}
-
-void KisToolMultihand::slotSetTranslateRadius(int radius)
-{
-    m_translateRadius = radius;
-    m_configGroup.writeEntry("translateRadius", radius);
-}
-
-void KisToolMultihand::slotAddSubbrushesMode(bool checked)
-{
-    m_addSubbrushesMode = checked;
-    updateCanvas();
-}
-
-void KisToolMultihand::slotRemoveAllSubbrushes()
-{
-    m_subbrOriginalLocations.clear();
-    updateCanvas();
-}
-
-void KisToolMultihand::slotSetIntervals()
-{
-    m_intervalX = customUI->intervalXSpinBox->value();
-    m_configGroup.writeEntry("intervalX", m_intervalX);
-
-    m_intervalY = customUI->intervalYSpinBox->value();
-    m_configGroup.writeEntry("intervalY", m_intervalY);
-
-    updateCanvas();
-}
-
-void KisToolMultihand::slotSetKeepAspect()
-{
-    m_configGroup.writeEntry("intervalKeepAspect", customUI->intervalAspectButton->keepAspectRatio());
-}

@@ -10,14 +10,8 @@
 
 #include "kis_tool_brush.h"
 #include <kis_icon.h>
-#include "kis_tool_multihand_config.h"
 #include <QRandomGenerator>
 
-class QPushButton;
-class QCheckBox;
-class QComboBox;
-class QStackedWidget;
-class KisSliderSpinBox;
 class KisToolMultihandHelper;
 
 class KisToolMultihand : public KisToolBrush
@@ -39,8 +33,6 @@ public:
 
 protected:
     void paint(QPainter& gc, const KoViewConverter &converter) override;
-    
-    QWidget* createOptionWidget() override;
 
 private:
     void initTransformations();
@@ -49,19 +41,7 @@ private:
     QVector<QPoint> intervalLocations();
 
 private Q_SLOTS:
-    void activateAxesPointModeSetup();
     void resetAxes();
-    void slotSetHandsCount(int count);
-    void slotSetAxesAngle(qreal angle);
-    void slotSetTransformMode(int qcomboboxIndex);
-    void slotSetAxesVisible(bool vis);
-    void slotSetMirrorVertically(bool mirror);
-    void slotSetMirrorHorizontally(bool mirror);
-    void slotSetTranslateRadius(int radius);
-    void slotAddSubbrushesMode(bool checked);
-    void slotRemoveAllSubbrushes();
-    void slotSetIntervals();
-    void slotSetKeepAspect();
 
 private:
     KisToolMultihandHelper *m_helper;
@@ -84,8 +64,6 @@ private:
     int m_intervalX;
     int m_intervalY;
     QRandomGenerator m_randomGenerator;
-
-    KisToolMultiHandConfigWidget* customUI;
 };
 
 

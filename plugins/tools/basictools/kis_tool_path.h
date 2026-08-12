@@ -48,8 +48,6 @@ public:
     KisToolPath(KoCanvasBase * canvas);
     void mousePressEvent(KoPointerEvent *event) override;
 
-    QList< QPointer<QWidget> > createOptionWidgets() override;
-
     bool eventFilter(QObject *obj, QEvent *event) override;
 
     void beginPrimaryAction(KoPointerEvent* event) override;

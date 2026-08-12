@@ -116,13 +116,6 @@ void KisToolPath::beginPrimaryDoubleClickAction(KoPointerEvent *event)
     DelegatedPathTool::mouseDoubleClickEvent(event);
 }
 
-QList<QPointer<QWidget> > KisToolPath::createOptionWidgets()
-{
-    QList<QPointer<QWidget> > widgets = DelegatedPathTool::createOptionWidgets();
-    return widgets;
-}
-
-
 __KisToolPathLocalTool::__KisToolPathLocalTool(KoCanvasBase * canvas, KisToolPath* parentTool)
     : KoCreatePathTool(canvas)
     , m_parentTool(parentTool) {

@@ -11,28 +11,16 @@
 #define KIS_TOOL_COLOR_SAMPLER_H_
 
 #include "KoToolFactoryBase.h"
-#include "ui_wdgcolorsampler.h"
 #include "kis_tool.h"
 #include <kis_icon.h>
 #include <KoColorSet.h>
 #include <QPainter>
+#include <QKeySequence>
 #include <KisAsyncColorSamplerHelper.h>
-
-class KisTagFilterResourceProxyModel;
 
 namespace KisToolUtils {
 struct ColorSamplerConfig;
 }
-
-class ColorSamplerOptionsWidget : public QWidget, public Ui::ColorSamplerOptionsWidget
-{
-    Q_OBJECT
-
-public:
-    ColorSamplerOptionsWidget(QWidget *parent) : QWidget(parent) {
-        setupUi(this);
-    }
-};
 
 class KisToolColorSampler : public KisTool
 {
@@ -59,8 +47,6 @@ public:
     };
 
 public:
-    QWidget* createOptionWidget() override;
-
     void beginPrimaryAction(KoPointerEvent *event) override;
     void continuePrimaryAction(KoPointerEvent *event) override;
     void mouseMoveEvent(KoPointerEvent *event) override;
@@ -76,30 +62,14 @@ protected:
     void activate(const QSet<KoShape*> &) override;
     void deactivate() override;
 
-public Q_SLOTS:
-    void slotSetUpdateColor(bool);
-    void slotSetNormaliseValues(bool);
-    void slotSetAddPalette(bool);
-    void slotChangeRadius(int);
-    void slotChangeBlend(int);
-    void slotSetColorSource(int value);
-
 private Q_SLOTS:
-    void slotChangePalette(int);
-
     void slotColorPickerRequestedCursor(const QCursor &cursor);
     void slotColorPickerRequestedCursorReset();
     void slotColorPickerRequestedOutlineUpdate();
     void slotColorPickerSelectedColor(const KoColor &color);
     void slotColorPickerSelectionFinished(const KoColor &color);
 
-    void slotSetPreviewStyleComboBoxFromConfig();
-    void slotSetPreviewStyleConfigFromComboBox();
-
 private:
-    void displaySampledColor(const KoColor &color);
-    void updateOptionWidget();
-
     // Configuration
     QScopedPointer<KisToolUtils::ColorSamplerConfig> m_config;
 
@@ -111,9 +81,6 @@ private:
     KoColor m_sampledColor;
 
     KisAsyncColorSamplerHelper m_helper;
-
-    ColorSamplerOptionsWidget *m_optionsWidget {0};
-    KisTagFilterResourceProxyModel *m_tagFilterProxyModel {0};
 };
 
 class KisToolColorSamplerFactory : public KoToolFactoryBase

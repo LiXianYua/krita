@@ -21,7 +21,6 @@
 #include "kis_tool_utils.h"
 #include "kis_paint_layer.h"
 #include "strokes/move_stroke_strategy.h"
-#include "kis_tool_movetooloptionswidget.h"
 #include "strokes/move_selection_stroke_strategy.h"
 #include "kis_resources_snapshot.h"
 #include "kis_action_registry.h"
@@ -32,7 +31,6 @@
 
 #include "kis_node_manager.h"
 #include "kis_selection_manager.h"
-#include "kis_signals_blocker.h"
 #include "KisAnimAutoKey.h"
 #include <boost/operators.hpp>
 #include "KisMoveBoundsCalculationJob.h"
@@ -62,27 +60,12 @@ KisToolMove::KisToolMove(KoCanvasBase *canvas)
     m_showCoordinatesAction = action("movetool-show-coordinates");
     connect(&m_updateCursorCompressor, SIGNAL(timeout()), this, SLOT(resetCursorStyle()));
 
-    m_optionsWidget = new MoveToolOptionsWidget(nullptr, currentImage()->xRes(), toolId());
-
-    // See https://bugs.kde.org/show_bug.cgi?id=316896
-    QWidget *specialSpacer = new QWidget(m_optionsWidget);
-    specialSpacer->setObjectName("SpecialSpacer");
-    specialSpacer->setFixedSize(0, 0);
-    m_optionsWidget->layout()->addWidget(specialSpacer);
-
-    m_optionsWidget->setFixedHeight(m_optionsWidget->sizeHint().height());
-
-    m_showCoordinatesAction->setChecked(m_optionsWidget->showCoordinates());
-
-    m_optionsWidget->slotSetTranslate(m_handlesRect.topLeft() + currentOffset());
-
-    connect(this, SIGNAL(moveInNewPosition(QPoint)), m_optionsWidget, SLOT(slotSetTranslate(QPoint)), Qt::UniqueConnection);
+    m_showCoordinatesAction->setChecked(false);
 }
 
 KisToolMove::~KisToolMove()
 {
     endStroke();
-    delete m_optionsWidget;
 }
 
 void KisToolMove::resetCursorStyle()
@@ -274,15 +257,11 @@ QPoint KisToolMove::currentOffset() const
 
 void KisToolMove::notifyGuiAfterMove(bool showFloatingMessage)
 {
-    if (!m_optionsWidget) return;
     if (m_handlesRect.isEmpty()) return;
 
     const QPoint currentTopLeft = m_handlesRect.topLeft() + currentOffset();
 
-    KisSignalsBlocker b(m_optionsWidget);
-    Q_EMIT moveInNewPosition(currentTopLeft);
-
-    const bool showCoordinates = m_optionsWidget->showCoordinates();
+    const bool showCoordinates = m_showCoordinatesAction->isChecked();
 
     if (showCoordinates && showFloatingMessage) {
         KisCanvas2 *kisCanvas = static_cast<KisCanvas2*>(canvas());
@@ -370,8 +349,8 @@ void KisToolMove::moveDiscrete(MoveDirection direction, bool big)
     }
 
     // Larger movement if "shift" key is pressed.
-    qreal scale = big ? m_optionsWidget->moveScale() : 1.0;
-    qreal moveStep = m_optionsWidget->moveStep() * scale;
+    qreal scale = big ? 10.0 : 1.0;
+    qreal moveStep = 1 * scale;
 
     const QPoint offset =
         direction == Up   ? QPoint( 0, -moveStep) :
@@ -412,12 +391,6 @@ void KisToolMove::activate(const QSet<KoShape*> &shapes)
     m_canvasConnections.addUniqueConnection(qobject_cast<KisCanvas2*>(canvas())->viewManager()->nodeManager(), SIGNAL(sigUiNeedChangeSelectedNodes(KisNodeList)), this, SLOT(slotNodeChanged(KisNodeList)));
     m_canvasConnections.addUniqueConnection(qobject_cast<KisCanvas2*>(canvas())->viewManager()->selectionManager(), SIGNAL(currentSelectionChanged()), this, SLOT(slotSelectionChanged()));
 
-    connect(m_showCoordinatesAction, SIGNAL(triggered(bool)), m_optionsWidget, SLOT(setShowCoordinates(bool)), Qt::UniqueConnection);
-    connect(m_optionsWidget, SIGNAL(showCoordinatesChanged(bool)), m_showCoordinatesAction, SLOT(setChecked(bool)), Qt::UniqueConnection);
-    connect(m_optionsWidget, SIGNAL(sigSetTranslateX(int)), SLOT(moveBySpinX(int)), Qt::UniqueConnection);
-    connect(m_optionsWidget, SIGNAL(sigSetTranslateY(int)), SLOT(moveBySpinY(int)), Qt::UniqueConnection);
-    connect(m_optionsWidget, SIGNAL(sigRequestCommitOffsetChanges()), this, SLOT(commitChanges()), Qt::UniqueConnection);
-
     connect(&m_changesTracker,
             SIGNAL(sigConfigChanged(KisToolChangesTrackerDataSP)),
             SLOT(slotTrackerChangedConfig(KisToolChangesTrackerDataSP)));
@@ -447,7 +420,6 @@ void KisToolMove::deactivate()
     m_canvasConnections.clear();
 
     disconnect(m_showCoordinatesAction, 0, this, 0);
-    disconnect(m_optionsWidget, 0, this, 0);
 
     endStroke();
     KisTool::deactivate();
@@ -707,15 +679,8 @@ void KisToolMove::cancelStroke()
     qobject_cast<KisCanvas2*>(canvas())->updateCanvas();
 }
 
-QWidget* KisToolMove::createOptionWidget()
-{
-    return m_optionsWidget;
-}
-
 KisToolMove::MoveToolMode KisToolMove::moveToolMode() const
 {
-    if (m_optionsWidget)
-        return m_optionsWidget->mode();
     return MoveSelectedLayer;
 }
 
@@ -735,54 +700,6 @@ QPoint KisToolMove::applyModifiers(Qt::KeyboardModifiers modifiers, QPoint pos)
     }
 
     return m_dragStart + move;
-}
-
-void KisToolMove::moveBySpinX(int newX)
-{
-    if (mode() == KisTool::PAINT_MODE ||    // Don't interact with dragging
-            !currentNode()->isEditable() || // Don't move invisible nodes
-            m_handlesRect.isEmpty()) {
-        return;
-    }
-
-    // starting a new stroke resets m_handlesRect and it gets updated asynchronously,
-    // but in this case no change is expected
-    int handlesRectX = m_handlesRect.x();
-
-    if (startStrokeImpl(MoveSelectedLayer, nullptr)) {
-        setMode(KisTool::PAINT_MODE);
-    }
-
-    m_accumulatedOffset.rx() =  newX - handlesRectX;
-
-    image()->addJob(m_strokeId, new MoveStrokeStrategy::Data(m_accumulatedOffset));
-
-    notifyGuiAfterMove(false);
-    setMode(KisTool::HOVER_MODE);
-}
-
-void KisToolMove::moveBySpinY(int newY)
-{
-    if (mode() == KisTool::PAINT_MODE ||    // Don't interact with dragging
-            !currentNode()->isEditable() || // Don't move invisible nodes
-            m_handlesRect.isEmpty()) {
-        return;
-    }
-
-    // starting a new stroke resets m_handlesRect and it gets updated asynchronously,
-    // but in this case no change is expected
-    int handlesRectY = m_handlesRect.y();
-
-    if (startStrokeImpl(MoveSelectedLayer, nullptr)) {
-        setMode(KisTool::PAINT_MODE);
-    }
-
-    m_accumulatedOffset.ry() =  newY - handlesRectY;
-
-    image()->addJob(m_strokeId, new MoveStrokeStrategy::Data(m_accumulatedOffset));
-
-    notifyGuiAfterMove(false);
-    setMode(KisTool::HOVER_MODE);
 }
 
 void KisToolMove::requestHandlesRectUpdate()

@@ -13,25 +13,15 @@
 
 #include "KisToolPaintFactoryBase.h"
 
-#include "KoAspectButton.h"
-
 #include <flake/kis_node_shape.h>
 #include <kis_icon.h>
 #include <QKeySequence>
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
 #include <KoIcon.h>
-
-class QCheckBox;
-class QComboBox;
-class QLabel;
 
 class KisKActionCollection;
 
 class KoCanvasBase;
-class KisSliderSpinBox;
-class KisDoubleSliderSpinBox;
 
 class KisToolBrush : public KisToolFreehand
 {
@@ -54,8 +44,6 @@ public:
     KisToolBrush(KoCanvasBase * canvas);
     ~KisToolBrush() override;
 
-    QWidget * createOptionWidget() override;
-
     int smoothnessQualityMin() const;
     int smoothnessQualityMax() const;
     qreal smoothnessFactor() const;
@@ -69,9 +57,6 @@ public:
     bool finishStabilizedCurve() const;
     bool stabilizeSensors() const;
 
-protected:
-    KConfigGroup m_configGroup; // only used in the multihand tool for now
-
 protected Q_SLOTS:
     void resetCursorStyle() override;
 
@@ -81,7 +66,6 @@ public Q_SLOTS:
     void slotSetSmoothnessDistanceMin(qreal distance);
     void slotSetSmoothnessDistanceMax(qreal distance);
     void slotSetSmoothnessDistanceKeepAspectRatio(bool value);
-    void slotSetMagnetism(int magnetism);
     void slotSetSmoothingType(int index);
     void slotSetTailAggressiveness(qreal argh_rhhrr);
     void setSmoothPressure(bool value);
@@ -110,28 +94,7 @@ Q_SIGNALS:
 
 private:
     void addSmoothingAction(int enumId, const QString &id);
-    void updateSmoothnessDistanceLabel();
 private:
-    QComboBox *m_cmbSmoothingType {0};
-
-    QCheckBox *m_chkAssistant {0};
-    KisSliderSpinBox *m_sliderMagnetism {0};
-    QCheckBox *m_chkOnlyOneAssistant {0};
-    QCheckBox *m_chkSnapEraser {0};
-    KisDoubleSliderSpinBox *m_sliderSmoothnessDistanceMin {0};
-    KisDoubleSliderSpinBox *m_sliderSmoothnessDistanceMax {0};
-    KoAspectButton *m_distanceAspectButton {0};
-    QLabel *m_lblSmoothnessDistanceMin {0};
-    QLabel *m_lblSmoothnessDistanceMax {0};
-    KisDoubleSliderSpinBox *m_sliderTailAggressiveness {0};
-    QCheckBox *m_chkSmoothPressure {0};
-    QCheckBox *m_chkUseScalableDistance {0};
-
-    QCheckBox *m_chkStabilizeSensors {0};
-    QCheckBox *m_chkDelayDistance {0};
-    KisDoubleSliderSpinBox *m_sliderDelayDistance {0};
-
-    QCheckBox *m_chkFinishStabilizedCurve {0};
     KisSignalMapper m_signalMapper;
 };
 

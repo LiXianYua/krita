@@ -14,8 +14,6 @@
 
 
 
-#include <ksharedconfig.h>
-
 #include <KoCanvasBase.h>
 #include <KoPointerEvent.h>
 #include <KoPathShape.h>
@@ -86,82 +84,12 @@ void KisToolLine::resetCursorStyle()
 void KisToolLine::activate(const QSet<KoShape*> &shapes)
 {
    KisToolPaint::activate(shapes);
-   configGroup =  KSharedConfig::openConfig()->group(toolId());
 }
 
 void KisToolLine::deactivate()
 {
     KisToolPaint::deactivate();
     cancelStroke();
-}
-
-QWidget* KisToolLine::createOptionWidget()
-{
-    QWidget* widget = KisToolPaint::createOptionWidget();
-
-    m_chkUseSensors = new QCheckBox(i18n("Use sensors"));
-    addOptionWidgetOption(m_chkUseSensors);
-
-    m_chkShowPreview = new QCheckBox(i18n("Show Preview"));
-    addOptionWidgetOption(m_chkShowPreview);
-
-    m_chkShowGuideline = new QCheckBox(i18n("Show Guideline"));
-    addOptionWidgetOption(m_chkShowGuideline);
-
-    m_chkSnapToAssistants = new QCheckBox(i18n("Snap to Assistants"));
-    addOptionWidgetOption(m_chkSnapToAssistants);
-
-    m_chkSnapEraser = new QCheckBox(i18n("Snap Eraser"));
-    addOptionWidgetOption(m_chkSnapEraser);
-
-
-
-
-    // hook up connections for value changing
-    connect(m_chkUseSensors, SIGNAL(clicked(bool)), this, SLOT(setUseSensors(bool)) );
-    connect(m_chkShowPreview, SIGNAL(clicked(bool)), this, SLOT(setShowPreview(bool)) );
-    connect(m_chkShowGuideline, SIGNAL(clicked(bool)), this, SLOT(setShowGuideline(bool)) );
-    connect(m_chkSnapToAssistants, SIGNAL(clicked(bool)), this, SLOT(setSnapToAssistants(bool)) );
-
-
-    // read values in from configuration
-    m_chkUseSensors->setChecked(configGroup.readEntry("useSensors", true));
-    m_chkShowPreview->setChecked(configGroup.readEntry("showPreview", true));
-    m_chkShowGuideline->setChecked(configGroup.readEntry("showGuideline", true));
-    m_chkSnapToAssistants->setChecked(configGroup.readEntry("snapToAssistants", false));
-    m_chkSnapEraser->setChecked(configGroup.readEntry("snapEraser", false));
-    if (!m_chkSnapToAssistants->isChecked()) {
-        m_chkSnapEraser->setEnabled(false);
-    }
-
-    return widget;
-}
-
-void KisToolLine::setUseSensors(bool value)
-{
-    configGroup.writeEntry("useSensors", value);
-}
-
-void KisToolLine::setShowGuideline(bool value)
-{
-    m_showGuideline = value;
-    configGroup.writeEntry("showGuideline", value);
-}
-
-void KisToolLine::setShowPreview(bool value)
-{
-    configGroup.writeEntry("showPreview", value);
-}
-
-void KisToolLine::setSnapToAssistants(bool value)
-{
-    configGroup.writeEntry("snapToAssistants", value);
-    m_chkSnapEraser->setEnabled(value);
-}
-
-void KisToolLine::setSnapEraser(bool value)
-{
-    configGroup.writeEntry("snapEraser", value);
 }
 
 void KisToolLine::requestStrokeCancellation()
@@ -221,16 +149,15 @@ void KisToolLine::beginPrimaryAction(KoPointerEvent *event)
         shouldAddShape(currentNode());
 
     // Always show guideline on vector layers
-    m_showGuideline = m_chkShowGuideline->isChecked() || nodeAbility != PAINT;
+    m_showGuideline = true;
     updatePreviewTimer(m_showGuideline);
     m_helper->setEnabled((nodeAbility == PAINT && !info.shouldAddShape) || info.shouldAddSelectionShape);
-    m_helper->setUseSensors(m_chkUseSensors->isChecked());
+    m_helper->setUseSensors(true);
     m_helper->start(event, canvas()->resourceManager());
 
     m_startPoint = convertToPixelCoordAndSnap(event);
     m_endPoint = m_startPoint;
     m_lastUpdatedPoint = m_startPoint;
-    m_originalStartPoint = m_startPoint;
 
     m_strokeIsRunning = true;
     m_altInitiallyHeld = event->modifiers().testFlag(Qt::AltModifier);
@@ -280,19 +207,17 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
         m_helper->translatePoints(trans);
         m_startPoint += trans;
         m_endPoint += trans;
-        m_originalStartPoint += trans; // original start point is only original in terms of snapping to assistants
     } else if (effectiveModifiers == Qt::ShiftModifier) {
         pos = straightLine(pos);
         m_helper->addPoint(event, pos);
     } else {
-        pos = snapToAssistants(pos);
         m_helper->addPoint(event, pos);
         m_helper->movePointsTo(m_startPoint, pos);
     }
     m_endPoint = pos;
 
     // Draw preview if requested
-    if (m_chkShowPreview->isChecked()) {
+    if (true) {
         // If the cursor has moved a significant amount, immediately clear the
         // current preview and redraw. Otherwise, do slow redraws periodically.
         auto updateDistance = (pixelToView(m_lastUpdatedPoint) - pixelToView(pos)).manhattanLength();
@@ -422,32 +347,6 @@ QPointF KisToolLine::straightLine(QPointF point)
 
     return result;
 }
-
-QPointF KisToolLine::snapToAssistants(QPointF point)
-{
-    if (m_chkSnapToAssistants->isChecked() && static_cast<KisCanvas2*>(canvas())->paintingAssistantsDecoration()) {
-        KisCanvas2* c = static_cast<KisCanvas2*>(canvas());
-        c->paintingAssistantsDecoration()->setOnlyOneAssistantSnap(true);
-        c->paintingAssistantsDecoration()->setEraserSnap(m_chkSnapEraser->isChecked());
-        QPointF startPoint = m_originalStartPoint;
-
-        // startPoint etc. are in image coordinates system (pixels)
-        // but assistants work in document coordinates system ("points")
-        QPointF startPointInDoc = getCoordinatesConverter(canvas())->imageToDocument(startPoint);
-        QPointF pointInDoc = getCoordinatesConverter(canvas())->imageToDocument(point);
-
-        c->paintingAssistantsDecoration()->adjustLine(pointInDoc, startPointInDoc);
-        c->paintingAssistantsDecoration()->setAdjustedBrushPosition(pointInDoc);
-
-        startPoint = getCoordinatesConverter(canvas())->documentToImage(startPointInDoc);
-        point = getCoordinatesConverter(canvas())->documentToImage(pointInDoc);
-
-        m_startPoint = startPoint;
-        return point;
-    }
-    return point;
-}
-
 
 void KisToolLine::updateGuideline()
 {
