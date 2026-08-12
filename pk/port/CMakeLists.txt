@@ -18,6 +18,7 @@ set(PK_TEST_DIR   ${CMAKE_CURRENT_SOURCE_DIR}/../test)
 # ——两种做法任务 brief 都认可，这里选的是后者。
 add_library(pkport STATIC
     PkStream.cpp
+    PkEventSink.cpp
     ${PK_STRING_DIR}/PkStringData.cpp
     ${PK_STRING_DIR}/PkString_core.cpp
     ${PK_STRING_DIR}/PkString_query.cpp
@@ -38,6 +39,7 @@ target_include_directories(pkport PUBLIC
 add_executable(test_pkport
     tests/test_main.cpp
     tests/test_stream.cpp
+    tests/test_eventsink.cpp
     ${PK_TEST_DIR}/PkTestCase.cpp
     ${PK_TEST_DIR}/PkTestRunner.cpp
     ${PK_TEST_DIR}/PkTestCompare.cpp
