@@ -8,8 +8,6 @@
  */
 
 #include "simplexnoisegenerator.h"
-#include "ui_wdgsimplexnoiseoptions.h"
-#include "kis_wdg_simplex_noise.h"
 #include "3rdparty/c-open-simplex/open-simplex-noise.h"
 
 #include <KisSequentialIteratorProgress.h>
@@ -121,13 +119,6 @@ KisFilterConfigurationSP KisSimplexNoiseGenerator::defaultConfiguration(KisResou
     config->setProperty("ratio_y", 1.0f);
     return config;
 }
-
-KisConfigWidget * KisSimplexNoiseGenerator::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisWdgSimplexNoise((KisFilter*)this, (QWidget*)parent);
-}
-
 
 uint KisSimplexNoiseGenerator::seedFromString(const QString &string) const
 {

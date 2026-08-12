@@ -15,7 +15,6 @@
 #include "KoCompositeOpRegistry.h"
 
 #include "KisGradientGenerator.h"
-#include "KisGradientGeneratorConfigWidget.h"
 
 KisGradientGenerator::KisGradientGenerator() : KisGenerator(id(), KoID("basic"), i18n("&Gradient..."))
 {
@@ -66,10 +65,4 @@ KisFilterConfigurationSP KisGradientGenerator::defaultConfiguration(KisResources
     KisGradientGeneratorConfiguration *config = new KisGradientGeneratorConfiguration(resourcesInterface);
     config->setDefaults();
     return config;
-}
-
-KisConfigWidget* KisGradientGenerator::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisGradientGeneratorConfigWidget(parent);
 }
