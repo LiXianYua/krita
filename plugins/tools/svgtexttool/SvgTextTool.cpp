@@ -17,7 +17,6 @@
 #include "SvgMoveTextCommand.h"
 #include "SvgMoveTextStrategy.h"
 #include "SvgTextChangeCommand.h"
-#include "SvgTextEditor.h"
 #include "SvgTextRemoveCommand.h"
 #include "KoSvgConvertTextTypeCommand.h"
 #include "SvgTextShortCuts.h"
@@ -166,9 +165,6 @@ SvgTextTool::SvgTextTool(KoCanvasBase *canvas)
 
 SvgTextTool::~SvgTextTool()
 {
-    if(m_editor) {
-        m_editor->close();
-    }
     if(m_glyphPalette) {
         m_glyphPalette->close();
     }
@@ -254,7 +250,6 @@ QWidget *SvgTextTool::createOptionWidget()
     }
 
 
-    connect(m_optionManager.data(), SIGNAL(openTextEditor()), SLOT(showEditor()));
     connect(m_optionManager.data(), SIGNAL(openGlyphPalette()), SLOT(showGlyphPalette()));
 
     connect(m_optionManager.data(), SIGNAL(convertTextType(int)), SLOT(slotConvertType(int)));
@@ -301,38 +296,6 @@ KoSvgTextShape *SvgTextTool::selectedShape() const
     KoSvgTextShape *textShape = dynamic_cast<KoSvgTextShape*>(shapes.first());
 
     return textShape;
-}
-
-void SvgTextTool::showEditor()
-{
-    KoSvgTextShape *shape = selectedShape();
-    if (!shape) return;
-
-    if (!m_editor) {
-        m_editor = new SvgTextEditor(QApplication::activeWindow());
-        m_editor->setWindowTitle(i18nc("@title:window", "Krita - Edit Text"));
-        m_editor->setWindowModality(Qt::ApplicationModal);
-        m_editor->setAttribute( Qt::WA_QuitOnClose, false );
-
-        connect(m_editor, SIGNAL(textUpdated(KoSvgTextShape*,QString,QString)), SLOT(textUpdated(KoSvgTextShape*,QString,QString)));
-
-        m_editor->activateWindow(); // raise on creation only
-    }
-    if (!m_editor->isVisible()) {
-        m_editor->setInitialShape(shape);
-#ifdef Q_OS_ANDROID
-        // for window manager
-        m_editor->setWindowFlags(Qt::Dialog);
-        m_editor->menuBar()->setNativeMenuBar(false);
-#endif
-        m_editor->show();
-    }
-}
-
-void SvgTextTool::textUpdated(KoSvgTextShape *shape, const QString &svg, const QString &defs)
-{
-    SvgTextChangeCommand *cmd = new SvgTextChangeCommand(shape, svg, defs);
-    canvas()->addCommand(cmd);
 }
 
 void SvgTextTool::showGlyphPalette()

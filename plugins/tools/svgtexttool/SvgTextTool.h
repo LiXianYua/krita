@@ -26,7 +26,6 @@
 #include <memory>
 
 class KoSelection;
-class SvgTextEditor;
 class KoSvgTextShape;
 class KoInteractionStrategy;
 class KUndo2Command;
@@ -113,9 +112,6 @@ private:
     bool nodeEditable();
 
 private Q_SLOTS:
-
-    void showEditor();
-    void textUpdated(KoSvgTextShape *shape, const QString &svg, const QString &defs);
 
     /**
      * @brief showGlyphPalette
@@ -220,7 +216,6 @@ private:
     };
 
     QScopedPointer<SvgTextToolOptionsManager>m_optionManager;
-    QPointer<SvgTextEditor> m_editor;
     QPointer<GlyphPaletteDialog> m_glyphPalette;
     QPointF m_lastMousePos;
     DragMode m_dragging {DragMode::None};

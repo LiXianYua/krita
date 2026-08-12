@@ -4,7 +4,6 @@ add_subdirectory(tests)
 set(CMAKE_AUTORCC ON)
 
 set (SvgTextTool_SRCS
-    BasicXMLSyntaxHighlighter.cpp
     SvgCreateTextStrategy.cpp
     SvgInlineSizeChangeCommand.cpp
     SvgInlineSizeChangeStrategy.cpp
@@ -16,7 +15,6 @@ set (SvgTextTool_SRCS
     SvgTextInsertRichCommand.cpp
     SvgTextRemoveCommand.cpp
     SvgTextMergePropertiesRangeCommand.cpp
-    SvgTextEditor.cpp
     SvgTextCursor.cpp
     SvgTextTool.cpp
     SvgTextToolFactory.cpp
@@ -35,11 +33,6 @@ set (SvgTextTool_SRCS
     glyphpalette/GlyphPaletteDialog.cpp
     glyphpalette/GlyphPaletteProxyModel.cpp
     glyphpalette/GlyphPaletteAltPopup.cpp
-)
-
-ki18n_wrap_ui(SvgTextTool_SRCS 
-    WdgSvgTextEditor.ui
-    WdgSvgTextSettings.ui
 )
 
 install( FILES
