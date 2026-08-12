@@ -1,0 +1,27 @@
+#pragma once
+#include "../PkContainerAlgo.h"
+#include "../PkVector.h"
+#include "../PkVectorIterator.h"
+
+// 兼容垫片：让真实调用点的 `#include <QVector>` 在**一个字都不改**的前提下
+// 解析到 PkVector。文件名刻意没有扩展名 —— 调用点写的就是 <QVector>。
+//
+// 用宏而不是 `using QVector = PkVector;`：Krita 里有 `class QVector;` 一类的
+// 前置声明（pk/container/PkVector.h:28 自己就有一个 `template <typename T>
+// class PkList;`，形状相同），类型别名遇到它报
+// "redeclared as different kind of entity"；宏则把那一行原样改写成
+// `class PkVector;`，前置声明照样成立。R-01 的 compat/QString 头注释里记了一个
+// 真实故障（KoProgressProxy.h 的 `class QString;`），是同一回事。
+//
+// **宏是全词 token 替换**，所以 `#define QVector PkVector` 不会影响
+// `QVectorIterator`（那是另一个 token）—— 每个名字都得显式写一条，漏一个那类
+// 调用点就编不过。
+#define QVector PkVector
+
+// QVectorIterator：保留范围内 7 处声明。归属照 Qt —— <QVector> 提供它。
+#define QVectorIterator PkVectorIterator
+
+// **不给 QMutableVectorIterator**：全仓 0 处调用点（判据①）。
+
+// PkContainerAlgo.h 顺带把 Q_FOREACH / foreach / qDeleteAll 带进来 ——
+// Qt 里它们来自 <QtGlobal>，而调用点极少单独 include 它，靠容器头传递。

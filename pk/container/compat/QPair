@@ -1,0 +1,13 @@
+#pragma once
+#include "../PkContainerAlgo.h"
+#include "../PkPair.h"
+
+// 兼容垫片：`#include <QPair>` → PkPair。形态与理由见 compat/QVector 的头注释。
+// 保留范围内 486 处 QPair。
+//
+// PkPair 是 `std::pair` 的别名模板，所以这里的 #define 把 `QPair<A,B>` 改写成
+// `PkPair<A,B>` 之后再展开成 `std::pair<A,B>` —— 两层都是编译期的，调用点看不见。
+//
+// qMakePair 由 PkPair.h 直接提供（小写 q 前缀的自由函数在本仓库原样保留，
+// 与 qHash / qDeleteAll 同一条口径），垫片不需要为它写 #define。
+#define QPair PkPair

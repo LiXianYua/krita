@@ -1,0 +1,13 @@
+#pragma once
+#include "../PkContainerAlgo.h"
+#include "../PkList.h"
+#include "../PkListIterator.h"
+
+// 兼容垫片：`#include <QList>` → PkList。形态与理由见 compat/QVector 的头注释
+// （宏而非 using、全词 token 替换、Q_FOREACH 靠 PkContainerAlgo.h 传递进来）。
+#define QList PkList
+
+// Java 风格迭代器归 <QList> 提供（Qt 就是这么分的），所以在这里 #define，
+// 不另起垫片文件。保留范围内：QListIterator 13 处、QMutableListIterator 8 处。
+#define QListIterator PkListIterator
+#define QMutableListIterator PkMutableListIterator

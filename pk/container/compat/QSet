@@ -1,0 +1,23 @@
+#pragma once
+#include "../PkContainerAlgo.h"
+#include "../PkSet.h"
+// qHash(const PkString &)：QSet<QString> 与 QHash<QString, X> 同因，
+// 理由与代价见 compat/QHash 里那段注释。
+#include "../PkStringHash.h"
+
+// 兼容垫片：`#include <QSet>` → PkSet。形态与理由见 compat/QVector 的头注释。
+#define QSet PkSet
+
+// ---- 为什么这里**没有** QSetIterator ----
+//
+// 全仓只有 1 处 `QSetIterator`，落在
+//   libs/ui/input/config/kis_input_configuration_page.cpp:135
+// 而 `libs/ui` 按 `docs/实施边界-构建目标视图.md` §6 是 **D3 删**，
+// 这处调用点不算数 —— 保留范围内 **0 处**。判据①「一项不多一项不少」：不给。
+//
+// **这一条与 brief 的清单有出入**（brief 按全仓 token 数把 QSetIterator 列进了
+// 交付表），差异与依据都写进了任务报告。真要补回来是一行：
+//   #define QSetIterator PkSetIterator
+// 加上 PkSet 版的 PkJavaSeqConstIterator 特化 —— 但那要先有真实调用点撑着。
+//
+// QMutableSetIterator 则是**全仓** 0 处，无论怎么算口径都不做。

@@ -1,0 +1,22 @@
+#pragma once
+#include "../PkContainerAlgo.h"
+#include "../PkHash.h"
+#include "../PkHashIterator.h"
+// qHash(const PkString &)。Qt 里 <QHash> 传递 include 了 qhashfunctions.h +
+// qstring.h，所以 `#include <QHash>` 之后 QHash<QString, X> 直接就能用 ——
+// 而 QHash<QString, X> 正是真实调用点里最常见的形态。不复刻这条传递性的话，
+// 那些调用点会因为"找不到 qHash(PkString)"整片编不过，而那不是它们的问题。
+//
+// **代价**：用本垫片的目标必须把 `pk/string` 挂上 include 路径
+// （PkStringHash.h → PkString.h）。**不需要链 pkstring**，除非真的实例化了
+// PkHash<PkString, X>：qHash 是 inline，没用到就不生成任何符号 ——
+// libpkcontainer.a 因此照样一个 pkstring 符号都不欠（判据③）。
+#include "../PkStringHash.h"
+
+// 兼容垫片：`#include <QHash>` → PkHash。形态与理由见 compat/QVector 的头注释。
+#define QHash PkHash
+
+// Java 风格迭代器归 <QHash> 提供。保留范围内 QHashIterator 5 处。
+#define QHashIterator PkHashIterator
+
+// **不给 QMutableHashIterator**：全仓 0 处调用点（判据①）。

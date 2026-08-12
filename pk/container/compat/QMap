@@ -1,0 +1,16 @@
+#pragma once
+#include "../PkContainerAlgo.h"
+#include "../PkMap.h"
+#include "../PkMapIterator.h"
+
+// 兼容垫片：`#include <QMap>` → PkMap。形态与理由见 compat/QVector 的头注释。
+#define QMap PkMap
+
+// Java 风格迭代器归 <QMap> 提供（Qt 就是这么分的）。
+// 保留范围内：QMapIterator 20 处、QMutableMapIterator 1 处
+// （libs/flake/svg/SvgStyleParser.cpp:527，全文抄在 PkMapIterator.h 里）。
+#define QMapIterator PkMapIterator
+#define QMutableMapIterator PkMutableMapIterator
+
+// **不给 QMultiMapIterator**：保留范围内 0 处（仅有的 2 处在 libs/ui，已判删），
+// 且 QMultiMap 本身就不在 R-02 范围内。

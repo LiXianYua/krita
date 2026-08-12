@@ -1,0 +1,24 @@
+#pragma once
+#include "../PkContainerAlgo.h"
+#include "../PkStringList.h"
+
+// 兼容垫片：`#include <QStringList>` → PkStringList。形态与理由见 compat/QVector。
+//
+// 注意 PkStringList.h 要 include pk/string 的 PkString.h，所以用本垫片的目标
+// 必须同时把 `pk/string` 挂上 include 路径、并链 pkstring
+// （libpkcontainer.a 刻意不依赖 pkstring，理由见 pk/container/CMakeLists.txt）。
+#define QStringList PkStringList
+
+// ---- 为什么这里**没有** QStringListIterator ----
+//
+// 全仓 2 处，分别落在
+//   krita/main.cc:1008                       ← krita/ 是 D1 删
+//   libs/ui/KisApplicationArguments.cpp:142  ← libs/ui 是 D3 删
+// 保留范围内 **0 处**。判据①：不给。（同理 QMutableStringListIterator 全仓 3 处，
+// 全在 libs/ui/tests/kis_categories_mapper_test.cpp，保留范围内 0 处。）
+//
+// **这一条与 brief 的清单有出入**，差异与依据写进了任务报告。真要补回来是一行
+//   #define QStringListIterator PkStringListIterator
+// 加上 `template <typename> using PkStringListIterator =
+//        PkJavaSeqConstIterator<PkStringList>;`（Qt 里它就是
+// QListIterator<QString> 的 typedef，不是新类）。

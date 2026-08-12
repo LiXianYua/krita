@@ -1,0 +1,12 @@
+#pragma once
+#include "../PkContainerAlgo.h"
+#include "../PkStack.h"
+
+// 兼容垫片：`#include <QStack>` → PkStack。形态与理由见 compat/QVector 的头注释。
+// 保留范围内 44 处 QStack。
+//
+// PkStack 派生自 PkVector，所以用本垫片的 TU 也拿得到 PkVector —— 但**不在这里
+// #define QVector**：调用点若要写 `QVector`，它自己会 `#include <QVector>`
+// （Qt 下同样如此，<QStack> 传递 include 了 <QVector> 却不改变 QVector 这个名字
+//  的可见性规则）。多定义一个名字等于把"漏了 include"的错误藏起来。
+#define QStack PkStack

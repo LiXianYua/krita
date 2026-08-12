@@ -65,7 +65,10 @@ pk_test_generate(PKCONTAINER_GENERATED_TEST_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkStackTest.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkQueueTest.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkPairTest.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkStringListTest.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkStringListTest.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkForeachTest.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkJavaIteratorTest.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/PkCompatTest.h")
 
 # 一个测试类一个可执行文件：PK_TEST_MAIN 展开出 main()，两个测试类塞进同一个
 # 目标就是两个 main。与 pk/test 的既有形态一致。
@@ -104,3 +107,30 @@ pk_test_add_executable(test_pkpair      tests/test_pkpair.cpp    PkPairTest)
 pk_test_add_executable(test_pkhash      tests/test_pkhash.cpp    PkHashTest  pkstring)
 pk_test_add_executable(test_pkset       tests/test_pkset.cpp     PkSetTest   pkstring)
 pk_test_add_executable(test_pkstringlist tests/test_pkstringlist.cpp PkStringListTest pkstring)
+
+# PK_FOREACH（Q_FOREACH/foreach）与 qDeleteAll。刻意**不**链 pkstring：
+# 这两件设施与字符串无关，用 PkStack/PkQueue 覆盖派生容器那一格就够，
+# 少一条依赖就少一条"其实是别人的实现在兜底"的可能。
+pk_test_add_executable(test_pkforeach   tests/test_pkforeach.cpp PkForeachTest)
+
+# Java 风格迭代器（PkListIterator / PkVectorIterator / PkMapIterator /
+# PkHashIterator / PkMutableListIterator / PkMutableMapIterator）。同样不需要 pkstring。
+pk_test_add_executable(test_pkjavaiterator tests/test_pkjavaiterator.cpp PkJavaIteratorTest)
+
+# ---------------------------------------------------------------------------
+# compat/ 垫片。两件事让它与其余目标不同：
+#
+# ① **两个源文件**：垫片是 #define，是文本替换，`<QString>` 与 `<QMap>` 的
+#    include 顺序不同展开时机就不同 —— 一个 TU 压一种顺序，链进同一个可执行文件。
+#    PkCompatReverseOrder.cpp 没有 main，只有 static_assert 与一个探针函数。
+# ② **额外三条 include 路径**：pk/container/compat（本任务的垫片）、
+#    pk/string/compat（<QString> → PkString，R-01 的交付件）、pk/string
+#    （PkStringList.h / PkStringHash.h 要 include 的 PkString.h）。
+#    最后那条由 pkstring 的 PUBLIC include 目录带进来，这里不重复写。
+# ---------------------------------------------------------------------------
+pk_test_add_executable(test_pkcompat
+    "tests/test_pkcompat.cpp;tests/PkCompatReverseOrder.cpp"
+    PkCompatTest pkstring)
+target_include_directories(test_pkcompat PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/compat
+    ${PKSTRING_DIR}/compat)

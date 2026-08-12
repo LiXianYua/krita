@@ -1,0 +1,9 @@
+#pragma once
+#include "../PkContainerAlgo.h"
+#include "../PkQueue.h"
+
+// 兼容垫片：`#include <QQueue>` → PkQueue。形态与理由见 compat/QVector 的头注释。
+// 保留范围内 22 处 QQueue。
+//
+// PkQueue 派生自 PkList；与 compat/QStack 同理，**不在这里 #define QList**。
+#define QQueue PkQueue
