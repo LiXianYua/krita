@@ -39,9 +39,20 @@ void PkLogRemoveSink(int handle)
 
 void PkLogDispatchToSinks(PkLogLevel level, const PkLogContext &ctx, const char *message)
 {
-    std::lock_guard<std::mutex> lock(g_mutex);
-    for (const auto &pair : g_sinks) {
-        const Entry &entry = pair.second;
+    // 评审 Critical 项：std::mutex 不可重入。sink 回调体内如果调用
+    // PkLogAddSink/PkLogRemoveSink（自注销）或 PkLogEmit（间接二次进入本函数），
+    // 持锁期间回调就会在同一线程对 g_mutex 二次加锁——未定义行为，实测挂起。
+    // 修法：在锁内拷一份快照，解锁之后再逐个调用，回调体内可以随意再次
+    // 加/解注册表的锁而不会自我重入。
+    std::vector<Entry> snapshot;
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+        snapshot.reserve(g_sinks.size());
+        for (const auto &pair : g_sinks) {
+            snapshot.push_back(pair.second);
+        }
+    }
+    for (const auto &entry : snapshot) {
         entry.fn(level, ctx, message, entry.userData);
     }
 }

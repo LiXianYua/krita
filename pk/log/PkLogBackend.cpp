@@ -3,6 +3,7 @@
 // 换后端只用改这一个翻译单元。
 #include "PkLogBackend.h"
 
+#include <cstdio>
 #include <cstdlib>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -52,9 +53,28 @@ void PkLogEmit(PkLogLevel level, const PkLogContext &ctx, const std::string &mes
 
     auto logger = spdlog::get(ctx.category);
     if (!logger) {
-        // 调用方本应先 PkLogEnsureLogger 建好分类 logger；这里兜底防止漏建
-        // 时直接崩，退化行为是"用默认级别的 stderr logger"。
-        logger = spdlog::stderr_color_mt(ctx.category);
+        // 评审 Important 项：不再静默兜底创建 logger。旧行为是
+        // spdlog::stderr_color_mt(ctx.category)，用 spdlog 默认级别（info），
+        // 会绕开调用方本该经 PkLogEnsureLogger 设的 minLevel，让过滤策略悄悄
+        // 失真而不报错——brief 也没有要求这条路径，多出来就是负债。
+        //
+        // 选择「去掉兜底」（brief 倾向 a），但不用 assert/abort 让整个宿主进程
+        // （Krita 是交互式绘画应用）因为一次日志调用点配置遗漏就崩掉：
+        // - sink 通道（上面 PkLogDispatchToSinks 已经分发）不受影响，
+        //   Flutter 侧订阅仍然收到这条消息；
+        // - spdlog 侧显式打一行诊断到 stderr 再跳过，不产出一条误导性的、
+        //   级别过滤失真的日志行，也不假装什么都没发生；
+        // - PkLogFatal 的"终止进程"契约独立于 logger 是否建好，照样 abort，
+        //   不因为这条防御路径悄悄失效。
+        std::fprintf(stderr,
+                     "PkLogEmit: no logger for category \"%s\" -- call "
+                     "PkLogEnsureLogger first (message dropped from spdlog "
+                     "sink, still delivered to PkLogAddSink subscribers)\n",
+                     ctx.category);
+        if (level == PkLogFatal) {
+            std::abort();
+        }
+        return;
     }
     logger->log(spdlog::source_loc{ctx.file, ctx.line, ctx.function},
                 mapLevel(level), message);
