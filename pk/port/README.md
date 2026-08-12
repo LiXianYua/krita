@@ -1,9 +1,55 @@
 # pk/port —— 零 Qt 端口层
 
 独立 `project(pkport CXX)` 薄壳工程，不接入 Krita 主构建。目前有 R-12 Task 1
-交付的 `PkStream`（对应 Qt 的 `QIODevice`）与 Task 3 交付的 `PkEventSink`（状态
-通知端口，对应 `libs/image/kis_node_graph_listener.h` 等）。跑法见
-`tests/run_tests.sh`。
+交付的 `PkStream`（对应 Qt 的 `QIODevice`）、Task 3 交付的 `PkEventSink`（状态
+通知端口，对应 `libs/image/kis_node_graph_listener.h` 等）与 Task 4 交付的
+`PkResourceStorage`（资源定位与目录枚举端口，对应 `QDir`/`QDirIterator`/
+`QStandardPaths` 里 `libs/resources/KisStoragePlugin.h` 承担的那部分职责）。
+跑法见 `tests/run_tests.sh`。
+
+## `PkResourceStorage`——资源定位与目录枚举
+
+两族 API：
+
+- **目录枚举族**：`listEntries(path, nameFilters, kind, recursive)` 返回一个
+  惰性 `EntryIterator`（`hasNext()`/`next()`/`url()`/`lastModified()`），覆盖
+  `QDirIterator`（6 处构造，全部递归+可选 glob 过滤+只要文件）与
+  `QDir::entryList`/`entryInfoList`（9 处，非递归，7 处要文件、2 处要目录）
+  两种实测形态；`exists()`/`mkpath()`/`remove()`/`absolutePath()`。
+- **资源定位族**：`platformDir(PlatformDir)`，7 个 kind
+  （AppData/AppLocalData/GenericData/GenericConfig/Cache/Home/Pictures）。
+- **路径拼接**：`joinPath`/`cleanPath`/`relativePath` 三个静态纯字符串工具。
+
+实测口径、逐方法调用次数、样本核验见 `.superpowers/sdd/R-12/task-4-report.md`。
+
+**`EntryIterator::lastModified()` 用 `int64_t` 毫秒（Unix epoch，UTC），不
+是前置声明占位。** `QDateTime` 归 R-16（未交付），任务硬约束要求这两选一
+并登记理由：`lastModified()` 是纯虚数值返回，任何具体子类都必须能给出一个
+可编译的返回值——"只声明不定义"这条对 `PkStream.h` 那三个按值返回类对象
+的方法安全（不 override 就不会被实例化触发链接），但对纯虚数值返回不安全
+（虚函数表决议阶段就报错，不是"调用才炸"），所以选了可以立刻编译、可测试
+的整型时间戳。`QDateTime`（R-16）落地后如果需要更丰富的时区/日历语义，
+再加一个转换方法，不改这个字段本身。
+
+### 已知缺口（登记，不是遗漏）
+
+| 缺口 | 原因 | 由谁补 |
+|---|---|---|
+| `QDir::rmpath`（1 处，`KoResourcePaths.cpp:282`） | `mkpath` 失败后的"尽力而为"兜底清理，调用点没检查返回值，没有测试压力 | 需要时再加，不阻塞任何已知消费者 |
+| `QDir::tempPath`（3 处，`kis_image_config.cpp` 的 swap 目录） | 不在上级给定的 7 个 `PlatformDir` kind 里（`QStandardPaths` 没有直接对应的 TempLocation 命中，`QDir::tempPath()` 是独立的 OS 临时目录概念）——按给定范围未纳入 | 若后续任务需要 swap 目录定位，另开一个 kind 或专门的 API |
+| `ResourceIterator::type()`（先例字段） | 目录枚举没有"逐条目反查类型"的真实调用点，过滤发生在查询级（`EntryKind` 参数），按"范围上界=实测"不加 | 无——如果出现真实需要，那时再加 |
+| `TagIterator` / `resource()`（`KoResourceSP` 加载） | Task 4 范围是"资源定位与目录枚举"，不含资源加载/版本化/标签，没有测量材料 | 归属未来批次（资源加载相关端口） |
+| `QDir::cleanPath` 的精确语义 | 本任务没有对它重新跑真链 Qt 探针（不像 `PkStream.h` 那批有 `probe_qiodevice.cpp`），`PkResourceStorage::cleanPath()` 按 Qt 文档 + 常识实现（折叠连续分隔符、解析 `.`/`..`、绝对路径上越界的 `..` 丢弃），已用变异测试验证对当前测试用例的杀伤力，但没有对照真实 `QDir::cleanPath` 的边界行为（例如 UNC 路径、纯 `..` 输入）逐条核验 | 若后续批次发现行为分歧，按真链探针补 |
+
+### 与 `task-4-brief.md` 口径不同的两处（已用实测数覆盖）
+
+- `QDirIterator` 带 name filter + `QDir::Files` 的构造：brief 写"4 处"，
+  逐处 `sed` 核对全部 6 处构造的完整参数列表后确认是 **5 处**
+  （`KisFolderStorage.cpp` 的两处构造都带，不是一处）。
+- `PlatformDir` 的 kind 数：`task-4-brief.md` 写"5 个位置"，上级任务 prompt
+  与本任务实测都是 **7 个**（含 `KoResourcePaths.cpp:192` 经
+  `mapTypeToQStandardPaths()` 间接命中的 `CacheLocation`）——按实测数与上级
+  prompt 走，`task-4-brief.md` 的"5"是过期口径。
 
 ## 等 R-02 交付的符号
 
