@@ -8,6 +8,7 @@ int run_stream_tests(int argc, char **argv);
 int run_eventsink_tests(int argc, char **argv);
 int run_resourcestorage_tests(int argc, char **argv);
 int run_fontprovider_tests(int argc, char **argv);
+int run_zip_tests(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
@@ -23,5 +24,9 @@ int main(int argc, char **argv)
     if (rc != 0) {
         return rc;
     }
-    return run_fontprovider_tests(argc, argv);
+    rc = run_fontprovider_tests(argc, argv);
+    if (rc != 0) {
+        return rc;
+    }
+    return run_zip_tests(argc, argv);
 }

@@ -31,6 +31,14 @@ target_include_directories(pkport PUBLIC
     ${PK_STRING_DIR}
 )
 
+# Task 6（Q-5）：zip 从 QuaZip 换成 minizip-ng。这里**用**
+# add_subdirectory——跟上面「pk/string 直接加 .cpp、不 add_subdirectory」的
+# 选择相反，原因是 zip/CMakeLists.txt 自己要做 find_package/FetchContent 这
+# 一整套依赖获取逻辑（见该文件注释），塞进本文件会让两件不相关的事情
+# （"pkport 自己编什么" vs "minizip-ng 从哪来"）绞在一起，隔成子目录更薄。
+add_subdirectory(zip)
+target_link_libraries(pkport PUBLIC pkzip)
+
 # 测试用 pk/test（R-11）的 PK_* 宏。同样直接加源文件、不 add_subdirectory：
 # pk/test/CMakeLists.txt 会额外要求 Python3、跑代码生成、建它自己的
 # selftest_pktest ——那些是 pk/test 自证自己用的，本工程只要运行时那四个
@@ -44,6 +52,7 @@ add_executable(test_pkport
     tests/test_eventsink.cpp
     tests/test_resourcestorage.cpp
     tests/test_fontprovider.cpp
+    tests/test_zip.cpp
     ${PK_TEST_DIR}/PkTestCase.cpp
     ${PK_TEST_DIR}/PkTestRunner.cpp
     ${PK_TEST_DIR}/PkTestCompare.cpp
