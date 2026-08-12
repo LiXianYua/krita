@@ -2,10 +2,41 @@
 
 独立 `project(pkport CXX)` 薄壳工程，不接入 Krita 主构建。目前有 R-12 Task 1
 交付的 `PkStream`（对应 Qt 的 `QIODevice`）、Task 3 交付的 `PkEventSink`（状态
-通知端口，对应 `libs/image/kis_node_graph_listener.h` 等）与 Task 4 交付的
+通知端口，对应 `libs/image/kis_node_graph_listener.h` 等）、Task 4 交付的
 `PkResourceStorage`（资源定位与目录枚举端口，对应 `QDir`/`QDirIterator`/
-`QStandardPaths` 里 `libs/resources/KisStoragePlugin.h` 承担的那部分职责）。
-跑法见 `tests/run_tests.sh`。
+`QStandardPaths` 里 `libs/resources/KisStoragePlugin.h` 承担的那部分职责）与
+Task 5 交付的 `PkFontProvider`（「拿到字体」端口——发现/枚举/匹配/回退，
+**不含度量**，对应 `libs/flake/text/KoFontRegistry.cpp`/`KoFFWWSConverter.cpp`
+里由 fontconfig 承担的那部分职责）。跑法见 `tests/run_tests.sh`。
+
+## `PkFontProvider`——拿到字体（不含度量）
+
+端口只负责「拿到字体」：发现（配置与字体目录）/ 枚举（系统全部字体）/
+匹配（按 `PkFontQuery` 排序候选、取最佳单个）/ 回退（候选家族链里放通用家族，
+走同一条匹配路径,不是独立方法）。**度量不在端口里**——四个目标平台
+（fontconfig/Android/DirectWrite/CoreText）拿到字体文件之后都走同一份
+FreeType 完成度量，按端口判据（"这个能力在不同平台有没有不同实现"）不该
+进端口。**端口不返回 `FT_Face`**，返回字体文件标识
+（`FontHandle`：路径 + face index），FreeType 打开在端口之外。
+
+实测范围（`Fc*` 160 处出现 / 69 处真实调用 / 38 个不同函数，见
+`.superpowers/sdd/R-12/task-5-report.md`）：**不是 1:1 映射**，覆盖
+②配置与路径（8 个不同函数：`initialize`/`addFontFile`/`addFontDirectory`/
+`fontDirectories`/`rebuildFontSet`）+ ⑤匹配（4 个：`sortedMatches`/
+`bestMatch`）+ ⑥字体集枚举（2 个：`allFonts`）+ ⑦字符集（`coversCodepoint`）
++ ⑧语言集（并入 `FontEntry::languages`，见 `allFonts()`）。
+④模式构造与属性读写（32 处、占比最大的一族）整族归零，换成 `PkFontQuery`
+结构体（family/weight/slant/width/size/pixelsize/lang/charset 八个固定属性）。
+①初始化/生命周期的 4 个 `FcXxxDestroy`、③目录列表迭代 `FcStrList`、
+`FcFontRenderPrepare`（零命中）、`FcWeightToOpenType`/`FcWeightFromOpenType`
+（纯数学，调用方自行内联）、`FcPatternHash`（调用方内部缓存键）——全部
+排除，登记不是遗漏，逐项理由见 `PkFontProvider.h` 类头注释。
+
+**一处判断，不是实测**：`PkFontQuery::families` 在
+`getCssDataForPostScriptName()`（KoFontRegistry.cpp:1197-1234）那个调用点
+实际查的是 `FC_POSTSCRIPT_NAME` 而不是 `FC_FAMILY`——8 字段预算里没有单独
+的 postscript 字段，选择让 `families[0]` 兼载这个语义（由具体实现决定按
+哪个 fontconfig 属性精确匹配），见该字段注释。
 
 ## `PkResourceStorage`——资源定位与目录枚举
 

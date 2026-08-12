@@ -20,6 +20,7 @@ add_library(pkport STATIC
     PkStream.cpp
     PkEventSink.cpp
     PkResourceStorage.cpp
+    PkFontProvider.cpp
     ${PK_STRING_DIR}/PkStringData.cpp
     ${PK_STRING_DIR}/PkString_core.cpp
     ${PK_STRING_DIR}/PkString_query.cpp
@@ -42,6 +43,7 @@ add_executable(test_pkport
     tests/test_stream.cpp
     tests/test_eventsink.cpp
     tests/test_resourcestorage.cpp
+    tests/test_fontprovider.cpp
     ${PK_TEST_DIR}/PkTestCase.cpp
     ${PK_TEST_DIR}/PkTestRunner.cpp
     ${PK_TEST_DIR}/PkTestCompare.cpp
