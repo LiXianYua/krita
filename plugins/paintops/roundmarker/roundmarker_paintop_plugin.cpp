@@ -15,8 +15,9 @@
 #include "kis_roundmarkerop_settings.h"
 
 #include "kis_roundmarkerop.h"
-#include "kis_roundmarkerop_settings_widget.h"
 #include "kis_simple_paintop_factory.h"
+#include <kis_image.h>
+#include <kis_node.h>
 
 #include "kis_global.h"
 
@@ -26,7 +27,7 @@ K_PLUGIN_FACTORY_WITH_JSON(RoundMarkerPaintOpPluginFactory, "kritaroundmarkerpai
 RoundMarkerPaintOpPlugin::RoundMarkerPaintOpPlugin(QObject* parent, const QVariantList&):
     QObject(parent)
 {
-    KisPaintOpRegistry::instance()->add(new KisSimplePaintOpFactory<KisRoundMarkerOp, KisRoundMarkerOpSettings, KisRoundMarkerOpSettingsWidget>(
+    KisPaintOpRegistry::instance()->add(new KisSimplePaintOpFactory<KisRoundMarkerOp, KisRoundMarkerOpSettings>(
                                             "roundmarker", i18n("Quick Brush"), KisPaintOpFactory::categoryStable(), "krita_roundmarkerop.svg",
                                             QString(), QStringList(), 3)
                                        );

@@ -14,9 +14,10 @@
 
 
 #include "kis_particle_paintop.h"
-#include "kis_particle_paintop_settings_widget.h"
 
 #include <kis_simple_paintop_factory.h>
+#include <kis_image.h>
+#include <kis_node.h>
 
 #include "kis_global.h"
 
@@ -27,7 +28,7 @@ ParticlePaintOpPlugin::ParticlePaintOpPlugin(QObject *parent, const QVariantList
     : QObject(parent)
 {
     KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
-    r->add(new KisSimplePaintOpFactory<KisParticlePaintOp, KisParticlePaintOpSettings, KisParticlePaintOpSettingsWidget>("particlebrush", i18n("Particle"), KisPaintOpFactory::categoryStable(), "krita-particle.png", QString(), QStringList(), 11, false));
+    r->add(new KisSimplePaintOpFactory<KisParticlePaintOp, KisParticlePaintOpSettings>("particlebrush", i18n("Particle"), KisPaintOpFactory::categoryStable(), "krita-particle.png", QString(), QStringList(), 11, false));
 }
 
 ParticlePaintOpPlugin::~ParticlePaintOpPlugin()

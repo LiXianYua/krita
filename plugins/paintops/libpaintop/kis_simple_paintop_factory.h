@@ -119,42 +119,12 @@ KisInterstrokeDataFactory* createInterstrokeDataFactory(const KisPaintOpSettings
     return 0;
 }
 
-template< class, class = std::void_t<> >
-struct supports_extended_initilization : std::false_type { };
-
-template< class T >
-struct supports_extended_initilization<T,
-        std::void_t<decltype(T(std::declval<QWidget*>(),
-                               std::declval<KisResourcesInterfaceSP>(),
-                               std::declval<KoCanvasResourcesInterfaceSP>()))> > : std::true_type { };
-
-template <typename T>
-KisPaintOpConfigWidget* createConfigWidget(QWidget* parent, KisResourcesInterfaceSP resourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface,
-                                           std::enable_if_t<supports_extended_initilization<T>::value> * = 0)
-{
-    T* widget = new T(parent, resourcesInterface, canvasResourcesInterface);
-    widget->setResourcesInterface(resourcesInterface);
-    widget->setCanvasResourcesInterface(canvasResourcesInterface);
-    return widget;
-}
-
-template <typename T>
-KisPaintOpConfigWidget* createConfigWidget(QWidget* parent, KisResourcesInterfaceSP resourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface,
-                                           std::enable_if_t<!supports_extended_initilization<T>::value> * = 0)
-{
-    // TODO: remove this constructor and pass everything into the constructor
-    T* widget = new T(parent);
-    widget->setResourcesInterface(resourcesInterface);
-    widget->setCanvasResourcesInterface(canvasResourcesInterface);
-    return widget;
-}
-
 }
 
 /**
  * Base template class for simple paintop factories
  */
-template <class Op, class OpSettings, class OpSettingsWidget> class KisSimplePaintOpFactory  : public KisPaintOpFactory
+template <class Op, class OpSettings> class KisSimplePaintOpFactory  : public KisPaintOpFactory
 {
 
 public:
@@ -208,7 +178,10 @@ public:
     }
 
     KisPaintOpConfigWidget* createConfigWidget(QWidget* parent, KisResourcesInterfaceSP resourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface) override {
-        return detail::createConfigWidget<OpSettingsWidget>(parent, resourcesInterface, canvasResourcesInterface);
+        Q_UNUSED(parent);
+        Q_UNUSED(resourcesInterface);
+        Q_UNUSED(canvasResourcesInterface);
+        return nullptr;
     }
 
     QString id() const override {

@@ -13,8 +13,9 @@
 #include <brushengine/kis_paintop_registry.h>
 
 #include "kis_experiment_paintop.h"
-#include "kis_experiment_paintop_settings_widget.h"
 #include "kis_simple_paintop_factory.h"
+#include <kis_image.h>
+#include <kis_node.h>
 
 #include "kis_global.h"
 
@@ -26,8 +27,7 @@ ExperimentPaintOpPlugin::ExperimentPaintOpPlugin(QObject *parent, const QVariant
 {
     KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
     r->add(new KisSimplePaintOpFactory<KisExperimentPaintOp,
-           KisExperimentPaintOpSettings,
-           KisExperimentPaintOpSettingsWidget>("experimentbrush",
+           KisExperimentPaintOpSettings>("experimentbrush",
                                                i18n("Shape"),
                                                KisPaintOpFactory::categoryStable(),
                                                "krita-experiment.png",

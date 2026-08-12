@@ -15,8 +15,9 @@
 #include <kis_brush_based_paintop_settings.h>
 
 #include "kis_tangent_normal_paintop.h"
-#include "kis_tangent_normal_paintop_settings_widget.h"
 #include "kis_simple_paintop_factory.h"
+#include <kis_image.h>
+#include <kis_node.h>
 
 #include "kis_global.h"
 
@@ -25,7 +26,7 @@ K_PLUGIN_FACTORY_WITH_JSON(TangentNormalPaintOpPluginFactory, "kritatangentnorma
 TangentNormalPaintOpPlugin::TangentNormalPaintOpPlugin(QObject* parent, const QVariantList&):
     QObject(parent)
 {
-    KisPaintOpRegistry::instance()->add(new KisSimplePaintOpFactory<KisTangentNormalPaintOp, KisBrushBasedPaintOpSettings, KisTangentNormalPaintOpSettingsWidget>(
+    KisPaintOpRegistry::instance()->add(new KisSimplePaintOpFactory<KisTangentNormalPaintOp, KisBrushBasedPaintOpSettings>(
                                             "tangentnormal", i18n("Tangent Normal"), KisPaintOpFactory::categoryStable(), "krita-tangentnormal.png",
                                             QString(), QStringList(), 16)
                                        );

@@ -15,8 +15,9 @@
 #include <brushengine/kis_paintop_registry.h>
 
 #include "kis_simple_paintop_factory.h"
+#include <kis_image.h>
+#include <kis_node.h>
 #include "kis_hairy_paintop.h"
-#include "kis_hairy_paintop_settings_widget.h"
 #include "kis_hairy_paintop_settings.h"
 #include "kis_global.h"
 
@@ -27,7 +28,7 @@ HairyPaintOpPlugin::HairyPaintOpPlugin(QObject *parent, const QVariantList &)
     : QObject(parent)
 {
     KisPaintOpRegistry *r = KisPaintOpRegistry::instance();
-    r->add(new KisSimplePaintOpFactory<KisHairyPaintOp, KisHairyPaintOpSettings, KisHairyPaintOpSettingsWidget>("hairybrush", i18n("Bristle"), KisPaintOpFactory::categoryStable(), "krita-sumi.png", QString(), QStringList(), 4));
+    r->add(new KisSimplePaintOpFactory<KisHairyPaintOp, KisHairyPaintOpSettings>("hairybrush", i18n("Bristle"), KisPaintOpFactory::categoryStable(), "krita-sumi.png", QString(), QStringList(), 4));
 
 }
 
