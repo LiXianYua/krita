@@ -2,14 +2,9 @@ set(kritacurvepaintop_SOURCES
       curve_paintop_plugin.cpp
       kis_curve_paintop.cpp
       kis_curve_paintop_settings.cpp
-      kis_curve_paintop_settings_widget.cpp
       KisCurveOpOptionData.cpp
-      KisCurveOpOptionModel.cpp
-      KisCurveOpOptionWidget.cpp
-      
-    )
 
-ki18n_wrap_ui(kritacurvepaintop_SOURCES wdgcurveoptions.ui )
+    )
 
 kis_add_library(kritacurvepaintop MODULE ${kritacurvepaintop_SOURCES})
 
