@@ -89,7 +89,10 @@ bool PkStream::seek(pk_int64 pos)
 bool PkStream::atEnd() const
 {
     // 「atEnd 是 bytesAvailable()==0，不是『上次读失败了』」——探针 Follow-up C。
-    return bytesAvailable() == 0;
+    // 但未 open 的设备是例外：真 Qt 在这种情况下无条件返回 true（探针 §3.7），
+    // 即便 bytesAvailable() 仍在报告底层还有多少字节——这两者故意自相矛盾，
+    // 不是本类能"修正"的语义分歧，原样对齐。
+    return !isOpen() || bytesAvailable() == 0;
 }
 
 PkStream::pk_int64 PkStream::bytesAvailable() const
@@ -123,12 +126,20 @@ bool PkStream::canReadLine() const
 
 PkStream::pk_int64 PkStream::read(char *data, pk_int64 maxSize)
 {
-    if (maxSize <= 0) {
-        return 0;
+    // 顺序必须是「maxSize<0 → -1」在最前，其次「未 open/不可读 → -1」，
+    // maxSize==0 的短路排在两者之后——真 Qt 的 CHECK_MAXLEN 与
+    // CHECK_READABLE 都先于 maxSize==0 判断（评审 I-2）。颠倒顺序会让
+    // 「未 open 时 read(buf,0)」这类组合错误地先撞上 maxSize==0 而返回 0，
+    // 而不是 -1。
+    if (maxSize < 0) {
+        return -1;
     }
     if (!isOpen() || !isReadable()) {
         // 未 open 的设备返回 -1（探针 §3.7 / 头注释①）。
         return -1;
+    }
+    if (maxSize == 0) {
+        return 0;
     }
 
     pk_int64 total = 0;
@@ -240,18 +251,28 @@ PkStream::pk_int64 PkStream::readLine(char *data, pk_int64 maxSize)
 
 PkStream::pk_int64 PkStream::write(const char *data, pk_int64 maxSize)
 {
+    // 同 read()：maxSize<0 最先判，其次未 open/不可写，maxSize==0 排最后
+    // （评审 I-2）——未 open 时 write(buf,0) 也要返回 -1，而不是被
+    // maxSize==0 提前短路成 0。
     if (maxSize < 0) {
+        return -1;
+    }
+    if (!isOpen() || !isWritable()) {
         return -1;
     }
     if (maxSize == 0) {
         return 0;
     }
-    if (!isOpen() || !isWritable()) {
-        return -1;
-    }
     const pk_int64 n = writeData(data, maxSize);
-    if (n > 0 && !isSequential()) {
-        m_pos += n;
+    if (n > 0) {
+        if (!isSequential()) {
+            m_pos += n;
+        }
+        // write() 推进游标之后，旧的 unget 缓冲已经对不上新位置了：不扔掉的
+        // 话下一次 read() 会先吐出 write() 之前 ungetChar()/peek() 留下的
+        // 陈旧字节，再跳过刚写入的数据——与 seek() 里同一条注释是同一个根因
+        // （评审 C-1）。
+        m_ungetBuffer.clear();
     }
     return n;
 }
@@ -279,7 +300,13 @@ void PkStream::ungetChar(char c)
     // 插到最前面：最近一次 ungetChar() 的字节最先被下一次 read() 取走
     // （后进先出），与 peek() 靠"逆序 ungetChar 还原顺序"这个用法对应。
     m_ungetBuffer.insert(m_ungetBuffer.begin(), c);
-    if (!isSequential() && m_pos > 0) {
+    if (!isSequential()) {
+        // 无条件 --m_pos，不再守 m_pos>0——真 Qt 允许 pos() 到 -1（探针
+        // §3.8，评审 C-2）。守卫会让 unget（不减）与 read 消费 unget 字节
+        // 时的 ++m_pos 不对称，游标净前进一格，从而在 pos()==0 时丢掉一个
+        // 真实字节。read() 会先吃完 unget 缓冲才调用 readData()，届时
+        // m_pos 已经被同等次数的 ++m_pos 加回 ≥0，子类不会拿负 pos 索引；
+        // peek() 从 pos=0 出发同样自洽（同上，read 内部会推回来）。
         --m_pos;
     }
 }

@@ -25,6 +25,10 @@
 # 后 KoStore.h 会自己开始编过，这个脚本会在第一时间报出来，而不是靠人记得
 # 回来更新登记。
 set -u
+export LC_ALL=C   # EXPECT_FAIL 的错因正则里有一条('expected class-name')是英文编译器
+                   # 消息片段，本机 g++ 默认 locale 会把它译成中文，匹配就会在
+                   # 别的 locale 下悄悄失效——固定 LC_ALL=C 让错因匹配跨机器稳定
+                   # （评审 M-1）。
 cd "$(dirname "$0")/../../.." || exit 1
 
 CXX=${CXX:-g++}
@@ -98,10 +102,14 @@ check_expect_fail libs/image/kis_node_graph_listener.h                       'QS
 check_expect_fail libs/pigment/resources/KoCachedGradient.h                  'expected class-name' '工程头闭包，非 Qt 缺口'
 check_expect_fail libs/flake/resources/KoFontFamily.h                        'KoResource\.h'  '工程头闭包，非 Qt 缺口'
 
-# 源树零改动自证——照抄 pk/test/graft/graft_run.sh 结尾那段。
-if ! git diff --quiet -- libs/; then
+# 源树零改动自证——照抄 pk/test/graft/graft_run.sh 结尾那段。用
+# `git status --porcelain` 而不是 `git diff --quiet`：后者只看已跟踪文件的
+# 修改，既漏新增的未跟踪文件，也没覆盖 plugins/（试接候选表里同样有
+# plugins/ 下的头文件被 -include 校验过，libs/ 单独判空范围偏窄，评审 M-2）。
+dirty=$(git status --porcelain -- libs/ plugins/)
+if [ -n "$dirty" ]; then
     printf '  源树被改动了 —— 试接必须零改动\n' >&2
-    git diff --stat -- libs/ >&2
+    printf '%s\n' "$dirty" >&2
     fail=1
 fi
 

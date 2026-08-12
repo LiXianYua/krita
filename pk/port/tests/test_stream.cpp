@@ -107,6 +107,24 @@ public:
     void testUnopenedDeviceReadWriteReturnsMinusOne();
     // 额外：顺序设备契约（头注释规定的硬契约，非 8 条断言之一）。
     void testSequentialDevicePosStaysZero();
+
+    // ── R-12 评审补测（Task 1+2 评审 C-1/C-2/I-1/I-2 + 4 条回归） ──────────
+    // C-1：write() 之后 unget 缓冲必须作废，不能吐陈旧字节。
+    void testWriteInvalidatesUngetBuffer();
+    // C-2：pos()==0 时 ungetChar() 不能丢真实字节（去掉 m_pos>0 守卫）。
+    void testUngetCharAtPosZero();
+    // I-1：未 open 的设备 atEnd() 恒为 true。
+    void testAtEndTrueWhenUnopened();
+    // I-2：maxSize<0 与「未 open 时 maxSize==0」都要返回 -1，顺序见评审表格。
+    void testMaxSizeEdgeCasesMatchRealQt();
+    // 回归①：ungetChar 连续多次按 LIFO 顺序被下一次 read() 取走。
+    void testMultipleUngetCharLifoOrder();
+    // 回归②：peek 跨越 unget 缓冲与底层数据的边界。
+    void testPeekAcrossUngetBufferAndUnderlyingData();
+    // 回归③：readLine 遇到 '\n' 截断、末尾无 '\n' 到 EOF 时返回 0。
+    void testReadLineNewlineAndEof();
+    // 回归④：write 到只读设备返回 -1。
+    void testWriteToReadOnlyDeviceReturnsMinusOne();
 };
 
 void PkStreamTestCase::testEofReturnsZeroNotMinusOne()
@@ -203,6 +221,127 @@ void PkStreamTestCase::testSequentialDevicePosStaysZero()
     PK_COMPARE(dev.read(buf, 8), (PkStream::pk_int64)0);   // 读完之后 EOF
 }
 
+void PkStreamTestCase::testWriteInvalidatesUngetBuffer()
+{
+    // 场景：ReadWrite 内存设备 "0123456789"，peek(buf,3) 后 write("XY",2)。
+    // 真 Qt：pos=2 bytesAvailable=8，随后 read(buf,4)="2345"（评审 C-1）。
+    MemoryStream dev("0123456789");
+    dev.open(PkStream::ReadWrite);
+    char peekBuf[8];
+    PK_COMPARE(dev.peek(peekBuf, 3), (PkStream::pk_int64)3);
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)0);
+
+    PK_COMPARE(dev.write("XY", 2), (PkStream::pk_int64)2);
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)2);
+    PK_COMPARE(dev.bytesAvailable(), (PkStream::pk_int64)8);
+
+    char buf[8] = {};
+    PK_COMPARE(dev.read(buf, 4), (PkStream::pk_int64)4);
+    PK_VERIFY(std::memcmp(buf, "2345", 4) == 0);
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)6);
+}
+
+void PkStreamTestCase::testUngetCharAtPosZero()
+{
+    // 场景：pos=0 的设备 "0123456789"，ungetChar('Q') 后 read(buf,4)。
+    // 真 Qt：pos 变 -1；read → "Q012"，pos=3（探针 §3.8，评审 C-2）。
+    MemoryStream dev("0123456789");
+    dev.open(PkStream::ReadWrite);
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)0);
+
+    dev.ungetChar('Q');
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)-1);
+
+    char buf[8] = {};
+    PK_COMPARE(dev.read(buf, 4), (PkStream::pk_int64)4);
+    PK_VERIFY(std::memcmp(buf, "Q012", 4) == 0);
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)3);
+}
+
+void PkStreamTestCase::testAtEndTrueWhenUnopened()
+{
+    // 探针 §3.7：未 open 的设备 atEnd()==true，即便 bytesAvailable() 仍报
+    // 「底层还有多少字节」——这两者故意自相矛盾，评审 I-1。
+    MemoryStream dev("0123456789");   // 故意不 open()
+    PK_VERIFY(dev.atEnd());
+    PK_COMPARE(dev.bytesAvailable(), (PkStream::pk_int64)10);
+}
+
+void PkStreamTestCase::testMaxSizeEdgeCasesMatchRealQt()
+{
+    // 评审 I-2 表格四行：maxSize<0 恒 -1；未 open 时 maxSize==0 也是 -1
+    // （CHECK_MAXLEN 与 CHECK_READABLE/CHECK_WRITABLE 都排在 maxSize==0
+    // 短路之前）。
+    MemoryStream opened("0123456789");
+    opened.open(PkStream::ReadWrite);
+    char buf[4];
+    PK_COMPARE(opened.read(buf, -1), (PkStream::pk_int64)-1);
+    PK_COMPARE(opened.write(buf, -1), (PkStream::pk_int64)-1);
+
+    MemoryStream closed("0123456789");   // 故意不 open()
+    PK_COMPARE(closed.read(buf, 0), (PkStream::pk_int64)-1);
+    PK_COMPARE(closed.write(buf, 0), (PkStream::pk_int64)-1);
+}
+
+void PkStreamTestCase::testMultipleUngetCharLifoOrder()
+{
+    // 回归：连续 ungetChar('A')('B')('C') 之后，read() 按 "CBA" 的顺序吐出
+    // ——最近一次 unget 的字节最先被读到（后进先出）。挑 pos=5（非 0）以避免
+    // 和 C-2 的 pos 归零行为耦合，这条只验证顺序本身。
+    MemoryStream dev("0123456789");
+    dev.open(PkStream::ReadWrite);
+    dev.seek(5);
+    dev.ungetChar('A');
+    dev.ungetChar('B');
+    dev.ungetChar('C');
+
+    char buf[8] = {};
+    PK_COMPARE(dev.read(buf, 3), (PkStream::pk_int64)3);
+    PK_VERIFY(std::memcmp(buf, "CBA", 3) == 0);
+}
+
+void PkStreamTestCase::testPeekAcrossUngetBufferAndUnderlyingData()
+{
+    // 回归：unget 缓冲里只有 1 个字节，peek(4) 要跨过它继续读底层数据，
+    // 且 peek 完 pos 要和 peek 之前一致。
+    MemoryStream dev("0123456789");
+    dev.open(PkStream::ReadWrite);
+    dev.seek(3);
+    dev.ungetChar('Y');
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)2);
+
+    char buf[8] = {};
+    PK_COMPARE(dev.peek(buf, 4), (PkStream::pk_int64)4);
+    PK_VERIFY(std::memcmp(buf, "Y345", 4) == 0);
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)2);
+}
+
+void PkStreamTestCase::testReadLineNewlineAndEof()
+{
+    // 回归：readLine 遇到 '\n' 就截断（含 '\n' 本身）；没有 '\n' 时读到 EOF
+    // 停止；再读一次（已经 EOF）返回 0。
+    MemoryStream dev("ab\ncd");
+    dev.open(PkStream::ReadWrite);
+    char buf[16];
+
+    PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)3);
+    PK_VERIFY(std::memcmp(buf, "ab\n", 3) == 0);
+
+    PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)2);
+    PK_VERIFY(std::memcmp(buf, "cd", 2) == 0);
+
+    PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)0);
+}
+
+void PkStreamTestCase::testWriteToReadOnlyDeviceReturnsMinusOne()
+{
+    // 回归：write 到 ReadOnly 设备返回 -1（isWritable() 为 false）。
+    MemoryStream dev("0123456789");
+    dev.open(PkStream::ReadOnly);
+    char buf[4] = {'A', 'B', 'C', 'D'};
+    PK_COMPARE(dev.write(buf, 4), (PkStream::pk_int64)-1);
+}
+
 // PkTestBinder<PkStreamTestCase> 特化——手写，形状对照
 // pk/test/pk_test_moc.py 的 emit_binder() 输出（见文件头注释）。
 template <>
@@ -239,10 +378,34 @@ struct PkTestBinder<PkStreamTestCase> {
             {"testSequentialDevicePosStaysZero",
              [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testSequentialDevicePosStaysZero(); },
              nullptr},
+            {"testWriteInvalidatesUngetBuffer",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testWriteInvalidatesUngetBuffer(); },
+             nullptr},
+            {"testUngetCharAtPosZero",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testUngetCharAtPosZero(); },
+             nullptr},
+            {"testAtEndTrueWhenUnopened",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testAtEndTrueWhenUnopened(); },
+             nullptr},
+            {"testMaxSizeEdgeCasesMatchRealQt",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testMaxSizeEdgeCasesMatchRealQt(); },
+             nullptr},
+            {"testMultipleUngetCharLifoOrder",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testMultipleUngetCharLifoOrder(); },
+             nullptr},
+            {"testPeekAcrossUngetBufferAndUnderlyingData",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testPeekAcrossUngetBufferAndUnderlyingData(); },
+             nullptr},
+            {"testReadLineNewlineAndEof",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadLineNewlineAndEof(); },
+             nullptr},
+            {"testWriteToReadOnlyDeviceReturnsMinusOne",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testWriteToReadOnlyDeviceReturnsMinusOne(); },
+             nullptr},
         };
         return fns;
     }
-    static int count() { return 9; }
+    static int count() { return 17; }
 
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }
