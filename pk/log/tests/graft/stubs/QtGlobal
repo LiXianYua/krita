@@ -1,0 +1,21 @@
+#pragma once
+// kis_assert.h 与（经 QT_NO_DEBUG 关掉的）kis_debug.h:158 那段都要 <QtGlobal>。
+// 复用 pk/test/compat/QtGlobal 已经补的最小标量集（qAbs 等），本文件只加它没有
+// 的、kis_debug.h/kis_assert.h 这两个文件需要的几个：qint32 系列整数别名与
+// qt_noop()（kis_assert.h 的 KIS_ASSERT 系宏兜底分支要用）。
+//
+// 不改 pk/test：那是另一个 Task 的交付物，这里只是多 include 一层。
+//
+// 路径是 4 层 "../"：本文件在 pk/log/tests/graft/stubs/，向上 4 层才到
+// pk/（stubs→graft→tests→log→pk），再进 test/compat/QtGlobal
+// （pk/test/compat/QtGlobal，pk/log 与 pk/test 是兄弟目录）。
+#include "../../../../test/compat/QtGlobal"
+#include <cstdint>
+
+using qint32  = std::int32_t;
+using quint32 = std::uint32_t;
+using qint64  = std::int64_t;
+using quint64 = std::uint64_t;
+using qreal   = double;
+
+inline void qt_noop() {}

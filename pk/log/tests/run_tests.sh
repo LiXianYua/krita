@@ -16,3 +16,7 @@ if [ -n "$undef" ]; then
     exit 1
 fi
 printf 'nm -u libpklog.a | grep -i qt: 无输出\n'
+
+# Task 5：真实 kis_debug.h/.cpp 零改动试接——它自己会按需建 pk/string，
+# 并对 libs/global 做 git diff --quiet 自证。
+./pk/log/tests/graft/kis_debug_build.sh
