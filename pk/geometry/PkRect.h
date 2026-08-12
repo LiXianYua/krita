@@ -448,7 +448,7 @@ constexpr inline bool operator!=(const PkRect &r1, const PkRect &r2) noexcept
 // operator& / contains ×2 / intersects / toAlignedRect）在 PkRect.cpp。
 //
 // ⚠ **它与上面的 PkRect 几乎处处不同，抄错一条整片语义就走样。** 逐条列出
-// （每一条都有 probe_rectf.cpp 的实测输出撑着，见 Task 5 报告 §2）：
+// （每一条都有真 Qt 5.15.7 探针的实测输出撑着）：
 //
 //   · **内部存的是 xp/yp/w/h（左上角 + 宽高），不是四个边界坐标。** 这是与
 //     PkRect 最根本的不对称 —— Qt 自己就是这么不对称的。后果：
@@ -487,7 +487,7 @@ constexpr inline bool operator!=(const PkRect &r1, const PkRect &r2) noexcept
 //     钉住这一条；理由全文在 PkGlobal.h 的 pkQtFuzzyCompare 上方）。
 //   · **getRect / getCoords 同样没有 noexcept**，其余成员（含 contains /
 //     intersects / operator| / operator& / normalized / toRect / toAlignedRect）
-//     全有 —— 实测 probe_rectf2.cpp §noexcept。
+//     全有 —— 真 Qt 5.15.7 实测。
 //   · contains 一族**没有 proper 参数**（PkRect 那边有），所以只有三个重载。
 //
 // 明确不实现（与 PkRect 同一份归属表，Rect 族实测调用点 0；表在 README）：
@@ -558,7 +558,7 @@ public:
 
     constexpr inline void setRect(qreal x, qreal y, qreal w, qreal h) noexcept;
     // qrect.h:572 —— ⚠ **没有 noexcept**（同一对的 setRect 有）。与 PkRect 同一处
-    // 不对称，实测 probe_rectf2.cpp 确认 getRect=0 / setRect=1。
+    // 不对称，真 Qt 5.15.7 实测确认 getRect=0 / setRect=1。
     constexpr inline void getRect(qreal *x, qreal *y, qreal *w, qreal *h) const;
 
     constexpr inline void setCoords(qreal x1, qreal y1, qreal x2, qreal y2) noexcept;

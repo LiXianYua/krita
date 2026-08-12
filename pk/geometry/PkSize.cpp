@@ -7,7 +7,7 @@
 // 形态一致（qsize.h 只声明，定义在 qsize.cpp 里，编进 libQt5Core）。
 // 逐字抄自 qtbase v5.15.7-lts-lgpl 的 src/corelib/tools/qsize.cpp:225-244 与
 // :666-685；装的 Qt 只有 .so 没有源，所以每条分支都另用探针核对过取值
-//（探针输出见 Task 3 报告 §E/§F，一共 18+15 组输入 × 3 模式）。
+//（探针一共喂了 18+15 组输入 × 3 模式）。
 //
 // 本 TU 还放了那批**只有在一个翻译单元里才落得了地**的 static_assert，
 // 理由与 PkPoint.cpp 相同（布局 / constexpr 能力 / noexcept 面）。

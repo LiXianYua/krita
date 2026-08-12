@@ -15,7 +15,7 @@
 #include "pk_binder_point_case.inc"
 
 // ---------------------------------------------------------------------------
-// 期望值全部取自**真 Qt 5.15.7** 的实测输出（探针 probe_point.cpp，链
+// 期望值全部取自**真 Qt 5.15.7** 的实测输出（探针链
 // /mnt/ssd-disk/liyang/projects/krita-ci-env/_install 的 libQt5Core，
 // QT_VERSION_STR "5.15.7"），不是「四舍五入」「点相等就是坐标相等」这类直觉。
 // 对齐口径：与 Qt 的任何行为差异默认都是缺陷，所以 Qt 那些看着像 bug 的地方
@@ -166,7 +166,7 @@ void PkPointCase::pointScalingRoundsLikeQt()
     // 分支、"半值远离零"那种直觉写法）时，上面每一条的取值都**恰好不变**
     //（-1*0.5=-0.5 → int(0)=0 ✓；-3*0.5=-1.5 → int(-1)=-1 ✓），28 条单测全绿，
     // 只有对拍抓得到。分辨这两种实现要靠**负数非半值**：小数部分不是 ±0.5 时
-    // 两条公式才分家。下面三条实测真 Qt 5.15.7（探针 probe_fix1.cpp，-O0/-O2 一致），
+    // 两条公式才分家。下面三条实测真 Qt 5.15.7（-O0/-O2 一致），
     // `int(v*f+0.5)` 变体分别给 0 / -1 / -1，逐条冲突。
     PK_VERIFY(PkPoint(-3, -3) * 0.25 == PkPoint(-1, -1));    // -0.75 → -1（变体给 0）
     PK_VERIFY(PkPoint(-3, -3) * 0.75 == PkPoint(-2, -2));    // -2.25 → -2（变体给 -1）
@@ -477,7 +477,7 @@ void PkPointCase::pointfFuzzyEqualityOnSpecialValues()
 void PkPointCase::pointfToPointMatchesQt()
 {
     // ⚠ toPoint 用 **qRound**，不是截断。qRound 对负半值向 +∞。
-    // 实测真 Qt 5.15.7（探针 §J 与 probe_point.cpp §P4）：
+    // 实测真 Qt 5.15.7：
     PK_VERIFY(PkPointF(-1.5, -1.5).toPoint() == PkPoint(-1, -1));
     PK_VERIFY(PkPointF(-0.5, -0.5).toPoint() == PkPoint(0, 0));
     PK_VERIFY(PkPointF(0.5, 0.5).toPoint() == PkPoint(1, 1));

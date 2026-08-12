@@ -14,10 +14,9 @@
 #include "pk_binder_transform_case.inc"
 
 // ---------------------------------------------------------------------------
-// 期望值全部取自**真 Qt 5.15.7** 的实测输出（探针 probe_transform.cpp /
-// probe_transform2.cpp / probe3.cpp，链
+// 期望值全部取自**真 Qt 5.15.7** 的实测输出（探针链
 // /mnt/ssd-disk/liyang/projects/krita-ci-env/_install 的 libQt5Core + libQt5Gui，
-// QT_VERSION_STR "5.15.7"，`-DQT_NO_DEBUG`；完整输出在 Task 6 报告 §1/§2），
+// QT_VERSION_STR "5.15.7"，`-DQT_NO_DEBUG`），
 // 不是"3x3 矩阵乘法当然是这样"这类直觉。这一族里直觉错得最多的四处：
 //   · **行向量约定**：x' = m11*x + m21*y + m31（不是 m11*x + m12*y + m13）
 //   · **枚举是位标志**：TxNone=0 TxTranslate=1 TxScale=2 TxRotate=4

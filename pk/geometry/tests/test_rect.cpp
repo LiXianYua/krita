@@ -9,9 +9,9 @@
 #include "pk_binder_rect_case.inc"
 
 // ---------------------------------------------------------------------------
-// 期望值全部取自**真 Qt 5.15.7** 的实测输出（探针 probe_rect.cpp，链
+// 期望值全部取自**真 Qt 5.15.7** 的实测输出（探针链
 // /mnt/ssd-disk/liyang/projects/krita-ci-env/_install 的 libQt5Core，
-// QT_VERSION_STR "5.15.7"，`-DQT_NO_DEBUG`；完整输出在 Task 4 报告 §2），
+// QT_VERSION_STR "5.15.7"，`-DQT_NO_DEBUG`），
 // 不是"矩形右边界就是 x+w"这类直觉。对齐口径：与 Qt 的任何行为差异默认都是缺陷，
 // 所以 Qt 那些反直觉的地方也一起钉住：
 //   · **right() == x1 + width() - 1**、bottom() 同 —— 差一，QRectF 那边没有
@@ -550,14 +550,14 @@ void PkRectCase::rectContainsRect()
     PK_VERIFY(PkRect(0, 0, 10, 10).contains(PkRect(0, 0, 10, 10)));
     PK_VERIFY(!PkRect(0, 0, 10, 10).contains(PkRect(0, 0, 10, 10), true));
 
-    // ⚠ **proper 必须逐轴单独测。**（Task 4 修复轮，评审 M-1）
+    // ⚠ **proper 必须逐轴单独测。**
     // 上面那条 `contains(自己, true)` 是**两轴同时**贴边，于是 proper 的四条
     // 严格判断里**任意一条**成立就返回 false —— 把其中任意一条改坏（比如
     // 左边界的 `<=` 写成 `<`），另一条照样让它返回 false，**单测全绿**。
     // 评审员实测（I6）复现过：只有对拍抓得到，单测一片绿。
     // 下面四条各只让**一个轴**贴边、另一个轴严格在内，于是每一条都唯一地
     // 盯住一个边界判断，改坏哪个就红哪个。
-    // 期望值是真 Qt 探针实测的（Qt 5.15.7，见报告「M-1 探针」一节）：
+    // 期望值是真 Qt 探针实测的（Qt 5.15.7）：
     //   (0,0,10,10).contains((0,2,10,5), true) = false，而 proper=false 时 = true
     PK_VERIFY(PkRect(0, 0, 10, 10).contains(PkRect(0, 2, 10, 5)));          // 左右共边
     PK_VERIFY(!PkRect(0, 0, 10, 10).contains(PkRect(0, 2, 10, 5), true));
@@ -644,7 +644,7 @@ void PkRectCase::rectNoexceptSurfaceMatchesQt()
     // qpoint.h:56 的 `QPoint(int,int)` **没有 noexcept**（qsize.h 的 QSize 有），
     // 于是 `contains(QPoint(0,0))` 这个**完整表达式**在真 Qt 上是 noexcept==false，
     // 而换成具名实参就是 true —— 差别全在实参构造那一跳，不在 contains 自己。
-    // 实测真 Qt 5.15.7（探针 probe_noexcept.cpp）：
+    // 实测真 Qt 5.15.7：
     //   QPoint(0,0)=0  c.contains(QPoint(0,0))=0  c.contains(p)=1
     //   r.moveCenter(QPoint(0,0))=0  r.setSize(QSize(1,1))=1
     // ⚠ 别按"contains 标了 noexcept，所以整个表达式也是"去推 —— `noexcept(expr)`

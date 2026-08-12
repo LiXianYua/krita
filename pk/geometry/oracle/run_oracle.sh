@@ -356,7 +356,7 @@ log, dev = sys.argv[1], sys.argv[2]
 
 seen, den, diff_lines = {}, {}, []
 for line in open(log, encoding='utf-8', errors='replace'):
-    # DIFFDEN 是**分母**（该 tag 的谓词命中过多少次比对），Task 6 修复轮 1 新增。
+    # DIFFDEN 是**分母**（该 tag 的谓词命中过多少次比对）。
     # ⚠ 它**不进闸门**：第三列的额度仍然只比分子（DIFFTAG）。分母是给人推导
     # 「为什么恰好是这么多」用的 —— 光有分子说不清"喂了多少次里分家这么多"。
     # 必须在 DIFFTAG 那条 elif 之前判，否则 startswith('DIFF ') 那条也吃不到它

@@ -14,11 +14,11 @@
 #include "pk_binder_rectf_case.inc"
 
 // ---------------------------------------------------------------------------
-// 期望值全部取自**真 Qt 5.15.7** 的实测输出（探针 probe_rectf.cpp /
-// probe_rectf2.cpp，链 /mnt/ssd-disk/liyang/projects/krita-ci-env/_install 的
-// libQt5Core，QT_VERSION_STR "5.15.7"，`-DQT_NO_DEBUG`；完整输出在 Task 5 报告
-// §2），不是"浮点矩形右边界当然是 x+w"这类直觉 —— 直觉在这一族里对了一半、
-// 错了另一半，而错的那一半正是 PkRect 抄过来的：
+// 期望值全部取自**真 Qt 5.15.7** 的实测输出（探针链
+// /mnt/ssd-disk/liyang/projects/krita-ci-env/_install 的 libQt5Core，
+// QT_VERSION_STR "5.15.7"，`-DQT_NO_DEBUG`），不是"浮点矩形右边界当然是 x+w"
+// 这类直觉 —— 直觉在这一族里对了一半、错了另一半，而错的那一半正是
+// PkRect 抄过来的：
 //   · **right()/bottom() 没有差一**（PkRect 那边有）
 //   · isNull/isEmpty/isValid 的门槛是 `==0.` / `<=0.` / `>0.`
 //     （PkRect 那边等价于 `跨距==-1` / `<1` / `>=0`），且**三者在 NaN 上互不为补**
@@ -148,7 +148,7 @@ void PkRectFCase::rectfSideBySideWithPkRect()
 
 void PkRectFCase::rectfThreePredicatesUseFloatThresholds()
 {
-    // 实测表（probe_rectf.cpp §B）：
+    // 实测表（真 Qt 5.15.7）：
     //   (0,0,0,0)   isNull=1 isEmpty=1 isValid=0
     //   (0,0,1,1)   isNull=0 isEmpty=0 isValid=1
     //   (0,0,10,0)  isNull=0 isEmpty=1 isValid=0
@@ -244,7 +244,7 @@ void PkRectFCase::rectfCenterIsHalfWidthNotTruncated()
 
 void PkRectFCase::rectfSetEdgesKeepOppositeEdge()
 {
-    // 实测（probe_rectf.cpp §G，底座 (1,2,3,4)）：
+    // 实测（真 Qt 5.15.7，底座 (1,2,3,4)）：
     //   setLeft(0)   -> x=0 y=2 w=4 h=4     ← 保右边界，宽度跟着变
     //   setRight(0)  -> x=1 y=2 w=-1 h=4
     //   setTop(0)    -> x=1 y=0 w=3 h=6
@@ -400,7 +400,7 @@ void PkRectFCase::rectfAdjustUsesDeltaOfDeltas()
 
 void PkRectFCase::rectfNormalizedSwapBoundaryIsStrictlyNegative()
 {
-    // 实测（probe_rectf.cpp §C）：
+    // 实测（真 Qt 5.15.7）：
     //   (0,0,-1,1)   -> x=-1   w=1
     //   (0,0,-0.5,1) -> x=-0.5 w=0.5
     //   (0,0,0,1)    -> x=0    w=0     ← 宽恰为 0 **不交换**
@@ -434,7 +434,7 @@ void PkRectFCase::rectfNormalizedOnSpecialValues()
 
 void PkRectFCase::rectfUnitedWithNullIsAsymmetric()
 {
-    // ⚠ 实测（probe_rectf.cpp §E）：**operator| 不可交换**，判空用 isNull()
+    // ⚠ 实测（真 Qt 5.15.7）：**operator| 不可交换**，判空用 isNull()
     // 且"a 为 null 返回 b"在前 —— 两侧都 null 时永远返回 b。
     const PkRectF nA(0, 0, 0, 0), nB(5, 5, 0, 0), big(0, 0, 10, 10);
     PK_VERIFY(fieldsAre(nA | nB, 5, 5, 0, 0));
@@ -503,7 +503,7 @@ void PkRectFCase::rectfOperatorAssignMatchesNamed()
 
 void PkRectFCase::rectfSetOpsOnNanShortCircuit()
 {
-    // ⚠ 实测（probe_rectf2.cpp）：NaN 让 `l1 == r1` 与 `l1 >= r2` 全部为假，
+    // ⚠ 实测（真 Qt 5.15.7）：NaN 让 `l1 == r1` 与 `l1 >= r2` 全部为假，
     // 于是**含 NaN 的输入一路走到最后**，intersects 基本恒真。
     // 这不是我们加的分支，是 `<`/`>`/`==` 在 NaN 上的定义 —— 换成
     // `if (l1 >= r1) return ...` 这类"看起来等价"的写法会在这一整片上分家。
@@ -552,7 +552,7 @@ void PkRectFCase::rectfContainsPointOnNegativeDims()
 
 void PkRectFCase::rectfContainsRectIsNotIntersects()
 {
-    // 实测（probe_rectf.cpp §E）：contains 与 intersects 在"相交但不包含"上分家。
+    // 实测（真 Qt 5.15.7）：contains 与 intersects 在"相交但不包含"上分家。
     const PkRectF big(0, 0, 10, 10), part(5, 5, 10, 10), inner(2, 2, 3, 3);
     PK_VERIFY(big.contains(big));
     PK_VERIFY(big.contains(inner));
@@ -582,7 +582,7 @@ void PkRectFCase::rectfContainsOnNan()
 
 void PkRectFCase::rectfToRectRoundsFourEdges()
 {
-    // ⚠ 实测（probe_rectf.cpp §D）：**取整发生在四条边上**，不是对 x/y/w/h 各取
+    // ⚠ 实测（真 Qt 5.15.7）：**取整发生在四条边上**，不是对 x/y/w/h 各取
     // 一次。内部坐标（不是 x/y/w/h）才看得清这一点：
     //   (-1.5,-1.5,1,1) -> coords(-1,-1,-1,-1)
     //   (-0.5,-0.5,1,1) -> coords( 0, 0, 0, 0)
@@ -676,7 +676,7 @@ void PkRectFCase::rectfToAlignedRectDoesNotNormalize()
 
 void PkRectFCase::rectfFromPkRectUsesWidthNotRight()
 {
-    // 实测（probe_rectf.cpp §H）：
+    // 实测（真 Qt 5.15.7）：
     //   QRectF(QRect(0,0,10,10)) = (0,0,10,10)
     //   QRectF(QRect())          = (0,0,0,0)     ← 哨兵 (0,0,-1,-1) 的 w/h 是 0
     //   QRectF(QRect(5,5,0,0))   = (5,5,0,0)
@@ -696,7 +696,7 @@ void PkRectFCase::rectfFromPkRectUsesWidthNotRight()
 
 void PkRectFCase::rectfEqualityIsFuzzy()
 {
-    // 实测（probe_rectf.cpp §I）：== 是四个分量各一次 qFuzzyCompare。
+    // 实测（真 Qt 5.15.7）：== 是四个分量各一次 qFuzzyCompare。
     PK_VERIFY(PkRectF(1, 1, 1, 1) == PkRectF(1 + 1e-13, 1, 1, 1));
     PK_VERIFY(!(PkRectF(1, 1, 1, 1) == PkRectF(1 + 1e-11, 1, 1, 1)));
     // ⚠ 任一侧为 0 则**恒 false**（相对误差的右端取 min(|a|,|b|)）——
@@ -760,7 +760,7 @@ void PkRectFCase::rectfEqualityIsMacroProof()
 
 void PkRectFCase::rectfNoexceptSurfaceMatchesQt()
 {
-    // 实测（probe_rectf2.cpp）：getRect / getCoords 没有 noexcept，其余全有。
+    // 实测（真 Qt 5.15.7）：getRect / getCoords 没有 noexcept，其余全有。
     // ⚠ 这里必须用**具名变量**：PkPointF/PkRectF 的默认构造里，
     // **PkPointF() 没有 noexcept**（qpoint.h:289 就没有），写成
     // `noexcept(PkRectF().contains(PkPointF()))` 测的是"构造临时点会不会抛"。

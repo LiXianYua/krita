@@ -15,8 +15,8 @@
 //
 // ⚠ **本机装的 Qt 只有 .so 没有 qrect.cpp**，所以这六条不能"照抄源码"，
 // 只能**靠对拍逐输入逼出来**：按 Qt 文档写一版 → 跑 oracle/run_oracle.sh →
-// 看 mismatch 落在哪 → 改 → 再跑。落地过程与逐格实测输出在 Task 4 报告 §2/§5。
-// 直接钉住的实测事实（探针 probe_rect.cpp，真 Qt 5.15.7）：
+// 看 mismatch 落在哪 → 改 → 再跑。
+// 直接钉住的实测事实（真 Qt 5.15.7 探针实测）：
 //   · normalized 的交换条件是 `x2 < x1 - 1`，**不是** `x2 < x1`；两个轴各判各的
 //   · operator| 的判空用 **isNull()**（不是 isEmpty()），且「a 为 null 返回 b」
 //     在前 —— 于是 `PkRect()|(5,5,0,0)` 与 `(5,5,0,0)|PkRect()` 结果不同
@@ -37,7 +37,7 @@
 // ⚠ 交换条件是 **x2 < x1 - 1**：宽度恰为 0（x2 == x1-1）时**不交换**，
 // 宽度 -1 起才交换；交换之后**不做 ±1 修正**，于是宽度从 -1 直接跳到 3。
 // 写成 `x2 < x1` 会把"宽 0"的矩形也翻过来，(0,0,-1,0) 这一整片行为就变了
-//（注入实验 B 组：单测红、对拍红 —— 见报告 §6）。
+//（注入实验：改写成 `x2 < x1` 之后单测与对拍双双变红）。
 PkRect PkRect::normalized() const noexcept
 {
     PkRect r;
@@ -309,8 +309,7 @@ bool PkRect::contains(const PkPoint &p, bool proper) const noexcept
 // 与 Qt 的形态一致（qrect.h 只声明，定义编在 libQt5Core.so 里），因此**不是
 // constexpr**。同样"本机没有 qrect.cpp"，同样只能靠对拍逐输入逼出来。
 //
-// 直接钉住的实测事实（探针 probe_rectf.cpp / probe_rectf2.cpp，真 Qt 5.15.7，
-// 全部输出在 Task 5 报告 §2）：
+// 直接钉住的实测事实（真 Qt 5.15.7 探针实测）：
 //   · **翻正判据一律是 `w < 0`**（不是 `w <= 0`，也不是 PkRect 的 `x2 < x1-1`）。
 //     -0.0 不满足 `< 0`，所以 `(0,0,-0.0,1)` 在这七条里全部按"正宽"处理。
 //   · **operator| 的判空用 isNull()**（`w==0 && h==0`），且"a 为 null 返回 b"
@@ -673,7 +672,7 @@ static_assert([] { PkRectF t(1, 2, 3, 4); t.adjust(1, 1, 1, 1); return t.width()
               "adjust 的宽增量是 xp2 - xp1，全 1 时宽高不变");
 
 // noexcept 面：与 PkRect 同一处不对称（getRect/getCoords 没有，其余都有）。
-// 实测 probe_rectf2.cpp：contains/intersects/op|/op&/normalized/toRect/
+// 实测真 Qt 5.15.7：contains/intersects/op|/op&/normalized/toRect/
 // toAlignedRect 全部为 1，getRect/getCoords 为 0。
 static_assert(noexcept(PkRectF(0, 0, 1, 1)), "构造必须 noexcept");
 static_assert(noexcept(PkRectF().normalized()), "normalized 必须 noexcept");
@@ -682,8 +681,8 @@ static_assert(noexcept(PkRectF().contains(PkRectF())), "contains(rect) 必须 no
 // ⚠ 这一条**必须用具名变量**，不能写 `noexcept(PkRectF().contains(PkPointF()))`：
 // **PkPointF 的默认构造没有 noexcept**（qpoint.h:289 的 `QPointF::QPointF() : xp(0),
 // yp(0) {}` 一样没有，PkPoint.h:247 照抄了），所以那个写法测的是"构造临时点会不会
-// 抛"，恒为假 —— 与 contains 本身的 noexcept 无关。实测踩过：probe_rectf.cpp 第一版
-// 用临时量得到 contains(pt)=0，改成具名变量后真 Qt 给 1（probe_rectf2.cpp）。
+// 抛"，恒为假 —— 与 contains 本身的 noexcept 无关。实测踩过：探针第一版用临时量
+// 得到 contains(pt)=0，改成具名变量后真 Qt 给 1。
 static_assert([] {
     PkRectF r; PkPointF p;
     return noexcept(r.contains(p));

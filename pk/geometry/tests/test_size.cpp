@@ -14,7 +14,7 @@
 #include "pk_binder_size_case.inc"
 
 // ---------------------------------------------------------------------------
-// 期望值全部取自**真 Qt 5.15.7** 的实测输出（探针 probe_size.cpp，链
+// 期望值全部取自**真 Qt 5.15.7** 的实测输出（探针链
 // /mnt/ssd-disk/liyang/projects/krita-ci-env/_install 的 libQt5Core，
 // QT_VERSION_STR "5.15.7"，`-DQT_NO_DEBUG`），不是"尺寸空就是宽高为零"这类直觉。
 // 对齐口径：与 Qt 的任何行为差异默认都是缺陷，所以 Qt 那些反直觉的地方也一起钉住：

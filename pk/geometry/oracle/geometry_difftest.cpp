@@ -30,9 +30,9 @@
 //   ① **canary**：三条故意不相等的比对，走的是与真实 API 完全相同的 rec()/比较
 //      原语/tag 构造路径。它们必须出现在输出里 —— 一旦少一条，说明比较管道
 //      （bit 比较、计数、tag）被写死或被优化没了，run_oracle.sh 直接 FAIL。
-//   ② **注入自证**：往 PkPoint 里塞真 bug，必须产生**未声明**的 tag（报告里有三组）。
+//   ② **注入自证**：往被测类型里塞真 bug，必须产生**未声明**的 tag。
 //
-// ── tag 的两条硬规则（违反了整件事白做，理由见 oracle/README 方法论）────
+// ── tag 的两条硬规则（违反了整件事白做，理由紧跟在每条下面）──────────
 //   规则一：tag 必须由「触发这次差异的**输入形态**」参与构造，不能是「每个 API
 //           一个字面量常量」。R-01 第一版那么写，注入三组真 bug 全部绿灯通过。
 //   规则二：tag 的判定谓词**不能比 .deviation 里那句理由宽**。理由说「两侧都失败」，
@@ -46,7 +46,6 @@
 //           tag 说不清是哪个重载分的家）。
 //           **落地方式**：每族写完对拍后列一张「已实现重载 vs 对应 rec()」对照表
 //           （逐条对着头文件的声明数，不是对着记忆数），有一格空的就是漏了。
-//           Task 3 的那张表在 <scratchpad>/R-03/sdd/task-3-report.md「修复轮 1」。
 //           **已知残留（Task 2 的 Point 族，有意不动）**：`setX/setY`、`rx/ry`、
 //           `F::setX/setY`、`F::rx/ry` 四条仍是两个重载挤一条 rec。它们不是覆盖
 //           漏洞（两个 mutator 在同一次往返里都被调到，任一个坏掉 same_pt 就分家），
@@ -187,7 +186,7 @@ static_assert((int)Qt::XAxis == (int)pkoracle::Qt::XAxis
 
 static long g_total = 0, g_mismatch = 0;
 static std::map<std::string, long> g_tags;   // "<api> <tag>" -> **分家**次数（分子）
-// 「该 tag 的谓词命中过多少次比对」= **分母**（Task 6 修复轮 1，评审 Important 2）。
+// 「该 tag 的谓词命中过多少次比对」= **分母**。
 //
 // 为什么需要它：geometry.deviation 第三列的额度规矩写着「那个数字要能说清为什么
 // 恰好是这么多，不能填个大概」。光有分子说不清 —— 「分家 12 799 次」既可能是
@@ -196,8 +195,7 @@ static std::map<std::string, long> g_tags;   // "<api> <tag>" -> **分家**次�
 // **「命中 N 次里分家 M 次」**，N 与 M 各自漂移都会被额度闸门抓住（N 由
 // run_oracle.sh 打出来给人看，M 是机器双向比较的那一列）。
 //
-// 代价：每条 rec 多一次 map 查找（键与分子共用同一个字符串）。实测整份对拍
-// 从 1m32s 到 2m06s，仍远在 timeout 600 之内。
+// 代价：每条 rec 多一次 map 查找（键与分子共用同一个字符串）。
 static std::map<std::string, long> g_tag_seen;
 static long g_printed = 0;
 
@@ -2065,7 +2063,7 @@ static void cmp_tf_unary(const double m[9])
 // ── I-1：四个标量运算符各自的"制造过期"路径 ──────────────────────────────
 //
 // 四个对 m_dirty 的写法互不相同，所以"档位会不会过期、什么时候过期"在四个上
-// 各不相同，**必须四个都喂序列**（修复轮 1 之前只有 *= 一条）：
+// 各不相同，**必须四个都喂序列** —— 只喂 `*=` 一条会漏掉另外三条过期路径：
 //   · `*=` 条件抬升到 TxScale（`if (m_dirty < TxScale)`）—— 原矩阵档位高于
 //     TxScale 时就会留下过期值
 //   · `/=` 转发给 `*=`，但多一道 `div == 0` 的提前返回
@@ -2415,9 +2413,8 @@ static void cmp_tf_maprect(const double m[9], double x, double y, double w, doub
                          + dstr(w) + "," + dstr(h) + ")";
     const bool clip = tfFreshIsProject(m) && tfNeedsClip(m, x, x + w, y, y + h);
     // ⚠ **矩形那四个分量也要参与**（约定见 shapeOfD 上方那段：一个 API 的 shape
-    // 必须由它全部参与分量算出）。修复轮 1 之前 persp-clip 这一支把矩形形态丢了
-    // —— 那是全文件唯一一处破这条约定的地方，而"缺陷只在某种矩形上触发"正好
-    // 会被贴成与根因无关的标签。
+    // 必须由它全部参与分量算出）。persp-clip 这一支只贴矩阵形态的话，
+    // "缺陷只在某种矩形上触发"就会被贴成与根因无关的标签。
     const std::string base = shapeOfTf(m) + "/" + shapeOfD({x, y, w, h});
     const std::string sh = clip ? ("persp-clip/" + base) : base;
 
@@ -2647,7 +2644,7 @@ static const double kAdjDF[] = { -1.0, -0.0, 0.0, 0.5, NAN };
 static const double kRectFTok4[] = { -1.0, 0.0, 0.5, 2.0 };
 
 // 手挑对抗矩形，以 **(x, y, w, h) 四个字段**给出。每一条都对应一个已实测的
-// 语义分界，注释写的就是它守着哪一条（实测输出在 Task 5 报告 §2）。
+// 语义分界，注释写的就是它守着哪一条（真 Qt 5.15.7 实测）。
 static const double kHandRectF[][4] = {
     {  0,    0,    0,    0    },   // QRectF()：isNull，| 的偏心分支
     {  5,    5,    0,    0    },   // null 但不在原点
