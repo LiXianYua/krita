@@ -375,13 +375,13 @@ kis_add_library(kritaimage SHARED ${kritaimage_LIB_SRCS} ${einspline_SRCS})
 
 generate_export_header(kritaimage BASE_NAME kritaimage)
 
-target_link_libraries(kritaimage
+target_link_libraries(kritaimage 
     PUBLIC
-        kritaversion
-        kritaglobal
-        kritapsdutils
-
-        kritapigment
+        kritaversion 
+        kritaglobal 
+        kritapsdutils 
+         
+        kritapigment 
         kritacommand
         kritametadata
         kritaresources

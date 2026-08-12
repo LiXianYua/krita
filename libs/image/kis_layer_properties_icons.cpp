@@ -54,6 +54,21 @@ struct KisLayerPropertiesIcons::Private
     QMap<QString, IconsPair> icons;
 };
 
+namespace {
+/**
+ * Read-only lookup into the shared icon map.
+ *
+ * Must not use QMap::operator[]: KisLayerPropertiesIcons is a Q_GLOBAL_STATIC and
+ * getProperty() is reached from image stroke/update jobs as well as from the GUI
+ * thread, so an inserting lookup would be a concurrent write to shared state.
+ * Missing ids resolve to a pair of null icons.
+ */
+IconsPair lookupIconsPair(const QMap<QString, IconsPair> &icons, const QString &id)
+{
+    return icons.value(id);
+}
+}
+
 KisLayerPropertiesIcons::KisLayerPropertiesIcons()
     : m_d(new Private)
 {
@@ -71,21 +86,15 @@ KisLayerPropertiesIcons *KisLayerPropertiesIcons::instance()
 
 void KisLayerPropertiesIcons::updateIcons()
 {
-    // D-005：libs/image 断开对 kritawidgetutils 的反向依赖，图标加载
-    // （KisIconUtils::loadIcon，定义在 kritawidgetutils）不能再留在这里。
-    // 这里刻意留空，不是没清理干净：
-    //   - m_d->icons 保持为空 map，getProperty() 用 QMap::operator[] 取值，
-    //     key 不存在时会默认构造一个 IconsPair（两个 QIcon 都是空图标），
-    //     所有调用方照常工作、拿到空图标，正是本任务裁定的行为后果。
-    //   - updateIcons() 函数本身、IconsPair 结构体、getIcon() 都保留不动，
-    //     因为它们是 public API，libs/ui 等处仍在调用。
-    //   - KisLayerPropertiesIcons 的彻底清理归 D-03（它锁 libs/ui）。
+    // Intentionally empty: icons are a UI concern and libs/image must not depend on
+    // kritawidgetutils, where the icon loader lives. Property ids, names and states
+    // stay here; every property therefore reports a pair of null icons.
     m_d->icons.clear();
 }
 
 KisBaseNode::Property KisLayerPropertiesIcons::getProperty(const KoID &id, bool state)
 {
-    const IconsPair &pair = instance()->m_d->icons[id.id()];
+    const IconsPair pair = lookupIconsPair(instance()->m_d->icons, id.id());
     return KisBaseNode::Property(id,
                                  pair.on, pair.off, state);
 }
@@ -93,7 +102,7 @@ KisBaseNode::Property KisLayerPropertiesIcons::getProperty(const KoID &id, bool 
 KisBaseNode::Property KisLayerPropertiesIcons::getProperty(const KoID &id, bool state,
                                                                        bool isInStasis, bool stateInStasis)
 {
-    const IconsPair &pair = instance()->m_d->icons[id.id()];
+    const IconsPair pair = lookupIconsPair(instance()->m_d->icons, id.id());
     return KisBaseNode::Property(id,
                                  pair.on, pair.off, state,
                                  isInStasis, stateInStasis);
@@ -101,7 +110,7 @@ KisBaseNode::Property KisLayerPropertiesIcons::getProperty(const KoID &id, bool 
 
 KisBaseNode::Property KisLayerPropertiesIcons::getErrorProperty(const QString &message)
 {
-    const IconsPair &pair = instance()->m_d->icons[layerError.id()];
+    const IconsPair pair = lookupIconsPair(instance()->m_d->icons, layerError.id());
 
     KisBaseNode::Property prop;
     prop.id = layerError.id();
@@ -121,7 +130,7 @@ KisBaseNode::Property KisLayerPropertiesIcons::getColorSpaceMismatchProperty(con
               cs->name(),
               cs->profile() ? cs->profile()->name() : "");
 
-    const IconsPair &pair = instance()->m_d->icons[layerColorSpaceMismatch.id()];
+    const IconsPair pair = lookupIconsPair(instance()->m_d->icons, layerColorSpaceMismatch.id());
 
     KisBaseNode::Property prop;
     prop.id = layerColorSpaceMismatch.id();
