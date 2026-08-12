@@ -36,6 +36,18 @@ void PkGlobalCase::absMatchesQt()
     PK_COMPARE(qAbs(-3.5), 3.5);
     PK_COMPARE(qAbs(3.5), 3.5);
     PK_COMPARE(qAbs(-2.5f), 2.5f);
+
+    // ⚠ 零号的符号：Qt 的条件是 `t >= 0`，-0.0 >= 0 为真 → qAbs(-0.0) 原样返回
+    // -0.0。实测真 Qt 5.15.7：signbit(qAbs(-0.0)) == 1、1.0/qAbs(-0.0) == -inf。
+    // 上面的 PK_COMPARE(qAbs(0), 0) 对这条免疫（-0.0 == 0.0 为真），所以必须用
+    // signbit 直接查符号位；把条件改成 `t > 0` 这四条里的两条立刻变红。
+    PK_VERIFY(std::signbit(qAbs(-0.0)));
+    PK_VERIFY(!std::signbit(qAbs(0.0)));
+    PK_VERIFY(std::signbit(qAbs(-0.0f)));
+    PK_VERIFY(!std::signbit(qAbs(0.0f)));
+    // 符号位会经 1/x 扩散成 ∓inf —— 这是"零号符号"在真实调用点上的表现形态。
+    PK_VERIFY(1.0 / qAbs(-0.0) == -std::numeric_limits<double>::infinity());
+    PK_VERIFY(1.0 / qAbs(0.0) == std::numeric_limits<double>::infinity());
     // qAbs 是模板而不是一组重载：非算术类型只要有 operator>= / 一元 operator-
     // 就能实例化。Qt 的 QPoint 之类不走这里，但 qint64 会。
     PK_COMPARE(qAbs(static_cast<long long>(-5)), static_cast<long long>(5));
@@ -136,6 +148,17 @@ void PkGlobalCase::fuzzyCompareMatchesQt()
     // 对 0 走的是 pkFuzzyIsNull 分支。别把两者混为一谈。
     PK_VERIFY(!qFuzzyCompare(0.0, 1e-300));
     PK_VERIFY(!qFuzzyCompare(1e-300, 0.0));
+
+    // ⚠ 右端到底是 qMin 还是 qMax 的**判别输入**。上面全部用例都落在
+    // |p1| ≈ |p2| 的区域，那里 qMin ≈ qMax，把 qMin 换成 qMax 一条都不会红。
+    // 这一对的两侧差了整整 1.0（|Δ|·1e12 = 1e12）：
+    //     qMin = 999999999999.5 < 1e12  → false（真 Qt 5.15.7 实测）
+    //     qMax = 1000000000000.5 > 1e12 → true （qMax 变体）
+    // 两个方向都取，防止有人只在一侧特判。
+    const double fuzzyBig1 = 999999999999.5;
+    const double fuzzyBig2 = 1000000000000.5;
+    PK_VERIFY(!qFuzzyCompare(fuzzyBig1, fuzzyBig2));
+    PK_VERIFY(!qFuzzyCompare(fuzzyBig2, fuzzyBig1));
 }
 
 void PkGlobalCase::fuzzyCompareFloatOverloadIsReallyFloat()
@@ -150,6 +173,14 @@ void PkGlobalCase::fuzzyCompareFloatOverloadIsReallyFloat()
     // 把 float 的系数夹到 1e5（同 double 那边的理由）。实测真 Qt 确认。
     PK_VERIFY(qFuzzyCompare(1.0f, 1.0f + 5e-6f));
     PK_VERIFY(!qFuzzyCompare(1.0f, 1.0f + 5e-5f));
+
+    // float 重载右端 qMin/qMax 的判别输入（同 double 那边的理由，阈值 1e5）：
+    //     |Δ|·1e5 = 1e5；qMin = 99999.5f < 1e5 → false（真 Qt 实测）
+    //                    qMax = 100000.5f > 1e5 → true（qMax 变体）
+    const float fuzzyBig1 = 99999.5f;
+    const float fuzzyBig2 = 100000.5f;
+    PK_VERIFY(!qFuzzyCompare(fuzzyBig1, fuzzyBig2));
+    PK_VERIFY(!qFuzzyCompare(fuzzyBig2, fuzzyBig1));
 }
 
 void PkGlobalCase::fuzzyIsNullMatchesQt()
@@ -198,9 +229,14 @@ void PkGlobalCase::infMatchesQt()
 }
 
 // ---------------------------------------------------------------------------
-// 两份 compat/QtGlobal 共存：三种 include 顺序各一个 TU（tests/coexist_*.cpp）。
-// 三个 TU 能编过本身就是一半断言；这里核对它们给出的取值一致且与真 Qt 一致。
+// 两份 compat/QtGlobal 共存：两种 include 顺序各一个 TU（tests/coexist_*.cpp）。
+// 两个 TU 能编过本身就是一半断言；这里核对它们给出的取值一致且与真 Qt 一致。
 // 用宏共享检查体，让失败信息的 file:line 落回各自的调用点。
+//
+// 这两条路径上 qFuzzyCompare / qFuzzyIsNull / qAbs 让位给了 pk/test 的实现
+//（PkGlobal.h 机制①），而 pk/test 不在 R-03 的 locks 里。fuzzyZeroA/B 这两条
+// 就是「让位是安全的」这个断言的守卫：给 pkFuzzyCompare 注入零侧特判分支
+//（一条真实的对 Qt 偏离），只有它们会红。
 // ---------------------------------------------------------------------------
 #define PK_CHECK_COEXIST_PROBE(probeExpr)                        \
     do {                                                         \
@@ -211,6 +247,8 @@ void PkGlobalCase::infMatchesQt()
         PK_COMPARE(pkProbe_.boundAbove, 3);                      \
         PK_VERIFY(pkProbe_.fuzzyEqual);                          \
         PK_VERIFY(!pkProbe_.fuzzyDiffer);                        \
+        PK_VERIFY(!pkProbe_.fuzzyZeroA);                         \
+        PK_VERIFY(!pkProbe_.fuzzyZeroB);                         \
         PK_VERIFY(pkProbe_.fuzzyNull);                           \
         PK_VERIFY(!pkProbe_.fuzzyNotNull);                       \
         PK_COMPARE(pkProbe_.qrealSize, sizeof(double));          \
@@ -225,11 +263,6 @@ void PkGlobalCase::coexistWithPkTestShimFirst()
 void PkGlobalCase::coexistWithGeometryShimFirst()
 {
     PK_CHECK_COEXIST_PROBE(pkCoexistGeometryShimFirst());
-}
-
-void PkGlobalCase::coexistWithPkGlobalFirst()
-{
-    PK_CHECK_COEXIST_PROBE(pkCoexistPkGlobalFirst());
 }
 
 int run_global_tests()

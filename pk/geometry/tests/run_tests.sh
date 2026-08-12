@@ -23,9 +23,18 @@ printf 'nm -u %s/libpkgeometry.a | grep -i qt: 无输出\n' "$BUILD"
 
 # locks 自证：R-03 只许动 pk/geometry/。build/ 已被根 .gitignore 排除，所以这里
 # 连未跟踪文件一起查，出现任何 pk/geometry/ 之外的路径就判失败。
+#
+# 判定交给 git 自己的 pathspec，**不解析 porcelain 的输出文本**。理由：
+#   · 改名行的形状是 `R  old -> new`，按列切出来是 "old -> new" 这一整串。
+#     `pk/geometry/x -> pk/other/x`（真·越界改名）以 pk/geometry/ 开头，
+#     前缀过滤会把它当成合规改动放过去 —— 实测复现过。
+#   · 含空格/非 ASCII 的路径 git 默认加引号并转义（core.quotePath），切出来是
+#     `"pk/geometry/\344\270\255..."`，前缀过滤反过来误判成越界 —— 也实测复现过。
+# `-- . ':(exclude)pk/geometry'` 让 git 按路径语义筛：只要 pk/geometry 之外有
+# 任何改动（含未跟踪、含改名的任一端）输出就非空。空输出 = 合规。
 printf '\ngit status --porcelain:\n'
 git status --porcelain
-stray=$(git status --porcelain | awk '{ print substr($0, 4) }' | grep -v '^pk/geometry/' || true)
+stray=$(git status --porcelain -- . ':(exclude)pk/geometry')
 if [ -n "$stray" ]; then
     printf 'run_tests.sh: 有改动落在 pk/geometry/ 之外：\n%s\n' "$stray" >&2
     exit 1

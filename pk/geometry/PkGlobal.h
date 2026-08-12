@@ -9,8 +9,8 @@
 // include/QtCore/qglobal.h 与 qnumeric.h，QT_VERSION_STR "5.15.7"），来源行号
 // 标在各项上方。对齐口径：与 Qt 的任何行为差异默认都是缺陷 —— 所以 Qt 那些
 // 看着像 bug 的地方也照抄（qRound 对负半值向 +∞ 取整、int(d+0.5) 让
-// 0.49999999999999994 进位到 1），并在 tests/test_global.cpp 里逐条钉住，
-// 免得以后有人"顺手修正"。
+// 0.49999999999999994 进位到 1、qAbs(-0.0) 返回 -0.0 而不是 +0.0），并在
+// tests/test_global.cpp 里逐条钉住，免得以后有人"顺手修正"。
 //
 // 范围：只做实测有调用点的项。qRound64 实测 0 次 → 不做；qIsNull / qIsInf /
 // qIsFinite / qQNaN / qSNaN / qFpClassify / qFloatDistance 同理不在本头。
@@ -28,7 +28,7 @@
 //
 // 「两份共用同一个 include guard 宏名、让后来者空转」这条路走不通：pk/test 那份
 // 用的是 #pragma once，认的是文件身份，两个不同文件各自都会落地一次；而它不在
-// R-03 的 locks 里，不能改。于是用三个方向的机制：
+// R-03 的 locks 里，不能改。于是用两个方向的机制：
 //
 //   ① 本头检测 pk/test 那份唯一可探测的痕迹 —— 宏 qFuzzyCompare。已经生效就
 //      整段让位，不重复定义 qAbs / qFuzzyCompare / qFuzzyIsNull（重复定义函数
@@ -36,22 +36,22 @@
 //      与 PkTestCompare.h 里的真身撞签名）。覆盖「pk/test 那份先进 TU」。
 //   ② pk/geometry/compat/QtGlobal 先把 pk/test 那份 #include 进来（#pragma once
 //      之后再解析到它就空转），再包本头。覆盖「pk/geometry 那份先进 TU」。
-//   ③ 直接包本头、之后才撞上 pk/test 那份垫片的 TU，①② 都够不着。这种编译行
-//      显式定义 PK_GEOMETRY_WITH_PKTEST_COMPAT，本头就走 ② 的同一条路。
-//      这是个开关而不是默认行为：默认拉 pk/test 的头进来，等于让几何库对测试
-//      框架产生编译期依赖。
 //
-// 三种顺序各有一个 TU 在 tests/coexist_*.cpp 里编译并核对取值。
+// 两种顺序各有一个 TU 在 tests/coexist_*.cpp 里编译并核对取值。
+//
+// 「直接包本头、之后才撞上 pk/test 那份垫片」这第三种顺序**不覆盖**：Krita 源码
+// 写的是 #include <QRect> / #include <QtGlobal>，一定经过 compat 垫片，落在 ①②
+// 里；够得到第三种顺序的只有手写 #include "../PkGlobal.h" 的 TU，而那种 TU 只
+// 存在于本目录自己的测试里（自我指涉）。判据①「一项不多」——没有真实场景就不做。
 //
 // 让位时的语义差（两处都不构成行为差异，核对过）：
-//   · pk/test 的 qAbs 写作 `t >= T(0)`、Qt 写作 `t >= 0`，对全部算术类型等价；
+//   · pk/test 的 qAbs 写作 `t >= T(0)`、Qt 写作 `t >= 0`，对全部算术类型等价
+//     （含 -0.0：`-0.0 >= T(0)` 与 `-0.0 >= 0` 都为真，两边都原样返回 -0.0）；
 //   · pkFuzzyCompare 用 std::fabs/std::fmin，Qt 用 qAbs/qMin。只有实参含 NaN 时
 //     fmin 与 qMin 的取值不同，而那种情况下两边的 <= 都被 NaN 拉成 false。
+// 这条「语义等价」不是断言：tests/coexist.h 的探针把让位路径上的取值（含
+// qFuzzyCompare 的零侧语义）逐条钉住，pk/test 漂离 Qt 时测试会变红。
 // ---------------------------------------------------------------------------
-#if defined(PK_GEOMETRY_WITH_PKTEST_COMPAT) && !defined(qFuzzyCompare)
-#  include "../test/compat/QtGlobal"
-#endif
-
 #if defined(qFuzzyCompare) || defined(qFuzzyIsNull)
 #  define PK_GLOBAL_SCALARS_FROM_PKTEST
 #endif
@@ -60,7 +60,10 @@
 typedef double qreal;
 
 #ifndef PK_GLOBAL_SCALARS_FROM_PKTEST
-// qglobal.h:657-658
+// qglobal.h:657-658。⚠ 条件是 `t >= 0` 而不是 `t > 0`：-0.0 >= 0 为真，所以
+// qAbs(-0.0) **原样返回 -0.0**（signbit 仍是 1，1.0/qAbs(-0.0) == -inf）。
+// 写成 `t > 0` 会把零号规范成 +0.0 —— 那是真实的行为差异，会经 1/x、atan2、
+// copysign 扩散出去。实测真 Qt 5.15.7 确认，tests/test_global.cpp 用 signbit 钉住。
 template <typename T>
 constexpr inline T qAbs(const T &t) { return t >= 0 ? t : -t; }
 #endif

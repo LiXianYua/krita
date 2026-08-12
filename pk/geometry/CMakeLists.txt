@@ -31,11 +31,10 @@ pk_test_generate(PKGEOMETRY_GENERATED_SOURCES
 add_executable(test_pkgeometry
     tests/test_main.cpp
     tests/test_global.cpp
-    # 三种 include 顺序下的「两份 compat/QtGlobal 共存」TU。它们能编过本身就是
+    # 两种 include 顺序下的「两份 compat/QtGlobal 共存」TU。它们能编过本身就是
     # 断言的一半，所以必须真的作为独立翻译单元编译，不能合并。
     tests/coexist_test_first.cpp
     tests/coexist_geometry_first.cpp
-    tests/coexist_pkglobal_first.cpp
 )
 target_link_libraries(test_pkgeometry PRIVATE pkgeometry pktest)
 
@@ -45,9 +44,3 @@ target_link_libraries(test_pkgeometry PRIVATE pkgeometry pktest)
 target_include_directories(test_pkgeometry PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 set_source_files_properties(tests/test_global.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_global_case.inc")
-
-# 顺序 C 的 TU（先包 PkGlobal.h、之后才撞上 pk/test 的垫片）需要这个开关，
-# 详见 PkGlobal.h 顶部「与 pk/test/compat/QtGlobal 的共存」一节。
-# 只加在这一个源文件上：其余 TU 必须在没有开关的情况下也走得通。
-set_source_files_properties(tests/coexist_pkglobal_first.cpp PROPERTIES
-    COMPILE_DEFINITIONS PK_GEOMETRY_WITH_PKTEST_COMPAT)

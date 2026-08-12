@@ -4,18 +4,24 @@
 //
 // pk/test/compat/QtGlobal（R-11 交付、本任务不许改）与 pk/geometry/compat/QtGlobal
 // 同名，试接时编译行会同时有 -I pk/test/compat 与 -I pk/geometry/compat。
-// 谁先进翻译单元、两份会不会互相重定义，是 Task 7 真会撞上的问题——这里用三个
-// 独立 TU 把三种顺序各编译一遍：
+// 谁先进翻译单元、两份会不会互相重定义，是 Task 7 真会撞上的问题——这里用两个
+// 独立 TU 把两种顺序各编译一遍：
 //
-//   tests/coexist_test_first.cpp      pk/test 那份在前
-//   tests/coexist_geometry_first.cpp  pk/geometry 那份在前
-//   tests/coexist_pkglobal_first.cpp  先直接包库头 PkGlobal.h，之后才撞上 pk/test 那份
+//   tests/coexist_test_first.cpp      pk/test 那份在前（走 PkGlobal.h 的机制①）
+//   tests/coexist_geometry_first.cpp  pk/geometry 那份在前（走机制②）
 //
 // **能编过本身就是断言的一半**（重复定义 qAbs 是硬错误，qFuzzyCompare 那个
-// #define 打架会把函数名当场改写掉）；另一半是三条路径必须给出同一组取值，
-// 且与真 Qt 5.15.7 一致——由 tests/test_global.cpp 的三个测试函数核对。
+// #define 打架会把函数名当场改写掉）；另一半是两条路径必须给出同一组取值，
+// 且与真 Qt 5.15.7 一致——由 tests/test_global.cpp 的两个测试函数核对。
 //
-// 本头**不得** include 任何提供 qAbs/qFuzzy*/qRound/qreal 的东西：三个 TU 的
+// **另一半为什么必须包含零侧语义**：这两条路径上 qFuzzyCompare 都让位给了
+// pk/test 的 pkFuzzyCompare，而 pk/test 不在 R-03 的 locks 里、R-11 随时可能动它。
+// 探针只取非零点（1.0 vs 1.0、1.0 vs 1.0000001）时，给 pkFuzzyCompare 注入一个
+// 「任一侧为 0 就走 fuzzyIsNull」的分支——一条真实的对 Qt 偏离——这些 TU 会全绿。
+// 所以 fuzzyZeroA/fuzzyZeroB 是必需项：Qt 的右端取 qMin(|p1|,|p2|)，任一侧为 0
+// 就恒 false，让位路径必须给出同样的 false。
+//
+// 本头**不得** include 任何提供 qAbs/qFuzzy*/qRound/qreal 的东西：两个 TU 的
 // include 顺序正是被测变量，这里多包一个头就把变量污染了。<type_traits> 不提供
 // 其中任何一项，安全。
 
@@ -29,6 +35,8 @@ struct PkCoexistProbe
     int boundAbove;        // qBound(0, 5, 3)
     bool fuzzyEqual;       // qFuzzyCompare(1.0, 1.0)
     bool fuzzyDiffer;      // qFuzzyCompare(1.0, 1.0000001)
+    bool fuzzyZeroA;       // qFuzzyCompare(0.0, 1e-300)  —— Qt 恒 false
+    bool fuzzyZeroB;       // qFuzzyCompare(1e-300, 0.0)  —— Qt 恒 false
     bool fuzzyNull;        // qFuzzyIsNull(0.0)
     bool fuzzyNotNull;     // qFuzzyIsNull(1e-11)
     unsigned long qrealSize;
@@ -37,10 +45,9 @@ struct PkCoexistProbe
 
 PkCoexistProbe pkCoexistTestShimFirst();
 PkCoexistProbe pkCoexistGeometryShimFirst();
-PkCoexistProbe pkCoexistPkGlobalFirst();
 
-// 三个 TU 的函数体一模一样，只有它们上方的 include 顺序不同——用宏共享函数体，
-// 免得三份手抄的取值悄悄跑偏，把「顺序无关」这一条测试变成三个不同的测试。
+// 两个 TU 的函数体一模一样，只有它们上方的 include 顺序不同——用宏共享函数体，
+// 免得两份手抄的取值悄悄跑偏，把「顺序无关」这一条测试变成两个不同的测试。
 #define PK_COEXIST_DEFINE(fnName)                                       \
     PkCoexistProbe fnName()                                             \
     {                                                                   \
@@ -54,6 +61,10 @@ PkCoexistProbe pkCoexistPkGlobalFirst();
         p.boundAbove = boundAbove_;                                     \
         p.fuzzyEqual = qFuzzyCompare(1.0, 1.0);                         \
         p.fuzzyDiffer = qFuzzyCompare(1.0, 1.0000001);                  \
+        /* 零侧：Qt 的右端是 qMin(|p1|,|p2|)，任一侧为 0 就恒 false。    */ \
+        /* 两个方向都取，因为「只有一侧特判」的实现只会漏其中一个。      */ \
+        p.fuzzyZeroA = qFuzzyCompare(0.0, 1e-300);                      \
+        p.fuzzyZeroB = qFuzzyCompare(1e-300, 0.0);                      \
         p.fuzzyNull = qFuzzyIsNull(0.0);                                \
         p.fuzzyNotNull = qFuzzyIsNull(1e-11);                           \
         p.qrealSize = sizeof(qreal);                                    \
