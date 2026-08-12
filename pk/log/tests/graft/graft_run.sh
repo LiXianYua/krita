@@ -48,7 +48,25 @@ COMMON_INC=(-I pk/log -I pk/log/compat -I pk/string -I pk/string/compat -I "$STU
 # 那条一样，是编译参数，不是对调用点的改动。
 FORCE_INCLUDE=(-include "$STUBS/QtGlobal" -include pk/string/compat/QString)
 DEFS=(-DQT_NO_DEBUG)
-LIBS=(pk/test/build/libpktest.a pk/log/build/libpklog.a pk/string/build/libpkstring.a pk/log/build/libspdlogd.a)
+
+# 评审 Minor 项：这个文件名只在 CMakeLists.txt 的 FetchContent 兜底路径下
+# 成立，且 Debug 构建产出 libspdlogd.a、Release 产出 libspdlog.a（无 d
+# 后缀）；I-02 把 spdlog 装进依赖前缀之后 find_package 生效，两个文件名都
+# 不存在。两个名字都探一遍，都没有就报清楚的错——不在这里解决
+# find_package 命中系统安装位置这种更深的情形（那种情形下 spdlog 根本不在
+# pk/log/build 下，需要另外的链接方式，超出本条 Minor 修复的范围）。
+SPDLOG_LIB=""
+for cand in pk/log/build/libspdlogd.a pk/log/build/libspdlog.a; do
+    if [ -f "$cand" ]; then SPDLOG_LIB="$cand"; break; fi
+done
+if [ -z "$SPDLOG_LIB" ]; then
+    printf 'graft_run.sh: 找不到 spdlog 静态库（试过 libspdlogd.a 与 libspdlog.a，\n' >&2
+    printf '  pk/log/build 下都没有）。这条探测只覆盖 CMakeLists.txt 的\n' >&2
+    printf '  FetchContent 兜底路径；如果这次是 find_package 命中了系统安装的\n' >&2
+    printf '  spdlog，请另外确认链接方式。\n' >&2
+    exit 1
+fi
+LIBS=(pk/test/build/libpktest.a pk/log/build/libpklog.a pk/string/build/libpkstring.a "$SPDLOG_LIB")
 
 # run_one：试接一个真实测试类。
 #   $1 name          试接名，也是产物名

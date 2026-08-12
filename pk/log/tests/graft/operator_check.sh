@@ -22,6 +22,12 @@
 #
 # 跑起来会比较久（候选头近百个，每个都是一次独立的 g++ -c），正常现象。
 set -u
+# 评审 Minor 项：classify_reason() 靠匹配 gcc 的"没有那个文件或目录"这句中文
+# 错误串来判定"缺文件"这一类；换一个非中文 locale（LANG/LC_ALL 不是
+# zh_CN），gcc 会改说英文，正则匹配落空，全部缺文件的用例都会跌进
+# UNCLASSIFIED、脚本以 exit 2 收场——别人在自己机器上复现不出 A=1 B=48 C=0
+# 这个结论。锁定 LC_ALL=C，让 gcc 的诊断串在任何机器上都是同一种英文形态。
+export LC_ALL=C
 cd "$(dirname "$0")/../../../.." || exit 1   # → fork 仓库根
 
 STUBS=pk/log/tests/graft/stubs
@@ -49,9 +55,10 @@ classify_reason() {
         return
     fi
 
-    # 形态一：`fatal error: X: 没有那个文件或目录`（找不到头文件）。
+    # 形态一：`fatal error: X: No such file or directory`（找不到头文件）。
+    # LC_ALL=C 锁定这句一定是英文（见脚本顶部），不再依赖运行机器的 locale。
     local missing
-    missing=$(printf '%s\n' "$first" | sed -nE 's/.*fatal error: ([^:]+): 没有那个文件或目录.*/\1/p')
+    missing=$(printf '%s\n' "$first" | sed -nE 's/.*fatal error: ([^:]+): No such file or directory.*/\1/p')
     if [ -n "$missing" ]; then
         case "$missing" in
             *_export.h)

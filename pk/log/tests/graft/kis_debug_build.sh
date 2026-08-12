@@ -54,9 +54,23 @@ echo "== 编 kis_debug.cpp（原地，libs/global 一字不动）=="
 echo "== 编 driver_kis_debug.cpp =="
 "$CXX" -std=c++17 "${DEFS[@]}" "${FORCE_INCLUDE[@]}" -c pk/log/tests/graft/driver_kis_debug.cpp -o "$WORK/driver_kis_debug.o" "${INC[@]}"
 
+# 评审 Minor 项：libspdlogd.a 只在 CMakeLists.txt 的 FetchContent 兜底 +
+# Debug 构建下成立，Release 构建产出 libspdlog.a（无 d 后缀），find_package
+# 命中系统安装的 spdlog 时两个都不存在。两个名字都探一遍，见
+# graft_run.sh 同款注释。
+SPDLOG_LIB=""
+for cand in pk/log/build/libspdlogd.a pk/log/build/libspdlog.a; do
+    if [ -f "$cand" ]; then SPDLOG_LIB="$cand"; break; fi
+done
+if [ -z "$SPDLOG_LIB" ]; then
+    printf 'kis_debug_build.sh: 找不到 spdlog 静态库（试过 libspdlogd.a 与 libspdlog.a，\n' >&2
+    printf '  pk/log/build 下都没有）。\n' >&2
+    exit 1
+fi
+
 echo "== 链 =="
 "$CXX" -std=c++17 "$WORK/kis_debug.o" "$WORK/driver_kis_debug.o" \
-    pk/log/build/libpklog.a pk/string/build/libpkstring.a pk/log/build/libspdlogd.a \
+    pk/log/build/libpklog.a pk/string/build/libpkstring.a "$SPDLOG_LIB" \
     -o "$WORK/kis_debug_check"
 
 echo "== 跑 =="
