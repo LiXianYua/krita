@@ -25,8 +25,6 @@
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 
-#include "kis_wdg_fastcolortransfer.h"
-#include "ui_wdgfastcolortransfer.h"
 #include <KisSequentialIteratorProgress.h>
 #include <KoProgressUpdater.h>
 
@@ -53,12 +51,6 @@ KisFilterFastColorTransfer::KisFilterFastColorTransfer() : KisFilter(id(), Filte
     setSupportsAdjustmentLayers(false);
 }
 
-
-KisConfigWidget * KisFilterFastColorTransfer::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisWdgFastColorTransfer(parent);
-}
 
 KisFilterConfigurationSP KisFilterFastColorTransfer::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const
 {

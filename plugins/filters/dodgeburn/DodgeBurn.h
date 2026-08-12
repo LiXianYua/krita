@@ -8,8 +8,6 @@
 
 #include "filter/kis_color_transformation_filter.h"
 
-#include "kis_config_widget.h"
-
 
 class KisFilterDodgeBurn : public KisColorTransformationFilter
 {
@@ -24,25 +22,9 @@ public:
 public:
 
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
-    KisConfigWidget * createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 private:
     QString m_prefix;
-};
-
-class Ui_DodgeBurnConfigurationBaseWidget;
-
-class KisDodgeBurnConfigWidget : public KisConfigWidget
-{
-
-public:
-    KisDodgeBurnConfigWidget(QWidget * parent, const QString& id);
-    ~KisDodgeBurnConfigWidget() override;
-
-    KisPropertiesConfigurationSP  configuration() const override;
-    void setConfiguration(const KisPropertiesConfigurationSP config) override;
-    QString m_id;
-    Ui_DodgeBurnConfigurationBaseWidget * m_page;
 };
 
 #endif

@@ -5,7 +5,6 @@
  */
 
 #include "kis_phong_bumpmap_filter.h"
-#include "kis_phong_bumpmap_config_widget.h"
 #include "phong_pixel_processor.h"
 
 #include "kis_debug.h"
@@ -215,10 +214,4 @@ QRect KisFilterPhongBumpmap::neededRect(const QRect &rect, const KisFilterConfig
 QRect KisFilterPhongBumpmap::changedRect(const QRect &rect, const KisFilterConfigurationSP /*config*/, int /*lod*/) const
 {
     return rect;
-}
-
-KisConfigWidget *KisFilterPhongBumpmap::createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool) const
-{
-    KisPhongBumpmapConfigWidget *w = new KisPhongBumpmapConfigWidget(dev, parent);
-    return w;
 }

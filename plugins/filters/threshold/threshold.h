@@ -15,8 +15,6 @@
 #include <kis_filter_configuration.h>
 #include <kis_config_widget.h>
 
-#include "ui_wdg_threshold.h"
-
 class WdgThreshold;
 class QWidget;
 class KisHistogram;
@@ -48,30 +46,6 @@ public:
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 
-    KisConfigWidget *createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
-
-};
-
-class KisThresholdConfigWidget : public KisConfigWidget
-{
-    Q_OBJECT
-public:
-    KisThresholdConfigWidget(QWidget *parent, KisPaintDeviceSP dev);
-    ~KisThresholdConfigWidget() override;
-
-    KisPropertiesConfigurationSP configuration() const override;
-    void setConfiguration(const KisPropertiesConfigurationSP config) override;
-    Ui::WdgThreshold m_page;
-
-private Q_SLOTS:
-    void slotDrawHistogram(bool logarithmic = false);
-
-    void slotSetThreshold(int);
-
-
-protected:
-    QScopedPointer<KisHistogram> m_histogram;
-    bool m_histlog;
 };
 
 
