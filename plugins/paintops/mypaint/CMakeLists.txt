@@ -5,7 +5,6 @@ set(kritamypaintop_SOURCES
     MyPaintSensorPack.cpp
     MyPaintCurveOptionData.cpp
     MyPaintCurveRangeModel.cpp
-    MyPaintCurveOptionRangeControlsStrategy.cpp
     MyPaintPaintOp.cpp
     MyPaintBasicOptionData.cpp
     MyPaintPaintOpSettings.cpp

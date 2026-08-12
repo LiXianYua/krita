@@ -4,9 +4,7 @@ set(kritahatchingpaintop_SOURCES
     kis_hatching_paintop_settings.cpp
     hatching_brush.cpp
     KisHatchingOptionsData.cpp
-    KisHatchingOptionsModel.cpp
     KisHatchingPreferencesData.cpp
-    KisHatchingPreferencesModel.cpp
     )
 
 kis_add_library(kritahatchingpaintop MODULE ${kritahatchingpaintop_SOURCES})

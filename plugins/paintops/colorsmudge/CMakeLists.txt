@@ -11,7 +11,6 @@ set(kritacolorsmudgepaintop_SOURCES
     KisSmudgeOverlayModeOptionData.cpp
     KisSmudgeRadiusOptionData.cpp
     KisGradientOption.cpp
-    KisBrushPropertiesModel.cpp
     KisColorSmudgeStrategy.cpp
     KisColorSmudgeSource.cpp
     KisColorSmudgeStrategyBase.cpp
