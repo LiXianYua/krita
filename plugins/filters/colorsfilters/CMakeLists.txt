@@ -10,15 +10,8 @@ set(kritacolorsfilters_SOURCES
     kis_desaturate_filter.cpp
     )
 
-ki18n_wrap_ui(kritacolorsfilters_SOURCES
-    wdg_perchannel.ui
-    wdg_color_balance.ui
-    wdg_hsv_adjustment.ui
-    wdg_desaturate.ui
-)
-
 kis_add_library(kritacolorsfilters MODULE ${kritacolorsfilters_SOURCES})
-target_link_libraries(kritacolorsfilters kritaui)
+target_link_libraries(kritacolorsfilters kritaimage)
 install(TARGETS kritacolorsfilters  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 install( FILES
     colorsfilters.action

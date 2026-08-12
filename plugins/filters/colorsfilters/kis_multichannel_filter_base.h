@@ -16,7 +16,6 @@
 #include <filter/kis_color_transformation_configuration.h>
 #include <kis_config_widget.h>
 #include <kis_paint_device.h>
-#include "ui_wdg_perchannel.h"
 
 #include "virtual_channel_info.h"
 
@@ -70,6 +69,27 @@ public:
     void setProperty(const QString& name, const QVariant& value) override;
     void setActiveCurve(int value);
 
+    /**
+     * Remap the curve indexes stored by an older version of the document onto the
+     * virtual channel indexes of @p targetColorSpace.
+     *
+     * Salvaged from KisMultiChannelConfigWidget::setConfiguration(), removed in D-02-b ---
+     * it used to live on the widget only because the widget was the one holding the paint
+     * device's color space and each filter's default curves.
+     *
+     * @param targetColorSpace the paint device's composition source color space, i.e. the
+     *        color space whose virtual channel layout the result is expressed in.
+     * @param loadedCurves the curves as read from the document. Their number is what tells
+     *        getVirtualChannels() which version of Krita wrote the configuration.
+     * @param defaultCurves the per-channel default curves to fall back to for channels that
+     *        cannot be matched. Supplied by the caller because getDefaultCurve() differs per
+     *        filter. Its size is expected to equal getVirtualChannels(targetColorSpace).size().
+     * @return the whole curve list, remapped.
+     */
+    static QList<KisCubicCurve> remapLegacyCurves(const KoColorSpace *targetColorSpace,
+                                                  const QList<KisCubicCurve> &loadedCurves,
+                                                  const QList<KisCubicCurve> &defaultCurves);
+
 protected:
     int m_channelCount {0};
     int m_activeCurve {-1};
@@ -92,56 +112,6 @@ protected:
      * @return false if "name" had an invalid format
      */
     bool curveIndexFromCurvePropertyName(const QString& name, int& curveIndex) const;
-};
-
-class WdgPerChannel : public QWidget, public Ui::WdgPerChannel
-{
-    Q_OBJECT
-
-public:
-    WdgPerChannel(QWidget *parent) : QWidget(parent) {
-        setupUi(this);
-    }
-};
-
-/**
- * Base class for configuration widgets of KisMultiChannelFilter subclasses
- */
-class KisMultiChannelConfigWidget : public KisConfigWidget
-{
-    Q_OBJECT
-
-public:
-    KisMultiChannelConfigWidget(QWidget * parent, KisPaintDeviceSP dev, Qt::WindowFlags f = Qt::WindowFlags());
-    ~KisMultiChannelConfigWidget() override;
-
-    void setConfiguration(const KisPropertiesConfigurationSP config) override;
-
-protected Q_SLOTS:
-    void logHistView();
-    void resetCurve();
-    void slotCurveModified();
-    void slotChannelSelected(int index);
-
-protected:
-    void init();
-    void resetCurves();
-    void setActiveChannel(int ch);
-    virtual int findDefaultVirtualChannelSelection();
-
-    virtual void updateChannelControls() = 0;
-    virtual KisPropertiesConfigurationSP getDefaultConfiguration() = 0;
-
-    inline QPixmap getHistogram();
-    inline QPixmap createGradient(Qt::Orientation orient /*, int invert (not used now) */);
-
-    QVector<VirtualChannelInfo> m_virtualChannels;
-    int m_activeVChannel {0};
-    mutable QList<KisCubicCurve> m_curves;
-
-    KisPaintDeviceSP m_dev;
-    WdgPerChannel * m_page {nullptr};
-    KisHistogram *m_histogram {nullptr};
 };
 
 #endif

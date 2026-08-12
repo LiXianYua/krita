@@ -9,7 +9,6 @@
 
 #include "filter/kis_filter.h"
 #include "kis_config_widget.h"
-#include "ui_wdg_color_balance.h"
 #include "filter/kis_color_transformation_filter.h"
 
 
@@ -31,8 +30,6 @@ public:
 
 public:
 
-	KisConfigWidget * createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
-
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
 
 	static inline KoID id() {
@@ -41,26 +38,6 @@ public:
 
     KisFilterConfigurationSP  defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 
-};
-
-class KisColorBalanceConfigWidget : public KisConfigWidget
-{
-
-	Q_OBJECT
-
-public:
-    KisColorBalanceConfigWidget(QWidget * parent);
-	~KisColorBalanceConfigWidget() override;
-
-	KisPropertiesConfigurationSP  configuration() const override;
-	void setConfiguration(const KisPropertiesConfigurationSP config) override;
-    Ui_Form * m_page;
-    QString m_id;
-
-public Q_SLOTS:
-    void slotShadowsClear();
-    void slotMidtonesClear();
-    void slotHighlightsClear();
 };
 
 #endif

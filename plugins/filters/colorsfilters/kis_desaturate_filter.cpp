@@ -17,7 +17,6 @@
 #include <QSlider>
 #include <QPoint>
 #include <QColor>
-#include <QButtonGroup>
 
 #include <klocalizedstring.h>
 
@@ -31,7 +30,6 @@
 #include <filter/kis_color_transformation_configuration.h>
 #include <kis_paint_device.h>
 #include <kis_processing_information.h>
-#include <KisDocument.h>
 #include <kis_image.h>
 #include <kis_layer.h>
 #include <kis_global.h>
@@ -55,13 +53,6 @@ KisDesaturateFilter::~KisDesaturateFilter()
 {
 }
 
-KisConfigWidget *KisDesaturateFilter::createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    return new KisDesaturateConfigWidget(parent);
-}
-
-
 KoColorTransformation* KisDesaturateFilter::createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const
 {
     QHash<QString, QVariant> params;
@@ -76,37 +67,4 @@ KisFilterConfigurationSP KisDesaturateFilter::defaultConfiguration(KisResourcesI
     KisFilterConfigurationSP config = factoryConfiguration(resourcesInterface);
     config->setProperty("type", 0);
     return config;
-}
-
-KisDesaturateConfigWidget::KisDesaturateConfigWidget(QWidget * parent, Qt::WindowFlags f) : KisConfigWidget(parent, f)
-{
-    m_page = new Ui_WdgDesaturate();
-    m_page->setupUi(this);
-    m_group = new QButtonGroup(this);
-    m_group->addButton(m_page->radioLightness, 0);
-    m_group->addButton(m_page->radioLuminosityBT709, 1);
-    m_group->addButton(m_page->radioLuminosityBT601, 2);
-    m_group->addButton(m_page->radioAverage, 3);
-    m_group->addButton(m_page->radioMin, 4);
-    m_group->addButton(m_page->radioMax, 5);
-    m_group->setExclusive(true);
-    connect(m_group, SIGNAL(idClicked(int)), SIGNAL(sigConfigurationItemChanged()));
-}
-
-KisDesaturateConfigWidget::~KisDesaturateConfigWidget()
-{
-    delete m_page;
-}
-
-KisPropertiesConfigurationSP  KisDesaturateConfigWidget::configuration() const
-{
-    KisColorTransformationConfigurationSP c = new KisColorTransformationConfiguration(KisDesaturateFilter::id().id(), 0, KisGlobalResourcesInterface::instance());
-    c->setProperty("type", m_group->checkedId());
-    return c;
-}
-
-void KisDesaturateConfigWidget::setConfiguration(const KisPropertiesConfigurationSP  config)
-{
-    m_group->button(config->getInt("type", 0))->setChecked(true);
-    Q_EMIT sigConfigurationItemChanged();
 }

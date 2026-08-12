@@ -38,7 +38,6 @@
 
 #include "kis_histogram.h"
 #include "kis_painter.h"
-#include "widgets/kis_curve_widget.h"
 
 #include "kis_multichannel_utils.h"
 
@@ -386,304 +385,54 @@ bool KisMultiChannelFilterConfiguration::curveIndexFromCurvePropertyName(const Q
     return true;
 }
 
-KisMultiChannelConfigWidget::KisMultiChannelConfigWidget(QWidget * parent, KisPaintDeviceSP dev, Qt::WindowFlags f)
-        : KisConfigWidget(parent, f)
-        , m_dev(dev)
-        , m_page(new WdgPerChannel(this))
+QList<KisCubicCurve> KisMultiChannelFilterConfiguration::remapLegacyCurves(const KoColorSpace *targetColorSpace,
+                                                                          const QList<KisCubicCurve> &loadedCurves,
+                                                                          const QList<KisCubicCurve> &defaultCurves)
 {
-    Q_ASSERT(m_dev);
+    // The configuration does not cover all our channels.
+    // This happens when loading a document from an older version, which supported fewer channels.
+    // Reset to make sure the unspecified channels have their default values.
+    QList<KisCubicCurve> curves = defaultCurves;
 
-    const KoColorSpace *targetColorSpace = dev->compositionSourceColorSpace();
-    m_virtualChannels = KisMultiChannelFilter::getVirtualChannels(targetColorSpace);
-}
+    QVector<VirtualChannelInfo> virtualChannels = KisMultiChannelFilter::getVirtualChannels(targetColorSpace);
 
-/**
- * Initialize the dialog.
- * Note: m_virtualChannels must be populated before calling this
- */
-void KisMultiChannelConfigWidget::init() {
-    QHBoxLayout * layout = new QHBoxLayout(this);
-    Q_CHECK_PTR(layout);
-    layout->setContentsMargins(0,0,0,0);
-    layout->addWidget(m_page);
+    auto compareChannels =
+        [] (const VirtualChannelInfo &lhs, const VirtualChannelInfo &rhs) -> bool {
+        return lhs.type() == rhs.type() &&
+            (lhs.type() != VirtualChannelInfo::REAL || lhs.pixelIndex() == rhs.pixelIndex());
+    };
 
-    resetCurves();
+    /**
+     * Adjust the layout of channels in the configuration to the layout of the
+     * current version of Krita. When we pass number of loaded channels
+     * to getVirtualChannels() it automatically detects the version of Krita
+     * the configuration was created in.
+     */
+    QVector<VirtualChannelInfo> detectedCurves = KisMultiChannelUtils::getVirtualChannels(targetColorSpace, loadedCurves.size());
 
-    const int virtualChannelCount = m_virtualChannels.size();
-    for (int i = 0; i < virtualChannelCount; i++) {
-        const VirtualChannelInfo &info = m_virtualChannels[i];
-        m_page->cmbChannel->addItem(info.name(), i);
-    }
-
-    connect(m_page->cmbChannel, SIGNAL(activated(int)), this, SLOT(slotChannelSelected(int)));
-    connect((QObject*)(m_page->chkLogarithmic), SIGNAL(toggled(bool)), this, SLOT(logHistView()));
-    connect((QObject*)(m_page->resetButton), SIGNAL(clicked()), this, SLOT(resetCurve()));
-
-    // create the horizontal and vertical gradient labels
-    m_page->hgradient->setPixmap(createGradient(Qt::Horizontal));
-    m_page->vgradient->setPixmap(createGradient(Qt::Vertical));
-
-    // init histogram calculator
-    const KoColorSpace *targetColorSpace = m_dev->compositionSourceColorSpace();
-    QList<QString> keys =
-        KoHistogramProducerFactoryRegistry::instance()->keysCompatibleWith(targetColorSpace);
-
-    if (keys.size() > 0) {
-        KoHistogramProducerFactory *hpf;
-        hpf = KoHistogramProducerFactoryRegistry::instance()->get(keys.at(0));
-        m_histogram = new KisHistogram(m_dev, m_dev->exactBounds(), hpf->generate(), LINEAR);
-    }
-
-    m_page->curveWidget->setCurve(m_curves[0]);
-    connect(m_page->curveWidget, SIGNAL(modified()), this, SLOT(slotCurveModified()));
-
-    {
-        KisSignalsBlocker b(m_page->curveWidget);
-        setActiveChannel(0);
-    }
-}
-
-KisMultiChannelConfigWidget::~KisMultiChannelConfigWidget()
-{
-    KIS_ASSERT(m_histogram);
-    delete m_histogram;
-}
-
-void KisMultiChannelConfigWidget::resetCurves()
-{
-    const KisPropertiesConfigurationSP &defaultConfiguration = getDefaultConfiguration();
-    const auto *defaults = dynamic_cast<const KisMultiChannelFilterConfiguration*>(defaultConfiguration.data());
-
-    KIS_SAFE_ASSERT_RECOVER_RETURN(defaults);
-    m_curves = defaults->curves();
-
-    const int virtualChannelCount = m_virtualChannels.size();
-    for (int i = 0; i < virtualChannelCount; i++) {
-        const VirtualChannelInfo &info = m_virtualChannels[i];
-        m_curves[i].setName(info.name());
-    }
-}
-
-void KisMultiChannelConfigWidget::setConfiguration(const KisPropertiesConfigurationSP config)
-{
-    const KisMultiChannelFilterConfiguration * cfg = dynamic_cast<const KisMultiChannelFilterConfiguration *>(config.data());
-    if (!cfg) {
-        return;
-    }
-
-    if (cfg->curves().empty()) {
-        /**
-         * HACK ALERT: our configuration factory generates
-         * default configuration with nTransfers==0.
-         * Catching it here. Just set everything to defaults instead.
-         */
-        const KisPropertiesConfigurationSP &defaultConfiguration = getDefaultConfiguration();
-        const auto *defaults = dynamic_cast<const KisMultiChannelFilterConfiguration*>(defaultConfiguration.data());
-        KIS_SAFE_ASSERT_RECOVER_RETURN(defaults);
-
-        if (!defaults->curves().isEmpty()) {
-            setConfiguration(defaultConfiguration);
-            return;
-        }
-    } else if (cfg->curves().size() > m_virtualChannels.size()) {
-        QMessageBox::warning(this, i18nc("@title:window", "Krita"), i18n("The current configuration was created for a different colorspace and cannot be used. All curves will be reset."));
-        warnKrita << "WARNING: trying to load a curve with invalid number of channels!";
-        warnKrita << "WARNING:   expected:" << m_virtualChannels.size();
-        warnKrita << "WARNING:        got:" << cfg->curves().size();
-        return;
-    } else {
-        if (cfg->curves().size() == m_virtualChannels.size()) {
-            for (int ch = 0; ch < cfg->curves().size(); ch++) {
-                m_curves[ch] = cfg->curves()[ch];
-            }
+    for (auto detectedIt = detectedCurves.begin(); detectedIt != detectedCurves.end(); ++detectedIt) {
+        auto dstIt = std::find_if(virtualChannels.begin(), virtualChannels.end(),
+                                  [=] (const VirtualChannelInfo &info) {
+                                      return compareChannels(*detectedIt, info);
+                                  });
+        if (dstIt != virtualChannels.end()) {
+            const int srcIndex = std::distance(detectedCurves.begin(), detectedIt);
+            const int dstIndex = std::distance(virtualChannels.begin(), dstIt);
+            curves[dstIndex] = loadedCurves[srcIndex];
         } else {
-            // The configuration does not cover all our channels.
-            // This happens when loading a document from an older version, which supported fewer channels.
-            // Reset to make sure the unspecified channels have their default values.
-            resetCurves();
+            warnKrita << "WARNING: failed to find mapping of the channel in the filter configuration:";
+            warnKrita << "WARNING:   channel:" << ppVar(detectedIt->name()) << ppVar(detectedIt->type())<< ppVar(detectedIt->pixelIndex());
+            warnKrita << "WARNING:";
 
-            auto compareChannels =
-                [] (const VirtualChannelInfo &lhs, const VirtualChannelInfo &rhs) -> bool {
-                return lhs.type() == rhs.type() &&
-                    (lhs.type() != VirtualChannelInfo::REAL || lhs.pixelIndex() == rhs.pixelIndex());
-            };
+            for (auto it = detectedCurves.begin(); it != detectedCurves.end(); ++it) {
+                warnKrita << "WARNING:   detected channels" << std::distance(detectedCurves.begin(), it) << ":" << it->name();
+            }
 
-            const KoColorSpace *targetColorSpace = m_dev->compositionSourceColorSpace();
-
-
-            /**
-             * Adjust the layout of channels in the configuration to the layout of the
-             * current version of Krita. When we pass number of loaded channels
-             * to getVirtualChannels() it automatically detects the version of Krita
-             * the configuration was created in.
-             */
-            QVector<VirtualChannelInfo> detectedCurves = KisMultiChannelUtils::getVirtualChannels(targetColorSpace, cfg->curves().size());
-
-            for (auto detectedIt = detectedCurves.begin(); detectedIt != detectedCurves.end(); ++detectedIt) {
-                auto dstIt = std::find_if(m_virtualChannels.begin(), m_virtualChannels.end(),
-                                          [=] (const VirtualChannelInfo &info) {
-                                              return compareChannels(*detectedIt, info);
-                                          });
-                if (dstIt != m_virtualChannels.end()) {
-                    const int srcIndex = std::distance(detectedCurves.begin(), detectedIt);
-                    const int dstIndex = std::distance(m_virtualChannels.begin(), dstIt);
-                    m_curves[dstIndex] = cfg->curves()[srcIndex];
-                } else {
-                    warnKrita << "WARNING: failed to find mapping of the channel in the filter configuration:";
-                    warnKrita << "WARNING:   channel:" << ppVar(detectedIt->name()) << ppVar(detectedIt->type())<< ppVar(detectedIt->pixelIndex());
-                    warnKrita << "WARNING:";
-
-                    for (auto it = detectedCurves.begin(); it != detectedCurves.end(); ++it) {
-                        warnKrita << "WARNING:   detected channels" << std::distance(detectedCurves.begin(), it) << ":" << it->name();
-                    }
-
-                    for (auto it = m_virtualChannels.begin(); it != m_virtualChannels.end(); ++it) {
-                        warnKrita << "WARNING:   read channels" << std::distance(m_virtualChannels.begin(), it) << ":" << it->name();
-                    }
-                }
+            for (auto it = virtualChannels.begin(); it != virtualChannels.end(); ++it) {
+                warnKrita << "WARNING:   read channels" << std::distance(virtualChannels.begin(), it) << ":" << it->name();
             }
         }
     }
 
-    const int activeChannel =
-        config->hasProperty("activeCurve") ?
-        qBound(0, config->getInt("activeCurve"), m_curves.size()) :
-        findDefaultVirtualChannelSelection();
-
-    if (activeChannel == m_activeVChannel) {
-        m_page->curveWidget->setCurve(m_curves[m_activeVChannel]);
-    } else {
-        setActiveChannel(activeChannel);
-    }
-}
-
-int KisMultiChannelConfigWidget::findDefaultVirtualChannelSelection()
-{
-    return 0;
-}
-
-inline QPixmap KisMultiChannelConfigWidget::createGradient(Qt::Orientation orient /*, int invert (not used yet) */)
-{
-    int width;
-    int height;
-    int *i, inc, col;
-    int x = 0, y = 0;
-
-    if (orient == Qt::Horizontal) {
-        i = &x; inc = 1; col = 0;
-        width = 256; height = 1;
-    } else {
-        i = &y; inc = -1; col = 255;
-        width = 1; height = 256;
-    }
-
-    QPixmap gradientpix(width, height);
-    QPainter p(&gradientpix);
-    p.setPen(QPen(QColor(0, 0, 0), 1, Qt::SolidLine));
-    for (; *i < 256; (*i)++, col += inc) {
-        p.setPen(QColor(col, col, col));
-        p.drawPoint(x, y);
-    }
-    return gradientpix;
-}
-
-inline QPixmap KisMultiChannelConfigWidget::getHistogram()
-{
-    int i;
-    int height = 256;
-    QPixmap pix(256, height);
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_histogram, pix);
-
-
-    bool logarithmic = m_page->chkLogarithmic->isChecked();
-
-    if (logarithmic)
-        m_histogram->setHistogramType(LOGARITHMIC);
-    else
-        m_histogram->setHistogramType(LINEAR);
-
-
-    QPalette appPalette = QApplication::palette();
-
-    pix.fill(QColor(appPalette.color(QPalette::Base)));
-
-    QPainter p(&pix);
-    p.setPen(QColor(appPalette.color(QPalette::Text)));
-    p.save();
-    p.setOpacity(0.2);
-
-    const VirtualChannelInfo &info = m_virtualChannels[m_activeVChannel];
-
-
-    if (info.type() == VirtualChannelInfo::REAL) {
-        m_histogram->setChannel(info.pixelIndex());
-
-        double highest = (double)m_histogram->calculations().getHighest();
-
-        qint32 bins = m_histogram->producer()->numberOfBins();
-
-        if (m_histogram->getHistogramType() == LINEAR) {
-            double factor = (double)height / highest;
-            for (i = 0; i < bins; ++i) {
-                p.drawLine(i, height, i, height - int(m_histogram->getValue(i) * factor));
-            }
-        } else {
-            double factor = (double)height / (double)log(highest);
-            for (i = 0; i < bins; ++i) {
-                p.drawLine(i, height, i, height - int(log((double)m_histogram->getValue(i)) * factor));
-            }
-        }
-    }
-
-    p.restore();
-
-    return pix;
-}
-
-void KisMultiChannelConfigWidget::slotChannelSelected(int index)
-{
-    const int virtualChannel = m_page->cmbChannel->itemData(index).toInt();
-    setActiveChannel(virtualChannel);
-}
-
-void KisMultiChannelConfigWidget::slotCurveModified()
-{
-    if (m_activeVChannel >= 0) {
-        KIS_SAFE_ASSERT_RECOVER_RETURN(m_activeVChannel < m_curves.size());
-        m_curves[m_activeVChannel] = m_page->curveWidget->curve();
-    }
-    Q_EMIT sigConfigurationItemChanged();
-}
-
-void KisMultiChannelConfigWidget::setActiveChannel(int ch)
-{
-    if (ch == m_activeVChannel) return;
-    KIS_SAFE_ASSERT_RECOVER_RETURN(ch >= 0);
-    KIS_SAFE_ASSERT_RECOVER_RETURN(ch < m_curves.size());
-
-    m_activeVChannel = ch;
-    m_page->curveWidget->setCurve(m_curves[m_activeVChannel]);
-    m_page->curveWidget->setPixmap(getHistogram());
-
-    const int index = m_page->cmbChannel->findData(m_activeVChannel);
-    m_page->cmbChannel->setCurrentIndex(index);
-
-    updateChannelControls();
-}
-
-void KisMultiChannelConfigWidget::logHistView()
-{
-    m_page->curveWidget->setPixmap(getHistogram());
-}
-
-void KisMultiChannelConfigWidget::resetCurve()
-{
-    const KisPropertiesConfigurationSP &defaultConfiguration = getDefaultConfiguration();
-    const auto *defaults = dynamic_cast<const KisMultiChannelFilterConfiguration*>(defaultConfiguration.data());
-    KIS_SAFE_ASSERT_RECOVER_RETURN(defaults);
-
-    auto defaultCurves = defaults->curves();
-    KIS_SAFE_ASSERT_RECOVER_RETURN(defaultCurves.size() > m_activeVChannel);
-
-    m_page->curveWidget->setCurve(defaultCurves[m_activeVChannel]);
+    return curves;
 }

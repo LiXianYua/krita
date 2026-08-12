@@ -18,7 +18,6 @@
 #include "virtual_channel_info.h"
 
 #include "kis_multichannel_filter_base.h"
-#include <KisCurveWidgetControlsManager.h>
 
 
 class KisPerChannelFilterConfiguration
@@ -43,7 +42,6 @@ class KisPerChannelFilter : public KisMultiChannelFilter
 public:
     KisPerChannelFilter();
 
-    KisConfigWidget * createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
     KisFilterConfigurationSP factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
@@ -51,25 +49,6 @@ public:
     static inline KoID id() {
         return KoID("perchannel", i18n("Color Adjustment"));
     }
-};
-
-class KisPerChannelConfigWidget : public KisMultiChannelConfigWidget
-{
-    Q_OBJECT
-
-public:
-    KisPerChannelConfigWidget(QWidget * parent, KisPaintDeviceSP dev, Qt::WindowFlags f = Qt::WindowFlags());
-    ~KisPerChannelConfigWidget() override;
-
-    KisPropertiesConfigurationSP configuration() const override;
-
-protected:
-    void updateChannelControls() override;
-
-    virtual KisPropertiesConfigurationSP getDefaultConfiguration() override;
-
-private:
-    QScopedPointer<KisCurveWidgetControlsManagerInt> m_curveControlsManager;
 };
 
 #endif

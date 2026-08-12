@@ -11,7 +11,6 @@
 
 #include "filter/kis_filter.h"
 #include "kis_config_widget.h"
-#include "ui_wdg_hsv_adjustment.h"
 #include "filter/kis_color_transformation_filter.h"
 
 class QWidget;
@@ -29,8 +28,6 @@ public:
 
 public:
 
-    KisConfigWidget * createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
-
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
 
     static inline KoID id() {
@@ -41,29 +38,5 @@ public:
 
 };
 
-
-class KisHSVConfigWidget : public KisConfigWidget
-{
-
-    Q_OBJECT
-
-public:
-    explicit KisHSVConfigWidget(QWidget *parent, Qt::WindowFlags f = Qt::WindowFlags());
-    ~KisHSVConfigWidget() override;
-
-    KisPropertiesConfigurationSP  configuration() const override;
-    void setConfiguration(const KisPropertiesConfigurationSP config) override;
-    Ui_WdgHSVAdjustment *m_page;
-
-
-private Q_SLOTS:
-
-    void configureSliderLimitsAndLabels();
-    void resetFilter();
-    void recolorSliders();
-
-private:
-    bool m_prevColorize;
-};
 
 #endif

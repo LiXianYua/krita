@@ -15,12 +15,10 @@
 #include <filter/kis_color_transformation_configuration.h>
 #include <kis_config_widget.h>
 #include <kis_paint_device.h>
-#include "ui_wdg_perchannel.h"
 
 #include "virtual_channel_info.h"
 
 #include "kis_multichannel_filter_base.h"
-#include <KisCurveWidgetControlsManager.h>
 
 /**
  * Filter which applies a relative adjustment to a (virtual) color channel based on the value of another.
@@ -32,7 +30,6 @@ public:
     KisCrossChannelFilter();
     ~KisCrossChannelFilter() override;
 
-    KisConfigWidget * createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
     KisFilterConfigurationSP factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 
     KoColorTransformation* createTransformation(const KoColorSpace *cs, const KisFilterConfigurationSP config) const override;
@@ -81,31 +78,6 @@ private:
      * @return false if "name" had an invalid format
      */
     bool channelIndexFromDriverPropertyName(const QString& name, int& channelIndex) const;
-};
-
-class KisCrossChannelConfigWidget : public KisMultiChannelConfigWidget
-{
-    Q_OBJECT
-
-public:
-    KisCrossChannelConfigWidget(QWidget * parent, KisPaintDeviceSP dev, Qt::WindowFlags f = Qt::WindowFlags());
-    ~KisCrossChannelConfigWidget() override;
-
-    void setConfiguration(const KisPropertiesConfigurationSP config) override;
-    KisPropertiesConfigurationSP configuration() const override;
-
-protected:
-    void updateChannelControls() override;
-    int findDefaultVirtualChannelSelection() override;
-
-    virtual KisPropertiesConfigurationSP getDefaultConfiguration() override;
-
-private Q_SLOTS:
-    void slotDriverChannelSelected(int index);
-
-private:
-    QVector<int> m_driverChannels;
-    QScopedPointer<KisCurveWidgetControlsManagerInt> m_curveControlsManager;
 };
 
 #endif
