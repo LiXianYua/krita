@@ -188,23 +188,45 @@ Point 族没有对应物）。已补两条 `rec()`（`cmp_point_constants`），
 （判别力归零：把 `pkQtFuzzy*` 改回 `qFuzzy*` 时单测与对拍会一起绿灯放过），
 反过来破坏版也可能赢、把干净 TU 的断言变成假红。
 
-**判据：看这个被污染的 include 带进来的东西，有没有编在别处的 out-of-line 定义。**
+**判据：这个 TU 会不会 odr-use「编在别处的非 inline 成员」。**
+**不是**「带进来的东西有没有类型定义」——那个更宽的条件被本目录自己的样板证伪过，
+下面有实验。
 
-| 带进来的是 | 落匿名 `namespace`？ | 为什么 |
+| 本 TU 是否 odr-use 编在别处的非 inline 成员 | 落匿名 `namespace`？ | 为什么 |
 |---|---|---|
-| **只有函数式内容**（`compat/QtGlobal` → `PkGlobal.h` 的标量工具，全是 inline / 模板） | **必须落** | 压成内部链接，链接顺序再影响不了任何东西 |
-| **还有类型定义**（`compat/QRect` 一类**类型垫片** → `PkRect.h`） | **必须不落** | 类定义会跟着变内部链接，与 `PkRect.cpp` 里的 out-of-line 成员（`normalized` / `operator\|` / `operator&` / `contains` / `intersects` / `toAlignedRect`）对不上，链接期报未定义符号 |
+| **不会**（只调 header inline / `constexpr` 成员，或压根不碰类型） | **落** | 压成内部链接，弱符号合并的问题彻底消失。代价：那些非 inline 成员在本 TU 里**没有定义**，真调了是**响亮的链接错误**，不是静默错行为 |
+| **会**（例如要调 `PkRect::normalized()` —— 它编在 `PkRect.cpp`） | **不能落** | 类跟着变内部链接后，`(anonymous namespace)::PkRect::normalized()` 与 `libpkgeometry.a` 里的 `::PkRect::normalized()` 是两个符号，链接期未定义 |
+
+**这条判据是实测出来的，不是推出来的**（三组实验，每组都跑完整
+`run_tests.sh`，跑完 `git checkout --` 还原）：
+
+| 实验 | 做法 | 结果 |
+|---|---|---|
+| **A** | 把 `coexist_compat_rect_first.cpp` 的两个 compat include 落进匿名 `namespace`（系统头照纪律提到外面），探针**只调 `right()`/`bottom()` 这些 header inline 成员** | **`exit=0`，六个类全绿** —— 说明「带进类型定义就必须不落」是**错的** |
+| **B** | 在 A 的基础上把探针改成 `r.normalized().right()`（`normalized` 编在 `PkRect.cpp`） | **`exit=2`**：`undefined reference to '(anonymous namespace)::PkRect::normalized() const'` —— 真正的分界在这里 |
+| **C** | 对照：**不落**匿名 `namespace` + 同样调 `normalized()` | **`exit=0`** —— 确认 B 的红只由「落 + odr-use 非 inline 成员」这对组合造成 |
+
+> ⚠ 实验 A 还顺带复现了那条老纪律的必要性：第一次做 A 时忘了把系统头提到匿名
+> `namespace` 之外，直接炸出一屏
+> `'nullptr_t' is not a member of '{anonymous}::std'`。**系统头留在 `namespace`
+> 之外**这条对"落"的那一侧永远成立。
 
 **现状：六个受污染 TU，五落一不落。**
 落的五个：`point_macro_proof.cpp`、`size_macro_proof.cpp`、`rectf_macro_proof.cpp`、
 `coexist_test_first.cpp`、`coexist_geometry_first.cpp`。
-**不落的一个：`coexist_compat_rect_first.cpp`** —— 它第一个进 TU 的就是类型垫片
-`compat/QRect`，正好落在上表第二行。
+其中 `size_macro_proof.cpp` 与 `rectf_macro_proof.cpp` **也把 `PkSize.h` / `PkRect.h`
+这类带类型定义的头落了进去**，靠的正是「本 TU 不调那些非 inline 成员」——
+两个文件自己的头注释里写着这条自律（`rectf_macro_proof.cpp:20-24`、
+`size_macro_proof.cpp:20-23`：「所以本探针只测 `operator==` / `operator!=`，
+一个都不调」）。
 
-**不落的那个 TU 要付的代价，是配套纪律的另一半**：它的 `qAbs` / `qRound` /
-`qFuzzy*` 留在全局作用域、且来自 `pk/test` 那份垫片（与别的 TU 来自 `PkGlobal.h`
-的同名弱符号函数体不同）——**所以那个 TU 里这些名字一个都不许 odr-use，
-连间接的也不行**：
+**不落的一个：`coexist_compat_rect_first.cpp`。**
+⚠ **按上表它其实落在「不会 odr-use」那一行，也就是说它「必须不落」并不成立
+——实验 A 证明它落进去照样全绿。** 它现在不落是历史选择，不是被判据逼的。
+保持现状是因为改它属于交付面变更、且现状能工作；**但正因为不落，它必须付另一半代价**：
+它的 `qAbs` / `qRound` / `qFuzzy*` 留在全局作用域、且来自 `pk/test` 那份垫片
+（与别的 TU 来自 `PkGlobal.h` 的同名弱符号函数体不同）——**所以那个 TU 里这些名字
+一个都不许 odr-use，连间接的也不行**：
 
 > ⚠ **「不许用 `qAbs`/`qRound`/`qFuzzy*`」这句话比它看起来的范围大。**
 > `PkPointF` / `PkSizeF` / `PkRectF` 的三个 `operator==` 函数体里走的是
@@ -233,9 +255,16 @@ Point 族没有对应物）。已补两条 `rec()`（`cmp_point_constants`），
 任何 Krita 测试 TU 都走得到。它靠的是**「`compat/` 的每一个垫片都在包各自的 Pk 头
 之前先包 `compat/QtGlobal`」这条纪律**（同时也是对真 Qt「每个公开头先包
 `qglobal.h`」的复刻）——少了那行 include，`PkGlobal.h` 先自己定义 `qAbs`、
-`pk/test` 那份随后再定义一次，硬错。`coexist_compat_rect_first.cpp` 兼做这条纪律的
-回归守卫：拿掉 `compat/QRect` 的 `#include "QtGlobal"` 或 `#include "QSize"`，
-它当场变红。**新增 compat 垫片必须照做。**
+`pk/test` 那份随后再定义一次，硬错。
+
+**这条纪律有两层守卫，合起来 7/7 覆盖**：
+① `coexist_compat_rect_first.cpp` 守 `compat/QRect` 一个（拿掉它的
+`#include "QtGlobal"` 或 `#include "QSize"` 当场变红），顺带守住第三种 include 顺序；
+② `tests/run_tests.sh` 里的**逐垫片守卫**：对 `pk/geometry/compat/` 下**每一个**
+类型垫片单独起一个 TU，先包它、再包 `pk/test` 那份 `<QtGlobal>`，`-fsyntax-only` 编。
+**一个垫片一个 TU 是必须的** —— include guard 只认第一次，一旦任何一个垫片把
+`compat/QtGlobal` 带进了 TU，后面再包的垫片漏没漏那行都看不出来。
+**垫片清单是 glob 出来的，新增 compat 垫片自动纳入**，不靠人记得加一行。
 
 **另一半断言必须包含零侧语义。** 这两条路径上 `qAbs`/`qFuzzyCompare`/`qFuzzyIsNull`
 都让位给了 `pk/test` 的实现，而 `pk/test` 不在 R-03 的 `locks` 里、R-11 随时可能动它。
@@ -444,10 +473,11 @@ Task 4 已经把 Rect 族 51 个有用量的名字逐个归属到 Rect 族接收
 | **`shear`** | **26** | **实现** | Transform 接收者确证：`KoShape.cpp:241` `shearMatrix.shear(sx, sy)`（`shearMatrix` 是 `QTransform`）；`KoShape::shear` 本身是 Krita 自己的同名成员 |
 | **`isIdentity`** | **25** | **实现** | Transform 接收者确证：`kis_qimage_pyramid.cpp:290`、`KoMarker.cpp:262/278`、`SvgUtil.cpp:106`；其余是 `KisCubicCurve`/`ToolTransformArgs` 等自备的同名成员 |
 | `dx` `dy` | 24 / 23 | **实现** | |
-| `m12` `m13` `m21` `m22` `m23` | 20–22 | **实现** | |
+| `m12` `m13` `m21` `m22` `m23` | 20 / 22 / 20 / **23** / 21 | **实现** | 逐条列，不写区间 —— 区间写法既藏掉五个真实值，也曾把 `m22`=23 写成上界 22（全分支评审实测抓到） |
 | `m31` `m32` | 12 / 12 | **实现** | Transform 接收者确证：`kis_algebra_2d.cpp:752/782/811` `t.m31()`（`t` 是 `QTransform`） |
 | **`determinant`** | **6** | **实现** | Transform 接收者确证 **3 处**：`KoUnit.cpp:389`（形参 `const QTransform &t`）、`kis_algebra_2d.cpp:801/897`（形参 `const QTransform &t0`）。另 3 处是 **Eigen** 矩阵（`kis_algebra_2d.cpp:991`、`kis_free_transform_strategy_gsl_helpers.cpp:389`）与 `DecomposedMatrix::SC`（`kis_free_transform_strategy.cpp:538`） |
 | **`transposed`** | **5** | **实现** | Point/Size 两族查过三遍都判 0，5 处**全部**归这里：`kis_algebra_2d.cpp:935` 的 `globalToLocal.transposed()`（`globalToLocal` 声明在同文件 :930 是 `QTransform`）。⚠ 另有 5 处形近的 `transpose` 全是 Eigen，与 Qt 无关 |
+| **`Qt::Axis`**（`rotate` / `rotateRadians` 的形参类型） | **3** | **实现** | ⚠ **`PkGlobal.h` 原先把这一条记成「实测 0」，是错的**（它引的那条命令现场重跑给 29，因为把 `pk/` 自己数进去了）。三个口径：**保留集 3 325 = 3**（`patterngenerator.cpp:176/177/178`，`transform` 声明在 `:102` 是 `QTransform`）；**全仓去 `pk/` = 5**（多的两处 `kis_color_selector.cpp:560/638`，`mirror` 声明在 `:559/:637` 是 `QTransform`，**被保留范围前缀滤掉 —— `plugins/dockers` 不在保留范围，与 `qIsFinite` 那条口径缺口同型**）；**含 `pk/` 自己 = 29，别用这个口径**。用量 > 0 → 判据①直接要求实现，**不是偏离** |
 | **`setMatrix`** | **2** | **实现** | 两处**全部**是 `QTransform`：`KoSvgTextShape_p_glyphs.cpp:398`（`bitmapTf` 声明在 :388 是 `QTransform`）、`kis_dom_utils.cpp:261`（`t` 是 `QTransform*`） |
 | **`isAffine`** | **6** | **⚠ 实现了，但 Transform 族真实调用点 = 0** | 见下面这条警示 |
 
@@ -673,8 +703,15 @@ KisUsageLogger::log(QString("… Grid size: %1, log grid size: %2 …")
 - **只有拿真实调用点去编才暴露得出来。**
 
 修法是把「**每个 `compat/` 垫片都要先包 `compat/QtGlobal`，再包各自的 Pk 头**」
-立成纪律，并补第三个 coexist TU（`coexist_compat_rect_first.cpp`）当回归守卫 ——
-拿掉 `compat/QRect` 的那行 include，它当场变红。**新增 compat 垫片必须照做。**
+立成纪律，并配回归守卫。
+
+⚠ **纪律立了、守卫只覆盖 1/7，等于没立** —— 这是全分支评审注入验证抓到的：
+把另外六个垫片的那行 include 全删掉，`run_tests.sh` 与 `graft_run.sh` **双双 exit=0、
+零红**，而手写一个真实形态的 TU（`#include <QTransform>` 后 `#include <QtGlobal>`）
+立刻 `redefinition of 'template<class T> constexpr T qAbs'`。**纪律是承重的，守卫没跟上。**
+现在 `run_tests.sh` 的逐垫片守卫把覆盖面补到 **7/7**，且按目录 glob，新增垫片自动纳入
+（见上「与 `pk/test/compat/QtGlobal` 的共存」）。**「修好了但没有回归守卫，改回去不会
+有任何东西变红」是本项目自己命名的缺陷类，它在这里成立过 6/7。**
 
 ## Qt 语义里必须照抄、看着像 bug 的地方
 
@@ -739,7 +776,7 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 9 | `PkSize`/`PkSizeF` **照抄 `noexcept`**，`PkPoint`/`PkPointF` 没有 | 不是不一致：`qsize.h` 几乎每个成员都标了 `noexcept`，`qpoint.h` 只有 `transposed` 标了 —— 两边都是**逐字照抄各自的头**。`noexcept` 是可观察的（`noexcept` 运算符、容器移动选择），所以连"带 `Q_ASSERT` 的两个除法 Qt 恰好没标 `noexcept`"这个不对称也抄了，`PkSize.cpp` 用 7 条 `static_assert` 钉住。 |
 | 10 | `PkSize::scaled` 里用 `long long` 而不是 `qint64` | `qint8`..`quint64` 那批 typedef 按用量表归 R-02，R-03 不预先实现（判据①）。本平台 `qint64` 就是 `long long`，逐字等价。**换平台要重看**（LP64/LLP64 上 `long long` 恒 64 位，与 `qint64` 一致）。 |
 | 11 | 对拍 TU 里 `#include "PkSize.cpp"`（在 `namespace pkoracle` 内） | 两个 `scaled(const Pk*&, mode)` 是 out-of-line 的（照 Qt 的形态）。`libpkgeometry.a` 里那份是 `::PkSize::scaled`，而对拍需要的是 `pkoracle::PkSize::scaled` —— 两个不同符号，链不上。把 `.cpp` 一起包进 namespace 是**唯一**能让对拍压到那两个函数的办法（改成 header-only 就不是"照抄 Qt 的结构"了）。纪律：`PkSize.cpp` 的系统头（只有 `<type_traits>`）必须在对拍的系统头区里已经出现过。 |
-| 12 | **`PkGlobal.h` 里有一个真 C++ `namespace Qt`**（只装 `AspectRatioMode` 一个枚举）—— 这是「全局 `Pk` 前缀、不引 namespace」那条架构约束在本目录里的**唯一例外** | `QSize::scaled`/`scale` 的签名里就写着 `Qt::AspectRatioMode`，调用点写的是 `Qt::KeepAspectRatio` 这个**限定名**（实测用量：类型名 22 次、`IgnoreAspectRatio` 12 次、`KeepAspectRatio` 18 次、`KeepAspectRatioByExpanding` 3 次，口径 3 325 个文件），不套 `namespace Qt` 对不上。与那条约束不冲突：约束针对的是**我们自己的类型** —— compat 垫片靠 `#define QRect PkRect`，而 Krita 里有 `class QRect;` 前置声明，套 namespace 这个技巧就废；枚举没有前置声明这个问题。完整论证见上「`Qt::AspectRatioMode`：全项目唯一一个真 `namespace`」一节。**⚠ 共存副作用**：同一个 TU 里若同时出现 `PkGlobal.h` 与**真 Qt 的** `qnamespace.h`，`Qt::AspectRatioMode` 是**重定义硬错**；对拍是唯一有这个形态的编译行，靠把替代品整包塞进 `namespace pkoracle` 绕开。表现是响亮的编译错误、不是静默错行为，所以只登记、不改代码。|
+| 12 | **`PkGlobal.h` 里有一个真 C++ `namespace Qt`**（装 `AspectRatioMode` 与 `Axis` **两个**枚举）—— 这是「全局 `Pk` 前缀、不引 namespace」那条架构约束在本目录里的**唯一例外** | `QSize::scaled`/`scale` 的签名里就写着 `Qt::AspectRatioMode`，调用点写的是 `Qt::KeepAspectRatio` 这个**限定名**（实测用量：类型名 22 次、`IgnoreAspectRatio` 12 次、`KeepAspectRatio` 18 次、`KeepAspectRatioByExpanding` 3 次，口径 3 325 个文件），不套 `namespace Qt` 对不上。与那条约束不冲突：约束针对的是**我们自己的类型** —— compat 垫片靠 `#define QRect PkRect`，而 Krita 里有 `class QRect;` 前置声明，套 namespace 这个技巧就废；枚举没有前置声明这个问题。完整论证见上「`Qt::AspectRatioMode`：全项目唯一一个真 `namespace`」一节。**⚠ 共存副作用**：同一个 TU 里若同时出现 `PkGlobal.h` 与**真 Qt 的** `qnamespace.h`，`Qt::AspectRatioMode` 是**重定义硬错**；对拍是唯一有这个形态的编译行，靠把替代品整包塞进 `namespace pkoracle` 绕开。表现是响亮的编译错误、不是静默错行为，所以只登记、不改代码。|
 | 13 | **对拍侧不带 `-fwrapv`，库与单测侧带** —— 同一个目录里两套编译旗标，刻意不一致 | 这一条**取代了曾经登记过的"9 行 `span-overflow-ub` 偏离"**（那 9 行连同 704 589 次差异已删除，完整来龙去脉见下面「对拍侧为什么不带 `-fwrapv`」）。为什么不统一：**对拍要与 `libQt5Core.so` 对等**，而那份 `.so` 是编好的、旗标改不动——`operator\|`/`operator&`/`contains(QRect)`/`intersects` 的实现就住在里面。对拍 TU 带 `-fwrapv` 时，同一条 `x2 - x1 + 1 < 0` 判据两侧取值不同，凭空造出 704 589 条与 `PkRect` 行为无关的差异；去掉之后 `mismatch=3`（只剩 canary）。**库/单测侧则必须带**：那边没有 `.so` 对等物的问题，而 `-Os` 无 `-fwrapv` 时 `pointManhattanLength()` 变红（Task 2 裁决，本轮复核仍复现）。两个旗标各自服务于一个目的，统一反而两边都不对。代价另见覆盖度缺口。 |
 | 14 | **`PkRect` 的四个构造函数按 Qt 头文件全集实现**，不按实测调用点裁剪 | 与偏离 6（运算符）同一个理由、同一个性质：构造函数无法按调用点 grep 归属（`QRect(a,b,c,d)` 这种写法数不出接收者），因此**没有实测用量数字**可依。范围 = `qrect.h` 里为 `QRect` 声明的全部构造，一个不多一个不少（Darwin 专有的 `fromCGRect` 除外，那个有 `#if defined(Q_OS_DARWIN)` 卫兵且实测 0）。 |
 | 15 | **`PkRect` 不实现 `unite` / `intersect`**（Qt5 已废弃的两个别名），与实施计划的字面要求相反 | 计划写的是「实测各 1–2 处调用点，**用量 > 0 就实现**」。本 Task 按三形态重新归属，**实测证伪**：`intersect` 唯一命中是 `QSet<int>::intersect`（`kis_layer_utils.cpp:2567`），`unite` 两处分别是 `QSet<int>::unite`（`kis_layer_utils.cpp:1384`）与 `KisFilterWeightsApplicator::LinePos::unite`（`kis_transform_worker.cc:214`，`dstBounds` 的声明在 `:207`）。**Rect 族真实调用点 0**，按判据①「一项不多」不实现。这是执行判据①，不是缩范围。 |

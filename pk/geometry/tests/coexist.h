@@ -56,11 +56,13 @@ PkCoexistProbe pkCoexistGeometryShimFirst();
 // 取值是为了让那个 TU 必须真的被链接进可执行文件、且被一个测试函数调用 ——
 // 否则它可以被悄悄从 CMakeLists 里漏掉而没人发现。
 //
-// 取值刻意只用整数/浮点四则，**不碰 qAbs / qFuzzy* / qRound**：那个 TU 里
-// 这些名字来自 pk/test 那份垫片、而别的 TU 里来自 PkGlobal.h，函数体不同、
-// 都以弱符号发射 —— 一旦 odr-use 就是 coexist.h 末尾说的那类 ODR 违反。
-// 该 TU 因此也不能整体塞进匿名 namespace（PkRect/PkRectF 的类定义会跟着变成
-// 内部链接，与 PkRect.cpp 里的 out-of-line 成员对不上）。
+// 取值刻意只用整数/浮点四则，**不碰 qAbs / qFuzzy* / qRound，也不碰 PkPointF /
+// PkSizeF / PkRectF 的 operator==**（它们的函数体里走 pkQtFuzzyCompare → qAbs/qMin，
+// 属于间接 odr-use）：那个 TU 里这些名字来自 pk/test 那份垫片、而别的 TU 里来自
+// PkGlobal.h，函数体不同、都以弱符号发射 —— 一旦 odr-use 就是 ODR 违反。
+// 这条自律的前提是该 TU **不落**匿名 namespace。它落不落其实是自由的（实测：
+// 落进去照样全绿，因为它只调 header inline 成员）—— 判据与实验见 README
+//「被污染的 include 与匿名 namespace」一节。
 struct PkCompatIncludeProbe
 {
     int rectRight;      // QRect(QPoint(1,2), QSize(3,4)).right()      → 3

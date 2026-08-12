@@ -148,21 +148,31 @@ constexpr inline bool qFuzzyIsNull(float f) { return pkQtFuzzyIsNull(f); }
 // ---------------------------------------------------------------------------
 // qnamespace.h:1386-1390 —— `Qt::Axis`，同样逐字照抄（XAxis=0 YAxis=1 ZAxis=2）。
 //
-// ⚠ **这一条与上面的 AspectRatioMode 不同：它的直接调用点实测是 0。**
-//   口径：fork 全仓（含 tests/ 与 benchmarks/）
-//   `git grep -o 'Qt::[XYZ]Axis' -- '*.cpp' '*.h' '*.cc' | wc -l` → **0**；
-//   `git grep -n 'rotate([^)]*Qt::[XYZ]Axis'` → **0 处**。
+// **实测用量 > 0，判据①「一项不少」直接要求实现它** —— 三个口径都给出：
+//   ① 保留范围 3 325 个文件（排除 tests/|benchmarks/，只算保留前缀内）：**3 处**
+//        plugins/generators/pattern/patterngenerator.cpp:176/177/178
+//          transform.rotate(rotationX, Qt::XAxis);  // transform 声明在 :102
+//          transform.rotate(rotationY, Qt::YAxis);  //   是 QTransform
+//          transform.rotate(rotationZ, Qt::ZAxis);
+//   ② 全仓 '*.cpp' '*.h' '*.cc' 去掉 pk/ 自己：**5 处** —— 多出来的两处是
+//        plugins/dockers/artisticcolorselector/kis_color_selector.cpp:560/638
+//          mirror.rotate(180, Qt::YAxis);           // mirror 声明在 :559/:637
+//        它们被**保留范围前缀**滤掉（plugins/dockers 不在保留范围里），不是被
+//        tests/ 滤掉 —— 与 qIsFinite 那条口径缺口同型，见 README。
+//   ③ `git grep -o 'Qt::[XYZ]Axis' -- '*.cpp' '*.h' '*.cc' | wc -l` → **29**，
+//        因为它把 pk/ 自己的头、对拍与单测（24 处）也数进去了。**别用这个口径。**
 //
-// 那为什么还是做了：它不是一个独立交付项，而是 `PkTransform::rotate` 与
-// `rotateRadians` **签名里的形参类型**（`rotate(qreal a, Qt::Axis axis = Qt::ZAxis)`）。
-// 判据①「一项不多」拦的是「多实现一个 API」，而这里的两个选项是：
-//   ① 照 Qt 的签名做 → 多一个 0 用量的枚举；
-//   ② 把形参砍掉、只留 `rotate(qreal)` → 这是**签名偏离**，将来任何一处
-//      `t.rotate(90, Qt::YAxis)` 会在替换时编不过，而"哪些会漏"在替换之前测不出来。
-// 选 ①，理由与 R-03.md §「运算符：按 Qt 头文件全集实现」那条登记在案的范围偏离
-// 完全同形（同样是"签名面不能按调用点 grep 归属"），**同样逐条登记进 README 请
-// reviewer 判**。非 Z 轴那条路径本身也不是摆设：它走 `result * *this` 且把
-// m_type 直接钉成 TxProject，与 Z 轴路径是两套算法，对拍里各有各的 tag。
+// ⚠ **这三个数以前在本注释里被写成 0，是错的。** 上面 ③ 那条命令当时被引为
+//   「实测 0」的依据，现场重跑给的是 29；`git grep -n 'rotate([^)]*Qt::[XYZ]Axis'`
+//   当时写「0 处」，现场重跑给 13 行（其中 5 行是 Krita 侧真实调用点）。
+//   五处接收者逐个确认过都是 QTransform。**所以 Qt::Axis 不是"0 用量却实现"的
+//   范围偏离，它是判据①下有用量、必须实现的一项**，与 AspectRatioMode 同性质。
+//
+// 它同时还是 `PkTransform::rotate` / `rotateRadians` **签名里的形参类型**
+// （`rotate(qreal a, Qt::Axis axis = Qt::ZAxis)`）—— 就算用量是 0，砍掉形参也是
+// **签名偏离**，将来任何一处 `t.rotate(90, Qt::YAxis)` 会在替换时编不过。
+// 非 Z 轴那条路径本身也不是摆设：它走 `result * *this` 且把 m_type 直接钉成
+// TxProject，与 Z 轴路径是两套算法，对拍里各有各的 tag。
 // ---------------------------------------------------------------------------
 namespace Qt {
 enum AspectRatioMode {

@@ -21,6 +21,42 @@ if [ -n "$undef" ]; then
 fi
 printf 'nm -u %s/libpkgeometry.a | grep -i qt: 无输出\n' "$BUILD"
 
+# ---------------------------------------------------------------------------
+# compat 垫片的「先包 QtGlobal」纪律 —— **逐个垫片的回归守卫**
+#
+# 纪律（compat/QtGlobal 顶部、README 都写着）：每个类型垫片都必须在包各自的
+# Pk 头之前先包 compat/QtGlobal。漏了那行，先 include 该垫片、再 include
+# pk/test 那份 <QtGlobal> 的 TU 里，PkGlobal.h 会先定义 qAbs、pk/test 那份随后
+# 再定义一次 —— "redefinition of 'template<class T> constexpr T qAbs'" 硬错。
+# 这正是 Task 78 拿真实调用点压出来的那条 Critical。
+#
+# 为什么必须**一个垫片一个 TU**：include guard 只认第一次。一旦任何一个垫片把
+# compat/QtGlobal 带进了 TU，后面再包的垫片漏没漏那行都看不出来 —— 所以不能
+# 在一个 TU 里把七个垫片一起包了了事。
+#
+# **垫片清单是 glob 出来的，新增 compat 垫片自动纳入**，不需要有人记得来加一行。
+GUARDDIR="$BUILD/compat_include_guard"
+mkdir -p "$GUARDDIR"
+guard_fail=0
+for shim in pk/geometry/compat/*; do
+    base=$(basename "$shim")
+    [ "$base" = "QtGlobal" ] && continue   # 它自己就是被"先包"的那一个，没有上游
+    printf '#include "%s/%s"\n#include "%s/pk/test/compat/QtGlobal"\nint main() { return 0; }\n' \
+           "$PWD" "$shim" "$PWD" > "$GUARDDIR/guard_$base.cpp"
+    if ! g++ -std=c++17 -fsyntax-only "$GUARDDIR/guard_$base.cpp" \
+             2>"$GUARDDIR/guard_$base.err"; then
+        printf 'compat/%s 没有先包 compat/QtGlobal（或与 pk/test 那份撞了）：\n' "$base" >&2
+        head -3 "$GUARDDIR/guard_$base.err" >&2
+        guard_fail=1
+    fi
+done
+if [ "$guard_fail" -ne 0 ]; then
+    printf 'run_tests.sh: compat 垫片的「先包 QtGlobal」纪律被破坏\n' >&2
+    exit 1
+fi
+printf 'compat 垫片「先包 QtGlobal」逐个守卫（%s 个）: 全部通过\n' \
+       "$(ls pk/geometry/compat | grep -cv '^QtGlobal$')"
+
 # locks 自证：R-03 只许动 pk/geometry/。build/ 已被根 .gitignore 排除，所以这里
 # 连未跟踪文件一起查，出现任何 pk/geometry/ 之外的路径就判失败。
 #

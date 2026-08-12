@@ -19,12 +19,16 @@
 // 验证过这两条守卫真的会红：拿掉 compat/QRect 的任一行 include，本 TU 当场
 // 编译失败；放回去就绿。
 //
-// ⚠ 本 TU **不能**像另外两个 coexist TU 那样把 include 塞进匿名 namespace：
-//   compat/QRect 会把 PkRect / PkRectF 的类定义一起带进去变成内部链接，
-//   与 PkRect.cpp 里的 out-of-line 成员（normalized / operator| / …）对不上。
-//   代价是本 TU 里的 qAbs / qRound / qFuzzy* 落在全局作用域、且来自 pk/test
-//   那份垫片（与别的 TU 来自 PkGlobal.h 的同名弱符号函数体不同）——
-//   所以下面**一个都不许 odr-use**，探针取值只用四则运算。
+// ⚠ 本 TU **没有**像另外两个 coexist TU 那样把 include 塞进匿名 namespace。
+//   **这不是被判据逼的**：真正的分界是「本 TU 会不会 odr-use 编在别处的非 inline
+//   成员」（判据与三组实验见 README「被污染的 include 与匿名 namespace」）。本 TU
+//   只调 right()/bottom() 这些 header inline 成员，实测**落进匿名 namespace 照样
+//   全绿**；一旦改成调 normalized() 一类 out-of-line 成员，落进去才会链接失败。
+//   现状保持不落，于是必须付另一半代价：本 TU 里的 qAbs / qRound / qFuzzy* 落在
+//   全局作用域、且来自 pk/test 那份垫片（与别的 TU 来自 PkGlobal.h 的同名弱符号
+//   函数体不同）—— **一个都不许 odr-use，连间接的也不行**：PkPointF / PkSizeF /
+//   PkRectF 的三个 operator== 函数体里走 pkQtFuzzyCompare，而它含 qAbs / qMin，
+//   所以那三个 == 同样不许用。探针取值因此只用整数/浮点四则运算。
 
 // —— 被测变量之外的东西提在最前，与另外两个 coexist TU 同一个纪律 ——
 #include "coexist.h"
