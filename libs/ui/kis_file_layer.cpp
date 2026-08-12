@@ -17,6 +17,7 @@
 #include "commands_new/kis_node_move_command2.h"
 #include "kis_default_bounds.h"
 #include "kis_layer_properties_icons.h"
+#include "kis_icon_utils.h"
 #include <KisPart.h>
 #include <KisDocument.h>
 #include <QDir>

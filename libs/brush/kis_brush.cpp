@@ -38,7 +38,7 @@
 #include <resources/KoAbstractGradient.h>
 #include <resources/KoCachedGradient.h>
 #include <KoResource.h>
-#include <KoResourceServerProvider.h>
+#include <KoResourceLoadResult.h>
 #include <KisLazySharedCacheStorage.h>
 #include <KisOptimizedBrushOutline.h>
 #include <KisStaticInitializer.h>
