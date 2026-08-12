@@ -2,7 +2,6 @@ set(kritafilterop_SOURCES
     filterop.cpp
     kis_filterop.cpp
     kis_filterop_settings.cpp
-    kis_filterop_settings_widget.cpp
     )
 
 

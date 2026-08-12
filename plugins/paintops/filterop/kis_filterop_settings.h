@@ -14,8 +14,6 @@
 #include <kis_brush_based_paintop_settings.h>
 #include <kis_types.h>
 
-#include "kis_filterop_settings_widget.h"
-
 class QDomElement;
 class KisFilterConfiguration;
 
