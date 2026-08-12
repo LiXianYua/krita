@@ -6,6 +6,7 @@
 
 #include "kis_brush_export.h"
 
+#include <QApplication>
 #include <QCheckBox>
 #include <QSlider>
 #include <QBuffer>
@@ -26,7 +27,6 @@
 #include <kis_imagepipe_brush.h>
 #include <kis_pipebrush_parasite.h>
 #include <KisAnimatedBrushAnnotation.h>
-#include <KisWdgOptionsBrush.h>
 #include <KisImportExportManager.h>
 #include <kis_config.h>
 
@@ -193,24 +193,6 @@ KisPropertiesConfigurationSP KisBrushExport::defaultConfiguration(const QByteArr
         cfg->getInt("rank" + QString::number(i), 0);
     }
     return cfg;
-}
-
-KisConfigWidget *KisBrushExport::createConfigurationWidget(QWidget *parent, const QByteArray &/*from*/, const QByteArray &to) const
-{
-    KisWdgOptionsBrush *wdg = new KisWdgOptionsBrush(parent);
-    if (to == "image/x-gimp-brush") {
-        wdg->groupBox->setVisible(false);
-        wdg->animStyleGroup->setVisible(false);
-    }
-    else if (to == "image/x-gimp-brush-animated") {
-        wdg->groupBox->setVisible(true);
-        wdg->animStyleGroup->setVisible(true);
-    }
-
-    // preload gih name with chosen filename
-    QFileInfo fileLocation(filename());
-    wdg->nameLineEdit->setText(fileLocation.completeBaseName());
-    return wdg;
 }
 
 void KisBrushExport::initializeCapabilities()

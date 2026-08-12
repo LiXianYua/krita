@@ -2,11 +2,8 @@ add_subdirectory(tests)
 
 set(kritabrushexport_PART_SRCS
     kis_brush_export.cpp
-    KisWdgOptionsBrush.cpp
     KisAnimatedBrushAnnotation.cpp
     )
-
-ki18n_wrap_ui(kritabrushexport_PART_SRCS  wdg_export_gih.ui)
 
 kis_add_library(kritabrushexport MODULE ${kritabrushexport_PART_SRCS})
 
