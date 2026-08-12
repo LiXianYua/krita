@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -35,10 +36,29 @@ spdlog::level::level_enum mapLevel(PkLogLevel level)
     return spdlog::level::info;
 }
 
+// task-9 缺陷修复：spdlog::get() 落空 → spdlog::stderr_color_mt() 建，
+// 这两步以前不是原子的（check-then-act）。spdlog::registry::register_logger_
+// 撞见重名会 throw spdlog_ex，两个线程第一次用到同一个从未注册过的分类名、
+// 又几乎同时撞进来时都会看到 get() 落空，都去建——其中一个必然撞异常，
+// 未捕获时在工作线程里直接 std::terminate（SIGABRT）。用一把 mutex 把
+// "查 + 建"这一整段包成原子操作：后到的线程拿到锁时再查一次，会看见前一个
+// 线程已经建好，只做 set_level，不会重复注册。
+//
+// 用 std::mutex 而不是 std::call_once：categoryName 是运行期任意字符串，
+// 不是唯一一个全局初始化点——call_once 需要一个 once_flag 挂在"这个分类"
+// 上，等价于还要另建一张 name → once_flag 的表，其本身的插入也要加锁，
+// 并不比直接用一把 mutex 包住查+建更省事。
+//
+// 只保护 PkLogEnsureLogger 自身：不持锁期间调用任何 sink 回调（那是
+// PkLogSink.cpp 的另一把锁，PkLogEmit 里 PkLogDispatchToSinks 在触碰
+// spdlog logger 之前就已经跑完并解锁了），不存在跨锁调用顺序问题。
+std::mutex g_ensureLoggerMutex;
+
 } // namespace
 
 void PkLogEnsureLogger(const char *categoryName, PkLogLevel minLevel)
 {
+    std::lock_guard<std::mutex> lock(g_ensureLoggerMutex);
     auto logger = spdlog::get(categoryName);
     if (!logger) {
         logger = spdlog::stderr_color_mt(categoryName);

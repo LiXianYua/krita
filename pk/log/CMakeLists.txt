@@ -46,7 +46,8 @@ pk_test_generate(PKLOG_BINDERS
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_sink.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_stream.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_category.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_compat.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_compat.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_backend_concurrency.h)
 
 add_executable(test_pklog
     tests/test_main.cpp
@@ -54,8 +55,12 @@ add_executable(test_pklog
     tests/test_stream.cpp
     tests/test_category.cpp
     tests/test_compat.cpp
+    tests/test_backend_concurrency.cpp
 )
-target_link_libraries(test_pklog PRIVATE pklog pktest)
+# task-9：并发回归测试用 std::thread，需要显式链 Threads（部分工具链/glibc
+# 组合不会把 pthread 符号透传进来，别指望 spdlog 的依赖链顺带带上）。
+find_package(Threads REQUIRED)
+target_link_libraries(test_pklog PRIVATE pklog pktest Threads::Threads)
 # ${PKTEST_DIR}/compat：让测试头里的 `#include <QObject>` 解析到 pk/test 的垫片，
 # Q_OBJECT / private Q_SLOTS: 才有定义（生成器靠这两个字面 token 认测试类）。
 # compat：Task 4 本任务的垫片——只有 tests/test_compat.cpp 写了
@@ -74,3 +79,5 @@ set_source_files_properties(tests/test_category.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_category.inc")
 set_source_files_properties(tests/test_compat.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_compat.inc")
+set_source_files_properties(tests/test_backend_concurrency.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_backend_concurrency.inc")
