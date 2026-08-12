@@ -26,7 +26,6 @@
 
 #include <KoUpdater.h>
 
-#include <KisDocument.h>
 #include <kis_image.h>
 #include <KisSequentialIteratorProgress.h>
 #include <kis_layer.h>
@@ -37,7 +36,6 @@
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 #include <kis_paint_device.h>
-#include "widgets/kis_multi_integer_filter_widget.h"
 #include <KisGlobalResourcesInterface.h>
 
 
@@ -198,16 +196,6 @@ QRect KisOilPaintFilter::changedRect(const QRect & rect, const KisFilterConfigur
     return rect.adjusted( -brushSize*2, -brushSize*2, brushSize*2, brushSize*2);
 }
 
-
-KisConfigWidget * KisOilPaintFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    vKisIntegerWidgetParam param;
-    param.push_back(KisIntegerWidgetParam(1, 5, 1, i18n("Brush size"), "brushSize"));
-    param.push_back(KisIntegerWidgetParam(10, 255, 30, i18nc("smooth out the painting strokes the filter creates", "Smooth"), "smooth"));
-    KisMultiIntegerFilterWidget * w = new KisMultiIntegerFilterWidget(id().id(),  parent,  id().id(),  param);
-    w->setConfiguration(defaultConfiguration(KisGlobalResourcesInterface::instance()));
-    return w;
-}
 
 KisFilterConfigurationSP KisOilPaintFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const
 {

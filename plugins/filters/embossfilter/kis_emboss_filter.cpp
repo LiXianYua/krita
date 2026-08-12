@@ -36,7 +36,6 @@
 #include <kis_paint_device.h>
 #include <kis_processing_information.h>
 
-#include "widgets/kis_multi_integer_filter_widget.h"
 #include <KisSequentialIteratorProgress.h>
 
 
@@ -134,15 +133,4 @@ int KisEmbossFilter::Lim_Max(int Now, int Up, int Max) const
     while (Now > Max - Up)
         --Up;
     return (Up);
-}
-
-KisConfigWidget * KisEmbossFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-
-    vKisIntegerWidgetParam param;
-    param.push_back(KisIntegerWidgetParam(10, 300, 30, i18nc("Emboss depth", "Depth"), "depth"));
-    KisConfigWidget * w = new KisMultiIntegerFilterWidget(id().id(), parent, id().id(), param);
-    Q_CHECK_PTR(w);
-    return w;
 }

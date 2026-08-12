@@ -16,7 +16,6 @@
 #include <kis_convolution_kernel.h>
 #include <kis_convolution_painter.h>
 #include <kis_global.h>
-#include <widgets/kis_multi_integer_filter_widget.h>
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
@@ -35,15 +34,6 @@ KisSimpleNoiseReducer::KisSimpleNoiseReducer()
 
 KisSimpleNoiseReducer::~KisSimpleNoiseReducer()
 {
-}
-
-KisConfigWidget * KisSimpleNoiseReducer::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    vKisIntegerWidgetParam param;
-    param.push_back(KisIntegerWidgetParam(0, 255, 15, i18n("Threshold"), "threshold"));
-    param.push_back(KisIntegerWidgetParam(0, 10, 1, i18n("Window size"), "windowsize"));
-    return new KisMultiIntegerFilterWidget(id().id(), parent, id().id(), param);
 }
 
 KisFilterConfigurationSP  KisSimpleNoiseReducer::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

@@ -28,8 +28,6 @@ public:
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
-public:
-    KisConfigWidget * createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
 private:
     bool** CreateBoolArray(uint Columns, uint Rows) const;
     void   FreeBoolArray(bool** lpbArray, uint Columns) const;

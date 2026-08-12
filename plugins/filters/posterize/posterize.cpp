@@ -26,7 +26,6 @@
 
 #include <KoColorSpaceMaths.h>
 #include <filter/kis_color_transformation_configuration.h>
-#include <widgets/kis_multi_integer_filter_widget.h>
 
 K_PLUGIN_FACTORY_WITH_JSON(PosterizeFactory, "kritaposterize.json", registerPlugin<Posterize>();)
 
@@ -72,14 +71,6 @@ KisPosterizeColorTransformation::~KisPosterizeColorTransformation()
 {
     delete m_fromConversion;
     delete m_toConversion;
-}
-
-KisConfigWidget* KisFilterPosterize::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    vKisIntegerWidgetParam param;
-    param.push_back(KisIntegerWidgetParam(2, 128, 16, i18n("Steps"), "steps"));
-    return new KisMultiIntegerFilterWidget(id().id(), parent, id().id(), param);
 }
 
 KisFilterConfigurationSP KisFilterPosterize::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

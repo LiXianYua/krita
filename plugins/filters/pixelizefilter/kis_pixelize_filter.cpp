@@ -24,7 +24,6 @@
 #include <KoUpdater.h>
 
 #include <kis_debug.h>
-#include <KisDocument.h>
 #include <filter/kis_filter_registry.h>
 #include <kis_global.h>
 #include <kis_image.h>
@@ -35,7 +34,6 @@
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 
-#include "widgets/kis_multi_integer_filter_widget.h"
 #include <KoMixColorsOp.h>
 #include <KisSequentialIteratorProgress.h>
 #include "kis_algebra_2d.h"
@@ -130,14 +128,6 @@ QRect KisPixelizeFilter::neededRect(const QRect &rect, const KisFilterConfigurat
 QRect KisPixelizeFilter::changedRect(const QRect &rect, const KisFilterConfigurationSP config, int lod) const
 {
     return neededRect(rect, config, lod);
-}
-
-KisConfigWidget * KisPixelizeFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    vKisIntegerWidgetParam param;
-    param.push_back(KisIntegerWidgetParam(2, 512, 10, i18n("Pixel width"), "pixelWidth" /*"keepAspect"*/));
-    param.push_back(KisIntegerWidgetParam(2, 512, 10, i18n("Pixel height"), "pixelHeight", "keepAspect"));
-    return new KisMultiIntegerFilterWidget(id().id(),  parent,  id().id(),  param);
 }
 
 KisFilterConfigurationSP KisPixelizeFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

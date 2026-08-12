@@ -16,7 +16,6 @@
 #include <kis_debug.h>
 #include <kpluginfactory.h>
 
-#include <KisDocument.h>
 #include <kis_image.h>
 #include <kis_layer.h>
 #include <filter/kis_filter_registry.h>

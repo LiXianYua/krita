@@ -14,8 +14,6 @@
 
 #include <kis_layer.h>
 #include <kis_math_toolbox.h>
-#include <widgets/kis_multi_double_filter_widget.h>
-#include <widgets/kis_multi_integer_filter_widget.h>
 #include <kis_paint_device.h>
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
@@ -32,13 +30,6 @@ KisWaveletNoiseReduction::KisWaveletNoiseReduction()
 
 KisWaveletNoiseReduction::~KisWaveletNoiseReduction()
 {
-}
-
-KisConfigWidget * KisWaveletNoiseReduction::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    vKisDoubleWidgetParam param;
-    param.push_back(KisDoubleWidgetParam(0.0, 256.0, BEST_WAVELET_THRESHOLD_VALUE, i18n("Threshold"), "threshold"));
-    return new KisMultiDoubleFilterWidget(id().id(), parent, id().id(), param);
 }
 
 KisFilterConfigurationSP KisWaveletNoiseReduction::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

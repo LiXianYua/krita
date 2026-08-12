@@ -22,7 +22,6 @@
 
 #include <KoUpdater.h>
 
-#include <KisDocument.h>
 #include <kis_debug.h>
 #include <kis_image.h>
 #include <kis_layer.h>
@@ -37,8 +36,6 @@
 #include <filter/kis_filter_configuration.h>
 #include <kis_processing_information.h>
 #include <KoCompositeOpRegistry.h>
-
-#include "widgets/kis_multi_integer_filter_widget.h"
 
 KisSmallTilesFilter::KisSmallTilesFilter() : KisFilter(id(), FiltersCategoryMapId, i18n("&Small Tiles..."))
 {
@@ -82,14 +79,6 @@ void KisSmallTilesFilter::processImpl(KisPaintDeviceSP device,
         if (progressUpdater) progressUpdater->setValue(y);
     }
     gc.end();
-}
-
-KisConfigWidget * KisSmallTilesFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    vKisIntegerWidgetParam param;
-    param.push_back(KisIntegerWidgetParam(2, 5, 1, i18n("Number of tiles"), "numberOfTiles"));
-    return new KisMultiIntegerFilterWidget(id().id(),  parent,  id().id(),  param);
-
 }
 
 KisFilterConfigurationSP KisSmallTilesFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

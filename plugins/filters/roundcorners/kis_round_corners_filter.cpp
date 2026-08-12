@@ -23,12 +23,10 @@
 #include <KoUpdater.h>
 
 #include <kis_debug.h>
-#include <KisDocument.h>
 #include <filter/kis_filter_registry.h>
 #include <kis_global.h>
 #include <kis_image.h>
 #include <kis_layer.h>
-#include <widgets/kis_multi_integer_filter_widget.h>
 #include <kis_selection.h>
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
@@ -125,14 +123,6 @@ void KisRoundCornersFilter::processImpl(KisPaintDeviceSP device,
             fadeOneCorner(device, job.pt, processRect, radiusSq, job.progressUpdater);
         }
     }
-}
-
-KisConfigWidget * KisRoundCornersFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    vKisIntegerWidgetParam param;
-    param.push_back(KisIntegerWidgetParam(2, 100, 30, i18n("Radius"), "radius"));
-    return new KisMultiIntegerFilterWidget(id().id(), parent, id().id(), param);
-
 }
 
 KisFilterConfigurationSP KisRoundCornersFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

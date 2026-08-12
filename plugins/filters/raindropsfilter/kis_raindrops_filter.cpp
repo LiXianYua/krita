@@ -39,8 +39,6 @@
 #include <kis_random_accessor_ng.h>
 #include <KisGlobalResourcesInterface.h>
 
-#include "widgets/kis_multi_integer_filter_widget.h"
-
 #include <QRandomGenerator>
 
 KisRainDropsFilter::KisRainDropsFilter()
@@ -374,17 +372,6 @@ uchar KisRainDropsFilter::LimitValues(int ColorValue) const
     if (ColorValue < 0)          // MIN = 0
         ColorValue = 0;
     return ((uchar) ColorValue);
-}
-
-KisConfigWidget * KisRainDropsFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP, bool) const
-{
-    vKisIntegerWidgetParam param;
-    param.push_back(KisIntegerWidgetParam(1, 200, 80, i18n("Drop size"), "dropsize"));
-    param.push_back(KisIntegerWidgetParam(1, 500, 80, i18n("Number of drops"), "number"));
-    param.push_back(KisIntegerWidgetParam(1, 100, 30, i18n("Fish eyes"), "fishEyes"));
-    KisMultiIntegerFilterWidget * w = new KisMultiIntegerFilterWidget(id().id(), parent, id().id(), param);
-    w->setConfiguration(defaultConfiguration(KisGlobalResourcesInterface::instance()));
-    return w;
 }
 
 KisFilterConfigurationSP KisRainDropsFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

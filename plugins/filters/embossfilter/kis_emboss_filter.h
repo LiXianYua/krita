@@ -27,8 +27,6 @@ public:
         return KoID("emboss", i18n("Emboss with Variable Depth"));
     }
 
-public:
-    KisConfigWidget * createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
 protected:
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 
