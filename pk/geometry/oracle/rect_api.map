@@ -1,0 +1,78 @@
+# PkRect 类体声明 → 对拍 rec() 标签的映射（规则三的机器闸门，人维护那一半）
+#
+# 格式：<声明指纹>\t<对拍 api 标签>[,<标签>...]，**tab 分隔**，# 开头为注释。
+# 声明指纹由 run_oracle.sh 从 PkRect.h 的**类体**里机械解析出来（去注释、
+# 去形参名、去默认实参、规范化 & 与 *），不是人手抄的。
+#
+# 规则三：**每个已实现的重载都要有自己的 rec()**。Task 3 复评实测过，漏一个
+# 重载能让 93 630 039 次比对一条都不红、run_oracle.sh 退出码 0 放行。
+# 这份映射把那条规则变成机器可查的：run_oracle.sh 做三件事，任一不成立就 FAIL
+#   ① PkRect.h 里每一条声明都在这里有一行  ← **加了重载忘写 rec() 在这里现形**
+#   ② 这里的每一行都对得上 PkRect.h 的一条声明（删了成员却留着行也现形）
+#   ③ 这里列的每个标签都真的出现在程序打出的 APISEEN 里
+#
+# 一条声明可以对多个标签：contains 的两个带 proper 的重载各自跑了 proper=false
+# 与 proper=true 两条路，它们走的是**两个不同的分支**（`<` vs `<=`），
+# 按规则三各要一条 rec。
+PkRect()	R::defaultCtor
+PkRect(const PkPoint&,const PkPoint&)	R::ctorPoints
+PkRect(const PkPoint&,const PkSize&)	R::ctorPointSize
+PkRect(int,int,int,int)	R::ctorLTWH
+isNull()	R::isNull
+isEmpty()	R::isEmpty
+isValid()	R::isValid
+left()	R::left
+top()	R::top
+right()	R::right
+bottom()	R::bottom
+normalized()	R::normalized
+x()	R::x
+y()	R::y
+setLeft(int)	R::setLeft
+setTop(int)	R::setTop
+setRight(int)	R::setRight
+setBottom(int)	R::setBottom
+setX(int)	R::setX
+setY(int)	R::setY
+setTopLeft(const PkPoint&)	R::setTopLeft
+setBottomRight(const PkPoint&)	R::setBottomRight
+topLeft()	R::topLeft
+bottomRight()	R::bottomRight
+topRight()	R::topRight
+bottomLeft()	R::bottomLeft
+center()	R::center
+moveLeft(int)	R::moveLeft
+moveTop(int)	R::moveTop
+moveTopLeft(const PkPoint&)	R::moveTopLeft
+moveCenter(const PkPoint&)	R::moveCenter
+translate(int,int)	R::translateXY
+translate(const PkPoint&)	R::translatePoint
+translated(int,int)	R::translatedXY
+translated(const PkPoint&)	R::translatedPoint
+moveTo(int,int)	R::moveToXY
+moveTo(const PkPoint&)	R::moveToPoint
+setRect(int,int,int,int)	R::setRect
+getRect(int*,int*,int*,int*)	R::getRect
+setCoords(int,int,int,int)	R::setCoords
+getCoords(int*,int*,int*,int*)	R::getCoords
+adjust(int,int,int,int)	R::adjust
+adjusted(int,int,int,int)	R::adjusted
+size()	R::size
+width()	R::width
+height()	R::height
+setWidth(int)	R::setWidth
+setHeight(int)	R::setHeight
+setSize(const PkSize&)	R::setSize
+operator|(const PkRect&)	R::operator|
+operator&(const PkRect&)	R::operator&
+operator|=(const PkRect&)	R::operator|=
+operator&=(const PkRect&)	R::operator&=
+contains(const PkRect&,bool)	R::containsRect,R::containsRectProper
+contains(const PkPoint&,bool)	R::containsPoint,R::containsPointProper
+contains(int,int)	R::containsXY
+contains(int,int,bool)	R::containsXYProper
+united(const PkRect&)	R::united
+intersected(const PkRect&)	R::intersected
+intersects(const PkRect&)	R::intersects
+operator==(const PkRect&,const PkRect&)	R::operator==
+operator!=(const PkRect&,const PkRect&)	R::operator!=

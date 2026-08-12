@@ -57,6 +57,7 @@
 // ── 真 Qt 侧 + 系统头（都必须在 namespace 之外）────────────────────────
 #include <QPoint>
 #include <QSize>
+#include <QRect>
 #include <QString>
 #include <QtGlobal>
 #include <QMessageLogContext>
@@ -68,13 +69,15 @@
 #include <cstdio>
 #include <cstring>
 #include <map>
+#include <set>
 #include <string>
 #include <type_traits>
 #include <vector>
 
 // 垫片一旦混进 -I，<QPoint> 会解析到 compat/QPoint，而那份是两个 #define。
 // 两侧于是解析成同一个类型，跑出来必然零差异且看不出破绽。成本三行。
-#if defined(QPoint) || defined(QPointF) || defined(QSize) || defined(QSizeF)
+#if defined(QPoint) || defined(QPointF) || defined(QSize) || defined(QSizeF) \
+    || defined(QRect) || defined(QRectF)
 #  error "对拍两侧解析成了同一个类型 —— -I 里混进了 pk/geometry/compat"
 #endif
 
@@ -90,12 +93,20 @@ namespace pkoracle {
 // 里已经出现过**（它只 #include <type_traits>，上面有），否则会造出 pkoracle::std。
 // 顺带好处：PkSize.cpp 里那批 static_assert 也在这个 TU 里编一遍。
 #include "PkSize.cpp"
+#include "PkRect.h"
+// ⚠ 同理 **PkRect.cpp 也要进来**：normalized / operator| / operator& /
+// contains ×2 / intersects 六个是 out-of-line 的（照 Qt 的形态，实现在 qrect.cpp
+// 里）。libpkgeometry.a 里那份定义的是 `::PkRect::normalized`，本 TU 需要的是
+// `pkoracle::PkRect::normalized` —— 两个不同的符号，链不上。
+// 纪律同上：PkRect.cpp 只 #include <type_traits>（上面的系统头区已有）。
+#include "PkRect.cpp"
 }
 
 using PkPoint  = pkoracle::PkPoint;
 using PkPointF = pkoracle::PkPointF;
 using PkSize   = pkoracle::PkSize;
 using PkSizeF  = pkoracle::PkSizeF;
+using PkRect   = pkoracle::PkRect;
 
 static_assert(!std::is_same<QPoint,  PkPoint >::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
@@ -118,6 +129,9 @@ static_assert((int)Qt::IgnoreAspectRatio == (int)pkoracle::Qt::IgnoreAspectRatio
               && (int)Qt::KeepAspectRatioByExpanding
                      == (int)pkoracle::Qt::KeepAspectRatioByExpanding,
               "AspectRatioMode 的枚举取值两侧不一致");
+static_assert(!std::is_same<QRect, PkRect>::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
+static_assert(sizeof(QRect) == sizeof(PkRect), "两侧布局不一致");
 
 // ═══ 计数与记录 ════════════════════════════════════════════════════════════
 
@@ -125,10 +139,25 @@ static long g_total = 0, g_mismatch = 0;
 static std::map<std::string, long> g_tags;   // "<api> <tag>" -> count
 static long g_printed = 0;
 
+// 规则三的**机器闸门**（Task 4 新增）。规则三是「每个已实现的重载都要有自己的
+// rec()」，Task 3 之前只能靠人手列对照表 —— 而 Task 3 复评实测过：漏一个重载，
+// 93 630 039 次比对一条都不红、run_oracle.sh exit=0 放行。
+//
+// 做法：rec() 顺手把见过的 api 名收进这个集合，程序末尾按 `APISEEN <name>`
+// 逐行打出来；仓库里放一份人维护的期望清单（oracle/api_seen.expected 与
+// oracle/rect_api.map），run_oracle.sh 做三向核对：
+//   ① APISEEN 集合 == api_seen.expected（多一条少一条都 FAIL）
+//   ② PkRect.h 类体里的每一条声明都在 rect_api.map 里有一行（**加了重载却
+//      没写 rec() 会在这里被抓**——这正是规则三原来漏掉的那一半）
+//   ③ rect_api.map 里的每个标签都真的出现在 APISEEN 里
+// 多打的 APISEEN 行不影响既有 stdout 契约：契约只规定 DIFF/DIFFTAG 两种行有意义。
+static std::set<std::string> g_apis;
+
 static void rec(const char *api, bool same, const std::string &tag,
                 const std::string &in, const std::string &qs, const std::string &ps)
 {
     ++g_total;
+    g_apis.insert(api);
     if (same) return;
     ++g_mismatch;
     ++g_tags[std::string(api) + " " + tag];
@@ -183,6 +212,31 @@ static bool same_sz(const QSize &q, const PkSize &p)
 { return q.width() == p.width() && q.height() == p.height(); }
 static bool same_szf(const QSizeF &q, const PkSizeF &p)
 { return same_double(q.width(), p.width()) && same_double(q.height(), p.height()); }
+
+// ── Rect ─────────────────────────────────────────────────────────────────
+// ⚠ 矩形一律按**四个内部坐标**打印与比较，不按 x/y/w/h：后者在退化矩形上是
+// 多对一的（(0,0,0,0) 与 (5,5,0,0) 的 x/y/w/h 里 w/h 都是 0，但它们不相等），
+// 用 x/y/w/h 比会把一整类差异静默豁免。
+// 取值走 left/top/right/bottom 四条**各自独立的一行取值器**而不是 getCoords：
+// 拿 getCoords 当比较手段的话，"getCoords 自己坏了"就检测不出来了。
+static std::string qstr(const QRect &r)
+{ return "[" + istr(r.left()) + "," + istr(r.top()) + ","
+              + istr(r.right()) + "," + istr(r.bottom()) + "]"; }
+static std::string qstr(const PkRect &r)
+{ return "[" + istr(r.left()) + "," + istr(r.top()) + ","
+              + istr(r.right()) + "," + istr(r.bottom()) + "]"; }
+
+static bool same_rect(const QRect &q, const PkRect &p)
+{
+    return q.left() == p.left() && q.top() == p.top()
+        && q.right() == p.right() && q.bottom() == p.bottom();
+}
+
+// 两侧都用 setCoords 摆坐标建矩形：只有这样才够得到 (l,t,w,h) 构造不出来的
+// 形态（x2 == x1-1 的"宽恰为 0"、x2 < x1-1 的"需要交换"）。setCoords 自己
+// 也有一条 rec()，坏了会单独现形。
+static QRect mkQ(int a, int b, int c, int d) { QRect r; r.setCoords(a, b, c, d); return r; }
+static PkRect mkP(int a, int b, int c, int d) { PkRect r; r.setCoords(a, b, c, d); return r; }
 
 // ═══ tag 谓词：**全部由输入的形态算出来**，没有一个是字面量常量 ═══════════
 
@@ -891,6 +945,409 @@ static void cmp_size_promotion(int w, int h, double fw, double fh)
         bstr(PkSizeF(fw, fh) == PkSizeF(PkSize(w, h))));
 }
 
+// ═══ Rect 族（整数）：逐 API 对拍 ══════════════════════════════════════════
+//
+// 与 Point/Size 两族的四处结构性不同，直接决定了这一节的 tag 怎么设计：
+//   ① **内部是四个边界坐标**，(l,t,w,h) 构造够不到一大片形态
+//      （x2 == x1-1 的"宽恰为 0"只能由 setCoords 摆出来），所以输入集是
+//      **坐标四元组**，不是 (x,y,w,h) 四元组。
+//   ② **退化分三档而不是两档**：x2 == x1-1（宽 0，normalized **不**交换）、
+//      x2 < x1-1（宽为负，交换）、x2 == x1（宽 1）。这三条线是 normalized /
+//      contains / operator& 的真实分支边界，压成一档等于把它们一起白名单化。
+//   ③ **双目 API 在 null 上不对称**（operator| 的两条 return 有先后），所以
+//      双目 tag 用 `shapeA ^ shapeB` 这种**有序对**，不能照抄 Point/Size 那条
+//      「把两侧分量合起来取最特殊的一个」的约定 —— 那条会把
+//      「a 为 null」与「b 为 null」压成同一个 tag，恰好盖住这个 API 唯一的怪处。
+//      有序对比"取最特殊"**更窄**，方向上是安全的（规则二）。
+//   ④ 双目 API 还额外带一个**相对位置**分量（disjoint / a-covers-b / …）。
+//      它由 qtInterval() 用纯 long long 算术算出来，**不调用任何一侧的实现**，
+//      所以仍然是"由输入形态构造"的 tag（规则一）。
+//
+// 规则三（一个重载一条 rec）在这一族是硬要求，且有机器闸门：
+// 见 g_apis / APISEEN 与 oracle/rect_api.map。
+
+// 跨距是否越出 int。⚠ **两个量都要查**：`x2 - x1` 这个中间量自己就可能溢出，
+// 而最终的 `x2 - x1 + 1` 反而回到值域里 —— 例如 x1=1、x2=INT_MIN 时
+// x2-x1 = -2147483649（越界），+1 之后是 INT_MIN（在界内）。
+// 只查后者会漏掉一整片 UB 输入，而漏掉的表现是**差异被贴上 "defined"（= 声称
+// 这里行为有定义）的标签**——那正是规则二要防的形状：标签比事实宽一格。
+static bool spanOverflows(int lo, int hi)
+{
+    const long long d = (long long)hi - lo;
+    if (d < INT_MIN || d > INT_MAX) return true;
+    const long long s = d + 1;
+    return s < INT_MIN || s > INT_MAX;
+}
+
+// 单个轴的形态。**六档**，顺序就是"这次差异该归咎于谁"的判断：
+//   span-overflow → 跨距本身溢出（只有极值坐标才到得了）
+//   zero          → x2 == x1-1，宽恰为 0：normalized **不**交换的边界、
+//                   isNull 的构成条件、contains(point) 上区间为空
+//   negative      → x2 < x1-1，宽为负：要交换的那一侧
+//   unit          → x2 == x1，宽 1
+//   extremum      → 坐标里有 INT_MIN/INT_MAX 但跨距没溢出
+//   normal        → 其余
+static std::string axisShape(int lo, int hi)
+{
+    if (spanOverflows(lo, hi)) return "span-overflow";
+    if (hi == lo - 1) return "zero";
+    if (hi < lo - 1) return "negative";
+    if (hi == lo) return "unit";
+    if (intExtremum(lo) || intExtremum(hi)) return "extremum";
+    return "normal";
+}
+
+static std::string shapeOfRect(int x1, int y1, int x2, int y2)
+{ return axisShape(x1, x2) + "-" + axisShape(y1, y2); }
+
+// 按 **Qt 的翻正规则**（`x2 - x1 + 1 < 0` 时交换）算出一个轴上的闭区间。
+// 纯 long long 算术，**不调用两侧任何一个实现** —— 所以拿它做 tag 不构成
+// "用被测物给自己贴标签"。
+static void qtInterval(int lo, int hi, long long &l, long long &r)
+{
+    if ((long long)hi - lo + 1 < 0) { l = hi; r = lo; } else { l = lo; r = hi; }
+}
+
+static std::string axisRel(int alo, int ahi, int blo, int bhi)
+{
+    long long l1, r1, l2, r2;
+    qtInterval(alo, ahi, l1, r1);
+    qtInterval(blo, bhi, l2, r2);
+    if (l1 > r2 || l2 > r1) return "disjoint";
+    if (l1 == l2 && r1 == r2) return "same";
+    if (l2 >= l1 && r2 <= r1) return "a-covers-b";
+    if (l1 >= l2 && r1 <= r2) return "b-covers-a";
+    return "partial";
+}
+
+// ⚠ **这一族独有的一道分水岭，必须做成 tag 的第一段。**
+//
+// operator| / operator& / contains(QRect) / intersects 四个（以及转发到它们的
+// united / intersected / |= / &=）的实现**住在 libQt5Core.so 里**（qrect.cpp
+// 编出来的，见 `nm -DC libQt5Core.so.5 | grep 'QRect::operator|'`）。
+// 对拍 TU 的 `-fwrapv` **到不了那边** —— 它只作用于头文件里的 inline 代码。
+// 而这四个的翻正判据写作 `x2 - x1 + 1 < 0`，在跨距越出 int 时是有符号溢出 UB：
+//   · 我们这侧（-fwrapv）按二补数回绕，`INT_MAX - INT_MIN + 1` 判成负；
+//   · Qt 那侧（发布构建不带 -fwrapv、-O2）由 GCC 按"溢出不会发生"推导，判成正。
+// 两个取值都合法，差别纯粹来自旗标，**源码层面无解**：实测过把判据加宽到
+// long long（想去凑 Qt 那侧），mismatch 从 704 589 反而涨到 1 485 313 ——
+// 说明 Qt 那侧也不是统一的"不回绕"，是逐点依赖 GCC 在各 inline 点上做了什么。
+//
+// 对照组恰好把根因钉死了：**同样住在 .so 里、但判据写作 `x2 < x1 - 1` 的
+// normalized() 与 contains(QPoint) 一条 mismatch 都没有**；而所有 inline 成员
+// （width / isNull / center / adjust …）也全绿 —— 它们在对拍 TU 里两侧同旗标。
+//
+// 所以这一档必须**单独成 tag 并登记成偏离**，而且谓词要恰好是"跨距溢出"这一句，
+// 不能顺带把别的输入白名单化（方法论规则二）。
+static bool spanUB(int x1, int y1, int x2, int y2)
+{ return spanOverflows(x1, x2) || spanOverflows(y1, y2); }
+
+// 双目 tag。**溢出那一档刻意塌成一个字符串、不带后缀**：整档只有一个根因
+//（旗标差异），细分下去会变成两万多个 tag，而 geometry.deviation 是按
+//（api, tag）精确配对的 —— 那等于要写两万多行白名单，没人读得动，也谈不上
+// "有人判断过"。塌成一档之后每个 API 只要一行声明。
+// 有定义的那一侧仍然保留完整的细粒度 tag：真出现偏离时它必须是**新 tag**
+// 才会被 run_oracle.sh 判 FAIL，粗了就白名单化了（规则二）。
+static std::string pairTag(int ax1, int ay1, int ax2, int ay2,
+                           int bx1, int by1, int bx2, int by2)
+{
+    if (spanUB(ax1, ay1, ax2, ay2) || spanUB(bx1, by1, bx2, by2))
+        return "span-overflow-ub";
+    return "defined/" + shapeOfRect(ax1, ay1, ax2, ay2)
+         + "^" + shapeOfRect(bx1, by1, bx2, by2)
+         + "/" + axisRel(ax1, ax2, bx1, bx2) + "," + axisRel(ay1, ay2, by1, by2);
+}
+
+// normalized 专用：直接把"这个轴交不交换"做成 tag。四档里 boundary-zero 与
+// swap 只差一格，正是 `x2 < x1-1` 写成 `x2 < x1` 时会挪动的那条线。
+static std::string swapAxis(int lo, int hi)
+{
+    if (hi == lo - 1) return "boundary-zero";
+    if (hi < lo - 1) return "swap";
+    if (hi == lo) return "unit";
+    return "keep";
+}
+
+// contains(point) 专用：点相对于**点版翻正规则**（`x2 < x1 - 1`）给出的区间
+// 落在哪。at-lo / at-hi 两档就是差一边界，below/above 是外侧。
+static std::string edgeTag(int lo, int hi, int p)
+{
+    long long l, r;
+    if ((long long)hi < (long long)lo - 1) { l = hi; r = lo; } else { l = lo; r = hi; }
+    if (l > r) return "empty-interval";
+    if (p < l) return "below";
+    if (p == l) return "at-lo";
+    if (p == r) return "at-hi";
+    if (p > r) return "above";
+    return "inside";
+}
+
+static std::string argShape(std::initializer_list<int> vs)
+{
+    for (int v : vs) if (intExtremum(v)) return "int-extremum";
+    for (int v : vs) if (v == 0) return "zero";
+    for (int v : vs) if (v < 0) return "negative";
+    return "positive";
+}
+
+static std::string rin(int a, int b, int c, int d)
+{ return "[" + istr(a) + "," + istr(b) + "," + istr(c) + "," + istr(d) + "]"; }
+
+// 无输入的 API（默认构造）：只有一种输入形态，tag 退化成常量是规则一的
+// 边界情形而不是违反（与 cmp_size_constants 同一个道理）。只跑一次。
+static void cmp_rect_constants()
+{
+    rec("R::defaultCtor", same_rect(QRect(), PkRect()), "no-input", "QRect()",
+        qstr(QRect()), qstr(PkRect()));
+}
+
+// 三个带参构造。**三条各自一个 rec**（规则三）：它们做的事不一样 ——
+// (l,t,w,h) 与 (topLeft,size) 做 +w-1，(topLeft,bottomRight) 直接摆坐标。
+static void cmp_rect_ctor(int a, int b, int c, int d)
+{
+    const std::string in = rin(a, b, c, d);
+    // 分歧只可能出在"+w-1 有没有溢出"与"宽高是 0 / 负"这两类形态上
+    const bool ov = (long long)a + c - 1 > INT_MAX || (long long)a + c - 1 < INT_MIN
+                 || (long long)b + d - 1 > INT_MAX || (long long)b + d - 1 < INT_MIN;
+    const std::string sh =
+          ov                                              ? "ctor-span-overflow"
+        : (intExtremum(a) || intExtremum(b)
+           || intExtremum(c) || intExtremum(d))            ? "int-extremum"
+        : (c == 0 || d == 0)                               ? "zero-dim"
+        : (c < 0 || d < 0)                                 ? "negative-dim"
+                                                           : "ordinary";
+
+    rec("R::ctorLTWH", same_rect(QRect(a, b, c, d), PkRect(a, b, c, d)), sh, in,
+        qstr(QRect(a, b, c, d)), qstr(PkRect(a, b, c, d)));
+    rec("R::ctorPoints",
+        same_rect(QRect(QPoint(a, b), QPoint(c, d)), PkRect(PkPoint(a, b), PkPoint(c, d))),
+        shapeOfRect(a, b, c, d), in,
+        qstr(QRect(QPoint(a, b), QPoint(c, d))), qstr(PkRect(PkPoint(a, b), PkPoint(c, d))));
+    rec("R::ctorPointSize",
+        same_rect(QRect(QPoint(a, b), QSize(c, d)), PkRect(PkPoint(a, b), PkSize(c, d))),
+        sh, in,
+        qstr(QRect(QPoint(a, b), QSize(c, d))), qstr(PkRect(PkPoint(a, b), PkSize(c, d))));
+}
+
+// 一元取值器 + normalized。输入是**坐标四元组**。
+static void cmp_rect_unary(int x1, int y1, int x2, int y2)
+{
+    const QRect  q = mkQ(x1, y1, x2, y2);
+    const PkRect p = mkP(x1, y1, x2, y2);
+    const std::string in = rin(x1, y1, x2, y2);
+    const std::string sh = shapeOfRect(x1, y1, x2, y2);
+
+    rec("R::left", q.left() == p.left(), sh, in, istr(q.left()), istr(p.left()));
+    rec("R::top", q.top() == p.top(), sh, in, istr(q.top()), istr(p.top()));
+    rec("R::right", q.right() == p.right(), sh, in, istr(q.right()), istr(p.right()));
+    rec("R::bottom", q.bottom() == p.bottom(), sh, in, istr(q.bottom()), istr(p.bottom()));
+    rec("R::x", q.x() == p.x(), sh, in, istr(q.x()), istr(p.x()));
+    rec("R::y", q.y() == p.y(), sh, in, istr(q.y()), istr(p.y()));
+
+    // 差一：width/height 是 x2-x1+1，在极值坐标上溢出（两侧都靠 -fwrapv 钉住）
+    rec("R::width", q.width() == p.width(), sh, in, istr(q.width()), istr(p.width()));
+    rec("R::height", q.height() == p.height(), sh, in, istr(q.height()), istr(p.height()));
+    rec("R::size", same_sz(q.size(), p.size()), sh, in, qstr(q.size()), qstr(p.size()));
+
+    // 三条谓词的分界线各不相同，**各用各的 tag**（把它们压成一个 sh 就等于
+    // 允许"isValid 抄了 isEmpty 的门槛"这类偏离藏在同一片白名单下）。
+    rec("R::isNull", q.isNull() == p.isNull(),
+        (x2 == x1 - 1 || y2 == y1 - 1) ? std::string("null-boundary") : sh,
+        in, bstr(q.isNull()), bstr(p.isNull()));
+    rec("R::isEmpty", q.isEmpty() == p.isEmpty(),
+        (x1 > x2 || y1 > y2) ? std::string("empty-side") : std::string("nonempty-side"),
+        in, bstr(q.isEmpty()), bstr(p.isEmpty()));
+    rec("R::isValid", q.isValid() == p.isValid(),
+        (x1 <= x2 && y1 <= y2) ? std::string("valid-side") : std::string("invalid-side"),
+        in, bstr(q.isValid()), bstr(p.isValid()));
+
+    rec("R::topLeft", same_pt(q.topLeft(), p.topLeft()), sh, in,
+        qstr(q.topLeft()), qstr(p.topLeft()));
+    rec("R::topRight", same_pt(q.topRight(), p.topRight()), sh, in,
+        qstr(q.topRight()), qstr(p.topRight()));
+    rec("R::bottomLeft", same_pt(q.bottomLeft(), p.bottomLeft()), sh, in,
+        qstr(q.bottomLeft()), qstr(p.bottomLeft()));
+    rec("R::bottomRight", same_pt(q.bottomRight(), p.bottomRight()), sh, in,
+        qstr(q.bottomRight()), qstr(p.bottomRight()));
+
+    // center 唯一会分家的形态是"x1+x2 越出 int"——那正是 qint64 中间量存在的理由
+    const bool sumOv = (long long)x1 + x2 > INT_MAX || (long long)x1 + x2 < INT_MIN
+                    || (long long)y1 + y2 > INT_MAX || (long long)y1 + y2 < INT_MIN;
+    rec("R::center", same_pt(q.center(), p.center()),
+        sumOv ? std::string("sum-out-of-int-range") : sh,
+        in, qstr(q.center()), qstr(p.center()));
+
+    // normalized 用专门的交换 tag（形态就是"这个轴交不交换"）
+    rec("R::normalized", same_rect(q.normalized(), p.normalized()),
+        "x-" + swapAxis(x1, x2) + "/y-" + swapAxis(y1, y2),
+        in, qstr(q.normalized()), qstr(p.normalized()));
+
+    // getRect / getCoords：四个出参逐个比（**两条各自一个 rec**，它们差一个 ±1）
+    { int a1, b1, c1, d1, a2, b2, c2, d2;
+      q.getRect(&a1, &b1, &c1, &d1); p.getRect(&a2, &b2, &c2, &d2);
+      rec("R::getRect", a1 == a2 && b1 == b2 && c1 == c2 && d1 == d2, sh, in,
+          rin(a1, b1, c1, d1), rin(a2, b2, c2, d2)); }
+    { int a1, b1, c1, d1, a2, b2, c2, d2;
+      q.getCoords(&a1, &b1, &c1, &d1); p.getCoords(&a2, &b2, &c2, &d2);
+      rec("R::getCoords", a1 == a2 && b1 == b2 && c1 == c2 && d1 == d2, sh, in,
+          rin(a1, b1, c1, d1), rin(a2, b2, c2, d2)); }
+}
+
+// 全部带标量/点/尺寸参数的修改器。**一个重载一条 rec**（规则三）：
+// setLeft 与 setX 写的是同一个字段但是两个 API，moveTo(int,int) 与
+// moveTo(PkPoint) 是两个重载，translate/translated 同理 —— 合并的话
+// "坏掉的是哪一跳"在 DIFFTAG 里就看不见了。
+static void cmp_rect_mutate(int x1, int y1, int x2, int y2, int a, int b)
+{
+    const QRect  q0 = mkQ(x1, y1, x2, y2);
+    const PkRect p0 = mkP(x1, y1, x2, y2);
+    const std::string in = rin(x1, y1, x2, y2) + "+(" + istr(a) + "," + istr(b) + ")";
+    const std::string sh = shapeOfRect(x1, y1, x2, y2) + "^" + argShape({a, b});
+
+// 变参：`r.setRect(a, b, a, b)` 里的逗号会被预处理器当成实参分隔符，
+// 写成 (label, expr) 那一版编不过。
+#define PK_MUT2(label, ...)                                                   \
+    do { QRect q2 = q0; PkRect p2 = p0;                                       \
+         { QRect &r = q2; __VA_ARGS__; }                                      \
+         { PkRect &r = p2; __VA_ARGS__; }                                     \
+         rec(label, same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); } while (0)
+
+    // ⚠ 这个宏把**同一段源码**分别在 QRect 与 PkRect 上跑一遍。它不是"少打字"：
+    // 两侧写成两段代码时，改了一侧忘改另一侧就变成"对拍在比两件不同的事"，
+    // 而那种错是静默的（Task 3 复评抓到过同型问题的另一种形态）。
+    PK_MUT2("R::setLeft", r.setLeft(a));
+    PK_MUT2("R::setTop", r.setTop(a));
+    PK_MUT2("R::setRight", r.setRight(a));
+    PK_MUT2("R::setBottom", r.setBottom(a));
+    PK_MUT2("R::setX", r.setX(a));
+    PK_MUT2("R::setY", r.setY(a));
+    PK_MUT2("R::setWidth", r.setWidth(a));
+    PK_MUT2("R::setHeight", r.setHeight(a));
+    PK_MUT2("R::moveLeft", r.moveLeft(a));
+    PK_MUT2("R::moveTop", r.moveTop(a));
+    PK_MUT2("R::moveToXY", r.moveTo(a, b));
+    PK_MUT2("R::setRect", r.setRect(a, b, a, b));
+    PK_MUT2("R::setCoords", r.setCoords(a, b, a, b));
+    PK_MUT2("R::translateXY", r.translate(a, b));
+    PK_MUT2("R::translatedXY", r = r.translated(a, b));
+
+    // 吃 QPoint / QSize 的那几个：两侧的实参类型不同，宏套不进来，逐条写。
+    { QRect q2 = q0; PkRect p2 = p0; q2.setTopLeft(QPoint(a, b)); p2.setTopLeft(PkPoint(a, b));
+      rec("R::setTopLeft", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRect q2 = q0; PkRect p2 = p0;
+      q2.setBottomRight(QPoint(a, b)); p2.setBottomRight(PkPoint(a, b));
+      rec("R::setBottomRight", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRect q2 = q0; PkRect p2 = p0;
+      q2.moveTopLeft(QPoint(a, b)); p2.moveTopLeft(PkPoint(a, b));
+      rec("R::moveTopLeft", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRect q2 = q0; PkRect p2 = p0;
+      q2.moveCenter(QPoint(a, b)); p2.moveCenter(PkPoint(a, b));
+      rec("R::moveCenter", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRect q2 = q0; PkRect p2 = p0; q2.moveTo(QPoint(a, b)); p2.moveTo(PkPoint(a, b));
+      rec("R::moveToPoint", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRect q2 = q0; PkRect p2 = p0; q2.translate(QPoint(a, b)); p2.translate(PkPoint(a, b));
+      rec("R::translatePoint", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { const QRect q2 = q0.translated(QPoint(a, b));
+      const PkRect p2 = p0.translated(PkPoint(a, b));
+      rec("R::translatedPoint", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRect q2 = q0; PkRect p2 = p0; q2.setSize(QSize(a, b)); p2.setSize(PkSize(a, b));
+      rec("R::setSize", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+
+#undef PK_MUT2
+}
+
+// adjust / adjusted：四个增量，单独一层输入。
+static void cmp_rect_adjust(int x1, int y1, int x2, int y2, int d1, int d2, int d3, int d4)
+{
+    const QRect  q0 = mkQ(x1, y1, x2, y2);
+    const PkRect p0 = mkP(x1, y1, x2, y2);
+    const std::string in = rin(x1, y1, x2, y2) + "+" + rin(d1, d2, d3, d4);
+    // 四个增量全参与形态判断（约定见 shapeOfD 上方那段）。溢出单独一档：
+    // adjust 是裸的 int 加法，极值坐标上会回绕。
+    const bool ov = (long long)x1 + d1 > INT_MAX || (long long)x1 + d1 < INT_MIN
+                 || (long long)y1 + d2 > INT_MAX || (long long)y1 + d2 < INT_MIN
+                 || (long long)x2 + d3 > INT_MAX || (long long)x2 + d3 < INT_MIN
+                 || (long long)y2 + d4 > INT_MAX || (long long)y2 + d4 < INT_MIN;
+    const std::string sh = (ov ? std::string("int-overflow")
+                               : shapeOfRect(x1, y1, x2, y2))
+                         + "^" + argShape({d1, d2, d3, d4});
+
+    { QRect q2 = q0; PkRect p2 = p0; q2.adjust(d1, d2, d3, d4); p2.adjust(d1, d2, d3, d4);
+      rec("R::adjust", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { const QRect q2 = q0.adjusted(d1, d2, d3, d4);
+      const PkRect p2 = p0.adjusted(d1, d2, d3, d4);
+      rec("R::adjusted", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+}
+
+// 双目：| & |= &= united intersected intersects contains(rect) == !=
+static void cmp_rect_binary(int ax1, int ay1, int ax2, int ay2,
+                            int bx1, int by1, int bx2, int by2)
+{
+    const QRect  qa = mkQ(ax1, ay1, ax2, ay2), qb = mkQ(bx1, by1, bx2, by2);
+    const PkRect pa = mkP(ax1, ay1, ax2, ay2), pb = mkP(bx1, by1, bx2, by2);
+    const std::string in = rin(ax1, ay1, ax2, ay2) + "|" + rin(bx1, by1, bx2, by2);
+    const std::string tag = pairTag(ax1, ay1, ax2, ay2, bx1, by1, bx2, by2);
+
+    rec("R::operator|", same_rect(qa | qb, pa | pb), tag, in,
+        qstr(qa | qb), qstr(pa | pb));
+    rec("R::operator&", same_rect(qa & qb, pa & pb), tag, in,
+        qstr(qa & qb), qstr(pa & pb));
+    // ⚠ united / intersected 在 Qt 里是 `*this | r` / `*this & r` 的转发，
+    // **仍然各写一条 rec**：规则三说的正是"转发链上坏掉的可能是转发那一跳"。
+    rec("R::united", same_rect(qa.united(qb), pa.united(pb)), tag, in,
+        qstr(qa.united(qb)), qstr(pa.united(pb)));
+    rec("R::intersected", same_rect(qa.intersected(qb), pa.intersected(pb)), tag, in,
+        qstr(qa.intersected(qb)), qstr(pa.intersected(pb)));
+    { QRect q2 = qa; PkRect p2 = pa; q2 |= qb; p2 |= pb;
+      rec("R::operator|=", same_rect(q2, p2), tag, in, qstr(q2), qstr(p2)); }
+    { QRect q2 = qa; PkRect p2 = pa; q2 &= qb; p2 &= pb;
+      rec("R::operator&=", same_rect(q2, p2), tag, in, qstr(q2), qstr(p2)); }
+
+    rec("R::intersects", qa.intersects(qb) == pa.intersects(pb), tag, in,
+        bstr(qa.intersects(qb)), bstr(pa.intersects(pb)));
+    // contains(rect) 的两个 proper 取值走的是两条不同分支（`<` vs `<=`），
+    // 各一条 rec，且 proper 参与 tag。
+    rec("R::containsRect", qa.contains(qb) == pa.contains(pb), tag + "/proper-false", in,
+        bstr(qa.contains(qb)), bstr(pa.contains(pb)));
+    rec("R::containsRectProper", qa.contains(qb, true) == pa.contains(pb, true),
+        tag + "/proper-true", in,
+        bstr(qa.contains(qb, true)), bstr(pa.contains(pb, true)));
+
+    // == / != 与相对位置无关，用形态对 + "坐标是否逐个相等"
+    const std::string eqtag = shapeOfRect(ax1, ay1, ax2, ay2) + "^"
+                            + shapeOfRect(bx1, by1, bx2, by2) + "/"
+                            + ((ax1 == bx1 && ay1 == by1 && ax2 == bx2 && ay2 == by2)
+                               ? "same-coords" : "differ");
+    rec("R::operator==", (qa == qb) == (pa == pb), eqtag, in,
+        bstr(qa == qb), bstr(pa == pb));
+    rec("R::operator!=", (qa != qb) == (pa != pb), eqtag, in,
+        bstr(qa != qb), bstr(pa != pb));
+}
+
+// contains(point) 的三个重载 + proper。四条各一个 rec（规则三）：
+// contains(int,int) 与 contains(int,int,bool) 是两个独立的重载，
+// 都转发到 contains(QPoint,bool)，但**转发那一跳本身可能坏**。
+static void cmp_rect_contains_point(int x1, int y1, int x2, int y2, int px, int py)
+{
+    const QRect  q = mkQ(x1, y1, x2, y2);
+    const PkRect p = mkP(x1, y1, x2, y2);
+    const std::string in = rin(x1, y1, x2, y2) + "@(" + istr(px) + "," + istr(py) + ")";
+    const std::string tag = "x-" + edgeTag(x1, x2, px) + "/y-" + edgeTag(y1, y2, py);
+
+    rec("R::containsPoint", q.contains(QPoint(px, py)) == p.contains(PkPoint(px, py)),
+        tag + "/proper-false", in,
+        bstr(q.contains(QPoint(px, py))), bstr(p.contains(PkPoint(px, py))));
+    rec("R::containsPointProper",
+        q.contains(QPoint(px, py), true) == p.contains(PkPoint(px, py), true),
+        tag + "/proper-true", in,
+        bstr(q.contains(QPoint(px, py), true)), bstr(p.contains(PkPoint(px, py), true)));
+    rec("R::containsXY", q.contains(px, py) == p.contains(px, py), tag + "/proper-false", in,
+        bstr(q.contains(px, py)), bstr(p.contains(px, py)));
+    rec("R::containsXYProper",
+        q.contains(px, py, true) == p.contains(px, py, true), tag + "/proper-true", in,
+        bstr(q.contains(px, py, true)), bstr(p.contains(px, py, true)));
+}
+
 // ═══ canary：证明比较管道是活的 ════════════════════════════════════════════
 //
 // 走的是与真实 API 完全相同的 rec() 与比较原语。三条都必须出现在 DIFFTAG 里，
@@ -969,6 +1426,48 @@ static const float kFacF[] = {
     1e-30f, 1e30f, INFINITY, -INFINITY, NAN, 1.5f, -1.5f, 2147483648.0f, 1e-12f,
 };
 static const int kFacI[] = { 0, 1, -1, 2, -2, 3, 65536, -65536, INT_MAX, INT_MIN };
+
+// ── Group 3：Rect 族的坐标 token ──────────────────────────────────────────
+//
+// 矩形是**四元**的（一元 API 4 个分量、双目 API 8 个），44⁴ / 44⁸ 那种做满显然
+// 做不了，所以按 README 那条约定做「密集小域 + 极值域 + 手挑集」三层交叉，
+// 保证**每个分量位上都取得到极值与手挑值**（不是索引轮转）。
+//
+// 密集小域：6 个 token → 6⁴ = 1 296 个矩形。双目做满 1 296² ≈ 168 万组。
+// 这批值覆盖了 x2 相对 x1 的全部关键位置（-1 = 宽 0、-2 = 宽 -1 要交换、
+// 0 = 宽 1、+1/+2/+3 = 正常宽）。
+static const int kRectTok6[] = { -2, -1, 0, 1, 2, 3 };
+// 极值域：7 个 token → 7⁴ = 2 401 个矩形。只跑一元/修改器，双目太大。
+static const int kRectTokX[] = { INT_MIN, INT_MIN + 1, -1, 0, 1, INT_MAX - 1, INT_MAX };
+// 极值域的双目版：5 个 token → 5⁴ = 625 个矩形，双目做满 625² ≈ 39 万组。
+static const int kRectTokE[] = { INT_MIN, -1, 0, 1, INT_MAX };
+// 修改器/点的实参 token（含极值，让 setLeft(INT_MIN) 这类走到）
+static const int kRectArg[] = { -2, -1, 0, 1, INT_MIN, INT_MAX };
+// adjust 的增量：计划点名的 {-2,-1,0,1,2}⁴ = 625 组
+static const int kAdjD[] = { -2, -1, 0, 1, 2 };
+// adjust 的矩形底座（4⁴ = 256，再乘 625 已经是 16 万组）
+static const int kRectTok4[] = { -1, 0, 1, 2 };
+
+// 手挑对抗矩形，**以内部坐标给出**（(l,t,w,h) 构造够不到其中一大半形态）。
+// 每一条都对应一个已实测的语义分界，注释写的就是它守着哪一条。
+static const int kHandRect[][4] = {
+    {  0,  0, -1, -1 },                       // QRect()：null，| 的偏心分支
+    {  5,  5,  4,  4 },                       // (5,5,0,0)：null 但不在原点
+    {  0,  0,  0,  0 },                       // (0,0,1,1)：最小的非空矩形
+    {  0,  0,  9,  9 },                       // (0,0,10,10)：差一的标准样本
+    {  0,  0, -2, -2 },                       // (0,0,-1,-1)：empty 非 null，要交换
+    {  5,  5,  1,  1 },                       // (5,5,-3,-3)：负宽高且不在原点
+    { 20, 20, 24, 24 },                       // 与上面几个完全不相交
+    {  0,  0, -1,  0 },                       // 宽恰为 0：normalized **不**交换的边界
+    {  0,  0, -2,  0 },                       // 宽 -1：交换边界的另一侧
+    {  0,  0, -3,  0 },                       // 宽 -2
+    {  0,  0,  9, -1 },                       // (0,0,10,0)：一边退化
+    { INT_MIN, INT_MIN, INT_MIN, INT_MIN },   // (INT_MIN,INT_MIN,1,1)
+    {  0,  0, INT_MAX - 1, INT_MAX - 1 },     // (0,0,INT_MAX,INT_MAX)
+    {  0,  0, INT_MAX, INT_MAX },             // 跨距溢出
+    { INT_MIN, INT_MIN, INT_MAX, INT_MAX },   // 跨距溢出到 0，center 靠 qint64
+    { INT_MAX, INT_MAX, INT_MIN, INT_MIN },   // 反向极值：要交换且溢出
+};
 
 template <typename T, std::size_t N>
 static constexpr int countOf(const T (&)[N]) { return (int)N; }
@@ -1170,8 +1669,174 @@ int main()
             for (int d = 0; d < nTokD; ++d)
                 cmp_size_promotion(kTokI[a], kTokI[b], kTokD[d], kTokD[(d + 3) % nTokD]);
 
+    // ═══ Rect 族（整数）═══════════════════════════════════════════════════
+    const int nR6 = countOf(kRectTok6), nRX = countOf(kRectTokX);
+    const int nRE = countOf(kRectTokE), nR4 = countOf(kRectTok4);
+    const int nArg = countOf(kRectArg), nAdj = countOf(kAdjD);
+    const int nHR = countOf(kHandRect);
+
+    cmp_rect_constants();
+
+    // 构造函数：8 个 token 四层做满（计划点名的那 8 个）
+    {
+        static const int kCtorTok[] = { -2, -1, 0, 1, 2, 3, INT_MIN, INT_MAX };
+        const int n = countOf(kCtorTok);
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < n; ++j)
+                for (int k = 0; k < n; ++k)
+                    for (int l = 0; l < n; ++l)
+                        cmp_rect_ctor(kCtorTok[i], kCtorTok[j], kCtorTok[k], kCtorTok[l]);
+    }
+
+    // ── 一元：密集域 1 296 + 极值域 2 401 + 手挑 16 ──
+    for (int i = 0; i < nR6; ++i)
+        for (int j = 0; j < nR6; ++j)
+            for (int k = 0; k < nR6; ++k)
+                for (int l = 0; l < nR6; ++l)
+                    cmp_rect_unary(kRectTok6[i], kRectTok6[j], kRectTok6[k], kRectTok6[l]);
+    for (int i = 0; i < nRX; ++i)
+        for (int j = 0; j < nRX; ++j)
+            for (int k = 0; k < nRX; ++k)
+                for (int l = 0; l < nRX; ++l)
+                    cmp_rect_unary(kRectTokX[i], kRectTokX[j], kRectTokX[k], kRectTokX[l]);
+    for (int h = 0; h < nHR; ++h)
+        cmp_rect_unary(kHandRect[h][0], kHandRect[h][1], kHandRect[h][2], kHandRect[h][3]);
+
+    // ── 修改器：矩形三层 × 实参 6² ──
+    for (int i = 0; i < nR6; ++i)
+        for (int j = 0; j < nR6; ++j)
+            for (int k = 0; k < nR6; ++k)
+                for (int l = 0; l < nR6; ++l)
+                    for (int a = 0; a < nArg; ++a)
+                        for (int b = 0; b < nArg; ++b)
+                            cmp_rect_mutate(kRectTok6[i], kRectTok6[j], kRectTok6[k],
+                                            kRectTok6[l], kRectArg[a], kRectArg[b]);
+    for (int i = 0; i < nRE; ++i)
+        for (int j = 0; j < nRE; ++j)
+            for (int k = 0; k < nRE; ++k)
+                for (int l = 0; l < nRE; ++l)
+                    for (int a = 0; a < nArg; ++a)
+                        for (int b = 0; b < nArg; ++b)
+                            cmp_rect_mutate(kRectTokE[i], kRectTokE[j], kRectTokE[k],
+                                            kRectTokE[l], kRectArg[a], kRectArg[b]);
+    for (int h = 0; h < nHR; ++h)
+        for (int a = 0; a < nArg; ++a)
+            for (int b = 0; b < nArg; ++b)
+                cmp_rect_mutate(kHandRect[h][0], kHandRect[h][1], kHandRect[h][2],
+                                kHandRect[h][3], kRectArg[a], kRectArg[b]);
+
+    // ── adjust：矩形 4⁴ / 手挑 × 增量 5⁴ ──
+    for (int i = 0; i < nR4; ++i)
+        for (int j = 0; j < nR4; ++j)
+            for (int k = 0; k < nR4; ++k)
+                for (int l = 0; l < nR4; ++l)
+                    for (int a = 0; a < nAdj; ++a)
+                        for (int b = 0; b < nAdj; ++b)
+                            for (int c = 0; c < nAdj; ++c)
+                                for (int d = 0; d < nAdj; ++d)
+                                    cmp_rect_adjust(kRectTok4[i], kRectTok4[j], kRectTok4[k],
+                                                    kRectTok4[l], kAdjD[a], kAdjD[b],
+                                                    kAdjD[c], kAdjD[d]);
+    for (int h = 0; h < nHR; ++h)
+        for (int a = 0; a < nAdj; ++a)
+            for (int b = 0; b < nAdj; ++b)
+                for (int c = 0; c < nAdj; ++c)
+                    for (int d = 0; d < nAdj; ++d)
+                        cmp_rect_adjust(kHandRect[h][0], kHandRect[h][1], kHandRect[h][2],
+                                        kHandRect[h][3], kAdjD[a], kAdjD[b], kAdjD[c], kAdjD[d]);
+
+    // ── contains(point)：点坐标由**矩形自己的边界**导出（l-1/l/l+1/r-1/r/r+1），
+    // 这样差一边界在每个矩形上都真的被踩到；固定 token 集做不到这一点。
+    {
+        auto pointsAround = [](int lo, int hi, long long out[6]) {
+            out[0] = (long long)lo - 1; out[1] = lo; out[2] = (long long)lo + 1;
+            out[3] = (long long)hi - 1; out[4] = hi; out[5] = (long long)hi + 1;
+        };
+        auto runContains = [&](int x1, int y1, int x2, int y2) {
+            long long xs[6], ys[6];
+            pointsAround(x1, x2, xs);
+            pointsAround(y1, y2, ys);
+            for (int a = 0; a < 6; ++a)
+                for (int b = 0; b < 6; ++b) {
+                    // 导出值可能越出 int（lo-1 在 INT_MIN 上）——夹回值域，
+                    // 越界的那一格由极值 token 自己覆盖。
+                    if (xs[a] < INT_MIN || xs[a] > INT_MAX) continue;
+                    if (ys[b] < INT_MIN || ys[b] > INT_MAX) continue;
+                    cmp_rect_contains_point(x1, y1, x2, y2, (int)xs[a], (int)ys[b]);
+                }
+        };
+        for (int i = 0; i < nR6; ++i)
+            for (int j = 0; j < nR6; ++j)
+                for (int k = 0; k < nR6; ++k)
+                    for (int l = 0; l < nR6; ++l)
+                        runContains(kRectTok6[i], kRectTok6[j], kRectTok6[k], kRectTok6[l]);
+        for (int i = 0; i < nRX; ++i)
+            for (int j = 0; j < nRX; ++j)
+                for (int k = 0; k < nRX; ++k)
+                    for (int l = 0; l < nRX; ++l)
+                        runContains(kRectTokX[i], kRectTokX[j], kRectTokX[k], kRectTokX[l]);
+        for (int h = 0; h < nHR; ++h)
+            runContains(kHandRect[h][0], kHandRect[h][1], kHandRect[h][2], kHandRect[h][3]);
+    }
+
+    // ── 双目：密集域做满 1 296²，极值域做满 625²，再加手挑 × 两个域的
+    // **双向**交叉（手挑值必须能出现在 a 侧和 b 侧的每一个分量位上）──
+    for (int i = 0; i < nR6; ++i)
+        for (int j = 0; j < nR6; ++j)
+            for (int k = 0; k < nR6; ++k)
+                for (int l = 0; l < nR6; ++l)
+                    for (int m = 0; m < nR6; ++m)
+                        for (int n = 0; n < nR6; ++n)
+                            for (int o = 0; o < nR6; ++o)
+                                for (int p = 0; p < nR6; ++p)
+                                    cmp_rect_binary(kRectTok6[i], kRectTok6[j], kRectTok6[k],
+                                                    kRectTok6[l], kRectTok6[m], kRectTok6[n],
+                                                    kRectTok6[o], kRectTok6[p]);
+    for (int i = 0; i < nRE; ++i)
+        for (int j = 0; j < nRE; ++j)
+            for (int k = 0; k < nRE; ++k)
+                for (int l = 0; l < nRE; ++l)
+                    for (int m = 0; m < nRE; ++m)
+                        for (int n = 0; n < nRE; ++n)
+                            for (int o = 0; o < nRE; ++o)
+                                for (int p = 0; p < nRE; ++p)
+                                    cmp_rect_binary(kRectTokE[i], kRectTokE[j], kRectTokE[k],
+                                                    kRectTokE[l], kRectTokE[m], kRectTokE[n],
+                                                    kRectTokE[o], kRectTokE[p]);
+    for (int h = 0; h < nHR; ++h) {
+        for (int i = 0; i < nR6; ++i)
+            for (int j = 0; j < nR6; ++j)
+                for (int k = 0; k < nR6; ++k)
+                    for (int l = 0; l < nR6; ++l) {
+                        cmp_rect_binary(kHandRect[h][0], kHandRect[h][1], kHandRect[h][2],
+                                        kHandRect[h][3],
+                                        kRectTok6[i], kRectTok6[j], kRectTok6[k], kRectTok6[l]);
+                        cmp_rect_binary(kRectTok6[i], kRectTok6[j], kRectTok6[k], kRectTok6[l],
+                                        kHandRect[h][0], kHandRect[h][1], kHandRect[h][2],
+                                        kHandRect[h][3]);
+                    }
+        for (int i = 0; i < nRX; ++i)
+            for (int j = 0; j < nRX; ++j)
+                for (int k = 0; k < nRX; ++k)
+                    for (int l = 0; l < nRX; ++l) {
+                        cmp_rect_binary(kHandRect[h][0], kHandRect[h][1], kHandRect[h][2],
+                                        kHandRect[h][3],
+                                        kRectTokX[i], kRectTokX[j], kRectTokX[k], kRectTokX[l]);
+                        cmp_rect_binary(kRectTokX[i], kRectTokX[j], kRectTokX[k], kRectTokX[l],
+                                        kHandRect[h][0], kHandRect[h][1], kHandRect[h][2],
+                                        kHandRect[h][3]);
+                    }
+        for (int g = 0; g < nHR; ++g)
+            cmp_rect_binary(kHandRect[h][0], kHandRect[h][1], kHandRect[h][2], kHandRect[h][3],
+                            kHandRect[g][0], kHandRect[g][1], kHandRect[g][2], kHandRect[g][3]);
+    }
+
     for (const auto &kv : g_tags)
         std::printf("DIFFTAG %s %ld\n", kv.first.c_str(), kv.second);
+    // 规则三的机器闸门：见 g_apis 上方那段。run_oracle.sh 拿这批行与
+    // oracle/api_seen.expected、oracle/rect_api.map 三向核对。
+    for (const auto &a : g_apis)
+        std::printf("APISEEN %s\n", a.c_str());
     std::printf("DIFF total=%ld mismatch=%ld\n", g_total, g_mismatch);
     return 0;   // 已声明的偏离不算失败；判定在 run_oracle.sh
 }

@@ -6,6 +6,7 @@
 int run_global_tests();
 int run_point_tests();
 int run_size_tests();
+int run_rect_tests();
 
 int main()
 {
@@ -13,6 +14,7 @@ int main()
     failures += run_global_tests();
     failures += run_point_tests();
     failures += run_size_tests();
+    failures += run_rect_tests();
 
     if (failures == 0) {
         std::printf("all pkgeometry tests passed\n");

@@ -70,12 +70,32 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 | `PkGlobal.h` / `PkGlobal.cpp` | `qreal` `qAbs` `qMin` `qMax` `qBound` `qRound` `qFuzzyCompare` `qFuzzyIsNull` `qIsNaN` `qInf`，以及**宏改写不到**的 `pkQtFuzzyCompare` / `pkQtFuzzyIsNull`（见下） |
 | `PkPoint.h` / `PkPoint.cpp` | `PkPoint`（两个 `int`）与 `PkPointF`（两个 `qreal`），逐字抄自 `qpoint.h` |
 | `PkSize.h` / `PkSize.cpp` | `PkSize`（两个 `int`）与 `PkSizeF`（两个 `qreal`），逐字抄自 `qsize.h`；两个 `scaled(const Pk*&, mode)` 照 Qt 的形态放在 `.cpp` 里（`QSize::scaled` 定义在 `qsize.cpp`） |
-| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` | `#define` 垫片，无扩展名 |
-| `tests/` | `test_global.cpp`（12 函数 / 116 断言）、`test_point.cpp`（24 / 199）、`test_size.cpp`（31 / 214）、两个共存 TU `coexist_*.cpp`、两个宏改写探针 `point_macro_proof.cpp` 与 `size_macro_proof.cpp` |
-| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point 族 + Size 族）、`run_oracle.sh`、`geometry.deviation` |
+| `PkRect.h` / `PkRect.cpp` | `PkRect`（**四个 `int` 边界坐标 `x1/y1/x2/y2`，不是 x/y/w/h**），逐字抄自 `qrect.h`；`normalized` / `operator|` / `operator&` / `contains` ×2 / `intersects` 六个照 Qt 的形态放在 `.cpp` 里（Qt 那六个编在 `libQt5Core.so`，本机没有 `qrect.cpp` 源码，它们是**靠对拍逐输入逼出来的**） |
+| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` | `#define` 垫片，无扩展名。**`compat/QRect` 目前只定义 `QRect`**，`QRectF` 等 Task 5 |
+| `tests/` | `test_global.cpp`（12 函数 / 116 断言）、`test_point.cpp`（24 / 199）、`test_size.cpp`（31 / 214）、`test_rect.cpp`（38 / 见下）、两个共存 TU `coexist_*.cpp`、两个宏改写探针 `point_macro_proof.cpp` 与 `size_macro_proof.cpp` |
+| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect 三族）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `rect_api.map`（规则三的机器闸门，见下）** |
 
-`PkRect`/`PkRectF`/`PkTransform`、`graft/` 试接由后续 Task 交付；
+`PkRectF`/`PkTransform`、`graft/` 试接由后续 Task 交付；
 它们往 `oracle/geometry_difftest.cpp` 里**加节**，不另起文件。
+
+### 规则三的机器闸门（Task 4 新增）
+
+方法论规则三是「**每个已实现的重载都要有自己的 `rec()`**」。Task 3 复评实测过它的
+反面：`PkSizeF::scale(qreal,qreal,mode)` 少写一条 `rec()`，把那个重载整个改坏之后
+**93 630 039 次比对一条都没红、`run_oracle.sh` 退出码 0 放行**。在 Task 4 之前这条
+规则只能靠人手列对照表。
+
+现在它是机器对账的：对拍程序末尾多打一批 `APISEEN <name>` 行（不影响
+`DIFF`/`DIFFTAG` 的输出契约），`run_oracle.sh` 做三向核对 ——
+① `APISEEN` 集合必须等于 `oracle/api_seen.expected`；
+② `PkRect.h` **类体里每一条声明**都要在 `oracle/rect_api.map` 里有一行（反之亦然）；
+③ `rect_api.map` 里每个标签都要真的出现在 `APISEEN` 里。
+声明指纹由脚本从头文件机械解析（去注释、去形参名、去默认实参），不是人手抄的。
+
+**闸门自证**（注入实验 E）：往 `PkRect.h` 加一个已实现的 `moveBottom(int)` 重载、
+不给它写 `rec()` —— `run_tests.sh` **退出码 0 全绿**、对拍的 `DIFF` 行**逐字不变**
+（`total=125338363 mismatch=704589`，因为它压根没被比到），而闸门 ② 当场 FAIL：
+`PkRect.h 声明 63 条，rect_api.map 62 行`。这正是 Task 3 那个洞的形状。
 
 ### `Qt::AspectRatioMode`：**全项目唯一一个真 `namespace`**
 
@@ -190,6 +210,55 @@ out-of-line 的（`qsize.cpp`），Task 4/5 的 `PkRect` 也不需要它。真�
 调用点时若冒出新的 `QSize::transposed()` 调用点，按判据①补上即可（照抄
 `return PkSize(ht, wd);` 与 `qSwap(wd, ht)`，两行）。
 
+## Rect 族成员名的**接收者归属**（判据①两个方向都要守）
+
+与 Size 族同一套口径：保留范围 **3 325 个文件**（`git ls-files` ∩ 保留前缀 ∩
+`.cpp`/`.h`/`.cc` − `tests/`|`benchmarks/` − `pk/`，**`.cc` 算在内**），三种调用形态
+`.name(` / `->name(` / `::name(`，接收者按变量声明类型 / `QRect(...)` 临时量 /
+`xxx.rect()` 链判定。命中 ≤ 20 处的逐条看，命中多的取"同一行里出现 `QRect`/`QRectF`
+字面量"的那些做直接文本证据。
+
+**有用量、已实现的 51 个名字**（`x` `y` `setX` `setY` `left` `top` `right` `bottom`
+`setLeft` `setTop` `setRight` `setBottom` `width` `height` `setWidth` `setHeight`
+`size` `setSize` `topLeft` `topRight` `bottomLeft` `bottomRight` `setTopLeft`
+`setBottomRight` `center` `moveLeft` `moveTop` `moveTo` `moveCenter` `moveTopLeft`
+`translate` `translated` `adjust` `adjusted` `normalized` `contains` `intersects`
+`intersected` `united` `isEmpty` `isNull` `isValid` `setRect` `getRect` `setCoords`
+`getCoords` `operator|` `operator&` `operator|=` `operator&=` `operator==`）逐个都
+找到了 Rect 族接收者。抽几条最容易被别的类抢走的做证据：
+
+| 成员名 | 三形态总命中 | 本族真实调用点 | 判定 | 依据（原始行） |
+|---|---:|---:|---|---|
+| `normalized` | 58 | ≥ 30 | **实现** | `kis_painter.cc:411` `QRect r = rc.normalized();`（**整数 QRect**）、`kis_pixel_selection.cpp:121`、`psd_layer_section.cpp:925/1103`；被别的类抢走的是 `QVector2D::normalized()`（`kis_tool_measure.cc:221/259`、`DefaultTool.cpp:887-928`、`SvgTextTool.cpp:903`） |
+| `united` | 21 | ≥ 18 | **实现** | `kis_pixel_selection.cpp:251` `const QRect r = selection->selectedRect().united(selectedRect());`、`kis_scanline_fill.cpp:501/588`、`kis_image.cc:1146/1259`；其余是 `QRectF` |
+| `intersected` | 24 | ≥ 16 | **实现** | `kis_convolution_worker_fft.h:62` `QRect r = ...selectedRect().intersected(QRect(...))`、`kis_grid_interpolation_tools.h:392/393/401`；被抢走的是 `QPolygonF::intersected`（`kis_safe_transform.cpp:169-184`、`multigridpatterngenerator.cpp:257/296`、`krita_utils.cpp:100`） |
+| `intersects` | 71 | ≥ 1 | **实现** | `kis_grid_interpolation_tools.h:580` `QRectF(originalBoundsForGrid).intersects(currentBounds)` |
+| `contains` | 772 | ≥ 2 | **实现** | `KisBezierUtils.cpp:789` `QRectF(0,0,1.0,1.0).contains(approxStart)`、`kis_assistant_tool.cc:478`；其余绝大多数是容器的 `contains` |
+| `moveTo` | 369（点/箭头两形态） | **1** | **实现** | `kis_constrained_rect.cpp:277-279` `QRect newRect = m_rect; newRect.moveTo(offset);`。其余全是 `QPainterPath::moveTo` 与各种 `RandomAccessor::moveTo` |
+| `moveTopLeft` | 1 | **1** | **实现** | `KoShapeRubberSelectStrategy.cpp:62` `d->selectRect.moveTopLeft(...)` |
+| `setRect` | 21 | **3** | **实现** | `SvgParser.cpp:881/887`（`QRectF maskRect;`）、`kis_experiment_paintop_settings.cpp:44`（`QRectF ellipse;`）。其余 18 处是 `KisFixedPaintDevice::setRect` |
+| `getCoords` | 6 | **6** | **实现** | 全是 Rect：`KisRectsGrid.cpp:93`、`kis_lod_transform_base.h:72/93/113`、`kis_paint_device.cc:1343/1349` |
+| `setCoords` | 7 | **7** | **实现** | 全是 Rect：`KisRectsGrid.cpp:112`、`kis_algebra_2d.cpp:535/538/571`、`kis_lod_transform_base.h:86/106/127` |
+| `transposed` | 5 | **0** | **不实现** | 5 处全不是 Rect：`kis_algebra_2d.cpp:935` 是 `QTransform::transposed()`，`kis_free_transform_strategy_gsl_helpers.cpp:356-359` 是 Eigen 矩阵。**该名字归 Task 6 的 `PkTransform`** |
+| **`unite`** | **2** | **0** | **不实现** | ⚠ **实施计划说"实测 1–2 处调用点，用量 >0 就实现"，实测证伪**：`kis_layer_utils.cpp:1384` 是 `QSet<int>::unite`（`frames.unite(rasterChan->allKeyframeTimes())`），`kis_transform_worker.cc:214` 的 `dstBounds` 声明在 `:207` 是 **`KisFilterWeightsApplicator::LinePos`**，不是 `QRect`。Rect 族真实调用点 **0** |
+| **`intersect`** | **1** | **0** | **不实现** | ⚠ 同上：唯一命中 `kis_layer_utils.cpp:2567` 是 **`QSet<int>::intersect`**（`allKeyframeTimes().intersect(times)`）。Rect 族真实调用点 **0** |
+| `marginsAdded` / `marginsRemoved` | 0 | 0 | **不实现** | 三形态实测 0（且需要 `QMargins`，实测 2 次/1 文件，不在 R-03 范围） |
+| `moveBottom` / `moveRight` / `moveTopRight` / `moveBottomLeft` / `moveBottomRight` | 0 | 0 | **不实现** | 三形态实测 0。⚠ `moveTopLeft` 是 1（实现），别把这一族一起砍掉 |
+| `setTopRight` / `setBottomLeft` | 0 | 0 | **不实现** | 三形态实测 0。⚠ `setTopLeft`(4) / `setBottomRight`(4) 有用量，实现了 |
+| `fromCGRect` / `toCGRect` | 0 | 0 | **不实现** | 三形态实测 0（macOS 专用桥接） |
+
+零用量清单的复查命令与原始输出（`xargs -a fileset.txt grep -ohE
+"(\.|->|::)[[:space:]]*<名字>[[:space:]]*\(" | wc -l`）：
+`marginsAdded 0`、`marginsRemoved 0`、`moveBottom 0`、`moveBottomLeft 0`、
+`moveBottomRight 0`、`moveRight 0`、`moveTopRight 0`、`setBottomLeft 0`、
+`setTopRight 0`、`fromCGRect 0`、`toCGRect 0` —— 与计划一致。
+
+> **`unite`/`intersect` 这两条是本 Task 对实施计划的实测纠正**，方向与
+> Task 2 的 `dotProduct`（计划说 0、实际非 0）相反：计划说非 0、**实际是 0**。
+> 两条合起来正好说明"按名字数、不看接收者"这个原始测量口径在**两个方向**上都会错。
+> `toRect` / `toAlignedRect` 有用量（18 / 64）但**接收者全是 `QRectF`**，
+> 那两个是 Task 5 的 `PkRectF` 的事，`QRect` 本身没有这两个成员。
+
 ## Qt 语义里必须照抄、看着像 bug 的地方
 
 都已在 `tests/test_global.cpp` 里逐条钉住，防止后来者"顺手修正"：
@@ -254,10 +323,50 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 10 | `PkSize::scaled` 里用 `long long` 而不是 `qint64` | `qint8`..`quint64` 那批 typedef 按用量表归 R-02，R-03 不预先实现（判据①）。本平台 `qint64` 就是 `long long`，逐字等价。**换平台要重看**（LP64/LLP64 上 `long long` 恒 64 位，与 `qint64` 一致）。 |
 | 11 | 对拍 TU 里 `#include "PkSize.cpp"`（在 `namespace pkoracle` 内） | 两个 `scaled(const Pk*&, mode)` 是 out-of-line 的（照 Qt 的形态）。`libpkgeometry.a` 里那份是 `::PkSize::scaled`，而对拍需要的是 `pkoracle::PkSize::scaled` —— 两个不同符号，链不上。把 `.cpp` 一起包进 namespace 是**唯一**能让对拍压到那两个函数的办法（改成 header-only 就不是"照抄 Qt 的结构"了）。纪律：`PkSize.cpp` 的系统头（只有 `<type_traits>`）必须在对拍的系统头区里已经出现过。 |
 | 12 | **`PkGlobal.h` 里有一个真 C++ `namespace Qt`**（只装 `AspectRatioMode` 一个枚举）—— 这是「全局 `Pk` 前缀、不引 namespace」那条架构约束在本目录里的**唯一例外** | `QSize::scaled`/`scale` 的签名里就写着 `Qt::AspectRatioMode`，调用点写的是 `Qt::KeepAspectRatio` 这个**限定名**（实测用量：类型名 22 次、`IgnoreAspectRatio` 12 次、`KeepAspectRatio` 18 次、`KeepAspectRatioByExpanding` 3 次，口径 3 325 个文件），不套 `namespace Qt` 对不上。与那条约束不冲突：约束针对的是**我们自己的类型** —— compat 垫片靠 `#define QRect PkRect`，而 Krita 里有 `class QRect;` 前置声明，套 namespace 这个技巧就废；枚举没有前置声明这个问题。完整论证见上「`Qt::AspectRatioMode`：全项目唯一一个真 `namespace`」一节。**⚠ 共存副作用**：同一个 TU 里若同时出现 `PkGlobal.h` 与**真 Qt 的** `qnamespace.h`，`Qt::AspectRatioMode` 是**重定义硬错**；对拍是唯一有这个形态的编译行，靠把替代品整包塞进 `namespace pkoracle` 绕开。表现是响亮的编译错误、不是静默错行为，所以只登记、不改代码。**Task 4–6 的 reviewer 注意：这一条 Task 3 交付时漏进了本表，是复评补的。** |
+| 13 | **对拍在"跨距溢出"那片输入上与 Qt 分家 704 589 次，登记为偏离而不是回去改实现** —— `geometry.deviation` 里 9 行 `span-overflow-ub` | 这是 R-03 的**第一批非 canary 偏离行**，而且**不是 `PkRect` 的行为偏离**。证据是决定性的：同一份源码、同一批输入（`total=125338363`），`-O2 -fwrapv` 下 `mismatch=704589`，**去掉 `-fwrapv` 后 `mismatch=3`（只剩 canary）**，唯一变量是编译旗标。机理：`operator|`/`operator&`/`contains(QRect)`/`intersects` 这四个（以及转发到它们的 `united`/`intersected`/`|=`/`&=`）**实现编在 `libQt5Core.so` 里**，对拍 TU 的 `-fwrapv` **到不了那侧**；而它们的翻正判据写作 `x2 - x1 + 1 < 0`，跨距越出 `int` 时是有符号溢出 UB —— 我们按二补数回绕、Qt 按"溢出不会发生"推导，两个取值都合法。旁证三条：同住 `.so` 但判据写作 `x2 < x1 - 1` 的 `normalized()` 与 `contains(QPoint)` **零 mismatch**；全部 inline 成员零 mismatch；专门的扫描程序在 `9⁸ = 43 046 721` 组极值坐标双目输入上确认**跨距不溢出时分家次数为 0**。试过把判据加宽到 `long long` 去凑 Qt 那侧，`mismatch` 反而从 704 589 涨到 1 485 313 —— Qt 那侧不是统一的"不回绕"，是逐点依赖 GCC 做了什么，**源码层面无解**。谓词宽度与理由逐字对齐（见 `geometry.deviation` 的长注释）。**留给 controller 的一句**：若判定"对拍不该带 `-fwrapv`"，这 9 行连同 704 589 次差异会一起消失 —— 但那是 Task 2 controller 裁决过的事，本 Task 不擅自反转。 |
+| 14 | **`PkRect` 的四个构造函数按 Qt 头文件全集实现**，不按实测调用点裁剪 | 与偏离 6（运算符）同一个理由、同一个性质：构造函数无法按调用点 grep 归属（`QRect(a,b,c,d)` 这种写法数不出接收者），因此**没有实测用量数字**可依。范围 = `qrect.h` 里为 `QRect` 声明的全部构造，一个不多一个不少（Darwin 专有的 `fromCGRect` 除外，那个有 `#if defined(Q_OS_DARWIN)` 卫兵且实测 0）。 |
+| 15 | **`PkRect` 不实现 `unite` / `intersect`**（Qt5 已废弃的两个别名），与实施计划的字面要求相反 | 计划写的是「实测各 1–2 处调用点，**用量 > 0 就实现**」。本 Task 按三形态重新归属，**实测证伪**：`intersect` 唯一命中是 `QSet<int>::intersect`（`kis_layer_utils.cpp:2567`），`unite` 两处分别是 `QSet<int>::unite`（`kis_layer_utils.cpp:1384`）与 `KisFilterWeightsApplicator::LinePos::unite`（`kis_transform_worker.cc:214`，`dstBounds` 的声明在 `:207`）。**Rect 族真实调用点 0**，按判据①「一项不多」不实现。这是执行判据①，不是缩范围。 |
+| 16 | **`compat/QRect` 目前只 `#define QRect`，没有 `QRectF`** | `PkRectF` 是 Task 5 的交付物，现在还不存在。与 `compat/QPoint`（同时给 `QPoint`/`QPointF`）、`compat/QSize`（同时给两个）的形态**暂时不一致**，Task 5 补齐。后果说清楚：在那之前 `#include <QRect>` 之后直接用 `QRectF` 的调用点会编不过 —— **已知且有主的缺口，不是漏项**。 |
+| 17 | `PkRect` 的默认构造函数**函数体挪到类体外**（Qt 写在类体里） | 取值一字不差（`x1(0), y1(0), x2(-1), y2(-1)`），改的只是位置。理由是工程性的：`run_oracle.sh` 的规则三闸门要从 `PkRect.h` 的**类体**机械解析出重载清单，类体里混着初始化列表会让那个解析多一条只为它存在的特例。**无行为差异**，`tests/test_rect.cpp` 的 `rectDefaultIsNullSentinel` 与 `PkRect.cpp` 的 `static_assert(PkRect().isNull())` 各钉一遍。 |
 
 ## 覆盖度缺口
 
 「说不出覆盖不到什么的，说明还没想清楚」：
+
+### Task 4（Rect 族）新增的缺口
+
+- **`-fwrapv` 只管住对拍 TU 里的 inline 代码，管不住 `libQt5Core.so`。**
+  Point/Size 两族全部成员都是头文件 inline 的，所以那两族两侧同旗标、逐输入零差异；
+  而 `QRect` 有六个成员编在 `.so` 里（`normalized`、`operator|`、`operator&`、
+  `contains` ×2、`intersects`）。**这是 Rect 族独有的一块结构性缺口**，
+  Task 5（`QRectF` 同样有 `.cpp`）与 Task 6（`QTransform` 的 `.cpp` 更大）会
+  原样撞上，**别当成新发现重新查一遍**。落地表现见偏离 13 与
+  `geometry.deviation` 里那 9 行。
+- **`x2 - x1` 与 `x2 - x1 + 1` 溢出那片输入上，"正确"没有定义。** 两侧都是 UB，
+  我们用 `-fwrapv` 把自己这侧钉死，Qt 那侧钉不住。**这不等于 Krita 发布构建里的
+  行为**（那边也不带 `-fwrapv`）。是否存在真依赖回绕的调用点归 S 线查。
+  实务上这片输入要求矩形跨距超过 2³¹ 像素，Krita 的图像坐标到不了 —— 但我们
+  **不拿这条当豁免理由**，豁免理由是"那里 UB"。
+- **`toRect` / `toAlignedRect` / `QRectF` 相关的一切不在本 Task**。它们有实测
+  用量（18 / 64）但接收者全是 `QRectF`，归 Task 5。
+- **`QRect` 与 `QMargins` 的四个互操作（`marginsAdded`/`marginsRemoved`/
+  `operator+=`/`operator-=`）不实现**：`QMargins` 实测 2 次 / 1 文件，
+  归属未定，与 `QLineF`/`QPolygonF` 一起是要报回主会话的归属问题。
+- **`qHash(PkRect)` 不实现，而且它是 R-02 的一个真实待办**（下面「`qHash` /
+  `QDataStream` / `QDebug` 不实现」那条已经点过名，这里按 Task 4 的要求再点一次）：
+  本 Task 现场复测，口径为保留范围 3 325 个文件、`grep -ohE` ——
+  `QHash<QRect` **1**（`libs/image/kis_suspend_projection_updates_stroke_strategy.cpp:121`
+  的 `QHash<QRect, QVector<QRect>> fullRefreshRequests;`）、`QSet<QRect` 0、
+  `QMap<QRect` 0、`QMultiHash<QRect` 0、`QHash<QPoint` 0、`QSet<QPoint` 0。
+  `QHash` 的键类型要求有 `qHash` 重载而 `PkRect` 没有，**R-02 落地哈希容器时
+  必须连 `qHash(PkRect)` 一起补**，否则那一处编不过。
+- **对拍的输入是坐标四元组的组合爆破，不是"所有矩形"**：密集域 `6⁴ = 1 296`、
+  极值域 `7⁴ = 2 401`、双目极值域 `5⁴ = 625`、手挑 16 个。双目做满
+  `1 296² + 625²` 再加手挑与两个域的**双向**交叉。**没覆盖到的是"中等大小的
+  随机坐标"** —— 那一片没有分支边界，风险最低，但确实没测。
+- **`contains(point)` 的点坐标由矩形自己的边界导出**（`l-1/l/l+1/r-1/r/r+1`），
+  导出值越出 `int` 时那一格被跳过（`INT_MIN` 的 `l-1`）。那一格由极值 token
+  自己作为矩形坐标覆盖，但**没有"点恰好在 INT_MIN-1"这种输入**（它不存在）。
 
 - **`PkGlobal.h` 那 10 项标量工具本身没有进自动对拍**，它们的期望值来自人工跑真
   Qt 探针（`tests/test_global.cpp`）。`oracle/` 是经由 `PkPoint`/`PkPointF` **间接**
@@ -444,3 +553,30 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
    不是零值。这不是文档错误（它没写反），但它是本 Task 最容易照直觉写错的一条，
    记在这里给 Task 4/5 提个醒：**`QRect()` 是 `(0,0,-1,-1)`，也不是全零**，
    到时候一样要先问探针。
+
+6. **⚠ 实施计划把 `intersect` / `unite` 列进「Rect 族有用量、必须实现」，还专门
+   写了「`intersect`/`unite` 是 Qt5 已 deprecated 的原地版，实测各 1–2 处调用点。
+   **用量 > 0 就实现**（判据①是实测用量，不是「Qt 推荐用法」）」——实测证伪，
+   本 Task 不实现这两个。** 口径同上（3 325 个文件，三形态）：
+   - `intersect` 合计 **1 处**：`libs/image/kis_layer_utils.cpp:2567`
+     `paintDevice->keyframeChannel()->allKeyframeTimes().intersect(times)` ——
+     `allKeyframeTimes()` 返回的是 `QSet<int>`，这是 **`QSet::intersect`**。
+   - `unite` 合计 **2 处**：`libs/image/kis_layer_utils.cpp:1384`
+     `frames.unite(rasterChan->allKeyframeTimes())` 是 **`QSet::unite`**；
+     `libs/image/kis_transform_worker.cc:214` 的 `dstBounds.unite(dstPos)`，
+     `dstBounds` 的声明在同文件 `:207` 是
+     **`KisFilterWeightsApplicator::LinePos`**（Krita 自备的类型，它自己有个
+     `unite` 成员），也不是 `QRect`。
+   **Rect 族真实调用点 0**，按判据①「一项不多」不实现。
+   与第 2 条（`dotProduct`：计划说 0、实际非 0）**方向相反**，两条合起来说明
+   原始测量那条「按名字数、不看接收者」的口径在**两个方向上都会错**：
+   会漏（静态调用、`.cc` 文件），也会多（同名成员属于别的类）。
+   > 因此「按族取并集」这条规则的正确用法是：**并集只用来决定「要不要查」，
+   > 不能直接当成「要不要实现」** —— 每个名字都得再归属一次接收者类型。
+
+7. **实施计划 Task 4 的 Step 8 要求「注入三组假 bug」，本 Task 做了五组。**
+   多出来的两组不是加戏：一组（D，`contains` 的差一边界）是计划正文点名过的
+   「已知会咬人的五个地方」之一而 Step 8 的三组没覆盖到；另一组（E）是
+   **规则三机器闸门的自证** —— 它是 Task 4 的硬要求，而"闸门装了但没验证它会响"
+   本身就是这次要根治的那类问题。
+

@@ -1,0 +1,21 @@
+#pragma once
+#include "../PkRect.h"
+
+// 兼容垫片：让真实调用点的 `#include <QRect>` 在**一个字都不改**的前提下解析到
+// PkRect。文件名刻意没有扩展名 —— 调用点写的就是 <QRect>。做法照 compat/QPoint。
+//
+// 用宏而不是 `using QRect = PkRect;`：Krita 里有 `class QRect;` 这类前置声明
+//（如 libs/flake/KoCanvasBase.h），类型别名遇到它会报 "redeclared as different
+// kind of entity"；宏则把那一行原样改写成 `class PkRect;`，前置声明照样成立。
+//
+// **QRectF 还没有。** Qt 的 <QRect> 与 <QRectF> 都只是 qrect.h 的转发头，包任一个
+// 都能同时拿到两个名字；这里只定义 QRect 是因为 PkRectF 是 Task 5 的交付物。
+// Task 5 补上 `#define QRectF PkRectF` 与 compat/QRectF，形态与 compat/QPoint、
+// compat/QSize 对齐（那两份都是两个名字一起给）。在那之前，`#include <QRect>`
+// 之后直接用 QRectF 的调用点会编不过 —— 这是**已知且有主的缺口**，不是漏项。
+//
+// `PkPoint` / `PkSize`（PkRect 的参数与返回类型）经 ../PkRect.h 一起进来，
+// 与 Qt 的形态一致（qrect.h 自己 #include <QtCore/qpoint.h> 与 <QtCore/qsize.h>）。
+#ifndef QRect
+#define QRect PkRect
+#endif

@@ -14,6 +14,10 @@ SRC=pk/geometry/oracle/geometry_difftest.cpp
 DEV=pk/geometry/oracle/geometry.deviation
 OUT=pk/geometry/build/geometry_difftest
 LOG=pk/geometry/build/geometry_difftest.out
+# 规则三（每个已实现的重载都要有自己的 rec()）的机器闸门，见下面 §APISEEN
+APIEXP=pk/geometry/oracle/api_seen.expected
+RECTMAP=pk/geometry/oracle/rect_api.map
+RECTHDR=pk/geometry/PkRect.h
 
 [ -f "$QT/include/QtCore/qpoint.h" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/qpoint.h" >&2; exit 1; }
 [ -f "$QT/lib/libQt5Core.so" ]       || { echo "找不到真 Qt5 的库：$QT/lib/libQt5Core.so" >&2; exit 1; }
@@ -91,6 +95,109 @@ if [ "$rc" -ne 0 ]; then
     exit 1
 fi
 grep -E '^(DIFFTAG|DIFF) ' "$LOG" || true
+
+# ── §APISEEN：规则三的机器闸门 ───────────────────────────────────────────
+#
+# 规则三是「**每个已实现的重载都要有自己的 rec()**」。Task 3 复评实测过它的
+# 反面：`PkSizeF::scale(qreal,qreal,mode)` 少写了一条 rec，把那个重载整个改坏
+# 之后 **93 630 039 次比对一条都没红、本脚本退出码 0 放行**。在那之前这条规则
+# 只能靠人手列对照表 —— 而 Rect 是 8 分量、重载多得多，同类漏写更容易发生。
+#
+# 这里把它变成机器对账，三件事任一不成立就 FAIL：
+#   ① 程序打出的 APISEEN 集合 == api_seen.expected（多一条少一条都算漂移）
+#   ② PkRect.h **类体里的每一条声明**都在 rect_api.map 里有一行，反之亦然
+#      —— 这一条才是真正堵住 Task 3 那个洞的：加了重载却没写 rec() 时，
+#      新声明在 map 里找不到对应行，当场 FAIL
+#   ③ rect_api.map 里列的每个标签都真的出现在 APISEEN 里
+# 期望清单仍然是人维护的，但**漂移由机器抓** —— 机器查机械的那一半。
+python3 - "$LOG" "$APIEXP" "$RECTMAP" "$RECTHDR" <<'PY'
+import re, sys
+
+log, exp_path, map_path, hdr_path = sys.argv[1:5]
+
+seen = {l[len('APISEEN '):].strip()
+        for l in open(log, encoding='utf-8', errors='replace')
+        if l.startswith('APISEEN ')}
+expected = {l.strip() for l in open(exp_path, encoding='utf-8')
+            if l.strip() and not l.startswith('#')}
+
+ok = True
+if seen != expected:
+    ok = False
+    print('FAIL: APISEEN 与 %s 不一致（规则三闸门 ①）' % exp_path, file=sys.stderr)
+    for a in sorted(seen - expected):
+        print('  程序打出但清单里没有：%s' % a, file=sys.stderr)
+    for a in sorted(expected - seen):
+        print('  清单里有但程序没打出：%s' % a, file=sys.stderr)
+
+# PkRect.h 类体里的声明指纹：去注释 → 取 class 体 public 段 → 逐条声明
+# 规范化（去形参名、去默认实参、把 `T &x` / `T *x` 收成 `T&` / `T*`）。
+src = re.sub(r'//[^\n]*', '', open(hdr_path, encoding='utf-8').read())
+m = re.search(r'class PkRect\s*\{(.*?)\n\s*private:', src, re.S)
+if not m:
+    print('FAIL: 解析不出 PkRect 的类体 —— 头文件结构变了，闸门失效', file=sys.stderr)
+    sys.exit(1)
+decls, miss = [], []
+for stmt in m.group(1).split(';'):
+    stmt = ' '.join(stmt.split())
+    if not stmt:
+        continue
+    mm = re.search(r'(operator[^\s(]*|~?[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)'
+                   r'\s*(?:const)?\s*(?:noexcept)?\s*$', stmt)
+    if not mm:
+        miss.append(stmt); continue
+    ps = []
+    for p in mm.group(2).split(','):
+        p = ' '.join(p.split('=')[0].split())
+        p = re.sub(r'\s+[A-Za-z_][A-Za-z0-9_]*$', '', p)
+        p = p.replace(' &', '&').replace(' *', '*')
+        p = re.sub(r'([&*])[A-Za-z_][A-Za-z0-9_]*$', r'\1', p)
+        if p:
+            ps.append(p)
+    decls.append('%s(%s)' % (mm.group(1), ','.join(ps)))
+if miss:
+    ok = False
+    print('FAIL: PkRect.h 类体里有解析不了的声明（闸门会漏掉它们）：', file=sys.stderr)
+    for s in miss:
+        print('  ' + s, file=sys.stderr)
+
+mapping = {}
+for n, line in enumerate(open(map_path, encoding='utf-8'), 1):
+    if line.startswith('#') or not line.strip():
+        continue
+    cols = line.rstrip('\n').split('\t')
+    if len(cols) != 2:
+        print('FAIL: %s:%d 不是两列 tab 分隔' % (map_path, n), file=sys.stderr)
+        sys.exit(1)
+    mapping[cols[0]] = [x for x in cols[1].split(',') if x]
+
+undeclared = [d for d in decls if d not in mapping]
+orphan = [k for k in mapping if k not in decls]
+if undeclared:
+    ok = False
+    print('FAIL: PkRect.h 里有声明在 %s 里没有对应行（规则三闸门 ②）——' % map_path,
+          file=sys.stderr)
+    print('      新加的重载必须同时有一条自己的 rec() 和这里的一行：', file=sys.stderr)
+    for d in undeclared:
+        print('  ' + d, file=sys.stderr)
+if orphan:
+    ok = False
+    print('FAIL: %s 里有行对不上 PkRect.h 的任何声明（成员删了却留着行）：' % map_path,
+          file=sys.stderr)
+    for k in orphan:
+        print('  ' + k, file=sys.stderr)
+
+for d in decls:
+    for lab in mapping.get(d, []):
+        if lab not in seen:
+            ok = False
+            print('FAIL: %s 映射到标签 %s，但对拍里根本没有这条 rec()（闸门 ③）'
+                  % (d, lab), file=sys.stderr)
+
+print('\n规则三机器对账：PkRect.h 声明 %d 条，rect_api.map %d 行，'
+      'APISEEN %d 个（期望 %d）' % (len(decls), len(mapping), len(seen), len(expected)))
+sys.exit(0 if ok else 1)
+PY
 
 # ── DIFFTAG ↔ geometry.deviation 双向核对 ────────────────────────────────
 # 理由长度按 **UTF-8 码点**计，与 locale 无关（${#var} 的口径跟着 locale 走，
