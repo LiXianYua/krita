@@ -10,9 +10,14 @@ class PkArrayDataTest : public QObject
 {
     Q_OBJECT
 private Q_SLOTS:
-    // 1. 默认构造后 PkUseCount()==1
-    void defaultConstructedUseCountIsOne();
-    // explicit C 构造：接管内层容器，仍然独占
+    // 1. 默认构造：空、可用、走共享空哨兵（零分配），首次写入分裂成独占
+    //
+    //    **不要在这里断言 PkUseCount() 等于某个具体数**：默认构造的容器指向
+    //    进程内共享的空哨兵，计数是「1 + 当前活着的空实例个数」，随执行顺序浮动。
+    //    要断言的是真实语义——空、可读、可写、写后独占、彼此互不影响。
+    void defaultConstructedIsEmptyAndUsable();
+    void defaultConstructedSplitsToExclusiveOnFirstWrite();
+    // explicit C 构造：接管内层容器，仍然独占（哨兵路径的正向对照）
     void explicitInitTakesOwnership();
     // 且是真的「接管」——不得拷贝元素
     void explicitInitDoesNotCopyElements();
@@ -57,6 +62,9 @@ private Q_SLOTS:
     // 8. 堆分配探针 —— 把「零分配」的承诺变成有牙的断言。
     //    docs/Qt替代品选型.md §5 点名的唯一性能不确定项就在这一组里。
     void copyDoesNotAllocate();
+    // 默认构造是全代码库最高频的操作，Qt 下是零堆分配（指向 shared_null）。
+    // 这是本组里最有牙的一条：实现一旦退回 make_shared<C>()，只有它会响。
+    void defaultConstructionDoesNotAllocate();
     void moveDoesNotAllocate();
     void swapDoesNotAllocate();
     void detachAllocationCounts();

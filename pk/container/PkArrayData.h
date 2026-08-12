@@ -31,7 +31,7 @@
 //
 // ---- 对 C 的要求（下面有 static_assert 钉住，不只是注释）----
 //
-// 1. **可默认构造** —— 默认构造与共享空哨兵都要 make_shared<C>()
+// 1. **可默认构造** —— 共享空哨兵是 make_shared<C>()（默认构造只是指向它）
 // 2. **可拷贝构造** —— PkDetach() 的深拷贝是 make_shared<C>(*d)
 //
 // 只有这两条是硬要求。`explicit PkArrayData(C init)` 的按值形参会用到移动构造，
@@ -57,9 +57,9 @@
 //
 // ---- detach 语义：逐条对齐 Qt（线级 spec 说这几条将来会被对拍咬到）----
 //
-// 1. **共享空实例**：moved-from 的源指向 PkSharedEmpty() 返回的那一份进程内
-//    共享空 C —— 对应 Qt 的 QArrayData::shared_null。往它上面写会 detach，
-//    所以它永远不会被污染（机制见下一节）。
+// 1. **共享空实例**：**默认构造的容器**与 moved-from 的源都指向 PkSharedEmpty()
+//    返回的那一份进程内共享空 C —— 对应 Qt 的 QArrayData::shared_null。
+//    往它上面写会 detach，所以它永远不会被污染（机制见下一节）。
 // 2. **引用计数是原子的**：由 std::shared_ptr 保证（对应 Qt 的 QtPrivate::RefCount
 //    用 QAtomicInt）。多个线程各自持有同一份缓冲区的拷贝、各自 detach 是安全的；
 //    **但同一个 PkArrayData 实例本身不是线程安全的**，与 Qt 的隐式共享容器同口径。
@@ -68,13 +68,27 @@
 //    不看别的（不看容量、不看是否 const）——这一条决定了 detach 发生的**时机**，
 //    也就决定了迭代器何时失效、写共享实例何时真拷贝。
 //
-// ---- 移动语义：共享空哨兵（与 Qt 的 QArrayData::shared_null 同构）----
+// ---- 共享空哨兵（与 Qt 的 QArrayData::shared_null 同构）----
 //
-// 移动之后的源对象是**空容器且完全可用**——PkConst()/PkMut()/PkDetach()/
-// PkUseCount() 全都能照常调。做法是让源指向一个**进程内共享的空 C**
-// （PkSharedEmpty()），而不是给它新分配一个空的。这样移动是
-// **noexcept + 零堆分配**，与 Qt 的 QVector/QList 一致
-// （`is_nothrow_move_constructible` 在 Qt 那边是 true，单测里有 static_assert 钉住）。
+// **两条路径指向哨兵：默认构造，以及移动之后的源。**
+//
+// (a) **默认构造**：Qt 实测 `默认构造的空容器 isDetached=0` —— 它指向进程级的
+//     shared_null，**一次堆分配都没有**。而默认构造是全代码库最高频的操作。
+//     旧实现 `d(std::make_shared<C>())` 是每构造一个空容器付一次 malloc；
+//     改指哨兵之后这笔钱全省掉，行为链条与 Qt 完全同构：
+//       默认构造 → 指哨兵，零分配
+//       首次写入 → PkMut() → PkDetach() 见 use_count()>1 → 分裂出独占副本
+//                  （拷贝一个空 C，很便宜）
+//       此后正常独占
+//
+// (b) **移动之后的源**：是**空容器且完全可用**——PkConst()/PkMut()/PkDetach()/
+//     PkUseCount() 全都能照常调。让源指向哨兵而不是给它新分配一个空的，
+//     移动才能是 **noexcept + 零堆分配**，与 Qt 的 QVector/QList 一致
+//     （`is_nothrow_move_constructible` 在 Qt 那边是 true，单测里有
+//     static_assert 钉住）。
+//
+// `explicit PkArrayData(C init)` **不走哨兵**：判据是「有没有显式给 C」，
+// 不是「里面有没有元素」——空的 C 传进来也独占。单测里有正向对照压这一格。
 //
 // **往哨兵上写会自动 detach，所以哨兵不会被污染**：哨兵那个 static shared_ptr
 // 自己长期持有 1 份引用，任何指向它的容器 use_count() 都是 1+N ≥ 2，
@@ -86,11 +100,13 @@
 // shared_ptr 没有控制块，use_count() 是 0，上面那条 `> 1` 判据会失效 ——
 // 结果是全进程的 moved-from 容器共享一个**可写**的全局空对象。
 //
-// **PkUseCount() 对 moved-from 返回的是哨兵的引用计数（1 + 进程内 moved-from
-// 个数），不是 1。** 这是哨兵方案唯一的可观测代价，而 PkUseCount()/
-// PkIsSharedWith() 按硬要求 4 只给单测用（真实调用点 isDetached()/isSharedWith()
-// 实测 0 处），对任何容器语义零影响。**单测不要断言 moved-from 的计数**，
-// 要断言真实语义（空、可写、写后能 detach、互不影响）。
+// **PkUseCount() 对任何指向哨兵的实例（默认构造的、moved-from 的）返回的都是
+// 哨兵的引用计数「1 + 进程内当前空实例个数」，不是 1，且随执行顺序浮动。**
+// 这是哨兵方案唯一的可观测代价，而 PkUseCount()/PkIsSharedWith() 按硬要求 4
+// 只给单测用（真实调用点 isDetached()/isSharedWith() 实测 0 处），对任何容器
+// 语义零影响。**单测不要断言指向哨兵的实例的计数，也不要断言哨兵的魔数**，
+// 要断言真实语义：空且可用、写入后分裂成独占（此时 PkUseCount()==1）、
+// 两个独立的空容器互不影响。
 //
 // 唯一的异常代价：哨兵首次使用时那一次 make_shared 在 noexcept 函数里，
 // OOM 会 terminate 而不是抛。Qt 的 shared_null 是静态对象、连这一次都没有；
@@ -109,12 +125,18 @@ class PkArrayData
     // 复用契约的机器化部分：换成注释里没写的 C 时，报错落在这里，
     // 而不是 make_shared 内部那一堆模板展开里。
     static_assert(std::is_default_constructible<C>::value,
-                  "PkArrayData<C>：C 必须可默认构造（默认构造与共享空哨兵都要 make_shared<C>()）");
+                  "PkArrayData<C>：C 必须可默认构造（共享空哨兵是 make_shared<C>()）");
     static_assert(std::is_copy_constructible<C>::value,
                   "PkArrayData<C>：C 必须可拷贝构造（PkDetach() 的深拷贝是 make_shared<C>(*d)）");
 
 public:
-    PkArrayData() : d(std::make_shared<C>()) {}
+    // 默认构造走共享空哨兵：**零堆分配**，与 Qt 的空容器指向 shared_null 同构。
+    // 这是全代码库最高频的操作（每个局部变量、每个成员变量、每个返回空容器的
+    // 分支各一次），旧实现的 make_shared<C>() 是每一次都付一笔。
+    PkArrayData() noexcept : d(PkSharedEmpty()) {}
+
+    // **有真实数据就该独占**：判据是「有没有显式给 C」，不是「里面有没有元素」。
+    // 空的 C 传进来也照常独占——它是调用方交出来的对象，不是「还没写过」的状态。
     explicit PkArrayData(C init) : d(std::make_shared<C>(std::move(init))) {}
 
     // 拷贝 = 共享，O(1)，noexcept、零分配（shared_ptr 的拷贝构造/赋值都是 noexcept）。
@@ -167,7 +189,8 @@ public:
     }
 
     // 供单测断言 COW 是否真的发生；不进 compat 垫片、不对调用点暴露。
-    // 注意：对 moved-from 对象返回的是哨兵计数（1 + 进程内 moved-from 个数）。
+    // 注意：对**任何指向哨兵的实例**（默认构造的、moved-from 的）返回的都是
+    // 哨兵计数（1 + 进程内当前空实例个数），不是 1，且随执行顺序浮动。
     long PkUseCount() const noexcept { return d.use_count(); }
     bool PkIsSharedWith(const PkArrayData &o) const noexcept { return d == o.d; }
 

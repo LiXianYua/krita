@@ -226,28 +226,97 @@ static_assert(noexcept(std::declval<IntVecData &>().PkSwap(std::declval<IntVecDa
 // 1. 默认构造 / explicit C 构造
 // ---------------------------------------------------------------------------
 
-void PkArrayDataTest::defaultConstructedUseCountIsOne()
+void PkArrayDataTest::defaultConstructedIsEmptyAndUsable()
 {
+    // 默认构造走共享空哨兵（与 Qt 的 shared_null 同构），所以两个默认构造的
+    // 实例**确实**指向同一块缓冲区——这是机制本身，不是缺陷。要断言的是
+    // 「它们的可观察行为与各自独占一份空容器完全一致」。
     IntVecData a;
-    PK_COMPARE(a.PkUseCount(), 1L);
     PK_VERIFY(a.PkConst().empty());
-
-    // 两个默认构造的实例各自持有一份缓冲区，不是共享同一个空单例
-    // （默认构造**不**走哨兵——哨兵只给 moved-from 用）
-    IntVecData b;
-    PK_COMPARE(b.PkUseCount(), 1L);
-    PK_VERIFY(!a.PkIsSharedWith(b));
+    PK_COMPARE(a.PkConst().size(), std::size_t(0));
     PK_VERIFY(a.PkIsSharedWith(a));
+
+    IntVecData b;
+    PK_VERIFY(b.PkConst().empty());
+
+    // **不断言 PkUseCount() 的具体值**：哨兵的计数是「1 + 进程内当前空实例
+    // 个数」，随执行顺序浮动。能断言的只有「至少还有哨兵自己那一份 + a」。
+    PK_VERIFY(a.PkUseCount() >= 2L);
+
+    // 读路径反复走也不改变任何东西（PkConst() 绝不 detach）
+    for (int i = 0; i < 10; ++i) {
+        (void)a.PkConst().size();
+    }
+    PK_VERIFY(a.PkConst().empty());
+    PK_VERIFY(b.PkConst().empty());
+
+    // 拷贝一个默认构造的容器：照常可用
+    IntVecData c(a);
+    PK_VERIFY(c.PkConst().empty());
+    PK_VERIFY(c.PkIsSharedWith(a));
+}
+
+void PkArrayDataTest::defaultConstructedSplitsToExclusiveOnFirstWrite()
+{
+    // 默认构造 → 指向哨兵；首次写入 → PkMut() 看到 use_count()>1 → 分裂出
+    // 独占副本。这正是 Qt 往 shared_null 上写会 detach 的行为。
+    IntVecData a;
+    IntVecData b;
+    IntVecData c;
+    PK_VERIFY(a.PkIsSharedWith(b));   // 都在哨兵上
+
+    a.PkMut().push_back(11);
+
+    // 写完就是独占的（这一条是「真实语义」，与哨兵的魔数无关）
+    PK_COMPARE(a.PkUseCount(), 1L);
+    PK_VERIFY((a.PkConst() == std::vector<int>{11}));
+    PK_VERIFY(!a.PkIsSharedWith(b));
+    PK_VERIFY(!a.PkIsSharedWith(c));
+
+    // 两个独立默认构造的容器互不影响：b、c 仍然是空的
+    PK_VERIFY(b.PkConst().empty());
+    PK_VERIFY(c.PkConst().empty());
+    PK_VERIFY(b.PkIsSharedWith(c));
+
+    // b 也写一次：同样分裂成独占，且不碰 a 和 c
+    b.PkMut().push_back(22);
+    PK_COMPARE(b.PkUseCount(), 1L);
+    PK_VERIFY((b.PkConst() == std::vector<int>{22}));
+    PK_VERIFY((a.PkConst() == std::vector<int>{11}));
+    PK_VERIFY(c.PkConst().empty());
+
+    // 哨兵本身没被那两次写入污染：新的默认构造拿到的仍是干净的空
+    IntVecData fresh;
+    PK_VERIFY(fresh.PkConst().empty());
+    PK_COMPARE(fresh.PkConst().size(), std::size_t(0));
+
+    // 默认构造出来的容器能整体被重新赋值，行为与普通实例无异
+    c = IntVecData(std::vector<int>{33});
+    PK_COMPARE(c.PkUseCount(), 1L);
+    PK_VERIFY((c.PkConst() == std::vector<int>{33}));
 }
 
 void PkArrayDataTest::explicitInitTakesOwnership()
 {
+    // 哨兵路径的**正向对照**：带真实数据的构造不走哨兵，一上来就独占。
+    // 没有这一条，「默认构造不断言 use_count」会让整组失去判别力——
+    // 实现要是把 explicit 构造也接到哨兵上，只有这里会响。
     std::vector<int> init{4, 5, 6};
     IntVecData a(std::move(init));
     PK_COMPARE(a.PkUseCount(), 1L);
     PK_COMPARE(a.PkConst().size(), std::size_t(3));
     PK_COMPARE(a.PkConst()[0], 4);
     PK_COMPARE(a.PkConst()[2], 6);
+
+    // 与默认构造的实例不共享（后者在哨兵上）
+    IntVecData empty;
+    PK_VERIFY(!a.PkIsSharedWith(empty));
+
+    // 空的 C 也一样独占：判据是「有没有显式给 C」，不是「里面有没有元素」
+    IntVecData emptyInit{std::vector<int>{}};
+    PK_COMPARE(emptyInit.PkUseCount(), 1L);
+    PK_VERIFY(emptyInit.PkConst().empty());
+    PK_VERIFY(!emptyInit.PkIsSharedWith(empty));
 }
 
 void PkArrayDataTest::explicitInitDoesNotCopyElements()
@@ -880,15 +949,76 @@ void PkArrayDataTest::detachAllocationCounts()
     emptySharer.PkDetach();
     const long emptyAllocs = g_pkAllocCount - beforeEmpty;
     PK_COMPARE(emptyAllocs, 1L);
+}
 
-    // 默认构造：1 次（make_shared）
+void PkArrayDataTest::defaultConstructionDoesNotAllocate()
+{
+    // 本轮的核心断言。Qt 默认构造的空容器指向进程级 shared_null，**零堆分配**
+    // （实测：`默认构造的空容器 isDetached=0`）。而默认构造是全代码库最高频的
+    // 操作——每个局部变量、每个成员变量、每个返回空容器的分支各一次。
+    //
+    // 哨兵首次使用时会 make_shared 一次；**必须用移动路径预热**，不能靠默认
+    // 构造预热——否则实现退回 make_shared<C>() 时，那次「预热」自己就是一次
+    // 真分配，窗口反而干净，这条断言就变成恒真的了。
+    warmUpSentinel<IntVecData>();
+
+    // ① 默认构造 → 0 次
     const long beforeDefault = g_pkAllocCount;
     {
         IntVecData fresh;
         (void)fresh;
     }
     const long defaultAllocs = g_pkAllocCount - beforeDefault;
-    PK_COMPARE(defaultAllocs, 1L);
+    PK_COMPARE(defaultAllocs, 0L);
+
+    // 连续多个同样是 0（不是「第一个免费、后面照付」）
+    const long beforeMany = g_pkAllocCount;
+    {
+        IntVecData a;
+        IntVecData b;
+        IntVecData c;
+        IntVecData d;
+        (void)a; (void)b; (void)c; (void)d;
+    }
+    const long manyAllocs = g_pkAllocCount - beforeMany;
+    PK_COMPARE(manyAllocs, 0L);
+
+    // ② 空容器拷贝 → 0 次
+    IntVecData src;
+    const long beforeCopy = g_pkAllocCount;
+    IntVecData copy(src);
+    const long copyAllocs = g_pkAllocCount - beforeCopy;
+    PK_COMPARE(copyAllocs, 0L);
+
+    IntVecData assignTarget;
+    const long beforeAssign = g_pkAllocCount;
+    assignTarget = src;
+    const long assignAllocs = g_pkAllocCount - beforeAssign;
+    PK_COMPARE(assignAllocs, 0L);
+
+    // 零分配不是靠「什么都没做」换来的：三者都是可用的空容器
+    PK_VERIFY(src.PkConst().empty());
+    PK_VERIFY(copy.PkConst().empty());
+    PK_VERIFY(assignTarget.PkConst().empty());
+
+    // ③ 正向对照：带数据的 explicit 构造**会**分配，证明计数器在这条路径上有效。
+    //    没有它，「默认构造 0 次」可能只是因为探针根本没数到 PkArrayData 的分配。
+    const long beforeExplicit = g_pkAllocCount;
+    {
+        IntVecData withData(std::vector<int>{1, 2, 3});
+        (void)withData;
+    }
+    const long explicitAllocs = g_pkAllocCount - beforeExplicit;
+    PK_VERIFY(explicitAllocs >= 1L);
+
+    // ④ 默认构造后首次写入**要**分配（从哨兵分裂出私有副本）——
+    //    零分配只发生在「还没写」这一段，不是把 detach 也免掉了
+    IntVecData toWrite;
+    const long beforeWrite = g_pkAllocCount;
+    toWrite.PkMut().push_back(1);
+    const long writeAllocs = g_pkAllocCount - beforeWrite;
+    PK_VERIFY(writeAllocs >= 1L);
+    PK_COMPARE(toWrite.PkUseCount(), 1L);
 }
 
 PK_TEST_MAIN(PkArrayDataTest)
