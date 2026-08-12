@@ -1,0 +1,45 @@
+#pragma once
+
+#include <memory>
+
+// `<QScopedPointer>` 的替身。文件名刻意没有扩展名 —— 调用点写的就是
+// `#include <QScopedPointer>`（`kis_fill_interval_map.h:11`），一个字不改。
+//
+// 用途只有一处：pimpl 成员 `const QScopedPointer<Private> m_d;`，
+// 配 `m_d(new Private)` 与 `m_d->map`。
+//
+// ── 为什么不 `#define QScopedPointer std::unique_ptr` ─────────
+// 语义上差一格，而这一格恰好被本试接压到：`m_d` 是 **const** 成员，
+// `m_d->map.clear()` 要求 `operator->` 是 const 成员函数且返回**非 const** 的
+// `T*`。`std::unique_ptr` 满足（`pointer operator->() const`），所以宏也能编过；
+// 但 `QScopedPointer` 是**不可移动**的（Qt 明确禁掉了 move），`unique_ptr` 可以。
+// 写成独立的类把这条差异钉在替身自己身上，别让它顺着别名漏进调用点的语义里。
+//
+// **脚手架，不是交付件。** `QScopedPointer` 的正式归属是智能指针那条线，不是
+// R-02（容器）—— 这里只交付它在本试接里被用到的那四个成员。
+
+template <typename T>
+class QScopedPointer
+{
+public:
+    explicit QScopedPointer(T *p = nullptr) : m_p(p) {}
+    ~QScopedPointer() = default;
+
+    QScopedPointer(const QScopedPointer &) = delete;
+    QScopedPointer &operator=(const QScopedPointer &) = delete;
+    // Qt 的 QScopedPointer 同样禁掉 move（这正是它与 unique_ptr 的区别）。
+    QScopedPointer(QScopedPointer &&) = delete;
+    QScopedPointer &operator=(QScopedPointer &&) = delete;
+
+    T *operator->() const { return m_p.get(); }
+    T &operator*() const { return *m_p; }
+    T *data() const { return m_p.get(); }
+    T *get() const { return m_p.get(); }
+    bool isNull() const { return !m_p; }
+    explicit operator bool() const { return static_cast<bool>(m_p); }
+    void reset(T *other = nullptr) { m_p.reset(other); }
+    T *take() { return m_p.release(); }
+
+private:
+    std::unique_ptr<T> m_p;
+};
