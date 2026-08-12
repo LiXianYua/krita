@@ -105,11 +105,35 @@ void PkDebugStreamTest::testDuckTypedPkToUtf8IsQuotedLikeQString()
 }
 
 // 实测 7a/7e：一行内粘住，不跨行。
+//
+// 评审 Important 项：flush 只砍**一个**尾随空格（且仅当 space 标志为真），
+// 不是无条件砍光全部尾随空格。qSetFieldWidth 的宽度对分隔符本身也生效
+// （writeSeparator() 里 applyFieldWidth() 在写空格之前调用），行尾因此会
+// 叠出好几个空格，真 Qt 也只砍掉其中一个——计划表原本记录的 7a 原始探针输出
+// 就是 `|     1           2     |`（5 个尾随空格），与这里的期望值逐字节对上；
+// 值本身用分段拼接而不是手数空格，避免数错。
 void PkDebugStreamTest::testFieldWidthIsStickyWithinLineOnly()
 {
-    PK_COMPARE(emitted([](PkDebug d){ d << qSetFieldWidth(6) << 1 << 2; }),
-               std::string("     1           2"));   // 尾随空格在 flush 时去掉
+    const std::string expected =
+        std::string(5, ' ') + "1" + std::string(11, ' ') + "2" + std::string(5, ' ');
+    PK_COMPARE(emitted([](PkDebug d){ d << qSetFieldWidth(6) << 1 << 2; }), expected);
     PK_COMPARE(emitted([](PkDebug d){ d << 1 << 2; }), std::string("1 2"));
+}
+
+// 评审 Important 项：nospace 时 space 标志为假，flush 不砍任何尾随空格——
+// 字面量自带的两个尾随空格原样保留。旧实现（无条件砍光全部尾随空格）在这
+// 里会把 "a  " 砍成 "a"，与真 Qt 实测（probe_trailing2, nospace << "a  " => "a  "）不符。
+void PkDebugStreamTest::testNospaceKeepsLiteralTrailingSpaces()
+{
+    PK_COMPARE(emitted([](PkDebug d){ d.nospace() << "a  "; }), std::string("a  "));
+}
+
+// 评审 Important 项：space 标志为真时，插入后 maybeSpace() 又追加了一个自动
+// 分隔符（"a  " -> "a   "，3 个尾随空格），flush 只砍其中一个，剩两个字面
+// 空格原样保留——不是砍到一个不剩。旧实现在这里会把结果砍成 "a"。
+void PkDebugStreamTest::testSpaceChopsExactlyOneTrailingSpace()
+{
+    PK_COMPARE(emitted([](PkDebug d){ d << "a  "; }), std::string("a  "));
 }
 
 // 禁用路径：flush 时什么都不产出——sink 完全收不到消息（不是收到空串）。

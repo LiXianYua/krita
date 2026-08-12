@@ -34,8 +34,3 @@ bool PkLoggingCategory::isCriticalEnabled() const
 {
     return PkLogCritical >= _minLevel;
 }
-
-void PkLoggingCategory::PkSetLevel(PkLogLevel level)
-{
-    _minLevel = level;
-}

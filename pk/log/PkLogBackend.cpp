@@ -5,6 +5,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -52,6 +53,25 @@ void PkLogEmit(PkLogLevel level, const PkLogContext &ctx, const std::string &mes
     PkLogDispatchToSinks(level, ctx, message.c_str());
 
     auto logger = spdlog::get(ctx.category);
+    if (!logger && std::strcmp(ctx.category, "default") == 0) {
+        // 评审 Critical 项：无分类日志族一条都不落盘。
+        //
+        // "default" 是 PkMessageLogger 在 cat==nullptr 时落的字面分类
+        // （PkMessageLogger.cpp:39，qDebug()/qInfo()/qWarning()/qCritical()/
+        // qFatal() 这五个无分类自由函数宏的落点，约 1301 处真实调用点）。
+        // 它不经过 PkLoggingCategory 那条"构造即注册"路径（PkLoggingCategory.cpp
+        // 的构造函数才会调 PkLogEnsureLogger），所以第一次用到时这里懒建一次。
+        //
+        // 这不是把 Task 1 修复轮去掉的"任意未知分类都静默兜底"恢复回来——
+        // 那条针对的是调用方拼错/忘记 PkLogEnsureLogger 的分类名，恢复兜底会
+        // 悄悄绕开调用方本该设的 minLevel。这里只认 "default" 这一个我们自己
+        // 定义、语义明确的字面量；除它之外的任何分类名（包括拼写近似的）都
+        // 仍然落进下面的诊断分支，不会被这条特判捞走。
+        // minLevel 给最低档 PkLogDebug：无分类版本本身不受 QLoggingCategory
+        // 管（PkMessageLogger.h 顶部注释），这里给最低档等价于"不过滤"。
+        PkLogEnsureLogger(ctx.category, PkLogDebug);
+        logger = spdlog::get(ctx.category);
+    }
     if (!logger) {
         // 评审 Important 项：不再静默兜底创建 logger。旧行为是
         // spdlog::stderr_color_mt(ctx.category)，用 spdlog 默认级别（info），

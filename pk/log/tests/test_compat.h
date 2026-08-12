@@ -25,4 +25,10 @@ private Q_SLOTS:
 
     // qInstallMessageHandler：装/卸、返回旧 handler、装上之后收到消息。
     void testInstallMessageHandlerRoundTrips();
+
+    // 评审 Critical 项：无分类（"default"）自由函数日志族必须真的到达 spdlog，
+    // 不能只断言 sink 通道收到——sink 通道即使在旧的 bug 下也照样收到，掩盖了
+    // spdlog 侧丢消息这件事（全部既有测试都只挂在 sink 通道上，这是这条 bug
+    // 能躲过七轮评审的根因）。
+    void testFreeFunctionLogReachesSpdlogNotJustSink();
 };

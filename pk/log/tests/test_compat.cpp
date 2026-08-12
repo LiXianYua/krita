@@ -7,8 +7,21 @@
 
 #include "../PkLogSink.h"
 
+#include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <vector>
+
+#include <unistd.h>
+
+// 评审 Important 3：钉住"用 #define 而非 using"这条设计不变量。真实 Krita
+// 头里有 `class QDebug;` 前置声明的例子（libs/global/KoZoomMode.h:14、
+// libs/flake/text/KoSvgText.h:28 等）。`#define QDebug PkDebug` 把这行原样
+// 改写成 `class PkDebug;`——对已经完整定义过的类重复前置声明合法。如果垫片
+// 改成 `using QDebug = PkDebug;`，这里会报 "using typedef-name 'QDebug'
+// after 'class'" 编译失败——这才是这条测试要守住的东西，不是运行期断言。
+class QDebug;
+QDebug *g_pkLogTestForwardDeclaredQDebugPtr = nullptr;
 
 namespace {
 
@@ -130,6 +143,45 @@ void PkLogCompatTest::testInstallMessageHandlerRoundTrips()
     PK_VERIFY(restored == testMessageHandler);
     PK_COMPARE(static_cast<int>(g_handlerMessages.size()), 1);
     PK_COMPARE(g_handlerMessages[0], std::string("via-handler"));
+}
+
+// 评审 Critical 项：既有的全部断言都挂在 PkLogAddSink 通道上——PkLogEmit 先
+// 分发 sink 再喂 spdlog，"default" 分类没建 logger 时消息仍然到 sink（旧 bug
+// 因此躲过了七轮评审），但 spdlog 侧真的丢了。这里改用 test_sink.cpp 已有的
+// dup/dup2/mkstemp 手法接管 stderr，直接断言 spdlog 的彩色 stderr sink 真的
+// 打出了这条消息文本，而不是只打"查不到 logger"的诊断行。
+void PkLogCompatTest::testFreeFunctionLogReachesSpdlogNotJustSink()
+{
+    fflush(stderr);
+    char path[] = "/tmp/pklog_test_stderr_XXXXXX";
+    const int tmpFd = mkstemp(path);
+    PK_VERIFY(tmpFd >= 0);
+    const int savedStderr = dup(STDERR_FILENO);
+    PK_VERIFY(savedStderr >= 0);
+    dup2(tmpFd, STDERR_FILENO);
+    close(tmpFd);
+
+    // qWarning() 无分类：ctx.category 落成 "default"（PkMessageLogger.cpp:39）。
+    qWarning() << "reaches-spdlog-default-category";
+
+    fflush(stderr);
+    dup2(savedStderr, STDERR_FILENO);
+    close(savedStderr);
+
+    std::string capturedStderr;
+    FILE *f = fopen(path, "rb");
+    PK_VERIFY(f != nullptr);
+    char buf[4096];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), f)) > 0) {
+        capturedStderr.append(buf, n);
+    }
+    fclose(f);
+    std::remove(path);
+
+    PK_VERIFY(capturedStderr.find("reaches-spdlog-default-category") != std::string::npos);
+    // 走的是 spdlog 的正常落盘路径，不是"查不到 logger"的诊断分支。
+    PK_VERIFY(capturedStderr.find("PkLogEmit: no logger") == std::string::npos);
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

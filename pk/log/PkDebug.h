@@ -146,6 +146,12 @@ private:
     std::shared_ptr<Impl> _s;
 };
 
+// ---------------------------------------------------------------------------
+// 仅供测试用的脚手架（评审 Minor 项：公开头里没有任何"仅测试用"标注，容易
+// 被当成正式 API 误用）。业务调用点应该走 PkMessageLogger / qC*/qDebug 家族
+// 拿 PkDebug，不要直接调这两个函数。
+// ---------------------------------------------------------------------------
+
 // 测试专用构造：直接给级别与分类名，跳过 file/line/function（Task 3/4 的
 // PkLoggingCategory / qDebug() 自由函数才会填那些）。
 PkDebug PkDebugMakeForTest(PkLogLevel level, const char *category);

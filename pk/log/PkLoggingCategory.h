@@ -25,11 +25,6 @@ public:
     bool isWarningEnabled() const;
     bool isCriticalEnabled() const;
 
-    // QT_LOGGING_RULES 环境变量过滤判定为范围外（零调用点）——这是程序内的
-    // 等价手段：运行时改一个分类的最低级别。只对调用方直接持有的非 const
-    // 实例生效；经 PK_LOGGING_CATEGORY 生成的单例是 const 引用，够不到它。
-    void PkSetLevel(PkLogLevel level);
-
 private:
     const char *_name;
     PkLogLevel _minLevel;
