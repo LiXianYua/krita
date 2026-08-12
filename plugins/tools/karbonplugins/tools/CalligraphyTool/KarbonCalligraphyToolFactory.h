@@ -16,8 +16,6 @@ public:
     ~KarbonCalligraphyToolFactory() override;
 
     KoToolBase *createTool(KoCanvasBase *canvas) override;
-
-    QList<QAction *> createActionsImpl() override;
 };
 
 #endif // _KARBONCALLIGRAPHYTOOLFACTORY_H_

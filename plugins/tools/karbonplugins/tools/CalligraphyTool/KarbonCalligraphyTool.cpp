@@ -6,7 +6,6 @@
 
 #include "KarbonCalligraphyTool.h"
 #include "KarbonCalligraphicShape.h"
-#include "KarbonCalligraphyOptionWidget.h"
 
 #include <KoPathShape.h>
 #include <KoShapeGroup.h>
@@ -24,9 +23,7 @@
 #include <KoViewConverter.h>
 #include <KisPopupWidgetInterface.h>
 
-#include <QAction>
 #include <QDebug>
-#include <klocalizedstring.h>
 #include <QPainter>
 
 #include <cmath>
@@ -36,10 +33,22 @@ const qreal M_PI = 3.1415927;
 using std::pow;
 using std::sqrt;
 
+// default calligraphic pen parameters, formerly loaded from the "Mouse"
+// profile of the (now removed) option widget's karboncalligraphyrc config
 KarbonCalligraphyTool::KarbonCalligraphyTool(KoCanvasBase *canvas)
     : KoToolBase(canvas)
     , m_shape(0)
+    , m_usePath(false)
+    , m_usePressure(false)
+    , m_useAngle(false)
+    , m_strokeWidth(30.0)
+    , m_customAngle(30)
     , m_angle(0)
+    , m_fixation(1.0)
+    , m_thinning(0.2)
+    , m_caps(0.0)
+    , m_mass(3.0 * 3.0 + 1.0) // matches the former setMass(3.0) conversion
+    , m_drag(0.7)
     , m_selectedPath(0)
     , m_isDrawing(false)
     , m_speed(0, 0)
@@ -330,93 +339,12 @@ void KarbonCalligraphyTool::activate(const QSet<KoShape*> &shapes)
 {
     KoToolBase::activate(shapes);
 
-    if (!m_widget) {
-        createOptionWidgets();
-    }
-
-    QAction *a = action("calligraphy_increase_width");
-    connect(a, SIGNAL(triggered()), m_widget, SLOT(increaseWidth()), Qt::UniqueConnection);
-
-    a = action("calligraphy_decrease_width");
-    connect(a, SIGNAL(triggered()), m_widget, SLOT(decreaseWidth()), Qt::UniqueConnection);
-
-    a = action("calligraphy_increase_angle");
-    connect(a, SIGNAL(triggered()), m_widget, SLOT(increaseAngle()), Qt::UniqueConnection);
-
-    a = action("calligraphy_decrease_angle");
-    connect(a, SIGNAL(triggered()), m_widget, SLOT(decreaseAngle()), Qt::UniqueConnection);
-
-
     useCursor(Qt::CrossCursor);
 }
 
 void KarbonCalligraphyTool::deactivate()
 {
-    QAction *a = action("calligraphy_increase_width");
-    disconnect(a, 0, this, 0);
-
-    a = action("calligraphy_decrease_width");
-    disconnect(a, 0, this, 0);
-
-    a = action("calligraphy_increase_angle");
-    disconnect(a, 0, this, 0);
-
-    a = action("calligraphy_decrease_angle");
-    disconnect(a, 0, this, 0);
-
     KoToolBase::deactivate();
-}
-
-QList<QPointer<QWidget>> KarbonCalligraphyTool::createOptionWidgets()
-{
-    // if the widget don't exists yet create it
-    QList<QPointer<QWidget> > widgets;
-
-    //KoFillConfigWidget *fillWidget = new KoFillConfigWidget(0);
-    //fillWidget->setWindowTitle(i18n("Fill"));
-    //widgets.append(fillWidget);
-
-    m_widget = new KarbonCalligraphyOptionWidget();
-    connect(m_widget, SIGNAL(usePathChanged(bool)),
-            this, SLOT(setUsePath(bool)));
-
-    connect(m_widget, SIGNAL(usePressureChanged(bool)),
-            this, SLOT(setUsePressure(bool)));
-
-    connect(m_widget, SIGNAL(useAngleChanged(bool)),
-            this, SLOT(setUseAngle(bool)));
-
-    connect(m_widget, SIGNAL(widthChanged(double)),
-            this, SLOT(setStrokeWidth(double)));
-
-    connect(m_widget, SIGNAL(thinningChanged(double)),
-            this, SLOT(setThinning(double)));
-
-    connect(m_widget, SIGNAL(angleChanged(int)),
-            this, SLOT(setAngle(int)));
-
-    connect(m_widget, SIGNAL(fixationChanged(double)),
-            this, SLOT(setFixation(double)));
-
-    connect(m_widget, SIGNAL(capsChanged(double)),
-            this, SLOT(setCaps(double)));
-
-    connect(m_widget, SIGNAL(massChanged(double)),
-            this, SLOT(setMass(double)));
-
-    connect(m_widget, SIGNAL(dragChanged(double)),
-            this, SLOT(setDrag(double)));
-
-    connect(this, SIGNAL(pathSelectedChanged(bool)),
-            m_widget, SLOT(setUsePathEnabled(bool)));
-
-    // sync all parameters with the loaded profile
-    m_widget->emitAll();
-    m_widget->setObjectName(i18nc("Object name of Calligraphy", "Calligraphy"));
-    m_widget->setWindowTitle(i18nc("Tool Option title of Calligraphy", "Calligraphy"));
-    widgets.append(m_widget);
-
-    return widgets;
 }
 
 KisPopupWidgetInterface *KarbonCalligraphyTool::popupWidget()
@@ -424,60 +352,8 @@ KisPopupWidgetInterface *KarbonCalligraphyTool::popupWidget()
     return nullptr;
 }
 
-void KarbonCalligraphyTool::setStrokeWidth(double width)
-{
-    m_strokeWidth = width;
-}
-
-void KarbonCalligraphyTool::setThinning(double thinning)
-{
-    m_thinning = thinning;
-}
-
-void KarbonCalligraphyTool::setAngle(int angle)
-{
-    m_customAngle = angle;
-}
-
-void KarbonCalligraphyTool::setFixation(double fixation)
-{
-    m_fixation = fixation;
-}
-
-void KarbonCalligraphyTool::setMass(double mass)
-{
-    m_mass = mass * mass + 1;
-}
-
-void KarbonCalligraphyTool::setDrag(double drag)
-{
-    m_drag = drag;
-}
-
-void KarbonCalligraphyTool::setUsePath(bool usePath)
-{
-    m_usePath = usePath;
-}
-
-void KarbonCalligraphyTool::setUsePressure(bool usePressure)
-{
-    m_usePressure = usePressure;
-}
-
-void KarbonCalligraphyTool::setUseAngle(bool useAngle)
-{
-    m_useAngle = useAngle;
-}
-
-void KarbonCalligraphyTool::setCaps(double caps)
-{
-    m_caps = caps;
-}
-
 void KarbonCalligraphyTool::updateSelectedPath()
 {
-    KoPathShape *oldSelectedPath = m_selectedPath; // save old value
-
     KoSelection *selection = canvas()->shapeManager()->selection();
     if (selection) {
         // null pointer if it the selection isn't a KoPathShape
@@ -493,12 +369,6 @@ void KarbonCalligraphyTool::updateSelectedPath()
         // or if there ora none or more than 1 shapes selected
         if (selection->count() != 1) {
             m_selectedPath = 0;
-        }
-
-        // Q_EMIT signal it there wasn't a selected path and now there is
-        // or the other way around
-        if ((m_selectedPath != 0) != (oldSelectedPath != 0)) {
-            Q_EMIT pathSelectedChanged(m_selectedPath != 0);
         }
     }
 }

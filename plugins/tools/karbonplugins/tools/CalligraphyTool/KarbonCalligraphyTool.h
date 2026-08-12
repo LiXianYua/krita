@@ -10,9 +10,6 @@
 #include <KoToolBase.h>
 #include <KoPathShape.h>
 #include <QPainterPath>
-#include <QPointer>
-
-#include "KarbonCalligraphyOptionWidget.h"
 
 class KoPathShape;
 class KarbonCalligraphicShape;
@@ -30,28 +27,12 @@ public:
     void mouseMoveEvent(KoPointerEvent *event) override;
     void mouseReleaseEvent(KoPointerEvent *event) override;
 
-    QList<QPointer<QWidget>> createOptionWidgets() override;
-
     KisPopupWidgetInterface *popupWidget() override;
 
     void activate(const QSet<KoShape *> &shapes) override;
     void deactivate() override;
 
-Q_SIGNALS:
-    void pathSelectedChanged(bool selection);
-
 private Q_SLOTS:
-    void setUsePath(bool usePath);
-    void setUsePressure(bool usePressure);
-    void setUseAngle(bool useAngle);
-    void setStrokeWidth(double width);
-    void setThinning(double thinning);
-    void setAngle(int angle);   // set the angle in degrees
-    void setFixation(double fixation);
-    void setCaps(double caps);
-    void setMass(double mass);  // set the mass in user friendly format
-    void setDrag(double drag);
-
     void updateSelectedPath();
 
 private:
@@ -94,8 +75,6 @@ private:
 
     // dynamic parameters
     QPointF m_speed; // used as a vector
-
-    KarbonCalligraphyOptionWidget *m_widget {0};
 };
 
 #endif // KARBONCALLIGRAPHYTOOL_H
