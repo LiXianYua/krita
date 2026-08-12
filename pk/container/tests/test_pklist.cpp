@@ -269,14 +269,19 @@ void PkListTest::listWritersDetach()
     static const PkSeqCowCase<PkList> cases[] = {
         {"removeAt", [](L &s) { s.removeAt(0); }, true},
         {"removeAll(命中)", [](L &s) { (void)s.removeAll(2); }, true},
-        {"removeAll(不命中)", [](L &s) { (void)s.removeAll(99); }, true},
         {"removeOne(命中)", [](L &s) { (void)s.removeOne(2); }, true},
-        // **`removeOne(不命中)` 刻意不在表里**，因为它这一格没有实测依据：
-        // 我们的 removeOne 在 indexOf 失败时直接 return false，**不 detach**；
-        // 而 removeAll 无论命中与否都先 PkMut()，**一律 detach**。两条"删不到东西"
-        // 的路径行为不一致，只有一份真 Qt 5.15.7 的探针输出能裁决该统一到哪边。
-        // 在拿到那份实测之前，写任何一侧的断言都是把推断当依据 —— 线级 spec
-        // 反复强调的正是这一点。这一格要么由人补一次实测，要么继续空着。
+        // ---- 「删不到东西」的两格：依据是真 Qt 5.15.7 的探针实测 ----
+        //
+        //   QList removeOne(不命中)  返回=0  元素拷贝=0  isDetached=0   ← 不 detach
+        //   QList removeOne(命中)    返回=1  元素拷贝=2  isDetached=1   ← detach
+        //   QList removeAll(不命中)  返回=0  元素拷贝=0  isDetached=0   ← 不 detach
+        //   QList removeAll(命中)    返回=1  元素拷贝=3  isDetached=1   ← detach
+        //
+        // **Qt 的两个方法在删不到东西时都不 detach**，所以两格都归 false。
+        // 这一格之前是空着的（当时两条路径行为不自洽、没有实测能裁决）；
+        // 现在有探针输出了，removeAll 也已按它改成「先 const 确认存在性」。
+        {"removeAll(不命中)", [](L &s) { (void)s.removeAll(99); }, false},
+        {"removeOne(不命中)", [](L &s) { (void)s.removeOne(99); }, false},
         {"removeFirst", [](L &s) { s.removeFirst(); }, true},
         {"removeLast", [](L &s) { s.removeLast(); }, true},
         {"takeAt", [](L &s) { (void)s.takeAt(1); }, true},
@@ -291,6 +296,100 @@ void PkListTest::listWritersDetach()
     };
 
     pkSeqRunCowCases<PkList>(cases);
+}
+
+void PkListTest::removeMissDoesNotDetach()
+{
+    // 真 Qt 5.15.7 探针实测（带元素拷贝计数器）——本函数四条断言的全部依据：
+    //
+    //   QList removeOne(不命中)  返回=0  元素拷贝=0  isDetached=0
+    //   QList removeOne(命中)    返回=1  元素拷贝=2  isDetached=1
+    //   QList removeAll(不命中)  返回=0  元素拷贝=0  isDetached=0
+    //   QList removeAll(命中)    返回=1  元素拷贝=3  isDetached=1
+    //
+    // 上面 listWritersDetach 的表压的是共享状态；这里补表压不到的两样：
+    // **返回值**与**元素拷贝次数**。只看 PkIsSharedWith 证明不了「没走深拷贝
+    // 这条路」——实现要是先 PkMut() 再判断，共享状态确实会变，但元素也白拷了。
+
+    // ① 共享态 removeAll(不命中)：返回 0、仍然共享、元素零拷贝
+    {
+        PkList<PkSeqCounted> a;
+        for (int i = 0; i < 3; ++i) {
+            a.append(PkSeqCounted(i));
+        }
+        PkList<PkSeqCounted> b(a);
+        PK_VERIFY(a.PkIsSharedWith(b));
+
+        PkSeqCounted::s_copies = 0;
+        PK_COMPARE(b.removeAll(PkSeqCounted(99)), 0);
+        PK_COMPARE(PkSeqCounted::s_copies, 0);
+        PK_VERIFY(a.PkIsSharedWith(b));
+        PK_COMPARE(a.size(), 3);
+        PK_COMPARE(b.size(), 3);
+    }
+
+    // ② 共享态 removeAll(命中)：返回删除个数、不再共享、另一边一个字节不变
+    {
+        PkList<int> a{1, 2, 2, 3};
+        PkList<int> b(a);
+        PK_VERIFY(a.PkIsSharedWith(b));
+
+        PK_COMPARE(b.removeAll(2), 2);
+        PK_VERIFY(!a.PkIsSharedWith(b));
+        PK_VERIFY((a == PkList<int>{1, 2, 2, 3}));
+        PK_VERIFY((b == PkList<int>{1, 3}));
+    }
+
+    // ③ 共享态 removeOne(不命中)：返回 false、仍然共享、元素零拷贝
+    {
+        PkList<PkSeqCounted> a;
+        for (int i = 0; i < 3; ++i) {
+            a.append(PkSeqCounted(i));
+        }
+        PkList<PkSeqCounted> b(a);
+        PK_VERIFY(a.PkIsSharedWith(b));
+
+        PkSeqCounted::s_copies = 0;
+        PK_VERIFY(!b.removeOne(PkSeqCounted(99)));
+        PK_COMPARE(PkSeqCounted::s_copies, 0);
+        PK_VERIFY(a.PkIsSharedWith(b));
+        PK_COMPARE(a.size(), 3);
+    }
+
+    // ④ 共享态 removeOne(命中)：返回 true、不再共享、另一边一个字节不变
+    {
+        PkList<int> a{1, 2, 2, 3};
+        PkList<int> b(a);
+        PK_VERIFY(a.PkIsSharedWith(b));
+
+        PK_VERIFY(b.removeOne(2));
+        PK_VERIFY(!a.PkIsSharedWith(b));
+        PK_VERIFY((a == PkList<int>{1, 2, 2, 3}));
+        PK_VERIFY((b == PkList<int>{1, 2, 3}));   // 只删第一个
+    }
+
+    // ⑤ 独占态：不命中仍然返回 0/false，内容不变（别把「不 detach」写成「不做事」）
+    {
+        PkList<int> solo{1, 2, 3};
+        PK_COMPARE(solo.removeAll(99), 0);
+        PK_VERIFY(!solo.removeOne(99));
+        PK_VERIFY((solo == PkList<int>{1, 2, 3}));
+        PK_COMPARE(solo.PkUseCount(), 1L);
+
+        // 独占态命中照常删
+        PK_COMPARE(solo.removeAll(2), 1);
+        PK_VERIFY((solo == PkList<int>{1, 3}));
+    }
+
+    // ⑥ 空列表上不命中：不崩、返回 0/false、不 detach
+    {
+        PkList<int> e;
+        PkList<int> f(e);
+        PK_COMPARE(f.removeAll(1), 0);
+        PK_VERIFY(!f.removeOne(1));
+        PK_VERIFY(e.PkIsSharedWith(f));
+        PK_VERIFY(f.isEmpty());
+    }
 }
 
 PK_TEST_MAIN(PkListTest)

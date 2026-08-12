@@ -54,10 +54,32 @@ public:
     void removeAt(int i) { this->pkRemoveAt(i); }
 
     // Qt5：返回删掉了几个。
-    // `const T copy(t)` 不是多余的：t 可能指向本容器的某个元素
-    // （l.removeAll(l.at(0))），搬移元素时原引用就悬垂了。Qt 同样先取副本。
+    //
+    // **删不到东西时不得 detach，也不得拷任何元素**——真 Qt 5.15.7 探针实测
+    // （带元素拷贝计数器）：
+    //
+    //   QList removeAll(不命中)  返回=0  元素拷贝=0  isDetached=0
+    //   QList removeAll(命中)    返回=1  元素拷贝=3  isDetached=1
+    //   QList removeOne(不命中)  返回=0  元素拷贝=0  isDetached=0
+    //   QList removeOne(命中)    返回=1  元素拷贝=2  isDetached=1
+    //
+    // 所以先走 **const 路径**确认存在性，不存在就直接返回 0、根本不碰 PkMut()。
+    // 无脑先 PkMut() 会让一个共享的容器凭空分裂一次并深拷全部元素，是与 Qt 的
+    // 真实偏离（按「默认全对齐」即缺陷）。代价是命中时多一次 O(n) 的 const 扫描
+    // ——Qt 自己也是先找后删（`indexOf` → 早退 → `const T t = _t` → `detach()`），
+    // 这个常数因子可以接受。
+    //
+    // **副本必须在早退之后、PkMut() 之前取**，两侧都是硬要求：
+    //  - 早退之前取 → 不命中时白拷一个元素，「元素拷贝=0」那格对不上（实测咬到过）
+    //  - PkMut() 之后取 → t 可能指向本容器的某个元素（l.removeAll(l.at(0))），
+    //    detach 换缓冲区、std::remove 搬元素，原引用就悬垂了
     int removeAll(const T &t)
     {
+        const PkInner &cv = this->m_d.PkConst();
+        if (std::find(cv.begin(), cv.end(), t) == cv.end()) {
+            return 0;
+        }
+
         const T copy(t);
         PkInner &v = this->m_d.PkMut();
         const std::size_t before = v.size();
@@ -66,10 +88,15 @@ public:
     }
 
     // Qt5：只删第一个，返回删没删掉。
+    // 同上表：不命中不 detach、不拷元素 —— indexOf 是 const 路径，失败直接返回。
+    //
+    // 这里**不需要**取 t 的副本（removeAll 那边需要）：pkRemoveAt 按**下标**删，
+    // 全程不再读 t，所以 t 指向本容器元素时也不存在悬垂。Qt 的 removeOne 同样
+    // 是「indexOf → removeAt(index)」、不取副本。多取一个副本会让不命中那格的
+    // 「元素拷贝=0」对不上。
     bool removeOne(const T &t)
     {
-        const T copy(t);
-        const int i = this->indexOf(copy);
+        const int i = this->indexOf(t);
         if (i < 0) {
             return false;
         }

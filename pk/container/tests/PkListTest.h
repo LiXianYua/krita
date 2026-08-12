@@ -43,4 +43,7 @@ private Q_SLOTS:
     void toVector();
     // 专有的写方法同样逐个验证「共享状态下调用之后两边不再共享」
     void listWritersDetach();
+    // 「删不到东西」的四格：返回值、共享状态、元素拷贝次数三样一起压。
+    // 依据是真 Qt 5.15.7 的探针实测（输出贴在实现里）。
+    void removeMissDoesNotDetach();
 };
