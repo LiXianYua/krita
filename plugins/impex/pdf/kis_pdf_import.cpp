@@ -18,14 +18,14 @@
 #include <QFile>
 #include <QImage>
 #include <QRadioButton>
-#include <QApplication>
+
+// For ceil()
+#include <math.h>
 
 // KDE's headers
 #include <kis_debug.h>
 #include <kis_paint_device.h>
-#include <KoDialog.h>
 #include <kpluginfactory.h>
-#include <kpassworddialog.h>
 
 // calligra's headers
 #include <KoColorSpace.h>
@@ -39,10 +39,8 @@
 #include <kis_image.h>
 #include <kis_paint_layer.h>
 #include <kis_transaction.h>
-#include <kis_cursor_override_hijacker.h>
 
 // plugins's headers
-#include "kis_pdf_import_widget.h"
 #include <KisImportExportErrorCode.h>
 
 K_PLUGIN_FACTORY_WITH_JSON(PDFImportFactory, "krita_pdf_import.json",
@@ -72,50 +70,46 @@ KisImportExportErrorCode KisPDFImport::convert(KisDocument *document, QIODevice 
     pdoc->setRenderHint(Poppler::Document::Antialiasing, true);
     pdoc->setRenderHint(Poppler::Document::TextAntialiasing, true);
 
-    while (pdoc->isLocked()) {
-        KPasswordDialog dlg(0);
-        dlg.setPrompt(i18n("A password is required to read that pdf"));
-        dlg.setWindowTitle(i18n("A password is required to read that pdf"));
-        if (dlg.exec() != QDialog::Accepted) {
-            dbgFile << "Password canceled";
-            return ImportExportCodes::Cancelled;
-        } else
-            pdoc->unlock(dlg.password().toLocal8Bit(), dlg.password().toLocal8Bit());
+    if (pdoc->isLocked()) {
+        return ImportExportCodes::ErrorWhileReading;
     }
 
-    KoDialog* kdb = new KoDialog(qApp->activeWindow());
-    kdb->setCaption(i18n("PDF Import Options"));
-    kdb->setModal(false);
+    // 从 KisPDFImportWidget::updateMaxCanvasSize()/updateResolution() 搬来：
+    // 取选中页里最大的页面尺寸（单位 pt），/72 得英寸，再乘分辨率并向上取整得像素。
+    const int resolution = 300;          // pdfimportwidgetbase.ui 里 intResolution 的默认值
+    QList<int> pages;
+    pages.push_back(0);                  // KisPDFImportWidget 构造时的默认：仅第一页
 
+    double maxWidthInch = 0., maxHeightInch = 0.;
+    for (QList<int>::const_iterator it = pages.constBegin(); it != pages.constEnd(); ++it) {
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    KisPDFImportWidget* wdg = new KisPDFImportWidget(pdoc, kdb);
+        Poppler::Page *p = pdoc->page(*it);
 #else
-    KisPDFImportWidget* wdg = new KisPDFImportWidget(pdoc.get(), kdb);
+        std::unique_ptr<Poppler::Page> p = pdoc->page(*it);
 #endif
-
-    kdb->setMainWidget(wdg);
-
-    {
-        KisCursorOverrideHijacker cursorHijacker;
-
-        if (kdb->exec() == QDialog::Rejected) {
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-            delete pdoc;
-#endif
-            delete kdb;
-            return ImportExportCodes::Cancelled;
+        QSizeF size = p->pageSizeF();
+        if (size.width() > maxWidthInch) {
+            maxWidthInch = size.width();
         }
+        if (size.height() > maxHeightInch) {
+            maxHeightInch = size.height();
+        }
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+        delete p;
+#endif
     }
+    maxWidthInch /= 72.;
+    maxHeightInch /= 72.;
+
+    const int width = (int) ceil(maxWidthInch * resolution);
+    const int height = (int) ceil(maxHeightInch * resolution);
 
     // Create the krita image
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
-    int width = wdg->intWidth->value();
-    int height = wdg->intHeight->value();
     KisImageSP image = new KisImage(document->createUndoStore(), width, height, cs, "built image");
-    image->setResolution(wdg->intResolution->value() / 72.0, wdg->intResolution->value() / 72.0);
+    image->setResolution(resolution / 72.0, resolution / 72.0);
 
     // create a layer
-    QList<int> pages = wdg->pages();
     for (QList<int>::const_iterator it = pages.constBegin(); it != pages.constEnd(); ++it) {
         KisPaintLayer* layer = new KisPaintLayer(image.data(),
                 i18n("Page %1", *it + 1),
@@ -127,7 +121,7 @@ KisImportExportErrorCode KisPDFImport::convert(KisDocument *document, QIODevice 
         std::unique_ptr<Poppler::Page> page = pdoc->page(*it);
 #endif
 
-        QImage img = page->renderToImage(wdg->intResolution->value(), wdg->intResolution->value(), 0, 0, width, height);
+        QImage img = page->renderToImage(resolution, resolution, 0, 0, width, height);
         layer->paintDevice()->convertFromQImage(img, 0, 0, 0);
 
         image->addNode(layer, image->rootLayer(), 0);
@@ -138,7 +132,6 @@ KisImportExportErrorCode KisPDFImport::convert(KisDocument *document, QIODevice 
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     delete pdoc;
 #endif
-    delete kdb;
     return ImportExportCodes::OK;
 }
 
