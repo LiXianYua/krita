@@ -15,7 +15,6 @@
 
 #include "KisGradientGeneratorConfiguration.h"
 
-class KisConfigWidget;
 
 class KisGradientGenerator : public KisGenerator
 {

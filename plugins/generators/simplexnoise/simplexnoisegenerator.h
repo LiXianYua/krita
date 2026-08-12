@@ -13,7 +13,6 @@
 #include <QObject>
 #include "generator/kis_generator.h"
 
-class KisConfigWidget;
 
 class KisSimplexNoiseGeneratorHandle : public QObject
 {

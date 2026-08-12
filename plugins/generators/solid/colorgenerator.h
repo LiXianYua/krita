@@ -13,7 +13,6 @@
 #include <QVariant>
 #include "generator/kis_generator.h"
 
-class KisConfigWidget;
 
 class KritaColorGenerator : public QObject
 {

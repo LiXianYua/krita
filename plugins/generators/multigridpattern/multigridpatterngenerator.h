@@ -13,7 +13,6 @@
 #include <QVariant>
 #include "generator/kis_generator.h"
 
-class KisConfigWidget;
 
 /*
  * This is de Bruijn's 1981 multigrid approach for generating aperiodic tilings

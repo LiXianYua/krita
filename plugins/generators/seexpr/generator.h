@@ -24,7 +24,6 @@ $color=ccurve($val,\n\
 $color\n\
 "
 
-class KisConfigWidget;
 
 class KritaSeExprGenerator : public QObject
 {

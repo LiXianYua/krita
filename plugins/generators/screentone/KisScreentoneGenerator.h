@@ -14,7 +14,6 @@
 
 #include "KisScreentoneGeneratorConfiguration.h"
 
-class KisConfigWidget;
 
 class KisScreentoneGenerator : public KisGenerator
 {
