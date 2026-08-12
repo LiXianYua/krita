@@ -97,21 +97,23 @@ bool PkStream::atEnd() const
 
 PkStream::pk_int64 PkStream::bytesAvailable() const
 {
-    // unget 缓冲里的字节永远算「可用」；非顺序设备再加上 size()-pos() 这段
-    // 底层还没读到的部分。顺序设备的「底层还剩多少」基类无从得知（管道/socket
-    // 这类东西没有「大小」的概念），只能靠子类自己 override 这个函数把它加上
-    // ——这是探针没有直接给出、但与 QFileDevice::bytesAvailable() 的真实架构
-    // 一致的默认实现（QFileDevice 也是在 QIODevice::bytesAvailable() 之上叠加
-    // size()-pos()），R-12 的测试只用到了非顺序设备这一支，顺序分支目前只有
-    // 一个演示性质的最小测试子类，没有真实调用点验证过。
-    pk_int64 n = static_cast<pk_int64>(m_ungetBuffer.size());
-    if (!isSequential()) {
-        const pk_int64 remaining = size() - pos();
-        if (remaining > 0) {
-            n += remaining;
-        }
+    // 顺序设备：unget 缓冲里的字节算「可用」，底层还剩多少基类无从得知
+    // （管道/socket 这类东西没有「大小」的概念），只能靠子类自己 override
+    // 这个函数把它加上——这是探针没有直接给出、但与 QFileDevice::bytesAvailable()
+    // 的真实架构一致的默认实现（QFileDevice 也是在 QIODevice::bytesAvailable()
+    // 之上叠加 size()-pos()），顺序分支目前只有一个演示性质的最小测试子类，
+    // 没有真实调用点验证过。
+    //
+    // 非顺序设备：见下面 return 前的注释——不能重复计入 unget 缓冲。
+    if (isSequential()) {
+        return static_cast<pk_int64>(m_ungetBuffer.size());
     }
-    return n;
+    // 非顺序设备：真 Qt 的公式就是 qMax(size()-pos(), 0)，unget 缓冲不再单独
+    // 加一次——ungetChar() 已经把 m_pos 往回退了，remaining 里已经把 unget
+    // 出来的字节算进去了。再加 m_ungetBuffer.size() 是重复计入（评审②，四格
+    // 对照表：真 Qt 6/8/10/11，旧实现因为重复计入多算成 7/11/13/12）。
+    const pk_int64 remaining = size() - pos();
+    return remaining > 0 ? remaining : 0;
 }
 
 bool PkStream::canReadLine() const
@@ -233,10 +235,13 @@ PkStream::pk_int64 PkStream::readLine(char *data, pk_int64 maxSize)
         const pk_int64 n = read(&c, 1);
         if (n <= 0) {
             if (count == 0) {
-                // 一个字符都没读到：把 read() 的状态（-1 未 open / 0 EOF）
-                // 原样透传，和 read() 本身的约定保持一致。
+                // 一个字符都没读到：readLine 与 read 在 EOF 语义上不同——
+                // read() 在 EOF 返回 0，但 readLine() 在 EOF 返回 -1（真 Qt
+                // 实测：QBuffer "ab\n"/"ab"/空、QFile "ab\ncd" 四种情形全是
+                // -1，评审③）。未 open 时 read() 本身就返回 -1，与这里统一
+                // 返回 -1 并不冲突，所以不需要区分 n==0 还是 n==-1。
                 data[0] = '\0';
-                return n;
+                return -1;
             }
             break;
         }
@@ -253,11 +258,22 @@ PkStream::pk_int64 PkStream::write(const char *data, pk_int64 maxSize)
 {
     // 同 read()：maxSize<0 最先判，其次未 open/不可写，maxSize==0 排最后
     // （评审 I-2）——未 open 时 write(buf,0) 也要返回 -1，而不是被
-    // maxSize==0 提前短路成 0。
+    // maxSize==0 提前短路成 0。pos()<0 检查插在「可写」与「maxSize==0」
+    // 之间（评审 Critical①，见下）。
     if (maxSize < 0) {
         return -1;
     }
     if (!isOpen() || !isWritable()) {
+        return -1;
+    }
+    if (!isSequential() && m_pos < 0) {
+        // pos()<0 只出现在 ReadWrite 设备 pos==0 上 ungetChar() 之后
+        // （评审 C-2 放开的行为，允许 pos() 到 -1）。真 Qt 在这种情况下
+        // write() 返回 -1、设备内容不变（内部 seek(d->pos) 失败，
+        // stderr 打 "QBuffer::seek: Invalid pos: -1"，探针复核）——这条检查
+        // 排在 maxSize==0 判断之前，因为真 Qt 连 write(buf,0) 在负 pos 上也
+        // 返回 -1（评审 Critical①）。不查这一条的话，负 pos 会被 writeData()
+        // 的实现直接拿去 static_cast<size_t> 索引，酿成内存破坏。
         return -1;
     }
     if (maxSize == 0) {
@@ -305,8 +321,12 @@ void PkStream::ungetChar(char c)
         // §3.8，评审 C-2）。守卫会让 unget（不减）与 read 消费 unget 字节
         // 时的 ++m_pos 不对称，游标净前进一格，从而在 pos()==0 时丢掉一个
         // 真实字节。read() 会先吃完 unget 缓冲才调用 readData()，届时
-        // m_pos 已经被同等次数的 ++m_pos 加回 ≥0，子类不会拿负 pos 索引；
-        // peek() 从 pos=0 出发同样自洽（同上，read 内部会推回来）。
+        // m_pos 已经被同等次数的 ++m_pos 加回 ≥0，readData() 不会拿到负
+        // pos；peek() 从 pos=0 出发同样自洽（同上，read 内部会推回来）。
+        // **这条只对 readData() 成立，对 writeData() 不成立**：write() 不
+        // 经过 unget 缓冲，会拿当前 m_pos 直接调用 writeData()，所以负 pos
+        // 必须在 write() 自己的入口挡掉（评审 Critical①，见 write() 实现），
+        // 不能靠这里的注释兜底。
         --m_pos;
     }
 }

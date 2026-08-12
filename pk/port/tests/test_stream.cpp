@@ -125,6 +125,17 @@ public:
     void testReadLineNewlineAndEof();
     // 回归④：write 到只读设备返回 -1。
     void testWriteToReadOnlyDeviceReturnsMinusOne();
+
+    // ── R-12 Task 3 复评修复（这一轮自己引入的 3 条：Critical① + Important②③） ──
+    // Critical①：pos()<0 时 write()/putChar() 必须返回 -1，且不能把负 pos
+    // 递给 writeData()（否则 writeData() 里 static_cast<size_t> 会内存破坏）。
+    void testWriteAtNegativePosReturnsMinusOne();
+    // Important②：非顺序设备的 bytesAvailable() 不能重复计入 unget 缓冲——
+    // 真 Qt 表格四行：seek(5)+1unget / seek(5)+3unget / peek(3) / pos==0 上 unget。
+    void testBytesAvailableDoesNotDoubleCountUngetForNonSequential();
+    // Important③：readLine 在 EOF 返回 -1（不是 0），真 Qt 四种情形全覆盖：
+    // 末尾带 '\n' / 末尾不带 '\n' / 空设备 / 多行读完后。
+    void testReadLineEofReturnsMinusOneAllScenarios();
 };
 
 void PkStreamTestCase::testEofReturnsZeroNotMinusOne()
@@ -330,7 +341,7 @@ void PkStreamTestCase::testReadLineNewlineAndEof()
     PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)2);
     PK_VERIFY(std::memcmp(buf, "cd", 2) == 0);
 
-    PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)0);
+    PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)-1);
 }
 
 void PkStreamTestCase::testWriteToReadOnlyDeviceReturnsMinusOne()
@@ -340,6 +351,113 @@ void PkStreamTestCase::testWriteToReadOnlyDeviceReturnsMinusOne()
     dev.open(PkStream::ReadOnly);
     char buf[4] = {'A', 'B', 'C', 'D'};
     PK_COMPARE(dev.write(buf, 4), (PkStream::pk_int64)-1);
+}
+
+void PkStreamTestCase::testWriteAtNegativePosReturnsMinusOne()
+{
+    // 场景：ReadWrite 设备在 pos==0 上 ungetChar()，pos 变 -1（评审 C-2 允许
+    // 的行为），随后 write()/putChar()。真 Qt：write 返回 -1，设备内容不变、
+    // pos 不变（探针复核：QBuffer::seek: Invalid pos: -1，评审 Critical①）。
+    MemoryStream dev("0123456789");
+    dev.open(PkStream::ReadWrite);
+    dev.ungetChar('Q');
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)-1);
+
+    char wbuf[4] = {'W', 'X', 'Y', 'Z'};
+    PK_COMPARE(dev.write(wbuf, 4), (PkStream::pk_int64)-1);
+    PK_COMPARE(dev.pos(), (PkStream::pk_int64)-1);   // 设备位置不变
+
+    // 底层数据没有被破坏：还能正常读到 unget 遮蔽字节 + 原始数据开头。
+    char rbuf[4] = {};
+    PK_COMPARE(dev.read(rbuf, 4), (PkStream::pk_int64)4);
+    PK_VERIFY(std::memcmp(rbuf, "Q012", 4) == 0);
+
+    // putChar 走同一条 write() 路径，同样必须返回 false（评审 Critical①同源）。
+    MemoryStream dev2("abcdef");
+    dev2.open(PkStream::ReadWrite);
+    dev2.ungetChar('Z');
+    PK_COMPARE(dev2.pos(), (PkStream::pk_int64)-1);
+    PK_VERIFY(!dev2.putChar('X'));
+    PK_COMPARE(dev2.pos(), (PkStream::pk_int64)-1);
+}
+
+void PkStreamTestCase::testBytesAvailableDoesNotDoubleCountUngetForNonSequential()
+{
+    // 真 Qt 四格对照（探针复核，评审②）：非顺序设备的 bytesAvailable() 就是
+    // max(size()-pos(),0)，pos() 回退已经把 unget 出来的字节体现过了，不能
+    // 再靠 + m_ungetBuffer.size() 重复计入一次。
+    {
+        // seek(5) + 1 次 unget → 真 Qt 6（旧实现因为重复计入算成 7）。
+        MemoryStream dev("0123456789");
+        dev.open(PkStream::ReadWrite);
+        dev.seek(5);
+        dev.ungetChar('X');
+        PK_COMPARE(dev.bytesAvailable(), (PkStream::pk_int64)6);
+    }
+    {
+        // seek(5) + 3 次 unget → 真 Qt 8（旧实现算成 11）。
+        MemoryStream dev("0123456789");
+        dev.open(PkStream::ReadWrite);
+        dev.seek(5);
+        dev.ungetChar('X');
+        dev.ungetChar('Y');
+        dev.ungetChar('Z');
+        PK_COMPARE(dev.bytesAvailable(), (PkStream::pk_int64)8);
+    }
+    {
+        // peek(3) 之后（pos 仍是 0，peek 内部靠 read+ungetChar 实现，会在
+        // unget 缓冲里留下 3 个字节）→ 真 Qt 10（旧实现算成 13）。
+        MemoryStream dev("0123456789");
+        dev.open(PkStream::ReadWrite);
+        char pbuf[3];
+        PK_COMPARE(dev.peek(pbuf, 3), (PkStream::pk_int64)3);
+        PK_COMPARE(dev.pos(), (PkStream::pk_int64)0);
+        PK_COMPARE(dev.bytesAvailable(), (PkStream::pk_int64)10);
+    }
+    {
+        // pos==0 上 unget（评审 C-2 的场景）→ 真 Qt 11（旧实现算成 12）。
+        MemoryStream dev("0123456789");
+        dev.open(PkStream::ReadWrite);
+        dev.ungetChar('Q');
+        PK_COMPARE(dev.pos(), (PkStream::pk_int64)-1);
+        PK_COMPARE(dev.bytesAvailable(), (PkStream::pk_int64)11);
+    }
+}
+
+void PkStreamTestCase::testReadLineEofReturnsMinusOneAllScenarios()
+{
+    // 真 Qt 实测（探针复核，评审③）：readLine 在 EOF 返回 -1，同一设备上
+    // read() 在 EOF 仍返回 0——两者在这一点上语义不同。四种情形全覆盖：
+    // 末尾带 '\n' / 末尾不带 '\n' / 空设备 / 多行读完之后。
+    char buf[16];
+    {
+        MemoryStream dev("ab\n");
+        dev.open(PkStream::ReadWrite);
+        PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)3);
+        PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)-1);
+        PK_COMPARE(dev.read(buf, 16), (PkStream::pk_int64)0);
+    }
+    {
+        MemoryStream dev("ab");
+        dev.open(PkStream::ReadWrite);
+        PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)2);
+        PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)-1);
+        PK_COMPARE(dev.read(buf, 16), (PkStream::pk_int64)0);
+    }
+    {
+        MemoryStream dev("");
+        dev.open(PkStream::ReadWrite);
+        PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)-1);
+        PK_COMPARE(dev.read(buf, 16), (PkStream::pk_int64)0);
+    }
+    {
+        MemoryStream dev("ab\ncd");
+        dev.open(PkStream::ReadWrite);
+        PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)3);
+        PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)2);
+        PK_COMPARE(dev.readLine(buf, 16), (PkStream::pk_int64)-1);
+        PK_COMPARE(dev.read(buf, 16), (PkStream::pk_int64)0);
+    }
 }
 
 // PkTestBinder<PkStreamTestCase> 特化——手写，形状对照
@@ -402,10 +520,21 @@ struct PkTestBinder<PkStreamTestCase> {
             {"testWriteToReadOnlyDeviceReturnsMinusOne",
              [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testWriteToReadOnlyDeviceReturnsMinusOne(); },
              nullptr},
+            {"testWriteAtNegativePosReturnsMinusOne",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testWriteAtNegativePosReturnsMinusOne(); },
+             nullptr},
+            {"testBytesAvailableDoesNotDoubleCountUngetForNonSequential",
+             [](PkTestObject *o) {
+                 static_cast<PkStreamTestCase *>(o)->testBytesAvailableDoesNotDoubleCountUngetForNonSequential();
+             },
+             nullptr},
+            {"testReadLineEofReturnsMinusOneAllScenarios",
+             [](PkTestObject *o) { static_cast<PkStreamTestCase *>(o)->testReadLineEofReturnsMinusOneAllScenarios(); },
+             nullptr},
         };
         return fns;
     }
-    static int count() { return 17; }
+    static int count() { return 20; }
 
     static const PkTestFunction *dataFunctions() { return nullptr; }
     static int dataCount() { return 0; }
