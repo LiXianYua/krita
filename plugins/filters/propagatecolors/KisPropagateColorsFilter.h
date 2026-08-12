@@ -27,7 +27,6 @@ public:
                      KoUpdater *progressUpdater) const override;
 
     KisFilterConfigurationSP factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
-    KisConfigWidget* createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool useForMasks) const override;
     bool needsTransparentPixels(const KisFilterConfigurationSP config, const KoColorSpace *cs) const override;
     QRect neededRect(const QRect &rect, const KisFilterConfigurationSP config, int lod) const override;
     QRect changedRect(const QRect &rect, const KisFilterConfigurationSP config, int lod) const override;

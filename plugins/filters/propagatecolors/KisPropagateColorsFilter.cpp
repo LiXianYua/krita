@@ -16,7 +16,6 @@
 #include <kis_processing_information.h>
 #include <KoColorSpaceRegistry.h>
 
-#include "KisPropagateColorsConfigWidget.h"
 #include "KisPropagateColorsFilterConfiguration.h"
 #include "KisPropagateColorsFilter.h"
 
@@ -515,13 +514,6 @@ void KisPropagateColorsFilter::processImpl(KisPaintDeviceSP device,
 KisFilterConfigurationSP KisPropagateColorsFilter::factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const
 {
     return new KisPropagateColorsFilterConfiguration(resourcesInterface);
-}
-
-KisConfigWidget *KisPropagateColorsFilter::createConfigurationWidget(QWidget *parent,
-                                                                     const KisPaintDeviceSP,
-                                                                     bool) const
-{
-    return new KisPropagateColorsConfigWidget(parent);
 }
 
 bool KisPropagateColorsFilter::needsTransparentPixels(const KisFilterConfigurationSP config, const KoColorSpace*) const

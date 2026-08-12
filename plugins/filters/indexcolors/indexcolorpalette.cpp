@@ -12,7 +12,6 @@
 #include <KoColorSpaceMaths.h>
 #include <KoColorSpaceRegistry.h>
 #include <filter/kis_filter_configuration.h>
-#include <widgets/kis_multi_integer_filter_widget.h>
 
 float IndexColorPalette::similarity(LabColor c0, LabColor c1) const
 {

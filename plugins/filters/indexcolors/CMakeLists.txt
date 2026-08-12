@@ -1,5 +1,4 @@
-set(INDEXCOLORS_SOURCE kiswdgindexcolors.cpp indexcolors.cpp indexcolorpalette.cpp palettegeneratorconfig.cpp)
-ki18n_wrap_ui(INDEXCOLORS_SOURCE kiswdgindexcolors.ui)
+set(INDEXCOLORS_SOURCE indexcolors.cpp indexcolorpalette.cpp palettegeneratorconfig.cpp)
 kis_add_library(kritaindexcolors MODULE ${INDEXCOLORS_SOURCE})
-target_link_libraries(kritaindexcolors kritaui)
+target_link_libraries(kritaindexcolors kritaimage)
 install(TARGETS kritaindexcolors          DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

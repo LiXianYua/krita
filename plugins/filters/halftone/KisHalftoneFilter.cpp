@@ -26,7 +26,6 @@
 #include <KoColorProfile.h>
 
 #include "KisHalftoneFilter.h"
-#include "KisHalftoneConfigWidget.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaHalftoneFactory, "KritaHalftone.json", registerPlugin<KritaHalftone>();)
 
@@ -701,12 +700,6 @@ KisFilterConfigurationSP KisHalftoneFilter::defaultConfiguration(KisResourcesInt
 KisFilterConfigurationSP KisHalftoneFilter::factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const
 {
     return new KisHalftoneFilterConfiguration("halftone", 1, resourcesInterface);
-}
-
-KisConfigWidget *KisHalftoneFilter::createConfigurationWidget(QWidget *parent, const KisPaintDeviceSP dev, bool useForMasks) const
-{
-    Q_UNUSED(useForMasks);
-    return new KisHalftoneConfigWidget(parent, dev);
 }
 
 #include "KisHalftoneFilter.moc"

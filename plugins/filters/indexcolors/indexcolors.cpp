@@ -13,9 +13,7 @@
 #include <KoColorSpaceRegistry.h>
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_color_transformation_configuration.h>
-#include <widgets/kis_multi_integer_filter_widget.h>
 
-#include "kiswdgindexcolors.h"
 #include "palettegeneratorconfig.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(IndexColorsFactory, "kritaindexcolors.json", registerPlugin<IndexColors>();)
@@ -56,17 +54,6 @@ KoColorTransformation* KisFilterIndexColors::createTransformation(const KoColorS
     pal.similarityFactors.a = config->getFloat("aFactor");
     pal.similarityFactors.b = config->getFloat("bFactor");
     return new KisIndexColorTransformation(pal, cs, config->getInt("alphaSteps"));
-}
-
-KisConfigWidget* KisFilterIndexColors::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    Q_UNUSED(dev);
-    KisWdgIndexColors* w = new KisWdgIndexColors(parent);
-    w->setup(
-        QStringList() << i18nc("Color palette shade", "Bright") << i18nc("Color palette shade", "Light") << i18nc("Color palette shade", "Base") << i18nc("Color palette shade", "Shadow")
-        , 4
-    );
-    return w;
 }
 
 KisFilterConfigurationSP KisFilterIndexColors::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const

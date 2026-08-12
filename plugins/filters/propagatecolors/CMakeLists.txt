@@ -1,13 +1,12 @@
 set(kritapropagatecolors_SOURCES
     KisPropagateColorsFilter.cpp
     KisPropagateColorsFilterConfiguration.cpp
-    KisPropagateColorsConfigWidget.cpp
     KisPropagateColorsFilterPlugin.cpp
 )
 
 kis_add_library(kritapropagatecolors MODULE ${kritapropagatecolors_SOURCES})
 
-target_link_libraries(kritapropagatecolors kritaui)
+target_link_libraries(kritapropagatecolors kritaimage)
 
 install(
     TARGETS
