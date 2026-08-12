@@ -41,11 +41,11 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 | 口径 | 数 | 怎么数的 |
 |---|---:|---|
 | 测试函数 | 67 | `tests/cases/*.h` 里 `private Q_SLOTS:` 下声明的 slot 个数 = `global_case.h` 12 + `point_case.h` 24 + `size_case.h` 31 |
-| 断言（展开后） | 526 | `test_global.cpp` 116（= 直接写在函数体里的 92 + 共享宏 `PK_CHECK_COEXIST_PROBE` 体内 12 条被两个 coexist 测试函数各展开一次 = 24）+ `test_point.cpp` 199 + `test_size.cpp` 211（后两个无共享宏） |
+| 断言（展开后） | 529 | `test_global.cpp` 116（= 直接写在函数体里的 92 + 共享宏 `PK_CHECK_COEXIST_PROBE` 体内 12 条被两个 coexist 测试函数各展开一次 = 24）+ `test_point.cpp` 199 + `test_size.cpp` 214（后两个无共享宏）。口径：`PK_VERIFY`/`PK_COMPARE` 的出现次数，**注释里的不算**（`test_global.cpp` 裸 grep 是 106，含 2 处注释） |
 | `static_assert` | 76 | `PkPoint.cpp` 26 + `PkSize.cpp` 42（布局 / 枚举取值 / constexpr 能力 / **noexcept 面**，只有在一个 TU 里才落得了地）+ `oracle/geometry_difftest.cpp` 8 |
 | 运行输出 `Totals` 行 | 14 + 26 + 33 | harness 的口径：每个测试类的 slot 数 + `initTestCase` + `cleanupTestCase`，**不是**测试函数数，也不是断言数 |
 | 翻译单元 | 8 | `test_main` `test_global` `test_point` `test_size` `coexist_test_first` `coexist_geometry_first` `point_macro_proof` `size_macro_proof` |
-| 对拍比对次数 | 93 630 039 | `run_oracle.sh` 输出的 `DIFF total=`，其中 `mismatch=3` 全是 canary（见下）。拆开：Point 族 35 569 662（Task 2 的基线，逐字不变）+ Size 族 58 060 377。挂钟约 55 秒 |
+| 对拍比对次数 | 98 759 499 | `run_oracle.sh` 输出的 `DIFF total=`，其中 `mismatch=3` 全是 canary（见下）。拆开：Point 族 35 569 662（Task 2 的基线，逐字不变）+ Size 族 63 189 837。挂钟约 58 秒 |
 
 **优化档矩阵**（`-fwrapv` 由 `CMakeLists.txt` 的 `target_compile_options(... PUBLIC)`
 统一带上；`-fno-wrapv` 那一列是手工编译出来的对照，不是可用配置）：
@@ -71,7 +71,7 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 | `PkPoint.h` / `PkPoint.cpp` | `PkPoint`（两个 `int`）与 `PkPointF`（两个 `qreal`），逐字抄自 `qpoint.h` |
 | `PkSize.h` / `PkSize.cpp` | `PkSize`（两个 `int`）与 `PkSizeF`（两个 `qreal`），逐字抄自 `qsize.h`；两个 `scaled(const Pk*&, mode)` 照 Qt 的形态放在 `.cpp` 里（`QSize::scaled` 定义在 `qsize.cpp`） |
 | `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` | `#define` 垫片，无扩展名 |
-| `tests/` | `test_global.cpp`（12 函数 / 116 断言）、`test_point.cpp`（24 / 199）、`test_size.cpp`（31 / 211）、两个共存 TU `coexist_*.cpp`、两个宏改写探针 `point_macro_proof.cpp` 与 `size_macro_proof.cpp` |
+| `tests/` | `test_global.cpp`（12 函数 / 116 断言）、`test_point.cpp`（24 / 199）、`test_size.cpp`（31 / 214）、两个共存 TU `coexist_*.cpp`、两个宏改写探针 `point_macro_proof.cpp` 与 `size_macro_proof.cpp` |
 | `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point 族 + Size 族）、`run_oracle.sh`、`geometry.deviation` |
 
 `PkRect`/`PkRectF`/`PkTransform`、`graft/` 试接由后续 Task 交付；
@@ -253,6 +253,7 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 | 9 | `PkSize`/`PkSizeF` **照抄 `noexcept`**，`PkPoint`/`PkPointF` 没有 | 不是不一致：`qsize.h` 几乎每个成员都标了 `noexcept`，`qpoint.h` 只有 `transposed` 标了 —— 两边都是**逐字照抄各自的头**。`noexcept` 是可观察的（`noexcept` 运算符、容器移动选择），所以连"带 `Q_ASSERT` 的两个除法 Qt 恰好没标 `noexcept`"这个不对称也抄了，`PkSize.cpp` 用 7 条 `static_assert` 钉住。 |
 | 10 | `PkSize::scaled` 里用 `long long` 而不是 `qint64` | `qint8`..`quint64` 那批 typedef 按用量表归 R-02，R-03 不预先实现（判据①）。本平台 `qint64` 就是 `long long`，逐字等价。**换平台要重看**（LP64/LLP64 上 `long long` 恒 64 位，与 `qint64` 一致）。 |
 | 11 | 对拍 TU 里 `#include "PkSize.cpp"`（在 `namespace pkoracle` 内） | 两个 `scaled(const Pk*&, mode)` 是 out-of-line 的（照 Qt 的形态）。`libpkgeometry.a` 里那份是 `::PkSize::scaled`，而对拍需要的是 `pkoracle::PkSize::scaled` —— 两个不同符号，链不上。把 `.cpp` 一起包进 namespace 是**唯一**能让对拍压到那两个函数的办法（改成 header-only 就不是"照抄 Qt 的结构"了）。纪律：`PkSize.cpp` 的系统头（只有 `<type_traits>`）必须在对拍的系统头区里已经出现过。 |
+| 12 | **`PkGlobal.h` 里有一个真 C++ `namespace Qt`**（只装 `AspectRatioMode` 一个枚举）—— 这是「全局 `Pk` 前缀、不引 namespace」那条架构约束在本目录里的**唯一例外** | `QSize::scaled`/`scale` 的签名里就写着 `Qt::AspectRatioMode`，调用点写的是 `Qt::KeepAspectRatio` 这个**限定名**（实测用量：类型名 22 次、`IgnoreAspectRatio` 12 次、`KeepAspectRatio` 18 次、`KeepAspectRatioByExpanding` 3 次，口径 3 325 个文件），不套 `namespace Qt` 对不上。与那条约束不冲突：约束针对的是**我们自己的类型** —— compat 垫片靠 `#define QRect PkRect`，而 Krita 里有 `class QRect;` 前置声明，套 namespace 这个技巧就废；枚举没有前置声明这个问题。完整论证见上「`Qt::AspectRatioMode`：全项目唯一一个真 `namespace`」一节。**⚠ 共存副作用**：同一个 TU 里若同时出现 `PkGlobal.h` 与**真 Qt 的** `qnamespace.h`，`Qt::AspectRatioMode` 是**重定义硬错**；对拍是唯一有这个形态的编译行，靠把替代品整包塞进 `namespace pkoracle` 绕开。表现是响亮的编译错误、不是静默错行为，所以只登记、不改代码。**Task 4–6 的 reviewer 注意：这一条 Task 3 交付时漏进了本表，是复评补的。** |
 
 ## 覆盖度缺口
 
@@ -310,6 +311,12 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 - **共存只覆盖两种 include 顺序**（见上「与 `pk/test/compat/QtGlobal` 的共存」）。
   第三种顺序没有真实场景，故意不做；真撞上的表现是响亮的编译错误
   （`qAbs` 重定义），不是静默错行为。
+  **另一条同类的、两个 coexist TU 都没有覆盖的形态**：`PkGlobal.h` 的
+  `namespace Qt { enum AspectRatioMode }` 与**真 Qt 的 `qnamespace.h`** 落进同一个
+  TU 时是**重定义硬错**（偏离清单第 12 条）。目前唯一有这个形态的编译行是
+  `oracle/`，它靠把替代品整包塞进 `namespace pkoracle` 绕开 —— 于是这条从来没被
+  真正撞过。剥离完成后的 Krita 里不存在"真 Qt 与替代品共存"的编译行，所以
+  **只登记不解决**；表现是编译期硬错、不是静默错行为，撞上的人不会漏看。
 - **让位路径上的取值校验只有探针里那 10 项**（`PkCoexistProbe` 的字段）。
   `pk/test` 若在这 10 项之外的地方漂离 Qt（例如 `pkFuzzyIsNull` 的阈值），
   coexist TU 不会发现。`oracle/` 已经落地，但**它跑的是不带 `pk/test` 垫片的编译行**，
@@ -320,8 +327,8 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
   一元 API 走 44²+21² = 2 377 个 double 点、25²+20² = 1 025 个 int 点，
   二元 API 走 44⁴+21⁴ = 3 942 577 组 double 两点、25⁴+20⁴ = 550 625 组 int 两点，
   带标量参数的 API 做三层，Point 族合计 35 569 662 次比对；Size 族又加了
-  58 060 377 次（一元/二元/带标量参数的部分与 Point 同形，`scaled`/`scale`
-  那四个 API 走「手挑 × token 双向交叉」，见下），总计 **93 630 039**。
+  63 189 837 次（一元/二元/带标量参数的部分与 Point 同形，`scaled`/`scale`
+  那四个 API 走「手挑 × token 双向交叉」，见下），总计 **98 759 499**。
   **手挑集必须做全组合，不能只做索引轮转** —— 轮转时 44 个手挑值只产生 44 个点，
   `kHandD` 里那批 `kTokD` 没有的值（`0.5000000000000001`、`1e-323`、
   `2.2250738585072014e-308`、`-2147483649.0`、`4294967296.0`、`1.0+1e-13`、
@@ -335,6 +342,29 @@ Size 族又添了六条（全部实测真 Qt 5.15.7，`tests/test_size.cpp` 逐�
 - **对拍不覆盖预处理期的语义偷换。** `oracle/` 的编译行里没有 `pk/test` 的垫片，
   `qFuzzy*` 那两个 `#define` 永远不生效，所以「几何类型的 `==` 被改写到 `pk/test`
   的实现上」这类问题对拍看不见。靠 `tests/point_macro_proof.cpp` 单独钉住。
+- **⚠ 对拍只覆盖「写了 `rec()` 的那些重载」——漏写一条就是一整个重载零覆盖。**
+  Task 3 交付时 `cmp_sizef_scaled` 漏了 `SF::scale(w,h)`（整数版四个重载齐全、
+  浮点版只有三个），复评把 `PkSizeF::scale(qreal,qreal,mode)` 整个改坏之后
+  **对拍一条都没红、退出码 0 放行**。现已补上，并在 `geometry_difftest.cpp` 顶部
+  立为 **tag 规则三**：*每个已实现的重载都要有自己的 `rec()`*，Size 族的
+  `setWidth`/`setHeight`/`rwidth`/`rheight` 也因此从合并的 rec 拆开。
+  **Task 4–6 必须逐条对着头文件声明列「重载 vs `rec()`」对照表**（Rect 8 分量、
+  Transform 18 分量，重载数是 Size 族的几倍，靠记忆必漏）。
+  已知残留：Point 族（Task 2）的 `setX/setY`、`rx/ry`、`F::setX/setY`、`F::rx/ry`
+  仍是两个重载挤一条 rec —— 不是覆盖漏洞（两个 mutator 在同一次往返里都被调到），
+  只是归因粗，有意不动以保住「Point 族 total=35 569 662」这条基线。
+- **实测唯一一条「单测全绿、只有对拍抓得到」的形态：`PkSize` → `PkSizeF`
+  隐式提升丢精度。** 把 `PkSizeF(const PkSize &)` 的两个初值改成 `float(sz.width())`
+  （`int` → `float` 只有 24 位有效位，`INT_MAX` 被舍成 `2147483648.f`；`int` → `double`
+  则是精确的），实测：**`run_tests.sh` 33 个用例全绿、退出码 0**，`run_oracle.sh`
+  抓到 **962 323** 处、56 条未声明 tag（`SF::fromSize` 358 555 + `SF::roundTrip`
+  358 555 + `SF::mixedExpandedTo` 245 123 + `SF::mixedEquality` 90）。
+  修复轮 1 已给 `sizefPromotionFromPkSize()` 补三条断言把最粗的一层堵上
+  （`PkSizeF(PkSize(INT_MAX, INT_MAX-1))` 的两个分量 + 往返），**再注入同一个缺陷
+  单测当场变红**；但断言只钉住 2 个取值，整条提升路径的取值面仍然只有对拍在压。
+  ⚠ **不要把 `scaled` 的取整方向、`PkSizeF::expandedTo` 用 `qMin` 当成同类例子** ——
+  Task 3 报告初稿这么写过，复评原样复刻后**单测也会红**（`sizeScaledThreeModes`/
+  `sizeScaledUsesInt64Intermediate`/`sizefExpandedTo`）。更正见报告「修复轮 1」。
 - **`graft/` 试接还没做**（Task 7）。现在证明 API 形状对不对的只有本目录自己的
   单测与对拍，没有一个真实 Krita 调用点编译过 `PkPoint` / `PkSize`。
 - **Size 族的 `scaled`/`scale` 对拍走的是「手挑 × token 双向交叉」，不是全组合。**

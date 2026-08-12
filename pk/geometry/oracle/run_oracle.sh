@@ -73,10 +73,20 @@ if ! LD_LIBRARY_PATH="$QT/lib" ldd "$OUT" | grep -q "$LDD_REQUIRE"; then
 fi
 
 printf '\n跑对拍：\n'
-LD_LIBRARY_PATH="$QT/lib" timeout 600 "$OUT" > "$LOG" 2>&1
-rc=$?
+# ⚠ **`|| rc=$?` 不是可有可无的写法。** `set -e` 之下 `cmd > log` 一旦非零就
+# 立刻终止整个脚本，下面的 `rc=$?` 与 `tail` 是**死代码** —— 对拍程序崩溃时
+# 一行诊断都打不出来（复评注入时实测撞上：SIGFPE、退出码 136、无任何输出）。
+# `|| rc=$?` 让非零退出被消费掉，控制权才走得到诊断分支。
+rc=0
+LD_LIBRARY_PATH="$QT/lib" timeout 600 "$OUT" > "$LOG" 2>&1 || rc=$?
 if [ "$rc" -ne 0 ]; then
     echo "run_oracle.sh: 对拍程序退出码 $rc（契约要求 0，即使 mismatch>0）" >&2
+    # ⚠ 写成 `[ ... ] && echo ...` 会再犯同一个错：条件为假时整条语句返回 1，
+    # `set -e` 当场退出，下面的 tail 又变成死代码。用 if/fi。
+    if [ "$rc" -gt 128 ]; then
+        echo "  （>128：被信号 $((rc - 128)) 杀掉；124 = timeout 超时）" >&2
+    fi
+    echo "  $LOG 末 20 行：" >&2
     tail -20 "$LOG" >&2
     exit 1
 fi

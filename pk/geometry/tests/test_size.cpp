@@ -317,6 +317,17 @@ void PkSizeCase::sizefPromotionFromPkSize()
     PK_VERIFY(sameSizeF(f, 3.0, 4.0));
     PK_VERIFY((std::is_convertible<PkSize, PkSizeF>::value));
     PK_VERIFY((!std::is_convertible<PkSizeF, PkSize>::value));   // 反方向只有 toSize()
+
+    // ⚠ **提升必须走 double，不能中途经 float。** int → float 只有 24 位有效位，
+    // INT_MAX 会被舍到 2147483648.f；int → double 是精确的。复评实测：把两个
+    // 初值改成 float(sz.width()) 之后**全部 33 个用例照样全绿**，只有对拍抓到
+    // （962 323 处）—— 这一行就是把那条缺口的最粗一层堵上。
+    // 用 == 不用 PK_COMPARE：后者对 double 是相对 1e-12 的模糊比较，
+    // 而 2147483648.0 与 2147483647.0 的相对差是 4.7e-10，模糊比较照样判等。
+    const PkSizeF big = PkSize(2147483647, 2147483646);          // INT_MAX, INT_MAX-1
+    PK_VERIFY(big.width()  == 2147483647.0);
+    PK_VERIFY(big.height() == 2147483646.0);
+    PK_VERIFY(big.toSize() == PkSize(2147483647, 2147483646));   // 往返回到原值
 }
 
 void PkSizeCase::sizefAccessorsAndReferences()

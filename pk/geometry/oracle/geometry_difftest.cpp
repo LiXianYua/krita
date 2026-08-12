@@ -37,6 +37,22 @@
 //           一个字面量常量」。R-01 第一版那么写，注入三组真 bug 全部绿灯通过。
 //   规则二：tag 的判定谓词**不能比 .deviation 里那句理由宽**。理由说「两侧都失败」，
 //           谓词里就必须出现 !ok；理由说「退化矩形」，谓词就不能是「任何矩形」。
+//   规则三：**每一个已实现的重载都要有自己的 rec()**，一个都不许合并、一个都不许漏。
+//           Task 3 复评实测：cmp_sizef_scaled 少写了 `SF::scale(w,h)` 那一条 rec，
+//           于是把 PkSizeF::scale(qreal,qreal,mode) 整个改坏（永远走
+//           IgnoreAspectRatio）之后，**93 630 039 次比对一条都没红、run_oracle.sh
+//           退出码 0 放行**。转发链「A 转发到 B、B 有 rec」不算覆盖 —— 坏掉的正
+//           可能是 A 那一跳。合并也不行（`setWidth/setHeight` 挤一条 rec 时，
+//           tag 说不清是哪个重载分的家）。
+//           **落地方式**：每族写完对拍后列一张「已实现重载 vs 对应 rec()」对照表
+//           （逐条对着头文件的声明数，不是对着记忆数），有一格空的就是漏了。
+//           Task 3 的那张表在 <scratchpad>/R-03/sdd/task-3-report.md「修复轮 1」。
+//           **已知残留（Task 2 的 Point 族，有意不动）**：`setX/setY`、`rx/ry`、
+//           `F::setX/setY`、`F::rx/ry` 四条仍是两个重载挤一条 rec。它们不是覆盖
+//           漏洞（两个 mutator 在同一次往返里都被调到，任一个坏掉 same_pt 就分家），
+//           只是归因粗；不拆是为了让「Point 族 total=35 569 662」这条 Task 2 基线
+//           保持逐字不变，好继续当"我没动到 Point"的自证。**新写的族一律按规则三
+//           拆到底**（Size 族已拆）。
 
 // ── 真 Qt 侧 + 系统头（都必须在 namespace 之外）────────────────────────
 #include <QPoint>
@@ -591,13 +607,19 @@ static void cmp_size_unary(int w, int h)
                  : (w <= 0 || h <= 0) ? std::string("valid-boundary") : sh,
         in, bstr(q.isValid()), bstr(p.isValid()));
 
+    // 规则三：一个重载一条 rec（原来 setWidth 与 setHeight 挤在一条里，
+    // rwidth/rheight 同样 —— 拆开之后哪个重载分的家在 DIFFTAG 里直接看得见）。
     { QSize q2 = q; PkSize p2 = p; q2.setWidth(h); p2.setWidth(h);
-      q2.setHeight(w); p2.setHeight(w);
-      rec("S::setWidth/setHeight", same_sz(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+      rec("S::setWidth", same_sz(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QSize q2 = q; PkSize p2 = p; q2.setHeight(w); p2.setHeight(w);
+      rec("S::setHeight", same_sz(q2, p2), sh, in, qstr(q2), qstr(p2)); }
     { QSize q2 = q; PkSize p2 = p; q2.rwidth() += 1; p2.rwidth() += 1;
-      q2.rheight() -= 1; p2.rheight() -= 1;
-      rec("S::rwidth/rheight", same_sz(q2, p2),
-          (w == INT_MAX || h == INT_MIN) ? std::string("int-overflow") : sh,
+      rec("S::rwidth", same_sz(q2, p2),
+          (w == INT_MAX) ? std::string("int-overflow") : sh,
+          in, qstr(q2), qstr(p2)); }
+    { QSize q2 = q; PkSize p2 = p; q2.rheight() -= 1; p2.rheight() -= 1;
+      rec("S::rheight", same_sz(q2, p2),
+          (h == INT_MIN) ? std::string("int-overflow") : sh,
           in, qstr(q2), qstr(p2)); }
 }
 
@@ -738,12 +760,15 @@ static void cmp_sizef_unary(double w, double h)
                                                 : std::string("in-range"),
         in, qstr(q.toSize()), qstr(p.toSize()));
 
+    // 规则三：一个重载一条 rec（拆分理由同整数版）。
     { QSizeF q2 = q; PkSizeF p2 = p; q2.setWidth(h); p2.setWidth(h);
-      q2.setHeight(w); p2.setHeight(w);
-      rec("SF::setWidth/setHeight", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+      rec("SF::setWidth", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QSizeF q2 = q; PkSizeF p2 = p; q2.setHeight(w); p2.setHeight(w);
+      rec("SF::setHeight", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
     { QSizeF q2 = q; PkSizeF p2 = p; q2.rwidth() += 1.0; p2.rwidth() += 1.0;
-      q2.rheight() -= 1.0; p2.rheight() -= 1.0;
-      rec("SF::rwidth/rheight", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+      rec("SF::rwidth", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QSizeF q2 = q; PkSizeF p2 = p; q2.rheight() -= 1.0; p2.rheight() -= 1.0;
+      rec("SF::rheight", same_szf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
 }
 
 static void cmp_sizef_binary(double aw, double ah, double bw, double bh)
@@ -832,6 +857,11 @@ static void cmp_sizef_scaled(double sw, double sh, double tw, double th, int mi)
     { QSizeF q2 = qs; PkSizeF p2 = ps;
       q2.scale(qt, kQtModes[mi]); p2.scale(pt, kPkModes[mi]);
       rec("SF::scale(size)", same_szf(q2, p2), tag, in, qstr(q2), qstr(p2)); }
+    // ⚠ 规则三：**这一条曾经漏掉**（整数版四个重载齐全、浮点版只有三个）。
+    // 复评把 PkSizeF::scale(qreal,qreal,mode) 整个改坏，对拍一条都没红。
+    { QSizeF q2 = qs; PkSizeF p2 = ps;
+      q2.scale(tw, th, kQtModes[mi]); p2.scale(tw, th, kPkModes[mi]);
+      rec("SF::scale(w,h)", same_szf(q2, p2), tag, in, qstr(q2), qstr(p2)); }
 }
 
 // PkSize → PkSizeF 的隐式提升（Task 4/5 的 PkRectF 靠这条），以及往返。
