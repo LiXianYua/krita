@@ -12,7 +12,6 @@
 #include "../colorsfilters/kis_multichannel_utils.h"
 
 #include "KisLevelsFilter.h"
-#include "KisLevelsConfigWidget.h"
 
 KisLevelsFilter::KisLevelsFilter()
     : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, i18n("&Levels..."))
@@ -25,11 +24,6 @@ KisLevelsFilter::KisLevelsFilter()
 KisFilterConfigurationSP KisLevelsFilter::factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const
 {
     return new KisLevelsFilterConfiguration(0, resourcesInterface);
-}
-
-KisConfigWidget * KisLevelsFilter::createConfigurationWidget(QWidget* parent, const KisPaintDeviceSP dev, bool) const
-{
-    return new KisLevelsConfigWidget(parent, dev, dev->compositionSourceColorSpace());
 }
 
 KoColorTransformation* KisLevelsFilter::createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const

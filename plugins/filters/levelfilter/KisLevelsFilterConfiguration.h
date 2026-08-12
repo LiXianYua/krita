@@ -12,6 +12,7 @@
 #include <filter/kis_color_transformation_configuration.h>
 #include <kis_paint_device.h>
 #include <KisLevelsCurve.h>
+#include <KisAutoLevels.h>
 
 class KisLevelsFilterConfiguration : public KisColorTransformationConfiguration
 {
@@ -53,6 +54,16 @@ public:
     bool isCompatible(const KisPaintDeviceSP) const override;
 
     void setDefaults();
+
+    struct AutoLevelsDefaults
+    {
+        qreal maximumInputBlackAndWhiteOffset;
+        KisAutoLevels::MidtonesAdjustmentMethod midtonesAdjustmentMethod;
+        qreal midtonesAdjustmentAmount;
+    };
+    /// 自动色阶的经验参数（摘自 D-02-b 删除的 KisLevelsConfigWidget）
+    /// 上游原注释：These were selected empirically, there is no strong reason why they should be like this
+    static AutoLevelsDefaults autoLevelsDefaults(const KoColorSpace *cs, int channelIndex);
 
 private:
     QVector<QVector<quint16>> m_transfers;
