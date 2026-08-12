@@ -58,8 +58,15 @@ LIBS=(pk/test/build/libpktest.a pk/log/build/libpklog.a pk/string/build/libpkstr
 #   $5 extra_incdirs 逗号分隔，测试 #include "X.h" 需要的额外 -I（被测实现所在目录）
 #   $6 extra_sources 逗号分隔，被测实现的 .cpp（原地编译，不复制不改名）
 #   $7 extra_force   逗号分隔，只对本试接的 driver 生效的额外 -include（相对仓库根）
+#   $8 probe_file    可选，一段要 cat 进 driver.cpp 尾部的运行期探针源
+#                    （相对仓库根）。给了这个参数时，driver.cpp 会先把 main
+#                    宏定义成 pk_r08_original_main 再 #include 测试源——测试
+#                    源展开出的 main（SIMPLE_TEST_MAIN）因此改名，不与探针
+#                    自己定义的新 main 冲突；探针跑完再转调 pk_r08_original_main
+#                    把真实测试跑掉。测试源一个字节没改，只是 driver.cpp 自己
+#                    的预处理器把名字换了——见 kis_shared_ptr_probe.inc 顶注。
 run_one() {
-    local name="$1" srcdir="$2" hdr="$3" src="$4" extra_incdirs="$5" extra_sources="$6" extra_force="${7:-}"
+    local name="$1" srcdir="$2" hdr="$3" src="$4" extra_incdirs="$5" extra_sources="$6" extra_force="${7:-}" probe_file="${8:-}"
     local work="$BUILD/$name"
     rm -rf "$work"; mkdir -p "$work"
 
@@ -73,7 +80,20 @@ run_one() {
     python3 pk/test/pk_test_moc.py "$work/$hdr" -o "$work/binder.inc"
 
     # ③.5 driver.cpp：把改名后的测试 .cpp 与 binder.inc 塞进同一个 TU
-    printf '#include "%s"\n#include "binder.inc"\n' "$src" > "$work/driver.cpp"
+    if [ -n "$probe_file" ]; then
+        {
+            printf '// 运行期探针挂接，见 %s。\n' "$probe_file"
+            printf '#include "PkLogSink.h"\n'
+            printf '#include <cstdio>\n#include <cstdlib>\n#include <string>\n#include <vector>\n'
+            printf '#define main pk_r08_original_main\n'
+            printf '#include "%s"\n' "$src"
+            printf '#undef main\n'
+            printf '#include "binder.inc"\n\n'
+        } > "$work/driver.cpp"
+        cat "$probe_file" >> "$work/driver.cpp"
+    else
+        printf '#include "%s"\n#include "binder.inc"\n' "$src" > "$work/driver.cpp"
+    fi
 
     local extra_inc_flags=()
     if [ -n "$extra_incdirs" ]; then
@@ -155,7 +175,8 @@ run_one KisSharedPtrTest \
     libs/image/tests kis_shared_ptr_test.h kis_shared_ptr_test.cpp \
     "libs/global,libs/image" \
     "libs/global/kis_shared.cpp,libs/global/kis_debug.cpp" \
-    "$STUBS/QAtomicInt,$STUBS/QScopedPointer,$STUBS/QVector"
+    "$STUBS/QAtomicInt,$STUBS/QScopedPointer,$STUBS/QVector" \
+    pk/log/tests/graft/kis_shared_ptr_probe.inc
 
 # 源树零改动自证
 if ! git diff --quiet -- libs/image/tests libs/image libs/global; then
