@@ -6,7 +6,7 @@
 
 #include "RectangleShapeFactory.h"
 #include "RectangleShape.h"
-#include "RectangleShapeConfigWidget.h"
+#include <QLinearGradient>
 #include "KoShapeStroke.h"
 #include <KoXmlNS.h>
 #include <KoGradientBackground.h>
@@ -76,12 +76,5 @@ bool RectangleShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext
 {
     Q_UNUSED(e);
     return (e.localName() == "rect" && e.namespaceURI() == KoXmlNS::draw);
-}
-
-QList<KoShapeConfigWidgetBase *> RectangleShapeFactory::createShapeOptionPanels()
-{
-    QList<KoShapeConfigWidgetBase *> panels;
-    panels.append(new RectangleShapeConfigWidget());
-    return panels;
 }
 

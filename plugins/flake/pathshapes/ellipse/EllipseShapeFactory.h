@@ -21,7 +21,6 @@ public:
     ~EllipseShapeFactory() override {}
     KoShape *createDefaultShape(KoDocumentResourceManager *documentResources = 0) const override;
     bool supports(const QDomElement &e, KoShapeLoadingContext &context) const override;
-    QList<KoShapeConfigWidgetBase *> createShapeOptionPanels() override;
 };
 
 #endif /* KOELLIPSESHAPEFACTORY_H */

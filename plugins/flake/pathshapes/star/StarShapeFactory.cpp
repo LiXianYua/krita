@@ -6,7 +6,6 @@
 
 #include "star/StarShapeFactory.h"
 #include "star/StarShape.h"
-#include "star/StarShapeConfigWidget.h"
 
 #include <KoShapeFactoryBase.h>
 #include <KoShapeStroke.h>
@@ -137,11 +136,4 @@ bool StarShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &con
     }
     return (e.localName() == "custom-shape" && e.namespaceURI() == KoXmlNS::draw
             && e.attributeNS(KoXmlNS::draw, "engine", "") == "calligra:star");
-}
-
-QList<KoShapeConfigWidgetBase *> StarShapeFactory::createShapeOptionPanels()
-{
-    QList<KoShapeConfigWidgetBase *> panels;
-    panels.append(new StarShapeConfigWidget());
-    return panels;
 }

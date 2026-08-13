@@ -6,7 +6,7 @@
 
 #include "EllipseShapeFactory.h"
 #include "EllipseShape.h"
-#include "EllipseShapeConfigWidget.h"
+#include <QRadialGradient>
 #include <KoShapeStroke.h>
 #include <KoXmlNS.h>
 #include <KoGradientBackground.h>
@@ -56,11 +56,4 @@ bool EllipseShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &
     Q_UNUSED(context);
     return (e.localName() == "ellipse" || e.localName() == "circle")
            && e.namespaceURI() == KoXmlNS::draw;
-}
-
-QList<KoShapeConfigWidgetBase *> EllipseShapeFactory::createShapeOptionPanels()
-{
-    QList<KoShapeConfigWidgetBase *> panels;
-    panels.append(new EllipseShapeConfigWidget());
-    return panels;
 }

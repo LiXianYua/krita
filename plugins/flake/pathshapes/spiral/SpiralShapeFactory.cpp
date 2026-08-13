@@ -6,7 +6,6 @@
 
 #include "SpiralShapeFactory.h"
 #include "SpiralShape.h"
-#include "SpiralShapeConfigWidget.h"
 #include <KoShapeStroke.h>
 #include <KoShapeLoadingContext.h>
 
@@ -39,11 +38,4 @@ bool SpiralShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &c
     Q_UNUSED(e);
     Q_UNUSED(context);
     return false;
-}
-
-QList<KoShapeConfigWidgetBase *> SpiralShapeFactory::createShapeOptionPanels()
-{
-    QList<KoShapeConfigWidgetBase *> panels;
-    panels.append(new SpiralShapeConfigWidget());
-    return panels;
 }
