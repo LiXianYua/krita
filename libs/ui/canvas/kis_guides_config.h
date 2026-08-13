@@ -9,7 +9,7 @@
 #ifndef KOGUIDESDATA_H
 #define KOGUIDESDATA_H
 
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 #include <QScopedPointer>
 #include <QList>
 #include <boost/operators.hpp>
@@ -21,7 +21,7 @@ class QColor;
 class QPen;
 
 
-class KRITAUI_EXPORT KisGuidesConfig : boost::equality_comparable<KisGuidesConfig>
+class KRITACANVAS_EXPORT KisGuidesConfig : boost::equality_comparable<KisGuidesConfig>
 {
 public:
     enum LineTypeInternal {
@@ -111,4 +111,3 @@ private:
 
 
 #endif
-

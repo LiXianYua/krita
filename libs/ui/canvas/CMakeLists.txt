@@ -2,6 +2,8 @@ set(kritacanvas_LIB_SRCS
     KisCanvasConfig.cpp
     KisCanvasState.cpp
     KisDisplayConfig.cpp
+    kis_grid_config.cpp
+    kis_guides_config.cpp
     kis_coordinates_converter.cpp
     kis_display_filter.cpp
     kis_exposure_gamma_correction_interface.cpp

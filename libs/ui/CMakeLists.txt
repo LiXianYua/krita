@@ -30,13 +30,11 @@ set(kritaui_LIB_SRCS
     canvas/kis_canvas_decoration.cc
     canvas/kis_grid_manager.cpp
     canvas/kis_grid_decoration.cpp
-    canvas/kis_grid_config.cpp
     canvas/kis_qpainter_canvas.cpp
     canvas/kis_infinity_manager.cpp
     canvas/kis_change_guides_command.cpp
     canvas/kis_guides_decoration.cpp
     canvas/kis_guides_manager.cpp
-    canvas/kis_guides_config.cpp
     canvas/kis_snap_config.cpp
     canvas/kis_snap_line_strategy.cpp
     canvas/KisSnapPointStrategy.cpp

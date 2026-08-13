@@ -9,7 +9,8 @@
 #include <QDomElement>
 #include <QtMath>
 
-#include "kis_config.h"
+#include <KConfigGroup>
+#include <KSharedConfig>
 #include "kis_dom_utils.h"
 #include "kis_algebra_2d.h"
 #include <KisStaticInitializer.h>
@@ -56,28 +57,29 @@ void KisGridConfig::transform(const QTransform &transform)
 
 void KisGridConfig::loadStaticData()
 {
-    KisConfig cfg(true);
+    const KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
 
-    m_lineTypeMain = LineTypeInternal(cfg.getGridMainStyle());
-    m_lineTypeSubdivision = LineTypeInternal(cfg.getGridSubdivisionStyle());
-    m_lineTypeIsoVertical = LineTypeInternal(cfg.getGridIsoVerticalStyle());
+    m_lineTypeMain = LineTypeInternal(qBound(0, cfg.readEntry("gridmainstyle", 0), 2));
+    m_lineTypeSubdivision = LineTypeInternal(qMin(cfg.readEntry("gridsubdivisionstyle", 1), 2));
+    m_lineTypeIsoVertical = LineTypeInternal(qBound(0, cfg.readEntry("gridisoverticalstyle", 0), 3));
 
-    m_colorMain = cfg.getGridMainColor();
-    m_colorSubdivision = cfg.getGridSubdivisionColor();
-    m_colorIsoVertical = cfg.getGridIsoVerticalColor();
+    m_colorMain = cfg.readEntry("gridmaincolor", QColor(99, 99, 99));
+    m_colorSubdivision = cfg.readEntry("gridsubdivisioncolor", QColor(150, 150, 150));
+    m_colorIsoVertical = cfg.readEntry("gridisoverticalcolor", QColor(150, 150, 150));
 
-    m_spacing = cfg.getDefaultGridSpacing();
+    m_spacing = cfg.readEntry("defaultGridSpacing", QPoint(16, 16));
 }
 
 void KisGridConfig::saveStaticData() const
 {
-    KisConfig cfg(false);
-    cfg.setGridMainStyle(m_lineTypeMain);
-    cfg.setGridSubdivisionStyle(m_lineTypeSubdivision);
-    cfg.setGridIsoVerticalStyle(m_lineTypeIsoVertical);
-    cfg.setGridMainColor(m_colorMain);
-    cfg.setGridSubdivisionColor(m_colorSubdivision);
-    cfg.setGridIsoVerticalColor(m_colorIsoVertical);
+    KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
+    cfg.writeEntry("gridmainstyle", quint32(m_lineTypeMain));
+    cfg.writeEntry("gridsubdivisionstyle", quint32(m_lineTypeSubdivision));
+    cfg.writeEntry("gridisoverticalstyle", quint32(m_lineTypeIsoVertical));
+    cfg.writeEntry("gridmaincolor", m_colorMain);
+    cfg.writeEntry("gridsubdivisioncolor", m_colorSubdivision);
+    cfg.writeEntry("gridisoverticalcolor", m_colorIsoVertical);
+    cfg.sync();
 }
 
 QDomElement KisGridConfig::saveDynamicDataToXml(QDomDocument& doc, const QString &tag) const
@@ -114,7 +116,7 @@ QDomElement KisGridConfig::saveDynamicDataToXml(QDomDocument& doc, const QString
 
 bool KisGridConfig::loadDynamicDataFromXml(const QDomElement &gridElement)
 {
-    KisConfig cfg(true);
+    const KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
     bool result = true;
 
     result &= KisDomUtils::loadValue(gridElement, "showGrid", &m_showGrid);
@@ -138,25 +140,25 @@ bool KisGridConfig::loadDynamicDataFromXml(const QDomElement &gridElement)
     KisDomUtils::loadValue(gridElement, "angleAspectLocked", &m_angleAspectLocked);
     KisDomUtils::loadValue(gridElement, "cellSize", &m_cellSize);
 
-    int lineTypeMain = cfg.getGridMainStyle();
+    int lineTypeMain = qBound(0, cfg.readEntry("gridmainstyle", 0), 2);
     KisDomUtils::loadValue(gridElement, "lineTypeMain", &lineTypeMain);
     m_lineTypeMain = LineTypeInternal(lineTypeMain);
 
-    int lineTypeSubdivision = cfg.getGridSubdivisionStyle();
+    int lineTypeSubdivision = qMin(cfg.readEntry("gridsubdivisionstyle", 1), 2);
     KisDomUtils::loadValue(gridElement, "lineTypeSubdivision", &lineTypeSubdivision);
     m_lineTypeSubdivision = LineTypeInternal(lineTypeSubdivision);
 
-    int lineTypeVertical = cfg.getGridIsoVerticalStyle();
+    int lineTypeVertical = qBound(0, cfg.readEntry("gridisoverticalstyle", 0), 3);
     KisDomUtils::loadValue(gridElement, "lineTypeVertical", &lineTypeVertical);
     m_lineTypeIsoVertical = LineTypeInternal(lineTypeVertical);
 
-    m_colorMain = cfg.getGridMainColor();
+    m_colorMain = cfg.readEntry("gridmaincolor", QColor(99, 99, 99));
     KisDomUtils::loadValue(gridElement, "colorMain", &m_colorMain);
 
-    m_colorSubdivision = cfg.getGridSubdivisionColor();
+    m_colorSubdivision = cfg.readEntry("gridsubdivisioncolor", QColor(150, 150, 150));
     KisDomUtils::loadValue(gridElement, "colorSubdivision", &m_colorSubdivision);
 
-    m_colorIsoVertical = cfg.getGridIsoVerticalColor();
+    m_colorIsoVertical = cfg.readEntry("gridisoverticalcolor", QColor(150, 150, 150));
     KisDomUtils::loadValue(gridElement, "colorVertical", &m_colorIsoVertical);
 
     updatePenStyle(&m_penMain, m_colorMain, m_lineTypeMain);

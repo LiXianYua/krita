@@ -12,7 +12,8 @@
 #include <QColor>
 #include <QPen>
 
-#include "kis_config.h"
+#include <KConfigGroup>
+#include <KSharedConfig>
 #include "kis_dom_utils.h"
 #include "kis_algebra_2d.h"
 #include "kis_global.h"
@@ -216,16 +217,17 @@ bool KisGuidesConfig::hasGuides() const
 
 void KisGuidesConfig::loadStaticData()
 {
-    KisConfig cfg(true);
-    d->guidesLineType = LineTypeInternal(cfg.guidesLineStyle());
-    d->guidesColor = cfg.guidesColor();
+    const KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
+    d->guidesLineType = LineTypeInternal(qBound(0, cfg.readEntry("guidesLineStyle", 0), 2));
+    d->guidesColor = cfg.readEntry("guidesColor", QColor(99, 99, 99));
 }
 
 void KisGuidesConfig::saveStaticData() const
 {
-    KisConfig cfg(false);
-    cfg.setGuidesLineStyle(d->guidesLineType);
-    cfg.setGuidesColor(d->guidesColor);
+    KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
+    cfg.writeEntry("guidesLineStyle", quint32(d->guidesLineType));
+    cfg.writeEntry("guidesColor", d->guidesColor);
+    cfg.sync();
 }
 
 QDomElement KisGuidesConfig::saveToXml(QDomDocument& doc, const QString &tag) const
@@ -249,7 +251,7 @@ QDomElement KisGuidesConfig::saveToXml(QDomDocument& doc, const QString &tag) co
 
 bool KisGuidesConfig::loadFromXml(const QDomElement &parent)
 {
-    KisConfig cfg(false);
+    const KConfigGroup cfg = KSharedConfig::openConfig()->group(QString());
     bool result = true;
 
     result &= KisDomUtils::loadValue(parent, "showGuides", &d->showGuides);
@@ -276,11 +278,11 @@ bool KisGuidesConfig::loadFromXml(const QDomElement &parent)
     result &= ok;
 
     // following variables may not be present in older files; do not update result variable
-    int guidesLineType = cfg.guidesLineStyle();
+    int guidesLineType = qBound(0, cfg.readEntry("guidesLineStyle", 0), 2);
     KisDomUtils::loadValue(parent, "lineTypeGuides", &guidesLineType);
     d->guidesLineType = LineTypeInternal(guidesLineType);
 
-    d->guidesColor = cfg.guidesColor();
+    d->guidesColor = cfg.readEntry("guidesColor", QColor(99, 99, 99));
     KisDomUtils::loadValue(parent, "colorGuides", &d->guidesColor);
 
     return result;

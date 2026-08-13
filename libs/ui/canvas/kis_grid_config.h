@@ -14,13 +14,13 @@
 #include <QPen>
 
 #include <boost/operators.hpp>
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 
 class QDomElement;
 class QDomDocument;
 
 
-class KRITAUI_EXPORT KisGridConfig : boost::equality_comparable<KisGridConfig>
+class KRITACANVAS_EXPORT KisGridConfig : boost::equality_comparable<KisGridConfig>
 {
 public:
     enum LineTypeInternal {
