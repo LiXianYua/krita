@@ -115,9 +115,16 @@ public:
     PkSharedPointer<T> toStrongRef() const
     { return PkSharedPointer<T>::fromShared(m_weak.lock()); }
 
-    // Qt 的 QWeakPointer::operator-> 直接给 value，不先提升（Qt5 已标 deprecated，
-    // 但 Krita 有 2 处在用，行为必须逐字对齐）。
-    T *operator->() const noexcept { return m_value; }
+    // 修复轮 1 ①：本类**不提供** operator->。真 Qt5 的 QWeakPointer::operator->
+    // 整个包在 `#if defined(QWEAKPOINTER_ENABLE_ARROW)` 里（qsharedpointer_impl.h:666），
+    // 这个宏在 Qt5 自己的头文件树里从未被定义过，对非 QObject 的 T，`w->foo()` 在
+    // 真 Qt5 上根本编不出来。用量表 §2.3 记的"保留范围用量 2"是受体误判：唯一点名的
+    // libs/image/brushengine/kis_paintop_settings.cpp:579 那处 `updateListener->setDirty(true)`，
+    // `updateListener` 是 `d->updateListener.toStrongRef()`（第 576 行）取到的
+    // UpdateListenerSP（强引用），不是 QWeakPointer 本身——那一行调用的是强引用的
+    // operator->，与本类无关。提供这个成员是超出用量表的实现（违反判据①「一项不多」），
+    // 而且方向最坏：会让"Krita 这行代码在这里编得过、换回真 Qt 就编不过"的反向陷阱
+    // 多一个。详见 oracle/pointer.deviation 与 task-1-report.md 的登记。
 
     typedef T *PkWeakPointer::*RestrictedBool;
     operator RestrictedBool() const noexcept { return isNull() ? nullptr : &PkWeakPointer::m_value; }

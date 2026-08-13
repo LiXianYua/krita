@@ -116,10 +116,14 @@ void resetSharedHarness()
     g_deleterCalls = 0;
 }
 
-// 每步一行：live + deleter 计数 + 4 个强引用槽（isNull/id/布尔语境）
-// + 2 个弱引用槽（isNull/toStrongRef().isNull()/toStrongRef() 的 id）。
+// 每步一行：live + deleter 计数 + 4 个强引用槽（isNull/id/v/布尔语境）
+// + 2 个弱引用槽（isNull/toStrongRef().isNull()/toStrongRef() 的 id/v）。
 // 「为什么这些量足够」见简报 Step 2：isNull 覆盖判据 A，布尔语境覆盖判据 B，
 // live 与 deleter 计数覆盖析构时机，id 覆盖"指到哪个对象"。
+// 修复轮 1 ②：补 v 字段——只记 (isNull, id, 布尔语境) 会放过参数转发类缺陷：
+// 例如 create() 把构造参数传错，两侧各自生成一个 id 相同的新对象（id 只看"分配
+// 顺序"，与传了什么值无关），isNull/live/id 全部一致，只有 v 不同，缺了这一列
+// 对拍就看不见。scoped 家族（observeScoped 的 C%d/A%d）已经记了 v，这里补齐对齐。
 std::string observeShared()
 {
     char buf[512];
@@ -128,15 +132,17 @@ std::string observeShared()
     for (int i = 0; i < 4; ++i) {
         const SP<Payload> &s = g_strong[i];
         int id = s.isNull() ? -1 : s->id;
-        off += std::snprintf(buf + off, sizeof(buf) - off, " S%d[n=%d id=%d b=%d]",
-                              i, s.isNull() ? 1 : 0, id, boolCtx(s));
+        int v = s.isNull() ? -1 : s->v;
+        off += std::snprintf(buf + off, sizeof(buf) - off, " S%d[n=%d id=%d v=%d b=%d]",
+                              i, s.isNull() ? 1 : 0, id, v, boolCtx(s));
     }
     for (int i = 0; i < 2; ++i) {
         const WP<Payload> &w = g_weak[i];
         SP<Payload> strong = w.toStrongRef();
         int sid = strong.isNull() ? -1 : strong->id;
-        off += std::snprintf(buf + off, sizeof(buf) - off, " W%d[n=%d sn=%d sid=%d]",
-                              i, w.isNull() ? 1 : 0, strong.isNull() ? 1 : 0, sid);
+        int sv = strong.isNull() ? -1 : strong->v;
+        off += std::snprintf(buf + off, sizeof(buf) - off, " W%d[n=%d sn=%d sid=%d sv=%d]",
+                              i, w.isNull() ? 1 : 0, strong.isNull() ? 1 : 0, sid, sv);
     }
     return std::string(buf, off);
 }
@@ -353,9 +359,16 @@ void interpretScopedStep(const Step &st)
         if (b == 0) g_ap[a]->reset(new Payload[3]);
         else g_ap[a]->reset();
         break;
-    case SOpArrayIndex:
-        g_lastArr = (g_ap[a]->data() != nullptr) ? (*g_ap[a])[b % 3].v : -1;
+    case SOpArrayIndex: {
+        // 修复轮 1 ③：原来的 `b % 3` 是死代码——`b` 在本函数顶部已经被
+        // `st.b % 2` 收窄到 {0,1}，再 `% 3` 恒等于 `b` 自身，`arrayMake` 造的
+        // 3 元素数组的下标 2 从未被观测过。改用未经二值收窄的 `st.a`/`st.b`
+        // 组合出下标（两者各自 0/1，共 4 种组合，`(st.a*2+st.b)%3` 覆盖 0/1/2
+        // 全部三个下标），槽选择仍然用上面已收窄的 `a`。
+        int idx = (st.a * 2 + st.b) % 3;
+        g_lastArr = (g_ap[a]->data() != nullptr) ? (*g_ap[a])[idx].v : -1;
         break;
+    }
     default:
         break;
     }

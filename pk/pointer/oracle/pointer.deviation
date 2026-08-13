@@ -19,6 +19,13 @@
 # Task 1 的四个类型是照着 §0 的四条判据（A/B/C/D）逐条对齐设计的，本任务选的
 # 观测量（isNull/布尔语境/live/deleterCalls/id）与判据要看的量一一对应，跑下来
 # 零真实偏离与"实现忠实抄了判据"这件事是一致的，不是巧合。
+#
+# 修复轮 1（删 PkWeakPointer::operator->、shared 家族补 v 字段、SOpArrayIndex
+# 下标加宽到 0/1/2）之后重跑：`DIFF total=1445276 mismatch=0` 不变——total 数
+# 没变是因为这三项修复都不改变"跑多少行观测"这个数（步数不变，只是每行观测的
+# 字段更多、SOpArrayIndex 每次读到的下标更分散），mismatch 仍是 0，说明这三项
+# 修复本身没有引入新的两侧不对齐。三项各自的独立自测证据见下面对应条目
+# （第 4 条 operator->、第 7 条 v 字段、第 8 条下标加宽）。
 # ══════════════════════════════════════════════════════════════════════════
 
 # ── 覆盖度限制（简报 Step 7，说不出来就是还没想清楚）───────────────────
@@ -35,37 +42,94 @@
 #    static_assert 覆盖（PkScopedPointer/PkScopedArrayPointer 拷贝构造/拷贝赋值/
 #    移动构造/移动赋值四项皆 = delete），对拍是运行期的，压不到编译期这条。
 #
-# 4. **§1.5 未实现的 API 不在对拍里**——两侧 API 面不对称，没法比：
+# 4. **§1.5 有意不实现的 API 不在对拍里**——两侧 API 面不对称，没法比：
 #    - `constCast`（用量表未把它列入保留范围）
 #    - `objectCast`（需要 QObject，用量为 0）
 #    - `operator==(const PkWeakPointer<T>&, const PkSharedPointer<X>&)`：探针 P12
 #      证明 Qt 有这个重载，但 task-1-report.md「评审后修订②」记录了这条的删除
 #      裁决——用量表 §2.3 保留范围用量为 0，评审后从 PkSharedPointer.h 里删掉了。
 #      本对拍因此完全不喂这个比较形态。
+#    - **`PkWeakPointer::operator->`（修复轮 1 ①，本轮新增）**：真 Qt5
+#      （qsharedpointer_impl.h:666）把 `QWeakPointer::operator->` 整个包在
+#      `#if defined(QWEAKPOINTER_ENABLE_ARROW)` 里，这个宏在 Qt5 自己的头文件树
+#      里从未被定义过——对非 QObject 的 T，`weakPtr->foo()` 在真 Qt5 上默认根本
+#      编不出来。用量表 §2.3 记的"operator-> 保留范围用量 2"是受体误判：唯一
+#      点名的 libs/image/brushengine/kis_paintop_settings.cpp:579
+#      （`updateListener->setDirty(true)`）里，`updateListener` 是同文件第 576 行
+#      `d->updateListener.toStrongRef()` 取到的 UpdateListenerSP（**强**引用），
+#      不是 QWeakPointer 本身，那一行调用的是强引用的 operator->，与
+#      QWeakPointer::operator-> 无关（用量表已在旁边标注这条实测更正，见该文件
+#      §2.3 该行）。本轮之前 `PkWeakPointer::operator->` 是无条件提供的——超出
+#      用量表范围的实现，违反判据①「一项不多」，而且方向最坏：会让"Krita 这行
+#      代码在 Pk 上编得过、换回真 Qt 就编不过"的反向陷阱多一个。已在修复轮 1
+#      从 `PkSharedPointer.h` 删除，`tests/test_weak.cpp` 里断言这个行为的
+#      `PK_COMPARE(w->v, 3);` 一并删除（同一用例的其余断言未动，见
+#      task-1-report.md 对应登记）。两侧 API 面因此变得对称（都不提供该成员），
+#      本对拍从未喂过这个形态（可观测量清单里没有 weak 的 operator->，
+#      `toStrongRef()` 已够拿到 id），删除前后都是"没有可对拍的形态"，不影响
+#      DIFF 计数。
 #
 # 5. **QObject 相关不覆盖**：`objectCast` 与依赖 QObject 生命周期管理的弱引用
 #    形态（Qt 的 QWeakPointer 对 QObject 派生类型另有一条依附 QObject::destroyed
 #    信号的失效路径）不在对拍范围——Payload 不是 QObject，探针与用量表都没有
 #    QObject 场景下的智能指针用量记录。
 #
-# 6. **QWeakPointer::operator-> 不覆盖**：真 Qt5（qsharedpointer_impl.h:666）把
-#    QWeakPointer::operator-> 整个包在 `#if defined(QWEAKPOINTER_ENABLE_ARROW)`
-#    里，这个宏在 Qt5 自己的头文件树里从未被定义过——对非 QObject 的 T，
-#    `weakPtr->foo()` 在真 Qt5 上默认根本编不出来。PkWeakPointer::operator->
-#    是无条件提供的（task-1-report.md 记录"Krita 有 2 处在用"，那两处调用点想必
-#    是在别处定义了这个宏，或者本来就该被判为待查项，不是本任务的范围）。这个
-#    不对称不影响对拍的其余部分：本对拍的可观测量清单里没有用到 weak 的
-#    operator->（`toStrongRef()` 足够拿到 id），所以没有触发过这条不对称，
-#    也判断不了它——留给 Task 4 或后续任务核实那两处调用点的真实上下文。
-#
-# 7. **组合枚举下的 `staticCast<Derived>` 只在偶尔"槽里其实不是 Derived 对象"
+# 6. **组合枚举下的 `staticCast<Derived>` 只在偶尔"槽里其实不是 Derived 对象"
 #    时才会触发一次跨类型的强制转换**——这类输入下只读 Payload 基类字段（id/v），
 #    不触碰 Derived 专属状态，行为在两侧一致（single inheritance，标准布局），
 #    但对拍没有专门针对"槽里精确是 Derived 对象"的构造后立即 staticCast 做加权，
 #    组合枚举里这种命中是自然发生而非特意加密度的。
 #
-# 8. **v 字段不参与 shared 家族的比对**：简报 Step 2 明确给出的可观测量清单里
-#    strong 槽只记 (isNull, id, 布尔语境)，不含 v。id 已经唯一标识"指到哪个对象"，
-#    但一个只改 v、不改 id/isNull/live 的缺陷（例如 create() 把参数错传成另一个
-#    值）不会被本对拍的 shared 家族抓到——scoped 家族的观测量另外记了 v
-#    （C0[…v=…]、A0[…v0=…]），这条限制只对 shared 家族成立。
+# 7. ~~v 字段不参与 shared 家族的比对~~（**修复轮 1 ②，已解除**）：原限制是
+#    简报 Step 2 明确给出的可观测量清单里 strong 槽只记 (isNull, id, 布尔语境)，
+#    不含 v——一个只改 v、不改 id/isNull/live 的缺陷（例如 create() 把构造参数
+#    错传成另一个值）不会被 shared 家族的对拍抓到。修复轮 1 已给 `observeShared()`
+#    的 S%d（4 个强引用槽）与 W%d（2 个弱引用槽经 toStrongRef 取到的对象）都
+#    补上 v 字段，与 scoped 家族（C%d/A%d 早已记 v）对齐。自测验证（临时把
+#    `PkSharedPointer<T>::create` 改成丢弃转发参数、只用默认构造，跑完立刻
+#    回退）：`DIFF total=1445276 mismatch=75019`，13 个 `DIFFTAG shared
+#    makeCreate(*,*)` 精确命中注入点（每个非 0 号槽 2000 次、0 号槽因手挑用例
+#    额外命中记为 8000 次），回退后 `git diff` 为空，重跑恢复
+#    `mismatch=0`——证明这个字段真的在起作用，不是摆设。
+#
+# 8. **修复轮 1 ③：`SOpArrayIndex` 下标轮换已加宽到覆盖全部 3 个下标**（原记录：
+#    原来的 `interpretScopedStep` 用局部变量 `b`（已被 `st.b % 2` 收窄到 {0,1}）
+#    再 `% 3` 选下标，恒等于 `b` 自身，`arrayMake` 造的 3 元素数组的下标 2 从未
+#    被观测过）。改用未收窄的 `(st.a*2+st.b)%3` 组合出下标——`st.a`/`st.b` 各自
+#    仍是 0/1（槽号轮换本身不变，符合简报 Step 3"避免再乘一个维度"的要求），
+#    但四种组合 (0,0)/(1,0)/(0,1)/(1,1) 映射到下标 0/2/1/0，覆盖了全部三个下标。
+#    自测验证（临时在该分支插入 `idx==2` 命中计数、跑完立刻删除）：36602 次
+#    命中下标 2，证明下标 2 真的被读到过，不是名义上"改了公式"实际仍然到不了。
+#    这条不是"发现真差异"，是"补上此前没测到的一段代码路径"，`mismatch` 仍为 0。
+
+# ── tag 粒度说明与约束（修复轮 1 ④）─────────────────────────────────────
+#
+# commit 92f4cab 的提交信息写着"tag 由整条操作脚本拼成（规则一）"，但
+# `main.cpp::runFamily()` 的实际实现是**单步粒度**：喂进 `scriptTag()` 的是
+# "只含触发差异那一步的单元素 Script"，不是整条脚本。提交信息这句话不准确——
+# 这里不改写 git 历史去修提交信息，只在这份台账里把实际粒度写清楚。
+#
+# **为什么是单步、不是整脚本**：组合爆破里 a/b 由一个跨脚本连续递增的计数器 g
+# 生成（见 buildSharedCombinatorial/buildScopedCombinatorial），同一个根因在
+# 不同脚本里出现时，前后步的槽号大概率都不一样。如果按整条脚本序列化 tag，
+# 同一个根因会在不同脚本里产生近乎不重复的 tag（"每次几乎唯一"），tag 退化成
+# 和 mismatch 计数一样长的流水账，失去"把同一类差异归成一组给 reviewer 看"这个
+# 存在的意义——task-2-report.md「零差异自证」一节的两次注入自测已经间接印证了
+# 这一点：即使是单步粒度，注入①（shared 布尔语境）产生 268 个不同 tag，注入②
+# （scoped reset 漏 delete）产生 44 个，说明"槽号轮换"本身已经让归类相当细，
+# 整脚本粒度只会更碎，不会更有用。
+#
+# 单步粒度仍然满足规则一：tag 由**触发差异的那一步**的真实操作码 + 槽号构造
+# （`scriptTag()` 喂单元素 Script，复用同一个 helper，不是新写一套 tag 逻辑），
+# 不是"每个 API 一个字面量常量"那种反面。
+#
+# **约束条件（规则二在本对拍上的具体形态）**：`mismatch=0` 时，粒度选择不产生
+# 任何豁免面——上面清单里 0 条 DIFFTAG，没有白名单，粒度宽窄无从谈起。**但一旦
+# 有任何 `DIFFTAG` 被判成"可接受的偏离"写进这份清单的白名单条目，那条 tag 必须
+# 重新加宽到含脚本前缀**，不能只用单步 tag 登记豁免。理由：单步 tag 只标识
+# "这一步的 op+槽号"，同一个单步 tag 会在千百条不同脚本的不同位置出现——如果
+# 用单步 tag 登记"这条差异可接受"，等于把这个 op+槽号组合在**任何脚本前缀下**
+# 都判成可接受，连坐豁免掉了这个单步 tag 出现过的全部脚本历史与上下文，而这些
+# 不同脚本前缀下同一个单步可能是完全不同的根因（前面的步骤把状态搞成了不同的
+# 形状）。这正是规则二"谓词不能比偏离理由宽"在这份对拍上的对应形态：理由如果
+# 只验证过"这一步、这个上下文"，谓词就不能宽到"这一步、任意上下文"。
