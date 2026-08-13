@@ -7,21 +7,16 @@
 
 #include "KoDocumentInfo.h"
 
-#include "KisDocument.h"
 #include "KoXmlNS.h"
 #include <KoResourcePaths.h>
 #include <QDateTime>
-#include <KoStoreDevice.h>
 #include <QDomDocument>
 #include <QDir>
+#include <QFile>
 
 #include <kconfig.h>
 #include <kconfiggroup.h>
 #include <klocalizedstring.h>
-#include <kuser.h>
-#include <kemailsettings.h>
-
-#include <KritaVersionWrapper.h>
 
 
 KoDocumentInfo::KoDocumentInfo(QObject *parent) : QObject(parent)
@@ -69,9 +64,9 @@ bool KoDocumentInfo::load(const QDomDocument &doc)
 }
 
 
-QDomDocument KoDocumentInfo::save(QDomDocument &doc)
+QDomDocument KoDocumentInfo::save(QDomDocument &doc, bool autosaving, bool documentModified)
 {
-    updateParametersAndBumpNumCycles();
+    updateParametersAndBumpNumCycles(autosaving, documentModified);
 
     QDomElement s = saveAboutInfo(doc);
     if (!s.isNull())
@@ -227,23 +222,21 @@ QDomElement KoDocumentInfo::saveAboutInfo(QDomDocument &doc)
     return e;
 }
 
-void KoDocumentInfo::updateParametersAndBumpNumCycles()
+void KoDocumentInfo::updateParametersAndBumpNumCycles(bool autosaving, bool documentModified)
 {
-    KisDocument *doc = dynamic_cast< KisDocument *>(parent());
-    if (doc && doc->isAutosaving()) {
+    if (autosaving) {
         return;
     }
 
     setAboutInfo("editing-cycles", QString::number(aboutInfo("editing-cycles").toInt() + 1));
     setAboutInfo("date", QDateTime::currentDateTime().toString(Qt::ISODate));
 
-    updateParameters();
+    updateParameters(documentModified);
 }
 
-void KoDocumentInfo::updateParameters()
+void KoDocumentInfo::updateParameters(bool documentModified)
 {
-    KisDocument *doc = dynamic_cast< KisDocument *>(parent());
-    if (doc && (!doc->isModified())) {
+    if (!documentModified) {
         return;
     }
 

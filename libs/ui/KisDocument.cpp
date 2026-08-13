@@ -2171,7 +2171,7 @@ void KisDocument::setModified(bool mod)
     d->modified = mod;
 
     if (mod) {
-        documentInfo()->updateParameters();
+        documentInfo()->updateParameters(isModified());
     }
 
     Q_EMIT modified(mod);

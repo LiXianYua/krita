@@ -1660,7 +1660,7 @@ void KisViewManager::changeAuthorProfile(const QString &profileName)
     }
     appAuthorGroup.sync();
     Q_FOREACH (KisDocument *doc, KisPart::instance()->documents()) {
-        doc->documentInfo()->updateParameters();
+        doc->documentInfo()->updateParameters(doc->isModified());
     }
 }
 

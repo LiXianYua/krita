@@ -448,7 +448,6 @@ set(kritaui_LIB_SRCS
     KisDecorationsWrapperLayer.cpp
 
     KoDocumentInfoDlg.cpp
-    KoDocumentInfo.cpp
 
     StoryboardItem.cpp
 

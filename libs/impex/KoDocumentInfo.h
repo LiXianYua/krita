@@ -14,7 +14,7 @@
 #include <QString>
 #include <QStringList>
 
-#include "kritaui_export.h"
+#include "kritaimpex_export.h"
 #include <QDomDocument>
 
 class QDomDocument;
@@ -33,7 +33,7 @@ class KoStore;
  * stored in two QMap and can be accessed through aboutInfo() and authorInfo().
  * The about info can be changed with setAboutInfo() and setAuthorInfo()
  */
-class KRITAUI_EXPORT KoDocumentInfo : public QObject
+class KRITAIMPEX_EXPORT KoDocumentInfo : public QObject
 {
     Q_OBJECT
 
@@ -56,9 +56,11 @@ public:
 
     /**
      * Save the KoDocumentInfo to an Calligra-1.3 DomDocument
+     * @param autosaving whether the owning document is being autosaved
+     * @param documentModified whether the owning document has unsaved changes
      * @return the QDomDocument to which was saved
      */
-    QDomDocument save(QDomDocument &doc);
+    QDomDocument save(QDomDocument &doc, bool autosaving, bool documentModified);
 
     /**
      * Set information about the author.
@@ -114,11 +116,11 @@ public:
     void resetMetaData();
 
     /** Takes care of updating the document info from configuration correctly */
-    void updateParameters();
+    void updateParameters(bool documentModified);
 
 private:
     /// Bumps the editing cycles count and save date, and then calls updateParameters
-    void updateParametersAndBumpNumCycles();
+    void updateParametersAndBumpNumCycles(bool autosaving, bool documentModified);
 
     /**
      * Set information about the author
