@@ -1,0 +1,26 @@
+#pragma once
+// 兼容垫片：让真实调用点的 `#include <QSharedPointer>` 在一个字都不改的前提下
+// 解析到 PkSharedPointer/PkWeakPointer。文件名刻意没有扩展名——调用点写的就是
+// <QSharedPointer>。做法照 pk/geometry/compat/QRect。
+//
+// compat/QWeakPointer 直接 #include "QSharedPointer"（同目录），因为
+// PkSharedPointer 与 PkWeakPointer 互相依赖，只声明一半解不开。
+#include "../PkSharedPointer.h"
+
+// 用宏而不是 `using QSharedPointer = PkSharedPointer;`：Krita 里有
+// `template <class T> class QSharedPointer;` 式前置声明（如
+// libs/flake/text/KoFontLibraryResourceUtils.h），类型别名遇到它会报
+// "redeclared as different kind of entity"；宏把那一行原样改写成
+// `template <class T> class PkSharedPointer;`，前置声明照样成立（R-01 已验证）。
+#ifndef QSharedPointer
+#define QSharedPointer PkSharedPointer
+#endif
+#ifndef QWeakPointer
+#define QWeakPointer PkWeakPointer
+#endif
+#ifndef qSharedPointerCast
+#define qSharedPointerCast pkSharedPointerCast
+#endif
+#ifndef qSharedPointerDynamicCast
+#define qSharedPointerDynamicCast pkSharedPointerDynamicCast
+#endif

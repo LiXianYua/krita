@@ -1,0 +1,5 @@
+#pragma once
+// QWeakPointer 与 QSharedPointer 在真 Qt 里是同一个头（qsharedpointer.h 前置
+// 声明二者、互相依赖），这里同形：垫片直接转发到 compat/QSharedPointer，
+// 两个宏（QSharedPointer/QWeakPointer）一起定义，不重复展开一遍。
+#include "QSharedPointer"

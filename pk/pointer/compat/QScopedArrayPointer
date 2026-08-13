@@ -1,0 +1,4 @@
+#pragma once
+// QScopedArrayPointer 在真 Qt 里也是 qscopedpointer.h 那一个头（见
+// compat/QScopedPointer 的说明），这里同形转发，不重复展开一遍。
+#include "QScopedPointer"
