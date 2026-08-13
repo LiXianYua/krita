@@ -37,13 +37,8 @@ The following classes are important:
  object.
 <li>KisPaintOpSettings: this is a KisPropertiesConfiguration subclass that
  stores the settings for all the options that make up a paintop.
-<li>Classes derived from KisPaintOpOption. These classes create a configuration
-  widget. That means that you cannot construct any those objects in a
-  KisPaintOp. KisPaintOps are created in non-gui threads.
-<li>Classes derived from KisCurveOption. KisCurveOption classes have a generic GUI widget,
-  KisCurveOptionWidget. So, in contrast to KisPaintOpOption classes, KisCurveOption
-  instances can and will be created in the constructor of KisPaintOp paintops.
-  This class can manage to read and write its settings directly.
+<li>The parameter-panel layer (KisPaintOpOption / KisCurveOptionWidget and friends) was removed
+  in D-02-g; the UI is to be re-attached by the Flutter front-end.
 <li>Classes derived from KisPaintopPropertiesBase. These classes are non-gui,
   and can read and write KisPropertiesConfiguration objects created by
   KisPaintOpOption.
