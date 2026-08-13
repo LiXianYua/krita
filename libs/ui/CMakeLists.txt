@@ -361,6 +361,8 @@ set(kritaui_LIB_SRCS
     actions/KisPasteActionFactories.cpp
     actions/KisTransformToolActivationCommand.cpp
     animation/KisFFMpegWrapper.cpp
+    animation/KisAnimationRenderingOptions.cpp
+    animation/KisHDRMetadataOptions.cpp
     animation/KisVideoSaver.cpp
     animation/KisAnimationRender.cpp
     animation/KisDlgAnimationRenderer.cpp
@@ -374,7 +376,6 @@ set(kritaui_LIB_SRCS
     input/kis_tablet_debugger.cpp
     input/kis_input_profile_manager.cpp
     input/kis_input_profile.cpp
-    input/kis_shortcut_configuration.cpp
     input/config/kis_input_configuration_page.cpp
     input/config/kis_edit_profiles_dialog.cpp
     input/config/kis_input_profile_model.cpp

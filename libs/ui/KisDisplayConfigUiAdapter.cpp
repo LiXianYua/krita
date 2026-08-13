@@ -1,11 +1,11 @@
 /*
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include "canvas/KisDisplayConfig.h"
+#include "KisDisplayConfigUiAdapter.h"
 
 #include "kis_config.h"
 
-KisDisplayConfig::Options KisDisplayConfig::optionsFromKisConfig(const KisConfig &cfg)
+KisDisplayConfig::Options kisDisplayConfigOptionsFromKisConfig(const KisConfig &cfg)
 {
     KoColorConversionTransformation::ConversionFlags conversionFlags =
         KoColorConversionTransformation::HighQuality;

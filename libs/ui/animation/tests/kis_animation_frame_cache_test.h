@@ -17,6 +17,7 @@ class KisAnimationFrameCacheTest : public QObject
 
 private Q_SLOTS:
     void testCache();
+    void testCachesAreScopedToSourceIdentity();
 
     void testFrameGlueing_data();
     void testFrameGlueing();
@@ -28,4 +29,3 @@ private:
 
 };
 #endif
-

@@ -35,6 +35,7 @@ struct KisAnimationFrameCache::Private
     Private(KisAnimationFrameCacheSourceSP _source)
         : source(std::move(_source))
     {
+        cacheKey = source->cacheKey();
         image = source->image();
     }
 
@@ -43,6 +44,7 @@ struct KisAnimationFrameCache::Private
     }
 
     KisAnimationFrameCacheSourceSP source;
+    const void *cacheKey = nullptr;
     KisImageWSP image;
 
     QScopedPointer<KisAbstractFrameCacheSwapper> swapper;
@@ -175,7 +177,7 @@ struct KisAnimationFrameCache::Private
 
 
     // TODO: verify that we don't have any leak here!
-    typedef QMap<KisAnimationFrameCacheSource*, KisAnimationFrameCache*> CachesMap;
+    typedef QMap<const void*, KisAnimationFrameCache*> CachesMap;
     static CachesMap caches;
 };
 
@@ -186,18 +188,15 @@ KisAnimationFrameCacheSource::~KisAnimationFrameCacheSource() = default;
 KisAnimationFrameCacheSP KisAnimationFrameCache::getFrameCache(KisAnimationFrameCacheSourceSP source)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(source, nullptr);
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(source->cacheKey(), nullptr);
 
-    const KisImageWSP sourceImage = source->image();
-    auto imageIt = std::find_if(Private::caches.begin(), Private::caches.end(),
-                                [sourceImage] (KisAnimationFrameCache *cache) {
-                                    return cache->image() == sourceImage;
-                                });
-    if (imageIt != Private::caches.end()) {
-        return *imageIt;
+    auto it = Private::caches.find(source->cacheKey());
+    if (it != Private::caches.end()) {
+        return *it;
     }
 
     KisAnimationFrameCache *cache = new KisAnimationFrameCache(source);
-    Private::caches.insert(source.data(), cache);
+    Private::caches.insert(source->cacheKey(), cache);
     return cache;
 }
 
@@ -226,7 +225,7 @@ KisAnimationFrameCache::KisAnimationFrameCache(KisAnimationFrameCacheSourceSP so
 
 KisAnimationFrameCache::~KisAnimationFrameCache()
 {
-    Private::caches.remove(m_d->source.data());
+    Private::caches.remove(m_d->cacheKey);
 }
 
 bool KisAnimationFrameCache::uploadFrame(int time)

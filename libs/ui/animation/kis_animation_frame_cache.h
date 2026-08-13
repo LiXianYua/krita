@@ -29,6 +29,12 @@ class KRITAANIMATION_EXPORT KisAnimationFrameCacheSource
 public:
     virtual ~KisAnimationFrameCacheSource();
 
+    /**
+     * Returns a stable identity for the backing texture/cache instance.
+     * Sources wrapping the same instance must return the same key, while
+     * different canvas texture sets for one image must return different keys.
+     */
+    virtual const void *cacheKey() const = 0;
     virtual KisImageWSP image() const = 0;
     virtual KisOpenGLUpdateInfoBuilder &updateInfoBuilder() = 0;
     virtual KisOpenGLUpdateInfoSP fetchFrameData(const QRect &rect, KisImageSP image) = 0;

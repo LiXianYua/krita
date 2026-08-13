@@ -5,6 +5,7 @@
  */
 
 #include "KisSRGBSurfaceColorSpaceManager.h"
+#include "KisDisplayConfigUiAdapter.h"
 
 #include <QWidget>
 #include <QWindow>
@@ -17,7 +18,7 @@
 
 
 KisSRGBSurfaceColorSpaceManager::KisSRGBSurfaceColorSpaceManager(KisSurfaceColorManagerInterface *interface, QObject *parent)
-    : KisCanvasSurfaceColorSpaceManager(interface, KisConfig::CanvasSurfaceMode::Rec709g22, KisDisplayConfig::optionsFromKisConfig(KisConfig(true)), parent)
+    : KisCanvasSurfaceColorSpaceManager(interface, KisConfig::CanvasSurfaceMode::Rec709g22, kisDisplayConfigOptionsFromKisConfig(KisConfig(true)), parent)
 {
     connect(KisConfigNotifier::instance(), &KisConfigNotifier::configChanged, this, &KisSRGBSurfaceColorSpaceManager::slotConfigChanged);
 }
@@ -28,7 +29,7 @@ KisSRGBSurfaceColorSpaceManager::~KisSRGBSurfaceColorSpaceManager()
 
 void KisSRGBSurfaceColorSpaceManager::slotConfigChanged()
 {
-    setDisplayConfigOptions(KisDisplayConfig::optionsFromKisConfig(KisConfig(true)));
+    setDisplayConfigOptions(kisDisplayConfigOptionsFromKisConfig(KisConfig(true)));
 }
 
 KisSRGBSurfaceColorSpaceManager* KisSRGBSurfaceColorSpaceManager::tryCreateForCurrentPlatform(QWidget *widget)

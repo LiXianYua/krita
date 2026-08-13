@@ -44,6 +44,11 @@ public:
         return m_image;
     }
 
+    const void *cacheKey() const override
+    {
+        return this;
+    }
+
     KisOpenGLUpdateInfoBuilder &updateInfoBuilder() override
     {
         return m_builder;
@@ -56,7 +61,10 @@ public:
 
     void uploadFrameData(KisOpenGLUpdateInfoSP) override
     {
+        uploadCount++;
     }
+
+    int uploadCount = 0;
 
 private:
     KisImageSP m_image;
@@ -64,6 +72,29 @@ private:
     KisTextureTileInfoPoolRegistry m_poolRegistry;
     KisTextureTileInfoPoolSP m_pool;
 };
+}
+
+void KisAnimationFrameCacheTest::testCachesAreScopedToSourceIdentity()
+{
+    TestUtil::MaskParent p;
+    auto firstSource = QSharedPointer<TestAnimationFrameCacheSource>::create(p.image);
+    auto secondSource = QSharedPointer<TestAnimationFrameCacheSource>::create(p.image);
+
+    KisAnimationFrameCacheSP firstCache = KisAnimationFrameCache::getFrameCache(firstSource);
+    KisAnimationFrameCacheSP secondCache = KisAnimationFrameCache::getFrameCache(secondSource);
+
+    QVERIFY(firstCache != secondCache);
+
+    const KisRegion imageBounds(p.image->bounds());
+    KisOpenGLUpdateInfoSP firstFrame = firstCache->fetchFrameData(0, p.image, imageBounds);
+    KisOpenGLUpdateInfoSP secondFrame = secondCache->fetchFrameData(0, p.image, imageBounds);
+    firstCache->addConvertedFrameData(firstFrame, 0);
+    secondCache->addConvertedFrameData(secondFrame, 0);
+
+    QVERIFY(firstCache->uploadFrame(0));
+    QVERIFY(secondCache->uploadFrame(0));
+    QCOMPARE(firstSource->uploadCount, 1);
+    QCOMPARE(secondSource->uploadCount, 1);
 }
 
 void verifyRangeIsCachedStatus(KisAnimationFrameCacheSP cache, int start, int end, KisAnimationFrameCache::CacheStatus status)

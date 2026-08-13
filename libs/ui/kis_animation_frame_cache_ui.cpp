@@ -23,6 +23,11 @@ public:
         return m_textures->image();
     }
 
+    const void *cacheKey() const override
+    {
+        return m_textures.data();
+    }
+
     KisOpenGLUpdateInfoBuilder &updateInfoBuilder() override
     {
         return m_textures->updateInfoBuilder();

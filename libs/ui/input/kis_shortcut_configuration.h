@@ -11,6 +11,8 @@
 #include <QList>
 #include <QMetaType>
 
+#include "kritainput_export.h"
+
 class QString;
 class KisAbstractInputAction;
 
@@ -24,7 +26,7 @@ class KisAbstractInputAction;
  * different behaviour for each mode. Different shortcuts can activate
  * different modes.
  */
-class KisShortcutConfiguration
+class KRITAINPUT_EXPORT KisShortcutConfiguration
 {
 public:
     /**

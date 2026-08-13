@@ -9,6 +9,7 @@ set(kritacanvas_LIB_SRCS
     kis_image_pyramid.cpp
     kis_prescaled_projection.cpp
     kis_projection_backend.cpp
+    kis_ui_types.h
     kis_update_info.cpp
     ../opengl/KisOpenGLUpdateInfoBuilder.cpp
     ../opengl/kis_texture_tile_info_pool.cpp
@@ -27,13 +28,16 @@ target_include_directories(kritacanvas
 target_link_libraries(kritacanvas
     PUBLIC
         Boost::boost
-        KF${KF_MAJOR}::ConfigCore
         Qt${QT_MAJOR_VERSION}::Core
         Qt${QT_MAJOR_VERSION}::Gui
+        Qt${QT_MAJOR_VERSION}::Widgets
         kritacolor
+        kritaflake
         kritaglobal
         kritaimage
         kritawidgets
+    PRIVATE
+        KF${KF_MAJOR}::ConfigCore
 )
 
 set_target_properties(kritacanvas PROPERTIES

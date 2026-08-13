@@ -1,6 +1,4 @@
 set(kritaanimation_LIB_SRCS
-    KisAnimationRenderingOptions.cpp
-    KisHDRMetadataOptions.cpp
     KisAbstractFrameCacheSwapper.cpp
     KisFrameCacheStore.cpp
     KisFrameCacheSwapper.cpp
@@ -21,12 +19,13 @@ target_include_directories(kritaanimation
 target_link_libraries(kritaanimation
     PUBLIC
         Boost::boost
-        KF${KF_MAJOR}::ConfigCore
         Qt${QT_MAJOR_VERSION}::Core
         Qt${QT_MAJOR_VERSION}::Gui
         kritacanvas
         kritaglobal
         kritaimage
+    PRIVATE
+        KF${KF_MAJOR}::ConfigCore
 )
 
 set_target_properties(kritaanimation PROPERTIES

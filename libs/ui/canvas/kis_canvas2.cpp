@@ -94,6 +94,7 @@
 
 #include "KisSnapPixelStrategy.h"
 #include "KisDisplayConfig.h"
+#include "KisDisplayConfigUiAdapter.h"
 #include "config-qt-patches-present.h"
 #include <KoIcon.h>
 
@@ -1454,7 +1455,7 @@ void KisCanvas2::slotConfigChanged()
     auto newState = m_d->multiSurfaceSetupManager.onConfigChanged(*m_d->multiSurfaceState,
                                                                   m_d->currentScreenId(),
                                                                   cfg.canvasSurfaceColorSpaceManagementMode(),
-                                                                  KisDisplayConfig::optionsFromKisConfig(cfg));
+                                                                  kisDisplayConfigOptionsFromKisConfig(cfg));
     m_d->assignChangedMultiSurfaceState(newState);
 
     initializeFpsDecoration();

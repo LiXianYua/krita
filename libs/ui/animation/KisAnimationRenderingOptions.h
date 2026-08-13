@@ -10,9 +10,9 @@
 #include <QString>
 #include "kis_properties_configuration.h"
 
-#include "kritaanimation_export.h"
+#include "kritaui_export.h"
 
-class KRITAANIMATION_EXPORT KisAnimationRenderingOptions
+class KRITAUI_EXPORT KisAnimationRenderingOptions
 {
 public:
     KisAnimationRenderingOptions();

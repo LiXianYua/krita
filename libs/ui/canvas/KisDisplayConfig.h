@@ -11,7 +11,6 @@
 #include <KoColorConversionTransformation.h>
 
 class KoColorProfile;
-class KisConfig;
 /**
  * @brief KisDisplayConfig
  * This class keeps track of the color management configuration for
@@ -38,8 +37,6 @@ public:
     void setOptions(const Options &options) {
         std::tie(intent, conversionFlags) = options;
     }
-
-    static Options optionsFromKisConfig(const KisConfig &cfg);
 
     const KoColorProfile *profile;
     KoColorConversionTransformation::Intent intent;

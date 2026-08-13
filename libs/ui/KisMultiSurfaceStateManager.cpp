@@ -5,6 +5,7 @@
  */
 
 #include "KisMultiSurfaceStateManager.h"
+#include "KisDisplayConfigUiAdapter.h"
 
 #include <KisView.h>
 
@@ -38,7 +39,7 @@ KisMultiSurfaceStateManager::State KisMultiSurfaceStateManager::createInitializi
 
     KisConfig cfg(true);
 
-    state.optionsFromConfig = KisDisplayConfig::optionsFromKisConfig(cfg);
+    state.optionsFromConfig = kisDisplayConfigOptionsFromKisConfig(cfg);
     state.surfaceMode = cfg.canvasSurfaceColorSpaceManagementMode();
     state.proofingConfig = proofingConfig;
 

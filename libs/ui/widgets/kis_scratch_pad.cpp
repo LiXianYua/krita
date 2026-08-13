@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 #include "kis_scratch_pad.h"
+#include "KisDisplayConfigUiAdapter.h"
 
 #include <QApplication>
 #include <QScreen>
@@ -726,7 +727,7 @@ void KisScratchPad::slotConfigChanged()
     auto newState = m_multiSurfaceStateManager.onConfigChanged(m_multiSurfaceState,
                                                                screenId,
                                                                cfg.canvasSurfaceColorSpaceManagementMode(),
-                                                               KisDisplayConfig::optionsFromKisConfig(cfg));
+                                                               kisDisplayConfigOptionsFromKisConfig(cfg));
     assignNewSurfaceState(newState);
 }
 

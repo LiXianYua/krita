@@ -9,9 +9,9 @@
 
 #include <QString>
 #include "kis_types.h"
-#include "kritaanimation_export.h"
+#include "kritaui_export.h"
 
-struct KRITAANIMATION_EXPORT KisHDRMetadataOptions
+struct KRITAUI_EXPORT KisHDRMetadataOptions
 {
     KisHDRMetadataOptions();
 
