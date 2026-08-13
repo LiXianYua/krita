@@ -8,7 +8,7 @@
 
 #include "kis_touch_shortcut.h"
 #include "kis_abstract_input_action.h"
-#include "kis_config.h"
+#include "KisInputConfig.h"
 
 #include <QTouchEvent>
 
@@ -94,6 +94,6 @@ bool KisTouchShortcut::matchHoldType(QTouchEvent *event)
 
 bool KisTouchShortcut::matchTouchPoint(QTouchEvent *event)
 {
-    return (!d->disableOnTouchPainting || KisConfig(true).disableTouchOnCanvas())
+    return (!d->disableOnTouchPainting || KisInputConfig().disableTouchOnCanvas())
         && event->touchPoints().count() >= d->minTouchPoints && event->touchPoints().count() <= d->maxTouchPoints;
 }

@@ -9,12 +9,15 @@
 
 #include <QHash>
 #include <QPoint>
-#include "kritaui_export.h"
+#include "kritainput_export.h"
+
+#include <functional>
 
 #include "KisInputActionGroup.h"
 
 class QPointF;
 class QEvent;
+class QNativeGestureEvent;
 class KisInputManager;
 
 /**
@@ -39,7 +42,7 @@ class KisInputManager;
  *    All the mouse move events between begin() and end() will be
  *    redirected to the inputEvent() method.
  */
-class KRITAUI_EXPORT KisAbstractInputAction
+class KRITAINPUT_EXPORT KisAbstractInputAction
 {
 public:
     /**
@@ -212,6 +215,7 @@ protected:
 private:
     friend class KisInputManager;
     static void setInputManager(KisInputManager *manager);
+    static void setNativeGestureMapper(std::function<QPointF(KisInputManager *, const QNativeGestureEvent *)> mapper);
 
     class Private;
     Private * const d;

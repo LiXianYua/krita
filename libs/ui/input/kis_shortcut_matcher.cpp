@@ -15,8 +15,6 @@
 #include "kis_stroke_shortcut.h"
 #include "kis_touch_shortcut.h"
 #include "kis_native_gesture_shortcut.h"
-#include "kis_config.h"
-#include "kis_extended_modifiers_mapper.h"
 #include <KoPointerEvent.h>
 
 //#define DEBUG_MATCHER

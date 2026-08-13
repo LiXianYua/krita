@@ -18,7 +18,7 @@ class QTouchEvent;
  * it _does not_ handle tool invocation i.e painting (which is being
  * handled in KisShortcutMatcher).
  */
-class KisTouchShortcut : public KisAbstractShortcut
+class KRITAINPUT_EXPORT KisTouchShortcut : public KisAbstractShortcut
 {
         using GestureAction = KisShortcutConfiguration::GestureAction;
 

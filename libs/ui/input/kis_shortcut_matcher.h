@@ -11,7 +11,7 @@
 #include "kis_single_action_shortcut.h"
 #include "KisInputActionGroup.h"
 #include <functional>
-#include "kis_shortcut_configuration.h"
+#include "kritainput_export.h"
 
 class QEvent;
 class QWheelEvent;
@@ -71,7 +71,7 @@ class KisNativeGestureShortcut;
  * \see KisSingleActionShortcut
  * \see KisStrokeShortcut
  */
-class KRITAUI_EXPORT KisShortcutMatcher
+class KRITAINPUT_EXPORT KisShortcutMatcher
 {
 public:
     static constexpr int TOUCH_SLOP_SQUARED = 16 * 16;

@@ -11,10 +11,6 @@
 #include <klocalizedstring.h>
 #include <kis_debug.h>
 
-#include <input/kis_input_manager.h>
-#include <kis_canvas2.h>
-
-
 class Q_DECL_HIDDEN KisAbstractInputAction::Private
 {
 public:
@@ -27,9 +23,11 @@ public:
     QPointF startCursorPosition;
 
     static KisInputManager *inputManager;
+    static std::function<QPointF(KisInputManager *, const QNativeGestureEvent *)> nativeGestureMapper;
 };
 
 KisInputManager *KisAbstractInputAction::Private::inputManager = 0;
+std::function<QPointF(KisInputManager *, const QNativeGestureEvent *)> KisAbstractInputAction::Private::nativeGestureMapper;
 
 KisAbstractInputAction::KisAbstractInputAction(const QString &id)
     : d(new Private)
@@ -157,6 +155,11 @@ void KisAbstractInputAction::setInputManager(KisInputManager *manager)
     Private::inputManager = manager;
 }
 
+void KisAbstractInputAction::setNativeGestureMapper(std::function<QPointF(KisInputManager *, const QNativeGestureEvent *)> mapper)
+{
+    Private::nativeGestureMapper = std::move(mapper);
+}
+
 bool KisAbstractInputAction::isShortcutRequired(int shortcut) const
 {
     Q_UNUSED(shortcut);
@@ -190,20 +193,8 @@ QPoint KisAbstractInputAction::eventPos(const QEvent *event)
         return static_cast<const QWheelEvent*>(event)->position().toPoint();
 
     case QEvent::NativeGesture: {
-        KisCanvas2 *canvas = d->inputManager->canvas();
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(canvas, QPoint());
-
-        /**
-         * Native gesture event has an issue in Qt on MacOS, its
-         * event->position() method returns an incorrect value (not
-         * in the widget's coordinates). So we should manually map it
-         * from global.
-         */
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        return canvas->canvasWidget()->mapFromGlobal(QPointF(static_cast<const QNativeGestureEvent*>(event)->globalPos())).toPoint();
-#else
-        return canvas->canvasWidget()->mapFromGlobal(static_cast<const QNativeGestureEvent*>(event)->globalPos());
-#endif
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(Private::nativeGestureMapper, QPoint());
+        return Private::nativeGestureMapper(d->inputManager, static_cast<const QNativeGestureEvent *>(event)).toPoint();
     }
 
     default:
@@ -239,20 +230,8 @@ QPointF KisAbstractInputAction::eventPosF(const QEvent *event) {
         return static_cast<const QWheelEvent*>(event)->position();
 
     case QEvent::NativeGesture: {
-        KisCanvas2 *canvas = d->inputManager->canvas();
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(canvas, QPointF());
-
-        /**
-         * Native gesture event has an issue in Qt on MacOS, its
-         * event->position() method returns an incorrect value (not
-         * in the widget's coordinates). So we should manually map it
-         * from global.
-         */
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        return canvas->canvasWidget()->mapFromGlobal(QPointF(static_cast<const QNativeGestureEvent*>(event)->globalPos()));
-#else
-        return canvas->canvasWidget()->mapFromGlobal(static_cast<const QNativeGestureEvent*>(event)->globalPos());
-#endif
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(Private::nativeGestureMapper, QPointF());
+        return Private::nativeGestureMapper(d->inputManager, static_cast<const QNativeGestureEvent *>(event));
     }
     default:
         warnInput << "KisAbstractInputAction" << d->name << "tried to process event data from an unhandled event type" << event->type();

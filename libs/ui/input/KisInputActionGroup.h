@@ -10,6 +10,8 @@
 #include <QFlags>
 #include <QSharedPointer>
 
+#include "kritainput_export.h"
+
 enum KisInputActionGroup {
     NoActionGroup = 0x0,
     ViewTransformActionGroup = 0x1,
@@ -27,7 +29,7 @@ class KisInputActionGroupsMaskGuard;
  * A special interface class for accessing masking properties using
  * KisInputActionGroupsMaskGuard
  */
-struct KisInputActionGroupsMaskInterface
+struct KRITAINPUT_EXPORT KisInputActionGroupsMaskInterface
 {
     /**
      * Unregister ourselves from all KisInputActionGroupsMaskGuard
@@ -53,7 +55,7 @@ struct KisInputActionGroupsMaskInterface
  * value and resets it to the new one. In destructor the guard restores the old
  * mask value.
  */
-class KisInputActionGroupsMaskGuard
+class KRITAINPUT_EXPORT KisInputActionGroupsMaskGuard
 {
 public:
     /**

@@ -76,7 +76,7 @@ private:
 };
 
 
-class KisPPUpdateInfo : public KisUpdateInfo
+class KRITACANVAS_EXPORT KisPPUpdateInfo : public KisUpdateInfo
 {
 public:
     enum TransferType {
@@ -131,7 +131,7 @@ public:
     KisImagePatch patch;
 };
 
-class KisMarkerUpdateInfo : public KisUpdateInfo
+class KRITACANVAS_EXPORT KisMarkerUpdateInfo : public KisUpdateInfo
 {
 public:
     enum Type {

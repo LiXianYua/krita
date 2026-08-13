@@ -365,7 +365,7 @@ void KisInputManagerTest::testMouseMoves()
     m.leaveEvent();
 }
 
-#include "../input/wintab/kis_incremental_average.h"
+#include "../wintab/kis_incremental_average.h"
 
 void KisInputManagerTest::testIncrementalAverage()
 {

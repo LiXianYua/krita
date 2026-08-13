@@ -63,6 +63,17 @@ uint qHash(QPointer<T> value) {
 KisInputManager::KisInputManager(QObject *parent)
     : QObject(parent), d(new Private(this))
 {
+    KisAbstractInputAction::setNativeGestureMapper(
+        [] (KisInputManager *manager, const QNativeGestureEvent *event) {
+            KisCanvas2 *canvas = manager ? manager->canvas() : nullptr;
+            KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(canvas, QPointF());
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            return canvas->canvasWidget()->mapFromGlobal(QPointF(event->globalPos()));
+#else
+            return QPointF(canvas->canvasWidget()->mapFromGlobal(event->globalPos()));
+#endif
+        });
+
     d->setupActions();
 
     connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(slotConfigChanged()));

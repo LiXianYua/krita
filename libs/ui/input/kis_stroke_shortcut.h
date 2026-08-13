@@ -27,7 +27,7 @@ class QPointF;
  * user the cursor of the upcoming action and the Running state shows
  * that the action linked to the shortcut should be activated.
  */
-class KRITAUI_EXPORT KisStrokeShortcut : public KisAbstractShortcut
+class KRITAINPUT_EXPORT KisStrokeShortcut : public KisAbstractShortcut
 {
 public:
     KisStrokeShortcut(KisAbstractInputAction *action, int index);

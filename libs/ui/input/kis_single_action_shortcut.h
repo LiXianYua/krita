@@ -15,7 +15,7 @@
  * a mouse wheel rotation.
  */
 
-class KRITAUI_EXPORT KisSingleActionShortcut : public KisAbstractShortcut
+class KRITAINPUT_EXPORT KisSingleActionShortcut : public KisAbstractShortcut
 {
 public:
     enum WheelAction {

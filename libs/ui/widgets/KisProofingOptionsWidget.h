@@ -14,6 +14,7 @@
 
 #include <kis_types.h>
 #include <KisDisplayConfig.h>
+#include <kritaui_export.h>
 
 /**
  * @brief A widget that allows to select a combination of auto levels parameters

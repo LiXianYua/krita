@@ -10,13 +10,13 @@
 
 #include <Qt>
 #include <QSet>
-#include <kritaui_export.h>
+#include <kritainput_export.h>
 #include "KisInputActionGroup.h"
 
 class KisAbstractInputAction;
 
 
-class KRITAUI_EXPORT KisAbstractShortcut
+class KRITAINPUT_EXPORT KisAbstractShortcut
 {
 public:
     KisAbstractShortcut(KisAbstractInputAction *action, int index);

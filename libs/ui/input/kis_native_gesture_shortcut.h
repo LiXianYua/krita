@@ -11,7 +11,7 @@
 #include "kis_abstract_shortcut.h"
 
 class QNativeGestureEvent;
-class KisNativeGestureShortcut : public KisAbstractShortcut
+class KRITAINPUT_EXPORT KisNativeGestureShortcut : public KisAbstractShortcut
 {
 public:
 	KisNativeGestureShortcut(KisAbstractInputAction* action, int index, Qt::NativeGestureType type);

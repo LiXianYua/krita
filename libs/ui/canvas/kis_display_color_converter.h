@@ -14,6 +14,7 @@
 
 #include "kis_types.h"
 #include "canvas/kis_display_filter.h"
+#include "kritaui_export.h"
 
 class KoColor;
 class KoColorProfile;
