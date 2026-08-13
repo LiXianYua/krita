@@ -6,13 +6,10 @@
 
 #include "TestAssistants.h"
 
-#include <testui.h>
-#include <testutil.h>
-
-
 #include <kis_painting_assistant.h>
 #include <PerspectiveBasedAssistantHelper.h>
 #include <kis_algebra_2d.h>
+#include <kis_debug.h>
 #include <kis_global.h>
 
 #include <ConcentricEllipseAssistant.h>
@@ -65,4 +62,4 @@ void TestAssistants::testConcentricEllipseAdjustLine()
 }
 
 
-KISTEST_MAIN(TestAssistants)
+SIMPLE_TEST_MAIN(TestAssistants)

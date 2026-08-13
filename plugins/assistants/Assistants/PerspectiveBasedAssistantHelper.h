@@ -6,11 +6,9 @@
 #define _PERSPECTIVE_BASED_ASSISTANT_HELPER_H_
 
 
-#include <QObject>
 #include <boost/optional.hpp>
 
 #include "Ellipse.h"
-#include "kis_abstract_perspective_grid.h"
 #include "kis_painting_assistant.h"
 
 #include "kritaassistanttool_export.h"

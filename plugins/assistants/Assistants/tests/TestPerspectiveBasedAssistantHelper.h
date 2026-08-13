@@ -8,7 +8,6 @@
 #define __TEST_PERSPECTIVE_BASED_ASSISTANT_HELPER_H
 
 #include <simpletest.h>
-#include "empty_nodes_test.h"
 
 #include "kis_painting_assistant.h"
 

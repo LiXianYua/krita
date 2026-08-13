@@ -141,7 +141,6 @@ set(kritaui_LIB_SRCS
     kis_model_index_converter_show_all.cpp
     KisMultiSurfaceStateManager.cpp
     KisLayerThumbnailCache.cpp
-    kis_painting_assistant.cc
     kis_painting_assistants_decoration.cpp
     kis_selection_actions_panel.cpp
     kis_selection_actions_panel_handle.cpp
@@ -714,6 +713,7 @@ target_link_libraries(kritaui
         kritawidgets
         kritawidgetutils
         kritaresources
+        kritaassistanttool_static
 )
 
 if (KRITA_USE_SURFACE_COLOR_MANAGEMENT_API)

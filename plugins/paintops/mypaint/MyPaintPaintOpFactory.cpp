@@ -12,9 +12,6 @@
 #include <QJsonDocument>
 
 #include <kis_icon.h>
-#include <KoResourceServer.h>
-#include <KoResourceServerProvider.h>
-#include <KisResourceServerProvider.h>
 #include <KoResourceLoadResult.h>
 #include <kis_image.h>
 #include <kis_node.h>

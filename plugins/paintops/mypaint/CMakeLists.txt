@@ -16,11 +16,19 @@ set(kritamypaintop_SOURCES
 
 kis_add_library(kritamypaintop_static STATIC ${kritamypaintop_SOURCES})
 
-target_link_libraries(kritamypaintop_static kritalibpaintop LibMyPaint::mypaint kritawidgetutils kritaui kritalibbrush kritaresources)
+target_include_directories(kritamypaintop_static
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/plugins/paintops/libpaintop
+        ${CMAKE_BINARY_DIR}/plugins/paintops/libpaintop
+        ${CMAKE_SOURCE_DIR}/libs/ui
+        ${CMAKE_BINARY_DIR}/libs/ui
+)
+
+target_link_libraries(kritamypaintop_static LibMyPaint::mypaint kritawidgetutils kritalibbrush kritaresources)
 
 kis_add_library(kritamypaintop MODULE MyPaintPaintOpPlugin.cpp)
 
-target_link_libraries(kritamypaintop kritamypaintop_static)
+target_link_libraries(kritamypaintop kritamypaintop_static kritalibpaintop)
 
 install(TARGETS kritamypaintop  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

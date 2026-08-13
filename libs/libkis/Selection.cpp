@@ -136,6 +136,9 @@ void Selection::copy(Node *node)
 
             qreal dstAlpha = cs->opacityF(layerIt->rawData());
             qreal sel = selCs->opacityF(selectionIt->oldRawData());
+            // Canonical sharp-clip reverse-COMPOSITE_OVER expression. Keep the
+            // operation order unchanged: it defines the existing zero and
+            // floating-point rounding behavior used by scripting selections.
             qreal newAlpha = sel * dstAlpha / (1.0 - dstAlpha + sel * dstAlpha);
             float mask = newAlpha / dstAlpha;
 
@@ -319,5 +322,4 @@ KisSelectionSP Selection::selection() const
 {
     return d->selection;
 }
-
 

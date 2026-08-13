@@ -8,7 +8,6 @@
 #define __TEST_ASSISTANTS_H
 
 #include <simpletest.h>
-#include "empty_nodes_test.h"
 
 #include "kis_painting_assistant.h"
 
