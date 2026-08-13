@@ -14,7 +14,7 @@
 
 #include "kis_types.h"
 #include "canvas/kis_display_filter.h"
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 
 class KoColor;
 class KoColorProfile;
@@ -35,7 +35,7 @@ class KoID;
  * KoColor may be in any of these color spaces. QColor should always
  * be in the display color space only.
  */
-class KRITAUI_EXPORT KisDisplayColorConverter : public QObject
+class KRITACANVAS_EXPORT KisDisplayColorConverter : public QObject
 {
     Q_OBJECT
 

@@ -9,7 +9,11 @@
 #include <QGlobalStatic>
 #include <QPointer>
 
+#include <KConfigGroup>
+#include <KSharedConfig>
+
 #include <KoColor.h>
+#include <KoColorProfile.h>
 #include <KoColorDisplayRendererInterface.h>
 #include <KoColorSpaceMaths.h>
 #include <KoColorSpaceRegistry.h>
@@ -18,14 +22,10 @@
 
 #include <KoCanvasResourceProvider.h>
 #include "kis_config_notifier.h"
-#include "kis_canvas_resource_provider.h"
-#include "kis_canvas2.h"
-#include "KisViewManager.h"
 #include "kis_image.h"
 #include "kis_node.h"
 
 #include "kundo2command.h"
-#include "kis_config.h"
 #include "kis_paint_device.h"
 #include "kis_iterator_ng.h"
 #include "kis_fixed_paint_device.h"
@@ -376,8 +376,20 @@ void KisDisplayColorConverter::Private::setCurrentNode(KisNodeSP node)
 
 void KisDisplayColorConverter::Private::selectPaintingColorSpace()
 {
-    KisConfig cfg(true);
-    paintingColorSpace = cfg.customColorSelectorColorSpace();
+    const KConfigGroup cfg = KSharedConfig::openConfig()->group("advancedColorSelector");
+    paintingColorSpace = nullptr;
+
+    if (cfg.readEntry("useCustomColorSpace", true)) {
+        QString profile = cfg.readEntry("customColorSpaceProfile", "sRGB built-in - (lcms internal)");
+        if (profile == QLatin1String("default")) {
+            profile = QStringLiteral("sRGB built-in - (lcms internal)");
+        }
+
+        paintingColorSpace = KoColorSpaceRegistry::instance()->colorSpace(
+            cfg.readEntry("customColorSpaceModel", "RGBA"),
+            cfg.readEntry("customColorSpaceDepthID", "U8"),
+            profile);
+    }
 
     if (!paintingColorSpace || displayFilter) {
         paintingColorSpace = nodeColorSpace;

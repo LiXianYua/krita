@@ -25,7 +25,6 @@ set(kritaui_LIB_SRCS
     canvas/kis_canvas2.cpp
     canvas/kis_canvas_updates_compressor.cpp
     canvas/kis_canvas_controller.cpp
-    canvas/kis_display_color_converter.cpp
     canvas/kis_tool_proxy.cpp
     canvas/kis_canvas_decoration.cc
     canvas/kis_grid_manager.cpp
