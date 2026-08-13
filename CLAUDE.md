@@ -174,6 +174,33 @@ LD_LIBRARY_PATH="$(pwd)/<build 目录>/bin:$LD_LIBRARY_PATH" QT_QPA_PLATFORM=off
 > 自己把什么改崩了。**全部瞬间失败 = 环境没配好，不是代码回归**——真回归不会
 > 这么整齐。
 
+### ⛔ 删了导出符号之后，`LD_LIBRARY_PATH` 救不了你——要私有安装前缀
+
+**症状**：少数几个测试红，别的全绿；报错指向一个你**确实删过**的符号；于是看起来像
+真回归。**实测两次都不是。**
+
+**根因**：`KRITA_PLUGINS_DIR_FOR_TESTS` 是**编译期烘死**的绝对路径，指向**共享的**
+`krita-ci-env/_install/.../kritaplugins`。插件由 `QPluginLoader` **按绝对目录**打开
+——`LD_LIBRARY_PATH` 对它**完全无效**。所以你的 worktree 编出了新 `.so`，测试加载的
+却是共享前缀里那份**旧快照**；旧插件里还留着对已删符号的 RTTI 引用，当场炸。
+
+**判别**：受影响的测试**跨插件**（`mypaint`/`colorsmudge` 这类兄弟插件），而你改的
+目录跟它们无关。
+
+**做法**：用 worktree 私有前缀重装一次再重跑那几个。
+
+```bash
+cmake -S . -B <build 目录> -DCMAKE_INSTALL_PREFIX="$(pwd)/_install-verify" …
+ninja -C <build 目录> install
+KRITA_PLUGINS_DIR_FOR_TESTS 已烘死，所以要重新配置+安装，不能只改环境变量
+```
+
+**收尾前把 `_install-verify/` 删掉**——它没被 `.gitignore` 盖住（`/build-*/` 只盖
+`build-*`），留着会让 `auto finish` 因「worktree 有未跟踪改动」停下要人。或者干脆把
+私有前缀开在 `build-*/` 里面，那条规则已经盖住了。
+
+**不要拿「我相信是环境问题」当结论交上去**——要么实证成绿，要么它就是真回归。
+
 四段各自防一件事，**一段都不能省**：
 
 | 那一段 | 防什么 |
