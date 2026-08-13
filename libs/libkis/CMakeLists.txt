@@ -1,8 +1,5 @@
 set(kritalibkis_LIB_SRCS
-    Canvas.cpp
     Channel.cpp
-    DockWidget.cpp
-    DockWidgetFactoryBase.cpp
     Document.cpp
     Filter.cpp
     InfoObject.cpp
@@ -10,19 +7,12 @@ set(kritalibkis_LIB_SRCS
     ManagedColor.cpp
     Node.cpp
     Notifier.cpp
-    PaintingResources.cpp
-    PresetChooser.cpp
     Preset.cpp
     Palette.cpp
-    PaletteView.cpp
-    Scratchpad.cpp
     Swatch.cpp
     Resource.cpp
     Selection.cpp
     KisSelectionClipStore.cpp
-    View.cpp
-    Extension.cpp
-    Window.cpp
     GroupLayer.cpp
     CloneLayer.cpp
     FileLayer.cpp
@@ -40,15 +30,8 @@ set(kritalibkis_LIB_SRCS
 
     LibKisUtils.cpp
 
-    AngleSelector.cpp
-    IntParseSpinBox.cpp
-    DoubleParseSpinBox.cpp
-    SliderSpinBox.cpp
-
     GuidesConfig.cpp
     GridConfig.cpp
-
-    FileDialog.cpp
 )
 
 kis_add_library(kritalibkis SHARED ${kritalibkis_LIB_SRCS})

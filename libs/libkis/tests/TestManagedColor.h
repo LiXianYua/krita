@@ -17,7 +17,7 @@ private Q_SLOTS:
     void testComponentsRoundTrip();
     void testXMLRoundTrip();
     void testToQString();
+    void testDisplayConversionWithoutCanvas();
 };
 
 #endif
-

@@ -11,9 +11,7 @@
 #include "kritalibkis_export.h"
 #include <kis_types.h>
 #include "libkis.h"
-#include <KisView.h>
 
-class KisMainWindow;
 class KisDocument;
 
 /**
@@ -68,29 +66,6 @@ Q_SIGNALS:
     void imageClosed(const QString &filename);
 
     /**
-     * @brief viewCreated is emitted whenever a new view is created.
-     * @param view the view
-     */
-    void viewCreated(View *view);
-
-    /**
-     * @brief viewClosed is emitted whenever a view is closed
-     * @param view the view
-     */
-    void viewClosed(View *view);
-
-    /**
-     * @brief windowCreated is emitted whenever a window is being created
-     * @param window the window; this is called from the constructor of the window, before the xmlgui file is loaded
-     */
-    void windowIsBeingCreated(Window *window);
-
-    /**
-     * @brief windowIsCreated is emitted after main window is completely created
-     */
-    void windowCreated();
-
-    /**
      * @brief configurationChanged is emitted every time Krita's configuration
      * has changed.
      */
@@ -99,12 +74,6 @@ Q_SIGNALS:
 private Q_SLOTS:
 
     void imageCreated(KisDocument *document);
-
-    void viewCreated(KisView *view);
-    void viewClosed(KisView *view);
-
-    void windowIsBeingCreated(KisMainWindow *window);
-
 
 private:
     struct Private;

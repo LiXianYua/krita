@@ -4,7 +4,6 @@
 
 #include <QVariant>
 #include <QMap>
-#include <QAction>
 
 class Canvas;
 class Channel;

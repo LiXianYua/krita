@@ -10,17 +10,8 @@
 #include <SvgSavingContext.h>
 #include <QBuffer>
 #include <KoDocumentResourceManager.h>
-#include <kis_processing_applicator.h>
-#include <KisPart.h>
-#include <KisView.h>
-#include <KisDocument.h>
-#include <kis_canvas2.h>
-#include <KisMainWindow.h>
-#include <KoShapeController.h>
-#include <KoSelection.h>
+#include <KoShapeContainer.h>
 
-#include "Krita.h"
-#include "Document.h"
 #include "GroupShape.h"
 
 struct Shape::Private {
@@ -150,23 +141,9 @@ bool Shape::remove()
     if (!d->shape) return false;
     if (!d->shape->parent()) return false;
 
-    bool removeStatus = false;
-    Document *document = Krita::instance()->activeDocument();
-
-    if (KisPart::instance()->viewCount(document->document()) > 0) {
-        for (QPointer<KisView> view : KisPart::instance()->views()) {
-            if (view && view->document() == document->document()) {
-                KisProcessingApplicator::runSingleCommandStroke(view->image(), view->canvasBase()->shapeController()->removeShape(d->shape));
-                view->image()->waitForDone();
-                removeStatus = true;
-                break;
-            }
-        }
-    }
-
-    delete document;
-
-    return removeStatus;
+    KoShapeContainer *parent = d->shape->parent();
+    parent->removeShape(d->shape);
+    return d->shape->parent() == nullptr;
 }
 
 QString Shape::toSvg(bool prependStyles, bool stripTextMode)
@@ -188,36 +165,6 @@ QString Shape::toSvg(bool prependStyles, bool stripTextMode)
     stylesBuffer.close();
 
     return (prependStyles ? QString::fromUtf8(stylesBuffer.data()):"") + QString::fromUtf8(shapesBuffer.data());
-}
-
-void Shape::select()
-{
-    if (!d->shape) return;
-
-    KisView *activeView = KisPart::instance()->currentMainwindow()->activeView();
-    KoSelection *selection = activeView->canvasBase()->shapeManager()->selection();
-
-    selection->select(d->shape);
-}
-
-void Shape::deselect()
-{
-    if (!d->shape) return;
-
-    KisView *activeView = KisPart::instance()->currentMainwindow()->activeView();
-    KoSelection *selection = activeView->canvasBase()->shapeManager()->selection();
-
-    selection->deselect(d->shape);
-}
-
-bool Shape::isSelected()
-{
-    if (!d->shape) return false;
-
-    KisView *activeView = KisPart::instance()->currentMainwindow()->activeView();
-    KoSelection *selection = activeView->canvasBase()->shapeManager()->selection();
-
-    return selection->isSelected(d->shape);
 }
 
 Shape* Shape::parentShape() const

@@ -16,42 +16,27 @@
 #include <KoColorSpaceRegistry.h>
 #include <KoColorProfile.h>
 #include <KoColorSpace.h>
-#include <KoDockRegistry.h>
 #include <KoColorSpaceEngine.h>
 #include <KoColorModelStandardIds.h>
 #include <KoID.h>
 
 #include <kis_filter_strategy.h>
-#include <kactioncollection.h>
 #include <KisPart.h>
-#include <KisMainWindow.h>
 #include <KisDocument.h>
 #include <kis_image.h>
-#include <kis_action.h>
-#include <KisViewManager.h>
 #include <KritaVersionWrapper.h>
 #include <kis_filter_registry.h>
 #include <kis_filter.h>
 #include <kis_filter_configuration.h>
 #include <kis_properties_configuration.h>
 #include <kis_config.h>
-#include <kis_workspace_resource.h>
-#include <brushengine/kis_paintop_preset.h>
-#include <KisBrushServerProvider.h>
-#include <KoResourceServerProvider.h>
-#include <KisResourceServerProvider.h>
-#include <KisBrushServerProvider.h>
-#include <kis_action_registry.h>
-#include <kis_icon_utils.h>
 
 #include <KisResourceModel.h>
+#include <KisResourceTypes.h>
 #include <KisGlobalResourcesInterface.h>
+#include <KoResourcePaths.h>
 
-#include "View.h"
 #include "Document.h"
-#include "Window.h"
-#include "Extension.h"
-#include "DockWidgetFactoryBase.h"
 #include "Filter.h"
 #include "InfoObject.h"
 #include "Resource.h"
@@ -60,7 +45,6 @@ Krita* Krita::s_instance = 0;
 
 struct Krita::Private {
     Private() {}
-    QList<Extension*> extensions;
     bool batchMode {false};
     Notifier *notifier{new Notifier()};
 };
@@ -70,60 +54,12 @@ Krita::Krita(QObject *parent)
     , d(new Private)
 {
     qRegisterMetaType<Notifier*>();
-    connect(KisPart::instance(), SIGNAL(sigMainWindowIsBeingCreated(KisMainWindow*)), SLOT(mainWindowIsBeingCreated(KisMainWindow*)));
 }
 
 Krita::~Krita()
 {
-    qDeleteAll(d->extensions);
     delete d->notifier;
     delete d;
-}
-
-QList<QAction *> Krita::actions() const
-{
-    KisMainWindow *mainWindow = KisPart::instance()->currentMainwindow();
-    if (!mainWindow) {
-        return QList<QAction*>();
-    }
-    KisKActionCollection *actionCollection = mainWindow->actionCollection();
-    return actionCollection->actions();
-}
-
-QAction *Krita::action(const QString &name) const
-{
-    KisMainWindow *mainWindow = KisPart::instance()->currentMainwindow();
-    if (!mainWindow) {
-        return 0;
-    }
-    KisKActionCollection *actionCollection = mainWindow->actionCollection();
-    QAction *action = actionCollection->action(name);
-    return action;
-}
-
-Document* Krita::activeDocument() const
-{
-    KisMainWindow *mainWindow = KisPart::instance()->currentMainwindow();
-    if (!mainWindow) {
-        return 0;
-    }
-    KisView *view = mainWindow->activeView();
-    if (!view) {
-        return 0;
-    }
-    KisDocument *document = view->document();
-    Document *d = new Document(document, false);
-    return d;
-}
-
-void Krita::setActiveDocument(Document* value)
-{
-    Q_FOREACH(KisView *view, KisPart::instance()->views()) {
-        if (view->document() == value->document().data()) {
-            view->activateWindow();
-            break;
-        }
-    }
 }
 
 bool Krita::batchmode() const
@@ -221,84 +157,45 @@ QString Krita::version() const
     return KritaVersionWrapper::versionString(true);
 }
 
-QList<View *> Krita::views() const
-{
-    QList<View *> ret;
-    foreach(QPointer<KisView> view, KisPart::instance()->views()) {
-        ret << new View(view);
-    }
-    return ret;
-}
-
-Window *Krita::activeWindow() const
-{
-    KisMainWindow *mainWindow = KisPart::instance()->currentMainwindow();
-    if (!mainWindow) {
-        return 0;
-    }
-    return new Window(mainWindow);
-}
-
-QList<Window*>  Krita::windows() const
-{
-    QList<Window*> ret;
-    foreach(QPointer<KisMainWindow> mainWin, KisPart::instance()->mainWindows()) {
-        ret << new Window(mainWin);
-    }
-    return ret;
-}
-
 QMap<QString, Resource*> Krita::resources(QString &type) const
 {
     QMap<QString, Resource*> resources;
-    KisResourceModel *resourceModel = 0;
+    QString resourceType;
     if (type == "pattern") {
-        resourceModel = KoResourceServerProvider::instance()->patternServer()->resourceModel();
-        type = ResourceType::Patterns;
+        resourceType = ResourceType::Patterns;
     }
     else if (type == "gradient") {
-        type = ResourceType::Gradients;
-        resourceModel = KoResourceServerProvider::instance()->gradientServer()->resourceModel();
+        resourceType = ResourceType::Gradients;
     }
     else if (type == "brush") {
-        resourceModel = KisBrushServerProvider::instance()->brushServer()->resourceModel();
-        type = ResourceType::Brushes;
+        resourceType = ResourceType::Brushes;
     }
     else if (type == "palette") {
-        resourceModel = KoResourceServerProvider::instance()->paletteServer()->resourceModel();
-        type = ResourceType::Palettes;
+        resourceType = ResourceType::Palettes;
     }
     else if (type == "workspace") {
-        resourceModel = KisResourceServerProvider::instance()->workspaceServer()->resourceModel();
-        type = ResourceType::Workspaces;
+        resourceType = ResourceType::Workspaces;
     }
     else if (type == "preset") {
-        resourceModel = KisResourceServerProvider::instance()->paintOpPresetServer()->resourceModel();
+        resourceType = ResourceType::PaintOpPresets;
     }
 
-    if (resourceModel) {
-        for (int i = 0; i < resourceModel->rowCount(); ++i) {
+    if (!resourceType.isEmpty()) {
+        type = resourceType;
+        KisResourceModel resourceModel(resourceType);
+        for (int i = 0; i < resourceModel.rowCount(); ++i) {
 
-            QModelIndex idx = resourceModel->index(i, 0);
-            int id = resourceModel->data(idx, Qt::UserRole + KisAbstractResourceModel::Id).toInt();
-            QString name  = resourceModel->data(idx, Qt::UserRole + KisAbstractResourceModel::Name).toString();
-            QString filename  = resourceModel->data(idx, Qt::UserRole + KisAbstractResourceModel::Filename).toString();
-            QImage image = resourceModel->data(idx, Qt::UserRole + KisAbstractResourceModel::Thumbnail).value<QImage>();
+            QModelIndex idx = resourceModel.index(i, 0);
+            int id = resourceModel.data(idx, Qt::UserRole + KisAbstractResourceModel::Id).toInt();
+            QString name  = resourceModel.data(idx, Qt::UserRole + KisAbstractResourceModel::Name).toString();
+            QString filename  = resourceModel.data(idx, Qt::UserRole + KisAbstractResourceModel::Filename).toString();
+            QImage image = resourceModel.data(idx, Qt::UserRole + KisAbstractResourceModel::Thumbnail).value<QImage>();
 
-            resources[name] = new Resource(id, type, name, filename, image, 0);
+            resources[name] = new Resource(id, resourceType, name, filename, image, 0);
         }
     }
 
     return resources;
-}
-
-
-QList<QDockWidget*> Krita::dockers() const
-{
-    KisMainWindow *mainWindow = KisPart::instance()->currentMainwindow();
-
-    if (!mainWindow) return {};
-    return mainWindow->dockWidgets();
 }
 
 
@@ -349,28 +246,6 @@ Document* Krita::openDocument(const QString &filename)
     return new Document(document, true);
 }
 
-Window* Krita::openWindow()
-{
-    KisMainWindow *mw = KisPart::instance()->createMainWindow();
-    return new Window(mw);
-}
-
-void Krita::addExtension(Extension* extension)
-{
-    Q_FOREACH(KisMainWindow *mainWindow, KisPart::instance()->mainWindows()) {
-        Window window(mainWindow);
-        extension->createActions(&window);
-        mainWindow->synchronizeDynamicActions();
-    }
-
-    d->extensions.append(extension);
-}
-
-QList< Extension* > Krita::extensions()
-{
-    return d->extensions;
-}
-
 void Krita::writeSetting(const QString &group, const QString &name, const QString &value)
 {
     KConfigGroup grp = KSharedConfig::openConfig()->group(group);
@@ -381,16 +256,6 @@ QString Krita::readSetting(const QString &group, const QString &name, const QStr
 {
     KConfigGroup grp = KSharedConfig::openConfig()->group(group);
     return grp.readEntry(name, defaultValue);
-}
-
-QIcon Krita::icon(QString &iconName) const
-{
-    return KisIconUtils::loadIcon(iconName);
-}
-
-void Krita::addDockWidgetFactory(DockWidgetFactoryBase* factory)
-{
-    KoDockRegistry::instance()->add(factory);
 }
 
 Krita* Krita::instance()
@@ -407,17 +272,12 @@ Krita* Krita::instance()
  * variant is a QVariant
  * returns instance of QObject-subclass
  *
- * This is a helper method for PyQt because PyQt cannot cast a variant to a QObject or QWidget
+ * This is a helper method for bindings that cannot cast a variant to a QObject.
  */
 QObject *Krita::fromVariant(const QVariant& v)
 {
 
-    if (v.canConvert< QWidget* >())
-    {
-        QObject* obj = qvariant_cast< QWidget* >(v);
-        return obj;
-    }
-    else if (v.canConvert< QObject* >())
+    if (v.canConvert< QObject* >())
     {
         QObject* obj = qvariant_cast< QObject* >(v);
         return obj;
@@ -439,14 +299,6 @@ QString Krita::krita_i18nc(const QString &context, const QString &text)
 QString Krita::getAppDataLocation()
 {
     return KoResourcePaths::getAppDataLocation();
-}
-
-void Krita::mainWindowIsBeingCreated(KisMainWindow *kisWindow)
-{
-    Q_FOREACH(Extension *extension, d->extensions) {
-        Window window(kisWindow);
-        extension->createActions(&window);
-    }
 }
 
 #include "moc_Krita.cpp"

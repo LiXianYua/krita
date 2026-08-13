@@ -16,7 +16,7 @@
 #include <kis_processing_applicator.h>
 #include <kis_group_layer.h>
 
-#include "Krita.h"
+#include "Document.h"
 #include "GroupShape.h"
 #include "LibKisUtils.h"
 
@@ -115,13 +115,9 @@ QList<Shape *> VectorLayer::addShapesFromSvg(const QString &svgData)
             return shapes;
         }
 
-        Document *document = Krita::instance()->activeDocument();
-
+        Document *document = LibKisUtils::findNodeInDocuments(this->node());
         if (!document) {
-            document = LibKisUtils::findNodeInDocuments(this->node());
-            if (!document) {
-                return shapes;
-            }
+            return shapes;
         }
 
         SvgParser parser(document->document()->shapeController()->resourceManager());
@@ -209,12 +205,8 @@ Shape* VectorLayer::createGroupShape(const QString &name, QList<Shape *> shapes)
 
     if (originalShapes.isEmpty()) return 0;
 
-    Document *document = Krita::instance()->activeDocument();
-
-    if (!document) {
-        document = LibKisUtils::findNodeInDocuments(this->node());
-        if (!document) return 0;
-    }
+    Document *document = LibKisUtils::findNodeInDocuments(this->node());
+    if (!document) return 0;
 
     KoShapeGroup *group = new KoShapeGroup();
     const int groupZIndex = originalShapes.last()->zIndex();

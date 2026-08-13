@@ -6,6 +6,7 @@
 #ifndef LIBKIS_GUIDESCONFIG_H
 #define LIBKIS_GUIDESCONFIG_H
 
+#include <QColor>
 #include <QObject>
 #include "kis_guides_config.h"
 

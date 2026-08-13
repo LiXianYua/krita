@@ -79,3 +79,12 @@ void TestManagedColor::testToQString()
     c.setComponents(components);
     QVERIFY(c.toQString() == "Red 127 Green 127 Blue 127 Alpha 127");
 }
+
+void TestManagedColor::testDisplayConversionWithoutCanvas()
+{
+    QScopedPointer<ManagedColor> red(ManagedColor::fromQColor(QColor(Qt::red)));
+    QCOMPARE(red->colorForCanvas(), QColor(Qt::red));
+
+    QScopedPointer<ManagedColor> roundTripped(ManagedColor::fromQColor(QColor(10, 20, 30, 40)));
+    QCOMPARE(roundTripped->colorForCanvas(), QColor(10, 20, 30, 40));
+}

@@ -14,9 +14,6 @@
 #include <QDomDocument>
 #include <QDomElement>
 
-#include <Canvas.h>
-
-#include <kis_display_color_converter.h>
 #include <KoColorDisplayRendererInterface.h>
 
 struct ManagedColor::Private {
@@ -57,35 +54,14 @@ bool ManagedColor::operator==(const ManagedColor &other) const
     return d->color == other.d->color;
 }
 
-QColor ManagedColor::colorForCanvas(Canvas *canvas) const
+QColor ManagedColor::colorForCanvas() const
 {
-    QColor c = QColor(0,0,0);
-    if (canvas && canvas->displayColorConverter() && canvas->displayColorConverter()->displayRendererInterface()) {
-        KoColorDisplayRendererInterface *converter = canvas->displayColorConverter()->displayRendererInterface();
-        if (converter) {
-            c = converter->toQColor(d->color);
-        } else {
-            c = KoDumbColorDisplayRenderer::instance()->toQColor(d->color);
-        }
-    } else {
-        c = KoDumbColorDisplayRenderer::instance()->toQColor(d->color);
-    }
-    return c;
+    return KoDumbColorDisplayRenderer::instance()->toQColor(d->color);
 }
 
-ManagedColor *ManagedColor::fromQColor(const QColor &qcolor, Canvas *canvas)
+ManagedColor *ManagedColor::fromQColor(const QColor &qcolor)
 {
-    KoColor c;
-    if (canvas && canvas->displayColorConverter() && canvas->displayColorConverter()->displayRendererInterface()) {
-        KoColorDisplayRendererInterface *converter = canvas->displayColorConverter()->displayRendererInterface();
-        if (converter) {
-            c = converter->approximateFromRenderedQColor(qcolor);
-        } else {
-            c = KoDumbColorDisplayRenderer::instance()->approximateFromRenderedQColor(qcolor);
-        }
-    } else {
-        c = KoDumbColorDisplayRenderer::instance()->approximateFromRenderedQColor(qcolor);
-    }
+    const KoColor c = KoDumbColorDisplayRenderer::instance()->approximateFromRenderedQColor(qcolor);
     return new ManagedColor(c);
 }
 

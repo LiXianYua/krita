@@ -8,6 +8,7 @@
 #include <QUuid>
 
 #include <KoColorSpace.h>
+#include <KoColorProfile.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorTransformation.h>
 
@@ -66,13 +67,6 @@
 
 #include "LibKisUtils.h"
 #include <kis_layer_utils.h>
-
-#include "PaintingResources.h"
-#include "KisMainWindow.h"
-#include "kis_canvas2.h"
-#include "KoCanvasResourceProvider.h"
-#include <brushengine/kis_paintop_preset.h>
-
 
 struct Node::Private {
     Private() {}
@@ -825,111 +819,4 @@ KisImageSP Node::image() const
 KisNodeSP Node::node() const
 {
     return d->node;
-}
-
-QString Node::paintAbility()
-{
-    // Taken from KisTool:nodePaintAbility().
-    KisMainWindow *mainWindow = KisPart::instance()->currentMainwindow();
-    KisCanvas2 *canvas = mainWindow->activeView()->canvasBase();
-    if (canvas->resourceManager()->resource(KoCanvasResource::CurrentPaintOpPreset).isNull()) {
-        return "UNPAINTABLE";
-    }
-
-    if (!d->node) {
-        return "UNPAINTABLE";
-    }
-
-    if (d->node->inherits("KisShapeLayer")) {
-        return "VECTOR";
-    }
-    if (d->node->inherits("KisCloneLayer")) {
-        return "CLONE";
-    }
-    if (d->node->paintDevice()) {
-
-        KisPaintOpPresetSP currentPaintOpPreset = canvas->resourceManager()->resource(KoCanvasResource::CurrentPaintOpPreset).value<KisPaintOpPresetSP>();
-        if (currentPaintOpPreset->paintOp().id() == "mypaintbrush") {
-            const KoColorSpace *colorSpace = d->node->paintDevice()->colorSpace();
-            if (colorSpace->colorModelId() != RGBAColorModelID) {
-                return "MYPAINTBRUSH_UNPAINTABLE";
-            }
-        }
-
-        return "PAINT";
-    }
-
-    return "UNPAINTABLE";
-}
-
-void Node::paintLine(const QPointF pointOne, const QPointF pointTwo, double pressureOne, double pressureTwo, const QString strokeStyle)
-{
-    if (paintAbility() != "PAINT") {
-        dbgScript << "Script attempted to use Node::paintLine() on an unpaintable node, ignoring.";
-        return;
-    }
-
-    KisPaintInformation pointOneInfo;
-    pointOneInfo.setPressure(pressureOne);
-    pointOneInfo.setPos(pointOne);
-
-    KisPaintInformation pointTwoInfo;
-    pointTwoInfo.setPressure(pressureTwo);
-    pointTwoInfo.setPos(pointTwo);
-
-    KisFigurePaintingToolHelper helper = PaintingResources::createHelper(d->image, node(), strokeStyle);
-    helper.paintLine(pointOneInfo, pointTwoInfo);
-}
-
-
-void Node::paintRectangle(const QRectF &rect, const QString strokeStyle, const QString fillStyle)
-{
-    if (paintAbility() != "PAINT") {
-        dbgScript << "Script attempted to use Node::paintRectangle() on an unpaintable node, ignoring.";
-        return;
-    }
-
-    // reference class where this stuff is being done. Maybe can use the "facade" like that does for setup?
-    // void KisFigurePaintingToolHelper::paintRect(const QRectF &rect)
-
-    KisFigurePaintingToolHelper helper = PaintingResources::createHelper(d->image, node(), strokeStyle, fillStyle);
-    helper.paintRect(rect);
-}
-
-
-void Node::paintPolygon(const QList<QPointF> listPoint, const QString strokeStyle, const QString fillStyle)
-{
-    if (paintAbility() != "PAINT") {
-        dbgScript << "Script attempted to use Node::paintPolygon() on an unpaintable node, ignoring.";
-        return;
-    }
-
-    // strategy needs points in vPointF format
-    QVector<QPointF> points = points.fromList(listPoint);
-    KisFigurePaintingToolHelper helper = PaintingResources::createHelper(d->image, node(), strokeStyle, fillStyle);
-    helper.paintPolygon(points);
-}
-
-
-void Node::paintEllipse(const QRectF &rect, const QString strokeStyle, const QString fillStyle)
-{
-    if (paintAbility() != "PAINT") {
-        dbgScript << "Script attempted to use Node::paintEllipse() on an unpaintable node, ignoring.";
-        return;
-    }
-
-    KisFigurePaintingToolHelper helper = PaintingResources::createHelper(d->image, node(), strokeStyle, fillStyle);
-    helper.paintEllipse(rect);
-}
-
-
-void Node::paintPath(const QPainterPath &path, const QString strokeStyle, const QString fillStyle)
-{
-    if (paintAbility() != "PAINT") {
-        dbgScript << "Script attempted to use Node::paintPath() on an unpaintable node, ignoring.";
-        return;
-    }
-
-    KisFigurePaintingToolHelper helper = PaintingResources::createHelper(d->image, node(), strokeStyle, fillStyle);
-    helper.paintPainterPath(path);
 }

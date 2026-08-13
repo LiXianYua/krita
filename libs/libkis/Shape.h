@@ -177,22 +177,6 @@ public Q_SLOTS:
     QString toSvg(bool prependStyles = false, bool stripTextMode = true);
 
     /**
-     * @brief select selects the shape.
-     */
-    void select();
-
-    /**
-     * @brief deselect deselects the shape.
-     */
-    void deselect();
-
-    /**
-     * @brief isSelected
-     * @return whether the shape is selected.
-     */
-    bool isSelected();
-
-    /**
      * @brief parentShape
      * @return the parent GroupShape of the current shape.
      */

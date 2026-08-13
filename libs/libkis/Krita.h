@@ -7,15 +7,11 @@
 #define LIBKIS_KRITA_H
 
 #include <QObject>
-#include <QAction>
 
 #include "kritalibkis_export.h"
 #include "libkis.h"
 
-#include "Extension.h"
 #include "Document.h"
-#include "Window.h"
-#include "View.h"
 #include "Notifier.h"
 
 
@@ -33,18 +29,6 @@ public:
     ~Krita() override;
 
 public Q_SLOTS:
-
-
-    /**
-     * @return the currently active document, if there is one.
-     */
-    Document* activeDocument() const;
-
-    /**
-     * @brief setActiveDocument activates the first view that shows the given document
-     * @param value the document we want to activate
-     */
-    void setActiveDocument(Document* value);
 
     /**
      * @brief batchmode determines whether the script is run in batch mode. If batchmode
@@ -64,24 +48,9 @@ public Q_SLOTS:
     void setBatchmode(bool value);
 
     /**
-     * @return return a list of all actions for the currently active mainWindow.
-     */
-    QList<QAction*> actions() const;
-
-    /**
-     * @return the action that has been registered under the given name, or 0 if no such action exists.
-     */
-    QAction *action(const QString &name) const;
-
-    /**
      * @return a list of all open Documents
      */
     QList<Document*> documents() const;
-
-    /**
-     * @return a list of all the dockers
-     */
-    QList<QDockWidget*> dockers() const;
 
     /**
      * @brief Filters are identified by an internal name. This function returns a list
@@ -154,7 +123,7 @@ public Q_SLOTS:
 
     /**
      * @brief notifier the Notifier singleton emits signals when documents are opened and
-     * closed, the configuration changes, views are opened and closed or windows are opened.
+     * closed or the configuration changes.
      * @return the notifier object
      */
     Notifier *notifier() const;
@@ -167,21 +136,6 @@ public Q_SLOTS:
      * @return the version string including git sha1 if Krita was built from git
      */
     QString version() const;
-
-    /**
-     * @return a list of all views. A Document can be shown in more than one view.
-     */
-    QList<View*> views() const;
-
-    /**
-     * @return the currently active window or None if there is no window
-     */
-    Window *activeWindow() const;
-
-    /**
-     * @return a list of all windows
-     */
-    QList<Window *> windows() const;
 
     /**
      * @brief resources returns a list of Resource objects of the given type
@@ -215,15 +169,11 @@ public Q_SLOTS:
      *
      * The document will have one transparent layer.
      *
-     * To create a new document and show it, do something like:
+     * To create a new document, do something like:
 @code
 from Krita import *
 
-def add_document_to_window():
-    d = Application.createDocument(100, 100, "Test", "RGBA", "U8", "", 120.0)
-    Application.activeWindow().addView(d)
-
-add_document_to_window()
+d = Application.createDocument(100, 100, "Test", "RGBA", "U8", "", 120.0)
 @endcode
      *
      * @param width the width in pixels
@@ -261,30 +211,6 @@ add_document_to_window()
     Document *openDocument(const QString &filename);
 
     /**
-     * @brief openWindow create a new main window. The window is not shown by default.
-     */
-    Window *openWindow();
-
-    /**
-     * @brief addExtension add the given plugin to Krita. There will be a single instance of each Extension in the Krita process.
-     * @param extension the extension to add.
-     */
-    void addExtension(Extension* extension);
-
-    /**
-     * return a list with all registered extension objects.
-     */
-    QList<Extension*> extensions();
-
-    /**
-     * @brief addDockWidgetFactory Add the given docker factory to the application. For scripts
-     * loaded on startup, this means that every window will have one of the dockers created by the
-     * factory.
-     * @param factory The factory object.
-     */
-    void addDockWidgetFactory(DockWidgetFactoryBase* factory );
-
-    /**
      * @brief writeSetting write the given setting under the given name to the kritarc file in
      * the given settings group.
      * @param group The group the setting belongs to. If empty, then the setting is written in the
@@ -305,14 +231,6 @@ add_document_to_window()
     QString readSetting(const QString &group, const QString &name, const QString &defaultValue);
 
     /**
-     * @brief icon
-     * This allows you to get icons from Krita's internal icons.
-     * @param iconName name of the icon.
-     * @return the icon related to this name.
-     */
-    QIcon icon(QString &iconName) const;
-
-    /**
      * @brief instance retrieve the singleton instance of the Application object.
      */
     static Krita* instance();
@@ -325,12 +243,6 @@ add_document_to_window()
 
 
     static QString getAppDataLocation();
-
-private Q_SLOTS:
-
-    /// This is called from the constructor of the window, before the xmlgui file is loaded
-    void mainWindowIsBeingCreated(KisMainWindow *window);
-
 
 private:
     struct Private;

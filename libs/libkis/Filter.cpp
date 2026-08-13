@@ -5,26 +5,18 @@
  */
 #include "Filter.h"
 
-#include <KoCanvasResourceProvider.h>
-
-#include <kis_canvas_resource_provider.h>
 #include <kis_filter.h>
 #include <kis_properties_configuration.h>
 #include <kis_filter_configuration.h>
 #include <kis_filter_manager.h>
 #include <kis_filter_registry.h>
-#include <KisDocument.h>
 #include <kis_paint_device.h>
 #include <kis_paint_device_frames_interface.h>
-#include <KisPart.h>
-#include <KisView.h>
 
 #include <strokes/kis_filter_stroke_strategy.h>
 #include <krita_utils.h>
 #include <KisGlobalResourcesInterface.h>
 
-#include "Krita.h"
-#include "Document.h"
 #include "InfoObject.h"
 #include "Node.h"
 
@@ -121,17 +113,6 @@ bool Filter::startFilter(Node *node, int x, int y, int w, int h)
     }
 
     KisResourcesSnapshotSP resources = new KisResourcesSnapshot(image, node->node());
-
-    Document *document = Krita::instance()->activeDocument();
-    if (document && KisPart::instance()->viewCount(document->document()) > 0) {
-        Q_FOREACH (QPointer<KisView> view, KisPart::instance()->views()) {
-            if (view && view->document() == document->document()) {
-                resources = new KisResourcesSnapshot(image, node->node(), view->resourceProvider()->resourceManager());
-                break;
-            }
-        }
-    }
-    delete document;
 
     KisStrokeId currentStrokeId = image->startStroke(new KisFilterStrokeStrategy(filter,
                                                                                  KisFilterConfigurationSP(filterConfig),

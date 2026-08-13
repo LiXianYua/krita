@@ -24,8 +24,6 @@ class KoColor;
  *
  * Krita has two color management systems. LCMS and OCIO.
  * LCMS is the one handling the ICC profile stuff, and the major one handling that ManagedColor deals with.
- * OCIO support is only in the display of the colors. ManagedColor has some support for it in colorForCanvas()
- *
  * All colors in Krita are color managed. QColors are understood as RGB-type colors in the sRGB space.
  *
  * We recommend you make a color like this:
@@ -39,7 +37,7 @@ class KoColor;
  * yellowComponents[3] = 1.0
  *
  * colorYellow.setComponents(yellowComponents)
- * QColor yellow = colorYellow.colorForCanvas(canvas)
+ * QColor yellow = colorYellow.colorForCanvas()
  * @endcode
  */
 class KRITALIBKIS_EXPORT ManagedColor : public QObject
@@ -62,21 +60,17 @@ public:
     bool operator==(const ManagedColor &other) const;
 
     /**
-     * @brief colorForCanvas
-     * @param canvas the canvas whose color management you'd like to use. In Krita, different views have
-     * separate canvasses, and these can have different OCIO configurations active.
-     * @return the QColor as it would be displaying on the canvas. This result can be used to draw widgets with
-     * the correct configuration applied.
+     * @brief colorForCanvas convert this managed color to an sRGB QColor.
+     * @return the converted QColor.
      */
-    QColor colorForCanvas(Canvas *canvas) const;
+    QColor colorForCanvas() const;
 
     /**
      * @brief fromQColor is the (approximate) reverse of colorForCanvas()
      * @param qcolor the QColor to convert to a KoColor.
-     * @param canvas the canvas whose color management you'd like to use.
-     * @return the approximated ManagedColor, to use for canvas resources.
+     * @return the approximated ManagedColor.
      */
-    static ManagedColor *fromQColor(const QColor &qcolor, Canvas *canvas = 0);
+    static ManagedColor *fromQColor(const QColor &qcolor);
 
     /**
      * colorDepth A string describing the color depth of the image:
