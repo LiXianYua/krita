@@ -256,6 +256,15 @@ cd /home/liyang/projects-ssd/krita && codegraph explore "<符号名或问题>"
 每个 target 用 `$PK/.exec/shell/<target>/` 的独立薄壳 CMake 工程构建（I-01 产出，未完成前不存在），
 **不要试图让全树 `ninja` 通过**——那要等 M5 合拢。删减期则相反，全树应始终可构建。
 
+## 大输出别灌进上下文（所有层级都适用）
+
+跑命令、扫全仓、读日志这类**输出量不可预测**的活，用 context-mode MCP
+（`ctx_batch_execute` 批量跑 + 就地检索、`ctx_execute*` 在沙箱里算完只打结论），
+不要裸 `Bash` 之后整段读回来。**你的上下文每轮全量重发**，一次几百行的 grep 输出
+会在你剩下的每一个 turn 里重复计费。
+
+写文件仍然用 `Write`/`Edit`——`ctx_execute*` 是沙箱，写不进磁盘。
+
 ## 工作方法
 
 - 一个 target 的完整生命周期：`$PK/docs/任务做法.md` **W0**（动手前先读）
