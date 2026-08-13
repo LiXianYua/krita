@@ -40,7 +40,6 @@ protected:
 private:
     QPointF project(const QPointF& pt, const QPointF& strokeBegin) const;
     mutable Ellipse m_ellipse;
-    mutable Ellipse m_extraEllipse;
     explicit ConcentricEllipseAssistant(const ConcentricEllipseAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
 };
 

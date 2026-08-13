@@ -21,6 +21,13 @@
 #include <kis_shared.h>
 #include <kis_types.h>
 
+#ifdef KRITA_PAINTING_ASSISTANT_UI_BUILD
+#include <kritaui_export.h>
+#define KRITA_PAINTING_ASSISTANT_EXPORT KRITAUI_EXPORT
+#else
+#define KRITA_PAINTING_ASSISTANT_EXPORT KRITAASSISTANTTOOL_EXPORT
+#endif
+
 class QPainter;
 class QRect;
 class QRectF;
@@ -87,7 +94,7 @@ private:
  * A KisPaintingAssistant is an object that assist the drawing on the canvas.
  * With this class you can implement virtual equivalent to ruler or compass.
  */
-class KRITAASSISTANTTOOL_EXPORT KisPaintingAssistant
+class KRITA_PAINTING_ASSISTANT_EXPORT KisPaintingAssistant
 {
 public:
     KisPaintingAssistant(const QString& id, const QString& name);

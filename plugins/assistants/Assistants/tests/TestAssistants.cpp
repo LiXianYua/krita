@@ -6,25 +6,19 @@
 
 #include "TestAssistants.h"
 
-#include <kis_painting_assistant.h>
+#include <ConcentricEllipseAssistantGeometry.h>
 #include <PerspectiveBasedAssistantHelper.h>
 #include <kis_algebra_2d.h>
 #include <kis_debug.h>
 #include <kis_global.h>
 
-#include <ConcentricEllipseAssistant.h>
-
 void TestAssistants::testConcentricEllipseAdjustLine()
 {
-    ConcentricEllipseAssistantFactory factory;
-    KisPaintingAssistantSP assistant = KisPaintingAssistantSP(factory.createPaintingAssistant());
-    //ConcentricEllipseAssistant* ellipse = new ConcentricEllipseAssistant();
-    ConcentricEllipseAssistant* ellipse = dynamic_cast<ConcentricEllipseAssistant*>(assistant.data());
-    QVERIFY(ellipse);
-
-    ellipse->addHandle(new KisPaintingAssistantHandle(0, 100), HandleType::NORMAL);
-    ellipse->addHandle(new KisPaintingAssistantHandle(100, 0), HandleType::NORMAL);
-    ellipse->addHandle(new KisPaintingAssistantHandle(200, 200), HandleType::NORMAL);
+    const QList<QPointF> handles {
+        QPointF(0, 100),
+        QPointF(100, 0),
+        QPointF(200, 200)
+    };
 
     QPointF begin = QPointF(0, 100);
     //QPointF end = QPointF(100, 5);
@@ -39,7 +33,7 @@ void TestAssistants::testConcentricEllipseAdjustLine()
 
     for (int i = 0; i < ends.size(); i++) {
         QPointF endHere = ends[i];
-        ellipse->adjustLine(endHere, begin);
+        ConcentricEllipseAssistantGeometry::adjustLine(handles, endHere, begin);
         ENTER_FUNCTION() << ends[i] << "=>" << endHere;
     }
 
@@ -53,7 +47,7 @@ void TestAssistants::testConcentricEllipseAdjustLine()
 
     for (int i = 0; i < ends.size(); i++) {
         QPointF endHere = ends[i];
-        ellipse->adjustLine(endHere, begin);
+        ConcentricEllipseAssistantGeometry::adjustLine(handles, endHere, begin);
         ENTER_FUNCTION() << ends[i] << "=>" << endHere;
     }
 

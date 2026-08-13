@@ -141,6 +141,7 @@ set(kritaui_LIB_SRCS
     kis_model_index_converter_show_all.cpp
     KisMultiSurfaceStateManager.cpp
     KisLayerThumbnailCache.cpp
+    kis_painting_assistant.cc
     kis_painting_assistants_decoration.cpp
     kis_selection_actions_panel.cpp
     kis_selection_actions_panel_handle.cpp
@@ -545,6 +546,10 @@ if (ENABLE_UPDATERS)
     	utils/KisUpdaterStatus.cpp
 		)
 endif()
+
+set_source_files_properties(kis_painting_assistant.cc PROPERTIES
+    COMPILE_DEFINITIONS KRITA_PAINTING_ASSISTANT_UI_BUILD
+)
 
 
 if(APPLE)

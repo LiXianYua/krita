@@ -8,6 +8,7 @@
 
 #include <QXmlStreamReader>
 #include "kis_painting_assistant.h"
+#include "kis_painting_assistant_handle_p.h"
 #include "kis_coordinates_converter.h"
 #include "kis_debug.h"
 #include "kis_dom_utils.h"
@@ -16,7 +17,6 @@
 
 #include <KoStore.h>
 
-#include <QGlobalStatic>
 #include <QPen>
 #include <QPainter>
 #include <QPixmapCache>
@@ -25,74 +25,6 @@
 #include <QPainterPath>
 #include <QDebug>
 #include <memory>
-
-Q_GLOBAL_STATIC(KisPaintingAssistantFactoryRegistry, s_instance)
-
-struct KisPaintingAssistantHandle::Private {
-    QList<KisPaintingAssistant*> assistants;
-    char handle_type;
-};
-
-KisPaintingAssistantHandle::KisPaintingAssistantHandle(double x, double y) : QPointF(x, y), d(new Private)
-{
-}
-
-KisPaintingAssistantHandle::KisPaintingAssistantHandle(QPointF p) : QPointF(p), d(new Private)
-{
-}
-
-KisPaintingAssistantHandle::KisPaintingAssistantHandle(const KisPaintingAssistantHandle& rhs)
-    : QPointF(rhs)
-    , KisShared()
-    , d(new Private)
-{
-    dbgUI << "KisPaintingAssistantHandle ctor";
-}
-
-KisPaintingAssistantHandle& KisPaintingAssistantHandle::operator=(const QPointF &  pt)
-{
-    setX(pt.x());
-    setY(pt.y());
-    return *this;
-}
-
-void KisPaintingAssistantHandle::setType(char type)
-{
-    d->handle_type = type;
-}
-
-char KisPaintingAssistantHandle::handleType() const
-{
-    return d->handle_type;
-}
-
-KisPaintingAssistant *KisPaintingAssistantHandle::chiefAssistant() const
-{
-    return !d->assistants.isEmpty() ? d->assistants.first() : 0;
-}
-
-KisPaintingAssistantHandle::~KisPaintingAssistantHandle()
-{
-    Q_ASSERT(d->assistants.empty());
-    delete d;
-}
-
-void KisPaintingAssistantHandle::registerAssistant(KisPaintingAssistant* assistant)
-{
-    Q_ASSERT(!d->assistants.contains(assistant));
-    d->assistants.append(assistant);
-}
-
-void KisPaintingAssistantHandle::unregisterAssistant(KisPaintingAssistant* assistant)
-{
-    d->assistants.removeOne(assistant);
-    Q_ASSERT(!d->assistants.contains(assistant));
-}
-
-bool KisPaintingAssistantHandle::containsAssistant(KisPaintingAssistant* assistant) const
-{
-    return d->assistants.contains(assistant);
-}
 
 void KisPaintingAssistantHandle::mergeWith(KisPaintingAssistantHandleSP handle)
 {
@@ -1130,35 +1062,4 @@ QList<KisPaintingAssistantSP> KisPaintingAssistant::cloneAssistantList(const QLi
         clonedList << (*i)->clone(handleMap);
     }
     return clonedList;
-}
-
-
-
-/*
- * KisPaintingAssistantFactory classes
-*/
-
-KisPaintingAssistantFactory::KisPaintingAssistantFactory()
-{
-}
-
-KisPaintingAssistantFactory::~KisPaintingAssistantFactory()
-{
-}
-
-KisPaintingAssistantFactoryRegistry::KisPaintingAssistantFactoryRegistry()
-{
-}
-
-KisPaintingAssistantFactoryRegistry::~KisPaintingAssistantFactoryRegistry()
-{
-    Q_FOREACH (const QString &id, keys()) {
-        delete get(id);
-    }
-    dbgRegistry << "deleting KisPaintingAssistantFactoryRegistry ";
-}
-
-KisPaintingAssistantFactoryRegistry* KisPaintingAssistantFactoryRegistry::instance()
-{
-    return s_instance;
 }

@@ -7,6 +7,7 @@
  */
 
 #include "ConcentricEllipseAssistant.h"
+#include "ConcentricEllipseAssistantGeometry.h"
 
 #include <klocalizedstring.h>
 #include "kis_debug.h"
@@ -33,32 +34,14 @@ KisPaintingAssistantSP ConcentricEllipseAssistant::clone(QMap<KisPaintingAssista
 ConcentricEllipseAssistant::ConcentricEllipseAssistant(const ConcentricEllipseAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap)
     : KisPaintingAssistant(rhs, handleMap)
     , m_ellipse(rhs.m_ellipse)
-    , m_extraEllipse(rhs.m_extraEllipse)
 {
 }
 
 QPointF ConcentricEllipseAssistant::project(const QPointF& pt, const QPointF& strokeBegin) const
 {
     Q_ASSERT(isAssistantComplete());
-    m_ellipse.set(*handles()[0], *handles()[1], *handles()[2]);
-
-    //calculate ratio
-    QPointF initial = m_ellipse.project(strokeBegin);
-    QPointF center = m_ellipse.boundingRect().center();
-    qreal Ratio = QLineF(center, strokeBegin).length() /QLineF(center, initial).length();
-
-    //calculate the points of the extrapolated ellipse.
-    QLineF extrapolate0 = QLineF(center, *handles()[0]);
-    extrapolate0.setLength(extrapolate0.length()*Ratio);
-    QLineF extrapolate1 = QLineF(center, *handles()[1]);
-    extrapolate1.setLength(extrapolate1.length()*Ratio);
-    QLineF extrapolate2 = QLineF(center, *handles()[2]);
-    extrapolate2.setLength(extrapolate2.length()*Ratio);
-
-    //set the extrapolation ellipse.
-    m_extraEllipse.set(extrapolate0.p2(), extrapolate1.p2(), extrapolate2.p2());
-
-    return m_extraEllipse.project(pt);
+    return ConcentricEllipseAssistantGeometry::project(
+        {*handles()[0], *handles()[1], *handles()[2]}, pt, strokeBegin);
 }
 
 QPointF ConcentricEllipseAssistant::adjustPosition(const QPointF& pt, const QPointF& strokeBegin, const bool /*snapToAny*/, qreal /*moveThresholdPt*/)
