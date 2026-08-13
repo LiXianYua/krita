@@ -31,13 +31,12 @@ worktree 里——它们属于 `paint_tips` 仓库，`krita/` 是完全独立的
 不合并分支、不改任务状态**——那些都是主会话的事，见
 `$PK/.exec/roles/task-agent.md`「你不做」。
 
-`drive` skill 的真源是 `$PK/.claude/skills/drive/SKILL.md`（三端共享），调用方式如下：
+`drive` skill 的真源是 `$PK/.claude/skills/drive/SKILL.md`（Claude/Codex 共享），调用方式如下：
 
 | 执行器 | 调用方式 |
 |---|---|
 | Claude Code | `/drive` |
 | Codex | `$drive`；也可由描述隐式发现 |
-| OpenCode | `/drive` |
 
 ## 你怎么跑
 
