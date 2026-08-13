@@ -47,6 +47,28 @@ struct SharedGenericDeleter {
     template <class X>
     void operator()(X *p) const { delete p; }
 };
+static int g_resetDeleterSawBase = 0;
+static int g_resetDeleterSawDerived = 0;
+struct SharedResetTypeDeleter {
+    void operator()(SharedNonVirtualBase *p) const
+    {
+        ++g_resetDeleterSawBase;
+        delete static_cast<SharedNonVirtualDerived *>(p);
+    }
+    void operator()(SharedNonVirtualDerived *p) const
+    {
+        ++g_resetDeleterSawDerived;
+        delete p;
+    }
+};
+
+template <class Pointer>
+static auto hasDerivedResetTemplate(int) -> decltype(
+    static_cast<void (Pointer::*)(SharedNonVirtualDerived *)>(
+        &Pointer::template reset<SharedNonVirtualDerived>),
+    std::true_type());
+template <class>
+static std::false_type hasDerivedResetTemplate(...);
 
 void PkSharedPointerCase::init() { g_sharedLive = 0; }
 
@@ -125,28 +147,25 @@ void PkSharedPointerCase::constructorsPreserveDynamicDeletionType()
 // Consequently both reset forms use the exposed base type for deletion.
 void PkSharedPointerCase::resetsUseExposedDeletionType()
 {
+    typedef PkSharedPointer<SharedNonVirtualBase> Pointer;
+    PK_VERIFY(!decltype(hasDerivedResetTemplate<Pointer>(0))::value);
+
     const auto resetCounts = [] {
         g_nonVirtualBaseDestroyed = 0;
         g_nonVirtualDerivedDestroyed = 0;
     };
-    const auto verifyBaseOnlyDestroyed = [] {
-        PK_COMPARE(g_nonVirtualBaseDestroyed, 1);
-        PK_COMPARE(g_nonVirtualDerivedDestroyed, 0);
-    };
 
     resetCounts();
+    g_resetDeleterSawBase = 0;
+    g_resetDeleterSawDerived = 0;
     {
-        PkSharedPointer<SharedNonVirtualBase> p;
-        p.reset(new SharedNonVirtualDerived);
+        Pointer p;
+        p.reset(new SharedNonVirtualDerived, SharedResetTypeDeleter());
     }
-    verifyBaseOnlyDestroyed();
-
-    resetCounts();
-    {
-        PkSharedPointer<SharedNonVirtualBase> p;
-        p.reset(new SharedNonVirtualDerived, SharedGenericDeleter());
-    }
-    verifyBaseOnlyDestroyed();
+    PK_COMPARE(g_nonVirtualBaseDestroyed, 1);
+    PK_COMPARE(g_nonVirtualDerivedDestroyed, 1);
+    PK_COMPARE(g_resetDeleterSawBase, 1);
+    PK_COMPARE(g_resetDeleterSawDerived, 0);
 }
 
 // 探针 P6：dynamicCast 到无关类型返回 null；对 null 做 dynamicCast 不崩、返回 null
