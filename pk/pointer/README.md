@@ -143,6 +143,10 @@ operator*/operator->`，Krita 全仓对数组指针的调用点用不到它们�
   `reset` 直接转发给 `std::shared_ptr` 对应构造，不因判据 A 短路空指针。
   出处：探针 D3。
 
+探针 P18 直接并列输出 Qt/Pk 的构造与 reset 形状。默认 reset 的固定 `T*` 只做
+编译期 SFINAE 检查；deleter reset 用记录静态入参类型的安全 deleter，并在删除前
+下转为实际派生类型，因此不会通过非虚基类指针删除派生对象。
+
 设计决定"组合，不是继承"的三点理由见 `docs/superpowers/plans/R-04.md` §0 末段，
 不在此重复。
 

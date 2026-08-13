@@ -1,10 +1,11 @@
-// R-04 探针：问真 Qt 智能指针的语义，不推断。
-// 编译运行方式见同目录 run_probe.sh；原始输出贴进 plan。
+// R-04 探针：问真 Qt 智能指针的语义，不推断；P18 同时与 Pk 对照。
+// 编译运行方式见同目录 run_probe.sh；初始原始输出贴进 plan，修订证据在 Task 4 报告。
 #include <QSharedPointer>
 #include <QScopedPointer>
 #include <QWeakPointer>
 #include <QScopedArrayPointer>
 #include <QHash>
+#include "../PkSharedPointer.h"
 #include <cstdio>
 #include <memory>
 #include <type_traits>
@@ -30,6 +31,7 @@ static void fnDeleter(Base *p) { ++g_deleterCalls; delete p; }
 static int g_deleteBaseDestroyed = 0;
 static int g_deleteDerivedDestroyed = 0;
 struct DeleteBase {
+protected:
     ~DeleteBase() { ++g_deleteBaseDestroyed; }
 };
 struct DeleteDerived : DeleteBase {
@@ -39,6 +41,38 @@ struct TypePreservingDeleter {
     template <class X>
     void operator()(X *p) const { delete p; }
 };
+
+static int g_resetDeleterSawBase = 0;
+static int g_resetDeleterSawDerived = 0;
+struct SafeResetTypeDeleter {
+    void operator()(DeleteBase *p) const
+    {
+        ++g_resetDeleterSawBase;
+        // Every call below supplies a real DeleteDerived. Downcast before delete so the
+        // non-virtual base is never used as the static type of a delete expression.
+        delete static_cast<DeleteDerived *>(p);
+    }
+    void operator()(DeleteDerived *p) const
+    {
+        ++g_resetDeleterSawDerived;
+        delete p;
+    }
+};
+
+template <class Pointer>
+static auto hasDerivedDefaultResetTemplate(int) -> decltype(
+    static_cast<void (Pointer::*)(DeleteDerived *)>(
+        &Pointer::template reset<DeleteDerived>),
+    std::true_type());
+template <class>
+static std::false_type hasDerivedDefaultResetTemplate(...);
+
+static_assert(
+    !decltype(hasDerivedDefaultResetTemplate<QSharedPointer<DeleteBase>>(0))::value,
+    "QSharedPointer::reset must expose fixed T*, not a reset<X>(X*) template");
+static_assert(
+    !decltype(hasDerivedDefaultResetTemplate<PkSharedPointer<DeleteBase>>(0))::value,
+    "PkSharedPointer::reset must match Qt's fixed-T* API shape");
 
 static int g_nullDeleterCalls = 0;
 static int g_nullDeleterSawNull = 0;
@@ -52,6 +86,40 @@ struct NullBaseDeleter {
 };
 
 #define LINE(fmt, ...) std::printf(fmt "\n", ##__VA_ARGS__)
+
+template <template <class> class SharedPointer>
+static void probeDeletionSemantics(const char *label)
+{
+    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
+    { SharedPointer<DeleteBase> p(new DeleteDerived); }
+    LINE("%s ctor-default base=%d derived=%d", label,
+         g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
+
+    const bool hasDerivedReset =
+        decltype(hasDerivedDefaultResetTemplate<SharedPointer<DeleteBase>>(0))::value;
+    LINE("%s reset-default fixed-T-star=%d derived-reset-template=%d", label,
+         !hasDerivedReset, hasDerivedReset);
+
+    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
+    { SharedPointer<DeleteBase> p(new DeleteDerived, TypePreservingDeleter()); }
+    LINE("%s ctor-deleter base=%d derived=%d", label,
+         g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
+
+    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
+    g_resetDeleterSawBase = g_resetDeleterSawDerived = 0;
+    {
+        SharedPointer<DeleteBase> p;
+        p.reset(new DeleteDerived, SafeResetTypeDeleter());
+    }
+    LINE("%s reset-deleter static-base=%d static-derived=%d base=%d derived=%d", label,
+         g_resetDeleterSawBase, g_resetDeleterSawDerived,
+         g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
+
+    g_nullDeleterCalls = g_nullDeleterSawNull = 0;
+    { SharedPointer<Base> p(nullptr, NullBaseDeleter()); }
+    LINE("%s nullptr-deleter calls=%d sawNull=%d", label,
+         g_nullDeleterCalls, g_nullDeleterSawNull);
+}
 
 int main()
 {
@@ -253,25 +321,8 @@ int main()
     LINE("(编译矩阵见 compile_matrix 部分)");
 
     LINE("== P18 构造与 reset 的删除类型 + nullptr deleter ==");
-    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
-    { QSharedPointer<DeleteBase> p(new DeleteDerived); }
-    LINE("qt   ctor-default base=%d derived=%d", g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
-
-    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
-    { QSharedPointer<DeleteBase> p; p.reset(new DeleteDerived); }
-    LINE("qt   reset-default base=%d derived=%d", g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
-
-    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
-    { QSharedPointer<DeleteBase> p(new DeleteDerived, TypePreservingDeleter()); }
-    LINE("qt   ctor-deleter base=%d derived=%d", g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
-
-    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
-    { QSharedPointer<DeleteBase> p; p.reset(new DeleteDerived, TypePreservingDeleter()); }
-    LINE("qt   reset-deleter base=%d derived=%d", g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
-
-    g_nullDeleterCalls = g_nullDeleterSawNull = 0;
-    { QSharedPointer<Base> p(nullptr, NullBaseDeleter()); }
-    LINE("qt   nullptr-deleter calls=%d sawNull=%d", g_nullDeleterCalls, g_nullDeleterSawNull);
+    probeDeletionSemantics<QSharedPointer>("qt  ");
+    probeDeletionSemantics<PkSharedPointer>("pk  ");
 
     LINE("DONE live=%d", g_live);
     return 0;
