@@ -37,39 +37,83 @@ desc() {
     esac
 }
 
-# 每条注入的 apply/revert 只碰它自己需要的文件，写成 sed 的精确原文匹配——
-# 匹配不到就说明源码已经变了，宁可报错也不要在错误的地方打洞。
+# 每条注入的 apply/revert 只碰它自己需要的文件。替换前必须精确匹配预期次数，
+# 替换后还必须能在文件里读回替换文本；否则宁可报错，也不能拿未改动的基线
+# 继续跑 oracle/单测而把假阴性报成变异测试通过。
+# Keep the original substitution cardinality: Perl s/// changes the first matching
+# block. expected_count still makes any source-layout drift (including zero matches)
+# fail before that write occurs.
+replace_checked() {
+    local file="$1"
+    local expected="$2"
+    local replacement="$3"
+    local expected_count="${4:-1}"
+
+    EXPECTED="$expected" REPLACEMENT="$replacement" EXPECTED_COUNT="$expected_count" perl -0pi -e '
+        my $expected = $ENV{EXPECTED};
+        my $replacement = $ENV{REPLACEMENT};
+        my $expected_count = $ENV{EXPECTED_COUNT};
+        my $matches = () = $_ =~ /\Q$expected\E/g;
+        die "$ARGV: expected $expected_count source matches, found $matches\\n"
+            unless $matches == $expected_count;
+        s/\Q$expected\E/$replacement/;
+        die "$ARGV: replacement text was not written\\n"
+            if index($_, $replacement) < 0;
+    ' "$file"
+}
+
 apply() {
     case "$1" in
         1)
-            sed -i 's/bool isNull() const noexcept { return m_p.get() == nullptr; }/bool isNull() const noexcept { return m_p.use_count() == 0; }/' "$SHARED_H"
+            replace_checked "$SHARED_H" \
+                'bool isNull() const noexcept { return m_p.get() == nullptr; }' \
+                'bool isNull() const noexcept { return m_p.use_count() == 0; }'
             ;;
         2)
-            sed -i 's/bool isNull() const noexcept { return m_weak.expired() || m_value == nullptr; }/bool isNull() const noexcept { return m_weak.expired(); }/' "$SHARED_H"
+            replace_checked "$SHARED_H" \
+                'bool isNull() const noexcept { return m_weak.expired() || m_value == nullptr; }' \
+                'bool isNull() const noexcept { return m_weak.expired(); }'
             ;;
         3)
-            perl -0pi -e 's/    void reset\(T \*other = nullptr\)\n    \{\n        if \(m_p == other\) return;\n        T \*old = m_p;/    void reset(T *other = nullptr)\n    {\n        T *old = m_p;/' "$SCOPED_H"
+            replace_checked "$SCOPED_H" \
+                $'    void reset(T *other = nullptr)\n    {\n        if (m_p == other) return;\n        T *old = m_p;' \
+                $'    void reset(T *other = nullptr)\n    {\n        T *old = m_p;' \
+                2
             ;;
         4)
-            sed -i 's/PkScopedPointer(PkScopedPointer &&) = delete;/PkScopedPointer(PkScopedPointer \&\&) = default;/' "$SCOPED_H"
+            replace_checked "$SCOPED_H" \
+                'PkScopedPointer(PkScopedPointer &&) = delete;' \
+                'PkScopedPointer(PkScopedPointer &&) = default;'
             ;;
         5)
-            perl -0pi -e 's/    typedef std::shared_ptr<T> PkSharedPointer::\*RestrictedBool;\n    operator RestrictedBool\(\) const noexcept \{ return isNull\(\) \? nullptr : &PkSharedPointer::m_p; \}/    explicit operator bool() const noexcept { return !isNull(); }/' "$SHARED_H"
+            replace_checked "$SHARED_H" \
+                $'    typedef std::shared_ptr<T> PkSharedPointer::*RestrictedBool;\n    operator RestrictedBool() const noexcept { return isNull() ? nullptr : &PkSharedPointer::m_p; }' \
+                '    explicit operator bool() const noexcept { return !isNull(); }'
             ;;
         6)
-            sed -i 's/PkSharedPointer(T \*ptr, Deleter d) : m_p(ptr, d) {}/PkSharedPointer(T *ptr, Deleter d) { if (ptr) m_p = std::shared_ptr<T>(ptr, d); }/' "$SHARED_H"
+            replace_checked "$SHARED_H" \
+                'PkSharedPointer(T *ptr, Deleter d) : m_p(ptr, d) {}' \
+                'PkSharedPointer(T *ptr, Deleter d) { if (ptr) m_p = std::shared_ptr<T>(ptr, d); }'
             ;;
         7)
-            sed -i 's/std::dynamic_pointer_cast<X>(m_p)/std::static_pointer_cast<X>(m_p)/' "$SHARED_H"
+            replace_checked "$SHARED_H" \
+                'std::dynamic_pointer_cast<X>(m_p)' \
+                'std::static_pointer_cast<X>(m_p)'
             ;;
         8)
-            sed -i 's/~PkScopedArrayPointer() { delete\[\] m_p; }/~PkScopedArrayPointer() { delete m_p; }/' "$SCOPED_H"
+            replace_checked "$SCOPED_H" \
+                '~PkScopedArrayPointer() { delete[] m_p; }' \
+                '~PkScopedArrayPointer() { delete m_p; }'
             ;;
         9a)
-            sed -i 's/void reset(T \*ptr) { m_p.reset(ptr); }/void reset(T *ptr) { (void)ptr; m_p.reset(); }/' "$SHARED_H"
+            replace_checked "$SHARED_H" \
+                'void reset(T *ptr) { m_p.reset(ptr); }' \
+                'void reset(T *ptr) { (void)ptr; m_p.reset(); }'
             ;;
         9b)
-            sed -i 's/void reset(T \*ptr, Deleter d) { m_p.reset(ptr, d); }/void reset(T *ptr, Deleter d) { (void)d; m_p.reset(ptr); }/' "$SHARED_H"
+            replace_checked "$SHARED_H" \
+                'void reset(T *ptr, Deleter d) { m_p.reset(ptr, d); }' \
+                'void reset(T *ptr, Deleter d) { (void)d; m_p.reset(ptr); }'
             ;;
         *) echo "未知编号: $1" >&2; return 1;;
     esac
