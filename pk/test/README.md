@@ -219,6 +219,19 @@
   顺序不敏感（各条模式后面都跟着硬边界，不存在互相吃掉前缀的情况，见
   `rename.sed` 文件头注释），S-00 可以直接复用这份表对全仓跑 sed。§1 的表加
   一项，这里就要加一条；§2 新增排除项若有真实调用点，也要加一条。
+- **⚠ 不要把「小写 `q` 前缀的自由函数一律改成 `pk`」当成通则**——本表里
+  `qFuzzyCompare → pkFuzzyCompare`（规则 15）会让人这么以为，但 **`pk/container` 的
+  `qHash` / `qMakePair` 是明确不改名的**（见 `pk/container/PkHashFunctions.h` 类头与
+  `PkContainerAlgo.h` 的「名字保持小写 q 前缀、不改名」）。
+
+  **区别在约束不在风格**：`qFuzzyCompare` 的调用点反正都要 sed，改名零代价；而
+  **Krita 全仓 18 处自定义 `unsigned int qHash(const X &)` 重载在 S 线是原样保留的**，
+  `PkHash`/`PkSet` 靠 ADL 找它们，改了名就找不到。
+
+  改错的代价是**编译期报错**（`PkHashFunctions.h` 的兜底只有指针模板与枚举模板，
+  接不住类类型），不是静默退化——**但那是白跑一轮再回滚**。判断标准：
+  **这个名字有没有「保留侧代码里已经存在、且不打算改的重载」在依赖它**。
+
 - **`QEXPECT_FAIL` 的第三参数不用改名**：Qt 的调用点写的是**裸** `Continue`/`Abort`
   （实测全仓零处写 `QTest::Continue`），命名空间由宏体自己拼。`PK_EXPECT_FAIL`
   照抄了这条，所以 sed 只改宏名就够，不要额外去动第三参数。
