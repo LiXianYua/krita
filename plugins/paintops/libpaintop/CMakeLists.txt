@@ -1,10 +1,7 @@
 set(kritalibpaintop_LIB_SRCS
     kis_brush_based_paintop.cpp
-    KisAutoBrushModel.cpp
-    KisPredefinedBrushModel.cpp
     kis_brush_option.cpp
     KisColorOptionData.cpp
-    KisColorOptionModel.cpp
     kis_color_source.cpp
     kis_color_source_option.cpp
     KisCurveOptionDataUniformProperty.cpp
@@ -13,42 +10,24 @@ set(kritalibpaintop_LIB_SRCS
     KisKritaSensorPack.cpp
     KisCurveOptionDataCommon.cpp
     KisCurveOptionData.cpp
-    KisCurveOptionInputControlsStrategyInterface.cpp
-    KisCurveOptionInputControlsStrategy.cpp
-    KisCurveOptionRangeControlsStrategyInterface.cpp
-    KisCurveRangeModelInterface.cpp
-    KisCurveRangeModel.cpp
-    KisCurveOptionModel.cpp
     KisCurveOption.cpp
-    KisMultiSensorsModel.cpp
     KisDynamicSensorFactory.cpp
     KisDynamicSensorFactoryRegistry.cpp
     KisSimpleDynamicSensorFactory.cpp
     KisSpacingOptionData.cpp
-    KisSpacingOptionModel.cpp
     KisSpacingOption.cpp
     KisMirrorOptionData.cpp
-    KisMirrorOptionModel.cpp
     KisMirrorOption.cpp
     KisSharpnessOptionData.cpp
-    KisSharpnessOptionModel.cpp
     KisSharpnessOption.cpp
     KisScatterOptionData.cpp
-    KisScatterOptionModel.cpp
     KisScatterOption.cpp
     KisAirbrushOptionData.cpp
-    KisAirbrushOptionModel.cpp
-    KisCompositeOpOptionData.cpp
-    KisCompositeOpOptionModel.cpp
     KisPaintingModeOptionData.cpp
-    KisPaintingModeOptionModel.cpp
     KisColorSourceOptionData.cpp
-    KisColorSourceOptionModel.cpp
     KisTextureOptionData.cpp
     KisEmbeddedTextureData.cpp
-    KisTextureOptionModel.cpp
     KisSizeOptionData.cpp
-    KisStandardOptionData.cpp
     KisStandardOptions.cpp
     KisRotationOption.cpp
     KisOpacityOption.cpp
@@ -56,7 +35,6 @@ set(kritalibpaintop_LIB_SRCS
     KisDarkenOption.cpp
     KisHSVOption.cpp
     KisFilterOptionData.cpp
-    KisFilterOptionModel.cpp
     KisDabCacheUtils.cpp
     kis_dab_cache_base.cpp
     kis_dab_cache.cpp
@@ -65,8 +43,6 @@ set(kritalibpaintop_LIB_SRCS
     kis_brush_based_paintop_settings.cpp
     kis_texture_option.cpp
     KisTextureMaskInfo.cpp
-    KisMaskingBrushOption.cpp
-    KisMaskingBrushOptionProperties.cpp
     sensors/KisDynamicSensor.cpp
     sensors/KisDynamicSensors.cpp
     sensors/KisDynamicSensorDrawingAngle.cpp
@@ -80,7 +56,6 @@ set(kritalibpaintop_LIB_SRCS
     KisDynamicSensorFactoryDrawingAngle.cpp
     KisSensorWithLengthModel.cpp
     KisDrawingAngleSensorModel.cpp
-    KisTextBrushModel.cpp
 )
 
 ki18n_wrap_ui(kritalibpaintop_LIB_SRCS
