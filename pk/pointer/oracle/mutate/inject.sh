@@ -92,8 +92,8 @@ apply() {
             ;;
         6)
             replace_checked "$SHARED_H" \
-                'PkSharedPointer(T *ptr, Deleter d) : m_p(ptr, d) {}' \
-                'PkSharedPointer(T *ptr, Deleter d) { if (ptr) m_p = std::shared_ptr<T>(ptr, d); }'
+                'PkSharedPointer(X *ptr, Deleter d) : m_p(ptr, d) {}' \
+                'PkSharedPointer(X *ptr, Deleter d) { if (ptr) m_p = std::shared_ptr<T>(ptr, d); }'
             ;;
         7)
             replace_checked "$SHARED_H" \

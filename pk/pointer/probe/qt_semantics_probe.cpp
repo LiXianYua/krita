@@ -27,6 +27,30 @@ struct NoDefault {
 static int g_deleterCalls = 0;
 static void fnDeleter(Base *p) { ++g_deleterCalls; delete p; }
 
+static int g_deleteBaseDestroyed = 0;
+static int g_deleteDerivedDestroyed = 0;
+struct DeleteBase {
+    ~DeleteBase() { ++g_deleteBaseDestroyed; }
+};
+struct DeleteDerived : DeleteBase {
+    ~DeleteDerived() { ++g_deleteDerivedDestroyed; }
+};
+struct TypePreservingDeleter {
+    template <class X>
+    void operator()(X *p) const { delete p; }
+};
+
+static int g_nullDeleterCalls = 0;
+static int g_nullDeleterSawNull = 0;
+struct NullBaseDeleter {
+    void operator()(Base *p) const
+    {
+        ++g_nullDeleterCalls;
+        g_nullDeleterSawNull = p == nullptr;
+        delete p;
+    }
+};
+
 #define LINE(fmt, ...) std::printf(fmt "\n", ##__VA_ARGS__)
 
 int main()
@@ -227,6 +251,27 @@ int main()
 
     LINE("== P17 QSharedPointer 有无 aliasing ctor / get() / use_count() ==");
     LINE("(编译矩阵见 compile_matrix 部分)");
+
+    LINE("== P18 构造与 reset 的删除类型 + nullptr deleter ==");
+    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
+    { QSharedPointer<DeleteBase> p(new DeleteDerived); }
+    LINE("qt   ctor-default base=%d derived=%d", g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
+
+    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
+    { QSharedPointer<DeleteBase> p; p.reset(new DeleteDerived); }
+    LINE("qt   reset-default base=%d derived=%d", g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
+
+    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
+    { QSharedPointer<DeleteBase> p(new DeleteDerived, TypePreservingDeleter()); }
+    LINE("qt   ctor-deleter base=%d derived=%d", g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
+
+    g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
+    { QSharedPointer<DeleteBase> p; p.reset(new DeleteDerived, TypePreservingDeleter()); }
+    LINE("qt   reset-deleter base=%d derived=%d", g_deleteBaseDestroyed, g_deleteDerivedDestroyed);
+
+    g_nullDeleterCalls = g_nullDeleterSawNull = 0;
+    { QSharedPointer<Base> p(nullptr, NullBaseDeleter()); }
+    LINE("qt   nullptr-deleter calls=%d sawNull=%d", g_nullDeleterCalls, g_nullDeleterSawNull);
 
     LINE("DONE live=%d", g_live);
     return 0;

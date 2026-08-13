@@ -44,6 +44,8 @@ public:
     template <class X, class Deleter,
               class = typename std::enable_if<std::is_convertible<X *, T *>::value>::type>
     PkSharedPointer(X *ptr, Deleter d) : m_p(ptr, d) {}
+    template <class Deleter>
+    PkSharedPointer(std::nullptr_t, Deleter d) : m_p(static_cast<T *>(nullptr), d) {}
 
     // 跨类型（派生→基类，探针 P16）；X* 不能转换到 T* 时这个重载直接从重载集里消失。
     template <class X, class = typename std::enable_if<std::is_convertible<X *, T *>::value>::type>
@@ -68,11 +70,9 @@ public:
     T *operator->() const noexcept { return m_p.get(); }
 
     void reset() { m_p.reset(); }
-    template <class X, class = typename std::enable_if<std::is_convertible<X *, T *>::value>::type>
-    void reset(X *ptr) { m_p.reset(ptr); }
-    template <class X, class Deleter,
-              class = typename std::enable_if<std::is_convertible<X *, T *>::value>::type>
-    void reset(X *ptr, Deleter d) { m_p.reset(ptr, d); }
+    void reset(T *ptr) { m_p.reset(ptr); }
+    template <class Deleter>
+    void reset(T *ptr, Deleter d) { m_p.reset(ptr, d); }
     void clear() { m_p.reset(); }
 
     template <class X> PkSharedPointer<X> staticCast() const

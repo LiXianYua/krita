@@ -22,10 +22,12 @@ private Q_SLOTS:
     void ctorFromNullRawPointerIsNull();
     void refcountControlsDestruction();
     void resetReplacesAndReleases();
-    void preservesDynamicDeletionType();
+    void constructorsPreserveDynamicDeletionType();
+    void resetsUseExposedDeletionType();
     void casts();
     void create();
     void customDeleter();
+    void nullptrDeleterConstructor();
     void selfAssignKeepsAlive();
     void comparisons();
     void assignNullptrClears();

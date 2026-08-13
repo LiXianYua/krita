@@ -96,11 +96,9 @@ void PkSharedPointerCase::resetReplacesAndReleases()
     PK_VERIFY(a.isNull());
 }
 
-// std::shared_ptr preserves the raw pointer's concrete X type in its control
-// block. The Pk wrapper must not erase X to the exposed T before construction
-// or either reset overload, otherwise a non-virtual base loses the derived
-// destructor. The generic deleter also reveals which pointer type it receives.
-void PkSharedPointerCase::preservesDynamicDeletionType()
+// Qt's templated raw-pointer constructors preserve the concrete X deletion
+// type, including when a generic deleter is supplied.
+void PkSharedPointerCase::constructorsPreserveDynamicDeletionType()
 {
     const auto resetCounts = [] {
         g_nonVirtualBaseDestroyed = 0;
@@ -117,24 +115,38 @@ void PkSharedPointerCase::preservesDynamicDeletionType()
 
     resetCounts();
     {
-        PkSharedPointer<SharedNonVirtualBase> p;
-        p.reset(new SharedNonVirtualDerived);
-    }
-    verifyBothDestroyed();
-
-    resetCounts();
-    {
         PkSharedPointer<SharedNonVirtualBase> p(new SharedNonVirtualDerived,
                                                 SharedGenericDeleter());
     }
     verifyBothDestroyed();
+}
+
+// Qt 5.15's reset APIs accept T*, rather than preserving the incoming X*.
+// Consequently both reset forms use the exposed base type for deletion.
+void PkSharedPointerCase::resetsUseExposedDeletionType()
+{
+    const auto resetCounts = [] {
+        g_nonVirtualBaseDestroyed = 0;
+        g_nonVirtualDerivedDestroyed = 0;
+    };
+    const auto verifyBaseOnlyDestroyed = [] {
+        PK_COMPARE(g_nonVirtualBaseDestroyed, 1);
+        PK_COMPARE(g_nonVirtualDerivedDestroyed, 0);
+    };
+
+    resetCounts();
+    {
+        PkSharedPointer<SharedNonVirtualBase> p;
+        p.reset(new SharedNonVirtualDerived);
+    }
+    verifyBaseOnlyDestroyed();
 
     resetCounts();
     {
         PkSharedPointer<SharedNonVirtualBase> p;
         p.reset(new SharedNonVirtualDerived, SharedGenericDeleter());
     }
-    verifyBothDestroyed();
+    verifyBaseOnlyDestroyed();
 }
 
 // 探针 P6：dynamicCast 到无关类型返回 null；对 null 做 dynamicCast 不崩、返回 null
@@ -180,6 +192,24 @@ void PkSharedPointerCase::customDeleter()
     q.reset(new SharedBase(6), &H::del);
     q.reset();
     PK_COMPARE(calls, 1);
+}
+
+// Qt 5.15 has an explicit (nullptr_t, Deleter) constructor. It builds a
+// control block and invokes the deleter once with a null T*.
+void PkSharedPointerCase::nullptrDeleterConstructor()
+{
+    int calls = 0;
+    bool sawNull = false;
+    {
+        PkSharedPointer<SharedBase> p(nullptr, [&](SharedBase *ptr) {
+            ++calls;
+            sawNull = ptr == nullptr;
+            delete ptr;
+        });
+        PK_VERIFY(p.isNull());
+    }
+    PK_COMPARE(calls, 1);
+    PK_VERIFY(sawNull);
 }
 
 // 探针 P15：自赋值不释放
