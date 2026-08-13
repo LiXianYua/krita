@@ -9,6 +9,8 @@ set(kritaimpex_LIB_SRCS
     KisImportExportErrorCode.cpp
     KisImportExportAdditionalChecks.cpp
     KisImportUserFeedbackInterface.cpp
+    KisDocumentRegistry.cpp
+    KisDocumentRegistry.h
     KisPngCodec.cpp
     KoDocumentInfo.cpp
 )

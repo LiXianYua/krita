@@ -23,7 +23,7 @@ private Q_SLOTS:
     void testAnnotations();
     void testNodeByName();
     void testNodeByUniqueId();
+    void testDocumentRegistryLifecycle();
 };
 
 #endif
-

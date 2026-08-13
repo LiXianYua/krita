@@ -10,6 +10,7 @@
 #include <QDataStream>
 #include <QDir>
 #include <QBuffer>
+#include <QSignalSpy>
 #include <QTextStream>
 
 #include <Node.h>
@@ -21,6 +22,7 @@
 #include <KoColor.h>
 
 #include <KisDocument.h>
+#include <KisDocumentRegistry.h>
 #include <kis_image.h>
 #include <kis_fill_painter.h>
 #include <kis_paint_layer.h>
@@ -31,6 +33,44 @@
 #include <testui.h>
 
 #include <KisPortingUtils.h>
+
+void TestDocument::testDocumentRegistryLifecycle()
+{
+    qRegisterMetaType<KisDocument *>();
+
+    KisDocumentRegistry registry(
+        [](bool addStorage) {
+            return addStorage
+                ? KisPart::instance()->createDocument()
+                : KisPart::instance()->createTemporaryDocument();
+        },
+        [](KisDocument *document) { document->deleteLater(); },
+        [](KisDocument *document) { return document->path(); });
+    QSignalSpy addedSpy(&registry, &KisDocumentRegistry::sigDocumentAdded);
+    QSignalSpy savedSpy(&registry, &KisDocumentRegistry::sigDocumentSaved);
+    QSignalSpy removedSpy(&registry, &KisDocumentRegistry::sigDocumentRemoved);
+
+    QScopedPointer<KisDocument> document(registry.createDocument());
+    QVERIFY(document);
+    QCOMPARE(registry.documentCount(), 0);
+
+    registry.addDocument(document.data());
+    registry.addDocument(document.data());
+    QCOMPARE(registry.documentCount(), 1);
+    QCOMPARE(registry.documents().size(), 1);
+    QCOMPARE(addedSpy.count(), 1);
+    QCOMPARE(addedSpy.at(0).at(0).value<KisDocument *>(), document.data());
+
+    document->setPath(QStringLiteral("/tmp/registry-document.kra"));
+    Q_EMIT document->sigSavingFinished(document->path());
+    QCOMPARE(savedSpy.count(), 1);
+    QCOMPARE(savedSpy.at(0).at(0).toString(), document->path());
+
+    registry.removeDocument(document.data(), false);
+    QCOMPARE(registry.documentCount(), 0);
+    QCOMPARE(removedSpy.count(), 1);
+    QCOMPARE(removedSpy.at(0).at(0).toString(), document->path());
+}
 
 void TestDocument::testSetColorSpace()
 {
@@ -434,4 +474,3 @@ void TestDocument::testNodeByUniqueId()
 class KisTransformMaskAdapter;
 
 KISTEST_MAIN(TestDocument)
-

@@ -30,6 +30,7 @@
 #include "KisView.h"
 #include "KisViewManager.h"
 #include "KisImportExportManager.h"
+#include "KisDocumentRegistry.h"
 #include "KoDocumentInfo.h"
 #include "KisUsageLogger.h"
 
@@ -106,7 +107,6 @@ public:
 
     QList<QPointer<KisView> > views;
     QList<QPointer<KisMainWindow> > mainWindows;
-    QList<QPointer<KisDocument> > documents;
     KisIdleWatcher idleWatcher;
     KisAnimationCachePopulator animationCachePopulator;
     std::unique_ptr<KisPlaybackEngine> playbackEngine;
@@ -148,6 +148,25 @@ void busyWaitWithFeedback(KisImageSP image)
 KisPart::KisPart()
     : d(new Private(this))
 {
+    KisDocumentRegistry *registry = KisDocumentRegistry::instance();
+    registry->setDocumentServices(
+        [](bool addStorage) { return new KisDocument(addStorage); },
+        [](KisDocument *document) { document->deleteLater(); },
+        [](KisDocument *document) { return document->path(); });
+
+    connect(registry, &KisDocumentRegistry::sigDocumentAdded,
+            this, [this](KisDocument *document) {
+                Q_EMIT documentOpened('/' + objectName());
+                Q_EMIT sigDocumentAdded(document);
+            });
+    connect(registry, &KisDocumentRegistry::sigDocumentSaved,
+            this, &KisPart::slotDocumentSaved);
+    connect(registry, &KisDocumentRegistry::sigDocumentRemoved,
+            this, [this](const QString &path) {
+                Q_EMIT documentClosed('/' + objectName());
+                Q_EMIT sigDocumentRemoved(path);
+            });
+
     initializeKisFileLayerDesktopServices();
 
     // Preload all the resources in the background
@@ -180,9 +199,13 @@ KisPart::~KisPart()
 {
     clearKisFileLayerDesktopServices();
 
-    while (!d->documents.isEmpty()) {
-        delete d->documents.takeFirst();
+    KisDocumentRegistry *registry = KisDocumentRegistry::instance();
+    const QList<KisDocument *> documents = registry->documents();
+    for (KisDocument *document : documents) {
+        registry->removeDocument(document, false);
+        delete document;
     }
+    registry->clearDocumentServices();
 
     while (!d->views.isEmpty()) {
         delete d->views.takeFirst();
@@ -215,51 +238,39 @@ void KisPart::updateIdleWatcherConnections()
 
 void KisPart::addDocument(KisDocument *document, bool notify)
 {
-    //dbgUI << "Adding document to part list" << document;
-    Q_ASSERT(document);
-    if (!d->documents.contains(document)) {
-        d->documents.append(document);
-        if (notify){
-            Q_EMIT documentOpened('/'+ objectName());
-            Q_EMIT sigDocumentAdded(document);
-        }
-        connect(document, SIGNAL(sigSavingFinished(QString)), SLOT(slotDocumentSaved(QString)));
-    }
+    KisDocumentRegistry::instance()->addDocument(document, notify);
 }
 
 QList<QPointer<KisDocument> > KisPart::documents() const
 {
-    return d->documents;
+    QList<QPointer<KisDocument>> result;
+    const QList<KisDocument *> documents = KisDocumentRegistry::instance()->documents();
+    result.reserve(documents.size());
+    for (KisDocument *document : documents) {
+        result.append(document);
+    }
+    return result;
 }
 
 KisDocument *KisPart::createDocument() const
 {
-    KisDocument *doc = new KisDocument();
-    return doc;
+    return KisDocumentRegistry::instance()->createDocument();
 }
 
 KisDocument *KisPart::createTemporaryDocument() const
 {
-    KisDocument *doc = new KisDocument(false);
-    return doc;
+    return KisDocumentRegistry::instance()->createTemporaryDocument();
 }
 
 
 int KisPart::documentCount() const
 {
-    return d->documents.size();
+    return KisDocumentRegistry::instance()->documentCount();
 }
 
 void KisPart::removeDocument(KisDocument *document, bool deleteDocument)
 {
-    if (document) {
-        d->documents.removeAll(document);
-        Q_EMIT documentClosed('/' + objectName());
-        Q_EMIT sigDocumentRemoved(document->path());
-        if (deleteDocument) {
-            document->deleteLater();
-        }
-    }
+    KisDocumentRegistry::instance()->removeDocument(document, deleteDocument);
 }
 
 KisMainWindow *KisPart::createMainWindow(QUuid id)
@@ -388,7 +399,7 @@ bool KisPart::closeSession(bool keepWindows)
 {
     d->closingSession = true;
 
-    Q_FOREACH(auto document, d->documents) {
+    Q_FOREACH(auto document, documents()) {
         if (!d->queryCloseDocument(document.data())) {
             d->closingSession = false;
             return false;
