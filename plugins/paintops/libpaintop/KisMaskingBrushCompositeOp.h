@@ -18,8 +18,6 @@
 #include <KoGrayColorSpaceTraits.h>
 #include <KoColorSpaceMaths.h>
 #include <KoCompositeOpFunctions.h>
-#include <kritaui_export.h>
-
 #include "KisMaskingBrushCompositeOpBase.h"
 
 enum KisMaskingBrushCompositeFuncTypes

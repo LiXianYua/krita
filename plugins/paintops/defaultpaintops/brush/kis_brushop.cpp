@@ -32,7 +32,6 @@
 #include <KisDabRenderingExecutor.h>
 #include <KisDabCacheUtils.h>
 #include <KisRenderedDab.h>
-#include <kis_tool_freehand.h>
 #include "KisBrushOpResources.h"
 
 #include <KisRunnableStrokeJobData.h>

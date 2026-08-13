@@ -14,6 +14,7 @@
 #include <libmypaint/mypaint-brush-settings-gen.h>
 #include <libmypaint/mypaint-brush.h>
 #include <kis_algebra_2d.h>
+#include <kis_properties_configuration.h>
 #include <MyPaintCurveRangeModel.h>
 #include <QJsonDocument>
 #include <QJsonObject>

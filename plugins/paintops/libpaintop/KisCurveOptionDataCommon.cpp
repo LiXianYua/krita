@@ -6,6 +6,8 @@
 #include "KisCurveOptionDataCommon.h"
 #include "KisSensorPackInterface.h"
 
+#include <kis_properties_configuration.h>
+
 KisCurveOptionDataCommon::KisCurveOptionDataCommon(const QString &_prefix, const KoID &_id, bool _isCheckable, bool _isChecked, qreal _minValue, qreal _maxValue, KisSensorPackInterface *sensorInterface)
     : id(_id),
       prefix(_prefix),
@@ -67,5 +69,4 @@ void KisCurveOptionDataCommon::writePrefixed(KisPropertiesConfiguration *setting
 {
     sensorData->write(*this, setting);
 }
-
 

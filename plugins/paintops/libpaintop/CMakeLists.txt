@@ -1,4 +1,6 @@
 set(kritalibpaintop_LIB_SRCS
+    KisPaintopPropertiesBase.cpp
+    KisMaskingBrushCompositeOpFactory.cpp
     kis_brush_based_paintop.cpp
     kis_brush_option.cpp
     KisColorOptionData.cpp
@@ -52,8 +54,13 @@ set(kritalibpaintop_LIB_SRCS
 kis_add_library(kritalibpaintop SHARED ${kritalibpaintop_LIB_SRCS} )
 generate_export_header(kritalibpaintop BASE_NAME kritapaintop EXPORT_MACRO_NAME PAINTOP_EXPORT)
 
-target_link_libraries(kritalibpaintop kritaui kritalibbrush kritawidgetutils)
-target_link_libraries(kritalibpaintop LINK_INTERFACE_LIBRARIES kritaui kritalibbrush)
+target_include_directories(kritalibpaintop
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_link_libraries(kritalibpaintop kritalibbrush kritawidgets kritawidgetutils)
+target_link_libraries(kritalibpaintop LINK_INTERFACE_LIBRARIES kritalibbrush)
 
 set_target_properties(kritalibpaintop PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}

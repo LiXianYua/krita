@@ -6,6 +6,7 @@
 #include "KisScatterOptionData.h"
 
 #include <kis_paintop_settings.h>
+#include <kis_properties_configuration.h>
 
 const QString SCATTER_X = "Scattering/AxisX";
 const QString SCATTER_Y = "Scattering/AxisY";

@@ -10,11 +10,11 @@
 #include <QtGlobal>
 #include <KoChannelInfo.h>
 
-#include "kritaui_export.h"
+#include <kritapaintop_export.h>
 
 class KisMaskingBrushCompositeOpBase;
 
-class KRITAUI_EXPORT KisMaskingBrushCompositeOpFactory
+class PAINTOP_EXPORT KisMaskingBrushCompositeOpFactory
 {
 public:
     static KisMaskingBrushCompositeOpBase* create(const QString &id, KoChannelInfo::enumChannelValueType channelType,

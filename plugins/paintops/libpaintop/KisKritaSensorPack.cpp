@@ -12,6 +12,7 @@
 #include <QDomElement>
 
 #include <KisCurveOptionData.h>
+#include <kis_properties_configuration.h>
 
 namespace detail {
 template <typename Data,

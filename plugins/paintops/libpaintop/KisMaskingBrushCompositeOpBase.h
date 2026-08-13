@@ -9,9 +9,9 @@
 
 #include <QtGlobal>
 
-#include <kritaui_export.h>
+#include <kritapaintop_export.h>
 
-class KRITAUI_EXPORT KisMaskingBrushCompositeOpBase
+class PAINTOP_EXPORT KisMaskingBrushCompositeOpBase
 {
 public:
     virtual ~KisMaskingBrushCompositeOpBase() = default;

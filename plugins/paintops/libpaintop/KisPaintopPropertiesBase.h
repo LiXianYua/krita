@@ -8,7 +8,7 @@
 #define KISBASEOPTION_H
 
 #include <kis_types.h>
-#include <kritaui_export.h>
+#include <kritapaintop_export.h>
 #include "kis_pointer_utils.h"
 
 class KoResource;
@@ -39,7 +39,7 @@ class KoResourceLoadResult;
  * it atm, but we still can create a special interface for accepting raw pointers,
  * which will be used automatically, when 'this' is passed.
  */
-class KRITAUI_EXPORT KisPaintopPropertiesCanvasResourcesBase
+class PAINTOP_EXPORT KisPaintopPropertiesCanvasResourcesBase
 {
 public:
     virtual ~KisPaintopPropertiesCanvasResourcesBase();
@@ -75,7 +75,7 @@ protected:
     virtual QList<KoResourceLoadResult> prepareEmbeddedResourcesImpl(const KisPropertiesConfiguration *settings, KisResourcesInterfaceSP resourcesInterface) const = 0;
 };
 
-class KRITAUI_EXPORT KisPaintopPropertiesResourcesBase
+class PAINTOP_EXPORT KisPaintopPropertiesResourcesBase
 {
 public:
     virtual ~KisPaintopPropertiesResourcesBase();
@@ -112,7 +112,7 @@ protected:
     virtual QList<KoResourceLoadResult> prepareEmbeddedResourcesImpl(const KisPropertiesConfiguration *settings, KisResourcesInterfaceSP resourcesInterface) const = 0;
 };
 
-class KRITAUI_EXPORT KisPaintopPropertiesBase /*: public KisPaintopPropertiesResourcesBase*/
+class PAINTOP_EXPORT KisPaintopPropertiesBase /*: public KisPaintopPropertiesResourcesBase*/
 {
 public:
     virtual ~KisPaintopPropertiesBase();

@@ -5,6 +5,8 @@
  */
 #include "KisSharpnessOptionData.h"
 
+#include <kis_properties_configuration.h>
+
 const QString SHARPNESS_FACTOR = "Sharpness/factor";
 const QString SHARPNESS_ALIGN_OUTLINE_PIXELS = "Sharpness/alignoutline";
 const QString SHARPNESS_SOFTNESS  = "Sharpness/softness";

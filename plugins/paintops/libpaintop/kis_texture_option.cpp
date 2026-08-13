@@ -26,8 +26,8 @@
 #include <kis_iterator_ng.h>
 #include <kis_fixed_paint_device.h>
 #include "KoMixColorsOp.h"
-#include <strokes/KisMaskingBrushCompositeOpBase.h>
-#include <strokes/KisMaskingBrushCompositeOpFactory.h>
+#include <KisMaskingBrushCompositeOpBase.h>
+#include <KisMaskingBrushCompositeOpFactory.h>
 #include <kis_random_accessor_ng.h>
 #include <KoCompositeOpRegistry.h>
 

@@ -10,7 +10,10 @@
 #include <boost/operators.hpp>
 #include "kritapaintop_export.h"
 #include "kis_assert.h"
-#include "kis_paintop_option.h"
+#include <kis_cubic_curve.h>
+#include <KoID.h>
+#include <QDomDocument>
+#include <QRectF>
 
 struct PAINTOP_EXPORT KisSensorData : public boost::equality_comparable<KisSensorData>
 {

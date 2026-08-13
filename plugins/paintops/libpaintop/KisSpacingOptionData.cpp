@@ -6,6 +6,7 @@
 #include "KisSpacingOptionData.h"
 
 #include <kis_paintop_settings.h>
+#include <kis_properties_configuration.h>
 
 const QString ISOTROPIC_SPACING = "Spacing/Isotropic";
 

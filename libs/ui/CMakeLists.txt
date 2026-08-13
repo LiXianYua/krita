@@ -93,7 +93,6 @@ set(kritaui_LIB_SRCS
     kis_bookmarked_configurations_editor.cc
     kis_bookmarked_configurations_model.cc
     kis_bookmarked_filter_configurations_model.cc
-    KisPaintopPropertiesBase.cpp
     KisPlaybackEngine.cpp
     KisPlaybackEngineQT.cpp
     KisPresetShadowUpdater.cpp
@@ -221,7 +220,6 @@ set(kritaui_LIB_SRCS
     tool/strokes/KisFreehandStrokeInfo.cpp
     tool/strokes/KisMaskedFreehandStrokePainter.cpp
     tool/strokes/KisMaskingBrushRenderer.cpp
-    tool/strokes/KisMaskingBrushCompositeOpFactory.cpp
     tool/strokes/move_stroke_strategy.cpp
     tool/strokes/KisNodeSelectionRecipe.cpp
     tool/KisSelectionToolFactoryBase.cpp
@@ -700,6 +698,8 @@ target_link_libraries(kritaui
         kritainput
         kritaanimation
 )
+
+target_link_libraries(kritaui PRIVATE kritalibpaintop)
 
 if (KRITA_USE_SURFACE_COLOR_MANAGEMENT_API)
     target_link_libraries(kritaui
