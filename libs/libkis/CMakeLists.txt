@@ -19,6 +19,7 @@ set(kritalibkis_LIB_SRCS
     Swatch.cpp
     Resource.cpp
     Selection.cpp
+    KisSelectionClipStore.cpp
     View.cpp
     Extension.cpp
     Window.cpp

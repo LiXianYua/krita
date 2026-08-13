@@ -13,9 +13,9 @@
 #include <kis_selection_filters.h>
 #include <kis_painter.h>
 #include <kis_node.h>
-#include <kis_clipboard.h>
 #include <QByteArray>
 
+#include "KisSelectionClipStore.h"
 #include <Node.h>
 
 struct Selection::Private {
@@ -151,7 +151,7 @@ void Selection::copy(Node *node)
         selectionIt->nextRow();
     }
 
-    KisClipboard::instance()->setClip(clip, rc.topLeft());
+    KisSelectionClipStore::instance()->setClip(clip, rc.topLeft());
 }
 
 void Selection::cut(Node* node)
@@ -170,9 +170,9 @@ void Selection::paste(Node *destination, int x, int y)
 {
     if (!destination) return;
     if (!d->selection) return;
-    if (!KisClipboard::instance()->hasClip()) return;
+    if (!KisSelectionClipStore::instance()->hasClip()) return;
 
-    KisPaintDeviceSP src = KisClipboard::instance()->clip(QRect(), false);
+    KisPaintDeviceSP src = KisSelectionClipStore::instance()->clip();
     KisPaintDeviceSP dst = destination->node()->paintDevice();
     if (!dst || !src) return;
     KisPainter::copyAreaOptimized(QPoint(x, y),
@@ -322,4 +322,3 @@ KisSelectionSP Selection::selection() const
 {
     return d->selection;
 }
-
