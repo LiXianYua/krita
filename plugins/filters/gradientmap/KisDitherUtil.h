@@ -9,15 +9,13 @@
 #ifndef KIS_DITHER_UTIL_H
 #define KIS_DITHER_UTIL_H
 
-#include <kritaui_export.h>
-
 #include <kis_types.h>
 
 #include <KoPattern.h>
 
 class KisPropertiesConfiguration;
 
-class KRITAUI_EXPORT KisDitherUtil
+class KisDitherUtil
 {
 public:
     enum ThresholdMode {

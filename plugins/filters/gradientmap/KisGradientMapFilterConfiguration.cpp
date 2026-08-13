@@ -12,7 +12,7 @@
 #include <KoResourceLoadResult.h>
 #include <KoStopGradient.h>
 #include <KoAbstractGradient.h>
-#include <KisDitherWidget.h>
+#include <KisDitherConfigurationHelper.h>
 #include <QBuffer>
 #include <KoMD5Generator.h>
 
@@ -52,7 +52,7 @@ QList<KoResourceLoadResult> KisGradientMapFilterConfiguration::linkedResources(K
         }
     }
 
-    resources << KisDitherWidget::prepareLinkedResources(*this, "dither/", globalResourcesInterface);
+    resources << KisDitherConfigurationHelper::prepareLinkedResources(*this, "dither/", globalResourcesInterface);
 
     return resources;
 }
@@ -155,5 +155,5 @@ void KisGradientMapFilterConfiguration::setDefaults()
 {
     setGradient(nullptr);
     setColorMode(defaultColorMode());
-    KisDitherWidget::factoryConfiguration(*this, "dither/");
+    KisDitherConfigurationHelper::factoryConfiguration(*this, "dither/");
 }

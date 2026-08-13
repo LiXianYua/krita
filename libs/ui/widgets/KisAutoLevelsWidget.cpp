@@ -10,6 +10,8 @@
 
 #include <KisSpinBoxI18nHelper.h>
 
+#include "../../../plugins/filters/levelfilter/KisLevelsFilterConfiguration.h"
+
 KisAutoLevelsWidget::KisAutoLevelsWidget(QWidget *parent)
     : QWidget(parent)
 {
@@ -18,21 +20,21 @@ KisAutoLevelsWidget::KisAutoLevelsWidget(QWidget *parent)
     KisSpinBoxI18nHelper::setText(m_ui.sliderShadowsClipping,
                                   i18nc("{n} is the number value, % is the percent sign", "{n}%"));
     m_ui.sliderShadowsClipping->setRange(0.0, 10.0, 2);
-    m_ui.sliderShadowsClipping->setValue(0.1);
+    m_ui.sliderShadowsClipping->setValue(KisLevelsFilterConfiguration::defaultAutoLevelsShadowsClipping());
     m_ui.sliderShadowsClipping->setSingleStep(0.1);
 
     m_ui.sliderHighlightsClipping->setSuffix(m_ui.sliderShadowsClipping->suffix());
     m_ui.sliderHighlightsClipping->setRange(0.0, 10.0, 2);
-    m_ui.sliderHighlightsClipping->setValue(0.1);
+    m_ui.sliderHighlightsClipping->setValue(KisLevelsFilterConfiguration::defaultAutoLevelsHighlightsClipping());
     m_ui.sliderHighlightsClipping->setSingleStep(0.1);
 
     m_ui.sliderShadowsAndLightsMaximumOffset->setSuffix(m_ui.sliderShadowsClipping->suffix());
     m_ui.sliderShadowsAndLightsMaximumOffset->setRange(0.0, 100.0, 2);
-    m_ui.sliderShadowsAndLightsMaximumOffset->setValue(100.0);
+    m_ui.sliderShadowsAndLightsMaximumOffset->setValue(KisLevelsFilterConfiguration::defaultAutoLevelsMaximumInputBlackAndWhiteOffset());
 
     m_ui.sliderMidtonesAdjustmentAmount->setSuffix(m_ui.sliderShadowsClipping->suffix());
     m_ui.sliderMidtonesAdjustmentAmount->setRange(0.0, 100.0, 2);
-    m_ui.sliderMidtonesAdjustmentAmount->setValue(50.0);
+    m_ui.sliderMidtonesAdjustmentAmount->setValue(KisLevelsFilterConfiguration::defaultAutoLevelsMidtonesAdjustmentAmount());
 
     connect(m_ui.comboBoxShadowsAndLightsMethod, SIGNAL(currentIndexChanged(int)), SIGNAL(parametersChanged()));
     connect(m_ui.sliderShadowsClipping, SIGNAL(valueChanged(qreal)), SIGNAL(parametersChanged()));

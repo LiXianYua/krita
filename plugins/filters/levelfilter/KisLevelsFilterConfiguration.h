@@ -32,6 +32,10 @@ public:
     static inline KisLevelsCurve defaultLevelsCurve() { return KisLevelsCurve(); }
     static constexpr bool defaultUseLightnessMode() { return true; }
     static constexpr bool defaultShowLogarithmicHistogram() { return false; }
+    static constexpr qreal defaultAutoLevelsShadowsClipping() { return 0.1; }
+    static constexpr qreal defaultAutoLevelsHighlightsClipping() { return 0.1; }
+    static constexpr qreal defaultAutoLevelsMaximumInputBlackAndWhiteOffset() { return 100.0; }
+    static constexpr qreal defaultAutoLevelsMidtonesAdjustmentAmount() { return 50.0; }
 
     using KisFilterConfiguration::fromXML;
     using KisFilterConfiguration::toXML;

@@ -1,6 +1,6 @@
 set(kritapalettize_SOURCES palettize.cpp)
 kis_add_library(kritapalettize MODULE ${kritapalettize_SOURCES})
-target_link_libraries(kritapalettize kritaui)
+target_link_libraries(kritapalettize kritafilterdithering kritaimage)
 install(TARGETS kritapalettize  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 install( FILES
     palettize.action

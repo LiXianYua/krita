@@ -16,8 +16,6 @@
 #include <KoColorSet.h>
 #include <KoPattern.h>
 #include <kis_properties_configuration.h>
-#include "KisDitherUtil.h"
-#include <KoResourceLoadResult.h>
 
 KisDitherWidget::KisDitherWidget(QWidget* parent)
     : QWidget(parent), Ui::KisDitherWidget()
@@ -70,23 +68,4 @@ void KisDitherWidget::configuration(KisPropertiesConfiguration &config, const QS
     config.setProperty(prefix + "patternValueMode", patternValueModeComboBox->currentIndex());
     config.setProperty(prefix + "noiseSeed", noiseSeedLineEdit->text().toInt());
     config.setProperty(prefix + "spread", spreadSpinBox->value());
-}
-
-void KisDitherWidget::factoryConfiguration(KisPropertiesConfiguration &config, const QString &prefix)
-{
-    config.setProperty(prefix + "thresholdMode", KisDitherUtil::ThresholdMode::Pattern);
-    config.setProperty(prefix + "pattern", "DITH 0202 GEN ");
-    config.setProperty(prefix + "patternValueMode", KisDitherUtil::PatternValueMode::Auto);
-    config.setProperty(prefix + "noiseSeed", rand());
-    config.setProperty(prefix + "spread", 1.0);
-}
-
-QList<KoResourceLoadResult> KisDitherWidget::prepareLinkedResources(const KisFilterConfiguration &config, const QString &prefix, KisResourcesInterfaceSP resourcesInterface)
-{
-    auto source = resourcesInterface->source<KoPattern>(ResourceType::Patterns);
-
-    QString patternMD5 = config.getString(prefix + "md5sum");
-    QString patternName = config.getString(prefix + "pattern");
-
-    return {source.bestMatchLoadResult(patternMD5, "", patternName)};
 }

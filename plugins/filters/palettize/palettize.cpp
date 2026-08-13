@@ -20,7 +20,7 @@
 #include <KoPattern.h>
 #include <KisRandomGenerator2D.h>
 #include <KisDitherUtil.h>
-#include <KisDitherWidget.h>
+#include <KisDitherConfigurationHelper.h>
 #include <KisGlobalResourcesInterface.h>
 #include <KoResourceLoadResult.h>
 
@@ -76,8 +76,8 @@ public:
         QList<KoResourceLoadResult> resources;
         resources << this->palette(globalResourcesInterface);
 
-        resources << KisDitherWidget::prepareLinkedResources(*this, "dither/", globalResourcesInterface);
-        resources << KisDitherWidget::prepareLinkedResources(*this, "alphaDither/", globalResourcesInterface);
+        resources << KisDitherConfigurationHelper::prepareLinkedResources(*this, "dither/", globalResourcesInterface);
+        resources << KisDitherConfigurationHelper::prepareLinkedResources(*this, "alphaDither/", globalResourcesInterface);
 
         return resources;
     }
@@ -107,14 +107,14 @@ KisFilterConfigurationSP KisFilterPalettize::defaultConfiguration(KisResourcesIn
     config->setProperty("palette", "Default");
     config->setProperty("colorspace", Colorspace::Lab);
     config->setProperty("ditherEnabled", false);
-    KisDitherWidget::factoryConfiguration(*config, "dither/");
+    KisDitherConfigurationHelper::factoryConfiguration(*config, "dither/");
     config->setProperty("dither/colorMode", ColorMode::PerChannelOffset);
     config->setProperty("dither/offsetScale", 0.125);
     config->setProperty("alphaEnabled", true);
     config->setProperty("alphaMode", AlphaMode::Clip);
     config->setProperty("alphaClip", 0.5);
     config->setProperty("alphaIndex", 0);
-    KisDitherWidget::factoryConfiguration(*config, "alphaDither/");
+    KisDitherConfigurationHelper::factoryConfiguration(*config, "alphaDither/");
 
     return config;
 }
