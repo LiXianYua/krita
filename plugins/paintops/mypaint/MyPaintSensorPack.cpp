@@ -10,9 +10,6 @@
 #include "KisSensorData.h"
 #include "kis_assert.h"
 
-#include <KisDynamicSensorFactoryRegistry.h>
-#include <KisSimpleDynamicSensorFactory.h>
-
 #include <KisCurveOptionDataCommon.h>
 #include <libmypaint/mypaint-brush-settings-gen.h>
 #include <libmypaint/mypaint-brush.h>
@@ -20,35 +17,8 @@
 #include <MyPaintCurveRangeModel.h>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <KisStaticInitializer.h>
 
 namespace detail {
-
-KIS_DECLARE_STATIC_INITIALIZER {
-    auto addFactory = [](const KoID &id,
-                         int minimumValue,
-                         int maximumValue,
-                         const QString &minimumLabel,
-                         const QString &maximumLabel,
-                         const QString &valueSuffix) {
-        KisDynamicSensorFactoryRegistry::instance()->add(new KisSimpleDynamicSensorFactory(id.id(),
-                                                                                           minimumValue,
-                                                                                           maximumValue,
-                                                                                           minimumLabel,
-                                                                                           maximumLabel,
-                                                                                           valueSuffix));
-    };
-
-    addFactory(MyPaintPressureId, 0, 20, "", "", "");
-    addFactory(MyPaintFineSpeedId, -20, 20, "", "", "");
-    addFactory(MyPaintGrossSpeedId, -20, 20, "", "", "");
-    addFactory(MyPaintRandomId,  0, 1, "", "", "");
-    addFactory(MyPaintStrokeId, 0, 1, "", "", "");
-    addFactory(MyPaintDirectionId, 0, 180, "", "", "");
-    addFactory(MyPaintDeclinationId, 0, 90, "", "", i18n("%"));
-    addFactory(MyPaintAscensionId, -180, 180, "", "", i18n("%"));
-    addFactory(MyPaintCustomId, -20, 20, "", "", i18n("%"));
-}
 
 template <typename Data,
           typename SensorData =

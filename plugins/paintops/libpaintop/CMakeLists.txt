@@ -11,9 +11,6 @@ set(kritalibpaintop_LIB_SRCS
     KisCurveOptionDataCommon.cpp
     KisCurveOptionData.cpp
     KisCurveOption.cpp
-    KisDynamicSensorFactory.cpp
-    KisDynamicSensorFactoryRegistry.cpp
-    KisSimpleDynamicSensorFactory.cpp
     KisSpacingOptionData.cpp
     KisSpacingOption.cpp
     KisMirrorOptionData.cpp
@@ -50,19 +47,6 @@ set(kritalibpaintop_LIB_SRCS
     sensors/KisDynamicSensorDistance.cpp
     sensors/KisDynamicSensorFade.cpp
     sensors/KisDynamicSensorTime.cpp
-    KisDynamicSensorFactoryTime.cpp
-    KisDynamicSensorFactoryFade.cpp
-    KisDynamicSensorFactoryDistance.cpp
-    KisDynamicSensorFactoryDrawingAngle.cpp
-    KisSensorWithLengthModel.cpp
-    KisDrawingAngleSensorModel.cpp
-)
-
-ki18n_wrap_ui(kritalibpaintop_LIB_SRCS
-    sensors/SensorDistanceConfiguration.ui
-    sensors/SensorTimeConfiguration.ui
-    sensors/SensorFadeConfiguration.ui
-
 )
 
 kis_add_library(kritalibpaintop SHARED ${kritalibpaintop_LIB_SRCS} )
