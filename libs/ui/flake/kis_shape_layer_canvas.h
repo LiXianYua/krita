@@ -19,6 +19,7 @@
 #include "kis_image_view_converter.h"
 #include "kis_default_bounds_base.h"
 #include "KoColorConversionTransformation.h"
+#include <kritashapemodel_export.h>
 
 class KoColorProfile;
 class KoShapeManager;
@@ -30,7 +31,7 @@ class KoUnit;
 class KisImageViewConverter;
 class KoColorSpace;
 
-class KisShapeLayerCanvasBase : public KoCanvasBase
+class KRITASHAPEMODEL_EXPORT KisShapeLayerCanvasBase : public KoCanvasBase
 {
     Q_OBJECT
 public:

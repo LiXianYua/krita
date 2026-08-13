@@ -10,6 +10,7 @@
 #include "kis_shape_layer.h"
 
 #include <kis_types.h>
+#include <kritaui_export.h>
 
 class KisDocument;
 class KoCanvasBase;

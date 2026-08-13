@@ -7,7 +7,6 @@
 #ifndef KISCLONABLEVIEWCONVERTER_H
 #define KISCLONABLEVIEWCONVERTER_H
 
-#include "kritaui_export.h"
 #include <KoViewConverter.h>
 
 class KisClonableViewConverter : public KoViewConverter

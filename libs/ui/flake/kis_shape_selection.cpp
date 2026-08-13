@@ -11,15 +11,13 @@
 #include <QPainter>
 #include <kundo2command.h>
 #include <QMimeData>
-#include <QApplication>
-#include <QThread>
+#include <QCoreApplication>
 
 #include <KoShapeStroke.h>
 #include <KoPathShape.h>
 #include <KoShapeGroup.h>
 #include <KoCompositeOp.h>
 #include <KoShapeManager.h>
-#include <KisDocument.h>
 
 #include <KoXmlNS.h>
 #include <KoShapeRegistry.h>
@@ -99,9 +97,9 @@ void KisShapeSelection::init(KisImageResolutionProxySP resolutionProxy, KoShapeC
     m_canvas->shapeManager()->addShape(this);
 
     m_model->setObjectName("KisShapeSelectionModel");
-    m_model->moveToThread(qApp->thread());
+    m_model->moveToThread(QCoreApplication::instance()->thread());
     m_canvas->setObjectName("KisShapeSelectionCanvas");
-    m_canvas->moveToThread(qApp->thread());
+    m_canvas->moveToThread(QCoreApplication::instance()->thread());
 
     connect(this, SIGNAL(sigMoveShapes(QPointF)), SLOT(slotMoveShapes(QPointF)));
 }

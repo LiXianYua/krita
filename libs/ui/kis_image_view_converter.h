@@ -7,7 +7,7 @@
 #ifndef KIS_IMAGE_VIEW_CONVERTER_H
 #define KIS_IMAGE_VIEW_CONVERTER_H
 
-#include <kritaui_export.h>
+#include <kritashapemodel_export.h>
 
 #include "kis_types.h"
 #include "KisClonableViewConverter.h"
@@ -21,7 +21,7 @@
  * For usage remember that the document here is the flake-points. And
  * the view is the krita-pixels.
  */
-class KRITAUI_EXPORT KisImageViewConverter : public KisClonableViewConverter
+class KRITASHAPEMODEL_EXPORT KisImageViewConverter : public KisClonableViewConverter
 {
 public:
     /**

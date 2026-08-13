@@ -26,9 +26,6 @@
 
 #include <kis_debug.h>
 
-#include <QThread>
-#include <QApplication>
-
 #include <kis_spontaneous_job.h>
 #include "kis_global.h"
 #include "krita_utils.h"

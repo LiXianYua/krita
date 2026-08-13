@@ -13,7 +13,6 @@
 #include <KoShapeManager.h>
 #include <KoSelectedShapesProxySimple.h>
 #include <KoUnit.h>
-#include <kis_shape_controller.h>
 
 KisShapeSelectionCanvas::KisShapeSelectionCanvas(KoShapeControllerBase *shapeController)
     : KoCanvasBase(shapeController)
@@ -91,4 +90,3 @@ KoUnit KisShapeSelectionCanvas::unit() const
     Q_ASSERT(false); // This should never be called as this canvas should have no tools.
     return KoUnit(KoUnit::Point);
 }
-

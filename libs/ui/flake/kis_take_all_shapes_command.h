@@ -11,7 +11,6 @@
 
 #include "kundo2command.h"
 
-#include "kritaui_export.h"
 #include "kis_types.h"
 
 class KoShape;

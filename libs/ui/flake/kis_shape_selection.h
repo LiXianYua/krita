@@ -17,7 +17,7 @@
 #include <kis_selection_component.h>
 #include <kis_types.h>
 
-#include <kritaui_export.h>
+#include <kritashapemodel_export.h>
 
 class KoStore;
 class KoShapeManager;
@@ -39,7 +39,7 @@ class KisShapeSelectionMarker : public KoShapeUserData
 };
 
 
-class KRITAUI_EXPORT KisShapeSelection : public QObject, public KoShapeLayer, public KisSelectionComponent
+class KRITASHAPEMODEL_EXPORT KisShapeSelection : public QObject, public KoShapeLayer, public KisSelectionComponent
 {
     Q_OBJECT
 
@@ -112,7 +112,7 @@ private:
 };
 
 
-class KRITAUI_EXPORT KisShapeSelectionFactory : public KoShapeFactoryBase
+class KRITASHAPEMODEL_EXPORT KisShapeSelectionFactory : public KoShapeFactoryBase
 {
 public:
 

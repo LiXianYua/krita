@@ -13,6 +13,7 @@ endif()
 add_subdirectory(canvas)
 add_subdirectory(input)
 add_subdirectory(animation)
+add_subdirectory(flake)
 add_subdirectory( tests )
 
 if (APPLE)
@@ -79,13 +80,6 @@ set(kritaui_LIB_SRCS
     flake/kis_node_shapes_graph.cpp
     flake/kis_node_shape.cpp
     flake/kis_shape_controller.cpp
-    flake/kis_shape_layer.cc
-    flake/kis_shape_layer_canvas.cpp
-    flake/kis_shape_selection.cpp
-    flake/kis_shape_selection_canvas.cpp
-    flake/kis_shape_selection_model.cpp
-    flake/kis_take_all_shapes_command.cpp
-
     kis_aspect_ratio_locker.cpp
     kis_bookmarked_configurations_editor.cc
     kis_bookmarked_configurations_model.cc
@@ -113,7 +107,6 @@ set(kritaui_LIB_SRCS
     kis_filter_manager.cc
     kis_filters_model.cc
     kis_image_manager.cc
-    kis_image_view_converter.cpp
     kis_import_catcher.cc
     kis_layer_manager.cc
     kis_mask_manager.cc
@@ -686,6 +679,7 @@ target_link_libraries(kritaui
         kritacanvas
         kritainput
         kritaanimation
+        kritashapemodel
 )
 
 target_link_libraries(kritaui PRIVATE kritalibpaintop)

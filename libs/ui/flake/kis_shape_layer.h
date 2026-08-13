@@ -12,7 +12,7 @@
 
 #include <kis_types.h>
 #include <kis_external_layer_iface.h>
-#include <kritaui_export.h>
+#include <kritashapemodel_export.h>
 #include <KisDelayedUpdateNodeInterface.h>
 #include <KisCroppedOriginalLayerInterface.h>
 
@@ -40,7 +40,7 @@ const QString KIS_SHAPE_LAYER_ID = "KisShapeLayer";
 
    XXX: what about removing shapes?
 */
-class KRITAUI_EXPORT KisShapeLayer
+class KRITASHAPEMODEL_EXPORT KisShapeLayer
         : public KisExternalLayer,
         public KoShapeLayer,
         public KisDelayedUpdateNodeInterface,

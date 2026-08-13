@@ -21,11 +21,11 @@
 #include <kundo2command.h>
 #include <commands_new/kis_node_move_command2.h>
 #include <QMimeData>
+#include <QCoreApplication>
+#include <QIcon>
 
-#include <kis_icon.h>
 #include <KoColorSpace.h>
 #include <KoCompositeOp.h>
-#include <KisDocument.h>
 #include <KoUnit.h>
 #include <KoShapeContainer.h>
 #include <KoShapeLayer.h>
@@ -63,7 +63,6 @@
 #include <KisSafeBlockingQueueConnectionProxy.h>
 #include <kis_signal_auto_connection.h>
 #include <QThread>
-#include <QApplication>
 
 #include "kis_layer_properties_icons.h"
 
@@ -403,7 +402,7 @@ void KisShapeLayer::setParent(KoShapeContainer *parent)
 
 QIcon KisShapeLayer::icon() const
 {
-    return KisIconUtils::loadIcon("vectorLayer");
+    return QIcon();
 }
 
 KisPaintDeviceSP KisShapeLayer::original() const
@@ -723,7 +722,7 @@ public:
 
     void undo() override
     {
-        KIS_SAFE_ASSERT_RECOVER_NOOP(QThread::currentThread() != qApp->thread());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(QThread::currentThread() != QCoreApplication::instance()->thread());
         m_blockingConnection.start(m_savedTransform);
     }
 
@@ -734,7 +733,7 @@ public:
         const QTransform globalTransform = m_shapeLayer->absoluteTransformation();
         const QTransform localTransform = globalTransform * m_globalDocTransform * globalTransform.inverted();
 
-        KIS_SAFE_ASSERT_RECOVER_NOOP(QThread::currentThread() != qApp->thread());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(QThread::currentThread() != QCoreApplication::instance()->thread());
         m_blockingConnection.start(localTransform * m_savedTransform);
     }
 
