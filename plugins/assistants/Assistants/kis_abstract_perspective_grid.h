@@ -12,9 +12,9 @@
 #include <QPointF>
 #include <QObject>
 
-#include "kritaui_export.h"
+#include <kritaassistanttool_export.h>
 
-class KRITAUI_EXPORT KisAbstractPerspectiveGrid : public QObject
+class KRITAASSISTANTTOOL_EXPORT KisAbstractPerspectiveGrid : public QObject
 {
     Q_OBJECT
 public:
