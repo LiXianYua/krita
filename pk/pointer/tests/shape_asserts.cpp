@@ -9,8 +9,8 @@
 // 类型名唯一化（ShapeB/ShapeD 而非裸 B/D）：跟 test_shared.cpp/test_weak.cpp/
 // test_scoped.cpp 里做的一致。static_assert 只看类型特征、不受跨 TU 的运行期
 // 符号折叠影响（本文件目前无害），但裸名字是给以后复制粘贴出真正的运行期用例
-// 埋一个跟三份测试文件曾经踩过的同一个坑（细节见 task-1-report.md「遇到的
-// 问题」一节）。
+// 埋一个隐患：同名的隐式 inline 成员函数会被链接器按 vague-linkage/COMDAT
+// 折叠成一份，运行期计数器会读到别的 TU 头上。
 struct ShapeB { int v = 0; virtual ~ShapeB() {} };
 
 // 判据 C：Qt 的 QScopedPointer 四项全 0（探针 P10）。
