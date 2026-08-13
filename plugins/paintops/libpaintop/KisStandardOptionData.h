@@ -128,31 +128,4 @@ struct KisLightnessStrengthOptionData : KisCurveOptionData
 };
 
 
-class KisCurveOptionWidget;
-
-namespace KisPaintOpOptionWidgetUtils {
-
-PAINTOP_EXPORT KisCurveOptionWidget* createOpacityOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createFlowOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createRatioOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createSoftnessOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createRotationOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createDarkenOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createMixOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createHueOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createSaturationOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createValueOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createRateOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createStrengthOptionWidget();
-
-PAINTOP_EXPORT KisCurveOptionWidget* createMaskingOpacityOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createMaskingSizeOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createMaskingFlowOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createMaskingRatioOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createMaskingRotationOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createMaskingMirrorOptionWidget();
-PAINTOP_EXPORT KisCurveOptionWidget* createMaskingScatterOptionWidget();
-
-}
-
 #endif // KISSTANDARDOPTIONDATA_H
