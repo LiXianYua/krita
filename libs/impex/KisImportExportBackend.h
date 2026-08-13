@@ -13,6 +13,7 @@ class KRITAIMPEX_EXPORT KisImportExportBackend {
 public:
  virtual ~KisImportExportBackend() = default;
  virtual KisDocument *document() const = 0; virtual KisImageSP image() const = 0;
+ virtual KisImageSP savingImage() const = 0;
  virtual QByteArray nativeFormatMimeType() const = 0; virtual bool batchMode() const = 0;
  virtual KisImportUserFeedbackInterface *createImportFeedback() const = 0;
  virtual KisImportExportErrorCode runAction(const QString &, std::function<KisImportExportErrorCode()>) = 0;
@@ -23,6 +24,7 @@ public:
 using KisImportExportBackendFactory = std::function<std::unique_ptr<KisImportExportBackend>(KisDocument *)>;
 KRITAIMPEX_EXPORT void setKisImportExportBackendFactory(KisImportExportBackendFactory);
 KRITAIMPEX_EXPORT std::unique_ptr<KisImportExportBackend> createKisImportExportBackend(KisDocument *);
+KRITAIMPEX_EXPORT KisImageSP kisImportExportSavingImage(KisDocument *);
 class KRITAIMPEX_EXPORT KisImportExportUiServices {
 public:
  virtual ~KisImportExportUiServices() = default;

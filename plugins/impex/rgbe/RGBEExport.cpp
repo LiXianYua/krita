@@ -16,16 +16,14 @@
 #include <cstdint>
 #include <cstring>
 
-#include <KisDocument.h>
 #include <KisExportCheckRegistry.h>
+#include <KisImportExportBackend.h>
 #include <KisImportExportErrorCode.h>
 #include <KoAlwaysInline.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColorProfile.h>
 #include <KoColorSpace.h>
 #include <KoColorTransferFunctions.h>
-#include <KoConfig.h>
-#include <KoDocumentInfo.h>
 #include <kis_assert.h>
 #include <kis_debug.h>
 #include <kis_iterator_ng.h>
@@ -134,7 +132,7 @@ KisImportExportErrorCode RGBEExport::convert(KisDocument *document, QIODevice *i
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(io->isWritable(), ImportExportCodes::NoAccessToWrite);
 
-    KisImageSP image = document->savingImage();
+    KisImageSP image = kisImportExportSavingImage(document);
     const QRect bounds = image->bounds();
 
     const KoColorSpace *cs = image->colorSpace();

@@ -9,7 +9,7 @@ set(kritaheightmapimport_SOURCES
 
 kis_add_library(kritaheightmapimport MODULE ${kritaheightmapimport_SOURCES})
 
-target_link_libraries(kritaheightmapimport kritaui )
+target_link_libraries(kritaheightmapimport kritaimpex kritaui )
 
 install(TARGETS kritaheightmapimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -20,7 +20,7 @@ set(kritaheightmapexport_SOURCES
 
 kis_add_library(kritaheightmapexport MODULE ${kritaheightmapexport_SOURCES})
 
-target_link_libraries(kritaheightmapexport kritaui kritaimpex)
+target_link_libraries(kritaheightmapexport kritaimpex)
 
 install(TARGETS kritaheightmapexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

@@ -9,37 +9,26 @@
 
 #include <QDir>
 #include <QFile>
-#include <QLabel>
-#include <QVBoxLayout>
 #include <QList>
-#include <QApplication>
 #include <QByteArray>
 #include <QPluginLoader>
 #include <QFileInfo>
-#include <QMessageBox>
 #include <QJsonObject>
-#include <QTextBrowser>
-#include <QCheckBox>
 #include <QSaveFile>
-#include <QGroupBox>
 #include <QFuture>
 #include <QtConcurrent>
 
 #include <klocalizedstring.h>
-#include <ksqueezedtextlabel.h>
 #include <kpluginfactory.h>
 
 #include <KisMimeDatabase.h>
-#include <KisPreExportChecker.h>
 #include <KisUsageLogger.h>
 #include <KoColorProfile.h>
 #include <KoColorProfileConstants.h>
 #include <KoJsonTrader.h>
 #include <KoProgressUpdater.h>
 #include <kis_assert.h>
-#include <kis_config_widget.h>
 #include <kis_debug.h>
-#include <kis_icon_utils.h>
 #include <kis_image.h>
 #include <kis_iterator_ng.h>
 #include <kis_layer_utils.h>
@@ -48,38 +37,10 @@
 
 #include "KisImportExportErrorCode.h"
 #include "KisImportExportFilter.h"
-#include <kis_adjustment_layer.h>
-#include <kis_filter_mask.h>
-
-#include <KisImportUserFeedbackInterface.h>
 
 // static cache for import and export mimetypes
 QStringList KisImportExportManager::m_importMimeTypes;
 QStringList KisImportExportManager::m_exportMimeTypes;
-
-namespace {
-struct SynchronousUserFeedbackInterface : KisImportUserFeedbackInterface
-{
-    SynchronousUserFeedbackInterface(QWidget *parent, bool batchMode)
-        : m_parent(parent)
-        , m_batchMode(batchMode)
-    {
-    }
-
-    Result askUser(AskCallback callback) override
-    {
-        if (m_batchMode) return SuppressedByBatchMode;
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_parent, SuppressedByBatchMode);
-
-        return callback(m_parent) ? Success : UserCancelled;
-    }
-
-    QWidget *m_parent {nullptr};
-    bool m_batchMode {false};
-};
-
-}
-
 
 class Q_DECL_HIDDEN KisImportExportManager::Private
 {
@@ -495,206 +456,6 @@ bool KisImportExportManager::askUserAboutExportConfiguration(
     return m_backend->askExportConfiguration(filter.data(), exportConfiguration, from, to,
                                              batchMode, showWarnings, alsoAsKra,
                                              isAdvancedExporting);
-#if 0
-
-    // prevents the animation renderer from running this code
-
-
-    const QString mimeUserDescription = KisMimeDatabase::descriptionForMimeType(to);
-
-    QStringList warnings;
-    QStringList errors;
-
-    {
-        KisPreExportChecker checker;
-        checker.check(m_document->image(), filter->exportChecks());
-
-        warnings = checker.warnings();
-        errors = checker.errors();
-    }
-
-    KisConfigWidget *wdg = 0;
-
-    if (QThread::currentThread() == qApp->thread()) {
-        wdg = filter->createConfigurationWidget(0, from, to);
-
-        KisMainWindow *kisMain = KisPart::instance()->currentMainwindow();
-        if (wdg && kisMain) {
-            KisViewManager *manager = kisMain->viewManager();
-            wdg->setView(manager);
-        }
-    }
-
-    // Extra checks that cannot be done by the checker, because the checker only has access to the image.
-    if (!m_document->assistants().isEmpty() && to != m_document->nativeFormatMimeType()) {
-        warnings.append(i18nc("image conversion warning", "The image contains <b>assistants</b>. The assistants will not be saved."));
-    }
-    if (m_document->referenceImagesLayer() && m_document->referenceImagesLayer()->shapeCount() > 0 && to != m_document->nativeFormatMimeType()) {
-        warnings.append(i18nc("image conversion warning", "The image contains <b>reference images</b>. The reference images will not be saved."));
-    }
-    if (m_document->guidesConfig().hasGuides() && !filter->exportSupportsGuides()) {
-        warnings.append(i18nc("image conversion warning", "The image contains <b>guides</b>. The guides will not be saved."));
-    }
-    if (!m_document->gridConfig().isDefault() && to != m_document->nativeFormatMimeType()) {
-        warnings.append(i18nc("image conversion warning", "The image contains a <b>custom grid configuration</b>. The configuration will not be saved."));
-    }
-
-    bool shouldFlattenTheImageBeforeScaling = false;
-
-    if (isAdvancedExporting) {
-        QMap<QString, KisExportCheckBase *> exportChecks = filter->exportChecks();
-
-        const bool filterSupportsMultilayerExport =
-                exportChecks.contains("MultiLayerCheck") &&
-                exportChecks["MultiLayerCheck"]->checkNeeded(m_document->image()) &&
-                exportChecks["MultiLayerCheck"]->check(m_document->image()) == KisExportCheckBase::SUPPORTED;
-
-        if (!filterSupportsMultilayerExport) {
-            shouldFlattenTheImageBeforeScaling = true;
-        } else {
-            if (KisLayerUtils::findNodeByType<KisAdjustmentLayer>(m_document->image()->root())) {
-                shouldFlattenTheImageBeforeScaling = true;
-                warnings.append(i18nc("image conversion warning", "Trying to perform an Advanced Export with the image containing a <b>filter layer</b>. The image will be <b>flattened</b> before resizing."));
-            }
-            if (KisLayerUtils::findNodeByType<KisFilterMask>(m_document->image()->root())) {
-                shouldFlattenTheImageBeforeScaling = true;
-                warnings.append(i18nc("image conversion warning", "Trying to perform an Advanced Export with the image containing a <b>filter mask</b>. The image will be <b>flattened</b> before resizing."));
-            }
-            bool hasLayerStyles =
-                    KisLayerUtils::recursiveFindNode(m_document->image()->root(),
-                                                     [] (KisNodeSP node) {
-                    KisLayer *layer = dynamic_cast<KisLayer*>(node.data());
-                    return layer && layer->layerStyle();
-        });
-
-            if (hasLayerStyles) {
-                shouldFlattenTheImageBeforeScaling = true;
-                warnings.append(i18nc("image conversion warning", "Trying to perform an Advanced Export with the image containing a <b>layer style</b>. The image will be <b>flattened</b> before resizing."));
-            }
-        }
-    }
-
-    if (!batchMode && !errors.isEmpty()) {
-        QString error =  "<html><body><p><b>"
-                + i18n("Error: cannot save this image as a %1.", mimeUserDescription)
-                + "</b> " + i18n("Reasons:") + "</p>"
-                + "<p/><ul>";
-        Q_FOREACH(const QString &w, errors) {
-            error += "\n<li>" + w + "</li>";
-        }
-
-        error += "</ul>";
-
-        QMessageBox::critical(KisPart::instance()->currentMainwindow(), i18nc("@title:window", "Krita: Export Error"), error);
-        return false;
-    }
-
-    if (!batchMode && (wdg || !warnings.isEmpty() || isAdvancedExporting)) {
-        QWidget *page = new QWidget();
-        QVBoxLayout *layout = new QVBoxLayout(page);
-
-        if (showWarnings && !warnings.isEmpty()) {
-            QHBoxLayout *hLayout = new QHBoxLayout();
-
-            QLabel *labelWarning = new QLabel();
-            labelWarning->setPixmap(KisIconUtils::loadIcon("dialog-warning").pixmap(48, 48));
-            hLayout->addWidget(labelWarning);
-
-            KisPopupButton *bn = new KisPopupButton(0);
-
-            bn->setText(i18nc("Keep the extra space at the end of the sentence, please", "Warning: saving as a %1 will lose information from your image.    ", mimeUserDescription));
-            bn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-
-            hLayout->addWidget(bn);
-
-            layout->addLayout(hLayout);
-
-            QTextBrowser *browser = new QTextBrowser();
-            browser->setMinimumWidth(bn->width());
-            bn->setPopupWidget(browser);
-
-            QString warning = "<html><body><p><b>"
-                    + i18n("You will lose information when saving this image as a %1.", mimeUserDescription);
-
-            if (warnings.size() == 1) {
-                warning += "</b> " + i18n("Reason:") + "</p>";
-            }
-            else {
-                warning += "</b> " + i18n("Reasons:") + "</p>";
-            }
-            warning += "<p/><ul>";
-
-            Q_FOREACH(const QString &w, warnings) {
-                warning += "\n<li>" + w + "</li>";
-            }
-
-            warning += "</ul>";
-            browser->setHtml(warning);
-        }
-
-        QTabWidget *box = new QTabWidget;
-        if (wdg) {
-            wdg->setConfiguration(exportConfiguration);
-            box->addTab(wdg,i18n("Options"));
-        }
-
-        WdgImageSize *wdgImageSize = nullptr;
-
-        if (isAdvancedExporting) {
-            wdgImageSize = new WdgImageSize(box, m_document->image()->width(), m_document->image()->height(), m_document->image()->yRes());
-
-            box->addTab(wdgImageSize,i18n("Resize"));
-        }
-        layout->addWidget(box);
-
-        QCheckBox *chkAlsoAsKra = 0;
-        if (showWarnings && !warnings.isEmpty()) {
-            chkAlsoAsKra = new QCheckBox(i18n("Also save your image as a Krita file."));
-            chkAlsoAsKra->setChecked(KisConfig(true).readEntry<bool>("AlsoSaveAsKra", false));
-            layout->addWidget(chkAlsoAsKra);
-        }
-
-        KoDialog dlg(qApp->activeWindow());
-        dlg.setMainWidget(page);
-        page->setParent(&dlg);
-        dlg.setButtons(KoDialog::Ok | KoDialog::Cancel);
-        dlg.setWindowTitle(mimeUserDescription);
-
-        if (showWarnings || wdg || isAdvancedExporting) {
-            if (!dlg.exec()) {
-                return false;
-            }
-        }
-
-        *alsoAsKra = false;
-        if (chkAlsoAsKra) {
-            KisConfig(false).writeEntry<bool>("AlsoSaveAsKra", chkAlsoAsKra->isChecked());
-            *alsoAsKra = chkAlsoAsKra->isChecked();
-        }
-
-        KIS_SAFE_ASSERT_RECOVER_NOOP(bool(isAdvancedExporting) == bool(wdgImageSize));
-
-        if (isAdvancedExporting && wdgImageSize) {
-            if (shouldFlattenTheImageBeforeScaling) {
-                m_document->savingImage()->flatten(KisNodeSP());
-                m_document->savingImage()->waitForDone();
-            }
-
-            const QSize desiredSize(wdgImageSize->desiredWidth(), wdgImageSize->desiredHeight());
-            double res = wdgImageSize->desiredResolution();
-            m_document->savingImage()->scaleImage(desiredSize,res,res,wdgImageSize->filterType());
-            m_document->savingImage()->waitForDone();
-            KisLayerUtils::forceAllDelayedNodesUpdate(m_document->savingImage()->root());
-            m_document->savingImage()->waitForDone();
-        }
-
-        if (wdg) {
-            *exportConfiguration = *wdg->configuration();
-        }
-    }
-
-    return true;
-#endif
 }
 
 KisImportExportErrorCode KisImportExportManager::doImport(const QString &location, QSharedPointer<KisImportExportFilter> filter)

@@ -20,13 +20,12 @@
 #include <KoColorModelStandardIds.h>
 
 #include <KisImportExportManager.h>
+#include <KisImportExportBackend.h>
 #include <KisExportCheckRegistry.h>
 
-#include <KisDocument.h>
 #include <kis_image.h>
 #include <kis_paint_device.h>
 #include <kis_properties_configuration.h>
-#include <kis_config.h>
 #include <kis_iterator_ng.h>
 #include <kis_random_accessor_ng.h>
 
@@ -88,7 +87,7 @@ KisImportExportErrorCode KisHeightMapExport::convert(KisDocument *document, QIOD
 {
     KIS_ASSERT_RECOVER_RETURN_VALUE(mimeType() == "image/x-r16" || mimeType() == "image/x-r8" || mimeType() == "image/x-r32", ImportExportCodes::FileFormatIncorrect);
 
-    KisImageSP image = document->savingImage();
+    KisImageSP image = kisImportExportSavingImage(document);
     QDataStream::ByteOrder bo = configuration->getInt("endianness", 1) == 0 ? QDataStream::BigEndian : QDataStream::LittleEndian;
 
     KisPaintDeviceSP pd = new KisPaintDevice(*image->projection());

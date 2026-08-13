@@ -15,8 +15,8 @@
 
 #include <KisMimeDatabase.h>
 #include <KisExportCheckRegistry.h>
+#include <KisImportExportBackend.h>
 #include <kis_paint_device.h>
-#include <KisDocument.h>
 #include <kis_image.h>
 #include <kis_paint_layer.h>
 
@@ -32,8 +32,9 @@ KisQImageIOExport::~KisQImageIOExport()
 
 KisImportExportErrorCode KisQImageIOExport::convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP configuration)
 {
-    QRect rc = document->savingImage()->bounds();
-    QImage image = document->savingImage()->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
+    KisImageSP savingImage = kisImportExportSavingImage(document);
+    QRect rc = savingImage->bounds();
+    QImage image = savingImage->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
     int quality = -1;
     if (configuration) {
         quality = configuration->getInt("quality", -1);
@@ -69,4 +70,3 @@ KisPropertiesConfigurationSP KisQImageIOExport::defaultConfiguration(const QByte
 }
 
 #include "kis_qimageio_export.moc"
-

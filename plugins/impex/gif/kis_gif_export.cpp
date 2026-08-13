@@ -14,8 +14,8 @@
 #include <KoColorModelStandardIds.h>
 #include <KisExportCheckRegistry.h>
 #include <KisImportExportManager.h>
+#include <KisImportExportBackend.h>
 #include <kis_paint_device.h>
-#include <KisDocument.h>
 #include <kis_image.h>
 #include <kis_paint_layer.h>
 
@@ -34,8 +34,9 @@ KisGIFExport::~KisGIFExport()
 KisImportExportErrorCode KisGIFExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
 {
     Q_UNUSED(configuration);
-    QRect rc = document->savingImage()->bounds();
-    QImage image = document->savingImage()->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
+    KisImageSP savingImage = kisImportExportSavingImage(document);
+    QRect rc = savingImage->bounds();
+    QImage image = savingImage->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
 
     QGIFLibHandler handler;
     handler.setDevice(io);
@@ -59,4 +60,3 @@ void KisGIFExport::initializeCapabilities()
 
 
 #include "kis_gif_export.moc"
-

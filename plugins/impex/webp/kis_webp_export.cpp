@@ -16,8 +16,8 @@
 #include <cmath>
 #include <memory>
 
-#include <KisDocument.h>
 #include <KisExportCheckRegistry.h>
+#include <KisImportExportBackend.h>
 #include <KisImportExportErrorCode.h>
 #include <KisImportExportManager.h>
 #include <KoColorModelStandardIds.h>
@@ -141,10 +141,9 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(io->isWritable(),
                                          ImportExportCodes::NoAccessToWrite);
 
-    KisImageSP image = document->savingImage();
-    const QRect bounds = document->savingImage()->bounds();
-    const KoColorSpace *cs =
-        document->savingImage()->projection()->colorSpace();
+    KisImageSP image = kisImportExportSavingImage(document);
+    const QRect bounds = image->bounds();
+    const KoColorSpace *cs = image->projection()->colorSpace();
 
     const bool needSrgbConversion = [&]() {
         if (!cfg->getBool("force_srgb", false)) {
@@ -429,13 +428,13 @@ KisImportExportErrorCode KisWebPExport::convert(KisDocument *document, QIODevice
                 KisPaintDeviceSP dst;
                 if ((cs->colorModelId() == RGBAColorModelID && cs->colorDepthId() == Integer8BitsColorDepthID)
                     || !enableDithering) {
-                    dst = document->savingImage()->projection();
+                    dst = image->projection();
                 } else {
                     // We need to use gradient painter code's:
                     //    to convert to RGBA samedepth;
                     //    then dither to RGBA8
                     //    then convert from ARGB32 to RGBA8888
-                    const KisPaintDeviceSP src = document->savingImage()->projection();
+                    const KisPaintDeviceSP src = image->projection();
                     const KoID depthId = src->colorSpace()->colorDepthId();
                     const KoColorSpace *destCs = KoColorSpaceRegistry::instance()->rgb8();
                     if (cs->colorModelId() == RGBAColorModelID && !needSrgbConversion) {

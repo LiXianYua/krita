@@ -15,7 +15,7 @@ set(kritaoraimport_SOURCES
 
 kis_add_library(kritaoraimport MODULE ${kritaoraimport_SOURCES})
 
-target_link_libraries(kritaoraimport kritaui )
+target_link_libraries(kritaoraimport kritaimpex kritaui )
 
 install(TARGETS kritaoraimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

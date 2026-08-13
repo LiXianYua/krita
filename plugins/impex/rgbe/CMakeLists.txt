@@ -8,7 +8,7 @@ set(kritargbeimport_SOURCES
 )
 
 add_library(kritargbeimport MODULE ${kritargbeimport_SOURCES})
-target_link_libraries(kritargbeimport kritaui kritargbeimportutils)
+target_link_libraries(kritargbeimport kritaimpex kritaui kritargbeimportutils)
 
 install(TARGETS kritargbeimport DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -18,7 +18,7 @@ set(kritargbeexport_SOURCES
 
 kis_add_library(kritargbeexport MODULE ${kritargbeexport_SOURCES})
 
-target_link_libraries(kritargbeexport kritaui kritalibkra kritaimpex)
+target_link_libraries(kritargbeexport kritaimpex)
 
 install(TARGETS kritargbeexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

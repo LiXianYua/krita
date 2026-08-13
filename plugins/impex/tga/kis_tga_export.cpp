@@ -13,9 +13,9 @@
 #include <QApplication>
 #include <KoColorModelStandardIds.h>
 #include <KisExportCheckRegistry.h>
+#include <KisImportExportBackend.h>
 #include <KisImportExportManager.h>
 #include <kis_paint_device.h>
-#include <KisDocument.h>
 #include <kis_image.h>
 #include <kis_paint_layer.h>
 
@@ -34,8 +34,9 @@ KisTGAExport::~KisTGAExport()
 KisImportExportErrorCode KisTGAExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
 {
     Q_UNUSED(configuration);
-    QRect rc = document->savingImage()->bounds();
-    QImage image = document->savingImage()->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
+    KisImageSP savingImage = kisImportExportSavingImage(document);
+    QRect rc = savingImage->bounds();
+    QImage image = savingImage->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
 
     QDataStream s(io);
     s.setByteOrder(QDataStream::LittleEndian);
@@ -80,4 +81,3 @@ void KisTGAExport::initializeCapabilities()
 
 
 #include "kis_tga_export.moc"
-

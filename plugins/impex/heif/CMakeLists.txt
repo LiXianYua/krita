@@ -14,7 +14,7 @@ endforeach()
 
 kis_add_library(kritaheifimport MODULE ${kritaheifimport_SOURCES} ${__per_arch_heif})
 
-target_link_libraries(kritaheifimport kritaui kritalibkra HEIF::heif)
+target_link_libraries(kritaheifimport kritaimpex kritaui kritalibkra HEIF::heif)
 
 install(TARGETS kritaheifimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

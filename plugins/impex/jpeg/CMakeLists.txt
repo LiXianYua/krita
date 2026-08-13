@@ -24,7 +24,7 @@ set(kritajpegimport_SOURCES
 
 kis_add_library(kritajpegimport MODULE ${kritajpegimport_SOURCES})
 
-target_link_libraries(kritajpegimport kritaui  ${JPEG_LIBRARIES} ${LCMS2_LIBRARIES} LibExiv2::LibExiv2 )
+target_link_libraries(kritajpegimport kritaimpex kritaui  ${JPEG_LIBRARIES} ${LCMS2_LIBRARIES} LibExiv2::LibExiv2 )
 
 install(TARGETS kritajpegimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

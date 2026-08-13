@@ -13,7 +13,7 @@
 #include <QApplication>
 
 #include <KisExportCheckRegistry.h>
-#include <KisDocument.h>
+#include <KisImportExportBackend.h>
 #include <kis_image.h>
 
 #include "qml_converter.h"
@@ -31,7 +31,7 @@ QMLExport::~QMLExport()
 
 KisImportExportErrorCode QMLExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
-    KisImageSP image = document->savingImage();
+    KisImageSP image = kisImportExportSavingImage(document);
     Q_CHECK_PTR(image);
 
     QMLConverter converter;
@@ -53,4 +53,3 @@ void QMLExport::initializeCapabilities()
 
 
 #include <qml_export.moc>
-

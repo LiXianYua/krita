@@ -7,28 +7,22 @@
 #include "kis_brush_export.h"
 
 #include <QApplication>
-#include <QCheckBox>
-#include <QSlider>
 #include <QBuffer>
 
 #include <KoProperties.h>
-#include <KoDialog.h>
 #include <kpluginfactory.h>
 #include <QFileInfo>
 
 #include <KisExportCheckRegistry.h>
 #include <kis_paint_device.h>
-#include <KisViewManager.h>
 #include <kis_image.h>
-#include <KisDocument.h>
+#include <KisImportExportBackend.h>
 #include <kis_paint_layer.h>
-#include <kis_spacing_selection_widget.h>
 #include <kis_gbr_brush.h>
 #include <kis_imagepipe_brush.h>
 #include <kis_pipebrush_parasite.h>
 #include <KisAnimatedBrushAnnotation.h>
 #include <KisImportExportManager.h>
-#include <kis_config.h>
 
 struct KisBrushExportOptions {
     qreal spacing;
@@ -53,9 +47,10 @@ KisBrushExport::~KisBrushExport()
 
 KisImportExportErrorCode KisBrushExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration)
 {
+    KisImageSP image = kisImportExportSavingImage(document);
 
 // XXX: Loading the parasite itself was commented out -- needs investigation
-//    KisAnnotationSP annotation = document->savingImage()->annotation("ImagePipe Parasite");
+//    KisAnnotationSP annotation = image->annotation("ImagePipe Parasite");
 //    KisPipeBrushParasite parasite;
 //    if (annotation) {
 //        QBuffer buf(const_cast<QByteArray*>(&annotation->annotation()));
@@ -66,8 +61,8 @@ KisImportExportErrorCode KisBrushExport::convert(KisDocument *document, QIODevic
 
     KisBrushExportOptions exportOptions;
 
-    if (document->savingImage()->dynamicPropertyNames().contains("brushspacing")) {
-        exportOptions.spacing = document->savingImage()->property("brushspacing").toFloat();
+    if (image->dynamicPropertyNames().contains("brushspacing")) {
+        exportOptions.spacing = image->property("brushspacing").toFloat();
     }
     else {
         exportOptions.spacing = configuration->getInt("spacing");
@@ -76,7 +71,7 @@ KisImportExportErrorCode KisBrushExport::convert(KisDocument *document, QIODevic
         exportOptions.name = configuration->getString("name");
     }
     else {
-        exportOptions.name = document->savingImage()->objectName();
+        exportOptions.name = image->objectName();
     }
 
     exportOptions.mask = configuration->getBool("mask");
@@ -101,7 +96,7 @@ KisImportExportErrorCode KisBrushExport::convert(KisDocument *document, QIODevic
 
     qApp->processEvents(); // For vector layers to be updated
 
-    QRect rc = document->savingImage()->bounds();
+    QRect rc = image->bounds();
 
     brush->setSpacing(exportOptions.spacing);
 
@@ -113,7 +108,7 @@ KisImportExportErrorCode KisBrushExport::convert(KisDocument *document, QIODevic
 
         KoProperties properties;
         properties.setProperty("visible", true);
-        QList<KisNodeSP> layers = document->savingImage()->root()->childNodes(QStringList("KisLayer"), properties);
+        QList<KisNodeSP> layers = image->root()->childNodes(QStringList("KisLayer"), properties);
 
         Q_FOREACH (KisNodeSP node, layers) {
             // push_front to behave exactly as gimp for gih creation
@@ -157,11 +152,11 @@ KisImportExportErrorCode KisBrushExport::convert(KisDocument *document, QIODevic
     }
     else {
         if (exportOptions.mask) {
-            QImage image = document->savingImage()->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
-            brush->setImage(image);
-            brush->setBrushTipImage(image);
+            QImage convertedImage = image->projection()->convertToQImage(0, 0, 0, rc.width(), rc.height(), KoColorConversionTransformation::internalRenderingIntent(), KoColorConversionTransformation::internalConversionFlags());
+            brush->setImage(convertedImage);
+            brush->setBrushTipImage(convertedImage);
         } else {
-            brush->initFromPaintDev(document->savingImage()->projection(),0,0,rc.width(), rc.height());
+            brush->initFromPaintDev(image->projection(),0,0,rc.width(), rc.height());
         }
     }
 
@@ -210,4 +205,3 @@ void KisBrushExport::initializeCapabilities()
 
 
 #include "kis_brush_export.moc"
-

@@ -13,7 +13,7 @@ set(kritaexrimport_SOURCES
 
 kis_add_library(kritaexrimport MODULE ${kritaexrimport_SOURCES})
 
-target_link_libraries(kritaexrimport kritaui kritalibkra OpenEXR::IlmImf)
+target_link_libraries(kritaexrimport kritaimpex kritaui kritalibkra OpenEXR::IlmImf)
 
 install(TARGETS kritaexrimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

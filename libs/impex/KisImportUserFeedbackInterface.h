@@ -9,13 +9,15 @@
 #include <QtGlobal>
 #include <functional>
 
+#include "kritaimpex_export.h"
+
 class QWidget;
 
 /**
  * Sometimes the importing filter may face some werd issue that needs
  * user's input/decision.
  */
-class KisImportUserFeedbackInterface
+class KRITAIMPEX_EXPORT KisImportUserFeedbackInterface
 {
 public:
     using AskCallback = std::function<bool(QWidget*)>;

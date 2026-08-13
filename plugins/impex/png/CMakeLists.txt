@@ -10,7 +10,7 @@ include_directories(SYSTEM ${PNG_INCLUDE_DIR})
 
 add_definitions(${PNG_DEFINITIONS})
 
-target_link_libraries(kritapngimport kritaui ${PNG_LIBRARIES} )
+target_link_libraries(kritapngimport kritaimpex kritaui ${PNG_LIBRARIES} )
 
 install(TARGETS kritapngimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
