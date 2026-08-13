@@ -78,12 +78,19 @@ public:
     template <class... Args> static PkSharedPointer<T> create(Args &&...args)
     { return fromShared(std::make_shared<T>(std::forward<Args>(args)...)); }
 
+private:
     // 给同族类型（PkWeakPointer）与自由函数用的内部通道；不是 Qt API 面的一部分。
+    //
+    // **必须落在 private: 之后**——评审 Important：这两个成员原先写在 public
+    // 区（private: 标签之前），是事实上的公开成员，任何调用点都能写
+    // `p.sharedImpl().use_count()`，正是「设计决定：组合，不是继承」那段
+    // 专门要挡住的符号，抵消了选组合的全部理由，也违反判据①「一项不多」。
+    // 类里已有的两条 friend 声明对全部实例化互相生效，`PkWeakPointer` 的
+    // 构造、跨类型构造、dynamicCast/staticCast/create/toStrongRef 都不受影响。
     const std::shared_ptr<T> &sharedImpl() const noexcept { return m_p; }
     static PkSharedPointer<T> fromShared(std::shared_ptr<T> s) noexcept
     { PkSharedPointer<T> r; r.m_p = std::move(s); return r; }
 
-private:
     std::shared_ptr<T> m_p;
     template <class X> friend class PkSharedPointer;
     template <class X> friend class PkWeakPointer;
@@ -148,10 +155,13 @@ template <class T> bool operator==(const PkSharedPointer<T> &a, std::nullptr_t) 
 { return a.isNull(); }
 template <class T> bool operator!=(const PkSharedPointer<T> &a, std::nullptr_t) noexcept
 { return !a.isNull(); }
-// 探针 P12 最后一行：weak 与 shared 可比。
-template <class T, class X>
-bool operator==(const PkWeakPointer<T> &a, const PkSharedPointer<X> &b) noexcept
-{ return a.toStrongRef().data() == b.data(); }
+
+// **有意不实现**：operator==(const PkWeakPointer<T>&, const PkSharedPointer<X>&)。
+// 探针 P12 证明 Qt 有这个重载（weak==shared:1），但那只证明 Qt 有它，不证明
+// Krita 用它——用量表 `.superpowers/sdd/R-04/usage-table.md` §2.3 的
+// QWeakPointer 一节没有 operator== 这一行，保留范围用量是 0。判据①「一项
+// 不多」优先于计划 Step 4 示例代码：这里是计划的示例代码写多了，用量表对。
+// 登记进「有意不实现」清单，Task 4 收（该 README 由 Task 4 交付）。
 
 // ---- Step 9：接 pk/container 的哈希 ----
 //
