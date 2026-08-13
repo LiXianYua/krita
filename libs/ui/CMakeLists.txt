@@ -432,9 +432,8 @@ set(kritaui_LIB_SRCS
     KisSessionResource.cpp
 
     KisReferenceImagesDecoration.cpp
-    KisReferenceImage.cpp
-    flake/KisReferenceImagesLayer.cpp
-    flake/KisReferenceImagesLayer.h
+    KisReferenceImageDesktop.cpp
+    flake/KisReferenceImagesLayerCommands.cpp
     KisMouseClickEater.cpp
 
     KisDecorationsWrapperLayer.cpp

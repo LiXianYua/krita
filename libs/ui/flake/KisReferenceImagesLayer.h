@@ -10,12 +10,12 @@
 #include "kis_shape_layer.h"
 
 #include <kis_types.h>
-#include <kritaui_export.h>
+#include <kritashapemodel_export.h>
 
 class KisDocument;
 class KoCanvasBase;
 
-class KRITAUI_EXPORT KisReferenceImagesLayer : public KisShapeLayer
+class KRITASHAPEMODEL_EXPORT KisReferenceImagesLayer : public KisShapeLayer
 {
     Q_OBJECT
 

@@ -10,6 +10,7 @@
 #include "flake/kis_shape_layer.h"
 #include "flake/KisReferenceImagesLayer.h"
 #include "KisReferenceImage.h"
+#include "KisReferenceImageDesktop.h"
 #include <KisImportExportManager.h>
 
 #include <QBuffer>
@@ -133,7 +134,7 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
             auto *reference = dynamic_cast<KisReferenceImage*>(shape);
             KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(reference, false);
 
-            while (!reference->loadImage(m_store)) {
+            while (!loadReferenceImageWithDocumentFallback(reference, m_store)) {
                 if (reference->embed()) {
                     m_errorMessages << i18n("Could not load embedded reference image %1 ", reference->internalFile());
                     break;

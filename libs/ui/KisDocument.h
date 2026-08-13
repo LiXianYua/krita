@@ -21,6 +21,7 @@
 #include <KisImportExportFilter.h>
 #include <kis_properties_configuration.h>
 #include <kis_types.h>
+#include <KisReferenceImagesLayer.h>
 #include <kis_painting_assistant.h>
 #include <KisReferenceImage.h>
 #include <kis_debug.h>
@@ -51,7 +52,6 @@ class KisGridConfig;
 class KisGuidesConfig;
 class KisMirrorAxisConfig;
 class QDomDocument;
-class KisReferenceImagesLayer;
 
 #define KIS_MIME_TYPE "application/x-krita"
 

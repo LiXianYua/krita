@@ -10,6 +10,7 @@
 
 #include <libs/store/KoStore.h>
 #include <KisReferenceImage.h>
+#include <KisReferenceImageDesktop.h>
 #include <libs/store/KoStoreDevice.h>
 
 const QString METADATA_FILE = "reference_images.xml";
@@ -80,7 +81,7 @@ bool KisReferenceImageCollection::load(QIODevice *io)
     while (!element.isNull()) {
         KisReferenceImage *reference = KisReferenceImage::fromXml(element);
 
-        if (reference->loadImage(store.data())) {
+        if (loadReferenceImageWithDocumentFallback(reference, store.data())) {
             references.append(reference);
         } else {
             failures << (reference->embed() ? reference->internalFile() : reference->filename());

@@ -11,6 +11,7 @@
 #include <KoShapeControllerBase.h>
 
 #include <kis_image.h>
+#include <KisReferenceImage.h>
 #include <kis_shape_layer.h>
 
 namespace {
@@ -37,6 +38,7 @@ class KisShapeModelTest : public QObject
 
 private Q_SLOTS:
     void ownsShapeLayerStateWithoutUi();
+    void ownsReferenceImageStateWithoutUi();
 };
 
 void KisShapeModelTest::ownsShapeLayerStateWithoutUi()
@@ -61,6 +63,23 @@ void KisShapeModelTest::ownsShapeLayerStateWithoutUi()
 
     layer.setAntialiased(false);
     QVERIFY(!layer.antialiased());
+}
+
+void KisShapeModelTest::ownsReferenceImageStateWithoutUi()
+{
+    KisReferenceImage first;
+    KisReferenceImage second;
+    first.setSaturation(0.25);
+    second.setSaturation(0.75);
+
+    KisReferenceImage::SetSaturationCommand command({&first, &second}, 0.5);
+    command.redo();
+    QCOMPARE(first.saturation(), 0.5);
+    QCOMPARE(second.saturation(), 0.5);
+
+    command.undo();
+    QCOMPARE(first.saturation(), 0.25);
+    QCOMPARE(second.saturation(), 0.75);
 }
 
 QTEST_MAIN(KisShapeModelTest)

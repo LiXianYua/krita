@@ -1,5 +1,7 @@
 set(kritashapemodel_SOURCES
+    ../KisReferenceImage.cpp
     ../kis_image_view_converter.cpp
+    KisReferenceImagesLayer.cpp
     kis_shape_layer.cc
     kis_shape_layer_canvas.cpp
     kis_shape_selection.cpp
@@ -22,6 +24,8 @@ target_link_libraries(kritashapemodel
     PUBLIC
         kritaflake
         kritaimage
+        kritalibbrush
+        kritacanvas
 )
 
 set_target_properties(kritashapemodel PROPERTIES

@@ -6,16 +6,11 @@
 
 #include "KisReferenceImage.h"
 #include "KoColorSpaceRegistry.h"
-
 #include <QImage>
-#include <QMessageBox>
 #include <QPainter>
-#include <QApplication>
-#include <QClipboard>
 #include <QSharedData>
 #include <QFileInfo>
 #include <QImageReader>
-#include <QUrl>
 
 #include <QColorSpace>
 
@@ -24,15 +19,11 @@
 #include <KoStoreDevice.h>
 #include <krita_utils.h>
 #include <kis_coordinates_converter.h>
+#include <kis_paint_device.h>
 #include <kis_dom_utils.h>
 #include <SvgUtil.h>
 #include <libs/flake/svg/parsers/SvgTransformParser.h>
 #include <libs/brush/kis_qimage_pyramid.h>
-
-#include <KisDocument.h>
-#include <KisPart.h>
-
-#include "kis_clipboard.h"
 
 struct KisReferenceImage::Private : public QSharedData
 {
@@ -50,7 +41,7 @@ struct KisReferenceImage::Private : public QSharedData
     int id{-1};
     bool embed{true};
 
-    bool loadFromFile() {
+    bool loadFromFile(const KisReferenceImage::FallbackFileLoader &fallbackLoader) {
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!externalFilename.isEmpty(), false);
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(QFileInfo(externalFilename).exists(), false);
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(QFileInfo(externalFilename).isReadable(), false);
@@ -70,12 +61,8 @@ struct KisReferenceImage::Private : public QSharedData
             image.load(externalFilename);
         }
 
-        if (image.isNull()) {
-            KisDocument * doc = KisPart::instance()->createTemporaryDocument();
-            if (doc->openPath(externalFilename, KisDocument::DontAddToRecent)) {
-                image = doc->image()->convertToQImage(doc->image()->bounds(), 0);
-            }
-            KisPart::instance()->removeDocument(doc);
+        if (image.isNull() && fallbackLoader) {
+            image = fallbackLoader(externalFilename);
         }
 
         // See https://bugs.kde.org/show_bug.cgi?id=416515 -- a jpeg image
@@ -158,36 +145,6 @@ KisReferenceImage::KisReferenceImage(const KisReferenceImage &rhs)
 KisReferenceImage::~KisReferenceImage()
 {}
 
-KisReferenceImage * KisReferenceImage::fromFile(const QString &filename, const KisCoordinatesConverter &converter, QWidget *parent)
-{
-    KisReferenceImage *reference = new KisReferenceImage();
-    reference->d->externalFilename = filename;
-    bool ok = reference->d->loadFromFile();
-
-    if (ok) {
-        QRect r = QRect(QPoint(), reference->d->image.size());
-        QSizeF shapeSize = converter.imageToDocument(r).size();
-        reference->setSize(shapeSize);
-    } else {
-        delete reference;
-
-        if (parent) {
-            QMessageBox::critical(parent, i18nc("@title:window", "Krita"), i18n("Could not load %1.", filename));
-        }
-
-        return nullptr;
-    }
-
-    return reference;
-}
-
-KisReferenceImage *KisReferenceImage::fromClipboard(const KisCoordinatesConverter &converter)
-{
-    const auto sz = KisClipboard::instance()->clipSize();
-    KisPaintDeviceSP clip = KisClipboard::instance()->clip({0, 0, sz.width(), sz.height()}, true);
-    return fromPaintDevice(clip, converter, nullptr);
-}
-
 KisReferenceImage *
 KisReferenceImage::fromPaintDevice(KisPaintDeviceSP src, const KisCoordinatesConverter &converter, QWidget *)
 {
@@ -216,7 +173,7 @@ KisReferenceImage *KisReferenceImage::fromQImage(const KisCoordinatesConverter &
         reference->setSize(size);
     } else {
         delete reference;
-        reference = 0;
+        reference = nullptr;
     }
 
     return reference;
@@ -395,8 +352,13 @@ bool KisReferenceImage::saveImage(KoStore *store) const
 
 bool KisReferenceImage::loadImage(KoStore *store)
 {
+    return loadImage(store, {});
+}
+
+bool KisReferenceImage::loadImage(KoStore *store, const FallbackFileLoader &fallbackLoader)
+{
     if (!d->embed) {
-        return d->loadFromFile();
+        return d->loadFromFile(fallbackLoader);
     }
 
     if (!store->open(d->internalFilename)) {

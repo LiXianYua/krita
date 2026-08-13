@@ -7,12 +7,14 @@
 #ifndef KISREFERENCEIMAGE_H
 #define KISREFERENCEIMAGE_H
 
+#include <functional>
+
 #include <QSharedDataPointer>
 
 #include <KoColor.h>
 #include <KoShape.h>
 #include <kis_types.h>
-#include <kritaui_export.h>
+#include <kritashapemodel_export.h>
 #include <kundo2command.h>
 
 class QImage;
@@ -26,10 +28,12 @@ class KisCanvas2;
 /**
  * @brief The KisReferenceImage class represents a single reference image
  */
-class KRITAUI_EXPORT KisReferenceImage : public KoShape
+class KRITASHAPEMODEL_EXPORT KisReferenceImage : public KoShape
 {
 public:
-    struct KRITAUI_EXPORT SetSaturationCommand : public KUndo2Command {
+    using FallbackFileLoader = std::function<QImage(const QString &)>;
+
+    struct KRITASHAPEMODEL_EXPORT SetSaturationCommand : public KUndo2Command {
         QVector<KisReferenceImage*> images;
         QVector<qreal> oldSaturations;
         qreal newSaturation;
@@ -81,6 +85,7 @@ public:
 
     static KisReferenceImage * fromXml(const QDomElement &elem);
     bool loadImage(KoStore *store);
+    bool loadImage(KoStore *store, const FallbackFileLoader &fallbackLoader);
 
     QImage getImage();
 
