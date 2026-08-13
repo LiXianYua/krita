@@ -67,6 +67,54 @@ static auto hasDerivedDefaultResetTemplate(int) -> decltype(
 template <class>
 static std::false_type hasDerivedDefaultResetTemplate(...);
 
+template <class Pointer>
+static auto hasFixedDefaultReset(int) -> decltype(
+    static_cast<void (Pointer::*)(DeleteBase *)>(&Pointer::reset),
+    std::true_type());
+template <class>
+static std::false_type hasFixedDefaultReset(...);
+
+struct NoReset {
+};
+struct WrongFixedResetShape {
+    void reset(void *) {}
+};
+struct WrongTemplatedReset {
+    template <class X>
+    void reset(X *) {}
+};
+
+template <class Pointer>
+using HasFixedDefaultReset = std::integral_constant<bool,
+    decltype(hasFixedDefaultReset<Pointer>(0))::value &&
+    !decltype(hasDerivedDefaultResetTemplate<Pointer>(0))::value>;
+
+static_assert(!decltype(hasFixedDefaultReset<NoReset>(0))::value,
+              "no reset cannot satisfy the positive exact-signature check");
+static_assert(!decltype(hasDerivedDefaultResetTemplate<NoReset>(0))::value,
+              "no reset also has no derived member-template reset");
+static_assert(!HasFixedDefaultReset<NoReset>::value,
+              "a type without reset must not be classified as fixed-T*");
+static_assert(!decltype(hasFixedDefaultReset<WrongFixedResetShape>(0))::value,
+              "reset(void*) cannot satisfy the positive exact-signature check");
+static_assert(!decltype(hasDerivedDefaultResetTemplate<WrongFixedResetShape>(0))::value,
+              "reset(void*) is not a derived member-template reset");
+static_assert(!HasFixedDefaultReset<WrongFixedResetShape>::value,
+              "reset(void*) must not be classified as fixed-T*");
+static_assert(decltype(hasFixedDefaultReset<WrongTemplatedReset>(0))::value,
+              "template deduction alone can satisfy the positive signature check");
+static_assert(decltype(hasDerivedDefaultResetTemplate<WrongTemplatedReset>(0))::value,
+              "the negative check must expose the derived member-template reset");
+static_assert(!HasFixedDefaultReset<WrongTemplatedReset>::value,
+              "reset<X>(X*) must not be classified as fixed-T*");
+
+static_assert(
+    decltype(hasFixedDefaultReset<QSharedPointer<DeleteBase>>(0))::value,
+    "QSharedPointer::reset must have the exact void (Pointer::*)(T*) shape");
+static_assert(
+    decltype(hasFixedDefaultReset<PkSharedPointer<DeleteBase>>(0))::value,
+    "PkSharedPointer::reset must match Qt's exact one-argument reset shape");
+
 static_assert(
     !decltype(hasDerivedDefaultResetTemplate<QSharedPointer<DeleteBase>>(0))::value,
     "QSharedPointer::reset must expose fixed T*, not a reset<X>(X*) template");
@@ -97,8 +145,10 @@ static void probeDeletionSemantics(const char *label)
 
     const bool hasDerivedReset =
         decltype(hasDerivedDefaultResetTemplate<SharedPointer<DeleteBase>>(0))::value;
+    const bool hasFixedReset =
+        HasFixedDefaultReset<SharedPointer<DeleteBase>>::value;
     LINE("%s reset-default fixed-T-star=%d derived-reset-template=%d", label,
-         !hasDerivedReset, hasDerivedReset);
+         hasFixedReset, hasDerivedReset);
 
     g_deleteBaseDestroyed = g_deleteDerivedDestroyed = 0;
     { SharedPointer<DeleteBase> p(new DeleteDerived, TypePreservingDeleter()); }
