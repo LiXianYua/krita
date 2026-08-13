@@ -101,13 +101,69 @@
 #include <kis_png_brush.h>
 #endif
 
-#if defined(TESTUI)
-#include <KisWindowLayoutResource.h>
-#include <kis_workspace_resource.h>
-#include <KisSessionResource.h>
-#endif
-
 namespace {
+
+#if defined(TESTUI)
+/**
+ * UI tests need loaders for these resource types so that the shared resource
+ * database can be initialized.  They do not need to construct or apply real
+ * windows, sessions, or workspaces.  Keeping the test resource local avoids
+ * pulling application-window APIs into every TESTUI executable.
+ */
+class KisTestUiResource final : public KoResource
+{
+public:
+    KisTestUiResource(const QString &filename, const QString &type)
+        : KoResource(filename)
+        , m_type(type)
+    {
+    }
+
+    KisTestUiResource(const KisTestUiResource &rhs)
+        : KoResource(rhs)
+        , m_type(rhs.m_type)
+        , m_data(rhs.m_data)
+    {
+    }
+
+    KoResourceSP clone() const override
+    {
+        return KoResourceSP(new KisTestUiResource(*this));
+    }
+
+    bool loadFromDevice(QIODevice *device, KisResourcesInterfaceSP) override
+    {
+        m_data = device->readAll();
+        setValid(true);
+        return true;
+    }
+
+    bool saveToDevice(QIODevice *device) const override
+    {
+        return device->write(m_data) == m_data.size();
+    }
+
+    QPair<QString, QString> resourceType() const override
+    {
+        return qMakePair(m_type, QString());
+    }
+
+private:
+    QString m_type;
+    QByteArray m_data;
+};
+
+class KisTestUiResourceLoader final : public KisResourceLoaderBase
+{
+public:
+    using KisResourceLoaderBase::KisResourceLoaderBase;
+
+    KoResourceSP create(const QString &filename) override
+    {
+        return KoResourceSP(new KisTestUiResource(filename, resourceType()));
+    }
+};
+#endif
 
 void addResourceTypes()
 {
@@ -233,9 +289,9 @@ void registerResources()
 #endif
 
 #if defined(TESTUI)
-    reg->add(new KisResourceLoader<KisWindowLayoutResource>(ResourceType::WindowLayouts, ResourceType::WindowLayouts, i18n("Window layouts"), QStringList() << "application/x-krita-windowlayout"));
-    reg->add(new KisResourceLoader<KisSessionResource>(ResourceType::Sessions, ResourceType::Sessions, i18n("Sessions"), QStringList() << "application/x-krita-session"));
-    reg->add(new KisResourceLoader<KisWorkspaceResource>(ResourceType::Workspaces, ResourceType::Workspaces, i18n("Workspaces"), QStringList() << "application/x-krita-workspace"));
+    reg->add(new KisTestUiResourceLoader(ResourceType::WindowLayouts, ResourceType::WindowLayouts, i18n("Window layouts"), QStringList() << "application/x-krita-windowlayout"));
+    reg->add(new KisTestUiResourceLoader(ResourceType::Sessions, ResourceType::Sessions, i18n("Sessions"), QStringList() << "application/x-krita-session"));
+    reg->add(new KisTestUiResourceLoader(ResourceType::Workspaces, ResourceType::Workspaces, i18n("Workspaces"), QStringList() << "application/x-krita-workspace"));
 #endif
 
 #if defined(TESTRESOURCES) || defined(TESTPIGMENT) || defined (TESTFLAKE) || defined(TESTBRUSH) || defined(TESTIMAGE) || defined(TESTUI)
