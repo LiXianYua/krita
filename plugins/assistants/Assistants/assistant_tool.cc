@@ -4,13 +4,11 @@
  *  SPDX-License-Identifier: LGPL-2.0-or-later
  */
 #include "assistant_tool.h"
-#include "kis_assistant_tool.h"
 
 #include <kpluginfactory.h>
 #include <kis_canvas2.h>
 #include <kis_coordinates_converter.h>
 #include <kis_algebra_2d.h>
-#include <KoToolRegistry.h>
 #include "RulerAssistant.h"
 #include "EllipseAssistant.h"
 #include "SplineAssistant.h"
@@ -31,8 +29,6 @@ K_PLUGIN_FACTORY_WITH_JSON(AssistantToolFactory, "kritaassistanttool.json", regi
 AssistantToolPlugin::AssistantToolPlugin(QObject *parent, const QVariantList &)
         : QObject(parent)
 {
-    KoToolRegistry::instance()->add(new KisAssistantToolFactory());
-
     KisPaintingAssistantFactoryRegistry::instance()->add(new RulerAssistantFactory);
     KisPaintingAssistantFactoryRegistry::instance()->add(new EllipseAssistantFactory);
     KisPaintingAssistantFactoryRegistry::instance()->add(new SplineAssistantFactory);
