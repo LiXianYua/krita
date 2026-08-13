@@ -8,8 +8,8 @@
 // 这份源码在两次编译里，宏分支之外的部分（Payload/PayloadDerived/…/观测与解释器
 // 函数）逐字节相同。如果它们留在全局作用域，类内定义的成员函数是隐式 inline，
 // 链接器会把两个目标文件里"看起来一样"的符号当同一个 vague-linkage/COMDAT 符号
-// 折叠成一份——这正是 Task 1 报告"遇到的问题"一节踩过的坑（三份测试文件的
-// `struct Base` 被折叠，`g_live` 读到别的 TU 头上）。这里的后果会更隐蔽：折叠后
+// 折叠成一份——两份同名 `struct Base` 定义会被折叠成一份，其中一侧的计数器
+// 读到另一侧头上。这里的后果会更隐蔽：折叠后
 // Qt 侧与 Pk 侧会共享同一份 Payload::live/nextId，跑起来大概率不是编译错误，
 // 而是安静地把两侧观测量搅在一起，产出看似合理实则无意义的 mismatch 数字。
 // 塞进匿名 namespace 给每个 TU 一份内部链接的私有副本，彻底堵死这条折叠路径。
@@ -120,10 +120,10 @@ void resetSharedHarness()
 // + 2 个弱引用槽（isNull/toStrongRef().isNull()/toStrongRef() 的 id/v）。
 // 「为什么这些量足够」见简报 Step 2：isNull 覆盖判据 A，布尔语境覆盖判据 B，
 // live 与 deleter 计数覆盖析构时机，id 覆盖"指到哪个对象"。
-// 修复轮 1 ②：补 v 字段——只记 (isNull, id, 布尔语境) 会放过参数转发类缺陷：
-// 例如 create() 把构造参数传错，两侧各自生成一个 id 相同的新对象（id 只看"分配
+// v 字段必须记：只记 (isNull, id, 布尔语境) 会放过参数转发类缺陷——例如
+// create() 把构造参数传错，两侧各自生成一个 id 相同的新对象（id 只看"分配
 // 顺序"，与传了什么值无关），isNull/live/id 全部一致，只有 v 不同，缺了这一列
-// 对拍就看不见。scoped 家族（observeScoped 的 C%d/A%d）已经记了 v，这里补齐对齐。
+// 对拍就看不见。scoped 家族（observeScoped 的 C%d/A%d）同样记 v，两族对齐。
 std::string observeShared()
 {
     char buf[512];
@@ -360,11 +360,11 @@ void interpretScopedStep(const Step &st)
         else g_ap[a]->reset();
         break;
     case SOpArrayIndex: {
-        // 修复轮 1 ③：原来的 `b % 3` 是死代码——`b` 在本函数顶部已经被
-        // `st.b % 2` 收窄到 {0,1}，再 `% 3` 恒等于 `b` 自身，`arrayMake` 造的
-        // 3 元素数组的下标 2 从未被观测过。改用未经二值收窄的 `st.a`/`st.b`
-        // 组合出下标（两者各自 0/1，共 4 种组合，`(st.a*2+st.b)%3` 覆盖 0/1/2
-        // 全部三个下标），槽选择仍然用上面已收窄的 `a`。
+        // 下标必须用未经二值收窄的 `st.a`/`st.b` 组合出来：本函数顶部的局部
+        // `b` 已被 `st.b % 2` 收窄到 {0,1}，若直接 `b % 3` 会恒等于 `b` 自身，
+        // `arrayMake` 造的 3 元素数组的下标 2 永远不会被观测到。改用
+        // `st.a`/`st.b`（两者各自 0/1，共 4 种组合）算出 `(st.a*2+st.b)%3`，
+        // 覆盖 0/1/2 全部三个下标；槽选择仍然用上面已收窄的 `a`。
         int idx = (st.a * 2 + st.b) % 3;
         g_lastArr = (g_ap[a]->data() != nullptr) ? (*g_ap[a])[idx].v : -1;
         break;

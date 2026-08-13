@@ -81,12 +81,12 @@ public:
 private:
     // 给同族类型（PkWeakPointer）与自由函数用的内部通道；不是 Qt API 面的一部分。
     //
-    // **必须落在 private: 之后**——评审 Important：这两个成员原先写在 public
-    // 区（private: 标签之前），是事实上的公开成员，任何调用点都能写
-    // `p.sharedImpl().use_count()`，正是「设计决定：组合，不是继承」那段
-    // 专门要挡住的符号，抵消了选组合的全部理由，也违反判据①「一项不多」。
-    // 类里已有的两条 friend 声明对全部实例化互相生效，`PkWeakPointer` 的
-    // 构造、跨类型构造、dynamicCast/staticCast/create/toStrongRef 都不受影响。
+    // **必须落在 private: 之后**：写在 public 区（private: 标签之前）会让这两个
+    // 成员成为事实上的公开接口，调用点可以写 `p.sharedImpl().use_count()`，
+    // 正是「设计决定：组合，不是继承」那段专门要挡住的符号，抵消了选组合的
+    // 全部理由，也违反判据①「一项不多」。类里已有的两条 friend 声明对全部
+    // 实例化互相生效，`PkWeakPointer` 的构造、跨类型构造、
+    // dynamicCast/staticCast/create/toStrongRef 都不受影响。
     const std::shared_ptr<T> &sharedImpl() const noexcept { return m_p; }
     static PkSharedPointer<T> fromShared(std::shared_ptr<T> s) noexcept
     { PkSharedPointer<T> r; r.m_p = std::move(s); return r; }
@@ -115,7 +115,7 @@ public:
     PkSharedPointer<T> toStrongRef() const
     { return PkSharedPointer<T>::fromShared(m_weak.lock()); }
 
-    // 修复轮 1 ①：本类**不提供** operator->。真 Qt5 的 QWeakPointer::operator->
+    // 本类**不提供** operator->。真 Qt5 的 QWeakPointer::operator->
     // 整个包在 `#if defined(QWEAKPOINTER_ENABLE_ARROW)` 里（qsharedpointer_impl.h:666），
     // 这个宏在 Qt5 自己的头文件树里从未被定义过，对非 QObject 的 T，`w->foo()` 在
     // 真 Qt5 上根本编不出来。用量表 §2.3 记的"保留范围用量 2"是受体误判：唯一点名的
@@ -124,7 +124,7 @@ public:
     // UpdateListenerSP（强引用），不是 QWeakPointer 本身——那一行调用的是强引用的
     // operator->，与本类无关。提供这个成员是超出用量表的实现（违反判据①「一项不多」），
     // 而且方向最坏：会让"Krita 这行代码在这里编得过、换回真 Qt 就编不过"的反向陷阱
-    // 多一个。详见 oracle/pointer.deviation 与 task-1-report.md 的登记。
+    // 多一个。详见 oracle/pointer.deviation 的登记。
 
     typedef T *PkWeakPointer::*RestrictedBool;
     operator RestrictedBool() const noexcept { return isNull() ? nullptr : &PkWeakPointer::m_value; }

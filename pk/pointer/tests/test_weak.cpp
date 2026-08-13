@@ -35,8 +35,8 @@ void PkWeakPointerCase::weakLifecycle()
         PK_VERIFY(!w.isNull());
         PK_VERIFY(!w.toStrongRef().isNull());
         PK_COMPARE(w.toStrongRef()->v, 3);
-        // 修复轮 1 ①：原有 `PK_COMPARE(w->v, 3);` 已删——PkWeakPointer 不再提供
-        // operator->（真 Qt5 上这个成员默认编不出来，见 PkSharedPointer.h 同处注释）。
+        // PkWeakPointer 不提供 operator->（真 Qt5 上这个成员默认编不出来，
+        // 见 PkSharedPointer.h 同处注释），所以这里不断言 `w->v`。
     }
     PK_VERIFY(w.isNull());
     PK_VERIFY(w.toStrongRef().isNull());

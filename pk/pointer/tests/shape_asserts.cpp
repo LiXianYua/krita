@@ -52,8 +52,8 @@ struct PkIsEqComparable<T, U,
     std::void_t<decltype(std::declval<T>() == std::declval<U>())>> : std::true_type {};
 
 // 对照组：trait 本身要能识别「确实可比」，否则 trait 写错成恒 false 时下面的
-// 三条断言会假通过——这正是本任务这一轮已经踩过一次的失败形态（跨 TU 符号
-// 折叠让 g_live 读到 0，断言"看起来"全过，实际没验证到该验证的事）。
+// 三条断言会假通过而实际没验证到该验证的事——负向断言必须配一条正向对照，
+// 不然"写错成恒 false"与"写对了"在输出上无法区分。
 static_assert(PkIsEqComparable<int, int>::value, "trait 本身必须能识别可比较的情形");
 
 static_assert(!PkIsEqComparable<PkSharedPointer<ShapeB>, int>::value,
