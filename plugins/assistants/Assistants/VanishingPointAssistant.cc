@@ -80,7 +80,7 @@ void VanishingPointAssistant::adjustLine(QPointF &point, QPointF &strokeBegin)
     point = project(point, strokeBegin, 0.0);
 }
 
-void VanishingPointAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void VanishingPointAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     // HACK ALERT: side handles aren't saved in old krita versions
     // we need to just add a default position for now if we are loading a vanishing point
@@ -101,7 +101,7 @@ void VanishingPointAssistant::drawAssistant(QPainter& gc, const QRectF& updateRe
                 QPolygonF(QRectF(viewport)).intersected(converter->documentToWidgetTransform().map(QPolygonF(QRectF(getLocalRect())))) : QPolygonF(QRectF(viewport));
 
     // draw controls when we are not editing
-    if (canvas && canvas->paintingAssistantsDecoration()->isEditingAssistants() == false && isAssistantComplete()) {
+    if (canvas && !canvas->isEditingPaintingAssistants() && isAssistantComplete()) {
 
         if (isSnappingActive() && previewVisible == true) {
             //don't draw if invalid.
@@ -128,7 +128,7 @@ void VanishingPointAssistant::drawAssistant(QPainter& gc, const QRectF& updateRe
 
 
     // editor specific controls display
-    if (canvas && canvas->paintingAssistantsDecoration()->isEditingAssistants()) {
+    if (canvas && canvas->isEditingPaintingAssistants()) {
 
         // draws a circle around the vanishing point node while editing
         QTransform initialTransform = converter->documentToWidgetTransform();
@@ -227,7 +227,7 @@ void VanishingPointAssistant::drawCache(QPainter& gc, const KisCoordinatesConver
         return;
     }
 
-    if (assistantVisible == false ||   m_canvas->paintingAssistantsDecoration()->isEditingAssistants()) {
+    if (assistantVisible == false || m_canvas->isEditingPaintingAssistants()) {
         return;
     }
 

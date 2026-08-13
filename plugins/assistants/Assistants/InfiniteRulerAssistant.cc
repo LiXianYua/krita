@@ -166,7 +166,7 @@ void InfiniteRulerAssistant::drawSubdivisions(QPainter& gc, const KisCoordinates
     }
 }
 
-void InfiniteRulerAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void InfiniteRulerAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     gc.save();
     gc.resetTransform();

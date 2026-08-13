@@ -31,7 +31,7 @@ public:
 
     QPointF getDefaultEditorPosition() const override;
     int numHandles() const override { return 4; }
-    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached = true,KisCanvas2* canvas=0, bool assistantVisible=true, bool previewVisible=true) override;
+    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached = true,KisPaintingAssistantCanvas* canvas=0, bool assistantVisible=true, bool previewVisible=true) override;
 
     bool contains(const QPointF& point) const override;
     qreal distance(const QPointF& point) const override;

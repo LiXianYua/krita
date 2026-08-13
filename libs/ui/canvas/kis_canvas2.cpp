@@ -17,6 +17,7 @@
 #include <QVBoxLayout>
 #include <QTime>
 #include <QMouseEvent>
+#include <QCursor>
 #include <QScreen>
 #include <QScreen>
 #include <QWindow>
@@ -697,6 +698,22 @@ QWidget* KisCanvas2::canvasWidget()
 const QWidget* KisCanvas2::canvasWidget() const
 {
     return m_d->canvasWidget->widget();
+}
+
+QPointF KisCanvas2::paintingAssistantPixelToView(const QPoint &pixelCoords) const
+{
+    const QPointF documentCoord = image()->pixelToDocument(pixelCoords);
+    return viewConverter()->documentToView(documentCoord);
+}
+
+QPoint KisCanvas2::paintingAssistantCursorPosition() const
+{
+    return canvasWidget()->mapFromGlobal(QCursor::pos());
+}
+
+bool KisCanvas2::isEditingPaintingAssistants() const
+{
+    return paintingAssistantsDecoration()->isEditingAssistants();
 }
 
 

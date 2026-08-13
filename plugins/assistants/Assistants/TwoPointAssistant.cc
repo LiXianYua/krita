@@ -148,7 +148,7 @@ void TwoPointAssistant::adjustLine(QPointF &point, QPointF &strokeBegin)
     point = p;
 }
 
-void TwoPointAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void TwoPointAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     Q_UNUSED(updateRect);
     Q_UNUSED(cached);
@@ -160,7 +160,7 @@ void TwoPointAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, co
     bool showLocal = isLocal() && handles().size() == 5;
 
     if (canvas) {
-        isEditing = canvas->paintingAssistantsDecoration()->isEditingAssistants();
+        isEditing = canvas->isEditingPaintingAssistants();
     }
 
     if (isEditing) {
@@ -404,7 +404,7 @@ void TwoPointAssistant::drawCache(QPainter& gc, const KisCoordinatesConverter *c
         return;
     }
 
-    if (assistantVisible == false ||   m_canvas->paintingAssistantsDecoration()->isEditingAssistants()) {
+    if (assistantVisible == false || m_canvas->isEditingPaintingAssistants()) {
         return;
     }
 }

@@ -45,7 +45,7 @@ void CurvilinearPerspectiveAssistant::adjustLine(QPointF &point, QPointF &stroke
     strokeBegin = QPointF();
 }
 
-void CurvilinearPerspectiveAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void CurvilinearPerspectiveAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     Q_UNUSED(cached);
     Q_UNUSED(updateRect);

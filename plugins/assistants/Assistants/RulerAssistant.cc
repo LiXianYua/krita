@@ -179,7 +179,7 @@ void RulerAssistant::drawHandleAnnotations(QPainter& gc, const KisCoordinatesCon
     gc.restore();
 }
 
-void RulerAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void RulerAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     // Draw the subdivisions
     // When the number of subdivisions (or minor subdivisions) is set to
@@ -189,7 +189,7 @@ void RulerAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const
     }
     
     // Indicate handle type on fixed-length handles
-    if (canvas && canvas->paintingAssistantsDecoration()->isEditingAssistants() && hasFixedLength()) {
+    if (canvas && canvas->isEditingPaintingAssistants() && hasFixedLength()) {
         drawHandleAnnotations(gc, converter);
     }
     

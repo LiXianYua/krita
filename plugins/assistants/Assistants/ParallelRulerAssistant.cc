@@ -79,7 +79,7 @@ void ParallelRulerAssistant::adjustLine(QPointF &point, QPointF &strokeBegin)
     point = project(point, strokeBegin, 0.0);
 }
 
-void ParallelRulerAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void ParallelRulerAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     gc.save();
     gc.resetTransform();

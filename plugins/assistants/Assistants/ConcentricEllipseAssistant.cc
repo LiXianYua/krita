@@ -54,7 +54,7 @@ void ConcentricEllipseAssistant::adjustLine(QPointF &point, QPointF &strokeBegin
     point = project(point, strokeBegin);
 }
 
-void ConcentricEllipseAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void ConcentricEllipseAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     gc.save();
     gc.resetTransform();

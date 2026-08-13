@@ -63,7 +63,7 @@ public:
     QTransform localTransform(QPointF vp_a, QPointF vp_b, QPointF pt_c, qreal* size);
 
 protected:
-    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool  cached = true,KisCanvas2* canvas=nullptr, bool assistantVisible=true, bool previewVisible=true) override;
+    void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool  cached = true,KisPaintingAssistantCanvas* canvas=nullptr, bool assistantVisible=true, bool previewVisible=true) override;
     void drawCache(QPainter& gc, const KisCoordinatesConverter *converter,  bool assistantVisible=true) override;
 
     KisPaintingAssistantHandleSP firstLocalHandle() const override;
@@ -73,7 +73,7 @@ protected:
 private:
     QPointF project(const QPointF& pt, const QPointF& strokeBegin, const bool snapToAny, qreal moveThreshold);
     explicit TwoPointAssistant(const TwoPointAssistant &rhs, QMap<KisPaintingAssistantHandleSP, KisPaintingAssistantHandleSP> &handleMap);
-    KisCanvas2 *m_canvas {nullptr};
+    KisPaintingAssistantCanvas *m_canvas {nullptr};
 
     QLineF m_snapLine;
     double m_gridDensity {1.0};

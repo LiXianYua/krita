@@ -12,11 +12,12 @@
 #include "kis_coordinates_converter.h"
 #include "kis_debug.h"
 #include "kis_dom_utils.h"
-#include <kis_canvas2.h>
-#include "kis_config.h"
 
 #include <KoStore.h>
+#include <KConfigGroup>
+#include <KSharedConfig>
 
+#include <QCursor>
 #include <QPen>
 #include <QPainter>
 #include <QPixmapCache>
@@ -25,6 +26,18 @@
 #include <QPainterPath>
 #include <QDebug>
 #include <memory>
+
+namespace
+{
+
+QColor defaultAssistantColor()
+{
+    static const QColor fallbackColor(176, 176, 176, 255);
+    return KSharedConfig::openConfig()->group(QString()).readEntry(
+        "defaultAssistantsColor", fallbackColor);
+}
+
+}
 
 void KisPaintingAssistantHandle::mergeWith(KisPaintingAssistantHandleSP handle)
 {
@@ -69,7 +82,7 @@ struct KisPaintingAssistant::Private {
         bool adjustedPositionValid {false};
         QPointF adjustedBrushPosition;
 
-        KisCanvas2* m_canvas {nullptr};
+        KisPaintingAssistantCanvas *m_canvas {nullptr};
 
         QPointF editorWidgetOffset {QPointF(0, 0)};
 
@@ -92,7 +105,7 @@ struct KisPaintingAssistant::Private {
         QColor assistantGlobalColorCache = QColor(Qt::red);     // color to paint with if a custom color is not set
 
         bool useCustomColor {false};
-        QColor assistantCustomColor {KisConfig(true).defaultAssistantsColor()};
+        QColor assistantCustomColor {defaultAssistantColor()};
     };
 
     QSharedPointer<SharedData> s;
@@ -407,7 +420,7 @@ QPointF KisPaintingAssistant::viewportConstrainedEditorPosition(const KisCoordin
     return converter->widgetToDocument(editorWidgetPos);
 }
 
-void KisPaintingAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool useCache, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void KisPaintingAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool useCache, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     Q_UNUSED(updateRect);
 
@@ -997,19 +1010,17 @@ KisPaintingAssistantHandleSP KisPaintingAssistant::closestCornerHandleFromPoint(
 
 QPointF KisPaintingAssistant::pixelToView(const QPoint pixelCoords) const
 {
-    QPointF documentCoord = d->s->m_canvas->image()->pixelToDocument(pixelCoords);
-    return d->s->m_canvas->viewConverter()->documentToView(documentCoord);
+    return d->s->m_canvas->paintingAssistantPixelToView(pixelCoords);
 }
 
-QPointF KisPaintingAssistant::effectiveBrushPosition(const KisCoordinatesConverter *converter, KisCanvas2* canvas) const
+QPointF KisPaintingAssistant::effectiveBrushPosition(const KisCoordinatesConverter *converter, KisPaintingAssistantCanvas* canvas) const
 {
     QPointF mousePos;
 
     if (d->s->followBrushPosition && d->s->adjustedPositionValid) {
         mousePos = converter->documentToWidget(d->s->adjustedBrushPosition);
     } else if (canvas) {
-        // FIXME: this may be simple and cheap, but it's only integer precision!
-        mousePos= canvas->canvasWidget()->mapFromGlobal(QCursor::pos());
+        mousePos = canvas->paintingAssistantCursorPosition();
     } else {
         //...of course, you need to have access to a canvas-widget for that.//
         mousePos = QCursor::pos(); //this'll give an offset//

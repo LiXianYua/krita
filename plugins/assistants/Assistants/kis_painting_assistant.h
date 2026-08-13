@@ -21,19 +21,11 @@
 #include <kis_shared.h>
 #include <kis_types.h>
 
-#ifdef KRITA_PAINTING_ASSISTANT_UI_BUILD
-#include <kritaui_export.h>
-#define KRITA_PAINTING_ASSISTANT_EXPORT KRITAUI_EXPORT
-#else
-#define KRITA_PAINTING_ASSISTANT_EXPORT KRITAASSISTANTTOOL_EXPORT
-#endif
-
 class QPainter;
 class QRect;
 class QRectF;
 class KoStore;
 class KisCoordinatesConverter;
-class KisCanvas2;
 class QDomDocument;
 class QDomElement;
 
@@ -51,6 +43,23 @@ enum HandleType {
     CORNER,
     VANISHING_POINT,
     ANCHOR
+};
+
+/**
+ * Narrow canvas services needed while rendering a painting assistant.
+ *
+ * The assistant model deliberately owns no application canvas or widget. The
+ * desktop canvas implements this port and supplies the view/cursor state at
+ * draw time.
+ */
+class KRITAASSISTANTTOOL_EXPORT KisPaintingAssistantCanvas
+{
+public:
+    virtual ~KisPaintingAssistantCanvas() = default;
+
+    virtual QPointF paintingAssistantPixelToView(const QPoint &pixelCoords) const = 0;
+    virtual QPoint paintingAssistantCursorPosition() const = 0;
+    virtual bool isEditingPaintingAssistants() const = 0;
 };
 
 
@@ -94,7 +103,7 @@ private:
  * A KisPaintingAssistant is an object that assist the drawing on the canvas.
  * With this class you can implement virtual equivalent to ruler or compass.
  */
-class KRITA_PAINTING_ASSISTANT_EXPORT KisPaintingAssistant
+class KRITAASSISTANTTOOL_EXPORT KisPaintingAssistant
 {
 public:
     KisPaintingAssistant(const QString& id, const QString& name);
@@ -182,7 +191,7 @@ public:
     QColor assistantCustomColor();
     void setAssistantGlobalColorCache(const QColor &color);
 
-    virtual void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter *converter, bool cached, KisCanvas2 *canvas=0, bool assistantVisible=true, bool previewVisible=true);
+    virtual void drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter *converter, bool cached, KisPaintingAssistantCanvas *canvas=0, bool assistantVisible=true, bool previewVisible=true);
     void uncache();
     const QList<KisPaintingAssistantHandleSP>& handles() const;
     QList<KisPaintingAssistantHandleSP> handles();
@@ -272,7 +281,7 @@ protected:
      * that feature them. Affected by setAdjustedBrushPosition() and setFollowBrushPosition().
      * @return the effective brush (cursor) position in widget coordinates
      */
-    QPointF effectiveBrushPosition(const KisCoordinatesConverter *converter, KisCanvas2 *canvas) const;
+    QPointF effectiveBrushPosition(const KisCoordinatesConverter *converter, KisPaintingAssistantCanvas *canvas) const;
 
     /**
      * @brief firstLocalHandle

@@ -371,7 +371,7 @@ void PerspectiveEllipseAssistant::adjustLine(QPointF &point, QPointF &strokeBegi
     strokeBegin = QPointF();
 }
 
-void PerspectiveEllipseAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void PerspectiveEllipseAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     gc.save();
     gc.resetTransform();
@@ -379,7 +379,7 @@ void PerspectiveEllipseAssistant::drawAssistant(QPainter& gc, const QRectF& upda
     bool isEditing = false;
     
     if (canvas) {
-        isEditing = canvas->paintingAssistantsDecoration()->isEditingAssistants();
+        isEditing = canvas->isEditingPaintingAssistants();
     }
     
     QTransform initialTransform = converter->documentToWidgetTransform();
@@ -635,4 +635,3 @@ KisPaintingAssistant* PerspectiveEllipseAssistantFactory::createPaintingAssistan
 {
     return new PerspectiveEllipseAssistant;
 }
-

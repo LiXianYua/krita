@@ -77,7 +77,7 @@ void FisheyePointAssistant::adjustLine(QPointF &point, QPointF &strokeBegin)
     strokeBegin = QPointF();
 }
 
-void FisheyePointAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void FisheyePointAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     gc.save();
     gc.resetTransform();

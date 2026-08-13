@@ -2,6 +2,7 @@ add_subdirectory(tests)
 
 set(kritaassistanttool_GEOMETRY_SOURCES
     kis_abstract_perspective_grid.cpp
+    kis_painting_assistant.cpp
     kis_painting_assistant_handle.cc
     kis_painting_assistant_registry.cc
     ConcentricEllipseAssistantGeometry.cpp
@@ -35,7 +36,14 @@ target_include_directories(kritaassistanttool_static
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 
-target_link_libraries(kritaassistanttool_static kritaflake kritaimage)
+target_link_libraries(kritaassistanttool_static
+    PUBLIC
+        kritaflake
+        kritaimage
+    PRIVATE
+        kritacanvas
+        KF${KF_MAJOR}::ConfigCore
+)
 
 kis_add_library(kritaassistanttool MODULE assistant_tool.cc EditAssistantsCommand.cpp ${kritaassistanttool_UI_SOURCES})
 target_link_libraries(kritaassistanttool kritaassistanttool_static kritaui)

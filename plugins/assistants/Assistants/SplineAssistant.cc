@@ -218,7 +218,7 @@ void SplineAssistant::adjustLine(QPointF &point, QPointF &strokeBegin)
     strokeBegin = QPointF();
 }
 
-void SplineAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void SplineAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     gc.save();
     gc.resetTransform();
@@ -226,7 +226,7 @@ void SplineAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, cons
     
     if (canvas){
         //simplest, cheapest way to get the mouse-position//
-        mousePos= canvas->canvasWidget()->mapFromGlobal(QCursor::pos());
+        mousePos = canvas->paintingAssistantCursorPosition();
         m_canvas = canvas;
     }
     else {
@@ -291,7 +291,7 @@ void SplineAssistant::drawCache(QPainter& gc, const KisCoordinatesConverter *con
         bezierlinePen.setStyle(Qt::DotLine);
         bezierlinePen.setWidth(2);
 
-        if (m_canvas->paintingAssistantsDecoration()->isEditingAssistants()) {
+        if (m_canvas->isEditingPaintingAssistants()) {
 
             if (!isSnappingActive()) {
                 QColor snappingColor = assistantColor;

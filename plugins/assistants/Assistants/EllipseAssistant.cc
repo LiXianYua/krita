@@ -64,7 +64,7 @@ void EllipseAssistant::adjustLine(QPointF &point, QPointF &strokeBegin)
     strokeBegin = p4;
 }
 
-void EllipseAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisCanvas2* canvas, bool assistantVisible, bool previewVisible)
+void EllipseAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, const KisCoordinatesConverter* converter, bool cached, KisPaintingAssistantCanvas* canvas, bool assistantVisible, bool previewVisible)
 {
     gc.save();
     gc.resetTransform();
@@ -72,7 +72,7 @@ void EllipseAssistant::drawAssistant(QPainter& gc, const QRectF& updateRect, con
     
     if (canvas){
         //simplest, cheapest way to get the mouse-position//
-        mousePos= canvas->canvasWidget()->mapFromGlobal(QCursor::pos());
+        mousePos = canvas->paintingAssistantCursorPosition();
     }
     else {
         //...of course, you need to have access to a canvas-widget for that.//
