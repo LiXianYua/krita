@@ -38,7 +38,7 @@
 #include <kis_adjustment_layer.h>
 #include <kis_layer_composition.h>
 #include <kis_painting_assistants_decoration.h>
-#include "kis_png_converter.h"
+#include <KisPngCodec.h>
 #include "kis_keyframe_channel.h"
 #include <kis_time_span.h>
 #include "KisDocument.h"
@@ -655,7 +655,7 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const QString
     if (addMergedImage) {
         KisPaintDeviceSP dev = image->projection();
         store->setCompressionEnabled(false);
-        r = KisPNGConverter::saveDeviceToStore("mergedimage.png", image->bounds(), image->xRes(), image->yRes(), dev, store);
+        r = KisPngCodec::saveDeviceToStore("mergedimage.png", image->bounds(), image->xRes(), image->yRes(), dev, store);
         savingMergedImageSuccess = savingMergedImageSuccess && r;
         store->setCompressionEnabled(KisConfig(true).compressKra());
     }
@@ -903,4 +903,3 @@ bool KisKraSaver::saveKoColors(QDomDocument &doc, QDomElement &colorsElement,
     }
     return true;
 }
-

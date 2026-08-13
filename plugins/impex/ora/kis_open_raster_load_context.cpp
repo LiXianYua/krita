@@ -13,7 +13,7 @@
 
 #include <kis_image.h>
 #include <kis_paint_device.h>
-#include "kis_png_converter.h"
+#include <KisPngCodec.h>
 
 KisOpenRasterLoadContext::KisOpenRasterLoadContext(KoStore* _store)
     : m_store(_store)
@@ -28,7 +28,7 @@ KisImageSP KisOpenRasterLoadContext::loadDeviceData(const QString & filename)
             dbgFile << "Could not open for reading:" << filename;
             return 0;
         }
-        KisPNGConverter pngConv(0);
+        KisPngCodec pngConv;
         pngConv.buildImage(&io);
         io.close();
         m_store->close();

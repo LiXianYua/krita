@@ -18,7 +18,7 @@
 #include <kis_open_raster_stack_load_visitor.h>
 #include <kis_open_raster_stack_save_visitor.h>
 #include <kis_paint_layer.h>
-#include "kis_png_converter.h"
+#include <KisPngCodec.h>
 #include "kis_open_raster_load_context.h"
 #include "kis_open_raster_save_context.h"
 
@@ -98,7 +98,7 @@ KisImportExportErrorCode OraConverter::buildFile(QIODevice *io, KisImageSP image
     }
 
     KisPaintDeviceSP dev = image->projection();
-    KisPNGConverter::saveDeviceToStore("mergedimage.png", image->bounds(), image->xRes(), image->yRes(), dev, store);
+    KisPngCodec::saveDeviceToStore("mergedimage.png", image->bounds(), image->xRes(), image->yRes(), dev, store);
 
     delete store;
     return ImportExportCodes::OK;
@@ -109,5 +109,4 @@ void OraConverter::cancel()
 {
     m_stop = true;
 }
-
 

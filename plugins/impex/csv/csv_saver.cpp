@@ -29,7 +29,7 @@
 #include <kis_iterator_ng.h>
 #include <kis_paint_device.h>
 #include <kis_paint_layer.h>
-#include <kis_png_converter.h>
+#include <KisPngCodec.h>
 #include <kis_raster_keyframe_channel.h>
 #include <kis_time_span.h>
 #include <kis_types.h>
@@ -414,7 +414,7 @@ KisImportExportErrorCode CSVSaver::getLayer(CSVLayerRecord* layer, KisDocument* 
         }
     }
 
-    if (!KisPNGConverter::isColorSpaceSupported(cs)) {
+    if (!KisPngCodec::isColorSpaceSupported(cs)) {
         device = new KisPaintDevice(*device.data());
         device->convertTo(KoColorSpaceRegistry::instance()->rgb8());
     }
@@ -428,7 +428,7 @@ KisImportExportErrorCode CSVSaver::getLayer(CSVLayerRecord* layer, KisDocument* 
     options.saveSRGBProfile = true;                 //TVPaint can use only sRGB
     options.forceSRGB = false;
 
-    KisPNGConverter kpc(exportDoc);
+    KisPngCodec kpc;
 
     KisImportExportErrorCode result = kpc.buildFile(filename, image->bounds(),
                                                   image->xRes(), image->yRes(), device,

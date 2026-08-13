@@ -18,7 +18,7 @@
 
 #include <kis_meta_data_store.h>
 
-#include "kis_png_converter.h"
+#include <KisPngCodec.h>
 
 KisOpenRasterSaveContext::KisOpenRasterSaveContext(KoStore* store)
     : m_id(0)
@@ -29,7 +29,7 @@ KisOpenRasterSaveContext::KisOpenRasterSaveContext(KoStore* store)
 QString KisOpenRasterSaveContext::saveDeviceData(KisPaintDeviceSP dev, KisMetaData::Store* metaData, const QRect &imageRect, const qreal xRes, const qreal yRes)
 {
     QString filename = QString("data/layer%1.png").arg(m_id++);
-    if (KisPNGConverter::saveDeviceToStore(filename, imageRect, xRes, yRes, dev, m_store, metaData)) {
+    if (KisPngCodec::saveDeviceToStore(filename, imageRect, xRes, yRes, dev, m_store, metaData)) {
         return filename;
     }
     return "";

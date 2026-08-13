@@ -9,6 +9,7 @@ set(kritaimpex_LIB_SRCS
     KisImportExportErrorCode.cpp
     KisImportExportAdditionalChecks.cpp
     KisImportUserFeedbackInterface.cpp
+    KisPngCodec.cpp
     KoDocumentInfo.cpp
 )
 
@@ -24,7 +25,9 @@ target_link_libraries(kritaimpex
         kritaimage
     PRIVATE
         KF${KF_MAJOR}::ConfigCore
+        ${PNG_LIBRARIES}
         kritaresources
+        kritastore
 )
 
 set_target_properties(kritaimpex

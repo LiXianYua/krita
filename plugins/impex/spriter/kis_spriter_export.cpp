@@ -35,7 +35,7 @@
 #include <kis_adjustment_layer.h>
 #include <KisPart.h>
 #include <kis_types.h>
-#include <kis_png_converter.h>
+#include <KisPngCodec.h>
 #include <kis_global.h> // for KisDegreesToRadians
 #include <kis_fast_math.h>
 #include <math.h>
@@ -60,7 +60,7 @@ KisImportExportErrorCode KisSpriterExport::savePaintDevice(KisPaintDeviceSP dev,
     d.mkpath(d.path());
     QRect rc = m_image->bounds().intersected(dev->exactBounds());
 
-    if (!KisPNGConverter::isColorSpaceSupported(dev->colorSpace())) {
+    if (!KisPngCodec::isColorSpaceSupported(dev->colorSpace())) {
         dev = new KisPaintDevice(*dev.data());
         dev->convertTo(KoColorSpaceRegistry::instance()->rgb8());
     }
@@ -71,7 +71,7 @@ KisImportExportErrorCode KisSpriterExport::savePaintDevice(KisPaintDeviceSP dev,
     vKisAnnotationSP_it beginIt = m_image->beginAnnotations();
     vKisAnnotationSP_it endIt = m_image->endAnnotations();
 
-    KisPNGConverter converter(0);
+    KisPngCodec converter;
     KisImportExportErrorCode res = converter.buildFile(fileName, rc, m_image->xRes(), m_image->yRes(), dev, beginIt, endIt, options, 0);
 
     return res;

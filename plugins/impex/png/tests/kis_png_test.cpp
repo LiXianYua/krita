@@ -8,11 +8,14 @@
 
 
 #include <simpletest.h>
+#include <QBuffer>
 #include <QCoreApplication>
 
 #include "filestest.h"
 
 #include <testui.h>
+
+#include <KisPngCodec.h>
 
 #ifndef FILES_DATA_DIR
 #error "FILES_DATA_DIR not set. A directory with the data used for testing the importing of files in krita"
@@ -20,6 +23,28 @@
 
 
 const QString PngMimetype = "image/png";
+
+namespace
+{
+
+class FixedPngImportProfilePolicy final : public KisPngImportProfilePolicy
+{
+public:
+    explicit FixedPngImportProfilePolicy(const QString &profileName)
+        : m_profileName(profileName)
+    {
+    }
+
+    QString chooseColorProfile(const KisPngImportProfileRequest &) override
+    {
+        return m_profileName;
+    }
+
+private:
+    const QString m_profileName;
+};
+
+}
 
 void KisPngTest::testFiles()
 {
@@ -165,5 +190,53 @@ void KisPngTest::testSaveHDR()
                     KoColorSpaceRegistry::instance()->p2020PQProfile()));
 }
 
-KISTEST_MAIN(KisPngTest)
+void KisPngTest::testHeadlessCodecUsesImportProfilePolicy()
+{
+    const KoColorProfile *sourceProfile = KoColorSpaceRegistry::instance()->p709SRGBProfile();
+    const KoColorProfile *selectedProfile = KoColorSpaceRegistry::instance()->p2020G10Profile();
+    QVERIFY(sourceProfile);
+    QVERIFY(selectedProfile);
 
+    const KoColorSpace *sourceColorSpace =
+        KoColorSpaceRegistry::instance()->colorSpace(
+            RGBAColorModelID.id(),
+            Integer16BitsColorDepthID.id(),
+            sourceProfile);
+    QVERIFY(sourceColorSpace);
+
+    const QRect imageRect(0, 0, 2, 2);
+    KisPaintDeviceSP device = new KisPaintDevice(sourceColorSpace);
+    KoColor fillColor(Qt::red, sourceColorSpace);
+    device->fill(imageRect, fillColor);
+
+    QBuffer encodedPng;
+    QVERIFY(encodedPng.open(QIODevice::ReadWrite));
+
+    KisPNGOptions options;
+    options.saveSRGBProfile = false;
+    options.tryToSaveAsIndexed = false;
+    vKisAnnotationSP annotations;
+
+    KisPngCodec writer;
+    QVERIFY(writer.buildFile(&encodedPng,
+                             imageRect,
+                             1.0,
+                             1.0,
+                             device,
+                             annotations.begin(),
+                             annotations.end(),
+                             options,
+                             nullptr).isOk());
+
+    QVERIFY(encodedPng.seek(0));
+    FixedPngImportProfilePolicy policy(selectedProfile->name());
+    KisPngCodecContext context;
+    context.importProfilePolicy = &policy;
+    KisPngCodec reader(context);
+
+    QVERIFY(reader.buildImage(&encodedPng).isOk());
+    QVERIFY(reader.image());
+    QCOMPARE(reader.image()->colorSpace()->profile()->name(), selectedProfile->name());
+}
+
+KISTEST_MAIN(KisPngTest)
