@@ -250,9 +250,9 @@ cd /home/liyang/projects-ssd/krita && codegraph explore "<符号名或问题>"
 那个 clone 只读，**不许改它的源码**。
 
 再往上是 `$PK/docs/krita/` 的架构知识库，或 GitHub 上的 `KDE/krita`。
-**不要 `git fetch --unshallow`**（9.5 GB，且 D-18 本来就要截断历史）。
+**不要 `git fetch --unshallow`**（9.5 GB，且决策 D-18 本来就要截断历史）。
 
-**② 剥离期整树编译不过是正常的（D-19）。**
+**② 剥离期整树编译不过是正常的（决策 D-19）。**
 每个 target 用 `$PK/.exec/shell/<target>/` 的独立薄壳 CMake 工程构建（I-01 产出，未完成前不存在），
 **不要试图让全树 `ninja` 通过**——那要等 M5 合拢。删减期则相反，全树应始终可构建。
 
