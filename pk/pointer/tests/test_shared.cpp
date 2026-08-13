@@ -35,6 +35,19 @@ struct SharedBase {
 struct SharedDerived : SharedBase { explicit SharedDerived(int x = 9) : SharedBase(x) {} };
 struct SharedUnrelated : SharedBase {};
 
+static int g_nonVirtualBaseDestroyed = 0;
+static int g_nonVirtualDerivedDestroyed = 0;
+struct SharedNonVirtualBase {
+    ~SharedNonVirtualBase() { ++g_nonVirtualBaseDestroyed; }
+};
+struct SharedNonVirtualDerived : SharedNonVirtualBase {
+    ~SharedNonVirtualDerived() { ++g_nonVirtualDerivedDestroyed; }
+};
+struct SharedGenericDeleter {
+    template <class X>
+    void operator()(X *p) const { delete p; }
+};
+
 void PkSharedPointerCase::init() { g_sharedLive = 0; }
 
 // 探针 P1：qt default: isNull=1 data=(nil) bool=0
@@ -81,6 +94,47 @@ void PkSharedPointerCase::resetReplacesAndReleases()
     a.reset();
     PK_COMPARE(g_sharedLive, 0);
     PK_VERIFY(a.isNull());
+}
+
+// std::shared_ptr preserves the raw pointer's concrete X type in its control
+// block. The Pk wrapper must not erase X to the exposed T before construction
+// or either reset overload, otherwise a non-virtual base loses the derived
+// destructor. The generic deleter also reveals which pointer type it receives.
+void PkSharedPointerCase::preservesDynamicDeletionType()
+{
+    const auto resetCounts = [] {
+        g_nonVirtualBaseDestroyed = 0;
+        g_nonVirtualDerivedDestroyed = 0;
+    };
+    const auto verifyBothDestroyed = [] {
+        PK_COMPARE(g_nonVirtualBaseDestroyed, 1);
+        PK_COMPARE(g_nonVirtualDerivedDestroyed, 1);
+    };
+
+    resetCounts();
+    { PkSharedPointer<SharedNonVirtualBase> p(new SharedNonVirtualDerived); }
+    verifyBothDestroyed();
+
+    resetCounts();
+    {
+        PkSharedPointer<SharedNonVirtualBase> p;
+        p.reset(new SharedNonVirtualDerived);
+    }
+    verifyBothDestroyed();
+
+    resetCounts();
+    {
+        PkSharedPointer<SharedNonVirtualBase> p(new SharedNonVirtualDerived,
+                                                SharedGenericDeleter());
+    }
+    verifyBothDestroyed();
+
+    resetCounts();
+    {
+        PkSharedPointer<SharedNonVirtualBase> p;
+        p.reset(new SharedNonVirtualDerived, SharedGenericDeleter());
+    }
+    verifyBothDestroyed();
 }
 
 // 探针 P6：dynamicCast 到无关类型返回 null；对 null 做 dynamicCast 不崩、返回 null

@@ -9,7 +9,7 @@
 验证入口：
 
 ```
-bash tests/run_tests.sh          # 23 个单测（PK_* harness）
+bash tests/run_tests.sh          # 24 个单测（PK_* harness）
 bash oracle/run_oracle.sh        # 逐输入对拍：Qt 侧 vs Pk 侧
 bash graft/graft_check.sh        # 两个真实 Krita 测试类零改动试接
 bash oracle/mutate/inject.sh list   # 变异测试：9 条注入清单
@@ -55,13 +55,12 @@ bash oracle/mutate/inject.sh list   # 变异测试：9 条注入清单
 | `operator RestrictedBool()` / `bool operator!()` | 1 / 2 |
 | 默认构造、拷贝构造/赋值、赋 `nullptr` | 1 / 2 |
 | 从 `PkSharedPointer<X>` 隐式构造 | 1 处模板 |
-| 自由 `operator==` / `!=`（与 `PkSharedPointer` 比） | 探针 P12 证明 Qt 有；实现 |
 
 存储形态：`std::weak_ptr<T> m_weak; T *m_value = nullptr;` 两个成员都要——Qt 的
 `QWeakPointer` 同时存控制块与 value，`isNull()` 要能表达"控制块还在、value 是空"
 这一格（判据 A 第二面），只存 `std::weak_ptr` 表达不出这一格。
 
-`operator->` **不提供**——见 §1.5。
+`operator->` 与 weak/shared 比较运算符均**不提供**——见 §2。
 
 ### 1.3 `PkScopedPointer<T>`
 
@@ -134,7 +133,9 @@ operator*/operator->`，Krita 全仓对数组指针的调用点用不到它们�
   不是 `use_count()==0`；`PkWeakPointer::isNull()` 是
   `m_weak.expired() || m_value==nullptr`。出处：探针 P2、`qsharedpointer_impl.h:309/562`。
 - **判据 B**（`operator bool` 是隐式 safe-bool，不是 `explicit operator bool`）：
-  四个类型一律 `operator RestrictedBool`。出处：探针 P11、D2、编译矩阵
+  `PkSharedPointer` / `PkWeakPointer` / `PkScopedPointer` 提供
+  `operator RestrictedBool`；按用量表收窄的 `PkScopedArrayPointer` 不提供布尔转换。
+  出处：探针 P11、D2、编译矩阵
   `QSharedPointer p==1` FAIL。
 - **判据 C**（`PkScopedPointer`/`PkScopedArrayPointer` 不可拷贝不可移动）：
   拷贝/移动构造与赋值四项 `= delete`。出处：探针 P10。
@@ -147,9 +148,9 @@ operator*/operator->`，Krita 全仓对数组指针的调用点用不到它们�
 
 ## 5. 偏离清单
 
-`oracle/pointer.deviation`：当前 **0 条真实偏离**（`DIFF total=1445276
+`oracle/pointer.deviation`：当前 **0 条真实偏离**（`DIFF total=1445280
 mismatch=0`）。该文件同时记录：两条评审裁决删除的 API（`PkWeakPointer::
-operator->`、`operator==(PkWeakPointer,PkSharedPointer)`，见 §2）、8 条覆盖度
+operator->`、`operator==(PkWeakPointer,PkSharedPointer)`，见 §2）、9 条覆盖度
 限制、tag 粒度约束，以及 Task 4 的变异测试验证记录（见 §8）。
 
 ## 6. 两个局部垫片（试接产物，非本任务交付范围）

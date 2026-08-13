@@ -10,7 +10,7 @@
 # ══════════════════════════════════════════════════════════════════════════
 # 本轮结果：0 条真实偏离。
 #
-# run_oracle.sh 跑出 DIFF total=1445276 mismatch=0——见 task-2-report.md「零差异
+# run_oracle.sh 当前跑出 DIFF total=1445280 mismatch=0——见 task-2-report.md「零差异
 # 自证」一节：静态断言/ldd 两条形态自证俱在，且用两条分别针对 shared/scoped
 # 家族的临时注入（跑完立即回退，git diff 干净）证明了这条对拍管线确实能分辨
 # 真差异，不是形态契约失效或观测量太粗导致的假通过。
@@ -74,11 +74,12 @@
 #    信号的失效路径）不在对拍范围——Payload 不是 QObject，探针与用量表都没有
 #    QObject 场景下的智能指针用量记录。
 #
-# 6. **组合枚举下的 `staticCast<Derived>` 只在偶尔"槽里其实不是 Derived 对象"
-#    时才会触发一次跨类型的强制转换**——这类输入下只读 Payload 基类字段（id/v），
-#    不触碰 Derived 专属状态，行为在两侧一致（single inheritance，标准布局），
-#    但对拍没有专门针对"槽里精确是 Derived 对象"的构造后立即 staticCast 做加权，
-#    组合枚举里这种命中是自然发生而非特意加密度的。
+# 6. ~~`staticCast<Derived>` 的动态类型输入未受控~~（**已解除**）：解释器
+#    现在为每个 strong/weak 槽显式跟踪是否持有 `PayloadDerived`，并用
+#    `dynamic_cast` 不变量核对跟踪状态。只有实际动态类型为 Derived 时才执行
+#    `staticCast<PayloadDerived>()`；普通 `Payload` 与空槽产生空目标，不再执行非法向下
+#    转型。手挑集同时显式包含 `makeNew -> staticCastDerived`（跳过路径）与
+#    `makeDerived -> staticCastDerived`（合法成功路径）。
 #
 # 7. ~~v 字段不参与 shared 家族的比对~~（**修复轮 1 ②，已解除**）：原限制是
 #    简报 Step 2 明确给出的可观测量清单里 strong 槽只记 (isNull, id, 布尔语境)，
@@ -87,10 +88,12 @@
 #    的 S%d（4 个强引用槽）与 W%d（2 个弱引用槽经 toStrongRef 取到的对象）都
 #    补上 v 字段，与 scoped 家族（C%d/A%d 早已记 v）对齐。自测验证（临时把
 #    `PkSharedPointer<T>::create` 改成丢弃转发参数、只用默认构造，跑完立刻
-#    回退）：`DIFF total=1445276 mismatch=75019`，13 个 `DIFFTAG shared
-#    makeCreate(*,*)` 精确命中注入点（每个非 0 号槽 2000 次、0 号槽因手挑用例
-#    额外命中记为 8000 次），回退后 `git diff` 为空，重跑恢复
-#    `mismatch=0`——证明这个字段真的在起作用，不是摆设。
+#    回退）：`DIFF total=1445276 mismatch=75019`。`makeCreate` 所在行立即显示
+#    `v` 不同，而错误对象随后留在槽中，所以后续每个观测行都可以继续报差异，
+#    直到该槽被覆盖或清空。`runFamily()` 按**当前发生行差异的操作**打 tag，
+#    因此 75019 是注入点加状态传播的行比较总数，不是仅由一组
+#    `makeCreate` tag 构成。回退后 `git diff` 为空，重跑恢复 `mismatch=0`，
+#    证明 `v` 字段真正参与了比较。
 #
 # 8. **修复轮 1 ③：`SOpArrayIndex` 下标轮换已加宽到覆盖全部 3 个下标**（原记录：
 #    原来的 `interpretScopedStep` 用局部变量 `b`（已被 `st.b % 2` 收窄到 {0,1}）

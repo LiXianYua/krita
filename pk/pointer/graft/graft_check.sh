@@ -12,22 +12,36 @@
 #   3. 除测试的 .h/.cpp 外，被测实现（非测试文件）原地编译进产物，不复制不改名。
 #   4. 加 -DQT_NO_DEBUG（理由见 pk/log/tests/graft/kis_debug_build.sh，本任务
 #      沿用同一条：kis_debug.h 依赖 QT_NO_DEBUG 语义关掉一段 Q_ASSERT 重定义）。
-set -eu
+set -e
+source /mnt/ssd-disk/liyang/projects/krita-ci-env/env
+export CCACHE_DIR="$KDECI_CC_CACHE"
+set -u
 cd "$(dirname "$0")/../../.." || exit 1     # → fork 仓库根
 
-BUILD=pk/pointer/graft/build
+BUILD=pk/pointer/graft/build/ninja
+DEPS_BUILD="$BUILD/deps"
 SED=pk/pointer/graft/rename.sed
 STUBS=pk/pointer/graft/stubs
 CXX=${CXX:-g++}
+CXX_CMD=(ccache "$CXX")
 rc=0
 
-# 五个只读依赖静态库，缺了就地建（正常情况下开发过程中已经建过）。
-for m in test string log container geometry; do
-    if [ ! -f "pk/$m/build/libpk$m.a" ]; then
-        cmake -S "pk/$m" -B "pk/$m/build" -DCMAKE_BUILD_TYPE=Debug >/dev/null
-        cmake --build "pk/$m/build" -j"$(nproc)" >/dev/null
-    fi
-done
+# 五个只读依赖在本任务的 ignored build/ 下分别配置；不复用它们
+# 源目录旁可能由别的任务留下的 Makefiles cache。
+configure_dependency() {
+    local module="$1" target="$2"
+    local dep_build="$DEPS_BUILD/$module"
+    cmake -S "pk/$module" -B "$dep_build" -G Ninja \
+        -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache >/dev/null
+    cmake --build "$dep_build" --target "$target" -j"$(nproc)" >/dev/null
+}
+configure_dependency test pktest
+configure_dependency string pkstring
+configure_dependency log pklog
+configure_dependency container pkcontainer
+configure_dependency geometry pkgeometry
 
 # $STUBS 必须排在 pk/test/compat 前面：两边都有一个叫 QtGlobal 的文件
 #（pk/test/compat/QtGlobal 只给 pk/test 自己用的最小标量集，没有 quint64/
@@ -49,7 +63,7 @@ FORCE_INCLUDE=(-include "$STUBS/QtGlobal" -include pk/string/compat/QString)
 DEFS=(-DQT_NO_DEBUG)
 
 SPDLOG_LIB=""
-for cand in pk/log/build/libspdlogd.a pk/log/build/libspdlog.a; do
+for cand in "$DEPS_BUILD/log/libspdlogd.a" "$DEPS_BUILD/log/libspdlog.a"; do
     if [ -f "$cand" ]; then SPDLOG_LIB="$cand"; break; fi
 done
 if [ -z "$SPDLOG_LIB" ]; then
@@ -59,8 +73,9 @@ if [ -z "$SPDLOG_LIB" ]; then
     printf '  spdlog，请另外确认链接方式。\n' >&2
     exit 1
 fi
-LIBS=(pk/test/build/libpktest.a pk/log/build/libpklog.a pk/string/build/libpkstring.a \
-      pk/container/build/libpkcontainer.a pk/geometry/build/libpkgeometry.a "$SPDLOG_LIB")
+LIBS=("$DEPS_BUILD/test/libpktest.a" "$DEPS_BUILD/log/libpklog.a"
+      "$DEPS_BUILD/string/libpkstring.a" "$DEPS_BUILD/container/libpkcontainer.a"
+      "$DEPS_BUILD/geometry/libpkgeometry.a" "$SPDLOG_LIB")
 
 # run_one：试接一个真实测试类。
 #   $1 name          试接名，也是产物名
@@ -101,7 +116,7 @@ run_one() {
 
     # ④ 编译 driver（测试 TU）
     local objs=("$work/driver.o")
-    if ! "$CXX" -std=c++17 -DPK_TEST_NO_QT_MACRO_ALIASES "${DEFS[@]}" "${driver_force[@]}" \
+    if ! "${CXX_CMD[@]}" -std=c++17 -DPK_TEST_NO_QT_MACRO_ALIASES "${DEFS[@]}" "${driver_force[@]}" \
         "${COMMON_INC[@]}" "${extra_inc_flags[@]}" -I "$srcdir" -I "$work" \
         -c "$work/driver.cpp" -o "$work/driver.o" 2>"$work/compile_driver.log"; then
         printf '  试接编译失败: %s (driver)\n' "$name"
@@ -114,7 +129,7 @@ run_one() {
         local es; IFS=',' read -ra _extra_srcs <<< "$extra_sources"
         for es in "${_extra_srcs[@]}"; do
             local objname; objname="$work/$(basename "$es" .cpp).o"
-            if ! "$CXX" -std=c++17 "${DEFS[@]}" "${FORCE_INCLUDE[@]}" \
+            if ! "${CXX_CMD[@]}" -std=c++17 "${DEFS[@]}" "${FORCE_INCLUDE[@]}" \
                 "${COMMON_INC[@]}" "${extra_inc_flags[@]}" \
                 -c "$es" -o "$objname" 2>"$work/compile_$(basename "$es" .cpp).log"; then
                 printf '  试接编译失败: %s (%s)\n' "$name" "$es"
@@ -126,7 +141,7 @@ run_one() {
     fi
 
     # ⑤ 链接
-    if ! "$CXX" -std=c++17 "${objs[@]}" "${LIBS[@]}" -o "$work/$name" 2>"$work/link.log"; then
+    if ! "${CXX_CMD[@]}" -std=c++17 "${objs[@]}" "${LIBS[@]}" -o "$work/$name" 2>"$work/link.log"; then
         printf '  试接链接失败: %s\n' "$name"
         sed 's/^/    /' "$work/link.log" | head -80
         rc=1; return

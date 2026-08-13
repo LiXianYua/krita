@@ -63,6 +63,10 @@ std::vector<Script> buildSharedHandpicked()
         {{OpMakeDerived, 0, 0}, {OpDynamicCastToUnrelated, 0, 1}},
         // makeDefault → dynCastDerived：对 null 转型不崩（P6）
         {{OpMakeDefault, 0, 0}, {OpDynamicCastToDerived, 0, 1}},
+        // makeNew → staticCastDerived：非 Derived 动态类型不得执行静态向下转型。
+        {{OpMakeNew, 0, 0}, {OpStaticCastToDerived, 0, 1}},
+        // makeDerived → staticCastDerived：显式压到合法静态向下转型的成功路径。
+        {{OpMakeDerived, 0, 0}, {OpStaticCastToDerived, 0, 1}},
         // selfAssign：P15
         {{OpMakeNew, 0, 0}, {OpSelfAssign, 0, 0}},
     };

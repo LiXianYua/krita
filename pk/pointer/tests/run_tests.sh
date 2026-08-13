@@ -3,11 +3,17 @@
 #   Qt 符号判据 —— libpkpointer.a 里不得有 Qt 未定义符号；
 #   locks       —— 工作树的改动必须全部落在 pk/pointer/ 前缀内。
 # 形态照 pk/geometry/tests/run_tests.sh。
-set -eu
+set -e
+source /mnt/ssd-disk/liyang/projects/krita-ci-env/env
+export CCACHE_DIR="$KDECI_CC_CACHE"
+set -u
 cd "$(dirname "$0")/../../.." || exit 1     # → fork 仓库根
 
-BUILD=pk/pointer/build
-cmake -S pk/pointer -B "$BUILD" -DCMAKE_BUILD_TYPE=Debug >/dev/null
+BUILD=pk/pointer/build/ninja
+cmake -S pk/pointer -B "$BUILD" -G Ninja \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache >/dev/null
 cmake --build "$BUILD" -j"$(nproc)" >/dev/null
 
 "./$BUILD/test_pkpointer"

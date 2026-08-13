@@ -49,6 +49,7 @@
 #endif
 #include "TraceOps.h"
 
+#include <cstdlib>
 #include <cstdio>
 #include <string>
 
@@ -106,11 +107,19 @@ template <class SPType> int boolCtx(const SPType &p) { return static_cast<bool>(
 // 4 个强引用槽 + 2 个弱引用槽，脚本跑之间复位。
 SP<Payload> g_strong[4];
 WP<Payload> g_weak[2];
+bool g_strongIsDerived[4] = {};
+bool g_weakIsDerived[2] = {};
 
 void resetSharedHarness()
 {
-    for (int i = 0; i < 4; ++i) g_strong[i] = SP<Payload>();
-    for (int i = 0; i < 2; ++i) g_weak[i] = WP<Payload>();
+    for (int i = 0; i < 4; ++i) {
+        g_strong[i] = SP<Payload>();
+        g_strongIsDerived[i] = false;
+    }
+    for (int i = 0; i < 2; ++i) {
+        g_weak[i] = WP<Payload>();
+        g_weakIsDerived[i] = false;
+    }
     Payload::live = 0;
     Payload::nextId = 0;
     g_deleterCalls = 0;
@@ -158,71 +167,110 @@ void interpretSharedStep(const Step &st)
     switch (st.op) {
     case OpMakeNew:
         g_strong[a] = SP<Payload>(new Payload(1000 + a));
+        g_strongIsDerived[a] = false;
         break;
     case OpMakeNullRaw: {
         Payload *p = nullptr;
         g_strong[a] = SP<Payload>(p);
+        g_strongIsDerived[a] = false;
         break;
     }
     case OpMakeNullDeleter: {
         Payload *p = nullptr;
         g_strong[a] = SP<Payload>(p, CountingDeleter());
+        g_strongIsDerived[a] = false;
         break;
     }
     case OpMakeCreate:
         g_strong[a] = SP<Payload>::create(2000 + a);
+        g_strongIsDerived[a] = false;
         break;
     case OpMakeDefault:
         g_strong[a] = SP<Payload>();
+        g_strongIsDerived[a] = false;
         break;
     case OpMakeDerived: {
         SP<PayloadDerived> d(new PayloadDerived(3000 + a));
         g_strong[a] = SP<Payload>(d);
+        g_strongIsDerived[a] = true;
         break;
     }
-    case OpCopy:
+    case OpCopy: {
         // 显式拷贝构造出临时量再移动赋值进槽——练的是拷贝构造函数那条路径。
+        const bool sourceIsDerived = g_strongIsDerived[b];
         g_strong[a] = SP<Payload>(g_strong[b]);
+        g_strongIsDerived[a] = sourceIsDerived && !g_strong[a].isNull();
         break;
-    case OpAssign:
+    }
+    case OpAssign: {
         // 直接拷贝赋值——练的是 operator= 那条路径，与 OpCopy 不是同一条。
+        const bool sourceIsDerived = g_strongIsDerived[b];
         g_strong[a] = g_strong[b];
+        g_strongIsDerived[a] = sourceIsDerived && !g_strong[a].isNull();
         break;
+    }
     case OpAssignNullptr:
         g_strong[a] = nullptr;
+        g_strongIsDerived[a] = false;
         break;
     case OpSelfAssign:
         g_strong[a] = g_strong[a];
         break;
     case OpReset:
         g_strong[a].reset();
+        g_strongIsDerived[a] = false;
         break;
     case OpResetNew:
         g_strong[a].reset(new Payload(4000 + a));
+        g_strongIsDerived[a] = false;
         break;
     case OpResetDeleter:
         g_strong[a].reset(new Payload(5000 + a), CountingDeleter());
+        g_strongIsDerived[a] = false;
         break;
     case OpClear:
         g_strong[a].clear();
+        g_strongIsDerived[a] = false;
         break;
-    case OpDynamicCastToDerived:
+    case OpDynamicCastToDerived: {
+        const bool sourceIsDerived = g_strongIsDerived[a];
         g_strong[b] = SP<Payload>(g_strong[a].dynamicCast<PayloadDerived>());
+        g_strongIsDerived[b] = sourceIsDerived && !g_strong[b].isNull();
         break;
+    }
     case OpDynamicCastToUnrelated:
         g_strong[b] = SP<Payload>(g_strong[a].dynamicCast<PayloadUnrelated>());
+        g_strongIsDerived[b] = false;
         break;
-    case OpStaticCastToDerived:
-        // 只经由 Payload 基类成员读 id/v，不触碰 Derived 专属状态——即使槽里
-        // 实际不是 Derived 对象，也不构成访问越界。
-        g_strong[b] = SP<Payload>(g_strong[a].staticCast<PayloadDerived>());
+    case OpStaticCastToDerived: {
+        Payload *source = g_strong[a].data();
+        const bool actualIsDerived = source != nullptr
+            && dynamic_cast<PayloadDerived *>(source) != nullptr;
+        if (g_strongIsDerived[a] != actualIsDerived) {
+            std::fputs("oracle invariant: tracked shared-slot dynamic type is stale\n", stderr);
+            std::abort();
+        }
+        if (actualIsDerived) {
+            g_strong[b] = SP<Payload>(g_strong[a].staticCast<PayloadDerived>());
+        } else {
+            // staticCast is only defined when the source really is Derived.
+            // Invalid generated inputs produce an empty destination instead of
+            // executing an undefined downcast on either oracle side.
+            g_strong[b] = SP<Payload>();
+        }
+        g_strongIsDerived[b] = actualIsDerived;
         break;
+    }
     case OpWeakFrom:
         g_weak[wb] = WP<Payload>(g_strong[a]);
+        g_weakIsDerived[wb] = g_strongIsDerived[a] && !g_strong[a].isNull();
         break;
-    case OpStrongFromWeak:
+    case OpStrongFromWeak: {
+        const bool sourceIsDerived = g_weakIsDerived[wb];
         g_strong[a] = SP<Payload>(g_weak[wb]);
+        g_strongIsDerived[a] = sourceIsDerived && !g_strong[a].isNull();
         break;
+    }
     case OpWeakAssignNullptr:
         // 不用字面量 nullptr：真 Qt5 的 QWeakPointer<T> 对非 QObject 的 T 没有
         // 任何能接 nullptr 的构造函数（唯一的裸指针构造被
@@ -231,6 +279,7 @@ void interpretSharedStep(const Step &st)
         // `#ifndef QT_NO_QOBJECT` 分支里，实测确认过）。默认构造再赋值两侧都有，
         // 效果与"赋 null"等价，且不逼一侧编不过。
         g_weak[wb] = WP<Payload>();
+        g_weakIsDerived[wb] = false;
         break;
     default:
         break;

@@ -37,11 +37,13 @@ public:
 
     PkSharedPointer() noexcept {}
     PkSharedPointer(std::nullptr_t) noexcept {}
-    explicit PkSharedPointer(T *ptr) : m_p(ptr) {}
+    template <class X, class = typename std::enable_if<std::is_convertible<X *, T *>::value>::type>
+    explicit PkSharedPointer(X *ptr) : m_p(ptr) {}
 
     // 判据 D：空指针也要建控制块、也要调 deleter，直接转发给 std::shared_ptr。
-    template <class Deleter>
-    PkSharedPointer(T *ptr, Deleter d) : m_p(ptr, d) {}
+    template <class X, class Deleter,
+              class = typename std::enable_if<std::is_convertible<X *, T *>::value>::type>
+    PkSharedPointer(X *ptr, Deleter d) : m_p(ptr, d) {}
 
     // 跨类型（派生→基类，探针 P16）；X* 不能转换到 T* 时这个重载直接从重载集里消失。
     template <class X, class = typename std::enable_if<std::is_convertible<X *, T *>::value>::type>
@@ -66,8 +68,11 @@ public:
     T *operator->() const noexcept { return m_p.get(); }
 
     void reset() { m_p.reset(); }
-    void reset(T *ptr) { m_p.reset(ptr); }
-    template <class Deleter> void reset(T *ptr, Deleter d) { m_p.reset(ptr, d); }
+    template <class X, class = typename std::enable_if<std::is_convertible<X *, T *>::value>::type>
+    void reset(X *ptr) { m_p.reset(ptr); }
+    template <class X, class Deleter,
+              class = typename std::enable_if<std::is_convertible<X *, T *>::value>::type>
+    void reset(X *ptr, Deleter d) { m_p.reset(ptr, d); }
     void clear() { m_p.reset(); }
 
     template <class X> PkSharedPointer<X> staticCast() const
@@ -168,7 +173,7 @@ template <class T> bool operator!=(const PkSharedPointer<T> &a, std::nullptr_t) 
 // Krita 用它——用量表 `.superpowers/sdd/R-04/usage-table.md` §2.3 的
 // QWeakPointer 一节没有 operator== 这一行，保留范围用量是 0。判据①「一项
 // 不多」优先于计划 Step 4 示例代码：这里是计划的示例代码写多了，用量表对。
-// 登记进「有意不实现」清单，Task 4 收（该 README 由 Task 4 交付）。
+// 登记进 README 「有意不实现」清单，作为长期 API 边界说明。
 
 // ---- Step 9：接 pk/container 的哈希 ----
 //
