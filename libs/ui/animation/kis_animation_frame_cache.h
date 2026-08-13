@@ -9,8 +9,9 @@
 
 #include <QImage>
 #include <QObject>
+#include <QSharedPointer>
 
-#include "kritaui_export.h"
+#include "kritaanimation_export.h"
 #include "kis_types.h"
 #include "kis_shared.h"
 
@@ -19,23 +20,34 @@ class KisImageAnimationInterface;
 class KisTimeSpan;
 class KisRegion;
 
-class KisOpenGLImageTextures;
-typedef KisSharedPtr<KisOpenGLImageTextures> KisOpenGLImageTexturesSP;
-
 class KisOpenGLUpdateInfo;
 typedef KisSharedPtr<KisOpenGLUpdateInfo> KisOpenGLUpdateInfoSP;
+class KisOpenGLUpdateInfoBuilder;
 
-class KRITAUI_EXPORT KisAnimationFrameCache : public QObject, public KisShared
+class KRITAANIMATION_EXPORT KisAnimationFrameCacheSource
+{
+public:
+    virtual ~KisAnimationFrameCacheSource();
+
+    virtual KisImageWSP image() const = 0;
+    virtual KisOpenGLUpdateInfoBuilder &updateInfoBuilder() = 0;
+    virtual KisOpenGLUpdateInfoSP fetchFrameData(const QRect &rect, KisImageSP image) = 0;
+    virtual void uploadFrameData(KisOpenGLUpdateInfoSP info) = 0;
+};
+
+using KisAnimationFrameCacheSourceSP = QSharedPointer<KisAnimationFrameCacheSource>;
+
+class KRITAANIMATION_EXPORT KisAnimationFrameCache : public QObject, public KisShared
 {
     Q_OBJECT
 
 public:
 
-    static KisAnimationFrameCacheSP getFrameCache(KisOpenGLImageTexturesSP textures);
+    static KisAnimationFrameCacheSP getFrameCache(KisAnimationFrameCacheSourceSP source);
     static const QList<KisAnimationFrameCache*> caches();
     static const KisAnimationFrameCacheSP cacheForImage(KisImageWSP image);
 
-    KisAnimationFrameCache(KisOpenGLImageTexturesSP textures);
+    explicit KisAnimationFrameCache(KisAnimationFrameCacheSourceSP source);
     ~KisAnimationFrameCache() override;
 
     QImage getFrame(int time);

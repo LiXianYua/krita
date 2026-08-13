@@ -12,7 +12,7 @@
 
 #include "tiles3/swap/kis_lzf_compression.h"
 
-struct KRITAUI_NO_EXPORT KisFrameDataSerializer::Private
+struct KRITAANIMATION_NO_EXPORT KisFrameDataSerializer::Private
 {
     Private(const QString &frameCachePath)
         : framesDir(

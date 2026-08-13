@@ -6,7 +6,7 @@
 #ifndef KISABSTRACTFRAMECACHESWAPPER_H
 #define KISABSTRACTFRAMECACHESWAPPER_H
 
-#include "kritaui_export.h"
+#include "kritaanimation_export.h"
 
 class QRect;
 
@@ -17,7 +17,7 @@ class KisOpenGLUpdateInfo;
 typedef KisSharedPtr<KisOpenGLUpdateInfo> KisOpenGLUpdateInfoSP;
 
 
-class KRITAUI_EXPORT KisAbstractFrameCacheSwapper
+class KRITAANIMATION_EXPORT KisAbstractFrameCacheSwapper
 {
 public:
     virtual ~KisAbstractFrameCacheSwapper();

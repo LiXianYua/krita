@@ -1,30 +1,33 @@
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/qtlockedfile
-)
-
 set(kritaanimation_LIB_SRCS
-    KisFFMpegWrapper.cpp
-    KisVideoSaver.cpp
     KisAnimationRenderingOptions.cpp
-    KisAnimationRender.cpp
-    KisDlgAnimationRenderer.cpp
-    VideoExportOptionsDialog.cpp
-    VideoHDRMetadataOptionsDialog.cpp
     KisHDRMetadataOptions.cpp
-    KisDlgImportVideoAnimation.cpp
+    KisAbstractFrameCacheSwapper.cpp
+    KisFrameCacheStore.cpp
+    KisFrameCacheSwapper.cpp
+    KisFrameDataSerializer.cpp
+    KisInMemoryFrameCacheSwapper.cpp
+    kis_animation_frame_cache.cpp
 )
 
-ki18n_wrap_ui(kritaanimation_LIB_SRCS
-    wdg_animationrenderer.ui
-    video_export_options_dialog.ui
-    VideoHDRMetadataOptionsDialog.ui
-    VideoImportDialog.ui
-    
-)
-
-kis_add_library(kritaanimation SHARED ${kritaanimation_HEADERS_MOC} ${kritaanimation_LIB_SRCS})
+kis_add_library(kritaanimation SHARED ${kritaanimation_LIB_SRCS})
 generate_export_header(kritaanimation BASE_NAME kritaanimation)
 
-target_link_libraries( kritaanimation PUBLIC kritaui )
+target_include_directories(kritaanimation
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+)
+
+target_link_libraries(kritaanimation
+    PUBLIC
+        Boost::boost
+        KF${KF_MAJOR}::ConfigCore
+        Qt${QT_MAJOR_VERSION}::Core
+        Qt${QT_MAJOR_VERSION}::Gui
+        kritacanvas
+        kritaglobal
+        kritaimage
+)
 
 set_target_properties(kritaanimation PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
@@ -32,3 +35,6 @@ set_target_properties(kritaanimation PROPERTIES
 
 install(TARGETS kritaanimation  ${INSTALL_TARGETS_DEFAULT_ARGS})
 
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

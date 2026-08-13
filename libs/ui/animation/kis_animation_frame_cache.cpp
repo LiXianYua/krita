@@ -8,15 +8,13 @@
 #include "kis_animation_frame_cache_p.h"
 
 #include <QMap>
+#include <QtMath>
 
 #include "kis_debug.h"
 
 #include "kis_image.h"
 #include "kis_image_animation_interface.h"
 #include "kis_time_span.h"
-#include "KisPart.h"
-#include "kis_animation_cache_populator.h"
-
 #include <KisAbstractFrameCacheSwapper.h>
 #include "KisFrameCacheSwapper.h"
 #include "KisInMemoryFrameCacheSwapper.h"
@@ -24,25 +22,27 @@
 #include "kis_image_config.h"
 #include "kis_config_notifier.h"
 
-#include "opengl/kis_opengl_image_textures.h"
+#include "opengl/KisOpenGLUpdateInfoBuilder.h"
+#include "kis_update_info.h"
 
 #include <kis_algebra_2d.h>
+#include <kis_lod_transform.h>
 #include <cmath>
 
 
 struct KisAnimationFrameCache::Private
 {
-    Private(KisOpenGLImageTexturesSP _textures)
-        : textures(_textures)
+    Private(KisAnimationFrameCacheSourceSP _source)
+        : source(std::move(_source))
     {
-        image = textures->image();
+        image = source->image();
     }
 
     ~Private()
     {
     }
 
-    KisOpenGLImageTexturesSP textures;
+    KisAnimationFrameCacheSourceSP source;
     KisImageWSP image;
 
     QScopedPointer<KisAbstractFrameCacheSwapper> swapper;
@@ -175,24 +175,29 @@ struct KisAnimationFrameCache::Private
 
 
     // TODO: verify that we don't have any leak here!
-    typedef QMap<KisOpenGLImageTexturesSP, KisAnimationFrameCache*> CachesMap;
+    typedef QMap<KisAnimationFrameCacheSource*, KisAnimationFrameCache*> CachesMap;
     static CachesMap caches;
 };
 
 KisAnimationFrameCache::Private::CachesMap KisAnimationFrameCache::Private::caches;
 
-KisAnimationFrameCacheSP KisAnimationFrameCache::getFrameCache(KisOpenGLImageTexturesSP textures)
-{
-    KisAnimationFrameCache *cache;
+KisAnimationFrameCacheSource::~KisAnimationFrameCacheSource() = default;
 
-    Private::CachesMap::iterator it = Private::caches.find(textures);
-    if (it == Private::caches.end()) {
-        cache = new KisAnimationFrameCache(textures);
-        Private::caches.insert(textures, cache);
-    } else {
-        cache = it.value();
+KisAnimationFrameCacheSP KisAnimationFrameCache::getFrameCache(KisAnimationFrameCacheSourceSP source)
+{
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(source, nullptr);
+
+    const KisImageWSP sourceImage = source->image();
+    auto imageIt = std::find_if(Private::caches.begin(), Private::caches.end(),
+                                [sourceImage] (KisAnimationFrameCache *cache) {
+                                    return cache->image() == sourceImage;
+                                });
+    if (imageIt != Private::caches.end()) {
+        return *imageIt;
     }
 
+    KisAnimationFrameCache *cache = new KisAnimationFrameCache(source);
+    Private::caches.insert(source.data(), cache);
     return cache;
 }
 
@@ -209,8 +214,8 @@ const KisAnimationFrameCacheSP KisAnimationFrameCache::cacheForImage(KisImageWSP
     return it != Private::caches.end() ? *it : nullptr;
 }
 
-KisAnimationFrameCache::KisAnimationFrameCache(KisOpenGLImageTexturesSP textures)
-    : m_d(new Private(textures))
+KisAnimationFrameCache::KisAnimationFrameCache(KisAnimationFrameCacheSourceSP source)
+    : m_d(new Private(std::move(source)))
 {
     // create swapping backend
     slotConfigChanged();
@@ -221,7 +226,7 @@ KisAnimationFrameCache::KisAnimationFrameCache(KisOpenGLImageTexturesSP textures
 
 KisAnimationFrameCache::~KisAnimationFrameCache()
 {
-    Private::caches.remove(m_d->textures);
+    Private::caches.remove(m_d->source.data());
 }
 
 bool KisAnimationFrameCache::uploadFrame(int time)
@@ -234,7 +239,7 @@ bool KisAnimationFrameCache::uploadFrame(int time)
         // Previously we were trying to start cache regeneration in this point,
         // but it caused even bigger slowdowns when scrubbing
     } else {
-        m_d->textures->recalculateCache(info, false);
+        m_d->source->uploadFrameData(info);
     }
 
     return bool(info);
@@ -379,7 +384,7 @@ void KisAnimationFrameCache::slotConfigChanged()
     KisImageConfig cfg(true);
 
     if (cfg.useOnDiskAnimationCacheSwapping()) {
-        m_d->swapper.reset(new KisFrameCacheSwapper(m_d->textures->updateInfoBuilder(), cfg.swapDir()));
+        m_d->swapper.reset(new KisFrameCacheSwapper(m_d->source->updateInfoBuilder(), cfg.swapDir()));
     } else {
         m_d->swapper.reset(new KisInMemoryFrameCacheSwapper());
     }
@@ -396,9 +401,9 @@ KisOpenGLUpdateInfoSP KisAnimationFrameCache::Private::fetchFrameDataImpl(KisIma
         image->projection()->generateLodCloneDevice(tempDevice, image->projection()->extent(), lod);
 
         const QRect fetchRect = KisLodTransform::alignedRect(requestedRect, lod);
-        return textures->updateInfoBuilder().buildUpdateInfo(fetchRect, tempDevice, image->bounds(), lod, true);
+        return source->updateInfoBuilder().buildUpdateInfo(fetchRect, tempDevice, image->bounds(), lod, true);
     } else {
-        return textures->updateCache(requestedRect, image);
+        return source->fetchFrameData(requestedRect, image);
     }
 }
 

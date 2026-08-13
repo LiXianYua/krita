@@ -6,7 +6,7 @@
 #ifndef KISFRAMECACHESTORE_H
 #define KISFRAMECACHESTORE_H
 
-#include "kritaui_export.h"
+#include "kritaanimation_export.h"
 #include <QScopedPointer>
 #include "kis_types.h"
 
@@ -35,7 +35,7 @@ typedef KisSharedPtr<KisOpenGLUpdateInfo> KisOpenGLUpdateInfoSP;
  *    KisFrameDataSerializer::Frame format.
  */
 
-class KRITAUI_EXPORT KisFrameCacheStore
+class KRITAANIMATION_EXPORT KisFrameCacheStore
 {
 public:
     KisFrameCacheStore();

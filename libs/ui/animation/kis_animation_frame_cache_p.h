@@ -8,9 +8,9 @@
 
 #include <QMap>
 #include <kis_time_span.h>
-#include <kritaui_export.h>
+#include <kritaanimation_export.h>
 
-struct KRITAUI_EXPORT FramesGluerBase
+struct KRITAANIMATION_EXPORT FramesGluerBase
 {
     FramesGluerBase(QMap<int, int> &_frames) : frames(_frames) {}
 

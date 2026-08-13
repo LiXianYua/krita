@@ -6,7 +6,7 @@
 #ifndef KISFRAMEDATASERIALIZER_H
 #define KISFRAMEDATASERIALIZER_H
 
-#include "kritaui_export.h"
+#include "kritaanimation_export.h"
 #include <QScopedPointer>
 #include "opengl/kis_texture_tile_info_pool.h"
 
@@ -30,7 +30,7 @@ class QString;
  * 2) Compress this data and save it on disk
  */
 
-class KRITAUI_EXPORT KisFrameDataSerializer
+class KRITAANIMATION_EXPORT KisFrameDataSerializer
 {
 public:
     struct FrameTile

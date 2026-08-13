@@ -9,13 +9,10 @@
 #include <testutil.h>
 
 #include <KoColor.h>
-#include "KisAsyncAnimationRendererBase.h"
-#include "kis_image_animation_interface.h"
 #include "opengl/KisOpenGLUpdateInfoBuilder.h"
 
 #include "KoColorSpaceRegistry.h"
 #include "KoColorSpace.h"
-#include "KisLockFrameGenerationLock.h"
 
 // TODO: conversion options into a separate file!
 #include "kis_update_info.h"
@@ -89,75 +86,6 @@ bool compareUpdateInfo(KisOpenGLUpdateInfoSP info1, KisOpenGLUpdateInfoSP info2)
 }
 
 
-class TestFramesRenderer : public KisAsyncAnimationRendererBase
-{
-    Q_OBJECT
-
-public:
-    TestFramesRenderer()
-        : m_pool(m_poolRegistry.getPool(maxTileSize, maxTileSize))
-    {
-        m_updateInfoBuilder.setTextureInfoPool(m_pool);
-
-        const KoColorSpace *dstColorSpace = KoColorSpaceRegistry::instance()->rgb8();
-        m_updateInfoBuilder.setConversionOptions(
-            ConversionOptions(dstColorSpace,
-                              KoColorConversionTransformation::internalRenderingIntent(),
-                              KoColorConversionTransformation::internalConversionFlags()));
-
-        // TODO: refactor setting texture size in raw values!
-        m_updateInfoBuilder.setTextureBorder(8);
-        m_updateInfoBuilder.setEffectiveTextureSize(QSize(256 - 16, 256 - 16));
-
-        connect(this, SIGNAL(sigCompleteRegenerationInternal(int)), SLOT(notifyFrameCompleted(int)));
-        connect(this, SIGNAL(sigCancelRegenerationInternal(int, CancelReason)), SLOT(notifyFrameCancelled(int, CancelReason)));
-    }
-
-    void frameCompletedCallback(int frame, const KisRegion &requestedRegion) override {
-        KisImageSP image = requestedImage();
-        KIS_SAFE_ASSERT_RECOVER_NOOP(frame == image->animationInterface()->currentTime());
-
-        // by default we request update for the entire image
-        KIS_SAFE_ASSERT_RECOVER_NOOP(requestedRegion == image->bounds());
-
-        KisOpenGLUpdateInfoSP info = m_updateInfoBuilder.buildUpdateInfo(image->bounds(), image, true);
-
-        KIS_ASSERT_RECOVER_NOOP(info);
-        qDebug() << ppVar(info->tileList.size());
-
-        KisOpenGLUpdateInfoSP infoForSave = m_updateInfoBuilder.buildUpdateInfo(image->bounds(), image, true);
-        m_store.saveFrame(11, infoForSave, image->bounds());
-
-        KIS_SAFE_ASSERT_RECOVER_NOOP(m_store.hasFrame(11));
-
-        KisOpenGLUpdateInfoSP loadedInfo = m_store.loadFrame(11, m_updateInfoBuilder);
-
-        qDebug() << ppVar(loadedInfo->tileList.size());
-
-        KIS_SAFE_ASSERT_RECOVER_NOOP(compareUpdateInfo(info, loadedInfo));
-
-
-        Q_EMIT sigCompleteRegenerationInternal(frame);
-    }
-
-    void frameCancelledCallback(int frame, CancelReason cancelReason) override {
-        Q_EMIT sigCancelRegenerationInternal(frame, cancelReason);
-    }
-
-Q_SIGNALS:
-    void sigCompleteRegenerationInternal(int frame);
-    void sigCancelRegenerationInternal(int frame, CancelReason cancelReason);
-
-private:
-    KisOpenGLUpdateInfoBuilder m_updateInfoBuilder;
-    KisTextureTileInfoPoolRegistry m_poolRegistry;
-    KisTextureTileInfoPoolSP m_pool;
-    KisFrameCacheStore m_store;
-};
-
-
-
-
 void KisFrameCacheStoreTest::test()
 {
     QRect refRect(QRect(0,0,512,512));
@@ -167,19 +95,26 @@ void KisFrameCacheStoreTest::test()
     KisPaintLayerSP layer1 = p.layer;
     layer1->paintDevice()->fill(QRect(100,100,300,300), fillColor);
 
-    KisLockFrameGenerationLock lock(p.image->animationInterface());
-    TestFramesRenderer renderer;
-    renderer.startFrameRegeneration(p.image, 10, TestFramesRenderer::None, std::move(lock));
+    KisTextureTileInfoPoolRegistry poolRegistry;
+    KisTextureTileInfoPoolSP pool = poolRegistry.getPool(maxTileSize, maxTileSize);
+    KisOpenGLUpdateInfoBuilder updateInfoBuilder;
+    updateInfoBuilder.setTextureInfoPool(pool);
+    updateInfoBuilder.setConversionOptions(
+        ConversionOptions(KoColorSpaceRegistry::instance()->rgb8(),
+                          KoColorConversionTransformation::internalRenderingIntent(),
+                          KoColorConversionTransformation::internalConversionFlags()));
+    updateInfoBuilder.setTextureBorder(8);
+    updateInfoBuilder.setEffectiveTextureSize(QSize(256 - 16, 256 - 16));
 
+    KisOpenGLUpdateInfoSP info = updateInfoBuilder.buildUpdateInfo(p.image->bounds(), p.image, true);
+    KisOpenGLUpdateInfoSP infoForSave = updateInfoBuilder.buildUpdateInfo(p.image->bounds(), p.image, true);
 
-    p.image->waitForDone();
+    KisFrameCacheStore store;
+    store.saveFrame(11, infoForSave, p.image->bounds());
+    QVERIFY(store.hasFrame(11));
 
-    while (renderer.isActive()) {
-        QTest::qWait(500);
-    }
-
+    KisOpenGLUpdateInfoSP loadedInfo = store.loadFrame(11, updateInfoBuilder);
+    QVERIFY(compareUpdateInfo(info, loadedInfo));
 }
 
 SIMPLE_TEST_MAIN(KisFrameCacheStoreTest)
-
-#include "KisFrameCacheStoreTest.moc"

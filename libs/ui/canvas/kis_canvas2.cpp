@@ -69,7 +69,7 @@
 #include "KisMainWindow.h"
 
 #include "KisCanvasAnimationState.h"
-#include "kis_animation_frame_cache.h"
+#include "kis_animation_frame_cache_ui.h"
 #include "opengl/kis_opengl_canvas2.h"
 #include "opengl/kis_opengl.h"
 #include "kis_fps_decoration.h"
@@ -761,7 +761,7 @@ void KisCanvas2::createOpenGLCanvas()
                                                           m_d->multiSurfaceState->multiConfig.canvasDisplayConfig(),
                                                           m_d->displayColorConverter.displayFilter(),
                                                           bitDepthMode);
-    m_d->frameCache = KisAnimationFrameCache::getFrameCache(canvasWidget->openGLImageTextures());
+    m_d->frameCache = kisGetAnimationFrameCache(canvasWidget->openGLImageTextures());
 
     setCanvasWidget(canvasWidget);
 }

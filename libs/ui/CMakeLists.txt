@@ -12,6 +12,7 @@ endif()
 
 add_subdirectory(canvas)
 add_subdirectory(input)
+add_subdirectory(animation)
 add_subdirectory( tests )
 
 if (APPLE)
@@ -361,12 +362,10 @@ set(kritaui_LIB_SRCS
     actions/KisTransformToolActivationCommand.cpp
     animation/KisFFMpegWrapper.cpp
     animation/KisVideoSaver.cpp
-    animation/KisAnimationRenderingOptions.cpp
     animation/KisAnimationRender.cpp
     animation/KisDlgAnimationRenderer.cpp
     animation/VideoExportOptionsDialog.cpp
     animation/VideoHDRMetadataOptionsDialog.cpp
-    animation/KisHDRMetadataOptions.cpp
     animation/KisDlgImportVideoAnimation.cpp
     animation/KisFrameDisplayProxy.cpp
     kis_document_undo_store.cpp
@@ -494,7 +493,7 @@ endif()
 
     set(kritaui_LIB_SRCS
         ${kritaui_LIB_SRCS}
-        kis_animation_frame_cache.cpp
+        kis_animation_frame_cache_ui.cpp
         kis_animation_cache_populator.cpp
         KisAsyncAnimationRendererBase.cpp
         KisAsyncAnimationCacheRenderer.cpp
@@ -504,12 +503,6 @@ endif()
         dialogs/KisAsyncAnimationFramesSaveDialog.cpp
         canvas/KisCanvasAnimationState.cpp	
         kis_animation_importer.cpp
-        KisFrameDataSerializer.cpp
-        KisFrameCacheStore.cpp
-        KisFrameCacheSwapper.cpp
-        KisAbstractFrameCacheSwapper.cpp
-        KisInMemoryFrameCacheSwapper.cpp
-
         input/wintab/drawpile_tablettester/tablettester.cpp
         input/wintab/drawpile_tablettester/tablettest.cpp
     )
@@ -704,6 +697,7 @@ target_link_libraries(kritaui
         kritaassistanttool_static
         kritacanvas
         kritainput
+        kritaanimation
 )
 
 if (KRITA_USE_SURFACE_COLOR_MANAGEMENT_API)

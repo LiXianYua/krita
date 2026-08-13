@@ -113,7 +113,7 @@ FrameInfo::~FrameInfo()
 }
 
 
-struct KRITAUI_NO_EXPORT KisFrameCacheStore::Private
+struct KRITAANIMATION_NO_EXPORT KisFrameCacheStore::Private
 {
     Private(const QString &frameCachePath)
         : serializer(frameCachePath)

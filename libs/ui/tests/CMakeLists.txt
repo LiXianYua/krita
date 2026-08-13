@@ -6,15 +6,12 @@ kis_add_tests(
     kis_shape_commands_test.cpp
     kis_stop_gradient_editor_test.cpp
     kis_multinode_property_test.cpp
-    KisFrameSerializerTest.cpp
-    KisFrameCacheStoreTest.cpp
     kis_animation_exporter_test.cpp
     kis_animation_importer_test.cpp
     KisSpinBoxSplineUnitConverterTest.cpp
     KisDocumentReplaceTest.cpp
     KisRssReaderTest.cpp
     kis_derived_resources_test.cpp
-    kis_animation_frame_cache_test.cpp
     kis_shape_layer_test.cpp
     KisSafeDocumentLoaderTest.cpp
     KisSurfaceColorSpaceWrapperTest.cpp

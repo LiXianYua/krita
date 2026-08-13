@@ -11,12 +11,60 @@
 
 #include "kis_animation_frame_cache.h"
 #include "kis_image_animation_interface.h"
-#include "opengl/kis_opengl_image_textures.h"
+#include "opengl/KisOpenGLUpdateInfoBuilder.h"
+#include "opengl/kis_texture_tile_info_pool.h"
+#include "kis_update_info.h"
 #include "kis_time_span.h"
 #include "kis_keyframe_channel.h"
 #include "kistest.h"
+#include "KoColorSpaceRegistry.h"
 
 #include "kundo2command.h"
+
+namespace
+{
+class TestAnimationFrameCacheSource final : public KisAnimationFrameCacheSource
+{
+public:
+    explicit TestAnimationFrameCacheSource(KisImageSP image)
+        : m_image(image)
+        , m_pool(m_poolRegistry.getPool(256, 256))
+    {
+        m_builder.setTextureInfoPool(m_pool);
+        m_builder.setConversionOptions(
+            ConversionOptions(KoColorSpaceRegistry::instance()->rgb8(),
+                              KoColorConversionTransformation::internalRenderingIntent(),
+                              KoColorConversionTransformation::internalConversionFlags()));
+        m_builder.setTextureBorder(8);
+        m_builder.setEffectiveTextureSize(QSize(240, 240));
+    }
+
+    KisImageWSP image() const override
+    {
+        return m_image;
+    }
+
+    KisOpenGLUpdateInfoBuilder &updateInfoBuilder() override
+    {
+        return m_builder;
+    }
+
+    KisOpenGLUpdateInfoSP fetchFrameData(const QRect &rect, KisImageSP image) override
+    {
+        return m_builder.buildUpdateInfo(rect, image, true);
+    }
+
+    void uploadFrameData(KisOpenGLUpdateInfoSP) override
+    {
+    }
+
+private:
+    KisImageSP m_image;
+    KisOpenGLUpdateInfoBuilder m_builder;
+    KisTextureTileInfoPoolRegistry m_poolRegistry;
+    KisTextureTileInfoPoolSP m_pool;
+};
+}
 
 void verifyRangeIsCachedStatus(KisAnimationFrameCacheSP cache, int start, int end, KisAnimationFrameCache::CacheStatus status)
 {
@@ -49,9 +97,8 @@ void KisAnimationFrameCacheTest::testCache()
     KisKeyframeChannel *rasterChannel3 = layer2->getKeyframeChannel(KisKeyframeChannel::Raster.id(), true);
     rasterChannel3->addKeyframe(17, &parentCommand);
 
-    KisOpenGLImageTexturesSP glTex = KisOpenGLImageTextures::createImageTextures(image, 0, KoColorConversionTransformation::IntentPerceptual, KoColorConversionTransformation::Empty);
-    KisAnimationFrameCacheSP cache = new KisAnimationFrameCache(glTex);
-    glTex->testingForceInitialized();
+    KisAnimationFrameCacheSourceSP source = QSharedPointer<TestAnimationFrameCacheSource>::create(image);
+    KisAnimationFrameCacheSP cache = new KisAnimationFrameCache(source);
 
     m_globalAnimationCache = cache.data();
     connect(animation, SIGNAL(sigFrameReady(int)), this, SLOT(slotFrameGenerationFinished(int)));
