@@ -10,7 +10,7 @@
 
 #include <qopengl.h>
 
-#include <kritaui_export.h>
+#include <kritacanvas_export.h>
 
 struct KisExposureGammaCorrectionInterface;
 
@@ -28,7 +28,7 @@ class QOpenGLShaderProgram;
  * @brief The KisDisplayFilter class is the base class for filters that
  * are applied by the canvas to the projection before displaying.
  */
-class KRITAUI_EXPORT KisDisplayFilter : public QObject
+class KRITACANVAS_EXPORT KisDisplayFilter : public QObject
 {
     Q_OBJECT
 public:

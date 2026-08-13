@@ -8,7 +8,7 @@
 
 #include <QObject>
 
-#include <kritaui_export.h>
+#include <kritacanvas_export.h>
 #include <kis_shared.h>
 
 #include "KoColorConversionTransformation.h"
@@ -34,7 +34,7 @@ class KisCanvasState;
  *
  * Note: the export macro is only for the unittest.
  */
-class KRITAUI_EXPORT KisPrescaledProjection : public QObject, public KisShared
+class KRITACANVAS_EXPORT KisPrescaledProjection : public QObject, public KisShared
 {
     Q_OBJECT
 public:

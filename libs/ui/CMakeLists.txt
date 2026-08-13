@@ -10,6 +10,7 @@ if (ANDROID)
     endif()
 endif()
 
+add_subdirectory(canvas)
 add_subdirectory( tests )
 
 if (APPLE)
@@ -23,20 +24,12 @@ set(kritaui_LIB_SRCS
     canvas/kis_canvas_updates_compressor.cpp
     canvas/kis_canvas_controller.cpp
     canvas/kis_display_color_converter.cpp
-    canvas/kis_display_filter.cpp
-    canvas/kis_exposure_gamma_correction_interface.cpp
     canvas/kis_tool_proxy.cpp
     canvas/kis_canvas_decoration.cc
-    canvas/kis_coordinates_converter.cpp
     canvas/kis_grid_manager.cpp
     canvas/kis_grid_decoration.cpp
     canvas/kis_grid_config.cpp
-    canvas/kis_prescaled_projection.cpp
     canvas/kis_qpainter_canvas.cpp
-    canvas/kis_projection_backend.cpp
-    canvas/kis_update_info.cpp
-    canvas/kis_image_patch.cpp
-    canvas/kis_image_pyramid.cpp
     canvas/kis_infinity_manager.cpp
     canvas/kis_change_guides_command.cpp
     canvas/kis_guides_decoration.cpp
@@ -49,7 +42,6 @@ set(kritaui_LIB_SRCS
     canvas/KisMirrorAxisConfig.cpp
     canvas/KoCanvasControllerWidget.cpp
     canvas/KoCanvasControllerWidgetViewport_p.cpp
-    canvas/KisCanvasState.cpp
 
     dialogs/kis_about_application.cpp
     dialogs/kis_dlg_adj_layer_props.cc
@@ -111,9 +103,9 @@ set(kritaui_LIB_SRCS
     kis_clipboard.cc
     kis_config.cc
     KisOcioConfiguration.cpp
+    KisDisplayConfigUiAdapter.cpp
     kis_control_frame.cpp
     kis_composite_ops_model.cc
-    KisDisplayConfig.cpp
     kis_paint_ops_model.cpp
     kis_custom_pattern.cc
     kis_file_layer.cpp
@@ -182,8 +174,6 @@ set(kritaui_LIB_SRCS
     opengl/kis_opengl_image_textures.cpp
     opengl/kis_texture_tile.cpp
     opengl/kis_opengl_shader_loader.cpp
-    opengl/kis_texture_tile_info_pool.cpp
-    opengl/KisOpenGLUpdateInfoBuilder.cpp
     opengl/KisOpenGLModeProber.cpp
     opengl/KisScreenInformationAdapter.cpp
     opengl/KisOpenGLBufferCircularStorage.cpp
@@ -719,6 +709,7 @@ target_link_libraries(kritaui
         kritawidgetutils
         kritaresources
         kritaassistanttool_static
+        kritacanvas
 )
 
 if (KRITA_USE_SURFACE_COLOR_MANAGEMENT_API)

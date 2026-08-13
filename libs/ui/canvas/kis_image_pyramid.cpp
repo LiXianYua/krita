@@ -18,7 +18,7 @@
 #include "kis_datamanager.h"
 #include "kis_config_notifier.h"
 #include "kis_debug.h"
-#include "kis_config.h"
+#include "KisCanvasConfig.h"
 #include "kis_image_config.h"
 
 #include <memory>
@@ -268,7 +268,7 @@ void KisImagePyramid::retrieveImageData(const QRect &rect)
         if (!m_channelFlags.isEmpty() && !m_allChannelsSelected) {
             std::unique_ptr<quint8[]> dst(new quint8[projectionCs->pixelSize() * numPixels]);
 
-            KisConfig cfg(true);
+            KisCanvasConfig cfg(true);
 
             if (m_onlyOneChannelSelected && !cfg.showSingleChannelAsColor()) {
                 projectionCs->convertChannelToVisualRepresentation(originalBytes.get(), dst.get(), numPixels, m_selectedChannelIndex);
@@ -486,7 +486,6 @@ QImage KisImagePyramid::convertToQImageFast(KisPaintDeviceSP paintDevice,
 
 void KisImagePyramid::configChanged()
 {
-    KisConfig cfg(true);
+    KisCanvasConfig cfg(true);
     m_useOcio = cfg.useOcio();
 }
-

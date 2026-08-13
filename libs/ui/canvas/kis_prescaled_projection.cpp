@@ -19,7 +19,6 @@
 #include <KoColorProfile.h>
 #include <KoViewConverter.h>
 
-#include "kis_config.h"
 #include "kis_image_config.h"
 #include "kis_config_notifier.h"
 #include "kis_image.h"
@@ -437,4 +436,3 @@ void KisPrescaledProjection::drawUsingBackend(QPainter &gc, KisPPUpdateInfoSP in
         patch.drawMe(gc, info->viewportRect, info->renderHints);
     }
 }
-

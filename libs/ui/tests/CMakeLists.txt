@@ -1,7 +1,6 @@
 kis_add_tests(
     kis_image_view_converter_test.cpp
     kis_shape_selection_test.cpp
-    kis_coordinates_converter_test.cpp
     kis_grid_config_test.cpp
     kis_stabilized_events_sampler_test.cpp
     kis_shape_commands_test.cpp
@@ -10,7 +9,6 @@ kis_add_tests(
     KisFrameSerializerTest.cpp
     KisFrameCacheStoreTest.cpp
     kis_animation_exporter_test.cpp
-    kis_prescaled_projection_test.cpp
     kis_animation_importer_test.cpp
     KisSpinBoxSplineUnitConverterTest.cpp
     KisDocumentReplaceTest.cpp

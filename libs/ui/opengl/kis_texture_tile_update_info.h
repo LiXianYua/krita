@@ -10,11 +10,12 @@
 #include <QThreadStorage>
 #include <QScopedArrayPointer>
 
-#include "kis_config.h"
+#include "KisCanvasConfig.h"
 #include "kis_image.h"
 #include "kis_paint_device.h"
 #include "kis_texture_tile_info_pool.h"
 #include <KoChannelInfo.h>
+#include <KoColor.h>
 #include <KoColorConversionTransformation.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColorSpace.h>
@@ -164,7 +165,7 @@ public:
 
             quint32 numPixels = m_patchRect.width() * m_patchRect.height();
 
-            KisConfig cfg(true);
+            KisCanvasConfig cfg(true);
 
             if (onlyOneChannelSelected && !cfg.showSingleChannelAsColor()) {
                 m_patchColorSpace->convertChannelToVisualRepresentation(m_patchPixels.data(), conversionCache.data(), numPixels, selectedChannelIndex);
@@ -332,4 +333,3 @@ private:
 
 
 #endif /* KIS_TEXTURE_TILE_UPDATE_INFO_H_ */
-

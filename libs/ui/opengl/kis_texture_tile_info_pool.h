@@ -21,7 +21,7 @@
 #include "kis_global.h"
 #include "kis_signal_compressor.h"
 
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 
 const int minPoolChunk = 32; // 8 MiB (default, with tilesize 256)
 const int maxPoolChunk = 128; // 32 MiB (default, with tilesize 256)
@@ -39,7 +39,7 @@ const int freeThreshold = 64; // 16 MiB (default, with tilesize 256)
  * is *no way* of reclaiming even unused pool memory until *all* the
  * allocated chunks are free'd.
  */
-class KRITAUI_EXPORT KisTextureTileInfoPoolSingleSize
+class KRITACANVAS_EXPORT KisTextureTileInfoPoolSingleSize
 {
 public:
     KisTextureTileInfoPoolSingleSize(int tileWidth, int tileHeight, int pixelSize)
@@ -95,7 +95,7 @@ private:
 
 class KisTextureTileInfoPool;
 
-class KRITAUI_EXPORT KisTextureTileInfoPoolWorker : public QObject
+class KRITACANVAS_EXPORT KisTextureTileInfoPoolWorker : public QObject
 {
     Q_OBJECT
 public:
@@ -116,7 +116,7 @@ private:
  * sizes.  The underlying pools are created for each pixel size on
  * demand.
  */
-class KRITAUI_EXPORT KisTextureTileInfoPool : public QObject
+class KRITACANVAS_EXPORT KisTextureTileInfoPool : public QObject
 {
     Q_OBJECT
 public:
@@ -189,7 +189,7 @@ private:
 
 typedef QSharedPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolSP;
 
-class KRITAUI_EXPORT KisTextureTileInfoPoolRegistry
+class KRITACANVAS_EXPORT KisTextureTileInfoPoolRegistry
 {
     typedef QWeakPointer<KisTextureTileInfoPool> KisTextureTileInfoPoolWSP;
     typedef QPair<int, int> PoolId;

@@ -16,7 +16,7 @@
 #include <QWriteLocker>
 
 
-struct KRITAUI_NO_EXPORT KisOpenGLUpdateInfoBuilder::Private
+struct KRITACANVAS_NO_EXPORT KisOpenGLUpdateInfoBuilder::Private
 {
     ConversionOptions conversionOptions;
 

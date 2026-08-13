@@ -6,30 +6,7 @@
 #include "KisDisplayConfig.h"
 
 #include <KoColorProfile.h>
-#include <kis_config.h>
-//#include <opengl/KisOpenGLModeProber.h>
-
-namespace {
-KoColorConversionTransformation::Intent
-renderingIntentFromConfig(const KisConfig &cfg)
-{
-    return (KoColorConversionTransformation::Intent)cfg.monitorRenderIntent();
-}
-
-
-KoColorConversionTransformation::ConversionFlags
-conversionFlagsFromConfig(const KisConfig &cfg)
-{
-    KoColorConversionTransformation::ConversionFlags conversionFlags =
-        KoColorConversionTransformation::HighQuality;
-
-    if (cfg.useBlackPointCompensation()) conversionFlags |= KoColorConversionTransformation::BlackpointCompensation;
-    if (!cfg.allowLCMSOptimization()) conversionFlags |= KoColorConversionTransformation::NoOptimization;
-
-    return conversionFlags;
-}
-
-}
+#include <QDebug>
 
 KisDisplayConfig::KisDisplayConfig()
     : profile(nullptr)
@@ -48,12 +25,6 @@ KisDisplayConfig::KisDisplayConfig(const KoColorProfile *_profile,
     , conversionFlags(_conversionFlags)
     , isHDR(_isHDR)
 {
-}
-
-KisDisplayConfig::Options KisDisplayConfig::optionsFromKisConfig(const KisConfig &cfg)
-{
-    return {renderingIntentFromConfig(cfg),
-            conversionFlagsFromConfig(cfg)};
 }
 
 bool KisDisplayConfig::operator==(const KisDisplayConfig &rhs) const

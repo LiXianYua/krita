@@ -6,7 +6,7 @@
 #ifndef KISDISPLAYCONFIG_H
 #define KISDISPLAYCONFIG_H
 
-#include <kritaui_export.h>
+#include <kritacanvas_export.h>
 #include <boost/operators.hpp>
 #include <KoColorConversionTransformation.h>
 
@@ -18,7 +18,7 @@ class KisConfig;
  * image to display. This includes the profile used, but also the
  * various flags that need to be set on the final transform.
  */
-class KRITAUI_EXPORT KisDisplayConfig : public boost::equality_comparable<KisDisplayConfig>
+class KRITACANVAS_EXPORT KisDisplayConfig : public boost::equality_comparable<KisDisplayConfig>
 {
 public:
     using Options = std::pair<KoColorConversionTransformation::Intent, KoColorConversionTransformation::ConversionFlags>;
@@ -54,9 +54,9 @@ public:
     bool isHDR { false };
 };
 
-KRITAUI_EXPORT QDebug operator<<(QDebug debug, const KisDisplayConfig &value);
+KRITACANVAS_EXPORT QDebug operator<<(QDebug debug, const KisDisplayConfig &value);
 
-class KRITAUI_EXPORT KisMultiSurfaceDisplayConfig : public boost::equality_comparable<KisMultiSurfaceDisplayConfig>
+class KRITACANVAS_EXPORT KisMultiSurfaceDisplayConfig : public boost::equality_comparable<KisMultiSurfaceDisplayConfig>
 {
 public:
     using Options = KisDisplayConfig::Options;

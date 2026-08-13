@@ -14,7 +14,7 @@
 #include <QTransform>
 #include <KoViewConverter.h>
 
-#include <kis_config.h>
+#include "KisCanvasConfig.h"
 #include <kis_image.h>
 #include <kis_algebra_2d.h>
 #include <kis_assert.h>
@@ -95,7 +95,7 @@ struct KisCoordinatesConverter::Private {
 
 QPointF KisCoordinatesConverter::centeringCorrection() const
 {
-    KisConfig cfg(true);
+    KisCanvasConfig cfg(true);
 
     QSize documentSize = imageRectInWidgetPixels().toAlignedRect().size();
     QPointF dPoint(documentSize.width(), documentSize.height());
@@ -118,7 +118,7 @@ void KisCoordinatesConverter::recalculateOffsetBoundsAndCrop()
 {
     if (!m_d->canvasWidgetSize.isValid()) return;
 
-    KisConfig cfg(true);
+    KisCanvasConfig cfg(true);
 
     const QRect refRect = imageToWidget(m_d->extraReferencesBounds).toAlignedRect();
 

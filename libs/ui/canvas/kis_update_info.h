@@ -11,12 +11,12 @@
 
 #include "kis_image_patch.h"
 #include "kis_shared.h"
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 #include "opengl/kis_texture_tile_update_info.h"
 
 #include "kis_ui_types.h"
 
-class KRITAUI_EXPORT KisUpdateInfo : public KisShared
+class KRITACANVAS_EXPORT KisUpdateInfo : public KisShared
 {
 public:
     KisUpdateInfo();
@@ -53,7 +53,7 @@ struct ConversionOptions {
 class KisOpenGLUpdateInfo;
 typedef KisSharedPtr<KisOpenGLUpdateInfo> KisOpenGLUpdateInfoSP;
 
-class KRITAUI_EXPORT KisOpenGLUpdateInfo : public KisUpdateInfo
+class KRITACANVAS_EXPORT KisOpenGLUpdateInfo : public KisUpdateInfo
 {
 public:
     KisOpenGLUpdateInfo();

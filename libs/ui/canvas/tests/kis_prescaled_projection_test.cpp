@@ -16,7 +16,6 @@
 #include <KoCompositeOp.h>
 #include <KoColorSpaceConstants.h>
 
-#include <kis_config.h>
 #include <kis_types.h>
 #include <kis_image.h>
 #include <kis_paint_device.h>
@@ -459,5 +458,4 @@ void KisPrescaledProjectionTest::testQtScaling()
 }
 
 SIMPLE_TEST_MAIN(KisPrescaledProjectionTest)
-
 

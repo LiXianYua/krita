@@ -6,7 +6,7 @@
 #ifndef KISOPENGLUPDATEINFOBUILDER_H
 #define KISOPENGLUPDATEINFOBUILDER_H
 
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 #include <QScopedPointer>
 #include <QSharedPointer>
 
@@ -32,7 +32,7 @@ class KoColorSpace;
 struct ConversionOptions;
 
 
-class KRITAUI_EXPORT KisOpenGLUpdateInfoBuilder
+class KRITACANVAS_EXPORT KisOpenGLUpdateInfoBuilder
 {
 public:
     KisOpenGLUpdateInfoBuilder();

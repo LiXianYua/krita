@@ -13,7 +13,7 @@
 #include <QTransform>
 #include <KoZoomHandler.h>
 
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 #include "kis_types.h"
 
 class KoViewTransformStillPoint;
@@ -45,7 +45,7 @@ namespace _Private
     template<> struct Traits<QLine>:    public Traits<QLineF>    { };
 }
 
-class KRITAUI_EXPORT KisCoordinatesConverter: public KoZoomHandler
+class KRITACANVAS_EXPORT KisCoordinatesConverter: public KoZoomHandler
 {
 public:
     KisCoordinatesConverter();
