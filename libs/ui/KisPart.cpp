@@ -26,6 +26,7 @@
 #include "KisApplication.h"
 #include "KisMainWindow.h"
 #include "KisDocument.h"
+#include "KisFileLayerDesktop.h"
 #include "KisView.h"
 #include "KisViewManager.h"
 #include "KisImportExportManager.h"
@@ -147,6 +148,8 @@ void busyWaitWithFeedback(KisImageSP image)
 KisPart::KisPart()
     : d(new Private(this))
 {
+    initializeKisFileLayerDesktopServices();
+
     // Preload all the resources in the background
     Q_UNUSED(KoResourceServerProvider::instance());
     Q_UNUSED(KisResourceServerProvider::instance());
@@ -175,6 +178,8 @@ KisPart::KisPart()
 
 KisPart::~KisPart()
 {
+    clearKisFileLayerDesktopServices();
+
     while (!d->documents.isEmpty()) {
         delete d->documents.takeFirst();
     }

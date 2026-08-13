@@ -5,6 +5,8 @@
  */
 #include "kis_file_layer.h"
 
+#include <utility>
+
 #include <QFile>
 #include <QFileInfo>
 
@@ -17,10 +19,33 @@
 #include "commands_new/kis_node_move_command2.h"
 #include "kis_default_bounds.h"
 #include "kis_layer_properties_icons.h"
-#include "kis_icon_utils.h"
-#include <KisPart.h>
-#include <KisDocument.h>
 #include <QDir>
+
+namespace {
+
+KisFileLayer::FileOpener &defaultFileOpener()
+{
+    static KisFileLayer::FileOpener fileOpener;
+    return fileOpener;
+}
+
+KisFileLayer::IconProvider &defaultIconProvider()
+{
+    static KisFileLayer::IconProvider iconProvider;
+    return iconProvider;
+}
+
+}
+
+void KisFileLayer::setDefaultFileOpener(FileOpener fileOpener)
+{
+    defaultFileOpener() = std::move(fileOpener);
+}
+
+void KisFileLayer::setDefaultIconProvider(IconProvider iconProvider)
+{
+    defaultIconProvider() = std::move(iconProvider);
+}
 
 
 KisFileLayer::KisFileLayer(KisImageWSP image, const QString &name, quint8 opacity)
@@ -93,7 +118,7 @@ KisFileLayer::KisFileLayer(const KisFileLayer &rhs)
 
 QIcon KisFileLayer::icon() const
 {
-    return KisIconUtils::loadIcon("fileLayer");
+    return defaultIconProvider() ? defaultIconProvider()() : QIcon();
 }
 
 void KisFileLayer::resetCache(const KoColorSpace *colorSpace)
@@ -184,12 +209,6 @@ QString KisFileLayer::path() const
 
 void KisFileLayer::openFile() const
 {
-    bool fileAlreadyOpen = false;
-    Q_FOREACH (KisDocument *doc, KisPart::instance()->documents()) {
-        if (doc->path()==path()){
-            fileAlreadyOpen = true;
-        }
-    }
     if (qEnvironmentVariableIsSet("KRITA_ENABLE_ASSERT_TESTS")) {
         ENTER_FUNCTION() << ppVar(m_filename);
         if (m_filename.toLower() == "crash_me_with_safe_assert") {
@@ -223,8 +242,9 @@ void KisFileLayer::openFile() const
         }
     }
 
-    if (!fileAlreadyOpen && QFile::exists(QFileInfo(path()).absoluteFilePath())) {
-        KisPart::instance()->openExistingFile(QFileInfo(path()).absoluteFilePath());
+    const QString absolutePath = QFileInfo(path()).absoluteFilePath();
+    if (defaultFileOpener() && QFile::exists(absolutePath)) {
+        defaultFileOpener()(absolutePath);
     }
 }
 
@@ -412,4 +432,3 @@ void KisFileLayer::setImage(KisImageWSP image)
         }
     }
 }
-

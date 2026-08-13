@@ -6,27 +6,33 @@
 
 #include "kis_safe_document_loader.h"
 
+#include <utility>
+
 #include <QTimer>
 #include <QFileSystemWatcher>
 #include <QRandomGenerator>
-#include <QApplication>
+#include <QCoreApplication>
+#include <QDateTime>
 #include <QFileInfo>
 #include <QDir>
-#include <QUrl>
 
 #include <KoStore.h>
 #include <QTemporaryFile>
 
-#include <kis_paint_layer.h>
-#include <kis_group_layer.h>
-#include "KisDocument.h"
-#include <kis_image.h>
 #include "kis_signal_compressor.h"
-#include "KisPart.h"
 #include "KisUsageLogger.h"
 
-#include <kis_layer_utils.h>
 #include <kis_global.h>
+
+namespace {
+
+KisSafeDocumentLoader::ImageLoader &defaultImageLoader()
+{
+    static KisSafeDocumentLoader::ImageLoader loader;
+    return loader;
+}
+
+}
 
 class FileSystemWatcherWrapper : public QObject
 {
@@ -204,13 +210,14 @@ Q_GLOBAL_STATIC(FileSystemWatcherWrapper, s_fileSystemWatcher)
 
 struct KisSafeDocumentLoader::Private
 {
-    Private()
+    explicit Private(ImageLoader loader)
         : fileChangedSignalCompressor(500 /* ms */, KisSignalCompressor::POSTPONE)
+        , imageLoader(std::move(loader))
     {
     }
 
-    QScopedPointer<KisDocument> doc;
     KisSignalCompressor fileChangedSignalCompressor;
+    ImageLoader imageLoader;
     bool isLoading = false;
     bool fileChangedFlag = false;
     QString path;
@@ -223,8 +230,15 @@ struct KisSafeDocumentLoader::Private
 };
 
 KisSafeDocumentLoader::KisSafeDocumentLoader(const QString &path, QObject *parent)
+    : KisSafeDocumentLoader(path, {}, parent)
+{
+}
+
+KisSafeDocumentLoader::KisSafeDocumentLoader(const QString &path,
+                                             ImageLoader imageLoader,
+                                             QObject *parent)
     : QObject(parent),
-      m_d(new Private())
+      m_d(new Private(std::move(imageLoader)))
 {
     connect(s_fileSystemWatcher, SIGNAL(fileChanged(QString)),
             SLOT(fileChanged(QString)));
@@ -236,6 +250,11 @@ KisSafeDocumentLoader::KisSafeDocumentLoader(const QString &path, QObject *paren
             SLOT(fileChangedCompressed()));
 
     setPath(path);
+}
+
+void KisSafeDocumentLoader::setDefaultImageLoader(ImageLoader imageLoader)
+{
+    defaultImageLoader() = std::move(imageLoader);
 }
 
 KisSafeDocumentLoader::~KisSafeDocumentLoader()
@@ -300,7 +319,7 @@ void KisSafeDocumentLoader::fileChangedCompressed(bool sync)
     m_d->temporaryPath =
             QDir::tempPath() + '/' +
             QString("krita_file_layer_copy_%1_%2.%3")
-            .arg(QApplication::applicationPid())
+            .arg(QCoreApplication::applicationPid())
             .arg(QRandomGenerator::global()->generate())
             .arg(initialFileInfo.suffix());
 
@@ -310,7 +329,7 @@ void KisSafeDocumentLoader::fileChangedCompressed(bool sync)
     if (!sync) {
         QTimer::singleShot(100, Qt::CoarseTimer, this, SLOT(delayedLoadStart()));
     } else {
-        QApplication::processEvents();
+        QCoreApplication::processEvents();
         delayedLoadStart();
     }
 }
@@ -320,23 +339,22 @@ void KisSafeDocumentLoader::delayedLoadStart()
     QFileInfo originalInfo(m_d->path);
     QFileInfo tempInfo(m_d->temporaryPath);
     bool successfullyLoaded = false;
+    LoadResult loadResult;
 
     if (!m_d->fileChangedFlag &&
             originalInfo.size() == m_d->initialFileSize &&
             originalInfo.lastModified() == m_d->initialFileTimeStamp &&
             tempInfo.size() == m_d->initialFileSize) {
 
-        m_d->doc.reset(KisPart::instance()->createTemporaryDocument());
-        m_d->doc->setFileBatchMode(true);
+        const ImageLoader imageLoader = m_d->imageLoader ? m_d->imageLoader : defaultImageLoader();
 
-        auto loadPathNatively = [&doc = m_d->doc](const QString &path) -> bool {
-            const bool successfullyLoaded = doc->openPath(path, KisDocument::DontAddToRecent);
-            if (successfullyLoaded) {
-                // Wait for required updates, if any. BUG: 448256
-                KisLayerUtils::forceAllDelayedNodesUpdate(doc->image()->root());
-                doc->image()->waitForDone();
+        auto loadPathNatively = [&imageLoader, &loadResult](const QString &path) -> bool {
+            if (!imageLoader) {
+                return false;
             }
-            return successfullyLoaded;
+
+            loadResult = imageLoader(path);
+            return bool(loadResult);
         };
 
         if (m_d->path.toLower().endsWith("ora") || m_d->path.toLower().endsWith("kra")) {
@@ -344,9 +362,9 @@ void KisSafeDocumentLoader::delayedLoadStart()
             if (store && !store->bad()) {
                 if (store->open(QString("mergedimage.png"))) {
                     /**
-                     * TODO: Ideally we should modify our KisDocument code
-                     * to allow loading from a QIODevice, but currently it
-                     * supports loading from a local file only. That is why
+                     * TODO: Ideally the configured image loader should allow
+                     * loading from a QIODevice, but currently its contract
+                     * accepts a local file path only. That is why
                      * we just extract the PNG into a temporary file and
                      * load it separately.
                      *
@@ -430,16 +448,11 @@ void KisSafeDocumentLoader::delayedLoadStart()
         }
     }
     else {
-        KisPaintDeviceSP paintDevice = new KisPaintDevice(m_d->doc->image()->colorSpace());
-        KisPaintDeviceSP projection = m_d->doc->image()->projection();
-        paintDevice->makeCloneFrom(projection, projection->extent());
-        Q_EMIT loadingFinished(paintDevice,
-                             m_d->doc->image()->xRes(),
-                             m_d->doc->image()->yRes(),
-                             m_d->doc->image()->size());
+        Q_EMIT loadingFinished(loadResult.paintDevice,
+                              loadResult.xRes,
+                              loadResult.yRes,
+                              loadResult.size);
     }
-
-    m_d->doc.reset();
 }
 
 #include "kis_safe_document_loader.moc"

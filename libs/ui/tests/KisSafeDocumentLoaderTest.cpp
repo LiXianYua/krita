@@ -5,6 +5,7 @@
 #include <testui.h>
 
 #include "config-limit-long-tests.h"
+#include "KisFileLayerDesktop.h"
 #include "kis_safe_document_loader.h"
 #include "kis_debug.h"
 
@@ -19,6 +20,16 @@ void writeToFile(QFile &file, QColor /*color*/)
     file.flush();
 }
 
+}
+
+void KisSafeDocumentLoaderTest::initTestCase()
+{
+    initializeKisFileLayerDesktopServices();
+}
+
+void KisSafeDocumentLoaderTest::cleanupTestCase()
+{
+    clearKisFileLayerDesktopServices();
 }
 
 void KisSafeDocumentLoaderTest::test()

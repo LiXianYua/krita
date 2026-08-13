@@ -7,17 +7,37 @@
 #ifndef __KIS_SAFE_DOCUMENT_LOADER_H
 #define __KIS_SAFE_DOCUMENT_LOADER_H
 
-#include <QObject>
-#include "kis_types.h"
-#include "kritaui_export.h"
+#include <functional>
 
-class KRITAUI_EXPORT KisSafeDocumentLoader : public QObject
+#include <QObject>
+#include <QSize>
+#include "kis_paint_device.h"
+#include "kis_types.h"
+#include "kritaimage_export.h"
+
+class KRITAIMAGE_EXPORT KisSafeDocumentLoader : public QObject
 {
     Q_OBJECT
 public:
+    struct LoadResult {
+        KisPaintDeviceSP paintDevice;
+        qreal xRes = 0.0;
+        qreal yRes = 0.0;
+        QSize size;
+
+        explicit operator bool() const
+        {
+            return bool(paintDevice);
+        }
+    };
+
+    using ImageLoader = std::function<LoadResult(const QString &path)>;
 
     KisSafeDocumentLoader(const QString &path = "", QObject *parent = 0);
+    KisSafeDocumentLoader(const QString &path, ImageLoader imageLoader, QObject *parent = 0);
     ~KisSafeDocumentLoader() override;
+
+    static void setDefaultImageLoader(ImageLoader imageLoader);
 
     void setPath(const QString &path);
     void reloadImage();

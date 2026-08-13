@@ -223,6 +223,8 @@ set(kritaimage_LIB_SRCS
    KisImageConfigNotifier.cpp
    kis_group_layer.cc
    kis_external_layer_iface.cc
+   kis_file_layer.cpp
+   kis_safe_document_loader.cpp
    kis_count_visitor.cpp
    kis_histogram.cc
    kis_image_interfaces.cpp

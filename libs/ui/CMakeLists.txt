@@ -100,9 +100,8 @@ set(kritaui_LIB_SRCS
     kis_composite_ops_model.cc
     kis_paint_ops_model.cpp
     kis_custom_pattern.cc
-    kis_file_layer.cpp
+    KisFileLayerDesktop.cpp
     kis_change_file_layer_command.h
-    kis_safe_document_loader.cpp
     kis_splash_screen.cpp
     kis_filter_manager.cc
     kis_filters_model.cc

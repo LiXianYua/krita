@@ -8,6 +8,8 @@ class KisSafeDocumentLoaderTest : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void initTestCase();
+    void cleanupTestCase();
     void test();
     void testFileLost();
 };

@@ -6,7 +6,9 @@
 #ifndef KIS_FILE_LAYER_H
 #define KIS_FILE_LAYER_H
 
-#include "kritaui_export.h"
+#include <functional>
+
+#include "kritaimage_export.h"
 
 #include "kis_external_layer_iface.h"
 #include "kis_safe_document_loader.h"
@@ -15,10 +17,12 @@
 /**
  * @brief The KisFileLayer class loads a particular file as a layer into the layer stack.
  */
-class KRITAUI_EXPORT KisFileLayer : public KisExternalLayer
+class KRITAIMAGE_EXPORT KisFileLayer : public KisExternalLayer
 {
     Q_OBJECT
 public:
+    using FileOpener = std::function<void(const QString &path)>;
+    using IconProvider = std::function<QIcon()>;
 
     enum ScalingMethod {
         None,
@@ -40,6 +44,9 @@ public:
     KisFileLayer(KisImageWSP image, const QString& basePath, const QString &filename, ScalingMethod scalingMethod, QString scalingFilter, const QString &name, quint8 opacity, const KoColorSpace *fallbackColorSpace = 0);
     ~KisFileLayer() override;
     KisFileLayer(const KisFileLayer& rhs);
+
+    static void setDefaultFileOpener(FileOpener fileOpener);
+    static void setDefaultIconProvider(IconProvider iconProvider);
 
     QIcon icon() const override;
 
