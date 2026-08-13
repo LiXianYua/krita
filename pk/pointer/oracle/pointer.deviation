@@ -1,0 +1,71 @@
+# pk/pointer 与真 Qt5 的已声明差异清单
+#
+# 格式：<api>\t<tag>\t<≥20 UTF-8 码点理由>，tab 分隔，# 开头为注释
+# （.exec/verify/oracle/README.md 定义的三列格式；这份对拍不带 geometry.deviation
+# 那套「期望计数漂移检测」的自动核对脚本——本任务简报没要求，见下方说明）。
+#
+# 默认全对齐：与 Qt 的任何行为差异都是缺陷。唯一站得住的偏离理由是「决策文档
+# 已明确划出范围之外」，不是「反正调用点不会这么用」。
+#
+# ══════════════════════════════════════════════════════════════════════════
+# 本轮结果：0 条真实偏离。
+#
+# run_oracle.sh 跑出 DIFF total=1445276 mismatch=0——见 task-2-report.md「零差异
+# 自证」一节：静态断言/ldd 两条形态自证俱在，且用两条分别针对 shared/scoped
+# 家族的临时注入（跑完立即回退，git diff 干净）证明了这条对拍管线确实能分辨
+# 真差异，不是形态契约失效或观测量太粗导致的假通过。
+#
+# 至今没有一条 DIFFTAG 出现过，这份清单因此没有数据行——不是没写，是没什么可写：
+# Task 1 的四个类型是照着 §0 的四条判据（A/B/C/D）逐条对齐设计的，本任务选的
+# 观测量（isNull/布尔语境/live/deleterCalls/id）与判据要看的量一一对应，跑下来
+# 零真实偏离与"实现忠实抄了判据"这件事是一致的，不是巧合。
+# ══════════════════════════════════════════════════════════════════════════
+
+# ── 覆盖度限制（简报 Step 7，说不出来就是还没想清楚）───────────────────
+#
+# 1. **多线程不覆盖**：对拍是单线程的，引用计数的原子性（用量表 §2.1 记的那个
+#    跨线程"活性令牌"形态）压不到，靠 std::shared_ptr 自身保证——PkSharedPointer
+#    组合的就是 std::shared_ptr，原子性继承自它，不是 Task 1/2 自己实现的东西。
+#
+# 2. **UB 形态不覆盖**：double free、reset 成一个已被别的智能指针拥有的裸指针。
+#    这类输入本身就是未定义行为，对拍的"两侧字节相同"判据在 UB 下没有意义——
+#    UB 允许任何后果，包括两侧恰好打印出一样的东西。
+#
+# 3. **编译期性质不在对拍里**：判据 C 的不可移动由 tests/shape_asserts.cpp 的
+#    static_assert 覆盖（PkScopedPointer/PkScopedArrayPointer 拷贝构造/拷贝赋值/
+#    移动构造/移动赋值四项皆 = delete），对拍是运行期的，压不到编译期这条。
+#
+# 4. **§1.5 未实现的 API 不在对拍里**——两侧 API 面不对称，没法比：
+#    - `constCast`（用量表未把它列入保留范围）
+#    - `objectCast`（需要 QObject，用量为 0）
+#    - `operator==(const PkWeakPointer<T>&, const PkSharedPointer<X>&)`：探针 P12
+#      证明 Qt 有这个重载，但 task-1-report.md「评审后修订②」记录了这条的删除
+#      裁决——用量表 §2.3 保留范围用量为 0，评审后从 PkSharedPointer.h 里删掉了。
+#      本对拍因此完全不喂这个比较形态。
+#
+# 5. **QObject 相关不覆盖**：`objectCast` 与依赖 QObject 生命周期管理的弱引用
+#    形态（Qt 的 QWeakPointer 对 QObject 派生类型另有一条依附 QObject::destroyed
+#    信号的失效路径）不在对拍范围——Payload 不是 QObject，探针与用量表都没有
+#    QObject 场景下的智能指针用量记录。
+#
+# 6. **QWeakPointer::operator-> 不覆盖**：真 Qt5（qsharedpointer_impl.h:666）把
+#    QWeakPointer::operator-> 整个包在 `#if defined(QWEAKPOINTER_ENABLE_ARROW)`
+#    里，这个宏在 Qt5 自己的头文件树里从未被定义过——对非 QObject 的 T，
+#    `weakPtr->foo()` 在真 Qt5 上默认根本编不出来。PkWeakPointer::operator->
+#    是无条件提供的（task-1-report.md 记录"Krita 有 2 处在用"，那两处调用点想必
+#    是在别处定义了这个宏，或者本来就该被判为待查项，不是本任务的范围）。这个
+#    不对称不影响对拍的其余部分：本对拍的可观测量清单里没有用到 weak 的
+#    operator->（`toStrongRef()` 足够拿到 id），所以没有触发过这条不对称，
+#    也判断不了它——留给 Task 4 或后续任务核实那两处调用点的真实上下文。
+#
+# 7. **组合枚举下的 `staticCast<Derived>` 只在偶尔"槽里其实不是 Derived 对象"
+#    时才会触发一次跨类型的强制转换**——这类输入下只读 Payload 基类字段（id/v），
+#    不触碰 Derived 专属状态，行为在两侧一致（single inheritance，标准布局），
+#    但对拍没有专门针对"槽里精确是 Derived 对象"的构造后立即 staticCast 做加权，
+#    组合枚举里这种命中是自然发生而非特意加密度的。
+#
+# 8. **v 字段不参与 shared 家族的比对**：简报 Step 2 明确给出的可观测量清单里
+#    strong 槽只记 (isNull, id, 布尔语境)，不含 v。id 已经唯一标识"指到哪个对象"，
+#    但一个只改 v、不改 id/isNull/live 的缺陷（例如 create() 把参数错传成另一个
+#    值）不会被本对拍的 shared 家族抓到——scoped 家族的观测量另外记了 v
+#    （C0[…v=…]、A0[…v0=…]），这条限制只对 shared 家族成立。
