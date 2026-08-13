@@ -1,0 +1,21 @@
+#pragma once
+// 局部垫片：qConstOverload 归 R-18（QtGlobal 标量设施），本任务无法交付。
+// 真品到位后本文件应删除。
+// 用量（本试接需要的部分，libs/global/tests/KisMplTest.cpp:161 :169 :177 实测
+// 确认，三处都是同一种写法 qConstOverload<>(&Struct::overloaded)）：
+// 只需要空模板参数包（Args = <>，即选中"无参数"重载）时，从一个同时有 const
+// 与非 const 两个重载的无参成员函数里取出 const 那个的函数指针地址——不实现
+// qOverload/qNonConstOverload，也不实现 Args 非空的情形（本试接没有调用点）。
+//
+// 签名照真 Qt 5.15 qglobal.h:1204-1253（QT=kde-deps/usr 探针目录现读）：
+// QConstOverload<Args...>::operator()(R (T::*)(Args...) const) 返回该指针本身，
+// qConstOverload<Args...> 是这个 functor 的一个 constexpr 变量模板实例。
+template <typename... Args>
+struct QConstOverload {
+    template <typename R, typename T>
+    constexpr auto operator()(R (T::*ptr)(Args...) const) const noexcept -> decltype(ptr)
+    { return ptr; }
+};
+
+template <typename... Args>
+constexpr QConstOverload<Args...> qConstOverload = {};
