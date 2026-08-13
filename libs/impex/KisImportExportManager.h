@@ -14,7 +14,8 @@
 
 #include "KisImportExportFilter.h"
 
-#include "kritaui_export.h"
+#include "kritaimpex_export.h"
+#include <memory>
 
 class KisDocument;
 class KoProgressUpdater;
@@ -35,7 +36,8 @@ class QFuture;
  *  @author Torben Weis <weis@kde.org>
  *  @author Werner Trobin <trobin@kde.org>
  */
-class KRITAUI_EXPORT KisImportExportManager : public QObject
+class KisImportExportBackend;
+class KRITAIMPEX_EXPORT KisImportExportManager : public QObject
 {
     Q_OBJECT
 public:
@@ -136,7 +138,7 @@ private:
     KisImportExportManager(const KisImportExportManager& rhs);
     KisImportExportManager &operator=(const KisImportExportManager& rhs);
 
-    KisDocument *m_document;
+    std::unique_ptr<KisImportExportBackend> m_backend;
 
     /// A static cache for the availability checks of filters
     static QStringList m_importMimeTypes;

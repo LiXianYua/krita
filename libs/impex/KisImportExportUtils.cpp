@@ -5,13 +5,13 @@
  */
 
 #include "KisImportExportUtils.h"
+#include "KisImportExportBackend.h"
 
 #include <KoColorSpaceRegistry.h>
 #include <KoColorSpace.h>
 #include <KoColorProfile.h>
 #include "kis_image.h"
 #include "KisImportUserFeedbackInterface.h"
-#include "dialogs/KisColorSpaceConversionDialog.h"
 
 namespace KritaUtils {
 
@@ -35,36 +35,21 @@ KisImportExportErrorCode workaroundUnsuitableImageColorSpace(KisImageSP image,
         if (feedbackInterface) {
             KisImportUserFeedbackInterface::Result result =
                 feedbackInterface->askUser([&] (QWidget *parent) {
-
-                    KisColorSpaceConversionDialog * dlgColorSpaceConversion = new KisColorSpaceConversionDialog(parent, "ColorSpaceConversion");
-                    Q_CHECK_PTR(dlgColorSpaceConversion);
-
                     const KoColorSpace* fallbackColorSpace =
                         KoColorSpaceRegistry::instance()->colorSpace(
                             colorSpace->colorModelId().id(),
                             colorSpace->colorDepthId().id(),
                             nullptr);
 
-                    dlgColorSpaceConversion->setCaption(i18n("Convert image color space on import"));
-                    dlgColorSpaceConversion->m_page->lblHeadlineWarning->setText(
-                        i18nc("the argument is the ICC profile name",
-                              "The image has a profile attached that Krita cannot edit images "
-                              "in (\"%1\"), please select a space to convert to for editing: \n"
-                              , profile->name()));
-                    dlgColorSpaceConversion->m_page->lblHeadlineWarning->setVisible(true);
-
-                    dlgColorSpaceConversion->setInitialColorSpace(fallbackColorSpace, 0);
-
-                    if (dlgColorSpaceConversion->exec() == QDialog::Accepted) {
-
-                        replacementColorSpace = dlgColorSpaceConversion->colorSpace();
-                        replacementColorSpaceIntent = dlgColorSpaceConversion->conversionIntent();
-                        replacementColorSpaceConversionFlags= dlgColorSpaceConversion->conversionFlags();
-                    } else {
-                        return false;
-                    }
-
-                    return true;
+                    int intent = int(replacementColorSpaceIntent);
+                    int flags = int(replacementColorSpaceConversionFlags);
+                    const bool accepted = kisImportExportUiServices() &&
+                        kisImportExportUiServices()->chooseColorSpace(parent, fallbackColorSpace,
+                                                                      &replacementColorSpace,
+                                                                      &intent, &flags);
+                    replacementColorSpaceIntent = KoColorConversionTransformation::Intent(intent);
+                    replacementColorSpaceConversionFlags = KoColorConversionTransformation::ConversionFlags(flags);
+                    return accepted;
                 });
 
             if (result == KisImportUserFeedbackInterface::SuppressedByBatchMode) {

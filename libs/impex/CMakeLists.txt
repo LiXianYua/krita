@@ -2,13 +2,20 @@ set(kritaimpex_LIB_SRCS
     KisExportCheckBase.cpp
     KisPreExportChecker.cpp
     KisExportCheckRegistry.cpp
+    KisImportExportBackend.cpp
+    KisImportExportFilter.cpp
+    KisImportExportManager.cpp
+    KisImportExportUtils.cpp
+    KisImportExportErrorCode.cpp
+    KisImportExportAdditionalChecks.cpp
+    KisImportUserFeedbackInterface.cpp
 )
 
 kis_add_library(kritaimpex SHARED ${kritaimpex_HEADERS_MOC} ${kritaimpex_LIB_SRCS})
 
 generate_export_header(kritaimpex BASE_NAME kritaimpex)
 
-target_link_libraries(kritaimpex KF${KF_MAJOR}::CoreAddons KF${KF_MAJOR}::I18n kritaimage)
+target_link_libraries(kritaimpex KF${KF_MAJOR}::CoreAddons KF${KF_MAJOR}::I18n Qt${QT_MAJOR_VERSION}::Concurrent kritaimage)
 
 set_target_properties(kritaimpex
     PROPERTIES VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}

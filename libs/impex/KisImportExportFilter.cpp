@@ -14,15 +14,14 @@
 #include <kis_debug.h>
 #include <QStack>
 #include "KisImportExportManager.h"
+#include "KisImportExportBackend.h"
 #include <KoColorSpaceRegistry.h>
 #include <KoColorModelStandardIds.h>
 #include <KisExportCheckBase.h>
 #include <KisExportCheckRegistry.h>
 #include "KoUpdater.h"
 #include <klocalizedstring.h>
-#include "kis_config.h"
 #include <KoStore.h>
-#include <KisDocument.h>
 
 const QString KisImportExportFilter::ImageContainsTransparencyTag = "ImageContainsTransparency";
 const QString KisImportExportFilter::ColorModelIDTag = "ColorModelID";
@@ -132,7 +131,7 @@ KisPropertiesConfigurationSP KisImportExportFilter::defaultConfiguration(const Q
 KisPropertiesConfigurationSP KisImportExportFilter::lastSavedConfiguration(const QByteArray &from, const QByteArray &to) const
 {
     KisPropertiesConfigurationSP cfg = defaultConfiguration(from, to);
-    const QString filterConfig = KisConfig(true).exportConfigurationXML(to);
+    const QString filterConfig = kisImportExportUiServices() ? kisImportExportUiServices()->exportConfigurationXml(to) : QString();
     if (cfg && !filterConfig.isEmpty()) {
         cfg->fromXML(filterConfig, false);
     }
@@ -282,7 +281,7 @@ void KisImportExportFilter::addSupportedColorModels(QList<QPair<KoID, KoID> > su
 
 QString KisImportExportFilter::verifyZiPBasedFiles(const QString &fileName, const QStringList &filesToCheck) const
 {
-    QScopedPointer<KoStore> store(KoStore::createStore(fileName, KoStore::Read, KIS_MIME_TYPE, KoStore::Zip));
+    QScopedPointer<KoStore> store(KoStore::createStore(fileName, KoStore::Read, "application/x-krita", KoStore::Zip));
 
     if (!store || store->bad()) {
         return i18n("Could not open the saved file %1. Please try to save again in a different location.", fileName);

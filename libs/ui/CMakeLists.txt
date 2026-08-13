@@ -427,10 +427,7 @@ set(kritaui_LIB_SRCS
     KisDocument.cpp
     KisCloneDocumentStroke.cpp
     kis_node_view_color_scheme.cpp
-    KisImportExportFilter.cpp
-    KisImportExportManager.cpp
-    KisImportExportUtils.cpp
-    KisImportUserFeedbackInterface.cpp
+    KisImportExportUiBackend.cpp
     kis_async_action_feedback.cpp
     KisMainWindow.cpp
     KisOpenPane.cpp
@@ -444,8 +441,6 @@ set(kritaui_LIB_SRCS
     KisUndoActionsUpdateManager.cpp
     KisView.cpp
     KisCanvasWindow.cpp
-    KisImportExportErrorCode.cpp
-    KisImportExportAdditionalChecks.cpp
 
     thememanager.cpp
 

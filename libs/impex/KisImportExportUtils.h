@@ -12,7 +12,7 @@
 #include <QFlags>
 #include <QString>
 
-#include <kritaui_export.h>
+#include <kritaimpex_export.h>
 #include "KisImportExportErrorCode.h"
 #include <KisImageBarrierLock.h>
 
@@ -65,7 +65,7 @@ struct ExportFileJob {
  * asks the user about the desired working color space and converts into
  * it.
  */
-KisImportExportErrorCode KRITAUI_EXPORT
+KisImportExportErrorCode KRITAIMPEX_EXPORT
 workaroundUnsuitableImageColorSpace(KisImageSP image,
                                     KisImportUserFeedbackInterface *feedbackInterface,
                                     KisImageBarrierLock &lock);

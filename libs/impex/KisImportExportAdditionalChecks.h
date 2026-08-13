@@ -9,7 +9,7 @@
 #include <QString>
 #include <KisImportExportErrorCode.h>
 
-class KRITAUI_EXPORT KisImportExportAdditionalChecks
+class KRITAIMPEX_EXPORT KisImportExportAdditionalChecks
 {
 
 public:
