@@ -13,11 +13,9 @@
 
 #include "kis_tool_ellipse.h"
 #include <KoCanvasBase.h>
+#include <KoCanvasResourceProvider.h>
 #include <KoShapeStroke.h>
 
-#include <KisViewManager.h>
-#include <canvas/kis_canvas2.h>
-#include <kis_canvas_resource_provider.h>
 #include <kis_shape_tool_helper.h>
 #include "kis_figure_painting_tool_helper.h"
 #include <brushengine/kis_paintop_preset.h>
@@ -29,9 +27,12 @@ KisToolEllipse::KisToolEllipse(KoCanvasBase * canvas)
     setSupportOutline(true);
     setIsOpacityPresetMode(true);
 
-    KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas);
-
-    connect(kritaCanvas->viewManager()->canvasResourceProvider(), SIGNAL(sigEffectiveCompositeOpChanged()), SLOT(resetCursorStyle()));
+    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+            this, [this](int key, const QVariant &) {
+                if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
+                    resetCursorStyle();
+                }
+            });
 }
 
 KisToolEllipse::~KisToolEllipse()

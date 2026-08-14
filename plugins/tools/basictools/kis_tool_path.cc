@@ -8,10 +8,10 @@
 #include "kis_tool_path.h"
 #include <KoPathShape.h>
 #include <KoCanvasBase.h>
+#include <KoCanvasResourceProvider.h>
 #include <kis_cursor.h>
 #include <KisViewManager.h>
 #include <canvas/kis_canvas2.h>
-#include <kis_canvas_resource_provider.h>
 
 
 KisToolPath::KisToolPath(KoCanvasBase * canvas)
@@ -19,9 +19,12 @@ KisToolPath::KisToolPath(KoCanvasBase * canvas)
                         new __KisToolPathLocalTool(canvas, this))
 {
     setIsOpacityPresetMode(true);
-    KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas);
-
-    connect(kritaCanvas->viewManager()->canvasResourceProvider(), SIGNAL(sigEffectiveCompositeOpChanged()), SLOT(resetCursorStyle()));
+    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+            this, [this](int key, const QVariant &) {
+                if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
+                    resetCursorStyle();
+                }
+            });
 
 }
 

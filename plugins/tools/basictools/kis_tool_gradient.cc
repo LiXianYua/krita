@@ -24,19 +24,17 @@
 
 #include <KoPointerEvent.h>
 #include <KoCanvasBase.h>
+#include <KoCanvasResourceProvider.h>
 #include <KoViewConverter.h>
 #include <KoUpdater.h>
 #include <KoProgressUpdater.h>
 
 #include <kis_gradient_painter.h>
 #include <kis_painter.h>
-#include <kis_canvas_resource_provider.h>
 #include <kis_layer.h>
 #include <kis_selection.h>
 #include <kis_paint_layer.h>
 
-#include <canvas/kis_canvas2.h>
-#include <KisViewManager.h>
 #include <kis_cursor.h>
 #include "kis_resources_snapshot.h"
 #include "kis_command_utils.h"
@@ -58,9 +56,12 @@ KisToolGradient::KisToolGradient(KoCanvasBase * canvas)
     m_repeat = KisGradientPainter::GradientRepeatNone;
     m_antiAliasThreshold = 0.0;
 
-    KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas);
-
-    connect(kritaCanvas->viewManager()->canvasResourceProvider(), SIGNAL(sigEffectiveCompositeOpChanged()), SLOT(resetCursorStyle()));
+    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+            this, [this](int key, const QVariant &) {
+                if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
+                    resetCursorStyle();
+                }
+            });
 }
 
 KisToolGradient::~KisToolGradient()
@@ -221,4 +222,3 @@ void KisToolGradient::updateGuideline()
         canvas()->updateCanvas(convertToPt(bound.normalized().adjusted(-3, -3, 3, 3)));
     }
 }
-

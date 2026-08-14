@@ -12,6 +12,7 @@
 #include <ksharedconfig.h>
 
 #include <KoCanvasBase.h>
+#include <KoCanvasResourceProvider.h>
 #include <KoPointerEvent.h>
 
 #include <kis_layer.h>
@@ -37,7 +38,6 @@
 #include <kis_dummies_facade.h>
 #include <KoShapeControllerBase.h>
 #include <kis_shape_controller.h>
-#include <kis_canvas_resource_provider.h>
 
 #include <KoCompositeOpRegistry.h>
 
@@ -75,13 +75,13 @@ void KisToolEncloseAndFill::activate(const QSet<KoShape*> &shapes)
     // (config-driven, via the same m_configGroup keys) without a panel.
     loadConfiguration();
 
-    KisCanvas2 *kisCanvas = static_cast<KisCanvas2*>(canvas());
-    KisCanvasResourceProvider *resourceProvider = kisCanvas->viewManager()->canvasResourceProvider();
+    KoCanvasResourceProvider *resourceProvider = canvas()->resourceManager();
     if (resourceProvider) {
         connect(resourceProvider,
-                SIGNAL(sigNodeChanged(const KisNodeSP)),
+                &KoCanvasResourceProvider::canvasResourceChanged,
                 this,
-                SLOT(slot_currentNodeChanged(const KisNodeSP)));
+                &KisToolEncloseAndFill::slot_canvasResourceChanged,
+                Qt::UniqueConnection);
         slot_currentNodeChanged(currentNode());
     }
 }
@@ -90,13 +90,12 @@ void KisToolEncloseAndFill::deactivate()
 {
     m_referencePaintDevice = nullptr;
     m_referenceNodeList = nullptr;
-    KisCanvas2 *kisCanvas = static_cast<KisCanvas2*>(canvas());
-    KisCanvasResourceProvider *resourceProvider = kisCanvas->viewManager()->canvasResourceProvider();
+    KoCanvasResourceProvider *resourceProvider = canvas()->resourceManager();
     if (resourceProvider) {
         disconnect(resourceProvider,
-                   SIGNAL(sigNodeChanged(const KisNodeSP)),
+                   &KoCanvasResourceProvider::canvasResourceChanged,
                    this,
-                   SLOT(slot_currentNodeChanged(const KisNodeSP)));
+                   &KisToolEncloseAndFill::slot_canvasResourceChanged);
     }
     slot_currentNodeChanged(nullptr);
     KisDynamicDelegatedTool::deactivate();
@@ -760,6 +759,13 @@ void KisToolEncloseAndFill::slot_currentNodeChanged(const KisNodeSP node)
         slot_colorSpaceChanged(node->paintDevice()->colorSpace());
     }
     m_previousNode = node;
+}
+
+void KisToolEncloseAndFill::slot_canvasResourceChanged(int key, const QVariant &value)
+{
+    if (key == KoCanvasResource::CurrentKritaNode) {
+        slot_currentNodeChanged(value.value<KisNodeWSP>());
+    }
 }
 
 void KisToolEncloseAndFill::slot_colorSpaceChanged(const KoColorSpace *colorSpace)

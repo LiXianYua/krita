@@ -11,6 +11,7 @@
 
 #include <QPoint>
 #include <QList>
+#include <QVariant>
 
 #include <kis_icon.h>
 #include <kis_tool_shape.h>
@@ -157,6 +158,7 @@ private Q_SLOTS:
     void slot_sliderFeather_valueChanged(int value);
 
     void slot_currentNodeChanged(const KisNodeSP node);
+    void slot_canvasResourceChanged(int key, const QVariant &value);
     void slot_colorSpaceChanged(const KoColorSpace *colorSpace);
 
     void slot_delegateTool_enclosingMaskProduced(KisPixelSelectionSP enclosingMask);

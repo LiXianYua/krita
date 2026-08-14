@@ -15,6 +15,7 @@
 
 
 #include <KoCanvasBase.h>
+#include <KoCanvasResourceProvider.h>
 #include <KoPointerEvent.h>
 #include <KoPathShape.h>
 #include <KoShapeController.h>
@@ -25,7 +26,6 @@
 #include <brushengine/kis_paintop_registry.h>
 #include <kis_figure_painting_tool_helper.h>
 #include <kis_canvas2.h>
-#include <kis_canvas_resource_provider.h>
 #include <KisViewManager.h>
 #include <kis_action_registry.h>
 #include <kis_painting_information_builder.h>
@@ -61,9 +61,12 @@ KisToolLine::KisToolLine(KoCanvasBase * canvas)
     connect(&m_strokeUpdateCompressor, SIGNAL(timeout()), SLOT(updateStroke()));
     connect(&m_longStrokeUpdateCompressor, SIGNAL(timeout()), SLOT(updateStroke()));
 
-    KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas);
-
-    connect(kritaCanvas->viewManager()->canvasResourceProvider(), SIGNAL(sigEffectiveCompositeOpChanged()), SLOT(resetCursorStyle()));
+    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+            this, [this](int key, const QVariant &) {
+                if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
+                    resetCursorStyle();
+                }
+            });
 }
 
 KisToolLine::~KisToolLine()

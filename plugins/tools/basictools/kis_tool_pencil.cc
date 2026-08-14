@@ -8,11 +8,11 @@
 #include "kis_tool_pencil.h"
 #include <KoPathShape.h>
 #include <KoCanvasBase.h>
+#include <KoCanvasResourceProvider.h>
 #include <KoPointerEvent.h>
 #include <KoShapeStroke.h>
 #include <KisViewManager.h>
 #include <canvas/kis_canvas2.h>
-#include <kis_canvas_resource_provider.h>
 
 #include <kis_cursor.h>
 
@@ -21,9 +21,12 @@ KisToolPencil::KisToolPencil(KoCanvasBase * canvas)
                           new __KisToolPencilLocalTool(canvas, this))
 {
     setIsOpacityPresetMode(true);
-    KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas);
-
-    connect(kritaCanvas->viewManager()->canvasResourceProvider(), SIGNAL(sigEffectiveCompositeOpChanged()), SLOT(resetCursorStyle()));
+    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+            this, [this](int key, const QVariant &) {
+                if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
+                    resetCursorStyle();
+                }
+            });
 }
 
 void KisToolPencil::resetCursorStyle()

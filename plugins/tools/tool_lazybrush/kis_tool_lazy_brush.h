@@ -8,6 +8,7 @@
 #define KIS_TOOL_LAZY_BRUSH_H_
 
 #include <QScopedPointer>
+#include <QVariant>
 #include "kis_tool_freehand.h"
 
 #include "KisToolPaintFactoryBase.h"
@@ -54,6 +55,7 @@ public Q_SLOTS:
     void deactivate() override;
 
 private Q_SLOTS:
+    void slotCanvasResourceChanged(int key, const QVariant &value);
     void slotCurrentNodeChanged(KisNodeSP node);
 
 Q_SIGNALS:

@@ -13,7 +13,6 @@
 #include <kis_canvas2.h>
 #include <KoCanvasBase.h>
 #include <KoResourceServerProvider.h>
-#include <kis_canvas_resource_provider.h>
 #include "kis_display_color_converter.h"
 #include "kis_tool_utils.h"
 

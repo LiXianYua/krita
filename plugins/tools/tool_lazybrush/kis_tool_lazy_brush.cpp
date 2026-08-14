@@ -12,6 +12,7 @@
 
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
+#include <KoCanvasResourceProvider.h>
 
 #include <KisViewManager.h>
 #include "kis_canvas2.h"
@@ -21,8 +22,6 @@
 #include "KoProperties.h"
 #include "kis_node_manager.h"
 #include "kis_layer_properties_icons.h"
-
-#include "kis_canvas_resource_provider.h"
 
 #include "lazybrush/kis_colorize_mask.h"
 #include "kis_signal_auto_connection.h"
@@ -69,11 +68,9 @@ void KisToolLazyBrush::tryDisableKeyStrokesOnMask()
 
 void KisToolLazyBrush::activate(const QSet<KoShape*> &shapes)
 {
-    KisCanvas2 * kiscanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_ASSERT(kiscanvas);
     m_d->toolConnections.addUniqueConnection(
-        kiscanvas->viewManager()->canvasResourceProvider(), SIGNAL(sigNodeChanged(KisNodeSP)),
-        this, SLOT(slotCurrentNodeChanged(KisNodeSP)));
+        canvas()->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+        this, &KisToolLazyBrush::slotCanvasResourceChanged);
 
 
     KisColorizeMask *mask = qobject_cast<KisColorizeMask*>(currentNode().data());
@@ -103,6 +100,13 @@ void KisToolLazyBrush::slotCurrentNodeChanged(KisNodeSP node)
         if (mask) {
             mask->regeneratePrefilteredDeviceIfNeeded();
         }
+    }
+}
+
+void KisToolLazyBrush::slotCanvasResourceChanged(int key, const QVariant &value)
+{
+    if (key == KoCanvasResource::CurrentKritaNode) {
+        slotCurrentNodeChanged(value.value<KisNodeWSP>());
     }
 }
 

@@ -10,6 +10,7 @@
 #include "QPainterPath"
 
 #include <klocalizedstring.h>
+#include <KoCanvasResourceProvider.h>
 #include <KoColor.h>
 #include <KisViewManager.h>
 #include "kis_canvas2.h"
@@ -26,8 +27,6 @@
 
 #include "kis_processing_applicator.h"
 #include "kis_datamanager.h"
-#include "kis_canvas_resource_provider.h"
-
 #include "KoColorSpaceRegistry.h"
 #include <KisCursorOverrideLock.h>
 
@@ -342,9 +341,9 @@ KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
 
 bool KisToolKnife::isValidForCurrentLayer() const
 {
-    KisCanvas2 *kisCanvas = static_cast<KisCanvas2 *>(canvas());
-    KisNodeSP node = kisCanvas->viewManager()->canvasResourceProvider()->currentNode();
+    KisNodeSP node = canvas()->resourceManager()
+                            ->resource(KoCanvasResource::CurrentKritaNode)
+                            .value<KisNodeWSP>();
     const KisShapeLayer *shapeLayer = qobject_cast<const KisShapeLayer*>(node.data());
     return (shapeLayer != nullptr);
 }
-

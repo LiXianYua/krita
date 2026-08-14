@@ -16,6 +16,7 @@
 #include <ksharedconfig.h>
 
 #include <KoCanvasBase.h>
+#include <KoCanvasResourceProvider.h>
 #include <KoPointerEvent.h>
 
 #include <kis_layer.h>
@@ -24,7 +25,6 @@
 
 #include <KisViewManager.h>
 #include <canvas/kis_canvas2.h>
-#include <kis_canvas_resource_provider.h>
 #include <kis_cursor.h>
 
 #include <processing/fill_processing_visitor.h>
@@ -42,7 +42,6 @@
 #include <KoShapeControllerBase.h>
 #include <kis_shape_controller.h>
 #include <kis_image_animation_interface.h>
-#include <kis_canvas_resource_provider.h>
 
 KisToolFill::KisToolFill(KoCanvasBase * canvas)
     : KisToolPaint(canvas, KisCursor::load("tool_fill_cursor.png", 6, 6))
@@ -57,9 +56,12 @@ KisToolFill::KisToolFill(KoCanvasBase * canvas)
     setObjectName("tool_fill");
     connect(&m_compressorFillUpdate, SIGNAL(timeout()), SLOT(slotUpdateFill()));
 
-    KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas);
-
-    connect(kritaCanvas->viewManager()->canvasResourceProvider(), SIGNAL(sigEffectiveCompositeOpChanged()), SLOT(resetCursorStyle()));
+    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+            this, [this](int key, const QVariant &) {
+                if (key == KoCanvasResource::CurrentEffectiveCompositeOp) {
+                    resetCursorStyle();
+                }
+            });
 }
 
 KisToolFill::~KisToolFill()
