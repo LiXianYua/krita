@@ -26,6 +26,7 @@
 #include "KisCanvasFeedback.h"
 #include "KisCanvasInvalidation.h"
 #include "KisCanvasNodeActivation.h"
+#include "KisColorSamplingCanvas.h"
 #include "kis_coordinates_converter.h"
 #include "kis_canvas_decoration.h"
 #include <kis_painting_assistant.h>
@@ -62,6 +63,7 @@ class KRITAUI_EXPORT KisCanvas2 : public KoCanvasBase,
                                  public KisCanvasFeedback,
                                  public KisCanvasInvalidation,
                                  public KisCanvasNodeActivation,
+                                 public KisColorSamplingCanvas,
                                  public KisPaintingAssistantCanvas,
                                  public KisPaintingAssistantToolServices
 {
@@ -153,6 +155,14 @@ public: // KoCanvasBase implementation
     void invalidateAll() override;
 
     void requestNodeActivation(KisNodeSP node) override;
+
+    KisImageWSP samplingImage() const override;
+    std::optional<KoColor>
+        sampleVisibleReferenceColor(const QPoint &imagePoint) const override;
+    QColor samplingPreviewColor(const KoColor &color) const override;
+    qreal samplingCanvasRotation() const override;
+    bool samplingCanvasMirroredHorizontally() const override;
+    bool samplingCanvasMirroredVertically() const override;
 
     KoUnit unit() const override;
 

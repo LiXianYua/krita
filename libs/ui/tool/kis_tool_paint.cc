@@ -44,6 +44,7 @@
 #include <kis_layer.h>
 #include <KisViewManager.h>
 #include <kis_canvas2.h>
+#include <KisColorSamplingCanvas.h>
 #include <kis_cubic_curve.h>
 #include "kis_display_color_converter.h"
 #include <KisDocument.h>
@@ -80,7 +81,8 @@ KisToolPaint::KisToolPaint(KoCanvasBase *canvas, const QCursor &cursor)
       m_isOutlineEnabled(true),
       m_isOutlineVisible(true),
       m_standardBrushSizes(1, KisImageConfig(true).maxBrushSize()),
-      m_colorSamplerHelper(dynamic_cast<KisCanvas2*>(canvas)),
+      m_colorSamplerHelper(canvas,
+                           dynamic_cast<KisColorSamplingCanvas *>(canvas)),
       m_d(new Private())
 {
     KisCanvas2 *kiscanvas = dynamic_cast<KisCanvas2*>(canvas);
@@ -754,4 +756,3 @@ KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const QPointF &documentPos
 
     return path;
 }
-

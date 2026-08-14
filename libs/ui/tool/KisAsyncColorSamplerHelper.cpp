@@ -12,25 +12,50 @@
 #include <QPainterPath>
 #include <QPalette>
 #include <QPixmap>
+#include <QTimer>
 #include <QTransform>
 
+#include <KConfigGroup>
+#include <KSharedConfig>
+
+#include "KoCanvasBase.h"
 #include "KoCanvasResourcesIds.h"
 #include "KoCanvasResourceProvider.h"
 #include "KoViewConverter.h"
 #include "KoIcon.h"
+#include "KisCanvasFeedback.h"
+#include "KisColorSamplingCanvas.h"
 #include "kis_cursor.h"
+#include "kis_image.h"
 #include "kis_signal_compressor_with_param.h"
 #include "kis_image_interfaces.h"
-#include "kis_canvas2.h"
-#include "KisViewManager.h"
-#include "KisDocument.h"
-#include "KisReferenceImagesLayer.h"
-#include "KisReferenceImagesDecoration.h"
-#include "kis_display_color_converter.h"
+#include "kis_node.h"
 #include "strokes/kis_color_sampler_stroke_strategy.h"
 
 
 namespace {
+enum class ColorSamplerPreviewStyle {
+    None,
+    Circle,
+    RectangleLeft,
+    RectangleRight,
+    RectangleAbove,
+    Count,
+};
+
+ColorSamplerPreviewStyle readColorSamplerPreviewStyle()
+{
+    const KConfigGroup cfg = KSharedConfig::openConfig()->group("");
+    const int style = cfg.readEntry(
+        "colorSamplerPreviewStyle", int(ColorSamplerPreviewStyle::Circle));
+
+    if (style >= 0 && style < int(ColorSamplerPreviewStyle::Count)) {
+        return ColorSamplerPreviewStyle(style);
+    }
+
+    return ColorSamplerPreviewStyle::Circle;
+}
+
 QColor colorWithAlpha(QColor color, int alpha)
 {
     color.setAlpha(alpha);
@@ -42,11 +67,13 @@ struct KisAsyncColorSamplerHelper::Private
 {
     static constexpr qreal PREVIEW_RECT_SIZE = 48.0;
 
-    Private(KisCanvas2 *_canvas)
+    Private(KoCanvasBase *_canvas, KisColorSamplingCanvas *_samplingCanvas)
         : canvas(_canvas)
+        , samplingCanvas(_samplingCanvas)
     {}
 
-    KisCanvas2 *canvas;
+    KoCanvasBase *canvas;
+    KisColorSamplingCanvas *samplingCanvas;
 
     int sampleResourceId {0};
     bool sampleCurrentLayer {true};
@@ -62,7 +89,7 @@ struct KisAsyncColorSamplerHelper::Private
 
     QTimer activationDelayTimer;
 
-    KisConfig::ColorSamplerPreviewStyle style = KisConfig::ColorSamplerPreviewStyle::Circle;
+    ColorSamplerPreviewStyle style = ColorSamplerPreviewStyle::Circle;
     int circlePreviewDiameter {180};
     qreal circlePreviewThickness {0.12};
     bool circlePreviewOutlineEnabled {true};
@@ -77,11 +104,11 @@ struct KisAsyncColorSamplerHelper::Private
     bool cacheMirror = false;
 
     KisStrokesFacade *strokesFacade() const {
-        return canvas->image().data();
+        return samplingCanvas->samplingImage().data();
     }
 
     const KoViewConverter &converter() const {
-        return *canvas->imageView()->viewConverter();
+        return *canvas->viewConverter();
     }
 
     QRectF colorPreviewRectForRectangle() const
@@ -92,14 +119,14 @@ struct KisAsyncColorSamplerHelper::Private
         constexpr qreal OFFSET_ABOVE = OFFSET * 1.5;
         constexpr qreal SIZE = PREVIEW_RECT_SIZE;
 
-        bool mirrored = canvas->xAxisMirrored();
-        bool flipped = canvas->yAxisMirrored();
+        bool mirrored = samplingCanvas->samplingCanvasMirroredHorizontally();
+        bool flipped = samplingCanvas->samplingCanvasMirroredVertically();
 
-        KisConfig::ColorSamplerPreviewStyle effectiveStyle;
-        if (mirrored && style == KisConfig::ColorSamplerPreviewStyle::RectangleLeft) {
-            effectiveStyle = KisConfig::ColorSamplerPreviewStyle::RectangleRight;
-        } else if (mirrored && style == KisConfig::ColorSamplerPreviewStyle::RectangleRight) {
-            effectiveStyle = KisConfig::ColorSamplerPreviewStyle::RectangleLeft;
+        ColorSamplerPreviewStyle effectiveStyle;
+        if (mirrored && style == ColorSamplerPreviewStyle::RectangleLeft) {
+            effectiveStyle = ColorSamplerPreviewStyle::RectangleRight;
+        } else if (mirrored && style == ColorSamplerPreviewStyle::RectangleRight) {
+            effectiveStyle = ColorSamplerPreviewStyle::RectangleLeft;
         } else {
             effectiveStyle = style;
         }
@@ -108,11 +135,11 @@ struct KisAsyncColorSamplerHelper::Private
 
         qreal x, y;
         switch (effectiveStyle) {
-        case KisConfig::ColorSamplerPreviewStyle::RectangleLeft:
+        case ColorSamplerPreviewStyle::RectangleLeft:
             x = -(OFFSET + width);
             y = flipped ? -(OFFSET + SIZE) : OFFSET;
             break;
-        case KisConfig::ColorSamplerPreviewStyle::RectangleRight:
+        case ColorSamplerPreviewStyle::RectangleRight:
             x = OFFSET;
             y = flipped ? -(OFFSET + SIZE) : OFFSET;
             break;
@@ -124,7 +151,7 @@ struct KisAsyncColorSamplerHelper::Private
 
         QRectF rect(x, y, width, SIZE);
 
-        qreal canvasRotationAngle = canvas->rotationAngle();
+        qreal canvasRotationAngle = samplingCanvas->samplingCanvasRotation();
         if (!qFuzzyIsNull(canvasRotationAngle)) {
             QTransform tf;
             tf.rotate(mirrored ? canvasRotationAngle : -canvasRotationAngle);
@@ -143,11 +170,11 @@ struct KisAsyncColorSamplerHelper::Private
     {
         QRectF colorPreviewViewRect;
         switch (style) {
-        case KisConfig::ColorSamplerPreviewStyle::None:
+        case ColorSamplerPreviewStyle::None:
             return QRectF();
-        case KisConfig::ColorSamplerPreviewStyle::RectangleLeft:
-        case KisConfig::ColorSamplerPreviewStyle::RectangleRight:
-        case KisConfig::ColorSamplerPreviewStyle::RectangleAbove:
+        case ColorSamplerPreviewStyle::RectangleLeft:
+        case ColorSamplerPreviewStyle::RectangleRight:
+        case ColorSamplerPreviewStyle::RectangleAbove:
             colorPreviewViewRect = colorPreviewRectForRectangle();
             break;
         default:
@@ -168,9 +195,13 @@ struct KisAsyncColorSamplerHelper::Private
     }
 };
 
-KisAsyncColorSamplerHelper::KisAsyncColorSamplerHelper(KisCanvas2 *canvas)
-    : m_d(new Private(canvas))
+KisAsyncColorSamplerHelper::KisAsyncColorSamplerHelper(
+    KoCanvasBase *canvas,
+    KisColorSamplingCanvas *samplingCanvas)
+    : m_d(new Private(canvas, samplingCanvas))
 {
+    KIS_ASSERT(m_d->samplingCanvas);
+
     using namespace std::placeholders; // For _1 placeholder
     std::function<void(QPointF)> callback =
         std::bind(&KisAsyncColorSamplerHelper::slotAddSamplingJob, this, _1);
@@ -206,13 +237,16 @@ void KisAsyncColorSamplerHelper::activate(bool sampleCurrentLayer, bool pickFgCo
     m_d->haveSample = false;
 
 
-    KisConfig cfg(true);
-    m_d->style = cfg.colorSamplerPreviewStyle();
-
-    m_d->circlePreviewDiameter = cfg.colorSamplerPreviewCircleDiameter();
-    m_d->circlePreviewThickness = cfg.colorSamplerPreviewCircleThickness()/100.0; // saved in percentages
-    m_d->circlePreviewOutlineEnabled = cfg.colorSamplerPreviewCircleOutlineEnabled();
-    m_d->circlePreviewExtraCircles = cfg.colorSamplerPreviewCircleExtraCirclesEnabled();
+    const KConfigGroup cfg = KSharedConfig::openConfig()->group("");
+    m_d->style = readColorSamplerPreviewStyle();
+    m_d->circlePreviewDiameter =
+        cfg.readEntry("colorSamplerPreviewCircleDiameter", 180);
+    m_d->circlePreviewThickness =
+        cfg.readEntry("colorSamplerPreviewCircleThickness", qreal(12)) / 100.0;
+    m_d->circlePreviewOutlineEnabled =
+        cfg.readEntry("colorSamplerPreviewCircleOutlineEnabled", true);
+    m_d->circlePreviewExtraCircles =
+        cfg.readEntry("colorSamplerPreviewCircleExtraCirclesEnabled", true);
 
     m_d->activationDelayTimer.start();
 }
@@ -237,7 +271,7 @@ void KisAsyncColorSamplerHelper::activatePreview()
 
     const KoColor currentColor =
         m_d->canvas->resourceManager()->koColorResource(m_d->sampleResourceId);
-    const QColor previewColor = m_d->canvas->displayColorConverter()->toQColor(currentColor);
+    const QColor previewColor = m_d->samplingCanvas->samplingPreviewColor(currentColor);
 
     m_d->currentColor = previewColor;
     m_d->baseColor = previewColor;
@@ -339,8 +373,7 @@ QRectF KisAsyncColorSamplerHelper::colorPreviewDocRect(const QPointF &docPoint)
 {
     if (!m_d->showPreview) return QRectF();
 
-    KisConfig cfg(true);
-    m_d->style = cfg.colorSamplerPreviewStyle();
+    m_d->style = readColorSamplerPreviewStyle();
     m_d->previewDocRect = m_d->colorPreviewDocRect(docPoint);
     return m_d->previewDocRect;
 }
@@ -356,9 +389,9 @@ void KisAsyncColorSamplerHelper::paint(QPainter &gc, const KoViewConverter &conv
     QColor baseColor = m_d->haveSample ? colorWithAlpha(m_d->baseColor, OPACITY_OPAQUE_U8) : currentColor;
 
     switch (m_d->style) {
-    case KisConfig::ColorSamplerPreviewStyle::RectangleLeft:
-    case KisConfig::ColorSamplerPreviewStyle::RectangleRight:
-    case KisConfig::ColorSamplerPreviewStyle::RectangleAbove:
+    case ColorSamplerPreviewStyle::RectangleLeft:
+    case ColorSamplerPreviewStyle::RectangleRight:
+    case ColorSamplerPreviewStyle::RectangleAbove:
         paintRectangle(gc, viewRectF, currentColor, baseColor);
         break;
     default:
@@ -386,8 +419,9 @@ void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
         m_d->cache.fill(Qt::transparent);
     }
 
-    qreal canvasRotationAngle = m_d->canvas->rotationAngle();
-    bool canvasMirror = m_d->canvas->xAxisMirrored();
+    qreal canvasRotationAngle = m_d->samplingCanvas->samplingCanvasRotation();
+    bool canvasMirror =
+        m_d->samplingCanvas->samplingCanvasMirroredHorizontally();
     if (needsNewCache || !qFuzzyCompare(canvasRotationAngle, m_d->cacheRotation) || canvasMirror != m_d->cacheMirror) {
         m_d->cacheRotation = canvasRotationAngle;
         m_d->cacheMirror = canvasMirror;
@@ -409,7 +443,7 @@ void KisAsyncColorSamplerHelper::paintRectangle(QPainter &gc,
             qreal centerX = rect.center().x();
             QRectF currentRect(rect.topLeft(), QPointF(centerX + 1.0, rect.bottom()));
             QRectF baseRect(QPointF(centerX, rect.top()), rect.bottomRight());
-            if (m_d->canvas->xAxisMirrored()) {
+            if (m_d->samplingCanvas->samplingCanvasMirroredHorizontally()) {
                 std::swap(currentRect, baseRect);
             }
             cachePainter.fillRect(currentRect, currentColor);
@@ -444,8 +478,8 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
         m_d->cache.fill(Qt::transparent);
     }
 
-    qreal canvasRotationAngle = m_d->canvas->rotationAngle();
-    if (m_d->canvas->xAxisMirrored()) {
+    qreal canvasRotationAngle = m_d->samplingCanvas->samplingCanvasRotation();
+    if (m_d->samplingCanvas->samplingCanvasMirroredHorizontally()) {
         canvasRotationAngle = -canvasRotationAngle;
     }
 
@@ -486,7 +520,8 @@ void KisAsyncColorSamplerHelper::paintCircle(QPainter &gc,
             clipPath.addPolygon(tf.map(QPolygonF(QRectF(0, 0, cacheRect.width(), cacheRect.height() / 2.0 + 1.0))));
             cachePainter.setClipPath(clipPath);
 
-            bool flipped = m_d->canvas->yAxisMirrored();
+            bool flipped =
+                m_d->samplingCanvas->samplingCanvasMirroredVertically();
             cachePainter.setBrush(flipped ? baseColor : currentColor);
             cachePainter.drawEllipse(outerRect);
 
@@ -551,24 +586,30 @@ void KisAsyncColorSamplerHelper::slotAddSamplingJob(const QPointF &docPoint)
      */
     if (!m_d->strokeId) return;
 
-    KisImageSP image = m_d->canvas->image();
+    KisImageSP image = m_d->samplingCanvas->samplingImage();
 
     const QPoint imagePoint = image->documentToImagePixelFloored(docPoint);
 
     if (!m_d->sampleCurrentLayer) {
-        KisSharedPtr<KisReferenceImagesLayer> referencesLayer = m_d->canvas->imageView()->document()->referenceImagesLayer();
-        if (referencesLayer && m_d->canvas->referenceImagesDecoration()->visible()) {
-            QColor color = referencesLayer->getPixel(imagePoint);
-            if (color.isValid() && color.alpha() != 0) {
-                slotColorSamplingFinished(KoColor(color, image->colorSpace()));
-                return;
-            }
+        const std::optional<KoColor> referenceColor =
+            m_d->samplingCanvas->sampleVisibleReferenceColor(imagePoint);
+        if (referenceColor) {
+            slotColorSamplingFinished(*referenceColor);
+            return;
         }
     }
 
-    KisPaintDeviceSP device = m_d->sampleCurrentLayer ?
-        m_d->canvas->imageView()->currentNode()->colorSampleSourceDevice() :
-        image->projection();
+    KisPaintDeviceSP device;
+    if (m_d->sampleCurrentLayer) {
+        KisNodeSP currentNode = m_d->canvas->resourceManager()
+                                    ->resource(KoCanvasResource::CurrentKritaNode)
+                                    .value<KisNodeWSP>();
+        if (currentNode) {
+            device = currentNode->colorSampleSourceDevice();
+        }
+    } else {
+        device = image->projection();
+    }
 
     if (device) {
         // Used for color sampler blending.
@@ -579,7 +620,10 @@ void KisAsyncColorSamplerHelper::slotAddSamplingJob(const QPointF &docPoint)
             new KisColorSamplerStrokeStrategy::Data(device, imagePoint, currentColor));
     } else {
         QString message = i18n("Color sampler does not work on this layer.");
-        m_d->canvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+        if (KisCanvasFeedback *feedback =
+                dynamic_cast<KisCanvasFeedback *>(m_d->canvas)) {
+            feedback->showFloatingMessage(message, koIcon("object-locked"));
+        }
     }
 }
 
@@ -598,7 +642,7 @@ void KisAsyncColorSamplerHelper::slotColorSamplingFinished(const KoColor &rawCol
 
     if (!m_d->showPreview) return;
 
-    const QColor previewColor = m_d->canvas->displayColorConverter()->toQColor(color);
+    const QColor previewColor = m_d->samplingCanvas->samplingPreviewColor(color);
 
     if (!m_d->haveSample || m_d->currentColor != previewColor) {
         m_d->haveSample = true;

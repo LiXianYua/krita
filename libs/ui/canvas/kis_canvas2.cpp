@@ -356,6 +356,49 @@ void KisCanvas2::requestNodeActivation(KisNodeSP node)
     viewManager()->nodeManager()->slotNonUiActivatedNode(node);
 }
 
+KisImageWSP KisCanvas2::samplingImage() const
+{
+    return image();
+}
+
+std::optional<KoColor>
+KisCanvas2::sampleVisibleReferenceColor(const QPoint &imagePoint) const
+{
+    KisReferenceImagesLayerSP referencesLayer =
+        imageView()->document()->referenceImagesLayer();
+    if (!referencesLayer || !referenceImagesDecoration()->visible()) {
+        return std::nullopt;
+    }
+
+    const QColor color = referencesLayer->getPixel(imagePoint);
+    if (!color.isValid() || color.alpha() == 0) {
+        return std::nullopt;
+    }
+
+    KisImageSP currentImage = image();
+    return KoColor(color, currentImage->colorSpace());
+}
+
+QColor KisCanvas2::samplingPreviewColor(const KoColor &color) const
+{
+    return displayColorConverter()->toQColor(color);
+}
+
+qreal KisCanvas2::samplingCanvasRotation() const
+{
+    return rotationAngle();
+}
+
+bool KisCanvas2::samplingCanvasMirroredHorizontally() const
+{
+    return xAxisMirrored();
+}
+
+bool KisCanvas2::samplingCanvasMirroredVertically() const
+{
+    return yAxisMirrored();
+}
+
 void KisCanvas2::setup()
 {
     // a bit of duplication from slotConfigChanged()

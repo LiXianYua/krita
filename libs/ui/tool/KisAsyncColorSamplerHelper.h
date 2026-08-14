@@ -15,16 +15,18 @@
 #include "kis_types.h"
 
 class QPainter;
+class KoCanvasBase;
 class KoViewConverter;
 class KisStrokesFacade;
-class KisCanvas2;
+class KisColorSamplingCanvas;
 class KoColor;
 
 class KRITAUI_EXPORT KisAsyncColorSamplerHelper : public QObject
 {
     Q_OBJECT
 public:
-    KisAsyncColorSamplerHelper(KisCanvas2 *canvas);
+    KisAsyncColorSamplerHelper(KoCanvasBase *canvas,
+                               KisColorSamplingCanvas *samplingCanvas);
     ~KisAsyncColorSamplerHelper() override;
 
     bool isActive() const;

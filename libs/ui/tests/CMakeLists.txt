@@ -13,6 +13,7 @@ kis_add_tests(
     kis_shape_layer_test.cpp
     KisSafeDocumentLoaderTest.cpp
     KisSurfaceColorSpaceWrapperTest.cpp
+    KisAsyncColorSamplerHelperTest.cpp
 
     LINK_LIBRARIES kritaui kritalibkis kritatestsdk
     )
