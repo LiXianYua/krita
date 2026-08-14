@@ -18,7 +18,6 @@
 #include <KoColorSpace.h>
 #include <KisCursorOverrideLock.h>
 
-#include "kis_canvas2.h"
 #include "kis_command_utils.h"
 #include "kis_image.h"
 #include "kis_iterator_ng.h"
@@ -83,9 +82,6 @@ void KisToolSelectSimilar::beginPrimaryAction(KoPointerEvent *event)
         event->ignore();
         return;
     }
-
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_SAFE_ASSERT_RECOVER_RETURN(kisCanvas);
 
     beginSelectInteraction();
 
@@ -201,7 +197,9 @@ void KisToolSelectSimilar::beginPrimaryAction(KoPointerEvent *event)
     image()->endStroke(strokeId);
 
     // Apply selection
-    KisSelectionToolHelper helper(kisCanvas, kundo2_i18n("Select Similar Color"));
+    KisSelectionToolHelper helper(
+        canvas(), currentImage().toStrongRef(), currentNode(),
+        kundo2_i18n("Select Similar Color"));
     helper.selectPixelSelection(tmpSel, selectionAction());
 }
 

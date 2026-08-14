@@ -13,6 +13,7 @@
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
+#include <ksharedconfig.h>
 
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>
@@ -26,7 +27,8 @@
 #include <kis_image.h>
 #include <kis_default_bounds.h>
 
-#include "canvas/kis_canvas2.h"
+#include "KisCanvasInvalidation.h"
+#include "KisSelectionUtils.h"
 #include "kis_painter.h"
 #include "kis_pixel_selection.h"
 #include "kis_selection_tool_helper.h"
@@ -469,9 +471,12 @@ void KisToolSelectMagnetic::reEvaluatePoints()
 
 void KisToolSelectMagnetic::finishSelectionAction()
 {
-    KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2 *>(canvas());
-    KIS_ASSERT_RECOVER_RETURN(kisCanvas);
-    kisCanvas->updateCanvas();
+    KisImageSP image = currentImage().toStrongRef();
+    KIS_ASSERT_RECOVER_RETURN(image);
+    KisCanvasInvalidation *invalidation =
+        dynamic_cast<KisCanvasInvalidation *>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(invalidation);
+    invalidation->invalidateAll();
     setMode(KisTool::HOVER_MODE);
     m_complete = false;
     m_finished = true;
@@ -482,7 +487,8 @@ void KisToolSelectMagnetic::finishSelectionAction()
     QRectF boundingViewRect =
         pixelToView(KisAlgebra2D::accumulateBounds(m_points));
 
-    KisSelectionToolHelper helper(kisCanvas, kundo2_i18n("Magnetic Selection"));
+    KisSelectionToolHelper helper(
+        canvas(), image, currentNode(), kundo2_i18n("Magnetic Selection"));
 
     if (m_points.count() > 2 &&
         !helper.tryDeselectCurrentSelection(boundingViewRect, selectionAction()))
@@ -490,9 +496,10 @@ void KisToolSelectMagnetic::finishSelectionAction()
         KisCursorOverrideLock cursorLock(KisCursor::waitCursor());
 
         const SelectionMode mode =
-            helper.tryOverrideSelectionMode(kisCanvas->viewManager()->selection(),
-                                            selectionMode(),
-                                            selectionAction());
+            helper.tryOverrideSelectionMode(
+                KisSelectionUtils::activeSelectionForNode(image, currentNode()),
+                selectionMode(),
+                selectionAction());
         if (mode == PIXEL_SELECTION) {
             KisProcessingApplicator applicator(
                 currentImage(),
@@ -684,9 +691,10 @@ void KisToolSelectMagnetic::activate(const QSet<KoShape *> &shapes)
 
 void KisToolSelectMagnetic::deactivate()
 {
-    KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2 *>(canvas());
-    KIS_ASSERT_RECOVER_RETURN(kisCanvas);
-    kisCanvas->updateCanvas();
+    KisCanvasInvalidation *invalidation =
+        dynamic_cast<KisCanvasInvalidation *>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(invalidation);
+    invalidation->invalidateAll();
     resetVariables();
     m_continuedMode = false;
     disconnect(action("undo_polygon_selection"), nullptr, this, nullptr);

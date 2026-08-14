@@ -579,7 +579,10 @@ void KisShapesToVectorSelectionActionFactory::run(KisViewManager* view)
         return;
     }
 
-    KisSelectionToolHelper helper(view->canvasBase(), kundo2_i18n("Convert shapes to vector selection"));
+    KisSelectionToolHelper helper(view->canvasBase(),
+                                  view->image(),
+                                  view->activeNode(),
+                                  kundo2_i18n("Convert shapes to vector selection"));
     helper.addSelectionShapes(clonedShapes);
 }
 

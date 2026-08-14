@@ -28,7 +28,8 @@
 #include <kis_image.h>
 #include <kis_default_bounds.h>
 
-#include "canvas/kis_canvas2.h"
+#include "KisCanvasInvalidation.h"
+#include "KisSelectionUtils.h"
 #include "kis_painter.h"
 #include "kis_pixel_selection.h"
 #include "kis_selection_tool_helper.h"
@@ -53,14 +54,18 @@ KisToolSelectOutline::KisToolSelectOutline(KoCanvasBase * canvas)
 
 void KisToolSelectOutline::finishOutline(const QVector<QPointF>& points)
 {
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_ASSERT_RECOVER_RETURN(kisCanvas);
-    kisCanvas->updateCanvas();
+    KisImageSP image = currentImage().toStrongRef();
+    KIS_ASSERT_RECOVER_RETURN(image);
+    KisCanvasInvalidation *invalidation =
+        dynamic_cast<KisCanvasInvalidation *>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(invalidation);
+    invalidation->invalidateAll();
 
     const QRectF boundingRect = KisAlgebra2D::accumulateBounds(points);
     const QRectF boundingViewRect = pixelToView(boundingRect);
 
-    KisSelectionToolHelper helper(kisCanvas, kundo2_i18n("Freehand Selection"));
+    KisSelectionToolHelper helper(
+        canvas(), image, currentNode(), kundo2_i18n("Freehand Selection"));
 
     if (helper.tryDeselectCurrentSelection(boundingViewRect, selectionAction())) {
         endSelectInteraction();
@@ -74,9 +79,10 @@ void KisToolSelectOutline::finishOutline(const QVector<QPointF>& points)
     KisCursorOverrideLock cursorLock(Qt::WaitCursor);
 
     const SelectionMode mode =
-        helper.tryOverrideSelectionMode(kisCanvas->viewManager()->selection(),
-                                        selectionMode(),
-                                        selectionAction());
+        helper.tryOverrideSelectionMode(
+            KisSelectionUtils::activeSelectionForNode(image, currentNode()),
+            selectionMode(),
+            selectionAction());
 
     if (mode == PIXEL_SELECTION) {
         KisProcessingApplicator applicator(currentImage(),
@@ -200,4 +206,3 @@ void KisToolSelectOutline::resetCursorStyle()
         KisToolSelectBase<__KisToolSelectOutlineLocal>::resetCursorStyle();
     }
 }
-

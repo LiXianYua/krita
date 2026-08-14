@@ -8,9 +8,9 @@
 
 #include <KoPathShape.h>
 
-#include "kis_canvas2.h"
 #include "kis_cursor.h"
 #include "kis_image.h"
+#include "KisSelectionUtils.h"
 #include "kis_painter.h"
 #include "kis_pixel_selection.h"
 #include "kis_selection_options.h"
@@ -19,6 +19,7 @@
 #include <kis_selection_filters.h>
 #include <KisOptimizedBrushOutline.h>
 #include <kis_default_bounds.h>
+#include <kis_painting_assistant.h>
 
 KisToolSelectPath::KisToolSelectPath(KoCanvasBase * canvas)
     : KisToolSelectBase<KisDelegatedSelectPathWrapper>(canvas,
@@ -103,10 +104,8 @@ void KisDelegatedSelectPathWrapper::mouseMoveEvent(KoPointerEvent *event)
     DelegatedSelectPathTool::mouseMoveEvent(event);
 
     // WARNING: the code is duplicated from KisToolPaint::requestUpdateOutline
-    KisCanvas2 *kiscanvas = qobject_cast<KisCanvas2*>(canvas());
-    KisPaintingAssistantsDecorationSP decoration = kiscanvas->paintingAssistantsDecoration();
-    if (decoration && decoration->visible() && decoration->hasPaintableAssistants()) {
-        kiscanvas->updateCanvasDecorations();
+    if (auto *services = dynamic_cast<KisPaintingAssistantToolServices *>(canvas())) {
+        services->updateDecorationIfNeeded();
     }
 }
 
@@ -131,12 +130,12 @@ __KisToolSelectPathLocalTool::__KisToolSelectPathLocalTool(KoCanvasBase * canvas
 void __KisToolSelectPathLocalTool::paintPath(KoPathShape &pathShape, QPainter &painter, const KoViewConverter &converter)
 {
     Q_UNUSED(converter);
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    if (!kisCanvas)
+    KisImageSP image = m_selectionTool->currentImage().toStrongRef();
+    if (!image)
         return;
 
     QTransform matrix;
-    matrix.scale(kisCanvas->image()->xRes(), kisCanvas->image()->yRes());
+    matrix.scale(image->xRes(), image->yRes());
     matrix.translate(pathShape.position().x(), pathShape.position().y());
     m_selectionTool->paintToolOutline(&painter, m_selectionTool->pixelToView(matrix.map(pathShape.outline())));
 }
@@ -146,18 +145,20 @@ void __KisToolSelectPathLocalTool::addPathShape(KoPathShape* pathShape)
     pathShape->normalize();
     pathShape->close();
 
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    if (!kisCanvas)
+    KisImageSP image = m_selectionTool->currentImage().toStrongRef();
+    if (!image)
         return;
 
-    KisImageWSP image = kisCanvas->image();
-
-    KisSelectionToolHelper helper(kisCanvas, kundo2_i18n("Select by Bezier Curve"));
+    KisSelectionToolHelper helper(
+        canvas(), image, m_selectionTool->currentNode(),
+        kundo2_i18n("Select by Bezier Curve"));
 
     const SelectionMode mode =
-        helper.tryOverrideSelectionMode(kisCanvas->viewManager()->selection(),
-                                        m_selectionTool->selectionMode(),
-                                        m_selectionTool->selectionAction());
+        helper.tryOverrideSelectionMode(
+            KisSelectionUtils::activeSelectionForNode(
+                image, m_selectionTool->currentNode()),
+            m_selectionTool->selectionMode(),
+            m_selectionTool->selectionAction());
 
     if (mode == PIXEL_SELECTION) {
         KisProcessingApplicator applicator(

@@ -18,14 +18,12 @@
 #include "kis_painter.h"
 #include <brushengine/kis_paintop_registry.h>
 #include "kis_selection_options.h"
-#include "kis_canvas2.h"
+#include "KisSelectionUtils.h"
 #include "kis_pixel_selection.h"
 #include "kis_selection_tool_helper.h"
 #include "kis_shape_tool_helper.h"
 #include <kis_default_bounds.h>
 
-#include "KisViewManager.h"
-#include "kis_selection_manager.h"
 #include <kis_command_utils.h>
 #include <kis_selection_filters.h>
 
@@ -44,23 +42,24 @@ KisToolSelectPolygonal::KisToolSelectPolygonal(KoCanvasBase *canvas):
 
 void KisToolSelectPolygonal::finishPolyline(const QVector<QPointF> &points)
 {
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    Q_ASSERT(kisCanvas);
-    if (!kisCanvas)
+    KisImageSP image = currentImage().toStrongRef();
+    if (!image)
         return;
 
     const QRectF boundingViewRect = pixelToView(KisAlgebra2D::accumulateBounds(points));
 
-    KisSelectionToolHelper helper(kisCanvas, kundo2_i18n("Select Polygon"));
+    KisSelectionToolHelper helper(
+        canvas(), image, currentNode(), kundo2_i18n("Select Polygon"));
 
     if (helper.tryDeselectCurrentSelection(pixelToView(boundingViewRect), selectionAction())) {
         return;
     }
 
     const SelectionMode mode =
-        helper.tryOverrideSelectionMode(kisCanvas->viewManager()->selection(),
-                                        selectionMode(),
-                                        selectionAction());
+        helper.tryOverrideSelectionMode(
+            KisSelectionUtils::activeSelectionForNode(image, currentNode()),
+            selectionMode(),
+            selectionAction());
 
     if (mode == PIXEL_SELECTION) {
         KisProcessingApplicator applicator(currentImage(),
@@ -166,4 +165,3 @@ void KisToolSelectPolygonal::resetCursorStyle()
         KisToolSelectBase<__KisToolSelectPolygonalLocal>::resetCursorStyle();
     }
 }
-

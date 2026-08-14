@@ -12,11 +12,9 @@
 
 #include <QVBoxLayout>
 
-#include "KisViewManager.h"
-#include "kis_canvas2.h"
+#include "KisSelectionUtils.h"
 #include "kis_painter.h"
 #include "kis_pixel_selection.h"
-#include "kis_selection_manager.h"
 #include "kis_selection_options.h"
 #include "kis_selection_tool_helper.h"
 #include "kis_shape_tool_helper.h"
@@ -42,10 +40,11 @@ void KisToolSelectElliptical::finishRect(const QRectF &rect, qreal roundCornersX
     Q_UNUSED(roundCornersX);
     Q_UNUSED(roundCornersY);
 
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    Q_ASSERT(kisCanvas);
+    KisImageSP image = currentImage().toStrongRef();
+    KIS_SAFE_ASSERT_RECOVER_RETURN(image);
 
-    KisSelectionToolHelper helper(kisCanvas, kundo2_i18n("Select Ellipse"));
+    KisSelectionToolHelper helper(
+        canvas(), image, currentNode(), kundo2_i18n("Select Ellipse"));
 
     if (helper.tryDeselectCurrentSelection(pixelToView(rect), selectionAction())) {
         return;
@@ -56,9 +55,10 @@ void KisToolSelectElliptical::finishRect(const QRectF &rect, qreal roundCornersX
     }
 
     const SelectionMode mode =
-        helper.tryOverrideSelectionMode(kisCanvas->viewManager()->selection(),
-                                        selectionMode(),
-                                        selectionAction());
+        helper.tryOverrideSelectionMode(
+            KisSelectionUtils::activeSelectionForNode(image, currentNode()),
+            selectionMode(),
+            selectionAction());
 
     if (mode == PIXEL_SELECTION) {
         KisProcessingApplicator applicator(currentImage(),
@@ -157,4 +157,3 @@ void KisToolSelectElliptical::resetCursorStyle()
         KisToolSelectBase<__KisToolSelectEllipticalLocal>::resetCursorStyle();
     }
 }
-

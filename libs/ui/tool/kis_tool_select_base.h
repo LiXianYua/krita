@@ -8,23 +8,23 @@
 #ifndef KISTOOLSELECTBASE_H
 #define KISTOOLSELECTBASE_H
 
+#include <QKeyEvent>
+
+#include <KoCanvasBase.h>
 #include "KoPointerEvent.h"
 #include "kis_tool.h"
-#include "kis_canvas2.h"
 #include "kis_selection.h"
+#include "KisSelectionUtils.h"
 #include "kis_selection_options.h"
 #include "kis_selection_tool_config_widget_helper.h"
-#include "KisViewManager.h"
-#include "kis_selection_manager.h"
 #include "kis_selection_modifier_mapper.h"
 #include "strokes/move_stroke_strategy.h"
 #include "kis_image.h"
 #include "kis_cursor.h"
-#include "kis_action_manager.h"
-#include "kis_action.h"
+#include "kis_action_registry.h"
 #include "kis_signal_auto_connection.h"
-#include "kis_selection_tool_helper.h"
 #include "kis_assert.h"
+#include "canvas/kis_coordinates_converter.h"
 #include <input/kis_extended_modifiers_mapper.h>
 
 /**
@@ -281,14 +281,16 @@ public:
     KisNodeSP locateSelectionMaskUnderCursor(const QPointF &pos, Qt::KeyboardModifiers modifiers) {
         if (modifiers != Qt::NoModifier) return 0;
 
-        KisCanvas2* canvas = dynamic_cast<KisCanvas2*>(this->canvas());
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(canvas, 0);
-
-        KisSelectionSP selection = canvas->viewManager()->selection();
+        KisSelectionSP selection = KisSelectionUtils::activeSelectionForNode(
+            this->currentImage().toStrongRef(), this->currentNode());
         if (selection &&
             selection->outlineCacheValid()) {
 
-            const qreal handleRadius = qreal(this->handleRadius()) / canvas->coordinatesConverter()->effectiveZoom();
+            const auto *converter = dynamic_cast<const KisCoordinatesConverter *>(
+                this->canvas()->viewConverter());
+            KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, 0);
+            const qreal handleRadius =
+                qreal(this->handleRadius()) / converter->effectiveZoom();
             QPainterPath samplePath;
             samplePath.addEllipse(pos, handleRadius, handleRadius);
 
@@ -404,9 +406,6 @@ public:
         }
 
         const QPointF pos = this->convertToPixelCoord(event->point);
-        KisCanvas2* canvas = dynamic_cast<KisCanvas2*>(this->canvas());
-        KIS_SAFE_ASSERT_RECOVER_RETURN(canvas);
-
         KisNodeSP selectionMask = locateSelectionMaskUnderCursor(pos, event->modifiers());
         if (selectionMask) {
             if (this->beginMoveSelectionInteraction()) {
@@ -450,18 +449,6 @@ public:
     bool selectionDidMove() const
     {
         return m_didMove;
-    }
-
-    QMenu *popupActionsMenu() override
-    {
-        if (isSelecting()) {
-            return BaseClass::popupActionsMenu();
-        }
-
-        KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(kisCanvas, 0);
-
-        return KisSelectionToolHelper::getSelectionContextMenu(kisCanvas);
     }
 
     KisPopupWidgetInterface* popupWidget() override

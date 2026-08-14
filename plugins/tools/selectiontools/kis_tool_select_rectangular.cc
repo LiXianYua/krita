@@ -15,14 +15,12 @@
 #include "kis_painter.h"
 #include <brushengine/kis_paintop_registry.h>
 #include "kis_selection_options.h"
-#include "kis_canvas2.h"
+#include "KisSelectionUtils.h"
 #include "kis_pixel_selection.h"
 #include "kis_selection_tool_helper.h"
 #include "kis_shape_tool_helper.h"
 #include <kis_default_bounds.h>
 
-#include "KisViewManager.h"
-#include "kis_selection_manager.h"
 #include <kis_command_utils.h>
 #include <kis_selection_filters.h>
 
@@ -40,11 +38,12 @@ KisToolSelectRectangular::KisToolSelectRectangular(KoCanvasBase *canvas):
 
 void KisToolSelectRectangular::finishRect(const QRectF& rect, qreal roundCornersX, qreal roundCornersY)
 {
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    if (!kisCanvas)
+    KisImageSP image = currentImage().toStrongRef();
+    if (!image)
         return;
 
-    KisSelectionToolHelper helper(kisCanvas, kundo2_i18n("Select Rectangle"));
+    KisSelectionToolHelper helper(
+        canvas(), image, currentNode(), kundo2_i18n("Select Rectangle"));
 
     QRect rc(rect.normalized().toRect());
 
@@ -57,9 +56,10 @@ void KisToolSelectRectangular::finishRect(const QRectF& rect, qreal roundCorners
     }
 
     const SelectionMode mode =
-        helper.tryOverrideSelectionMode(kisCanvas->viewManager()->selection(),
-                                        selectionMode(),
-                                        selectionAction());
+        helper.tryOverrideSelectionMode(
+            KisSelectionUtils::activeSelectionForNode(image, currentNode()),
+            selectionMode(),
+            selectionAction());
 
     if (!rc.isValid()) {
         return;
@@ -169,4 +169,3 @@ void KisToolSelectRectangular::resetCursorStyle()
         KisToolSelectBase<__KisToolSelectRectangularLocal>::resetCursorStyle();
     }
 }
-

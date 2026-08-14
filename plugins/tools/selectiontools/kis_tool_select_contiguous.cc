@@ -24,9 +24,8 @@
 #include "KoViewConverter.h"
 
 #include "kis_cursor.h"
-#include "kis_selection_manager.h"
 #include "kis_image.h"
-#include "canvas/kis_canvas2.h"
+#include "KisSelectionUtils.h"
 #include "kis_layer.h"
 #include "kis_paint_device.h"
 #include "kis_fill_painter.h"
@@ -178,16 +177,11 @@ void KisToolSelectContiguous::beginPrimaryAction(KoPointerEvent *event)
     bool stopGrowingAtDarkestPixel = this->stopGrowingAtDarkestPixel();
     int feather = featherSelection();
 
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_SAFE_ASSERT_RECOVER(kisCanvas) {
-        applicator.cancel();
-        return;
-    };
-
     KisPixelSelectionSP existingSelection;
-    if (kisCanvas->imageView() && kisCanvas->imageView()->selection())
-    {
-        existingSelection = kisCanvas->imageView()->selection()->pixelSelection();
+    KisSelectionSP activeSelection = KisSelectionUtils::activeSelectionForNode(
+        currentImage().toStrongRef(), currentNode());
+    if (activeSelection) {
+        existingSelection = activeSelection->pixelSelection();
     }
 
     KUndo2Command
@@ -245,7 +239,9 @@ void KisToolSelectContiguous::beginPrimaryAction(KoPointerEvent *event)
 
 
 
-    KisSelectionToolHelper helper(kisCanvas, kundo2_i18n("Select Contiguous Area"));
+    KisSelectionToolHelper helper(
+        canvas(), currentImage().toStrongRef(), currentNode(),
+        kundo2_i18n("Select Contiguous Area"));
 
     helper.selectPixelSelection(applicator, selection, selectionAction());
 

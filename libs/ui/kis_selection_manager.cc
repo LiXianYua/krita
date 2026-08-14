@@ -788,7 +788,7 @@ void KisSelectionManager::selectOpaqueOnNode(KisNodeSP node, SelectionAction act
         }
     }
 
-    KisSelectionToolHelper helper(canvas, actionName);
+    KisSelectionToolHelper helper(canvas, image, m_view->activeNode(), actionName);
     tmpSel->invalidateOutlineCache();
     helper.selectPixelSelection(tmpSel, action);
 }
