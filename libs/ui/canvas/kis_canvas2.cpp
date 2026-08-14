@@ -14,6 +14,8 @@
 #include <numeric>
 
 #include <QApplication>
+#include <QPainter>
+#include <QPen>
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QTime>
@@ -113,6 +115,7 @@
 #include <KisPlatformPluginInterfaceFactory.h>
 #include <KisMultiSurfaceStateManager.h>
 #include <KisCanvasState.h>
+#include <KisOptimizedBrushOutline.h>
 
 
 namespace {
@@ -355,6 +358,75 @@ void KisCanvas2::invalidateAll()
 void KisCanvas2::requestNodeActivation(KisNodeSP node)
 {
     viewManager()->nodeManager()->slotNonUiActivatedNode(node);
+}
+
+KisImageWSP KisCanvas2::toolImage() const
+{
+    return image();
+}
+
+QPointF KisCanvas2::toolWidgetCenterInWidgetPixels() const
+{
+    return m_d->coordinatesConverter->flakeToWidget(m_d->coordinatesConverter->flakeCenterPoint());
+}
+
+QPointF KisCanvas2::toolDocumentToWidget(const QPointF &point) const
+{
+    return m_d->coordinatesConverter->documentToWidget(point);
+}
+
+QPointF KisCanvas2::toolDocumentToAlignedImagePixel(const QPointF &point) const
+{
+    return m_d->coordinatesConverter->widgetToImage(
+        QPointF(m_d->coordinatesConverter->documentToWidget(point).toPoint()));
+}
+
+QTransform KisCanvas2::toolImageToViewTransform() const
+{
+    return m_d->coordinatesConverter->imageToDocumentTransform() *
+           m_d->coordinatesConverter->documentToFlakeTransform();
+}
+
+void KisCanvas2::drawToolOutline(QPainter *painter,
+                                 const KisOptimizedBrushOutline &path,
+                                 int thickness)
+{
+    KisOpenGLCanvas2 *openGLCanvasWidget =
+        dynamic_cast<KisOpenGLCanvas2 *>(this->canvasWidget());
+    if (openGLCanvasWidget) {
+        painter->beginNativePainting();
+        openGLCanvasWidget->paintToolOutline(path, thickness);
+        painter->endNativePainting();
+        return;
+    }
+
+    painter->save();
+    painter->setCompositionMode(QPainter::RasterOp_SourceXorDestination);
+    QPen pen = QColor(128, 255, 128);
+    pen.setCosmetic(true);
+    pen.setWidth(thickness);
+    painter->setPen(pen);
+
+    for (auto it = path.begin(); it != path.end(); ++it) {
+        painter->drawPolyline(*it);
+    }
+
+    painter->restore();
+}
+
+bool KisCanvas2::toolBlockUntilOperationsFinished(KisImageWSP image)
+{
+    return viewManager()->blockUntilOperationsFinished(image);
+}
+
+void KisCanvas2::toolBlockUntilOperationsFinishedForced(KisImageWSP image)
+{
+    viewManager()->blockUntilOperationsFinishedForced(image);
+}
+
+bool KisCanvas2::toolSelectionEditable() const
+{
+    return viewManager()->selectionEditable();
 }
 
 KisImageWSP KisCanvas2::samplingImage() const

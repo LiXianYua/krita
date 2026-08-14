@@ -7,7 +7,10 @@ qt_add_resources(kritatoolcrop_SOURCES toolcrop.qrc)
 
 kis_add_library(kritatoolcrop MODULE ${kritatoolcrop_SOURCES})
 
-target_link_libraries(kritatoolcrop kritaui)
+target_link_libraries(kritatoolcrop
+    kritacanvas
+    kritashapemodel
+)
 
 install(TARGETS kritatoolcrop  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

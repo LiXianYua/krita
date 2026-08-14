@@ -11,11 +11,6 @@
 #include <QTransform>
 
 #include <klocalizedstring.h>
-#include <QAction>
-#include <kactioncollection.h>
-
-#include <kis_icon.h>
-#include <KoConfig.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColor.h>
@@ -29,7 +24,6 @@
 #include <resources/KoAbstractGradient.h>
 #include <KoSnapGuide.h>
 
-#include <KisViewManager.h>
 #include <kis_selection.h>
 #include <kis_image.h>
 #include <kis_group_layer.h>
@@ -40,23 +34,19 @@
 #include <brushengine/kis_paintop_preset.h>
 #include <brushengine/kis_paintop_settings.h>
 #include <resources/KoPattern.h>
-#include <kis_floating_message.h>
-#include <KisResourceServerProvider.h>
-
-#include "opengl/kis_opengl_canvas2.h"
-#include "kis_canvas_resource_provider.h"
-#include "canvas/kis_canvas2.h"
-#include "kis_coordinates_converter.h"
 #include "filter/kis_filter_configuration.h"
-#include "kis_config.h"
 #include "kis_config_notifier.h"
-#include "kis_cursor.h"
 #include <kis_selection_mask.h>
 #include "kis_resources_snapshot.h"
-#include <KisView.h>
-#include "kis_action_registry.h"
-#include "kis_tool_utils.h"
+#include <kis_layer_utils.h>
+#include <kis_transaction.h>
+#include <kis_command_utils.h>
+#include <kis_processing_applicator.h>
+#include <KisAnimAutoKey.h>
 #include <KisOptimizedBrushOutline.h>
+#include <KisCanvasFeedback.h>
+#include <KisCanvasToolServices.h>
+#include <KoIcon.h>
 
 
 struct Q_DECL_HIDDEN KisTool::Private {
@@ -73,6 +63,90 @@ struct Q_DECL_HIDDEN KisTool::Private {
     ToolMode m_mode{HOVER_MODE};
     bool m_isActive{false};
 };
+
+namespace {
+
+QString nodeEditableMessage(KisNodeSP node, bool blockedNoIndirectPainting)
+{
+    QString message;
+    if (!node->isEditable(true) || blockedNoIndirectPainting) {
+        if (!node->visible() && node->userLocked()) {
+            message = i18n("Layer is locked and invisible.");
+        } else if (node->userLocked()) {
+            message = i18n("Layer is locked.");
+        } else if (!node->visible()) {
+            message = i18n("Layer is invisible.");
+        } else if (blockedNoIndirectPainting) {
+            message = i18n("Layer can be painted in Wash Mode only.");
+        } else {
+            message = i18n("Group not editable.");
+        }
+    }
+    return message;
+}
+
+bool clearImage(KisImageSP image, KisNodeList nodes, KisSelectionSP selection)
+{
+    KisNodeList masks;
+
+    Q_FOREACH (KisNodeSP node, nodes) {
+        if (node->inherits("KisMask")) {
+            masks.append(node);
+        }
+    }
+
+    KisLayerUtils::filterMergeableNodes(nodes);
+    nodes.append(masks);
+
+    if (nodes.isEmpty()) {
+        return false;
+    }
+
+    KisProcessingApplicator applicator(image, 0, KisProcessingApplicator::NONE,
+                                       KisImageSignalVector(), kundo2_i18n("Clear"));
+
+    Q_FOREACH (KisNodeSP node, nodes) {
+        KisLayerUtils::recursiveApplyNodes(node, [&applicator, selection, masks] (KisNodeSP node) {
+            if (node->inherits("KisMask") && !masks.contains(node)) {
+                return;
+            }
+
+            if (node->hasEditablePaintDevice()) {
+                KUndo2Command *cmd = new KisCommandUtils::LambdaCommand(
+                    kundo2_i18n("Clear"), [node, selection] () {
+                        KisPaintDeviceSP device = node->paintDevice();
+                        std::unique_ptr<KisCommandUtils::CompositeCommand> parentCommand(
+                            new KisCommandUtils::CompositeCommand());
+
+                        KUndo2Command *autoKeyframeCommand = KisAutoKey::tryAutoCreateDuplicatedFrame(device);
+                        if (autoKeyframeCommand) {
+                            parentCommand->addCommand(autoKeyframeCommand);
+                        }
+
+                        KisTransaction transaction(kundo2_noi18n("internal-clear-command"), device);
+                        QRect dirtyRect;
+                        if (selection) {
+                            dirtyRect = selection->selectedRect();
+                            device->clearSelection(selection);
+                        } else {
+                            dirtyRect = device->extent();
+                            device->clear();
+                        }
+
+                        device->setDirty(dirtyRect);
+                        parentCommand->addCommand(transaction.endAndTake());
+                        return parentCommand.release();
+                    });
+                applicator.applyCommand(cmd, KisStrokeJobData::CONCURRENT);
+            }
+        });
+    }
+
+    applicator.end();
+    return true;
+}
+
+} // namespace
 
 KisTool::KisTool(KoCanvasBase * canvas, const QCursor & cursor)
     : KoToolBase(canvas)
@@ -170,19 +244,16 @@ void KisTool::updateSettingsViews()
 
 QPointF KisTool::widgetCenterInWidgetPixels()
 {
-    KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    Q_ASSERT(kritaCanvas);
-
-    const KisCoordinatesConverter *converter = kritaCanvas->coordinatesConverter();
-    return converter->flakeToWidget(converter->flakeCenterPoint());
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    Q_ASSERT(services);
+    return services->toolWidgetCenterInWidgetPixels();
 }
 
 QPointF KisTool::convertDocumentToWidget(const QPointF& pt)
 {
-    KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    Q_ASSERT(kritaCanvas);
-
-    return kritaCanvas->coordinatesConverter()->documentToWidget(pt);
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    Q_ASSERT(services);
+    return services->toolDocumentToWidget(pt);
 }
 
 QPointF KisTool::convertToPixelCoord(KoPointerEvent *e)
@@ -203,11 +274,9 @@ QPointF KisTool::convertToPixelCoord(const QPointF& pt)
 
 QPointF KisTool::convertToPixelCoordAndAlignOnWidget(const QPointF &pt)
 {
-    KisCanvas2 *canvas2 = dynamic_cast<KisCanvas2 *>(canvas());
-    KIS_ASSERT(canvas2);
-    const KisCoordinatesConverter *converter = canvas2->coordinatesConverter();
-    const QPointF imagePos = converter->widgetToImage(QPointF(converter->documentToWidget(pt).toPoint()));
-    return imagePos;
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT(services);
+    return services->toolDocumentToAlignedImagePixel(pt);
 }
 
 QPointF KisTool::convertToPixelCoordAndSnap(KoPointerEvent *e, const QPointF &offset, bool useModifiers)
@@ -302,10 +371,9 @@ QPainterPath KisTool::pixelToView(const QPainterPath &pixelPolygon) const
 
 KisOptimizedBrushOutline KisTool::pixelToView(const KisOptimizedBrushOutline &path) const
 {
-    KisCanvas2 *canvas2 = dynamic_cast<KisCanvas2 *>(canvas());
-    KIS_ASSERT(canvas2);
-    const KisCoordinatesConverter *coordsConverter = canvas2->coordinatesConverter();
-    return path.mapped(coordsConverter->imageToDocumentTransform() * coordsConverter->documentToFlakeTransform());
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT(services);
+    return path.mapped(services->toolImageToViewTransform());
 }
 
 
@@ -330,10 +398,8 @@ void KisTool::updateCanvasViewRect(const QRectF &viewRect)
 
 KisImageWSP KisTool::image() const
 {
-    // For now, krita tools only work in krita, not for a krita shape. Krita shapes are for 2.1
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    if (kisCanvas) {
-        return kisCanvas->currentImage();
+    if (KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas())) {
+        return services->toolImage();
     }
 
     return 0;
@@ -530,7 +596,7 @@ void KisTool::deleteSelection()
         return;
     }
 
-    if (!KisToolUtils::clearImage(image(), resources->selectedNodes(), resources->activeSelection())) {
+    if (!clearImage(image(), resources->selectedNodes(), resources->activeSelection())) {
         KoToolBase::deleteSelection();
     }
 }
@@ -587,25 +653,8 @@ QWidget* KisTool::createOptionWidget()
 
 void KisTool::paintToolOutline(QPainter* painter, const KisOptimizedBrushOutline &path)
 {
-    KisOpenGLCanvas2 *canvasWidget = dynamic_cast<KisOpenGLCanvas2 *>(canvas()->canvasWidget());
-    if (canvasWidget)  {
-        painter->beginNativePainting();
-        canvasWidget->paintToolOutline(path, decorationThickness());
-        painter->endNativePainting();
-    }
-    else {
-        painter->save();
-        painter->setCompositionMode(QPainter::RasterOp_SourceXorDestination);
-        QPen p = QColor(128, 255, 128);
-        p.setCosmetic(true);
-        p.setWidth(decorationThickness());
-        painter->setPen(p);
-
-        for (auto it = path.begin(); it != path.end(); ++it) {
-            painter->drawPolyline(*it);
-        }
-
-        painter->restore();
+    if (KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas())) {
+        services->drawToolOutline(painter, path, decorationThickness());
     }
 }
 
@@ -630,16 +679,15 @@ bool KisTool::overrideCursorIfNotEditable()
 
 bool KisTool::blockUntilOperationsFinished()
 {
-    KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-    KisViewManager* viewManager = kiscanvas->viewManager();
-    return viewManager->blockUntilOperationsFinished(image());
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    return services && services->toolBlockUntilOperationsFinished(image());
 }
 
 void KisTool::blockUntilOperationsFinishedForced()
 {
-    KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-    KisViewManager* viewManager = kiscanvas->viewManager();
-    viewManager->blockUntilOperationsFinishedForced(image());
+    if (KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas())) {
+        services->toolBlockUntilOperationsFinishedForced(image());
+    }
 }
 
 bool KisTool::isActive() const
@@ -674,22 +722,22 @@ bool KisTool::nodeEditable()
     bool nodeEditable = node->isEditable() && !blockedNoIndirectPainting;
 
     if (!nodeEditable) {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-        QString message = KisToolUtils::nodeEditableMessage(node, blockedNoIndirectPainting);
-        kiscanvas->viewManager()->showFloatingMessage(message, KisIconUtils::loadIcon("object-locked"));
+        if (KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas())) {
+            feedback->showFloatingMessage(nodeEditableMessage(node, blockedNoIndirectPainting),
+                                          koIcon("object-locked"));
+        }
     }
     return nodeEditable;
 }
 
 bool KisTool::selectionEditable()
 {
-    KisCanvas2 * kisCanvas = static_cast<KisCanvas2*>(canvas());
-    KisViewManager * view = kisCanvas->viewManager();
-
-    bool editable = view->selectionEditable();
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    bool editable = services && services->toolSelectionEditable();
     if (!editable) {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-        kiscanvas->viewManager()->showFloatingMessage(i18n("Local selection is locked."), KisIconUtils::loadIcon("object-locked"));
+        if (KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas())) {
+            feedback->showFloatingMessage(i18n("Local selection is locked."), koIcon("object-locked"));
+        }
     }
     return editable;
 }

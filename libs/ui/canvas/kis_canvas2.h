@@ -26,6 +26,7 @@
 #include "KisCanvasFeedback.h"
 #include "KisCanvasInvalidation.h"
 #include "KisCanvasNodeActivation.h"
+#include "KisCanvasToolServices.h"
 #include "KisColorSamplingCanvas.h"
 #include "KisReferenceImageToolServices.h"
 #include "kis_coordinates_converter.h"
@@ -64,6 +65,7 @@ class KRITAUI_EXPORT KisCanvas2 : public KoCanvasBase,
                                  public KisCanvasFeedback,
                                  public KisCanvasInvalidation,
                                  public KisCanvasNodeActivation,
+                                 public KisCanvasToolServices,
                                  public KisColorSamplingCanvas,
                                  public KisReferenceImageToolServices,
                                  public KisPaintingAssistantCanvas,
@@ -157,6 +159,18 @@ public: // KoCanvasBase implementation
     void invalidateAll() override;
 
     void requestNodeActivation(KisNodeSP node) override;
+
+    KisImageWSP toolImage() const override;
+    QPointF toolWidgetCenterInWidgetPixels() const override;
+    QPointF toolDocumentToWidget(const QPointF &point) const override;
+    QPointF toolDocumentToAlignedImagePixel(const QPointF &point) const override;
+    QTransform toolImageToViewTransform() const override;
+    void drawToolOutline(QPainter *painter,
+                         const KisOptimizedBrushOutline &path,
+                         int thickness) override;
+    bool toolBlockUntilOperationsFinished(KisImageWSP image) override;
+    void toolBlockUntilOperationsFinishedForced(KisImageWSP image) override;
+    bool toolSelectionEditable() const override;
 
     KisImageWSP samplingImage() const override;
     std::optional<KoColor>

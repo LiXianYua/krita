@@ -2,11 +2,13 @@ set(kritacanvas_LIB_SRCS
     KisCanvasFeedback.cpp
     KisCanvasInvalidation.cpp
     KisCanvasNodeActivation.cpp
+    KisCanvasToolServices.cpp
     KisColorSamplingCanvas.cpp
     KisReferenceImageToolServices.cpp
     KisMirrorAxisConfig.cpp
     KisCanvasConfig.cpp
     KisCanvasState.cpp
+    ../tool/kis_tool.cc
     KisDisplayConfig.cpp
     kis_display_color_converter.cpp
     kis_grid_config.cpp
@@ -31,6 +33,7 @@ target_include_directories(kritacanvas
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../tool>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../opengl>
 )
 
