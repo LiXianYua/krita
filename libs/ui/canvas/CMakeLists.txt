@@ -3,6 +3,7 @@ set(kritacanvas_LIB_SRCS
     KisCanvasInvalidation.cpp
     KisCanvasNodeActivation.cpp
     KisColorSamplingCanvas.cpp
+    KisReferenceImageToolServices.cpp
     KisMirrorAxisConfig.cpp
     KisCanvasConfig.cpp
     KisCanvasState.cpp

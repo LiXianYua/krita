@@ -34,6 +34,7 @@
 #include <KoSelection.h>
 #include <KoShapeController.h>
 #include <KisReferenceImagesLayer.h>
+#include <KisReferenceImage.h>
 #include <KoSvgTextShape.h>
 
 #include <KisUsageLogger.h>
@@ -397,6 +398,38 @@ bool KisCanvas2::samplingCanvasMirroredHorizontally() const
 bool KisCanvas2::samplingCanvasMirroredVertically() const
 {
     return yAxisMirrored();
+}
+
+KisDocument *KisCanvas2::referenceImageDocument() const
+{
+    return imageView()->document();
+}
+
+QWidget *KisCanvas2::referenceImageDialogParent() const
+{
+    return viewManager()->mainWindowAsQWidget();
+}
+
+KisReferenceImage *
+KisCanvas2::referenceImageFromFile(const QString &filename)
+{
+    return KisReferenceImage::fromFile(
+        filename, *coordinatesConverter(), canvasWidget());
+}
+
+KisReferenceImage *KisCanvas2::referenceImageFromClipboard()
+{
+    return KisReferenceImage::fromClipboard(*coordinatesConverter());
+}
+
+void KisCanvas2::createReferenceImageFromLayer()
+{
+    viewManager()->nodeManager()->createReferenceImageFromLayer();
+}
+
+void KisCanvas2::createReferenceImageFromVisible()
+{
+    viewManager()->nodeManager()->createReferenceImageFromVisible();
 }
 
 void KisCanvas2::setup()

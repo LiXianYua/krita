@@ -22,6 +22,7 @@
 
 class KisReferenceImagesLayer;
 class KisDocument;
+class KisReferenceImageToolServices;
 
 class ToolReferenceImages : public DefaultTool
 {
@@ -77,6 +78,7 @@ public Q_SLOTS:
 
 private:
     KisWeakSharedPtr<KisReferenceImagesLayer> m_layer;
+    KisReferenceImageToolServices *m_services;
 
     KisDocument *document() const;
     void setReferenceImageLayer(KisSharedPtr<KisReferenceImagesLayer> layer);

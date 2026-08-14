@@ -27,6 +27,7 @@
 #include "KisCanvasInvalidation.h"
 #include "KisCanvasNodeActivation.h"
 #include "KisColorSamplingCanvas.h"
+#include "KisReferenceImageToolServices.h"
 #include "kis_coordinates_converter.h"
 #include "kis_canvas_decoration.h"
 #include <kis_painting_assistant.h>
@@ -64,6 +65,7 @@ class KRITAUI_EXPORT KisCanvas2 : public KoCanvasBase,
                                  public KisCanvasInvalidation,
                                  public KisCanvasNodeActivation,
                                  public KisColorSamplingCanvas,
+                                 public KisReferenceImageToolServices,
                                  public KisPaintingAssistantCanvas,
                                  public KisPaintingAssistantToolServices
 {
@@ -163,6 +165,13 @@ public: // KoCanvasBase implementation
     qreal samplingCanvasRotation() const override;
     bool samplingCanvasMirroredHorizontally() const override;
     bool samplingCanvasMirroredVertically() const override;
+
+    KisDocument *referenceImageDocument() const override;
+    QWidget *referenceImageDialogParent() const override;
+    KisReferenceImage *referenceImageFromFile(const QString &filename) override;
+    KisReferenceImage *referenceImageFromClipboard() override;
+    void createReferenceImageFromLayer() override;
+    void createReferenceImageFromVisible() override;
 
     KoUnit unit() const override;
 
