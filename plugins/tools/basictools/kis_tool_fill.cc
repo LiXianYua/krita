@@ -37,7 +37,6 @@
 #include <kis_fill_painter.h>
 #include <kis_selection_filters.h>
 
-#include <KisPart.h>
 #include <KisDocument.h>
 #include <kis_dummies_facade.h>
 #include <KoShapeControllerBase.h>

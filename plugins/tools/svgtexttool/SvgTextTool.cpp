@@ -34,7 +34,6 @@
 
 #include <klocalizedstring.h>
 
-#include <KisPart.h>
 #include <kis_canvas2.h>
 #include <KSharedConfig>
 #include "kis_assert.h"
@@ -1006,4 +1005,3 @@ void SvgTextTool::addMappedAction(KisSignalMapper *mapper, const QString &action
         }
     }
 }
-

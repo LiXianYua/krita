@@ -14,8 +14,8 @@
 #include "kis_time_span.h"
 #include "dialogs/KisAsyncAnimationFramesSaveDialog.h"
 #include "kis_image_animation_interface.h"
-#include "KisPart.h"
 #include "KisDocument.h"
+#include "KisDocumentRegistry.h"
 #include "kis_image.h"
 #include "kis_image_config.h"
 
@@ -68,7 +68,7 @@ void KisAnimationRenderingBenchmark::testCacheRendering()
     QVERIFY(QFileInfo(fileName).exists());
 
 
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
 
     bool loadingResult = doc->loadNativeFormat(fileName);
     QVERIFY(loadingResult);
