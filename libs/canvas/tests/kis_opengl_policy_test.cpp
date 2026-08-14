@@ -9,8 +9,11 @@
 #include "opengl/KisOpenGLPolicy.h"
 
 #include <algorithm>
+#include <QProcessEnvironment>
 
 Q_DECLARE_METATYPE(KisOpenGLPolicy::Renderer)
+Q_DECLARE_METATYPE(KisOpenGLPolicy::Platform)
+Q_DECLARE_METATYPE(KisOpenGLPolicy::Profile)
 
 class KisOpenGLPolicyTest : public QObject
 {
@@ -22,9 +25,13 @@ private Q_SLOTS:
     void testIntelDriverBlacklist_data();
     void testIntelDriverBlacklist();
     void testSurfaceRequestPolicy();
+    void testAutoSurfaceRequest_data();
+    void testAutoSurfaceRequest();
     void testCapabilityProbeSequence();
     void testRendererOrdering();
     void testDriverWorkarounds();
+    void testAngleTextureBufferPolicy();
+    void testPixmapCacheFormula();
 };
 
 void KisOpenGLPolicyTest::testRendererConfigMapping_data()
@@ -111,6 +118,41 @@ void KisOpenGLPolicyTest::testSurfaceRequestPolicy()
     QCOMPARE(software.angleRenderer, AngleRenderer::D3d11Warp);
 }
 
+void KisOpenGLPolicyTest::testAutoSurfaceRequest_data()
+{
+    using namespace KisOpenGLPolicy;
+    QTest::addColumn<Platform>("platform");
+    QTest::addColumn<Renderer>("defaultRenderer");
+    QTest::addColumn<int>("major");
+    QTest::addColumn<int>("minor");
+    QTest::addColumn<Profile>("profile");
+
+    QTest::newRow("desktop-other") << Platform::Other << Renderer::DesktopGL << 3 << 3 << Profile::Compatibility;
+    QTest::newRow("desktop-windows") << Platform::Windows << Renderer::DesktopGL << 3 << 3 << Profile::Compatibility;
+    QTest::newRow("desktop-macos") << Platform::MacOS << Renderer::DesktopGL << 4 << 1 << Profile::Core;
+    QTest::newRow("gles-windows") << Platform::Windows << Renderer::OpenGLES << 3 << 0 << Profile::None;
+}
+
+void KisOpenGLPolicyTest::testAutoSurfaceRequest()
+{
+    using namespace KisOpenGLPolicy;
+    QFETCH(Platform, platform);
+    QFETCH(Renderer, defaultRenderer);
+    QFETCH(int, major);
+    QFETCH(int, minor);
+    QFETCH(Profile, profile);
+
+    const auto request = surfaceRequest(Renderer::Auto,
+                                        platform,
+                                        false,
+                                        false,
+                                        false,
+                                        defaultRenderer);
+    QCOMPARE(request.majorVersion, major);
+    QCOMPARE(request.minorVersion, minor);
+    QCOMPARE(request.profile, profile);
+}
+
 void KisOpenGLPolicyTest::testCapabilityProbeSequence()
 {
     using namespace KisOpenGLPolicy;
@@ -190,6 +232,41 @@ void KisOpenGLPolicyTest::testDriverWorkarounds()
     QVERIFY(rejectAngleD3d9(true, true, QStringLiteral("ANGLE (Direct3D9)")));
     QVERIFY(rejectAngleD3d9(true, true, QStringLiteral("angle direct3d9")));
     QVERIFY(!rejectAngleD3d9(false, true, QStringLiteral("ANGLE (Direct3D9)")));
+}
+
+void KisOpenGLPolicyTest::testAngleTextureBufferPolicy()
+{
+    using namespace KisOpenGLPolicy;
+
+    QProcessEnvironment cleanEnvironment;
+    QVERIFY(forceDisableTextureBuffers(Platform::Windows,
+                                       QStringLiteral("ANGLE (NVIDIA, Direct3D11)"),
+                                       cleanEnvironment));
+    QVERIFY(forceDisableTextureBuffers(Platform::Windows,
+                                       QStringLiteral("angle direct3d11"),
+                                       cleanEnvironment));
+    QVERIFY(!forceDisableTextureBuffers(Platform::Other,
+                                        QStringLiteral("ANGLE (NVIDIA, Direct3D11)"),
+                                        cleanEnvironment));
+    QVERIFY(!forceDisableTextureBuffers(Platform::Windows,
+                                        QStringLiteral("NVIDIA OpenGL"),
+                                        cleanEnvironment));
+
+    QProcessEnvironment unlockedEnvironment;
+    unlockedEnvironment.insert(QStringLiteral("KRITA_UNLOCK_TEXTURE_BUFFERS"), QString());
+    QVERIFY(!forceDisableTextureBuffers(Platform::Windows,
+                                        QStringLiteral("ANGLE (NVIDIA, Direct3D11)"),
+                                        unlockedEnvironment));
+}
+
+void KisOpenGLPolicyTest::testPixmapCacheFormula()
+{
+    using namespace KisOpenGLPolicy;
+
+    QCOMPARE(assistantPixmapCacheLimitKiB(1, 1), 20 * 1024);
+    QCOMPARE(assistantPixmapCacheLimitKiB(960, 983), 20 * 1024);
+    QCOMPARE(assistantPixmapCacheLimitKiB(960, 984), 2048 + 5 * 4 * 960 * 984 / 1024);
+    QCOMPARE(assistantPixmapCacheLimitKiB(1920, 1080), 2048 + 5 * 4 * 1920 * 1080 / 1024);
 }
 
 SIMPLE_TEST_MAIN(KisOpenGLPolicyTest)

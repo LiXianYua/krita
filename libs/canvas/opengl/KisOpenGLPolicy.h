@@ -12,6 +12,8 @@
 #include <QString>
 #include <QVector>
 
+class QProcessEnvironment;
+
 namespace KisOpenGLPolicy
 {
 
@@ -70,7 +72,8 @@ KRITACANVAS_EXPORT SurfaceRequest surfaceRequest(Renderer renderer,
                                                  Platform platform,
                                                  bool inhibitCompatibilityProfile,
                                                  bool debugContext,
-                                                 bool repaintDebugging);
+                                                 bool repaintDebugging,
+                                                 Renderer defaultRenderer = Renderer::DesktopGL);
 
 struct KRITACANVAS_EXPORT ProbeRequest
 {
@@ -130,7 +133,12 @@ KRITACANVAS_EXPORT bool needsFenceWorkaround(bool isOnX11,
                                              const QString &rendererString,
                                              bool forceWorkaround);
 KRITACANVAS_EXPORT bool shouldUseTextureBuffers(bool forceDisabled, bool userPreference);
+KRITACANVAS_EXPORT bool forceDisableTextureBuffers(
+    Platform platform,
+    const QString &rendererString,
+    const QProcessEnvironment &environment);
 KRITACANVAS_EXPORT bool shouldInvalidateBuffers(bool configured, bool driverSupportsInvalidation);
+KRITACANVAS_EXPORT int assistantPixmapCacheLimitKiB(int width, int height);
 KRITACANVAS_EXPORT bool rejectAngleD3d9(bool isWindows,
                                        bool isUsingAngle,
                                        const QString &rendererString);

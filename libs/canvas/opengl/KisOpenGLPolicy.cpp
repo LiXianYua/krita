@@ -6,6 +6,7 @@
 
 #include "KisOpenGLPolicy.h"
 
+#include <QProcessEnvironment>
 #include <QRegularExpression>
 
 namespace KisOpenGLPolicy
@@ -45,11 +46,16 @@ SurfaceRequest surfaceRequest(Renderer renderer,
                               Platform platform,
                               bool inhibitCompatibilityProfile,
                               bool debugContext,
-                              bool repaintDebugging)
+                              bool repaintDebugging,
+                              Renderer defaultRenderer)
 {
     SurfaceRequest request;
     request.debugContext = debugContext;
     request.swapInterval = repaintDebugging ? 1 : 0;
+
+    if (renderer == Renderer::Auto) {
+        renderer = defaultRenderer == Renderer::Auto ? Renderer::DesktopGL : defaultRenderer;
+    }
 
     switch (renderer) {
     case Renderer::OpenGLES:
@@ -81,8 +87,7 @@ SurfaceRequest surfaceRequest(Renderer renderer,
         request.angleRenderer = AngleRenderer::Default;
         break;
     case Renderer::Auto:
-        request.angleRenderer = AngleRenderer::D3d11;
-        break;
+        Q_UNREACHABLE();
     }
 
     return request;
@@ -248,9 +253,25 @@ bool shouldUseTextureBuffers(bool forceDisabled, bool userPreference)
     return !forceDisabled && userPreference;
 }
 
+bool forceDisableTextureBuffers(Platform platform,
+                                const QString &rendererString,
+                                const QProcessEnvironment &environment)
+{
+    return platform == Platform::Windows &&
+        !environment.contains(QStringLiteral("KRITA_UNLOCK_TEXTURE_BUFFERS")) &&
+        rendererString.contains(QStringLiteral("ANGLE"), Qt::CaseInsensitive);
+}
+
 bool shouldInvalidateBuffers(bool configured, bool driverSupportsInvalidation)
 {
     return configured && driverSupportsInvalidation;
+}
+
+int assistantPixmapCacheLimitKiB(int width, int height)
+{
+    const int minimumCacheSize = 20 * 1024;
+    const int cacheSize = 2048 + 5 * 4 * width * height / 1024;
+    return qMax(minimumCacheSize, cacheSize);
 }
 
 bool rejectAngleD3d9(bool isWindows, bool isUsingAngle, const QString &rendererString)
