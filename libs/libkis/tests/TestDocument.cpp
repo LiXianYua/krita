@@ -5,14 +5,19 @@
 #include "TestDocument.h"
 #include <simpletest.h>
 
+#include <atomic>
+#include <thread>
+
 #include <KritaVersionWrapper.h>
 #include <QColor>
 #include <QDataStream>
 #include <QDir>
 #include <QBuffer>
+#include <QSemaphore>
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTextStream>
+#include <QThread>
 
 #include <Node.h>
 #include <Krita.h>
@@ -26,6 +31,7 @@
 #include <KisDocumentApplicationServices.h>
 #include <KisDocumentRegistry.h>
 #include <kis_image.h>
+#include <kis_simple_stroke_strategy.h>
 #include <kis_fill_painter.h>
 #include <kis_paint_layer.h>
 #include <KisPart.h>
@@ -35,6 +41,38 @@
 #include <testui.h>
 
 #include <KisPortingUtils.h>
+
+namespace
+{
+
+class BlockingStrokeStrategy final : public KisSimpleStrokeStrategy
+{
+public:
+    BlockingStrokeStrategy(QSemaphore &started,
+                           QSemaphore &release,
+                           std::atomic_bool &finished)
+        : KisSimpleStrokeStrategy(QLatin1String("BlockingStrokeStrategy"))
+        , m_started(started)
+        , m_release(release)
+        , m_finished(finished)
+    {
+        enableJob(KisSimpleStrokeStrategy::JOB_DOSTROKE);
+    }
+
+    void doStrokeCallback(KisStrokeJobData *) override
+    {
+        m_started.release();
+        m_release.acquire();
+        m_finished.store(true, std::memory_order_release);
+    }
+
+private:
+    QSemaphore &m_started;
+    QSemaphore &m_release;
+    std::atomic_bool &m_finished;
+};
+
+}
 
 void TestDocument::testDocumentRegistryLifecycle()
 {
@@ -64,6 +102,42 @@ void TestDocument::testDocumentRegistryLifecycle()
     QCOMPARE(services->autoSaveInterval(), 7 * 60);
     QCOMPARE(services->undoStackLimit(), 200);
     QCOMPARE(services->autoPinLayersToTimeline(), true);
+
+    KisImageSP pendingImage = new KisImage(nullptr,
+                                           10,
+                                           10,
+                                           KoColorSpaceRegistry::instance()->rgb8(),
+                                           QStringLiteral("pending image"));
+    QSemaphore strokeStarted;
+    QSemaphore releaseStroke;
+    std::atomic_bool strokeFinished {false};
+    KisStrokeId strokeId = pendingImage->startStroke(
+        new BlockingStrokeStrategy(strokeStarted, releaseStroke, strokeFinished));
+    pendingImage->addJob(strokeId, nullptr);
+    pendingImage->endStroke(strokeId);
+
+    if (!strokeStarted.tryAcquire(1, 5000)) {
+        releaseStroke.release();
+        pendingImage->waitForDone();
+        QFAIL("The test stroke did not start");
+    }
+
+    std::atomic_bool releaseTriggered {false};
+    std::thread releaseThread([&releaseStroke, &releaseTriggered]() {
+        QThread::msleep(50);
+        releaseTriggered.store(true, std::memory_order_release);
+        releaseStroke.release();
+    });
+    const bool waitResult = services->waitForImage(
+        pendingImage, KisDocumentApplicationServices::WaitMode::Forced);
+    const bool releaseHappenedBeforeReturn =
+        releaseTriggered.load(std::memory_order_acquire);
+    releaseThread.join();
+
+    QVERIFY(waitResult);
+    QVERIFY(releaseHappenedBeforeReturn);
+    QVERIFY(strokeFinished.load(std::memory_order_acquire));
+    QVERIFY(pendingImage->isIdle());
 
     KisDocumentRegistry registry;
     QSignalSpy addedSpy(&registry, &KisDocumentRegistry::sigDocumentAdded);

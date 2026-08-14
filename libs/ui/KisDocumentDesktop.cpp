@@ -84,7 +84,7 @@ public:
     {
         KisMainWindow *window = KisPart::instance()->currentMainwindow();
         if (!window || !window->viewManager()) {
-            return true;
+            return KisDocumentApplicationServices::waitForImage(image, mode);
         }
         if (mode == WaitMode::Forced) {
             window->viewManager()->blockUntilOperationsFinishedForced(image);

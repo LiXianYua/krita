@@ -13,6 +13,7 @@
 
 #include <KoColor.h>
 #include <KoUpdater.h>
+#include <kis_image.h>
 
 namespace
 {
@@ -33,8 +34,11 @@ void KisDocumentApplicationServices::setInstance(KisDocumentApplicationServices 
     s_services = services;
 }
 
-bool KisDocumentApplicationServices::waitForImage(KisImageSP, WaitMode)
+bool KisDocumentApplicationServices::waitForImage(KisImageSP image, WaitMode)
 {
+    if (image) {
+        image->waitForDone();
+    }
     return true;
 }
 
