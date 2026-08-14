@@ -216,7 +216,7 @@ void KisMultiSurfacePolicyTest::testSurfaceDescriptionSelection()
                     NamedTransferFunction::transfer_function_srgb;
         });
     QCOMPARE(profileAttempts, 4);
-    QVERIFY(selected.hasProfile);
+    QCOMPARE(selected.profileSource, ProfileSource::Generated);
 }
 
 void KisMultiSurfacePolicyTest::testCustomColorimetryAndTransfer()
@@ -308,6 +308,26 @@ void KisMultiSurfacePolicyTest::testTerminalSrgbFallbacks()
     QCOMPARE(std::get<NamedTransferFunction>(supportAttempts.at(2).colorSpace.transferFunction),
              NamedTransferFunction::transfer_function_gamma22);
 
+    supportAttempts.clear();
+    bool profileLookupAttempted = false;
+    selected = selectSurfaceDescription(
+        KisCanvasSurfaceMode::Preferred,
+        preferred,
+        [&supportAttempts](const SurfaceDescription &description) {
+            supportAttempts.append(description);
+            return false;
+        },
+        [&profileLookupAttempted](const SurfaceDescription &) {
+            profileLookupAttempted = true;
+            return false;
+        });
+    QCOMPARE(supportAttempts.size(), 3);
+    QVERIFY(!profileLookupAttempted);
+    QVERIFY(!selected.requestedDescription);
+    QCOMPARE(selected.profileSource, ProfileSource::BuiltInSrgb);
+    QCOMPARE(selected.errorMessage,
+             QStringLiteral("failed to find a suitable surface format for the compositor"));
+
     QVector<SurfaceDescription> profileAttempts;
     selected = selectSurfaceDescription(
         KisCanvasSurfaceMode::Preferred,
@@ -321,7 +341,7 @@ void KisMultiSurfacePolicyTest::testTerminalSrgbFallbacks()
                 std::get<NamedTransferFunction>(description.colorSpace.transferFunction) ==
                     NamedTransferFunction::transfer_function_srgb;
         });
-    QVERIFY(selected.hasProfile);
+    QCOMPARE(selected.profileSource, ProfileSource::Generated);
     QCOMPARE(profileAttempts.size(), 4);
     QVERIFY(std::holds_alternative<KisColorimetryUtils::Colorimetry>(
         profileAttempts.at(1).colorSpace.primaries));
@@ -331,6 +351,21 @@ void KisMultiSurfacePolicyTest::testTerminalSrgbFallbacks()
              NamedPrimaries::primaries_srgb);
     QCOMPARE(std::get<NamedTransferFunction>(profileAttempts.at(3).colorSpace.transferFunction),
              NamedTransferFunction::transfer_function_srgb);
+
+    profileAttempts.clear();
+    selected = selectSurfaceDescription(
+        KisCanvasSurfaceMode::Preferred,
+        preferred,
+        [](const SurfaceDescription &) { return true; },
+        [&profileAttempts](const SurfaceDescription &description) {
+            profileAttempts.append(description);
+            return false;
+        });
+    QCOMPARE(profileAttempts.size(), 4);
+    QVERIFY(!selected.requestedDescription);
+    QCOMPARE(selected.profileSource, ProfileSource::BuiltInSrgb);
+    QCOMPARE(selected.errorMessage,
+             QStringLiteral("failed to create a profile for the compositor's preferred color space"));
 }
 
 
@@ -375,6 +410,16 @@ void KisMultiSurfacePolicyTest::testProtocolNegotiation()
                        [](const SurfaceDescription &) { return true; });
     QCOMPARE(result.command, ProtocolCommand::Unset);
     QVERIFY(!result.requestedDescription);
+    QCOMPARE(result.profileSource, ProfileSource::BuiltInSrgb);
+
+    input.surfaceMode = KisCanvasSurfaceMode::Preferred;
+    input.compositorPreferred = preferred;
+    result = negotiate(input,
+                       [](RenderIntent) { return true; },
+                       [](const SurfaceDescription &) { return true; },
+                       [](const SurfaceDescription &) { return false; });
+    QVERIFY(!result.requestedDescription);
+    QCOMPARE(result.profileSource, ProfileSource::BuiltInSrgb);
 
     input.ready = false;
     result = negotiate(input,

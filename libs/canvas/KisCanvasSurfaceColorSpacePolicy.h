@@ -37,10 +37,16 @@ using SupportsIntent = std::function<bool(RenderIntent)>;
 KRITACANVAS_EXPORT KisCanvasSurfaceMode surfaceModeFromConfig(const QString &value);
 KRITACANVAS_EXPORT QString surfaceModeToConfig(KisCanvasSurfaceMode mode);
 
+enum class ProfileSource {
+    None,
+    Generated,
+    BuiltInSrgb
+};
+
 struct KRITACANVAS_EXPORT SelectionResult
 {
     std::optional<SurfaceDescription> requestedDescription;
-    bool hasProfile {false};
+    ProfileSource profileSource {ProfileSource::None};
     QString errorMessage;
 };
 
@@ -78,7 +84,7 @@ struct KRITACANVAS_EXPORT NegotiationResult
     std::optional<SurfaceDescription> requestedDescription;
     RenderIntent intent {RenderIntent::render_intent_perceptual};
     bool isCanvasHdr {false};
-    bool hasProfile {false};
+    ProfileSource profileSource {ProfileSource::None};
     QString errorMessage;
 };
 

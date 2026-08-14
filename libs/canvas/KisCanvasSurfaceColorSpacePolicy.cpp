@@ -38,7 +38,7 @@ SelectionResult selectSurfaceDescription(
     const ProfileAvailable &profileAvailable)
 {
     if (requestedSurfaceMode == KisCanvasSurfaceMode::Unmanaged) {
-        return {std::nullopt, true, {}};
+        return {std::nullopt, ProfileSource::BuiltInSrgb, {}};
     }
 
     SurfaceDescription requestedDescription;
@@ -99,7 +99,7 @@ SelectionResult selectSurfaceDescription(
         if (!supportsDescription(requestedDescription)) {
             requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_gamma22;
             if (!supportsDescription(requestedDescription)) {
-                return {std::nullopt, false,
+                return {std::nullopt, ProfileSource::BuiltInSrgb,
                         QStringLiteral("failed to find a suitable surface format for the compositor")};
             }
         }
@@ -125,11 +125,11 @@ SelectionResult selectSurfaceDescription(
         }
     }
     if (!hasProfile) {
-        return {std::nullopt, false,
+        return {std::nullopt, ProfileSource::BuiltInSrgb,
                 QStringLiteral("failed to create a profile for the compositor's preferred color space")};
     }
 
-    return {requestedDescription, true, {}};
+    return {requestedDescription, ProfileSource::Generated, {}};
 }
 
 RenderIntent calculateConfigIntent(const KisDisplayConfig::Options &options)
@@ -177,7 +177,7 @@ NegotiationResult negotiate(const NegotiationInput &input,
 
     SelectionResult selection;
     if (input.surfaceMode == KisCanvasSurfaceMode::Unmanaged) {
-        selection = {std::nullopt, true, {}};
+        selection = {std::nullopt, ProfileSource::BuiltInSrgb, {}};
     } else if (!input.compositorPreferred) {
         result.deferred = true;
         return result;
@@ -189,7 +189,7 @@ NegotiationResult negotiate(const NegotiationInput &input,
     }
 
     result.requestedDescription = selection.requestedDescription;
-    result.hasProfile = selection.hasProfile;
+    result.profileSource = selection.profileSource;
     result.errorMessage = selection.errorMessage;
     result.isCanvasHdr = result.requestedDescription &&
         result.requestedDescription->colorSpace.isHDR();

@@ -257,6 +257,13 @@ void KisOpenGLPolicyTest::testAngleTextureBufferPolicy()
     QVERIFY(!forceDisableTextureBuffers(Platform::Windows,
                                         QStringLiteral("ANGLE (NVIDIA, Direct3D11)"),
                                         unlockedEnvironment));
+
+    QProcessEnvironment nonEmptyUnlockedEnvironment;
+    nonEmptyUnlockedEnvironment.insert(QStringLiteral("KRITA_UNLOCK_TEXTURE_BUFFERS"),
+                                       QStringLiteral("1"));
+    QVERIFY(!forceDisableTextureBuffers(Platform::Windows,
+                                        QStringLiteral("ANGLE (NVIDIA, Direct3D11)"),
+                                        nonEmptyUnlockedEnvironment));
 }
 
 void KisOpenGLPolicyTest::testPixmapCacheFormula()
