@@ -333,9 +333,10 @@ KisCanvas2::KisCanvas2(KisCoordinatesConverter *coordConverter, KoCanvasResource
     m_d->frameRenderStartCompressor.setMode(KisSignalCompressor::FIRST_ACTIVE);
     snapGuide()->overrideSnapStrategy(KoSnapGuide::PixelSnapping, new KisSnapPixelStrategy());
 
-    connect(viewManager(), &KisViewManager::brushOutlineToggled,
+    KisViewManager *manager = mainWindow->viewManager();
+    connect(manager, &KisViewManager::brushOutlineToggled,
             &m_d->toolSignals, &KisCanvasToolSignals::brushOutlineChanged);
-    KisCanvasResourceProvider *provider = viewManager()->canvasResourceProvider();
+    KisCanvasResourceProvider *provider = manager->canvasResourceProvider();
     connect(provider, &KisCanvasResourceProvider::sigEffectiveCompositeOpChanged,
             &m_d->toolSignals, &KisCanvasToolSignals::effectiveCompositeOpChanged);
     connect(provider, &KisCanvasResourceProvider::sigPaintOpPresetChanged,

@@ -50,6 +50,11 @@ void KisDocumentApplicationServices::closeDocumentViews(KisDocument *)
 {
 }
 
+KoCanvasResourcesInterfaceSP KisDocumentApplicationServices::canvasResourcesForImage(KisImageSP)
+{
+    return {};
+}
+
 KoUpdaterPtr KisDocumentApplicationServices::createUpdater(const QString &, UpdaterMode)
 {
     return {};

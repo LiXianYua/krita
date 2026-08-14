@@ -110,6 +110,16 @@ public:
         }
     }
 
+    KoCanvasResourcesInterfaceSP canvasResourcesForImage(KisImageSP image) override
+    {
+        KisMainWindow *window = KisPart::instance()->currentMainwindow();
+        KisView *view = window ? window->activeView() : nullptr;
+        return KisDocumentDesktop::canvasResourcesForImage(
+            image,
+            view ? view->image().toStrongRef() : KisImageSP(),
+            view && view->resourceProvider() ? view->resourceProvider()->resourceManager() : nullptr);
+    }
+
     KoUpdaterPtr createUpdater(const QString &actionName, UpdaterMode mode) override
     {
         KisMainWindow *window = KisPart::instance()->currentMainwindow();
@@ -308,6 +318,17 @@ public:
 };
 
 Services s_services;
+}
+
+KoCanvasResourcesInterfaceSP KisDocumentDesktop::canvasResourcesForImage(
+    KisImageSP requestedImage,
+    KisImageSP activeImage,
+    KoCanvasResourceProvider *resourceManager)
+{
+    if (!requestedImage || requestedImage.data() != activeImage.data() || !resourceManager) {
+        return {};
+    }
+    return resourceManager->canvasResourcesInterface();
 }
 
 void initializeKisDocumentDesktopServices()

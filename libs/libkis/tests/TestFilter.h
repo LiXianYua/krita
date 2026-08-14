@@ -14,7 +14,7 @@ class TestFilter : public QObject
 private Q_SLOTS:
     void testApply();
     void testStartFilter();
+    void testStartFilterUsesCanvasResources();
 };
 
 #endif
-

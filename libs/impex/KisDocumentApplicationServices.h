@@ -17,6 +17,7 @@
 #include <QStringList>
 
 #include <KisCumulativeUndoData.h>
+#include <KoCanvasResourcesInterface.h>
 #include <kis_types.h>
 
 #include "kritaimpex_export.h"
@@ -78,6 +79,7 @@ public:
     virtual bool waitForImage(KisImageSP image, WaitMode mode);
     virtual void synchronizeDocumentViews();
     virtual void closeDocumentViews(KisDocument *document);
+    virtual KoCanvasResourcesInterfaceSP canvasResourcesForImage(KisImageSP image);
     virtual KoUpdaterPtr createUpdater(const QString &actionName, UpdaterMode mode);
     virtual void waitForMutexWithFeedback(QMutex &mutex, const QString &message);
 

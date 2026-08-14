@@ -15,6 +15,7 @@
 #include <kis_filter_stroke_strategy.h>
 #include <krita_utils.h>
 #include <KisGlobalResourcesInterface.h>
+#include <KisDocumentApplicationServices.h>
 
 #include "InfoObject.h"
 #include "Node.h"
@@ -111,7 +112,11 @@ bool Filter::startFilter(Node *node, int x, int y, int w, int h)
         applyRect |= image->bounds();
     }
 
-    KisResourcesSnapshotSP resources = new KisResourcesSnapshot(image, node->node());
+    const KoCanvasResourcesInterfaceSP canvasResources =
+        KisDocumentApplicationServices::instance()->canvasResourcesForImage(image);
+    KisResourcesSnapshotSP resources = canvasResources
+        ? new KisResourcesSnapshot(image, node->node(), canvasResources)
+        : new KisResourcesSnapshot(image, node->node());
 
     KisStrokeId currentStrokeId = image->startStroke(new KisFilterStrokeStrategy(filter,
                                                                                  KisFilterConfigurationSP(filterConfig),
