@@ -1,4 +1,4 @@
 kis_add_test(
     kis_tiff_test.cpp
-    LINK_LIBRARIES kritaimpex kritaui kritatestsdk
+    LINK_LIBRARIES kritaimpex kritatestsdk
     )
