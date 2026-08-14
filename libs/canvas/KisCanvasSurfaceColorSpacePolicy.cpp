@@ -9,35 +9,6 @@
 namespace KisCanvasSurfaceColorSpacePolicy
 {
 
-bool Luminance::operator==(const Luminance &rhs) const
-{
-    return minLuminance == rhs.minLuminance &&
-        maxLuminance == rhs.maxLuminance &&
-        referenceLuminance == rhs.referenceLuminance;
-}
-
-Luminance Luminance::clipToSdr() const
-{
-    return {minLuminance, referenceLuminance, referenceLuminance};
-}
-
-bool ColorSpace::operator==(const ColorSpace &rhs) const
-{
-    return primaries == rhs.primaries &&
-        transferFunction == rhs.transferFunction &&
-        luminance == rhs.luminance;
-}
-
-bool ColorSpace::isHdr() const
-{
-    return luminance && luminance->maxLuminance > luminance->referenceLuminance;
-}
-
-bool SurfaceDescription::operator==(const SurfaceDescription &rhs) const
-{
-    return colorSpace == rhs.colorSpace;
-}
-
 KisCanvasSurfaceMode surfaceModeFromConfig(const QString &value)
 {
     if (value == QStringLiteral("preferred")) return KisCanvasSurfaceMode::Preferred;
@@ -80,48 +51,53 @@ SelectionResult selectSurfaceDescription(
     };
 
     if (requestedSurfaceMode == KisCanvasSurfaceMode::Preferred) {
-        if (compositorPreferred.colorSpace.isHdr()) {
-            requestedDescription.colorSpace.primaries = NamedPrimaries::Bt2020;
-            requestedDescription.colorSpace.transferFunction = NamedTransferFunction::St2084Pq;
+        if (compositorPreferred.colorSpace.isHDR()) {
+            requestedDescription.colorSpace.primaries = NamedPrimaries::primaries_bt2020;
+            requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_st2084_pq;
         } else {
             requestedDescription.colorSpace = compositorPreferred.colorSpace;
         }
 
-        if (requestedDescription.colorSpace.transferFunction == NamedTransferFunction::St2084Pq) {
+        if (std::holds_alternative<NamedTransferFunction>(requestedDescription.colorSpace.transferFunction) &&
+            std::get<NamedTransferFunction>(requestedDescription.colorSpace.transferFunction) ==
+                NamedTransferFunction::transfer_function_st2084_pq) {
             requestedDescription.colorSpace.luminance = makeKritaRec2020PQLuminance();
         }
     } else if (requestedSurfaceMode == KisCanvasSurfaceMode::Rec2020pq) {
-        requestedDescription.colorSpace.primaries = NamedPrimaries::Bt2020;
-        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::St2084Pq;
+        requestedDescription.colorSpace.primaries = NamedPrimaries::primaries_bt2020;
+        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_st2084_pq;
         requestedDescription.colorSpace.luminance = makeKritaRec2020PQLuminance();
     } else if (requestedSurfaceMode == KisCanvasSurfaceMode::Rec709g22) {
-        requestedDescription.colorSpace.primaries = NamedPrimaries::SRgb;
-        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::Gamma22;
+        requestedDescription.colorSpace.primaries = NamedPrimaries::primaries_srgb;
+        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_gamma22;
         if (compositorPreferred.colorSpace.luminance) {
             requestedDescription.colorSpace.luminance =
                 compositorPreferred.colorSpace.luminance->clipToSdr();
         }
     } else if (requestedSurfaceMode == KisCanvasSurfaceMode::Rec709g10) {
-        requestedDescription.colorSpace.primaries = NamedPrimaries::SRgb;
-        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::ExtendedLinear;
+        requestedDescription.colorSpace.primaries = NamedPrimaries::primaries_srgb;
+        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_ext_linear;
         if (compositorPreferred.colorSpace.luminance) {
             requestedDescription.colorSpace.luminance =
                 compositorPreferred.colorSpace.luminance->clipToSdr();
         }
     }
 
-    if (requestedDescription.colorSpace.primaries == NamedPrimaries::Unknown) {
-        requestedDescription.colorSpace.primaries = NamedPrimaries::SRgb;
+    if (std::holds_alternative<NamedPrimaries>(requestedDescription.colorSpace.primaries) &&
+        std::get<NamedPrimaries>(requestedDescription.colorSpace.primaries) == NamedPrimaries::primaries_unknown) {
+        requestedDescription.colorSpace.primaries = NamedPrimaries::primaries_srgb;
     }
-    if (requestedDescription.colorSpace.transferFunction == NamedTransferFunction::Unknown) {
-        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::Gamma22;
+    if (std::holds_alternative<NamedTransferFunction>(requestedDescription.colorSpace.transferFunction) &&
+        std::get<NamedTransferFunction>(requestedDescription.colorSpace.transferFunction) ==
+            NamedTransferFunction::transfer_function_unknown) {
+        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_gamma22;
     }
 
     if (!supportsDescription(requestedDescription)) {
-        requestedDescription.colorSpace.primaries = NamedPrimaries::SRgb;
-        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::SRgb;
+        requestedDescription.colorSpace.primaries = NamedPrimaries::primaries_srgb;
+        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_srgb;
         if (!supportsDescription(requestedDescription)) {
-            requestedDescription.colorSpace.transferFunction = NamedTransferFunction::Gamma22;
+            requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_gamma22;
             if (!supportsDescription(requestedDescription)) {
                 return {std::nullopt, false,
                         QStringLiteral("failed to find a suitable surface format for the compositor")};
@@ -131,19 +107,19 @@ SelectionResult selectSurfaceDescription(
 
     bool hasProfile = profileAvailable(requestedDescription);
     if (!hasProfile) {
-        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::Gamma22;
+        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_gamma22;
         if (supportsDescription(requestedDescription)) {
             hasProfile = profileAvailable(requestedDescription);
         }
     }
     if (!hasProfile) {
-        requestedDescription.colorSpace.primaries = NamedPrimaries::SRgb;
+        requestedDescription.colorSpace.primaries = NamedPrimaries::primaries_srgb;
         if (supportsDescription(requestedDescription)) {
             hasProfile = profileAvailable(requestedDescription);
         }
     }
     if (!hasProfile) {
-        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::SRgb;
+        requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_srgb;
         if (supportsDescription(requestedDescription)) {
             hasProfile = profileAvailable(requestedDescription);
         }
@@ -161,15 +137,15 @@ RenderIntent calculateConfigIntent(const KisDisplayConfig::Options &options)
     switch (options.first) {
     case INTENT_RELATIVE_COLORIMETRIC:
         return options.second.testFlag(KoColorConversionTransformation::BlackpointCompensation)
-            ? RenderIntent::RelativeBpc
-            : RenderIntent::Relative;
+            ? RenderIntent::render_intent_relative_bpc
+            : RenderIntent::render_intent_relative;
     case INTENT_SATURATION:
-        return RenderIntent::Saturation;
+        return RenderIntent::render_intent_saturation;
     case INTENT_ABSOLUTE_COLORIMETRIC:
-        return RenderIntent::Absolute;
+        return RenderIntent::render_intent_absolute;
     case INTENT_PERCEPTUAL:
     default:
-        return RenderIntent::Perceptual;
+        return RenderIntent::render_intent_perceptual;
     }
 }
 
@@ -191,7 +167,7 @@ NegotiationResult negotiate(const NegotiationInput &input,
 
     result.intent = calculateConfigIntent(input.options);
     if (!supportsIntent(result.intent)) {
-        result.intent = RenderIntent::Perceptual;
+        result.intent = RenderIntent::render_intent_perceptual;
         if (!supportsIntent(result.intent)) {
             result.deferred = true;
             result.errorMessage = QStringLiteral("perceptual rendering intent is unsupported");
@@ -216,7 +192,7 @@ NegotiationResult negotiate(const NegotiationInput &input,
     result.hasProfile = selection.hasProfile;
     result.errorMessage = selection.errorMessage;
     result.isCanvasHdr = result.requestedDescription &&
-        result.requestedDescription->colorSpace.isHdr();
+        result.requestedDescription->colorSpace.isHDR();
 
     if (input.currentDescription != result.requestedDescription ||
         input.currentIntent != std::optional<RenderIntent>(result.intent)) {

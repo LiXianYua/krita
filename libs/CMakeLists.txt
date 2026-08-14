@@ -26,6 +26,5 @@ add_subdirectory( resourcewidgets )
 add_subdirectory( psd )
 add_subdirectory( multiarch )
 
-if (KRITA_USE_SURFACE_COLOR_MANAGEMENT_API)
-   add_subdirectory( surfacecolormanagementapi )
-endif()
+add_subdirectory( surfacecolormanagementapi )
+target_precompile_headers(kritasurfacecolormanagementapi PRIVATE <KisCppQuirks.h> <variant>)

@@ -10,6 +10,12 @@
 #include "KisMultiSurfaceStateManager.h"
 
 #include <KisProofingConfiguration.h>
+#include <surfacecolormanagement/KisSurfaceColorimetry.h>
+
+#include <type_traits>
+
+static_assert(std::is_same_v<KisCanvasSurfaceColorSpacePolicy::SurfaceDescription,
+                             KisSurfaceColorimetry::SurfaceDescription>);
 
 class KisMultiSurfacePolicyTest : public QObject
 {
@@ -20,6 +26,9 @@ private Q_SLOTS:
     void testThreeInitializationModes();
     void testSurfaceProofingScreenAndConfigTransitions();
     void testSurfaceDescriptionSelection();
+    void testCustomColorimetryAndTransfer();
+    void testMasteringMetadataComparison();
+    void testTerminalSrgbFallbacks();
     void testProtocolNegotiation();
 };
 
@@ -153,8 +162,8 @@ void KisMultiSurfacePolicyTest::testSurfaceDescriptionSelection()
     using namespace KisCanvasSurfaceColorSpacePolicy;
 
     SurfaceDescription preferred;
-    preferred.colorSpace.primaries = NamedPrimaries::Unknown;
-    preferred.colorSpace.transferFunction = NamedTransferFunction::Unknown;
+    preferred.colorSpace.primaries = NamedPrimaries::primaries_unknown;
+    preferred.colorSpace.transferFunction = NamedTransferFunction::transfer_function_unknown;
 
     auto selected = selectSurfaceDescription(
         KisCanvasSurfaceMode::Preferred,
@@ -162,8 +171,12 @@ void KisMultiSurfacePolicyTest::testSurfaceDescriptionSelection()
         [](const SurfaceDescription &) { return true; },
         [](const SurfaceDescription &) { return true; });
     QVERIFY(selected.requestedDescription);
-    QCOMPARE(selected.requestedDescription->colorSpace.primaries, NamedPrimaries::SRgb);
-    QCOMPARE(selected.requestedDescription->colorSpace.transferFunction, NamedTransferFunction::Gamma22);
+    QVERIFY(std::holds_alternative<NamedPrimaries>(selected.requestedDescription->colorSpace.primaries));
+    QCOMPARE(std::get<NamedPrimaries>(selected.requestedDescription->colorSpace.primaries),
+             NamedPrimaries::primaries_srgb);
+    QVERIFY(std::holds_alternative<NamedTransferFunction>(selected.requestedDescription->colorSpace.transferFunction));
+    QCOMPARE(std::get<NamedTransferFunction>(selected.requestedDescription->colorSpace.transferFunction),
+             NamedTransferFunction::transfer_function_gamma22);
 
     preferred.colorSpace.luminance = Luminance(0, 1000, 80);
     selected = selectSurfaceDescription(
@@ -171,18 +184,23 @@ void KisMultiSurfacePolicyTest::testSurfaceDescriptionSelection()
         preferred,
         [](const SurfaceDescription &) { return true; },
         [](const SurfaceDescription &) { return true; });
-    QCOMPARE(selected.requestedDescription->colorSpace.primaries, NamedPrimaries::Bt2020);
-    QCOMPARE(selected.requestedDescription->colorSpace.transferFunction, NamedTransferFunction::St2084Pq);
+    QCOMPARE(std::get<NamedPrimaries>(selected.requestedDescription->colorSpace.primaries),
+             NamedPrimaries::primaries_bt2020);
+    QCOMPARE(std::get<NamedTransferFunction>(selected.requestedDescription->colorSpace.transferFunction),
+             NamedTransferFunction::transfer_function_st2084_pq);
     QCOMPARE(selected.requestedDescription->colorSpace.luminance, Luminance(0, 10000, 80));
 
     selected = selectSurfaceDescription(
         KisCanvasSurfaceMode::Rec709g22,
         preferred,
         [](const SurfaceDescription &description) {
-            return description.colorSpace.transferFunction == NamedTransferFunction::SRgb;
+            return std::holds_alternative<NamedTransferFunction>(description.colorSpace.transferFunction) &&
+                std::get<NamedTransferFunction>(description.colorSpace.transferFunction) ==
+                    NamedTransferFunction::transfer_function_srgb;
         },
         [](const SurfaceDescription &) { return true; });
-    QCOMPARE(selected.requestedDescription->colorSpace.transferFunction, NamedTransferFunction::SRgb);
+    QCOMPARE(std::get<NamedTransferFunction>(selected.requestedDescription->colorSpace.transferFunction),
+             NamedTransferFunction::transfer_function_srgb);
 
     int profileAttempts = 0;
     selected = selectSurfaceDescription(
@@ -191,20 +209,139 @@ void KisMultiSurfacePolicyTest::testSurfaceDescriptionSelection()
         [](const SurfaceDescription &) { return true; },
         [&profileAttempts](const SurfaceDescription &description) {
             ++profileAttempts;
-            return description.colorSpace.primaries == NamedPrimaries::SRgb &&
-                description.colorSpace.transferFunction == NamedTransferFunction::SRgb;
+            return std::holds_alternative<NamedPrimaries>(description.colorSpace.primaries) &&
+                std::get<NamedPrimaries>(description.colorSpace.primaries) == NamedPrimaries::primaries_srgb &&
+                std::holds_alternative<NamedTransferFunction>(description.colorSpace.transferFunction) &&
+                std::get<NamedTransferFunction>(description.colorSpace.transferFunction) ==
+                    NamedTransferFunction::transfer_function_srgb;
         });
     QCOMPARE(profileAttempts, 4);
     QVERIFY(selected.hasProfile);
 }
+
+void KisMultiSurfacePolicyTest::testCustomColorimetryAndTransfer()
+{
+    using namespace KisCanvasSurfaceColorSpacePolicy;
+
+    SurfaceDescription preferred;
+    preferred.colorSpace.primaries = KisColorimetryUtils::Colorimetry::DisplayP3;
+    preferred.colorSpace.transferFunction = uint32_t(23456);
+    preferred.colorSpace.luminance = Luminance(100, 80, 80);
+    preferred.masteringInfo = MasteringInfo();
+
+    const auto selected = selectSurfaceDescription(
+        KisCanvasSurfaceMode::Preferred,
+        preferred,
+        [](const SurfaceDescription &) { return true; },
+        [](const SurfaceDescription &) { return true; });
+
+    QVERIFY(selected.requestedDescription);
+    QVERIFY(std::holds_alternative<KisColorimetryUtils::Colorimetry>(
+        selected.requestedDescription->colorSpace.primaries));
+    QCOMPARE(std::get<KisColorimetryUtils::Colorimetry>(
+                 selected.requestedDescription->colorSpace.primaries),
+             KisColorimetryUtils::Colorimetry::DisplayP3);
+    QVERIFY(std::holds_alternative<uint32_t>(
+        selected.requestedDescription->colorSpace.transferFunction));
+    QCOMPARE(std::get<uint32_t>(selected.requestedDescription->colorSpace.transferFunction),
+             uint32_t(23456));
+    QCOMPARE(selected.requestedDescription->colorSpace.luminance, preferred.colorSpace.luminance);
+    QVERIFY(!selected.requestedDescription->masteringInfo);
+}
+
+void KisMultiSurfacePolicyTest::testMasteringMetadataComparison()
+{
+    using namespace KisCanvasSurfaceColorSpacePolicy;
+
+    SurfaceDescription requested;
+    requested.colorSpace.primaries = NamedPrimaries::primaries_srgb;
+    requested.colorSpace.transferFunction = NamedTransferFunction::transfer_function_gamma22;
+
+    SurfaceDescription current = requested;
+    MasteringInfo mastering;
+    mastering.primaries = KisColorimetryUtils::Colorimetry::BT2020;
+    mastering.luminance = MasteringLuminance(100, 1000);
+    mastering.maxCll = 1200;
+    mastering.maxFall = 400;
+    current.masteringInfo = mastering;
+    QVERIFY(current != requested);
+
+    NegotiationInput input;
+    input.ready = true;
+    input.surfaceMode = KisCanvasSurfaceMode::Preferred;
+    input.compositorPreferred = requested;
+    input.currentDescription = current;
+    input.currentIntent = RenderIntent::render_intent_perceptual;
+
+    const auto result = negotiate(input,
+                                  [](RenderIntent) { return true; },
+                                  [](const SurfaceDescription &) { return true; },
+                                  [](const SurfaceDescription &) { return true; });
+    QCOMPARE(result.command, ProtocolCommand::Set);
+}
+
+void KisMultiSurfacePolicyTest::testTerminalSrgbFallbacks()
+{
+    using namespace KisCanvasSurfaceColorSpacePolicy;
+
+    SurfaceDescription preferred;
+    preferred.colorSpace.primaries = KisColorimetryUtils::Colorimetry::DisplayP3;
+    preferred.colorSpace.transferFunction = uint32_t(23000);
+
+    QVector<SurfaceDescription> supportAttempts;
+    auto selected = selectSurfaceDescription(
+        KisCanvasSurfaceMode::Preferred,
+        preferred,
+        [&supportAttempts](const SurfaceDescription &description) {
+            supportAttempts.append(description);
+            return std::holds_alternative<NamedPrimaries>(description.colorSpace.primaries) &&
+                std::get<NamedPrimaries>(description.colorSpace.primaries) == NamedPrimaries::primaries_srgb &&
+                std::holds_alternative<NamedTransferFunction>(description.colorSpace.transferFunction) &&
+                std::get<NamedTransferFunction>(description.colorSpace.transferFunction) ==
+                    NamedTransferFunction::transfer_function_gamma22;
+        },
+        [](const SurfaceDescription &) { return true; });
+    QVERIFY(selected.requestedDescription);
+    QCOMPARE(supportAttempts.size(), 3);
+    QCOMPARE(std::get<NamedTransferFunction>(supportAttempts.at(1).colorSpace.transferFunction),
+             NamedTransferFunction::transfer_function_srgb);
+    QCOMPARE(std::get<NamedTransferFunction>(supportAttempts.at(2).colorSpace.transferFunction),
+             NamedTransferFunction::transfer_function_gamma22);
+
+    QVector<SurfaceDescription> profileAttempts;
+    selected = selectSurfaceDescription(
+        KisCanvasSurfaceMode::Preferred,
+        preferred,
+        [](const SurfaceDescription &) { return true; },
+        [&profileAttempts](const SurfaceDescription &description) {
+            profileAttempts.append(description);
+            return std::holds_alternative<NamedPrimaries>(description.colorSpace.primaries) &&
+                std::get<NamedPrimaries>(description.colorSpace.primaries) == NamedPrimaries::primaries_srgb &&
+                std::holds_alternative<NamedTransferFunction>(description.colorSpace.transferFunction) &&
+                std::get<NamedTransferFunction>(description.colorSpace.transferFunction) ==
+                    NamedTransferFunction::transfer_function_srgb;
+        });
+    QVERIFY(selected.hasProfile);
+    QCOMPARE(profileAttempts.size(), 4);
+    QVERIFY(std::holds_alternative<KisColorimetryUtils::Colorimetry>(
+        profileAttempts.at(1).colorSpace.primaries));
+    QCOMPARE(std::get<NamedTransferFunction>(profileAttempts.at(1).colorSpace.transferFunction),
+             NamedTransferFunction::transfer_function_gamma22);
+    QCOMPARE(std::get<NamedPrimaries>(profileAttempts.at(2).colorSpace.primaries),
+             NamedPrimaries::primaries_srgb);
+    QCOMPARE(std::get<NamedTransferFunction>(profileAttempts.at(3).colorSpace.transferFunction),
+             NamedTransferFunction::transfer_function_srgb);
+}
+
+
 
 void KisMultiSurfacePolicyTest::testProtocolNegotiation()
 {
     using namespace KisCanvasSurfaceColorSpacePolicy;
 
     SurfaceDescription preferred;
-    preferred.colorSpace.primaries = NamedPrimaries::SRgb;
-    preferred.colorSpace.transferFunction = NamedTransferFunction::Gamma22;
+    preferred.colorSpace.primaries = NamedPrimaries::primaries_srgb;
+    preferred.colorSpace.transferFunction = NamedTransferFunction::transfer_function_gamma22;
 
     NegotiationInput input;
     input.ready = true;
@@ -216,17 +353,17 @@ void KisMultiSurfacePolicyTest::testProtocolNegotiation()
 
     auto result = negotiate(
         input,
-        [](RenderIntent intent) { return intent == RenderIntent::Perceptual; },
+        [](RenderIntent intent) { return intent == RenderIntent::render_intent_perceptual; },
         [](const SurfaceDescription &) { return true; },
         [](const SurfaceDescription &) { return true; });
-    QCOMPARE(result.intent, RenderIntent::Perceptual);
+    QCOMPARE(result.intent, RenderIntent::render_intent_perceptual);
     QCOMPARE(result.command, ProtocolCommand::Set);
     QVERIFY(result.requestedDescription);
 
     input.currentDescription = result.requestedDescription;
     input.currentIntent = result.intent;
     result = negotiate(input,
-                       [](RenderIntent intent) { return intent == RenderIntent::Perceptual; },
+                       [](RenderIntent intent) { return intent == RenderIntent::render_intent_perceptual; },
                        [](const SurfaceDescription &) { return true; },
                        [](const SurfaceDescription &) { return true; });
     QCOMPARE(result.command, ProtocolCommand::None);

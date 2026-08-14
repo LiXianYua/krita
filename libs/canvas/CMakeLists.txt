@@ -71,6 +71,8 @@ target_include_directories(kritacanvas
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/opengl>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/widgets>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/processing>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../surfacecolormanagementapi>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../surfacecolormanagementapi>
 )
 
 target_link_libraries(kritacanvas
@@ -85,6 +87,7 @@ target_link_libraries(kritacanvas
         kritaimage
         kritainput
         kritalibpaintop
+        kritasurfacecolormanagementapi
         kritawidgets
     PRIVATE
         KF${KF_MAJOR}::ConfigCore

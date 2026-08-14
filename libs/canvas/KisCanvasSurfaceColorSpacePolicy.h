@@ -11,79 +11,24 @@
 
 #include "KisMultiSurfaceStateManager.h"
 
-#include <functional>
 #include <optional>
 #include <variant>
+
+#include <surfacecolormanagement/KisSurfaceColorimetry.h>
+
+#include <functional>
 
 namespace KisCanvasSurfaceColorSpacePolicy
 {
 
-enum class NamedPrimaries {
-    Unknown = 0,
-    SRgb = 1,
-    Bt2020 = 6,
-    DciP3 = 8,
-    DisplayP3 = 9,
-    AdobeRgb = 10
-};
-
-enum class NamedTransferFunction {
-    Unknown = 0,
-    Bt1886 = 1,
-    Gamma22 = 2,
-    Gamma28 = 3,
-    ExtendedLinear = 5,
-    SRgb = 9,
-    ExtendedSRgb = 10,
-    St2084Pq = 11,
-    St428 = 12
-};
-
-enum class RenderIntent {
-    Perceptual = 0,
-    Relative = 1,
-    Saturation = 2,
-    Absolute = 3,
-    RelativeBpc = 4
-};
-
-struct KRITACANVAS_EXPORT Luminance
-{
-    quint32 minLuminance {2000};
-    quint32 maxLuminance {80};
-    quint32 referenceLuminance {80};
-
-    Luminance() = default;
-    Luminance(quint32 minValue, quint32 maxValue, quint32 referenceValue)
-        : minLuminance(minValue)
-        , maxLuminance(maxValue)
-        , referenceLuminance(referenceValue)
-    {
-    }
-
-    bool operator==(const Luminance &rhs) const;
-    bool operator!=(const Luminance &rhs) const { return !(*this == rhs); }
-    Luminance clipToSdr() const;
-};
-
-struct KRITACANVAS_EXPORT ColorSpace
-{
-    NamedPrimaries primaries {NamedPrimaries::Unknown};
-    NamedTransferFunction transferFunction {NamedTransferFunction::Unknown};
-    std::optional<Luminance> luminance;
-
-    bool operator==(const ColorSpace &rhs) const;
-    bool operator!=(const ColorSpace &rhs) const { return !(*this == rhs); }
-    bool isHdr() const;
-};
-
-struct KRITACANVAS_EXPORT SurfaceDescription
-{
-    ColorSpace colorSpace;
-
-    bool operator==(const SurfaceDescription &rhs) const;
-    bool operator!=(const SurfaceDescription &rhs) const { return !(*this == rhs); }
-};
+using NamedPrimaries = KisSurfaceColorimetry::NamedPrimaries;
+using NamedTransferFunction = KisSurfaceColorimetry::NamedTransferFunction;
+using RenderIntent = KisSurfaceColorimetry::RenderIntent;
+using Luminance = KisSurfaceColorimetry::Luminance;
+using MasteringLuminance = KisSurfaceColorimetry::MasteringLuminance;
+using ColorSpace = KisSurfaceColorimetry::ColorSpace;
+using MasteringInfo = KisSurfaceColorimetry::MasteringInfo;
+using SurfaceDescription = KisSurfaceColorimetry::SurfaceDescription;
 
 using SupportsDescription = std::function<bool(const SurfaceDescription &)>;
 using ProfileAvailable = std::function<bool(const SurfaceDescription &)>;
@@ -131,7 +76,7 @@ struct KRITACANVAS_EXPORT NegotiationResult
     bool deferred {false};
     ProtocolCommand command {ProtocolCommand::None};
     std::optional<SurfaceDescription> requestedDescription;
-    RenderIntent intent {RenderIntent::Perceptual};
+    RenderIntent intent {RenderIntent::render_intent_perceptual};
     bool isCanvasHdr {false};
     bool hasProfile {false};
     QString errorMessage;
