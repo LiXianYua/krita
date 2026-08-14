@@ -37,3 +37,7 @@ set_target_properties(kritainput PROPERTIES
 )
 
 install(TARGETS kritainput ${INSTALL_TARGETS_DEFAULT_ARGS})
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

@@ -7,6 +7,7 @@
 #include <QtTest>
 
 #include <kis_painting_assistant.h>
+#include <kis_painting_assistant_collection.h>
 
 namespace
 {
@@ -44,6 +45,14 @@ public:
         return 1;
     }
 
+    void endStroke() override
+    {
+        ++endStrokeCount;
+        KisPaintingAssistant::endStroke();
+    }
+
+    int endStrokeCount = 0;
+
 protected:
     TestAssistant(
         const TestAssistant &rhs,
@@ -65,6 +74,7 @@ class TestPaintingAssistantModel : public QObject
 
 private Q_SLOTS:
     void preservesModelStateWithoutUiLibrary();
+    void collectionEndsStrokeForEveryAssistant();
 };
 
 void TestPaintingAssistantModel::preservesModelStateWithoutUiLibrary()
@@ -93,6 +103,22 @@ void TestPaintingAssistantModel::preservesModelStateWithoutUiLibrary()
     transform.translate(5.0, -2.0);
     assistant.transform(transform);
     QCOMPARE(QPointF(*assistant.handles().constFirst()), QPointF(7.0, 1.0));
+}
+
+void TestPaintingAssistantModel::collectionEndsStrokeForEveryAssistant()
+{
+    KisPaintingAssistantSP first(new TestAssistant);
+    KisPaintingAssistantSP second(new TestAssistant);
+    KisPaintingAssistantCollection collection({first, second});
+
+    collection.setFirstAssistant(first);
+    QCOMPARE(collection.firstAssistant(), first);
+
+    collection.endStroke();
+
+    QVERIFY(!collection.firstAssistant());
+    QCOMPARE(static_cast<TestAssistant *>(first.data())->endStrokeCount, 1);
+    QCOMPARE(static_cast<TestAssistant *>(second.data())->endStrokeCount, 1);
 }
 
 QTEST_GUILESS_MAIN(TestPaintingAssistantModel)

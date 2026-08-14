@@ -3,6 +3,7 @@ add_subdirectory(tests)
 set(kritaassistanttool_GEOMETRY_SOURCES
     kis_abstract_perspective_grid.cpp
     kis_painting_assistant.cpp
+    kis_painting_assistant_collection.cpp
     kis_painting_assistant_handle.cc
     kis_painting_assistant_registry.cc
     ConcentricEllipseAssistantGeometry.cpp

@@ -162,3 +162,19 @@ if(APPLE)
 
     macos_test_fixrpath(KisRandomGenerator2DDemo)
 endif()
+
+kis_add_test(
+    KisSafeDocumentLoaderTest.cpp
+    TEST_NAME KisSafeDocumentLoaderTest
+    LINK_LIBRARIES kritaimage kritatestsdk
+)
+
+kis_add_test(
+    kis_file_layer_test.cpp
+    LINK_LIBRARIES kritaimage kritatestsdk kritaglobal kritatransformmaskstubs
+)
+
+kis_add_test(
+    KisColorSamplingUtilsTest.cpp
+    LINK_LIBRARIES kritaimage kritatestsdk
+)
