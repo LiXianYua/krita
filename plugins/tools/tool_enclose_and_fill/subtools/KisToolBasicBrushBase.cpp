@@ -14,7 +14,6 @@
 #include <kis_icon.h>
 #include <kis_canvas2.h>
 #include <kis_cubic_curve.h>
-#include <kis_config.h>
 #include <kis_config_notifier.h>
 #include <kis_image_config.h>
 #include <brushengine/kis_paintop_preset.h>
@@ -37,7 +36,7 @@ KisToolBasicBrushBase::~KisToolBasicBrushBase()
 
 void KisToolBasicBrushBase::updateSettings()
 {
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
     // Pressure curve
     KisCubicCurve curve(cfg.pressureTabletCurve());
     m_pressureSamples = curve.floatTransfer(levelOfPressureResolution + 1);
@@ -301,7 +300,7 @@ void KisToolBasicBrushBase::setPreviewColor(const QColor &color)
 
 void KisToolBasicBrushBase::resetCursorStyle()
 {
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
 
     switch (cfg.newCursorStyle()) {
     case CURSOR_STYLE_NO_CURSOR:

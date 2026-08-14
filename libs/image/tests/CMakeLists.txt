@@ -49,6 +49,7 @@ kis_add_tests(
     kis_filter_strategy_test.cpp
     kis_gradient_painter_test.cpp
     kis_image_commands_test.cpp
+    kis_image_config_test.cpp
     kis_image_test.cpp
     kis_image_signal_router_test.cpp
     kis_iterators_ng_test.cpp

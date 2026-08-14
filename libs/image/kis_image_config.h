@@ -10,6 +10,7 @@
 #include <kconfiggroup.h>
 #include "kritaimage_export.h"
 #include "KisProofingConfiguration.h"
+#include "kis_global.h"
 #include "kis_types.h"
 
 class KRITAIMAGE_EXPORT KisImageConfig
@@ -145,6 +146,16 @@ public:
     void setMaxBrushSize(int value);
 
     int maxMaskingBrushSize() const;
+
+    CursorStyle newCursorStyle(bool defaultValue = false) const;
+    OutlineStyle newOutlineStyle(bool defaultValue = false) const;
+    QString pressureTabletCurve(bool defaultValue = false) const;
+    bool showOutlineWhilePainting(bool defaultValue = false) const;
+    bool forceAlwaysFullSizedOutline(bool defaultValue = false) const;
+    int lineSmoothingType(bool defaultValue = false) const;
+
+    bool compressKra(bool defaultValue = false) const;
+    void setCompressKra(bool compress);
 
     bool renameMergedLayers(bool defaultValue = false) const;
     void setRenameMergedLayers(bool value);

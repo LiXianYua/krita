@@ -42,7 +42,7 @@
 #include <kis_transform_mask_params_interface.h>
 #include <kis_transparency_mask.h>
 
-#include "kis_config.h"
+#include "kis_image_config.h"
 #include "kis_store_paintdevice_writer.h"
 #include "flake/kis_shape_selection.h"
 
@@ -338,7 +338,7 @@ bool KisKraSaveVisitor::savePaintDevice(KisPaintDeviceSP device,
                                         QString location)
 {
     // Layer data
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
     m_store->setCompressionEnabled(cfg.compressKra());
 
     KisPaintDeviceFramesInterface *frameInterface = device->framesInterface();

@@ -16,6 +16,7 @@
 
 #include <KisImageConfigNotifier.h>
 #include "kis_debug.h"
+#include "kis_cubic_curve.h"
 
 #include <QThread>
 #include <QApplication>
@@ -30,6 +31,21 @@
 #include <errno.h>
 #include "KisMacosSecurityBookmarkManager.h"
 #endif
+
+#ifdef Q_OS_ANDROID
+#include <KisAndroidUtils.h>
+#endif
+
+namespace {
+
+void cleanOldImageCursorStyleKeys(KConfigGroup config)
+{
+    if (config.hasKey("newCursorStyle") && config.hasKey("newOutlineStyle")) {
+        config.deleteEntry("cursorStyleDef");
+    }
+}
+
+}
 
 KisImageConfig::KisImageConfig(bool readOnly)
     : m_config(KSharedConfig::openConfig()->group(QString()))
@@ -718,6 +734,136 @@ void KisImageConfig::setMaxBrushSize(int value)
 int KisImageConfig::maxMaskingBrushSize() const
 {
     return qMin(15000, 3 * maxBrushSize());
+}
+
+CursorStyle KisImageConfig::newCursorStyle(bool defaultValue) const
+{
+    if (defaultValue) {
+        return CURSOR_STYLE_NO_CURSOR;
+    }
+
+    int style = m_config.readEntry("newCursorStyle", int(-1));
+
+    if (style < 0) {
+        style = m_config.readEntry("cursorStyleDef", int(OLD_CURSOR_STYLE_OUTLINE));
+
+        switch (style) {
+        case OLD_CURSOR_STYLE_TOOLICON:
+            style = CURSOR_STYLE_TOOLICON;
+            break;
+        case OLD_CURSOR_STYLE_CROSSHAIR:
+        case OLD_CURSOR_STYLE_OUTLINE_CENTER_CROSS:
+            style = CURSOR_STYLE_CROSSHAIR;
+            break;
+        case OLD_CURSOR_STYLE_POINTER:
+            style = CURSOR_STYLE_POINTER;
+            break;
+        case OLD_CURSOR_STYLE_OUTLINE:
+        case OLD_CURSOR_STYLE_NO_CURSOR:
+            style = CURSOR_STYLE_NO_CURSOR;
+            break;
+        case OLD_CURSOR_STYLE_SMALL_ROUND:
+        case OLD_CURSOR_STYLE_OUTLINE_CENTER_DOT:
+            style = CURSOR_STYLE_SMALL_ROUND;
+            break;
+        case OLD_CURSOR_STYLE_TRIANGLE_RIGHTHANDED:
+        case OLD_CURSOR_STYLE_OUTLINE_TRIANGLE_RIGHTHANDED:
+            style = CURSOR_STYLE_TRIANGLE_RIGHTHANDED;
+            break;
+        case OLD_CURSOR_STYLE_TRIANGLE_LEFTHANDED:
+        case OLD_CURSOR_STYLE_OUTLINE_TRIANGLE_LEFTHANDED:
+            style = CURSOR_STYLE_TRIANGLE_LEFTHANDED;
+            break;
+        default:
+            style = -1;
+        }
+    }
+
+    cleanOldImageCursorStyleKeys(m_config);
+
+    if (style < 0 || style >= N_CURSOR_STYLE_SIZE) {
+        style = CURSOR_STYLE_NO_CURSOR;
+    }
+
+    return static_cast<CursorStyle>(style);
+}
+
+OutlineStyle KisImageConfig::newOutlineStyle(bool defaultValue) const
+{
+    if (defaultValue) {
+        return OUTLINE_FULL;
+    }
+
+    int style = m_config.readEntry("newOutlineStyle", int(-1));
+
+    if (style < 0) {
+        style = m_config.readEntry("cursorStyleDef", int(OLD_CURSOR_STYLE_OUTLINE));
+
+        switch (style) {
+        case OLD_CURSOR_STYLE_TOOLICON:
+        case OLD_CURSOR_STYLE_CROSSHAIR:
+        case OLD_CURSOR_STYLE_POINTER:
+        case OLD_CURSOR_STYLE_NO_CURSOR:
+        case OLD_CURSOR_STYLE_SMALL_ROUND:
+        case OLD_CURSOR_STYLE_TRIANGLE_RIGHTHANDED:
+        case OLD_CURSOR_STYLE_TRIANGLE_LEFTHANDED:
+            style = OUTLINE_NONE;
+            break;
+        case OLD_CURSOR_STYLE_OUTLINE:
+        case OLD_CURSOR_STYLE_OUTLINE_CENTER_DOT:
+        case OLD_CURSOR_STYLE_OUTLINE_CENTER_CROSS:
+        case OLD_CURSOR_STYLE_OUTLINE_TRIANGLE_RIGHTHANDED:
+        case OLD_CURSOR_STYLE_OUTLINE_TRIANGLE_LEFTHANDED:
+            style = OUTLINE_FULL;
+            break;
+        default:
+            style = -1;
+        }
+    }
+
+    cleanOldImageCursorStyleKeys(m_config);
+
+    if (style < 0 || style >= N_OUTLINE_STYLE_SIZE) {
+        style = OUTLINE_FULL;
+    }
+
+    return static_cast<OutlineStyle>(style);
+}
+
+QString KisImageConfig::pressureTabletCurve(bool defaultValue) const
+{
+    QString fallback = DEFAULT_CURVE_STRING;
+#ifdef Q_OS_ANDROID
+    if (KisAndroidUtils::looksLikeXiaomiDevice()) {
+        fallback = QStringLiteral("0,0;0.7,1;");
+    }
+#endif
+    return defaultValue ? fallback : m_config.readEntry("tabletPressureCurve", fallback);
+}
+
+bool KisImageConfig::showOutlineWhilePainting(bool defaultValue) const
+{
+    return defaultValue ? true : m_config.readEntry("ShowOutlineWhilePainting", true);
+}
+
+bool KisImageConfig::forceAlwaysFullSizedOutline(bool defaultValue) const
+{
+    return defaultValue ? false : m_config.readEntry("forceAlwaysFullSizedOutline", false);
+}
+
+int KisImageConfig::lineSmoothingType(bool defaultValue) const
+{
+    return defaultValue ? 1 : m_config.readEntry("LineSmoothingType", 1);
+}
+
+bool KisImageConfig::compressKra(bool defaultValue) const
+{
+    return defaultValue ? false : m_config.readEntry("compressLayersInKra", false);
+}
+
+void KisImageConfig::setCompressKra(bool compress)
+{
+    m_config.writeEntry("compressLayersInKra", compress);
 }
 
 bool KisImageConfig::renameMergedLayers(bool defaultValue) const

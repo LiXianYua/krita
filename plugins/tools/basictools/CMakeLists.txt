@@ -25,6 +25,7 @@ target_link_libraries(kritadefaulttools_static
     PUBLIC
         kritaui
         kritabasicflakes
+        kritaimage
         Boost::boost
 )
 

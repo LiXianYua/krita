@@ -17,7 +17,7 @@
 
 #include <kis_action_registry.h>
 #include "kis_cursor.h"
-#include "kis_config.h"
+#include "kis_image_config.h"
 #include "kundo2magicstring.h"
 
 #include "kis_types.h"
@@ -62,7 +62,7 @@ void KisToolBrush::activate(const QSet<KoShape*> &shapes)
     KisToolFreehand::activate(shapes);
     connect(&m_signalMapper, SIGNAL(mapped(int)), SLOT(slotSetSmoothingType(int)), Qt::UniqueConnection);
 
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
     slotSetSmoothingType(cfg.lineSmoothingType());
 }
 
@@ -165,7 +165,7 @@ void KisToolBrush::setUseScalableDistance(bool value)
 
 void KisToolBrush::resetCursorStyle()
 {
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
     CursorStyle cursorStyle = cfg.newCursorStyle();
 
     // When the stabilizer is in use, we avoid using the brush outline cursor,

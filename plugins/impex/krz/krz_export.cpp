@@ -24,7 +24,7 @@
 #include <kis_paint_layer.h>
 #include <kis_shape_layer.h>
 #include <KoProperties.h>
-#include <kis_config.h>
+#include <kis_image_config.h>
 #include "kra_converter.h"
 
 class KisExternalLayer;
@@ -45,7 +45,7 @@ KisImportExportErrorCode KrzExport::convert(KisDocument *document, QIODevice *io
     KisImageSP image = document->savingImage();
     KIS_ASSERT_RECOVER_RETURN_VALUE(image, ImportExportCodes::InternalError);
 
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
     bool compress = cfg.compressKra();
     cfg.setCompressKra(true);
     KraConverter krzConverter(document, updater());
@@ -81,4 +81,3 @@ QString KrzExport::verify(const QString &fileName) const
 
 
 #include <krz_export.moc>
-
