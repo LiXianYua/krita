@@ -11,8 +11,9 @@
 #include <KoViewConverter.h>
 #include <KoCanvasBase.h>
 #include <KisCanvasFeedback.h>
+#include <KisCanvasInvalidation.h>
 #include <kis_icon.h>
-#include <kis_canvas2.h>
+#include <kis_coordinates_converter.h>
 #include <kis_cubic_curve.h>
 #include <kis_config_notifier.h>
 #include <kis_image_config.h>
@@ -171,13 +172,14 @@ void KisToolBasicBrushBase::continueAlternateAction(KoPointerEvent *event, Alter
 
     QPointF offset = actualWidgetPosition - lastWidgetPosition;
 
-    KisCanvas2 *canvas2 = dynamic_cast<KisCanvas2 *>(canvas());
-    KIS_ASSERT(canvas2);
+    const KisCoordinatesConverter *converter =
+        dynamic_cast<const KisCoordinatesConverter *>(canvas()->viewConverter());
+    KIS_ASSERT(converter);
     QRect screenRect = QGuiApplication::primaryScreen()->availableVirtualGeometry();
 
     qreal scaleX = 0;
     qreal scaleY = 0;
-    canvas2->coordinatesConverter()->imageScale(&scaleX, &scaleY);
+    converter->imageScale(&scaleX, &scaleY);
 
     const qreal maxBrushSize = KisImageConfig(true).maxBrushSize();
     const qreal effectiveMaxDragSize = 0.5 * screenRect.width();
@@ -288,9 +290,9 @@ void KisToolBasicBrushBase::activate(const QSet<KoShape*> &shapes)
 
 void KisToolBasicBrushBase::deactivate()
 {
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_ASSERT_RECOVER_RETURN(kisCanvas);
-    kisCanvas->updateCanvas();
+    KisCanvasInvalidation *invalidation = dynamic_cast<KisCanvasInvalidation *>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(invalidation);
+    invalidation->invalidateAll();
 
     KisToolShape::deactivate();
 }

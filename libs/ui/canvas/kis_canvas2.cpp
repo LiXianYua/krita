@@ -373,6 +373,11 @@ void KisCanvas2::showFloatingMessage(const QString &message,
     viewManager()->showFloatingMessage(message, icon, timeout, uiPriority, alignment);
 }
 
+void KisCanvas2::invalidateAll()
+{
+    updateCanvas();
+}
+
 void KisCanvas2::setup()
 {
     // a bit of duplication from slotConfigChanged()
