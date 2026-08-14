@@ -9,18 +9,16 @@
 
 #include "kis_tool_colorsampler.h"
 
-#include <kis_cursor.h>
+#include <KisCanvasToolServices.h>
 #include <KisColorSamplingCanvas.h>
 #include <KoCanvasBase.h>
 #include <KoPointerEvent.h>
 #include <KoResourceServerProvider.h>
 #include <KoViewConverter.h>
-#include "kis_display_color_converter.h"
-#include "kis_tool_utils.h"
 
 KisToolColorSampler::KisToolColorSampler(KoCanvasBase *canvas)
-    : KisTool(canvas, KisCursor::samplerCursor()),
-      m_config(new KisToolUtils::ColorSamplerConfig),
+    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolSamplerCursor()),
+      m_config(new KisColorSamplerConfig),
       m_helper(canvas, dynamic_cast<KisColorSamplingCanvas *>(canvas))
 {
     setObjectName("tool_colorsampler");

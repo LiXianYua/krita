@@ -15,6 +15,7 @@ set(kritashapemodel_SOURCES
     kis_node_shape.cpp
     kis_shape_controller.cpp
     kis_shape_controller_ui_adapter.cpp
+    ../tool/kis_selection_tool_helper.cpp
 )
 
 kis_add_library(kritashapemodel SHARED ${kritashapemodel_SOURCES})

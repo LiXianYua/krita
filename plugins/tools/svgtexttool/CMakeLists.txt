@@ -45,7 +45,8 @@ kis_add_library(krita_tool_svgtext MODULE ${SvgTextTool_SOURCES})
 generate_export_header(krita_tool_svgtext_static BASE_NAME kritatoolsvgtext)
 
 target_link_libraries(krita_tool_svgtext_static
-    kritaui
+    kritacanvas
+    kritashapemodel
     Qt${QT_MAJOR_VERSION}::Quick
     Qt${QT_MAJOR_VERSION}::Qml
     KF${KF_MAJOR}::I18n)

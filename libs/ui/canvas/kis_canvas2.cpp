@@ -29,6 +29,7 @@
 
 #include <KoUnit.h>
 #include <KoShapeManager.h>
+#include <KoPathShape.h>
 #include <KisSelectedShapesProxy.h>
 #include <KoColorProfile.h>
 #include <KoCanvasControllerWidget.h>
@@ -46,6 +47,7 @@
 #include "kis_coordinates_converter.h"
 #include "kis_prescaled_projection.h"
 #include "kis_image.h"
+#include <brushengine/kis_paintop_preset.h>
 #include "KisImageBarrierLock.h"
 #include "kis_undo_adapter.h"
 #include "flake/kis_shape_layer.h"
@@ -57,6 +59,7 @@
 #include "kis_abstract_canvas_widget.h"
 #include "kis_qpainter_canvas.h"
 #include "kis_group_layer.h"
+#include "kis_layer_utils.h"
 #include "flake/kis_shape_controller.h"
 #include "kis_node_manager.h"
 #include "kis_selection.h"
@@ -88,6 +91,7 @@
 
 #include "input/kis_input_manager.h"
 #include "kis_painting_assistants_decoration.h"
+#include "kis_abstract_perspective_grid.h"
 
 #include "kis_canvas_updates_compressor.h"
 
@@ -246,6 +250,7 @@ public:
     bool proofingConfigUpdated = false;
 
     KisPopupPalette *popupPalette = 0;
+    KisCanvasToolSignals toolSignals;
     KisDisplayColorConverter displayColorConverter;
 
     KisCanvasUpdatesCompressor projectionUpdatesCompressor;
@@ -327,6 +332,14 @@ KisCanvas2::KisCanvas2(KisCoordinatesConverter *coordConverter, KoCanvasResource
     m_d->frameRenderStartCompressor.setDelay(1000 / config.fpsLimit());
     m_d->frameRenderStartCompressor.setMode(KisSignalCompressor::FIRST_ACTIVE);
     snapGuide()->overrideSnapStrategy(KoSnapGuide::PixelSnapping, new KisSnapPixelStrategy());
+
+    connect(viewManager(), &KisViewManager::brushOutlineToggled,
+            &m_d->toolSignals, &KisCanvasToolSignals::brushOutlineChanged);
+    KisCanvasResourceProvider *provider = viewManager()->canvasResourceProvider();
+    connect(provider, &KisCanvasResourceProvider::sigEffectiveCompositeOpChanged,
+            &m_d->toolSignals, &KisCanvasToolSignals::effectiveCompositeOpChanged);
+    connect(provider, &KisCanvasResourceProvider::sigPaintOpPresetChanged,
+            &m_d->toolSignals, &KisCanvasToolSignals::paintOpPresetChanged);
 }
 
 void KisCanvas2::showFloatingMessage(const QString &message,
@@ -428,6 +441,346 @@ void KisCanvas2::toolBlockUntilOperationsFinishedForced(KisImageWSP image)
 bool KisCanvas2::toolSelectionEditable() const
 {
     return viewManager()->selectionEditable();
+}
+
+KisCanvasToolSignals *KisCanvas2::toolSignals()
+{
+    return &m_d->toolSignals;
+}
+
+KisPaintOpPresetSP KisCanvas2::toolCurrentPaintOpPreset() const
+{
+    return viewManager()->canvasResourceProvider()->currentPreset();
+}
+
+void KisCanvas2::toolNotifyPaintingFinished()
+{
+    viewManager()->canvasResourceProvider()->slotPainting();
+}
+
+void KisCanvas2::toolSetControlsEnabled(bool enabled)
+{
+    enabled ? viewManager()->enableControls() : viewManager()->disableControls();
+}
+
+KisPopupWidgetInterface *KisCanvas2::toolPopupWidget() const
+{
+    return m_d->popupPalette;
+}
+
+QSize KisCanvas2::toolCanvasWidgetSize() const
+{
+    return canvasWidget()->size();
+}
+
+QRect KisCanvas2::toolAvailableVirtualScreenGeometry() const
+{
+    return QGuiApplication::primaryScreen()->availableVirtualGeometry();
+}
+
+qreal KisCanvas2::toolImageScaleX() const
+{
+    qreal scaleX = 0.0;
+    qreal scaleY = 0.0;
+    m_d->coordinatesConverter->imageScale(&scaleX, &scaleY);
+    return scaleX;
+}
+
+QPointF KisCanvas2::toolImageToDocument(const QPointF &point) const
+{
+    return m_d->coordinatesConverter->imageToDocument(point);
+}
+
+qreal KisCanvas2::toolCanvasRotation() const
+{
+    return m_d->coordinatesConverter->rotationAngle();
+}
+
+bool KisCanvas2::toolCanvasMirroredHorizontally() const
+{
+    return m_d->coordinatesConverter->xAxisMirrored();
+}
+
+bool KisCanvas2::toolCanvasMirroredVertically() const
+{
+    return m_d->coordinatesConverter->yAxisMirrored();
+}
+
+qreal KisCanvas2::toolEffectiveZoom() const
+{
+    return resourceManager() ? resourceManager()->resource(KoCanvasResource::EffectiveZoom).toReal() : 1.0;
+}
+
+qreal KisCanvas2::toolCoordinateEffectiveZoom() const
+{
+    return m_d->coordinatesConverter->effectiveZoom();
+}
+
+qreal KisCanvas2::toolEffectivePhysicalZoom() const
+{
+    return m_d->coordinatesConverter->effectivePhysicalZoom();
+}
+
+QCursor KisCanvas2::toolCursor(CursorStyle style) const
+{
+    switch (style) {
+    case CURSOR_STYLE_NO_CURSOR: return KisCursor::blankCursor();
+    case CURSOR_STYLE_POINTER: return KisCursor::arrowCursor();
+    case CURSOR_STYLE_SMALL_ROUND: return KisCursor::roundCursor();
+    case CURSOR_STYLE_CROSSHAIR: return KisCursor::crossCursor();
+    case CURSOR_STYLE_TRIANGLE_RIGHTHANDED: return KisCursor::triangleRightHandedCursor();
+    case CURSOR_STYLE_TRIANGLE_LEFTHANDED: return KisCursor::triangleLeftHandedCursor();
+    case CURSOR_STYLE_BLACK_PIXEL: return KisCursor::pixelBlackCursor();
+    case CURSOR_STYLE_WHITE_PIXEL: return KisCursor::pixelWhiteCursor();
+    case CURSOR_STYLE_ERASER: return KisCursor::eraserCursor();
+    case CURSOR_STYLE_TOOLICON:
+    default: return QCursor();
+    }
+}
+
+QCursor KisCanvas2::toolMoveCursor() const
+{
+    return KisCursor::moveCursor();
+}
+
+QCursor KisCanvas2::toolMoveSelectionCursor() const
+{
+    return KisCursor::moveSelectionCursor();
+}
+
+QCursor KisCanvas2::toolSamplerCursor() const
+{
+    return KisCursor::samplerCursor();
+}
+
+QCursor KisCanvas2::toolOpenHandCursor() const
+{
+    return KisCursor::openHandCursor();
+}
+
+QCursor KisCanvas2::toolClosedHandCursor() const
+{
+    return KisCursor::closedHandCursor();
+}
+
+QCursor KisCanvas2::toolLoadCursor(const QString &name, int hotX, int hotY) const
+{
+    return KisCursor::load(name, hotX, hotY);
+}
+
+void KisCanvas2::toolSetCursorPosition(const QPoint &globalPoint)
+{
+    QScreen *screen = qApp->screenAt(globalPoint);
+    if (!screen) {
+        screen = qApp->primaryScreen();
+    }
+    QCursor::setPos(screen, globalPoint);
+}
+
+void KisCanvas2::toolShowBrushSize(qreal size)
+{
+    viewManager()->showFloatingMessage(i18n("Brush Size: %1 px", size),
+                                       QIcon(), 1000, KisFloatingMessage::High,
+                                       Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+}
+
+void KisCanvas2::toolShowLockedLayerMessage(bool myPaintUnavailable)
+{
+    const QString message = myPaintUnavailable
+        ? i18n("The MyPaint Brush Engine is not available for this colorspace")
+        : i18n("The brush tool cannot paint on this layer.  Please select a paint layer or mask.");
+    viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+}
+
+void KisCanvas2::toolShowFloatingMessage(const QString &message, bool lockedIcon)
+{
+    viewManager()->showFloatingMessage(message,
+                                       lockedIcon ? koIcon("object-locked") : QIcon(),
+                                       1000,
+                                       KisFloatingMessage::High,
+                                       Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+}
+
+QString KisCanvas2::toolNodeEditableMessage(KisNodeSP node,
+                                            bool blockedNoIndirectPainting) const
+{
+    QString message;
+    if (!node->isEditable(true) || blockedNoIndirectPainting) {
+        if (!node->visible() && node->userLocked()) {
+            message = i18n("Layer is locked and invisible.");
+        } else if (node->userLocked()) {
+            message = i18n("Layer is locked.");
+        } else if (!node->visible()) {
+            message = i18n("Layer is invisible.");
+        } else if (blockedNoIndirectPainting) {
+            message = i18n("Layer can be painted in Wash Mode only.");
+        } else {
+            message = i18n("Group not editable.");
+        }
+    }
+    return message;
+}
+
+namespace {
+QList<KisShapeLayerSP> toolFindShapeLayers(KisNodeSP root,
+                                           const QPointF &point,
+                                           bool editableOnly)
+{
+    QList<KisShapeLayerSP> foundNodes;
+    KisLayerUtils::recursiveApplyNodes(root, [&] (KisNodeSP node) {
+        if ((node->isEditable(true) && editableOnly) || !editableOnly) {
+            KisShapeLayerSP shapeLayer = dynamic_cast<KisShapeLayer *>(node.data());
+            if (shapeLayer && shapeLayer->isEditable() &&
+                shapeLayer->shapeManager()->shapeAt(point)) {
+                foundNodes.append(shapeLayer);
+            }
+        }
+    });
+    return foundNodes;
+}
+}
+
+QPainterPath KisCanvas2::toolShapeHoverInfoCrossLayer(const QPointF &point,
+                                                      QString &shapeType,
+                                                      bool *isHorizontal,
+                                                      bool skipCurrentShapes) const
+{
+    QPainterPath path;
+    const QList<KoShape *> currentShapes =
+        shapeManager()->selection()->selectedShapes();
+    const QList<KisShapeLayerSP> candidates =
+        toolFindShapeLayers(image()->root(), point, true);
+    KisShapeLayerSP shapeLayer = candidates.isEmpty() ? nullptr : candidates.last();
+
+    if (shapeLayer) {
+        KoShape *shape = shapeLayer->shapeManager()->shapeAt(point);
+        if (shape && !(currentShapes.contains(shape) && skipCurrentShapes)) {
+            shapeType = shape->shapeId();
+            KoSvgTextShape *textShape = dynamic_cast<KoSvgTextShape *>(shape);
+            if (textShape) {
+                path.addRect(textShape->boundingRect());
+                if (isHorizontal) {
+                    *isHorizontal = textShape->writingMode() == KoSvgText::HorizontalTB;
+                }
+                if (!textShape->shapesInside().isEmpty()) {
+                    QPainterPath paths;
+                    Q_FOREACH (KoShape *insideShape, textShape->shapesInside()) {
+                        KoPathShape *insidePath = dynamic_cast<KoPathShape *>(insideShape);
+                        if (insidePath) {
+                            paths.addPath(insidePath->absoluteTransformation().map(
+                                insidePath->outline()));
+                        }
+                    }
+                    if (!paths.isEmpty()) {
+                        path = paths;
+                    }
+                }
+            } else {
+                path = shape->absoluteTransformation().map(shape->outline());
+            }
+        }
+    }
+    return path;
+}
+
+bool KisCanvas2::toolSelectShapeCrossLayer(const QPointF &point,
+                                           const QString &shapeType,
+                                           bool skipCurrentShapes)
+{
+    const QList<KoShape *> currentShapes =
+        shapeManager()->selection()->selectedShapes();
+    const QList<KisShapeLayerSP> candidates =
+        toolFindShapeLayers(image()->root(), point, true);
+    KisShapeLayerSP shapeLayer = candidates.isEmpty() ? nullptr : candidates.last();
+
+    if (!shapeLayer) {
+        return false;
+    }
+
+    KoShape *shape = shapeLayer->shapeManager()->shapeAt(point);
+    if (!shape || (currentShapes.contains(shape) && skipCurrentShapes) ||
+        (!shapeType.isEmpty() && shapeType != shape->shapeId())) {
+        return false;
+    }
+
+    viewManager()->nodeManager()->slotNonUiActivatedNode(shapeLayer);
+    shapeManager()->selection()->deselectAll();
+    shapeManager()->selection()->select(shape);
+    return true;
+}
+
+void KisCanvas2::toolUpdateCanvas()
+{
+    updateCanvas();
+}
+
+void KisCanvas2::toolSetPriorityEventFilter(QObject *filter, bool attached)
+{
+    if (KisInputManager *manager = globalInputManager()) {
+        attached ? manager->attachPriorityEventFilter(filter)
+                 : manager->detachPriorityEventFilter(filter);
+    }
+}
+
+KisInputActionGroupsMaskInterface::SharedInterface
+KisCanvas2::toolInputActionGroupsMaskInterface()
+{
+    return inputActionGroupsMaskInterface();
+}
+
+void KisCanvas2::toolUpdateAssistantDecoration()
+{
+    KisPaintingAssistantsDecorationSP decoration = paintingAssistantsDecoration();
+    if (decoration && decoration->visible() && decoration->hasPaintableAssistants()) {
+        updateCanvasDecorations();
+    }
+}
+
+void KisCanvas2::toolUpdateOutlineDoc(const QRectF &rect)
+{
+    updateCanvasToolOutlineDoc(rect);
+}
+
+QPointF KisCanvas2::toolAdjustAssistantPosition(const QPointF &point,
+                                                const QPointF &strokeBegin,
+                                                qreal magnetism,
+                                                bool onlyOneAssistant,
+                                                bool eraserSnap)
+{
+    KisPaintingAssistantsDecorationSP decoration = paintingAssistantsDecoration();
+    if (!decoration) {
+        return point;
+    }
+    decoration->setOnlyOneAssistantSnap(onlyOneAssistant);
+    decoration->setEraserSnap(eraserSnap);
+    const QPointF adjusted = decoration->adjustPosition(point, strokeBegin);
+    const QPointF finalPosition = (1.0 - magnetism) * point + magnetism * adjusted;
+    decoration->setAdjustedBrushPosition(finalPosition);
+    return finalPosition;
+}
+
+qreal KisCanvas2::toolAssistantPerspective(const QPointF &documentPoint) const
+{
+    qreal perspective = 1.0;
+    KisPaintingAssistantsDecorationSP decoration = paintingAssistantsDecoration();
+    if (!decoration) {
+        return perspective;
+    }
+    Q_FOREACH (const KisPaintingAssistantSP assistant, decoration->assistants()) {
+        QPointer<KisAbstractPerspectiveGrid> grid = dynamic_cast<KisAbstractPerspectiveGrid *>(assistant.data());
+        if (grid && grid->isActive() && grid->contains(documentPoint)) {
+            perspective = grid->distance(documentPoint);
+            break;
+        }
+    }
+    return perspective;
+}
+
+void KisCanvas2::toolEndAssistantStroke()
+{
+    if (KisPaintingAssistantsDecorationSP decoration = paintingAssistantsDecoration()) {
+        decoration->endStroke();
+    }
 }
 
 KisImageWSP KisCanvas2::samplingImage() const

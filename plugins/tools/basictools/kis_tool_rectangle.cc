@@ -17,6 +17,7 @@
 #include <brushengine/kis_paintop_registry.h>
 #include "KoCanvasBase.h"
 #include <KoCanvasResourceProvider.h>
+#include <KisCanvasToolServices.h>
 
 #include "kis_shape_tool_helper.h"
 #include "kis_figure_painting_tool_helper.h"
@@ -26,7 +27,7 @@
 
 
 KisToolRectangle::KisToolRectangle(KoCanvasBase * canvas)
-        : KisToolRectangleBase(canvas, KisToolRectangleBase::PAINT, KisCursor::load("tool_rectangle_cursor.png", 6, 6))
+        : KisToolRectangleBase(canvas, KisToolRectangleBase::PAINT, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_rectangle_cursor.png", 6, 6))
 {
     setSupportOutline(true);
     setObjectName("tool_rectangle");
@@ -47,7 +48,7 @@ KisToolRectangle::~KisToolRectangle()
 void KisToolRectangle::resetCursorStyle()
 {
     if (isEraser() && (nodePaintAbility() == NodePaintAbility::PAINT)) {
-        useCursor(KisCursor::load("tool_rectangle_eraser_cursor.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursor("tool_rectangle_eraser_cursor.png", 6, 6));
     } else {
         KisToolRectangleBase::resetCursorStyle();
     }

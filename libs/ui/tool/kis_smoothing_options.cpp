@@ -5,14 +5,14 @@
  */
 #include "kis_smoothing_options.h"
 
-#include "kis_config.h"
+#include <kis_image_config.h>
 #include "kis_signal_compressor.h"
 
 struct KisSmoothingOptions::Private {
     Private(bool useSavedSmoothing)
         : writeCompressor(500, KisSignalCompressor::FIRST_ACTIVE)
     {
-        KisConfig cfg(true);
+        KisImageConfig cfg(true);
         smoothingType = (SmoothingType)cfg.lineSmoothingType(!useSavedSmoothing);
         smoothnessDistanceMin = cfg.lineSmoothingDistanceMin(!useSavedSmoothing);
         smoothnessDistanceMax = cfg.lineSmoothingDistanceMax(!useSavedSmoothing);
@@ -181,7 +181,7 @@ bool KisSmoothingOptions::stabilizeSensors() const
 
 void KisSmoothingOptions::slotWriteConfig()
 {
-    KisConfig cfg(false);
+    KisImageConfig cfg(false);
     cfg.setLineSmoothingType(m_d->smoothingType);
     cfg.setLineSmoothingDistanceMin(m_d->smoothnessDistanceMin);
     cfg.setLineSmoothingDistanceMax(m_d->smoothnessDistanceMax);

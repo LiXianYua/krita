@@ -10,7 +10,7 @@
 #include "kis_tool_freehand_helper.h"
 
 
-class KRITAUI_EXPORT KisToolMultihandHelper : public KisToolFreehandHelper
+class KRITACANVAS_EXPORT KisToolMultihandHelper : public KisToolFreehandHelper
 {
     Q_OBJECT
 

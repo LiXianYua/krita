@@ -6,7 +6,7 @@
 #ifndef KIS_SHAPE_TOOL_HELPER_H
 #define KIS_SHAPE_TOOL_HELPER_H
 
-#include <kritaui_export.h>
+#include <kritacanvas_export.h>
 
 #include <QRectF>
 
@@ -15,7 +15,7 @@ class KoShape;
 /**
  * KisShapeToolHelper provides shapes and fallback shapes for shape based tools
  */
-class KRITAUI_EXPORT KisShapeToolHelper
+class KRITACANVAS_EXPORT KisShapeToolHelper
 {
 public:
     static KoShape* createRectangleShape(const QRectF& rect, qreal roundCornersX, qreal roundCornersY);

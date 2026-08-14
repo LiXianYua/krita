@@ -39,6 +39,7 @@
 #include <kis_global.h>
 #include <KisCanvasFeedback.h>
 #include <KisCanvasInvalidation.h>
+#include <KisCanvasToolServices.h>
 #include <kis_coordinates_converter.h>
 #include <kis_painter.h>
 #include <kis_cursor.h>
@@ -47,7 +48,6 @@
 #include <kis_transaction.h>
 #include <kis_selection.h>
 #include <kis_filter_strategy.h>
-#include <widgets/kis_cmb_idlist.h>
 #include <kis_transform_worker.h>
 #include <kis_perspectivetransform_worker.h>
 #include <kis_warptransform_worker.h>
@@ -97,7 +97,8 @@ KisToolTransform::KisToolTransform(KoCanvasBase * canvas)
     , m_liquifyStrategy(
         new KisLiquifyTransformStrategy(
             m_converter,
-            m_currentArgs, m_transaction, canvas->resourceManager()))
+            m_currentArgs, m_transaction, canvas->resourceManager(),
+            dynamic_cast<KisCanvasToolServices *>(canvas)))
     , m_meshStrategy(
         new KisMeshTransformStrategy(
             m_converter,

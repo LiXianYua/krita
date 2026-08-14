@@ -10,7 +10,7 @@
 #include <QHash>
 #include <QObject>
 
-#include "kritaui_export.h"
+#include <kritacanvas_export.h>
 #include "kis_stroke_strategy_undo_command_based.h"
 #include "kis_types.h"
 #include "kis_lod_transform.h"
@@ -26,11 +26,11 @@ class KisUpdatesFacade;
 class KisPostExecutionUndoAdapter;
 
 
-class KRITAUI_EXPORT MoveStrokeStrategy : public QObject, public KisStrokeStrategyUndoCommandBased
+class KRITACANVAS_EXPORT MoveStrokeStrategy : public QObject, public KisStrokeStrategyUndoCommandBased
 {
     Q_OBJECT
 public:
-    class KRITAUI_EXPORT Data : public KisStrokeJobData {
+    class KRITACANVAS_EXPORT Data : public KisStrokeJobData {
     public:
         Data(QPoint _offset);
         KisStrokeJobData* createLodClone(int levelOfDetail) override;
@@ -41,7 +41,7 @@ public:
         Data(const Data &rhs, int levelOfDetail);
     };
 
-    class KRITAUI_EXPORT PickLayerData : public KisStrokeJobData {
+    class KRITACANVAS_EXPORT PickLayerData : public KisStrokeJobData {
     public:
         PickLayerData(QPoint _pos);
 
@@ -54,7 +54,7 @@ public:
     };
 
 
-    struct KRITAUI_EXPORT BarrierUpdateData : public KisAsynchronousStrokeUpdateHelper::UpdateData
+    struct KRITACANVAS_EXPORT BarrierUpdateData : public KisAsynchronousStrokeUpdateHelper::UpdateData
     {
         BarrierUpdateData(bool forceUpdate);
         KisStrokeJobData* createLodClone(int levelOfDetail) override;

@@ -8,7 +8,7 @@
 #define KIS_TOOL_PAINT_H_
 
 #include "kis_tool.h"
-#include "kis_tool_utils.h"
+#include <KisStandardBrushSizes.h>
 
 #include <QGridLayout>
 #include <QPainterPath>
@@ -18,7 +18,7 @@
 #include <KoToolBase.h>
 #include <resources/KoAbstractGradient.h>
 
-#include <kritaui_export.h>
+#include <kritacanvas_export.h>
 
 #include <kis_types.h>
 #include <kis_image.h>
@@ -31,7 +31,7 @@ class QGridLayout;
 class KoCompositeOp;
 class KoCanvasBase;
 
-class KRITAUI_EXPORT KisToolPaint : public KisTool
+class KRITACANVAS_EXPORT KisToolPaint : public KisTool
 {
 
     Q_OBJECT
@@ -148,7 +148,7 @@ private:
 
     bool m_isOutlineEnabled;
     bool m_isOutlineVisible;
-    KisToolUtils::StandardBrushSizes m_standardBrushSizes;
+    KisStandardBrushSizes m_standardBrushSizes;
 
     KisPaintOpPresetSP m_oldPreset;
     qreal m_oldOpacity {1.0};
@@ -166,4 +166,3 @@ Q_SIGNALS:
 };
 
 #endif // KIS_TOOL_PAINT_H_
-

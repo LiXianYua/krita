@@ -16,7 +16,7 @@
 #include <KoCanvasBase.h>
 
 #include <kis_action_registry.h>
-#include "kis_cursor.h"
+#include <KisCanvasToolServices.h>
 #include "kis_image_config.h"
 #include "kundo2magicstring.h"
 
@@ -36,7 +36,7 @@ void KisToolBrush::addSmoothingAction(int enumId, const QString &id)
 
 KisToolBrush::KisToolBrush(KoCanvasBase * canvas)
     : KisToolFreehand(canvas,
-                      KisCursor::load("tool_freehand_cursor.xpm", 2, 2),
+                      dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_freehand_cursor.xpm", 2, 2),
                       kundo2_i18n("Freehand Brush Stroke"))
 {
     setObjectName("tool_brush");
@@ -173,7 +173,7 @@ void KisToolBrush::resetCursorStyle()
             smoothingOptions()->useDelayDistance() &&
             cursorStyle == CURSOR_STYLE_NO_CURSOR) {
 
-        useCursor(KisCursor::roundCursor());
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_SMALL_ROUND));
     } else {
         KisToolFreehand::resetCursorStyle();
     }

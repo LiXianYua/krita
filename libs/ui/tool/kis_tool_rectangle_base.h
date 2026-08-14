@@ -8,9 +8,8 @@
 #define KIS_TOOL_RECTANGLE_BASE_H
 
 #include <kis_tool_shape.h>
-#include <kis_cursor.h>
 
-class KRITAUI_EXPORT KisToolRectangleBase : public KisToolShape
+class KRITACANVAS_EXPORT KisToolRectangleBase : public KisToolShape
 {
 Q_OBJECT
 
@@ -31,7 +30,7 @@ public:
         SELECT
     };
 
-    explicit KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectangleBase::ToolType type, const QCursor & cursor=KisCursor::load("tool_rectangle_cursor.png", 6, 6));
+    explicit KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectangleBase::ToolType type, const QCursor & cursor);
 
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;

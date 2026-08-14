@@ -17,7 +17,7 @@
 #include "kis_signal_compressor_with_param.h"
 #include "KoPointerEvent.h"
 
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 
 class KoPointerEvent;
 class KoCanvasBase;
@@ -26,7 +26,7 @@ class KisPaintingInformationBuilder;
 class KisToolFreehandHelper;
 
 
-class KRITAUI_EXPORT KisToolFreehand : public KisToolPaint
+class KRITACANVAS_EXPORT KisToolFreehand : public KisToolPaint
 {
 
     Q_OBJECT

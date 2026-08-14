@@ -7,7 +7,7 @@ qt_add_resources(kritatoolpolyline_SOURCES polyline.qrc)
 
 kis_add_library(kritatoolpolyline MODULE ${kritatoolpolyline_SOURCES})
 
-target_link_libraries(kritatoolpolyline kritaui)
+target_link_libraries(kritatoolpolyline kritacanvas kritashapemodel)
 
 install(TARGETS kritatoolpolyline  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

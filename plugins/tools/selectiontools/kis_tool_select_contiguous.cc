@@ -45,7 +45,7 @@
 KisToolSelectContiguous::KisToolSelectContiguous(KoCanvasBase *canvas)
     : KisToolSelect(
         canvas,
-        KisCursor::load("tool_contiguous_selection_cursor.png", 6, 6),
+        dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_contiguous_selection_cursor.png", 6, 6),
         i18n("Contiguous Area Selection"))
     , m_threshold(8)
     , m_opacitySpread(100)
@@ -112,7 +112,7 @@ void KisToolSelectContiguous::beginPrimaryAction(KoPointerEvent *event)
 
     beginSelectInteraction();
 
-    KisCursorOverrideLock cursorLock(KisCursor::waitCursor());
+    KisCursorOverrideLock cursorLock(QCursor(Qt::WaitCursor));
 
     // -------------------------------
 
@@ -339,13 +339,13 @@ KoColor KisToolSelectContiguous::loadContiguousSelectionBoundaryColorFromConfig(
 void KisToolSelectContiguous::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(KisCursor::load("tool_contiguous_selection_cursor_add.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_contiguous_selection_cursor_add.png", 6, 6));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(KisCursor::load("tool_contiguous_selection_cursor_sub.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_contiguous_selection_cursor_sub.png", 6, 6));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(KisCursor::load("tool_contiguous_selection_cursor_inter.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_contiguous_selection_cursor_inter.png", 6, 6));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(KisCursor::load("tool_contiguous_selection_cursor_symdiff.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_contiguous_selection_cursor_symdiff.png", 6, 6));
     } else {
         KisToolSelect::resetCursorStyle();
     }

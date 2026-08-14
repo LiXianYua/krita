@@ -20,12 +20,11 @@
 #include "kis_selection_modifier_mapper.h"
 #include "strokes/move_stroke_strategy.h"
 #include "kis_image.h"
-#include "kis_cursor.h"
 #include "kis_action_registry.h"
 #include "kis_signal_auto_connection.h"
 #include "kis_assert.h"
 #include "canvas/kis_coordinates_converter.h"
-#include <input/kis_extended_modifiers_mapper.h>
+#include <KisCanvasToolServices.h>
 
 /**
  * This is a basic template to create selection tools from basic path based drawing tools.
@@ -309,7 +308,9 @@ public:
 
     void keyPressEvent(QKeyEvent *event) override
     {
-        const Qt::Key key = KisExtendedModifiersMapper::workaroundShiftAltMetaHell(event);
+        const Qt::Key key = event->key() == Qt::Key_Meta &&
+                event->modifiers().testFlag(Qt::ShiftModifier)
+            ? Qt::Key_Alt : static_cast<Qt::Key>(event->key());
         // Assume all the modifiers were unpressed...
         m_currentModifiers = Qt::NoModifier;
         // ...and add those which are right now
@@ -338,7 +339,9 @@ public:
 
     void keyReleaseEvent(QKeyEvent *event) override
     {
-        const Qt::Key key = KisExtendedModifiersMapper::workaroundShiftAltMetaHell(event);
+        const Qt::Key key = event->key() == Qt::Key_Meta &&
+                event->modifiers().testFlag(Qt::ShiftModifier)
+            ? Qt::Key_Alt : static_cast<Qt::Key>(event->key());
         // Assume all the modifiers were pressed...
         m_currentModifiers = Qt::ControlModifier | Qt::ShiftModifier | Qt::AltModifier;
         // ...and remove those which aren't right now
@@ -365,7 +368,7 @@ public:
         if (m_currentModifiers == Qt::NoModifier) {
             KisNodeSP selectionMask = locateSelectionMaskUnderCursor(m_currentPos, m_currentModifiers);
             if (selectionMask) {
-                this->useCursor(KisCursor::moveSelectionCursor());
+                this->useCursor(dynamic_cast<KisCanvasToolServices*>(this->canvas())->toolMoveSelectionCursor());
             } else {
                 this->resetCursorStyle();
             }
@@ -388,7 +391,7 @@ public:
 
         KisNodeSP selectionMask = locateSelectionMaskUnderCursor(m_currentPos, event->modifiers());
         if (selectionMask) {
-            this->useCursor(KisCursor::moveSelectionCursor());
+            this->useCursor(dynamic_cast<KisCanvasToolServices*>(this->canvas())->toolMoveSelectionCursor());
         } else {
             setAlternateSelectionAction(KisSelectionModifierMapper::map(m_currentModifiers));
             this->resetCursorStyle();
@@ -509,7 +512,7 @@ public:
             {
                 KisNodeSP selectionMask = locateSelectionMaskUnderCursor(m_currentPos, m_currentModifiers);
                 if (selectionMask) {
-                    this->useCursor(KisCursor::moveSelectionCursor());
+                    this->useCursor(dynamic_cast<KisCanvasToolServices*>(this->canvas())->toolMoveSelectionCursor());
                 } else {
                     this->resetCursorStyle();
                 }

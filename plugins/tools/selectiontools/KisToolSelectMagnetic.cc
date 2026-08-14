@@ -46,7 +46,7 @@
 
 KisToolSelectMagnetic::KisToolSelectMagnetic(KoCanvasBase *canvas)
     : KisToolSelect(canvas,
-                    KisCursor::load("tool_magnetic_selection_cursor.png", 6, 6),
+                    dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_magnetic_selection_cursor.png", 6, 6),
                     i18n("Magnetic Selection"))
   , m_worker(nullptr)
   , m_mouseHoverCompressor(100, KisSignalCompressor::FIRST_ACTIVE)
@@ -493,7 +493,7 @@ void KisToolSelectMagnetic::finishSelectionAction()
     if (m_points.count() > 2 &&
         !helper.tryDeselectCurrentSelection(boundingViewRect, selectionAction()))
     {
-        KisCursorOverrideLock cursorLock(KisCursor::waitCursor());
+        KisCursorOverrideLock cursorLock(QCursor(Qt::WaitCursor));
 
         const SelectionMode mode =
             helper.tryOverrideSelectionMode(
@@ -760,13 +760,13 @@ void KisToolSelectMagnetic::slotSetAnchorGap(int g)
 void KisToolSelectMagnetic::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(KisCursor::load("tool_magnetic_selection_cursor_add.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_magnetic_selection_cursor_add.png", 6, 6));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(KisCursor::load("tool_magnetic_selection_cursor_sub.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_magnetic_selection_cursor_sub.png", 6, 6));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(KisCursor::load("tool_magnetic_selection_cursor_inter.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_magnetic_selection_cursor_inter.png", 6, 6));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(KisCursor::load("tool_magnetic_selection_cursor_symdiff.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_magnetic_selection_cursor_symdiff.png", 6, 6));
     } else {
         KisToolSelect::resetCursorStyle();
     }

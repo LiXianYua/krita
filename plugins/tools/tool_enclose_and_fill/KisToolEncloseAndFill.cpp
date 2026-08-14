@@ -33,7 +33,6 @@
 #include <kis_group_layer.h>
 #include <kis_layer_utils.h>
 
-#include <KisDocument.h>
 #include <kis_dummies_facade.h>
 #include <KoShapeControllerBase.h>
 #include <kis_shape_controller.h>

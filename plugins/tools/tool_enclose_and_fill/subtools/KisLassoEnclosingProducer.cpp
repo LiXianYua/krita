@@ -7,6 +7,7 @@
  */
 
 #include <KoCanvasResourceProvider.h>
+#include <kis_cursor.h>
 
 #include "KisLassoEnclosingProducer.h"
 

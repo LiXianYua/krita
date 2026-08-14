@@ -17,10 +17,12 @@
 #include <KoShapeStroke.h>
 
 #include <brushengine/kis_paintop_registry.h>
+#include <KisCanvasToolServices.h>
 #include "kis_figure_painting_tool_helper.h"
 
 KisToolPolygon::KisToolPolygon(KoCanvasBase *canvas)
-        : KisToolPolylineBase(canvas,  KisToolPolylineBase::PAINT, KisCursor::load("tool_polygon_cursor.png", 6, 6))
+        : KisToolPolylineBase(canvas, KisToolPolylineBase::PAINT,
+                              dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_polygon_cursor.png", 6, 6))
 {
     setObjectName("tool_polygon");
     setSupportOutline(true);
@@ -34,7 +36,7 @@ KisToolPolygon::~KisToolPolygon()
 void KisToolPolygon::resetCursorStyle()
 {
     if (isEraser()) {
-        useCursor(KisCursor::load("tool_polygon_eraser_cursor.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_polygon_eraser_cursor.png", 6, 6));
     } else {
         KisToolPolylineBase::resetCursorStyle();
     }

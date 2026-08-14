@@ -13,18 +13,13 @@
 #include <QPainter>
 #include <QRect>
 #include <QThreadPool>
-#include <QApplication>
-#include <QScreen>
 
 #include <Eigen/Core>
 
-#include <kis_icon.h>
 #include <KoPointerEvent.h>
 #include <KoViewConverter.h>
+#include <KoCanvasBase.h>
 #include <KoCanvasController.h>
-
-//pop up palette
-#include <kis_canvas_resource_provider.h>
 
 // Krita/image
 #include <kis_layer.h>
@@ -36,19 +31,12 @@
 #include <brushengine/KisOptimizedBrushOutline.h>
 
 
-// Krita/ui
-#include "kis_abstract_perspective_grid.h"
-#include "kis_config.h"
 #include "kis_config_notifier.h"
 #include "kis_image_config.h"
-#include "canvas/kis_canvas2.h"
-#include "kis_cursor.h"
-#include <KisViewManager.h>
-#include <kis_painting_assistants_decoration.h>
+#include <KisCanvasToolServices.h>
 #include "kis_painting_information_builder.h"
 #include "kis_tool_freehand_helper.h"
 #include "strokes/freehand_stroke.h"
-#include "kis_tool_utils.h"
 
 using namespace std::placeholders; // For _1 placeholder
 
@@ -70,14 +58,18 @@ KisToolFreehand::KisToolFreehand(KoCanvasBase * canvas, const QCursor & cursor,
 
     connect(m_helper, SIGNAL(requestExplicitUpdateOutline()), SLOT(explicitUpdateOutline()));
 
-    connect(qobject_cast<KisCanvas2*>(canvas)->viewManager(), SIGNAL(brushOutlineToggled()), SLOT(explicitUpdateOutline()));
-
-    KisCanvasResourceProvider *provider = qobject_cast<KisCanvas2*>(canvas)->viewManager()->canvasResourceProvider();
-
-    connect(provider, SIGNAL(sigEffectiveCompositeOpChanged()), SLOT(explicitUpdateOutline()));
-    connect(provider, SIGNAL(sigEffectiveCompositeOpChanged()), SLOT(resetCursorStyle()));
-    connect(provider, SIGNAL(sigPaintOpPresetChanged(KisPaintOpPresetSP)), SLOT(explicitUpdateOutline()));
-    connect(provider, SIGNAL(sigPaintOpPresetChanged(KisPaintOpPresetSP)), SLOT(resetCursorStyle()));
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas);
+    KIS_ASSERT(services);
+    connect(services->toolSignals(), &KisCanvasToolSignals::brushOutlineChanged,
+            this, &KisToolFreehand::explicitUpdateOutline);
+    connect(services->toolSignals(), &KisCanvasToolSignals::effectiveCompositeOpChanged,
+            this, &KisToolFreehand::explicitUpdateOutline);
+    connect(services->toolSignals(), &KisCanvasToolSignals::effectiveCompositeOpChanged,
+            this, &KisToolFreehand::resetCursorStyle);
+    connect(services->toolSignals(), &KisCanvasToolSignals::paintOpPresetChanged,
+            this, &KisToolFreehand::explicitUpdateOutline);
+    connect(services->toolSignals(), &KisCanvasToolSignals::paintOpPresetChanged,
+            this, &KisToolFreehand::resetCursorStyle);
 }
 
 KisToolFreehand::~KisToolFreehand()
@@ -99,37 +91,39 @@ KisSmoothingOptionsSP KisToolFreehand::smoothingOptions() const
 
 void KisToolFreehand::resetCursorStyle()
 {
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT(services);
 
     bool useSeparateEraserCursor = cfg.separateEraserCursor() && isEraser();
 
     switch (useSeparateEraserCursor ? cfg.eraserCursorStyle() : cfg.newCursorStyle()) {
     case CURSOR_STYLE_NO_CURSOR:
-        useCursor(KisCursor::blankCursor());
+        useCursor(services->toolCursor(CURSOR_STYLE_NO_CURSOR));
         break;
     case CURSOR_STYLE_POINTER:
-        useCursor(KisCursor::arrowCursor());
+        useCursor(services->toolCursor(CURSOR_STYLE_POINTER));
         break;
     case CURSOR_STYLE_SMALL_ROUND:
-        useCursor(KisCursor::roundCursor());
+        useCursor(services->toolCursor(CURSOR_STYLE_SMALL_ROUND));
         break;
     case CURSOR_STYLE_CROSSHAIR:
-        useCursor(KisCursor::crossCursor());
+        useCursor(services->toolCursor(CURSOR_STYLE_CROSSHAIR));
         break;
     case CURSOR_STYLE_TRIANGLE_RIGHTHANDED:
-        useCursor(KisCursor::triangleRightHandedCursor());
+        useCursor(services->toolCursor(CURSOR_STYLE_TRIANGLE_RIGHTHANDED));
         break;
     case CURSOR_STYLE_TRIANGLE_LEFTHANDED:
-        useCursor(KisCursor::triangleLeftHandedCursor());
+        useCursor(services->toolCursor(CURSOR_STYLE_TRIANGLE_LEFTHANDED));
         break;
     case CURSOR_STYLE_BLACK_PIXEL:
-        useCursor(KisCursor::pixelBlackCursor());
+        useCursor(services->toolCursor(CURSOR_STYLE_BLACK_PIXEL));
         break;
     case CURSOR_STYLE_WHITE_PIXEL:
-        useCursor(KisCursor::pixelWhiteCursor());
+        useCursor(services->toolCursor(CURSOR_STYLE_WHITE_PIXEL));
         break;
     case CURSOR_STYLE_ERASER:
-        useCursor(KisCursor::eraserCursor());
+        useCursor(services->toolCursor(CURSOR_STYLE_ERASER));
         break;
     case CURSOR_STYLE_TOOLICON:
     default:
@@ -211,14 +205,10 @@ void KisToolFreehand::beginPrimaryAction(KoPointerEvent *event)
     // XXX: move this to KisTool and make it work properly for clone layers: for clone layers, the shape paint tools don't work either
     if (!nodeEditable() || paintability != PAINT) {
         if (paintability == KisToolPaint::VECTOR || paintability == KisToolPaint::CLONE){
-            KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-            QString message = i18n("The brush tool cannot paint on this layer.  Please select a paint layer or mask.");
-            kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+            dynamic_cast<KisCanvasToolServices *>(canvas())->toolShowLockedLayerMessage(false);
         }
         else if (paintability == MYPAINTBRUSH_UNPAINTABLE) {
-            KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-            QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-            kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+            dynamic_cast<KisCanvasToolServices *>(canvas())->toolShowLockedLayerMessage(true);
         }
         event->ignore();
 
@@ -229,9 +219,9 @@ void KisToolFreehand::beginPrimaryAction(KoPointerEvent *event)
 
     setMode(KisTool::PAINT_MODE);
 
-    KisCanvas2 *canvas2 = dynamic_cast<KisCanvas2 *>(canvas());
-    if (canvas2) {
-        canvas2->viewManager()->disableControls();
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    if (services) {
+        services->toolSetControlsEnabled(false);
     }
 
     initStroke(event);
@@ -256,13 +246,13 @@ void KisToolFreehand::endPrimaryAction(KoPointerEvent *event)
 
     endStroke();
 
-    if (m_assistant && static_cast<KisCanvas2*>(canvas())->paintingAssistantsDecoration()) {
-        static_cast<KisCanvas2*>(canvas())->paintingAssistantsDecoration()->endStroke();
+    if (m_assistant) {
+        dynamic_cast<KisCanvasToolServices *>(canvas())->toolEndAssistantStroke();
     }
 
-    KisCanvas2 *canvas2 = dynamic_cast<KisCanvas2 *>(canvas());
-    if (canvas2) {
-        canvas2->viewManager()->enableControls();
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    if (services) {
+        services->toolSetControlsEnabled(true);
     }
 
     setMode(KisTool::HOVER_MODE);
@@ -305,7 +295,7 @@ void KisToolFreehand::activateAlternateAction(AlternateAction action)
         return;
     }
 
-    useCursor(KisCursor::blankCursor());
+    useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_NO_CURSOR));
     setOutlineVisible(true);
 }
 
@@ -357,13 +347,10 @@ void KisToolFreehand::continueAlternateAction(KoPointerEvent *event, AlternateAc
 
     QPointF offset = actualWidgetPosition - lastWidgetPosition;
 
-    KisCanvas2 *canvas2 = dynamic_cast<KisCanvas2 *>(canvas());
-    KIS_SAFE_ASSERT_RECOVER_RETURN(canvas2);
-    QRect screenRect = QGuiApplication::primaryScreen()->availableVirtualGeometry();
-
-    qreal scaleX = 0;
-    qreal scaleY = 0;
-    canvas2->coordinatesConverter()->imageScale(&scaleX, &scaleY);
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(services);
+    const QRect screenRect = services->toolAvailableVirtualScreenGeometry();
+    const qreal scaleX = services->toolImageScaleX();
 
     const qreal maxBrushSize = KisImageConfig(true).maxBrushSize();
     const qreal effectiveMaxDragSize = 0.5 * screenRect.width();
@@ -407,7 +394,7 @@ void KisToolFreehand::endAlternateAction(KoPointerEvent *event, AlternateAction 
         return;
     }
 
-    KisToolUtils::setCursorPos(m_initialGestureGlobalPoint);
+    dynamic_cast<KisCanvasToolServices *>(canvas())->toolSetCursorPosition(m_initialGestureGlobalPoint);
     requestUpdateOutline(m_initialGestureDocPoint, 0);
 
     setMode(HOVER_MODE);
@@ -446,36 +433,21 @@ void KisToolFreehand::slotDoResizeBrush(qreal newSize)
 
 QPointF KisToolFreehand::adjustPosition(const QPointF& point, const QPointF& strokeBegin)
 {
-    if (m_assistant && static_cast<KisCanvas2*>(canvas())->paintingAssistantsDecoration()) {
-        KisCanvas2* c = static_cast<KisCanvas2*>(canvas());
-        c->paintingAssistantsDecoration()->setOnlyOneAssistantSnap(m_only_one_assistant);
-        c->paintingAssistantsDecoration()->setEraserSnap(m_eraser_snapping);
-        QPointF ap = c->paintingAssistantsDecoration()->adjustPosition(point, strokeBegin);
-        QPointF fp = (1.0 - m_magnetism) * point + m_magnetism * ap;
-        // Report the final position back to the assistant so the guides
-        // can follow the brush
-        c->paintingAssistantsDecoration()->setAdjustedBrushPosition(fp);
-        return fp;
+    if (m_assistant) {
+        return dynamic_cast<KisCanvasToolServices *>(canvas())->toolAdjustAssistantPosition(
+            point, strokeBegin, m_magnetism, m_only_one_assistant, m_eraser_snapping);
     }
     return point;
 }
 
 qreal KisToolFreehand::calculatePerspective(const QPointF &documentPoint)
 {
-    qreal perspective = 1.0;
-    Q_FOREACH (const KisPaintingAssistantSP assistant, static_cast<KisCanvas2*>(canvas())->paintingAssistantsDecoration()->assistants()) {
-        QPointer<KisAbstractPerspectiveGrid> grid = dynamic_cast<KisAbstractPerspectiveGrid*>(assistant.data());
-        if (grid && grid->isActive() && grid->contains(documentPoint)) {
-            perspective = grid->distance(documentPoint);
-            break;
-        }
-    }
-    return perspective;
+    return dynamic_cast<KisCanvasToolServices *>(canvas())->toolAssistantPerspective(documentPoint);
 }
 
 void KisToolFreehand::updateMaskSyntheticEventsFromTouch()
 {
-    setMaskSyntheticEvents(KisConfig(true).disableTouchOnCanvas());
+    setMaskSyntheticEvents(KisImageConfig(true).disableTouchOnCanvas(KoPointerEvent::tabletInputReceived()));
 }
 
 void KisToolFreehand::explicitUpdateOutline()
@@ -495,5 +467,3 @@ KisOptimizedBrushOutline KisToolFreehand::getOutlinePath(const QPointF &document
     else
         return KisOptimizedBrushOutline();
 }
-
-

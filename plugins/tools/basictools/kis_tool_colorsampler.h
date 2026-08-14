@@ -17,10 +17,7 @@
 #include <QPainter>
 #include <QKeySequence>
 #include <KisAsyncColorSamplerHelper.h>
-
-namespace KisToolUtils {
-struct ColorSamplerConfig;
-}
+#include <KisColorSamplerConfig.h>
 
 class KisToolColorSampler : public KisTool
 {
@@ -71,7 +68,7 @@ private Q_SLOTS:
 
 private:
     // Configuration
-    QScopedPointer<KisToolUtils::ColorSamplerConfig> m_config;
+    QScopedPointer<KisColorSamplerConfig> m_config;
 
     bool m_isActivated {false};
     QPointF m_outlineDocPoint;

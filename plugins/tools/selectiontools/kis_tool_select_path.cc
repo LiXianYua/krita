@@ -8,7 +8,6 @@
 
 #include <KoPathShape.h>
 
-#include "kis_cursor.h"
 #include "kis_image.h"
 #include "KisSelectionUtils.h"
 #include "kis_painter.h"
@@ -19,11 +18,10 @@
 #include <kis_selection_filters.h>
 #include <KisOptimizedBrushOutline.h>
 #include <kis_default_bounds.h>
-#include <kis_painting_assistant.h>
 
 KisToolSelectPath::KisToolSelectPath(KoCanvasBase * canvas)
     : KisToolSelectBase<KisDelegatedSelectPathWrapper>(canvas,
-                                                       KisCursor::load("tool_polygonal_selection_cursor.png", 6, 6),
+                                                       dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_polygonal_selection_cursor.png", 6, 6),
                                                        i18n("Select path"),
                                                        new __KisToolSelectPathLocalTool(canvas, this))
 {}
@@ -104,8 +102,8 @@ void KisDelegatedSelectPathWrapper::mouseMoveEvent(KoPointerEvent *event)
     DelegatedSelectPathTool::mouseMoveEvent(event);
 
     // WARNING: the code is duplicated from KisToolPaint::requestUpdateOutline
-    if (auto *services = dynamic_cast<KisPaintingAssistantToolServices *>(canvas())) {
-        services->updateDecorationIfNeeded();
+    if (auto *services = dynamic_cast<KisCanvasToolServices *>(canvas())) {
+        services->toolUpdateAssistantDecoration();
     }
 }
 
@@ -253,13 +251,13 @@ void __KisToolSelectPathLocalTool::endShape()
 void KisToolSelectPath::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(KisCursor::load("tool_polygonal_selection_cursor_add.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_polygonal_selection_cursor_add.png", 6, 6));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(KisCursor::load("tool_polygonal_selection_cursor_sub.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_polygonal_selection_cursor_sub.png", 6, 6));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(KisCursor::load("tool_polygonal_selection_cursor_inter.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_polygonal_selection_cursor_inter.png", 6, 6));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(KisCursor::load("tool_polygonal_selection_cursor_symdiff.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_polygonal_selection_cursor_symdiff.png", 6, 6));
     } else {
         KisToolSelectBase<KisDelegatedSelectPathWrapper>::resetCursorStyle();
     }

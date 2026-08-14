@@ -11,7 +11,7 @@
 #include <QVector>
 
 #include "kis_types.h"
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 #include <brushengine/kis_paint_information.h>
 #include "kis_default_bounds.h"
 #include <brushengine/kis_paintop_settings.h>
@@ -28,7 +28,7 @@ class KisPaintOp;
 class KisFreehandStrokeInfo;
 
 
-class KRITAUI_EXPORT KisToolFreehandHelper : public QObject
+class KRITACANVAS_EXPORT KisToolFreehandHelper : public QObject
 {
     Q_OBJECT
 

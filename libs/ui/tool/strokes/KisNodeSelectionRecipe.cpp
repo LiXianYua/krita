@@ -7,9 +7,47 @@
 #include "KisNodeSelectionRecipe.h"
 
 #include "kis_layer_utils.h"
-#include "kis_tool_utils.h"
 #include "kis_lod_transform.h"
 #include "kis_node.h"
+#include "kis_layer.h"
+#include "kis_group_layer.h"
+#include <KoColor.h>
+
+namespace {
+
+KisNodeSP findNode(KisNodeSP node, const QPoint &point, bool wholeGroup, bool editableOnly = true)
+{
+    KisNodeSP foundNode = 0;
+    while (node) {
+        KisLayerSP layer = qobject_cast<KisLayer*>(node.data());
+
+        if (!layer || !layer->isEditable()) {
+            node = node->prevSibling();
+            continue;
+        }
+
+        KoColor color(layer->projection()->colorSpace());
+        layer->projection()->pixel(point.x(), point.y(), &color);
+
+        KisGroupLayerSP group = dynamic_cast<KisGroupLayer*>(layer.data());
+
+        if ((group && group->passThroughMode()) ||
+            color.opacityU8() != OPACITY_TRANSPARENT_U8) {
+            if (layer->inherits("KisGroupLayer") && (!editableOnly || layer->isEditable())) {
+                foundNode = findNode(node->lastChild(), point, wholeGroup, editableOnly);
+            } else {
+                foundNode = !wholeGroup ? node : node->parent();
+            }
+        }
+
+        if (foundNode) break;
+        node = node->prevSibling();
+    }
+
+    return foundNode;
+}
+
+}
 
 KisNodeSelectionRecipe::KisNodeSelectionRecipe(KisNodeList _selectedNodes)
     : selectedNodes(_selectedNodes),
@@ -46,7 +84,7 @@ KisNodeList KisNodeSelectionRecipe::selectNodesToProcess() const
         activeRoot = KisLayerUtils::findRoot(selectedNodes.first());
     }
 
-    KisNodeSP node = KisToolUtils::findNode(activeRoot, pickPoint, wholeGroup);
+    KisNodeSP node = findNode(activeRoot, pickPoint, wholeGroup);
     if (node) {
         result = {node};
     }

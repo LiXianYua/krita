@@ -8,9 +8,8 @@
 #define KIS_TOOL_POLYLINE_BASE_H
 
 #include <kis_tool_shape.h>
-#include <kis_cursor.h>
 
-class KRITAUI_EXPORT KisToolPolylineBase : public KisToolShape
+class KRITACANVAS_EXPORT KisToolPolylineBase : public KisToolShape
 {
 Q_OBJECT
 public:
@@ -19,7 +18,7 @@ public:
         SELECT
     };
 
-    KisToolPolylineBase(KoCanvasBase * canvas, KisToolPolylineBase::ToolType type, const QCursor & cursor=KisCursor::load("tool_polygon_cursor.png", 6, 6));
+    KisToolPolylineBase(KoCanvasBase * canvas, KisToolPolylineBase::ToolType type, const QCursor & cursor);
 
     void beginPrimaryAction(KoPointerEvent *event) override;
     void endPrimaryAction(KoPointerEvent *event) override;

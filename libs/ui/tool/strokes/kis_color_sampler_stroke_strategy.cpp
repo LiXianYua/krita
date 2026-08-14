@@ -6,7 +6,7 @@
 
 #include "kis_color_sampler_stroke_strategy.h"
 
-#include "kis_tool_utils.h"
+#include <KisColorSamplingUtils.h>
 #include "kis_paint_device.h"
 
 struct KisColorSamplerStrokeStrategy::Private
@@ -46,7 +46,7 @@ void KisColorSamplerStrokeStrategy::doStrokeCallback(KisStrokeJobData *data)
     if (d) {
         KoColor color;
         KoColor previous = d->currentColor;
-        if (KisToolUtils::sampleColor(color, d->dev, d->pt, &previous, m_d->radius, m_d->blend)) {
+        if (KisColorSamplingUtils::sampleColor(color, d->dev, d->pt, &previous, m_d->radius, m_d->blend)) {
             m_d->lastSelectedColor = color;
             Q_EMIT sigColorUpdated(color);
         }

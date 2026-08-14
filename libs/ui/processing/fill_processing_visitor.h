@@ -12,10 +12,10 @@
 #include <QPoint>
 #include <kis_selection.h>
 #include <kis_resources_snapshot.h>
-#include <kritaui_export.h>
+#include <kritacanvas_export.h>
 #include <kis_fill_painter.h>
 
-class KRITAUI_EXPORT FillProcessingVisitor : public KisSimpleProcessingVisitor
+class KRITACANVAS_EXPORT FillProcessingVisitor : public KisSimpleProcessingVisitor
 {
 public:
     enum ContinuousFillMode

@@ -32,7 +32,8 @@
 #include "commands/kis_deselect_global_selection_command.h"
 
 #include "kis_algebra_2d.h"
-#include "kis_config.h"
+#include <KSharedConfig>
+#include <KConfigGroup>
 
 
 KisSelectionToolHelper::KisSelectionToolHelper(KoCanvasBase *canvas,
@@ -368,7 +369,9 @@ bool KisSelectionToolHelper::tryDeselectCurrentSelection(const QRectF selectionV
 {
     bool result = false;
 
-    if (KisAlgebra2D::maxDimension(selectionViewRect) < KisConfig(true).selectionViewSizeMinimum() &&
+    const qreal selectionViewSizeMinimum =
+        KSharedConfig::openConfig()->group("").readEntry("SelectionViewSizeMinimum", 5.0);
+    if (KisAlgebra2D::maxDimension(selectionViewRect) < selectionViewSizeMinimum &&
         (action == SELECTION_INTERSECT || action == SELECTION_SYMMETRICDIFFERENCE || action == SELECTION_REPLACE)) {
 
         // Queueing this action to ensure we avoid a race condition when unlocking the node system

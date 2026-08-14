@@ -8,9 +8,9 @@
 
 #include <KoToolFactoryBase.h>
 
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 
-class KRITAUI_EXPORT KisToolPaintFactoryBase : public KoToolFactoryBase
+class KRITACANVAS_EXPORT KisToolPaintFactoryBase : public KoToolFactoryBase
 {
 public:
     explicit KisToolPaintFactoryBase(const QString &id);

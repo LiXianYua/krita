@@ -8,11 +8,12 @@
 #define __KIS_SPEED_SMOOTHER_H
 
 #include <QScopedPointer>
+#include <kritacanvas_export.h>
 
 class QPointF;
 
 
-class KisSpeedSmoother
+class KRITACANVAS_EXPORT KisSpeedSmoother
 {
 public:
     KisSpeedSmoother();

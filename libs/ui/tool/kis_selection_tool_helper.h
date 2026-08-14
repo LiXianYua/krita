@@ -6,7 +6,7 @@
 #ifndef KIS_SELECTION_TOOL_HELPER_H
 #define KIS_SELECTION_TOOL_HELPER_H
 
-#include <kritaui_export.h>
+#include <kritashapemodel_export.h>
 
 #include "kundo2magicstring.h"
 #include "kis_selection.h"
@@ -18,7 +18,7 @@ class KoShape;
 /**
  * XXX: Doc!
  */
-class KRITAUI_EXPORT KisSelectionToolHelper
+class KRITASHAPEMODEL_EXPORT KisSelectionToolHelper
 {
 public:
 

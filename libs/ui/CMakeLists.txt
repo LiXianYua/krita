@@ -72,7 +72,6 @@ set(kritaui_LIB_SRCS
     dialogs/KisDlgCreateNewDocument.cpp
 
     flake/KisShapeControllerDesktop.cpp
-    kis_aspect_ratio_locker.cpp
     kis_bookmarked_configurations_editor.cc
     kis_bookmarked_configurations_model.cc
     kis_bookmarked_filter_configurations_model.cc
@@ -163,34 +162,7 @@ set(kritaui_LIB_SRCS
     opengl/KisOpenGLContextSwitchLock.cpp
     kis_fps_decoration.cpp
 
-    tool/KisToolChangesTracker.cpp
-    tool/KisToolChangesTrackerData.cpp
-    tool/kis_selection_tool_helper.cpp
-    tool/kis_selection_tool_config_widget_helper.cpp
-    tool/kis_rectangle_constraint_widget.cpp
-    tool/kis_shape_tool_helper.cpp
-    tool/kis_delegated_tool_policies.cpp
-    tool/kis_tool_freehand.cc
-    tool/kis_speed_smoother.cpp
-    tool/kis_painting_information_builder.cpp
-    tool/kis_stabilized_events_sampler.cpp
-    tool/kis_tool_freehand_helper.cpp
-    tool/kis_tool_multihand_helper.cpp
-    tool/kis_tool_paint.cc
-    tool/kis_tool_shape.cc
-    tool/kis_tool_ellipse_base.cpp
-    tool/kis_tool_rectangle_base.cpp
-    tool/kis_tool_polyline_base.cpp
-    tool/KisToolOutlineBase.cpp
     tool/kis_tool_utils.cpp
-    tool/kis_smoothing_options.cpp
-    tool/KisStabilizerDelayedPaintHelper.cpp
-    tool/strokes/kis_color_sampler_stroke_strategy.cpp
-    tool/strokes/move_stroke_strategy.cpp
-    tool/strokes/KisNodeSelectionRecipe.cpp
-    tool/KisSelectionToolFactoryBase.cpp
-    tool/KisToolPaintFactoryBase.cpp
-    tool/KisAsyncColorSamplerHelper.cpp
 
     toolbox/KoToolBox.cpp
     toolbox/KoToolBoxButton.cpp
@@ -232,7 +204,6 @@ set(kritaui_LIB_SRCS
 
     widgets/kis_preset_chooser.cpp
     widgets/kis_progress_widget.cpp
-    widgets/kis_selection_options.cc
     widgets/kis_scratch_pad.cpp
     widgets/kis_scratch_pad_event_filter.cpp
     widgets/KisSelectionPropertySlider.cpp
@@ -248,8 +219,6 @@ set(kritaui_LIB_SRCS
     widgets/KisLodAvailabilityData.cpp
     widgets/KisLodAvailabilityModel.cpp
     widgets/kis_color_filter_combo.cpp
-    widgets/kis_color_label_selector_widget.cpp
-    widgets/kis_color_label_button.cpp
     widgets/kis_layer_filter_widget.cpp
     widgets/kis_elided_label.cpp
     widgets/kis_preset_live_preview_view.cpp
@@ -332,8 +301,6 @@ set(kritaui_LIB_SRCS
     animation/VideoHDRMetadataOptionsDialog.cpp
     animation/KisDlgImportVideoAnimation.cpp
     animation/KisFrameDisplayProxy.cpp
-    kis_gui_context_command.cpp
-    kis_gui_context_command_p.cpp
     input/kis_tablet_debugger.cpp
     input/kis_input_profile_manager.cpp
     input/kis_input_profile.cpp
@@ -350,8 +317,6 @@ set(kritaui_LIB_SRCS
     input/config/kis_wheel_input_editor.cpp
     input/config/kis_key_input_editor.cpp
     input/config/KisGestureSelector.cpp
-    processing/fill_processing_visitor.cpp
-    processing/KisEncloseAndFillProcessingVisitor.cpp
     canvas/kis_mirror_axis.cpp
 
     imagesize/imagesize.cc
@@ -508,7 +473,6 @@ ki18n_wrap_ui(kritaui_LIB_SRCS
     forms/wdgdisplaysettings.ui
     forms/wdgproofingoptions.ui
     forms/kis_matrix_widget.ui
-    forms/wdggeometryoptions.ui
     forms/wdgnewimage.ui
     forms/wdgimageproperties.ui
     forms/wdgmaskfromselection.ui
@@ -525,7 +489,6 @@ ki18n_wrap_ui(kritaui_LIB_SRCS
     forms/wdgpresetselectorstrip.ui
     forms/wdgsavebrushpreset.ui
     forms/wdgpreseticonlibrary.ui
-    forms/wdgrectangleconstraints.ui
     forms/wdgimportimagesequence.ui
     forms/wdgstrokeselectionproperties.ui
     forms/KisDetailsPaneBase.ui

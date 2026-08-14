@@ -8,10 +8,10 @@
 #define KISNODESELECTIONRECIPE_H
 
 #include "kis_types.h"
-#include "kritaui_export.h"
+#include <kritacanvas_export.h>
 
 
-class KRITAUI_EXPORT KisNodeSelectionRecipe
+class KRITACANVAS_EXPORT KisNodeSelectionRecipe
 {
 public:
     enum SelectionMode {

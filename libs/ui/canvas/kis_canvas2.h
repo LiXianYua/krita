@@ -171,6 +171,55 @@ public: // KoCanvasBase implementation
     bool toolBlockUntilOperationsFinished(KisImageWSP image) override;
     void toolBlockUntilOperationsFinishedForced(KisImageWSP image) override;
     bool toolSelectionEditable() const override;
+    KisCanvasToolSignals *toolSignals() override;
+    KisPaintOpPresetSP toolCurrentPaintOpPreset() const override;
+    void toolNotifyPaintingFinished() override;
+    void toolSetControlsEnabled(bool enabled) override;
+    KisPopupWidgetInterface *toolPopupWidget() const override;
+    QSize toolCanvasWidgetSize() const override;
+    QRect toolAvailableVirtualScreenGeometry() const override;
+    qreal toolImageScaleX() const override;
+    QPointF toolImageToDocument(const QPointF &point) const override;
+    qreal toolCanvasRotation() const override;
+    bool toolCanvasMirroredHorizontally() const override;
+    bool toolCanvasMirroredVertically() const override;
+    qreal toolEffectiveZoom() const override;
+    qreal toolCoordinateEffectiveZoom() const override;
+    qreal toolEffectivePhysicalZoom() const override;
+    QCursor toolCursor(CursorStyle style) const override;
+    QCursor toolMoveCursor() const override;
+    QCursor toolMoveSelectionCursor() const override;
+    QCursor toolSamplerCursor() const override;
+    QCursor toolOpenHandCursor() const override;
+    QCursor toolClosedHandCursor() const override;
+    QCursor toolLoadCursor(const QString &name, int hotX, int hotY) const override;
+    void toolSetCursorPosition(const QPoint &globalPoint) override;
+    void toolShowBrushSize(qreal size) override;
+    void toolShowLockedLayerMessage(bool myPaintUnavailable) override;
+    void toolShowFloatingMessage(const QString &message,
+                                 bool lockedIcon = false) override;
+    QString toolNodeEditableMessage(KisNodeSP node,
+                                    bool blockedNoIndirectPainting = false) const override;
+    QPainterPath toolShapeHoverInfoCrossLayer(const QPointF &point,
+                                              QString &shapeType,
+                                              bool *isHorizontal = nullptr,
+                                              bool skipCurrentShapes = true) const override;
+    bool toolSelectShapeCrossLayer(const QPointF &point,
+                                   const QString &shapeType = QString(),
+                                   bool skipCurrentShapes = true) override;
+    void toolUpdateCanvas() override;
+    void toolSetPriorityEventFilter(QObject *filter, bool attached) override;
+    KisInputActionGroupsMaskInterface::SharedInterface
+        toolInputActionGroupsMaskInterface() override;
+    void toolUpdateAssistantDecoration() override;
+    void toolUpdateOutlineDoc(const QRectF &rect) override;
+    QPointF toolAdjustAssistantPosition(const QPointF &point,
+                                        const QPointF &strokeBegin,
+                                        qreal magnetism,
+                                        bool onlyOneAssistant,
+                                        bool eraserSnap) override;
+    qreal toolAssistantPerspective(const QPointF &documentPoint) const override;
+    void toolEndAssistantStroke() override;
 
     KisImageWSP samplingImage() const override;
     std::optional<KoColor>

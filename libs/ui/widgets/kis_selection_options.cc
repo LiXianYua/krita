@@ -8,9 +8,9 @@
 
 #include <QCheckBox>
 #include <QToolButton>
+#include <klocalizedstring.h>
 
 #include <kis_icon.h>
-#include "kis_config.h"
 #include "kis_config_notifier.h"
 #include "kis_paint_device.h"
 
@@ -176,9 +176,9 @@ KisSelectionOptions::KisSelectionOptions(QWidget *parent)
     m_d->checkBoxSelectionActionsPanel->setToolTip(
         i18n("When enabled, any selections will produce a small floating panel of useful selection-related actions."));
 
-    KisConfig cfg(true);
+    const KConfigGroup cfg = KSharedConfig::openConfig()->group("");
 
-    if (cfg.selectionActionBar()) {
+    if (cfg.readEntry("selectionActionBar", true)) {
         m_d->checkBoxSelectionActionsPanel->setCheckState(Qt::CheckState::Checked);
     } else {
         m_d->checkBoxSelectionActionsPanel->setCheckState(Qt::CheckState::Unchecked);
@@ -505,9 +505,9 @@ void KisSelectionOptions::updateActionButtonToolTip(
 
 void KisSelectionOptions::slotConfigChanged()
 {
-    KisConfig cfg(true);
+    const KConfigGroup cfg = KSharedConfig::openConfig()->group("");
 
-    if (cfg.selectionActionBar()) {
+    if (cfg.readEntry("selectionActionBar", true)) {
         m_d->checkBoxSelectionActionsPanel->setCheckState(Qt::Checked);
     } else {
         m_d->checkBoxSelectionActionsPanel->setCheckState(Qt::Unchecked);
@@ -516,8 +516,8 @@ void KisSelectionOptions::slotConfigChanged()
 
 void KisSelectionOptions::slotSelectionActionsPanelCheckboxToggled(bool value)
 {
-    KisConfig cfg(false);
-    cfg.setSelectionActionBar(value);
+    KConfigGroup cfg = KSharedConfig::openConfig()->group("");
+    cfg.writeEntry("selectionActionBar", value);
 
     blockSignals(true);
     KisConfigNotifier::instance()->notifyConfigChanged();

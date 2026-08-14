@@ -36,35 +36,24 @@
 #include <KoColor.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
+#include <KoViewConverter.h>
 
 #include <kis_types.h>
 #include <kis_global.h>
 #include <kis_image.h>
 #include <kis_paint_device.h>
 #include <kis_layer.h>
-#include <KisViewManager.h>
-#include <kis_canvas2.h>
+#include <KisCanvasToolServices.h>
 #include <KisColorSamplingCanvas.h>
 #include <kis_cubic_curve.h>
-#include "kis_display_color_converter.h"
-#include <KisDocument.h>
-#include <KisReferenceImagesLayer.h>
 
-#include "kis_config.h"
 #include "kis_config_notifier.h"
-#include "kis_cursor.h"
 #include "kis_image_config.h"
-#include "widgets/kis_cmb_composite.h"
-#include "kis_slider_spin_box.h"
-#include "kis_canvas_resource_provider.h"
-#include "kis_tool_utils.h"
+#include <KisColorSamplerConfig.h>
 #include <brushengine/kis_paintop.h>
 #include <brushengine/kis_paintop_preset.h>
 #include <brushengine/KisOptimizedBrushOutline.h>
-#include <kis_action_manager.h>
-#include <kis_action.h>
 #include "strokes/kis_color_sampler_stroke_strategy.h"
-#include "kis_popup_palette.h"
 #include "kis_paintop_utils.h"
 
 
@@ -85,9 +74,11 @@ KisToolPaint::KisToolPaint(KoCanvasBase *canvas, const QCursor &cursor)
                            dynamic_cast<KisColorSamplingCanvas *>(canvas)),
       m_d(new Private())
 {
-    KisCanvas2 *kiscanvas = dynamic_cast<KisCanvas2*>(canvas);
-    KIS_ASSERT(kiscanvas);
-    connect(this, SIGNAL(sigPaintingFinished()), kiscanvas->viewManager()->canvasResourceProvider(), SLOT(slotPainting()));
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas);
+    KIS_ASSERT(services);
+    connect(this, &KisToolPaint::sigPaintingFinished, this, [services]() {
+        services->toolNotifyPaintingFinished();
+    });
 
     connect(&m_colorSamplerHelper, SIGNAL(sigRequestCursor(QCursor)), this, SLOT(slotColorPickerRequestedCursor(QCursor)));
     connect(&m_colorSamplerHelper, SIGNAL(sigRequestCursorReset()), this, SLOT(slotColorPickerRequestedCursorReset()));
@@ -145,9 +136,9 @@ void KisToolPaint::tryRestoreOpacitySnapshot()
      * state before and after.
      */
 
-    KisCanvasResourceProvider *provider = qobject_cast<KisCanvas2*>(canvas())->viewManager()->canvasResourceProvider();
-
-    KisPaintOpPresetSP newPreset = provider->currentPreset();
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT(services);
+    KisPaintOpPresetSP newPreset = services->toolCurrentPaintOpPreset();
 
     if (newPreset) {
         m_oldPreset = newPreset;
@@ -216,7 +207,7 @@ void KisToolPaint::slotColorPickerRequestedOutlineUpdate()
 
 KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrushOutline &originalOutline)
 {
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
 
     bool useSeparateEraserCursor = cfg.separateEraserCursor() && isEraser();
 
@@ -231,7 +222,9 @@ KisOptimizedBrushOutline KisToolPaint::tryFixBrushOutline(const KisOptimizedBrus
      * add a cross in the center of it
      */
 
-    QSize widgetSize = canvas()->canvasWidget()->size();
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT(services);
+    const QSize widgetSize = services->toolCanvasWidgetSize();
     const int maxThresholdSum = widgetSize.width() + widgetSize.height();
 
     KisOptimizedBrushOutline outline = originalOutline;
@@ -317,7 +310,7 @@ void KisToolPaint::beginAlternateAction(KoPointerEvent *event, AlternateAction a
     if (isSamplingAction(action)) {
         setMode(SECONDARY_PAINT_MODE);
 
-        KisToolUtils::ColorSamplerConfig config;
+        KisColorSamplerConfig config;
         config.load();
 
         m_colorSamplerHelper.startAction(event->point, config.radius, config.blend);
@@ -366,14 +359,11 @@ void KisToolPaint::mouseMoveEvent(KoPointerEvent *event)
 
 KisPopupWidgetInterface *KisToolPaint::popupWidget()
 {
-    KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-
-    if (!kisCanvas) {
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    if (!services) {
         return nullptr;
     }
-
-    KisPopupWidgetInterface* popupWidget = kisCanvas->popupPalette();
-    return popupWidget;
+    return services->toolPopupWidget();
 }
 
 void KisToolPaint::mouseReleaseEvent(KoPointerEvent *event)
@@ -540,7 +530,9 @@ void KisToolPaint::decreaseBrushSize()
 
 void KisToolPaint::showBrushSize()
 {
-    KisToolUtils::showBrushSizeFloatingMessage(canvas(), currentPaintOpPreset()->settings()->paintOpSize());
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT(services);
+    services->toolShowBrushSize(currentPaintOpPreset()->settings()->paintOpSize());
 }
 
 void KisToolPaint::rotateBrushTipClockwise()
@@ -581,7 +573,7 @@ void KisToolPaint::requestUpdateOutline(const QPointF &outlineDocPoint, const Ko
     QPointF outlineMoveVector;
 
     if (m_supportOutline) {
-        KisConfig cfg(true);
+        KisImageConfig cfg(true);
         KisPaintOpSettings::OutlineMode outlineMode;
 
         bool useSeparateEraserCursor = cfg.separateEraserCursor() && isEraser();
@@ -652,18 +644,16 @@ void KisToolPaint::requestUpdateOutline(const QPointF &outlineDocPoint, const Ko
 
     // WARNING: assistants code is also duplicated in KisDelegatedSelectPathWrapper::mouseMoveEvent
 
-    KisCanvas2 *kiscanvas = qobject_cast<KisCanvas2*>(canvas());
-    KisPaintingAssistantsDecorationSP decoration = kiscanvas->paintingAssistantsDecoration();
-    if (decoration && decoration->visible() && decoration->hasPaintableAssistants()) {
-        kiscanvas->updateCanvasDecorations();
-    }
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT(services);
+    services->toolUpdateAssistantDecoration();
 
     if (!m_oldColorPreviewUpdateRect.isEmpty()) {
-        kiscanvas->updateCanvasToolOutlineDoc(m_oldColorPreviewUpdateRect);
+        services->toolUpdateOutlineDoc(m_oldColorPreviewUpdateRect);
     }
 
     if (!m_oldOutlineRect.isEmpty()) {
-        kiscanvas->updateCanvasToolOutlineDoc(m_oldOutlineRect);
+        services->toolUpdateOutlineDoc(m_oldOutlineRect);
     }
 
     if (!outlineDocRect.isEmpty()) {
@@ -703,11 +693,11 @@ void KisToolPaint::requestUpdateOutline(const QPointF &outlineDocPoint, const Ko
             offsetRect = outlineDocRect.translated((1.0 + offsetFuzzyExtension) * outlineMoveVector);
         }
 
-        kiscanvas->updateCanvasToolOutlineDoc(outlineDocRect | offsetRect);
+        services->toolUpdateOutlineDoc(outlineDocRect | offsetRect);
     }
 
     if (!colorPreviewDocUpdateRect.isEmpty()) {
-        kiscanvas->updateCanvasToolOutlineDoc(colorPreviewDocUpdateRect);
+        services->toolUpdateOutlineDoc(colorPreviewDocUpdateRect);
     }
 
     m_oldOutlineRect = outlineDocRect;
@@ -722,9 +712,8 @@ KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const QPointF &documentPos
                                                       const KoPointerEvent *event,
                                                       KisPaintOpSettings::OutlineMode outlineMode)
 {
-    KisCanvas2 *canvas2 = dynamic_cast<KisCanvas2 *>(canvas());
-    KIS_ASSERT(canvas2);
-    const KisCoordinatesConverter *converter = canvas2->coordinatesConverter();
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices *>(canvas());
+    KIS_ASSERT(services);
 
     const QPointF pixelPos = convertToPixelCoord(documentPos);
     // When touch drawing, a "hover" event means the finger was just pressed
@@ -735,13 +724,13 @@ KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const QPointF &documentPos
     }
 
     KisPaintInformation info(pixelPos);
-    info.setCanvasMirroredH(canvas2->coordinatesConverter()->xAxisMirrored());
-    info.setCanvasMirroredV(canvas2->coordinatesConverter()->yAxisMirrored());
-    info.setCanvasRotation(canvas2->coordinatesConverter()->rotationAngle());
+    info.setCanvasMirroredH(services->toolCanvasMirroredHorizontally());
+    info.setCanvasMirroredV(services->toolCanvasMirroredVertically());
+    info.setCanvasRotation(services->toolCanvasRotation());
     info.setRandomSource(new KisRandomSource());
     info.setPerStrokeRandomSource(new KisPerStrokeRandomSource());
 
-    const qreal currentZoom = canvas2->resourceManager() ? canvas2->resourceManager()->resource(KoCanvasResource::EffectiveZoom).toReal() : 1.0;
+    const qreal currentZoom = services->toolEffectiveZoom();
 
     QPointF prevPoint = m_d->lastCursorPos.pushThroughHistory(pixelPos, currentZoom);
     qreal startAngle = KisAlgebra2D::directionBetweenPoints(prevPoint, pixelPos, 0);
@@ -752,7 +741,7 @@ KisOptimizedBrushOutline KisToolPaint::getOutlinePath(const QPointF &documentPos
 
     KisOptimizedBrushOutline path = currentPaintOpPreset()->settings()->
         brushOutline(info,
-                     outlineMode, converter->effectivePhysicalZoom());
+                     outlineMode, services->toolEffectivePhysicalZoom());
 
     return path;
 }

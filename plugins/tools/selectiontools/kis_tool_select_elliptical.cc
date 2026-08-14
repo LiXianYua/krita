@@ -17,6 +17,7 @@
 #include "kis_pixel_selection.h"
 #include "kis_selection_options.h"
 #include "kis_selection_tool_helper.h"
+#include <KoShape.h>
 #include "kis_shape_tool_helper.h"
 #include <brushengine/kis_paintop_registry.h>
 #include <kis_command_utils.h>
@@ -25,7 +26,7 @@
 
 __KisToolSelectEllipticalLocal::__KisToolSelectEllipticalLocal(KoCanvasBase *canvas)
     : KisToolEllipseBase(canvas, KisToolEllipseBase::SELECT,
-                         KisCursor::load("tool_elliptical_selection_cursor.png", 6, 6))
+                         dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_elliptical_selection_cursor.png", 6, 6))
 {
     setObjectName("tool_select_elliptical");
 }
@@ -146,13 +147,13 @@ void KisToolSelectElliptical::endShape()
 void KisToolSelectElliptical::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(KisCursor::load("tool_elliptical_selection_cursor_add.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_elliptical_selection_cursor_add.png", 6, 6));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(KisCursor::load("tool_elliptical_selection_cursor_sub.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_elliptical_selection_cursor_sub.png", 6, 6));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(KisCursor::load("tool_elliptical_selection_cursor_inter.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_elliptical_selection_cursor_inter.png", 6, 6));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(KisCursor::load("tool_elliptical_selection_cursor_symdiff.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_elliptical_selection_cursor_symdiff.png", 6, 6));
     } else {
         KisToolSelectBase<__KisToolSelectEllipticalLocal>::resetCursorStyle();
     }

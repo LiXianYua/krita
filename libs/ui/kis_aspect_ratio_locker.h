@@ -9,7 +9,7 @@
 
 #include <QScopedPointer>
 #include <QObject>
-#include "kritaui_export.h"
+#include <kritacanvas_export.h>
 
 class QSpinBox;
 class QDoubleSpinBox;
@@ -43,7 +43,7 @@ class KoAspectButton;
  *
  *        \endcode
  */
-class KRITAUI_EXPORT KisAspectRatioLocker : public QObject
+class KRITACANVAS_EXPORT KisAspectRatioLocker : public QObject
 {
     Q_OBJECT
 public:

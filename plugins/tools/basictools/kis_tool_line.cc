@@ -22,12 +22,12 @@
 #include <KoShapeStroke.h>
 
 #include <kis_debug.h>
-#include <kis_cursor.h>
+#include <KisCanvasToolServices.h>
 #include <brushengine/kis_paintop_registry.h>
 #include <kis_figure_painting_tool_helper.h>
 #include <KisCanvasFeedback.h>
 #include <kis_coordinates_converter.h>
-#include <kis_painting_assistant.h>
+#include <KisCanvasToolServices.h>
 #include <kis_action_registry.h>
 #include <kis_painting_information_builder.h>
 
@@ -44,7 +44,7 @@ const KisCoordinatesConverter* getCoordinatesConverter(KoCanvasBase * canvas)
 
 
 KisToolLine::KisToolLine(KoCanvasBase * canvas)
-    : KisToolShape(canvas, KisCursor::load("tool_line_cursor.png", 6, 6)),
+    : KisToolShape(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_line_cursor.png", 6, 6)),
       m_showGuideline(true),
       m_strokeIsRunning(false),
       m_infoBuilder(new KisConverterPaintingInformationBuilder(getCoordinatesConverter(canvas))),
@@ -78,7 +78,7 @@ KisToolLine::~KisToolLine()
 void KisToolLine::resetCursorStyle()
 {
     if (isEraser() && (nodePaintAbility() == PAINT)) {
-        useCursor(KisCursor::load("tool_line_eraser_cursor.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursor("tool_line_eraser_cursor.png", 6, 6));
     } else {
         KisToolPaint::resetCursorStyle();
     }
@@ -267,9 +267,9 @@ void KisToolLine::endPrimaryAction(KoPointerEvent *event)
     updateGuideline();
     endStroke();
 
-    if (KisPaintingAssistantToolServices *services =
-            dynamic_cast<KisPaintingAssistantToolServices *>(canvas())) {
-        services->endStroke();
+    if (KisCanvasToolServices *services =
+            dynamic_cast<KisCanvasToolServices *>(canvas())) {
+        services->toolEndAssistantStroke();
     }
 }
 

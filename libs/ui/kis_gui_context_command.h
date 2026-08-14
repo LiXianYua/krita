@@ -9,6 +9,7 @@
 
 #include <QObject>
 #include "kundo2command.h"
+#include <kritacanvas_export.h>
 
 class KisGuiContextCommandDelegate;
 
@@ -18,7 +19,7 @@ class KisGuiContextCommandDelegate;
  * note that any activity done by the containing command must *not*
  * lead to the blocking on the image, otherwise you'll get a deadlock!
  */
-class KisGuiContextCommand : public QObject, public KUndo2Command
+class KRITACANVAS_EXPORT KisGuiContextCommand : public QObject, public KUndo2Command
 {
     Q_OBJECT
 public:

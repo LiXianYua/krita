@@ -11,7 +11,7 @@ set(kritatoolencloseandfill_SOURCES
 
 kis_add_library(kritatoolencloseandfill MODULE ${kritatoolencloseandfill_SOURCES})
 
-target_link_libraries(kritatoolencloseandfill kritaui kritabasicflakes kritaimage)
+target_link_libraries(kritatoolencloseandfill kritacanvas kritashapemodel kritabasicflakes kritaimage)
 
 install(TARGETS kritatoolencloseandfill  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

@@ -7,16 +7,15 @@
 #include "kis_tool_rectangle_base.h"
 
 #include <QtCore/qmath.h>
+#include <QKeyEvent>
 
-#include "KisViewManager.h"
-#include "kis_canvas2.h"
 #include <KisOptionCollectionWidget.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
 #include <KoPointerEvent.h>
 #include <KoViewConverter.h>
-#include <input/kis_extended_modifiers_mapper.h>
 #include <kis_icon.h>
+#include <KisCanvasToolServices.h>
 
 #include "kis_rectangle_constraint_widget.h"
 
@@ -90,12 +89,11 @@ void KisToolRectangleBase::roundCornersChanged(int rx, int ry)
 
 void KisToolRectangleBase::showSize()
 {
-    KisCanvas2 *kisCanvas =dynamic_cast<KisCanvas2*>(canvas());
-    KIS_SAFE_ASSERT_RECOVER_RETURN(kisCanvas);
-    kisCanvas->viewManager()->showFloatingMessage(i18n("Width: %1 px\nHeight: %2 px"
-                                                       , createRect(m_dragStart, m_dragEnd).width()
-                                                       , createRect(m_dragStart, m_dragEnd).height()), QIcon(), 1000
-                                                       , KisFloatingMessage::High,  Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(services);
+    services->toolShowFloatingMessage(i18n("Width: %1 px\nHeight: %2 px"
+                                            , createRect(m_dragStart, m_dragEnd).width()
+                                            , createRect(m_dragStart, m_dragEnd).height()));
 
 }
 void KisToolRectangleBase::paint(QPainter& gc, const KoViewConverter &converter)
@@ -121,7 +119,9 @@ void KisToolRectangleBase::deactivate()
 }
 
 void KisToolRectangleBase::keyPressEvent(QKeyEvent *event) {
-    const Qt::Key key = KisExtendedModifiersMapper::workaroundShiftAltMetaHell(event);
+    const Qt::Key key = event->key() == Qt::Key_Meta &&
+            event->modifiers().testFlag(Qt::ShiftModifier)
+        ? Qt::Key_Alt : static_cast<Qt::Key>(event->key());
 
     if (key == Qt::Key_Control) {
         m_currentModifiers |= Qt::ControlModifier;
@@ -135,7 +135,9 @@ void KisToolRectangleBase::keyPressEvent(QKeyEvent *event) {
 }
 
 void KisToolRectangleBase::keyReleaseEvent(QKeyEvent *event) {
-    const Qt::Key key = KisExtendedModifiersMapper::workaroundShiftAltMetaHell(event);
+    const Qt::Key key = event->key() == Qt::Key_Meta &&
+            event->modifiers().testFlag(Qt::ShiftModifier)
+        ? Qt::Key_Alt : static_cast<Qt::Key>(event->key());
 
     if (key == Qt::Key_Control) {
         m_currentModifiers &= ~Qt::ControlModifier;
@@ -154,15 +156,13 @@ void KisToolRectangleBase::beginPrimaryAction(KoPointerEvent *event)
     if ((m_type == PAINT && (!nodeEditable() || paintability == UNPAINTABLE || paintability  == KisToolPaint::CLONE || paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE)) || (m_type == SELECT && !selectionEditable())) {
 
         if (paintability == KisToolPaint::CLONE){
-            KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
             QString message = i18n("This tool cannot paint on clone layers.  Please select a paint or vector layer or mask.");
-            kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(message, true);
         }
 
         if (paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
-            KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
             QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-            kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(message, true);
         }
 
         event->ignore();
@@ -289,12 +289,11 @@ void KisToolRectangleBase::continuePrimaryAction(KoPointerEvent *event)
         showSize();
     }
     else {
-        KisCanvas2 *kisCanvas =dynamic_cast<KisCanvas2*>(canvas());
-        KIS_ASSERT(kisCanvas);
-        kisCanvas->viewManager()->showFloatingMessage(i18n("X: %1 px\nY: %2 px"
-                                                           , QString::number(m_dragStart.x(), 'f', 1)
-                                                           , QString::number(m_dragStart.y(), 'f', 1)), QIcon(), 1000
-                                                           , KisFloatingMessage::High,  Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+        KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
+        KIS_ASSERT(services);
+        services->toolShowFloatingMessage(i18n("X: %1 px\nY: %2 px"
+                                                , QString::number(m_dragStart.x(), 'f', 1)
+                                                , QString::number(m_dragStart.y(), 'f', 1)));
     }
     updateArea();
     m_dragCenter = QPointF((m_dragStart.x() + m_dragEnd.x()) / 2,
@@ -379,12 +378,11 @@ void KisToolRectangleBase::paintRectangle(QPainter &gc, const QRectF &imageRect)
 
     const QRect viewRect = pixelToView(imageRect).toAlignedRect();
 
-    KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_SAFE_ASSERT_RECOVER_RETURN(kritaCanvas);
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(services);
 
-    const KisCoordinatesConverter *converter = kritaCanvas->coordinatesConverter();
-    const qreal roundCornersX = converter->effectiveZoom() * m_roundCornersX;
-    const qreal roundCornersY = converter->effectiveZoom() * m_roundCornersY;
+    const qreal roundCornersX = services->toolCoordinateEffectiveZoom() * m_roundCornersX;
+    const qreal roundCornersY = services->toolCoordinateEffectiveZoom() * m_roundCornersY;
 
     QPainterPath path;
     if (m_roundCornersX > 0 || m_roundCornersY > 0) {

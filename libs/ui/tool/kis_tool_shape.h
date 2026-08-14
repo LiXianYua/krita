@@ -8,7 +8,7 @@
 #define KIS_TOOL_SHAPE_H_
 
 
-#include <kritaui_export.h>
+#include <kritacanvas_export.h>
 #include <kconfig.h>
 #include <kconfiggroup.h>
 
@@ -37,7 +37,7 @@ public:
 /**
  * Base for tools specialized in drawing shapes
  */
-class KRITAUI_EXPORT KisToolShape : public KisToolPaint
+class KRITACANVAS_EXPORT KisToolShape : public KisToolPaint
 {
 
     Q_OBJECT
@@ -64,7 +64,7 @@ protected:
 
     qreal currentStrokeWidth() const;
 
-    struct KRITAUI_EXPORT ShapeAddInfo {
+    struct KRITACANVAS_EXPORT ShapeAddInfo {
         bool shouldAddShape = false;
         bool shouldAddSelectionShape = false;
 
@@ -88,4 +88,3 @@ protected:
 };
 
 #endif // KIS_TOOL_SHAPE_H_
-

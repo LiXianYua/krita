@@ -7,7 +7,7 @@
 #include <QKeyEvent>
 
 #include "kis_tool_pan.h"
-#include "kis_cursor.h"
+#include <KisCanvasToolServices.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
 #include <KoPointerEvent.h>
@@ -17,7 +17,7 @@
 
 
 KisToolPan::KisToolPan(KoCanvasBase *canvas)
-    : KisTool(canvas, KisCursor::openHandCursor())
+    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolOpenHandCursor())
 {
 }
 
@@ -28,7 +28,7 @@ KisToolPan::~KisToolPan()
 void KisToolPan::beginPrimaryAction(KoPointerEvent *event)
 {
     m_lastPosition = event->pos();
-    useCursor(KisCursor::closedHandCursor());
+    useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolClosedHandCursor());
 }
 
 void KisToolPan::continuePrimaryAction(KoPointerEvent *event)
@@ -42,7 +42,7 @@ void KisToolPan::continuePrimaryAction(KoPointerEvent *event)
 void KisToolPan::endPrimaryAction(KoPointerEvent *event)
 {
     Q_UNUSED(event);
-    useCursor(KisCursor::openHandCursor());
+    useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolOpenHandCursor());
 }
 
 void KisToolPan::keyPressEvent(QKeyEvent *event)

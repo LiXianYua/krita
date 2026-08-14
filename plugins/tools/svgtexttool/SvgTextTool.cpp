@@ -38,6 +38,7 @@
 #include "kis_assert.h"
 #include <kis_coordinates_converter.h>
 #include <KisCanvasFeedback.h>
+#include <KisCanvasToolServices.h>
 
 #include <KoFileDialog.h>
 #include <KoIcon.h>
@@ -66,7 +67,6 @@
 
 #include "KisHandlePainterHelper.h"
 #include "kis_node.h"
-#include "kis_tool_utils.h"
 #include "kis_debug.h"
 #include <commands/KoKeepShapesSelectedCommand.h>
 
@@ -493,7 +493,8 @@ bool SvgTextTool::nodeEditable()
     if (!node->isEditable(true)) {
         if (KisCanvasFeedback *feedback =
                 dynamic_cast<KisCanvasFeedback *>(canvas())) {
-            QString message = KisToolUtils::nodeEditableMessage(node);
+            QString message = dynamic_cast<KisCanvasToolServices *>(canvas())
+                                  ->toolNodeEditableMessage(node);
             feedback->showFloatingMessage(
                 message, KisIconUtils::loadIcon("object-locked"));
         }
@@ -689,7 +690,8 @@ void SvgTextTool::mousePressEvent(KoPointerEvent *event)
     KoSvgTextShape *hoveredShape = dynamic_cast<KoSvgTextShape *>(canvas()->shapeManager()->shapeAt(event->point));
     KoPathShape *hoveredFlowShape = dynamic_cast<KoPathShape *>(canvas()->shapeManager()->shapeAt(event->point));
     QString shapeType;
-    QPainterPath hoverPath = KisToolUtils::shapeHoverInfoCrossLayer(canvas(), event->point, shapeType);
+    QPainterPath hoverPath = dynamic_cast<KisCanvasToolServices *>(canvas())
+                                 ->toolShapeHoverInfoCrossLayer(event->point, shapeType);
     bool crossLayerPossible = !hoverPath.isEmpty() && shapeType == KoSvgTextShape_SHAPEID;
 
     if (!selectedShape && !hoveredShape && !hoveredFlowShape && !crossLayerPossible) {
@@ -712,7 +714,8 @@ void SvgTextTool::mousePressEvent(KoPointerEvent *event)
         m_dragging = DragMode::Create;
         event->accept();
     } else if (crossLayerPossible) {
-        if (KisToolUtils::selectShapeCrossLayer(canvas(), event->point, KoSvgTextShape_SHAPEID)) {
+        if (dynamic_cast<KisCanvasToolServices *>(canvas())
+                ->toolSelectShapeCrossLayer(event->point, KoSvgTextShape_SHAPEID)) {
             m_interactionStrategy.reset(new SvgSelectTextStrategy(this, &m_textCursor, event->point, event->modifiers()));
             m_dragging = DragMode::Select;
             m_hoveredShapeHighlightRect = QPainterPath();
@@ -827,7 +830,10 @@ void SvgTextTool::mouseMoveEvent(KoPointerEvent *event)
         bool isHorizontal = true;
         const KoSvgTextShape *hoveredShape = dynamic_cast<KoSvgTextShape *>(canvas()->shapeManager()->shapeAt(event->point));
         const KoPathShape *hoveredFlowShape = dynamic_cast<KoPathShape *>(canvas()->shapeManager()->shapeAt(event->point));
-        QPainterPath hoverPath = KisToolUtils::shapeHoverInfoCrossLayer(canvas(), event->point, shapeType, &isHorizontal);
+        QPainterPath hoverPath = dynamic_cast<KisCanvasToolServices *>(canvas())
+                                     ->toolShapeHoverInfoCrossLayer(event->point,
+                                                                   shapeType,
+                                                                   &isHorizontal);
 
         bool textAreasHovered = false;
         if (m_textOnPathHelper.hitTest(event->point, canvas()->viewConverter()->viewToDocument()) ) {

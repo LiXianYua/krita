@@ -10,7 +10,6 @@
 
 #include <KoShapeLayer.h>
 #include <KoShapeFactoryBase.h>
-#include <KoShapeUserData.h>
 #include <KoShapeLoadingContext.h>
 #include <KisImageResolutionProxy.h>
 
@@ -18,6 +17,7 @@
 #include <kis_types.h>
 
 #include <kritashapemodel_export.h>
+#include <KisShapeSelectionMarker.h>
 
 class KoStore;
 class KoShapeManager;
@@ -25,19 +25,6 @@ class KisShapeSelectionCanvas;
 class KisShapeSelectionModel;
 class KisImageViewConverter;
 class KUndo2Command;
-
-/**
- * The marker class.
- * It is added to the shape's user data to show this shape
- * is a part of a shape selection
- */
-class KisShapeSelectionMarker : public KoShapeUserData
-{
-    KoShapeUserData* clone() const override {
-        return new KisShapeSelectionMarker(*this);
-    }
-};
-
 
 class KRITASHAPEMODEL_EXPORT KisShapeSelection : public QObject, public KoShapeLayer, public KisSelectionComponent
 {

@@ -12,7 +12,7 @@
 
 #include "kis_debug.h"
 #include "kis_global.h"
-#include "kis_config.h"
+#include <kis_image_config.h>
 
 #define MAX_SMOOTH_HISTORY 512
 
@@ -99,7 +99,7 @@ void KisSpeedSmoother::clear()
 void KisSpeedSmoother::updateSettings()
 {
 
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
     m_d->useTimestamps = cfg.readEntry("useTimestampsForBrushSpeed", false);
     m_d->numSmoothingSamples = cfg.readEntry("speedValueSmoothing", 3);
 }

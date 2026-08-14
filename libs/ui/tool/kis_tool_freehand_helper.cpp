@@ -26,7 +26,7 @@
 #include "kis_update_time_monitor.h"
 #include "kis_stabilized_events_sampler.h"
 #include "KisStabilizerDelayedPaintHelper.h"
-#include "kis_config.h"
+#include <kis_image_config.h>
 
 #include "kis_random_source.h"
 #include "KisPerStrokeRandomSource.h"
@@ -34,7 +34,6 @@
 #include "strokes/freehand_stroke.h"
 #include "strokes/KisFreehandStrokeInfo.h"
 #include "KisAsynchronousStrokeUpdateHelper.h"
-#include "kis_canvas_resource_provider.h"
 #include <KisOptimizedBrushOutline.h>
 
 #include <math.h>
@@ -787,7 +786,7 @@ void KisToolFreehandHelper::stabilizerStart(KisPaintInformation firstPaintInfo)
     }
 
     // Poll and draw regularly
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
     int stabilizerSampleSize = cfg.stabilizerSampleSize();
     m_d->stabilizerPollTimer.setInterval(stabilizerSampleSize);
     m_d->stabilizerPollTimer.start();

@@ -11,7 +11,7 @@
 #include <QVector>
 
 #include "kis_types.h"
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 #include <brushengine/kis_paint_information.h>
 
 class KoPointerEvent;
@@ -20,7 +20,7 @@ class KisCoordinatesConverter;
 class KisSpeedSmoother;
 class KoCanvasResourceProvider;
 
-class KRITAUI_EXPORT KisPaintingInformationBuilder : public QObject
+class KRITACANVAS_EXPORT KisPaintingInformationBuilder : public QObject
 {
     Q_OBJECT
 
@@ -75,7 +75,7 @@ private:
     qreal m_tiltDirectionOffset = 0;  // [0, 360) degrees
 };
 
-class KRITAUI_EXPORT KisConverterPaintingInformationBuilder : public KisPaintingInformationBuilder
+class KRITACANVAS_EXPORT KisConverterPaintingInformationBuilder : public KisPaintingInformationBuilder
 {
     Q_OBJECT
 
@@ -95,7 +95,7 @@ private:
     const KisCoordinatesConverter *m_converter;
 };
 
-class KRITAUI_EXPORT KisToolFreehandPaintingInformationBuilder : public KisPaintingInformationBuilder
+class KRITACANVAS_EXPORT KisToolFreehandPaintingInformationBuilder : public KisPaintingInformationBuilder
 {
     Q_OBJECT
 

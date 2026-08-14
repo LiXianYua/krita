@@ -15,9 +15,9 @@
 #include <kis_selection.h>
 #include <kis_resources_snapshot.h>
 #include <KisEncloseAndFillPainter.h>
-#include <kritaui_export.h>
+#include <kritacanvas_export.h>
 
-class KRITAUI_EXPORT KisEncloseAndFillProcessingVisitor : public KisSimpleProcessingVisitor
+class KRITACANVAS_EXPORT KisEncloseAndFillProcessingVisitor : public KisSimpleProcessingVisitor
 {
 public:
     KisEncloseAndFillProcessingVisitor(

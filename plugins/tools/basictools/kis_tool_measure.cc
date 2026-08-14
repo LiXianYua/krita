@@ -19,7 +19,7 @@
 
 #include "kis_algebra_2d.h"
 #include "kis_image.h"
-#include "kis_cursor.h"
+#include <KisCanvasToolServices.h>
 #include "KoPointerEvent.h"
 #include "KoCanvasBase.h"
 #include <KoViewConverter.h>
@@ -30,7 +30,7 @@
 #define INNER_RADIUS 50
 
 KisToolMeasure::KisToolMeasure(KoCanvasBase * canvas)
-    : KisTool(canvas, KisCursor::crossCursor())
+    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolCursor(CURSOR_STYLE_CROSSHAIR))
 {
 }
 

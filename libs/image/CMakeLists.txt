@@ -28,6 +28,8 @@ foreach(_obj IN LISTS __per_arch_circle_mask_generator_objs _per_arch_processor_
 endforeach()
 
 set(kritaimage_LIB_SRCS
+    KisColorSamplerConfig.cpp
+    KisColorSamplingUtils.cpp
    tiles3/kis_tile.cc
    tiles3/kis_tile_data.cc
    tiles3/kis_tile_data_store.cc

@@ -34,7 +34,7 @@
 
 KisToolSelectSimilar::KisToolSelectSimilar(KoCanvasBase *canvas)
     : KisToolSelect(canvas,
-                    KisCursor::load("tool_similar_selection_cursor.png", 6, 6),
+                    dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_similar_selection_cursor.png", 6, 6),
                     i18n("Similar Color Selection"))
     , m_threshold(20)
     , m_opacitySpread(100)
@@ -85,7 +85,7 @@ void KisToolSelectSimilar::beginPrimaryAction(KoPointerEvent *event)
 
     beginSelectInteraction();
 
-    KisCursorOverrideLock cursorLock(KisCursor::waitCursor());
+    KisCursorOverrideLock cursorLock(QCursor(Qt::WaitCursor));
 
     // Create the stroke
     KisStrokeStrategyUndoCommandBased *strategy =
@@ -228,13 +228,13 @@ void KisToolSelectSimilar::slotSetOpacitySpread(int opacitySpread)
 void KisToolSelectSimilar::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(KisCursor::load("tool_similar_selection_cursor_add.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_similar_selection_cursor_add.png", 6, 6));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(KisCursor::load("tool_similar_selection_cursor_sub.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_similar_selection_cursor_sub.png", 6, 6));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(KisCursor::load("tool_similar_selection_cursor_inter.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_similar_selection_cursor_inter.png", 6, 6));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(KisCursor::load("tool_similar_selection_cursor_symdiff.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_similar_selection_cursor_symdiff.png", 6, 6));
     } else {
         KisToolSelect::resetCursorStyle();
     }

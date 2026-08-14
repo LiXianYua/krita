@@ -9,15 +9,15 @@
  */
 
 #include <QAction>
+#include <QMouseEvent>
+#include <QTabletEvent>
 
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>
 #include <KoViewConverter.h>
-#include <KisViewManager.h>
 #include <KoCanvasBase.h>
 #include <kis_icon.h>
-#include <kis_canvas2.h>
-#include <input/kis_input_manager.h>
+#include <KisCanvasToolServices.h>
 
 #include "KisToolOutlineBase.h"
 #include "input/KisInputActionGroup.h"
@@ -75,26 +75,20 @@ void KisToolOutlineBase::activate(const QSet<KoShape *> &shapes)
     KisToolShape::activate(shapes);
     connect(action("undo_polygon_selection"), SIGNAL(triggered()), SLOT(undoLastPoint()), Qt::UniqueConnection);
 
-    KisInputManager *inputManager = (static_cast<KisCanvas2*>(canvas()))->globalInputManager();
-    if (inputManager) {
-        inputManager->attachPriorityEventFilter(this);
-    }
+    dynamic_cast<KisCanvasToolServices*>(canvas())->toolSetPriorityEventFilter(this, true);
 }
 
 void KisToolOutlineBase::deactivate()
 {
     cancelStroke();
     
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_ASSERT_RECOVER_RETURN(kisCanvas);
-    kisCanvas->updateCanvas();
+    KisCanvasToolServices *services = dynamic_cast<KisCanvasToolServices*>(canvas());
+    KIS_ASSERT_RECOVER_RETURN(services);
+    services->toolUpdateCanvas();
 
     m_continuedMode = false;
 
-    KisInputManager *inputManager = kisCanvas->globalInputManager();
-    if (inputManager) {
-        inputManager->detachPriorityEventFilter(this);
-    }
+    services->toolSetPriorityEventFilter(this, false);
 
     KisToolShape::deactivate();
 }
@@ -159,15 +153,13 @@ void KisToolOutlineBase::beginPrimaryAction(KoPointerEvent *event)
     if ((m_type == PAINT && (!nodeEditable() || paintability == UNPAINTABLE || paintability  == KisToolPaint::CLONE || paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE)) || (m_type == SELECT && !selectionEditable())) {
 
         if (paintability == KisToolPaint::CLONE){
-            KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
             QString message = i18n("This tool cannot paint on clone layers.  Please select a paint or vector layer or mask.");
-            kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(message, true);
         }
 
         if (paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
-            KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
             QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-            kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+            dynamic_cast<KisCanvasToolServices*>(canvas())->toolShowFloatingMessage(message, true);
         }
 
         event->ignore();
@@ -307,7 +299,7 @@ void KisToolOutlineBase::installBlockActionGuard()
     if (m_blockModifyingActionsGuard)
         return;
     m_blockModifyingActionsGuard.reset(new KisInputActionGroupsMaskGuard(
-        static_cast<KisCanvas2*>(canvas())->inputActionGroupsMaskInterface(),
+        dynamic_cast<KisCanvasToolServices*>(canvas())->toolInputActionGroupsMaskInterface(),
                                  ViewTransformActionGroup | ToolInvoactionActionGroup
                                 ));
 }

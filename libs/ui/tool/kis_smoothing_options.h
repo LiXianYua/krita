@@ -10,10 +10,10 @@
 #include <QObject>
 #include <QSharedPointer>
 #include <QScopedPointer>
-#include <kritaui_export.h>
+#include <kritacanvas_export.h>
 
 
-class KRITAUI_EXPORT KisSmoothingOptions : public QObject
+class KRITACANVAS_EXPORT KisSmoothingOptions : public QObject
 {
     Q_OBJECT
 public:

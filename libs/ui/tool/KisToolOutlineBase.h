@@ -11,11 +11,10 @@
 #define KISTOOLOUTLINEBASE_H
 
 #include <kis_tool_shape.h>
-#include <kis_cursor.h>
 
 class KisInputActionGroupsMaskGuard;
 
-class KRITAUI_EXPORT KisToolOutlineBase : public KisToolShape
+class KRITACANVAS_EXPORT KisToolOutlineBase : public KisToolShape
 {
     Q_OBJECT
 
@@ -27,7 +26,7 @@ public:
 
     KisToolOutlineBase(KoCanvasBase *canvas,
                        ToolType type,
-                       const QCursor & cursor=KisCursor::load("tool_outline_selection_cursor.png", 6, 6));
+                       const QCursor & cursor);
     ~KisToolOutlineBase() override;
 
     void beginPrimaryAction(KoPointerEvent *event) override;

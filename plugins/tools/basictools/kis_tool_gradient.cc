@@ -35,7 +35,7 @@
 #include <kis_selection.h>
 #include <kis_paint_layer.h>
 
-#include <kis_cursor.h>
+#include <KisCanvasToolServices.h>
 #include "kis_resources_snapshot.h"
 #include "kis_command_utils.h"
 #include "kis_processing_applicator.h"
@@ -43,7 +43,7 @@
 
 
 KisToolGradient::KisToolGradient(KoCanvasBase * canvas)
-        : KisToolPaint(canvas, KisCursor::load("tool_gradient_cursor.png", 6, 6))
+        : KisToolPaint(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_gradient_cursor.png", 6, 6))
 {
     setObjectName("tool_gradient");
 
@@ -71,7 +71,7 @@ KisToolGradient::~KisToolGradient()
 void KisToolGradient::resetCursorStyle()
 {
     if (isEraser()) {
-        useCursor(KisCursor::load("tool_gradient_eraser_cursor.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursor("tool_gradient_eraser_cursor.png", 6, 6));
     } else {
         KisToolPaint::resetCursorStyle();
     }

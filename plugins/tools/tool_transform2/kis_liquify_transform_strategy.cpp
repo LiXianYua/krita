@@ -24,7 +24,8 @@
 #include "kis_liquify_paint_helper.h"
 #include "kis_liquify_transform_worker.h"
 #include "KoCanvasResourceProvider.h"
-#include "kis_tool_utils.h"
+#include <KisCanvasToolServices.h>
+#include <KisStandardBrushSizes.h>
 
 
 struct KisLiquifyTransformStrategy::Private
@@ -33,8 +34,10 @@ struct KisLiquifyTransformStrategy::Private
             const KisCoordinatesConverter *_converter,
             ToolTransformArgs &_currentArgs,
             TransformTransactionProperties &_transaction,
-            const KoCanvasResourceProvider *_manager)
+            const KoCanvasResourceProvider *_manager,
+            KisCanvasToolServices *_canvasServices)
         : manager(_manager),
+          canvasServices(_canvasServices),
           q(_q),
           converter(_converter),
           currentArgs(_currentArgs),
@@ -45,6 +48,7 @@ struct KisLiquifyTransformStrategy::Private
     }
 
     const KoCanvasResourceProvider *manager;
+    KisCanvasToolServices *canvasServices;
 
     KisLiquifyTransformStrategy * const q;
 
@@ -73,8 +77,8 @@ struct KisLiquifyTransformStrategy::Private
 
     // for increase/decrease brush size
     QPointF lastDocPos;
-    KisToolUtils::StandardBrushSizes standardBrushSizes{int(KisLiquifyProperties::minSize()),
-                                                        int(KisLiquifyProperties::maxSize())};
+    KisStandardBrushSizes standardBrushSizes{int(KisLiquifyProperties::minSize()),
+                                              int(KisLiquifyProperties::maxSize())};
 
     KisLiquifyPaintHelper helper;
 
@@ -87,9 +91,10 @@ struct KisLiquifyTransformStrategy::Private
 KisLiquifyTransformStrategy::KisLiquifyTransformStrategy(const KisCoordinatesConverter *converter,
                                                          ToolTransformArgs &currentArgs,
                                                          TransformTransactionProperties &transaction,
-                                                         const KoCanvasResourceProvider *manager)
+                                                         const KoCanvasResourceProvider *manager,
+                                                         KisCanvasToolServices *canvasServices)
 
-    : m_d(new Private(this, converter, currentArgs, transaction, manager))
+    : m_d(new Private(this, converter, currentArgs, transaction, manager, canvasServices))
 {
 }
 
@@ -254,7 +259,7 @@ bool KisLiquifyTransformStrategy::endAlternateAction(KoPointerEvent *event, KisT
     m_d->lastDocPos = event->point;
 
     if (action == KisTool::ChangeSize || action == KisTool::ChangeSizeSnap) {
-        KisToolUtils::setCursorPos(m_d->startResizeGlobalCursorPos);
+        m_d->canvasServices->toolSetCursorPosition(m_d->startResizeGlobalCursorPos);
         return true;
     } else if (action == KisTool::SampleFgNode || action == KisTool::SampleBgNode ||
                action == KisTool::SampleFgImage || action == KisTool::SampleBgImage) {
@@ -287,7 +292,7 @@ void KisLiquifyTransformStrategy::changeBrushSize(KoCanvasBase *canvas, bool inc
     }
 
     props->setSize(newSize);
-    KisToolUtils::showBrushSizeFloatingMessage(canvas, newSize);
+    m_d->canvasServices->toolShowBrushSize(newSize);
     Q_EMIT requestCursorOutlineUpdate( m_d->converter->documentToImage(m_d->lastDocPos));
     Q_EMIT requestUpdateOptionWidget();
 }
@@ -340,4 +345,3 @@ void KisLiquifyTransformStrategy::Private::recalculateTransformations()
     handlesTransform = scaleTransform;
     Q_EMIT q->requestImageRecalculation();
 }
-

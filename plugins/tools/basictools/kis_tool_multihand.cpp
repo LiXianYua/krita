@@ -12,7 +12,6 @@
 #include <KisCanvasFeedback.h>
 #include <KisCanvasInvalidation.h>
 #include <KisSelectionUtils.h>
-#include "kis_cursor.h"
 #include "kis_selection.h"
 
 #include "kis_tool_multihand_helper.h"

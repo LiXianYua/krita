@@ -11,7 +11,7 @@
 #include <KoPathShape.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
-#include <kis_cursor.h>
+#include <KisCanvasToolServices.h>
 #include <KisCanvasFeedback.h>
 
 
@@ -32,7 +32,7 @@ KisToolPath::KisToolPath(KoCanvasBase * canvas)
 void KisToolPath::resetCursorStyle()
 {
     if (isEraser() && (nodePaintAbility() == PAINT)) {
-        useCursor(KisCursor::eraserCursor());
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_ERASER));
     } else {
         DelegatedPathTool::resetCursorStyle();
     }

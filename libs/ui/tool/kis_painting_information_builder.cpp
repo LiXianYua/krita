@@ -7,15 +7,15 @@
 #include "kis_painting_information_builder.h"
 
 #include <KoPointerEvent.h>
+#include <KoCanvasBase.h>
 
-#include "kis_config.h"
+#include <kis_image_config.h>
 #include "kis_config_notifier.h"
 
 #include "kis_cubic_curve.h"
 #include "kis_speed_smoother.h"
 
 #include <KoCanvasResourceProvider.h>
-#include "kis_canvas_resource_provider.h"
 
 
 /***********************************************************************/
@@ -43,7 +43,7 @@ KisPaintingInformationBuilder::~KisPaintingInformationBuilder()
 
 void KisPaintingInformationBuilder::updateSettings()
 {
-    KisConfig cfg(true);
+    KisImageConfig cfg(true);
     const KisCubicCurve curve(cfg.pressureTabletCurve());
     m_pressureSamples = curve.floatTransfer(LEVEL_OF_PRESSURE_RESOLUTION + 1);
     m_maxAllowedSpeedValue = cfg.readEntry("maxAllowedSpeedValue", 30);
@@ -232,7 +232,7 @@ bool KisConverterPaintingInformationBuilder::canvasMirroredY() const
 /***********************************************************************/
 
 #include "kis_tool_freehand.h"
-#include "kis_canvas2.h"
+#include <KisCanvasToolServices.h>
 
 KisToolFreehandPaintingInformationBuilder::KisToolFreehandPaintingInformationBuilder(KisToolFreehand *tool)
     : m_tool(tool)
@@ -246,9 +246,9 @@ QPointF KisToolFreehandPaintingInformationBuilder::documentToImage(const QPointF
 
 QPointF KisToolFreehandPaintingInformationBuilder::imageToDocument(const QPointF &point)
 {
-    KisCanvas2 *canvas = dynamic_cast<KisCanvas2*>(m_tool->canvas());
+    KisCanvasToolServices *canvas = dynamic_cast<KisCanvasToolServices*>(m_tool->canvas());
     KIS_ASSERT_RECOVER_RETURN_VALUE(canvas, point);
-    return canvas->coordinatesConverter()->imageToDocument(point);
+    return canvas->toolImageToDocument(point);
 }
 
 QPointF KisToolFreehandPaintingInformationBuilder::imageToView(const QPointF &point)
@@ -268,21 +268,21 @@ qreal KisToolFreehandPaintingInformationBuilder::calculatePerspective(const QPoi
 
 qreal KisToolFreehandPaintingInformationBuilder::canvasRotation() const
 {
-    KisCanvas2 *canvas = dynamic_cast<KisCanvas2*>(m_tool->canvas());
+    KisCanvasToolServices *canvas = dynamic_cast<KisCanvasToolServices*>(m_tool->canvas());
     KIS_ASSERT_RECOVER_RETURN_VALUE(canvas, 0.0);
-    return canvas->coordinatesConverter()->rotationAngle();
+    return canvas->toolCanvasRotation();
 }
 
 bool KisToolFreehandPaintingInformationBuilder::canvasMirroredX() const
 {
-    KisCanvas2 *canvas = dynamic_cast<KisCanvas2*>(m_tool->canvas());
+    KisCanvasToolServices *canvas = dynamic_cast<KisCanvasToolServices*>(m_tool->canvas());
     KIS_ASSERT_RECOVER_RETURN_VALUE(canvas, false);
-    return canvas->coordinatesConverter()->xAxisMirrored();
+    return canvas->toolCanvasMirroredHorizontally();
 }
 
 bool KisToolFreehandPaintingInformationBuilder::canvasMirroredY() const
 {
-    KisCanvas2 *canvas = dynamic_cast<KisCanvas2*>(m_tool->canvas());
+    KisCanvasToolServices *canvas = dynamic_cast<KisCanvasToolServices*>(m_tool->canvas());
     KIS_ASSERT_RECOVER_RETURN_VALUE(canvas, false);
-    return canvas->coordinatesConverter()->yAxisMirrored();
+    return canvas->toolCanvasMirroredVertically();
 }

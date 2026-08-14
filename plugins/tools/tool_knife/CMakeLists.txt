@@ -20,8 +20,7 @@ generate_export_header(kritatoolKnife_static BASE_NAME kritatoolKnife)
 kis_add_library(kritatoolKnife MODULE ${kritatoolKnife_SOURCES})
 
 
-target_link_libraries(kritatoolKnife_static PUBLIC kritaui)
+target_link_libraries(kritatoolKnife_static PUBLIC kritacanvas kritashapemodel)
 target_link_libraries(kritatoolKnife PRIVATE kritatoolKnife_static)
 
 install(TARGETS kritatoolKnife  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
-

@@ -16,13 +16,12 @@
 #include <KoCanvasBase.h>
 #include <KoPointerEvent.h>
 
-#include "kis_cursor.h"
+#include <KisCanvasToolServices.h>
 #include "kis_selection.h"
 #include "KisCanvasFeedback.h"
 #include "KisCanvasInvalidation.h"
 #include "kis_image.h"
 
-#include "kis_tool_utils.h"
 #include "kis_paint_layer.h"
 #include "strokes/move_stroke_strategy.h"
 #include "strokes/move_selection_stroke_strategy.h"
@@ -51,7 +50,7 @@ struct KisToolMoveState : KisToolChangesTrackerData, boost::equality_comparable<
 
 
 KisToolMove::KisToolMove(KoCanvasBase *canvas)
-    : KisTool(canvas, KisCursor::moveCursor())
+    : KisTool(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolMoveCursor())
     , m_updateCursorCompressor(100, KisSignalCompressor::FIRST_ACTIVE)
 {
     setObjectName("tool_move");

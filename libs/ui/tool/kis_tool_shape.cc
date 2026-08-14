@@ -25,7 +25,6 @@
 #include <ksharedconfig.h>
 
 #include <kis_debug.h>
-#include <kis_canvas_resource_provider.h>
 #include <brushengine/kis_paintop_registry.h>
 #include <kis_paint_layer.h>
 #include <kis_paint_device.h>
@@ -36,7 +35,7 @@
 #include <KoSelection.h>
 #include <commands/KoKeepShapesSelectedCommand.h>
 #include "kis_selection_mask.h"
-#include "kis_shape_selection.h"
+#include <KisShapeSelectionMarker.h>
 #include "kis_processing_applicator.h"
 
 

@@ -13,7 +13,7 @@
 #include <KoShapeStroke.h>
 #include <KisCanvasFeedback.h>
 
-#include <kis_cursor.h>
+#include <KisCanvasToolServices.h>
 
 KisToolPencil::KisToolPencil(KoCanvasBase * canvas)
     : DelegatedPencilTool(canvas, Qt::ArrowCursor,
@@ -31,7 +31,7 @@ KisToolPencil::KisToolPencil(KoCanvasBase * canvas)
 void KisToolPencil::resetCursorStyle()
 {
     if (isEraser() && (nodePaintAbility() == PAINT)) {
-        useCursor(KisCursor::eraserCursor());
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolCursor(CURSOR_STYLE_ERASER));
     } else {
         DelegatedPencilTool::resetCursorStyle();
     }

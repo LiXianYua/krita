@@ -18,6 +18,7 @@ class KisCoordinatesConverter;
 class ToolTransformArgs;
 class TransformTransactionProperties;
 class QCursor;
+class KisCanvasToolServices;
 
 
 class KisLiquifyTransformStrategy : public KisTransformStrategyBase
@@ -26,7 +27,9 @@ class KisLiquifyTransformStrategy : public KisTransformStrategyBase
 public:
     KisLiquifyTransformStrategy(const KisCoordinatesConverter *converter,
                              ToolTransformArgs &currentArgs,
-                             TransformTransactionProperties &transaction, const KoCanvasResourceProvider *manager);
+                             TransformTransactionProperties &transaction,
+                             const KoCanvasResourceProvider *manager,
+                             KisCanvasToolServices *canvasServices);
     ~KisLiquifyTransformStrategy() override;
 
     void setTransformFunction(const QPointF &mousePos, bool perspectiveModifierActive, bool shiftModifierActive);

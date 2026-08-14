@@ -9,12 +9,12 @@
 
 #include <KoPointerEvent.h>
 #include <KoShape.h>
+#include <KoCanvasBase.h>
 
 #include <QLayout>
 #include <QPointer>
 
-#include "canvas/kis_canvas2.h"
-#include "input/kis_input_manager.h"
+#include <KisCanvasToolServices.h>
 #include "kis_delegated_tool_policies.h"
 #include "kis_tool.h"
 #include <KisOptionCollectionWidget.h>
@@ -46,10 +46,8 @@ public:
         m_localTool->activate(shapes);
         ActivationPolicy::onActivate(BaseClass::canvas());
 
-        KisInputManager *inputManager = (static_cast<KisCanvas2*>(BaseClass::canvas()))->globalInputManager();
-        if (inputManager) {
-            inputManager->attachPriorityEventFilter(this);
-        }
+        dynamic_cast<KisCanvasToolServices*>(BaseClass::canvas())
+            ->toolSetPriorityEventFilter(this, true);
     }
 
     void deactivate() override
@@ -57,10 +55,8 @@ public:
         m_localTool->deactivate();
         BaseClass::deactivate();
 
-        KisInputManager *inputManager = (static_cast<KisCanvas2*>(BaseClass::canvas()))->globalInputManager();
-        if (inputManager) {
-            inputManager->detachPriorityEventFilter(this);
-        }
+        dynamic_cast<KisCanvasToolServices*>(BaseClass::canvas())
+            ->toolSetPriorityEventFilter(this, false);
     }
 
     void mousePressEvent(KoPointerEvent *event) override

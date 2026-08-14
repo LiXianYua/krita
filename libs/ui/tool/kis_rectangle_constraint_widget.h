@@ -6,12 +6,12 @@
 #define KISRECTANGLECONSTRAINTWIDGET_H
 
 #include "ui_wdgrectangleconstraints.h"
-#include <kritaui_export.h>
+#include <kritacanvas_export.h>
 
 class KisToolRectangleBase;
 class KisAspectRatioLocker;
 
-class KRITAUI_EXPORT KisRectangleConstraintWidget : public QWidget, public Ui::WdgRectangleConstraints
+class KRITACANVAS_EXPORT KisRectangleConstraintWidget : public QWidget, public Ui::WdgRectangleConstraints
 {
   Q_OBJECT
 

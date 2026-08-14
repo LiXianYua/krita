@@ -8,12 +8,11 @@
 #define KIS_TOOL_ELLIPSE_BASE_H
 
 #include <kis_tool_rectangle_base.h>
-#include <kis_cursor.h>
 
-class KRITAUI_EXPORT KisToolEllipseBase : public KisToolRectangleBase
+class KRITACANVAS_EXPORT KisToolEllipseBase : public KisToolRectangleBase
 {
 public:
-    KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase::ToolType type, const QCursor & cursor=KisCursor::load("tool_ellipse_cursor.png", 6, 6));
+    KisToolEllipseBase(KoCanvasBase * canvas, KisToolEllipseBase::ToolType type, const QCursor & cursor);
 
     void paintRectangle(QPainter &gc, const QRectF &imageRect) override;
 

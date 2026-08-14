@@ -7,7 +7,7 @@
 #ifndef KISASYNCCOLORSAMPLERHELPER_H
 #define KISASYNCCOLORSAMPLERHELPER_H
 
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 
 #include <QScopedPointer>
 #include <QObject>
@@ -21,7 +21,7 @@ class KisStrokesFacade;
 class KisColorSamplingCanvas;
 class KoColor;
 
-class KRITAUI_EXPORT KisAsyncColorSamplerHelper : public QObject
+class KRITACANVAS_EXPORT KisAsyncColorSamplerHelper : public QObject
 {
     Q_OBJECT
 public:

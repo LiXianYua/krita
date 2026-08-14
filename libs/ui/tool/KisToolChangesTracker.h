@@ -7,11 +7,11 @@
 #ifndef KISTOOLCHANGESTRACKER_H
 #define KISTOOLCHANGESTRACKER_H
 
-#include "kritaui_export.h"
+#include <kritacanvas_export.h>
 #include <QScopedPointer>
 #include "KisToolChangesTrackerData.h"
 
-class KRITAUI_EXPORT KisToolChangesTracker :public QObject
+class KRITACANVAS_EXPORT KisToolChangesTracker :public QObject
 {
     Q_OBJECT
 

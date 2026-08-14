@@ -23,10 +23,11 @@
 
 #include <kis_command_utils.h>
 #include <kis_selection_filters.h>
+#include <KoShape.h>
 
 __KisToolSelectRectangularLocal::__KisToolSelectRectangularLocal(KoCanvasBase * canvas)
     : KisToolRectangleBase(canvas, KisToolRectangleBase::SELECT,
-                           KisCursor::load("tool_rectangular_selection_cursor.png", 6, 6))
+                           dynamic_cast<KisCanvasToolServices*>(canvas)->toolLoadCursor("tool_rectangular_selection_cursor.png", 6, 6))
 {
     setObjectName("tool_select_rectangular");
 }
@@ -158,13 +159,13 @@ void KisToolSelectRectangular::endShape()
 void KisToolSelectRectangular::resetCursorStyle()
 {
     if (selectionAction() == SELECTION_ADD) {
-        useCursor(KisCursor::load("tool_rectangular_selection_cursor_add.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_rectangular_selection_cursor_add.png", 6, 6));
     } else if (selectionAction() == SELECTION_SUBTRACT) {
-        useCursor(KisCursor::load("tool_rectangular_selection_cursor_sub.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_rectangular_selection_cursor_sub.png", 6, 6));
     } else if (selectionAction() == SELECTION_INTERSECT) {
-        useCursor(KisCursor::load("tool_rectangular_selection_cursor_inter.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_rectangular_selection_cursor_inter.png", 6, 6));
     } else if (selectionAction() == SELECTION_SYMMETRICDIFFERENCE) {
-        useCursor(KisCursor::load("tool_rectangular_selection_cursor_symdiff.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices*>(canvas())->toolLoadCursor("tool_rectangular_selection_cursor_symdiff.png", 6, 6));
     } else {
         KisToolSelectBase<__KisToolSelectRectangularLocal>::resetCursorStyle();
     }

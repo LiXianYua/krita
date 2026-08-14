@@ -24,7 +24,7 @@
 #include <kis_selection.h>
 
 #include <KisCanvasFeedback.h>
-#include <kis_cursor.h>
+#include <KisCanvasToolServices.h>
 
 #include <processing/fill_processing_visitor.h>
 #include <kis_command_utils.h>
@@ -36,14 +36,13 @@
 #include <kis_fill_painter.h>
 #include <kis_selection_filters.h>
 
-#include <KisDocument.h>
 #include <kis_dummies_facade.h>
 #include <KoShapeControllerBase.h>
 #include <kis_shape_controller.h>
 #include <kis_image_animation_interface.h>
 
 KisToolFill::KisToolFill(KoCanvasBase * canvas)
-    : KisToolPaint(canvas, KisCursor::load("tool_fill_cursor.png", 6, 6))
+    : KisToolPaint(canvas, dynamic_cast<KisCanvasToolServices *>(canvas)->toolLoadCursor("tool_fill_cursor.png", 6, 6))
     , m_fillMask(nullptr)
     , m_referencePaintDevice(nullptr)
     , m_referenceNodeList(nullptr)
@@ -70,7 +69,7 @@ KisToolFill::~KisToolFill()
 void KisToolFill::resetCursorStyle()
 {
     if (isEraser() && !m_useCustomBlendingOptions) {
-        useCursor(KisCursor::load("tool_fill_eraser_cursor.png", 6, 6));
+        useCursor(dynamic_cast<KisCanvasToolServices *>(canvas())->toolLoadCursor("tool_fill_eraser_cursor.png", 6, 6));
     } else {
         KisToolPaint::resetCursorStyle();
     }
