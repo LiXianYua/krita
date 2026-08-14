@@ -179,6 +179,8 @@ public: // KoCanvasBase implementation
     qreal samplingCanvasRotation() const override;
     bool samplingCanvasMirroredHorizontally() const override;
     bool samplingCanvasMirroredVertically() const override;
+    QCursor samplingCursor(bool sampleCurrentLayer,
+                           bool pickFgColor) const override;
 
     KisDocument *referenceImageDocument() const override;
     QWidget *referenceImageDialogParent() const override;

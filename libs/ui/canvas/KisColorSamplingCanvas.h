@@ -8,6 +8,7 @@
 #include <optional>
 
 #include <QColor>
+#include <QCursor>
 #include <QPoint>
 
 #include <KoColor.h>
@@ -32,6 +33,8 @@ public:
     virtual qreal samplingCanvasRotation() const = 0;
     virtual bool samplingCanvasMirroredHorizontally() const = 0;
     virtual bool samplingCanvasMirroredVertically() const = 0;
+    virtual QCursor samplingCursor(bool sampleCurrentLayer,
+                                   bool pickFgColor) const = 0;
 };
 
 #endif // KIS_COLOR_SAMPLING_CANVAS_H

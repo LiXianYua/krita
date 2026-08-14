@@ -73,6 +73,15 @@ public:
         return verticalMirror;
     }
 
+    QCursor samplingCursor(bool sampleCurrentLayer,
+                           bool pickFgColor) const override
+    {
+        ++cursorQueryCount;
+        lastCursorSampleCurrentLayer = sampleCurrentLayer;
+        lastCursorPickFgColor = pickFgColor;
+        return QCursor(Qt::WaitCursor);
+    }
+
     const KoViewConverter *viewConverter() const override
     {
         return &m_converter;
@@ -103,6 +112,9 @@ public:
     mutable int rotationQueryCount {0};
     mutable int horizontalMirrorQueryCount {0};
     mutable int verticalMirrorQueryCount {0};
+    mutable int cursorQueryCount {0};
+    mutable bool lastCursorSampleCurrentLayer {false};
+    mutable bool lastCursorPickFgColor {false};
     mutable QPoint lastReferencePoint;
     int feedbackCount {0};
 };
@@ -306,6 +318,29 @@ void KisAsyncColorSamplerHelperTest::previewUsesSamplingCanvasGeometry()
     QVERIFY(canvas.horizontalMirrorQueryCount > 0);
     QVERIFY(canvas.verticalMirrorQueryCount > 0);
 
+}
+
+void KisAsyncColorSamplerHelperTest::cursorUsesSamplingCanvasPolicy()
+{
+    KisPaintLayerSP layer;
+    KisImageSP image = createImageWithLayer(Qt::black, &layer);
+    TestSamplingCanvas canvas(image);
+    KisAsyncColorSamplerHelper helper(&canvas, &canvas);
+
+    QCursor requestedCursor;
+    connect(&helper,
+            &KisAsyncColorSamplerHelper::sigRequestCursor,
+            this,
+            [&requestedCursor](const QCursor &cursor) {
+                requestedCursor = cursor;
+            });
+
+    helper.updateCursor(true, false);
+
+    QCOMPARE(canvas.cursorQueryCount, 1);
+    QVERIFY(canvas.lastCursorSampleCurrentLayer);
+    QVERIFY(!canvas.lastCursorPickFgColor);
+    QCOMPARE(requestedCursor.shape(), Qt::WaitCursor);
 }
 
 SIMPLE_TEST_MAIN(KisAsyncColorSamplerHelperTest)

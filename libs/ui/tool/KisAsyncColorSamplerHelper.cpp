@@ -25,7 +25,6 @@
 #include "KoIcon.h"
 #include "KisCanvasFeedback.h"
 #include "KisColorSamplingCanvas.h"
-#include "kis_cursor.h"
 #include "kis_image.h"
 #include "kis_signal_compressor_with_param.h"
 #include "kis_image_interfaces.h"
@@ -282,28 +281,8 @@ void KisAsyncColorSamplerHelper::activatePreview()
 
 void KisAsyncColorSamplerHelper::updateCursor(bool sampleCurrentLayer, bool pickFgColor)
 {
-    const int sampleResourceId =
-            pickFgColor ?
-                KoCanvasResource::ForegroundColor :
-                KoCanvasResource::BackgroundColor;
-
-    QCursor cursor;
-
-    if (sampleCurrentLayer) {
-        if (sampleResourceId == KoCanvasResource::ForegroundColor) {
-            cursor = KisCursor::samplerLayerForegroundCursor();
-        } else {
-            cursor = KisCursor::samplerLayerBackgroundCursor();
-        }
-    } else {
-        if (sampleResourceId == KoCanvasResource::ForegroundColor) {
-            cursor = KisCursor::samplerImageForegroundCursor();
-        } else {
-            cursor = KisCursor::samplerImageBackgroundCursor();
-        }
-    }
-
-    Q_EMIT sigRequestCursor(cursor);
+    Q_EMIT sigRequestCursor(
+        m_d->samplingCanvas->samplingCursor(sampleCurrentLayer, pickFgColor));
 }
 
 void KisAsyncColorSamplerHelper::setUpdateGlobalColor(bool value)

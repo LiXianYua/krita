@@ -53,6 +53,7 @@
 #include "KisViewManager.h"
 #include "kis_config.h"
 #include "kis_config_notifier.h"
+#include "kis_cursor.h"
 #include "kis_abstract_canvas_widget.h"
 #include "kis_qpainter_canvas.h"
 #include "kis_group_layer.h"
@@ -470,6 +471,18 @@ bool KisCanvas2::samplingCanvasMirroredHorizontally() const
 bool KisCanvas2::samplingCanvasMirroredVertically() const
 {
     return yAxisMirrored();
+}
+
+QCursor KisCanvas2::samplingCursor(bool sampleCurrentLayer,
+                                   bool pickFgColor) const
+{
+    if (sampleCurrentLayer) {
+        return pickFgColor ? KisCursor::samplerLayerForegroundCursor()
+                           : KisCursor::samplerLayerBackgroundCursor();
+    }
+
+    return pickFgColor ? KisCursor::samplerImageForegroundCursor()
+                       : KisCursor::samplerImageBackgroundCursor();
 }
 
 KisDocument *KisCanvas2::referenceImageDocument() const

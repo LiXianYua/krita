@@ -16,6 +16,7 @@ private Q_SLOTS:
     void missingReferenceFallsBackToProjection();
     void delayedJobReadsTheCurrentNodeAgain();
     void previewUsesSamplingCanvasGeometry();
+    void cursorUsesSamplingCanvasPolicy();
 };
 
 #endif // KIS_ASYNC_COLOR_SAMPLER_HELPER_TEST_H
