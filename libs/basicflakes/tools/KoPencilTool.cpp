@@ -12,6 +12,7 @@
 #include <KoShapeStroke.h>
 #include <KoPointerEvent.h>
 #include <KoCanvasBase.h>
+#include <KoUnit.h>
 #include <KoShapeController.h>
 #include <KoShapeManager.h>
 #include <KoSelection.h>
@@ -20,7 +21,6 @@
 #include <KoPathPoint.h>
 #include <KoPathPointData.h>
 #include <KoPathPointMergeCommand.h>
-#include <widgets/KoStrokeConfigWidget.h>
 #include <KisHandlePainterHelper.h>
 
 #include <klocalizedstring.h>
@@ -43,6 +43,22 @@
 KoPencilTool::KoPencilTool(KoCanvasBase *canvas)
     : KoToolBase(canvas)
 {
+    if (!canvas || !canvas->resourceManager()) {
+        return;
+    }
+
+    const QVariant size = canvas->resourceManager()->resource(KoCanvasResource::Size);
+    if (size.isValid()) {
+        m_strokeTemplate.setLineWidth(canvas->unit().fromUserValue(size.toReal()));
+    }
+
+    connect(canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+            this, [this](int key, const QVariant &value) {
+        if (key == KoCanvasResource::Size) {
+            m_strokeTemplate.setLineWidth(this->canvas()->unit().fromUserValue(value.toReal()));
+            slotUpdatePencilCursor();
+        }
+    });
 }
 
 KoPencilTool::~KoPencilTool()
@@ -161,9 +177,6 @@ void KoPencilTool::activate(const QSet<KoShape*> &shapes)
     m_close = false;
     slotUpdatePencilCursor();
 
-    if (m_strokeWidget) {
-        m_strokeWidget->activate();
-    }
     m_configGroup =  KSharedConfig::openConfig()->group(toolId());
 }
 
@@ -175,10 +188,6 @@ void KoPencilTool::deactivate()
     m_existingStartPoint = 0;
     m_existingEndPoint = 0;
     m_hoveredPoint = 0;
-
-    if (m_strokeWidget) {
-        m_strokeWidget->deactivate();
-    }
 
     KoToolBase::deactivate();
 }
@@ -355,14 +364,6 @@ QList<QPointer<QWidget> > KoPencilTool::createOptionWidgets()
     optionWidget->setWindowTitle(i18n("Pencil"));
     widgets.append(optionWidget);
 
-    m_strokeWidget = new KoStrokeConfigWidget(canvas(), 0);
-    m_strokeWidget->setNoSelectionTrackingMode(true);
-    m_strokeWidget->setWindowTitle(i18n("Line"));
-    connect(m_strokeWidget, SIGNAL(sigStrokeChanged()), SLOT(slotUpdatePencilCursor()));
-    if (isActivated()) {
-        m_strokeWidget->activate();
-    }
-    widgets.append(m_strokeWidget);
     return widgets;
 }
 
@@ -434,12 +435,19 @@ void KoPencilTool::setDelta(double delta)
 
 KoShapeStrokeSP KoPencilTool::createStroke()
 {
-    KoShapeStrokeSP stroke;
-    if (m_strokeWidget) {
-        stroke = m_strokeWidget->createShapeStroke();
-        stroke->setColor(m_strokeColor);
-    }
+    KoShapeStrokeSP stroke(new KoShapeStroke(m_strokeTemplate));
+    stroke->setColor(m_strokeColor);
     return stroke;
+}
+
+void KoPencilTool::setStrokeTemplate(const KoShapeStroke &stroke)
+{
+    m_strokeTemplate = stroke;
+}
+
+const KoShapeStroke &KoPencilTool::strokeTemplate() const
+{
+    return m_strokeTemplate;
 }
 
 KoPathShape * KoPencilTool::path()

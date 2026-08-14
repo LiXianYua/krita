@@ -46,7 +46,6 @@
 #include <commands/KoSvgTextPathInfoChangeCommand.h>
 
 #include <KoSnapGuide.h>
-#include <KoStrokeConfigWidget.h>
 #include "kis_action_registry.h"
 #include "kis_node.h"
 #include "kis_node_manager.h"

@@ -121,9 +121,6 @@ void __KisToolPencilLocalTool::addPathShape(KoPathShape* pathShape, bool closePa
 
 void __KisToolPencilLocalTool::slotUpdatePencilCursor()
 {
-    KoShapeStrokeSP stroke = this->createStroke();
-    m_parentTool->updatePencilCursor(stroke && stroke->isVisible());
-
     auto style = m_parentTool->strokeStyle();
     if (style ==  KisToolShapeUtils::StrokeStyleForeground )
     {
@@ -133,4 +130,7 @@ void __KisToolPencilLocalTool::slotUpdatePencilCursor()
     {
         KoPencilTool::setStrokeColor(canvas()->resourceManager()->backgroundColor().toQColor());
     }
+
+    KoShapeStrokeSP stroke = this->createStroke();
+    m_parentTool->updatePencilCursor(stroke && stroke->isVisible());
 }

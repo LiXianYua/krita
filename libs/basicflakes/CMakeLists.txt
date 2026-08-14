@@ -23,7 +23,6 @@ target_include_directories(kritabasicflakes
 
 target_link_libraries(kritabasicflakes 
     PUBLIC
-        kritaui
         kritawidgets
         kritaflake 
         kritapigment

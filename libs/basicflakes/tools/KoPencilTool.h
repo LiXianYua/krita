@@ -8,14 +8,13 @@
 #define _KOPENCILTOOL_H_
 
 #include "KoFlakeTypes.h"
+#include "KoShapeStroke.h"
 #include "KoToolBase.h"
 #include <kconfiggroup.h>
 #include <qcolor.h>
 
 class KoPathShape;
-class KoShapeStroke;
 class KoPathPoint;
-class KoStrokeConfigWidget;
 
 #include "kritabasicflakes_export.h"
 
@@ -35,6 +34,14 @@ public:
 
     void activate(const QSet<KoShape*> &shapes) override;
     void deactivate() override;
+
+    /**
+     * Set the non-widget stroke data copied into newly created paths.
+     * The pencil keeps its own copy, so callers may safely reuse or destroy
+     * their configuration object after this call.
+     */
+    void setStrokeTemplate(const KoShapeStroke &stroke);
+    const KoShapeStroke &strokeTemplate() const;
 
 protected:
     QList<QPointer<QWidget> > createOptionWidgets() override;
@@ -80,7 +87,8 @@ private:
     qreal m_combineAngle {15.0};
     qreal m_fittingError {5.0};
     bool m_close {false};
-    QColor m_strokeColor;
+    QColor m_strokeColor {Qt::black};
+    KoShapeStroke m_strokeTemplate;
 
     QList<QPointF> m_points; // the raw points
 
@@ -88,8 +96,6 @@ private:
     KoPathPoint *m_existingStartPoint {0}; ///< an existing path point we started a new path at
     KoPathPoint *m_existingEndPoint {0};   ///< an existing path point we finished a new path at
     KoPathPoint *m_hoveredPoint {0}; ///< an existing path end point the mouse is hovering on
-    KoStrokeConfigWidget *m_strokeWidget {0};
-
     KConfigGroup m_configGroup;
 };
 

@@ -20,11 +20,12 @@
 #include "KoSnapStrategy.h"
 #include "KoToolBase_p.h"
 #include <KoViewConverter.h>
-#include "kis_config.h"
+
+#include <KSharedConfig>
+#include <KConfigGroup>
 
 #include "math.h"
 
-class KoStrokeConfigWidget;
 class KoConverter;
 
 /// Small helper to keep track of a path point and its parent path shape
@@ -412,13 +413,13 @@ public:
     void autoSmoothCurvesChanged(bool value) {
         autoSmoothCurves = value;
 
-        KisConfig cfg(false);
-        cfg.setAutoSmoothBezierCurves(value);
+        KConfigGroup config = KSharedConfig::openConfig()->group("");
+        config.writeEntry("autoSmoothBezierCurves", value);
+        config.sync();
     }
 
     void loadAutoSmoothValueFromConfig() {
-        KisConfig cfg(true);
-        autoSmoothCurves = cfg.autoSmoothBezierCurves();
+        autoSmoothCurves = KSharedConfig::openConfig()->group("").readEntry("autoSmoothBezierCurves", false);
 
         Q_EMIT q->sigUpdateAutoSmoothCurvesGUI(autoSmoothCurves);
     }

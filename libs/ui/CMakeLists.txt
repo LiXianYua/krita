@@ -257,8 +257,6 @@ set(kritaui_LIB_SRCS
     widgets/kis_preset_live_preview_view.cpp
     widgets/KisScreenColorSampler.cpp
     widgets/KoDualColorButton.cpp
-    widgets/KoStrokeConfigWidget.cpp
-    widgets/KoFillConfigWidget.cpp
     widgets/KisLayerStyleAngleSelector.cpp
     widgets/KisMemoryReportButton.cpp
     widgets/KisDitherWidget.cpp
@@ -493,8 +491,6 @@ if(ANDROID)
 endif()
 
 ki18n_wrap_ui(kritaui_LIB_SRCS
-    widgets/KoFillConfigWidget.ui
-    widgets/KoStrokeConfigWidget.ui
     widgets/KisDitherWidget.ui
     widgets/KisAutoLevelsWidget.ui
 

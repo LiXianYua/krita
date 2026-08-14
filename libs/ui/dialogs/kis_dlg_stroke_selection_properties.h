@@ -10,7 +10,6 @@
 #include "KisProofingConfiguration.h"
 #include <kis_types.h>
 #include "KisViewManager.h"
-#include "KoStrokeConfigWidget.h"
 #include "ui_wdgstrokeselectionproperties.h"
 #include <kis_canvas2.h>
 #include <KisToolShapeUtils.h>
