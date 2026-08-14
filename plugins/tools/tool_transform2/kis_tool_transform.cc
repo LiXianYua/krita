@@ -21,6 +21,7 @@
 #include <QApplication>
 #include <QMatrix4x4>
 #include <QMenu>
+#include <QAction>
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
@@ -118,25 +119,25 @@ KisToolTransform::KisToolTransform(KoCanvasBase * canvas)
 
     setObjectName("tool_transform");
 
-    warpAction = new KisAction(i18nc("Warp Transform Tab Label", "Warp"));
-    liquifyAction = new KisAction(i18nc("Liquify Transform Tab Label", "Liquify"));
-    meshAction = new KisAction(i18nc("Mesh Transform Tab Label", "Mesh"));
-    cageAction = new KisAction(i18nc("Cage Transform Tab Label", "Cage"));
-    freeTransformAction = new KisAction(i18nc("Free Transform Tab Label", "Free"));
-    perspectiveAction = new KisAction(i18nc("Perspective Transform Tab Label", "Perspective"));
+    warpAction = new QAction(i18nc("Warp Transform Tab Label", "Warp"));
+    liquifyAction = new QAction(i18nc("Liquify Transform Tab Label", "Liquify"));
+    meshAction = new QAction(i18nc("Mesh Transform Tab Label", "Mesh"));
+    cageAction = new QAction(i18nc("Cage Transform Tab Label", "Cage"));
+    freeTransformAction = new QAction(i18nc("Free Transform Tab Label", "Free"));
+    perspectiveAction = new QAction(i18nc("Perspective Transform Tab Label", "Perspective"));
 
     // extra actions for free transform that are in the tool options
-    mirrorHorizontalAction = new KisAction(i18n("Mirror Horizontal"));
-    mirrorVerticalAction = new KisAction(i18n("Mirror Vertical"));
-    rotateNinetyCWAction = new KisAction(i18n("Rotate 90 degrees Clockwise"));
-    rotateNinetyCCWAction = new KisAction(i18n("Rotate 90 degrees CounterClockwise"));
+    mirrorHorizontalAction = new QAction(i18n("Mirror Horizontal"));
+    mirrorVerticalAction = new QAction(i18n("Mirror Vertical"));
+    rotateNinetyCWAction = new QAction(i18n("Rotate 90 degrees Clockwise"));
+    rotateNinetyCCWAction = new QAction(i18n("Rotate 90 degrees CounterClockwise"));
 
-    keepAspectRatioAction = new KisAction(i18n("Keep Aspect Ratio"));
+    keepAspectRatioAction = new QAction(i18n("Keep Aspect Ratio"));
     keepAspectRatioAction->setCheckable(true);
     keepAspectRatioAction->setChecked(false);
 
-    applyTransformation = new KisAction(i18n("Apply"));
-    resetTransformation = new KisAction(i18n("Reset"));
+    applyTransformation = new QAction(i18n("Apply"));
+    resetTransformation = new QAction(i18n("Reset"));
 
     m_contextMenu.reset(new QMenu());
 

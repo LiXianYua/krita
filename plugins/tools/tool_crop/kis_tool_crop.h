@@ -22,9 +22,9 @@
 #include "kis_tool.h"
 #include "flake/kis_node_shape.h"
 #include "kis_constrained_rect.h"
-#include "kis_action.h"
 
 class QRect;
+class QAction;
 struct DecorationLine;
 
 
@@ -175,12 +175,12 @@ private:
     KConfigGroup configGroup;
 
     QScopedPointer<QMenu> m_contextMenu;
-    KisAction* applyCrop {nullptr};
-    KisAction* centerToggleOption {nullptr};
-    KisAction* growToggleOption {nullptr};
-    KisAction* lockWidthToggleOption {nullptr};
-    KisAction* lockHeightToggleOption {nullptr};
-    KisAction* lockRatioToggleOption {nullptr};
+    QAction* applyCrop {nullptr};
+    QAction* centerToggleOption {nullptr};
+    QAction* growToggleOption {nullptr};
+    QAction* lockWidthToggleOption {nullptr};
+    QAction* lockHeightToggleOption {nullptr};
+    QAction* lockRatioToggleOption {nullptr};
 
     enum handleType {
         None = 0,
@@ -226,4 +226,3 @@ public:
 
 
 #endif // KIS_TOOL_CROP_H_
-

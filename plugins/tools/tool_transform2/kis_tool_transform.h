@@ -30,7 +30,6 @@
 #include <flake/kis_node_shape.h>
 #include <kis_tool.h>
 #include <kis_canvas2.h>
-#include <kis_action.h>
 
 #include <KisToolPaintFactoryBase.h>
 
@@ -43,6 +42,7 @@
 #include "strokes/inplace_transform_stroke_strategy.h"
 
 class QTouchEvent;
+class QAction;
 class KisTransformStrategyBase;
 class KisWarpTransformStrategy;
 class KisCageTransformStrategy;
@@ -286,21 +286,21 @@ private:
     TransformToolMode nextActivationTransformMode {FreeTransformMode};
 
     /// actions for the context click menu
-    KisAction* warpAction {0};
-    KisAction* meshAction {0};
-    KisAction* liquifyAction {0};
-    KisAction* cageAction {0};
-    KisAction* freeTransformAction {0};
-    KisAction* perspectiveAction {0};
-    KisAction* applyTransformation {0};
-    KisAction* resetTransformation {0};
+    QAction* warpAction {0};
+    QAction* meshAction {0};
+    QAction* liquifyAction {0};
+    QAction* cageAction {0};
+    QAction* freeTransformAction {0};
+    QAction* perspectiveAction {0};
+    QAction* applyTransformation {0};
+    QAction* resetTransformation {0};
 
     // a few extra context click options if free transform is active
-    KisAction* mirrorHorizontalAction {0};
-    KisAction* mirrorVerticalAction {0};
-    KisAction* rotateNinetyCWAction {0};
-    KisAction* rotateNinetyCCWAction {0};
-    KisAction* keepAspectRatioAction {0};
+    QAction* mirrorHorizontalAction {0};
+    QAction* mirrorVerticalAction {0};
+    QAction* rotateNinetyCWAction {0};
+    QAction* rotateNinetyCCWAction {0};
+    QAction* keepAspectRatioAction {0};
 
 
 
@@ -411,4 +411,3 @@ private Q_SLOTS:
 
 
 #endif // KIS_TOOL_TRANSFORM_H_
-

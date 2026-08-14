@@ -30,7 +30,6 @@
 #include <KisReferenceImagesLayer.h>
 #include <kis_image.h>
 #include "QClipboard"
-#include "kis_action.h"
 #include <KisCursorOverrideLock.h>
 
 #include "KisReferenceImageCollection.h"

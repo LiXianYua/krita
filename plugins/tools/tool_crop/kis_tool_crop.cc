@@ -18,6 +18,7 @@
 #include <QPen>
 #include <QRect>
 #include <QMenu>
+#include <QAction>
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
@@ -108,21 +109,21 @@ KisToolCrop::KisToolCrop(KoCanvasBase * canvas)
 
     // context menu options (mirrors tool options)
     m_contextMenu.reset(new QMenu());
-    applyCrop = new KisAction(i18n("Crop"));
+    applyCrop = new QAction(i18n("Crop"));
 
-    centerToggleOption = new KisAction(i18n("Center"));
+    centerToggleOption = new QAction(i18n("Center"));
     centerToggleOption->setCheckable(true);
     
-    growToggleOption = new KisAction(i18nc("Grow as in crop tool", "Grow"));
+    growToggleOption = new QAction(i18nc("Grow as in crop tool", "Grow"));
     growToggleOption->setCheckable(true);
     
-    lockWidthToggleOption = new KisAction(i18n("Lock Width"));
+    lockWidthToggleOption = new QAction(i18n("Lock Width"));
     lockWidthToggleOption->setCheckable(true);
     
-    lockHeightToggleOption = new KisAction(i18n("Lock Height"));
+    lockHeightToggleOption = new QAction(i18n("Lock Height"));
     lockHeightToggleOption->setCheckable(true);
     
-    lockRatioToggleOption = new KisAction(i18n("Lock Ratio"));
+    lockRatioToggleOption = new QAction(i18n("Lock Ratio"));
     lockRatioToggleOption->setCheckable(true);
 
     connect(applyCrop, SIGNAL(triggered(bool)), this, SLOT(crop()));
