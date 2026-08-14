@@ -8,6 +8,7 @@
  */
 
 #include "kis_canvas2.h"
+#include "kis_floating_message.h"
 
 #include <functional>
 #include <numeric>
@@ -348,6 +349,28 @@ KisCanvas2::KisCanvas2(KisCoordinatesConverter *coordConverter, KoCanvasResource
     m_d->frameRenderStartCompressor.setDelay(1000 / config.fpsLimit());
     m_d->frameRenderStartCompressor.setMode(KisSignalCompressor::FIRST_ACTIVE);
     snapGuide()->overrideSnapStrategy(KoSnapGuide::PixelSnapping, new KisSnapPixelStrategy());
+}
+
+void KisCanvas2::showFloatingMessage(const QString &message,
+                                     const QIcon &icon,
+                                     int timeout,
+                                     KisCanvasFeedback::Priority priority,
+                                     int alignment)
+{
+    KisFloatingMessage::Priority uiPriority = KisFloatingMessage::Medium;
+    switch (priority) {
+    case KisCanvasFeedback::Priority::High:
+        uiPriority = KisFloatingMessage::High;
+        break;
+    case KisCanvasFeedback::Priority::Medium:
+        uiPriority = KisFloatingMessage::Medium;
+        break;
+    case KisCanvasFeedback::Priority::Low:
+        uiPriority = KisFloatingMessage::Low;
+        break;
+    }
+
+    viewManager()->showFloatingMessage(message, icon, timeout, uiPriority, alignment);
 }
 
 void KisCanvas2::setup()

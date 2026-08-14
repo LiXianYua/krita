@@ -24,9 +24,7 @@
 #include "KoCanvasBase.h"
 #include <KoViewConverter.h>
 #include "krita_utils.h"
-#include "kis_floating_message.h"
-#include "kis_canvas2.h"
-#include "KisViewManager.h"
+#include <KisCanvasFeedback.h>
 #include <KisOptimizedBrushOutline.h>
 
 #define INNER_RADIUS 50
@@ -108,12 +106,13 @@ void KisToolMeasure::paint(QPainter& gc, const KoViewConverter &converter)
 }
 void KisToolMeasure::showDistanceAngleOnCanvas()
 {
-    KisCanvas2 *kisCanvas = qobject_cast<KisCanvas2*>(canvas());
+    KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
     QString message = i18nc("%1=distance %2=unit of distance %3=angle in degrees", "%1 %2\n%3°",
                             KritaUtils::prettyFormatReal(distance() / currentImage()->xRes()),
                             KoUnit(KoUnit::Pixel).symbol(),
                             QString::number(angle(),'f',1));
-    kisCanvas->viewManager()->showFloatingMessage(message, QIcon(), 2000, KisFloatingMessage::High);
+    feedback->showFloatingMessage(message, QIcon(), 2000, KisCanvasFeedback::Priority::High);
 }
 void KisToolMeasure::beginPrimaryAction(KoPointerEvent *event)
 {

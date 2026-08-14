@@ -23,6 +23,7 @@
 #include "opengl/kis_opengl.h"
 
 #include "kis_ui_types.h"
+#include "KisCanvasFeedback.h"
 #include "kis_coordinates_converter.h"
 #include "kis_canvas_decoration.h"
 #include <kis_painting_assistant.h>
@@ -55,7 +56,9 @@ class KisPopupPalette;
  * the widget it contains, which may be either a QPainter based
  * canvas, or an OpenGL based canvas: that are the real widgets.
  */
-class KRITAUI_EXPORT KisCanvas2 : public KoCanvasBase, public KisPaintingAssistantCanvas
+class KRITAUI_EXPORT KisCanvas2 : public KoCanvasBase,
+                                 public KisCanvasFeedback,
+                                 public KisPaintingAssistantCanvas
 {
 
     Q_OBJECT
@@ -133,6 +136,12 @@ public: // KoCanvasBase implementation
     QPointF paintingAssistantPixelToView(const QPoint &pixelCoords) const override;
     QPoint paintingAssistantCursorPosition() const override;
     bool isEditingPaintingAssistants() const override;
+
+    void showFloatingMessage(const QString &message,
+                             const QIcon &icon,
+                             int timeout,
+                             KisCanvasFeedback::Priority priority = KisCanvasFeedback::Priority::Medium,
+                             int alignment = Qt::AlignCenter | Qt::TextWordWrap) override;
 
     KoUnit unit() const override;
 
