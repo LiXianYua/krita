@@ -13,7 +13,7 @@ set(kritaexrimport_SOURCES
 
 kis_add_library(kritaexrimport MODULE ${kritaexrimport_SOURCES})
 
-target_link_libraries(kritaexrimport kritaimpex kritaui kritalibkra OpenEXR::IlmImf KF${KF_MAJOR}::ConfigCore)
+target_link_libraries(kritaexrimport kritaimpex kritalibkra OpenEXR::IlmImf KF${KF_MAJOR}::ConfigCore)
 
 install(TARGETS kritaexrimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -24,7 +24,7 @@ set(kritaexrexport_SOURCES
 
 kis_add_library(kritaexrexport MODULE ${kritaexrexport_SOURCES})
 
-target_link_libraries(kritaexrexport kritaui kritalibkra kritaimpex OpenEXR::IlmImf KF${KF_MAJOR}::ConfigCore)
+target_link_libraries(kritaexrexport kritalibkra kritaimpex OpenEXR::IlmImf KF${KF_MAJOR}::ConfigCore)
 
 install(TARGETS kritaexrexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
