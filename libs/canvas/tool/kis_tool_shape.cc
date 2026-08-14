@@ -6,10 +6,6 @@
 
 #include "kis_tool_shape.h"
 
-#include <QWidget>
-#include <QLayout>
-#include <QGridLayout>
-
 #include <KoUnit.h>
 #include <KoShape.h>
 #include <KoGradientBackground.h>
@@ -42,15 +38,10 @@
 KisToolShape::KisToolShape(KoCanvasBase * canvas, const QCursor & cursor)
         : KisToolPaint(canvas, cursor)
 {
-    m_shapeOptionsWidget = 0;
 }
 
 KisToolShape::~KisToolShape()
 {
-    // in case the widget hasn't been shown
-    if (m_shapeOptionsWidget && !m_shapeOptionsWidget->parent()) {
-        delete m_shapeOptionsWidget;
-    }
 }
 
 void KisToolShape::activate(const QSet<KoShape*> &shapes)
@@ -68,91 +59,36 @@ int KisToolShape::flags() const
 
 QWidget * KisToolShape::createOptionWidget()
 {
-    m_shapeOptionsWidget = new WdgGeometryOptions(0);
-
-    m_shapeOptionsWidget->cmbOutline->setCurrentIndex(KisPainter::StrokeStyleBrush);
-
-    m_shapeOptionsWidget->angleSelectorRotation->setIncreasingDirection(KisAngleGauge::IncreasingDirection_Clockwise);
-    m_shapeOptionsWidget->angleSelectorRotation->setFlipOptionsMode(KisAngleSelector::FlipOptionsMode_MenuButton);
-
-    m_shapeOptionsWidget->sldScale->setSuffix("%");
-    m_shapeOptionsWidget->sldScale->setRange(0.0, 10000.0, 2);
-    m_shapeOptionsWidget->sldScale->setSoftMaximum(500);
-    m_shapeOptionsWidget->sldScale->setSingleStep(1.0);
-
-    //connect two combo box event. Inherited classes can call the slots to make appropriate changes
-    connect(m_shapeOptionsWidget->cmbOutline, SIGNAL(currentIndexChanged(int)), this, SLOT(outlineSettingChanged(int)));
-    connect(m_shapeOptionsWidget->cmbFill, SIGNAL(currentIndexChanged(int)), this, SLOT(fillSettingChanged(int)));
-    connect(m_shapeOptionsWidget->angleSelectorRotation, SIGNAL(angleChanged(qreal)), this, SLOT(patternRotationSettingChanged(qreal)));
-    connect(m_shapeOptionsWidget->sldScale, SIGNAL(valueChanged(qreal)), this, SLOT(patternScaleSettingChanged(qreal)));
-
-    m_shapeOptionsWidget->cmbOutline->setCurrentIndex(m_configGroup.readEntry("outlineType", 0));
-    m_shapeOptionsWidget->cmbFill->setCurrentIndex(m_configGroup.readEntry("fillType", 0));
-    m_shapeOptionsWidget->sldScale->setValue(m_configGroup.readEntry("patternTransformScale", 100));
-    m_shapeOptionsWidget->angleSelectorRotation->setAngle(m_configGroup.readEntry("patternTransformRotation", 0));
-
-    //if both settings are empty, force the outline to brush so the tool will work when first activated
-    if (  m_shapeOptionsWidget->cmbFill->currentIndex() == 0 &&
-          m_shapeOptionsWidget->cmbOutline->currentIndex() == 0)
-    {
-        m_shapeOptionsWidget->cmbOutline->setCurrentIndex(1); // brush
-    }
-
-    bool enablePatternTransform = (m_shapeOptionsWidget->cmbFill->currentIndex() == int(KisToolShapeUtils::FillStylePattern));
-    m_shapeOptionsWidget->gbPatternTransform->setEnabled(enablePatternTransform);
-
-    return m_shapeOptionsWidget;
-}
-
-void KisToolShape::outlineSettingChanged(int value)
-{
-    m_configGroup.writeEntry("outlineType", value);
-}
-
-void KisToolShape::fillSettingChanged(int value)
-{
-    m_configGroup.writeEntry("fillType", value);
-    bool enable = (value == int(KisToolShapeUtils::FillStylePattern));
-    m_shapeOptionsWidget->gbPatternTransform->setEnabled(enable);
-}
-
-void KisToolShape::patternRotationSettingChanged(qreal value)
-{
-    m_configGroup.writeEntry("patternTransformRotation", value);
-}
-
-void KisToolShape::patternScaleSettingChanged(qreal value)
-{
-    m_configGroup.writeEntry("patternTransformScale", value);
+    return nullptr;
 }
 
 KisToolShapeUtils::FillStyle KisToolShape::fillStyle()
 {
-    if (m_shapeOptionsWidget) {
-        return static_cast<KisToolShapeUtils::FillStyle>(m_shapeOptionsWidget->cmbFill->currentIndex());
-    } else {
-        return KisToolShapeUtils::FillStyleNone;
-    }
+    return static_cast<KisToolShapeUtils::FillStyle>(
+        m_configGroup.readEntry("fillType", int(KisToolShapeUtils::FillStyleNone)));
 }
 
 KisToolShapeUtils::StrokeStyle KisToolShape::strokeStyle()
 {
-    if (m_shapeOptionsWidget) {
-        return static_cast<KisToolShapeUtils::StrokeStyle>(m_shapeOptionsWidget->cmbOutline->currentIndex());
-    } else {
-        return KisToolShapeUtils::StrokeStyleNone;
+    const auto fillStyle = this->fillStyle();
+    auto strokeStyle = static_cast<KisToolShapeUtils::StrokeStyle>(
+        m_configGroup.readEntry("outlineType", int(KisToolShapeUtils::StrokeStyleNone)));
+
+    if (fillStyle == KisToolShapeUtils::FillStyleNone
+        && strokeStyle == KisToolShapeUtils::StrokeStyleNone) {
+        strokeStyle = KisToolShapeUtils::StrokeStyleForeground;
     }
+
+    return strokeStyle;
 }
 
 QTransform KisToolShape::fillTransform()
 {
     QTransform transform;
 
-    if (m_shapeOptionsWidget) {
-        transform.rotate(m_shapeOptionsWidget->angleSelectorRotation->angle());
-        qreal scale = m_shapeOptionsWidget->sldScale->value()*0.01;
-        transform.scale(scale, scale);
-    }
+    transform.rotate(m_configGroup.readEntry("patternTransformRotation", 0));
+    const qreal scale = m_configGroup.readEntry("patternTransformScale", 100) * 0.01;
+    transform.scale(scale, scale);
 
     return transform;
 }

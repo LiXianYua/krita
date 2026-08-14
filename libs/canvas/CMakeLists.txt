@@ -23,7 +23,6 @@ set(kritacanvas_LIB_SRCS
     tool/KisAsyncColorSamplerHelper.cpp
     tool/KisToolPaintFactoryBase.cpp
     tool/KisSelectionToolFactoryBase.cpp
-    tool/kis_rectangle_constraint_widget.cpp
     tool/kis_shape_tool_helper.cpp
     tool/kis_tool_shape.cc
     tool/kis_tool_ellipse_base.cpp
@@ -32,7 +31,6 @@ set(kritacanvas_LIB_SRCS
     tool/KisToolOutlineBase.cpp
     kis_aspect_ratio_locker.cpp
     widgets/kis_selection_options.cc
-    widgets/kis_color_label_selector_widget.cpp
     widgets/kis_color_label_button.cpp
     tool/kis_selection_tool_config_widget_helper.cpp
     tool/kis_delegated_tool_policies.cpp
@@ -59,11 +57,6 @@ set(kritacanvas_LIB_SRCS
     kis_update_info.cpp
     opengl/KisOpenGLUpdateInfoBuilder.cpp
     opengl/kis_texture_tile_info_pool.cpp
-)
-
-ki18n_wrap_ui(kritacanvas_LIB_SRCS
-    forms/wdggeometryoptions.ui
-    forms/wdgrectangleconstraints.ui
 )
 
 kis_add_library(kritacanvas SHARED ${kritacanvas_LIB_SRCS})

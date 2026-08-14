@@ -19,7 +19,6 @@
 
 #include <KisOptionButtonStrip.h>
 #include <KoGroupButton.h>
-#include <kis_color_label_selector_widget.h>
 #include <kis_slider_spin_box.h>
 
 class KisSelectionOptions::Private
@@ -33,7 +32,7 @@ public:
     QToolButton *buttonStopGrowingAtDarkestPixel {nullptr};
     KisSliderSpinBox *sliderFeatherSelection{nullptr};
     KisOptionButtonStrip *optionButtonStripReference{nullptr};
-    KisColorLabelSelectorWidget *widgetLabels{nullptr};
+    QList<int> selectedColorLabels;
     QCheckBox*  checkBoxSelectionActionsPanel{nullptr};
 
     int modeToButtonIndex(SelectionMode mode) const
@@ -135,12 +134,6 @@ public:
         }
         const ReferenceLayers referenceLayers =
             buttonIndexToReferenceLayers(index);
-        KisOptionCollectionWidgetWithHeader *sectionReference =
-            q->widgetAs<KisOptionCollectionWidgetWithHeader *>(
-                "sectionReference");
-        sectionReference->setWidgetVisible("widgetLabels",
-                                           referenceLayers
-                                               == ColorLabeledLayers);
 
         Q_EMIT q->referenceLayersChanged(referenceLayers);
     }
@@ -217,12 +210,6 @@ KisSelectionOptions::KisSelectionOptions(QWidget *parent)
         KisIconUtils::loadIcon("all-layers"));
     m_d->optionButtonStripReference->addButton(KisIconUtils::loadIcon("tag"));
     m_d->optionButtonStripReference->button(0)->setChecked(true);
-    m_d->widgetLabels = new KisColorLabelSelectorWidget;
-    m_d->widgetLabels->setExclusive(false);
-    m_d->widgetLabels->setButtonSize(20);
-    m_d->widgetLabels->setButtonWrapEnabled(true);
-    m_d->widgetLabels->setMouseDragEnabled(true);
-
     // Set the tooltips
     m_d->optionButtonStripMode->button(0)->setToolTip(
         i18nc("@info:tooltip", "Pixel Selection"));
@@ -278,8 +265,6 @@ KisSelectionOptions::KisSelectionOptions(QWidget *parent)
             i18nc("The 'reference' section label in selection tools options",
                   "Reference"));
     sectionReference->setPrimaryWidget(m_d->optionButtonStripReference);
-    sectionReference->appendWidget("widgetLabels", m_d->widgetLabels);
-    sectionReference->setWidgetVisible("widgetLabels", false);
     appendWidget("sectionReference", sectionReference);
 
     KisOptionCollectionWidgetWithHeader *sectionAdjustments =
@@ -323,10 +308,6 @@ KisSelectionOptions::KisSelectionOptions(QWidget *parent)
             [this](int i, int c) {
                 m_d->on_optionButtonStripReference_buttonToggled(i, c);
             });
-    connect(m_d->widgetLabels,
-            SIGNAL(selectionChanged()),
-            SIGNAL(selectedColorLabelsChanged()));
-
     connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(slotConfigChanged()));
     connect(m_d->checkBoxSelectionActionsPanel,
             SIGNAL(toggled(bool)),
@@ -378,7 +359,7 @@ KisSelectionOptions::referenceLayers() const
 
 QList<int> KisSelectionOptions::selectedColorLabels() const
 {
-    return m_d->widgetLabels->selection();
+    return m_d->selectedColorLabels;
 }
 
 void KisSelectionOptions::setMode(SelectionMode newMode)
@@ -431,7 +412,12 @@ void KisSelectionOptions::setReferenceLayers(ReferenceLayers newReferenceLayers)
 void KisSelectionOptions::setSelectedColorLabels(
     const QList<int> &newSelectedColorLabels)
 {
-    m_d->widgetLabels->setSelection(newSelectedColorLabels);
+    if (m_d->selectedColorLabels == newSelectedColorLabels) {
+        return;
+    }
+
+    m_d->selectedColorLabels = newSelectedColorLabels;
+    Q_EMIT selectedColorLabelsChanged();
 }
 
 void KisSelectionOptions::setModeSectionVisible(bool visible)

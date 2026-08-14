@@ -9,15 +9,12 @@
 #include <QtCore/qmath.h>
 #include <QKeyEvent>
 
-#include <KisOptionCollectionWidget.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
 #include <KoPointerEvent.h>
 #include <KoViewConverter.h>
 #include <kis_icon.h>
 #include <KisCanvasToolServices.h>
-
-#include "kis_rectangle_constraint_widget.h"
 
 KisToolRectangleBase::KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectangleBase::ToolType type, const QCursor & cursor)
     : KisToolShape(canvas, cursor)
@@ -43,27 +40,7 @@ KisToolRectangleBase::KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectang
 
 QList<QPointer<QWidget> > KisToolRectangleBase::createOptionWidgets()
 {
-    QList<QPointer<QWidget>> widgetsList = KisToolShape::createOptionWidgets();
-
-    KisRectangleConstraintWidget *widget =
-        new KisRectangleConstraintWidget(0, this, showRoundCornersGUI());
-
-    if (widgetsList.size() > 0
-        && dynamic_cast<KisOptionCollectionWidget *>(
-            widgetsList.first().data())) {
-        KisOptionCollectionWidget *baseOptions =
-            dynamic_cast<KisOptionCollectionWidget *>(
-                widgetsList.first().data());
-        KisOptionCollectionWidgetWithHeader *sectionRectangle =
-            new KisOptionCollectionWidgetWithHeader(widget->windowTitle());
-        sectionRectangle->appendWidget("rectangleConstraintWidget", widget);
-        baseOptions->appendWidget("sectionRectangle", sectionRectangle);
-    } else {
-        widget->setContentsMargins(10, 10, 10, 10);
-        widgetsList.append(widget);
-    }
-
-    return widgetsList;
+    return KisToolShape::createOptionWidgets();
 }
 
 void KisToolRectangleBase::constraintsChanged(bool forceRatio, bool forceWidth, bool forceHeight, float ratio, float width, float height)
