@@ -13,6 +13,7 @@
 
 class KisNodeDummy;
 class KoShapeLayer;
+class KoShapeManager;
 
 class KisNameServer;
 class KUndo2Stack;
@@ -45,6 +46,7 @@ public:
     int dummiesCount() const override;
 
     KoShapeLayer* shapeForNode(KisNodeSP layer) const;
+    KoShapeManager *shapeManagerForNode(KisNodeSP node) const;
     KisImageSP currentImage() const;
 
     using KisDummiesFacadeBase::setImage;

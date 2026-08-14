@@ -300,33 +300,6 @@ public:
     void assignChangedMultiSurfaceState(const KisMultiSurfaceStateManager::State &newState);
 };
 
-namespace {
-KoShapeManager* fetchShapeManagerFromNode(KisNodeSP node)
-{
-    KoShapeManager *shapeManager = 0;
-    KisSelectionSP selection;
-
-    if (KisLayer *layer = dynamic_cast<KisLayer*>(node.data())) {
-        KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(layer);
-        if (shapeLayer) {
-            shapeManager = shapeLayer->shapeManager();
-
-        }
-    } else if (KisSelectionMask *mask = dynamic_cast<KisSelectionMask*>(node.data())) {
-        selection = mask->selection();
-    }
-
-    if (!shapeManager && selection && selection->hasShapeSelection()) {
-        KisShapeSelection *shapeSelection = dynamic_cast<KisShapeSelection*>(selection->shapeSelection());
-        KIS_ASSERT_RECOVER_RETURN_VALUE(shapeSelection, 0);
-
-        shapeManager = shapeSelection->shapeManager();
-    }
-
-    return shapeManager;
-}
-}
-
 KisCanvas2::KisCanvas2(KisCoordinatesConverter *coordConverter, KoCanvasResourceProvider *resourceManager, KisMainWindow *mainWindow, KisView *view, KoShapeControllerBase *sc)
     : KoCanvasBase(sc, resourceManager)
     , m_d(new KisCanvas2Private(this, coordConverter, view, resourceManager))
@@ -665,7 +638,11 @@ void KisCanvas2::setCurrentShapeManagerOwnerShape(KoShape *source)
 KoShapeManager *KisCanvas2::localShapeManager() const
 {
     KisNodeSP node = m_d->view->currentNode();
-    KoShapeManager *localShapeManager = fetchShapeManagerFromNode(node);
+    auto *shapeController =
+        dynamic_cast<KisShapeController *>(this->shapeController()->documentBase());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(shapeController, nullptr);
+    KoShapeManager *localShapeManager =
+        shapeController->shapeManagerForNode(node);
 
     /**
      * The group shape should be manually reset by the external code

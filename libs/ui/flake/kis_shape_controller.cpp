@@ -17,6 +17,7 @@
 
 #include "kis_shape_selection.h"
 #include "kis_selection.h"
+#include "kis_selection_mask.h"
 #include "kis_selection_component.h"
 #include "kis_image.h"
 #include "kis_group_layer.h"
@@ -223,6 +224,27 @@ KoShapeLayer* KisShapeController::shapeForNode(KisNodeSP node) const
         return m_d->shapesGraph.nodeToShape(node);
     }
     return 0;
+}
+
+KoShapeManager *KisShapeController::shapeManagerForNode(KisNodeSP node) const
+{
+    KoShapeManager *shapeManager = nullptr;
+    KisSelectionSP selection;
+
+    if (auto *shapeLayer = dynamic_cast<KisShapeLayer *>(node.data())) {
+        shapeManager = shapeLayer->shapeManager();
+    } else if (auto *mask = dynamic_cast<KisSelectionMask *>(node.data())) {
+        selection = mask->selection();
+    }
+
+    if (!shapeManager && selection && selection->hasShapeSelection()) {
+        auto *shapeSelection =
+            dynamic_cast<KisShapeSelection *>(selection->shapeSelection());
+        KIS_ASSERT_RECOVER_RETURN_VALUE(shapeSelection, nullptr);
+        shapeManager = shapeSelection->shapeManager();
+    }
+
+    return shapeManager;
 }
 
 KisImageSP KisShapeController::currentImage() const

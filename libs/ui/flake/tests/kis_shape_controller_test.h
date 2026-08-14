@@ -24,6 +24,7 @@ protected:
 
 private Q_SLOTS:
     void testCreatesVectorLayerWithoutDesktopContext();
+    void testFindsShapeManagersForVectorLayerAndSelectionMask();
 
 private:
     KisShapeController *m_controller;

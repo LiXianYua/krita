@@ -28,6 +28,7 @@
 #include <KoDrag.h>
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
+#include <KoCanvasResourcesIds.h>
 #include <KoShapeRubberSelectStrategy.h>
 #include <KoSvgTextShape.h>
 #include <commands/KoShapeMoveCommand.h>
@@ -47,11 +48,10 @@
 
 #include <KoSnapGuide.h>
 #include "kis_action_registry.h"
+#include "kis_image.h"
 #include "kis_node.h"
-#include "kis_node_manager.h"
-#include "KisViewManager.h"
-#include "kis_canvas2.h"
-#include "KisTextPropertiesManager.h"
+#include "kis_shape_controller.h"
+#include "KisCanvasFeedback.h"
 #include <kis_signal_compressor.h>
 #include <KoInteractionStrategyFactory.h>
 #include <KisHandlePainterHelper.h>
@@ -1105,8 +1105,9 @@ void DefaultTool::paint(QPainter &painter, const KoViewConverter &converter)
              * do that explicitly when rendering them via selection
              */
 
-            KisCanvas2 *kisCanvas = static_cast<KisCanvas2 *>(canvas());
-            KisNodeSP node = kisCanvas->viewManager()->nodeManager()->activeNode();
+            KisNodeSP node = canvas()->resourceManager()
+                                     ->resource(KoCanvasResource::CurrentKritaNode)
+                                     .value<KisNodeWSP>();
             const bool isSelectionMask = node && node->inherits("KisSelectionMask");
             m_decorator->setForceShapeOutlines(isSelectionMask);
 
@@ -1140,8 +1141,15 @@ bool DefaultTool::isValidForCurrentLayer() const
     // if the currently active node has a shape manager, then it is
     // probably our client :)
 
-    KisCanvas2 *kisCanvas = static_cast<KisCanvas2 *>(canvas());
-    return bool(kisCanvas->localShapeManager());
+    auto *shapeController = dynamic_cast<KisShapeController *>(
+        canvas()->shapeController()->documentBase());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(shapeController, false);
+
+    KisNodeSP node = canvas()->resourceManager()
+                             ->resource(KoCanvasResource::CurrentKritaNode)
+                             .value<KisNodeWSP>();
+    return shapeController->shapeManagerForNode(node) ||
+           canvas()->currentShapeManagerOwnerShape();
 }
 
 KoShapeManager *DefaultTool::shapeManager() const {
@@ -1152,10 +1160,11 @@ void DefaultTool::mousePressEvent(KoPointerEvent *event)
 {
     // this tool only works on a vector layer right now, so give a warning if another layer type is trying to use it
     if (!isValidForCurrentLayer()) {
-        KisCanvas2 *kiscanvas = static_cast<KisCanvas2 *>(canvas());
-        kiscanvas->viewManager()->showFloatingMessage(
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas());
+        KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
+        feedback->showFloatingMessage(
                 i18n("This tool only works on vector layers. You probably want the move tool."),
-                QIcon(), 2000, KisFloatingMessage::Medium, Qt::AlignCenter);
+                QIcon(), 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         return;
     }
 
@@ -1515,11 +1524,7 @@ void DefaultTool::activate(const QSet<KoShape *> &shapes)
     repaintDecorations();
     updateActions();
 
-    const KisCanvas2 *canvas2 = qobject_cast<const KisCanvas2 *>(this->canvas());
-    if (canvas2) {
-        canvas2->viewManager()->textPropertyManager()->setTextPropertiesInterface(m_textPropertyInterface);
-        m_textPropertyInterface->slotSelectionChanged();
-    }
+    m_textPropertyInterface->slotSelectionChanged();
 }
 
 void DefaultTool::deactivate()
@@ -1565,11 +1570,7 @@ void DefaultTool::deactivate()
     QAction *actionTextFlowToggle = action("flow_shape_type_toggle");
     disconnect(actionTextFlowToggle, 0, this, 0);
 
-    const KisCanvas2 *canvas2 = qobject_cast<const KisCanvas2 *>(this->canvas());
-    if (canvas2) {
-        canvas2->viewManager()->textPropertyManager()->setTextPropertiesInterface(nullptr);
-        m_textPropertyInterface->clearSelection();
-    }
+    m_textPropertyInterface->clearSelection();
 }
 
 void DefaultTool::selectionGroup()
@@ -1726,10 +1727,13 @@ void DefaultTool::selectionBooleanOp(int booleanOp)
     const int referenceShapeIndex = 0;
     KoShape *referenceShape = editableShapes[referenceShapeIndex];
 
-    KisCanvas2 *kisCanvas = static_cast<KisCanvas2 *>(canvas());
-    KIS_SAFE_ASSERT_RECOVER_RETURN(kisCanvas);
+    auto *shapeController = dynamic_cast<KisShapeController *>(
+        canvas()->shapeController()->documentBase());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(shapeController);
+    KisImageSP image = shapeController->currentImage();
+    KIS_SAFE_ASSERT_RECOVER_RETURN(image);
     const QTransform booleanWorkaroundTransform =
-        KritaUtils::pathShapeBooleanSpaceWorkaround(kisCanvas->image());
+        KritaUtils::pathShapeBooleanSpaceWorkaround(image);
 
     Q_FOREACH (KoShape *shape, editableShapes) {
         srcOutlines <<
