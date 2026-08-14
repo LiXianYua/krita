@@ -7,7 +7,6 @@
 #include <simpletest.h>
 #include <QImageReader>
 #include <QTest>
-#include <qimage_based_test.h>
 
 #include <kis_image.h>
 #include <kis_node_facade.h>

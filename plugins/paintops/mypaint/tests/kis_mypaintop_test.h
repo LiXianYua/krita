@@ -7,6 +7,8 @@
 #ifndef KIS_MYPAINTOP_TEST_H
 #define KIS_MYPAINTOP_TEST_H
 
+#define USE_DOCUMENT 0
+
 #include <QObject>
 #include <stroke_testing_utils.h>
 #include <qimage_based_test.h>
