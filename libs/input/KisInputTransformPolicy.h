@@ -47,9 +47,16 @@ enum class CombinedRotationMode {
 
 struct KRITAINPUT_EXPORT CombinedRotationState
 {
+    float lastDistance {0.0f};
     qreal previousAngle {0.0};
     qreal initialReferenceAngle {0.0};
     qreal accumulatedSnapRotation {0.0};
+};
+
+struct KRITAINPUT_EXPORT CombinedGestureResult
+{
+    float scaleDelta {1.0f};
+    qreal rotationDelta {0.0};
 };
 
 KRITAINPUT_EXPORT qreal angleForSnapping(qreal angle);
@@ -57,6 +64,12 @@ KRITAINPUT_EXPORT qreal updateCombinedRotation(CombinedRotationState &state,
                                                CombinedRotationMode mode,
                                                qreal currentAngleRadians,
                                                qreal currentCanvasRotationDegrees);
+KRITAINPUT_EXPORT CombinedGestureResult updateCombinedGesture(
+    CombinedRotationState &state,
+    CombinedRotationMode mode,
+    const QPointF &firstPoint,
+    const QPointF &secondPoint,
+    qreal currentCanvasRotationDegrees);
 
 struct KRITAINPUT_EXPORT DiscreteCanvasRotationState
 {

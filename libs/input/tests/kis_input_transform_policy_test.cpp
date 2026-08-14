@@ -25,6 +25,7 @@ class KisInputTransformPolicyTest : public QObject
 private Q_SLOTS:
     void testContinuousAndDiscreteZoomMapping();
     void testPinchZoomValidationAndState();
+    void testCombinedGestureScaleAndRotation();
     void testCombinedRotationModes();
     void testDiscreteCanvasRotation();
     void testTouchRotationState();
@@ -56,6 +57,11 @@ void KisInputTransformPolicyTest::testPinchZoomValidationAndState()
     QVERIFY(!result.shouldApply);
     QVERIFY(!state.hasReference);
 
+    PinchZoomState exactThresholdState;
+    result = updatePinchZoom(exactThresholdState, QPointF(0, 0), QPointF(6, 4), false, 2.0);
+    QVERIFY(!result.shouldApply);
+    QVERIFY(exactThresholdState.hasReference);
+
     result = updatePinchZoom(state, QPointF(0, 0), QPointF(100, 0), false, 2.0);
     QVERIFY(!result.shouldApply);
     QVERIFY(state.hasReference);
@@ -81,6 +87,35 @@ void KisInputTransformPolicyTest::testPinchZoomValidationAndState()
     QVERIFY(!state.hasReference);
 }
 
+void KisInputTransformPolicyTest::testCombinedGestureScaleAndRotation()
+{
+    using namespace KisInputTransformPolicy;
+
+    CombinedRotationState state;
+    const qreal initialAngle = 30.0 * M_PI / 180.0;
+    const qreal nextAngle = 45.0 * M_PI / 180.0;
+
+    auto result = updateCombinedGesture(
+        state,
+        CombinedRotationMode::Discrete,
+        QPointF(),
+        QPointF(100.0 * std::cos(initialAngle), 100.0 * std::sin(initialAngle)),
+        0.0);
+    QCOMPARE(result.scaleDelta, 1.0f);
+    QCOMPARE(result.rotationDelta, 0.0);
+    QCOMPARE(state.lastDistance, 100.0f);
+
+    result = updateCombinedGesture(
+        state,
+        CombinedRotationMode::Discrete,
+        QPointF(),
+        QPointF(120.0 * std::cos(nextAngle), 120.0 * std::sin(nextAngle)),
+        0.0);
+    QVERIFY(closeEnough(result.scaleDelta, 1.2));
+    QCOMPARE(result.rotationDelta, 15.0);
+    QCOMPARE(state.lastDistance, 120.0f);
+}
+
 void KisInputTransformPolicyTest::testCombinedRotationModes()
 {
     using namespace KisInputTransformPolicy;
@@ -104,6 +139,24 @@ void KisInputTransformPolicyTest::testCombinedRotationModes()
 
     QCOMPARE(angleForSnapping(43.0), -2.0);
     QCOMPARE(angleForSnapping(-43.0), 2.0);
+
+    CombinedRotationState positiveBoundary;
+    positiveBoundary.previousAngle = 1.0;
+    positiveBoundary.accumulatedSnapRotation = 2.0;
+    QVERIFY(closeEnough(updateCombinedRotation(positiveBoundary,
+                                               CombinedRotationMode::Continuous,
+                                               1.0 + M_PI / 180.0,
+                                               42.0),
+                        3.0));
+
+    CombinedRotationState negativeBoundary;
+    negativeBoundary.previousAngle = 1.0;
+    negativeBoundary.accumulatedSnapRotation = -2.0;
+    QVERIFY(closeEnough(updateCombinedRotation(negativeBoundary,
+                                               CombinedRotationMode::Continuous,
+                                               1.0 - M_PI / 180.0,
+                                               -42.0),
+                        -3.0));
 }
 
 void KisInputTransformPolicyTest::testDiscreteCanvasRotation()
@@ -125,6 +178,11 @@ void KisInputTransformPolicyTest::testTouchRotationState()
     auto result = updateTouchRotation(state, QPointF(0, 0), QPointF(4, 5), false);
     QVERIFY(!result.shouldApply);
     QVERIFY(!state.hasPreviousAngle);
+
+    TouchRotationState exactThresholdState;
+    result = updateTouchRotation(exactThresholdState, QPointF(0, 0), QPointF(6, 4), false);
+    QVERIFY(!result.shouldApply);
+    QVERIFY(exactThresholdState.hasPreviousAngle);
 
     result = updateTouchRotation(state, QPointF(0, 0), QPointF(100, 0), false);
     QVERIFY(!result.shouldApply);

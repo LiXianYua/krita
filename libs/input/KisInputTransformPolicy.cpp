@@ -128,6 +128,28 @@ qreal updateCombinedRotation(CombinedRotationState &state,
     return 0.0;
 }
 
+CombinedGestureResult updateCombinedGesture(CombinedRotationState &state,
+                                            CombinedRotationMode mode,
+                                            const QPointF &firstPoint,
+                                            const QPointF &secondPoint,
+                                            qreal currentCanvasRotationDegrees)
+{
+    const QPointF slope = secondPoint - firstPoint;
+    const qreal currentAngle = std::atan2(slope.y(), slope.x());
+    const qreal rotationDelta = updateCombinedRotation(state,
+                                                       mode,
+                                                       currentAngle,
+                                                       currentCanvasRotationDegrees);
+
+    const float distance = QLineF(firstPoint, secondPoint).length();
+    const float scaleDelta = qFuzzyCompare(1.0f, 1.0f + state.lastDistance)
+        ? 1.0f
+        : distance / state.lastDistance;
+    state.lastDistance = distance;
+
+    return {scaleDelta, rotationDelta};
+}
+
 DiscreteCanvasRotationState beginDiscreteCanvasRotation(qreal startRotationDegrees)
 {
     DiscreteCanvasRotationState state;
