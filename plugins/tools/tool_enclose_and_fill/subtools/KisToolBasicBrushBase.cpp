@@ -9,8 +9,8 @@
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>
 #include <KoViewConverter.h>
-#include <KisViewManager.h>
 #include <KoCanvasBase.h>
+#include <KisCanvasFeedback.h>
 #include <kis_icon.h>
 #include <kis_canvas2.h>
 #include <kis_cubic_curve.h>
@@ -60,15 +60,17 @@ void KisToolBasicBrushBase::beginPrimaryAction(KoPointerEvent *event)
     if ((m_type == PAINT && (!nodeEditable() || paintability == UNPAINTABLE || paintability  == KisToolPaint::CLONE || paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE)) || (m_type == SELECT && !selectionEditable())) {
 
         if (paintability == KisToolPaint::CLONE){
-            KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
+            KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+            KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
             QString message = i18n("This tool cannot paint on clone layers.  Please select a paint or vector layer or mask.");
-            kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+            feedback->showFloatingMessage(message, koIcon("object-locked"));
         }
 
         if (paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
-            KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
+            KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+            KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
             QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-            kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+            feedback->showFloatingMessage(message, koIcon("object-locked"));
         }
 
         event->ignore();

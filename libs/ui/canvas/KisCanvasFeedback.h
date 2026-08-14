@@ -32,7 +32,7 @@ public:
 
     virtual void showFloatingMessage(const QString &message,
                                      const QIcon &icon,
-                                     int timeout,
+                                     int timeout = 4500,
                                      Priority priority = Priority::Medium,
                                      int alignment = Qt::AlignCenter | Qt::TextWordWrap) = 0;
 };

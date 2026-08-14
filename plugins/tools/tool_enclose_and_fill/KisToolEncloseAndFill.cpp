@@ -20,8 +20,7 @@
 #include <resources/KoPattern.h>
 #include <kis_selection.h>
 
-#include <KisViewManager.h>
-#include <canvas/kis_canvas2.h>
+#include <KisCanvasFeedback.h>
 #include <kis_cursor.h>
 #include "kis_resources_snapshot.h"
 #include <kis_image_animation_interface.h>
@@ -161,11 +160,11 @@ void KisToolEncloseAndFill::beginPrimaryAction(KoPointerEvent *event)
     // cannot use enclose and fill tool on non-painting layers.
     // this logic triggers with multiple layer types like vector layer, clone layer, file layer, group layer
     if (currentNode().isNull() || currentNode()->inherits("KisShapeLayer") || nodePaintAbility() != NodePaintAbility::PAINT) {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-        kiscanvas->viewManager()->
-                showFloatingMessage(
-                    i18n("You cannot use this tool with the selected layer type"),
-                    QIcon(), 2000, KisFloatingMessage::Medium, Qt::AlignCenter);
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+        KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
+        feedback->showFloatingMessage(
+            i18n("You cannot use this tool with the selected layer type"),
+            QIcon(), 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         event->ignore();
         return;
     }

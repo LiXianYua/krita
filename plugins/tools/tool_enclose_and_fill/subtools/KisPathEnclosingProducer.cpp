@@ -7,10 +7,11 @@
  */
 
 #include <kis_cursor.h>
+#include <QMouseEvent>
+#include <QTabletEvent>
 #include <KoCanvasResourceProvider.h>
 #include <KoPathShape.h>
-#include <KisViewManager.h>
-#include <canvas/kis_canvas2.h>
+#include <KisCanvasFeedback.h>
 #include <KoIcon.h>
 
 #include "KisPathEnclosingProducer.h"
@@ -129,9 +130,10 @@ void KisPathEnclosingProducer::beginAlternateAction(KoPointerEvent *event, Alter
     if (!nodeEditable()) return;
 
     if (nodePaintAbility() == KisDynamicDelegateTool::MYPAINTBRUSH_UNPAINTABLE) {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+        KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+        feedback->showFloatingMessage(message, koIcon("object-locked"));
         event->ignore();
         return;
     }
@@ -160,12 +162,11 @@ void KisPathEnclosingProducer::beginPrimaryDoubleClickAction(KoPointerEvent *eve
 
 void KisPathEnclosingProducer::addPathShape(KoPathShape* pathShape)
 {
-    KisCanvas2 * kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    if (!kisCanvas) {
+    KisImageWSP currentImage = image();
+    if (!currentImage) {
         return;
     }
 
-    KisImageWSP image = kisCanvas->image();
     KisPixelSelectionSP enclosingMask = new KisPixelSelection();
 
     pathShape->normalize();
@@ -178,7 +179,7 @@ void KisPathEnclosingProducer::addPathShape(KoPathShape* pathShape)
     painter.setStrokeStyle(KisPainter::StrokeStyleNone);
 
     QTransform matrix;
-    matrix.scale(image->xRes(), image->yRes());
+    matrix.scale(currentImage->xRes(), currentImage->yRes());
     matrix.translate(pathShape->position().x(), pathShape->position().y());
 
     QPainterPath path = matrix.map(pathShape->outline());
