@@ -13,6 +13,7 @@ include_directories(
 add_subdirectory(styles)
 add_subdirectory(tests)
 add_subdirectory(resources/tests)
+add_subdirectory(flake)
 
 set(DISABLE_CLIP_MASK_PAINTER_ON_MACOS FALSE)
 if (APPLE)
