@@ -74,12 +74,7 @@ set(kritaui_LIB_SRCS
     dialogs/KisFrameRateLimitModel.cpp
     dialogs/KisDlgCreateNewDocument.cpp
 
-    flake/kis_node_dummies_graph.cpp
-    flake/kis_dummies_facade_base.cpp
-    flake/kis_dummies_facade.cpp
-    flake/kis_node_shapes_graph.cpp
-    flake/kis_node_shape.cpp
-    flake/kis_shape_controller.cpp
+    flake/KisShapeControllerDesktop.cpp
     kis_aspect_ratio_locker.cpp
     kis_bookmarked_configurations_editor.cc
     kis_bookmarked_configurations_model.cc

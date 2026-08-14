@@ -59,7 +59,7 @@
 
 #include <kis_group_layer.h>
 #include "kis_config.h"
-#include "kis_shape_controller.h"
+#include "flake/KisShapeControllerDesktop.h"
 #include "KisResourceServerProvider.h"
 #include "kis_animation_cache_populator.h"
 #include "kis_image_animation_interface.h"
@@ -148,6 +148,8 @@ void busyWaitWithFeedback(KisImageSP image)
 KisPart::KisPart()
     : d(new Private(this))
 {
+    initializeKisShapeControllerDesktopServices();
+
     KisDocumentRegistry *registry = KisDocumentRegistry::instance();
     registry->setDocumentServices(
         [](bool addStorage) { return new KisDocument(addStorage); },
@@ -205,6 +207,7 @@ KisPart::~KisPart()
         registry->removeDocument(document, false);
         delete document;
     }
+    clearKisShapeControllerDesktopServices();
     registry->clearDocumentServices();
 
     while (!d->views.isEmpty()) {

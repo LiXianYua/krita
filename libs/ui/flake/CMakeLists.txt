@@ -8,6 +8,13 @@ set(kritashapemodel_SOURCES
     kis_shape_selection_canvas.cpp
     kis_shape_selection_model.cpp
     kis_take_all_shapes_command.cpp
+    kis_node_dummies_graph.cpp
+    kis_dummies_facade_base.cpp
+    kis_dummies_facade.cpp
+    kis_node_shapes_graph.cpp
+    kis_node_shape.cpp
+    kis_shape_controller.cpp
+    kis_shape_controller_ui_adapter.cpp
 )
 
 kis_add_library(kritashapemodel SHARED ${kritashapemodel_SOURCES})
@@ -26,6 +33,9 @@ target_link_libraries(kritashapemodel
         kritaimage
         kritalibbrush
         kritacanvas
+
+    PRIVATE
+        KF${KF_MAJOR}::I18n
 )
 
 set_target_properties(kritashapemodel PROPERTIES
@@ -34,3 +44,7 @@ set_target_properties(kritashapemodel PROPERTIES
 )
 
 install(TARGETS kritashapemodel ${INSTALL_TARGETS_DEFAULT_ARGS})
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()

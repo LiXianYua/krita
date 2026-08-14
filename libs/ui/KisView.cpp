@@ -74,6 +74,7 @@
 #include "kis_resources_snapshot.h"
 #include "kis_selection_manager.h"
 #include "kis_shape_controller.h"
+#include "flake/KisShapeControllerDesktop.h"
 #include "kis_signal_compressor.h"
 #include "kis_zoom_manager.h"
 #include "krita_utils.h"
@@ -344,7 +345,7 @@ void KisView::setViewManager(KisViewManager *view)
 
     KoToolManager::instance()->addController(&d->canvasController);
     KisShapeController* shapeController = dynamic_cast<KisShapeController*>(d->document->shapeController());
-    shapeController->setInitialShapeForCanvas(&d->canvas);
+    setInitialShapeForCanvas(shapeController, &d->canvas);
 
     if (d->viewManager && d->viewManager->nodeManager()) {
         d->viewManager->nodeManager()->nodesUpdated();

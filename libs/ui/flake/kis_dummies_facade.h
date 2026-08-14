@@ -8,6 +8,8 @@
 #define __KIS_DUMMIES_FACADE_H
 
 
+#include <kritashapemodel_export.h>
+
 #include "kis_dummies_facade_base.h"
 
 /**
@@ -16,7 +18,7 @@
  * need to show layers in a filter and you need to create KisNodeModel
  */
 
-class KRITAUI_EXPORT KisDummiesFacade : public KisDummiesFacadeBase
+class KRITASHAPEMODEL_EXPORT KisDummiesFacade : public KisDummiesFacadeBase
 {
     Q_OBJECT
 

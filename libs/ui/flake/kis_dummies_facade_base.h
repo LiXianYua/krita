@@ -10,7 +10,7 @@
 #include <QObject>
 
 #include "kis_types.h"
-#include "kritaui_export.h"
+#include "kritashapemodel_export.h"
 #include <KisNodeAdditionFlags.h>
 
 class KisNodeDummy;
@@ -23,7 +23,7 @@ class KisNodeDummy;
  * when a node is removed/deleted.
  */
 
-class KRITAUI_EXPORT KisDummiesFacadeBase : public QObject
+class KRITASHAPEMODEL_EXPORT KisDummiesFacadeBase : public QObject
 {
     Q_OBJECT
 

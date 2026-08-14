@@ -11,7 +11,7 @@
 
 #include <KoShapeLayer.h>
 
-#include <kritaui_export.h>
+#include <kritashapemodel_export.h>
 #include <kis_types.h>
 
 
@@ -21,7 +21,7 @@
  * A KisNodeShape is a flake wrapper around Krita nodes. It is used
  * for dealing with currently active node for tools.
  */
-class KRITAUI_EXPORT KisNodeShape : public QObject, public KoShapeLayer
+class KRITASHAPEMODEL_EXPORT KisNodeShape : public QObject, public KoShapeLayer
 {
     Q_OBJECT
 public:
@@ -38,9 +38,6 @@ public:
 
 private Q_SLOTS:
     void editabilityChanged();
-
-private:
-    bool checkIfDescendant(KoShapeLayer *activeLayer);
 
 private:
     struct Private;

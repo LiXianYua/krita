@@ -9,8 +9,9 @@
 
 #include "kis_dummies_facade_base_test.h"
 
-class KisDocument;
 class KisNameServer;
+class KisShapeController;
+class KUndo2Stack;
 
 
 class KisShapeControllerTest : public KisDummiesFacadeBaseTest
@@ -21,10 +22,13 @@ protected:
     KisDummiesFacadeBase* dummiesFacadeFactory() override;
     void destroyDummiesFacade(KisDummiesFacadeBase *dummiesFacade) override;
 
+private Q_SLOTS:
+    void testCreatesVectorLayerWithoutDesktopContext();
+
 private:
-    KisDocument *m_doc;
+    KisShapeController *m_controller;
     KisNameServer *m_nameServer;
+    KUndo2Stack *m_undoStack;
 };
 
 #endif
-

@@ -6,17 +6,11 @@
 
 #include "kis_node_shape.h"
 
-#include <KoCanvasBase.h>
-#include <KoCanvasController.h>
-#include <KoSelection.h>
-#include <KoToolManager.h>
-
 #include <kis_types.h>
 #include <kis_layer.h>
 #include <kis_node.h>
 
-#include <KoSelectedShapesProxy.h>
-#include "kis_shape_layer.h"
+#include "kis_shape_controller_ui_adapter.h"
 
 
 struct KisNodeShape::Private
@@ -42,16 +36,8 @@ KisNodeShape::KisNodeShape(KisNodeSP node)
 
 KisNodeShape::~KisNodeShape()
 {
-    if (KoToolManager::instance()) {
-        KoCanvasController *canvasController = KoToolManager::instance()->activeCanvasController();
-        // If we're the active layer, we should tell the active selection we're dead meat.
-        if (canvasController && canvasController->canvas()) {
-            KoSelection *activeSelection = canvasController->canvas()->selectedShapesProxy()->selection();
-            KoShapeLayer *activeLayer = activeSelection->activeLayer();
-            if (activeLayer == this){
-                activeSelection->setActiveLayer(0);
-            }
-        }
+    if (KisShapeControllerUiAdapter *adapter = KisShapeControllerUiAdapter::instance()) {
+        adapter->nodeShapeAboutToBeDestroyed(this);
     }
     delete m_d;
 }
@@ -59,18 +45,6 @@ KisNodeShape::~KisNodeShape()
 KisNodeSP KisNodeShape::node()
 {
     return m_d->node;
-}
-
-bool KisNodeShape::checkIfDescendant(KoShapeLayer *activeLayer)
-{
-    bool found(false);
-    KoShapeLayer *layer = activeLayer;
-
-    while(layer && !(found = layer == this)) {
-        layer = dynamic_cast<KoShapeLayer*>(layer->parent());
-    }
-
-    return found;
 }
 
 void KisNodeShape::editabilityChanged()
@@ -89,26 +63,9 @@ void KisNodeShape::editabilityChanged()
         }
     }
 
-    /**
-     * Editability of a child depends on the editability
-     * of its parent. So when we change one's editability,
-     * we need to search for active children and reactivate them
-     */
-
-    KoCanvasController *canvasController = KoToolManager::instance()->activeCanvasController();
-
-    if(canvasController && canvasController->canvas()) {
-        KoSelection *activeSelection = canvasController->canvas()->selectedShapesProxy()->selection();
-        KoShapeLayer *activeLayer = activeSelection->activeLayer();
-
-
-        KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(m_d->node.data());
-
-        if(activeLayer && (checkIfDescendant(activeLayer) || (shapeLayer && shapeLayer == activeLayer))) {
-            activeSelection->setActiveLayer(activeLayer);
-        }
+    if (KisShapeControllerUiAdapter *adapter = KisShapeControllerUiAdapter::instance()) {
+        adapter->nodeShapeEditabilityChanged(this);
     }
-
 }
 
 QSizeF KisNodeShape::size() const
@@ -128,5 +85,4 @@ void KisNodeShape::setPosition(const QPointF &)
 void KisNodeShape::paint(QPainter &) const
 {
 }
-
 

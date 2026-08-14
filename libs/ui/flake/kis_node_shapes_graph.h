@@ -11,6 +11,7 @@
 #include "kis_node.h"
 #include "kis_types.h"
 #include "kis_node_dummies_graph.h"
+#include "kritashapemodel_export.h"
 
 class KisNodeShape;
 class KisNodeDummy;
@@ -26,7 +27,7 @@ class KisNodeDummy;
  * \see KisNodeDummy, KisNodeDummyGraph
  */
 
-class KRITAUI_EXPORT KisNodeShapesGraph
+class KRITASHAPEMODEL_EXPORT KisNodeShapesGraph
 {
 public:
     /**

@@ -12,40 +12,25 @@
 #include <KoShape.h>
 #include <KoShapeContainer.h>
 #include <KoShapeManager.h>
-#include <KoCanvasBase.h>
-#include <KoToolManager.h>
-#include <KisView.h>
-#include <KoSelection.h>
 #include <KoShapeLayer.h>
-#include <KoPathShape.h>
 #include <KoColorSpaceConstants.h>
-#include <KoCanvasController.h>
 
-#include "kis_node_manager.h"
 #include "kis_shape_selection.h"
 #include "kis_selection.h"
 #include "kis_selection_component.h"
-#include "kis_adjustment_layer.h"
-#include "kis_clone_layer.h"
-#include "canvas/kis_canvas2.h"
-#include "KisDocument.h"
 #include "kis_image.h"
 #include "kis_group_layer.h"
 #include "kis_node_shape.h"
 #include "kis_node_shapes_graph.h"
 #include "kis_name_server.h"
-#include "kis_mask.h"
 #include "kis_shape_layer.h"
-#include "KisViewManager.h"
 #include "kis_node.h"
+#include "kis_shape_controller_ui_adapter.h"
 
 #include <KoDocumentResourceManager.h>
 #include <commands/kis_image_layer_add_command.h>
-#include <kis_undo_adapter.h>
-#include "KoSelectedShapesProxy.h"
 #include "kis_signal_auto_connection.h"
-
-#include "KoAddRemoveShapeCommands.h"
+#include "kis_command_utils.h"
 
 
 struct KisShapeController::Private
@@ -104,10 +89,7 @@ void KisShapeController::addNodeImpl(KisNodeSP node, KisNodeSP parent, KisNodeSP
 
     KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(node.data());
     if (shapeLayer) {
-        /**
-         * Forward signals for global shape manager
-         * \see comment in the constructor of KisCanvas2
-         */
+        // Forward local shape-manager signals through the stable controller.
         connect(shapeLayer, SIGNAL(selectionChanged()),
                 SIGNAL(selectionChanged()));
         connect(shapeLayer->shapeManager(), SIGNAL(selectionContentChanged()),
@@ -161,8 +143,7 @@ KoShapeContainer *KisShapeController::createParentForShapes(const QList<KoShape 
         KIS_SAFE_ASSERT_RECOVER_BREAK(!shape->parent());
     }
 
-    KisCanvas2 *canvas = dynamic_cast<KisCanvas2*>(KoToolManager::instance()->activeCanvasController()->canvas());
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(canvas, resultParent);
+    KisShapeControllerUiAdapter *adapter = KisShapeControllerUiAdapter::instance();
 
     const bool baseBelongsToSelection = belongsToShapeSelection(shapes.first());
     bool allSameBelongsToShapeSelection = true;
@@ -174,7 +155,7 @@ KoShapeContainer *KisShapeController::createParentForShapes(const QList<KoShape 
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!baseBelongsToSelection || allSameBelongsToShapeSelection, resultParent);
 
     if (baseBelongsToSelection && allSameBelongsToShapeSelection) {
-        KisSelectionSP selection = canvas->viewManager()->selection();
+        KisSelectionSP selection = adapter ? adapter->imageSelection() : image()->globalSelection();
         if (selection) {
             KisSelectionComponent* shapeSelectionComponent = selection->shapeSelection();
 
@@ -189,7 +170,7 @@ KoShapeContainer *KisShapeController::createParentForShapes(const QList<KoShape 
     } else {
         KisShapeLayer *shapeLayer =
                 dynamic_cast<KisShapeLayer*>(
-                    canvas->selectedShapesProxy()->selection()->activeLayer());
+                    adapter ? adapter->activeShapeLayer() : nullptr);
 
         if (!shapeLayer || forceNewLayer) {
             shapeLayer = new KisShapeLayer(this, image(),
@@ -221,23 +202,6 @@ qreal KisShapeController::pixelsPerInch() const
     return image ? image->xRes() * 72.0 : 72.0;
 }
 
-void KisShapeController::setInitialShapeForCanvas(KisCanvas2 *canvas)
-{
-    if (!image()) return;
-
-    KisNodeSP rootNode = image()->root();
-
-    if (m_d->shapesGraph.containsNode(rootNode)) {
-        Q_ASSERT(canvas);
-        Q_ASSERT(canvas->shapeManager());
-        KoSelection *selection = canvas->shapeManager()->selection();
-        if (selection && m_d->shapesGraph.nodeToShape(rootNode)) {
-            selection->select(m_d->shapesGraph.nodeToShape(rootNode));
-            KoToolManager::instance()->switchToolRequested(KoToolManager::instance()->preferredToolForSelection(selection->selectedShapes()));
-        }
-    }
-}
-
 void KisShapeController::setImage(KisImageWSP image, KisNodeSP activeNode)
 {
     m_d->imageConnections.clear();
@@ -261,3 +225,7 @@ KoShapeLayer* KisShapeController::shapeForNode(KisNodeSP node) const
     return 0;
 }
 
+KisImageSP KisShapeController::currentImage() const
+{
+    return image();
+}

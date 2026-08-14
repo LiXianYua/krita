@@ -6,17 +6,14 @@
 #ifndef KIS_SHAPE_CONTROLLER
 #define KIS_SHAPE_CONTROLLER
 
-#include <QMap>
-
 #include "kis_dummies_facade_base.h"
+#include "kritashapemodel_export.h"
 #include <KoShapeControllerBase.h>
 
 
 class KisNodeDummy;
 class KoShapeLayer;
 
-class KisCanvas2;
-class KisDocument;
 class KisNameServer;
 class KUndo2Stack;
 
@@ -25,7 +22,7 @@ class KUndo2Stack;
  * selections -- everything that needs to be wrapped as a shape for
  * the tools to work on.
  */
-class KRITAUI_EXPORT KisShapeController : public KisDummiesFacadeBase, public KoShapeControllerBase
+class KRITASHAPEMODEL_EXPORT KisShapeController : public KisDummiesFacadeBase, public KoShapeControllerBase
 {
 
     Q_OBJECT
@@ -48,7 +45,7 @@ public:
     int dummiesCount() const override;
 
     KoShapeLayer* shapeForNode(KisNodeSP layer) const;
-    void setInitialShapeForCanvas(KisCanvas2 *canvas);
+    KisImageSP currentImage() const;
 
     using KisDummiesFacadeBase::setImage;
     void setImage(KisImageWSP image, KisNodeSP activeNode) override;
@@ -64,12 +61,9 @@ private Q_SLOTS:
 
 Q_SIGNALS:
     /**
-     * These three signals are forwarded from the local shape manager of
-     * KisShapeLayer. This is done because we switch KoShapeManager and
-     * therefore KoSelection in KisCanvas2, so we need to connect local
-     * managers to the UI as well.
-     *
-     * \see comment in the constructor of KisCanvas2
+     * These three signals are forwarded from each KisShapeLayer's local
+     * shape manager. Consumers may switch between managers, so they need a
+     * stable controller-level notification source.
      */
     void selectionChanged();
     void selectionContentChanged();

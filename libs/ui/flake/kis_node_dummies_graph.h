@@ -10,7 +10,7 @@
 #include <QList>
 #include <QMap>
 
-#include "kritaui_export.h"
+#include "kritashapemodel_export.h"
 #include "kis_types.h"
 #include "kis_node.h"
 
@@ -32,7 +32,7 @@ class KisNodeShape;
  * The ownership on the children of the dummy is taken as well.
  */
 
-class KRITAUI_EXPORT KisNodeDummy : public QObject
+class KRITASHAPEMODEL_EXPORT KisNodeDummy : public QObject
 {
     Q_OBJECT
 
@@ -80,7 +80,7 @@ private:
  * representing nodes in the UI environment.
  */
 
-class KRITAUI_EXPORT KisNodeDummiesGraph
+class KRITASHAPEMODEL_EXPORT KisNodeDummiesGraph
 {
 public:
     KisNodeDummiesGraph();

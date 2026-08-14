@@ -50,16 +50,6 @@ kis_add_test( kis_selection_decoration_test.cpp ../../../sdk/tests/stroke_testin
     LINK_LIBRARIES kritaui kritatestsdk
     )
 
-kis_add_test( kis_node_dummies_graph_test.cpp ../../../sdk/tests/testutil.cpp
-    TEST_NAME KisNodeDummiesGraphTest
-    LINK_LIBRARIES kritaui kritatestsdk
-    )
-
-kis_add_test( kis_node_shapes_graph_test.cpp ../../../sdk/tests/testutil.cpp
-    TEST_NAME KisNodeShapesGraphTest
-    LINK_LIBRARIES kritaui kritatestsdk
-    )
-
 kis_add_test( kis_model_index_converter_test.cpp ../../../sdk/tests/testutil.cpp
     TEST_NAME KisModelIndexConverterTest
     LINK_LIBRARIES kritaui kritatestsdk
@@ -82,19 +72,9 @@ kis_add_test(
     LINK_LIBRARIES kritaui kritatestsdk
     )
 
-kis_add_test( kis_shape_controller_test.cpp kis_dummies_facade_base_test.cpp
-    TEST_NAME kis_shape_controller_test
-    LINK_LIBRARIES kritaui kritatestsdk
-    )
-
 kis_add_test( KisShapeModelTest.cpp
     TEST_NAME KisShapeModelTest
     LINK_LIBRARIES kritashapemodel kritatestsdk
-    )
-
-kis_add_test( kis_dummies_facade_test.cpp kis_dummies_facade_base_test.cpp ../../../sdk/tests/testutil.cpp
-    TEST_NAME kis_dummies_facade_test
-    LINK_LIBRARIES kritaui kritatestsdk
     )
 
 kis_add_test(
