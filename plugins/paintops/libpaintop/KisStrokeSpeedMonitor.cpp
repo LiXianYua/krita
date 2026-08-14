@@ -14,8 +14,6 @@
 #include "kis_paintop_preset.h"
 #include "kis_paintop_settings.h"
 
-#include "kis_config.h"
-#include "kis_config_notifier.h"
 #include "KisImageConfigNotifier.h"
 
 
@@ -50,7 +48,7 @@ struct KisStrokeSpeedMonitor::Private
     QString lastPresetName;
     qreal lastPresetSize = 0;
 
-    bool haveStrokeSpeedMeasurement = true;
+    bool haveStrokeSpeedMeasurement = false;
 
     QMutex mutex;
 };
@@ -60,9 +58,6 @@ KisStrokeSpeedMonitor::KisStrokeSpeedMonitor()
 {
     connect(KisImageConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(resetAccumulatedValues()));
     connect(KisImageConfigNotifier::instance(), SIGNAL(configChanged()), SIGNAL(sigStatsUpdated()));
-    connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(slotConfigChanged()));
-
-    slotConfigChanged();
 }
 
 KisStrokeSpeedMonitor::~KisStrokeSpeedMonitor()
@@ -81,7 +76,13 @@ bool KisStrokeSpeedMonitor::haveStrokeSpeedMeasurement() const
 
 void KisStrokeSpeedMonitor::setHaveStrokeSpeedMeasurement(bool value)
 {
+    if (m_d->haveStrokeSpeedMeasurement == value) {
+        return;
+    }
+
     m_d->haveStrokeSpeedMeasurement = value;
+    resetAccumulatedValues();
+    Q_EMIT sigStatsUpdated();
 }
 
 void KisStrokeSpeedMonitor::resetAccumulatedValues()
@@ -89,14 +90,6 @@ void KisStrokeSpeedMonitor::resetAccumulatedValues()
     m_d->avgCursorSpeed.reset(m_d->averageWindow);
     m_d->avgRenderingSpeed.reset(m_d->averageWindow);
     m_d->avgFps.reset(m_d->averageWindow);
-}
-
-void KisStrokeSpeedMonitor::slotConfigChanged()
-{
-    KisConfig cfg(true);
-    m_d->haveStrokeSpeedMeasurement = cfg.enableBrushSpeedLogging();
-    resetAccumulatedValues();
-    Q_EMIT sigStatsUpdated();
 }
 
 void KisStrokeSpeedMonitor::notifyStrokeFinished(qreal cursorSpeed, qreal renderingSpeed, qreal fps, KisPaintOpPresetSP preset)

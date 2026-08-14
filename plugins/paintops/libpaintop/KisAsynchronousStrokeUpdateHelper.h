@@ -12,12 +12,12 @@
 #include <QTimer>
 #include "kis_types.h"
 #include "kis_stroke_job_strategy.h"
-#include "kritaui_export.h"
+#include <kritapaintop_export.h>
 
 class KisStrokesFacade;
 
 
-class KRITAUI_EXPORT KisAsynchronousStrokeUpdateHelper : public QObject
+class PAINTOP_EXPORT KisAsynchronousStrokeUpdateHelper : public QObject
 {
     Q_OBJECT
 public:
@@ -30,9 +30,7 @@ public:
               forceUpdate(_forceUpdate)
         {}
 
-        KisStrokeJobData* createLodClone(int levelOfDetail) override {
-            return new UpdateData(*this, levelOfDetail);
-        }
+        KisStrokeJobData* createLodClone(int levelOfDetail) override;
 
 
     protected:

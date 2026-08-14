@@ -51,7 +51,7 @@ void KisToolPolygon::finishPolyline(const QVector<QPointF>& points)
         KisFigurePaintingToolHelper helper(kundo2_i18n("Draw Polygon"),
                                            image(),
                                            currentNode(),
-                                           canvas()->resourceManager(),
+                                           canvas()->resourceManager()->canvasResourcesInterface(),
                                            strokeStyle(),
                                            fillStyle(),
                                            fillTransform());

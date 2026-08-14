@@ -7,7 +7,7 @@
 #ifndef KISMASKEDPAINTINGSTROKEDATA_H
 #define KISMASKEDPAINTINGSTROKEDATA_H
 
-#include "kritaui_export.h"
+#include <kritapaintop_export.h>
 
 #include <QVector>
 #include <QSharedPointer>
@@ -27,7 +27,7 @@ class KisPaintOpPreset;
 typedef QSharedPointer<KisPaintOpPreset> KisPaintOpPresetSP;
 
 
-class KRITAUI_EXPORT KisMaskedFreehandStrokePainter
+class PAINTOP_EXPORT KisMaskedFreehandStrokePainter
 {
 public:
     KisMaskedFreehandStrokePainter(KisFreehandStrokeInfo *strokeData, KisFreehandStrokeInfo *maskData);

@@ -6,7 +6,7 @@
 #ifndef KISSTROKECOMPATIBILITYINFO_H
 #define KISSTROKECOMPATIBILITYINFO_H
 
-#include "kritaui_export.h"
+#include <kritapaintop_export.h>
 #include <boost/operators.hpp>
 
 #include <QString>
@@ -19,7 +19,7 @@
 class KisResourcesSnapshot;
 
 
-struct KRITAUI_EXPORT KisStrokeCompatibilityInfo : public boost::equality_comparable<KisStrokeCompatibilityInfo>
+struct PAINTOP_EXPORT KisStrokeCompatibilityInfo : public boost::equality_comparable<KisStrokeCompatibilityInfo>
 {
     KisStrokeCompatibilityInfo();
     KisStrokeCompatibilityInfo(KisResourcesSnapshot &resourcesSnapshot);

@@ -10,9 +10,9 @@
 #include <QObject>
 
 #include "kis_types.h"
-#include "kritaui_export.h"
+#include <kritapaintop_export.h>
 
-class KRITAUI_EXPORT KisStrokeSpeedMonitor : public QObject
+class PAINTOP_EXPORT KisStrokeSpeedMonitor : public QObject
 {
     Q_OBJECT
 
@@ -61,7 +61,6 @@ public Q_SLOTS:
 
 private Q_SLOTS:
     void resetAccumulatedValues();
-    void slotConfigChanged();
 
 private:
     struct Private;

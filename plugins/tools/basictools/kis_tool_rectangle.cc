@@ -66,7 +66,7 @@ void KisToolRectangle::finishRect(const QRectF &rect, qreal roundCornersX, qreal
         KisFigurePaintingToolHelper helper(kundo2_i18n("Draw Rectangle"),
                                            image(),
                                            currentNode(),
-                                           canvas()->resourceManager(),
+                                           canvas()->resourceManager()->canvasResourcesInterface(),
                                            strokeStyle(),
                                            fillStyle(),
                                            fillTransform());

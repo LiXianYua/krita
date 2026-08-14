@@ -7,7 +7,7 @@
 #ifndef KISPAINTINGSTROKEDATA_H
 #define KISPAINTINGSTROKEDATA_H
 
-#include "kritaui_export.h"
+#include <kritapaintop_export.h>
 
 class KisPainter;
 class KisDistanceInformation;
@@ -18,7 +18,7 @@ class KisDistanceInformation;
  * painting stroke individually, so we store and manipulate
  * with them together using KisPaintingStrokeInfo structure
  */
-class KRITAUI_EXPORT KisFreehandStrokeInfo {
+class PAINTOP_EXPORT KisFreehandStrokeInfo {
 public:
     KisFreehandStrokeInfo();
     KisFreehandStrokeInfo(const KisDistanceInformation &startDist);

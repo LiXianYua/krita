@@ -645,7 +645,7 @@ void KisSelectionManager::paintSelectedShapes()
     KisFigurePaintingToolHelper helper(actionName,
                                        image,
                                        paintLayer.data(),
-                                       m_view->canvasResourceProvider()->resourceManager(),
+                                       m_view->canvasResourceProvider()->resourceManager()->canvasResourcesInterface(),
                                        KisToolShapeUtils::StrokeStyleForeground,
                                        KisToolShapeUtils::FillStyleNone);
 

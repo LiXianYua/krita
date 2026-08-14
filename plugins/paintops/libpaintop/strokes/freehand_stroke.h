@@ -9,7 +9,7 @@
 
 
 #include <QPen>
-#include "kritaui_export.h"
+#include <kritapaintop_export.h>
 #include "kis_types.h"
 #include "kis_node.h"
 #include "kis_painter_based_stroke_strategy.h"
@@ -20,7 +20,7 @@
 
 
 
-class KRITAUI_EXPORT FreehandStrokeStrategy : public KisPainterBasedStrokeStrategy
+class PAINTOP_EXPORT FreehandStrokeStrategy : public KisPainterBasedStrokeStrategy
 {
 public:
     enum Flag {
@@ -106,9 +106,7 @@ public:
             pen(_pen), customColor(_customColor)
         {}
 
-        KisStrokeJobData* createLodClone(int levelOfDetail) override {
-            return new Data(*this, levelOfDetail);
-        }
+        KisStrokeJobData* createLodClone(int levelOfDetail) override;
 
     private:
         Data(const Data &rhs, int levelOfDetail)

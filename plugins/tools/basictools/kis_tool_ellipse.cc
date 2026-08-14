@@ -64,7 +64,7 @@ void KisToolEllipse::finishRect(const QRectF& rect, qreal roundCornersX, qreal r
         KisFigurePaintingToolHelper helper(kundo2_i18n("Draw Ellipse"),
                                            image(),
                                            currentNode(),
-                                           canvas()->resourceManager(),
+                                           canvas()->resourceManager()->canvasResourcesInterface(),
                                            strokeStyle(),
                                            fillStyle(),
                                            fillTransform());

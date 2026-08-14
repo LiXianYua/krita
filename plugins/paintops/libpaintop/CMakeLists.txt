@@ -42,6 +42,16 @@ set(kritalibpaintop_LIB_SRCS
     kis_brush_based_paintop_settings.cpp
     kis_texture_option.cpp
     KisTextureMaskInfo.cpp
+    kis_figure_painting_tool_helper.cpp
+    KisAsynchronousStrokeUpdateHelper.cpp
+    KisStrokeCompatibilityInfo.cpp
+    KisStrokeSpeedMonitor.cpp
+    strokes/freehand_stroke.cpp
+    strokes/KisStrokeEfficiencyMeasurer.cpp
+    strokes/kis_painter_based_stroke_strategy.cpp
+    strokes/KisFreehandStrokeInfo.cpp
+    strokes/KisMaskedFreehandStrokePainter.cpp
+    strokes/KisMaskingBrushRenderer.cpp
     sensors/KisDynamicSensor.cpp
     sensors/KisDynamicSensors.cpp
     sensors/KisDynamicSensorDrawingAngle.cpp
@@ -59,8 +69,14 @@ target_include_directories(kritalibpaintop
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-target_link_libraries(kritalibpaintop kritalibbrush kritawidgets kritawidgetutils)
-target_link_libraries(kritalibpaintop LINK_INTERFACE_LIBRARIES kritalibbrush)
+target_link_libraries(kritalibpaintop
+    PUBLIC
+        kritalibbrush
+        kritaimage
+    PRIVATE
+        kritawidgets
+        kritawidgetutils
+)
 
 set_target_properties(kritalibpaintop PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}

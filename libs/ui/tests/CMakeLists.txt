@@ -99,17 +99,17 @@ krita_add_broken_unit_test( kis_clipboard_test.cpp
 
 krita_add_broken_unit_test( freehand_stroke_test.cpp  $<TARGET_PROPERTY:kritatestsdk,SOURCE_DIR>/stroke_testing_utils.cpp
     TEST_NAME FreehandStrokeTest
-    LINK_LIBRARIES kritaui kritatestsdk
+    LINK_LIBRARIES kritaui kritalibpaintop kritatestsdk
     )
 
 krita_add_broken_unit_test( FreehandStrokeBenchmark.cpp  $<TARGET_PROPERTY:kritatestsdk,SOURCE_DIR>/stroke_testing_utils.cpp
     TEST_NAME FreehandStrokeBenchmark
-    LINK_LIBRARIES kritaui kritatestsdk
+    LINK_LIBRARIES kritaui kritalibpaintop kritatestsdk
     )
 
 krita_add_broken_unit_test( KisPaintOnTransparencyMaskTest.cpp  $<TARGET_PROPERTY:kritatestsdk,SOURCE_DIR>/stroke_testing_utils.cpp
     TEST_NAME KisPaintOnTransparencyMaskTest
-    LINK_LIBRARIES kritaui kritatestsdk
+    LINK_LIBRARIES kritaui kritalibpaintop kritatestsdk
     )
 
 krita_add_broken_unit_test( fill_processing_visitor_test.cpp  $<TARGET_PROPERTY:kritatestsdk,SOURCE_DIR>/stroke_testing_utils.cpp

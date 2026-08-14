@@ -8,9 +8,7 @@
 
 #include <QElapsedTimer>
 #include <QThread>
-#include <QApplication>
 
-#include "kis_canvas_resource_provider.h"
 #include <brushengine/kis_paintop_preset.h>
 #include <brushengine/kis_paintop_settings.h>
 #include "kis_painter.h"
@@ -345,4 +343,8 @@ void FreehandStrokeStrategy::notifyUserStartedStroke()
 void FreehandStrokeStrategy::notifyUserEndedStroke()
 {
     m_d->efficiencyMeasurer.notifyCursorMoveFinished();
+}
+KisStrokeJobData *FreehandStrokeStrategy::Data::createLodClone(int levelOfDetail)
+{
+    return new Data(*this, levelOfDetail);
 }

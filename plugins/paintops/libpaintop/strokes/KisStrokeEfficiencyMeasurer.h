@@ -7,14 +7,14 @@
 #ifndef KISSTROKEEFFICIENCYMEASURER_H
 #define KISSTROKEEFFICIENCYMEASURER_H
 
-#include "kritaui_export.h"
+#include <kritapaintop_export.h>
 #include <QScopedPointer>
 
 #include <QtGlobal>
 
 class QPointF;
 
-class KRITAUI_EXPORT KisStrokeEfficiencyMeasurer
+class PAINTOP_EXPORT KisStrokeEfficiencyMeasurer
 {
 public:
     KisStrokeEfficiencyMeasurer();

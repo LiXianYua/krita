@@ -413,6 +413,7 @@ void KisCanvas2::setup()
 void KisCanvas2::initializeFpsDecoration()
 {
     KisConfig cfg(true);
+    KisStrokeSpeedMonitor::instance()->setHaveStrokeSpeedMeasurement(cfg.enableBrushSpeedLogging());
 
     const bool shouldShowDebugOverlay =
         (canvasIsOpenGL() && cfg.enableOpenGLFramerateLogging()) ||

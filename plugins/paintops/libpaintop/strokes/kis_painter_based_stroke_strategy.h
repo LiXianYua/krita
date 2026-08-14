@@ -10,7 +10,7 @@
 #include <QVector>
 
 #include "KisRunnableBasedStrokeStrategy.h"
-#include "kritaui_export.h"
+#include <kritapaintop_export.h>
 #include "kis_resources_snapshot.h"
 #include "kis_selection.h"
 #include "kis_indirect_painting_support.h"
@@ -24,7 +24,7 @@ class KisMaskingBrushRenderer;
 class KisRunnableStrokeJobData;
 class KisUndoStore;
 
-class KRITAUI_EXPORT KisPainterBasedStrokeStrategy : public KisRunnableBasedStrokeStrategy
+class PAINTOP_EXPORT KisPainterBasedStrokeStrategy : public KisRunnableBasedStrokeStrategy
 {
 public:
     KisPainterBasedStrokeStrategy(const QLatin1String &id,

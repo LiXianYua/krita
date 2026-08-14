@@ -75,3 +75,7 @@ void KisAsynchronousStrokeUpdateHelper::slotAsyncUpdateCame(bool forceUpdate)
                                 m_customUpdateFactory(forceUpdate) :
                                 new UpdateData(forceUpdate));
 }
+KisStrokeJobData *KisAsynchronousStrokeUpdateHelper::UpdateData::createLodClone(int levelOfDetail)
+{
+    return new UpdateData(*this, levelOfDetail);
+}

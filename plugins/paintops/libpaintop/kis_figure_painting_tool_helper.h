@@ -8,21 +8,21 @@
 #define __KIS_FIGURE_PAINTING_TOOL_HELPER_H
 
 #include "kis_types.h"
-#include "kritaui_export.h"
+#include <kritapaintop_export.h>
+#include <KoCanvasResourcesInterface.h>
 #include <brushengine/kis_paint_information.h>
 #include "strokes/freehand_stroke.h"
 #include "KisToolShapeUtils.h"
 
-class KoCanvasResourceProvider;
 class KisStrokesFacade;
 
-class KRITAUI_EXPORT KisFigurePaintingToolHelper
+class PAINTOP_EXPORT KisFigurePaintingToolHelper
 {
 public:
     KisFigurePaintingToolHelper(const KUndo2MagicString &name,
                                 KisImageWSP image,
                                 KisNodeSP currentNode,
-                                KoCanvasResourceProvider *resourceManager,
+                                KoCanvasResourcesInterfaceSP canvasResources,
                                 KisToolShapeUtils::StrokeStyle strokeStyle,
                                 KisToolShapeUtils::FillStyle fillStyle,
                                 QTransform fillTransform = QTransform());
