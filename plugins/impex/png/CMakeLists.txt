@@ -2,7 +2,14 @@ add_subdirectory(tests)
 
 set(kritapngimport_SOURCES
     kis_png_import.cc
-    )
+    kis_png_document_context.cpp
+    kis_png_import_profile_policy.cpp
+    kis_dlg_png_import.cpp
+)
+
+ki18n_wrap_ui(kritapngimport_SOURCES
+    wdgdlgpngimport.ui
+)
 
 kis_add_library(kritapngimport MODULE ${kritapngimport_SOURCES})
 
@@ -10,17 +17,30 @@ include_directories(SYSTEM ${PNG_INCLUDE_DIR})
 
 add_definitions(${PNG_DEFINITIONS})
 
-target_link_libraries(kritapngimport kritaimpex kritaui ${PNG_LIBRARIES} )
+target_link_libraries(kritapngimport
+    PRIVATE
+        kritaimpex
+        kritawidgets
+        kritawidgetutils
+        KF${KF_MAJOR}::ConfigCore
+        Qt${QT_MAJOR_VERSION}::Widgets
+        ${PNG_LIBRARIES}
+)
 
 install(TARGETS kritapngimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
 set(kritapngexport_SOURCES
     kis_png_export.cc
+    kis_png_document_context.cpp
 )
 
 kis_add_library(kritapngexport MODULE ${kritapngexport_SOURCES})
 
-target_link_libraries(kritapngexport kritaui kritaimpex ${PNG_LIBRARIES})
+target_link_libraries(kritapngexport
+    PRIVATE
+        kritaimpex
+        ${PNG_LIBRARIES}
+)
 
 install(TARGETS kritapngexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

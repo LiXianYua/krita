@@ -56,7 +56,6 @@ set(kritaui_LIB_SRCS
     dialogs/kis_dlg_preferences.cc
     dialogs/slider_and_spin_box_sync.cpp
     dialogs/kis_dlg_layer_style.cpp
-    dialogs/kis_dlg_png_import.cpp
     dialogs/kis_dlg_import_image_sequence.cpp
     dialogs/kis_delayed_save_dialog.cpp
     dialogs/KisSessionManagerDialog.cpp
@@ -127,7 +126,6 @@ set(kritaui_LIB_SRCS
     kis_paintop_options_model.cpp
     kis_paintop_settings_widget.cpp
     kis_popup_palette.cpp
-    kis_png_converter.cpp
     kis_preference_set_registry.cpp
     KisResourceServerProvider.cpp
     KisSelectedShapesProxy.cpp
@@ -514,7 +512,6 @@ ki18n_wrap_ui(kritaui_LIB_SRCS
     widgets/KisAutoLevelsWidget.ui
 
     forms/wdgaboutapplication.ui
-    forms/wdgdlgpngimport.ui
     forms/wdgfullscreensettings.ui
     forms/wdgsegmentgradienteditor.ui
     forms/wdggeneralsettings.ui

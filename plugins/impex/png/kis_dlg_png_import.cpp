@@ -5,6 +5,8 @@
  */
 #include "kis_dlg_png_import.h"
 
+#include <KConfigGroup>
+#include <KSharedConfig>
 
 #include <KoColorProfile.h>
 #include <KoColorSpace.h>
@@ -12,7 +14,6 @@
 #include <KoColorSpaceEngine.h>
 #include <KoID.h>
 #include <KisSqueezedComboBox.h>
-#include "kis_config.h"
 
 KisDlgPngImport::KisDlgPngImport(const QString &path, const QString &colorModelID, const QString &colorDepthID, QWidget *parent)
     : KoDialog(parent)
@@ -36,15 +37,18 @@ KisDlgPngImport::KisDlgPngImport(const QString &path, const QString &colorModelI
     Q_FOREACH (QString stringName, profileNames) {
         dlgWidget.cmbProfile->addSqueezedItem(stringName);
     }
-    KisConfig cfg(true);
-    QString profile = cfg.readEntry<QString>("pngImportProfile", KoColorSpaceRegistry::instance()->defaultProfileForColorSpace(colorSpaceId));
+    KConfigGroup config = KSharedConfig::openConfig()->group("");
+    const QString profile = config.readEntry(
+        "pngImportProfile",
+        KoColorSpaceRegistry::instance()->defaultProfileForColorSpace(colorSpaceId));
     dlgWidget.cmbProfile->setCurrent(profile);
 }
 
 QString KisDlgPngImport::profile() const
 {
     QString p = dlgWidget.cmbProfile->currentUnsqueezedText();
-    KisConfig cfg(false);
-    cfg.writeEntry("pngImportProfile", p);
+    KConfigGroup config = KSharedConfig::openConfig()->group("");
+    config.writeEntry("pngImportProfile", p);
+    config.sync();
     return p;
 }

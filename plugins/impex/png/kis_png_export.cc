@@ -6,10 +6,6 @@
 
 #include "kis_png_export.h"
 
-#include <QCheckBox>
-#include <QSlider>
-#include <QApplication>
-
 #include <kpluginfactory.h>
 
 #include <KoColorSpace.h>
@@ -20,6 +16,7 @@
 #include <KoColorSpaceRegistry.h>
 
 #include <KisExportCheckRegistry.h>
+#include <KisPngCodec.h>
 
 #include <kis_properties_configuration.h>
 #include <kis_paint_device.h>
@@ -27,11 +24,10 @@
 #include <kis_image.h>
 #include <kis_paint_layer.h>
 #include <kis_group_layer.h>
-#include <kis_config.h>
 #include <kis_meta_data_store.h>
 #include <kis_meta_data_filter_registry_model.h>
 #include <kis_exif_info_visitor.h>
-#include "kis_png_converter.h"
+#include "kis_png_document_context.h"
 #include <kis_iterator_ng.h>
 
 K_PLUGIN_FACTORY_WITH_JSON(KisPNGExportFactory, "krita_png_export.json", registerPlugin<KisPNGExport>();)
@@ -78,9 +74,13 @@ KisImportExportErrorCode KisPNGExport::convert(KisDocument *document, QIODevice 
         eI = copy;
     }
 
-    KisPNGConverter pngConverter(document);
+    KisPngDocumentContext documentContext(document);
+    KisPngCodec codec(KisPngCodecContext {
+        document ? &documentContext : nullptr,
+        nullptr
+    });
 
-    KisImportExportErrorCode res = pngConverter.buildFile(io, image->bounds(), image->xRes(), image->yRes(), image->projection(), beginIt, endIt, options, eI);
+    KisImportExportErrorCode res = codec.buildFile(io, image->bounds(), image->xRes(), image->yRes(), image->projection(), beginIt, endIt, options, eI);
     delete eI;
     dbgFile << " Result =" << res;
     return res;
@@ -123,4 +123,3 @@ void KisPNGExport::initializeCapabilities()
 }
 
 #include "kis_png_export.moc"
-

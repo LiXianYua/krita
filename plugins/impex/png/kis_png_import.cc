@@ -11,11 +11,11 @@
 #include <KisImportExportManager.h>
 
 #include <KisDocument.h>
+#include <KisPngCodec.h>
 #include <kis_image.h>
 
-#include <KisViewManager.h>
-
-#include "kis_png_converter.h"
+#include "kis_png_document_context.h"
+#include "kis_png_import_profile_policy.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(PNGImportFactory, "krita_png_import.json", registerPlugin<KisPNGImport>();)
 
@@ -29,14 +29,18 @@ KisPNGImport::~KisPNGImport()
 
 KisImportExportErrorCode KisPNGImport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
-    KisPNGConverter ib(document, batchMode());
-    KisImportExportErrorCode res = ib.buildImage(io);
+    KisPngDocumentContext documentContext(document);
+    KisPngImportProfileDesktopPolicy profilePolicy(batchMode());
+    KisPngCodec codec(KisPngCodecContext {
+        document ? &documentContext : nullptr,
+        &profilePolicy
+    });
+    KisImportExportErrorCode res = codec.buildImage(io);
     if (res.isOk()){
-        document->setCurrentImage(ib.image());
+        document->setCurrentImage(codec.image());
     }
     return res;
 
 }
 
 #include <kis_png_import.moc>
-
