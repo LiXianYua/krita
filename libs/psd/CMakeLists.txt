@@ -15,7 +15,7 @@ target_link_libraries(kritapsd
     PUBLIC
         kritaimage
         kritapsdutils
-        kritaui
+        kritashapemodel
 )
 
 set_target_properties(kritapsd PROPERTIES
