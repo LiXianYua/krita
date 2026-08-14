@@ -5,6 +5,7 @@
  */
 
 #include "kis_webp_test.h"
+#include <KisDocumentRegistry.h>
 
 #include <filestest.h>
 #include <simpletest.h>
@@ -44,7 +45,7 @@ void KisWebPTest::testAnimation()
         TestUtil::fetchDataFileLazy("/sources/DX-MON/loading_16.webp");
 
     QScopedPointer<KisDocument> doc(
-        qobject_cast<KisDocument *>(KisPart::instance()->createDocument()));
+        qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc.data());
     doc->setFileBatchMode(true);
@@ -81,7 +82,7 @@ void KisWebPTest::testAnimationWithTail()
         TestUtil::fetchDataFileLazy("/sources/animated/animation_test.webp");
 
     QScopedPointer<KisDocument> doc(
-        qobject_cast<KisDocument *>(KisPart::instance()->createDocument()));
+        qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc.data());
     doc->setFileBatchMode(true);

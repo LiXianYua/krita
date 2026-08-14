@@ -10,7 +10,6 @@
 #include <QObject>
 
 #include "kis_image.h"
-#include "kritaui_export.h"
 #include <KisImportExportErrorCode.h>
 class KisDocument;
 

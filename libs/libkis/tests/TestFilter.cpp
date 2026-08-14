@@ -22,13 +22,13 @@
 #include <kis_image.h>
 #include <kis_fill_painter.h>
 #include <kis_paint_layer.h>
-#include <KisPart.h>
+#include <KisDocumentRegistry.h>
 
 #include <testui.h>
 
 void TestFilter::testApply()
 {
-    KisDocument *kisdoc = KisPart::instance()->createDocument();
+    KisDocument *kisdoc = KisDocumentRegistry::instance()->createDocument();
     KisImageSP image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     KisNodeSP layer = new KisPaintLayer(image, "test1", 255);
     KisFillPainter gc(layer->paintDevice());
@@ -59,7 +59,7 @@ void TestFilter::testApply()
 
 void TestFilter::testStartFilter()
 {
-    KisDocument *kisdoc = KisPart::instance()->createDocument();
+    KisDocument *kisdoc = KisDocumentRegistry::instance()->createDocument();
     KisImageSP image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     KisNodeSP layer = new KisPaintLayer(image, "test1", 255);
     KisFillPainter gc(layer->paintDevice());

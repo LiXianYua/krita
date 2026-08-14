@@ -5,7 +5,8 @@
  */
 #include "Notifier.h"
 #include <QCoreApplication>
-#include <KisPart.h>
+#include <KisDocument.h>
+#include <KisDocumentRegistry.h>
 #include <kis_config_notifier.h>
 #include "Document.h"
 
@@ -22,9 +23,12 @@ Notifier::Notifier(QObject *parent)
         connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), SIGNAL(applicationClosing()));
     }
 
-    connect(KisPart::instance(), SIGNAL(sigDocumentAdded(KisDocument*)), SLOT(imageCreated(KisDocument*)));
-    connect(KisPart::instance(), SIGNAL(sigDocumentSaved(QString)), SIGNAL(imageSaved(QString)));
-    connect(KisPart::instance(), SIGNAL(sigDocumentRemoved(QString)), SIGNAL(imageClosed(QString)));
+    connect(KisDocumentRegistry::instance(), &KisDocumentRegistry::sigDocumentAdded,
+            this, qOverload<KisDocument *>(&Notifier::imageCreated));
+    connect(KisDocumentRegistry::instance(), &KisDocumentRegistry::sigDocumentSaved,
+            this, &Notifier::imageSaved);
+    connect(KisDocumentRegistry::instance(), &KisDocumentRegistry::sigDocumentRemoved,
+            this, &Notifier::imageClosed);
 
     connect(KisConfigNotifier::instance(), SIGNAL(configChanged()), SIGNAL(configurationChanged()));
 
@@ -54,4 +58,3 @@ void Notifier::imageCreated(KisDocument* document)
     Q_EMIT imageCreated(doc);
     delete doc;
 }
-

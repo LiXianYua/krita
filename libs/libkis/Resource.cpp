@@ -12,7 +12,6 @@
 #include <kis_brush.h>
 #include <kis_paintop_preset.h>
 #include <KoColorSet.h>
-#include <kis_workspace_resource.h>
 #include <KisResourceLocator.h>
 
 struct Resource::Private {
@@ -119,7 +118,6 @@ KoResourceSP Resource::resource() const
     Q_ASSERT(res);
     return res;
 }
-
 
 
 

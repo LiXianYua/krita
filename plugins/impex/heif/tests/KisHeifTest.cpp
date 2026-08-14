@@ -6,6 +6,7 @@
  */
 
 #include "KisHeifTest.h"
+#include <KisDocumentRegistry.h>
 
 
 #include <simpletest.h>
@@ -54,11 +55,11 @@ void KisHeifTest::testLoadMonochrome(int bitDepth)
             error = 25;
         }
         qDebug() << "Loading test for" << file;
-        QScopedPointer<KisDocument> doc_png(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_png(KisDocumentRegistry::instance()->createDocument());
         doc_png->setFileBatchMode(true);
-        QScopedPointer<KisDocument> doc_heif(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_heif(KisDocumentRegistry::instance()->createDocument());
         doc_heif->setFileBatchMode(true);
-        QScopedPointer<KisDocument> doc_avif(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_avif(KisDocumentRegistry::instance()->createDocument());
         doc_avif->setFileBatchMode(true);
 
         KisImportExportManager manager(doc_png.data());
@@ -112,11 +113,11 @@ void KisHeifTest::testLoadRGB(int bitDepth)
             error = 25;
         }
         qDebug() << "Loading test for" << file;
-        QScopedPointer<KisDocument> doc_png(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_png(KisDocumentRegistry::instance()->createDocument());
         doc_png->setFileBatchMode(true);
-        QScopedPointer<KisDocument> doc_heif(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_heif(KisDocumentRegistry::instance()->createDocument());
         doc_heif->setFileBatchMode(true);
-        QScopedPointer<KisDocument> doc_avif(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_avif(KisDocumentRegistry::instance()->createDocument());
         doc_avif->setFileBatchMode(true);
 
         KisImportExportManager manager(doc_png.data());
@@ -176,7 +177,7 @@ void KisHeifTest::testSaveHDR()
     int height = blockSize * 2;
 
     {
-        QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
 
         KisImageSP image = new KisImage(0, width, height, cs, "png test");
         KisPaintLayerSP paintLayer0 = new KisPaintLayer(image, "paint0", OPACITY_OPAQUE_U8);
@@ -261,21 +262,21 @@ void KisHeifTest::testSaveHDR()
 void KisHeifTest::testLoadHDR()
 {
     {
-        QScopedPointer<KisDocument> doc_png(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_png(KisDocumentRegistry::instance()->createDocument());
         doc_png->setFileBatchMode(true);
-        QScopedPointer<KisDocument> doc_avif_pq(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_avif_pq(KisDocumentRegistry::instance()->createDocument());
         doc_avif_pq->setFileBatchMode(true);
-        QScopedPointer<KisDocument> doc_heif_pq(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_heif_pq(KisDocumentRegistry::instance()->createDocument());
         doc_heif_pq->setFileBatchMode(true);
 
-        QScopedPointer<KisDocument> doc_avif_hlg(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_avif_hlg(KisDocumentRegistry::instance()->createDocument());
         doc_avif_hlg->setFileBatchMode(true);
-        QScopedPointer<KisDocument> doc_heif_hlg(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_heif_hlg(KisDocumentRegistry::instance()->createDocument());
         doc_heif_hlg->setFileBatchMode(true);
 
-        QScopedPointer<KisDocument> doc_avif_smpte428(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_avif_smpte428(KisDocumentRegistry::instance()->createDocument());
         doc_avif_smpte428->setFileBatchMode(true);
-        QScopedPointer<KisDocument> doc_heif_smpte428(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc_heif_smpte428(KisDocumentRegistry::instance()->createDocument());
         doc_heif_smpte428->setFileBatchMode(true);
 
         KisImportExportErrorCode loadingStatus =
@@ -399,7 +400,7 @@ void KisHeifTest::testSaveMonochrome(int bitDepth)
     int height = blockSize;
 
     {
-        QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
 
         KisImageSP image = new KisImage(0, width, height, cs, "png test");
         KisPaintLayerSP paintLayer0 = new KisPaintLayer(image, "paint0", OPACITY_OPAQUE_U8);
@@ -474,7 +475,7 @@ void KisHeifTest::testSaveRGB(int bitDepth)
     int height = blockSize * 2;
 
     {
-        QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
 
         KisImageSP image = new KisImage(0, width, height, cs, "png test");
         KisPaintLayerSP paintLayer0 = new KisPaintLayer(image, "paint0", OPACITY_OPAQUE_U8);
@@ -554,5 +555,4 @@ void KisHeifTest::testImages()
 
 
 KISTEST_MAIN(KisHeifTest)
-
 

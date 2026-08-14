@@ -42,6 +42,14 @@ bool KisDocumentApplicationServices::waitForImage(KisImageSP image, WaitMode)
     return true;
 }
 
+void KisDocumentApplicationServices::synchronizeDocumentViews()
+{
+}
+
+void KisDocumentApplicationServices::closeDocumentViews(KisDocument *)
+{
+}
+
 KoUpdaterPtr KisDocumentApplicationServices::createUpdater(const QString &, UpdaterMode)
 {
     return {};
@@ -157,6 +165,11 @@ QString KisDocumentApplicationServices::backupFileSuffix() const
 }
 
 bool KisDocumentApplicationServices::trimKra() const
+{
+    return false;
+}
+
+bool KisDocumentApplicationServices::trimFramesImport() const
 {
     return false;
 }

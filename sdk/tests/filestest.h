@@ -18,7 +18,7 @@
 #include <KisImportExportManager.h>
 
 #include <KisDocument.h>
-#include <KisPart.h>
+#include <KisDocumentRegistry.h>
 #include <kis_image.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
@@ -57,7 +57,7 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
                 continue;
             }
 
-            KisDocument *doc = qobject_cast<KisDocument*>(KisPart::instance()->createDocument());
+            KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
 
             KisImportExportManager manager(doc);
             doc->setFileBatchMode(true);
@@ -192,7 +192,7 @@ void testImportFromWriteonly(QString mimetype)
 
     prepareFile(sourceFileInfo, false, true);
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisPart::instance()->createDocument());
+    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
 
     KisImportExportManager manager(doc);
     doc->setFileBatchMode(true);
@@ -244,7 +244,7 @@ void testExportToReadonly(QString mimetype)
     QFileInfo sourceFileInfo(readonlyFilename);
     prepareFile(sourceFileInfo, true, false);
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisPart::instance()->createDocument());
+    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
 
     KisImportExportManager manager(doc);
     doc->setFileBatchMode(true);
@@ -294,7 +294,7 @@ void testImportIncorrectFormat(QString mimetype)
 
     prepareFile(sourceFileInfo, false, false);
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisPart::instance()->createDocument());
+    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
 
     KisImportExportManager manager(doc);
     doc->setFileBatchMode(true);
@@ -325,7 +325,7 @@ void testExportToColorSpace(QString mimetype, const KoColorSpace* space, KisImpo
     prepareFile(sourceFileInfo, true, true);
     restorePermissionsToReadAndWrite(sourceFileInfo);
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisPart::instance()->createDocument());
+    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
 
     KisImportExportManager manager(doc);
     doc->setFileBatchMode(true);

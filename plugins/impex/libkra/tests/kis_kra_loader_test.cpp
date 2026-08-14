@@ -16,7 +16,7 @@
 
 #include "kis_image.h"
 #include <testutil.h>
-#include "KisPart.h"
+#include "KisDocumentRegistry.h"
 
 #include <filter/kis_filter_registry.h>
 #include <generator/kis_generator_registry.h>
@@ -39,7 +39,7 @@ void KisKraLoaderTest::initTestCase()
 
 void KisKraLoaderTest::testLoading()
 {
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
     doc->loadNativeFormat(QString(FILES_DATA_DIR) + '/' + "load_test.kra");
     KisImageSP image = doc->image();
     image->waitForDone();
@@ -70,7 +70,7 @@ void testObligeSingleChildImpl(bool transpDefaultPixel)
 
     QString fileName = TestUtil::fetchDataFileLazy(id);
 
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
     const bool result = doc->loadNativeFormat(fileName);
     QVERIFY(result);
 
@@ -105,7 +105,7 @@ void KisKraLoaderTest::testObligeSingleChildNonTranspPixel()
 
 void KisKraLoaderTest::testLoadAnimated()
 {
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
     doc->loadNativeFormat(QString(FILES_DATA_DIR) + '/' + "load_test_animation.kra");
     KisImageSP image = doc->image();
 

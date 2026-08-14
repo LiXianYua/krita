@@ -21,7 +21,7 @@
 #include <kis_group_layer.h>
 #include <kis_shape_layer.h>
 #include <KisDocument.h>
-#include <KisPart.h>
+#include <KisDocumentRegistry.h>
 
 #include <testui.h>
 
@@ -154,7 +154,7 @@ void TestNode::testMergeDown()
 
 void TestNode::testFindChildNodes()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
 
     KisImageSP image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     KisNodeSP gLayer1 = new KisGroupLayer(image, "gLayer1", OPACITY_OPAQUE_U8);

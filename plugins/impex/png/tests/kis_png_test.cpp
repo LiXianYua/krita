@@ -5,6 +5,7 @@
  */
 
 #include "kis_png_test.h"
+#include <KisDocumentRegistry.h>
 
 
 #include <simpletest.h>
@@ -73,7 +74,7 @@ void roudTripHdrImage(const KoColorSpace *savingColorSpace)
     pixelPtr[3] = 0.9;
 
     {
-        QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
 
         KisImageSP image = new KisImage(0, 3, 3, scRGBF32, "png test");
         KisPaintLayerSP paintLayer0 = new KisPaintLayer(image, "paint0", OPACITY_OPAQUE_U8);
@@ -96,7 +97,7 @@ void roudTripHdrImage(const KoColorSpace *savingColorSpace)
     }
 
     {
-        QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+        QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
         KisImportExportManager manager(doc.data());
         doc->setFileBatchMode(true);
 

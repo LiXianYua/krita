@@ -34,8 +34,6 @@
 #include <kis_simple_stroke_strategy.h>
 #include <kis_fill_painter.h>
 #include <kis_paint_layer.h>
-#include <KisPart.h>
-
 #include <kis_transform_mask_params_factory_registry.h>
 #include <kis_undo_stores.h>
 #include <testui.h>
@@ -70,6 +68,17 @@ private:
     QSemaphore &m_started;
     QSemaphore &m_release;
     std::atomic_bool &m_finished;
+};
+
+class RecordingDocumentServices final : public KisDocumentApplicationServices
+{
+public:
+    void closeDocumentViews(KisDocument *document) override
+    {
+        closedDocument = document;
+    }
+
+    KisDocument *closedDocument {nullptr};
 };
 
 }
@@ -166,9 +175,78 @@ void TestDocument::testDocumentRegistryLifecycle()
     QCOMPARE(removedSpy.at(0).at(0).toString(), document->path());
 }
 
+void TestDocument::testHeadlessActiveNode()
+{
+    struct ServicesRestorer {
+        KisDocumentApplicationServices *services;
+        ~ServicesRestorer()
+        {
+            KisDocumentApplicationServices::setInstance(services);
+        }
+    } restoreServices {KisDocumentApplicationServices::instance()};
+    KisDocumentApplicationServices::setInstance(nullptr);
+
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
+    KisImageSP image = new KisImage(nullptr,
+                                    100,
+                                    100,
+                                    KoColorSpaceRegistry::instance()->rgb8(),
+                                    QStringLiteral("headless active node"));
+    KisNodeSP layer = new KisPaintLayer(image, QStringLiteral("active"), 255);
+    image->addNode(layer);
+    kisdoc->setCurrentImage(image);
+
+    Document document(kisdoc.data(), false);
+    Document secondWrapper(kisdoc.data(), false);
+    QScopedPointer<Node> requested(Node::createNode(image, layer));
+
+    QVERIFY(!document.activeNode());
+    document.setActiveNode(requested.data());
+    QCOMPARE(kisdoc->preActivatedNode(), layer);
+
+    QScopedPointer<Node> active(secondWrapper.activeNode());
+    QVERIFY(active);
+    QCOMPARE(active->uniqueId(), requested->uniqueId());
+    QCOMPARE(active->name(), QStringLiteral("active"));
+}
+
+void TestDocument::testCloseUsesApplicationServices()
+{
+    RecordingDocumentServices services;
+    struct ServicesRestorer {
+        KisDocumentApplicationServices *services;
+        ~ServicesRestorer()
+        {
+            KisDocumentApplicationServices::setInstance(services);
+        }
+    } restoreServices {KisDocumentApplicationServices::instance()};
+    KisDocumentApplicationServices::setInstance(&services);
+
+    KisDocument *kisdoc = KisDocumentRegistry::instance()->createDocument();
+    KisDocumentRegistry::instance()->addDocument(kisdoc, false);
+    Document document(kisdoc, true);
+
+    document.close();
+    QCOMPARE(services.closedDocument, kisdoc);
+    QVERIFY(!KisDocumentRegistry::instance()->documents().contains(kisdoc));
+
+    KisImageSP image = new KisImage(nullptr,
+                                    10,
+                                    10,
+                                    KoColorSpaceRegistry::instance()->rgb8(),
+                                    QStringLiteral("invalid wrapper"));
+    KisNodeSP layer = new KisPaintLayer(image, QStringLiteral("node"), 255);
+    image->addNode(layer);
+    QScopedPointer<Node> node(Node::createNode(image, layer));
+
+    document.setActiveNode(node.data());
+    QVERIFY(!document.activeNode());
+    QVERIFY(!document.close());
+}
+
 void TestDocument::testSetColorSpace()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     KisNodeSP layer = new KisPaintLayer(image, "test1", 255);
     image->addNode(layer);
@@ -182,12 +260,12 @@ void TestDocument::testSetColorSpace()
     QVERIFY(layer->colorSpace()->colorDepthId().id() == "U16");
     QVERIFY(layer->colorSpace()->profile()->name() == profiles.first());
 
-    KisPart::instance()->removeDocument(kisdoc.data(), false);
+    KisDocumentRegistry::instance()->removeDocument(kisdoc.data(), false);
 }
 
 void TestDocument::testSetColorProfile()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     KisNodeSP layer = new KisPaintLayer(image, "test1", 255);
     image->addNode(layer);
@@ -205,12 +283,12 @@ void TestDocument::testSetColorProfile()
         d.setColorProfile(profileName);
         QVERIFY(image->colorSpace()->profile()->name() == profileName);
     }
-    KisPart::instance()->removeDocument(kisdoc.data(), false);
+    KisDocumentRegistry::instance()->removeDocument(kisdoc.data(), false);
 }
 
 void TestDocument::testPixelData()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     KisNodeSP layer = new KisPaintLayer(image, "test1", 255);
     KisFillPainter gc(layer->paintDevice());
@@ -235,12 +313,12 @@ void TestDocument::testPixelData()
         QVERIFY(channelvalue == 255);
     } while (!ds.atEnd());
 
-    KisPart::instance()->removeDocument(kisdoc.data(), false);
+    KisDocumentRegistry::instance()->removeDocument(kisdoc.data(), false);
 }
 
 void TestDocument::testThumbnail()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     KisNodeSP layer = new KisPaintLayer(image, "test1", 255);
     KisFillPainter gc(layer->paintDevice());
@@ -262,12 +340,12 @@ void TestDocument::testThumbnail()
             QVERIFY(thumb.pixelColor(i, j) == QColor(Qt::red));
         }
     }
-    KisPart::instance()->removeDocument(kisdoc.data(), false);
+    KisDocumentRegistry::instance()->removeDocument(kisdoc.data(), false);
 }
 
 void TestDocument::testCreateFillLayer()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(0, 50, 50, KoColorSpaceRegistry::instance()->rgb16(), "test");
     kisdoc->setCurrentImage(image);
     Document d(kisdoc.data(), false);
@@ -307,12 +385,12 @@ void TestDocument::testCreateFillLayer()
 
     QVERIFY(d.createFillLayer("test1", "xxx", info, sel) == 0);
 
-    KisPart::instance()->removeDocument(kisdoc.data(), false);
+    KisDocumentRegistry::instance()->removeDocument(kisdoc.data(), false);
 }
 
 void TestDocument::testCreateCloneLayer()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(0, 50, 50, KoColorSpaceRegistry::instance()->rgb16(), "test");
     kisdoc->setCurrentImage(image);
     Document d(kisdoc.data(), false);
@@ -349,12 +427,12 @@ void TestDocument::testCreateCloneLayer()
     delete sourceNode2;
     delete rootNode;
 
-    KisPart::instance()->removeDocument(kisdoc.data(), false);
+    KisDocumentRegistry::instance()->removeDocument(kisdoc.data(), false);
 }
 
 void TestDocument::testCreateTransparencyMask()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(0, 50, 50, KoColorSpaceRegistry::instance()->rgb16(), "test");
     kisdoc->setCurrentImage(image);
     Document d(kisdoc.data(), false);
@@ -382,12 +460,12 @@ void TestDocument::testCreateTransparencyMask()
     delete node;
     delete rootNode;
 
-    KisPart::instance()->removeDocument(kisdoc.data(), false);
+    KisDocumentRegistry::instance()->removeDocument(kisdoc.data(), false);
 }
 
 void TestDocument::testCreateColorizeMask()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(new KisSurrogateUndoStore(),  10, 3, KoColorSpaceRegistry::instance()->rgb8(), "test");
 
     kisdoc->setCurrentImage(image);
@@ -482,14 +560,14 @@ void TestDocument::testCreateColorizeMask()
     delete node;
     delete rootNode;
 
-    KisPart::instance()->removeDocument(kisdoc.data(), false);
+    KisDocumentRegistry::instance()->removeDocument(kisdoc.data(), false);
 }
 
 
 
 void TestDocument::testAnnotations()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     KisNodeSP layer = new KisPaintLayer(image, "test1", 255);
     image->addNode(layer);
@@ -533,7 +611,7 @@ void TestDocument::testAnnotations()
 
 void TestDocument::testNodeByName()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     KisNodeSP layer = new KisPaintLayer(image, "test1", 255);
     image->addNode(layer);
@@ -547,7 +625,7 @@ void TestDocument::testNodeByName()
 
 void TestDocument::testNodeByUniqueId()
 {
-    QScopedPointer<KisDocument> kisdoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> kisdoc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     KisNodeSP layer = new KisPaintLayer(image, "test1", 255);
     image->addNode(layer);

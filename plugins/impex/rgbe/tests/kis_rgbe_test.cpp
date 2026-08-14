@@ -5,6 +5,7 @@
  */
 
 #include "kis_rgbe_test.h"
+#include <KisDocumentRegistry.h>
 
 #include <simpletest.h>
 
@@ -37,7 +38,7 @@ void KisRGBETest::testHDR()
 {
     const QString inputFileName = TestUtil::fetchDataFileLazy("/sources/hdr/objects.hdr");
 
-    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisPart::instance()->createDocument()));
+    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc1.data());
     doc1->setFileBatchMode(true);
@@ -50,7 +51,7 @@ void KisRGBETest::testHDR()
     {
         const QString outputFileName = TestUtil::fetchDataFileLazy("/results/objects.kra");
 
-        KisDocument *doc2 = KisPart::instance()->createDocument();
+        KisDocument *doc2 = KisDocumentRegistry::instance()->createDocument();
         doc2->setFileBatchMode(true);
         const bool r = doc2->importDocument(outputFileName);
 

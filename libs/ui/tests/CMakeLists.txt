@@ -6,7 +6,6 @@ kis_add_tests(
     kis_stop_gradient_editor_test.cpp
     kis_multinode_property_test.cpp
     kis_animation_exporter_test.cpp
-    kis_animation_importer_test.cpp
     KisSpinBoxSplineUnitConverterTest.cpp
     KisDocumentReplaceTest.cpp
     KisRssReaderTest.cpp

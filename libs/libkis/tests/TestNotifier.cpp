@@ -8,14 +8,14 @@
 #include <simpletest.h>
 
 #include <Notifier.h>
-#include <KisPart.h>
+#include <KisDocumentRegistry.h>
 #include <Document.h>
 
 #include <testui.h>
 
 void TestNotifier::testNotifier()
 {
-    KisPart *part = KisPart::instance();
+    KisDocumentRegistry *registry = KisDocumentRegistry::instance();
 
     Notifier *notifier = new Notifier();
     connect(notifier, SIGNAL(imageCreated(Document*)), SLOT(documentAdded(Document*)), Qt::DirectConnection);
@@ -24,12 +24,12 @@ void TestNotifier::testNotifier()
     notifier->setActive(false);
     QVERIFY(!notifier->active());
     notifier->setActive(true);
-    KisDocument *doc = part->createDocument();
-    part->addDocument(doc);
+    KisDocument *doc = registry->createDocument();
+    registry->addDocument(doc);
 
     QVERIFY(m_document);
 
-    part->removeDocument(doc);
+    registry->removeDocument(doc);
 
 }
 
@@ -39,4 +39,3 @@ void TestNotifier::documentAdded(Document *image)
 }
 
 KISTEST_MAIN(TestNotifier)
-

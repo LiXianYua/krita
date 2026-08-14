@@ -5,6 +5,7 @@ set(kritaanimation_LIB_SRCS
     KisFrameDataSerializer.cpp
     KisInMemoryFrameCacheSwapper.cpp
     kis_animation_frame_cache.cpp
+    kis_animation_importer.cpp
 )
 
 kis_add_library(kritaanimation SHARED ${kritaanimation_LIB_SRCS})
@@ -24,6 +25,7 @@ target_link_libraries(kritaanimation
         kritacanvas
         kritaglobal
         kritaimage
+        kritaimpex
     PRIVATE
         KF${KF_MAJOR}::ConfigCore
 )

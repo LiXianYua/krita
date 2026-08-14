@@ -20,8 +20,8 @@
 #include <kis_selection_mask.h>
 #include <lazybrush/kis_colorize_mask.h>
 #include <kis_layer.h>
-#include <KisPart.h>
 #include <KisDocument.h>
+#include <KisDocumentRegistry.h>
 
 #include "Document.h"
 #include "Node.h"
@@ -48,7 +48,7 @@ QList<Node *> LibKisUtils::createNodeList(KisNodeList kisnodes, KisImageWSP imag
 }
 
 Document* LibKisUtils::findNodeInDocuments(KisNodeSP kisnode) {
-    foreach(QPointer<KisDocument> doc, KisPart::instance()->documents()) {
+    foreach(QPointer<KisDocument> doc, KisDocumentRegistry::instance()->documents()) {
         if (kisnode->image()->rootLayer()->uuid() == doc->image()->rootLayer()->uuid()) return new Document(doc, false);
     }
 

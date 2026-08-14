@@ -6,7 +6,7 @@
 
 #include "csv_saver.h"
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -16,8 +16,8 @@
 #include <QRegularExpression>
 
 #include <KisDocument.h>
+#include <KisDocumentRegistry.h>
 #include <KisMimeDatabase.h>
-#include <KisPart.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
@@ -153,7 +153,7 @@ KisImportExportErrorCode CSVSaver::encode(QIODevice *io)
     }
 
     //create temporary doc for exporting
-    QScopedPointer<KisDocument> exportDoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> exportDoc(KisDocumentRegistry::instance()->createDocument());
     createTempImage(exportDoc.data());
 
     KisImportExportErrorCode retval= ImportExportCodes::OK;
@@ -168,7 +168,7 @@ KisImportExportErrorCode CSVSaver::encode(QIODevice *io)
     int step = 0;
 
     do {
-        qApp->processEvents();
+        QCoreApplication::processEvents();
 
         if (m_stop) {
             retval = ImportExportCodes::Cancelled;

@@ -8,7 +8,6 @@
 #include <kis_filter.h>
 #include <kis_properties_configuration.h>
 #include <kis_filter_configuration.h>
-#include <kis_filter_manager.h>
 #include <kis_filter_registry.h>
 #include <kis_paint_device.h>
 #include <kis_paint_device_frames_interface.h>

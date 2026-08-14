@@ -21,7 +21,7 @@
 #include "filter/kis_filter_registry.h"
 #include "filter/kis_filter_configuration.h"
 #include "filter/kis_filter.h"
-#include "KisPart.h"
+#include "KisDocumentRegistry.h"
 #include "kis_image.h"
 #include "kis_pixel_selection.h"
 #include "kis_group_layer.h"
@@ -79,7 +79,7 @@ KisDocument* createCompleteDocument()
 {
     KisImageSP image = new KisImage(0, 1024, 1024, KoColorSpaceRegistry::instance()->rgb8(), "test for roundtrip");
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisPart::instance()->createDocument());
+    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
 
     doc->setCurrentImage(image);
     doc->documentInfo()->setAboutInfo("title", image->objectName());
@@ -192,7 +192,7 @@ KisDocument *createEmptyDocument()
 {
     KisImageSP image = new KisImage(0, 1024, 1024, KoColorSpaceRegistry::instance()->rgb8(), "test for roundtrip");
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisPart::instance()->createDocument());
+    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
 
     doc->setCurrentImage(image);
     doc->documentInfo()->setAboutInfo("title", image->objectName());

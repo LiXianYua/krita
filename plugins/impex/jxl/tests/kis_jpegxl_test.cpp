@@ -5,6 +5,7 @@
  */
 
 #include "kis_jpegxl_test.h"
+#include <KisDocumentRegistry.h>
 #include "kis_image_animation_interface.h"
 #include "kis_keyframe_channel.h"
 
@@ -43,7 +44,7 @@ void KisJPEGXLTest::testAnimation()
 {
     const auto inputFileName = TestUtil::fetchDataFileLazy("/sources/DX-MON/loading_16.jxl");
 
-    QScopedPointer<KisDocument> doc(qobject_cast<KisDocument *>(KisPart::instance()->createDocument()));
+    QScopedPointer<KisDocument> doc(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc.data());
     doc->setFileBatchMode(true);
@@ -78,7 +79,7 @@ void KisJPEGXLTest::testAnimationWithTail()
         TestUtil::fetchDataFileLazy("/sources/animated/animation_test.jxl");
 
     QScopedPointer<KisDocument> doc(
-        qobject_cast<KisDocument *>(KisPart::instance()->createDocument()));
+        qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc.data());
     doc->setFileBatchMode(true);
@@ -111,7 +112,7 @@ void KisJPEGXLTest::testHDR()
 {
     const auto inputFileName = TestUtil::fetchDataFileLazy("/sources/netflix/hdr_cosmos01000_cicp9-16-0_lossless.jxl");
 
-    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisPart::instance()->createDocument()));
+    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc1.data());
     doc1->setFileBatchMode(true);
@@ -124,7 +125,7 @@ void KisJPEGXLTest::testHDR()
     {
         const auto outputFileName = TestUtil::fetchDataFileLazy("/results/hdr_cosmos01000_cicp9-16-0_lossless.kra");
 
-        KisDocument *doc2 = KisPart::instance()->createDocument();
+        KisDocument *doc2 = KisDocumentRegistry::instance()->createDocument();
         doc2->setFileBatchMode(true);
         const auto r = doc2->importDocument(outputFileName);
 
@@ -147,7 +148,7 @@ void KisJPEGXLTest::testCmykWithLayers()
 {
     const QString inputFileName = TestUtil::fetchDataFileLazy("/sources/extralayers/cmyk-layers.jxl");
 
-    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisPart::instance()->createDocument()));
+    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc1.data());
     doc1->setFileBatchMode(true);
@@ -170,7 +171,7 @@ void KisJPEGXLTest::testCmykWithLayers()
     {
         const QString outputFileName = TestUtil::fetchDataFileLazy("/results/cmyk-layers.kra");
 
-        KisDocument *doc2 = KisPart::instance()->createDocument();
+        KisDocument *doc2 = KisDocumentRegistry::instance()->createDocument();
         doc2->setFileBatchMode(true);
         const bool r = doc2->importDocument(outputFileName);
 
@@ -216,7 +217,7 @@ void KisJPEGXLTest::testMultipage()
 {
     const QString inputFileName = TestUtil::fetchDataFileLazy("/sources/multipage/jxl-multipage.jxl");
 
-    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisPart::instance()->createDocument()));
+    QScopedPointer<KisDocument> doc1(qobject_cast<KisDocument *>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc1.data());
     doc1->setFileBatchMode(true);
@@ -237,7 +238,7 @@ void KisJPEGXLTest::testMultipage()
     {
         const QString outputFileName = TestUtil::fetchDataFileLazy("/results/jxl-multipage.kra");
 
-        KisDocument *doc2 = KisPart::instance()->createDocument();
+        KisDocument *doc2 = KisDocumentRegistry::instance()->createDocument();
         doc2->setFileBatchMode(true);
         const bool r = doc2->importDocument(outputFileName);
 

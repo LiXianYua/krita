@@ -472,7 +472,6 @@ endif()
         dialogs/KisAsyncAnimationCacheRenderDialog.cpp
         dialogs/KisAsyncAnimationFramesSaveDialog.cpp
         canvas/KisCanvasAnimationState.cpp	
-        kis_animation_importer.cpp
         input/wintab/drawpile_tablettester/tablettester.cpp
         input/wintab/drawpile_tablettester/tablettest.cpp
     )

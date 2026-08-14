@@ -8,16 +8,12 @@
 #include <QUrl>
 #include <QDomDocument>
 
-#include <KisSynchronizedConnection.h>
 #include <KoColorSpaceConstants.h>
 #include <KisDocument.h>
+#include <KisDocumentApplicationServices.h>
 #include <kis_image.h>
-#include <KisPart.h>
+#include <KisDocumentRegistry.h>
 #include <kis_paint_device.h>
-#include <KisMainWindow.h>
-#include <kis_node_manager.h>
-#include <kis_node_selection_adapter.h>
-#include <KisViewManager.h>
 #include <kis_file_layer.h>
 #include <kis_adjustment_layer.h>
 #include <kis_mask.h>
@@ -60,9 +56,6 @@
 #include <LibKisUtils.h>
 
 #include "kis_animation_importer.h"
-#include <kis_canvas2.h>
-#include <KoUpdater.h>
-#include <QMessageBox>
 
 #include <kis_image_animation_interface.h>
 #include <kis_layer_utils.h>
@@ -87,7 +80,7 @@ Document::Document(KisDocument *document, bool ownsDocument, QObject *parent)
 Document::~Document()
 {
     if (d->ownsDocument && d->document) {
-        KisPart::instance()->removeDocument(d->document);
+        KisDocumentRegistry::instance()->removeDocument(d->document, false);
         delete d->document;
     }
     delete d;
@@ -117,47 +110,18 @@ void Document::setBatchmode(bool value)
 
 Node *Document::activeNode() const
 {
-    // see a related comment in Document::setActiveNode
-    KisSynchronizedConnectionBase::forceDeliverAllSynchronizedEvents();
+    if (!d->document || !d->document->image()) return nullptr;
 
-    QList<KisNodeSP> activeNodes;
-    Q_FOREACH(QPointer<KisView> view, KisPart::instance()->views()) {
-        if (view && view->document() == d->document) {
-            activeNodes << view->currentNode();
-
-        }
-    }
-    if (activeNodes.size() > 0) {
-        QList<Node*> nodes = LibKisUtils::createNodeList(activeNodes, d->document->image());
-        return nodes.first();
-    }
-
-    return 0;
+    KisDocumentApplicationServices::instance()->synchronizeDocumentViews();
+    KisNodeSP activeNode = d->document->preActivatedNode();
+    return activeNode ? Node::createNode(d->document->image(), activeNode) : nullptr;
 }
 
 void Document::setActiveNode(Node* value)
 {
-    if (!value) return;
-    if (!value->node()) return;
-    KisMainWindow *mainWin = KisPart::instance()->currentMainwindow();
-    if (!mainWin) return;
-    KisViewManager *viewManager = mainWin->viewManager();
-    if (!viewManager) return;
-    if (viewManager->document() != d->document) return;
-    KisNodeManager *nodeManager = viewManager->nodeManager();
-    if (!nodeManager) return;
-    KisNodeSelectionAdapter *selectionAdapter = nodeManager->nodeSelectionAdapter();
-    if (!selectionAdapter) return;
-
-    /**
-     * If we created any nodes via the same script, then dummies state
-     * may be not synchronized with the actual state of the nodes in the
-     * image. Hence, we should explicitly deliver the synchronized events
-     * before we try to manipulate with the GUI representation of nodes.
-     */
-    KisSynchronizedConnectionBase::forceDeliverAllSynchronizedEvents();
-
-    selectionAdapter->setActiveNode(value->node());
+    if (!d->document || !value || !value->node()) return;
+    KisDocumentApplicationServices::instance()->synchronizeDocumentViews();
+    d->document->setPreActivatedNode(value->node());
 }
 
 QList<Node *> Document::topLevelNodes() const
@@ -487,17 +451,12 @@ QByteArray Document::pixelData(int x, int y, int w, int h) const
 
 bool Document::close()
 {
+    if (!d->document) return false;
+
     bool retval = d->document->closePath(false);
 
-    Q_FOREACH(KisView *view, KisPart::instance()->views()) {
-        if (view->document() == d->document) {
-            view->close();
-            view->closeView();
-            view->deleteLater();
-        }
-    }
-
-    KisPart::instance()->removeDocument(d->document, !d->ownsDocument);
+    KisDocumentApplicationServices::instance()->closeDocumentViews(d->document);
+    KisDocumentRegistry::instance()->removeDocument(d->document, !d->ownsDocument);
 
     if (d->ownsDocument) {
 
@@ -981,14 +940,10 @@ void Document::setOwnsDocument(bool ownsDocument)
 
 bool Document::importAnimation(const QList<QString> &files, int firstFrame, int step)
 {
-    KisView *activeView = KisPart::instance()->currentMainwindow()->activeView();
-
-    KoUpdaterPtr updater = 0;
-    if (activeView && d->document->fileBatchMode()) {
-         updater = activeView->viewManager()->createUnthreadedUpdater(i18n("Import frames"));
-    }
-
-    KisAnimationImporter importer(d->document->image(), updater);
+    KisAnimationImporter importer(
+        d->document->image(),
+        {},
+        KisDocumentApplicationServices::instance()->trimFramesImport());
     KisImportExportErrorCode status = importer.import(files, firstFrame, step);
 
     return status.isOk();

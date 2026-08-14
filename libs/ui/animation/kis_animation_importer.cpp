@@ -6,15 +6,12 @@
 
 #include "kis_animation_importer.h"
 
-#include <QStatusBar>
-
 #include "KoColorSpace.h"
 #include <KoUpdater.h>
-#include <QApplication>
+#include <QCoreApplication>
 #include <QQueue>
-#include "KisPart.h"
+#include "KisDocumentRegistry.h"
 #include "KisDocument.h"
-#include "kis_config.h"
 #include "kis_image.h"
 #include "kis_undo_adapter.h"
 #include "kis_paint_layer.h"
@@ -27,26 +24,19 @@
 struct KisAnimationImporter::Private
 {
     KisImageSP image;
-    KisDocument *document;
-    bool stop;
+    bool stop {false};
+    bool trimFrames {false};
     KoUpdaterPtr updater;
 };
 
-KisAnimationImporter::KisAnimationImporter(KisImageSP image, KoUpdaterPtr updater)
+KisAnimationImporter::KisAnimationImporter(KisImageSP image,
+                                           KoUpdaterPtr updater,
+                                           bool trimFrames)
     : m_d(new Private())
 {
-    m_d->document = 0;
     m_d->image = image;
-    m_d->stop = false;
+    m_d->trimFrames = trimFrames;
     m_d->updater = updater;
-}
-
-KisAnimationImporter::KisAnimationImporter(KisDocument* document)
-    : m_d(new Private())
-{
-    m_d->document= document;
-    m_d->image = document->image();
-    m_d->stop = false;
 }
 
 KisAnimationImporter::~KisAnimationImporter()
@@ -65,7 +55,7 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
     KisUndoAdapter *undo = m_d->image->undoAdapter();
     undo->beginMacro(kundo2_i18n("Import animation"));
 
-    QScopedPointer<KisDocument> importDoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> importDoc(KisDocumentRegistry::instance()->createDocument());
     importDoc->setFileBatchMode(true);
 
     const bool usingPredefinedTimes = !optionalKeyframeTimeList.isEmpty() && !autoAddHoldframes;
@@ -111,8 +101,6 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
     const int offset = (startfrom0 ? 1 : 0);    //offset added to consider file numbering starts from 1 instead of 0
     int autoframe = 0;
 
-    KisConfig cfg(true);
-
     Q_FOREACH(QString file, files) {
         bool successfullyLoaded = importDoc->openPath(file, KisDocument::DontAddToRecent);
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(successfullyLoaded, ImportExportCodes::InternalError);
@@ -130,7 +118,7 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
 
                 // the updater doesn't call that automatically,
                 // it is "threaded" by default
-                qApp->processEvents();
+                QCoreApplication::processEvents();
             }
         }
 
@@ -139,7 +127,7 @@ KisImportExportErrorCode KisAnimationImporter::import(QStringList files, int fir
             break;
         }
 
-        if (cfg.trimFramesImport()) {
+        if (m_d->trimFrames) {
             importDoc->image()->projection()->crop(m_d->image->bounds());
         }
         importDoc->image()->projection()->purgeDefaultPixels();

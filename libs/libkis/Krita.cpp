@@ -21,15 +21,14 @@
 #include <KoID.h>
 
 #include <kis_filter_strategy.h>
-#include <KisPart.h>
 #include <KisDocument.h>
+#include <KisDocumentRegistry.h>
 #include <kis_image.h>
 #include <KritaVersionWrapper.h>
 #include <kis_filter_registry.h>
 #include <kis_filter.h>
 #include <kis_filter_configuration.h>
 #include <kis_properties_configuration.h>
-#include <kis_config.h>
 
 #include <KisResourceModel.h>
 #include <KisResourceTypes.h>
@@ -76,7 +75,7 @@ void Krita::setBatchmode(bool value)
 QList<Document *> Krita::documents() const
 {
     QList<Document *> ret;
-    foreach(QPointer<KisDocument> doc, KisPart::instance()->documents()) {
+    foreach(QPointer<KisDocument> doc, KisDocumentRegistry::instance()->documents()) {
         ret << new Document(doc, false);
     }
     return ret;
@@ -213,10 +212,10 @@ QStringList Krita::recentDocuments() const
 
 Document* Krita::createDocument(int width, int height, const QString &name, const QString &colorModel, const QString &colorDepth, const QString &profile, double resolution)
 {
-    KisDocument *document = KisPart::instance()->createDocument();
+    KisDocument *document = KisDocumentRegistry::instance()->createDocument();
     document->setObjectName(name);
 
-    KisPart::instance()->addDocument(document, false);
+    KisDocumentRegistry::instance()->addDocument(document, false);
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->colorSpace(colorModel, colorDepth, profile);
     Q_ASSERT(cs);
 
@@ -235,13 +234,13 @@ Document* Krita::createDocument(int width, int height, const QString &name, cons
 
 Document* Krita::openDocument(const QString &filename)
 {
-    KisDocument *document = KisPart::instance()->createDocument();
+    KisDocument *document = KisDocumentRegistry::instance()->createDocument();
     document->setFileBatchMode(this->batchmode());
     if (!document->openPath(filename, KisDocument::DontAddToRecent)) {
         delete document;
         return 0;
     }
-    KisPart::instance()->addDocument(document);
+    KisDocumentRegistry::instance()->addDocument(document);
     document->setFileBatchMode(false);
     return new Document(document, true);
 }

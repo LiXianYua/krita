@@ -5,6 +5,7 @@
  */
 
 #include "kis_exr_test.h"
+#include <KisDocumentRegistry.h>
 
 #include <simpletest.h>
 #include <QCoreApplication>
@@ -45,7 +46,7 @@ void KisExrTest::testRoundTrip()
 {
     QString inputFileName(TestUtil::fetchDataFileLazy("CandleGlass.exr"));
 
-    KisDocument *doc1 = KisPart::instance()->createDocument();
+    KisDocument *doc1 = KisDocumentRegistry::instance()->createDocument();
 
     doc1->setFileBatchMode(true);
     bool r = doc1->importDocument(inputFileName);
@@ -68,7 +69,7 @@ void KisExrTest::testRoundTrip()
     QVERIFY(QFileInfo(savedFileName).exists());
 
     {
-        KisDocument *doc2 = KisPart::instance()->createDocument();
+        KisDocument *doc2 = KisDocumentRegistry::instance()->createDocument();
         doc2->setFileBatchMode(true);
         r = doc2->importDocument(savedFileName);
 
@@ -94,5 +95,4 @@ void KisExrTest::testRoundTrip()
 }
 
 KISTEST_MAIN(KisExrTest)
-
 

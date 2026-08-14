@@ -641,15 +641,13 @@ public:
     KoShapeLayer *shapeForNode(KisNodeSP layer) const;
 
     /**
-     * Set the list of nodes that was marked as currently active. Used *only*
-     * for saving loading. Never use it for tools or processing.
+     * Store the document-level active node. Loaders restore this state,
+     * desktop views synchronize it before saving, and headless consumers use
+     * it when no view exists.
      */
     void setPreActivatedNode(KisNodeSP activatedNode);
 
-    /**
-     * @return the node that was set as active during loading. Used *only*
-     * for saving loading. Never use it for tools or processing.
-     */
+    /** @return the document-level active node, if one has been selected. */
     KisNodeSP preActivatedNode() const;
 
     /// @return the list of assistants associated with this document

@@ -9,5 +9,5 @@ kis_add_tests(
     TestManagedColor.cpp
     TestNotifier.cpp
     TestLibkisSelection.cpp
-    LINK_LIBRARIES kritalibkis kritatestsdk
+    LINK_LIBRARIES kritalibkis kritaimpex kritatestsdk
     )

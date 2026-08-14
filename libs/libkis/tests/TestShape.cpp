@@ -11,7 +11,7 @@
 #include <kis_shape_layer.h>
 
 #include <KisDocument.h>
-#include <KisPart.h>
+#include <KisDocumentRegistry.h>
 
 #include <testui.h>
 
@@ -22,13 +22,13 @@
 void TestShape::initTestCase()
 {
 
-    kisdoc = KisPart::instance()->createDocument();
+    kisdoc = KisDocumentRegistry::instance()->createDocument();
     image = new KisImage(0, 100, 100, KoColorSpaceRegistry::instance()->rgb8(), "test");
     vLayer1 = new KisShapeLayer(kisdoc->shapeController(), image, "vLayer1", OPACITY_OPAQUE_U8);
 
     image->addNode(vLayer1);
     kisdoc->setCurrentImage(image);
-    KisPart::instance()->addDocument(kisdoc, false);
+    KisDocumentRegistry::instance()->addDocument(kisdoc, false);
 
     vNode = new VectorLayer(vLayer1);
 
@@ -54,7 +54,7 @@ void TestShape::cleanupTestCase()
     delete vNode;
 
     kisdoc->setCurrentImage(0);
-    KisPart::instance()->removeDocument(kisdoc);
+    KisDocumentRegistry::instance()->removeDocument(kisdoc);
 }
 
 void TestShape::testParentShape()

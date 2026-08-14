@@ -2219,7 +2219,8 @@ void KisMainWindow::importAnimation()
 
         KoUpdaterPtr updater =
                 !document->fileBatchMode() ? viewManager()->createUnthreadedUpdater(i18n("Import frames")) : 0;
-        KisAnimationImporter importer(document->image(), updater);
+        KisAnimationImporter importer(
+            document->image(), updater, KisConfig(true).trimFramesImport());
         int isAscending = dlg.isAscending();
         KisImportExportErrorCode status = importer.import(files, firstFrame, step, autoAddHoldframes, startFrom1, isAscending);  // modify here, add a flag
 
@@ -2300,7 +2301,8 @@ void KisMainWindow::importVideoAnimation()
 
         KoUpdaterPtr updater =
                 !document->fileBatchMode() ? viewManager()->createUnthreadedUpdater(i18n("Import frames")) : 0;
-        KisAnimationImporter importer(document->image(), updater);
+        KisAnimationImporter importer(
+            document->image(), updater, KisConfig(true).trimFramesImport());
         KisImportExportErrorCode status = importer.import(renderedFrames.renderedFrameFiles, firstFrame, step, false, false, 0, useDocumentColorSpace, renderedFrames.renderedFrameTargetTimes);
 
         if (!status.isOk() && !status.isInternalError()) {

@@ -20,6 +20,7 @@
 #include "KisPart.h"
 #include "KisView.h"
 #include "KisViewManager.h"
+#include "KisSynchronizedConnection.h"
 #include "canvas/kis_canvas2.h"
 #include "kis_async_action_feedback.h"
 #include "kis_canvas_resource_provider.h"
@@ -91,6 +92,22 @@ public:
             return true;
         }
         return window->viewManager()->blockUntilOperationsFinished(image);
+    }
+
+    void synchronizeDocumentViews() override
+    {
+        KisSynchronizedConnectionBase::forceDeliverAllSynchronizedEvents();
+    }
+
+    void closeDocumentViews(KisDocument *document) override
+    {
+        Q_FOREACH (KisView *view, KisPart::instance()->views()) {
+            if (view->document() == document) {
+                view->close();
+                view->closeView();
+                view->deleteLater();
+            }
+        }
     }
 
     KoUpdaterPtr createUpdater(const QString &actionName, UpdaterMode mode) override
@@ -229,6 +246,11 @@ public:
     bool trimKra() const override
     {
         return KisConfig(true).trimKra();
+    }
+
+    bool trimFramesImport() const override
+    {
+        return KisConfig(true).trimFramesImport();
     }
 
     int autoSaveInterval() const override

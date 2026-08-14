@@ -76,6 +76,8 @@ public:
     static void setInstance(KisDocumentApplicationServices *services);
 
     virtual bool waitForImage(KisImageSP image, WaitMode mode);
+    virtual void synchronizeDocumentViews();
+    virtual void closeDocumentViews(KisDocument *document);
     virtual KoUpdaterPtr createUpdater(const QString &actionName, UpdaterMode mode);
     virtual void waitForMutexWithFeedback(QMutex &mutex, const QString &message);
 
@@ -101,6 +103,7 @@ public:
     virtual int numberOfBackupFiles() const;
     virtual QString backupFileSuffix() const;
     virtual bool trimKra() const;
+    virtual bool trimFramesImport() const;
     virtual int autoSaveInterval() const;
     virtual bool autoSaveFilesHidden() const;
     virtual int undoStackLimit() const;

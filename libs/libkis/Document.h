@@ -91,14 +91,14 @@ public Q_SLOTS:
     void setBatchmode(bool value);
 
     /**
-     * @brief activeNode retrieve the node that is currently active in the currently active window
-     * @return the active node. If there is no active window, the first child node is returned.
+     * @brief activeNode retrieve the document-level active node
+     * @return the active node stored by this document, or 0 if none has been selected.
      */
     Node* activeNode() const;
 
     /**
-     * @brief setActiveNode make the given node active in the currently active view and window
-     * @param value the node to make active.
+     * @brief setActiveNode store the given node as the document-level active node
+     * @param value the node to store as active.
      */
     void setActiveNode(Node* value);
 
@@ -410,9 +410,8 @@ public Q_SLOTS:
     QByteArray pixelData(int x, int y, int w, int h) const;
 
     /**
-     * @brief close Close the document: remove it from Krita's internal list of documents and
-     * close all views. If the document is modified, you should save it first. There will be
-     * no prompt for saving.
+     * @brief close Close the document and remove it from the document registry. If the document
+     * is modified, you should save it first. There will be no prompt for saving.
      *
      * After closing the document it becomes invalid.
      *

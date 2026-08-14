@@ -6,7 +6,7 @@
 
 #include "kis_animation_importer_test.h"
 
-#include "KisPart.h"
+#include "KisDocumentRegistry.h"
 #include "kis_animation_importer.h"
 #include "KisDocument.h"
 #include <testutil.h>
@@ -19,7 +19,7 @@
 
 void KisAnimationImporterTest::testImport()
 {
-    QScopedPointer<KisDocument> document(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> document(KisDocumentRegistry::instance()->createDocument());
     TestUtil::MaskParent mp(QRect(0,0,512,512));
     document->setCurrentImage(mp.image);
 
@@ -64,7 +64,7 @@ void KisAnimationImporterTest::testImport()
     QVERIFY(TestUtil::compareQImages(pt, source2, imported2));
     QVERIFY(TestUtil::compareQImages(pt, source3, imported3));
 
-    KisPart::instance()->removeDocument(document.data(), false);
+    KisDocumentRegistry::instance()->removeDocument(document.data(), false);
 }
 
 KISTEST_MAIN(KisAnimationImporterTest)

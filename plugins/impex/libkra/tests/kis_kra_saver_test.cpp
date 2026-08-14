@@ -10,6 +10,7 @@
 
 
 #include <KisDocument.h>
+#include <KisDocumentRegistry.h>
 #include <KoDocumentInfo.h>
 #include <KoShapeContainer.h>
 #include <KoPathShape.h>
@@ -87,7 +88,7 @@ void KisKraSaverTest::testRoundTrip()
     KisCountVisitor cv1(list, KoProperties());
     doc->image()->rootLayer()->accept(cv1);
 
-    QScopedPointer<KisDocument> doc2(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
     result = doc2->loadNativeFormat("roundtriptest.kra");
     QVERIFY(result);
 
@@ -118,7 +119,7 @@ void KisKraSaverTest::testSaveEmpty()
     KisCountVisitor cv1(list, KoProperties());
     doc->image()->rootLayer()->accept(cv1);
 
-    KisDocument *doc2 = KisPart::instance()->createDocument();
+    KisDocument *doc2 = KisDocumentRegistry::instance()->createDocument();
     doc2->loadNativeFormat("emptytest.kra");
 
     KisCountVisitor cv2(list, KoProperties());
@@ -136,7 +137,7 @@ void testRoundTripFillLayerImpl(const QString &testName, KisFilterConfigurationS
     TestUtil::ReferenceImageChecker chk(testName, "fill_layer");
     chk.setFuzzy(2);
 
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
 
     // mask parent should be destructed before the document!
     QRect refRect(0,0,512,512);
@@ -156,7 +157,7 @@ void testRoundTripFillLayerImpl(const QString &testName, KisFilterConfigurationS
 
     doc->exportDocumentSync("roundtrip_fill_layer_test.kra", doc->mimeType());
 
-    QScopedPointer<KisDocument> doc2(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
     doc2->loadNativeFormat("roundtrip_fill_layer_test.kra");
 
     doc2->image()->waitForDone();
@@ -209,7 +210,7 @@ void KisKraSaverTest::testRoundTripLayerStyles()
     QRect imageRect(0,0,512,512);
 
     // the document should be created before the image!
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
 
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     KisImageSP image = new KisImage(new KisSurrogateUndoStore(), imageRect.width(), imageRect.height(), cs, "test image");
@@ -249,7 +250,7 @@ void KisKraSaverTest::testRoundTripLayerStyles()
     doc->exportDocumentSync("roundtrip_layer_styles.kra", doc->mimeType());
 
 
-    QScopedPointer<KisDocument> doc2(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
     doc2->loadNativeFormat("roundtrip_layer_styles.kra");
 
     doc2->image()->waitForDone();
@@ -260,7 +261,7 @@ void KisKraSaverTest::testRoundTripLayerStyles()
 
 void KisKraSaverTest::testRoundTripAnimation()
 {
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
 
     QRect imageRect(0,0,512,512);
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
@@ -297,7 +298,7 @@ void KisKraSaverTest::testRoundTripAnimation()
     doc->setCurrentImage(image);
     doc->exportDocumentSync("roundtrip_animation.kra", doc->mimeType());
 
-    QScopedPointer<KisDocument> doc2(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
     doc2->loadNativeFormat("roundtrip_animation.kra");
     KisImageSP image2 = doc2->image();
     KisNodeSP node = image2->root()->firstChild();
@@ -347,7 +348,7 @@ void KisKraSaverTest::testRoundTripColorizeMask()
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     const KoColorSpace * weirdCS = KoColorSpaceRegistry::instance()->rgb16();
 
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(new KisSurrogateUndoStore(), imageRect.width(), imageRect.height(), cs, "test image");
     doc->setCurrentImage(image);
 
@@ -388,7 +389,7 @@ void KisKraSaverTest::testRoundTripColorizeMask()
 
     doc->exportDocumentSync("roundtrip_colorize.kra", doc->mimeType());
 
-    QScopedPointer<KisDocument> doc2(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
     doc2->loadNativeFormat("roundtrip_colorize.kra");
     KisImageSP image2 = doc2->image();
     KisNodeSP node = image2->root()->firstChild()->firstChild();
@@ -424,7 +425,7 @@ void KisKraSaverTest::testRoundTripShapeLayer()
 
     QRect refRect(0,0,512,512);
 
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
     TestUtil::MaskParent p(refRect);
 
     const qreal resolution = 144.0 / 72.0;
@@ -457,7 +458,7 @@ void KisKraSaverTest::testRoundTripShapeLayer()
 
     doc->exportDocumentSync("roundtrip_shapelayer_test.kra", doc->mimeType());
 
-    QScopedPointer<KisDocument> doc2(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
     doc2->loadNativeFormat("roundtrip_shapelayer_test.kra");
 
     qApp->processEvents();
@@ -475,7 +476,7 @@ void KisKraSaverTest::testRoundTripShapeSelection()
 
     QRect refRect(0,0,512,512);
 
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
     TestUtil::MaskParent p(refRect);
     doc->setCurrentImage(p.image);
     const qreal resolution = 144.0 / 72.0;
@@ -517,7 +518,7 @@ void KisKraSaverTest::testRoundTripShapeSelection()
 
     doc->exportDocumentSync("roundtrip_shapeselection_test.kra", doc->mimeType());
 
-    QScopedPointer<KisDocument> doc2(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
     doc2->loadNativeFormat("roundtrip_shapeselection_test.kra");
 
     qApp->processEvents();
@@ -541,7 +542,7 @@ void KisKraSaverTest::testRoundTripStoryboard()
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     QRect imageRect(0,0,512,512);
 
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
     KisImageSP image = new KisImage(new KisSurrogateUndoStore(), imageRect.width(), imageRect.height(), cs, "test image");
     doc->setCurrentImage(image);
 
@@ -559,7 +560,7 @@ void KisKraSaverTest::testRoundTripStoryboard()
     bool result = doc->exportDocumentSync("storyboardroundtriptest.kra", doc->mimeType());
     QVERIFY(result);
 
-    QScopedPointer<KisDocument> doc2(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc2(KisDocumentRegistry::instance()->createDocument());
     result = doc2->loadNativeFormat("storyboardroundtriptest.kra");
     QVERIFY(result);
 

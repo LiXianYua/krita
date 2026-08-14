@@ -5,6 +5,7 @@
  */
 
 #include "kis_psd_test.h"
+#include <KisDocumentRegistry.h>
 
 
 #include <simpletest.h>
@@ -71,7 +72,7 @@ void KisPSDTest::testOpening()
 {
     QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "testing_psd_ls.psd");
 
-    QScopedPointer<KisDocument> doc(qobject_cast<KisDocument*>(KisPart::instance()->createDocument()));
+    QScopedPointer<KisDocument> doc(qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc.data());
     doc->setFileBatchMode(true);
@@ -84,7 +85,7 @@ void KisPSDTest::testOpening()
 
 QSharedPointer<KisDocument> openPsdDocument(const QFileInfo &fileInfo)
 {
-    QSharedPointer<KisDocument> doc(qobject_cast<KisDocument*>(KisPart::instance()->createDocument()));
+    QSharedPointer<KisDocument> doc(qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc.data());
     doc->setFileBatchMode(true);
@@ -709,4 +710,3 @@ void KisPSDTest::testImportIncorrectFormat()
 
 
 KISTEST_MAIN(KisPSDTest)
-

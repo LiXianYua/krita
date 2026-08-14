@@ -14,7 +14,7 @@
 
 #include <KisDocument.h>
 #include <KisMimeDatabase.h>
-#include <KisPart.h>
+#include <KisDocumentRegistry.h>
 #include <kis_image.h>
 #include <kis_types.h>
 #include <kis_node.h>
@@ -651,7 +651,7 @@ bool Node::save(const QString &filename, double xRes, double yRes, const InfoObj
     QRect bounds = (exportRect.isEmpty())? d->node->exactBounds() : exportRect;
 
     QString mimeType = KisMimeDatabase::mimeTypeForFile(filename, false);
-    QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
 
     KisImageSP dst = new KisImage(doc->createUndoStore(),
                                   bounds.right(),

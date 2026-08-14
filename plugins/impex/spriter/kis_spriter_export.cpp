@@ -6,11 +6,9 @@
 
 #include "kis_spriter_export.h"
 
-#include <QApplication>
-#include <QCheckBox>
+#include <QCoreApplication>
 #include <QDomDocument>
 #include <QFileInfo>
-#include <QSlider>
 #include <QDir>
 
 #include <kpluginfactory.h>
@@ -33,7 +31,6 @@
 #include <kis_clone_layer.h>
 #include <kis_generator_layer.h>
 #include <kis_adjustment_layer.h>
-#include <KisPart.h>
 #include <kis_types.h>
 #include <KisPngCodec.h>
 #include <kis_global.h> // for KisDegreesToRadians
@@ -331,7 +328,7 @@ void KisSpriterExport::fillScml(QDomDocument &scml, const QString &entityName)
     scml.appendChild(root);
     root.setAttribute("scml_version", 1);
     root.setAttribute("generator", "krita");
-    root.setAttribute("generator_version", qApp->applicationVersion());
+    root.setAttribute("generator_version", QCoreApplication::applicationVersion());
 
     Q_FOREACH(const Folder &folder, m_folders) {
         QDomElement fe = scml.createElement("folder");

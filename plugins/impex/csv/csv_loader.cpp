@@ -7,19 +7,16 @@
 #include "csv_loader.h"
 
 #include <QDebug>
-#include <QApplication>
+#include <QCoreApplication>
 
 #include <QFile>
 #include <QVector>
 #include <QIODevice>
-#include <QStatusBar>
 #include <QFileInfo>
 #include <QRegularExpression>
 
-#include <KisPart.h>
-#include <KisView.h>
-#include <KisMainWindow.h>
 #include <KisDocument.h>
+#include <KisDocumentRegistry.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorModelStandardIds.h>
@@ -86,39 +83,14 @@ KisImportExportErrorCode CSVLoader::decode(QIODevice *io, const QString &filenam
     dbgFile << "pos:" << io->pos();
 
     CSVReadLine readLine;
-    QScopedPointer<KisDocument> importDoc(KisPart::instance()->createDocument());
+    QScopedPointer<KisDocument> importDoc(KisDocumentRegistry::instance()->createDocument());
     importDoc->setInfiniteAutoSaveInterval();
     importDoc->setFileBatchMode(true);
 
-    KisView *setView(0);
-
-    if (!m_batchMode) {
-        // TODO: use other systems of progress reporting (KisViewManager::createUnthreadedUpdater()
-
-//        //show the statusbar message even if no view
-//        Q_FOREACH (KisView* view, KisPart::instance()->views()) {
-//            if (view && view->document() == m_doc) {
-//                setView = view;
-//                break;
-//            }
-//        }
-
-//        if (!setView) {
-//            QStatusBar *sb = KisPart::instance()->currentMainwindow()->statusBar();
-//            if (sb) {
-//                sb->showMessage(i18n("Loading CSV file..."));
-//            }
-//        } else {
-//            Q_EMIT m_doc->statusBarMessage(i18n("Loading CSV file..."));
-//        }
-
-//        Q_EMIT m_doc->sigProgress(0);
-//        connect(m_doc, SIGNAL(sigProgressCanceled()), this, SLOT(cancel()));
-    }
     int step = 0;
 
     do {
-        qApp->processEvents();
+        QCoreApplication::processEvents();
 
         if (m_stop) {
             retval = ImportExportCodes::Cancelled;
@@ -318,20 +290,6 @@ KisImportExportErrorCode CSVLoader::decode(QIODevice *io, const QString &filenam
     }
     qDeleteAll(layers);
     io->close();
-
-    if (!m_batchMode) {
-        // disconnect(m_doc, SIGNAL(sigProgressCanceled()), this, SLOT(cancel()));
-        // Q_EMIT m_doc->sigProgress(100);
-
-        if (!setView) {
-            QStatusBar *sb = KisPart::instance()->currentMainwindow()->statusBar();
-            if (sb) {
-                sb->clearMessage();
-            }
-        } else {
-            Q_EMIT m_doc->clearStatusBarMessage();
-        }
-    }
 
     return retval;
 }
