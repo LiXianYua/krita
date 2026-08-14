@@ -11,7 +11,6 @@
 
 #include <KisDocument.h>
 #include <kis_image.h>
-#include <KisViewManager.h>
 #include <KisImportExportManager.h>
 
 #include "kis_jpeg_converter.h"
@@ -37,4 +36,3 @@ KisImportExportErrorCode KisJPEGImport::convert(KisDocument *document, QIODevice
 }
 
 #include <kis_jpeg_import.moc>
-
