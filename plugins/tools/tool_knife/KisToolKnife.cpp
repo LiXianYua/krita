@@ -10,10 +10,14 @@
 #include "QPainterPath"
 
 #include <klocalizedstring.h>
+#include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
 #include <KoColor.h>
-#include <KisViewManager.h>
-#include "kis_canvas2.h"
+#include <KoPointerEvent.h>
+#include <KoViewConverter.h>
+#include <KisCanvasFeedback.h>
+#include <kis_image.h>
+#include <kis_shape_controller.h>
 #include "kis_cursor.h"
 #include "kis_painter.h"
 #include "kis_paintop_preset.h"
@@ -24,6 +28,7 @@
 #include "commands_new/kis_transaction_based_command.h"
 #include "kis_transaction.h"
 #include "KoPathShape.h"
+#include <KoShapeController.h>
 
 #include "kis_processing_applicator.h"
 #include "kis_datamanager.h"
@@ -197,10 +202,11 @@ void KisToolKnife::mousePressEvent(KoPointerEvent *event)
 {
     // this tool only works on a vector layer right now, so give a warning if another layer type is trying to use it
     if (!isValidForCurrentLayer()) {
-        KisCanvas2 *kiscanvas = static_cast<KisCanvas2 *>(canvas());
-        kiscanvas->viewManager()->showFloatingMessage(
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas());
+        KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
+        feedback->showFloatingMessage(
                 i18n("This tool only works on vector layers. You probably want to create a vector layer and a starting shape first."),
-                QIcon(), 2000, KisFloatingMessage::Medium, Qt::AlignCenter);
+                QIcon(), 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         return;
     }
 
@@ -271,12 +277,13 @@ KoInteractionStrategy *KisToolKnife::createStrategy(KoPointerEvent *event)
 {
     QList<KoShape*> shapes = canvas()->shapeManager()->shapes();
 
-    KisCanvas2 *kiscanvas = dynamic_cast<KisCanvas2*>(canvas());
-    KIS_ASSERT(kiscanvas);
+    KisShapeController *shapeController =
+        dynamic_cast<KisShapeController *>(canvas()->shapeController()->documentBase());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(shapeController, nullptr);
     qreal resolution = 1.0;
-    if (kiscanvas->image()) {
+    if (KisImageSP image = shapeController->currentImage()) {
         // we're going to assume isotropic image
-        resolution = kiscanvas->image()->xRes();
+        resolution = image->xRes();
     }
 
     // Options panel removed. This reproduces the panel's default state as it

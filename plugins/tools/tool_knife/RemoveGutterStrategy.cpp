@@ -18,7 +18,8 @@
 #include "kis_debug.h"
 #include <KoPathShape.h>
 #include <krita_utils.h>
-#include <kis_canvas2.h>
+#include <kis_image.h>
+#include <kis_shape_controller.h>
 #include <QPainterPath>
 #include <KoShapeController.h>
 #include <kundo2command.h>
@@ -99,9 +100,11 @@ void RemoveGutterStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     tool()->canvas()->updateCanvas(m_previousLineDirtyRect);
 
 
-    KisCanvas2 *kisCanvas = static_cast<KisCanvas2 *>(tool()->canvas());
-    KIS_SAFE_ASSERT_RECOVER_RETURN(kisCanvas);
-    const QTransform booleanWorkaroundTransform = KritaUtils::pathShapeBooleanSpaceWorkaround(kisCanvas->image());
+    KisShapeController *shapeController =
+        dynamic_cast<KisShapeController *>(tool()->canvas()->shapeController()->documentBase());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(shapeController);
+    const QTransform booleanWorkaroundTransform =
+        KritaUtils::pathShapeBooleanSpaceWorkaround(shapeController->currentImage());
 
     QList<QPainterPath> srcOutlines;
     QList<QPainterPath> srcOutlinesOutside;

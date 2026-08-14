@@ -18,7 +18,9 @@
 #include "kis_debug.h"
 #include <KoPathShape.h>
 #include <krita_utils.h>
-#include <kis_canvas2.h>
+#include <kis_coordinates_converter.h>
+#include <kis_image.h>
+#include <kis_shape_controller.h>
 #include <QPainterPath>
 #include <KoShapeController.h>
 #include <kundo2command.h>
@@ -190,9 +192,11 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
     tool()->canvas()->updateCanvas(m_previousLineDirtyRect);
 
 
-    KisCanvas2 *kisCanvas = static_cast<KisCanvas2 *>(tool()->canvas());
-    KIS_SAFE_ASSERT_RECOVER_RETURN(kisCanvas);
-    const QTransform booleanWorkaroundTransform = KritaUtils::pathShapeBooleanSpaceWorkaround(kisCanvas->image());
+    KisShapeController *shapeController =
+        dynamic_cast<KisShapeController *>(tool()->canvas()->shapeController()->documentBase());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(shapeController);
+    const QTransform booleanWorkaroundTransform =
+        KritaUtils::pathShapeBooleanSpaceWorkaround(shapeController->currentImage());
 
     QList<QPainterPath> srcOutlines;
     QRectF outlineRect;
@@ -253,7 +257,7 @@ void CutThroughShapeStrategy::finishInteraction(Qt::KeyboardModifiers modifiers)
 
 
     std::unique_ptr<KUndo2Command> cmd = std::unique_ptr<KUndo2Command>(new KUndo2Command(kundo2_i18n("Knife tool: cut through shapes")));
-    new KoKeepShapesSelectedCommand(m_selectedShapes, {}, kisCanvas->selectedShapesProxy(), false, cmd.get());
+    new KoKeepShapesSelectedCommand(m_selectedShapes, {}, tool()->canvas()->selectedShapesProxy(), false, cmd.get());
 
 
     for (int i = 0; i < srcOutlines.size(); i++) {
@@ -399,10 +403,11 @@ void CutThroughShapeStrategy::paint(QPainter &painter, const KoViewConverter &co
 
 qreal CutThroughShapeStrategy::gutterWidthInDocumentCoordinates(qreal lineAngle)
 {
-    KisCanvas2 *kisCanvas = static_cast<KisCanvas2 *>(tool()->canvas());
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(kisCanvas, m_width.widthForAngleInPixels(lineAngle));
+    const KisCoordinatesConverter *converter =
+        dynamic_cast<const KisCoordinatesConverter *>(tool()->canvas()->viewConverter());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, m_width.widthForAngleInPixels(lineAngle));
     QLineF helperGapWidthLine = QLineF(QPointF(0, 0), QPointF(0, m_width.widthForAngleInPixels(lineAngle)));
-    QLineF helperGapWidthLineTransformed = kisCanvas->coordinatesConverter()->imageToDocument(helperGapWidthLine);
+    QLineF helperGapWidthLineTransformed = converter->imageToDocument(helperGapWidthLine);
     return helperGapWidthLineTransformed.length();
 }
 
