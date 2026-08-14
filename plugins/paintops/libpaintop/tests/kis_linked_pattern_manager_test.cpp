@@ -10,14 +10,13 @@
 
 #include <QPainter>
 
-#include <KoResourceServerProvider.h>
+#include <KoResourceServer.h>
 #include <resources/KoPattern.h>
 
 #include "KisEmbeddedTextureData.h"
 
 #include <kis_properties_configuration.h>
 #include <KisGlobalResourcesInterface.h>
-#include <KoResourceServerProvider.h>
 #include <KoResourceLoadResult.h>
 
 #include <KoMD5Generator.h>
@@ -47,6 +46,12 @@ KoPatternSP createPattern(const QString &name, const QString &fileName)
     return pattern;
 }
 
+KoResourceServer<KoPattern> *patternServer()
+{
+    static KoResourceServer<KoPattern> server(ResourceType::Patterns);
+    return &server;
+}
+
 
 void KisLinkedPatternManagerTest::testRoundTrip_data()
 {
@@ -69,7 +74,7 @@ void KisLinkedPatternManagerTest::testRoundTrip()
 
     KoPatternSP pattern = createPattern(name, fileName);
 
-    KoResourceServer<KoPattern> *resourceServer = KoResourceServerProvider::instance()->patternServer();
+    KoResourceServer<KoPattern> *resourceServer = patternServer();
     resourceServer->addResource(pattern);
 
     KisPropertiesConfigurationSP config(new KisPropertiesConfiguration);
@@ -99,7 +104,7 @@ void KisLinkedPatternManagerTest::testRoundTrip()
     }
 
     if (loadMode == "filename-with-path") {
-        QString path = KoResourceServerProvider::instance()->patternServer()->saveLocation() + "/" + fileName;
+        QString path = patternServer()->saveLocation() + "/" + fileName;
         config->setProperty("Texture/Pattern/PatternFileName", path);
     }
 
@@ -121,14 +126,14 @@ void KisLinkedPatternManagerTest::testRoundTrip()
 void KisLinkedPatternManagerTest::init()
 {
     QList<KoResourceSP> resourceList;
-    KisResourceModel *resourceModel = KoResourceServerProvider::instance()->patternServer()->resourceModel();
+    KisResourceModel *resourceModel = patternServer()->resourceModel();
     for (int row = 0; row < resourceModel->rowCount(); ++row) {
         resourceList << resourceModel->resourceForIndex(resourceModel->index(row, 0));
     }
 
     Q_FOREACH(KoResourceSP pa, resourceList) {
         if (pa) {
-            KoResourceServerProvider::instance()->patternServer()->removeResourceFile(pa->filename());
+            patternServer()->removeResourceFile(pa->filename());
         }
     }
 }
@@ -144,7 +149,7 @@ KisPropertiesConfigurationSP KisLinkedPatternManagerTest::createXML(SaveDataFlag
     }
 
     if (flags.testFlag(SaveFileNameWithPath)) {
-        QString path = KoResourceServerProvider::instance()->patternServer()->saveLocation() + "/" + pattern->filename();
+        QString path = patternServer()->saveLocation() + "/" + pattern->filename();
         setting->setProperty("Texture/Pattern/PatternFileName", path);
     }
 
@@ -177,7 +182,7 @@ KoPatternSP findOnServer(const QString &md5)
     KoPatternSP pattern;
 
     if (!md5.isEmpty()) {
-        return KoResourceServerProvider::instance()->patternServer()->resource(md5, "", "");
+        return patternServer()->resource(md5, "", "");
     }
 
     return pattern;
@@ -213,7 +218,7 @@ void KisLinkedPatternManagerTest::testLoadingLegacyXML()
 
     if (isOnServer) {
         // upload the resource to the server if requested
-        KoResourceServerProvider::instance()->patternServer()->addResource(basePattern);
+        patternServer()->addResource(basePattern);
         QVERIFY(findOnServer(basePattern->md5Sum()));
     }
 

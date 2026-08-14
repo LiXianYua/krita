@@ -19,7 +19,6 @@
 #include <KoPattern.h>
 #include <KoAbstractGradient.h>
 #include <KoResource.h>
-#include <KoResourceServerProvider.h>
 #include <kis_paint_device.h>
 #include <kis_fill_painter.h>
 #include <kis_painter.h>
