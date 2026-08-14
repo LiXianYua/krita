@@ -18,7 +18,6 @@
 #include <QVector2D>
 #include <QVector3D>
 #include <QButtonGroup>
-#include <QPointer>
 
 #include <QKeySequence>
 
@@ -29,7 +28,6 @@
 #include <kis_types.h>
 #include <flake/kis_node_shape.h>
 #include <kis_tool.h>
-#include <kis_canvas2.h>
 
 #include <KisToolPaintFactoryBase.h>
 
@@ -44,6 +42,7 @@
 class QTouchEvent;
 class QAction;
 class KisTransformStrategyBase;
+class KisCoordinatesConverter;
 class KisWarpTransformStrategy;
 class KisCageTransformStrategy;
 class KisLiquifyTransformStrategy;
@@ -272,7 +271,7 @@ private:
 
     QPainterPath m_selectionPath; // original (unscaled) selection outline, used for painting decorations
 
-    QPointer<KisCanvas2> m_canvas;
+    const KisCoordinatesConverter *m_converter {nullptr};
 
     // Cached scaleX/scaleY ratio used to keep the aspect ratio locked while
     // one axis is being changed programmatically (setScaleX/setScaleY).

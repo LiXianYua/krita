@@ -29,14 +29,17 @@
 #include <KoPointerEvent.h>
 #include <KoID.h>
 #include <KoCanvasBase.h>
+#include <KoToolManager.h>
 #include <KoViewConverter.h>
 #include <KoSelection.h>
 #include <KoCompositeOp.h>
 #include <KisCursorOverrideLock.h>
+#include <ksharedconfig.h>
 
 #include <kis_global.h>
-#include <canvas/kis_canvas2.h>
-#include <KisViewManager.h>
+#include <KisCanvasFeedback.h>
+#include <KisCanvasInvalidation.h>
+#include <kis_coordinates_converter.h>
 #include <kis_painter.h>
 #include <kis_cursor.h>
 #include <kis_image.h>
@@ -45,13 +48,11 @@
 #include <kis_selection.h>
 #include <kis_filter_strategy.h>
 #include <widgets/kis_cmb_idlist.h>
-#include <kis_statusbar.h>
 #include <kis_transform_worker.h>
 #include <kis_perspectivetransform_worker.h>
 #include <kis_warptransform_worker.h>
 #include <kis_pixel_selection.h>
 #include <kis_shape_selection.h>
-#include <kis_selection_manager.h>
 #include <krita_utils.h>
 #include <kis_resources_snapshot.h>
 #include <KisOptimizedBrushOutline.h>
@@ -60,8 +61,6 @@
 #include <KoCanvasController.h>
 
 #include "kis_action_registry.h"
-
-#include "widgets/kis_progress_widget.h"
 
 #include "kis_transform_utils.h"
 #include "kis_warp_transform_strategy.h"
@@ -84,38 +83,38 @@
 
 KisToolTransform::KisToolTransform(KoCanvasBase * canvas)
     : KisTool(canvas, KisCursor::rotateCursor())
+    , m_converter(dynamic_cast<const KisCoordinatesConverter *>(canvas->viewConverter()))
     , m_warpStrategy(
         new KisWarpTransformStrategy(
-            dynamic_cast<KisCanvas2*>(canvas)->coordinatesConverter(),
-            dynamic_cast<KisCanvas2*>(canvas)->snapGuide(),
+            m_converter,
+            canvas->snapGuide(),
             m_currentArgs, m_transaction))
     , m_cageStrategy(
         new KisCageTransformStrategy(
-            dynamic_cast<KisCanvas2*>(canvas)->coordinatesConverter(),
-            dynamic_cast<KisCanvas2*>(canvas)->snapGuide(),
+            m_converter,
+            canvas->snapGuide(),
             m_currentArgs, m_transaction))
     , m_liquifyStrategy(
         new KisLiquifyTransformStrategy(
-            dynamic_cast<KisCanvas2*>(canvas)->coordinatesConverter(),
+            m_converter,
             m_currentArgs, m_transaction, canvas->resourceManager()))
     , m_meshStrategy(
         new KisMeshTransformStrategy(
-            dynamic_cast<KisCanvas2*>(canvas)->coordinatesConverter(),
-            dynamic_cast<KisCanvas2*>(canvas)->snapGuide(),
+            m_converter,
+            canvas->snapGuide(),
             m_currentArgs, m_transaction))
     , m_freeStrategy(
         new KisFreeTransformStrategy(
-            dynamic_cast<KisCanvas2*>(canvas)->coordinatesConverter(),
-            dynamic_cast<KisCanvas2*>(canvas)->snapGuide(),
+            m_converter,
+            canvas->snapGuide(),
             m_currentArgs, m_transaction))
     , m_perspectiveStrategy(
         new KisPerspectiveTransformStrategy(
-            dynamic_cast<KisCanvas2*>(canvas)->coordinatesConverter(),
-            dynamic_cast<KisCanvas2*>(canvas)->snapGuide(),
+            m_converter,
+            canvas->snapGuide(),
             m_currentArgs, m_transaction))
 {
-    m_canvas = dynamic_cast<KisCanvas2*>(canvas);
-    Q_ASSERT(m_canvas);
+    Q_ASSERT(m_converter);
 
     setObjectName("tool_transform");
 
@@ -209,12 +208,16 @@ KisToolTransform::~KisToolTransform()
 void KisToolTransform::outlineChanged()
 {
     Q_EMIT freeTransformChanged();
-    m_canvas->updateCanvas();
+    KisCanvasInvalidation *invalidation = dynamic_cast<KisCanvasInvalidation *>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(invalidation);
+    invalidation->invalidateAll();
 }
 
 void KisToolTransform::canvasUpdateRequested()
 {
-    m_canvas->updateCanvas();
+    KisCanvasInvalidation *invalidation = dynamic_cast<KisCanvasInvalidation *>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(invalidation);
+    invalidation->invalidateAll();
 }
 
 void KisToolTransform::resetCursorStyle()
@@ -308,7 +311,7 @@ void KisToolTransform::paint(QPainter& gc, const KoViewConverter &converter)
 
     if (!m_strokeId || m_transaction.rootNodes().isEmpty()) return;
 
-    QRectF newRefRect = KisTransformUtils::imageToFlake(m_canvas->coordinatesConverter(), QRectF(0.0,0.0,1.0,1.0));
+    QRectF newRefRect = KisTransformUtils::imageToFlake(m_converter, QRectF(0.0,0.0,1.0,1.0));
     if (m_refRect != newRefRect) {
         m_refRect = newRefRect;
         currentStrategy()->externalConfigChanged();
@@ -320,7 +323,7 @@ void KisToolTransform::paint(QPainter& gc, const KoViewConverter &converter)
     if (!m_cursorOutline.isEmpty()) {
         QPainterPath mappedOutline =
             KisTransformUtils::imageToFlakeTransform(
-                m_canvas->coordinatesConverter()).map(m_cursorOutline);
+                m_converter).map(m_cursorOutline);
         paintToolOutline(&gc, mappedOutline);
     }
 }
@@ -346,7 +349,7 @@ void KisToolTransform::cursorOutlineUpdateRequested(const QPointF &imagePos)
     QRect canvasUpdateRect;
 
     if (!m_cursorOutline.isEmpty()) {
-        canvasUpdateRect = m_canvas->coordinatesConverter()->
+        canvasUpdateRect = m_converter->
             imageToDocument(m_cursorOutline.boundingRect()).toAlignedRect();
     }
 
@@ -355,14 +358,14 @@ void KisToolTransform::cursorOutlineUpdateRequested(const QPointF &imagePos)
 
     if (!m_cursorOutline.isEmpty()) {
         canvasUpdateRect |=
-            m_canvas->coordinatesConverter()->
+            m_converter->
             imageToDocument(m_cursorOutline.boundingRect()).toAlignedRect();
     }
 
     if (!canvasUpdateRect.isEmpty()) {
         // grow rect a bit to follow interpolation fuzziness
         canvasUpdateRect = kisGrowRect(canvasUpdateRect, 2);
-        m_canvas->updateCanvas(canvasUpdateRect);
+        canvas()->updateCanvas(canvasUpdateRect);
     }
 }
 
@@ -541,7 +544,7 @@ void KisToolTransform::mousePressEvent(KoPointerEvent *event)
 
 void KisToolTransform::mouseMoveEvent(KoPointerEvent *event)
 {
-    QPointF mousePos = m_canvas->coordinatesConverter()->documentToImage(event->point);
+    QPointF mousePos = m_converter->documentToImage(event->point);
 
     cursorOutlineUpdateRequested(mousePos);
 
@@ -875,7 +878,9 @@ void KisToolTransform::activate(const QSet<KoShape*> &shapes)
 void KisToolTransform::deactivate()
 {
     endStroke();
-    m_canvas->updateCanvas();
+    KisCanvasInvalidation *invalidation = dynamic_cast<KisCanvasInvalidation *>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(invalidation);
+    invalidation->invalidateAll();
     m_actionConnections.clear();
     KisTool::deactivate();
 }
@@ -944,28 +949,25 @@ void KisToolTransform::startStroke(ToolTransformArgs::TransformMode mode, bool f
     m_currentArgs = ToolTransformArgs();
 
     Q_FOREACH (KisNodeSP currentNode, resources->selectedNodes()) {
-        KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-        KIS_ASSERT(kisCanvas);
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas());
+        KIS_ASSERT(feedback);
 
         if (!currentNode || !currentNode->isEditable()) {
             if (currentNode && currentNode->userLocked()) {
-                kisCanvas->viewManager()->
-                    showFloatingMessage(
+                feedback->showFloatingMessage(
                         i18nc("floating message in transformation tool",
                               "Cannot transform locked layers"),
-                        koIcon("object-locked"), 4000, KisFloatingMessage::High);
+                        koIcon("object-locked"), 4000, KisCanvasFeedback::Priority::High);
             } else if (currentNode && !currentNode->visible()) {
-                kisCanvas->viewManager()->
-                    showFloatingMessage(
+                feedback->showFloatingMessage(
                         i18nc("floating message in transformation tool",
                               "Cannot transform hidden layers"),
-                        koIcon("object-locked"), 4000, KisFloatingMessage::High);
+                        koIcon("object-locked"), 4000, KisCanvasFeedback::Priority::High);
             } else {
-                kisCanvas->viewManager()->
-                    showFloatingMessage(
+                feedback->showFloatingMessage(
                         i18nc("floating message in transformation tool",
                               "Cannot use transform tool on this set of layers"),
-                        koIcon("object-locked"), 4000, KisFloatingMessage::High);
+                        koIcon("object-locked"), 4000, KisCanvasFeedback::Priority::High);
             }
 
             return;
@@ -977,18 +979,16 @@ void KisToolTransform::startStroke(ToolTransformArgs::TransformMode mode, bool f
             currentNode->inherits("KisCloneLayer")) {
 
             if(currentNode->inherits("KisColorizeMask")){
-                kisCanvas->viewManager()->
-                    showFloatingMessage(
+                feedback->showFloatingMessage(
                         i18nc("floating message in transformation tool",
                               "Layer type cannot use the transform tool"),
-                        koIcon("object-locked"), 4000, KisFloatingMessage::High);
+                        koIcon("object-locked"), 4000, KisCanvasFeedback::Priority::High);
             }
             else{
-                kisCanvas->viewManager()->
-                    showFloatingMessage(
+                feedback->showFloatingMessage(
                         i18nc("floating message in transformation tool",
                               "Layer type cannot use the transform tool. Use transform mask instead."),
-                        koIcon("object-locked"), 4000, KisFloatingMessage::High);
+                        koIcon("object-locked"), 4000, KisCanvasFeedback::Priority::High);
             }
             return;
         }
@@ -1003,11 +1003,10 @@ void KisToolTransform::startStroke(ToolTransformArgs::TransformMode mode, bool f
             });
 
         if (impossibleMask) {
-            kisCanvas->viewManager()->
-                showFloatingMessage(
+            feedback->showFloatingMessage(
                     i18nc("floating message in transformation tool",
                           "Layer has children with transform masks. Please disable them before doing transformation."),
-                    koIcon("object-locked"), 8000, KisFloatingMessage::High);
+                    koIcon("object-locked"), 8000, KisCanvasFeedback::Priority::High);
             return;
         }
 
@@ -1016,11 +1015,10 @@ void KisToolTransform::startStroke(ToolTransformArgs::TransformMode mode, bool f
          * taken into account.
          */
         if (selection && dynamic_cast<KisTransformMask*>(currentNode.data())) {
-            kisCanvas->viewManager()->
-                showFloatingMessage(
+            feedback->showFloatingMessage(
                     i18nc("floating message in transformation tool",
                           "Selections are not used when editing transform masks "),
-                    QIcon(), 4000, KisFloatingMessage::Low);
+                    QIcon(), 4000, KisCanvasFeedback::Priority::Low);
 
             selection = 0;
         }
@@ -1099,13 +1097,12 @@ void KisToolTransform::slotTransactionGenerated(TransformTransactionProperties t
     if (transaction.transformedNodes().isEmpty() ||
         transaction.originalRect().isEmpty()) {
 
-        KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-        KIS_ASSERT(kisCanvas);
-        kisCanvas->viewManager()->
-            showFloatingMessage(
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas());
+        KIS_ASSERT(feedback);
+        feedback->showFloatingMessage(
                 i18nc("floating message in transformation tool",
                       "Cannot transform empty layer "),
-                QIcon(), 1000, KisFloatingMessage::Medium);
+                QIcon(), 1000, KisCanvasFeedback::Priority::Medium);
 
         cancelStroke();
         return;
@@ -1125,26 +1122,24 @@ void KisToolTransform::slotTransactionGenerated(TransformTransactionProperties t
     initGuiAfterTransformMode();
 
     if (m_transaction.hasInvisibleNodes()) {
-        KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-        KIS_ASSERT(kisCanvas);
-        kisCanvas->viewManager()->
-            showFloatingMessage(
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas());
+        KIS_ASSERT(feedback);
+        feedback->showFloatingMessage(
                 i18nc("floating message in transformation tool",
                       "Invisible sublayers will also be transformed. Lock layers if you do not want them to be transformed "),
-                QIcon(), 4000, KisFloatingMessage::Low);
+                QIcon(), 4000, KisCanvasFeedback::Priority::Low);
     }
 }
 
 void KisToolTransform::slotPreviewDeviceGenerated(KisPaintDeviceSP device)
 {
     if (device && device->exactBounds().isEmpty()) {
-        KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-        KIS_SAFE_ASSERT_RECOVER(kisCanvas) { cancelStroke(); return; }
-        kisCanvas->viewManager()->
-            showFloatingMessage(
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas());
+        KIS_SAFE_ASSERT_RECOVER(feedback) { cancelStroke(); return; }
+        feedback->showFloatingMessage(
                 i18nc("floating message in transformation tool",
                       "Cannot transform empty layer "),
-                QIcon(), 1000, KisFloatingMessage::Medium);
+                QIcon(), 1000, KisCanvasFeedback::Priority::Medium);
 
         cancelStroke();
     } else {
