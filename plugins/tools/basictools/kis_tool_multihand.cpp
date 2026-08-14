@@ -8,6 +8,7 @@
 
 #include <QTransform>
 
+#include <KisCanvasFeedback.h>
 #include "kis_canvas2.h"
 #include "kis_cursor.h"
 #include "KisViewManager.h"
@@ -440,9 +441,11 @@ void KisToolMultihand::updateCanvas()
     kisCanvas->updateCanvas();
     if (m_setupAxesFlag)
     {
-        kisCanvas->viewManager()->showFloatingMessage(i18n("X: %1 px\nY: %2 px"
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+        KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
+        feedback->showFloatingMessage(i18n("X: %1 px\nY: %2 px"
                 , QString::number(this->m_axesPoint.x(),'f',1),QString::number(this->m_axesPoint.y(),'f',1))
-                , QIcon(), 1000, KisFloatingMessage::High, Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+                , QIcon(), 1000, KisCanvasFeedback::Priority::High, Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
     }
 }
 
@@ -459,9 +462,12 @@ QVector<QPoint> KisToolMultihand::intervalLocations()
     const int intervals = m_intervalX ? (bounds.width() / m_intervalX) : 0 +
                     m_intervalY ? (bounds.height() / m_intervalY) : 0;
     if (intervals > MAXIMUM_BRUSHES) {
-        kisCanvas->viewManager()->showFloatingMessage(
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(feedback, intervalLocations);
+        feedback->showFloatingMessage(
             i18n("Multibrush Tool does not support more than %1 brushes; use a larger interval.",
-            QString::number(MAXIMUM_BRUSHES)), QIcon());
+            QString::number(MAXIMUM_BRUSHES)), QIcon(), 4500,
+            KisCanvasFeedback::Priority::Medium, Qt::AlignCenter | Qt::TextWordWrap);
         return intervalLocations;
     }
 
@@ -476,4 +482,3 @@ QVector<QPoint> KisToolMultihand::intervalLocations()
 
     return intervalLocations;
 }
-

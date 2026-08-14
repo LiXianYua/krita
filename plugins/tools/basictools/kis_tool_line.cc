@@ -25,8 +25,8 @@
 #include <kis_cursor.h>
 #include <brushengine/kis_paintop_registry.h>
 #include <kis_figure_painting_tool_helper.h>
+#include <KisCanvasFeedback.h>
 #include <kis_canvas2.h>
-#include <KisViewManager.h>
 #include <kis_action_registry.h>
 #include <kis_painting_information_builder.h>
 
@@ -139,9 +139,15 @@ void KisToolLine::beginPrimaryAction(KoPointerEvent *event)
     }
 
     if (nodeAbility == MYPAINTBRUSH_UNPAINTABLE) {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+        KIS_SAFE_ASSERT_RECOVER(feedback) {
+            event->ignore();
+            return;
+        }
         QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+        feedback->showFloatingMessage(message, koIcon("object-locked"), 4500,
+                                      KisCanvasFeedback::Priority::Medium,
+                                      Qt::AlignCenter | Qt::TextWordWrap);
         event->ignore();
         return;
     }
@@ -234,11 +240,13 @@ void KisToolLine::continuePrimaryAction(KoPointerEvent *event)
     }
 
     if(effectiveModifiers == Qt::AltModifier) {
-        KisCanvas2 *kisCanvas =dynamic_cast<KisCanvas2*>(canvas());
-        KIS_ASSERT(kisCanvas);
-        kisCanvas->viewManager()->showFloatingMessage(i18n("X: %1 px\nY: %2 px", QString::number(m_startPoint.x(), 'f',1)
-                                                           , QString::number(m_startPoint.y(), 'f',1))
-                                                           , QIcon(), 1000, KisFloatingMessage::High,  Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(feedback);
+        if (feedback) {
+            feedback->showFloatingMessage(i18n("X: %1 px\nY: %2 px", QString::number(m_startPoint.x(), 'f',1)
+                                                               , QString::number(m_startPoint.y(), 'f',1))
+                                                               , QIcon(), 1000, KisCanvasFeedback::Priority::High,  Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+        }
     }
     else {
         showSize();
@@ -360,10 +368,10 @@ void KisToolLine::updateGuideline()
 
 void KisToolLine::showSize()
 {
-    KisCanvas2 *kisCanvas =dynamic_cast<KisCanvas2*>(canvas());
-    KIS_ASSERT(kisCanvas);
-    kisCanvas->viewManager()->showFloatingMessage(i18n("Length: %1 px", QString::number(QLineF(m_startPoint,m_endPoint).length(), 'f',1))
-                                                        , QIcon(), 1000, KisFloatingMessage::High,  Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+    KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
+    feedback->showFloatingMessage(i18n("Length: %1 px", QString::number(QLineF(m_startPoint,m_endPoint).length(), 'f',1))
+                                                        , QIcon(), 1000, KisCanvasFeedback::Priority::High,  Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
 }
 void KisToolLine::paintLine(QPainter& gc, const QRect&)
 {

@@ -15,6 +15,7 @@
 
 #include "kis_cursor.h"
 #include "kis_selection.h"
+#include "KisCanvasFeedback.h"
 #include "kis_canvas2.h"
 #include "kis_image.h"
 
@@ -264,14 +265,14 @@ void KisToolMove::notifyGuiAfterMove(bool showFloatingMessage)
     const bool showCoordinates = m_showCoordinatesAction->isChecked();
 
     if (showCoordinates && showFloatingMessage) {
-        KisCanvas2 *kisCanvas = static_cast<KisCanvas2*>(canvas());
-        kisCanvas->viewManager()->
-            showFloatingMessage(
-                i18nc("floating message in move tool",
-                      "X: %1 px, Y: %2 px",
-                      QLocale().toString(currentTopLeft.x()),
-                      QLocale().toString(currentTopLeft.y())),
-                QIcon(), 1000, KisFloatingMessage::High);
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+        KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
+        feedback->showFloatingMessage(
+            i18nc("floating message in move tool",
+                  "X: %1 px, Y: %2 px",
+                  QLocale().toString(currentTopLeft.x()),
+                  QLocale().toString(currentTopLeft.y())),
+            QIcon(), 1000, KisCanvasFeedback::Priority::High);
     }
 }
 
@@ -312,12 +313,14 @@ void KisToolMove::slotStrokeStartedEmpty()
      * Notify that move-selection stroke ended unexpectedly
      */
     if (m_currentlyUsingSelection) {
-        KisCanvas2 *kisCanvas = static_cast<KisCanvas2*>(canvas());
-        kisCanvas->viewManager()->
-            showFloatingMessage(
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(feedback);
+        if (feedback) {
+            feedback->showFloatingMessage(
                 i18nc("floating message in move tool",
                       "Selected area has no pixels"),
-                QIcon(), 1000, KisFloatingMessage::High);
+                QIcon(), 1000, KisCanvasFeedback::Priority::High);
+        }
     }
 
     /**

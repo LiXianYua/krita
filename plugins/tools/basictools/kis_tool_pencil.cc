@@ -11,8 +11,7 @@
 #include <KoCanvasResourceProvider.h>
 #include <KoPointerEvent.h>
 #include <KoShapeStroke.h>
-#include <KisViewManager.h>
-#include <canvas/kis_canvas2.h>
+#include <KisCanvasFeedback.h>
 
 #include <kis_cursor.h>
 
@@ -63,9 +62,15 @@ void KisToolPencil::beginPrimaryAction(KoPointerEvent *event)
     if (!nodeEditable()) return;
 
     if (nodePaintAbility() == KisToolPencil::MYPAINTBRUSH_UNPAINTABLE) {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+        KIS_SAFE_ASSERT_RECOVER(feedback) {
+            event->ignore();
+            return;
+        }
         QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        kiscanvas->viewManager()->showFloatingMessage(message, koIcon("object-locked"));
+        feedback->showFloatingMessage(message, koIcon("object-locked"), 4500,
+                                      KisCanvasFeedback::Priority::Medium,
+                                      Qt::AlignCenter | Qt::TextWordWrap);
         event->ignore();
         return;
     }
