@@ -75,7 +75,6 @@
 #include "kis_image_config.h"
 #include "KisProofingConfiguration.h"
 #include "kis_layer_properties_icons.h"
-#include "kis_node_view_color_scheme.h"
 #include "KisMirrorAxisConfig.h"
 #include <kis_cursor_override_hijacker.h>
 
@@ -932,9 +931,9 @@ KisNodeSP KisKraLoader::loadNode(const QDomElement& element, KisImageSP image)
     const bool locked = element.attribute(LOCKED, "0") == "0" ? false : true;
     const bool collapsed = element.attribute(COLLAPSED, "0") == "0" ? false : true;
     int colorLabelIndex = element.attribute(COLOR_LABEL, "0").toInt();
-    QVector<QColor> labels = KisNodeViewColorScheme::instance()->allColorLabels();
-    if (colorLabelIndex >= labels.size()) {
-        colorLabelIndex = labels.size() - 1;
+    constexpr int colorLabelCount = 9;
+    if (colorLabelIndex >= colorLabelCount) {
+        colorLabelIndex = colorLabelCount - 1;
     }
 
     // Now find out the layer type and do specific handling

@@ -37,7 +37,7 @@
 #include <kis_layer.h>
 #include <kis_adjustment_layer.h>
 #include <kis_layer_composition.h>
-#include <kis_painting_assistants_decoration.h>
+#include <kis_painting_assistant.h>
 #include <KisPngCodec.h>
 #include <kis_image_config.h>
 #include "kis_keyframe_channel.h"
