@@ -1,4 +1,5 @@
 set(kritacanvas_LIB_SRCS
+    KisMirrorAxisConfig.cpp
     KisCanvasConfig.cpp
     KisCanvasState.cpp
     KisDisplayConfig.cpp

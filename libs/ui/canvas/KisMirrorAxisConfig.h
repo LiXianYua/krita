@@ -8,9 +8,11 @@
 #ifndef KISMIRRORAXISCONFIG_H
 #define KISMIRRORAXISCONFIG_H
 
+#include <QObject>
+#include <QPointF>
 #include <QScopedPointer>
 
-#include "kritaui_export.h"
+#include "kritacanvas_export.h"
 #include <boost/operators.hpp>
 
 class QDomElement;
@@ -21,7 +23,7 @@ class QDomDocument;
  * canvas decoration. Contents are saved to/loaded from KRA documents.
  */
 
-class KRITAUI_EXPORT KisMirrorAxisConfig : public QObject, boost::equality_comparable<KisMirrorAxisConfig>
+class KRITACANVAS_EXPORT KisMirrorAxisConfig : public QObject, boost::equality_comparable<KisMirrorAxisConfig>
 {
     Q_OBJECT
 
