@@ -16,12 +16,11 @@
 #include <KoCompositeOpRegistry.h>
 #include <brushengine/kis_paintop_preset.h>
 #include <resources/KoPattern.h>
-#include "kis_canvas_resource_provider.h"
+#include <KoCanvasResourceProvider.h>
 #include "kis_image.h"
 #include "kis_paint_device.h"
 #include "kis_paint_layer.h"
 #include "kis_group_layer.h"
-#include <KisViewManager.h>
 
 #include <testutil.h>
 #include <KisGlobalResourcesInterface.h>
@@ -54,7 +53,6 @@ KoCanvasResourceProvider* utils::createResourceManager(KisImageWSP image,
                                                 const QString &presetFileName)
 {
     KoCanvasResourceProvider *manager = new KoCanvasResourceProvider();
-    KisViewManager::initializeResourceManager(manager);
 
     QVariant i;
 
@@ -96,6 +94,7 @@ KoCanvasResourceProvider* utils::createResourceManager(KisImageWSP image,
 
     i.setValue(COMPOSITE_OVER);
     manager->setResource(KoCanvasResource::CurrentCompositeOp, i);
+    manager->setResource(KoCanvasResource::CurrentEffectiveCompositeOp, i);
 
     i.setValue(false);
     manager->setResource(KoCanvasResource::MirrorHorizontal, i);
@@ -108,6 +107,14 @@ KoCanvasResourceProvider* utils::createResourceManager(KisImageWSP image,
 
     i.setValue(1.0);
     manager->setResource(KoCanvasResource::HdrExposure, i);
+
+    manager->setResource(KoCanvasResource::EffectiveZoom, i);
+
+    i.setValue(false);
+    manager->setResource(KoCanvasResource::UsingOtherColor, i);
+    manager->setResource(KoCanvasResource::EraserMode, i);
+    manager->setResource(KoCanvasResource::GlobalAlphaLock, i);
+    manager->setResource(KoCanvasResource::EffectiveLodAvailability, i);
 
     return manager;
 }
@@ -277,7 +284,7 @@ QImage utils::StrokeTester::doStroke(bool cancelled,
         KisResourcesSnapshotSP resources =
             new KisResourcesSnapshot(image,
                                      image->rootLayer()->firstChild(),
-                                     manager);
+                                     manager->canvasResourcesInterface());
 
         if(externalLayer) {
             KisNodeSP externalNode = new KisPaintLayer(0, "extlyr", OPACITY_OPAQUE_U8, image->colorSpace());

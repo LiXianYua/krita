@@ -218,7 +218,7 @@ void KisToolFill::beginFilling(const QPoint &seedPoint)
     m_fillStrokeId = image()->startStroke(strategy);
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_fillStrokeId);
 
-    m_resourcesSnapshot = new KisResourcesSnapshot(image(), currentNode(), this->canvas()->resourceManager());
+    m_resourcesSnapshot = new KisResourcesSnapshot(image(), currentNode(), this->canvas()->resourceManager()->canvasResourcesInterface());
 
     KisPaintDeviceSP referencePaintDevice = nullptr;
     if (m_effectiveFillMode != FillMode_FillSelection) {
@@ -596,4 +596,3 @@ KoColor KisToolFill::loadContiguousFillBoundaryColorFromConfig()
     }
     return KoColor();
 }
-

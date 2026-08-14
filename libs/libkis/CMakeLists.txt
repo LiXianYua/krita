@@ -42,7 +42,6 @@ target_link_libraries(kritalibkis
         KF${KF_MAJOR}::ConfigCore
         kritaanimation
         kritaimpex
-        kritaui
         kritaversion
     PUBLIC
         kritacanvas

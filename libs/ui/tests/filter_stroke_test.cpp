@@ -8,7 +8,7 @@
 
 #include <simpletest.h>
 #include "stroke_testing_utils.h"
-#include "strokes/kis_filter_stroke_strategy.h"
+#include "kis_filter_stroke_strategy.h"
 #include "kis_resources_snapshot.h"
 #include "kis_image.h"
 #include "filter/kis_filter.h"

@@ -39,7 +39,7 @@
 #include "kis_action_manager.h"
 #include "kis_canvas_resource_provider.h"
 #include "dialogs/kis_dlg_filter.h"
-#include "strokes/kis_filter_stroke_strategy.h"
+#include "kis_filter_stroke_strategy.h"
 #include "krita_utils.h"
 #include "kis_icon_utils.h"
 #include "kis_layer_utils.h"
@@ -295,7 +295,7 @@ void KisFilterManager::apply(KisFilterConfigurationSP _filterConfig)
     KisResourcesSnapshotSP resources =
         new KisResourcesSnapshot(image,
                                  d->view->activeNode(),
-                                 resourceManager);
+                                 resourceManager->canvasResourcesInterface());
 
     KisFilterStrokeStrategy *strategy = new KisFilterStrokeStrategy(filter,
                                                                     KisFilterConfigurationSP(filterConfig),

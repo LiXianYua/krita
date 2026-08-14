@@ -7,10 +7,12 @@
 #include "kis_brushop_test.h"
 
 #include <simpletest.h>
+#define USE_DOCUMENT 0
 #include <qimage_based_test.h>
+#undef USE_DOCUMENT
 #include <stroke_testing_utils.h>
 #include <brushengine/kis_paint_information.h>
-#include <kis_canvas_resource_provider.h>
+#include <KoCanvasResourceProvider.h>
 #include <brushengine/kis_paintop_preset.h>
 #include <brushengine/kis_paintop_settings.h>
 #include <KisMirrorOptionData.h>
@@ -123,7 +125,7 @@ public:
         KisResourcesSnapshotSP resources =
             new KisResourcesSnapshot(image,
                                      paint1,
-                                     manager.data());
+                                     manager->canvasResourcesInterface());
 
         resources->setupPainter(&gc);
 

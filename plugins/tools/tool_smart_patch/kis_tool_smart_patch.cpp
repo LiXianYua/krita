@@ -159,7 +159,7 @@ void KisToolSmartPatch::endPrimaryAction(KoPointerEvent *event)
     const int patchRadius = 4; //default radius, which works well for most cases tested
 
     KisResourcesSnapshotSP resources =
-        new KisResourcesSnapshot(image(), currentNode(), this->canvas()->resourceManager());
+        new KisResourcesSnapshot(image(), currentNode(), this->canvas()->resourceManager()->canvasResourcesInterface());
 
     KisProcessingApplicator applicator( image(), currentNode(), KisProcessingApplicator::NONE, KisImageSignalVector(),
                                         kundo2_i18n("Smart Patch"));
@@ -253,4 +253,3 @@ void KisToolSmartPatch::paint(QPainter &painter, const KoViewConverter &converte
     }
     painter.restore();
 }
-

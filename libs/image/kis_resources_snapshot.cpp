@@ -14,7 +14,8 @@
 #include <brushengine/kis_paintop_registry.h>
 #include <kis_threaded_text_rendering_workaround.h>
 #include <resources/KoPattern.h>
-#include "kis_canvas_resource_provider.h"
+#include <KoCanvasResourcesIds.h>
+#include <KoResourceCacheInterface.h>
 #include "filter/kis_filter_configuration.h"
 #include "kis_image.h"
 #include "kis_paint_device.h"
@@ -63,7 +64,7 @@ struct KisResourcesSnapshot::Private {
     KoCanvasResourcesInterfaceSP globalCanvasResourcesInterface;
 };
 
-KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNode, KoCanvasResourceProvider *resourceManager, KisDefaultBoundsBaseSP bounds, KisNodeList selectedNodes, KisPaintOpPresetSP presetOverride)
+KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNode, KoCanvasResourcesInterfaceSP canvasResources, KisDefaultBoundsBaseSP bounds, KisNodeList selectedNodes, KisPaintOpPresetSP presetOverride)
     : m_d(new Private())
 {
     m_d->image = image;
@@ -71,18 +72,18 @@ KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNo
         bounds = new KisDefaultBounds(m_d->image);
     }
     m_d->bounds = bounds;
-    m_d->globalCanvasResourcesInterface = resourceManager->canvasResourcesInterface();
-    m_d->currentFgColor = resourceManager->resource(KoCanvasResource::ForegroundColor).value<KoColor>();
-    m_d->currentBgColor = resourceManager->resource(KoCanvasResource::BackgroundColor).value<KoColor>();
-    m_d->currentPattern = resourceManager->resource(KoCanvasResource::CurrentPattern).value<KoPatternSP>();
-    if (resourceManager->resource(KoCanvasResource::CurrentGradient).value<KoAbstractGradientSP>()) {
-        m_d->currentGradient = resourceManager->resource(KoCanvasResource::CurrentGradient).value<KoAbstractGradientSP>();
+    m_d->globalCanvasResourcesInterface = canvasResources;
+    m_d->currentFgColor = canvasResources->resource(KoCanvasResource::ForegroundColor).value<KoColor>();
+    m_d->currentBgColor = canvasResources->resource(KoCanvasResource::BackgroundColor).value<KoColor>();
+    m_d->currentPattern = canvasResources->resource(KoCanvasResource::CurrentPattern).value<KoPatternSP>();
+    if (canvasResources->resource(KoCanvasResource::CurrentGradient).value<KoAbstractGradientSP>()) {
+        m_d->currentGradient = canvasResources->resource(KoCanvasResource::CurrentGradient).value<KoAbstractGradientSP>();
         if(m_d->currentGradient) {
-            m_d->currentGradient = resourceManager->resource(KoCanvasResource::CurrentGradient).value<KoAbstractGradientSP>()
+            m_d->currentGradient = canvasResources->resource(KoCanvasResource::CurrentGradient).value<KoAbstractGradientSP>()
                     ->cloneAndBakeVariableColors(m_d->globalCanvasResourcesInterface);
         }
     }
-    m_d->isUsingOtherColor = resourceManager->boolResource(KoCanvasResource::UsingOtherColor);
+    m_d->isUsingOtherColor = canvasResources->resource(KoCanvasResource::UsingOtherColor).toBool();
 
     /**
      * We should deep-copy the preset, so that long-running actions
@@ -99,9 +100,9 @@ KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNo
                 m_d->globalCanvasResourcesInterface,
                 nullptr);
     } else {
-        KisPaintOpPresetSP p = resourceManager->resource(KoCanvasResource::CurrentPaintOpPreset).value<KisPaintOpPresetSP>();
+        KisPaintOpPresetSP p = canvasResources->resource(KoCanvasResource::CurrentPaintOpPreset).value<KisPaintOpPresetSP>();
         if (p) {
-            KoResourceCacheInterfaceSP cacheInterface = resourceManager->resource(KoCanvasResource::CurrentPaintOpPresetCache).value<KoResourceCacheInterfaceSP>();
+            KoResourceCacheInterfaceSP cacheInterface = canvasResources->resource(KoCanvasResource::CurrentPaintOpPresetCache).value<KoResourceCacheInterfaceSP>();
 
             KIS_SAFE_ASSERT_RECOVER(!cacheInterface || p->sanityCheckResourceCacheIsValid(cacheInterface)) {
                 cacheInterface.clear();
@@ -118,10 +119,10 @@ KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNo
     KisPaintOpRegistry::instance()->preinitializePaintOpIfNeeded(m_d->currentPaintOpPreset);
 #endif /* HAVE_THREADED_TEXT_RENDERING_WORKAROUND */
 
-    m_d->currentExposure = resourceManager->resource(KoCanvasResource::HdrExposure).toDouble();
+    m_d->currentExposure = canvasResources->resource(KoCanvasResource::HdrExposure).toDouble();
 
 
-    m_d->currentGenerator = resourceManager->resource(KoCanvasResource::CurrentGeneratorConfiguration).value<KisFilterConfiguration*>();
+    m_d->currentGenerator = canvasResources->resource(KoCanvasResource::CurrentGeneratorConfiguration).value<KisFilterConfiguration*>();
     if (m_d->currentGenerator) {
         m_d->currentGenerator = m_d->currentGenerator->cloneWithResourcesSnapshot();
     }
@@ -132,12 +133,12 @@ KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNo
     }
     m_d->axesCenter = KisAlgebra2D::relativeToAbsolute(relativeAxesCenter, m_d->bounds->imageBorderRect());
 
-    m_d->mirrorMaskHorizontal = resourceManager->resource(KoCanvasResource::MirrorHorizontal).toBool();
-    m_d->mirrorMaskVertical = resourceManager->resource(KoCanvasResource::MirrorVertical).toBool();
+    m_d->mirrorMaskHorizontal = canvasResources->resource(KoCanvasResource::MirrorHorizontal).toBool();
+    m_d->mirrorMaskVertical = canvasResources->resource(KoCanvasResource::MirrorVertical).toBool();
 
-    m_d->opacity = resourceManager->resource(KoCanvasResource::Opacity).toDouble();
+    m_d->opacity = canvasResources->resource(KoCanvasResource::Opacity).toDouble();
 
-    m_d->compositeOpId = resourceManager->resource(KoCanvasResource::CurrentEffectiveCompositeOp).toString();
+    m_d->compositeOpId = canvasResources->resource(KoCanvasResource::CurrentEffectiveCompositeOp).toString();
     setCurrentNode(currentNode);
 
     m_d->selectedNodes = selectedNodes;
@@ -152,11 +153,11 @@ KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNo
     m_d->fillStyle = KisPainter::FillStyleNone;
 
     // Erasing and alpha lock don't mix. If both are enabled, erasing takes priority.
-    m_d->globalAlphaLock = !resourceManager->resource(KoCanvasResource::EraserMode).toBool()
-            && resourceManager->resource(KoCanvasResource::GlobalAlphaLock).toBool();
-    m_d->effectiveZoom = resourceManager->resource(KoCanvasResource::EffectiveZoom).toDouble();
+    m_d->globalAlphaLock = !canvasResources->resource(KoCanvasResource::EraserMode).toBool()
+            && canvasResources->resource(KoCanvasResource::GlobalAlphaLock).toBool();
+    m_d->effectiveZoom = canvasResources->resource(KoCanvasResource::EffectiveZoom).toDouble();
 
-    m_d->presetAllowsLod = resourceManager->resource(KoCanvasResource::EffectiveLodAvailability).toBool();
+    m_d->presetAllowsLod = canvasResources->resource(KoCanvasResource::EffectiveLodAvailability).toBool();
 }
 
 KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNode, KisDefaultBoundsBaseSP bounds)

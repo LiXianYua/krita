@@ -22,6 +22,16 @@
 #include "KisAnimAutoKey.h"
 #include <commands_new/KisDisableDirtyRequestsCommand.h>
 
+KisStrokeJobData *KisFilterStrokeStrategy::FilterJobData::createLodClone(int levelOfDetail)
+{
+    return new FilterJobData(*this, levelOfDetail);
+}
+
+KisStrokeJobData *KisFilterStrokeStrategy::IdleBarrierData::createLodClone(int levelOfDetail)
+{
+    return new IdleBarrierData(*this, levelOfDetail);
+}
+
 
 struct KisFilterStrokeStrategy::Private {
     Private()

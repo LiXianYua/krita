@@ -49,6 +49,8 @@ set(kritaimage_LIB_SRCS
    tiles3/swap/kis_tile_data_swapper.cpp
    kis_distance_information.cpp
    kis_painter.cc
+   kis_resources_snapshot.cpp
+   kis_filter_stroke_strategy.cpp
    kis_painter_blt_multi_fixed.cpp
    kis_marker_painter.cpp
    KisOverlayPaintDeviceWrapper.cpp

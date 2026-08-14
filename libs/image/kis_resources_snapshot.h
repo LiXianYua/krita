@@ -10,11 +10,11 @@
 #include "kis_shared.h"
 #include "kis_shared_ptr.h"
 #include "kis_types.h"
-#include "kritaui_export.h"
+#include "kritaimage_export.h"
 #include "kis_painter.h"
 #include "kis_default_bounds.h"
+#include <KoCanvasResourcesInterface.h>
 
-class KoCanvasResourceProvider;
 class KoCompositeOp;
 class KisPainter;
 class KisPostExecutionUndoAdapter;
@@ -27,10 +27,10 @@ class KisInterstrokeDataFactory;
  * changes don't impact the running stroke. The main reason for the snapshot is that the
  * user can *change* the options while the stroke is being executed in the background.
  */
-class KRITAUI_EXPORT KisResourcesSnapshot : public KisShared
+class KRITAIMAGE_EXPORT KisResourcesSnapshot : public KisShared
 {
 public:
-    KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNode, KoCanvasResourceProvider *resourceManager, KisDefaultBoundsBaseSP bounds = 0, KisNodeList selectedNodes = KisNodeList(), KisPaintOpPresetSP presetOverride = 0);
+    KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNode, KoCanvasResourcesInterfaceSP canvasResources, KisDefaultBoundsBaseSP bounds = 0, KisNodeList selectedNodes = KisNodeList(), KisPaintOpPresetSP presetOverride = 0);
     KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNode, KisDefaultBoundsBaseSP bounds = 0);
     ~KisResourcesSnapshot();
 

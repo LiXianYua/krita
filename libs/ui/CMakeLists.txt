@@ -187,7 +187,6 @@ set(kritaui_LIB_SRCS
     tool/kis_tool_polyline_base.cpp
     tool/KisToolOutlineBase.cpp
     tool/kis_tool_utils.cpp
-    tool/kis_resources_snapshot.cpp
     tool/KisStrokeCompatibilityInfo.cpp
     tool/kis_smoothing_options.cpp
     tool/KisStabilizerDelayedPaintHelper.cpp
@@ -195,7 +194,6 @@ set(kritaui_LIB_SRCS
     tool/strokes/freehand_stroke.cpp
     tool/strokes/KisStrokeEfficiencyMeasurer.cpp
     tool/strokes/kis_painter_based_stroke_strategy.cpp
-    tool/strokes/kis_filter_stroke_strategy.cpp
     tool/strokes/kis_color_sampler_stroke_strategy.cpp
     tool/strokes/KisFreehandStrokeInfo.cpp
     tool/strokes/KisMaskedFreehandStrokePainter.cpp

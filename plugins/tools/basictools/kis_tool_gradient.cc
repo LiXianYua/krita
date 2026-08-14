@@ -145,7 +145,7 @@ void KisToolGradient::endPrimaryAction(KoPointerEvent *event)
     KisImageSP image = this->image();
 
     KisResourcesSnapshotSP resources =
-        new KisResourcesSnapshot(image, currentNode(), this->canvas()->resourceManager());
+        new KisResourcesSnapshot(image, currentNode(), this->canvas()->resourceManager()->canvasResourcesInterface());
 
     if (image && resources->currentNode()->paintDevice()) {
         KUndo2MagicString actionName = kundo2_i18n("Gradient");
@@ -222,6 +222,5 @@ void KisToolGradient::updateGuideline()
         canvas()->updateCanvas(convertToPt(bound.normalized().adjusted(-3, -3, 3, 3)));
     }
 }
-
 
 

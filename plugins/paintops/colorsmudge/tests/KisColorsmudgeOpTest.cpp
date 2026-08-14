@@ -9,10 +9,12 @@
 #include "kistest.h"
 
 #include <QRegularExpression>
+#define USE_DOCUMENT 0
 #include <qimage_based_test.h>
+#undef USE_DOCUMENT
 #include <stroke_testing_utils.h>
 #include <brushengine/kis_paint_information.h>
-#include <kis_canvas_resource_provider.h>
+#include <KoCanvasResourceProvider.h>
 #include <brushengine/kis_paintop_preset.h>
 #include <brushengine/kis_paintop_settings.h>
 #include <KoCanvasResourcesIds.h>
@@ -74,7 +76,7 @@ public:
         KisResourcesSnapshotSP resources =
             new KisResourcesSnapshot(image,
                                      targetNode,
-                                     manager.data());
+                                     manager->canvasResourcesInterface());
 
         resources->setupPainter(&gc);
 

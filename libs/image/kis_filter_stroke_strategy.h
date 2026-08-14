@@ -11,8 +11,9 @@
 #include "kis_types.h"
 #include "kis_lod_transform.h"
 #include "kis_resources_snapshot.h"
+#include "kritaimage_export.h"
 
-class KRITAUI_EXPORT KisFilterStrokeStrategy : public KisStrokeStrategyUndoCommandBased
+class KRITAIMAGE_EXPORT KisFilterStrokeStrategy : public KisStrokeStrategyUndoCommandBased
 {
 public:
     class FilterJobData : public KisStrokeJobData {
@@ -22,9 +23,7 @@ public:
               frameTime(frameTime)
         {}
 
-        KisStrokeJobData* createLodClone(int levelOfDetail) override {
-            return new FilterJobData(*this, levelOfDetail);
-        }
+        KisStrokeJobData* createLodClone(int levelOfDetail) override;
 
         int frameTime;
 
@@ -45,9 +44,7 @@ public:
         {
         }
 
-        KisStrokeJobData* createLodClone(int levelOfDetail) override {
-            return new IdleBarrierData(*this, levelOfDetail);
-        }
+        KisStrokeJobData* createLodClone(int levelOfDetail) override;
 
         using IdleBarrierCookie = QWeakPointer<std::tuple<>>;
 

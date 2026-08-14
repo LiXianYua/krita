@@ -10,6 +10,7 @@
 #include <QVector>
 
 #include "KisRunnableBasedStrokeStrategy.h"
+#include "kritaui_export.h"
 #include "kis_resources_snapshot.h"
 #include "kis_selection.h"
 #include "kis_indirect_painting_support.h"
