@@ -17,8 +17,6 @@
 #include "kis_display_color_converter.h"
 #include "kis_tool_utils.h"
 
-#include <kis_config.h>
-
 KisToolColorSampler::KisToolColorSampler(KoCanvasBase *canvas)
     : KisTool(canvas, KisCursor::samplerCursor()),
       m_config(new KisToolUtils::ColorSamplerConfig),
@@ -157,8 +155,6 @@ void KisToolColorSampler::deactivatePrimaryAction()
 void KisToolColorSampler::requestUpdateOutline(const QPointF &outlineDocPoint, const KoPointerEvent *event)
 {
     Q_UNUSED(event);
-
-    KisConfig cfg(true);
 
     QRectF colorPreviewDocUpdateRect;
 

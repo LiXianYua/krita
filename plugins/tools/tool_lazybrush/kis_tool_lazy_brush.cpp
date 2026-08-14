@@ -16,7 +16,6 @@
 #include <KisViewManager.h>
 #include "kis_canvas2.h"
 #include "kis_cursor.h"
-#include "kis_config.h"
 #include "kundo2magicstring.h"
 
 #include "KoProperties.h"
@@ -340,4 +339,3 @@ void KisToolLazyBrush::explicitUserStrokeEndRequest()
         KisLayerPropertiesIcons::setNodePropertyAutoUndo(node, KisLayerPropertiesIcons::colorizeNeedsUpdate, false, image());
     }
 }
-

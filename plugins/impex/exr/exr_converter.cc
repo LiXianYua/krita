@@ -24,6 +24,8 @@
 #include <QDomDocument>
 #include <QThread>
 
+#include <KConfigGroup>
+#include <KSharedConfig>
 
 #include <KoColorSpaceRegistry.h>
 #include <KoCompositeOpRegistry.h>
@@ -209,10 +211,14 @@ const KoColorSpace *kisTypeToColorSpace(QString colorModelID, ImageType imageTyp
      * Our user settings are only for the RGB color model, for other models just use
      * the default one provided by the color space.
      */
-    const QString profileName =
-        colorModelID == RGBAColorModelID.id() ?
-        KisConfig(false).readEntry("ExrDefaultColorProfile", defaultProfileForColorSpace) :
-        defaultProfileForColorSpace;
+    QString profileName = defaultProfileForColorSpace;
+    if (colorModelID == RGBAColorModelID.id()) {
+        KConfigGroup config = KSharedConfig::openConfig()->group(QString());
+        profileName = config.readEntry("ExrDefaultColorProfile", defaultProfileForColorSpace);
+        if (!qApp || qApp->thread() == QThread::currentThread()) {
+            config.sync();
+        }
+    }
 
     return KoColorSpaceRegistry::instance()->colorSpace(colorModelID, colorDepthID, profileName);
 
@@ -1454,5 +1460,3 @@ void EXRConverter::cancel()
 {
     warnKrita << "WARNING: Cancelling of an EXR loading is not supported!";
 }
-
-

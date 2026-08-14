@@ -7,8 +7,11 @@
 #include "kis_svg_import.h"
 
 #include <kpluginfactory.h>
+#include <KConfigGroup>
+#include <KSharedConfig>
+#include <QApplication>
 #include <QFileInfo>
-#include "kis_config.h"
+#include <QThread>
 
 #include <QInputDialog>
 #include <KisDocument.h>
@@ -20,6 +23,27 @@
 #include <KoShapeControllerBase.h>
 
 K_PLUGIN_FACTORY_WITH_JSON(SVGImportFactory, "krita_svg_import.json", registerPlugin<KisSVGImport>();)
+
+namespace {
+class ConfigSyncGuard
+{
+public:
+    explicit ConfigSyncGuard(KConfigGroup &config)
+        : m_config(config)
+    {
+    }
+
+    ~ConfigSyncGuard()
+    {
+        if (!qApp || qApp->thread() == QThread::currentThread()) {
+            m_config.sync();
+        }
+    }
+
+private:
+    KConfigGroup &m_config;
+};
+}
 
 KisSVGImport::KisSVGImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
 {
@@ -37,9 +61,10 @@ KisImportExportErrorCode KisSVGImport::convert(KisDocument *document, QIODevice 
 
     const QString baseXmlDir = QFileInfo(filename()).canonicalPath();
 
-    KisConfig cfg(false);
+    KConfigGroup config = KSharedConfig::openConfig()->group(QString());
+    ConfigSyncGuard syncGuard(config);
 
-    qreal resolutionPPI = cfg.preferredVectorImportResolutionPPI(true);
+    qreal resolutionPPI = 100.0;
 
     if (!batchMode()) {
         bool okay = false;
@@ -47,14 +72,14 @@ KisImportExportErrorCode KisSVGImport::convert(KisDocument *document, QIODevice 
         resolutionPPI = QInputDialog::getInt(0,
                                              i18n("Import SVG"),
                                              i18n("Enter preferred resolution (PPI) for \"%1\"", name),
-                                             cfg.preferredVectorImportResolutionPPI(),
+                                             config.readEntry("preferredVectorImportResolution", 100.0),
                                              0, 100000, 1, &okay);
 
         if (!okay) {
             return ImportExportCodes::Cancelled;
         }
 
-        cfg.setPreferredVectorImportResolutionPPI(resolutionPPI);
+        config.writeEntry("preferredVectorImportResolution", static_cast<int>(resolutionPPI));
     }
 
     const qreal resolution = resolutionPPI;

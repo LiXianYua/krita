@@ -38,7 +38,6 @@
 #include <canvas/kis_canvas2.h>
 #include <KisViewManager.h>
 #include <kis_cursor.h>
-#include <kis_config.h>
 #include "kis_resources_snapshot.h"
 #include "kis_command_utils.h"
 #include "kis_processing_applicator.h"
@@ -222,5 +221,4 @@ void KisToolGradient::updateGuideline()
         canvas()->updateCanvas(convertToPt(bound.normalized().adjusted(-3, -3, 3, 3)));
     }
 }
-
 

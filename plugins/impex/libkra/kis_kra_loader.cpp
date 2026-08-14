@@ -65,7 +65,6 @@
 #include <kis_painting_assistant.h>
 
 #include "KisDocument.h"
-#include "kis_config.h"
 #include "kis_kra_tags.h"
 #include "kis_kra_utils.h"
 #include "kis_kra_load_visitor.h"

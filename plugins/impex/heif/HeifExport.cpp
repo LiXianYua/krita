@@ -29,7 +29,6 @@
 #include <KoColorSpaceRegistry.h>
 #include <KoColorTransferFunctions.h>
 #include <kis_assert.h>
-#include <kis_config.h>
 #include <kis_exif_info_visitor.h>
 #include <kis_group_layer.h>
 #include <kis_image.h>

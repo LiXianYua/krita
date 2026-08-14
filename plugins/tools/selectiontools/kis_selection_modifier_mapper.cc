@@ -24,7 +24,9 @@
 #include "kis_selection.h"
 #include "kis_selection_modifier_mapper.h"
 #include "kis_config_notifier.h"
-#include "kis_config.h"
+
+#include <KConfigGroup>
+#include <KSharedConfig>
 
 Q_GLOBAL_STATIC(KisSelectionModifierMapper, s_instance)
 
@@ -77,8 +79,9 @@ void KisSelectionModifierMapper::slotConfigChanged()
 
 void KisSelectionModifierMapper::Private::slotConfigChanged()
 {
-    KisConfig cfg(true);
-    if (!cfg.switchSelectionCtrlAlt()) {
+    const bool switchSelectionCtrlAlt =
+        KSharedConfig::openConfig()->group(QString()).readEntry("switchSelectionCtrlAlt", false);
+    if (!switchSelectionCtrlAlt) {
         replaceModifiers   = Qt::ControlModifier;
         intersectModifiers = (Qt::KeyboardModifiers)(Qt::AltModifier | Qt::ShiftModifier);
         subtractModifiers  = Qt::AltModifier;

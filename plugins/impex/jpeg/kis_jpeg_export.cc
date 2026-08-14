@@ -29,7 +29,6 @@
 #include <kis_paint_layer.h>
 #include <kis_paint_device.h>
 #include <kis_properties_configuration.h>
-#include <kis_config.h>
 #include <kis_meta_data_store.h>
 #include <kis_meta_data_entry.h>
 #include <kis_meta_data_value.h>
