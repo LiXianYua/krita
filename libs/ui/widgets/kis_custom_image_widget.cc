@@ -324,20 +324,24 @@ KisDocument* KisCustomImageWidget::createNewImage()
     qc.setAlpha(backgroundOpacity());
     KoColor bgColor(qc, cs);
 
-    KisConfig::BackgroundStyle bgStyle = KisConfig::CANVAS_COLOR;
+    KisConfig::BackgroundStyle configBackgroundStyle = KisConfig::CANVAS_COLOR;
+    KisDocument::NewImageBackgroundStyle documentBackgroundStyle =
+        KisDocument::NewImageBackgroundStyle::CanvasColor;
     if( radioBackgroundAsRaster->isChecked() ){
-        bgStyle = KisConfig::RASTER_LAYER;
+        configBackgroundStyle = KisConfig::RASTER_LAYER;
+        documentBackgroundStyle = KisDocument::NewImageBackgroundStyle::RasterLayer;
     } else if( radioBackgroundAsFill->isChecked() ){
-        bgStyle = KisConfig::FILL_LAYER;
+        configBackgroundStyle = KisConfig::FILL_LAYER;
+        documentBackgroundStyle = KisDocument::NewImageBackgroundStyle::FillLayer;
     }
 
-    doc->newImage(txtName->text(), width, height, cs, bgColor, bgStyle, intNumLayers->value(), txtDescription->toPlainText(), resolution);
+    doc->newImage(txtName->text(), width, height, cs, bgColor, documentBackgroundStyle, intNumLayers->value(), txtDescription->toPlainText(), resolution);
 
     KisConfig cfg(true);
     cfg.setNumDefaultLayers(intNumLayers->value());
     cfg.setDefaultBackgroundOpacity(backgroundOpacity());
     cfg.setDefaultBackgroundColor(cmbColor->color().toQColor());
-    cfg.setDefaultBackgroundStyle(bgStyle);
+    cfg.setDefaultBackgroundStyle(configBackgroundStyle);
 
     return doc;
 }
@@ -541,4 +545,3 @@ void KisCustomImageWidget::changeDocumentInfoLabel()
                          KFormat().formatByteSize(layerSize));
     lblDocumentInfo->setText(text);
 }
-

@@ -19,7 +19,7 @@
 void KisDocumentReplaceTest::init()
 {
     m_doc = KisPart::instance()->createDocument();
-    qDebug() << m_doc->newImage("test", 512, 512, KoColorSpaceRegistry::instance()->colorSpace("RGBA", "U8", 0), KoColor(), KisConfig::RASTER_LAYER, 1, "", 96);
+    qDebug() << m_doc->newImage("test", 512, 512, KoColorSpaceRegistry::instance()->colorSpace("RGBA", "U8", 0), KoColor(), KisDocument::NewImageBackgroundStyle::RasterLayer, 1, "", 96);
 }
 
 void KisDocumentReplaceTest::finalize()
@@ -33,7 +33,7 @@ void KisDocumentReplaceTest::testCopyFromDocument()
     init();
     QScopedPointer<KisDocument> clonedDoc(m_doc->lockAndCreateSnapshot());
     KisDocument *anotherDoc = KisPart::instance()->createDocument();
-    anotherDoc->newImage("test", 512, 512, KoColorSpaceRegistry::instance()->colorSpace("RGBA", "U8", 0), KoColor(), KisConfig::RASTER_LAYER, 2, "", 96);
+    anotherDoc->newImage("test", 512, 512, KoColorSpaceRegistry::instance()->colorSpace("RGBA", "U8", 0), KoColor(), KisDocument::NewImageBackgroundStyle::RasterLayer, 2, "", 96);
     KisImageSP anotherImage(anotherDoc->image());
     KisNodeSP root(anotherImage->rootLayer());
     anotherDoc->copyFromDocument(*(clonedDoc.data()));

@@ -20,6 +20,7 @@
 #include "KoFileDialog.h"
 
 #include <KisDocument.h>
+#include <kis_config.h>
 #include <KisMainWindow.h>
 #include <KisImportExportManager.h>
 #include <kis_image.h>
@@ -815,5 +816,4 @@ KisBasicVideoInfo KisDlgImportVideoAnimation::loadVideoInfo(const QString &input
 
     return videoInfoData;
 }
-
 

@@ -381,6 +381,6 @@ KisDocument *KisApplicationArguments::createDocumentFromArguments() const
         return 0;
     }
 
-    doc->newImage(i18n("Unnamed"), d->width, d->height, cs, KoColor(QColor(Qt::white), cs), KisConfig::CANVAS_COLOR, 1, "", 100.0);
+    doc->newImage(i18n("Unnamed"), d->width, d->height, cs, KoColor(QColor(Qt::white), cs), KisDocument::NewImageBackgroundStyle::CanvasColor, 1, "", 100.0);
     return doc;
 }

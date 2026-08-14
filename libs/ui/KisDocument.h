@@ -26,7 +26,6 @@
 #include <KisReferenceImage.h>
 #include <kis_debug.h>
 #include <KisImportExportUtils.h>
-#include <kis_config.h>
 #include "StoryboardItem.h"
 
 #include "kritaui_export.h"
@@ -44,7 +43,6 @@ class KoShapeControllerBase;
 class KoShapeLayer;
 class KoStore;
 class KoDocumentInfo;
-class KoDocumentInfoDlg;
 class KisImportExportManager;
 class KisUndoStore;
 class KisPart;
@@ -76,6 +74,12 @@ protected:
     explicit KisDocument(const KisDocument &rhs, bool addStorage);
 
 public:
+    enum class NewImageBackgroundStyle : int {
+        RasterLayer = 0,
+        CanvasColor = 1,
+        FillLayer = 2
+    };
+
     enum OpenFlag {
         None = 0,
         DontAddToRecent = 0x1,
@@ -582,8 +586,6 @@ public:
     QString localFilePath() const;
     void setLocalFilePath( const QString &localFilePath );
 
-    KoDocumentInfoDlg* createDocumentInfoDialog(QWidget *parent, KoDocumentInfo *docInfo) const;
-
     bool isReadWrite() const;
 
     QString path() const;
@@ -597,7 +599,7 @@ public:
      * Create a new image that has this document as a parent and
      * replace the current image with this image.
      */
-    bool newImage(const QString& name, qint32 width, qint32 height, const KoColorSpace * cs, const KoColor &bgColor, KisConfig::BackgroundStyle bgStyle,
+    bool newImage(const QString& name, qint32 width, qint32 height, const KoColorSpace * cs, const KoColor &bgColor, NewImageBackgroundStyle bgStyle,
                   int numberOfLayers, const QString &imageDescription, const double imageResolution);
 
     bool isSaving() const;

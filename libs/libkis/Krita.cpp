@@ -223,7 +223,7 @@ Document* Krita::createDocument(int width, int height, const QString &name, cons
     QColor qc(Qt::white);
     KoColor bgColor(qc, cs);
 
-    if (!document->newImage(name, width, height, cs, bgColor, KisConfig::RASTER_LAYER, 1, "", double(resolution / 72) )) {
+    if (!document->newImage(name, width, height, cs, bgColor, KisDocument::NewImageBackgroundStyle::RasterLayer, 1, "", double(resolution / 72) )) {
         return 0;
     }
 

@@ -15,6 +15,7 @@
 #include <kstandardguiitem.h>
 
 #include <kis_config_widget.h>
+#include <kis_config.h>
 #include <filter/kis_filter_configuration.h>
 #include <kis_paint_device.h>
 #include <kis_transaction.h>
@@ -179,4 +180,3 @@ QString KisDlgGeneratorLayer::layerName() const
 {
     return dlgWidget.txtLayerName->text();
 }
-

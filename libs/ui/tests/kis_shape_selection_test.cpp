@@ -33,7 +33,7 @@ void KisShapeSelectionTest::testAddChild()
     QColor qc(Qt::white);
     qc.setAlpha(0);
     KoColor bgColor(qc, cs);
-    doc->newImage("test", 300, 300, cs, bgColor, KisConfig::CANVAS_COLOR, 1, "test", 100);
+    doc->newImage("test", 300, 300, cs, bgColor, KisDocument::NewImageBackgroundStyle::CanvasColor, 1, "test", 100);
     KisImageSP image = doc->image();
 
     KisDefaultBoundsSP bounds(new KisDefaultBounds(image));
@@ -92,7 +92,7 @@ void KisShapeSelectionTest::testUndoFlattening()
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
     KoColor bgColor(QColor(255, 255, 255, 0), cs);
-    doc->newImage("test", 300, 300, cs, bgColor, KisConfig::CANVAS_COLOR, 1, "test", 100);
+    doc->newImage("test", 300, 300, cs, bgColor, KisDocument::NewImageBackgroundStyle::CanvasColor, 1, "test", 100);
     KisImageSP image = doc->image();
 
     QCOMPARE(image->locked(), false);
@@ -201,7 +201,7 @@ void KisShapeSelectionTest::testHistoryOnFlattening()
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
     QScopedPointer<KisDocument> doc(KisPart::instance()->createDocument());
     KoColor bgColor(QColor(255, 255, 255, 0), cs);
-    doc->newImage("test", 300, 300, cs, bgColor, KisConfig::CANVAS_COLOR, 1, "test", 100);
+    doc->newImage("test", 300, 300, cs, bgColor, KisDocument::NewImageBackgroundStyle::CanvasColor, 1, "test", 100);
     KisImageSP image = doc->image();
 
     QCOMPARE(image->locked(), false);
@@ -336,5 +336,4 @@ void KisShapeSelectionTest::testHistoryOnFlattening()
 
 
 KISTEST_MAIN(KisShapeSelectionTest)
-
 

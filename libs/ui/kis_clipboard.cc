@@ -30,6 +30,7 @@
 #include <kis_layer_utils.h>
 #include <kis_paint_device.h>
 #include <kis_time_span.h>
+#include <kis_config.h>
 
 // local
 #include "KisDocument.h"

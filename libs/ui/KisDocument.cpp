@@ -16,7 +16,6 @@
 #include <KoColorSpaceEngine.h>
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
-#include <KoDocumentInfoDlg.h>
 #include <KoDocumentInfo.h>
 #include <KoUnit.h>
 #include <KoID.h>
@@ -2551,11 +2550,6 @@ void KisDocument::resetPath() {
     setLocalFilePath(QString());
 }
 
-KoDocumentInfoDlg *KisDocument::createDocumentInfoDialog(QWidget *parent, KoDocumentInfo *docInfo) const
-{
-    return new KoDocumentInfoDlg(parent, docInfo);
-}
-
 bool KisDocument::isReadWrite() const
 {
     return d->readwrite;
@@ -2661,7 +2655,7 @@ bool KisDocument::openPathInternal(const QString &path)
 bool KisDocument::newImage(const QString& name,
                            qint32 width, qint32 height,
                            const KoColorSpace* cs,
-                           const KoColor &bgColor, KisConfig::BackgroundStyle bgStyle,
+                           const KoColor &bgColor, NewImageBackgroundStyle bgStyle,
                            int numberOfLayers,
                            const QString &description, const double imageResolution)
 {
@@ -2701,15 +2695,16 @@ bool KisDocument::newImage(const QString& name,
     bool autopin = cfg.autoPinLayersToTimeline();
 
     KisLayerSP bgLayer;
-    if (bgStyle == KisConfig::RASTER_LAYER || bgStyle == KisConfig::FILL_LAYER) {
+    if (bgStyle == NewImageBackgroundStyle::RasterLayer ||
+        bgStyle == NewImageBackgroundStyle::FillLayer) {
         KoColor strippedAlpha = bgColor;
         strippedAlpha.setOpacity(OPACITY_OPAQUE_U8);
 
-        if (bgStyle == KisConfig::RASTER_LAYER) {
+        if (bgStyle == NewImageBackgroundStyle::RasterLayer) {
             bgLayer = new KisPaintLayer(image.data(), i18nc("Name for the bottom-most layer in the layerstack", "Background"), OPACITY_OPAQUE_U8, cs);
             bgLayer->paintDevice()->setDefaultPixel(strippedAlpha);
             bgLayer->setPinnedToTimeline(autopin);
-        } else if (bgStyle == KisConfig::FILL_LAYER) {
+        } else if (bgStyle == NewImageBackgroundStyle::FillLayer) {
             KisFilterConfigurationSP filter_config = KisGeneratorRegistry::instance()->get("color")->defaultConfiguration(KisGlobalResourcesInterface::instance());
             filter_config->setProperty("color", strippedAlpha.toQColor());
             filter_config->createLocalResourcesSnapshot();
@@ -2723,7 +2718,7 @@ bool KisDocument::newImage(const QString& name,
             bgLayer->setUserLocked(true);
         }
     }
-    else { // KisConfig::CANVAS_COLOR (needs an unlocked starting layer).
+    else { // NewImageBackgroundStyle::CanvasColor (needs an unlocked starting layer).
         image->setDefaultProjectionColor(bgColor);
         bgLayer = new KisPaintLayer(image.data(), image->nextLayerName(), OPACITY_OPAQUE_U8, cs);
     }

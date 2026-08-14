@@ -2164,7 +2164,7 @@ void KisMainWindow::slotDocumentInfo()
     if (!docInfo)
         return;
 
-    KoDocumentInfoDlg *dlg = d->activeView->document()->createDocumentInfoDialog(this, docInfo);
+    KoDocumentInfoDlg *dlg = new KoDocumentInfoDlg(this, docInfo);
 
     if (dlg->exec()) {
         if (dlg->isDocumentSaved()) {
@@ -2286,7 +2286,7 @@ void KisMainWindow::importVideoAnimation()
             qc.setAlpha(0);
             KoColor bgColor(qc, cs);
 
-            if (!document->newImage(name, width, height, cs, bgColor, KisConfig::RASTER_LAYER, 1, "", double(resolution / 72) )) {
+            if (!document->newImage(name, width, height, cs, bgColor, KisDocument::NewImageBackgroundStyle::RasterLayer, 1, "", double(resolution / 72) )) {
                 QMessageBox::critical(qApp->activeWindow(), i18nc("@title:window", "Krita"), i18n("Failed to create new document. Animation import aborted."));
                 return;
             }
