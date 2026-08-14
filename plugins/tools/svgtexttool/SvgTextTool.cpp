@@ -34,13 +34,14 @@
 
 #include <klocalizedstring.h>
 
-#include <kis_canvas2.h>
 #include <KSharedConfig>
 #include "kis_assert.h"
 #include <kis_coordinates_converter.h>
+#include <KisCanvasFeedback.h>
 
 #include <KoFileDialog.h>
 #include <KoIcon.h>
+#include <KoColor.h>
 #include <KoCanvasBase.h>
 #include <KoSelection.h>
 #include <KoShapeManager.h>
@@ -52,6 +53,7 @@
 #include <KoSelectedShapesProxy.h>
 #include "KoToolManager.h"
 #include <KoShapeFillWrapper.h>
+#include <KoSnapGuide.h>
 #include "KoCanvasResourceProvider.h"
 #include <KoPathShape.h>
 #include <KoPathSegment.h>
@@ -62,10 +64,8 @@
 #include <KoColorBackground.h>
 #include <KisResourceModel.h>
 
-#include <KisTextPropertiesManager.h>
-#include <KisViewManager.h>
-
 #include "KisHandlePainterHelper.h"
+#include "kis_node.h"
 #include "kis_tool_utils.h"
 #include "kis_debug.h"
 #include <commands/KoKeepShapesSelectedCommand.h>
@@ -177,11 +177,7 @@ void SvgTextTool::activate(const QSet<KoShape *> &shapes)
         m_optionsDataLoaded = true;
     }
 
-    KisCanvas2 *canvas2 = qobject_cast<KisCanvas2 *>(this->canvas());
-    if (canvas2) {
-        canvas2->setCurrentShapeManagerOwnerShape(nullptr);
-        canvas2->viewManager()->textPropertyManager()->setTextPropertiesInterface(m_textCursor.textPropertyInterface());
-    }
+    canvas()->setCurrentShapeManagerOwnerShape(nullptr);
 
     connect(m_textTypeSignalsMapper.data(), SIGNAL(mapped(int)), this, SLOT(slotConvertType(int)));
     connect(m_typeSettingMovementMapper.data(), SIGNAL(mapped(int)), this, SLOT(slotMoveTextSelection(int)));
@@ -197,10 +193,6 @@ void SvgTextTool::deactivate()
     KoToolBase::deactivate();
     m_canvasConnections.clear();
     m_textCursor.setShape(nullptr);
-    const KisCanvas2 *canvas2 = qobject_cast<const KisCanvas2 *>(this->canvas());
-    if (canvas2) {
-        canvas2->viewManager()->textPropertyManager()->setTextPropertiesInterface(nullptr);
-    }
     // Exiting text editing mode is handled by requestStrokeEnd
     disconnect(m_textTypeSignalsMapper.data(), 0, this, 0);
     disconnect(m_typeSettingMovementMapper.data(), 0, this, 0);
@@ -284,11 +276,7 @@ KoSvgTextProperties SvgTextTool::propertiesForNewText() const
         QVector<KoResourceSP> res = model->resourcesForName(presetName);
         if (res.first()) {
             KoCssStylePresetSP style = res.first().staticCast<KoCssStylePreset>();
-            qreal dpi = 72;
-            KisCanvas2 *canvas2 = qobject_cast<KisCanvas2 *>(this->canvas());
-            if (canvas2) {
-                dpi = canvas2->image()->xRes() * 72.0;
-            }
+            const qreal dpi = canvas()->shapeController()->pixelsPerInch();
             if (style) {
                 props = style->properties(dpi, true);
             }
@@ -487,10 +475,10 @@ void SvgTextTool::slotMoveTextSelection(int index)
     } else {
         return;
     }
-    const KisCanvas2 *canvas2 = qobject_cast<const KisCanvas2 *>(this->canvas());
-    if (canvas2) {
-        offset = canvas2->coordinatesConverter()->imageToDocumentTransform().map(offset);
-    }
+    const auto *converter = dynamic_cast<const KisCoordinatesConverter *>(
+        canvas()->viewConverter());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(converter);
+    offset = converter->imageToDocumentTransform().map(offset);
     KUndo2Command *parentCommand = new KUndo2Command();
     new KoKeepShapesSelectedCommand({selectedShape()}, {}, canvas()->selectedShapesProxy(), KisCommandUtils::FlipFlopCommand::State::INITIALIZING, parentCommand);
     KUndo2Command *cmd = new SvgTextChangeTransformsOnRange(shape, m_textCursor.getPos(), m_textCursor.getAnchor(), offset, SvgTextChangeTransformsOnRange::OffsetAll, true, parentCommand);
@@ -503,10 +491,11 @@ bool SvgTextTool::nodeEditable()
 {
     KisNodeSP node = canvas()->resourceManager()->resource(KoCanvasResource::CurrentKritaNode).value<KisNodeWSP>();
     if (!node->isEditable(true)) {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-        if (kiscanvas) {
+        if (KisCanvasFeedback *feedback =
+                dynamic_cast<KisCanvasFeedback *>(canvas())) {
             QString message = KisToolUtils::nodeEditableMessage(node);
-            kiscanvas->viewManager()->showFloatingMessage(message, KisIconUtils::loadIcon("object-locked"));
+            feedback->showFloatingMessage(
+                message, KisIconUtils::loadIcon("object-locked"));
         }
         return false;
     }
@@ -755,9 +744,9 @@ static inline Qt::CursorShape angleToCursor(const QVector2D unit)
 
 static inline Qt::CursorShape lineToCursor(const QLineF line, const KoCanvasBase *const canvas)
 {
-    const KisCanvas2 *const canvas2 = qobject_cast<const KisCanvas2 *>(canvas);
-    KIS_ASSERT(canvas2);
-    const KisCoordinatesConverter *const converter = canvas2->coordinatesConverter();
+    const auto *converter = dynamic_cast<const KisCoordinatesConverter *>(
+        canvas->viewConverter());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, Qt::ArrowCursor);
     QLineF wdgLine = converter->flakeToWidget(line);
     return angleToCursor(QVector2D(wdgLine.p2() - wdgLine.p1()).normalized());
 }
