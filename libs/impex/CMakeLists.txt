@@ -17,6 +17,8 @@ set(kritaimpex_LIB_SRCS
     StoryboardItem.cpp
     KisDocumentRegistry.cpp
     KisDocumentRegistry.h
+    KisReferenceImageDocumentFallback.cpp
+    KisReferenceImagesLayerCommands.cpp
     KisPngCodec.cpp
     KoDocumentInfo.cpp
 )

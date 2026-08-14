@@ -11,6 +11,7 @@
 #include "KoShapeControllerBase.h"
 #include "KoSnapProxy.h"
 #include "KoSnapStrategy.h"
+#include "KisSnapPointStrategy.h"
 #include "KoViewConverter.h"
 #include "MockShapes.h"
 #include <QPainterPath>
@@ -19,6 +20,17 @@
 
 //#include <PointProperties.h>
 #include <KoSnapData.h>
+
+void TestSnapStrategy::testCustomPointSnap()
+{
+    KisSnapPointStrategy strategy;
+    strategy.addPoint(QPointF(10.0, 10.0));
+    strategy.addPoint(QPointF(2.0, 2.0));
+
+    QVERIFY(strategy.snap(QPointF(1.5, 1.5), nullptr, 2.0));
+    QCOMPARE(strategy.snappedPosition(), QPointF(2.0, 2.0));
+    QVERIFY(!strategy.snap(QPointF(20.0, 20.0), nullptr, 2.0));
+}
 
 void TestSnapStrategy::testOrthogonalSnap()
 {

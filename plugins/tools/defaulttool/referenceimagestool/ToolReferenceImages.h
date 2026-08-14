@@ -12,7 +12,6 @@
 #include <KoToolFactoryBase.h>
 #include <KoIcon.h>
 
-#include <kis_tool.h>
 #include <KisNodeAdditionFlags.h>
 #include <kis_node.h>
 #include <kis_icon.h>
@@ -94,7 +93,7 @@ public:
         setSection(ToolBoxSection::View);
         setIconName(koIconNameCStr("krita_tool_reference_images"));
         setPriority(2);
-        setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
+        setActivationShapeId("flake/always");
     };
 
 

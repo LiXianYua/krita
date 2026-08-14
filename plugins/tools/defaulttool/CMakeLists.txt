@@ -22,5 +22,5 @@ set ( defaulttools_SRCS
 qt_add_resources(defaulttools_SRCS defaulttools.qrc)
 
 kis_add_library(krita_flaketools MODULE ${defaulttools_SRCS})
-target_link_libraries(krita_flaketools kritaflake kritawidgets kritaui)
+target_link_libraries(krita_flaketools kritaflake kritawidgets kritacanvas kritaimpex)
 install(TARGETS krita_flaketools DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

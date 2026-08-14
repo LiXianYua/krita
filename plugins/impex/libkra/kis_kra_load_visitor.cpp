@@ -10,7 +10,7 @@
 #include "flake/kis_shape_layer.h"
 #include "flake/KisReferenceImagesLayer.h"
 #include "KisReferenceImage.h"
-#include "KisReferenceImageDesktop.h"
+#include "KisReferenceImageDocumentFallback.h"
 #include <KisImportExportManager.h>
 
 #include <QBuffer>

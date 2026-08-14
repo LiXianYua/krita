@@ -10,7 +10,7 @@
 
 #include <libs/store/KoStore.h>
 #include <KisReferenceImage.h>
-#include <KisReferenceImageDesktop.h>
+#include <KisReferenceImageDocumentFallback.h>
 #include <libs/store/KoStoreDevice.h>
 
 const QString METADATA_FILE = "reference_images.xml";

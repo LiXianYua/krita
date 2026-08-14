@@ -37,7 +37,6 @@ set(kritaui_LIB_SRCS
     canvas/kis_guides_manager.cpp
     canvas/kis_snap_config.cpp
     canvas/kis_snap_line_strategy.cpp
-    canvas/KisSnapPointStrategy.cpp
     canvas/KisSnapPixelStrategy.cpp
     canvas/KoCanvasControllerWidget.cpp
     canvas/KoCanvasControllerWidgetViewport_p.cpp
@@ -408,7 +407,6 @@ set(kritaui_LIB_SRCS
 
     KisReferenceImagesDecoration.cpp
     KisReferenceImageDesktop.cpp
-    flake/KisReferenceImagesLayerCommands.cpp
     KisMouseClickEater.cpp
 
     KoDocumentInfoDlg.cpp

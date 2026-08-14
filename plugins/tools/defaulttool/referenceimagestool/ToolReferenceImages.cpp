@@ -21,7 +21,6 @@
 #include <KoFileDialog.h>
 #include "KisMimeDatabase.h"
 
-#include <kis_action_registry.h>
 #include <KisReferenceImageToolServices.h>
 #include <KisDocument.h>
 #include <KisReferenceImage.h>

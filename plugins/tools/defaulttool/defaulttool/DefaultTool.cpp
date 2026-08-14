@@ -56,8 +56,6 @@
 #include <KoInteractionStrategyFactory.h>
 #include <KisHandlePainterHelper.h>
 
-#include "kis_document_aware_spin_box_unit_manager.h"
-
 #include <KoIcon.h>
 
 #include <QPainterPath>

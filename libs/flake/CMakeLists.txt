@@ -101,6 +101,7 @@ set(kritaflake_SRCS
     KoSnapGuide.cpp
     KoSnapProxy.cpp
     KoSnapStrategy.cpp
+    KisSnapPointStrategy.cpp
     KoSnapData.cpp
     KoSharedLoadingData.cpp
     KoSharedSavingData.cpp
@@ -308,4 +309,3 @@ set_target_properties(kritaflake PROPERTIES
 )
 
 install(TARGETS kritaflake  ${INSTALL_TARGETS_DEFAULT_ARGS})
-

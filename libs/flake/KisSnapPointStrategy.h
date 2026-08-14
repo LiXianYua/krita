@@ -10,7 +10,7 @@
 #include <QScopedPointer>
 
 #include "KoSnapStrategy.h"
-#include "kritaui_export.h"
+#include "kritaflake_export.h"
 
 /**
  * The KisSnapPointStrategy class is a custom strategy that allows snapping to
@@ -19,7 +19,7 @@
  * is dragging by the user.
  */
 
-class KRITAUI_EXPORT KisSnapPointStrategy : public KoSnapStrategy
+class KRITAFLAKE_EXPORT KisSnapPointStrategy : public KoSnapStrategy
 {
 public:
     KisSnapPointStrategy(KoSnapGuide::Strategy type = KoSnapGuide::CustomSnapping);
