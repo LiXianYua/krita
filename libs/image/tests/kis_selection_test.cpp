@@ -18,15 +18,61 @@
 #include "kis_datamanager.h"
 #include "kis_pixel_selection.h"
 #include "kis_selection.h"
+#include "KisSelectionUtils.h"
 #include "kis_default_bounds.h"
 #include "KisImageResolutionProxy.h"
 #include "kis_fill_painter.h"
 #include "kis_mask.h"
 #include "kis_image.h"
 #include "kis_transparency_mask.h"
+#include "kis_selection_mask.h"
+#include <commands/kis_set_global_selection_command.h>
 #include <testutil.h>
 #include "testimage.h"
 #include <KoColorModelStandardIds.h>
+
+void KisSelectionTest::testActiveSelectionForNode()
+{
+    const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
+    KisImageSP image = new KisImage(nullptr, 100, 100, colorSpace, "selection-utils");
+
+    KisSelectionSP globalSelection =
+        new KisSelection(new KisDefaultBounds(image), toQShared(new KisImageResolutionProxy(image)));
+    image->undoAdapter()->addCommand(new KisSetGlobalSelectionCommand(image, globalSelection));
+
+    QCOMPARE(KisSelectionUtils::activeSelectionForNode(image, KisNodeSP()), globalSelection);
+    QCOMPARE(KisSelectionUtils::activeSelectionForNode(image, image->root()), globalSelection);
+
+    KisSelectionSP localSelection =
+        new KisSelection(new KisDefaultBounds(image), toQShared(new KisImageResolutionProxy(image)));
+    KisSelectionMaskSP localMask = new KisSelectionMask(image, "local selection");
+    localMask->setSelection(localSelection);
+    image->addNode(localMask);
+    localMask->setActive(true);
+
+    QCOMPARE(KisSelectionUtils::activeSelectionForNode(image, image->root()), localSelection);
+    QCOMPARE(KisSelectionUtils::activeSelectionForNode(image, localMask), localSelection);
+}
+
+void KisSelectionTest::testSelectionEditableForNode()
+{
+    const KoColorSpace *colorSpace = KoColorSpaceRegistry::instance()->rgb8();
+    KisImageSP image = new KisImage(nullptr, 100, 100, colorSpace, "selection-utils");
+
+    QVERIFY(KisSelectionUtils::isSelectionEditable(KisNodeSP()));
+    QVERIFY(KisSelectionUtils::isSelectionEditable(image->root()));
+
+    KisSelectionMaskSP localMask = new KisSelectionMask(image, "local selection");
+    image->addNode(localMask);
+    localMask->setActive(true);
+
+    QVERIFY(KisSelectionUtils::isSelectionEditable(image->root()));
+    QVERIFY(KisSelectionUtils::isSelectionEditable(localMask));
+
+    localMask->setUserLocked(true);
+    QVERIFY(!KisSelectionUtils::isSelectionEditable(image->root()));
+    QVERIFY(!KisSelectionUtils::isSelectionEditable(localMask));
+}
 
 void KisSelectionTest::testGrayColorspaceConversion()
 {
@@ -327,5 +373,4 @@ void KisSelectionTest::testOutlineGeneration()
 }
 
 KISTEST_MAIN(KisSelectionTest)
-
 

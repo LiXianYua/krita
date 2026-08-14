@@ -25,9 +25,10 @@ private Q_SLOTS:
     void testSelectionExactBounds();
     void testSetParentNodeAfterCreation();
     void testSetParentNodeBeforeCreation();
+    void testActiveSelectionForNode();
+    void testSelectionEditableForNode();
 
     void testOutlineGeneration();
 };
 
 #endif
-

@@ -285,6 +285,7 @@ set(kritaimage_LIB_SRCS
    kis_random_sub_accessor.cpp
    kis_wrapped_random_accessor.cpp
    kis_selection.cc
+   KisSelectionUtils.cpp
    KisSelectionUpdateCompressor.cpp
    kis_selection_mask.cpp
    kis_update_outline_job.cpp
