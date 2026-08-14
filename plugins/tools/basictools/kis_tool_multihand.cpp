@@ -8,10 +8,11 @@
 
 #include <QTransform>
 
+#include <KoCanvasBase.h>
 #include <KisCanvasFeedback.h>
-#include "kis_canvas2.h"
+#include <KisCanvasInvalidation.h>
+#include <KisSelectionUtils.h>
 #include "kis_cursor.h"
-#include "KisViewManager.h"
 #include "kis_selection.h"
 
 #include "kis_tool_multihand_helper.h"
@@ -400,11 +401,9 @@ void KisToolMultihand::initTransformations()
             m.reset();
         }
     } else if (m_transformMode == COPYTRANSLATEINTERVALS) {
-        KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-        Q_ASSERT(kisCanvas);
-        const QRect bounds = kisCanvas->viewManager()->selection() ?
-            kisCanvas->viewManager()->selection()->selectedExactRect() :
-            kisCanvas->currentImage()->bounds();
+        KisSelectionSP selection =
+            KisSelectionUtils::activeSelectionForNode(image(), currentNode());
+        const QRect bounds = selection ? selection->selectedExactRect() : image()->bounds();
         const QPoint dPos = bounds.topLeft() +
                       QPoint(m_intervalX ? m_intervalX * floor((m_axesPoint.x() - bounds.left()) / m_intervalX) : 0,
                              m_intervalY ? m_intervalY * floor((m_axesPoint.y() - bounds.top()) / m_intervalY) : 0);
@@ -436,9 +435,9 @@ void KisToolMultihand::finishAxesSetup()
 
 void KisToolMultihand::updateCanvas()
 {
-    KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    Q_ASSERT(kisCanvas);
-    kisCanvas->updateCanvas();
+    KisCanvasInvalidation *invalidation = dynamic_cast<KisCanvasInvalidation *>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(invalidation);
+    invalidation->invalidateAll();
     if (m_setupAxesFlag)
     {
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
@@ -453,11 +452,9 @@ QVector<QPoint> KisToolMultihand::intervalLocations()
 {
     QVector<QPoint> intervalLocations;
 
-    KisCanvas2 *kisCanvas = dynamic_cast<KisCanvas2*>(canvas());
-    Q_ASSERT(kisCanvas);
-    const QRect bounds = kisCanvas->viewManager()->selection() ?
-        kisCanvas->viewManager()->selection()->selectedExactRect() :
-        kisCanvas->currentImage()->bounds();
+    KisSelectionSP selection =
+        KisSelectionUtils::activeSelectionForNode(image(), currentNode());
+    const QRect bounds = selection ? selection->selectedExactRect() : image()->bounds();
 
     const int intervals = m_intervalX ? (bounds.width() / m_intervalX) : 0 +
                     m_intervalY ? (bounds.height() / m_intervalY) : 0;
