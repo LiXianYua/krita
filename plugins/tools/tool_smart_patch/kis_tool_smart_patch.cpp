@@ -11,8 +11,10 @@
 
 #include <klocalizedstring.h>
 #include <KoColor.h>
-#include <KisViewManager.h>
-#include "kis_canvas2.h"
+#include <KoCanvasBase.h>
+#include <KoPointerEvent.h>
+#include <KisCanvasFeedback.h>
+#include <kis_coordinates_converter.h>
 #include "kis_cursor.h"
 #include "kis_painter.h"
 #include "kis_paintop_preset.h"
@@ -110,9 +112,8 @@ void KisToolSmartPatch::deactivatePrimaryAction()
 
 void KisToolSmartPatch::addMaskPath( KoPointerEvent *event )
 {
-    KisCanvas2 *canvas2 = dynamic_cast<KisCanvas2 *>(canvas());
-    KIS_ASSERT(canvas2);
-    const KisCoordinatesConverter *converter = canvas2->coordinatesConverter();
+    const KisCoordinatesConverter *converter = dynamic_cast<const KisCoordinatesConverter *>(canvas()->viewConverter());
+    KIS_ASSERT(converter);
 
     QPointF imagePos = currentImage()->documentToPixel(event->point);
     QPainterPath currentBrushOutline = brushOutline().translated(KisAlgebra2D::alignForZoom(imagePos, converter->effectivePhysicalZoom()));
@@ -125,11 +126,11 @@ void KisToolSmartPatch::beginPrimaryAction(KoPointerEvent *event)
 {
     //we can only apply inpaint operation to paint layer
     if ( currentNode().isNull() || !currentNode()->inherits("KisPaintLayer") || nodePaintAbility()!=NodePaintAbility::PAINT ) {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-        kiscanvas->viewManager()->
-                showFloatingMessage(
-                    i18n("Select a paint layer to use this tool"),
-                    QIcon(), 2000, KisFloatingMessage::Medium, Qt::AlignCenter);
+        KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+        KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
+        feedback->showFloatingMessage(
+            i18n("Select a paint layer to use this tool"),
+            QIcon(), 2000, KisCanvasFeedback::Priority::Medium, Qt::AlignCenter);
         event->ignore();
         return;
     }
@@ -193,9 +194,8 @@ QPainterPath KisToolSmartPatch::getBrushOutlinePath(const QPointF &documentPos,
     QPointF imagePos = currentImage()->documentToPixel(documentPos);
     QPainterPath path = brushOutline();
 
-    KisCanvas2 *canvas2 = dynamic_cast<KisCanvas2 *>(canvas());
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(canvas2, QPainterPath());
-    const KisCoordinatesConverter *converter = canvas2->coordinatesConverter();
+    const KisCoordinatesConverter *converter = dynamic_cast<const KisCoordinatesConverter *>(canvas()->viewConverter());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(converter, QPainterPath());
 
     return path.translated(KisAlgebra2D::alignForZoom(imagePos, converter->effectivePhysicalZoom()));
 }

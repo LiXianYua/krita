@@ -33,9 +33,7 @@
 #include <KoPointerEvent.h>
 #include <kis_selection.h>
 #include <kis_layer.h>
-#include <kis_canvas2.h>
-#include <KisViewManager.h>
-#include <kis_floating_message.h>
+#include <KisCanvasFeedback.h>
 #include <kis_group_layer.h>
 #include <kis_resources_snapshot.h>
 
@@ -728,17 +726,17 @@ bool KisToolCrop::lockRatio() const
 
 void KisToolCrop::showSizeOnCanvas()
 {
-    KisCanvas2 *kisCanvas =dynamic_cast<KisCanvas2*>(canvas());
-    Q_ASSERT(kisCanvas);
+    KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
+    Q_ASSERT(feedback);
     if(m_mouseOnHandleType == 9) {
-        kisCanvas->viewManager()->showFloatingMessage(i18n("X: %1\nY: %2"
-                                                       , cropX(), cropY())
-                                                       , QIcon(), 1000, KisFloatingMessage::High, Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+        feedback->showFloatingMessage(i18n("X: %1\nY: %2"
+                                           , cropX(), cropY())
+                                           , QIcon(), 1000, KisCanvasFeedback::Priority::High, Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
     }
     else {
-        kisCanvas->viewManager()->showFloatingMessage(i18n("Width: %1\nHeight: %2"
-                                                   , cropWidth(), cropHeight())
-                                                   , QIcon(), 1000, KisFloatingMessage::High, Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
+        feedback->showFloatingMessage(i18n("Width: %1\nHeight: %2"
+                                           , cropWidth(), cropHeight())
+                                           , QIcon(), 1000, KisCanvasFeedback::Priority::High, Qt::AlignLeft | Qt::TextWordWrap | Qt::AlignVCenter);
     }
 }
 
