@@ -54,6 +54,7 @@ set(kritacanvas_LIB_SRCS
     kis_projection_backend.cpp
     kis_ui_types.h
     kis_update_info.cpp
+    opengl/KisOpenGLPolicy.cpp
     opengl/KisOpenGLUpdateInfoBuilder.cpp
     opengl/kis_texture_tile_info_pool.cpp
 )
