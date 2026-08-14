@@ -149,10 +149,49 @@ public:
 
     CursorStyle newCursorStyle(bool defaultValue = false) const;
     OutlineStyle newOutlineStyle(bool defaultValue = false) const;
+    bool separateEraserCursor(bool defaultValue = false) const;
+    CursorStyle eraserCursorStyle(bool defaultValue = false) const;
+    OutlineStyle eraserOutlineStyle(bool defaultValue = false) const;
     QString pressureTabletCurve(bool defaultValue = false) const;
     bool showOutlineWhilePainting(bool defaultValue = false) const;
     bool forceAlwaysFullSizedOutline(bool defaultValue = false) const;
+    bool showEraserOutlineWhilePainting(bool defaultValue = false) const;
+    bool forceAlwaysFullSizedEraserOutline(bool defaultValue = false) const;
+    qreal outlineSizeMinimum(bool defaultValue = false) const;
+
+    enum TouchPainting {
+        TOUCH_PAINTING_AUTO,
+        TOUCH_PAINTING_ENABLED,
+        TOUCH_PAINTING_DISABLED,
+    };
+    TouchPainting touchPainting(bool defaultValue = false) const;
+    bool disableTouchOnCanvas(bool tabletInputReceived) const;
+
     int lineSmoothingType(bool defaultValue = false) const;
+    void setLineSmoothingType(int value);
+    qreal lineSmoothingDistanceMin(bool defaultValue = false) const;
+    void setLineSmoothingDistanceMin(qreal value);
+    qreal lineSmoothingDistanceMax(bool defaultValue = false) const;
+    void setLineSmoothingDistanceMax(qreal value);
+    bool lineSmoothingDistanceKeepAspectRatio(bool defaultValue = false) const;
+    void setLineSmoothingDistanceKeepAspectRatio(bool value);
+    qreal lineSmoothingTailAggressiveness(bool defaultValue = false) const;
+    void setLineSmoothingTailAggressiveness(qreal value);
+    bool lineSmoothingSmoothPressure(bool defaultValue = false) const;
+    void setLineSmoothingSmoothPressure(bool value);
+    bool lineSmoothingScalableDistance(bool defaultValue = false) const;
+    void setLineSmoothingScalableDistance(bool value);
+    qreal lineSmoothingDelayDistance(bool defaultValue = false) const;
+    void setLineSmoothingDelayDistance(qreal value);
+    bool lineSmoothingUseDelayDistance(bool defaultValue = false) const;
+    void setLineSmoothingUseDelayDistance(bool value);
+    bool lineSmoothingFinishStabilizedCurve(bool defaultValue = false) const;
+    void setLineSmoothingFinishStabilizedCurve(bool value);
+    bool lineSmoothingStabilizeSensors(bool defaultValue = false) const;
+    void setLineSmoothingStabilizeSensors(bool value);
+
+    int stabilizerSampleSize(bool defaultValue = false) const;
+    bool stabilizerDelayedPaint(bool defaultValue = false) const;
 
     bool compressKra(bool defaultValue = false) const;
     void setCompressKra(bool compress);

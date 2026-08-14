@@ -27,6 +27,25 @@ void KisImageConfigTest::initTestCase()
         QStringLiteral("ShowOutlineWhilePainting"),
         QStringLiteral("forceAlwaysFullSizedOutline"),
         QStringLiteral("LineSmoothingType"),
+        QStringLiteral("separateEraserCursor"),
+        QStringLiteral("eraserCursorStyle"),
+        QStringLiteral("eraserOutlineStyle"),
+        QStringLiteral("ShowEraserOutlineWhilePainting"),
+        QStringLiteral("forceAlwaysFullSizedEraserOutline"),
+        QStringLiteral("OutlineSizeMinimum"),
+        QStringLiteral("LineSmoothingDistanceMin"),
+        QStringLiteral("LineSmoothingDistanceMax"),
+        QStringLiteral("LineSmoothingDistanceKeepAspectRatio"),
+        QStringLiteral("LineSmoothingTailAggressiveness"),
+        QStringLiteral("LineSmoothingSmoothPressure"),
+        QStringLiteral("LineSmoothingScalableDistance"),
+        QStringLiteral("LineSmoothingDelayDistance"),
+        QStringLiteral("LineSmoothingUseDelayDistance"),
+        QStringLiteral("LineSmoothingFinishStabilizedCurve"),
+        QStringLiteral("LineSmoothingStabilizeSensors"),
+        QStringLiteral("stabilizerSampleSize"),
+        QStringLiteral("stabilizerDelayedPaint"),
+        QStringLiteral("touchPainting"),
         QStringLiteral("compressLayersInKra"),
     };
 
@@ -174,6 +193,113 @@ void KisImageConfigTest::testLineSmoothingType()
     config.writeEntry("LineSmoothingType", 2);
     QCOMPARE(imageConfig.lineSmoothingType(), 2);
     QCOMPARE(imageConfig.lineSmoothingType(true), 1);
+}
+
+void KisImageConfigTest::testEraserCursorAndOutlineSettings()
+{
+    KConfigGroup config = KSharedConfig::openConfig()->group(QString());
+    KisImageConfig imageConfig(true);
+
+    QVERIFY(!imageConfig.separateEraserCursor());
+    QCOMPARE(imageConfig.eraserCursorStyle(), CURSOR_STYLE_ERASER);
+    QCOMPARE(imageConfig.eraserOutlineStyle(), OUTLINE_FULL);
+    QVERIFY(imageConfig.showEraserOutlineWhilePainting());
+    QVERIFY(!imageConfig.forceAlwaysFullSizedEraserOutline());
+    QCOMPARE(imageConfig.outlineSizeMinimum(), 1.0);
+
+    config.writeEntry("separateEraserCursor", true);
+    config.writeEntry("eraserCursorStyle", int(CURSOR_STYLE_WHITE_PIXEL));
+    config.writeEntry("eraserOutlineStyle", int(OUTLINE_TILT));
+    config.writeEntry("ShowEraserOutlineWhilePainting", false);
+    config.writeEntry("forceAlwaysFullSizedEraserOutline", true);
+    config.writeEntry("OutlineSizeMinimum", 7.5);
+
+    QVERIFY(imageConfig.separateEraserCursor());
+    QCOMPARE(imageConfig.eraserCursorStyle(), CURSOR_STYLE_WHITE_PIXEL);
+    QCOMPARE(imageConfig.eraserOutlineStyle(), OUTLINE_TILT);
+    QVERIFY(!imageConfig.showEraserOutlineWhilePainting());
+    QVERIFY(imageConfig.forceAlwaysFullSizedEraserOutline());
+    QCOMPARE(imageConfig.outlineSizeMinimum(), 7.5);
+
+    config.writeEntry("eraserCursorStyle", int(N_CURSOR_STYLE_SIZE));
+    config.writeEntry("eraserOutlineStyle", int(N_OUTLINE_STYLE_SIZE));
+    QCOMPARE(imageConfig.eraserCursorStyle(), CURSOR_STYLE_ERASER);
+    QCOMPARE(imageConfig.eraserOutlineStyle(), OUTLINE_FULL);
+}
+
+void KisImageConfigTest::testLineSmoothingSettings()
+{
+    KisImageConfig imageConfig(false);
+
+    QCOMPARE(imageConfig.lineSmoothingDistanceMin(), 50.0);
+    QCOMPARE(imageConfig.lineSmoothingDistanceMax(), 50.0);
+    QVERIFY(imageConfig.lineSmoothingDistanceKeepAspectRatio());
+    QCOMPARE(imageConfig.lineSmoothingTailAggressiveness(), 0.15);
+    QVERIFY(!imageConfig.lineSmoothingSmoothPressure());
+    QVERIFY(imageConfig.lineSmoothingScalableDistance());
+    QCOMPARE(imageConfig.lineSmoothingDelayDistance(), 50.0);
+    QVERIFY(imageConfig.lineSmoothingUseDelayDistance());
+    QVERIFY(imageConfig.lineSmoothingFinishStabilizedCurve());
+    QVERIFY(imageConfig.lineSmoothingStabilizeSensors());
+
+    imageConfig.setLineSmoothingType(3);
+    imageConfig.setLineSmoothingDistanceMin(12.5);
+    imageConfig.setLineSmoothingDistanceMax(82.5);
+    imageConfig.setLineSmoothingDistanceKeepAspectRatio(false);
+    imageConfig.setLineSmoothingTailAggressiveness(0.25);
+    imageConfig.setLineSmoothingSmoothPressure(true);
+    imageConfig.setLineSmoothingScalableDistance(false);
+    imageConfig.setLineSmoothingDelayDistance(9.5);
+    imageConfig.setLineSmoothingUseDelayDistance(false);
+    imageConfig.setLineSmoothingFinishStabilizedCurve(false);
+    imageConfig.setLineSmoothingStabilizeSensors(false);
+
+    const KisImageConfig stored(true);
+    QCOMPARE(stored.lineSmoothingType(), 3);
+    QCOMPARE(stored.lineSmoothingDistanceMin(), 12.5);
+    QCOMPARE(stored.lineSmoothingDistanceMax(), 82.5);
+    QVERIFY(!stored.lineSmoothingDistanceKeepAspectRatio());
+    QCOMPARE(stored.lineSmoothingTailAggressiveness(), 0.25);
+    QVERIFY(stored.lineSmoothingSmoothPressure());
+    QVERIFY(!stored.lineSmoothingScalableDistance());
+    QCOMPARE(stored.lineSmoothingDelayDistance(), 9.5);
+    QVERIFY(!stored.lineSmoothingUseDelayDistance());
+    QVERIFY(!stored.lineSmoothingFinishStabilizedCurve());
+    QVERIFY(!stored.lineSmoothingStabilizeSensors());
+}
+
+void KisImageConfigTest::testStabilizerSettings()
+{
+    KConfigGroup config = KSharedConfig::openConfig()->group(QString());
+    KisImageConfig imageConfig(true);
+
+#ifdef Q_OS_WIN
+    QCOMPARE(imageConfig.stabilizerSampleSize(), 50);
+#else
+    QCOMPARE(imageConfig.stabilizerSampleSize(), 15);
+#endif
+    QVERIFY(imageConfig.stabilizerDelayedPaint());
+
+    config.writeEntry("stabilizerSampleSize", 27);
+    config.writeEntry("stabilizerDelayedPaint", false);
+    QCOMPARE(imageConfig.stabilizerSampleSize(), 27);
+    QVERIFY(!imageConfig.stabilizerDelayedPaint());
+}
+
+void KisImageConfigTest::testTouchPaintingPolicy()
+{
+    KConfigGroup config = KSharedConfig::openConfig()->group(QString());
+    KisImageConfig imageConfig(true);
+
+    config.writeEntry("touchPainting", int(KisImageConfig::TOUCH_PAINTING_ENABLED));
+    QVERIFY(!imageConfig.disableTouchOnCanvas(false));
+
+    config.writeEntry("touchPainting", int(KisImageConfig::TOUCH_PAINTING_DISABLED));
+    QVERIFY(imageConfig.disableTouchOnCanvas(false));
+
+    config.writeEntry("touchPainting", int(KisImageConfig::TOUCH_PAINTING_AUTO));
+    QVERIFY(!imageConfig.disableTouchOnCanvas(false));
+    QVERIFY(imageConfig.disableTouchOnCanvas(true));
 }
 
 void KisImageConfigTest::testCompressKra()

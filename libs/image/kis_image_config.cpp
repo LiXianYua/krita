@@ -830,6 +830,37 @@ OutlineStyle KisImageConfig::newOutlineStyle(bool defaultValue) const
     return static_cast<OutlineStyle>(style);
 }
 
+bool KisImageConfig::separateEraserCursor(bool defaultValue) const
+{
+    return defaultValue ? false : m_config.readEntry("separateEraserCursor", false);
+}
+
+CursorStyle KisImageConfig::eraserCursorStyle(bool defaultValue) const
+{
+    if (defaultValue) {
+        return CURSOR_STYLE_ERASER;
+    }
+
+    int style = m_config.readEntry("eraserCursorStyle", int(-1));
+    if (style < 0 || style >= N_CURSOR_STYLE_SIZE) {
+        style = CURSOR_STYLE_ERASER;
+    }
+    return static_cast<CursorStyle>(style);
+}
+
+OutlineStyle KisImageConfig::eraserOutlineStyle(bool defaultValue) const
+{
+    if (defaultValue) {
+        return OUTLINE_FULL;
+    }
+
+    int style = m_config.readEntry("eraserOutlineStyle", int(-1));
+    if (style < 0 || style >= N_OUTLINE_STYLE_SIZE) {
+        style = OUTLINE_FULL;
+    }
+    return static_cast<OutlineStyle>(style);
+}
+
 QString KisImageConfig::pressureTabletCurve(bool defaultValue) const
 {
     QString fallback = DEFAULT_CURVE_STRING;
@@ -851,9 +882,165 @@ bool KisImageConfig::forceAlwaysFullSizedOutline(bool defaultValue) const
     return defaultValue ? false : m_config.readEntry("forceAlwaysFullSizedOutline", false);
 }
 
+bool KisImageConfig::showEraserOutlineWhilePainting(bool defaultValue) const
+{
+    return defaultValue ? true : m_config.readEntry("ShowEraserOutlineWhilePainting", true);
+}
+
+bool KisImageConfig::forceAlwaysFullSizedEraserOutline(bool defaultValue) const
+{
+    return defaultValue ? false : m_config.readEntry("forceAlwaysFullSizedEraserOutline", false);
+}
+
+qreal KisImageConfig::outlineSizeMinimum(bool defaultValue) const
+{
+    return defaultValue ? 1.0 : m_config.readEntry("OutlineSizeMinimum", 1.0);
+}
+
+KisImageConfig::TouchPainting KisImageConfig::touchPainting(bool defaultValue) const
+{
+    const int value = defaultValue
+        ? int(TOUCH_PAINTING_AUTO)
+        : m_config.readEntry("touchPainting", int(TOUCH_PAINTING_AUTO));
+    return static_cast<TouchPainting>(value);
+}
+
+bool KisImageConfig::disableTouchOnCanvas(bool tabletInputReceived) const
+{
+    switch (touchPainting()) {
+    case TOUCH_PAINTING_ENABLED:
+        return false;
+    case TOUCH_PAINTING_DISABLED:
+        return true;
+    default:
+        return tabletInputReceived;
+    }
+}
+
 int KisImageConfig::lineSmoothingType(bool defaultValue) const
 {
     return defaultValue ? 1 : m_config.readEntry("LineSmoothingType", 1);
+}
+
+void KisImageConfig::setLineSmoothingType(int value)
+{
+    m_config.writeEntry("LineSmoothingType", value);
+}
+
+qreal KisImageConfig::lineSmoothingDistanceMin(bool defaultValue) const
+{
+    return defaultValue ? 50.0 : m_config.readEntry("LineSmoothingDistanceMin", 50.0);
+}
+
+void KisImageConfig::setLineSmoothingDistanceMin(qreal value)
+{
+    m_config.writeEntry("LineSmoothingDistanceMin", value);
+}
+
+qreal KisImageConfig::lineSmoothingDistanceMax(bool defaultValue) const
+{
+    return defaultValue ? 50.0 : m_config.readEntry("LineSmoothingDistanceMax", 50.0);
+}
+
+void KisImageConfig::setLineSmoothingDistanceMax(qreal value)
+{
+    m_config.writeEntry("LineSmoothingDistanceMax", value);
+}
+
+bool KisImageConfig::lineSmoothingDistanceKeepAspectRatio(bool defaultValue) const
+{
+    return defaultValue ? true : m_config.readEntry("LineSmoothingDistanceKeepAspectRatio", true);
+}
+
+void KisImageConfig::setLineSmoothingDistanceKeepAspectRatio(bool value)
+{
+    m_config.writeEntry("LineSmoothingDistanceKeepAspectRatio", value);
+}
+
+qreal KisImageConfig::lineSmoothingTailAggressiveness(bool defaultValue) const
+{
+    return defaultValue ? 0.15 : m_config.readEntry("LineSmoothingTailAggressiveness", 0.15);
+}
+
+void KisImageConfig::setLineSmoothingTailAggressiveness(qreal value)
+{
+    m_config.writeEntry("LineSmoothingTailAggressiveness", value);
+}
+
+bool KisImageConfig::lineSmoothingSmoothPressure(bool defaultValue) const
+{
+    return defaultValue ? false : m_config.readEntry("LineSmoothingSmoothPressure", false);
+}
+
+void KisImageConfig::setLineSmoothingSmoothPressure(bool value)
+{
+    m_config.writeEntry("LineSmoothingSmoothPressure", value);
+}
+
+bool KisImageConfig::lineSmoothingScalableDistance(bool defaultValue) const
+{
+    return defaultValue ? true : m_config.readEntry("LineSmoothingScalableDistance", true);
+}
+
+void KisImageConfig::setLineSmoothingScalableDistance(bool value)
+{
+    m_config.writeEntry("LineSmoothingScalableDistance", value);
+}
+
+qreal KisImageConfig::lineSmoothingDelayDistance(bool defaultValue) const
+{
+    return defaultValue ? 50.0 : m_config.readEntry("LineSmoothingDelayDistance", 50.0);
+}
+
+void KisImageConfig::setLineSmoothingDelayDistance(qreal value)
+{
+    m_config.writeEntry("LineSmoothingDelayDistance", value);
+}
+
+bool KisImageConfig::lineSmoothingUseDelayDistance(bool defaultValue) const
+{
+    return defaultValue ? true : m_config.readEntry("LineSmoothingUseDelayDistance", true);
+}
+
+void KisImageConfig::setLineSmoothingUseDelayDistance(bool value)
+{
+    m_config.writeEntry("LineSmoothingUseDelayDistance", value);
+}
+
+bool KisImageConfig::lineSmoothingFinishStabilizedCurve(bool defaultValue) const
+{
+    return defaultValue ? true : m_config.readEntry("LineSmoothingFinishStabilizedCurve", true);
+}
+
+void KisImageConfig::setLineSmoothingFinishStabilizedCurve(bool value)
+{
+    m_config.writeEntry("LineSmoothingFinishStabilizedCurve", value);
+}
+
+bool KisImageConfig::lineSmoothingStabilizeSensors(bool defaultValue) const
+{
+    return defaultValue ? true : m_config.readEntry("LineSmoothingStabilizeSensors", true);
+}
+
+void KisImageConfig::setLineSmoothingStabilizeSensors(bool value)
+{
+    m_config.writeEntry("LineSmoothingStabilizeSensors", value);
+}
+
+int KisImageConfig::stabilizerSampleSize(bool defaultValue) const
+{
+#ifdef Q_OS_WIN
+    const int defaultSampleSize = 50;
+#else
+    const int defaultSampleSize = 15;
+#endif
+    return defaultValue ? defaultSampleSize
+                        : m_config.readEntry("stabilizerSampleSize", defaultSampleSize);
+}
+
+bool KisImageConfig::stabilizerDelayedPaint(bool defaultValue) const
+{
+    return defaultValue ? true : m_config.readEntry("stabilizerDelayedPaint", true);
 }
 
 bool KisImageConfig::compressKra(bool defaultValue) const

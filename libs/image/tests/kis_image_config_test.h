@@ -30,6 +30,10 @@ private Q_SLOTS:
     void testPressureTabletCurve();
     void testOutlinePaintingFlags();
     void testLineSmoothingType();
+    void testEraserCursorAndOutlineSettings();
+    void testLineSmoothingSettings();
+    void testStabilizerSettings();
+    void testTouchPaintingPolicy();
     void testCompressKra();
 
 private:
