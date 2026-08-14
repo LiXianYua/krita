@@ -149,4 +149,3 @@ protected:
 };
 
 #endif /* __KIS_DELEGATED_TOOL_H */
-

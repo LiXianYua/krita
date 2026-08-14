@@ -47,4 +47,3 @@ Q_SIGNALS:
 Q_DECLARE_INTERFACE(KisPopupWidgetInterface, "KisPopupWidgetInterface")
 
 #endif // KISPOPUPWIDGETINTERFACE_H
-

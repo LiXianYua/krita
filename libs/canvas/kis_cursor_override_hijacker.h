@@ -39,4 +39,3 @@ private:
 };
 
 #endif /* __KIS_CURSOR_OVERRIDE_HIJACKER_H */
-

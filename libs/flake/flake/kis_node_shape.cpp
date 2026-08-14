@@ -85,4 +85,3 @@ void KisNodeShape::setPosition(const QPointF &)
 void KisNodeShape::paint(QPainter &) const
 {
 }
-

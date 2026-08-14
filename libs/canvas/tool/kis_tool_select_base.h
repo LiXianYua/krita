@@ -577,4 +577,3 @@ typedef KisToolSelectBase<FakeBaseTool> KisToolSelect;
 
 
 #endif // KISTOOLSELECTBASE_H
-
