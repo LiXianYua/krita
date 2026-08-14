@@ -62,6 +62,19 @@ public:
     virtual bool isEditingPaintingAssistants() const = 0;
 };
 
+/**
+ * Tool-facing assistant lifecycle capability. It is separate from the
+ * rendering port above so tools do not gain access to assistant decorations.
+ */
+class KRITAASSISTANTTOOL_EXPORT KisPaintingAssistantToolServices
+{
+public:
+    virtual ~KisPaintingAssistantToolServices() = default;
+
+    virtual void endStroke() = 0;
+    virtual void updateDecorationIfNeeded() = 0;
+};
+
 
 /**
   * Represent an handle of the assistant, used to edit the parameters

@@ -60,7 +60,8 @@ class KisPopupPalette;
 class KRITAUI_EXPORT KisCanvas2 : public KoCanvasBase,
                                  public KisCanvasFeedback,
                                  public KisCanvasInvalidation,
-                                 public KisPaintingAssistantCanvas
+                                 public KisPaintingAssistantCanvas,
+                                 public KisPaintingAssistantToolServices
 {
 
     Q_OBJECT
@@ -138,6 +139,8 @@ public: // KoCanvasBase implementation
     QPointF paintingAssistantPixelToView(const QPoint &pixelCoords) const override;
     QPoint paintingAssistantCursorPosition() const override;
     bool isEditingPaintingAssistants() const override;
+    void endStroke() override;
+    void updateDecorationIfNeeded() override;
 
     void showFloatingMessage(const QString &message,
                              const QIcon &icon,

@@ -745,6 +745,22 @@ bool KisCanvas2::isEditingPaintingAssistants() const
     return paintingAssistantsDecoration()->isEditingAssistants();
 }
 
+void KisCanvas2::endStroke()
+{
+    KisPaintingAssistantsDecorationSP decoration = paintingAssistantsDecoration();
+    if (decoration) {
+        decoration->endStroke();
+    }
+}
+
+void KisCanvas2::updateDecorationIfNeeded()
+{
+    KisPaintingAssistantsDecorationSP decoration = paintingAssistantsDecoration();
+    if (decoration && decoration->visible() && decoration->hasPaintableAssistants()) {
+        updateCanvasDecorations();
+    }
+}
+
 
 KoUnit KisCanvas2::unit() const
 {

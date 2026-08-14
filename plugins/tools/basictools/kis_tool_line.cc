@@ -26,7 +26,8 @@
 #include <brushengine/kis_paintop_registry.h>
 #include <kis_figure_painting_tool_helper.h>
 #include <KisCanvasFeedback.h>
-#include <kis_canvas2.h>
+#include <kis_coordinates_converter.h>
+#include <kis_painting_assistant.h>
 #include <kis_action_registry.h>
 #include <kis_painting_information_builder.h>
 
@@ -35,9 +36,10 @@
 
 const KisCoordinatesConverter* getCoordinatesConverter(KoCanvasBase * canvas)
 {
-    KisCanvas2 *kritaCanvas = dynamic_cast<KisCanvas2*>(canvas);
-    KIS_ASSERT(kritaCanvas);
-    return kritaCanvas->coordinatesConverter();
+    const KisCoordinatesConverter *converter =
+        dynamic_cast<const KisCoordinatesConverter *>(canvas->viewConverter());
+    KIS_ASSERT(converter);
+    return converter;
 }
 
 
@@ -265,8 +267,9 @@ void KisToolLine::endPrimaryAction(KoPointerEvent *event)
     updateGuideline();
     endStroke();
 
-    if (static_cast<KisCanvas2*>(canvas())->paintingAssistantsDecoration()) {
-        static_cast<KisCanvas2*>(canvas())->paintingAssistantsDecoration()->endStroke();
+    if (KisPaintingAssistantToolServices *services =
+            dynamic_cast<KisPaintingAssistantToolServices *>(canvas())) {
+        services->endStroke();
     }
 }
 
