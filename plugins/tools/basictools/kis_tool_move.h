@@ -22,9 +22,6 @@
 #include "kis_signal_auto_connection.h"
 #include "KisAsynchronousStrokeUpdateHelper.h"
 
-#include "kis_canvas2.h"
-
-
 class KoCanvasBase;
 class KisDocument;
 
@@ -190,4 +187,3 @@ public:
 };
 
 #endif // KIS_TOOL_MOVE_H_
-

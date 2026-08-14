@@ -13,14 +13,15 @@
 #include <KoIcon.h>
 
 #include <kis_tool.h>
-#include "kis_painting_assistant.h"
+#include <KisNodeAdditionFlags.h>
+#include <kis_node.h>
 #include <kis_icon.h>
-#include <kis_canvas2.h>
 
 #include <defaulttool/DefaultTool.h>
 #include <defaulttool/DefaultToolFactory.h>
 
 class KisReferenceImagesLayer;
+class KisDocument;
 
 class ToolReferenceImages : public DefaultTool
 {
@@ -107,4 +108,3 @@ public:
 
 
 #endif
-

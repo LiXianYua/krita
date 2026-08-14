@@ -22,8 +22,6 @@
 
 #include "kis_types.h"
 #include "kis_tool.h"
-#include "canvas/kis_canvas2.h"
-#include "KisViewManager.h"
 
 void KisToolBrush::addSmoothingAction(int enumId, const QString &id)
 {
