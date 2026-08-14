@@ -112,4 +112,30 @@ void KisDerivedResourcesTest::test()
     spy.clear();
 }
 
+void KisDerivedResourcesTest::testSelectedNodesResource()
+{
+    KoCanvasResourceProvider manager;
+    QSignalSpy spy(&manager, SIGNAL(canvasResourceChanged(int,QVariant)));
+    TestUtil::MaskParent p(QRect(0, 0, 16, 16));
+
+    const KisNodeList nodes{p.layer};
+    manager.setResource(KoCanvasResource::CurrentKritaSelectedNodes,
+                        QVariant::fromValue(nodes));
+
+    QCOMPARE(manager.resource(KoCanvasResource::CurrentKritaSelectedNodes)
+                 .value<KisNodeList>(),
+             nodes);
+    QCOMPARE(spy.size(), 1);
+    QCOMPARE(spy[0][0].toInt(),
+             int(KoCanvasResource::CurrentKritaSelectedNodes));
+    QCOMPARE(spy[0][1].value<KisNodeList>(), nodes);
+
+    manager.setResource(KoCanvasResource::CurrentKritaSelectedNodes,
+                        QVariant::fromValue(KisNodeList()));
+    QCOMPARE(manager.resource(KoCanvasResource::CurrentKritaSelectedNodes)
+                 .value<KisNodeList>(),
+             KisNodeList());
+    QCOMPARE(spy.size(), 2);
+}
+
 KISTEST_MAIN(KisDerivedResourcesTest)

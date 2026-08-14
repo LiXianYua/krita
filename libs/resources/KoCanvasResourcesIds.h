@@ -66,6 +66,9 @@ enum CanvasResourceId {
     ColorHistory, ///< Color history if not per document
     SvgTextPropertyData, ///< KoSvgTextPropertyDataStruct
     SvgCharacterTextPropertyData, ///< KoSvgTextPropertyDataStruct
+    CurrentKritaSelectedNodes, ///< KisNodeList selected in the current canvas
+    CurrentKritaSelectionRevision, ///< Monotonic notification for active selection changes
+    CurrentKritaSelectedNodesRevision, ///< Monotonic notification for selected-node updates
 };
 
 }

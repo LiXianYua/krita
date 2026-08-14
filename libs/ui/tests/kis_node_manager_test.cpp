@@ -44,6 +44,10 @@ public:
         return findNode(image->root(), "blur1");
     }
 
+    KoCanvasResourceProvider *resourceManager() const {
+        return view->canvasResourceProvider()->resourceManager();
+    }
+
     void activateBlurLayer() {
         KisNodeSP node = findBlurLayer();
         Q_ASSERT(node);
@@ -59,6 +63,59 @@ public:
 
     KisNodeManager *nodeManager;
 };
+
+void KisNodeManagerTest::testSelectedNodesResource()
+{
+    NodeManagerTester t;
+    const KisNodeList nodes{t.findCloneLayer(), t.findBlurLayer()};
+    const qulonglong selectedNodesRevision =
+        t.resourceManager()
+            ->resource(KoCanvasResource::CurrentKritaSelectedNodesRevision)
+            .toULongLong();
+
+    t.nodeManager->slotSetSelectedNodes(nodes);
+    QCOMPARE(t.nodeManager->selectedNodes(), nodes);
+    QCOMPARE(t.resourceManager()
+                 ->resource(KoCanvasResource::CurrentKritaSelectedNodes)
+                 .value<KisNodeList>(),
+             nodes);
+    QCOMPARE(t.resourceManager()
+                 ->resource(KoCanvasResource::CurrentKritaSelectedNodesRevision)
+                 .toULongLong(),
+             selectedNodesRevision + 1);
+
+    t.nodeManager->slotSetSelectedNodes(nodes);
+    QCOMPARE(t.resourceManager()
+                 ->resource(KoCanvasResource::CurrentKritaSelectedNodesRevision)
+                 .toULongLong(),
+             selectedNodesRevision + 2);
+
+    t.nodeManager->slotSetSelectedNodes({});
+    QCOMPARE(t.nodeManager->selectedNodes(), KisNodeList());
+    QCOMPARE(t.resourceManager()
+                 ->resource(KoCanvasResource::CurrentKritaSelectedNodes)
+                 .value<KisNodeList>(),
+             KisNodeList());
+    QCOMPARE(t.resourceManager()
+                 ->resource(KoCanvasResource::CurrentKritaSelectedNodesRevision)
+                 .toULongLong(),
+             selectedNodesRevision + 3);
+
+    const qulonglong revision =
+        t.resourceManager()
+            ->resource(KoCanvasResource::CurrentKritaSelectionRevision)
+            .toULongLong();
+    t.selectionManager->selectionChanged();
+    QCOMPARE(t.resourceManager()
+                 ->resource(KoCanvasResource::CurrentKritaSelectionRevision)
+                 .toULongLong(),
+             revision + 1);
+    t.selectionManager->selectionChanged();
+    QCOMPARE(t.resourceManager()
+                 ->resource(KoCanvasResource::CurrentKritaSelectionRevision)
+                 .toULongLong(),
+             revision + 2);
+}
 
 void testMirrorNode(bool useShapeLayer, const QString &name, bool mirrorX)
 {

@@ -351,6 +351,15 @@ void KisSelectionManager::updateStatusBar()
 void KisSelectionManager::selectionChanged()
 {
     m_view->updateGUI();
+
+    KoCanvasResourceProvider *resourceManager =
+        m_view->canvasResourceProvider()->resourceManager();
+    const qulonglong revision =
+        resourceManager->resource(KoCanvasResource::CurrentKritaSelectionRevision)
+            .toULongLong() + 1;
+    resourceManager->setResource(KoCanvasResource::CurrentKritaSelectionRevision,
+                                 revision);
+
     Q_EMIT currentSelectionChanged();
 }
 

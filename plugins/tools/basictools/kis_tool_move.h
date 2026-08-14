@@ -17,13 +17,13 @@
 #include <QKeySequence>
 #include <QGroupBox>
 #include <QRadioButton>
+#include <QVariant>
 #include "KisToolChangesTracker.h"
 #include "kis_signal_compressor.h"
 #include "kis_signal_auto_connection.h"
 #include "KisAsynchronousStrokeUpdateHelper.h"
 
 class KoCanvasBase;
-class KisDocument;
 
 class KisToolMove : public KisTool
 {
@@ -119,11 +119,13 @@ private:
     void notifyGuiAfterMove(bool showFloatingMessage = true);
     bool tryEndPreviousStroke(const KisNodeList &nodes);
     void requestHandlesRectUpdate();
+    void invalidateCanvas();
 
 
 private Q_SLOTS:
     void endStroke();
     void slotTrackerChangedConfig(KisToolChangesTrackerDataSP state);
+    void slotCanvasResourceChanged(int key, const QVariant &value);
 
     void slotMoveDiscreteLeft();
     void slotMoveDiscreteRight();

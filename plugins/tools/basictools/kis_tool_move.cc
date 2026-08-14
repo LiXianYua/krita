@@ -12,11 +12,14 @@
 
 #include <QPoint>
 
+#include <KSharedConfig>
+#include <KoCanvasBase.h>
+#include <KoPointerEvent.h>
 
 #include "kis_cursor.h"
 #include "kis_selection.h"
 #include "KisCanvasFeedback.h"
-#include "kis_canvas2.h"
+#include "KisCanvasInvalidation.h"
 #include "kis_image.h"
 
 #include "kis_tool_utils.h"
@@ -26,12 +29,8 @@
 #include "kis_resources_snapshot.h"
 #include "kis_action_registry.h"
 #include "krita_utils.h"
+#include <KoCanvasResourceProvider.h>
 
-#include <KisViewManager.h>
-#include <KisDocument.h>
-
-#include "kis_node_manager.h"
-#include "kis_selection_manager.h"
 #include "KisAnimAutoKey.h"
 #include <boost/operators.hpp>
 #include "KisMoveBoundsCalculationJob.h"
@@ -391,8 +390,11 @@ void KisToolMove::activate(const QSet<KoShape*> &shapes)
     m_actionConnections.addConnection(action("movetool-move-right-more"), SIGNAL(triggered(bool)),
                                       this, SLOT(slotMoveDiscreteRightMore()));
 
-    m_canvasConnections.addUniqueConnection(qobject_cast<KisCanvas2*>(canvas())->viewManager()->nodeManager(), SIGNAL(sigUiNeedChangeSelectedNodes(KisNodeList)), this, SLOT(slotNodeChanged(KisNodeList)));
-    m_canvasConnections.addUniqueConnection(qobject_cast<KisCanvas2*>(canvas())->viewManager()->selectionManager(), SIGNAL(currentSelectionChanged()), this, SLOT(slotSelectionChanged()));
+    m_canvasConnections.addUniqueConnection(
+        canvas()->resourceManager(),
+        &KoCanvasResourceProvider::canvasResourceChanged,
+        this,
+        &KisToolMove::slotCanvasResourceChanged);
 
     connect(&m_changesTracker,
             SIGNAL(sigConfigChanged(KisToolChangesTrackerDataSP)),
@@ -535,7 +537,7 @@ void KisToolMove::startAction(KoPointerEvent *event, MoveToolMode mode)
         m_dragPos = QPoint();
         m_dragStart = QPoint();
     }
-    qobject_cast<KisCanvas2*>(canvas())->updateCanvas();
+    invalidateCanvas();
 }
 
 void KisToolMove::continueAction(KoPointerEvent *event)
@@ -551,7 +553,7 @@ void KisToolMove::continueAction(KoPointerEvent *event)
     drag(pos);
     notifyGuiAfterMove();
 
-    qobject_cast<KisCanvas2*>(canvas())->updateCanvas();
+    invalidateCanvas();
 }
 
 void KisToolMove::endAction(KoPointerEvent *event)
@@ -577,7 +579,7 @@ void KisToolMove::endAction(KoPointerEvent *event)
 
     notifyGuiAfterMove();
 
-    qobject_cast<KisCanvas2*>(canvas())->updateCanvas();
+    invalidateCanvas();
 }
 
 void KisToolMove::drag(const QPoint& newPos)
@@ -606,7 +608,7 @@ void KisToolMove::endStroke()
     m_currentlyUsingSelection = false;
     m_currentMode = MoveSelectedLayer;
     m_accumulatedOffset = QPoint();
-    qobject_cast<KisCanvas2*>(canvas())->updateCanvas();
+    invalidateCanvas();
 }
 
 void KisToolMove::slotTrackerChangedConfig(KisToolChangesTrackerDataSP state)
@@ -679,7 +681,7 @@ void KisToolMove::cancelStroke()
     m_currentMode = MoveSelectedLayer;
     m_accumulatedOffset = QPoint();
     notifyGuiAfterMove();
-    qobject_cast<KisCanvas2*>(canvas())->updateCanvas();
+    invalidateCanvas();
 }
 
 KisToolMove::MoveToolMode KisToolMove::moveToolMode() const
@@ -731,10 +733,27 @@ void KisToolMove::slotNodeChanged(const KisNodeList &nodes)
     requestHandlesRectUpdate();
 }
 
+void KisToolMove::slotCanvasResourceChanged(int key, const QVariant &)
+{
+    if (key == KoCanvasResource::CurrentKritaSelectedNodesRevision) {
+        slotNodeChanged(selectedNodes());
+    } else if (key == KoCanvasResource::CurrentKritaSelectionRevision) {
+        slotSelectionChanged();
+    }
+}
+
 void KisToolMove::slotSelectionChanged()
 {
     if (m_strokeId) return;
     requestHandlesRectUpdate();
+}
+
+void KisToolMove::invalidateCanvas()
+{
+    KisCanvasInvalidation *invalidation =
+        dynamic_cast<KisCanvasInvalidation *>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(invalidation);
+    invalidation->invalidateAll();
 }
 
 QList<QAction *> KisToolMoveFactory::createActionsImpl()

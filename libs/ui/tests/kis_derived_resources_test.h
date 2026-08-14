@@ -14,6 +14,7 @@ class KisDerivedResourcesTest : public QObject
     Q_OBJECT
 private Q_SLOTS:
     void test();
+    void testSelectedNodesResource();
 };
 
 #endif /* __KIS_DERIVED_RESOURCES_TEST_H */

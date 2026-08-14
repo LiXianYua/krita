@@ -983,6 +983,17 @@ void KisNodeManager::slotImageRequestNodeReselection(KisNodeSP activeNode, const
 void KisNodeManager::slotSetSelectedNodes(const KisNodeList &nodes)
 {
     m_d->selectedNodes = nodes;
+    KoCanvasResourceProvider *resourceManager =
+        m_d->view->canvasResourceProvider()->resourceManager();
+    resourceManager->setResource(
+        KoCanvasResource::CurrentKritaSelectedNodes,
+        QVariant::fromValue(nodes));
+    const qulonglong revision =
+        resourceManager->resource(KoCanvasResource::CurrentKritaSelectedNodesRevision)
+            .toULongLong() + 1;
+    resourceManager->setResource(
+        KoCanvasResource::CurrentKritaSelectedNodesRevision,
+        revision);
     Q_EMIT sigUiNeedChangeSelectedNodes(nodes);
 }
 
