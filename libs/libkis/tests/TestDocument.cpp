@@ -11,6 +11,7 @@
 #include <QDir>
 #include <QBuffer>
 #include <QSignalSpy>
+#include <QStandardPaths>
 #include <QTextStream>
 
 #include <Node.h>
@@ -22,6 +23,7 @@
 #include <KoColor.h>
 
 #include <KisDocument.h>
+#include <KisDocumentApplicationServices.h>
 #include <KisDocumentRegistry.h>
 #include <kis_image.h>
 #include <kis_fill_painter.h>
@@ -38,14 +40,32 @@ void TestDocument::testDocumentRegistryLifecycle()
 {
     qRegisterMetaType<KisDocument *>();
 
-    KisDocumentRegistry registry(
-        [](bool addStorage) {
-            return addStorage
-                ? KisPart::instance()->createDocument()
-                : KisPart::instance()->createTemporaryDocument();
-        },
-        [](KisDocument *document) { document->deleteLater(); },
-        [](KisDocument *document) { return document->path(); });
+    struct ServicesRestorer {
+        KisDocumentApplicationServices *services;
+        ~ServicesRestorer()
+        {
+            KisDocumentApplicationServices::setInstance(services);
+        }
+    } restoreServices {KisDocumentApplicationServices::instance()};
+
+    KisDocumentApplicationServices::setInstance(nullptr);
+    KisDocumentApplicationServices *services = KisDocumentApplicationServices::instance();
+#if defined(Q_OS_WIN)
+    QCOMPARE(services->autoSaveLocation(), QDir::tempPath());
+#elif defined(Q_OS_ANDROID)
+    QCOMPARE(services->autoSaveLocation(),
+             QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+                 .append(QStringLiteral("/krita-backup")));
+#else
+    QCOMPARE(services->autoSaveLocation(), QDir::homePath());
+#endif
+    QCOMPARE(services->defaultAssistantsColor(), QColor(176, 176, 176, 255));
+    QCOMPARE(services->backupFileEnabled(), true);
+    QCOMPARE(services->autoSaveInterval(), 7 * 60);
+    QCOMPARE(services->undoStackLimit(), 200);
+    QCOMPARE(services->autoPinLayersToTimeline(), true);
+
+    KisDocumentRegistry registry;
     QSignalSpy addedSpy(&registry, &KisDocumentRegistry::sigDocumentAdded);
     QSignalSpy savedSpy(&registry, &KisDocumentRegistry::sigDocumentSaved);
     QSignalSpy removedSpy(&registry, &KisDocumentRegistry::sigDocumentRemoved);

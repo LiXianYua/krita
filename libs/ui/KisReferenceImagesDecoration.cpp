@@ -11,6 +11,7 @@
 #include "kis_algebra_2d.h"
 #include "KisDocument.h"
 #include "KisReferenceImagesLayer.h"
+#include "KisReferenceImage.h"
 #include "kis_layer_utils.h"
 
 struct KisReferenceImagesDecoration::Private {

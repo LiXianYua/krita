@@ -26,6 +26,7 @@
 #include "KisApplication.h"
 #include "KisMainWindow.h"
 #include "KisDocument.h"
+#include "KisDocumentDesktop.h"
 #include "KisFileLayerDesktop.h"
 #include "KisView.h"
 #include "KisViewManager.h"
@@ -148,14 +149,10 @@ void busyWaitWithFeedback(KisImageSP image)
 KisPart::KisPart()
     : d(new Private(this))
 {
+    initializeKisDocumentDesktopServices();
     initializeKisShapeControllerDesktopServices();
 
     KisDocumentRegistry *registry = KisDocumentRegistry::instance();
-    registry->setDocumentServices(
-        [](bool addStorage) { return new KisDocument(addStorage); },
-        [](KisDocument *document) { document->deleteLater(); },
-        [](KisDocument *document) { return document->path(); });
-
     connect(registry, &KisDocumentRegistry::sigDocumentAdded,
             this, [this](KisDocument *document) {
                 Q_EMIT documentOpened('/' + objectName());
@@ -207,9 +204,8 @@ KisPart::~KisPart()
         registry->removeDocument(document, false);
         delete document;
     }
+    clearKisDocumentDesktopServices();
     clearKisShapeControllerDesktopServices();
-    registry->clearDocumentServices();
-
     while (!d->views.isEmpty()) {
         delete d->views.takeFirst();
     }

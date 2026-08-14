@@ -10,10 +10,10 @@
 #include <QObject>
 #include <QScopedPointer>
 #include <KisSwatch.h>
+#include <KoColorSet.h>
 
 #include <kritaui_export.h>
 
-class KoColorSet;
 class KisPaletteModel;
 class KisViewManager;
 class KisSwatchGroup;

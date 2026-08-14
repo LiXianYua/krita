@@ -62,6 +62,7 @@
 #include "KisReferenceImagesLayer.h"
 #include "KisReferenceImage.h"
 #include <KoColorSet.h>
+#include <kis_painting_assistant.h>
 
 #include "KisDocument.h"
 #include "kis_config.h"

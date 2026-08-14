@@ -52,6 +52,7 @@
 #include "KisMimeDatabase.h"
 #include "KisPart.h"
 #include "KisReferenceImagesDecoration.h"
+#include "KisReferenceImage.h"
 #include "KisRemoteFileFetcher.h"
 #include "KisSynchronizedConnection.h"
 #include "KisViewManager.h"

@@ -4,19 +4,15 @@
  */
 
 #include "KisDocumentRegistry.h"
+#include "KisDocument.h"
 
 #include <QGlobalStatic>
-
-#include <utility>
 
 Q_GLOBAL_STATIC(KisDocumentRegistry, s_documentRegistry)
 
 class KisDocumentRegistry::Private
 {
 public:
-    DocumentFactory factory;
-    DocumentDeleter deleter;
-    DocumentPath path;
     QList<KisDocument *> documents;
 };
 
@@ -24,15 +20,6 @@ KisDocumentRegistry::KisDocumentRegistry(QObject *parent)
     : QObject(parent)
     , d(new Private)
 {
-}
-
-KisDocumentRegistry::KisDocumentRegistry(DocumentFactory factory,
-                                         DocumentDeleter deleter,
-                                         DocumentPath path,
-                                         QObject *parent)
-    : KisDocumentRegistry(parent)
-{
-    setDocumentServices(std::move(factory), std::move(deleter), std::move(path));
 }
 
 KisDocumentRegistry::~KisDocumentRegistry()
@@ -45,30 +32,14 @@ KisDocumentRegistry *KisDocumentRegistry::instance()
     return s_documentRegistry;
 }
 
-void KisDocumentRegistry::setDocumentServices(DocumentFactory factory,
-                                              DocumentDeleter deleter,
-                                              DocumentPath path)
-{
-    d->factory = std::move(factory);
-    d->deleter = std::move(deleter);
-    d->path = std::move(path);
-}
-
-void KisDocumentRegistry::clearDocumentServices()
-{
-    d->factory = {};
-    d->deleter = {};
-    d->path = {};
-}
-
 KisDocument *KisDocumentRegistry::createDocument() const
 {
-    return d->factory ? d->factory(true) : nullptr;
+    return new KisDocument(true);
 }
 
 KisDocument *KisDocumentRegistry::createTemporaryDocument() const
 {
-    return d->factory ? d->factory(false) : nullptr;
+    return new KisDocument(false);
 }
 
 void KisDocumentRegistry::addDocument(KisDocument *document, bool notify)
@@ -79,10 +50,9 @@ void KisDocumentRegistry::addDocument(KisDocument *document, bool notify)
 
     d->documents.append(document);
 
-    QObject *object = reinterpret_cast<QObject *>(document);
-    connect(object, SIGNAL(sigSavingFinished(QString)),
-            this, SIGNAL(sigDocumentSaved(QString)));
-    connect(object, &QObject::destroyed, this, [this, document]() {
+    connect(document, &KisDocument::sigSavingFinished,
+            this, &KisDocumentRegistry::sigDocumentSaved);
+    connect(document, &QObject::destroyed, this, [this, document]() {
         d->documents.removeAll(document);
     });
 
@@ -108,9 +78,9 @@ void KisDocumentRegistry::removeDocument(KisDocument *document, bool deleteDocum
     }
 
     d->documents.removeAll(document);
-    Q_EMIT sigDocumentRemoved(d->path ? d->path(document) : QString());
+    Q_EMIT sigDocumentRemoved(document->path());
 
-    if (deleteDocument && d->deleter) {
-        d->deleter(document);
+    if (deleteDocument) {
+        document->deleteLater();
     }
 }

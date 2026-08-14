@@ -11,7 +11,7 @@
 #include <QVector>
 #include <QPixmap>
 
-#include "kritaui_export.h"
+#include "kritaimpex_export.h"
 #include "kis_types.h"
 
 //each storyboardItem contains pointer to child data
@@ -148,7 +148,7 @@ private:
  * item type must be stored at specific indices
  * @param childType enum for the indices and corresponding data type to be stored.
  */
-class KRITAUI_EXPORT StoryboardItem : public QEnableSharedFromThis<StoryboardItem>
+class KRITAIMPEX_EXPORT StoryboardItem : public QEnableSharedFromThis<StoryboardItem>
 {
 public:
     explicit StoryboardItem();

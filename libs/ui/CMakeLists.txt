@@ -350,7 +350,6 @@ set(kritaui_LIB_SRCS
     animation/VideoHDRMetadataOptionsDialog.cpp
     animation/KisDlgImportVideoAnimation.cpp
     animation/KisFrameDisplayProxy.cpp
-    kis_document_undo_store.cpp
     kis_gui_context_command.cpp
     kis_gui_context_command_p.cpp
     input/kis_tablet_debugger.cpp
@@ -385,8 +384,7 @@ set(kritaui_LIB_SRCS
     KisApplication.cpp
     KisAutoSaveRecoveryDialog.cpp
     KisDetailsPane.cpp
-    KisDocument.cpp
-    KisCloneDocumentStroke.cpp
+    KisDocumentDesktop.cpp
     kis_node_view_color_scheme.cpp
     KisImportExportUiBackend.cpp
     kis_async_action_feedback.cpp
@@ -429,11 +427,7 @@ set(kritaui_LIB_SRCS
     flake/KisReferenceImagesLayerCommands.cpp
     KisMouseClickEater.cpp
 
-    KisDecorationsWrapperLayer.cpp
-
     KoDocumentInfoDlg.cpp
-
-    StoryboardItem.cpp
 
     KisNodeActivationActionCreatorVisitor.cpp
     KisAndroidFileProxy.cpp

@@ -40,6 +40,7 @@
 #include <kis_paint_layer.h>
 #include <KisMimeDatabase.h>
 #include <KisReferenceImagesLayer.h>
+#include <KisReferenceImage.h>
 
 #include "KisPart.h"
 #include "canvas/kis_canvas2.h"

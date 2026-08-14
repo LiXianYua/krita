@@ -12,7 +12,6 @@
 #include "kis_node_model.h"
 #include "kis_node_manager.h"
 #include "KisReferenceImagesLayer.h"
-#include "KisDecorationsWrapperLayer.h"
 
 
 KisModelIndexConverter::KisModelIndexConverter(KisDummiesFacadeBase *dummiesFacade,
@@ -33,7 +32,7 @@ inline bool KisModelIndexConverter::checkDummyMetaObjectType(const QString &type
 {
     const QString selectionMaskType = KisSelectionMask::staticMetaObject.className();
     const QString referencesLayerType = KisReferenceImagesLayer::staticMetaObject.className();
-    const QString decorationsLayerType = KisDecorationsWrapperLayer::staticMetaObject.className();
+    const QString decorationsLayerType = QStringLiteral("KisDecorationsWrapperLayer");
 
     return (type != selectionMaskType || m_showGlobalSelection) &&
             type != referencesLayerType &&

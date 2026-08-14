@@ -39,6 +39,7 @@
 #include <kis_layer_composition.h>
 #include <kis_painting_assistants_decoration.h>
 #include <KisPngCodec.h>
+#include <kis_config.h>
 #include "kis_keyframe_channel.h"
 #include <kis_time_span.h>
 #include "KisDocument.h"

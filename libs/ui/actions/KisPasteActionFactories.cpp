@@ -42,6 +42,7 @@
 #include <KisPart.h>
 #include <KisDocument.h>
 #include <KisReferenceImagesLayer.h>
+#include <KisReferenceImage.h>
 #include <KoShapeBackgroundCommand.h>
 #include <KoShapeStrokeCommand.h>
 #include <KoShapeBackground.h>

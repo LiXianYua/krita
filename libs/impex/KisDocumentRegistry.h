@@ -6,8 +6,6 @@
 #ifndef KIS_DOCUMENT_REGISTRY_H
 #define KIS_DOCUMENT_REGISTRY_H
 
-#include <functional>
-
 #include <QObject>
 #include <QList>
 #include <QString>
@@ -19,32 +17,18 @@ class KisDocument;
 /**
  * Application-independent ownership and lifecycle registry for documents.
  *
- * Construction, deletion and path access are supplied by the document owner.
- * This keeps the registry usable below the desktop UI while KisDocument's
- * implementation is moved into the document/import-export domain.
+ * The registry and its default document lifecycle belong to the lower
+ * document/import-export domain; desktop shells only observe its signals.
  */
 class KRITAIMPEX_EXPORT KisDocumentRegistry : public QObject
 {
     Q_OBJECT
 
 public:
-    using DocumentFactory = std::function<KisDocument *(bool addStorage)>;
-    using DocumentDeleter = std::function<void(KisDocument *)>;
-    using DocumentPath = std::function<QString(KisDocument *)>;
-
     explicit KisDocumentRegistry(QObject *parent = nullptr);
-    KisDocumentRegistry(DocumentFactory factory,
-                        DocumentDeleter deleter,
-                        DocumentPath path,
-                        QObject *parent = nullptr);
     ~KisDocumentRegistry() override;
 
     static KisDocumentRegistry *instance();
-
-    void setDocumentServices(DocumentFactory factory,
-                             DocumentDeleter deleter,
-                             DocumentPath path);
-    void clearDocumentServices();
 
     KisDocument *createDocument() const;
     KisDocument *createTemporaryDocument() const;

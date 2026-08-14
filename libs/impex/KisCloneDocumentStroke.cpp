@@ -8,7 +8,7 @@
 #include "KisDocument.h"
 #include "kis_layer_utils.h"
 
-#include <QApplication>
+#include <QCoreApplication>
 
 
 struct KRITAIMAGE_NO_EXPORT KisCloneDocumentStroke::Private
@@ -45,7 +45,7 @@ void KisCloneDocumentStroke::initStrokeCallback()
 void KisCloneDocumentStroke::finishStrokeCallback()
 {
     KisDocument *doc = m_d->document->clone();
-    doc->moveToThread(qApp->thread());
+    doc->moveToThread(QCoreApplication::instance()->thread());
     Q_EMIT sigDocumentCloned(doc);
 }
 

@@ -22,13 +22,11 @@
 #include <kis_properties_configuration.h>
 #include <kis_types.h>
 #include <KisReferenceImagesLayer.h>
-#include <kis_painting_assistant.h>
-#include <KisReferenceImage.h>
 #include <kis_debug.h>
 #include <KisImportExportUtils.h>
 #include "StoryboardItem.h"
 
-#include "kritaui_export.h"
+#include "kritaimpex_export.h"
 
 #include <memory>
 
@@ -45,7 +43,6 @@ class KoStore;
 class KoDocumentInfo;
 class KisImportExportManager;
 class KisUndoStore;
-class KisPart;
 class KisGridConfig;
 class KisGuidesConfig;
 class KisMirrorAxisConfig;
@@ -57,10 +54,11 @@ class QDomDocument;
  *  KisDocument contains the image and keeps track of loading,
  *  modification, undo stack and saving.
  */
-class KRITAUI_EXPORT KisDocument : public QObject
+class KRITAIMPEX_EXPORT KisDocument : public QObject
 {
     Q_OBJECT
 protected:
+    friend class KisDocumentRegistry;
 
     explicit KisDocument(bool addStorage = true);
 
@@ -532,7 +530,6 @@ private Q_SLOTS:
 
 private:
 
-    friend class KisPart;
     friend class SafeSavingLocker;
 
     KritaUtils::BackgroudSavingStartResult initiateSavingInBackground(const QString actionName,

@@ -8,11 +8,10 @@
 #define __KIS_DOCUMENT_UNDO_STORE_H
 
 #include "kis_undo_store.h"
-#include "kritaui_export.h"
 
 class KisDocument;
 
-class KRITAUI_EXPORT KisDocumentUndoStore : public KisUndoStore
+class KisDocumentUndoStore : public KisUndoStore
 {
 public:
     KisDocumentUndoStore(KisDocument *doc);

@@ -9,6 +9,12 @@ set(kritaimpex_LIB_SRCS
     KisImportExportErrorCode.cpp
     KisImportExportAdditionalChecks.cpp
     KisImportUserFeedbackInterface.cpp
+    KisDocumentApplicationServices.cpp
+    KisDocument.cpp
+    KisCloneDocumentStroke.cpp
+    KisDecorationsWrapperLayer.cpp
+    kis_document_undo_store.cpp
+    StoryboardItem.cpp
     KisDocumentRegistry.cpp
     KisDocumentRegistry.h
     KisPngCodec.cpp
@@ -25,9 +31,12 @@ target_link_libraries(kritaimpex
         KF${KF_MAJOR}::I18n
         Qt${QT_MAJOR_VERSION}::Concurrent
         kritaimage
+        kritashapemodel
     PRIVATE
         KF${KF_MAJOR}::ConfigCore
         ${PNG_LIBRARIES}
+        kritaassistanttool_static
+        kritacanvas
         kritaresources
         kritastore
 )
