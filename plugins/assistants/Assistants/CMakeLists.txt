@@ -45,7 +45,7 @@ target_link_libraries(kritaassistanttool_static
         KF${KF_MAJOR}::ConfigCore
 )
 
-kis_add_library(kritaassistanttool MODULE assistant_tool.cc EditAssistantsCommand.cpp ${kritaassistanttool_UI_SOURCES})
+kis_add_library(kritaassistanttool MODULE assistant_tool.cc ${kritaassistanttool_UI_SOURCES})
 target_link_libraries(kritaassistanttool kritaassistanttool_static kritaui)
 
 install(TARGETS kritaassistanttool  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

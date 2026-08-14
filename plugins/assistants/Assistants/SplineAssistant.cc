@@ -14,8 +14,8 @@
 #include <QPainterPath>
 #include <QLinearGradient>
 #include <QTransform>
+#include <QCursor>
 
-#include <kis_canvas2.h>
 #include <kis_coordinates_converter.h>
 #include "kis_debug.h"
 #include "KisBezierUtils.h"
