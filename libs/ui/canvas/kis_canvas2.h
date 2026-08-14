@@ -25,6 +25,7 @@
 #include "kis_ui_types.h"
 #include "KisCanvasFeedback.h"
 #include "KisCanvasInvalidation.h"
+#include "KisCanvasNodeActivation.h"
 #include "kis_coordinates_converter.h"
 #include "kis_canvas_decoration.h"
 #include <kis_painting_assistant.h>
@@ -60,6 +61,7 @@ class KisPopupPalette;
 class KRITAUI_EXPORT KisCanvas2 : public KoCanvasBase,
                                  public KisCanvasFeedback,
                                  public KisCanvasInvalidation,
+                                 public KisCanvasNodeActivation,
                                  public KisPaintingAssistantCanvas,
                                  public KisPaintingAssistantToolServices
 {
@@ -149,6 +151,8 @@ public: // KoCanvasBase implementation
                              int alignment = Qt::AlignCenter | Qt::TextWordWrap) override;
 
     void invalidateAll() override;
+
+    void requestNodeActivation(KisNodeSP node) override;
 
     KoUnit unit() const override;
 

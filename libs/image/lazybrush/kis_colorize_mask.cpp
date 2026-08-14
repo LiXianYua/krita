@@ -11,6 +11,9 @@
 #include <QStack>
 
 #include <KoColorSpaceRegistry.h>
+#include <KoProperties.h>
+#include <KLocalizedString>
+#include <kundo2command.h>
 #include "kis_pixel_selection.h"
 
 #include "kis_node_visitor.h"
@@ -27,6 +30,9 @@
 #include "kis_multiway_cut.h"
 #include "kis_image.h"
 #include "kis_layer.h"
+#include "kis_paint_layer.h"
+#include "kis_undo_adapter.h"
+#include "commands/kis_image_layer_add_command.h"
 #include "kis_macro_based_undo_store.h"
 #include "kis_post_execution_undo_adapter.h"
 #include "kis_command_utils.h"
@@ -39,6 +45,123 @@
 
 
 using namespace KisLazyFillTools;
+
+namespace
+{
+struct ColorizeMaskPosition
+{
+    KisNodeSP parent;
+    KisNodeSP above;
+    KisPaintLayerSP fallbackLayer;
+    KisNodeSP fallbackParent;
+};
+
+bool resolveColorizeMaskPosition(KisImageSP image,
+                                 KisNodeSP mask,
+                                 KisNodeSP activeNode,
+                                 bool avoidActiveNode,
+                                 ColorizeMaskPosition &position)
+{
+    if (!avoidActiveNode && activeNode->allowAsChild(mask)) {
+        position.parent = activeNode;
+        position.above = activeNode->lastChild();
+        return true;
+    }
+
+    if (activeNode->parent() && activeNode->parent()->allowAsChild(mask) &&
+        activeNode->parent()->parent()) {
+        position.parent = activeNode->parent();
+        position.above = activeNode;
+        return true;
+    }
+
+    KisNodeSP sibling = activeNode;
+    while ((sibling = sibling->nextSibling())) {
+        if (sibling->allowAsChild(mask)) {
+            position.parent = sibling;
+            position.above = sibling->lastChild();
+            return true;
+        }
+    }
+
+    sibling = activeNode;
+    while ((sibling = sibling->prevSibling())) {
+        if (sibling->allowAsChild(mask)) {
+            position.parent = sibling;
+            position.above = sibling->lastChild();
+            return true;
+        }
+    }
+
+    if (activeNode->parent()) {
+        return resolveColorizeMaskPosition(image,
+                                           mask,
+                                           activeNode->parent(),
+                                           true,
+                                           position);
+    }
+
+    KisPaintLayerSP layer = new KisPaintLayer(image.data(),
+                                              image->nextLayerName(),
+                                              OPACITY_OPAQUE_U8,
+                                              image->colorSpace());
+    if (!activeNode->allowAsChild(layer)) {
+        return false;
+    }
+
+    position.parent = layer;
+    position.above = {};
+    position.fallbackLayer = layer;
+    position.fallbackParent = activeNode;
+    return true;
+}
+}
+
+KisColorizeMaskSP KisColorizeMaskUtils::createColorizeMask(KisImageSP image,
+                                                           KisNodeSP activeNode)
+{
+    if (!image || !activeNode || !activeNode->isEditable(false)) {
+        return {};
+    }
+
+    KisColorizeMaskSP mask = new KisColorizeMask(image, QString());
+    ColorizeMaskPosition position;
+    if (!resolveColorizeMaskPosition(image, mask, activeNode, false, position)) {
+        return {};
+    }
+
+    KisLayerSP parentLayer = qobject_cast<KisLayer *>(position.parent.data());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(parentLayer, KisColorizeMaskSP());
+
+    const int number = parentLayer->childNodes(QStringList("KisColorizeMask"),
+                                                KoProperties()).count() + 1;
+    mask->setName(i18n("Colorize Mask") + QStringLiteral(" ") + QString::number(number));
+
+    KisUndoAdapter *undoAdapter = image->undoAdapter();
+    const KisImageLayerAddCommand::Flags updateFlags =
+        KisImageLayerAddCommand::DoRedoUpdates |
+        KisImageLayerAddCommand::DoUndoUpdates;
+
+    undoAdapter->beginMacro(kundo2_i18n("Add Colorize Mask"));
+    if (position.fallbackLayer) {
+        undoAdapter->addCommand(new KisImageLayerAddCommand(image,
+                                                            position.fallbackLayer,
+                                                            position.fallbackParent,
+                                                            KisNodeSP(),
+                                                            updateFlags));
+    }
+    undoAdapter->addCommand(new KisImageLayerAddCommand(image,
+                                                        mask,
+                                                        parentLayer,
+                                                        position.above,
+                                                        updateFlags));
+    undoAdapter->endMacro();
+
+    mask->initializeCompositeOp();
+    delete mask->setColorSpace(parentLayer->colorSpace());
+
+    return mask;
+}
 
 struct KisColorizeMask::Private
 {

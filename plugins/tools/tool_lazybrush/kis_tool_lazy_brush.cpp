@@ -14,13 +14,13 @@
 #include <KoCanvasController.h>
 #include <KoCanvasResourceProvider.h>
 
-#include <KisViewManager.h>
-#include "kis_canvas2.h"
+#include "canvas/KisCanvasFeedback.h"
+#include "canvas/KisCanvasNodeActivation.h"
 #include "kis_cursor.h"
 #include "kundo2magicstring.h"
 
 #include "KoProperties.h"
-#include "kis_node_manager.h"
+#include "kis_layer.h"
 #include "kis_layer_properties_icons.h"
 
 #include "lazybrush/kis_colorize_mask.h"
@@ -150,6 +150,10 @@ void KisToolLazyBrush::tryCreateColorizeMask()
     KisNodeSP node = currentNode();
     if (!node) return;
 
+    KisCanvasNodeActivation *nodeActivation =
+        dynamic_cast<KisCanvasNodeActivation *>(canvas());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(nodeActivation);
+
     KoProperties properties;
     properties.setProperty("visible", true);
     properties.setProperty("locked", false);
@@ -157,13 +161,42 @@ void KisToolLazyBrush::tryCreateColorizeMask()
     QList<KisNodeSP> masks = node->childNodes(QStringList("KisColorizeMask"), properties);
 
     if (!masks.isEmpty()) {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-        KisViewManager* viewManager = kiscanvas->viewManager();
-        viewManager->nodeManager()->slotNonUiActivatedNode(masks.first());
-    } else {
-        KisCanvas2 * kiscanvas = static_cast<KisCanvas2*>(canvas());
-        KisViewManager* viewManager = kiscanvas->viewManager();
-        viewManager->nodeManager()->createNode("KisColorizeMask");
+        nodeActivation->requestNodeActivation(masks.first());
+        return;
+    }
+
+    if (!blockUntilOperationsFinished()) {
+        return;
+    }
+
+    node = currentNode();
+    KisImageSP currentImage = image().toStrongRef();
+    if (!node || !currentImage) {
+        return;
+    }
+
+    masks = node->childNodes(QStringList("KisColorizeMask"), properties);
+    if (!masks.isEmpty()) {
+        nodeActivation->requestNodeActivation(masks.first());
+        return;
+    }
+
+    if (!node->inherits("KisLayer")) {
+        return;
+    }
+
+    if (!node->isEditable(false)) {
+        if (KisCanvasFeedback *feedback =
+                dynamic_cast<KisCanvasFeedback *>(canvas())) {
+            feedback->showFloatingMessage(i18n("Layer is locked"), QIcon());
+        }
+        return;
+    }
+
+    KisColorizeMaskSP mask =
+        KisColorizeMaskUtils::createColorizeMask(currentImage, node);
+    if (mask) {
+        nodeActivation->requestNodeActivation(mask);
     }
 }
 

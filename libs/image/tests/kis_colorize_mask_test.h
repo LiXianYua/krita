@@ -15,6 +15,9 @@ class KisColorizeMaskTest : public QObject
 private Q_SLOTS:
     void test();
     void testCrop();
+    void testCreateColorizeMask();
+    void testCreateColorizeMaskOnRoot();
+    void testCreateColorizeMaskOnRejectingLayer();
 };
 
 #endif /* __KIS_COLORIZE_MASK_TEST_H */

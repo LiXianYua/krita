@@ -18,6 +18,17 @@
 
 #include <KoColor.h>
 
+class RejectingPaintLayer : public KisPaintLayer
+{
+public:
+    using KisPaintLayer::KisPaintLayer;
+
+    bool allowAsChild(KisNodeSP) const override
+    {
+        return false;
+    }
+};
+
 struct ColorizeMaskTester
 {
     ColorizeMaskTester()
@@ -202,6 +213,77 @@ void KisColorizeMaskTest::testCrop()
     QCOMPARE(strokes[0].dev->exactBounds(), QRect(45,45,10,10));
     QCOMPARE(strokes[1].dev->exactBounds(), QRect(145,45,5,10));
     QCOMPARE(strokes[2].dev->exactBounds(), QRect(0,0,5,5));
+}
+
+void KisColorizeMaskTest::testCreateColorizeMask()
+{
+    TestUtil::MaskParent p(QRect(0, 0, 64, 64));
+
+    KisColorizeMaskSP first =
+        KisColorizeMaskUtils::createColorizeMask(p.image, p.layer);
+    QVERIFY(first);
+    QCOMPARE(first->parent(), KisNodeSP(p.layer));
+    QCOMPARE(first->name(), QString("Colorize Mask 1"));
+    QCOMPARE(first->colorSpace(), p.layer->colorSpace());
+
+    KisColorizeMaskSP second =
+        KisColorizeMaskUtils::createColorizeMask(p.image, p.layer);
+    QVERIFY(second);
+    QCOMPARE(second->name(), QString("Colorize Mask 2"));
+
+    p.image->undoAdapter()->undoLastCommand();
+    QCOMPARE(p.layer->childCount(), 1u);
+
+    p.undoStore->redo();
+    QCOMPARE(p.layer->childCount(), 2u);
+    p.image->undoAdapter()->undoLastCommand();
+    QCOMPARE(p.layer->childCount(), 1u);
+
+    p.layer->setUserLocked(true);
+    QVERIFY(!KisColorizeMaskUtils::createColorizeMask(p.image, p.layer));
+    QCOMPARE(p.layer->childCount(), 1u);
+}
+
+void KisColorizeMaskTest::testCreateColorizeMaskOnRoot()
+{
+    TestUtil::MaskParent p(QRect(0, 0, 64, 64));
+    KisNodeSP root = p.image->root();
+
+    KisColorizeMaskSP mask =
+        KisColorizeMaskUtils::createColorizeMask(p.image, root);
+    QVERIFY(mask);
+    QVERIFY(mask->parent());
+    QVERIFY(mask->parent() != KisNodeSP(p.layer));
+    QCOMPARE(mask->parent()->parent(), root);
+    QVERIFY(mask->parent()->inherits("KisPaintLayer"));
+    QCOMPARE(root->childCount(), 2u);
+
+    p.image->undoAdapter()->undoLastCommand();
+    QCOMPARE(root->childCount(), 1u);
+
+    p.undoStore->redo();
+    QCOMPARE(root->childCount(), 2u);
+    QCOMPARE(mask->parent()->parent(), root);
+}
+
+void KisColorizeMaskTest::testCreateColorizeMaskOnRejectingLayer()
+{
+    TestUtil::MaskParent p(QRect(0, 0, 64, 64));
+    KisPaintLayerSP rejectingLayer = new RejectingPaintLayer(
+        p.image, "rejecting", OPACITY_OPAQUE_U8, p.image->colorSpace());
+    p.image->addNode(rejectingLayer,
+                     p.image->root(),
+                     p.image->root()->lastChild());
+
+    KisColorizeMaskSP mask =
+        KisColorizeMaskUtils::createColorizeMask(p.image, rejectingLayer);
+    QVERIFY(mask);
+    QCOMPARE(mask->parent(), KisNodeSP(p.layer));
+    QCOMPARE(rejectingLayer->childCount(), 0u);
+
+    p.image->undoAdapter()->undoLastCommand();
+    QCOMPARE(p.layer->childCount(), 0u);
+    QCOMPARE(p.image->root()->childCount(), 2u);
 }
 
 KISTEST_MAIN(KisColorizeMaskTest)

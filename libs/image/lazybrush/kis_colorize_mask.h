@@ -167,4 +167,10 @@ private:
     const QScopedPointer<Private> m_d;
 };
 
+namespace KisColorizeMaskUtils
+{
+KRITAIMAGE_EXPORT KisColorizeMaskSP createColorizeMask(KisImageSP image,
+                                                       KisNodeSP activeNode);
+}
+
 #endif /* __KIS_COLORIZE_MASK_H */

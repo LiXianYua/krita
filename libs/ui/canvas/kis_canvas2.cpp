@@ -351,6 +351,11 @@ void KisCanvas2::invalidateAll()
     updateCanvas();
 }
 
+void KisCanvas2::requestNodeActivation(KisNodeSP node)
+{
+    viewManager()->nodeManager()->slotNonUiActivatedNode(node);
+}
+
 void KisCanvas2::setup()
 {
     // a bit of duplication from slotConfigChanged()

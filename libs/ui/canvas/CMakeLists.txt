@@ -1,6 +1,7 @@
 set(kritacanvas_LIB_SRCS
     KisCanvasFeedback.cpp
     KisCanvasInvalidation.cpp
+    KisCanvasNodeActivation.cpp
     KisMirrorAxisConfig.cpp
     KisCanvasConfig.cpp
     KisCanvasState.cpp
