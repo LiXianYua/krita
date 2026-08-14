@@ -178,3 +178,11 @@ kis_add_test(
     KisColorSamplingUtilsTest.cpp
     LINK_LIBRARIES kritaimage kritatestsdk
 )
+
+krita_add_broken_unit_test(
+    filter_stroke_test.cpp
+    ../../../sdk/tests/stroke_testing_utils.cpp
+    TEST_NAME FilterStrokeTest
+    NAME_PREFIX libs-image-
+    LINK_LIBRARIES kritaimage kritatestsdk
+)

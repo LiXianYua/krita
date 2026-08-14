@@ -31,7 +31,6 @@ set(kritacanvas_LIB_SRCS
     tool/KisToolOutlineBase.cpp
     kis_aspect_ratio_locker.cpp
     widgets/kis_selection_options.cc
-    widgets/kis_color_label_button.cpp
     tool/kis_selection_tool_config_widget_helper.cpp
     tool/kis_delegated_tool_policies.cpp
     tool/strokes/move_stroke_strategy.cpp

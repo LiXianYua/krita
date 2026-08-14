@@ -7,22 +7,28 @@
 #ifndef __KIS_SELECTION_OPTIONS_H__
 #define __KIS_SELECTION_OPTIONS_H__
 
-#include <kritacanvas_export.h>
+#include <QList>
+#include <QObject>
 
-#include <KisOptionCollectionWidget.h>
+#include <kritacanvas_export.h>
 #include <KisSelectionTags.h>
 
-class QKeySequence;
-
-class KRITACANVAS_EXPORT KisSelectionOptions : public KisOptionCollectionWidget
+/**
+ * Domain state shared by selection tools.
+ *
+ * The desktop options panel used to own these values.  The retained canvas
+ * graph must keep the tool behavior observable without retaining the desktop
+ * adapter, so this class contains only values and change notifications.
+ */
+class KRITACANVAS_EXPORT KisSelectionOptions : public QObject
 {
     Q_OBJECT
 
 public:
     enum ReferenceLayers { CurrentLayer, AllLayers, ColorLabeledLayers };
+    Q_ENUM(ReferenceLayers)
 
-    KisSelectionOptions(QWidget *parent = nullptr);
-    ~KisSelectionOptions() override;
+    explicit KisSelectionOptions(QObject *parent = nullptr);
 
     SelectionMode mode() const;
     SelectionAction action() const;
@@ -33,23 +39,14 @@ public:
     ReferenceLayers referenceLayers() const;
     QList<int> selectedColorLabels() const;
 
-    void setMode(SelectionMode newMode);
-    void setAction(SelectionAction newAction);
-    void setAntiAliasSelection(bool newAntiAliasSelection);
-    void setGrowSelection(int newGrowSelection);
-    void setStopGrowingAtDarkestPixel(bool newStopGrowingAtDarkestPixel);
-    void setFeatherSelection(int newFeatherSelection);
-    void setReferenceLayers(ReferenceLayers newReferenceLayers);
-    void setSelectedColorLabels(const QList<int> &newSelectedColorLabels);
-
-    void setModeSectionVisible(bool visible);
-    void setActionSectionVisible(bool visible);
-    void setAdjustmentsSectionVisible(bool visible);
-    void setStopGrowingAtDarkestPixelButtonVisible(bool visible);
-    void setReferenceSectionVisible(bool visible);
-
-    void updateActionButtonToolTip(SelectionAction action,
-                                   const QKeySequence &shortcut);
+    void setMode(SelectionMode value);
+    void setAction(SelectionAction value);
+    void setAntiAliasSelection(bool value);
+    void setGrowSelection(int value);
+    void setStopGrowingAtDarkestPixel(bool value);
+    void setFeatherSelection(int value);
+    void setReferenceLayers(ReferenceLayers value);
+    void setSelectedColorLabels(const QList<int> &value);
 
 Q_SIGNALS:
     void modeChanged(SelectionMode mode);
@@ -61,13 +58,15 @@ Q_SIGNALS:
     void referenceLayersChanged(ReferenceLayers referenceLayers);
     void selectedColorLabelsChanged();
 
-private Q_SLOTS:
-    void slotConfigChanged();
-    void slotSelectionActionsPanelCheckboxToggled(bool value);
-
 private:
-    class Private;
-    QScopedPointer<Private> m_d;
+    SelectionMode m_mode {SHAPE_PROTECTION};
+    SelectionAction m_action {SELECTION_REPLACE};
+    bool m_antiAliasSelection {true};
+    int m_growSelection {0};
+    bool m_stopGrowingAtDarkestPixel {false};
+    int m_featherSelection {0};
+    ReferenceLayers m_referenceLayers {CurrentLayer};
+    QList<int> m_selectedColorLabels;
 };
 
 #endif

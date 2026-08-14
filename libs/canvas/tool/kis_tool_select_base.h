@@ -68,6 +68,7 @@ public:
         , m_selectionActionAlternate(SELECTION_DEFAULT)
     {
         KisSelectionModifierMapper::instance();
+        initializeSelectionState();
     }
 
     KisToolSelectBase(KoCanvasBase* canvas, const QCursor cursor, const QString toolName)
@@ -76,6 +77,7 @@ public:
         , m_selectionActionAlternate(SELECTION_DEFAULT)
     {
         KisSelectionModifierMapper::instance();
+        initializeSelectionState();
     }
 
     KisToolSelectBase(KoCanvasBase* canvas, QCursor cursor, QString toolName, KoToolBase *delegateTool)
@@ -84,6 +86,7 @@ public:
         , m_selectionActionAlternate(SELECTION_DEFAULT)
     {
         KisSelectionModifierMapper::instance();
+        initializeSelectionState();
     }
 
     enum SampleLayersMode
@@ -93,27 +96,12 @@ public:
         SampleColorLabeledLayers,
     };
 
-    void updateActionShortcutToolTips() {
-        KisSelectionOptions *widget = m_widgetHelper.optionWidget();
-        if (widget) {
-            widget->updateActionButtonToolTip(
-                SELECTION_REPLACE,
-                this->action("selection_tool_mode_replace")->shortcut());
-            widget->updateActionButtonToolTip(
-                SELECTION_ADD,
-                this->action("selection_tool_mode_add")->shortcut());
-            widget->updateActionButtonToolTip(
-                SELECTION_SUBTRACT,
-                this->action("selection_tool_mode_subtract")->shortcut());
-            widget->updateActionButtonToolTip(
-                SELECTION_INTERSECT,
-                this->action("selection_tool_mode_intersect")->shortcut());
-        }
-    }
-
     void activate(const QSet<KoShape *> &shapes) override
     {
         BaseClass::activate(shapes);
+
+        m_widgetHelper.setConfigGroupForExactTool(this->toolId());
+        m_widgetHelper.slotToolActivatedChanged(true);
 
         m_modeConnections.addUniqueConnection(
             this->action("selection_tool_mode_replace"), SIGNAL(triggered()),
@@ -131,49 +119,13 @@ public:
             this->action("selection_tool_mode_intersect"), SIGNAL(triggered()),
             &m_widgetHelper, SLOT(slotIntersectModeRequested()));
 
-        updateActionShortcutToolTips();
-
-        if (m_widgetHelper.optionWidget()) {
-            if (isPixelOnly()) {
-                m_widgetHelper.optionWidget()->setModeSectionVisible(false);
-                m_widgetHelper.optionWidget()->setAdjustmentsSectionVisible(
-                    true);
-            }
-            m_widgetHelper.optionWidget()->setReferenceSectionVisible(
-                usesColorLabels());
-        }
     }
 
     void deactivate() override
     {
+        m_widgetHelper.slotToolActivatedChanged(false);
         BaseClass::deactivate();
         m_modeConnections.clear();
-    }
-
-    QWidget *createOptionWidget() override
-    {
-        m_widgetHelper.createOptionWidget(this->toolId());
-        m_widgetHelper.setConfigGroupForExactTool(this->toolId());
-
-        this->connect(this, SIGNAL(isActiveChanged(bool)), &m_widgetHelper, SLOT(slotToolActivatedChanged(bool)));
-        this->connect(&m_widgetHelper,
-                      SIGNAL(selectionActionChanged(SelectionAction)),
-                      this,
-                      SLOT(resetCursorStyle()));
-
-        updateActionShortcutToolTips();
-        if (m_widgetHelper.optionWidget()) {
-            m_widgetHelper.optionWidget()->setContentsMargins(0, 10, 0, 10);
-            if (isPixelOnly()) {
-                m_widgetHelper.optionWidget()->setModeSectionVisible(false);
-                m_widgetHelper.optionWidget()->setAdjustmentsSectionVisible(
-                    true);
-            }
-            m_widgetHelper.optionWidget()->setReferenceSectionVisible(
-                usesColorLabels());
-        }
-
-        return m_widgetHelper.optionWidget();
     }
 
     SelectionMode selectionMode() const
@@ -232,11 +184,6 @@ public:
     SelectionAction alternateSelectionAction() const
     {
         return m_selectionActionAlternate;
-    }
-
-    KisSelectionOptions* selectionOptionWidget()
-    {
-        return m_widgetHelper.optionWidget();
     }
 
     virtual void setAlternateSelectionAction(SelectionAction action)
@@ -522,6 +469,15 @@ public:
 
 protected:
     using BaseClass::canvas;
+
+    void initializeSelectionState()
+    {
+        this->connect(&m_widgetHelper,
+                      SIGNAL(selectionActionChanged(SelectionAction)),
+                      this,
+                      SLOT(resetCursorStyle()));
+    }
+
     KisSelectionToolConfigWidgetHelper m_widgetHelper;
     SelectionAction m_selectionActionAlternate;
 

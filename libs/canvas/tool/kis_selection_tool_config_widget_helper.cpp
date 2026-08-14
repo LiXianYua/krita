@@ -14,116 +14,77 @@
 
 KisSelectionToolConfigWidgetHelper::KisSelectionToolConfigWidgetHelper(
     const QString &windowTitle)
-    : m_optionsWidget(0)
-    , m_windowTitle(windowTitle)
+    : m_windowTitle(windowTitle)
 {
-}
-
-void KisSelectionToolConfigWidgetHelper::createOptionWidget(
-    const QString &toolId)
-{
-    m_optionsWidget = new KisSelectionOptions;
-    Q_CHECK_PTR(m_optionsWidget);
-
-    m_optionsWidget->setObjectName(toolId + "option widget");
-    slotToolActivatedChanged(true);
-
-    connect(m_optionsWidget, &KisSelectionOptions::modeChanged,
+    connect(&m_options, &KisSelectionOptions::modeChanged,
             this, &KisSelectionToolConfigWidgetHelper::slotWidgetModeChanged);
-    connect(m_optionsWidget,
+    connect(&m_options,
             &KisSelectionOptions::actionChanged,
             this,
             &KisSelectionToolConfigWidgetHelper::slotWidgetActionChanged);
-    connect(m_optionsWidget, &KisSelectionOptions::antiAliasSelectionChanged,
+    connect(&m_options, &KisSelectionOptions::antiAliasSelectionChanged,
             this, &KisSelectionToolConfigWidgetHelper::slotWidgetAntiAliasChanged);
-    connect(m_optionsWidget,
+    connect(&m_options,
             &KisSelectionOptions::growSelectionChanged,
             this,
             &KisSelectionToolConfigWidgetHelper::slotWidgetGrowChanged);
-    connect(m_optionsWidget,
+    connect(&m_options,
             &KisSelectionOptions::stopGrowingAtDarkestPixelChanged,
             this,
             &KisSelectionToolConfigWidgetHelper::slotWidgetStopGrowingAtDarkestPixelChanged);
-    connect(m_optionsWidget,
+    connect(&m_options,
             &KisSelectionOptions::featherSelectionChanged,
             this,
             &KisSelectionToolConfigWidgetHelper::slotWidgetFeatherChanged);
-    connect(m_optionsWidget,
+    connect(&m_options,
             &KisSelectionOptions::referenceLayersChanged,
             this,
             &KisSelectionToolConfigWidgetHelper::slotReferenceLayersChanged);
-    connect(m_optionsWidget, &KisSelectionOptions::selectedColorLabelsChanged,
+    connect(&m_options, &KisSelectionOptions::selectedColorLabelsChanged,
             this, &KisSelectionToolConfigWidgetHelper::slotSelectedColorLabelsChanged);
-}
 
-KisSelectionOptions* KisSelectionToolConfigWidgetHelper::optionWidget() const
-{
-    return m_optionsWidget;
+    slotToolActivatedChanged(true);
 }
 
 SelectionMode KisSelectionToolConfigWidgetHelper::selectionMode() const
 {
-    if (!m_optionsWidget) {
-        return SHAPE_PROTECTION;
-    }
-    return m_optionsWidget->mode();
+    return m_options.mode();
 }
 
 SelectionAction KisSelectionToolConfigWidgetHelper::selectionAction() const
 {
-    if (!m_optionsWidget) {
-        return SELECTION_DEFAULT;
-    }
-    return m_optionsWidget->action();
+    return m_options.action();
 }
 
 bool KisSelectionToolConfigWidgetHelper::antiAliasSelection() const
 {
-    if (!m_optionsWidget) {
-        return true;
-    }
-    return m_optionsWidget->antiAliasSelection();
+    return m_options.antiAliasSelection();
 }
 
 int KisSelectionToolConfigWidgetHelper::growSelection() const
 {
-    if (!m_optionsWidget) {
-        return 0;
-    }
-    return m_optionsWidget->growSelection();
+    return m_options.growSelection();
 }
 
 bool KisSelectionToolConfigWidgetHelper::stopGrowingAtDarkestPixel() const
 {
-    if (!m_optionsWidget) {
-        return false;
-    }
-    return m_optionsWidget->stopGrowingAtDarkestPixel();
+    return m_options.stopGrowingAtDarkestPixel();
 }
 
 int KisSelectionToolConfigWidgetHelper::featherSelection() const
 {
-    if (!m_optionsWidget) {
-        return 0;
-    }
-    return m_optionsWidget->featherSelection();
+    return m_options.featherSelection();
 }
 
 KisSelectionOptions::ReferenceLayers
 KisSelectionToolConfigWidgetHelper::referenceLayers() const
 {
-    if (!m_optionsWidget) {
-        return KisSelectionOptions::CurrentLayer;
-    }
-    return m_optionsWidget->referenceLayers();
+    return m_options.referenceLayers();
 }
 
 QList<int> KisSelectionToolConfigWidgetHelper::selectedColorLabels() const
 {
-    if (!m_optionsWidget) {
-        return {};
-    }
-    return m_optionsWidget->selectedColorLabels();
+    return m_options.selectedColorLabels();
 }
 
 void KisSelectionToolConfigWidgetHelper::setConfigGroupForExactTool(
@@ -187,7 +148,7 @@ void KisSelectionToolConfigWidgetHelper::slotReferenceLayersChanged(
 
 void KisSelectionToolConfigWidgetHelper::slotSelectedColorLabelsChanged()
 {
-    const QList<int> colorLabels = m_optionsWidget->selectedColorLabels();
+    const QList<int> colorLabels = m_options.selectedColorLabels();
     if (colorLabels.isEmpty()) {
         return;
     }
@@ -202,37 +163,32 @@ void KisSelectionToolConfigWidgetHelper::slotSelectedColorLabelsChanged()
 
 void KisSelectionToolConfigWidgetHelper::slotReplaceModeRequested()
 {
-    m_optionsWidget->setAction(SELECTION_REPLACE);
-    slotWidgetActionChanged(m_optionsWidget->action());
+    m_options.setAction(SELECTION_REPLACE);
 }
 
 void KisSelectionToolConfigWidgetHelper::slotAddModeRequested()
 {
-    m_optionsWidget->setAction(SELECTION_ADD);
-    slotWidgetActionChanged(m_optionsWidget->action());
+    m_options.setAction(SELECTION_ADD);
 }
 
 void KisSelectionToolConfigWidgetHelper::slotSubtractModeRequested()
 {
-    m_optionsWidget->setAction(SELECTION_SUBTRACT);
-    slotWidgetActionChanged(m_optionsWidget->action());
+    m_options.setAction(SELECTION_SUBTRACT);
 }
 
 void KisSelectionToolConfigWidgetHelper::slotIntersectModeRequested()
 {
-    m_optionsWidget->setAction(SELECTION_INTERSECT);
-    slotWidgetActionChanged(m_optionsWidget->action());
+    m_options.setAction(SELECTION_INTERSECT);
 }
 
 void KisSelectionToolConfigWidgetHelper::slotSymmetricDifferenceModeRequested()
 {
-    m_optionsWidget->setAction(SELECTION_SYMMETRICDIFFERENCE);
-    slotWidgetActionChanged(m_optionsWidget->action());
+    m_options.setAction(SELECTION_SYMMETRICDIFFERENCE);
 }
 
 void KisSelectionToolConfigWidgetHelper::slotToolActivatedChanged(bool isActivated)
 {
-    if (!isActivated || !m_optionsWidget) {
+    if (!isActivated) {
         return;
     }
 
@@ -245,9 +201,9 @@ void KisSelectionToolConfigWidgetHelper::slotToolActivatedChanged(bool isActivat
         (SelectionAction)cfg.readEntry("selectionAction",
                                        static_cast<int>(SELECTION_REPLACE));
 
-    KisSignalsBlocker b(m_optionsWidget);
-    m_optionsWidget->setMode(selectionMode);
-    m_optionsWidget->setAction(selectionAction);
+    KisSignalsBlocker b(&m_options);
+    m_options.setMode(selectionMode);
+    m_options.setAction(selectionAction);
 
     reloadExactToolConfig();
 }
@@ -289,11 +245,11 @@ void KisSelectionToolConfigWidgetHelper::reloadExactToolConfig()
         }
     }
 
-    KisSignalsBlocker b(m_optionsWidget);
-    m_optionsWidget->setAntiAliasSelection(antiAliasSelection);
-    m_optionsWidget->setGrowSelection(growSelection);
-    m_optionsWidget->setStopGrowingAtDarkestPixel(stopGrowingAtDarkestPixel);
-    m_optionsWidget->setFeatherSelection(featherSelection);
-    m_optionsWidget->setReferenceLayers(referenceLayers);
-    m_optionsWidget->setSelectedColorLabels(colorLabels);
+    KisSignalsBlocker b(&m_options);
+    m_options.setAntiAliasSelection(antiAliasSelection);
+    m_options.setGrowSelection(growSelection);
+    m_options.setStopGrowingAtDarkestPixel(stopGrowingAtDarkestPixel);
+    m_options.setFeatherSelection(featherSelection);
+    m_options.setReferenceLayers(referenceLayers);
+    m_options.setSelectedColorLabels(colorLabels);
 }

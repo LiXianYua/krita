@@ -23,9 +23,6 @@ class KRITACANVAS_EXPORT KisSelectionToolConfigWidgetHelper : public QObject
 public:
     KisSelectionToolConfigWidgetHelper(const QString &windowTitle);
 
-    void createOptionWidget(const QString &toolId);
-    KisSelectionOptions* optionWidget() const;
-
     SelectionMode selectionMode() const;
     SelectionAction selectionAction() const;
     bool antiAliasSelection() const;
@@ -62,7 +59,7 @@ public Q_SLOTS:
     void slotSymmetricDifferenceModeRequested();
 
 private:
-    KisSelectionOptions* m_optionsWidget;
+    KisSelectionOptions m_options;
     QString m_windowTitle;
     QString m_configGroupForTool {""};
 

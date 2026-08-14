@@ -48,3 +48,7 @@ set_target_properties(kritaimpex
 )
 
 install(TARGETS kritaimpex  ${INSTALL_TARGETS_DEFAULT_ARGS})
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
