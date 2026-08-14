@@ -6,7 +6,7 @@ set(kritajxlimport_SOURCES
 
 kis_add_library(kritajxlimport MODULE ${kritajxlimport_SOURCES})
 
-target_link_libraries(kritajxlimport kritaimpex kritaui kritalibkra kritametadata ${JPEGXL_LIBRARIES})
+target_link_libraries(kritajxlimport kritaimpex kritalibkra kritametadata ${JPEGXL_LIBRARIES})
 
 install(TARGETS kritajxlimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
@@ -17,7 +17,7 @@ set(kritajxlexport_SOURCES
 
 kis_add_library(kritajxlexport MODULE ${kritajxlexport_SOURCES})
 
-target_link_libraries(kritajxlexport kritaui kritalibkra kritaimpex ${JPEGXL_LIBRARIES})
+target_link_libraries(kritajxlexport kritalibkra kritaimpex ${JPEGXL_LIBRARIES})
 
 install(TARGETS kritajxlexport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

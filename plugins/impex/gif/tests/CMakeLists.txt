@@ -1,5 +1,5 @@
 kis_add_test(
     KisGifTest.cpp
     TEST_NAME KisGifTest
-    LINK_LIBRARIES kritaimpex kritaui kritatestsdk
+    LINK_LIBRARIES kritaimpex kritatestsdk
     )

@@ -15,7 +15,7 @@ set(kritawebpimport_SOURCES
 )
 
 add_library(kritawebpimport MODULE ${kritawebpimport_SOURCES})
-target_link_libraries(kritawebpimport kritaimpex kritaui WebP::webp WebP::webpdemux)
+target_link_libraries(kritawebpimport kritaimpex WebP::webp WebP::webpdemux)
 
 install(TARGETS kritawebpimport DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

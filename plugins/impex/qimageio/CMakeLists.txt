@@ -19,7 +19,7 @@ set(kritaqimageioimport_SOURCES
 
 kis_add_library(kritaqimageioimport MODULE ${kritaqimageioimport_SOURCES})
 
-target_link_libraries(kritaqimageioimport kritaimpex kritaui)
+target_link_libraries(kritaqimageioimport kritaimpex)
 
 install(TARGETS kritaqimageioimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

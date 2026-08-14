@@ -20,7 +20,7 @@ ki18n_wrap_ui(kritabrushimport_PART_SRCS )
 
 kis_add_library(kritabrushimport MODULE ${kritabrushimport_PART_SRCS})
 
-target_link_libraries(kritabrushimport kritalibbrush kritaimpex kritaui)
+target_link_libraries(kritabrushimport kritalibbrush kritaimpex)
 
 install(TARGETS kritabrushimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 

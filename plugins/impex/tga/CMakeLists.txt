@@ -20,7 +20,7 @@ ki18n_wrap_ui(kritatgaimport_SOURCES )
 
 kis_add_library(kritatgaimport MODULE ${kritatgaimport_SOURCES})
 
-target_link_libraries(kritatgaimport kritaimpex kritaui)
+target_link_libraries(kritatgaimport kritaimpex)
 
 install(TARGETS kritatgaimport  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
