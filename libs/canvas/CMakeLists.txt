@@ -7,6 +7,7 @@ set(kritacanvas_LIB_SRCS
     KisReferenceImageToolServices.cpp
     KisStandardBrushSizes.cpp
     KisMirrorAxisConfig.cpp
+    KisMultiSurfaceStateManager.cpp
     KisCanvasConfig.cpp
     KisCanvasState.cpp
     tool/kis_tool.cc
@@ -55,6 +56,7 @@ set(kritacanvas_LIB_SRCS
     kis_ui_types.h
     kis_update_info.cpp
     opengl/KisOpenGLPolicy.cpp
+    KisCanvasSurfaceColorSpacePolicy.cpp
     opengl/KisOpenGLUpdateInfoBuilder.cpp
     opengl/kis_texture_tile_info_pool.cpp
 )

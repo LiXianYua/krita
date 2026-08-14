@@ -2,6 +2,7 @@ kis_add_tests(
     KisAsyncColorSamplerHelperTest.cpp
     kis_coordinates_converter_test.cpp
     kis_grid_config_test.cpp
+    kis_multi_surface_policy_test.cpp
     kis_opengl_policy_test.cpp
     kis_prescaled_projection_test.cpp
     kis_selection_options_test.cpp
