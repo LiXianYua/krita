@@ -297,6 +297,10 @@ codegraph 查官方只读 clone（见下）。
   找调用方、定位符号，**先跑 `codegraph explore "<符号名>"`**——它一次给符号原文 + 调用路径 +
   **blast radius**（谁依赖它），**含 grep 追不到的动态分派**（虚函数/信号槽）。`grep` 只做收尾复核；
   只靠 grep 会漏动态分派的调用方，删代码时炸的都是这些。
+- **断边活（删 target / 断 `kritawidgetutils` 这类库的边）必须先拿 blast radius，不许逐文件 grep 起步**。
+  断边 = 找出**全部**消费方并逐个改，而消费方清单散在几十上百个文件里，`grep` 是一次一个文件的线性扫。
+  正确顺序：`codegraph explore "<被断的头/类名>"` → 它直接给出所有 caller/依赖文件全集 → **照着这份
+  全集逐处核对、改**。这会省掉一半搜索时间。只有 blast radius 之外「怀疑还有别的」时，才补 grep 复核。
 - **两个索引内容不同，别混**：本 worktree / 主 checkout 的索引反映**删减后的现状**（问「现在还剩
   什么」用它）；官方只读 clone（`/home/liyang/projects-ssd/krita`）的索引反映**未删减的原始 Krita**
   （问「原来怎么设计的」用它，基点 `v6.0.3` 与本仓同源）。
