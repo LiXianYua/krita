@@ -7,17 +7,16 @@
 #include "KoPathToolFactory.h"
 #include "KoPathTool.h"
 #include "KoPathShape.h"
-#include <kis_action_registry.h>
-
-#include <KoIcon.h>
 #include <klocalizedstring.h>
+
+#include <QAction>
 
 KoPathToolFactory::KoPathToolFactory()
         : KoToolFactoryBase("PathTool")
 {
     setToolTip(i18n("Edit Shapes Tool"));
     setSection(ToolBoxSection::Main);
-    setIconName(koIconNameCStr("shape_handling"));
+    setIconName("shape_handling");
     setPriority(2);
     setActivationShapeId("flake/always,KoPathShape");
 }
@@ -33,22 +32,67 @@ KoToolBase * KoPathToolFactory::createTool(KoCanvasBase *canvas)
 
 QList<QAction *> KoPathToolFactory::createActionsImpl()
 {
-    KisActionRegistry *actionRegistry = KisActionRegistry::instance();
     QList<QAction *> actions;
-    actions << actionRegistry->makeQAction("pathpoint-corner", this);
-    actions << actionRegistry->makeQAction("pathpoint-smooth", this);
-    actions << actionRegistry->makeQAction("pathpoint-symmetric", this);
-    actions << actionRegistry->makeQAction("pathpoint-curve", this);
-    actions << actionRegistry->makeQAction("pathpoint-line", this);
-    actions << actionRegistry->makeQAction("pathsegment-line", this);
-    actions << actionRegistry->makeQAction("pathsegment-curve", this);
-    actions << actionRegistry->makeQAction("pathpoint-insert", this);
-    actions << actionRegistry->makeQAction("pathpoint-remove", this);
-    actions << actionRegistry->makeQAction("path-break-point", this);
-    actions << actionRegistry->makeQAction("path-break-segment", this);
-    actions << actionRegistry->makeQAction("path-break-selection", this);
-    actions << actionRegistry->makeQAction("pathpoint-join", this);
-    actions << actionRegistry->makeQAction("pathpoint-merge", this);
-    actions << actionRegistry->makeQAction("convert-to-path", this);
+
+    QAction *action = new QAction(this);
+    action->setObjectName("pathpoint-corner");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("pathpoint-smooth");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("pathpoint-symmetric");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("pathpoint-curve");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("pathpoint-line");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("pathsegment-line");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("pathsegment-curve");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("pathpoint-insert");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("pathpoint-remove");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("path-break-point");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("path-break-segment");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("path-break-selection");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("pathpoint-join");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("pathpoint-merge");
+    actions << action;
+
+    action = new QAction(this);
+    action->setObjectName("convert-to-path");
+    actions << action;
+
     return actions;
 }

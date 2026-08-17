@@ -8,7 +8,6 @@
 #include "KoZoomToolFactory.h"
 #include "KoZoomTool.h"
 
-#include <KoIcon.h>
 #include <klocalizedstring.h>
 
 KoZoomToolFactory::KoZoomToolFactory()
@@ -17,7 +16,7 @@ KoZoomToolFactory::KoZoomToolFactory()
     setToolTip(i18n("Zoom"));
     setSection(ToolBoxSection::Navigation);
     setPriority(0);
-    setIconName(koIconNameCStr("tool_zoom"));
+    setIconName("tool_zoom");
     setActivationShapeId("flake/always");
 }
 

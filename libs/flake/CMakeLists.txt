@@ -260,7 +260,6 @@ set_target_properties(libraqm PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(kritaflake
     PUBLIC
         kritapigment
-        kritawidgetutils
         kritacommand
         KF${KF_MAJOR}::WidgetsAddons
         Qt${QT_MAJOR_VERSION}::Svg

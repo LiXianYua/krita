@@ -22,7 +22,6 @@
 #include "KoToolSelection.h"
 #include "KoCanvasController.h"
 #include "KoToolProxy.h"
-#include <kis_icon_utils.h>
 #include "KoDerivedResourceConverter.h"
 #include "KoAbstractCanvasResourceInterface.h"
 
@@ -485,15 +484,5 @@ QHash<int, KoDerivedResourceConverterSP> KoToolBase::toolConverters()
 void KoToolBase::updateOptionsWidgetIcons()
 {
     Q_D(KoToolBase);
-    if (d->optionWidgetsCreated) {
-        QObjectList objects;
-        Q_FOREACH (QPointer<QWidget> widget, d->optionWidgets) {
-            objects.append(widget);
-        }
-        while (!objects.isEmpty()) {
-            QObject* object = objects.takeFirst();
-            objects.append(object->children());
-            KisIconUtils::updateIconCommon(object);
-        }
-    }
+    Q_UNUSED(d);
 }

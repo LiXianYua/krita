@@ -25,7 +25,6 @@
 
 #include <KoClipMaskPainter.h>
 #include <KoColorBackground.h>
-#include <KoIcon.h>
 #include <KoPathShape.h>
 #include <KoProperties.h>
 #include <KoShapeLoadingContext.h>
@@ -2615,13 +2614,13 @@ KoSvgTextShapeFactory::KoSvgTextShapeFactory()
     : KoShapeFactoryBase(KoSvgTextShape_SHAPEID, i18nc("Text label in SVG Text Tool", "Text"))
 {
     setToolTip(i18n("SVG Text Shape"));
-    setIconName(koIconNameCStr("x-shape-text"));
+    setIconName("x-shape-text");
     setLoadingPriority(5);
     setXmlElementNames(KoXmlNS::svg, QStringList("text"));
 
     KoShapeTemplate t;
     t.name = i18n("SVG Text");
-    t.iconName = koIconName("x-shape-text");
+    t.iconName = QLatin1String("x-shape-text");
     t.toolTip = i18n("SVG Text Shape");
     addTemplate(t);
 }

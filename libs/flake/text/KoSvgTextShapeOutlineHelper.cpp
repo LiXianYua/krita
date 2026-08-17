@@ -6,7 +6,6 @@
 #include "KoSvgTextShapeOutlineHelper.h"
 
 #include <KoCanvasBase.h>
-#include <kis_icon.h>
 #include <KoCanvasResourceProvider.h>
 
 #include <KoSvgTextShape.h>
@@ -15,6 +14,7 @@
 #include <KoSelection.h>
 #include <QApplication>
 #include <QPalette>
+#include <QIcon>
 
 const int BUTTON_ICON_SIZE = 16;
 const int BUTTON_PADDING = 4;
@@ -159,7 +159,7 @@ void KoSvgTextShapeOutlineHelper::paintTextShape(QPainter *painter, const KoView
     painter->restore();
 
     painter->save();
-    QIcon icon = contourModeActive? KisIconUtils::loadIcon(ICON_EXIT): KisIconUtils::loadIcon(ICON_ENTER);
+    QIcon icon = contourModeActive? QIcon(): QIcon();
     QPixmap pm = icon.pixmap(BUTTON_ICON_SIZE, BUTTON_ICON_SIZE);
     painter->setBrush(contourModeActive? pal.highlight(): pal.button());
     QPen pen;

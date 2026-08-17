@@ -9,6 +9,7 @@
 
 #include <kundo2command.h>
 #include <QTimer>
+#include <QIcon>
 
 #include <KoCanvasBase.h>
 #include <KoShapeController.h>
@@ -24,7 +25,6 @@
 #include "commands/kis_selection_commands.h"
 #include "kis_shape_controller.h"
 
-#include <kis_icon.h>
 #include "kis_processing_applicator.h"
 #include "commands_new/kis_transaction_based_command.h"
 #include "kis_gui_context_command.h"
@@ -185,7 +185,7 @@ void KisSelectionToolHelper::addSelectionShapes(QList< KoShape* > shapes, Select
                 i18n("Shape selection does not fully "
                      "support wraparound mode. Please "
                      "use pixel selection instead"),
-                KisIconUtils::loadIcon("selection-info"));
+                QIcon());
         }
     }
 

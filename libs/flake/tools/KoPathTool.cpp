@@ -35,7 +35,6 @@
 #include "commands/KoPathSegmentBreakCommand.h"
 #include "commands/KoPathSegmentTypeCommand.h"
 #include "commands/KoSubpathJoinCommand.h"
-#include "kis_action_registry.h"
 #include "kis_command_utils.h"
 #include "kis_pointer_utils.h"
 #include <KisHandlePainterHelper.h>
@@ -45,8 +44,6 @@
 #include <commands/KoMultiPathPointMergeCommand.h>
 #include <commands/KoShapeGroupCommand.h>
 #include <text/KoSvgTextShape.h>
-
-#include <KoIcon.h>
 
 #include <QMenu>
 #include <QAction>

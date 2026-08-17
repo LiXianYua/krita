@@ -23,7 +23,6 @@
 #include "KoCanvasBase.h"
 #include "KoPointerEvent.h"
 #include "tools/KoZoomTool.h"
-#include "kis_action_registry.h"
 #include "KoToolFactoryBase.h"
 #include "kis_assert.h"
 #include "KoCanvasResourceProvider.h"
