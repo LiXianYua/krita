@@ -18,27 +18,28 @@ struct PkSignalTraits<Ret (C::*)(Args...)>
 };
 
 // 成员函数指针打包成可比较的 key。Itanium ABI 下普通（无虚继承）成员函数指针
-// 是 2 个 word：代码地址 + this 调整量。Krita 的信号类全是普通继承自 QObject
-// （PkObject），无虚继承，2-word 装得下；出现虚继承会触发 static_assert 编译期
-// 报错——那正是想要「响亮失败」而不是静默 key 碰撞的场景。
+// 是 2 个 word：代码地址 + this 调整量（ptrdiff_t，不是指针）。Krita 的信号类
+// 全是普通继承自 QObject（PkObject），无虚继承，2-word 装得下；出现虚继承会
+// 触发 static_assert 编译期报错——那正是想要「响亮失败」而不是静默 key 碰撞的场景。
+// 存成字节数组 + memcmp 比较：把第二个 word（this 调整量）当 void* 读并比较是
+// 严格标准的 UB，字节级比较则与具体 ABI 无关、无别名/表示假设。
 struct PkMemberFnKey
 {
-    void* words[2];
+    unsigned char words[2 * sizeof(void*)];
 
     template <typename MFN>
     static PkMemberFnKey from(MFN mfn)
     {
         static_assert(sizeof(MFN) <= sizeof(words),
                       "PkMemberFnKey: member function pointer too large (virtual inheritance?)");
-        PkMemberFnKey k{};
-        std::memset(&k, 0, sizeof(k));
+        PkMemberFnKey k{};   // 值初始化全零；memcpy 全量覆盖 sizeof(MFN) 字节，无需再 memset
         std::memcpy(&k, &mfn, sizeof(MFN));
         return k;
     }
 
     bool operator==(const PkMemberFnKey& o) const
     {
-        return words[0] == o.words[0] && words[1] == o.words[1];
+        return std::memcmp(words, o.words, sizeof(words)) == 0;
     }
 };
 

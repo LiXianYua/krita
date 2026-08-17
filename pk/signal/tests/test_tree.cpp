@@ -11,6 +11,12 @@ struct Named : PkObject {
     Named(std::string n, PkObject* p = nullptr) : PkObject(p), name(std::move(n)) {}
     ~Named() override { g_dtorOrder.push_back(name); }
 };
+
+// PkMemberFnKey 覆盖测试用：同一类的两个不同成员函数指针，验证 key 打包/比较语义。
+struct SignalKeyProbe : PkObject {
+    void methodA() {}
+    void methodB() {}
+};
 }
 
 void run_tree_tests()
@@ -54,5 +60,14 @@ void run_tree_tests()
         _expect(flag->load() == true, "alive before destroy");
         delete obj;
         _expect(flag->load() == false, "alive flag cleared on destroy");
+    }
+
+    // 5. PkMemberFnKey 打包语义（表示层等价替换后不破坏 key 语义）
+    {
+        auto a1 = PkMemberFnKey::from(&SignalKeyProbe::methodA);
+        auto a2 = PkMemberFnKey::from(&SignalKeyProbe::methodA);
+        auto b  = PkMemberFnKey::from(&SignalKeyProbe::methodB);
+        _expect(a1 == a2, "same member fn pointer packs to equal keys");
+        _expect(!(a1 == b), "different member fn pointers pack to unequal keys");
     }
 }
