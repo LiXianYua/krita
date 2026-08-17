@@ -10,7 +10,6 @@
 #define _KIS_RAINDROPS_FILTER_H_
 
 #include "filter/kis_filter.h"
-#include "kis_config_widget.h"
 #include "kis_paint_device.h"
 
 class KisRainDropsFilter : public KisFilter

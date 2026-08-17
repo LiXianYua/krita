@@ -23,7 +23,6 @@
 #include "kis_paint_device.h"
 #include "kis_image.h"
 #include "KisPaintOpPresetUpdateProxy.h"
-#include <brushengine/kis_paintop_config_widget.h>
 #include <KisRequiredResourcesOperators.h>
 #include <KoLocalStrokeCanvasResources.h>
 #include <KisLocalStrokeResources.h>

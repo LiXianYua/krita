@@ -10,7 +10,6 @@
 #ifndef KIS_LEVELS_FILTER_H
 #define KIS_LEVELS_FILTER_H
 
-#include <kis_config_widget.h>
 #include <filter/kis_color_transformation_filter.h>
 
 #include "KisLevelsFilterConfiguration.h"

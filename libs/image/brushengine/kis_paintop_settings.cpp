@@ -27,7 +27,6 @@
 #include "kis_paintop_registry.h"
 #include "kis_timing_information.h"
 #include <brushengine/kis_paint_information.h>
-#include "kis_paintop_config_widget.h"
 #include <brushengine/kis_paintop_preset.h>
 #include "KisPaintOpPresetUpdateProxy.h"
 #include <time.h>
@@ -53,16 +52,14 @@
 
 struct Q_DECL_HIDDEN KisPaintOpSettings::Private {
     Private()
-        : settingsWidget(0)
 #ifdef SANITY_CHECK_CACHE
-        , versionRandomSource(int(reinterpret_cast<std::intptr_t>(this)))
+        : versionRandomSource(int(reinterpret_cast<std::intptr_t>(this)))
         , versionCookie(versionRandomSource.generate())
 #endif
     {}
 
     Private(const Private &rhs)
-        : settingsWidget(0),
-          modelName(rhs.modelName),
+        : modelName(rhs.modelName),
           resourcesInterface(rhs.resourcesInterface),
           canvasResourcesInterface(rhs.canvasResourcesInterface),
           resourceCacheInterface(rhs.resourceCacheInterface)
@@ -76,7 +73,6 @@ struct Q_DECL_HIDDEN KisPaintOpSettings::Private {
         ///       properly
     }
 
-    QPointer<KisPaintOpConfigWidget> settingsWidget;
     QString modelName;
     UpdateListenerWSP updateListener;
     QList<KisUniformPaintOpPropertyWSP> uniformProperties;

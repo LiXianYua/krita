@@ -22,7 +22,6 @@ public:
 
     KisPaintOp *createOp(const KisPaintOpSettingsSP settings, KisPainter *painter, KisNodeSP node, KisImageSP image) override;
     KisPaintOpSettingsSP createSettings(KisResourcesInterfaceSP resourcesInterface) override;
-    KisPaintOpConfigWidget* createConfigWidget(QWidget* parent, KisResourcesInterfaceSP resourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface) override;
     QString id() const override;
     QString name() const override;
     QIcon icon() override;

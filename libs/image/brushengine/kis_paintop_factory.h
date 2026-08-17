@@ -19,7 +19,6 @@
 class KisPainter;
 class KisPaintOp;
 class QWidget;
-class KisPaintOpConfigWidget;
 class KisInterstrokeDataFactory;
 
 class KoResource;
@@ -101,10 +100,6 @@ public:
      */
     virtual KisPaintOpSettingsSP createSettings(KisResourcesInterfaceSP resourcesInterface) = 0;
 
-    /**
-     * create a widget that can display paintop settings
-     */
-    virtual KisPaintOpConfigWidget* createConfigWidget(QWidget* parent, KisResourcesInterfaceSP resourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface) = 0;
 
     /**
      * Set the priority of this paintop, as it is shown in the UI; lower number means

@@ -138,13 +138,6 @@ KisPropertiesConfigurationSP KisImportExportFilter::lastSavedConfiguration(const
     return cfg;
 }
 
-KisConfigWidget *KisImportExportFilter::createConfigurationWidget(QWidget *, const QByteArray &from, const QByteArray &to) const
-{
-    Q_UNUSED(from);
-    Q_UNUSED(to);
-    return 0;
-}
-
 QMap<QString, KisExportCheckBase *> KisImportExportFilter::exportChecks()
 {
     qDeleteAll(d->capabilities);

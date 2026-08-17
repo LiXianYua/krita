@@ -176,13 +176,6 @@ public:
         return settings;
     }
 
-    KisPaintOpConfigWidget* createConfigWidget(QWidget* parent, KisResourcesInterfaceSP resourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface) override {
-        Q_UNUSED(parent);
-        Q_UNUSED(resourcesInterface);
-        Q_UNUSED(canvasResourcesInterface);
-        return nullptr;
-    }
-
     QString id() const override {
         return m_id;
     }

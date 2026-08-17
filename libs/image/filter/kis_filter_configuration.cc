@@ -20,7 +20,6 @@
 #include "kis_types.h"
 #include <KisRequiredResourcesOperators.h>
 
-#include "kis_config_widget.h"
 
 struct Q_DECL_HIDDEN KisFilterConfiguration::Private {
     QString name;

@@ -11,7 +11,6 @@
 #include <QObject>
 #include <QVariant>
 
-#include <kis_config_widget.h>
 #include <filter/kis_color_transformation_filter.h>
 
 class KoColorSpace;

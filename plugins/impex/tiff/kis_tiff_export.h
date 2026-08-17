@@ -12,7 +12,6 @@
 #include <tiffio.h>
 
 #include <KisImportExportFilter.h>
-#include <kis_config_widget.h>
 
 class KisTIFFExport : public KisImportExportFilter
 {

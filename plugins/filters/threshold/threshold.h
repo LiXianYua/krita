@@ -13,7 +13,6 @@
 #include <QVariant>
 #include <filter/kis_filter.h>
 #include <kis_filter_configuration.h>
-#include <kis_config_widget.h>
 
 class WdgThreshold;
 class QWidget;

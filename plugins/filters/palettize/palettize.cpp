@@ -10,7 +10,6 @@
 
 #include <kis_types.h>
 #include <kpluginfactory.h>
-#include <kis_config_widget.h>
 #include <kis_filter_registry.h>
 #include <kis_filter_configuration.h>
 #include <kis_filter_category_ids.h>

@@ -12,7 +12,6 @@
 #include <QPainter>
 
 #include <KisImportExportFilter.h>
-#include <kis_config_widget.h>
 #include <kis_properties_configuration.h>
 
 

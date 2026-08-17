@@ -13,7 +13,6 @@
 #include <QVariant>
 #include "filter/kis_filter.h"
 
-class KisConfigWidget;
 
 class KritaRandomPickFilter : public QObject
 {

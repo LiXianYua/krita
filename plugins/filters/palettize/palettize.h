@@ -10,7 +10,6 @@
 #define PALETTIZE_H
 
 #include <kis_filter.h>
-#include <kis_config_widget.h>
 #include <kis_filter_configuration.h>
 #include <boost/geometry.hpp>
 #include <boost/geometry/index/rtree.hpp>

@@ -72,7 +72,6 @@ set(kritaimage_LIB_SRCS
    brushengine/kis_locked_properties.cc
    brushengine/kis_locked_properties_proxy.cpp
    brushengine/kis_locked_properties_server.cpp
-   brushengine/kis_paintop_config_widget.cpp
    brushengine/kis_uniform_paintop_property.cpp
    brushengine/kis_combo_based_paintop_property.cpp
    brushengine/kis_slider_based_paintop_property.cpp
@@ -171,7 +170,6 @@ set(kritaimage_LIB_SRCS
    KisSafeBlockingQueueConnectionProxy.cpp
    kis_node_uuid_info.cpp
    kis_clone_layer.cpp
-   kis_config_widget.cpp
    kis_convolution_kernel.cc
    kis_convolution_painter.cc
    kis_gaussian_kernel.cpp

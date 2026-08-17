@@ -85,11 +85,6 @@ KisFilterConfigurationSP KisBaseProcessor::defaultConfiguration(KisResourcesInte
     return factoryConfiguration(resourcesInterface);
 }
 
-KisConfigWidget * KisBaseProcessor::createConfigurationWidget(QWidget *, const KisPaintDeviceSP, bool) const
-{
-    return 0;
-}
-
 KisBookmarkedConfigurationManager* KisBaseProcessor::bookmarkManager()
 {
     return d->bookmarkManager;

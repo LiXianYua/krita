@@ -10,7 +10,6 @@
 #define _KIS_OILPAINT_FILTER_H_
 
 #include "filter/kis_filter.h"
-#include "kis_config_widget.h"
 
 class KisOilPaintFilter : public KisFilter
 {

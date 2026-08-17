@@ -77,7 +77,6 @@ kis_add_tests(
     kis_transparency_mask_test.cpp
     kis_types_test.cpp
     kis_vec_test.cpp
-    kis_filter_config_widget_test.cpp
     kis_mask_generator_test.cpp
     kis_cubic_curve_test.cpp
     kis_cubic_spline_test.cpp

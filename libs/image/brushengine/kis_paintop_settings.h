@@ -16,7 +16,6 @@
 #include <brushengine/kis_paint_information.h>
 #include <brushengine/kis_uniform_paintop_property.h>
 
-class KisPaintOpConfigWidget;
 class KisPaintOpPresetUpdateProxy;
 
 class KisResourcesInterface;

@@ -11,7 +11,6 @@
 
 #include "kis_paint_device.h"
 #include "filter/kis_filter.h"
-#include "kis_config_widget.h"
 
 class KisSmallTilesFilter : public KisFilter
 {

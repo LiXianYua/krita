@@ -18,7 +18,6 @@
 
 #include "KisHalftoneFilterConfiguration.h"
 
-class KisConfigWidget;
 
 class KritaHalftone : public QObject
 {

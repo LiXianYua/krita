@@ -16,7 +16,6 @@
 #include <filter/kis_filter.h>
 #include <kis_filter_configuration.h>
 
-class KisConfigWidget;
 
 class KisGradientMapFilter : public KisFilter
 {

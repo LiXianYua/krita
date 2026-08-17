@@ -10,7 +10,6 @@
 #include <QObject>
 #include <QVariant>
 #include "filter/kis_color_transformation_filter.h"
-#include "kis_config_widget.h"
 #include <KoColor.h>
 
 #include "indexcolorpalette.h"

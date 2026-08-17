@@ -24,7 +24,6 @@
 
 class KoUpdater;
 class KisDocument;
-class KisConfigWidget;
 class KisImportUserFeedbackInterface;
 
 #include "kritaimpex_export.h"
@@ -99,16 +98,6 @@ public:
      * @return a serializable KisPropertiesConfiguration object
      */
     KisPropertiesConfigurationSP lastSavedConfiguration(const QByteArray &from = "", const QByteArray &to = "") const;
-
-    /**
-     * @brief createConfigurationWidget creates a widget that can be used to define the settings for a given import/export filter
-     * @param parent the owner of the widget; the caller is responsible for deleting
-     * @param from The mimetype of the source file/document
-     * @param to The mimetype of the destination file/document
-     *
-     * @return the widget
-     */
-    virtual KisConfigWidget *createConfigurationWidget(QWidget *parent, const QByteArray& from = "", const QByteArray& to = "") const;
 
     /**
      * @brief generate and return the list of capabilities of this export filter. The list

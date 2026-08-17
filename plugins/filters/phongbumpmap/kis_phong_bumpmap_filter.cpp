@@ -9,7 +9,6 @@
 
 #include "kis_debug.h"
 #include "kis_paint_device.h"
-#include "kis_config_widget.h"
 #include "KoUpdater.h"
 #include "kis_math_toolbox.h"
 #include "KoColorSpaceRegistry.h"
