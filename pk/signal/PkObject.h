@@ -129,9 +129,10 @@ PkConnection PkObject::connect(
 
     auto state = std::make_shared<PkConnectionState>();
 
-    // 把「成员函数调用」包进 std::function<void(Args...)>。
+    // 把「成员函数调用」包进按信号签名收参的 std::function<void(Args...)>。
+    // ArgsTuple 是信号侧参数包；PkMakeSlotFnFromTuple 让槽只取前缀（Qt 语义）。
     using ArgsTuple = typename PkSignalTraits<Func1>::ArgsTuple;
-    auto slotFn = PkMakeSlotFn(slot, receiver);
+    auto slotFn = PkMakeSlotFnFromTuple<ArgsTuple>(slot, receiver);
 
     auto slotBox = std::make_shared<PkSlotImplFromTuple<ArgsTuple>>(std::move(slotFn));
 

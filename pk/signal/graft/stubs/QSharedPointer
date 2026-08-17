@@ -1,0 +1,29 @@
+#pragma once
+#include <memory>
+
+// 试接垫片 —— 不是 R-05 的交付物。QSharedPointer 归智能指针线（R-04 定的是
+// 「直接换 std::shared_ptr」，没有 QSharedPointer 独立垫片）。kis_signal_auto_connection.h
+// 里 `typedef QSharedPointer<KisSignalAutoConnection> SP;` + `SP(new ...)` + 存进
+// QVector + clear() 析构，语义就是引用计数智能指针，薄包 std::shared_ptr 即可。
+//
+// 真实 Qt 里 <QSharedPointer> 传递提供了 <QScopedPointer>（qsharedpointer.h
+// include qscopedpointer.h），测试类 testMacroConnection 用到的 QScopedPointer
+// 就靠这条传递性编过。复刻它：引号 include 同目录优先 → 命中本目录的
+// QScopedPointer 脚手架。
+#include "QScopedPointer"
+
+template <typename T>
+class QSharedPointer
+{
+public:
+    QSharedPointer() = default;
+    explicit QSharedPointer(T* p) : m_p(p) {}
+    T* data() const { return m_p.get(); }
+    T* operator->() const { return m_p.get(); }
+    T& operator*() const { return *m_p; }
+    bool isNull() const { return !m_p; }
+    explicit operator bool() const { return static_cast<bool>(m_p); }
+    void reset(T* p = nullptr) { m_p.reset(p); }
+private:
+    std::shared_ptr<T> m_p;
+};

@@ -31,18 +31,53 @@ struct PkSlotImpl : PkSlotBase {
     explicit PkSlotImpl(std::function<void(Args...)> f) : fn(std::move(f)) {}
 };
 
-// ---- 两个 helper（样板展开，非占位）----
+// ---- slot 装箱 helper（样板展开，非占位）----
 
-// PkMakeSlotFn(slot, receiver) -> std::function<void(Args...)>：
-// 把「成员函数指针调用」包进 lambda。receiver 是 const 指针需 const_cast——
-// slot 是普通成员函数，可在非 const 对象上调用；实际对象在 connect 端非 const。
-// Args... 从 slot 自身签名推导；信号侧参数通过 PkSlotImpl 的构造转换对齐。
-template <typename Ret, typename Obj, typename... Args>
-std::function<void(Args...)> PkMakeSlotFn(Ret (Obj::*slot)(Args...), const Obj* receiver)
+// PkCallSlotPrefix：把接收到的完整信号参数（SignalArgs... = signal 的参数包）
+// 只取前 sizeof...(SlotArgs) 个转给 slot —— Qt 语义「signal 参数可以多于 slot，
+// slot 只用前 N 个」。tests/ 单测没压到这条：它是试接
+// KisSignalAutoConnectionTest::testOverloadConnection 里
+// sigTest2(const QString&,const QString&) → slotTest2(const QString&) 真实压出来的。
+// 前缀取法：forward_as_tuple 绑成引用 tuple，再用 index_sequence 取前 N 项。
+// 参数类型不一致（无法隐式转换）时编译报错——与「类型不匹配编译期炸」的形态一致。
+template <typename Ret, typename Obj, typename... SlotArgs,
+          std::size_t... Is, typename... SignalArgs>
+void PkCallSlotPrefix(Ret (Obj::*slot)(SlotArgs...), Obj* obj,
+                      std::index_sequence<Is...>, SignalArgs&&... args)
 {
-    return [receiver, slot](Args&&... a) {
-        (const_cast<Obj*>(receiver)->*slot)(std::forward<Args>(a)...);
-    };
+    std::tuple<SignalArgs&&...> tup(std::forward<SignalArgs>(args)...);
+    (obj->*slot)(std::get<Is>(tup)...);
+    (void)tup;   // slot 无参（Is 为空）时 tup 未读，消 -Wunused-but-set-variable
+}
+
+// PkMakeSlotFnFromTuple<Tuple>(slot, receiver) -> std::function<void(SignalArgs...)>：
+// Tuple = std::tuple<SignalArgs...>（信号侧参数包，从 ArgsTuple 展开传入）。
+// 把「成员函数指针调用」包进按信号签名收参的 lambda，槽只取前缀。
+// receiver 是 const 指针需 const_cast——slot 是普通成员函数，可在非 const 对象
+// 上调用；实际对象在 connect 端非 const。
+template <typename Tuple>
+struct PkMakeSlotFnFromTupleHelper;
+
+template <typename... SignalArgs>
+struct PkMakeSlotFnFromTupleHelper<std::tuple<SignalArgs...>> {
+    template <typename Ret, typename Obj, typename... SlotArgs>
+    static std::function<void(SignalArgs...)> make(Ret (Obj::*slot)(SlotArgs...),
+                                                   const Obj* receiver)
+    {
+        static_assert(sizeof...(SlotArgs) <= sizeof...(SignalArgs),
+                      "slot accepts more parameters than signal provides");
+        return [receiver, slot](SignalArgs... args) {
+            PkCallSlotPrefix(slot, const_cast<Obj*>(receiver),
+                             std::make_index_sequence<sizeof...(SlotArgs)>{},
+                             std::forward<SignalArgs>(args)...);
+        };
+    }
+};
+
+template <typename Tuple, typename Ret, typename Obj, typename... SlotArgs>
+auto PkMakeSlotFnFromTuple(Ret (Obj::*slot)(SlotArgs...), const Obj* receiver)
+{
+    return PkMakeSlotFnFromTupleHelper<Tuple>::make(slot, receiver);
 }
 
 // PkSlotImplFromTuple<Tuple> = PkSlotImpl<展开后 Args...>：
