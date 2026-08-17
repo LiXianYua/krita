@@ -9,14 +9,56 @@
 
 #include <simpletest.h>
 
-#include <testutil.h>
+#include <KoProgressProxy.h>
 #include <KoProgressUpdater.h>
 #include <KoUpdater.h>
+
+// Local equivalent of TestProgressBar, so this test does not drag
+// kritatestsdk's dependency on kritaimage into libs/global/tests.
+class TestProgressBar : public KoProgressProxy {
+public:
+    TestProgressBar()
+        : m_min(0), m_max(0), m_value(0)
+    {}
+
+    int maximum() const override {
+        return m_max;
+    }
+    void setValue(int value) override {
+        m_value = value;
+    }
+    void setRange(int min, int max) override {
+        m_min = min;
+        m_max = max;
+    }
+    void setFormat(const QString &format) override {
+        m_format = format;
+    }
+
+    void setAutoNestedName(const QString &name) override {
+        m_autoNestedName = name;
+        KoProgressProxy::setAutoNestedName(name);
+    }
+
+    int min() { return m_min; }
+    int max() { return m_max; }
+    int value() { return m_value; }
+    QString format() { return m_format; }
+    QString autoNestedName() { return m_autoNestedName; }
+
+
+private:
+    int m_min;
+    int m_max;
+    int m_value;
+    QString m_format;
+    QString m_autoNestedName;
+};
 
 
 void TestKoProgressUpdater::test()
 {
-    TestUtil::TestProgressBar testProxy;
+    TestProgressBar testProxy;
 
     KoProgressUpdater progress(&testProxy);
     progress.setUpdateInterval(1);
@@ -91,7 +133,7 @@ void TestKoProgressUpdater::test()
 
 void TestKoProgressUpdater::testNamedSubtasks()
 {
-    TestUtil::TestProgressBar testProxy;
+    TestProgressBar testProxy;
 
     KoProgressUpdater progress(&testProxy);
     progress.setUpdateInterval(1);
@@ -162,7 +204,7 @@ void TestKoProgressUpdater::testNamedSubtasks()
 
 void TestKoProgressUpdater::testNamedSubtasksUnnamedParent()
 {
-    TestUtil::TestProgressBar testProxy;
+    TestProgressBar testProxy;
 
     KoProgressUpdater progress(&testProxy);
     progress.setUpdateInterval(1);
@@ -195,7 +237,7 @@ void TestKoProgressUpdater::testNamedSubtasksUnnamedParent()
 
 void TestKoProgressUpdater::testPersistentSubtask()
 {
-    TestUtil::TestProgressBar testProxy;
+    TestProgressBar testProxy;
 
     KoProgressUpdater progress(&testProxy);
     progress.setUpdateInterval(1);
@@ -265,7 +307,7 @@ void TestKoProgressUpdater::testPersistentSubtask()
 
 void TestKoProgressUpdater::testDestructionNonpersistentSubtasks()
 {
-    TestUtil::TestProgressBar testProxy;
+    TestProgressBar testProxy;
 
     KoProgressUpdater progress(&testProxy);
     progress.setUpdateInterval(1);
@@ -381,7 +423,7 @@ void TestKoProgressUpdater::testDestructionNonpersistentSubtasks()
 
 void TestKoProgressUpdater::testUndefinedStateTasks()
 {
-    TestUtil::TestProgressBar testProxy;
+    TestProgressBar testProxy;
 
     KoProgressUpdater progress(&testProxy);
     progress.setUpdateInterval(1);
@@ -456,7 +498,7 @@ void TestKoProgressUpdater::testUndefinedStateTasks()
 
 void TestKoProgressUpdater::testNonStandardRange()
 {
-    TestUtil::TestProgressBar testProxy;
+    TestProgressBar testProxy;
 
     KoProgressUpdater progress(&testProxy);
     progress.setUpdateInterval(1);
