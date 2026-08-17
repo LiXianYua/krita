@@ -12,7 +12,6 @@ class KoCanvasObserverBasePrivate;
 
 #include "kritaflake_export.h"
 #include <QString>
-#include <QMainWindow>
 
 /**
  * An abstract canvas observer interface class.

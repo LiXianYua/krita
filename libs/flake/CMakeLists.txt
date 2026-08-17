@@ -42,8 +42,6 @@ set(kritaflake_SRCS
     KoDocumentResourceManager.cpp
     KoCanvasObserverBase.cpp
     KoCanvasSupervisor.cpp
-    KoDockFactoryBase.cpp
-    KoDockRegistry.cpp
     KoInsets.cpp
     KoPathShape.cpp
     KoPathPoint.cpp
