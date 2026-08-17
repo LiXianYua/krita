@@ -26,7 +26,7 @@
     </widget>
    </item>
    <item column="1" row="1">
-    <widget class="KisSqueezedComboBox" name="cmbProfile">
+    <widget class="QComboBox" name="cmbProfile">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -63,13 +63,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>KisSqueezedComboBox</class>
-   <extends>QComboBox</extends>
-   <header>KisSqueezedComboBox.h</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>

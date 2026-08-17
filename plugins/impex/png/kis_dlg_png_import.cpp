@@ -41,18 +41,18 @@ KisDlgPngImport::KisDlgPngImport(const QString &path, const QString &colorModelI
     }
     std::sort(profileNames.begin(), profileNames.end());
     Q_FOREACH (QString stringName, profileNames) {
-        dlgWidget.cmbProfile->addSqueezedItem(stringName);
+        dlgWidget.cmbProfile->addItem(stringName);
     }
     KConfigGroup config = KSharedConfig::openConfig()->group("");
     const QString profile = config.readEntry(
         "pngImportProfile",
         KoColorSpaceRegistry::instance()->defaultProfileForColorSpace(colorSpaceId));
-    dlgWidget.cmbProfile->setCurrent(profile);
+    dlgWidget.cmbProfile->setCurrentText(profile);
 }
 
 QString KisDlgPngImport::profile() const
 {
-    QString p = dlgWidget.cmbProfile->currentUnsqueezedText();
+    QString p = dlgWidget.cmbProfile->currentText();
     KConfigGroup config = KSharedConfig::openConfig()->group("");
     config.writeEntry("pngImportProfile", p);
     config.sync();
