@@ -1,10 +1,5 @@
 #include "PkObject.h"
 
-// ConnectionEntry 是私有实现细节：头文件只前向声明，避免本 Task 暴露连接条目
-// 形态。Task 2 在这里填真实定义；当前为空结构体（无成员），使 std::vector 的
-// 析构能在编译期实例化——不完整类型会让 vector 析构报错。
-struct PkObject::ConnectionEntry {};
-
 PkObject::PkObject(PkObject* parent)
     : m_alive(std::make_shared<std::atomic<bool>>(true))
 {
@@ -16,7 +11,7 @@ PkObject::PkObject(PkObject* parent)
 
 PkObject::~PkObject()
 {
-    // 1. 断开所有连接（Task 2 实现真正内容前为空循环）。
+    // 1. 断开所有连接：把双方列表里条目的 state->alive 置 false 并清空。
     disconnectAllOutgoing();
     disconnectAllIncoming();
 
@@ -41,5 +36,37 @@ PkObject::~PkObject()
     }
 }
 
-void PkObject::disconnectAllOutgoing() {}
-void PkObject::disconnectAllIncoming() {}
+void PkObject::appendConnection(PkObject* sender, PkObject* receiver,
+                                PkMemberFnKey key,
+                                std::shared_ptr<PkSlotBase> slot,
+                                std::shared_ptr<PkConnectionState> state,
+                                PkConnectionType type)
+{
+    // 同一逻辑条目进 sender->m_outgoing 与 receiver->m_incoming 两份，
+    // 共享同一个 slot 盒（shared_ptr）与同一个 state（shared_ptr）。
+    // 双方列表里的条目 state 相同 → 任何一侧置 alive=false，另一侧的 emit 立即跳过。
+    ConnectionEntry entry{key, receiver, state, std::move(slot), type};
+    sender->m_outgoing.push_back(entry);
+    receiver->m_incoming.push_back(entry);
+}
+
+bool PkObject::disconnect(PkConnection& connection)
+{
+    if (!connection.isValid()) return false;
+    auto st = connection.state();
+    if (!st->alive) return false;
+    st->alive = false;                 // 置 dead：emit 遍历从此跳过它
+    return true;
+}
+
+void PkObject::disconnectAllOutgoing()
+{
+    for (auto& e : m_outgoing) if (e.state) e.state->alive = false;
+    m_outgoing.clear();
+}
+
+void PkObject::disconnectAllIncoming()
+{
+    for (auto& e : m_incoming) if (e.state) e.state->alive = false;
+    m_incoming.clear();
+}
