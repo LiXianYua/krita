@@ -78,6 +78,28 @@ def split_top_level(s, sep=","):
 
 _PARAM_NAME = re.compile(r"([A-Za-z_]\w*)\s*$")
 
+# C++ 关键字中「会作为类型的最后一个词出现、因而被 _PARAM_NAME 误抓成参数名」的集合：
+# cv 限定符（`const char * const` 的尾 `const`）+ 内建标量类型（`const int` 的尾 `int`）。
+# 合法 C++ 里参数名不可能叫这些词，把它们判为「非名字」零误伤。
+_TRAILING_TYPE_KEYWORDS = {
+    "const", "volatile",
+    "signed", "unsigned",
+    "int", "char", "short", "long", "float", "double", "bool",
+    "wchar_t", "char8_t", "char16_t", "char32_t", "void", "auto",
+}
+
+def _has_top_level(s, ch):
+    """扫描 s，看目标字符是否出现在括号/尖括号/花括号之外（顶层）。"""
+    depth = 0
+    for c in s:
+        if c in "([{<":
+            depth += 1
+        elif c in ")]}>":
+            depth -= 1
+        if c == ch and depth == 0:
+            return True
+    return False
+
 def parse_signal_decl(decl, class_name):
     """decl 形如 `void sigTest2(const QString &arg1, const QString &arg2);`。
     返回 (name, [param_type_text...], [param_name...])。"""
@@ -91,10 +113,15 @@ def parse_signal_decl(decl, class_name):
         p = p.strip()
         if not p:
             continue  # 无参
+        # 默认参数（顶层 =）：本脚本不生成它，fail-fast 报错而不是产出非法 C++。
+        # 信号声明里不会有 operator=，顶层 = 即默认参数。
+        if _has_top_level(p, "="):
+            raise SystemExit(
+                f"pk_signal_moc: default argument not supported in {class_name}::sig: {decl!r}")
         # 参数名 = 末尾标识符，但「类型」必须以 非标识符 结尾才是真名字。
         # `const QString &arg1` → 名字 arg1；`void *cookie` → cookie；`qreal`（无名字）→ 无。
         nm = _PARAM_NAME.search(p)
-        if nm:
+        if nm and nm.group(1) not in _TRAILING_TYPE_KEYWORDS:
             # 名字前的字符必须是 & * 空白（`&arg1`/`*cookie`/` arg1`），
             # 不能是 :: > ] 等（那说明是 `Foo::Bar`/`Vec<int>`/`arr[0]` 的类型尾）。
             before = p[:nm.start()]
