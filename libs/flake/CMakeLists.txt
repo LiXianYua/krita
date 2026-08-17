@@ -173,14 +173,12 @@ set(kritaflake_SRCS
     tools/KoPathTool.cpp
     tools/KoPathToolSelection.cpp
     tools/KoPathToolHandle.cpp
-    tools/PathToolOptionWidget.cpp
     tools/KoPathPointRubberSelectStrategy.cpp
     tools/KoPathPointMoveStrategy.cpp
     tools/KoPathControlPointMoveStrategy.cpp
     tools/KoParameterChangeStrategy.cpp
     tools/KoZoomTool.cpp
     tools/KoZoomToolFactory.cpp
-    tools/KoZoomToolWidget.cpp
     tools/KoZoomStrategy.cpp
     tools/KoInteractionTool.cpp
     tools/KoInteractionStrategy.cpp
@@ -247,11 +245,6 @@ if (KSeExpr_FOUND)
         resources/KisSeExprScript.cpp
     )
 endif()
-
-ki18n_wrap_ui(kritaflake_SRCS
-    tools/PathToolOptionWidgetBase.ui
-    tools/KoZoomToolWidget.ui
-)
 
 kis_add_library(kritaflake SHARED ${kritaflake_SRCS})
 generate_export_header(kritaflake BASE_NAME kritaflake)

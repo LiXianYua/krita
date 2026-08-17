@@ -69,18 +69,9 @@ public:
 public Q_SLOTS:
     void canvasResourceChanged(int key, const QVariant & res) override;
 
-Q_SIGNALS:
-    void typeChanged(int types);
-    void singleShapeChanged(KoPathShape* path);
-
-protected:
-    /// reimplemented
-    QList<QPointer<QWidget> >  createOptionWidgets() override;
-
 private:
     struct PathSegment;
 
-    void updateOptionsWidget();
     PathSegment* segmentAtPoint(const QPointF &point);
 
 private Q_SLOTS:

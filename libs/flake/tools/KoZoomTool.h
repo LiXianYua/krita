@@ -38,9 +38,6 @@ public:
 
     void setZoomInMode(bool zoomIn);
 
-protected:
-    QWidget *createOptionWidget() override;
-
 private:
     KoInteractionStrategy *createStrategy(KoPointerEvent *event) override;
 

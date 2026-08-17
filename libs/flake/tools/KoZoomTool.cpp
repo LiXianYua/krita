@@ -9,9 +9,9 @@
 #include "KoZoomTool.h"
 
 #include <QKeyEvent>
+#include <QPixmap>
 
 #include "KoZoomStrategy.h"
-#include "KoZoomToolWidget.h"
 #include "KoPointerEvent.h"
 #include "KoCanvasBase.h"
 #include "KoCanvasController.h"
@@ -83,11 +83,6 @@ KoInteractionStrategy *KoZoomTool::createStrategy(KoPointerEvent *event)
         zs->forceZoomOut();
     }
     return zs;
-}
-
-QWidget *KoZoomTool::createOptionWidget()
-{
-    return new KoZoomToolWidget(this);
 }
 
 void KoZoomTool::setZoomInMode(bool zoomIn)

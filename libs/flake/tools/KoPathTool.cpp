@@ -27,7 +27,6 @@
 #include "KoToolBase_p.h"
 #include "KoToolManager.h"
 #include "KoViewConverter.h"
-#include "PathToolOptionWidget.h"
 #include "commands/KoParameterToPathCommand.h"
 #include "commands/KoPathBreakAtPointCommand.h"
 #include "commands/KoPathPointInsertCommand.h"
@@ -116,21 +115,6 @@ KoPathTool::KoPathTool(KoCanvasBase *canvas)
 
 KoPathTool::~KoPathTool()
 {
-}
-
-QList<QPointer<QWidget> >  KoPathTool::createOptionWidgets()
-{
-    QList<QPointer<QWidget> > list;
-
-    PathToolOptionWidget * toolOptions = new PathToolOptionWidget(this);
-    connect(this, SIGNAL(typeChanged(int)), toolOptions, SLOT(setSelectionType(int)));
-    connect(this, SIGNAL(singleShapeChanged(KoPathShape*)), toolOptions, SLOT(setCurrentShape(KoPathShape*)));
-    connect(toolOptions, SIGNAL(sigRequestUpdateActions()), this, SLOT(updateActions()));
-    updateOptionsWidget();
-    toolOptions->setWindowTitle(i18n("Edit Shape"));
-    list.append(toolOptions);
-
-    return list;
 }
 
 void KoPathTool::pointTypeChangedCorner() {
@@ -335,8 +319,6 @@ void KoPathTool::convertToPath()
 
         canvas()->addCommand(cmd);
     }
-
-    updateOptionsWidget();
 }
 
 namespace {
@@ -547,7 +529,6 @@ QRectF KoPathTool::decorationsRect() const
 void KoPathTool::repaintDecorations()
 {
     KoToolBase::repaintDecorations();
-    updateOptionsWidget();
 }
 
 void KoPathTool::mousePressEvent(KoPointerEvent *event)
@@ -936,22 +917,7 @@ void KoPathTool::initializeWithShapes(const QList<KoShape*> shapes)
         repaintDecorations();
     }
 
-    updateOptionsWidget();
     updateActions();
-}
-
-void KoPathTool::updateOptionsWidget()
-{
-    PathToolOptionWidget::Types type;
-    QList<KoPathShape*> selectedShapes = m_pointSelection.selectedShapes();
-    Q_FOREACH (KoPathShape *shape, selectedShapes) {
-        KoParameterShape * parameterShape = dynamic_cast<KoParameterShape*>(shape);
-        type |= parameterShape && parameterShape->isParametricShape() ?
-                    PathToolOptionWidget::ParametricShape : PathToolOptionWidget::PlainPath;
-    }
-
-    Q_EMIT singleShapeChanged(selectedShapes.size() == 1 ? selectedShapes.first() : 0);
-    Q_EMIT typeChanged(type);
 }
 
 void KoPathTool::updateActions()
