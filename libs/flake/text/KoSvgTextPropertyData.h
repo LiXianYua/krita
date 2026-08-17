@@ -20,7 +20,7 @@
  * styled spans, each with their own properties.
  *
  * This struct encapsulates the data to represent it inside a text property
- * widget, and is the source data for the lager model.
+ * widget.
  */
 struct KRITAFLAKE_EXPORT KoSvgTextPropertyData : public boost::equality_comparable<KoSvgTextPropertyData>
 {

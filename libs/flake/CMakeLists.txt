@@ -223,16 +223,6 @@ set(kritaflake_SRCS
     text/KoPolygonUtils.cpp
     text/KoSvgTextPropertyData.cpp
     text/KoSvgTextPropertiesInterface.h
-    text/lager/KoSvgTextPropertiesModel.cpp
-    text/lager/CssLengthPercentageModel.cpp
-    text/lager/LineHeightModel.cpp
-    text/lager/TextIndentModel.cpp
-    text/lager/TabSizeModel.cpp
-    text/lager/TextTransformModel.cpp
-    text/lager/CssFontStyleModel.cpp
-    text/lager/FontVariantLigaturesModel.cpp
-    text/lager/FontVariantNumericModel.cpp
-    text/lager/FontVariantEastAsianModel.cpp
     text/KoFFWWSConverter.cpp
     text/KoFontChangeTracker.cpp
     text/KoWritingSystemUtils.cpp
