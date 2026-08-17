@@ -26,7 +26,6 @@
 #include "KoAbstractCanvasResourceInterface.h"
 
 #include <klocalizedstring.h>
-#include <kactioncollection.h>
 #include <QWidget>
 #include <QFile>
 #include <QDomDocument>
@@ -202,7 +201,8 @@ QAction *KoToolBase::action(const QString &name) const
 {
     Q_D(const KoToolBase);
     if (d->canvas && d->canvas->canvasController() && d->canvas->canvasController()) {
-        return d->canvas->canvasController()->actionCollection()->action(name);
+        QObject *collection = d->canvas->canvasController()->actionCollection();
+        return collection ? collection->findChild<QAction *>(name) : 0;
     }
     return 0;
 }

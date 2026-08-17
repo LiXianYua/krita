@@ -21,7 +21,6 @@
 
 #include <KoZoomState.h>
 
-class KisKActionCollection;
 class QRect;
 class QRectF;
 
@@ -68,7 +67,7 @@ public:
      * Constructor.
      * @param actionCollection the action collection for this canvas
      */
-    explicit KoCanvasController(KisKActionCollection* actionCollection);
+    explicit KoCanvasController(QObject *actionCollection);
     virtual ~KoCanvasController();
 
 public:
@@ -178,7 +177,7 @@ public:
      * Returns the action collection for the window
      * @returns action collection for this window, can be 0
      */
-    KisKActionCollection* actionCollection() const;
+    QObject *actionCollection() const;
 
     /**
      * @return the current position of the cursor fetched from QCursor::pos() and

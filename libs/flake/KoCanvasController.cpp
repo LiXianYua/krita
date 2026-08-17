@@ -25,10 +25,10 @@ public:
     QPoint documentOffset;
     qreal preferredCenterFractionX;
     qreal preferredCenterFractionY;
-    KisKActionCollection* actionCollection;
+    QObject *actionCollection;
 };
 
-KoCanvasController::KoCanvasController(KisKActionCollection* actionCollection)
+KoCanvasController::KoCanvasController(QObject *actionCollection)
     : d(new Private())
 {
     proxyObject = new KoCanvasControllerProxyObject(this);
@@ -53,7 +53,7 @@ KoCanvasControllerProxyObject::KoCanvasControllerProxyObject(KoCanvasController 
 {
 }
 
-KisKActionCollection* KoCanvasController::actionCollection() const
+QObject *KoCanvasController::actionCollection() const
 {
     return d->actionCollection;
 }

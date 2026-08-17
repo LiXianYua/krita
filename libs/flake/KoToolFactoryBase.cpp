@@ -7,7 +7,6 @@
 #include "KoToolFactoryBase.h"
 
 #include "KoToolBase.h"
-#include <kactioncollection.h>
 
 #include <KoToolManager.h>
 
@@ -43,14 +42,16 @@ KoToolFactoryBase::~KoToolFactoryBase()
     delete d;
 }
 
-QList<QAction *> KoToolFactoryBase::createActions(KisKActionCollection *actionCollection)
+QList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
 {
     QList<QAction *> toolActions;
 
     QList<QAction*> actions = createActionsImpl();
     QAction *action = new QAction(this);
     action->setObjectName(id());
-    actionCollection->addAction(id(), action);
+    if (actionCollection) {
+        action->setParent(actionCollection);
+    }
     connect(action, SIGNAL(triggered()), SLOT(activateTool()));
     //qDebug() << action << action->shortcut();
 
@@ -60,7 +61,7 @@ QList<QAction *> KoToolFactoryBase::createActions(KisKActionCollection *actionCo
             qWarning() << "Tool" << id() << "tries to add an action without a name";
             continue;
         }
-        QAction *existingAction = actionCollection->action(action->objectName());
+        QAction *existingAction = actionCollection ? actionCollection->findChild<QAction *>(action->objectName()) : 0;
         if (existingAction) {
             delete action;
             action = existingAction;
@@ -72,8 +73,8 @@ QList<QAction *> KoToolFactoryBase::createActions(KisKActionCollection *actionCo
         }
         tools << id();
         action->setProperty("tool_action", tools);
-        if (!existingAction) {
-            actionCollection->addAction(action->objectName(), action);
+        if (!existingAction && actionCollection) {
+            action->setParent(actionCollection);
         }
         toolActions << action;
     }

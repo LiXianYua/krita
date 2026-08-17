@@ -17,7 +17,6 @@
 class KoCanvasBase;
 class KoToolBase;
 class QKeySequence;
-class KisKActionCollection;
 class QAction;
 
 /**
@@ -73,7 +72,7 @@ public:
      * Create the actions for this tool. Actions are unique per window, not per
      * tool instance; tool instances are unique per view/canvas.
      */
-    QList<QAction *> createActions(KisKActionCollection *actionCollection);
+    QList<QAction *> createActions(QObject *actionCollection);
 
     /**
      * Instantiate a new tool

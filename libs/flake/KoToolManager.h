@@ -21,7 +21,6 @@ class KoShapeControllerBase;
 class KoToolFactoryBase;
 class KoCanvasBase;
 class KoToolBase;
-class KisKActionCollection;
 class KoShape;
 class KoShapeLayer;
 class QKeySequence;

@@ -35,7 +35,6 @@
 #include "KoViewConverter.h"
 #include "KoShapeFactoryBase.h"
 #include "kis_assert.h"
-#include "kactioncollection.h"
 #include "kis_global.h"
 #include "kis_algebra_2d.h"
 
@@ -391,10 +390,10 @@ void KoToolProxy::setActiveTool(KoToolBase *tool)
     d->activeTool = tool;
 
     if (tool) {
-        KisKActionCollection *collection = d->controller->actionCollection();
+        QObject *collection = d->controller->actionCollection();
         KIS_SAFE_ASSERT_RECOVER_NOOP(collection);
         if (collection) {
-            Q_FOREACH(QAction *action, collection->actions()) {
+            Q_FOREACH(QAction *action, collection->findChildren<QAction *>()) {
 
                 const QVariant prop = action->property("tool_action");
 

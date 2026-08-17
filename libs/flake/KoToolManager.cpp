@@ -39,8 +39,6 @@
 #include <QVBoxLayout>
 #include <QStringList>
 #include <QApplication>
-#include <kactioncollection.h>
-#include <kactioncategory.h>
 #include <FlakeDebug.h>
 
 #include <QAction>
@@ -76,7 +74,7 @@ public:
         toolActions.clear();
         disabledGlobalActions.clear();
 
-        KisKActionCollection *windowActionCollection = canvas->actionCollection();
+        QObject *windowActionCollection = canvas->actionCollection();
 
         if (!windowActionCollection) {
             qWarning() << "We haven't got an action collection";
@@ -89,7 +87,7 @@ public:
 
 //        qDebug() << "................... activating tool" << activeToolId;
 
-        Q_FOREACH(QAction *action, windowActionCollection->actions()) {
+        Q_FOREACH(QAction *action, windowActionCollection->findChildren<QAction *>()) {
 
             if (action->property("tool_action").isValid()) {
                 QStringList tools = action->property("tool_action").toStringList();
@@ -142,7 +140,7 @@ public:
                 Q_FOREACH(const QString &action, actions) {
                     if (toolActionFound && globalActions.contains(action)) {
                         //qDebug() << "\tdisabling global action" << action;
-                        windowActionCollection->action(action)->setEnabled(false);
+                        windowActionCollection->findChild<QAction *>(action)->setEnabled(false);
                         disabledGlobalActions << action;
                     }
                 }
@@ -150,7 +148,7 @@ public:
             }
         }
 
-        windowActionCollection->readSettings(); // The shortcuts might have been configured in the meantime.
+        // The shortcuts might have been configured in the meantime. (KActionCollection::readSettings removed together with the widgetutils dependency)
     }
 
     void deactivateToolActions()
@@ -160,15 +158,15 @@ public:
 
         //qDebug() << "............... deactivating previous tool because activating" << activeToolId;
 
-        KisKActionCollection *windowActionCollection = canvas->actionCollection();
+        QObject *windowActionCollection = canvas->actionCollection();
 
         Q_FOREACH(const QString &action, toolActions) {
             //qDebug() << "disabling" << action;
-            windowActionCollection->action(action)->setDisabled(true);
+            windowActionCollection->findChild<QAction *>(action)->setDisabled(true);
         }
         Q_FOREACH(const QString &action, disabledGlobalActions) {
             //qDebug() << "enabling" << action;
-            windowActionCollection->action(action)->setEnabled(true);
+            windowActionCollection->findChild<QAction *>(action)->setEnabled(true);
         }
     }
 
