@@ -288,17 +288,25 @@ set -o pipefail; ninja -C <build> 2>&1 | tail -5 ; echo "ninja exit=$?"
 ## 这个仓库的两个特殊之处
 
 **① 是 shallow clone（`depth=1` @ `v6.0.3`）。**
-`git log` 只有一个根提交，**`git blame` 查不到 Krita 的历史**——想知道某段代码为什么这么写：
+`git log` 只有一个根提交，**`git blame` 查不到 Krita 的历史**——想知道某段代码为什么这么写，用
+codegraph 查官方只读 clone（见下）。
+
+**codegraph 索引三处都有，定位符号/影响面先用它，不要只靠 grep（硬规则）。**
+
+- **本 worktree 目录下就有 `.codegraph/`**（claim 时建的；主 checkout `krita/` 也有）。评估影响面、
+  找调用方、定位符号，**先跑 `codegraph explore "<符号名>"`**——它一次给符号原文 + 调用路径 +
+  **blast radius**（谁依赖它），**含 grep 追不到的动态分派**（虚函数/信号槽）。`grep` 只做收尾复核；
+  只靠 grep 会漏动态分派的调用方，删代码时炸的都是这些。
+- **两个索引内容不同，别混**：本 worktree / 主 checkout 的索引反映**删减后的现状**（问「现在还剩
+  什么」用它）；官方只读 clone（`/home/liyang/projects-ssd/krita`）的索引反映**未删减的原始 Krita**
+  （问「原来怎么设计的」用它，基点 `v6.0.3` 与本仓同源）。
 
 ```bash
-cd /home/liyang/projects-ssd/krita && codegraph explore "<符号名或问题>"
+codegraph explore "<符号名>"                                                    # 查本 worktree 现状
+cd /home/liyang/projects-ssd/krita && codegraph explore "<符号名>"               # 查原始设计
 ```
 
-官方只读 clone 有 codegraph 索引（基点 `v6.0.3`，与本仓同源），一次调用给出相关符号
-原文加调用路径，**含 grep 追不到的动态分派**。**本仓库与各 worktree 都没有
-`.codegraph/`**，所以根层 `AGENTS.md` 那条「没索引就跳过」说的是这里，不是说没索引可用。
-索引反映**未删减的原始 Krita**：问「原来怎么设计的」它权威，问「现在还剩什么」要在本仓库数。
-那个 clone 只读，**不许改它的源码**。
+官方 clone 只读，**不许改它的源码**。
 
 再往上是 `$PK/docs/krita/` 的架构知识库，或 GitHub 上的 `KDE/krita`。
 **不要 `git fetch --unshallow`**（9.5 GB，且决策 D-18 本来就要截断历史）。
