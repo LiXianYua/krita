@@ -17,15 +17,10 @@
 #include "commands/KoShapeCreateCommand.h"
 #include "commands/KoShapeDeleteCommand.h"
 #include "KoCanvasBase.h"
-#include "KoShapeConfigWidgetBase.h"
 #include "KoShapeFactoryBase.h"
 #include "KoShape.h"
-#include <KoUnit.h>
 
 #include <QObject>
-
-#include <kpagedialog.h>
-#include <klocalizedstring.h>
 
 class KoShapeController::Private
 {
@@ -38,54 +33,6 @@ public:
 
     KoCanvasBase *canvas;
     KoShapeControllerBase *shapeController;
-
-    KUndo2Command* addShape(KoShape *shape, bool showDialog, KoShapeContainer *parentShape, KUndo2Command *parent) {
-
-        if (canvas) {
-            if (showDialog && !shape->shapeId().isEmpty()) {
-                KoShapeFactoryBase *factory = KoShapeRegistry::instance()->value(shape->shapeId());
-                Q_ASSERT(factory);
-                qint16 z = 0;
-                Q_FOREACH (KoShape *sh, canvas->shapeManager()->shapes()) {
-                    z = qMax(z, sh->zIndex());
-                }
-                shape->setZIndex(z + 1);
-
-                // show config dialog.
-                KPageDialog *dialog = new KPageDialog(canvas->canvasWidget());
-                dialog->setWindowTitle(i18n("%1 Options", factory->name()));
-
-                int pageCount = 0;
-                QList<KoShapeConfigWidgetBase*> widgets;
-                Q_FOREACH (KoShapeConfigWidgetBase* panel, factory->createShapeOptionPanels()) {
-                    if (! panel->showOnShapeCreate())
-                        continue;
-                    panel->open(shape);
-                    panel->connect(panel, SIGNAL(accept()), dialog, SLOT(accept()));
-                    widgets.append(panel);
-                    panel->setResourceManager(canvas->resourceManager());
-                    panel->setUnit(canvas->unit());
-                    QString title = panel->windowTitle().isEmpty() ? panel->objectName() : panel->windowTitle();
-                    dialog->addPage(panel, title);
-                    pageCount ++;
-                }
-
-                if (pageCount > 0) {
-                    if (pageCount > 1)
-                        dialog->setFaceType(KPageDialog::Tabbed);
-                    if (dialog->exec() != KPageDialog::Accepted) {
-                        delete dialog;
-                        return 0;
-                    }
-                    Q_FOREACH (KoShapeConfigWidgetBase *widget, widgets)
-                        widget->save();
-                }
-                delete dialog;
-            }
-        }
-
-        return addShapesDirect({shape}, parentShape, parent);
-    }
 
     KUndo2Command* addShapesDirect(const QList<KoShape*> shapes, KoShapeContainer *parentShape, KUndo2Command *parent)
     {
@@ -124,7 +71,16 @@ void KoShapeController::reset()
 
 KUndo2Command* KoShapeController::addShape(KoShape *shape, KoShapeContainer *parentShape, KUndo2Command *parent)
 {
-    return d->addShape(shape, true, parentShape, parent);
+    if (d->canvas && !shape->shapeId().isEmpty()) {
+        KoShapeFactoryBase *factory = KoShapeRegistry::instance()->value(shape->shapeId());
+        Q_ASSERT(factory);
+        qint16 z = 0;
+        Q_FOREACH (KoShape *sh, d->canvas->shapeManager()->shapes()) {
+            z = qMax(z, sh->zIndex());
+        }
+        shape->setZIndex(z + 1);
+    }
+    return addShapesDirect({shape}, parentShape, parent);
 }
 
 KUndo2Command* KoShapeController::addShapeDirect(KoShape *shape, KoShapeContainer *parentShape, KUndo2Command *parent)

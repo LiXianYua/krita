@@ -19,7 +19,6 @@
 
 class KoShape;
 class KoProperties;
-class KoShapeConfigWidgetBase;
 class KoShapeLoadingContext;
 class KoDocumentResourceManager;
 
@@ -83,18 +82,6 @@ public:
      */
     KoShapeFactoryBase(const QString &id, const QString &name, const QString &deferredPluginName = QString());
     ~KoShapeFactoryBase() override;
-
-    /**
-     * Create a list of option panels to show on creating a new shape.
-     * The shape type this factory creates may have general or specific setting panels
-     * that will be shown after inserting a new shape.
-     * The first item in the list will be shown as the first tab in the list of panels,
-     * behind all app specific panels.
-     * This is a separate list as set by setOptionPanels() and fetched by panelFactories()
-     */
-    virtual QList<KoShapeConfigWidgetBase*> createShapeOptionPanels() {
-        return QList<KoShapeConfigWidgetBase*>();
-    }
 
     /**
      * return the id for the shape this factory creates.

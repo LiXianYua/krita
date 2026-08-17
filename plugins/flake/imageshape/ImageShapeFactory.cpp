@@ -67,10 +67,3 @@ bool ImageShapeFactory::supports(const QDomElement &e, KoShapeLoadingContext &co
     return e.localName() == "image" &&
             (e.namespaceURI() == KoXmlNS::draw || e.namespaceURI() == KoXmlNS::svg);
 }
-
-QList<KoShapeConfigWidgetBase *> ImageShapeFactory::createShapeOptionPanels()
-{
-    QList<KoShapeConfigWidgetBase *> result;
-    //result.append(new ImageShapeConfigWidget());
-    return result;
-}
