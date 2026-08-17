@@ -37,5 +37,6 @@ kis_add_tests(
     kis_shape_commands_test.cpp
     kis_shape_layer_test.cpp
     kis_shape_selection_test.cpp
+    NAME_PREFIX libs-ui-
     LINK_LIBRARIES kritashapemodel kritaimpex kritatestsdk
 )
