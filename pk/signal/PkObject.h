@@ -59,7 +59,7 @@ protected:
     static void activateSignal(PkObject* sender, PkMemberFnKey key, Args... args);
 
 private:
-    // 连接条目。类型擦除的槽 + 双方对象 + 状态 + 信号 key。
+    // 连接条目。类型擦除的槽 + 双方对象 + 状态 + 信号 key + 槽身份。
     struct ConnectionEntry {
         PkMemberFnKey key;
         PkObject* receiver = nullptr;          // 裸指针：仅用于 receiver 析构时断开，
@@ -67,6 +67,9 @@ private:
         std::shared_ptr<PkConnectionState> state;
         std::shared_ptr<PkSlotBase> slot;
         PkConnectionType type = PkConnectionType::Auto;
+        bool hasSlotKey = false;               // 槽身份：成员函数指针槽有稳定 key；
+                                               // lambda 槽无身份（false），Unique 不去重
+        PkMemberFnKey slotKey;                 // hasSlotKey==true 时有效
     };
 
     // connect 的实现入口（非模板 helper，承接两个模板里公共的「塞两份列表」逻辑）。
@@ -74,7 +77,9 @@ private:
                                  PkMemberFnKey key,
                                  std::shared_ptr<PkSlotBase> slot,
                                  std::shared_ptr<PkConnectionState> state,
-                                 PkConnectionType type);
+                                 PkConnectionType type,
+                                 bool hasSlotKey,
+                                 PkMemberFnKey slotKey);
 
     // 对象树：parent 裸指针 + children 拥有。FIFO 析构顺序（探针 1：c1→c2→c3）。
     PkObject* m_parent = nullptr;
@@ -101,8 +106,24 @@ PkConnection PkObject::connect(
     static_assert(std::is_base_of<PkObject, Obj1>::value, "sender must derive PkObject");
     static_assert(std::is_base_of<PkObject, Obj2>::value, "receiver must derive PkObject");
 
-    auto state = std::make_shared<PkConnectionState>();
     PkMemberFnKey key = PkMemberFnKey::from(signal);
+    PkMemberFnKey slotKey = PkMemberFnKey::from(slot);
+
+    PkObject* s = const_cast<PkObject*>(static_cast<const PkObject*>(sender));
+    PkObject* r = const_cast<PkObject*>(static_cast<const PkObject*>(receiver));
+
+    // Unique：同 (信号 key, receiver, 槽 key) 三元组的活连接已存在 → 去重，返回无效句柄，
+    // 不建立新连接（Qt::UniqueConnection 语义：same-quadruple 第二次 connect 返回空）。
+    if (type == PkConnectionType::Unique) {
+        for (const auto& e : s->m_outgoing) {
+            if (e.state && e.state->alive && e.key == key &&
+                e.receiver == r && e.hasSlotKey && e.slotKey == slotKey) {
+                return PkConnection{};
+            }
+        }
+    }
+
+    auto state = std::make_shared<PkConnectionState>();
 
     // 把「成员函数调用」包进 std::function<void(Args...)>。
     using ArgsTuple = typename PkSignalTraits<Func1>::ArgsTuple;
@@ -110,10 +131,7 @@ PkConnection PkObject::connect(
 
     auto slotBox = std::make_shared<PkSlotImplFromTuple<ArgsTuple>>(std::move(slotFn));
 
-    appendConnection(
-        const_cast<PkObject*>(static_cast<const PkObject*>(sender)),
-        const_cast<PkObject*>(static_cast<const PkObject*>(receiver)),
-        key, slotBox, state, type);
+    appendConnection(s, r, key, slotBox, state, type, true, slotKey);
     return PkConnection(std::move(state));
 }
 
@@ -126,6 +144,7 @@ PkConnection PkObject::connect(
     using Obj1 = typename PkSignalTraits<Func1>::Object;
     static_assert(std::is_base_of<PkObject, Obj1>::value, "sender must derive PkObject");
 
+    // lambda 槽无稳定身份：Unique 不去重，照常建立连接（hasSlotKey=false）。
     auto state = std::make_shared<PkConnectionState>();
     PkMemberFnKey key = PkMemberFnKey::from(signal);
 
@@ -135,7 +154,7 @@ PkConnection PkObject::connect(
     appendConnection(
         const_cast<PkObject*>(static_cast<const PkObject*>(sender)),
         const_cast<PkObject*>(receiver),
-        key, slotBox, state, type);
+        key, slotBox, state, type, false, PkMemberFnKey{});
     return PkConnection(std::move(state));
 }
 

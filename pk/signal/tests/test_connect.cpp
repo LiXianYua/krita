@@ -10,7 +10,9 @@ struct Sender : PkObject {
 };
 struct Receiver : PkObject {
     int got = 0;
+    int got2 = 0;
     void onA() { ++got; }
+    void onA2() { ++got2; }
     void onN(int v) { got = v; }
 };
 }
@@ -95,5 +97,67 @@ void run_connect_tests()
         PkObject::connect(&s, sig, &r, &Receiver::onN);
         s.sigN(9);
         _expect(r.got == 9, "QOverload disambiguated connect");
+    }
+
+    // 8. Unique：同四元组去重（probe_unique：same-quadruple 第二次 connect 无效）
+    {
+        Sender s; Receiver r;
+        PkConnection c1 = PkObject::connect(&s, &Sender::sigA, &r, &Receiver::onA,
+                                            PkConnectionType::Unique);
+        PkConnection c2 = PkObject::connect(&s, &Sender::sigA, &r, &Receiver::onA,
+                                            PkConnectionType::Unique);
+        _expect(c1.isValid(), "first Unique connect valid");
+        _expect(!c2.isValid(), "duplicate Unique connect invalid");
+        s.sigA();
+        _expect(r.got == 1, "dedup: slot fires once despite duplicate Unique connect");
+    }
+
+    // 9. Unique：断开后重连同四元组成功（只查 alive 条目）
+    {
+        Sender s; Receiver r;
+        PkConnection c1 = PkObject::connect(&s, &Sender::sigA, &r, &Receiver::onA,
+                                            PkConnectionType::Unique);
+        PkObject::disconnect(c1);
+        PkConnection c2 = PkObject::connect(&s, &Sender::sigA, &r, &Receiver::onA,
+                                            PkConnectionType::Unique);
+        _expect(c2.isValid(), "reconnect after disconnect valid");
+        s.sigA();
+        _expect(r.got == 1, "reconnect after disconnect fires once");
+    }
+
+    // 10. Unique：不同 receiver / 不同槽成员函数不去重
+    {
+        Sender s; Receiver r1, r2;
+        PkConnection c1 = PkObject::connect(&s, &Sender::sigA, &r1, &Receiver::onA,
+                                            PkConnectionType::Unique);
+        PkConnection c2 = PkObject::connect(&s, &Sender::sigA, &r2, &Receiver::onA,
+                                            PkConnectionType::Unique);
+        _expect(c1.isValid() && c2.isValid(), "different receiver: both Unique connects valid");
+        s.sigA();
+        _expect(r1.got == 1 && r2.got == 1, "different receiver: both slots fired");
+
+        Sender s2; Receiver r;
+        PkConnection c3 = PkObject::connect(&s2, &Sender::sigA, &r, &Receiver::onA,
+                                            PkConnectionType::Unique);
+        PkConnection c4 = PkObject::connect(&s2, &Sender::sigA, &r, &Receiver::onA2,
+                                            PkConnectionType::Unique);
+        _expect(c3.isValid() && c4.isValid(), "different slot: both Unique connects valid");
+        s2.sigA();
+        _expect(r.got == 1 && r.got2 == 1, "different slot: both slots fired");
+    }
+
+    // 11. Unique + lambda 槽：lambda 无身份不去重，两次都有效、emit 触发两次
+    {
+        Sender s;
+        int called = 0;
+        PkConnection c1 = PkObject::connect(&s, &Sender::sigA, &s,
+                                            [&called]{ ++called; },
+                                            PkConnectionType::Unique);
+        PkConnection c2 = PkObject::connect(&s, &Sender::sigA, &s,
+                                            [&called]{ ++called; },
+                                            PkConnectionType::Unique);
+        _expect(c1.isValid() && c2.isValid(), "lambda Unique: both connects valid");
+        s.sigA();
+        _expect(called == 2, "lambda Unique: no dedup, fires twice");
     }
 }

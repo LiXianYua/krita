@@ -40,12 +40,14 @@ void PkObject::appendConnection(PkObject* sender, PkObject* receiver,
                                 PkMemberFnKey key,
                                 std::shared_ptr<PkSlotBase> slot,
                                 std::shared_ptr<PkConnectionState> state,
-                                PkConnectionType type)
+                                PkConnectionType type,
+                                bool hasSlotKey,
+                                PkMemberFnKey slotKey)
 {
     // 同一逻辑条目进 sender->m_outgoing 与 receiver->m_incoming 两份，
     // 共享同一个 slot 盒（shared_ptr）与同一个 state（shared_ptr）。
     // 双方列表里的条目 state 相同 → 任何一侧置 alive=false，另一侧的 emit 立即跳过。
-    ConnectionEntry entry{key, receiver, state, std::move(slot), type};
+    ConnectionEntry entry{key, receiver, state, std::move(slot), type, hasSlotKey, slotKey};
     sender->m_outgoing.push_back(entry);
     receiver->m_incoming.push_back(entry);
 }
