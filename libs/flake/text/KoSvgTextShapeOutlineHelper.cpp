@@ -19,8 +19,6 @@
 const int BUTTON_ICON_SIZE = 16;
 const int BUTTON_PADDING = 4;
 const int BUTTON_CORNER_ROUND = 1;
-const QString ICON_EXIT = "object-ungroup-calligra";
-const QString ICON_ENTER = "object-group-calligra";
 
 struct KoSvgTextShapeOutlineHelper::Private {
     Private(KoCanvasBase *canvasBase): canvas(canvasBase) {

@@ -71,6 +71,12 @@ public:
     /**
      * Create the actions for this tool. Actions are unique per window, not per
      * tool instance; tool instances are unique per view/canvas.
+     *
+     * @p actionCollection is a plain QObject used as an action repository.
+     * Every QAction added to it must be parented to the collection
+     * (setParent(actionCollection)) and carry the action name as its
+     * objectName (setObjectName(name)) — actions are looked up afterwards via
+     * findChild<QAction *>(name)/findChildren<QAction *>() on that objectName.
      */
     QList<QAction *> createActions(QObject *actionCollection);
 

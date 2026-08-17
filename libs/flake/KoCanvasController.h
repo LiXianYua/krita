@@ -175,6 +175,12 @@ public:
 
    /**
      * Returns the action collection for the window
+     *
+     * The returned QObject acts as an action repository. Actions are added
+     * with setParent(actionCollection) and must have their objectName set to
+     * the action name, because they are later retrieved via
+     * findChild<QAction *>(name)/findChildren<QAction *>().
+     *
      * @returns action collection for this window, can be 0
      */
     QObject *actionCollection() const;

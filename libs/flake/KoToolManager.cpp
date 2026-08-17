@@ -148,7 +148,7 @@ public:
             }
         }
 
-        // The shortcuts might have been configured in the meantime. (KActionCollection::readSettings removed together with the widgetutils dependency)
+        // The shortcuts might have been configured in the meantime. Shortcut re-read no longer performed (KActionCollection removed).
     }
 
     void deactivateToolActions()
