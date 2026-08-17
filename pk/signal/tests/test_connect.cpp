@@ -59,8 +59,10 @@ void run_connect_tests()
             _expect(r->got == 1, "called before receiver destroy");
             delete r;
         }
-        s.sigA();  // 不得 crash、不得调用悬垂 this
-        _expect(true, "emit after receiver destroy is safe (connection dead)");
+        // 这条的真断点是「不 crash」：emit 靠双方共享 state 的 alive 跳过 dead 条目，
+        // 不触碰已析构 receiver 的内存。若想强断言，可给 Sender 加计数侧证「析构后
+        // 槽不再被调」，但此处 receiver 已析构、计数无处可放，故只验证不 crash。
+        s.sigA();
     }
 
     // 5. emit 中 disconnect（探针 4：当前 emit 只触发一次，断开下次生效）
@@ -159,5 +161,45 @@ void run_connect_tests()
         _expect(c1.isValid() && c2.isValid(), "lambda Unique: both connects valid");
         s.sigA();
         _expect(called == 2, "lambda Unique: no dedup, fires twice");
+    }
+
+    // 12. disconnect 三种新式形态（4 参函数指针式 / 断开全部式 / post-disconnect isValid）
+    {
+        // 12a. 4 参函数指针式：connect 后 disconnect(&s, &sig, &r, &slot)，emit 槽不触发
+        Sender s; Receiver r;
+        PkObject::connect(&s, &Sender::sigA, &r, &Receiver::onA);
+        bool d1 = PkObject::disconnect(&s, &Sender::sigA, &r, &Receiver::onA);
+        _expect(d1, "funcptr disconnect on live connection returns true");
+        s.sigA();
+        _expect(r.got == 0, "funcptr disconnect: slot not fired after 4-arg disconnect");
+        // 找不到活条目返回 false
+        bool d2 = PkObject::disconnect(&s, &Sender::sigA, &r, &Receiver::onA);
+        _expect(!d2, "funcptr disconnect on already-dead returns false");
+
+        // 12b. 断开全部式：同 sender 两个不同信号连到同 receiver，disconnect(&s, 0, &r, 0)
+        //      （裸 0，对齐 Krita 真实拼写），两个信号 emit 都不触发
+        Sender sa; Receiver ra;
+        PkObject::connect(&sa, &Sender::sigA, &ra, &Receiver::onA);   // onA: ++got
+        PkObject::connect(&sa, &Sender::sigN, &ra, &Receiver::onN);   // onN: got = v
+        bool d = PkObject::disconnect(&sa, 0, &ra, 0);
+        _expect(d, "disconnect-all returns true when at least one matched");
+        sa.sigA();
+        sa.sigN(42);
+        _expect(ra.got == 0, "disconnect-all: neither signal fires after disconnect-all");
+
+        // 12c. 断开全部式：不同 receiver 不受影响（同 sender 信号连 r1/r2，断 r1 全部，r2 仍触发）
+        Sender sb; Receiver r1, r2;
+        PkObject::connect(&sb, &Sender::sigA, &r1, &Receiver::onA);
+        PkObject::connect(&sb, &Sender::sigA, &r2, &Receiver::onA);
+        PkObject::disconnect(&sb, 0, &r1, 0);
+        sb.sigA();
+        _expect(r1.got == 0 && r2.got == 1, "disconnect-all: only r1 dead, r2 still fires");
+
+        // 12d. post-disconnect isValid：disconnect 后句柄 isValid() 变 false
+        Sender sc; Receiver rc;
+        PkConnection h = PkObject::connect(&sc, &Sender::sigA, &rc, &Receiver::onA);
+        _expect(h.isValid(), "handle isValid before disconnect");
+        PkObject::disconnect(h);
+        _expect(!h.isValid(), "handle isValid false after disconnect (Qt semantics)");
     }
 }

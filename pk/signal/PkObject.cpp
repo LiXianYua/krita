@@ -61,6 +61,23 @@ bool PkObject::disconnect(PkConnection& connection)
     return true;
 }
 
+bool PkObject::disconnect(const PkObject* sender, std::nullptr_t,
+                          const PkObject* receiver, std::nullptr_t)
+{
+    // 探针语义：只断「sender 的 m_outgoing 里 receiver 匹配」的活条目，
+    // 别的 receiver 不受影响（探针 r4.a=0 r4b.a=1）。返回是否断到至少一条。
+    PkObject* s = const_cast<PkObject*>(sender);
+    PkObject* r = const_cast<PkObject*>(receiver);
+    bool any = false;
+    for (auto& e : s->m_outgoing) {
+        if (e.state && e.state->alive && e.receiver == r) {
+            e.state->alive = false;
+            any = true;
+        }
+    }
+    return any;
+}
+
 void PkObject::disconnectAllOutgoing()
 {
     for (auto& e : m_outgoing) if (e.state) e.state->alive = false;

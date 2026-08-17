@@ -3,6 +3,7 @@
 #include <vector>
 #include <atomic>
 #include <type_traits>
+#include <utility>
 #include "PkConnection.h"
 #include "PkConnect.h"
 
@@ -39,6 +40,17 @@ public:
     // 句柄式断开
     static bool disconnect(PkConnection& connection);
 
+    // 4 参函数指针式断开：按 (信号 key, receiver, 槽 key) 三元素断「同信号同槽」。
+    template <typename Func1, typename Func2>
+    static bool disconnect(
+        const typename PkSignalTraits<Func1>::Object* sender, Func1 signal,
+        const typename PkSignalTraits<Func2>::Object* receiver, Func2 slot);
+
+    // 断开全部式：断 sender 到 receiver 的**所有**活连接（不区分信号/槽）。
+    // 用 std::nullptr_t 形参承接裸 0 / nullptr（Krita 拼写 disconnect(this, 0, this, 0)）。
+    static bool disconnect(const PkObject* sender, std::nullptr_t,
+                           const PkObject* receiver, std::nullptr_t);
+
     // sender()（Task 3 实现，这里先声明）
     static PkObject* sender();
 
@@ -62,8 +74,9 @@ private:
     // 连接条目。类型擦除的槽 + 双方对象 + 状态 + 信号 key + 槽身份。
     struct ConnectionEntry {
         PkMemberFnKey key;
-        PkObject* receiver = nullptr;          // 裸指针：仅用于 receiver 析构时断开，
-                                               // 绝不在 receiver 析构后解引用
+        PkObject* receiver = nullptr;          // 裸指针：用于 receiver 析构断连、Unique 去重、
+                                               // 断开全部式 disconnect 的匹配；绝不在
+                                               // receiver 析构后解引用
         std::shared_ptr<PkConnectionState> state;
         std::shared_ptr<PkSlotBase> slot;
         PkConnectionType type = PkConnectionType::Auto;
@@ -161,6 +174,35 @@ PkConnection PkObject::connect(
         const_cast<PkObject*>(receiver),
         key, slotBox, state, type, false, PkMemberFnKey{});
     return PkConnection(std::move(state));
+}
+
+template <typename Func1, typename Func2>
+bool PkObject::disconnect(
+    const typename PkSignalTraits<Func1>::Object* sender, Func1 signal,
+    const typename PkSignalTraits<Func2>::Object* receiver, Func2 slot)
+{
+    using Obj1 = typename PkSignalTraits<Func1>::Object;
+    using Obj2 = typename PkSignalTraits<Func2>::Object;
+    static_assert(std::is_base_of<PkObject, Obj1>::value, "sender must derive PkObject");
+    static_assert(std::is_base_of<PkObject, Obj2>::value, "receiver must derive PkObject");
+
+    PkMemberFnKey key = PkMemberFnKey::from(signal);
+    PkMemberFnKey slotKey = PkMemberFnKey::from(slot);
+
+    PkObject* s = const_cast<PkObject*>(static_cast<const PkObject*>(sender));
+    PkObject* r = const_cast<PkObject*>(static_cast<const PkObject*>(receiver));
+
+    // 探针语义：按 (信号 key, receiver, 槽 key) 三元素在 sender 的 m_outgoing 里找活条目，
+    // 找到置 dead 并返回 true，找不到返回 false。只断开**一个**匹配条目（与句柄式同为
+    // 「断开一条连接」；Qt 同四元组重复 connect 后 disconnect 一次也只断一条）。
+    for (auto& e : s->m_outgoing) {
+        if (e.state && e.state->alive && e.key == key &&
+            e.receiver == r && e.hasSlotKey && e.slotKey == slotKey) {
+            e.state->alive = false;
+            return true;
+        }
+    }
+    return false;
 }
 
 template <typename... Args>
