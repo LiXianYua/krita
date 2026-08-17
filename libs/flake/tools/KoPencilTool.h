@@ -16,9 +16,9 @@
 class KoPathShape;
 class KoPathPoint;
 
-#include "kritabasicflakes_export.h"
+#include "kritaflake_export.h"
 
-class KRITABASICFLAKES_EXPORT KoPencilTool : public KoToolBase
+class KRITAFLAKE_EXPORT KoPencilTool : public KoToolBase
 {
     Q_OBJECT
 public:

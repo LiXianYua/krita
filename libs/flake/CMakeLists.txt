@@ -182,6 +182,8 @@ set(kritaflake_SRCS
     tools/KoInteractionStrategyFactory.cpp
     tools/KoShapeRubberSelectStrategy.cpp
     tools/KoPathSegmentChangeStrategy.cpp
+    tools/KoCreatePathTool.cpp
+    tools/KoPencilTool.cpp
 
     svg/KoShapePainter.cpp
     svg/SvgUtil.cpp

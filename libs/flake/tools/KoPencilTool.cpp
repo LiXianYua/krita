@@ -38,7 +38,6 @@
 #include <math.h>
 
 #include "KoCreatePathTool_p.h"
-#include "kis_double_parse_spin_box.h"
 
 KoPencilTool::KoPencilTool(KoCanvasBase *canvas)
     : KoToolBase(canvas)
@@ -322,7 +321,7 @@ QList<QPointer<QWidget> > KoPencilTool::createOptionWidgets()
     QHBoxLayout * curveLayout = new QHBoxLayout(curveBox);
     QCheckBox * optimizeCurve = new QCheckBox(i18n("Optimize"), curveBox);
     optimizeCurve->setChecked(m_optimizeCurve);
-    QDoubleSpinBox * fittingError = new KisDoubleParseSpinBox(curveBox);
+    QDoubleSpinBox * fittingError = new QDoubleSpinBox(curveBox);
     fittingError->setSingleStep(0.50);
     fittingError->setMaximum(400.0);
     fittingError->setMinimum(0.0);
@@ -334,7 +333,7 @@ QList<QPointer<QWidget> > KoPencilTool::createOptionWidgets()
 
     QWidget *straightBox = new QWidget(stackedWidget);
     QVBoxLayout *straightLayout = new QVBoxLayout(straightBox);
-    QDoubleSpinBox *combineAngle = new KisDoubleParseSpinBox(straightBox);
+    QDoubleSpinBox *combineAngle = new QDoubleSpinBox(straightBox);
     combineAngle->setSingleStep(0.50);
     combineAngle->setMaximum(360.0);
     combineAngle->setMinimum(0.0);

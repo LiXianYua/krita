@@ -24,7 +24,7 @@ kis_add_library(kritadefaulttools_static STATIC ${kritadefaulttools_static_SRCS}
 target_link_libraries(kritadefaulttools_static 
     PUBLIC
         kritacanvas
-        kritabasicflakes
+        kritaflake
         kritashapemodel
         kritaimage
         Boost::boost

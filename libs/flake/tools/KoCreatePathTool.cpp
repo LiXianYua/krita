@@ -16,7 +16,6 @@
 #include "KoDocumentResourceManager.h"
 #include "KoShapeStroke.h"
 #include "KoCanvasBase.h"
-#include "kis_int_parse_spin_box.h"
 #include <KoColor.h>
 #include <KisHandlePainterHelper.h>
 #include "KoPathPointTypeCommand.h"

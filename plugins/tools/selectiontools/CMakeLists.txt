@@ -18,7 +18,7 @@ kis_add_library(kritaselectiontools MODULE ${kritaselectiontools_SOURCES})
 
 generate_export_header(kritaselectiontools BASE_NAME kritaselectiontools)
 
-target_link_libraries(kritaselectiontools kritacanvas kritabasicflakes kritashapemodel kritaimage KF${KF_MAJOR}::ConfigCore)
+target_link_libraries(kritaselectiontools kritacanvas kritaflake kritashapemodel kritaimage KF${KF_MAJOR}::ConfigCore)
 
 install(TARGETS kritaselectiontools  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})
 
