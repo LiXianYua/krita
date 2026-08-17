@@ -17,11 +17,11 @@ compat 垫片）+ `pk_signal_moc.py`（替代 moc 的信号定义生成器）。
 | 3 | lambda 作为槽 | 13 处 | `PkObject::connect(sender, &S::sig, receiver, lambda, type)` | 成员函数指针→lambda 重载；receiver 仅用于生命周期绑定 |
 | 4 | `sender()` | 12 处 | `PkObject::sender()`（static） | thread_local 发射栈，嵌套 emit 返回最内层 sender |
 | 5 | `QMetaObject::invokeMethod` | 0 处 | 不实现 | 零调用点不预先实现（线级 spec 判据①） |
-| 6 | `disconnect()` | 100 处 / 29 文件 | `PkObject::disconnect(PkConnection&)`（static，句柄式） | 对应 `QMetaObject::Connection` 的 disconnect |
+| 6 | `disconnect()` | 100 处 / 29 文件 | `PkObject::disconnect(PkConnection&)`（句柄式）<br>`PkObject::disconnect(sender, &S::sig, receiver, &R::slot)`（4 参函数指针式）<br>`PkObject::disconnect(sender, 0, receiver, 0)`（断开全部式） | 保留范围实测 `disconnect(` 90 处 = 句柄式 19 + 4 参函数指针式 4 + 断开全部式 41 + 老式字符串 26 + 注释 2；三种新式形态全部交付 |
 | 7 | `new X(this)`（父子树托管） | 182 处 | `PkObject(PkObject* parent)` + 析构托管 | FIFO 析构顺序（实测探针 1：c1→c2→c3，非 LIFO） |
 | 8 | `QPointer<>`（弱引用防悬垂） | 70 文件 | `PkPointer<T>` | 对象析构后 `isNull()==true`、`data()==nullptr` |
 | 9 | `Qt::ConnectionType` 族 | (§6.1 连接类型成句提及) | `PkConnectionType` + `namespace Qt` 别名 | `AutoConnection`/`DirectConnection`/`QueuedConnection`/`BlockingQueuedConnection`/`UniqueConnection`；Queued/BlockingQueued 跨线程退化为 Direct（无事件循环世界，跨线程投递归 Q-8） |
-| 10 | `Q_OBJECT` 元对象声明 | 473 文件隐含 | 空宏（friend 形态）+ 生成器产物 | 无元对象、无字符串表、无属性系统 |
+| 10 | `Q_OBJECT` 元对象声明 | 473 文件隐含 | friend 声明（喂 R-11 binder）+ 生成器产物 | 无元对象、无字符串表、无属性系统 |
 
 ### 交付的公开类型与入口
 
@@ -48,6 +48,12 @@ static PkConnection connect(const typename PkSignalTraits<F1>::Object* sender, F
                             const PkObject* receiver, Lambda&& lambda,
                             PkConnectionType type = PkConnectionType::Auto);
 static bool disconnect(PkConnection& connection);   // 句柄式断开
+// 4 参函数指针式：断「同信号同槽」一条连接
+static bool disconnect(const typename PkSignalTraits<F1>::Object* sender, F1 signal,
+                       const typename PkSignalTraits<F2>::Object* receiver, F2 slot);
+// 断开全部式：断 sender→receiver 所有连接（裸 0 选此重载）
+static bool disconnect(const PkObject* sender, std::nullptr_t,
+                       const PkObject* receiver, std::nullptr_t);
 ```
 
 **信号参数可多于槽参数**（Qt 语义）：槽只取信号参数的前缀。这是试接
@@ -55,6 +61,11 @@ static bool disconnect(PkConnection& connection);   // 句柄式断开
 `sigTest2(const QString&,const QString&) → slotTest2(const QString&)` 真实压出来、
 随后在 `PkConnect.h`（`PkMakeSlotFnFromTupleHelper` / `PkCallSlotPrefix`）落实的，
 不是预先铺好而是试接驱动的修正。
+
+### 偏离清单（对齐口径下逐条登记）
+
+1. **`Queued`/`BlockingQueued` 在 R-05 阶段退化为 `Direct`**：无事件循环世界里「立即调用」与「投递到本线程」不可区分，跨线程投递归 Q-8。这是决策文档已划出范围的偏离（跨线程归 Q-8），理由成立。
+2. **receiver 析构只 `disconnectAllIncoming` 清自己的 `m_incoming`，不从 sender 的 `m_outgoing` 摘除** → dead 条目与悬垂 receiver 裸指针滞留（无 UB，emit 靠共享 state 的 alive 跳过、不触碰 receiver 内存；类内未解引用 receiver 指针）。性能不预先优化，M0 benchmark 再判是否加 sender 反向指针做 eager 摘除。
 
 ## 2. 三条缺口登记（逐条 + 建议归口）
 

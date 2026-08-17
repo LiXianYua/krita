@@ -66,10 +66,14 @@ printf '#include "signals.inc"\n#include "%s"\n#include "binder.inc"\n' \
 #    完整推导见 stubs/PkTestObject.h 头注释。）
 mkdir -p "$work/libpktest"
 for f in PkTestCase PkTestCompare PkTestData PkTestRunner; do
-    "$CXX" -std=c++17 -c "pk/test/$f.cpp" \
+    if ! "$CXX" -std=c++17 -c "pk/test/$f.cpp" \
         -include pk/signal/graft/stubs/PkTestObject.h \
         -I pk/test \
-        -o "$work/libpktest/$f.o" 2>"$work/libpktest/$f.log"
+        -o "$work/libpktest/$f.o" 2>"$work/libpktest/$f.log"; then
+        printf '  override 重编 %s.cpp 失败，stderr 如下:\n' "$f"
+        sed 's/^/    /' "$work/libpktest/$f.log"
+        exit 1
+    fi
 done
 ar rcs "$work/libpktest/libpktest.a" "$work/libpktest/"*.o
 
