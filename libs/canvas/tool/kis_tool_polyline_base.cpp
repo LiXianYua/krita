@@ -14,10 +14,7 @@
 #include <KoCanvasController.h>
 #include <KoViewConverter.h>
 #include "kis_tool_polyline_base.h"
-#include <kis_icon.h>
 #include <KisCanvasToolServices.h>
-
-#include "kis_action_registry.h"
 
 #define SNAPPING_THRESHOLD 10
 #define SNAPPING_HANDLE_RADIUS 8

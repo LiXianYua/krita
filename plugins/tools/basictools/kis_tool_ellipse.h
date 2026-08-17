@@ -16,7 +16,6 @@
 #include "KisToolPaintFactoryBase.h"
 #include "flake/kis_node_shape.h"
 #include <kis_tool_ellipse_base.h>
-#include <kis_icon.h>
 
 
 class KoCanvasBase;
@@ -47,7 +46,6 @@ public:
         setToolTip(i18n("Ellipse Tool"));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setIconName(koIconNameCStr("krita_tool_ellipse"));
         setPriority(3);
     }
 

@@ -13,7 +13,6 @@
 #include "kis_types.h"
 #include "KoToolFactoryBase.h"
 #include "flake/kis_node_shape.h"
-#include <kis_icon.h>
 
 #include <QVector2D>
 
@@ -64,7 +63,6 @@ public:
             : KoToolFactoryBase("KritaShape/KisToolMeasure") {
         setSection(ToolBoxSection::View);
         setToolTip(i18n("Measure Tool"));
-        setIconName(koIconNameCStr("krita_tool_measure"));
         setPriority(1);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }

@@ -6,13 +6,12 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <kis_cursor.h>
+#include <QIcon>
 #include <QMouseEvent>
 #include <QTabletEvent>
 #include <KoCanvasResourceProvider.h>
 #include <KoPathShape.h>
 #include <KisCanvasFeedback.h>
-#include <KoIcon.h>
 
 #include "KisPathEnclosingProducer.h"
 
@@ -48,7 +47,7 @@ void KisToolPathLocalTool::endShape()
 
 KisPathEnclosingProducer::KisPathEnclosingProducer(KoCanvasBase * canvas)
     : KisDynamicDelegateTool<DelegatedPathTool>(canvas,
-                                                KisCursor::load("tool_polygonal_selection_cursor.png", 6, 6),
+                                                Qt::ArrowCursor,
                                                 new KisToolPathLocalTool(canvas, this))
 {
     setObjectName("enclosing_tool_path");
@@ -69,7 +68,7 @@ KisPathEnclosingProducer::~KisPathEnclosingProducer()
 void  KisPathEnclosingProducer::resetCursorStyle()
 {
     if (isEraser()) {
-        useCursor(KisCursor::load("tool_polygonal_selection_enclose_eraser_cursor.png", 6, 6));
+        useCursor(Qt::ArrowCursor);
     } else {
         KisDynamicDelegateTool::resetCursorStyle();
     }
@@ -133,7 +132,7 @@ void KisPathEnclosingProducer::beginAlternateAction(KoPointerEvent *event, Alter
         KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
         KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
         QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(message, koIcon("object-locked"));
+        feedback->showFloatingMessage(message, QIcon());
         event->ignore();
         return;
     }

@@ -7,12 +7,11 @@
  */
 
 #include <KoCanvasResourceProvider.h>
-#include <kis_cursor.h>
 
 #include "KisBrushEnclosingProducer.h"
 
 KisBrushEnclosingProducer::KisBrushEnclosingProducer(KoCanvasBase * canvas)
-    : KisDynamicDelegateTool<KisToolBasicBrushBase>(canvas, KisToolBasicBrushBase::PAINT, KisCursor::load("tool_freehand_cursor.xpm", 2, 2))
+    : KisDynamicDelegateTool<KisToolBasicBrushBase>(canvas, KisToolBasicBrushBase::PAINT, Qt::ArrowCursor)
 {
     setObjectName("enclosing_tool_brush");
 
@@ -30,7 +29,7 @@ KisBrushEnclosingProducer::~KisBrushEnclosingProducer()
 void  KisBrushEnclosingProducer::resetCursorStyle()
 {
     if (isEraser()) {
-        useCursor(KisCursor::load("cursor-eraser.xpm", 2, 2));
+        useCursor(Qt::ArrowCursor);
     } else {
         KisDynamicDelegateTool::resetCursorStyle();
     }

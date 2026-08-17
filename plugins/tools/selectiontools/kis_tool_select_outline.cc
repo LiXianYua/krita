@@ -24,7 +24,6 @@
 
 #include <kis_layer.h>
 #include <kis_selection_options.h>
-#include <kis_cursor.h>
 #include <kis_image.h>
 #include <kis_default_bounds.h>
 

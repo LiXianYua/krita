@@ -18,7 +18,6 @@
 #include "tool_transform_args.h"
 #include "transform_transaction_properties.h"
 #include "krita_utils.h"
-#include "kis_cursor.h"
 #include "kis_transform_utils.h"
 #include "kis_algebra_2d.h"
 #include "kis_liquify_paint_helper.h"

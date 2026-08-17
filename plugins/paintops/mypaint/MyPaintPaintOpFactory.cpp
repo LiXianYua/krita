@@ -11,7 +11,6 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
-#include <kis_icon.h>
 #include <KoResourceLoadResult.h>
 #include <kis_image.h>
 #include <kis_node.h>
@@ -67,7 +66,7 @@ QString KisMyPaintOpFactory::name() const {
 
 QIcon KisMyPaintOpFactory::icon() {
 
-    return KisIconUtils::loadIcon(id());
+    return KisPaintOpFactory::icon();
 }
 
 QString KisMyPaintOpFactory::category() const {

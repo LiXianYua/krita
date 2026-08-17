@@ -8,7 +8,6 @@
 
 #include <klocalizedstring.h>
 #include <QAction>
-#include <kactioncollection.h>
 
 #include <KoCanvasBase.h>
 #include <KoCanvasController.h>
@@ -16,7 +15,6 @@
 
 #include "canvas/KisCanvasFeedback.h"
 #include "canvas/KisCanvasNodeActivation.h"
-#include "kis_cursor.h"
 #include "kundo2magicstring.h"
 
 #include "KoProperties.h"
@@ -41,7 +39,7 @@ struct KisToolLazyBrush::Private
 
 KisToolLazyBrush::KisToolLazyBrush(KoCanvasBase * canvas)
     : KisToolFreehand(canvas,
-                      KisCursor::load("tool_freehand_cursor.xpm", 2, 2),
+                      Qt::ArrowCursor,
                       kundo2_i18n("Colorize Mask Key Stroke")),
       m_d(new Private)
 {
@@ -114,7 +112,7 @@ void KisToolLazyBrush::resetCursorStyle()
 {
     // If there's no mask yet, we show the hand cursor
     if (!colorizeMaskActive() && canCreateColorizeMask()) {
-        useCursor(KisCursor::handCursor());
+        useCursor(Qt::PointingHandCursor);
         m_d->activateMaskMode = true;
         setOutlineVisible(false);
     }
@@ -204,7 +202,7 @@ void KisToolLazyBrush::activatePrimaryAction()
 {
     KisToolFreehand::activatePrimaryAction();
     if (!colorizeMaskActive() && canCreateColorizeMask()) {
-        useCursor(KisCursor::handCursor());
+        useCursor(Qt::PointingHandCursor);
         m_d->activateMaskMode = true;
         setOutlineVisible(false);
     }

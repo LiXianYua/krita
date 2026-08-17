@@ -15,12 +15,10 @@
 #include "KisToolPaintFactoryBase.h"
 
 #include <flake/kis_node_shape.h>
-#include <kis_icon.h>
 #include <QKeySequence>
 
 #include <kconfig.h>
 #include <kconfiggroup.h>
-#include <KoIcon.h>
 
 class KisKActionCollection;
 class KoCanvasBase;
@@ -77,7 +75,6 @@ public:
         setToolTip(i18n("Smart Patch Tool"));
 
         setSection(ToolBoxSection::Fill);
-        setIconName(koIconNameCStr("krita_tool_smart_patch"));
         setPriority(4);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }

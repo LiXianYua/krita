@@ -24,7 +24,6 @@
 #include "kis_selection_tool_helper.h"
 #include "krita_utils.h"
 #include <KoPointerEvent.h>
-#include <kis_cursor.h>
 #include <kis_paint_device.h>
 #include <kis_pixel_selection.h>
 #include <kis_selection_filters.h>

@@ -22,7 +22,7 @@
 #include "KoCanvasResourcesIds.h"
 #include "KoCanvasResourceProvider.h"
 #include "KoViewConverter.h"
-#include "KoIcon.h"
+#include <QIcon>
 #include "KisCanvasFeedback.h"
 #include "KisColorSamplingCanvas.h"
 #include "kis_image.h"
@@ -601,7 +601,7 @@ void KisAsyncColorSamplerHelper::slotAddSamplingJob(const QPointF &docPoint)
         QString message = i18n("Color sampler does not work on this layer.");
         if (KisCanvasFeedback *feedback =
                 dynamic_cast<KisCanvasFeedback *>(m_d->canvas)) {
-            feedback->showFloatingMessage(message, koIcon("object-locked"));
+            feedback->showFloatingMessage(message, QIcon());
         }
     }
 }

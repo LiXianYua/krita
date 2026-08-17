@@ -7,12 +7,11 @@
  */
 
 #include <KoCanvasResourceProvider.h>
-#include <kis_cursor.h>
 
 #include "KisEllipseEnclosingProducer.h"
 
 KisEllipseEnclosingProducer::KisEllipseEnclosingProducer(KoCanvasBase * canvas)
-    : KisDynamicDelegateTool<KisToolEllipseBase>(canvas, KisToolEllipseBase::PAINT, KisCursor::load("tool_elliptical_selection_cursor.png", 6, 6))
+    : KisDynamicDelegateTool<KisToolEllipseBase>(canvas, KisToolEllipseBase::PAINT, Qt::ArrowCursor)
 {
     setObjectName("enclosing_tool_rectangle");
     setSupportOutline(true);
@@ -32,7 +31,7 @@ KisEllipseEnclosingProducer::~KisEllipseEnclosingProducer()
 void  KisEllipseEnclosingProducer::resetCursorStyle()
 {
     if (isEraser()) {
-        useCursor(KisCursor::load("tool_elliptical_selection_enclose_eraser_cursor.png", 6, 6));
+        useCursor(Qt::ArrowCursor);
     } else {
         KisDynamicDelegateTool::resetCursorStyle();
     }

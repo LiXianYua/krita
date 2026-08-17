@@ -7,7 +7,6 @@
 #include "KarbonCalligraphicShapeFactory.h"
 #include "KarbonCalligraphicShape.h"
 
-#include <KoIcon.h>
 #include <klocalizedstring.h>
 #include <KoShapeLoadingContext.h>
 
@@ -15,7 +14,6 @@ KarbonCalligraphicShapeFactory::KarbonCalligraphicShapeFactory()
     : KoShapeFactoryBase(KarbonCalligraphicShapeId, i18n("A calligraphic shape"))
 {
     setToolTip(i18n("Calligraphic Shape"));
-    setIconName(koIconNameCStr("calligraphy"));
     setLoadingPriority(1);
     setHidden(true);
 }

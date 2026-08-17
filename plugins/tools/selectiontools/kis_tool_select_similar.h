@@ -8,7 +8,6 @@
 #define KIS_TOOL_SELECT_SIMILAR_H_
 
 #include <KisSelectionToolFactoryBase.h>
-#include <kis_icon.h>
 #include <kconfig.h>
 #include "kis_tool_select_base.h"
 #include <kconfiggroup.h>
@@ -58,7 +57,6 @@ public:
         setToolTip(i18n("Similar Color Selection Tool"));
         setSection(ToolBoxSection::Select);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setIconName(koIconNameCStr("tool_similar_selection"));
         setPriority(5);
     }
     ~KisToolSelectSimilarFactory() override {}

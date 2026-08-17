@@ -12,7 +12,6 @@
 #include <KoCanvasController.h>
 #include <KoPointerEvent.h>
 
-#include <KoIcon.h>
 #include <klocalizedstring.h>
 
 
@@ -82,7 +81,6 @@ KisToolPanFactory::KisToolPanFactory()
     setSection(ToolBoxSection::Navigation);
     setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     setPriority(2);
-    setIconName(koIconNameCStr("tool_pan"));
 }
 
 KisToolPanFactory::~KisToolPanFactory()

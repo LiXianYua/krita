@@ -12,7 +12,6 @@
 #include <QPainterPath>
 
 #include "kis_painting_tweaks.h"
-#include "kis_cursor.h"
 
 #include "transform_transaction_properties.h"
 #include "KisHandlePainterHelper.h"
@@ -335,48 +334,48 @@ QCursor KisMeshTransformStrategy::getCurrentCursor() const
     case Private::OVER_NODE:
     case Private::OVER_POINT:
     case Private::OVER_SEGMENT:
-        cursor = KisCursor::meshCursorFree();
+        cursor = Qt::PointingHandCursor;
         break;
     case Private::OVER_NODE_WHOLE_LINE:
     case Private::OVER_POINT_SYMMETRIC:
     case Private::OVER_SEGMENT_SYMMETRIC:
     case Private::OVER_PATCH:
     case Private::OVER_PATCH_LOCKED:
-        cursor = KisCursor::meshCursorLocked();
+        cursor = Qt::CrossCursor;
         break;
     case Private::SPLIT_SEGMENT: {
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_d->hoveredSegment || m_d->hoveredControl,
-                                             KisCursor::arrowCursor());
+                                             Qt::ArrowCursor);
 
         if (m_d->hoveredControl) {
             auto it = m_d->currentArgs.meshTransform()->find(*m_d->hoveredControl);
             cursor = it.isTopBorder() || it.isBottomBorder() ?
-                KisCursor::splitHCursor() : KisCursor::splitVCursor();
+                Qt::SplitHCursor : Qt::SplitVCursor;
 
         } else if (m_d->hoveredSegment) {
             auto it = m_d->currentArgs.meshTransform()->find(*m_d->hoveredSegment);
 
             const QRectF segmentRect(it.p0(), it.p3());
             cursor = segmentRect.width() > segmentRect.height() ?
-                KisCursor::splitHCursor() : KisCursor::splitVCursor();
+                Qt::SplitHCursor : Qt::SplitVCursor;
         }
 
         break;
     }
     case Private::MULTIPLE_POINT_SELECTION:
-        cursor = KisCursor::crossCursor();
+        cursor = Qt::CrossCursor;
         break;
     case Private::MOVE_MODE:
-        cursor = KisCursor::moveCursor();
+        cursor = Qt::SizeAllCursor;
         break;
     case Private::ROTATE_MODE:
-        cursor = KisCursor::rotateCursor();
+        cursor = Qt::CrossCursor;
         break;
     case Private::SCALE_MODE:
-        cursor = KisCursor::sizeVerCursor();
+        cursor = Qt::SizeVerCursor;
         break;
     case Private::NOTHING:
-        cursor = KisCursor::arrowCursor();
+        cursor = Qt::ArrowCursor;
         break;
     }
 

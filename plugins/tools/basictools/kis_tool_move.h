@@ -13,7 +13,6 @@
 #include <kis_types.h>
 #include <kis_tool.h>
 #include <flake/kis_node_shape.h>
-#include <kis_icon.h>
 #include <QKeySequence>
 #include <QGroupBox>
 #include <QRadioButton>
@@ -175,7 +174,6 @@ public:
         setSection(ToolBoxSection::Transform);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(3);
-        setIconName(koIconNameCStr("krita_tool_move"));
         setShortcut(QKeySequence(Qt::Key_T));
     }
 

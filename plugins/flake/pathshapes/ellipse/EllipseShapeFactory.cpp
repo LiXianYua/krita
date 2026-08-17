@@ -12,7 +12,6 @@
 #include <KoGradientBackground.h>
 #include <KoShapeLoadingContext.h>
 
-#include <KoIcon.h>
 #include <klocalizedstring.h>
 
 #include "kis_pointer_utils.h"
@@ -21,7 +20,6 @@ EllipseShapeFactory::EllipseShapeFactory()
     : KoShapeFactoryBase(EllipseShapeId, i18n("Ellipse"))
 {
     setToolTip(i18n("An ellipse"));
-    setIconName(koIconNameCStr("ellipse-shape"));
     setFamily("geometric");
     setLoadingPriority(1);
 

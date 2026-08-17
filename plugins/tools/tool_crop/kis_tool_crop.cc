@@ -27,7 +27,6 @@
 #include <KoCanvasBase.h>
 #include <kis_global.h>
 #include <kis_painter.h>
-#include <kis_cursor.h>
 #include <kis_image.h>
 #include <kis_undo_adapter.h>
 #include <KoPointerEvent.h>
@@ -93,7 +92,7 @@ DecorationLine decors[20] =
 const int decorsIndex[DECORATION_COUNT] = {0,4,12,18,20};
 
 KisToolCrop::KisToolCrop(KoCanvasBase * canvas)
-        : KisTool(canvas, KisCursor::load("tool_crop_cursor.png", 6, 6))
+        : KisTool(canvas, Qt::ArrowCursor)
 {
     setObjectName("tool_crop");
     m_handleSize = 13;
@@ -836,26 +835,26 @@ void KisToolCrop::setMoveResizeCursor(qint32 handle)
     switch (handle) {
     case(UpperLeft):
     case(LowerRight):
-        cursorType = KisCursor::sizeFDiagCursor();
+        cursorType = Qt::SizeFDiagCursor;
         break;
     case(LowerLeft):
     case(UpperRight):
-        cursorType = KisCursor::sizeBDiagCursor();
+        cursorType = Qt::SizeBDiagCursor;
         break;
     case(Upper):
     case(Lower):
-        cursorType = KisCursor::sizeVerCursor();
+        cursorType = Qt::SizeVerCursor;
         break;
     case(Left):
     case(Right):
-        cursorType = KisCursor::sizeHorCursor();
+        cursorType = Qt::SizeHorCursor;
         break;
     case(Inside):
-        cursorType = KisCursor::sizeAllCursor();
+        cursorType = Qt::SizeAllCursor;
         break;
     default:
         if (m_haveCropSelection) {
-            cursorType = KisCursor::arrowCursor();
+            cursorType = Qt::ArrowCursor;
         } else {
             cursorType = cursor();
         }

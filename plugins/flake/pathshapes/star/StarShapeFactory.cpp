@@ -14,7 +14,6 @@
 #include <KoColorBackground.h>
 #include <KoShapeLoadingContext.h>
 
-#include <KoIcon.h>
 
 #include <klocalizedstring.h>
 
@@ -24,7 +23,6 @@ StarShapeFactory::StarShapeFactory()
     : KoShapeFactoryBase(StarShapeId, i18n("A star shape"))
 {
     setToolTip(i18n("A star"));
-    setIconName(koIconNameCStr("star-shape"));
     QStringList elementNames;
     elementNames << "regular-polygon" << "custom-shape";
     setXmlElementNames(KoXmlNS::draw, elementNames);
@@ -36,7 +34,7 @@ StarShapeFactory::StarShapeFactory()
     t.name = i18n("Star");
     t.family = "geometric";
     t.toolTip = i18n("A star");
-    t.iconName = koIconName("star-shape");
+    t.iconName = QLatin1String("star-shape");
     KoProperties *props = new KoProperties();
     props->setProperty("corners", 5);
     QVariant v;
@@ -50,7 +48,7 @@ StarShapeFactory::StarShapeFactory()
     t.name = i18n("Flower");
     t.family = "funny";
     t.toolTip = i18n("A flower");
-    t.iconName = koIconName("flower-shape");
+    t.iconName = QLatin1String("flower-shape");
     props = new KoProperties();
     props->setProperty("corners", 5);
     props->setProperty("baseRadius", 10.0);
@@ -67,7 +65,7 @@ StarShapeFactory::StarShapeFactory()
     t.name = i18n("Pentagon");
     t.family = "geometric";
     t.toolTip = i18n("A pentagon");
-    t.iconName = koIconName("pentagon-shape");
+    t.iconName = QLatin1String("pentagon-shape");
     props = new KoProperties();
     props->setProperty("corners", 5);
     props->setProperty("convex", true);
@@ -83,7 +81,7 @@ StarShapeFactory::StarShapeFactory()
     t.name = i18n("Hexagon");
     t.family = "geometric";
     t.toolTip = i18n("A hexagon");
-    t.iconName = koIconName("hexagon-shape");
+    t.iconName = QLatin1String("hexagon-shape");
     props = new KoProperties();
     props->setProperty("corners", 6);
     props->setProperty("convex", true);

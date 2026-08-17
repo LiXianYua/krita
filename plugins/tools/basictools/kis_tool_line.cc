@@ -14,6 +14,7 @@
 
 
 
+#include <QIcon>
 #include <KoCanvasBase.h>
 #include <KoCanvasResourceProvider.h>
 #include <KoPointerEvent.h>
@@ -28,7 +29,6 @@
 #include <KisCanvasFeedback.h>
 #include <kis_coordinates_converter.h>
 #include <KisCanvasToolServices.h>
-#include <kis_action_registry.h>
 #include <kis_painting_information_builder.h>
 
 #include "kis_tool_line_helper.h"
@@ -147,7 +147,7 @@ void KisToolLine::beginPrimaryAction(KoPointerEvent *event)
             return;
         }
         QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(message, koIcon("object-locked"), 4500,
+        feedback->showFloatingMessage(message, QIcon(), 4500,
                                       KisCanvasFeedback::Priority::Medium,
                                       Qt::AlignCenter | Qt::TextWordWrap);
         event->ignore();

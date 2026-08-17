@@ -9,7 +9,6 @@
 #define __KIS_TOOL_MULTIHAND_H
 
 #include "kis_tool_brush.h"
-#include <kis_icon.h>
 #include <QRandomGenerator>
 
 class KisToolMultihandHelper;
@@ -78,7 +77,6 @@ public:
 
         // Temporarily
         setSection(ToolBoxSection::Shape);
-        setIconName(koIconNameCStr("krita_tool_multihand"));
         setShortcut(QKeySequence(Qt::Key_Q));
         setPriority(11);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);

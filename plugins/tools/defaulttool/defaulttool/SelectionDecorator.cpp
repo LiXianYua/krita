@@ -25,7 +25,6 @@
 
 #include "kis_painting_tweaks.h"
 #include "kis_coordinates_converter.h"
-#include "kis_icon_utils.h"
 
 
 

@@ -15,7 +15,6 @@
 #include <KoPointerEvent.h>
 #include <KisCanvasFeedback.h>
 #include <kis_coordinates_converter.h>
-#include "kis_cursor.h"
 #include "kis_painter.h"
 #include "kis_paintop_preset.h"
 
@@ -65,7 +64,7 @@ struct KisToolSmartPatch::Private {
 
 
 KisToolSmartPatch::KisToolSmartPatch(KoCanvasBase * canvas)
-    : KisToolPaint(canvas, KisCursor::blankCursor()),
+    : KisToolPaint(canvas, Qt::BlankCursor),
       m_d(new Private)
 {
     setSupportOutline(true);
@@ -154,7 +153,7 @@ void KisToolSmartPatch::endPrimaryAction(KoPointerEvent *event)
     KisToolPaint::endPrimaryAction(event);
     setMode(KisTool::HOVER_MODE);
 
-    KisCursorOverrideLock cursorLock(KisCursor::waitCursor());
+    KisCursorOverrideLock cursorLock(Qt::WaitCursor);
 
     const int accuracy = 50; //default accuracy - middle value
     const int patchRadius = 4; //default radius, which works well for most cases tested

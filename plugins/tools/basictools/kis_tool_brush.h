@@ -14,10 +14,8 @@
 #include "KisToolPaintFactoryBase.h"
 
 #include <flake/kis_node_shape.h>
-#include <kis_icon.h>
 #include <QKeySequence>
 
-#include <KoIcon.h>
 
 class KisKActionCollection;
 
@@ -110,7 +108,6 @@ public:
 
         // Temporarily
         setSection(ToolBoxSection::Shape);
-        setIconName(koIconNameCStr("krita_tool_freehand"));
         setShortcut(QKeySequence(Qt::Key_B));
         setPriority(0);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);

@@ -9,6 +9,7 @@
 #ifndef KISTOOLENCLOSEANDFILLFACTORY_H
 #define KISTOOLENCLOSEANDFILLFACTORY_H
 
+#include <QIcon>
 #include <KisToolPaintFactoryBase.h>
 
 #include "KisToolEncloseAndFill.h"
@@ -23,7 +24,7 @@ public:
         setToolTip(i18n("Enclose and Fill Tool"));
         setSection(ToolBoxSection::Fill);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setIconName(koIconNameCStr("krita_tool_enclose_and_fill"));
+        setIconName("krita_tool_enclose_and_fill");
         setPriority(15);
     }
 

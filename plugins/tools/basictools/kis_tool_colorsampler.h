@@ -12,7 +12,6 @@
 
 #include "KoToolFactoryBase.h"
 #include "kis_tool.h"
-#include <kis_icon.h>
 #include <KoColorSet.h>
 #include <QPainter>
 #include <QKeySequence>
@@ -88,7 +87,6 @@ public:
         setToolTip(i18n("Color Sampler Tool"));
         setSection(ToolBoxSection::Fill);
         setPriority(2);
-        setIconName(koIconNameCStr("krita_tool_color_sampler"));
         setShortcut(QKeySequence(Qt::Key_P));
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }

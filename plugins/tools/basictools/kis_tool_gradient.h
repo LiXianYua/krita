@@ -22,7 +22,6 @@
 #include <kis_types.h>
 #include <kis_gradient_painter.h>
 #include <flake/kis_node_shape.h>
-#include <kis_icon.h>
 
 
 class QPoint;
@@ -81,7 +80,6 @@ public:
             : KisToolPaintFactoryBase("KritaFill/KisToolGradient") {
         setToolTip(i18n("Gradient Tool"));
         setSection(ToolBoxSection::Fill);
-        setIconName(koIconNameCStr("krita_tool_gradient"));
         setShortcut(QKeySequence(Qt::Key_G));
         setPriority(1);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);

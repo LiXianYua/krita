@@ -24,7 +24,7 @@ target_include_directories(kritamypaintop_static
         ${CMAKE_BINARY_DIR}/libs/ui
 )
 
-target_link_libraries(kritamypaintop_static LibMyPaint::mypaint kritawidgetutils kritalibbrush kritaresources ${PNG_LIBRARIES})
+target_link_libraries(kritamypaintop_static LibMyPaint::mypaint kritalibbrush kritaresources ${PNG_LIBRARIES})
 
 kis_add_library(kritamypaintop MODULE MyPaintPaintOpPlugin.cpp)
 

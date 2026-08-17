@@ -21,7 +21,6 @@
 #include <kis_selection.h>
 
 #include <KisCanvasFeedback.h>
-#include <kis_cursor.h>
 #include "kis_resources_snapshot.h"
 #include <kis_image_animation_interface.h>
 

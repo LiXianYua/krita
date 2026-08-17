@@ -46,13 +46,12 @@
 ****************************************************************************/
 
 #include <QDebug>
+#include <QCoreApplication>
+#include <QKeySequence>
 #include <klocalizedstring.h>
-#include <kstandardaction.h>
-#include <kactioncollection.h>
 #include "kundo2stack.h"
 #include "kundo2stack_p.h"
 #include "kundo2group.h"
-#include <KoIcon.h>
 #include <QtGlobal>
 #include "kis_assert.h"
 
@@ -1383,40 +1382,34 @@ KisCumulativeUndoData KUndo2QStack::cumulativeUndoData()
     return m_cumulativeUndoData;
 }
 
-QAction* KUndo2Stack::createRedoAction(KisKActionCollection* actionCollection, const QString& actionName)
+QAction* KUndo2Stack::createRedoAction(QObject* actionCollection, const QString& actionName)
 {
     QAction* action = KUndo2QStack::createRedoAction(actionCollection);
 
     if (actionName.isEmpty()) {
-        action->setObjectName(KStandardAction::name(KStandardAction::Redo));
+        action->setObjectName("edit_redo");
     } else {
         action->setObjectName(actionName);
     }
 
-    action->setIcon(koIcon("edit-redo"));
-    action->setIconText(i18n("Redo"));
-    action->setShortcuts(KStandardShortcut::redo());
-
-    actionCollection->addAction(action->objectName(), action);
+    action->setIconText(QCoreApplication::translate("KUndo2Stack", "Redo"));
+    action->setShortcuts(QKeySequence::Redo);
 
     return action;
 }
 
-QAction* KUndo2Stack::createUndoAction(KisKActionCollection* actionCollection, const QString& actionName)
+QAction* KUndo2Stack::createUndoAction(QObject* actionCollection, const QString& actionName)
 {
     QAction* action = KUndo2QStack::createUndoAction(actionCollection);
 
     if (actionName.isEmpty()) {
-        action->setObjectName(KStandardAction::name(KStandardAction::Undo));
+        action->setObjectName("edit_undo");
     } else {
         action->setObjectName(actionName);
     }
 
-    action->setIcon(koIcon("edit-undo"));
-    action->setIconText(i18n("Undo"));
-    action->setShortcuts(KStandardShortcut::undo());
-
-    actionCollection->addAction(action->objectName(), action);
+    action->setIconText(QCoreApplication::translate("KUndo2Stack", "Undo"));
+    action->setShortcuts(QKeySequence::Undo);
 
     return action;
 }

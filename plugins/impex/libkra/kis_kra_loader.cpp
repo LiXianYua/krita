@@ -20,7 +20,7 @@
 #include <KoColorSpaceEngine.h>
 #include <KoColorProfile.h>
 #include <KoDocumentInfo.h>
-#include <KoFileDialog.h>
+#include <QFileDialog>
 #include <KisImportExportManager.h>
 #include <KoStoreDevice.h>
 #include <KoResourceServer.h>
@@ -1146,10 +1146,12 @@ KisNodeSP KisKraLoader::loadFileLayer(const QDomElement& element, KisImageSP ima
 
         if (result == QMessageBox::Yes) {
 
-            KoFileDialog dialog(0, KoFileDialog::OpenFile, "OpenDocument");
+            QFileDialog dialog(0);
+            dialog.setFileMode(QFileDialog::ExistingFile);
             dialog.setMimeTypeFilters(KisImportExportManager::supportedMimeTypes(KisImportExportManager::Import));
-            dialog.setDefaultDir(basePath);
-            QString url = dialog.filename();
+            dialog.setDirectory(basePath);
+            QString url;
+            if (dialog.exec()) url = dialog.selectedFiles().value(0);
 
             if (!QFileInfo(basePath).exists()) {
                 filename = url;

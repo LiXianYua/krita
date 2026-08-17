@@ -13,7 +13,6 @@
 #include "KoPointerEvent.h"
 
 #include <flake/kis_node_shape.h>
-#include <kis_icon.h>
 #include <kconfig.h>
 #include <kconfiggroup.h>
 
@@ -123,7 +122,6 @@ public:
 
         setToolTip(i18n("Dynamic Brush Tool"));
         setSection(ToolBoxSection::Shape);
-        setIconName(koIconNameCStr("krita_tool_dyna"));
         //setShortcut(QKeySequence(Qt::Key_F));
         setPriority(10);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);

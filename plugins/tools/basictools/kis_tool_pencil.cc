@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QIcon>
 #include "kis_tool_pencil.h"
 #include <KoPathShape.h>
 #include <KoCanvasBase.h>
@@ -68,7 +69,7 @@ void KisToolPencil::beginPrimaryAction(KoPointerEvent *event)
             return;
         }
         QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-        feedback->showFloatingMessage(message, koIcon("object-locked"), 4500,
+        feedback->showFloatingMessage(message, QIcon(), 4500,
                                       KisCanvasFeedback::Priority::Medium,
                                       Qt::AlignCenter | Qt::TextWordWrap);
         event->ignore();

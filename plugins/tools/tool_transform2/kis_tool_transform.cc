@@ -42,7 +42,6 @@
 #include <KisCanvasToolServices.h>
 #include <kis_coordinates_converter.h>
 #include <kis_painter.h>
-#include <kis_cursor.h>
 #include <kis_image.h>
 #include <kis_undo_adapter.h>
 #include <kis_transaction.h>
@@ -59,8 +58,6 @@
 
 #include <KoShapeTransformCommand.h>
 #include <KoCanvasController.h>
-
-#include "kis_action_registry.h"
 
 #include "kis_transform_utils.h"
 #include "kis_warp_transform_strategy.h"
@@ -82,7 +79,7 @@
 #include "strokes/inplace_transform_stroke_strategy.h"
 
 KisToolTransform::KisToolTransform(KoCanvasBase * canvas)
-    : KisTool(canvas, KisCursor::rotateCursor())
+    : KisTool(canvas, Qt::PointingHandCursor)
     , m_converter(dynamic_cast<const KisCoordinatesConverter *>(canvas->viewConverter()))
     , m_warpStrategy(
         new KisWarpTransformStrategy(
@@ -336,10 +333,10 @@ void KisToolTransform::setFunctionalCursor()
     }
 
     if (!m_strokeId) {
-        useCursor(KisCursor::pointingHandCursor());
+        useCursor(Qt::PointingHandCursor);
     } else if (m_strokeId && m_transaction.rootNodes().isEmpty()) {
         // we are in the middle of stroke initialization
-        useCursor(KisCursor::waitCursor());
+        useCursor(Qt::WaitCursor);
     } else {
         useCursor(currentStrategy()->getCurrentCursor());
     }
@@ -958,17 +955,17 @@ void KisToolTransform::startStroke(ToolTransformArgs::TransformMode mode, bool f
                 feedback->showFloatingMessage(
                         i18nc("floating message in transformation tool",
                               "Cannot transform locked layers"),
-                        koIcon("object-locked"), 4000, KisCanvasFeedback::Priority::High);
+                        QIcon(), 4000, KisCanvasFeedback::Priority::High);
             } else if (currentNode && !currentNode->visible()) {
                 feedback->showFloatingMessage(
                         i18nc("floating message in transformation tool",
                               "Cannot transform hidden layers"),
-                        koIcon("object-locked"), 4000, KisCanvasFeedback::Priority::High);
+                        QIcon(), 4000, KisCanvasFeedback::Priority::High);
             } else {
                 feedback->showFloatingMessage(
                         i18nc("floating message in transformation tool",
                               "Cannot use transform tool on this set of layers"),
-                        koIcon("object-locked"), 4000, KisCanvasFeedback::Priority::High);
+                        QIcon(), 4000, KisCanvasFeedback::Priority::High);
             }
 
             return;
@@ -983,13 +980,13 @@ void KisToolTransform::startStroke(ToolTransformArgs::TransformMode mode, bool f
                 feedback->showFloatingMessage(
                         i18nc("floating message in transformation tool",
                               "Layer type cannot use the transform tool"),
-                        koIcon("object-locked"), 4000, KisCanvasFeedback::Priority::High);
+                        QIcon(), 4000, KisCanvasFeedback::Priority::High);
             }
             else{
                 feedback->showFloatingMessage(
                         i18nc("floating message in transformation tool",
                               "Layer type cannot use the transform tool. Use transform mask instead."),
-                        koIcon("object-locked"), 4000, KisCanvasFeedback::Priority::High);
+                        QIcon(), 4000, KisCanvasFeedback::Priority::High);
             }
             return;
         }
@@ -1007,7 +1004,7 @@ void KisToolTransform::startStroke(ToolTransformArgs::TransformMode mode, bool f
             feedback->showFloatingMessage(
                     i18nc("floating message in transformation tool",
                           "Layer has children with transform masks. Please disable them before doing transformation."),
-                    koIcon("object-locked"), 8000, KisCanvasFeedback::Priority::High);
+                    QIcon(), 8000, KisCanvasFeedback::Priority::High);
             return;
         }
 
@@ -1213,7 +1210,7 @@ void KisToolTransform::slotUiChangedConfig(bool needsPreviewRecalculation)
 
 void KisToolTransform::slotApplyTransform()
 {
-    KisCursorOverrideLock cursorLock(KisCursor::waitCursor());
+    KisCursorOverrideLock cursorLock(Qt::WaitCursor);
     endStroke();
 }
 
@@ -1547,20 +1544,25 @@ void KisToolTransform::setTranslateX(double translation)
 
 QList<QAction *> KisToolTransformFactory::createActionsImpl()
 {
-    KisActionRegistry *actionRegistry = KisActionRegistry::instance();
     QList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
 
-    actions << actionRegistry->makeQAction("movetool-move-up", this);
-    actions << actionRegistry->makeQAction("movetool-move-down", this);
-    actions << actionRegistry->makeQAction("movetool-move-left", this);
-    actions << actionRegistry->makeQAction("movetool-move-right", this);
-    actions << actionRegistry->makeQAction("movetool-move-up-more", this);
-    actions << actionRegistry->makeQAction("movetool-move-down-more", this);
-    actions << actionRegistry->makeQAction("movetool-move-left-more", this);
-    actions << actionRegistry->makeQAction("movetool-move-right-more", this);
+    auto addAction = [&actions, this](const QString &actionName) {
+        QAction *action = new QAction(this);
+        action->setObjectName(actionName);
+        actions << action;
+    };
+    addAction("movetool-move-up");
+    addAction("movetool-move-down");
+    addAction("movetool-move-left");
+    addAction("movetool-move-right");
+    addAction("movetool-move-up-more");
+    addAction("movetool-move-down-more");
+    addAction("movetool-move-left-more");
+    addAction("movetool-move-right-more");
 
-    auto makeSubtoolAction = [&actionRegistry, &actions, this](QString actionName, const char *slot) {
-        QAction *action = actionRegistry->makeQAction(actionName, this);
+    auto makeSubtoolAction = [&actions, this](QString actionName, const char *slot) {
+        QAction *action = new QAction(this);
+        action->setObjectName(actionName);
         action->setProperty("always_enabled", true); // To allow this action to be triggered when the transform tool isn't already active
         connect(action, SIGNAL(triggered()), slot);
         actions << action;

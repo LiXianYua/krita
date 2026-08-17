@@ -20,7 +20,6 @@
 #include "kis_selection_modifier_mapper.h"
 #include "strokes/move_stroke_strategy.h"
 #include "kis_image.h"
-#include "kis_action_registry.h"
 #include "kis_signal_auto_connection.h"
 #include "kis_assert.h"
 #include "canvas/kis_coordinates_converter.h"

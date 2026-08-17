@@ -11,7 +11,6 @@
 
 #include "kis_tool_polyline_base.h"
 //#include "flake/kis_node_shape.h"
-#include <kis_icon.h>
 
 class KisToolPolyline : public KisToolPolylineBase
 {
@@ -43,7 +42,6 @@ public:
         setToolTip(i18n("Polyline Tool: Shift-mouseclick ends the polyline."));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setIconName(koIconNameCStr("polyline"));
         setPriority(5);
     }
 

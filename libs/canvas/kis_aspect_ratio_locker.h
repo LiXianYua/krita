@@ -13,8 +13,6 @@
 
 class QSpinBox;
 class QDoubleSpinBox;
-class KisSliderSpinBox;
-class KisDoubleSliderSpinBox;
 class QAbstractButton;
 
 

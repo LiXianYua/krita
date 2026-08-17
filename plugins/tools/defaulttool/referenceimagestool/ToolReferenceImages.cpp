@@ -18,7 +18,7 @@
 #include <KoShapeRegistry.h>
 #include <KoShapeManager.h>
 #include <KoShapeController.h>
-#include <KoFileDialog.h>
+#include <QFileDialog>
 #include "KisMimeDatabase.h"
 
 #include <KisReferenceImageToolServices.h>
@@ -97,15 +97,17 @@ void ToolReferenceImages::addReferenceImage()
 {
     KIS_ASSERT_RECOVER_RETURN(m_services);
 
-    KoFileDialog dialog(m_services->referenceImageDialogParent(), KoFileDialog::OpenFile, "OpenReferenceImage");
-    dialog.setCaption(i18n("Select a Reference Image"));
+    QFileDialog dialog(m_services->referenceImageDialogParent());
+    dialog.setFileMode(QFileDialog::ExistingFile);
+    dialog.setWindowTitle(i18n("Select a Reference Image"));
 
     QStringList locations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
     if (!locations.isEmpty()) {
-        dialog.setDefaultDir(locations.first());
+        dialog.setDirectory(locations.first());
     }
 
-    QString filename = dialog.filename();
+    QString filename;
+    if (dialog.exec()) filename = dialog.selectedFiles().value(0);
     if (filename.isEmpty()) return;
     if (!QFileInfo(filename).exists()) return;
 
@@ -169,16 +171,18 @@ void ToolReferenceImages::loadReferenceImages()
 {
     KIS_ASSERT_RECOVER_RETURN(m_services);
 
-    KoFileDialog dialog(m_services->referenceImageDialogParent(), KoFileDialog::OpenFile, "OpenReferenceImageCollection");
+    QFileDialog dialog(m_services->referenceImageDialogParent());
+    dialog.setFileMode(QFileDialog::ExistingFile);
     dialog.setMimeTypeFilters(QStringList() << "application/x-krita-reference-images");
-    dialog.setCaption(i18n("Load Reference Images"));
+    dialog.setWindowTitle(i18n("Load Reference Images"));
 
     QStringList locations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
     if (!locations.isEmpty()) {
-        dialog.setDefaultDir(locations.first());
+        dialog.setDirectory(locations.first());
     }
 
-    QString filename = dialog.filename();
+    QString filename;
+    if (dialog.exec()) filename = dialog.selectedFiles().value(0);
     if (filename.isEmpty()) return;
     if (!QFileInfo(filename).exists()) return;
 
@@ -219,17 +223,20 @@ void ToolReferenceImages::saveReferenceImages()
 
     KIS_ASSERT_RECOVER_RETURN(m_services);
 
-    KoFileDialog dialog(m_services->referenceImageDialogParent(), KoFileDialog::SaveFile, "SaveReferenceImageCollection");
+    QFileDialog dialog(m_services->referenceImageDialogParent());
+    dialog.setAcceptMode(QFileDialog::AcceptSave);
+    dialog.setFileMode(QFileDialog::AnyFile);
     QString mimetype = "application/x-krita-reference-images";
-    dialog.setMimeTypeFilters(QStringList() << mimetype, mimetype);
-    dialog.setCaption(i18n("Save Reference Images"));
+    dialog.setMimeTypeFilters(QStringList() << mimetype);
+    dialog.setWindowTitle(i18n("Save Reference Images"));
 
     QStringList locations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
     if (!locations.isEmpty()) {
-        dialog.setDefaultDir(locations.first());
+        dialog.setDirectory(locations.first());
     }
 
-    QString filename = dialog.filename();
+    QString filename;
+    if (dialog.exec()) filename = dialog.selectedFiles().value(0);
     if (filename.isEmpty()) return;
 
     QString fileMime = KisMimeDatabase::mimeTypeForFile(filename, false);

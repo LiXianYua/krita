@@ -16,7 +16,6 @@
 #include <KoShapeController.h>
 #include <KoViewConverter.h>
 #include <KoCanvasBase.h>
-#include <kis_icon.h>
 #include <KisCanvasToolServices.h>
 
 #include "KisToolOutlineBase.h"

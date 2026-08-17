@@ -17,7 +17,6 @@
 #include "tool_transform_args.h"
 #include "transform_transaction_properties.h"
 #include "krita_utils.h"
-#include "kis_cursor.h"
 #include "kis_transform_utils.h"
 #include "kis_free_transform_strategy_gsl_helpers.h"
 #include "kis_algebra_2d.h"
@@ -58,14 +57,14 @@ struct KisFreeTransformStrategy::Private
           imageTooBig(false),
           isTransforming(false)
     {
-        scaleCursors[0] = KisCursor::sizeHorCursor();
-        scaleCursors[1] = KisCursor::sizeFDiagCursor();
-        scaleCursors[2] = KisCursor::sizeVerCursor();
-        scaleCursors[3] = KisCursor::sizeBDiagCursor();
-        scaleCursors[4] = KisCursor::sizeHorCursor();
-        scaleCursors[5] = KisCursor::sizeFDiagCursor();
-        scaleCursors[6] = KisCursor::sizeVerCursor();
-        scaleCursors[7] = KisCursor::sizeBDiagCursor();
+        scaleCursors[0] = Qt::SizeHorCursor;
+        scaleCursors[1] = Qt::SizeFDiagCursor;
+        scaleCursors[2] = Qt::SizeVerCursor;
+        scaleCursors[3] = Qt::SizeBDiagCursor;
+        scaleCursors[4] = Qt::SizeHorCursor;
+        scaleCursors[5] = Qt::SizeFDiagCursor;
+        scaleCursors[6] = Qt::SizeVerCursor;
+        scaleCursors[7] = Qt::SizeBDiagCursor;
 
         shearCursorPixmap.load(":/shear_cursor.png");
         rotateHandlesCursor = QCursor(QPixmap(":/rotate_cursor_handles.xpm"));
@@ -294,17 +293,17 @@ QCursor KisFreeTransformStrategy::getCurrentCursor() const
 
     switch (m_d->function) {
     case MOVE:
-        cursor = KisCursor::moveCursor();
+        cursor = Qt::SizeAllCursor;
         break;
     case ROTATEBOUNDS:
         cursor = m_d->rotateHandlesCursor;
         break;
     case ROTATE:
-        cursor = KisCursor::rotateCursor();
+        cursor = Qt::CrossCursor;
         break;
     case PERSPECTIVE:
         //TODO: find another cursor for perspective
-        cursor = KisCursor::rotateCursor();
+        cursor = Qt::CrossCursor;
         break;
     case RIGHTSCALE:
         cursor = m_d->getScaleCursor(m_d->transformedHandles.middleRight);
@@ -331,7 +330,7 @@ QCursor KisFreeTransformStrategy::getCurrentCursor() const
         cursor = m_d->getScaleCursor(m_d->transformedHandles.bottomRight);
         break;
     case MOVECENTER:
-        cursor = KisCursor::handCursor();
+        cursor = Qt::PointingHandCursor;
         break;
     case BOTTOMSHEAR:
         cursor = m_d->getShearCursor(m_d->transformedHandles.bottomLeft, m_d->transformedHandles.bottomRight);

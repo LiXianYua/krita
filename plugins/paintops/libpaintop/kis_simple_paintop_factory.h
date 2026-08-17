@@ -9,7 +9,6 @@
 
 #include <brushengine/kis_paintop_factory.h>
 #include <brushengine/kis_paintop_settings.h>
-#include <kis_icon.h>
 #include <KisCppQuirks.h>
 #include <KoResourceLoadResult.h>
 
@@ -193,7 +192,7 @@ public:
     }
 
     QIcon icon() override {
-        return KisIconUtils::loadIcon(id());
+        return KisPaintOpFactory::icon();
     }
 
     QString category() const override {

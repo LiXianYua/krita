@@ -10,11 +10,9 @@
 #include <QPointer>
 
 #include <KoToolFactoryBase.h>
-#include <KoIcon.h>
 
 #include <KisNodeAdditionFlags.h>
 #include <kis_node.h>
-#include <kis_icon.h>
 
 #include <defaulttool/DefaultTool.h>
 #include <defaulttool/DefaultToolFactory.h>
@@ -91,7 +89,6 @@ public:
     : DefaultToolFactory("ToolReferenceImages") {
         setToolTip(i18n("Reference Images Tool"));
         setSection(ToolBoxSection::View);
-        setIconName(koIconNameCStr("krita_tool_reference_images"));
         setPriority(2);
         setActivationShapeId("flake/always");
     };

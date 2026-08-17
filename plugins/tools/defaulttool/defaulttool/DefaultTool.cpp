@@ -47,7 +47,6 @@
 #include <commands/KoSvgTextPathInfoChangeCommand.h>
 
 #include <KoSnapGuide.h>
-#include "kis_action_registry.h"
 #include "kis_image.h"
 #include "kis_node.h"
 #include "kis_shape_controller.h"
@@ -56,7 +55,6 @@
 #include <KoInteractionStrategyFactory.h>
 #include <KisHandlePainterHelper.h>
 
-#include <KoIcon.h>
 
 #include <QPainterPath>
 #include <QPointer>
@@ -68,7 +66,6 @@
 #include <KoResourcePaths.h>
 
 #include <KoCanvasController.h>
-#include <kactioncollection.h>
 #include <QMenu>
 
 #include <math.h>

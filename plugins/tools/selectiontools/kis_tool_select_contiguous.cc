@@ -23,7 +23,6 @@
 #include "KoPointerEvent.h"
 #include "KoViewConverter.h"
 
-#include "kis_cursor.h"
 #include "kis_image.h"
 #include "KisSelectionUtils.h"
 #include "kis_layer.h"

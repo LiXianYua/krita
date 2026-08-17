@@ -15,7 +15,6 @@
 #include "kis_tool_rectangle_base.h"
 #include <kis_tool_select_base.h>
 #include "kis_selection_tool_config_widget_helper.h"
-#include <kis_icon.h>
 #include <QKeySequence>
 
 
@@ -50,7 +49,6 @@ public:
         setToolTip(i18n("Rectangular Selection Tool"));
         setSection(ToolBoxSection::Select);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setIconName(koIconNameCStr("tool_rect_selection"));
         setShortcut(QKeySequence(Qt::CTRL | Qt::Key_R));
         setPriority(0);
     }

@@ -16,7 +16,6 @@
 #include "tool_transform_args.h"
 #include "transform_transaction_properties.h"
 #include "kis_painting_tweaks.h"
-#include "kis_cursor.h"
 #include "kis_transform_utils.h"
 #include "kis_algebra_2d.h"
 #include "KisHandlePainterHelper.h"
@@ -154,22 +153,22 @@ QCursor KisWarpTransformStrategy::getCurrentCursor() const
 
     switch (m_d->mode) {
     case Private::OVER_POINT:
-        cursor = KisCursor::pointingHandCursor();
+        cursor = Qt::PointingHandCursor;
         break;
     case Private::MULTIPLE_POINT_SELECTION:
-        cursor = KisCursor::crossCursor();
+        cursor = Qt::CrossCursor;
         break;
     case Private::MOVE_MODE:
-        cursor = KisCursor::moveCursor();
+        cursor = Qt::SizeAllCursor;
         break;
     case Private::ROTATE_MODE:
-        cursor = KisCursor::rotateCursor();
+        cursor = Qt::CrossCursor;
         break;
     case Private::SCALE_MODE:
-        cursor = KisCursor::sizeVerCursor();
+        cursor = Qt::SizeVerCursor;
         break;
     case Private::NOTHING:
-        cursor = KisCursor::arrowCursor();
+        cursor = Qt::ArrowCursor;
         break;
     }
 

@@ -9,7 +9,6 @@
 #include <KoShapeStroke.h>
 #include <KoShapeLoadingContext.h>
 
-#include <KoIcon.h>
 #include <klocalizedstring.h>
 
 #include "kis_pointer_utils.h"
@@ -18,7 +17,6 @@ SpiralShapeFactory::SpiralShapeFactory()
     : KoShapeFactoryBase(SpiralShapeId, i18n("Spiral"))
 {
     setToolTip(i18n("A spiral shape"));
-    setIconName(koIconNameCStr("spiral-shape"));
     setFamily("geometric");
     setLoadingPriority(1);
 }

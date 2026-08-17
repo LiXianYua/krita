@@ -5,7 +5,7 @@
  */
 #include "KisSelectionToolFactoryBase.h"
 
-#include <kis_action_registry.h>
+#include <QAction>
 
 KisSelectionToolFactoryBase::KisSelectionToolFactoryBase(const QString &id)
     : KisToolPaintFactoryBase(id)
@@ -18,13 +18,23 @@ KisSelectionToolFactoryBase::~KisSelectionToolFactoryBase()
 
 QList<QAction *> KisSelectionToolFactoryBase::createActionsImpl()
 {
-    KisActionRegistry *actionRegistry = KisActionRegistry::instance();
     QList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
 
-    actions << actionRegistry->makeQAction("selection_tool_mode_add", this);
-    actions << actionRegistry->makeQAction("selection_tool_mode_replace", this);
-    actions << actionRegistry->makeQAction("selection_tool_mode_subtract", this);
-    actions << actionRegistry->makeQAction("selection_tool_mode_intersect", this);
+    QAction *actionAdd = new QAction(this);
+    actionAdd->setObjectName("selection_tool_mode_add");
+    actions << actionAdd;
+
+    QAction *actionReplace = new QAction(this);
+    actionReplace->setObjectName("selection_tool_mode_replace");
+    actions << actionReplace;
+
+    QAction *actionSubtract = new QAction(this);
+    actionSubtract->setObjectName("selection_tool_mode_subtract");
+    actions << actionSubtract;
+
+    QAction *actionIntersect = new QAction(this);
+    actionIntersect->setObjectName("selection_tool_mode_intersect");
+    actions << actionIntersect;
 
     return actions;
 }
@@ -41,11 +51,15 @@ KisToolPolyLineFactoryBase::~KisToolPolyLineFactoryBase()
 
 QList<QAction *> KisToolPolyLineFactoryBase::createActionsImpl()
 {
-    KisActionRegistry *actionRegistry = KisActionRegistry::instance();
     QList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
 
-    actions << actionRegistry->makeQAction("undo_polygon_selection", this);
-    actions << actionRegistry->makeQAction("selection_tool_mode_add", this);
+    QAction *actionUndo = new QAction(this);
+    actionUndo->setObjectName("undo_polygon_selection");
+    actions << actionUndo;
+
+    QAction *actionAdd = new QAction(this);
+    actionAdd->setObjectName("selection_tool_mode_add");
+    actions << actionAdd;
 
     return actions;
 }

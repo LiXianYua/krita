@@ -17,7 +17,6 @@
 #include "KisToolPaintFactoryBase.h"
 #include "flake/kis_node_shape.h"
 #include <kis_tool_rectangle_base.h>
-#include <kis_icon.h>
 
 
 class QRect;
@@ -51,7 +50,6 @@ public:
 
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setIconName(koIconNameCStr("krita_tool_rectangle"));
         //setShortcut( Qt::Key_F6 );
         setPriority(2);
     }

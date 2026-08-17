@@ -15,13 +15,11 @@
 #include "KisToolPaintFactoryBase.h"
 
 #include <flake/kis_node_shape.h>
-#include <kis_icon.h>
 #include <QKeySequence>
 #include <klocalizedstring.h>
 
 #include <kconfig.h>
 #include <kconfiggroup.h>
-#include <KoIcon.h>
 
 class KisKActionCollection;
 class KoCanvasBase;
@@ -67,7 +65,6 @@ public:
         setToolTip(i18n("Comic Panel Editing Tool"));
 
         setSection(ToolBoxSection::Main);
-        setIconName(koIconNameCStr("tool_comic_panel"));
         setPriority(7);
         setActivationShapeId("flake/always,KoPathShape");
     }

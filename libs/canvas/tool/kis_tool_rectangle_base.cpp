@@ -13,7 +13,6 @@
 #include <KoCanvasController.h>
 #include <KoPointerEvent.h>
 #include <KoViewConverter.h>
-#include <kis_icon.h>
 #include <KisCanvasToolServices.h>
 
 KisToolRectangleBase::KisToolRectangleBase(KoCanvasBase * canvas, KisToolRectangleBase::ToolType type, const QCursor & cursor)

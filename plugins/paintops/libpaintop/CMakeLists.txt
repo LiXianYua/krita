@@ -73,8 +73,6 @@ target_link_libraries(kritalibpaintop
     PUBLIC
         kritalibbrush
         kritaimage
-    PRIVATE
-        kritawidgetutils
 )
 
 set_target_properties(kritalibpaintop PROPERTIES

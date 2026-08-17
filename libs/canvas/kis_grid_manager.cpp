@@ -13,7 +13,6 @@
 #include <kactioncollection.h>
 #include <klocalizedstring.h>
 
-#include <kis_icon.h>
 
 #include "kis_canvas2.h"
 #include "kis_coordinates_converter.h"

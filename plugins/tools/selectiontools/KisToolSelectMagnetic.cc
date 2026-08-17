@@ -23,7 +23,6 @@
 #include <KoViewConverter.h>
 
 #include <kis_layer.h>
-#include <kis_cursor.h>
 #include <kis_image.h>
 #include <kis_default_bounds.h>
 

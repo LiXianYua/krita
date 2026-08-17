@@ -13,7 +13,6 @@
 #include "flake/kis_node_shape.h"
 #include "kis_tool_shape.h"
 #include "kis_delegated_tool.h"
-#include <kis_icon.h>
 
 class KoCanvasBase;
 class KisToolPath;
@@ -82,7 +81,6 @@ public:
         setToolTip(i18n("Bezier Curve Tool: Shift-mouseclick ends the curve."));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setIconName(koIconNameCStr("krita_draw_path"));
         setPriority(7);
     }
 

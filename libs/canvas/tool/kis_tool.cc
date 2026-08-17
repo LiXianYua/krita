@@ -46,7 +46,7 @@
 #include <KisOptimizedBrushOutline.h>
 #include <KisCanvasFeedback.h>
 #include <KisCanvasToolServices.h>
-#include <KoIcon.h>
+#include <QIcon>
 
 
 struct Q_DECL_HIDDEN KisTool::Private {
@@ -724,7 +724,7 @@ bool KisTool::nodeEditable()
     if (!nodeEditable) {
         if (KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas())) {
             feedback->showFloatingMessage(nodeEditableMessage(node, blockedNoIndirectPainting),
-                                          koIcon("object-locked"));
+                                          QIcon());
         }
     }
     return nodeEditable;
@@ -736,7 +736,7 @@ bool KisTool::selectionEditable()
     bool editable = services && services->toolSelectionEditable();
     if (!editable) {
         if (KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback *>(canvas())) {
-            feedback->showFloatingMessage(i18n("Local selection is locked."), koIcon("object-locked"));
+            feedback->showFloatingMessage(i18n("Local selection is locked."), QIcon());
         }
     }
     return editable;

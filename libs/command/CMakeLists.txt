@@ -18,12 +18,13 @@ generate_export_header(kritacommand BASE_NAME kritacommand)
 
 target_link_libraries(kritacommand
     PUBLIC
-        kritawidgetutils 
-        KF${KF_MAJOR}::I18n 
+        KF${KF_MAJOR}::I18n
         KF${KF_MAJOR}::ConfigGui
-        Qt${QT_MAJOR_VERSION}::Core 
+        Qt${QT_MAJOR_VERSION}::Core
         Qt${QT_MAJOR_VERSION}::Widgets
         Boost::boost
+    PRIVATE
+        kritaglobal
 )
 
 set_target_properties(kritacommand PROPERTIES

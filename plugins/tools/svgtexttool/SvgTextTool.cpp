@@ -5,6 +5,7 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+#include <QIcon>
 #include "SvgTextTool.h"
 #include "KoSvgTextProperties.h"
 #include "KoSvgTextShape.h"
@@ -40,8 +41,6 @@
 #include <KisCanvasFeedback.h>
 #include <KisCanvasToolServices.h>
 
-#include <KoFileDialog.h>
-#include <KoIcon.h>
 #include <KoColor.h>
 #include <KoCanvasBase.h>
 #include <KoSelection.h>
@@ -496,7 +495,7 @@ bool SvgTextTool::nodeEditable()
             QString message = dynamic_cast<KisCanvasToolServices *>(canvas())
                                   ->toolNodeEditableMessage(node);
             feedback->showFloatingMessage(
-                message, KisIconUtils::loadIcon("object-locked"));
+                message, QIcon());
         }
         return false;
     }

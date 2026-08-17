@@ -13,10 +13,8 @@
 #include <QList>
 #include <QVariant>
 
-#include <kis_icon.h>
 #include <kis_tool_shape.h>
 #include <flake/kis_node_shape.h>
-#include <KoIcon.h>
 #include <kconfig.h>
 #include <kconfiggroup.h>
 #include <KisEncloseAndFillPainter.h>

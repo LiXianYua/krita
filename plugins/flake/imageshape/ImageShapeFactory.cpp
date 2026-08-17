@@ -14,8 +14,9 @@
 
 // Calligra
 #include <KoXmlNS.h>
+#include <QImage>
+#include <QTransform>
 #include <KoShapeLoadingContext.h>
-#include <KoIcon.h>
 #include <KoProperties.h>
 #include <kis_assert.h>
 
@@ -26,7 +27,6 @@ ImageShapeFactory::ImageShapeFactory()
     : KoShapeFactoryBase(ImageShapeId, i18n("Image shape"))
 {
     setToolTip(i18n("A shape that shows an image (PNG/JPG/TIFF)"));
-    setIconName(koIconNameCStrNeededWithSubs("a generic image icon", "x-shape-vectorimage", "application-x-wmf"));
 
     QList<QPair<QString, QStringList> > elementNamesList;
     elementNamesList.append(qMakePair(QString(KoXmlNS::draw), QStringList("image")));

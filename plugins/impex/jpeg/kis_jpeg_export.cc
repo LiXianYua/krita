@@ -21,7 +21,6 @@
 #include <KoColorSpaceRegistry.h>
 
 #include <KisImportExportManager.h>
-#include <kis_slider_spin_box.h>
 #include <KisDocument.h>
 #include <KoDocumentInfo.h>
 #include <kis_image.h>
@@ -38,7 +37,6 @@
 #include <kis_exif_info_visitor.h>
 #include <generator/kis_generator_layer.h>
 #include <KisExportCheckRegistry.h>
-#include <KisSpinBoxI18nHelper.h>
 #include "kis_jpeg_converter.h"
 
 class KisExternalLayer;

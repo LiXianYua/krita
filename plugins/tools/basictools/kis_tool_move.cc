@@ -10,6 +10,7 @@
 
 #include "kis_tool_move.h"
 
+#include <QAction>
 #include <QPoint>
 
 #include <KSharedConfig>
@@ -26,7 +27,6 @@
 #include "strokes/move_stroke_strategy.h"
 #include "strokes/move_selection_stroke_strategy.h"
 #include "kis_resources_snapshot.h"
-#include "kis_action_registry.h"
 #include "krita_utils.h"
 #include <KoCanvasResourceProvider.h>
 
@@ -757,18 +757,17 @@ void KisToolMove::invalidateCanvas()
 
 QList<QAction *> KisToolMoveFactory::createActionsImpl()
 {
-    KisActionRegistry *actionRegistry = KisActionRegistry::instance();
     QList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
 
-    actions << actionRegistry->makeQAction("movetool-move-up", this);
-    actions << actionRegistry->makeQAction("movetool-move-down", this);
-    actions << actionRegistry->makeQAction("movetool-move-left", this);
-    actions << actionRegistry->makeQAction("movetool-move-right", this);
-    actions << actionRegistry->makeQAction("movetool-move-up-more", this);
-    actions << actionRegistry->makeQAction("movetool-move-down-more", this);
-    actions << actionRegistry->makeQAction("movetool-move-left-more", this);
-    actions << actionRegistry->makeQAction("movetool-move-right-more", this);
-    actions << actionRegistry->makeQAction("movetool-show-coordinates", this);
+    { QAction *action = new QAction(this); action->setObjectName("movetool-move-up"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("movetool-move-down"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("movetool-move-left"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("movetool-move-right"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("movetool-move-up-more"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("movetool-move-down-more"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("movetool-move-left-more"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("movetool-move-right-more"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("movetool-show-coordinates"); actions << action; }
 
     return actions;
 

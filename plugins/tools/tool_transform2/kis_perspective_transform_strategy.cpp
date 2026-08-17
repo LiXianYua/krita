@@ -19,7 +19,6 @@
 #include "tool_transform_args.h"
 #include "transform_transaction_properties.h"
 #include "krita_utils.h"
-#include "kis_cursor.h"
 #include "kis_transform_utils.h"
 #include "kis_free_transform_strategy_gsl_helpers.h"
 
@@ -199,15 +198,15 @@ QCursor KisPerspectiveTransformStrategy::getCurrentCursor() const
 
     switch (m_d->function) {
     case NONE:
-        cursor = KisCursor::arrowCursor();
+        cursor = Qt::ArrowCursor;
         break;
     case MOVE:
-        cursor = KisCursor::moveCursor();
+        cursor = Qt::SizeAllCursor;
         break;
     case DRAG_HANDLE:
     case DRAG_X_VANISHING_POINT:
     case DRAG_Y_VANISHING_POINT:
-        cursor = KisCursor::pointingHandCursor();
+        cursor = Qt::PointingHandCursor;
         break;
     }
 

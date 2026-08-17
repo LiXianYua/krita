@@ -13,7 +13,6 @@
 #include "flake/kis_node_shape.h"
 #include "kis_tool_shape.h"
 #include "kis_delegated_tool.h"
-#include <kis_icon.h>
 
 class KoCanvasBase;
 class KisToolPencil;
@@ -74,7 +73,6 @@ public:
         setToolTip(i18n("Freehand Path Tool"));
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setIconName(koIconNameCStr("krita_tool_freehandvector"));
         setPriority(9);
     }
 

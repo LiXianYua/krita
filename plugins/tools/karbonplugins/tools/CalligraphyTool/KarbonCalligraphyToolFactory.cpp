@@ -9,7 +9,6 @@
 
 #include <KoToolRegistry.h>
 
-#include <KoIcon.h>
 #include <klocalizedstring.h>
 #include <QDebug>
 
@@ -18,7 +17,6 @@ KarbonCalligraphyToolFactory::KarbonCalligraphyToolFactory()
 {
     setToolTip(i18n("Calligraphy"));
     setSection(ToolBoxSection::Main);
-    setIconName(koIconNameCStr("calligraphy"));
     setPriority(6);
     setActivationShapeId("flake/edit");
 }

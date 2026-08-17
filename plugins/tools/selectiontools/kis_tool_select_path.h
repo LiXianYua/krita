@@ -13,7 +13,6 @@
 #include "kis_tool_select_base.h"
 #include "kis_delegated_tool.h"
 
-#include <kis_icon.h>
 
 class KoCanvasBase;
 class KisToolSelectPath;
@@ -88,7 +87,6 @@ public:
         setToolTip(i18n("Bezier Curve Selection Tool"));
         setSection(ToolBoxSection::Select);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setIconName(koIconNameCStr("tool_path_selection"));
         setPriority(6);
     }
 

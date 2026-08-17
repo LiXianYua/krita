@@ -7,12 +7,11 @@
  */
 
 #include <KoCanvasResourceProvider.h>
-#include <kis_cursor.h>
 
 #include "KisLassoEnclosingProducer.h"
 
 KisLassoEnclosingProducer::KisLassoEnclosingProducer(KoCanvasBase * canvas)
-    : KisDynamicDelegateTool<KisToolOutlineBase>(canvas, KisToolOutlineBase::PAINT, KisCursor::load("tool_outline_selection_cursor.png", 5, 5))
+    : KisDynamicDelegateTool<KisToolOutlineBase>(canvas, KisToolOutlineBase::PAINT, Qt::ArrowCursor)
 {
     setObjectName("enclosing_tool_lasso");
     setSupportOutline(true);
@@ -32,7 +31,7 @@ KisLassoEnclosingProducer::~KisLassoEnclosingProducer()
 void  KisLassoEnclosingProducer::resetCursorStyle()
 {
     if (isEraser()) {
-        useCursor(KisCursor::load("tool_outline_selection_enclose_eraser_cursor.png", 5, 5));
+        useCursor(Qt::ArrowCursor);
     } else {
         KisDynamicDelegateTool::resetCursorStyle();
     }

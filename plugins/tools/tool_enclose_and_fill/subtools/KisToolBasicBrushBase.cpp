@@ -5,6 +5,7 @@
  */
 
 
+#include <QIcon>
 #include <KoPointerEvent.h>
 #include <KoShapeController.h>
 #include <KoViewConverter.h>
@@ -12,7 +13,6 @@
 #include <KisCanvasFeedback.h>
 #include <KisCanvasInvalidation.h>
 #include <KisCanvasToolServices.h>
-#include <kis_icon.h>
 #include <kis_coordinates_converter.h>
 #include <kis_cubic_curve.h>
 #include <kis_config_notifier.h>
@@ -63,14 +63,14 @@ void KisToolBasicBrushBase::beginPrimaryAction(KoPointerEvent *event)
             KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
             KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
             QString message = i18n("This tool cannot paint on clone layers.  Please select a paint or vector layer or mask.");
-            feedback->showFloatingMessage(message, koIcon("object-locked"));
+            feedback->showFloatingMessage(message, QIcon());
         }
 
         if (paintability == KisToolPaint::MYPAINTBRUSH_UNPAINTABLE) {
             KisCanvasFeedback *feedback = dynamic_cast<KisCanvasFeedback*>(canvas());
             KIS_SAFE_ASSERT_RECOVER_RETURN(feedback);
             QString message = i18n("The MyPaint Brush Engine is not available for this colorspace");
-            feedback->showFloatingMessage(message, koIcon("object-locked"));
+            feedback->showFloatingMessage(message, QIcon());
         }
 
         event->ignore();

@@ -13,7 +13,6 @@
 
 #include "KisSelectionToolFactoryBase.h"
 #include "kis_tool_select_base.h"
-#include <kis_icon.h>
 #include <kconfig.h>
 #include <kconfiggroup.h>
 #include <commands_new/KisMergeLabeledLayersCommand.h>
@@ -88,7 +87,6 @@ public:
     {
         setToolTip(i18n("Contiguous Selection Tool"));
         setSection(ToolBoxSection::Select);
-        setIconName(koIconNameCStr("tool_contiguous_selection"));
         setPriority(4);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }

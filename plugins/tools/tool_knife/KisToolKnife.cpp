@@ -18,7 +18,6 @@
 #include <KisCanvasFeedback.h>
 #include <kis_image.h>
 #include <kis_shape_controller.h>
-#include "kis_cursor.h"
 #include "kis_painter.h"
 #include "kis_paintop_preset.h"
 #include "kis_shape_layer.h"
@@ -189,7 +188,7 @@ void KisToolKnife::paint(QPainter &painter, const KoViewConverter &converter)
 void KisToolKnife::activate(const QSet<KoShape *> &shapes)
 {
     KoInteractionTool::activate(shapes);
-    useCursor(KisCursor::arrowCursor());
+    useCursor(Qt::ArrowCursor);
 
 }
 

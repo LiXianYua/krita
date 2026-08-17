@@ -12,7 +12,6 @@
 #include <QPoint>
 #include <QPainterPath>
 
-#include <kis_icon.h>
 
 #include <kconfig.h>
 #include <kconfiggroup.h>
@@ -211,7 +210,6 @@ public:
         setSection(ToolBoxSection::Transform);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(11);
-        setIconName(koIconNameCStr("tool_crop"));
         setShortcut(QKeySequence("C"));
     }
 

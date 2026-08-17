@@ -11,7 +11,6 @@
 #include "KisSelectionToolFactoryBase.h"
 #include <kis_tool_select_base.h>
 #include <kis_signal_compressor.h>
-#include <kis_icon.h>
 #include "KisMagneticWorker.h"
 
 class QPainterPath;
@@ -100,7 +99,6 @@ public:
     {
         setToolTip(i18n("Magnetic Selection Tool"));
         setSection(ToolBoxSection::Select);
-        setIconName(koIconNameCStr("tool_magnetic_selection"));
         setPriority(8);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }
@@ -114,10 +112,9 @@ public:
 
     QList<QAction *> createActionsImpl() override
     {
-        KisActionRegistry *actionRegistry = KisActionRegistry::instance();
         QList<QAction *> actions = KisSelectionToolFactoryBase::createActionsImpl();
 
-        actions << actionRegistry->makeQAction("undo_polygon_selection", this);
+        { QAction *a = new QAction(this); a->setObjectName("undo_polygon_selection"); actions << a; }
 
         return actions;
     }

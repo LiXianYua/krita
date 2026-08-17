@@ -19,8 +19,6 @@
 #include <KisToolPaintFactoryBase.h>
 #include <flake/kis_node_shape.h>
 #include <kis_signal_compressor.h>
-#include <kis_icon.h>
-#include <KoIcon.h>
 
 class QPoint;
 class KoCanvasBase;
@@ -97,7 +95,6 @@ public:
         setSection(ToolBoxSection::Shape);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
         setPriority(1);
-        setIconName(koIconNameCStr("krita_tool_line"));
     }
 
     ~KisToolLineFactory() override {}

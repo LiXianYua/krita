@@ -14,7 +14,6 @@
 #include <KoProperties.h>
 #include "kis_assert.h"
 
-#include <KoIcon.h>
 #include <klocalizedstring.h>
 
 #include "kis_pointer_utils.h"
@@ -23,7 +22,6 @@ RectangleShapeFactory::RectangleShapeFactory()
     : KoShapeFactoryBase(RectangleShapeId, i18n("Rectangle"))
 {
     setToolTip(i18n("A rectangle"));
-    setIconName(koIconNameCStr("rectangle-shape"));
     setFamily("geometric");
     setLoadingPriority(1);
 

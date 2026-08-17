@@ -15,8 +15,6 @@
 
 #include "kis_tool_paint.h"
 #include <flake/kis_node_shape.h>
-#include <KoIcon.h>
-#include <kis_icon.h>
 #include <kconfig.h>
 #include <kconfiggroup.h>
 #include <kis_signal_compressor.h>
@@ -158,7 +156,6 @@ public:
         setSection(ToolBoxSection::Fill);
         setPriority(0);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
-        setIconName(koIconNameCStr("krita_tool_color_fill"));
         setShortcut( QKeySequence( Qt::Key_F ) );
         setPriority(14);
     }

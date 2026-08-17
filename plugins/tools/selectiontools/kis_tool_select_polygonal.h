@@ -16,7 +16,6 @@
 #include "kis_tool_polyline_base.h"
 #include <kis_tool_select_base.h>
 #include "kis_selection_tool_config_widget_helper.h"
-#include <kis_icon.h>
 
 class __KisToolSelectPolygonalLocal : public KisToolPolylineBase
 {
@@ -47,7 +46,6 @@ public:
     {
         setToolTip(i18n("Polygonal Selection Tool"));
         setSection(ToolBoxSection::Select);
-        setIconName(koIconNameCStr("tool_polygonal_selection"));
         setPriority(2);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }
@@ -60,11 +58,10 @@ public:
 
     QList<QAction *> createActionsImpl() override
     {
-        KisActionRegistry *actionRegistry = KisActionRegistry::instance();
         QList<QAction *> actions = KisSelectionToolFactoryBase::createActionsImpl();
 
-        actions << actionRegistry->makeQAction("undo_polygon_selection", this);
-        actions << actionRegistry->makeQAction("selection_tool_mode_add", this);
+        { QAction *a = new QAction(this); a->setObjectName("undo_polygon_selection"); actions << a; }
+        { QAction *a = new QAction(this); a->setObjectName("selection_tool_mode_add"); actions << a; }
 
         return actions;
     }

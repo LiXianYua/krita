@@ -21,7 +21,7 @@
 #include <KoMD5Generator.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorProfile.h>
-#include <KoFileDialog.h>
+#include <QFileDialog>
 #include <KoStore.h>
 #include <KoColorSpace.h>
 #include <KoShapeControllerBase.h>
@@ -150,9 +150,10 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
 
                     QString url;
                     if (locateManually == QMessageBox::Yes) {
-                        KoFileDialog dialog(0, KoFileDialog::OpenFile, "OpenDocument");
+                        QFileDialog dialog(0);
+                        dialog.setFileMode(QFileDialog::ExistingFile);
                         dialog.setMimeTypeFilters(KisImportExportManager::supportedMimeTypes(KisImportExportManager::Import));
-                        url = dialog.filename();
+                        if (dialog.exec()) url = dialog.selectedFiles().value(0);
                     }
 
                     if (url.isEmpty()) {

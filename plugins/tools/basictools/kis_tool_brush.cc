@@ -8,14 +8,12 @@
  */
 
 #include "kis_tool_brush.h"
-#include <kis_icon.h>
 
 #include <klocalizedstring.h>
 #include <QAction>
 
 #include <KoCanvasBase.h>
 
-#include <kis_action_registry.h>
 #include <KisCanvasToolServices.h>
 #include "kis_image_config.h"
 #include "kundo2magicstring.h"
@@ -246,15 +244,14 @@ void KisToolBrush::updateSettingsViews()
 
 QList<QAction *> KisToolBrushFactory::createActionsImpl()
 {
-    KisActionRegistry *actionRegistry = KisActionRegistry::instance();
 
     QList<QAction *> actions = KisToolPaintFactoryBase::createActionsImpl();
 
-    actions << actionRegistry->makeQAction("set_no_brush_smoothing", this);
-    actions << actionRegistry->makeQAction("set_simple_brush_smoothing", this);
-    actions << actionRegistry->makeQAction("set_weighted_brush_smoothing", this);
-    actions << actionRegistry->makeQAction("set_stabilizer_brush_smoothing", this);
-    actions << actionRegistry->makeQAction("set_pixel_perfect_smoothing", this);
+    { QAction *action = new QAction(this); action->setObjectName("set_no_brush_smoothing"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("set_simple_brush_smoothing"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("set_weighted_brush_smoothing"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("set_stabilizer_brush_smoothing"); actions << action; }
+    { QAction *action = new QAction(this); action->setObjectName("set_pixel_perfect_smoothing"); actions << action; }
 
     return actions;
 

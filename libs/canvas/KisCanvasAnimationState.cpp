@@ -39,7 +39,6 @@
 #include <limits>
 
 #include "KisViewManager.h"
-#include "kis_icon_utils.h"
 
 #include "KisPart.h"
 #include "dialogs/KisAsyncAnimationCacheRenderDialog.h"

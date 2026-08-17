@@ -14,12 +14,10 @@
 #include "KisToolPaintFactoryBase.h"
 
 #include <flake/kis_node_shape.h>
-#include <kis_icon.h>
 #include <QKeySequence>
 
 #include <kconfig.h>
 #include <kconfiggroup.h>
-#include <KoIcon.h>
 
 class KisKActionCollection;
 class KoCanvasBase;
@@ -85,7 +83,6 @@ public:
 
         // Temporarily
         setSection(ToolBoxSection::Fill);
-        setIconName(koIconNameCStr("krita_tool_lazybrush"));
         //setShortcut(QKeySequence(Qt::Key_Shift + Qt::Key_B));
         setPriority(3);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);

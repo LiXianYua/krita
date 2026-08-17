@@ -25,10 +25,9 @@
 #include <QPoint>
 
 #include <klocalizedstring.h>
-#include <kactioncollection.h>
+#include <QIcon>
 
 #include <kis_algebra_2d.h>
-#include <kis_icon.h>
 #include <KoShape.h>
 #include <KoCanvasResourceProvider.h>
 #include <KoColorSpace.h>
@@ -398,7 +397,7 @@ QWidget *KisToolPaint::createOptionWidget()
     m_optionsWidgetLayout->setSpacing(5);
 
     if (!quickHelp().isEmpty()) {
-        QPushButton *push = new QPushButton(KisIconUtils::loadIcon("help-contents"), QString(), optionWidget);
+        QPushButton *push = new QPushButton(QIcon(), QString(), optionWidget);
         connect(push, SIGNAL(clicked()), this, SLOT(slotPopupQuickHelp()));
         QHBoxLayout *hLayout = new QHBoxLayout();
         hLayout->addWidget(push);

@@ -89,7 +89,6 @@ target_link_libraries(kritacanvas
         kritainput
         kritalibpaintop
         kritasurfacecolormanagementapi
-        kritawidgetutils
     PRIVATE
         KF${KF_MAJOR}::ConfigCore
 )

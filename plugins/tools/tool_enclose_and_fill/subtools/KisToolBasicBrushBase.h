@@ -8,7 +8,6 @@
 #define KISTOOLBASICBRUSHBASE_H
 
 #include <kis_tool_shape.h>
-#include <kis_cursor.h>
 
 class KisToolBasicBrushBase : public KisToolShape
 {
@@ -22,7 +21,7 @@ public:
 
     KisToolBasicBrushBase(KoCanvasBase *canvas,
                           ToolType type,
-                          const QCursor & cursor=KisCursor::load("tool_outline_selection_cursor.png", 5, 5));
+                          const QCursor & cursor=Qt::ArrowCursor);
     ~KisToolBasicBrushBase() override;
 
     void mouseMoveEvent(KoPointerEvent *event) override;

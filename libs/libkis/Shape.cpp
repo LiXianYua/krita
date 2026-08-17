@@ -4,7 +4,6 @@
  *  SPDX-License-Identifier: LGPL-2.0-or-later
  */
 #include "Shape.h"
-#include <kis_icon_utils.h>
 #include <SvgWriter.h>
 #include <SvgParser.h>
 #include <SvgSavingContext.h>

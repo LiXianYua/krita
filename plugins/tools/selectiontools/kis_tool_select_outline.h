@@ -16,7 +16,6 @@
 #include <KisSelectionToolFactoryBase.h>
 #include <KisToolOutlineBase.h>
 #include <kis_tool_select_base.h>
-#include <kis_icon.h>
 
 class __KisToolSelectOutlineLocal : public KisToolOutlineBase
 {
@@ -51,7 +50,6 @@ public:
     {
         setToolTip(i18n("Freehand Selection Tool"));
         setSection(ToolBoxSection::Select);
-        setIconName(koIconNameCStr("tool_outline_selection"));
         setPriority(3);
         setActivationShapeId(KRITA_TOOL_ACTIVATION_ID);
     }
