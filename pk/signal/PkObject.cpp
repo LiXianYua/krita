@@ -72,3 +72,15 @@ void PkObject::disconnectAllIncoming()
     for (auto& e : m_incoming) if (e.state) e.state->alive = false;
     m_incoming.clear();
 }
+
+std::vector<PkObject*>& PkObject::s_emitStack()
+{
+    static thread_local std::vector<PkObject*> stack;
+    return stack;
+}
+
+PkObject* PkObject::sender()
+{
+    auto& stack = s_emitStack();
+    return stack.empty() ? nullptr : stack.back();
+}

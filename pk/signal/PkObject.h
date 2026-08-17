@@ -81,6 +81,10 @@ private:
                                  bool hasSlotKey,
                                  PkMemberFnKey slotKey);
 
+    // emit 栈：activateSignal 进入时 push sender、离开时 RAII 守卫 pop；sender() 读栈顶。
+    // thread_local——每线程独立发射栈，嵌套 emit 时返回最内层 sender。
+    static std::vector<PkObject*>& s_emitStack();
+
     // 对象树：parent 裸指针 + children 拥有。FIFO 析构顺序（探针 1：c1→c2→c3）。
     PkObject* m_parent = nullptr;
     std::vector<PkObject*> m_children;
@@ -165,7 +169,16 @@ void PkObject::activateSignal(PkObject* sender, PkMemberFnKey key, Args... args)
     // emit 中 disconnect 安全：disconnect 只把 state->alive 置 false，activateSignal
     // 遍历时跳过 dead，因此当前 emit 的其余连接不受迭代失效影响。
     // 按值把 args 传给每个槽（fn 签名按值收参，每槽各得一份拷贝）。
-    // 注：sender() 的 emit 栈（RAII 守卫 push/pop）属 Task 3，本 Task 只做直连调用。
+
+    // Task 3：emit 栈（thread_local）。进入时 push sender、离开时 RAII 守卫 pop，
+    // sender() 读栈顶（嵌套 emit 返回最内层）。守卫保证槽抛异常时栈不残留，
+    // 因此这里不裸 push/pop。
+    struct EmitGuard {
+        ~EmitGuard() { PkObject::s_emitStack().pop_back(); }
+    };
+    PkObject::s_emitStack().push_back(sender);
+    EmitGuard guard;
+
     for (auto& e : sender->m_outgoing) {
         if (e.key == key && e.state && e.state->alive) {
             auto* impl = dynamic_cast<PkSlotImpl<Args...>*>(e.slot.get());
