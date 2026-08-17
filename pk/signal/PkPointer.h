@@ -1,20 +1,22 @@
 #pragma once
 #include <atomic>
+#include <cstddef>
 #include <memory>
 
-// QPointer<T> 的替代：弱引用，对象析构后 isNull()==true、data()==nullptr。
+// PkPointer<T>：QPointer<T> 的替代（弱引用），对象析构后 isNull()==true、data()==nullptr。
+// compat 垫片 `#define QPointer PkPointer`（Task 4 建 compat 时做）让 Krita 调用点零改写。
 // 机制：持有 T* 裸指针 + PkObject 的 aliveFlag 弱视图（weak_ptr<atomic<bool>>）。
 // T* 在对象析构后不再解引用——data()/isNull() 只看 aliveFlag；operator-> 在
 // isNull() 时调用是 UB（与 Qt 的 QPointer::operator-> 一致，Qt 文档不保证悬垂后
 // 解引用安全）。
 template <typename T>
-class QPointer
+class PkPointer
 {
 public:
-    QPointer() = default;
-    QPointer(T* p) { reset(p); }
-    QPointer(const QPointer& o) = default;
-    QPointer& operator=(const QPointer& o) = default;
+    PkPointer() = default;
+    PkPointer(T* p) { reset(p); }
+    PkPointer(const PkPointer& o) = default;
+    PkPointer& operator=(const PkPointer& o) = default;
 
     bool isNull() const
     {
@@ -41,9 +43,14 @@ public:
         }
     }
 
-    bool operator==(const QPointer& o) const { return data() == o.data(); }
+    bool operator==(const PkPointer& o) const { return data() == o.data(); }
     bool operator==(T* p) const { return data() == p; }
     bool operator==(std::nullptr_t) const { return isNull(); }
+
+    // C++17 不从 == 推导 !=，显式补齐三个对应形式。
+    bool operator!=(const PkPointer& o) const { return !(*this == o); }
+    bool operator!=(T* p) const { return !(*this == p); }
+    bool operator!=(std::nullptr_t) const { return !isNull(); }
 
 private:
     T* m_ptr = nullptr;
