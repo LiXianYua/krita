@@ -8,16 +8,13 @@
 
 #include <QSpinBox>
 #include <QDoubleSpinBox>
-
-#include <KoAspectButton.h>
+#include <QAbstractButton>
 
 #include "kis_signals_blocker.h"
 #include "kis_slider_spin_box.h"
 #include "kis_int_parse_spin_box.h"
 #include "kis_double_parse_spin_box.h"
 #include "kis_double_parse_unit_spin_box.h"
-#include "KisAngleSelector.h"
-#include "KisAngleGauge.h"
 
 
 struct SliderWrapper
@@ -50,11 +47,6 @@ struct SliderWrapper
         } else if (auto *slider = m_slider.value<QSpinBox*>()) {
             slider->setValue(qRound(value));
 
-        } else if (auto *slider = m_slider.value<KisAngleSelector*>()) {
-            slider->setAngle(value);
-
-        } else if (auto *slider = m_slider.value<KisAngleGauge*>()) {
-            slider->setAngle(value);
         }
     }
 
@@ -80,12 +72,6 @@ struct SliderWrapper
 
         } else if (auto *slider = m_slider.value<QSpinBox*>()) {
             result = slider->value();
-
-        } else if (auto *slider = m_slider.value<KisAngleSelector*>()) {
-            result = slider->angle();
-
-        } else if (auto *slider = m_slider.value<KisAngleGauge*>()) {
-            result = slider->angle();
 
         }
 
@@ -130,7 +116,7 @@ struct KisAspectRatioLocker::Private
 {
     QScopedPointer<SliderWrapper> spinOne;
     QScopedPointer<SliderWrapper> spinTwo;
-    KoAspectButton *aspectButton = 0;
+    QAbstractButton *aspectButton = 0;
 
     qreal aspectRatio = 1.0;
     bool blockUpdatesOnDrag = false;
@@ -148,7 +134,7 @@ KisAspectRatioLocker::~KisAspectRatioLocker()
 }
 
 template <class SpinBoxType>
-void KisAspectRatioLocker::connectSpinBoxes(SpinBoxType *spinOne, SpinBoxType *spinTwo, KoAspectButton *aspectButton)
+void KisAspectRatioLocker::connectSpinBoxes(SpinBoxType *spinOne, SpinBoxType *spinTwo, QAbstractButton *aspectButton)
 {
     m_d->spinOne.reset(new SliderWrapper(spinOne));
     m_d->spinTwo.reset(new SliderWrapper(spinTwo));
@@ -165,38 +151,22 @@ void KisAspectRatioLocker::connectSpinBoxes(SpinBoxType *spinOne, SpinBoxType *s
     m_d->spinOne->connectDraggingFinished(this, SLOT(slotSpinDraggingFinished()));
     m_d->spinTwo->connectDraggingFinished(this, SLOT(slotSpinDraggingFinished()));
 
-    connect(m_d->aspectButton, SIGNAL(keepAspectRatioChanged(bool)), SLOT(slotAspectButtonChanged()));
-    slotAspectButtonChanged();
-}
-
-template <class AngleBoxType>
-void KisAspectRatioLocker::connectAngleBoxes(AngleBoxType *spinOne, AngleBoxType *spinTwo, KoAspectButton *aspectButton)
-{
-    m_d->spinOne.reset(new SliderWrapper(spinOne));
-    m_d->spinTwo.reset(new SliderWrapper(spinTwo));
-    m_d->aspectButton = aspectButton;
-
-    connect(spinOne, SIGNAL(angleChanged(qreal)), SLOT(slotSpinOneChanged()));
-    connect(spinTwo, SIGNAL(angleChanged(qreal)), SLOT(slotSpinTwoChanged()));
-
-    connect(m_d->aspectButton, SIGNAL(keepAspectRatioChanged(bool)), SLOT(slotAspectButtonChanged()));
+    connect(m_d->aspectButton, SIGNAL(toggled(bool)), SLOT(slotAspectButtonChanged()));
     slotAspectButtonChanged();
 }
 
 
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(QSpinBox *spinOne, QSpinBox *spinTwo, KoAspectButton *aspectButton);
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(QDoubleSpinBox *spinOne, QDoubleSpinBox *spinTwo, KoAspectButton *aspectButton);
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(KisSliderSpinBox *spinOne, KisSliderSpinBox *spinTwo, KoAspectButton *aspectButton);
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(KisDoubleSliderSpinBox *spinOne, KisDoubleSliderSpinBox *spinTwo, KoAspectButton *aspectButton);
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(KisIntParseSpinBox *spinOne, KisIntParseSpinBox *spinTwo, KoAspectButton *aspectButton);
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(KisDoubleParseSpinBox *spinOne, KisDoubleParseSpinBox *spinTwo, KoAspectButton *aspectButton);
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(KisDoubleParseUnitSpinBox *spinOne, KisDoubleParseUnitSpinBox *spinTwo, KoAspectButton *aspectButton);
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectAngleBoxes(KisAngleSelector *spinOne, KisAngleSelector *spinTwo, KoAspectButton *aspectButton);
-template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectAngleBoxes(KisAngleGauge *spinOne, KisAngleGauge *spinTwo, KoAspectButton *aspectButton);
+template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(QSpinBox *spinOne, QSpinBox *spinTwo, QAbstractButton *aspectButton);
+template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(QDoubleSpinBox *spinOne, QDoubleSpinBox *spinTwo, QAbstractButton *aspectButton);
+template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(KisSliderSpinBox *spinOne, KisSliderSpinBox *spinTwo, QAbstractButton *aspectButton);
+template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(KisDoubleSliderSpinBox *spinOne, KisDoubleSliderSpinBox *spinTwo, QAbstractButton *aspectButton);
+template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(KisIntParseSpinBox *spinOne, KisIntParseSpinBox *spinTwo, QAbstractButton *aspectButton);
+template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(KisDoubleParseSpinBox *spinOne, KisDoubleParseSpinBox *spinTwo, QAbstractButton *aspectButton);
+template KRITACANVAS_EXPORT void KisAspectRatioLocker::connectSpinBoxes(KisDoubleParseUnitSpinBox *spinOne, KisDoubleParseUnitSpinBox *spinTwo, QAbstractButton *aspectButton);
 
 void KisAspectRatioLocker::slotSpinOneChanged()
 {
-    if (m_d->aspectButton->keepAspectRatio()) {
+    if (m_d->aspectButton->isChecked()) {
         KisSignalsBlocker b(m_d->spinTwo->object());
         m_d->spinTwo->setValue(m_d->aspectRatio * m_d->spinOne->value());
     }
@@ -208,7 +178,7 @@ void KisAspectRatioLocker::slotSpinOneChanged()
 
 void KisAspectRatioLocker::slotSpinTwoChanged()
 {
-    if (m_d->aspectButton->keepAspectRatio()) {
+    if (m_d->aspectButton->isChecked()) {
         KisSignalsBlocker b(m_d->spinOne->object());
         m_d->spinOne->setValue(m_d->spinTwo->value() / m_d->aspectRatio);
     }
@@ -220,7 +190,7 @@ void KisAspectRatioLocker::slotSpinTwoChanged()
 
 void KisAspectRatioLocker::slotAspectButtonChanged()
 {
-    if (m_d->aspectButton->keepAspectRatio() &&
+    if (m_d->aspectButton->isChecked() &&
         m_d->spinTwo->value() > 0 &&
         m_d->spinOne->value() > 0) {
         m_d->aspectRatio = qreal(m_d->spinTwo->value()) / m_d->spinOne->value();
@@ -230,7 +200,7 @@ void KisAspectRatioLocker::slotAspectButtonChanged()
 
     if (!m_d->spinTwo->isDragging()) {
         Q_EMIT aspectButtonChanged();
-        Q_EMIT aspectButtonToggled(m_d->aspectButton->keepAspectRatio());
+        Q_EMIT aspectButtonToggled(m_d->aspectButton->isChecked());
     }
 }
 

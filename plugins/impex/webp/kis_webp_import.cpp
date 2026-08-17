@@ -21,7 +21,6 @@
 #include <KoColorModelStandardIds.h>
 #include <KoColorProfile.h>
 #include <KoCompositeOpRegistry.h>
-#include <KoDialog.h>
 #include <kis_group_layer.h>
 #include <kis_image_animation_interface.h>
 #include <kis_keyframe_channel.h>

@@ -7,6 +7,7 @@ kis_add_tests(
     kis_prescaled_projection_test.cpp
     kis_selection_options_test.cpp
     kis_stabilized_events_sampler_test.cpp
+    zoomhandler_test.cpp
     LINK_LIBRARIES kritacanvas kritatestsdk
 )
 

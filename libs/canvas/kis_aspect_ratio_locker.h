@@ -15,7 +15,7 @@ class QSpinBox;
 class QDoubleSpinBox;
 class KisSliderSpinBox;
 class KisDoubleSliderSpinBox;
-class KoAspectButton;
+class QAbstractButton;
 
 
 /**
@@ -54,13 +54,7 @@ public:
      * Link two spin boxes and an aspect button together
      */
     template <class SpinBoxType>
-        void connectSpinBoxes(SpinBoxType *spinOne, SpinBoxType *spinTwo, KoAspectButton *aspectButton);
-
-    /**
-     * Link two angular spin boxes and an aspect button together
-     */
-    template <class AngleBoxType>
-        void connectAngleBoxes(AngleBoxType *spinOne, AngleBoxType *spinTwo, KoAspectButton *aspectButton);
+        void connectSpinBoxes(SpinBoxType *spinOne, SpinBoxType *spinTwo, QAbstractButton *aspectButton);
 
     /**
      * Selects whether sliderValueChanged() signal should be emitted

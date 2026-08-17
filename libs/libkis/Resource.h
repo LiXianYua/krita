@@ -90,7 +90,6 @@ private:
 
     friend class PresetChooser;
     friend class View;
-    friend class Palette;
     friend class Preset;
     KoResourceSP resource() const;
 

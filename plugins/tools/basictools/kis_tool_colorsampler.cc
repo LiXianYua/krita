@@ -13,7 +13,6 @@
 #include <KisColorSamplingCanvas.h>
 #include <KoCanvasBase.h>
 #include <KoPointerEvent.h>
-#include <KoResourceServerProvider.h>
 #include <KoViewConverter.h>
 
 KisToolColorSampler::KisToolColorSampler(KoCanvasBase *canvas)

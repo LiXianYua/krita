@@ -8,7 +8,7 @@ kis_add_tests(
     TestColorSpaceRegistry.cpp
     TestLcmsRGBP2020PQColorSpace.cpp
     TestProfileGeneration.cpp
-    LINK_LIBRARIES kritawidgets kritapigment KF${KF_MAJOR}::I18n kritatestsdk ${LCMS2_LIBRARIES}
+    LINK_LIBRARIES kritapigment KF${KF_MAJOR}::I18n kritatestsdk ${LCMS2_LIBRARIES}
     )
 
 if (KRITA_USE_SURFACE_COLOR_MANAGEMENT_API)

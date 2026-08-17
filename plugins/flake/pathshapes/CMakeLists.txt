@@ -18,6 +18,6 @@ qt_add_resources(pathshapes_SOURCES pathshapes.qrc)
 
 kis_add_library(krita_shape_paths MODULE ${pathshapes_SOURCES})
 
-target_link_libraries(krita_shape_paths kritaflake kritawidgets)
+target_link_libraries(krita_shape_paths kritaflake)
 
 install(TARGETS krita_shape_paths  DESTINATION ${KRITA_PLUGIN_INSTALL_DIR})

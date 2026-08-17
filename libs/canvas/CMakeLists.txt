@@ -47,6 +47,7 @@ set(kritacanvas_LIB_SRCS
     kis_grid_config.cpp
     kis_guides_config.cpp
     kis_coordinates_converter.cpp
+    KoZoomHandler.cpp
     kis_display_filter.cpp
     kis_exposure_gamma_correction_interface.cpp
     kis_image_patch.cpp
@@ -88,7 +89,7 @@ target_link_libraries(kritacanvas
         kritainput
         kritalibpaintop
         kritasurfacecolormanagementapi
-        kritawidgets
+        kritawidgetutils
     PRIVATE
         KF${KF_MAJOR}::ConfigCore
 )

@@ -8,7 +8,6 @@ set(kritalibkis_LIB_SRCS
     Node.cpp
     Notifier.cpp
     Preset.cpp
-    Palette.cpp
     Swatch.cpp
     Resource.cpp
     Selection.cpp

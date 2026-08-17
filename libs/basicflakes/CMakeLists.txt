@@ -21,10 +21,10 @@ target_include_directories(kritabasicflakes
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/plugin>
 )
 
-target_link_libraries(kritabasicflakes 
+target_link_libraries(kritabasicflakes
     PUBLIC
-        kritawidgets
-        kritaflake 
+        kritawidgetutils
+        kritaflake
         kritapigment
 )
 

@@ -21,7 +21,6 @@
 #include <KoColorModelStandardIds.h>
 #include <KoColorProfile.h>
 #include <KoCompositeOpRegistry.h>
-#include <KoDialog.h>
 #include <kis_group_layer.h>
 #include <kis_iterator_ng.h>
 #include <kis_meta_data_backend_registry.h>

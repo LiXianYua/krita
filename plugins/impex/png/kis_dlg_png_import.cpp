@@ -5,6 +5,9 @@
  */
 #include "kis_dlg_png_import.h"
 
+#include <QDialogButtonBox>
+#include <QVBoxLayout>
+
 #include <KConfigGroup>
 #include <KSharedConfig>
 
@@ -16,13 +19,17 @@
 #include <KisSqueezedComboBox.h>
 
 KisDlgPngImport::KisDlgPngImport(const QString &path, const QString &colorModelID, const QString &colorDepthID, QWidget *parent)
-    : KoDialog(parent)
+    : QDialog(parent)
 {
-    setButtons(Ok);
-    setDefaultButton(Ok);
     QWidget *page = new QWidget(this);
     dlgWidget.setupUi(page);
-    setMainWidget(page);
+
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    layout->addWidget(page);
+
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok, this);
+    connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+    layout->addWidget(buttonBox);
 
     dlgWidget.lblFilename->setText(path);
 

@@ -9,7 +9,6 @@
 #include <QMenu>
 #include <QGuiApplication>
 #include "kis_guides_decoration.h"
-#include <KoRuler.h>
 #include "kis_guides_config.h"
 #include "kis_action_manager.h"
 #include "kis_action.h"

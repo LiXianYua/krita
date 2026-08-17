@@ -74,7 +74,6 @@ target_link_libraries(kritalibpaintop
         kritalibbrush
         kritaimage
     PRIVATE
-        kritawidgets
         kritawidgetutils
 )
 

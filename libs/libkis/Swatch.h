@@ -23,8 +23,6 @@ class KRITALIBKIS_EXPORT Swatch : public QObject
     Q_OBJECT
 
 private:
-    friend class Palette;
-    friend class PaletteView;
     Swatch(const KisSwatch &kisSwatch, QObject *parent = 0);
 public:
     explicit Swatch(QObject *parent = 0);
@@ -51,7 +49,6 @@ public Q_SLOTS:
     bool isValid() const;
 
 private:
-    friend class Palette;
     KisSwatch kisSwatch() const;
 
     struct Private;

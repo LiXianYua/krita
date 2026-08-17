@@ -20,7 +20,6 @@ add_definitions(${PNG_DEFINITIONS})
 target_link_libraries(kritapngimport
     PRIVATE
         kritaimpex
-        kritawidgets
         kritawidgetutils
         KF${KF_MAJOR}::ConfigCore
         Qt${QT_MAJOR_VERSION}::Widgets

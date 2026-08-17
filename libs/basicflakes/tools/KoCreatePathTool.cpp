@@ -20,7 +20,6 @@
 #include <KoColor.h>
 #include <KisHandlePainterHelper.h>
 #include "KoPathPointTypeCommand.h"
-#include <KisAngleSelector.h>
 
 #include <klocalizedstring.h>
 
@@ -570,26 +569,12 @@ QList<QPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
     angleSnap->setChecked(false);
     angleSnap->setCheckable(true);
 
-    KisAngleSelector *angleEdit = new KisAngleSelector(widget);
-    angleEdit->setObjectName("angle-edit-widget");
-    angleEdit->setAngle(d->angleSnappingDelta);
-    angleEdit->setRange(1, 360);
-    angleEdit->setDecimals(0);
-    angleEdit->setFlipOptionsMode(KisAngleSelector::FlipOptionsMode_MenuButton);
-    angleEdit->setEnabled(angleSnap->isChecked());
-
-    QHBoxLayout *angleEditLayout = new QHBoxLayout;
-    angleEditLayout->setContentsMargins(10, 0, 0, 0);
-    angleEditLayout->setSpacing(0);
-    angleEditLayout->addWidget(angleEdit);
-
     QVBoxLayout *mainLayout = new QVBoxLayout;
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(5);
 
     mainLayout->addWidget(smoothCurves);
     mainLayout->addWidget(angleSnap);
-    mainLayout->addLayout(angleEditLayout);
 
     widget->setLayout(mainLayout);
 
@@ -603,12 +588,7 @@ QList<QPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
             SIGNAL(sigUpdateAutoSmoothCurvesGUI(bool)),
             smoothCurves,
             SLOT(setChecked(bool)));
-    connect(angleEdit, SIGNAL(angleChanged(qreal)), this, SLOT(angleDeltaChanged(qreal)));
     connect(angleSnap, SIGNAL(stateChanged(int)), this, SLOT(angleSnapChanged(int)));
-    connect(angleSnap,
-            SIGNAL(toggled(bool)),
-            angleEdit,
-            SLOT(setEnabled(bool)));
 
     return list;
 }

@@ -9,8 +9,6 @@
 #include <simpletest.h>
 #include <QCoreApplication>
 
-#include <WidgetsDebug.h>
-
 #include "KoZoomHandler.h"
 #include "KoUnit.h"
 
