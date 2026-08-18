@@ -21,7 +21,7 @@ add_library(pkport STATIC
     PkEventSink.cpp
     PkResourceStorage.cpp
     PkFontProvider.cpp
-    ${PK_STRING_DIR}/PkStringData.cpp
+    ${PK_STRING_DIR}/PkStringCodec.cpp
     ${PK_STRING_DIR}/PkString_core.cpp
     ${PK_STRING_DIR}/PkString_query.cpp
     ${PK_STRING_DIR}/PkString_format.cpp
@@ -29,6 +29,7 @@ add_library(pkport STATIC
 target_include_directories(pkport PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PK_STRING_DIR}
+    ${PK_STRING_DIR}/../container
 )
 
 # Task 6（Q-5）：zip 从 QuaZip 换成 minizip-ng。这里**用**
