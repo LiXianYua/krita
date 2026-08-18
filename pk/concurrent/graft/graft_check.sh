@@ -29,8 +29,9 @@ check_pass() {
     fi
 }
 
-check_pass_syntax_only() {
-    # 与 check_pass 相同但允许失败：只验证语法/API 形状，不要求跑绿
+check_allowed_to_fail() {
+    # 与 check_pass 相同但允许失败——不是"只验证语法"（check_pass 本身也只做
+    # -fsyntax-only），区别只在于失败时不设 fail=1。
     local f="$1"
     local out
     out=$("$CXX" -std=c++17 -fsyntax-only "${INC[@]}" -I "$(dirname "$f")" "$f" 2>&1)
@@ -45,5 +46,5 @@ check_pass_syntax_only() {
 
 check_pass libs/global/KisUpgradeToWriteLocker.h
 check_pass libs/image/kis_lock_free_lod_counter.h
-check_pass_syntax_only libs/image/kis_updater_context.h
+check_allowed_to_fail libs/image/kis_updater_context.h
 exit $fail

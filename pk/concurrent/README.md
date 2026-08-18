@@ -13,13 +13,13 @@
 
 | # | Qt 用法 | §6.8 用量 | R-10 交付 | 备注 |
 |---|---|---|---|---|
-| 1 | `QMutex` 互斥锁 | 60 处 | `PkMutex::lock()` / `unlock()` / `try_lock()` | STL Lockable 概念兼容；Recursive 模式零调用点 |
+| 1 | `QMutex` 互斥锁 | 60 处 | `PkMutex::lock()` / `unlock()` / `try_lock()` / `tryLock()` | STL Lockable 概念兼容（`try_lock()`）+ Qt 驼峰式转发（`tryLock()`，final review C1c 补回，`libs/image/kis_image_animation_interface.cpp:499` 真实调用点）；Recursive 模式零调用点 |
 | 2 | `QMutexLocker` 互斥锁 RAII | 39 处 | `PkMutexLocker`（构造/析构/`unlock()`/`relock()`/`mutex()`） | RAII；`mutex()` 供 `PkWaitCondition::wait()` 场景 |
-| 3 | `QReadWriteLock` 读写锁 | 13 处 | `PkReadWriteLock::lockForRead()`/`lockForWrite()`/`unlock()` | 二者互斥；无 `tryLock*` 实现（保留范围内零调用点）|
+| 3 | `QReadWriteLock` 读写锁 | 13 处 | `PkReadWriteLock::lockForRead()`/`lockForWrite()`/`tryLockForRead()`/`tryLockForWrite()`/`unlock()`；构造接受 `RecursionMode`（`NonRecursive`/`Recursive`，仅前者有真实调用点） | 二者互斥；final review 更正：`tryLockFor*()` 此前误判为零调用点被删，已补回（`libs/image/tiles3` 三处） |
 | 4 | `QReadLocker` 读锁 RAII | 8 处 | `PkReadLocker`（构造/析构/`unlock()`/`relock()`/`readWriteLock()`） | RAII；`readWriteLock()` 供 relock-upgrade 模式 |
 | 5 | `QWriteLocker` 写锁 RAII | 6 处 | `PkWriteLocker`（构造/析构/`unlock()`/`relock()`/`readWriteLock()`） | RAII；同上 |
-| 6 | `QAtomicInt` 原子整数 | 30 处 | `PkAtomicInt::operator int()` / `operator=()` / `ref()` / `deref()` / `fetchAndAddOrdered()` / `fetchAndStoreOrdered()` / `testAndSetOrdered()` | 内存序判读见下表；ref/deref 返回"新值非零"语义 |
-| 7 | `QAtomicPointer<T>` 原子指针 | 15 处 | `PkAtomicPointer<T>::operator T*()` / `operator->()` / `operator=()` / `fetchAndStoreOrdered()` / `testAndSetOrdered()` | 内存序同上 |
+| 6 | `QAtomicInt` 原子整数 | 30 处 | `PkAtomicInt::operator int()` / `operator=()` / `ref()` / `deref()` / `fetchAndAddOrdered()` / `fetchAndStoreOrdered()` / `testAndSetOrdered()` / `loadAcquire()` / `storeRelease()` / `loadRelaxed()` / `storeRelaxed()` / `fetchAndAddRelaxed()` / `fetchAndAddAcquire()` | 内存序判读见下表；ref/deref 返回"新值非零"语义。后 6 个显式内存序方法系 final review I1 补齐 |
+| 7 | `QAtomicPointer<T>` 原子指针 | 15 处 | `PkAtomicPointer<T>::operator T*()` / `operator->()` / `operator=()` / `fetchAndStoreOrdered()` / `testAndSetOrdered()` / `loadAcquire()` / `storeRelease()` / `loadRelaxed()` / `storeRelaxed()` / `fetchAndAddRelaxed()` / `fetchAndAddAcquire()` | 内存序同上；后 6 个方法同 final review I1 补齐 |
 | 8 | `QThread::idealThreadCount()` | 2 处 | `PkThread::idealThreadCount()` | 静态方法 |
 | 9 | `QThreadPool` 线程池 | 5 处 | `PkThreadPool::start()` / `setMaxThreadCount()` / `maxThreadCount()` / `waitForDone()` | 通用固定线程数池；排队式 |
 | 10 | `QRunnable` 可运行任务 | 3 处 | `PkRunnable::run()` / `setAutoDelete()` / `autoDelete()` | 虚方法；`QThreadPool::start()` 接收其指针 |
@@ -57,6 +57,12 @@
 | `fetchAndAddOrdered()` | `m_refCount.fetchAndAddOrdered(-1)`（kis_stress_job.cpp） | 明确名字"Ordered" → 全同步化（seq_cst）| `memory_order_seq_cst` | 调用点显式要求 |
 | `fetchAndStoreOrdered()` | `old = m_p.fetchAndStoreOrdered(nullptr)`（kis_lockless_stack.h） | 明确名字"Ordered" → 全同步化（seq_cst） | `memory_order_seq_cst` | 调用点显式要求 |
 | `testAndSetOrdered()` | `while (!m_p.testAndSetOrdered(nullptr, new))`（kis_lockless_stack.h） | CAS 循环同步需求强，用 seq_cst | `memory_order_seq_cst` | 调用点显式要求；CAS 强序 |
+| `loadAcquire()` | `.loadAcquire()`（qsbr.h、kis_tile_data_store.h 等，final review I1） | 方法名直接点名 acquire | `memory_order_acquire` | 方法名即语义要求，机械映射 |
+| `storeRelease()` | `.storeRelease()`（KisTiledExtentManager.cpp 等，final review I1） | 方法名直接点名 release | `memory_order_release` | 同上 |
+| `loadRelaxed()` | `.loadRelaxed()`（KisTiledExtentManager.cpp 等，final review I1） | 方法名直接点名 relaxed | `memory_order_relaxed` | 同上 |
+| `storeRelaxed()` | `.storeRelaxed()`（KisTiledExtentManager.cpp、KisLazySharedCacheStorage.h:170 等，final review I1） | 方法名直接点名 relaxed | `memory_order_relaxed` | 同上 |
+| `fetchAndAddRelaxed()` | `.fetchAndAddRelaxed()`（KisTiledExtentManager.cpp，final review I1） | 方法名直接点名 relaxed；返回旧值同 fetchAndAddOrdered 约定 | `memory_order_relaxed` | 同上 |
+| `fetchAndAddAcquire()` | `.fetchAndAddAcquire()`（KisTiledExtentManager.cpp，final review I1） | 方法名直接点名 acquire；返回旧值同 fetchAndAddOrdered 约定 | `memory_order_acquire` | 同上 |
 | `PkWaitCondition::wait()` | 互斥锁保护的获取点 | 条件变量语义要求 acquire（入）release（出） | std::condition_variable_any（隐含） | std::库保证 |
 | `PkThreadPool` 队列 push/pop | 任务投递与获取 | 队列同步需 acquire-release | std::deque<> + std::mutex（隐含） | std::库保证 |
 | `PkSemaphore::tryAcquire()` | 计数等待 | 信号量同步需全序 | std::condition_variable_any（隐含）| std::库保证 |
@@ -68,14 +74,15 @@
 
 ## 3. 偏离清单（对齐口径下逐条登记）
 
-1. **`QReadWriteLock::tryLockForRead()` / `tryLockForWrite()` 不实现**：
-   保留范围内零调用点（见 `docs/Qt替代品选型.md` §6.8 的 Q-3 分析），实现成本无收益，Task 1 review 阶段已删除。
-
-2. **`QThread::moveToThread()` / `deleteLater()` / `QObject::thread()`**：
+1. **`QThread::moveToThread()` / `deleteLater()` / `QObject::thread()`**：
    见下表缺口登记的理由。
 
-3. **事件循环残余（`QTimer`/`QCoreApplication`/`processEvents` 等）**：
+2. **事件循环残余（`QTimer`/`QCoreApplication`/`processEvents` 等）**：
    见下表缺口登记的理由。
+
+> `QReadWriteLock::tryLockForRead()`/`tryLockForWrite()` 此前在这里被记成
+> "零调用点、不实现"——final review 核实这是假前提（`libs/image/tiles3` 三处
+> 真实调用点），已补回实现，不再是偏离项，见 §1 表格第 3 行。
 
 ## 4. 缺口登记表（两个大项，建议归口）
 
@@ -194,7 +201,9 @@ sem.release();                 // 计数+1，唤醒等待者
 ## 6. 怎么跑
 
 ```bash
-# 全量单测（CMake + Ninja + ccache，46 个测试函数）
+# 全量单测（CMake + Ninja + ccache，46 个测试函数——PkTest 报 56 条通过，
+# 含 mutex/rwlock/atomic/threadpool/semaphore 五套各 1 对 initTestCase/
+# cleanupTestCase 共 10 条）
 cd pk/concurrent && rm -rf build && cmake -S . -B build -G Ninja \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache && \
@@ -205,17 +214,24 @@ cd pk/concurrent && rm -rf build && cmake -S . -B build -G Ninja \
 ./pk/concurrent/graft/graft_check.sh
 
 # 判据③：替代品本体不得有 Qt 未定义符号
+# R-10 final review I3 修正：裸 `nm -u | grep -i qt` 对 Itanium 名字修饰后的
+# 符号基本失效（QString::number(int) 修饰后是 _ZN7QString6numberEi，小写化
+# 不含 "qt" 子串）。改用 -C 反修饰 + 匹配 Qt 类名/命名空间的实际形状。
 cd pk/concurrent
-nm -u build/libpkconcurrent.a 2>/dev/null | grep -i qt || echo "libpkconcurrent.a 无 Qt 未定义符号"
-nm -u build/test_pkconcurrent 2>/dev/null | grep -i qt || echo "test_pkconcurrent 无 Qt 未定义符号"
+QTSYM='(^|[^[:alnum:]_])(Q[A-Z][A-Za-z0-9_]*|qt_|Qt::)'
+nm -uC build/libpkconcurrent.a 2>/dev/null | grep -E "$QTSYM" || echo "libpkconcurrent.a 无 Qt 未定义符号"
+nm -uC build/test_pkconcurrent 2>/dev/null | grep -E "$QTSYM" || echo "test_pkconcurrent 无 Qt 未定义符号"
 ```
 
 ## 7. 试接中修掉的缺陷（Task 系列实录）
 
 各 Task 试接或实现时发现并修掉的库缺陷：
 
-1. **Task 1 (PkReadWriteLock)**：`tryLockForRead()`/`tryLockForWrite()` 删除
-   - 保留范围内零调用点，review 阶段判定为范围外，删除
+1. **Task 1 (PkReadWriteLock)**：`tryLockForRead()`/`tryLockForWrite()` 删除又补回
+   - Task 1 review 阶段以"保留范围内零调用点"为由删除
+   - **final review 更正**：该前提是假的——`libs/image/tiles3` 有 3 处真实调用点
+     （`kis_tile_data_store.cc:269`、`kis_tile_data.cc:210`、
+     `kis_tile_hash_table_p.h:423`），已补回实现，见 `PkReadWriteLock.h`
 
 2. **Task 2 (PkAtomicInt/PkAtomicPointer)**：`ref()`/`deref()` 语义修正
    - 真实调用点 `if (refCount.deref())` 需要"新值是否非零"，不是"是否成功"

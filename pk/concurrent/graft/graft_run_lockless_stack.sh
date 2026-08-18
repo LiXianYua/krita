@@ -20,12 +20,15 @@ mkdir -p "$WORK"
 
 # ---- 依赖静态库：缺了就地建（各库独立薄壳工程，产物落各自 build/）----
 build_lib() {
-    local dir="$1" lib="$2"
-    if [ ! -f "$dir/build/$lib" ]; then
-        echo "== 建 $dir =="
-        cmake -S "$dir" -B "$dir/build" -DCMAKE_BUILD_TYPE=Debug >/dev/null
-        cmake --build "$dir/build" -j"$(nproc)" >/dev/null
-    fi
+    # R-10 final review I2 修正：configure 只在 build 目录不存在时做（避免
+    # 重复 cmake -S/-B），但 `cmake --build` 每次都无条件跑——它是增量构建，
+    # 源码没变时近乎零成本；旧版把 build 挂在同一个 [ ! -f "$dir/build/$lib" ]
+    # 判断里，导致库的 .a 一旦存在过一次，之后改了该库源码重跑本脚本会静默
+    # 复用陈旧的预构建产物，而不是重新编译。
+    local dir="$1"
+    echo "== 建 $dir =="
+    [ -d "$dir/build" ] || cmake -S "$dir" -B "$dir/build" -DCMAKE_BUILD_TYPE=Debug >/dev/null
+    cmake --build "$dir/build" -j"$(nproc)" >/dev/null
 }
 build_lib pk/concurrent libpkconcurrent.a
 build_lib pk/container  libpkcontainer.a
@@ -125,13 +128,19 @@ LIBS=(
 echo "== 跑（stressTest* 系列有 500000x10 / 10000000x3 规模的循环，属预期耗时）=="
 "$WORK/kis_lockless_stack_test"
 
-echo "== nm -u 无 Qt 符号自证（判据③）=="
-undef=$(nm -u "$WORK/kis_lockless_stack_test" 2>/dev/null | grep -i qt || true)
+echo "== nm -uC 无 Qt 符号自证（判据③）=="
+# R-10 final review I3 修正：裸 `nm -u | grep -i qt` 对 Itanium 名字修饰后的
+# 符号基本失效——QString::number(int) 修饰后是 _ZN7QString6numberEi，
+# 小写化不含 "qt" 子串，grep 直接漏判。改用 -C 反修饰 + 匹配 Qt 类名/命名空间
+# 的实际形状：大写 Q 紧跟大写字母开头的标识符（QSomething）、qt_ 前缀的自由
+# 函数、或 Qt:: 命名空间引用。
+undef=$(nm -uC "$WORK/kis_lockless_stack_test" 2>/dev/null \
+    | grep -E '(^|[^[:alnum:]_])(Q[A-Z][A-Za-z0-9_]*|qt_|Qt::)' || true)
 if [ -n "$undef" ]; then
-    printf 'nm -u 产物里有 Qt 符号：\n%s\n' "$undef" >&2
+    printf 'nm -uC 产物里有 Qt 符号：\n%s\n' "$undef" >&2
     exit 1
 fi
-printf 'nm -u kis_lockless_stack_test | grep -i qt: 无输出\n'
+printf 'nm -uC kis_lockless_stack_test | grep -E Q类名/qt_/Qt::: 无输出\n'
 
 echo "== 源树零改动自证（libs/image/tiles3、libs/global）=="
 if ! git diff --quiet -- libs/image/tiles3 libs/global; then

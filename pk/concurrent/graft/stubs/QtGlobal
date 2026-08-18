@@ -4,7 +4,6 @@
 // 提供；本 graft 编译期用本文件当垫片，让 Q_ASSERT 宏有定义可用。
 //
 // 本文件纯属 graft 试接的编译期胶水，不是对 Krita 源树的改动，也不是最终交付物。
-// 决策 D-NN 承诺的交付范围不包括此文件。
 //
 // kis_debug.h:158 的 `#ifndef QT_NO_DEBUG #undef Q_ASSERT #define Q_ASSERT(...)`
 // 只在**没有**定义 QT_NO_DEBUG 时才重定义 Q_ASSERT——本仓库所有 graft 编译行
