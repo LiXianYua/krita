@@ -574,13 +574,15 @@ static void runStringListExtras()
 
             // replaceInStrings
             //
-            // tag 的谓词与 .deviation 的理由**逐字对照**（规则二）。理由是
-            // 「`before` 为空时替代品**原样返回**，Qt 在每个码元之间插 after」，
-            // 所以谓词必须同时要求两件事：
-            //   ① before 真的是空串（按**值**判，不是按 token 下标判）
-            //   ② 替代品这一侧真的**原样返回**了
-            // 少了 ②，将来某个 bug 让空 before 下返回别的东西，也会被这条白名单
-            // 罩住 —— 那正是 R-01 `toDouble/failure-value` 踩过的坑。
+            // R-23 之前，`before` 为空时替代品原样返回、Qt 则在每个码元之间插
+            // after，这是一条声明过的偏离。R-23 把它对齐了 Qt（`.deviation`
+            // 里那条声明已删）——所以下面 `pkUnchanged` / rshape 的
+            // `-before-empty-pk-unchanged` / `-before-empty-pk-changed` 三段
+            // 判别**不再是为了圈出一条已知偏离**，而是留作**回归探针**：现在
+            // `.deviation` 里没有 `replaceInStrings` 的任何条目，一旦将来某个
+            // bug 让空 before 又退回「原样返回」，`pkTag` 打出的 tag 就会是一个
+            // **未声明**的 DIFFTAG，`run_oracle.sh` 会把它报出来、拖红对拍
+            // ——这条 shape 拆分本身不删，是特意留着当哨兵的。
             for (int aft = 0; aft < kNTok; ++aft) {
                 const QString qbefore = PkMake<QString>::make(sepTok);
                 QStringList qr = q;
