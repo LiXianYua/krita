@@ -1,0 +1,48 @@
+#pragma once
+// libs/global/kis_assert.h 与（经 QT_NO_DEBUG 关掉的）kis_debug.h:158 那段都
+// 要 <QtGlobal>——KisCumulativeUndoData.cpp 经 `#include <kis_debug.h>` 传递
+// 引入这两个头。复用 pk/test/compat/QtGlobal 已经补的最小标量集（qAbs 等），
+// 本文件只加它没有的、这两个文件需要的几个：qint32 系列整数别名与
+// qt_noop()（KIS_ASSERT 系宏兜底分支要用，虽然本任务的驱动/被测代码都不
+// 触发这些宏，但宏定义本身要能展开成合法代码）。
+//
+// 不改 pk/test：那是另一个 Task 的交付物，这里只是多 include 一层。
+//
+// 内容与 pk/log/tests/graft/stubs/QtGlobal 完全一致（同一族脚手架，压的是
+// 同一段 kis_debug.h/kis_assert.h 头文件链，各 graft 任务各自持有一份自
+// 包含副本，不跨任务互相 -I）。路径是 4 层 "../"：本文件在
+// pk/config/tests/graft/stubs/，向上 4 层才到 pk/
+// （stubs→graft→tests→config→pk），再进 test/compat/QtGlobal
+// （pk/test/compat/QtGlobal，pk/config 与 pk/test 是兄弟目录）。
+#include "../../../../test/compat/QtGlobal"
+#include <cstdint>
+
+using qint32  = std::int32_t;
+using quint32 = std::uint32_t;
+using qint64  = std::int64_t;
+using quint64 = std::uint64_t;
+using qreal   = double;
+
+inline void qt_noop() {}
+
+#ifndef Q_DECL_HIDDEN
+#define Q_DECL_HIDDEN __attribute__((visibility("hidden")))
+#endif
+
+// kis_debug.h:158 的 `#ifndef QT_NO_DEBUG #undef Q_ASSERT #define Q_ASSERT(...)`
+// 只在**没有**定义 QT_NO_DEBUG 时才重定义 Q_ASSERT——本任务的编译行统一带
+// -DQT_NO_DEBUG（理由见 pk/log/tests/graft/kis_debug_build.sh），那段重定义
+// 永远不激活，所以 Q_ASSERT 必须先有一份"基础版"存在，真 Qt 里这份基础版由
+// qglobal.h 提供。这里按 QT_NO_DEBUG 语义复刻：release 分支是空操作，debug
+// 分支退化到标准 assert()。
+#ifdef QT_NO_DEBUG
+#define Q_ASSERT(cond) qt_noop()
+#define Q_ASSERT_X(cond, where, what) qt_noop()
+#else
+#include <cassert>
+#define Q_ASSERT(cond) assert(cond)
+#define Q_ASSERT_X(cond, where, what) assert(cond)
+#endif
+
+#define Q_UNUSED(x) (void)(x)
+#define Q_INLINE_TEMPLATE inline
