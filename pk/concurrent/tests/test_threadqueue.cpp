@@ -278,6 +278,17 @@ void PkThreadCallQueueSelfTest::testProcessPendingCallsContinuesAfterExceptionIn
 {
     // processPendingCalls() 批量执行时，某一个调用抛异常，验证同批次其余
     // 调用仍然被执行（不是被跳过）。
+    //
+    // 预热（final whole-branch review round 2 re-review 指出：本测试之前
+    // 靠同一可执行文件里更早跑过的 testPostDefersToTargetThreadPump 顺带
+    // 完成预热才通过，单独按名过滤跑这个测试会失败——不是本测试自己的
+    // 独立保证）。理由与 testPostDefersToTargetThreadPump 顶部注释相同：
+    // NEW-I1 修复后"首次触达清空陈旧条目"只在 processPendingCalls() 里判定，
+    // 下面"先 post 三条、再 processPendingCalls()"必须先消耗掉这次性判定，
+    // 否则三条都会被当成陈旧条目一并清空，而不是走到本测试要验证的异常
+    // 处理逻辑。
+    PkThreadCallQueue::processPendingCalls();
+
     PkThreadId me = PkThread::currentThreadId();
     std::atomic<int> before{0};
     std::atomic<int> after{0};

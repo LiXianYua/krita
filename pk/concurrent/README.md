@@ -152,13 +152,21 @@ I-3）。全仓 `pk/` 之外零 pump 调用点，第一个跨线程投递的消�
 和"合法投给我、只是我还没来得及第一次 pump"。结果：任何人在目标线程第一次
 `processPendingCalls()` 之前投给它的调用，都有被当成陈旧条目一并丢弃的
 风险——**不是必然发生，是一个启动期竞态**（final whole-branch review
-NEW-I2；本仓 `pk/concurrent`/`pk/signal` 两边的既有跨线程测试都靠这条预热
-规避）。要保证"第一批投递一定送达"，目标线程应该在把自己的线程 id 发布给
-任何人之前，先调用一次 `processPendingCalls()`（此时队列必然为空，是无害
-no-op）。不预热的后果因入口不同而不同：`post()` 投的调用被丢弃时是静默
-降级，不报错、不崩溃；`postBlocking()` 投的调用被丢弃时，发射线程会被正常
-唤醒（不会永久挂起）但收到 `PkCallAbandonedException`，调用方能感知到"这次
-调用被丢弃"（final whole-branch review NEW-C1）。详见
+NEW-I2；本仓 `pk/concurrent`/`pk/signal` 两边的既有跨线程测试基本靠这条预热
+规避——其中一个是靠同一可执行文件里更早跑过的另一个测试顺带完成预热，不是
+自己独立预热，final whole-branch review round 2 re-review 指出过这条不够
+严谨的地方，尚未收敛成通用写法，读这两份测试时留意）。要保证"第一批投递
+一定送达"，目标线程应该在把自己的线程 id 发布给任何人之前，先调用一次
+`processPendingCalls()`（此时队列必然为空，是无害 no-op）。不预热的后果
+因入口不同而不同：`post()` 投的调用被丢弃时是静默降级，不报错、不崩溃；
+`postBlocking()` 投的调用**在目标线程第一次触达队列系统时被当成陈旧条目
+丢弃**，或者**目标线程至少 pump 过一次之后正常退出**，这两种情况下发射
+线程都会被正常唤醒（不会永久挂起）、收到 `PkCallAbandonedException`
+（final whole-branch review NEW-C1）。**但目标线程如果从头到尾一次都没
+调用过 `processPendingCalls()`/`post()`/`pendingCount()` 任何入口就退出，
+`postBlocking()` 仍然会永久挂起发射线程**——这与 Qt 同线程
+`BlockingQueuedConnection` 死锁是同一类已接受风险，本原语同样不做防护，
+"预热"因此不是可选的性能优化，是避免这条永久挂起路径的唯一手段。详见
 `PkThreadCallQueue.h` 类头注释。
 
 **统计口径**：按 `docs/Qt替代品选型.md` §6.8 的原始扫描结果；合计约 172 处（按 Q-8 原始表）。

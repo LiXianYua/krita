@@ -236,6 +236,19 @@ void PkObject::activateSignal(PkObject* sender, PkMemberFnKey key, Args... args)
     // emit 中 disconnect 安全：disconnect 只把 state->alive 置 false，activateSignal
     // 遍历时跳过 dead，因此当前 emit 的其余连接不受迭代失效影响。
     // 按值把 args 传给每个槽（fn 签名按值收参，每槽各得一份拷贝）。
+    //
+    // ⚠ BlockingQueued 分支会抛异常、可能中断本次 emit（final whole-branch
+    // review round 2 re-review 发现）：下面 `PkThreadCallQueue::postBlocking`
+    // 在目标调用被丢弃（未曾执行）时会抛 `PkCallAbandonedException`（详见
+    // PkThreadCallQueue.h 类头注释「预热」段），这里没有 try/catch 兜底，
+    // 异常会直接逃出 `activateSignal`、逃出 `emit`——同一次 emit 里排在
+    // 这条 BlockingQueued 连接*之后*的其余连接不会再被分派（部分投递）。
+    // 这是与 Qt 的一处已知行为分歧：Qt 的 `emit` 从不抛异常。相对本任务
+    // 修复前的状态（同样场景下发射线程永久挂起）是改善，但决策 4 提到的
+    // 8 处真实 `BlockingQueuedConnection` 调用点周围的 Krita 代码没有任何
+    // 异常安全假设——S 批次真正接上这条路径时，如果目标线程没有遵守
+    // PkThreadCallQueue.h 里的"预热"契约，`emit` 可能抛出，调用方需要
+    // 自行决定要不要 try/catch。
 
     // Task 3：emit 栈（thread_local）。进入时 push sender、离开时 RAII 守卫 pop，
     // sender() 读栈顶（嵌套 emit 返回最内层）。守卫保证槽抛异常时栈不残留，

@@ -12,14 +12,21 @@
 // - post() 即使 target 是调用者自己所在的线程，也不会立即执行（探针实验6：
 //   显式 Queued 不因同线程而折叠成 Direct）
 // - postBlocking() 阻塞调用线程直到 target 线程执行完这次调用、或者这次
-//   调用被丢弃（未曾执行）为止（探针实验3）——target 线程从此再也不调用
-//   processPendingCalls() 就退出、或者这次调用在 target 线程第一次触达
-//   队列系统时被当成陈旧条目清空（见下方 ⚠ 段落），都不会让调用方永久
-//   挂起：这两条路径都保证 release 发射线程，只是调用方随后会收到
-//   PkCallAbandonedException 而不是"装作正常执行完成"（final whole-branch
-//   review NEW-C1，修复前存在真实的永久挂起 bug）。这与 Qt 同线程
-//   BlockingQueuedConnection 会死锁不是同一类风险——本原语这里不会挂起，
-//   见 PkObject.h 里 activateSignal 的 dispatch 说明（「设计决定 4」）
+//   调用被丢弃（未曾执行）为止（探针实验3）——这次调用在 target 线程第一次
+//   触达队列系统时被当成陈旧条目清空（见下方 ⚠ 段落），或者 target 线程在
+//   至少 pump 过一次之后正常退出（析构清理登记），这两条路径都保证 release
+//   发射线程：调用方随后会收到 PkCallAbandonedException 而不是"装作正常
+//   执行完成"（final whole-branch review NEW-C1，修复前存在真实的永久挂起
+//   bug，这两条路径已修好）。
+//   ⚠ **仍然会永久挂起的一条路径**：target 线程如果从头到尾一次都没调用过
+//   `processPendingCalls()`/`post()`/`pendingCount()` 就退出（不是"调用过
+//   一次之后不再调用"，是"从来没碰过这套队列系统的任何入口"），投给它的
+//   `postBlocking()` 调用没有任何登记可以触发清理，会永久阻塞发射线程——
+//   这与 Qt 同线程 BlockingQueuedConnection 会死锁是同一类风险（把调用
+//   投给一个根本不打算处理它的线程，是调用方的误用，不是原语的缺陷），
+//   本原语同样不做防护，见 PkObject.h 里 activateSignal 的 dispatch 说明
+//   （「设计决定 4」）。这条与"预热"契约（见下方 ⚠ 段落）是同一个要求：
+//   target 线程必须先调用过一次 processPendingCalls() 才安全。
 //
 // ⚠ 投递到某个线程的调用不会自动执行，该线程必须自己调用
 // processPendingCalls()（或未来某个封装它的机制）来抽干队列——不这么做，

@@ -80,9 +80,16 @@ static bool disconnect(const PkObject* sender, std::nullptr_t,
    `pk/concurrent/README.md`）。**决策 4 提到的 8 处真实
    `BlockingQueuedConnection` 调用点**（工作线程 → GUI 线程单向送调用）
    接入时，GUI 线程侧要保证在被工作线程知道自己的 id 之前先调用过一次
-   `processPendingCalls()`——不遵守这条，后果不是挂起（`postBlocking()`
-   丢弃时会正确唤醒发射线程、抛 `PkCallAbandonedException`，见 NEW-C1），
-   而是这次调用被悄悄丢弃、槽函数没有被执行。
+   `processPendingCalls()`——遵守这条前提下，"预热之前投递"的后果不是
+   永久挂起：`postBlocking()` 丢弃这次调用时会正确唤醒发射线程、抛
+   `PkCallAbandonedException`（见 NEW-C1），Queued 的等价后果是槽函数被
+   悄悄丢弃、不执行、不报错。**但如果 GUI 线程从头到尾一次都没调用过
+   `processPendingCalls()`/`post()`/`pendingCount()` 就退出（不是"预热
+   之后不再调用"，是"从来没碰过这套队列系统的任何入口"），`postBlocking()`
+   仍然会永久挂起发射线程**——这与 Qt 同线程 `BlockingQueuedConnection`
+   死锁是同一类已接受风险（详见 `pk/concurrent/PkThreadCallQueue.h` 类头
+   注释），本原语同样不做防护。"预热"不是可选的优化，是避免这条永久挂起
+   路径的唯一手段。
 2. **receiver 析构只 `disconnectAllIncoming` 清自己的 `m_incoming`，不从 sender 的 `m_outgoing` 摘除** → dead 条目与悬垂 receiver 裸指针滞留（无 UB，emit 靠共享 state 的 alive 跳过、不触碰 receiver 内存；类内未解引用 receiver 指针）。性能不预先优化，M0 benchmark 再判是否加 sender 反向指针做 eager 摘除。
 3. **`BlockingQueued` 分支存在窄场景的跨线程迭代失效风险，已知限制、暂不处理**：`activateSignal` 遍历 `sender->m_outgoing` 时，若某条目是 `BlockingQueued`，发射线程会阻塞在 `PkThreadCallQueue::postBlocking` 里等目标线程执行完槽函数；如果那个槽函数反过来对同一个 sender 做 `connect()`（可能触发 `m_outgoing` 的 vector 扩容重分配）或者再次 emit，会与发射线程正在用的 for 循环迭代器产生跨线程的迭代失效。场景很窄（需要槽函数反向操作自己正阻塞等待的 sender），保留范围内的真实 `BlockingQueuedConnection` 调用点（决策 4 提到的 8 处）均是单向"工作线程→GUI 线程"送调用，不构成这种反向操作。真要修需要"遍历前先拍一份 `m_outgoing` 快照"这类更大的结构改动，超出 R-24 Task 3 这轮修复的合理范围，评审判定登记为已知限制、不在本轮处理。
 
