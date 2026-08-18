@@ -11,8 +11,8 @@ INC=(
     -include pk/concurrent/compat/QWriteLocker
     -include pk/concurrent/compat/QAtomicInt
     -include pk/concurrent/compat/QAtomicPointer
-    -include pk/concurrent/compat/QtCore/qassert.h
-    -I pk/concurrent/compat -I pk/concurrent -I pk/concurrent/compat/QtCore
+    -include pk/concurrent/graft/stubs/QtGlobal
+    -I pk/concurrent/compat -I pk/concurrent -I pk/concurrent/graft/stubs
 )
 fail=0
 

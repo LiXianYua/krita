@@ -1,0 +1,26 @@
+#pragma once
+// kis_lock_free_lod_counter.h（仅在 graft 试接时加载）内部调用 Q_ASSERT，而该文件
+// 只 #include <QAtomicInt>，不包含 <QtGlobal>。真 Qt 环境下 Q_ASSERT 由 qglobal.h
+// 提供；本 graft 编译期用本文件当垫片，让 Q_ASSERT 宏有定义可用。
+//
+// 本文件纯属 graft 试接的编译期胶水，不是对 Krita 源树的改动，也不是最终交付物。
+// 决策 D-NN 承诺的交付范围不包括此文件。
+//
+// kis_debug.h:158 的 `#ifndef QT_NO_DEBUG #undef Q_ASSERT #define Q_ASSERT(...)`
+// 只在**没有**定义 QT_NO_DEBUG 时才重定义 Q_ASSERT——本仓库所有 graft 编译行
+// 统一带 -DQT_NO_DEBUG，那段重定义永远不激活，所以 Q_ASSERT 必须先有一份"基础版"
+// 存在，真 Qt 里这份基础版由 qglobal.h 提供。这里按 QT_NO_DEBUG 语义复刻：
+// release 分支是空操作，debug 分支退化到标准 assert()（不是 Qt 真实的
+// qt_assert()/qt_assert_x() 那两个要单独实现的符号——本仓库所有编译行都带
+// QT_NO_DEBUG，debug 分支实际不会被编译到，留着只是让宏在语义上完整）。
+
+inline void qt_noop() {}
+
+#ifdef QT_NO_DEBUG
+#define Q_ASSERT(cond) qt_noop()
+#define Q_ASSERT_X(cond, where, what) qt_noop()
+#else
+#include <cassert>
+#define Q_ASSERT(cond) assert(cond)
+#define Q_ASSERT_X(cond, where, what) assert(cond)
+#endif
