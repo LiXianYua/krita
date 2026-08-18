@@ -960,8 +960,14 @@ Task 各自的完整实施报告在 `.superpowers/sdd/R-25/task-{1,2,3}-report.m
   循环 `reader->readNext()`，按 `tokenType()` 建 `createElement()`/
   `createTextNode()` 并挂树。真实调用点所在测试家族
   （`TestSvgParser.cpp`/`TestSvgText.cpp`）在 R-07 Task 4 已判定"依赖闭包
-  巨大，拒绝"，本任务未重新挑战，改用形状对齐的内部往返测试自证（不是
-  规避判据，是照抄 R-07 Task 4 自己承认过一次的同款弱点处理方式）。
+  巨大，拒绝"，本任务未重新挑战，改用形状对齐的内部往返测试自证。**订正**
+  （全分支终审复核发现）：这**不是**"照抄 R-07 Task 4 的同款处理方式"——
+  R-07 Task 4 撞墙候选的实际处理是**直接拒绝、登记缺口**（§8 表格），没有
+  发明"复刻调用形状的替代驱动"这种新证据形态；本任务（含 12.1 候选 C、
+  这里、12.3 候选 E）三处撞墙后都改用了这个新证据层级，是否等价满足
+  `R线-spec.md` 判据②要求的"真实测试类跑绿"（spec 原文 `:65` 明确"乙类
+  试接必须真的跑绿"，未把"复刻形状的内部 driver"列为降级路径），是本次
+  收尾提交给人工裁决的问题，见 `docs/superpowers/plans/R-25.md` 收尾说明。
 - **`setContent(const PkByteArray&, ...)`——只声明不定义**：`QByteArray`
   是真 Qt 类型，`pk/container/` 没有 `QByteArray` compat 映射（`PkByteArray`
   归 R-02，尚未交付），本任务 `locks` 只有 `pk/xml`，不能去
@@ -1010,6 +1016,30 @@ Task 各自的完整实施报告在 `.superpowers/sdd/R-25/task-{1,2,3}-report.m
 
 ### 12.4 验证
 
-`nm -u -C build/libpkxml.a | grep -i qt` 三个 Task 各自验证均无输出。
-`test_pkxml` 从 R-07 交付的 46 个用例累计到 **59 passed, 0 failed, 0
-skipped**（Task 1 +4、Task 2 +5、Task 3 +8）。
+`nm -u -C build/libpkxml.a | grep -i qt` 三个 Task + 全分支评审修复各自验证
+均无输出。`test_pkxml` 从 R-07 交付的 46 个用例累计到 **60 passed, 0
+failed, 0 skipped**（Task 1 +4、Task 2 +5、Task 3 +8、全分支评审修复 +1
+回归测试）。
+
+### 12.5 全分支评审：两条已修复的 Important bug，一条留给人工裁决的判据②问题
+
+全分支终审（`superpowers:requesting-code-review`，四路独立并行核查，结论
+"Ready to merge: With fixes"）发现并已修复两条 Important 级 bug：
+
+1. **`importNode()` 对属性节点无防御**：`isNull()` 对 `Kind::Attr` 节点只查
+   `!_attr`，`pkRawNode()` 对属性节点返回的是属主元素而非属性本体——不挡住
+   会把整个属主元素静默当"导入的属性"塞进 limbo。已补 `isAttr()` 短路
+   检查（`PkXmlDocument.cpp`）。7 处真实调用点未触达此路径，不影响判据②。
+2. **`pkXmlAdjustTextOffsetToContentEnd` 用解码后长度算原始偏移**：改前是
+   `contentStart + std::strlen(pugi::xml_node::value())`——`value()` 是
+   pugixml 解码后的内容（`parse_default` 默认含 `parse_escapes`/
+   `parse_eol`），只要文本含实体引用或源文件用 CRLF，算出的 offset 就会
+   落在原始文本中间。已改成从 `contentStart` 在原始缓冲区里向后扫到下一个
+   字面 `<`（XML 语法保证文本内容不会出现未转义的 `<`，天然是原始字节
+   结尾）。已补回归测试（`<r>x&amp;y</r>` 场景，`test_node.cpp`）钉住这条。
+   34 处真实调用点全部作用于元素节点，未触达此路径，不影响判据②。
+
+第三条是判据②本身的证据强度问题，**未由评审单方面判定**，见 12.2 订正段
+——留给人工裁决三处 graft 形状复刻（候选 C/D/E）是否等价满足
+`R线-spec.md` 判据②，还是应该按 R-07 Task 4 的真实先例改记"缺口，指名
+待后续任务补"。
