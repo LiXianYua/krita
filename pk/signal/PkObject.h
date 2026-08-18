@@ -6,6 +6,7 @@
 #include <utility>
 #include "PkConnection.h"
 #include "PkConnect.h"
+#include "../concurrent/PkThread.h"
 
 // QObject 的替代：父子树 + 生命周期 + （Task 2 起）信号连接。
 // 无元对象、无字符串表、无属性系统——那三样在 Q-1 §6.1 的用量表里都是零或
@@ -21,6 +22,17 @@ public:
 
     PkObject* parent() const { return m_parent; }
     const std::vector<PkObject*>& children() const { return m_children; }
+
+    // 线程亲和性：QObject::thread()/moveToThread() 的替代。默认等于构造该
+    // 对象的线程；moveToThread() 只改写这个标记（纯簿记，不触发任何唤醒/
+    // 通知动作）——24 处真实调用点实测全部只是"确保后续排队投递落在正确
+    // 线程"，从不依赖"moveToThread 之后有什么东西立刻开始跑"。
+    // 线程安全约束与 Qt 一致：只应该从该对象*当前*所在的线程调用
+    // moveToThread()（Qt 官方文档明确要求），本类不做额外加锁保护——
+    // 真实调用点全部满足这条（`this->moveToThread(...)`/`obj->moveToThread(...)`
+    // 都是在 obj 自己的构造线程或已知安全的时机调用）。
+    PkThreadId thread() const { return m_thread; }
+    void moveToThread(PkThreadId id) { m_thread = id; }
 
     // ---- 连接（同步直连）----
     // 成员函数指针 → 成员函数指针
@@ -104,6 +116,9 @@ private:
 
     // QPointer 存活标志（析构置 false）。
     std::shared_ptr<std::atomic<bool>> m_alive;
+
+    // 线程亲和性标记，构造时初始化为当前线程。
+    PkThreadId m_thread = PkThread::currentThreadId();
 
     // 连接列表：条目由 sender 和 receiver 双方各持一份（同一个 shared_ptr state 关联）。
     std::vector<ConnectionEntry> m_outgoing;   // this 作为 sender

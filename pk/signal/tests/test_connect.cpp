@@ -1,5 +1,6 @@
 #include "../PkObject.h"
 #include "../PkConnect.h"
+#include "../../concurrent/PkThread.h"
 #include "test_util.h"
 
 namespace {
@@ -201,5 +202,15 @@ void run_connect_tests()
         _expect(h.isValid(), "handle isValid before disconnect");
         PkObject::disconnect(h);
         _expect(!h.isValid(), "handle isValid false after disconnect (Qt semantics)");
+    }
+
+    // 13. thread() 默认等于构造它的线程；moveToThread() 改写这个标记
+    {
+        Sender s;
+        _expect(s.thread() == PkThread::currentThreadId(), "thread() defaults to the constructing thread");
+        PkThreadId fakeOther{};   // 默认构造的 id，不等于任何真实线程
+        s.moveToThread(fakeOther);
+        _expect(s.thread() == fakeOther, "moveToThread() reassigns the affinity tag");
+        _expect(s.thread() != PkThread::currentThreadId(), "affinity no longer matches the current thread after moveToThread");
     }
 }

@@ -12,6 +12,12 @@ add_library(pksignal STATIC
 )
 target_include_directories(pksignal PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+set(PKCONCURRENT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../concurrent)
+if (NOT TARGET pkconcurrent)
+    add_subdirectory(${PKCONCURRENT_DIR} ${CMAKE_BINARY_DIR}/pkconcurrent)
+endif()
+target_link_libraries(pksignal PUBLIC pkconcurrent)
+
 # Task 4：信号生成器产物。test_generator.cpp 需要生成器从自测输入生成的
 # gen_signals.inc（信号成员函数定义，必须进该 TU）。custom_command 用 Python3
 # 调 pk_signal_moc.py，让 CMake 从头构建也能拿到产物——这是「形态自证」，
