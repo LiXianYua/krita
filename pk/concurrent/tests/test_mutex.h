@@ -8,6 +8,7 @@ class TestMutex : public QObject
 private Q_SLOTS:
     void lockUnlock();
     void tryLock();
+    void tryLockCamelCase();
     void mutexLockerRaii();
     void mutexLockerUnlockRelock();
     void mutexLockerMutexAccessor();

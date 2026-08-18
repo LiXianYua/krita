@@ -2,6 +2,7 @@
 #include "../PkMutex.h"
 #include <thread>
 #include <vector>
+#include <atomic>
 
 void TestMutex::lockUnlock()
 {
@@ -16,6 +17,26 @@ void TestMutex::tryLock()
     PkMutex m;
     PK_VERIFY(m.try_lock());
     m.unlock();
+}
+
+void TestMutex::tryLockCamelCase()
+{
+    // 真实调用点 libs/image/kis_image_animation_interface.cpp:499 用驼峰式
+    // tryLock()（Qt 语义），验证成功/失败两种情况，正面证明它是
+    // try_lock() 的转发，而不是一个空壳。
+    PkMutex m;
+    PK_VERIFY(m.tryLock());
+    m.unlock();
+
+    std::atomic<bool> contenderSucceeded{false};
+    {
+        PkMutexLocker locker(&m);
+        std::thread t([&]{
+            contenderSucceeded.store(m.tryLock());
+        });
+        t.join();
+    }
+    PK_VERIFY(!contenderSucceeded.load());
 }
 
 void TestMutex::mutexLockerRaii()

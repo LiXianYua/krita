@@ -235,6 +235,68 @@ void TestReadWriteLock::upgradeReadToWrite()
     readLocker.relock();
 }
 
+void TestReadWriteLock::tryLockForReadWriteWhenFree()
+{
+    PkReadWriteLock lock;
+    PK_VERIFY(lock.tryLockForRead());
+    lock.unlock();
+    PK_VERIFY(lock.tryLockForWrite());
+    lock.unlock();
+}
+
+void TestReadWriteLock::tryLockForWriteFailsWhenReadHeld()
+{
+    PkReadWriteLock lock;
+    lock.lockForRead();
+
+    // Non-blocking attempt from another thread: must fail immediately
+    // (not block) while a reader holds the lock. Real cross-thread
+    // contention, not a same-thread self-check.
+    std::atomic<bool> writerSucceeded{false};
+    std::thread t([&]{
+        writerSucceeded.store(lock.tryLockForWrite());
+    });
+    t.join();
+
+    PK_VERIFY(!writerSucceeded.load());
+
+    lock.unlock();
+
+    // Once released, a fresh non-blocking attempt must succeed.
+    PK_VERIFY(lock.tryLockForWrite());
+    lock.unlock();
+}
+
+void TestReadWriteLock::tryLockForReadFailsWhenWriteHeld()
+{
+    PkReadWriteLock lock;
+    lock.lockForWrite();
+
+    std::atomic<bool> readerSucceeded{false};
+    std::thread t([&]{
+        readerSucceeded.store(lock.tryLockForRead());
+    });
+    t.join();
+
+    PK_VERIFY(!readerSucceeded.load());
+
+    lock.unlock();
+
+    PK_VERIFY(lock.tryLockForRead());
+    lock.unlock();
+}
+
+void TestReadWriteLock::recursionModeConstructorAcceptsNonRecursive()
+{
+    // 真实调用点（kis_tile_hash_table_p.h:17,30）唯一传的取值就是
+    // NonRecursive；这里验证构造后锁本身仍然正常可用。
+    PkReadWriteLock lock(PkReadWriteLock::NonRecursive);
+    lock.lockForWrite();
+    lock.unlock();
+    PK_VERIFY(lock.tryLockForRead());
+    lock.unlock();
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_rwlock.inc"

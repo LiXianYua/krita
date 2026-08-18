@@ -16,4 +16,8 @@ private Q_SLOTS:
     void multipleReaders();
     void writeLockExclusivity();
     void upgradeReadToWrite();
+    void tryLockForReadWriteWhenFree();
+    void tryLockForWriteFailsWhenReadHeld();
+    void tryLockForReadFailsWhenWriteHeld();
+    void recursionModeConstructorAcceptsNonRecursive();
 };
