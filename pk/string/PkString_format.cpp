@@ -327,6 +327,20 @@ PkString PkString::arg(const PkString& a, const PkString& b) const
     return r;
 }
 
+// 三参形式**同时**替换，与双参版本同一套机制——不是 arg(a).arg(b).arg(c)。
+// 真实调用点：libs/global/kis_assert.cpp:120、
+// libs/flake/text/KoFFWWSConverter.cpp:193。
+PkString PkString::arg(const PkString& a, const PkString& b, const PkString& c) const
+{
+    std::vector<const std::vector<char16_t>*> args;
+    args.push_back(&a._cbuf());
+    args.push_back(&b._cbuf());
+    args.push_back(&c._cbuf());
+    PkString r;
+    r._data() = pkSubstitute(_cbuf(), args, {false, false, false}, {});
+    return r;
+}
+
 PkString PkString::arg(int v) const
 {
     char tmp[32];

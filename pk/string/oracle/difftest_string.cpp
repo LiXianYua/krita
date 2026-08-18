@@ -189,6 +189,20 @@ constexpr int kNDblTok = sizeof(kDblTok) / sizeof(kDblTok[0]);
 const char* const kArg2FmtTok[] = {"%1-%2", "%2-%1", "%1 %1 %2", "%0-%1-%2", "no placeholder"};
 constexpr int kNArg2FmtTok = sizeof(kArg2FmtTok) / sizeof(kArg2FmtTok[0]);
 
+// 三参字符串版 arg(a,b,c) 的格式串：按位置、乱序编号、重复编号、真实调用点
+// 形态（kis_assert.cpp:120）各覆盖一条，另加无占位符对照组。
+const char* const kArg3FmtTok[] = {
+    "%1-%2-%3", "%3-%1-%2", "%1-%1-%2",
+    "ASSERT failure in %1: \"%2\" (%3)", "no placeholder",
+};
+constexpr int kNArg3FmtTok = sizeof(kArg3FmtTok) / sizeof(kArg3FmtTok[0]);
+
+// 三参实参用 kStrTok 的代表性子集（空串/ASCII/空白/占位符样式文本/非 ASCII/
+// 代理对），而不是 13^3 全组合——覆盖面已含关键形态，运行时间可控（R-13 补充
+// 任务的权衡取舍）。
+const int kArg3TokIdx[] = {0, 1, 4, 6, 9, 11};
+constexpr int kNArg3TokIdx = sizeof(kArg3TokIdx) / sizeof(kArg3TokIdx[0]);
+
 int pkResolveIdx(int code, int n)
 {
     if (code == 900) return n;
@@ -338,6 +352,20 @@ void diffArg2(const char* fmt, const char* a, const char* b)
     const std::string tag = pkClassifyFmt(fmt) + "/a-empty=" + (std::string(a).empty() ? "1" : "0")
                            + "/b-empty=" + (std::string(b).empty() ? "1" : "0");
     rec("arg2", same, tag, std::string(fmt) + "<-" + a + "," + b, esQ(qr), esP(pr));
+}
+
+void diffArg3(const char* fmt, const char* a, const char* b, const char* c)
+{
+    QString qf = QString::fromUtf8(fmt), qa = QString::fromUtf8(a), qb = QString::fromUtf8(b),
+            qc = QString::fromUtf8(c);
+    PkString pf(fmt), pa(a), pb(b), pc(c);
+    QString qr = qf.arg(qa, qb, qc);
+    PkString pr = pf.arg(pa, pb, pc);
+    const bool same = (esQ(qr) == esP(pr));
+    const std::string tag = pkClassifyFmt(fmt) + "/a-empty=" + (std::string(a).empty() ? "1" : "0")
+                           + "/b-empty=" + (std::string(b).empty() ? "1" : "0")
+                           + "/c-empty=" + (std::string(c).empty() ? "1" : "0");
+    rec("arg3", same, tag, std::string(fmt) + "<-" + a + "," + b + "," + c, esQ(qr), esP(pr));
 }
 
 void diffAppend(const char* baseIn, const char* otherIn)
@@ -525,6 +553,18 @@ int main()
         for (int a = 0; a < kNStrTok; ++a) {
             for (int b = 0; b < kNStrTok; ++b) {
                 diffArg2(kArg2FmtTok[fi], kStrTok[a], kStrTok[b]);
+            }
+        }
+    }
+
+    // arg(a,b,c) 三参字符串版：格式串 × 代表性实参子集三三组合（R-13 补充）
+    for (int fi = 0; fi < kNArg3FmtTok; ++fi) {
+        for (int ai = 0; ai < kNArg3TokIdx; ++ai) {
+            for (int bi = 0; bi < kNArg3TokIdx; ++bi) {
+                for (int ci = 0; ci < kNArg3TokIdx; ++ci) {
+                    diffArg3(kArg3FmtTok[fi], kStrTok[kArg3TokIdx[ai]], kStrTok[kArg3TokIdx[bi]],
+                             kStrTok[kArg3TokIdx[ci]]);
+                }
             }
         }
     }

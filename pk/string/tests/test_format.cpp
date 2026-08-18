@@ -89,6 +89,22 @@ void run_format_tests()
     _expect(PkString("%1|%2").arg(PkString("%2"), PkString("z")) == PkString("%2|z"),
             "two-argument arg substitutes simultaneously, not sequentially");
 
+    // 三参形式（真实调用点：kis_assert.cpp、KoFFWWSConverter.cpp）
+    _expect(PkString("%1-%2-%3").arg(PkString("a"), PkString("b"), PkString("c")) == PkString("a-b-c"),
+            "three-argument arg substitutes by placeholder position");
+    _expect(PkString("%3-%1-%2").arg(PkString("a"), PkString("b"), PkString("c")) == PkString("c-a-b"),
+            "three-argument arg honors out-of-order placeholder numbers");
+    _expect(PkString("%1-%1-%2").arg(PkString("a"), PkString("b"), PkString("c")) == PkString("a-a-b"),
+            "three-argument arg fills all occurrences of a repeated placeholder from the same arg");
+    _expect(PkString("ASSERT failure in %1: \"%2\" (%3)")
+                    .arg(PkString("where"), PkString("what"), PkString("assertion"))
+                == PkString("ASSERT failure in where: \"what\" (assertion)"),
+            "three-argument arg matches the real kis_assert.cpp call site shape");
+    _expect(PkString("%1-%2-%3").arg(PkString("%2"), PkString("x"), PkString("y")) == PkString("%2-x-y"),
+            "three-argument arg does not rescan substituted text within the same call");
+    _expect(PkString("%0-%1-%2").arg(PkString("a"), PkString("b"), PkString("c")) == PkString("a-b-c"),
+            "three-argument arg still honors %0 as a valid placeholder");
+
     // 数值重载
     _expect(PkString("n=%1").arg(42) == PkString("n=42"), "arg(int)");
     _expect(PkString("n=%1").arg(-7) == PkString("n=-7"), "arg(int) handles negatives");

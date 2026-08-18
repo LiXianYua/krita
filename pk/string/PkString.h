@@ -42,6 +42,7 @@ public:
     PkString& append(const PkString& other);
     PkString arg(const PkString& a) const;
     PkString arg(const PkString& a, const PkString& b) const;
+    PkString arg(const PkString& a, const PkString& b, const PkString& c) const;   // 新增：R-13 补充
     PkString arg(int v) const;
     PkString arg(int v, int fieldWidth) const;   // 新增：Task 3 实现
     PkString arg(double v) const;
