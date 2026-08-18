@@ -73,6 +73,21 @@ PkDomUtilsGraftString PkDomUtilsGraftString::number(double v)
     return PkDomUtilsGraftString(buf);
 }
 
+// 候选 B（kis_distance_information.cpp）新增：`QString::number(qreal, char, int)`
+// 三参重载，见 stubs/QString 类头注释——`format` 恒为 `'g'`（真实调用点没有
+// 别的取值），`%.*g` 里的 `*` 吃 `precision`（有效数字位数，与 Qt `'g'` 格式的
+// precision 语义一致，不是小数位数）。跟候选 A 的 `stubs/QTextStream`
+// （`toString(float/double)`）用的是同一条 `%.*g` 路径，行为已经被那份
+// 试接的 f1..f4 断言验证过——这里只是把它接到新的重载签名上，不是重新设计
+// 格式化逻辑。
+PkDomUtilsGraftString PkDomUtilsGraftString::number(double v, char format, int precision)
+{
+    (void)format;
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%.*g", precision, v);
+    return PkDomUtilsGraftString(buf);
+}
+
 // 见 stubs/QString 类头注释：KisPortingUtils::stringRemoveLast()/
 // stringRemoveFirst() 用到，KisDomUtils 的任何往返路径都不触达。UTF-8 字节
 // 粒度近似（不是 Qt 的 UTF-16 码元粒度），因为没有任何断言验证这个方法的
@@ -86,3 +101,11 @@ PkDomUtilsGraftString &PkDomUtilsGraftString::remove(int pos, int n)
     *this = PkDomUtilsGraftString(bytes.c_str());
     return *this;
 }
+
+// 注意：候选 B（kis_distance_information.cpp 试接）需要的
+// `KisAlgebra2D::directionBetweenPoints` 编译期占位**不放在这里**——本文件是
+// 候选 A/B 共用的实现侧，graft_run_a.sh 编译它时**不带** FORCE 数组（候选 A
+// 从不需要 QList/QDebug 提前就位），而 `#include "kis_algebra_2d.h"` 需要
+// 这两个提前可见。放在这里会在候选 A 的构建里报 QList/QDebug 相关编译错误
+// （已实测踩过，见 R-07 Task 4 报告「共享文件的候选 A 回归」一节）。定义挪到
+// candidate-B-only 的 `graft_run_b_driver.cpp` 里。

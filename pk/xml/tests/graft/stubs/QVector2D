@@ -1,0 +1,20 @@
+#pragma once
+
+// 编译期占位 —— QVector2D 不在 pk/geometry（R-03）已交付的几何类型清单里
+// （compat/ 下只有 QPoint/QPointF/QRect/QRectF/QSize/QSizeF/QTransform 七个），
+// 也没有任何 R 任务认领。候选 B（kis_distance_information.cpp）真品里
+// `KisDistanceInformation::getNextPointPositionIsotropic()`
+// （`QVector2D(end - start).length()`）与
+// `KisSpacingInformation::scalarApprox()`（`kis_spacing_information.h`，
+// `QVector2D(m_distanceSpacing).length()`）两处用到，但
+// `KisDistanceInitInfo::toXML`/`fromXML`（本试接唯一测试
+// `testInitInfoXMLClone` 触达的路径）都不经过这两个函数——它们是
+// `KisDistanceInformation`（另一个类）与 `KisSpacingInformation` 的方法，
+// 只需要类型检查通过，不需要真实的向量长度运算。
+class QVector2D {
+public:
+    QVector2D() = default;
+    template <class Point>
+    explicit QVector2D(const Point &) {}
+    double length() const { return 0.0; }
+};

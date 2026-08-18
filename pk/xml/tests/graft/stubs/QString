@@ -32,6 +32,15 @@ public:
 
     static PkDomUtilsGraftString number(int v);
     static PkDomUtilsGraftString number(double v);
+    // 候选 B（kis_distance_information.cpp）新增：`QString::number(qreal, 'g', 15)`
+    // 三参重载——`KisDistanceInitInfo::toXML()`/`fromXML()`（唯一测试
+    // `testInitInfoXMLClone` 触达的路径）逐字段都走这条重载做 XML 属性值的
+    // 序列化。**必须真正跑对**（不是不可达分支）：往返断言靠 `operator==`
+    // 逐字段浮点比较，序列化精度不够会直接导致往返失败。format 参数固定是
+    // `'g'`（真实调用点全部如此，没有 `'f'`/`'e'` 的调用），precision
+    // 固定是 15（`QString::number` 的 `'g'` 格式下 precision 是"有效数字位数"，
+    // 不是"小数点后位数"）。
+    static PkDomUtilsGraftString number(double v, char format, int precision);
 
     // `KisPortingUtils::stringRemoveLast()/stringRemoveFirst()`（真品，同一份
     // KisPortingUtils.h 里 setUtf8OnStream() 旁边的另外两个 inline 自由函数）

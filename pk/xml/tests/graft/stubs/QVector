@@ -1,0 +1,17 @@
+#pragma once
+#include <cstddef>
+#include <vector>
+
+// 编译期占位 —— QVector<T> 不在任何 R 任务的认领范围内。`kis_algebra_2d.h`
+// （真品，候选 B 经 kis_distance_information.cpp → kis_algebra_2d.h 拉入）
+// 用它声明一批与多边形/路径相关的自由函数（`polygonDirection`/
+// `isPolygonTrulyConvex` 等模板、`sampleRectWithPoints`/
+// `approximateRectFromPoints`/`intersectTwoCircles`/`findTrianglePoint` 等非
+// 模板自由函数**声明**）——`testInitInfoXMLClone` 不触达任何一个，只需要
+// `QVector<T>` 这个名字能被解析（自由函数声明只要求形参类型存在，不要求实现）。
+// 用 std::vector 转发即可，不追求 Qt QVector 的写时复制语义。
+template <class T>
+class QVector : public std::vector<T> {
+public:
+    using std::vector<T>::vector;
+};

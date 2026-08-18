@@ -1,0 +1,7 @@
+#pragma once
+// `<QtMath>` 模块顶层转发头的垫片——真 Qt 的 `QtMath` 本身就是转发到
+// `QtCore/qmath.h` 的一行 `#include`，理由与 stubs/QtCore/qmath.h 头注释一致
+// （`-I $BOOST_INC` 与真 Qt 共用同一个 include 前缀，不抢先命中会解析到真
+// `qglobal.h` 引发重定义）。`kis_distance_information_test.cpp:11`
+// `#include <QtMath>` 触发。
+#include "QtCore/qmath.h"

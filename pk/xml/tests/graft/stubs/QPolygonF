@@ -1,0 +1,10 @@
+#pragma once
+
+// 编译期占位 —— QPolygonF 不在任何 R 任务的认领范围内，理由同 stubs/QVector：
+// `kis_algebra_2d.h`（真品）里只以自由函数声明的形参类型出现
+// （`adjustIfOnPolygonBoundary`/`intersectLineConvexPolygon`/
+// `calculateConvexHull` 等），候选 B 试接不触达任何一个。
+class QPolygonF {
+public:
+    QPolygonF() = default;
+};

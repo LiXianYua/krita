@@ -55,6 +55,16 @@ inline void qt_noop() {}
 #define Q_UNUSED(x) (void)(x);
 #endif
 
+// 候选 B（kis_distance_information.cpp）新增的一项：`Q_DECL_HIDDEN`——
+// `struct Q_DECL_HIDDEN KisDistanceInformation::Private { ... }` 这种
+// pimpl 写法用它标注可见性，候选 A 没撞到过（kis_dom_utils.cpp 的 Private
+// 没有用这个宏）。处置与 pk/pointer/graft/stubs/QtGlobal、
+// pk/log/tests/graft/stubs/QtGlobal 里已有的同名定义逐字一致，真 Qt
+// （qcompilerdetection.h）也是这个 GCC/Clang 分支的定义，不是简化版。
+#ifndef Q_DECL_HIDDEN
+#define Q_DECL_HIDDEN __attribute__((visibility("hidden")))
+#endif
+
 // 以下四项是 kis_shared_ptr.h（kis_time_span.h → kis_types.h → …
 // → kis_shared_ptr.h 这条链拉进来的，KisTimeSpan 走 KisDomUtils::saveValue/
 // loadValue 往返所需要的传递依赖）用到的基础断言/模板宏，同一批"深坑"占位，
