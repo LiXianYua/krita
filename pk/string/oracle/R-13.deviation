@@ -7,9 +7,13 @@
 # 那条路径 —— 两种都该查。
 #
 # ── 对齐口径 ──────────────────────────────────────────────
-# 默认全对齐。本轮（2026-08-18）2530 次比对，跑出下面这些条目——全部落在
-# 「未计划内发现的偏离」一节，是本次对拍的真实产物，实测证据见
-# task-4-report.md「Step 3：真实基线」。
+# 默认全对齐。Task 4 首轮（2026-08-18）2530 次比对跑出 42 条 argIntFieldWidth
+# 偏离（arg(int,fieldWidth) 遇 %L 不做千分位分组），登记为「未计划内发现的
+# 偏离」、待裁决；上级核实后裁定必须修，随即在 Task 3 报告里补了一轮修复
+# （pkPadField 分别对原始数字串与分组后数字串补宽度，由 pkSubstitute 按占位符
+# 带不带 L 标志选用哪个）。修复后本轮（2026-08-18）重跑对拍，2530 次比对
+# mismatch=0——那 42 条偏离已随修复消除，不再登记；记录归 git 历史（本文件
+# 修复前的版本）与 task-3-report.md 追加的修复记录一节。
 
 # ══════════════════════════════════════════════════════════
 # 范围决策（本计划背景 ①-⑧ 预期的两个可选小节）
@@ -23,63 +27,6 @@
 # 就不登记，此处不设两个空节，避免登记一条本轮没有真实运行证据的条目。这两条
 # 差异本身仍然成立（已在 `docs/Qt替代品选型.md` 层面裁定为范围外），只是**不
 # 由本对拍程序的这一轮运行来背书**。
-
-# ══════════════════════════════════════════════════════════
-# 未计划内发现的偏离 —— 本任务范围外，待裁决（见 task-4-report.md「顾虑」）
-# ══════════════════════════════════════════════════════════
-#
-# 根因：PkString::arg(int, int fieldWidth) 的实现（PkString_format.cpp）在有
-# fieldWidth 时完全不套用 %L 千分位分组——先把整数格式化成字符串、按宽度补齐，
-# 再当普通字符串替换进 %L1 占位符，分组这一步被跳过。但真实 Qt 5.15.7 的
-# QString::arg(int,fieldWidth) 在遇到 %L<N> 占位符时**先分组再按宽度补齐**（宽度
-# 按分组后含逗号的最终长度算），两侧在 |v|>=1000 时产生可观察差异。这条不在 R-13
-# 计划背景 ①-⑧ 之内，是本轮组合爆破实测新挖出的角落，源码里的注释（约
-# PkString_format.cpp 288-293 行「Qt 的四参数 arg(int,fieldWidth,base,fillChar)
-# 本身在有 fieldWidth 时也不做千分位分组」）与本轮实测的真实 Qt 行为相悖。
-# 42 条 tag 对应 argFmts 里唯一带 %L 的 "%L1" 格式串 × kIntTok 里 |v|>=1000 的
-# 7 个值 × kFieldWidthTok 的全部 6 个宽度，穷举组合恰好 42。
-argIntFieldWidth	v=-1000/fw=-20	arg(int,fieldWidth) 遇 %L1 时不做千分位分组，Qt 会先分组再按宽度补齐，本条差异未在 R-13 计划背景内
-argIntFieldWidth	v=-1000/fw=-6	同上，fieldWidth=-6（负数左对齐）下同样不分组
-argIntFieldWidth	v=-1000/fw=0	同上，fieldWidth=0（无补齐）下同样不分组
-argIntFieldWidth	v=-1000/fw=1	同上，fieldWidth=1（不足以补齐）下同样不分组
-argIntFieldWidth	v=-1000/fw=20	同上，fieldWidth=20（右对齐大宽度）下同样不分组
-argIntFieldWidth	v=-1000/fw=6	同上，fieldWidth=6（右对齐）下同样不分组
-argIntFieldWidth	v=-1234567/fw=-20	同上，数值 -1234567、fieldWidth=-20 下同样不分组
-argIntFieldWidth	v=-1234567/fw=-6	同上，数值 -1234567、fieldWidth=-6 下同样不分组
-argIntFieldWidth	v=-1234567/fw=0	同上，数值 -1234567、fieldWidth=0 下同样不分组
-argIntFieldWidth	v=-1234567/fw=1	同上，数值 -1234567、fieldWidth=1 下同样不分组
-argIntFieldWidth	v=-1234567/fw=20	同上，数值 -1234567、fieldWidth=20 下同样不分组
-argIntFieldWidth	v=-1234567/fw=6	同上，数值 -1234567、fieldWidth=6 下同样不分组
-argIntFieldWidth	v=-2147483647/fw=-20	同上，数值 INT_MIN+1 附近、fieldWidth=-20 下同样不分组
-argIntFieldWidth	v=-2147483647/fw=-6	同上，数值 -2147483647、fieldWidth=-6 下同样不分组
-argIntFieldWidth	v=-2147483647/fw=0	同上，数值 -2147483647、fieldWidth=0 下同样不分组
-argIntFieldWidth	v=-2147483647/fw=1	同上，数值 -2147483647、fieldWidth=1 下同样不分组
-argIntFieldWidth	v=-2147483647/fw=20	同上，数值 -2147483647、fieldWidth=20 下同样不分组
-argIntFieldWidth	v=-2147483647/fw=6	同上，数值 -2147483647、fieldWidth=6 下同样不分组
-argIntFieldWidth	v=1000/fw=-20	同上，数值 1000、fieldWidth=-20 下同样不分组
-argIntFieldWidth	v=1000/fw=-6	同上，数值 1000、fieldWidth=-6 下同样不分组
-argIntFieldWidth	v=1000/fw=0	同上，数值 1000、fieldWidth=0 下同样不分组
-argIntFieldWidth	v=1000/fw=1	同上，数值 1000、fieldWidth=1 下同样不分组
-argIntFieldWidth	v=1000/fw=20	同上，数值 1000、fieldWidth=20 下同样不分组
-argIntFieldWidth	v=1000/fw=6	同上，数值 1000、fieldWidth=6 下同样不分组
-argIntFieldWidth	v=1234567/fw=-20	同上，数值 1234567、fieldWidth=-20 下同样不分组
-argIntFieldWidth	v=1234567/fw=-6	同上，数值 1234567、fieldWidth=-6 下同样不分组
-argIntFieldWidth	v=1234567/fw=0	同上，数值 1234567、fieldWidth=0 下同样不分组
-argIntFieldWidth	v=1234567/fw=1	同上，数值 1234567、fieldWidth=1 下同样不分组
-argIntFieldWidth	v=1234567/fw=20	同上，数值 1234567、fieldWidth=20 下同样不分组
-argIntFieldWidth	v=1234567/fw=6	同上，数值 1234567、fieldWidth=6 下同样不分组
-argIntFieldWidth	v=123456789/fw=-20	同上，数值 123456789、fieldWidth=-20 下同样不分组
-argIntFieldWidth	v=123456789/fw=-6	同上，数值 123456789、fieldWidth=-6 下同样不分组
-argIntFieldWidth	v=123456789/fw=0	同上，数值 123456789、fieldWidth=0 下同样不分组
-argIntFieldWidth	v=123456789/fw=1	同上，数值 123456789、fieldWidth=1 下同样不分组
-argIntFieldWidth	v=123456789/fw=20	同上，数值 123456789、fieldWidth=20 下同样不分组
-argIntFieldWidth	v=123456789/fw=6	同上，数值 123456789、fieldWidth=6 下同样不分组
-argIntFieldWidth	v=2147483647/fw=-20	同上，数值 INT_MAX、fieldWidth=-20 下同样不分组
-argIntFieldWidth	v=2147483647/fw=-6	同上，数值 INT_MAX、fieldWidth=-6 下同样不分组
-argIntFieldWidth	v=2147483647/fw=0	同上，数值 INT_MAX、fieldWidth=0 下同样不分组
-argIntFieldWidth	v=2147483647/fw=1	同上，数值 INT_MAX、fieldWidth=1 下同样不分组
-argIntFieldWidth	v=2147483647/fw=20	同上，数值 INT_MAX、fieldWidth=20 下同样不分组
-argIntFieldWidth	v=2147483647/fw=6	同上，数值 INT_MAX、fieldWidth=6 下同样不分组
 
 # ══════════════════════════════════════════════════════════
 # 覆盖度限制 —— 说不出覆盖不到什么的对拍，说明还没想清楚

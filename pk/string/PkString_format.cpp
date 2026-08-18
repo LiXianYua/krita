@@ -172,6 +172,30 @@ std::vector<char16_t> pkGroupDigits(const std::vector<char16_t>& digits)
     return out;
 }
 
+// arg(int, fieldWidth) 与 arg(int) 共用的补宽度算法：fieldWidth<0 左对齐、
+// 否则右对齐，宽度取绝对值，长度已经 >= width 就不补。操作对象是 char16_t
+// 缓冲区而不是 std::string——调用方需要分别对"原始数字串"与"分组后数字串"
+// 各跑一遍（真实 Qt 5.15.7 实测：%L<N> 占位符按分组后含逗号的长度补宽度，
+// 普通 %N 占位符按原始数字长度补宽度，见 arg(int,fieldWidth) 上方注释）。
+std::vector<char16_t> pkPadField(const std::vector<char16_t>& digits, int fieldWidth)
+{
+    const std::size_t width = static_cast<std::size_t>(fieldWidth < 0 ? -fieldWidth : fieldWidth);
+    if (digits.size() >= width) {
+        return digits;
+    }
+    const std::vector<char16_t> pad(width - digits.size(), u' ');
+    std::vector<char16_t> out;
+    out.reserve(width);
+    if (fieldWidth < 0) {
+        out.insert(out.end(), digits.begin(), digits.end());
+        out.insert(out.end(), pad.begin(), pad.end());
+    } else {
+        out.insert(out.end(), pad.begin(), pad.end());
+        out.insert(out.end(), digits.begin(), digits.end());
+    }
+    return out;
+}
+
 // 刻意不使用 std::isspace：它受 LC_CTYPE 影响。数值解析的每一个环节都必须
 // 与进程 locale 无关（理由见下面 toDouble 的注释）。
 bool pkIsAsciiBlank(char c)
@@ -290,21 +314,29 @@ PkString PkString::arg(int v) const
 // QString::arg(int a, int fieldWidth, int base=10, QChar fillChar=' ') 的
 // base==10、fillChar==' ' 这一支——真实调用点 libs/global/KisRectsGrid.cpp:23
 // 唯一用到的形态。fieldWidth 为正右对齐、为负左对齐，符号计入宽度。
-// 这个重载**不支持** `%L`——真实调用点没有用到，且 arg(int,int) 的语义是
-// 「先按宽度补齐成字符串，再当普通字符串替换」，Qt 的四参数
-// arg(int,fieldWidth,base,fillChar) 本身在有 fieldWidth 时也不做千分位分组。
+//
+// %L<N> 占位符先分组再按分组后长度补宽度，普通 %N 占位符按原始数字长度补
+// 宽度，两者的判据与 arg(int)（单参版本）共用同一套 isNumericArg/groupedArgs
+// 机制（pkSubstitute 按占位符自己带不带 L 标志去两者之间选）。真实 Qt 5.15.7
+// 实测（旧注释在此处的断言与之相悖，已订正）：
+//   "[%L1]".arg(1234567, 12)  -> "[   1,234,567]"（分组后 9 字符，补 3 空格到 12）
+//   "[%L1]".arg(1234567, -12) -> "[1,234,567   ]"（负宽度左对齐，补在分组结果右边）
+//   "[%L1]".arg(-1234567, 14) -> "[    -1,234,567]"（符号不参与分组，但计入宽度）
 PkString PkString::arg(int v, int fieldWidth) const
 {
     char tmp[32];
     const std::to_chars_result res = std::to_chars(tmp, tmp + sizeof(tmp), v);
-    std::string s(tmp, static_cast<std::size_t>(res.ptr - tmp));
+    const std::vector<char16_t> digits = PkStringCodec::FromUtf8(tmp, static_cast<std::size_t>(res.ptr - tmp));
+    const std::vector<char16_t> grouped = pkGroupDigits(digits);
 
-    const std::size_t width = static_cast<std::size_t>(fieldWidth < 0 ? -fieldWidth : fieldWidth);
-    if (s.size() < width) {
-        const std::string pad(width - s.size(), ' ');
-        s = (fieldWidth < 0) ? (s + pad) : (pad + s);
-    }
-    return arg(PkString(s.c_str()));
+    const std::vector<char16_t> paddedDigits = pkPadField(digits, fieldWidth);
+    const std::vector<char16_t> paddedGrouped = pkPadField(grouped, fieldWidth);
+
+    std::vector<const std::vector<char16_t>*> args;
+    args.push_back(&paddedDigits);
+    PkString r;
+    r._data() = pkSubstitute(_cbuf(), args, {true}, {paddedGrouped});
+    return r;
 }
 
 // 不能用 snprintf("%g")：printf 族的小数点字符由 LC_NUMERIC 决定，

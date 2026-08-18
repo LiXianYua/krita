@@ -273,6 +273,18 @@ void run_format_tests()
     _expect(PkString("grid=%1").arg(-3, 6) == PkString("grid=    -3"),
             "arg(int,fieldWidth) counts the sign toward the field width");
 
+    // arg(int, fieldWidth) 遇 %L1：先分组再按分组后长度补宽度（真实 Qt 5.15.7 实测）
+    _expect(PkString("[%L1]").arg(1234567, 12) == PkString("[   1,234,567]"),
+            "arg(int,fieldWidth) groups then pads to the grouped length for %L1");
+    _expect(PkString("[%L1]").arg(1234567, 6) == PkString("[1,234,567]"),
+            "arg(int,fieldWidth) does not truncate when the grouped string already exceeds fieldWidth");
+    _expect(PkString("[%L1]").arg(1234567, -12) == PkString("[1,234,567   ]"),
+            "arg(int,fieldWidth) left-justifies the grouped string for negative fieldWidth");
+    _expect(PkString("[%L1]").arg(999, 12) == PkString("[         999]"),
+            "arg(int,fieldWidth) pads the ungrouped string when the value is under 1000");
+    _expect(PkString("[%L1]").arg(-1234567, 14) == PkString("[    -1,234,567]"),
+            "arg(int,fieldWidth) groups negatives without grouping the sign, sign counts toward width");
+
     // toDouble：inf/nan 的窄口径
     {
         bool iok = false;
