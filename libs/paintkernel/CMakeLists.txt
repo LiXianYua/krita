@@ -29,6 +29,8 @@ target_link_libraries(paintkernel
     kritasurfacecolormanagementapi
 )
 
+target_link_options(paintkernel PRIVATE "-Wl,--no-as-needed")
+
 set_target_properties(paintkernel PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
 )
