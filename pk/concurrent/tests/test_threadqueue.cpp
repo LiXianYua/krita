@@ -5,6 +5,8 @@
 #include <chrono>
 #include <thread>
 #include <vector>
+#include <stdexcept>
+#include <string>
 
 void PkThreadCallQueueSelfTest::testConcurrentReadDuringMainThreadRegistrationNoTornRead()
 {
@@ -103,6 +105,13 @@ void PkThreadCallQueueSelfTest::testPostRoutesToRealWorkerThread()
     PkThreadId workerId{};
     std::thread worker([&]{
         workerId = PkThread::currentThreadId();
+        // 先"预热"一次 processPendingCalls()，建立本线程在 registry 里的
+        // C-1 修复"已触达"标记——此刻外界还不知道 workerId（workerReady
+        // 还没置 true），队列必然为空，是无害 no-op。这一步必须严格发生在
+        // workerReady=true 之前，否则主线程的 post() 与本线程"第一次调用
+        // processPendingCalls()"之间会有真实竞争，C-1 修复的"首次 pump
+        // 丢弃陈旧条目"逻辑可能把这个合法调用当成陈旧条目丢掉。
+        PkThreadCallQueue::processPendingCalls();
         workerReady = true;
         while (!stop.load()) {
             PkThreadCallQueue::processPendingCalls();
@@ -128,6 +137,8 @@ void PkThreadCallQueueSelfTest::testPostBlockingWaitsForExecution()
     PkThreadId workerId{};
     std::thread worker([&]{
         workerId = PkThread::currentThreadId();
+        // 预热理由同 testPostRoutesToRealWorkerThread。
+        PkThreadCallQueue::processPendingCalls();
         workerReady = true;
         while (!stop.load()) {
             PkThreadCallQueue::processPendingCalls();
@@ -142,6 +153,130 @@ void PkThreadCallQueueSelfTest::testPostBlockingWaitsForExecution()
 
     stop = true;
     worker.join();
+}
+
+void PkThreadCallQueueSelfTest::testFirstPumpDiscardsPreexistingStaleEntries()
+{
+    // C-1 修复验证（不依赖真实的 std::thread::id 复用——那个不保证发生，
+    // 见下面的 …BestEffort 测试）：直接构造"某个线程从未调用过
+    // processPendingCalls()，但 registry 里已经有它 id 对应的陈旧条目"这个
+    // 前提条件——worker 线程只报到自己的 id（不 pump），主线程用这个 id
+    // 提前 post 一次模拟"陈旧调用"，再放行 worker 进入它人生第一次
+    // processPendingCalls()。断言：这次调用不会执行那个模拟的陈旧调用，
+    // 而是被清空丢弃——这正是修复的核心行为（第一次 pump 先自证清白）。
+    std::atomic<bool> workerIdReady{false};
+    std::atomic<bool> mayPump{false};
+    std::atomic<int> called{0};
+    PkThreadId workerId{};
+    int firstPumpCount = -1;
+
+    std::thread worker([&]{
+        workerId = PkThread::currentThreadId();
+        workerIdReady = true;
+        while (!mayPump.load()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+        firstPumpCount = PkThreadCallQueue::processPendingCalls();
+    });
+    while (!workerIdReady.load()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+
+    // 模拟陈旧调用：worker 从未主动触达过队列系统，此刻 registry 里已经有
+    // 它 id 对应的条目（由本测试主线程冒充"上一个用过这个 id 的线程的
+    // 遗留投递者"）。
+    PkThreadCallQueue::post(workerId, [&called]{ called++; });
+
+    mayPump = true;
+    worker.join();
+
+    PK_COMPARE(firstPumpCount, 0);
+    PK_VERIFY(called.load() == 0);
+}
+
+void PkThreadCallQueueSelfTest::testStaleCallNeverExecutedOnReusedThreadIdBestEffort()
+{
+    // 尽力而为复现 C-1 原始 bug 的真实触发路径：post 给一个已经 join 过的
+    // 线程 id，然后依次起新线程调 processPendingCalls()，直到命中系统真的
+    // 复用了那个 id（std::thread::id 复用完全由 OS/pthread 实现决定，不
+    // 保证在这个测试进程里发生）。修复前：命中复用的第一个新线程会执行
+    // 这个陈旧调用；修复后：即使复用发生，陈旧调用也已经在 registry 层面
+    // 被丢弃，staleExecuted 恒为 0——真正确定性的正确性断言在上面的
+    // testFirstPumpDiscardsPreexistingStaleEntries()，这个测试只是尽力
+    // 对真实复现路径也做一次交叉验证。
+    PkThreadId deadId{};
+    {
+        std::thread t([&]{ deadId = PkThread::currentThreadId(); });
+        t.join();
+    }
+    std::atomic<int> staleExecuted{0};
+    PkThreadCallQueue::post(deadId, [&staleExecuted]{ staleExecuted++; });
+
+    const int kAttempts = 200;
+    bool reused = false;
+    for (int i = 0; i < kAttempts && !reused; ++i) {
+        PkThreadId newId{};
+        int n = -1;
+        std::thread t([&]{
+            newId = PkThread::currentThreadId();
+            n = PkThreadCallQueue::processPendingCalls();
+        });
+        t.join();
+        if (newId == deadId) {
+            reused = true;
+            PK_COMPARE(n, 0);
+        }
+    }
+    PK_VERIFY(staleExecuted.load() == 0);
+    // 不对 reused 做断言——命中与否都不影响上面 staleExecuted==0 这条核心
+    // 结论，reused==false 只说明这次运行没有观测到系统复用 id，不是修复失败。
+}
+
+void PkThreadCallQueueSelfTest::testPostBlockingWakesEmitterAndRethrowsOnSlotException()
+{
+    // C-2 修复验证：postBlocking 里 fn() 抛异常，发射线程确实被唤醒（不是
+    // 永久挂起——这个测试函数本身能跑到断言那一行，就是"没有挂死在
+    // done->acquire() 里"的证据）；本实现选择"重新抛出"语义，断言调用方
+    // 确实收到了异常，而不是被吞掉装作成功。
+    std::atomic<bool> workerReady{false};
+    std::atomic<bool> stop{false};
+    PkThreadId workerId{};
+    std::thread worker([&]{
+        workerId = PkThread::currentThreadId();
+        // 预热理由同 testPostRoutesToRealWorkerThread。
+        PkThreadCallQueue::processPendingCalls();
+        workerReady = true;
+        while (!stop.load()) {
+            PkThreadCallQueue::processPendingCalls();
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        }
+    });
+    while (!workerReady.load()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+
+    bool caught = false;
+    try {
+        PkThreadCallQueue::postBlocking(workerId, []{ throw std::runtime_error("boom"); });
+    } catch (const std::runtime_error& e) {
+        caught = true;
+        PK_VERIFY(std::string(e.what()) == "boom");
+    }
+    PK_VERIFY(caught);
+
+    stop = true;
+    worker.join();
+}
+
+void PkThreadCallQueueSelfTest::testProcessPendingCallsContinuesAfterExceptionInBatch()
+{
+    // processPendingCalls() 批量执行时，某一个调用抛异常，验证同批次其余
+    // 调用仍然被执行（不是被跳过）。
+    PkThreadId me = PkThread::currentThreadId();
+    std::atomic<int> before{0};
+    std::atomic<int> after{0};
+    PkThreadCallQueue::post(me, [&before]{ before++; });
+    PkThreadCallQueue::post(me, []{ throw std::runtime_error("mid-batch"); });
+    PkThreadCallQueue::post(me, [&after]{ after++; });
+
+    int n = PkThreadCallQueue::processPendingCalls();
+    PK_COMPARE(n, 3);
+    PK_VERIFY(before.load() == 1);
+    PK_VERIFY(after.load() == 1);
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

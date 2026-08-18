@@ -16,4 +16,12 @@ private Q_SLOTS:
     void testPostDefersToTargetThreadPump();
     void testPostRoutesToRealWorkerThread();
     void testPostBlockingWaitsForExecution();
+
+    // final whole-branch review C-1：线程 id 复用导致陈旧调用被无关新线程执行。
+    void testFirstPumpDiscardsPreexistingStaleEntries();
+    void testStaleCallNeverExecutedOnReusedThreadIdBestEffort();
+
+    // final whole-branch review C-2：postBlocking 槽函数抛异常导致发射线程永久阻塞。
+    void testPostBlockingWakesEmitterAndRethrowsOnSlotException();
+    void testProcessPendingCallsContinuesAfterExceptionInBatch();
 };

@@ -15,6 +15,13 @@
 //   调用方永久阻塞——这与 Qt 同线程 BlockingQueuedConnection 会死锁是
 //   同一类风险，本原语不做特殊检测，见 PkObject.h 里 activateSignal 的
 //   dispatch 说明（「设计决定 4」）
+//
+// ⚠ 投递到某个线程的调用不会自动执行，该线程必须自己调用
+// processPendingCalls()（或未来某个封装它的机制）来抽干队列——不这么做，
+// 投递的调用会永远停在队列里，不报错、不崩溃、不打日志，是一个纯静默的
+// 行为缺失（final whole-branch review I-3）。全仓目前没有任何 pump 调用点
+// （pk/ 之外零调用），第一个把跨线程 Auto/Queued 连接搬进来的消费方必须
+// 自己在目标线程装 pump。
 class PkThreadCallQueue {
 public:
     // 投递一个待执行调用到 target 线程的队列，立即返回，不等待执行。
