@@ -12,8 +12,17 @@ add_library(pktest STATIC
     PkTestRunner.cpp
     PkTestCompare.cpp
     PkTestData.cpp
+    PkTestDataString.cpp
 )
 target_include_directories(pktest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# pk/string 是只给 operator<<(const char*) 非模板重载用的依赖（PkTestDataString.cpp）。
+# libpktest.a 本身不依赖 pkstring：PkTestDataString.cpp 是唯一引用 PkString 的
+# 目标文件，而它会被链接器按需拉入。不链 pkstring 的测试（如 pk/container 的 test_pkvector）
+# 不会调用 operator<<(const char*)，因此链接器不会拉入 PkTestDataString.o，也就
+# 不会引入对 pkstring 的需要。
+set(PKSTRING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../string)
+add_subdirectory(${PKSTRING_DIR} ${CMAKE_BINARY_DIR}/pkstring EXCLUDE_FROM_ALL)
 
 # 测试发现走 pk_test_moc.py（替代 moc），不走 Qt 的元对象系统。
 # Python3 而非 C++：产物是纯 .cpp，交叉编译到 Android 时 host 侧生成器零额外工具链成本。
@@ -63,7 +72,7 @@ add_executable(selftest_pktest
     tests/selftest_compat.cpp
     tests/selftest_runner.cpp
 )
-target_link_libraries(selftest_pktest PRIVATE pktest)
+target_link_libraries(selftest_pktest PRIVATE pktest pkstring)
 
 # 这条 -I 是 target 级的，selftest_pktest 的全部源文件都能看见 pk/test/compat。
 # 其余源文件不受影响，靠的不是路径范围，而是它们本来就没有

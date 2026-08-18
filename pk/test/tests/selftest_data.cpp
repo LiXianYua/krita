@@ -217,41 +217,46 @@ template <> struct PkTestBinder<SelfBrokenDataCase> {
     static const PkTestFunction *initTestCaseData() { return nullptr; }
 };
 
-// 字符串字面量喂进数据行：operator<< 里 T 由模板推导（数组字面量推出来是
-// char[N]，未 decay），但 std::any(value) 内部把它 decay 成 const char*
-// 再存。appendValue 与 valueAt() 必须用同一个已 decay 的类型身份比对，
-// 否则这一行值在入表阶段就会被当成"类型不符"拒收
-// （见 PkTestData.cpp 的 appendValue 注释）。
-static std::string g_cstrFetched;
+// 字符串字面量喂进数据行：operator<<(const char*) 非模板重载（Qt qtestdata.h:81-86
+// 同款）把字符串字面量自动转 PkString 再存。addColumn<PkString> 的列，<< "hello"
+// 走非模板重载 → PkString → std::any → appendValue 校验通过。
+// 与 Qt 行为一致：addColumn<QString> 的列，<< "hello" 也会自动转 QString。
+static std::vector<std::string> g_pkstrFetchedValues;
+static std::vector<std::string> g_pkstrMultiRowTags;
 
-class SelfDataConstCharCase : public PkTestObject
+#include "../string/PkString.h"
+
+class SelfDataPkStringCase : public PkTestObject
 {
     template <typename PkTestBinderArgT> friend struct PkTestBinder;
 private:
-    void cstr_data()
+    void pkstr_data()
     {
-        PkTest::addColumn<const char*>("s");
-        PkTest::newRow("r") << "hello";
+        PkTest::addColumn<PkString>("s");
+        PkTest::newRow("hello") << "hello";
+        PkTest::newRow("world") << "world";
+        PkTest::newRow("empty") << "";
     }
-    void cstr()
+    void pkstr()
     {
-        PK_FETCH(const char*, s);
-        g_cstrFetched = s ? s : "";
+        PK_FETCH(PkString, s);
+        g_pkstrMultiRowTags.push_back(PkTest::currentDataTag());
+        g_pkstrFetchedValues.push_back(s.PkToUtf8());
     }
 };
 
-template <> struct PkTestBinder<SelfDataConstCharCase> {
-    static const char *className() { return "SelfDataConstCharCase"; }
+template <> struct PkTestBinder<SelfDataPkStringCase> {
+    static const char *className() { return "SelfDataPkStringCase"; }
     static const PkTestFunction *functions() {
         static const PkTestFunction fns[] = {
-            {"cstr", [](PkTestObject *o){ static_cast<SelfDataConstCharCase*>(o)->cstr(); }, "cstr_data"},
+            {"pkstr", [](PkTestObject *o){ static_cast<SelfDataPkStringCase*>(o)->pkstr(); }, "pkstr_data"},
         };
         return fns;
     }
     static int count() { return 1; }
     static const PkTestFunction *dataFunctions() {
         static const PkTestFunction fns[] = {
-            {"cstr_data", [](PkTestObject *o){ static_cast<SelfDataConstCharCase*>(o)->cstr_data(); }, nullptr},
+            {"pkstr_data", [](PkTestObject *o){ static_cast<SelfDataPkStringCase*>(o)->pkstr_data(); }, nullptr},
         };
         return fns;
     }
@@ -313,10 +318,25 @@ void run_data_selftests()
     SELF_EXPECT(g_afterWrongColumnTypeRuns == 0,
                 "列类型不符时该测试函数不再逐行执行");
 
-    SelfDataConstCharCase cstrCase;
-    const int cstrRc = PkTest::qExec(&cstrCase, 1, const_cast<char **>(argv));
-    SELF_EXPECT(cstrRc == 0,
-                "addColumn<const char*> + 字符串字面量数据行应正常入表、正常取回，"
-                "不应因 appendValue/valueAt 两处类型身份不一致而被判定类型不符");
-    SELF_EXPECT(g_cstrFetched == "hello", "取回的值就是喂进去的字符串字面量");
+    SelfDataPkStringCase pkstrCase;
+    const int pkstrRc = PkTest::qExec(&pkstrCase, 1, const_cast<char **>(argv));
+    SELF_EXPECT(pkstrRc == 0,
+                "addColumn<PkString> + 字符串字面量数据行应正常入表、正常取回，"
+                "operator<<(const char*) 非模板重载把字面量转 PkString 再存，"
+                "类型身份与列类型一致，不触发类型不符");
+    SELF_EXPECT(g_pkstrMultiRowTags.size() == 3, "三行数据 → 测试函数跑三次");
+    if (g_pkstrMultiRowTags.size() == 3) {
+        SELF_EXPECT(g_pkstrMultiRowTags[0] == "hello", "第一行 tag=hello");
+        SELF_EXPECT(g_pkstrMultiRowTags[1] == "world", "第二行 tag=world");
+        SELF_EXPECT(g_pkstrMultiRowTags[2] == "empty", "第三行 tag=empty");
+    }
+    SELF_EXPECT(g_pkstrFetchedValues.size() == 3, "三次 PK_FETCH 都成功取回");
+    if (g_pkstrFetchedValues.size() == 3) {
+        SELF_EXPECT(g_pkstrFetchedValues[0] == "hello",
+                    "第一行 PK_FETCH(PkString) → PkToUtf8() == 'hello'");
+        SELF_EXPECT(g_pkstrFetchedValues[1] == "world",
+                    "第二行 PK_FETCH(PkString) → PkToUtf8() == 'world'");
+        SELF_EXPECT(g_pkstrFetchedValues[2] == "",
+                    "第三行 PK_FETCH(PkString) → PkToUtf8() == ''（空串）");
+    }
 }

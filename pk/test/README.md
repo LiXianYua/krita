@@ -135,18 +135,12 @@
   项）。`qint8..quint64`/`qreal` 这批标量 typedef 与 `qMin`/`qMax` 不在这里：
   零真实调用点的东西不预先实现（线级 spec 判据①），这批类型归 R-02（容器）/
   R-03（几何）交付。
-- **`PkTestDataRow::operator<<` 没有 Qt 那条非模板重载**：Qt 的
+- **`PkTestDataRow::operator<<` 非模板重载已交付（R-14）**：Qt 的
   `QTestData& operator<<(QTestData&, const char*)`（`qtestdata.h:81-86`）会把
-  字符串字面量自动转成 `QString` 再存；pk 目前只有 `operator<<` 那一个模板，
-  字符串字面量走的是模板推导（数组类型，`std::any` 里存的是 decay 后的
-  `const char*`，不是任何字符串类型）。S-00 全量接入时，凡是数据行喂字符串
-  字面量、且对应列是 `QString`（或将来的 pk 字符串类型）的调用点都会撞上
-  ——**实测 `addColumn<QString>` 全仓 89 处**（本次复评重新核过，口径：
-  `xargs grep -c 'addColumn<QString>'` 对 §1 口径下的文件集求和），**数据行
-  喂字符串字面量约 329 行**（复评员给出的数字，未重新核实其精确 grep 口径，
-  量级上与 89 处 `QString` 列合理对应）。归属：等 R-02 的字符串类型落地后，
-  给 `PkTestDataRow` 补一条 `operator<<(const char*)` 非模板重载，把字符串
-  字面量转成那时候的 pk 字符串类型再存。
+  字符串字面量自动转成 `QString` 再存。R-14 给 `PkTestDataRow` 补了同款非模板重载
+  （`PkTestDataString.cpp`），`addColumn<PkString>` 的列写 `<< "hello"` 时，字面量
+  自动转 `PkString` 再入表。selftest 里 `SelfDataPkStringCase` 的三行数据（hello/
+  world/empty）覆盖了正常、空串、多行场景，`nm -u libpktest.a | grep -i qt` 无输出。
 - **本轮明确不修、留给后续的三条**（不是缺陷分类里的"未知"，是已定位、已决定不在
   R-11 处理的）：
   - 生成的 `.inc` 里 `#include` 写的是**绝对路径**，对 ccache 不友好（同一份源码

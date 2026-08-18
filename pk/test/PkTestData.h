@@ -27,6 +27,11 @@ public:
         return *this;
     }
 
+    // 非模板重载（Qt qtestdata.h:81-86 同款）：字符串字面量自动转 PkString 再存。
+    // 重载决议：非模板优先于模板，const char* 参数（含数组→指针 decay）统一走
+    // 这条重载，不再走上面的模板推导 const char[N]。
+    friend PkTestDataRow &operator<<(PkTestDataRow &row, const char *value);
+
 private:
     void appendValue(std::any value);
 
@@ -34,6 +39,9 @@ private:
     std::string m_tag;
     std::size_t m_rowIndex;
 };
+
+// 声明在类外，与 Qt 的 qtestdata.h 风格一致（operator<< 是自由函数）。
+PkTestDataRow &operator<<(PkTestDataRow &row, const char *value);
 
 class PkTestTable
 {
