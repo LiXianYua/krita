@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-class PkStringData;
+#include "../container/PkArrayData.h"
 
 // PkString —— 零 Qt 依赖的 COW UTF-16 字符串。
 //
@@ -44,6 +44,7 @@ public:
     PkString arg(const PkString& a) const;
     PkString arg(const PkString& a, const PkString& b) const;
     PkString arg(int v) const;
+    PkString arg(int v, int fieldWidth) const;   // 新增：Task 3 实现
     PkString arg(double v) const;
     int toInt(bool* ok = nullptr) const;
     double toDouble(bool* ok = nullptr) const;
@@ -62,10 +63,11 @@ public:
     static PkString PkFromUtf8(const char* s, int len);
 
 private:
-    void _detach();
-    const std::vector<char16_t>& _cbuf() const;   // 移动走之后 _d 可能为空，统一从这里读
+    // 只读访问，绝不 detach（PkArrayData::PkConst 的语义）。
+    const std::vector<char16_t>& _cbuf() const;
     const char16_t* _cdata() const;
-    char16_t* _data();
+    // 写访问，返回前先 detach（PkArrayData::PkMut 的语义）。
+    std::vector<char16_t>& _data();
 
-    std::shared_ptr<PkStringData> _d;
+    PkArrayData<std::vector<char16_t>> _d;
 };

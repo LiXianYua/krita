@@ -1,71 +1,26 @@
 #include "PkString.h"
 
-#include "PkStringData.h"
+#include "PkStringCodec.h"
 
 #include <cstring>
 #include <utility>
 
-namespace {
-
-// 移动走之后 _d 为空，所有只读路径统一落到这个空缓冲区上。
-const std::vector<char16_t>& pkEmptyBuf()
-{
-    static const std::vector<char16_t> kEmpty;
-    return kEmpty;
-}
-
-} // namespace
-
-PkString::PkString()
-    : _d(PkStringData::PkMakeEmpty())
-{
-}
+PkString::PkString() = default;   // PkArrayData() 默认构造：零分配，指向共享空哨兵
 
 PkString::PkString(const char* utf8)
-    : _d(PkStringData::PkFromUtf8(utf8, utf8 != nullptr ? std::strlen(utf8) : 0))
+    : _d(PkStringCodec::FromUtf8(utf8, utf8 != nullptr ? std::strlen(utf8) : 0))
 {
 }
 
-PkString::PkString(const PkString& other)
-    : _d(other._d)
-{
-}
-
-PkString::PkString(PkString&& other) noexcept
-    : _d(std::move(other._d))
-{
-}
-
+PkString::PkString(const PkString& other) = default;
+PkString::PkString(PkString&& other) noexcept = default;
 PkString::~PkString() = default;
-
-PkString& PkString::operator=(const PkString& other)
-{
-    _d = other._d;
-    return *this;
-}
-
-PkString& PkString::operator=(PkString&& other) noexcept
-{
-    if (this != &other) {
-        _d = std::move(other._d);
-    }
-    return *this;
-}
+PkString& PkString::operator=(const PkString& other) = default;
+PkString& PkString::operator=(PkString&& other) noexcept = default;
 
 const std::vector<char16_t>& PkString::_cbuf() const
 {
-    return _d ? _d->buf : pkEmptyBuf();
-}
-
-// COW 的全部复杂度就这一行：独占就原地改，共享就先分裂。
-// 不做内存池、不做短串优化——性能问题按 W5 要用 M0 基线实测再说。
-void PkString::_detach()
-{
-    if (!_d) {
-        _d = PkStringData::PkMakeEmpty();
-    } else if (_d.use_count() > 1) {
-        _d = PkStringData::PkClone(*_d);
-    }
+    return _d.PkConst();
 }
 
 const char16_t* PkString::_cdata() const
@@ -73,10 +28,9 @@ const char16_t* PkString::_cdata() const
     return _cbuf().data();
 }
 
-char16_t* PkString::_data()
+std::vector<char16_t>& PkString::_data()
 {
-    _detach();
-    return _d->buf.data();
+    return _d.PkMut();
 }
 
 int PkString::size() const
@@ -130,15 +84,15 @@ PkString& PkString::operator+=(const PkString& other)
     if (other.isEmpty()) {
         return *this;
     }
-    if (_d && _d == other._d) {
+    if (_d.PkIsSharedWith(other._d)) {
         // 自我追加：先把源拷出来，否则 detach/insert 会在自己的缓冲区上迭代
         const std::vector<char16_t> src = other._cbuf();
-        _detach();
-        _d->buf.insert(_d->buf.end(), src.begin(), src.end());
+        std::vector<char16_t>& buf = _data();
+        buf.insert(buf.end(), src.begin(), src.end());
     } else {
         const std::vector<char16_t>& src = other._cbuf();
-        _detach();
-        _d->buf.insert(_d->buf.end(), src.begin(), src.end());
+        std::vector<char16_t>& buf = _data();
+        buf.insert(buf.end(), src.begin(), src.end());
     }
     return *this;
 }
@@ -151,7 +105,7 @@ std::u16string PkString::PkToU16() const
 
 std::string PkString::PkToUtf8() const
 {
-    return PkStringData::PkToUtf8(_cbuf());
+    return PkStringCodec::ToUtf8(_cbuf());
 }
 
 PkString PkString::PkFromUtf8(const char* s, int len)
@@ -159,6 +113,6 @@ PkString PkString::PkFromUtf8(const char* s, int len)
     PkString r;
     const std::size_t n = (len < 0) ? (s != nullptr ? std::strlen(s) : 0)
                                     : static_cast<std::size_t>(len);
-    r._d = PkStringData::PkFromUtf8(s, n);
+    r._data() = PkStringCodec::FromUtf8(s, n);
     return r;
 }

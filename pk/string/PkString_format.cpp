@@ -1,7 +1,5 @@
 #include "PkString.h"
 
-#include "PkStringData.h"
-
 #include <algorithm>
 #include <charconv>
 #include <cmath>
@@ -191,8 +189,7 @@ PkString PkString::arg(const PkString& a) const
     std::vector<const std::vector<char16_t>*> args;
     args.push_back(&a._cbuf());
     PkString r;
-    r._detach();
-    r._d->buf = pkSubstitute(_cbuf(), args);
+    r._data() = pkSubstitute(_cbuf(), args);
     return r;
 }
 
@@ -203,8 +200,7 @@ PkString PkString::arg(const PkString& a, const PkString& b) const
     args.push_back(&a._cbuf());
     args.push_back(&b._cbuf());
     PkString r;
-    r._detach();
-    r._d->buf = pkSubstitute(_cbuf(), args);
+    r._data() = pkSubstitute(_cbuf(), args);
     return r;
 }
 

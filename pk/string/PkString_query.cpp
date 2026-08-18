@@ -1,7 +1,5 @@
 #include "PkString.h"
 
-#include "PkStringData.h"
-
 #include <algorithm>
 
 namespace {
@@ -75,8 +73,7 @@ PkString PkString::mid(int pos, int n) const
     }
     const std::vector<char16_t>& b = _cbuf();
     PkString r;
-    r._detach();
-    r._d->buf.assign(b.begin() + pos, b.begin() + pos + take);
+    r._data().assign(b.begin() + pos, b.begin() + pos + take);
     return r;
 }
 

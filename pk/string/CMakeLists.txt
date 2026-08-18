@@ -7,12 +7,15 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_library(pkstring STATIC
-    PkStringData.cpp
+    PkStringCodec.cpp
     PkString_core.cpp
     PkString_query.cpp
     PkString_format.cpp
 )
-target_include_directories(pkstring PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pkstring PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../container
+)
 
 add_executable(test_pkstring
     tests/test_main.cpp

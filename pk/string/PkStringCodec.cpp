@@ -1,10 +1,10 @@
-#include "PkStringData.h"
+#include "PkStringCodec.h"
 
+namespace PkStringCodec {
 namespace {
 
 const char16_t kReplacement = 0xFFFD;
 
-// 把一个码点按 UTF-16 追加进缓冲区；非法码点写成 U+FFFD（不中止进程）。
 void pkAppendCodePoint(std::vector<char16_t>& out, unsigned cp)
 {
     if (cp > 0x10FFFFu || (cp >= 0xD800u && cp <= 0xDFFFu)) {
@@ -41,27 +41,13 @@ void pkAppendUtf8(std::string& out, unsigned cp)
 
 } // namespace
 
-std::shared_ptr<PkStringData> PkStringData::PkMakeEmpty()
+std::vector<char16_t> FromUtf8(const char* s, std::size_t len)
 {
-    return std::make_shared<PkStringData>();
-}
-
-std::shared_ptr<PkStringData> PkStringData::PkClone(const PkStringData& other)
-{
-    std::shared_ptr<PkStringData> d = std::make_shared<PkStringData>();
-    d->buf = other.buf;
-    return d;
-}
-
-// 手写 UTF-8 → UTF-16 解码。std::wstring_convert 在 C++17 起已废弃，不用；
-// 也不引第三方库。非法序列一律映射成 U+FFFD 并前进一个字节。
-std::shared_ptr<PkStringData> PkStringData::PkFromUtf8(const char* s, std::size_t len)
-{
-    std::shared_ptr<PkStringData> d = std::make_shared<PkStringData>();
+    std::vector<char16_t> buf;
     if (s == nullptr || len == 0) {
-        return d;
+        return buf;
     }
-    d->buf.reserve(len);
+    buf.reserve(len);
 
     static const unsigned kMinForLength[4] = {0x0u, 0x80u, 0x800u, 0x10000u};
 
@@ -84,13 +70,13 @@ std::shared_ptr<PkStringData> PkStringData::PkFromUtf8(const char* s, std::size_
             cp = c & 0x07u;
             extra = 3;
         } else {
-            d->buf.push_back(kReplacement);
+            buf.push_back(kReplacement);
             ++i;
             continue;
         }
 
         if (i + static_cast<std::size_t>(extra) >= len && extra > 0) {
-            d->buf.push_back(kReplacement);
+            buf.push_back(kReplacement);
             ++i;
             continue;
         }
@@ -105,24 +91,23 @@ std::shared_ptr<PkStringData> PkStringData::PkFromUtf8(const char* s, std::size_
             cp = (cp << 6) | (cc & 0x3Fu);
         }
         if (!wellFormed) {
-            d->buf.push_back(kReplacement);
+            buf.push_back(kReplacement);
             ++i;
             continue;
         }
         if (cp < kMinForLength[extra]) {
-            // 过长编码（overlong）：拒绝，按一个坏字节前进
-            d->buf.push_back(kReplacement);
+            buf.push_back(kReplacement);
             ++i;
             continue;
         }
 
-        pkAppendCodePoint(d->buf, cp);
+        pkAppendCodePoint(buf, cp);
         i += static_cast<std::size_t>(extra) + 1;
     }
-    return d;
+    return buf;
 }
 
-std::string PkStringData::PkToUtf8(const std::vector<char16_t>& b)
+std::string ToUtf8(const std::vector<char16_t>& b)
 {
     std::string out;
     out.reserve(b.size());
@@ -133,9 +118,11 @@ std::string PkStringData::PkToUtf8(const std::vector<char16_t>& b)
             cp = 0x10000u + ((cp - 0xD800u) << 10) + (static_cast<unsigned>(b[i + 1]) - 0xDC00u);
             ++i;
         } else if (cp >= 0xD800u && cp <= 0xDFFFu) {
-            cp = kReplacement;  // 孤立代理项
+            cp = kReplacement;  // 孤立代理项——Task 2 会把这一分支改成单字节 0x3F
         }
         pkAppendUtf8(out, cp);
     }
     return out;
 }
+
+} // namespace PkStringCodec
