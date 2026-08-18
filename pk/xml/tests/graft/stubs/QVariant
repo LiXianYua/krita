@@ -1,0 +1,40 @@
+#pragma once
+#include "QString"
+
+// 编译期占位 + 部分功能实现 —— 不在 pk/xml 范围内，也没有任何 R 任务认领
+// QVariant 的零 Qt 替代（真正的类型擦除容器选型是未来某个未认领任务）。
+//
+// kis_dom_utils.h 的泛型 `loadValue<T>`（`is_arithmetic<T>` 分支）用它把 XML
+// 属性字符串转回标量：
+//     QVariant v(e.attribute("value", "no-value"));
+//     *value = v.value<T>();
+// float/double 有专门的非模板重载（kis_dom_utils.cpp 的 loadValue(e, float*)/
+// loadValue(e, double*)，走的是 toDouble()，不经过这条 QVariant 路径——
+// 非模板精确匹配优先于模板，见 pk/xml/README.md 对重载决议的相关说明）。
+// 本试接实测唯一真正落进这条模板的是 int（KisDomUtils::loadValue 对
+// i1/i2/i3 三个 int 值的往返，checkLoadData() 里三处 QCOMPARE 断言覆盖），
+// 因此这里**不是纯粹的死代码占位**：`.value<int>()` 必须真正跑对，用
+// `PkString::toInt()`（locale-independent），与写出这个字符串的
+// `QString::number(int)`（见 stubs/QString）配对，两边都是十进制、无千分位、
+// 无正负号歧义的整数字面量，往返恒定成功。
+//
+// `.value<T>()` 对 int 之外的其它标量类型在这份试接里没有真实调用点：主模板
+// 只声明不定义，用到会在**链接期**报响亮的 "undefined reference"，不会悄悄
+// 给一个错的默认实现产出静默错误。
+class QVariant {
+public:
+    QVariant() = default;
+    QVariant(const PkString &s) : _s(s) {}
+
+    template <typename T>
+    T value() const;
+
+private:
+    PkString _s;
+};
+
+template <>
+inline int QVariant::value<int>() const
+{
+    return _s.toInt();
+}

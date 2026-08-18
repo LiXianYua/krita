@@ -1,0 +1,54 @@
+#pragma once
+#include "PkString.h"
+// 真 Qt 的 <QLocale> 会传递带出 <QStringList>（QLocale::uiLanguages() 等接口
+// 返回 QStringList）——kis_dom_utils.h 在 `#include <QLocale>` 之后才用到裸
+// `QStringList`（qStringToQColor() 里的 split() 结果、findOnlyElement() 的
+// errorMessages 形参），从没有单独 `#include <QStringList>`，靠的正是这条
+// 真实存在的 Qt 传递性。这里复刻同一条传递性，不是随手加的便利设施。
+#include "QStringList"
+
+// 临时局部占位 —— 不属于 pk/xml（Q-2）范围，也没有任何 R 任务认领 QLocale 的
+// 零 Qt 替代（真正的国际化/本地化选型是未来某个未认领任务）。放在这里只因为
+// kis_dom_utils.h 的 `toInt(const QString&, bool*)`/`toDouble(...)` 里各有一条
+// "先按 locale-independent 规则解析，失败了再退回 `QLocale(QLocale::German)`
+// 显式转换"的兜底路径，且测试文件本身直接调用 `QLocale::setDefault(...)`。
+//
+// **这条 QLocale 兜底分支在本试接覆盖的全部测试方法里从未被真正触达**：
+// 已用 Qt 官方文档核实，`QString::toInt()`/`QString::toDouble()`
+// （kis_dom_utils.h toInt/toDouble 里两条 `str.toXxx(&ok_locale)` 首选路径）
+// 是 locale-independent 的，恒定使用 '.' 作小数点，不受 `QLocale::setDefault()`
+// 影响；而 saveData() 写出的数字字符串（`QString::number()`/`QTextStream`
+// 默认格式）同样恒定是 '.' 格式——两边一致，首选解析恒定成功，第二段
+// `QLocale` 转换永远不会被求值。`QLocale::setDefault()` 本身也是空操作。
+// 因此下面的 toInt/toDouble 实现只是"看起来合理"，没有被这份试接的任何
+// QCOMPARE/QVERIFY 验证过，不是正式交付。
+class QLocale {
+public:
+    enum Language { C, German, Russian };
+
+    QLocale() : _lang(C) {}
+    QLocale(Language lang) : _lang(lang) {}
+
+    static void setDefault(Language) {}
+
+    int toInt(const PkString &s, bool *ok = nullptr) const {
+        return normalize(s).toInt(ok);
+    }
+    double toDouble(const PkString &s, bool *ok = nullptr) const {
+        return normalize(s).toDouble(ok);
+    }
+
+private:
+    // German/Russian 习惯用 ',' 做小数点；换成 '.' 再喂给 locale-independent
+    // 的 PkString::toInt/toDouble。C locale 原样返回。
+    PkString normalize(const PkString &s) const {
+        if (_lang == C) return s;
+        std::string bytes = s.PkToUtf8();
+        for (char &c : bytes) {
+            if (c == ',') c = '.';
+        }
+        return PkString(bytes.c_str());
+    }
+
+    Language _lang;
+};

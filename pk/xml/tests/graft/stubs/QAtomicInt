@@ -1,0 +1,29 @@
+#pragma once
+// 局部垫片：QAtomicInt 归 R-10（Q-8 并发与同步原语），本任务无法交付。
+// 真品到位后本文件应删除。内容与 pk/pointer/graft/stubs/QAtomicInt /
+// pk/log/tests/graft/stubs/QAtomicInt 逐字相同（两边都已被评审接受过的同款
+// 偏离形态，不是重新设计）。
+//
+// 用量（本试接需要的部分，kis_shared.h/kis_shared_ptr.h 经 kis_time_span.h→
+// kis_types.h 传递拉入，KisTimeSpan 往返测试需要它能编）：
+//   ref() / deref()：Qt 语义——返回的是"新值"是否非零，不是旧值、不是成功与否
+//   operator int() const（隐式转换）
+//   fetchAndAddOrdered(int)：Qt 语义——返回**相加前**的旧值，跟 ref()/deref()
+//                     的"新值"语义不同，别搞混
+// 没有用到 load()/store()，因此没有加。
+#include <atomic>
+
+class QAtomicInt {
+public:
+    QAtomicInt(int v = 0) : _v(v) {}
+
+    bool ref()   { return ++_v != 0; }
+    bool deref() { return --_v != 0; }
+
+    operator int() const { return _v.load(); }
+
+    int fetchAndAddOrdered(int valueToAdd) { return _v.fetch_add(valueToAdd); }
+
+private:
+    std::atomic<int> _v;
+};

@@ -1,0 +1,9 @@
+#pragma once
+#include "QScreen"
+
+// 编译期占位——见 stubs/QScreen 头注释，同一批不可达 GUI 类型。
+// KisPortingUtils::getScreenNumberForWidget(const QWidget *w) 只用到 w->screen()。
+class QWidget {
+public:
+    QScreen *screen() const { return nullptr; }
+};

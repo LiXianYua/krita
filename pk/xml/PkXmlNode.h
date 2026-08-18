@@ -94,6 +94,20 @@ public:
 
     PkXmlDocument ownerDocument() const;
 
+    // QDomNode 自 Qt 4.1 起自带的四个便捷方法（不是 QDomElement 独有）——
+    // 跳过非元素兄弟/子节点直接找元素，效果等价于先 toElement() 再调用
+    // PkXmlElement 上同名方法，但不需要调用方自己转型。
+    //
+    // R-07 Task 3 试接 `libs/global/kis_dom_utils.cpp` 时实测压出来的缺口：
+    // `findElementByAttribute(QDomNode parent, ...)` 直接对形参类型是
+    // QDomNode（未转型）的 `parent` 调 `parent.firstChildElement(tag)` /
+    // `e.nextSiblingElement(tag)`——这是真实、常见的 Qt 用法，Task 1 交付时
+    // 只在 PkXmlElement 上给了这四个方法，PkXmlNode 上没有对应物。
+    PkXmlElement firstChildElement(const PkString &tagName = PkString()) const;
+    PkXmlElement lastChildElement(const PkString &tagName = PkString()) const;
+    PkXmlElement nextSiblingElement(const PkString &tagName = PkString()) const;
+    PkXmlElement previousSiblingElement(const PkString &tagName = PkString()) const;
+
 protected:
     enum class Kind { Node, Attr };
 

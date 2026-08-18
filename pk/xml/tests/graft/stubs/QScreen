@@ -1,0 +1,9 @@
+#pragma once
+// 编译期占位 —— QScreen/QWidget/QGuiApplication 三个都不在任何 R 任务的认领
+// 范围内（GUI 层，随 libs/ui 一起走的东西）。KisPortingUtils.h（真品）
+// `getScreenNumberForWidget()` 用到，但 kis_dom_utils.cpp/kis_time_span.cpp/
+// kis_debug.cpp 的任何调用路径都不会走到这个函数——它跟 XML 往返完全无关，
+// 只是恰好活在同一个头文件里的另一个 inline 自由函数。这里只当一个不透明的
+// 指针目标类型用（`QScreen*`），连成员都不需要。
+class QScreen {
+};

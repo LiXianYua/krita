@@ -1,0 +1,43 @@
+#pragma once
+#include "QString"
+#include <cstdio>
+
+// 临时局部占位 —— 不在 pk/xml（Q-2）范围内，也没有任何 R 任务认领 QTextStream
+// 的零 Qt 替代（真正的文本流选型是未来某个未认领任务）。放在这里是因为
+// `KisPortingUtils.h`（真品）`#include <QTextStream>`，而 `kis_dom_utils.h` 的
+// `toString(float)`/`toString(double)` 两个重载（**KisDomUtils::saveValue 对
+// f1..f4 四个 qreal 值往返测试的真实路径**，testC2C/testG2G/testR2R/testC2G/
+// testR2G/testG2C/testG2R 七个测试方法全部经过它）直接用 QTextStream 把数字
+// 写成字符串——这条路径**被真实断言覆盖**，不能像 QColor/i18n 那样只求编过，
+// 必须写出能被 `PkString::toDouble()` 原样读回、且在 `checkDifference()`
+// 0.01 相对误差 / 1e-10 绝对误差容忍带内的字符串。
+//
+// 用 `%.*g`（精度取 `setRealNumberPrecision()` 设的有效数字位数）实现，不追求
+// 逐字节复刻真 Qt QTextStream 的 SmartNotation 格式化规则——两边都不关心具体
+// 输出成 "0.0003" 还是 "3e-04"，只关心读回来的浮点值够不够接近。
+// `setCodec("UTF-8")`（KisPortingUtils::setUtf8OnStream 在 QT_VERSION<6 分支
+// 走的那条，因为本 worktree 里 QT_VERSION 被压到 0.0.0）是纯签名占位，
+// PkString 本身就是 UTF-16/UTF-8 互操作的，没有"设编码"这个概念。
+class QTextStream {
+public:
+    QTextStream() : _str(nullptr), _precision(6) {}
+
+    void setString(PkDomUtilsGraftString *str, unsigned int /*openMode*/ = 0) { _str = str; }
+    void setRealNumberPrecision(int precision) { _precision = precision; }
+    void setCodec(const char * /*name*/) {}
+
+    QTextStream &operator<<(double value)
+    {
+        if (_str) {
+            char buf[64];
+            std::snprintf(buf, sizeof(buf), "%.*g", _precision, value);
+            *_str = PkDomUtilsGraftString(buf);
+        }
+        return *this;
+    }
+    QTextStream &operator<<(float value) { return operator<<(static_cast<double>(value)); }
+
+private:
+    PkDomUtilsGraftString *_str;
+    int _precision;
+};

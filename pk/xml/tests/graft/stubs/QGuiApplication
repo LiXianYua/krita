@@ -1,0 +1,13 @@
+#pragma once
+#include "QScreen"
+#include "QList"
+
+// 编译期占位——见 stubs/QScreen 头注释，同一批不可达 GUI 类型。
+// KisPortingUtils::getScreenNumberForWidget() 用到
+// QGuiApplication::screens()/primaryScreen() 两个静态方法，签名对上即可、
+// 不追求真实的屏幕枚举行为——这个函数在本试接的任何测试路径里都不可达。
+class QGuiApplication {
+public:
+    static QList<QScreen *> screens() { return QList<QScreen *>(); }
+    static QScreen *primaryScreen() { return nullptr; }
+};

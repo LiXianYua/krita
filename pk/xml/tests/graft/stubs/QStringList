@@ -1,0 +1,32 @@
+#pragma once
+#include "PkString.h"
+#include <vector>
+
+// 编译期占位 —— 不用真正的 pk/container `PkStringList`（那是 QStringList
+// 的正式零 Qt 替代，本 worktree 已交付），因为这里要覆盖的两处调用点都在
+// kis_dom_utils.cpp 里从未被测试断言触达的分支：
+//   · `qStringToQColor()`（QColor 路径，见 stubs/QColor 头注释）：
+//     `colorString.split(',')` 返回 `std::vector<PkString>`（PkString 用量表
+//     里 split() 的真实签名），不是 `PkStringList`——真 `PkStringList` 没有
+//     "从 std::vector<PkString> 构造"这个操作，硬套上去要么改 pk/container
+//     （本任务禁止），要么在这里垫一层转换。
+//   · `findOnlyElement()` 的 `errorMessages` 出参：默认 nullptr，本试接的
+//     8 个测试方法全部是成功往返，从未传非空值进来，`*errorMessages << msg`
+//     这行代码需要能编译，不需要真的被执行到。
+class QStringList {
+public:
+    QStringList() = default;
+    QStringList(std::vector<PkString> v) : _v(std::move(v)) {}
+
+    PkString &operator[](int i) { return _v[static_cast<std::size_t>(i)]; }
+    const PkString &operator[](int i) const { return _v[static_cast<std::size_t>(i)]; }
+
+    QStringList &operator<<(const PkString &s)
+    {
+        _v.push_back(s);
+        return *this;
+    }
+
+private:
+    std::vector<PkString> _v;
+};

@@ -1,0 +1,35 @@
+#pragma once
+#include "PkString.h"
+
+// 编译期占位 —— **不是 QColor 的正式替代品**。处置方式对齐
+// pk/config/README.md §3 `PkConfigColor`「临时局部代打类型」先例：目前没有任何
+// R 任务认领 QColor 的完整零 Qt 替代（既不在 R-03 几何范围，也不在
+// pk/config/PkConfigColor 那种「一个元组值类型」范围——这里要的是能编译过
+// `kis_dom_utils.cpp` 里 `qColorToQString()`/`qStringToQColor()` 与
+// `saveValue(QDomElement*, const QString&, const QColor&)`/
+// `loadValue(const QDomElement&, QColor*)` 两对重载的签名，不多不少）。
+//
+// kis_dom_utils_test.cpp 的 8 个测试方法（testC2C/testG2G/testR2R/testC2G/
+// testR2G/testG2C/testG2R/testIntegralType）没有一个构造过 QColor 或调用过
+// 这两对重载/两个自由函数——QColor 相关代码在这份试接里是彻底不可达的死代码，
+// 因此这里只保证签名匹配、能编译，不追求任何行为正确性。
+class QColor {
+public:
+    enum NameFormat { HexRgb, HexArgb };
+
+    QColor() = default;
+    QColor(int, int, int, int = 255) {}
+
+    int red() const { return 0; }
+    int green() const { return 0; }
+    int blue() const { return 0; }
+    int alpha() const { return 0; }
+
+    // 真 QColor::name() 返回 QString；这里返回裸字符串，靠 PkString(const char*)
+    // 的隐式构造转换——调用点 `e.setAttribute("value", c.name(QColor::HexArgb))`
+    // 第二个实参就是这样接的。
+    const char *name(NameFormat = HexArgb) const { return "#00000000"; }
+
+    void setNamedColor(const PkString &) {}
+    void fromString(const PkString &) {}
+};

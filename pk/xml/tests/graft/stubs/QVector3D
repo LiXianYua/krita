@@ -1,0 +1,29 @@
+#pragma once
+
+// 编译期占位 —— QVector3D 不在 pk/geometry（R-03）已交付的几何类型清单里
+// （compat/ 下只有 QPoint/QPointF/QRect/QRectF/QSize/QSizeF/QTransform 七个），
+// 也没有任何 R 任务认领。`kis_dom_utils.h`（真品）里
+// `class QVector3D;`（前置声明）+ 一对
+// `saveValue(QDomElement*, const QString&, const QVector3D&)`/
+// `loadValue(const QDomElement&, QVector3D*)` 签名要用到完整定义（`.cpp` 里的
+// 实现会调用 `.x()/.y()/.z()/setX()/setY()/setZ()`）。
+//
+// kis_dom_utils_test.cpp 的 8 个测试方法没有一个构造过 QVector3D 或调用这两个
+// 重载——三维向量与 KisDomUtils 的 float/int/KisTimeSpan 往返测试无关，这里
+// 只需要签名能编译，不追求任何真实向量运算行为（对齐 stubs/QColor 的处置）。
+class QVector3D {
+public:
+    QVector3D() : _x(0), _y(0), _z(0) {}
+    QVector3D(double x, double y, double z) : _x(x), _y(y), _z(z) {}
+
+    double x() const { return _x; }
+    double y() const { return _y; }
+    double z() const { return _z; }
+
+    void setX(double x) { _x = x; }
+    void setY(double y) { _y = y; }
+    void setZ(double z) { _z = z; }
+
+private:
+    double _x, _y, _z;
+};

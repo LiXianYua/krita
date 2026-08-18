@@ -1,0 +1,89 @@
+#pragma once
+// ============================================================================
+// 试接垫片 —— **不是 pk/xml（R-07）的交付物**，不要拿它当替代品。处置方式与
+// pk/geometry/graft/stubs/QtGlobal 的先例一致（同一个 kis_global.h/kis_assert.h
+// 拦路石，同样的三类归属拆分），逐条对照复用，不是重新设计一遍：
+//
+//   ① 标量工具 qreal / qAbs / qMin / qMax / qBound / qRound / qFuzzyCompare …
+//      —— 归 R-03，已交付在 pk/geometry/PkGlobal.h + pk/geometry/compat/QtGlobal。
+//      第一行把那份**交付物**包进来，试接真正编译的是 R-03 的实现，不是垫片。
+//
+//   ② 定长整数 typedef quint8 / quint16 / qint32 / quint64 …
+//      —— 归 R-02（容器与基础类型）。pk/geometry/compat/QtGlobal 末尾明写
+//      「本文件不提供 qint8..quint64 那批整数 typedef」，试接期在这里补最小垫片。
+//      真实调用点：libs/global/kis_global.h 的一批 quint8_MAX/qint16_MIN 等常量。
+//
+//   ③ 版本宏 QT_VERSION / QT_VERSION_CHECK、qt_noop()、Q_FOREACH / Q_UNUSED
+//      —— 归 S-00 的全量替换面。QT_VERSION/QT_VERSION_CHECK 与
+//      stubs/QString 里那份逐字一致（两处都带 #ifndef 守卫，不冲突）。
+//      qt_noop() 是 kis_assert.h 的 KIS_ASSERT 家族宏体里用到的；Q_FOREACH
+//      是 kis_pointer_utils.h（kis_types.h 间接拉入）几个模板用到的语法元素，
+//      没有定义就是语法错误，哪怕那些模板一次都没实例化。
+// ============================================================================
+
+// ① R-03 的交付物 —— 标量工具的真身在这里，不在本文件。
+#include "../../../../geometry/compat/QtGlobal"
+
+// ② 定长整数 typedef（归 R-02）。取值按 LP64 Linux 上的真 Qt 5.15.7，与
+//    pk/geometry/graft/stubs/QtGlobal 那份逐字一致。
+typedef signed char        qint8;
+typedef unsigned char      quint8;
+typedef short              qint16;
+typedef unsigned short     quint16;
+typedef int                qint32;
+typedef unsigned int       quint32;
+typedef long long          qint64;
+typedef unsigned long long quint64;
+typedef qint64             qlonglong;
+typedef quint64            qulonglong;
+
+#ifndef QT_VERSION_CHECK
+#define QT_VERSION_CHECK(major, minor, patch) \
+    (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef QT_VERSION
+#define QT_VERSION QT_VERSION_CHECK(0, 0, 0)
+#endif
+
+inline void qt_noop() {}
+
+#ifndef Q_FOREACH
+#define Q_FOREACH(variable, container) for (variable : container)
+#endif
+
+#ifndef Q_UNUSED
+#define Q_UNUSED(x) (void)(x);
+#endif
+
+// 以下四项是 kis_shared_ptr.h（kis_time_span.h → kis_types.h → …
+// → kis_shared_ptr.h 这条链拉进来的，KisTimeSpan 走 KisDomUtils::saveValue/
+// loadValue 往返所需要的传递依赖）用到的基础断言/模板宏，同一批"深坑"占位，
+// 处置与 pk/pointer/graft/stubs/QtGlobal、pk/log/tests/graft/stubs/QtGlobal
+// 逐字一致（两边都已被评审接受过），不是重新设计：
+//
+// kis_debug.h 里 `#ifndef QT_NO_DEBUG #undef Q_ASSERT #define Q_ASSERT(...)`
+// 只在**没有**定义 QT_NO_DEBUG 时才重定义 Q_ASSERT——本试接编译行统一带
+// -DQT_NO_DEBUG，那段重定义永远不激活，所以 Q_ASSERT/Q_ASSERT_X 必须先有一份
+// "基础版"存在（真 Qt 里由 qglobal.h 提供）。按 QT_NO_DEBUG 语义复刻：release
+// 分支空操作，debug 分支退化到标准 assert()（本试接全部编译行都带
+// QT_NO_DEBUG，debug 分支实际不会被编译到，留着只是让宏语义完整）。
+#ifdef QT_NO_DEBUG
+#define Q_ASSERT(cond) qt_noop()
+#define Q_ASSERT_X(cond, where, what) qt_noop()
+#else
+#include <cassert>
+#define Q_ASSERT(cond) assert(cond)
+#define Q_ASSERT_X(cond, where, what) assert(cond)
+#endif
+
+// kis_shared_ptr.h 里 KisSharedPtr<T> 类外定义的成员函数模板前缀
+// （`Q_INLINE_TEMPLATE KisSharedPtr<T>::attach(...)` 等）。真 Qt（Qt5
+// qglobal.h）就是把它定义成 inline。
+#ifndef Q_INLINE_TEMPLATE
+#define Q_INLINE_TEMPLATE inline
+#endif
+
+// kis_shared_ptr.h 裸用 QAtomicInt（`QAtomicInt *weakReference;` 等），自己
+// 没有 `#include <QAtomicInt>`——复刻的是真 Qt 里 QAtomicInt 经由 <QtGlobal>
+// 间接可见这条传递性（真 Qt5 的 qglobal.h 传递包含 qbasicatomic.h 一族）。
+#include "QAtomicInt"

@@ -202,3 +202,64 @@ PkXmlDocument PkXmlNode::ownerDocument() const
     }
     return PkXmlDocument(*_doc, _doc);
 }
+
+// 四个便捷方法：算法与 PkXmlElement.cpp 里同名方法逐字一致（跳过非元素
+// 兄弟/子节点），唯一差别是这里从 `_node` 出发而不要求 `this` 本身是元素——
+// 与真 Qt QDomNode 的语义一致（QDomNode 本身可以是任意节点类型，这四个方法
+// 只挑子节点/兄弟节点里的元素）。
+
+PkXmlElement PkXmlNode::firstChildElement(const PkString &tagName) const
+{
+    if (_kind != Kind::Node) {
+        return PkXmlElement();
+    }
+    const std::string want = tagName.PkToUtf8();
+    for (pugi::xml_node c = _node.first_child(); c; c = c.next_sibling()) {
+        if (c.type() == pugi::node_element && (want.empty() || want == c.name())) {
+            return PkXmlElement(c, _doc);
+        }
+    }
+    return PkXmlElement();
+}
+
+PkXmlElement PkXmlNode::lastChildElement(const PkString &tagName) const
+{
+    if (_kind != Kind::Node) {
+        return PkXmlElement();
+    }
+    const std::string want = tagName.PkToUtf8();
+    for (pugi::xml_node c = _node.last_child(); c; c = c.previous_sibling()) {
+        if (c.type() == pugi::node_element && (want.empty() || want == c.name())) {
+            return PkXmlElement(c, _doc);
+        }
+    }
+    return PkXmlElement();
+}
+
+PkXmlElement PkXmlNode::nextSiblingElement(const PkString &tagName) const
+{
+    if (_kind != Kind::Node) {
+        return PkXmlElement();
+    }
+    const std::string want = tagName.PkToUtf8();
+    for (pugi::xml_node c = _node.next_sibling(); c; c = c.next_sibling()) {
+        if (c.type() == pugi::node_element && (want.empty() || want == c.name())) {
+            return PkXmlElement(c, _doc);
+        }
+    }
+    return PkXmlElement();
+}
+
+PkXmlElement PkXmlNode::previousSiblingElement(const PkString &tagName) const
+{
+    if (_kind != Kind::Node) {
+        return PkXmlElement();
+    }
+    const std::string want = tagName.PkToUtf8();
+    for (pugi::xml_node c = _node.previous_sibling(); c; c = c.previous_sibling()) {
+        if (c.type() == pugi::node_element && (want.empty() || want == c.name())) {
+            return PkXmlElement(c, _doc);
+        }
+    }
+    return PkXmlElement();
+}

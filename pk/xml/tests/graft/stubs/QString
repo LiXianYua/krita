@@ -1,0 +1,59 @@
+#pragma once
+#include "PkString.h"
+
+// 临时局部代打 —— 不是 pk/string（R-01）的正式交付物，只在这份试接（候选 A：
+// kis_dom_utils.cpp）里补一个真实调用点用到、但 PkString 用量表（14 项，见
+// pk/string/PkString.h 类头注释）没有覆盖的方法：`QString::number(int)`。
+//
+// 真实调用点：kis_dom_utils.h 的 `template<typename T> QString toString(T value)`
+// 对非 float/非 double 的标量类型（本试接实测只有 int：KisDomUtils::saveValue
+// 对 i1/i2/i3 三个 int 值走这条路径）调用 `QString::number(value)`——这是
+// KisDomUtils 自己的公开行为的一部分，不是本试接编出来的旁路，必须真正跑对，
+// 不能像 QColor/i18n 那两个不可达分支一样只求编过。
+//
+// 处置方式与 pk/config/README.md §3 `PkConfigColor`「临时局部代打类型」一致：
+// 继承真实的 PkString（不是另起一个假类型——PkXmlElement::setAttribute() 等
+// 一律收 `const PkString&`，跟 pk/xml 真实 API 互操作必须用真 PkString），只加
+// 这一个类缺的静态方法。等 R-01 补上 `PkString::number()` 之后，这个子类应该
+// 退役，改回直接 `#include` pk/string/compat/QString。
+//
+// number(double) 一并给出，但**没有被任何断言验证过**——唯一调用点是
+// kis_dom_utils.h 里 `qColorToQString()`（`QColor::red()/green()/blue()/alpha()`
+// 全部返回 int，实际只会选中 number(int) 重载），而 qColorToQString 本身在
+// kis_dom_utils_test.cpp 的任何测试方法里都不可达（QColor 路径，见
+// pk/xml/tests/graft/stubs/QColor 头注释）。补上纯粹是为了让重载集合看起来
+// 完整、不留一个「为什么单单没有 double」的疑问，行为正确性不重要。
+class PkDomUtilsGraftString : public PkString {
+public:
+    using PkString::PkString;
+    PkDomUtilsGraftString() = default;
+    PkDomUtilsGraftString(const PkString &s) : PkString(s) {}
+    PkDomUtilsGraftString(PkString &&s) noexcept : PkString(std::move(s)) {}
+
+    static PkDomUtilsGraftString number(int v);
+    static PkDomUtilsGraftString number(double v);
+
+    // `KisPortingUtils::stringRemoveLast()/stringRemoveFirst()`（真品，同一份
+    // KisPortingUtils.h 里 setUtf8OnStream() 旁边的另外两个 inline 自由函数）
+    // 在 QT_VERSION<6 分支（本 worktree 里 QT_VERSION 被压到 0.0.0，恒为真）
+    // 调用 `str.remove(pos, n)`——PkString 用量表没有这个方法，同一批"函数体
+    // 必须能通过类型检查、但从未被真实调用点触达"的占位（KisDomUtils 的任何
+    // 往返路径都不碰这两个字符串工具函数）。就地删除 n 个字符，够让签名和
+    // 语义粗略对上，不追求逐字节复刻 Qt 的原地修改语义（QString::remove 返回
+    // 的是 QString&，这里同样返回自身引用以支持真实调用点 `str.remove(...)`
+    // 单独成句的写法）。
+    PkDomUtilsGraftString &remove(int pos, int n);
+};
+
+#define QString PkDomUtilsGraftString
+#define QStringLiteral(str) PkDomUtilsGraftString(str)
+
+// kis_string_compat.cpp（kis_debug.cpp 等）间接判空的宏，与
+// pk/string/compat/QString 里的同名兜底逐字一致——照抄，不是新决定。
+#ifndef QT_VERSION_CHECK
+#define QT_VERSION_CHECK(major, minor, patch) \
+    (((major) << 16) | ((minor) << 8) | (patch))
+#endif
+#ifndef QT_VERSION
+#define QT_VERSION QT_VERSION_CHECK(0, 0, 0)
+#endif

@@ -1,0 +1,9 @@
+#pragma once
+
+// 编译期占位 —— QMetaType 整套运行时类型注册/反射机制不在任何 R 任务的认领
+// 范围内（真正的属性系统/反射选型归 R-05 PkObject 一类未来任务）。
+// `kis_time_span.h`（真品）`#include <QMetaType>` + 文件末尾
+// `Q_DECLARE_METATYPE(KisTimeSpan)`，只是给 KisTimeSpan 注册进 Qt 的元类型
+// 系统（供信号槽跨线程排队等用）——kis_dom_utils_test.cpp 的 testIntegralType
+// 只做纯 C++ 的构造/保存/加载/比较，不触达任何依赖元类型注册的机制。
+#define Q_DECLARE_METATYPE(Type)

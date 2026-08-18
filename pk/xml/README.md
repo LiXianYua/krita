@@ -195,3 +195,27 @@ pugixml 本身不做命名空间解析（`xmlns:foo="uri"` 被当成普通属性
 的 Interfaces 枚举里，但都是照抄 Qt 对应类型现成接口的最小补全，不是自创行为
 ——评审记为 Minor，登记在这里保持与 §5.2/§5.4 同样的「补的接口都要登记」
 一致性。
+
+## 6. Task 3 试接（候选 A：`kis_dom_utils.cpp`）新增/修正
+
+见 `.superpowers/sdd/R-07/task-3-report.md` 完整报告。这里只记两处改了
+Task 1/2 交付面本身的：
+
+- **`PkXmlNode` 新增 `firstChildElement`/`lastChildElement`/
+  `nextSiblingElement`/`previousSiblingElement` 四个便捷方法**（原来只有
+  `PkXmlElement` 上有）。真 Qt 的 `QDomNode` 自 Qt 4.1 起就自带这四个方法
+  （不需要先转成 `QDomElement`），`kis_dom_utils.cpp` 的
+  `findElementByAttribute(QDomNode parent, ...)` 直接对形参类型是
+  `QDomNode`（未转型）的 `parent` 调用 `parent.firstChildElement(tag)`——
+  这是真实、常见的 Qt 用法，Task 1 交付时只在 `PkXmlElement` 上给了这四个
+  方法。算法与 `PkXmlElement.cpp` 同名方法逐字一致（跳过非元素兄弟/子节点），
+  实现挪到 `PkXmlNode.cpp`。
+- **`pk/xml/compat/QDomElement` 补上对 `QDomDocument`/`QDomNodeList` 的转发
+  include**。真 Qt 的 `<QDomElement>` 转发到 QtXml 模块的单一头文件
+  `qdom.h`，那个头把 `QDomImplementation`/`QDomNode`/`QDomDocumentType`/
+  `QDomDocument`/`QDomNodeList`/… 整个家族一次性声明全，所以真实调用点常见
+  "只 `#include <QDomElement>` 一个，之后裸用 `QDomDocument`/`QDomNodeList`"
+  这种写法——`kis_dom_utils.cpp` 正是如此：只 `#include <QDomElement>`，
+  函数体里却直接用 `QDomDocument doc = ...` 与 `QDomNodeList list = ...`。
+  此前 `compat/QDomElement` 只转发 `QDomNode` 一个，覆盖不了这条真实存在的
+  Qt 传递性。

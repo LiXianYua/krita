@@ -1,9 +1,22 @@
 #pragma once
 #include "../PkXmlElement.h"
 #include "QDomNode"
+#include "QDomDocument"
+#include "QDomNodeList"
 
 // 兼容垫片：让真实调用点的 `#include <QDomElement>` 在一个字都不改的前提下
 // 解析到 PkXmlElement。文件名刻意没有扩展名 —— 调用点写的就是 <QDomElement>。
 //
 // 用宏而不是 `using`：理由与 pk/string/compat/QString 相同——前置声明兼容。
 #define QDomElement PkXmlElement
+
+// 一并拉进 QDomDocument / QDomNodeList：真 Qt 的 <QDomElement> 转发到
+// QtXml 模块的单一头文件 qdom.h，那个头把 QDomImplementation/QDomNode/
+// QDomDocumentType/QDomDocument/QDomNodeList/QDomCharacterData/QDomAttr/
+// QDomElement/QDomText/QDomComment/QDomCDATASection/… 整个家族一次性声明
+// 全，所以真实调用点常见"只 `#include <QDomElement>` 一个，之后裸用
+// QDomDocument/QDomNodeList"这种写法（R-07 Task 3 试接
+// `libs/global/kis_dom_utils.cpp` 零改动编译时实测压出来的缺口：该文件只
+// `#include <QDomElement>`，函数体里却直接用 `QDomDocument doc = ...` 与
+// `QDomNodeList list = ...`）。此前只转发 QDomNode 一个，覆盖不了这条真实
+// 存在的 Qt 传递性。

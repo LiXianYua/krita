@@ -1,0 +1,25 @@
+#pragma once
+#include "PkPoint.h"
+
+// 编译期占位 —— QLineF 不在 pk/geometry（R-03）已交付的几何类型清单里（compat/
+// 下只有 QPoint/QPointF/QRect/QRectF/QSize/QSizeF/QTransform 七个），也没有
+// 任何 R 任务认领。kis_global.h（真品，`#include <QLineF>` 在文件中段）里
+// `kisDistanceToLine()`/`kisSquareDistanceToLine()` 两个 inline 自由函数用到
+// 它——它们是**非模板 inline 函数**，哪怕从未被调用点实例化，函数体本身也要
+// 在这个翻译单元里通过类型检查，所以不能只声明不定义。
+//
+// kis_dom_utils_test.cpp 的 8 个测试方法都不碰这两个函数（KisDomUtils 与直线
+// 距离无关），只需要 `.p1()`/`.p2()` 返回值类型对得上 `QPointF`（即 PkPointF）
+// 参与后续算术运算（`p1.x()`/`p1.y()` 等），不追求任何真实几何行为。
+class QLineF {
+public:
+    QLineF() = default;
+    QLineF(const PkPointF &p1, const PkPointF &p2) : _p1(p1), _p2(p2) {}
+
+    PkPointF p1() const { return _p1; }
+    PkPointF p2() const { return _p2; }
+
+private:
+    PkPointF _p1;
+    PkPointF _p2;
+};
