@@ -84,24 +84,24 @@ check_expect_fail() {
 
 # ── EXPECT_FAIL：全部 18 个真实消费者，逐个卡在自己 #include 链更上游的
 #    未交付/未认领类型上，一个都没走到真正引用 KisMimeDatabase 的那一行 ──
-check_expect_fail libs/impex/KisImportExportManager.cpp                              'QByteArray'         'R-02（PkByteArray 登记见 pk/port/README.md，未随 pk/container 交付，口径待核）'
+check_expect_fail libs/impex/KisImportExportManager.cpp                              'QByteArray'         'R-02（PkByteArray：pk/port/README.md 早在 S-01 节预判过"S-01 实际开工前应该先确认 R-02 状态"；R-02(pk/container) 现已 VERIFIED，实测仍不含 PkByteArray——问题已从"待核"收敛为"确认存在的缺口，待排期"）'
 check_expect_fail libs/impex/KisDocument.cpp                                         'QColor'             '尚无归口任务（R-09 Task 3 已报告：不在 R-03 几何、不在 R-06 PkVariant 范围）'
 check_expect_fail libs/flake/KoShapeSavingContext.cpp                                'fatal error: Qt:'   '尚无归口任务（Qt module umbrella 头，无 R 任务声明覆盖）'
 check_expect_fail libs/flake/svg/SvgStyleWriter.cpp                                  'QGradientStops'     '尚无归口任务'
-check_expect_fail libs/flake/svg/SvgSavingContext.cpp                                'QFont'              '尚无归口任务（未能核对 docs/TASKS.md——本 worktree 无 docs/，请主会话核实）'
-check_expect_fail libs/resources/KisFolderStorage.cpp                                'QDateTime'          '尚无归口任务'
-check_expect_fail libs/resources/KisMemoryStorage.cpp                                'QDateTime'          '尚无归口任务'
+check_expect_fail libs/flake/svg/SvgSavingContext.cpp                                'QFont'              '尚无归口任务（docs/TASKS.md 核实：本 worktree 无 docs/ 时未能核对，已由主会话侧的 task-agent 复核确认无归口任务）'
+check_expect_fail libs/resources/KisFolderStorage.cpp                                'QDateTime'          'R-16（时钟 → std::chrono，docs/TASKS.md 明确把 QDateTime 记在范围内，实测 28 文件/75 处，NOT_STARTED）'
+check_expect_fail libs/resources/KisMemoryStorage.cpp                                'QDateTime'          'R-16（同上）'
 check_expect_fail libs/resources/KisRequiredResourcesOperators.cpp                   'QImage'             'R-15（沿用 pk/port/graft/graft_check.sh 既有登记）'
-check_expect_fail libs/resources/KisStoragePlugin.cpp                                'QDateTime'          '尚无归口任务'
-check_expect_fail libs/resources/KoResourceBundle.cpp                                'QDomDocument'       '尚无归口任务'
-check_expect_fail libs/resources/KisResourceLocator.cpp                              'QDateTime'          '尚无归口任务'
+check_expect_fail libs/resources/KisStoragePlugin.cpp                                'QDateTime'          'R-16（同上）'
+check_expect_fail libs/resources/KoResourceBundle.cpp                                'QDomDocument'       'R-07（Q-2 XML → pugixml，覆盖 QDom* 系列，NOT_STARTED）'
+check_expect_fail libs/resources/KisResourceLocator.cpp                              'QDateTime'          'R-16（同上）'
 check_expect_fail libs/resources/KisResourceLoaderRegistry.cpp                       'QImage'             'R-15'
 check_expect_fail libs/resources/KisResourceLoader.cpp                               'QImage'             'R-15'
 check_expect_fail libs/pigment/resources/KoPattern.cpp                               'QImage'             'R-15'
 check_expect_fail plugins/flake/imageshape/ImageShape.cpp                            'QSharedDataPointer' '尚无归口任务（pk/pointer 现有 QScopedPointer/QSharedPointer/QWeakPointer/QScopedArrayPointer 四个，不含此类型）'
-check_expect_fail plugins/impex/csv/csv_saver.cpp                                    'QFile'              '尚无归口任务（pk/port 现有仅 QIODevice）'
+check_expect_fail plugins/impex/csv/csv_saver.cpp                                    'QFile'              'S-01（按 pk/port/README.md §5 既定：R-12 只出 PkStream 接口，具体文件/内存/zip 适配器延后到 S-01，非缺口）'
 check_expect_fail plugins/impex/qimageio/kis_qimageio_export.cpp                     'QVariant'           'R-06（按 R-09 Task 4 brief「待回报」节口径，R-06 = PkVariant）'
-check_expect_fail plugins/tools/defaulttool/referenceimagestool/ToolReferenceImages.cpp 'QPointer'        '尚无归口任务（pk/pointer 现有四个 shim 不含此类型）'
+check_expect_fail plugins/tools/defaulttool/referenceimagestool/ToolReferenceImages.cpp 'QPointer'        'R-05（已 VERIFIED，PkPointer 类型与 #define 已交付于 pk/signal/compat/QObject，但该目录缺一个独立的 pk/signal/compat/QPointer 转发文件——真实调用点 #include <QPointer> 不经过 <QObject>，现有垫片覆盖不到这条 include 形式；是 R-05 的一个小跟进项，不是新任务）'
 
 dirty=$(git status --porcelain -- libs/ plugins/)
 if [ -n "$dirty" ]; then
