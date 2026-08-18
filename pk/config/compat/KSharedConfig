@@ -5,3 +5,7 @@
 // KSharedConfig::openConfig() 是静态方法调用，PkSharedConfig::openConfig() 签名
 // 完全对应（见 PkSharedConfig.h）。
 #define KSharedConfig PkSharedConfig
+// KSharedConfigPtr 是与 KSharedConfig 不同的独立 token（自由 typedef 拼写，
+// 不是 KSharedConfig::Ptr 那种嵌套拼写），上面那条 #define 覆盖不到它，需要
+// 单独一条。PkSharedConfigPtr 定义见 PkSharedConfig.h。
+#define KSharedConfigPtr PkSharedConfigPtr

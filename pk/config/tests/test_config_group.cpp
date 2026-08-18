@@ -4,6 +4,8 @@
 #include "../PkSharedConfig.h"
 #include "../PkConfigColor.h"
 
+#include <type_traits>
+
 void TestConfigGroup::storeBasicGetSet()
 {
     PkConfigStore &store = PkConfigStore::instance();
@@ -130,6 +132,90 @@ void TestConfigGroup::doubleRoundTripsBeyondSixDecimals()
     // 顺带确认「真的写 0」依然读回 0，不受上面那条修复影响。
     g.writeEntry("trueZero", 0.0);
     PK_COMPARE(g.readEntry("trueZero", -1.0), 0.0);
+}
+
+void TestConfigGroup::explicitTemplateReadEntryForms()
+{
+    // 最终评审 I-1(a)：真实调用点大量使用 `g.readEntry<T>("k", def)` 这种显式
+    // 模板实参形式（现有 7 个非模板重载不支持在成员函数名后面接 <T>），
+    // 分别覆盖 bool / int / PkString（对应真实调用点里的 readEntry<QString>，
+    // 经 pk/string/compat/QString 的 #define QString PkString 之后落到这里）。
+    PkSharedConfig *cfg = PkSharedConfig::openConfig();
+    PkConfigGroup g = cfg->group("templateread");
+
+    PK_COMPARE(g.readEntry<bool>("flag", true), true);
+    g.writeEntry("flag", false);
+    PK_COMPARE(g.readEntry<bool>("flag", true), false);
+
+    PK_COMPARE(g.readEntry<int>("count", 7), 7);
+    g.writeEntry("count", 42);
+    PK_COMPARE(g.readEntry<int>("count", 7), 42);
+
+    PK_COMPARE(g.readEntry<PkString>("label", PkString("fallback")), PkString("fallback"));
+    g.writeEntry("label", PkString("actual"));
+    PK_COMPARE(g.readEntry<PkString>("label", PkString("fallback")), PkString("actual"));
+}
+
+void TestConfigGroup::writeEntryQuint32IsUnambiguousAndRoundTrips()
+{
+    // 最终评审 I-1(c)：`writeEntry("k", quint32(v))`（unsigned int → bool/int/
+    // double 三个同等排名的标准转换）在只有非模板重载时是 ambiguous call。
+    // quint32 本身在本测试文件里不是裸类型（未拉 Qt 兼容垫片），用同底层类型的
+    // unsigned int 直接验证——覆盖的是同一处重载决议路径。
+    PkSharedConfig *cfg = PkSharedConfig::openConfig();
+    PkConfigGroup g = cfg->group("quint32write");
+
+    unsigned int enumLikeValue = 2;
+    g.writeEntry("gridmainstyle", enumLikeValue);
+    // 真实调用点写入后固定走 int 重载读回（枚举值转 quint32 只是写入路径的中间态）。
+    PK_COMPARE(g.readEntry("gridmainstyle", 0), 2);
+}
+
+void TestConfigGroup::readEntryWithStringLiteralDoesNotBindToBool()
+{
+    // 最终评审 I-1(d)，最严重的一项：`readEntry("k", "literal")` 在没有 const
+    // char* 精确匹配重载时，会靠标准布尔转换悄悄绑定到 bool 重载——不报错，
+    // 调用方以为拿到的是字符串，实际类型是 bool。static_assert 在编译期确认
+    // decltype 落在 PkString 上，这条断言失败就说明回归又发生了。
+    PkSharedConfig *cfg = PkSharedConfig::openConfig();
+    PkConfigGroup g = cfg->group("literal_test");
+
+    auto v = g.readEntry("someKey", "some default text");
+    static_assert(std::is_same<decltype(v), PkString>::value,
+                  "readEntry(key, const char*) must bind to the PkString overload, not bool");
+    PK_COMPARE(v, PkString("some default text"));
+}
+
+void TestConfigGroup::twoArgConstructorFromSharedConfigHandle()
+{
+    // 最终评审 I-1(b)：真实调用点里的构造形式是
+    // `KConfigGroup cfg(KSharedConfig::openConfig(), "Group")`，不是经
+    // `.group(name)` 拿到句柄。config 实参只做类型检查，不参与存储路径——
+    // 用同一个 group 名字通过两种构造方式都应该看到彼此写入的值。
+    PkSharedConfig *cfg = PkSharedConfig::openConfig();
+    PkConfigGroup viaCtor(cfg, "twoarg");
+    viaCtor.writeEntry("x", 5);
+
+    PkConfigGroup viaAccessor = cfg->group("twoarg");
+    PK_COMPARE(viaAccessor.readEntry("x", 0), 5);
+}
+
+void TestConfigGroup::colorReadEntryRejectsOutOfRangeSegments()
+{
+    // M-1：越界分量（如 300、-5）过去会被 static_cast<uint8_t> 悄悄环绕/截断成
+    // 无关颜色，而不是像段数不对时那样退回 defaultValue——两种"数据格式不对"
+    // 的场景现在必须有一致的兜底行为。
+    PkSharedConfig *cfg = PkSharedConfig::openConfig();
+    PkConfigGroup g = cfg->group("colorrange");
+    PkConfigColor fallback(1, 2, 3, 4);
+
+    PkConfigStore::instance().set("colorrange", "outOfRange", PkString("300,-5,0,255"));
+    PK_VERIFY(g.readEntry("outOfRange", fallback) == fallback);
+
+    // 边界值本身（0 与 255）仍然合法，不应被这条新检查误伤。
+    g.writeEntry("boundary", PkConfigColor(0, 255, 0, 255));
+    PkConfigColor boundary = g.readEntry("boundary", fallback);
+    PK_VERIFY(boundary == PkConfigColor(0, 255, 0, 255));
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

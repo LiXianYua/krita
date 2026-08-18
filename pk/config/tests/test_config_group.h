@@ -12,4 +12,9 @@ private Q_SLOTS:
     void sameGroupNameSharesStorage();
     void emptyStringListDiffersFromMissingKey();
     void doubleRoundTripsBeyondSixDecimals();
+    void explicitTemplateReadEntryForms();
+    void writeEntryQuint32IsUnambiguousAndRoundTrips();
+    void readEntryWithStringLiteralDoesNotBindToBool();
+    void twoArgConstructorFromSharedConfigHandle();
+    void colorReadEntryRejectsOutOfRangeSegments();
 };

@@ -59,6 +59,13 @@ PkConfigGroup::PkConfigGroup(const PkString &groupName) : m_groupName(groupName)
 {
 }
 
+PkConfigGroup::PkConfigGroup(PkSharedConfig *config, const PkString &groupName) : m_groupName(groupName)
+{
+    // config 故意不用：底层存储是 PkConfigStore 的全局单例，与调用方从哪个
+    // "配置句柄"拿到这个 group 无关（同 PkSharedConfig::group() 的实现方式）。
+    (void)config;
+}
+
 bool PkConfigGroup::readEntry(const PkString &key, bool defaultValue) const
 {
     PkConfigStore &store = PkConfigStore::instance();
@@ -141,7 +148,10 @@ PkConfigColor PkConfigGroup::readEntry(const PkString &key, const PkConfigColor 
     for (int i = 0; i < 4; ++i) {
         bool ok = false;
         values[i] = parts[static_cast<std::size_t>(i)].toInt(&ok);
-        if (!ok) {
+        // 每段必须落在 uint8_t 的有效范围内——没有这层检查，"300,-5,0,255" 这类
+        // 越界值会在下面 PkConfigColor 构造函数里被 static_cast<uint8_t> 悄悄
+        // 截断/环绕成完全不相关的颜色，而不是像段数不对时那样退回 defaultValue。
+        if (!ok || values[i] < 0 || values[i] > 255) {
             return defaultValue;
         }
     }
