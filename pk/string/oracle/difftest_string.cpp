@@ -23,9 +23,12 @@
 
 #include <PkString.h>
 
+#include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdint>
+#include <cstdlib>
 #include <map>
 #include <string>
 #include <type_traits>
@@ -65,13 +68,79 @@ std::string esQ(const QString& s)
     return "\"" + std::string(b.constData(), static_cast<std::size_t>(b.size())) + "\"";
 }
 std::string esP(const PkString& s) { return "\"" + s.PkToUtf8() + "\""; }
-std::string esI(int v) { return std::to_string(v); }
 std::string esD(double v) {
     char buf[64];
     std::snprintf(buf, sizeof(buf), "%.17g", v);
     return buf;
 }
 std::string esB(bool v) { return v ? "true" : "false"; }
+
+// ── tag 构造辅助（规则一：tag 必须编码触发差异的输入形态，不能是字面量常量）──
+
+// hay/needle 关系分类，contains/startsWith 共用：needle 是否为空、是否与 hay
+// 相同、是否是 hay 的前缀、是否是 hay 的子串（非前缀）、还是完全不相关。
+std::string pkClassifyPair(const std::string& hay, const std::string& needle)
+{
+    if (needle.empty()) return "needle-empty";
+    if (hay == needle) return "equal";
+    if (hay.size() >= needle.size() && hay.compare(0, needle.size(), needle) == 0) return "prefix";
+    if (hay.find(needle) != std::string::npos) return "substring";
+    return "unrelated";
+}
+
+// trimmed() 的输入分类：空串 / 全是 ASCII 空白 / 含非 ASCII 字节（NBSP 等
+// Unicode 空白探针都落在这一类）/ 其余（含非空白 ASCII 内容）。
+std::string pkClassifyTrimInput(const std::string& s)
+{
+    if (s.empty()) return "empty";
+    bool hasNonAscii = false;
+    bool allAsciiSpace = true;
+    for (unsigned char c : s) {
+        if (c >= 0x80) hasNonAscii = true;
+        if (!(c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v')) {
+            if (c < 0x80) allAsciiSpace = false;
+        }
+    }
+    if (hasNonAscii) return "has-non-ascii";
+    if (allAsciiSpace) return "all-ascii-space";
+    return "ascii-content";
+}
+
+// fmt 里第一个 %<digits> 占位符的编号（没有则 "none"），加上实参是否为空——
+// arg1/argDouble/arg2 共用同一套分类逻辑。
+std::string pkClassifyFmt(const std::string& fmt)
+{
+    for (std::size_t i = 0; i + 1 < fmt.size(); ++i) {
+        if (fmt[i] == '%' && std::isdigit(static_cast<unsigned char>(fmt[i + 1]))) {
+            std::string num;
+            std::size_t j = i + 1;
+            while (j < fmt.size() && std::isdigit(static_cast<unsigned char>(fmt[j])) && num.size() < 2) {
+                num += fmt[j];
+                ++j;
+            }
+            return "num=" + num;
+        }
+    }
+    return "num=none";
+}
+
+// 三字节内（本文件用到的码点范围 <= 0x3001）UTF-8 编码，用于 I3 的穷举码点
+// 构造——不能走 C 字符串字面量：cp=0（NUL）本身就是要覆盖的一个码点。
+std::string pkUtf8Encode(unsigned cp)
+{
+    std::string out;
+    if (cp <= 0x7F) {
+        out.push_back(static_cast<char>(cp));
+    } else if (cp <= 0x7FF) {
+        out.push_back(static_cast<char>(0xC0 | (cp >> 6)));
+        out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else {
+        out.push_back(static_cast<char>(0xE0 | (cp >> 12)));
+        out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    }
+    return out;
+}
 
 // ── 输入 token 表 ──────────────────────────────────────────
 // 字符串 token：ASCII 常见形态 + 三个非 ASCII 探针（é 单码元 / U+FFFD / 🎨 代理对）。
@@ -104,6 +173,21 @@ constexpr int kNFieldWidthTok = sizeof(kFieldWidthTok) / sizeof(kFieldWidthTok[0
 // n/pos 的下标编码：覆盖负数、0、size 内、恰好 size、size 外
 const int kIdxTok[] = {-100, -2, -1, 0, 1, 2, 900, 901, 902};  // 900/901/902 见 pkResolveIdx
 constexpr int kNIdxTok = sizeof(kIdxTok) / sizeof(kIdxTok[0]);
+
+// arg(double)：格式串覆盖 %1（不分组）与 %L1（分组），数值覆盖普通值、
+// 正负零、超过 1000 的值、以及切科学计数法的大值/小值（I2）。
+const char* const kDblFmtTok[] = {"%1", "%L1"};
+constexpr int kNDblFmtTok = sizeof(kDblFmtTok) / sizeof(kDblFmtTok[0]);
+const double kDblTok[] = {
+    0.0, -0.0, 1.5, -1.5, 999.5, 1000.0, 1234.5, -1234.5, 123456.0,
+    1000000.0, -1000000.0, 1e21, 1e-7,
+};
+constexpr int kNDblTok = sizeof(kDblTok) / sizeof(kDblTok[0]);
+
+// 双参字符串版 arg(a,b) 的格式串：带占位符（含 %0 起始编号、重复引用、无
+// 占位符对照组）。
+const char* const kArg2FmtTok[] = {"%1-%2", "%2-%1", "%1 %1 %2", "%0-%1-%2", "no placeholder"};
+constexpr int kNArg2FmtTok = sizeof(kArg2FmtTok) / sizeof(kArg2FmtTok[0]);
 
 int pkResolveIdx(int code, int n)
 {
@@ -162,7 +246,25 @@ void diffTrimmed(const char* sIn)
     QString qr = qs.trimmed();
     PkString pr = ps.trimmed();
     const bool same = (esQ(qr) == esP(pr));
-    rec("trimmed", same, "input", sIn, esQ(qr), esP(pr));
+    rec("trimmed", same, pkClassifyTrimInput(sIn), sIn, esQ(qr), esP(pr));
+}
+
+// I3：trimmed() 的 Unicode 空白判据穷举码点 0x0000..0x3001（含），每个码点前后
+// 各包一层、中间夹一个 'x'。tag 直接是码点本身——25 个真空白码点应当在两侧都
+// 被剥掉、其余码点在两侧都不该被剥掉，任何一条不一致都是 pkIsSpace 的判据漏了
+// 或多了这个码点。
+void diffTrimmedCodepoint(unsigned cp)
+{
+    const std::string enc = pkUtf8Encode(cp);
+    const std::string s = enc + "x" + enc;
+    QString qs = QString::fromUtf8(s.data(), static_cast<int>(s.size()));
+    PkString ps = PkString::PkFromUtf8(s.data(), static_cast<int>(s.size()));
+    QString qr = qs.trimmed();
+    PkString pr = ps.trimmed();
+    const bool same = (esQ(qr) == esP(pr));
+    char tagbuf[16];
+    std::snprintf(tagbuf, sizeof(tagbuf), "cp=U+%04X", cp);
+    rec("trimmed-cp", same, tagbuf, "U+" + std::to_string(cp), esQ(qr), esP(pr));
 }
 
 void diffContains(const char* hay, const char* needle)
@@ -172,7 +274,7 @@ void diffContains(const char* hay, const char* needle)
     const bool qr = qh.contains(qn);
     const bool pr = ph.contains(pn);
     const bool same = (qr == pr);
-    rec("contains", same, "pair", std::string(hay) + "|" + needle, esB(qr), esB(pr));
+    rec("contains", same, pkClassifyPair(hay, needle), std::string(hay) + "|" + needle, esB(qr), esB(pr));
 }
 
 void diffStartsWith(const char* hay, const char* prefix)
@@ -182,7 +284,7 @@ void diffStartsWith(const char* hay, const char* prefix)
     const bool qr = qh.startsWith(qp);
     const bool pr = ph.startsWith(pp);
     const bool same = (qr == pr);
-    rec("startsWith", same, "pair", std::string(hay) + "|" + prefix, esB(qr), esB(pr));
+    rec("startsWith", same, pkClassifyPair(hay, prefix), std::string(hay) + "|" + prefix, esB(qr), esB(pr));
 }
 
 void diffSplit(const char* sIn, char sep)
@@ -196,7 +298,9 @@ void diffSplit(const char* sIn, char sep)
     std::string pdump = std::to_string(pr.size());
     for (const PkString& x : pr) pdump += "|" + esP(x);
     const bool same = (qdump == pdump);
-    rec("split", same, "sep", std::string(sIn) + "/" + std::string(1, sep), qdump, pdump);
+    const std::string tag = std::string("sep=") + sep + "/contains-sep="
+                           + (std::string(sIn).find(sep) != std::string::npos ? "1" : "0");
+    rec("split", same, tag, std::string(sIn) + "/" + std::string(1, sep), qdump, pdump);
 }
 
 void diffArg1(const char* fmt, const char* a)
@@ -206,7 +310,87 @@ void diffArg1(const char* fmt, const char* a)
     QString qr = qf.arg(qa);
     PkString pr = pf.arg(pa);
     const bool same = (esQ(qr) == esP(pr));
-    rec("arg1", same, "fmt", std::string(fmt) + "<-" + a, esQ(qr), esP(pr));
+    const std::string tag = pkClassifyFmt(fmt) + "/arg-empty=" + (std::string(a).empty() ? "1" : "0");
+    rec("arg1", same, tag, std::string(fmt) + "<-" + a, esQ(qr), esP(pr));
+}
+
+void diffArgDouble(const char* fmt, double v)
+{
+    QString qf = QString::fromUtf8(fmt);
+    PkString pf(fmt);
+    QString qr = qf.arg(v);
+    PkString pr = pf.arg(v);
+    const bool same = (esQ(qr) == esP(pr));
+    const std::string magClass = (v == 0.0) ? (std::signbit(v) ? "neg-zero" : "zero")
+                                : (std::fabs(v) < 1000.0 ? "small"
+                                   : (std::fabs(v) >= 1e6 ? "sci-magnitude" : "large"));
+    const std::string tag = pkClassifyFmt(fmt) + "/mag=" + magClass;
+    rec("argDouble", same, tag, std::string(fmt) + "<-" + esD(v), esQ(qr), esP(pr));
+}
+
+void diffArg2(const char* fmt, const char* a, const char* b)
+{
+    QString qf = QString::fromUtf8(fmt), qa = QString::fromUtf8(a), qb = QString::fromUtf8(b);
+    PkString pf(fmt), pa(a), pb(b);
+    QString qr = qf.arg(qa, qb);
+    PkString pr = pf.arg(pa, pb);
+    const bool same = (esQ(qr) == esP(pr));
+    const std::string tag = pkClassifyFmt(fmt) + "/a-empty=" + (std::string(a).empty() ? "1" : "0")
+                           + "/b-empty=" + (std::string(b).empty() ? "1" : "0");
+    rec("arg2", same, tag, std::string(fmt) + "<-" + a + "," + b, esQ(qr), esP(pr));
+}
+
+void diffAppend(const char* baseIn, const char* otherIn)
+{
+    QString qb = QString::fromUtf8(baseIn);
+    PkString pb(baseIn);
+    qb.append(QString::fromUtf8(otherIn));
+    pb.append(PkString(otherIn));
+    const bool same = (esQ(qb) == esP(pb));
+    const std::string tag = std::string("base-empty=") + (std::string(baseIn).empty() ? "1" : "0")
+                           + "/other-empty=" + (std::string(otherIn).empty() ? "1" : "0");
+    rec("append", same, tag, std::string(baseIn) + "+" + otherIn, esQ(qb), esP(pb));
+}
+
+void diffSize(const char* sIn)
+{
+    QString qs = QString::fromUtf8(sIn);
+    PkString ps(sIn);
+    const int qr = qs.size();
+    const int pr = ps.size();
+    const bool same = (qr == pr);
+    const std::string tag = std::string("empty=") + (std::string(sIn).empty() ? "1" : "0");
+    rec("size", same, tag, sIn, std::to_string(qr), std::to_string(pr));
+}
+
+void diffIsEmpty(const char* sIn)
+{
+    QString qs = QString::fromUtf8(sIn);
+    PkString ps(sIn);
+    const bool qr = qs.isEmpty();
+    const bool pr = ps.isEmpty();
+    const bool same = (qr == pr);
+    const std::string tag = std::string("empty=") + (std::string(sIn).empty() ? "1" : "0");
+    rec("isEmpty", same, tag, sIn, esB(qr), esB(pr));
+}
+
+// at() 越界是 QString 的 UB（PkString.h 顶部的用量表注释同样这么写：
+// "i 越界 → u'\0'（QString 在此是 UB）"），所以不对拍越界形态——那样对 QString
+// 一侧没有"正确答案"可比，只对拍 [0, size) 内的合法下标。
+void diffAt(const char* sIn)
+{
+    QString qs = QString::fromUtf8(sIn);
+    PkString ps(sIn);
+    const int n = qs.size();
+    for (int i = 0; i < n; ++i) {
+        const QChar qc = qs.at(i);
+        const char16_t pc = ps.at(i);
+        const bool same = (qc.unicode() == pc);
+        const std::string tag = std::string("pos=") + (i == 0 ? "first" : (i == n - 1 ? "last" : "mid"));
+        rec("at", same, tag, std::string(sIn) + "/" + std::to_string(i),
+            std::to_string(static_cast<unsigned>(qc.unicode())),
+            std::to_string(static_cast<unsigned>(pc)));
+    }
 }
 
 void diffArgInt(const char* fmt, int v)
@@ -273,7 +457,13 @@ void diffToDouble(const char* sIn)
 int main()
 {
     qInstallMessageHandler([](QtMsgType, const QMessageLogContext&, const QString&) {});
-    std::printf("ORACLE-QT file=difftest_string.cpp qVersion=%s\n", qVersion());
+    // I4：把当前生效的 LC_ALL 打进这一行——run_oracle.sh 会显式钉死它，但重跑的人
+    // 一眼就能看出这次跑的是哪个 locale 下的结果，不用去猜（%L 分组固定不跟随
+    // locale 这条本来就是"跟不跟随运行时 locale"的岔路，locale 没钉住会让
+    // mismatch=0 这个断言变得环境相关）。
+    const char* lcAll = std::getenv("LC_ALL");
+    std::printf("ORACLE-QT file=difftest_string.cpp qVersion=%s LC_ALL=%s\n",
+                qVersion(), lcAll != nullptr ? lcAll : "(unset)");
 
     // left/right/mid：字符串 token × 下标 token（含默认 n=999 的 mid 一支）
     for (int si = 0; si < kNStrTok; ++si) {
@@ -288,13 +478,22 @@ int main()
             diffMid(kStrTok[si], kIdxTok[pi], 999);   // 默认 n
         }
         diffTrimmed(kStrTok[si]);
+        diffSize(kStrTok[si]);
+        diffIsEmpty(kStrTok[si]);
+        diffAt(kStrTok[si]);
     }
 
-    // contains/startsWith：字符串 token 两两全组合
+    // I3：trimmed() 的 Unicode 空白判据穷举码点 0x0000..0x3001（含）
+    for (unsigned cp = 0x0000; cp <= 0x3001; ++cp) {
+        diffTrimmedCodepoint(cp);
+    }
+
+    // contains/startsWith/append：字符串 token 两两全组合
     for (int a = 0; a < kNStrTok; ++a) {
         for (int b = 0; b < kNStrTok; ++b) {
             diffContains(kStrTok[a], kStrTok[b]);
             diffStartsWith(kStrTok[a], kStrTok[b]);
+            diffAppend(kStrTok[a], kStrTok[b]);
         }
     }
 
@@ -311,6 +510,22 @@ int main()
     for (int f = 0; f < kNStrTok; ++f) {
         for (int a = 0; a < kNStrTok; ++a) {
             diffArg1(kStrTok[f], kStrTok[a]);
+        }
+    }
+
+    // arg(double)：格式串（%1/%L1） × 数值 token（I2）
+    for (int fi = 0; fi < kNDblFmtTok; ++fi) {
+        for (int vi = 0; vi < kNDblTok; ++vi) {
+            diffArgDouble(kDblFmtTok[fi], kDblTok[vi]);
+        }
+    }
+
+    // arg(a,b) 双参字符串版：格式串 × 字符串 token 两两全组合（I2）
+    for (int fi = 0; fi < kNArg2FmtTok; ++fi) {
+        for (int a = 0; a < kNStrTok; ++a) {
+            for (int b = 0; b < kNStrTok; ++b) {
+                diffArg2(kArg2FmtTok[fi], kStrTok[a], kStrTok[b]);
+            }
         }
     }
 
