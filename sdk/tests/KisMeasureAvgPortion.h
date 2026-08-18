@@ -4,10 +4,12 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <limits>
+#include <tuple>
 #include <unordered_map>
 
 #include "PkMessageLogger.h"

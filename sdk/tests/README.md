@@ -28,6 +28,54 @@
 | QTransform | 15 |
 | QPoint | 12 |
 
+## S-00 收尾后（当前 HEAD）复测：剥离前后对照 + 复现命令
+
+**为什么需要这一节**：Task 4/Task 6 的 `nm -u` 原始输出与 Q* 剥离前后 diff
+之前只写在 `.superpowers/sdd/S-00/task-4-report.md`，但 `.superpowers/` 是
+`.gitignore` 排除的目录，`auto finish` 收尾时这个 worktree 会被删——届时
+唯一活下来的是本文件。下面是复现命令 + 本次（Task 6 修复轮）现场重跑的
+数字，任何人在合并后的 `strip-qt` 上都能重新跑出同样的结论。
+
+**符号层复现（薄壳探针 `nm -u` 自证零 Qt）**：
+
+```bash
+source /mnt/ssd-disk/liyang/projects/krita-ci-env/env
+cmake -S sdk/tests/probe -B <build目录> -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+cmake --build <build目录>
+nm -u <build目录>/libS00TestInfraProbe.a | grep -i qt
+```
+
+Task 6 现场重跑（`build目录=/tmp/s00-probe-build-refix`）：`grep -i qt` **零
+匹配**（退出码 1），与 Task 4 结论一致——薄壳探针链接产物仍不含任何 Qt
+符号。**注意范围**：这份证据只覆盖 `KisRectsCollisionsTracker.h`/
+`KisMeasureAvgPortion.h` 这两个头本身能编进静态库的部分，不等于"整个
+`sdk/tests/` 零 Qt"（`qimage_test_util.h`/`simpletest.h` 等其余头仍是真
+Qt 实现，见「已知缺口」）。
+
+**源码层文本计数复现（Q* 符号出现次数，含注释——正则匹配不穿透宏）**：
+
+```bash
+git ls-files 'sdk/tests/*.h' 'sdk/tests/*.cpp' | xargs grep -ohE '\bQ[A-Z][A-Za-z]*\b' | sort | uniq -c | sort -rn
+```
+
+Task 6 现场重跑（当前 HEAD，取代「开工前基线数字」章节的旧值，仅供交叉
+对照，**不是"没剥干净"**——见下方口径说明）：
+
+| 指标 | 剥离前（开工前基线） | 剥离后（Task 6 现场重跑） | 说明 |
+|---|---|---|---|
+| Q* 符号种类数 | 47 | **48**（+1） | 新增的 1 种是 `QTimer`——**出现在 Task 5 加的注释文本里**（`testutil.h:413/415` 两行中文注释解释"为什么不能用 sleep 替代 QTimer 去抖"），不是新引入的真依赖 |
+| 命中文件数 | 20 | 20（不变） | |
+| 总出现次数 | 568 | **558**（-10） | 净减少：Task 2/3 把 `KisRectsCollisionsTracker.h`/`KisMeasureAvgPortion.h` 里的真 Qt 类型换成 Pk 类型，减少的出现次数比 Task 5 注释新增的略多 |
+| `QDebug` 出现次数 | 5（`README.md` 已知缺口章节原记） | **10** | 同样是注释效应的放大版——不止 `KisMeasureAvgPortion.h` 一处，`compat/QDebug` 宏别名手法在源码层文本计数上天然"看不穿"，且本轮新增的说明性注释里多次提到 `QDebug`/`PkDebug` 对照，字面出现次数随之上升。**符号层已由 `nm -u` 交叉验证为空**，文本计数的上升不代表剥漏 |
+| `QTimer` 出现次数 | 0 | 2 | 两处均在 `testutil.h:413/415` 的中文注释文本里，非代码 |
+
+**反直觉但合理的现象，必须写清楚原因，别让下一个人以为剥漏了**：正则
+匹配的是**符号文本**，天然看不穿宏定义、也分不清代码与注释——本轮给
+调用点加的中文说明性注释里，为了解释清楚"为什么不能用 sleep 替代
+QTimer"，逐字提到了 `QTimer` 这个类名，于是文本计数"变多"了，但这不
+是新引入的 Qt 依赖，两处都是纯注释。真正的判据是符号层 `nm -u`（上面
+那条命令），不是源码层文本计数。
+
 ## 24 头分类（依赖 kritaimage 的归 S-06，其余归 S-00）
 
 判定方法：逐头列 `#include`，凡链到 `libs/image/*.h`（直接或通过 `kistest.h`
@@ -38,7 +86,7 @@
 | 头 | S-00 状态 |
 |---|---|
 | `KisMeasureAvgPortion.h` | 已剥离（零 Qt，nm -u 自证） |
-| `KisRectsCollisionsTracker.h` | 已剥离（零 Qt，nm -u 自证） |
+| `KisRectsCollisionsTracker.h` | 自身零 Qt；仍经 `kis_assert.h` 间接 `#include <QtGlobal>`，归 S-02-a |
 | `qimage_test_util.h` | 阻塞，见「已知缺口」 |
 | `simpletest.h` | 阻塞，见「已知缺口」 |
 
@@ -97,13 +145,41 @@
 
 ## 事件循环测试改造模式（S-00 交付，S-02-a/S-05-b/S-06/S-08/S-09-e 照办）
 
-**背景**：保留范围内实测 18 个测试依赖 `QEventLoop`/`processEvents`/
-`QSignalSpy`/`qWait`/`QTimer`，4 个在 `sdk/tests`（本节列出的 4 个头，
-对应下表 10 处调用点——同一个测试可能命中同一个头的多处调用点，
-所以"测试数"与"调用点数"不是同一个口径，10 不是测试数），14 个不在
-`sdk/tests` 下（10 个在 `libs/image` + 1 个 `libs/flake` + 1 个
-`libs/global` + 1 个 `plugins/impex/libkra` + 1 个 `plugins/tools`；
-Task 5 原文将"10 处调用点"误写为"10 个测试"，此处订正）。
+**范围限定（先读这句再往下）**：本模式当前只覆盖 `processEvents`/`qWait`
+两种原语（`sdk/tests` 内 10 处调用点全部属于这两种，见下表）。
+`QSignalSpy`/`QEventLoop`/`QTimer` 类调用点的改法依赖 R-05（自写信号槽）
+事件模型定型后才能定，本轮不预先假设，留给接手对应调用点的 S 任务在那
+时候补——不要误以为下面的 PATTERN-1/PATTERN-2 是通用于全部事件循环原语
+的完整分类，它只是"本轮实测到的两种"，诚实标注范围边界比看起来通用更
+负责。
+
+**背景**：沿用 `S线-spec` 原文数字——"18 个测试依赖 `QEventLoop`/
+`processEvents`/`QSignalSpy`/`qWait`/`QTimer`，4 个在 `sdk/tests`，14 个不在"
+（4 个在 `sdk/tests` 对应本节列出的 4 个头、下表 10 处调用点——同一个测试
+可能命中同一个头的多处调用点，所以"测试数"与"调用点数"不是同一个口径，
+10 不是测试数；Task 5 原文将"10 处调用点"误写为"10 个测试"，此处订正）。
+**这组 18/4/14 是 spec 原文数字，本任务未重测过。**
+
+**Task 6 现场重测（口径不同：数的是"命中文件数"，不是"测试数"，两者不
+直接可比，但可以互相印证量级）**：
+
+```bash
+git ls-files '*.cpp' '*.cc' '*.h' | grep -E '/tests/|/benchmarks/' | \
+  xargs grep -lE '\b(QEventLoop|processEvents|QSignalSpy|qWait|QTimer)\b' | wc -l
+```
+
+命中 **27 个文件**（不是 18），其中 `sdk/tests` 内 **4 个**（与 spec 的
+"4 个在 sdk/tests"吻合），`sdk/tests` 外 **23 个**（不是 14）。差异之一：
+spec 原文的分目录清单完全没提 `libs/canvas`，但实测 `libs/canvas/tests`
+现在有 **3 个文件**命中（`KisAsyncColorSamplerHelperTest.cpp`、
+`kis_coordinates_converter_test.cpp`、`kis_selection_options_test.cpp`）。
+这大概率是因为 D 线一直在删/搬代码，spec 落笔时的数已经过期，不代表
+spec 原本就错——**读者不要把 18/4/14 当成本任务现场验证过的结论**，那组
+数字只是继承自 spec；27/4/23（含 `libs/canvas` 3 个）才是本任务实测值，
+且实测口径是"文件数"不是"测试数"，与 spec 的"测试数"不能直接相减
+对比，只能用来判断量级是否吻合。**这条 spec-vs-实测 差异已在 Task 6
+回报的 NOTE 里点名，交主会话核实**——按项目硬约束，`S线-spec.md` 属于
+只读依据，S-00 不擅自改它。
 
 **两种根因，两种改法**：
 
@@ -133,22 +209,25 @@ Task 5 原文将"10 处调用点"误写为"10 个测试"，此处订正）。
 `kritaimage`/`kritaui` 编过，S-00 没有这些依赖，改了无法验证等于制造
 未经验证的假设）：
 
-| 文件 | 行号（实测，2026-08-17） | 根因分类 | 处置 |
+| 文件 | 锚点（不随行号漂移） | 根因分类 | 处置 |
 |---|---|---|---|
-| `filestest.h` | 82 | ①（`doc->image()->waitForDone()` 紧随其后） | 标 `PATTERN-1`，S-06 接手时删 |
-| `filestest.h` | 212 | ①（同上，紧随 `doc->image()->waitForDone()`） | 标 `PATTERN-1` |
-| `filestest.h` | 267 | ①（同上） | 标 `PATTERN-1` |
-| `filestest.h` | 305 | ①（同上） | 标 `PATTERN-1` |
-| `filestest.h` | 363 | ①（同上） | 标 `PATTERN-1` |
-| `qimage_based_test.h` | 164 | ②（**实测订正**：本处在 `addShapeLayer()` 内，紧随两次 `shapeLayer->addShape(...)`，**该文件全篇没有任何 `waitForDone()` 调用**——计划撰写阶段假设的"紧随 waitForDone()"不成立。语义上更贴近 shape layer canvas 的排队事件处理，与 `KoShapeManager`/`KisShapeLayerCanvas` 的去抖机制同域） | 标 `PATTERN-2`（订正自计划里的 `PATTERN-1`），需要 S-06 与 S-08 共同确认 |
-| `ui_manager_test.h` | 89 | ②（析构函数注释明写"weird way of processing pending events"，紧跟 `QTest::qSleep(500)`，是等 dummies facade 处理排队信号，信号槽投递本身可能靠 R-05 的自写信号槽变同步——需要 S-06/S-08 双方确认） | 标 `PATTERN-2`，需要 S-06 与 S-08 共同确认后处置 |
-| `ui_manager_test.h` | 91 | ②（同上） | 标 `PATTERN-2` |
-| `testutil.h` | 398 | ①（紧随 `image->waitForDone()`） | 标 `PATTERN-1` |
-| `testutil.h` | 409 | ②（`qWait(500)` 轮询等 `tryBarrierLock`，注释明写等 shape 层 100ms 去抖） | 标 `PATTERN-2` |
+| `filestest.h` | `doc->image()->waitForDone()` 后紧跟的第 1 处 `qApp->processEvents()` | ①（`doc->image()->waitForDone()` 紧随其后） | 标 `PATTERN-1`，S-06 接手时删 |
+| `filestest.h` | 同上，第 2 处 | ①（同上，紧随 `doc->image()->waitForDone()`） | 标 `PATTERN-1` |
+| `filestest.h` | 同上，第 3 处 | ①（同上） | 标 `PATTERN-1` |
+| `filestest.h` | 同上，第 4 处 | ①（同上） | 标 `PATTERN-1` |
+| `filestest.h` | 同上，第 5 处 | ①（同上） | 标 `PATTERN-1` |
+| `qimage_based_test.h` | `addShapeLayer()` 内，紧随两次 `shapeLayer->addShape(...)` 的 `QApplication::processEvents()` | ②（**实测订正**：**该文件全篇没有任何 `waitForDone()` 调用**——计划撰写阶段假设的"紧随 waitForDone()"不成立。语义上更贴近 shape layer canvas 的排队事件处理，与 `KoShapeManager`/`KisShapeLayerCanvas` 的去抖机制同域） | 标 `PATTERN-2`（订正自计划里的 `PATTERN-1`），需要 S-06 与 S-08 共同确认 |
+| `ui_manager_test.h` | 析构函数内第 1 处 `QApplication::processEvents()`（紧跟 `QTest::qSleep(500)`） | ②（析构函数注释明写"weird way of processing pending events"，是等 dummies facade 处理排队信号，信号槽投递本身可能靠 R-05 的自写信号槽变同步——需要 S-06/S-08 双方确认） | 标 `PATTERN-2`，需要 S-06 与 S-08 共同确认后处置 |
+| `ui_manager_test.h` | 同上，第 2 处 | ②（同上） | 标 `PATTERN-2` |
+| `testutil.h` | `image->waitForDone()` 后紧跟的 `qApp->processEvents()` | ①（紧随 `image->waitForDone()`） | 标 `PATTERN-1` |
+| `testutil.h` | 紧随其后 `QTest::qWait(500)` | ②（轮询等 `tryBarrierLock`，注释明写等 shape 层 100ms 去抖） | 标 `PATTERN-2` |
 
-（上表行号已按 S-00 实测核对，与计划撰写阶段的行号一致；`qimage_based_test.h:164`
-一处的**分类**做了订正——计划原文写的例证"紧随 waitForDone()"在实测中不成立，
-详见该行说明。）
+**行号截至 commit `6501245`（Task 6 修复前）供交叉核对**：`filestest.h`
+85/218/276/317/378、`qimage_based_test.h` 168、`ui_manager_test.h` 91/94、
+`testutil.h` 401/416（用
+`grep -n 'processEvents\|QTest::qWait\|qApp->processEvents\|QApplication::processEvents' sdk/tests/filestest.h sdk/tests/qimage_based_test.h sdk/tests/ui_manager_test.h sdk/tests/testutil.h`
+复现）。**这组行号会因后续任何一次编辑再次漂移**——接手方请优先用上表的锚点
+描述定位，行号只作为一次性交叉核对参考，不要当作稳定坐标。
 
 ---
 
@@ -156,12 +235,30 @@ Task 5 原文将"10 处调用点"误写为"10 个测试"，此处订正）。
 
 **`qimage_test_util.h` 本轮未做类型替换**——`checkQImage`/`compareQImages`
 系列的目标类型 `PkImage` 是 R-15，**当前 `NOT_STARTED`**（见 `docs/TASKS.md`
-第 76 行）。即使造一个过渡实现，23+ 消费方（`libs/ui`/`plugins/impex` 等）
-都还是 Qt target，函数签名换了当场编不过——这些不在 S-00 `locks` 内，改了
-是越界。**归属**：等 R-15 交付后，由消费这份工具的目标所在的 S 批次接手
-（多数消费方在 `libs/ui`，尚未指派 S 编号；`plugins/impex/*` 系列已有
-S-05-a/S-05-b/待定 后续批次）。**五族入口的语义在此期间完全不变**——本
-文件没有改动 `checkQImage` 的任何一行代码或默认参数值。
+第 76 行）。即使造一个过渡实现，消费方都还是 Qt target，函数签名换了当场
+编不过——这些不在 S-00 `locks` 内，改了是越界。
+
+**消费方实测（Task 6 现场复核，取代原先"23+ 消费方，多数消费方在
+`libs/ui`，尚未指派 S 编号"这句——`libs/ui` 实测零命中，是错的）**：
+
+```bash
+git grep -lE '\b(checkQImage|checkQImagePremultiplied|checkQImageExternal|compareQImages|compareQImagesPremultiplied)\b' -- '*.cpp' '*.cc' '*.h' ':!sdk/tests/*'
+```
+
+**39 个文件 / 162 处调用**，分布：
+
+| 目录 | 文件数 | 归属 |
+|---|---|---|
+| `libs/image/tests` | 23 | **S-06**（本来就是 S-06 的锁，不是"尚未指派"） |
+| `libs/flake/tests` | 5 | S-08 |
+| `libs/brush/tests` | 2 | 待定（尚未指派 S 编号） |
+| 零散单文件各 1 处（`libs/canvas`、`libs/animation`、`benchmarks`、`plugins/filters`、`plugins/filters/unsharp`、`plugins/generators/screentone`、`plugins/generators/seexpr`、`plugins/impex/psd`、`plugins/paintops/mypaint`） | 9 | 各随宿主 target 所在批次 |
+
+**归属**：等 R-15 交付后，由消费这份工具的目标所在的 S 批次接手——多数
+（23 个）已经落在 S-06 的锁内，不需要新指派；`libs/flake/tests` 落在
+S-08 锁内；其余零散文件按宿主 target 归属对应批次，`libs/ui` 目前不涉及
+这份工具。**五族入口的语义在此期间完全不变**——本文件没有改动
+`checkQImage` 的任何一行代码或默认参数值。
 
 **`simpletest.h` 本轮未做类型替换**——`SIMPLE_TEST_MAIN`/`SIMPLE_MAIN_IMPL`
 创建 `QApplication`、调 `KisSynchronizedConnectionBase::
@@ -195,6 +292,26 @@ S-00 本轮的 4 个可动头之列**。这条边真正的断点在 `kis_exif_te
 验证过（该薄壳探针链接产物为空，不含 Qt 符号）——**无害的预期内现象，
 不是剥漏了**。下一个只看源码层文本计数的人不要被"QDebug 还在"误导。
 
+**订正（Task 6 现场重跑）**：上面"5 次"是 Task 4 当时的实测值，本轮
+（Task 5 加事件循环注释、Task 6 加本文档大量说明性文字）之后重跑同一条
+命令，`QDebug` 出现次数已变为 **10 次**——增量同样是注释文本效应（详见
+「S-00 收尾后（当前 HEAD）复测」一节的对照表），不是新的真 Qt 依赖。
+这条计数会随文档/注释每次编辑继续漂移，**读者不要抄任何一个具体数字，
+现场重跑上面那条 `grep -ohE` 命令**。
+
+**`kis_assert.h` 的 `<QtGlobal>` 与下面 `ENTER_FUNCTION()` 是同一个根因**——
+`KisRectsCollisionsTracker.h:15` `#include "kis_assert.h"`，而
+`libs/global/kis_assert.h:10-11` 是无条件的 `#include <QtGlobal>` +
+`#include <kritaglobal_export.h>`。Task 4 的薄壳探针能报"零 Qt"（`nm -u`
+输出为空），是因为 `sdk/tests/probe/stubs/` 里放了 `QtGlobal` 与
+`kritaglobal_export.h` 这两个头的最小替身、排在 include 路径最前——
+`nm -u` 验证的是**符号层**零 Qt（探针链接产物确实不含 Qt 符号），不代表
+`KisRectsCollisionsTracker.h` 自身**源码层**没有间接依赖 `<QtGlobal>`。这
+个事实之前只写在 `sdk/tests/probe/smoke.cpp` 的注释里，没进本文档，容易
+让人以为"零 Qt"是无条件成立的。真正剥离要等 `libs/global`（S-02-a 的锁）
+动手——分类表状态列已改为准确表述。`KisMeasureAvgPortion.h` 不受影响：
+它没有 `#include "kis_assert.h"`，是真正的零 Qt、零间接依赖。
+
 **`ENTER_FUNCTION()` 是一条既有的隐式 include-order 依赖**——
 `KisRectsCollisionsTracker.h:42` 用了 `ENTER_FUNCTION()` 宏，但该文件本身
 并没有 `#include` 定义它的头。这个宏定义在 `libs/global/kis_debug.h`
@@ -209,13 +326,20 @@ S-00 本轮的 4 个可动头之列**。这条边真正的断点在 `kis_exif_te
 
 ## 五族像素比对入口：剥离前后对照
 
-| 族 | 定义处 | S-00 锁内？ | 默认容差剥离前 | 默认容差剥离后 |
+**说明**：下表「本轮改类型？」一列回答"S-00 有没有改这个族的比对逻辑/
+类型"，不回答"这个文件在不在 S-00 的 `locks` 内"——S-00 的 `locks` 是整个
+`sdk/tests` 目录，下表 5 个族的定义处**全部**在锁内（含标"否（S-06）"的
+那三个：`qimage_based_test.h`/`filestest.h`/`stroke_testing_utils.cpp`
+都在 `sdk/tests` 下，Task 5 正是因为它们在锁内才能给其中两个加事件循环
+注释）。锁内不等于本轮改了类型——五个族本轮**全部零改动**，下表如实反映。
+
+| 族 | 定义处 | 本轮改类型？ | 默认容差剥离前 | 默认容差剥离后 |
 |---|---|---|---|---|
-| `checkQImage`/`checkQImagePremultiplied`/`checkQImageExternal` | `qimage_test_util.h` | 是 | `fuzzy=0, fuzzyAlpha=-1→0, maxNumFailingPixels=0` | **不变**（本轮未改类型，见「已知缺口」） |
-| `compareQImages`/`compareQImagesPremultiplied` | `qimage_test_util.h` | 是 | `0, 0, 0` | **不变** |
-| `QImageBasedTest::check*` | `qimage_based_test.h` | 否（S-06） | `baseFuzzyness=0` + `root`/`blur1`/`shape` 隐式 `+1` | 不适用（S-00 未触碰此文件的比对逻辑，仅 Task 5 加了 1 处注释） |
-| `TestUtil::testFiles` | `filestest.h` | 否（S-06） | `fuzzy=0, maxNumFailingPixels=0` | 不适用（同上，Task 5 仅加注释） |
-| `utils::StrokeTester` | `stroke_testing_utils.cpp` | 否（S-06） | `m_baseFuzziness=1` | 不适用（S-00 未触碰） |
+| `checkQImage`/`checkQImagePremultiplied`/`checkQImageExternal` | `qimage_test_util.h` | 否（阻塞于 R-15 未交付，目标类型 `PkImage` 还没有，见「已知缺口」） | `fuzzy=0, fuzzyAlpha=-1→0, maxNumFailingPixels=0` | **不变**（本轮未改类型，见「已知缺口」） |
+| `compareQImages`/`compareQImagesPremultiplied` | `qimage_test_util.h` | 否（同上，阻塞于 R-15） | `0, 0, 0` | **不变** |
+| `QImageBasedTest::check*` | `qimage_based_test.h` | 否（依赖 kritaimage，类型端口化留给 S-06；本轮仅 Task 5 加了 1 处事件循环注释，未改比对逻辑） | `baseFuzzyness=0` + `root`/`blur1`/`shape` 隐式 `+1` | 不适用（S-00 未触碰此文件的比对逻辑，仅 Task 5 加了 1 处注释） |
+| `TestUtil::testFiles` | `filestest.h` | 否（依赖 kritaimage，类型端口化留给 S-06；本轮仅 Task 5 加了注释） | `fuzzy=0, maxNumFailingPixels=0` | 不适用（同上，Task 5 仅加注释） |
+| `utils::StrokeTester` | `stroke_testing_utils.cpp` | 否（依赖 kritaimage，类型端口化留给 S-06；本轮未触碰，含事件循环相关注释也没加） | `m_baseFuzziness=1` | 不适用（S-00 未触碰） |
 
 **结论**：五族像素比对入口的默认容差与失败判定逻辑，S-00 全程**零改动**——
 前两族因 R-15 阻塞保持原类型未改；后三族本轮未锁定、未触碰。像素比对能力
