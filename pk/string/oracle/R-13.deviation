@@ -1,0 +1,148 @@
+# R-13：PkString 与 QString 的已知行为偏离
+#
+# 格式：<api>\t<tag>\t<≥20 UTF-8 码点理由>，tab 分隔，# 开头为注释。
+#
+# **出现过的每一个 DIFFTAG 都必须在这里有一行**，否则就是「没人判断过它可不可
+# 接受」。反过来，这里声明了但这次没观察到的，说明白名单过期、或对拍根本没走到
+# 那条路径 —— 两种都该查。
+#
+# ── 对齐口径 ──────────────────────────────────────────────
+# 默认全对齐。本轮（2026-08-18）2530 次比对，跑出下面这些条目——全部落在
+# 「未计划内发现的偏离」一节，是本次对拍的真实产物，实测证据见
+# task-4-report.md「Step 3：真实基线」。
+
+# ══════════════════════════════════════════════════════════
+# 范围决策（本计划背景 ①-⑧ 预期的两个可选小节）
+# ══════════════════════════════════════════════════════════
+#
+# 数值文法 Unicode 扩展（toInt/toDouble 不认 Unicode 数字/NBSP 空白/U+2212
+# 负号）与「%L 分组固定语义、不跟随 locale」两条计划背景里点名的差异，本轮
+# **均未跑出对应 DIFFTAG**——kNumTok 未按 Step 3 提示追加 Unicode 数字探针
+# （"１２" 之类），对拍程序本身也没有改变进程 locale 去触发跟随性差异，所以
+# 这两条在本对拍程序的当前 token 表下不可见。按 Task 4 Step 5 的指引：没跑出来
+# 就不登记，此处不设两个空节，避免登记一条本轮没有真实运行证据的条目。这两条
+# 差异本身仍然成立（已在 `docs/Qt替代品选型.md` 层面裁定为范围外），只是**不
+# 由本对拍程序的这一轮运行来背书**。
+
+# ══════════════════════════════════════════════════════════
+# 未计划内发现的偏离 —— 本任务范围外，待裁决（见 task-4-report.md「顾虑」）
+# ══════════════════════════════════════════════════════════
+#
+# 根因：PkString::arg(int, int fieldWidth) 的实现（PkString_format.cpp）在有
+# fieldWidth 时完全不套用 %L 千分位分组——先把整数格式化成字符串、按宽度补齐，
+# 再当普通字符串替换进 %L1 占位符，分组这一步被跳过。但真实 Qt 5.15.7 的
+# QString::arg(int,fieldWidth) 在遇到 %L<N> 占位符时**先分组再按宽度补齐**（宽度
+# 按分组后含逗号的最终长度算），两侧在 |v|>=1000 时产生可观察差异。这条不在 R-13
+# 计划背景 ①-⑧ 之内，是本轮组合爆破实测新挖出的角落，源码里的注释（约
+# PkString_format.cpp 288-293 行「Qt 的四参数 arg(int,fieldWidth,base,fillChar)
+# 本身在有 fieldWidth 时也不做千分位分组」）与本轮实测的真实 Qt 行为相悖。
+# 42 条 tag 对应 argFmts 里唯一带 %L 的 "%L1" 格式串 × kIntTok 里 |v|>=1000 的
+# 7 个值 × kFieldWidthTok 的全部 6 个宽度，穷举组合恰好 42。
+argIntFieldWidth	v=-1000/fw=-20	arg(int,fieldWidth) 遇 %L1 时不做千分位分组，Qt 会先分组再按宽度补齐，本条差异未在 R-13 计划背景内
+argIntFieldWidth	v=-1000/fw=-6	同上，fieldWidth=-6（负数左对齐）下同样不分组
+argIntFieldWidth	v=-1000/fw=0	同上，fieldWidth=0（无补齐）下同样不分组
+argIntFieldWidth	v=-1000/fw=1	同上，fieldWidth=1（不足以补齐）下同样不分组
+argIntFieldWidth	v=-1000/fw=20	同上，fieldWidth=20（右对齐大宽度）下同样不分组
+argIntFieldWidth	v=-1000/fw=6	同上，fieldWidth=6（右对齐）下同样不分组
+argIntFieldWidth	v=-1234567/fw=-20	同上，数值 -1234567、fieldWidth=-20 下同样不分组
+argIntFieldWidth	v=-1234567/fw=-6	同上，数值 -1234567、fieldWidth=-6 下同样不分组
+argIntFieldWidth	v=-1234567/fw=0	同上，数值 -1234567、fieldWidth=0 下同样不分组
+argIntFieldWidth	v=-1234567/fw=1	同上，数值 -1234567、fieldWidth=1 下同样不分组
+argIntFieldWidth	v=-1234567/fw=20	同上，数值 -1234567、fieldWidth=20 下同样不分组
+argIntFieldWidth	v=-1234567/fw=6	同上，数值 -1234567、fieldWidth=6 下同样不分组
+argIntFieldWidth	v=-2147483647/fw=-20	同上，数值 INT_MIN+1 附近、fieldWidth=-20 下同样不分组
+argIntFieldWidth	v=-2147483647/fw=-6	同上，数值 -2147483647、fieldWidth=-6 下同样不分组
+argIntFieldWidth	v=-2147483647/fw=0	同上，数值 -2147483647、fieldWidth=0 下同样不分组
+argIntFieldWidth	v=-2147483647/fw=1	同上，数值 -2147483647、fieldWidth=1 下同样不分组
+argIntFieldWidth	v=-2147483647/fw=20	同上，数值 -2147483647、fieldWidth=20 下同样不分组
+argIntFieldWidth	v=-2147483647/fw=6	同上，数值 -2147483647、fieldWidth=6 下同样不分组
+argIntFieldWidth	v=1000/fw=-20	同上，数值 1000、fieldWidth=-20 下同样不分组
+argIntFieldWidth	v=1000/fw=-6	同上，数值 1000、fieldWidth=-6 下同样不分组
+argIntFieldWidth	v=1000/fw=0	同上，数值 1000、fieldWidth=0 下同样不分组
+argIntFieldWidth	v=1000/fw=1	同上，数值 1000、fieldWidth=1 下同样不分组
+argIntFieldWidth	v=1000/fw=20	同上，数值 1000、fieldWidth=20 下同样不分组
+argIntFieldWidth	v=1000/fw=6	同上，数值 1000、fieldWidth=6 下同样不分组
+argIntFieldWidth	v=1234567/fw=-20	同上，数值 1234567、fieldWidth=-20 下同样不分组
+argIntFieldWidth	v=1234567/fw=-6	同上，数值 1234567、fieldWidth=-6 下同样不分组
+argIntFieldWidth	v=1234567/fw=0	同上，数值 1234567、fieldWidth=0 下同样不分组
+argIntFieldWidth	v=1234567/fw=1	同上，数值 1234567、fieldWidth=1 下同样不分组
+argIntFieldWidth	v=1234567/fw=20	同上，数值 1234567、fieldWidth=20 下同样不分组
+argIntFieldWidth	v=1234567/fw=6	同上，数值 1234567、fieldWidth=6 下同样不分组
+argIntFieldWidth	v=123456789/fw=-20	同上，数值 123456789、fieldWidth=-20 下同样不分组
+argIntFieldWidth	v=123456789/fw=-6	同上，数值 123456789、fieldWidth=-6 下同样不分组
+argIntFieldWidth	v=123456789/fw=0	同上，数值 123456789、fieldWidth=0 下同样不分组
+argIntFieldWidth	v=123456789/fw=1	同上，数值 123456789、fieldWidth=1 下同样不分组
+argIntFieldWidth	v=123456789/fw=20	同上，数值 123456789、fieldWidth=20 下同样不分组
+argIntFieldWidth	v=123456789/fw=6	同上，数值 123456789、fieldWidth=6 下同样不分组
+argIntFieldWidth	v=2147483647/fw=-20	同上，数值 INT_MAX、fieldWidth=-20 下同样不分组
+argIntFieldWidth	v=2147483647/fw=-6	同上，数值 INT_MAX、fieldWidth=-6 下同样不分组
+argIntFieldWidth	v=2147483647/fw=0	同上，数值 INT_MAX、fieldWidth=0 下同样不分组
+argIntFieldWidth	v=2147483647/fw=1	同上，数值 INT_MAX、fieldWidth=1 下同样不分组
+argIntFieldWidth	v=2147483647/fw=20	同上，数值 INT_MAX、fieldWidth=20 下同样不分组
+argIntFieldWidth	v=2147483647/fw=6	同上，数值 INT_MAX、fieldWidth=6 下同样不分组
+
+# ══════════════════════════════════════════════════════════
+# 覆盖度限制 —— 说不出覆盖不到什么的对拍，说明还没想清楚
+# ══════════════════════════════════════════════════════════
+#
+# 1. **内嵌 NUL 不覆盖**：PkString(const char*) 走 strlen，表达不了内嵌 \0；
+#    test_format.cpp 里有 PkFromUtf8(..., 显式长度) 覆盖这条，但走的是单测，
+#    不是本对拍程序（本对拍程序的 token 表全部来自 C 字符串字面量）。
+# 2. **split 的分隔符只覆盖 ',' 和 ' ' 两种**，没有覆盖分隔符本身是 Unicode
+#    空白（比如 NBSP）与代理对的情形——split 只吃 char16_t 单个码元，代理对
+#    天然不可能作为分隔符出现。
+# 3. **QString::arg 的 base/fillChar 参数没有对拍**：本任务的 arg(int,fieldWidth)
+#    只实现了 base==10、fillChar==' ' 这一支（真实调用点 KisRectsGrid.cpp:23
+#    唯一用到的形态），QString 完整的四参数重载不在替代品的用量表内。
+# 4. **数值文法的 Unicode 扩展未在本对拍程序覆盖**：kNumTok 没有全角数字/NBSP/
+#    U+2212 负号探针，这条差异的裁定见 `docs/Qt替代品选型.md`，不由本对拍程序
+#    的这一轮 token 表来验证（详见上方「范围决策」小节的说明）。
+# 5. **%L 分组的 locale 跟随性未在本对拍程序覆盖**：本对拍程序全程不改变进程
+#    locale，没有对拍「固定分组 vs 跟随 locale」这条差异；固定分组本身的算术
+#    正确性只测了 kIntTok 给出的几个断点值（999/1000/-999/-1000/大数），没有
+#    做穷举。
+# 6. **%L 只在数字实参（arg(int)/arg(int,fieldWidth)）上测试过分组**，没有对
+#    arg(double) 做 %L 相关对拍——0 真实调用点，且 arg(double) 本身不支持 %L
+#    分组（见 plan 背景 ⑤）。
+#
+# ══════════════════════════════════════════════════════════
+# 判据有效性自证：四组注入实验（改完即刻还原，pk/ 下无残留）
+# ══════════════════════════════════════════════════════════
+# 基线 total=2530 mismatch=42（恰等于「未计划内发现的偏离」一节声明的 42 条
+# argIntFieldWidth 条目——「范围决策」小节两条本轮均未产生 DIFFTAG，贡献 0）。
+#
+#   A left() 负数判据改回旧版本（去掉无符号比较）
+#       mismatch 42（不变，与基线相同） 未声明 tag 0
+#       **未产生预期差异，且已确认是注入未被外部行为观测到、不是注入没生效**：
+#       left(n) 在 n<0 时改走 `return mid(0, n)`，而 PkString::mid(pos, n) 自身
+#       在 pos==0、n<0 的分支里有独立的 `unsigned(length) > unsigned(len-position)`
+#       保护（PkString_query.cpp 第 86 行），会把负的 n clamp 成 len，效果与
+#       left() 原本的早退路径完全一致——两层保护对负数 n 是等价的冗余，砍掉外层
+#       那层不改变可观察行为。已用 git diff 确认注入确实编译进了 build-inj-a
+#       二进制（同一份源文件被 run_oracle.sh 重新编译），排除了"没生效"的可能。
+#
+#   B pkGroupDigits 分组间隔改成 2
+#       mismatch 49（基线 42 + 7） 未声明 tag 7（全部是新增的 argInt v=<|v|>=1000>）
+#       7 条新增 tag：argInt v=-1000/-1234567/-2147483647/1000/1234567/123456789/
+#       2147483647（kIntTok 里 |v|>=1000 的全部 7 个值，argInt 用的是 %L1 格式串）。
+#       argIntFieldWidth 分支本身在基线下已经因为「未计划内发现的偏离」全部
+#       mismatch（分组步骤根本没被执行到），注入 B 改的是分组算法本身，在那条
+#       已经跳过分组的路径上不可见，所以增量只出现在 argInt（无 fieldWidth）
+#       这一支，与预期「argInt/argIntFieldWidth 里 %L1 且数值>=1000 的用例报
+#       未声明差异」部分相符——argIntFieldWidth 那半因为基线已 100% mismatch
+#       而无法作为本组注入的证据来源。
+#
+#   C toDouble 的 looksInfinity 判断改成恒 false
+#       mismatch 44（基线 42 + 2） 未声明 tag 1（toDouble ok=0，命中 2 次）
+#       实际命中 sIn="infinity"（qt=FAIL:0 pk=ok:inf）与 sIn="Infinity"
+#       （同形态），与预期完全一致。
+#
+#   D toDouble 末尾改回 "good ? v : 0.0"（清零上溢值）
+#       mismatch 43（基线 42 + 1） 未声明 tag 1（toDouble ok=0，命中 1 次）
+#       实际命中 sIn="1e400"（qt=FAIL:inf pk=FAIL:0）。**未达到预期的 3 条**：
+#       Step 4 D 原文期待 "1e400"/"-1e400"/"1e309" 三条 token 上报差异，但
+#       Step 1 给出的 kNumTok 字面量表里只有 "1e400" 一个上溢字面量，不含
+#       "-1e400" 也不含 "1e309"——不是注入没生效（"1e400" 那一条确实按预期
+#       报了差异，qt=inf/pk=0 与背景 ⑦a 描述完全吻合），是 token 表覆盖面比
+#       Step 4 D 描述的窄。已核对 difftest_string.cpp 的 kNumTok 数组（逐字照抄
+#       Step 1 代码块）确认其中不含这两个 token。
