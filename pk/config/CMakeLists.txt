@@ -36,13 +36,11 @@ if (NOT TARGET pkstring)
     add_subdirectory(${PKSTRING_DIR} ${CMAKE_BINARY_DIR}/pkstring)
 endif()
 
-# NOTE：这里只列 Task 1 交付的三个源文件。PkMimeDatabase.cpp 属于 Task 3，
-# 本任务运行时那个文件还不存在——CMake 在 configure 期就会因源文件不存在而报错，
-# 所以刻意不提前列进来。Task 3 会把它追加进这份文件（同一 CMakeLists.txt）。
 add_library(pkconfig STATIC
     PkConfigStore.cpp
     PkConfigGroup.cpp
     PkSharedConfig.cpp
+    PkMimeDatabase.cpp
 )
 target_include_directories(pkconfig PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -54,14 +52,14 @@ if (NOT TARGET pktest)
     add_subdirectory(${PKTEST_DIR} ${CMAKE_BINARY_DIR}/pktest)
 endif()
 
-# 同理，test_mime_database.h/.cpp 属于 Task 3，本任务只生成/编译
-# test_config_group 这一组 binder 与测试源文件。
 pk_test_generate(PKCONFIG_BINDERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_config_group.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_config_group.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mime_database.h)
 
 add_executable(test_pkconfig
     tests/test_main.cpp
     tests/test_config_group.cpp
+    tests/test_mime_database.cpp
 )
 target_include_directories(test_pkconfig PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests
@@ -69,3 +67,5 @@ target_include_directories(test_pkconfig PRIVATE
 target_link_libraries(test_pkconfig PRIVATE pkconfig pktest)
 set_source_files_properties(tests/test_config_group.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_config_group.inc")
+set_source_files_properties(tests/test_mime_database.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_mime_database.inc")
