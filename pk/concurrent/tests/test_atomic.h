@@ -16,4 +16,9 @@ private Q_SLOTS:
     void testAtomicPointerCAS();
     void testConcurrentRefCounting();
     void testConcurrentCAS();
+    void testLoadStoreRelaxed();
+    void testFetchAndAddRelaxedAcquire();
+    void testAcquireReleaseSequencing();
+    void testAtomicPointerLoadStoreRelaxedAcquireRelease();
+    void testAtomicPointerFetchAndAddRelaxedAcquire();
 };

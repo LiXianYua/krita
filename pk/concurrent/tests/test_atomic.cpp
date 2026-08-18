@@ -105,6 +105,77 @@ void TestAtomic::testConcurrentCAS()
     PK_COMPARE((int)counter, 80000);
 }
 
+void TestAtomic::testLoadStoreRelaxed()
+{
+    PkAtomicInt a(5);
+    PK_COMPARE(a.loadRelaxed(), 5);
+    a.storeRelaxed(99);
+    PK_COMPARE(a.loadRelaxed(), 99);
+    PK_COMPARE((int)a, 99);
+}
+
+void TestAtomic::testFetchAndAddRelaxedAcquire()
+{
+    // 真实调用点：libs/image/tiles3/KisTiledExtentManager.cpp 的
+    // fetchAndAddRelaxed/fetchAndAddAcquire。返回值约定同 fetchAndAddOrdered
+    // ——相加前的旧值。
+    PkAtomicInt a(10);
+    int old1 = a.fetchAndAddRelaxed(5);
+    PK_COMPARE(old1, 10);
+    PK_COMPARE(a.loadRelaxed(), 15);
+
+    int old2 = a.fetchAndAddAcquire(3);
+    PK_COMPARE(old2, 15);
+    PK_COMPARE(a.loadRelaxed(), 18);
+}
+
+void TestAtomic::testAcquireReleaseSequencing()
+{
+    // release-acquire 配对的正面证明：写线程先写 payload（relaxed），
+    // 再 storeRelease(ready=1)；读线程自旋 loadAcquire(ready) 直到看到
+    // 1，再读 payload——release/acquire 建立的 happens-before 保证此时
+    // payload 必然是写线程写入后的值，不依赖调度巧合。若 storeRelease/
+    // loadAcquire 被误接成 relaxed，本测试在正确的硬件/编译器行为下仍可能
+    // 偶然通过，但方法论与本文件已有的 testConcurrentCAS/
+    // testConcurrentRefCounting 同——用真实跨线程交互验证值的正确性，
+    // 不是空转 API 表面。
+    PkAtomicInt payload(0);
+    PkAtomicInt ready(0);
+    std::thread writer([&]{
+        payload.storeRelaxed(42);
+        ready.storeRelease(1);
+    });
+    while (ready.loadAcquire() == 0) {
+        std::this_thread::yield();
+    }
+    writer.join();
+    PK_COMPARE(payload.loadRelaxed(), 42);
+}
+
+void TestAtomic::testAtomicPointerLoadStoreRelaxedAcquireRelease()
+{
+    int x = 1, y = 2;
+    PkAtomicPointer<int> p(&x);
+    PK_COMPARE(p.loadRelaxed(), &x);
+    p.storeRelaxed(&y);
+    PK_COMPARE(p.loadRelaxed(), &y);
+    p.storeRelease(&x);
+    PK_COMPARE(p.loadAcquire(), &x);
+}
+
+void TestAtomic::testAtomicPointerFetchAndAddRelaxedAcquire()
+{
+    int arr[4] = {0, 0, 0, 0};
+    PkAtomicPointer<int> p(&arr[0]);
+    int* old1 = p.fetchAndAddRelaxed(1);
+    PK_COMPARE(old1, &arr[0]);
+    PK_COMPARE(p.loadRelaxed(), &arr[1]);
+
+    int* old2 = p.fetchAndAddAcquire(2);
+    PK_COMPARE(old2, &arr[1]);
+    PK_COMPARE(p.loadRelaxed(), &arr[3]);
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_atomic.inc"

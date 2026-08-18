@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <cstddef>
 
 // 替代 <QAtomicInt>。方法面 = 保留范围内实测用到的 5 个：
 // operator int()/operator=/ref()/deref()/fetchAndAddOrdered/
@@ -34,6 +35,25 @@ public:
                                             std::memory_order_seq_cst);
     }
 
+    // R-10 final review I1 新增：显式内存序存取族。真实调用点见
+    // libs/image/3rdparty/lock_free_map/qsbr.h（loadAcquire）、
+    // libs/image/tiles3/kis_tile_data_store.h（loadAcquire）、
+    // libs/image/tiles3/KisTiledExtentManager.cpp（storeRelease/storeRelaxed/
+    // loadRelaxed/fetchAndAddRelaxed/fetchAndAddAcquire）等，均在保留范围内的
+    // QAtomicInt 成员上。判读方法论同上：方法名直接点名 Qt 要求的内存序，
+    // 机械映射到对应的 std::memory_order，不做加强也不做放宽。
+    int loadAcquire() const { return m_v.load(std::memory_order_acquire); }
+    void storeRelease(int value) { m_v.store(value, std::memory_order_release); }
+    int loadRelaxed() const { return m_v.load(std::memory_order_relaxed); }
+    void storeRelaxed(int value) { m_v.store(value, std::memory_order_relaxed); }
+    // Qt 语义：返回相加前的旧值（同 fetchAndAddOrdered 的返回值约定）。
+    int fetchAndAddRelaxed(int valueToAdd) {
+        return m_v.fetch_add(valueToAdd, std::memory_order_relaxed);
+    }
+    int fetchAndAddAcquire(int valueToAdd) {
+        return m_v.fetch_add(valueToAdd, std::memory_order_acquire);
+    }
+
 private:
     std::atomic<int> m_v;
 };
@@ -57,6 +77,21 @@ public:
     bool testAndSetOrdered(T* expectedValue, T* newValue) {
         return m_v.compare_exchange_strong(expectedValue, newValue,
                                             std::memory_order_seq_cst);
+    }
+
+    // R-10 final review I1 新增：显式内存序存取族，同 PkAtomicInt 的判读
+    // 方法论。真实调用点例如 libs/global/KisLazySharedCacheStorage.h:170
+    // 的 storeRelaxed()（在 QAtomicPointer 成员上）。
+    T* loadAcquire() const { return m_v.load(std::memory_order_acquire); }
+    void storeRelease(T* value) { m_v.store(value, std::memory_order_release); }
+    T* loadRelaxed() const { return m_v.load(std::memory_order_relaxed); }
+    void storeRelaxed(T* value) { m_v.store(value, std::memory_order_relaxed); }
+    // Qt 语义：返回相加前的旧指针值（同 fetchAndStoreOrdered 的返回值约定）。
+    T* fetchAndAddRelaxed(std::ptrdiff_t valueToAdd) {
+        return m_v.fetch_add(valueToAdd, std::memory_order_relaxed);
+    }
+    T* fetchAndAddAcquire(std::ptrdiff_t valueToAdd) {
+        return m_v.fetch_add(valueToAdd, std::memory_order_acquire);
     }
 
 private:
