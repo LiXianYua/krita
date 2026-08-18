@@ -4,10 +4,14 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <cassert>
+#include <chrono>
+#include <cstdint>
+#include <limits>
 #include <unordered_map>
 
-#include <QDebug>
-#include <QElapsedTimer>
+#include "PkMessageLogger.h"
+#include "compat/QDebug"
 
 
 namespace TestUtil {
@@ -50,15 +54,15 @@ public:
     void addVal(int x)
     {
         m_val += x;
-        m_valMax = std::max(m_valMax, qint64(x));
-        m_valMin = std::min(m_valMin, qint64(x));
+        m_valMax = std::max(m_valMax, int64_t(x));
+        m_valMin = std::min(m_valMin, int64_t(x));
     }
 
     void addTotal(int x)
     {
         m_total += x;
-        m_totalMax = std::max(m_totalMax, qint64(x));
-        m_totalMin = std::min(m_totalMin, qint64(x));
+        m_totalMax = std::max(m_totalMax, int64_t(x));
+        m_totalMin = std::min(m_totalMin, int64_t(x));
         m_cycles++;
         printValues();
     }
@@ -80,10 +84,10 @@ private:
                 qDebug() << "=== stat ===";
             }
 
-            qDebug() << "Val / Total:" << qreal(m_val) / qreal(m_total);
-            qDebug() << "Avg. Val:   " << qreal(m_val) / m_cycles
+            qDebug() << "Val / Total:" << double(m_val) / double(m_total);
+            qDebug() << "Avg. Val:   " << double(m_val) / m_cycles
                      << "min:" << m_valMin << "max:" << m_valMax;
-            qDebug() << "Avg. Total: " << qreal(m_total) / m_cycles
+            qDebug() << "Avg. Total: " << double(m_total) / m_cycles
                      << "min:" << m_totalMin << "max:" << m_totalMax;
             qDebug().nospace() << "  (val: " << m_val << ", total: " << m_total
                                << ", cycles:" << m_cycles << ")";
@@ -91,22 +95,22 @@ private:
             m_val = 0;
             m_total = 0;
             m_cycles = 0;
-            m_totalMin = std::numeric_limits<qint64>::max();
-            m_totalMax = std::numeric_limits<qint64>::min();
-            m_valMin = std::numeric_limits<qint64>::max();
-            m_valMax = std::numeric_limits<qint64>::min();
+            m_totalMin = std::numeric_limits<int64_t>::max();
+            m_totalMax = std::numeric_limits<int64_t>::min();
+            m_valMin = std::numeric_limits<int64_t>::max();
+            m_valMax = std::numeric_limits<int64_t>::min();
         }
     }
 
 private:
     int m_period;
-    qint64 m_val;
-    qint64 m_valMax = std::numeric_limits<qint64>::min();
-    qint64 m_valMin = std::numeric_limits<qint64>::max();
-    qint64 m_total;
-    qint64 m_totalMax = std::numeric_limits<qint64>::min();
-    qint64 m_totalMin = std::numeric_limits<qint64>::max();
-    qint64 m_cycles;
+    int64_t m_val;
+    int64_t m_valMax = std::numeric_limits<int64_t>::min();
+    int64_t m_valMin = std::numeric_limits<int64_t>::max();
+    int64_t m_total;
+    int64_t m_totalMax = std::numeric_limits<int64_t>::min();
+    int64_t m_totalMin = std::numeric_limits<int64_t>::max();
+    int64_t m_cycles;
     TagWrapper<TagType> m_tagWrapper;
 };
 
@@ -115,7 +119,8 @@ struct PerObjectMetric
 {
     struct DelayMeasure {
         MeasureAvgPortion<TagType> portion;
-        QElapsedTimer timer;
+        std::chrono::steady_clock::time_point start;
+        bool started = false;
     };
 
     auto getIterator(TagType tag) {
@@ -124,7 +129,7 @@ struct PerObjectMetric
             return it;
         } else {
             bool unused;
-            std::tie(it, unused) = hash.emplace(tag, DelayMeasure{ { 60, tag }, {} });
+            std::tie(it, unused) = hash.emplace(tag, DelayMeasure{ { 60, tag }, {}, false });
             return it;
         }
     }
@@ -133,19 +138,23 @@ struct PerObjectMetric
         auto it = getIterator(tag);
         DelayMeasure &delay = it->second;
 
-        if (delay.timer.isValid()) {
-            delay.portion.addTotal(delay.timer.restart());
-        } else {
-            delay.timer.start();
+        const auto now = std::chrono::steady_clock::now();
+        if (delay.started) {
+            const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - delay.start).count();
+            delay.portion.addTotal(static_cast<int>(elapsedMs));
         }
+        delay.start = now;
+        delay.started = true;
     }
 
     void endFrame(TagType tag) {
         auto it = getIterator(tag);
         DelayMeasure &delay = it->second;
 
-        Q_ASSERT(delay.timer.isValid());
-        delay.portion.addVal(delay.timer.elapsed());
+        assert(delay.started);
+        const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - delay.start).count();
+        delay.portion.addVal(static_cast<int>(elapsedMs));
     }
 
     using MapType = std::unordered_map<TagType, DelayMeasure>;
