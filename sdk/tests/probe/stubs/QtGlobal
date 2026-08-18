@@ -1,0 +1,10 @@
+#pragma once
+// 试接垫片 —— 仅供本探针（sdk/tests/probe/）使用，不是任何 Pk 类型线的交付物。
+//
+// libs/global/kis_assert.h 第 10 行 `#include <QtGlobal>`，只为了拿
+// `qt_noop()`（KIS_ASSERT 家族宏体里用）。真 Qt 的 QtGlobal 是一整套标量
+// 工具 + 版本宏，探针刻意不接它——这里只补这一处真实调用点需要的那一个符号，
+// 换来的是「同名头文件优先命中我们这份垫片，而不是去找真 Qt5Core 的
+// include 目录」（探针的 CMakeLists 本来就没有 find_package(Qt...)，
+// 不会给编译器任何指向真 Qt 头的 -I，这里只是把预期显式钉住）。
+inline void qt_noop() {}
