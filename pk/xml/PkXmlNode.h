@@ -138,6 +138,15 @@ protected:
     pugi::xml_attribute _attr;
     std::shared_ptr<pugi::xml_document> _doc;
     Kind _kind = Kind::Node;
+
+    // R-25 Task 1（importNode）：C++ 的"protected 成员额外访问检查"要求非静态
+    // protected 成员只能通过派生类自身（或其子类）类型的对象访问——
+    // `PkXmlDocument::importNode(const PkXmlNode &importedNode, ...)` 里
+    // `importedNode` 的静态类型就是 `PkXmlNode` 本身，不满足这条，直接写
+    // `importedNode._node` 编不过。这里用一个 protected **静态**方法绕开
+    // （静态成员调用不受该检查约束，派生类可以自由调用继承来的 protected
+    // 静态方法）——只读出句柄，不放宽访问范围，PkXmlDocument 之外仍然拿不到。
+    static pugi::xml_node pkRawNode(const PkXmlNode &n) { return n._node; }
 };
 
 // utf8 <-> PkString 互转——pugixml 默认（非 PUGIXML_WCHAR_MODE）以 UTF-8 存取

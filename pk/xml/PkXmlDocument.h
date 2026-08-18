@@ -47,6 +47,15 @@ public:
 
     PkXmlDocumentType doctype() const;
 
+    // R-25 Task 1：QDomDocument::importNode(const QDomNode &, bool deep) 的零
+    // Qt 对应物——探针 P13（$PK/docs/superpowers/plans/R-25.md）确认这是
+    // **深拷贝**，源节点不受影响（即便同文档内调用也是拷贝，不是移动）；
+    // `deep=false` 只拷贝节点自身 + 属性，不递归子节点；传入 null 节点返回
+    // null；返回值不挂在文档结构里，跟 createElement() 一样走 limbo 容器，
+    // 调用方要自己 appendChild() 才挂树。见 PkXmlNode.h 顶部类注释"创建即
+    // 挂树"一节——importNode() 复用同一套 limbo 机制，不是新设计。
+    PkXmlNode importNode(const PkXmlNode &importedNode, bool deep);
+
     // I2（R-07 全分支终审）新增：保留纯空白 PCDATA 节点的 setContent 变体，
     // 对应 pugixml 的 parse_ws_pcdata 标志——普通 setContent()（P1 探针对齐）
     // 会像 Qt 的 QDomDocument 一样丢弃纯空白文本节点，但真实调用点

@@ -152,6 +152,99 @@ void TestDocument::setContentPreservingWhitespaceKeepsBlankTextNodes()
     PK_COMPARE(preserved.documentElement().childNodes().count(), 5);
 }
 
+void TestDocument::importNodeDeepCopiesSubtreeAndAttributesAcrossDocuments()
+{
+    // 探针 P13：deep=true 是深拷贝——完整复制子树 + 属性，源节点不受影响
+    // （不是"移动"）。跨 document 场景：src/dst 是两棵完全独立的树。
+    PkXmlDocument src;
+    PK_VERIFY(src.setContent(PkString("<root><a x=\"1\"><b>text</b></a></root>")));
+    PkXmlElement srcA = src.documentElement().firstChildElement("a");
+    PK_VERIFY(!srcA.isNull());
+
+    PkXmlDocument dst;
+    PkXmlElement dstRoot = dst.createElement("root");
+    dst.appendChild(dstRoot);
+
+    PkXmlNode imported = dst.importNode(srcA, true);
+    PK_VERIFY(!imported.isNull());
+    PkXmlElement importedEl = imported.toElement();
+    PK_VERIFY(!importedEl.isNull());
+    PK_COMPARE(importedEl.tagName(), PkString("a"));
+    PK_COMPARE(importedEl.attribute("x"), PkString("1"));
+    PK_COMPARE(importedEl.childNodes().count(), 1); // 深拷贝：子节点 b 也被复制
+    PK_COMPARE(importedEl.firstChildElement("b").text(), PkString("text"));
+
+    // 源节点不受影响——探针 P13 的"src still has 'a' child after import: 1"。
+    PK_COMPARE(src.documentElement().firstChildElement("a").childNodes().count(), 1);
+    PK_COMPARE(src.documentElement().firstChildElement("a").attribute("x"), PkString("1"));
+
+    // 返回值未挂树——appendChild() 之前不出现在 toString() 里，之后才出现。
+    PK_VERIFY(!dst.toString(-1).contains(PkString("<a ")));
+    dstRoot.appendChild(importedEl);
+    PK_COMPARE(dst.toString(-1), PkString("<root><a x=\"1\"><b>text</b></a></root>"));
+}
+
+void TestDocument::importNodeShallowCopiesOnlyAttributesNotChildren()
+{
+    // 探针 P13：deep=false 只拷贝元素自身 + 属性，不拷贝子节点
+    // （"deep=false: isNull=0 nodeName=a hasChildNodes=0 childCount=0 attr-x=1"）。
+    PkXmlDocument src;
+    PK_VERIFY(src.setContent(PkString("<root><a x=\"1\"><b>text</b></a></root>")));
+    PkXmlElement srcA = src.documentElement().firstChildElement("a");
+
+    PkXmlDocument dst;
+    PkXmlNode imported = dst.importNode(srcA, false);
+    PK_VERIFY(!imported.isNull());
+    PkXmlElement importedEl = imported.toElement();
+    PK_VERIFY(!importedEl.isNull());
+    PK_COMPARE(importedEl.tagName(), PkString("a"));
+    PK_COMPARE(importedEl.attribute("x"), PkString("1"));
+    PK_VERIFY(!importedEl.hasChildNodes());
+    PK_COMPARE(importedEl.childNodes().count(), 0);
+}
+
+void TestDocument::importNodeOfNullNodeReturnsNull()
+{
+    // 探针 P13："import null node: isNull=1"。
+    PkXmlDocument src;
+    PK_VERIFY(src.setContent(PkString("<root/>")));
+    PkXmlNode missing = src.documentElement().firstChildElement("doesNotExist");
+    PK_VERIFY(missing.isNull());
+
+    PkXmlDocument dst;
+    PkXmlNode imported = dst.importNode(missing, true);
+    PK_VERIFY(imported.isNull());
+}
+
+void TestDocument::importNodeWithinSameDocumentIsCopyNotMove()
+{
+    // 探针 P13："即便是同文档内调用也一样是拷贝，不是原地复用"。
+    PkXmlDocument doc;
+    PK_VERIFY(doc.setContent(PkString("<root><a x=\"1\"><b>text</b></a></root>")));
+    PkXmlElement a = doc.documentElement().firstChildElement("a");
+
+    PkXmlNode imported = doc.importNode(a, true);
+    PK_VERIFY(!imported.isNull());
+    PkXmlElement importedEl = imported.toElement();
+    PK_COMPARE(importedEl.tagName(), PkString("a"));
+    PK_COMPARE(importedEl.attribute("x"), PkString("1"));
+
+    // 原节点还在原位，没有被"移走"。
+    PK_COMPARE(doc.documentElement().firstChildElement("a").childNodes().count(), 1);
+
+    // appendChild 之后，root 下有两个 "a"（原来那个 + 新拷贝的这个）。
+    doc.documentElement().appendChild(importedEl);
+    int aCount = 0;
+    PkXmlNode n = doc.documentElement().firstChild();
+    while (!n.isNull()) {
+        if (n.isElement() && n.toElement().tagName() == PkString("a")) {
+            ++aCount;
+        }
+        n = n.nextSibling();
+    }
+    PK_COMPARE(aCount, 2);
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_document.inc"

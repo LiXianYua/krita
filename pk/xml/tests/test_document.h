@@ -15,4 +15,8 @@ private Q_SLOTS:
     void orphanElementNotAppendedDoesNotPolluteToString();
     void orphanBeforeAppendedRootDoesNotBreakDocumentElement();
     void setContentPreservingWhitespaceKeepsBlankTextNodes();
+    void importNodeDeepCopiesSubtreeAndAttributesAcrossDocuments();
+    void importNodeShallowCopiesOnlyAttributesNotChildren();
+    void importNodeOfNullNodeReturnsNull();
+    void importNodeWithinSameDocumentIsCopyNotMove();
 };

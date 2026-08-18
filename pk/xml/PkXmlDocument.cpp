@@ -150,6 +150,37 @@ bool PkXmlDocument::setContentImpl(const PkString &xml, unsigned int parseFlags,
     return false;
 }
 
+PkXmlNode PkXmlDocument::importNode(const PkXmlNode &importedNode, bool deep)
+{
+    // 探针 P13：传入 null 节点返回 null。
+    if (importedNode.isNull()) {
+        return PkXmlNode();
+    }
+
+    const pugi::xml_node src = pkRawNode(importedNode);
+
+    if (deep) {
+        // pugixml 的 append_copy() 本来就是深拷贝（含全部子树 + 属性），
+        // 天然覆盖这个分支——探针 P13 确认的 Qt 语义正是"深拷贝一份改了
+        // 身份的新副本"，跟 append_copy() 是同一件事，不需要额外代码。
+        pugi::xml_node n = ensureLimboNode().append_copy(src);
+        return PkXmlNode(n, _doc);
+    }
+
+    // deep == false：手工建同类型同名节点，只拷贝属性，不递归拷贝子节点。
+    pugi::xml_node n = ensureLimboNode().append_child(src.type());
+    n.set_name(src.name());
+    // set_value() 对 node_element 是无操作（pugixml 只对 pcdata/cdata/
+    // comment/pi/doctype 类型生效），对 node_pcdata/node_cdata 才有意义
+    // ——两种情形都安全调用，不需要按类型分支。
+    n.set_value(src.value());
+    for (pugi::xml_attribute a = src.first_attribute(); a; a = a.next_attribute()) {
+        pugi::xml_attribute newAttr = n.append_attribute(a.name());
+        newAttr.set_value(a.value());
+    }
+    return PkXmlNode(n, _doc);
+}
+
 PkString PkXmlDocument::toString(int indent) const
 {
     // 探针 P3：indent >= 0 时结尾带一个 '\n'（format_indent 天然产出）；
