@@ -32,24 +32,47 @@ class PkXmlDocument;
 //     Kind::Attr 时 `_node` 存**属主元素**（给 ownerDocument() 之类需要文档
 //     上下文的场合用），`_attr` 才是真正的属性句柄。
 //
-// 创建即挂树：PkXmlDocument::createElement()/createTextNode()/
-// createCDATASection() 把新节点作为文档根的子节点立即挂进同一棵 pugi::xml_document
-// 树（不是真正悬空的），appendChild()/insertBefore() 用 pugixml 的
-// append_move()/insert_move_before() 在同一棵树内部搬动它——这是刻意选择：
-// pugixml 的 allow_move() 硬性要求 `parent.root() == child.root()`
-// （src/pugixml.cpp `impl::allow_move`），跨 xml_document 的移动一律静默失败、
-// 返回空节点；唯一跨文档转移内容的手段是 append_copy()（深拷贝），但深拷贝会
-// 产生新的节点身份——真实调用点最常见的写法
-// `e = doc.createElement(...); parent.appendChild(e); e.setAttribute(...)`
+// 创建即挂树（limbo 容器版本，R-07 全分支终审 I1 修复）：
+// PkXmlDocument::createElement()/createTextNode()/createCDATASection() 把新
+// 节点挂进同一棵 pugi::xml_document 树里一个隐藏的 limbo 容器子节点下（不是
+// 真正悬空的，也不是文档根的直接子节点），appendChild()/insertBefore() 用
+// pugixml 的 append_move()/insert_move_before() 在同一棵树内部把它从 limbo
+// 搬到真正的目标位置——这是刻意选择：pugixml 的 allow_move() 硬性要求
+// `parent.root() == child.root()`（src/pugixml.cpp `impl::allow_move`），跨
+// xml_document 的移动一律静默失败、返回空节点；唯一跨文档转移内容的手段是
+// append_copy()（深拷贝），但深拷贝会产生新的节点身份——真实调用点最常见的
+// 写法 `e = doc.createElement(...); parent.appendChild(e); e.setAttribute(...)`
 // 会因此静默地改在孤儿副本上而不是真正挂树的那份，不可接受。让创建出的节点
 // 从一开始就活在同一棵 xml_document 里，append_move 只搬指针不拷贝，`_node`
 // 句柄（哪怕是调用方手里那份自己的拷贝）因为指向同一个底层结构体，
 // appendChild 之后自动"看见"新位置——不需要额外的身份同步代码。
 //
-// 已知偏离（README 已记录）：createElement() 返回的节点在被真正
-// appendChild()/insertBefore() 之前，parentNode() 会返回文档本身而不是 Qt 那样
-// 的 null——因为它已经是文档根的子节点了，只是还没搬到目标位置。真实调用点
-// 一律是"创建后立刻 appendChild"，不存在中间态被查询的场景。
+// **limbo 容器为什么存在（早先版本"挂在文档根"的做法已被证伪，见 R-07 全分支
+// 终审 I1）**：早先实现直接把新节点挂成文档根的子节点（与真正的
+// documentElement()、doctype() 平级）。这在"调用方创建后不 appendChild 就直接
+// toString()"这个真实场景下是错的——本任务自己的试接目标
+// `libs/image/tests/kis_distance_information_test.cpp`
+// （`testInitInfoXMLClone`）里的四个 `doc.createElement("TestN")` 全部不调用
+// appendChild（只用来接住 `toXML()` 写进去的属性，之后被丢弃）。若新节点直接
+// 挂在文档根，`toString()`（走 `_doc->save()`）会把这些孤儿一起序列化出来，
+// 产出两个根元素的非法 XML；`documentElement()` 若先扫到孤儿也会返回错误的
+// 元素。现在改为：新节点先挂进一个保留 tag 名 `#pk-xml-limbo`
+// （`pkIsXmlLimboTag`/`pkIsXmlLimboNode`，XML 规范里合法元素名首字符不能是
+// `#`，setContent() 解析真实 XML 不可能产生同名冲突）的隐藏容器节点下，这个
+// 容器本身是文档根的子节点（保证 `allow_move` 恒成立），但
+// `PkXmlNode::childNodes()`/`firstChild()`/`lastChild()`/`nextSibling()`/
+// `previousSibling()`/`hasChildNodes()`/`parentNode()`（本文件 .cpp）与
+// `PkXmlDocument::documentElement()`/`toString()`（`PkXmlDocument.cpp`）
+// 一律跳过/无视它——孤儿节点因此不会出现在任何遍历或序列化输出里，直到真正
+// 被 appendChild()/insertBefore() 搬出 limbo。
+//
+// 代价（比早先"挂文档根"版本更小，但仍是已知偏离）：孤儿节点的
+// `parentNode()` 会规整化返回文档本身（不是 Qt 的 null，也不暴露 limbo 这个
+// 内部节点——见 `PkXmlNode::parentNode()` 实现）；多个孤儿在各自被搬走之前，
+// 彼此之间通过 `nextSibling()`/`previousSibling()` 是互相可见的（因为它们是
+// limbo 下的亲兄弟）——真 Qt 里未挂树的孤儿节点是完全独立、互不可见的。真实
+// 调用点没有发现依赖"未挂树孤儿之间互相遍历"这种写法，只在这里记录为已知
+// 微小偏离，不影响"孤儿不污染最终输出"这条核心正确性要求。
 class PkXmlNode
 {
 public:
@@ -126,4 +149,18 @@ inline PkString pkXmlFromPugi(const char *utf8)
         return PkString();
     }
     return PkString::PkFromUtf8(utf8, static_cast<int>(std::char_traits<char>::length(utf8)));
+}
+
+// limbo 容器（R-07 全分支终审 I1 修复）：PkXmlDocument 用来暂存"已 createElement()
+// 但还未 appendChild()"孤儿节点的隐藏容器子节点，用这个保留 tag 名标识——不是
+// Qt 兼容表面的一部分，纯内部实现细节。PkXmlNode.cpp 的通用遍历方法
+// （childNodes/firstChild/lastChild/nextSibling/previousSibling/hasChildNodes/
+// parentNode）与 PkXmlDocument.cpp 的 documentElement()/toString() 共用这两个
+// 工具，保证孤儿节点不会被任何遍历/序列化路径看见。见本文件顶部类注释。
+constexpr const char *kPkXmlLimboTag = "#pk-xml-limbo";
+
+inline bool pkIsXmlLimboNode(const pugi::xml_node &n)
+{
+    return n.type() == pugi::node_element && n.parent().type() == pugi::node_document
+        && n.name() == std::string(kPkXmlLimboTag);
 }

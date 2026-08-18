@@ -110,6 +110,11 @@ PkXmlNodeList PkXmlNode::childNodes() const
         return list;
     }
     for (pugi::xml_node c = _node.first_child(); c; c = c.next_sibling()) {
+        // limbo 容器（R-07 全分支终审 I1）不是真实文档结构的一部分，见
+        // PkXmlNode.h 顶部类注释——跳过，不出现在任何调用方看到的子节点列表里。
+        if (pkIsXmlLimboNode(c)) {
+            continue;
+        }
         list.PkAppend(PkXmlNode(c, _doc));
     }
     return list;
@@ -120,7 +125,11 @@ PkXmlNode PkXmlNode::firstChild() const
     if (_kind != Kind::Node) {
         return PkXmlNode();
     }
-    return PkXmlNode(_node.first_child(), _doc);
+    pugi::xml_node c = _node.first_child();
+    while (c && pkIsXmlLimboNode(c)) {
+        c = c.next_sibling();
+    }
+    return PkXmlNode(c, _doc);
 }
 
 PkXmlNode PkXmlNode::lastChild() const
@@ -128,7 +137,11 @@ PkXmlNode PkXmlNode::lastChild() const
     if (_kind != Kind::Node) {
         return PkXmlNode();
     }
-    return PkXmlNode(_node.last_child(), _doc);
+    pugi::xml_node c = _node.last_child();
+    while (c && pkIsXmlLimboNode(c)) {
+        c = c.previous_sibling();
+    }
+    return PkXmlNode(c, _doc);
 }
 
 PkXmlNode PkXmlNode::nextSibling() const
@@ -136,7 +149,11 @@ PkXmlNode PkXmlNode::nextSibling() const
     if (_kind != Kind::Node) {
         return PkXmlNode();
     }
-    return PkXmlNode(_node.next_sibling(), _doc);
+    pugi::xml_node c = _node.next_sibling();
+    while (c && pkIsXmlLimboNode(c)) {
+        c = c.next_sibling();
+    }
+    return PkXmlNode(c, _doc);
 }
 
 PkXmlNode PkXmlNode::previousSibling() const
@@ -144,7 +161,11 @@ PkXmlNode PkXmlNode::previousSibling() const
     if (_kind != Kind::Node) {
         return PkXmlNode();
     }
-    return PkXmlNode(_node.previous_sibling(), _doc);
+    pugi::xml_node c = _node.previous_sibling();
+    while (c && pkIsXmlLimboNode(c)) {
+        c = c.previous_sibling();
+    }
+    return PkXmlNode(c, _doc);
 }
 
 PkXmlNode PkXmlNode::parentNode() const
@@ -152,12 +173,18 @@ PkXmlNode PkXmlNode::parentNode() const
     if (_kind != Kind::Node) {
         return PkXmlNode();
     }
-    return PkXmlNode(_node.parent(), _doc);
+    pugi::xml_node p = _node.parent();
+    if (pkIsXmlLimboNode(p)) {
+        // limbo 对调用方透明：孤儿节点的 parentNode() 规整化报告成文档本身，
+        // 不暴露 limbo 这个内部实现节点——见 PkXmlNode.h 顶部类注释。
+        p = p.parent();
+    }
+    return PkXmlNode(p, _doc);
 }
 
 bool PkXmlNode::hasChildNodes() const
 {
-    return _kind == Kind::Node && static_cast<bool>(_node.first_child());
+    return static_cast<bool>(firstChild()._node);
 }
 
 PkXmlNode PkXmlNode::appendChild(const PkXmlNode &newChild)

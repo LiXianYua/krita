@@ -23,25 +23,38 @@ PkXmlDocument::PkXmlDocument(const PkString &docName)
     }
 }
 
+pugi::xml_node PkXmlDocument::ensureLimboNode()
+{
+    for (pugi::xml_node c = _doc->first_child(); c; c = c.next_sibling()) {
+        if (pkIsXmlLimboNode(c)) {
+            return c;
+        }
+    }
+    pugi::xml_node limbo = _doc->append_child(pugi::node_element);
+    limbo.set_name(kPkXmlLimboTag);
+    return limbo;
+}
+
 PkXmlElement PkXmlDocument::createElement(const PkString &tagName)
 {
-    // 创建即挂树：见 PkXmlNode.h 顶部注释——新节点立刻成为文档根的子节点，
-    // 而不是真正悬空的，appendChild() 用 append_move() 在同一棵树内部搬走它。
-    pugi::xml_node n = _doc->append_child(pugi::node_element);
+    // 创建即挂树：见 PkXmlNode.h 顶部注释——新节点立刻挂进 limbo 容器（而不是
+    // 真正悬空的，也不是文档根的直接子节点），appendChild() 用 append_move()
+    // 在同一棵树内部把它从 limbo 搬到真正的目标位置。
+    pugi::xml_node n = ensureLimboNode().append_child(pugi::node_element);
     n.set_name(tagName.PkToUtf8().c_str());
     return PkXmlElement(n, _doc);
 }
 
 PkXmlText PkXmlDocument::createTextNode(const PkString &value)
 {
-    pugi::xml_node n = _doc->append_child(pugi::node_pcdata);
+    pugi::xml_node n = ensureLimboNode().append_child(pugi::node_pcdata);
     n.set_value(value.PkToUtf8().c_str());
     return PkXmlText(n, _doc);
 }
 
 PkXmlCDATASection PkXmlDocument::createCDATASection(const PkString &value)
 {
-    pugi::xml_node n = _doc->append_child(pugi::node_cdata);
+    pugi::xml_node n = ensureLimboNode().append_child(pugi::node_cdata);
     n.set_value(value.PkToUtf8().c_str());
     return PkXmlCDATASection(n, _doc);
 }
@@ -49,7 +62,10 @@ PkXmlCDATASection PkXmlDocument::createCDATASection(const PkString &value)
 PkXmlElement PkXmlDocument::documentElement() const
 {
     for (pugi::xml_node c = _doc->first_child(); c; c = c.next_sibling()) {
-        if (c.type() == pugi::node_element) {
+        // limbo 容器本身也是 node_element 类型，必须先排除，否则孤儿节点
+        // 堆积多了之后 limbo 会被误当成"第一个元素子节点"返回——见 R-07 全
+        // 分支终审 I1，PkXmlNode.h 顶部类注释。
+        if (c.type() == pugi::node_element && !pkIsXmlLimboNode(c)) {
             return PkXmlElement(c, _doc);
         }
     }
@@ -69,19 +85,38 @@ bool PkXmlDocument::setContent(const PkString &xml, bool namespaceProcessing, Pk
     // 走同一套 parse_default 解析流程，namespaceProcessing 参数只是为了签名
     // 对齐 Qt；命名空间处理在 PkXmlElement::localName()/namespaceURI() 里实现。
     (void)namespaceProcessing;
+    return setContentImpl(xml, pugi::parse_default | pugi::parse_doctype, errorMsg, errorLine,
+                           errorColumn);
+}
 
+bool PkXmlDocument::setContentPreservingWhitespace(const PkString &xml, bool namespaceProcessing,
+                                                    PkString *errorMsg, int *errorLine,
+                                                    int *errorColumn)
+{
+    // I2（R-07 全分支终审）：额外加 parse_ws_pcdata——普通 setContent()（P1
+    // 探针对齐 Qt 丢弃纯空白文本节点）不适用于"空白有语义"的真实调用点
+    // （SvgParser.cpp，见 README 已知偏离清单 I2）。
+    (void)namespaceProcessing;
+    return setContentImpl(xml, pugi::parse_default | pugi::parse_doctype | pugi::parse_ws_pcdata,
+                           errorMsg, errorLine, errorColumn);
+}
+
+bool PkXmlDocument::setContentImpl(const PkString &xml, unsigned int parseFlags,
+                                    PkString *errorMsg, int *errorLine, int *errorColumn)
+{
     const std::string utf8 = xml.PkToUtf8();
     // 重复调用 setContent 要能覆盖上一次的树（Qt 语义），reset() 之后同一个
     // shared_ptr<pugi::xml_document> 重新 load——旧的借出句柄语义上失效，与
-    // Qt 的"整棵树被替换"效果一致。
+    // Qt 的"整棵树被替换"效果一致。这也会连带清掉任何还留在 limbo 里、尚未
+    // appendChild 的孤儿节点——与 Qt 语义一致（没有等价概念，reset 即可）。
     _doc->reset();
     // parse_default 不含 parse_doctype（pugixml 默认丢弃 DOCTYPE 声明，见
     // src/pugixml.hpp parse_full 的定义）——补上它，否则 doctype() 永远找不到
     // 任何从 setContent 解析出来的 DOCTYPE 节点。已现场探针确认：`<!DOCTYPE
     // note SYSTEM "Note.dtd">` 解析后 node_doctype 的 value() 是整段原始文本
     // `note SYSTEM "Note.dtd"`，doctype() 取第一个空白分隔 token 当 name()。
-    const pugi::xml_parse_result result = _doc->load_buffer(
-        utf8.data(), utf8.size(), pugi::parse_default | pugi::parse_doctype);
+    const pugi::xml_parse_result result =
+        _doc->load_buffer(utf8.data(), utf8.size(), parseFlags);
     _node = *_doc;
 
     if (result) {
@@ -131,8 +166,21 @@ PkString PkXmlDocument::toString(int indent) const
         indentStr.assign(static_cast<std::size_t>(indent), ' ');
     }
 
+    // limbo 容器（R-07 全分支终审 I1）里挂着的孤儿节点不是真实文档结构的
+    // 一部分，不能出现在序列化输出里——pugixml 没有"临时隐藏子节点再复原"的
+    // API（remove_child 会真正释放内存，不可逆），深拷贝一份跳过 limbo 的
+    // 临时文档再 save() 是最简单可靠的做法：只多一次 O(n) 深拷贝，换来不用
+    // 碰活树的结构。
+    pugi::xml_document tmp;
+    for (pugi::xml_node c = _doc->first_child(); c; c = c.next_sibling()) {
+        if (pkIsXmlLimboNode(c)) {
+            continue;
+        }
+        tmp.append_copy(c);
+    }
+
     std::ostringstream oss;
-    _doc->save(oss, indentStr.c_str(), flags, pugi::encoding_utf8);
+    tmp.save(oss, indentStr.c_str(), flags, pugi::encoding_utf8);
     const std::string s = oss.str();
     return PkString::PkFromUtf8(s.c_str(), static_cast<int>(s.size()));
 }

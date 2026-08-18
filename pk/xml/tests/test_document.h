@@ -12,4 +12,7 @@ private Q_SLOTS:
     void setContentReportsErrorOnMalformedXml();
     void toStringIndentModes();
     void documentElementAndDoctype();
+    void orphanElementNotAppendedDoesNotPolluteToString();
+    void orphanBeforeAppendedRootDoesNotBreakDocumentElement();
+    void setContentPreservingWhitespaceKeepsBlankTextNodes();
 };
