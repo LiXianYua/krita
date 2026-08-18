@@ -192,7 +192,7 @@ e.setAttribute("v", QString::number(0.1 + 0.2, 'g', 17));
 
 ## 2. 已知偏离清单
 
-### 2.1 `createElement()` 返回的节点在真正 appendChild 之前，`parentNode()` 不是 null
+### 2.1 `createElement()` 返回的节点在真正 appendChild 之前，`parentNode()` 不是 null；孤儿节点挂在隐藏的 limbo 容器下，不污染 `toString()`/`documentElement()`
 
 **根因**：pugixml 的 `allow_move()`（`src/pugixml.cpp`，实测源码确认）硬性要求
 `parent.root() == child.root()`——跨 `xml_document` 的 `append_move`/
@@ -209,16 +209,57 @@ e.setAttribute("x", "1");   // 期望改在真正挂树的那份上
 方案会让第三行的 `setAttribute` 静默地改在孤儿副本上——不可接受的正确性问题。
 
 **取舍**：`createElement()`/`createTextNode()`/`createCDATASection()` 把新节点
-立即挂成 `PkXmlDocument` 自己那棵 `pugi::xml_document` 树的（文档根的）子节点，
-`appendChild()`/`insertBefore()` 用 `append_move()`/`insert_move_before()` 在
-**同一棵树内部**搬动它——因为始终同一棵树，`allow_move()` 恒成立，且 pugixml
-的节点句柄只是指向同一个底层结构体的指针，搬动之后调用方手里那份旧
-`PkXmlElement` 自动"看见"新位置，不需要额外的身份同步代码。
+立即挂进同一棵 `pugi::xml_document` 树，`appendChild()`/`insertBefore()` 用
+`append_move()`/`insert_move_before()` 在**同一棵树内部**搬动它——因为始终
+同一棵树，`allow_move()` 恒成立，且 pugixml 的节点句柄只是指向同一个底层
+结构体的指针，搬动之后调用方手里那份旧 `PkXmlElement` 自动"看见"新位置，
+不需要额外的身份同步代码。
 
-**代价**：一个刚创建、还没被 `appendChild`/`insertBefore` 挂到目标位置的节点，
-`parentNode()` 会返回文档本身，而不是 Qt 那样的 null。真实调用点一律是"创建后
-立刻 appendChild"，不存在中间态被查询的场景，所以这条偏离不影响试接
-（Task 3/4）。
+**⚠ 早先版本"直接挂文档根"的做法已被证伪，现改为挂进隐藏的 limbo 容器
+（R-07 全分支终审 I1 修复，真实正确性问题，连代码一起修）**：本节此前有一句
+论证"真实调用点一律是创建后立刻 appendChild，不存在中间态被查询的场景，所以
+这条偏离不影响试接"——**这句话已经被证伪，必须删除**。本任务自己的试接目标
+`libs/image/tests/kis_distance_information_test.cpp`
+（`testInitInfoXMLClone`）里的四个 `doc.createElement("TestN")` **全部不调用
+appendChild**（它们是临时容器，只用来接住 `toXML()` 写进去的属性，之后被
+丢弃，不进最终文档树）。`.kra` 真实保存路径是
+`PkXmlDocument::toByteArray()` → `toString()`（`kis_kra_saver.cpp`、
+`KoColorSet.cpp` 等真实调用点都走这条路），如果早先"直接挂文档根"的实现
+不变，保存过程中一旦出现"创建了元素但条件性不挂树"的分支，存出来的 XML 就会
+是**两个根元素的非法 XML**（`toString()` 走 `_doc->save()`，会把还挂在文档根
+上的孤儿一起序列化出来）；如果孤儿节点先于 root 创建，`documentElement()`
+也可能把孤儿误当成"第一个元素子节点"返回——而现有测试不会报错（都没有在
+孤儿存在时调用 `toString()`）。
+
+修复：新创建但未被显式 `appendChild` 到别处的节点，改为先挂在一个隐藏的
+limbo 容器子节点下（`PkXmlNode.h` 的 `kPkXmlLimboTag = "#pk-xml-limbo"` +
+`pkIsXmlLimboNode()`——XML 规范里合法元素名首字符不能是 `#`，`setContent()`
+解析真实 XML 不可能产生同名冲突），这个容器本身仍然是文档根的直接子节点
+（保证 `allow_move()` 恒成立，因为始终是同一棵 `xml_document`），但
+`PkXmlNode::childNodes()`/`firstChild()`/`lastChild()`/`nextSibling()`/
+`previousSibling()`/`hasChildNodes()`/`parentNode()`（`PkXmlNode.cpp`）与
+`PkXmlDocument::documentElement()`/`toString()`（`PkXmlDocument.cpp`）一律
+跳过/无视这个容器——孤儿节点因此不会出现在任何遍历或序列化输出里，直到真正
+被 `appendChild()`/`insertBefore()`（内部走 `append_move()`，把节点从 limbo
+搬到目标位置）搬出 limbo。`toString()` 的具体做法是深拷贝一份跳过 limbo 的
+临时 `pugi::xml_document` 再 `save()`（pugixml 没有"临时隐藏子节点再复原"的
+API，`remove_child()` 会真正释放内存、不可逆），只多一次 O(n) 深拷贝，换来
+不用碰活树结构。
+
+**代价（比早先版本更小，但仍是已知偏离）**：一个刚创建、还没被
+`appendChild`/`insertBefore` 挂到目标位置的孤儿节点，`parentNode()` 会规整化
+返回文档本身（不是 Qt 那样的 null，也不暴露 limbo 这个内部实现节点）；多个
+孤儿在各自被搬走之前，彼此之间通过 `nextSibling()`/`previousSibling()` 是
+互相可见的（因为它们是 limbo 下的亲兄弟）——真 Qt 里未挂树的孤儿节点是完全
+独立、互不可见的。真实调用点没有发现依赖"未挂树孤儿之间互相遍历"这种写法，
+不影响"孤儿不污染最终输出"这条核心正确性要求。
+
+测试覆盖：`tests/test_document.cpp` 的
+`orphanElementNotAppendedDoesNotPolluteToString`（孤儿不 appendChild，
+`toString()` 看不到它；appendChild 之后必须出现——对照组确认迁移逻辑没破坏
+正常路径）与
+`orphanBeforeAppendedRootDoesNotBreakDocumentElement`（孤儿先于 root 创建，
+`documentElement()` 不受误导）。
 
 ### 2.2 `toByteArray()` 退化成 `PkString`（UTF-8 编码），不是 `PkByteArray`
 
@@ -309,11 +350,29 @@ pugixml 本身不做命名空间解析（`xmlns:foo="uri"` 被当成普通属性
 实现前对真实调用点的用量复核发现 `libs/pigment/resources/KoColorSet.cpp`
 （`colorProperties.hasAttribute("RGB")` 等 2 处）与
 `plugins/assistants/Assistants/kis_painting_assistant.cpp`（`xml.attributes()
-.hasAttribute(...)` 共 4 处）都在真实调用 `QXmlStreamAttributes::hasAttribute()`，
-但线级 plan 的方法级用量表把 `hasAttribute | 108` 整行记在 `PkXmlElement`
-名下（疑似把这几处 stream 侧调用点也并进了同一个计数）。按
-`CLAUDE.md`「新发现的缺口直接补进来」原则补上这个方法，不是自创接口——
-详见 `PkXmlStreamAttributes.h` 类注释。
+.hasAttribute(...)` 共 4 行代码/5 次调用）都在真实调用
+`QXmlStreamAttributes::hasAttribute()`，但线级 plan 的方法级用量表把
+`hasAttribute | 108` 整行记在 `PkXmlElement` 名下（疑似把这几处 stream 侧
+调用点也并进了同一个计数）。按 `CLAUDE.md`「新发现的缺口直接补进来」原则
+补上这个方法，不是自创接口——详见 `PkXmlStreamAttributes.h` 类注释。
+
+**R-07 全分支终审 I5 现场核实统一**：本节此前记「2 处」，`PkXmlStreamAttributes.h`
+的旧头注释又记「`kis_painting_assistant.cpp` 还有 4 处」——两处数字互相矛盾。
+现场逐处核实（`grep -n hasAttribute` 两个文件 + 确认接收者类型）：
+
+- `KoColorSet.cpp`：`colorProperties.hasAttribute("RGB")`（:1103）、
+  `colorProperties.hasAttribute("CMYK")`（:1141），`colorProperties` 声明为
+  `QXmlStreamAttributes colorProperties = xml->attributes();`——确认是
+  `QXmlStreamAttributes` 接收者，**2 处**。
+- `kis_painting_assistant.cpp`：`xml.attributes().hasAttribute(...)` 出现在
+  4 行代码（:592/604/608/614），但 :604 一行里 `&&` 连了两次调用
+  （`hasAttribute("editorWidgetOffset_X") && hasAttribute("editorWidgetOffset_Y")`），
+  `xml` 声明为 `QXmlStreamReader xml(data);`——确认接收者链路正确，
+  按**调用次数**（不是行数）算是 **5 处**。
+
+**真实调用点总数 2+5=7**，不是 2，也不是 2+4=6——已把 README（本节 + §7 用量表）
+与 `PkXmlStreamAttributes.h` 头注释统一成这个现场核实过的数字，两处不再互相
+矛盾。
 
 ### 5.3 `PkXmlStreamReader` 不消费 Task 1 的 `PkXmlNode`/`PkXmlDocument` 等类型
 
@@ -510,25 +569,56 @@ DOM 系（`PkXmlDocument`/`PkXmlElement`/`PkXmlNode`/`PkXmlNodeList`/`PkXmlText`
 
 QXmlStream 系：
 
-| 方法 | 计数 | 归属类型 |
-|---|---:|---|
-| `writeAttribute` | 48 | `PkXmlStreamWriter` |
-| `atEnd` | 44 | `PkXmlStreamReader` |
-| `errorString` | 33（含 DOM 侧共用） | `PkXmlStreamReader` |
-| `writeStartElement` | 23 | `PkXmlStreamWriter` |
-| `writeEndElement` | 16 | `PkXmlStreamWriter` |
-| `writeCharacters` | 7 | `PkXmlStreamWriter` |
-| `hasError` | 6 | `PkXmlStreamReader` |
-| `readNext` | 3 | `PkXmlStreamReader` |
-| `writeStartDocument` | 1 | `PkXmlStreamWriter` |
-| `writeEndDocument` | 1 | `PkXmlStreamWriter` |
-| `raiseError`（**Task 2 执行阶段更正新增**，见 §5.4） | 6 | `PkXmlStreamReader` |
-| `hasAttribute`（**Task 2 执行阶段更正新增**，见 §5.2） | 2 | `PkXmlStreamAttributes` |
-| `name`/`text`/`attributes`/`tokenType`（P11 探针确认的 token 遍历面） | 上表已计 | `PkXmlStreamReader` |
+**R-07 全分支终审 C1 订正（口径变更，务必读完再看下表）**：本节数字此前是用
+只匹配 `.method(`（点接收者）形态的 grep 算的，系统性漏掉了 `->method(`
+（箭头接收者）形态——`libs/pigment/resources/KoColorSet.cpp` 里全部真实调用
+点都是 `xml->readNextStartElement()`/`xml->writeAttribute(...)` 这种指针接收者
+写法，用点号 grep 一个都数不到。**真正的根因是计数表达式漏了 `->` 接收者，
+不是探测词表本身漏词**——`readNextStartElement`/`skipCurrentElement`/
+`writeAttribute` 等方法名从一开始就在探测词表里，只是计数脚本的正则没有覆盖
+两种接收者写法，所以把真实调用点数成了 0 或算少了。这个教训**后续任务的计数
+脚本要同时覆盖 `.method(` 与 `->method(` 两种接收者写法**（例如
+`grep -oh -P '(?:\.|->)\bmethodName\s*\('`），不能只看点号形态。下表已按
+`git ls-files '*.cpp' '*.h' '*.cc'`（口径同 §7「口径」一节：排除
+`tests/`/`benchmarks/`/`sdk/tests/`，另外排除 `pk/` 本身——`pk/xml/` 自己的头
+文件注释里大量逐字引用这些 Qt 方法名做说明，不排除会把自己的注释文本也数
+进去，实测已踩过一次：`raiseError`/`atEnd` 两个方法在含 `pk/` 时分别多算出
+1 处和 32 处，全部来自本目录自己的文档字符串）重新计数：
+
+| 方法 | 旧计数（口径有误） | 新计数（订正后） | 归属类型 |
+|---|---:|---:|---|
+| `writeAttribute` | 48 | **60** | `PkXmlStreamWriter` |
+| `atEnd` | 44 | **30** | `PkXmlStreamReader` |
+| `errorString` | 33（含 DOM 侧共用） | **25**（含 DOM 侧共用，同口径重算） | `PkXmlStreamReader` |
+| `writeStartElement` | 23 | **33** | `PkXmlStreamWriter` |
+| `writeEndElement` | 16 | **26** | `PkXmlStreamWriter` |
+| `writeCharacters` | 7 | 7（不变） | `PkXmlStreamWriter` |
+| `hasError` | 6 | **8** | `PkXmlStreamReader` |
+| `readNext` | 3 | 3（不变） | `PkXmlStreamReader` |
+| `writeStartDocument` | 1 | 1（不变） | `PkXmlStreamWriter` |
+| `writeEndDocument` | 1 | 1（不变） | `PkXmlStreamWriter` |
+| `raiseError`（Task 2 执行阶段更正新增，见 §5.4） | 6 | 6（不变，此前已经用排除 `pk/xml/` 的正确口径核实过） | `PkXmlStreamReader` |
+| `readNextStartElement`（**此前误记「0 调用点，不实现」，现已实现**，见下） | 0 | **4**（全在 `libs/pigment/resources/KoColorSet.cpp:1134/1175/1198/2424`） | `PkXmlStreamReader` |
+| `skipCurrentElement`（**此前误记「0 调用点，不实现」，现已实现**，见下） | 0 | **3**（全在 `libs/pigment/resources/KoColorSet.cpp:1136/1177/1204`） | `PkXmlStreamReader` |
+| `hasAttribute`（Task 2 执行阶段更正新增，见 §5.2；**R-07 全分支终审 I5 又核实统一了一次**，见 §5.2 末尾） | 2 | **7**（2+5，见 I5） | `PkXmlStreamAttributes` |
+| `name`/`text`/`attributes`/`tokenType`（P11 探针确认的 token 遍历面） | 上表已计 | 上表已计 | `PkXmlStreamReader` |
+
+**`readNextStartElement`/`skipCurrentElement` 已实现**（R-07 全分支终审
+C1，判断为"能在不破坏现有测试的前提下干净实现"，不再是缺口）：两者都基于
+现有 `readNext()` 循环写——`readNextStartElement()` 跳过 `Characters`/
+`StartDocument`，遇到 `StartElement` 返回 `true`，遇到
+`EndElement`/`EndDocument`/`Invalid` 返回 `false`；`skipCurrentElement()`
+假定当前 `tokenType()` 是 `StartElement`（真实调用点都是这个前提），用一个
+深度计数器 `readNext()` 到它自己配对的 `EndElement` 为止，中途嵌套的子
+`StartElement`/`EndElement` 只增减深度。测试见
+`tests/test_stream_reader.cpp` 的 `readNextStartElementSkipsUnknownChildren`
+（覆盖"认识的元素处理、不认识的整棵跳过、跳过后仍落在正确的下一个兄弟元素"
+这条真实用法链路）。
 
 `writeAttributes`（批量）/`writeCDATA`/`writeComment`/`writeTextElement`/
-`writeEmptyElement`/`writeDTD`/`readNextStartElement`/`skipCurrentElement`/
-`isStartElement`/`isEndElement`/`isCharacters` 实测 **0 调用点**，不实现。
+`writeEmptyElement`/`writeDTD`/`isStartElement`/`isEndElement`/`isCharacters`
+实测（同一套订正口径复核过）**仍然是 0 调用点**，不连坐——这几个不是漏统计，
+是真的没有真实调用点，不实现。
 
 ### 命名空间 API（4 处，决策文档 §6.2 已提及）——实测的具体调用点
 
@@ -702,3 +792,130 @@ Task 1 交付时确认本 worktree**没有**交付 `PkByteArray`（`pk/container
 维持不变——这不是本任务的技术债，是 `R-02` 尚未排期到这个类型。若后续
 `R-02` 补上 `PkByteArray`，`PkXmlDocument::toByteArray()` 与
 `PkXmlStreamWriter` 构造函数（同一个决定，见 §5.1）都要跟着改签名。
+
+## 11. R-07 全分支终审修复轮（fix wave）新增的已知偏离/缺口
+
+全分支终审（判据②③独立复跑 + 抽查探针，结论「Ready to merge: With fixes」）
+之后的唯一一轮修复。C1（用量表订正）、I1（limbo 容器修正孤儿节点污染）、I5
+（`hasAttribute` 数字对账）已经并入各自原有小节（见 §7 表格前的订正说明、
+§2.1、§5.2）。本节补 I2/I3/I4 三条——这三条是终审新发现、原先完全没记录的
+缺口。
+
+### 11.1（I2）`PkXmlStreamReader` 复用 DOM 侧 `parse_default`，丢弃纯空白 PCDATA——`QXmlStreamReader` 不会
+
+`PkXmlStreamReader` 内部复用了 DOM 侧的 `parse_default` 解析标志（见
+§2.5/P1 探针），会丢弃纯空白文本节点——这是 P1 探针证实的 **DOM** 侧正确
+行为，但真 Qt 的 `QXmlStreamReader` **不会**丢弃空白，它会正常发出空白
+`Characters` token，让调用方自己用 `isWhitespace()` 判断。真实调用点
+`libs/flake/svg/SvgParser.cpp:205`（`QT_VERSION >= 6.5.0` 分支）/`:201`（本
+codebase 实际编译的 `< 6.5.0` 分支，见 §11.3）明确要求
+`QDomDocument::ParseOption::PreserveSpacingOnlyNodes`——SVG 文本里空白有
+语义，丢了会影响真实渲染结果。风险等级：**中**——只影响 SVG 文本解析这一条
+真实调用路径（`SvgParser.cpp`），不影响本任务已交付的其它 DOM/Stream 用量。
+
+**已实现**（判断为改动面可控、能安全验证）：`PkXmlDocument` 新增
+`setContentPreservingWhitespace(xml, namespaceProcessing=false, errorMsg=nullptr,
+errorLine=nullptr, errorColumn=nullptr)`，对应 pugixml 的 `parse_ws_pcdata`
+标志——与普通两个 `setContent()` 重载共用同一个私有 `setContentImpl(xml,
+parseFlags, ...)` 核心，只是多传一个标志位，不重复解析逻辑。这是 Qt 没有的
+pk 专属扩展方法名（不是隐藏的第三个布尔参数——那样会和现有两个重载在调用点
+上难以区分意图）。测试见 `tests/test_document.cpp` 的
+`setContentPreservingWhitespaceKeepsBlankTextNodes`（对照普通 `setContent()`
+丢弃 2 个纯空白节点后剩 2 个子元素 vs `setContentPreservingWhitespace()`
+保留后变成 P1 探针注释提到的"天真假设"5 个子节点：text/a/text/b/text）。
+
+**未实现（只记文档，判断改动面/验证把握不足）**：`PkXmlStreamReader` 自己的
+`parse_default` 同样丢弃空白——它没有等价开关。要加一个的话需要改
+`PkXmlStreamReader` 的构造函数签名（当前是 `explicit
+PkXmlStreamReader(const PkString &data)`，无 flags 参数），而这个类显式
+`= delete` 了拷贝/移动构造（见类注释），真实调用点当前也只有本目录自己的
+测试在用（没有任何生产 target 消费 `PkXmlStreamReader` 本身——`SvgParser.cpp`
+走的是 DOM 侧 `setContent(QXmlStreamReader*, ...)`，见 §11.3），改动收益与
+验证成本不成比例，留给真正要移植 `SvgParser.cpp` 的后续任务按需加。
+
+### 11.2（I3）用量表整块漏掉的三组真实调用点——只登记，不实现
+
+- **`QDomNode::lineNumber()`/`columnNumber()`**：`libs/pigment/resources/KoColorSet.cpp`
+  有 **34 处**调用（17 对 `lineNumber()`+`columnNumber()`，接收者是
+  `QDomElement root/book/materials/colorId(×2)/colorElement(×2)/colorValueE(×2)/
+  swatch(×3)/groupMetadata/groupTitle/groupSwatch(×2)` 共 16 对，以及流式侧的
+  `xml->lineNumber()`/`xml->columnNumber()` 各 1 处——现场
+  `grep -noP '\w+(?:\.|->)\s*(lineNumber|columnNumber)\s*\(' KoColorSet.cpp`
+  实测）。pugixml 不保留行列号——`xml_parse_result::offset` 只有字节偏移量
+  （§2.3 已经在用它给 `setContent` 的 `errorLine`/`errorColumn` 反推行列，
+  但那是"解析失败时对整份输入扫一遍"的一次性成本；`lineNumber()`/
+  `columnNumber()` 要求**任意已解析节点**随时能报告自己的行列，需要在解析期
+  就为每个节点记下 offset→行列的映射，或者用 `parse_full`/`offset_debug()`
+  API（pugixml 1.16 有 `xml_node::offset_debug()`，返回该节点在原始 buffer
+  里的字节偏移，仍然需要调用方自己转成行列）——成本不低，判断不适合在本
+  fix wave 顺手做，留给后续任务按需实现。
+- **`QDomDocument::importNode()`**：**7 处**（`libs/psd/psd_layer_section.cpp:596`、
+  `plugins/impex/libkra/kis_kra_loader.cpp:350/673/787/1454/1466/1477`——比早先
+  记录的"350/673/787/1454/1466"多一处 `:1477`，现场
+  `grep -noP '\.importNode\s*\('` 复核确认）。**设计要点**：`PkXmlNode.h`
+  现有注释里那段"跨 `xml_document` 移动一律静默失败，深拷贝会改节点身份所以
+  被否决"（见 §2.1）**不适用于 `importNode()`**——`importNode()` 的 Qt
+  语义本来就是"深拷贝一份改了身份的新副本"（`QDomDocument::importNode(const
+  QDomNode &importedNode, bool deep)`），这正是 `append_copy()`
+  设计出来要做的事，不是那条被否决的"隐式改身份"场景（那条否决的是
+  `createElement()`/`appendChild()` 这类**调用方以为身份不变**的路径，
+  `importNode()` 调用方本来就知道拿到的是一份新节点）——**在这里把区分
+  说清楚，别让后续任务误以为 `importNode` 也被 §2.1 那条设计否决了**。
+- **返回 `QDomDocument::ParseResult` 形式的 `setContent`**：README 此前记
+  6 处，但现场逐处核实发现这个框架的判断本身需要订正——见 §11.3，独立成节
+  详细说明。
+
+### 11.3（I3 续）`setContent` 的 `ParseResult` 重载其实是这份 codebase 里的死代码——真正缺的是 `QIODevice*`/`QByteArray`/`QXmlStreamReader*` 三个重载家族
+
+I3 原始问题陈述认为"6 处真实调用点用 `QDomDocument::ParseResult` 形式的
+`setContent`，当前交付的两个重载都返回 `bool`，没有 `ParseResult` 类型"——
+现场逐处核实（读 6 处调用点的完整上下文，不只看关键词命中那一行）发现这个
+判断需要订正：**这 6 处全部写在 `#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
+… #else QDomDocument::ParseResult … #endif` 的 `#else` 分支里**，而 R-07
+探针环境（本 README §0）与本项目实际构建用的是 **Qt 5.15.7**——`5.15.7 <
+6.5.0` 恒成立，`#else` 分支在这份 codebase 里**从未被编译过**，是死代码。
+真正被编译、需要对齐的是 `#if` 分支里的老式 `bool` 返回重载，逐处核实如下
+（`store->device()`/`m_store->device()`/`device` 均为 `QIODevice*`）：
+
+| 调用点 | 真正编译的重载形状 | 归属重载家族 |
+|---|---|---|
+| `libs/flake/svg/SvgParser.cpp:201` | `doc.setContent(&reader, false, errorMsg, errorLine, errorColumn)`，`reader` 是 `QXmlStreamReader` | `setContent(QXmlStreamReader*, bool, QString*, int*, int*)` |
+| `libs/metadata/kis_meta_data_schema.cc:40` | `document.setContent(&file, &error, &line, &column)`，`file` 是 `QFile` | `setContent(QIODevice*, QString*, int*, int*)` |
+| `libs/pigment/resources/KoColorSet.cpp:1918` | `doc.setContent(bytes, &errorMessage, &errorLine, &errorColumn)`，`bytes` 是 `QByteArray` | `setContent(QByteArray, QString*, int*, int*)` |
+| `libs/resources/KoResourceBundleManifest.cpp:67` | `manifestDocument.setContent(device, true, &errorMessage, &errorLine, &errorColumn)` | `setContent(QIODevice*, bool, QString*, int*, int*)` |
+| `plugins/impex/libkra/kis_kra_load_visitor.cpp:831` | `dom.setContent(m_store->device(), &errorMsg, &errorLine, &errorColumn)` | `setContent(QIODevice*, QString*, int*, int*)` |
+| `plugins/impex/libkra/kra_converter.cpp:327` | `xmldoc.setContent(store->device(), &errorMsg, &errorLine, &errorColumn)` | `setContent(QIODevice*, QString*, int*, int*)` |
+
+真正的缺口是**三个重载家族**（`QIODevice*` 系两种形状、`QByteArray`
+一种、`QXmlStreamReader*` 一种），当前交付的 `PkXmlDocument::setContent`
+只有 `(PkString, ...)` 与 `(PkString, bool, ...)` 两个重载，**一个都不覆盖**
+——`ParseResult` 家族反而是这份 codebase 里唯一不需要管的部分（除非将来
+升级到 Qt 6.5+）。这条订正**不改变 I3"只登记不实现"的结论**（成本依旧不低：
+`QIODevice*`/`QByteArray` 重载要么整体读入内存转 `PkString` 再走现有
+`setContentImpl`（`QByteArray`/`QIODevice*` 都能整体读出字节，技术上不难，
+但要另外决定"设备指针"在 pk 世界里的对应类型——`pk/` 下没有任何 I/O 抽象层
+交付，属于比"多加一个重载"更大的范围问题；`QXmlStreamReader*` 重载则要求
+先有一个可运行的 `PkXmlStreamReader` 或等价物给 DOM 侧消费，而 Task 2 已经
+声明"DOM/Stream 两侧不互相消费对方类型"，这条重载天然会打破那个边界，需要
+主动决策要不要打破），但纠正了"哪三个重载家族才是真正缺口"这个具体判断，
+供后续任务不要重新掉进同一个坑。
+
+### 11.4（I4）`PkXmlStreamAttributes` 补 `at(int)` + `Attribute::name()`/`value()`
+
+真实调用点 `libs/flake/text/KoSvgTextShapeMarkupConverter.cpp:879/881/883`
+写的是 `elementAttributes.at(a).name() != "style"` 这种"下标 + 方法调用"
+形态，与此前交付的 `Attribute` 类型形状（`PkString name; PkString value;`
+两个公开字段，无 `name()`/`value()` 方法，也没有 `at()`，只有
+`operator[]`）不兼容，编不过——`PkXmlStreamAttributes.h` 旧头注释还写着
+"没有出现下标 `[i]`/range-for 遍历的写法"，与这三处真实调用点矛盾。
+
+**已实现**：`at(int index) const` 直接转发到既有的 `operator[]`（同一份
+存储的两个入口，Qt 的 `QVector::at()`/`operator[]` 本来就是这个关系）。
+`Attribute` 的公开字段 `name`/`value` 改成了公开方法 `name()`/`value()`
+——**C++ 里同一作用域不能有同名的非静态数据成员与成员函数**，字段访问和
+同名方法访问不可能字面上并存，已现场核实 pk/xml 内外没有任何代码/测试依赖
+`Attribute::name`/`Attribute::value` 字段直接访问（只有 `PkXmlStreamAttributes`
+自己内部的 `value()`/`hasAttribute()` 用过，已同步改成走新方法），因此这次
+改动对现有交付面是纯增量，不是破坏性改名。测试见 `tests/test_stream_reader.cpp`
+的 `attributesAtIndexNameAndValue`。`PkXmlStreamAttributes.h` 头注释已改正
+（不再声称"没有下标遍历写法"）。
