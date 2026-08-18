@@ -2,6 +2,7 @@
 #include "test_util.h"
 
 #include <clocale>
+#include <cmath>
 #include <cstdio>
 
 namespace {
@@ -155,7 +156,9 @@ void run_format_tests()
     // 两头才是真失败：全下溢（返回 0）与上溢（返回 ±inf）。
     _expect(PkString("1e-400").toDouble(&ok) == 0.0, "total underflow is a failure");
     _expect(!ok, "underflow to zero sets ok=false");
-    _expect(PkString("1e400").toDouble(&ok) == 0.0, "overflow is a failure");
+    // 上溢 ok=false，但真实 Qt 返回算出来的 +infinity，不是 0.0（背景 ⑦a，
+    // 详细覆盖见文件末尾的 inf/nan 测试块）——这条只钉住 ok，不再断言 ==0.0。
+    _expect(std::isinf(PkString("1e400").toDouble(&ok)), "overflow still parses to infinity, not 0.0");
     _expect(!ok, "overflow to infinity sets ok=false");
     // 合法的零不会置 ERANGE，不能被上面的规则连累
     _expect(PkString("0").toDouble(&ok) == 0.0, "a literal zero parses");
@@ -240,5 +243,73 @@ void run_format_tests()
         std::printf("      本机造一个（无需 sudo）：\n");
         std::printf("        localedef -i de_DE -f UTF-8 <dir>/de_DE.UTF-8\n");
         std::printf("        LOCPATH=<dir> LC_ALL=de_DE.UTF-8 ./test_pkstring\n");
+    }
+
+    // %0：占位符编号从 0 开始
+    _expect(PkString("%0-%1").arg(PkString("x")) == PkString("x-%1"),
+            "arg fills placeholder %0, leaving %1 untouched with only one arg");
+
+    // %L：locale 千分位分组，逐位置独立生效
+    _expect(PkString("%L1").arg(1234567) == PkString("1,234,567"),
+            "%L1 groups a large int with commas");
+    _expect(PkString("%L1").arg(999) == PkString("999"),
+            "%L1 does not group a value under 1000");
+    _expect(PkString("%L1").arg(1000) == PkString("1,000"),
+            "%L1 groups exactly at the 1000 boundary");
+    _expect(PkString("%L1").arg(-1234567) == PkString("-1,234,567"),
+            "%L1 groups negatives without grouping the sign");
+    _expect(PkString("%L1 %1").arg(1234567) == PkString("1,234,567 1234567"),
+            "the same int arg is grouped at %L1 but not at plain %1");
+    _expect(PkString("%L2 %2").arg(PkString("a")).arg(PkString("b")) == PkString("a a"),
+            "%L has no effect when the substituted arg is a string, not a number");
+
+    // arg(int, int fieldWidth)：真实调用点 libs/global/KisRectsGrid.cpp:23 的形态
+    _expect(PkString("grid=%1").arg(3, 6) == PkString("grid=     3"),
+            "arg(int,fieldWidth) right-justifies with spaces for positive width");
+    _expect(PkString("grid=%1").arg(3, -6) == PkString("grid=3     "),
+            "arg(int,fieldWidth) left-justifies for negative width");
+    _expect(PkString("grid=%1").arg(3, 0) == PkString("grid=3"),
+            "arg(int,fieldWidth) with width 0 pads nothing");
+    _expect(PkString("grid=%1").arg(-3, 6) == PkString("grid=    -3"),
+            "arg(int,fieldWidth) counts the sign toward the field width");
+
+    // toDouble：inf/nan 的窄口径
+    {
+        bool iok = false;
+        _expect(PkString("inf").toDouble(&iok) > 0 && std::isinf(PkString("inf").toDouble()), "toDouble(\"inf\") parses to +infinity");
+        _expect(iok, "toDouble(\"inf\") sets ok=true");
+        _expect(PkString("Inf").toDouble(&iok) > 0, "toDouble is case-insensitive for inf");
+        _expect(iok, "\"Inf\" sets ok=true");
+        _expect(PkString("-inf").toDouble(&iok) < 0, "toDouble(\"-inf\") parses to -infinity");
+        _expect(iok, "\"-inf\" sets ok=true");
+        _expect(PkString("nan").toDouble(&iok) != PkString("nan").toDouble(&iok), "toDouble(\"nan\") parses to NaN (NaN != NaN)");
+        _expect(iok, "toDouble(\"nan\") sets ok=true");
+
+        _expect(PkString("infinity").toDouble(&iok) == 0.0, "toDouble rejects the full word \"infinity\"");
+        _expect(!iok, "\"infinity\" sets ok=false");
+        _expect(PkString("Infinity").toDouble(&iok) == 0.0, "toDouble rejects \"Infinity\" case-insensitively");
+        _expect(!iok, "\"Infinity\" sets ok=false");
+        _expect(PkString("+nan").toDouble(&iok) == 0.0, "toDouble rejects a signed \"+nan\"");
+        _expect(!iok, "\"+nan\" sets ok=false");
+        _expect(PkString("-nan").toDouble(&iok) == 0.0, "toDouble rejects a signed \"-nan\"");
+        _expect(!iok, "\"-nan\" sets ok=false");
+        _expect(PkString("nano").toDouble(&iok) == 0.0, "toDouble rejects \"nano\" (not a bare nan)");
+        _expect(!iok, "\"nano\" sets ok=false");
+
+        // 背景 ⑦a：上溢失败要带回真实的 ±inf，不能一律清零
+        double ov = PkString("1e400").toDouble(&iok);
+        _expect(std::isinf(ov) && ov > 0, "overflow failure still returns +infinity, not 0.0");
+        _expect(!iok, "overflow sets ok=false");
+        double ovNeg = PkString("-1e400").toDouble(&iok);
+        _expect(std::isinf(ovNeg) && ovNeg < 0, "negative overflow failure returns -infinity");
+        _expect(!iok, "negative overflow sets ok=false");
+        double ov2 = PkString("1e309").toDouble(&iok);
+        _expect(std::isinf(ov2) && ov2 > 0, "a mundane over-DBL_MAX overflow also returns +infinity");
+        _expect(!iok, "1e309 sets ok=false");
+        // 对照组：非上溢的失败路径仍然清零，不要因为改了上溢分支就连累这些
+        _expect(PkString("1.5x").toDouble(&iok) == 0.0, "trailing-garbage failure still returns 0.0");
+        _expect(!iok, "trailing garbage sets ok=false");
+        _expect(PkString("1e-400").toDouble(&iok) == 0.0, "total-underflow failure still returns 0.0");
+        _expect(!iok, "total underflow sets ok=false");
     }
 }

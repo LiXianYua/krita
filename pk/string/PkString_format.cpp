@@ -1,4 +1,5 @@
 #include "PkString.h"
+#include "PkStringCodec.h"
 
 #include <algorithm>
 #include <charconv>
@@ -39,12 +40,16 @@ locale_t pkCLocale()
 
 struct PkPlaceholder {
     std::size_t pos;   // '%' 的下标
-    std::size_t len;   // 含 '%' 的总长（2 或 3）
-    int num;           // 1..99
+    std::size_t len;   // 含 '%'（与可能的 'L'）的总长
+    int num;           // 0..99
+    bool locale;        // 是否是 %L<N> 形式
 };
 
-// 扫出串里所有 `%n` / `%nn` 占位符。`%` 后不是数字的（`%p`、`%%`、末尾的 `%`）
-// 一律跳过、原样保留 —— KoProgressProxy 的 "%1: %p%" 就靠这条。
+// 扫出串里所有 `%n` / `%Ln` 占位符（n 是 0..99 的 1 或 2 位数字）。`%` 后既不是
+// 可选的 'L' 也不是数字的（`%p`、`%%`、末尾的 `%`）一律跳过、原样保留——
+// KoProgressProxy 的 "%1: %p%" 就靠这条。
+// **num 允许 0**：真实 Qt 的占位符编号从 0 开始，不是从 1 开始
+// （背景 ④："%0-%1".arg("x") 替换的是 %0，不是 %1）。
 std::vector<PkPlaceholder> pkScanPlaceholders(const std::vector<char16_t>& b)
 {
     std::vector<PkPlaceholder> out;
@@ -55,6 +60,11 @@ std::vector<PkPlaceholder> pkScanPlaceholders(const std::vector<char16_t>& b)
             continue;
         }
         std::size_t j = i + 1;
+        bool locale = false;
+        if (j < b.size() && b[j] == u'L') {
+            locale = true;
+            ++j;
+        }
         int num = 0;
         int digits = 0;
         while (j < b.size() && digits < 2 && b[j] >= u'0' && b[j] <= u'9') {
@@ -62,15 +72,16 @@ std::vector<PkPlaceholder> pkScanPlaceholders(const std::vector<char16_t>& b)
             ++j;
             ++digits;
         }
-        if (digits > 0 && num >= 1) {
+        if (digits > 0) {
             PkPlaceholder p;
             p.pos = i;
             p.len = j - i;
             p.num = num;
+            p.locale = locale;
             out.push_back(p);
             i = j;
         } else {
-            ++i;
+            ++i;   // 'L' 后面没跟数字（比如裸 "%L" 或 "%Lx"）：不是占位符，原样保留
         }
     }
     return out;
@@ -78,8 +89,16 @@ std::vector<PkPlaceholder> pkScanPlaceholders(const std::vector<char16_t>& b)
 
 // 一次性替换：编号最小的占位符吃 args[0]，次小的吃 args[1]……
 // **先定位再拼**，所以替换进去的内容里的 `%n` 不会被二次扫描。
+// isNumericArg[k] 标记 args[k] 是否来自 arg(int)（只有数字实参才可能被 %L 分组）。
+// groupedArgs[k]（仅当 isNumericArg[k] 为真时有效）是 args[k] 千分位分组之后的
+// 文本——每个占位符出现位置各自决定用 args[k] 还是 groupedArgs[k]：
+//   普通 %N       -> 用 args[k]
+//   %LN 且数字实参 -> 用 groupedArgs[k]
+//   %LN 但非数字实参（字符串/浮点） -> 仍用 args[k]（L 标志没有效果）
 std::vector<char16_t> pkSubstitute(const std::vector<char16_t>& src,
-                                   const std::vector<const std::vector<char16_t>*>& args)
+                                   const std::vector<const std::vector<char16_t>*>& args,
+                                   const std::vector<bool>& isNumericArg,
+                                   const std::vector<std::vector<char16_t>>& groupedArgs)
 {
     const std::vector<PkPlaceholder> ph = pkScanPlaceholders(src);
     if (ph.empty() || args.empty()) {
@@ -110,11 +129,46 @@ std::vector<char16_t> pkSubstitute(const std::vector<char16_t>& src,
         }
         out.insert(out.end(), src.begin() + static_cast<long>(cursor),
                               src.begin() + static_cast<long>(ph[k].pos));
-        const std::vector<char16_t>& rep = *args[it->second];
+        const std::size_t argIdx = it->second;
+        const bool useGrouped = ph[k].locale
+                              && argIdx < isNumericArg.size()
+                              && isNumericArg[argIdx];
+        const std::vector<char16_t>& rep = useGrouped ? groupedArgs[argIdx] : *args[argIdx];
         out.insert(out.end(), rep.begin(), rep.end());
         cursor = ph[k].pos + ph[k].len;
     }
     out.insert(out.end(), src.begin() + static_cast<long>(cursor), src.end());
+    return out;
+}
+
+// 千分位分组：从个位往前每 3 位插一个逗号，符号（若有）不参与分组。
+// 只用于 %L<N> 占位符遇到数字实参的情形（arg(int) 的实参）——固定逗号分组，
+// 不跟随运行时 locale（理由：R-13 plan 背景 ⑤，0 真实调用点，且与
+// arg(double)/toDouble 已有的"locale 无关"设计保持一致）。
+std::vector<char16_t> pkGroupDigits(const std::vector<char16_t>& digits)
+{
+    std::size_t start = 0;
+    bool negative = false;
+    if (!digits.empty() && digits[0] == u'-') {
+        negative = true;
+        start = 1;
+    }
+    const std::size_t n = digits.size() - start;
+    if (n <= 3) {
+        return digits;   // 不足 4 位不分组（背景 ⑤："999" -> "999"）
+    }
+    std::vector<char16_t> out;
+    if (negative) {
+        out.push_back(u'-');
+    }
+    const std::size_t firstGroupLen = n % 3 == 0 ? 3 : n % 3;
+    out.insert(out.end(), digits.begin() + static_cast<long>(start),
+                          digits.begin() + static_cast<long>(start + firstGroupLen));
+    for (std::size_t i = start + firstGroupLen; i < digits.size(); i += 3) {
+        out.push_back(u',');
+        out.insert(out.end(), digits.begin() + static_cast<long>(i),
+                              digits.begin() + static_cast<long>(i + 3));
+    }
     return out;
 }
 
@@ -132,6 +186,21 @@ bool pkTailIsBlank(const char* p, const char* end)
             return false;
         }
         ++p;
+    }
+    return true;
+}
+
+// 大小写不敏感地比较 [p, p+n) 与字面量 lit（lit 已经是全小写）。
+bool pkCiEquals(const char* p, std::size_t n, const char* lit)
+{
+    for (std::size_t i = 0; i < n; ++i) {
+        char c = p[i];
+        if (c >= 'A' && c <= 'Z') {
+            c = static_cast<char>(c - 'A' + 'a');
+        }
+        if (c != lit[i]) {
+            return false;
+        }
     }
     return true;
 }
@@ -189,7 +258,7 @@ PkString PkString::arg(const PkString& a) const
     std::vector<const std::vector<char16_t>*> args;
     args.push_back(&a._cbuf());
     PkString r;
-    r._data() = pkSubstitute(_cbuf(), args);
+    r._data() = pkSubstitute(_cbuf(), args, {false}, {});
     return r;
 }
 
@@ -200,15 +269,42 @@ PkString PkString::arg(const PkString& a, const PkString& b) const
     args.push_back(&a._cbuf());
     args.push_back(&b._cbuf());
     PkString r;
-    r._data() = pkSubstitute(_cbuf(), args);
+    r._data() = pkSubstitute(_cbuf(), args, {false, false}, {});
     return r;
 }
 
 PkString PkString::arg(int v) const
 {
     char tmp[32];
-    const std::to_chars_result r = std::to_chars(tmp, tmp + sizeof(tmp), v);
-    return arg(PkString::PkFromUtf8(tmp, static_cast<int>(r.ptr - tmp)));
+    const std::to_chars_result res = std::to_chars(tmp, tmp + sizeof(tmp), v);
+    const std::vector<char16_t> digits = PkStringCodec::FromUtf8(tmp, static_cast<std::size_t>(res.ptr - tmp));
+    const std::vector<char16_t> grouped = pkGroupDigits(digits);
+
+    std::vector<const std::vector<char16_t>*> args;
+    args.push_back(&digits);
+    PkString r;
+    r._data() = pkSubstitute(_cbuf(), args, {true}, {grouped});
+    return r;
+}
+
+// QString::arg(int a, int fieldWidth, int base=10, QChar fillChar=' ') 的
+// base==10、fillChar==' ' 这一支——真实调用点 libs/global/KisRectsGrid.cpp:23
+// 唯一用到的形态。fieldWidth 为正右对齐、为负左对齐，符号计入宽度。
+// 这个重载**不支持** `%L`——真实调用点没有用到，且 arg(int,int) 的语义是
+// 「先按宽度补齐成字符串，再当普通字符串替换」，Qt 的四参数
+// arg(int,fieldWidth,base,fillChar) 本身在有 fieldWidth 时也不做千分位分组。
+PkString PkString::arg(int v, int fieldWidth) const
+{
+    char tmp[32];
+    const std::to_chars_result res = std::to_chars(tmp, tmp + sizeof(tmp), v);
+    std::string s(tmp, static_cast<std::size_t>(res.ptr - tmp));
+
+    const std::size_t width = static_cast<std::size_t>(fieldWidth < 0 ? -fieldWidth : fieldWidth);
+    if (s.size() < width) {
+        const std::string pad(width - s.size(), ' ');
+        s = (fieldWidth < 0) ? (s + pad) : (pad + s);
+    }
+    return arg(PkString(s.c_str()));
 }
 
 // 不能用 snprintf("%g")：printf 族的小数点字符由 LC_NUMERIC 决定，
@@ -272,9 +368,33 @@ double PkString::toDouble(bool* ok) const
     const bool looksHex = (end - numStart) >= 2 && numStart[0] == '0'
                           && (numStart[1] == 'x' || numStart[1] == 'X');
 
+    // 背景 ⑦ 之一：strtod_l 会把完整单词 "infinity"（8 字母，大小写不敏感）当
+    // 合法 token 整个吃掉，但真实 QString::toDouble 只认 "inf"（3 字母），拒收
+    // "infinity"。显式判断：从 numStart 起紧跟 8 个字母恰好是 infinity 且立即
+    // 到达空白/串尾 —— 提前判失败，不让它走到 strtod_l。
+    const bool looksInfinity = (end - numStart) >= 8 && pkCiEquals(numStart, 8, "infinity")
+                              && pkTailIsBlank(numStart + 8, end);
+
+    // 背景 ⑦ 之二：strtod_l 允许 nan 前面带一个可选符号（C99 文法），但真实
+    // QString::toDouble 只认裸 "nan"，带符号的 "+nan"/"-nan" 一律拒收。
+    // numStart 已经跳过了那个可选符号（pkNumberStart 的行为），所以这里只要看
+    // begin 到 numStart 之间是否真的出现过符号字符即可判断"带没带符号"。
+    bool sawSign = false;
+    {
+        const char* p = begin;
+        while (p != numStart && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r'
+                                  || *p == '\f' || *p == '\v')) {
+            ++p;
+        }
+        sawSign = (p != numStart);   // p 停在 numStart 之前说明中间是符号字符
+    }
+    const bool looksSignedNan = sawSign && (end - numStart) >= 3
+                              && pkCiEquals(numStart, 3, "nan")
+                              && pkTailIsBlank(numStart + 3, end);
+
     bool good = false;
     double v = 0.0;
-    if (!looksHex) {
+    if (!looksHex && !looksInfinity && !looksSignedNan) {
         const locale_t cloc = pkCLocale();
         char* stop = nullptr;
         errno = 0;
@@ -284,22 +404,39 @@ double PkString::toDouble(bool* ok) const
                                   ? ::strtod_l(begin, &stop, cloc)
                                   : ::strtod(begin, &stop);
 
-        // ERANGE 不能一刀切当失败：glibc 对**渐进下溢**（结果是次正规数、仍能
-        // 精确表示，如 "1e-310" "4.9e-324"）也置 ERANGE，可那是成功的解析。
-        // 真正该判失败的只有两头：上溢（返回 ±inf）与全下溢（返回 0）。
-        // 合法的零（"0" "0.0"）根本不会置 ERANGE，所以不必单独排除。
+        // 背景 ⑦a：ERANGE 分两种失败，返回值不同。
+        //   上溢（parsed 是 ±inf，非零）  -> 失败，但 v 必须是那个真实的 ±inf
+        //   全下溢（parsed 恰好是 0）     -> 失败，v 就是 0（本来就该是 0，不是
+        //                                  "该返点什么却被清零"）
+        //   渐进下溢（parsed 是非零有限值，即次正规数）-> 不算失败，见下面 rangeOk
         bool rangeOk = true;
+        bool overflowed = false;
         if (errno == ERANGE) {
-            rangeOk = (parsed != 0.0) && std::isfinite(parsed);
+            if (parsed != 0.0 && !std::isfinite(parsed)) {
+                overflowed = true;
+                rangeOk = false;
+            } else if (parsed == 0.0) {
+                rangeOk = false;
+            }
+            // else：非零有限值（次正规数）——rangeOk 保持 true，走成功路径
         }
 
-        if (stop != begin && rangeOk && pkTailIsBlank(stop, end)) {
-            v = parsed;
-            good = true;
+        if (stop != begin && pkTailIsBlank(stop, end)) {
+            if (rangeOk) {
+                v = parsed;
+                good = true;
+            } else if (overflowed) {
+                // ok=false，但真实 Qt 在这里返回算出来的 ±inf，不是 0.0
+                // （背景 ⑦a 的探针：toDouble("1e400")/toDouble("1e309") 都是
+                // ok=0 v=inf，不是 ok=0 v=0）。
+                v = parsed;
+            }
+            // 其余情形（total underflow，rangeOk=false 且 overflowed=false）：
+            // v 保持函数开头初始化的 0.0，good 保持 false。
         }
     }
     if (ok != nullptr) {
         *ok = good;
     }
-    return good ? v : 0.0;
+    return v;   // 不再是 "good ? v : 0.0"——v 已经按上面的分支被正确设置过
 }
