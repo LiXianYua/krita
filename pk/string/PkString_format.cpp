@@ -132,6 +132,7 @@ std::vector<char16_t> pkSubstitute(const std::vector<char16_t>& src,
         const std::size_t argIdx = it->second;
         const bool useGrouped = ph[k].locale
                               && argIdx < isNumericArg.size()
+                              && argIdx < groupedArgs.size()
                               && isNumericArg[argIdx];
         const std::vector<char16_t>& rep = useGrouped ? groupedArgs[argIdx] : *args[argIdx];
         out.insert(out.end(), rep.begin(), rep.end());
@@ -172,6 +173,28 @@ std::vector<char16_t> pkGroupDigits(const std::vector<char16_t>& digits)
     return out;
 }
 
+// arg(double) 的 %L 分组：只分组小数点之前的整数部分，小数点及其后内容原样
+// 拼回去；符号不参与分组。真实 Qt 5.15.7 实测（R-13 最终评审 C1(b) 探针）：
+//   "[%L1]".arg(1234.5)   -> "[1,234.5]"    （只分组整数部分）
+//   "[%L1]".arg(999.5)    -> "[999.5]"      （整数部分不足 1000 不分组）
+//   "[%L1]".arg(-1234.5)  -> "[-1,234.5]"   （符号不参与分组）
+// 复用 pkGroupDigits（它假设整串是"可选符号+纯数字"，没有小数点）：先切出
+// 小数点之前的子串交给它分组，再把小数点及之后原样拼回来。
+std::vector<char16_t> pkGroupDecimal(const std::vector<char16_t>& digits)
+{
+    std::size_t dot = digits.size();
+    for (std::size_t i = 0; i < digits.size(); ++i) {
+        if (digits[i] == u'.') {
+            dot = i;
+            break;
+        }
+    }
+    const std::vector<char16_t> intPart(digits.begin(), digits.begin() + static_cast<long>(dot));
+    std::vector<char16_t> out = pkGroupDigits(intPart);
+    out.insert(out.end(), digits.begin() + static_cast<long>(dot), digits.end());
+    return out;
+}
+
 // arg(int, fieldWidth) 与 arg(int) 共用的补宽度算法：fieldWidth<0 左对齐、
 // 否则右对齐，宽度取绝对值，长度已经 >= width 就不补。操作对象是 char16_t
 // 缓冲区而不是 std::string——调用方需要分别对"原始数字串"与"分组后数字串"
@@ -179,7 +202,14 @@ std::vector<char16_t> pkGroupDigits(const std::vector<char16_t>& digits)
 // 普通 %N 占位符按原始数字长度补宽度，见 arg(int,fieldWidth) 上方注释）。
 std::vector<char16_t> pkPadField(const std::vector<char16_t>& digits, int fieldWidth)
 {
-    const std::size_t width = static_cast<std::size_t>(fieldWidth < 0 ? -fieldWidth : fieldWidth);
+    // fieldWidth == INT_MIN 时 `-fieldWidth` 是有符号整数溢出（UB）：实测会转成
+    // 一个天文数字的 size_t，让下面的 vector 补齐操作抛 std::length_error 崩溃，
+    // 而真实 Qt 在这个极端输入下正常返回（R-13 最终评审 I5）。改成无符号回绕：
+    // `0u - (size_t)fieldWidth` 对 fieldWidth==INT_MIN 是良定义的，算出来恰好是
+    // |INT_MIN|（模 2^64 意义下）；fieldWidth 为其余负值时同样成立。
+    const std::size_t width = (fieldWidth < 0)
+        ? (static_cast<std::size_t>(0) - static_cast<std::size_t>(fieldWidth))
+        : static_cast<std::size_t>(fieldWidth);
     if (digits.size() >= width) {
         return digits;
     }
@@ -343,15 +373,40 @@ PkString PkString::arg(int v, int fieldWidth) const
 // 在 de_DE 这类 locale 下会输出 "0,75"。QString::arg(double) 走的是
 // QLocaleData::c()（固定 C locale），必须对齐。std::to_chars 由标准保证
 // 与 locale 无关，general + 精度 6 等价于 C locale 下的 "%g"。
+//
+// 支持 %L 分组（R-13 最终评审 C1(b)）：与 arg(int) 共用 pkSubstitute 的
+// isNumericArg/groupedArgs 机制——digits 是 to_chars 的原始结果，grouped 是
+// pkGroupDecimal 分组后的版本；结果字符串里出现 'e'（科学计数法形态）就不分组
+// （grouped=digits），真实 Qt 在这种形态下也不分组（探针：
+// "[%L1]".arg(1000000.0) -> "[1e+06]"，不是 "[1,000,000]" 或对指数部分分组）。
 PkString PkString::arg(double v) const
 {
-    char tmp[64];
-    const std::to_chars_result r =
-        std::to_chars(tmp, tmp + sizeof(tmp), v, std::chars_format::general, 6);
-    if (r.ec != std::errc()) {
-        return *this;
+    std::vector<char16_t> digits;
+    // -0.0 与 +0.0 都要落到字面 "0"：std::to_chars 会给 -0.0 输出 "-0"，
+    // 但真实 Qt QString("%1").arg(-0.0) 输出 "0"（丢符号，R-13 最终评审 C1(a)）。
+    // `v == 0.0` 这个比较对 +0.0/-0.0 都成立，正零走这条分支也没问题——结果
+    // 一样，只是走了近路，不用等 to_chars 再去判断输出是不是 "-0"。
+    if (v == 0.0) {
+        digits = PkStringCodec::FromUtf8("0", 1);
+    } else {
+        char tmp[64];
+        const std::to_chars_result r =
+            std::to_chars(tmp, tmp + sizeof(tmp), v, std::chars_format::general, 6);
+        if (r.ec != std::errc()) {
+            return *this;
+        }
+        digits = PkStringCodec::FromUtf8(tmp, static_cast<std::size_t>(r.ptr - tmp));
     }
-    return arg(PkString::PkFromUtf8(tmp, static_cast<int>(r.ptr - tmp)));
+
+    const bool isSci = std::find(digits.begin(), digits.end(), u'e') != digits.end()
+                     || std::find(digits.begin(), digits.end(), u'E') != digits.end();
+    const std::vector<char16_t> grouped = isSci ? digits : pkGroupDecimal(digits);
+
+    std::vector<const std::vector<char16_t>*> args;
+    args.push_back(&digits);
+    PkString r;
+    r._data() = pkSubstitute(_cbuf(), args, {true}, {grouped});
+    return r;
 }
 
 // ok 出参语义（不是异常）：所以不用 std::stoi。
@@ -414,8 +469,7 @@ double PkString::toDouble(bool* ok) const
     bool sawSign = false;
     {
         const char* p = begin;
-        while (p != numStart && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r'
-                                  || *p == '\f' || *p == '\v')) {
+        while (p != numStart && pkIsAsciiBlank(*p)) {
             ++p;
         }
         sawSign = (p != numStart);   // p 停在 numStart 之前说明中间是符号字符

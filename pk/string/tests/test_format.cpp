@@ -1,6 +1,7 @@
 #include "../PkString.h"
 #include "test_util.h"
 
+#include <climits>
 #include <clocale>
 #include <cmath>
 #include <cstdio>
@@ -284,6 +285,33 @@ void run_format_tests()
             "arg(int,fieldWidth) pads the ungrouped string when the value is under 1000");
     _expect(PkString("[%L1]").arg(-1234567, 14) == PkString("[    -1,234,567]"),
             "arg(int,fieldWidth) groups negatives without grouping the sign, sign counts toward width");
+
+    // R-13 最终评审 I5：fieldWidth==INT_MIN 时 -fieldWidth 是有符号整数溢出，
+    // 曾经会让 vector 补齐操作抛 std::length_error 崩溃。真实 Qt 在这个极端输入
+    // 下正常返回，不深究具体数值，只钉住"不崩溃、返回值是原始数字串这个层面
+    // 上合理"这条弱断言。
+    {
+        PkString r = PkString("[%1]").arg(3, INT_MIN);
+        _expect(!r.isEmpty(), "arg(int,fieldWidth) with fieldWidth==INT_MIN does not crash");
+        _expect(r.contains(PkString("3")), "arg(int,fieldWidth) with fieldWidth==INT_MIN still contains the digit");
+    }
+
+    // R-13 最终评审 C1(a)/C1(b)：arg(double) 的负零与 %L 分组
+    _expect(PkString("%1").arg(-0.0) == PkString("0"),
+            "arg(double) drops the sign of negative zero, matching real Qt");
+    _expect(PkString("%1").arg(0.0) == PkString("0"), "arg(double) of positive zero is unaffected");
+    _expect(PkString("[%L1]").arg(1234.5) == PkString("[1,234.5]"),
+            "arg(double) %L groups only the integer part, decimal part untouched");
+    _expect(PkString("[%L1]").arg(123456.0) == PkString("[123,456]"),
+            "arg(double) %L groups a large integral value");
+    _expect(PkString("[%L1]").arg(1000.0) == PkString("[1,000]"),
+            "arg(double) %L groups exactly at the 1000 boundary");
+    _expect(PkString("[%L1]").arg(-1234.5) == PkString("[-1,234.5]"),
+            "arg(double) %L groups negatives without grouping the sign");
+    _expect(PkString("[%L1]").arg(999.5) == PkString("[999.5]"),
+            "arg(double) %L does not group when the integer part is under 1000");
+    _expect(PkString("[%L1]").arg(1000000.0) == PkString("[1e+06]"),
+            "arg(double) %L does not group when the result is in scientific notation");
 
     // toDouble：inf/nan 的窄口径
     {
