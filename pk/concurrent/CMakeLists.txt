@@ -17,11 +17,20 @@ if (NOT TARGET pktest)
     add_subdirectory(${PKTEST_DIR} ${CMAKE_BINARY_DIR}/pktest)
 endif()
 
+pk_test_generate(PKCONCURRENT_BINDERS
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mutex.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_rwlock.h)
+
 add_executable(test_pkconcurrent
     tests/test_main.cpp
     tests/test_mutex.cpp
     tests/test_rwlock.cpp
 )
 target_include_directories(test_pkconcurrent PRIVATE
-    ${PKTEST_DIR} ${PKTEST_DIR}/compat ${CMAKE_CURRENT_SOURCE_DIR})
+    ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    ${PKTEST_DIR}/compat ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(test_pkconcurrent PRIVATE pkconcurrent pktest)
+set_source_files_properties(tests/test_mutex.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_mutex.inc")
+set_source_files_properties(tests/test_rwlock.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_rwlock.inc")

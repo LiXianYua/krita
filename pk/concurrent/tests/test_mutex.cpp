@@ -1,12 +1,9 @@
-#include <PkTest.h>
+#include "test_mutex.h"
 #include "../PkMutex.h"
 #include <thread>
 #include <vector>
 
-// Simple helper for assertions
-bool testsPassed = true;
-
-void test_lock_unlock()
+void TestMutex::lockUnlock()
 {
     PkMutex m;
     m.lock();
@@ -14,69 +11,43 @@ void test_lock_unlock()
     // If we reach here without deadlock, the test passes
 }
 
-void test_try_lock()
+void TestMutex::tryLock()
 {
     PkMutex m;
-    if (!m.try_lock()) {
-        PkTest::qFail("try_lock() should succeed on unlocked mutex", __FILE__, __LINE__);
-        testsPassed = false;
-        return;
-    }
+    PK_VERIFY(m.try_lock());
     m.unlock();
 }
 
-void test_mutex_locker_raii()
+void TestMutex::mutexLockerRaii()
 {
     PkMutex m;
     {
         PkMutexLocker locker(&m);
-        if (m.try_lock()) {
-            m.unlock();
-            PkTest::qFail("locker should hold the lock", __FILE__, __LINE__);
-            testsPassed = false;
-            return;
-        }
+        PK_VERIFY(!m.try_lock());
     }
-    if (!m.try_lock()) {
-        PkTest::qFail("mutex should be unlocked after locker destroyed", __FILE__, __LINE__);
-        testsPassed = false;
-        return;
-    }
+    PK_VERIFY(m.try_lock());
     m.unlock();
 }
 
-void test_mutex_locker_unlock_relock()
+void TestMutex::mutexLockerUnlockRelock()
 {
     PkMutex m;
     PkMutexLocker locker(&m);
     locker.unlock();
-    if (!m.try_lock()) {
-        PkTest::qFail("mutex should be unlocked after locker.unlock()", __FILE__, __LINE__);
-        testsPassed = false;
-        return;
-    }
+    PK_VERIFY(m.try_lock());
     m.unlock();
     locker.relock();
-    if (m.try_lock()) {
-        m.unlock();
-        PkTest::qFail("locker.relock() should acquire the lock", __FILE__, __LINE__);
-        testsPassed = false;
-        return;
-    }
+    PK_VERIFY(!m.try_lock());
 }
 
-void test_mutex_locker_mutex_accessor()
+void TestMutex::mutexLockerMutexAccessor()
 {
     PkMutex m;
     PkMutexLocker locker(&m);
-    if (locker.mutex() != &m) {
-        PkTest::qFail("mutex() accessor should return the original pointer", __FILE__, __LINE__);
-        testsPassed = false;
-        return;
-    }
+    PK_COMPARE(locker.mutex(), &m);
 }
 
-void test_concurrent_increment()
+void TestMutex::concurrentIncrement()
 {
     PkMutex m;
     int counter = 0;
@@ -92,25 +63,15 @@ void test_concurrent_increment()
     for (auto& t : threads) {
         t.join();
     }
-    if (counter != 80000) {
-        PkTest::qFail("concurrent counter increment failed", __FILE__, __LINE__);
-        testsPassed = false;
-        return;
-    }
+    PK_COMPARE(counter, 80000);
 }
+
+// PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
+// （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
+#include "pk_binder_test_mutex.inc"
 
 int run_mutex_tests(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
-    testsPassed = true;
-
-    test_lock_unlock();
-    test_try_lock();
-    test_mutex_locker_raii();
-    test_mutex_locker_unlock_relock();
-    test_mutex_locker_mutex_accessor();
-    test_concurrent_increment();
-
-    return testsPassed ? 0 : 1;
+    TestMutex tc;
+    return PkTest::qExec(&tc, argc, argv);
 }
