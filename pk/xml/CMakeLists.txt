@@ -38,17 +38,30 @@ if (NOT TARGET pkstring)
     add_subdirectory(${PKSTRING_DIR} ${CMAKE_BINARY_DIR}/pkstring)
 endif()
 
+# R-25 Task 2：setContent(PkStream*, ...) 两个重载要真的链接 PkStream::read()
+# 这个非 inline 符号（定义在 pk/port/PkStream.cpp）——只拿头文件目录不够。
+# 直接把 .cpp 加进本库、不 add_subdirectory(../port)：那会把 pk/port 自己的
+# project()/test_pkport/pkzip/FetchContent(minizip-ng) 一整条依赖链拖进来，
+# 与本库无关。参照 pk/port/CMakeLists.txt 自己对 pk/string 的处理选型（同一
+# 文件"直接加 .cpp、不 add_subdirectory"的注释），采用同样的做法——
+# `PkStream.cpp` 只 `#include "PkStream.h"`/`"PkString.h"`，没有更深依赖，可以
+# 安全地这样引入。见 docs/superpowers/plans/R-25.md 设计①-a。
+set(PKPORT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../port)
+
 add_library(pkxml STATIC
     PkXmlNode.cpp
     PkXmlDocument.cpp
     PkXmlElement.cpp
     PkXmlStreamReader.cpp
     PkXmlStreamWriter.cpp
+    ${PKPORT_DIR}/PkStream.cpp
 )
-target_include_directories(pkxml PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pkxml PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${PKPORT_DIR})
 # PUBLIC 而不是 PRIVATE：pugixml.hpp 直接出现在 PkXmlNode.h（公开头文件）里，
 # pugixml 的头文件搜索路径必须传递给 pkxml 的使用者（test_pkxml 等），否则
 # 只有 pkxml 自己的 .cpp 能找到 <pugixml.hpp>，链接 pkxml 的下游全部编不过。
+# 同理 PkStream.h（PUBLIC 头文件 PkXmlDocument.h 里 `setContent(PkStream*...)`
+# 要用到）也要传递给下游。
 target_link_libraries(pkxml PUBLIC pkstring pugixml::pugixml)
 
 # 测试用 R-11 的 PK_* harness。只是消费它，一个字节都不改。
