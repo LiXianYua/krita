@@ -66,6 +66,7 @@ static bool disconnect(const PkObject* sender, std::nullptr_t,
 
 1. ~~`Queued`/`BlockingQueued` 在 R-05 阶段退化为 `Direct`~~：**R-24 已交付真实投递**——`PkObject` 现在有线程亲和性（`thread()`/`moveToThread()`），`Auto` 按 sender/receiver 是否同线程决定退化 `Direct` 还是走 `Queued`；显式 `Queued`/`BlockingQueued` 一律走 `pk/concurrent` 的 `PkThreadCallQueue`（按线程 id 分桶的待执行调用队列 + 显式 `processPendingCalls()` pump，不是隐式事件循环）。语义细节（同线程显式 Queued 不折叠为立即执行、BlockingQueued 阻塞发射线程直到目标线程 pump 执行完）逐条对齐真 Qt 实测（探针见 `docs/superpowers/plans/R-24.md`）。`pk/signal` 现在依赖 `pk/concurrent`（此前不依赖），CMake 已接线。
 2. **receiver 析构只 `disconnectAllIncoming` 清自己的 `m_incoming`，不从 sender 的 `m_outgoing` 摘除** → dead 条目与悬垂 receiver 裸指针滞留（无 UB，emit 靠共享 state 的 alive 跳过、不触碰 receiver 内存；类内未解引用 receiver 指针）。性能不预先优化，M0 benchmark 再判是否加 sender 反向指针做 eager 摘除。
+3. **`BlockingQueued` 分支存在窄场景的跨线程迭代失效风险，已知限制、暂不处理**：`activateSignal` 遍历 `sender->m_outgoing` 时，若某条目是 `BlockingQueued`，发射线程会阻塞在 `PkThreadCallQueue::postBlocking` 里等目标线程执行完槽函数；如果那个槽函数反过来对同一个 sender 做 `connect()`（可能触发 `m_outgoing` 的 vector 扩容重分配）或者再次 emit，会与发射线程正在用的 for 循环迭代器产生跨线程的迭代失效。场景很窄（需要槽函数反向操作自己正阻塞等待的 sender），保留范围内的真实 `BlockingQueuedConnection` 调用点（决策 4 提到的 8 处）均是单向"工作线程→GUI 线程"送调用，不构成这种反向操作。真要修需要"遍历前先拍一份 `m_outgoing` 快照"这类更大的结构改动，超出 R-24 Task 3 这轮修复的合理范围，评审判定登记为已知限制、不在本轮处理。
 
 ## 2. 三条缺口登记（逐条 + 建议归口）
 

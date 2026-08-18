@@ -6,9 +6,11 @@
 #include <utility>
 #include "PkSignalTraits.h"
 
-// Qt::ConnectionType 的替代。R-05 只实现同步直连语义：Auto/Direct 直接调用；
-// Queued/BlockingQueued 在无事件循环的世界里退化为 Direct（跨线程投递归 Q-8，
-// 见 plan「偏离声明」）。Unique 是「同信号同槽不重复连接」。
+// Qt::ConnectionType 的替代。Auto/Direct/Unique 同步立即执行（Unique 的
+// dispatch 与 Auto 等价，区别只在 connect 期去重）；Queued/BlockingQueued
+// 自 R-24 Task 3 起真实投递到目标线程（PkObject::activateSignal 按类型
+// 分派，走 pk/concurrent 的 PkThreadCallQueue），细节见
+// PkObject.h::activateSignal 与 README.md 偏离清单第 1 条。
 enum class PkConnectionType { Auto, Direct, Queued, BlockingQueued, Unique };
 
 // QOverload<Args...>::of(ptr) —— 信号/槽重载消歧。Qt 里同名信号有多组参数时，

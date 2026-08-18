@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <cstddef>
 #include <cstring>
 #include <tuple>
@@ -46,7 +47,16 @@ struct PkMemberFnKey
 // 连接的生命周期状态。PkConnection（句柄）与连接条目各自持有同一个 shared_ptr，
 // disconnect() 或对象析构时把 alive 置 false；emit 遍历时跳过 dead 条目。
 // 用 shared_ptr 而非裸 bool：句柄拷贝后仍指同一状态，且对象析构后句柄仍安全。
+//
+// R-24 Task 3 评审修复：alive 必须是 std::atomic<bool>，不能是普通 bool。
+// disconnect/对象析构在 sender/receiver 所在线程写 alive=false；跨线程投递
+// （activateSignal 的 Queued/BlockingQueued 分支）把 state 按值捕获进闭包，
+// 由 pump 线程读 alive 决定要不要静默丢弃——两侧之间没有 happens-before 关系，
+// 普通 bool 的跨线程读写是 C++ 内存模型下的数据竞争（UB），弱内存序平台
+// （移动端 ARM）有真实的可见性风险。std::atomic<bool> 支持 operator=/隐式转
+// bool/operator==，全部既有读写点（PkObject.cpp/PkObject.h 里的 `alive = ...`/
+// `!alive`/`e.state->alive &&`）不需要改写法。
 struct PkConnectionState
 {
-    bool alive = true;
+    std::atomic<bool> alive{true};
 };

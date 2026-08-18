@@ -27,6 +27,18 @@ static void test_same_thread_auto_is_direct()
     _expect(r.got.load() == 1, "same-thread Auto connection executes synchronously");
 }
 
+// 1b. 同线程 Unique：dispatch 与 Auto 等价（设计决定 1）——connect 期用
+// PkConnectionType::Unique 建连接，emit 期立即同步执行，行为跟 test 1 一致。
+// 只补同线程场景：Unique 的核心是"连接期去重"，dispatch 等价 Auto 这一点
+// 用一个场景验证即可，不需要把 5 个探针场景对 Unique 全部重跑一遍。
+static void test_same_thread_unique_dispatches_like_auto()
+{
+    ThreadSender s; ThreadReceiver r;
+    PkObject::connect(&s, &ThreadSender::sig, &r, &ThreadReceiver::onSig, PkConnectionType::Unique);
+    s.sig();
+    _expect(r.got.load() == 1, "same-thread Unique connection dispatches like Auto (executes synchronously)");
+}
+
 // 2. 跨线程 Auto：emit 后不会立即执行，要接收方线程 pump 才执行（对齐探针实验2）
 static void test_cross_thread_auto_defers_to_pump()
 {
@@ -110,6 +122,7 @@ static void test_disconnected_queued_call_is_dropped()
 void run_thread_tests()
 {
     test_same_thread_auto_is_direct();
+    test_same_thread_unique_dispatches_like_auto();
     test_cross_thread_auto_defers_to_pump();
     test_same_thread_explicit_queued_defers();
     test_cross_thread_blocking_queued_waits();
