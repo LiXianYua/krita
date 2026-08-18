@@ -2,8 +2,11 @@
 #include <thread>
 
 // 替代 <QThread> 里保留范围内确有真实调用点的静态方法 + R-24 新增的线程身份 API。
-// QThread 的其余用法（子类化、->thread() 亲和性查询）与 moveToThread/PkObject
-// 生命周期耦合，本任务不实现，见 Task 5 缺口登记。
+// QThread 的其余用法（子类化）本任务不实现——`->thread()` 亲和性查询**已经**
+// 交付：`PkObject::thread()`/`moveToThread(PkThreadId)`（R-24 Task 2，见
+// pk/signal/PkObject.h），落点在 PkObject 而不是这个类自己，不是没实现。
+// 见 R-10 的 pk/concurrent/README.md §4 缺口登记（"Task 5" 在这个仓库同时
+// 指 R-10 Task 5 与 R-24 Task 5，容易歧义，故明确写清出处）。
 //
 // 用 std::thread::id 作为线程身份，不新建一个 QThread 平行的对象模型——
 // 24 处真实 moveToThread 调用点实测全部是"把亲和性转去一个已经存在的线程"

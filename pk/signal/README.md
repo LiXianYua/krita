@@ -65,8 +65,18 @@ static bool disconnect(const PkObject* sender, std::nullptr_t,
 ### 偏离清单（对齐口径下逐条登记）
 
 1. ~~`Queued`/`BlockingQueued` 在 R-05 阶段退化为 `Direct`~~：**R-24 已交付真实投递**——`PkObject` 现在有线程亲和性（`thread()`/`moveToThread()`），`Auto` 按 sender/receiver 是否同线程决定退化 `Direct` 还是走 `Queued`；显式 `Queued`/`BlockingQueued` 一律走 `pk/concurrent` 的 `PkThreadCallQueue`（按线程 id 分桶的待执行调用队列 + 显式 `processPendingCalls()` pump，不是隐式事件循环）。语义细节（同线程显式 Queued 不折叠为立即执行、BlockingQueued 阻塞发射线程直到目标线程 pump 执行完）逐条对齐真 Qt 实测（探针见 `docs/superpowers/plans/R-24.md`）。`pk/signal` 现在依赖 `pk/concurrent`（此前不依赖），CMake 已接线。
+   ⚠ **投递不等于执行**：投递到某个线程的调用不会自动执行，该线程必须自己
+   调用 `PkThreadCallQueue::processPendingCalls()`（或未来某个封装它的机制）
+   来抽干队列——不这么做，投递的调用会永远停在队列里，不报错、不崩溃、
+   不打日志，是一个纯静默的行为缺失。final whole-branch review 核实：全仓
+   `pk/` 之外零 pump 调用点，第一个把跨线程 `Auto`/`Queued` 连接搬进来的
+   S 批次消费方必须自己在目标线程装 pump（I-3）。
 2. **receiver 析构只 `disconnectAllIncoming` 清自己的 `m_incoming`，不从 sender 的 `m_outgoing` 摘除** → dead 条目与悬垂 receiver 裸指针滞留（无 UB，emit 靠共享 state 的 alive 跳过、不触碰 receiver 内存；类内未解引用 receiver 指针）。性能不预先优化，M0 benchmark 再判是否加 sender 反向指针做 eager 摘除。
 3. **`BlockingQueued` 分支存在窄场景的跨线程迭代失效风险，已知限制、暂不处理**：`activateSignal` 遍历 `sender->m_outgoing` 时，若某条目是 `BlockingQueued`，发射线程会阻塞在 `PkThreadCallQueue::postBlocking` 里等目标线程执行完槽函数；如果那个槽函数反过来对同一个 sender 做 `connect()`（可能触发 `m_outgoing` 的 vector 扩容重分配）或者再次 emit，会与发射线程正在用的 for 循环迭代器产生跨线程的迭代失效。场景很窄（需要槽函数反向操作自己正阻塞等待的 sender），保留范围内的真实 `BlockingQueuedConnection` 调用点（决策 4 提到的 8 处）均是单向"工作线程→GUI 线程"送调用，不构成这种反向操作。真要修需要"遍历前先拍一份 `m_outgoing` 快照"这类更大的结构改动，超出 R-24 Task 3 这轮修复的合理范围，评审判定登记为已知限制、不在本轮处理。
+
+4. **两条更普遍的线程安全约束，final whole-branch review I-4 补登记**（不是 3 的窄场景，是 `m_outgoing`/`m_incoming` 本身隐含依赖、此前只字未写的不变式；本轮不加锁修复，只登记，供后续 S 批次消费者知道边界在哪）：
+   - **任何线程在 `activateSignal` 遍历 `sender->m_outgoing` 期间对同一 sender 做 `connect()`/`disconnect()`/析构，都是 UB**（vector 重分配/`clear()` 使正在遍历的迭代器失效），与是不是 `BlockingQueued` 无关——3 只是这条更宽约束下的一个具体触发路径（"反向操作自己正阻塞等待的 sender"），不是唯一路径。
+   - **receiver 必须在它自己的（即 pump 的）线程上析构**。否则 `PkObject.h` 里排队路径的 `if (!state->alive) return;` 是一个 TOCTOU：pump 线程读到 `alive==true` 之后、`impl2->fn(args...)` 执行之前，receiver 在第三个线程析构 ⇒ 槽闭包里捕获的 receiver 裸指针悬垂 ⇒ use-after-free。
 
 ## 2. 三条缺口登记（逐条 + 建议归口）
 

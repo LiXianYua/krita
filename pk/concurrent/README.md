@@ -138,7 +138,18 @@ BlockingQueued 不再退化为 Direct）。
 | `processEvents()` 事件处理 | ~20 处 | kis_stroke.cpp 等阻塞等待 | 手工事件循环；无事件循环世界等价物 | 同上 |
 | `postEvent()` / `QEventLoop` | ~37 处 | 信号投递与任务调度 | 跨线程投递归 Q-8（`pk/signal` §1 Row 9 已决议退化为 Direct） | 同上 |
 
+⚠ **投递不等于执行**：`PkThreadCallQueue::post()`/`postBlocking()` 投递到某个
+线程的调用不会自动执行，该线程必须自己调用 `processPendingCalls()`（或未来
+某个封装它的机制）来抽干队列——不这么做，投递的调用会永远停在队列里，不
+报错、不崩溃、不打日志，是一个纯静默的行为缺失（final whole-branch review
+I-3）。全仓 `pk/` 之外零 pump 调用点，第一个跨线程投递的消费方必须自己在
+目标线程装 pump。
+
 **统计口径**：按 `docs/Qt替代品选型.md` §6.8 的原始扫描结果；合计约 172 处（按 Q-8 原始表）。
+`Qt替代品选型.md` §6.8 正文（R37 复核后）实际写的是 95 处，两个数字口径不同
+（172 是复核前的旧数字），这条差异已经在 R-24 plan 的「待报告给主会话的事实
+差异」一节登记，这里不裁决哪个对，只提醒读者别直接拿 172 当权威数字用
+（final whole-branch review M-6）。
 
 **为何不在 R-10 实现**：
 - 核心方法（尤其 `deleteLater()`）与 `PkObject` 生命周期强耦合，前置同上

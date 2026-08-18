@@ -44,17 +44,36 @@ static void test_cross_thread_auto_defers_to_pump()
 {
     ThreadSender s;
     ThreadReceiver r;
-    std::atomic<bool> workerReady{false};
+    std::atomic<bool> workerIdReady{false};
+    std::atomic<bool> moveDone{false};
     std::atomic<bool> stop{false};
+    PkThreadId workerId{};
     std::thread worker([&]{
-        r.moveToThread(PkThread::currentThreadId());
-        workerReady = true;
+        // 只报到（拿到自己的线程 id），还不碰 r——`r` 是主线程构造的对象，
+        // `moveToThread()` 只应该从它*当前*所在的线程调用（PkObject.h 自己
+        // 文档规定的契约，M-5：修复前这里由 worker 线程越权调用，违反了
+        // 这条契约本身，靠 workerReady 的 release/acquire 侥幸安全）。
+        workerId = PkThread::currentThreadId();
+        // 先"预热"一次 processPendingCalls()：建立本线程在 registry 里的
+        // C-1 修复"已触达"标记。此刻外界还不知道 workerId（下面才置
+        // workerIdReady），队列必然为空，预热是无害 no-op。这一步必须严格
+        // 发生在 workerIdReady=true 之前——否则主线程后面的 post() 与本
+        // 线程"第一次调用 processPendingCalls()"之间会有真实竞争：C-1 修
+        // 复里"线程首次 pump 丢弃陈旧条目"的逻辑可能把主线程马上要投递的
+        // 合法调用当成陈旧条目丢掉（这正是加上这段预热前，本测试在 M-5
+        // 重排等待顺序后实测暴露出的真实失败，不是假设）。
+        PkThreadCallQueue::processPendingCalls();
+        workerIdReady = true;
+        while (!moveDone.load()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
         while (!stop.load()) {
             PkThreadCallQueue::processPendingCalls();
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
     });
-    while (!workerReady.load()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+    while (!workerIdReady.load()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+    // 主线程是 r 当前所在的线程，由它自己调用 moveToThread()，遵守契约。
+    r.moveToThread(workerId);
+    moveDone = true;
 
     PkObject::connect(&s, &ThreadSender::sig, &r, &ThreadReceiver::onSig);
     s.sig();
@@ -87,17 +106,27 @@ static void test_cross_thread_blocking_queued_waits()
 {
     ThreadSender s;
     ThreadReceiver r;
-    std::atomic<bool> workerReady{false};
+    std::atomic<bool> workerIdReady{false};
+    std::atomic<bool> moveDone{false};
     std::atomic<bool> stop{false};
+    PkThreadId workerId{};
     std::thread worker([&]{
-        r.moveToThread(PkThread::currentThreadId());
-        workerReady = true;
+        // 同 test_cross_thread_auto_defers_to_pump 的 M-5 修复：只报到，
+        // 不越权调用 moveToThread()；同样先预热一次 processPendingCalls()
+        // 再置 workerIdReady，理由见那个测试里的注释（C-1 修复引入的
+        // "首次 pump 丢弃陈旧条目"与后面主线程的 post() 之间的竞争）。
+        workerId = PkThread::currentThreadId();
+        PkThreadCallQueue::processPendingCalls();
+        workerIdReady = true;
+        while (!moveDone.load()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
         while (!stop.load()) {
             PkThreadCallQueue::processPendingCalls();
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
     });
-    while (!workerReady.load()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+    while (!workerIdReady.load()) { std::this_thread::sleep_for(std::chrono::milliseconds(1)); }
+    r.moveToThread(workerId);
+    moveDone = true;
 
     PkObject::connect(&s, &ThreadSender::sig, &r, &ThreadReceiver::onSig, PkConnectionType::BlockingQueued);
     s.sig();

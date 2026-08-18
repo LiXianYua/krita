@@ -28,12 +28,19 @@ public:
     // 对象的线程；moveToThread() 只改写这个标记（纯簿记，不触发任何唤醒/
     // 通知动作）——24 处真实调用点实测全部只是"确保后续排队投递落在正确
     // 线程"，从不依赖"moveToThread 之后有什么东西立刻开始跑"。
-    // 线程安全约束与 Qt 一致：只应该从该对象*当前*所在的线程调用
-    // moveToThread()（Qt 官方文档明确要求），本类不做额外加锁保护——
-    // 真实调用点全部满足这条（`this->moveToThread(...)`/`obj->moveToThread(...)`
-    // 都是在 obj 自己的构造线程或已知安全的时机调用）。
-    PkThreadId thread() const { return m_thread; }
-    void moveToThread(PkThreadId id) { m_thread = id; }
+    // 写侧线程安全约束与 Qt 一致：只应该从该对象*当前*所在的线程调用
+    // moveToThread()（Qt 官方文档明确要求）——真实调用点全部满足这条
+    // （`this->moveToThread(...)`/`obj->moveToThread(...)` 都是在 obj 自己
+    // 的构造线程或已知安全的时机调用）。
+    // 读侧（final whole-branch review I-1，TSan 实测报出）：即使写侧 100%
+    // 遵守上面这条约束，`activateSignal` 仍然会在*发射*线程上读
+    // `e.receiver->thread()`，而 `moveToThread()` 可能同时在*receiver 自己*
+    // 的线程上写同一个字段——这是两个不同线程对同一非原子字段的并发读写，
+    // 与写侧契约是否被遵守无关。`m_thread` 因此是 `std::atomic<PkThreadId>`
+    // （`sizeof(std::thread::id)==8` 且 lock-free，改动成本极小）：`thread()`/
+    // `moveToThread()` 的调用方语义不变，只是读写现在真正同步。
+    PkThreadId thread() const { return m_thread.load(); }
+    void moveToThread(PkThreadId id) { m_thread.store(id); }
 
     // ---- 连接（同步直连）----
     // 成员函数指针 → 成员函数指针
@@ -118,8 +125,9 @@ private:
     // QPointer 存活标志（析构置 false）。
     std::shared_ptr<std::atomic<bool>> m_alive;
 
-    // 线程亲和性标记，构造时初始化为当前线程。
-    PkThreadId m_thread = PkThread::currentThreadId();
+    // 线程亲和性标记，构造时初始化为当前线程。原子类型见上方 thread()/
+    // moveToThread() 注释（I-1：跨线程读写的数据竞争修复）。
+    std::atomic<PkThreadId> m_thread{PkThread::currentThreadId()};
 
     // 连接列表：条目由 sender 和 receiver 双方各持一份（同一个 shared_ptr state 关联）。
     std::vector<ConnectionEntry> m_outgoing;   // this 作为 sender
@@ -261,7 +269,16 @@ void PkObject::activateSignal(PkObject* sender, PkMemberFnKey key, Args... args)
         }
 
         // Queued / BlockingQueued：按值捕获 slot（续命）+ state（执行前
-        // 重查 alive，投递期间可能被 disconnect）+ args（本来就是按值拷贝）。
+        // 重查 alive，投递期间可能被 disconnect）+ args。
+        // M-2 更正：真正的拷贝来自这个 lambda 的按值捕获 `[..., args...]`，
+        // 不是"args 反正已经是传给 activateSignal 的拷贝"（那个理由是错
+        // 的——生成器产物调用 activateSignal 时的实参常是引用，且即便
+        // activateSignal 自己的形参是按值局部变量，它们也会在 activateSignal
+        // 返回时随栈帧一起失效；真正让参数活过 activateSignal 这次调用、
+        // 撑到目标线程执行的，是这里 lambda 闭包对象里按值捕获出的独立
+        // 副本）。排队路径因此要求参数类型可拷贝；拷贝在发射线程构造、在
+        // 目标线程执行完后析构，涉及隐式共享类型时要留意别把这里"优化"成
+        // 按引用捕获——那会让闭包捏着已经失效的引用。
         auto slotHolder = e.slot;
         auto state = e.state;
         const PkThreadId target = e.receiver->thread();

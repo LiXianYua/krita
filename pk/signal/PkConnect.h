@@ -6,11 +6,17 @@
 #include <utility>
 #include "PkSignalTraits.h"
 
-// Qt::ConnectionType 的替代。Auto/Direct/Unique 同步立即执行（Unique 的
-// dispatch 与 Auto 等价，区别只在 connect 期去重）；Queued/BlockingQueued
-// 自 R-24 Task 3 起真实投递到目标线程（PkObject::activateSignal 按类型
-// 分派，走 pk/concurrent 的 PkThreadCallQueue），细节见
-// PkObject.h::activateSignal 与 README.md 偏离清单第 1 条。
+// Qt::ConnectionType 的替代（final whole-branch review I-2 更正：此前这段
+// 注释说 Auto/Unique 一律同步立即执行，与 activateSignal 实际行为相反，
+// 已按真实行为改写）。真实行为：
+// - Direct：永远同步立即执行。
+// - Auto/Unique：视 emit 时 sender/receiver 是否同线程决定——同线程同步
+//   立即执行，跨线程则投递（Unique 的 dispatch 与 Auto 完全等价，区别只在
+//   connect 期是否去重）。
+// - Queued/BlockingQueued：永远投递，即使 sender/receiver 同线程也不例外
+//   （自 R-24 Task 3 起真实投递，不再退化为 Direct）。
+// 投递均走 pk/concurrent 的 PkThreadCallQueue（PkObject::activateSignal 按
+// 类型分派），细节见 PkObject.h::activateSignal 与 README.md 偏离清单第 1 条。
 enum class PkConnectionType { Auto, Direct, Queued, BlockingQueued, Unique };
 
 // QOverload<Args...>::of(ptr) —— 信号/槽重载消歧。Qt 里同名信号有多组参数时，
