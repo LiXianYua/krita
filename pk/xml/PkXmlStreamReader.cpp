@@ -29,6 +29,11 @@ PkXmlStreamReader::PkXmlStreamReader(const PkString &data)
     if (!_parsedOk) {
         _hasError = true;
         _errorString = pkStreamFromUtf8(result.description());
+        // 探针实测（见 R-07 Task 2 报告"raiseError 语义核实"一节，同一套
+        // 冻结状态适用于构造期解析失败）：tokenType() 恒为 Invalid，
+        // atEnd() 恒为 true，readNext() 之后不再变化。
+        _tokenType = Invalid;
+        _atEnd = true;
         return;
     }
 
@@ -42,15 +47,19 @@ PkXmlStreamReader::PkXmlStreamReader(const PkString &data)
 
 void PkXmlStreamReader::raiseError(const PkString &message)
 {
-    // Qt 语义：raiseError() 之后 hasError()==true、errorString() 是调用点给的
-    // message、且 reader 进入终止状态（atEnd()==true，之后的 readNext() 不再
-    // 继续遍历树）——真实调用点（KoColorSet.cpp）的写法都是
-    // `xml->raiseError(...); return;`，紧跟着从当前解析函数返回，外层
-    // `while (!xml.atEnd())` 循环据此在下一次检查时退出，不会继续用一棵
-    // 已经被判定为非法的数据往下读。
+    // 探针实测（Qt 5.15.7，`libQt5Core.so.5.15.7`，见 R-07 Task 2 报告
+    // "raiseError 语义核实"一节）：raiseError() 之后不需要再调用 readNext()，
+    // tokenType() 立刻变成 Invalid、atEnd()/hasError() 立刻变成
+    // true、errorString() 立刻是传入的 message——**但 name()/text()/
+    // attributes() 不变**，仍然是报错前最后一次成功 readNext() 留下的值
+    // （探针原始输出：`immediately after raiseError (no readNext yet):
+    // tokenType=Invalid name=[root] text=[] attrs.count()=1 atEnd=1`）。
+    // 之后任何一次 readNext() 都不再继续遍历、不再改变这些值——见
+    // readNext() 顶部的 `if (_hasError)` 短路分支。
     _hasError = true;
     _errorString = message;
     _atEnd = true;
+    _tokenType = Invalid;
 }
 
 PkXmlStreamAttributes PkXmlStreamReader::_collectAttributes(const pugi::xml_node &element)
@@ -64,16 +73,13 @@ PkXmlStreamAttributes PkXmlStreamReader::_collectAttributes(const pugi::xml_node
 
 PkXmlStreamReader::TokenType PkXmlStreamReader::readNext()
 {
-    if (!_parsedOk) {
-        // 探针 P11 之外的场景：构造时解析就失败了。Qt 在这种输入下最终会
-        // 停在 hasError()==true 且 atEnd()==true——真实调用点的
-        // `while (!xml.atEnd())` 惯用法据此立刻退出循环，不会死循环。
-        _tokenType = Invalid;
-        _name = PkString();
-        _text = PkString();
-        _attributes = PkXmlStreamAttributes();
-        _atEnd = true;
-        return _tokenType;
+    if (_hasError) {
+        // 状态已经在构造失败分支或 raiseError() 里冻结在报错前一刻——探针
+        // 实测：之后任意多次 readNext() 都恒返回 Invalid，不再继续遍历、
+        // 不再改变 name()/text()/attributes() 的值（不能在这里清空它们）。
+        // 真实调用点的 `while (!xml.atEnd())` 惯用法据此在下一次检查时
+        // 退出循环，不会死循环。
+        return Invalid;
     }
 
     if (!_started) {

@@ -160,12 +160,21 @@ pugixml 本身不做命名空间解析（`xmlns:foo="uri"` 被当成普通属性
 `raiseError`「实测 0 调用点，不实现」，但现场 `grep -rn raiseError`
 （排除 `pk/xml/`）实测 `libs/pigment/resources/KoColorSet.cpp` 有 **6 处**
 `xml->raiseError(...)`——是漏统计，不是真的没有调用点。按 `CLAUDE.md`
-「新发现的缺口直接补进来，不算改决策」原则补上：调用后
-`hasError()==true`、`errorString()` 是传入的 message、`atEnd()==true`
-（Qt 语义），见 `PkXmlStreamReader.h`/`.cpp` 的实现注释与
-`test_stream_reader.cpp` 的 `raiseErrorSetsErrorStateAndAtEnd` 用例。
-**这条建议主会话核实后同步进 `docs/superpowers/plans/R-07.md` 的用量表**
-（本任务只读该文件，不能自己改）。
+「新发现的缺口直接补进来，不算改决策」原则补上。**这条建议主会话核实后
+同步进 `docs/superpowers/plans/R-07.md` 的用量表**（本任务只读该文件，
+不能自己改）。
+
+**精确语义已用本机 Qt 5.15.7（`libQt5Core.so.5.15.7`）的实测探针核实**
+（评审 Important，见 `.superpowers/sdd/R-07/task-2-report.md`「raiseError
+语义核实」一节，不是猜的）：调用 `raiseError(message)` 后**不需要再调用
+`readNext()`**，`tokenType()` 立刻变成 `Invalid`、`atEnd()`/`hasError()`
+立刻变成 `true`、`errorString()` 立刻是传入的 `message`——但
+`name()`/`text()`/`attributes()` **不会被清空**，仍然是报错前最后一次成功
+`readNext()` 留下的值。之后任意多次 `readNext()` 都恒返回 `Invalid`，状态
+冻结、不再继续遍历——覆盖了评审指出的场景：`KoColorSet.cpp` 的 6 处
+`raiseError()` 后紧跟 `return`，但外层调用点未必严格遵守
+`while (!xml.atEnd())` 惯用法。见 `test_stream_reader.cpp` 的
+`raiseErrorSetsErrorStateAndAtEnd` 用例。
 
 ### 5.5 `PkXmlStreamWriter`/`PkXmlStreamReader` 都不可拷贝/不可移动
 
@@ -176,3 +185,13 @@ pugixml 本身不做命名空间解析（`xmlns:foo="uri"` 被当成普通属性
 `_buf`/`_openElements` 是值成员，默认拷贝/移动能编译但语义上两份 writer 会
 共享同一个 `_output` 目标——真实调用点同样是原地构造使用，未发现需要拷贝/
 移动的场景，暂不处理，若后续试接撞到需要更新本节）。
+
+### 5.6 两个不在 brief Interfaces 里、但对齐 Qt 只读接口的小 getter
+
+`PkXmlStreamAttributes::size()`（`count()` 的别名转发，同 `PkXmlNodeList::size()`
+的做法——`QXmlStreamAttributes` 本身是 `QVector<QXmlStreamAttribute>` 的别名，
+`size()` 是 `QVector` 自带的方法）与 `PkXmlStreamWriter::autoFormatting()`
+（`setAutoFormatting(bool)` 的只读对偶，Qt 原生就有这个 getter）都不在 brief
+的 Interfaces 枚举里，但都是照抄 Qt 对应类型现成接口的最小补全，不是自创行为
+——评审记为 Minor，登记在这里保持与 §5.2/§5.4 同样的「补的接口都要登记」
+一致性。

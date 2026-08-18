@@ -98,16 +98,48 @@ void TestStreamReader::raiseErrorSetsErrorStateAndAtEnd()
     // 数据语义非法时主动 raiseError()，之后 hasError()/errorString()/atEnd()
     // 都要反映出来——不在 brief 的 Interfaces 枚举里，是用量复核发现的缺口，
     // 见 PkXmlStreamReader.h 类注释。
-    PkXmlStreamReader xml(PkString("<root/>"));
+    //
+    // 断言值来自本机 Qt 5.15.7（`libQt5Core.so.5.15.7`）的实测探针（评审
+    // 发现的 Important，见 task-2-report.md「raiseError 语义核实」一节）：
+    // raiseError() 之后 tokenType() 立刻变 Invalid、atEnd()/hasError() 立刻
+    // 变 true，但 name()/attributes() 不清空——保留报错前最后一次成功
+    // readNext() 留下的值；之后任意多次 readNext() 都恒返回 Invalid，状态
+    // 冻结不再变化。
+    PkXmlStreamReader xml(PkString("<root a=\"1\"><child/></root>"));
     PK_VERIFY(!xml.hasError());
     PK_COMPARE(static_cast<int>(xml.readNext()),
                static_cast<int>(PkXmlStreamReader::StartDocument));
+    PK_COMPARE(static_cast<int>(xml.readNext()),
+               static_cast<int>(PkXmlStreamReader::StartElement)); // root, a="1"
     PK_VERIFY(!xml.atEnd());
 
     xml.raiseError("boom");
+
+    // raiseError() 之后立刻生效，不需要再调用 readNext()。
     PK_VERIFY(xml.hasError());
     PK_COMPARE(xml.errorString(), PkString("boom"));
     PK_VERIFY(xml.atEnd());
+    PK_COMPARE(static_cast<int>(xml.tokenType()),
+               static_cast<int>(PkXmlStreamReader::Invalid));
+    // name()/attributes() 保留报错前最后一次成功 readNext()（root 的
+    // StartElement）留下的值，不清空。
+    PK_COMPARE(xml.name(), PkString("root"));
+    PK_COMPARE(xml.attributes().value("a"), PkString("1"));
+
+    // 继续调用 readNext()——不严格遵守 while(!atEnd()) 惯用法、报错后仍然
+    // 往下读的真实调用点写法（评审指出 KoColorSet.cpp 的 6 处 raiseError
+    // 都是这种"报错后继续走后续逻辑"），状态必须保持冻结，不能静默恢复
+    // 正常遍历。
+    for (int i = 0; i < 3; ++i) {
+        PK_COMPARE(static_cast<int>(xml.readNext()),
+                   static_cast<int>(PkXmlStreamReader::Invalid));
+        PK_COMPARE(static_cast<int>(xml.tokenType()),
+                   static_cast<int>(PkXmlStreamReader::Invalid));
+        PK_VERIFY(xml.atEnd());
+        PK_VERIFY(xml.hasError());
+        PK_COMPARE(xml.errorString(), PkString("boom"));
+        PK_COMPARE(xml.name(), PkString("root")); // 仍然冻结，没有被清空或推进
+    }
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
