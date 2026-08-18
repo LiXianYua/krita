@@ -90,3 +90,8 @@ set_source_files_properties(tests/test_stream_writer.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_stream_writer.inc")
 set_source_files_properties(tests/test_stream_reader.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_stream_reader.inc")
+
+# M3（R-07 全分支终审，可选项）：此前没有 add_test()，ctest 会报「No tests
+# found」但退出码 0，容易被误读成"没有测试"。挂上去成本极低。
+enable_testing()
+add_test(NAME test_pkxml COMMAND test_pkxml)

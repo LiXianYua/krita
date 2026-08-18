@@ -62,6 +62,43 @@ void PkXmlStreamReader::raiseError(const PkString &message)
     _tokenType = Invalid;
 }
 
+bool PkXmlStreamReader::readNextStartElement()
+{
+    // Qt 语义：一路 readNext()，跳过 Characters（本类的 token 集合里没有
+    // Comment/PI/EntityReference，见 README §7「明确排除」），遇到
+    // StartElement 返回 true；遇到 EndElement（当前元素自己的收尾）/
+    // EndDocument/Invalid（出错或提前结束，防止死循环）返回 false。
+    while (true) {
+        const TokenType t = readNext();
+        if (t == StartElement) {
+            return true;
+        }
+        if (t == EndElement || t == EndDocument || t == Invalid) {
+            return false;
+        }
+        // 其余（Characters/StartDocument/NoToken）继续跳过。
+    }
+}
+
+void PkXmlStreamReader::skipCurrentElement()
+{
+    // 前提（与真实调用点一致）：当前 tokenType() 是 StartElement——把它自己
+    // 计成深度 1，readNext() 到深度归零那一次 EndElement（即它自己配对的
+    // 收尾标签）为止，中途遇到的子 StartElement/EndElement 只增减深度，不
+    // 单独处理。EndDocument/Invalid 兜底跳出，防止输入提前结束时死循环。
+    int depth = 1;
+    while (depth > 0) {
+        const TokenType t = readNext();
+        if (t == StartElement) {
+            ++depth;
+        } else if (t == EndElement) {
+            --depth;
+        } else if (t == EndDocument || t == Invalid) {
+            break;
+        }
+    }
+}
+
 PkXmlStreamAttributes PkXmlStreamReader::_collectAttributes(const pugi::xml_node &element)
 {
     PkXmlStreamAttributes attrs;

@@ -10,4 +10,6 @@ private Q_SLOTS:
     void attributesValueAndHasAttribute();
     void malformedXmlReportsError();
     void raiseErrorSetsErrorStateAndAtEnd();
+    void readNextStartElementSkipsUnknownChildren();
+    void attributesAtIndexNameAndValue();
 };

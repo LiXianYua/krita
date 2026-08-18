@@ -47,6 +47,17 @@ public:
     PkXmlStreamReader &operator=(PkXmlStreamReader &&) = delete;
 
     TokenType readNext();
+    // R-07 全分支终审 C1 新增：真实调用点用量表原先把这两个方法记成
+    // "实测 0 调用点，不实现"是漏统计（计数表达式漏了 `->` 接收者形态）——
+    // `libs/pigment/resources/KoColorSet.cpp` 实测 readNextStartElement 4 处、
+    // skipCurrentElement 3 处，见 pk/xml/README.md §7。用现有 readNext() 循环
+    // 实现，语义与 Qt 对齐：readNextStartElement() 跳过 Characters/
+    // StartDocument 一路 readNext()，遇到 StartElement 返回 true，遇到
+    // EndElement/EndDocument/Invalid 返回 false；skipCurrentElement() 假定
+    // 当前 tokenType() 是 StartElement（真实调用点都是这个前提），readNext()
+    // 到它自己配对的 EndElement 为止（用一个深度计数器处理嵌套子元素）。
+    bool readNextStartElement();
+    void skipCurrentElement();
     bool atEnd() const { return _atEnd; }
     bool hasError() const { return _hasError; }
     PkString errorString() const { return _errorString; }

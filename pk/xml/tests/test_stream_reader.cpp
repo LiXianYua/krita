@@ -142,6 +142,68 @@ void TestStreamReader::raiseErrorSetsErrorStateAndAtEnd()
     }
 }
 
+void TestStreamReader::readNextStartElementSkipsUnknownChildren()
+{
+    // R-07 全分支终审 C1：readNextStartElement()/skipCurrentElement() 此前
+    // 被线级 plan 用量表误记成"0 调用点，不实现"，实测
+    // `libs/pigment/resources/KoColorSet.cpp` 有真实调用点（都是
+    // `xml->readNextStartElement()`/`xml->skipCurrentElement()` 这种指针
+    // 接收者写法）。真实用法：外层 while(readNextStartElement()) 遍历子
+    // 元素，遇到认识的元素处理，遇到不认识的调 skipCurrentElement() 跳过整棵
+    // 子树（含它自己的嵌套子元素），最终仍然落在外层元素的 EndElement 上。
+    PkXmlStreamReader xml(
+        PkString("<root><known>1</known><skip><nested/><nested2>x</nested2></skip>"
+                  "<known2>2</known2></root>"));
+
+    PK_COMPARE(static_cast<int>(xml.readNext()),
+               static_cast<int>(PkXmlStreamReader::StartDocument));
+    PK_VERIFY(xml.readNextStartElement()); // root
+    PK_COMPARE(xml.name(), PkString("root"));
+
+    PK_VERIFY(xml.readNextStartElement()); // known
+    PK_COMPARE(xml.name(), PkString("known"));
+    xml.skipCurrentElement(); // 消费掉它自己的 Characters + EndElement
+
+    PK_VERIFY(xml.readNextStartElement()); // skip
+    PK_COMPARE(xml.name(), PkString("skip"));
+    xml.skipCurrentElement(); // 跳过 <nested/><nested2>x</nested2> 整棵子树
+
+    PK_VERIFY(xml.readNextStartElement()); // known2——跳过 <skip> 之后必须落在这
+    PK_COMPARE(xml.name(), PkString("known2"));
+    xml.skipCurrentElement();
+
+    // root 自己的子元素已经遍历完——readNextStartElement() 遇到 root 的
+    // EndElement，返回 false。这一步只消费到 root 的 EndElement，还没到
+    // EndDocument（atEnd() 由 readNext() 在下一次检测到栈已空时才置位，与
+    // 真 Qt「readNextStartElement() 返回 false 不等于 atEnd()」的语义一致）。
+    PK_VERIFY(!xml.readNextStartElement());
+    PK_VERIFY(!xml.atEnd());
+    PK_COMPARE(static_cast<int>(xml.readNext()),
+               static_cast<int>(PkXmlStreamReader::EndDocument));
+    PK_VERIFY(xml.atEnd());
+    PK_VERIFY(!xml.hasError());
+}
+
+void TestStreamReader::attributesAtIndexNameAndValue()
+{
+    // R-07 全分支终审 I4：真实调用点
+    // `libs/flake/text/KoSvgTextShapeMarkupConverter.cpp:879/881/883`
+    // 写的是 `elementAttributes.at(a).name() != "style"`——下标 `at()` +
+    // `Attribute::name()`/`value()` 方法调用形态。
+    PkXmlStreamReader xml(PkString("<e a=\"1\" b=\"2\"/>"));
+    PK_COMPARE(static_cast<int>(xml.readNext()),
+               static_cast<int>(PkXmlStreamReader::StartDocument));
+    PK_COMPARE(static_cast<int>(xml.readNext()),
+               static_cast<int>(PkXmlStreamReader::StartElement));
+
+    const PkXmlStreamAttributes attrs = xml.attributes();
+    PK_COMPARE(attrs.size(), 2);
+    PK_COMPARE(attrs.at(0).name(), PkString("a"));
+    PK_COMPARE(attrs.at(0).value(), PkString("1"));
+    PK_COMPARE(attrs.at(1).name(), PkString("b"));
+    PK_COMPARE(attrs.at(1).value(), PkString("2"));
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_stream_reader.inc"
