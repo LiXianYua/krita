@@ -19,4 +19,14 @@ private Q_SLOTS:
     void importNodeShallowCopiesOnlyAttributesNotChildren();
     void importNodeOfNullNodeReturnsNull();
     void importNodeWithinSameDocumentIsCopyNotMove();
+
+    // R-25 Task 2：setContent(PkStream*, ...) 两个重载。
+    void setContentFromStreamPlain();
+    void setContentFromStreamWithNamespaceProcessingFlag();
+    void setContentFromStreamReadsFromCurrentPositionNotFromStart();
+    void setContentFromStreamPreservesNonAsciiEncodingWithoutPkStringRoundTrip();
+
+    // R-25 Task 2：setContent(PkXmlStreamReader*, bool, ...)——跟 SvgParser.cpp:201
+    // 调用形状对齐的往返测试。
+    void setContentFromStreamReaderRoundTripsSameTreeAsPkStringSetContent();
 };

@@ -2,6 +2,43 @@
 
 #include "../PkXmlDocument.h"
 #include "../PkXmlElement.h"
+#include "../PkXmlStreamReader.h"
+#include "../../port/PkStream.h"
+
+#include <cstring>
+
+namespace {
+
+// R-25 Task 2：最小的内存 PkStream 子类，只为驱动 setContent(PkStream*, ...)
+// 两个重载的测试——同 pk/port/tests/test_stream.cpp 的 MemoryStream（那份
+// 测试不在本任务 locks 范围内，不能直接复用它的 .cpp，这里照抄同一个模式）。
+// 非顺序设备：readData() 按 pos() 索引自己的 std::string。
+class MemoryStream : public PkStream
+{
+public:
+    explicit MemoryStream(std::string data) : m_data(std::move(data)) {}
+
+    pk_int64 size() const override { return static_cast<pk_int64>(m_data.size()); }
+
+protected:
+    pk_int64 readData(char *data, pk_int64 maxSize) override
+    {
+        const pk_int64 avail = static_cast<pk_int64>(m_data.size()) - pos();
+        if (avail <= 0) {
+            return 0; // EOF，不是错误。
+        }
+        const pk_int64 n = maxSize < avail ? maxSize : avail;
+        std::memcpy(data, m_data.data() + pos(), static_cast<std::size_t>(n));
+        return n;
+    }
+
+    pk_int64 writeData(const char *, pk_int64) override { return -1; } // 只读测试用途
+
+private:
+    std::string m_data;
+};
+
+} // namespace
 
 void TestDocument::createElementAndAppendChild()
 {
@@ -243,6 +280,90 @@ void TestDocument::importNodeWithinSameDocumentIsCopyNotMove()
         n = n.nextSibling();
     }
     PK_COMPARE(aCount, 2);
+}
+
+void TestDocument::setContentFromStreamPlain()
+{
+    // 正常路径：设备从头到尾就是一份完整合法 XML。
+    MemoryStream stream(std::string("<root><child k=\"v\">hello</child></root>"));
+    stream.open(PkStream::ReadOnly);
+
+    PkXmlDocument doc;
+    PK_VERIFY(doc.setContent(&stream));
+    PK_COMPARE(doc.documentElement().tagName(), PkString("root"));
+    PK_COMPARE(doc.documentElement().firstChildElement().text(), PkString("hello"));
+}
+
+void TestDocument::setContentFromStreamWithNamespaceProcessingFlag()
+{
+    // bool 重载：跟 PkString 版本一样，namespaceProcessing 不改变基本解析结果
+    // （pugixml 本身不做命名空间解析）。
+    MemoryStream stream(std::string("<root><child/></root>"));
+    stream.open(PkStream::ReadOnly);
+
+    PkXmlDocument doc;
+    PK_VERIFY(doc.setContent(&stream, true));
+    PK_COMPARE(doc.documentElement().tagName(), PkString("root"));
+}
+
+void TestDocument::setContentFromStreamReadsFromCurrentPositionNotFromStart()
+{
+    // 复刻探针 P14："从设备当前位置开始读，不会自己 seek(0)"。前缀 4 个字节
+    // 不是合法 XML（"JUNK"），seek(4) 跳过它们之后剩下的才是合法文档——若实现
+    // 错误地自己 seek(0)，会把 "JUNK<root>..." 一起喂给解析器，直接失败。
+    const std::string data = "JUNK<root><a>1</a></root>";
+    MemoryStream stream(data);
+    stream.open(PkStream::ReadOnly);
+    PK_VERIFY(stream.seek(4));
+
+    PkXmlDocument doc;
+    PK_VERIFY(doc.setContent(&stream));
+    PK_COMPARE(doc.documentElement().tagName(), PkString("root"));
+    PK_COMPARE(doc.documentElement().firstChildElement("a").text(), PkString("1"));
+
+    // 读到 EOF 为止——探针 P14 的 "devicePosAfter" 等于设备总长度。
+    PK_COMPARE(stream.pos(), static_cast<PkStream::pk_int64>(data.size()));
+}
+
+void TestDocument::setContentFromStreamPreservesNonAsciiEncodingWithoutPkStringRoundTrip()
+{
+    // 复刻探针 P14 第三条："with-xml-decl setContent: ok=1 attr=é"——带
+    // `encoding="UTF-8"` 声明、属性值含多字节 UTF-8 字符（é = 0xC3 0xA9）
+    // 的文档必须正确解出。设计要求字节导向 setContentImpl 直接把原始字节喂给
+    // pugi::xml_document::load_buffer，不经过 PkString 中转（PkString::
+    // PkFromUtf8 是"假定输入已经是 UTF-8"的转换，不做编码探测）。
+    std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><root attr=\"";
+    xml += "\xC3\xA9"; // é 的 UTF-8 字节序列
+    xml += "\"/>";
+
+    MemoryStream stream(xml);
+    stream.open(PkStream::ReadOnly);
+
+    PkXmlDocument doc;
+    PK_VERIFY(doc.setContent(&stream));
+    const PkString expected = PkString::PkFromUtf8("\xC3\xA9", 2);
+    PK_COMPARE(doc.documentElement().attribute("attr"), expected);
+}
+
+void TestDocument::setContentFromStreamReaderRoundTripsSameTreeAsPkStringSetContent()
+{
+    // 跟真实调用点 SvgParser.cpp:201 的调用形状对齐：
+    // `doc.setContent(&reader, false, errorMsg, errorLine, errorColumn)`。
+    // 往返验证：PkXmlStreamReader 驱动的"流转 DOM"构建器产出的树，跟直接
+    // setContent(PkString) 解析同一份文本得到的树，toString() 输出一致。
+    const PkString xml("<root><a x=\"1\">hello</a><b/></root>");
+
+    PkXmlStreamReader reader(xml);
+    PkXmlDocument fromStream;
+    PkString errorMsg;
+    int errorLine = -1;
+    int errorColumn = -1;
+    PK_VERIFY(fromStream.setContent(&reader, false, &errorMsg, &errorLine, &errorColumn));
+
+    PkXmlDocument fromPkString;
+    PK_VERIFY(fromPkString.setContent(xml));
+
+    PK_COMPARE(fromStream.toString(-1), fromPkString.toString(-1));
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

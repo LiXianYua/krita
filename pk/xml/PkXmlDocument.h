@@ -1,10 +1,20 @@
 #pragma once
 
+#include <cstddef>
+
 #include "PkXmlCDATASection.h"
 #include "PkXmlElement.h"
 #include "PkXmlImplementation.h"
 #include "PkXmlNode.h"
 #include "PkXmlText.h"
+
+// R-25 Task 2：三个新增 setContent 重载家族的形参类型，全部只用指针/引用，
+// 头文件不需要它们的完整定义——前置声明即可，避免把 pk/port（PkStream）的
+// include 链无条件拖进这个已经很小的公开头文件。
+class PkStream;        // pk/port/PkStream.h（R-12 交付），QIODevice 的零 Qt 对应物。
+class PkXmlStreamReader; // 本目录自己交付的类型，见 PkXmlStreamReader.h。
+// PkByteArray 归 R-02，尚未交付——见下方 setContent(const PkByteArray&) 声明处的说明。
+class PkByteArray;
 
 // PkXmlDocument —— QDomDocument 的零 Qt 对应物：整棵 pugi::xml_document 树的根，
 // 唯一拥有 `_doc`（shared_ptr<pugi::xml_document>）内存的地方（其它 PkXmlNode/
@@ -40,6 +50,38 @@ public:
     bool setContent(const PkString &xml, PkString *errorMsg = nullptr, int *errorLine = nullptr,
                      int *errorColumn = nullptr);
     bool setContent(const PkString &xml, bool namespaceProcessing, PkString *errorMsg = nullptr,
+                     int *errorLine = nullptr, int *errorColumn = nullptr);
+
+    // R-25 Task 2（①-a）：QDomDocument::setContent(QIODevice*, ...) 两个重载的
+    // 零 Qt 对应物。探针 P14（$PK/docs/superpowers/plans/R-25.md）确认：从
+    // `device` 的**当前位置**开始读到 EOF（不自己 seek(0)），EOF 不是错误。
+    // 实现循环调用 `device->read()` 拼字节，直接喂给字节导向的
+    // `setContentImpl(const char*, ...)`——不经过 PkString 中转，保留 pugixml
+    // 自己的编码自动探测（P14 探针的"尊重 XML 声明 encoding"结论）。
+    bool setContent(PkStream *device, PkString *errorMsg = nullptr, int *errorLine = nullptr,
+                     int *errorColumn = nullptr);
+    bool setContent(PkStream *device, bool namespaceProcessing, PkString *errorMsg = nullptr,
+                     int *errorLine = nullptr, int *errorColumn = nullptr);
+
+    // R-25 Task 2（①-b）：QDomDocument::setContent(QXmlStreamReader*, bool, ...)
+    // 的零 Qt 对应物——把 PkXmlStreamReader 当 StAX token 源，驱动一个
+    // "流转 DOM" 构建器（循环 readNext()，按 tokenType() 建节点/挂树/游标下探
+    // 上浮），跟 SvgParser.cpp:201 的调用形状对齐。这是有意打破 Task 1 定下的
+    // "DOM/Stream 两侧不互相消费对方类型"边界——见 pk/xml/README.md §11.3 与
+    // 本类 `.cpp` 里这个重载的实现注释。
+    bool setContent(PkXmlStreamReader *reader, bool namespaceProcessing,
+                     PkString *errorMsg = nullptr, int *errorLine = nullptr,
+                     int *errorColumn = nullptr);
+
+    // R-25 Task 2（①-c）：QDomDocument::setContent(QByteArray, ...) 的形状占位
+    // ——只声明，不定义。`QByteArray` 是真 Qt 类型，本 worktree 没有交付
+    // `PkByteArray`（R-02）也没有 `pk/container/` 下的 QByteArray compat
+    // 映射，真实调用点 `KoColorSet.cpp:1918` 无法在本任务 `locks`（只有
+    // `pk/xml`）范围内零改动试接——不是设计选择，是范围边界。照抄
+    // `pk/port/PkStream.h` 自己已通过评审的先例（`readAll()`/`peek()`/
+    // `readLine()` 三个返回 `PkByteArray` 的方法同样只声明不定义）：链接期报
+    // `undefined reference` 是预期行为，不要为了让它"能跑"造一个假实现。
+    bool setContent(const PkByteArray &data, PkString *errorMsg = nullptr,
                      int *errorLine = nullptr, int *errorColumn = nullptr);
 
     PkString toString(int indent = 1) const;
@@ -78,7 +120,16 @@ private:
     pugi::xml_node ensureLimboNode();
 
     // setContent()/setContentPreservingWhitespace() 共用的解析核心，
-    // parseFlags 由调用方按需要加 pugi::parse_ws_pcdata。
+    // parseFlags 由调用方按需要加 pugi::parse_ws_pcdata。改造成先转 UTF-8
+    // 字节，再转调下面字节导向的版本（R-25 Task 2）——避免重复代码，行为
+    // 不变（已有测试必须继续绿）。
     bool setContentImpl(const PkString &xml, unsigned int parseFlags, PkString *errorMsg,
                          int *errorLine, int *errorColumn);
+
+    // R-25 Task 2（①-a）新增：字节导向版本，直接把原始字节喂给
+    // pugi::xml_document::load_buffer，不经过 PkString 中转——探针 P14 证实
+    // 这样才能保留 pugixml 自己的编码自动探测能力（PkString::PkFromUtf8 是
+    // "假定输入已经是 UTF-8"的转换，不做编码探测，会丢掉这个能力）。
+    bool setContentImpl(const char *data, std::size_t size, unsigned int parseFlags,
+                         PkString *errorMsg, int *errorLine, int *errorColumn);
 };

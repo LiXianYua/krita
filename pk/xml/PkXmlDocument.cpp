@@ -2,6 +2,11 @@
 
 #include <sstream>
 #include <string>
+#include <vector>
+
+// R-25 Task 2：字节导向 setContentImpl 需要的完整定义（头文件只前置声明）。
+#include "../port/PkStream.h"
+#include "PkXmlStreamReader.h"
 
 PkXmlDocument::PkXmlDocument()
     : PkXmlNode()
@@ -104,7 +109,18 @@ bool PkXmlDocument::setContentPreservingWhitespace(const PkString &xml, bool nam
 bool PkXmlDocument::setContentImpl(const PkString &xml, unsigned int parseFlags,
                                     PkString *errorMsg, int *errorLine, int *errorColumn)
 {
+    // R-25 Task 2：转成 UTF-8 字节后转调字节导向版本，避免重复"reset() →
+    // load_buffer → 成功/失败分支 → 行列换算"这段逻辑。这条路径本来就是先把
+    // PkString 转 UTF-8 再解析（真实调用点都是"我手上已经是 PkString"的场景，
+    // 编码早已确定），跟字节导向版本"跳过 PkString 中转、保留 pugixml 自己的
+    // 编码自动探测"的设计意图不冲突——两者服务不同的输入形态。
     const std::string utf8 = xml.PkToUtf8();
+    return setContentImpl(utf8.data(), utf8.size(), parseFlags, errorMsg, errorLine, errorColumn);
+}
+
+bool PkXmlDocument::setContentImpl(const char *data, std::size_t size, unsigned int parseFlags,
+                                    PkString *errorMsg, int *errorLine, int *errorColumn)
+{
     // 重复调用 setContent 要能覆盖上一次的树（Qt 语义），reset() 之后同一个
     // shared_ptr<pugi::xml_document> 重新 load——旧的借出句柄语义上失效，与
     // Qt 的"整棵树被替换"效果一致。这也会连带清掉任何还留在 limbo 里、尚未
@@ -115,8 +131,12 @@ bool PkXmlDocument::setContentImpl(const PkString &xml, unsigned int parseFlags,
     // 任何从 setContent 解析出来的 DOCTYPE 节点。已现场探针确认：`<!DOCTYPE
     // note SYSTEM "Note.dtd">` 解析后 node_doctype 的 value() 是整段原始文本
     // `note SYSTEM "Note.dtd"`，doctype() 取第一个空白分隔 token 当 name()。
-    const pugi::xml_parse_result result =
-        _doc->load_buffer(utf8.data(), utf8.size(), parseFlags);
+    //
+    // 探针 P14：直接把原始字节喂给 load_buffer，不经过 PkString 中转——
+    // pugixml 自己的编码自动探测（encoding_auto）据此才能对 XML 声明里的
+    // encoding（例如 UTF-8 多字节属性值）生效，PkString::PkFromUtf8 会假定
+    // 输入已经是 UTF-8、丢掉这个探测能力。
+    const pugi::xml_parse_result result = _doc->load_buffer(data, size, parseFlags);
     _node = *_doc;
 
     if (result) {
@@ -132,8 +152,8 @@ bool PkXmlDocument::setContentImpl(const PkString &xml, unsigned int parseFlags,
         int line = 1;
         int col = 1;
         for (std::ptrdiff_t i = 0;
-             i < result.offset && i < static_cast<std::ptrdiff_t>(utf8.size()); ++i) {
-            if (utf8[static_cast<std::size_t>(i)] == '\n') {
+             i < result.offset && i < static_cast<std::ptrdiff_t>(size); ++i) {
+            if (data[static_cast<std::size_t>(i)] == '\n') {
                 ++line;
                 col = 1;
             } else {
@@ -148,6 +168,116 @@ bool PkXmlDocument::setContentImpl(const PkString &xml, unsigned int parseFlags,
         }
     }
     return false;
+}
+
+bool PkXmlDocument::setContent(PkStream *device, PkString *errorMsg, int *errorLine,
+                                int *errorColumn)
+{
+    return setContent(device, false, errorMsg, errorLine, errorColumn);
+}
+
+bool PkXmlDocument::setContent(PkStream *device, bool namespaceProcessing, PkString *errorMsg,
+                                int *errorLine, int *errorColumn)
+{
+    // pugixml 本身不做命名空间解析（同 PkString 版本的 setContent 那条注释）
+    // ——namespaceProcessing 参数只是为了签名对齐 Qt。
+    (void)namespaceProcessing;
+
+    if (!device) {
+        if (errorMsg) {
+            *errorMsg = PkString::PkFromUtf8("null device", 11);
+        }
+        return false;
+    }
+
+    // 探针 P14：从设备**当前位置**开始读到 EOF（不自己 seek(0)），EOF（返回
+    // 0）不是错误。`read(char*, pk_int64)` 是 PkStream 唯一已定义、可用的
+    // 读取入口——`readAll()` 只声明不定义，用了会链接期报错（见
+    // pk/port/PkStream.h 头部"一个刻意的设计"）。
+    std::string buf;
+    char chunk[4096];
+    while (true) {
+        const PkStream::pk_int64 n =
+            device->read(chunk, static_cast<PkStream::pk_int64>(sizeof(chunk)));
+        if (n == 0) {
+            break; // EOF
+        }
+        if (n < 0) {
+            if (errorMsg) {
+                *errorMsg = device->errorString();
+            }
+            return false;
+        }
+        buf.append(chunk, static_cast<std::size_t>(n));
+    }
+
+    return setContentImpl(buf.data(), buf.size(), pugi::parse_default | pugi::parse_doctype,
+                           errorMsg, errorLine, errorColumn);
+}
+
+bool PkXmlDocument::setContent(PkXmlStreamReader *reader, bool namespaceProcessing,
+                                PkString *errorMsg, int *errorLine, int *errorColumn)
+{
+    // 本重载不产出行列号——PkXmlStreamReader::lineNumber()/columnNumber() 是
+    // R-25 Task 3 才交付的能力，Task 2 交付时还没有。真实调用点
+    // SvgParser.cpp:201 的调用形状 `doc.setContent(&reader, false, errorMsg,
+    // errorLine, errorColumn)` 允许 errorLine/errorColumn 为非空指针，这里
+    // 保持指针形参对齐签名，但不写入值——已知的窄覆盖，不阻塞本任务。
+    (void)errorLine;
+    (void)errorColumn;
+    // pugixml 不做命名空间解析，同上——签名对齐 Qt，不改变行为。
+    (void)namespaceProcessing;
+
+    if (!reader) {
+        if (errorMsg) {
+            *errorMsg = PkString::PkFromUtf8("null reader", 11);
+        }
+        return false;
+    }
+
+    // 有意打破 Task 1 定下的"DOM/Stream 两侧不互相消费对方类型"边界——见
+    // README §11.3 / 计划设计①-b：把 PkXmlStreamReader 当 StAX token 源，
+    // 驱动一个"流转 DOM"构建器。新建节点走现成的 limbo 容器机制
+    // （createElement()/createTextNode()），跟正常 DOM 构建路径完全一致。
+    _doc->reset();
+    _node = *_doc;
+
+    // 游标栈：stack.back() 是"下一个节点该挂到谁身上"。初始只有文档自身一层
+    // （*this 隐式转换成 PkXmlNode——PkXmlDocument 继承自 PkXmlNode，appendChild
+    // 是继承来的公开方法，对文档自己调用等价于 Qt `QDomDocument::appendChild`）。
+    std::vector<PkXmlNode> stack;
+    stack.push_back(*this);
+
+    while (true) {
+        const PkXmlStreamReader::TokenType t = reader->readNext();
+        if (t == PkXmlStreamReader::StartElement) {
+            PkXmlElement el = createElement(reader->name());
+            const PkXmlStreamAttributes attrs = reader->attributes();
+            for (int i = 0; i < attrs.count(); ++i) {
+                el.setAttribute(attrs.at(i).name(), attrs.at(i).value());
+            }
+            stack.back().appendChild(el);
+            stack.push_back(el);
+        } else if (t == PkXmlStreamReader::Characters) {
+            PkXmlText text = createTextNode(reader->text());
+            stack.back().appendChild(text);
+        } else if (t == PkXmlStreamReader::EndElement) {
+            if (stack.size() > 1) { // 防御性：不弹出最底层的文档自身
+                stack.pop_back();
+            }
+        } else if (t == PkXmlStreamReader::EndDocument || t == PkXmlStreamReader::Invalid) {
+            break;
+        }
+        // StartDocument/NoToken：不建节点，继续循环。
+    }
+
+    if (reader->hasError()) {
+        if (errorMsg) {
+            *errorMsg = reader->errorString();
+        }
+        return false;
+    }
+    return true;
 }
 
 PkXmlNode PkXmlDocument::importNode(const PkXmlNode &importedNode, bool deep)
