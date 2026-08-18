@@ -1,0 +1,25 @@
+#pragma once
+
+// ── compat 垫片：将 QVariant 替换为 PkVariant ─────────────────────────────
+// 用法：在编译行里加 -I pk/variant/compat，然后 #include <QVariant> 解析到本文件。
+
+#ifndef QVARIANT_COMPAT_H
+#define QVARIANT_COMPAT_H
+
+// 先确保 PkVariant 已定义
+#include "PkVariant.h"
+
+// 类型别名映射
+#define QVariant PkVariant
+#define QVariantList PkVariantList
+#define QVariantHash PkVariantHash
+#define QVariantMap PkVariantMap
+
+// QVariant::Type 映射到 PkVariant::Type
+// Qt 的 QVariant::Type 枚举值（探针实测）与 PkVariant::Type 对齐
+#define QVariantType PkVariantType
+
+// 兼容 Q_DECLARE_METATYPE —— 空操作
+#define Q_DECLARE_METATYPE(T)
+
+#endif // QVARIANT_COMPAT_H
