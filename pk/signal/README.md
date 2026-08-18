@@ -121,6 +121,14 @@ QObject::connect(&s, &Sender::valueChanged, &r,
 QPointer<Sender> p(new Sender);
 delete p.data();                   // p.isNull() == true
 
+// 跨线程投递（R-24）：Queued/BlockingQueued 真的推迟到目标线程 pump 才执行
+Receiver r2;
+r2.moveToThread(workerThreadId);   // PkThreadId，例如另一个 std::thread 的 id
+QObject::connect(&s, &Sender::valueChanged, &r2, &Receiver::onValue, Qt::QueuedConnection);
+s.fire(42);                        // 立即返回，r2.last 还没变
+// ……在 workerThreadId 对应的线程里：
+PkThreadCallQueue::processPendingCalls();  // 这时候 r2.last 才变成 42
+
 // 信号连信号（signal→signal）：接收端是信号地址，发射时转发
 ```
 

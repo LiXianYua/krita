@@ -86,18 +86,47 @@
 
 ## 4. 缺口登记表（两个大项，建议归口）
 
-### 4.1 `moveToThread()` 及相关（24 处，越锁边界）
+### 4.1 `moveToThread()` 及相关（24 处）—— R-24 已交付
 
-| 缺口 | 数字 | 位置 | 建议归口 |
-|---|---|---|---|
-| `QObject::moveToThread(QThread*)` | 24 处调用点 | libs/ 及 plugins/ 中的信号投递点 | **新增后续任务**（参考 R-19 模式，`locks` 同时声明 `pk/signal`+`pk/concurrent`）交付：`PkObject::thread()` / `moveToThread(PkThread*)` / `deleteLater()` 三个方法 + 延迟删除队列的 flush 时机设计。**前置条件**：必须回答"Pk 世界要不要有事件循环/应用对象"这一架构问题（`S-00` 已交接；`docs/TASKS.md` S-06 交接记录）。 |
+**R-24（`pk/signal`+`pk/concurrent` 双锁任务）已交付**：`PkObject::thread()`/
+`moveToThread(PkThreadId)`（`pk/signal/PkObject.h`，方法体见 R-24 Task 2）+
+跨线程投递原语 `PkThreadCallQueue`（`pk/concurrent/PkThreadCallQueue.h`，
+R-24 Task 1）+ `activateSignal` 按连接类型真实分派（R-24 Task 3，Queued/
+BlockingQueued 不再退化为 Direct）。
 
-**为何不在 R-10 实现**：
-- `moveToThread()`/`thread()` 在全部 24 处调用点上都是成员函数调用（`obj->method()` 形式）
-- 真实调用点经 `#include <QObject>` 解析到 `pk/signal` 交付的 `PkObject`
-- 这三个方法**只能加在 `PkObject` 类体上**（成员函数）
-- 而 `PkObject.h` 在 `pk/signal/` 目录，**不在本任务的锁 `pk/concurrent` 范围内**
-- 越锁改动违反 `krita/AGENTS.md` 的硬约束
+24 处真实调用点的编译试接结论（零改动，`-fsyntax-only`，见
+`pk/concurrent/graft/graft_check.sh` 的 `check_movetothread`）：
+
+| 文件 | 结论 |
+|---|---|
+| `libs/canvas/kis_gui_context_command.cpp` | 卡住：`kundo2command.h` 缺失（本任务未交付） |
+| `libs/canvas/opengl/kis_texture_tile_info_pool.h` | 卡住：`boost/pool/pool.hpp` 缺失（boost 依赖未端口化） |
+| `libs/flake/flake/kis_shape_layer.cc` | 卡住：`kritaflake_export.h` 缺失（导出宏头未生成） |
+| `libs/flake/flake/kis_shape_selection.cpp` | 卡住：`QPainterPath` 未声明（Qt 几何类型未端口化） |
+| `libs/flake/KoShapeManager.cpp` | 卡住：`QList` 未声明（Qt 容器类型未端口化） |
+| `libs/global/KisDeleteLaterWrapper.cpp` | 卡住：`kritaglobal_export.h` 缺失（导出宏头未生成） |
+| `libs/global/kis_thread_safe_signal_compressor.cpp` | 卡住：`kritaglobal_export.h` 缺失（导出宏头未生成） |
+| `libs/image/kis_image.cc` | 卡住：`QString` 未声明（Qt 基础类型未端口化） |
+| `libs/image/kis_memory_statistics_server.cpp` | 卡住：`QtGlobal` 头缺失 |
+| `libs/image/kis_node.cpp` | 卡住：`QVector` 未声明（Qt 容器类型未端口化） |
+| `libs/image/kis_processing_visitor.cpp` | 卡住：`kritaimage_export.h` 缺失（导出宏头未生成） |
+| `libs/image/KisSafeBlockingQueueConnectionProxy.cpp` | 卡住：`QQueue` 未声明（Qt 容器类型未端口化） |
+| `libs/image/KisSafeNodeProjectionStore.cpp` | 卡住：`QScopedPointer` 未声明（Qt 智能指针未端口化） |
+| `libs/image/KisSelectionUpdateCompressor.cpp` | 卡住：`kritaimage_export.h` 缺失（导出宏头未生成） |
+| `libs/image/lazybrush/kis_colorize_mask.cpp` | 卡住：`QScopedPointer` 未声明（Qt 智能指针未端口化） |
+| `libs/impex/KisCloneDocumentStroke.cpp` | 卡住：`kritaimage_export.h` 缺失（导出宏头未生成） |
+
+**汇总**：16/16 卡住，0/16 编到底，全部卡在 `moveToThread` 那一行**之前**——
+一次都没有触发过 `qApp`/`QApplication::instance()`/`QCoreApplication::instance()`
+这几个符号本身的解析问题（详见 R-24 Task 4 报告 Step 2 的桩验证）。卡点归类
+（每个文件按第一条 `fatal error` 只归一类）：导出宏头缺失 6 个、Qt 容器/基础
+类型未端口化 8 个、其他未交付依赖（`kundo2command.h`、boost）2 个。
+
+**`deleteLater()` 不在本次交付范围**——它需要"延迟删除队列"的 flush 时机，
+与"172 处事件循环残余"里的架构方向是同一个问题（见 §4.2），R-24 没有实现，
+`PkObject` 目前没有 `deleteLater()` 方法；这 24 处 `moveToThread` 调用点本身
+不依赖 `deleteLater()`（`moveToThread` 只是打线程标记，`deleteLater()` 是
+另一个独立方法）。
 
 ### 4.2 事件循环残余（~172 处，架构待拍板）
 
@@ -117,6 +146,23 @@
 - `S-00` 已交接这个问题、明确注记"跨 R-05/R-10 才能回答"
 - 本任务**不拍板**这个架构问题，只如实登记；**建议主会话在收到 Task 5 报告后判断是否单独发起一次决策讨论**
 - 这不是"技术停工"，而是"超范围的架构问题"
+
+**架构方向（R-24 交接，供后续任务参考，不代表已实现）**：R-24 摸清 24 处
+`moveToThread` + 8 处真实 `Queued`/`BlockingQueued` connect 调用点后确认：
+**这批残余不需要 `QThread::exec()`/`QCoreApplication` 式的隐式事件循环**。
+`PkThreadCallQueue`（R-24 交付）已经是"投递到指定线程执行"的完整最小原语
+——`QTimer` 的落点可以是"定时调用 `PkThreadCallQueue::post()`"而不需要
+新造一层事件系统；`deleteLater()` 的落点是"把 delete 操作 post 进对象所在
+线程的队列"；`processEvents()`/`QEventLoop` 的落点是直接调
+`PkThreadCallQueue::processPendingCalls()`（如果调用方需要"阻塞直到某个
+条件达成才返回"的 `QEventLoop::exec()` 语义，需要在 `processPendingCalls()`
+基础上加一层循环+条件判断，不需要动 `PkThreadCallQueue` 本身）；
+`QCoreApplication::instance()`/`qApp` 的落点是 `PkThread::mainThreadId()`
+（R-24 交付，调用方需要先在真正的程序入口调一次
+`PkThread::registerMainThread()`，这一步本身仍然是"要不要有一个 Pk 应用
+对象"这个更大问题的一部分，R-24 不越权回答，只确认底层原语已经够用）。
+**这不是"架构问题已解决"，是"实现这批残余不再需要新的核心原语，可以直接
+消费 R-24 的交付物"**——具体每一处怎么改仍然是各 S 批次替换调用点时的事。
 
 ### 4.3 Task 5 编译试接补充：`kis_updater_context.h` 预期失败细节
 
