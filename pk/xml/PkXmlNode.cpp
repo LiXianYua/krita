@@ -1,7 +1,5 @@
 #include "PkXmlNode.h"
 
-#include <cstring>
-
 #include "PkXmlAttr.h"
 #include "PkXmlCDATASection.h"
 #include "PkXmlDocument.h"
@@ -325,7 +323,7 @@ int PkXmlNode::lineNumber() const
                     // 这一点上巧合对齐（探针 P15「created (not parsed)」）。
     }
     if (_node.type() == pugi::node_pcdata || _node.type() == pugi::node_cdata) {
-        off = pkXmlAdjustTextOffsetToContentEnd(off, std::strlen(_node.value()));
+        off = pkXmlAdjustTextOffsetToContentEnd(_doc->source, off);
     } else {
         off = pkXmlAdjustElementOffsetToTagClose(_doc->source, off);
     }
@@ -348,7 +346,7 @@ int PkXmlNode::columnNumber() const
         return -1;
     }
     if (_node.type() == pugi::node_pcdata || _node.type() == pugi::node_cdata) {
-        off = pkXmlAdjustTextOffsetToContentEnd(off, std::strlen(_node.value()));
+        off = pkXmlAdjustTextOffsetToContentEnd(_doc->source, off);
     } else {
         off = pkXmlAdjustElementOffsetToTagClose(_doc->source, off);
     }

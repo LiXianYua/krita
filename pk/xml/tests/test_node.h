@@ -18,4 +18,5 @@ private Q_SLOTS:
     void lineNumberColumnNumberOfUnparsedOrphanNodeIsNegativeOne();
     void lineNumberColumnNumberOfIsNullElementIsNegativeOne();
     void lineNumberColumnNumberOfAttrNodeIsNegativeOne();
+    void lineNumberColumnNumberOfTextNodeWithEntityIsNotDecodedLengthOffByThree();
 };

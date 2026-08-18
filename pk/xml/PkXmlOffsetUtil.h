@@ -38,8 +38,17 @@ std::ptrdiff_t pkXmlAdjustElementOffsetToTagClose(const std::string &buf,
                                                    std::ptrdiff_t nameStart);
 
 // 文本/CDATA 节点：Qt 报告的是"文本内容读完"那一刻（紧跟内容之后、下一个
-// token 的起点），不需要扫描 buf——直接是内容起始偏移加内容的字节长度。
+// token 的起点）。**不能**用"内容起始偏移 + pugi::xml_node::value() 的
+// strlen()"去算（全分支终审发现的 bug）：`value()` 返回的是 pugixml
+// **解码后**的内容（parse_default 默认含 parse_escapes，会把 `&amp;amp;`/
+// `&amp;lt;`/数字字符引用解码，还含 parse_eol 的 CRLF→LF 归一化），只要文本
+// 含实体引用或源文件用 CRLF 换行，解码后长度就不等于原始缓冲区里这段文本
+// 占用的字节数，加出来的 offset 会落在原始文本中间，不是真正的结尾。
+// 正确做法：从 `contentStart` 在**原始缓冲区** `buf` 里向后扫，扫到下一个
+// 字面 `<` 为止（不含它）——按 XML 语法，未转义的字面 `<` 只能是下一个
+// markup 结构（元素/CDATA/注释/PI）的起点，文本内容里不可能合法出现，
+// 天然是这段文本原始字节的结尾，不需要理解转义规则。
 // 探针 P15 的"text node: line=2 col=6"黄金数据（输入含真实换行的文本节点）
-// 用这个公式精确复现。
-std::ptrdiff_t pkXmlAdjustTextOffsetToContentEnd(std::ptrdiff_t contentStart,
-                                                  std::size_t contentByteLen);
+// 用这个算法精确复现。
+std::ptrdiff_t pkXmlAdjustTextOffsetToContentEnd(const std::string &buf,
+                                                  std::ptrdiff_t contentStart);

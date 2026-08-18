@@ -302,6 +302,19 @@ PkXmlNode PkXmlDocument::importNode(const PkXmlNode &importedNode, bool deep)
         return PkXmlNode();
     }
 
+    // 全分支终审发现：属性节点（Kind::Attr）的 isNull() 只查 !_attr，不算
+    // "null"，会继续往下走——而 pkRawNode() 对属性节点返回的是"属主元素"
+    // （PkXmlNode.h 类注释：Kind::Attr 时 _node 存的是属主，_attr 才是真正
+    // 的属性句柄），不是属性本体。不挡住这条路径会把整个属主元素（deep=true
+    // 时含全部子树）当"导入的属性"静默塞进 limbo——不报错、不崩溃，纯语义
+    // 错误。7 处真实调用点都走 firstChild()/nextSibling() 遍历子节点，不会
+    // 触达这条路径，但作为公开 API 形状必须防御。Qt 的 QDomDocument 没有
+    // 为 QDomAttr 定义 importNode 的行为（QDomAttr 不参与这条 API 的真实
+    // 用法），这里选择返回空节点，不是"支持属性节点导入"的一种实现。
+    if (importedNode.isAttr()) {
+        return PkXmlNode();
+    }
+
     const pugi::xml_node src = pkRawNode(importedNode);
 
     if (deep) {

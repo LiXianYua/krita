@@ -180,6 +180,31 @@ void TestNode::lineNumberColumnNumberOfAttrNodeIsNegativeOne()
     PK_COMPARE(attr.columnNumber(), -1);
 }
 
+void TestNode::lineNumberColumnNumberOfTextNodeWithEntityIsNotDecodedLengthOffByThree()
+{
+    // 全分支终审发现的回归：pugixml parse_default 默认解码实体引用
+    // （parse_escapes），PkXmlText::data() 拿到的是解码后内容——文本节点的
+    // lineNumber()/columnNumber() 必须按原始字节长度换算，不能用
+    // std::strlen(解码后内容)。"&amp;" 在原始缓冲区占 5 字节，解码后只剩 1
+    // 个 '&' 字符——如果误用解码后长度，算出的 offset 会少 4，落在文本内容
+    // 中间而不是真正的结尾。
+    //
+    // 输入 <r>x&amp;y</r>：文本内容原始字节是 x,&,a,m,p,;,y 共 7 字节，从
+    // offset=3（'x' 起始）开始，结尾（</r> 的 '<'）落在 offset=10，1-based
+    // col = 10 + 1 = 11。解码后内容是 x,&,y 共 3 字节，若误用解码后长度会
+    // 算出 offset=3+3=6（col=7），与正确值相差 4——正好是 "&amp;" 比单个
+    // '&' 多出的字节数，本测试专门钉住这条。
+    PkXmlDocument doc;
+    PK_VERIFY(doc.setContent(PkString("<r>x&amp;y</r>")));
+
+    PkXmlElement r = doc.documentElement();
+    PkXmlNode textNode = r.firstChild();
+    PK_VERIFY(textNode.isText());
+    PK_COMPARE(textNode.toText().data(), PkString("x&y")); // 解码后内容
+    PK_COMPARE(textNode.lineNumber(), 1);
+    PK_COMPARE(textNode.columnNumber(), 11); // 原始字节结尾，不是 7
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_node.inc"

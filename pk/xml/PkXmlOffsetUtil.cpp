@@ -75,7 +75,20 @@ std::ptrdiff_t pkXmlAdjustElementOffsetToTagClose(const std::string &buf, std::p
     return nameStart;
 }
 
-std::ptrdiff_t pkXmlAdjustTextOffsetToContentEnd(std::ptrdiff_t contentStart, std::size_t contentByteLen)
+std::ptrdiff_t pkXmlAdjustTextOffsetToContentEnd(const std::string &buf, std::ptrdiff_t contentStart)
 {
-    return contentStart + static_cast<std::ptrdiff_t>(contentByteLen);
+    if (contentStart < 0) {
+        return contentStart;
+    }
+    const std::ptrdiff_t size = static_cast<std::ptrdiff_t>(buf.size());
+    std::ptrdiff_t i = contentStart;
+    // 字面 '<' 在合法 XML 文本内容里不可能出现（必须转义成 &lt;），所以
+    // 它必然是下一个 markup 结构的起点——不需要理解 &amp;/&lt;/数字字符
+    // 引用的转义规则，也不需要处理 CRLF 归一化，直接找原始字节即可。
+    for (; i < size; ++i) {
+        if (buf[static_cast<std::size_t>(i)] == '<') {
+            break;
+        }
+    }
+    return i; // 扫到 buf 末尾（未找到 '<'）时 i == size，同样是合法结尾偏移。
 }
