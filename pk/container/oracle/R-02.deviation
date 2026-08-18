@@ -137,8 +137,7 @@
 #   C indexOf 命中时恒返 0                            mismatch  22218  未声明 tag 84
 #   D 非 const operator[] 不 detach（**只破 COW**）   mismatch   9215  未声明 tag  9
 #   E PkSet::intersect 条件取反                       mismatch  37940  未声明 tag 12
-# （mismatch 含基线那 36 次已声明的 replaceInStrings；「未声明 tag」数的是
-#  DIFFTAG 行数，不是命中次数。D 那 9 条合计命中 9179 次。）
+# （「未声明 tag」数的是 DIFFTAG 行数，不是命中次数。D 那 9 条合计命中 9179 次。）
 #
 # D 是刻意挑的：它不改返回值、也不改容器自身的状态，只有 shared 用例里的
 # alias dump 会现形 —— 用来证明「共享」这一维不是摆设。**它的 tag 数最少（9），
