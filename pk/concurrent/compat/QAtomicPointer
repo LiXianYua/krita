@@ -1,0 +1,5 @@
+#pragma once
+#include "../PkAtomic.h"
+// QAtomicPointer<T> 本身已经是模板，宏替换目标名不带 <T>，
+// 用法 QAtomicPointer<Foo> 会被替换成 PkAtomicPointer<Foo>，语法照旧成立。
+#define QAtomicPointer PkAtomicPointer

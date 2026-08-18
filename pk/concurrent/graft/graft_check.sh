@@ -9,7 +9,10 @@ INC=(
     -include pk/concurrent/compat/QReadWriteLock
     -include pk/concurrent/compat/QReadLocker
     -include pk/concurrent/compat/QWriteLocker
-    -I pk/concurrent/compat -I pk/concurrent
+    -include pk/concurrent/compat/QAtomicInt
+    -include pk/concurrent/compat/QAtomicPointer
+    -include pk/concurrent/compat/QtCore/qassert.h
+    -I pk/concurrent/compat -I pk/concurrent -I pk/concurrent/compat/QtCore
 )
 fail=0
 
@@ -27,4 +30,5 @@ check_pass() {
 }
 
 check_pass libs/global/KisUpgradeToWriteLocker.h
+check_pass libs/image/kis_lock_free_lod_counter.h
 exit $fail
