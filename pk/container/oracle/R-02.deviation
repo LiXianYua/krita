@@ -35,14 +35,17 @@
 # 不猜它的确切规则，明确定成 no-op 并在单测里钉住）。
 #
 # 为什么本轮不改过来：Qt 那套「按码元插入」会把 🎨 这种代理对**从中间劈开**，
-# 复刻它等于把一条病态语义连同孤立代理的处置一起搬进来。这是**延后**，不是豁免：
-# 补齐还是显式不支持由 R-13 定。
+# 复刻它等于把一条病态语义连同孤立代理的处置一起搬进来。这是**延后**，不是豁免。
+#
+# **归属订正（R-13 复核指出，2026-08-18）**：`replaceInStrings` 是 `QStringList`
+# 方法，行为落在 pk/container（R-02）范围内，不是 pk/string（R-13）的活——此前这里
+# 写「交 R-13 定」是归属标注有误。补齐还是显式不支持，由承接本条缺口的任务定，见 **R-23**。
 #
 # **影响面（陈述，不是理由）**：Krita 全仓 replaceInStrings 只有
 # KisDlgImportVideoAnimation.cpp:246 一个调用点，传的是字面量 "output_"。
 # 这一条**不构成**「可以不改」的依据——线级 spec 明文否掉「反正调用点不会这么用」
-# 式的偏离理由，写在这里只是让 R-13 知道排期时它有多急。
-stringlist.replaceInStrings	nonempty-before-empty-pk-unchanged/unshared/elem-str	before 为空串时 Qt 把 after 插到每个 UTF-16 码元之间与首尾（"a"→"bab"），替代品原样返回输入。真实不一致、不是设计上接受的等价行为，交 R-13 决定补齐还是显式不支持。影响面：唯一调用点 KisDlgImportVideoAnimation.cpp:246 传的是字面量 "output_"
+# 式的偏离理由。
+stringlist.replaceInStrings	nonempty-before-empty-pk-unchanged/unshared/elem-str	before 为空串时 Qt 把 after 插到每个 UTF-16 码元之间与首尾（"a"→"bab"），替代品原样返回输入。真实不一致、不是设计上接受的等价行为，归属 pk/container（R-02），补齐还是显式不支持交 R-23 定。影响面：唯一调用点 KisDlgImportVideoAnimation.cpp:246 传的是字面量 "output_"
 
 # ══════════════════════════════════════════════════════════
 # 覆盖度限制 —— **说不出覆盖不到什么的对拍，说明还没想清楚**
