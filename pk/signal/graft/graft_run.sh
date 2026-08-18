@@ -35,6 +35,12 @@ set -e
 boot_cmake_lib pk/test      pk/test/build      pktest       pk/test/build/libpktest.a
 boot_cmake_lib pk/string    pk/string/build    pkstring     pk/string/build/libpkstring.a
 boot_cmake_lib pk/container pk/container/build pkcontainer  pk/container/build/libpkcontainer.a
+# pkconcurrent：R-24 Task 2 起 PkObject 构造/线程亲和性依赖 PkThread::currentThreadId()，
+# Task 3 起 activateSignal 的 Queued/BlockingQueued 分支依赖 PkThreadCallQueue；
+# 两者都在 pk/concurrent/PkThread.cpp / PkThreadCallQueue.cpp 里，非 header-only，
+# 试接的手动链接行必须显式带上，不能只靠 pksignal 的 CMake target_link_libraries
+# （那条只管 pk/signal 自己的 CMake 构建，试接绕开了 CMake 直接 g++ 链接）。
+boot_cmake_lib pk/concurrent pk/concurrent/build pkconcurrent pk/concurrent/build/libpkconcurrent.a
 
 work="$BUILD/KisSignalAutoConnectionTest"
 rm -rf "$work"; mkdir -p "$work"
@@ -95,6 +101,7 @@ ar rcs "$work/libpktest/libpktest.a" "$work/libpktest/"*.o
     "$work/libpktest/libpktest.a" \
     pk/string/build/libpkstring.a \
     pk/container/build/libpkcontainer.a \
+    pk/concurrent/build/libpkconcurrent.a \
     -o "$work/test" 2>"$work/compile.log" || {
         printf '  试接编译失败\n'
         sed 's/^/    /' "$work/compile.log" | head -60

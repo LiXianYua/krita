@@ -7,6 +7,7 @@
 #include "PkConnection.h"
 #include "PkConnect.h"
 #include "../concurrent/PkThread.h"
+#include "../concurrent/PkThreadCallQueue.h"
 
 // QObject 的替代：父子树 + 生命周期 + （Task 2 起）信号连接。
 // 无元对象、无字符串表、无属性系统——那三样在 Q-1 §6.1 的用量表里都是零或
@@ -237,10 +238,42 @@ void PkObject::activateSignal(PkObject* sender, PkMemberFnKey key, Args... args)
     PkObject::s_emitStack().push_back(sender);
     EmitGuard guard;
 
+    const PkThreadId callerThread = PkThread::currentThreadId();
+
     for (auto& e : sender->m_outgoing) {
-        if (e.key == key && e.state && e.state->alive) {
-            auto* impl = dynamic_cast<PkSlotImpl<Args...>*>(e.slot.get());
-            if (impl) impl->fn(args...);
+        if (!(e.key == key) || !e.state || !e.state->alive) continue;
+        auto* impl = dynamic_cast<PkSlotImpl<Args...>*>(e.slot.get());
+        if (!impl) continue;
+
+        // Unique 单独使用时（保留范围内实测无 Unique|其他类型的按位或组合）
+        // 与 Auto 的 dispatch 行为等价：连接建立期已经去重，emit 期只需要
+        // 按线程判断 Direct 还是 Queued。
+        PkConnectionType effectiveType = e.type;
+        if (effectiveType == PkConnectionType::Auto || effectiveType == PkConnectionType::Unique) {
+            effectiveType = (e.receiver->thread() == callerThread)
+                ? PkConnectionType::Direct
+                : PkConnectionType::Queued;
+        }
+
+        if (effectiveType == PkConnectionType::Direct) {
+            impl->fn(args...);
+            continue;
+        }
+
+        // Queued / BlockingQueued：按值捕获 slot（续命）+ state（执行前
+        // 重查 alive，投递期间可能被 disconnect）+ args（本来就是按值拷贝）。
+        auto slotHolder = e.slot;
+        auto state = e.state;
+        const PkThreadId target = e.receiver->thread();
+        auto call = [slotHolder, state, args...]() {
+            if (!state->alive) return;   // 排队期间已断开，静默丢弃（对齐 Qt）
+            auto* impl2 = static_cast<PkSlotImpl<Args...>*>(slotHolder.get());
+            impl2->fn(args...);
+        };
+        if (effectiveType == PkConnectionType::BlockingQueued) {
+            PkThreadCallQueue::postBlocking(target, std::move(call));
+        } else {
+            PkThreadCallQueue::post(target, std::move(call));
         }
     }
 }

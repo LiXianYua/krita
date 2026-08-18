@@ -20,7 +20,7 @@ compat 垫片）+ `pk_signal_moc.py`（替代 moc 的信号定义生成器）。
 | 6 | `disconnect()` | 100 处 / 29 文件 | `PkObject::disconnect(PkConnection&)`（句柄式）<br>`PkObject::disconnect(sender, &S::sig, receiver, &R::slot)`（4 参函数指针式）<br>`PkObject::disconnect(sender, 0, receiver, 0)`（断开全部式） | 保留范围实测 `disconnect(` 90 处 = 句柄式 19 + 4 参函数指针式 4 + 断开全部式 41 + 老式字符串 26 + 注释 2；三种新式形态全部交付 |
 | 7 | `new X(this)`（父子树托管） | 182 处 | `PkObject(PkObject* parent)` + 析构托管 | FIFO 析构顺序（实测探针 1：c1→c2→c3，非 LIFO） |
 | 8 | `QPointer<>`（弱引用防悬垂） | 70 文件 | `PkPointer<T>` | 对象析构后 `isNull()==true`、`data()==nullptr` |
-| 9 | `Qt::ConnectionType` 族 | (§6.1 连接类型成句提及) | `PkConnectionType` + `namespace Qt` 别名 | `AutoConnection`/`DirectConnection`/`QueuedConnection`/`BlockingQueuedConnection`/`UniqueConnection`；Queued/BlockingQueued 跨线程退化为 Direct（无事件循环世界，跨线程投递归 Q-8） |
+| 9 | `Qt::ConnectionType` 族 | (§6.1 连接类型成句提及) | `PkConnectionType` + `namespace Qt` 别名 | `AutoConnection`/`DirectConnection`/`QueuedConnection`/`BlockingQueuedConnection`/`UniqueConnection`；R-24 起 `Queued`/`BlockingQueued` 真实走 `pk/concurrent` 的 `PkThreadCallQueue` 投递（详见下方偏离清单第 1 条） |
 | 10 | `Q_OBJECT` 元对象声明 | 473 文件隐含 | friend 声明（喂 R-11 binder）+ 生成器产物 | 无元对象、无字符串表、无属性系统 |
 
 ### 交付的公开类型与入口
@@ -64,7 +64,7 @@ static bool disconnect(const PkObject* sender, std::nullptr_t,
 
 ### 偏离清单（对齐口径下逐条登记）
 
-1. **`Queued`/`BlockingQueued` 在 R-05 阶段退化为 `Direct`**：无事件循环世界里「立即调用」与「投递到本线程」不可区分，跨线程投递归 Q-8。这是决策文档已划出范围的偏离（跨线程归 Q-8），理由成立。
+1. ~~`Queued`/`BlockingQueued` 在 R-05 阶段退化为 `Direct`~~：**R-24 已交付真实投递**——`PkObject` 现在有线程亲和性（`thread()`/`moveToThread()`），`Auto` 按 sender/receiver 是否同线程决定退化 `Direct` 还是走 `Queued`；显式 `Queued`/`BlockingQueued` 一律走 `pk/concurrent` 的 `PkThreadCallQueue`（按线程 id 分桶的待执行调用队列 + 显式 `processPendingCalls()` pump，不是隐式事件循环）。语义细节（同线程显式 Queued 不折叠为立即执行、BlockingQueued 阻塞发射线程直到目标线程 pump 执行完）逐条对齐真 Qt 实测（探针见 `docs/superpowers/plans/R-24.md`）。`pk/signal` 现在依赖 `pk/concurrent`（此前不依赖），CMake 已接线。
 2. **receiver 析构只 `disconnectAllIncoming` 清自己的 `m_incoming`，不从 sender 的 `m_outgoing` 摘除** → dead 条目与悬垂 receiver 裸指针滞留（无 UB，emit 靠共享 state 的 alive 跳过、不触碰 receiver 内存；类内未解引用 receiver 指针）。性能不预先优化，M0 benchmark 再判是否加 sender 反向指针做 eager 摘除。
 
 ## 2. 三条缺口登记（逐条 + 建议归口）

@@ -40,6 +40,7 @@ add_executable(test_pksignal
     tests/test_connect.cpp
     tests/test_pointer.cpp
     tests/test_generator.cpp
+    tests/test_thread.cpp
 )
 target_link_libraries(test_pksignal PRIVATE pksignal)
 target_compile_definitions(test_pksignal PRIVATE

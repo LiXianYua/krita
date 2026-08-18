@@ -6,6 +6,7 @@ void run_tree_tests();
 void run_connect_tests();
 void run_pointer_tests();
 void run_generator_tests();
+void run_thread_tests();
 
 int main()
 {
@@ -13,6 +14,7 @@ int main()
     run_connect_tests();
     run_pointer_tests();
     run_generator_tests();
+    run_thread_tests();
     if (g_failures == 0) {
         std::printf("all pksignal tests passed\n");
         return 0;
