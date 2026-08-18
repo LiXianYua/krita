@@ -1,0 +1,3 @@
+#pragma once
+#include "../PkThreadPool.h"
+#define QThreadPool PkThreadPool

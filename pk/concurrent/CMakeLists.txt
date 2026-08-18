@@ -8,9 +8,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 find_package(Threads REQUIRED)
 
 # 零 Qt：本工程不得出现 find_package(Qt...)。判据③靠 nm -u 自证。
-add_library(pkconcurrent INTERFACE)
-target_include_directories(pkconcurrent INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(pkconcurrent INTERFACE Threads::Threads)
+add_library(pkconcurrent STATIC
+    PkThreadPool.cpp
+    PkThread.cpp
+)
+target_include_directories(pkconcurrent PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(pkconcurrent PUBLIC Threads::Threads)
 
 set(PKTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../test)
 if (NOT TARGET pktest)
@@ -20,13 +23,15 @@ endif()
 pk_test_generate(PKCONCURRENT_BINDERS
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mutex.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_rwlock.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_atomic.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_atomic.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_threadpool.h)
 
 add_executable(test_pkconcurrent
     tests/test_main.cpp
     tests/test_mutex.cpp
     tests/test_rwlock.cpp
     tests/test_atomic.cpp
+    tests/test_threadpool.cpp
 )
 target_include_directories(test_pkconcurrent PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests
@@ -38,3 +43,5 @@ set_source_files_properties(tests/test_rwlock.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_rwlock.inc")
 set_source_files_properties(tests/test_atomic.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_atomic.inc")
+set_source_files_properties(tests/test_threadpool.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_threadpool.inc")

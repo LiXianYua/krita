@@ -1,0 +1,3 @@
+#pragma once
+#include "../PkRunnable.h"
+#define QRunnable PkRunnable
