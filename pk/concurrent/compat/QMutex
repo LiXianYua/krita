@@ -1,0 +1,5 @@
+#pragma once
+#include "../PkMutex.h"
+// class QMutex; 前置声明存在（KisDocumentApplicationServices.h 等 3 处），
+// 用 #define 而不是 using：宏改写前置声明成 class PkMutex;，别名做不到。
+#define QMutex PkMutex
