@@ -1,6 +1,7 @@
 #include "PkConfigGroup.h"
 #include "PkConfigStore.h"
 
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -35,6 +36,17 @@ PkString formatPoint(const PkPoint &p)
 {
     std::string s = std::to_string(p.x()) + "," + std::to_string(p.y());
     return PkString(s.c_str());
+}
+
+// std::to_string(double) 不是往返安全的（固定 6 位小数：小量会被截成 "0.000000"，
+// 大量/高精度值会被截断）——"%.17g"（17 位十进制有效数字）能保证任何 IEEE754
+// double 精确往返，需要时会落到科学计数法（如 "1.5e-07"），PkString::toDouble()
+// 底层走 strtod_l，原生支持这种写法，不需要额外处理。
+PkString formatDouble(double value)
+{
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%.17g", value);
+    return PkString(buf);
 }
 
 } // namespace
@@ -168,7 +180,7 @@ void PkConfigGroup::writeEntry(const PkString &key, int value)
 
 void PkConfigGroup::writeEntry(const PkString &key, double value)
 {
-    PkConfigStore::instance().set(m_groupName, key, PkString(std::to_string(value).c_str()));
+    PkConfigStore::instance().set(m_groupName, key, formatDouble(value));
 }
 
 void PkConfigGroup::writeEntry(const PkString &key, const PkString &value)

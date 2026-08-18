@@ -11,4 +11,5 @@ private Q_SLOTS:
     void hasKeyDeleteEntrySync();
     void sameGroupNameSharesStorage();
     void emptyStringListDiffersFromMissingKey();
+    void doubleRoundTripsBeyondSixDecimals();
 };

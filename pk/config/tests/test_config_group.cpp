@@ -106,6 +106,32 @@ void TestConfigGroup::emptyStringListDiffersFromMissingKey()
     PK_COMPARE(stored.size(), 0);
 }
 
+void TestConfigGroup::doubleRoundTripsBeyondSixDecimals()
+{
+    // 评审 Important 项：旧实现用 std::to_string(double) 序列化，固定 6 位小数——
+    // 需要超过 6 位精度的值会被截断，极小的值会被直接截成 "0.000000"（读回来是
+    // 0.0，跟真的写入 0 完全分不出来，属于静默数据损坏）。
+    PkSharedConfig *cfg = PkSharedConfig::openConfig();
+    PkConfigGroup g = cfg->group("doubleprecision");
+
+    // 需要 9 位小数才能精确表示的值：6 位精度会截成 0.123457（丢最后两位）。
+    const double highPrecision = 0.123456789;
+    g.writeEntry("highPrecision", highPrecision);
+    PK_COMPARE(g.readEntry("highPrecision", 0.0), highPrecision);
+
+    // std::to_string(0.0000001) == "0.000000"——旧实现下这个值会静默变成 0，
+    // 且与「真的存了 0」无法区分。
+    const double verySmall = 0.0000001;
+    g.writeEntry("verySmall", verySmall);
+    double readBack = g.readEntry("verySmall", -1.0);
+    PK_VERIFY(readBack != 0.0);
+    PK_COMPARE(readBack, verySmall);
+
+    // 顺带确认「真的写 0」依然读回 0，不受上面那条修复影响。
+    g.writeEntry("trueZero", 0.0);
+    PK_COMPARE(g.readEntry("trueZero", -1.0), 0.0);
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_config_group.inc"
