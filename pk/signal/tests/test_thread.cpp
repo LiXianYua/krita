@@ -92,6 +92,20 @@ static void test_cross_thread_auto_defers_to_pump()
 // 3. 显式 Queued 即使同线程也不立即执行（对齐探针实验6）
 static void test_same_thread_explicit_queued_defers()
 {
+    // 预热（final whole-branch review NEW-I1 修复后必须加）：本测试是这个
+    // 二进制里主测试线程第一次真正触达 PkThreadCallQueue 的入口（前面两个
+    // 测试是同线程 Direct 分派，压根不进队列；test_cross_thread_auto_
+    // defers_to_pump 里预热过的是 worker 线程，不是主线程自己）。NEW-I1
+    // 修复把"首次触达清空陈旧条目"的判定从 post() 移到了只有
+    // processPendingCalls() 里才会做——下面"emit 触发同线程 post 给自己、
+    // 再 processPendingCalls()"这个顺序，如果不先预热，会被
+    // processPendingCalls() 自己那次"首次触达"的丢弃逻辑把刚刚排进去的
+    // 调用当陈旧条目连带清空（PkThreadCallQueue.h 类头注释"预热"那段讲的
+    // 正是这条）。这里用一次空队列上的 no-op processPendingCalls() 提前
+    // 把这个一次性判定消耗掉，不影响本测试要验证的"Queued 不立即执行"
+    // 这条核心语义。
+    PkThreadCallQueue::processPendingCalls();
+
     ThreadSender s; ThreadReceiver r;
     PkObject::connect(&s, &ThreadSender::sig, &r, &ThreadReceiver::onSig, PkConnectionType::Queued);
     s.sig();
@@ -148,6 +162,50 @@ static void test_disconnected_queued_call_is_dropped()
     _expect(r.got.load() == 0, "disconnected-before-pump call is silently dropped, slot not invoked");
 }
 
+// 6. fix-wave re-review NEW-I3：故意制造 moveToThread() 与 activateSignal
+// 读 thread() 之间的并发访问，给 TSan 一个能检测到的并发模式。M-5 把两个
+// 跨线程测试的 moveToThread() 从 worker 线程挪回主线程、加了 moveDone
+// 屏障之后，恰好消灭了触发 I-1 那条 TSan 报告的并发写模式——I-1 的修复
+// （m_thread 改成 std::atomic<PkThreadId>）从此在 run_tsan.sh 里零回归
+// 覆盖：把 m_thread 改回非原子类型，run_tsan.sh 依旧干净。这里专门补一个
+// *故意*不遵守"receiver 只能从自己所在线程调用 moveToThread()"这条约定的
+// 用例——一个线程反复 moveToThread()，另一个线程同时通过 activateSignal
+// （真实 emit 路径）反复读 receiver->thread()。
+//
+// 功能上这条路径本身是安全的（std::atomic<PkThreadId> 保证不会有撕裂读/
+// 数据竞争意义上的 UB），所以断言只有一条："能正常跑完、不崩溃"——这个
+// 用例存在的唯一目的是给 TSan 一个可检测的并发访问模式，不是验证某个
+// 具体的调度结果（两个线程的 id 几乎不可能相等，activateSignal 因此几乎
+// 总是选 Queued 分支，槽函数是否真的被执行不是本用例关心的事）。
+static void test_concurrent_moveToThread_and_activateSignal_read_is_safe()
+{
+    ThreadSender s;
+    ThreadReceiver r;
+    PkObject::connect(&s, &ThreadSender::sig, &r, &ThreadReceiver::onSig);
+
+    std::atomic<bool> stop{false};
+    std::thread mover([&]{
+        PkThreadId self = PkThread::currentThreadId();
+        while (!stop.load()) {
+            r.moveToThread(self);
+        }
+    });
+    std::thread emitter([&]{
+        while (!stop.load()) {
+            s.sig();
+        }
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    stop = true;
+    mover.join();
+    emitter.join();
+
+    _expect(true, "concurrent moveToThread()/activateSignal thread() read "
+                  "completes without crashing (TSan regression probe for "
+                  "I-1's atomic m_thread fix)");
+}
+
 void run_thread_tests()
 {
     test_same_thread_auto_is_direct();
@@ -156,4 +214,5 @@ void run_thread_tests()
     test_same_thread_explicit_queued_defers();
     test_cross_thread_blocking_queued_waits();
     test_disconnected_queued_call_is_dropped();
+    test_concurrent_moveToThread_and_activateSignal_read_is_safe();
 }

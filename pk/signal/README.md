@@ -71,6 +71,18 @@ static bool disconnect(const PkObject* sender, std::nullptr_t,
    不打日志，是一个纯静默的行为缺失。final whole-branch review 核实：全仓
    `pk/` 之外零 pump 调用点，第一个把跨线程 `Auto`/`Queued` 连接搬进来的
    S 批次消费方必须自己在目标线程装 pump（I-3）。
+   ⚠ **receiver 发布自己的线程 id（即 `moveToThread()` 之后被别的线程看见）
+   之前要先"预热"**：目标线程第一次 pump 会把它自己名下已经排队的条目
+   当陈旧条目丢弃，这个判定分不清"陈旧"与"合法但我还没来得及第一次
+   pump"，所以任何人在目标线程第一次 `processPendingCalls()` 之前发给它
+   的 `Queued`/`BlockingQueued` 调用都有被丢弃的风险（final whole-branch
+   review NEW-I2，详见 `pk/concurrent/PkThreadCallQueue.h` 类头注释与
+   `pk/concurrent/README.md`）。**决策 4 提到的 8 处真实
+   `BlockingQueuedConnection` 调用点**（工作线程 → GUI 线程单向送调用）
+   接入时，GUI 线程侧要保证在被工作线程知道自己的 id 之前先调用过一次
+   `processPendingCalls()`——不遵守这条，后果不是挂起（`postBlocking()`
+   丢弃时会正确唤醒发射线程、抛 `PkCallAbandonedException`，见 NEW-C1），
+   而是这次调用被悄悄丢弃、槽函数没有被执行。
 2. **receiver 析构只 `disconnectAllIncoming` 清自己的 `m_incoming`，不从 sender 的 `m_outgoing` 摘除** → dead 条目与悬垂 receiver 裸指针滞留（无 UB，emit 靠共享 state 的 alive 跳过、不触碰 receiver 内存；类内未解引用 receiver 指针）。性能不预先优化，M0 benchmark 再判是否加 sender 反向指针做 eager 摘除。
 3. **`BlockingQueued` 分支存在窄场景的跨线程迭代失效风险，已知限制、暂不处理**：`activateSignal` 遍历 `sender->m_outgoing` 时，若某条目是 `BlockingQueued`，发射线程会阻塞在 `PkThreadCallQueue::postBlocking` 里等目标线程执行完槽函数；如果那个槽函数反过来对同一个 sender 做 `connect()`（可能触发 `m_outgoing` 的 vector 扩容重分配）或者再次 emit，会与发射线程正在用的 for 循环迭代器产生跨线程的迭代失效。场景很窄（需要槽函数反向操作自己正阻塞等待的 sender），保留范围内的真实 `BlockingQueuedConnection` 调用点（决策 4 提到的 8 处）均是单向"工作线程→GUI 线程"送调用，不构成这种反向操作。真要修需要"遍历前先拍一份 `m_outgoing` 快照"这类更大的结构改动，超出 R-24 Task 3 这轮修复的合理范围，评审判定登记为已知限制、不在本轮处理。
 

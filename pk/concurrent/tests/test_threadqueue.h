@@ -24,4 +24,12 @@ private Q_SLOTS:
     // final whole-branch review C-2：postBlocking 槽函数抛异常导致发射线程永久阻塞。
     void testPostBlockingWakesEmitterAndRethrowsOnSlotException();
     void testProcessPendingCallsContinuesAfterExceptionInBatch();
+
+    // fix-wave re-review NEW-C1：postBlocking 投给一个还没预热过的线程，
+    // 被 C-1 的"首次触达丢弃陈旧条目"清空时，发射线程曾经永久挂起。
+    void testPostBlockingWakesAndReportsAbandonedWhenDiscardedByFirstPump();
+    void testPostBlockingWakesWhenTargetThreadExitsWithoutPumping();
+
+    // fix-wave re-review NEW-I1：post() 曾经错误地清空调用者自己的入站队列。
+    void testPostDoesNotDiscardOwnInboundQueueOnOutboundPost();
 };
