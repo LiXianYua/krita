@@ -52,6 +52,7 @@ add_library(pkxml STATIC
     PkXmlNode.cpp
     PkXmlDocument.cpp
     PkXmlElement.cpp
+    PkXmlOffsetUtil.cpp
     PkXmlStreamReader.cpp
     PkXmlStreamWriter.cpp
     ${PKPORT_DIR}/PkStream.cpp

@@ -6,12 +6,16 @@
 
 // R-25 Task 2：字节导向 setContentImpl 需要的完整定义（头文件只前置声明）。
 #include "../port/PkStream.h"
+#include "PkXmlOffsetUtil.h"
 #include "PkXmlStreamReader.h"
 
 PkXmlDocument::PkXmlDocument()
     : PkXmlNode()
 {
-    _doc = std::make_shared<pugi::xml_document>();
+    // R-25 Task 3：make_shared<PkXmlDocRoot>()（不再是裸 pugi::xml_document）
+    // ——PkXmlDocRoot 公开继承 pugi::xml_document 只多一个 `source` 字段，见
+    // PkXmlNode.h 顶部注释。
+    _doc = std::make_shared<PkXmlDocRoot>();
     _node = *_doc;
     _kind = Kind::Node;
 }
@@ -139,6 +143,12 @@ bool PkXmlDocument::setContentImpl(const char *data, std::size_t size, unsigned 
     const pugi::xml_parse_result result = _doc->load_buffer(data, size, parseFlags);
     _node = *_doc;
 
+    // R-25 Task 3：不管解析成功还是失败都把原始字节存一份进 `_doc->source`
+    // ——lineNumber()/columnNumber()（PkXmlNode.cpp）要用它做 offset→行列
+    // 换算；失败时也可能已经建出部分节点（pugixml 是"尽量往前解析到出错点"
+    // 的策略），行列换算仍然可能用得到。
+    _doc->source.assign(data, size);
+
     if (result) {
         return true;
     }
@@ -148,23 +158,14 @@ bool PkXmlDocument::setContentImpl(const char *data, std::size_t size, unsigned 
     }
     if (errorLine || errorColumn) {
         // 探针 P4：Qt 的 errLine/errCol 是 1-based。pugixml 只给字节 offset，
-        // 没有现成的行列号——扫一遍已解析前缀自己数换行/列。
-        int line = 1;
-        int col = 1;
-        for (std::ptrdiff_t i = 0;
-             i < result.offset && i < static_cast<std::ptrdiff_t>(size); ++i) {
-            if (data[static_cast<std::size_t>(i)] == '\n') {
-                ++line;
-                col = 1;
-            } else {
-                ++col;
-            }
-        }
+        // 没有现成的行列号——换算逻辑重构进 PkXmlOffsetUtil.h（R-25 Task 3），
+        // DOM 侧这里与 lineNumber()/columnNumber()、Stream 侧共用同一份实现，
+        // 行为与重构前逐字节一致（已有测试必须继续绿）。
         if (errorLine) {
-            *errorLine = line;
+            *errorLine = pkXmlOffsetToLine(_doc->source, result.offset);
         }
         if (errorColumn) {
-            *errorColumn = col;
+            *errorColumn = pkXmlOffsetToColumn(_doc->source, result.offset);
         }
     }
     return false;
@@ -219,13 +220,14 @@ bool PkXmlDocument::setContent(PkXmlStreamReader *reader, bool namespaceProcessi
                                 PkString *errorMsg, int *errorLine, int *errorColumn)
 {
     // 本重载不产出行列号——PkXmlStreamReader::lineNumber()/columnNumber() 是
-    // R-25 Task 3 才交付的能力，Task 2 交付时还没有。真实调用点
-    // SvgParser.cpp:201 的调用形状 `doc.setContent(&reader, false, errorMsg,
-    // errorLine, errorColumn)` 允许 errorLine/errorColumn 为非空指针，这里
-    // 保持指针形参对齐签名，但不写入值——已知的窄覆盖，不阻塞本任务。
+    // R-25 Task 3 才交付的能力，Task 2 交付时还没有（本 commit 只做 Task 3 的
+    // PkXmlDocRoot/offset 工具基础设施，lineNumber()/columnNumber() 的具体接线
+    // 留到 Task 3 Stream 侧那个 commit，那时 PkXmlStreamReader::lineNumber()
+    // 才存在）。真实调用点 SvgParser.cpp:201 的调用形状允许 errorLine/
+    // errorColumn 为非空指针，这里保持指针形参对齐签名，但暂不写入值。
     (void)errorLine;
     (void)errorColumn;
-    // pugixml 不做命名空间解析，同上——签名对齐 Qt，不改变行为。
+    // pugixml 不做命名空间解析——签名对齐 Qt，不改变行为。
     (void)namespaceProcessing;
 
     if (!reader) {
@@ -241,6 +243,13 @@ bool PkXmlDocument::setContent(PkXmlStreamReader *reader, bool namespaceProcessi
     // （createElement()/createTextNode()），跟正常 DOM 构建路径完全一致。
     _doc->reset();
     _node = *_doc;
+    // 这条路径不经过 load_buffer（节点是程序创建、从 limbo 挂树的，见上），
+    // 没有单一原始字节 buffer 可言——`_doc->source` 保持空，后续对这些节点
+    // 调用 lineNumber()/columnNumber() 会因为 offset_debug() 恒为 -1（未解析
+    // 节点）自然短路返回 -1，不需要额外判断。清空是为了不让上一次
+    // setContent(PkString/PkStream) 留下的旧 source 误导（虽然 offset_debug()
+    // 的短路已经足够安全，这里仍然显式清空以保持"source 反映当前树"的不变量）。
+    _doc->source.clear();
 
     // 游标栈：stack.back() 是"下一个节点该挂到谁身上"。初始只有文档自身一层
     // （*this 隐式转换成 PkXmlNode——PkXmlDocument 继承自 PkXmlNode，appendChild

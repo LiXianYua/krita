@@ -102,6 +102,84 @@ void TestNode::insertBeforeAndRemoveChild()
     PK_COMPARE(afterRemove.at(2).toElement().tagName(), PkString("d"));
 }
 
+void TestNode::lineNumberColumnNumberMatchesProbeP15ThreeLevelNesting()
+{
+    // 探针 P15 原始输入与原始输出（docs/superpowers/plans/R-25.md）：
+    //   <root>          → root: line=1 col=6（落在闭合 '>' 上）
+    //     <a>           → a:    line=2 col=5（同上，落在闭合 '>' 上）
+    //       <b x='1'/>  → b:    line=3 col=13（自闭合，落在 '/' 上，不是 '>'）
+    //     </a>
+    //   </root>
+    // 逐字对照，不是"非负就算过"。
+    PkXmlDocument doc;
+    PK_VERIFY(doc.setContent(PkString("<root>\n  <a>\n    <b x='1'/>\n  </a>\n</root>")));
+
+    PkXmlElement root = doc.documentElement();
+    PK_COMPARE(root.lineNumber(), 1);
+    PK_COMPARE(root.columnNumber(), 6);
+
+    PkXmlElement a = root.firstChildElement();
+    PK_COMPARE(a.tagName(), PkString("a"));
+    PK_COMPARE(a.lineNumber(), 2);
+    PK_COMPARE(a.columnNumber(), 5);
+
+    PkXmlElement b = a.firstChildElement();
+    PK_COMPARE(b.tagName(), PkString("b"));
+    PK_COMPARE(b.lineNumber(), 3);
+    PK_COMPARE(b.columnNumber(), 13);
+}
+
+void TestNode::lineNumberColumnNumberOfTextNodeWithEmbeddedNewline()
+{
+    // 探针 P15：`<r>hello\nworld</r>`（真实换行在文本内容里）——
+    // "text node: line=2 col=6"，落在"文本内容读完"那一刻（"world" 的 'd'
+    // 之后一格），不是文本起始位置。
+    PkXmlDocument doc;
+    PK_VERIFY(doc.setContent(PkString("<r>hello\nworld</r>")));
+
+    PkXmlElement r = doc.documentElement();
+    PkXmlNode textNode = r.firstChild();
+    PK_VERIFY(textNode.isText());
+    PK_COMPARE(textNode.toText().data(), PkString("hello\nworld"));
+    PK_COMPARE(textNode.lineNumber(), 2);
+    PK_COMPARE(textNode.columnNumber(), 6);
+}
+
+void TestNode::lineNumberColumnNumberOfUnparsedOrphanNodeIsNegativeOne()
+{
+    // 探针 P15：程序 create* 出来、从没经过 setContent() 解析的节点——恒 -1/-1，
+    // 不需要真的 appendChild()（哪怕未挂树，limbo 容器里的孤儿节点同样适用，
+    // 见 PkXmlNode.h 顶部"创建即挂树"注释）。
+    PkXmlDocument doc;
+    PkXmlElement orphan = doc.createElement("x");
+    PK_COMPARE(orphan.lineNumber(), -1);
+    PK_COMPARE(orphan.columnNumber(), -1);
+}
+
+void TestNode::lineNumberColumnNumberOfIsNullElementIsNegativeOne()
+{
+    // 探针 P15："missing element: isNull=1 line=-1 col=-1"。
+    PkXmlDocument doc;
+    PK_VERIFY(doc.setContent(PkString("<root/>")));
+    PkXmlElement missing = doc.documentElement().firstChildElement("nope");
+    PK_VERIFY(missing.isNull());
+    PK_COMPARE(missing.lineNumber(), -1);
+    PK_COMPARE(missing.columnNumber(), -1);
+}
+
+void TestNode::lineNumberColumnNumberOfAttrNodeIsNegativeOne()
+{
+    // 探针 P15："attr x: isNull=0 line=-1 col=-1"——即便属性真实存在、来自
+    // 成功解析的文档，Qt DOM 也不为 QDomAttr 记录位置信息，恒返 -1。
+    PkXmlDocument doc;
+    PK_VERIFY(doc.setContent(PkString("<root x='1'/>")));
+    PkXmlElement root = doc.documentElement();
+    PkXmlAttr attr = root.attributeNode("x");
+    PK_VERIFY(!attr.isNull());
+    PK_COMPARE(attr.lineNumber(), -1);
+    PK_COMPARE(attr.columnNumber(), -1);
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_node.inc"

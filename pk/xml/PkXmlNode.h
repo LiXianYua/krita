@@ -14,6 +14,19 @@ class PkXmlAttr;
 class PkXmlNodeList;
 class PkXmlDocument;
 
+// PkXmlDocRoot —— R-25 Task 3：lineNumber()/columnNumber() 的 offset→行列换算
+// 需要原始输入字节，但 pugi::xml_document 内部虽然保留了一份解析用的 buffer
+// 副本（`offset_debug()` 就是靠它算出来的），却没有公开 API 能把这份字节原样
+// 取回。公开继承 `pugi::xml_document`（不是组合）：`PkXmlNode::_doc` 换成
+// `shared_ptr<PkXmlDocRoot>` 之后，所有既有 `_doc->...`/`*_doc` 用法（本质上
+// 是对 pugi::xml_document 基类子对象的调用）不用改一个字——`operator->`/
+// 解引用照常工作，只是现在指向一个更派生的类型。`source` 由
+// `PkXmlDocument::setContentImpl`（字节导向版本）在 `load_buffer` 之后写入，
+// 不管解析成功还是失败（失败时也可能已经建出部分节点，行列换算仍然用得到）。
+struct PkXmlDocRoot : public pugi::xml_document {
+    std::string source;
+};
+
 // PkXmlNode —— QDomNode 的零 Qt 对应物，底层用 pugixml 的 pugi::xml_node 句柄。
 //
 // 内部表示（决定了每个方法怎么实现）：
@@ -131,12 +144,20 @@ public:
     PkXmlElement nextSiblingElement(const PkString &tagName = PkString()) const;
     PkXmlElement previousSiblingElement(const PkString &tagName = PkString()) const;
 
+    // R-25 Task 3：QDomNode::lineNumber()/columnNumber() 的零 Qt 对应物。
+    // 算法与探针实测见 PkXmlOffsetUtil.h + docs/superpowers/plans/R-25.md
+    // 「探针实测 P15」「设计②」——属性节点（Kind::Attr）与未解析/isNull()
+    // 节点恒返 -1，元素节点换算到"开始标签闭合处"，文本/CDATA 节点换算到
+    // "内容读完处"，与 Qt 语义对齐，不是 pugixml `offset_debug()` 的起始位置。
+    int lineNumber() const;
+    int columnNumber() const;
+
 protected:
     enum class Kind { Node, Attr };
 
     pugi::xml_node _node;
     pugi::xml_attribute _attr;
-    std::shared_ptr<pugi::xml_document> _doc;
+    std::shared_ptr<PkXmlDocRoot> _doc;
     Kind _kind = Kind::Node;
 
     // R-25 Task 1（importNode）：C++ 的"protected 成员额外访问检查"要求非静态

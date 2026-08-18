@@ -1,22 +1,32 @@
 #include "PkXmlNode.h"
 
+#include <cstring>
+
 #include "PkXmlAttr.h"
 #include "PkXmlCDATASection.h"
 #include "PkXmlDocument.h"
 #include "PkXmlElement.h"
 #include "PkXmlNodeList.h"
+#include "PkXmlOffsetUtil.h"
 #include "PkXmlText.h"
 
 PkXmlNode::PkXmlNode() = default;
 
 PkXmlNode::PkXmlNode(pugi::xml_node node, std::shared_ptr<pugi::xml_document> doc)
-    : _node(node), _doc(std::move(doc)), _kind(Kind::Node)
+    // R-25 Task 3：构造函数签名保持不变（仍接受基类 shared_ptr<pugi::xml_document>
+    // ——不改任何既有调用点一个字），内部用 static_pointer_cast 存进
+    // shared_ptr<PkXmlDocRoot> 类型的 `_doc` 成员。这个 downcast 是安全的：
+    // 传进来的 doc 永远来自 PkXmlDocument（唯一新建/拥有这块内存的地方，
+    // 见 PkXmlDocument.cpp），那里已经改成 make_shared<PkXmlDocRoot>()——
+    // 每一个流进这个构造函数的 shared_ptr 底层对象都真的是 PkXmlDocRoot。
+    : _node(node), _doc(std::static_pointer_cast<PkXmlDocRoot>(std::move(doc))), _kind(Kind::Node)
 {
 }
 
 PkXmlNode::PkXmlNode(pugi::xml_node ownerNode, pugi::xml_attribute attr,
                       std::shared_ptr<pugi::xml_document> doc)
-    : _node(ownerNode), _attr(attr), _doc(std::move(doc)), _kind(Kind::Attr)
+    : _node(ownerNode), _attr(attr),
+      _doc(std::static_pointer_cast<PkXmlDocRoot>(std::move(doc))), _kind(Kind::Attr)
 {
 }
 
@@ -289,4 +299,58 @@ PkXmlElement PkXmlNode::previousSiblingElement(const PkString &tagName) const
         }
     }
     return PkXmlElement();
+}
+
+// R-25 Task 3：算法与探针实测见 PkXmlOffsetUtil.h + docs/superpowers/plans/
+// R-25.md「探针实测 P15」「设计②」。属性节点、未解析/isNull() 节点恒返 -1
+// ——都是探针 P15 用真实 Qt 5.15.7 实测确认过的行为，不是本任务自己的判断。
+
+int PkXmlNode::lineNumber() const
+{
+    if (_kind == Kind::Attr) {
+        return -1; // 探针 P15：Qt 对属性节点恒返 -1，pugixml 也没有等价的
+                    // 位置概念（xml_attribute 与 xml_node 完全独立，不带
+                    // offset_debug()）。
+    }
+    if (isNull()) {
+        return -1; // 缺失/程序创建但未挂树的空句柄——Qt 恒返 -1。
+    }
+    if (!_doc || _doc->source.empty()) {
+        return -1; // 没有原始字节可换算（比如整棵树是程序 create* 出来的，
+                    // 从没经过 setContent() 解析）。
+    }
+    std::ptrdiff_t off = _node.offset_debug();
+    if (off < 0) {
+        return -1; // 未解析/程序创建的节点：pugixml 恒返 -1，与 Qt 语义在
+                    // 这一点上巧合对齐（探针 P15「created (not parsed)」）。
+    }
+    if (_node.type() == pugi::node_pcdata || _node.type() == pugi::node_cdata) {
+        off = pkXmlAdjustTextOffsetToContentEnd(off, std::strlen(_node.value()));
+    } else {
+        off = pkXmlAdjustElementOffsetToTagClose(_doc->source, off);
+    }
+    return pkXmlOffsetToLine(_doc->source, off);
+}
+
+int PkXmlNode::columnNumber() const
+{
+    if (_kind == Kind::Attr) {
+        return -1;
+    }
+    if (isNull()) {
+        return -1;
+    }
+    if (!_doc || _doc->source.empty()) {
+        return -1;
+    }
+    std::ptrdiff_t off = _node.offset_debug();
+    if (off < 0) {
+        return -1;
+    }
+    if (_node.type() == pugi::node_pcdata || _node.type() == pugi::node_cdata) {
+        off = pkXmlAdjustTextOffsetToContentEnd(off, std::strlen(_node.value()));
+    } else {
+        off = pkXmlAdjustElementOffsetToTagClose(_doc->source, off);
+    }
+    return pkXmlOffsetToColumn(_doc->source, off);
 }
