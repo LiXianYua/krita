@@ -1,0 +1,3 @@
+#pragma once
+#include "../PkSemaphore.h"
+#define QSemaphore PkSemaphore

@@ -24,3 +24,33 @@ inline void qt_noop() {}
 #define Q_ASSERT(cond) assert(cond)
 #define Q_ASSERT_X(cond, where, what) assert(cond)
 #endif
+
+// ----------------------------------------------------------------------
+// Task 4（R-10 主试接）追加：libs/global/kis_lockless_stack.h 与
+// libs/image/tiles3/tests/kis_lockless_stack_test.cpp 这条闭包额外要的
+// 几个 QtGlobal 基础项。都是"哪条线先撞上谁就先垫"的同一批临时安排
+// （见文件头注释），不是新增了一份要长期维护的实现。
+//
+// qint32 系列定长整数别名：kis_lockless_stack.h:159 `qint32 size() const`、
+// 测试文件里的循环变量与求和变量（qint32/qint64）。内容与
+// pk/log/tests/graft/stubs/QtGlobal、pk/config/tests/graft/stubs/QtGlobal
+// 里同名的一份逐字一致（各 graft 任务各自持有自包含副本，不跨任务互相 -I）。
+#include <cstdint>
+using qint32  = std::int32_t;
+using quint32 = std::uint32_t;
+using qint64  = std::int64_t;
+using quint64 = std::uint64_t;
+using qreal   = double;
+
+// kis_lockless_stack.h:213 `Q_DISABLE_COPY(KisLocklessStack)`。真 Qt
+// qglobal.h 的定义就是删拷贝构造与拷贝赋值这两行，这里原样复刻。
+#ifndef Q_DISABLE_COPY
+#define Q_DISABLE_COPY(Class) \
+    Class(const Class &) = delete; \
+    Class &operator=(const Class &) = delete;
+#endif
+
+// kis_lockless_stack_test.cpp `Q_UNUSED(result); // for release build`。
+#ifndef Q_UNUSED
+#define Q_UNUSED(x) (void)(x)
+#endif
