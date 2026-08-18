@@ -9,7 +9,7 @@
 `QXmlStream*`（`PkXmlStreamReader`/`PkXmlStreamWriter`）是 Task 2 的范围，不在
 本目录（本任务只交付 CMake 里 pugixml 的接线，Task 2 复用它但不消费本任务的
 C++ 类型——见线级 plan `docs/superpowers/plans/R-07.md` §0 preflight 的
-Task1→Task2 结论）。
+Task1→Task2 结论）。Task 2 已交付，见文末「Task 2 已知偏离」。
 
 ## 1. 内部表示
 
@@ -127,3 +127,52 @@ pugixml 本身不做命名空间解析（`xmlns:foo="uri"` 被当成普通属性
 没有系统装的 pugixml（`pkg-config --exists pugixml` 实测为假），走
 `FetchContent` 下载 pugixml v1.16 源码编译（不 vendor 进 fork）。若后续 I-02
 之类的步骤把 pugixml 装进依赖前缀，`find_package` 分支自动生效，本文件不用改。
+
+## 5. Task 2 已知偏离（`PkXmlStreamReader`/`PkXmlStreamWriter`/`PkXmlStreamAttributes`）
+
+### 5.1 `PkXmlStreamWriter` 构造函数接 `PkString*`，不是 brief 原始签名的 `PkByteArray*`
+
+与 §2.2 `PkXmlDocument::toByteArray()` 同一个决定，不是重新判断一遍——`PkByteArray`
+本 worktree 未交付，Task 1 交付时已现场确认。
+
+### 5.2 `PkXmlStreamAttributes::hasAttribute()` 是补的接口，不在 brief 的 Interfaces 枚举里
+
+实现前对真实调用点的用量复核发现 `libs/pigment/resources/KoColorSet.cpp`
+（`colorProperties.hasAttribute("RGB")` 等 2 处）与
+`plugins/assistants/Assistants/kis_painting_assistant.cpp`（`xml.attributes()
+.hasAttribute(...)` 共 4 处）都在真实调用 `QXmlStreamAttributes::hasAttribute()`，
+但线级 plan 的方法级用量表把 `hasAttribute | 108` 整行记在 `PkXmlElement`
+名下（疑似把这几处 stream 侧调用点也并进了同一个计数）。按
+`CLAUDE.md`「新发现的缺口直接补进来」原则补上这个方法，不是自创接口——
+详见 `PkXmlStreamAttributes.h` 类注释。
+
+### 5.3 `PkXmlStreamReader` 不消费 Task 1 的 `PkXmlNode`/`PkXmlDocument` 等类型
+
+只复用 pugixml 这个库本身（`#include <pugixml.hpp>`），内部有自己的一份
+`pugi::xml_node → PkString` 转换小工具（`PkXmlStreamReader.cpp` 里的
+`pkStreamFromUtf8`），没有 `#include "PkXmlNode.h"` 去复用它现成的
+`pkXmlFromPugi()`——与本文件顶部「Task 2 复用它但不消费本任务的 C++ 类型」
+的既定范围一致。
+
+### 5.4 `PkXmlStreamReader::raiseError()` 是补的接口，线级 plan 的用量表把它记漏了
+
+线级 plan（`docs/superpowers/plans/R-07.md` 方法级用量表）记
+`raiseError`「实测 0 调用点，不实现」，但现场 `grep -rn raiseError`
+（排除 `pk/xml/`）实测 `libs/pigment/resources/KoColorSet.cpp` 有 **6 处**
+`xml->raiseError(...)`——是漏统计，不是真的没有调用点。按 `CLAUDE.md`
+「新发现的缺口直接补进来，不算改决策」原则补上：调用后
+`hasError()==true`、`errorString()` 是传入的 message、`atEnd()==true`
+（Qt 语义），见 `PkXmlStreamReader.h`/`.cpp` 的实现注释与
+`test_stream_reader.cpp` 的 `raiseErrorSetsErrorStateAndAtEnd` 用例。
+**这条建议主会话核实后同步进 `docs/superpowers/plans/R-07.md` 的用量表**
+（本任务只读该文件，不能自己改）。
+
+### 5.5 `PkXmlStreamWriter`/`PkXmlStreamReader` 都不可拷贝/不可移动
+
+`PkXmlStreamReader` 显式 `= delete` 拷贝与移动构造/赋值——原因见
+`PkXmlStreamReader.h` 类注释（`_doc` 是唯一持有的 `pugi::xml_document` 值，
+真实调用点从不拷贝/移动 `QXmlStreamReader` 实例）。`PkXmlStreamWriter` 没有
+显式 delete，但也没有实现拷贝/移动语义的正确性保证（`_output` 是外部指针、
+`_buf`/`_openElements` 是值成员，默认拷贝/移动能编译但语义上两份 writer 会
+共享同一个 `_output` 目标——真实调用点同样是原地构造使用，未发现需要拷贝/
+移动的场景，暂不处理，若后续试接撞到需要更新本节）。

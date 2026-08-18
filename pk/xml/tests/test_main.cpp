@@ -7,6 +7,8 @@ int run_document_tests(int argc, char **argv);
 int run_element_tests(int argc, char **argv);
 int run_node_tests(int argc, char **argv);
 int run_namespace_tests(int argc, char **argv);
+int run_stream_writer_tests(int argc, char **argv);
+int run_stream_reader_tests(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
@@ -15,5 +17,7 @@ int main(int argc, char **argv)
     rc |= run_element_tests(argc, argv);
     rc |= run_node_tests(argc, argv);
     rc |= run_namespace_tests(argc, argv);
+    rc |= run_stream_writer_tests(argc, argv);
+    rc |= run_stream_reader_tests(argc, argv);
     return rc;
 }

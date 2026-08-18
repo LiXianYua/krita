@@ -1,0 +1,15 @@
+#pragma once
+#include "../PkXmlStreamReader.h"
+
+// 兼容垫片：让真实调用点的 `#include <QXmlStreamReader>` 在**一个字都不改**的
+// 前提下解析到 PkXmlStreamReader。文件名刻意没有扩展名 —— 调用点写的就是
+// <QXmlStreamReader>。
+//
+// 用宏而不是 `using QXmlStreamReader = PkXmlStreamReader;`：本目录内 Task 1
+// 交付的其余 9 个 compat 垫片全部这么写（`QDomDocument`/`QDomNode` 等场景是
+// 因为真实代码里能现场抓到 `class QDomDocument;` 一类前置声明，撞上类型别名
+// 会报 "redeclared as different kind of entity"）。`QXmlStreamReader` 本身在
+// 本 worktree 内没有实测到同样的前置声明用例，但同一目录下的兼容垫片保持
+// 同一种写法，也防御性地兼容以后可能出现的前置声明——宏原样改写
+// `class QXmlStreamReader;` 成 `class PkXmlStreamReader;`，别名做不到这点。
+#define QXmlStreamReader PkXmlStreamReader

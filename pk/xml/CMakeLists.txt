@@ -42,6 +42,8 @@ add_library(pkxml STATIC
     PkXmlNode.cpp
     PkXmlDocument.cpp
     PkXmlElement.cpp
+    PkXmlStreamReader.cpp
+    PkXmlStreamWriter.cpp
 )
 target_include_directories(pkxml PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # PUBLIC 而不是 PRIVATE：pugixml.hpp 直接出现在 PkXmlNode.h（公开头文件）里，
@@ -59,7 +61,9 @@ pk_test_generate(PKXML_BINDERS
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_document.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_element.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_node.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_namespace.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_namespace.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_stream_writer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_stream_reader.h)
 
 add_executable(test_pkxml
     tests/test_main.cpp
@@ -67,6 +71,8 @@ add_executable(test_pkxml
     tests/test_element.cpp
     tests/test_node.cpp
     tests/test_namespace.cpp
+    tests/test_stream_writer.cpp
+    tests/test_stream_reader.cpp
 )
 target_include_directories(test_pkxml PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests
@@ -80,3 +86,7 @@ set_source_files_properties(tests/test_node.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_node.inc")
 set_source_files_properties(tests/test_namespace.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_namespace.inc")
+set_source_files_properties(tests/test_stream_writer.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_stream_writer.inc")
+set_source_files_properties(tests/test_stream_reader.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_stream_reader.inc")

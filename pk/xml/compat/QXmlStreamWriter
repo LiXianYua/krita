@@ -1,0 +1,10 @@
+#pragma once
+#include "../PkXmlStreamWriter.h"
+
+// 兼容垫片：让真实调用点的 `#include <QXmlStreamWriter>` 在**一个字都不改**的
+// 前提下解析到 PkXmlStreamWriter。文件名刻意没有扩展名 —— 调用点写的就是
+// <QXmlStreamWriter>。
+//
+// 用宏而不是 `using`：理由同 compat/QXmlStreamReader ——本目录写法一致，且
+// 防御性地兼容以后可能出现的 `class QXmlStreamWriter;` 前置声明。
+#define QXmlStreamWriter PkXmlStreamWriter

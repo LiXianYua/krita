@@ -1,0 +1,11 @@
+#pragma once
+#include "../PkXmlStreamAttributes.h"
+
+// 兼容垫片：让真实调用点的 `#include <QXmlStreamAttributes>` 在**一个字都不
+// 改**的前提下解析到 PkXmlStreamAttributes。文件名刻意没有扩展名 —— 调用点
+// 写的就是 <QXmlStreamAttributes>（`libs/pigment/resources/KoColorSet.cpp`
+// 第 32 行就是这么 include 的）。
+//
+// 用宏而不是 `using`：理由同 compat/QXmlStreamReader ——本目录写法一致，且
+// 防御性地兼容以后可能出现的 `class QXmlStreamAttributes;` 前置声明。
+#define QXmlStreamAttributes PkXmlStreamAttributes
