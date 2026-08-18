@@ -7,10 +7,10 @@
 #ifndef KISRECTSCOLLISIONSTRACKER_H
 #define KISRECTSCOLLISIONSTRACKER_H
 
-#include <QList>
-#include <QRect>
-#include <QMutex>
-#include <QMutexLocker>
+#include <mutex>
+
+#include "PkList.h"
+#include "PkRect.h"
 
 #include "kis_assert.h"
 
@@ -19,15 +19,15 @@ class KisRectsCollisionsTracker
 {
 public:
 
-    void startAccessingRect(const QRect &rc) {
-        QMutexLocker l(&m_mutex);
+    void startAccessingRect(const PkRect &rc) {
+        std::lock_guard<std::mutex> l(m_mutex);
 
         checkUniqueAccessImpl(rc, "start");
         m_rectsInProgress.append(rc);
     }
 
-    void endAccessingRect(const QRect &rc) {
-        QMutexLocker l(&m_mutex);
+    void endAccessingRect(const PkRect &rc) {
+        std::lock_guard<std::mutex> l(m_mutex);
         const bool result = m_rectsInProgress.removeOne(rc);
         KIS_SAFE_ASSERT_RECOVER_NOOP(result);
         checkUniqueAccessImpl(rc, "end");
@@ -35,11 +35,15 @@ public:
 
 private:
 
-    bool checkUniqueAccessImpl(const QRect &rect, const QString &tag) {
+    bool checkUniqueAccessImpl(const PkRect &rect, const char *tag) {
 
-        Q_FOREACH (const QRect &rc, m_rectsInProgress) {
+        for (const PkRect &rc : m_rectsInProgress) {
             if (rc != rect && rect.intersects(rc)) {
-                ENTER_FUNCTION() << "FAIL: concurrent access from" << rect << "to" << rc << tag;
+                ENTER_FUNCTION() << "FAIL: concurrent access from"
+                                 << rect.x() << rect.y() << rect.width() << rect.height()
+                                 << "to"
+                                 << rc.x() << rc.y() << rc.width() << rc.height()
+                                 << tag;
                 return false;
             }
         }
@@ -48,8 +52,8 @@ private:
     }
 
 private:
-    QList<QRect> m_rectsInProgress;
-    QMutex m_mutex;
+    PkList<PkRect> m_rectsInProgress;
+    std::mutex m_mutex;
 };
 
 #endif // KISRECTSCOLLISIONSTRACKER_H
