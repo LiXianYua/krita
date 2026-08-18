@@ -12,6 +12,7 @@ add_library(pkconcurrent STATIC
     PkThreadPool.cpp
     PkThread.cpp
     PkSemaphore.cpp
+    PkThreadCallQueue.cpp
 )
 target_include_directories(pkconcurrent PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(pkconcurrent PUBLIC Threads::Threads)
@@ -26,7 +27,8 @@ pk_test_generate(PKCONCURRENT_BINDERS
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_rwlock.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_atomic.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_threadpool.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_semaphore.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_semaphore.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_threadqueue.h)
 
 add_executable(test_pkconcurrent
     tests/test_main.cpp
@@ -35,6 +37,7 @@ add_executable(test_pkconcurrent
     tests/test_atomic.cpp
     tests/test_threadpool.cpp
     tests/test_semaphore.cpp
+    tests/test_threadqueue.cpp
 )
 target_include_directories(test_pkconcurrent PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests
@@ -50,3 +53,5 @@ set_source_files_properties(tests/test_threadpool.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_threadpool.inc")
 set_source_files_properties(tests/test_semaphore.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_semaphore.inc")
+set_source_files_properties(tests/test_threadqueue.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_threadqueue.inc")

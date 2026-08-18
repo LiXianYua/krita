@@ -1,6 +1,8 @@
 #include "PkThread.h"
 #include <thread>
 #include <algorithm>
+#include <atomic>
+#include <cassert>
 
 int PkThread::idealThreadCount() {
     unsigned int n = std::thread::hardware_concurrency();
@@ -11,4 +13,34 @@ int PkThread::idealThreadCount() {
     //   threadCount = threadCount > 0 ? threadCount : 1;
     // 所以这里直接返回 0（触发调用点的兜底分支），不必额外造一个 -1 值。
     return static_cast<int>(n);
+}
+
+namespace {
+struct MainThreadState {
+    std::atomic<bool> registered{false};
+    PkThreadId id{};
+};
+MainThreadState& mainThreadState() {
+    static MainThreadState s;
+    return s;
+}
+}
+
+PkThreadId PkThread::currentThreadId() {
+    return std::this_thread::get_id();
+}
+
+void PkThread::registerMainThread() {
+    auto& s = mainThreadState();
+    PkThreadId me = std::this_thread::get_id();
+    bool wasRegistered = s.registered.exchange(true);
+    if (wasRegistered) {
+        assert(s.id == me && "registerMainThread() called from a different thread than the first registration");
+        return;
+    }
+    s.id = me;
+}
+
+PkThreadId PkThread::mainThreadId() {
+    return mainThreadState().id;
 }
