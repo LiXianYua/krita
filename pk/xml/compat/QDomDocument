@@ -1,0 +1,12 @@
+#pragma once
+#include "../PkXmlDocument.h"
+#include "QDomNode"
+
+// 兼容垫片：让真实调用点的 `#include <QDomDocument>` 在一个字都不改的前提下
+// 解析到 PkXmlDocument。文件名刻意没有扩展名 —— 调用点写的就是 <QDomDocument>。
+// 同时把 <QDomNode> 一并拉进来：真实调用点常常 `#include <QDomDocument>` 之后
+// 就直接用 QDomNode（没有单独 include），Qt 的 <QDomDocument> 头本身也是
+// QDomNode 一族的入口。
+//
+// 用宏而不是 `using`：理由与 pk/string/compat/QString 相同——前置声明兼容。
+#define QDomDocument PkXmlDocument
