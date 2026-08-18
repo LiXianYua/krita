@@ -133,28 +133,38 @@ inline bool pkStringContains(const PkString &s, const PkString &needle, PkCaseSe
 
 // 把 s 里所有的 before 换成 after。
 //
-// **`before` 为空时原样返回。** Qt 的 QString::replace("", after) 会把 after
-// 插到每个字符之间和首尾，那是个没有调用点的畸形边界；这里不猜它的确切规则，
-// 明确定成 no-op 并在单测里钉住。唯一的 replaceInStrings 调用点
-// （KisDlgImportVideoAnimation.cpp:246）传的是字面量 "output_"，走不到这条。
+// **`before` 为空时**：真 Qt 5.15.7 实测（探针见
+// docs/superpowers/plans/R-23.md「探针实测」一节），把 `after` 插到 s 的每一个
+// UTF-16 码元之间以及首尾，插入点数 = size()+1，**与某个码元是不是落在代理对
+// 内部无关**——Qt 本身按码元位置操作，不做代理对判断，本实现照此对齐。
+// `cs`（大小写敏感性）对这条分支不起作用：没有东西可比较（探针用例 8 证实）。
 inline PkString pkStringReplaceAll(const PkString &s, const PkString &before,
                                    const PkString &after, PkCaseSensitivity cs)
 {
     const int n = s.size();
     const int bn = before.size();
-    if (bn == 0 || bn > n) {
+    if (bn == 0) {
+        PkString out;
+        for (int i = 0; i < n; ++i) {
+            out += after;
+            out += s.mid(i, 1);
+        }
+        out += after;
+        return out;
+    }
+    if (bn > n) {
         return s;
     }
 
-    PkString out;
+    PkString res;
     int i = 0;
-    int runStart = 0;   // 尚未搬进 out 的那段「原样保留」的起点
+    int runStart = 0;
     while (i + bn <= n) {
         if (pkStringMatchesAt(s, i, before, cs)) {
             if (i > runStart) {
-                out += s.mid(runStart, i - runStart);
+                res += s.mid(runStart, i - runStart);
             }
-            out += after;
+            res += after;
             i += bn;
             runStart = i;
         } else {
@@ -162,9 +172,9 @@ inline PkString pkStringReplaceAll(const PkString &s, const PkString &before,
         }
     }
     if (runStart < n) {
-        out += s.mid(runStart, n - runStart);
+        res += s.mid(runStart, n - runStart);
     }
-    return out;
+    return res;
 }
 
 // 单个 UTF-16 码元 → PkString。join(char16_t) 要用。
