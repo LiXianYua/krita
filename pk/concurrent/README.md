@@ -25,7 +25,7 @@
 | 10 | `QRunnable` 可运行任务 | 3 处 | `PkRunnable::run()` / `setAutoDelete()` / `autoDelete()` | 虚方法；`QThreadPool::start()` 接收其指针 |
 | 11 | `QWaitCondition` 条件变量 | 3 处 | `PkWaitCondition::wait(PkMutex*)` / `wakeOne()` / `wakeAll()` | Qt 语义：`wait()` 内解锁-等待-重新加锁 |
 | 12 | `QSemaphore` 信号量 | 3 处 | `PkSemaphore::acquire()` / `tryAcquire(int,int)` / `release()` | C++17 自写（std::counting_semaphore 是 C++20） |
-| 13 | `QThread::moveToThread()` + 事件循环残余 | ~196 处（24+172） | **不交付，归后续任务** | 见下表缺口登记 |
+| 13 | `QThread::moveToThread()` + 事件循环残余 | 119 处（24+95） | **不交付，归后续任务** | 见下表缺口登记 |
 
 ### 交付的公开类型与入口
 
@@ -123,12 +123,12 @@ BlockingQueued 不再退化为 Direct）。
 类型未端口化 8 个、其他未交付依赖（`kundo2command.h`、boost）2 个。
 
 **`deleteLater()` 不在本次交付范围**——它需要"延迟删除队列"的 flush 时机，
-与"172 处事件循环残余"里的架构方向是同一个问题（见 §4.2），R-24 没有实现，
+与"95 处事件循环残余"里的架构方向是同一个问题（见 §4.2），R-24 没有实现，
 `PkObject` 目前没有 `deleteLater()` 方法；这 24 处 `moveToThread` 调用点本身
 不依赖 `deleteLater()`（`moveToThread` 只是打线程标记，`deleteLater()` 是
 另一个独立方法）。
 
-### 4.2 事件循环残余（~172 处，架构待拍板）
+### 4.2 事件循环残余（95 处，架构待拍板）
 
 | 缺口 | 数字 | 示例位置 | 理由 | 建议归口 |
 |---|---|---|---|---|
@@ -169,11 +169,15 @@ NEW-I2；本仓 `pk/concurrent`/`pk/signal` 两边的既有跨线程测试基本
 "预热"因此不是可选的性能优化，是避免这条永久挂起路径的唯一手段。详见
 `PkThreadCallQueue.h` 类头注释。
 
-**统计口径**：按 `docs/Qt替代品选型.md` §6.8 的原始扫描结果；合计约 172 处（按 Q-8 原始表）。
-`Qt替代品选型.md` §6.8 正文（R37 复核后）实际写的是 95 处，两个数字口径不同
-（172 是复核前的旧数字），这条差异已经在 R-24 plan 的「待报告给主会话的事实
-差异」一节登记，这里不裁决哪个对，只提醒读者别直接拿 172 当权威数字用
-（final whole-branch review M-6）。
+**统计口径（已裁决，2026-08-18，主会话）**：**95 处是权威数字**——
+`docs/Qt替代品选型.md` §6.8 正文（R37 复核后）的结论，早先"172"是复核前的
+旧数字，出自本表下面按类目分列的粗估（`QTimer` ~40 + `QCoreApplication`
+~25 + `deleteLater` ~50 + `processEvents` ~20 + `postEvent`/`QEventLoop`
+~37），跟 95 的分类口径不是一一对应（95 的分类是 `QTimer` 25 /
+`QCoreApplication` 42 / `deleteLater` 15 / `processEvents` 8 / `postEvent`
+4 / `QEventLoop` 1）。**下面按类目的分列数字尚未按 95 这个基线重新核实**，
+谁先碰这批残余谁现场重数，不要直接拿本表任何一行当权威值用
+（final whole-branch review M-6 的后续裁决）。
 
 **为何不在 R-10 实现**：
 - 核心方法（尤其 `deleteLater()`）与 `PkObject` 生命周期强耦合，前置同上
