@@ -375,11 +375,46 @@ void PkStringListTest::replaceInStringsRewritesInPlace()
     PK_COMPARE(shortEl.at(0), PkString("a"));
     PK_COMPARE(shortEl.at(1), PkString(""));
 
-    // before 为空串：本实现定成 no-op（Qt 在这里会把 after 插到每个字符之间，
-    // 但那是个没有调用点的畸形边界，不猜它的确切规则）。钉住现状。
+    // before 为空串：对齐 Qt 5.15.7 实测——把 after 插到每个 UTF-16 码元之间
+    // 以及首尾（"abc" 3 个码元 → 4 个插入点）。探针见
+    // docs/superpowers/plans/R-23.md「探针实测」，用例 1/2 的规律在这里是
+    // "abc" → "ZaZbZcZ"。
     PkStringList emptyBefore{"abc"};
     emptyBefore.replaceInStrings(PkString(""), PkString("Z"));
-    PK_COMPARE(emptyBefore.at(0), PkString("abc"));
+    PK_COMPARE(emptyBefore.at(0), PkString("ZaZbZcZ"));
+
+    // 空元素：探针用例 3，''.replace('','b') == 'b'（不是继续保持空）。
+    PkStringList emptyElem{""};
+    emptyElem.replaceInStrings(PkString(""), PkString("Z"));
+    PK_COMPARE(emptyElem.at(0), PkString("Z"));
+
+    // after 也是空串：探针用例 4，结果可见地等于原串。
+    PkStringList emptyBoth{"ab"};
+    emptyBoth.replaceInStrings(PkString(""), PkString(""));
+    PK_COMPARE(emptyBoth.at(0), PkString("ab"));
+
+    // 代理对回归：🎨 = U+1F3A8，UTF-16 是 0xD83C 0xDFA8 两个码元。
+    // before 为空串时 Qt 会把 after 插进代理对中间（探针用例 5b/9b），本实现
+    // 对代理对不做特判、纯按码元位置操作，天然产生同样的结果。用 PkToU16()
+    // 直接比码元序列，避免结果本身是病态 UTF-16 时 PkToUtf8() 的转换行为
+    // 混进断言里。
+    {
+        PkStringList emoji{PkString::PkFromUtf8("\xF0\x9F\x8E\xA8", 4)};   // "🎨"
+        emoji.replaceInStrings(PkString(""), PkString("X"));
+        const std::u16string got = emoji.at(0).PkToU16();
+        const std::u16string want = {u'X', 0xD83C, u'X', 0xDFA8, u'X'};
+        PK_VERIFY(got == want);
+    }
+
+    // 代理对夹在普通字符中间：探针用例 9b，"a"+🎨+"b" → "-a-<D83C>-<DFA8>-b-"。
+    {
+        PkStringList mixedEmoji{PkString::PkFromUtf8("a\xF0\x9F\x8E\xA8""b", 6)};
+        mixedEmoji.replaceInStrings(PkString(""), PkString("-"));
+        const std::u16string got = mixedEmoji.at(0).PkToU16();
+        const std::u16string want =
+            {u'-', u'a', u'-', 0xD83C, u'-', 0xDFA8, u'-', u'b', u'-'};
+        PK_VERIFY(got == want);
+    }
 
     // 不区分大小写
     PkStringList ci{"HeLLo"};
