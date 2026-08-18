@@ -84,16 +84,14 @@ PkString& PkString::operator+=(const PkString& other)
     if (other.isEmpty()) {
         return *this;
     }
-    if (_d.PkIsSharedWith(other._d)) {
-        // 自我追加：先把源拷出来，否则 detach/insert 会在自己的缓冲区上迭代
-        const std::vector<char16_t> src = other._cbuf();
-        std::vector<char16_t>& buf = _data();
-        buf.insert(buf.end(), src.begin(), src.end());
-    } else {
-        const std::vector<char16_t>& src = other._cbuf();
-        std::vector<char16_t>& buf = _data();
-        buf.insert(buf.end(), src.begin(), src.end());
-    }
+    // 自我追加（this 与 other 共享同一份底层缓冲区）必须先把源拷出来，否则
+    // detach/insert 会在自己正在扩容的缓冲区上迭代；非自我追加时直接引用，
+    // 不必多拷一次。两条分支最终都是同一句 insert，只在“要不要先拷贝”上有别。
+    const bool selfAppend = _d.PkIsSharedWith(other._d);
+    const std::vector<char16_t> copied = selfAppend ? other._cbuf() : std::vector<char16_t>();
+    const std::vector<char16_t>& src = selfAppend ? copied : other._cbuf();
+    std::vector<char16_t>& buf = _data();
+    buf.insert(buf.end(), src.begin(), src.end());
     return *this;
 }
 

@@ -7,6 +7,8 @@ namespace {
 // 全部按 UTF-16 码元下标操作：不做 Unicode 规范化、不做 locale 感知比较。
 // 选型文档实测 localeAwareCompare / toCaseFolded / QCollator / NormalizationForm
 // 在 Krita 核心里各 0 处用量，实现它们是 10 倍工作量买 0 收益。
+// 对齐真实 Qt QChar::isSpace() 的完整 Unicode White_Space 集合，不只是
+// ASCII+NBSP（R-13 背景 ③）——trimmed() 靠这份表判断该从两端剥掉哪些码元。
 bool pkIsSpace(char16_t c)
 {
     switch (c) {

@@ -29,8 +29,8 @@
 #
 # R-13 Task 5 顺带发现并修复：KoProgressProxy.{h,cpp} 已被 D-005（提交 f531d07，
 # 在本分支 base 历史里）从 libs/widgetutils 搬到了 libs/global——本脚本原先仍
-# 引用旧路径 libs/widgetutils/KoProgressProxy.cpp，该文件已不存在，试接目标从
-# R-01 建立以来这条一直是失败的（未被后续任务发现）。已改成新路径
+# 引用旧路径 libs/widgetutils/KoProgressProxy.cpp，该文件已不存在，试接目标自
+# D-005 落地后这条一直是失败的（未被后续任务发现）。已改成新路径
 # libs/global/KoProgressProxy.cpp，并新增 stubs/kritaglobal_export.h（搬到
 # libs/global 后头文件用的导出宏从 KRITAWIDGETUTILS_EXPORT 换成了
 # KRITAGLOBAL_EXPORT，原有 kritawidgetutils_export.h 不再覆盖）。
