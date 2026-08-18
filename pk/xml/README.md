@@ -919,3 +919,97 @@ I3 原始问题陈述认为"6 处真实调用点用 `QDomDocument::ParseResult` 
 改动对现有交付面是纯增量，不是破坏性改名。测试见 `tests/test_stream_reader.cpp`
 的 `attributesAtIndexNameAndValue`。`PkXmlStreamAttributes.h` 头注释已改正
 （不再声称"没有下标遍历写法"）。
+
+## 12. R-25：补 §11.2/§11.3 登记但未实现的三组真实调用点
+
+任务实施计划：`docs/superpowers/plans/R-25.md`（含全部探针原始输出）。三个
+Task 各自的完整实施报告在 `.superpowers/sdd/R-25/task-{1,2,3}-report.md`
+（worktree 内，随任务收尾清理，不入版控，本节是永久记录）。
+
+### 12.1 `importNode()`——已实现
+
+`PkXmlDocument::importNode(const PkXmlNode &importedNode, bool deep)`：
+`deep=true` 用 `append_copy()` 深拷贝（探针实测：即便同文档内调用也是拷贝，
+不是"移动"，源节点不受影响）；`deep=false` 只拷贝节点自身+属性，不拷贝
+子节点；传入 null 节点返回 null。返回值挂在 limbo 容器（未挂树），跟
+`createElement()` 同一套语义，调用方需自己 `appendChild()`。
+
+真实调用点 `psd_layer_section.cpp:596`/`kis_kra_loader.cpp` 6 处全部
+`deep=true`；`libs/pigment`/`libs/image` 整条依赖链不在 `pk/xml` 的 `locks`
+范围内（撞 `kritapigment_export.h` 等 CMake 生成头缺失），无法零改动编译
+真实测试类，降级为逐字复刻调用形状的内部 graft 试接（候选 C，
+`tests/graft/graft_run_c.sh`）。
+
+### 12.2 `setContent` 三个重载家族——两个已实现，一个只钉形状
+
+- **`setContent(PkStream*, ...)` ×2 形状**：`PkStream`（`pk/port`，R-12 交付）
+  是 `QIODevice` 的零 Qt 对应物，`pk/port/compat/QIODevice` 已把两者映射钉好
+  ——本任务直接复用，不是新设计。循环 `PkStream::read()` 读到 EOF，字节直接
+  喂 pugixml（不经 `PkString` 中转，保留 pugixml 自身的编码自动探测，对齐
+  探针实测的"尊重 XML 声明 encoding"行为）。`pk/xml` 库直接编译
+  `../port/PkStream.cpp`（不 `add_subdirectory`，避免拖入 `pk/port` 自己的
+  `pkzip`/`FetchContent(minizip-ng)` 依赖链）。真实调用点
+  `kis_liquify_transform_worker_test.cpp` 的 `getWorkerFromIODeviceXml` 确认
+  非死代码（`testMaskRendering()` 会调用到），但整份测试文件的依赖链撞
+  `libs/image`+`libs/pigment`+第三方 `quazip` 的同一堵墙，降级为候选 D 形状
+  试接（`tests/graft/graft_run_d.sh`）。
+- **`setContent(PkXmlStreamReader*, bool, ...)` 形状**：**有意打破**
+  Task 2（R-07）"DOM/Stream 两侧不互相消费对方类型"的范围决策——那是"当时
+  用量表 0 调用点"下的决定，本任务的真实调用点（`SvgParser.cpp:201`）逼出
+  跨越需求，按"新发现的缺口直接补进来"处理。实现是一个"流转 DOM"构建器：
+  循环 `reader->readNext()`，按 `tokenType()` 建 `createElement()`/
+  `createTextNode()` 并挂树。真实调用点所在测试家族
+  （`TestSvgParser.cpp`/`TestSvgText.cpp`）在 R-07 Task 4 已判定"依赖闭包
+  巨大，拒绝"，本任务未重新挑战，改用形状对齐的内部往返测试自证（不是
+  规避判据，是照抄 R-07 Task 4 自己承认过一次的同款弱点处理方式）。
+- **`setContent(const PkByteArray&, ...)`——只声明不定义**：`QByteArray`
+  是真 Qt 类型，`pk/container/` 没有 `QByteArray` compat 映射（`PkByteArray`
+  归 R-02，尚未交付），本任务 `locks` 只有 `pk/xml`，不能去
+  `pk/container/compat/` 建映射——**这是范围边界，不是没做完**。照抄
+  `pk/port/PkStream.h` 自己的先例（`readAll()`/`peek()`/`readLine()` 三个
+  返回 `PkByteArray` 的方法同样"只声明不定义"），前置声明
+  `class PkByteArray;`（pk 世界的类型，不是真 Qt `QByteArray`），钉住形状，
+  链接期报 `undefined reference` 是预期行为。真实调用点
+  `KoColorSet.cpp:1918` 要等 R-02 交付 `PkByteArray` **并且**有任务在
+  `pk/container/compat/` 建映射，两个条件都满足才能验证，不在本任务判据②
+  范围内。
+
+### 12.3 `lineNumber()`/`columnNumber()`——已实现
+
+**核心发现（探针实测，不是文档推断）**：pugixml 的 `offset_debug()` 给的是
+节点*起始*位置（元素落在标签名开头，文本落在内容开头），而 Qt 的
+`QDomNode::lineNumber()`/`columnNumber()` 报的是这个节点*被完整识别那一刻*
+的位置——元素落在自己开始标签的闭合处（普通标签是 `>`，自闭合标签是 `/`，
+不是 `>`），文本节点落在内容读完之后。两者不是同一个位置，需要一个"从起始
+位置向前扫到闭合处"的换算算法（`PkXmlOffsetUtil.h`/`.cpp` 新增的
+`pkXmlAdjustElementOffsetToTagClose`/`pkXmlAdjustTextOffsetToContentEnd`）。
+属性节点（`Kind::Attr`）与未解析/孤儿/`isNull()` 节点，Qt 恒返 `-1`，探针
+确认，直接透传判断，零额外算法。
+
+存储实现：`PkXmlDocRoot : public pugi::xml_document` 只多一个
+`std::string source` 字段，`PkXmlNode::_doc` 类型从
+`shared_ptr<pugi::xml_document>` 改成 `shared_ptr<PkXmlDocRoot>`——公开继承
+让既有全部 `_doc->...`/`*_doc` 用法不用改一个字，是本设计**唯一**改动的
+既有类型声明。
+
+`PkXmlStreamReader` 新增同名方法，跟 DOM 侧共用同一套 `PkXmlOffsetUtil`
+换算算法——覆盖两个真实调用点用到的场景（构造期解析失败、
+`readNextStartElement()` 后立即查），其余 `tokenType()` 下按同一算法尽力
+而为、未逐一探针验证，是已知的窄覆盖（真实调用点只用到这两种场景）。**顺带
+接上了 Task 2 遗留的缺口**：`setContent(PkXmlStreamReader*, ...)` 现在会用
+新增的 `lineNumber()`/`columnNumber()` 填充调用方传入的 `errorLine`/
+`errorColumn` 指针。
+
+真实调用点 `KoColorSet.cpp` 的 `loadXml()`/`loadSbzSwatchbook()`——现场核实
+发现计划设想的"`TestKoColorSet.cpp` 编译期证据"路径不成立（`kis_add_tests`
+用 `LINK_LIBRARIES kritapigment` 链接预构建库，不是把 `KoColorSet.cpp` 源码
+编进测试可执行文件），直接 `-fsyntax-only` 试接同样撞
+`kritapigment_export.h`/KF5::I18n 依赖墙，降级为候选 E 形状试接
+（`tests/graft/graft_run_e.sh`，逐字复刻两处真实调用点，`UNKNOWNROOT` 场景
+精确复现探针 `line=1 col=22`）。
+
+### 12.4 验证
+
+`nm -u -C build/libpkxml.a | grep -i qt` 三个 Task 各自验证均无输出。
+`test_pkxml` 从 R-07 交付的 46 个用例累计到 **59 passed, 0 failed, 0
+skipped**（Task 1 +4、Task 2 +5、Task 3 +8）。
