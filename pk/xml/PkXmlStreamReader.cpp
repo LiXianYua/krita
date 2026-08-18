@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "PkXmlOffsetUtil.h"
+
 namespace {
 
 // utf8 -> PkString。刻意不 #include PkXmlNode.h 复用它现成的
@@ -19,11 +21,13 @@ PkString pkStreamFromUtf8(const char *utf8)
 
 PkXmlStreamReader::PkXmlStreamReader(const PkString &data)
 {
-    const std::string utf8 = data.PkToUtf8();
+    // R-25 Task 3：局部变量改存成员 `_sourceUtf8`——lineNumber()/columnNumber()
+    // 换算需要在对象生命周期内随时访问原始字节，不能只是构造函数里的临时量。
+    _sourceUtf8 = data.PkToUtf8();
     // parse_default | parse_doctype：与 Task 1 PkXmlDocument::setContent 同一套
     // 解析标志（README §2.5），保持两边对同一份输入的解析行为一致。
-    const pugi::xml_parse_result result =
-        _doc.load_buffer(utf8.data(), utf8.size(), pugi::parse_default | pugi::parse_doctype);
+    const pugi::xml_parse_result result = _doc.load_buffer(
+        _sourceUtf8.data(), _sourceUtf8.size(), pugi::parse_default | pugi::parse_doctype);
 
     _parsedOk = static_cast<bool>(result);
     if (!_parsedOk) {
@@ -34,6 +38,12 @@ PkXmlStreamReader::PkXmlStreamReader(const PkString &data)
         // atEnd() 恒为 true，readNext() 之后不再变化。
         _tokenType = Invalid;
         _atEnd = true;
+        // R-25 Task 3：记住 pugixml 报告的字节偏移，供 lineNumber()/
+        // columnNumber() 换算——与 PkXmlDocument::setContentImpl 失败分支
+        // 同一套算法（PkXmlOffsetUtil.h），构造失败是冻结状态，这个偏移量
+        // 终生不变。
+        _errorOffset = result.offset;
+        _constructionFailed = true;
         return;
     }
 
@@ -201,4 +211,40 @@ PkXmlStreamReader::TokenType PkXmlStreamReader::readNext()
     _attributes = PkXmlStreamAttributes();
     _stack.pop_back();
     return _tokenType;
+}
+
+// R-25 Task 3：两个场景——构造期解析失败 / 正常状态下取当前 Frame 的元素——
+// 精确覆盖探针 P16 验证过的真实调用点用法，见头文件声明处的注释与
+// docs/superpowers/plans/R-25.md「探针实测 P16」。`raiseError()` 不改变这里
+// 计算出的值：它只翻转 `_hasError`/`_atEnd`/`_tokenType`（见 raiseError()
+// 实现），不触碰 `_stack`，所以 lineNumber()/columnNumber() 依旧反映
+// raiseError() 之前最后一次成功 readNext() 停留的位置——与 P16 探针"raiseError
+// 之后 line/col 不变"的结论自然对齐，不需要额外分支处理。
+
+int PkXmlStreamReader::lineNumber() const
+{
+    std::ptrdiff_t off = -1;
+    if (_constructionFailed) {
+        off = _errorOffset;
+    } else if (!_stack.empty()) {
+        off = pkXmlAdjustElementOffsetToTagClose(_sourceUtf8, _stack.back().element.offset_debug());
+    }
+    if (off < 0) {
+        return -1;
+    }
+    return pkXmlOffsetToLine(_sourceUtf8, off);
+}
+
+int PkXmlStreamReader::columnNumber() const
+{
+    std::ptrdiff_t off = -1;
+    if (_constructionFailed) {
+        off = _errorOffset;
+    } else if (!_stack.empty()) {
+        off = pkXmlAdjustElementOffsetToTagClose(_sourceUtf8, _stack.back().element.offset_debug());
+    }
+    if (off < 0) {
+        return -1;
+    }
+    return pkXmlOffsetToColumn(_sourceUtf8, off);
 }

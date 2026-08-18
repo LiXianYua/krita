@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+#include <string>
 #include <vector>
 
 #include <pugixml.hpp>
@@ -74,6 +76,17 @@ public:
     PkString text() const { return _text; }
     PkXmlStreamAttributes attributes() const { return _attributes; }
 
+    // R-25 Task 3：QXmlStreamReader::lineNumber()/columnNumber() 的零 Qt
+    // 对应物。两个场景精确对齐真实调用点用法（探针 P16，
+    // docs/superpowers/plans/R-25.md）：①构造期解析失败——复用构造函数已经
+    // 算过的 `result.offset`；②`readNextStartElement()` 找到 StartElement
+    // 后立即查——取当前 Frame::element 的 offset_debug()，跟 DOM 侧
+    // `PkXmlNode::lineNumber()` 共用同一个"扫到标签闭合处"算法
+    // （PkXmlOffsetUtil.h）。其余 tokenType 下按同一算法尽力而为，不专门
+    // 验证——真实调用点只用到这两种场景。
+    int lineNumber() const;
+    int columnNumber() const;
+
 private:
     struct Frame {
         pugi::xml_node element;
@@ -88,6 +101,17 @@ private:
     bool _parsedOk = false;
     bool _hasError = false;
     PkString _errorString;
+
+    // R-25 Task 3：构造函数里解析用的 utf8 字节，原来是局部变量，改存成员——
+    // lineNumber()/columnNumber() 的 offset→行列换算需要访问原始字节，跟
+    // PkXmlDocument::_doc->source 是同一个道理（PkXmlNode.h 顶部 PkXmlDocRoot
+    // 注释）。
+    std::string _sourceUtf8;
+    // 构造期解析失败时 pugixml 报告的字节偏移（`result.offset`）——只在那个
+    // 分支里赋值，之后终生不变（构造失败是冻结状态，见类头部"不可拷贝/不可
+    // 移动"注释旁的语义约定）。
+    std::ptrdiff_t _errorOffset = -1;
+    bool _constructionFailed = false;
 
     bool _started = false; // 第一次 readNext() 之前
     bool _atEnd = false;

@@ -204,6 +204,50 @@ void TestStreamReader::attributesAtIndexNameAndValue()
     PK_COMPARE(attrs.at(1).value(), PkString("2"));
 }
 
+void TestStreamReader::lineNumberColumnNumberAfterConstructionFailureReusesDomOffsetAlgorithm()
+{
+    // 复用 malformedXmlReportsError 同一个探针输入（DOM 侧
+    // TestDocument::setContentReportsErrorOnMalformedXml 已验证
+    // offset=11 → line=1 col=12，见 pk/xml/README.md §2.3）——Stream 侧构造期
+    // 失败复用同一套换算算法（PkXmlOffsetUtil.h），必须得到一致的数值。
+    PkXmlStreamReader xml(PkString("<root><a></root>"));
+    PK_VERIFY(xml.hasError());
+    PK_COMPARE(xml.lineNumber(), 1);
+    PK_COMPARE(xml.columnNumber(), 12);
+}
+
+void TestStreamReader::lineNumberColumnNumberAfterReadNextStartElementMatchesProbeP16()
+{
+    // 探针 P16 第二组：复刻 KoColorSet.cpp loadXml() 的确切场景——
+    // readNextStartElement() 找到根元素名后立即查 line/col。输入
+    // `<UNKNOWNROOT attr='1'>...`，22 恰好是 `<UNKNOWNROOT attr='1'>` 的
+    // 字符数，Qt 实测 line=1 col=22（落在开始标签闭合的 '>' 上）。
+    PkXmlStreamReader xml(PkString("<UNKNOWNROOT attr='1'></UNKNOWNROOT>"));
+    PK_VERIFY(xml.readNextStartElement());
+    PK_COMPARE(xml.name(), PkString("UNKNOWNROOT"));
+    PK_COMPARE(xml.lineNumber(), 1);
+    PK_COMPARE(xml.columnNumber(), 22);
+}
+
+void TestStreamReader::lineNumberColumnNumberUnaffectedByRaiseError()
+{
+    // 探针 P16：raiseError() 不改变 line/col——它只翻转
+    // hasError()/atEnd()/tokenType()（见 raiseError() 实现），不触碰内部
+    // 游标栈，line/col 依旧反映报错前最后一次成功 readNext() 的位置。
+    PkXmlStreamReader xml(PkString("<root a=\"1\"><child/></root>"));
+    PK_COMPARE(static_cast<int>(xml.readNext()),
+               static_cast<int>(PkXmlStreamReader::StartDocument));
+    PK_COMPARE(static_cast<int>(xml.readNext()),
+               static_cast<int>(PkXmlStreamReader::StartElement)); // root, a="1"
+    PK_COMPARE(xml.lineNumber(), 1);
+    PK_COMPARE(xml.columnNumber(), 12);
+
+    xml.raiseError("boom");
+    PK_VERIFY(xml.hasError());
+    PK_COMPARE(xml.lineNumber(), 1);
+    PK_COMPARE(xml.columnNumber(), 12);
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_stream_reader.inc"

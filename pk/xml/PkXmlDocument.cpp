@@ -219,14 +219,10 @@ bool PkXmlDocument::setContent(PkStream *device, bool namespaceProcessing, PkStr
 bool PkXmlDocument::setContent(PkXmlStreamReader *reader, bool namespaceProcessing,
                                 PkString *errorMsg, int *errorLine, int *errorColumn)
 {
-    // 本重载不产出行列号——PkXmlStreamReader::lineNumber()/columnNumber() 是
-    // R-25 Task 3 才交付的能力，Task 2 交付时还没有（本 commit 只做 Task 3 的
-    // PkXmlDocRoot/offset 工具基础设施，lineNumber()/columnNumber() 的具体接线
-    // 留到 Task 3 Stream 侧那个 commit，那时 PkXmlStreamReader::lineNumber()
-    // 才存在）。真实调用点 SvgParser.cpp:201 的调用形状允许 errorLine/
-    // errorColumn 为非空指针，这里保持指针形参对齐签名，但暂不写入值。
-    (void)errorLine;
-    (void)errorColumn;
+    // R-25 Task 3：本重载现在产出行列号——PkXmlStreamReader::lineNumber()/
+    // columnNumber() 已经交付，解析失败时用它们填 errorLine/errorColumn（见
+    // 下方 hasError() 分支）。这是 Task 2 报告记录的已知偏离，本任务顺手
+    // 接上，不算范围外改动。
     // pugixml 不做命名空间解析——签名对齐 Qt，不改变行为。
     (void)namespaceProcessing;
 
@@ -283,6 +279,16 @@ bool PkXmlDocument::setContent(PkXmlStreamReader *reader, bool namespaceProcessi
     if (reader->hasError()) {
         if (errorMsg) {
             *errorMsg = reader->errorString();
+        }
+        // R-25 Task 3：接上 Task 2 报告记录的缺口——reader 自己的
+        // lineNumber()/columnNumber() 现在能报告"最后一次成功
+        // readNextStartElement() 停留的位置"（构造期整体失败时是
+        // result.offset 换算出的位置），直接透传给调用方。
+        if (errorLine) {
+            *errorLine = reader->lineNumber();
+        }
+        if (errorColumn) {
+            *errorColumn = reader->columnNumber();
         }
         return false;
     }
