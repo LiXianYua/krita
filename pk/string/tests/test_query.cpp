@@ -23,7 +23,9 @@ void run_query_tests()
     _expect(s.mid(0, 5) == PkString("hello"), "mid(0,5)");
     _expect(s.mid(6, 999) == PkString("world"), "mid with oversized length clamps");
     _expect(s.mid(99).isEmpty(), "mid past end is empty");
-    _expect(s.mid(-1, 2).isEmpty(), "negative pos is empty");
+    _expect(s.mid(-1, 2) == PkString("h"), "negative pos shifts length, does not fail outright");
+    _expect(s.mid(-1) == s, "negative pos with default n (-1) returns the whole string");
+    _expect(s.mid(-100, 2).isEmpty(), "negative pos overshooting the whole length is empty");
 
     _expect(s.startsWith(PkString("hello")), "startsWith prefix");
     _expect(!s.startsWith(PkString("world")), "startsWith rejects non-prefix");
@@ -59,4 +61,33 @@ void run_query_tests()
     _expect(astral.size() == 3, "astral char plus ascii is three code units");
     _expect(astral.right(1) == PkString("a"), "right() counts code units");
     _expect(astral.mid(2, 1) == PkString("a"), "mid() counts code units");
+
+    // left/right 对负数 n 的处理：无符号比较，任何负数都落进"返回整串"分支
+    _expect(s.left(-1) == s, "left(-1) returns the whole string, not empty");
+    _expect(s.left(-100) == s, "any negative n for left() returns the whole string");
+    _expect(s.right(-1) == s, "right(-1) returns the whole string, not empty");
+    _expect(s.right(-100) == s, "any negative n for right() returns the whole string");
+
+    // trimmed() 剥离完整的 Unicode White_Space 集合，不只是 ASCII + NBSP
+    _expect(PkString("\xC2\xA0hi\xC2\xA0").trimmed() == PkString("hi"),
+            "trimmed strips NBSP (U+00A0)");
+    _expect(PkString("\xE2\x80\x82hi").trimmed() == PkString("hi"),
+            "trimmed strips en-space (U+2002)");
+    _expect(PkString("\xE3\x80\x80hi\xE3\x80\x80").trimmed() == PkString("hi"),
+            "trimmed strips ideographic space (U+3000)");
+    _expect(PkString("\xC2\x85hi").trimmed() == PkString("hi"),
+            "trimmed strips NEL (U+0085)");
+
+    // 孤立代理项编码：单字节 0x3F，不是三字节 U+FFFD
+    {
+        // 高代理项单独存在（U+D83D，没有紧跟的低代理）
+        // PkString 没有从 u16string 直接构造的公开 API（不在用量表内），
+        // 用 mid() 从一个真实代理对里切出半个来构造这个场景，与 PkStringData
+        // 迁移前 test_query.cpp:58-61 的 astral 用例是同一手法。
+        PkString astral_test("\xF0\x9F\x98\x80");  // U+1F600，UTF-16 两个码元 D83D DE00
+        _expect(astral_test.left(1).PkToUtf8() == std::string("\x3F"),
+                "encoding a lone high surrogate (via left() splitting a pair) emits single-byte 0x3F");
+        _expect(astral_test.mid(1, 1).PkToUtf8() == std::string("\x3F"),
+                "encoding a lone low surrogate (via mid() splitting a pair) emits single-byte 0x3F");
+    }
 }

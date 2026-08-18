@@ -9,7 +9,17 @@ namespace {
 // 在 Krita 核心里各 0 处用量，实现它们是 10 倍工作量买 0 收益。
 bool pkIsSpace(char16_t c)
 {
-    return c == u' ' || c == u'\t' || c == u'\n' || c == u'\r' || c == u'\f' || c == u'\v';
+    switch (c) {
+    case 0x0009: case 0x000A: case 0x000B: case 0x000C: case 0x000D:
+    case 0x0020: case 0x0085: case 0x00A0: case 0x1680:
+    case 0x2000: case 0x2001: case 0x2002: case 0x2003: case 0x2004:
+    case 0x2005: case 0x2006: case 0x2007: case 0x2008: case 0x2009:
+    case 0x200A: case 0x2028: case 0x2029: case 0x202F: case 0x205F:
+    case 0x3000:
+        return true;
+    default:
+        return false;
+    }
 }
 
 // 在 hay 里找 needle 的起始码元下标；找不到返回 -1。空 needle 命中位置 0。
@@ -38,10 +48,8 @@ bool PkString::contains(const PkString& sub) const
 
 PkString PkString::left(int n) const
 {
-    if (n <= 0) {
-        return PkString();
-    }
-    if (n >= size()) {
+    const std::size_t sz = _cbuf().size();
+    if (static_cast<unsigned>(n) >= static_cast<unsigned>(sz)) {
         return *this;
     }
     return mid(0, n);
@@ -49,31 +57,43 @@ PkString PkString::left(int n) const
 
 PkString PkString::right(int n) const
 {
-    if (n <= 0) {
-        return PkString();
-    }
-    if (n >= size()) {
+    const std::size_t sz = _cbuf().size();
+    if (static_cast<unsigned>(n) >= static_cast<unsigned>(sz)) {
         return *this;
     }
-    return mid(size() - n, n);
+    return mid(static_cast<int>(sz) - n, n);
 }
 
 PkString PkString::mid(int pos, int n) const
 {
     const int len = size();
-    if (pos < 0 || pos >= len) {
+    int position = pos;
+    int length = n;
+
+    if (position > len) {
         return PkString();
     }
-    int take = (n < 0) ? (len - pos) : n;
-    if (take > len - pos) {
-        take = len - pos;
+    if (position < 0) {
+        if (length < 0 || length + position >= len) {
+            position = 0;
+            length = len;
+        } else if (length + position <= 0) {
+            return PkString();
+        } else {
+            length += position;
+            position = 0;
+        }
+    } else if (static_cast<unsigned>(length) > static_cast<unsigned>(len - position)) {
+        length = len - position;
     }
-    if (take <= 0) {
+
+    if (length <= 0) {
         return PkString();
     }
+
     const std::vector<char16_t>& b = _cbuf();
     PkString r;
-    r._data().assign(b.begin() + pos, b.begin() + pos + take);
+    r._data().assign(b.begin() + position, b.begin() + position + length);
     return r;
 }
 

@@ -117,10 +117,16 @@ std::string ToUtf8(const std::vector<char16_t>& b)
             && b[i + 1] >= 0xDC00u && b[i + 1] <= 0xDFFFu) {
             cp = 0x10000u + ((cp - 0xD800u) << 10) + (static_cast<unsigned>(b[i + 1]) - 0xDC00u);
             ++i;
+            pkAppendUtf8(out, cp);
         } else if (cp >= 0xD800u && cp <= 0xDFFFu) {
-            cp = kReplacement;  // 孤立代理项——Task 2 会把这一分支改成单字节 0x3F
+            // 孤立代理项（未配对的高/低代理码元）：真实 Qt 5.15.7 的
+            // QString::toUtf8() 编码成单字节 0x3F（'?'），不是 U+FFFD 的三字节
+            // UTF-8 编码——探针逐条验证过（孤立高代理、孤立低代理、高代理+普通
+            // 字符、高代理+高代理，四种形态全部输出 0x3F，见 R-13 plan 背景 ⑧）。
+            out.push_back(static_cast<char>(0x3F));
+        } else {
+            pkAppendUtf8(out, cp);
         }
-        pkAppendUtf8(out, cp);
     }
     return out;
 }
