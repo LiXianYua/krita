@@ -42,7 +42,7 @@
 | `qimage_test_util.h` | 不改（本轮保留） |
 | `simpletest.h` | 不改（本轮保留） |
 
-**说明**：前两个头由 Task 2/4 处理删除；后两个本轮不改类型，保留源树（有独立的消费方清单，S-06 推进时不受影响）。
+**说明**：前两个头由 Task 2/3 处理剥离 Qt、端口化到 Pk 类型；后两个本轮不改类型，保留源树（有独立的消费方清单，S-06 推进时不受影响）。
 
 ### S-06（20 个，依赖 kritaimage，由 S-06 任务处理）
 
@@ -80,8 +80,8 @@
 ## 各头处理进度
 
 **Task 1（当前）**：完成基线测数、零消费方验证、分类表骨架落盘
-**Task 2**：删除 `KisMeasureAvgPortion.h`
-**Task 4**：删除/重构 `KisRectsCollisionsTracker.h` 的消费方
+**Task 2**：剥离 Qt、端口化 `KisRectsCollisionsTracker.h` 到 Pk 类型
+**Task 3**：剥离 Qt、端口化 `KisMeasureAvgPortion.h` 到 Pk 类型
 **Task 5**（S-00 收尾）：更新本表的状态列为实际完成情况
 
 ---
