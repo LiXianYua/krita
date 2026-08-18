@@ -86,8 +86,11 @@ public:
          * all the queued events telling it some nodes were
          * added/deleted
          */
+        // PATTERN-2（sdk/tests/README.md「事件循环测试改造模式」）：
+        // 等 dummies facade 处理排队信号，需要 S-06 与 S-08 共同确认后处置。
         QApplication::processEvents();
         QTest::qSleep(500);
+        // PATTERN-2（同上，与前一处同一次等待的后半段）：
         QApplication::processEvents();
 
         delete mainWindow;

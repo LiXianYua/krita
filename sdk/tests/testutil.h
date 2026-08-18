@@ -395,6 +395,9 @@ struct MaskParent
     }
 
     void waitForImageAndShapeLayers() {
+        // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
+        // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
+        // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
         qApp->processEvents();
         image->waitForDone();
         KisLayerUtils::forceAllDelayedNodesUpdate(image->root());
@@ -406,6 +409,10 @@ struct MaskParent
          */
 
         do {
+            // PATTERN-2（sdk/tests/README.md「事件循环测试改造模式」）：
+            // 等待 KoShapeManager/KisShapeLayerCanvas 的 100ms QTimer 去抖，
+            // 需要 S-08 交付显式同步 flush 方法后才能去掉这个轮询，不能
+            // 简单换成 sleep（不会让挂起的 QTimer 触发，语义假绿）。
             QTest::qWait(500);
         } while (!image->tryBarrierLock(true));
         image->unlock();

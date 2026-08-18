@@ -79,6 +79,9 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
                 doc->image()->waitForDone();
             }
 
+            // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
+            // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
+            // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
             qApp->processEvents();
             doc->image()->waitForDone();
             QImage sourceImage = doc->image()->projection()->convertToQImage(0, doc->image()->bounds());
@@ -209,6 +212,9 @@ void testImportFromWriteonly(QString mimetype)
         fail = true;
     }
 
+    // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
+    // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
+    // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
     qApp->processEvents();
 
     if (doc->image()) {
@@ -264,6 +270,9 @@ void testExportToReadonly(QString mimetype)
 
     qDebug() << "export result = " << status;
 
+    // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
+    // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
+    // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
     qApp->processEvents();
 
     if (doc->image()) {
@@ -302,6 +311,9 @@ void testImportIncorrectFormat(QString mimetype)
     KisImportExportErrorCode status = manager.importDocument(sourceFileInfo.absoluteFilePath(), mimetype);
     qDebug() << "import result = " << status;
 
+    // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
+    // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
+    // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
     qApp->processEvents();
 
     if (doc->image()) {
@@ -360,6 +372,9 @@ void testExportToColorSpace(QString mimetype, const KoColorSpace* space, KisImpo
         failMessage = "Mismatch of color spaces";
     }
 
+    // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
+    // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
+    // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
     qApp->processEvents();
 
     if (doc->image()) {

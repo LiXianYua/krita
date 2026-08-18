@@ -87,3 +87,57 @@
 ---
 
 **本表由 Task 实现者逐步填充，最后更新于** [待更新]
+
+---
+
+## 事件循环测试改造模式（S-00 交付，S-02-a/S-05-b/S-06/S-08/S-09-e 照办）
+
+**背景**：保留范围内实测 18 个测试依赖 `QEventLoop`/`processEvents`/
+`QSignalSpy`/`qWait`/`QTimer`，10 个在 `sdk/tests`（本节列出的 4 个头），
+14 个分布在 `libs/image`(10)/`libs/flake`(1)/`libs/global`(1)/
+`plugins/impex/libkra`(1)/`plugins/tools`(1)。
+
+**两种根因，两种改法**：
+
+1. **等待已经同步完成的操作**（如 `KisImage::waitForDone()`/
+   `tryBarrierLock()`——`libs/image` 的 `KisUpdateScheduler` 用
+   `QThreadPool` 跑在独立工作线程，不依赖调用方线程的 Qt 事件循环推进）：
+   **直接删掉 `processEvents()`/`qWait()`，只保留同步等待调用**。这类
+   `processEvents()` 纯粹是历史遗留的保险动作，不删也不出错，删了才是
+   诚实反映"这条路径本来就是同步的"。
+
+2. **等待真正依赖 Qt 事件循环推进的定时器合并**（`testutil.h` 注释明写
+   "Shape updates have two channels of compression, 100ms each. One in
+   `KoShapeManager`, the other one in `KisShapeLayerCanvas`"——这是
+   `QTimer` 驱动的写合并去抖，不推进事件循环这个定时器永远不触发）：
+   **不能靠"删掉 processEvents 换成 sleep"敷衍**——sleep 不会让一个挂在
+   Qt 事件循环上的 `QTimer` 触发，语义会假绿（编译过、测试可能因为纯偶然
+   的调度顺序凑巧过，但没有真正验证去抖逻辑）。**正确改法**：去抖机制本身
+   在对应模块被剥离时（`libs/flake` 的 `KoShapeManager`/
+   `KisShapeLayerCanvas`，S-08 的锁）需要新增一个**显式同步 flush 方法**
+   （例如 `KoShapeManager::flushPendingUpdatesSync()`），改造后的测试直接
+   调用它，不再需要任何形式的等待/轮询。**这个 flush 方法目前不存在，
+   是 S-08 交付的一部分，不是测试代码单方面能补的**——S-00 在调用点留
+   `// PATTERN-2` 标注，指向本节，不改变行为（改了也无法验证，因为
+   `libs/flake` 还没剥、没法编译试跑）。
+
+**S-00 对这 10 处调用点的处置**（本轮**只加标注，不改行为**——验证需要
+`kritaimage`/`kritaui` 编过，S-00 没有这些依赖，改了无法验证等于制造
+未经验证的假设）：
+
+| 文件 | 行号（实测，2026-08-17） | 根因分类 | 处置 |
+|---|---|---|---|
+| `filestest.h` | 82 | ①（`doc->image()->waitForDone()` 紧随其后） | 标 `PATTERN-1`，S-06 接手时删 |
+| `filestest.h` | 212 | ①（同上，紧随 `doc->image()->waitForDone()`） | 标 `PATTERN-1` |
+| `filestest.h` | 267 | ①（同上） | 标 `PATTERN-1` |
+| `filestest.h` | 305 | ①（同上） | 标 `PATTERN-1` |
+| `filestest.h` | 363 | ①（同上） | 标 `PATTERN-1` |
+| `qimage_based_test.h` | 164 | ②（**实测订正**：本处在 `addShapeLayer()` 内，紧随两次 `shapeLayer->addShape(...)`，**该文件全篇没有任何 `waitForDone()` 调用**——计划撰写阶段假设的"紧随 waitForDone()"不成立。语义上更贴近 shape layer canvas 的排队事件处理，与 `KoShapeManager`/`KisShapeLayerCanvas` 的去抖机制同域） | 标 `PATTERN-2`（订正自计划里的 `PATTERN-1`），需要 S-06 与 S-08 共同确认 |
+| `ui_manager_test.h` | 89 | ②（析构函数注释明写"weird way of processing pending events"，紧跟 `QTest::qSleep(500)`，是等 dummies facade 处理排队信号，信号槽投递本身可能靠 R-05 的自写信号槽变同步——需要 S-06/S-08 双方确认） | 标 `PATTERN-2`，需要 S-06 与 S-08 共同确认后处置 |
+| `ui_manager_test.h` | 91 | ②（同上） | 标 `PATTERN-2` |
+| `testutil.h` | 398 | ①（紧随 `image->waitForDone()`） | 标 `PATTERN-1` |
+| `testutil.h` | 409 | ②（`qWait(500)` 轮询等 `tryBarrierLock`，注释明写等 shape 层 100ms 去抖） | 标 `PATTERN-2` |
+
+（上表行号已按 S-00 实测核对，与计划撰写阶段的行号一致；`qimage_based_test.h:164`
+一处的**分类**做了订正——计划原文写的例证"紧随 waitForDone()"在实测中不成立，
+详见该行说明。）

@@ -161,6 +161,10 @@ protected:
         shapeLayer->addShape(shape1);
         shapeLayer->addShape(shape2);
 
+        // PATTERN-2（sdk/tests/README.md「事件循环测试改造模式」，实测订正）：
+        // 本处不紧随 waitForDone()（该文件全篇没有 waitForDone 调用），语义上
+        // 是等 shape layer 的排队事件处理，与 KoShapeManager/KisShapeLayerCanvas
+        // 的 100ms 去抖同域，需要 S-08 交付显式同步 flush 方法后才能处置。
         QApplication::processEvents();
     }
 
