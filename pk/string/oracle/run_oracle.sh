@@ -10,6 +10,12 @@
 
 set -euo pipefail
 
+# I4：%L 分组是固定逗号分组、不跟随运行时 locale 的范围决策（见 R-13.deviation），
+# 但对拍程序本身此前没有钉住自己跑在哪个 locale 下——同一份对拍程序在
+# LC_ALL=de_DE.UTF-8 下会跑出未声明的差异。显式钉在一个几乎所有机器都有的
+# locale 上，往后重跑的人不用去猜这次是在哪个 locale 下跑的。
+export LC_ALL=C.UTF-8
+
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FORK_ROOT="$(cd "$HERE/../../.." && pwd)"
 OUT="${1:-$HERE/build}"
@@ -49,10 +55,11 @@ ldd "$OUT/difftest_string" | grep -iE 'qt5core|icu' || true
 
 echo
 echo "=== 跑 difftest_string ==="
-"$OUT/difftest_string" > "$OUT/string.out" 2>&1
-rc=$?
-if [ "$rc" -ne 0 ]; then
-    echo "difftest_string 退出码 $rc（契约要求 0，即使 mismatch>0）" >&2
+# 不能写成「先跑、再拿 $?」：set -e 生效时，命令一旦非 0 退出整个脚本就已经
+# 终止，根本轮不到下一行的 rc=$? 判断——这段防御代码原先写得不对，改成
+# 不依赖"先失败再判断"的 if/! 写法。
+if ! "$OUT/difftest_string" > "$OUT/string.out" 2>&1; then
+    echo "difftest_string 退出码非 0（契约要求 0，即使 mismatch>0）" >&2
     exit 1
 fi
 grep -E '^ORACLE-QT ' "$OUT/string.out"
