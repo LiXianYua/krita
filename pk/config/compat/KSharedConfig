@@ -1,0 +1,7 @@
+#pragma once
+#include "../PkSharedConfig.h"
+// 兼容垫片：真实调用点的 `#include <KSharedConfig>`（CamelCase，KF5 转发头风格，
+// 无扩展名）在一个字都不改的前提下解析到 PkSharedConfig。理由同 compat/KConfigGroup。
+// KSharedConfig::openConfig() 是静态方法调用，PkSharedConfig::openConfig() 签名
+// 完全对应（见 PkSharedConfig.h）。
+#define KSharedConfig PkSharedConfig
