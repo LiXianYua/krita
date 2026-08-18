@@ -83,6 +83,29 @@ void TestConfigGroup::sameGroupNameSharesStorage()
     PK_COMPARE(cfg->group("shared").readEntry("x", 0), 7);
 }
 
+void TestConfigGroup::emptyStringListDiffersFromMissingKey()
+{
+    // 自审要点：「key 不存在」与「key 存在但存的是空 PkStringList」必须能区分——
+    // 都不能悄悄退化成同一种情况。fallback 用一个非空列表，这样两条分支即使
+    // 都返回「大小为 0」也不会因为 fallback 恰好也是空列表而巧合蒙混过关。
+    PkSharedConfig *cfg = PkSharedConfig::openConfig();
+    PkConfigGroup g = cfg->group("emptylist");
+
+    PkStringList nonEmptyFallback;
+    nonEmptyFallback.append(PkString("fallback-marker"));
+
+    // key 不存在 → 必须原样返回 fallback（包括它的内容，不是随便一个空列表）。
+    PkStringList missing = g.readEntry("neverWritten", nonEmptyFallback);
+    PK_COMPARE(missing.size(), 1);
+    PK_COMPARE(missing.at(0), PkString("fallback-marker"));
+
+    // key 存在、显式写入空列表 → 必须返回空列表，不是 fallback。
+    g.writeEntry("explicitlyEmpty", PkStringList());
+    PK_VERIFY(g.hasKey("explicitlyEmpty"));
+    PkStringList stored = g.readEntry("explicitlyEmpty", nonEmptyFallback);
+    PK_COMPARE(stored.size(), 0);
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_config_group.inc"

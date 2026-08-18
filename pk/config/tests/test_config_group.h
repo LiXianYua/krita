@@ -10,4 +10,5 @@ private Q_SLOTS:
     void readWriteAllTypes();
     void hasKeyDeleteEntrySync();
     void sameGroupNameSharesStorage();
+    void emptyStringListDiffersFromMissingKey();
 };
