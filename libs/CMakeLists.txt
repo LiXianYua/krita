@@ -23,3 +23,5 @@ add_subdirectory( multiarch )
 
 add_subdirectory( surfacecolormanagementapi )
 target_precompile_headers(kritasurfacecolormanagementapi PRIVATE <KisCppQuirks.h> <variant>)
+
+add_subdirectory( paintkernel )
