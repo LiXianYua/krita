@@ -240,8 +240,8 @@ token）**全部 0 次命中**。
 
 ## 4. 对拍（`oracle/`）：跑法与**覆盖度限制**
 
-对拍拿真 Qt 5.15.7 当 oracle，逐输入比对。基线 **3 447 803 次比对，mismatch 36**，
-全部落在一条已声明的偏离上（`replaceInStrings` 空 `before`，见 `oracle/R-02.deviation`）。
+对拍拿真 Qt 5.15.7 当 oracle，逐输入比对。基线 **3 447 803 次比对，mismatch 0**，
+**mismatch 0，无已声明偏离**。
 五组注入实验全部产生未声明 tag（判据有效性自证，明细同文件）。
 
 **说不出覆盖不到什么的对拍，说明还没想清楚。** 以下 9 条是已知的覆盖度限制
@@ -519,16 +519,9 @@ include 禁区头 + 容器计数 ≥6」筛出 91 个，取最密的 40 个逐�
 
 ---
 
-## 9. 交接 R-13 的两条
+## 9. 交接 R-13 的一条
 
-1. **`replaceInStrings` 的空 `before`** —— 对拍咬出来的**真实不一致**（不是设计上
-   接受的等价行为）。Qt 5.15.7 实测把 `after` 插到**每一个 UTF-16 码元之间以及首尾**
-   （`"a".replace("","b") == "bab"`），替代品原样返回输入。本轮不复刻的理由：Qt 那套
-   会把 🎨 这种代理对**从中间劈开**，复刻它等于把孤立代理的处置一并搬进来。
-   **影响面（陈述，不是理由）**：Krita 唯一调用点 `KisDlgImportVideoAnimation.cpp:246`
-   传字面量 `"output_"`——这只说明排期不急，**不构成「可以不改」的依据**。
-   **R-13 决定是补上还是显式不支持。** 全文与谓词细节在 `oracle/R-02.deviation`。
-2. **`filter(..., PkCaseInsensitive)` 只做 ASCII 折叠** —— 需要
+1. **`filter(..., PkCaseInsensitive)` 只做 ASCII 折叠** —— 需要
    `QString::toCaseFolded()` 的对应物，而 `pk/string` 不归 R-02 改。
    **退化方向是安全的**（非 ASCII 退回逐码元精确比较 → 可能漏掉本该匹配的项，
    不会匹配到不该匹配的项），但 **8 个 `filter` 调用点里有 5 个传 `CaseInsensitive`**，

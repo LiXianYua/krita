@@ -39,8 +39,8 @@ fi
 mkdir -p "$OUT"
 
 PKSTRING_SRC="
+    $FORK_ROOT/pk/string/PkStringCodec.cpp
     $FORK_ROOT/pk/string/PkString_core.cpp
-    $FORK_ROOT/pk/string/PkStringData.cpp
     $FORK_ROOT/pk/string/PkString_format.cpp
     $FORK_ROOT/pk/string/PkString_query.cpp
 "
