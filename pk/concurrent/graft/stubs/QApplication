@@ -1,0 +1,16 @@
+#pragma once
+// graft-only 桩：仅让 24 处 moveToThread 试接能越过 qApp/QApplication::instance()/
+// QCoreApplication::instance() 这几个符号、走到 moveToThread() 那一行本身，
+// 不是 QApplication/QCoreApplication 的正式端口。QApplication/QCoreApplication
+// 真实端口化归“172 处事件循环残余”批次（架构方向见 R-24 Task 5、
+// pk/concurrent/README.md §4.2），本桩不代表那批工作已完成。
+#include "../../../signal/PkObject.h"
+
+// 桩类要有 ->thread() 可调用；PkObject 已经有 thread()，直接让 QApplication/
+// QCoreApplication 都是 PkObject 的别名，qApp 是指向一个全局单例 PkObject 的指针
+// ——这样 qApp->thread()/QApplication::instance()->thread()/
+// QCoreApplication::instance()->thread() 三种写法都能解析。
+#define QApplication PkObject
+#define QCoreApplication PkObject
+inline PkObject* pkGraftQAppInstance() { static PkObject app; return &app; }
+#define qApp (pkGraftQAppInstance())
