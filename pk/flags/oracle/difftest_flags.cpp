@@ -1,6 +1,12 @@
 // difftest_flags.cpp —— QFlags ↔ PkFlags 逐输入对拍（甲类核心判据）
 // 两侧真分别 include <QFlags> 与 PkFlags.h；-I 绝不能给 compat/（否则同型恒等）。
 // 组合：16 个位掩码 × 每操作 × 参数（每枚枚举值含 None/多 bit）。校验值 = 真 Qt。
+//
+// 注意：PK_DECLARE_OPERATORS_FOR_FLAGS 与 Q_DECLARE_OPERATORS_FOR_FLAGS
+// 对于同一枚举类型会声明冲突的自由 operator|（相同参数类型、不同返回类型），
+// 所以 Pk 侧不用 PK_DECLARE_OPERATORS_FOR_FLAGS，改用 PkFlags 的成员
+// operator|(Enum)/operator|(PkFlags)。PkECFlags(EC::A) | EC::B 走的是
+// PkFlags<Enum>::operator|(Enum) 成员函数，不与 Qt 的 operator|(EC,EC) 冲突。
 #include <QFlags>
 #include "PkFlags.h"
 #include <cstdio>
@@ -11,20 +17,18 @@
 enum class EC { None = 0, A = 0x1, B = 0x2, C = 0x4, D = 0x8, AB = 0x3, ABC = 0x7 };
 Q_DECLARE_FLAGS(ECFlags, EC)
 Q_DECLARE_OPERATORS_FOR_FLAGS(ECFlags)
-PK_DECLARE_FLAGS(PkECFlags, EC)
-PK_DECLARE_OPERATORS_FOR_FLAGS(PkECFlags)
+// Pk 侧用 PkFlags<EC> 直接，不声明自由 operator|（避免冲突）
+typedef PkFlags<EC> PkECFlags;
 
 enum PlainE { PE_None = 0, PE_A = 0x1, PE_B = 0x2, PE_C = 0x4 };
 Q_DECLARE_FLAGS(PlainFlags, PlainE)
 Q_DECLARE_OPERATORS_FOR_FLAGS(PlainFlags)
-PK_DECLARE_FLAGS(PkPlainFlags, PlainE)
-PK_DECLARE_OPERATORS_FOR_FLAGS(PkPlainFlags)
+typedef PkFlags<PlainE> PkPlainFlags;
 
 enum class EU : unsigned int { U0 = 0, U1 = 1u, U2 = 2u, UHI = 0x80000000u };
 Q_DECLARE_FLAGS(EUFlags, EU)
 Q_DECLARE_OPERATORS_FOR_FLAGS(EUFlags)
-PK_DECLARE_FLAGS(PkEUFlags, EU)
-PK_DECLARE_OPERATORS_FOR_FLAGS(PkEUFlags)
+typedef PkFlags<EU> PkEUFlags;
 
 static_assert(!std::is_same<ECFlags, PkECFlags>::value, "对拍两侧解析成了同一类型");
 
@@ -41,7 +45,7 @@ static void rec(const std::string &api, bool same, const std::string &tag,
 }
 
 // tag = <api> <mask-hex> <arg-hex>；由触发差异的输入形态构造（规则一）。
-static std::string hex(int v) { char b[16]; std::snprintf(b, sizeof b, "0x%x", v); return b; }
+static std::string hex(long v) { char b[32]; std::snprintf(b, sizeof b, "0x%lx", v); return b; }
 
 int main() {
     const EC ecs[] = { EC::None, EC::A, EC::B, EC::C, EC::D, EC::AB, EC::ABC };
@@ -62,6 +66,7 @@ int main() {
             rec("setFlag.off", int(q3) == int(p3), "setFlag.off " + in + " " + hex((int)e), in, int(q3), int(p3));
         }
         for (EC e : ecs) {                               // | & ^ ~ 与 int/uint & 重载
+            // Pk 侧用成员 operator|(Enum) 避开自由 operator| 冲突
             rec("or", int(q | e) == int(p | e), "or " + in + " " + hex((int)e), in, int(q | e), int(p | e));
             rec("and", int(q & e) == int(p & e), "and " + in + " " + hex((int)e), in, int(q & e), int(p & e));
             rec("xor", int(q ^ e) == int(p ^ e), "xor " + in + " " + hex((int)e), in, int(q ^ e), int(p ^ e));
@@ -76,9 +81,10 @@ int main() {
             rec("eq", (q == q2) == (p == p2), "eq " + in + " " + hex(m2), in, (q == q2), (p == p2));
         }
     }
-    // 高位掩码（signed 0x40000000 + unsigned 0x80000000u）
-    ECFlags qhi(EC::ABC); qhi |= 0x40000000;
-    PkECFlags phi(EC::ABC); phi |= 0x40000000;
+    // 高位掩码（signed 0x40000000 + unsigned 0x80000000u）—— 用 PkFlag/QFlag 构造
+    // 注意：operator|=(int) 两边都不存在，必须用 QFlag/PkFlag 构造 flags 再或。
+    ECFlags qhi((EC::ABC)); qhi = qhi | ECFlags(QFlag(0x40000000));
+    PkECFlags phi(EC::ABC); phi = phi | PkECFlags(PkFlag(0x40000000));
     rec("high.signed", int(qhi) == int(phi), "high.signed 0x40000000", "0x40000000", int(qhi), int(phi));
     EUFlags qu(EU::UHI); PkEUFlags pu(EU::UHI);
     rec("high.unsigned", unsigned(qu) == unsigned(pu), "high.unsigned 0x80000000", "0x80000000", unsigned(qu), unsigned(pu));
