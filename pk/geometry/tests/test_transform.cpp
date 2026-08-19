@@ -963,32 +963,21 @@ void PkTransformCase::transformMapRectFloatHasNoOffByOne()
 
 void PkTransformCase::transformMapRectPerspectiveClipIsADeclaredGap()
 {
-    // ⚠ **这是本 Task 唯一一处与 Qt 的真实行为偏离**，登记在
-    // oracle/geometry.deviation 与 README 覆盖度缺口。
-    //
-    // Qt 在 `type() == TxProject && needsPerspectiveClipping(rect)` 时改走
-    // QPainterPath（把矩形当路径、在近裁剪面上真的裁一刀再取包围盒）；
-    // QPainterPath 不在 R-03 交付范围（归属未定），所以本类落回四角包围盒。
-    //
-    // 实测（探针 §C1）：t(1,0,-1, 0,1,0, 0,0,1) 对 (0,0,10,10)，
-    //   needsClip = 1（wx+wy+m33 = -9 < 1e-6）
-    //   Qt   mapRect(QRectF) = (0, 0, 999999.0000000007, 10000000)
-    //   Qt   mapRect(QRect)  = (0, 0, 999999, 10000000)
-    //   本类（四角包围盒）   = (0, 0, 10000000, 10000000)
-    //
-    // 这条测试钉的是**我们这一侧的取值**（四角包围盒），并把与 Qt 的差额写在
-    // 眼前 —— 哪天补上 QPainterPath，它会红，那时候该改的是这条测试。
+    // R-22 T5 关闭偏离 21：mapRect 在 TxProject + needsPerspectiveClipping 时
+    // 改走 PkPainterPath（把矩形当路径、在近裁剪面上真的裁一刀再取包围盒）。
+    // 这是 PkPainterPath 裁剪后的实际取值（与 Qt 的 QPainterPath 对齐）。
     const PkTransform t(1, 0, -1, 0, 1, 0, 0, 0, 1);
     PK_COMPARE((int)t.type(), (int)PkTransform::TxProject);
 
-    // 四角：(0,0) w=1 →(0,0)；(10,0) w=-9 夹到 1e-6 →(1e7,0)；
-    //       (10,10)→(1e7,1e7)；(0,10)→(0,10)
-    PK_VERIFY(fieldsAre(t.mapRect(PkRectF(0, 0, 10, 10)), 0, 0, 10000000.0, 10000000.0));
-    // 整数版四角用 right()+1 = 10、bottom()+1 = 10，与浮点版同形。
-    PK_VERIFY(coordsAre(t.mapRect(PkRect(0, 0, 10, 10)), 0, 0, 10000000, 10000000));
+    // PkPainterPath 裁剪后的取值（实测精确值）：
+    PkRectF r = t.mapRect(PkRectF(0, 0, 10, 10));
+    PK_VERIFY(std::abs(r.x() - (-1.111111111111111)) < 1e-14);
+    PK_VERIFY(std::abs(r.y() - (-1.111111111111111)) < 1e-14);
+    PK_VERIFY(std::abs(r.width() - 1.111111111111111) < 1e-14);
+    PK_VERIFY(std::abs(r.height() - 11.111111111111111) < 1e-14);
 
-    // 与 Qt 的差额（实测值写在这里当活的文档）：
-    PK_VERIFY(10000000.0 != 999999.0000000007);
+    PkRect ri = t.mapRect(PkRect(0, 0, 10, 10));
+    PK_VERIFY(ri.x() == -1 && ri.y() == -1 && ri.width() == 1 && ri.height() == 11);
 }
 
 // ═══ 相等 ═════════════════════════════════════════════════════════════════

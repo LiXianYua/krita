@@ -7,6 +7,8 @@
 #include "PkLine.h"
 #include "PkPolygon.h"
 
+class PkPainterPath;
+
 // ---------------------------------------------------------------------------
 // PkTransform —— QTransform 的零 Qt 替代（3x3 齐次矩阵）。
 //
@@ -231,9 +233,12 @@ public:
 
     // qtransform.cpp:1465-1483（R-21 T2 顺带解开，交付了 PkPolygonF 之前做
     // 不出来，文件头「依赖当时范围外的类型」一节）。真实调用点 ≥15 处，见
-    // PkPolygon.h 文件头。`TxProject` 分支与真 Qt 有一处登记在案的行为偏离
-    // （见 PkTransform.cpp 里本函数上方那段）。
+    // PkPolygon.h 文件头。
     PkPolygonF map(const PkPolygonF &a) const;
+
+    // R-22 T5: 新增 map(PkPainterPath)。关闭偏离 21。
+    // 含 TxProject 近裁剪面裁剪（w = 1e-6 阈值）。
+    PkPainterPath map(const PkPainterPath &path) const;
 
     // qtransform.cpp:1810-1864 / 1875-1884（R-21 T2 顺带解开，同上）。
     // 真实调用点：`kis_algebra_2d_test.cpp:175`、`PerspectiveAssistant.cc:301`、

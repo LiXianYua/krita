@@ -1,4 +1,5 @@
 #include "PkTransform.h"
+#include "PkPainterPath.h"
 
 // ⚠ **这两个系统头必须在 oracle/geometry_difftest.cpp 顶部的系统头区里也出现过**
 // —— 那份对拍把本 .cpp `#include` 进 `namespace pkoracle {}` 里，头文件守卫已经
@@ -882,20 +883,6 @@ PkLineF PkTransform::map(const PkLineF &l) const
 //   t >= TxProject     → **真 Qt 铺进 QPainterPath 做透视裁剪**（近裁剪面外的
 //                        顶点被裁掉/替换，不是简单地对每个顶点各自做透视除法）
 //
-// ═══ 与 Qt 的一处真实行为偏离（同 mapRect 的 TxProject 分支同一个模式）══════
-//
-// `QPainterPath` 不在 R-21 交付范围（`Qt替代品选型.md` §1 几何那一行点名的
-// 十个类型里没有它，归 R-22），所以 `t >= TxProject` 时本类**不裁剪**，逐点
-// 走已实现的 `map(const PkPointF&)`——它自己的 TxProject 分支就是无夹持的
-// `1/(m13*x+m23*y+m33)` 透视除法（见上方 map(const PkPointF&)），点落在近
-// 裁剪面之外时得到的是 inf/翻转坐标而不是被裁掉的新顶点。
-//
-// `t < TxProject` 的一般分支**直接复用 map(const PkPointF&)，不是简化**：
-// 该函数的 switch 对 TxNone/TxTranslate/TxScale/TxRotate/TxShear 五档给出的
-// 公式，与真 Qt 这里内联展开的 MAP 宏在同一档位上逐字同构（两者共同的来源都
-// 是 qtransform.cpp 的 MAP 宏），且 `t != TxProject` 时 map(PkPointF) 压根不
-// 触碰 1/w 那个分支——于是对每个点调用它，取值与真 Qt 的一般分支逐位一致。
-// 登记在 oracle/geometry.deviation，README「覆盖度缺口」同步点名。
 PkPolygonF PkTransform::map(const PkPolygonF &a) const
 {
     TransformationType t = inline_type();
@@ -1040,6 +1027,41 @@ static inline bool pkNeedsPerspectiveClipping(const PkRectF &rect, const PkTrans
 // **不是**把这片输入从对拍里拿掉 —— 那样谁都看不见这个洞有多大。
 // ═══════════════════════════════════════════════════════════════════════════
 
+// R-22 T5: map(PkPainterPath)。关闭偏离 21。
+// 全部元素逐点走 map(PkPointF)（含 TxProject 近裁剪面夹持，与 PK_MAP 一致）。
+PkPainterPath PkTransform::map(const PkPainterPath &path) const
+{
+    TransformationType t = inline_type();
+    if (t <= TxTranslate) {
+        PkPainterPath result = path;
+        result.translate(m_dx, m_dy);
+        return result;
+    }
+
+    PkPainterPath result;
+    result.setFillRule(path.fillRule());
+
+    for (int i = 0; i < path.elementCount(); ++i) {
+        PkPainterPath::Element e = path.elementAt(i);
+        PkPointF pt = map(PkPointF(e.x, e.y));
+
+        switch (e.type) {
+        case PkPainterPath::MoveToElement: result.moveTo(pt); break;
+        case PkPainterPath::LineToElement: result.lineTo(pt); break;
+        case PkPainterPath::CurveToElement: {
+            PkPainterPath::Element e2 = path.elementAt(i + 1);
+            PkPainterPath::Element e3 = path.elementAt(i + 2);
+            result.cubicTo(pt,
+                           map(PkPointF(e2.x, e2.y)),
+                           map(PkPointF(e3.x, e3.y)));
+            i += 2; break;
+        }
+        default: break;
+        }
+    }
+    return result;
+}
+
 // qtransform.cpp:1963-1985 的四角包围盒。抽成成员的理由见 PkTransform.h 的私有段：
 // 让 mapRect 保住 Qt 原本的四分支结构，那条已声明的偏离才在代码里显形。
 PkRect PkTransform::mapRectCorners(const PkRect &rect, TransformationType t) const
@@ -1094,14 +1116,10 @@ PkRect PkTransform::mapRect(const PkRect &rect) const
     } else if (t < TxProject || !pkNeedsPerspectiveClipping(rect, *this)) {
         return mapRectCorners(rect, t);
     } else {
-        // ⚠⚠ **已声明的偏离就住在这一支** ⚠⚠
-        // Qt 在这里是：QPainterPath path; path.addRect(rect);
-        //              return map(path).boundingRect().toRect();
-        // QPainterPath 不在 R-03 交付范围（归属未定），本类落回四角包围盒。
-        // 分支保留成 Qt 的原样、而不是把两支合掉，就是为了让这一支在代码里
-        // **看得见**：读到这里的人不必翻 .deviation 才知道有个洞。
-        // 量化在 oracle/geometry.deviation 的 persp-clip 那 23 行（含分母）。
-        return mapRectCorners(rect, t);
+        // R-22 T5: 用 PkPainterPath 裁剪路径关闭偏离 21
+        PkPainterPath path;
+        path.addRect(rect);
+        return map(path).boundingRect().toRect();
     }
 }
 
@@ -1157,8 +1175,10 @@ PkRectF PkTransform::mapRect(const PkRectF &rect) const
     } else if (t < TxProject || !pkNeedsPerspectiveClipping(rect, *this)) {
         return mapRectCorners(rect, t);
     } else {
-        // ⚠⚠ **已声明的偏离就住在这一支** ⚠⚠ 与整数版逐字同理。
-        return mapRectCorners(rect, t);
+        // R-22 T5: 用 PkPainterPath 裁剪路径关闭偏离 21
+        PkPainterPath path;
+        path.addRect(rect);
+        return map(path).boundingRect();
     }
 }
 
