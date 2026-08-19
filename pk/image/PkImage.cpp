@@ -544,11 +544,36 @@ void PkImage::setColor(int index, uint32_t argbColor)
 
 bool PkImage::allGray() const
 {
+    // 语义逐字对齐真 Qt QImage::allGray()（qimage.cpp:2680-2745，5.15）——由
+    // oracle 对拍逼出（原实现对 Mono/MonoLSB/Alpha8 无脑返回 true，与 Qt 分家）：
+    //   · Grayscale8/Grayscale16：本身就是灰度语义，恒 true。
+    //   · Alpha8：纯 alpha 通道，不是灰度，返回 false。
+    //   · Mono/MonoLSB/Indexed8：逐项检查颜色表 qIsGray(colorTable[i])，全灰才
+    //     true，任一非灰返回 false（不是"索引格式就恒灰"）。
+    //   · 32bpp 直接色与其余格式：逐像素 qIsGray（R==G==B），走 rawPixelArgb。
     Format f = format();
-    if (f == Format_Grayscale8 || f == Format_Grayscale16 || f == Format_Alpha8
-        || f == Format_Mono || f == Format_MonoLSB) {
-        // 本身就是灰度/单色语义，直接 true（探针第13组：按定义实现，未专门探测）。
+    switch (f) {
+    case Format_Grayscale8:
+    case Format_Grayscale16:
         return true;
+    case Format_Alpha8:
+        return false;
+    case Format_Mono:
+    case Format_MonoLSB:
+    case Format_Indexed8: {
+        // 颜色表逐项判灰。Mono/MonoLSB 未显式 setColorTable 时 colorTable 为空，
+        // 空表天然全灰（与 Qt 默认黑白表同是灰度）——与 lookupColorTable 的兜底
+        // 默认不一致是两码事：这里判的是"颜色是否都是灰"，不读像素索引。
+        const std::vector<uint32_t> &table = m_d.PkConst().colorTable;
+        for (uint32_t c : table) {
+            if (argbRed(c) != argbGreen(c) || argbGreen(c) != argbBlue(c)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    default:
+        break;
     }
     const PkImageData &d = m_d.PkConst();
     for (int y = 0; y < d.height; ++y) {

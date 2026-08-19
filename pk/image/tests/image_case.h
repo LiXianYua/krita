@@ -28,6 +28,7 @@ private Q_SLOTS:
     void outOfBoundsCoordinatesAreSafe();
     void colorTableAccessors();
     void allGrayBehavior();
+    void allGrayIndexedAndAlpha8Semantics();
 
     // ---- Task 2：detach 时机 ----
     void scanLineDetachesConstScanLineDoesNot();

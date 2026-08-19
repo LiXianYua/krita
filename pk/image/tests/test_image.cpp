@@ -303,6 +303,36 @@ void ImageCase::allGrayBehavior()
     PK_VERIFY(!argbColor.allGray());
 }
 
+void ImageCase::allGrayIndexedAndAlpha8Semantics()
+{
+    // 对齐真 Qt QImage::allGray()（qimage.cpp:2680-2745，5.15）——oracle 对拍
+    // 逼出原实现的 bug：Mono/MonoLSB 无脑 true、Alpha8 无脑 true 都是错的。
+
+    // Mono 颜色表黑+白（都是灰）→ true。显式 setColorTable 让 colorTable 非空。
+    PkImage mono(2, 2, PkImage::Format_Mono);
+    mono.setColorTable({0xFF000000u, 0xFFFFFFFFu});
+    PK_VERIFY(mono.allGray());
+
+    // Mono 颜色表含非灰项（R=1 G=2 B=3）→ false。
+    PkImage monoColor(2, 2, PkImage::Format_Mono);
+    monoColor.setColorTable({0xFF000000u, 0xFF010203u});
+    PK_VERIFY(!monoColor.allGray());
+
+    // Indexed8 颜色表含非灰项 → false（不是只看像素索引）。
+    PkImage indexedColor(2, 2, PkImage::Format_Indexed8);
+    indexedColor.setColorTable({0xFF000000u, 0xFF010203u});
+    PK_VERIFY(!indexedColor.allGray());
+
+    // Indexed8 颜色表全灰 → true。
+    PkImage indexedGray(2, 2, PkImage::Format_Indexed8);
+    indexedGray.setColorTable({0xFF000000u, 0xFF808080u, 0xFFFFFFFFu});
+    PK_VERIFY(indexedGray.allGray());
+
+    // Alpha8：纯 alpha 通道，不是灰度 → false。
+    PkImage alpha8(2, 2, PkImage::Format_Alpha8);
+    PK_VERIFY(!alpha8.allGray());
+}
+
 // ---------------------------------------------------------------------------
 // Task 2：detach 时机——借鉴 pk/container 单测里 PkUseCount()/PkIsSharedWith()
 // 的用法，钉住"写方法必须经 PkMut()、读方法绝不 detach"这条硬约束。

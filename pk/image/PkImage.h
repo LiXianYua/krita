@@ -120,8 +120,10 @@ public:
     uint32_t color(int index) const;
     void setColor(int index, uint32_t argbColor);
 
-    // 逐像素判断 R==G==B（alpha 无关）。Grayscale8/Alpha8/Mono/MonoLSB 本身就是
-    // 灰度语义，直接返回 true（探针第 13 组：按定义实现，未专门探测这些格式）。
+    // 逐像素判断 R==G==B（alpha 无关）。语义对齐真 Qt QImage::allGray()：
+    // Grayscale8/16 恒 true；Alpha8 返回 false（纯 alpha 不是灰度）；Mono/
+    // MonoLSB/Indexed8 逐项检查颜色表是否全灰（任一非灰即 false）；32bpp 直接
+    // 色与其余格式逐像素判 R==G==B。
     bool allGray() const;
 
     // ---- Task 3：格式转换、派生操作 ----
