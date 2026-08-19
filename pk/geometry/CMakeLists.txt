@@ -25,6 +25,10 @@ add_library(pkgeometry STATIC
 )
 target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+# ../global：PkGlobal.h 已是转发头，quote-include 在 geometry 目录无同名文件后，
+# 落到这个 -I 时命中 pk/global/PkGlobal.h（R-18 折叠后标量与 Qt 枚举的唯一权威）。
+target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../global)
+
 # R-21 T2：PkPolygon/PkPolygonF 是 `PkVector<PkPoint>`/`PkVector<PkPointF>`
 # 的**继承**（不是包一层，理由见 PkPolygon.h 文件头），PkVector<T> 住在
 # pk/container/（R-02 交付），不在 pk/geometry/ 自己的树里。PkVector<T> 全是

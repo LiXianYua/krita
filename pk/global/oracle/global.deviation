@@ -1,0 +1,36 @@
+# global.deviation —— pk/global 标量对拍的全部已声明差异。
+#
+# 格式：四列 tab 分隔，每行一条：
+#   <api>   <tag>   <期望计数>   <≥20 个 UTF-8 码点的理由>
+# 与 geometry.deviation 同口径：
+#   · 第三列是 **DIFFTAG 的分子额度**（出现次数），不是分母。分母 DIFFDEN 只给人
+#     读（「命中 N 次里分家 M 次」），不进闸门。额度写 N 就是**必须恰好 N**：
+#     用超、用少、掉到 0 都算漂移（= 行为变了却没人判断过），run_oracle.sh FAIL。
+#   · canary 行（api='canary'）是「比较管道还活着」的自证：故意不相等的比对，
+#     走与真实 API 完全相同的 rec()/same_*/tag 路径，必须全部出现，少一条 FAIL。
+#
+# **已登记的真实偏离：无** —— 修复轮随 PkGlobal.h 修正消除了 qFloor/qCeil 在 ±inf
+# 上的分家（对非有限值原样返回 int(v)，与 Qt 的 int(floor(±inf)) 一致），原两行
+# floor_inf 已删。其余 11 行 canary + 首行 Q_ASSERT 登记 —— 真实差异应该为零，
+# 判别力靠 canary + 注入自证撑着。
+
+# ── 首行：Q_ASSERT 登记（编译期语义，非运行期可比）─────────────────────
+# 它是一行「编译期语义差异」的登记，不是运行期比对：Q_ASSERT 宏在两侧的展开
+# 在编译后不可观测，所以对拍程序不把它当 rec() 喂输入，而是直接打一行
+# `DIFFTAG Q_ASSERT assert_gate 1` 充当登记。run_oracle.sh 把它当普通已声明行
+# 对账（声明了、也打出了、计数=1，三项都过），不需要任何特判。
+Q_ASSERT	assert_gate	1	登记：PkGlobal 的 Q_ASSERT 以 QT_NO_DEBUG||NDEBUG 为关闭条件（任一宏定义即空转）；真 Qt 以 QT_NO_DEBUG&&!QT_FORCE_ASSERTS 为关闭条件（光 -DNDEBUG 仍激活断言）。对拍两侧都 -DQT_NO_DEBUG，宏展开一致；此差异只在 -DNDEBUG 且无 -DQT_NO_DEBUG 的构建下显现。
+
+# ── canary：比较管道自证（故意不相等的比对，走真实 rec() 路径）─────────
+canary	qabs_pipeline	1	比较管道自证：qAbs(-3.0) 两侧都取 3.0，却拿 qAbs(-3.0)+1 与 3.0 相比，故意不等 —— 走真实 rec()/same_double/tag 路径，出现即管道活。
+canary	minmax_pipeline	1	比较管道自证：qMin(1.0,2.0) 两侧都取 1.0，拿 1.0+1 与 1.0 相比故意不等，走 qMin 的 rec()/same_double/tag 路径，出现即管道活。
+canary	bound_pipeline	1	比较管道自证：qBound(0,5,10) 两侧都取 5.0，拿 5.0+1 与 5.0 相比故意不等，走 qBound 的 rec()/same_double/tag 路径，出现即管道活。
+canary	round_pipeline	1	比较管道自证：qRound(2.5) 两侧都取 3，拿 3+1 与 3 相比故意不等，走 qRound 的 rec()/整数比较/tag 路径，出现即管道活。
+canary	fuzzycompare_pipeline	1	比较管道自证：qFuzzyCompare(1,1) 两侧都真，却断言两侧不等（!=），故意红 —— 走 qFuzzyCompare 的 rec()/bool 比较/tag 路径，出现即管道活。
+canary	fuzzyisnull_pipeline	1	比较管道自证：qFuzzyIsNull(0) 两侧都真，断言两侧不等（!=）故意红，走 qFuzzyIsNull 的 rec()/bool 比较/tag 路径，出现即管道活。
+canary	floorceil_pipeline	1	比较管道自证：qFloor(2.7) 两侧都取 2，拿 2+1 与 2 相比故意不等，走 qFloor/qCeil 的 rec()/整数比较/tag 路径，出现即管道活。
+canary	p2_pipeline	1	比较管道自证：qNextPowerOfTwo(3) 两侧都取 4，拿 4+5 与 4 相比故意不等，走 qNextPowerOfTwo 的 rec()/整数比较/tag 路径，出现即管道活。
+canary	isnan_pipeline	1	比较管道自证：qIsNaN(1.0) 两侧都假，断言两侧不等（!=）故意红，走 qIsNaN 的 rec()/bool 比较/tag 路径，出现即管道活。
+canary	inf_pipeline	1	比较管道自证：qInf() 两侧都是 +inf 本应判同，却用「qInf() 与 0.0 判同」做整体结果，故意红 —— 走 qInf 的 rec()/same_double/tag 路径，出现即管道活。
+canary	qnan_pipeline	1	比较管道自证：qQNaN() 两侧都是 NaN 本应判同，却用「qQNaN() 与 0.0 判同」做整体结果，故意红 —— 走 qQNaN 的 rec()/same_double/tag 路径，出现即管道活。
+

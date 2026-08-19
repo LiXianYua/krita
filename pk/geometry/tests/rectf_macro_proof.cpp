@@ -25,6 +25,7 @@
 
 #include "rectf_macro_proof.h"
 
+#include <cmath>
 #include <limits>
 
 namespace {

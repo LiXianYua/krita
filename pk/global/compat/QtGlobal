@@ -1,0 +1,40 @@
+#pragma once
+
+// pk/global 的 <QtGlobal> 垫片 —— pk/test 与 pk/geometry 两份 compat 的
+// **超集链上再叠一层**。
+//
+// 试接时编译行同时有 -I pk/test/compat、-I pk/geometry/compat、-I pk/global/compat
+// 三份，`#include <QtGlobal>` 只会命中一份（谁在 -I 里靠前谁赢）。命中本份时，
+// pk/test 那份提供的东西（qAbs、qFuzzyCompare、qFuzzyIsNull）与 pk/global 那份
+// 提供的东西（qRound/qMin/qMax/qBound/pkQtFuzzy*/qFuzzy*/qIsNaN/qInf/qFloor/qCeil/
+// qNextPowerOfTwo/Qt 枚举；geometry 的 PkGlobal.h 是 R-18 折叠后的转发头，几何头
+// 与它的 compat 拿到的就是这份）都必须在，否则调用点编不过 —— 所以本文件先把
+// 另外两份拉进本 TU（它们各用 #pragma once / include guard，之后 <QtGlobal> 再
+// 解析到它们就空转），再包 PkGlobal.h。
+//
+// 于是三份垫片以任意顺序进入同一个 TU，PkGlobal.h 都能在检测到
+// PK_GLOBAL_SCALARS_FROM_PKTEST 后整段让位。（PK_GLOBAL_SCALARS_FROM_GEOMETRY
+// 随 R-18 折叠删除：geometry 的 PkGlobal.h 已是转发头，不再有自用标量。）
+// 缺 pk/test 或缺 pk/geometry 时（本工程单独构建、或将来搬走）__has_include 为
+// 假，PkGlobal.h 自己提供那三项，超集关系照样成立。
+//
+// 完整设计说明在 PkGlobal.h 顶部「与 pk/test 的共存」一节；
+// **三种** include 顺序各有一个 TU 在 ../tests/coexist_*.cpp 里编译并核对取值。
+//
+// ⚠ **纪律：每个 compat 垫片都必须先包 compat/QtGlobal。** 对 pk/global 而言，它
+// 目前只有这一个垫片，没有类型垫片；将来加 QRect/QPoint 一类的类型垫片时，必须
+// 像 pk/geometry 那样在包各自的 Pk 头之前先包本文件 —— 否则 `#include <QRect>`
+// 直接绕开本文件直达 PkGlobal.h，PkGlobal.h 先定义 qAbs、随后 pk/test 那份再定义
+// 一次，撞 "redefinition of qAbs"。这也是对真 Qt 的忠实复刻（Qt 的每个公开头都以
+// `#include <QtCore/qglobal.h>` 开头）。
+
+#if defined(__has_include)
+#  if __has_include("../../test/compat/QtGlobal")
+#    include "../../test/compat/QtGlobal"
+#  endif
+#  if __has_include("../../geometry/compat/QtGlobal")
+#    include "../../geometry/compat/QtGlobal"
+#  endif
+#endif
+
+#include "../PkGlobal.h"

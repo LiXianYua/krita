@@ -1,0 +1,28 @@
+# pk/global 对拍应当打出的全部 `APISEEN <name>` 行（规则三机器闸门 ①）。
+# 内容来自 brief 的 API×tag 表：哪个重载上了表，这里就必须有一行。
+# 每个已实现的重载都要有自己的 rec()，多一条少一条都 FAIL。
+# 排序无关紧要（python 端按集合对账），这里按字典序排，方便 diff。
+canary
+qAbs(double)
+qAbs(float)
+qAbs(int)
+qAbs(qint64)
+qBound(double)
+qBound(int)
+qCeil(qreal)
+qFloor(qreal)
+qFuzzyCompare(double)
+qFuzzyCompare(float)
+qFuzzyIsNull(double)
+qFuzzyIsNull(float)
+qInf()
+qIsNaN(double)
+qIsNaN(float)
+qMax(double)
+qMax(int)
+qMin(double)
+qMin(int)
+qNextPowerOfTwo(quint32)
+qQNaN()
+qRound(double)
+qRound(float)

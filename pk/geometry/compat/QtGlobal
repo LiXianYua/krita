@@ -13,8 +13,9 @@
 // pk/test 不在时（本工程单独构建、或将来搬走）__has_include 为假，
 // PkGlobal.h 自己提供那三项，超集关系照样成立。
 //
-// 完整设计说明在 PkGlobal.h 顶部「与 pk/test/compat/QtGlobal 的共存」一节；
-// **三种** include 顺序各有一个 TU 在 ../tests/coexist_*.cpp 里编译并核对取值。
+// 完整设计说明在 pk/global/PkGlobal.h 顶部「与 pk/test/compat/QtGlobal（R-11）的
+// 共存」一节（pk/geometry/PkGlobal.h 已是转发头，本文件经它命中那份）；**三种**
+// include 顺序各有一个 TU 在 ../tests/coexist_*.cpp 里编译并核对取值。
 //
 // ⚠ **纪律：七个类型垫片（QPoint/QPointF/QSize/QSizeF/QRect/QRectF/QTransform）
 //   必须在包各自的 Pk 头之前先包本文件。新增 compat 垫片照做。**
