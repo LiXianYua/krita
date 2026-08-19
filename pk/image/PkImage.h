@@ -134,6 +134,18 @@ public:
     // 故只提供单参数重载（判据①，不多加）。
     PkImage copy() const;
     PkImage convertToFormat(Format newFormat) const;
+
+    // Fix round 1（评审后追加，libs/brush/kis_svg_brush.cpp:53 真实调用点需要）：
+    // 调用方指定调色板的重载——QImage::convertToFormat(Format, const
+    // QVector<QRgb>&, ...) 的等价物，用 std::vector<uint32_t> 代替 QVector<QRgb>
+    // （本仓零 Qt，打包约定与 pixel()/color() 一致）。对源图每像素求 ARGB32 值
+    // （复用 rawPixelArgb），在 colorTable 里找 R/G/B 欧氏距离最近的一项，把其
+    // 索引写入目标像素（同 writeRawPixelIndex 的既有索引写入约定）；忽略 alpha
+    // 分量参与距离计算，理由见 PkImage.cpp 实现处注释。目标图像的 colorTable
+    // 字段是传入 colorTable 的原样拷贝。空 colorTable 时全部像素索引保持零
+    // 初始化状态，不崩溃。
+    PkImage convertToFormat(Format targetFormat, const std::vector<uint32_t> &colorTable) const;
+
     void convertTo(Format newFormat);
 
     // scaled()/transformed()：Fast（最近邻）模式精确复刻真 Qt 探针实测的映射

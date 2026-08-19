@@ -478,6 +478,83 @@ void ImageCase::convertToMutatesInPlace()
     PK_COMPARE(same.pixel(0, 0), 0xFF112233u);
 }
 
+// ---------------------------------------------------------------------------
+// Fix round 1：convertToFormat(Format, colorTable) 重载——评审后追加的真实缺口。
+// libs/brush/kis_svg_brush.cpp:53 的等价简化版场景。
+// ---------------------------------------------------------------------------
+
+void ImageCase::convertToFormatWithColorTableNearestColorMatch()
+{
+    // 贴近真实调用点：kis_svg_brush.cpp:53 构造一个 256 项线性灰度调色板
+    // （table[i] = qRgb(i,i,i)），把 ARGB32 图转成 Indexed8。调色板本身就是
+    // 恒等映射（第 i 项就是灰度值 i），所以最近色匹配后的索引应精确等于源
+    // 像素的灰度值本身。
+    std::vector<uint32_t> table;
+    table.reserve(256);
+    for (int i = 0; i < 256; ++i) {
+        uint32_t v = static_cast<uint32_t>(i);
+        table.push_back(0xFF000000u | (v << 16) | (v << 8) | v);
+    }
+
+    PkImage src(3, 1, PkImage::Format_ARGB32);
+    src.setPixel(0, 0, 0xFF101010u); // 灰度 0x10
+    src.setPixel(1, 0, 0xFF808080u); // 灰度 0x80
+    src.setPixel(2, 0, 0xFFF5F5F5u); // 灰度 0xF5
+
+    PkImage indexed = src.convertToFormat(PkImage::Format_Indexed8, table);
+    PK_VERIFY(!indexed.isNull());
+    PK_COMPARE(static_cast<int>(indexed.format()), static_cast<int>(PkImage::Format_Indexed8));
+    PK_COMPARE(indexed.pixelIndex(0, 0), 0x10);
+    PK_COMPARE(indexed.pixelIndex(1, 0), 0x80);
+    PK_COMPARE(indexed.pixelIndex(2, 0), 0xF5);
+
+    // colorTable() 与传入的 palette 逐项一致（brief 明文要求：原样拷贝）。
+    std::vector<uint32_t> got = indexed.colorTable();
+    PK_COMPARE(got.size(), table.size());
+    PK_COMPARE(got[0x10], table[0x10]);
+    PK_COMPARE(got[0x80], table[0x80]);
+    PK_COMPARE(got[0xF5], table[0xF5]);
+}
+
+void ImageCase::convertToFormatWithColorTableSmallPaletteNearestByRgbDistance()
+{
+    // 小调色板（4 项，非灰度）：验证最近色匹配确实是 R/G/B 欧氏距离比较，不是
+    // 灰度值捷径。四个源像素分别扰动到黑/红/绿/蓝附近，应各自匹配到对应索引。
+    std::vector<uint32_t> table{
+        0xFF000000u, // 0: 黑
+        0xFFFF0000u, // 1: 红
+        0xFF00FF00u, // 2: 绿
+        0xFF0000FFu, // 3: 蓝
+    };
+    PkImage src(4, 1, PkImage::Format_ARGB32);
+    src.setPixel(0, 0, 0xFF080000u); // 偏黑
+    src.setPixel(1, 0, 0xFFE01010u); // 偏红
+    src.setPixel(2, 0, 0xFF10E010u); // 偏绿
+    src.setPixel(3, 0, 0xFF1010E0u); // 偏蓝
+
+    PkImage indexed = src.convertToFormat(PkImage::Format_Indexed8, table);
+    PK_COMPARE(indexed.pixelIndex(0, 0), 0);
+    PK_COMPARE(indexed.pixelIndex(1, 0), 1);
+    PK_COMPARE(indexed.pixelIndex(2, 0), 2);
+    PK_COMPARE(indexed.pixelIndex(3, 0), 3);
+
+    std::vector<uint32_t> got = indexed.colorTable();
+    PK_VERIFY(got == table);
+}
+
+void ImageCase::convertToFormatWithColorTableEmptyTableIsSafe()
+{
+    // 空调色板边界情况：没有候选项可匹配，保持零初始化索引状态，不崩溃。
+    PkImage src(2, 2, PkImage::Format_ARGB32);
+    src.fill(0xFF123456u);
+    std::vector<uint32_t> emptyTable;
+    PkImage indexed = src.convertToFormat(PkImage::Format_Indexed8, emptyTable);
+    PK_VERIFY(!indexed.isNull());
+    PK_COMPARE(indexed.pixelIndex(0, 0), 0);
+    PK_COMPARE(indexed.pixelIndex(1, 1), 0);
+    PK_VERIFY(indexed.colorTable().empty());
+}
+
 void ImageCase::operatorEqualityFourScenarios()
 {
     // 探针第 5 组：深度像素内容比较，不是只比共享指针。

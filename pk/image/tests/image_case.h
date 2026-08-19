@@ -42,6 +42,12 @@ private Q_SLOTS:
     void convertToFormatSameFormatShares();
     void convertToFormatCrossFormatRoundtrip();
     void convertToMutatesInPlace();
+
+    // ---- Fix round 1：convertToFormat(Format, colorTable) 重载 ----
+    void convertToFormatWithColorTableNearestColorMatch();
+    void convertToFormatWithColorTableSmallPaletteNearestByRgbDistance();
+    void convertToFormatWithColorTableEmptyTableIsSafe();
+
     void operatorEqualityFourScenarios();
     void devicePixelRatioAccessorsAndPassthrough();
 

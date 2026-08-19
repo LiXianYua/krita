@@ -276,6 +276,45 @@ uint32_t globalColorToArgb(Qt::GlobalColor color)
 }
 
 // ---------------------------------------------------------------------------
+// Fix round 1（评审后追加）：convertToFormat(Format, colorTable) 的最近色匹配。
+//
+// 真实调用点 libs/brush/kis_svg_brush.cpp:53 用的是 QImage 的第二重载
+// （调用方指定调色板），当前只实现了单参数版本对索引目标格式是 no-op——这里
+// 补上真正的最近色匹配算法。
+// ---------------------------------------------------------------------------
+
+// 在给定调色板里找与 argb 的 R/G/B 欧氏距离最近的一项，返回其索引。
+//
+// 忽略 alpha 分量参与距离计算：调色板项本身代表的是可见颜色，真实调用点
+// kis_svg_brush.cpp 构造的调色板是恒不透明的灰度表（qRgb(i,i,i) 打包时 alpha
+// 恒为 0xff），把源像素的 alpha 计入距离只会给所有候选项加上同一个常数偏移，
+// 不改变排序结果，对这个真实场景是等价的；忽略 alpha 也是更通用、更符合直觉
+// 的「颜色匹配」定义——调色板匹配关心的是可见颜色本身，透明度是另一个维度。
+// 平局（多个项距离相等）保留线性扫描先出现的索引，确定性、可复现，不依赖
+// std::min_element 之类的实现定义的平局规则。
+int nearestColorIndex(uint32_t argb, const std::vector<uint32_t> &colorTable)
+{
+    int r = argbRed(argb);
+    int g = argbGreen(argb);
+    int b = argbBlue(argb);
+
+    int bestIndex = 0;
+    long bestDist = -1;
+    for (size_t i = 0; i < colorTable.size(); ++i) {
+        uint32_t c = colorTable[i];
+        int dr = r - argbRed(c);
+        int dg = g - argbGreen(c);
+        int db = b - argbBlue(c);
+        long dist = static_cast<long>(dr) * dr + static_cast<long>(dg) * dg + static_cast<long>(db) * db;
+        if (bestDist < 0 || dist < bestDist) {
+            bestDist = dist;
+            bestIndex = static_cast<int>(i);
+        }
+    }
+    return bestIndex;
+}
+
+// ---------------------------------------------------------------------------
 // Task 3：scaled()/transformed() 的 Smooth（双线性）模式辅助函数。
 //
 // 这是已声明偏离 Qt 的自定义实现（brief「岔路 B」），不追求与 Qt 位对齐，只
@@ -586,6 +625,45 @@ PkImage PkImage::convertToFormat(Format newFormat) const
         for (int x = 0; x < w; ++x) {
             uint32_t argb = rawPixelArgb(srcData, srcFormat, x, y);
             writeRawPixelArgb(dstData, fmt, x, y, argb);
+        }
+    }
+    return result;
+}
+
+// Fix round 1（评审后追加）：调用方指定调色板的重载。算法与理由见
+// nearestColorIndex() 的注释；这里只负责逐像素求 ARGB32 值、查最近色索引、
+// 把索引写入目标像素——完全复用 Task 2 的 rawPixelArgb/writeRawPixelIndex，
+// 不重新写一套像素读写逻辑。
+PkImage PkImage::convertToFormat(Format targetFormat, const std::vector<uint32_t> &colorTable) const
+{
+    PkImage result(width(), height(), targetFormat);
+    if (result.isNull()) {
+        // 源本身是 null，或目标格式构造不出合法图像。
+        return result;
+    }
+
+    PkImageData &dstData = result.m_d.PkMut();
+    dstData.devicePixelRatio = m_d.PkConst().devicePixelRatio;
+    // 目标图像的 colorTable 就是调用方传入的 colorTable 原样拷贝（brief 明文
+    // 要求），与像素是否真的全部映射到表内某项无关。
+    dstData.colorTable = colorTable;
+
+    if (colorTable.empty()) {
+        // 空调色板：没有任何候选项可匹配，不编造数据——保持 PkImage(width,
+        // height, targetFormat) 构造时的零初始化索引状态（全部像素索引 0），
+        // 确定性、不崩溃，这是 brief 明确要求判断的边界情况里最安全的选择。
+        return result;
+    }
+
+    const PkImageData &srcData = m_d.PkConst();
+    Format srcFormat = format();
+    int w = width();
+    int h = height();
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            uint32_t argb = rawPixelArgb(srcData, srcFormat, x, y);
+            int idx = nearestColorIndex(argb, colorTable);
+            writeRawPixelIndex(dstData, targetFormat, x, y, static_cast<uint32_t>(idx));
         }
     }
     return result;
