@@ -1,0 +1,14 @@
+// 兼容垫片：让真实调用点的 `#include <QFlags>` 在**一个字都不改**的前提下解析到
+// PkFlags。文件名刻意没有扩展名 —— 调用点写的就是 <QFlags>（Qt 5 的转发头）。
+//
+// 用宏而不是 using（形态与理由见 pk/container/compat/QVector 头注释：前置声明
+// `class QFlags;` 会被宏改写成 `class PkFlags;`，照样成立）。
+//
+// 宏名用函数式（而非对象式 #define Q_DECLARE_FLAGS PK_DECLARE_FLAGS），
+// 避免「对象式宏 + 再扫描」在函数式宏调用点上的歧义。
+#pragma once
+#include "../PkFlags.h"
+
+#define QFlags PkFlags
+#define Q_DECLARE_FLAGS(Flags, Enum) PK_DECLARE_FLAGS(Flags, Enum)
+#define Q_DECLARE_OPERATORS_FOR_FLAGS(Flags) PK_DECLARE_OPERATORS_FOR_FLAGS(Flags)
