@@ -64,6 +64,7 @@ PkTransform::operator*(const PkTransform&)	T::operator*
 PkTransform::reset()	T::reset
 PkTransform::map(const PkPoint&)	T::map(PkPoint);T::freePoint*
 PkTransform::map(const PkPointF&)	T::map(PkPointF);T::freePointF*;T::map(stale)
+PkTransform::map(const PkLineF&)	T::map(LineF);T::freeLineF*
 PkTransform::map(int,int,int*,int*)	T::map(int*)
 PkTransform::map(qreal,qreal,qreal*,qreal*)	T::map(qreal*)
 PkTransform::mapRect(const PkRect&)	T::mapRect(PkRect)

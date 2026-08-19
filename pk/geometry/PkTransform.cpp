@@ -863,6 +863,14 @@ PkPointF PkTransform::map(const PkPointF &p) const
     return PkPointF(x, y);
 }
 
+// qtransform.cpp —— 真 Qt 5.15.7 源码就是 `return QLineF(map(l.p1()),
+// map(l.p2()));`：两个端点各自走已实现的 map(PkPointF)，不是新算法。
+// R-21 T1 交付 PkLineF 后顺带解开（文件头「依赖当时范围外的类型」一节）。
+PkLineF PkTransform::map(const PkLineF &l) const
+{
+    return PkLineF(map(l.p1()), map(l.p2()));
+}
+
 // qtransform.cpp:2086-2090。**走 PK_MAP，带夹持。**
 void PkTransform::map(qreal x, qreal y, qreal *tx, qreal *ty) const
 {

@@ -4,6 +4,7 @@
 #include "PkGlobal.h"
 #include "PkPoint.h"
 #include "PkRect.h"
+#include "PkLine.h"
 
 // ---------------------------------------------------------------------------
 // PkTransform —— QTransform 的零 Qt 替代（3x3 齐次矩阵）。
@@ -94,12 +95,15 @@
 //     helper 存在，不进公开面（Qt 那边是公开的）
 //   · `isInvertible` `isRotating` `isScaling` `isTranslating` `mapToPolygon`
 //     `quadToQuad` `toAffine` `det`
-// 【依赖 R-03 范围外的类型】：
-//   · `map(QLine)` `map(QLineF)` `map(QPolygon)` `map(QPolygonF)`
-//     `map(QRegion)` `map(QPainterPath)` 六个重载，以及
-//     `operator*(const QLine&/QLineF&/QPolygon&/QPolygonF&/QRegion&, const QTransform&)`
-//     —— QLine/QLineF/QPolygon/QPolygonF/QRegion/QPainterPath 都不在
-//     `Qt替代品选型.md` §1 几何那一行点名的四个类型里，**归属未定**
+// 【依赖当时范围外的类型，逐个由交付该类型的 R 任务顺带解开】：
+//   · `map(QLineF)` / `operator*(const QLineF&, const QTransform&)` ——
+//     **R-21 T1 已解开**（交付了 PkLineF），见下方 `map(const PkLineF&)`。
+//   · `map(QLine)` `map(QPolygon)` `map(QPolygonF)` `map(QRegion)`
+//     `map(QPainterPath)`，以及
+//     `operator*(const QLine&/QPolygon&/QPolygonF&/QRegion&, const QTransform&)`
+//     ——仍未解开，QLine/QPolygon/QPolygonF/QRegion/QPainterPath 尚未交付
+//     （`QLine` 保留范围内唯一真实调用点只是构造后立即转 `QLineF`，本身没有
+//     `.map()` 真实调用点，暂不补；其余四个待各自的 R 任务）
 //   · `squareToQuad` / `quadToSquare`（实测 2 次 / 3 次，用量 > 0）——
 //     它们的签名吃 `QPolygonF`，同上不可得。**这是一个已知缺口，不是遗漏**，
 //     报回主会话，README 覆盖度缺口点名
@@ -208,6 +212,16 @@ public:
     PkPointF map(const PkPointF &p) const;
     void map(int x, int y, int *tx, int *ty) const;
     void map(qreal x, qreal y, qreal *tx, qreal *ty) const;
+
+    // qtransform.cpp（QLineF 版 map，真 Qt 5.15.7 源码就是
+    // `return QLineF(map(l.p1()), map(l.p2()));`，两点各走一次已实现的
+    // map(PkPointF) ——**不是新算法，是既有 map(PkPointF) 的直接复用**）。
+    // R-21 T1 交付 PkLineF 之前这个重载做不出来（文件头「归属未定」列表里的
+    // `map(QLineF)` 之一），T1 顺带解开，与 R-21 T2 交付 QPolygonF 时顺带解开
+    // squareToQuad/quadToSquare、map(QPolygonF) 是同一个模式。真实调用点：
+    // `plugins/tools/tool_knife/RemoveGutterStrategy.cpp` 多处
+    // `<PkTransform>.map(<PkLineF>)`。
+    PkLineF map(const PkLineF &l) const;
 
     // qtransform.cpp:1942-1991 / 2012-2060。
     PkRect mapRect(const PkRect &) const;
@@ -396,13 +410,15 @@ inline bool qFuzzyCompare(const PkTransform &t1, const PkTransform &t2)
         && pkQtFuzzyCompare(t1.m33(), t2.m33());
 }
 
-// qtransform.h:395-418 —— "mathematical semantics" 一节里**本 Task 范围内**的
-// 六个。QLine / QLineF / QPolygon / QPolygonF / QRegion 五个重载不做（类型不在
-// R-03 范围，见文件头）。
+// qtransform.h:395-418 —— "mathematical semantics" 一节里的重载。R-21 T1
+// 交付 PkLineF 后补上 QLineF 那一个；QLine / QPolygon / QPolygonF / QRegion
+// 四个仍不做（类型尚未交付，见文件头「归属未定」列表，各自的 R 任务顺带解开）。
 inline PkPoint operator*(const PkPoint &p, const PkTransform &m)
 { return m.map(p); }
 inline PkPointF operator*(const PkPointF &p, const PkTransform &m)
 { return m.map(p); }
+inline PkLineF operator*(const PkLineF &l, const PkTransform &m)
+{ return m.map(l); }
 
 inline PkTransform operator*(const PkTransform &a, qreal n)
 { PkTransform t(a); t *= n; return t; }

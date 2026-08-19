@@ -83,3 +83,7 @@ PkRectF::operator==(const PkRectF&,const PkRectF&)	RF::operator==
 PkRectF::operator!=(const PkRectF&,const PkRectF&)	RF::operator!=
 PkRectF::toRect()	RF::toRect
 PkRectF::toAlignedRect()	RF::toAlignedRect
+PkRectF::marginsAdded(const PkMarginsF&)	RF::marginsAdded
+PkRectF::marginsRemoved(const PkMarginsF&)	RF::marginsRemoved
+PkRectF::operator+=(const PkMarginsF&)	RF::operatorPlusEqMargins
+PkRectF::operator-=(const PkMarginsF&)	RF::operatorMinusEqMargins

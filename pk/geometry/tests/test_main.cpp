@@ -9,6 +9,8 @@ int run_size_tests();
 int run_rect_tests();
 int run_rectf_tests();
 int run_transform_tests();
+int run_line_tests();
+int run_margins_tests();
 
 int main()
 {
@@ -19,6 +21,8 @@ int main()
     failures += run_rect_tests();
     failures += run_rectf_tests();
     failures += run_transform_tests();
+    failures += run_line_tests();
+    failures += run_margins_tests();
 
     if (failures == 0) {
         std::printf("all pkgeometry tests passed\n");

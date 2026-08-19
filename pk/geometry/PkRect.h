@@ -2,6 +2,7 @@
 #define PK_GEOMETRY_PKRECT_H
 
 #include "PkGlobal.h"
+#include "PkMargins.h"
 #include "PkPoint.h"
 #include "PkSize.h"
 
@@ -51,9 +52,15 @@
 //     必须实现"，实测证伪：`intersect` 唯一命中是 `QSet<int>::intersect`，
 //     `unite` 两处分别是 `QSet<int>::unite` 与
 //     `KisFilterWeightsApplicator::LinePos::unite`，**Rect 族真实调用点 0**
-//   · marginsAdded / marginsRemoved / operator±=(QMargins) / operator±(QMargins)
-//     —— QMargins 实测 2 次/1 文件，本来就不在 R-03 交付范围
 //   · toCGRect / fromCGRect（Darwin 专有）
+//
+// R-21 T1 新增（互操作，见 PkMargins.h 头部注释）：marginsAdded(const
+// PkMargins&) / marginsRemoved(const PkMargins&) / operator+=(const
+// PkMargins&) / operator-=(const PkMargins&)，加自由函数
+// operator+/-(const PkRect&, const PkMargins&)。这四个互操作成员本身在
+// QRect 侧同样是 0 用量（挡它们的 QMargins 全仓保留范围内 0 用量）——
+// 与 PkRect 的构造函数/运算符按 Qt 头文件全集实现是同一类处置，任务定义
+// 已批准这条例外，不需要在这里重新论证。
 //   · qHash / QDataStream 的 <<>> / QDebug 的 <<（归 R-02 / R-12 / R-08）
 // ---------------------------------------------------------------------------
 
@@ -136,6 +143,15 @@ public:
     PkRect operator&(const PkRect &r) const noexcept;
     inline PkRect &operator|=(const PkRect &r) noexcept;
     inline PkRect &operator&=(const PkRect &r) noexcept;
+
+    // R-21 T1 —— qrect.h:143-146。四个互操作成员，签名吃 PkMargins（整数版）。
+    // 真 Qt 5.15.7 探针确认 QRect::marginsAdded/marginsRemoved 吃的是
+    // QMargins 不是 QMarginsF（QRectF 那边才是 QMarginsF，见 PkRectF 对应
+    // 位置）。前两个 constexpr、后两个转发。
+    constexpr inline PkRect marginsAdded(const PkMargins &margins) const noexcept;
+    constexpr inline PkRect marginsRemoved(const PkMargins &margins) const noexcept;
+    constexpr inline PkRect &operator+=(const PkMargins &margins) noexcept;
+    constexpr inline PkRect &operator-=(const PkMargins &margins) noexcept;
 
     bool contains(const PkRect &r, bool proper = false) const noexcept;
     bool contains(const PkPoint &p, bool proper = false) const noexcept;
@@ -416,6 +432,52 @@ inline PkRect &PkRect::operator&=(const PkRect &r) noexcept
     return *this;
 }
 
+// qrect.h:482-491 —— marginsAdded 往外扩（左上角减、右下角加），
+// marginsRemoved 往里缩（符号相反）。走 (topLeft,bottomRight) 构造，
+// 所以**不做 ±1**（与 adjusted 那条同一个理由：目标坐标已经是最终的边界值）。
+constexpr inline PkRect PkRect::marginsAdded(const PkMargins &margins) const noexcept
+{
+    return PkRect(PkPoint(x1 - margins.left(), y1 - margins.top()),
+                  PkPoint(x2 + margins.right(), y2 + margins.bottom()));
+}
+
+constexpr inline PkRect PkRect::marginsRemoved(const PkMargins &margins) const noexcept
+{
+    return PkRect(PkPoint(x1 + margins.left(), y1 + margins.top()),
+                  PkPoint(x2 - margins.right(), y2 - margins.bottom()));
+}
+
+constexpr inline PkRect &PkRect::operator+=(const PkMargins &margins) noexcept
+{
+    *this = marginsAdded(margins);
+    return *this;
+}
+
+constexpr inline PkRect &PkRect::operator-=(const PkMargins &margins) noexcept
+{
+    *this = marginsRemoved(margins);
+    return *this;
+}
+
+// qrect.h:464-478 —— 自由函数版，转发到 marginsAdded/marginsRemoved。
+constexpr inline PkRect operator+(const PkRect &rectangle, const PkMargins &margins) noexcept
+{
+    return PkRect(PkPoint(rectangle.left() - margins.left(), rectangle.top() - margins.top()),
+                  PkPoint(rectangle.right() + margins.right(), rectangle.bottom() + margins.bottom()));
+}
+
+constexpr inline PkRect operator+(const PkMargins &margins, const PkRect &rectangle) noexcept
+{
+    return PkRect(PkPoint(rectangle.left() - margins.left(), rectangle.top() - margins.top()),
+                  PkPoint(rectangle.right() + margins.right(), rectangle.bottom() + margins.bottom()));
+}
+
+constexpr inline PkRect operator-(const PkRect &lhs, const PkMargins &rhs) noexcept
+{
+    return PkRect(PkPoint(lhs.left() + rhs.left(), lhs.top() + rhs.top()),
+                  PkPoint(lhs.right() - rhs.right(), lhs.bottom() - rhs.bottom()));
+}
+
 // qrect.h:444-452 —— intersected/united 是 &/| 的具名别名，**一个字都不加**。
 inline PkRect PkRect::intersected(const PkRect &other) const noexcept
 {
@@ -495,9 +557,17 @@ constexpr inline bool operator!=(const PkRect &r1, const PkRect &r2) noexcept
 //   · moveRight / moveBottom / moveTopRight / moveBottomRight / moveBottomLeft
 //   · transposed —— 三形态命中的 5 处接收者全不是 Rect 族
 //   · unite / intersect（Qt5 已废弃的别名）
-//   · marginsAdded / marginsRemoved / operator±=(QMarginsF) / operator±(QMarginsF)
 //   · toCGRect / fromCGRect（Darwin 专有）
 //   · qHash / QDataStream 的 <<>> / QDebug 的 <<（归 R-02 / R-12 / R-08）
+//
+// R-21 T1 新增（互操作）：marginsAdded(const PkMarginsF&) /
+// marginsRemoved(const PkMarginsF&) / operator+=(const PkMarginsF&) /
+// operator-=(const PkMarginsF&)，加自由函数 operator+/-(const PkRectF&,
+// const PkMarginsF&)。**⚠ 吃的是 PkMarginsF 不是 PkMargins**——真探针实测
+// `QRectF::marginsAdded` 的签名是 `const QMarginsF&`，与 QRect 那边吃
+// `QMargins` 不同（PkMargins→PkMarginsF 有隐式提升，探针
+// `rf.marginsAdded(QMargins(...))` 靠这条提升编过，不是重载决议出的第二个
+// 签名）。
 // ---------------------------------------------------------------------------
 
 class PkRectF
@@ -580,6 +650,13 @@ public:
     PkRectF operator&(const PkRectF &r) const noexcept;
     inline PkRectF &operator|=(const PkRectF &r) noexcept;
     inline PkRectF &operator&=(const PkRectF &r) noexcept;
+
+    // R-21 T1 —— qrect.h:599-602。四个互操作成员，**签名吃 PkMarginsF**
+    // （浮点版），与 PkRect 那边吃 PkMargins（整数版）不同——探针实测确认。
+    constexpr inline PkRectF marginsAdded(const PkMarginsF &margins) const noexcept;
+    constexpr inline PkRectF marginsRemoved(const PkMarginsF &margins) const noexcept;
+    constexpr inline PkRectF &operator+=(const PkMarginsF &margins) noexcept;
+    constexpr inline PkRectF &operator-=(const PkMarginsF &margins) noexcept;
 
     // qrect.h:592-594 —— ⚠ **没有 proper 参数**（PkRect 那边有）。
     bool contains(const PkRectF &r) const noexcept;
@@ -833,6 +910,53 @@ inline PkRectF &PkRectF::operator&=(const PkRectF &r) noexcept
 {
     *this = *this & r;
     return *this;
+}
+
+// qrect.h:895-915 —— marginsAdded/marginsRemoved 走 (topLeft,size) 构造：
+// 左上角按符号各减/各加，宽高各按两侧之和加/减——与 PkRect 那边走
+// (topLeft,bottomRight) 构造、直接摆右下坐标不是同一个形状（PkRectF 内部
+// 存的本来就是 xp/yp/w/h，不需要先算出右下角再摆回去）。
+constexpr inline PkRectF PkRectF::marginsAdded(const PkMarginsF &margins) const noexcept
+{
+    return PkRectF(PkPointF(xp - margins.left(), yp - margins.top()),
+                   PkSizeF(w + margins.left() + margins.right(), h + margins.top() + margins.bottom()));
+}
+
+constexpr inline PkRectF PkRectF::marginsRemoved(const PkMarginsF &margins) const noexcept
+{
+    return PkRectF(PkPointF(xp + margins.left(), yp + margins.top()),
+                   PkSizeF(w - margins.left() - margins.right(), h - margins.top() - margins.bottom()));
+}
+
+constexpr inline PkRectF &PkRectF::operator+=(const PkMarginsF &margins) noexcept
+{
+    *this = marginsAdded(margins);
+    return *this;
+}
+
+constexpr inline PkRectF &PkRectF::operator-=(const PkMarginsF &margins) noexcept
+{
+    *this = marginsRemoved(margins);
+    return *this;
+}
+
+// qrect.h:877-891 —— 自由函数版，转发到 marginsAdded/marginsRemoved。
+constexpr inline PkRectF operator+(const PkRectF &lhs, const PkMarginsF &rhs) noexcept
+{
+    return PkRectF(PkPointF(lhs.left() - rhs.left(), lhs.top() - rhs.top()),
+                   PkSizeF(lhs.width() + rhs.left() + rhs.right(), lhs.height() + rhs.top() + rhs.bottom()));
+}
+
+constexpr inline PkRectF operator+(const PkMarginsF &lhs, const PkRectF &rhs) noexcept
+{
+    return PkRectF(PkPointF(rhs.left() - lhs.left(), rhs.top() - lhs.top()),
+                   PkSizeF(rhs.width() + lhs.left() + lhs.right(), rhs.height() + lhs.top() + lhs.bottom()));
+}
+
+constexpr inline PkRectF operator-(const PkRectF &lhs, const PkMarginsF &rhs) noexcept
+{
+    return PkRectF(PkPointF(lhs.left() + rhs.left(), lhs.top() + rhs.top()),
+                   PkSizeF(lhs.width() - rhs.left() - rhs.right(), lhs.height() - rhs.top() - rhs.bottom()));
 }
 
 inline PkRectF PkRectF::intersected(const PkRectF &r) const noexcept

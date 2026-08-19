@@ -58,6 +58,8 @@
 #include <QSize>
 #include <QRect>
 #include <QTransform>
+#include <QLine>
+#include <QMargins>
 #include <QString>
 #include <QtGlobal>
 #include <QMessageLogContext>
@@ -68,6 +70,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 #include <map>
 #include <set>
 #include <string>
@@ -77,13 +80,21 @@
 // 垫片一旦混进 -I，<QPoint> 会解析到 compat/QPoint，而那份是两个 #define。
 // 两侧于是解析成同一个类型，跑出来必然零差异且看不出破绽。成本三行。
 #if defined(QPoint) || defined(QPointF) || defined(QSize) || defined(QSizeF) \
-    || defined(QRect) || defined(QRectF) || defined(QTransform)
+    || defined(QRect) || defined(QRectF) || defined(QTransform) \
+    || defined(QLine) || defined(QLineF) || defined(QMargins) || defined(QMarginsF)
 #  error "对拍两侧解析成了同一个类型 —— -I 里混进了 pk/geometry/compat"
 #endif
 
 // ── 替代品侧 ───────────────────────────────────────────────────────────
 namespace pkoracle {
 #include "PkPoint.h"
+// ⚠ **PkGlobal.cpp 也要进来**：`qIsNaN`/`qInf` 是 out-of-line 的（照 Qt 的
+// 形态，qnumeric.h 只声明，本 Task 的 PkLineF::intersects 是第一个在对拍里
+// 真正调用 qIsNaN 的地方——之前五族都没撞上这个符号）。libpkgeometry.a 里
+// 那份定义的是 `::qIsNaN`，本 TU 需要的是 `pkoracle::qIsNaN`——两个不同的
+// 符号，链不上。纪律同上：PkGlobal.cpp 的系统头（<cmath> 与 <limits>）必须
+// 在上面的系统头区里已经出现过（两个都有）。
+#include "PkGlobal.cpp"
 #include "PkSize.h"
 // ⚠ **PkSize.cpp 也要进来**：两个 scaled(const Pk*&, mode) 是 out-of-line 的
 //（照 Qt 的形态，QSize::scaled 定义在 qsize.cpp 里）。libpkgeometry.a 里那份
@@ -109,6 +120,20 @@ namespace pkoracle {
 // 区两个都有。顺带好处：它尾部那批 static_assert（枚举位标志、布局、noexcept 面）
 // 也在这个 TU 里编一遍。
 #include "PkTransform.cpp"
+#include "PkLine.h"
+// ⚠ 同理 **PkLine.cpp 也要进来**：fromPolar/length/angle/setAngle/angleTo/
+// unitVector/intersects 七个是 out-of-line 的（照 Qt 的形态，qline.cpp 编在
+// libQt5Core.so 里，本机没有那份源码，公式靠独立差分脚本逼出来，见
+// PkLine.cpp 顶部注释）。libpkgeometry.a 里那份定义的是
+// `::PkLineF::length`，本 TU 需要的是 `pkoracle::PkLineF::length`——两个
+// 不同的符号，链不上。
+// 纪律同上：PkLine.cpp 只 #include <cmath> 与 <type_traits>，上面的系统头
+// 区两个都有。顺带好处：它尾部那批 static_assert（布局、隐式提升、
+// IntersectType 取值）也在这个 TU 里编一遍。
+#include "PkLine.cpp"
+// PkMargins.h **不需要配 .cpp**：两个类全部是 inline 的（qmargins.h 本身
+// 也全是 inline，没有 out-of-line 成员要从 libpkgeometry.a 里"抢"符号）。
+#include "PkMargins.h"
 }
 
 using PkPoint  = pkoracle::PkPoint;
@@ -118,6 +143,10 @@ using PkSizeF  = pkoracle::PkSizeF;
 using PkRect   = pkoracle::PkRect;
 using PkRectF  = pkoracle::PkRectF;
 using PkTransform = pkoracle::PkTransform;
+using PkLine   = pkoracle::PkLine;
+using PkLineF  = pkoracle::PkLineF;
+using PkMargins  = pkoracle::PkMargins;
+using PkMarginsF = pkoracle::PkMarginsF;
 
 static_assert(!std::is_same<QPoint,  PkPoint >::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
@@ -181,6 +210,36 @@ static_assert((int)Qt::XAxis == (int)pkoracle::Qt::XAxis
               && (int)Qt::YAxis == (int)pkoracle::Qt::YAxis
               && (int)Qt::ZAxis == (int)pkoracle::Qt::ZAxis,
               "Qt::Axis 的枚举取值两侧不一致");
+
+// ── R-21 T1：Line / Margins 两族的两侧类型自证 ─────────────────────────────
+static_assert(!std::is_same<QLine, PkLine>::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
+static_assert(sizeof(QLine) == sizeof(PkLine), "两侧布局不一致");
+static_assert(!std::is_same<QLineF, PkLineF>::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
+static_assert(sizeof(QLineF) == sizeof(PkLineF), "两侧布局不一致");
+// 提升方向：整数线段能隐式变浮点线段，反向不行（PkLineF 没有吃 QLineF 的
+// QLine 构造，只有下面这一条正向）。
+static_assert(std::is_convertible<QLine, QLineF>::value
+              == std::is_convertible<PkLine, PkLineF>::value,
+              "PkLine → PkLineF 的隐式提升与 Qt 不一致");
+// 枚举也必须是两个不同的类型，取值必须逐档相同。
+static_assert(!std::is_same<QLineF::IntersectType, PkLineF::IntersectType>::value,
+              "IntersectType 两侧解析成了同一个类型");
+static_assert((int)QLineF::NoIntersection == (int)PkLineF::NoIntersection
+              && (int)QLineF::BoundedIntersection == (int)PkLineF::BoundedIntersection
+              && (int)QLineF::UnboundedIntersection == (int)PkLineF::UnboundedIntersection,
+              "IntersectType 的枚举取值两侧不一致");
+
+static_assert(!std::is_same<QMargins, PkMargins>::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
+static_assert(sizeof(QMargins) == sizeof(PkMargins), "两侧布局不一致");
+static_assert(!std::is_same<QMarginsF, PkMarginsF>::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
+static_assert(sizeof(QMarginsF) == sizeof(PkMarginsF), "两侧布局不一致");
+static_assert(std::is_convertible<QMargins, QMarginsF>::value
+              == std::is_convertible<PkMargins, PkMarginsF>::value,
+              "PkMargins → PkMarginsF 的隐式提升与 Qt 不一致");
 
 // ═══ 计数与记录 ════════════════════════════════════════════════════════════
 
@@ -2340,6 +2399,14 @@ static void cmp_tf_scalar(const double m[9], double s)
     }
 }
 
+// 前向声明：Line 族的 qstr/same_linef 定义在本文件更下方（Line 族小节），
+// 但 T::map(LineF)（R-21 T1 新增）要在 Transform 族的 cmp_tf_map 里用它们
+// ——C++ 没有跨越普通函数定义的隐式前向查找，不声明会在此处报「no known
+// conversion」。只声明这三个签名，不改变下方 Line 族小节里的定义。
+static std::string qstr(const QLineF &l);
+static std::string qstr(const PkLineF &l);
+static bool same_linef(const QLineF &q, const PkLineF &p);
+
 // 四个 map 重载。**分两族**：map(点) 不夹持 w、map(指针出参) 夹持到 1e-6，
 // 所以 tag 里「这次是不是投影阵」必须参与构造。
 static void cmp_tf_map(const double m[9], double x, double y)
@@ -2357,6 +2424,20 @@ static void cmp_tf_map(const double m[9], double x, double y)
 
     rec("T::map(PkPointF)", same_ptf(q.map(QPointF(x, y)), p.map(PkPointF(x, y))), sh, in,
         qstr(q.map(QPointF(x, y))), qstr(p.map(PkPointF(x, y))));
+
+    // T::map(const PkLineF&) —— 真 Qt qtransform.cpp 就是
+    // `QLineF(map(l.p1()), map(l.p2()))`：两个端点各自走上面已经测过的
+    // map(PkPointF)，不是新算法。这里用 (x,y)/(y,x) 拼一条线，两个端点仍在
+    // 上面 nPt×nPt 的 token 组合范围内，覆盖度与 map(PkPointF) 同源。
+    // R-21 T1 交付 PkLineF 后新增此重载，须补 rec() 才满足规则三。
+    {
+        const QLineF ql(QPointF(x, y), QPointF(y, x));
+        const PkLineF pl(PkPointF(x, y), PkPointF(y, x));
+        rec("T::map(LineF)", same_linef(q.map(ql), p.map(pl)), sh, in,
+            qstr(q.map(ql)), qstr(p.map(pl)));
+        rec("T::freeLineF*", same_linef(ql * q, pl * p), sh, in,
+            qstr(ql * q), qstr(pl * p));
+    }
 
     {
         qreal qtx = 0, qty = 0, ptx = 0, pty = 0;
@@ -2491,6 +2572,572 @@ static void cmp_tf_static(double a, double b)
         rec("T::fromScale", same_tf(q, p) && (int)q.type() == (int)p.type(), sh, in,
             qstr(q) + "|" + istr((int)q.type()), qstr(p) + "|" + istr((int)p.type()));
     }
+}
+
+// ═══ Line 族：比较原语 + tag 谓词 ═══════════════════════════════════════════
+//
+// **规模声明**（R-21 plan.md「问 3」）：Line/Margins 两族不复刻 R-03 的亿级
+// 组合爆炸，改为"手挑对抗用例 + 有界组合"，每族目标 ≥ 10⁴ 次比对。
+//
+// tag 设计复用顶部已经定义的 shapeOfD（nonfinite/signed-zero/subnormal/
+// zero/huge/finite），四个坐标一起喂；额外加一档 "degenerate-zero-length"
+// ——length()/angle()/setLength()/unitVector() 等好几个 API 在"两端点重合"
+// 这个输入形态上各自走特殊分支（unitVector 除以 0 得 NaN、setLength 是
+// 空操作、angle 打出 -0），这一档必须单独可见，不能被 shapeOfD 的
+// "zero"/"finite" 两档吞掉（那两档只看单个分量是不是 0，看不出"两点重合"
+// 这个组合形态）。
+static std::string shapeOfLine(double x1, double y1, double x2, double y2)
+{
+    std::string base = shapeOfD({x1, y1, x2, y2});
+    if (base != "finite") return base;
+    if (x1 == x2 && y1 == y2) return "degenerate-zero-length";
+    return "finite";
+}
+
+static std::string qstr(const QLine &l)
+{ return "[" + istr(l.x1()) + "," + istr(l.y1()) + "->" + istr(l.x2()) + "," + istr(l.y2()) + "]"; }
+static std::string qstr(const PkLine &l)
+{ return "[" + istr(l.p1().x()) + "," + istr(l.p1().y()) + "->"
+             + istr(l.p2().x()) + "," + istr(l.p2().y()) + "]"; }
+static bool same_line(const QLine &q, const PkLine &p)
+{
+    return q.x1() == p.p1().x() && q.y1() == p.p1().y()
+        && q.x2() == p.p2().x() && q.y2() == p.p2().y();
+}
+
+static std::string qstr(const QLineF &l)
+{ return "[" + dstr(l.x1()) + "," + dstr(l.y1()) + "->" + dstr(l.x2()) + "," + dstr(l.y2()) + "]"; }
+static std::string qstr(const PkLineF &l)
+{ return "[" + dstr(l.x1()) + "," + dstr(l.y1()) + "->" + dstr(l.x2()) + "," + dstr(l.y2()) + "]"; }
+static bool same_linef(const QLineF &q, const PkLineF &p)
+{
+    return same_double(q.x1(), p.x1()) && same_double(q.y1(), p.y1())
+        && same_double(q.x2(), p.x2()) && same_double(q.y2(), p.y2());
+}
+
+// ═══ Line 族：逐 API 对拍 ═══════════════════════════════════════════════════
+//
+// **PkLine 只有 5 条声明**（默认构造 / (int,int,int,int) / (PkPoint,PkPoint) /
+// p1() / p2()，见 PkLine.h 头部注释——保留范围内 QLine 唯一的真实调用点只是
+// "构造后立即隐式转 QLineF"）。cmp_line_ctors 一次性覆盖这 5 条。
+static void cmp_line_ctors(int x1, int y1, int x2, int y2)
+{
+    const QLine  q(x1, y1, x2, y2);
+    const PkLine p(x1, y1, x2, y2);
+    const std::string in = istr(x1) + "," + istr(y1) + "->" + istr(x2) + "," + istr(y2);
+    const std::string sh = shapeOfI({x1, y1, x2, y2});
+
+    rec("L::ctorInts", same_line(q, p), sh, in, qstr(q), qstr(p));
+
+    const QLine  q2(QPoint(x1, y1), QPoint(x2, y2));
+    const PkLine p2(PkPoint(x1, y1), PkPoint(x2, y2));
+    rec("L::ctorPoints", same_line(q2, p2), sh, in, qstr(q2), qstr(p2));
+
+    rec("L::p1", q.p1() == QPoint(x1, y1) && p.p1() == PkPoint(x1, y1), sh, in,
+        qstr(QLine(q.p1(), q.p1())), qstr(PkLine(p.p1(), p.p1())));
+    rec("L::p2", q.p2() == QPoint(x2, y2) && p.p2() == PkPoint(x2, y2), sh, in,
+        qstr(QLine(q.p2(), q.p2())), qstr(PkLine(p.p2(), p.p2())));
+}
+
+// 无输入的 API（默认构造）：只有一种输入形态，只跑一次（与 Point/Size 族
+// 的 cmp_*_constants 同一个约定，见规则一注释里"边界情形"那句）。
+static void cmp_line_constants()
+{
+    rec("L::defaultCtor", same_line(QLine(), PkLine()), "no-input",
+        "QLine()", qstr(QLine()), qstr(PkLine()));
+    rec("LF::defaultCtor", same_linef(QLineF(), PkLineF()), "no-input",
+        "QLineF()", qstr(QLineF()), qstr(PkLineF()));
+}
+
+// 真实调用点唯一的形态：`QLineF l = QLine(...)`，构造后立即隐式转。
+static void cmp_line_promotion(int x1, int y1, int x2, int y2)
+{
+    const QLineF  q = QLine(x1, y1, x2, y2);
+    const PkLineF p = PkLine(x1, y1, x2, y2);
+    const std::string in = istr(x1) + "," + istr(y1) + "->" + istr(x2) + "," + istr(y2);
+    rec("LF::ctorFromLine", same_linef(q, p), shapeOfI({x1, y1, x2, y2}), in, qstr(q), qstr(p));
+}
+
+static void cmp_linef_ctors(double x1, double y1, double x2, double y2)
+{
+    const QLineF  q(x1, y1, x2, y2);
+    const PkLineF p(x1, y1, x2, y2);
+    const std::string in = dstr(x1) + "," + dstr(y1) + "->" + dstr(x2) + "," + dstr(y2);
+    const std::string sh = shapeOfLine(x1, y1, x2, y2);
+    rec("LF::ctorReals", same_linef(q, p), sh, in, qstr(q), qstr(p));
+
+    const QLineF  q2(QPointF(x1, y1), QPointF(x2, y2));
+    const PkLineF p2(PkPointF(x1, y1), PkPointF(x2, y2));
+    rec("LF::ctorPoints", same_linef(q2, p2), sh, in, qstr(q2), qstr(p2));
+}
+
+// 一元 API 的大头：isNull / p1 / p2 / x1 / y1 / x2 / y2 / dx / dy / length /
+// angle / unitVector / normalVector / center / setP1 / setP2。
+static void cmp_linef_unary(double x1, double y1, double x2, double y2)
+{
+    const QLineF  q(x1, y1, x2, y2);
+    const PkLineF p(x1, y1, x2, y2);
+    const std::string in = dstr(x1) + "," + dstr(y1) + "->" + dstr(x2) + "," + dstr(y2);
+    const std::string sh = shapeOfLine(x1, y1, x2, y2);
+
+    rec("LF::isNull", q.isNull() == p.isNull(), sh, in, bstr(q.isNull()), bstr(p.isNull()));
+    rec("LF::p1", same_ptf(q.p1(), p.p1()), sh, in, qstr(q.p1()), qstr(p.p1()));
+    rec("LF::p2", same_ptf(q.p2(), p.p2()), sh, in, qstr(q.p2()), qstr(p.p2()));
+    rec("LF::x1", same_double(q.x1(), p.x1()), sh, in, dstr(q.x1()), dstr(p.x1()));
+    rec("LF::y1", same_double(q.y1(), p.y1()), sh, in, dstr(q.y1()), dstr(p.y1()));
+    rec("LF::x2", same_double(q.x2(), p.x2()), sh, in, dstr(q.x2()), dstr(p.x2()));
+    rec("LF::y2", same_double(q.y2(), p.y2()), sh, in, dstr(q.y2()), dstr(p.y2()));
+    rec("LF::dx", same_double(q.dx(), p.dx()), sh, in, dstr(q.dx()), dstr(p.dx()));
+    rec("LF::dy", same_double(q.dy(), p.dy()), sh, in, dstr(q.dy()), dstr(p.dy()));
+    rec("LF::length", same_double(q.length(), p.length()), sh, in, dstr(q.length()), dstr(p.length()));
+    rec("LF::angle", same_double(q.angle(), p.angle()), sh, in, dstr(q.angle()), dstr(p.angle()));
+    rec("LF::unitVector", same_linef(q.unitVector(), p.unitVector()), sh, in,
+        qstr(q.unitVector()), qstr(p.unitVector()));
+    rec("LF::normalVector", same_linef(q.normalVector(), p.normalVector()), sh, in,
+        qstr(q.normalVector()), qstr(p.normalVector()));
+    rec("LF::center", same_ptf(q.center(), p.center()), sh, in, qstr(q.center()), qstr(p.center()));
+
+    { QLineF q2 = q; PkLineF p2 = p;
+      q2.setP1(QPointF(y1, x1)); p2.setP1(PkPointF(y1, x1));
+      rec("LF::setP1", same_linef(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QLineF q2 = q; PkLineF p2 = p;
+      q2.setP2(QPointF(y2, x2)); p2.setP2(PkPointF(y2, x2));
+      rec("LF::setP2", same_linef(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+}
+
+static void cmp_linef_translate(double x1, double y1, double x2, double y2, double tx, double ty)
+{
+    const QLineF  q(x1, y1, x2, y2);
+    const PkLineF p(x1, y1, x2, y2);
+    const std::string in = dstr(x1) + "," + dstr(y1) + "->" + dstr(x2) + "," + dstr(y2)
+                          + " +(" + dstr(tx) + "," + dstr(ty) + ")";
+    const std::string sh = shapeOfD({x1, y1, x2, y2, tx, ty});
+
+    { QLineF q2 = q; PkLineF p2 = p; q2.translate(tx, ty); p2.translate(tx, ty);
+      rec("LF::translateXY", same_linef(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QLineF q2 = q; PkLineF p2 = p;
+      q2.translate(QPointF(tx, ty)); p2.translate(PkPointF(tx, ty));
+      rec("LF::translatePoint", same_linef(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    rec("LF::translatedXY", same_linef(q.translated(tx, ty), p.translated(tx, ty)), sh, in,
+        qstr(q.translated(tx, ty)), qstr(p.translated(tx, ty)));
+    rec("LF::translatedPoint",
+        same_linef(q.translated(QPointF(tx, ty)), p.translated(PkPointF(tx, ty))), sh, in,
+        qstr(q.translated(QPointF(tx, ty))), qstr(p.translated(PkPointF(tx, ty))));
+}
+
+// pointAt：t 不夹持，专门喂 t<0 / t>1 的外插形态（tag 里带 t 的"越界"信息）。
+static void cmp_linef_pointat(double x1, double y1, double x2, double y2, double t)
+{
+    const QLineF  q(x1, y1, x2, y2);
+    const PkLineF p(x1, y1, x2, y2);
+    const std::string in = dstr(x1) + "," + dstr(y1) + "->" + dstr(x2) + "," + dstr(y2)
+                          + " t=" + dstr(t);
+    std::string sh = shapeOfD({x1, y1, x2, y2, t});
+    if (sh == "finite") {
+        sh = (t < 0.0) ? "t-below-0" : (t > 1.0) ? "t-above-1" : "t-in-range";
+    }
+    rec("LF::pointAt", same_ptf(q.pointAt(t), p.pointAt(t)), sh, in,
+        qstr(q.pointAt(t)), qstr(p.pointAt(t)));
+}
+
+static void cmp_linef_setlength(double x1, double y1, double x2, double y2, double len)
+{
+    QLineF q(x1, y1, x2, y2); PkLineF p(x1, y1, x2, y2);
+    const std::string in = dstr(x1) + "," + dstr(y1) + "->" + dstr(x2) + "," + dstr(y2)
+                          + " len=" + dstr(len);
+    std::string sh = shapeOfLine(x1, y1, x2, y2);
+    if (sh == "finite" && !nonFinite(len)) sh = "finite";
+    q.setLength(len); p.setLength(len);
+    rec("LF::setLength", same_linef(q, p), sh, in, qstr(q), qstr(p));
+}
+
+static void cmp_linef_setangle(double x1, double y1, double x2, double y2, double ang)
+{
+    QLineF q(x1, y1, x2, y2); PkLineF p(x1, y1, x2, y2);
+    const std::string in = dstr(x1) + "," + dstr(y1) + "->" + dstr(x2) + "," + dstr(y2)
+                          + " ang=" + dstr(ang);
+    const std::string sh = shapeOfLine(x1, y1, x2, y2);
+    q.setAngle(ang); p.setAngle(ang);
+    rec("LF::setAngle", same_linef(q, p), sh, in, qstr(q), qstr(p));
+}
+
+static void cmp_linef_angleto(double ax1, double ay1, double ax2, double ay2,
+                              double bx1, double by1, double bx2, double by2)
+{
+    const QLineF qa(ax1, ay1, ax2, ay2), qb(bx1, by1, bx2, by2);
+    const PkLineF pa(ax1, ay1, ax2, ay2), pb(bx1, by1, bx2, by2);
+    const std::string in = dstr(ax1) + "," + dstr(ay1) + "->" + dstr(ax2) + "," + dstr(ay2)
+                          + " | " + dstr(bx1) + "," + dstr(by1) + "->" + dstr(bx2) + "," + dstr(by2);
+    std::string sh = shapeOfLine(ax1, ay1, ax2, ay2);
+    const std::string shB = shapeOfLine(bx1, by1, bx2, by2);
+    if (shB == "degenerate-zero-length" && sh != "degenerate-zero-length") sh = shB;
+    rec("LF::angleTo", same_double(qa.angleTo(qb), pa.angleTo(pb)), sh, in,
+        dstr(qa.angleTo(qb)), dstr(pa.angleTo(pb)));
+}
+
+// intersects：一个声明、三个标签（type 判定 / 交点坐标 / nullptr 实参）。
+// **NoIntersection 分支下不比较交点**：真 Qt 在 denominator==0 时提前返回，
+// 根本不写 *intersectionPoint（out 参数留着调用方传进来的原值），比它是比
+// 未定义的东西。
+static void cmp_linef_intersects(double ax1, double ay1, double ax2, double ay2,
+                                 double bx1, double by1, double bx2, double by2)
+{
+    const QLineF qa(ax1, ay1, ax2, ay2), qb(bx1, by1, bx2, by2);
+    const PkLineF pa(ax1, ay1, ax2, ay2), pb(bx1, by1, bx2, by2);
+    const std::string in = dstr(ax1) + "," + dstr(ay1) + "->" + dstr(ax2) + "," + dstr(ay2)
+                          + " x " + dstr(bx1) + "," + dstr(by1) + "->" + dstr(bx2) + "," + dstr(by2);
+    const std::string sh = shapeOfD({ax1, ay1, ax2, ay2, bx1, by1, bx2, by2});
+
+    QPointF qip(-999, -999);
+    PkPointF pip(-999, -999);
+    const int qt = (int)qa.intersects(qb, &qip);
+    const int pt = (int)pa.intersects(pb, &pip);
+    rec("LF::intersects", qt == pt, sh, in, istr(qt), istr(pt));
+    if (qt != 0 && pt != 0) {
+        rec("LF::intersectsPoint", same_ptf(qip, pip),
+            sh + (qt == 1 ? "/bounded" : "/unbounded"), in, qstr(qip), qstr(pip));
+    }
+}
+
+// nullptr 实参：只需要证明"不传交点也能正常判定 type"，手挑几组固定输入，
+// 不需要跟主对拍一样做组合爆炸——这条本身不是行为分叉点，是接口形状点。
+static void cmp_linef_intersects_nullarg()
+{
+    struct { double a[4], b[4]; } kCases[] = {
+        {{0, 0, 10, 10}, {0, 10, 10, 0}},   // bounded
+        {{0, 0, 1, 0}, {5, 5, 10, 10}},     // unbounded
+        {{0, 0, 1, 0}, {5, 5, 6, 5}},       // none（平行）
+    };
+    for (const auto &c : kCases) {
+        const QLineF qa(c.a[0], c.a[1], c.a[2], c.a[3]), qb(c.b[0], c.b[1], c.b[2], c.b[3]);
+        const PkLineF pa(c.a[0], c.a[1], c.a[2], c.a[3]), pb(c.b[0], c.b[1], c.b[2], c.b[3]);
+        const int qt = (int)qa.intersects(qb, nullptr);
+        const int pt = (int)pa.intersects(pb, nullptr);
+        rec("LF::intersectsNullArg", qt == pt, "no-input", qstr(qa) + " x " + qstr(qb),
+            istr(qt), istr(pt));
+    }
+}
+
+static void cmp_linef_frompolar(double len, double ang)
+{
+    const QLineF  q = QLineF::fromPolar(len, ang);
+    const PkLineF p = PkLineF::fromPolar(len, ang);
+    const std::string in = "len=" + dstr(len) + " ang=" + dstr(ang);
+    rec("LF::fromPolar", same_linef(q, p), shapeOfD({len, ang}), in, qstr(q), qstr(p));
+}
+
+static void cmp_linef_binary(double ax1, double ay1, double ax2, double ay2,
+                             double bx1, double by1, double bx2, double by2)
+{
+    const QLineF qa(ax1, ay1, ax2, ay2), qb(bx1, by1, bx2, by2);
+    const PkLineF pa(ax1, ay1, ax2, ay2), pb(bx1, by1, bx2, by2);
+    const std::string in = dstr(ax1) + "," + dstr(ay1) + "->" + dstr(ax2) + "," + dstr(ay2)
+                          + " | " + dstr(bx1) + "," + dstr(by1) + "->" + dstr(bx2) + "," + dstr(by2);
+    const std::string sh = shapeOfD({ax1, ay1, ax2, ay2, bx1, by1, bx2, by2});
+    rec("LF::operatorEq", (qa == qb) == (pa == pb), sh, in, bstr(qa == qb), bstr(pa == pb));
+    rec("LF::operatorNe", (qa != qb) == (pa != pb), sh, in, bstr(qa != qb), bstr(pa != pb));
+}
+
+// ═══ Margins 族：比较原语 ═══════════════════════════════════════════════════
+
+static std::string qstr(const QMargins &m)
+{ return "(" + istr(m.left()) + "," + istr(m.top()) + "," + istr(m.right()) + "," + istr(m.bottom()) + ")"; }
+static std::string qstr(const PkMargins &m)
+{ return "(" + istr(m.left()) + "," + istr(m.top()) + "," + istr(m.right()) + "," + istr(m.bottom()) + ")"; }
+static bool same_margins(const QMargins &q, const PkMargins &p)
+{
+    return q.left() == p.left() && q.top() == p.top()
+        && q.right() == p.right() && q.bottom() == p.bottom();
+}
+
+static std::string qstr(const QMarginsF &m)
+{ return "(" + dstr(m.left()) + "," + dstr(m.top()) + "," + dstr(m.right()) + "," + dstr(m.bottom()) + ")"; }
+static std::string qstr(const PkMarginsF &m)
+{ return "(" + dstr(m.left()) + "," + dstr(m.top()) + "," + dstr(m.right()) + "," + dstr(m.bottom()) + ")"; }
+static bool same_marginsf(const QMarginsF &q, const PkMarginsF &p)
+{
+    return same_double(q.left(), p.left()) && same_double(q.top(), p.top())
+        && same_double(q.right(), p.right()) && same_double(q.bottom(), p.bottom());
+}
+
+// ═══ Margins 族：逐 API 对拍 ═════════════════════════════════════════════════
+//
+// **实测调用点为 0**（QMargins 全仓保留范围内唯一命中是本目录自己的注释，
+// 原消费方 `libkdcraw/rnuminput.cpp` 已被 D-02-a 删除）。任务定义要求仍然
+// 实现——它挡着 PkRect/PkRectF 的四个互操作成员，登记见 PkMargins.h 头部。
+// 对拍照样跑满，理由与 PkRect 的构造函数/运算符按 Qt 头文件全集实现同一条：
+// 没有实测输入可选，就把 qmargins.h 的取值域（含极值、0、负数）都覆盖到。
+
+static void cmp_margins_ctor(int l, int t, int r, int b)
+{
+    const QMargins  q(l, t, r, b);
+    const PkMargins p(l, t, r, b);
+    const std::string in = istr(l) + "," + istr(t) + "," + istr(r) + "," + istr(b);
+    const std::string sh = shapeOfI({l, t, r, b});
+
+    rec("M::ctorLTRB", same_margins(q, p), sh, in, qstr(q), qstr(p));
+    rec("M::isNull", q.isNull() == p.isNull(), sh, in, bstr(q.isNull()), bstr(p.isNull()));
+    rec("M::left", q.left() == p.left(), sh, in, istr(q.left()), istr(p.left()));
+    rec("M::top", q.top() == p.top(), sh, in, istr(q.top()), istr(p.top()));
+    rec("M::right", q.right() == p.right(), sh, in, istr(q.right()), istr(p.right()));
+    rec("M::bottom", q.bottom() == p.bottom(), sh, in, istr(q.bottom()), istr(p.bottom()));
+
+    { QMargins q2 = q; PkMargins p2 = p; q2.setLeft(t); p2.setLeft(t);
+      rec("M::setLeft", same_margins(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QMargins q2 = q; PkMargins p2 = p; q2.setTop(r); p2.setTop(r);
+      rec("M::setTop", same_margins(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QMargins q2 = q; PkMargins p2 = p; q2.setRight(b); p2.setRight(b);
+      rec("M::setRight", same_margins(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QMargins q2 = q; PkMargins p2 = p; q2.setBottom(l); p2.setBottom(l);
+      rec("M::setBottom", same_margins(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+
+    rec("M::operatorPlus", same_margins(+q, +p), sh, in, qstr(+q), qstr(+p));
+    rec("M::operatorUnaryMinus", same_margins(-q, -p), sh, in, qstr(-q), qstr(-p));
+}
+
+static void cmp_margins_constants()
+{
+    rec("M::defaultCtor", same_margins(QMargins(), PkMargins()), "no-input",
+        "QMargins()", qstr(QMargins()), qstr(PkMargins()));
+    rec("MF::defaultCtor", same_marginsf(QMarginsF(), PkMarginsF()), "no-input",
+        "QMarginsF()", qstr(QMarginsF()), qstr(PkMarginsF()));
+}
+
+static void cmp_margins_binary(int al, int at, int ar, int ab, int bl, int bt, int br, int bb)
+{
+    const QMargins  qa(al, at, ar, ab), qb(bl, bt, br, bb);
+    const PkMargins pa(al, at, ar, ab), pb(bl, bt, br, bb);
+    const std::string in = istr(al) + "," + istr(at) + "," + istr(ar) + "," + istr(ab)
+                          + " | " + istr(bl) + "," + istr(bt) + "," + istr(br) + "," + istr(bb);
+    const std::string sh0 = shapeOfI({al, at, ar, ab, bl, bt, br, bb});
+    const bool addOv = addOverflows(al, bl) || addOverflows(at, bt)
+                     || addOverflows(ar, br) || addOverflows(ab, bb);
+    const bool subOv = subOverflows(al, bl) || subOverflows(at, bt)
+                     || subOverflows(ar, br) || subOverflows(ab, bb);
+
+    rec("M::operatorPlusMargins", same_margins(qa + qb, pa + pb),
+        addOv ? std::string("int-overflow") : sh0, in, qstr(qa + qb), qstr(pa + pb));
+    rec("M::operatorMinusMargins", same_margins(qa - qb, pa - pb),
+        subOv ? std::string("int-overflow") : sh0, in, qstr(qa - qb), qstr(pa - pb));
+    rec("M::operatorEq", (qa == qb) == (pa == pb), sh0, in, bstr(qa == qb), bstr(pa == pb));
+    rec("M::operatorNe", (qa != qb) == (pa != pb), sh0, in, bstr(qa != qb), bstr(pa != pb));
+
+    { QMargins q2 = qa; PkMargins p2 = pa; q2 += qb; p2 += pb;
+      rec("M::operatorPlusEqMargins", same_margins(q2, p2),
+          addOv ? std::string("int-overflow") : sh0, in, qstr(q2), qstr(p2)); }
+    { QMargins q2 = qa; PkMargins p2 = pa; q2 -= qb; p2 -= pb;
+      rec("M::operatorMinusEqMargins", same_margins(q2, p2),
+          subOv ? std::string("int-overflow") : sh0, in, qstr(q2), qstr(p2)); }
+}
+
+static void cmp_margins_scale(int l, int t, int r, int b, int factorI, double factorD)
+{
+    const QMargins  q(l, t, r, b);
+    const PkMargins p(l, t, r, b);
+    const std::string in = istr(l) + "," + istr(t) + "," + istr(r) + "," + istr(b)
+                          + " *i=" + istr(factorI) + " *d=" + dstr(factorD);
+    const std::string shI = shapeOfI({l, t, r, b, factorI});
+
+    rec("M::operatorPlusInt", same_margins(q + factorI, p + factorI), shI, in,
+        qstr(q + factorI), qstr(p + factorI));
+    rec("M::operatorPlusIntRev", same_margins(factorI + q, factorI + p), shI, in,
+        qstr(factorI + q), qstr(factorI + p));
+    rec("M::operatorMinusInt", same_margins(q - factorI, p - factorI), shI, in,
+        qstr(q - factorI), qstr(p - factorI));
+    rec("M::operatorMulInt", same_margins(q * factorI, p * factorI), shI, in,
+        qstr(q * factorI), qstr(p * factorI));
+    rec("M::operatorMulIntRev", same_margins(factorI * q, factorI * p), shI, in,
+        qstr(factorI * q), qstr(factorI * p));
+    { QMargins q2 = q; PkMargins p2 = p; q2 += factorI; p2 += factorI;
+      rec("M::operatorPlusEqInt", same_margins(q2, p2), shI, in, qstr(q2), qstr(p2)); }
+    { QMargins q2 = q; PkMargins p2 = p; q2 -= factorI; p2 -= factorI;
+      rec("M::operatorMinusEqInt", same_margins(q2, p2), shI, in, qstr(q2), qstr(p2)); }
+    { QMargins q2 = q; PkMargins p2 = p; q2 *= factorI; p2 *= factorI;
+      rec("M::operatorMulEqInt", same_margins(q2, p2), shI, in, qstr(q2), qstr(p2)); }
+    // `factorI == -1` 与任一分量 `INT_MIN` 同时出现时，`INT_MIN / -1` 是
+    // x86 `idiv` 的硬件级溢出——两侧（真 Qt 与 PkMargins）都是裸 `int`
+    // 除法，会**同样**触发 SIGFPE 把整个对拍进程打死，不是"两侧算出不同
+    // 结果"那种能比较的分歧。跳过这一组合，与 add/sub/mul 溢出（那些不
+    // 会硬件陷入，只是 UB 静默回绕，仍然照常比较、按 shI 打 tag）不是
+    // 同一类问题，不能套用同一处置。
+    const bool divTrap = (factorI == -1)
+        && (l == INT_MIN || t == INT_MIN || r == INT_MIN || b == INT_MIN);
+    if (factorI != 0 && !divTrap) {
+        rec("M::operatorDivInt", same_margins(q / factorI, p / factorI), shI, in,
+            qstr(q / factorI), qstr(p / factorI));
+        QMargins q2 = q; PkMargins p2 = p; q2 /= factorI; p2 /= factorI;
+        rec("M::operatorDivEqInt", same_margins(q2, p2), shI, in, qstr(q2), qstr(p2));
+    }
+
+    // qreal 标量：结果按 qRound 取整，tag 里带上"半值取整方向"这个根因。
+    std::string shD = shapeOfD({(double)l, (double)t, (double)r, (double)b, factorD});
+    rec("M::operatorMulQreal", same_margins(q * factorD, p * factorD), shD, in,
+        qstr(q * factorD), qstr(p * factorD));
+    rec("M::operatorMulQrealRev", same_margins(factorD * q, factorD * p), shD, in,
+        qstr(factorD * q), qstr(factorD * p));
+    { QMargins q2 = q; PkMargins p2 = p; q2 *= factorD; p2 *= factorD;
+      rec("M::operatorMulEqQreal", same_margins(q2, p2), shD, in, qstr(q2), qstr(p2)); }
+    if (factorD != 0.0 && !nonFinite(factorD)) {
+        rec("M::operatorDivQreal", same_margins(q / factorD, p / factorD), shD, in,
+            qstr(q / factorD), qstr(p / factorD));
+        QMargins q2 = q; PkMargins p2 = p; q2 /= factorD; p2 /= factorD;
+        rec("M::operatorDivEqQreal", same_margins(q2, p2), shD, in, qstr(q2), qstr(p2));
+    }
+}
+
+static void cmp_marginsf_ctor(double l, double t, double r, double b)
+{
+    const QMarginsF  q(l, t, r, b);
+    const PkMarginsF p(l, t, r, b);
+    const std::string in = dstr(l) + "," + dstr(t) + "," + dstr(r) + "," + dstr(b);
+    const std::string sh = shapeOfD({l, t, r, b});
+
+    rec("MF::ctorLTRB", same_marginsf(q, p), sh, in, qstr(q), qstr(p));
+    rec("MF::isNull", q.isNull() == p.isNull(), sh, in, bstr(q.isNull()), bstr(p.isNull()));
+    rec("MF::left", same_double(q.left(), p.left()), sh, in, dstr(q.left()), dstr(p.left()));
+    rec("MF::top", same_double(q.top(), p.top()), sh, in, dstr(q.top()), dstr(p.top()));
+    rec("MF::right", same_double(q.right(), p.right()), sh, in, dstr(q.right()), dstr(p.right()));
+    rec("MF::bottom", same_double(q.bottom(), p.bottom()), sh, in, dstr(q.bottom()), dstr(p.bottom()));
+
+    { QMarginsF q2 = q; PkMarginsF p2 = p; q2.setLeft(t); p2.setLeft(t);
+      rec("MF::setLeft", same_marginsf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QMarginsF q2 = q; PkMarginsF p2 = p; q2.setTop(r); p2.setTop(r);
+      rec("MF::setTop", same_marginsf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QMarginsF q2 = q; PkMarginsF p2 = p; q2.setRight(b); p2.setRight(b);
+      rec("MF::setRight", same_marginsf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QMarginsF q2 = q; PkMarginsF p2 = p; q2.setBottom(l); p2.setBottom(l);
+      rec("MF::setBottom", same_marginsf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+
+    rec("MF::toMargins", same_margins(q.toMargins(), p.toMargins()),
+        (outOfIntRange(l) || outOfIntRange(t) || outOfIntRange(r) || outOfIntRange(b))
+            ? std::string("out-of-int-range") : sh,
+        in, qstr(q.toMargins()), qstr(p.toMargins()));
+
+    rec("MF::operatorPlus", same_marginsf(+q, +p), sh, in, qstr(+q), qstr(+p));
+    rec("MF::operatorUnaryMinus", same_marginsf(-q, -p), sh, in, qstr(-q), qstr(-p));
+
+    // PkMargins → PkMarginsF 隐式提升（真实互操作靠它：PkRectF::marginsAdded
+    // 吃 PkMarginsF，调用点传 PkMargins 全靠这条编过）。
+    // ⚠ l 可能是 NaN/inf（本函数其余断言都要吃这批输入），llround 对它们是
+    // UB，先夹到有限范围再转 int。
+    const double lc = nonFinite(l) ? 0.0 : std::max(-1e9, std::min(1e9, l));
+    const int il = (int)std::llround(lc);
+    const QMarginsF  qf = QMargins(il, il, il, il);
+    const PkMarginsF pf = PkMargins(il, il, il, il);
+    rec("MF::ctorFromMargins", same_marginsf(qf, pf), shapeOfI({il}), istr(il), qstr(qf), qstr(pf));
+}
+
+static void cmp_marginsf_binary(double al, double at, double ar, double ab,
+                                double bl, double bt, double br, double bb)
+{
+    const QMarginsF  qa(al, at, ar, ab), qb(bl, bt, br, bb);
+    const PkMarginsF pa(al, at, ar, ab), pb(bl, bt, br, bb);
+    const std::string in = dstr(al) + "," + dstr(at) + "," + dstr(ar) + "," + dstr(ab)
+                          + " | " + dstr(bl) + "," + dstr(bt) + "," + dstr(br) + "," + dstr(bb);
+    const std::string sh = shapeOfD({al, at, ar, ab, bl, bt, br, bb});
+
+    rec("MF::operatorPlusMargins", same_marginsf(qa + qb, pa + pb), sh, in,
+        qstr(qa + qb), qstr(pa + pb));
+    rec("MF::operatorMinusMargins", same_marginsf(qa - qb, pa - pb), sh, in,
+        qstr(qa - qb), qstr(pa - pb));
+    rec("MF::operatorEq", (qa == qb) == (pa == pb), sh, in, bstr(qa == qb), bstr(pa == pb));
+    rec("MF::operatorNe", (qa != qb) == (pa != pb), sh, in, bstr(qa != qb), bstr(pa != pb));
+
+    { QMarginsF q2 = qa; PkMarginsF p2 = pa; q2 += qb; p2 += pb;
+      rec("MF::operatorPlusEqMargins", same_marginsf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QMarginsF q2 = qa; PkMarginsF p2 = pa; q2 -= qb; p2 -= pb;
+      rec("MF::operatorMinusEqMargins", same_marginsf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+}
+
+static void cmp_marginsf_scale(double l, double t, double r, double b, double factor)
+{
+    const QMarginsF  q(l, t, r, b);
+    const PkMarginsF p(l, t, r, b);
+    const std::string in = dstr(l) + "," + dstr(t) + "," + dstr(r) + "," + dstr(b)
+                          + " *=" + dstr(factor);
+    const std::string sh = shapeOfD({l, t, r, b, factor});
+
+    rec("MF::operatorPlusQreal", same_marginsf(q + factor, p + factor), sh, in,
+        qstr(q + factor), qstr(p + factor));
+    rec("MF::operatorPlusQrealRev", same_marginsf(factor + q, factor + p), sh, in,
+        qstr(factor + q), qstr(factor + p));
+    rec("MF::operatorMinusQreal", same_marginsf(q - factor, p - factor), sh, in,
+        qstr(q - factor), qstr(p - factor));
+    rec("MF::operatorMulQreal", same_marginsf(q * factor, p * factor), sh, in,
+        qstr(q * factor), qstr(p * factor));
+    rec("MF::operatorMulQrealRev", same_marginsf(factor * q, factor * p), sh, in,
+        qstr(factor * q), qstr(factor * p));
+
+    { QMarginsF q2 = q; PkMarginsF p2 = p; q2 += factor; p2 += factor;
+      rec("MF::operatorPlusEqQreal", same_marginsf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QMarginsF q2 = q; PkMarginsF p2 = p; q2 -= factor; p2 -= factor;
+      rec("MF::operatorMinusEqQreal", same_marginsf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QMarginsF q2 = q; PkMarginsF p2 = p; q2 *= factor; p2 *= factor;
+      rec("MF::operatorMulEqQreal", same_marginsf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+
+    if (factor != 0.0 && !nonFinite(factor)) {
+        rec("MF::operatorDivQreal", same_marginsf(q / factor, p / factor), sh, in,
+            qstr(q / factor), qstr(p / factor));
+        QMarginsF q2 = q; PkMarginsF p2 = p; q2 /= factor; p2 /= factor;
+        rec("MF::operatorDivEqQreal", same_marginsf(q2, p2), sh, in, qstr(q2), qstr(p2));
+    }
+}
+
+// ═══ PkRect / PkRectF 的四个互操作成员（R-21 T1 解锁）════════════════════════
+
+static void cmp_rect_margins(int x1, int y1, int x2, int y2, int ml, int mt, int mr, int mb)
+{
+    QRect qr; qr.setCoords(x1, y1, x2, y2);
+    PkRect pr; pr.setCoords(x1, y1, x2, y2);
+    const QMargins  qm(ml, mt, mr, mb);
+    const PkMargins pm(ml, mt, mr, mb);
+    const std::string in = qstr(qr) + " +margins" + qstr(qm);
+    const std::string sh = shapeOfI({x1, y1, x2, y2, ml, mt, mr, mb});
+
+    rec("R::marginsAdded", same_rect(qr.marginsAdded(qm), pr.marginsAdded(pm)), sh, in,
+        qstr(qr.marginsAdded(qm)), qstr(pr.marginsAdded(pm)));
+    rec("R::marginsRemoved", same_rect(qr.marginsRemoved(qm), pr.marginsRemoved(pm)), sh, in,
+        qstr(qr.marginsRemoved(qm)), qstr(pr.marginsRemoved(pm)));
+
+    { QRect q2 = qr; PkRect p2 = pr; q2 += qm; p2 += pm;
+      rec("R::operatorPlusEqMargins", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRect q2 = qr; PkRect p2 = pr; q2 -= qm; p2 -= pm;
+      rec("R::operatorMinusEqMargins", same_rect(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+
+    rec("R::operatorPlusMargins", same_rect(qr + qm, pr + pm), sh, in,
+        qstr(qr + qm), qstr(pr + pm));
+    rec("R::operatorPlusMarginsRev", same_rect(qm + qr, pm + pr), sh, in,
+        qstr(qm + qr), qstr(pm + pr));
+    rec("R::operatorMinusMargins", same_rect(qr - qm, pr - pm), sh, in,
+        qstr(qr - qm), qstr(pr - pm));
+}
+
+static void cmp_rectf_margins(double x1, double y1, double x2, double y2,
+                              double ml, double mt, double mr, double mb)
+{
+    const QRectF  qr(x1, y1, x2 - x1, y2 - y1);
+    const PkRectF pr(x1, y1, x2 - x1, y2 - y1);
+    const QMarginsF  qm(ml, mt, mr, mb);
+    const PkMarginsF pm(ml, mt, mr, mb);
+    const std::string in = qstr(qr) + " +margins" + qstr(qm);
+    const std::string sh = shapeOfD({x1, y1, x2, y2, ml, mt, mr, mb});
+
+    rec("RF::marginsAdded", same_rectf(qr.marginsAdded(qm), pr.marginsAdded(pm)), sh, in,
+        qstr(qr.marginsAdded(qm)), qstr(pr.marginsAdded(pm)));
+    rec("RF::marginsRemoved", same_rectf(qr.marginsRemoved(qm), pr.marginsRemoved(pm)), sh, in,
+        qstr(qr.marginsRemoved(qm)), qstr(pr.marginsRemoved(pm)));
+
+    { QRectF q2 = qr; PkRectF p2 = pr; q2 += qm; p2 += pm;
+      rec("RF::operatorPlusEqMargins", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+    { QRectF q2 = qr; PkRectF p2 = pr; q2 -= qm; p2 -= pm;
+      rec("RF::operatorMinusEqMargins", same_rectf(q2, p2), sh, in, qstr(q2), qstr(p2)); }
+
+    rec("RF::operatorPlusMargins", same_rectf(qr + qm, pr + pm), sh, in,
+        qstr(qr + qm), qstr(pr + pm));
+    rec("RF::operatorPlusMarginsRev", same_rectf(qm + qr, pm + pr), sh, in,
+        qstr(qm + qr), qstr(pm + pr));
+    rec("RF::operatorMinusMargins", same_rectf(qr - qm, pr - pm), sh, in,
+        qstr(qr - qm), qstr(pr - pm));
 }
 
 // ═══ canary：证明比较管道是活的 ════════════════════════════════════════════
@@ -3449,6 +4096,213 @@ int main()
                 for (int b = 0; b < n; ++b)
                     cmp_tf_static(kFactory[a], kFactory[b]);
         }
+    }
+
+    // ═══ Line 族 ═══════════════════════════════════════════════════════════
+    //
+    // 规模（R-21 plan.md「问 3」）：手挑对抗用例 + 有界组合，不复刻 R-03 的
+    // 亿级组合爆炸。token 集特意比 Point/Rect 族的小（8 个而不是 21/44 个）
+    // ——本族的 out-of-line 成员（length/angle/setAngle/angleTo/unitVector/
+    // intersects/fromPolar）已经用独立差分脚本跑过 591 119 + 50 100 次零
+    // mismatch 的验证（PkLine.cpp 顶部注释），这里的对拍任务是把同一批公式
+    // 接进机器闸门与"已声明偏离"框架，不是重新做一遍穷举搜索。
+    {
+        static const double kLineHand[][4] = {
+            {  0,  0,   0,  0 },      // 退化：两点重合，length()/setLength()/
+                                       // unitVector() 的特殊分支
+            {  0,  0,   1,  0 },      // 单位右（angle() == 0）
+            {  0,  0,   0,  1 },      // 单位下（Qt y 朝下，angle() == 270）
+            {  0,  0,  -1,  0 },      // 单位左（angle() == 180）
+            {  0,  0,   0, -1 },      // 单位上（angle() == 90）
+            {  0,  0,   1,  1 },      // 对角线（angle() == 315）
+            {  0,  0,   3,  4 },      // 3-4-5 直角三角形，length() == 5 精确
+            {  5,  5,   5,  5 },      // 退化，不在原点
+            { -5, -5,   5,  5 },      // 跨原点的长对角线
+            {  1,  2,   4,  6 },      // 非对称普通线段
+            {  0,  0, 1e308,  0 },    // 巨大：length()/unitVector() 的溢出边界
+            {  0,  0, 1e-300, 0 },    // 极小：非退化但接近 0
+            { -0.0, -0.0, 0.0, 0.0 }, // 负零：isNull() 的零分支
+            {  0,  0, NAN,  0 },      // NaN：intersects()/isNull() 的 NaN 分支
+            {  0,  0, INFINITY, 0 },  // 无穷：length()/angle() 的无穷分支
+            {  2,  3,   2,  3 },      // 退化，不在原点（与 {5,5,5,5} 分属两个
+                                       // 象限，交叉用于 intersects/angleTo）
+        };
+        const int nLH = countOf(kLineHand);
+        static const double kLineTok[] = { 0.0, -0.0, 0.5, -0.5, 1.0, -1.0, 1e308, NAN };
+        const int nLT = countOf(kLineTok);
+        static const double kLineParam[] = {
+            0.0, -0.0, 0.5, -0.5, 1.0, -1.0, 2.0, -2.0, 3.0, 0.25,
+            1e-300, 1e300, INFINITY, -INFINITY, NAN, 90.0, 180.0, 270.0, 360.0, -90.0,
+        };
+        const int nLP = countOf(kLineParam);
+
+        cmp_line_constants();
+
+        // PkLine：int 手挑 + 有界组合。
+        static const int kLineIntHand[] = {
+            0, 1, -1, 5, -5, INT_MAX, INT_MIN, INT_MAX - 1, INT_MIN + 1,
+        };
+        const int nLI = countOf(kLineIntHand);
+        for (int i = 0; i < nLI; ++i)
+            for (int j = 0; j < nLI; ++j)
+                for (int k = 0; k < nLI; ++k)
+                    for (int l = 0; l < nLI; ++l) {
+                        cmp_line_ctors(kLineIntHand[i], kLineIntHand[j],
+                                      kLineIntHand[k], kLineIntHand[l]);
+                        cmp_line_promotion(kLineIntHand[i], kLineIntHand[j],
+                                           kLineIntHand[k], kLineIntHand[l]);
+                    }
+
+        // PkLineF 一元：手挑集 + token 全组合（8⁴ = 4096，每组合 ~15 条
+        // rec()，单这一段已经 ≥ 6 万次比对，远超 10⁴ 的目标）。
+        for (int h = 0; h < nLH; ++h) {
+            cmp_linef_ctors(kLineHand[h][0], kLineHand[h][1], kLineHand[h][2], kLineHand[h][3]);
+            cmp_linef_unary(kLineHand[h][0], kLineHand[h][1], kLineHand[h][2], kLineHand[h][3]);
+        }
+        for (int i = 0; i < nLT; ++i)
+            for (int j = 0; j < nLT; ++j)
+                for (int k = 0; k < nLT; ++k)
+                    for (int l = 0; l < nLT; ++l) {
+                        cmp_linef_ctors(kLineTok[i], kLineTok[j], kLineTok[k], kLineTok[l]);
+                        cmp_linef_unary(kLineTok[i], kLineTok[j], kLineTok[k], kLineTok[l]);
+                    }
+
+        // 带参数的一元 API：手挑线 × 手挑参数集。
+        for (int h = 0; h < nLH; ++h)
+            for (int a = 0; a < nLP; ++a) {
+                cmp_linef_translate(kLineHand[h][0], kLineHand[h][1],
+                                    kLineHand[h][2], kLineHand[h][3], kLineParam[a], -kLineParam[a]);
+                cmp_linef_pointat(kLineHand[h][0], kLineHand[h][1],
+                                  kLineHand[h][2], kLineHand[h][3], kLineParam[a]);
+                cmp_linef_setlength(kLineHand[h][0], kLineHand[h][1],
+                                    kLineHand[h][2], kLineHand[h][3], kLineParam[a]);
+                cmp_linef_setangle(kLineHand[h][0], kLineHand[h][1],
+                                   kLineHand[h][2], kLineHand[h][3], kLineParam[a]);
+            }
+        for (int a = 0; a < nLP; ++a)
+            for (int b = 0; b < nLP; ++b)
+                cmp_linef_frompolar(kLineParam[a], kLineParam[b]);
+
+        // 二元 API：手挑 × 手挑做满（16² = 256）。
+        for (int h = 0; h < nLH; ++h)
+            for (int g = 0; g < nLH; ++g) {
+                cmp_linef_angleto(kLineHand[h][0], kLineHand[h][1], kLineHand[h][2], kLineHand[h][3],
+                                  kLineHand[g][0], kLineHand[g][1], kLineHand[g][2], kLineHand[g][3]);
+                cmp_linef_intersects(kLineHand[h][0], kLineHand[h][1], kLineHand[h][2], kLineHand[h][3],
+                                     kLineHand[g][0], kLineHand[g][1], kLineHand[g][2], kLineHand[g][3]);
+                cmp_linef_binary(kLineHand[h][0], kLineHand[h][1], kLineHand[h][2], kLineHand[h][3],
+                                 kLineHand[g][0], kLineHand[g][1], kLineHand[g][2], kLineHand[g][3]);
+            }
+        // 二元 API 再加 token 交叉（4⁴ 对 4⁴ 太大，改用 token 子集 × 手挑，
+        // 双向，保证 token 值在 a 侧和 b 侧都出现得到）。
+        static const double kLineTok4[] = { -1.0, 0.0, 0.5, 1.0 };
+        const int nLT4 = countOf(kLineTok4);
+        for (int i = 0; i < nLT4; ++i)
+            for (int j = 0; j < nLT4; ++j)
+                for (int k = 0; k < nLT4; ++k)
+                    for (int l = 0; l < nLT4; ++l)
+                        for (int h = 0; h < nLH; ++h) {
+                            cmp_linef_intersects(kLineTok4[i], kLineTok4[j], kLineTok4[k], kLineTok4[l],
+                                                 kLineHand[h][0], kLineHand[h][1],
+                                                 kLineHand[h][2], kLineHand[h][3]);
+                            cmp_linef_angleto(kLineTok4[i], kLineTok4[j], kLineTok4[k], kLineTok4[l],
+                                              kLineHand[h][0], kLineHand[h][1],
+                                              kLineHand[h][2], kLineHand[h][3]);
+                        }
+
+        cmp_linef_intersects_nullarg();
+    }
+
+    // ═══ Margins 族 ════════════════════════════════════════════════════════
+    {
+        cmp_margins_constants();
+
+        static const int kMarginsIntHand[] = {
+            0, 1, -1, 2, -2, 5, -5, INT_MAX, INT_MIN, INT_MAX - 1, INT_MIN + 1,
+        };
+        const int nMI = countOf(kMarginsIntHand);
+        for (int i = 0; i < nMI; ++i)
+            for (int j = 0; j < nMI; ++j)
+                for (int k = 0; k < nMI; ++k)
+                    for (int l = 0; l < nMI; ++l)
+                        cmp_margins_ctor(kMarginsIntHand[i], kMarginsIntHand[j],
+                                         kMarginsIntHand[k], kMarginsIntHand[l]);
+
+        // ⚠ **不做 8 层嵌套的全组合**（7⁸ ≈ 576 万，会把单次运行拖到不合理的
+        // 时长）。改成「一层跑主分量、其余三个分量按 token 集循环移位取值」
+        // ——四个分量各自都能取到 token 集里的每一个值（移位保证），只是不再
+        // 保证"任意四元组合"都被枚举到，这与 kHandRect 系列"手挑×手挑做满"
+        // 的精神一致：token 值必须在每个分量位上出现，不必是笛卡尔积全集。
+        static const int kMarginsIntTok[] = { -2, -1, 0, 1, 2, INT_MAX, INT_MIN };
+        const int nMIT = countOf(kMarginsIntTok);
+        for (int i = 0; i < nMIT; ++i)
+            for (int j = 0; j < nMIT; ++j)
+                cmp_margins_binary(
+                    kMarginsIntTok[i], kMarginsIntTok[(i + 1) % nMIT],
+                    kMarginsIntTok[(i + 2) % nMIT], kMarginsIntTok[(i + 3) % nMIT],
+                    kMarginsIntTok[j], kMarginsIntTok[(j + 1) % nMIT],
+                    kMarginsIntTok[(j + 2) % nMIT], kMarginsIntTok[(j + 3) % nMIT]);
+
+        static const double kMarginsFacD[] = {
+            0.0, -0.0, 0.5, -0.5, 1.0, -1.0, 1.5, -1.5, 2.0, -2.0, 2147483648.0, 1e-12,
+        };
+        const int nMFD = countOf(kMarginsFacD);
+        for (int i = 0; i < nMI; ++i)
+            for (int f = 0; f < countOf(kFacI); ++f)
+                for (int g = 0; g < nMFD; ++g)
+                    cmp_margins_scale(kMarginsIntHand[i], kMarginsIntHand[(i + 1) % nMI],
+                                      kMarginsIntHand[(i + 2) % nMI], kMarginsIntHand[(i + 3) % nMI],
+                                      kFacI[f], kMarginsFacD[g]);
+
+        static const double kMarginsFHand[] = {
+            0.0, -0.0, 1.0, -1.0, 0.5, -0.5, 1e300, 1e-300, INFINITY, -INFINITY, NAN, 100.0,
+        };
+        const int nMFH = countOf(kMarginsFHand);
+        for (int i = 0; i < nMFH; ++i)
+            for (int j = 0; j < nMFH; ++j)
+                for (int k = 0; k < nMFH; ++k)
+                    for (int l = 0; l < nMFH; ++l)
+                        cmp_marginsf_ctor(kMarginsFHand[i], kMarginsFHand[j],
+                                          kMarginsFHand[k], kMarginsFHand[l]);
+
+        for (int i = 0; i < nMFH; ++i)
+            for (int j = 0; j < nMFH; ++j)
+                cmp_marginsf_binary(kMarginsFHand[i], kMarginsFHand[(i + 1) % nMFH],
+                                    kMarginsFHand[(i + 2) % nMFH], kMarginsFHand[(i + 3) % nMFH],
+                                    kMarginsFHand[j], kMarginsFHand[(j + 1) % nMFH],
+                                    kMarginsFHand[(j + 2) % nMFH], kMarginsFHand[(j + 3) % nMFH]);
+
+        for (int i = 0; i < nMFH; ++i)
+            for (int g = 0; g < nMFD; ++g)
+                cmp_marginsf_scale(kMarginsFHand[i], kMarginsFHand[(i + 1) % nMFH],
+                                   kMarginsFHand[(i + 2) % nMFH], kMarginsFHand[(i + 3) % nMFH],
+                                   kMarginsFacD[g]);
+
+        // PkRect / PkRectF 的四个互操作成员：手挑矩形 × 手挑 margins。
+        static const int kMarginsRectHand[][4] = {
+            { 0, 0, 9, 9 }, { -5, -5, 5, 5 }, { 0, 0, -1, -1 }, { INT_MIN, INT_MIN, -1, -1 },
+        };
+        const int nMRH = countOf(kMarginsRectHand);
+        for (int r = 0; r < nMRH; ++r)
+            for (int i = 0; i < nMIT; ++i)
+                for (int j = 0; j < nMIT; ++j)
+                    for (int k = 0; k < nMIT; ++k)
+                        for (int l = 0; l < nMIT; ++l)
+                            cmp_rect_margins(kMarginsRectHand[r][0], kMarginsRectHand[r][1],
+                                             kMarginsRectHand[r][2], kMarginsRectHand[r][3],
+                                             kMarginsIntTok[i], kMarginsIntTok[j],
+                                             kMarginsIntTok[k], kMarginsIntTok[l]);
+
+        static const double kMarginsRectFHand[][4] = {
+            { 0, 0, 10, 10 }, { -5, -5, 5, 5 }, { 0, 0, 0, 0 }, { 1e6, 1e6, 1e6 + 10, 1e6 + 10 },
+        };
+        const int nMRFH = countOf(kMarginsRectFHand);
+        for (int r = 0; r < nMRFH; ++r)
+            for (int i = 0; i < nMFH; ++i)
+                cmp_rectf_margins(kMarginsRectFHand[r][0], kMarginsRectFHand[r][1],
+                                  kMarginsRectFHand[r][2], kMarginsRectFHand[r][3],
+                                  kMarginsFHand[i], kMarginsFHand[(i + 1) % nMFH],
+                                  kMarginsFHand[(i + 2) % nMFH], kMarginsFHand[(i + 3) % nMFH]);
     }
 
     for (const auto &kv : g_tags)

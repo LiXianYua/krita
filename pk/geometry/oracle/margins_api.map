@@ -1,0 +1,53 @@
+# PkMargins/PkMarginsF 类体声明 → 对拍 rec() 标签的映射（规则三的机器闸门，
+# 人维护那一半）。格式、多标签分隔符、机械解析方式与 rect_api.map 完全一致，
+# 完整说明见那份文件顶部注释，这里不重复。
+#
+# ⚠ PkMargins 的 friend operator==/!= 声明**位置挪到了 private: 之前**
+# （真 Qt 的 qmargins.h 写在 private 字段之后），理由见 PkMargins.h 里那条
+# 注释——闸门的类体解析器只扫第一个 private: 之前的部分，留在原位置会让这
+# 两条声明对闸门"隐形"。PkMarginsF 的 operator==/!= 是**自由函数**，不在类体
+# 里（走的是公开 accessor，不需要 friend，与真 Qt 一致），因此不出现在这份
+# map 里——闸门管不到类体之外的声明，这不是漏了，是这两个声明本来就不在
+# "类体声明"这个统计口径里（PkRectF::operator==/!= 不同，那边直接摸私有
+# 字段，所以是 friend、在类体里、会被闸门管到——两个类的这一点不对称，
+# 是各自 Qt 源码的实现方式不同，不是本次实施选的）。
+PkMargins::PkMargins()	M::defaultCtor
+PkMargins::PkMargins(int,int,int,int)	M::ctorLTRB
+PkMargins::isNull()	M::isNull
+PkMargins::left()	M::left
+PkMargins::top()	M::top
+PkMargins::right()	M::right
+PkMargins::bottom()	M::bottom
+PkMargins::setLeft(int)	M::setLeft
+PkMargins::setTop(int)	M::setTop
+PkMargins::setRight(int)	M::setRight
+PkMargins::setBottom(int)	M::setBottom
+PkMargins::operator+=(const PkMargins&)	M::operatorPlusEqMargins
+PkMargins::operator-=(const PkMargins&)	M::operatorMinusEqMargins
+PkMargins::operator+=(int)	M::operatorPlusEqInt
+PkMargins::operator-=(int)	M::operatorMinusEqInt
+PkMargins::operator*=(int)	M::operatorMulEqInt
+PkMargins::operator/=(int)	M::operatorDivEqInt
+PkMargins::operator*=(qreal)	M::operatorMulEqQreal
+PkMargins::operator/=(qreal)	M::operatorDivEqQreal
+PkMargins::operator==(const PkMargins&,const PkMargins&)	M::operatorEq
+PkMargins::operator!=(const PkMargins&,const PkMargins&)	M::operatorNe
+PkMarginsF::PkMarginsF()	MF::defaultCtor
+PkMarginsF::PkMarginsF(qreal,qreal,qreal,qreal)	MF::ctorLTRB
+PkMarginsF::PkMarginsF(const PkMargins&)	MF::ctorFromMargins
+PkMarginsF::isNull()	MF::isNull
+PkMarginsF::left()	MF::left
+PkMarginsF::top()	MF::top
+PkMarginsF::right()	MF::right
+PkMarginsF::bottom()	MF::bottom
+PkMarginsF::setLeft(qreal)	MF::setLeft
+PkMarginsF::setTop(qreal)	MF::setTop
+PkMarginsF::setRight(qreal)	MF::setRight
+PkMarginsF::setBottom(qreal)	MF::setBottom
+PkMarginsF::operator+=(const PkMarginsF&)	MF::operatorPlusEqMargins
+PkMarginsF::operator-=(const PkMarginsF&)	MF::operatorMinusEqMargins
+PkMarginsF::operator+=(qreal)	MF::operatorPlusEqQreal
+PkMarginsF::operator-=(qreal)	MF::operatorMinusEqQreal
+PkMarginsF::operator*=(qreal)	MF::operatorMulEqQreal
+PkMarginsF::operator/=(qreal)	MF::operatorDivEqQreal
+PkMarginsF::toMargins()	MF::toMargins

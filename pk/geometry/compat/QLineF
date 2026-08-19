@@ -1,0 +1,16 @@
+#pragma once
+// 必须先于 ../PkLine.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
+#include "../PkLine.h"
+
+// <QLineF> 的垫片。与 compat/QLine 内容等同（Qt 那两个转发头也都指向同一份
+// qline.h），完整理由见 compat/QLine。两份都写出来是因为调用点两种写法都有，
+// 而垫片是按**文件名**被找到的，宏改写不了 #include 的路径——与
+// compat/QRect + compat/QRectF 同一个形态。
+
+#ifndef QLine
+#define QLine PkLine
+#endif
+#ifndef QLineF
+#define QLineF PkLineF
+#endif

@@ -81,3 +81,7 @@ PkRect::intersected(const PkRect&)	R::intersected
 PkRect::intersects(const PkRect&)	R::intersects
 PkRect::operator==(const PkRect&,const PkRect&)	R::operator==
 PkRect::operator!=(const PkRect&,const PkRect&)	R::operator!=
+PkRect::marginsAdded(const PkMargins&)	R::marginsAdded
+PkRect::marginsRemoved(const PkMargins&)	R::marginsRemoved
+PkRect::operator+=(const PkMargins&)	R::operatorPlusEqMargins
+PkRect::operator-=(const PkMargins&)	R::operatorMinusEqMargins

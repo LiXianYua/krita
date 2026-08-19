@@ -93,8 +93,9 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 | `PkPoint.h` / `PkPoint.cpp` | `PkPoint`（两个 `int`）与 `PkPointF`（两个 `qreal`），逐字抄自 `qpoint.h` |
 | `PkSize.h` / `PkSize.cpp` | `PkSize`（两个 `int`）与 `PkSizeF`（两个 `qreal`），逐字抄自 `qsize.h`；两个 `scaled(const Pk*&, mode)` 照 Qt 的形态放在 `.cpp` 里（`QSize::scaled` 定义在 `qsize.cpp`） |
 | `PkRect.h` / `PkRect.cpp` | `PkRect`（**四个 `int` 边界坐标 `x1/y1/x2/y2`**）与 `PkRectF`（**四个 `qreal` 的左上角 + 宽高 `xp/yp/w/h`** —— ⚠ **两者内部表示不同，Qt 就是这么不对称的**），逐字抄自 `qrect.h`；`normalized` / `operator\|` / `operator&` / `contains` / `intersects` 两族各一套、外加 `PkRectF::toAlignedRect`，照 Qt 的形态放在 `.cpp` 里（Qt 那些编在 `libQt5Core.so`，本机没有 `qrect.cpp` 源码，它们是**靠对拍逐输入逼出来的**） |
-| `PkTransform.h` / `PkTransform.cpp` | `PkTransform`（3×3 齐次矩阵 + 惰性 `m_type`/`m_dirty` 缓存），逐字抄自 `qtransform.h` 与上游 `v5.15.7-lts-lgpl` 的 `qtransform.cpp`。**行向量约定**、**`TransformationType` 是位标志不是 0..5**、**惰性缓存是可观测语义**——三条各错一条整族全错，头文件顶部逐条列了 |
-| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` `compat/QRectF` `compat/QTransform` | `#define` 垫片，无扩展名，共 **8 个**。**六个几何垫片形态一致**：每个都把孪生的两个名字一起给（Qt 的转发头也是这样，包任一个都能拿到两个名字）。Task 5 补齐了 `QRectF`（偏离 16 已消）。**每个垫片都必须先包 `compat/QtGlobal` 再包各自的 Pk 头**（见「与 `pk/test/compat/QtGlobal` 的共存」，Task 7/8 的试接把这条压成了硬纪律） |
+| `PkTransform.h` / `PkTransform.cpp` | `PkTransform`（3×3 齐次矩阵 + 惰性 `m_type`/`m_dirty` 缓存），逐字抄自 `qtransform.h` 与上游 `v5.15.7-lts-lgpl` 的 `qtransform.cpp`。**行向量约定**、**`TransformationType` 是位标志不是 0..5**、**惰性缓存是可观测语义**——三条各错一条整族全错，头文件顶部逐条列了。**R-21 T1** 补了 `map(const PkLineF&)`/`operator*(const PkLineF&, const PkTransform&)`（顺带解开，见「Line 族与 Margins 族」一节） |
+| `PkLine.h` / `PkLine.cpp` / `PkMargins.h` / `PkMargins.cpp`（**R-21 T1**） | `PkLine`/`PkLineF`（逐字抄自 `qline.h`；`length`/`angle`/`setAngle`/`angleTo`/`unitVector`/`intersects`/`fromPolar` 七个 out-of-line 成员靠独立差分脚本对真 Qt 逐输入逼出公式）与 `PkMargins`/`PkMarginsF`（逐字抄自 `qmargins.h`，全部 inline）。详见下面「Line 族与 Margins 族（R-21 T1）」 |
+| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` `compat/QRectF` `compat/QTransform` `compat/QLine` `compat/QLineF` `compat/QMargins` `compat/QMarginsF`（后四个 **R-21 T1**） | `#define` 垫片，无扩展名，共 **12 个**。垫片形态一致：每个都把孪生的两个名字一起给（Qt 的转发头也是这样，包任一个都能拿到两个名字）。Task 5 补齐了 `QRectF`（偏离 16 已消）。**每个垫片都必须先包 `compat/QtGlobal` 再包各自的 Pk 头**（见「与 `pk/test/compat/QtGlobal` 的共存」，Task 7/8 的试接把这条压成了硬纪律） |
 | `tests/` | `test_global.cpp`（13 函数）、`test_point.cpp`（24）、`test_size.cpp`（31）、`test_rect.cpp`（38）、`test_rectf.cpp`（46）、`test_transform.cpp`（56）、**三个**共存 TU `coexist_*.cpp`、**三个**宏改写探针 `point_macro_proof.cpp` / `size_macro_proof.cpp` / `rectf_macro_proof.cpp`（口径：函数个数按 `cases/*_case.h` 的 `private Q_SLOTS:` 声明数，不含 harness 自带的 `initTestCase`/`cleanupTestCase`；`run_tests.sh` 打的 `Totals: N passed` 是 N = 函数数 + 2） |
 | `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect / RectF / Transform **五族**）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map`（规则三的机器闸门，五族各一份，见下）** |
 | `graft/` | 真实调用点试接（判据②）：`graft_run.sh` 拿 **两个真实 Krita 测试类零改动**编译并跑绿——`KisRectsGridTest`（`libs/global/tests`）与 `KisFourPointInterpolatorTest`（`libs/image/tests`），分属两个不同 target。`stubs/` 是把不属于 R-03 的上游依赖顶住的最小垫片（清单与归属见下面「`graft/` 的 stub 清单」），`rename.sed` 做 `QTest`→`PK_*` 的机械改写，`git diff --quiet` 自证源树零改动 |
@@ -499,6 +500,100 @@ Task 4 已经把 Rect 族 51 个有用量的名字逐个归属到 Rect 族接收
 > 另外：**实施计划把 `isAffine` 列进了「必须实现」清单**，所以这是**计划的实测错误**，
 > 与 `dotProduct`（计划说 0、实际非 0）方向相反。
 
+## Line 族与 Margins 族（R-21 T1）
+
+**这两族是 R-21 交付的，不是 R-03。** 补在这里是因为它们复用同一份对拍+试接装置
+（`oracle/geometry_difftest.cpp`、`pk/test` harness、`graft/`），方法论与判据全部
+继承自上面各节，不重新定义一套。逐条证据、探针原始输出、公式来源见
+`PkLine.h`/`PkLine.cpp`/`PkMargins.h` 文件头注释（比这里详细得多，这里只汇总
+结论表）。
+
+### `PkLine` / `PkLineF`
+
+`QLine` 保留范围内**唯一真实调用点**：`plugins/tools/tool_knife/RemoveGutterStrategy.cpp:56`
+`QLineF l = QLine(QPoint(), QPoint(50, 50));`——构造后立即隐式转 `QLineF`，没有
+其它成员被直接调用。`PkLine` 因此只实现默认构造、`(int,int,int,int)` 构造、
+`(PkPoint,PkPoint)` 构造、`p1()`/`p2()`（后两个实测调用点也是 0，但
+`PkLineF(const PkLine&)` 的隐式提升构造要读它们，与 Qt 自己 `QLineF(const
+QLine&)` 的写法同构）。其余（`isNull`/`x1`/`y1`/`x2`/`y2`/`dx`/`dy`/`translate`/
+`translated`/`center`/`setP1`/`setP2`/`setPoints`/`setLine`/`operator==`/`!=`）
+实测三种调用形态皆为 0，不实现。
+
+`QLineF` 类型名裸词现场重测（`grep -rln "\bQLineF\b" libs plugins --include=*.cpp
+--include=*.h --include=*.cc`，排除 `tests/`/`benchmarks/`/`pk/`）：530 处 /
+68 个文件（`Qt替代品选型.md` §1.1 给的 585/67 是更早一次基线，随 D 线删代码漂移
+是预期内的）。逐成员按调用形态核实接收者后：
+
+| 成员 | 判定 | 依据 |
+|---|---|---|
+| `p1()`/`p2()` | 实现 | 高用量，`kis_global.h:232` 的两个非模板 inline 函数（`kisDistanceToLine`/`kisSquareDistanceToLine`）直接依赖 |
+| `translate`/`translated`（两个重载） | 实现 | 真实调用点确认 |
+| `intersects(const PkLineF&, PkPointF*)` | 实现 | Qt5 新签名（非 Qt4 的 `intersect()`），探针确认；`RemoveGutterStrategy.cpp`、`kis_algebra_2d_test.cpp`、`TestPerspectiveBasedAssistantHelper.cpp` 等多处真实调用 |
+| `pointAt(qreal)` | 实现 | 不夹持 `t`，允许外插（探针确认） |
+| `angle()`/`setAngle()`/`angleTo()` | 实现 | `angle()` 逆时针为正、范围 `[0,360)`，`atan2(-dy,dx)` 换算（探针确认符号约定） |
+| `length()`/`setLength()`/`unitVector()`/`dx()`/`dy()`/`x1()`/`y1()`/`x2()`/`y2()`/`isNull()`/`setP1`/`setP2`/`operator==`/`!=` | 实现 | Qt 头文件全量方法面，逐个核实真实接收者非零后实现 |
+| **`center()`** | 实现 | ⚠ 任务与 R-21 plan.md 给的"完整方法面"清单都漏了它，实测保留范围内 QLineF 接收者 ≥9 处（如 `KoSvgTextShapeLayoutFunc_inShape.cpp:154`），T1 现场补 |
+| **`fromPolar(qreal,qreal)`** | 实现 | 同上，任务清单漏了，实测 3 处真实调用点（`kis_paintop_settings.cpp:558`、`psd_additional_layer_info_block.h:560`、`TwoPointAssistant.cc:315`） |
+| `setPoints`/`setLine`/`toLine()`/`intersect()`（Qt5.14 废弃旧签名）/`angle(const QLineF&)`（Qt5.14 废弃旧签名） | 不实现 | 实测调用点 0；后两个还带 `QT_DEPRECATED_SINCE` 卫兵 |
+| `qHash`/`QDataStream`/`QDebug` | 不实现 | 归 R-02/R-12/R-08，同 Rect 族先例 |
+
+**`PkTransform::map(const PkLineF&)` 顺带解开**：`PkTransform.h` 文件头早就把
+`map(QLineF)` 列在「依赖当时范围外的类型」——T1 交付 `PkLineF` 后按 T2 解开
+`squareToQuad`/`quadToSquare` 同一个模式顺手补上（`PkLineF(map(l.p1()),
+map(l.p2()))`，逐字照抄 Qt 源码，不是新算法）。真实调用点：
+`RemoveGutterStrategy.cpp` 多处 `<transform>.map(<QLineF>)`。
+
+### `PkMargins` / `PkMarginsF`
+
+**真实调用点现为 0**（`grep -rln "\bQMargins\b" libs plugins --include=*.cpp
+--include=*.h --include=*.cc`，排除 `pk/`：全仓唯一命中是 `pk/geometry/PkRect.h`
+自己的注释）——原消费方 `libkdcraw/rnuminput.cpp` 已被 D-02-a 删除。**仍然实现**：
+任务定义明确要求，因为它挡着 `PkRect`/`PkRectF` 的四个互操作成员
+（`marginsAdded`/`marginsRemoved`/`operator+=`/`operator-=`，这四个本身也是 0
+用量）。与 `PkRect` 构造函数/运算符按 Qt 头文件全集实现同一类处置（偏离清单
+第 6/14/19 条同型）——这条「仍要做」来自任务定义本身，不是本次实施自选，
+是判据①的一条已获批准的例外。
+
+`PkMargins` 按 Qt `qmargins.h` 头文件全集实现：构造、四个 accessor/setter、
+`isNull`、算术运算符（`+`/`-`/`*`/`/`/`+=`/`-=`/`*=`/`/=`，标量与 Margins 两种
+操作数）、一元 `+`/`-`。**对 R-21 plan.md 的一条实测纠正**：plan.md 说要实现
+"`operator|`（取分量最大值）"——**真 Qt 5.15.7 的 `QMargins` 根本没有
+`operator|`**（逐字核对头文件全文 + 现场探针确认 `m1 | m2` 编译失败：`no
+match for 'operator|'`）。`QMargins` 从来只有算术运算符，没有位运算式的
+"分量取最大"语义，本实现不造一个 Qt 没有的运算符。
+
+`PkRectF` 一侧的探针实测确认：`QRectF::marginsAdded`/`marginsRemoved` 吃的是
+`QMarginsF`（不是 `QMargins`），两侧无相互转换的隐式捷径，所以另建了
+`PkMarginsF`（四个 `qreal`，含 `PkMarginsF(const PkMargins&)` 隐式提升构造）。
+`PkRect`/`PkRectF` 各自新增的四个互操作成员见 `PkRect.h` 头部「T1 新增：
+QMargins 互操作」一节；原来「明确不实现：marginsAdded/marginsRemoved/
+operator±=(QMargins)…」那句已删除。
+
+### 试接（判据②）的覆盖边界，如实登记
+
+R-03 现有两个试接目标（`KisRectsGridTest`、`KisFourPointInterpolatorTest`）都不
+直接调用 `QLineF`/`QMargins` 的方法——它们原本是靠 `stubs/QLineF`（只给
+`p1()`/`p2()` 的最小占位符）过关。T1 交付真实 `PkLineF` 后**删除了这个占位符
+stub**，于是这两个目标现在经由 `kis_global.h:232` 的无条件 include 链，
+**真的**编译并链接完整的 `PkLineF` 实现（`compat/QLineF` → `PkLineF`）——
+这满足了 T1 最初的强制来源（`kis_global.h` 那两个非模板 inline 函数要求
+`QLineF` 是完整类型）。
+
+**诚实登记一个覆盖边界**：`intersects()`/`length()`/`angle()`/`pointAt()` 这类
+`PkLineF` 更复杂的方法，**目前没有真实调用点通过 graft 试接覆盖**——真实调用点
+存在（`RemoveGutterStrategy.cpp`、`kis_algebra_2d_test.cpp`、
+`TestPerspectiveBasedAssistantHelper.cpp` 等），但这些文件的依赖闭包很重
+（`RemoveGutterStrategy.cpp` 要 `KisTool`/`KisCanvas2`/`KoViewConverter` 一整条
+工具链；`TestPerspectiveBasedAssistantHelper.cpp` 要 `kis_painting_assistant.h`
+与 `PerspectiveBasedAssistantHelper` 这样的完整类）。给它们搭配套 stub 的成本
+远超 T1 的范围，与 README 上面「三条证据链各自的盲区」一节「graft 覆盖的 API
+面远小于单测与对拍」是同一类边界，不是新问题——**这些方法的取值正确性由单测
+（`test_line.cpp`）与对拍（`geometry_difftest.cpp` 的 Line 族，逐输入比对真
+Qt）覆盖，只是没有"零改动编译真实生产代码"这一层证据**。`QMargins` 同理：
+新增的四个 `PkRect`/`PkRectF` 互操作成员目前没有真实消费方，试接判据②对它们
+豁免——这与"无法按调用点归属"的运算符/构造函数偏离不是同一回事，是**零用量
+导致的**豁免，写清楚以免与偏离清单第 6/14/19 条混淆。
+
 ## 明确不实现的清单
 
 三组，理由与归属各不相同。**三组的数字都在 Task 9 收口时重跑过**（口径：保留范围
@@ -617,11 +712,18 @@ KisUsageLogger::log(QString("… Grid size: %1, log grid size: %2 …")
 形态，重载决议去试两参数那个，报
 `invalid user-defined conversion from 'int' to 'const PkString&'`。
 
-**处置**：`graft/stubs/QString` 用**继承** `PkString` 只补这一个重载，
+**处置（历史）**：`graft/stubs/QString` 用**继承** `PkString` 只补这一个重载，
 其余 `arg` 靠 `using PkString::arg;` 原样透传。**刻意不整份替换掉 `QString`** ——
 整份 `std::string` 垫片也能让试接编过，但那样 R-01 就完全没被压到，试接也就证明
 不了"我们的字符串替代品接得住真实调用点"。**缺口因此精确到一个函数签名**，
 转给 R-01 时不需要再查一遍。
+
+**已关闭（R-21 T1）**：R-13 已把 `arg(int v, int fieldWidth)` 补进 `pk/string/PkString.h`
+的正式实现（`PkString.h:47`）。垫片因此冗余，`graft/stubs/QString` 这个文件已删除——
+`pk/geometry/graft/stubs/KisUsageLogger.h:19` 的 `#include <QString>` 现在经
+`graft_run.sh` 的 `-I` 顺序（`$STUBS` 里没有同名文件了）自然落到
+`pk/string/compat/QString`（`#define QString PkString`），验证过 `graft_run.sh`
+仍然全绿。
 
 ### ② `qIsFinite` 的**口径冲突** —— 这是要人判的，不是要人补的
 
@@ -654,17 +756,19 @@ KisUsageLogger::log(QString("… Grid size: %1, log grid size: %2 …")
 
 判据②要求「真实调用点试接、零改动」。零改动意味着**上游依赖一个都不能改**，
 只能在编译行外面垫。下面这些垫片**没有一个是 R-03 的交付物**，每一个的头注释里
-都写着自己的归属。**口径：`git ls-files pk/geometry/graft/stubs` 得 14 个文件，
-下表 13 行** —— `QPolygon` 与 `QPolygonF` 合成了一行（真 Qt 里两个名字也指向
-同一个 `qpolygon.h`）：
+都写着自己的归属。**口径：`git ls-files pk/geometry/graft/stubs` 现在得 12 个文件，
+下表 11 行**（`QPolygon` 与 `QPolygonF` 合成了一行，真 Qt 里两个名字也指向
+同一个 `qpolygon.h`）——**R-21 T1 删了两个**：`stubs/QString`（`PkGraftQString::arg(int,int)`
+已被 R-13 补进 `pk/string/PkString.h` 正式实现，垫片冗余，见上「已关闭（R-21 T1）」）、
+`stubs/QLineF`（T1 交付了真实 `PkLineF` 与 `compat/QLineF`，继续留着旧垫片会让
+`-I` 顺序把真实实现挡住——试接会一直在测那个只有 `p1()`/`p2()` 的占位符，不是
+T1 真正交付的东西）。
 
 | stub | 是什么 | 真正的归属 |
 |---|---|---|
-| `stubs/QString` | `PkString` 的派生类，只补 `arg(int,int)` 一个重载 | **R-01**（见上「要转给别条线的」①） |
 | `stubs/QtGlobal` | 第一行就 `#include "../../compat/QtGlobal"`（**标量工具的真身是 R-03 的交付物，不重复实现**），另补三类：定长整数 typedef、版本宏 + `qt_noop`/`Q_FOREACH`/`Q_UNUSED`、`qIsFinite` | typedef → **R-02**；版本宏与 `Q_*` → **S-00**；`qIsFinite` → **R-03 的口径缺口**（见上②） |
 | `stubs/QVector` | `std::vector` 薄包装，成员刻意压到试接真用到的 14 个 | **R-02（容器）** |
-| `stubs/QPolygon` + `stubs/QPolygonF` | `class QPolygonF : public QVector<QPointF>`，照真 Qt 的继承关系；只给浮点版 | **归属未定**（见上一节） |
-| `stubs/QLineF` | 只做默认构造 / 双点构造 / `p1()` / `p2()` —— 够 `kis_global.h:232` 后面那两个**非模板** inline 函数通过语义检查 | **归属未定**（见上一节） |
+| `stubs/QPolygon` + `stubs/QPolygonF` | `class QPolygonF : public QVector<QPointF>`，照真 Qt 的继承关系；只给浮点版 | **归属未定**（见上一节；R-21 T2 交付时应比照 `QLineF` 的处置一并清理） |
 | `stubs/QSharedPointer` | **刻意只前置声明、不写类体**：`kis_pointer_utils.h` 里全是模板，一个都没被实例化 | **R-02 之后的智能指针面** |
 | `stubs/QtCore/qmath.h` | 只补 `qFloor` / `qCeil` 两个（调用点写的是 `#include <QtCore/qmath.h>`，带前缀，垫片也得放同名子目录） | `qmath.h` 整套归属未定；`qFloor`/`qCeil` 在 R-03 的 Rect 族**无调用点**，导出去才是违反判据①（偏离 18） |
 | `stubs/kis_algebra_2d.h` | 真品 1 254 行、是一整个二维代数库；只做试接用到的三个模板 | **它自己是一个独立迁移单元**，既不属 R-03 也不属 R-02 |
@@ -876,9 +980,16 @@ tag 按输入形态切成了 23 格**——切细是为了让额度可推导，�
   **两个脚本双双 exit=0 放行**。现在同一注入产生 22 984 个未声明 tag 并 FAIL。
 - **`toRect` / `toAlignedRect` / `QRectF` 相关的一切不在本 Task**。它们有实测
   用量（18 / 64）但接收者全是 `QRectF`，归 Task 5。
-- **`QRect` 与 `QMargins` 的四个互操作（`marginsAdded`/`marginsRemoved`/
+- ~~**`QRect` 与 `QMargins` 的四个互操作（`marginsAdded`/`marginsRemoved`/
   `operator+=`/`operator-=`）不实现**：`QMargins` 实测 2 次 / 1 文件，
-  归属未定，与 `QLineF`/`QPolygonF` 一起是要报回主会话的归属问题。
+  归属未定，与 `QLineF`/`QPolygonF` 一起是要报回主会话的归属问题。~~
+  **R-21 T1 已补齐**：`PkMargins`/`PkMarginsF` 与 `PkRect`/`PkRectF` 的四个
+  互操作成员（`PkRect` 吃 `PkMargins`，`PkRectF` 吃 `PkMarginsF`——探针实测
+  两侧签名不同）都已实现，`QMargins` 保留范围内真实调用点仍为 0（原消费方
+  `libkdcraw/rnuminput.cpp` 已被 D-02-a 删除），仍要做是任务定义本身的要求，
+  与 `PkRect` 构造函数/运算符按 Qt 头文件全集实现同一类处置。保留本行不删，
+  为了让"这条曾经是缺口、什么时候补上"在 README 里留痕（与偏离清单第 16 条
+  同一种写法）。
 - **`qHash(PkRect)` 不实现，而且它是 R-02 的一个真实待办**（下面「`qHash` /
   `QDataStream` / `QDebug` 不实现」那条已经点过名，这里按 Task 4 的要求再点一次）：
   本 Task 现场复测，口径为保留范围 3 325 个文件、`grep -ohE` ——

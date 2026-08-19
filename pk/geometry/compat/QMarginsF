@@ -1,0 +1,14 @@
+#pragma once
+// 必须先于 ../PkMargins.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
+#include "../PkMargins.h"
+
+// <QMarginsF> 的垫片。与 compat/QMargins 内容等同（Qt 那两个转发头也都指向
+// 同一份 qmargins.h），完整理由见 compat/QMargins。
+
+#ifndef QMargins
+#define QMargins PkMargins
+#endif
+#ifndef QMarginsF
+#define QMarginsF PkMarginsF
+#endif

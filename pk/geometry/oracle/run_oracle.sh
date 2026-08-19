@@ -28,6 +28,8 @@ API_GROUPS=(
     "pk/geometry/PkSize.h|PkSize,PkSizeF|pk/geometry/oracle/size_api.map"
     "pk/geometry/PkRect.h|PkRectF|pk/geometry/oracle/rectf_api.map"
     "pk/geometry/PkTransform.h|PkTransform|pk/geometry/oracle/transform_api.map"
+    "pk/geometry/PkLine.h|PkLine,PkLineF|pk/geometry/oracle/line_api.map"
+    "pk/geometry/PkMargins.h|PkMargins,PkMarginsF|pk/geometry/oracle/margins_api.map"
 )
 
 [ -f "$QT/include/QtCore/qpoint.h" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/qpoint.h" >&2; exit 1; }

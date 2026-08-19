@@ -1,0 +1,27 @@
+#pragma once
+// 必须先于 ../PkLine.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
+#include "../PkLine.h"
+
+// 兼容垫片：让真实调用点的 `#include <QLine>` 在**一个字都不改**的前提下解析到
+// PkLine。文件名刻意没有扩展名——调用点写的就是 <QLine>。做法照 compat/QRect。
+//
+// 用宏而不是 `using QLine = PkLine;`：Krita 里若出现 `class QLine;` 这类前置
+// 声明，类型别名遇到它会报 "redeclared as different kind of entity"；宏则把
+// 那一行原样改写成 `class PkLine;`，前置声明照样成立（与 compat/QRect 同理）。
+//
+// **两个名字一起给**：Qt 的 <QLine> 与 <QLineF> 都只是 qline.h 的转发头，
+// 包任一个都能同时拿到 QLine 与 QLineF——只定义一个的话 `#include <QLine>`
+// 之后用 QLineF 的调用点会编不过。形态与 compat/QRect + compat/QRectF、
+// compat/QSize + compat/QSizeF、compat/QPoint + compat/QPointF 对齐。
+//
+// `PkPoint` / `PkPointF`（PkLine / PkLineF 的参数与返回类型）经 ../PkLine.h
+// 一起进来（PkLine.h 自己 #include "PkPoint.h"），与 Qt 的形态一致（qline.h
+// 自己 #include <QtCore/qpoint.h>）。
+
+#ifndef QLine
+#define QLine PkLine
+#endif
+#ifndef QLineF
+#define QLineF PkLineF
+#endif

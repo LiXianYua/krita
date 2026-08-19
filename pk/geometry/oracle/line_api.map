@@ -1,0 +1,43 @@
+# PkLine/PkLineF 类体声明 → 对拍 rec() 标签的映射（规则三的机器闸门，人维护
+# 那一半）。格式、多标签分隔符、机械解析方式与 rect_api.map 完全一致，
+# 完整说明见那份文件顶部注释，这里不重复。
+#
+# PkLine 只有 5 条声明（真实调用点唯一形态是"构造后立即隐式转 PkLineF"，
+# 见 PkLine.h 头部注释）。PkLineF 是全新战场，32 条声明逐条列出。
+PkLine::PkLine()	L::defaultCtor
+PkLine::PkLine(const PkPoint&,const PkPoint&)	L::ctorPoints
+PkLine::PkLine(int,int,int,int)	L::ctorInts
+PkLine::p1()	L::p1
+PkLine::p2()	L::p2
+PkLineF::PkLineF()	LF::defaultCtor
+PkLineF::PkLineF(const PkPointF&,const PkPointF&)	LF::ctorPoints
+PkLineF::PkLineF(qreal,qreal,qreal,qreal)	LF::ctorReals
+PkLineF::PkLineF(const PkLine&)	LF::ctorFromLine
+PkLineF::fromPolar(qreal,qreal)	LF::fromPolar
+PkLineF::isNull()	LF::isNull
+PkLineF::p1()	LF::p1
+PkLineF::p2()	LF::p2
+PkLineF::x1()	LF::x1
+PkLineF::y1()	LF::y1
+PkLineF::x2()	LF::x2
+PkLineF::y2()	LF::y2
+PkLineF::dx()	LF::dx
+PkLineF::dy()	LF::dy
+PkLineF::length()	LF::length
+PkLineF::setLength(qreal)	LF::setLength
+PkLineF::angle()	LF::angle
+PkLineF::setAngle(qreal)	LF::setAngle
+PkLineF::angleTo(const PkLineF&)	LF::angleTo
+PkLineF::unitVector()	LF::unitVector
+PkLineF::normalVector()	LF::normalVector
+PkLineF::intersects(const PkLineF&,PkPointF*)	LF::intersects;LF::intersectsPoint;LF::intersectsNullArg
+PkLineF::pointAt(qreal)	LF::pointAt
+PkLineF::translate(const PkPointF&)	LF::translatePoint
+PkLineF::translate(qreal,qreal)	LF::translateXY
+PkLineF::translated(const PkPointF&)	LF::translatedPoint
+PkLineF::translated(qreal,qreal)	LF::translatedXY
+PkLineF::center()	LF::center
+PkLineF::setP1(const PkPointF&)	LF::setP1
+PkLineF::setP2(const PkPointF&)	LF::setP2
+PkLineF::operator==(const PkLineF&)	LF::operatorEq
+PkLineF::operator!=(const PkLineF&)	LF::operatorNe

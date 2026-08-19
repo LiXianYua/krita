@@ -14,7 +14,11 @@
 // 走不到 —— 但**要编过、要链接过**，所以垫片必须给出真实签名 + 一份定义
 // （定义在 graft_stubs.cpp）。
 //
-// ⚠ 这一处调用点压出了 R-01 的一个缺口，见 stubs/QString 的头注释。
+// ⚠ 这一处调用点曾压出 R-01 的一个缺口（`PkString` 缺 `arg(int,int)`，
+// 原本靠已删除的 `stubs/QString` 垫一个继承子类补上）。R-13 已把这个重载
+// 补进 `pk/string/PkString.h` 正式实现，缺口已关闭，`#include <QString>`
+// 现在直接经 `-I` 顺序落到 `pk/string/compat/QString`（见
+// pk/geometry/README.md「已关闭（R-21 T1）」）。
 // ============================================================================
 #include <QString>
 

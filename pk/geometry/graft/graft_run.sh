@@ -89,7 +89,8 @@ build_lib() {
 
 build_lib "$BUILD/libpkgeometry.a" \
     pk/geometry/PkGlobal.cpp pk/geometry/PkPoint.cpp pk/geometry/PkSize.cpp \
-    pk/geometry/PkRect.cpp pk/geometry/PkTransform.cpp
+    pk/geometry/PkRect.cpp pk/geometry/PkTransform.cpp \
+    pk/geometry/PkLine.cpp pk/geometry/PkMargins.cpp
 
 build_lib "$BUILD/libpktest.a" \
     pk/test/PkTestCase.cpp pk/test/PkTestRunner.cpp \
@@ -97,8 +98,14 @@ build_lib "$BUILD/libpktest.a" \
 
 # R-01 的 PkString —— 目标① 的 libs/global/KisRectsGrid.cpp:23 走
 # `KisUsageLogger::log(QString(...).arg(...))`，QString 用 R-01 的真品，不垫。
+# ⚠ **R-21 T1 顺手修复**：这四个文件名曾经是 `PkStringData.cpp` 一个文件，
+# R-13 把它拆成 `PkString_core/_query/_format.cpp` 三份、新增
+# `PkStringCodec.cpp`（见 pk/string/CMakeLists.txt），但没有回头改这里——
+# `graft_run.sh` 从那之后就一直编不过（`git stash` 回到 R-21 之前的 HEAD 复现
+# 过，不是本任务引入的回归）。R-21 T1 顺手把文件名同步成当前实况，不然整个
+# graft 装置对本任务（以及在它之后的任何任务）都是哑的。
 build_lib "$BUILD/libpkstring.a" \
-    pk/string/PkStringData.cpp pk/string/PkString_core.cpp \
+    pk/string/PkStringCodec.cpp pk/string/PkString_core.cpp \
     pk/string/PkString_query.cpp pk/string/PkString_format.cpp
 
 # ---------------------------------------------------------------------------
