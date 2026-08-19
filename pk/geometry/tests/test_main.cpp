@@ -15,6 +15,7 @@ int run_polygon_tests();
 int run_vectornd_tests();
 int run_matrix4x4_tests();
 int run_region_tests();
+int run_painterpath_tests();
 
 int main()
 {
@@ -31,6 +32,7 @@ int main()
     failures += run_vectornd_tests();
     failures += run_matrix4x4_tests();
     failures += run_region_tests();
+    failures += run_painterpath_tests();
 
     if (failures == 0) {
         std::printf("all pkgeometry tests passed\n");

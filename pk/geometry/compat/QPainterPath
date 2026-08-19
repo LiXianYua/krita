@@ -1,0 +1,11 @@
+#pragma once
+// 必须先于 ../PkPainterPath.h
+#include "QtGlobal"
+#include "../PkPainterPath.h"
+
+// <QPainterPath> 的垫片：让真实调用点的 `#include <QPainterPath>` 在不改一个字
+// 的前提下解析到 PkPainterPath。
+
+#ifndef QPainterPath
+#define QPainterPath PkPainterPath
+#endif
