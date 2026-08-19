@@ -6,7 +6,8 @@
 #define KISDELETELATERWRAPPER_H
 
 #include "kritaglobal_export.h"
-#include <QObject>
+#include <PkObject.h>
+#include <PkConnect.h>
 
 namespace KisDeleteLaterWrapperPrivate {
 KRITAGLOBAL_EXPORT void moveToGuiThread(QObject *object);

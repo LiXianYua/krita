@@ -6,8 +6,9 @@
 #ifndef KIS_CONFIG_NOTIFIER_H_
 #define KIS_CONFIG_NOTIFIER_H_
 
-#include <QObject>
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <PkConnect.h>
+#include <PkScopedPointer.h>
 
 #include "kritaglobal_export.h"
 

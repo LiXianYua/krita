@@ -3,8 +3,7 @@
  */
 #include "KisAndroidUtils.h"
 #include "KisAndroidExitInfo.h"
-#include <QAndroidJniEnvironment>
-#include <QAndroidJniObject>
+
 #include <QtAndroid>
 
 KisAndroidExitInfo KisAndroidExitInfo::getLast()

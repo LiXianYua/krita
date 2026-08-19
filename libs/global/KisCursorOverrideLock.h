@@ -8,9 +8,8 @@
 #define KISCURSOROVERRIDELOCK_H
 
 #include <kritaglobal_export.h>
-#include <QCursor>
-#include <KisAdaptedLock.h>
 
+#include <KisAdaptedLock.h>
 
 class KRITAGLOBAL_EXPORT KisCursorOverrideLockAdapter
 {

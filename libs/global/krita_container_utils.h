@@ -8,7 +8,7 @@
 #define KRITA_CONTAINER_UTILS_H
 
 #include <functional>
-#include <QList>
+#include <PkList.h>
 
 namespace KritaUtils
 {
@@ -33,7 +33,6 @@ template <class C>
         newEnd = container.erase(newEnd);
     }
 }
-
 
 template <class C, typename KeepIfFunction>
     auto filterContainer(C &container, KeepIfFunction keepIf)
@@ -101,7 +100,6 @@ struct is_appendable_container
 };
 
 }
-
 
 #endif // KRITA_CONTAINER_UTILS_H
 

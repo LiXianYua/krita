@@ -11,7 +11,9 @@
 
 #include <vector>
 #include <boost/circular_buffer.hpp>
-#include <QtGlobal>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
 
 /**
  * A special class that calculates a rolling mean of the

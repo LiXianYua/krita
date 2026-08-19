@@ -10,9 +10,9 @@
 #include "kis_shared.h"
 #include <kritaglobal_export.h>
 
-#include <QQueue>
-#include <QElapsedTimer>
-#include <QDebug>
+#include <PkQueue.h>
+#include <PkElapsedTimer.h>
+#include <PkDebug.h>
 
 #include <boost/heap/fibonacci_heap.hpp>
 

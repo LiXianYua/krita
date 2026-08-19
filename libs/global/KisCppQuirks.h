@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <optional>
 #include <version>
-#include <QDebug>
+#include <PkDebug.h>
 
 namespace std {
 
@@ -50,6 +50,5 @@ QDebug operator<<(QDebug dbg, const std::optional<T> &t)
 
     return dbg.space();
 }
-
 
 #endif // KISCPPQUIRKS_H

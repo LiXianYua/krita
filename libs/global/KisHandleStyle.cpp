@@ -35,7 +35,6 @@ static const QColor selectionColor(164, 227, 243);
 
 }
 
-
 KisHandleStyle &KisHandleStyle::inheritStyle()
 {
     static QScopedPointer<KisHandleStyle> style;
@@ -89,7 +88,6 @@ KisHandleStyle &KisHandleStyle::gradientArrows()
 {
     return primarySelection();
 }
-
 
 KisHandleStyle &KisHandleStyle::highlightedPrimaryHandles()
 {

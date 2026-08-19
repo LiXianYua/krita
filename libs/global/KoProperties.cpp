@@ -7,9 +7,9 @@
 
 #include "KoProperties.h"
 
-#include <QDomDocument>
-#include <QDataStream>
-#include <QIODevice>
+#include <PkXmlDocument.h>
+
+#include <PkStream.h>
 
 class Q_DECL_HIDDEN KoProperties::Private
 {
@@ -37,7 +37,6 @@ QMapIterator<QString, QVariant> KoProperties::propertyIterator() const
 {
     return QMapIterator<QString, QVariant>(d->properties);
 }
-
 
 bool KoProperties::isEmpty() const
 {
@@ -130,7 +129,6 @@ QVariant KoProperties::property(const QString & name) const
 {
     return d->properties.value(name, QVariant());
 }
-
 
 int KoProperties::intProperty(const QString & name, int def) const
 {

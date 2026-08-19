@@ -7,7 +7,8 @@
 #ifndef __KIS_THREAD_SAFE_SIGNAL_COMPRESSOR_H
 #define __KIS_THREAD_SAFE_SIGNAL_COMPRESSOR_H
 
-#include <QObject>
+#include <PkObject.h>
+#include <PkConnect.h>
 #include "kritaglobal_export.h"
 
 #include "kis_signal_compressor.h"

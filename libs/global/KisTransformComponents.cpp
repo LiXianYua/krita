@@ -4,7 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QDebug>
+#include <PkDebug.h>
 #include <kis_algebra_2d.h>
 #include <KisTransformComponents.h>
 
@@ -16,7 +16,7 @@ KisTransformComponents makeFullTransformComponents()
         | KisTransformComponent::Shear | KisTransformComponent::Project;
 }
 
-KisTransformComponents componentsForTransform(const QTransform &t)
+KisTransformComponents componentsForTransform(const PkTransform &t)
 {
     KisTransformComponents result;
 
@@ -40,7 +40,7 @@ KisTransformComponents componentsForTransform(const QTransform &t)
     return result;
 }
 
-KisTransformComponents compareTransformComponents(const QTransform &lhs, const QTransform &rhs)
+KisTransformComponents compareTransformComponents(const PkTransform &lhs, const PkTransform &rhs)
 {
     KisAlgebra2D::DecomposedMatrix m1(lhs);
     KisAlgebra2D::DecomposedMatrix m2(rhs);

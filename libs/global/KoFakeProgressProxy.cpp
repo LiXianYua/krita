@@ -6,11 +6,11 @@
 
 #include "KoFakeProgressProxy.h"
 
-#include <QtGlobal>
-#include <QGlobalStatic>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
 
 Q_GLOBAL_STATIC(KoFakeProgressProxy, s_instance)
-
 
 int KoFakeProgressProxy::maximum() const
 {

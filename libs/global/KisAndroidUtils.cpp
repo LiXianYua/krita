@@ -6,11 +6,9 @@
 #include <kis_debug.h>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#include <QJniEnvironment>
-#include <QJniObject>
+
 #else
-#include <QAndroidJniEnvironment>
-#include <QAndroidJniObject>
+
 using QJniEnvironment = QAndroidJniEnvironment;
 using QJniObject = QAndroidJniObject;
 #endif

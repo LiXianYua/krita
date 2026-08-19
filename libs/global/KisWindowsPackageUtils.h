@@ -9,7 +9,6 @@
 
 #include "kritaglobal_export.h"
 
-
 class QString;
 
 namespace KisWindowsPackageUtils

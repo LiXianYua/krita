@@ -10,11 +10,11 @@
 
 #include <cmath>
 
-#include <QTransform>
+#include <PkTransform.h>
 
-#include <klocalizedstring.h>
-#include <QtGlobal>
-
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
 
 // ensure the same order as in KoUnit::Unit
 static const char* const unitNameList[KoUnit::TypeCount] =
@@ -121,8 +121,6 @@ int KoUnit::indexInListForUi(ListOptions listOptions) const
     return result;
 }
 
-
-
 qreal KoUnit::toUserValueRounded(const qreal value) const
 {
     qreal userValue = toUserValuePrecise(value);
@@ -154,7 +152,6 @@ qreal KoUnit::toUserValueRounded(const qreal value) const
         rounding = PT_ROUNDING;
     }
 
-
     return floor(userValue * rounding) / rounding;
 }
 
@@ -180,8 +177,6 @@ qreal KoUnit::toUserValuePrecise(const qreal ptValue) const
         return ptValue;
     }
 }
-
-
 
 qreal KoUnit::toUserValue(qreal ptValue, bool rounding) const
 {

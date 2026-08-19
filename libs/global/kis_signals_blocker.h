@@ -7,8 +7,9 @@
 #ifndef __KIS_SIGNALS_BLOCKER_H
 #define __KIS_SIGNALS_BLOCKER_H
 
-#include <QObject>
-#include <QVector>
+#include <PkObject.h>
+#include <PkConnect.h>
+#include <PkVector.h>
 
 /**
  * Block QObject's signals in a safe and sane way.

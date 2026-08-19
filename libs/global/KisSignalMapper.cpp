@@ -40,7 +40,6 @@ public:
 
     \ingroup objectmodel
 
-
     This class collects a set of parameterless signals, and re-emits
     them with integer, string or widget parameters corresponding to
     the object that sent the signal.
@@ -230,7 +229,6 @@ void KisSignalMapper::map(QObject *sender)
     if (d->objectHash.contains(sender))
         Q_EMIT mapped(d->objectHash.value(sender));
 }
-
 
 /*!
     \fn void KisSignalMapper::mapped(int i)

@@ -21,7 +21,6 @@ KoUpdater::KoUpdater(KoUpdaterPrivate *_d)
     connect(this, SIGNAL(sigNestedNameChanged(QString)), d, SLOT(setAutoNestedName(QString)));
     connect(this, SIGNAL(sigHasValidRangeChanged(bool)), d, SLOT(setHasValidRange(bool)));
 
-
     setRange(0, 100);
     m_interrupted = false;
 }

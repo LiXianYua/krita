@@ -8,9 +8,10 @@
 
 #include "kritaglobal_export.h"
 
-#include <QString>
-#include <QObject>
-#include <QPointer>
+#include <PkString.h>
+#include <PkObject.h>
+#include <PkConnect.h>
+#include <PkPointer.h>
 
 class KoUpdater;
 class KoProgressProxy;
@@ -142,9 +143,6 @@ private:
     Private *const d;
 
 };
-
-
-
 
 #endif
 

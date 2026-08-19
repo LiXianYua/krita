@@ -11,18 +11,14 @@
 
 #include <kis_algebra_2d.h>
 
-
 namespace KisBezierUtils
 {
 using KisAlgebra2D::lerp;
 
-
-
-
-inline QPointF bezierCurveDeriv(const QPointF p0,
-                                const QPointF p1,
-                                const QPointF p2,
-                                const QPointF p3,
+inline PkPointF bezierCurveDeriv(const PkPointF p0,
+                                const PkPointF p1,
+                                const PkPointF p2,
+                                const PkPointF p3,
                                 qreal t)
 {
     const qreal t_2 = pow2(t);
@@ -35,10 +31,10 @@ inline QPointF bezierCurveDeriv(const QPointF p0,
         3 * t_2 * (p3 - p2);
 }
 
-inline QPointF bezierCurveDeriv2(const QPointF p0,
-                                 const QPointF p1,
-                                 const QPointF p2,
-                                 const QPointF p3,
+inline PkPointF bezierCurveDeriv2(const PkPointF p0,
+                                 const PkPointF p1,
+                                 const PkPointF p2,
+                                 const PkPointF p3,
                                  qreal t)
 {
     const qreal t_inv = 1.0 - t;
@@ -48,19 +44,18 @@ inline QPointF bezierCurveDeriv2(const QPointF p0,
         6 * t * (p3 - 2 * p2 + p1);
 }
 
-
-inline void deCasteljau(const QPointF &q0,
-                        const QPointF &q1,
-                        const QPointF &q2,
-                        const QPointF &q3,
+inline void deCasteljau(const PkPointF &q0,
+                        const PkPointF &q1,
+                        const PkPointF &q2,
+                        const PkPointF &q3,
                         qreal t,
-                        QPointF *p0,
-                        QPointF *p1,
-                        QPointF *p2,
-                        QPointF *p3,
-                        QPointF *p4)
+                        PkPointF *p0,
+                        PkPointF *p1,
+                        PkPointF *p2,
+                        PkPointF *p3,
+                        PkPointF *p4)
 {
-    QPointF q[4];
+    PkPointF q[4];
 
     q[0] = q0;
     q[1] = q1;
@@ -68,7 +63,7 @@ inline void deCasteljau(const QPointF &q0,
     q[3] = q3;
 
     // points of the new segment after the split point
-    QPointF p[3];
+    PkPointF p[3];
 
     // the De Casteljau algorithm
     for (unsigned short j = 1; j <= 3; ++j) {
@@ -85,10 +80,10 @@ inline void deCasteljau(const QPointF &q0,
     *p4 = q[2];
 }
 
-inline QPointF bezierCurve(const QPointF p0,
-                           const QPointF p1,
-                           const QPointF p2,
-                           const QPointF p3,
+inline PkPointF bezierCurve(const PkPointF p0,
+                           const PkPointF p1,
+                           const PkPointF p2,
+                           const PkPointF p3,
                            qreal t)
 {
 #if 0
@@ -104,16 +99,16 @@ inline QPointF bezierCurve(const QPointF p0,
         3 * t_inv * t_2 * p2 +
         t_3 * p3;
 #else
-    QPointF q0, q1, q2, q3, q4;
+    PkPointF q0, q1, q2, q3, q4;
     deCasteljau(p0, p1, p2, p3, t, &q0, &q1, &q2, &q3, &q4);
     return q2;
 #endif
 }
 
-inline QPointF bezierCurve(const QList<QPointF> &points,
+inline PkPointF bezierCurve(const QList<PkPointF> &points,
                            qreal t)
 {
-    QPointF result;
+    PkPointF result;
 
     if (points.size() == 2) {
         result = lerp(points.first(), points.last(), t);
@@ -128,11 +123,11 @@ inline QPointF bezierCurve(const QList<QPointF> &points,
     return result;
 }
 
-inline bool isLinearSegmentByDerivatives(const QPointF &p0, const QPointF &d0,
-                                         const QPointF &p1, const QPointF &d1,
+inline bool isLinearSegmentByDerivatives(const PkPointF &p0, const PkPointF &d0,
+                                         const PkPointF &p1, const PkPointF &d1,
                                          const qreal eps = 1e-4)
 {
-    const QPointF diff = p1 - p0;
+    const PkPointF diff = p1 - p0;
     const qreal dist = KisAlgebra2D::norm(diff);
 
     const qreal normCoeff = 1.0 / 3.0 / dist;
@@ -148,17 +143,17 @@ inline bool isLinearSegmentByDerivatives(const QPointF &p0, const QPointF &d0,
     return true;
 }
 
-inline bool isLinearSegmentByControlPoints(const QPointF &p0, const QPointF &p1,
-                                           const QPointF &p2, const QPointF &p3,
+inline bool isLinearSegmentByControlPoints(const PkPointF &p0, const PkPointF &p1,
+                                           const PkPointF &p2, const PkPointF &p3,
                                            const qreal eps = 1e-4)
 {
     return isLinearSegmentByDerivatives(p0, (p1 - p0) * 3.0, p3, (p3 - p2) * 3.0, eps);
 }
 
-inline int bezierDegree(const QPointF p0,
-                        const QPointF p1,
-                        const QPointF p2,
-                        const QPointF p3)
+inline int bezierDegree(const PkPointF p0,
+                        const PkPointF p1,
+                        const PkPointF p2,
+                        const PkPointF p3)
 {
     const qreal eps = 1e-4;
 
@@ -174,19 +169,19 @@ inline int bezierDegree(const QPointF p0,
 }
 
 KRITAGLOBAL_EXPORT
-QVector<qreal> linearizeCurve(const QPointF p0,
-                              const QPointF p1,
-                              const QPointF p2,
-                              const QPointF p3,
+QVector<qreal> linearizeCurve(const PkPointF p0,
+                              const PkPointF p1,
+                              const PkPointF p2,
+                              const PkPointF p3,
                               const qreal eps);
 KRITAGLOBAL_EXPORT
 QVector<qreal> mergeLinearizationSteps(const QVector<qreal> &a, const QVector<qreal> &b);
 
 KRITAGLOBAL_EXPORT
-qreal nearestPoint(const QList<QPointF> controlPoints, const QPointF &point, qreal *resultDistance = 0, QPointF *resultPoint = 0);
+qreal nearestPoint(const QList<PkPointF> controlPoints, const PkPointF &point, qreal *resultDistance = 0, PkPointF *resultPoint = 0);
 
 KRITAGLOBAL_EXPORT
-int controlPolygonZeros(const QList<QPointF> &controlPoints);
+int controlPolygonZeros(const QList<PkPointF> &controlPoints);
 
 /**
  * @brief calculates local (u,v) coordinates of the patch corresponding to \p globalPoint
@@ -198,8 +193,8 @@ int controlPolygonZeros(const QList<QPointF> &controlPoints);
  * @return point in local coordinates
  */
 KRITAGLOBAL_EXPORT
-QPointF calculateLocalPos(const std::array<QPointF, 12> &points,
-                          const QPointF &globalPoint);
+PkPointF calculateLocalPos(const std::array<PkPointF, 12> &points,
+                          const PkPointF &globalPoint);
 
 /**
  * @brief calculates global coordinate corresponding to the patch coordinate (u, v)
@@ -211,7 +206,7 @@ QPointF calculateLocalPos(const std::array<QPointF, 12> &points,
  * @return point in global coordinates
  */
 KRITAGLOBAL_EXPORT
-QPointF calculateGlobalPos(const std::array<QPointF, 12> &points, const QPointF &localPoint);
+PkPointF calculateGlobalPos(const std::array<PkPointF, 12> &points, const PkPointF &localPoint);
 
 /**
  * @brief calculates local (u,v) coordinates of the patch corresponding to \p globalPoint
@@ -223,8 +218,8 @@ QPointF calculateGlobalPos(const std::array<QPointF, 12> &points, const QPointF 
  * @return point in local coordinates
  */
 KRITAGLOBAL_EXPORT
-QPointF calculateLocalPosSVG2(const std::array<QPointF, 12> &points,
-                              const QPointF &globalPoint);
+PkPointF calculateLocalPosSVG2(const std::array<PkPointF, 12> &points,
+                              const PkPointF &globalPoint);
 
 /**
  * @brief calculates global coordinate corresponding to the patch coordinate (u, v)
@@ -236,8 +231,7 @@ QPointF calculateLocalPosSVG2(const std::array<QPointF, 12> &points,
  * @return point in global coordinates
  */
 KRITAGLOBAL_EXPORT
-QPointF calculateGlobalPosSVG2(const std::array<QPointF, 12> &points, const QPointF &localPoint);
-
+PkPointF calculateGlobalPosSVG2(const std::array<PkPointF, 12> &points, const PkPointF &localPoint);
 
 /**
  * @brief Interpolates quadric curve passing through given points
@@ -247,40 +241,40 @@ QPointF calculateGlobalPosSVG2(const std::array<QPointF, 12> &points, const QPoi
  * @return interpolated value for control point p1
  */
 KRITAGLOBAL_EXPORT
-QPointF interpolateQuadric(const QPointF &p0, const QPointF &p2, const QPointF &pt, qreal t);
+PkPointF interpolateQuadric(const PkPointF &p0, const PkPointF &p2, const PkPointF &pt, qreal t);
 
 /**
  * @brief moves point \p t of the curve by offset \p offset
  * @return proposed offsets for points p1 and p2 of the curve
  */
 KRITAGLOBAL_EXPORT
-std::pair<QPointF, QPointF> offsetSegment(qreal t, const QPointF &offset);
+std::pair<PkPointF, PkPointF> offsetSegment(qreal t, const PkPointF &offset);
 
 KRITAGLOBAL_EXPORT
-qreal curveLength(const QPointF p0,
-                  const QPointF p1,
-                  const QPointF p2,
-                  const QPointF p3,
+qreal curveLength(const PkPointF p0,
+                  const PkPointF p1,
+                  const PkPointF p2,
+                  const PkPointF p3,
                   const qreal error);
 
 KRITAGLOBAL_EXPORT
-qreal curveLengthAtPoint(const QPointF p0,
-                         const QPointF p1,
-                         const QPointF p2,
-                         const QPointF p3,
+qreal curveLengthAtPoint(const PkPointF p0,
+                         const PkPointF p1,
+                         const PkPointF p2,
+                         const PkPointF p3,
                          qreal t,
                          const qreal error);
 
 KRITAGLOBAL_EXPORT
-qreal curveParamByProportion(const QPointF p0,
-                             const QPointF p1,
-                             const QPointF p2,
-                             const QPointF p3,
+qreal curveParamByProportion(const PkPointF p0,
+                             const PkPointF p1,
+                             const PkPointF p2,
+                             const PkPointF p3,
                              qreal proportion,
                              const qreal error);
 
 KRITAGLOBAL_EXPORT
-qreal curveProportionByParam(const QPointF p0, const QPointF p1, const QPointF p2, const QPointF p3, qreal t, const qreal error);
+qreal curveProportionByParam(const PkPointF p0, const PkPointF p1, const PkPointF p2, const PkPointF p3, qreal t, const qreal error);
 
 /**
  * @brief Adjusts position for the bezier control points
@@ -294,13 +288,13 @@ qreal curveProportionByParam(const QPointF p0, const QPointF p1, const QPointF p
  * @return a pair of new positions for \p p1 and \p q2
  */
 KRITAGLOBAL_EXPORT
-std::pair<QPointF, QPointF> removeBezierNode(const QPointF &p0,
-                                             const QPointF &p1,
-                                             const QPointF &p2,
-                                             const QPointF &p3,
-                                             const QPointF &q1,
-                                             const QPointF &q2,
-                                             const QPointF &q3);
+std::pair<PkPointF, PkPointF> removeBezierNode(const PkPointF &p0,
+                                             const PkPointF &p1,
+                                             const PkPointF &p2,
+                                             const PkPointF &p3,
+                                             const PkPointF &q1,
+                                             const PkPointF &q2,
+                                             const PkPointF &q3);
 
 /**
  * Find intersection points (their parameter values) between a cubic
@@ -312,11 +306,11 @@ std::pair<QPointF, QPointF> removeBezierNode(const QPointF &p0,
  * For cubic Bezier curves there can be at most three intersection points.
  */
 KRITAGLOBAL_EXPORT
-QVector<qreal> intersectWithLine(const QPointF &p0,
-                                 const QPointF &p1,
-                                 const QPointF &p2,
-                                 const QPointF &p3,
-                                 const QLineF &line,
+QVector<qreal> intersectWithLine(const PkPointF &p0,
+                                 const PkPointF &p1,
+                                 const PkPointF &p2,
+                                 const PkPointF &p3,
+                                 const PkLineF &line,
                                  qreal eps);
 
 /**
@@ -324,12 +318,12 @@ QVector<qreal> intersectWithLine(const QPointF &p0,
  * The resulting point will be the nearest to \p nearestAnchor.
  */
 KRITAGLOBAL_EXPORT
-boost::optional<qreal> intersectWithLineNearest(const QPointF &p0,
-                                                const QPointF &p1,
-                                                const QPointF &p2,
-                                                const QPointF &p3,
-                                                const QLineF &line,
-                                                const QPointF &nearestAnchor,
+boost::optional<qreal> intersectWithLineNearest(const PkPointF &p0,
+                                                const PkPointF &p1,
+                                                const PkPointF &p2,
+                                                const PkPointF &p3,
+                                                const PkLineF &line,
+                                                const PkPointF &nearestAnchor,
                                                 qreal eps);
 
 } // namespace KisBezierUtils

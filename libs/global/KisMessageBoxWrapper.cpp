@@ -5,14 +5,12 @@
  */
 
 #include <KisMessageBoxWrapper.h>
-#include <QMessageBox>
-#include <QString>
-#include <QCheckBox>
+
+#include <PkString.h>
 
 #include <kconfig.h>
 #include <kconfiggroup.h>
 #include <ksharedconfig.h>
-#include <klocalizedstring.h>
 
 namespace KisMessageBoxWrapper {
 
@@ -31,6 +29,5 @@ int doNotAskAgainMessageBoxWrapper(QMessageBox *messageBox, const QString &ident
         return QMessageBox::Yes;
     }
 }
-
 
 }

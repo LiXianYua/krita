@@ -7,10 +7,11 @@
 #ifndef __KIS_SIGNAL_COMPRESSOR_H
 #define __KIS_SIGNAL_COMPRESSOR_H
 
-#include <QObject>
+#include <PkObject.h>
+#include <PkConnect.h>
 #include "kritaglobal_export.h"
 
-#include <QElapsedTimer>
+#include <PkElapsedTimer.h>
 #include <functional>
 
 class QTimer;

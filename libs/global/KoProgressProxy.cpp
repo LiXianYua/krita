@@ -6,7 +6,7 @@
 
 #include "KoProgressProxy.h"
 
-#include <QString>
+#include <PkString.h>
 
 void KoProgressProxy::setAutoNestedName(const QString &name)
 {

@@ -7,9 +7,9 @@
 #ifndef KIS_POINTER_UTILS_H
 #define KIS_POINTER_UTILS_H
 
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#include <QForeach>
+
 #endif
 
 /**
@@ -31,7 +31,6 @@ List<QSharedPointer<A>> listToQShared(const List<A*> list) {
     }
     return newList;
 }
-
 
 /**
  * Convert a list of strong pointers into a list of weak pointers
@@ -90,7 +89,6 @@ inline Container<R> implicitCastList(const Container<T> &list)
     return result;
 }
 
-
 template<class T>
 class KisWeakSharedPtr;
 template<class T>
@@ -128,7 +126,6 @@ T* removeSharedPointer(QSharedPointer<T> value)
 {
     return value.data();
 }
-
 
 template <typename T>
 struct KisSharedPointerTraits

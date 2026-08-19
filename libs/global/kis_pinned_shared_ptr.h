@@ -37,13 +37,11 @@ public:
     {
     }
 
-
     template <typename X>
     inline KisPinnedSharedPtr(const KisSharedPtr<X> &other)
         : BaseClass(other)
     {
     }
-
 
     inline operator RestrictedBool() const
     {

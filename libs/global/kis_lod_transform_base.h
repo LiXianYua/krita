@@ -7,10 +7,8 @@
 #ifndef KIS_LOD_TRANSFORM_BASE_H
 #define KIS_LOD_TRANSFORM_BASE_H
 
-
 #include <QtCore/qmath.h>
-#include <QTransform>
-
+#include <PkTransform.h>
 
 #include <kritaglobal_export.h>
 
@@ -18,11 +16,9 @@ class KRITAGLOBAL_EXPORT KisLodTransformBase {
 public:
     KisLodTransformBase(int levelOfDetail) {
         qreal scale = lodToScale(levelOfDetail);
-        m_transform = QTransform::fromScale(scale, scale);
+        m_transform = PkTransform::fromScale(scale, scale);
         m_levelOfDetail = levelOfDetail;
     }
-
-
 
     static int scaleToLod(qreal scale, int maxLod) {
         return qMin(maxLod, qMax(0, qFloor(std::log2(1.0 / scale))));
@@ -41,30 +37,28 @@ public:
         return lodToScale(device->defaultBounds()->currentLevelOfDetail());
     }
 
-    QRectF map(const QRectF &rc) const {
+    PkRectF map(const PkRectF &rc) const {
         return m_transform.mapRect(rc);
     }
 
-    QRect map(const QRect &rc) const {
+    PkRect map(const PkRect &rc) const {
         return m_transform.mapRect(rc);
     }
 
-    QRectF mapInverted(const QRectF &rc) const {
+    PkRectF mapInverted(const PkRectF &rc) const {
         return m_transform.inverted().mapRect(rc);
     }
 
-    QRect mapInverted(const QRect &rc) const {
+    PkRect mapInverted(const PkRect &rc) const {
         return m_transform.inverted().mapRect(rc);
     }
-
-
 
     template <class T>
     T map(const T &object) const {
         return m_transform.map(object);
     }
 
-    static inline QRect alignedRect(const QRect &srcRect, int lod)
+    static inline PkRect alignedRect(const PkRect &srcRect, int lod)
     {
         qint32 alignment = 1 << lod;
 
@@ -75,20 +69,20 @@ public:
         alignByPow2Lo(y1, alignment);
 
         /**
-         * Here is a workaround of Qt's QRect::right()/bottom()
+         * Here is a workaround of Qt's PkRect::right()/bottom()
          * "historical reasons". It should be one pixel smaller
          * than actual right/bottom position
          */
         alignByPow2ButOneHi(x2, alignment);
         alignByPow2ButOneHi(y2, alignment);
 
-        QRect rect;
+        PkRect rect;
         rect.setCoords(x1, y1, x2, y2);
 
         return rect;
     }
 
-    static inline QRect scaledRect(const QRect &srcRect, int lod) {
+    static inline PkRect scaledRect(const PkRect &srcRect, int lod) {
         qint32 x1, y1, x2, y2;
         srcRect.getCoords(&x1, &y1, &x2, &y2);
 
@@ -102,13 +96,13 @@ public:
         x2 = divideSafe(x2 + 1, lod) - 1;
         y2 = divideSafe(y2 + 1, lod) - 1;
 
-        QRect rect;
+        PkRect rect;
         rect.setCoords(x1, y1, x2, y2);
 
         return rect;
     }
 
-    static QRect upscaledRect(const QRect &srcRect, int lod) {
+    static PkRect upscaledRect(const PkRect &srcRect, int lod) {
         qint32 x1, y1, x2, y2;
         srcRect.getCoords(&x1, &y1, &x2, &y2);
 
@@ -123,7 +117,7 @@ public:
         x2--;
         y2--;
 
-        QRect rect;
+        PkRect rect;
         rect.setCoords(x1, y1, x2, y2);
 
         return rect;
@@ -133,7 +127,7 @@ public:
         return divideSafe(x, lod);
     }
 
-    QTransform transform() const {
+    PkTransform transform() const {
         return m_transform;
     }
 
@@ -164,7 +158,7 @@ private:
     }
 
 protected:
-    QTransform m_transform;
+    PkTransform m_transform;
     int m_levelOfDetail;
 };
 

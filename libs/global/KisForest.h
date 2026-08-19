@@ -30,7 +30,6 @@ struct RootNodeImpl
     }
 };
 
-
 template <typename Base>
 struct BaseNode : RootNodeImpl<Base>
 {
@@ -52,7 +51,6 @@ struct Node : public BaseNode<Node<T>>
 
 template <typename T>
 using RootNode = RootNodeImpl<Node<T>>;
-
 
 /*************************************************************************/
 /*               BaseIterator                                            */
@@ -94,7 +92,6 @@ private:
 protected:
     NodeType *m_node;
 };
-
 
 /*************************************************************************/
 /*               ChildIterator                                           */
@@ -235,7 +232,6 @@ QDebug operator<<(QDebug dbg, const ChildIterator<value_type, is_const> &it)
     return dbg;
 }
 
-
 template <typename value_type, bool is_const>
 ChildIterator<value_type, is_const> siblingCurrent(ChildIterator<value_type, is_const> it)
 {
@@ -322,7 +318,6 @@ ResultIterator childEnd(Iterator it)
     return childEnd(siblingCurrent(it));
 }
 
-
 template <typename value_type, bool is_const>
 ChildIterator<value_type, is_const> parent(const ChildIterator<value_type, is_const> &it)
 {
@@ -341,7 +336,6 @@ template <typename T, bool is_const>
 inline bool isEnd(const ChildIterator<T, is_const> &it) {
     return !it.node();
 }
-
 
 /*************************************************************************/
 /*               HierarchyIterator                                       */
@@ -429,7 +423,6 @@ ResultIterator hierarchyEnd(Iterator it)
     Q_UNUSED(it);
     return ResultIterator(nullptr);
 }
-
 
 /*************************************************************************/
 /*               CompositionIterator                                     */
@@ -574,7 +567,6 @@ ResultIterator compositionEnd(Iterator it)
         ResultIterator(nullptr, Leave);
 }
 
-
 /*************************************************************************/
 /*               DepthFirstIterator                                      */
 /*************************************************************************/
@@ -717,7 +709,6 @@ ResultIterator tailSubtreeEnd(Iterator it)
         std::next(ResultIterator(it.node(), Leave)) :
         ResultIterator(nullptr, Leave);
 }
-
 
 /*************************************************************************/
 /*               Forest                                                  */
@@ -1146,7 +1137,6 @@ typename Forest<T>::const_child_iterator childBegin(const Forest<T> &forest)
     return forest.childBegin();
 }
 
-
 template <typename T>
 typename Forest<T>::child_iterator childEnd(Forest<T> &forest)
 {
@@ -1171,7 +1161,6 @@ typename Forest<T>::const_composition_iterator compositionBegin(const Forest<T> 
     return forest.compositionBegin();
 }
 
-
 template <typename T>
 typename Forest<T>::composition_iterator compositionEnd(Forest<T> &forest)
 {
@@ -1183,7 +1172,6 @@ typename Forest<T>::const_composition_iterator compositionEnd(const Forest<T> &f
 {
     return forest.compositionEnd();
 }
-
 
 template <typename T>
 typename Forest<T>::depth_first_tail_iterator tailSubtreeBegin(Forest<T> &forest)
@@ -1244,6 +1232,5 @@ using std::find_if_not;
 
 template<typename T>
 using KisForest = KisForestDetail::Forest<T>;
-
 
 #endif // KISFOREST_H

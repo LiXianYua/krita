@@ -8,32 +8,31 @@
 #include "kis_painting_tweaks.h"
 
 #include <QPen>
-#include <QRegion>
+#include <PkRegion.h>
 #include <QPainter>
-#include <QTransform>
+#include <PkTransform.h>
 
 #include "kis_debug.h"
 
-
 namespace KisPaintingTweaks {
 
-QRegion safeClipRegion(const QPainter &painter)
+PkRegion safeClipRegion(const QPainter &painter)
 {
-    const QTransform t = painter.transform();
+    const PkTransform t = painter.transform();
 
-    QRegion region = t.type() <= QTransform::TxScale ?
+    PkRegion region = t.type() <= PkTransform::TxScale ?
         painter.clipRegion() :
-        QRegion(painter.clipBoundingRect().toAlignedRect());
+        PkRegion(painter.clipBoundingRect().toAlignedRect());
 
     if (region.rectCount() > 1000) {
         qWarning() << "WARNING: KisPaintingTweaks::safeClipRegion: too many rectangles in the region!" << ppVar(region.rectCount());
-        region = QRegion(painter.clipBoundingRect().toAlignedRect());
+        region = PkRegion(painter.clipBoundingRect().toAlignedRect());
     }
 
     return region;
 }
 
-QRect safeClipBoundingRect(const QPainter &painter)
+PkRect safeClipBoundingRect(const QPainter &painter)
 {
     return painter.clipBoundingRect().toAlignedRect();
 }

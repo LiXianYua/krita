@@ -6,7 +6,9 @@
 #ifndef KISQSTRINGLISTFWD_H
 #define KISQSTRINGLISTFWD_H
 
-#include <QtGlobal>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
 
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
 class QStringList;

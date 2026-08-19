@@ -7,12 +7,12 @@
 #ifndef __KIS_ALGEBRA_2D_H
 #define __KIS_ALGEBRA_2D_H
 
-#include <QPoint>
-#include <QPointF>
-#include <QVector>
-#include <QPolygonF>
-#include <QPainterPath>
-#include <QTransform>
+#include <PkPoint.h>
+#include <PkPoint.h>
+#include <PkVector.h>
+#include <PkPolygon.h>
+#include <PkPainterPath.h>
+#include <PkTransform.h>
 #include <cmath>
 #include <kis_global.h>
 #include <kritaglobal_export.h>
@@ -20,8 +20,8 @@
 #include <boost/optional.hpp>
 #include <optional>
 
-class QPainterPath;
-class QTransform;
+class PkPainterPath;
+class PkTransform;
 
 namespace KisAlgebra2D {
 
@@ -31,21 +31,20 @@ struct PointTypeTraits
 };
 
 template <>
-struct PointTypeTraits<QPoint>
+struct PointTypeTraits<PkPoint>
 {
     typedef int value_type;
     typedef qreal calculation_type;
-    typedef QRect rect_type;
+    typedef PkRect rect_type;
 };
 
 template <>
-struct PointTypeTraits<QPointF>
+struct PointTypeTraits<PkPointF>
 {
     typedef qreal value_type;
     typedef qreal calculation_type;
-    typedef QRectF rect_type;
+    typedef PkRectF rect_type;
 };
-
 
 template <class T>
 typename PointTypeTraits<T>::value_type dotProduct(const T &a, const T &b)
@@ -201,7 +200,7 @@ bool isInRange(T x, T a, T b) {
     return qAbs(x - a) <= length && qAbs(x - b) <= length;
 }
 
-void KRITAGLOBAL_EXPORT adjustIfOnPolygonBoundary(const QPolygonF &poly, int polygonDirection, QPointF *pt);
+void KRITAGLOBAL_EXPORT adjustIfOnPolygonBoundary(const PkPolygonF &poly, int polygonDirection, PkPointF *pt);
 
 /**
  * Let \p pt, \p base1 are two vectors. \p base1 is uniformly scaled
@@ -209,25 +208,25 @@ void KRITAGLOBAL_EXPORT adjustIfOnPolygonBoundary(const QPolygonF &poly, int pol
  * R. The function applies the same transformation to \pt and returns
  * the result.
  **/
-QPointF KRITAGLOBAL_EXPORT transformAsBase(const QPointF &pt, const QPointF &base1, const QPointF &base2);
+PkPointF KRITAGLOBAL_EXPORT transformAsBase(const PkPointF &pt, const PkPointF &base1, const PkPointF &base2);
 
-qreal KRITAGLOBAL_EXPORT angleBetweenVectors(const QPointF &v1, const QPointF &v2);
+qreal KRITAGLOBAL_EXPORT angleBetweenVectors(const PkPointF &v1, const PkPointF &v2);
 
 /**
  * Computes an angle indicating the direction from p1 to p2. If p1 and p2 are too close together to
  * compute an angle, defaultAngle is returned.
  */
-qreal KRITAGLOBAL_EXPORT directionBetweenPoints(const QPointF &p1, const QPointF &p2,
+qreal KRITAGLOBAL_EXPORT directionBetweenPoints(const PkPointF &p1, const PkPointF &p2,
                                                 qreal defaultAngle);
 
 namespace Private {
-    inline void resetEmptyRectangle(const QPoint &pt, QRect *rc) {
-        *rc = QRect(pt, QSize(1, 1));
+    inline void resetEmptyRectangle(const PkPoint &pt, PkRect *rc) {
+        *rc = PkRect(pt, PkSize(1, 1));
     }
 
-    inline void resetEmptyRectangle(const QPointF &pt, QRectF *rc) {
+    inline void resetEmptyRectangle(const PkPointF &pt, PkRectF *rc) {
         static const qreal eps = 1e-10;
-        *rc = QRectF(pt, QSizeF(eps, eps));
+        *rc = PkRectF(pt, PkSizeF(eps, eps));
     }
 }
 
@@ -325,14 +324,12 @@ createRectFromCorners(Point corner1, Point corner2)
     return typename PointTypeTraits<Point>::rect_type(qMin(corner1.x(), corner2.x()), qMin(corner1.y(), corner2.y()), qAbs(corner1.x() - corner2.x()), qAbs(corner1.y() - corner2.y()));
 }
 
-inline QRectF createRectFromCorners(QLineF line)
+inline PkRectF createRectFromCorners(PkLineF line)
 {
-    QPointF a = line.p1();
-    QPointF b = line.p2();
+    PkPointF a = line.p1();
+    PkPointF b = line.p2();
     return createRectFromCorners(a, b);
 }
-
-
 
 template <class Size>
 auto maxDimension(Size size) -> decltype(size.width()) {
@@ -344,7 +341,7 @@ auto minDimension(Size size) -> decltype(size.width()) {
     return qMin(size.width(), size.height());
 }
 
-QPainterPath KRITAGLOBAL_EXPORT smallArrow();
+PkPainterPath KRITAGLOBAL_EXPORT smallArrow();
 
 /**
  * Multiply width and height of \p rect by \p coeff keeping the
@@ -361,8 +358,8 @@ Rect blowRect(const Rect &rect, qreal coeff)
     return rect.adjusted(-w, -h, w, h);
 }
 
-QPoint KRITAGLOBAL_EXPORT ensureInRect(QPoint pt, const QRect &bounds);
-QPointF KRITAGLOBAL_EXPORT ensureInRect(QPointF pt, const QRectF &bounds);
+PkPoint KRITAGLOBAL_EXPORT ensureInRect(PkPoint pt, const PkRect &bounds);
+PkPointF KRITAGLOBAL_EXPORT ensureInRect(PkPointF pt, const PkRectF &bounds);
 
 template <class Rect>
 Rect ensureRectNotSmaller(Rect rc, const decltype(Rect().size()) &size)
@@ -417,7 +414,7 @@ Size ensureSizeNotSmaller(const Size &size, const Size &bounds)
  *     (so, consider the line to be a line defined by those two points, not a line segment)
  * @return true if successful
  */
-bool KRITAGLOBAL_EXPORT intersectLineRect(QLineF &line, const QRect rect, bool extend);
+bool KRITAGLOBAL_EXPORT intersectLineRect(PkLineF &line, const PkRect rect, bool extend);
 
 /**
  * Attempt to intersect a line to the area of the a rectangle.
@@ -428,7 +425,7 @@ bool KRITAGLOBAL_EXPORT intersectLineRect(QLineF &line, const QRect rect, bool e
  *
  * extendFirst and extendSecond parameters allow one to use this function in case of unbounded lines (if both are true),
  * line segments (if both are false) or half-lines/rays (if one is true and another is false).
- * Note that which point is the "first" and which is the "second" is determined by which is the p1() and which is p2() in QLineF.
+ * Note that which point is the "first" and which is the "second" is determined by which is the p1() and which is p2() in PkLineF.
  *
  * @param line line segment
  * @param rect area
@@ -436,15 +433,15 @@ bool KRITAGLOBAL_EXPORT intersectLineRect(QLineF &line, const QRect rect, bool e
  * @param extendSecond extend the line to the edge of the rect area even if the second point of the line segment lies inside the rectangle
  * @return true if successful
  */
-bool KRITAGLOBAL_EXPORT intersectLineRect(QLineF &line, const QRect rect, bool extendFirst, bool extendSecond);
+bool KRITAGLOBAL_EXPORT intersectLineRect(PkLineF &line, const PkRect rect, bool extendFirst, bool extendSecond);
 
 // the same but with a convex polygon; uses Cyrus-Beck algorithm
-bool KRITAGLOBAL_EXPORT intersectLineConvexPolygon(QLineF &line, const QPolygonF polygon, bool extendFirst, bool extendSecond);
+bool KRITAGLOBAL_EXPORT intersectLineConvexPolygon(PkLineF &line, const PkPolygonF polygon, bool extendFirst, bool extendSecond);
 
-//QList<QLineF> KRITAGLOBAL_EXPORT intersectLineConcavePolygon(const QPolygonF polygon, const QLineF& line, bool extendFirst, bool extendSecond);
+//QList<PkLineF> KRITAGLOBAL_EXPORT intersectLineConcavePolygon(const PkPolygonF polygon, const PkLineF& line, bool extendFirst, bool extendSecond);
 
 /**
- * @brief Crop line to rect; if it doesn't intersect, just return an empty line (QLineF()).
+ * @brief Crop line to rect; if it doesn't intersect, just return an empty line (PkLineF()).
  *
  * This is using intersectLineRect, but with the difference that it doesn't require the user to check the return value.
  * It's useful for drawing code, since it let the developer not use `if` before drawing.
@@ -454,24 +451,23 @@ bool KRITAGLOBAL_EXPORT intersectLineConvexPolygon(QLineF &line, const QPolygonF
  *
  * extendFirst and extendSecond parameters allow one to use this function in case of unbounded lines (if both are true),
  * line segments (if both are false) or half-lines/rays (if one is true and another is false).
- * Note that which point is the "first" and which is the "second" is determined by which is the p1() and which is p2() in QLineF.
+ * Note that which point is the "first" and which is the "second" is determined by which is the p1() and which is p2() in PkLineF.
  *
  * @param line line segment
  * @param rect area
  * @param extendFirst extend the line to the edge of the rect area even if the first point of the line segment lies inside the rectangle
  * @param extendSecond extend the line to the edge of the rect area even if the second point of the line segment lies inside the rectangle
  */
-void KRITAGLOBAL_EXPORT cropLineToRect(QLineF &line, const QRect rect, bool extendFirst, bool extendSecond);
+void KRITAGLOBAL_EXPORT cropLineToRect(PkLineF &line, const PkRect rect, bool extendFirst, bool extendSecond);
 
-void KRITAGLOBAL_EXPORT cropLineToConvexPolygon(QLineF &line, const QPolygonF polygon, bool extendFirst, bool extendSecond);
+void KRITAGLOBAL_EXPORT cropLineToConvexPolygon(PkLineF &line, const PkPolygonF polygon, bool extendFirst, bool extendSecond);
 
 /**
  * @brief calculateConvexHull Calculate the convex hull of the polygon using the QuickHull
  * @param polygon to find the convex hull of
  * @return
  */
-QPolygonF KRITAGLOBAL_EXPORT calculateConvexHull(const QPolygonF &polygon);
-
+PkPolygonF KRITAGLOBAL_EXPORT calculateConvexHull(const PkPolygonF &polygon);
 
 template <class Point>
 inline Point abs(const Point &pt) {
@@ -511,43 +507,43 @@ inline T wrapValue(T value, T min, T max) {
 class RightHalfPlane {
 public:
 
-    RightHalfPlane(const QPointF &a, const QPointF &b)
+    RightHalfPlane(const PkPointF &a, const PkPointF &b)
         : m_a(a), m_p(b - a), m_norm_p_inv(1.0 / norm(m_p))
     {
     }
 
-    RightHalfPlane(const QLineF &line)
+    RightHalfPlane(const PkLineF &line)
         : RightHalfPlane(line.p1(), line.p2())
     {
     }
 
-    qreal valueSq(const QPointF &pt) const {
+    qreal valueSq(const PkPointF &pt) const {
         const qreal val = value(pt);
         return signZZ(val) * pow2(val);
     }
 
-    qreal value(const QPointF &pt) const {
+    qreal value(const PkPointF &pt) const {
         return crossProduct(m_p, pt - m_a) * m_norm_p_inv;
     }
 
-    int pos(const QPointF &pt) const {
+    int pos(const PkPointF &pt) const {
         return signZZ(value(pt));
     }
 
-    QLineF getLine() const {
-        return QLineF(m_a, m_a + m_p);
+    PkLineF getLine() const {
+        return PkLineF(m_a, m_a + m_p);
     }
 
 private:
-    const QPointF m_a;
-    const QPointF m_p;
+    const PkPointF m_a;
+    const PkPointF m_p;
     const qreal m_norm_p_inv;
 };
 
 class OuterCircle {
 public:
 
-    OuterCircle(const QPointF &c, qreal radius)
+    OuterCircle(const PkPointF &c, qreal radius)
         : m_c(c),
           m_radius(radius),
           m_radius_sq(pow2(radius)),
@@ -555,34 +551,33 @@ public:
     {
     }
 
-    qreal valueSq(const QPointF &pt) const {
+    qreal valueSq(const PkPointF &pt) const {
         const qreal val = value(pt);
 
         return signZZ(val) * pow2(val);
     }
 
-    qreal value(const QPointF &pt) const {
+    qreal value(const PkPointF &pt) const {
         return kisDistance(pt, m_c) - m_radius;
     }
 
-    int pos(const QPointF &pt) const {
+    int pos(const PkPointF &pt) const {
         return signZZ(valueSq(pt));
     }
 
-    qreal fadeSq(const QPointF &pt) const {
+    qreal fadeSq(const PkPointF &pt) const {
         const qreal valSq = kisSquareDistance(pt, m_c);
         return (valSq - m_radius_sq) * m_fadeCoeff;
     }
 
 private:
-    const QPointF m_c;
+    const PkPointF m_c;
     const qreal m_radius;
     const qreal m_radius_sq;
     const qreal m_fadeCoeff;
 };
 
-
-// wrapper for QPainterPath providing sane line segment indexing
+// wrapper for PkPainterPath providing sane line segment indexing
 class KRITAGLOBAL_EXPORT VectorPath
 {
 public:
@@ -594,32 +589,31 @@ public:
             BezierTo
         } Type;
 
-
-        QPointF endPoint {QPointF()};
-        QPointF controlPoint1 {QPointF()};
-        QPointF controlPoint2 {QPointF()};
+        PkPointF endPoint {PkPointF()};
+        PkPointF controlPoint1 {PkPointF()};
+        PkPointF controlPoint2 {PkPointF()};
 
         Type type {MoveTo};
 
         VectorPathPoint() {
         }
 
-        VectorPathPoint(Type _type, QPointF _endPoint, QPointF c1 = QPointF(), QPointF c2 = QPointF()) {
+        VectorPathPoint(Type _type, PkPointF _endPoint, PkPointF c1 = PkPointF(), PkPointF c2 = PkPointF()) {
             type = _type;
             endPoint = _endPoint;
             controlPoint1 = c1;
             controlPoint2 = c2;
         }
 
-        static VectorPathPoint moveTo(QPointF _endPoint) {
+        static VectorPathPoint moveTo(PkPointF _endPoint) {
             return VectorPathPoint(MoveTo, _endPoint);
         }
 
-        static VectorPathPoint lineTo(QPointF _endPoint) {
+        static VectorPathPoint lineTo(PkPointF _endPoint) {
             return VectorPathPoint(LineTo, _endPoint);
         }
 
-        static VectorPathPoint bezierTo(QPointF _endPoint, QPointF _controlPoint1, QPointF _controlPoint2) {
+        static VectorPathPoint bezierTo(PkPointF _endPoint, PkPointF _controlPoint1, PkPointF _controlPoint2) {
             return VectorPathPoint(BezierTo, _endPoint, _controlPoint1, _controlPoint2);
         }
     };
@@ -629,10 +623,10 @@ public:
         VectorPathPoint start;
         VectorPathPoint end;
 
-        QPointF startPoint {QPointF()};
-        QPointF endPoint {QPointF()};
-        QPointF controlPoint1 {QPointF()};
-        QPointF controlPoint2 {QPointF()};
+        PkPointF startPoint {PkPointF()};
+        PkPointF endPoint {PkPointF()};
+        PkPointF controlPoint1 {PkPointF()};
+        PkPointF controlPoint2 {PkPointF()};
 
         VectorPathPoint::Type type {VectorPathPoint::MoveTo};
 
@@ -651,9 +645,8 @@ public:
     };
 
 public:
-    VectorPath(const QPainterPath& path);
+    VectorPath(const PkPainterPath& path);
     VectorPath(const QList<VectorPathPoint> path);
-
 
     int pointsCount() const;
     VectorPathPoint pointAt(int i) const;
@@ -661,56 +654,45 @@ public:
     QList<VectorPathPoint> segmentAt(int i) const;
     std::optional<Segment> segmentAtAsSegment(int i) const;
 
-    QLineF segmentAtAsLine(int i) const;
+    PkLineF segmentAtAsLine(int i) const;
 
-
-    static QList<QPointF> intersectSegmentWithLineBounded(const QLineF &line, const Segment &segment);
-    static QList<QPointF> intersectSegmentWithLineBounded(const QLineF &line, const VectorPathPoint &p1, const VectorPathPoint &p2);
-
-
+    static QList<PkPointF> intersectSegmentWithLineBounded(const PkLineF &line, const Segment &segment);
+    static QList<PkPointF> intersectSegmentWithLineBounded(const PkLineF &line, const VectorPathPoint &p1, const VectorPathPoint &p2);
 
     int pathIndexToSegmentIndex(int index);
     int segmentIndexToPathIndex(int index);
-
 
     VectorPath trulySimplified(qreal epsDegrees = 0.5) const;
     // not open-path friendly
     VectorPath reversed() const;
 
-
     bool fuzzyComparePointsCyclic(const VectorPath& path, qreal eps = 0.0f) const;
 
-
-    QPainterPath asPainterPath() const;
+    PkPainterPath asPainterPath() const;
 
 private:
-    QPainterPath m_originalPath;
+    PkPainterPath m_originalPath;
     QList<VectorPathPoint> m_points;
-
-
 
 };
 
 QDebug KRITAGLOBAL_EXPORT operator<<(QDebug debug, const VectorPath &path);
 QDebug KRITAGLOBAL_EXPORT operator<<(QDebug debug, const VectorPath::VectorPathPoint &point);
 
+QVector<PkPoint> KRITAGLOBAL_EXPORT sampleRectWithPoints(const PkRect &rect);
+QVector<PkPointF> KRITAGLOBAL_EXPORT sampleRectWithPoints(const PkRectF &rect);
 
-QVector<QPoint> KRITAGLOBAL_EXPORT sampleRectWithPoints(const QRect &rect);
-QVector<QPointF> KRITAGLOBAL_EXPORT sampleRectWithPoints(const QRectF &rect);
+PkRect KRITAGLOBAL_EXPORT approximateRectFromPoints(const QVector<PkPoint> &points);
+PkRectF KRITAGLOBAL_EXPORT approximateRectFromPoints(const QVector<PkPointF> &points);
 
-QRect KRITAGLOBAL_EXPORT approximateRectFromPoints(const QVector<QPoint> &points);
-QRectF KRITAGLOBAL_EXPORT approximateRectFromPoints(const QVector<QPointF> &points);
-
-QRect KRITAGLOBAL_EXPORT approximateRectWithPointTransform(const QRect &rect, std::function<QPointF(QPointF)> func);
-
+PkRect KRITAGLOBAL_EXPORT approximateRectWithPointTransform(const PkRect &rect, std::function<PkPointF(PkPointF)> func);
 
 /**
  * Cuts off a portion of a rect \p rc defined by a half-plane \p p
  * \return the bounding rect of the resulting polygon
  */
 KRITAGLOBAL_EXPORT
-QRectF cutOffRect(const QRectF &rc, const KisAlgebra2D::RightHalfPlane &p);
-
+PkRectF cutOffRect(const PkRectF &rc, const KisAlgebra2D::RightHalfPlane &p);
 
 /**
  * Solves a quadratic equation in a form:
@@ -736,30 +718,30 @@ int quadraticEquation(qreal a, qreal b, qreal c, qreal *x1, qreal *x2);
  * \return the found circles, the result can have 0, 1 or 2 points
  */
 KRITAGLOBAL_EXPORT
-QVector<QPointF> intersectTwoCircles(const QPointF &c1, qreal r1,
-                                     const QPointF &c2, qreal r2);
+QVector<PkPointF> intersectTwoCircles(const PkPointF &c1, qreal r1,
+                                     const PkPointF &c2, qreal r2);
 
 KRITAGLOBAL_EXPORT
-QTransform mapToRect(const QRectF &rect);
+PkTransform mapToRect(const PkRectF &rect);
 
 KRITAGLOBAL_EXPORT
-QTransform mapToRectInverse(const QRectF &rect);
+PkTransform mapToRectInverse(const PkRectF &rect);
 
 /**
  * Scale the relative point \pt into the bounds of \p rc. The point might be
  * outside the rectangle.
  */
-inline QPointF relativeToAbsolute(const QPointF &pt, const QRectF &rc) {
-    return rc.topLeft() + QPointF(pt.x() * rc.width(), pt.y() * rc.height());
+inline PkPointF relativeToAbsolute(const PkPointF &pt, const PkRectF &rc) {
+    return rc.topLeft() + PkPointF(pt.x() * rc.width(), pt.y() * rc.height());
 }
 
 /**
  * Get the relative position of \p pt inside rectangle \p rc. The point can be
  * outside the rectangle.
  */
-inline QPointF absoluteToRelative(const QPointF &pt, const QRectF &rc) {
-    const QPointF rel = pt - rc.topLeft();
-    return QPointF(rc.width() > 0 ? rel.x() / rc.width() : 0,
+inline PkPointF absoluteToRelative(const PkPointF &pt, const PkRectF &rc) {
+    const PkPointF rel = pt - rc.topLeft();
+    return PkPointF(rc.width() > 0 ? rel.x() / rc.width() : 0,
                    rc.height() > 0 ? rel.y() / rc.height() : 0);
 
 }
@@ -768,7 +750,7 @@ inline QPointF absoluteToRelative(const QPointF &pt, const QRectF &rc) {
  * Scales relative isotropic value from relative to absolute coordinate system
  * using SVG 1.1 rules (see chapter 7.10)
  */
-inline qreal relativeToAbsolute(qreal value, const QRectF &rc) {
+inline qreal relativeToAbsolute(qreal value, const PkRectF &rc) {
     const qreal coeff = std::sqrt(pow2(rc.width()) + pow2(rc.height())) / std::sqrt(2.0);
     return value * coeff;
 }
@@ -777,7 +759,7 @@ inline qreal relativeToAbsolute(qreal value, const QRectF &rc) {
  * Scales absolute isotropic value from absolute to relative coordinate system
  * using SVG 1.1 rules (see chapter 7.10)
  */
-inline qreal absoluteToRelative(const qreal value, const QRectF &rc) {
+inline qreal absoluteToRelative(const qreal value, const PkRectF &rc) {
     const qreal coeff = std::sqrt(pow2(rc.width()) + pow2(rc.height())) / std::sqrt(2.0);
     return coeff != 0 ? value / coeff : 0;
 }
@@ -786,33 +768,33 @@ inline qreal absoluteToRelative(const qreal value, const QRectF &rc) {
  * Scales relative isotropic value from relative to absolute coordinate system
  * using SVG 1.1 rules (see chapter 7.10)
  */
-inline QRectF relativeToAbsolute(const QRectF &rel, const QRectF &rc) {
-    return QRectF(relativeToAbsolute(rel.topLeft(), rc), relativeToAbsolute(rel.bottomRight(), rc));
+inline PkRectF relativeToAbsolute(const PkRectF &rel, const PkRectF &rc) {
+    return PkRectF(relativeToAbsolute(rel.topLeft(), rc), relativeToAbsolute(rel.bottomRight(), rc));
 }
 
 /**
  * Scales absolute isotropic value from absolute to relative coordinate system
  * using SVG 1.1 rules (see chapter 7.10)
  */
-inline QRectF absoluteToRelative(const QRectF &rel, const QRectF &rc) {
-    return QRectF(absoluteToRelative(rel.topLeft(), rc), absoluteToRelative(rel.bottomRight(), rc));
+inline PkRectF absoluteToRelative(const PkRectF &rel, const PkRectF &rc) {
+    return PkRectF(absoluteToRelative(rel.topLeft(), rc), absoluteToRelative(rel.bottomRight(), rc));
 }
 
 /**
  * Compare the matrices with tolerance \p delta
  */
-bool KRITAGLOBAL_EXPORT fuzzyMatrixCompare(const QTransform &t1, const QTransform &t2, qreal delta);
+bool KRITAGLOBAL_EXPORT fuzzyMatrixCompare(const PkTransform &t1, const PkTransform &t2, qreal delta);
 
 /**
  * Returns true if the two points are equal within some tolerance, where the tolerance is determined
  * by Qt's built-in fuzzy comparison functions.
  */
-bool KRITAGLOBAL_EXPORT fuzzyPointCompare(const QPointF &p1, const QPointF &p2);
+bool KRITAGLOBAL_EXPORT fuzzyPointCompare(const PkPointF &p1, const PkPointF &p2);
 
 /**
  * Returns true if the two points are equal within the specified tolerance
  */
-bool KRITAGLOBAL_EXPORT fuzzyPointCompare(const QPointF &p1, const QPointF &p2, qreal delta);
+bool KRITAGLOBAL_EXPORT fuzzyPointCompare(const PkPointF &p1, const PkPointF &p2, qreal delta);
 
 /**
  * Returns true if points in two containers are equal with specified tolerance
@@ -827,7 +809,7 @@ bool fuzzyPointCompare(const Cont<Point> &c1, const Cont<Point> &c2, qreal delta
     return std::mismatch(c1.cbegin(),
                          c1.cend(),
                          c2.cbegin(),
-                         [eps] (const QPointF &pt1, const QPointF &pt2) {
+                         [eps] (const PkPointF &pt1, const PkPointF &pt2) {
                                return fuzzyPointCompare(pt1, pt2, eps);
                          })
             .first == c1.cend();
@@ -849,8 +831,6 @@ bool fuzzyCompareRects(const Rect &r1, const Rect &r2, Difference tolerance) {
     return maxError < tolerance;
 }
 
-
-
 template<class Polygon, typename Difference = decltype(Polygon::first())>
 bool isPolygonRect(const Polygon &poly, Difference tolerance) {
     typedef decltype(poly.first()) Point;
@@ -858,7 +838,6 @@ bool isPolygonRect(const Polygon &poly, Difference tolerance) {
     auto sameVert = [tolerance] (Point p1, Point p2) {
         return std::abs(p2.x() - p1.x()) < tolerance;
     };
-
 
     auto sameHoriz = [tolerance] (Point p1, Point p2) {
         return std::abs(p2.y() - p1.y()) < tolerance;
@@ -885,7 +864,7 @@ bool isPolygonPixelAlignedRect(const Polygon &poly, Difference tolerance) {
     }
 
     for (int i = 0; i < poly.length(); i++) {
-        if (!fuzzyPointCompare(poly[i], QPointF(poly[i].toPoint()), tolerance)) {
+        if (!fuzzyPointCompare(poly[i], PkPointF(poly[i].toPoint()), tolerance)) {
             return false;
         }
     }
@@ -912,7 +891,7 @@ bool isPolygonTrulyConvex(const QVector<T> &polygon, bool ensureNoLoops = true) 
         int b = wrapValue(i + 1, numPoints);
         int c = wrapValue(i + 2, numPoints);
 
-        qreal angle = angleBetweenVectors(static_cast<QPointF>(polygon[b] - polygon[a]), static_cast<QPointF>(polygon[c] - polygon[b]));
+        qreal angle = angleBetweenVectors(static_cast<PkPointF>(polygon[b] - polygon[a]), static_cast<PkPointF>(polygon[c] - polygon[b]));
 
         if (angle < -M_PI) {
             angle += 2*M_PI;
@@ -944,42 +923,42 @@ bool isPolygonTrulyConvex(const QVector<T> &polygon, bool ensureNoLoops = true) 
 struct KRITAGLOBAL_EXPORT DecomposedMatrix {
     DecomposedMatrix();
 
-    DecomposedMatrix(const QTransform &t0);
+    DecomposedMatrix(const PkTransform &t0);
 
-    inline QTransform scaleTransform() const
+    inline PkTransform scaleTransform() const
     {
-        return QTransform::fromScale(scaleX, scaleY);
+        return PkTransform::fromScale(scaleX, scaleY);
     }
 
-    inline QTransform shearTransform() const
+    inline PkTransform shearTransform() const
     {
-        QTransform t;
+        PkTransform t;
         t.shear(shearXY, 0);
         return t;
     }
 
-    inline QTransform rotateTransform() const
+    inline PkTransform rotateTransform() const
     {
-        QTransform t;
+        PkTransform t;
         t.rotate(angle);
         return t;
     }
 
-    inline QTransform translateTransform() const
+    inline PkTransform translateTransform() const
     {
-        return QTransform::fromTranslate(dx, dy);
+        return PkTransform::fromTranslate(dx, dy);
     }
 
-    inline QTransform projectTransform() const
+    inline PkTransform projectTransform() const
     {
         return
-            QTransform(
+            PkTransform(
                 1,0,proj[0],
                 0,1,proj[1],
                 0,0,proj[2]);
     }
 
-    inline QTransform transform() const {
+    inline PkTransform transform() const {
         return
             scaleTransform() *
             shearTransform() *
@@ -1006,10 +985,9 @@ private:
 
 // NOTE: tiar: this seems to ignore perspective transformation, be wary and use the class in PerspectiveEllipseAssistant.cpp instead
 // this is only good for rotation, translation and possibly shear
-std::pair<QPointF, QTransform> KRITAGLOBAL_EXPORT transformEllipse(const QPointF &axes, const QTransform &fullLocalToGlobal);
+std::pair<PkPointF, PkTransform> KRITAGLOBAL_EXPORT transformEllipse(const PkPointF &axes, const PkTransform &fullLocalToGlobal);
 
-QPointF KRITAGLOBAL_EXPORT alignForZoom(const QPointF &pt, qreal zoom);
-
+PkPointF KRITAGLOBAL_EXPORT alignForZoom(const PkPointF &pt, qreal zoom);
 
 /**
  * Linearly reshape function \p x so that in range [x0, x1]
@@ -1021,29 +999,27 @@ inline T linearReshapeFunc(T x, T x0, T x1, T y0, T y1)
     return y0 + (y1 - y0) * (x - x0) / (x1 - x0);
 }
 
-
 /**
  * Find intersection of a bounded line \p boundedLine with unbounded
  * line \p unboundedLine (if an intersection exists)
  */
 KRITAGLOBAL_EXPORT
-boost::optional<QPointF> intersectLines(const QLineF &boundedLine, const QLineF &unboundedLine);
-
+boost::optional<PkPointF> intersectLines(const PkLineF &boundedLine, const PkLineF &unboundedLine);
 
 /**
  * Find intersection of a bounded line \p p1, \p p2 with unbounded
  * line \p q1, \p q2 (if an intersection exists)
  */
 KRITAGLOBAL_EXPORT
-boost::optional<QPointF> intersectLines(const QPointF &p1, const QPointF &p2,
-                                        const QPointF &q1, const QPointF &q2);
+boost::optional<PkPointF> intersectLines(const PkPointF &p1, const PkPointF &p2,
+                                        const PkPointF &q1, const PkPointF &q2);
 
 /**
  * Find possible positions for point p3, such that points \p1, \p2 and p3 form
  * a triangle, such that the distance between p1 ad p3 is \p a and the distance
  * between p2 and p3 is b. There might be 0, 1 or 2 such positions.
  */
-QVector<QPointF> KRITAGLOBAL_EXPORT findTrianglePoint(const QPointF &p1, const QPointF &p2, qreal a, qreal b);
+QVector<PkPointF> KRITAGLOBAL_EXPORT findTrianglePoint(const PkPointF &p1, const PkPointF &p2, qreal a, qreal b);
 
 /**
  * Find a point p3 that forms a triangle with \p1 and \p2 and is the nearest
@@ -1051,10 +1027,9 @@ QVector<QPointF> KRITAGLOBAL_EXPORT findTrianglePoint(const QPointF &p1, const Q
  *
  * \see findTrianglePoint
  */
-boost::optional<QPointF> KRITAGLOBAL_EXPORT findTrianglePointNearest(const QPointF &p1, const QPointF &p2, qreal a, qreal b, const QPointF &nearest);
+boost::optional<PkPointF> KRITAGLOBAL_EXPORT findTrianglePointNearest(const PkPointF &p1, const PkPointF &p2, qreal a, qreal b, const PkPointF &nearest);
 
-bool isOnLine(const QLineF &line, const QPointF &point, const qreal eps, bool boundedStart, bool boundedEnd, bool includeEnds);
-
+bool isOnLine(const PkLineF &line, const PkPointF &point, const qreal eps, bool boundedStart, bool boundedEnd, bool includeEnds);
 
 /**
  * @brief moveElasticPoint moves point \p pt based on the model of elasticity
@@ -1070,9 +1045,9 @@ bool isOnLine(const QLineF &line, const QPointF &point, const qreal eps, bool bo
  * of the distances between other points. If larger distances are necessary,
  * then use integration.
  */
-QPointF KRITAGLOBAL_EXPORT moveElasticPoint(const QPointF &pt,
-                                            const QPointF &base, const QPointF &newBase,
-                                            const QPointF &wingA, const QPointF &wingB);
+PkPointF KRITAGLOBAL_EXPORT moveElasticPoint(const PkPointF &pt,
+                                            const PkPointF &base, const PkPointF &newBase,
+                                            const PkPointF &wingA, const PkPointF &wingB);
 
 /**
  * @brief moveElasticPoint moves point \p pt based on the model of elasticity
@@ -1087,12 +1062,11 @@ QPointF KRITAGLOBAL_EXPORT moveElasticPoint(const QPointF &pt,
  * of the distances between other points. If larger distances are necessary,
  * then use integration.
  */
-QPointF KRITAGLOBAL_EXPORT moveElasticPoint(const QPointF &pt,
-                                            const QPointF &base, const QPointF &newBase,
-                                            const QVector<QPointF> &anchorPoints);
+PkPointF KRITAGLOBAL_EXPORT moveElasticPoint(const PkPointF &pt,
+                                            const PkPointF &base, const PkPointF &newBase,
+                                            const QVector<PkPointF> &anchorPoints);
 
-
-QPointF KRITAGLOBAL_EXPORT findNearestPointOnLine(const QPointF &point, const QLineF &line, bool unbounded = true);
+PkPointF KRITAGLOBAL_EXPORT findNearestPointOnLine(const PkPointF &point, const PkLineF &line, bool unbounded = true);
 
 /**
  * @brief movePointAlongTheLine moves the point a particular distance in the specified direction
@@ -1101,8 +1075,7 @@ QPointF KRITAGLOBAL_EXPORT findNearestPointOnLine(const QPointF &point, const QL
  * @param distance distance to move the point
  * @return the new position of the moved point
  */
-QPointF KRITAGLOBAL_EXPORT movePointInTheDirection(const QPointF& point, const QPointF& direction, qreal distance);
-
+PkPointF KRITAGLOBAL_EXPORT movePointInTheDirection(const PkPointF& point, const PkPointF& direction, qreal distance);
 
 /**
  * @brief movePointAlongTheLine moves the point a particular distance in the specified direction
@@ -1110,10 +1083,10 @@ QPointF KRITAGLOBAL_EXPORT movePointInTheDirection(const QPointF& point, const Q
  * @param direction the direction to move the point along
  * @param distance distance to move the point
  * @param ensureOnLine if true, the algorithm will first change the point to the nearest point on the line, and then move it along the line
- *                     (if not true, it's an equivalent of movePointInTheDirection, with QPointF being a vector of direction)
+ *                     (if not true, it's an equivalent of movePointInTheDirection, with PkPointF being a vector of direction)
  * @return the new position of the moved point
  */
-QPointF KRITAGLOBAL_EXPORT movePointAlongTheLine(const QPointF& point, const QLineF& direction, qreal distance, bool ensureOnLine);
+PkPointF KRITAGLOBAL_EXPORT movePointAlongTheLine(const PkPointF& point, const PkLineF& direction, qreal distance, bool ensureOnLine);
 
 /**
  * @brief a simple class to generate Halton sequence
@@ -1176,7 +1149,6 @@ private:
     const int m_base = 0;
 };
 
-
 // find minimum of the function f(x) between points xA and xB, with eps precision, using Golden Ratio Section
 // requirements: only one local minimum between xA and xB
 // Golden Section is supposed to be usually faster than Ternary Section
@@ -1190,11 +1162,11 @@ qreal KRITAGLOBAL_EXPORT findMinimumGoldenSection(std::function<qreal(qreal)> f,
 qreal KRITAGLOBAL_EXPORT findMinimumTernarySection(std::function<qreal(qreal)> f, qreal xA, qreal xB, qreal eps, int maxIter);
 
 // kis_global has the same function, this needs to be removed
-qreal KRITAGLOBAL_EXPORT pointToLineDistSquared(const QPointF& pt, const QLineF& line);
+qreal KRITAGLOBAL_EXPORT pointToLineDistSquared(const PkPointF& pt, const PkLineF& line);
 
-QList<QLineF> KRITAGLOBAL_EXPORT getParallelLines(const QLineF& line, const qreal distance);
+QList<PkLineF> KRITAGLOBAL_EXPORT getParallelLines(const PkLineF& line, const qreal distance);
 
-QPainterPath KRITAGLOBAL_EXPORT getOnePathFromRectangleCutThrough(const QList<QPointF> &points, const QLineF &line, bool left);
+PkPainterPath KRITAGLOBAL_EXPORT getOnePathFromRectangleCutThrough(const QList<PkPointF> &points, const PkLineF &line, bool left);
 
 ///
 /// \brief getPathsFromRectangleCutThrough get paths defining both sides of a rectangle cut through using two (supposedly parallel) lines
@@ -1205,11 +1177,10 @@ QPainterPath KRITAGLOBAL_EXPORT getOnePathFromRectangleCutThrough(const QList<QP
 /// \param rightLine right line of the rectangle (used for the right-(bottom) side of the rectangle
 /// \return
 ///
-QList<QPainterPath> KRITAGLOBAL_EXPORT getPathsFromRectangleCutThrough(const QRectF &rect, const QLineF &leftLine, const QLineF &rightLine);
+QList<PkPainterPath> KRITAGLOBAL_EXPORT getPathsFromRectangleCutThrough(const PkRectF &rect, const PkLineF &leftLine, const PkLineF &rightLine);
 
-
-// isAlgebra2D::getLineSegmentCrossingLineIndexes(QLineF const&, QPainterPath const&)
-QList<int> KRITAGLOBAL_EXPORT getLineSegmentCrossingLineIndexes(const QLineF &line, const QPainterPath& shape);
+// isAlgebra2D::getLineSegmentCrossingLineIndexes(PkLineF const&, PkPainterPath const&)
+QList<int> KRITAGLOBAL_EXPORT getLineSegmentCrossingLineIndexes(const PkLineF &line, const PkPainterPath& shape);
 
 ///
 /// \brief removeGutterSmart
@@ -1219,8 +1190,7 @@ QList<int> KRITAGLOBAL_EXPORT getLineSegmentCrossingLineIndexes(const QLineF &li
 /// \param index2
 /// \return
 ///
-QPainterPath KRITAGLOBAL_EXPORT removeGutterSmart(const QPainterPath& shape1, int index1, const QPainterPath& shape2, int index2, bool isSameShape);
-
+PkPainterPath KRITAGLOBAL_EXPORT removeGutterSmart(const PkPainterPath& shape1, int index1, const PkPainterPath& shape2, int index2, bool isSameShape);
 
 ///
 /// \brief mergeShapesWithGutter merges two shapes with a gutter shape (defined as two paths)
@@ -1235,19 +1205,15 @@ QPainterPath KRITAGLOBAL_EXPORT removeGutterSmart(const QPainterPath& shape1, in
 VectorPath mergeShapesWithGutter(const VectorPath& shape1, const VectorPath& shape2, const VectorPath& oneEnd, const VectorPath& otherEnd, int index1, int index2, bool reverseSecondPoly, bool isSameShape);
 /**
  * @brief trySimplifyPath
- * Tries to simplify a QPainterPath
+ * Tries to simplify a PkPainterPath
  * @param path -- path to simplify.
  * @param lengthThreshold -- length at which points get merged.
  * @return path with less nodes.
  */
-QPainterPath KRITAGLOBAL_EXPORT trySimplifyPath(const QPainterPath &path, qreal lengthThreshold);
+PkPainterPath KRITAGLOBAL_EXPORT trySimplifyPath(const PkPainterPath &path, qreal lengthThreshold);
 
-
-bool KRITAGLOBAL_EXPORT isInsideShape(const VectorPath &path, const QPointF &point);
-bool KRITAGLOBAL_EXPORT isInsideShape(const QPainterPath &path, const QPointF &point);
-
-
-
+bool KRITAGLOBAL_EXPORT isInsideShape(const VectorPath &path, const PkPointF &point);
+bool KRITAGLOBAL_EXPORT isInsideShape(const PkPainterPath &path, const PkPointF &point);
 
 }
 

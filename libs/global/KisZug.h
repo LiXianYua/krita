@@ -6,7 +6,9 @@
 #ifndef KISZUG_H
 #define KISZUG_H
 
-#include <QtGlobal>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
 #include <type_traits>
 #include "KisMpl.h"
 #include <zug/transducer/map.hpp>

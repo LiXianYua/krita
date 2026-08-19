@@ -6,9 +6,8 @@
 
 #include "kis_memory_leak_tracker.h"
 
-#include <QMutex>
-#include <QMutexLocker>
-#include <QGlobalStatic>
+#include <PkMutex.h>
+#include <PkMutex.h>
 
 #include "kis_debug.h"
 
@@ -25,7 +24,7 @@ KisMemoryLeakTracker* KisMemoryLeakTracker::instance()
 }
 #ifdef HAVE_MEMORY_LEAK_TRACKER
 
-#include <QHash>
+#include <PkHash.h>
 
 #ifdef Q_OS_LINUX
 

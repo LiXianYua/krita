@@ -9,14 +9,12 @@
 
 #include <float.h>
 
-#include <QPointF>
-#include <QDomElement>
-#include <QLocale>
-#include <QColor>
-#include <QIODevice>
+#include <PkPoint.h>
+#include <PkXmlElement.h>
+
+#include <PkStream.h>
 
 #include "kis_global.h"
-#include <klocalizedstring.h>
 
 #include "kritaglobal_export.h"
 #include "kis_debug.h"
@@ -112,7 +110,6 @@ namespace KisDomUtils {
         return value;
     }
 
-
     inline QString qColorToQString(QColor color)
     {
         // color channels will usually have 0-255
@@ -129,9 +126,6 @@ namespace KisDomUtils {
         QStringList colorComponents = colorString.split(',');
         return QColor(colorComponents[0].toInt(), colorComponents[1].toInt(), colorComponents[2].toInt(), colorComponents[3].toInt());
     }
-
-
-
 
 /**
  * Save a value of type QRect into an XML tree. A child for \p parent
@@ -199,7 +193,6 @@ saveValue(QDomElement *parent, const QString &tag, const Container<T, Args...> &
  */
 bool KRITAGLOBAL_EXPORT findOnlyElement(const QDomElement &parent, const QString &tag, QDomElement *el, QStringList *errorMessages = 0);
 
-
 /**
  * Load an object from an XML element, which is a child of \p parent and has
  * a tag \p tag.
@@ -220,11 +213,9 @@ bool KRITAGLOBAL_EXPORT loadValue(const QDomElement &e, QTransform *t);
 bool KRITAGLOBAL_EXPORT loadValue(const QDomElement &e, QString *value);
 bool KRITAGLOBAL_EXPORT loadValue(const QDomElement &e, QColor *value);
 
-
 namespace Private {
     bool KRITAGLOBAL_EXPORT checkType(const QDomElement &e, const QString &expectedType);
 }
-
 
 /**
  * Load a scalar value from an XML element, which is a child of \p parent
@@ -313,7 +304,6 @@ template <typename T, typename E, typename F>
 
     return loadValue(e, value, env1, env2);
 }
-
 
 KRITAGLOBAL_EXPORT QDomElement findElementByAttribute(QDomNode parent,
                                                       const QString &tag,

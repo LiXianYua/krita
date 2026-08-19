@@ -9,13 +9,13 @@
 
 #include <kritaglobal_export.h>
 
-#include <QObject>
-#include <QEvent>
+#include <PkObject.h>
+#include <PkConnect.h>
 
 #include <KisMpl.h>
-#include <QMutex>
-#include <QMutexLocker>
-#include <QPointer>
+#include <PkMutex.h>
+#include <PkMutex.h>
+#include <PkPointer.h>
 #include <boost/bind/bind.hpp>
 #include <functional>
 #include <kis_assert.h>

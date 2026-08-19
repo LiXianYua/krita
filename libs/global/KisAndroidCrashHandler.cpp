@@ -8,11 +8,11 @@
 
 #include <KritaVersionWrapper.h>
 
-#include <QDateTime>
-#include <QMap>
-#include <QScopedPointer>
-#include <QStandardPaths>
-#include <QThread>
+#include <PkDateTime.h>
+#include <PkMap.h>
+#include <PkScopedPointer.h>
+
+#include <PkThread.h>
 
 #include <android/log.h>
 #include <array>

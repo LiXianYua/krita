@@ -5,25 +5,12 @@
  */
 #include "KisUsageLogger.h"
 
-#include <QScreen>
-#include <QGlobalStatic>
-#include <QDebug>
-#include <QDateTime>
-#include <QSysInfo>
-#include <QStandardPaths>
-#include <QFile>
-#include <QFileInfo>
-#include <QDir>
-#include <QScreen>
-#include <QClipboard>
-#include <QThread>
-#include <QApplication>
-#include <klocalizedstring.h>
+#include <PkDebug.h>
+#include <PkDateTime.h>
+
+#include <PkThread.h>
+
 #include <KritaVersionWrapper.h>
-#include <QGuiApplication>
-#include <QStyle>
-#include <QStyleFactory>
-#include <QTextCodec>
 
 #ifdef Q_OS_WIN
 #include "KisWindowsPackageUtils.h"
@@ -253,7 +240,6 @@ void KisUsageLogger::writeSysInfo(const QString &message)
     s_instance->d->sysInfoFile.flush();
 
 }
-
 
 void KisUsageLogger::writeHeader()
 {

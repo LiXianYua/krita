@@ -8,9 +8,9 @@
 #ifndef _KO_GENERIC_REGISTRY_H_
 #define _KO_GENERIC_REGISTRY_H_
 
-#include <QList>
-#include <QString>
-#include <QHash>
+#include <PkList.h>
+#include <PkString.h>
+#include <PkHash.h>
 
 #include "kis_assert.h"
 

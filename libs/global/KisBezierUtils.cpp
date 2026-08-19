@@ -8,8 +8,8 @@
 #include "KisBezierUtils.h"
 
 #include <tuple>
-#include <QStack>
-#include <QDebug>
+#include <PkStack.h>
+#include <PkDebug.h>
 #include "kis_debug.h"
 
 #include "KisBezierPatch.h"
@@ -26,24 +26,23 @@
 namespace KisBezierUtils
 {
 
-QVector<qreal> linearizeCurve(const QPointF p0, const QPointF p1, const QPointF p2, const QPointF p3, const qreal eps)
+QVector<qreal> linearizeCurve(const PkPointF p0, const PkPointF p1, const PkPointF p2, const PkPointF p3, const qreal eps)
 {
     const qreal minStepSize = 2.0 / kisDistance(p0, p3);
 
     QVector<qreal> steps;
     steps << 0.0;
 
-
-    QStack<std::tuple<QPointF, QPointF, qreal>> stackedPoints;
+    QStack<std::tuple<PkPointF, PkPointF, qreal>> stackedPoints;
     stackedPoints.push(std::make_tuple(p3, 3 * (p3 - p2), 1.0));
 
-    QPointF lastP = p0;
-    QPointF lastD = 3 * (p1 - p0);
+    PkPointF lastP = p0;
+    PkPointF lastD = 3 * (p1 - p0);
     qreal lastT = 0.0;
 
     while (!stackedPoints.isEmpty()) {
-        QPointF p = std::get<0>(stackedPoints.top());
-        QPointF d = std::get<1>(stackedPoints.top());
+        PkPointF p = std::get<0>(stackedPoints.top());
+        PkPointF d = std::get<1>(stackedPoints.top());
         qreal t = std::get<2>(stackedPoints.top());
 
         if (t - lastT < minStepSize ||
@@ -90,7 +89,7 @@ private:
     const qreal FlatnessTolerance = ldexp(1.0,-MaxRecursionDepth-1);
 
 public:
-    BezierSegment(int degree = 0, QPointF *p = 0)
+    BezierSegment(int degree = 0, PkPointF *p = 0)
     {
         if (degree) {
             for (int i = 0; i <= degree; ++i)
@@ -103,7 +102,7 @@ public:
         points.clear();
         if (degree) {
             for (int i = 0; i <= degree; ++i)
-                points.append(QPointF());
+                points.append(PkPointF());
         }
     }
 
@@ -112,15 +111,15 @@ public:
         return points.count() - 1;
     }
 
-    QPointF point(int index) const
+    PkPointF point(int index) const
     {
         if (static_cast<int>(index) > degree())
-            return QPointF();
+            return PkPointF();
 
         return points[index];
     }
 
-    void setPoint(int index, const QPointF &p)
+    void setPoint(int index, const PkPointF &p)
     {
         if (static_cast<int>(index) > degree())
             return;
@@ -128,13 +127,13 @@ public:
         points[index] = p;
     }
 
-    QPointF evaluate(qreal t, BezierSegment *left, BezierSegment *right) const
+    PkPointF evaluate(qreal t, BezierSegment *left, BezierSegment *right) const
     {
         int deg = degree();
         if (! deg)
-            return QPointF();
+            return PkPointF();
 
-        QVector<QVector<QPointF> > Vtemp(deg + 1);
+        QVector<QVector<PkPointF> > Vtemp(deg + 1);
         for (int i = 0; i <= deg; ++i)
             Vtemp[i].resize(deg + 1);
 
@@ -193,8 +192,8 @@ public:
             }
             else if (isFlat(FlatnessTolerance)) {
                 // Calculate intersection of chord with x-axis.
-                QPointF chord = points.last() - points.first();
-                QPointF segStart = points.first();
+                PkPointF chord = points.last() - points.first();
+                PkPointF segStart = points.first();
                 rootParams.append((chord.x() * segStart.y() - chord.y() * segStart.x()) / - chord.y());
                 return rootParams;
             }
@@ -209,7 +208,7 @@ public:
         return rootParams;
     }
 
-    static uint controlPolygonZeros(const QList<QPointF> &controlPoints)
+    static uint controlPolygonZeros(const QList<PkPointF> &controlPoints)
     {
         int controlPointCount = controlPoints.count();
         if (controlPointCount < 2)
@@ -228,7 +227,6 @@ public:
                 ++signChanges;
             }
         }
-
 
         return signChanges;
     }
@@ -258,7 +256,6 @@ public:
                 distance[i] = -((distance[i] * distance[i]) / abSquared);
             }
         }
-
 
         // Find the largest distance
         qreal max_distance_above = 0.0;
@@ -311,26 +308,26 @@ public:
     void printDebug() const
     {
         int index = 0;
-        Q_FOREACH (const QPointF &p, points) {
+        Q_FOREACH (const PkPointF &p, points) {
             qDebug() << QString("P%1 ").arg(index++) << p;
         }
     }
 #endif
 
 private:
-    QList<QPointF> points;
+    QList<PkPointF> points;
 };
 
-qreal nearestPoint(const QList<QPointF> controlPoints, const QPointF &point, qreal *resultDistance, QPointF *resultPoint)
+qreal nearestPoint(const QList<PkPointF> controlPoints, const PkPointF &point, qreal *resultDistance, PkPointF *resultPoint)
 {
     const int deg = controlPoints.size() - 1;
 
     // use shortcut for line segments
     if (deg == 1) {
         // the segments chord
-        QPointF chord = controlPoints.last() - controlPoints.first();
+        PkPointF chord = controlPoints.last() - controlPoints.first();
         // the point relative to the segment
-        QPointF relPoint = point - controlPoints.first();
+        PkPointF relPoint = point - controlPoints.first();
         // project point to chord (dot product)
         qreal scale = chord.x() * relPoint.x() + chord.y() * relPoint.y();
         // normalize using the chord length
@@ -378,17 +375,17 @@ qreal nearestPoint(const QList<QPointF> controlPoints, const QPointF &point, qre
     * This Bernstein-Bezier polynom representation can now be solved for its roots.
     */
 
-    QList<QPointF> ctlPoints = controlPoints;
+    QList<PkPointF> ctlPoints = controlPoints;
 
     // Calculate the c_i = point(i) - P.
-    QPointF * c_i = new QPointF[ deg + 1 ];
+    PkPointF * c_i = new PkPointF[ deg + 1 ];
 
     for (int i = 0; i <= deg; ++i) {
         c_i[ i ] = ctlPoints[ i ] - point;
     }
 
     // Calculate the d_j = point(j + 1) - point(j).
-    QPointF *d_j = new QPointF[deg];
+    PkPointF *d_j = new PkPointF[deg];
 
     for (int j = 0; j <= deg - 1; ++j) {
         d_j[j] = 3.0 * (ctlPoints[j+1] - ctlPoints[j]);
@@ -412,7 +409,7 @@ qreal nearestPoint(const QList<QPointF> controlPoints, const QPointF &point, qre
     newCurve.setDegree(2 * deg - 1);
     // Set up control points in the (u, f(u))-plane.
     for (unsigned short u = 0; u <= 2 * deg - 1; ++u) {
-        newCurve.setPoint(u, QPointF(static_cast<qreal>(u) / static_cast<qreal>(2 * deg - 1), 0.0));
+        newCurve.setPoint(u, PkPointF(static_cast<qreal>(u) / static_cast<qreal>(2 * deg - 1), 0.0));
     }
 
     // Precomputed "z" for cubics
@@ -430,7 +427,7 @@ qreal nearestPoint(const QList<QPointF> controlPoints, const QPointF &point, qre
             unsigned short j = k - i;
 
             // p_k += products[j][i] * z[j][i].
-            QPointF currentPoint = newCurve.point(k);
+            PkPointF currentPoint = newCurve.point(k);
             currentPoint.ry() += products[j * (deg + 1) + i] * z[j * (deg + 1) + i];
             newCurve.setPoint(k, currentPoint);
         }
@@ -457,7 +454,7 @@ qreal nearestPoint(const QList<QPointF> controlPoints, const QPointF &point, qre
 
     // Iterate over the found candidate params.
     Q_FOREACH (qreal root, rootParams) {
-        const QPointF rootPoint = bezierCurve(controlPoints, root);
+        const PkPointF rootPoint = bezierCurve(controlPoints, root);
         distanceSquared = kisSquareDistance(point, rootPoint);
 
         if (distanceSquared < minDistanceSquared) {
@@ -488,7 +485,7 @@ qreal nearestPoint(const QList<QPointF> controlPoints, const QPointF &point, qre
     return resultParam;
 }
 
-int controlPolygonZeros(const QList<QPointF> &controlPoints)
+int controlPolygonZeros(const QList<PkPointF> &controlPoints)
 {
     return static_cast<int>(BezierSegment::controlPolygonZeros(controlPoints));
 }
@@ -496,12 +493,12 @@ int controlPolygonZeros(const QList<QPointF> &controlPoints)
 namespace {
 
 struct Params2D {
-    QPointF p0, p1, p2, p3; // top curve
-    QPointF q0, q1, q2, q3; // bottom curve
-    QPointF r0, r1, r2, r3; // left curve
-    QPointF s0, s1, s2, s3; // right curve
+    PkPointF p0, p1, p2, p3; // top curve
+    PkPointF q0, q1, q2, q3; // bottom curve
+    PkPointF r0, r1, r2, r3; // left curve
+    PkPointF s0, s1, s2, s3; // right curve
 
-    QPointF dstPoint;
+    PkPointF dstPoint;
 };
 
 struct LevelBasedPatchMethod
@@ -576,7 +573,6 @@ struct LevelBasedPatchMethod
     Eigen::Matrix4d M_3rel2abs;
     Eigen::Matrix<double, 2, 4> M_1;
 
-
     Eigen::Matrix<double, 4, 2> PQ_left;
     Eigen::Matrix<double, 4, 2> PQ_right;
     Eigen::Matrix<double, 4, 2> RS_top;
@@ -597,7 +593,7 @@ struct LevelBasedPatchMethod
     Eigen::Matrix<double, 1, 2> T_dot_u1;
     Eigen::Matrix<double, 1, 2> T_dot_v1;
 
-    QPointF value() const {
+    PkPointF value() const {
         Eigen::Matrix<double, 1, 2> L_1 = T_v3 * M_3 * R;
         Eigen::Matrix<double, 1, 2> L_2 = T_v1 * M_1 * PQ_left;
         Eigen::Matrix<double, 1, 2> L_3 = T_v1 * M_1 * PQ_right;
@@ -607,7 +603,6 @@ struct LevelBasedPatchMethod
         L_controls << L_1, L_2, L_3, L_4;
 
         Eigen::Matrix<double, 1, 2> L = T_u3 * M_3 * M_3rel2abs * L_controls;
-
 
         Eigen::Matrix<double, 1, 2> H_1 = T_u3 * M_3 * P;
         Eigen::Matrix<double, 1, 2> H_2 = T_u1 * M_1 * RS_top;
@@ -621,10 +616,10 @@ struct LevelBasedPatchMethod
 
         Eigen::Matrix<double, 1, 2> result = 0.5 * (L + H);
 
-        return QPointF(result(0,0), result(0,1));
+        return PkPointF(result(0,0), result(0,1));
     }
 
-    QPointF diffU() const {
+    PkPointF diffU() const {
         Eigen::Matrix<double, 1, 2> L_1 = T_v3 * M_3 * R;
         Eigen::Matrix<double, 1, 2> L_2 = T_v1 * M_1 * PQ_left;
         Eigen::Matrix<double, 1, 2> L_3 = T_v1 * M_1 * PQ_right;
@@ -634,7 +629,6 @@ struct LevelBasedPatchMethod
         L_controls << L_1, L_2, L_3, L_4;
 
         Eigen::Matrix<double, 1, 2> L = T_dot_u3 * M_3 * M_3rel2abs * L_controls;
-
 
         Eigen::Matrix<double, 1, 2> H_1 = T_dot_u3 * M_3 * P;
         Eigen::Matrix<double, 1, 2> H_2 = T_dot_u1 * M_1 * RS_top;
@@ -647,10 +641,10 @@ struct LevelBasedPatchMethod
         Eigen::Matrix<double, 1, 2> H = T_v3 * M_3 * M_3rel2abs * H_controls;
 
         Eigen::Matrix<double, 1, 2> result = 0.5 * (L + H);
-        return QPointF(result(0,0), result(0,1));
+        return PkPointF(result(0,0), result(0,1));
     }
 
-    QPointF diffV() const {
+    PkPointF diffV() const {
         Eigen::Matrix<double, 1, 2> L_1 = T_dot_v3 * M_3 * R;
         Eigen::Matrix<double, 1, 2> L_2 = T_dot_v1 * M_1 * PQ_left;
         Eigen::Matrix<double, 1, 2> L_3 = T_dot_v1 * M_1 * PQ_right;
@@ -673,7 +667,7 @@ struct LevelBasedPatchMethod
 
         Eigen::Matrix<double, 1, 2> result = 0.5 * (L + H);
 
-        return QPointF(result(0,0), result(0,1));
+        return PkPointF(result(0,0), result(0,1));
     }
 
 };
@@ -686,15 +680,15 @@ private:
      * TODO: optimize these function somehow!
      */
 
-    static QPointF meshForwardMapping(qreal u, qreal v, const Params2D &p) {
+    static PkPointF meshForwardMapping(qreal u, qreal v, const Params2D &p) {
         return p.r0 + pow3(u)*v*(p.p0 - 3*p.p1 + 3*p.p2 - p.p3 - p.q0 + 3*p.q1 - 3*p.q2 + p.q3) + pow3(u)*(-p.p0 + 3*p.p1 - 3*p.p2 + p.p3) + pow2(u)*v*(-3*p.p0 + 6*p.p1 - 3*p.p2 + 3*p.q0 - 6*p.q1 + 3*p.q2) + pow2(u)*(3*p.p0 - 6*p.p1 + 3*p.p2) + u*pow3(v)*(p.r0 - 3*p.r1 + 3*p.r2 - p.r3 - p.s0 + 3*p.s1 - 3*p.s2 + p.s3) + u*pow2(v)*(-3*p.r0 + 6*p.r1 - 3*p.r2 + 3*p.s0 - 6*p.s1+ 3*p.s2) + u*v*(2*p.p0 - 3*p.p1 + p.p3 - 2*p.q0 + 3*p.q1 - p.q3 + 3*p.r0 - 3*p.r1 - 3*p.s0 + 3*p.s1) + u*(-2*p.p0 + 3*p.p1 - p.p3 - p.r0 + p.s0) + pow3(v)*(-p.r0 + 3*p.r1 - 3*p.r2 + p.r3) + pow2(v)*(3*p.r0 - 6*p.r1 + 3*p.r2) + v*(-3*p.r0 + 3*p.r1);
     }
 
-    static QPointF meshForwardMappingDiffU(qreal u, qreal v, const Params2D &p) {
+    static PkPointF meshForwardMappingDiffU(qreal u, qreal v, const Params2D &p) {
         return -2*p.p0 + 3*p.p1 - p.p3 - p.r0 + p.s0 + pow2(u)*v*(3*p.p0 - 9*p.p1 + 9*p.p2 - 3*p.p3 - 3*p.q0 + 9*p.q1 - 9*p.q2 + 3*p.q3) + pow2(u)*(-3*p.p0 + 9*p.p1 - 9*p.p2 + 3*p.p3) + u*v*(-6*p.p0 + 12*p.p1 - 6*p.p2 + 6*p.q0 - 12*p.q1 + 6*p.q2) + u*(6*p.p0 - 12*p.p1 + 6*p.p2) + pow3(v)*(p.r0 - 3*p.r1 + 3*p.r2 - p.r3 - p.s0 + 3*p.s1 - 3*p.s2 + p.s3) + pow2(v)*(-3*p.r0 + 6*p.r1 - 3*p.r2 + 3*p.s0 - 6*p.s1 + 3*p.s2) + v*(2*p.p0 - 3*p.p1 + p.p3 - 2*p.q0 + 3*p.q1 - p.q3 + 3*p.r0 - 3*p.r1 - 3*p.s0 + 3*p.s1);
     }
 
-    static QPointF meshForwardMappingDiffV(qreal u, qreal v, const Params2D &p) {
+    static PkPointF meshForwardMappingDiffV(qreal u, qreal v, const Params2D &p) {
         return -3*p.r0 + 3*p.r1 + pow3(u)*(p.p0 - 3*p.p1 + 3*p.p2 - p.p3 - p.q0 + 3*p.q1 - 3*p.q2 + p.q3) + pow2(u)*(-3*p.p0 + 6*p.p1 - 3*p.p2 + 3*p.q0 - 6*p.q1 + 3*p.q2) + u*pow2(v)*(3*p.r0 - 9*p.r1 + 9*p.r2 - 3*p.r3 - 3*p.s0 + 9*p.s1 - 9*p.s2 + 3*p.s3) + u*v*(-6*p.r0 + 12*p.r1 - 6*p.r2 + 6*p.s0 - 12*p.s1 + 6*p.s2) + u*(2*p.p0 - 3*p.p1 + p.p3 - 2*p.q0 + 3*p.q1 - p.q3 + 3*p.r0 - 3*p.r1 - 3*p.s0 + 3*p.s1) + pow2(v)*(-3*p.r0 + 9*p.r1 - 9*p.r2 + 3*p.r3) + v*(6*p.r0 - 12*p.r1 + 6*p.r2);
     }
 
@@ -708,15 +702,15 @@ public:
     {
     }
 
-    QPointF value() const {
+    PkPointF value() const {
         return meshForwardMapping(u, v, p);
     }
 
-    QPointF diffU() const {
+    PkPointF diffU() const {
         return meshForwardMappingDiffU(u, v, p);
     }
 
-    QPointF diffV() const {
+    PkPointF diffV() const {
         return meshForwardMappingDiffV(u, v, p);
     }
 
@@ -726,10 +720,10 @@ template <class PatchMethod>
 double my_f(const gsl_vector * x, void *paramsPtr)
 {
     const Params2D *params = static_cast<const Params2D*>(paramsPtr);
-    const QPointF pos(gsl_vector_get(x, 0), gsl_vector_get(x, 1));
+    const PkPointF pos(gsl_vector_get(x, 0), gsl_vector_get(x, 1));
 
     PatchMethod mat(pos.x(), pos.y(), *params);
-    const QPointF S = mat.value();
+    const PkPointF S = mat.value();
 
     return kisSquareDistance(S, params->dstPoint);
 }
@@ -738,12 +732,12 @@ template <class PatchMethod>
 void my_fdf (const gsl_vector *x, void *paramsPtr, double *f, gsl_vector *df)
 {
     const Params2D *params = static_cast<const Params2D*>(paramsPtr);
-    const QPointF pos(gsl_vector_get(x, 0), gsl_vector_get(x, 1));
+    const PkPointF pos(gsl_vector_get(x, 0), gsl_vector_get(x, 1));
 
     PatchMethod mat(pos.x(), pos.y(), *params);
-    const QPointF S = mat.value();
-    const QPointF dU = mat.diffU();
-    const QPointF dV = mat.diffV();
+    const PkPointF S = mat.value();
+    const PkPointF dU = mat.diffU();
+    const PkPointF dV = mat.diffV();
 
     *f = kisSquareDistance(S, params->dstPoint);
 
@@ -760,12 +754,12 @@ void my_df (const gsl_vector *x, void *paramsPtr,
             gsl_vector *df)
 {
     const Params2D *params = static_cast<const Params2D*>(paramsPtr);
-    const QPointF pos(gsl_vector_get(x, 0), gsl_vector_get(x, 1));
+    const PkPointF pos(gsl_vector_get(x, 0), gsl_vector_get(x, 1));
 
     PatchMethod mat(pos.x(), pos.y(), *params);
-    const QPointF S = mat.value();
-    const QPointF dU = mat.diffU();
-    const QPointF dV = mat.diffV();
+    const PkPointF S = mat.value();
+    const PkPointF dU = mat.diffU();
+    const PkPointF dV = mat.diffV();
 
     gsl_vector_set(df, 0,
                    2 * (S.x() - params->dstPoint.x()) * dU.x() +
@@ -777,16 +771,16 @@ void my_df (const gsl_vector *x, void *paramsPtr,
 }
 
 template <class PatchMethod>
-QPointF calculateLocalPosImpl(const std::array<QPointF, 12> &points, const QPointF &globalPoint)
+PkPointF calculateLocalPosImpl(const std::array<PkPointF, 12> &points, const PkPointF &globalPoint)
 {
-    QRectF patchBounds;
+    PkRectF patchBounds;
 
     for (auto it = points.begin(); it != points.end(); ++it) {
         KisAlgebra2D::accumulateBounds(*it, &patchBounds);
     }
 
-    const QPointF approxStart = KisAlgebra2D::absoluteToRelative(globalPoint, patchBounds);
-    KIS_SAFE_ASSERT_RECOVER_NOOP(QRectF(0,0,1.0,1.0).contains(approxStart));
+    const PkPointF approxStart = KisAlgebra2D::absoluteToRelative(globalPoint, patchBounds);
+    KIS_SAFE_ASSERT_RECOVER_NOOP(PkRectF(0,0,1.0,1.0).contains(approxStart));
 
 #ifdef HAVE_GSL
     const gsl_multimin_fdfminimizer_type *T =
@@ -837,8 +831,7 @@ QPointF calculateLocalPosImpl(const std::array<QPointF, 12> &points, const QPoin
     s = gsl_multimin_fdfminimizer_alloc (T, 2);
     gsl_multimin_fdfminimizer_set (s, &minex_func, x, 0.01, 0.1);
 
-    QPointF result;
-
+    PkPointF result;
 
     result.rx() = gsl_vector_get (s->x, 0);
     result.ry() = gsl_vector_get (s->x, 1);
@@ -879,7 +872,7 @@ QPointF calculateLocalPosImpl(const std::array<QPointF, 12> &points, const QPoin
 }
 
 template <class PatchMethod>
-QPointF calculateGlobalPosImpl(const std::array<QPointF, 12> &points, const QPointF &localPoint)
+PkPointF calculateGlobalPosImpl(const std::array<PkPointF, 12> &points, const PkPointF &localPoint)
 {
     Params2D p;
 
@@ -907,27 +900,27 @@ QPointF calculateGlobalPosImpl(const std::array<QPointF, 12> &points, const QPoi
     return f.value();
 }
 
-QPointF calculateLocalPos(const std::array<QPointF, 12> &points, const QPointF &globalPoint)
+PkPointF calculateLocalPos(const std::array<PkPointF, 12> &points, const PkPointF &globalPoint)
 {
    return calculateLocalPosImpl<LevelBasedPatchMethod>(points, globalPoint);
 }
 
-QPointF calculateGlobalPos(const std::array<QPointF, 12> &points, const QPointF &localPoint)
+PkPointF calculateGlobalPos(const std::array<PkPointF, 12> &points, const PkPointF &localPoint)
 {
     return calculateGlobalPosImpl<LevelBasedPatchMethod>(points, localPoint);
 }
 
-QPointF calculateLocalPosSVG2(const std::array<QPointF, 12> &points, const QPointF &globalPoint)
+PkPointF calculateLocalPosSVG2(const std::array<PkPointF, 12> &points, const PkPointF &globalPoint)
 {
    return calculateLocalPosImpl<SvgPatchMethod>(points, globalPoint);
 }
 
-QPointF calculateGlobalPosSVG2(const std::array<QPointF, 12> &points, const QPointF &localPoint)
+PkPointF calculateGlobalPosSVG2(const std::array<PkPointF, 12> &points, const PkPointF &localPoint)
 {
     return calculateGlobalPosImpl<SvgPatchMethod>(points, localPoint);
 }
 
-QPointF interpolateQuadric(const QPointF &p0, const QPointF &p2, const QPointF &pt, qreal t)
+PkPointF interpolateQuadric(const PkPointF &p0, const PkPointF &p2, const PkPointF &pt, qreal t)
 {
     if (t <= 0.0 || t >= 1.0)
         return lerp(p0, p2, 0.5);
@@ -940,7 +933,7 @@ QPointF interpolateQuadric(const QPointF &p0, const QPointF &p2, const QPointF &
                        2t*(1-t)
     */
 
-    QPointF c1 = pt - (1.0-t) * (1.0-t)*p0 - t * t * p2;
+    PkPointF c1 = pt - (1.0-t) * (1.0-t)*p0 - t * t * p2;
 
     qreal denom = 2.0 * t * (1.0-t);
 
@@ -950,7 +943,7 @@ QPointF interpolateQuadric(const QPointF &p0, const QPointF &p2, const QPointF &
     return c1;
 }
 
-std::pair<QPointF, QPointF> offsetSegment(qreal t, const QPointF &offset)
+std::pair<PkPointF, PkPointF> offsetSegment(qreal t, const PkPointF &offset)
 {
     /*
     * method from inkscape, original method and idea borrowed from Simon Budig
@@ -971,13 +964,13 @@ std::pair<QPointF, QPointF> offsetSegment(qreal t, const QPointF &offset)
     else
         feel_good = 1;
 
-    const QPointF moveP1 = ((1-feel_good)/(3*t*(1-t)*(1-t))) * offset;
-    const QPointF moveP2 = (feel_good/(3*t*t*(1-t))) * offset;
+    const PkPointF moveP1 = ((1-feel_good)/(3*t*(1-t)*(1-t))) * offset;
+    const PkPointF moveP2 = (feel_good/(3*t*t*(1-t))) * offset;
 
     return std::make_pair(moveP1, moveP2);
 }
 
-qreal curveLength(const QPointF p0, const QPointF p1, const QPointF p2, const QPointF p3, const qreal error)
+qreal curveLength(const PkPointF p0, const PkPointF p1, const PkPointF p2, const PkPointF p3, const qreal error)
 {
     /*
      * This algorithm is implemented based on an idea by Jens Gravesen:
@@ -1024,7 +1017,7 @@ qreal curveLength(const QPointF p0, const QPointF p1, const QPointF p2, const QP
     polyLength += kisDistance(p2, p3);
 
     if ((polyLength - chordLen) > error) {
-        QPointF q0, q1, q2, q3, q4;
+        PkPointF q0, q1, q2, q3, q4;
         deCasteljau(p0, p1, p2, p3, 0.5, &q0, &q1, &q2, &q3, &q4);
 
         return curveLength(p0, q0, q1, q2, error) +
@@ -1038,19 +1031,19 @@ qreal curveLength(const QPointF p0, const QPointF p1, const QPointF p2, const QP
     }
 }
 
-qreal curveLengthAtPoint(const QPointF p0, const QPointF p1, const QPointF p2, const QPointF p3, qreal t, const qreal error)
+qreal curveLengthAtPoint(const PkPointF p0, const PkPointF p1, const PkPointF p2, const PkPointF p3, qreal t, const qreal error)
 {
-    QPointF q0, q1, q2, q3, q4;
+    PkPointF q0, q1, q2, q3, q4;
     deCasteljau(p0, p1, p2, p3, t, &q0, &q1, &q2, &q3, &q4);
 
     return curveLength(p0, q0, q1, q2, error);
 }
 
-qreal curveParamBySegmentLength(const QPointF p0, const QPointF p1, const QPointF p2, const QPointF p3, qreal expectedLength, qreal totalLength, const qreal error)
+qreal curveParamBySegmentLength(const PkPointF p0, const PkPointF p1, const PkPointF p2, const PkPointF p3, qreal expectedLength, qreal totalLength, const qreal error)
 {
     const qreal splitAtParam = expectedLength / totalLength;
 
-    QPointF q0, q1, q2, q3, q4;
+    PkPointF q0, q1, q2, q3, q4;
     deCasteljau(p0, p1, p2, p3, splitAtParam, &q0, &q1, &q2, &q3, &q4);
 
     const qreal portionLength = curveLength(p0, q0, q1, q2, error);
@@ -1064,8 +1057,7 @@ qreal curveParamBySegmentLength(const QPointF p0, const QPointF p1, const QPoint
     }
 }
 
-
-qreal curveParamByProportion(const QPointF p0, const QPointF p1, const QPointF p2, const QPointF p3, qreal proportion, const qreal error)
+qreal curveParamByProportion(const PkPointF p0, const PkPointF p1, const PkPointF p2, const PkPointF p3, qreal proportion, const qreal error)
 {
     const qreal totalLength = curveLength(p0, p1, p2, p3, error);
     const qreal expectedLength = proportion * totalLength;
@@ -1073,18 +1065,18 @@ qreal curveParamByProportion(const QPointF p0, const QPointF p1, const QPointF p
     return curveParamBySegmentLength(p0, p1, p2, p3, expectedLength, totalLength, error);
 }
 
-qreal curveProportionByParam(const QPointF p0, const QPointF p1, const QPointF p2, const QPointF p3, qreal t, const qreal error)
+qreal curveProportionByParam(const PkPointF p0, const PkPointF p1, const PkPointF p2, const PkPointF p3, qreal t, const qreal error)
 {
     return curveLengthAtPoint(p0, p1, p2, p3, t, error) / curveLength(p0, p1, p2, p3, error);
 }
 
-std::pair<QPointF, QPointF> removeBezierNode(const QPointF &p0,
-                                             const QPointF &p1,
-                                             const QPointF &p2,
-                                             const QPointF &p3,
-                                             const QPointF &q1,
-                                             const QPointF &q2,
-                                             const QPointF &q3)
+std::pair<PkPointF, PkPointF> removeBezierNode(const PkPointF &p0,
+                                             const PkPointF &p1,
+                                             const PkPointF &p2,
+                                             const PkPointF &p3,
+                                             const PkPointF &q1,
+                                             const PkPointF &q2,
+                                             const PkPointF &q3)
 {
     /**
      * Calculates the curve control point after removal of a node
@@ -1175,7 +1167,6 @@ std::pair<QPointF, QPointF> removeBezierNode(const QPointF &p0,
     B_const << p0.x(), p0.y(),
                q3.x(), q3.y();
 
-
     Eigen::Matrix4f M1 = M.inverse() * Z_1 * M;
     Eigen::Matrix4f M2 = M.inverse() * Z_2 * M;
 
@@ -1200,12 +1191,12 @@ std::pair<QPointF, QPointF> removeBezierNode(const QPointF &p0,
     Eigen::Matrix<float, 2, 2> result;
     result = (C_reduced.transpose() * C_reduced).inverse() * C_reduced.transpose() * R_reduced;
 
-    QPointF resultP0(result(0, 0), result(0, 1));
-    QPointF resultP1(result(1, 0), result(1, 1));
+    PkPointF resultP0(result(0, 0), result(0, 1));
+    PkPointF resultP1(result(1, 0), result(1, 1));
 
     return std::make_pair(resultP0, resultP1);
 }
-QVector<qreal> intersectWithLineImpl(const QPointF &p0, const QPointF &p1, const QPointF &p2, const QPointF &p3, const QLineF &line, qreal eps, qreal alpha, qreal beta)
+QVector<qreal> intersectWithLineImpl(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, const PkPointF &p3, const PkLineF &line, qreal eps, qreal alpha, qreal beta)
 {
     using KisAlgebra2D::intersectLines;
 
@@ -1228,7 +1219,7 @@ QVector<qreal> intersectWithLineImpl(const QPointF &p0, const QPointF &p1, const
                 intersectLines(p2, p3, line.p1(), line.p2());
 
         if (hasIntersections) {
-            QPointF q0, q1, q2, q3, q4;
+            PkPointF q0, q1, q2, q3, q4;
 
             deCasteljau(p0, p1, p2, p3, 0.5, &q0, &q1, &q2, &q3, &q4);
 
@@ -1239,12 +1230,12 @@ QVector<qreal> intersectWithLineImpl(const QPointF &p0, const QPointF &p1, const
     return result;
 }
 
-QVector<qreal> intersectWithLine(const QPointF &p0, const QPointF &p1, const QPointF &p2, const QPointF &p3, const QLineF &line, qreal eps)
+QVector<qreal> intersectWithLine(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, const PkPointF &p3, const PkLineF &line, qreal eps)
 {
     return intersectWithLineImpl(p0, p1, p2, p3, line, eps, 1.0, 0.0);
 }
 
-boost::optional<qreal> intersectWithLineNearest(const QPointF &p0, const QPointF &p1, const QPointF &p2, const QPointF &p3, const QLineF &line, const QPointF &nearestAnchor, qreal eps)
+boost::optional<qreal> intersectWithLineNearest(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, const PkPointF &p3, const PkLineF &line, const PkPointF &nearestAnchor, qreal eps)
 {
     QVector<qreal> result = intersectWithLine(p0, p1, p2, p3, line, eps);
 
@@ -1252,7 +1243,7 @@ boost::optional<qreal> intersectWithLineNearest(const QPointF &p0, const QPointF
     boost::optional<qreal> nearestRoot;
 
     Q_FOREACH (qreal root, result) {
-        const QPointF pt = bezierCurve(p0, p1, p2, p3, root);
+        const PkPointF pt = bezierCurve(p0, p1, p2, p3, root);
         const qreal distance = kisDistance(pt, nearestAnchor);
 
         if (distance < minDistance) {

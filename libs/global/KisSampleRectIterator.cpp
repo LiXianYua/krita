@@ -28,7 +28,7 @@ KisSampleRectIterator::KisSampleRectIterator(KisSampleRectIterator &&rhs) = defa
 KisSampleRectIterator& KisSampleRectIterator::operator=(const KisSampleRectIterator &rhs) = default;
 KisSampleRectIterator& KisSampleRectIterator::operator=(KisSampleRectIterator &&rhs) = default;
 
-KisSampleRectIterator::KisSampleRectIterator(const QRectF &rect)
+KisSampleRectIterator::KisSampleRectIterator(const PkRectF &rect)
     : m_rect(rect)
 {
 }
@@ -49,7 +49,7 @@ void KisSampleRectIterator::increment() {
     }
 }
 
-QPointF KisSampleRectIterator::dereference() const {
+PkPointF KisSampleRectIterator::dereference() const {
     switch (m_index) {
     case 0:
         return m_rect.topLeft();
@@ -72,7 +72,7 @@ QPointF KisSampleRectIterator::dereference() const {
     default:
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_sampler, m_rect.center());
         return KisAlgebra2D::relativeToAbsolute(
-            QPointF(m_sampler->x.currentValue(), m_sampler->y.currentValue()),
+            PkPointF(m_sampler->x.currentValue(), m_sampler->y.currentValue()),
             m_rect);
     }
 

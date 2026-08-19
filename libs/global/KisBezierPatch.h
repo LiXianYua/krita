@@ -9,7 +9,7 @@
 
 #include "kritaglobal_export.h"
 
-#include <QRectF>
+#include <PkRect.h>
 #include <array>
 
 class QDebug;
@@ -32,25 +32,25 @@ public:
         BR_VC
     };
 
-    QRectF originalRect;
-    std::array<QPointF, 12> points;
+    PkRectF originalRect;
+    std::array<PkPointF, 12> points;
 
-    QRectF dstBoundingRect() const;
+    PkRectF dstBoundingRect() const;
 
-    QRectF srcBoundingRect() const;
+    PkRectF srcBoundingRect() const;
 
-    QPointF localToGlobal(const QPointF &pt) const;
-    QPointF globalToLocal(const QPointF &pt) const;
+    PkPointF localToGlobal(const PkPointF &pt) const;
+    PkPointF globalToLocal(const PkPointF &pt) const;
 
-    void sampleRegularGrid(QSize &gridSize,
-                           QVector<QPointF> &origPoints,
-                           QVector<QPointF> &transfPoints,
-                           const QPointF &dstStep) const;
+    void sampleRegularGrid(PkSize &gridSize,
+                           QVector<PkPointF> &origPoints,
+                           QVector<PkPointF> &transfPoints,
+                           const PkPointF &dstStep) const;
 
-    void sampleRegularGridSVG2(QSize &gridSize,
-                               QVector<QPointF> &origPoints,
-                               QVector<QPointF> &transfPoints,
-                               const QPointF &dstStep) const;
+    void sampleRegularGridSVG2(PkSize &gridSize,
+                               QVector<PkPointF> &origPoints,
+                               QVector<PkPointF> &transfPoints,
+                               const PkPointF &dstStep) const;
 };
 
 KRITAGLOBAL_EXPORT

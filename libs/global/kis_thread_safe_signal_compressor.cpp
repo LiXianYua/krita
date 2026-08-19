@@ -6,9 +6,6 @@
 
 #include "kis_thread_safe_signal_compressor.h"
 
-#include <QApplication>
-
-
 KisThreadSafeSignalCompressor::KisThreadSafeSignalCompressor(int delay, KisSignalCompressor::Mode mode)
     : m_compressor(new KisSignalCompressor(delay, mode, this))
 {

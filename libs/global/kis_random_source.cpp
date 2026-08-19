@@ -10,8 +10,6 @@
 #include <boost/random/taus88.hpp>
 #include <boost/random/uniform_smallint.hpp>
 
-#include <QRandomGenerator>
-
 struct KisRandomSource::Private
 {
     Private()
@@ -28,7 +26,6 @@ struct KisRandomSource::Private
      */
     boost::taus88 uniformSource;
 };
-
 
 KisRandomSource::KisRandomSource()
     : m_d(new Private)

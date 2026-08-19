@@ -4,7 +4,7 @@
 #ifndef __KISANDROIDUTILS_H_
 #define __KISANDROIDUTILS_H_
 
-#include <QString>
+#include <PkString.h>
 #include <kritaglobal_export.h>
 
 namespace KisAndroidUtils

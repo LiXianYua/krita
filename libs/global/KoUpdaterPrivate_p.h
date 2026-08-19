@@ -8,9 +8,9 @@
 #ifndef KO_UPDATERPRIVATE__P_H
 #define KO_UPDATERPRIVATE__P_H
 
-#include <QObject>
-#include <QPointer>
-#include <QTime>
+#include <PkObject.h>
+#include <PkConnect.h>
+#include <PkPointer.h>
 
 class KoUpdater;
 
@@ -66,7 +66,6 @@ public Q_SLOTS:
 
     void setAutoNestedName(const QString &name);
     void setHasValidRange(bool value);
-
 
 Q_SIGNALS:
 

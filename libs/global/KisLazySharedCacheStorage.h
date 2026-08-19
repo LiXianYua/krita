@@ -11,11 +11,9 @@
 #include <functional>
 #include <utility>
 
-#include <QMutex>
-#include <QAtomicPointer>
-#include <QSharedPointer>
-#include <QSharedDataPointer>
-#include <QExplicitlySharedDataPointer>
+#include <PkMutex.h>
+#include <PkAtomic.h>
+#include <PkSharedPointer.h>
 
 namespace KisLazySharedCacheStorageDetail
 {
@@ -57,7 +55,6 @@ private:
 template <typename T, typename... Args>
 using DataWrapperLocal = DataStorage<QSharedPointer<T>, T, Args...>;
 
-
 /**
  * A policy-like class for sharing DataStorage object
  * between the two different objects. It just ads one
@@ -82,7 +79,6 @@ private:
         DataStorage<QScopedPointer<ConstType>, T, Args...> m_value;
     };
 public:
-
 
     DataWrapperShared() : m_sharedStorage(new SharedStorage()) {}
     DataWrapperShared(T *value) : m_sharedStorage(new SharedStorage(value)) {}
@@ -205,6 +201,5 @@ template <typename T, typename... Args>
 using KisLazySharedCacheStorageLinked =
     KisLazySharedCacheStorageBase<
         KisLazySharedCacheStorageDetail::DataWrapperShared<T, Args...>, T, Args...>;
-
 
 #endif // KISLAZYSHAREDCACHESTORAGE_H

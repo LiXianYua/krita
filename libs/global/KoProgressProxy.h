@@ -30,5 +30,4 @@ public:
     virtual void setAutoNestedName(const QString &name);
 };
 
-
 #endif

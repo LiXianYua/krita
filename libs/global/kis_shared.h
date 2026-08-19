@@ -7,7 +7,7 @@
 #ifndef _KIS_SHARED_H_
 #define _KIS_SHARED_H_
 
-#include <QAtomicInt>
+#include <PkAtomic.h>
 #include "kritaglobal_export.h"
 
 class KRITAGLOBAL_EXPORT KisShared

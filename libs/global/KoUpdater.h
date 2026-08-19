@@ -9,13 +9,13 @@
 #define KO_UPDATER_H
 
 #include "KoProgressProxy.h"
-#include <QObject>
-#include <QPointer>
-#include <QAtomicInt>
+#include <PkObject.h>
+#include <PkConnect.h>
+#include <PkPointer.h>
+#include <PkAtomic.h>
 
 class KoProgressUpdater;
 class KoUpdaterPrivate;
-
 
 /**
  * An KoUpdater is a helper for keeping the progress of each subtask up to speed.

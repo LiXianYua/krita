@@ -5,8 +5,6 @@
  */
 #include "kis_config_notifier.h"
 
-#include <QGlobalStatic>
-
 #include <kis_debug.h>
 #include "kis_signal_compressor.h"
 

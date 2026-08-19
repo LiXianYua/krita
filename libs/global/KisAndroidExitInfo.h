@@ -6,7 +6,7 @@
 
 #include <kritaglobal_export.h>
 
-#include <QString>
+#include <PkString.h>
 
 class KRITAGLOBAL_EXPORT KisAndroidExitInfo
 {

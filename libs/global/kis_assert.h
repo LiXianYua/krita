@@ -7,7 +7,9 @@
 #ifndef __KIS_ASSERT_H
 #define __KIS_ASSERT_H
 
-#include <QtGlobal>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
 #include <kritaglobal_export.h>
 
 KRITAGLOBAL_EXPORT void kis_assert_exception(const char *assertion, const char *file, int line);
@@ -38,7 +40,6 @@ KRITAGLOBAL_EXPORT void kis_safe_assert_recoverable(const char *assertion, const
  * \see KIS_ASSERT
  */
 #define KIS_ASSERT_X(cond, where, what) ((!(cond)) ? kis_assert_x_exception(#cond,where, what,__FILE__,__LINE__) : qt_noop())
-
 
 /**
  * This is a recoverable variant of KIS_ASSERT. It doesn't throw any
@@ -95,7 +96,6 @@ KRITAGLOBAL_EXPORT void kis_safe_assert_recoverable(const char *assertion, const
  *
  */
 #define KIS_ASSERT_RECOVER_NOOP(cond) do { KIS_ASSERT_RECOVER(cond) { qt_noop(); } } while (0)
-
 
 /**
  * This set of macros work in exactly the same way as their non-safe

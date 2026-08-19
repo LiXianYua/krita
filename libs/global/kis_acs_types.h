@@ -7,10 +7,9 @@
 #ifndef __KIS_ACS_TYPES_H
 #define __KIS_ACS_TYPES_H
 
-#include <QPoint>
+#include <PkPoint.h>
 #include <KoColor.h>
 #include "kis_iterator_ng.h"
-
 
 namespace Acs {
     enum ColorRole {Foreground, Background};
@@ -38,7 +37,7 @@ namespace Acs {
     }
 
     template <class PaintDeviceSP>
-    KoColor sampleColor(PaintDeviceSP device, const QPoint &pt) {
+    KoColor sampleColor(PaintDeviceSP device, const PkPoint &pt) {
         KoColor color;
         if (device) {
             (void) device->pixel(pt.x(), pt.y(), &color);
@@ -47,7 +46,7 @@ namespace Acs {
     }
 
     template <class PaintDeviceSP>
-    void setColor(PaintDeviceSP device, const QPoint &pt, const KoColor &color) {
+    void setColor(PaintDeviceSP device, const PkPoint &pt, const KoColor &color) {
         (void) device->setPixel(pt.x(), pt.y(), color);
     }
 
@@ -57,7 +56,5 @@ namespace Acs {
     }
 
 }
-
-
 
 #endif /* __KIS_ACS_TYPES_H */

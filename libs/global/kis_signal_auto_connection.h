@@ -7,9 +7,10 @@
 #ifndef __KIS_SIGNAL_AUTO_CONNECTOR_H
 #define __KIS_SIGNAL_AUTO_CONNECTOR_H
 
-#include <QObject>
-#include <QSharedPointer>
-#include <QVector>
+#include <PkObject.h>
+#include <PkConnect.h>
+#include <PkSharedPointer.h>
+#include <PkVector.h>
 
 /**
  * A special wrapper class that represents a connection between two QObject objects.
@@ -59,7 +60,6 @@ private:
 };
 
 typedef QSharedPointer<KisSignalAutoConnection> KisSignalAutoConnectionSP;
-
 
 /**
  * A class to store multiple connections and to be able to stop all of

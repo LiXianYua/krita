@@ -6,11 +6,10 @@
  */
 #include "KoProgressUpdater.h"
 
-#include <QApplication>
-#include <QString>
-#include <QThread>
-#include <QMutex>
-#include <QMutexLocker>
+#include <PkString.h>
+#include <PkThread.h>
+#include <PkMutex.h>
+#include <PkMutex.h>
 
 #include "KoUpdaterPrivate_p.h"
 #include "KoUpdater.h"

@@ -7,10 +7,9 @@
 #ifndef KISRECTSGRID_H
 #define KISRECTSGRID_H
 
-#include <QRect>
-#include <QVector>
+#include <PkRect.h>
+#include <PkVector.h>
 #include "kritaglobal_export.h"
-
 
 /**
  * @brief A utility class to maintain a sparse grid of loaded/unloaded rects
@@ -35,12 +34,11 @@ public:
      */
     KisRectsGrid(int gridSize = 64);
 
-
     /**
      * Grow rectangle \p rc until it becomes aligned to
      * the grid cell borders.
      */
-    QRect alignRect(const QRect &rc) const;
+    PkRect alignRect(const PkRect &rc) const;
 
     /**
      * Add an arbitrary (non-aligned) rect to the grid
@@ -51,7 +49,7 @@ public:
      * \param rc the rect to be added, not necessary aligned to the grid
      * \return the list of cells that has actually been changed
      */
-    QVector<QRect> addRect(const QRect &rc);
+    QVector<PkRect> addRect(const PkRect &rc);
 
     /**
      * Remove an arbitrary (non-aligned) rect from the grid
@@ -67,7 +65,7 @@ public:
      * \param rc the rect to be removed, not necessary aligned to the grid
      * \return the list of cells that has actually been changed
      */
-    QVector<QRect> removeRect(const QRect &rc);
+    QVector<PkRect> removeRect(const PkRect &rc);
 
     /**
      * Add an aligned rect to the grid
@@ -78,7 +76,7 @@ public:
      * \param rc the rect to be added, the rect must be aligned
      * \return the list of cells that has actually been changed
      */
-    QVector<QRect> addAlignedRect(const QRect &rc);
+    QVector<PkRect> addAlignedRect(const PkRect &rc);
 
     /**
      * Remove an aligned rect from the grid
@@ -89,27 +87,27 @@ public:
      * \param rc the rect to be removed, not necessary aligned to the grid
      * \return the list of cells that has actually been changed
      */
-    QVector<QRect> removeAlignedRect(const QRect &rc);
+    QVector<PkRect> removeAlignedRect(const PkRect &rc);
 
     /**
      * Return is \p rc is fully covered by the loaded cells of the grid
      */
-    bool contains(const QRect &rc) const;
+    bool contains(const PkRect &rc) const;
 
     /**
      * Return the bounding box of the loaded cells of the grid
      */
-    QRect boundingRect() const;
+    PkRect boundingRect() const;
 
 private:
-    void resize(const QRect &newMappedAreaSize);
-    static QRect shrinkRectToAlignedGrid(const QRect &srcRect, int lod);
+    void resize(const PkRect &newMappedAreaSize);
+    static PkRect shrinkRectToAlignedGrid(const PkRect &srcRect, int lod);
 
 private:
     int m_gridSize;
     int m_logGridSize;
     QVector<quint8> m_mapping;
-    QRect m_mappedAreaSize; // measured in col/row
+    PkRect m_mappedAreaSize; // measured in col/row
 
 };
 

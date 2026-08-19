@@ -7,12 +7,11 @@
 #ifndef KISHANDLESTYLE_H
 #define KISHANDLESTYLE_H
 
-#include <QVector>
+#include <PkVector.h>
 #include <QPen>
 #include <QBrush>
 
 #include "kritaglobal_export.h"
-
 
 /**
  * A special class that defines a set of predefined styles for painting handles.

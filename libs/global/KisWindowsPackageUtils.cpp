@@ -49,9 +49,9 @@ using pGetCurrentPackageFullName_t = LONG(WINAPI *)(UINT32 *packageFullNameLengt
 
 #include <shlobj.h>
 
-#include <QDebug>
-#include <QLibrary>
-#include <QString>
+#include <PkDebug.h>
+
+#include <PkString.h>
 
 #ifndef PACKAGE_FULL_NAME_MAX_LENGTH
 constexpr int PACKAGE_FULL_NAME_MAX_LENGTH = 127;

@@ -88,7 +88,6 @@ public:
         return m_values.cend();
     }
 
-
 private:
     int m_maxSize = 0;
     std::deque<T> m_values;

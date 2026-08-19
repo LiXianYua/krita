@@ -7,15 +7,16 @@
 #ifndef __KIS_ACYCLIC_SIGNAL_CONNECTOR_H
 #define __KIS_ACYCLIC_SIGNAL_CONNECTOR_H
 
-#include <QObject>
+#include <PkObject.h>
+#include <PkConnect.h>
 #include "kritaglobal_export.h"
 #include <mutex>
 
 class KisAcyclicSignalConnector;
 class KoColor;
 
-#include <QVector>
-#include <QPointer>
+#include <PkVector.h>
+#include <PkPointer.h>
 
 /**
  * A special class for connecting UI elements to manager classes.

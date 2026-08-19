@@ -14,7 +14,6 @@
 
 #include "kis_debug.h"
 
-
 KisRectsGrid::KisRectsGrid(int gridSize)
     : m_gridSize(gridSize)
     , m_logGridSize(qFloor(std::log2(gridSize)))
@@ -26,7 +25,7 @@ KisRectsGrid::KisRectsGrid(int gridSize)
     }
 }
 
-void KisRectsGrid::resize(const QRect &newMappedAreaSize)
+void KisRectsGrid::resize(const PkRect &newMappedAreaSize)
 {
     KIS_SAFE_ASSERT_RECOVER_NOOP(m_mappedAreaSize.isEmpty() || newMappedAreaSize.contains(m_mappedAreaSize));
 
@@ -49,43 +48,43 @@ void KisRectsGrid::resize(const QRect &newMappedAreaSize)
     m_mappedAreaSize = newMappedAreaSize;
 }
 
-QRect KisRectsGrid::alignRect(const QRect &rc) const
+PkRect KisRectsGrid::alignRect(const PkRect &rc) const
 {
     return KisLodTransformBase::alignedRect(rc, m_logGridSize);
 }
 
-QVector<QRect> KisRectsGrid::addRect(const QRect &rc)
+QVector<PkRect> KisRectsGrid::addRect(const PkRect &rc)
 {
     return addAlignedRect(alignRect(rc));
 }
 
-QVector<QRect> KisRectsGrid::addAlignedRect(const QRect &rc)
+QVector<PkRect> KisRectsGrid::addAlignedRect(const PkRect &rc)
 {
-    if (rc.isEmpty()) return QVector<QRect>();
+    if (rc.isEmpty()) return QVector<PkRect>();
 
-    const QRect mappedRect = KisLodTransformBase::scaledRect(rc, m_logGridSize);
+    const PkRect mappedRect = KisLodTransformBase::scaledRect(rc, m_logGridSize);
 
     if (!m_mappedAreaSize.contains(mappedRect)) {
-        QRect nextMappingSize = m_mappedAreaSize | mappedRect;
+        PkRect nextMappingSize = m_mappedAreaSize | mappedRect;
         nextMappingSize = KisAlgebra2D::blowRect(nextMappingSize, 0.2);
         resize(nextMappingSize);
     }
 
-    QVector<QRect> addedRects;
+    QVector<PkRect> addedRects;
 
     for (int y = mappedRect.y(); y <= mappedRect.bottom(); y++) {
         for (int x = mappedRect.x(); x <= mappedRect.right(); x++) {
             quint8 *ptr = &m_mapping[m_mappedAreaSize.width() * (y - m_mappedAreaSize.y()) + (x - m_mappedAreaSize.x())];
             if (!*ptr) {
                 *ptr = 1;
-                addedRects.append(KisLodTransformBase::upscaledRect(QRect(x, y, 1, 1), m_logGridSize));
+                addedRects.append(KisLodTransformBase::upscaledRect(PkRect(x, y, 1, 1), m_logGridSize));
             }
         }
     }
     return addedRects;
 }
 
-inline QRect KisRectsGrid::shrinkRectToAlignedGrid(const QRect &srcRect, int lod)
+inline PkRect KisRectsGrid::shrinkRectToAlignedGrid(const PkRect &srcRect, int lod)
 {
     qint32 alignment = 1 << lod;
 
@@ -108,42 +107,42 @@ inline QRect KisRectsGrid::shrinkRectToAlignedGrid(const QRect &srcRect, int lod
     x2--;
     y2--;
 
-    QRect rect;
+    PkRect rect;
     rect.setCoords(x1, y1, x2, y2);
 
     return rect;
 }
 
-QVector<QRect> KisRectsGrid::removeRect(const QRect &rc)
+QVector<PkRect> KisRectsGrid::removeRect(const PkRect &rc)
 {
-    const QRect alignedRect = shrinkRectToAlignedGrid(rc, m_logGridSize);
-    return !alignedRect.isEmpty() ? removeAlignedRect(alignedRect) : QVector<QRect>();
+    const PkRect alignedRect = shrinkRectToAlignedGrid(rc, m_logGridSize);
+    return !alignedRect.isEmpty() ? removeAlignedRect(alignedRect) : QVector<PkRect>();
 }
 
-QVector<QRect> KisRectsGrid::removeAlignedRect(const QRect &rc)
+QVector<PkRect> KisRectsGrid::removeAlignedRect(const PkRect &rc)
 {
-    const QRect mappedRect = KisLodTransformBase::scaledRect(rc, m_logGridSize);
+    const PkRect mappedRect = KisLodTransformBase::scaledRect(rc, m_logGridSize);
 
     // NOTE: we never shrink the size of the grid, just keep it as big as
     //       it ever was
 
-    QVector<QRect> removedRects;
+    QVector<PkRect> removedRects;
 
     for (int y = mappedRect.y(); y <= mappedRect.bottom(); y++) {
         for (int x = mappedRect.x(); x <= mappedRect.right(); x++) {
             quint8 *ptr = &m_mapping[m_mappedAreaSize.width() * (y - m_mappedAreaSize.y()) + (x - m_mappedAreaSize.x())];
             if (*ptr) {
                 *ptr = 0;
-                removedRects.append(KisLodTransformBase::upscaledRect(QRect(x, y, 1, 1), m_logGridSize));
+                removedRects.append(KisLodTransformBase::upscaledRect(PkRect(x, y, 1, 1), m_logGridSize));
             }
         }
     }
     return removedRects;
 }
 
-bool KisRectsGrid::contains(const QRect &rc) const
+bool KisRectsGrid::contains(const PkRect &rc) const
 {
-    const QRect mappedRect = KisLodTransformBase::scaledRect(alignRect(rc), m_logGridSize);
+    const PkRect mappedRect = KisLodTransformBase::scaledRect(alignRect(rc), m_logGridSize);
 
     if (!m_mappedAreaSize.contains(mappedRect)) return false;
 
@@ -157,12 +156,12 @@ bool KisRectsGrid::contains(const QRect &rc) const
     return true;
 }
 
-QRect KisRectsGrid::boundingRect() const {
-    QRect gridBounds;
+PkRect KisRectsGrid::boundingRect() const {
+    PkRect gridBounds;
 
     for (int y = m_mappedAreaSize.y(); y <= m_mappedAreaSize.bottom(); y++) {
         for (int x = m_mappedAreaSize.x(); x <= m_mappedAreaSize.right(); x++) {
-            gridBounds |= QRect(x, y, 1, 1);
+            gridBounds |= PkRect(x, y, 1, 1);
         }
     }
 

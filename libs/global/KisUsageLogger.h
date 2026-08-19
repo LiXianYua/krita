@@ -6,8 +6,8 @@
 #ifndef KISUSAGELOGGER_H
 #define KISUSAGELOGGER_H
 
-#include <QString>
-#include <QScopedPointer>
+#include <PkString.h>
+#include <PkScopedPointer.h>
 
 #include "kritaglobal_export.h"
 

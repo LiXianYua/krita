@@ -6,8 +6,10 @@
 
 #include "KisAndroidLogHandler.h"
 
-#include <QtGlobal>
-#include <QDebug>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
+#include <PkDebug.h>
 
 #ifndef Q_OS_ANDROID
 #error "KisAndroidLogHandler can only built on Android platform"
@@ -24,7 +26,6 @@ namespace KisAndroidLogHandler {
 
 namespace detail {
 const char*const applicationName="krita";
-
 
 /**
  * TODO: theoretically, Qt should forward its debugging lines itself, but for

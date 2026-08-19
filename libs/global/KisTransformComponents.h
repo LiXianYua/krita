@@ -4,8 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QFlags>
-#include <QMetaType>
+#include <PkFlags.h>
+#include <type_traits>
 
 #include <kritaglobal_export.h>
 
@@ -23,15 +23,13 @@ enum KisTransformComponent
 
 Q_DECLARE_FLAGS(KisTransformComponents, KisTransformComponent);
 
-
 KisTransformComponents KRITAGLOBAL_EXPORT makeFullTransformComponents();
-KisTransformComponents KRITAGLOBAL_EXPORT componentsForTransform(const QTransform &t);
-KisTransformComponents KRITAGLOBAL_EXPORT compareTransformComponents(const QTransform &lhs, const QTransform &rhs);
+KisTransformComponents KRITAGLOBAL_EXPORT componentsForTransform(const PkTransform &t);
+KisTransformComponents KRITAGLOBAL_EXPORT compareTransformComponents(const PkTransform &lhs, const PkTransform &rhs);
 }
 
 Q_DECLARE_METATYPE(KisAlgebra2D::KisTransformComponents)
 Q_DECLARE_OPERATORS_FOR_FLAGS(KisAlgebra2D::KisTransformComponents)
-
 
 // we don't use Q_FLAGS's autogeneration of QDebug here because we
 // want to avoid adding Q_NAMESPACE to KisAlgebra2D

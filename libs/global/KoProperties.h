@@ -7,9 +7,9 @@
 #ifndef _KO_PROPERTIES_H
 #define _KO_PROPERTIES_H
 
-#include <QString>
-#include <QMap>
-#include <QVariant>
+#include <PkString.h>
+#include <PkMap.h>
+#include <PkVariant.h>
 #include "kritaglobal_export.h"
 
 class QDomElement;

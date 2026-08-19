@@ -6,8 +6,8 @@
 
 #include "kis_dom_utils.h"
 
-#include <QTransform>
-#include <QVector3D>
+#include <PkTransform.h>
+#include <PkVectorND.h>
 
 #include "kis_debug.h"
 
@@ -298,6 +298,5 @@ QDomElement findElementByAttribute(QDomNode parent,
 
     return QDomElement();
 }
-
 
 }

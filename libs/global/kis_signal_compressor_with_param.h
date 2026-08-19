@@ -10,7 +10,6 @@
 #include <kis_signal_compressor.h>
 #include <functional>
 
-
 /**
  * A special class that converts a Qt signal into a std::function call.
  *
@@ -76,8 +75,6 @@ public:
 Q_SIGNALS:
     void timeout();
 };
-
-
 
 /**
  * A special class for deferring and compressing events with one

@@ -10,7 +10,6 @@
 #include "kritaglobal_export.h"
 #include <functional>
 
-
 class QString;
 
 namespace KritaUtils {

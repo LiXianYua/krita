@@ -6,14 +6,15 @@
 #ifndef KISLAGER_H
 #define KISLAGER_H
 
-#include <QtGlobal>
-#include <QVariant>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
+#include <PkVariant.h>
 #include <type_traits>
 #include "KisMpl.h"
 
 #include <lager/lenses.hpp>
 #include <lager/reader.hpp>
-
 
 namespace kislager {
 
@@ -124,6 +125,5 @@ constexpr auto logical_not = [] {
 } // namespace lenses
 
 } // namespace kislager
-
 
 #endif // KISLAGER_H

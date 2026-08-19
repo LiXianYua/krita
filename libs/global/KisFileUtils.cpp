@@ -6,12 +6,9 @@
 
 #include "KisFileUtils.h"
 
-#include <QString>
-#include <QFileInfo>
-#include <QDir>
-#include <QRegularExpression>
-#include <KisPortingUtils.h>
+#include <PkString.h>
 
+#include <KisPortingUtils.h>
 
 namespace KritaUtils {
 

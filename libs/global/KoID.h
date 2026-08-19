@@ -10,14 +10,13 @@
 #ifndef _KO_ID_H_
 #define _KO_ID_H_
 
-#include <QDebug>
-#include <QMetaType>
-#include <QString>
+#include <PkDebug.h>
+#include <type_traits>
+#include <PkString.h>
 
 #include <boost/optional.hpp>
 #include <utility>
 
-#include <klocalizedstring.h>
 #include <KisLazyStorage.h>
 
 #include "kritaglobal_export.h"

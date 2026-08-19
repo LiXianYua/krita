@@ -6,8 +6,8 @@
 
 #include "KisSynchronizedConnection.h"
 
-#include <QThread>
-#include <QCoreApplication>
+#include <PkThread.h>
+
 #include <kis_assert.h>
 
 /**
@@ -31,7 +31,6 @@ struct KisBarrierCallbackContainer
 
 Q_GLOBAL_STATIC(KisSynchronizedConnectionEventTypeRegistrar, s_instance)
 Q_GLOBAL_STATIC(KisBarrierCallbackContainer, s_barrier)
-
 
 /************************************************************************/
 /*            KisSynchronizedConnectionEvent                            */

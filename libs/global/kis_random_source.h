@@ -7,7 +7,7 @@
 #ifndef __KIS_RANDOM_SOURCE_H
 #define __KIS_RANDOM_SOURCE_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include "kis_shared.h"
 #include "kis_shared_ptr.h"
 

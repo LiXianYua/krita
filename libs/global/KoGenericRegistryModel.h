@@ -8,7 +8,6 @@
 #ifndef _KO_GENERIC_REGISTRY_MODEL_H_
 #define _KO_GENERIC_REGISTRY_MODEL_H_
 
-#include <QAbstractListModel>
 #include "KoGenericRegistry.h"
 
 /**

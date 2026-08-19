@@ -9,8 +9,8 @@
 
 #include <boost/utility.hpp>
 
-#include <QReadLocker>
-#include <QWriteLocker>
+#include <PkReadWriteLock.h>
+#include <PkReadWriteLock.h>
 #include "KisUpgradeToWriteLocker.h"
 
 struct NormalLockPolicy {

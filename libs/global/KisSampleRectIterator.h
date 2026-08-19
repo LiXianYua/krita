@@ -10,13 +10,11 @@
 
 #include <boost/iterator_adaptors.hpp>
 
-#include <QSharedDataPointer>
-#include <QRectF>
-
+#include <PkRect.h>
 
 /**
  * A simple generator-style iterator that samples the passed rectangle
- * (QRectF) with semi-random points.
+ * (PkRectF) with semi-random points.
  *
  * The first _nine_ points returned by the iterator correspond to
  * the corners and midpoints of the rectangle. From 10th and further
@@ -28,7 +26,7 @@
  *
  *        KisSampleRectIterator sampler(rect);
  *        while (1) {
- *             const QPointF sampledPoint = *sampler++;
+ *             const PkPointF sampledPoint = *sampler++;
  *             /// ... do something ...
  *        }
  *
@@ -36,13 +34,13 @@
  */
 class KRITAGLOBAL_EXPORT KisSampleRectIterator
     : public boost::iterator_facade<KisSampleRectIterator,
-                                    QPointF,
+                                    PkPointF,
                                     boost::forward_traversal_tag,
-                                    QPointF>
+                                    PkPointF>
 {
 public:
     KisSampleRectIterator();
-    KisSampleRectIterator(const QRectF &rect);
+    KisSampleRectIterator(const PkRectF &rect);
     KisSampleRectIterator(const KisSampleRectIterator &rhs);
     KisSampleRectIterator(KisSampleRectIterator &&rhs);
     KisSampleRectIterator& operator=(const KisSampleRectIterator &rhs);
@@ -56,13 +54,13 @@ private:
     friend class boost::iterator_core_access;
 
     void increment();
-    QPointF dereference() const;
+    PkPointF dereference() const;
 
 private:
     struct HaltonSampler;
     QSharedDataPointer<HaltonSampler> m_sampler;
 
-    QRectF m_rect;
+    PkRectF m_rect;
     int m_index = 0;
 };
 

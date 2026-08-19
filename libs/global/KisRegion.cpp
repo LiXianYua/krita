@@ -5,52 +5,52 @@
  */
 #include "KisRegion.h"
 
-#include <QRegion>
+#include <PkRegion.h>
 #include "kis_debug.h"
 
 namespace detail {
 
 struct HorizontalMergePolicy
 {
-    static int col(const QRect &rc) {
+    static int col(const PkRect &rc) {
         return rc.x();
     }
-    static int nextCol(const QRect &rc) {
+    static int nextCol(const PkRect &rc) {
         return rc.x() + rc.width();
     }
-    static int rowHeight(const QRect &rc) {
+    static int rowHeight(const PkRect &rc) {
         return rc.height();
     }
-    static bool rowIsLess(const QRect &lhs, const QRect &rhs) {
+    static bool rowIsLess(const PkRect &lhs, const PkRect &rhs) {
         return lhs.y() < rhs.y();
     }
-    static bool elementIsLess(const QRect &lhs, const QRect &rhs) {
+    static bool elementIsLess(const PkRect &lhs, const PkRect &rhs) {
         return lhs.y() < rhs.y() || (lhs.y() == rhs.y() && lhs.x() < rhs.x());
     }
 };
 
 struct VerticalMergePolicy
 {
-    static int col(const QRect &rc) {
+    static int col(const PkRect &rc) {
         return rc.y();
     }
-    static int nextCol(const QRect &rc) {
+    static int nextCol(const PkRect &rc) {
         return rc.y() + rc.height();
     }
-    static int rowHeight(const QRect &rc) {
+    static int rowHeight(const PkRect &rc) {
         return rc.width();
     }
-    static bool rowIsLess(const QRect &lhs, const QRect &rhs) {
+    static bool rowIsLess(const PkRect &lhs, const PkRect &rhs) {
         return lhs.x() < rhs.x();
     }
-    static bool elementIsLess(const QRect &lhs, const QRect &rhs) {
+    static bool elementIsLess(const PkRect &lhs, const PkRect &rhs) {
         return lhs.x() < rhs.x() || (lhs.x() == rhs.x() && lhs.y() < rhs.y());
     }
 };
 
 template <typename MergePolicy>
-QVector<QRect>::iterator mergeRects(QVector<QRect>::iterator beginIt,
-                                    QVector<QRect>::iterator endIt,
+QVector<PkRect>::iterator mergeRects(QVector<PkRect>::iterator beginIt,
+                                    QVector<PkRect>::iterator endIt,
                                     MergePolicy policy)
 {
     if (beginIt == endIt) return endIt;
@@ -80,58 +80,57 @@ QVector<QRect>::iterator mergeRects(QVector<QRect>::iterator beginIt,
 
 struct VerticalSplitPolicy
 {
-    static int rowStart(const QRect &rc) {
+    static int rowStart(const PkRect &rc) {
         return rc.y();
     }
-    static int rowEnd(const QRect &rc) {
+    static int rowEnd(const PkRect &rc) {
         return rc.bottom();
     }
-    static int rowHeight(const QRect &rc) {
+    static int rowHeight(const PkRect &rc) {
         return rc.height();
     }
-    static void setRowEnd(QRect &rc, int rowEnd) {
+    static void setRowEnd(PkRect &rc, int rowEnd) {
         return rc.setBottom(rowEnd);
     }
-    static bool rowIsLess(const QRect &lhs, const QRect &rhs) {
+    static bool rowIsLess(const PkRect &lhs, const PkRect &rhs) {
         return lhs.y() < rhs.y();
     }
-    static QRect splitRectHi(const QRect &rc, int rowEnd) {
-        return QRect(rc.x(), rc.y(),
+    static PkRect splitRectHi(const PkRect &rc, int rowEnd) {
+        return PkRect(rc.x(), rc.y(),
                      rc.width(), rowEnd - rc.y() + 1);
     }
-    static QRect splitRectLo(const QRect &rc, int rowEnd) {
-        return QRect(rc.x(), rowEnd + 1,
+    static PkRect splitRectLo(const PkRect &rc, int rowEnd) {
+        return PkRect(rc.x(), rowEnd + 1,
                      rc.width(), rc.height() - (rowEnd - rc.y() + 1));
     }
 };
 
 struct HorizontalSplitPolicy
 {
-    static int rowStart(const QRect &rc) {
+    static int rowStart(const PkRect &rc) {
         return rc.x();
     }
-    static int rowEnd(const QRect &rc) {
+    static int rowEnd(const PkRect &rc) {
         return rc.right();
     }
-    static int rowHeight(const QRect &rc) {
+    static int rowHeight(const PkRect &rc) {
         return rc.width();
     }
-    static void setRowEnd(QRect &rc, int rowEnd) {
+    static void setRowEnd(PkRect &rc, int rowEnd) {
         return rc.setRight(rowEnd);
     }
-    static bool rowIsLess(const QRect &lhs, const QRect &rhs) {
+    static bool rowIsLess(const PkRect &lhs, const PkRect &rhs) {
         return lhs.x() < rhs.x();
     }
-    static QRect splitRectHi(const QRect &rc, int rowEnd) {
-        return QRect(rc.x(), rc.y(),
+    static PkRect splitRectHi(const PkRect &rc, int rowEnd) {
+        return PkRect(rc.x(), rc.y(),
                      rowEnd - rc.x() + 1, rc.height());
     }
-    static QRect splitRectLo(const QRect &rc, int rowEnd) {
-        return QRect(rowEnd + 1, rc.y(),
+    static PkRect splitRectLo(const PkRect &rc, int rowEnd) {
+        return PkRect(rowEnd + 1, rc.y(),
                      rc.width() - (rowEnd - rc.x() + 1), rc.height());
     }
 };
-
 
 struct VoidNoOp {
     void operator()() const { };
@@ -144,7 +143,7 @@ struct VoidNoOp {
 
 struct MergeRectsOp
 {
-    MergeRectsOp(QVector<QRect> &source, QVector<QRect> &destination)
+    MergeRectsOp(QVector<PkRect> &source, QVector<PkRect> &destination)
         : m_source(source),
           m_destination(destination)
     {
@@ -152,26 +151,26 @@ struct MergeRectsOp
 
     void operator()() {
         m_destination.append(std::accumulate(m_source.begin(), m_source.end(),
-                                             QRect(), std::bit_or<QRect>()));
+                                             PkRect(), std::bit_or<PkRect>()));
         m_source.clear();
     }
 
 private:
-    QVector<QRect> &m_source;
-    QVector<QRect> &m_destination;
+    QVector<PkRect> &m_source;
+    QVector<PkRect> &m_destination;
 };
 
 template <typename Policy, typename RowMergeOp, typename OutIt>
-void splitRects(QVector<QRect>::iterator beginIt, QVector<QRect>::iterator endIt,
+void splitRects(QVector<PkRect>::iterator beginIt, QVector<PkRect>::iterator endIt,
                 OutIt resultIt,
-                QVector<QRect> tempBuf[2],
+                QVector<PkRect> tempBuf[2],
                 int gridSize,
                  RowMergeOp rowMergeOp)
 {
     if (beginIt == endIt) return;
 
-    QVector<QRect> &nextRowExtra = tempBuf[0];
-    QVector<QRect> &nextRowExtraTmp = tempBuf[1];
+    QVector<PkRect> &nextRowExtra = tempBuf[0];
+    QVector<PkRect> &nextRowExtraTmp = tempBuf[1];
 
     std::sort(beginIt, endIt, Policy::rowIsLess);
     int rowStart = Policy::rowStart(*beginIt);
@@ -230,22 +229,22 @@ void splitRects(QVector<QRect>::iterator beginIt, QVector<QRect>::iterator endIt
 
 }
 
-QVector<QRect>::iterator KisRegion::mergeSparseRects(QVector<QRect>::iterator beginIt, QVector<QRect>::iterator endIt)
+QVector<PkRect>::iterator KisRegion::mergeSparseRects(QVector<PkRect>::iterator beginIt, QVector<PkRect>::iterator endIt)
 {
     endIt = detail::mergeRects(beginIt, endIt, detail::HorizontalMergePolicy());
     endIt = detail::mergeRects(beginIt, endIt, detail::VerticalMergePolicy());
     return endIt;
 }
 
-void KisRegion::approximateOverlappingRects(QVector<QRect> &rects, int gridSize)
+void KisRegion::approximateOverlappingRects(QVector<PkRect> &rects, int gridSize)
 {
     using namespace detail;
 
     if (rects.isEmpty()) return;
 
-    QVector<QRect> rowsBuf;
-    QVector<QRect> intermediate;
-    QVector<QRect> tempBuf[2];
+    QVector<PkRect> rowsBuf;
+    QVector<PkRect> intermediate;
+    QVector<PkRect> tempBuf[2];
 
     splitRects<VerticalSplitPolicy>(rects.begin(), rects.end(),
                                     std::back_inserter(rowsBuf),
@@ -258,7 +257,7 @@ void KisRegion::approximateOverlappingRects(QVector<QRect> &rects, int gridSize)
     auto rowBegin = rowsBuf.begin();
     while (rowBegin != rowsBuf.end()) {
         auto rowEnd = std::upper_bound(rowBegin, rowsBuf.end(),
-                                       QRect(rowBegin->x(),
+                                       PkRect(rowBegin->x(),
                                              rowBegin->y() + gridSize - 1,
                                              1,1),
                                        VerticalSplitPolicy::rowIsLess);
@@ -275,30 +274,30 @@ void KisRegion::approximateOverlappingRects(QVector<QRect> &rects, int gridSize)
     }
 }
 
-void KisRegion::makeGridLikeRectsUnique(QVector<QRect> &rects)
+void KisRegion::makeGridLikeRectsUnique(QVector<PkRect> &rects)
 {
     std::sort(rects.begin(), rects.end(), detail::HorizontalMergePolicy::elementIsLess);
     auto it = std::unique(rects.begin(), rects.end());
     rects.erase(it, rects.end());
 }
 
-KisRegion::KisRegion(const QRect &rect)
+KisRegion::KisRegion(const PkRect &rect)
 {
     m_rects << rect;
 }
 
-KisRegion::KisRegion(std::initializer_list<QRect> rects)
+KisRegion::KisRegion(std::initializer_list<PkRect> rects)
     : m_rects(rects)
 {
 }
 
-KisRegion::KisRegion(const QVector<QRect> &rects)
+KisRegion::KisRegion(const QVector<PkRect> &rects)
     : m_rects(rects)
 {
     mergeAllRects();
 }
 
-KisRegion::KisRegion(QVector<QRect> &&rects)
+KisRegion::KisRegion(QVector<PkRect> &&rects)
     : m_rects(rects)
 {
     mergeAllRects();
@@ -310,7 +309,7 @@ KisRegion &KisRegion::operator=(const KisRegion &rhs)
     return *this;
 }
 
-KisRegion &KisRegion::operator&=(const QRect &rect)
+KisRegion &KisRegion::operator&=(const PkRect &rect)
 {
     for (auto it = m_rects.begin(); it != m_rects.end(); /* noop */) {
         *it &= rect;
@@ -324,12 +323,12 @@ KisRegion &KisRegion::operator&=(const QRect &rect)
     return *this;
 }
 
-QRect KisRegion::boundingRect() const
+PkRect KisRegion::boundingRect() const
 {
-    return std::accumulate(m_rects.constBegin(), m_rects.constEnd(), QRect(), std::bit_or<QRect>());
+    return std::accumulate(m_rects.constBegin(), m_rects.constEnd(), PkRect(), std::bit_or<PkRect>());
 }
 
-QVector<QRect> KisRegion::rects() const
+QVector<PkRect> KisRegion::rects() const
 {
     return m_rects;
 }
@@ -344,23 +343,23 @@ bool KisRegion::isEmpty() const
     return boundingRect().isEmpty();
 }
 
-QRegion KisRegion::toQRegion() const
+PkRegion KisRegion::toQRegion() const
 {
-    // TODO: utilize QRegion::setRects to make creation of QRegion much
+    // TODO: utilize PkRegion::setRects to make creation of PkRegion much
     //       faster. The only reason why we cannot use it "as is", is that our m_rects
     //       do not satisfy the second setRects()'s precondition: "All rectangles with
     //       a given top coordinate must have the same height". We can implement a
     //       simple algorithm for cropping m_rects, and it will be much faster than
-    //       constructing QRegion iteratively.
+    //       constructing PkRegion iteratively.
 
-    return std::accumulate(m_rects.constBegin(), m_rects.constEnd(), QRegion(), std::bit_or<QRegion>());
+    return std::accumulate(m_rects.constBegin(), m_rects.constEnd(), PkRegion(), std::bit_or<PkRegion>());
 }
 
 void KisRegion::translate(int dx, int dy)
 {
     std::transform(m_rects.begin(), m_rects.end(),
                    m_rects.begin(),
-                   [dx, dy] (const QRect &rc) { return rc.translated(dx, dy); });
+                   [dx, dy] (const PkRect &rc) { return rc.translated(dx, dy); });
 }
 
 KisRegion KisRegion::translated(int dx, int dy) const
@@ -370,11 +369,11 @@ KisRegion KisRegion::translated(int dx, int dy) const
     return region;
 }
 
-KisRegion KisRegion::fromQRegion(const QRegion &region)
+KisRegion KisRegion::fromQRegion(const PkRegion &region)
 {
     KisRegion result;
     result.m_rects.clear();
-    QRegion::const_iterator begin = region.begin();
+    PkRegion::const_iterator begin = region.begin();
     while (begin != region.end()) {
         result.m_rects << *begin;
         begin++;
@@ -382,9 +381,9 @@ KisRegion KisRegion::fromQRegion(const QRegion &region)
     return result;
 }
 
-KisRegion KisRegion::fromOverlappingRects(const QVector<QRect> &rects, int gridSize)
+KisRegion KisRegion::fromOverlappingRects(const QVector<PkRect> &rects, int gridSize)
 {
-    QVector<QRect> tmp = rects;
+    QVector<PkRect> tmp = rects;
     approximateOverlappingRects(tmp, gridSize);
     return KisRegion(tmp);
 }

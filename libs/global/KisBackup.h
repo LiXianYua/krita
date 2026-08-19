@@ -11,7 +11,7 @@
 #ifndef KISBACKUP_H
 #define KISBACKUP_H
 
-#include <QString>
+#include <PkString.h>
 #include <kritaglobal_export.h>
 
 class KRITAGLOBAL_EXPORT KisBackup

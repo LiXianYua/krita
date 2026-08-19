@@ -6,7 +6,7 @@
 
 #include "KisBezierMesh.h"
 
-#include <QDebug>
+#include <PkDebug.h>
 
 #include "kis_dom_utils.h"
 
@@ -18,8 +18,6 @@ QDebug KisBezierMeshDetails::operator<<(QDebug dbg, const BaseMeshNode &n) {
                   << "bC: " << n.bottomControl << ") ";
     return dbg.nospace();
 }
-
-
 
 void KisBezierMeshDetails::saveValue(QDomElement *parent, const QString &tag, const KisBezierMeshDetails::BaseMeshNode &node)
 {

@@ -10,7 +10,7 @@
 #include "kis_assert.h"
 #include "kis_algebra_2d.h"
 
-#include <QDebug>
+#include <PkDebug.h>
 #include <kis_debug.h>
 
 namespace KisBezierUtils

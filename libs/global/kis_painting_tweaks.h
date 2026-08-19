@@ -1,3 +1,4 @@
+#include <QPainter>
 /*
  *  SPDX-FileCopyrightText: 2016 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -12,12 +13,12 @@
 #include <QPen>
 #include <QBrush>
 
-#include <QVector3D>
-#include <QVector2D>
+#include <PkVectorND.h>
+#include <PkVectorND.h>
 
 class QPainter;
-class QRegion;
-class QRect;
+class PkRegion;
+class PkRect;
 class QPen;
 
 namespace KisPaintingTweaks {
@@ -29,16 +30,15 @@ namespace KisPaintingTweaks {
      * processing will be really slow. These functions work around
      * the issue.
      */
-    KRITAGLOBAL_EXPORT QRegion safeClipRegion(const QPainter &painter);
+    KRITAGLOBAL_EXPORT PkRegion safeClipRegion(const QPainter &painter);
 
     /**
      * \see safeClipRegion()
      */
-    KRITAGLOBAL_EXPORT QRect safeClipBoundingRect(const QPainter &painter);
+    KRITAGLOBAL_EXPORT PkRect safeClipBoundingRect(const QPainter &painter);
 
     KRITAGLOBAL_EXPORT void initAntsPen(QPen *antsPen, QPen *outlinePen,
                                         int antLength = 4, int antSpace = 4);
-
 
     /**
      * A special class to save painter->pen() and painter->brush() using RAII
@@ -85,7 +85,6 @@ namespace KisPaintingTweaks {
 
     QColor KRITAGLOBAL_EXPORT blendColors(const QColor &c1, const QColor &c2, qreal r1);
 
-
     /**
      * @brief luminosityCoarse
      * This calculates the luminosity of the given QColor.
@@ -113,24 +112,24 @@ namespace KisPaintingTweaks {
      */
     void KRITAGLOBAL_EXPORT dragColor(QColor *color, const QColor &baseColor, qreal threshold);
 
-    inline void rectToVertices(QVector3D* vertices, const QRectF &rc)
+    inline void rectToVertices(PkVector3D* vertices, const PkRectF &rc)
     {
-        vertices[0] = QVector3D(rc.left(),  rc.bottom(), 0.f);
-        vertices[1] = QVector3D(rc.left(),  rc.top(),    0.f);
-        vertices[2] = QVector3D(rc.right(), rc.bottom(), 0.f);
-        vertices[3] = QVector3D(rc.left(),  rc.top(), 0.f);
-        vertices[4] = QVector3D(rc.right(), rc.top(), 0.f);
-        vertices[5] = QVector3D(rc.right(), rc.bottom(),    0.f);
+        vertices[0] = PkVector3D(rc.left(),  rc.bottom(), 0.f);
+        vertices[1] = PkVector3D(rc.left(),  rc.top(),    0.f);
+        vertices[2] = PkVector3D(rc.right(), rc.bottom(), 0.f);
+        vertices[3] = PkVector3D(rc.left(),  rc.top(), 0.f);
+        vertices[4] = PkVector3D(rc.right(), rc.top(), 0.f);
+        vertices[5] = PkVector3D(rc.right(), rc.bottom(),    0.f);
     }
 
-    inline void rectToTexCoords(QVector2D* texCoords, const QRectF &rc)
+    inline void rectToTexCoords(PkVector2D* texCoords, const PkRectF &rc)
     {
-        texCoords[0] = QVector2D(rc.left(), rc.bottom());
-        texCoords[1] = QVector2D(rc.left(), rc.top());
-        texCoords[2] = QVector2D(rc.right(), rc.bottom());
-        texCoords[3] = QVector2D(rc.left(), rc.top());
-        texCoords[4] = QVector2D(rc.right(), rc.top());
-        texCoords[5] = QVector2D(rc.right(), rc.bottom());
+        texCoords[0] = PkVector2D(rc.left(), rc.bottom());
+        texCoords[1] = PkVector2D(rc.left(), rc.top());
+        texCoords[2] = PkVector2D(rc.right(), rc.bottom());
+        texCoords[3] = PkVector2D(rc.left(), rc.top());
+        texCoords[4] = PkVector2D(rc.right(), rc.top());
+        texCoords[5] = PkVector2D(rc.right(), rc.bottom());
     }
 }
 

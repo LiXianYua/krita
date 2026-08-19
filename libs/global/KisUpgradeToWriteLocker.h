@@ -7,8 +7,8 @@
 #ifndef KISUPGRADETOWRITELOCKER_H
 #define KISUPGRADETOWRITELOCKER_H
 
-#include <QReadLocker>
-#include <QReadWriteLock>
+#include <PkReadWriteLock.h>
+#include <PkReadWriteLock.h>
 
 /**
  * @brief The KisUpgradeToWriteLocker class is use for RAII style unlocking
@@ -37,7 +37,5 @@ public:
 private:
     QReadLocker *m_locker;
 };
-
-
 
 #endif // KISUPGRADETOWRITELOCKER_H

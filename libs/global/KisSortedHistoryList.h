@@ -110,5 +110,4 @@ private:
     compare_less m_compareLess;
 };
 
-
 #endif // KISSORTEDHISTORYLIST_H

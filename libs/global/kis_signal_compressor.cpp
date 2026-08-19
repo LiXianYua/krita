@@ -29,10 +29,8 @@
 
 #include "kis_signal_compressor.h"
 
-#include <QTimer>
 #include "kis_assert.h"
 #include "kis_debug.h"
-
 
 KisSignalCompressor::KisSignalCompressor()
     : QObject(0)
@@ -96,7 +94,6 @@ void KisSignalCompressor::start()
 
     KIS_SAFE_ASSERT_RECOVER_NOOP(!isFirstStart || !m_signalsPending);
     m_sanityIsStarting++;
-
 
     switch (m_mode) {
     case POSTPONE:

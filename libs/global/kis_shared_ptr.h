@@ -8,7 +8,9 @@
 #ifndef KIS_SHAREDPTR_H
 #define KIS_SHAREDPTR_H
 
-#include <QtGlobal>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
 
 #include <kis_debug.h>
 
@@ -479,7 +481,6 @@ private:
     QAtomicInt *weakReference;
 };
 
-
 template <class T>
 Q_INLINE_TEMPLATE  KisSharedPtr<T>::KisSharedPtr(const KisWeakSharedPtr<T>& o)
         : d(o.d)
@@ -497,7 +498,6 @@ Q_INLINE_TEMPLATE  KisSharedPtr<T>::KisSharedPtr(const KisWeakSharedPtr<T>& o)
         d = 0;
     }
 }
-
 
 template <class T>
 Q_INLINE_TEMPLATE void KisSharedPtr<T>::attach(T* p)

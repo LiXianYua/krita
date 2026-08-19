@@ -1,8 +1,10 @@
 #ifndef KISROLLINGSUMACCUMULATORWRAPPER_H
 #define KISROLLINGSUMACCUMULATORWRAPPER_H
 
-#include <QtGlobal>
-#include <QScopedPointer>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
+#include <PkScopedPointer.h>
 #include "kritaglobal_export.h"
 
 /**
@@ -28,7 +30,6 @@ public:
      * Get rolling sum of the numbers passed to the operator
      */
     qreal rollingSum() const;
-
 
     /**
      * Get the number of elements in the rolling window

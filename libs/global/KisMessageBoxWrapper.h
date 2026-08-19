@@ -17,7 +17,6 @@ class QString;
  */
 namespace KisMessageBoxWrapper {
 
-
 /**
  * @brief doNotAskAgainMessageBoxWrapper takes a messagebox and an identifier and
  * adds a Do Not Ask Again checkbox to the messagebox; then runs the checkbox and
@@ -29,7 +28,6 @@ namespace KisMessageBoxWrapper {
  * the return value is QMessageBox::Yes
  */
 KRITAGLOBAL_EXPORT int doNotAskAgainMessageBoxWrapper(QMessageBox *messageBox, const QString &identifier);
-
 
 }
 

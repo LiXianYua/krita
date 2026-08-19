@@ -9,7 +9,6 @@
 
 #include <KoProgressProxy.h>
 
-
 /**
  * KoFakeProgressProxy is a simple class for using as a default sink of
  * progress for the algorithms for cases when the user is not interested

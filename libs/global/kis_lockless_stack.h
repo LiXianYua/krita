@@ -17,7 +17,7 @@
 #ifndef __KIS_LOCKLESS_STACK_H
 #define __KIS_LOCKLESS_STACK_H
 
-#include <QAtomicPointer>
+#include <PkAtomic.h>
 
 template<class T>
 class KisLocklessStack
@@ -207,7 +207,6 @@ private:
             first = next;
         }
     }
-
 
 private:
     Q_DISABLE_COPY(KisLocklessStack)

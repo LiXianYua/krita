@@ -7,8 +7,10 @@
 #ifndef KISROLLINGMEANACCUMULATORWRAPPER_H
 #define KISROLLINGMEANACCUMULATORWRAPPER_H
 
-#include <QtGlobal>
-#include <QScopedPointer>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
+#include <PkScopedPointer.h>
 #include "kritaglobal_export.h"
 
 /**

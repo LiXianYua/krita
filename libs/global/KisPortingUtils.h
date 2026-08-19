@@ -6,11 +6,7 @@
 #ifndef KISPORTINGUTILS_H
 #define KISPORTINGUTILS_H
 
-#include <QIODevice>
-#include <QTextStream>
-#include <QWidget>
-#include <QScreen>
-#include <QGuiApplication>
+#include <PkStream.h>
 
 namespace KisPortingUtils
 {
@@ -59,6 +55,5 @@ inline QString stringRemoveFirst(QString str)
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
 #define Q_UNREACHABLE_RETURN(...) Q_UNREACHABLE(); return __VA_ARGS__
 #endif
-
 
 #endif // KISPORTINGUTILS_H

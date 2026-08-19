@@ -9,7 +9,7 @@
 
 #include <kritaglobal_export.h>
 
-#include <QDebug>
+#include <PkDebug.h>
 
 #include <KisBezierUtils.h>
 #include <KisBezierPatch.h>
@@ -29,7 +29,7 @@ namespace KisBezierMeshDetails {
 struct BaseMeshNode : public boost::equality_comparable<BaseMeshNode> {
     BaseMeshNode() = default;
 
-    BaseMeshNode(const QPointF &_node)
+    BaseMeshNode(const PkPointF &_node)
         : leftControl(_node),
           topControl(_node),
           node(_node),
@@ -46,39 +46,39 @@ struct BaseMeshNode : public boost::equality_comparable<BaseMeshNode> {
                 bottomControl == rhs.bottomControl;
     }
 
-    void setLeftControlRelative(const QPointF &value) {
+    void setLeftControlRelative(const PkPointF &value) {
         leftControl = value + node;
     }
 
-    QPointF leftControlRelative() const {
+    PkPointF leftControlRelative() const {
         return leftControl - node;
     }
 
-    void setRightControlRelative(const QPointF &value) {
+    void setRightControlRelative(const PkPointF &value) {
         rightControl = value + node;
     }
 
-    QPointF rightControlRelative() const {
+    PkPointF rightControlRelative() const {
         return rightControl - node;
     }
 
-    void setTopControlRelative(const QPointF &value) {
+    void setTopControlRelative(const PkPointF &value) {
         topControl = value + node;
     }
 
-    QPointF topControlRelative() const {
+    PkPointF topControlRelative() const {
         return topControl - node;
     }
 
-    void setBottomControlRelative(const QPointF &value) {
+    void setBottomControlRelative(const PkPointF &value) {
         bottomControl = value + node;
     }
 
-    QPointF bottomControlRelative() const {
+    PkPointF bottomControlRelative() const {
         return bottomControl - node;
     }
 
-    void translate(const QPointF &offset) {
+    void translate(const PkPointF &offset) {
         leftControl += offset;
         topControl += offset;
         node += offset;
@@ -86,7 +86,7 @@ struct BaseMeshNode : public boost::equality_comparable<BaseMeshNode> {
         bottomControl += offset;
     }
 
-    void transform(const QTransform &t) {
+    void transform(const PkTransform &t) {
         leftControl = t.map(leftControl);
         topControl = t.map(topControl);
         node = t.map(node);
@@ -94,11 +94,11 @@ struct BaseMeshNode : public boost::equality_comparable<BaseMeshNode> {
         bottomControl = t.map(bottomControl);
     }
 
-    QPointF leftControl;
-    QPointF topControl;
-    QPointF node;
-    QPointF rightControl;
-    QPointF bottomControl;
+    PkPointF leftControl;
+    PkPointF topControl;
+    PkPointF node;
+    PkPointF rightControl;
+    PkPointF bottomControl;
 };
 
 inline void lerpNodeData(const BaseMeshNode &left, const BaseMeshNode &right, qreal t, BaseMeshNode &dst)
@@ -110,7 +110,7 @@ inline void lerpNodeData(const BaseMeshNode &left, const BaseMeshNode &right, qr
 }
 
 inline void assignPatchData(KisBezierPatch *patch,
-                            const QRectF &srcRect,
+                            const PkRectF &srcRect,
                             const BaseMeshNode &tl,
                             const BaseMeshNode &tr,
                             const BaseMeshNode &bl,
@@ -131,28 +131,28 @@ public:
     using Node = NodeArg;
     using Patch = PatchArg;
 
-    struct PatchIndex : public QPoint, boost::additive<PatchIndex, QPoint>
+    struct PatchIndex : public PkPoint, boost::additive<PatchIndex, PkPoint>
     {
-        using QPoint::QPoint;
-        PatchIndex& operator+=(const QPoint &rhs) {
-            QPoint::operator+=(rhs);
+        using PkPoint::PkPoint;
+        PatchIndex& operator+=(const PkPoint &rhs) {
+            PkPoint::operator+=(rhs);
             return *this;
         }
-        PatchIndex& operator-=(const QPoint &rhs) {
-            QPoint::operator-=(rhs);
+        PatchIndex& operator-=(const PkPoint &rhs) {
+            PkPoint::operator-=(rhs);
             return *this;
         }
     };
 
-    struct NodeIndex : public QPoint, boost::additive<NodeIndex, QPoint>
+    struct NodeIndex : public PkPoint, boost::additive<NodeIndex, PkPoint>
     {
-        using QPoint::QPoint;
-        NodeIndex& operator+=(const QPoint &rhs) {
-            QPoint::operator+=(rhs);
+        using PkPoint::PkPoint;
+        NodeIndex& operator+=(const PkPoint &rhs) {
+            PkPoint::operator+=(rhs);
             return *this;
         }
-        NodeIndex& operator-=(const QPoint &rhs) {
-            QPoint::operator-=(rhs);
+        NodeIndex& operator-=(const PkPoint &rhs) {
+            PkPoint::operator-=(rhs);
             return *this;
         }
     };
@@ -189,7 +189,7 @@ public:
         }
 
         template <class NodeType,
-                  class PointType = std::copy_const_t<NodeType, QPointF>>
+                  class PointType = std::copy_const_t<NodeType, PkPointF>>
         static
         PointType& controlPoint(NodeType &node, ControlType controlType) {
             return
@@ -200,7 +200,7 @@ public:
                 node.node;
         }
 
-        QPointF& controlPoint(Mesh::Node &node) {
+        PkPointF& controlPoint(Mesh::Node &node) {
             return controlPoint(node, controlType);
         }
 
@@ -251,7 +251,7 @@ private:
                                        boost::random_access_traversal_tag,
                                        Patch>
     {
-        using PointType = std::add_const_if_t<is_const, QPointF>;
+        using PointType = std::add_const_if_t<is_const, PkPointF>;
         using MeshType = std::add_const_if_t<is_const, Mesh>;
         using SegmentIteratorType = segment_iterator_impl<is_const>;
         using ControlPointIteratorType = control_point_iterator_impl<is_const>;
@@ -346,10 +346,10 @@ private:
     template<bool is_const>
     class control_point_iterator_impl :
         public boost::iterator_facade <control_point_iterator_impl<is_const>,
-                                       std::add_const_if_t<is_const, QPointF>,
+                                       std::add_const_if_t<is_const, PkPointF>,
                                        boost::bidirectional_traversal_tag>
     {
-        using PointType = std::add_const_if_t<is_const, QPointF>;
+        using PointType = std::add_const_if_t<is_const, PkPointF>;
         using NodeType = std::add_const_if_t<is_const, Node>;
         using MeshType = std::add_const_if_t<is_const, Mesh>;
         using SegmentIteratorType = segment_iterator_impl<is_const>;
@@ -409,7 +409,6 @@ private:
         bool isBottomBorder() const {
             return m_row == m_mesh->size().height() - 1;
         }
-
 
         bool isBorderNode() const {
             return isLeftBorder() || isRightBorder() || isTopBorder() || isBottomBorder();
@@ -518,7 +517,6 @@ private:
             } while (nodeIsValid() && !controlIsValid());
         }
 
-
         bool equal(control_point_iterator_impl const& other) const {
             return m_controlIndex == other.m_controlIndex &&
                 m_row == other.m_row &&
@@ -544,7 +542,7 @@ private:
                                        boost::bidirectional_traversal_tag,
                                        Mesh::SegmentIndex>
     {
-        using PointType = std::add_const_if_t<is_const, QPointF>;
+        using PointType = std::add_const_if_t<is_const, PkPointF>;
         using NodeType = std::add_const_if_t<is_const, Node>;
         using MeshType = std::add_const_if_t<is_const, Mesh>;
         using ControlPointIteratorType = control_point_iterator_impl<is_const>;
@@ -625,7 +623,7 @@ private:
             return m_mesh->find(ControlPointIndex(secondNodeIndex(), Mesh::ControlType::Node));
         }
 
-        QPointF pointAtParam(qreal t) const {
+        PkPointF pointAtParam(qreal t) const {
             return KisBezierUtils::bezierCurve(p0(), p1(), p2(), p3(), t);
         }
 
@@ -693,7 +691,6 @@ private:
             } while (nodeIsValid() && !controlIsValid());
         }
 
-
         bool equal(segment_iterator_impl const& other) const {
             return m_isHorizontal == other.m_isHorizontal &&
                 m_row == other.m_row &&
@@ -715,11 +712,11 @@ private:
 
 public:
     Mesh()
-        : Mesh(QRectF(0.0, 0.0, 1.0, 1.0))
+        : Mesh(PkRectF(0.0, 0.0, 1.0, 1.0))
     {
     }
 
-    Mesh(const QRectF &mapRect, const QSize &size = QSize(2,2))
+    Mesh(const PkRectF &mapRect, const PkSize &size = PkSize(2,2))
         : m_size(size),
           m_originalRect(mapRect)
     {
@@ -732,11 +729,11 @@ public:
             for (int col = 0; col < m_size.width(); col++) {
                 const qreal xPos = qreal(col) / (size.width() - 1) * mapRect.width() + mapRect.x();
 
-                Node node(QPointF(xPos, yPos));
-                node.setLeftControlRelative(QPointF(-xControlOffset, 0));
-                node.setRightControlRelative(QPointF(xControlOffset, 0));
-                node.setTopControlRelative(QPointF(0, -yControlOffset));
-                node.setBottomControlRelative(QPointF(0, yControlOffset));
+                Node node(PkPointF(xPos, yPos));
+                node.setLeftControlRelative(PkPointF(-xControlOffset, 0));
+                node.setRightControlRelative(PkPointF(xControlOffset, 0));
+                node.setTopControlRelative(PkPointF(0, -yControlOffset));
+                node.setBottomControlRelative(PkPointF(0, yControlOffset));
 
                 m_nodes.push_back(node);
             }
@@ -776,7 +773,6 @@ public:
     const Node& node(const NodeIndex &index) const {
         return node(index.x(), index.y());
     }
-
 
     int subdivideRow(qreal proportionalT) {
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(proportionalT >= 0.0 && proportionalT <= 1.0, -1);
@@ -953,7 +949,7 @@ public:
         patch.points[Patch::BR_HC] = br.leftControl;
         patch.points[Patch::BR_VC] = br.topControl;
 
-        const QRectF relRect(m_columns[col],
+        const PkRectF relRect(m_columns[col],
                              m_rows[row],
                              m_columns[col + 1] - m_columns[col],
                              m_rows[row + 1] - m_rows[row]);
@@ -1013,16 +1009,16 @@ public:
     patch_const_iterator find(const PatchIndex &index) const { return find(*this, index); }
     patch_const_iterator constFind(const PatchIndex &index) const { return find(*this, index); }
 
-    QSize size() const {
+    PkSize size() const {
         return m_size;
     }
 
-    QRectF originalRect() const {
+    PkRectF originalRect() const {
         return m_originalRect;
     }
 
-    QRectF dstBoundingRect() const {
-        QRectF result;
+    PkRectF dstBoundingRect() const {
+        PkRectF result;
         for (auto it = beginPatches(); it != endPatches(); ++it) {
             result |= it->dstBoundingRect();
         }
@@ -1034,33 +1030,33 @@ public:
         return *this == identityMesh;
     }
 
-    void translate(const QPointF &offset) {
+    void translate(const PkPointF &offset) {
         for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it) {
             it->translate(offset);
         }
     }
 
-    void transform(const QTransform &t) {
+    void transform(const PkTransform &t) {
         for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it) {
             it->transform(t);
         }
     }
 
-    void transformSrcAndDst(const QTransform &t) {
-        KIS_SAFE_ASSERT_RECOVER_RETURN(t.type() <= QTransform::TxScale);
+    void transformSrcAndDst(const PkTransform &t) {
+        KIS_SAFE_ASSERT_RECOVER_RETURN(t.type() <= PkTransform::TxScale);
         transform(t);
         m_originalRect = t.mapRect(m_originalRect);
     }
 
-    ControlPointIndex hitTestNode(const QPointF &pt, qreal distanceThreshold) const {
+    ControlPointIndex hitTestNode(const PkPointF &pt, qreal distanceThreshold) const {
         return hitTestPointImpl(pt, distanceThreshold, true);
     }
 
-    ControlPointIndex hitTestControlPoint(const QPointF &pt, qreal distanceThreshold) const {
+    ControlPointIndex hitTestControlPoint(const PkPointF &pt, qreal distanceThreshold) const {
         return hitTestPointImpl(pt, distanceThreshold, false);
     }
 
-    SegmentIndex hitTestSegment(const QPointF &pt, qreal distanceThreshold, qreal *t = 0) const {
+    SegmentIndex hitTestSegment(const PkPointF &pt, qreal distanceThreshold, qreal *t = 0) const {
         auto result = endSegments();
         qreal minDistance = std::numeric_limits<qreal>::max();
 
@@ -1131,7 +1127,7 @@ private:
         using KisBezierUtils::deCasteljau;
         using KisAlgebra2D::lerp;
 
-        QPointF p1, p2, p3, q1, q2;
+        PkPointF p1, p2, p3, q1, q2;
 
         deCasteljau(left.node, left.rightControl, right.leftControl, right.node, t,
                     &p1, &p2, &p3, &q1, &q2);
@@ -1152,7 +1148,7 @@ private:
         using KisBezierUtils::deCasteljau;
         using KisAlgebra2D::lerp;
 
-        QPointF p1, p2, p3, q1, q2;
+        PkPointF p1, p2, p3, q1, q2;
 
         deCasteljau(top.node, top.bottomControl, bottom.topControl, bottom.node, t,
                     &p1, &p2, &p3, &q1, &q2);
@@ -1185,7 +1181,7 @@ private:
                                              bottom.topControl, bottom.node);
     }
 
-    ControlPointIndex hitTestPointImpl(const QPointF &pt, qreal distanceThreshold, bool onlyNodeMode) const {
+    ControlPointIndex hitTestPointImpl(const PkPointF &pt, qreal distanceThreshold, bool onlyNodeMode) const {
         const qreal distanceThresholdSq = pow2(distanceThreshold);
 
         auto result = endControlPoints();
@@ -1285,8 +1281,8 @@ protected:
     std::vector<qreal> m_rows;
     std::vector<qreal> m_columns;
 
-    QSize m_size;
-    QRectF m_originalRect;
+    PkSize m_size;
+    PkRectF m_originalRect;
 };
 
 template<typename Node, typename Patch>
@@ -1374,7 +1370,6 @@ Mesh<NodeArg, PatchArg>::patch_iterator_impl<is_const>::nodeBottomRight() const
     return ControlPointIteratorType(const_cast<Mesh<NodeArg, PatchArg>*>(m_mesh), m_col + 1, m_row + 1, Mesh::ControlType::Node);
 }
 
-
 template<typename NodeArg, typename PatchArg>
 template<bool is_const>
 typename Mesh<NodeArg, PatchArg>::template control_point_iterator_impl<is_const>::SegmentIteratorType
@@ -1440,7 +1435,7 @@ enum SmartMoveMeshControlMode {
 template<typename NodeArg, typename PatchArg>
 void smartMoveControl(Mesh<NodeArg, PatchArg> &mesh,
                       typename Mesh<NodeArg, PatchArg>::ControlPointIndex index,
-                      const QPointF &move,
+                      const PkPointF &move,
                       SmartMoveMeshControlMode mode,
                       bool scaleNodeMoves)
 {
@@ -1455,15 +1450,15 @@ void smartMoveControl(Mesh<NodeArg, PatchArg> &mesh,
     if (it.isNode()) {
         auto preAdjustSegment = [] (Mesh<NodeArg, PatchArg> &mesh,
                                     SegmentIterator it,
-                                    const QPointF &normalizedOffset) {
+                                    const PkPointF &normalizedOffset) {
 
             if (it == mesh.endSegments()) return;
 
-            const QPointF base1 = it.p3() - it.p0();
-            const QPointF base2 = it.p3() - it.p0() - normalizedOffset;
+            const PkPointF base1 = it.p3() - it.p0();
+            const PkPointF base2 = it.p3() - it.p0() - normalizedOffset;
 
             {
-                const QPointF control = it.p1() - it.p0();
+                const PkPointF control = it.p1() - it.p0();
                 const qreal dist0 = KisAlgebra2D::norm(base1);
                 const qreal dist1 = KisAlgebra2D::dotProduct(base2, base1) / dist0;
                 const qreal coeff = dist1 / dist0;
@@ -1471,7 +1466,7 @@ void smartMoveControl(Mesh<NodeArg, PatchArg> &mesh,
                 it.p1() = it.p0() + coeff * (control);
             }
             {
-                const QPointF control = it.p2() - it.p3();
+                const PkPointF control = it.p2() - it.p3();
                 const qreal dist0 = KisAlgebra2D::norm(base1);
                 const qreal dist1 = KisAlgebra2D::dotProduct(base2, base1) / dist0;
                 const qreal coeff = dist1 / dist0;
@@ -1490,18 +1485,18 @@ void smartMoveControl(Mesh<NodeArg, PatchArg> &mesh,
         it.node().translate(move);
 
     } else {
-        const QPointF newPos = *it + move;
+        const PkPointF newPos = *it + move;
 
         if (mode == MoveRotationLock || mode == MoveSymmetricLock) {
             const qreal rotation = KisAlgebra2D::angleBetweenVectors(*it - it.node().node,
                                                                      newPos - it.node().node);
-            QTransform R;
+            PkTransform R;
             R.rotateRadians(rotation);
 
-            const QTransform t =
-                    QTransform::fromTranslate(-it.node().node.x(), -it.node().node.y()) *
+            const PkTransform t =
+                    PkTransform::fromTranslate(-it.node().node.x(), -it.node().node.y()) *
                     R *
-                    QTransform::fromTranslate(it.node().node.x(), it.node().node.y());
+                    PkTransform::fromTranslate(it.node().node.x(), it.node().node.y());
 
             if (mode == MoveRotationLock) {
                 for (int intType = 0; intType < 4; intType++) {
@@ -1551,6 +1546,5 @@ using KisBezierMeshBase = KisBezierMeshDetails::Mesh<Node, Patch>;
 
 using KisSmartMoveMeshControlMode = KisBezierMeshDetails::SmartMoveMeshControlMode;
 using KisBezierMesh = KisBezierMeshDetails::Mesh<KisBezierMeshDetails::BaseMeshNode, KisBezierPatch>;
-
 
 #endif // KISBEZIERMESH_H

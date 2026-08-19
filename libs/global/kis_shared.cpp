@@ -7,7 +7,6 @@
 #include "kis_shared.h"
 #include "kis_debug.h"
 
-
 /**
  * NOTE: The description of how Weak shared pointers system works:
  *

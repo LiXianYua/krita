@@ -6,14 +6,10 @@
 
 #include "kis_assert.h"
 
-#include <QString>
-#include <QMessageBox>
-#include <QThread>
-#include <QProcessEnvironment>
-#include <QCoreApplication>
-#include <QApplication>
+#include <PkString.h>
 
-#include <klocalizedstring.h>
+#include <PkThread.h>
+
 #include <KisUsageLogger.h>
 #include <string>
 #include "config-safe-asserts.h"
@@ -93,7 +89,6 @@ void kis_assert_common(const char *assertion, const char *file, int line, bool a
         qWarning("%s", shortMessage.toLatin1().data());
     }
 }
-
 
 void kis_assert_recoverable(const char *assertion, const char *file, int line)
 {

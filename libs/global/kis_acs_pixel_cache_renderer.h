@@ -12,7 +12,6 @@
 #include "kis_iterator_ng.h"
 #include "kis_display_color_converter.h"
 
-
 namespace Acs {
 
     class PixelCacheRenderer {
@@ -57,7 +56,6 @@ namespace Acs {
                     color = sampler->colorAt(it.x()/devicePixelRatioF, it.y()/devicePixelRatioF);
                     memcpy(it.rawData(), color.data(), pixelSize);
                 }
-
 
                 // NOTE: toQImage() function of the converter copies exactBounds() only!
                 pixelCache = converter->toQImage(realPixelCache);

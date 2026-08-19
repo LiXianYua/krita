@@ -373,7 +373,6 @@ inline auto mem_greater(MemTypeNoRef (Class::*ptr)() const noexcept, MemType &&v
  * @see mem_equal_to
  */
 
-
 template<typename Class, typename MemType, typename MemTypeNoRef = std::remove_reference_t<MemType>>
 inline auto mem_greater_equal(MemTypeNoRef Class::*ptr, MemType &&value) {
     return detail::mem_checker<std::greater_equal<>, Class, MemTypeNoRef, decltype(ptr)>{ptr, std::forward<MemType>(value)};
@@ -706,7 +705,6 @@ struct finally {
 private:
     F m_f;
 };
-
 
 } // namespace kismpl
 

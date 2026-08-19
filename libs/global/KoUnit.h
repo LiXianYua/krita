@@ -13,11 +13,10 @@
 
 #include "kritaglobal_export.h"
 
-#include <QString>
-#include <QDebug>
-#include <QMetaType>
-#include <QStringList>
-#include <QLocale>
+#include <PkString.h>
+#include <PkDebug.h>
+#include <type_traits>
+#include <PkStringList.h>
 
 #include <math.h> // for floor
 #include <boost/operators.hpp>
@@ -43,7 +42,6 @@ constexpr qreal POINT_TO_CC(qreal px) {return (px)*0.077880997;}
 constexpr qreal PI_TO_POINT(qreal pi) {return (pi)*12;}
 constexpr qreal CC_TO_POINT(qreal cc) {return (cc)*12.840103;}
 
-
 static const qreal PT_ROUNDING {1000.0};
 //static const qreal PX_ROUNDING {1000.0}; // pixel value is not to be rounded
 
@@ -55,7 +53,6 @@ static const qreal IN_ROUNDING {100000.0};
 
 static const qreal PI_ROUNDING {100000.0}; // pico
 static const qreal CC_ROUNDING {100000.0}; // cicero
-
 
 /**
  * Krita stores everything in pt (using "qreal") internally.
@@ -123,7 +120,6 @@ public:
         m_pixelConversion = factor;
     }
 
-
     /**
      * convert the given value directly from one unit to another
      */
@@ -149,8 +145,6 @@ public:
      * \return the value @p ptValue converted to unit
      */
     qreal toUserValue(qreal ptValue, bool rounding = true) const;
-
-
 
     /// This method is the one to use to display a value in a dialog
     /// @return the value @p ptValue converted the unit and rounded, ready to be displayed

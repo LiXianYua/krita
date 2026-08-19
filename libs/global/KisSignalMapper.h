@@ -15,7 +15,7 @@
 #include <QtCore/qobject.h>
 #include "kritaglobal_export.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 /*!
     \class KisSignalMapper
@@ -24,7 +24,6 @@
     \brief The KisSignalMapper class bundles signals from identifiable senders.
 
     \ingroup objectmodel
-
 
     This class collects a set of parameterless signals, and re-emits
     them with integer, string or widget parameters corresponding to
@@ -222,6 +221,5 @@ private:
     Q_DISABLE_COPY(KisSignalMapper)
     Q_PRIVATE_SLOT(d, void _q_senderDestroyed())
 };
-
 
 #endif // KisSignalMapper_H

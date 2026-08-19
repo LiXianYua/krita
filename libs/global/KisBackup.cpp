@@ -12,9 +12,7 @@
 
 #include "KisBackup.h"
 
-#include <QDebug>
-#include <QDir>
-#include <QFileInfo>
+#include <PkDebug.h>
 
 bool KisBackup::backupFile(const QString &qFilename, const QString &backupDir)
 {
