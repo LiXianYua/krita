@@ -12,7 +12,7 @@
 #include <PkRect.h>
 #include <array>
 
-class QDebug;
+class PkDebug;
 
 class KRITAGLOBAL_EXPORT KisBezierPatch
 {
@@ -54,6 +54,6 @@ public:
 };
 
 KRITAGLOBAL_EXPORT
-QDebug operator<<(QDebug dbg, const KisBezierPatch &p);
+PkDebug operator<<(PkDebug dbg, const KisBezierPatch &p);
 
 #endif // KISBEZIERPATCH_H

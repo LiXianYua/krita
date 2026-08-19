@@ -33,7 +33,7 @@ struct KRITAGLOBAL_EXPORT KisSynchronizedConnectionEvent : public QEvent
     KisSynchronizedConnectionEvent(const KisSynchronizedConnectionEvent &rhs);
     ~KisSynchronizedConnectionEvent() override;
 
-    const QPointer<QObject> destination;
+    const PkPointer<QObject> destination;
 };
 
 /**
@@ -146,7 +146,7 @@ public:
      */
     void start(const Args &...argsTuple) {
         {
-            QMutexLocker l(&m_inputConnectionMutex);
+            PkMutexLocker l(&m_inputConnectionMutex);
             m_queue.emplace(std::make_tuple(argsTuple...));
         }
         this->postEvent();
@@ -206,7 +206,7 @@ public:
     }
 
     bool hasPendingSignals() const {
-        QMutexLocker l(&m_inputConnectionMutex);
+        PkMutexLocker l(&m_inputConnectionMutex);
         return !m_queue.empty();
     }
 
@@ -226,7 +226,7 @@ protected:
         ArgsTuple args;
 
         {
-            QMutexLocker l(&m_inputConnectionMutex);
+            PkMutexLocker l(&m_inputConnectionMutex);
             args = m_queue.front();
             m_queue.pop();
         }
@@ -237,7 +237,7 @@ protected:
 private:
     CallbackFunction m_callback;
     std::queue<ArgsTuple> m_queue;
-    mutable QMutex m_inputConnectionMutex;
+    mutable PkMutex m_inputConnectionMutex;
 };
 
 #endif // KISSYNCHRONIZEDCONNECTION_H

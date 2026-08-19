@@ -390,7 +390,7 @@ void KoUnit::adjustByPixelTransform(const QTransform &t)
 }
 
 #ifndef QT_NO_DEBUG_STREAM
-QDebug operator<<(QDebug debug, const KoUnit &unit)
+PkDebug operator<<(PkDebug debug, const KoUnit &unit)
 {
 #ifndef NDEBUG
     debug.nospace() << unit.symbol();

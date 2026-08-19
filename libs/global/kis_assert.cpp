@@ -52,7 +52,7 @@ void kis_assert_common(const char *assertion, const char *file, int line, bool a
 
     // disable message box if the assert happened in non-gui thread
     // or if the GUI is not yet instantiated
-    if (!QCoreApplication::instance() || QThread::currentThread() != QCoreApplication::instance()->thread()) {
+    if (!QCoreApplication::instance() || PkThread::currentThread() != QCoreApplication::instance()->thread()) {
         disableAssertMsg = true;
     }
 

@@ -208,7 +208,7 @@ public:
             return lhs.nodeIndex == rhs.nodeIndex && lhs.controlType == rhs.controlType;
         }
 
-        friend QDebug operator<<(QDebug dbg, const Mesh::ControlPointIndex &index) {
+        friend PkDebug operator<<(PkDebug dbg, const Mesh::ControlPointIndex &index) {
             dbg.nospace() << "ControlPointIndex ("
                           << index.nodeIndex.x() << ", " << index.nodeIndex.x() << ", ";
 
@@ -1286,7 +1286,7 @@ protected:
 };
 
 template<typename Node, typename Patch>
-QDebug operator<<(QDebug dbg, const Mesh<Node, Patch> &mesh)
+PkDebug operator<<(PkDebug dbg, const Mesh<Node, Patch> &mesh)
 {
     dbg.nospace() << "Mesh " << mesh.size() << "\n";
 
@@ -1526,7 +1526,7 @@ void smartMoveControl(Mesh<NodeArg, PatchArg> &mesh,
 }
 
 KRITAGLOBAL_EXPORT
-QDebug operator<<(QDebug dbg, const BaseMeshNode &n);
+PkDebug operator<<(PkDebug dbg, const BaseMeshNode &n);
 
 KRITAGLOBAL_EXPORT
 void saveValue(QDomElement *parent, const QString &tag, const BaseMeshNode &node);

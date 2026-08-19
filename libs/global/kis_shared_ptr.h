@@ -33,7 +33,7 @@ class KisWeakSharedPtr;
  * https://bugs.kde.org/show_bug.cgi?id=52261 as well as
  * https://www.boost.org/libs/smart_ptr/shared_ptr.htm.
  *
- * Advantage of KisSharedPtr over boost pointer or QSharedPointer?
+ * Advantage of KisSharedPtr over boost pointer or PkSharedPointer?
  *
  * The difference with boost share pointer is that in
  * boost::shared_ptr, the counter is kept inside the smart pointer,
@@ -47,11 +47,11 @@ class KisWeakSharedPtr;
  *
  * KisSharedPtr requires the class to inherits KisShared.
  *
- * Difference with QSharedPointer
+ * Difference with PkSharedPointer
  *
- * QSharedPointer and KisSharedPtr are very similar, but
- * QSharedPointer has an explicit constructor which makes it more
- * painful to use in some constructions. And QSharedPointer
+ * PkSharedPointer and KisSharedPtr are very similar, but
+ * PkSharedPointer has an explicit constructor which makes it more
+ * painful to use in some constructions. And PkSharedPointer
  * doesn't offer a weak pointer.
  */
 template<class T>
@@ -478,7 +478,7 @@ private:
     }
 
     mutable T* d;
-    QAtomicInt *weakReference;
+    PkAtomicInt *weakReference;
 };
 
 template <class T>

@@ -10,6 +10,8 @@
 
 #include <boost/iterator_adaptors.hpp>
 
+#include <memory>
+
 #include <PkRect.h>
 
 /**
@@ -58,7 +60,7 @@ private:
 
 private:
     struct HaltonSampler;
-    QSharedDataPointer<HaltonSampler> m_sampler;
+    std::shared_ptr<HaltonSampler> m_sampler;
 
     PkRectF m_rect;
     int m_index = 0;

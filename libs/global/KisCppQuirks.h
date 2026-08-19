@@ -39,7 +39,7 @@ using copy_const_t = typename copy_const<Src, Dst>::type;
 
 template <typename T>
 [[maybe_unused]]
-QDebug operator<<(QDebug dbg, const std::optional<T> &t)
+PkDebug operator<<(PkDebug dbg, const std::optional<T> &t)
 {
 
     if (t) {

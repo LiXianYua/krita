@@ -8,7 +8,11 @@
 #include <kis_debug.h>
 #include "kis_signal_compressor.h"
 
-Q_GLOBAL_STATIC(KisConfigNotifier, s_instance)
+static KisConfigNotifier *s_instance()
+{
+    static KisConfigNotifier instance;
+    return &instance;
+}
 
 struct KisConfigNotifier::Private
 {
@@ -30,7 +34,7 @@ KisConfigNotifier::~KisConfigNotifier()
 
 KisConfigNotifier *KisConfigNotifier::instance()
 {
-    return s_instance;
+    return s_instance();
 }
 
 void KisConfigNotifier::notifyConfigChanged(void)

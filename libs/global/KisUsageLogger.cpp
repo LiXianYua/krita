@@ -31,7 +31,11 @@
 
 #include <clocale>
 
-Q_GLOBAL_STATIC(KisUsageLogger, s_instance)
+static KisUsageLogger *s_instance()
+{
+    static KisUsageLogger instance;
+    return &instance;
+}
 
 const QString KisUsageLogger::s_sectionHeader("================================================================================\n");
 
@@ -79,10 +83,10 @@ KisUsageLogger::~KisUsageLogger()
 
 void KisUsageLogger::initialize()
 {
-    s_instance->d->active = true;
+    s_instance()->d->active = true;
 
     QString systemInfo = basicSystemInfo();
-    s_instance->d->sysInfoFile.write(systemInfo.toUtf8());
+    s_instance()->d->sysInfoFile.write(systemInfo.toUtf8());
 }
 
 QString KisUsageLogger::basicSystemInfo()
@@ -157,7 +161,7 @@ QString KisUsageLogger::basicSystemInfo()
 
 void KisUsageLogger::writeLocaleSysInfo()
 {
-    if (!s_instance->d->active) {
+    if (!s_instance()->d->active) {
         return;
     }
     QString systemInfo;
@@ -195,62 +199,62 @@ void KisUsageLogger::writeLocaleSysInfo()
     }
 #endif
     systemInfo.append("\n\n");
-    s_instance->d->sysInfoFile.write(systemInfo.toUtf8());
+    s_instance()->d->sysInfoFile.write(systemInfo.toUtf8());
 }
 
 void KisUsageLogger::close()
 {
     log("CLOSING SESSION");
-    s_instance->d->active = false;
-    s_instance->d->logFile.flush();
-    s_instance->d->logFile.close();
-    s_instance->d->sysInfoFile.flush();
-    s_instance->d->sysInfoFile.close();
+    s_instance()->d->active = false;
+    s_instance()->d->logFile.flush();
+    s_instance()->d->logFile.close();
+    s_instance()->d->sysInfoFile.flush();
+    s_instance()->d->sysInfoFile.close();
 }
 
 void KisUsageLogger::log(const QString &message)
 {
-    if (!s_instance->d->active) return;
-    if (!s_instance->d->logFile.isOpen()) return;
+    if (!s_instance()->d->active) return;
+    if (!s_instance()->d->logFile.isOpen()) return;
 
-    s_instance->d->logFile.write(QDateTime::currentDateTime().toString(Qt::RFC2822Date).toUtf8());
-    s_instance->d->logFile.write(": ");
+    s_instance()->d->logFile.write(PkDateTime::currentDateTime().toString(Qt::RFC2822Date).toUtf8());
+    s_instance()->d->logFile.write(": ");
     write(message);
 }
 
 void KisUsageLogger::write(const QString &message)
 {
-    if (!s_instance->d->active) return;
-    if (!s_instance->d->logFile.isOpen()) return;
+    if (!s_instance()->d->active) return;
+    if (!s_instance()->d->logFile.isOpen()) return;
 
-    s_instance->d->logFile.write(message.toUtf8());
-    s_instance->d->logFile.write("\n");
+    s_instance()->d->logFile.write(message.toUtf8());
+    s_instance()->d->logFile.write("\n");
 
-    s_instance->d->logFile.flush();
+    s_instance()->d->logFile.flush();
 }
 
 void KisUsageLogger::writeSysInfo(const QString &message)
 {
-    if (!s_instance->d->active) return;
-    if (!s_instance->d->sysInfoFile.isOpen()) return;
+    if (!s_instance()->d->active) return;
+    if (!s_instance()->d->sysInfoFile.isOpen()) return;
 
-    s_instance->d->sysInfoFile.write(message.toUtf8());
-    s_instance->d->sysInfoFile.write("\n");
+    s_instance()->d->sysInfoFile.write(message.toUtf8());
+    s_instance()->d->sysInfoFile.write("\n");
 
-    s_instance->d->sysInfoFile.flush();
+    s_instance()->d->sysInfoFile.flush();
 
 }
 
 void KisUsageLogger::writeHeader()
 {
-    Q_ASSERT(s_instance->d->sysInfoFile.isOpen());
-    s_instance->d->logFile.write(s_sectionHeader.toUtf8());
+    Q_ASSERT(s_instance()->d->sysInfoFile.isOpen());
+    s_instance()->d->logFile.write(s_sectionHeader.toUtf8());
 
     QString sessionHeader = QString("SESSION: %1. Executing %2\n\n")
-            .arg(QDateTime::currentDateTime().toString(Qt::RFC2822Date))
+            .arg(PkDateTime::currentDateTime().toString(Qt::RFC2822Date))
             .arg(qApp->arguments().join(' '));
 
-    s_instance->d->logFile.write(sessionHeader.toUtf8());
+    s_instance()->d->logFile.write(sessionHeader.toUtf8());
 
     QString KritaAndQtVersion;
     KritaAndQtVersion.append("Krita Version: ").append(KritaVersionWrapper::versionString(true))
@@ -260,8 +264,8 @@ void KisUsageLogger::writeHeader()
             .append(QString::number(qApp->applicationPid())).append("\n");
 
     KritaAndQtVersion.append("-- -- -- -- -- -- -- --\n");
-    s_instance->d->logFile.write(KritaAndQtVersion.toUtf8());
-    s_instance->d->logFile.flush();
+    s_instance()->d->logFile.write(KritaAndQtVersion.toUtf8());
+    s_instance()->d->logFile.flush();
     log(QString("Style: %1. Available styles: %2")
         .arg(qApp->style()->objectName(),
              QStyleFactory::keys().join(", ")));

@@ -59,7 +59,7 @@ const char *get_signal_name(const int signo)
 
 void dump_backtrace(siginfo_t *info, void *ucontext)
 {
-    QScopedPointer<unwindstack::Regs> regs;
+    PkScopedPointer<unwindstack::Regs> regs;
     if (ucontext) {
         regs.reset(unwindstack::Regs::CreateFromUcontext(unwindstack::Regs::CurrentArch(), ucontext));
     } else {
@@ -87,7 +87,7 @@ void dump_backtrace(siginfo_t *info, void *ucontext)
     header << "********************** Dumping backtrace **********************\n"
            << "Signal: " << info->si_signo << " (" << get_signal_name(info->si_signo) << ")"
            << " (Code: " << info->si_code << ")"
-           << " Time: " << QDateTime::currentDateTimeUtc().toString().toStdString().c_str()
+           << " Time: " << PkDateTime::currentDateTimeUtc().toString().toStdString().c_str()
            << " Version: " << KritaVersionWrapper::versionString(true).toStdString().c_str() << "\n";
     write(fd, header.str().c_str(), header.str().size());
 

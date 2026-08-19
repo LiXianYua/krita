@@ -52,7 +52,7 @@ public:
     bool isPersistent() const;
     bool isCompleted() const;
 
-    QPointer<KoUpdater> connectedUpdater() const;
+    PkPointer<KoUpdater> connectedUpdater() const;
 
 public Q_SLOTS:
 
@@ -83,7 +83,7 @@ private:
     QString m_subTaskName;
     bool m_hasValidRange;
     bool m_isPersistent;
-    QPointer<KoUpdater> m_connectedUpdater;
+    PkPointer<KoUpdater> m_connectedUpdater;
 };
 
 #endif

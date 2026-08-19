@@ -97,7 +97,7 @@ void KoUpdaterPrivate::setHasValidRange(bool value)
     Q_EMIT sigUpdated();
 }
 
-QPointer<KoUpdater> KoUpdaterPrivate::connectedUpdater() const
+PkPointer<KoUpdater> KoUpdaterPrivate::connectedUpdater() const
 {
     return m_connectedUpdater;
 }

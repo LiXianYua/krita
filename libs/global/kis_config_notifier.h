@@ -71,7 +71,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KIS_CONFIG_NOTIFIER_H_

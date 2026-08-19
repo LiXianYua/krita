@@ -1,3 +1,4 @@
+#include <QString>
 /*
     This file is part of the KDE libraries
 
@@ -12,17 +13,18 @@
 #define KISBACKUP_H
 
 #include <PkString.h>
+#include <PkStringList.h>
 #include <kritaglobal_export.h>
 
 class KRITAGLOBAL_EXPORT KisBackup
 {
 public:
 
-    static bool backupFile(const QString &filename, const QString &backupDir = QString());
-    static bool simpleBackupFile(const QString &filename, const QString &backupDir = QString(), const QString &backupExtension = QStringLiteral("~"));
-    static bool numberedBackupFile(const QString &filename,
-                                   const QString &backupDir = QString(),
-                                   const QString &backupExtension = QStringLiteral("~"),
+    static bool backupFile(const PkString &filename, const PkString &backupDir = PkString());
+    static bool simpleBackupFile(const PkString &filename, const PkString &backupDir = PkString(), const PkString &backupExtension = QStringLiteral("~"));
+    static bool numberedBackupFile(const PkString &filename,
+                                   const PkString &backupDir = PkString(),
+                                   const PkString &backupExtension = QStringLiteral("~"),
                                    const uint maxBackups = 10);
 };
 

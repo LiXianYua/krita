@@ -53,7 +53,7 @@ private:
     Q_DISABLE_COPY(KisUsageLogger)
 
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 
     static const QString s_sectionHeader;
     static const int s_maxLogs {20};

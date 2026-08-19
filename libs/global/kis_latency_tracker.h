@@ -117,7 +117,7 @@ private:
     const int m_windowSize;
     int m_addCount;
 
-    QElapsedTimer m_printTimer;
+    PkElapsedTimer m_printTimer;
 
     KisRollingMax<T> m_max;
 

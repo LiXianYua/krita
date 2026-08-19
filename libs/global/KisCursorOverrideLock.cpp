@@ -1,3 +1,4 @@
+#include <QApplication>
 /*
  *  SPDX-FileCopyrightText: 2023 Dmitry Kazakov <dimula73@gmail.com>
  *

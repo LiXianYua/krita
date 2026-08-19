@@ -31,7 +31,7 @@ KisTransformComponents KRITAGLOBAL_EXPORT compareTransformComponents(const PkTra
 Q_DECLARE_METATYPE(KisAlgebra2D::KisTransformComponents)
 Q_DECLARE_OPERATORS_FOR_FLAGS(KisAlgebra2D::KisTransformComponents)
 
-// we don't use Q_FLAGS's autogeneration of QDebug here because we
+// we don't use Q_FLAGS's autogeneration of PkDebug here because we
 // want to avoid adding Q_NAMESPACE to KisAlgebra2D
-QDebug KRITAGLOBAL_EXPORT operator<<(QDebug dbg, KisAlgebra2D::KisTransformComponent component);
-QDebug KRITAGLOBAL_EXPORT operator<<(QDebug dbg, KisAlgebra2D::KisTransformComponents components);
+PkDebug KRITAGLOBAL_EXPORT operator<<(PkDebug dbg, KisAlgebra2D::KisTransformComponent component);
+PkDebug KRITAGLOBAL_EXPORT operator<<(PkDebug dbg, KisAlgebra2D::KisTransformComponents components);

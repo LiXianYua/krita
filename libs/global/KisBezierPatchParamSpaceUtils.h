@@ -93,7 +93,7 @@ struct Range
     }
 };
 
-QDebug operator<<(QDebug dbg, const Range &r)
+PkDebug operator<<(PkDebug dbg, const Range &r)
 {
     dbg.nospace() << "Range(" << r.start << ", " << r.end << ")";
 

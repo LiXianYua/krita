@@ -16,16 +16,16 @@
  * Convert a raw pointer into a shared pointer
  */
 template <class T>
-inline QSharedPointer<T> toQShared(T* ptr) {
-    return QSharedPointer<T>(ptr);
+inline PkSharedPointer<T> toQShared(T* ptr) {
+    return PkSharedPointer<T>(ptr);
 }
 
 /**
  * Convert a list of raw pointers into a list of shared pointers
  */
 template <class A, template <class C> class List>
-List<QSharedPointer<A>> listToQShared(const List<A*> list) {
-    List<QSharedPointer<A>> newList;
+List<PkSharedPointer<A>> listToQShared(const List<A*> list) {
+    List<PkSharedPointer<A>> newList;
     Q_FOREACH(A* value, list) {
         newList.append(toQShared(value));
     }
@@ -36,10 +36,10 @@ List<QSharedPointer<A>> listToQShared(const List<A*> list) {
  * Convert a list of strong pointers into a list of weak pointers
  */
 template <template <class> class Container, class T>
-Container<QWeakPointer<T>> listStrongToWeak(const Container<QSharedPointer<T>> &container)
+Container<PkWeakPointer<T>> listStrongToWeak(const Container<PkSharedPointer<T>> &container)
 {
-    Container<QWeakPointer<T> > result;
-    Q_FOREACH (QSharedPointer<T> v, container) {
+    Container<PkWeakPointer<T> > result;
+    Q_FOREACH (PkSharedPointer<T> v, container) {
         result << v;
     }
     return result;
@@ -54,12 +54,12 @@ Container<QWeakPointer<T>> listStrongToWeak(const Container<QSharedPointer<T>> &
  *          correctly.
  */
 template <template <class> class Container, class T>
-    Container<QSharedPointer<T> > listWeakToStrong(const Container<QWeakPointer<T>> &container,
+    Container<PkSharedPointer<T> > listWeakToStrong(const Container<PkWeakPointer<T>> &container,
                                                    bool allOrNothing = true)
 {
-    Container<QSharedPointer<T> > result;
-    Q_FOREACH (QWeakPointer<T> v, container) {
-        QSharedPointer<T> strong(v);
+    Container<PkSharedPointer<T> > result;
+    Q_FOREACH (PkWeakPointer<T> v, container) {
+        PkSharedPointer<T> strong(v);
         if (!strong && allOrNothing) {
             result.clear();
             return result;
@@ -122,7 +122,7 @@ T* removeSharedPointer(KisSharedPtr<T> value)
 }
 
 template <typename T>
-T* removeSharedPointer(QSharedPointer<T> value)
+T* removeSharedPointer(PkSharedPointer<T> value)
 {
     return value.data();
 }
@@ -133,14 +133,14 @@ struct KisSharedPointerTraits
 };
 
 template <typename T>
-struct KisSharedPointerTraits<QSharedPointer<T>>
+struct KisSharedPointerTraits<PkSharedPointer<T>>
 {
     template <typename U>
-    using SharedPointerType = QSharedPointer<U>;
+    using SharedPointerType = PkSharedPointer<U>;
     using ValueType = T;
 
     template <typename D, typename S>
-    static inline QSharedPointer<D> dynamicCastSP(QSharedPointer<S> src) {
+    static inline PkSharedPointer<D> dynamicCastSP(PkSharedPointer<S> src) {
         return src.template dynamicCast<D>();
     }
 };

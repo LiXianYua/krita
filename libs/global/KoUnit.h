@@ -208,7 +208,7 @@ private:
 };
 
 #ifndef QT_NO_DEBUG_STREAM
-KRITAGLOBAL_EXPORT QDebug operator<<(QDebug, const KoUnit &);
+KRITAGLOBAL_EXPORT PkDebug operator<<(PkDebug, const KoUnit &);
 #endif
 
 Q_DECLARE_METATYPE(KoUnit)

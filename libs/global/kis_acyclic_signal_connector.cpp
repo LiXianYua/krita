@@ -128,7 +128,7 @@ void KisAcyclicSignalConnector::lock()
     } else {
         coordinatedLock();
 
-        Q_FOREACH(QPointer<KisAcyclicSignalConnector> conn, m_coordinatedConnectors) {
+        Q_FOREACH(PkPointer<KisAcyclicSignalConnector> conn, m_coordinatedConnectors) {
             if (!conn) continue;
             conn->coordinatedLock();
         }
@@ -140,7 +140,7 @@ void KisAcyclicSignalConnector::unlock()
     if (m_parentConnector) {
         m_parentConnector->unlock();
     } else {
-        Q_FOREACH(QPointer<KisAcyclicSignalConnector> conn, m_coordinatedConnectors) {
+        Q_FOREACH(PkPointer<KisAcyclicSignalConnector> conn, m_coordinatedConnectors) {
             if (!conn) continue;
             conn->coordinatedUnlock();
         }

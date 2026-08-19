@@ -22,7 +22,7 @@
 class KisUpgradeToWriteLocker
 {
 public:
-    KisUpgradeToWriteLocker(QReadLocker *locker)
+    KisUpgradeToWriteLocker(PkReadLocker *locker)
         : m_locker(locker)
     {
         m_locker->unlock();
@@ -35,7 +35,7 @@ public:
     }
 
 private:
-    QReadLocker *m_locker;
+    PkReadLocker *m_locker;
 };
 
 #endif // KISUPGRADETOWRITELOCKER_H

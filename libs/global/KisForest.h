@@ -195,7 +195,7 @@ private:
     friend ChildIterator<X, c> childEnd(const ChildIterator<X, c> &it);
 
     template <typename X, bool c>
-    friend QDebug operator<<(QDebug dbg, const ChildIterator<X, c> &it);
+    friend PkDebug operator<<(PkDebug dbg, const ChildIterator<X, c> &it);
     template <typename X> friend class Forest;
 
     void increment() {
@@ -222,7 +222,7 @@ private:
 };
 
 template <typename value_type, bool is_const>
-QDebug operator<<(QDebug dbg, const ChildIterator<value_type, is_const> &it)
+PkDebug operator<<(PkDebug dbg, const ChildIterator<value_type, is_const> &it)
 {
     if (it.node()) {
         dbg.nospace() << "ChildIterator(" << it.node() << "(" <<  it.node()->value << ")" << ", parent:" << it.m_parent << ")";

@@ -43,7 +43,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISROLLINGSUMACCUMULATORWRAPPER_H

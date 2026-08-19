@@ -1,3 +1,8 @@
+#include <QString>
+#include <QFileInfo>
+#include <QDir>
+#include <QFile>
+#include <QLatin1Char>
 /*
     This file is part of the KDE libraries
 

@@ -14,13 +14,13 @@
 #include "KisUpgradeToWriteLocker.h"
 
 struct NormalLockPolicy {
-    typedef QReadLocker ReadLocker;
-    typedef QWriteLocker WriteLocker;
+    typedef PkReadLocker ReadLocker;
+    typedef PkWriteLocker WriteLocker;
 };
 
 struct UpgradeLockPolicy {
     struct FakeLocker : private boost::noncopyable {
-        FakeLocker(QReadWriteLock *) {}
+        FakeLocker(PkReadWriteLock *) {}
     };
 
     typedef FakeLocker ReadLocker;
@@ -29,7 +29,7 @@ struct UpgradeLockPolicy {
 
 struct NoLockPolicy {
     struct FakeLocker : private boost::noncopyable {
-        FakeLocker(QReadWriteLock *) {}
+        FakeLocker(PkReadWriteLock *) {}
     };
 
     typedef FakeLocker ReadLocker;

@@ -23,7 +23,7 @@ class Q_DECL_HIDDEN KoProgressUpdater::Private
 {
 public:
 
-    Private(KoProgressUpdater *_q, KoProgressProxy *proxy, QPointer<KoUpdater> parentUpdater, Mode _mode)
+    Private(KoProgressUpdater *_q, KoProgressProxy *proxy, PkPointer<KoUpdater> parentUpdater, Mode _mode)
         : q(_q)
         , parentProgressProxy(proxy)
         , parentUpdater(parentUpdater)
@@ -37,14 +37,14 @@ public:
 
 private:
     KoProgressProxy *parentProgressProxy;
-    QPointer<KoUpdater> parentUpdater;
+    PkPointer<KoUpdater> parentUpdater;
 
 public:
     Mode mode;
     int currentProgress = 0;
     bool isUndefinedState = false;
     KisSignalCompressor *updateCompressor;
-    QList<QPointer<KoUpdaterPrivate> > subtasks;
+    QList<PkPointer<KoUpdaterPrivate> > subtasks;
     bool canceled;
     int updateInterval = 250; // ms, 4 updates per second should be enough
     bool autoNestNames = false;
@@ -52,7 +52,7 @@ public:
     int taskMax = 99;
     bool isStarted = false;
 
-    QMutex mutex;
+    PkMutex mutex;
 
     void updateParentText();
     void clearState();
@@ -75,7 +75,7 @@ KoProgressUpdater::KoProgressUpdater(KoProgressProxy *progressProxy, Mode mode)
     Q_EMIT triggerUpdateAsynchronously();
 }
 
-KoProgressUpdater::KoProgressUpdater(QPointer<KoUpdater> updater)
+KoProgressUpdater::KoProgressUpdater(PkPointer<KoUpdater> updater)
     : d (new Private(this, 0, updater, Unthreaded))
 {
     KIS_ASSERT_RECOVER_RETURN(updater);
@@ -104,7 +104,7 @@ KoProgressUpdater::~KoProgressUpdater()
 void KoProgressUpdater::start(int range, const QString &text)
 {
     {
-        QMutexLocker l(&d->mutex);
+        PkMutexLocker l(&d->mutex);
         d->clearState();
         d->taskName = text;
         d->taskMax = range - 1;
@@ -115,7 +115,7 @@ void KoProgressUpdater::start(int range, const QString &text)
     Q_EMIT triggerUpdateAsynchronously();
 }
 
-QPointer<KoUpdater> KoProgressUpdater::startSubtask(int weight,
+PkPointer<KoUpdater> KoProgressUpdater::startSubtask(int weight,
                                                     const QString &name,
                                                     bool isPersistent)
 {
@@ -127,22 +127,22 @@ QPointer<KoUpdater> KoProgressUpdater::startSubtask(int weight,
     KoUpdaterPrivate *p = new KoUpdaterPrivate(weight, name, isPersistent);
 
     {
-        QMutexLocker l(&d->mutex);
+        PkMutexLocker l(&d->mutex);
         d->subtasks.append(p);
     }
     connect(p, SIGNAL(sigUpdated()), SLOT(update()));
     connect(p, SIGNAL(sigCancelled()), SLOT(cancel()));
 
-    QPointer<KoUpdater> updater = p->connectedUpdater();
+    PkPointer<KoUpdater> updater = p->connectedUpdater();
 
     Q_EMIT triggerUpdateAsynchronously();
     return updater;
 }
 
-void KoProgressUpdater::removePersistentSubtask(QPointer<KoUpdater> updater)
+void KoProgressUpdater::removePersistentSubtask(PkPointer<KoUpdater> updater)
 {
     {
-        QMutexLocker l(&d->mutex);
+        PkMutexLocker l(&d->mutex);
 
         for (auto it = d->subtasks.begin(); it != d->subtasks.end();) {
             if ((*it)->connectedUpdater() != updater) {
@@ -161,16 +161,16 @@ void KoProgressUpdater::removePersistentSubtask(QPointer<KoUpdater> updater)
 
 void KoProgressUpdater::cancel()
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN(QThread::currentThread() == this->thread());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThread() == this->thread());
 
-    QList<QPointer<KoUpdaterPrivate> > subtasks;
+    QList<PkPointer<KoUpdaterPrivate> > subtasks;
 
     {
-        QMutexLocker l(&d->mutex);
+        PkMutexLocker l(&d->mutex);
         subtasks = d->subtasks;
     }
 
-    Q_FOREACH (QPointer<KoUpdaterPrivate> updater, subtasks) {
+    Q_FOREACH (PkPointer<KoUpdaterPrivate> updater, subtasks) {
         if (!updater) continue;
 
         updater->setProgress(100);
@@ -183,7 +183,7 @@ void KoProgressUpdater::cancel()
 
 void KoProgressUpdater::update()
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN(QThread::currentThread() == this->thread());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThread() == this->thread());
 
     if (d->mode == Unthreaded) {
         qApp->processEvents();
@@ -194,7 +194,7 @@ void KoProgressUpdater::update()
 
 void KoProgressUpdater::updateUi()
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN(QThread::currentThread() == this->thread());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThread() == this->thread());
 
     // This function runs in the app main thread. All the progress
     // updates arrive at the KoUpdaterPrivate instances through
@@ -204,14 +204,14 @@ void KoProgressUpdater::updateUi()
     // triggered by a timer)
 
     {
-        QMutexLocker l(&d->mutex);
+        PkMutexLocker l(&d->mutex);
 
         if (!d->subtasks.isEmpty()) {
             int totalProgress = 0;
             int totalWeight = 0;
             d->isUndefinedState = false;
 
-            Q_FOREACH (QPointer<KoUpdaterPrivate> updater, d->subtasks) {
+            Q_FOREACH (PkPointer<KoUpdaterPrivate> updater, d->subtasks) {
                 if (updater->interrupted()) {
                     d->currentProgress = -1;
                     break;
@@ -253,7 +253,7 @@ void KoProgressUpdater::updateUi()
 
             if (d->currentProgress >= d->progressProxy()->maximum()) {
                 {
-                    QMutexLocker l(&d->mutex);
+                    PkMutexLocker l(&d->mutex);
                     d->clearState();
                 }
                 d->progressProxy()->setRange(0, d->taskMax);
@@ -277,7 +277,7 @@ void KoProgressUpdater::Private::updateParentText()
     QString actionName = taskName;
 
     if (autoNestNames) {
-        Q_FOREACH (QPointer<KoUpdaterPrivate> updater, subtasks) {
+        Q_FOREACH (PkPointer<KoUpdaterPrivate> updater, subtasks) {
 
             if (updater->isPersistent() && updater->isCompleted()) {
                 continue;

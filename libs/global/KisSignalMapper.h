@@ -216,7 +216,7 @@ public Q_SLOTS:
 private:
     
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
     
     Q_DISABLE_COPY(KisSignalMapper)
     Q_PRIVATE_SLOT(d, void _q_senderDestroyed())

@@ -53,7 +53,7 @@ private:
 };
 
 template <typename T, typename... Args>
-using DataWrapperLocal = DataStorage<QSharedPointer<T>, T, Args...>;
+using DataWrapperLocal = DataStorage<PkSharedPointer<T>, T, Args...>;
 
 /**
  * A policy-like class for sharing DataStorage object
@@ -75,8 +75,8 @@ private:
         SharedStorage(T *value) : m_value(value) {}
         SharedStorage(const SharedStorage &rhs) = delete;
 
-        QMutex sharedMutex;
-        DataStorage<QScopedPointer<ConstType>, T, Args...> m_value;
+        PkMutex sharedMutex;
+        DataStorage<PkScopedPointer<ConstType>, T, Args...> m_value;
     };
 public:
 
@@ -86,12 +86,12 @@ public:
     DataWrapperShared& operator=(const DataWrapperShared &rhs) = default;
 
     ConstType* lazyInitialize(const std::function<FactoryType> &factory, Args... args) {
-        QMutexLocker l(&m_sharedStorage->sharedMutex);
+        PkMutexLocker l(&m_sharedStorage->sharedMutex);
         return m_sharedStorage->m_value.lazyInitialize(factory, std::forward<Args...>(args...));
     }
 
     bool hasValue() const {
-        QMutexLocker l(&m_sharedStorage->sharedMutex);
+        PkMutexLocker l(&m_sharedStorage->sharedMutex);
         return m_sharedStorage->m_value.hasValue();
     }
 
@@ -100,7 +100,7 @@ public:
     }
 
 private:
-    QSharedPointer<SharedStorage> m_sharedStorage;
+    PkSharedPointer<SharedStorage> m_sharedStorage;
 };
 
 }
@@ -123,7 +123,7 @@ public:
     }
 
     KisLazySharedCacheStorageBase(const KisLazySharedCacheStorageBase &rhs) {
-        QMutexLocker l(&rhs.m_mutex);
+        PkMutexLocker l(&rhs.m_mutex);
         m_factory = rhs.m_factory;
         m_dataWrapper = rhs.m_dataWrapper;
         m_cachedValue = rhs.m_cachedValue;
@@ -139,7 +139,7 @@ public:
         if (m_cachedValue) {
             result = m_cachedValue;
         } else {
-            QMutexLocker l1(&m_mutex);
+            PkMutexLocker l1(&m_mutex);
             m_cachedValue = m_dataWrapper.lazyInitialize(m_factory, args...);
             result = m_cachedValue;
         }
@@ -155,7 +155,7 @@ public:
     }
 
     void reset() {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         m_cachedValue.storeRelaxed(nullptr);
         m_dataWrapper.reset();
     }
@@ -163,8 +163,8 @@ public:
 private:
     std::function<FactoryType> m_factory;
     DataWrapper m_dataWrapper;
-    QAtomicPointer<ConstType> m_cachedValue;
-    mutable QMutex m_mutex;
+    PkAtomicPointer<ConstType> m_cachedValue;
+    mutable PkMutex m_mutex;
 };
 
 /**

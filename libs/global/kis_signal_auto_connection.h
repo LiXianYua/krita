@@ -16,10 +16,10 @@
  * A special wrapper class that represents a connection between two QObject objects.
  * It creates the connection on the construction and disconnects it on destruction.
  *
- * WARNING: never use QScopedPointer::reset() for updating the
+ * WARNING: never use PkScopedPointer::reset() for updating the
  *          connection like:
  *
- * QScopedPointer<KisSignalAutoConnection> conn;
+ * PkScopedPointer<KisSignalAutoConnection> conn;
  * ...
  * void Something::setCanvas(KoCanvasBase * canvas) {
  *     conn.reset(new KisSignalAutoConnection(...));
@@ -59,7 +59,7 @@ private:
     QMetaObject::Connection m_connection;
 };
 
-typedef QSharedPointer<KisSignalAutoConnection> KisSignalAutoConnectionSP;
+typedef PkSharedPointer<KisSignalAutoConnection> KisSignalAutoConnectionSP;
 
 /**
  * A class to store multiple connections and to be able to stop all of

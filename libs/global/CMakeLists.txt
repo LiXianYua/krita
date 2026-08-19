@@ -97,6 +97,12 @@ target_link_libraries(kritaglobal
         pkpointer
         pkflags
         pkport
+        Qt${QT_MAJOR_VERSION}::Core
+        Qt${QT_MAJOR_VERSION}::Gui
+        Qt${QT_MAJOR_VERSION}::Widgets
+        Qt${QT_MAJOR_VERSION}::Xml
+        KF${KF_MAJOR}::I18n
+        KF${KF_MAJOR}::ConfigCore
         Boost::boost
         zug
         lager

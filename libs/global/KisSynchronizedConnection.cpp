@@ -29,21 +29,29 @@ struct KisBarrierCallbackContainer
     std::function<void()> callback;
 };
 
-Q_GLOBAL_STATIC(KisSynchronizedConnectionEventTypeRegistrar, s_instance)
-Q_GLOBAL_STATIC(KisBarrierCallbackContainer, s_barrier)
+static KisSynchronizedConnectionEventTypeRegistrar *s_instance()
+{
+    static KisSynchronizedConnectionEventTypeRegistrar instance;
+    return &instance;
+}
+static KisBarrierCallbackContainer *s_barrier()
+{
+    static KisBarrierCallbackContainer instance;
+    return &instance;
+}
 
 /************************************************************************/
 /*            KisSynchronizedConnectionEvent                            */
 /************************************************************************/
 
 KisSynchronizedConnectionEvent::KisSynchronizedConnectionEvent(QObject *_destination)
-    : QEvent(QEvent::Type(s_instance->eventType)),
+    : QEvent(QEvent::Type(s_instance()->eventType)),
       destination(_destination)
 {
 }
 
 KisSynchronizedConnectionEvent::KisSynchronizedConnectionEvent(const KisSynchronizedConnectionEvent &rhs)
-    : QEvent(QEvent::Type(s_instance->eventType)),
+    : QEvent(QEvent::Type(s_instance()->eventType)),
       destination(rhs.destination)
 {
 }
@@ -58,23 +66,23 @@ KisSynchronizedConnectionEvent::~KisSynchronizedConnectionEvent()
 
 int KisSynchronizedConnectionBase::eventType()
 {
-    return s_instance->eventType;
+    return s_instance()->eventType;
 }
 
 void KisSynchronizedConnectionBase::registerSynchronizedEventBarrier(std::function<void ()> callback)
 {
-    KIS_SAFE_ASSERT_RECOVER_NOOP(!s_barrier->callback);
-    s_barrier->callback = callback;
+    KIS_SAFE_ASSERT_RECOVER_NOOP(!s_barrier()->callback);
+    s_barrier()->callback = callback;
 }
 
 void KisSynchronizedConnectionBase::setAutoModeForUnittestsEnabled(bool value)
 {
-    s_instance->enableAutoModeForUnittests = value;
+    s_instance()->enableAutoModeForUnittests = value;
 }
 
 bool KisSynchronizedConnectionBase::isAutoModeForUnittestsEnabled()
 {
-    return s_instance->enableAutoModeForUnittests;
+    return s_instance()->enableAutoModeForUnittests;
 }
 
 void KisSynchronizedConnectionBase::forceDeliverAllSynchronizedEvents()
@@ -86,13 +94,13 @@ void KisSynchronizedConnectionBase::forceDeliverAllSynchronizedEvents()
      * python filters only)
      */
     qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
-    KIS_SAFE_ASSERT_RECOVER_RETURN(s_barrier->callback);
-    s_barrier->callback();
+    KIS_SAFE_ASSERT_RECOVER_RETURN(s_barrier()->callback);
+    s_barrier()->callback();
 }
 
 bool KisSynchronizedConnectionBase::event(QEvent *event)
 {
-    if (event->type() == s_instance->eventType) {
+    if (event->type() == s_instance()->eventType) {
         KisSynchronizedConnectionEvent *typedEvent =
                 static_cast<KisSynchronizedConnectionEvent*>(event);
 
@@ -106,15 +114,15 @@ bool KisSynchronizedConnectionBase::event(QEvent *event)
 
 void KisSynchronizedConnectionBase::postEvent()
 {
-    if (s_instance->enableAutoModeForUnittests && QThread::currentThread() == this->thread()) {
+    if (s_instance()->enableAutoModeForUnittests && PkThread::currentThread() == this->thread()) {
         /// TODO: check if we need s_barrier at all now!
 
         /// TODO: This assert triggers in unittests that don't have a fully-featured
         /// KisApplication object. Perhaps we should add a fake callback to KISTEST_MAIN
-        /// KIS_SAFE_ASSERT_RECOVER_NOOP(s_barrier->callback);
+        /// KIS_SAFE_ASSERT_RECOVER_NOOP(s_barrier()->callback);
 
-        if (s_barrier->callback) {
-            s_barrier->callback();
+        if (s_barrier()->callback) {
+            s_barrier()->callback();
         }
 
         deliverEventToReceiver();

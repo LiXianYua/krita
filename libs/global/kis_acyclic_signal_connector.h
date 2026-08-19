@@ -190,8 +190,8 @@ Q_SIGNALS:
 
 private:
     int m_signalsBlocked;
-    QVector<QPointer<KisAcyclicSignalConnector>> m_coordinatedConnectors;
-    QPointer<KisAcyclicSignalConnector> m_parentConnector;
+    QVector<PkPointer<KisAcyclicSignalConnector>> m_coordinatedConnectors;
+    PkPointer<KisAcyclicSignalConnector> m_parentConnector;
 };
 
 #endif /* __KIS_ACYCLIC_SIGNAL_CONNECTOR_H */

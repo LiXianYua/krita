@@ -96,7 +96,7 @@ private:
     Mode m_mode = UNDEFINED;
     SlowHandlerMode m_slowHandlerMode = PRECISE_INTERVAL;
     bool m_signalsPending = false;
-    QElapsedTimer m_lastEmittedTimer;
+    PkElapsedTimer m_lastEmittedTimer;
     int m_isEmitting = 0;
     int m_timeout = 0;
     std::function<bool()> m_idleCallback;

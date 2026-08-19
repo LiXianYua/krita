@@ -200,7 +200,7 @@ void KisBezierPatch::sampleRegularGridSVG2(PkSize &gridSize, QVector<PkPointF> &
     }
 }
 
-QDebug operator<<(QDebug dbg, const KisBezierPatch &p) {
+PkDebug operator<<(PkDebug dbg, const KisBezierPatch &p) {
     dbg.nospace() << "Patch " << p.srcBoundingRect() << " -> " << p.dstBoundingRect() << "\n";
     dbg.nospace() << "  ( " << p.points[KisBezierPatch::TL] << " "<< p.points[KisBezierPatch::TR] << " " << p.points[KisBezierPatch::BL] << " " << p.points[KisBezierPatch::BR] << ") ";
     return dbg.nospace();

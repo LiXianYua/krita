@@ -211,11 +211,11 @@ private:
 private:
     Q_DISABLE_COPY(KisLocklessStack)
 
-    QAtomicPointer<Node> m_top;
-    QAtomicPointer<Node> m_freeNodes;
+    PkAtomicPointer<Node> m_top;
+    PkAtomicPointer<Node> m_freeNodes;
 
-    QAtomicInt m_deleteBlockers;
-    QAtomicInt m_numNodes;
+    PkAtomicInt m_deleteBlockers;
+    PkAtomicInt m_numNodes;
 };
 
 #endif /* __KIS_LOCKLESS_STACK_H */

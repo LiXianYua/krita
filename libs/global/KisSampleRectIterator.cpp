@@ -7,7 +7,7 @@
 
 #include <kis_algebra_2d.h>
 
-struct KisSampleRectIterator::HaltonSampler : QSharedData {
+struct KisSampleRectIterator::HaltonSampler {
     HaltonSampler() : x(2), y(3) {}
     HaltonSampler(const HaltonSampler &rhs) = default;
     HaltonSampler(HaltonSampler &&rhs) = default;
@@ -43,7 +43,7 @@ void KisSampleRectIterator::increment() {
     if (m_index >= 9) {
         if (m_index == 9) {
             KIS_SAFE_ASSERT_RECOVER_RETURN(!m_sampler);
-            m_sampler = new HaltonSampler();
+            m_sampler = std::make_shared<HaltonSampler>();
         }
         m_sampler->step();
     }

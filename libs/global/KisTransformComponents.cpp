@@ -75,7 +75,7 @@ KisTransformComponents compareTransformComponents(const PkTransform &lhs, const 
 
 }
 
-QDebug operator<<(QDebug dbg, KisAlgebra2D::KisTransformComponent component) {
+PkDebug operator<<(PkDebug dbg, KisAlgebra2D::KisTransformComponent component) {
     switch (component) {
         case KisAlgebra2D::KisTransformComponent::Translate:
             dbg << "KisTransformComponent::Translate";
@@ -99,7 +99,7 @@ QDebug operator<<(QDebug dbg, KisAlgebra2D::KisTransformComponent component) {
     return dbg;
 }
 
-QDebug operator<<(QDebug dbg, KisAlgebra2D::KisTransformComponents components) {
+PkDebug operator<<(PkDebug dbg, KisAlgebra2D::KisTransformComponents components) {
     dbg.nospace() << "KisTransformComponents(";
 
     bool first = true;

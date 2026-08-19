@@ -96,7 +96,7 @@ protected:
 
 public:
 
-    QPointer<KoUpdaterPrivate> d;
+    PkPointer<KoUpdaterPrivate> d;
     int range;
     int min;
     int max;
@@ -107,7 +107,7 @@ private Q_SLOTS:
 
 private:
 
-    QAtomicInt m_interrupted;
+    PkAtomicInt m_interrupted;
     int  m_progressPercent;
 };
 

@@ -31,9 +31,9 @@ public:
     }
 
     // see note in kis_shared.cpp
-    QAtomicInt* sharedWeakReference() {
+    PkAtomicInt* sharedWeakReference() {
         if(!_sharedWeakReference) {
-            _sharedWeakReference = new QAtomicInt();
+            _sharedWeakReference = new PkAtomicInt();
             _sharedWeakReference->ref();
         }
 
@@ -41,8 +41,8 @@ public:
     }
 
 private:
-    QAtomicInt _ref;
-    QAtomicInt *_sharedWeakReference;
+    PkAtomicInt _ref;
+    PkAtomicInt *_sharedWeakReference;
 };
 
 #endif

@@ -151,7 +151,7 @@ private:
 private:
     KisSignalCompressor m_compressor;
     CallbackFunction m_function;
-    QScopedPointer<SignalToFunctionProxy> m_signalProxy;
+    PkScopedPointer<SignalToFunctionProxy> m_signalProxy;
     T m_currentParamValue;
 };
 

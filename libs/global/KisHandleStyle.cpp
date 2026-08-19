@@ -37,7 +37,7 @@ static const QColor selectionColor(164, 227, 243);
 
 KisHandleStyle &KisHandleStyle::inheritStyle()
 {
-    static QScopedPointer<KisHandleStyle> style;
+    static PkScopedPointer<KisHandleStyle> style;
 
     if (!style) {
         style.reset(new KisHandleStyle());
@@ -50,7 +50,7 @@ KisHandleStyle &KisHandleStyle::inheritStyle()
 
 KisHandleStyle &KisHandleStyle::primarySelection()
 {
-    static QScopedPointer<KisHandleStyle> style;
+    static PkScopedPointer<KisHandleStyle> style;
 
     if (!style) {
         style.reset(new KisHandleStyle());
@@ -62,7 +62,7 @@ KisHandleStyle &KisHandleStyle::primarySelection()
 
 KisHandleStyle &KisHandleStyle::secondarySelection()
 {
-    static QScopedPointer<KisHandleStyle> style;
+    static PkScopedPointer<KisHandleStyle> style;
 
     if (!style) {
         style.reset(new KisHandleStyle());
@@ -74,7 +74,7 @@ KisHandleStyle &KisHandleStyle::secondarySelection()
 
 KisHandleStyle &KisHandleStyle::gradientHandles()
 {
-    static QScopedPointer<KisHandleStyle> style;
+    static PkScopedPointer<KisHandleStyle> style;
 
     if (!style) {
         style.reset(new KisHandleStyle());
@@ -91,7 +91,7 @@ KisHandleStyle &KisHandleStyle::gradientArrows()
 
 KisHandleStyle &KisHandleStyle::highlightedPrimaryHandles()
 {
-    static QScopedPointer<KisHandleStyle> style;
+    static PkScopedPointer<KisHandleStyle> style;
 
     if (!style) {
         style.reset(new KisHandleStyle());
@@ -103,7 +103,7 @@ KisHandleStyle &KisHandleStyle::highlightedPrimaryHandles()
 
 KisHandleStyle &KisHandleStyle::highlightedPrimaryHandlesWithSolidOutline()
 {
-    static QScopedPointer<KisHandleStyle> style;
+    static PkScopedPointer<KisHandleStyle> style;
 
     if (!style) {
         style.reset(new KisHandleStyle());
@@ -121,7 +121,7 @@ KisHandleStyle &KisHandleStyle::highlightedPrimaryHandlesWithSolidOutline()
 
 KisHandleStyle &KisHandleStyle::partiallyHighlightedPrimaryHandles()
 {
-    static QScopedPointer<KisHandleStyle> style;
+    static PkScopedPointer<KisHandleStyle> style;
 
     if (!style) {
         style.reset(new KisHandleStyle());
@@ -133,7 +133,7 @@ KisHandleStyle &KisHandleStyle::partiallyHighlightedPrimaryHandles()
 
 KisHandleStyle &KisHandleStyle::selectedPrimaryHandles()
 {
-    static QScopedPointer<KisHandleStyle> style;
+    static PkScopedPointer<KisHandleStyle> style;
 
     if (!style) {
         style.reset(new KisHandleStyle());

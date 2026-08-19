@@ -10,7 +10,7 @@
 
 #include "kis_dom_utils.h"
 
-QDebug KisBezierMeshDetails::operator<<(QDebug dbg, const BaseMeshNode &n) {
+PkDebug KisBezierMeshDetails::operator<<(PkDebug dbg, const BaseMeshNode &n) {
     dbg.nospace() << "Node " << n.node << " "
                   << "(lC: " << n.leftControl << " "
                   << "tC: " << n.topControl << " "

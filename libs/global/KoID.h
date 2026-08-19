@@ -89,7 +89,7 @@ public:
     }
 
 private:
-    QSharedPointer<KoIDPrivate> m_d;
+    PkSharedPointer<KoIDPrivate> m_d;
 };
 
 Q_DECLARE_METATYPE(KoID)
@@ -114,7 +114,7 @@ inline bool operator>(const KoID &v1, const KoID &v2)
     return v1.m_d->id > v2.m_d->id;;
 }
 
-inline QDebug operator<<(QDebug dbg, const KoID &id)
+inline PkDebug operator<<(PkDebug dbg, const KoID &id)
 {
     dbg.nospace() << id.name() << " (" << id.id() << " )";
 

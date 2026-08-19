@@ -10,7 +10,11 @@
 #include <algorithm>
 #include <cmath>
 
-Q_GLOBAL_STATIC(KoFakeProgressProxy, s_instance)
+static KoFakeProgressProxy *s_instance()
+{
+    static KoFakeProgressProxy instance;
+    return &instance;
+}
 
 int KoFakeProgressProxy::maximum() const
 {
@@ -40,5 +44,5 @@ void KoFakeProgressProxy::setAutoNestedName(const QString &name)
 
 KoProgressProxy *KoFakeProgressProxy::instance()
 {
-    return s_instance;
+    return s_instance();
 }

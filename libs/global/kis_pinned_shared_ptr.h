@@ -59,7 +59,7 @@ private:
 #include <kis_debug.h>
 
 template <typename T>
-inline QDebug operator<<(QDebug dbg, const KisPinnedSharedPtr<T> &ptr)
+inline PkDebug operator<<(PkDebug dbg, const KisPinnedSharedPtr<T> &ptr)
 {
     dbg.nospace() << ptr.data();
     return dbg;

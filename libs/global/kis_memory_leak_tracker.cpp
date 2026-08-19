@@ -15,12 +15,16 @@
 #define IGNORE_MEMENTO_ITEM
 #define IGNORE_TILE
 
-Q_GLOBAL_STATIC(KisMemoryLeakTracker, s_instance)
+static KisMemoryLeakTracker *s_instance()
+{
+    static KisMemoryLeakTracker instance;
+    return &instance;
+}
 
 // Common function
 KisMemoryLeakTracker* KisMemoryLeakTracker::instance()
 {
-    return s_instance;
+    return s_instance();
 }
 #ifdef HAVE_MEMORY_LEAK_TRACKER
 
@@ -62,13 +66,13 @@ struct KisMemoryLeakTracker::Private {
     QHash<const void*, WhatInfo > whatWhoWhen;
     template<typename _T_>
     void dumpReferencedObjectsAndDelete(QHash<const _T_*, WhatInfo >&, bool _delete);
-    QMutex m;
+    PkMutex m;
 };
 
 template<typename _T_>
 void KisMemoryLeakTracker::Private::dumpReferencedObjectsAndDelete(QHash<const _T_*, WhatInfo >& map, bool _delete)
 {
-    QMutexLocker l(&m);
+    PkMutexLocker l(&m);
     for (typename QHash<const _T_*, WhatInfo >::iterator it = map.begin();
             it != map.end(); ++it) {
         qWarning() << "Object " << it.key() << "(" << it.value().name << ") is still referenced by " << it.value().infos.size() << " objects:";
@@ -118,7 +122,7 @@ void KisMemoryLeakTracker::reference(const void* what, const void* bywho, const 
 {
     if(what == 0x0) return;
 
-    QMutexLocker l(&d->m);
+    PkMutexLocker l(&d->m);
 
     if (whatName == 0 || ( strcmp(whatName, "PK13KisSharedData") != 0
 #ifdef IGNORE_MEMENTO_ITEM
@@ -138,7 +142,7 @@ void KisMemoryLeakTracker::reference(const void* what, const void* bywho, const 
 
 void KisMemoryLeakTracker::dereference(const void* what, const void* bywho)
 {
-    QMutexLocker l(&d->m);
+    PkMutexLocker l(&d->m);
     if (d->whatWhoWhen.contains(what)) {
         QHash<const void*, BacktraceInfo*>& whoWhen = d->whatWhoWhen[what].infos;
         delete whoWhen[bywho];
@@ -159,7 +163,7 @@ void KisMemoryLeakTracker::dumpReferences()
 
 void KisMemoryLeakTracker::dumpReferences(const void* what)
 {
-    QMutexLocker l(&d->m);
+    PkMutexLocker l(&d->m);
     if (!d->whatWhoWhen.contains(what)) {
         qWarning() << "Object " << what << " is not tracked";
         return;

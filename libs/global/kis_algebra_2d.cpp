@@ -2343,13 +2343,13 @@ PkPainterPath VectorPath::asPainterPath() const
     return response;
 }
 
-QDebug operator<<(QDebug debug, const VectorPath &path)
+PkDebug operator<<(PkDebug debug, const VectorPath &path)
 {
     debug << path.asPainterPath();
     return debug;
 }
 
-QDebug operator<<(QDebug debug, const VectorPath::VectorPathPoint &point)
+PkDebug operator<<(PkDebug debug, const VectorPath::VectorPathPoint &point)
 {
     bool autoInsertSpaces = debug.autoInsertSpaces();
     debug.setAutoInsertSpaces(false);

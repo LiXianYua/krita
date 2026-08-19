@@ -74,7 +74,7 @@ public:
      * HACK ALERT: KoUpdater inherits KoProgressProxy, so be careful when constructing
      *             the updater and check which override is actually used.
      */
-    explicit KoProgressUpdater(QPointer<KoUpdater> updater);
+    explicit KoProgressUpdater(PkPointer<KoUpdater> updater);
 
     /// destructor
     ~KoProgressUpdater() override;
@@ -100,13 +100,13 @@ public:
      *
      * KoProgressUpdater will delete the KoUpdater instances when a
      * start() is called or when it is deleted. The KoUpdater pointers
-     * are packed in a QPointer so you can check whether they have
+     * are packed in a PkPointer so you can check whether they have
      * been deleted before dereferencing.
      */
-    QPointer<KoUpdater> startSubtask(int weight=1,
+    PkPointer<KoUpdater> startSubtask(int weight=1,
                                      const QString &name = QString(), bool isPersistent = false);
 
-    void removePersistentSubtask(QPointer<KoUpdater> updater);
+    void removePersistentSubtask(PkPointer<KoUpdater> updater);
 
     /**
      * @return true when the processing is interrupted
