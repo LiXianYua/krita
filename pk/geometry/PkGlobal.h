@@ -186,6 +186,67 @@ enum Axis {
     YAxis,
     ZAxis
 };
+
+// ---------------------------------------------------------------------------
+// qnamespace.h:75-96 —— `Qt::GlobalColor`，**逐字照抄**（R-15 交接：`PkImage`
+// 的 `fill(Qt::GlobalColor)` 需要这个类型，签名要用，理由与 AspectRatioMode/
+// Axis 完全同构——几何头/`pk/image` 头都不许依赖 `compat/`，对拍要求两侧真的
+// 分别 include 各自的头，混进 compat 会让对拍恒等）。
+//
+// 完整枚举序数照抄自真 Qt 5.15.7（`$QT/include/QtCore/qnamespace.h:75-96`）：
+//   color0=0 color1=1 black=2 white=3 darkGray=4 gray=5 lightGray=6 red=7
+//   green=8 blue=9 cyan=10 magenta=11 yellow=12 darkRed=13 darkGreen=14
+//   darkBlue=15 darkCyan=16 darkMagenta=17 darkYellow=18 transparent=19
+//
+// **全部 20 个值都声明**（枚举常量声明成本趋近于零，缺一个会让任何
+// `switch` 全覆盖 Qt 枚举值的调用点在替换时编不过——与 `pk/image` 里
+// `QImage::Format` 全量声明同一个理由）。但 `PkImage::fill(GlobalColor)`
+// 内部转换表**只保证实测有真实调用点的 5 个值精确**（`white black red gray
+// transparent`，R-15 plan `docs/superpowers/plans/R-15.md` 的 grep 用量表：
+// 10 个文件用到 `red`/`transparent`/`gray`/`white`）+ `black` 顺手做（枚举里
+// 排在中间，不做反而要在转换表里挖洞）。这 6 个的精确 RGBA 已用真 Qt 探针
+// 实测（同一份 plan 文档「GlobalColor 精确 RGBA」一节）：
+//   white=(255,255,255,255) black=(0,0,0,255) red=(255,0,0,255)
+//   gray=(160,160,164,255)  ← 不是 (128,128,128)！Qt 的经典坑，darkGray 才是
+//   transparent=(0,0,0,0)   darkGray=(128,128,128,255)
+// 其余 14 个值（`color0/color1/lightGray/blue/green/cyan/magenta/yellow/
+// darkRed/darkGreen/darkBlue/darkCyan/darkMagenta/darkYellow`）真实调用点
+// 为 0，`PkImage::fill()` 遇到它们可以不保证精确颜色（判据①：一项不多）。
+// ---------------------------------------------------------------------------
+enum GlobalColor {
+    color0,
+    color1,
+    black,
+    white,
+    darkGray,
+    gray,
+    lightGray,
+    red,
+    green,
+    blue,
+    cyan,
+    magenta,
+    yellow,
+    darkRed,
+    darkGreen,
+    darkBlue,
+    darkCyan,
+    darkMagenta,
+    darkYellow,
+    transparent
+};
+
+// ---------------------------------------------------------------------------
+// qnamespace.h:1381-1384 —— `Qt::TransformationMode`，**逐字照抄**（R-15
+// 交接：`PkImage::scaled()`/`transformed()` 的形参类型，序数 FastTransformation=0
+// SmoothTransformation=1，真 Qt 5.15.7 实测确认）。两个值都有真实调用点
+// （R-15 plan 用量表：`.scaled()` 5 文件 7 处、`.transformed()` 4-5 文件，
+// Fast/Smooth 两个值都被用到），全量声明（只有两个值，没有"不做"的空间）。
+// ---------------------------------------------------------------------------
+enum TransformationMode {
+    FastTransformation,
+    SmoothTransformation
+};
 }
 
 // qnumeric.h:48 与 qnumeric.h:59。Qt 里这两个是 Q_CORE_EXPORT 的**非 inline**
