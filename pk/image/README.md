@@ -169,7 +169,7 @@ R线-spec.md:173-196 四条逐条满足）：
 cmake -S pk/image -B pk/image/build -G Ninja
 cmake --build pk/image/build
 
-# ② 单测：test_pkimage（1 个套件，现 47 条断言）
+# ② 单测：test_pkimage（1 个套件；测试方法清单见 tests/image_case.h，数字会漂移不写死）
 ctest --test-dir pk/image/build --output-on-failure
 
 # ③ 判据③：库里不得有 Qt 未定义符号。**除已知假阳性外必须无输出。**

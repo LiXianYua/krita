@@ -67,6 +67,25 @@ void ImageCase::colorCount()
     PK_COMPARE(argb.colorCount(), 0);
 }
 
+void ImageCase::monoDefaultColorTableSynthesized()
+{
+    // 评审 Minor 修复：未 setColorTable 的 Mono/MonoLSB 空表时，真 Qt 会
+    // 自动填充 colorTable = [0xFF000000, 0xFFFFFFFF]（黑/白）。PkImage 的
+    // colorTable()/color(i) 现在合成同样的默认表，与 colorCount() 硬返回 2、
+    // lookupColorTable() 兜底默认（index0 黑 / index1 白）三处自洽。
+    PkImage mono(2, 2, PkImage::Format_Mono);
+    PK_COMPARE(mono.colorCount(), 2);
+    PK_COMPARE(mono.colorTable().size(), static_cast<size_t>(2));
+    PK_COMPARE(mono.color(0), 0xFF000000u);
+    PK_COMPARE(mono.color(1), 0xFFFFFFFFu);
+
+    PkImage monoLsb(2, 2, PkImage::Format_MonoLSB);
+    PK_COMPARE(monoLsb.colorCount(), 2);
+    PK_COMPARE(monoLsb.colorTable().size(), static_cast<size_t>(2));
+    PK_COMPARE(monoLsb.color(0), 0xFF000000u);
+    PK_COMPARE(monoLsb.color(1), 0xFFFFFFFFu);
+}
+
 // ---------------------------------------------------------------------------
 // Task 2：像素访问与写入
 // ---------------------------------------------------------------------------

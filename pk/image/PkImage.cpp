@@ -520,7 +520,16 @@ void PkImage::fill(Qt::GlobalColor color)
 
 std::vector<uint32_t> PkImage::colorTable() const
 {
-    return m_d.PkConst().colorTable;
+    const std::vector<uint32_t> &table = m_d.PkConst().colorTable;
+    Format f = format();
+    if (table.empty() && (f == Format_Mono || f == Format_MonoLSB)) {
+        // 未显式 setColorTable 的 Mono/MonoLSB 空表：真 Qt 的 QImage(w,h,
+        // Format_Mono) 构造时会自动填充 colorTable = [0xFF000000, 0xFFFFFFFF]
+        // （黑、白）。这里合成同样的默认表返回，与 lookupColorTable() 的兜底
+        // 默认值（index0 黑 / index1 白）以及 colorCount() 硬返回 2 三处自洽。
+        return {0xFF000000u, 0xFFFFFFFFu};
+    }
+    return table;
 }
 
 void PkImage::setColorTable(const std::vector<uint32_t> &colors)
@@ -538,10 +547,18 @@ void PkImage::setColorCount(int colorCount)
 uint32_t PkImage::color(int index) const
 {
     const PkImageData &d = m_d.PkConst();
-    if (index < 0 || static_cast<size_t>(index) >= d.colorTable.size()) {
-        return 0;
+    if (index >= 0 && static_cast<size_t>(index) < d.colorTable.size()) {
+        return d.colorTable[static_cast<size_t>(index)];
     }
-    return d.colorTable[static_cast<size_t>(index)];
+    // 未显式 setColorTable 的 Mono/MonoLSB 空表：委托 lookupColorTable() 合成
+    // 黑/白默认值（index0=0xFF000000、index1=0xFFFFFFFF），与真 Qt 自动填充的
+    // 默认表一致——消除 color(i) 与 pixel() 路径（lookupColorTable）之间在空表
+    // 时各自为政的内部不一致。Indexed8 与其它格式仍按越界读确定性返回 0。
+    Format f = format();
+    if (d.colorTable.empty() && (f == Format_Mono || f == Format_MonoLSB)) {
+        return lookupColorTable(d, f, index);
+    }
+    return 0;
 }
 
 void PkImage::setColor(int index, uint32_t argbColor)

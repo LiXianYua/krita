@@ -229,26 +229,6 @@ static bool same_double(double a, double b)
 }
 static uint32_t colorToArgb(const QColor &c) { return c.rgba(); }
 
-// 高频格式：depthTable() / rawPixelArgb() / writeRawPixelArgb() 有真正实现的
-// 9 个（brief「8 个高频格式」+ MonoLSB，Task 2 探针同样覆盖了 MonoLSB 的位
-// 打包，本文件在手挑用例里单独测它）。
-static bool isHighFreqPixelFormat(int fmtCode)
-{
-    switch (fmtCode) {
-    case PkImage::Format_Mono:
-    case PkImage::Format_MonoLSB:
-    case PkImage::Format_Indexed8:
-    case PkImage::Format_RGB32:
-    case PkImage::Format_ARGB32:
-    case PkImage::Format_ARGB32_Premultiplied:
-    case PkImage::Format_RGBA8888:
-    case PkImage::Format_Grayscale8:
-    case PkImage::Format_RGBA64:
-        return true;
-    default:
-        return false;
-    }
-}
 static bool isIndexedFormat(int fmtCode)
 {
     return fmtCode == PkImage::Format_Mono || fmtCode == PkImage::Format_MonoLSB

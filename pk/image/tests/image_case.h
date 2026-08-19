@@ -13,6 +13,8 @@ private Q_SLOTS:
     void isNullThreeWays();
     void rectAndSize();
     void colorCount();
+    // 修复轮（评审 Minor）：Mono/MonoLSB 空表时 colorTable()/color(i) 合成默认黑/白表
+    void monoDefaultColorTableSynthesized();
 
     // ---- Task 2：像素访问与写入 ----
     void pixelArgb32FillAndSetPixelRoundtrip();
