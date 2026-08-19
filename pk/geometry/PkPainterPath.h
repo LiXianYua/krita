@@ -149,7 +149,7 @@ public:
 
     // ── 查询 ──────────────────────────────────────────────────────────
 
-    // ── 查询 ──────────────────────────────────────────────────────────
+    // ── 查询（T1 + T3）──────────────────────────────────────────────────
 
     bool isEmpty() const;
     PkRectF boundingRect() const;
@@ -162,6 +162,23 @@ public:
 
     Qt::FillRule fillRule() const { return m_fillRule; }
     void setFillRule(Qt::FillRule fillRule) { m_fillRule = fillRule; }
+
+    // T3: 查询
+    bool contains(const PkPointF &pt) const;
+    bool contains(const PkRectF &rect) const;
+    bool intersects(const PkRectF &rect) const;
+
+    // T3: 转换 + 摊平
+    PkPolygonF toFillPolygon(const PkTransform &matrix) const;
+    PkVector<PkPolygonF> toFillPolygons(const PkTransform &matrix) const;
+    PkVector<PkPolygonF> toSubpathPolygons(const PkTransform &matrix) const;
+    PkPainterPath toReversed() const;
+
+    // T3: 测量
+    qreal length() const;
+    qreal percentAtLength(qreal t) const;
+    PkPointF pointAtPercent(qreal t) const;
+    qreal angleAtPercent(qreal t) const;
 
     // ── 变换（T1：translate/translated）────────────────────────────────────
 
