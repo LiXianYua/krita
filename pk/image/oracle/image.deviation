@@ -1,0 +1,186 @@
+# pk/image 与真 Qt5 的已声明差异清单
+#
+# 格式：<api>\t<tag>\t<期望计数>\t<≥20 UTF-8 码点理由>，**tab 分隔**，# 开头为注释。
+# 格式与判据完全照抄 pk/geometry/oracle/geometry.deviation（R-03 已 VERIFIED
+# 交付）：
+#   · 出现过的 DIFFTAG 必须在这里——否则 FAIL（未声明的差异 = 没人判断过它
+#     可不可接受）
+#   · 观察到的计数必须等于这里写的期望计数——否则 FAIL（第三列是**额度**，
+#     用少了也说明行为变了没人判断过：声明 N 次实得 0 次与实得 N-1 次一样 FAIL）
+#   · 只有额度写着 0 又确实没观察到的才出 WARN，提醒删掉，不影响判据
+#
+# 本清单的计数是**跑一次 run_oracle.sh 实测出来的**，本文件写下的就是那一次
+# 的真实数字（image_difftest.cpp 的输入集是纯函数式生成、无随机数，填充位/
+# 填充字节已在 image_difftest.cpp 的 packedRowMask() 里 mask 掉，逐次运行结果
+# 确定性相同）——具体数值与推导见 task-4-report.md「已声明偏离清单」一节。
+
+canary	size-mismatch	1	比较管道自证：故意让 QSize(3,4) 与 PkSize(3,5) 判等，尺寸比较与计数链路活着才会出现这一条
+canary	pixel-bit-mismatch	1	比较管道自证：故意判 0xFF010203 与 0xFF010204 相等，逐像素 uint32 位比较活着才会出现这一条
+canary	depth-mismatch	1	比较管道自证：故意判 RGB16 的 depth() 与 RGB32 的 depth() 相等，跨格式属性比较活着才会出现这一条
+
+# ══════════════════════════════════════════════════════════════════════════
+# fill(uint32_t) 字节序/灰度换算不一致（Task 4 新发现，探针实测）
+#
+# Qt 的 QImage::fill(uint) 对 RGBA8888 / Grayscale8 走的是与 setPixel() **不同**
+# 的底层路径——不做"按当前格式语义转换"，而是把 pixel 参数当一段裸 32 位/8 位
+# 数据直接 memfill，绕过这两个格式的字节序/灰度换算规则。PkImage::fill(uint32_t)
+# 的实现选择是"与 setPixel() 同一套语义"（PkImage.h 头注释），是 Task 2 的既有
+# 设计决策——比 Qt 自己内部自洽，但对着 Qt 在这两个格式上对不齐。是否要为了跟
+# Qt 位对齐而改成复刻 Qt 这个不一致，不在 Task 4 授权范围内，登记为已声明偏离。
+# 其余 6 个高频格式（ARGB32/Indexed8/RGB32/ARGB32_Premultiplied/Mono/RGBA64）
+# fill() 与 setPixel() 语义一致，实测 SAME，不产生 DIFFTAG。
+# ══════════════════════════════════════════════════════════════════════════
+fill_uint32	fmt=Grayscale8_w=1_h=1_fill-byteorder-mismatch	1	Qt fill(uint) 对 Grayscale8 走裸 memfill 把 32 位值低 8 位当灰度字节落内存、绕过 qGray 换算；PkImage 选与 setPixel 同语义走 qGray 公式，对 Qt 对不齐
+fill_uint32	fmt=Grayscale8_w=2_h=2_fill-byteorder-mismatch	1	Qt fill(uint) 对 Grayscale8 走裸 memfill 把 32 位值低 8 位当灰度字节落内存、绕过 qGray 换算；PkImage 选与 setPixel 同语义走 qGray 公式，对 Qt 对不齐
+fill_uint32	fmt=Grayscale8_w=3_h=3_fill-byteorder-mismatch	1	Qt fill(uint) 对 Grayscale8 走裸 memfill 把 32 位值低 8 位当灰度字节落内存、绕过 qGray 换算；PkImage 选与 setPixel 同语义走 qGray 公式，对 Qt 对不齐
+fill_uint32	fmt=Grayscale8_w=7_h=7_fill-byteorder-mismatch	1	Qt fill(uint) 对 Grayscale8 走裸 memfill 把 32 位值低 8 位当灰度字节落内存、绕过 qGray 换算；PkImage 选与 setPixel 同语义走 qGray 公式，对 Qt 对不齐
+fill_uint32	fmt=Grayscale8_w=8_h=8_fill-byteorder-mismatch	1	Qt fill(uint) 对 Grayscale8 走裸 memfill 把 32 位值低 8 位当灰度字节落内存、绕过 qGray 换算；PkImage 选与 setPixel 同语义走 qGray 公式，对 Qt 对不齐
+fill_uint32	fmt=Grayscale8_w=9_h=9_fill-byteorder-mismatch	1	Qt fill(uint) 对 Grayscale8 走裸 memfill 把 32 位值低 8 位当灰度字节落内存、绕过 qGray 换算；PkImage 选与 setPixel 同语义走 qGray 公式，对 Qt 对不齐
+fill_uint32	fmt=Grayscale8_w=15_h=15_fill-byteorder-mismatch	1	Qt fill(uint) 对 Grayscale8 走裸 memfill 把 32 位值低 8 位当灰度字节落内存、绕过 qGray 换算；PkImage 选与 setPixel 同语义走 qGray 公式，对 Qt 对不齐
+fill_uint32	fmt=Grayscale8_w=16_h=16_fill-byteorder-mismatch	1	Qt fill(uint) 对 Grayscale8 走裸 memfill 把 32 位值低 8 位当灰度字节落内存、绕过 qGray 换算；PkImage 选与 setPixel 同语义走 qGray 公式，对 Qt 对不齐
+fill_uint32	fmt=Grayscale8_w=17_h=17_fill-byteorder-mismatch	1	Qt fill(uint) 对 Grayscale8 走裸 memfill 把 32 位值低 8 位当灰度字节落内存、绕过 qGray 换算；PkImage 选与 setPixel 同语义走 qGray 公式，对 Qt 对不齐
+fill_uint32	fmt=Grayscale8_w=100_h=100_fill-byteorder-mismatch	1	Qt fill(uint) 对 Grayscale8 走裸 memfill 把 32 位值低 8 位当灰度字节落内存、绕过 qGray 换算；PkImage 选与 setPixel 同语义走 qGray 公式，对 Qt 对不齐
+fill_uint32	fmt=RGBA8888_w=1_h=1_fill-byteorder-mismatch	1	Qt fill(uint) 对 RGBA8888 走裸 memfill 按主机字节序落 32 位值、R/B 与 setPixel 的 ARGB 打包互换；PkImage 选与 setPixel 同语义，对 Qt 对不齐
+fill_uint32	fmt=RGBA8888_w=2_h=2_fill-byteorder-mismatch	1	Qt fill(uint) 对 RGBA8888 走裸 memfill 按主机字节序落 32 位值、R/B 与 setPixel 的 ARGB 打包互换；PkImage 选与 setPixel 同语义，对 Qt 对不齐
+fill_uint32	fmt=RGBA8888_w=3_h=3_fill-byteorder-mismatch	1	Qt fill(uint) 对 RGBA8888 走裸 memfill 按主机字节序落 32 位值、R/B 与 setPixel 的 ARGB 打包互换；PkImage 选与 setPixel 同语义，对 Qt 对不齐
+fill_uint32	fmt=RGBA8888_w=7_h=7_fill-byteorder-mismatch	1	Qt fill(uint) 对 RGBA8888 走裸 memfill 按主机字节序落 32 位值、R/B 与 setPixel 的 ARGB 打包互换；PkImage 选与 setPixel 同语义，对 Qt 对不齐
+fill_uint32	fmt=RGBA8888_w=8_h=8_fill-byteorder-mismatch	1	Qt fill(uint) 对 RGBA8888 走裸 memfill 按主机字节序落 32 位值、R/B 与 setPixel 的 ARGB 打包互换；PkImage 选与 setPixel 同语义，对 Qt 对不齐
+fill_uint32	fmt=RGBA8888_w=9_h=9_fill-byteorder-mismatch	1	Qt fill(uint) 对 RGBA8888 走裸 memfill 按主机字节序落 32 位值、R/B 与 setPixel 的 ARGB 打包互换；PkImage 选与 setPixel 同语义，对 Qt 对不齐
+fill_uint32	fmt=RGBA8888_w=15_h=15_fill-byteorder-mismatch	1	Qt fill(uint) 对 RGBA8888 走裸 memfill 按主机字节序落 32 位值、R/B 与 setPixel 的 ARGB 打包互换；PkImage 选与 setPixel 同语义，对 Qt 对不齐
+fill_uint32	fmt=RGBA8888_w=16_h=16_fill-byteorder-mismatch	1	Qt fill(uint) 对 RGBA8888 走裸 memfill 按主机字节序落 32 位值、R/B 与 setPixel 的 ARGB 打包互换；PkImage 选与 setPixel 同语义，对 Qt 对不齐
+fill_uint32	fmt=RGBA8888_w=17_h=17_fill-byteorder-mismatch	1	Qt fill(uint) 对 RGBA8888 走裸 memfill 按主机字节序落 32 位值、R/B 与 setPixel 的 ARGB 打包互换；PkImage 选与 setPixel 同语义，对 Qt 对不齐
+fill_uint32	fmt=RGBA8888_w=100_h=100_fill-byteorder-mismatch	1	Qt fill(uint) 对 RGBA8888 走裸 memfill 按主机字节序落 32 位值、R/B 与 setPixel 的 ARGB 打包互换；PkImage 选与 setPixel 同语义，对 Qt 对不齐
+
+# ══════════════════════════════════════════════════════════════════════════
+# scaled()/transformed() 的 Fast 模式像素级比对（【已裁决】结构性偏离，根因 6）
+#
+# plan 岔路 B 原本声称"Fast 模式是纯确定性整数坐标映射、必须逐位对齐"——这个
+# 前提经 Qt 5.15 源码（qimage.cpp:4788-4916）与探针实测证实是错的：Qt 的
+# QImage::transformed() 在 format >= RGB32 时即使 Fast 模式也走 QPainter
+# drawImage，在 format < RGB32 时走定点 12.4 的 qt_xForm_helper（*4096/>>12），
+# 都不是纯整数映射。PkImage 的 floor(inv.map(pixel-center)) 是良定义的正确最近
+# 邻，但只在部分比例上与 Qt 定点碰巧重合（3→7 上采样、7→3 下采样合；8→5 下采样
+# 分家）。已由 controller 裁决：Fast 模式与 Smooth 模式一样归入已声明偏离，结构
+# 性理由与岔路 B 对 Smooth 的完全同构（Qt 走 QPainter/定点，移植它们不在 R 线
+# 范围）。这不是 PkImage 的 bug，不要改 PkImage.cpp 的 transformed/scaled 算法。
+#
+# 实测：Group C 的 scaled() Fast 像素比对只在 8 个高频格式 × 宽 {8,16,100}
+# （下采样到 5/9/51）上分家，其余宽（1,2,3,7,9,15,17 的对称/近对称映射恰好与
+# Qt 定点重合）与 transformed()（fromScale(2,2) 的 2x 上采样）零差异——分组依据
+# 与逐格推导见 task-4-report.md。
+# ══════════════════════════════════════════════════════════════════════════
+scaled	fmt=ARGB32_w=8_h=8_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=ARGB32_w=16_h=16_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=ARGB32_w=100_h=100_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=ARGB32_Premultiplied_w=8_h=8_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=ARGB32_Premultiplied_w=16_h=16_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=ARGB32_Premultiplied_w=100_h=100_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=RGB32_w=8_h=8_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=RGB32_w=16_h=16_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=RGB32_w=100_h=100_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=RGBA8888_w=8_h=8_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=RGBA8888_w=16_h=16_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=RGBA8888_w=100_h=100_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=Grayscale8_w=8_h=8_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=Grayscale8_w=16_h=16_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=Grayscale8_w=100_h=100_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=RGBA64_w=8_h=8_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=RGBA64_w=16_h=16_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=RGBA64_w=100_h=100_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=Indexed8_w=8_h=8_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=Indexed8_w=16_h=16_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=Indexed8_w=100_h=100_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=Mono_w=8_h=8_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=Mono_w=16_h=16_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+scaled	fmt=Mono_w=100_h=100_mode=fast_pixels	1	Fast 模式经 Qt 5.15 源码与探针证实同样走 QPainter/定点而非纯整数映射，与 Smooth 同属结构性偏离，PkImage 用良定义最近邻代替
+
+# ══════════════════════════════════════════════════════════════════════════
+# setColor 越界自动扩容超出 8bit 索引上限（Task 4 新发现，探针实测）
+# ══════════════════════════════════════════════════════════════════════════
+setColor	grow-beyond-256-cap	1	Qt 拒绝把 Indexed8 颜色表长过 256（8bit 索引上限）并打 qWarning，PkImage 无条件 resize 到 idx+1，从恰好 256 项的表 setColor(300) 会长成 301 项
+
+# ══════════════════════════════════════════════════════════════════════════
+# convertToFormat(Format, colorTable) 的最近色匹配算法是良定义但非 Qt
+# dithering 位对齐（Task 3 Fix round 1 的既有决策，PkImage.h 头注释已经写明）。
+# 计数=1：image_difftest.cpp 的 Group D-4 只喂了一组输入（ARGB32 源、Indexed8
+# 目标、4 色调色板），像素级比对合并成一条 rec()，不逐像素展开。
+# ══════════════════════════════════════════════════════════════════════════
+convertToFormat_colorTable	argb32_to_indexed8_4colors_nearest-color-mismatch	1	最近色匹配算法与 Qt 的 dithering 算法不同，属于 Task3 Fix round1 已知的非位对齐既有决策
+
+# ══════════════════════════════════════════════════════════════════════════
+# convertToFormat(Format) 到索引目标格式（target-is-indexed，Task 4 新声明）
+#
+# PkImage::convertToFormat(Format) 转换到索引目标格式（Indexed8/Mono/MonoLSB）
+# 时，PkImage.cpp 的实现直接 `return result`（保持构造时的零初始化索引状态），
+# 不做调色板量化/最近色匹配——PkImage.cpp 该函数体上方的注释已经写明这是 Task 3
+# 的判断：真实调用点用量表没有覆盖"转换到索引格式"这个方向（判据①，一项不多）。
+# 真 Qt 会做真正的调色板量化，产出非零内容，与 PkImage 的零初始化结果必然逐像素
+# 不同——这是确定性的 100% 分家，不是概率性差异。
+#
+# 计数：Group D-3 是 6 个非索引源格式 × 3 个索引目标格式 = 18 组，每组一条
+# pixels 比对（预期不同）= 18 次分家。
+# ══════════════════════════════════════════════════════════════════════════
+convertToFormat_1arg	src=ARGB32_dst=Mono_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=ARGB32_dst=MonoLSB_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=ARGB32_dst=Indexed8_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=RGB32_dst=Mono_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=RGB32_dst=MonoLSB_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=RGB32_dst=Indexed8_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=ARGB32_Premultiplied_dst=Mono_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=ARGB32_Premultiplied_dst=MonoLSB_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=ARGB32_Premultiplied_dst=Indexed8_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=RGBA8888_dst=Mono_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=RGBA8888_dst=MonoLSB_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=RGBA8888_dst=Indexed8_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=Grayscale8_dst=Mono_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=Grayscale8_dst=MonoLSB_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=Grayscale8_dst=Indexed8_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=RGBA64_dst=Mono_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=RGBA64_dst=MonoLSB_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+convertToFormat_1arg	src=RGBA64_dst=Indexed8_target-is-indexed_pixels	1	Task3 判定索引目标格式转换非真实调用点覆盖范围，PkImage 保持零初始化而 Qt 做真正的调色板量化
+
+# ══════════════════════════════════════════════════════════════════════════
+# **范围说明与规模裁剪记录**（image_difftest.cpp 头注释与本文件已各处标注，这里
+# 汇总一处）：
+#
+# 1. **越界坐标读不比**（根因 3）：pixel(-1,-1)/pixel(w,h)/pixelIndex 等的越界
+#    **读**在真 Qt 是未初始化内存 UB（探针实测 pixel(-1,-1) 返回 0x00003039、
+#    pixelIndex 返回 -12345，纯垃圾值，连自己重跑都不确定），PkImage 定死返回 0
+#    （更安全）——没有可对齐的语义，plan Task 2 brief 本来就只要求"确定、不崩"。
+#    oracle 只比越界**写**的 no-op 语义（两侧都该 no-op，有意义），不比越界读。
+#
+# 2. Format_BGR888：零真实调用点（判据①），只对拍 depth()/bytesPerLine()/
+#    sizeInBytes() 层面（Group A 全格式扫描覆盖），不对拍像素级读写——不产生
+#    豁免 tag（BGR888 在 Group A 里零差异通过），登记在这里是记录范围声明本身。
+#
+# 3. 其余非高频 packed-bit 格式（RGB16/ARGB8565_Premultiplied/RGB666/
+#    ARGB6666_Premultiplied/RGB555/ARGB8555_Premultiplied/RGB888/RGB444/
+#    ARGB4444_Premultiplied/RGBX8888/RGBA8888_Premultiplied/BGR30/
+#    A2BGR30_Premultiplied/RGB30/A2RGB30_Premultiplied/Alpha8/RGBX64/
+#    RGBA64_Premultiplied/Grayscale16）：同 BGR888，只测 depth/bytesPerLine，
+#    Group A 覆盖，Group C/D 的高频格式列表里不含它们，不产生像素级 DIFFTAG。
+#    （Alpha8 虽在 Group A 里构造，但 pixel() 是占位实现，不进 Group C/D 像素
+#    级比对；它的 allGray()==false 语义由 test_pkimage 单测钉住，见根因 1。）
+#
+# 4. Smooth（双线性）变换模式：scaled()/transformed() 的像素级比对只在 Fast
+#    模式下进行（image_difftest.cpp runCombinatorial 里 `mode == 0` 才做像素级
+#    memcmp），Smooth 只比 header（宽高），不进入像素级判据。Fast 模式本身也已
+#    裁决为结构性偏离（见上 scaled 一节），Smooth 同样不在像素级判据内。
+#
+# 5. **规模裁剪**：Group A/C 的宽×高笛卡尔积从 brief 原文的 8×11×11≈968 个实例
+#    裁到 8×11=88 个实例（宽==高对称子集），11 个宽度取值逐字保留 brief 原文
+#    {0,1,2,3,7,8,9,15,16,17,100}。像素级比较本身仍是逐像素进行，不是抽样。
+#
+# 6. 本文件未复刻 geometry.deviation 的「头文件声明 vs *_api.map 机器交叉核对」
+#    （geometry 先例 Task 4 修复轮加的 §APISEEN ②）——image 的公开 API 只有
+#    ~35 个，image_difftest.cpp 顶部改用人工维护的「API 对拍点对照表」自审
+#    规则三。
+#
+# 7. fill(Qt::GlobalColor) 只在 6 个非索引高频格式上测——PkImage::fill(GlobalColor)
+#    在索引格式上把 ARGB32 值原样交给 fill(uint32_t)，而后者对索引格式把低 8 位
+#    当颜色表索引写入，语义与"颜色"无关；brief 列出的 5 个真实调用点都用非索引
+#    格式，超出判据①范围，不测、不产生 DIFFTAG。
+#
+# 8. fill() 只测 PkImage 已实现的两个重载（fill(uint32_t)/fill(GlobalColor)）。
+#    真 Qt 还有第三个 fill(const QColor&)，PkImage 没有对应参数类型（Task 2 既有
+#    简化决策：没有 PkColor），无法构造对拍点，不算漏测。
