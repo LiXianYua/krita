@@ -12,18 +12,17 @@
 
 
 /**
- * This class implements a QIODevice around KoStore, so that
- * it can be used to create a QDomDocument from it, to be written or read
- * using QDataStream or to be written using QTextStream
+ * This class implements a PkStream around KoStore, so that
+ * it can be used to create a document tree from it, to be written or read
+ * using stream serialization or text streaming
  */
-class KRITASTORE_EXPORT KoStoreDevice : public QIODevice
+class KRITASTORE_EXPORT KoStoreDevice : public PkStream
 {
-    Q_OBJECT
 public:
     /// Note: KoStore::open() should be called before calling this.
     explicit KoStoreDevice(KoStore * store) : m_store(store) {
         // calligra-1.x behavior compat: a KoStoreDevice is automatically open
-        setOpenMode(m_store->mode() == KoStore::Read ? QIODevice::ReadOnly : QIODevice::WriteOnly);
+        setOpenMode(m_store->mode() == KoStore::Read ? PkStream::ReadOnly : PkStream::WriteOnly);
     }
     ~KoStoreDevice() override;
 
@@ -31,28 +30,28 @@ public:
         return true;
     }
 
-    bool open(OpenMode m) override {
+    bool open(PkStream::OpenMode m) override {
         setOpenMode(m);
-        if (m & QIODevice::ReadOnly)
+        if (m & PkStream::ReadOnly)
             return (m_store->mode() == KoStore::Read);
-        if (m & QIODevice::WriteOnly)
+        if (m & PkStream::WriteOnly)
             return (m_store->mode() == KoStore::Write);
         return false;
     }
     void close() override {}
 
-    qint64 size() const override {
+    PkStream::pk_int64 size() const override {
         if (m_store->mode() == KoStore::Read)
             return m_store->size();
         else
             return 0xffffffff;
     }
 
-    // See QIODevice
-    qint64 pos() const override {
+    // See PkStream
+    PkStream::pk_int64 pos() const override {
         return m_store->pos();
     }
-    bool seek(qint64 pos) override {
+    bool seek(PkStream::pk_int64 pos) override {
         return m_store->seek(pos);
     }
     bool atEnd() const override {
@@ -62,11 +61,11 @@ public:
 protected:
     KoStore *m_store;
 
-    qint64 readData(char *data, qint64 maxlen) override {
+    PkStream::pk_int64 readData(char *data, PkStream::pk_int64 maxlen) override {
         return m_store->read(data, maxlen);
     }
 
-    qint64 writeData(const char *data, qint64 len) override {
+    PkStream::pk_int64 writeData(const char *data, PkStream::pk_int64 len) override {
         return m_store->write(data, len);
     }
 

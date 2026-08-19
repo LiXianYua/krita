@@ -9,24 +9,27 @@
 #include "KoStore.h"
 #include "KoStore_p.h"
 
-#include "KoQuaZipStore.h"
+// 尖括号 include KoQuaZipStore.h：薄壳靠 include 路径排序用影子头（Task 6 锁内
+// 的真头仍带 Qt），真实构建里 libs/store 在全局 -I 上，两种写法都解析到同一文件。
+#include <KoQuaZipStore.h>
 #include "KoDirectoryStore.h"
 
-#include <QBuffer>
-#include <QFileInfo>
-#include <QFile>
+#include "PkMemoryStream.h"
+#include "PkFileStream.h"
 
-#include <QUrl>
 #include <StoreDebug.h>
 
-#include <KConfig>
-#include <KSharedConfig>
-#include <KConfigGroup>
+#include <cassert>
+#include <filesystem>
+#include <string>
+#include <system_error>
+#include <vector>
 
-
+// When the backend is not specified and cannot be autodetected,
+// default to the zip format.
 #define DefaultFormat KoStore::Zip
 
-static KoStore::Backend determineBackend(QIODevice *dev)
+static KoStore::Backend determineBackend(PkStream *dev)
 {
     unsigned char buf[5];
     if (dev->read((char *)buf, 4) < 4)
@@ -36,21 +39,25 @@ static KoStore::Backend determineBackend(QIODevice *dev)
     return DefaultFormat; // fallback
 }
 
-KoStore* KoStore::createStore(const QString& fileName, Mode mode, const QByteArray & appIdentification, Backend backend, bool writeMimetype)
+KoStore *KoStore::createStore(const PkString &fileName, Mode mode,
+                              const PkByteArray &appIdentification,
+                              Backend backend,
+                              bool writeMimetype)
 {
     if (backend == Auto) {
-        if (mode == KoStore::Write)
+        if (mode == Write) {
             backend = DefaultFormat;
-        else {
-            QFileInfo inf(fileName);
-            if (inf.isDir())
+        } else {
+            std::error_code ec;
+            if (std::filesystem::is_directory(fileName.PkToUtf8(), ec)) {
                 backend = Directory;
-            else {
-                QFile file(fileName);
-                if (file.open(QIODevice::ReadOnly))
+            } else {
+                PkFileStream file(fileName);
+                if (file.open(PkStream::ReadOnly)) {
                     backend = determineBackend(&file);
-                else
+                } else {
                     backend = DefaultFormat; // will create a "bad" store (bad()==true)
+                }
             }
         }
     }
@@ -65,13 +72,16 @@ KoStore* KoStore::createStore(const QString& fileName, Mode mode, const QByteArr
     }
 }
 
-KoStore* KoStore::createStore(QIODevice *device, Mode mode, const QByteArray & appIdentification, Backend backend, bool writeMimetype)
+KoStore *KoStore::createStore(PkStream *device, Mode mode,
+                              const PkByteArray &appIdentification,
+                              Backend backend,
+                              bool writeMimetype)
 {
     if (backend == Auto) {
-        if (mode == KoStore::Write)
+        if (mode == Write) {
             backend = DefaultFormat;
-        else {
-            if (device->open(QIODevice::ReadOnly)) {
+        } else {
+            if (device->open(PkStream::ReadOnly)) {
                 backend = determineBackend(device);
                 device->close();
             }
@@ -79,7 +89,7 @@ KoStore* KoStore::createStore(QIODevice *device, Mode mode, const QByteArray & a
     }
     switch (backend) {
     case Directory:
-        errorStore << "Can't create a Directory store for a memory buffer!" << Qt::endl;
+        errorStore << "Can't create a Directory store for a memory buffer!";
         return 0;
     case Zip:
         return new KoQuaZipStore(device, mode, appIdentification, writeMimetype);
@@ -97,18 +107,19 @@ const char MAINNAME[] = "maindoc.xml";
 
 KoStore::KoStore(Mode mode, bool writeMimetype)
     : d_ptr(new KoStorePrivate(this, mode, writeMimetype))
-{}
+{
+}
 
 KoStore::~KoStore()
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
     delete d->stream;
     delete d_ptr;
 }
 
-bool KoStore::open(const QString & _name)
+bool KoStore::open(const PkString &_name)
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
     // This also converts from relative to absolute, i.e. merges the currentPath()
     d->fileName = d->toExternalNaming(_name);
 
@@ -119,8 +130,8 @@ bool KoStore::open(const QString & _name)
         return false;
     }
 
-    if (d->fileName.length() > 512) {
-        errorStore << "KoStore: Filename " << d->fileName << " is too long" << Qt::endl;
+    if (d->fileName.size() > 512) {
+        errorStore << "KoStore: Filename " << d->fileName << " is too long";
         return false;
     }
 
@@ -134,14 +145,17 @@ bool KoStore::open(const QString & _name)
         d->filesList.append(d->fileName);
 
         d->size = 0;
-        if (!openWrite(d->fileName))
+        if (!openWrite(d->fileName)) {
             return false;
+        }
     } else if (d->mode == Read) {
         debugStore << "Opening for reading" << d->fileName;
-        if (!openRead(d->fileName))
+        if (!openRead(d->fileName)) {
             return false;
-    } else
+        }
+    } else {
         return false;
+    }
 
     d->isOpen = true;
     return true;
@@ -149,13 +163,13 @@ bool KoStore::open(const QString & _name)
 
 bool KoStore::isOpen() const
 {
-    Q_D(const KoStore);
+    const KoStorePrivate *d = d_func();
     return d->isOpen;
 }
 
 bool KoStore::close()
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
     if (!d->isOpen) {
         warnStore << "You must open before closing";
         return false;
@@ -168,169 +182,195 @@ bool KoStore::close()
     return ret;
 }
 
-QIODevice* KoStore::device() const
+PkStream *KoStore::device() const
 {
-    Q_D(const KoStore);
-    if (!d->isOpen)
+    const KoStorePrivate *d = d_func();
+    if (!d->isOpen) {
         warnStore << "You must open before asking for a device";
-    if (d->mode != Read)
+    }
+    if (d->mode != Read) {
         warnStore << "Can not get device from store that is opened for writing";
+    }
     return d->stream;
 }
 
-QByteArray KoStore::read(qint64 max)
+PkByteArray KoStore::read(PkStream::pk_int64 max)
 {
-    Q_D(KoStore);
-    QByteArray data;
+    KoStorePrivate *d = d_func();
+    PkByteArray data;
 
     if (!d->isOpen) {
         warnStore << "You must open before reading";
         return data;
     }
     if (d->mode != Read) {
-        errorStore << "KoStore: Can not read from store that is opened for writing" << Qt::endl;
+        errorStore << "KoStore: Can not read from store that is opened for writing";
         return data;
     }
 
-    return d->stream->read(max);
+    if (max == -1) {
+        max = d->size;
+    }
+    if (max == 0) {
+        return data;
+    }
+
+    // PkStream 没有「返回 PkByteArray 的 read(pk_int64)」（readAll() 声明不定义），
+    // 这里用 std::vector<char> 中间缓冲转一次再构 PkByteArray（brief §read 契约）。
+    std::vector<char> buf(static_cast<std::size_t>(max));
+    const PkStream::pk_int64 n = d->stream->read(buf.data(), max);
+    return PkByteArray(buf.data(), static_cast<int>(n));
 }
 
-qint64 KoStore::write(const QByteArray& data)
+PkStream::pk_int64 KoStore::write(const PkByteArray &data)
 {
-    return write(data.constData(), data.size());   // see below
+    return write((const char *)data.data(), data.size());   // see below
 }
 
-qint64 KoStore::read(char *_buffer, qint64 _len)
+PkStream::pk_int64 KoStore::read(char *_buffer, PkStream::pk_int64 _len)
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
     if (!d->isOpen) {
-        errorStore << "KoStore: You must open before reading" << Qt::endl;
+        errorStore << "KoStore: You must open before reading";
         return -1;
     }
     if (d->mode != Read) {
-        errorStore << "KoStore: Can not read from store that is opened for writing" << Qt::endl;
+        errorStore << "KoStore: Can not read from store that is opened for writing";
         return -1;
     }
 
     return d->stream->read(_buffer, _len);
 }
 
-qint64 KoStore::write(const char* _data, qint64 _len)
+PkStream::pk_int64 KoStore::write(const char *_data, PkStream::pk_int64 _len)
 {
-    Q_D(KoStore);
-    if (_len == 0) return 0;
+    KoStorePrivate *d = d_func();
+    if (_len == 0) {
+        return 0;
+    }
 
     if (!d->isOpen) {
-        errorStore << "KoStore: You must open before writing" << Qt::endl;
+        errorStore << "KoStore: You must open before writing";
         return 0;
     }
     if (d->mode != Write) {
-        errorStore << "KoStore: Can not write to store that is opened for reading" << Qt::endl;
+        errorStore << "KoStore: Can not write to store that is opened for reading";
         return 0;
     }
 
-    int nwritten = d->stream->write(_data, _len);
-    Q_ASSERT(nwritten == (int)_len);
+    PkStream::pk_int64 nwritten = d->stream->write(_data, _len);
+    assert(nwritten == _len);
     d->size += nwritten;
 
     return nwritten;
 }
 
-qint64 KoStore::size() const
+PkStream::pk_int64 KoStore::size() const
 {
-    Q_D(const KoStore);
+    const KoStorePrivate *d = d_func();
     if (!d->isOpen) {
         warnStore << "You must open before asking for a size";
-        return static_cast<qint64>(-1);
+        return -1;
     }
     if (d->mode != Read) {
         warnStore << "Can not get size from store that is opened for writing";
-        return static_cast<qint64>(-1);
+        return -1;
     }
     return d->size;
 }
 
-bool KoStore::enterDirectory(const QString &directory)
+bool KoStore::enterDirectory(const PkString &directory)
 {
-    Q_D(KoStore);
-    //debugStore <<"enterDirectory" << directory;
-    int pos;
-    bool success = true;
-    QString tmp(directory);
+    KoStorePrivate *d = d_func();
 
-    while ((pos = tmp.indexOf('/')) != -1 &&
-            (success = d->enterDirectoryInternal(tmp.left(pos))))
-        tmp.remove(0, pos + 1);
+    if (directory.isEmpty()) {
+        return true;
+    }
 
-    if (success && !tmp.isEmpty())
-        return d->enterDirectoryInternal(tmp);
-    return success;
+    const std::vector<PkString> parts = directory.split(u'/');
+    for (std::size_t i = 0; i < parts.size(); ++i) {
+        // A trailing slash in the input means "enter that directory": the empty
+        // final segment is skipped. This matches the original Krita indexOf loop.
+        if (parts[i].isEmpty() && i == parts.size() - 1) {
+            continue;
+        }
+        if (!d->enterDirectoryInternal(parts[i])) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool KoStore::leaveDirectory()
 {
-    Q_D(KoStore);
-    if (d->currentPath.isEmpty())
+    KoStorePrivate *d = d_func();
+    if (d->currentPath.isEmpty()) {
         return false;
+    }
 
     d->currentPath.pop_back();
 
     return enterAbsoluteDirectory(currentPath());
 }
 
-QString KoStore::currentPath() const
+PkString KoStore::currentPath() const
 {
-    Q_D(const KoStore);
-    QString path;
-    QStringList::ConstIterator it = d->currentPath.begin();
-    QStringList::ConstIterator end = d->currentPath.end();
+    const KoStorePrivate *d = d_func();
+    PkString path;
+    PkStringList::ConstIterator it = d->currentPath.begin();
+    PkStringList::ConstIterator end = d->currentPath.end();
     for (; it != end; ++it) {
         path += *it;
-        path += '/';
+        path += PkString("/");
     }
     return path;
 }
 
 void KoStore::pushDirectory()
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
     d->directoryStack.push(currentPath());
 }
 
 void KoStore::popDirectory()
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
     d->currentPath.clear();
-    enterAbsoluteDirectory(QString());
+    enterAbsoluteDirectory(PkString());
     enterDirectory(d->directoryStack.pop());
 }
 
-bool KoStore::extractFile(const QString &srcName, QByteArray &data)
+bool KoStore::extractFile(const PkString &sourceName, PkByteArray &data)
 {
-    Q_D(KoStore);
-    QBuffer buffer(&data);
-    return d->extractFile(srcName, buffer);
+    KoStorePrivate *d = d_func();
+    PkMemoryStream mem;
+    bool ok = d->extractFile(sourceName, mem);
+    if (ok) {
+        data = PkByteArray(mem.data(), static_cast<int>(mem.size()));
+    }
+    return ok;
 }
 
-bool KoStorePrivate::extractFile(const QString &srcName, QIODevice &buffer)
+bool KoStorePrivate::extractFile(const PkString &sourceName, PkStream &buffer)
 {
-    if (!q->open(srcName))
+    if (!q->open(sourceName)) {
         return false;
+    }
 
-    if (!buffer.open(QIODevice::WriteOnly)) {
+    if (!buffer.open(PkStream::WriteOnly)) {
         q->close();
         return false;
     }
 
-    QByteArray data;
-    data.resize(8 * 1024);
-    uint total = 0;
-    for (int block = 0; (block = q->read(data.data(), data.size())) > 0; total += block) {
+    std::vector<char> data(8 * 1024);
+    PkStream::pk_int64 total = 0;
+    for (PkStream::pk_int64 block = 0; (block = q->read(data.data(), static_cast<PkStream::pk_int64>(data.size()))) > 0; total += block) {
         buffer.write(data.data(), block);
     }
 
-    if (q->size() != static_cast<qint64>(-1))
-        Q_ASSERT(total == q->size());
+    if (q->size() != -1) {
+        assert(total == q->size());
+    }
 
     buffer.close();
     q->close();
@@ -338,41 +378,51 @@ bool KoStorePrivate::extractFile(const QString &srcName, QIODevice &buffer)
     return true;
 }
 
-bool KoStore::seek(qint64 pos)
+bool KoStore::seek(PkStream::pk_int64 pos)
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
+    if (!d->stream) {
+        return false;
+    }
     return d->stream->seek(pos);
 }
 
-qint64 KoStore::pos() const
+PkStream::pk_int64 KoStore::pos() const
 {
-    Q_D(const KoStore);
+    const KoStorePrivate *d = d_func();
+    if (!d->stream) {
+        return 0;
+    }
     return d->stream->pos();
 }
 
 bool KoStore::atEnd() const
 {
-    Q_D(const KoStore);
+    const KoStorePrivate *d = d_func();
+    if (!d->stream) {
+        return true;
+    }
     return d->stream->atEnd();
 }
 
 // See the specification for details of what this function does.
-QString KoStorePrivate::toExternalNaming(const QString & _internalNaming) const
+PkString KoStorePrivate::toExternalNaming(const PkString &_internalNaming) const
 {
-    if (_internalNaming == ROOTPART)
+    if (_internalNaming == ROOTPART) {
         return q->currentPath() + MAINNAME;
+    }
 
-    QString intern;
-    if (_internalNaming.startsWith("tar:/"))     // absolute reference
+    PkString intern;
+    if (_internalNaming.startsWith("tar:/")) { // absolute reference
         intern = _internalNaming.mid(5);   // remove protocol
-    else
+    } else {
         intern = q->currentPath() + _internalNaming;
+    }
 
     return intern;
 }
 
-
-bool KoStorePrivate::enterDirectoryInternal(const QString &directory)
+bool KoStorePrivate::enterDirectoryInternal(const PkString &directory)
 {
     if (q->enterRelativeDirectory(directory)) {
         currentPath.append(directory);
@@ -381,49 +431,50 @@ bool KoStorePrivate::enterDirectoryInternal(const QString &directory)
     return false;
 }
 
-bool KoStore::hasFile(const QString& fileName) const
+bool KoStore::hasFile(const PkString &fileName) const
 {
-    Q_D(const KoStore);
+    const KoStorePrivate *d = d_func();
     return fileExists(d->toExternalNaming(fileName));
 }
 
-bool KoStore::hasDirectory(const QString &directoryName)
+bool KoStore::hasDirectory(const PkString &directoryName)
 {
     return enterAbsoluteDirectory(directoryName);
 }
 
 bool KoStore::finalize()
 {
-    Q_D(KoStore);
-    Q_ASSERT(!d->finalized);   // call this only once!
+    KoStorePrivate *d = d_func();
+    assert(!d->finalized);   // call this only once!
     d->finalized = true;
     return doFinalize();
 }
 
-void KoStore::setCompressionEnabled(bool /*e*/)
+void KoStore::setCompressionEnabled(bool e)
 {
+    (void)e;
 }
 
-void KoStore::setSubstitution(const QString &name, const QString &substitution)
+void KoStore::setSubstitution(const PkString &name, const PkString &substitution)
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
     d->substituteThis = name;
     d->substituteWith = substitution;
 }
 
 bool KoStore::bad() const
 {
-    Q_D(const KoStore);
+    const KoStorePrivate *d = d_func();
     return !d->good;
 }
 
 KoStore::Mode KoStore::mode() const
 {
-    Q_D(const KoStore);
+    const KoStorePrivate *d = d_func();
     return d->mode;
 }
 
-QStringList KoStore::directoryList() const
+PkStringList KoStore::directoryList() const
 {
-    return QStringList();
+    return PkStringList();
 }

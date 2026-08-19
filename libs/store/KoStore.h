@@ -8,12 +8,12 @@
 #ifndef __koStore_h_
 #define __koStore_h_
 
-#include <QByteArray>
-#include <QIODevice>
 #include "kritastore_export.h"
+#include "PkStream.h"
+#include "PkString.h"
+#include "PkStringList.h"
+#include "PkAuxTypes.h"
 
-class QWidget;
-class QUrl;
 class KoStorePrivate;
 
 /**
@@ -48,17 +48,17 @@ public:
      * fill it with data from the appIdentification. This is only
      * applicable if Mode is set to Write.
      */
-    static KoStore *createStore(const QString &fileName, Mode mode,
-                                const QByteArray &appIdentification = QByteArray(),
+    static KoStore *createStore(const PkString &fileName, Mode mode,
+                                const PkByteArray &appIdentification = PkByteArray(),
                                 Backend backend = Auto, bool writeMimetype = true);
 
     /**
-     * Create a store for any kind of QIODevice: file, memory buffer...
-     * KoStore will take care of opening the QIODevice.
+     * Create a store for any kind of PkStream: file, memory buffer...
+     * KoStore will take care of opening the PkStream.
      * This method doesn't support the Directory store!
      */
-    static KoStore *createStore(QIODevice *device, Mode mode,
-                                const QByteArray &appIdentification = QByteArray(),
+    static KoStore *createStore(PkStream *device, Mode mode,
+                                const PkByteArray &appIdentification = PkByteArray(),
                                 Backend backend = Auto, bool writeMimetype = true);
 
 
@@ -73,7 +73,7 @@ public:
      *        If the tar:/ prefix is missing it's assumed to be a relative URI.
      * @return true on success.
      */
-    bool open(const QString &name);
+    bool open(const PkString &name);
 
     /**
      * Check whether a file inside the store is currently opened with open(),
@@ -93,38 +93,38 @@ public:
      * (slightly faster than read() calls)
      * You need to call @ref open first, and @ref close afterwards.
      */
-    QIODevice *device() const;
+    PkStream *device() const;
 
     /**
      * Read data from the currently opened file. You can also use the streams
      * for this.
      */
-    QByteArray read(qint64 max);
+    PkByteArray read(PkStream::pk_int64 max);
 
     /**
      * Write data into the currently opened file. You can also use the streams
      * for this.
      */
-    qint64 write(const QByteArray &data);
+    PkStream::pk_int64 write(const PkByteArray &data);
 
     /**
      * Read data from the currently opened file. You can also use the streams
      * for this.
      * @return size of data read, -1 on error
      */
-    qint64 read(char *buffer, qint64 length);
+    PkStream::pk_int64 read(char *buffer, PkStream::pk_int64 length);
 
     /**
      * Write data into the currently opened file. You can also use the streams
      * for this.
      */
-    virtual qint64 write(const char* data, qint64 length);
+    virtual PkStream::pk_int64 write(const char* data, PkStream::pk_int64 length);
 
     /**
      * @return the size of the currently opened file, -1 on error.
      * Can be used as an argument for the read methods, for instance
      */
-    qint64 size() const;
+    PkStream::pk_int64 size() const;
 
     /**
      * @return true if an error occurred
@@ -142,7 +142,7 @@ public:
      *
      * @return a stringlist with all directories found
      */
-    virtual QStringList directoryList() const;
+    virtual PkStringList directoryList() const;
 
     /**
      * Enters one or multiple directories. In Read mode this actually
@@ -153,7 +153,7 @@ public:
      * opening a stream.
      * Note: Operates on internal names
      */
-    virtual bool enterDirectory(const QString &directory);
+    virtual bool enterDirectory(const PkString &directory);
 
     /**
      * Leaves a directory. Equivalent to "cd .."
@@ -166,7 +166,7 @@ public:
      * Returns the current path including a trailing slash.
      * Note: Returns a path in "internal name" style
      */
-    QString currentPath() const;
+    PkString currentPath() const;
 
     /**
      * Stacks the current directory. Restore the current path using
@@ -184,24 +184,24 @@ public:
      * @return true if the given file exists in the current directory,
      * i.e. if open(fileName) will work.
      */
-    bool hasFile(const QString &fileName) const;
+    bool hasFile(const PkString &fileName) const;
 
     /**
      *@return true if the given directory exists in the archive
      */
-    bool hasDirectory(const QString &directoryName);
+    bool hasDirectory(const PkString &directoryName);
 
     /**
      * Extracts a file out of the store to a buffer
      * @param sourceName file in the store
      * @param data memory buffer
      */
-    bool extractFile(const QString &sourceName, QByteArray &data);
+    bool extractFile(const PkString &sourceName, PkByteArray &data);
 
     //@{
-    /// See QIODevice
-    bool seek(qint64 pos);
-    qint64 pos() const;
+    /// See PkStream
+    bool seek(PkStream::pk_int64 pos);
+    PkStream::pk_int64 pos() const;
     bool atEnd() const;
     //@}
 
@@ -218,7 +218,7 @@ public:
     virtual void setCompressionEnabled(bool e);
 
     /// When reading, in the paths in the store where name occurs, substitution is used.
-    void setSubstitution(const QString &name, const QString &substitution);
+    void setSubstitution(const PkString &name, const PkString &substitution);
 
 protected:
     KoStore(Mode mode, bool writeMimetype = true);
@@ -237,7 +237,7 @@ protected:
      * @param name "absolute path" (in the archive) to the file to open
      * @return true on success
      */
-    virtual bool openWrite(const QString &name) = 0;
+    virtual bool openWrite(const PkString &name) = 0;
     /**
      * Open the file @p name in the store, for reading.
      * On success, this method must set m_stream to a stream from which we can read,
@@ -245,7 +245,7 @@ protected:
      * @param name "absolute path" (in the archive) to the file to open
      * @return true on success
      */
-    virtual bool openRead(const QString &name) = 0;
+    virtual bool openRead(const PkString &name) = 0;
 
     /**
      * @return true on success
@@ -260,25 +260,24 @@ protected:
      * Enter a subdirectory of the current directory.
      * The directory might not exist yet in Write mode.
      */
-    virtual bool enterRelativeDirectory(const QString &dirName) = 0;
+    virtual bool enterRelativeDirectory(const PkString &dirName) = 0;
 
     /**
      * Enter a directory where we've been before.
      * It is guaranteed to always exist.
      */
-    virtual bool enterAbsoluteDirectory(const QString &path) = 0;
+    virtual bool enterAbsoluteDirectory(const PkString &path) = 0;
 
     /**
      * Check if a file exists inside the store.
      * @param absPath the absolute path inside the store, i.e. not relative to the current directory
      */
-    virtual bool fileExists(const QString &absPath) const = 0;
+    virtual bool fileExists(const PkString &absPath) const = 0;
 
 protected:
     KoStorePrivate *d_ptr;
-
-private:
-    Q_DECLARE_PRIVATE(KoStore)
+    KoStorePrivate *d_func() const { return d_ptr; }
+    friend class KoStorePrivate;
 
 private:
     KoStore(const KoStore& store);    ///< don't copy
