@@ -4,6 +4,7 @@
 
 #include <sqlite3.h>
 
+#include <algorithm>
 #include <cstring>
 #include <string>
 
@@ -91,6 +92,17 @@ PkSqlQuery::PkSqlQuery()
 {
 }
 
+PkSqlQuery::PkSqlQuery(const PkString &query)
+    : m_db(nullptr), m_stmt(nullptr), m_isSelect(false), m_forwardOnly(false),
+      m_numRowsAffected(-1)
+{
+    // 只 prepare，不 exec——见头文件该构造函数的注释（R-17 plan §0 末尾订正，
+    // Task 2 补跑的探针钉死的结论）。prepare() 失败时静默保留错误在
+    // m_lastError 里，与默认构造 + 显式 prepare() 失败的观察效果一致，不
+    // 抛异常。
+    prepare(query);
+}
+
 PkSqlQuery::~PkSqlQuery()
 {
     releaseStatement();
@@ -109,6 +121,8 @@ bool PkSqlQuery::prepare(const PkString &sql)
     releaseStatement();
     m_namedBinds.clear();
     m_positionalBinds.clear();
+    m_namedBatchBinds.clear();
+    m_positionalBatchBinds.clear();
     m_cursor.clear();
     m_isSelect = false;
     m_numRowsAffected = -1;
@@ -152,6 +166,16 @@ void PkSqlQuery::bindValue(const PkString &name, const PkVariant &value)
 void PkSqlQuery::addBindValue(const PkVariant &value)
 {
     m_positionalBinds.push_back(value);
+}
+
+void PkSqlQuery::bindValue(const PkString &name, const PkVariantList &values)
+{
+    m_namedBatchBinds[name] = values;
+}
+
+void PkSqlQuery::addBindValue(const PkVariantList &values)
+{
+    m_positionalBatchBinds.push_back(values);
 }
 
 bool PkSqlQuery::execInternal()
@@ -220,6 +244,57 @@ bool PkSqlQuery::exec(const PkString &sql)
     return execInternal();
 }
 
+bool PkSqlQuery::execBatch(BatchExecutionMode mode)
+{
+    // mode 目前只有 ValuesAsRows 有真实语义（见头文件 BatchExecutionMode
+    // 注释）——真实调用点全部用默认参数调用，没有一处显式传
+    // ValuesAsColumns，本实现不区分两者，一律按"第 i 行取每个绑定的第 i
+    // 个元素"处理。
+    (void)mode;
+
+    if (!m_stmt) {
+        return false;
+    }
+
+    // 批量行数 = 全部已绑定列表里最长的那个（真实调用点里所有列表长度
+    // 本来就该一致；哪个列表更短，缺的那几行对应位置按 PkVariant() 即
+    // NULL 处理，不报错——与 bindVariantAtIndex 对"idx<=0"的静默跳过策略
+    // 同一条"宽松兜底"原则，不是本类要拦的输入校验）。
+    std::size_t rowCount = 0;
+    for (const auto &kv : m_namedBatchBinds) {
+        rowCount = std::max(rowCount, kv.second.size());
+    }
+    for (const auto &lst : m_positionalBatchBinds) {
+        rowCount = std::max(rowCount, lst.size());
+    }
+
+    bool ok = true;
+    for (std::size_t row = 0; row < rowCount; ++row) {
+        for (const auto &kv : m_namedBatchBinds) {
+            const PkVariant v = row < kv.second.size() ? kv.second[row] : PkVariant();
+            bindValue(kv.first, v);
+        }
+        for (std::size_t p = 0; p < m_positionalBatchBinds.size(); ++p) {
+            const PkVariantList &lst = m_positionalBatchBinds[p];
+            const PkVariant v = row < lst.size() ? lst[row] : PkVariant();
+            if (p < m_positionalBinds.size()) {
+                m_positionalBinds[p] = v;
+            } else {
+                m_positionalBinds.push_back(v);
+            }
+        }
+
+        ok = execInternal();
+        if (!ok) {
+            // Task 3 探针实测（task-3-report.md）：第一行失败就停止，不继续
+            // 跑剩余行，也不整体回滚——execInternal() 已经把 m_lastError/
+            // m_numRowsAffected 设成这次失败的结果，直接透传。
+            break;
+        }
+    }
+    return ok;
+}
+
 bool PkSqlQuery::next()
 {
     return m_cursor.next();
@@ -245,6 +320,8 @@ void PkSqlQuery::clear()
     releaseStatement();
     m_namedBinds.clear();
     m_positionalBinds.clear();
+    m_namedBatchBinds.clear();
+    m_positionalBatchBinds.clear();
     m_cursor.clear();
     m_sql = PkString();
     m_isSelect = false;

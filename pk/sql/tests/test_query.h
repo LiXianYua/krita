@@ -29,4 +29,10 @@ private Q_SLOTS:
     void namedValueLookupIsUnqualifiedColumnNameOnly();
 
     void clearResetsToEmptyQueryReadyForReprepare();
+
+    // R-17 Task 3：execBatch 两种批量绑定语义 + 单参构造函数。
+    void execBatchNamedValuesAsRowsInsertsAllRows();
+    void execBatchPositionalValuesAsRowsMatchesDeleteStorageShape();
+    void execBatchStopsAtFirstFailingRowLikeRealQtDriver();
+    void singleArgConstructorPreparesWithoutExecuting();
 };

@@ -9,3 +9,13 @@
 // 前置声明，类型别名遇到它会报 "redeclared as different kind of entity"，宏把
 // 那一行原样改写成 `class PkSqlQuery;`，前置声明照样成立。
 #define QSqlQuery PkSqlQuery
+
+// execBatch 相关：`QSqlQuery::BatchExecutionMode`/`ValuesAsRows` **不需要在
+// 这份垫片里另外 #define**——PkSqlQuery.h 把 BatchExecutionMode 定义成
+// PkSqlQuery 自己的嵌套 enum（`PkSqlQuery::BatchExecutionMode::ValuesAsRows`），
+// 上面这行宏替换已经让 `QSqlQuery::BatchExecutionMode::ValuesAsRows` 这种
+// 写法原样解析到位——不需要再造一个自由的 `QSqlQuery_BatchExecutionMode`
+// 之类的顶层符号。R-17 plan §1 用量表：真实调用点全部用默认参数调用
+// execBatch()，全仓 0 处显式写出 BatchExecutionMode/ValuesAsRows/
+// ValuesAsColumns 这几个符号本身（grep 实测，R-17 Task 3），这里只是把
+// 类型形状补完整，不是补一个有真实调用点驱动的能力。

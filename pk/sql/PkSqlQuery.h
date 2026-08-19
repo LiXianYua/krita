@@ -1,5 +1,8 @@
 #pragma once
 
+#include <map>
+#include <vector>
+
 #include "../string/PkString.h"
 #include "../variant/PkVariant.h"
 #include "PkSqlCursor.h"
@@ -32,7 +35,29 @@ struct sqlite3_stmt;
 class PkSqlQuery
 {
 public:
+    // QSqlQuery::BatchExecutionMode 的对应物。真实调用点（§1 用量表：5 处
+    // execBatch，1 直接 + 4 经 KisSqlQueryLoader::execBatch() 包装）**全部
+    // 用默认参数调用 execBatch()，没有一处显式传 ValuesAsColumns**——本类
+    // 只真正实现 ValuesAsRows 这一种语义（"第 i 行取每个绑定的第 i 个元素"，
+    // R-17 plan Task 3 描述原话），ValuesAsColumns 仅保留数值占位维持类型
+    // 形状完整（同 PkSqlError::UnknownError 的先例），execBatch() 传它时
+    // 行为等同 ValuesAsRows（不报错，也不是本类要拦的场景）。
+    enum BatchExecutionMode {
+        ValuesAsRows,
+        ValuesAsColumns,
+    };
+
     PkSqlQuery();
+    // QSqlQuery(const QString&) 单参构造的对应物——**只 prepare(query)，不
+    // exec()**。R-17 plan §0 末尾订正（Task 2 补跑的探针）钉死的结论：这个
+    // 构造函数唯一的真实调用点（`KisResourceCacheDb::addStorageType()`）在
+    // 构造之后、addBindValue()/显式 exec() 之前不读取任何中间状态，"构造即
+    // 执行"这个 Qt 侧的隐式尝试即便发生也因参数个数不匹配而失败、且没有可
+    // 观察的副作用（不会插入多余的 NULL 行）——所以复刻成"只 prepare，不
+    // exec"与复刻"prepare 后再尝试一次注定失败的 exec"，从调用点角度效果
+    // 完全一致，前者更简单。构造失败（prepare 失败）不抛异常，与默认构造
+    // 一样，调用方按 §1 用量表原有形态用 lastError()/isValid() 自行判断。
+    explicit PkSqlQuery(const PkString &query);
     ~PkSqlQuery();
 
     // 不可拷贝：持有裸 `sqlite3_stmt*` 所有权，拷贝会导致双重 finalize。
@@ -52,6 +77,24 @@ public:
     // 第 1 个 `?`）。
     void addBindValue(const PkVariant &value);
 
+    // ── execBatch 批量绑定（R-17 plan §0 P4 + Task 3 补的位置批量探针）──────
+    // 具名批量：同一个占位符名字绑一个 PkVariantList，execBatch() 时"第 i 行
+    // 取列表第 i 个元素"。与标量 bindValue() 是不同重载（参数类型不同，不会
+    // 有二义性——PkVariant 虽然有 PkVariantList 隐式构造，但精确匹配的重载
+    // 优先于经隐式转换才能匹配的重载，这里是精确匹配）。真实调用点：具名
+    // 批量目前只在本类自己的单测/探针里出现，没有已知的生产调用点单独用到
+    // 具名 execBatch（§1 用量表 execBatch 那 5 处全部是位置占位符），但
+    // brief 明确要求"两种绑定方式都要支持"。
+    void bindValue(const PkString &name, const PkVariantList &values);
+    // 位置批量：`KisResourceCacheDb::deleteStorage()` 三处真实调用形态
+    // （`addBindValue(QVariantList) + execBatch()`，单个 `?` 占位符）——本
+    // 类按"调用顺序对应第 1、2、3…个 `?`"的规则单独存储（与标量
+    // `addBindValue(PkVariant)` 各自独立编号，不是共用一份计数器）：真实
+    // 调用点没有"同一条语句里既有标量位置绑定又有批量位置绑定"的形态
+    // （§1 用量表 execBatch 那 5 处清一色只用批量 addBindValue），本类不
+    // 处理这种混用场景。
+    void addBindValue(const PkVariantList &values);
+
     // prepare() 之后无参数执行；支持"prepare 一次、循环 bindValue+exec"的
     // 复用模式（`KisTagResourceModel::untagResources` 的调用形态）——每次
     // `exec()` 内部会先 `sqlite3_reset` + `sqlite3_clear_bindings`，再重新
@@ -63,6 +106,16 @@ public:
     // 结果（`KisSqlQueryLoader` 与真实调用点里 `q.exec("SELECT ...")` 后紧跟
     // `while (q.next())` 的形态需要这条）。
     bool exec(const PkString &sql);
+
+    // 批量执行：对 prepare() 好的语句，把 bindValue(name, PkVariantList)/
+    // addBindValue(PkVariantList) 存的每个列表按下标 i 取值，逐行绑定并
+    // execInternal() 一次。**语义（Task 3 探针原始输出实测，见
+    // task-3-report.md）：第一行失败就停止**（不继续跑剩余行，不整体
+    // 回滚——没有显式事务包裹的话已成功的行保留在库里），返回值与
+    // lastError()/numRowsAffected() 都取自"第一次失败"或"最后一次成功"
+    // 那一次 execInternal() 调用的结果，不做跨行聚合。mode 目前只有
+    // ValuesAsRows 有真实语义（见 BatchExecutionMode 注释）。
+    bool execBatch(BatchExecutionMode mode = ValuesAsRows);
 
     // ── 游标 ─────────────────────────────────────────────────────────────
     bool next();
@@ -127,6 +180,8 @@ private:
     PkSqlError m_lastError;
     PkVariantMap m_namedBinds;
     PkVariantList m_positionalBinds;
+    std::map<PkString, PkVariantList> m_namedBatchBinds;
+    std::vector<PkVariantList> m_positionalBatchBinds;
     PkString m_sql;
     bool m_isSelect;
     bool m_forwardOnly;

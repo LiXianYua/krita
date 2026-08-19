@@ -228,6 +228,116 @@ void TestQuery::clearResetsToEmptyQueryReadyForReprepare()
     PK_VERIFY(q.exec());
 }
 
+void TestQuery::execBatchNamedValuesAsRowsInsertsAllRows()
+{
+    // R-17 Task 3 探针 [5]（task-3-report.md）：具名批量
+    // bindValue(":name", PkVariantList) + execBatch()，"第 i 行取每个绑定
+    // 的第 i 个元素"。真实 Qt 驱动 ok=true，numRowsAffected()=最后一行的
+    // 影响行数（不是跨行累加——探针 [1]/[5] 都是这个结论）。
+    PkSqlQuery q;
+    PK_VERIFY(q.prepare("INSERT INTO t (id, name) VALUES (:id, :name)"));
+    PkVariantList ids;
+    ids.push_back(PkVariant(20));
+    ids.push_back(PkVariant(21));
+    PkVariantList names;
+    names.push_back(PkVariant("twenty"));
+    names.push_back(PkVariant("twentyone"));
+    q.bindValue(":id", ids);
+    q.bindValue(":name", names);
+    PK_VERIFY(q.execBatch());
+    PK_COMPARE(q.numRowsAffected(), 1); // 最后一行（第 2 行）的影响行数
+
+    PkSqlQuery check;
+    PK_VERIFY(check.exec("SELECT COUNT(*) FROM t WHERE id IN (20, 21)"));
+    PK_VERIFY(check.next());
+    PK_COMPARE(check.value(0).toInt(), 2);
+}
+
+void TestQuery::execBatchPositionalValuesAsRowsMatchesDeleteStorageShape()
+{
+    // 核对形态：libs/resources/KisResourceCacheDb.cpp:1817-1840
+    // `deleteStorage()` 三处真实调用——单个位置占位符 `?` +
+    // addBindValue(QVariantList) + execBatch()。
+    PkSqlQuery seed;
+    PK_VERIFY(seed.exec("INSERT INTO t (id, name) VALUES (2, 'a'), (3, 'b'), (4, 'c')"));
+
+    PkSqlQuery q;
+    PK_VERIFY(q.prepare("DELETE FROM t WHERE id = ?"));
+    PkVariantList ids;
+    ids.push_back(PkVariant(2));
+    ids.push_back(PkVariant(3));
+    ids.push_back(PkVariant(4));
+    q.addBindValue(ids);
+    PK_VERIFY(q.execBatch());
+
+    PkSqlQuery check;
+    PK_VERIFY(check.exec("SELECT COUNT(*) FROM t"));
+    PK_VERIFY(check.next());
+    PK_COMPARE(check.value(0).toInt(), 0);
+}
+
+void TestQuery::execBatchStopsAtFirstFailingRowLikeRealQtDriver()
+{
+    // R-17 Task 3 探针 [2][3]（task-3-report.md）：批量中某一行违反主键
+    // 唯一性时，execBatch() 整体返回 false，**停在第一条失败的行**（不
+    // 继续跑剩余行），已成功的行保留在库里（没有隐式事务包裹），
+    // lastError() 反映失败那一行的错误分类（约束冲突 → ConnectionError，
+    // 同 §0 P1）。init() 建的 t 表 id 是 `INTEGER PRIMARY KEY
+    // AUTOINCREMENT`，本身即强制唯一，不需要额外 UNIQUE 列。
+    PkSqlQuery seed;
+    PK_VERIFY(seed.exec("INSERT INTO t (id, name) VALUES (11, 'existing')"));
+
+    PkSqlQuery q;
+    PK_VERIFY(q.prepare("INSERT INTO t (id, name) VALUES (?, ?)"));
+    PkVariantList ids;
+    ids.push_back(PkVariant(10));
+    ids.push_back(PkVariant(11)); // 与种子行主键冲突
+    ids.push_back(PkVariant(12));
+    PkVariantList names;
+    names.push_back(PkVariant("ten"));
+    names.push_back(PkVariant("eleven"));
+    names.push_back(PkVariant("twelve"));
+    q.addBindValue(ids);
+    q.addBindValue(names);
+
+    PK_VERIFY(!q.execBatch());
+    PK_COMPARE(static_cast<int>(q.lastError().type()),
+               static_cast<int>(PkSqlError::ConnectionError));
+
+    PkSqlQuery check;
+    // id=10：批量第一行插入成功；id=11：种子行，插入尝试失败、原值不变；
+    // id=12：批量第三行从未被跑到（第二行失败即停）。
+    PK_VERIFY(check.exec("SELECT id, name FROM t WHERE id IN (10, 11, 12) ORDER BY id"));
+    PK_VERIFY(check.next());
+    PK_COMPARE(check.value(0).toInt(), 10);
+    PK_COMPARE(check.value(1).toString(), PkString("ten"));
+    PK_VERIFY(check.next());
+    PK_COMPARE(check.value(0).toInt(), 11);
+    PK_COMPARE(check.value(1).toString(), PkString("existing")); // 种子行未被覆盖
+    PK_VERIFY(!check.next());                                    // id=12 从未插入
+}
+
+void TestQuery::singleArgConstructorPreparesWithoutExecuting()
+{
+    // R-17 plan §0 末尾订正（Task 2 探针）+ Task 3 落地：单参构造函数只
+    // prepare()，不 exec()——`KisResourceCacheDb::addStorageType()` 唯一
+    // 真实调用点的形态（构造后紧跟 addBindValue + 显式 exec()）。
+    PkSqlQuery q(PkString("INSERT INTO t (name) VALUES (?)"));
+    PK_VERIFY(q.lastQuery() == PkString("INSERT INTO t (name) VALUES (?)"));
+    // 构造之后、addBindValue/exec 之前：没有执行过，影响行数应为初始值。
+    PK_COMPARE(q.numRowsAffected(), -1);
+
+    q.addBindValue(PkVariant("kritaBundle"));
+    PK_VERIFY(q.exec());
+    PK_COMPARE(q.numRowsAffected(), 1);
+
+    PkSqlQuery check;
+    PK_VERIFY(check.exec("SELECT COUNT(*) FROM t"));
+    PK_VERIFY(check.next());
+    // 只插入了这一行——没有因为"构造即执行"的隐式尝试多插入一条 NULL 行。
+    PK_COMPARE(check.value(0).toInt(), 1);
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_query.inc"
