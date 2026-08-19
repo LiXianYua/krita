@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <ctime>
 #include <sstream>
 #include <type_traits>
@@ -21,16 +22,23 @@ static_assert(std::is_same<PkDateTime::Clock, std::chrono::system_clock>::value,
 // ============================================================================
 // R-16 Task 3：字符串转换（toString / fromString 系列）
 //
-// 日历字段（年/月/日/时/分/秒）↔ TimePoint 的换算统一按 UTC 处理：全部走
-// `gmtime_r`/`timegm`（glibc GNU 扩展，CMakeLists.txt 未关 CXX_EXTENSIONS，
-// 默认 gnu++17 可见），不使用 `localtime`/`mktime`——`pk/time` 不接时区数据库，
-// 用 UTC 是唯一不依赖构建机器本地时区、可跨机器复现的选择。这也是
-// RFC2822Date 固定输出 "+0000" 尾缀的直接原因：既然日历字段本来就按 UTC
-// 拆解，时区尾缀理所当然标 UTC，不是巧合。
+// 日历字段（年/月/日/时/分/秒）↔ TimePoint 的换算统一按 **LocalTime** 处理，
+// 对齐真 Qt 默认 `timeSpec()==Qt::LocalTime`（`fromSecsSinceEpoch`/
+// `fromMSecsSinceEpoch`/`fromString` 单参默认 LocalTime、`toString` 按本地墙钟
+// 渲染——2026-08-18 裁决，见 `R线-spec.md`「PkDateTime 时区」一节）。全部走
+// C 库 `localtime_r`/`mktime`（读系统 `TZ`）：C++17 `std::chrono` 无 tzdb，拿
+// 不到系统时区偏移，退用 C 库是唯一可用的本地时区来源。这是对 Qt 自带 tzdb 的
+// 近似——若将来某真实调用点依赖精确 tzdb 语义（历史 DST 表、未来法规变更、
+// DST 切换时刻的歧义解析等），按偏离登记，别当作"已经对齐了"。
+//
+// RFC2822Date 的时区尾缀随本地时区输出（`localtime_r` 填的 `tm_gmtoff`，秒、
+// 东正西负），不再是硬编码 "+0000"。
 //
 // 本文件所有测试用例都是"构造 → 拆解回同一批日历字段"的自洽往返（不依赖与
 // `fromMSecsSinceEpoch`/`fromSecsSinceEpoch` 等 epoch 工厂函数比较绝对值），
-// 所以这个 UTC 选择不会与 Task 2 已有的 epoch 语义冲突。
+// 所以 LocalTime 选择不会与 Task 2 已有的 epoch 语义冲突——parse 用 `mktime`
+// 把本地墙钟字段换算成绝对 epoch，render 用 `localtime_r` 把绝对 epoch 拆回
+// 本地墙钟字段，往返自洽（与时区无关）。
 // ============================================================================
 
 namespace {
@@ -80,7 +88,7 @@ bool fieldsInRange(int month, int day, int hour, int minute, int second)
 // 上（以及绝大多数 libstdc++/libc++ 实现）它的原生 duration 精度是纳秒、
 // 用 int64 计数——INT64_MAX ns ≈ 292.28 年，可安全表示的窗口只有约
 // [1677.72, 2262.28]（对拍程序 pk/time/oracle/difftest_time.cpp 用独立最小
-// 复现验证过这个边界的来源与数值）。超出这个窗口时，`makeFromUtcFieldsChecked`
+// 复现验证过这个边界的来源与数值）。超出这个窗口时，`makeFromLocalFieldsChecked`
 // 内部"日历字段 → time_t → TimePoint"这条换算链会发生有符号整数回绕：不是
 // "拒绝"，是**悄悄给出一个貌似合法、实际上错得离谱的时刻**——对拍实测例子：
 // `fromString("9999-06-15T12:30:45", "yyyy-MM-ddThh:mm:ss")` 在补这条校验
@@ -99,7 +107,7 @@ bool yearRepresentable(int year)
 // 让所有 fromString(customFormat) 系列用例连同"非法输入 isValid()==false"
 // 一起失败——tests/test_date_time.cpp 的边界长度用例与 illegalInput 系列同时
 // 覆盖两个方向。
-PkDateTime makeFromUtcFieldsChecked(int year, int month, int day, int hour, int minute, int second)
+PkDateTime makeFromLocalFieldsChecked(int year, int month, int day, int hour, int minute, int second)
 {
     if (!yearRepresentable(year)) return PkDateTime();
     if (!fieldsInRange(month, day, hour, minute, second)) return PkDateTime();
@@ -111,8 +119,12 @@ PkDateTime makeFromUtcFieldsChecked(int year, int month, int day, int hour, int 
     tmVal.tm_hour = hour;
     tmVal.tm_min = minute;
     tmVal.tm_sec = second;
-    tmVal.tm_isdst = 0;
-    const std::time_t t = timegm(&tmVal);
+    // -1 = 让 mktime 按系统 TZ 自行判定 DST：parse 本地墙钟字段时不知道目标时刻
+    // 是否处于夏令时，交给系统决定。这与 Qt 用 tzdb 决定 DST 在正常日期上等价，
+    // 在 DST 切换的歧义时刻（春季跳过的那一小时、秋季重复的那一小时）上可能有
+    // 细微差异——属已注明的 tzdb 近似，见本文件顶部注释。
+    tmVal.tm_isdst = -1;
+    const std::time_t t = mktime(&tmVal);
 
     const auto tp = std::chrono::system_clock::from_time_t(t);
     const auto msecs =
@@ -120,13 +132,30 @@ PkDateTime makeFromUtcFieldsChecked(int year, int month, int day, int hour, int 
     return PkDateTime::fromMSecsSinceEpoch(static_cast<std::int64_t>(msecs));
 }
 
-// 与 makeFromUtcFieldsChecked 对称的反方向：TimePoint → 日历字段（UTC）。
-// `gmtime_r` 对合法 time_t 基本不会失败，这里仍然检查返回值，失败时调用方
+// 与 makeFromLocalFieldsChecked 对称的反方向：TimePoint → 日历字段（LocalTime）。
+// `localtime_r` 对合法 time_t 基本不会失败，这里仍然检查返回值，失败时调用方
 // 应当把结果当"无法渲染"处理（返回空串），不静默产出半截数据。
-bool utcFieldsFromTimePoint(const PkDateTime::TimePoint &tp, std::tm &out)
+bool localFieldsFromTimePoint(const PkDateTime::TimePoint &tp, std::tm &out)
 {
     const std::time_t t = std::chrono::system_clock::to_time_t(tp);
-    return gmtime_r(&t, &out) != nullptr;
+    return localtime_r(&t, &out) != nullptr;
+}
+
+// RFC2822Date 的时区尾缀：从 `localtime_r` 填的 `tm_gmtoff`（秒、东正西负）
+// 格式化成 "±hhmm"。`tm_gmtoff` 是 glibc/BSD 扩展（与本文件既有的 GNU 扩展
+// 使用同一套 gnu++17 默认可见性），`localtime_r` 会按当前 DST 状态正确设置它。
+// Qt 的 RFC2822 尾缀正是这个本地偏移（探针实测：LA → "-0800"、Shanghai →
+// "+0800"、Kolkata 半时区 → "+0530"、UTC → "+0000"）。
+std::string formatRfc2822Offset(const std::tm &tmVal)
+{
+    long off = tmVal.tm_gmtoff;
+    const char sign = off < 0 ? '-' : '+';
+    off = std::labs(off);
+    const int hh = static_cast<int>(off / 3600);
+    const int mm = static_cast<int>((off % 3600) / 60);
+    char buf[8];
+    std::snprintf(buf, sizeof(buf), "%c%02d%02d", sign, hh, mm);
+    return std::string(buf);
 }
 
 // 变异注入点：把 `% 1000` 换成别的系数，或漏掉负数修正，会被
@@ -148,7 +177,7 @@ std::string PkDateTime::toString() const
 {
     if (!isValid()) return std::string();
     std::tm tmVal{};
-    if (!utcFieldsFromTimePoint(m_time, tmVal)) return std::string();
+    if (!localFieldsFromTimePoint(m_time, tmVal)) return std::string();
     char buf[64];
     // 变异注入点：把 "%d"（日，不补零）错改成 "%02d" 会在单数日的用例上产出
     // 多余的前导零——本任务的探针钉死用例日期是两位数（15），单独这条不会
@@ -164,7 +193,7 @@ std::string PkDateTime::toString(DateFormat fmt) const
 {
     if (!isValid()) return std::string();
     std::tm tmVal{};
-    if (!utcFieldsFromTimePoint(m_time, tmVal)) return std::string();
+    if (!localFieldsFromTimePoint(m_time, tmVal)) return std::string();
     char buf[64];
     switch (fmt) {
     case DateFormat::ISODate:
@@ -179,15 +208,18 @@ std::string PkDateTime::toString(DateFormat fmt) const
                       tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec, ms);
         return std::string(buf);
     }
-    case DateFormat::RFC2822Date:
-        // 时区尾缀固定输出 "+0000"（当作 UTC 处理）——理由见本文件顶部
-        // Task 3 小节注释；不要断言探针原始的 "-0800"，那是探针机器当时的
-        // 本地偏移，不是跨机器恒定值。
-        std::snprintf(buf, sizeof(buf), "%02d %s %04d %02d:%02d:%02d +0000",
+    case DateFormat::RFC2822Date: {
+        // 时区尾缀按本地偏移输出（`localtime_r` 填的 tm_gmtoff），不再硬编码
+        // "+0000"——对齐 Qt 按本地墙钟渲染（探针实测 LA → "-0800"、Shanghai →
+        // "+0800"）。不要断言探针原始的 "-0800" 字面串，那是探针机器当时的本地
+        // 偏移，跨机器会变——断言的是"随本地时区正确变化"。
+        const std::string off = formatRfc2822Offset(tmVal);
+        std::snprintf(buf, sizeof(buf), "%02d %s %04d %02d:%02d:%02d %s",
                       tmVal.tm_mday, kMonthNames[tmVal.tm_mon], tmVal.tm_year + 1900,
-                      tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec);
+                      tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec, off.c_str());
         return std::string(buf);
     }
+    } // switch (fmt)
     return std::string();
 }
 
@@ -228,7 +260,7 @@ PkDateTime PkDateTime::fromString(const std::string &s)
     const int second = parseIntField(timeStr, 6, 2);
     const int year = std::stoi(yearStr);
 
-    return makeFromUtcFieldsChecked(year, month, day, hour, minute, second);
+    return makeFromLocalFieldsChecked(year, month, day, hour, minute, second);
 }
 
 // 只实现 5 个具体格式串，逐条按固定长度 + 分隔符位置 + 全数字校验——不是通用
@@ -239,20 +271,20 @@ PkDateTime PkDateTime::fromString(const std::string &s, const std::string &custo
 {
     if (customFormat == "yyyy") {
         if (s.size() != 4 || !isAllDigits(s, 0, 4)) return PkDateTime();
-        return makeFromUtcFieldsChecked(parseIntField(s, 0, 4), 1, 1, 0, 0, 0);
+        return makeFromLocalFieldsChecked(parseIntField(s, 0, 4), 1, 1, 0, 0, 0);
     }
     if (customFormat == "yyyy-MM") {
         if (s.size() != 7 || s[4] != '-' || !isAllDigits(s, 0, 4) || !isAllDigits(s, 5, 2)) {
             return PkDateTime();
         }
-        return makeFromUtcFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2), 1, 0, 0, 0);
+        return makeFromLocalFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2), 1, 0, 0, 0);
     }
     if (customFormat == "yyyy-MM-dd") {
         if (s.size() != 10 || s[4] != '-' || s[7] != '-' ||
             !isAllDigits(s, 0, 4) || !isAllDigits(s, 5, 2) || !isAllDigits(s, 8, 2)) {
             return PkDateTime();
         }
-        return makeFromUtcFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2),
+        return makeFromLocalFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2),
                                          parseIntField(s, 8, 2), 0, 0, 0);
     }
     if (customFormat == "yyyy-MM-ddThh:mm") {
@@ -261,7 +293,7 @@ PkDateTime PkDateTime::fromString(const std::string &s, const std::string &custo
             !isAllDigits(s, 11, 2) || !isAllDigits(s, 14, 2)) {
             return PkDateTime();
         }
-        return makeFromUtcFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2),
+        return makeFromLocalFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2),
                                          parseIntField(s, 8, 2), parseIntField(s, 11, 2),
                                          parseIntField(s, 14, 2), 0);
     }
@@ -272,7 +304,7 @@ PkDateTime PkDateTime::fromString(const std::string &s, const std::string &custo
             !isAllDigits(s, 11, 2) || !isAllDigits(s, 14, 2) || !isAllDigits(s, 17, 2)) {
             return PkDateTime();
         }
-        return makeFromUtcFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2),
+        return makeFromLocalFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2),
                                          parseIntField(s, 8, 2), parseIntField(s, 11, 2),
                                          parseIntField(s, 14, 2), parseIntField(s, 17, 2));
     }

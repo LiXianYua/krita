@@ -30,19 +30,21 @@
 //     `Qt::LocalTime` 不是 UTC（`qdatetime.h:402` 三参默认值 + 探针对单参版的
 //     确认：`fromMSecsSinceEpoch(0)（单参重载）默认 timeSpec() | Qt::LocalTime`）
 //
-// **LocalTime/UTC 落地方式（本任务自行判断的实现细节，已在报告里写明依据）**：
-// `pk/time` 不接 Qt、不支持时区、也不对调用方暴露 `timeSpec()` 概念——真实调用点
+// **LocalTime 落地方式（2026-08-18 裁决，见 `R线-spec.md`「PkDateTime 时区」）**：
+// `pk/time` 不接 Qt、不接时区数据库、也不对调用方暴露 `timeSpec()` 概念——真实调用点
 // 里没有一处读取它。`std::chrono::system_clock::time_point` 本身就是一个不带
 // 时区标记的绝对 epoch 时间点，"LocalTime 还是 UTC" 这个区别只在**把时间点拆解成
 // 年/月/日/时/分/秒的日历字段**时才有意义（那是 Task 3 `toString`/日历访问器的
-// 事）。本类型（Task 2）完全不做日历拆解，`currentDateTime()` 与
-// `currentDateTimeUtc()` 在存储层面因此是同一件事：都是
-// `std::chrono::system_clock::now()` 的这一个绝对时刻。两个工厂函数在 API 面上
-// 保留区分（调用点语义上一个说"系统本地当前时刻"一个说"UTC 当前时刻"），但在
-// `pk/time` 这一层，两者产出的内部时间点相同——差异会在 Task 3
-// 需要按日历字段渲染时才需要落地为真正的时区转换。`fromMSecsSinceEpoch`/
-// `fromSecsSinceEpoch` 同理：它们只是"给一个 epoch 数字，存成内部时间点"，不模拟
-// "本地时区"这个概念。
+// 事，已按裁决用 C 库 `localtime_r`/`mktime` 落地为 LocalTime，详见
+// PkDateTime.cpp 顶部注释）。`currentDateTime()` 与 `currentDateTimeUtc()` 在
+// 存储层面仍是同一个绝对时刻（`std::chrono::system_clock::now()`）——两者在 API
+// 面上保留区分（调用点语义上一个说"系统本地当前时刻"一个说"UTC 当前时刻"），但
+// `pk/time` 不跟踪 timeSpec，因此 `currentDateTimeUtc()` 实例经 `toString()`
+// 渲染出来的是**本地墙钟**而非 UTC——这是与 Qt 的已知近似（Qt 里
+// `currentDateTimeUtc().toString()` 按 UTC 渲染），属"不暴露 timeSpec"这一范围
+// 决策的自然结果，登记在 pk/time/oracle/R-16.deviation。`fromMSecsSinceEpoch`/
+// `fromSecsSinceEpoch` 同理：只是"给一个 epoch 数字，存成内部时间点"，存储层与
+// 时区无关，时区只在渲染/解析日历字段时落地。
 //
 // 哨兵设计：与 PkElapsedTimer 同一种思路——不额外放一个 bool 有效位，直接借用
 // std::chrono 自己的 TimePoint::min() 作"无效/未设置"的哨兵值，`isNull()` 直接
@@ -61,7 +63,7 @@ public:
     constexpr PkDateTime() noexcept : m_time(TimePoint::min()) {}
 
     // 探针：`默认构造 QDateTime()`；currentDateTime()/currentDateTimeUtc() 在
-    // pk/time 这一层存储相同的绝对时刻（见上方类注释的 LocalTime/UTC 落地说明）。
+    // pk/time 这一层存储相同的绝对时刻（见上方类注释的 LocalTime 落地说明）。
     static PkDateTime currentDateTime() noexcept
     {
         PkDateTime dt;
@@ -137,11 +139,11 @@ public:
 
     // ---- R-16 Task 3：字符串转换 ----
     //
-    // 日历字段（年/月/日/时/分/秒）的拆解与合成统一按 UTC 处理，不读取/依赖
-    // 机器本地时区：`pk/time` 没有时区数据库，`std::chrono`（C++17）本身也拿
-    // 不到系统时区偏移这类信息。这个决策同时解释了 RFC2822Date 固定输出
-    // "+0000" 时区尾缀的原因（详见 PkDateTime.cpp 顶部注释与
-    // .superpowers/sdd/R-16/task-3-report.md）。
+    // 日历字段（年/月/日/时/分/秒）的拆解与合成统一按 **LocalTime** 处理，对齐真
+    // Qt 默认 `timeSpec()==Qt::LocalTime`：C++17 `std::chrono` 无 tzdb，退用 C 库
+    // `localtime_r`/`mktime`（读系统 `TZ`）作为本地时区来源，是对 Qt 自带 tzdb 的
+    // 近似。RFC2822Date 的时区尾缀随本地偏移输出（`tm_gmtoff`），不再是硬编码
+    // "+0000"（详见 PkDateTime.cpp 顶部注释）。
 
     // 仿 Qt `Qt::TextDate`（`toString()` 默认格式）里日期时间部分能表达的三种
     // 常用定制格式，够真实调用点用——不做 Qt 全部 `Qt::DateFormat` 枚举。
@@ -153,9 +155,9 @@ public:
     std::string toString() const;
 
     // ISODate → "yyyy-MM-ddThh:mm:ss"（探针：`2024-01-15T12:30:45`）；
-    // RFC2822Date → "dd Mmm yyyy hh:mm:ss +0000"（时区尾缀固定 +0000，见上方
-    // 类注释；探针给的 "-0800" 是探针机器当时的本地偏移，不是恒定值，不能照抄
-    // 断言）；ISODateWithMs → "yyyy-MM-ddThh:mm:ss.zzz"（探针：
+    // RFC2822Date → "dd Mmm yyyy hh:mm:ss ±hhmm"（时区尾缀随本地偏移输出，见
+    // 上方类注释；探针给的 "-0800" 是探针机器当时的本地偏移，跨机器会变，不能
+    // 照抄断言）；ISODateWithMs → "yyyy-MM-ddThh:mm:ss.zzz"（探针：
     // `2024-01-15T12:30:45.000`）。无效实例返回空串。
     std::string toString(DateFormat fmt) const;
 

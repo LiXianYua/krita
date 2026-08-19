@@ -96,21 +96,38 @@ after invalidate(): isValid = false
 
 对应到实现：`isNull() == !isValid()`（不是 AND 语义，`qdatetime.h:77-78` 头文件
 事实）、`secsTo()` 是"后减前"（`a.secsTo(b) == b - a`）、`fromMSecsSinceEpoch`
-单参默认 `timeSpec()` 是 `LocalTime`（`pk/time` 因此把 `currentDateTime()`/
-`currentDateTimeUtc()` 在存储层视为同一个绝对时刻，差异只在未来做日历拆解时才
-落地，详见 `PkDateTime.h` 类注释）、`restart()` 真的把计时基点归零（不是只返回
-旧值）。
+单参默认 `timeSpec()` 是 `LocalTime`（日历字段渲染/解析已按裁决用 C 库
+`localtime_r`/`mktime` 落地为 LocalTime，详见 `PkDateTime.h`/`.cpp` 顶部注释与
+`oracle/R-16.deviation`「LocalTime 对齐」一节）、`restart()` 真的把计时基点归零
+（不是只返回旧值）。
 
 ## 3. 对拍结果
 
-`pk/time/oracle/difftest_time.cpp` ↔ 真 Qt 5.15.7：**total=2228 mismatch=185**，
-18 条 DIFFTAG，全部逐条登记在 `pk/time/oracle/R-16.deviation`。
+`pk/time/oracle/difftest_time.cpp` ↔ 真 Qt 5.15.7，**多时区对拍**（
+`run_oracle.sh` 在 `TZ=America/Los_Angeles` 与 `TZ=Asia/Shanghai` 各跑一遍）：
 
-对拍首轮跑出 `mismatch=347`，其中一类差异（`fromString` 系列在年份落在
-`[1678,2261]` 安全窗口之外时会有符号整数回绕，给出"看似合法、实际错得离谱"的值）
-被判定为真实根因缺口并在 Task 4 修复（`PkDateTime.cpp` 新增
-`yearRepresentable()` 校验）：修复后 `347 → 185`，此后的 185 全部逐条登记，
-判定均为"可接受"（真实调用点不会产生这些手挑对抗用例才能触发的极端输入）。
+| TZ | total | mismatch | DIFFTAG 数 |
+|---|---|---:|---:|
+| America/Los_Angeles | 2228 | 186 | 18 |
+| Asia/Shanghai | 2228 | 189 | 18 |
+
+两个时区是**同一组 18 条 DIFFTAG**（tag 集合一致，个别 tag 计数因历史 tzdata
+差异略不同），全部逐条登记在 `pk/time/oracle/R-16.deviation`。
+
+**时区口径（2026-08-18 裁决）**：`PkDateTime` 的日历字段渲染/解析已从首版的
+固定 UTC 改成 **LocalTime**，对齐真 Qt 默认 `timeSpec()==Qt::LocalTime`
+（C 库 `localtime_r`/`mktime` 读系统 `TZ`）。早期 `export TZ=UTC` 的对拍会把
+两侧的"本地时区"与"UTC"重合，系统性遮蔽"默认 LocalTime vs 实现 UTC"这类差异；
+现在改跑两个非 UTC 时区，这类差异真的进 mismatch 表。C 库 tzdata 与 Qt 自带
+tzdb 的近似留下两类**历史**差异（历史 DST：1969-06-15 在 LA；历史 LMT：
+1900-01-01 在 Shanghai），已在 deviation「LocalTime 对齐」一节如实登记——现代
+日期（1970+）两侧一致。
+
+对拍首轮（当时 TZ=UTC）跑出 `mismatch=347`，其中一类差异（`fromString` 系列在
+年份落在 `[1678,2261]` 安全窗口之外时会有符号整数回绕，给出"看似合法、实际错得
+离谱"的值）被判定为真实根因缺口并在 Task 4 修复（`PkDateTime.cpp` 新增
+`yearRepresentable()` 校验）：修复后 `347 → 185`，剩余偏离全部逐条登记，判定均
+为"可接受"（真实调用点不会产生这些手挑对抗用例才能触发的极端输入）。
 
 18 条 DIFFTAG 归为三类：
 1. **极端 epoch 数值**（`fromMSecsSinceEpoch`/`fromSecsSinceEpoch` 的
@@ -121,16 +138,19 @@ after invalidate(): isValid = false
    `fromString-custom fmt=.../len=19`、`fromString-default tokens=5`，共
    9 条）——`PkDateTime` 严格按 `PkDateTime.h` 类注释声明的"只认 5 个具体格式串
    /不做通用 format-token 解析器/不做逐月天数精确校验"设计拒绝，真 Qt 的解析器
-   更宽松；真实调用点只产出标准长度串，不受影响。
-3. **上一类根因的渲染回声**（`toString-default`/`toString-fmt` 的
-   `post-1970`/`pre-1970`，8 条）——对象本身已因超范围回绕而错误，`toString()`
-   只是如实渲染，不是 `toString()` 自己的问题。
+   更宽松；真实调用点只产出标准长度串，不受影响。其中 `fromString-custom
+   .../len=19` 在 LA 多 1 条（历史 DST，1969-06-15）。
+3. **上一类根因的渲染回声 + 历史 LMT**（`toString-default`/`toString-fmt` 的
+   `post-1970`/`pre-1970`，8 条）——`post-1970` 是对象本身已因超范围回绕而错误、
+   `toString()` 只是如实渲染；`pre-1970` 在 Shanghai 额外多 1 条（1900-01-01 的
+   历史 LMT +08:05:43 vs Qt 的 +08:00）。
 
 判据有效性另外用四组注入实验自证（改完即刻还原）：A/B 两组松开长度判断
 （`!=` 改 `<`）、C 组 `secsTo()` 符号取反、D 组 `elapsed()` 换算系数错三个
 数量级——四组全部命中预期数量的未声明 DIFFTAG（B 组net mismatch 数字不变但
-DIFFTAG 集合确实变了，印证"tag 集合比聚合计数更可靠"）。完整推导见
-`pk/time/oracle/R-16.deviation`「判据有效性自证」一节。
+DIFFTAG 集合确实变了，印证"tag 集合比聚合计数更可靠"）。多时区判据本身的有效性
+由两条历史 tzdata 差异自证（只在对应时区进入 mismatch 表，单时区跑不出来）。
+完整推导见 `pk/time/oracle/R-16.deviation`。
 
 ## 4. 试接结果（本 Task）
 
@@ -226,9 +246,12 @@ pk-global 先例），指名归"`pk/variant` 与 `pk/time` 都进入 S 线主构
 
 对拍覆盖不到的（详见 `oracle/R-16.deviation`「覆盖度限制」一节）：
 
-1. `pk/time` 没有时区/日历系统——`TZ=UTC` 是对拍钉死运行环境的手段，不是"两侧
-   都支持时区、这次只测 UTC"；`PkDateTime` 从设计上就不支持除 UTC 外的任何
-   时区语义。
+1. 历史 tzdata 语义是对 Qt 自带 tzdb 的近似，不是完全对齐——`PkDateTime` 已按
+   裁决用 C 库 `localtime_r`/`mktime` 落地 LocalTime（现代日期 1970+ 与 Qt
+   一致），但两类历史差异已实测并登记在 `oracle/R-16.deviation`「LocalTime 对齐」
+   一节（历史 DST：1969-06-15 LA；历史 LMT：1900-01-01 Shanghai）。当前
+   difftest 的 kSecTok 只含 1970 前两个值，更细的历史 DST 转换时刻未逐个枚举——
+   那是 tzdb 级精确语义，真实调用点（EXIF/XMP 元数据日期）不依赖。
 2. `toSecsSinceEpoch()` 没有独立的 ORACLE-COVER 计数——它被内联进几乎所有比较
    函数，覆盖是真实的，只是不体现在按 API 的计数里。
 3. `currentDateTime()`/`currentDateTimeUtc()` 只做"5 秒容忍窗口内且都 valid"

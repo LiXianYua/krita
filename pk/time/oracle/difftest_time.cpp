@@ -13,12 +13,12 @@
 // R-16.deviation 的理由同宽（规则二）——不做"两侧都失败就算过"这种比声明宽的
 // 判定。
 //
-// TZ=UTC 由 run_oracle.sh 显式 export（仿 R-13 的 LC_ALL=C.UTF-8 I4 先例）：
-// QDateTime::fromMSecsSinceEpoch 等工厂函数默认 timeSpec()==Qt::LocalTime，
-// 渲染日历字段（toString()/fromString() 的年月日时分秒）时走的是系统本地
-// 时区；PkDateTime 恒定按 UTC 渲染日历字段（PkDateTime.cpp 顶部注释）。把
-// 运行环境的本地时区钉成 UTC，两侧的"本地时区"与"UTC"重合，toSecsSinceEpoch()
-// 之外的日历字段比较才有意义、且跨机器可复现。
+// 多时区对拍（2026-08-18 裁决，R-16 交接）：run_oracle.sh 在多个非 UTC 时区下
+// 各跑一遍本程序（不再 `export TZ=UTC`）。QDateTime 工厂函数默认
+// timeSpec()==Qt::LocalTime、toString() 按本地墙钟渲染；PkDateTime 已对齐为
+// LocalTime（C 库 localtime_r/mktime，读系统 TZ）。每跑一遍的 TZ 由
+// run_oracle.sh export，本程序在 ORACLE-QT 行打印实际读到的 TZ 以留痕。两侧在
+// 同一 TZ 下各自读系统本地时区，日历字段比较才有意义、且跨机器可复现。
 
 #include <QDateTime>
 #include <QElapsedTimer>

@@ -30,6 +30,6 @@ private Q_SLOTS:
     void toStringDefaultMatchesTextDateShape();
     void toStringIsoDate();
     void toStringIsoDateWithMs();
-    void toStringRfc2822DateFixedUtcOffset();
+    void toStringRfc2822DateReflectsLocalOffset();
     void toStringOnInvalidReturnsEmpty();
 };

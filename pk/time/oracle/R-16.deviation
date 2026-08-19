@@ -7,8 +7,40 @@
 # 接受」。反过来，这里声明了但这次没观察到的，说明白名单过期、或对拍根本没走到
 # 那条路径 —— 两种都该查。
 #
-# 基线（2026-08-18，run_oracle.sh 最终跑图）：total=2228 mismatch=185，
-# 18 条 DIFFTAG，逐条列在下面。TZ=UTC + LC_ALL=C.UTF-8 已由 run_oracle.sh 钉死。
+# 基线（2026-08-18，run_oracle.sh 多时区最终跑图，见下方「LocalTime 对齐」一节）：
+#   TZ=America/Los_Angeles：total=2228 mismatch=186
+#   TZ=Asia/Shanghai：      total=2228 mismatch=189
+#   两个时区是同一组 18 条 DIFFTAG（tag 集合一致；各 tag 计数因历史 tzdata 差异略
+#   不同，逐条在下方「逐条声明」里说明）。LC_ALL=C.UTF-8 由 run_oracle.sh 钉死。
+
+# ══════════════════════════════════════════════════════════
+# LocalTime 对齐（2026-08-18 裁决，R-16 交接）
+# ══════════════════════════════════════════════════════════
+#
+# 首版实现把 PkDateTime 的日历字段渲染/解析**固定按 UTC**（gmtime_r/timegm，
+# RFC2822Date 尾缀硬编码 +0000），但真 Qt 的 fromMSecsSinceEpoch/fromSecsSinceEpoch/
+# fromString 单参默认 timeSpec()==Qt::LocalTime、toString 按本地墙钟渲染——非 UTC
+# 机器上这是真行为差异，不是覆盖度限制。按「对齐口径：默认全对齐」判定为缺陷。
+#
+# 裁决：实现 LocalTime 渲染/解析。时区来源退用 C 库 localtime_r/mktime（读系统
+# TZ），因为 C++17 std::chrono 无 tzdb。这是对 Qt 自带 tzdb 的**近似**——两类已
+# 观测到的历史 tzdata 差异见下，属「若将来某真实调用点依赖精确 tzdb 语义（历史
+# DST 表等），按偏离登记」的范围，不是本轮要修的缺口：
+#
+#   (a) 历史 DST（仅 DST-观测时区，如 America/Los_Angeles）：系统 tzdata 认为
+#       1969-06-15 处于夏令时（PDT，UTC-7），Qt 的 tzdb 把它当标准时（PST，UTC-8）
+#       解析——fromString("1969-06-15T12:30:45") 两侧 toSecsSinceEpoch() 差 3600 秒。
+#       仅在 LA 出现，Shanghai（无 DST）不出现；现代年份（1970+）两侧一致。
+#   (b) 历史 LMT（仅带本地平时偏移的时区，如 Asia/Shanghai）：系统 tzdata 认为
+#       1900 年上海的偏移是 LMT +08:05:43（1901 年前），Qt 的 tzdb 一律用现代
+#       +08:00——fromSecsSinceEpoch(-2208988800)（=1900-01-01）toString 差 5 分 43
+#       秒。仅在 Shanghai 出现，LA 无 LMT 阶段（1900 已是 PST -08:00）不出现。
+#
+# 对拍口径已补上：run_oracle.sh 从「export TZ=UTC」改成「至少两个非 UTC 时区」
+# （America/Los_Angeles 负偏移 + Asia/Shanghai 正偏移）各跑一遍 difftest_time，
+# 让「默认 LocalTime vs 实现 UTC」这类差异真的进 mismatch 表（早期 TZ=UTC 会把
+# 两侧的"本地时区"与"UTC"重合，系统性遮蔽这类差异）。diff 的两个历史 tzdata 差异
+# 正是这套多时区对拍才可能暴露出来的，单时区跑不出来。
 
 # ══════════════════════════════════════════════════════════
 # 对齐口径
@@ -19,8 +51,8 @@
 # 但 toSecsSinceEpoch() 解出的绝对时刻与输入年份南辕北辙——不是"拒绝 vs 接受"
 # 的宽严差异，是"悄悄给出一个貌似合法、实际错得离谱的值"）被判定为需要修的真实
 # 根因缺口，随即在本任务里修复（PkDateTime.cpp 新增 yearRepresentable() 校验，
-# 见下方「本任务的根因修复」一节）。修复后重跑：mismatch 347 → 185，此后的
-# 185 全部逐条登记在下面，判定均为「可接受」。
+# 见下方「本任务的根因修复」一节）。修复后重跑（当时 TZ=UTC）：mismatch 347 →
+# 185。LocalTime 对齐之后改为多时区跑，剩余偏离见下两节，判定均为「可接受」。
 
 # ══════════════════════════════════════════════════════════
 # 本任务的根因修复（对拍逼出的真 bug，不是范围决策）
@@ -34,16 +66,17 @@
 # 才发现的新现象，但 Task 1-3 之前没有针对它写校验）。
 #
 # `fromString(s)`/`fromString(s, customFormat)` 这条日历字段解析链路
-# （`makeFromUtcFieldsChecked`）此前对年份没有任何范围校验，年份落在安全窗口
-# 之外时会在"日历字段 → time_t → TimePoint"换算链上发生有符号整数回绕：
-# 不是拒绝，是给出一个 isValid()==true 但完全错误的时刻。对拍实测例子（修复前）：
+# （`makeFromLocalFieldsChecked`，旧名 makeFromUtcFieldsChecked）此前对年份没有任何
+# 范围校验，年份落在安全窗口之外时会在"日历字段 → time_t → TimePoint"换算链上
+# 发生有符号整数回绕：不是拒绝，是给出一个 isValid()==true 但完全错误的时刻。
+# 对拍实测例子（修复前）：
 #   fromString("9999-06-15T12:30:45", "yyyy-MM-ddThh:mm:ss")
 #     修复前：isValid()==true，toSecsSinceEpoch() 解出来的日期落在 1683 年附近
 #     修复后：isValid()==false（年份超出安全窗口，明确拒绝）
 # 真实调用点（EXIF/XMP 元数据日期）不会落在这个窗口之外，但"看起来合法的输入
 # 不能悄悄给错答案"这条原则不该因为"用不到"就放弃——补的是
 # `PkDateTime.cpp` 里 `yearRepresentable(year)`（`year>=1678 && year<=2261`），
-# 在 `makeFromUtcFieldsChecked` 里第一个校验。**没有改 Task 2 的裸 epoch 工厂
+# 在 `makeFromLocalFieldsChecked` 里第一个校验。**没有改 Task 2 的裸 epoch 工厂
 # `fromSecsSinceEpoch`/`fromMSecsSinceEpoch`**——那两个函数是"给一个数字、存成
 # 时间点"的无校验工厂，真实 `QDateTime::fromSecsSinceEpoch`/
 # `fromMSecsSinceEpoch` 同样不做范围校验（已用独立最小复现验证，见下方
@@ -52,11 +85,14 @@
 #
 # 修复后跑 `pk/time` 全部既有单测（`test_pktime`：TestElapsedTimer 9 条 +
 # TestDateTime 26 条）与 `date_parser_driver`（6 分支）——**35+6 条全绿，
-# 无回归**。
+# 无回归**。LocalTime 对齐后再次全绿（见 README §8 怎么跑）。
 
 # ══════════════════════════════════════════════════════════
 # 逐条声明（api\ttag\t理由）
 # ══════════════════════════════════════════════════════════
+#
+# 下方 18 个 tag 在两个时区下都出现（tag 集合一致）；计数随历史 tzdata 差异略
+# 不同，凡带「多时区计数」注记的 tag，右侧已写明 LA/Shanghai 各自命中数及原因。
 
 fromMSecsSinceEpoch	extreme	R-16 Task4 手挑对抗用例：msecs 落在 int64 表示上限附近（kExtremeTok 的 MAX/2、MIN/2 一类，以及 kSecTok 里 9999/0001 年代表值 ×1000 之后进入 classifySec 的"extreme"桶）。真实 QDateTime 内部存毫秒（乘 1000 才到微秒/纳秒中间量），PkDateTime 内部存纳秒（乘 1e6），两侧各自的整数回绕点不同，回绕后落到不同值——两侧都是"未定义范围输入下的尽力而为"，不是谁错。真实调用点不会传这种量级的 msecs。
 fromMSecsSinceEpoch	int64-max	手挑对抗用例：msecs=INT64_MAX。已用独立最小复现（/tmp/qt_extreme_test.cpp 对比真 Qt5、/tmp/uboverflow_test.cpp 对比 std::chrono 裸换算）确认两侧在这台机器上 g++ -O0/-O2 均不崩溃，只是回绕到不同的具体数值（Qt: toSecsSinceEpoch=9223372036854775；Pk: 0）——回绕算法不同，都不是崩溃或未定义结果，真实调用点不会传这个量级。
@@ -66,16 +102,16 @@ fromSecsSinceEpoch	pre-1970	同上一条，kSecTok 里的 -62135596800（0001-01
 fromString-ISODate	len=18	手挑边界长度用例："2024-06-15T12:30:4"（19 字符阈值少 1 位，秒字段只剩 1 位数字）。真实 Qt 的 Qt::ISODate 解析器比 PkDateTime 的固定 19 字符校验宽松，能把这种截断形态解析成合法值；PkDateTime::fromString(s,DateFormat::ISODate) 只转发到 fromString(s,"yyyy-MM-ddThh:mm:ss")，后者严格要求恰好 19 字符——这是 PkDateTime.h 类注释里已经写明的设计（"只认这 5 个具体格式串...不做通用 format-token 解析器"），真实调用点（kis_exif_io.cpp、kis_exiv2_common.h）产出的都是标准 19 字符 ISODate 串，不会给这种截断形态。
 fromString-ISODate	len=19	手挑边界长度用例："9999-12-31T23:59:59"——年份超出 [1678,2261] 安全窗口，本任务修复后 PkDateTime 正确拒绝（isValid()==false），真实 QDateTime 内部毫秒表示可表示的范围远大于这个窗口，仍判为合法值。属于「本任务根因修复」小节描述的、修复之后residual 的、可接受的边界（宁可少支持极端年份，也不要悄悄给错答案）。
 fromString-ISODate	len=20	组合爆破用例："2024-06-15T12:30:456"（19 字符阈值多 1 位）。理由同 len=18 那条——真实 Qt::ISODate 解析器比固定长度校验宽松，会把多出来的一位数字当成别的字段处理并仍然给出合法值；PkDateTime 严格要求 19 字符，拒绝。设计依据同 PkDateTime.h 的"只认 5 个具体格式串"YAGNI 理由。
-fromString-custom	fmt=yyyy-MM-ddThh:mm:ss/len=19	5 条命中，两类根因都落在这一个 tag 下（同 (fmt,len) 但输入内容不同）：(a) 3 条"某月最多几天"精确校验缺失——"2024-06-31"（6 月只有 30 天）、"2024-02-30"（2 月最多 29 天）、"2023-02-29"（2023 非闰年，2 月只有 28 天）；PkDateTime.cpp 的 fieldsInRange 只做粗粒度范围校验（1<=day<=31），不做逐月天数精确校验——这是 Task 3 已经在代码注释里显式声明的设计（"不做'某月最多几天'这种精确闰年校验...真实调用点不会产出这类输入，过度校验不划算"），本轮对拍只是首次给它一个可观测的 DIFFTAG，不是新发现。(b) 2 条年份超出安全窗口——"0001-06-15T12:30:45"、"9999-06-15T12:30:45"，理由同 fromString-ISODate len=19 那条（本任务修复后的 residual 边界）。
-fromString-default	tokens=5	161 条，全部落在两类根因：(a) 绝大多数（约 150+ 条）是"Wed <月> <日> <时间> 9999"组合爆破——年份 9999 超出安全窗口，本任务修复后 PkDateTime 正确拒绝，真实 QDateTime 仍判合法（同 fromString-ISODate len=19 的 residual 边界；年份 0000 那部分已被本任务的修复消除，不再出现在这个 tag 下）。(b) 2 条手挑对抗用例："Wed May 20 3:40:13 2015"（单数位小时，PkDateTime::fromString(s) 的默认格式严格要求 hh:mm:ss 恰好 8 字符/两位小时，真实 Qt::TextDate 解析更宽松能接受单数位小时）与"Wed May 20 03:40:13 99999"（5 位年份，PkDateTime 的 yearStr.size()>4 直接拒绝，真实 Qt 仍能把它解析成一个巨大的合法年份）——两条都是 PkDateTime.h/.cpp 已经写明的"只认固定形态"YAGNI 设计的自然延伸，不是本轮新发现的缺口。
-toString-default	post-1970	通过裸 epoch 工厂 fromSecsSinceEpoch(253402300799) 构造出的 PkDateTime 对象本身内部表示已经因超范围回绕而错误（见 fromSecsSinceEpoch/post-1970 条目），toString() 只是如实渲染这个已经错误的内部时刻，不是 toString() 自己的问题。
-toString-default	pre-1970	同上，-62135596800 方向对称。
+fromString-custom	fmt=yyyy-MM-ddThh:mm:ss/len=19	多时区计数：LA=6、Shanghai=5。三类根因落在这一个 (fmt,len) tag 下：(a) 3 条"某月最多几天"精确校验缺失——"2024-06-31"（6 月只有 30 天）、"2024-02-30"（2 月最多 29 天）、"2023-02-29"（2023 非闰年，2 月只有 28 天）；PkDateTime.cpp 的 fieldsInRange 只做粗粒度范围校验（1<=day<=31），不做逐月天数精确校验——Task 3 已经在代码注释里显式声明的设计（"不做'某月最多几天'这种精确闰年校验...真实调用点不会产出这类输入，过度校验不划算"）。(b) 2 条年份超出安全窗口——"0001-06-15T12:30:45"、"9999-06-15T12:30:45"，理由同 fromString-ISODate len=19 那条（本任务修复后的 residual 边界）。(c) 仅 LA 多出的 1 条：历史 DST——"1969-06-15T12:30:45"，见上方「LocalTime 对齐」小节 (a)。Shanghai（无 DST）不出现，故 Shanghai 只 5 条。
+fromString-default	tokens=5	161 条，全部落在两类根因：(a) 绝大多数（约 150+ 条）是"Wed <月> <日> <时间> 9999"组合爆破——年份 9999 超出安全窗口，本任务修复后 PkDateTime 正确拒绝，真实 QDateTime 仍判合法（同 fromString-ISODate len=19 的 residual 边界；年份 0000 那部分已被本任务的修复消除，不再出现在这个 tag 下）。(b) 2 条手挑对抗用例："Wed May 20 3:40:13 2015"（单数位小时，PkDateTime::fromString(s) 的默认格式严格要求 hh:mm:ss 恰好 8 字符/两位小时，真实 Qt::TextDate 解析更宽松能接受单数位小时）与"Wed May 20 03:40:13 99999"（5 位年份，PkDateTime 的 yearStr.size()>4 直接拒绝，真实 Qt 仍能把它解析成一个巨大的合法年份）——两条都是 PkDateTime.h/.cpp 已经写明的"只认固定形态"YAGNI 设计的自然延伸，不是本轮新发现的缺口。两个时区计数一致（161），与时区无关。
+toString-default	post-1970	通过裸 epoch 工厂 fromSecsSinceEpoch(253402300799) 构造出的 PkDateTime 对象本身内部表示已经因超范围回绕而错误（见 fromSecsSinceEpoch/post-1970 条目），toString() 只是如实渲染这个已经错误的内部时刻，不是 toString() 自己的问题。渲染出的具体时刻（1816 年附近）因回绕值与本地时区而异，但都属"渲染一个已错误的对象"，与时区无关地必然 mismatch。
+toString-default	pre-1970	多时区计数：LA=1、Shanghai=2。两条根因：(-62135596800 的) 0001-01-01 裸 epoch 超范围回绕（同 post-1970 方向对称，LA/Shanghai 都有，各 1 条）；Shanghai 多出的 1 条是历史 LMT——-2208988800（=1900-01-01）在系统 tzdata 下是 LMT +08:05:43、Qt tzdb 是 +08:00，见上方「LocalTime 对齐」小节 (b)，LA 无此阶段故不出现。
 toString-fmt	fmt=ISODate/post-1970	同 toString-default/post-1970 根因，只是换了一个格式化函数渲染同一个已经内部错误的对象。
-toString-fmt	fmt=ISODate/pre-1970	同上，方向对称。
+toString-fmt	fmt=ISODate/pre-1970	多时区计数：LA=1、Shanghai=2。根因同 toString-default/pre-1970（超范围回绕 + Shanghai 历史 LMT）。
 toString-fmt	fmt=ISODateWithMs/post-1970	同 toString-default/post-1970 根因。
-toString-fmt	fmt=ISODateWithMs/pre-1970	同上，方向对称。
-toString-fmt	fmt=RFC2822Date/post-1970	同 toString-default/post-1970 根因。
-toString-fmt	fmt=RFC2822Date/pre-1970	同上，方向对称。
+toString-fmt	fmt=ISODateWithMs/pre-1970	多时区计数：LA=1、Shanghai=2。根因同 toString-default/pre-1970。
+toString-fmt	fmt=RFC2822Date/post-1970	同 toString-default/post-1970 根因（RFC2822 尾缀此时渲染的是回绕后 1816 年附近的 LMT 偏移 -0752/+0805，仍属"渲染错误对象"，不是 RFC2822 自己的问题）。
+toString-fmt	fmt=RFC2822Date/pre-1970	多时区计数：LA=1、Shanghai=2。根因同 toString-default/pre-1970。
 
 # ══════════════════════════════════════════════════════════
 # compat/QDate·QTime 裸 token 查证结果（brief 要求的"按需处理，不预先假设"）
@@ -143,12 +179,13 @@ toString-fmt	fmt=RFC2822Date/pre-1970	同上，方向对称。
 # 覆盖度限制 —— 说不出覆盖不到什么的对拍，说明还没想清楚
 # ══════════════════════════════════════════════════════════
 #
-# 1. **`pk/time` 没有时区/日历系统**，这条本身就是范围限制：TZ=UTC 是对拍
-#    运行环境的钉死手段（让真实 QDateTime 的 Qt::LocalTime 渲染与 PkDateTime
-#    恒定的 UTC 渲染重合，比较才有意义），不是"两侧都支持时区、这次只测了
-#    UTC 这一个时区"——PkDateTime 从设计上就不支持除 UTC 外的任何时区语义，
-#    这条差异不由本对拍程序验证，是已经在 PkDateTime.h/.cpp 顶部注释写明的
-#    range 决策。
+# 1. **历史 tzdata 语义是对 Qt 自带 tzdb 的近似，不是完全对齐**：PkDateTime 退用
+#    C 库 localtime_r/mktime（读系统 TZ）落地 LocalTime，现代日期（1970+）与 Qt
+#    一致，但两类历史差异已实测并登记在上方「LocalTime 对齐」小节（历史 DST：
+#    1969-06-15 LA；历史 LMT：1900-01-01 Shanghai）。这是裁决明写的近似，不是
+#    覆盖度疏漏。当前 difftest 的 kSecTok 只含 1970 前两个值（-2208988800 与
+#    -62135596800），更细的历史 DST 转换时刻（如春季跳过/秋季重复的那一小时）未
+#    逐个枚举——那是 tzdb 级精确语义，真实调用点（EXIF/XMP 元数据日期）不依赖。
 # 2. **`toSecsSinceEpoch()` 没有独立的 ORACLE-COVER 计数**：它被 esQDT/esPDT
 #    这两个"可比较字符串"辅助函数内联调用，贯穿本文件几乎所有比较（total=2228
 #    里绝大多数都间接调了它），但没有单独的 diff 函数只测它自己——覆盖是真实
@@ -158,7 +195,9 @@ toString-fmt	fmt=RFC2822Date/pre-1970	同上，方向对称。
 #    "现在"调用之间必然存在真实时间差的结构性限制，不是对拍偷懒；容忍窗口
 #    选 5 秒是刻意放宽（远超两次背靠背调用的实际间隔，通常 <1ms），只用来
 #    确认两侧真的都在读同一个数量级的当前时刻，不能揪出"读错了几百毫秒"
-#    这类更细的偏差。
+#    这类更细的偏差。另外 `currentDateTimeUtc()` 实例经 `toString()` 渲染的是
+#    本地墙钟而非 UTC（pk/time 不跟踪 timeSpec），该差异不由本对拍程序覆盖
+#    （本对拍只比它的 toSecsSinceEpoch），登记见 PkDateTime.h 类注释。
 # 4. **`elapsed()`/`nsecsElapsed()` 同理只做关系性对拍**（归零性质、非负性、
 #    与真实睡眠时长同数量级、ns/ms 比值落在 1e5~1e7 区间、restart() 真的归零），
 #    不比较跨进程/跨侧的绝对纳秒数字面量——两次 start() 调用之间、两次
@@ -183,11 +222,17 @@ toString-fmt	fmt=RFC2822Date/pre-1970	同上，方向对称。
 # ══════════════════════════════════════════════════════════
 # 判据有效性自证：四组注入实验（改完即刻还原，pk/ 下无残留）
 # ══════════════════════════════════════════════════════════
-# 基线（本文件生效状态）：total=2228 mismatch=185，18 条 DIFFTAG（全部登记在
-# 上方「逐条声明」）。每组注入前后都用 `git diff --stat` + `grep INJECTION`
-# 确认改动范围与还原干净，四组跑完后额外做了一次干净的 `./run_oracle.sh`
-# 复核 mismatch 精确回到 185、DIFFTAG 集合精确回到基线的 18 条，并重跑
-# pk/time 全部既有单测（35 条）与 date_parser_driver（6 分支）确认无残留副作用。
+# 注：这四组注入实验跑在「LocalTime 对齐」之前的 TZ=UTC 基线（mismatch=185）
+# 上——四组注入各自验证的是判据对一个**单一变异**的敏感度，与 LocalTime/UTC
+# 无关（长度判断、secsTo 符号、elapsed 换算系数都不碰时区），结论不受时区迁移
+# 影响。多时区判据本身的有效性由「LocalTime 对齐」一节 (a)(b) 两条历史 tzdata
+# 差异自证：它们只在对应时区下进入 mismatch 表，单时区跑不出来。
+#
+# 基线（当时 TZ=UTC）：total=2228 mismatch=185，18 条 DIFFTAG。每组注入前后都用
+# `git diff --stat` + `grep INJECTION` 确认改动范围与还原干净，四组跑完后额外做了
+# 一次干净的 `./run_oracle.sh` 复核 mismatch 精确回到 185、DIFFTAG 集合精确回到
+# 基线的 18 条，并重跑 pk/time 全部既有单测（35 条）与 date_parser_driver（6 分支）
+# 确认无残留副作用。
 #
 #   A fromString(s,"yyyy") 分支的长度判断 `s.size() != 4` 改成 `s.size() < 4`
 #       论证（非空操作）：`!=` 改 `<` 之后，长度 >4 的字符串不再被长度判断挡住，

@@ -1,6 +1,11 @@
 #include "test_date_time.h"
 #include "../PkDateTime.h"
 
+#include <cctype>
+#include <cstdio>
+#include <ctime>
+#include <string>
+
 void TestDateTime::defaultConstructedIsInvalidAndNull()
 {
     // 探针：`默认构造 QDateTime() | isNull()==true、isValid()==false，与
@@ -234,15 +239,39 @@ void TestDateTime::toStringIsoDateWithMs()
     PK_VERIFY(dt.toString(PkDateTime::DateFormat::ISODateWithMs) == "2024-01-15T12:30:45.000");
 }
 
-void TestDateTime::toStringRfc2822DateFixedUtcOffset()
+void TestDateTime::toStringRfc2822DateReflectsLocalOffset()
 {
-    // 探针给的 "-0800" 是探针机器当时的本地时区偏移，不是跨机器恒定值——不
-    // 断言那个字面串。本任务把 RFC2822Date 的时区尾缀固定实现为 "+0000"
-    // （当作 UTC 处理，见 PkDateTime.cpp 顶部注释），这里断言的是我们自己
-    // 拍板、跨机器确定性的输出，不是探针那个会漂移的偏移量。
+    // RFC2822Date 的时区尾缀必须随本地时区输出（不是固定 "+0000"）——2026-08-18
+    // 裁决把日历字段渲染/解析从固定 UTC 改成 LocalTime 后，这个断言从"固定 +0000"
+    // 改成"与系统 C 库报告的本地偏移一致"。日期时间主体是本地墙钟字段的往返
+    // （parse 本地 → render 本地），与时区无关，恒为 "15 Jan 2024 12:30:45"。
     const PkDateTime dt =
         PkDateTime::fromString("2024-01-15T12:30:45", PkDateTime::DateFormat::ISODate);
-    PK_VERIFY(dt.toString(PkDateTime::DateFormat::RFC2822Date) == "15 Jan 2024 12:30:45 +0000");
+    const std::string s = dt.toString(PkDateTime::DateFormat::RFC2822Date);
+
+    // 形状："15 Jan 2024 12:30:45 ±hhmm"，主体 20 字符 + 空格 + 5 字符尾缀。
+    PK_VERIFY(s.size() == 26);
+    PK_VERIFY(s.substr(0, 20) == "15 Jan 2024 12:30:45");
+    PK_VERIFY(s[20] == ' ');
+    PK_VERIFY(s[21] == '+' || s[21] == '-');
+    for (int i = 22; i < 26; ++i) {
+        PK_VERIFY(std::isdigit(static_cast<unsigned char>(s[i])) != 0);
+    }
+
+    // 尾缀数值必须等于系统 C 库报告的本地偏移（秒、东正西负）。这是独立于被测
+    // 实现的真值来源——localtime_r/tm_gmtoff 直接读系统 TZ，不是 PkDateTime 自己
+    // 的实现；拿它比对能抓住"实现偷偷硬编码 +0000"这类回归（非 UTC 机器上，
+    // "+0000" 与真实偏移数值必然不等）。
+    const std::time_t t = static_cast<std::time_t>(dt.toSecsSinceEpoch());
+    std::tm tmVal{};
+    localtime_r(&t, &tmVal);
+    const long expectedSecs = tmVal.tm_gmtoff;
+
+    const int offHh = std::stoi(s.substr(22, 2));
+    const int offMm = std::stoi(s.substr(24, 2));
+    long parsedSecs = static_cast<long>(offHh) * 3600 + static_cast<long>(offMm) * 60;
+    if (s[21] == '-') parsedSecs = -parsedSecs;
+    PK_VERIFY(parsedSecs == expectedSecs);
 }
 
 void TestDateTime::toStringOnInvalidReturnsEmpty()
