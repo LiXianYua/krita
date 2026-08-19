@@ -221,6 +221,12 @@ PkByteArray KoStore::read(PkStream::pk_int64 max)
     // 这里用 std::vector<char> 中间缓冲转一次再构 PkByteArray（brief §read 契约）。
     std::vector<char> buf(static_cast<std::size_t>(max));
     const PkStream::pk_int64 n = d->stream->read(buf.data(), max);
+    // PkStream::read 返回 -1 表示 I/O 错误（未打开/后端失败）。原 Qt 语义返回空
+    // 字节数组，这里同样返回空 PkByteArray——不能把 -1 传给 PkByteArray(buf, -1)
+    // （std::vector::reserve(-1) 抛 std::length_error）。
+    if (n < 0) {
+        return data;
+    }
     return PkByteArray(buf.data(), static_cast<int>(n));
 }
 
