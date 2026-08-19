@@ -99,7 +99,6 @@ set(PKVARIANT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../variant)
 
 if (NOT TARGET pkgeometry)
     add_library(pkgeometry STATIC
-        ${PKGEOMETRY_DIR}/PkGlobal.cpp
         ${PKGEOMETRY_DIR}/PkPoint.cpp
         ${PKGEOMETRY_DIR}/PkSize.cpp
         ${PKGEOMETRY_DIR}/PkRect.cpp
