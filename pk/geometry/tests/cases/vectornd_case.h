@@ -26,7 +26,7 @@ private Q_SLOTS:
     void componentSetters();
 
     // ── isNull ──
-    void isNullUsesFuzzyThreshold();
+    void isNullUsesExactZero();
 
     // ── length / lengthSquared（精度不对称：length double、lengthSquared float）──
     void lengthSquaredIsFloatAccumulation();

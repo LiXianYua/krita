@@ -94,7 +94,7 @@ void PkVectorNdCase::componentSetters()
     PK_VERIFY(v.x() == 5.0f);
 }
 
-void PkVectorNdCase::isNullUsesFuzzyThreshold()
+void PkVectorNdCase::isNullUsesExactZero()
 {
     // isNull 是**精确零**（qIsNull == 0.0f），不是 qFuzzyIsNull 的 1e-5 阈值。
     // 探针实测：qIsNull(1e-6f)=false、qFuzzyIsNull(1e-6f)=true，两者语义不同。
