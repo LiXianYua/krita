@@ -14,6 +14,7 @@ int run_margins_tests();
 int run_polygon_tests();
 int run_vectornd_tests();
 int run_matrix4x4_tests();
+int run_region_tests();
 
 int main()
 {
@@ -29,6 +30,7 @@ int main()
     failures += run_polygon_tests();
     failures += run_vectornd_tests();
     failures += run_matrix4x4_tests();
+    failures += run_region_tests();
 
     if (failures == 0) {
         std::printf("all pkgeometry tests passed\n");

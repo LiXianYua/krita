@@ -33,6 +33,7 @@ API_GROUPS=(
     "pk/geometry/PkPolygon.h|PkPolygon,PkPolygonF|pk/geometry/oracle/polygon_api.map"
     "pk/geometry/PkVectorND.h|PkVector2D,PkVector3D,PkVector4D|pk/geometry/oracle/vectornd_api.map"
     "pk/geometry/PkMatrix4x4.h|PkMatrix4x4|pk/geometry/oracle/matrix4x4_api.map"
+    "pk/geometry/PkRegion.h|PkRegion|pk/geometry/oracle/region_api.map"
 )
 
 [ -f "$QT/include/QtCore/qpoint.h" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/qpoint.h" >&2; exit 1; }
@@ -266,6 +267,12 @@ def parse_decls(hdr_path, cls):
         if re.fullmatch(r'(?:(?:public|protected|private)\s*:\s*)?'
                         r'enum(\s+class)?\s+[A-Za-z_][A-Za-z0-9_]*'
                         r'(\s*:\s*[A-Za-z_][A-Za-z0-9_ ]*)?', stmt):
+            continue
+        # ⚠ **typedef 别名声明跳过**（R-21 T5 新增，`typedef const PkRect
+        # *const_iterator` 是第一个）：typedef 没有"重载"可言、也没有对应的
+        # rec()，规则三管不着它（与枚举同一理由）。只放行严格长成
+        # `typedef 类型 名字` 这一种。
+        if re.fullmatch(r'(?:(?:public|protected|private)\s*:\s*)?typedef\s+.+', stmt):
             continue
         mm = re.search(r'(operator\s*\(\s*\)|operator[^\s(]*|~?[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)'
                        r'\s*(const)?\s*(?:noexcept)?\s*$', stmt)

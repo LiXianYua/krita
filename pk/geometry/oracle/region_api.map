@@ -1,0 +1,53 @@
+# PkRegion 类体声明 → 对拍 rec() 标签的映射（规则三的机器闸门，人维护那一半）。
+# 格式、多标签分隔符、机械解析方式与 point_api.map / rect_api.map 完全一致，
+# 完整说明见 rect_api.map 顶部注释，这里不重复。
+#
+# ⚠ **覆盖谓词对拍**（见 geometry_difftest.cpp 的 Region 族）：不比较 rects() 的
+# 逐条内容，只比较 isEmpty / boundingRect / contains / 面积 / intersects。所以
+# 很多声明映射到"覆盖谓词"标签（united 映射到 R::united 的覆盖面积比），不是
+# 逐位对齐。带参构造是 fixture（构造错了 boundingRect/contains 当场变红），
+# 映射到 R::boundingRect。
+# typedef const PkRect *const_iterator 由 run_oracle.sh 解析器按 typedef 规则放行，
+# 不进本表。
+
+PkRegion::PkRegion()	R::isEmpty
+PkRegion::PkRegion(const PkRect&)	R::boundingRect
+PkRegion::isEmpty()	R::isEmpty
+PkRegion::isNull()	R::isNull
+PkRegion::begin()	R::isEmpty
+PkRegion::end()	R::isEmpty
+PkRegion::contains(const PkPoint&)	R::contains
+PkRegion::contains(const PkRect&)	R::contains
+PkRegion::translate(int,int)	R::translate
+PkRegion::translate(const PkPoint&)	R::translate
+PkRegion::translated(int,int)	R::translate
+PkRegion::translated(const PkPoint&)	R::translate
+PkRegion::united(const PkRegion&)	R::united
+PkRegion::united(const PkRect&)	R::united
+PkRegion::intersected(const PkRegion&)	R::intersected
+PkRegion::intersected(const PkRect&)	R::intersected
+PkRegion::subtracted(const PkRegion&)	R::subtracted
+PkRegion::xored(const PkRegion&)	R::subtracted
+PkRegion::intersects(const PkRegion&)	R::intersects
+PkRegion::intersects(const PkRect&)	R::intersects
+PkRegion::boundingRect()	R::boundingRect
+PkRegion::rects()	R::united
+PkRegion::rectCount()	R::isEmpty
+PkRegion::operator|=(const PkRegion&)	R::operator+=
+PkRegion::operator+=(const PkRegion&)	R::operator+=
+PkRegion::operator+=(const PkRect&)	R::operator+=
+PkRegion::operator&=(const PkRegion&)	R::operator&=
+PkRegion::operator&=(const PkRect&)	R::operator&=
+PkRegion::operator-=(const PkRegion&)	R::operator-=
+PkRegion::operator-=(const PkRect&)	R::operator-=
+PkRegion::operator^=(const PkRegion&)	R::operator+=
+PkRegion::operator|(const PkRegion&)	R::united
+PkRegion::operator+(const PkRegion&)	R::united
+PkRegion::operator+(const PkRect&)	R::united
+PkRegion::operator&(const PkRegion&)	R::intersected
+PkRegion::operator&(const PkRect&)	R::intersected
+PkRegion::operator-(const PkRegion&)	R::subtracted
+PkRegion::operator-(const PkRect&)	R::subtracted
+PkRegion::operator^(const PkRegion&)	R::subtracted
+PkRegion::operator==(const PkRegion&)	R::isEmpty
+PkRegion::operator!=(const PkRegion&)	R::isEmpty

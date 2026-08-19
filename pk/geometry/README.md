@@ -96,11 +96,12 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 | `PkTransform.h` / `PkTransform.cpp` | `PkTransform`（3×3 齐次矩阵 + 惰性 `m_type`/`m_dirty` 缓存），逐字抄自 `qtransform.h` 与上游 `v5.15.7-lts-lgpl` 的 `qtransform.cpp`。**行向量约定**、**`TransformationType` 是位标志不是 0..5**、**惰性缓存是可观测语义**——三条各错一条整族全错，头文件顶部逐条列了。**R-21 T1** 补了 `map(const PkLineF&)`/`operator*(const PkLineF&, const PkTransform&)`（顺带解开，见「Line 族与 Margins 族」一节） |
 | `PkLine.h` / `PkLine.cpp` / `PkMargins.h` / `PkMargins.cpp`（**R-21 T1**） | `PkLine`/`PkLineF`（逐字抄自 `qline.h`；`length`/`angle`/`setAngle`/`angleTo`/`unitVector`/`intersects`/`fromPolar` 七个 out-of-line 成员靠独立差分脚本对真 Qt 逐输入逼出公式）与 `PkMargins`/`PkMarginsF`（逐字抄自 `qmargins.h`，全部 inline）。详见下面「Line 族与 Margins 族（R-21 T1）」 |
 | `PkPolygon.h` / `PkPolygon.cpp`（**R-21 T2**） | `PkPolygon`/`PkPolygonF`（**继承** `PkVector<PkPoint>`/`PkVector<PkPointF>` 不是包一层，boost range 概念逼出来的硬约束），逐字抄自 `qpolygon.h` + 上游 `v5.15.7-lts-lgpl` 的 `qpolygon.cpp`。`PkPolygonF` 实现 `containsPoint`（射线穿越/环绕数）、`boundingRect`、`translate`/`translated`、`isClosed`、`toPolygon`、`PkPolygonF(const PkRectF&)`；`united`/`intersected`/`subtracted`/`intersects` 四个 QPainterPath 依赖成员明确不实现（R-22）。详见「Polygon 族（R-21 T2）」 |
+| `PkRegion.h` / `PkRegion.cpp`（**R-21 T5**） | `PkRegion`（矩形表 + 两趟相邻合并，**不逐位对齐 Qt 的扫描线划分**、只保证覆盖面积正确，同 KisRegion 的设计）。详见「Region 族（R-21 T5）」 |
 | `PkMatrix4x4.h` / `PkMatrix4x4.cpp`（**R-21 T4**） | `PkMatrix4x4`（float 4×4 列主序矩阵 + 惰性 flagBits），逐字抄自 `qmatrix4x4.h` + 上游 `v5.15.7-lts-lgpl` 的 `qmatrix4x4.cpp`。`inverted()` 用 double 中间量的伴随矩阵求逆。详见「Matrix4x4 族（R-21 T4）」 |
 | `PkVectorND.h` / `PkVectorND.cpp`（**R-21 T3**） | `PkVector2D`/`PkVector3D`/`PkVector4D`（N 维 float 向量），逐字抄自 `qvector2d.h`/`qvector3d.h`/`qvector4d.h` + 上游 `v5.15.7-lts-lgpl` 的 `qvectornd.cpp`。**float/double 精度不对称**（length double 累加、lengthSquared float 累加、dotProduct float 累加）与 **`qIsNull`（精确零）vs `qFuzzyIsNull`（模糊）语义分家**都是反汇编真 `libQt5Gui.so.5` 实测钉死的照抄语义。详见「VectorND 族（R-21 T3）」 |
-| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` `compat/QRectF` `compat/QTransform` `compat/QLine` `compat/QLineF` `compat/QMargins` `compat/QMarginsF`（后四个 **R-21 T1**）`compat/QPolygon` `compat/QPolygonF`（**R-21 T2**）`compat/QVector2D` `compat/QVector3D` `compat/QVector4D`（**R-21 T3**）`compat/QMatrix4x4`（**R-21 T4**） | `#define` 垫片，无扩展名，共 **18 个**。垫片形态一致：每个都把同族名字一起给（Qt 的转发头也是这样，包任一个都能拿到全族名字）。Task 5 补齐了 `QRectF`（偏离 16 已消）。**每个垫片都必须先包 `compat/QtGlobal` 再包各自的 Pk 头**（见「与 `pk/test/compat/QtGlobal` 的共存」，Task 7/8 的试接把这条压成了硬纪律） |
-| `tests/` | `test_global.cpp`（13 函数）、`test_point.cpp`（24）、`test_size.cpp`（31）、`test_rect.cpp`（38）、`test_rectf.cpp`（46）、`test_transform.cpp`（56）、`test_line.cpp`（29，R-21 T1）、`test_margins.cpp`（22，R-21 T1）、`test_polygon.cpp`（23，R-21 T2）、`test_vectornd.cpp`（28，R-21 T3）、`test_matrix4x4.cpp`（23，R-21 T4）、**三个**共存 TU `coexist_*.cpp`、**三个**宏改写探针 `point_macro_proof.cpp` / `size_macro_proof.cpp` / `rectf_macro_proof.cpp`（口径：函数个数按 `cases/*_case.h` 的 `private Q_SLOTS:` 声明数，不含 harness 自带的 `initTestCase`/`cleanupTestCase`；`run_tests.sh` 打的 `Totals: N passed` 是 N = 函数数 + 2） |
-| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect / RectF / Transform / Line / Margins / Polygon / VectorND / Matrix4x4 **十族**）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map` / `line_api.map` / `margins_api.map` / `polygon_api.map` / `vectornd_api.map` / `matrix4x4_api.map`（规则三的机器闸门，十族各一份，见下）** |
+| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` `compat/QRectF` `compat/QTransform` `compat/QLine` `compat/QLineF` `compat/QMargins` `compat/QMarginsF`（后四个 **R-21 T1**）`compat/QPolygon` `compat/QPolygonF`（**R-21 T2**）`compat/QVector2D` `compat/QVector3D` `compat/QVector4D`（**R-21 T3**）`compat/QMatrix4x4`（**R-21 T4**）`compat/QRegion`（**R-21 T5**） | `#define` 垫片，无扩展名，共 **19 个**。垫片形态一致：每个都把同族名字一起给（Qt 的转发头也是这样，包任一个都能拿到全族名字）。Task 5 补齐了 `QRectF`（偏离 16 已消）。**每个垫片都必须先包 `compat/QtGlobal` 再包各自的 Pk 头**（见「与 `pk/test/compat/QtGlobal` 的共存」，Task 7/8 的试接把这条压成了硬纪律） |
+| `tests/` | `test_global.cpp`（13 函数）、`test_point.cpp`（24）、`test_size.cpp`（31）、`test_rect.cpp`（38）、`test_rectf.cpp`（46）、`test_transform.cpp`（56）、`test_line.cpp`（29，R-21 T1）、`test_margins.cpp`（22，R-21 T1）、`test_polygon.cpp`（23，R-21 T2）、`test_vectornd.cpp`（28，R-21 T3）、`test_matrix4x4.cpp`（23，R-21 T4）、`test_region.cpp`（18，R-21 T5）、**三个**共存 TU `coexist_*.cpp`、**三个**宏改写探针 `point_macro_proof.cpp` / `size_macro_proof.cpp` / `rectf_macro_proof.cpp`（口径：函数个数按 `cases/*_case.h` 的 `private Q_SLOTS:` 声明数，不含 harness 自带的 `initTestCase`/`cleanupTestCase`；`run_tests.sh` 打的 `Totals: N passed` 是 N = 函数数 + 2） |
+| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect / RectF / Transform / Line / Margins / Polygon / VectorND / Matrix4x4 / Region **十一族**）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map` / `line_api.map` / `margins_api.map` / `polygon_api.map` / `vectornd_api.map` / `matrix4x4_api.map` / `region_api.map`（规则三的机器闸门，十一族各一份，见下）** |
 | `graft/` | 真实调用点试接（判据②）：`graft_run.sh` 拿 **两个真实 Krita 测试类零改动**编译并跑绿——`KisRectsGridTest`（`libs/global/tests`）与 `KisFourPointInterpolatorTest`（`libs/image/tests`），分属两个不同 target。`stubs/` 是把不属于 R-03 的上游依赖顶住的最小垫片（清单与归属见下面「`graft/` 的 stub 清单」），`rename.sed` 做 `QTest`→`PK_*` 的机械改写，`git diff --quiet` 自证源树零改动 |
 
 ### 规则三的机器闸门
@@ -754,6 +755,33 @@ KisTool 工具链、libkdcraw 色彩管理）很重，配套 stub 成本超 T4 �
 单测（`test_matrix4x4.cpp` 钉结构自洽：单位阵/列主序/往返/平移缩放旋转）+ 对拍
 （`geometry_difftest.cpp` 的 Matrix4x4 族，逐元素比 float、逐 API 覆盖 inverted/
 map/operator*/toTransform）覆盖。
+
+## Region 族（R-21 T5）
+
+`PkRegion.h`/`PkRegion.cpp` 文件头注释（比这里详细得多，这里只汇总判据口径）：
+
+### `PkRegion`
+
+**不逐位对齐 Qt 的内部矩形划分**（R-21 plan.md「问 4」的裁决）：Qt 用扫描线/XRegion
+算法把矩形集合合并成实现定义的最小非重叠划分，那个划分不是规范承诺的公开语义。
+移植成本极高（与 `Qt替代品选型.md` §2 判"COW 容器"不值得移植同一理由）。本类内部
+用 `std::vector<PkRect>` + 两趟相邻合并（同 KisRegion 的 mergeSparseRects 精神），
+维持非重叠不变式，对拍**只比较覆盖谓词**（isEmpty/boundingRect/contains/面积/
+intersects），不比较 rects() 的逐条内容。这是一条登记在案的偏离。
+
+实现（判据①，按真实调用点）：默认构造、`PkRegion(const PkRect&)`（隐式，
+`QRegion dirtyRegion = realNodeRect;`）、isEmpty/isNull、begin/end 迭代
+（`const PkRect*`）、rects/rectCount、boundingRect、contains(PkPoint/PkRect)、
+translate/translated、并/交/差/异或（具名 + 运算符 + 复合赋值）、intersects、
+operator==/!=。
+
+不实现：`QRegion(const QPolygon&)` 多边形填充构造（0 用量且依赖 QPainterPath 填充）、
+`QRegion(const QBitmap&)`（QBitmap 不在范围）、`operator QVariant()`、`QDataStream`、
+`QDebug`。
+
+**实测对拍修过一处**：空区域与任何区域取交应得空区域（`QRegion(rect).intersected(
+QRegion())` 是空），第一版漏掉这个短路，对拍在退化矩形（`0,0,0,0`/`0,0,-1,-1`）
+的输入上抓到面积不一致。
 
 ## 明确不实现的清单
 

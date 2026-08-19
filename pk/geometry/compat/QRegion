@@ -1,0 +1,15 @@
+#pragma once
+// 必须先于 ../PkRegion.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
+#include "../PkRegion.h"
+
+// 兼容垫片：让真实调用点的 `#include <QRegion>` 在**一个字都不改**的前提下解析到
+// PkRegion。做法照 compat/QRect。单类单垫片。
+//
+// `PkRect`/`PkPoint`（构造/contains/translate 的参数类型）经 ../PkRegion.h 一起
+// 进来。QRegion::const_iterator 是 `const QRect*`，这里 `const PkRect*` 经宏改写
+// 后的 QRect 名字自然对上。
+
+#ifndef QRegion
+#define QRegion PkRegion
+#endif

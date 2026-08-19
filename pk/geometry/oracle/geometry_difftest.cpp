@@ -65,6 +65,7 @@
 #include <QVector3D>
 #include <QVector4D>
 #include <QMatrix4x4>
+#include <QRegion>
 #include <QVector>
 #include <QString>
 #include <QtGlobal>
@@ -180,6 +181,11 @@ namespace pkoracle {
 // `pkoracle::PkMatrix4x4::inverted`——两个不同的符号，链不上。纪律同上：
 // PkMatrix4x4.cpp 只 #include <cmath>（上面的系统头区已有）。
 #include "PkMatrix4x4.cpp"
+// ⚠ 同理 **PkRegion.cpp 也要进来**：矩形表布尔运算这一批是 out-of-line 的。
+// libpkgeometry.a 里那份定义的是 `::PkRegion::operator|=`，本 TU 需要的是
+// `pkoracle::PkRegion::operator|=`——两个不同的符号，链不上。纪律同上：
+// PkRegion.cpp 只 #include <algorithm>（上面的系统头区已有）。
+#include "PkRegion.cpp"
 }
 
 using PkPoint  = pkoracle::PkPoint;
@@ -199,6 +205,7 @@ using PkVector2D = pkoracle::PkVector2D;
 using PkVector3D = pkoracle::PkVector3D;
 using PkVector4D = pkoracle::PkVector4D;
 using PkMatrix4x4 = pkoracle::PkMatrix4x4;
+using PkRegion = pkoracle::PkRegion;
 // PkPolygon(const PkVector<PkPoint>&) 的真实调用点需要在 pkoracle:: 之外也
 // 拼得出 `PkVector<T>` 这个名字——别名模板，不是新类型，等价于
 // `pkoracle::PkVector<T>`。
@@ -4025,6 +4032,101 @@ static void cmp_m4_from_transform(const PkTransform &pt)
     rec("M4::ctorFromTransform", same_m4(q, p), "finite", qstr(qt), mstr(q), mstr(p));
 }
 
+// ═══ Region 族：覆盖谓词对拍（R-21 T5）══════════════════════════════════════
+//
+// **不逐位对齐 Qt 的矩形划分**（见 PkRegion.h 头部与 R-21 plan.md「问 4」的裁决）：
+// Qt 用扫描线把矩形集合合并成实现定义的最小非重叠划分，那个划分不是规范承诺的
+// 语义。本类用矩形表 + 合并（同 KisRegion），对拍**只比较覆盖谓词**：
+// isEmpty / boundingRect / 任意点的 contains / rects() 汇总面积 / intersects。
+// **不比较 rects() 的逐条内容/顺序/个数**——这是登记在案的偏离。
+
+static long long regionArea(const QRegion &r)
+{
+    long long a = 0;
+    for (auto it = r.begin(); it != r.end(); ++it)
+        a += (long long)it->width() * it->height();
+    return a;
+}
+static long long regionArea(const PkRegion &r)
+{
+    long long a = 0;
+    for (auto it = r.begin(); it != r.end(); ++it)
+        a += (long long)it->width() * it->height();
+    return a;
+}
+
+static void cmp_region(const QRect qa, const QRect qb, int px, int py)
+{
+    // 从两个矩形构造两个区域，再跑并/交/差，逐一比覆盖谓词。
+    QRegion qr1(qa), qr2(qb);
+    PkRegion pr1(PkRect(qa.left(), qa.top(), qa.width(), qa.height()));
+    PkRegion pr2(PkRect(qb.left(), qb.top(), qb.width(), qb.height()));
+
+    const std::string in = "(" + istr(qa.left()) + "," + istr(qa.top()) + "," + istr(qa.width()) + "," + istr(qa.height())
+                         + ")|(" + istr(qb.left()) + "," + istr(qb.top()) + "," + istr(qb.width()) + "," + istr(qb.height())
+                         + ")@" + istr(px) + "," + istr(py);
+    const std::string sh = shapeOfI({qa.left(), qa.top(), qa.width(), qa.height(),
+                                     qb.left(), qb.top(), qb.width(), qb.height(), px, py});
+
+    rec("R::isEmpty", qr1.isEmpty() == pr1.isEmpty(), sh, in, bstr(qr1.isEmpty()), bstr(pr1.isEmpty()));
+    rec("R::isNull", qr1.isNull() == pr1.isNull(), sh, in, bstr(qr1.isNull()), bstr(pr1.isNull()));
+    rec("R::boundingRect", same_rect(qr1.boundingRect(), pr1.boundingRect()), sh, in,
+        qstr(qr1.boundingRect()), qstr(pr1.boundingRect()));
+    rec("R::contains", qr1.contains(QPoint(px, py)) == pr1.contains(PkPoint(px, py)), sh, in,
+        bstr(qr1.contains(QPoint(px, py))), bstr(pr1.contains(PkPoint(px, py))));
+
+    // 并 / 交 / 差：比覆盖面积 + boundingRect + 抽样点 contains + intersects。
+    {
+        const QRegion q = qr1.united(qr2);
+        const PkRegion p = pr1.united(pr2);
+        rec("R::united", regionArea(q) == regionArea(p), sh, in,
+            istr(regionArea(q)), istr(regionArea(p)));
+        rec("R::unitedBB", same_rect(q.boundingRect(), p.boundingRect()), sh, in,
+            qstr(q.boundingRect()), qstr(p.boundingRect()));
+        rec("R::unitedContains", q.contains(QPoint(px, py)) == p.contains(PkPoint(px, py)), sh, in,
+            bstr(q.contains(QPoint(px, py))), bstr(p.contains(PkPoint(px, py))));
+    }
+    {
+        const QRegion q = qr1.intersected(qr2);
+        const PkRegion p = pr1.intersected(pr2);
+        rec("R::intersected", regionArea(q) == regionArea(p), sh, in,
+            istr(regionArea(q)), istr(regionArea(p)));
+        rec("R::intersectedContains", q.contains(QPoint(px, py)) == p.contains(PkPoint(px, py)), sh, in,
+            bstr(q.contains(QPoint(px, py))), bstr(p.contains(PkPoint(px, py))));
+    }
+    {
+        const QRegion q = qr1.subtracted(qr2);
+        const PkRegion p = pr1.subtracted(pr2);
+        rec("R::subtracted", regionArea(q) == regionArea(p), sh, in,
+            istr(regionArea(q)), istr(regionArea(p)));
+        rec("R::subtractedContains", q.contains(QPoint(px, py)) == p.contains(PkPoint(px, py)), sh, in,
+            bstr(q.contains(QPoint(px, py))), bstr(p.contains(PkPoint(px, py))));
+    }
+    rec("R::intersects", qr1.intersects(qr2) == pr1.intersects(pr2), sh, in,
+        bstr(qr1.intersects(qr2)), bstr(pr1.intersects(pr2)));
+
+    // 复合赋值与运算符（覆盖面积 + contains 抽样）。
+    {
+        QRegion q = qr1; PkRegion p = pr1;
+        q += qr2; p += pr2;
+        rec("R::operator+=", regionArea(q) == regionArea(p), sh, in, istr(regionArea(q)), istr(regionArea(p)));
+    }
+    {
+        QRegion q = qr1; PkRegion p = pr1;
+        q -= qr2; p -= pr2;
+        rec("R::operator-=", regionArea(q) == regionArea(p), sh, in, istr(regionArea(q)), istr(regionArea(p)));
+    }
+    {
+        QRegion q = qr1; PkRegion p = pr1;
+        q &= qr2; p &= pr2;
+        rec("R::operator&=", regionArea(q) == regionArea(p), sh, in, istr(regionArea(q)), istr(regionArea(p)));
+    }
+    {
+        QRegion q = qr1; PkRegion p = pr1;
+        q.translate(px, py); p.translate(px, py);
+        rec("R::translate", regionArea(q) == regionArea(p), sh, in, istr(regionArea(q)), istr(regionArea(p)));
+    }
+}
 
 // ═══ canary：证明比较管道是活的 ════════════════════════════════════════════
 //
@@ -5402,6 +5504,26 @@ int main()
         };
         for (const auto &t : kM4FromTf)
             cmp_m4_from_transform(t);
+    }
+
+    // ═══ Region 族（R-21 T5）══════════════════════════════════════════════════
+    {
+        // 手挑矩形对：重叠 / 相切 / 包含 / 分离 / 退化（空、负宽高）。
+        static const int kRegRectHand[][4] = {
+            { 0, 0, 10, 10 }, { 5, 5, 10, 10 }, { 0, 0, 20, 20 }, { 20, 0, 10, 10 },
+            { 0, 0, 0, 0 }, { 0, 0, -1, -1 }, { 10, 10, 0, 0 }, { -5, -5, 5, 5 },
+        };
+        const int nRR = countOf(kRegRectHand);
+        static const int kRegPtHand[][2] = {
+            { 0, 0 }, { 5, 5 }, { 10, 10 }, { -1, -1 }, { 20, 20 }, { 15, 5 },
+        };
+        const int nRP = countOf(kRegPtHand);
+        for (int i = 0; i < nRR; ++i)
+            for (int j = 0; j < nRR; ++j)
+                for (int k = 0; k < nRP; ++k)
+                    cmp_region(QRect(kRegRectHand[i][0], kRegRectHand[i][1], kRegRectHand[i][2], kRegRectHand[i][3]),
+                               QRect(kRegRectHand[j][0], kRegRectHand[j][1], kRegRectHand[j][2], kRegRectHand[j][3]),
+                               kRegPtHand[k][0], kRegPtHand[k][1]);
     }
 
     for (const auto &kv : g_tags)
