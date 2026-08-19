@@ -209,7 +209,9 @@ PkByteArray KoStore::read(PkStream::pk_int64 max)
     }
 
     if (max == -1) {
-        max = d->size;
+        // 后端若在 Read 模式 size 仍为 -1（未知），按 0 处理，避免
+        // std::vector<char>((size_t)-1) 巨大分配/抛异常。
+        max = (d->size >= 0) ? d->size : 0;
     }
     if (max == 0) {
         return data;

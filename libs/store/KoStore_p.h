@@ -27,14 +27,13 @@ public:
           good(false),
           finalized(false),
           writeMimetype(_writeMimetype),
-          substituteThis("__TEXT"),
-          substituteWith("Text")
+          substituteThis(PkString()),
+          substituteWith(PkString())
     {
     }
-    virtual ~KoStorePrivate()
-    {
-        delete stream;
-    }
+    // 所有权完全在 ~KoStore()：它先 delete d->stream 再 delete d_ptr。
+    // 这里绝不能 delete stream，否则「文件仍 open 时删除 store」会 double-free。
+    virtual ~KoStorePrivate() = default;
 
     PkString toExternalNaming(const PkString &internalNaming) const;
     bool enterDirectoryInternal(const PkString &directory);

@@ -47,7 +47,7 @@ void KoDirectoryStore::init()
     }
 }
 
-bool KoDirectoryStore::openReadOrWrite(const PkString& name, PkStream::OpenModeFlag iomode)
+bool KoDirectoryStore::openReadOrWrite(const PkString& name, PkStream::OpenMode iomode)
 {
     KoStorePrivate *d = d_func();
 
