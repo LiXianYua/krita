@@ -2395,7 +2395,7 @@ bool isInsideShape(const VectorPath &path, const PkPointF &point)
     }
 
     if (isPolygon) {
-        return path.asPainterPath().toFillPolygon().containsPoint(point, Qt::WindingFill);
+        return path.asPainterPath().toFillPolygon(PkTransform()).containsPoint(point, PkPolygonF::WindingFill);
     }
 
     boundRect = kisGrowRect(boundRect, 5); // just safety margins
@@ -2457,7 +2457,7 @@ bool isInsideShape(const PkPainterPath &path, const PkPointF &point)
         }
     }
 
-    return path.toFillPolygon().containsPoint(point, Qt::WindingFill);
+    return path.toFillPolygon(PkTransform()).containsPoint(point, PkPolygonF::WindingFill);
 }
 
 bool isOnLine(const PkLineF &line, const PkPointF &point, const qreal eps, bool boundedStart, bool boundedEnd, bool includeEnds)
