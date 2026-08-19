@@ -9,29 +9,33 @@
 #define KISGLOBAL_H_
 
 #include <limits>
+#include <cstdint>
+#include <algorithm>
+#include <cmath>
 
 #include <KoConfig.h>
 #include "kis_assert.h"
 
-#include <QPoint>
-#include <QPointF>
+#include <PkPoint.h>
+#include <PkPointF.h>
+#include <PkLineF.h>
+#include <PkRect.h>
+#include <PkRectF.h>
+#include <PkSize.h>
+#include <PkSizeF.h>
 
-#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
-#include <QStringConverter>
-#endif
 
+const uint8_t quint8_MAX = std::numeric_limits<uint8_t>::max();
+const uint16_t quint16_MAX = std::numeric_limits<uint16_t>::max();
 
-const quint8 quint8_MAX = std::numeric_limits<quint8>::max();
-const quint16 quint16_MAX = std::numeric_limits<quint16>::max();
+const int16_t qint16_MIN = std::numeric_limits<int16_t>::min();
+const int16_t qint16_MAX = std::numeric_limits<int16_t>::max();
+const int32_t qint32_MAX = std::numeric_limits<int32_t>::max();
+const int32_t qint32_MIN = std::numeric_limits<int32_t>::min();
 
-const qint16 qint16_MIN = std::numeric_limits<qint16>::min();
-const qint16 qint16_MAX = std::numeric_limits<qint16>::max();
-const qint32 qint32_MAX = std::numeric_limits<qint32>::max();
-const qint32 qint32_MIN = std::numeric_limits<qint32>::min();
-
-const quint8 MAX_SELECTED = std::numeric_limits<quint8>::max();
-const quint8 MIN_SELECTED = std::numeric_limits<quint8>::min();
-const quint8 SELECTION_THRESHOLD = 1;
+const uint8_t MAX_SELECTED = std::numeric_limits<uint8_t>::max();
+const uint8_t MIN_SELECTED = std::numeric_limits<uint8_t>::min();
+const uint8_t SELECTION_THRESHOLD = 1;
 
 template <typename T>
 constexpr inline const T &kisBoundFast(const T &min, const T &val, const T &max)
@@ -47,7 +51,7 @@ constexpr inline const T &kisBoundFast(const T &min, const T &val, const T &max)
      * 1) If you are writing time-critical code (e.g. blendmodes), use kisBoundFast()
      * 2) Otherwise use qBound() or std::clamp (the latter may optionally have an assert as well)
      */
-    return qMax(min, qMin(max, val));
+    return std::max(min, std::min(max, val));
 }
 
 enum OutlineStyle {
@@ -137,25 +141,25 @@ normalizeAngleDegrees(T a) {
     return a >= T(360.0) ? std::fmod(a, T(360.0)) : a;
 }
 
-inline qreal shortestAngularDistance(qreal a, qreal b) {
-    qreal dist = fmod(qAbs(a - b), 2 * M_PI);
+inline double shortestAngularDistance(double a, double b) {
+    double dist = fmod(std::abs(a - b), 2 * M_PI);
     if (dist > M_PI) dist = 2 * M_PI - dist;
 
     return dist;
 }
 
-inline qreal incrementInDirection(qreal a, qreal inc, qreal direction) {
-    qreal b1 = a + inc;
-    qreal b2 = a - inc;
+inline double incrementInDirection(double a, double inc, double direction) {
+    double b1 = a + inc;
+    double b2 = a - inc;
 
-    qreal d1 = shortestAngularDistance(b1, direction);
-    qreal d2 = shortestAngularDistance(b2, direction);
+    double d1 = shortestAngularDistance(b1, direction);
+    double d2 = shortestAngularDistance(b2, direction);
 
     return d1 < d2 ? b1 : b2;
 }
 
-inline qreal bisectorAngle(qreal a, qreal b) {
-    const qreal diff = shortestAngularDistance(a, b);
+inline double bisectorAngle(double a, double b) {
+    const double diff = shortestAngularDistance(a, b);
     return incrementInDirection(a, 0.5 * diff, b);
 }
 

@@ -69,9 +69,6 @@ if (ANDROID)
         KisAndroidUtils.cpp
     )
     include_directories(${unwindstack_INCLUDE_DIR})
-    if (QT_MAJOR_VERSION STREQUAL "5")
-        include_directories(${Qt5AndroidExtras_INCLUDE_DIRS})
-    endif()
 endif()
 
 kis_add_library(kritaglobal SHARED ${kritaglobal_LIB_SRCS}
@@ -84,15 +81,22 @@ target_sources(kritaglobal
 )
 generate_export_header(kritaglobal BASE_NAME kritaglobal)
 
-target_link_libraries(kritaglobal 
+target_link_libraries(kritaglobal
     PUBLIC
         kritaversion
-        Qt${QT_MAJOR_VERSION}::Core 
-        Qt${QT_MAJOR_VERSION}::Gui 
-        Qt${QT_MAJOR_VERSION}::Widgets 
-        Qt${QT_MAJOR_VERSION}::Xml 
-        KF${KF_MAJOR}::I18n
-        KF${KF_MAJOR}::ConfigCore
+        pkstring
+        pkcontainer
+        pkgeometry
+        pkconcurrent
+        pklog
+        pksignal
+        pkxml
+        pktime
+        pkvariant
+        pkconfig
+        pkpointer
+        pkflags
+        pkport
         Boost::boost
         zug
         lager
