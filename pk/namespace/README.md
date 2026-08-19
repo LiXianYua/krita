@@ -25,7 +25,7 @@
 |---|---|---|
 | `KeyboardModifier` | 全 8 值 | 位值照抄 qnamespace.h:98-108；`NoModifier=0x0` … `KeyboardModifierMask=0xfe000000` |
 | `Modifier` | 全 6 值 | 快捷键短名 `META/SHIFT/CTRL/ALT`，`UNICODE_ACCEL=0` |
-| `MouseButton` | 全 22 值 | `NoButton`..`ExtraButton24`，`AllButtons=0x07ffffff`，`MaxMouseButton=ExtraButton24`，`MouseButtonMask=0xffffffff` |
+| `MouseButton` | 全 36 值 | `NoButton`..`ExtraButton24`，`AllButtons=0x07ffffff`，`MaxMouseButton=ExtraButton24`，`MouseButtonMask=0xffffffff` |
 | `Orientation` | 全 2 值 | `Horizontal=0x1` `Vertical=0x2` |
 | `FocusPolicy` | 全 5 值 | `StrongFocus=11` `WheelFocus=15` |
 | `SortOrder` | 全 2 值 | |
@@ -37,7 +37,7 @@
 | `PenStyle` | 全 7 值 | |
 | `PenCapStyle` | 全 3 值 | `FlatCap=0` `SquareCap=0x10` `RoundCap=0x20` |
 | `PenJoinStyle` | 全 4 值 | `MiterJoin=0` `BevelJoin=0x40` `RoundJoin=0x80` `SvgMiterJoin=0x100` |
-| `BrushStyle` | 全 18 值 | `TexturePattern=24`（见偏离登记） |
+| `BrushStyle` | 全 19 值 | `TexturePattern=24`（见偏离登记） |
 | `CursorShape` | 全 23 值 | `LastCursor=DragLinkCursor` |
 | `TextFormat` | 全 3 值 | `PlainText=0` `RichText=1` `AutoText=2` |
 | `DateFormat` | 4 值 | `TextDate=0` `ISODate=1` `RFC2822Date=8` `ISODateWithMs=9` |
