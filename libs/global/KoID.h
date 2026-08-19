@@ -13,6 +13,7 @@
 #include <PkDebug.h>
 #include <type_traits>
 #include <PkString.h>
+#include <PkSharedPointer.h>
 
 #include <boost/optional.hpp>
 #include <utility>

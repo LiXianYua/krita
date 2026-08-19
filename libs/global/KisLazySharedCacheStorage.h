@@ -14,6 +14,7 @@
 #include <PkMutex.h>
 #include <PkAtomic.h>
 #include <PkSharedPointer.h>
+#include <PkScopedPointer.h>
 
 namespace KisLazySharedCacheStorageDetail
 {

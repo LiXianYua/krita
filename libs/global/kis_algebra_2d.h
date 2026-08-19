@@ -22,6 +22,7 @@
 
 class PkPainterPath;
 class PkTransform;
+class PkDebug;
 
 namespace KisAlgebra2D {
 

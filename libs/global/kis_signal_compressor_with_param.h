@@ -9,6 +9,7 @@
 
 #include <kis_signal_compressor.h>
 #include <functional>
+#include <PkScopedPointer.h>
 
 /**
  * A special class that converts a Qt signal into a std::function call.

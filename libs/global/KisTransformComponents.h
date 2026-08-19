@@ -9,6 +9,8 @@
 
 #include <kritaglobal_export.h>
 
+class PkDebug;
+
 namespace KisAlgebra2D
 {
 

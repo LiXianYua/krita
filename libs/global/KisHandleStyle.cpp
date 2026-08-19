@@ -6,6 +6,7 @@
 
 #include "KisHandleStyle.h"
 #include "kis_painting_tweaks.h"
+#include <PkScopedPointer.h>
 
 namespace {
 void initDashedStyle(const QColor &baseColor, const QColor &handleFill, KisHandleStyle *style) {

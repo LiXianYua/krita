@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <cmath>
+#include <PkAtomic.h>
 
 #include <kis_debug.h>
 
