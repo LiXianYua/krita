@@ -66,6 +66,13 @@
    偏差：本次输入集 `maxFloatDev=0 maxIntDev=0`（选用的越界输入都落在 half 精确
    表示范围内）。将来遇到 half 不可表示的越界浮点输入会有 ±1 级差，属本偏离。
 
+7. **`lighter()/darker()` 对 ExtendedRgb 的连带行为** —— 真 Qt 的 lighter/darker
+   对 ExtendedRgb 色走 `toExtendedRgb()` 返回有效色，pk 的 `convertTo(ExtendedRgb)`
+   返回无效色（偏离 2 的同源后果）。**当前 PkColor API 下不可达**：没有
+   `toExtendedRgb`/`fromRgbF(qfloat16)` 入口，`fromRgbF`（double/float 重载）都产生
+   spec=Rgb（真 Qt 实测）。将来若引入 qfloat16 支持，需同时修 lighter/darker 的
+   ExtendedRgb 分支。
+
 ## 判据③ 口径（零 Qt 符号）
 
 `nm -u -C /tmp/r27-color-build/test_pkcolor | grep -i qt` → **无输出**
