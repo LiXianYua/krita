@@ -114,6 +114,19 @@ constexpr inline bool pkQtFuzzyCompare(float p1, float p2)
 constexpr inline bool pkQtFuzzyIsNull(double d) { return qAbs(d) <= 0.000000000001; }
 constexpr inline bool pkQtFuzzyIsNull(float f) { return qAbs(f) <= 0.00001f; }
 
+// qglobal.h:930 —— `qIsNull(float)` = **精确零**比较（`f == 0.0f`），不是模糊
+// 比较。与 `qFuzzyIsNull`（阈值 1e-5）是**两个名字、两套语义**：QVector2D/3D/4D
+// 的 isNull() 与 toVector2DAffine/toVector3DAffine 用的是 `qIsNull`（精确零），
+// normalized() 的"已是单位向量/零向量"判定用的是 `qFuzzyIsNull`（模糊）。R-21 T3
+// 的对拍实锤这个区别：`1e-6f` 在 `qIsNull` 眼里是 false、在 `qFuzzyIsNull` 眼里
+// 是 true（探针实测 `qIsNull(1e-6f)=0`、`qFuzzyIsNull(1e-6f)=1`），两侧对拍在
+// isNull/toVector2DAffine 上分家——照 Qt 的精确零。本文件头「范围」注释里原来
+// 把 qIsNull 标"不做"（当时实测调用点 0），R-21 T3 解出三个向量的真实调用点后
+// 补上。不设 pkQt 前缀版：qIsNull 不被 pk/test 的宏改写（那边只 #define
+// qFuzzyIsNull/qFuzzyCompare），没有公式漂移风险。
+constexpr inline bool qIsNull(float f) { return f == 0.0f; }
+constexpr inline bool qIsNull(double d) { return d == 0.0; }
+
 #ifndef PK_GLOBAL_SCALARS_FROM_PKTEST
 // 对外的 Qt 名字只是转发，公式不重复第二遍（两份公式必然漂移）。
 constexpr inline bool qFuzzyCompare(double p1, double p2) { return pkQtFuzzyCompare(p1, p2); }

@@ -1,0 +1,148 @@
+# PkVector2D/PkVector3D/PkVector4D 类体声明 → 对拍 rec() 标签的映射（规则三的
+# 机器闸门，人维护那一半）。格式、多标签分隔符、机械解析方式与 point_api.map /
+# rect_api.map 完全一致，完整说明见 rect_api.map 顶部注释，这里不重复。
+#
+# 带参构造没有自己的 rec：它是每一条 rec 的输入构造路径（QVector2D(x,y) vs
+# PkVector2D(x,y)），构造错了 x/y 当场变红，所以映射到 `x;y`（与 point_api.map
+# 里 PkPoint(int,int) → x;y 同一条理由）。const/non-const 的 operator[] 重载对
+# 由 run_oracle.sh 的解析器给 const 那条追加 ` const` 后缀，两条各自有 rec。
+
+PkVector2D::PkVector2D()	V2::defaultCtor
+PkVector2D::PkVector2D(float,float)	V2::x;V2::y
+PkVector2D::PkVector2D(const PkPoint&)	V2::x;V2::y
+PkVector2D::PkVector2D(const PkPointF&)	V2::x;V2::y
+PkVector2D::PkVector2D(const PkVector3D&)	V2::x;V2::y
+PkVector2D::PkVector2D(const PkVector4D&)	V2::x;V2::y
+PkVector2D::isNull()	V2::isNull
+PkVector2D::x()	V2::x
+PkVector2D::y()	V2::y
+PkVector2D::setX(float)	V2::setX/setY
+PkVector2D::setY(float)	V2::setX/setY
+PkVector2D::operator[](int)	V2::operator[]
+PkVector2D::operator[](int) const	V2::operator[] const
+PkVector2D::length()	V2::length
+PkVector2D::lengthSquared()	V2::lengthSquared
+PkVector2D::normalized()	V2::normalized
+PkVector2D::normalize()	V2::normalize
+PkVector2D::distanceToPoint(const PkVector2D&)	V2::distanceToPoint
+PkVector2D::distanceToLine(const PkVector2D&,const PkVector2D&)	V2::distanceToLine
+PkVector2D::operator+=(const PkVector2D&)	V2::operator+=
+PkVector2D::operator-=(const PkVector2D&)	V2::operator-=
+PkVector2D::operator*=(float)	V2::operator*=(float)
+PkVector2D::operator*=(const PkVector2D&)	V2::operator*=(v)
+PkVector2D::operator/=(float)	V2::operator/=(float)
+PkVector2D::operator/=(const PkVector2D&)	V2::operator/=(v)
+PkVector2D::dotProduct(const PkVector2D&,const PkVector2D&)	V2::dotProduct
+PkVector2D::operator==(const PkVector2D&,const PkVector2D&)	V2::operator==
+PkVector2D::operator!=(const PkVector2D&,const PkVector2D&)	V2::operator!=
+PkVector2D::operator+(const PkVector2D&,const PkVector2D&)	V2::operator+
+PkVector2D::operator-(const PkVector2D&,const PkVector2D&)	V2::operator-(v)
+PkVector2D::operator*(float,const PkVector2D&)	V2::operator*(f,rev)
+PkVector2D::operator*(const PkVector2D&,float)	V2::operator*(f)
+PkVector2D::operator*(const PkVector2D&,const PkVector2D&)	V2::operator*(v)
+PkVector2D::operator-(const PkVector2D&)	V2::operator-unary
+PkVector2D::operator/(const PkVector2D&,float)	V2::operator/(f)
+PkVector2D::operator/(const PkVector2D&,const PkVector2D&)	V2::operator/(v)
+PkVector2D::qFuzzyCompare(const PkVector2D&,const PkVector2D&)	V2::qFuzzyCompare
+PkVector2D::toVector3D()	V2::toVector3D
+PkVector2D::toVector4D()	V2::toVector4D
+PkVector2D::toPoint()	V2::toPoint
+PkVector2D::toPointF()	V2::toPointF
+
+PkVector3D::PkVector3D()	V3::defaultCtor
+PkVector3D::PkVector3D(float,float,float)	V3::x;V3::y;V3::z
+PkVector3D::PkVector3D(const PkPoint&)	V3::x;V3::y
+PkVector3D::PkVector3D(const PkPointF&)	V3::x;V3::y
+PkVector3D::PkVector3D(const PkVector2D&)	V3::x;V3::y
+PkVector3D::PkVector3D(const PkVector2D&,float)	V3::x;V3::y
+PkVector3D::PkVector3D(const PkVector4D&)	V3::x;V3::y
+PkVector3D::isNull()	V3::isNull
+PkVector3D::x()	V3::x
+PkVector3D::y()	V3::y
+PkVector3D::z()	V3::z
+PkVector3D::setX(float)	V3::setX/setY/setZ
+PkVector3D::setY(float)	V3::setX/setY/setZ
+PkVector3D::setZ(float)	V3::setX/setY/setZ
+PkVector3D::operator[](int)	V3::operator[]
+PkVector3D::operator[](int) const	V3::operator[] const
+PkVector3D::length()	V3::length
+PkVector3D::lengthSquared()	V3::lengthSquared
+PkVector3D::normalized()	V3::normalized
+PkVector3D::normalize()	V3::normalize
+PkVector3D::operator+=(const PkVector3D&)	V3::operator+=
+PkVector3D::operator-=(const PkVector3D&)	V3::operator-=
+PkVector3D::operator*=(float)	V3::operator*=(float)
+PkVector3D::operator*=(const PkVector3D&)	V3::operator*=(v)
+PkVector3D::operator/=(float)	V3::operator/=(float)
+PkVector3D::operator/=(const PkVector3D&)	V3::operator/=(v)
+PkVector3D::dotProduct(const PkVector3D&,const PkVector3D&)	V3::dotProduct
+PkVector3D::crossProduct(const PkVector3D&,const PkVector3D&)	V3::crossProduct
+PkVector3D::normal(const PkVector3D&,const PkVector3D&)	V3::normal(2)
+PkVector3D::normal(const PkVector3D&,const PkVector3D&,const PkVector3D&)	V3::normal(3)
+PkVector3D::distanceToPoint(const PkVector3D&)	V3::distanceToPoint
+PkVector3D::distanceToPlane(const PkVector3D&,const PkVector3D&)	V3::distanceToPlane(2)
+PkVector3D::distanceToPlane(const PkVector3D&,const PkVector3D&,const PkVector3D&)	V3::distanceToPlane(3)
+PkVector3D::distanceToLine(const PkVector3D&,const PkVector3D&)	V3::distanceToLine
+PkVector3D::operator==(const PkVector3D&,const PkVector3D&)	V3::operator==
+PkVector3D::operator!=(const PkVector3D&,const PkVector3D&)	V3::operator!=
+PkVector3D::operator+(const PkVector3D&,const PkVector3D&)	V3::operator+
+PkVector3D::operator-(const PkVector3D&,const PkVector3D&)	V3::operator-(v)
+PkVector3D::operator*(float,const PkVector3D&)	V3::operator*(f,rev)
+PkVector3D::operator*(const PkVector3D&,float)	V3::operator*(f)
+PkVector3D::operator*(const PkVector3D&,const PkVector3D&)	V3::operator*(v)
+PkVector3D::operator-(const PkVector3D&)	V3::operator-unary
+PkVector3D::operator/(const PkVector3D&,float)	V3::operator/(f)
+PkVector3D::operator/(const PkVector3D&,const PkVector3D&)	V3::operator/(v)
+PkVector3D::qFuzzyCompare(const PkVector3D&,const PkVector3D&)	V3::qFuzzyCompare
+PkVector3D::toVector2D()	V3::toVector2D
+PkVector3D::toVector4D()	V3::toVector4D
+PkVector3D::toPoint()	V3::toPoint
+PkVector3D::toPointF()	V3::toPointF
+
+PkVector4D::PkVector4D()	V4::defaultCtor
+PkVector4D::PkVector4D(float,float,float,float)	V4::x;V4::y;V4::z;V4::w
+PkVector4D::PkVector4D(const PkPoint&)	V4::x;V4::y
+PkVector4D::PkVector4D(const PkPointF&)	V4::x;V4::y
+PkVector4D::PkVector4D(const PkVector2D&)	V4::x;V4::y
+PkVector4D::PkVector4D(const PkVector2D&,float,float)	V4::x;V4::y
+PkVector4D::PkVector4D(const PkVector3D&)	V4::x;V4::y;V4::z
+PkVector4D::PkVector4D(const PkVector3D&,float)	V4::x;V4::y;V4::z
+PkVector4D::isNull()	V4::isNull
+PkVector4D::x()	V4::x
+PkVector4D::y()	V4::y
+PkVector4D::z()	V4::z
+PkVector4D::w()	V4::w
+PkVector4D::setX(float)	V4::setX/setY/setZ/setW
+PkVector4D::setY(float)	V4::setX/setY/setZ/setW
+PkVector4D::setZ(float)	V4::setX/setY/setZ/setW
+PkVector4D::setW(float)	V4::setX/setY/setZ/setW
+PkVector4D::operator[](int)	V4::operator[]
+PkVector4D::operator[](int) const	V4::operator[] const
+PkVector4D::length()	V4::length
+PkVector4D::lengthSquared()	V4::lengthSquared
+PkVector4D::normalized()	V4::normalized
+PkVector4D::normalize()	V4::normalize
+PkVector4D::operator+=(const PkVector4D&)	V4::operator+=
+PkVector4D::operator-=(const PkVector4D&)	V4::operator-=
+PkVector4D::operator*=(float)	V4::operator*=(float)
+PkVector4D::operator*=(const PkVector4D&)	V4::operator*=(v)
+PkVector4D::operator/=(float)	V4::operator/=(float)
+PkVector4D::operator/=(const PkVector4D&)	V4::operator/=(v)
+PkVector4D::dotProduct(const PkVector4D&,const PkVector4D&)	V4::dotProduct
+PkVector4D::operator==(const PkVector4D&,const PkVector4D&)	V4::operator==
+PkVector4D::operator!=(const PkVector4D&,const PkVector4D&)	V4::operator!=
+PkVector4D::operator+(const PkVector4D&,const PkVector4D&)	V4::operator+
+PkVector4D::operator-(const PkVector4D&,const PkVector4D&)	V4::operator-(v)
+PkVector4D::operator*(float,const PkVector4D&)	V4::operator*(f,rev)
+PkVector4D::operator*(const PkVector4D&,float)	V4::operator*(f)
+PkVector4D::operator*(const PkVector4D&,const PkVector4D&)	V4::operator*(v)
+PkVector4D::operator-(const PkVector4D&)	V4::operator-unary
+PkVector4D::operator/(const PkVector4D&,float)	V4::operator/(f)
+PkVector4D::operator/(const PkVector4D&,const PkVector4D&)	V4::operator/(v)
+PkVector4D::qFuzzyCompare(const PkVector4D&,const PkVector4D&)	V4::qFuzzyCompare
+PkVector4D::toVector2D()	V4::toVector2D
+PkVector4D::toVector2DAffine()	V4::toVector2DAffine
+PkVector4D::toVector3D()	V4::toVector3D
+PkVector4D::toVector3DAffine()	V4::toVector3DAffine
+PkVector4D::toPoint()	V4::toPoint
+PkVector4D::toPointF()	V4::toPointF

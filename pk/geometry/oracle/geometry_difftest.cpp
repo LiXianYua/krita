@@ -61,6 +61,9 @@
 #include <QLine>
 #include <QMargins>
 #include <QPolygon>
+#include <QVector2D>
+#include <QVector3D>
+#include <QVector4D>
 #include <QVector>
 #include <QString>
 #include <QtGlobal>
@@ -162,6 +165,14 @@ namespace pkoracle {
 // `pkoracle::PkPolygonF::boundingRect`——两个不同的符号，链不上。纪律同上：
 // PkPolygon.cpp 只 #include <type_traits>（上面的系统头区已有）。
 #include "PkPolygon.cpp"
+// ⚠ 同理 **PkVectorND.cpp 也要进来**：length/normalized/normalize/dotProduct/
+// crossProduct/normal/distanceTo*/toVector*Affine 这一批是 out-of-line 的（照
+// Qt 的形态，qvectornd.cpp 编在 libQt5Gui.so 里，本机没有源码，float/double
+// 精度不对称经反汇编 .so 实测确认，见 PkVectorND.h 文件头）。libpkgeometry.a
+// 里那份定义的是 `::PkVector2D::length`，本 TU 需要的是
+// `pkoracle::PkVector2D::length`——两个不同的符号，链不上。纪律同上：
+// PkVectorND.cpp 只 #include <cmath>（上面的系统头区已有）。
+#include "PkVectorND.cpp"
 }
 
 using PkPoint  = pkoracle::PkPoint;
@@ -177,6 +188,9 @@ using PkMargins  = pkoracle::PkMargins;
 using PkMarginsF = pkoracle::PkMarginsF;
 using PkPolygon  = pkoracle::PkPolygon;
 using PkPolygonF = pkoracle::PkPolygonF;
+using PkVector2D = pkoracle::PkVector2D;
+using PkVector3D = pkoracle::PkVector3D;
+using PkVector4D = pkoracle::PkVector4D;
 // PkPolygon(const PkVector<PkPoint>&) 的真实调用点需要在 pkoracle:: 之外也
 // 拼得出 `PkVector<T>` 这个名字——别名模板，不是新类型，等价于
 // `pkoracle::PkVector<T>`。
@@ -3483,6 +3497,393 @@ static void cmp_transform_square_quad(const double (*quad)[2], int n)
     rec("T::quadToSquare", okSame2 && roundtripSame, sh, in, bstr(qok2), bstr(pok2));
 }
 
+// ═══ VectorND 族：比较原语 + tag 谓词（R-21 T3）═════════════════════════════
+//
+// 三个 N 维 float 向量族（PkVector2D/3D/4D）共用一套对拍骨架：分量存取、算术
+// 运算符（inline，头文件逐字照抄）、length/lengthSquared/normalized/dotProduct
+// （out-of-line，qvectornd.cpp 逐字照抄）。**float 精度不对称**（length double
+// 累加、lengthSquared float 累加、dotProduct float 累加）见 PkVectorND.h 文件头，
+// 这条是反汇编真 libQt5Gui.so 实测钉死的，对拍两侧会自然在极端量级上分家或
+// 不分家，正好验证这条不对称被照抄对。
+//
+// 比较原语走**位比较**（same_float 用 memcpy 位比较，不是 ==），理由与
+// same_double 那条一致：== 会把 +0/-0 判等、把 NaN 判不等，而 float 向量在
+// 这些极端值上正是要钉住的地方。
+
+static std::string fstr(float f)
+{
+    std::uint32_t b; std::memcpy(&b, &f, sizeof b);
+    char buf[64];
+    std::snprintf(buf, sizeof buf, "%.9g(0x%08x)", (double)f, (unsigned int)b);
+    return buf;
+}
+
+// 位比较：float 的 ±0 与 NaN 都要分得开（与 same_double 同一条理由）。
+static bool same_float(float a, float b)
+{
+    std::uint32_t ba, bb;
+    std::memcpy(&ba, &a, sizeof ba);
+    std::memcpy(&bb, &b, sizeof bb);
+    if (ba == bb) return true;
+    // NaN 的位模式两侧可以不同（载荷不保证），都是 NaN 就算同
+    return (a != a) && (b != b);
+}
+
+static std::string qstr(const QVector2D &v)
+{ return "(" + fstr(v.x()) + "," + fstr(v.y()) + ")"; }
+static std::string qstr(const PkVector2D &v)
+{ return "(" + fstr(v.x()) + "," + fstr(v.y()) + ")"; }
+static std::string qstr(const QVector3D &v)
+{ return "(" + fstr(v.x()) + "," + fstr(v.y()) + "," + fstr(v.z()) + ")"; }
+static std::string qstr(const PkVector3D &v)
+{ return "(" + fstr(v.x()) + "," + fstr(v.y()) + "," + fstr(v.z()) + ")"; }
+static std::string qstr(const QVector4D &v)
+{ return "(" + fstr(v.x()) + "," + fstr(v.y()) + "," + fstr(v.z()) + "," + fstr(v.w()) + ")"; }
+static std::string qstr(const PkVector4D &v)
+{ return "(" + fstr(v.x()) + "," + fstr(v.y()) + "," + fstr(v.z()) + "," + fstr(v.w()) + ")"; }
+
+static bool same_v2(const QVector2D &q, const PkVector2D &p)
+{ return same_float(q.x(), p.x()) && same_float(q.y(), p.y()); }
+static bool same_v3(const QVector3D &q, const PkVector3D &p)
+{ return same_float(q.x(), p.x()) && same_float(q.y(), p.y()) && same_float(q.z(), p.z()); }
+static bool same_v4(const QVector4D &q, const PkVector4D &p)
+{ return same_float(q.x(), p.x()) && same_float(q.y(), p.y()) && same_float(q.z(), p.z()) && same_float(q.w(), p.w()); }
+
+// float 向量的形态 tag：非有限 / ±0 / 次正规 / 巨大 / 有限。与 shapeOfD 同构，
+// 只是输入是 float（喂 double 版本会把 float 特有的次正规边界抹平）。
+static std::string shapeOfF(std::initializer_list<float> vs)
+{
+    for (float v : vs) {
+        if (std::isnan(v)) return "nonfinite";
+        if (std::isinf(v)) return "nonfinite";
+    }
+    for (float v : vs) {
+        if (v == 0.0f && std::signbit(v)) return "signed-zero";
+    }
+    for (float v : vs) {
+        if (std::fpclassify(v) == FP_SUBNORMAL) return "subnormal";
+    }
+    for (float v : vs) {
+        if (v == 0.0f) return "zero";
+    }
+    for (float v : vs) {
+        if (std::fabs(v) >= 1e19f) return "huge";
+    }
+    return "finite";
+}
+
+// ═══ VectorND 族：逐 API 对拍 ═══════════════════════════════════════════════
+//
+// 三个类各 40+ 条声明全部要有自己的 rec()（规则三闸门，见 run_oracle.sh）。
+// 构造函数是 fixture 不是被测项（构造错了 x/y 当场变红），映射到 x;y 那批
+// 标签；每个成员/运算符各一条 rec。inline 的成员在头文件里逐字照抄、out-of-line
+// 的编在 .cpp 里，但两侧都要在这里逐输入比对。
+
+static void cmp_vec2d(float x, float y, float ax, float ay, float f)
+{
+    const QVector2D q(x, y), qa(ax, ay);
+    const PkVector2D p(x, y), pa(ax, ay);
+    const std::string in = fstr(x) + "," + fstr(y) + "|" + fstr(ax) + "," + fstr(ay) + "|f=" + fstr(f);
+    const std::string sh = shapeOfF({x, y, ax, ay, f});
+
+    // 默认构造（零向量）。
+    {
+        const QVector2D qz; const PkVector2D pz;
+        rec("V2::defaultCtor", same_v2(qz, pz), sh, in, qstr(qz), qstr(pz));
+    }
+    rec("V2::isNull", q.isNull() == p.isNull(), sh, in, bstr(q.isNull()), bstr(p.isNull()));
+    rec("V2::x", same_float(q.x(), p.x()), sh, in, fstr(q.x()), fstr(p.x()));
+    rec("V2::y", same_float(q.y(), p.y()), sh, in, fstr(q.y()), fstr(p.y()));
+    {
+        QVector2D qs = q; PkVector2D ps = p;
+        qs.setX(ax); ps.setX(ax);
+        rec("V2::setX/setY", same_v2(qs, ps), sh, in, qstr(qs), qstr(ps));
+        QVector2D qs2 = q; PkVector2D ps2 = p;
+        qs2.setY(ay); ps2.setY(ay);
+        rec("V2::setX/setY", same_v2(qs2, ps2), sh, in, qstr(qs2), qstr(ps2));
+    }
+    {
+        QVector2D qm = q; PkVector2D pm = p;
+        rec("V2::operator[]", same_float(qm[0], pm[0]) && same_float(qm[1], pm[1]), sh, in,
+            fstr(qm[0]) + "," + fstr(qm[1]), fstr(pm[0]) + "," + fstr(pm[1]));
+        qm[0] = ax; pm[0] = ax;   // 非 const 下标可写
+        rec("V2::operator[]", same_v2(qm, pm), sh, in, qstr(qm), qstr(pm));
+        const QVector2D qc = q; const PkVector2D pc = p;
+        rec("V2::operator[] const", same_float(qc[0], pc[0]) && same_float(qc[1], pc[1]), sh, in,
+            fstr(qc[0]) + "," + fstr(qc[1]), fstr(pc[0]) + "," + fstr(pc[1]));
+    }
+    rec("V2::length", same_float(q.length(), p.length()), sh, in, fstr(q.length()), fstr(p.length()));
+    rec("V2::lengthSquared", same_float(q.lengthSquared(), p.lengthSquared()), sh, in,
+        fstr(q.lengthSquared()), fstr(p.lengthSquared()));
+    rec("V2::normalized", same_v2(q.normalized(), p.normalized()), sh, in,
+        qstr(q.normalized()), qstr(p.normalized()));
+    {
+        QVector2D qn = q; PkVector2D pn = p;
+        qn.normalize(); pn.normalize();
+        rec("V2::normalize", same_v2(qn, pn), sh, in, qstr(qn), qstr(pn));
+    }
+    rec("V2::distanceToPoint", same_float(q.distanceToPoint(qa), p.distanceToPoint(pa)), sh, in,
+        fstr(q.distanceToPoint(qa)), fstr(p.distanceToPoint(pa)));
+    rec("V2::distanceToLine", same_float(q.distanceToLine(qa, QVector2D(1, 0)),
+          p.distanceToLine(pa, PkVector2D(1, 0))), sh, in,
+        fstr(q.distanceToLine(qa, QVector2D(1, 0))), fstr(p.distanceToLine(pa, PkVector2D(1, 0))));
+    {
+        QVector2D qc = q; PkVector2D pc = p; qc += qa; pc += pa;
+        rec("V2::operator+=", same_v2(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector2D qc = q; PkVector2D pc = p; qc -= qa; pc -= pa;
+        rec("V2::operator-=", same_v2(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector2D qc = q; PkVector2D pc = p; qc *= f; pc *= f;
+        rec("V2::operator*=(float)", same_v2(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector2D qc = q; PkVector2D pc = p; qc *= qa; pc *= pa;
+        rec("V2::operator*=(v)", same_v2(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector2D qc = q; PkVector2D pc = p; qc /= f; pc /= f;
+        rec("V2::operator/=(float)", same_v2(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector2D qc = q; PkVector2D pc = p; qc /= qa; pc /= pa;
+        rec("V2::operator/=(v)", same_v2(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    rec("V2::dotProduct", same_float(QVector2D::dotProduct(q, qa), PkVector2D::dotProduct(p, pa)), sh, in,
+        fstr(QVector2D::dotProduct(q, qa)), fstr(PkVector2D::dotProduct(p, pa)));
+    rec("V2::operator==", (q == qa) == (p == pa), sh, in, bstr(q == qa), bstr(p == pa));
+    rec("V2::operator!=", (q != qa) == (p != pa), sh, in, bstr(q != qa), bstr(p != pa));
+    rec("V2::operator+", same_v2(q + qa, p + pa), sh, in, qstr(q + qa), qstr(p + pa));
+    rec("V2::operator-(v)", same_v2(q - qa, p - pa), sh, in, qstr(q - qa), qstr(p - pa));
+    rec("V2::operator*(f,rev)", same_v2(f * q, f * p), sh, in, qstr(f * q), qstr(f * p));
+    rec("V2::operator*(f)", same_v2(q * f, p * f), sh, in, qstr(q * f), qstr(p * f));
+    rec("V2::operator*(v)", same_v2(q * qa, p * pa), sh, in, qstr(q * qa), qstr(p * pa));
+    rec("V2::operator-unary", same_v2(-q, -p), sh, in, qstr(-q), qstr(-p));
+    rec("V2::operator/(f)", same_v2(q / f, p / f), sh, in, qstr(q / f), qstr(p / f));
+    rec("V2::operator/(v)", same_v2(q / qa, p / pa), sh, in, qstr(q / qa), qstr(p / pa));
+    rec("V2::qFuzzyCompare", qFuzzyCompare(q, qa) == qFuzzyCompare(p, pa), sh, in,
+        bstr(qFuzzyCompare(q, qa)), bstr(qFuzzyCompare(p, pa)));
+    rec("V2::toVector3D", same_v3(q.toVector3D(), p.toVector3D()), sh, in,
+        qstr(q.toVector3D()), qstr(p.toVector3D()));
+    rec("V2::toVector4D", same_v4(q.toVector4D(), p.toVector4D()), sh, in,
+        qstr(q.toVector4D()), qstr(p.toVector4D()));
+    rec("V2::toPoint", q.toPoint().x() == p.toPoint().x() && q.toPoint().y() == p.toPoint().y(), sh, in,
+        istr(q.toPoint().x()) + "," + istr(q.toPoint().y()), istr(p.toPoint().x()) + "," + istr(p.toPoint().y()));
+    rec("V2::toPointF", same_ptf(q.toPointF(), p.toPointF()), sh, in, qstr(q.toPointF()), qstr(p.toPointF()));
+}
+
+static void cmp_vec3d(float x, float y, float z, float ax, float ay, float az, float f)
+{
+    const QVector3D q(x, y, z), qa(ax, ay, az);
+    const PkVector3D p(x, y, z), pa(ax, ay, az);
+    const std::string in = fstr(x) + "," + fstr(y) + "," + fstr(z) + "|"
+                         + fstr(ax) + "," + fstr(ay) + "," + fstr(az) + "|f=" + fstr(f);
+    const std::string sh = shapeOfF({x, y, z, ax, ay, az, f});
+
+    {
+        const QVector3D qz; const PkVector3D pz;
+        rec("V3::defaultCtor", same_v3(qz, pz), sh, in, qstr(qz), qstr(pz));
+    }
+    rec("V3::isNull", q.isNull() == p.isNull(), sh, in, bstr(q.isNull()), bstr(p.isNull()));
+    rec("V3::x", same_float(q.x(), p.x()), sh, in, fstr(q.x()), fstr(p.x()));
+    rec("V3::y", same_float(q.y(), p.y()), sh, in, fstr(q.y()), fstr(p.y()));
+    rec("V3::z", same_float(q.z(), p.z()), sh, in, fstr(q.z()), fstr(p.z()));
+    {
+        QVector3D qs = q; PkVector3D ps = p;
+        qs.setX(ax); ps.setX(ax);
+        rec("V3::setX/setY/setZ", same_v3(qs, ps), sh, in, qstr(qs), qstr(ps));
+        QVector3D qs2 = q; PkVector3D ps2 = p;
+        qs2.setY(ay); ps2.setY(ay);
+        rec("V3::setX/setY/setZ", same_v3(qs2, ps2), sh, in, qstr(qs2), qstr(ps2));
+        QVector3D qs3 = q; PkVector3D ps3 = p;
+        qs3.setZ(az); ps3.setZ(az);
+        rec("V3::setX/setY/setZ", same_v3(qs3, ps3), sh, in, qstr(qs3), qstr(ps3));
+    }
+    {
+        QVector3D qm = q; PkVector3D pm = p;
+        rec("V3::operator[]", same_float(qm[0], pm[0]) && same_float(qm[2], pm[2]), sh, in,
+            fstr(qm[0]) + "," + fstr(qm[2]), fstr(pm[0]) + "," + fstr(pm[2]));
+        qm[0] = ax; pm[0] = ax;
+        rec("V3::operator[]", same_v3(qm, pm), sh, in, qstr(qm), qstr(pm));
+        const QVector3D qc = q; const PkVector3D pc = p;
+        rec("V3::operator[] const", same_float(qc[0], pc[0]) && same_float(qc[2], pc[2]), sh, in,
+            fstr(qc[0]) + "," + fstr(qc[2]), fstr(pc[0]) + "," + fstr(pc[2]));
+    }
+    rec("V3::length", same_float(q.length(), p.length()), sh, in, fstr(q.length()), fstr(p.length()));
+    rec("V3::lengthSquared", same_float(q.lengthSquared(), p.lengthSquared()), sh, in,
+        fstr(q.lengthSquared()), fstr(p.lengthSquared()));
+    rec("V3::normalized", same_v3(q.normalized(), p.normalized()), sh, in,
+        qstr(q.normalized()), qstr(p.normalized()));
+    {
+        QVector3D qn = q; PkVector3D pn = p;
+        qn.normalize(); pn.normalize();
+        rec("V3::normalize", same_v3(qn, pn), sh, in, qstr(qn), qstr(pn));
+    }
+    {
+        QVector3D qc = q; PkVector3D pc = p; qc += qa; pc += pa;
+        rec("V3::operator+=", same_v3(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector3D qc = q; PkVector3D pc = p; qc -= qa; pc -= pa;
+        rec("V3::operator-=", same_v3(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector3D qc = q; PkVector3D pc = p; qc *= f; pc *= f;
+        rec("V3::operator*=(float)", same_v3(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector3D qc = q; PkVector3D pc = p; qc *= qa; pc *= pa;
+        rec("V3::operator*=(v)", same_v3(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector3D qc = q; PkVector3D pc = p; qc /= f; pc /= f;
+        rec("V3::operator/=(float)", same_v3(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector3D qc = q; PkVector3D pc = p; qc /= qa; pc /= pa;
+        rec("V3::operator/=(v)", same_v3(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    rec("V3::dotProduct", same_float(QVector3D::dotProduct(q, qa), PkVector3D::dotProduct(p, pa)), sh, in,
+        fstr(QVector3D::dotProduct(q, qa)), fstr(PkVector3D::dotProduct(p, pa)));
+    rec("V3::crossProduct", same_v3(QVector3D::crossProduct(q, qa), PkVector3D::crossProduct(p, pa)), sh, in,
+        qstr(QVector3D::crossProduct(q, qa)), qstr(PkVector3D::crossProduct(p, pa)));
+    rec("V3::normal(2)", same_v3(QVector3D::normal(q, qa), PkVector3D::normal(p, pa)), sh, in,
+        qstr(QVector3D::normal(q, qa)), qstr(PkVector3D::normal(p, pa)));
+    rec("V3::normal(3)", same_v3(QVector3D::normal(q, qa, QVector3D(0, 0, 1)),
+          PkVector3D::normal(p, pa, PkVector3D(0, 0, 1))), sh, in,
+        qstr(QVector3D::normal(q, qa, QVector3D(0, 0, 1))), qstr(PkVector3D::normal(p, pa, PkVector3D(0, 0, 1))));
+    rec("V3::distanceToPoint", same_float(q.distanceToPoint(qa), p.distanceToPoint(pa)), sh, in,
+        fstr(q.distanceToPoint(qa)), fstr(p.distanceToPoint(pa)));
+    rec("V3::distanceToPlane(2)", same_float(q.distanceToPlane(qa, QVector3D(0, 0, 1)),
+          p.distanceToPlane(pa, PkVector3D(0, 0, 1))), sh, in,
+        fstr(q.distanceToPlane(qa, QVector3D(0, 0, 1))), fstr(p.distanceToPlane(pa, PkVector3D(0, 0, 1))));
+    rec("V3::distanceToPlane(3)", same_float(q.distanceToPlane(qa, QVector3D(1, 0, 0), QVector3D(0, 1, 0)),
+          p.distanceToPlane(pa, PkVector3D(1, 0, 0), PkVector3D(0, 1, 0))), sh, in,
+        fstr(q.distanceToPlane(qa, QVector3D(1, 0, 0), QVector3D(0, 1, 0))),
+        fstr(p.distanceToPlane(pa, PkVector3D(1, 0, 0), PkVector3D(0, 1, 0))));
+    rec("V3::distanceToLine", same_float(q.distanceToLine(qa, QVector3D(1, 0, 0)),
+          p.distanceToLine(pa, PkVector3D(1, 0, 0))), sh, in,
+        fstr(q.distanceToLine(qa, QVector3D(1, 0, 0))), fstr(p.distanceToLine(pa, PkVector3D(1, 0, 0))));
+    rec("V3::operator==", (q == qa) == (p == pa), sh, in, bstr(q == qa), bstr(p == pa));
+    rec("V3::operator!=", (q != qa) == (p != pa), sh, in, bstr(q != qa), bstr(p != pa));
+    rec("V3::operator+", same_v3(q + qa, p + pa), sh, in, qstr(q + qa), qstr(p + pa));
+    rec("V3::operator-(v)", same_v3(q - qa, p - pa), sh, in, qstr(q - qa), qstr(p - pa));
+    rec("V3::operator*(f,rev)", same_v3(f * q, f * p), sh, in, qstr(f * q), qstr(f * p));
+    rec("V3::operator*(f)", same_v3(q * f, p * f), sh, in, qstr(q * f), qstr(p * f));
+    rec("V3::operator*(v)", same_v3(q * qa, p * pa), sh, in, qstr(q * qa), qstr(p * pa));
+    rec("V3::operator-unary", same_v3(-q, -p), sh, in, qstr(-q), qstr(-p));
+    rec("V3::operator/(f)", same_v3(q / f, p / f), sh, in, qstr(q / f), qstr(p / f));
+    rec("V3::operator/(v)", same_v3(q / qa, p / pa), sh, in, qstr(q / qa), qstr(p / pa));
+    rec("V3::qFuzzyCompare", qFuzzyCompare(q, qa) == qFuzzyCompare(p, pa), sh, in,
+        bstr(qFuzzyCompare(q, qa)), bstr(qFuzzyCompare(p, pa)));
+    rec("V3::toVector2D", same_v2(q.toVector2D(), p.toVector2D()), sh, in,
+        qstr(q.toVector2D()), qstr(p.toVector2D()));
+    rec("V3::toVector4D", same_v4(q.toVector4D(), p.toVector4D()), sh, in,
+        qstr(q.toVector4D()), qstr(p.toVector4D()));
+    rec("V3::toPoint", q.toPoint().x() == p.toPoint().x() && q.toPoint().y() == p.toPoint().y(), sh, in,
+        istr(q.toPoint().x()) + "," + istr(q.toPoint().y()), istr(p.toPoint().x()) + "," + istr(p.toPoint().y()));
+    rec("V3::toPointF", same_ptf(q.toPointF(), p.toPointF()), sh, in, qstr(q.toPointF()), qstr(p.toPointF()));
+}
+
+static void cmp_vec4d(float x, float y, float z, float w, float ax, float ay, float az, float aw)
+{
+    const QVector4D q(x, y, z, w), qa(ax, ay, az, aw);
+    const PkVector4D p(x, y, z, w), pa(ax, ay, az, aw);
+    const std::string in = fstr(x) + "," + fstr(y) + "," + fstr(z) + "," + fstr(w) + "|"
+                         + fstr(ax) + "," + fstr(ay) + "," + fstr(az) + "," + fstr(aw);
+    const std::string sh = shapeOfF({x, y, z, w, ax, ay, az, aw});
+
+    {
+        const QVector4D qz; const PkVector4D pz;
+        rec("V4::defaultCtor", same_v4(qz, pz), sh, in, qstr(qz), qstr(pz));
+    }
+    rec("V4::isNull", q.isNull() == p.isNull(), sh, in, bstr(q.isNull()), bstr(p.isNull()));
+    rec("V4::x", same_float(q.x(), p.x()), sh, in, fstr(q.x()), fstr(p.x()));
+    rec("V4::y", same_float(q.y(), p.y()), sh, in, fstr(q.y()), fstr(p.y()));
+    rec("V4::z", same_float(q.z(), p.z()), sh, in, fstr(q.z()), fstr(p.z()));
+    rec("V4::w", same_float(q.w(), p.w()), sh, in, fstr(q.w()), fstr(p.w()));
+    {
+        QVector4D qs = q; PkVector4D ps = p;
+        qs.setX(ax); ps.setX(ax);
+        rec("V4::setX/setY/setZ/setW", same_v4(qs, ps), sh, in, qstr(qs), qstr(ps));
+        QVector4D qs2 = q; PkVector4D ps2 = p;
+        qs2.setW(aw); ps2.setW(aw);
+        rec("V4::setX/setY/setZ/setW", same_v4(qs2, ps2), sh, in, qstr(qs2), qstr(ps2));
+    }
+    {
+        QVector4D qm = q; PkVector4D pm = p;
+        rec("V4::operator[]", same_float(qm[0], pm[0]) && same_float(qm[3], pm[3]), sh, in,
+            fstr(qm[0]) + "," + fstr(qm[3]), fstr(pm[0]) + "," + fstr(pm[3]));
+        qm[0] = ax; pm[0] = ax;
+        rec("V4::operator[]", same_v4(qm, pm), sh, in, qstr(qm), qstr(pm));
+        const QVector4D qc = q; const PkVector4D pc = p;
+        rec("V4::operator[] const", same_float(qc[0], pc[0]) && same_float(qc[3], pc[3]), sh, in,
+            fstr(qc[0]) + "," + fstr(qc[3]), fstr(pc[0]) + "," + fstr(pc[3]));
+    }
+    rec("V4::length", same_float(q.length(), p.length()), sh, in, fstr(q.length()), fstr(p.length()));
+    rec("V4::lengthSquared", same_float(q.lengthSquared(), p.lengthSquared()), sh, in,
+        fstr(q.lengthSquared()), fstr(p.lengthSquared()));
+    rec("V4::normalized", same_v4(q.normalized(), p.normalized()), sh, in,
+        qstr(q.normalized()), qstr(p.normalized()));
+    {
+        QVector4D qn = q; PkVector4D pn = p;
+        qn.normalize(); pn.normalize();
+        rec("V4::normalize", same_v4(qn, pn), sh, in, qstr(qn), qstr(pn));
+    }
+    {
+        QVector4D qc = q; PkVector4D pc = p; qc += qa; pc += pa;
+        rec("V4::operator+=", same_v4(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector4D qc = q; PkVector4D pc = p; qc -= qa; pc -= pa;
+        rec("V4::operator-=", same_v4(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector4D qc = q; PkVector4D pc = p; qc *= w; pc *= w;
+        rec("V4::operator*=(float)", same_v4(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector4D qc = q; PkVector4D pc = p; qc *= qa; pc *= pa;
+        rec("V4::operator*=(v)", same_v4(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector4D qc = q; PkVector4D pc = p; qc /= w; pc /= w;
+        rec("V4::operator/=(float)", same_v4(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    {
+        QVector4D qc = q; PkVector4D pc = p; qc /= qa; pc /= pa;
+        rec("V4::operator/=(v)", same_v4(qc, pc), sh, in, qstr(qc), qstr(pc));
+    }
+    rec("V4::dotProduct", same_float(QVector4D::dotProduct(q, qa), PkVector4D::dotProduct(p, pa)), sh, in,
+        fstr(QVector4D::dotProduct(q, qa)), fstr(PkVector4D::dotProduct(p, pa)));
+    rec("V4::operator==", (q == qa) == (p == pa), sh, in, bstr(q == qa), bstr(p == pa));
+    rec("V4::operator!=", (q != qa) == (p != pa), sh, in, bstr(q != qa), bstr(p != pa));
+    rec("V4::operator+", same_v4(q + qa, p + pa), sh, in, qstr(q + qa), qstr(p + pa));
+    rec("V4::operator-(v)", same_v4(q - qa, p - pa), sh, in, qstr(q - qa), qstr(p - pa));
+    rec("V4::operator*(f,rev)", same_v4(w * q, w * p), sh, in, qstr(w * q), qstr(w * p));
+    rec("V4::operator*(f)", same_v4(q * w, p * w), sh, in, qstr(q * w), qstr(p * w));
+    rec("V4::operator*(v)", same_v4(q * qa, p * pa), sh, in, qstr(q * qa), qstr(p * pa));
+    rec("V4::operator-unary", same_v4(-q, -p), sh, in, qstr(-q), qstr(-p));
+    rec("V4::operator/(f)", same_v4(q / w, p / w), sh, in, qstr(q / w), qstr(p / w));
+    rec("V4::operator/(v)", same_v4(q / qa, p / pa), sh, in, qstr(q / qa), qstr(p / pa));
+    rec("V4::qFuzzyCompare", qFuzzyCompare(q, qa) == qFuzzyCompare(p, pa), sh, in,
+        bstr(qFuzzyCompare(q, qa)), bstr(qFuzzyCompare(p, pa)));
+    rec("V4::toVector2D", same_v2(q.toVector2D(), p.toVector2D()), sh, in,
+        qstr(q.toVector2D()), qstr(p.toVector2D()));
+    rec("V4::toVector2DAffine", same_v2(q.toVector2DAffine(), p.toVector2DAffine()), sh, in,
+        qstr(q.toVector2DAffine()), qstr(p.toVector2DAffine()));
+    rec("V4::toVector3D", same_v3(q.toVector3D(), p.toVector3D()), sh, in,
+        qstr(q.toVector3D()), qstr(p.toVector3D()));
+    rec("V4::toVector3DAffine", same_v3(q.toVector3DAffine(), p.toVector3DAffine()), sh, in,
+        qstr(q.toVector3DAffine()), qstr(p.toVector3DAffine()));
+    rec("V4::toPoint", q.toPoint().x() == p.toPoint().x() && q.toPoint().y() == p.toPoint().y(), sh, in,
+        istr(q.toPoint().x()) + "," + istr(q.toPoint().y()), istr(p.toPoint().x()) + "," + istr(p.toPoint().y()));
+    rec("V4::toPointF", same_ptf(q.toPointF(), p.toPointF()), sh, in, qstr(q.toPointF()), qstr(p.toPointF()));
+}
+
+
 // ═══ canary：证明比较管道是活的 ════════════════════════════════════════════
 //
 // 走的是与真实 API 完全相同的 rec() 与比较原语。三条都必须出现在 DIFFTAG 里，
@@ -4787,6 +5188,42 @@ int main()
         cmp_transform_square_quad(kQuadDegenerate, 4);
         cmp_transform_square_quad(kQuadWrong3, 3);
         cmp_transform_square_quad(kQuadWrong5, 5);
+    }
+
+    // ═══ VectorND 族（R-21 T3）══════════════════════════════════════════════
+    {
+        // 手挑 float token 集：覆盖 0 / ±0 / 1 / -1 / 中等值 / 极大量级
+        // （float 里 1e19 的平方已溢出，正好钉住 lengthSquared 的 float 累加 vs
+        // length 的 double 累加这条不对称）/ 次正规 / inf / NaN。
+        static const float kVecTok[] = {
+            0.0f, -0.0f, 1.0f, -1.0f, 2.0f, -2.0f, 0.5f, -0.5f, 3.0f, 4.0f,
+            1e-6f, 1e19f, -1e19f, 3e38f, -3e38f, 1e-40f, -1e-40f,
+            INFINITY, -INFINITY, NAN,
+        };
+        const int nVT = countOf(kVecTok);
+        static const float kVecFac[] = { 0.0f, -0.0f, 1.0f, -1.0f, 2.0f, 0.5f, -0.5f, 1e19f, INFINITY, NAN };
+        const int nVF = countOf(kVecFac);
+
+        // PkVector2D：分量 token 组合（含 f 标量）。nVT² 已经覆盖 400 组，
+        // 再加 f 轮转不搞全组合（400×10=4000 次，够钉住逐 API 行为）。
+        for (int i = 0; i < nVT; ++i)
+            for (int j = 0; j < nVT; ++j)
+                cmp_vec2d(kVecTok[i], kVecTok[j], kVecTok[(i + 1) % nVT], kVecTok[(j + 1) % nVT],
+                          kVecFac[(i + j) % nVF]);
+
+        // PkVector3D：分量 token 组合（三重循环，样本按移位取避免全笛卡尔爆炸）。
+        for (int i = 0; i < nVT; ++i)
+            for (int j = 0; j < nVT; ++j)
+                cmp_vec3d(kVecTok[i], kVecTok[(i + 1) % nVT], kVecTok[(i + 2) % nVT],
+                          kVecTok[j], kVecTok[(j + 1) % nVT], kVecTok[(j + 2) % nVT],
+                          kVecFac[(i + j) % nVF]);
+
+        // PkVector4D：分量 token 组合（含 w 的透视除法形态——w=0 是
+        // toVector2DAffine/toVector3DAffine 的退化分支）。
+        for (int i = 0; i < nVT; ++i)
+            for (int j = 0; j < nVT; ++j)
+                cmp_vec4d(kVecTok[i], kVecTok[(i + 1) % nVT], kVecTok[(i + 2) % nVT], kVecTok[(i + 3) % nVT],
+                          kVecTok[j], kVecTok[(j + 1) % nVT], kVecTok[(j + 2) % nVT], kVecTok[(j + 3) % nVT]);
     }
 
     for (const auto &kv : g_tags)

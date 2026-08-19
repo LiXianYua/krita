@@ -18,6 +18,7 @@ add_library(pkgeometry STATIC
     PkLine.cpp
     PkMargins.cpp
     PkPolygon.cpp
+    PkVectorND.cpp
 )
 target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -73,7 +74,8 @@ pk_test_generate(PKGEOMETRY_GENERATED_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/transform_case.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/line_case.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/margins_case.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/polygon_case.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/polygon_case.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/vectornd_case.h")
 
 add_executable(test_pkgeometry
     tests/test_main.cpp
@@ -86,6 +88,7 @@ add_executable(test_pkgeometry
     tests/test_line.cpp
     tests/test_margins.cpp
     tests/test_polygon.cpp
+    tests/test_vectornd.cpp
     # 前两种 include 顺序下的「两份 compat/QtGlobal 共存」TU。它们能编过本身就是
     # 断言的一半，所以必须真的作为独立翻译单元编译，不能合并。
     tests/coexist_test_first.cpp
@@ -129,3 +132,5 @@ set_source_files_properties(tests/test_margins.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_margins_case.inc")
 set_source_files_properties(tests/test_polygon.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_polygon_case.inc")
+set_source_files_properties(tests/test_vectornd.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_vectornd_case.inc")

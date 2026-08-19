@@ -31,6 +31,7 @@ API_GROUPS=(
     "pk/geometry/PkLine.h|PkLine,PkLineF|pk/geometry/oracle/line_api.map"
     "pk/geometry/PkMargins.h|PkMargins,PkMarginsF|pk/geometry/oracle/margins_api.map"
     "pk/geometry/PkPolygon.h|PkPolygon,PkPolygonF|pk/geometry/oracle/polygon_api.map"
+    "pk/geometry/PkVectorND.h|PkVector2D,PkVector3D,PkVector4D|pk/geometry/oracle/vectornd_api.map"
 )
 
 [ -f "$QT/include/QtCore/qpoint.h" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/qpoint.h" >&2; exit 1; }
@@ -245,7 +246,7 @@ def parse_decls(hdr_path, cls):
     m = re.search(r'class %s(?:\s*:\s*[^{]*)?\s*\{(.*?)\n\s*private:' % re.escape(cls), src, re.S)
     if m is None:
         return None, None
-    decls, miss = [], []
+    decls, miss, const_marks = [], [], []
     for stmt in strip_bodies(m.group(1)).split(';'):
         stmt = ' '.join(stmt.split())
         if not stmt:
@@ -266,7 +267,7 @@ def parse_decls(hdr_path, cls):
                         r'(\s*:\s*[A-Za-z_][A-Za-z0-9_ ]*)?', stmt):
             continue
         mm = re.search(r'(operator[^\s(]*|~?[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)'
-                       r'\s*(?:const)?\s*(?:noexcept)?\s*$', stmt)
+                       r'\s*(const)?\s*(?:noexcept)?\s*$', stmt)
         if not mm:
             miss.append(stmt); continue
         ps = []
@@ -278,6 +279,21 @@ def parse_decls(hdr_path, cls):
             if p:
                 ps.append(p)
         decls.append('%s::%s(%s)' % (cls, mm.group(1), ','.join(ps)))
+        # 记录这条声明是不是 const 限定的（R-21 T3 首次撞上 const/non-const
+        # 重载对：`float &operator[](int)` 与 `float operator[](int) const` 剥掉
+        # const 后是同一个指纹，会触发上面的重复指纹 FAIL。记下 const 标记，
+        # 下面统一消歧）。
+        const_marks.append(mm.group(3) is not None)
+    # ⚠ **const/non-const 重载对消歧**（R-21 T3 新增）：`operator[]` 这类成员
+    # 有 `T& op(int)` 与 `T op(int) const` 两个重载，剥掉 const 后指纹相同。
+    # 处置：同一个类里指纹出现两次及以上时，const 那一条的指纹追加 ` const`
+    # 后缀，使两条可区分。既有七个类没有一个有 const/non-const 同签名重载对，
+    # 所以这条分支对它们不改变任何行为（它们的指纹都只出现一次）。
+    from collections import Counter
+    cnt = Counter(decls)
+    for i in range(len(decls)):
+        if cnt[decls[i]] > 1 and const_marks[i]:
+            decls[i] += ' const'
     return decls, miss
 
 
