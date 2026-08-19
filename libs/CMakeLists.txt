@@ -1,7 +1,4 @@
 add_subdirectory( version )
-if(APPLE)
-    add_subdirectory( macosutils )
-endif()
 add_subdirectory( global )
 add_subdirectory( koplugin )
 add_subdirectory( store )
