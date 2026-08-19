@@ -188,6 +188,35 @@ enum Axis {
 };
 
 // ---------------------------------------------------------------------------
+// qnamespace.h:1352-1355（R-21 T2）—— `Qt::FillRule`，逐字照抄
+// （OddEvenFill=0 WindingFill=1，普通枚举无显式取值、按声明顺序编号）。
+//
+// **取值经真 Qt 5.15.7 探针实测确认**（不是凭 Qt 文档记忆硬编）：
+//   g++ -I$QT/include/QtCore probe.cpp -lQt5Core，打印
+//   `(int)Qt::OddEvenFill` / `(int)Qt::WindingFill` / `sizeof(Qt::FillRule)`
+//   → `OddEvenFill=0 WindingFill=1 sizeof=4`，与头文件声明顺序一致。
+//
+// 真实调用点 ≥15 处，全部经 `PkPolygonF::containsPoint(PkPointF, Qt::FillRule)`
+// 落到这里（`kis_algebra_2d.cpp:74,260,1393,2446,2508`、
+// `kis_cage_transform_worker.cpp:121,290`、
+// `kis_grid_interpolation_tools.h:270,300,448`、
+// `KisBezierGradientMesh.cpp:38`、`PerspectiveAssistant.cc:68,127,171`、
+// `PerspectiveEllipseAssistant.cc:601`、`kis_free_transform_strategy.cpp:212`、
+// `kis_perspective_transform_strategy.cpp:167`、`SvgTextTool.cpp:807,810,821`、
+// `CutThroughShapeStrategy.cpp:142` 等）——判据①「一项不少」直接要求。
+// `setFillRule`/`Qt::FillRule` 在 `QPainterPath`（`KoPathShape` 等）上的用量
+// **不算在 R-21 内**——那是 R-22（`QPainterPath`）的事，这里只做
+// `PkPolygonF::containsPoint` 这一个消费者。
+//
+// 放 PkGlobal.h 而不是 pk/geometry/PkPolygon.h：与 AspectRatioMode/Axis 同一条
+// 理由（`namespace Qt` 只在这一处出现，几何头**不许依赖 compat/**）。
+// ---------------------------------------------------------------------------
+enum FillRule {
+    OddEvenFill,
+    WindingFill
+};
+
+// ---------------------------------------------------------------------------
 // qnamespace.h:75-96 —— `Qt::GlobalColor`，**逐字照抄**（R-15 交接：`PkImage`
 // 的 `fill(Qt::GlobalColor)` 需要这个类型，签名要用，理由与 AspectRatioMode/
 // Axis 完全同构——几何头/`pk/image` 头都不许依赖 `compat/`，对拍要求两侧真的
@@ -246,6 +275,7 @@ enum GlobalColor {
 enum TransformationMode {
     FastTransformation,
     SmoothTransformation
+};
 };
 }
 

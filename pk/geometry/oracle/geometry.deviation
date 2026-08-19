@@ -175,3 +175,19 @@ T::mapRect(PkRectF)	persp-clip/proj-zero/nonfinite	281	浮点版 mapRect，矩�
 T::mapRect(PkRectF)	persp-clip/proj-zero/signed-zero	598	浮点版 mapRect，矩阵含 +0.0 分量、含 -0.0 字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 720 次里分家 598 次；另外 122 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
 T::mapRect(PkRectF)	persp-clip/proj-zero/subnormal	719	浮点版 mapRect，矩阵含 +0.0 分量、含次正规字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 720 次里分家 719 次；另外 1 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
 T::mapRect(PkRectF)	persp-clip/proj-zero/zero	4958	浮点版 mapRect，矩阵含 +0.0 分量、含 +0.0 字段。根因：Qt 在 type()==TxProject 且需透视裁剪时走 QPainterPath，QPainterPath 归属未定不在 R-03 范围，本类落回四角包围盒。命中 5151 次里分家 4958 次；另外 193 次两侧恰好相同 —— 那是裁剪前后包围盒重合的输入（被夹持的角落在已有包围盒之内，裁不裁都不改变四个边界）
+# ══════════════════════════════════════════════════════════════════════════
+# **R-21 T2（PkPolygonF）写下的第二条真实偏离** —— 1 行，根因与 mapRect 的
+# 23 行是同一个：`QPainterPath` 不在 R-21 交付范围（`Qt替代品选型.md` §1 几何
+# 那一行点名的十个类型里没有它，归 R-22）。
+#
+# `QTransform::map(const QPolygonF&)` 在 `type() >= TxProject` 时，真 Qt 把
+# 多边形铺进 `QPainterPath` 做透视裁剪（近裁剪面 w=1e-6 之外的顶点被裁掉/
+# 替换成新的交点），本类落回**逐点无裁剪**的 `map(const PkPointF&)`——它自己
+# 的 TxProject 分支就是 `1/(m13*x+m23*y+m33)` 透视除法，点在近裁剪面之外时
+# 得到 inf/翻转坐标而不是被裁掉的新顶点。这一支在 PkTransform.cpp 里显形
+# （map(const PkPolygonF&) 上方那段注释直接指到这里），README「覆盖度缺口」
+# 同步点名。谓词 `txproject-deviation` = `q.type() >= TxProject`（真 Qt 那侧
+# 分档，与 mapRect 用 `tfFreshIsProject` 就地重算是同一条精神：分类借真 Qt 的
+# type() 而不是猜本类会给什么档），非退化多边形（n>0）时构造。
+# ══════════════════════════════════════════════════════════════════════════
+T::map(PolygonF)	txproject-deviation	8	浮点版 map(QPolygonF)，真 Qt 在 type()>=TxProject 时把多边形铺进 QPainterPath 做透视裁剪，QPainterPath 归属未定不在 R-21 范围（归 R-22），本类落回逐点无裁剪的透视除法。命中 14 次里分家 8 次；另外 6 次两侧恰好相同 —— 那是裁剪前后顶点重合的输入（所有顶点都落在近裁剪面之内，裁不裁都不改变坐标）

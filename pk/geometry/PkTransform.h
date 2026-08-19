@@ -5,6 +5,7 @@
 #include "PkPoint.h"
 #include "PkRect.h"
 #include "PkLine.h"
+#include "PkPolygon.h"
 
 // ---------------------------------------------------------------------------
 // PkTransform —— QTransform 的零 Qt 替代（3x3 齐次矩阵）。
@@ -98,15 +99,20 @@
 // 【依赖当时范围外的类型，逐个由交付该类型的 R 任务顺带解开】：
 //   · `map(QLineF)` / `operator*(const QLineF&, const QTransform&)` ——
 //     **R-21 T1 已解开**（交付了 PkLineF），见下方 `map(const PkLineF&)`。
-//   · `map(QLine)` `map(QPolygon)` `map(QPolygonF)` `map(QRegion)`
-//     `map(QPainterPath)`，以及
-//     `operator*(const QLine&/QPolygon&/QPolygonF&/QRegion&, const QTransform&)`
-//     ——仍未解开，QLine/QPolygon/QPolygonF/QRegion/QPainterPath 尚未交付
-//     （`QLine` 保留范围内唯一真实调用点只是构造后立即转 `QLineF`，本身没有
-//     `.map()` 真实调用点，暂不补；其余四个待各自的 R 任务）
-//   · `squareToQuad` / `quadToSquare`（实测 2 次 / 3 次，用量 > 0）——
-//     它们的签名吃 `QPolygonF`，同上不可得。**这是一个已知缺口，不是遗漏**，
-//     报回主会话，README 覆盖度缺口点名
+//   · `map(QPolygonF)`、`squareToQuad` / `quadToSquare` —— **R-21 T2 已解开**
+//     （交付了 PkPolygonF），见下方 `map(const PkPolygonF&)` 与
+//     `squareToQuad`/`quadToSquare`。`map(QPolygonF)` 的 `TxProject` 分支
+//     与真 Qt 有一处登记在案的行为偏离（真 Qt 铺进 QPainterPath 做透视裁剪，
+//     本类落回逐点无裁剪的 map，同 `mapRect` 的 `TxProject` 分支同一个模式），
+//     详见 PkTransform.cpp 里 `map(const PkPolygonF&)` 上方那段与
+//     oracle/geometry.deviation。`map(QPolygon)`（int 版）与
+//     `operator*(const QPolygonF&/QPolygon&, const QTransform&)` 实测调用点
+//     均为 0，不做（判据①）。
+//   · `map(QLine)` `map(QRegion)` `map(QPainterPath)`，以及
+//     `operator*(const QLine&/QRegion&, const QTransform&)`
+//     ——仍未解开，QLine 本身没有 `.map()` 真实调用点（保留范围内唯一命中
+//     只是构造后立即转 QLineF，暂不补），QRegion/QPainterPath 尚未交付
+//     （分别待 R-21 T5 / R-22）。
 //   · `mapRect` 在「TxProject 且需要透视裁剪」时 Qt 走 QPainterPath ——
 //     见 PkTransform.cpp 里 mapRect 上方那段与 oracle/geometry.deviation
 // 【归别的线】：
@@ -222,6 +228,22 @@ public:
     // `plugins/tools/tool_knife/RemoveGutterStrategy.cpp` 多处
     // `<PkTransform>.map(<PkLineF>)`。
     PkLineF map(const PkLineF &l) const;
+
+    // qtransform.cpp:1465-1483（R-21 T2 顺带解开，交付了 PkPolygonF 之前做
+    // 不出来，文件头「依赖当时范围外的类型」一节）。真实调用点 ≥15 处，见
+    // PkPolygon.h 文件头。`TxProject` 分支与真 Qt 有一处登记在案的行为偏离
+    // （见 PkTransform.cpp 里本函数上方那段）。
+    PkPolygonF map(const PkPolygonF &a) const;
+
+    // qtransform.cpp:1810-1864 / 1875-1884（R-21 T2 顺带解开，同上）。
+    // 真实调用点：`kis_algebra_2d_test.cpp:175`、`PerspectiveAssistant.cc:301`、
+    // `PerspectiveEllipseAssistant.cc:137`（squareToQuad），
+    // `KisScreentoneGeneratorFunctionSampler.h:111`、
+    // `KisScreentoneGeneratorTemplate.cpp:246`、`patterngenerator.cpp:165`
+    // （quadToSquare）。**静态成员**，签名吃 `PkPolygonF`（必须恰好 4 个点，
+    // 否则返回 false）。
+    static bool squareToQuad(const PkPolygonF &square, PkTransform &result);
+    static bool quadToSquare(const PkPolygonF &quad, PkTransform &result);
 
     // qtransform.cpp:1942-1991 / 2012-2060。
     PkRect mapRect(const PkRect &) const;
@@ -411,8 +433,11 @@ inline bool qFuzzyCompare(const PkTransform &t1, const PkTransform &t2)
 }
 
 // qtransform.h:395-418 —— "mathematical semantics" 一节里的重载。R-21 T1
-// 交付 PkLineF 后补上 QLineF 那一个；QLine / QPolygon / QPolygonF / QRegion
-// 四个仍不做（类型尚未交付，见文件头「归属未定」列表，各自的 R 任务顺带解开）。
+// 交付 PkLineF 后补上 QLineF 那一个。**R-21 T2 交付 PkPolygonF 之后仍不补**
+// `operator*(const QPolygonF&, const QTransform&)`——与 `map(QPolygon)`
+// 同一批，实测调用点 0（判据①，见 PkPolygon.h 文件头）。
+// QLine / QRegion 两个仍不做（类型尚未交付，QLine 本身也没有 `.map()` 真实
+// 调用点，见文件头「依赖当时范围外的类型」列表）。
 inline PkPoint operator*(const PkPoint &p, const PkTransform &m)
 { return m.map(p); }
 inline PkPointF operator*(const PkPointF &p, const PkTransform &m)

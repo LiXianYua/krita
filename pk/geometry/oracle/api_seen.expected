@@ -1,6 +1,7 @@
 # 对拍程序应当打出的全部 `APISEEN <name>` 行（规则三机器闸门的第二半）。
 #
-# 它覆盖**全部四族**（Point / Size / Rect+RectF / Transform）：多一条少一条都 FAIL。
+# 它覆盖**全部八族**（Point / Size / Rect+RectF / Transform / Line+LineF /
+# Margins+MarginsF / Polygon+PolygonF）：多一条少一条都 FAIL。
 # 于是「新加了 API 却忘了 rec()」「删了 rec() 却留着实现」「某一族的 rec 被
 # 整段注释掉」这三类漂移都由机器抓，不再靠人手列对照表。
 #
@@ -266,6 +267,7 @@ T::m33
 T::map(LineF)
 T::map(PkPoint)
 T::map(PkPointF)
+T::map(PolygonF)
 T::map(int*)
 T::map(qreal*)
 T::map(stale)
@@ -279,6 +281,7 @@ T::operator+=(qreal)
 T::operator-=(qreal)
 T::operator/=(qreal)
 T::operator==
+T::quadToSquare
 T::reset
 T::rotate
 T::rotate(axis)
@@ -289,6 +292,7 @@ T::rotateRadians(axis)
 T::scale
 T::setMatrix
 T::shear
+T::squareToQuad
 T::translate
 T::transposed
 T::type
@@ -429,3 +433,20 @@ MF::setRight
 MF::setTop
 MF::toMargins
 MF::top
+PG::ctorFromVector
+PG::ctorFromVectorMove
+PG::defaultCtor
+PGF::boundingRect
+PGF::containsPointOddEven
+PGF::containsPointWinding
+PGF::ctorFromRect
+PGF::ctorFromVector
+PGF::ctorFromVectorMove
+PGF::ctorSize
+PGF::defaultCtor
+PGF::isClosed
+PGF::toPolygon
+PGF::translatePoint
+PGF::translateXY
+PGF::translatedPoint
+PGF::translatedXY

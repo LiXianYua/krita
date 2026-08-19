@@ -95,9 +95,10 @@ grep -i qt` 必须无输出（判据③）→ 自证改动只落在 `pk/geometry
 | `PkRect.h` / `PkRect.cpp` | `PkRect`（**四个 `int` 边界坐标 `x1/y1/x2/y2`**）与 `PkRectF`（**四个 `qreal` 的左上角 + 宽高 `xp/yp/w/h`** —— ⚠ **两者内部表示不同，Qt 就是这么不对称的**），逐字抄自 `qrect.h`；`normalized` / `operator\|` / `operator&` / `contains` / `intersects` 两族各一套、外加 `PkRectF::toAlignedRect`，照 Qt 的形态放在 `.cpp` 里（Qt 那些编在 `libQt5Core.so`，本机没有 `qrect.cpp` 源码，它们是**靠对拍逐输入逼出来的**） |
 | `PkTransform.h` / `PkTransform.cpp` | `PkTransform`（3×3 齐次矩阵 + 惰性 `m_type`/`m_dirty` 缓存），逐字抄自 `qtransform.h` 与上游 `v5.15.7-lts-lgpl` 的 `qtransform.cpp`。**行向量约定**、**`TransformationType` 是位标志不是 0..5**、**惰性缓存是可观测语义**——三条各错一条整族全错，头文件顶部逐条列了。**R-21 T1** 补了 `map(const PkLineF&)`/`operator*(const PkLineF&, const PkTransform&)`（顺带解开，见「Line 族与 Margins 族」一节） |
 | `PkLine.h` / `PkLine.cpp` / `PkMargins.h` / `PkMargins.cpp`（**R-21 T1**） | `PkLine`/`PkLineF`（逐字抄自 `qline.h`；`length`/`angle`/`setAngle`/`angleTo`/`unitVector`/`intersects`/`fromPolar` 七个 out-of-line 成员靠独立差分脚本对真 Qt 逐输入逼出公式）与 `PkMargins`/`PkMarginsF`（逐字抄自 `qmargins.h`，全部 inline）。详见下面「Line 族与 Margins 族（R-21 T1）」 |
-| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` `compat/QRectF` `compat/QTransform` `compat/QLine` `compat/QLineF` `compat/QMargins` `compat/QMarginsF`（后四个 **R-21 T1**） | `#define` 垫片，无扩展名，共 **12 个**。垫片形态一致：每个都把孪生的两个名字一起给（Qt 的转发头也是这样，包任一个都能拿到两个名字）。Task 5 补齐了 `QRectF`（偏离 16 已消）。**每个垫片都必须先包 `compat/QtGlobal` 再包各自的 Pk 头**（见「与 `pk/test/compat/QtGlobal` 的共存」，Task 7/8 的试接把这条压成了硬纪律） |
-| `tests/` | `test_global.cpp`（13 函数）、`test_point.cpp`（24）、`test_size.cpp`（31）、`test_rect.cpp`（38）、`test_rectf.cpp`（46）、`test_transform.cpp`（56）、**三个**共存 TU `coexist_*.cpp`、**三个**宏改写探针 `point_macro_proof.cpp` / `size_macro_proof.cpp` / `rectf_macro_proof.cpp`（口径：函数个数按 `cases/*_case.h` 的 `private Q_SLOTS:` 声明数，不含 harness 自带的 `initTestCase`/`cleanupTestCase`；`run_tests.sh` 打的 `Totals: N passed` 是 N = 函数数 + 2） |
-| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect / RectF / Transform **五族**）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map`（规则三的机器闸门，五族各一份，见下）** |
+| `PkPolygon.h` / `PkPolygon.cpp`（**R-21 T2**） | `PkPolygon`/`PkPolygonF`（**继承** `PkVector<PkPoint>`/`PkVector<PkPointF>` 不是包一层，boost range 概念逼出来的硬约束），逐字抄自 `qpolygon.h` + 上游 `v5.15.7-lts-lgpl` 的 `qpolygon.cpp`。`PkPolygonF` 实现 `containsPoint`（射线穿越/环绕数）、`boundingRect`、`translate`/`translated`、`isClosed`、`toPolygon`、`PkPolygonF(const PkRectF&)`；`united`/`intersected`/`subtracted`/`intersects` 四个 QPainterPath 依赖成员明确不实现（R-22）。详见「Polygon 族（R-21 T2）」 |
+| `compat/QtGlobal` `compat/QPoint` `compat/QPointF` `compat/QSize` `compat/QSizeF` `compat/QRect` `compat/QRectF` `compat/QTransform` `compat/QLine` `compat/QLineF` `compat/QMargins` `compat/QMarginsF`（后四个 **R-21 T1**）`compat/QPolygon` `compat/QPolygonF`（**R-21 T2**） | `#define` 垫片，无扩展名，共 **14 个**。垫片形态一致：每个都把孪生的两个名字一起给（Qt 的转发头也是这样，包任一个都能拿到两个名字）。Task 5 补齐了 `QRectF`（偏离 16 已消）。**每个垫片都必须先包 `compat/QtGlobal` 再包各自的 Pk 头**（见「与 `pk/test/compat/QtGlobal` 的共存」，Task 7/8 的试接把这条压成了硬纪律） |
+| `tests/` | `test_global.cpp`（13 函数）、`test_point.cpp`（24）、`test_size.cpp`（31）、`test_rect.cpp`（38）、`test_rectf.cpp`（46）、`test_transform.cpp`（56）、`test_line.cpp`（29，R-21 T1）、`test_margins.cpp`（22，R-21 T1）、`test_polygon.cpp`（23，R-21 T2）、**三个**共存 TU `coexist_*.cpp`、**三个**宏改写探针 `point_macro_proof.cpp` / `size_macro_proof.cpp` / `rectf_macro_proof.cpp`（口径：函数个数按 `cases/*_case.h` 的 `private Q_SLOTS:` 声明数，不含 harness 自带的 `initTestCase`/`cleanupTestCase`；`run_tests.sh` 打的 `Totals: N passed` 是 N = 函数数 + 2） |
+| `oracle/` | `geometry_difftest.cpp`（对拍骨架 + Point / Size / Rect / RectF / Transform / Line / Margins / Polygon **八族**）、`run_oracle.sh`、`geometry.deviation`、**`api_seen.expected` 与 `point_api.map` / `size_api.map` / `rect_api.map` / `rectf_api.map` / `transform_api.map` / `line_api.map` / `margins_api.map` / `polygon_api.map`（规则三的机器闸门，八族各一份，见下）** |
 | `graft/` | 真实调用点试接（判据②）：`graft_run.sh` 拿 **两个真实 Krita 测试类零改动**编译并跑绿——`KisRectsGridTest`（`libs/global/tests`）与 `KisFourPointInterpolatorTest`（`libs/image/tests`），分属两个不同 target。`stubs/` 是把不属于 R-03 的上游依赖顶住的最小垫片（清单与归属见下面「`graft/` 的 stub 清单」），`rename.sed` 做 `QTest`→`PK_*` 的机械改写，`git diff --quiet` 自证源树零改动 |
 
 ### 规则三的机器闸门
@@ -593,6 +594,73 @@ Qt）覆盖，只是没有"零改动编译真实生产代码"这一层证据**�
 新增的四个 `PkRect`/`PkRectF` 互操作成员目前没有真实消费方，试接判据②对它们
 豁免——这与"无法按调用点归属"的运算符/构造函数偏离不是同一回事，是**零用量
 导致的**豁免，写清楚以免与偏离清单第 6/14/19 条混淆。
+
+## Polygon 族（R-21 T2）
+
+`PkPolygon.h`/`PkPolygon.cpp` 文件头注释（比这里详细得多，这里只汇总判据口径）：
+
+### `PkPolygon` / `PkPolygonF`
+
+**必须继承不包一层**：`class PkPolygon : public PkVector<PkPoint>`、
+`class PkPolygonF : public PkVector<PkPointF>`——`kis_convex_hull.cpp:60-74` 用
+boost::geometry 的 `range_iterator<QPolygon>`/`range_const_iterator<QPolygon>`
+直接写 `QPolygon::iterator`/`QPolygon::const_iterator`，这两个名字唯一的自然来源
+是公开继承 `PkVector<PkPoint>`（`PkArrayContainer` 现成的标准迭代器接口）。组合
+（包一层）拿不到。`PkPolygon` 因此只做三个构造 + 继承来的容器操作，十个成员
+（`containsPoint`/`boundingRect`/`translate`/`translated`/`isClosed`/`toPolygon`/
+`united`/`intersected`/`subtracted`/`intersects`）实测调用点全部落在 `QPolygonF`
+接收者上（int 侧 0 个），只在 `PkPolygonF` 实现。
+
+`Qt::FillRule`（`OddEvenFill=0`/`WindingFill=1`）放 `PkGlobal.h` 的既有
+`namespace Qt` 块里（与 `AspectRatioMode`/`Axis` 同一条理由：`namespace Qt` 只此
+一处，几何头不许依赖 `compat/`）。取值经真 Qt 5.15.7 探针实测确认，非凭文档记忆。
+真实调用点 ≥15 处，全部经 `PkPolygonF::containsPoint(PkPointF, Qt::FillRule)` 落地。
+
+`PkPolygonF` 逐字抄自 `qpolygon.h` + 上游 `v5.15.7-lts-lgpl` 的 `qpolygon.cpp`，
+out-of-line 成员：`PkPolygonF(const PkRectF&)`（矩形四顶点顺时针 + 首尾闭合共 5
+点）、`boundingRect`、`containsPoint`（射线穿越/环绕数，`pkPolygonIsectLine` 逐
+字照抄 `qt_polygon_isect_line`，含"水平线跳过""半开区间"两条扫描线约定）、
+`toPolygon`、`translate`/`translated`、`isClosed`。
+
+**`PkTransform::map(const PkPolygonF&)` 与 `squareToQuad`/`quadToSquare` 顺带
+解开**（T2 交付 `PkPolygonF` 之前做不出来，与 T1 解开 `map(const PkLineF&)` 同一
+模式）。`map(QPolygonF)` 的 `TxProject` 分支与真 Qt 有一处登记在案的偏离（真 Qt
+铺进 `QPainterPath` 做透视裁剪，本类落回逐点无裁剪的 `map(const PkPointF&)`），
+`oracle/geometry.deviation` 的 `T::map(PolygonF) txproject-deviation` 一行。
+
+### 明确不实现（登记在案的偏离，不是遗漏）
+
+`united`/`intersected`/`subtracted`/`intersects` 四个成员真实调用点确实存在
+（`kis_safe_transform.cpp:169,170,183,184`、`KoSvgTextShapeLayoutFunc_inShape.cpp:83,84`、
+`SelectionDecorator.cpp:109,110` 等），但真 Qt 5.15.7 内部把多边形铺进
+`QPainterPath` 借它的布尔集合运算实现（`qpolygon.cpp:897` 起）。`QPainterPath`
+不在 R-21 范围（`Qt替代品选型.md` §1 几何那一行点名的十个类型里没有它，归 R-22），
+处置与 `PkTransform::mapRect` 在 `TxProject` 且需透视裁剪时落回四角包围盒**同一个
+模式**。依赖这四个成员的调用点在本 Task 之后仍然编不过——诚实登记的缺口，见
+`PkPolygon.h` 文件头与「覆盖度缺口」一节。
+
+### 试接（判据②）的覆盖边界，如实登记
+
+与 T1 的 `QLineF` 同一个边界：现有两个试接目标都不直接调用 `QPolygon`/`QPolygonF`
+的方法（它们只经 `kis_global.h` 的无条件 include 链间接依赖 `QLineF`）。`PkPolygon`
+的"必须继承"这个**最关键的形态决策**由单测钉住（`test_polygon.cpp` 直接验
+`PkPolygon::iterator`/`begin()`/`end()`/`std::distance`，即 boost range 概念要用的
+那套标准迭代器接口），`containsPoint`/`squareToQuad`/`quadToSquare`/`map(QPolygonF)`
+的取值正确性由对拍（`geometry_difftest.cpp` 的 Polygon 族，逐输入比对真 Qt）覆盖。
+"零改动编译真实生产代码"这一层证据（`kis_convex_hull.cpp` 的 boost 适配、
+`KoPolygonUtils.cpp` 的 `QVector<QPolygon>` 元素类型）**没有**——这些文件的依赖
+闭包（boost::geometry 头 + `kis_global.h` 整条工具链）很重，给它们配套 stub 的
+成本超出 T2 范围，与 T1 登记 `QLineF` 复杂方法同一个边界。
+
+**⚠ T2 现场实测过一次删除 `stubs/QPolygon`+`stubs/QPolygonF`（让第二个试接目标
+`KisFourPointInterpolatorTest` 改用真实 `PkPolygonF`），结果编不过**：真实测试类
+`KisFourPointInterpolatorTest.cpp:195,257` 用 `src.length()`——这是 `QVector::length()`
+的 Qt5 deprecated 别名（`size()` 同义），`PkPolygonF` 继承的 `PkVector`（R-02）
+**没有实现 `length()`**（R-02 只做了 `size()`/`count()`，跳过了 deprecated 别名）。
+这是 **R-02 容器的缺口，不是 R-21 的**——R-21 的 locks 只在 `pk/geometry/`，无权
+改 `pk/container/`。所以 `stubs/QPolygon` **暂时不能删**（它给 graft 提供了
+`length()`），等 R-02 补上 `QVector::length()` 或 S 线全量替换时处理。这条已写进
+最终回报的 NOTE 转给主会话。
 
 ## 明确不实现的清单
 

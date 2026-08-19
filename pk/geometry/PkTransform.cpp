@@ -871,6 +871,122 @@ PkLineF PkTransform::map(const PkLineF &l) const
     return PkLineF(map(l.p1()), map(l.p2()));
 }
 
+// ═══ R-21 T2：map(PkPolygonF) / squareToQuad / quadToSquare ════════════════
+//
+// R-21 T2 交付 PkPolygonF 之前这三个做不出来（文件头「依赖当时范围外的类型」
+// 一节），与 T1 顺带解开 map(QLineF) 是同一个模式。
+
+// qtransform.cpp:1465-1483。真 Qt 三分支：
+//   t <= TxTranslate  → 整体走 translated()（不逐点算，纯平移）
+//   t <  TxProject     → 逐点走仿射公式（MAP 宏在这个档位区间不触发 1/w 分支）
+//   t >= TxProject     → **真 Qt 铺进 QPainterPath 做透视裁剪**（近裁剪面外的
+//                        顶点被裁掉/替换，不是简单地对每个顶点各自做透视除法）
+//
+// ═══ 与 Qt 的一处真实行为偏离（同 mapRect 的 TxProject 分支同一个模式）══════
+//
+// `QPainterPath` 不在 R-21 交付范围（`Qt替代品选型.md` §1 几何那一行点名的
+// 十个类型里没有它，归 R-22），所以 `t >= TxProject` 时本类**不裁剪**，逐点
+// 走已实现的 `map(const PkPointF&)`——它自己的 TxProject 分支就是无夹持的
+// `1/(m13*x+m23*y+m33)` 透视除法（见上方 map(const PkPointF&)），点落在近
+// 裁剪面之外时得到的是 inf/翻转坐标而不是被裁掉的新顶点。
+//
+// `t < TxProject` 的一般分支**直接复用 map(const PkPointF&)，不是简化**：
+// 该函数的 switch 对 TxNone/TxTranslate/TxScale/TxRotate/TxShear 五档给出的
+// 公式，与真 Qt 这里内联展开的 MAP 宏在同一档位上逐字同构（两者共同的来源都
+// 是 qtransform.cpp 的 MAP 宏），且 `t != TxProject` 时 map(PkPointF) 压根不
+// 触碰 1/w 那个分支——于是对每个点调用它，取值与真 Qt 的一般分支逐位一致。
+// 登记在 oracle/geometry.deviation，README「覆盖度缺口」同步点名。
+PkPolygonF PkTransform::map(const PkPolygonF &a) const
+{
+    TransformationType t = inline_type();
+    if (t <= TxTranslate)
+        return a.translated(m_dx, m_dy);
+
+    const int n = a.size();
+    PkPolygonF p(n);
+    for (int i = 0; i < n; ++i)
+        p[i] = map(a.at(i));
+    return p;
+}
+
+// qtransform.cpp:1810-1864。把单位正方形 (0,0)-(1,0)-(1,1)-(0,1) 映射成给定
+// 四边形 quad 的变换矩阵。quad 恰好 4 个点时才有意义，否则返回 false（result
+// 不动）。
+//
+// 两条路径：
+//   ax==0 且 ay==0（quad 是平行四边形，仿射可解）→ 直接 setMatrix 六个仿射
+//     分量，m13=m23=0（TxShear 档，不需要透视）。
+//   否则（真透视四边形）→ 解一个 2x2 线性方程组拿 g/h（m13/m23 的候选值，
+//     bottom==0 时方程组奇异，返回 false），再回代出 a..h 八个分量。
+bool PkTransform::squareToQuad(const PkPolygonF &quad, PkTransform &result)
+{
+    if (quad.count() != 4)
+        return false;
+
+    qreal dx0 = quad[0].x();
+    qreal dx1 = quad[1].x();
+    qreal dx2 = quad[2].x();
+    qreal dx3 = quad[3].x();
+
+    qreal dy0 = quad[0].y();
+    qreal dy1 = quad[1].y();
+    qreal dy2 = quad[2].y();
+    qreal dy3 = quad[3].y();
+
+    double ax = dx0 - dx1 + dx2 - dx3;
+    double ay = dy0 - dy1 + dy2 - dy3;
+
+    if (!ax && !ay) { // affine transform
+        result.setMatrix(dx1 - dx0, dy1 - dy0, 0,
+                          dx2 - dx1, dy2 - dy1, 0,
+                          dx0,       dy0,       1);
+    } else {
+        double ax1 = dx1 - dx2;
+        double ax2 = dx3 - dx2;
+        double ay1 = dy1 - dy2;
+        double ay2 = dy3 - dy2;
+
+        // determinants
+        double gtop   =  ax  * ay2 - ax2 * ay;
+        double htop   =  ax1 * ay  - ax  * ay1;
+        double bottom =  ax1 * ay2 - ax2 * ay1;
+
+        double a, b, c, d, e, f, g, h; // i is always 1
+
+        if (!bottom)
+            return false;
+
+        g = gtop / bottom;
+        h = htop / bottom;
+
+        a = dx1 - dx0 + g * dx1;
+        b = dx3 - dx0 + h * dx3;
+        c = dx0;
+        d = dy1 - dy0 + g * dy1;
+        e = dy3 - dy0 + h * dy3;
+        f = dy0;
+
+        result.setMatrix(a, d, g,
+                          b, e, h,
+                          c, f, 1.0);
+    }
+
+    return true;
+}
+
+// qtransform.cpp:1875-1884。squareToQuad 反过来求逆——**直接复用已实现的
+// inverted()**，不是新算法。invertible 从 inverted() 的 out 参数原样转发。
+bool PkTransform::quadToSquare(const PkPolygonF &quad, PkTransform &result)
+{
+    if (!squareToQuad(quad, result))
+        return false;
+
+    bool invertible = false;
+    result = result.inverted(&invertible);
+
+    return invertible;
+}
+
 // qtransform.cpp:2086-2090。**走 PK_MAP，带夹持。**
 void PkTransform::map(qreal x, qreal y, qreal *tx, qreal *ty) const
 {

@@ -1,0 +1,16 @@
+#pragma once
+// 必须先于 ../PkPolygon.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
+#include "../PkPolygon.h"
+
+// <QPolygonF> 的垫片。与 compat/QPolygon 内容等同（Qt 那两个转发头也都指向
+// 同一份 qpolygon.h），完整理由见 compat/QPolygon。两份都写出来是因为调用点
+// 两种写法都有，而垫片是按**文件名**被找到的，宏改写不了 #include 的路径——
+// 与 compat/QLine + compat/QLineF 同一个形态。
+
+#ifndef QPolygon
+#define QPolygon PkPolygon
+#endif
+#ifndef QPolygonF
+#define QPolygonF PkPolygonF
+#endif

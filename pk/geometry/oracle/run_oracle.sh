@@ -30,6 +30,7 @@ API_GROUPS=(
     "pk/geometry/PkTransform.h|PkTransform|pk/geometry/oracle/transform_api.map"
     "pk/geometry/PkLine.h|PkLine,PkLineF|pk/geometry/oracle/line_api.map"
     "pk/geometry/PkMargins.h|PkMargins,PkMarginsF|pk/geometry/oracle/margins_api.map"
+    "pk/geometry/PkPolygon.h|PkPolygon,PkPolygonF|pk/geometry/oracle/polygon_api.map"
 )
 
 [ -f "$QT/include/QtCore/qpoint.h" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/qpoint.h" >&2; exit 1; }
@@ -233,9 +234,15 @@ def strip_bodies(s):
 # `private:` 之后**再开 `public:`** 的段，那些成员会**静默**漏掉（不是 miss、不是
 # FAIL：它们压根没进 m.group(1)，闸门①②③三道都看不见它们）。抄这套骨架前先确认
 # 头文件是不是这个形态；不是就得改成扫全类体、按访问说明符切段。
+#
+# ⚠ **`class X` 与 `{` 之间允许一个可选的基类子句**（R-21 T2 新增，`class
+# PkPolygon : public PkVector<PkPoint>` 是这个 Task 的第一个有继承的类）。
+# `(?:\s*:\s*[^{]*)?` 吃掉 `: public PkVector<PkPoint>` 这一段——`[^{]*`
+# 在遇到第一个 `{`（类体开始）之前停，不会吃过界。六个既有类都没有基类
+# 子句，这条可选分支在它们身上匹配空串，闸门行为逐字不变。
 def parse_decls(hdr_path, cls):
     src = re.sub(r'//[^\n]*', '', open(hdr_path, encoding='utf-8').read())
-    m = re.search(r'class %s\s*\{(.*?)\n\s*private:' % re.escape(cls), src, re.S)
+    m = re.search(r'class %s(?:\s*:\s*[^{]*)?\s*\{(.*?)\n\s*private:' % re.escape(cls), src, re.S)
     if m is None:
         return None, None
     decls, miss = [], []

@@ -60,28 +60,38 @@
 #include <QTransform>
 #include <QLine>
 #include <QMargins>
+#include <QPolygon>
+#include <QVector>
 #include <QString>
 #include <QtGlobal>
 #include <QMessageLogContext>
 
+#include <algorithm>
+#include <cassert>
 #include <cfloat>
 #include <climits>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
+#include <iterator>
 #include <limits>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 // 垫片一旦混进 -I，<QPoint> 会解析到 compat/QPoint，而那份是两个 #define。
 // 两侧于是解析成同一个类型，跑出来必然零差异且看不出破绽。成本三行。
 #if defined(QPoint) || defined(QPointF) || defined(QSize) || defined(QSizeF) \
     || defined(QRect) || defined(QRectF) || defined(QTransform) \
-    || defined(QLine) || defined(QLineF) || defined(QMargins) || defined(QMarginsF)
+    || defined(QLine) || defined(QLineF) || defined(QMargins) || defined(QMarginsF) \
+    || defined(QPolygon) || defined(QPolygonF)
 #  error "对拍两侧解析成了同一个类型 —— -I 里混进了 pk/geometry/compat"
 #endif
 
@@ -134,6 +144,24 @@ namespace pkoracle {
 // PkMargins.h **不需要配 .cpp**：两个类全部是 inline 的（qmargins.h 本身
 // 也全是 inline，没有 out-of-line 成员要从 libpkgeometry.a 里"抢"符号）。
 #include "PkMargins.h"
+// ⚠ **PkPolygon.h 自己 `#include "../container/PkVector.h"`**（R-21 T2：
+// PkPolygon 继承 PkVector<PkPoint>），那条 include 是**引号相对路径**、按
+// PkPolygon.h 自身的物理目录解析（pk/geometry/../container = pk/container），
+// 与本 TU 的 -I 列表无关——所以 run_oracle.sh 的 INCS 不需要专门加
+// pk/container。但 PkVector.h 这一整棵树用到的系统头（<algorithm> <cassert>
+// <cstddef> <initializer_list> <iterator> <memory> <utility>，PkArrayData.h/
+// PkArrayContainer.h/PkVector.h/PkList.h 各自的一部分）必须已经在本文件顶部
+// 的系统头区出现过——纪律与 PkRect.cpp/PkTransform.cpp 那几条完全一样，漏一个
+// 就会在 pkoracle:: 里首次看见那个头、造出 pkoracle::std。
+#include "PkPolygon.h"
+// ⚠ **PkPolygon.cpp 也要进来**：boundingRect / containsPoint / toPolygon /
+// translate(const PkPointF&) / translated(const PkPointF&) /
+// PkPolygonF(const PkRectF&) 六个是 out-of-line 的（照 Qt 的形态，qpolygon.cpp
+// 编在 libQt5Gui.so 里，本机没有源码，取自上游同版本标签）。libpkgeometry.a
+// 里那份定义的是 `::PkPolygonF::boundingRect`，本 TU 需要的是
+// `pkoracle::PkPolygonF::boundingRect`——两个不同的符号，链不上。纪律同上：
+// PkPolygon.cpp 只 #include <type_traits>（上面的系统头区已有）。
+#include "PkPolygon.cpp"
 }
 
 using PkPoint  = pkoracle::PkPoint;
@@ -147,6 +175,13 @@ using PkLine   = pkoracle::PkLine;
 using PkLineF  = pkoracle::PkLineF;
 using PkMargins  = pkoracle::PkMargins;
 using PkMarginsF = pkoracle::PkMarginsF;
+using PkPolygon  = pkoracle::PkPolygon;
+using PkPolygonF = pkoracle::PkPolygonF;
+// PkPolygon(const PkVector<PkPoint>&) 的真实调用点需要在 pkoracle:: 之外也
+// 拼得出 `PkVector<T>` 这个名字——别名模板，不是新类型，等价于
+// `pkoracle::PkVector<T>`。
+template <typename T>
+using PkVector = pkoracle::PkVector<T>;
 
 static_assert(!std::is_same<QPoint,  PkPoint >::value,
               "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
@@ -240,6 +275,18 @@ static_assert(sizeof(QMarginsF) == sizeof(PkMarginsF), "两侧布局不一致");
 static_assert(std::is_convertible<QMargins, QMarginsF>::value
               == std::is_convertible<PkMargins, PkMarginsF>::value,
               "PkMargins → PkMarginsF 的隐式提升与 Qt 不一致");
+
+// ── R-21 T2：Polygon 族的两侧类型自证 ───────────────────────────────────────
+//
+// **没有 sizeof 相等的 static_assert**（Point/Size/Rect/Line/Margins 五族都
+// 有）：`PkPolygon`/`PkPolygonF` 继承 `PkVector<T>`（COW，一个 shared_ptr 大小），
+// 而真 `QPolygon`/`QPolygonF` 继承 `QVector<T>`（Qt5 的 QVector 是三个指针
+// /引用计数头的经典实现），两侧容器实现本就不同源，sizeof 不构成任何契约——
+// 这与 R-02（容器族）自己的对齐口径一致，不是本族特有的松口。
+static_assert(!std::is_same<QPolygon, PkPolygon>::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
+static_assert(!std::is_same<QPolygonF, PkPolygonF>::value,
+              "对拍两侧解析成了同一个类型 —— 检查 -I 有没有把 compat/ 带进来");
 
 // ═══ 计数与记录 ════════════════════════════════════════════════════════════
 
@@ -3140,6 +3187,302 @@ static void cmp_rectf_margins(double x1, double y1, double x2, double y2,
         qstr(qr - qm), qstr(pr - pm));
 }
 
+// ═══ Polygon 族：比较原语 + tag 谓词（R-21 T2）════════════════════════════
+//
+// **规模声明**（R-21 plan.md「问 3」，与 Line/Margins 两族同一条口径）：不复刻
+// R-03 的亿级组合爆炸，改为"手挑对抗用例 + 有界组合"，目标 ≥ 10⁴ 次比对。
+// PkPolygon（int，只做构造+迭代，见 PkPolygon.h 头部）与 PkPolygonF
+// （containsPoint/boundingRect/translate/translated/isClosed/toPolygon/构造，
+// 外加 PkTransform 新解开的 map(PkPolygonF)/squareToQuad/quadToSquare）
+// 共用这一节。
+
+static std::string qstr(const QPolygon &poly)
+{
+    std::string s = "{";
+    for (int i = 0; i < poly.size(); ++i) { if (i) s += ";"; s += qstr(poly.at(i)); }
+    return s + "}";
+}
+static std::string qstr(const PkPolygon &poly)
+{
+    std::string s = "{";
+    for (int i = 0; i < poly.size(); ++i) { if (i) s += ";"; s += qstr(poly.at(i)); }
+    return s + "}";
+}
+static bool same_polygon(const QPolygon &q, const PkPolygon &p)
+{
+    if (q.size() != p.size()) return false;
+    for (int i = 0; i < q.size(); ++i) if (!same_pt(q.at(i), p.at(i))) return false;
+    return true;
+}
+
+static std::string qstr(const QPolygonF &poly)
+{
+    std::string s = "{";
+    for (int i = 0; i < poly.size(); ++i) { if (i) s += ";"; s += qstr(poly.at(i)); }
+    return s + "}";
+}
+static std::string qstr(const PkPolygonF &poly)
+{
+    std::string s = "{";
+    for (int i = 0; i < poly.size(); ++i) { if (i) s += ";"; s += qstr(poly.at(i)); }
+    return s + "}";
+}
+static bool same_polygonf(const QPolygonF &q, const PkPolygonF &p)
+{
+    if (q.size() != p.size()) return false;
+    for (int i = 0; i < q.size(); ++i) if (!same_ptf(q.at(i), p.at(i))) return false;
+    return true;
+}
+
+// shapeOfD 的 vector 版：签名要求 std::initializer_list，而这里参与形态判定
+// 的分量个数是运行期才知道的（多边形点数可变）。逻辑与 shapeOfD **逐字相同**
+// （同一份优先级），只是换了容器类型——不能直接拿两个指针"拼"出
+// initializer_list（那个构造函数是私有的，只有编译器能造），所以另开一份。
+static std::string shapeOfVec(const std::vector<double> &vs)
+{
+    for (double v : vs) if (nonFinite(v)) return "nonfinite";
+    for (double v : vs) if (signedZero(v)) return "signed-zero";
+    for (double v : vs) if (subnormal(v)) return "subnormal";
+    for (double v : vs) if (v == 0.0) return "zero";
+    for (double v : vs) if (std::fabs(v) > 1e300) return "huge";
+    return "finite";
+}
+
+// ═══ Polygon 族：逐 API 对拍 ═══════════════════════════════════════════════
+
+// PkPolygon 只有 3 条声明：默认构造（无输入）+ 两个从 PkVector<PkPoint> 转的
+// 构造（同一份点集分别走左值/右值路径）。
+static void cmp_polygon_constants()
+{
+    rec("PG::defaultCtor", same_polygon(QPolygon(), PkPolygon()), "no-input",
+        "QPolygon()", qstr(QPolygon()), qstr(PkPolygon()));
+}
+
+static void cmp_polygon_ctors(const int (*pts)[2], int n)
+{
+    QVector<QPoint> qv;
+    PkVector<PkPoint> pv;
+    std::string in = "n=" + istr(n);
+    std::string sh = "ordinary";
+    for (int i = 0; i < n; ++i) {
+        qv << QPoint(pts[i][0], pts[i][1]);
+        pv << PkPoint(pts[i][0], pts[i][1]);
+        if (intExtremum(pts[i][0]) || intExtremum(pts[i][1])) sh = "int-extremum";
+    }
+    if (n == 0) sh = "empty";
+
+    const QPolygon q(qv);
+    const PkPolygon p(pv);
+    rec("PG::ctorFromVector", same_polygon(q, p), sh, in, qstr(q), qstr(p));
+
+    QVector<QPoint> qv2 = qv;
+    PkVector<PkPoint> pv2 = pv;
+    const QPolygon q2(std::move(qv2));
+    const PkPolygon p2(std::move(pv2));
+    rec("PG::ctorFromVectorMove", same_polygon(q2, p2), sh, in, qstr(q2), qstr(p2));
+}
+
+// PkPolygonF：defaultCtor / ctorSize —— 两条都是"无输入形态由参数摆出来"，
+// 挂在同一个 no-input/ordinary tag 下即可（构造本身没有分支可言）。
+static void cmp_polygonf_constants(int size)
+{
+    if (size == 0) {
+        rec("PGF::defaultCtor", same_polygonf(QPolygonF(), PkPolygonF()), "no-input",
+            "QPolygonF()", qstr(QPolygonF()), qstr(PkPolygonF()));
+    }
+    const QPolygonF q(size);
+    const PkPolygonF p(size);
+    rec("PGF::ctorSize", same_polygonf(q, p), size == 0 ? "zero" : "ordinary",
+        "size=" + istr(size), qstr(q), qstr(p));
+}
+
+static void cmp_polygonf_ctors(const double (*pts)[2], int n)
+{
+    QVector<QPointF> qv;
+    PkVector<PkPointF> pv;
+    std::string in = "n=" + istr(n);
+    std::vector<double> flatv;
+    for (int i = 0; i < n; ++i) {
+        qv << QPointF(pts[i][0], pts[i][1]);
+        pv << PkPointF(pts[i][0], pts[i][1]);
+        flatv.push_back(pts[i][0]);
+        flatv.push_back(pts[i][1]);
+    }
+    std::string sh = n == 0 ? "empty" : shapeOfVec(flatv);
+
+    const QPolygonF q(qv);
+    const PkPolygonF p(pv);
+    rec("PGF::ctorFromVector", same_polygonf(q, p), sh, in, qstr(q), qstr(p));
+
+    QVector<QPointF> qv2 = qv;
+    PkVector<PkPointF> pv2 = pv;
+    const QPolygonF q2(std::move(qv2));
+    const PkPolygonF p2(std::move(pv2));
+    rec("PGF::ctorFromVectorMove", same_polygonf(q2, p2), sh, in, qstr(q2), qstr(p2));
+}
+
+static void cmp_polygonf_ctor_rect(double x, double y, double w, double h)
+{
+    const std::string in = dstr(x) + "," + dstr(y) + "," + dstr(w) + "," + dstr(h);
+    const std::string sh = shapeOfD({x, y, w, h});
+    const QPolygonF q((QRectF(x, y, w, h)));
+    const PkPolygonF p((PkRectF(x, y, w, h)));
+    rec("PGF::ctorFromRect", same_polygonf(q, p), sh, in, qstr(q), qstr(p));
+}
+
+static void cmp_polygonf_translate(const double (*pts)[2], int n, double tx, double ty)
+{
+    QVector<QPointF> qv; PkVector<PkPointF> pv;
+    for (int i = 0; i < n; ++i) { qv << QPointF(pts[i][0], pts[i][1]); pv << PkPointF(pts[i][0], pts[i][1]); }
+    const QPolygonF base(qv);
+    const PkPolygonF pbase(pv);
+    const std::string in = "n=" + istr(n) + " t=(" + dstr(tx) + "," + dstr(ty) + ")";
+    const std::string sh = shapeOfD({tx, ty});
+
+    { QPolygonF q = base; PkPolygonF p = pbase; q.translate(tx, ty); p.translate(tx, ty);
+      rec("PGF::translateXY", same_polygonf(q, p), sh, in, qstr(q), qstr(p)); }
+    { QPolygonF q = base; PkPolygonF p = pbase;
+      q.translate(QPointF(tx, ty)); p.translate(PkPointF(tx, ty));
+      rec("PGF::translatePoint", same_polygonf(q, p), sh, in, qstr(q), qstr(p)); }
+    rec("PGF::translatedXY", same_polygonf(base.translated(tx, ty), pbase.translated(tx, ty)),
+        sh, in, qstr(base.translated(tx, ty)), qstr(pbase.translated(tx, ty)));
+    rec("PGF::translatedPoint",
+        same_polygonf(base.translated(QPointF(tx, ty)), pbase.translated(PkPointF(tx, ty))),
+        sh, in, qstr(base.translated(QPointF(tx, ty))), qstr(pbase.translated(PkPointF(tx, ty))));
+}
+
+// isClosed / boundingRect / toPolygon：一元 API，同一份点集三个都测。
+static void cmp_polygonf_unary(const double (*pts)[2], int n)
+{
+    QVector<QPointF> qv; PkVector<PkPointF> pv;
+    for (int i = 0; i < n; ++i) { qv << QPointF(pts[i][0], pts[i][1]); pv << PkPointF(pts[i][0], pts[i][1]); }
+    const QPolygonF q(qv);
+    const PkPolygonF p(pv);
+    const std::string in = "n=" + istr(n);
+    const std::string sh = n == 0 ? "empty" : "ordinary";
+
+    rec("PGF::isClosed", q.isClosed() == p.isClosed(), sh, in,
+        bstr(q.isClosed()), bstr(p.isClosed()));
+
+    const QRectF qbr = q.boundingRect();
+    const PkRectF pbr = p.boundingRect();
+    rec("PGF::boundingRect", same_rectf(qbr, pbr), sh, in, qstr(qbr), qstr(pbr));
+
+    const QPolygon qip = q.toPolygon();
+    const PkPolygon pip = p.toPolygon();
+    rec("PGF::toPolygon", same_polygon(qip, pip), sh, in, qstr(qip), qstr(pip));
+}
+
+// containsPoint：**两条标签**（同一条声明，OddEvenFill / WindingFill 是同一个
+// 形参的两个取值，不是两个重载——按规则三合成一条 rec 反而看不出哪种规则
+// 分了家，所以拆两个 api 标签，map 文件里用 `;` 挂在同一条声明下）。
+static void cmp_polygonf_containspoint(const double (*pts)[2], int n, double qx, double qy)
+{
+    QVector<QPointF> qv; PkVector<PkPointF> pv;
+    for (int i = 0; i < n; ++i) { qv << QPointF(pts[i][0], pts[i][1]); pv << PkPointF(pts[i][0], pts[i][1]); }
+    const QPolygonF q(qv);
+    const PkPolygonF p(pv);
+    const std::string in = "n=" + istr(n) + " pt=(" + dstr(qx) + "," + dstr(qy) + ")";
+    const std::string sh = n == 0 ? "empty" : shapeOfD({qx, qy});
+
+    const bool qo = q.containsPoint(QPointF(qx, qy), Qt::OddEvenFill);
+    const bool po = p.containsPoint(PkPointF(qx, qy), pkoracle::Qt::OddEvenFill);
+    rec("PGF::containsPointOddEven", qo == po, sh, in, bstr(qo), bstr(po));
+
+    const bool qw = q.containsPoint(QPointF(qx, qy), Qt::WindingFill);
+    const bool pw = p.containsPoint(PkPointF(qx, qy), pkoracle::Qt::WindingFill);
+    rec("PGF::containsPointWinding", qw == pw, sh, in, bstr(qw), bstr(pw));
+}
+
+// ── PkTransform::map(const PkPolygonF&) ────────────────────────────────────
+//
+// tag 谓词复刻 map(PointF)/mapRect 那批 tag 里已经验证过的分档逻辑：按
+// TransformationType 分三档（<=TxTranslate 走快路径 / <TxProject 走一般仿射 /
+// >=TxProject 是本类与 Qt 的登记在案偏离，见 PkTransform.cpp 里
+// map(const PkPolygonF&) 上方那段）。
+static void cmp_transform_map_polygonf(const double m[9], const double (*pts)[2], int n)
+{
+    const QTransform  q(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
+    const PkTransform p(m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
+
+    QVector<QPointF> qv; PkVector<PkPointF> pv;
+    for (int i = 0; i < n; ++i) { qv << QPointF(pts[i][0], pts[i][1]); pv << PkPointF(pts[i][0], pts[i][1]); }
+    const QPolygonF qpoly(qv);
+    const PkPolygonF ppoly(pv);
+
+    std::string in = "m=(";
+    for (int i = 0; i < 9; ++i) { in += dstr(m[i]); if (i != 8) in += ","; }
+    in += ") n=" + istr(n);
+
+    // TxProject 分支是登记在案的偏离，tag 必须点名它——规则二要求谓词不能
+    // 比 geometry.deviation 里的理由宽：理由说"TxProject 且非退化多边形的
+    // 逐点无裁剪透视"，谓词就是这三个条件的合取（q.type() 直接问真 Qt 那侧，
+    // 不是猜本类会给什么档位——两侧对同一份分量的 type() 分档在 Point/
+    // Transform 两族已经钉过一致，这里不重复验证那件事，只借它分类）。
+    std::string sh;
+    if (n == 0) {
+        sh = "empty";
+    } else if ((int)q.type() >= (int)QTransform::TxProject) {
+        sh = "txproject-deviation";
+    } else if ((int)q.type() <= (int)QTransform::TxTranslate) {
+        sh = "translate-fastpath";
+    } else {
+        sh = "affine-general";
+    }
+
+    const QPolygonF qm = q.map(qpoly);
+    const PkPolygonF pm = p.map(ppoly);
+    rec("T::map(PolygonF)", same_polygonf(qm, pm), sh, in, qstr(qm), qstr(pm));
+}
+
+// ── PkTransform::squareToQuad / quadToSquare ───────────────────────────────
+static void cmp_transform_square_quad(const double (*quad)[2], int n)
+{
+    QVector<QPointF> qv; PkVector<PkPointF> pv;
+    for (int i = 0; i < n; ++i) { qv << QPointF(quad[i][0], quad[i][1]); pv << PkPointF(quad[i][0], quad[i][1]); }
+    const QPolygonF qq(qv);
+    const PkPolygonF pq(pv);
+
+    std::string in = "n=" + istr(n) + " {";
+    for (int i = 0; i < n; ++i) { if (i) in += ";"; in += "(" + dstr(quad[i][0]) + "," + dstr(quad[i][1]) + ")"; }
+    in += "}";
+    const std::string sh = n != 4 ? "wrong-count" : "ordinary";
+
+    QTransform qt;
+    PkTransform pt;
+    const bool qok = QTransform::squareToQuad(qq, qt);
+    const bool pok = PkTransform::squareToQuad(pq, pt);
+    bool okSame = qok == pok;
+    bool matSame = !qok || (same_double(qt.m11(), pt.m11()) && same_double(qt.m12(), pt.m12())
+        && same_double(qt.m13(), pt.m13()) && same_double(qt.m21(), pt.m21())
+        && same_double(qt.m22(), pt.m22()) && same_double(qt.m23(), pt.m23())
+        && same_double(qt.m31(), pt.m31()) && same_double(qt.m32(), pt.m32())
+        && same_double(qt.m33(), pt.m33()));
+    rec("T::squareToQuad", okSame && matSame, sh, in,
+        bstr(qok) + " " + (qok ? qstr(qt.map(QPointF(0.5, 0.5))) : "-"),
+        bstr(pok) + " " + (pok ? qstr(pt.map(PkPointF(0.5, 0.5))) : "-"));
+
+    QTransform qt2;
+    PkTransform pt2;
+    const bool qok2 = QTransform::quadToSquare(qq, qt2);
+    const bool pok2 = PkTransform::quadToSquare(pq, pt2);
+    bool okSame2 = qok2 == pok2;
+    // quadToSquare 的判据不比九个分量（inverted() 的浮点舍入路径已经在
+    // Transform 族自己的 invertedXxx 那批 rec() 里钉过），比"往返"：quad 的
+    // 每个顶点各自经结果矩阵映射，应当落回单位正方形对应角——这是
+    // quadToSquare 存在的定义式语义，也是真实调用点（KisScreentoneGenerator*
+    // 系列）真正依赖的东西。
+    bool roundtripSame = true;
+    if (qok2 && pok2) {
+        for (int i = 0; i < n; ++i) {
+            const QPointF qr = qt2.map(qq.at(i));
+            const PkPointF pr = pt2.map(pq.at(i));
+            if (!same_ptf(qr, pr)) { roundtripSame = false; break; }
+        }
+    }
+    rec("T::quadToSquare", okSame2 && roundtripSame, sh, in, bstr(qok2), bstr(pok2));
+}
+
 // ═══ canary：证明比较管道是活的 ════════════════════════════════════════════
 //
 // 走的是与真实 API 完全相同的 rec() 与比较原语。三条都必须出现在 DIFFTAG 里，
@@ -4303,6 +4646,147 @@ int main()
                                   kMarginsRectFHand[r][2], kMarginsRectFHand[r][3],
                                   kMarginsFHand[i], kMarginsFHand[(i + 1) % nMFH],
                                   kMarginsFHand[(i + 2) % nMFH], kMarginsFHand[(i + 3) % nMFH]);
+    }
+
+    // ═══ Polygon 族（R-21 T2）══════════════════════════════════════════════
+    {
+        cmp_polygon_constants();
+
+        // PkPolygon（int）：几种点数（0/1/3）× 手挑坐标集，覆盖构造 + 迭代。
+        static const int kPolyIntHand[] = {
+            0, 1, -1, 5, -5, 10, -10, 100, INT_MAX, INT_MIN,
+        };
+        const int nPI = countOf(kPolyIntHand);
+        {
+            const int empty[1][2] = { { 0, 0 } };
+            cmp_polygon_ctors(empty, 0);
+        }
+        for (int i = 0; i < nPI; ++i) {
+            const int one[1][2] = { { kPolyIntHand[i], kPolyIntHand[(i + 1) % nPI] } };
+            cmp_polygon_ctors(one, 1);
+        }
+        for (int i = 0; i < nPI; ++i)
+            for (int j = 0; j < nPI; ++j) {
+                const int tri[3][2] = {
+                    { kPolyIntHand[i], kPolyIntHand[j] },
+                    { kPolyIntHand[(i + 1) % nPI], kPolyIntHand[(j + 2) % nPI] },
+                    { kPolyIntHand[(i + 2) % nPI], kPolyIntHand[(j + 1) % nPI] },
+                };
+                cmp_polygon_ctors(tri, 3);
+            }
+
+        // PkPolygonF：默认构造 + explicit int 版，size 0..5。
+        for (int s = 0; s <= 5; ++s) cmp_polygonf_constants(s);
+
+        // 手挑多边形形状目录（浮点）：正方形 / 三角形 / 自相交五角星（钉住
+        // OddEvenFill 与 WindingFill 在自相交多边形上给出不同答案，见
+        // PkPolygon.cpp 顶部注释）/ 共线三点（退化）/ 单点 / 巨大坐标 /
+        // 含 NaN・Inf 的坐标——containsPoint/boundingRect/isClosed/toPolygon/
+        // translate/map 共用同一份目录。
+        static const double kSquare[][2]   = { { 0, 0 }, { 10, 0 }, { 10, 10 }, { 0, 10 } };
+        static const double kTriangle[][2] = { { 0, 0 }, { 4, 0 }, { 2, 3 } };
+        static const double kStar[][2]     = {
+            { 0, -10 }, { 2.35, 3.24 }, { -9.51, -3.09 }, { 9.51, -3.09 }, { -2.35, 3.24 },
+        };
+        static const double kCollinear[][2]   = { { 0, 0 }, { 1, 0 }, { 2, 0 } };
+        static const double kSinglePoint[][2] = { { 5, 5 } };
+        static const double kHuge[][2] = { { 0, 0 }, { 1e300, 0 }, { 1e300, 1e300 }, { 0, 1e300 } };
+        static const double kNonFinite[][2]   = { { 0, 0 }, { NAN, 0 }, { 1, 1 }, { 0, INFINITY } };
+
+        struct PolyShape { const double (*pts)[2]; int n; };
+        const PolyShape kPolyShapes[] = {
+            { kSquare, 4 }, { kTriangle, 3 }, { kStar, 5 }, { kCollinear, 3 },
+            { kSinglePoint, 1 }, { kHuge, 4 }, { kNonFinite, 4 },
+        };
+        const int nPS = countOf(kPolyShapes);
+
+        // 空多边形单独测一次（数组大小 0 用不了上面这套聚合写法）。
+        cmp_polygonf_ctors(kSquare, 0);
+        cmp_polygonf_unary(kSquare, 0);
+
+        for (int s = 0; s < nPS; ++s) {
+            cmp_polygonf_ctors(kPolyShapes[s].pts, kPolyShapes[s].n);
+            cmp_polygonf_unary(kPolyShapes[s].pts, kPolyShapes[s].n);
+        }
+
+        // PkPolygonF(const PkRectF&)：坐标 token 全组合。
+        static const double kPolyRectTok[] = {
+            -2.0, -0.0, 0.0, 1.0, 5.0, 1e300, INFINITY, -INFINITY, NAN,
+        };
+        const int nPRT = countOf(kPolyRectTok);
+        for (int i = 0; i < nPRT; ++i)
+            for (int j = 0; j < nPRT; ++j)
+                for (int k = 0; k < nPRT; ++k)
+                    for (int l = 0; l < nPRT; ++l)
+                        cmp_polygonf_ctor_rect(kPolyRectTok[i], kPolyRectTok[j],
+                                               kPolyRectTok[k], kPolyRectTok[l]);
+
+        // translate/translated：手挑形状 × 手挑位移。
+        static const double kPolyOffset[] = {
+            0.0, -0.0, 1.0, -1.0, 5.0, -5.0, 0.5, -0.5, 1e300, -1e300, INFINITY, NAN,
+        };
+        const int nPO = countOf(kPolyOffset);
+        for (int s = 0; s < nPS; ++s)
+            for (int i = 0; i < nPO; ++i)
+                cmp_polygonf_translate(kPolyShapes[s].pts, kPolyShapes[s].n,
+                                       kPolyOffset[i], -kPolyOffset[i]);
+
+        // containsPoint：手挑形状 × 查询点 token 网格（正方形/三角形/五角星
+        // 各自覆盖内部/外部/边界，网格坐标横跨负值到正值），外加每个顶点本身
+        // （射线穿越算法在顶点/边界上的行为最容易分家）。
+        static const double kPolyQueryTok[] = {
+            -20.0, -10.0, -9.51, -5.0, -2.35, -0.0, 0.0, 2.0, 2.35, 5.0, 9.51, 10.0, 20.0,
+        };
+        const int nPQT = countOf(kPolyQueryTok);
+        for (int s = 0; s < nPS; ++s)
+            for (int i = 0; i < nPQT; ++i)
+                for (int j = 0; j < nPQT; ++j)
+                    cmp_polygonf_containspoint(kPolyShapes[s].pts, kPolyShapes[s].n,
+                                               kPolyQueryTok[i], kPolyQueryTok[j]);
+        for (int s = 0; s < nPS; ++s)
+            for (int i = 0; i < kPolyShapes[s].n; ++i)
+                cmp_polygonf_containspoint(kPolyShapes[s].pts, kPolyShapes[s].n,
+                                           kPolyShapes[s].pts[i][0], kPolyShapes[s].pts[i][1]);
+        cmp_polygonf_containspoint(kSquare, 0, 0.0, 0.0);
+
+        // PkTransform::map(PkPolygonF)：手挑矩阵（覆盖三档：<=TxTranslate 快
+        // 路径 / 一般仿射 / TxProject——本类与 Qt 登记在案的偏离分支）
+        // × 手挑多边形形状目录。
+        static const double kPolyTf[][9] = {
+            { 1, 0, 0,   0, 1, 0,   0, 0, 1 },            // 单位（TxNone）
+            { 1, 0, 0,   0, 1, 0,   5, -3, 1 },           // 纯平移（快路径）
+            { 2, 0, 0,   0, 3, 0,   0, 0, 1 },            // 纯缩放
+            { 0, 1, 0,  -1, 0, 0,   0, 0, 1 },             // rotate(90) 精确值
+            { 1, 2, 0,   1, 1, 0,   0, 0, 1 },             // 切变
+            { 1, 0, 0.5, 0, 1, 0.25, 0, 0, 1 },            // 投影（偏离分支，无裁剪需求）
+            { 1, 0, -1,  0, 1, 0,   0, 0, 1 },              // 投影且需要透视裁剪（真 Qt
+                                                             //   走 QPainterPath，本类不裁）
+        };
+        const int nPTf = countOf(kPolyTf);
+        for (int m = 0; m < nPTf; ++m)
+            for (int s = 0; s < nPS; ++s)
+                cmp_transform_map_polygonf(kPolyTf[m], kPolyShapes[s].pts, kPolyShapes[s].n);
+        {
+            const double empty[1][2] = { { 0, 0 } };
+            for (int m = 0; m < nPTf; ++m) cmp_transform_map_polygonf(kPolyTf[m], empty, 0);
+        }
+
+        // squareToQuad / quadToSquare：手挑四边形（平行四边形 / 透视梯形 /
+        // 单位正方形本身 / 共线退化 / 错误点数）。
+        static const double kQuadAffine[][2]     = { { 0, 0 }, { 2, 0 }, { 3, 2 }, { 1, 2 } };
+        static const double kQuadPersp[][2]      = { { 0, 0 }, { 4, 0 }, { 3, 2 }, { 1, 2 } };
+        static const double kQuadUnit[][2]       = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
+        static const double kQuadDegenerate[][2] = { { 0, 0 }, { 1, 0 }, { 2, 0 }, { 3, 0 } };
+        static const double kQuadWrong3[][2]     = { { 0, 0 }, { 1, 0 }, { 1, 1 } };
+        static const double kQuadWrong5[][2] = {
+            { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 }, { 0.5, 0.5 },
+        };
+        cmp_transform_square_quad(kQuadAffine, 4);
+        cmp_transform_square_quad(kQuadPersp, 4);
+        cmp_transform_square_quad(kQuadUnit, 4);
+        cmp_transform_square_quad(kQuadDegenerate, 4);
+        cmp_transform_square_quad(kQuadWrong3, 3);
+        cmp_transform_square_quad(kQuadWrong5, 5);
     }
 
     for (const auto &kv : g_tags)

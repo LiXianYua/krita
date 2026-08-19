@@ -1,0 +1,24 @@
+# PkPolygon/PkPolygonF 类体声明 → 对拍 rec() 标签的映射（规则三的机器闸门，
+# 人维护那一半）。格式、多标签分隔符、机械解析方式与 line_api.map /
+# rect_api.map 完全一致，完整说明见 rect_api.map 顶部注释，这里不重复。
+#
+# PkPolygon 只有 3 条声明（真实用量只有构造 + 继承来的迭代器/容器操作，见
+# PkPolygon.h 头部）。PkPolygonF 是新战场，13 条声明逐条列出。
+# containsPoint 一条声明挂两个标签（Qt::FillRule 的两个取值不是两个重载，
+# 是同一个形参的两个分支，合成一条 rec 会看不出哪种规则分了家）。
+PkPolygon::PkPolygon()	PG::defaultCtor
+PkPolygon::PkPolygon(const PkVector<PkPoint>&)	PG::ctorFromVector
+PkPolygon::PkPolygon(PkVector<PkPoint>&&)	PG::ctorFromVectorMove
+PkPolygonF::PkPolygonF()	PGF::defaultCtor
+PkPolygonF::PkPolygonF(int)	PGF::ctorSize
+PkPolygonF::PkPolygonF(const PkVector<PkPointF>&)	PGF::ctorFromVector
+PkPolygonF::PkPolygonF(PkVector<PkPointF>&&)	PGF::ctorFromVectorMove
+PkPolygonF::PkPolygonF(const PkRectF&)	PGF::ctorFromRect
+PkPolygonF::translate(qreal,qreal)	PGF::translateXY
+PkPolygonF::translate(const PkPointF&)	PGF::translatePoint
+PkPolygonF::translated(qreal,qreal)	PGF::translatedXY
+PkPolygonF::translated(const PkPointF&)	PGF::translatedPoint
+PkPolygonF::isClosed()	PGF::isClosed
+PkPolygonF::boundingRect()	PGF::boundingRect
+PkPolygonF::containsPoint(const PkPointF&,Qt::FillRule)	PGF::containsPointOddEven;PGF::containsPointWinding
+PkPolygonF::toPolygon()	PGF::toPolygon

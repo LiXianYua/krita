@@ -75,3 +75,7 @@ PkTransform::operator+=(qreal)	T::operator+=(qreal);T::free+(qreal)
 PkTransform::operator-=(qreal)	T::operator-=(qreal);T::free-(qreal)
 PkTransform::fromTranslate(qreal,qreal)	T::fromTranslate
 PkTransform::fromScale(qreal,qreal)	T::fromScale
+# R-21 T2：PkPolygonF 交付后顺带解开的三个重载。
+PkTransform::map(const PkPolygonF&)	T::map(PolygonF)
+PkTransform::squareToQuad(const PkPolygonF&,PkTransform&)	T::squareToQuad
+PkTransform::quadToSquare(const PkPolygonF&,PkTransform&)	T::quadToSquare

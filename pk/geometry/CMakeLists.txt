@@ -17,8 +17,18 @@ add_library(pkgeometry STATIC
     PkTransform.cpp
     PkLine.cpp
     PkMargins.cpp
+    PkPolygon.cpp
 )
 target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# R-21 T2：PkPolygon/PkPolygonF 是 `PkVector<PkPoint>`/`PkVector<PkPointF>`
+# 的**继承**（不是包一层，理由见 PkPolygon.h 文件头），PkVector<T> 住在
+# pk/container/（R-02 交付），不在 pk/geometry/ 自己的树里。PkVector<T> 全是
+# 模板、头文件即定义，这里只需要让 `#include "../container/PkVector.h"`
+# 找得到——PUBLIC 是因为消费 pkgeometry 的人（oracle/graft/tests）里凡是
+# 直接 `#include "PkPolygon.h"` 的都要连带解析到它。与 pk/string/CMakeLists.txt
+# 消费 pk/container 的既有形态一致（那边同样 PUBLIC 加 ../container）。
+target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../container)
 
 # ⚠ **-fwrapv 是必需的，不是调优，而且是 PUBLIC**（消费者也要带上）。
 # QPoint::manhattanLength 是 qAbs(x)+qAbs(y)、operator+ 是裸的 int 相加、
@@ -62,7 +72,8 @@ pk_test_generate(PKGEOMETRY_GENERATED_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/rectf_case.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/transform_case.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/line_case.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/margins_case.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/margins_case.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/cases/polygon_case.h")
 
 add_executable(test_pkgeometry
     tests/test_main.cpp
@@ -74,6 +85,7 @@ add_executable(test_pkgeometry
     tests/test_transform.cpp
     tests/test_line.cpp
     tests/test_margins.cpp
+    tests/test_polygon.cpp
     # 前两种 include 顺序下的「两份 compat/QtGlobal 共存」TU。它们能编过本身就是
     # 断言的一半，所以必须真的作为独立翻译单元编译，不能合并。
     tests/coexist_test_first.cpp
@@ -115,3 +127,5 @@ set_source_files_properties(tests/test_line.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_line_case.inc")
 set_source_files_properties(tests/test_margins.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_margins_case.inc")
+set_source_files_properties(tests/test_polygon.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_polygon_case.inc")
