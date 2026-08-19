@@ -5,11 +5,13 @@
 // #include 生成的 binder，并各自导出一个 run_xxx() 给这里调。
 int run_error_tests(int argc, char **argv);
 int run_database_tests(int argc, char **argv);
+int run_query_tests(int argc, char **argv);
 
 int main(int argc, char **argv)
 {
     int rc = 0;
     rc |= run_error_tests(argc, argv);
     rc |= run_database_tests(argc, argv);
+    rc |= run_query_tests(argc, argv);
     return rc;
 }

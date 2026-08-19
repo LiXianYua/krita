@@ -17,8 +17,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # 自证——静态库允许留未定义符号，真混进 Qt 依赖就会在那里现形。
 #
 # **Task 1 的产物只有 PkSqlError.cpp/PkSqlDatabase.cpp**（PkSqlQuery 是
-# Task 2 的范围），所以这一步的 nm -u 检查只覆盖这两个类型；Task 4 才对
-# 含 PkSqlQuery/execBatch 的完整产物做终验（R-17 plan §3 Task 1 最后一条）。
+# Task 2 的范围），所以那一步的 nm -u 检查只覆盖了这两个类型；Task 2 新增
+# PkSqlQuery.cpp/PkSqlCursor.cpp + pkvariant/pkgeometry 直接编译源码后，本
+# task-2-report.md 里补一次覆盖新增产物的 nm -u 复核（仍不是终验——execBatch
+# 是 Task 3 的范围，Task 4 才对完整产物做一次终版核验，R-17 plan §3 Task 1
+# 最后一条）。
 
 # sqlite3 依赖：find_package(SQLite3) → FetchContent 兜底。照抄
 # docs/superpowers/plans/R-17.md §2——版本/哈希逐字来自那里，本文件不重算。
@@ -58,24 +61,88 @@ endif()
 # 同 pk/variant/CMakeLists.txt 对 pk/container 的处理方式。
 set(PKCONTAINER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../container)
 
+# ---------------------------------------------------------------------------
+# 依赖：pk/variant（PkVariant/PkVariantList，bindValue/value 的值类型）—— Task 2
+# 新增。**不走 add_subdirectory(pk/variant)**，原因是本任务实测发现的一个
+# pk/variant/CMakeLists.txt 既有 bug（不在本任务范围，未改那个文件，这里只是
+# 绕开）：
+#
+#   pk/variant/CMakeLists.txt 自己同时 add_subdirectory(pk/string)（直接）
+#   与 add_subdirectory(pk/geometry)（间接经 pk/geometry → pk/test →
+#   pk/string，pk/test/CMakeLists.txt:25 写的是 ${CMAKE_BINARY_DIR}/pkstring
+#   ——顶层绝对路径，不是 ${CMAKE_CURRENT_BINARY_DIR}，所以不管嵌套多深都撞
+#   同一个二进制目录）——同一个源目录 pk/string 在同一次 configure 里被
+#   add_subdirectory 两次，报 "is already used to build a source directory"。
+#   实测复现（独立于本任务，pk/variant 单独 `cmake -S pk/variant -B <tmp>`
+#   就已经炸，不需要 pk/sql 参与）：
+#     CMake Error at pk/test/CMakeLists.txt:25 (add_subdirectory):
+#       The binary directory .../pkstring is already used to build a
+#       source directory. It cannot be used to build source directory
+#       .../pk/string.
+#   pk/sql 已经通过 pktest 引入了 pkstring（见上），如果再
+#   add_subdirectory(pk/variant)，pk/variant 内部同样的双路径 add_subdirectory
+#   会在**第一次进入 pk/variant/CMakeLists.txt 时就自炸**——不是"guard 一下
+#   调用点"能绕开的（guard 只挡"被 add_subdirectory 两次"，挡不住"文件自己
+#   内部两条路径互撞"）。
+#
+#   绕法：**不调用 pk/variant/CMakeLists.txt 与 pk/geometry/CMakeLists.txt，
+#   直接把它们的源文件纳入本文件手写的 pkvariant/pkgeometry 目标**——只读
+#   它们的 .cpp/.h（未改一个字节），没有再次 add_subdirectory 任何一方，
+#   所以不会重放上面那个 bug。target 名字（pkgeometry/pkvariant）与 include
+#   路径同它们各自 CMakeLists.txt 本来会产出的一致，下游（Task 3/4 或未来
+#   任何 add_subdirectory(pk/sql) 的消费者）看到的接口形状不变。
+#   这不是本任务修的 bug，是本任务绕开的 bug——修复留给 pk/variant/pk/test
+#   自己的后续任务；这里只记录发现，不改那两个文件。
+# ---------------------------------------------------------------------------
+set(PKGEOMETRY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../geometry)
+set(PKVARIANT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../variant)
+
+if (NOT TARGET pkgeometry)
+    add_library(pkgeometry STATIC
+        ${PKGEOMETRY_DIR}/PkGlobal.cpp
+        ${PKGEOMETRY_DIR}/PkPoint.cpp
+        ${PKGEOMETRY_DIR}/PkSize.cpp
+        ${PKGEOMETRY_DIR}/PkRect.cpp
+        ${PKGEOMETRY_DIR}/PkTransform.cpp
+    )
+    target_include_directories(pkgeometry PUBLIC ${PKGEOMETRY_DIR})
+    # 与 pk/geometry/CMakeLists.txt 里的理由逐字相同：QPoint*qreal 等运算走
+    # 裸整数运算，-fwrapv 防 UB（见该文件 target_compile_options 那段注释）。
+    target_compile_options(pkgeometry PUBLIC -fwrapv)
+endif()
+
+if (NOT TARGET pkvariant)
+    add_library(pkvariant STATIC
+        ${PKVARIANT_DIR}/PkAuxTypes.cpp
+        ${PKVARIANT_DIR}/PkVariant.cpp
+    )
+    target_include_directories(pkvariant PUBLIC ${PKVARIANT_DIR} ${PKCONTAINER_DIR})
+    target_compile_options(pkvariant PUBLIC -fwrapv)
+    target_link_libraries(pkvariant PUBLIC pkstring pkgeometry)
+endif()
+
 add_library(pksql STATIC
     PkSqlError.cpp
     PkSqlDatabase.cpp
+    PkSqlQuery.cpp
+    PkSqlCursor.cpp
 )
 target_include_directories(pksql PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${PKCONTAINER_DIR})
-target_link_libraries(pksql PUBLIC pkstring)
+target_link_libraries(pksql PUBLIC pkstring pkvariant)
 # PRIVATE：<sqlite3.h> 只出现在 .cpp 里，公开头文件只前置声明 `struct sqlite3;`
 # （PkSqlError.h/PkSqlDatabase.h 顶部注释），不需要传递给 pksql 的使用者。
 target_link_libraries(pksql PRIVATE SQLite::SQLite3)
 
 pk_test_generate(PKSQL_BINDERS
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_error.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_database.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_database.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_query.h)
 
 add_executable(test_pksql
     tests/test_main.cpp
     tests/test_error.cpp
     tests/test_database.cpp
+    tests/test_query.cpp
 )
 target_include_directories(test_pksql PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests
@@ -88,6 +155,8 @@ set_source_files_properties(tests/test_error.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_error.inc")
 set_source_files_properties(tests/test_database.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_database.inc")
+set_source_files_properties(tests/test_query.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_query.inc")
 
 enable_testing()
 add_test(NAME test_pksql COMMAND test_pksql)
