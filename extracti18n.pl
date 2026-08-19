@@ -178,26 +178,26 @@ sub readZipSpecialBuffer($)
 
 
 
-my @filenames = glob("./krita/data/gradients/*.ggr");
-push( @filenames, glob("./krita/data/palettes/*.gpl"));
-push( @filenames, glob("./krita/data/brushes/*.gih"));
-push( @filenames, glob("./krita/data/brushes/*.gbr"));
-push( @filenames, glob("./krita/data/brushes/*.svg"));
-push( @filenames, glob("./krita/data/patterns/*.pat"));
-push( @filenames, glob("./krita/data/patterns/*.png"));
-push( @filenames, glob("./krita/data/paintoppresets/*.kpp"));
-push( @filenames, glob("./krita/data/workspaces/*.kws"));
-push( @filenames, glob("./krita/data/windowlayouts/*.kwl"));
-push( @filenames, glob("./krita/data/gamutmasks/*.kgm"));
+my @filenames = glob("./data/gradients/*.ggr");
+push( @filenames, glob("./data/palettes/*.gpl"));
+push( @filenames, glob("./data/brushes/*.gih"));
+push( @filenames, glob("./data/brushes/*.gbr"));
+push( @filenames, glob("./data/brushes/*.svg"));
+push( @filenames, glob("./data/patterns/*.pat"));
+push( @filenames, glob("./data/patterns/*.png"));
+push( @filenames, glob("./data/paintoppresets/*.kpp"));
+push( @filenames, glob("./data/workspaces/*.kws"));
+push( @filenames, glob("./data/windowlayouts/*.kwl"));
+push( @filenames, glob("./data/gamutmasks/*.kgm"));
 push( @filenames, glob("./plugins/paintops/mypaint/brushes/*.myb"));
-push( @filenames, glob("./krita/data/symbols/*.svg"));
+push( @filenames, glob("./data/symbols/*.svg"));
 
 
 my %bundleForResource;
 my %internalFilenameForResource;
 
 # get the filename from the bundle
-my @bundlenames = glob("./krita/data/bundles/*.bundle");
+my @bundlenames = glob("./data/bundles/*.bundle");
 foreach my $bundlename (@bundlenames)
 {
   my $bundle = Archive::Zip->new();
