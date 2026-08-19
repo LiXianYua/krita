@@ -24,10 +24,16 @@ target_include_directories(pkvariant PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_options(pkvariant PUBLIC -fwrapv)
 
 # ---------------------------------------------------------------------------
-# 依赖：pk/string —— 通过 add_subdirectory 引入
+# 依赖：pk/string —— 由 geometry→test 链提供，**不直接 add_subdirectory**。
+# 本工程曾直接 add_subdirectory(../string <bin>/pkstring)，而 pk/geometry
+# →pk/test（pk/test/CMakeLists.txt:25）又 add_subdirectory(../string
+# ${CMAKE_BINARY_DIR}/pkstring)，两者 binary dir 相同（顶层 <bin>/pkstring），
+# configure 报「The binary directory ... is already used to build a source
+# directory」。这是 R-14 起 pk/test 依赖 pk/string 引入的现状缺陷（R-06 之后）。
+# 删掉直接 add 后，pkstring target 在 add_subdirectory(pk/geometry) 展开时已
+# 由 pk/test 建好，下方 target_link_libraries(pkvariant PUBLIC pkstring ...)
+# 直接引用即可。
 # ---------------------------------------------------------------------------
-set(PKSTRING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../string)
-add_subdirectory(${PKSTRING_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pkstring EXCLUDE_FROM_ALL)
 
 # ---------------------------------------------------------------------------
 # 依赖：pk/geometry —— 通过 add_subdirectory 引入

@@ -5,6 +5,7 @@
 #include "pk_binder_variant_case.inc"
 
 #include <cmath>
+#include <cstring>
 #include <limits>
 
 // ── 基础状态 ──────────────────────────────────────────────────────────────
@@ -225,6 +226,73 @@ void VariantCase::byteArrayVariant()
     PK_COMPARE(static_cast<int>(v.type()), static_cast<int>(PkVariant::ByteArray));
     PK_COMPARE(v.toByteArray().size(), 6);
     PK_VERIFY(!v.toByteArray().isEmpty());
+}
+
+void VariantCase::byteArrayNewApi()
+{
+    // 期望值全部来自探针实测（见 brief Step 4 与 impact-map §2/§3）。
+    auto eq = [](const PkByteArray& ba, const char* s) {
+        int n = static_cast<int>(std::strlen(s));
+        return ba.size() == n
+            && std::memcmp(ba.constData(), s, static_cast<size_t>(n)) == 0;
+    };
+
+    // ── resize：n<=0 清空（resize(-1) 不是 no-op）──
+    {
+        PkByteArray ba("hello", 5);
+        ba.resize(0);
+        PK_VERIFY(ba.isEmpty());
+        PK_COMPARE(ba.size(), 0);
+        ba.resize(-1);
+        PK_VERIFY(ba.isEmpty());
+        PK_COMPARE(ba.size(), 0);
+    }
+
+    // ── resize 扩大：尾部补 0，且 data() 可写 ──
+    {
+        PkByteArray ba("ab", 2);
+        ba.resize(5);
+        PK_COMPARE(ba.size(), 5);
+        PK_COMPARE(static_cast<unsigned char>(ba.constData()[0]), static_cast<unsigned char>('a'));
+        PK_COMPARE(static_cast<unsigned char>(ba.constData()[1]), static_cast<unsigned char>('b'));
+        // 补的 3 字节为 0
+        PK_COMPARE(static_cast<unsigned char>(ba.constData()[2]), 0u);
+        PK_COMPARE(static_cast<unsigned char>(ba.constData()[4]), 0u);
+        // 可变 data() 写入后读回
+        ba.data()[2] = 'X';
+        ba.data()[4] = 'Y';
+        PK_COMPARE(static_cast<char>(ba.constData()[2]), 'X');
+        PK_COMPARE(static_cast<char>(ba.constData()[4]), 'Y');
+        PK_COMPARE(ba.size(), 5);
+    }
+
+    // ── resize 缩小：截断保留前缀 ──
+    {
+        PkByteArray ba("hello", 5);
+        ba.resize(2);
+        PK_COMPARE(ba.size(), 2);
+        PK_COMPARE(static_cast<char>(ba.constData()[0]), 'h');
+        PK_COMPARE(static_cast<char>(ba.constData()[1]), 'e');
+    }
+
+    // ── data()/constData()：空对象 constData() 非空且 byte0==0 ──
+    {
+        PkByteArray empty;
+        PK_VERIFY(empty.constData() != nullptr);
+        PK_COMPARE(static_cast<unsigned char>(empty.constData()[0]), 0u);
+    }
+
+    // ── number ──
+    PK_VERIFY(eq(PkByteArray::number(42), "42"));
+    PK_VERIFY(eq(PkByteArray::number(-42), "-42"));
+    PK_VERIFY(eq(PkByteArray::number(-255, 16), "ffffff01"));
+    PK_VERIFY(eq(PkByteArray::number(255, 16), "ff"));
+    PK_VERIFY(eq(PkByteArray::number(255, 8), "377"));
+    PK_VERIFY(eq(PkByteArray::number(-1, 8), "37777777777"));
+    PK_VERIFY(eq(PkByteArray::number(0), "0"));
+    PK_VERIFY(eq(PkByteArray::number(0u, 2), "0"));
+    PK_VERIFY(eq(PkByteArray::number(0xdeadbeefu, 16), "deadbeef"));
+    PK_VERIFY(eq(PkByteArray::number(0xdeadbeefu, 10), "3735928559"));
 }
 
 void VariantCase::stringListVariant()

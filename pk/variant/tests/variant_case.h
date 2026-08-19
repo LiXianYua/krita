@@ -23,6 +23,7 @@ private Q_SLOTS:
     void boolVariant();
     void stringVariant();
     void byteArrayVariant();
+    void byteArrayNewApi();
     void stringListVariant();
 
     // ── 集合类型构造与转换 ──────────────────────────────────────────
