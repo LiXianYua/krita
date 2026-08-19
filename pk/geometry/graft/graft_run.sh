@@ -88,7 +88,7 @@ build_lib() {
 }
 
 build_lib "$BUILD/libpkgeometry.a" \
-    pk/geometry/PkGlobal.cpp pk/geometry/PkPoint.cpp pk/geometry/PkSize.cpp \
+    pk/geometry/PkPoint.cpp pk/geometry/PkSize.cpp \
     pk/geometry/PkRect.cpp pk/geometry/PkTransform.cpp \
     pk/geometry/PkLine.cpp pk/geometry/PkMargins.cpp \
     pk/geometry/PkPolygon.cpp pk/geometry/PkPainterPath.cpp

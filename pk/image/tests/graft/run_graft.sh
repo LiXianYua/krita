@@ -32,7 +32,6 @@ INC=(
 # 依赖源：PkImage + 全部 geometry 的 out-of-line 实现（driver 直接链源码，不依赖
 # cmake 先构建出 .a——这与 graft_check.sh「编译参数 + 垫片」的自包含精神一致）。
 SOURCES=(pk/image/PkImage.cpp
-         pk/geometry/PkGlobal.cpp
          pk/geometry/PkPoint.cpp
          pk/geometry/PkSize.cpp
          pk/geometry/PkRect.cpp

@@ -10,7 +10,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 # 零 Qt：本工程不得出现 find_package(Qt...)。判据③ 靠 tests/run_tests.sh 里的
 # nm -u libpkgeometry.a 自证。
 add_library(pkgeometry STATIC
-    PkGlobal.cpp
     PkPoint.cpp
     PkSize.cpp
     PkRect.cpp
