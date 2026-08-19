@@ -127,7 +127,27 @@ public:
 
     void addPolygon(const PkPolygonF &polygon);
 
+    void addEllipse(const PkRectF &boundingRect);
+    inline void addEllipse(qreal x, qreal y, qreal w, qreal h)
+    { addEllipse(PkRectF(x, y, w, h)); }
+    inline void addEllipse(const PkPointF &center, qreal rx, qreal ry)
+    { addEllipse(PkRectF(center.x() - rx, center.y() - ry, 2 * rx, 2 * ry)); }
+
+    void arcTo(const PkRectF &rect, qreal startAngle, qreal sweepLength);
+    inline void arcTo(qreal x, qreal y, qreal w, qreal h,
+                       qreal startAngle, qreal sweepLength)
+    { arcTo(PkRectF(x, y, w, h), startAngle, sweepLength); }
+
+    void addRoundedRect(const PkRectF &rect, qreal xRadius, qreal yRadius,
+                        Qt::SizeMode mode = Qt::AbsoluteSize);
+    inline void addRoundedRect(qreal x, qreal y, qreal w, qreal h,
+                                qreal xRadius, qreal yRadius,
+                                Qt::SizeMode mode = Qt::AbsoluteSize)
+    { addRoundedRect(PkRectF(x, y, w, h), xRadius, yRadius, mode); }
+
     void addPath(const PkPainterPath &path);
+
+    // ── 查询 ──────────────────────────────────────────────────────────
 
     // ── 查询 ──────────────────────────────────────────────────────────
 
@@ -160,6 +180,9 @@ public:
 private:
     // 标记 boundingRect 与控制点矩形为脏（每次元素变更时调用）。
     void markDirty();
+
+    // arcMoveTo 内部辅助：仅供 addRoundedRect 使用（qpainterpath.cpp:1033-1041）
+    void arcMoveTo(const PkRectF &rect, qreal angle);
 
     // 存储：PkVector<Element> 自带 COW，拷贝 O(1)。
     PkVector<Element> m_elements;

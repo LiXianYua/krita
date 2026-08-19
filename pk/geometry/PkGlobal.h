@@ -200,6 +200,12 @@ enum Axis {
     ZAxis
 };
 
+// qnamespace.h:1185-1187 —— `Qt::SizeMode`，逐字照抄
+enum SizeMode {
+    AbsoluteSize,
+    RelativeSize
+};
+
 // ---------------------------------------------------------------------------
 // qnamespace.h:1352-1355（R-21 T2）—— `Qt::FillRule`，逐字照抄
 // （OddEvenFill=0 WindingFill=1，普通枚举无显式取值、按声明顺序编号）。

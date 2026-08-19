@@ -51,6 +51,11 @@ private Q_SLOTS:
     void addPolygon();
     void addPath();
 
+    // 形状辅助（T2）
+    void addEllipse();
+    void arcTo();
+    void addRoundedRect();
+
     // 变换
     void translate();
     void translated();

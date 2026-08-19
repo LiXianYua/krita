@@ -483,6 +483,87 @@ void PkPainterPathCase::equality()
     PK_VERIFY(empty1 == empty2);
 }
 
+// ============================================================================
+// T2 形状辅助
+// ============================================================================
+
+void PkPainterPathCase::addEllipse()
+{
+    PkPainterPath path;
+    path.addEllipse(PkRectF(0, 0, 100, 100));
+    // 一个椭圆由 4 段三次曲线组成：1 moveTo + 4 * (1 CurveToElement + 2 CurveToDataElement)
+    // = 1 + 12 = 13 个元素
+    PK_VERIFY(!path.isEmpty());
+    PK_VERIFY(path.isClosed());
+
+    // 椭圆包围盒应接近输入矩形
+    PkRectF bounds = path.boundingRect();
+    PK_VERIFY(bounds.x() >= -1 && bounds.x() <= 0);
+    PK_VERIFY(bounds.y() >= -1 && bounds.y() <= 0);
+    PK_VERIFY(bounds.x() + bounds.width() >= 100);
+    PK_VERIFY(bounds.y() + bounds.height() >= 100);
+
+    // qreal 重载
+    PkPainterPath path2;
+    path2.addEllipse(10, 20, 50, 30);
+    PK_VERIFY(!path2.isEmpty());
+
+    // PkPointF 重载
+    PkPainterPath path3;
+    path3.addEllipse(PkPointF(50, 50), 30, 20);
+    PK_VERIFY(!path3.isEmpty());
+
+    // 空矩形不做任何事
+    PkPainterPath path4;
+    path4.addEllipse(PkRectF(0, 0, 0, 0));
+    PK_VERIFY(path4.isEmpty());
+}
+
+void PkPainterPathCase::arcTo()
+{
+    PkPainterPath path;
+    path.arcTo(PkRectF(0, 0, 100, 100), 0, 90);
+    // 90 度弧：arcTo 先 lineTo 到弧起点，再加一段三次曲线
+    // 路径为空时先隐式 moveTo(0,0) 再 lineTo(curve_start)
+    PK_VERIFY(!path.isEmpty());
+
+    // 空矩形不做任何事
+    PkPainterPath path2;
+    path2.arcTo(PkRectF(0, 0, 0, 0), 0, 90);
+    PK_VERIFY(path2.isEmpty());
+
+    // qreal 重载
+    PkPainterPath path3;
+    path3.arcTo(0, 0, 100, 100, 0, 360);
+    PK_VERIFY(!path3.isEmpty());
+}
+
+void PkPainterPathCase::addRoundedRect()
+{
+    PkPainterPath path;
+    path.addRoundedRect(PkRectF(0, 0, 100, 100), 20, 20);
+    PK_VERIFY(!path.isEmpty());
+    PK_VERIFY(path.isClosed());
+
+    // 包围盒接近输入矩形
+    PkRectF bounds = path.boundingRect();
+    PK_VERIFY(bounds.x() <= 0);
+    PK_VERIFY(bounds.y() <= 0);
+    PK_VERIFY(bounds.x() + bounds.width() >= 100);
+    PK_VERIFY(bounds.y() + bounds.height() >= 100);
+
+    // 零半径退化为普通矩形
+    PkPainterPath path2;
+    path2.addRoundedRect(PkRectF(0, 0, 100, 100), 0, 0);
+    PK_VERIFY(!path2.isEmpty());
+    PK_COMPARE(path2.boundingRect(), PkRectF(0, 0, 100, 100));
+
+    // 空矩形不做任何事
+    PkPainterPath path3;
+    path3.addRoundedRect(PkRectF(0, 0, 0, 0), 10, 10);
+    PK_VERIFY(path3.isEmpty());
+}
+
 int run_painterpath_tests()
 {
     PkPainterPathCase tc;
