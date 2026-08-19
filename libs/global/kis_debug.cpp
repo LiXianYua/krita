@@ -20,7 +20,6 @@
 #include <string>
 #include <sstream>
 
-
 #if HAVE_BACKTRACE
 static PkString maybeDemangledName(char *name)
 {
