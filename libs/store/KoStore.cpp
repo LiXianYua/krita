@@ -217,17 +217,16 @@ PkByteArray KoStore::read(PkStream::pk_int64 max)
         return data;
     }
 
-    // PkStream 没有「返回 PkByteArray 的 read(pk_int64)」（readAll() 声明不定义），
-    // 这里用 std::vector<char> 中间缓冲转一次再构 PkByteArray（brief §read 契约）。
-    std::vector<char> buf(static_cast<std::size_t>(max));
-    const PkStream::pk_int64 n = d->stream->read(buf.data(), max);
+    // PkByteArray 直接缓冲：PkStream::read(char*, pk_int64) 读进 data 内部缓冲。
+    data.resize(static_cast<int>(max));
+    const PkStream::pk_int64 n = d->stream->read(data.data(), max);
     // PkStream::read 返回 -1 表示 I/O 错误（未打开/后端失败）。原 Qt 语义返回空
-    // 字节数组，这里同样返回空 PkByteArray——不能把 -1 传给 PkByteArray(buf, -1)
-    // （std::vector::reserve(-1) 抛 std::length_error）。
-    if (n < 0) {
-        return data;
-    }
-    return PkByteArray(buf.data(), static_cast<int>(n));
+    // 字节数组，这里同样返回空 PkByteArray——不能把 -1 留给 resize（b2e8a7c7 的
+    // I/O 错误守卫，不能丢）。
+    if (n < 0) { return PkByteArray(); }
+    // 短读（读到 EOF）时截断到实际读到的字节数；n == max 时保持原缓冲不变。
+    if (n != max) { data.resize(static_cast<int>(n)); }
+    return data;
 }
 
 PkStream::pk_int64 KoStore::write(const PkByteArray &data)
@@ -370,7 +369,8 @@ bool KoStorePrivate::extractFile(const PkString &sourceName, PkStream &buffer)
         return false;
     }
 
-    std::vector<char> data(8 * 1024);
+    PkByteArray data;
+    data.resize(8 * 1024);
     PkStream::pk_int64 total = 0;
     for (PkStream::pk_int64 block = 0; (block = q->read(data.data(), static_cast<PkStream::pk_int64>(data.size()))) > 0; total += block) {
         buffer.write(data.data(), block);
