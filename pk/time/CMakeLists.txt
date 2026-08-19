@@ -15,6 +15,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_library(pktime STATIC
     PkElapsedTimer.cpp
+    PkDateTime.cpp
 )
 target_include_directories(pktime PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -30,11 +31,13 @@ if (NOT TARGET pktest)
 endif()
 
 pk_test_generate(PKTIME_BINDERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_elapsed_timer.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_elapsed_timer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_date_time.h)
 
 add_executable(test_pktime
     tests/test_main.cpp
     tests/test_elapsed_timer.cpp
+    tests/test_date_time.cpp
 )
 target_include_directories(test_pktime PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/tests
@@ -42,3 +45,5 @@ target_include_directories(test_pktime PRIVATE
 target_link_libraries(test_pktime PRIVATE pktime pktest)
 set_source_files_properties(tests/test_elapsed_timer.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_elapsed_timer.inc")
+set_source_files_properties(tests/test_date_time.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_date_time.inc")
