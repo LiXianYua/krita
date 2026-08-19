@@ -6,39 +6,40 @@
 #ifndef KIS_DEBUG_H_
 #define KIS_DEBUG_H_
 
-#include <QDebug>
-#include <QLoggingCategory>
+#include <PkDebug.h>
+#include <PkLoggingCategory.h>
+#include <PkMessageLogger.h>
 
 #include "kritaglobal_export.h"
 
 /**
  * To show debug output, start krita like:
  *
- * QT_LOGGING_RULES="*.*=false;krita.metadata.*=true;krita.file.*=true"
+ * PK_LOGGING_RULES="*.*=false;krita.metadata.*=true;krita.file.*=true"
  *
  */
 
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_30009();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_30010();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41000();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41001();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41002();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41003();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41004();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41005();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41006();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41007();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41008();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41009();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41010();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41011();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41012();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41013();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41014();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41015();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41016();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41017();
-extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41018();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_30009();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_30010();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41000();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41001();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41002();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41003();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41004();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41005();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41006();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41007();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41008();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41009();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41010();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41011();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41012();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41013();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41014();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41015();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41016();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41017();
+extern const KRITAGLOBAL_EXPORT PkLoggingCategory &_41018();
 
 #define dbgResources qCDebug(_30009)
 #define dbgDbMigration qCDebug(_30010)
@@ -145,7 +146,7 @@ extern const KRITAGLOBAL_EXPORT QLoggingCategory &_41018();
 /**
  * Show a nicely formatted backtrace.
  */
-KRITAGLOBAL_EXPORT QString kisBacktrace();
+KRITAGLOBAL_EXPORT PkString kisBacktrace();
 
 /**
  * Please pretty print my variable
@@ -163,13 +164,13 @@ KRITAGLOBAL_EXPORT QString kisBacktrace();
 #endif
 
 #ifdef __GNUC__
-KRITAGLOBAL_EXPORT QString __methodName(const char *prettyFunction);
+KRITAGLOBAL_EXPORT PkString __methodName(const char *prettyFunction);
 #define __METHOD_NAME__ __methodName(__PRETTY_FUNCTION__)
 #else
 #define __METHOD_NAME__ "<unknown>:<unknown>"
 #endif
 
-#define PREPEND_METHOD(msg) QString("%1: %2").arg(__METHOD_NAME__).arg(msg)
+#define PREPEND_METHOD(msg) PkString("%1: %2").arg(__METHOD_NAME__).arg(msg)
 
 #ifdef __GNUC__
 #define ENTER_FUNCTION() qDebug() << "Entering" << __METHOD_NAME__
