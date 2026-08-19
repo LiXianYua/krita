@@ -11,19 +11,14 @@
 #include <limits>
 #include <cstdint>
 #include <algorithm>
-#include <cmath>
 
 #include <KoConfig.h>
 #include "kis_assert.h"
 
 #include <PkPoint.h>
-#include <PkPointF.h>
-#include <PkLineF.h>
+#include <PkLine.h>
 #include <PkRect.h>
-#include <PkRectF.h>
 #include <PkSize.h>
-#include <PkSizeF.h>
-
 
 const uint8_t quint8_MAX = std::numeric_limits<uint8_t>::max();
 const uint16_t quint16_MAX = std::numeric_limits<uint16_t>::max();
@@ -163,9 +158,6 @@ inline double bisectorAngle(double a, double b) {
     return incrementInDirection(a, 0.5 * diff, b);
 }
 
-
-
-
 template<typename T>
 inline T pow2(const T& x) {
     return x * x;
@@ -232,7 +224,6 @@ inline PointType snapToClosestNiceAngle(PointType point, PointType startPoint, d
     return result;
 }
 
-
 inline double kisDistanceToLine(const PkPointF &m, const PkLineF &line)
 {
     const PkPointF &p1 = line.p1();
@@ -278,7 +269,6 @@ inline double kisSquareDistanceToLine(const PkPointF &m, const PkLineF &line)
 
 }
 
-
 inline PkPointF kisProjectOnVector(const PkPointF &base, const PkPointF &v)
 {
     const double prod = base.x() * v.x() + base.y() * v.y();
@@ -287,7 +277,6 @@ inline PkPointF kisProjectOnVector(const PkPointF &base, const PkPointF &v)
 
     return coeff * base;
 }
-
 
 inline PkRect kisEnsureInRect(PkRect rc, const PkRect &bounds)
 {
@@ -347,28 +336,29 @@ inline PkRect kisTrimTop( int height, PkRect& toTakeFrom)
 #include "kis_pointer_utils.h"
 #include <type_traits>
 
-// Makes compilers happy because Linux and macOS differ on how they define
-// uint64_t (unsigned long long) vs. size_t (unsigned long (int)).
+// Round up to the next power of two (replacement for Qt's qNextPowerOfTwo,
+// which only had a quint32 overload). The bit-twiddling runs on an unsigned,
+// fixed-width base type: this normalizes size_t (which Linux and macOS define
+// differently) and keeps the shifts from ever hitting signed overflow.
 template <typename T>
 inline T nextPowerOfTwo(T v)
 {
     static_assert(std::is_integral<T>::value, "Value has to be an integral number");
     using base_type = typename std::conditional<sizeof(T) == sizeof(uint64_t), uint64_t, uint32_t>::type;
-    using common_type = typename std::conditional<std::is_signed<T>::value, typename std::make_signed<base_type>::type, typename std::make_unsigned<base_type>::type>::type;
-    // qNextPowerOfTwo replacement: round up to next power of two
-    if (v == 0) return static_cast<T>(1);
-    v--;
-    T v2 = v;
-    v2 |= v2 >> 1;
-    v2 |= v2 >> 2;
-    v2 |= v2 >> 4;
-    v2 |= v2 >> 8;
-    v2 |= v2 >> 16;
-    v2++;
-    return static_cast<T>(v2);
+    base_type cv = static_cast<base_type>(v);
+    if (cv == 0) return static_cast<T>(1);
+    cv--;
+    cv |= cv >> 1;
+    cv |= cv >> 2;
+    cv |= cv >> 4;
+    cv |= cv >> 8;
+    cv |= cv >> 16;
+    if constexpr (sizeof(base_type) >= 8) {
+        cv |= cv >> 32;
+    }
+    cv++;
+    return static_cast<T>(cv);
 }
-
-
 
 #endif // KISGLOBAL_H_
 
