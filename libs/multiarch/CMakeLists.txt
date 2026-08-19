@@ -9,14 +9,6 @@ generate_export_header(kritamultiarch)
 
 target_link_libraries(kritamultiarch PUBLIC xsimd)
 
-target_link_libraries(kritamultiarch
-    PUBLIC
-        Qt${QT_MAJOR_VERSION}::Core
-    PRIVATE
-        KF${KF_MAJOR}::ConfigCore
-        kritaglobal
-)
-
 set_target_properties(kritamultiarch PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
 )

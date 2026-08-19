@@ -9,18 +9,18 @@
 
 #include "kritamultiarch_export.h"
 
-#include <QString>
+#include "PkString.h"
 
 class KRITAMULTIARCH_EXPORT KisSupportedArchitectures
 {
 public:
-    static QString baseArchName();
+    static PkString baseArchName();
 
-    static QString bestArchName();
+    static PkString bestArchName();
 
     static unsigned int bestArch();
 
-    static QString supportedInstructionSets();
+    static PkString supportedInstructionSets();
 };
 
 #endif // KIS_SUPPORTED_ARCHITECTURES_H

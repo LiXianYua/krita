@@ -6,15 +6,14 @@
 
 #include <KoMultiArchBuildSupport.h>
 
-#include <KConfigGroup>
-#include <KSharedConfig>
-#include <kis_debug.h>
+#include "PkConfigGroup.h"
+#include "PkSharedConfig.h"
 
 
 std::tuple<bool, bool> vectorizationConfiguration()
 {
     static const std::tuple<bool, bool> vectorization = [&]() {
-        KConfigGroup cfg = KSharedConfig::openConfig()->group("");
+        PkConfigGroup cfg = PkSharedConfig::openConfig()->group("");
         // use the old key name for compatibility
         const bool useVectorization =
             !cfg.readEntry("amdDisableVectorWorkaround", false);

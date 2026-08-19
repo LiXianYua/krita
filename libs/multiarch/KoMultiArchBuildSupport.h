@@ -13,7 +13,7 @@
 #include <utility>
 #include <xsimd_extensions/xsimd.hpp>
 
-#include <QDebug>
+#include <PkMessageLogger.h>
 
 KRITAMULTIARCH_EXPORT
 std::tuple<bool, bool> vectorizationConfiguration();
@@ -41,7 +41,7 @@ auto createOptimizedClass(Args &&...param)
                       "\'disableAVXOptimizations\' option!";
     }
 
-#ifdef Q_PROCESSOR_X86
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
 
     if (!disableAVXOptimizations &&
         xsimd::available_architectures().fma3_avx2) {

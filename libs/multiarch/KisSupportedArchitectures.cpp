@@ -6,15 +6,11 @@
 
 #include "KisSupportedArchitectures.h"
 
-#include <KConfigGroup>
-#include <KSharedConfig>
-#include <kis_debug.h>
-
 #include "xsimd_extensions/xsimd.hpp"
 
 #include <KoMultiArchBuildSupport.h>
 
-QString KisSupportedArchitectures::baseArchName()
+PkString KisSupportedArchitectures::baseArchName()
 {
     return xsimd::current_arch::name();
 }
@@ -24,12 +20,12 @@ namespace detail
 struct ArchToStringBase
 {
     virtual ~ArchToStringBase() = default;
-    virtual QString name() const = 0;
+    virtual PkString name() const = 0;
 };
 
 template <typename arch>
 struct ArchToString : ArchToStringBase {
-    QString name() const override {
+    PkString name() const override {
         return arch::name();
     }
 };
@@ -37,7 +33,7 @@ struct ArchToString : ArchToStringBase {
 #if XSIMD_VERSION_MAJOR < 13
 template <>
 struct ArchToString<xsimd::generic> : ArchToStringBase {
-    QString name() const override {
+    PkString name() const override {
         return "generic";
     }
 };
@@ -52,7 +48,7 @@ struct ArchToStringFactory {
 
 }
 
-QString KisSupportedArchitectures::bestArchName()
+PkString KisSupportedArchitectures::bestArchName()
 {
     detail::ArchToStringBase *archDetector = createOptimizedClass<detail::ArchToStringFactory>();
     return archDetector->name();
@@ -81,21 +77,21 @@ struct is_supported_arch {
             l.append(A::name()).append(" ");
         }
 #else
-        Q_UNUSED(arch)
+        (void)arch;
 #endif
     }
 
     S &l;
 };
 
-QString KisSupportedArchitectures::supportedInstructionSets()
+PkString KisSupportedArchitectures::supportedInstructionSets()
 {
-    static const QString archs = []() {
-        QString archs;
+    static const PkString archs = []() {
+        PkString archs;
 #ifdef XSIMD_SUPPORTS_NEW_ARCH_DETECTION
-        xsimd::all_architectures::for_each(is_supported_arch<QString>{archs});
+        xsimd::all_architectures::for_each(is_supported_arch<PkString>{archs});
 #elif defined XSIMD_SUPPORTS_OLD_ARCH_DETECTION
-        QStringList archsList;
+        PkStringList archsList;
         auto available = xsimd::available_architectures();
 #define CHECK_ARCH(arch) if (available.arch) archsList << #arch
         CHECK_ARCH(sse2);
