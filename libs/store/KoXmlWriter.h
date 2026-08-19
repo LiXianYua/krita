@@ -9,25 +9,30 @@
 #ifndef XMLWRITER_H
 #define XMLWRITER_H
 
-#include <QDebug>
-#include <QMap>
-#include <QIODevice>
+#include <cassert>
+#include <cstring>
+#include <string>
+
+#include "PkStream.h"
+#include "PkString.h"
+#include "PkAuxTypes.h" // PkByteArray
+#include "PkStack.h"
 
 #include "kritastore_export.h"
 
 /**
- * A class for writing out XML (to any QIODevice), with a special attention on performance.
+ * A class for writing out XML (to any PkStream), with a special attention on performance.
  * The XML is being written out along the way, which avoids requiring the entire
- * document in memory (like QDom does).
+ * document in memory (as a DOM tree would).
  */
 class KRITASTORE_EXPORT KoXmlWriter
 {
 public:
     /**
      * Create a KoXmlWriter instance to write out an XML document into
-     * the given QIODevice.
+     * the given PkStream.
      */
-    explicit KoXmlWriter(QIODevice* dev, int indentLevel = 0);
+    explicit KoXmlWriter(PkStream* dev, int indentLevel = 0);
 
     /// Destructor
     ~KoXmlWriter();
@@ -58,20 +63,20 @@ public:
      * Overloaded version of addAttribute( const char*, const char* ),
      * which is a bit slower because it needs to convert @p value to utf8 first.
      */
-    inline void addAttribute(const char* attrName, const QString& value) {
-        addAttribute(attrName, value.toUtf8());
+    inline void addAttribute(const char* attrName, const PkString& value) {
+        addAttribute(attrName, value.PkToUtf8().c_str());
     }
     /**
      * Add an attribute whose value is an integer
      */
     inline void addAttribute(const char* attrName, int value) {
-        addAttribute(attrName, QByteArray::number(value));
+        addAttribute(attrName, std::to_string(value).c_str());
     }
     /**
      * Add an attribute whose value is an unsigned integer
      */
-    inline void addAttribute(const char* attrName, uint value) {
-        addAttribute(attrName, QByteArray::number(value));
+    inline void addAttribute(const char* attrName, unsigned int value) {
+        addAttribute(attrName, std::to_string(value).c_str());
     }
     /**
      * Add an attribute whose value is an bool
@@ -83,19 +88,19 @@ public:
     /**
      * Add an attribute whose value is a floating point number
      * The number is written out with the highest possible precision
-     * (unlike QString::number and setNum, which default to 6 digits)
+     * (unlike the number()/setNum() helpers, which default to 6 digits)
      */
     void addAttribute(const char* attrName, double value);
 
     /**
      * Add an attribute whose value is a floating point number
      * The number is written out with the highest possible precision
-     * (unlike QString::number and setNum, which default to 6 digits)
+     * (unlike the number()/setNum() helpers, which default to 6 digits)
      */
     void addAttribute(const char* attrName, float value);
 
     /// Overloaded version of the one taking a const char* argument, for convenience
-    void addAttribute(const char* attrName, const QByteArray& value);
+    void addAttribute(const char* attrName, const PkByteArray& value);
 
     /**
      * Add an attribute to the current element.
@@ -112,12 +117,12 @@ public:
      * Overloaded version of addTextNode( const char* ),
      * which is a bit slower because it needs to convert @p str to utf8 first.
      */
-    inline void addTextNode(const QString& str) {
-        addTextNode(str.toUtf8());
+    inline void addTextNode(const PkString& str) {
+        addTextNode(str.PkToUtf8().c_str());
     }
 
     /// Overloaded version of the one taking a const char* argument
-    void addTextNode(const QByteArray& cstr);
+    void addTextNode(const PkByteArray& cstr);
 
     /**
      * @brief Adds a text node as a child of the current element.
@@ -135,7 +140,7 @@ public:
      * for XML already, so it will usually come from another KoXmlWriter.
      * This is usually used with KTempFile.
      */
-    void addCompleteElement(QIODevice* dev);
+    void addCompleteElement(PkStream* dev);
 
     // #### Maybe we want to subclass KoXmlWriter for manifest files.
     /**
@@ -145,7 +150,7 @@ public:
      * when we add support for encrypting/signing.
      * @note OASIS-specific
      */
-    void addManifestEntry(const QString& fullPath, const QString& mediaType);
+    void addManifestEntry(const PkString& fullPath, const PkString& mediaType);
 
 private:
     struct Tag {
@@ -155,8 +160,8 @@ private:
             , openingTagClosed(false)
             , indentInside(ind)
         {
-            tagName = new char[qstrlen(t) + 1];
-            qstrcpy(tagName, t);
+            tagName = new char[strlen(t) + 1];
+            strcpy(tagName, t);
         }
 
         ~Tag() {
@@ -165,8 +170,8 @@ private:
 
         Tag(const Tag &original)
         {
-            tagName = new char[qstrlen(original.tagName) + 1];
-            qstrcpy(tagName, original.tagName);
+            tagName = new char[strlen(original.tagName) + 1];
+            strcpy(tagName, original.tagName);
 
             hasChildren = original.hasChildren;
             lastChildIsText = original.lastChildIsText;
@@ -207,4 +212,3 @@ private:
 };
 
 #endif /* XMLWRITER_H */
-

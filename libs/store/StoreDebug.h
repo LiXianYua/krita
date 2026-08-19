@@ -6,11 +6,11 @@
 #ifndef STORE_DEBUG_H_
 #define STORE_DEBUG_H_
 
-#include <QDebug>
-#include <QLoggingCategory>
+#include <PkLoggingCategory.h>
+#include <PkMessageLogger.h>
 #include <kritastore_export.h>
 
-extern const KRITASTORE_EXPORT QLoggingCategory &STORE_LOG();
+extern const KRITASTORE_EXPORT PkLoggingCategory &STORE_LOG();
 
 #define debugStore qCDebug(STORE_LOG)
 #define warnStore qCWarning(STORE_LOG)

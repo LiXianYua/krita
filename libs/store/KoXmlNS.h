@@ -7,55 +7,55 @@
 #ifndef KOXMLNS_H
 #define KOXMLNS_H
 
-#include <QString>
+#include "PkString.h"
 
 #include "kritastore_export.h"
 /**
  * Repository of XML namespaces used for ODF documents.
- * 
+ *
  * Please make sure that you do not use the variables provided by this class in
  * the destructor of a static object.
  */
 class KRITASTORE_EXPORT KoXmlNS
 {
 public:
-    static const QString office;
-    static const QString meta;
-    static const QString config;
-    static const QString text;
-    static const QString table;
-    static const QString draw;
-    static const QString presentation;
-    static const QString dr3d;
-    static const QString chart;
-    static const QString form;
-    static const QString script;
-    static const QString style;
-    static const QString number;
-    static const QString manifest;
-    static const QString anim;
+    static const PkString office;
+    static const PkString meta;
+    static const PkString config;
+    static const PkString text;
+    static const PkString table;
+    static const PkString draw;
+    static const PkString presentation;
+    static const PkString dr3d;
+    static const PkString chart;
+    static const PkString form;
+    static const PkString script;
+    static const PkString style;
+    static const PkString number;
+    static const PkString manifest;
+    static const PkString anim;
 
-    static const QString math;
-    static const QString svg;
-    static const QString fo;
-    static const QString dc;
-    static const QString xlink;
-    static const QString VL;
-    static const QString smil;
-    static const QString xhtml;
-    static const QString xml;
-    static const QString sodipodi;
-    static const QString krita;
+    static const PkString math;
+    static const PkString svg;
+    static const PkString fo;
+    static const PkString dc;
+    static const PkString xlink;
+    static const PkString VL;
+    static const PkString smil;
+    static const PkString xhtml;
+    static const PkString xml;
+    static const PkString sodipodi;
+    static const PkString krita;
 
-    static const QString calligra;
-    static const QString officeooo;
-    static const QString ooo;
+    static const PkString calligra;
+    static const PkString officeooo;
+    static const PkString ooo;
 
-    static const char* nsURI2NS(const QString &nsURI);
-    
-    static const QString delta;
-    static const QString split;
-    static const QString ac;
+    static const char* nsURI2NS(const PkString &nsURI);
+
+    static const PkString delta;
+    static const PkString split;
+    static const PkString ac;
 private:
     KoXmlNS(); // don't create an instance of me :)
 };

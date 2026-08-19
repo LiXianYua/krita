@@ -8,18 +8,34 @@
 #include "KoXmlWriter.h"
 
 #include <StoreDebug.h>
-#include <QByteArray>
-#include <QStack>
-#include <float.h>
-#include "../global/kis_dom_utils.h"
+
+#include <algorithm>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
+#include <string>
 
 static const int s_indentBufferLength = 100;
 static const int s_escapeBufferLen = 10000;
 
-class Q_DECL_HIDDEN KoXmlWriter::Private
+// Qt 版的原实现调用 KisDomUtils::toString（流式输出的 realNumberPrecision）。
+// S-01 剥 Qt 后本文件内自备等价的 printf 族格式化（语义对齐见任务报告的数字
+// 格式化核对）：double 用 %.15g（= realNumberPrecision(15)，DBL_DIG），float 用
+// %.6g（= realNumberPrecision(FLT_DIG)，FLT_DIG 实测=6）。
+static void appendDouble(char* buf, size_t n, double v)
+{
+    std::snprintf(buf, n, "%.15g", v);
+}
+
+static void appendFloat(char* buf, size_t n, float v)
+{
+    std::snprintf(buf, n, "%.6g", v);
+}
+
+class KoXmlWriter::Private
 {
 public:
-    Private(QIODevice* dev_, int indentLevel = 0)
+    Private(PkStream* dev_, int indentLevel = 0)
         : dev(dev_)
         , baseIndentLevel(indentLevel)
     {}
@@ -30,8 +46,8 @@ public:
         //TODO: look at if we must delete "dev". For me we must delete it otherwise we will leak it
     }
 
-    QIODevice* dev;
-    QStack<Tag> tags;
+    PkStream* dev;
+    PkStack<Tag> tags;
     int baseIndentLevel;
 
     char* indentBuffer; // maybe make it static, but then it needs a K_GLOBAL_STATIC
@@ -39,7 +55,7 @@ public:
     char* escapeBuffer; // can't really be static if we want to be thread-safe
 };
 
-KoXmlWriter::KoXmlWriter(QIODevice* dev, int indentLevel)
+KoXmlWriter::KoXmlWriter(PkStream* dev, int indentLevel)
         : d(new Private(dev, indentLevel))
 {
     d->indentBuffer = new char[ s_indentBufferLength ];
@@ -48,7 +64,7 @@ KoXmlWriter::KoXmlWriter(QIODevice* dev, int indentLevel)
 
     d->escapeBuffer = new char[s_escapeBufferLen];
     if (!d->dev->isOpen())
-        d->dev->open(QIODevice::WriteOnly);
+        d->dev->open(PkStream::WriteOnly);
 
 }
 
@@ -59,7 +75,7 @@ KoXmlWriter::~KoXmlWriter()
 
 void KoXmlWriter::startDocument(const char* rootElemName, const char* publicId, const char* systemId)
 {
-    Q_ASSERT(d->tags.isEmpty());
+    assert(d->tags.isEmpty());
     writeCString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     // There isn't much point in a doctype if there's no DTD to refer to
     // (I'm told that files that are validated by a RelaxNG schema cannot refer to the schema)
@@ -77,9 +93,9 @@ void KoXmlWriter::startDocument(const char* rootElemName, const char* publicId, 
 
 void KoXmlWriter::endDocument()
 {
-    // just to do exactly like QDom does (newline at end of file).
+    // newline at end of file, like a DOM writer does.
     writeChar('\n');
-    Q_ASSERT(d->tags.isEmpty());
+    assert(d->tags.isEmpty());
 }
 
 // returns the value of indentInside of the parent
@@ -114,7 +130,7 @@ void KoXmlWriter::prepareForTextNode()
 
 void KoXmlWriter::startElement(const char* tagName, bool indentInside)
 {
-    Q_ASSERT(tagName != 0);
+    assert(tagName != 0);
 
     // Tell parent that it has children
     indentInside = prepareForChild(indentInside);
@@ -125,29 +141,34 @@ void KoXmlWriter::startElement(const char* tagName, bool indentInside)
     //kDebug(s_area) << tagName;
 }
 
-void KoXmlWriter::addCompleteElement(QIODevice* indev)
+void KoXmlWriter::addCompleteElement(PkStream* indev)
 {
     prepareForChild();
     const bool wasOpen = indev->isOpen();
     // Always (re)open the device in readonly mode, it might be
     // already open but for writing, and we need to rewind.
-    const bool openOk = indev->open(QIODevice::ReadOnly);
-    Q_ASSERT(openOk);
+    const bool openOk = indev->open(PkStream::ReadOnly);
+    assert(openOk);
     if (!openOk) {
         warnStore << "Failed to re-open the device! wasOpen=" << wasOpen;
         return;
     }
 
-    QString indentString;
-    indentString.fill((' '), d->tags.size() + d->baseIndentLevel);
-    QByteArray indentBuf(indentString.toUtf8());
+    // PkString 没有 fill()：用 std::string 定长构造替代原
+    // indentString.fill(' ', n) 写法。
+    std::string indentBuf(d->tags.size() + d->baseIndentLevel, ' ');
 
-    QByteArray buffer;
+    // PkStream 无参 readLine() 只声明不定义：用已定义的
+    // readLine(char*, pk_int64) 逐行读（行内含 '\n'，与 Qt 的 readLine
+    // 语义一致）。
+    char buf[8192];
+    PkStream::pk_int64 n = 0;
     while (!indev->atEnd()) {
-        buffer = indev->readLine();
-
-        d->dev->write(indentBuf);
-        d->dev->write(buffer);
+        n = indev->readLine(buf, sizeof(buf));
+        if (n > 0) {
+            d->dev->write(indentBuf.data(), (PkStream::pk_int64)indentBuf.size());
+            d->dev->write(buf, n);
+        }
     }
 
     if (!wasOpen) {
@@ -161,7 +182,7 @@ void KoXmlWriter::endElement()
     if (d->tags.isEmpty())
         warnStore << "EndElement() was called more times than startElement(). "
                      "The generated XML will be invalid! "
-                     "Please report this bug (by saving the document to another format...)" << Qt::endl;
+                     "Please report this bug (by saving the document to another format...)";
 
     Tag tag = d->tags.pop();
 
@@ -172,17 +193,17 @@ void KoXmlWriter::endElement()
             writeIndent();
         }
         writeCString("</");
-        Q_ASSERT(tag.tagName != 0);
+        assert(tag.tagName != 0);
         writeCString(tag.tagName);
         writeChar('>');
     }
 }
 
-void KoXmlWriter::addTextNode(const QByteArray& cstr)
+void KoXmlWriter::addTextNode(const PkByteArray& cstr)
 {
     // Same as the const char* version below, but here we know the size
     prepareForTextNode();
-    char* escaped = escapeForXML(cstr.constData(), cstr.size());
+    char* escaped = escapeForXML(reinterpret_cast<const char*>(cstr.data()), cstr.size());
     writeCString(escaped);
     if (escaped != d->escapeBuffer)
         delete[] escaped;
@@ -197,13 +218,13 @@ void KoXmlWriter::addTextNode(const char* cstr)
         delete[] escaped;
 }
 
-void KoXmlWriter::addAttribute(const char* attrName, const QByteArray& value)
+void KoXmlWriter::addAttribute(const char* attrName, const PkByteArray& value)
 {
     // Same as the const char* one, but here we know the size
     writeChar(' ');
     writeCString(attrName);
     writeCString("=\"");
-    char* escaped = escapeForXML(value.constData(), value.size());
+    char* escaped = escapeForXML(reinterpret_cast<const char*>(value.data()), value.size());
     writeCString(escaped);
     if (escaped != d->escapeBuffer)
         delete[] escaped;
@@ -224,19 +245,23 @@ void KoXmlWriter::addAttribute(const char* attrName, const char* value)
 
 void KoXmlWriter::addAttribute(const char* attrName, double value)
 {
-    addAttribute(attrName, KisDomUtils::toString(value));
+    char buf[64];
+    appendDouble(buf, sizeof(buf), value);
+    addAttribute(attrName, buf);
 }
 
 void KoXmlWriter::addAttribute(const char* attrName, float value)
 {
-    addAttribute(attrName, KisDomUtils::toString(value));
+    char buf[64];
+    appendFloat(buf, sizeof(buf), value);
+    addAttribute(attrName, buf);
 }
 
 void KoXmlWriter::writeIndent()
 {
     // +1 because of the leading '\n'
-    d->dev->write(d->indentBuffer, qMin(d->tags.size() + d->baseIndentLevel + 1,
-                                        s_indentBufferLength));
+    d->dev->write(d->indentBuffer, std::min(d->tags.size() + d->baseIndentLevel + 1,
+                                            s_indentBufferLength));
 }
 
 
@@ -257,11 +282,11 @@ char* KoXmlWriter::escapeForXML(const char* source, int length = -1) const
             // we drop the idea of using it, and we allocate a bigger buffer.
             // Note that this if() can only be hit once per call to the method.
             if (length == -1)
-                length = qstrlen(source);   // expensive...
-            uint newLength = length * 6 + 1; // worst case. 6 is due to &quot; and &apos;
+                length = strlen(source);   // expensive...
+            unsigned int newLength = length * 6 + 1; // worst case. 6 is due to &quot; and &apos;
             char* buffer = new char[ newLength ];
             destBoundary = buffer + newLength;
-            uint amountOfCharsAlreadyCopied = destination - d->escapeBuffer;
+            unsigned int amountOfCharsAlreadyCopied = destination - d->escapeBuffer;
             memcpy(buffer, d->escapeBuffer, amountOfCharsAlreadyCopied);
             output = buffer;
             destination = buffer + amountOfCharsAlreadyCopied;
@@ -313,7 +338,7 @@ char* KoXmlWriter::escapeForXML(const char* source, int length = -1) const
     return output;
 }
 
-void KoXmlWriter::addManifestEntry(const QString& fullPath, const QString& mediaType)
+void KoXmlWriter::addManifestEntry(const PkString& fullPath, const PkString& mediaType)
 {
     startElement("manifest:file-entry");
     addAttribute("manifest:media-type", mediaType);
@@ -323,7 +348,7 @@ void KoXmlWriter::addManifestEntry(const QString& fullPath, const QString& media
 
 // TODO check return value!!!
 void KoXmlWriter::writeCString(const char* cstr) {
-    d->dev->write(cstr, qstrlen(cstr));
+    d->dev->write(cstr, strlen(cstr));
 }
 
 // TODO check return value!!!

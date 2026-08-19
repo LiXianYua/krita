@@ -6,10 +6,8 @@
 
 #include "StoreDebug.h"
 
-const QLoggingCategory &STORE_LOG() \
+const PkLoggingCategory &STORE_LOG()
 {
-    static const QLoggingCategory category("krita.lib.store", QtInfoMsg);
+    static const PkLoggingCategory category("krita.lib.store", PkLogInfo);
     return category;
 }
-
-
