@@ -71,18 +71,13 @@
 | `initializer_list` 构造保留但零用量 | 同上。 |
 | `QIncompatibleFlag` / `Q_DECLARE_INCOMPATIBLE_FLAGS` 不实现 | 判据①「一项不多一项不少」——0 用量，且是独立宏不是方法。 |
 
-## 缺口（待认领）
+## 缺口（已闭合）
 
 ### Qt 命名空间枚举常量（`Qt::KeyboardModifier` 等）
 
-`QFlags<Qt::KeyboardModifier>()` 等 4 个直接使用 `QFlags<` 的文件全卡在 Qt 命名空间枚举（`Qt::KeyboardModifier` / `Qt::MouseButton` / `Qt::Key` 等）。这是一个独立的能力族：
+**已闭合（R-27 pk/namespace 交付，2026-08-19）**：`Qt::KeyboardModifier` / `Qt::MouseButton` / `Qt::Key` / `Qt::AspectRatioMode` 等 Qt 命名空间枚举族已由 `pk/namespace`（R-27 Task 2）交付，位值对齐 Qt 5.15 qnamespace.h。试接证据：`pk/namespace/graft/instantiate_namespace.cpp` 用真实 `QFlags<Qt::KeyboardModifier>` 调用形状编译跑绿。
 
-- `Qt::KeyboardModifiers` 156 处
-- `Qt::Key` 92 处
-- `Qt::AspectRatioMode` 50 处
-- `Qt::MouseButton` 36 处
-
-不在 R-18（标量设施）也不在 R-20（flags 模板）范围内。报给主会话，不改选型文档。
+4 个直接使用 `QFlags<Qt::KeyboardModifier>` 的真实生产 `.cpp`（`libs/flake/KoToolBase.cpp` / `KoToolProxy.cpp` / `KoShapeRubberSelectStrategy.cpp` / `plugins/tools/defaulttool/DefaultTool.cpp`）在 `pk/namespace/graft/graft_check.sh` 登记，**仍 EXPECT_FAIL 但归因已从「Qt 枚举」移到 S 线依赖墙**（`QDebug`→R-08 pk/log、`kritaflake_export`/`KoInteractionTool`→S-08 剥 flake）——这些文件到不了 QFlags 行，卡在更上游的未交付依赖，归 S 线打通。
 
 ## 判据③口径
 
