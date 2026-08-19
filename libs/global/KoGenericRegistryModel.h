@@ -16,7 +16,7 @@
  * @param T is the type of the data in the registry
  */
 template<typename T>
-class KoGenericRegistryModel : public QAbstractListModel
+class KoGenericRegistryModel : public PkAbstractListModel
 {
 
 public:
@@ -30,18 +30,18 @@ public:
     /**
      * @return the number of elements in the registry
      */
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    int rowCount(const PkModelIndex &parent = PkModelIndex()) const override;
 
     /**
-     * When role == Qt::DisplayRole, this function will return the name of the
+     * When role == Pk::DisplayRole, this function will return the name of the
      * element.
      */
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    PkVariant data(const PkModelIndex &index, int role = Pk::DisplayRole) const override;
 
     /**
      * @return the element at the given index
      */
-    T get(const QModelIndex &index) const;
+    T get(const PkModelIndex &index) const;
 
 private:
 
@@ -60,25 +60,25 @@ KoGenericRegistryModel<T>::~KoGenericRegistryModel()
 }
 
 template<typename T>
-int KoGenericRegistryModel<T>::rowCount(const QModelIndex &/*parent*/) const
+int KoGenericRegistryModel<T>::rowCount(const PkModelIndex &/*parent*/) const
 {
     return m_registry->keys().size();
 }
 
 template<typename T>
-QVariant KoGenericRegistryModel<T>::data(const QModelIndex &index, int role) const
+PkVariant KoGenericRegistryModel<T>::data(const PkModelIndex &index, int role) const
 {
     if (!index.isValid()) {
-        return QVariant();
+        return PkVariant();
     }
-    if (role == Qt::DisplayRole || role == Qt::EditRole) {
-        return QVariant(get(index)->name());
+    if (role == Pk::DisplayRole || role == Pk::EditRole) {
+        return PkVariant(get(index)->name());
     }
-    return QVariant();
+    return PkVariant();
 }
 
 template<typename T>
-T KoGenericRegistryModel<T>::get(const QModelIndex &index) const
+T KoGenericRegistryModel<T>::get(const PkModelIndex &index) const
 {
     return m_registry->get(m_registry->keys()[index.row()]);
 }

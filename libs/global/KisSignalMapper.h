@@ -57,7 +57,7 @@
     \snippet KisSignalMapper/buttonwidget.cpp 2
 
     A list of texts is passed to the constructor. A signal mapper is
-    constructed and for each text in the list a QPushButton is
+    constructed and for each text in the list a PkPushButton is
     created. We connect each button's \c clicked() signal to the
     signal mapper's map() slot, and create a mapping in the signal
     mapper from each button to the button's text. Finally we connect
@@ -72,13 +72,13 @@
 
     \snippet KisSignalMapper/buttonwidget.cpp 3
 
-    \sa QObject, QButtonGroup, QActionGroup
+    \sa PkObject, PkButtonGroup, PkActionGroup
 */
-class KRITAGLOBAL_EXPORT KisSignalMapper : public QObject
+class KRITAGLOBAL_EXPORT KisSignalMapper : public PkObject
 {
     Q_OBJECT
 public:
-    explicit KisSignalMapper(QObject *parent = nullptr);
+    explicit KisSignalMapper(PkObject *parent = nullptr);
     
     /*!
     Destroys the KisSignalMapper.
@@ -93,7 +93,7 @@ public:
 
     \sa mapping()
     */
-    void setMapping(QObject *sender, int id);
+    void setMapping(PkObject *sender, int id);
     
     /*!
     Adds a mapping so that when map() is signalled from the \a sender,
@@ -101,7 +101,7 @@ public:
 
     There may be at most one text for each sender.
     */
-    void setMapping(QObject *sender, const QString &text);
+    void setMapping(PkObject *sender, const PkString &text);
 
     /*!
     Adds a mapping so that when map() is signalled from the \a sender,
@@ -109,7 +109,7 @@ public:
 
     There may be at most one widget for each sender.
     */
-    void setMapping(QObject *sender, QWidget *widget);
+    void setMapping(PkObject *sender, PkWidget *widget);
     
     /*!
     Adds a mapping so that when map() is signalled from the \a sender,
@@ -117,7 +117,7 @@ public:
 
     There may be at most one object for each sender.
     */
-    void setMapping(QObject *sender, QObject *object);
+    void setMapping(PkObject *sender, PkObject *object);
 
     /*!
     Removes all mappings for \a sender.
@@ -127,34 +127,34 @@ public:
     \note This does not disconnect any signals. If \a sender is not destroyed
     then this will need to be done explicitly if required.
     */
-    void removeMappings(QObject *sender);
+    void removeMappings(PkObject *sender);
 
     /*!
     \overload mapping()
     */
-    QObject *mapping(int id) const;
+    PkObject *mapping(int id) const;
     
     /*!
     \overload mapping()
 
-    Returns the sender QObject that is associated with the \a widget.
+    Returns the sender PkObject that is associated with the \a widget.
     */
-    QObject *mapping(const QString &text) const;
+    PkObject *mapping(const PkString &text) const;
     
     /*!
     \overload mapping()
 
-    Returns the sender QObject that is associated with the \a object.
+    Returns the sender PkObject that is associated with the \a object.
     */
-    QObject *mapping(QWidget *widget) const;
+    PkObject *mapping(PkWidget *widget) const;
     
     
     /*!
-    Returns the sender QObject that is associated with the \a id.
+    Returns the sender PkObject that is associated with the \a id.
 
     \sa setMapping()
     */
-    QObject *mapping(QObject *object) const;
+    PkObject *mapping(PkObject *object) const;
 
 Q_SIGNALS:
     /*!
@@ -170,7 +170,7 @@ Q_SIGNALS:
     
     
     /*!
-    \fn void KisSignalMapper::mapped(const QString &text)
+    \fn void KisSignalMapper::mapped(const PkString &text)
 
     This signal is emitted when map() is signalled from an object that
     has a string mapping set. The object's mapped string is passed in
@@ -178,10 +178,10 @@ Q_SIGNALS:
 
     \sa setMapping()
     */
-    void mapped(const QString &);
+    void mapped(const PkString &);
     
     /*!
-    \fn void KisSignalMapper::mapped(QWidget *widget)
+    \fn void KisSignalMapper::mapped(PkWidget *widget)
 
     This signal is emitted when map() is signalled from an object that
     has a widget mapping set. The object's mapped widget is passed in
@@ -189,10 +189,10 @@ Q_SIGNALS:
 
     \sa setMapping()
     */
-    void mapped(QWidget *);
+    void mapped(PkWidget *);
     
     /*!
-    \fn void KisSignalMapper::mapped(QObject *object)
+    \fn void KisSignalMapper::mapped(PkObject *object)
 
     This signal is emitted when map() is signalled from an object that
     has an object mapping set. The object provided by the map is passed in
@@ -200,7 +200,7 @@ Q_SIGNALS:
 
     \sa setMapping()
     */
-    void mapped(QObject *);
+    void mapped(PkObject *);
 
 public Q_SLOTS:
     /*!
@@ -211,7 +211,7 @@ public Q_SLOTS:
     /*!
     This slot emits signals based on the \a sender object.
     */
-    void map(QObject *sender);
+    void map(PkObject *sender);
 
 private:
     

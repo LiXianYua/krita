@@ -67,7 +67,7 @@ void KisConfigNotifier::notifyColorSamplerPreviewStyleChanged()
     Q_EMIT sigColorSamplerPreviewStyleChanged();
 }
 
-void KisConfigNotifier::notifyColorThemeChanged(const QString &filename)
+void KisConfigNotifier::notifyColorThemeChanged(const PkString &filename)
 {
     Q_EMIT signalColorThemeChanged(filename);
 }

@@ -43,13 +43,13 @@ public:
     PkPointF globalToLocal(const PkPointF &pt) const;
 
     void sampleRegularGrid(PkSize &gridSize,
-                           QVector<PkPointF> &origPoints,
-                           QVector<PkPointF> &transfPoints,
+                           PkVector<PkPointF> &origPoints,
+                           PkVector<PkPointF> &transfPoints,
                            const PkPointF &dstStep) const;
 
     void sampleRegularGridSVG2(PkSize &gridSize,
-                               QVector<PkPointF> &origPoints,
-                               QVector<PkPointF> &transfPoints,
+                               PkVector<PkPointF> &origPoints,
+                               PkVector<PkPointF> &transfPoints,
                                const PkPointF &dstStep) const;
 };
 

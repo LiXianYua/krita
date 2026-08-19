@@ -9,8 +9,8 @@
 #include "KoUpdaterPrivate_p.h"
 #include <KoUpdater.h>
 
-KoUpdaterPrivate::KoUpdaterPrivate(int weight, const QString &name, bool isPersistent)
-    : QObject(0)
+KoUpdaterPrivate::KoUpdaterPrivate(int weight, const PkString &name, bool isPersistent)
+    : PkObject(0)
     , m_progress(0)
     , m_weight(weight)
     , m_interrupted(false)
@@ -28,25 +28,25 @@ KoUpdaterPrivate::~KoUpdaterPrivate()
     m_connectedUpdater->deleteLater();
 }
 
-QString KoUpdaterPrivate::autoNestedName() const
+PkString KoUpdaterPrivate::autoNestedName() const
 {
     return m_autoNestedName;
 }
 
-QString KoUpdaterPrivate::subTaskName() const
+PkString KoUpdaterPrivate::subTaskName() const
 {
     return m_subTaskName;
 }
 
-QString KoUpdaterPrivate::mergedSubTaskName() const
+PkString KoUpdaterPrivate::mergedSubTaskName() const
 {
-   QString result = m_subTaskName;
+   PkString result = m_subTaskName;
 
    if (!m_autoNestedName.isEmpty()) {
        if (result.isEmpty()) {
            result = m_autoNestedName;
        } else {
-           result = QString("%1: %2").arg(result).arg(m_autoNestedName);
+           result = PkString("%1: %2").arg(result).arg(m_autoNestedName);
        }
    }
 
@@ -85,7 +85,7 @@ void KoUpdaterPrivate::setProgress(int percent)
     Q_EMIT sigUpdated();
 }
 
-void KoUpdaterPrivate::setAutoNestedName(const QString &name)
+void KoUpdaterPrivate::setAutoNestedName(const PkString &name)
 {
     m_autoNestedName = name;
     Q_EMIT sigUpdated();

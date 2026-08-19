@@ -1,5 +1,5 @@
-#include <QCursor>
-#include <QGuiApplication>
+#include <PkCursor>
+#include <PkGuiApplication>
 /*
  *  SPDX-FileCopyrightText: 2017 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -16,14 +16,14 @@
 class KRITAGLOBAL_EXPORT KisCursorOverrideLockAdapter
 {
 public:
-    KisCursorOverrideLockAdapter(const QCursor &cursor);
+    KisCursorOverrideLockAdapter(const PkCursor &cursor);
     ~KisCursorOverrideLockAdapter();
 
     void lock();
     void unlock();
 
 private:
-    QCursor m_cursor;
+    PkCursor m_cursor;
 };
 
 KIS_DECLARE_ADAPTED_LOCK(KisCursorOverrideLock, KisCursorOverrideLockAdapter)

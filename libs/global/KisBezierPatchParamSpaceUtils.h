@@ -80,15 +80,15 @@ struct Range
         }
     }
 
-    static Range fromRectX(const QRectF &rc) {
+    static Range fromRectX(const PkRectF &rc) {
         return {rc.left(), rc.right()};
     }
 
-    static Range fromRectY(const QRectF &rc) {
+    static Range fromRectY(const PkRectF &rc) {
         return {rc.top(), rc.bottom()};
     }
 
-    static QRectF makeRectF(const Range &xRange, const Range &yRange) {
+    static PkRectF makeRectF(const Range &xRange, const Range &yRange) {
         return {xRange.start, yRange.start, xRange.length(), yRange.length()};
     }
 };

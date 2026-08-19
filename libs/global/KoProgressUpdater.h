@@ -15,8 +15,8 @@
 
 class KoUpdater;
 class KoProgressProxy;
-class QTextStream;
-class QTime;
+class PkTextStream;
+class PkTime;
 
 /**
  * Allow multiple subtasks to safely update and report progress.
@@ -44,14 +44,14 @@ class QTime;
  * of task 'smooth' which is 5 / 11 of the total and thus to 22.
  *
  * KoProgressUpdater should be created in the main thread;
- * KoProgressProxy must be, if it is gui subclass in the QApplication
+ * KoProgressProxy must be, if it is gui subclass in the PkApplication
  * main thread. The other objects can be created in whatever thread
  * one wants.
  *
  * Also to prevent jumps in the progress-calculation and -display it is recommend
  * to first create all the subtasks and then start to use setProgress on them.
  */
-class KRITAGLOBAL_EXPORT KoProgressUpdater : public QObject
+class KRITAGLOBAL_EXPORT KoProgressUpdater : public PkObject
 {
     Q_OBJECT
 public:
@@ -91,7 +91,7 @@ public:
      * @see KoProgressProxy::setRange()
      * @see KoProgressProxy::setFormat()
      */
-    void start(int range = 100, const QString &text = "");
+    void start(int range = 100, const PkString &text = "");
 
     /**
      * After calling start() you can create any number of Updaters,
@@ -104,7 +104,7 @@ public:
      * been deleted before dereferencing.
      */
     PkPointer<KoUpdater> startSubtask(int weight=1,
-                                     const QString &name = QString(), bool isPersistent = false);
+                                     const PkString &name = PkString(), bool isPersistent = false);
 
     void removePersistentSubtask(PkPointer<KoUpdater> updater);
 

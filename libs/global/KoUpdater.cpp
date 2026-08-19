@@ -18,7 +18,7 @@ KoUpdater::KoUpdater(KoUpdaterPrivate *_d)
 
     connect(this, SIGNAL(sigCancel()), d, SLOT(cancel()));
     connect(this, SIGNAL(sigProgress(int)), d, SLOT(setProgress(int)));
-    connect(this, SIGNAL(sigNestedNameChanged(QString)), d, SLOT(setAutoNestedName(QString)));
+    connect(this, SIGNAL(sigNestedNameChanged(PkString)), d, SLOT(setAutoNestedName(PkString)));
     connect(this, SIGNAL(sigHasValidRangeChanged(bool)), d, SLOT(setHasValidRange(bool)));
 
     setRange(0, 100);
@@ -83,12 +83,12 @@ void KoUpdater::setRange( int minimum, int maximum )
     Q_EMIT sigHasValidRangeChanged(range != 0);
 }
 
-void KoUpdater::setFormat( const QString & format )
+void KoUpdater::setFormat( const PkString & format )
 {
     Q_EMIT sigNestedNameChanged(format);
 }
 
-void KoUpdater::setAutoNestedName(const QString &name)
+void KoUpdater::setAutoNestedName(const PkString &name)
 {
     Q_EMIT sigNestedNameChanged(name);
 }

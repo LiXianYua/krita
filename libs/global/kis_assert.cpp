@@ -29,15 +29,15 @@
 
 void kis_assert_common(const char *assertion, const char *file, int line, bool abort, bool isIgnorable)
 {
-    QString shortMessage =
-        QString("%4ASSERT (krita): \"%1\" in file %2, line %3")
+    PkString shortMessage =
+        PkString("%4ASSERT (krita): \"%1\" in file %2, line %3")
         .arg(assertion)
         .arg(file)
         .arg(line)
         .arg(isIgnorable ? "SAFE " : "");
 
-    QString longMessage =
-        QString(
+    PkString longMessage =
+        PkString(
             "Krita has encountered an internal error:\n\n"
             "%1\n\n"
             "Please report a bug to developers!\n\n"
@@ -48,11 +48,11 @@ void kis_assert_common(const char *assertion, const char *file, int line, bool a
     KisUsageLogger::log(shortMessage);
 
     bool disableAssertMsg =
-        QProcessEnvironment::systemEnvironment().value("KRITA_NO_ASSERT_MSG", "0").toInt();
+        PkProcessEnvironment::systemEnvironment().value("KRITA_NO_ASSERT_MSG", "0").toInt();
 
     // disable message box if the assert happened in non-gui thread
     // or if the GUI is not yet instantiated
-    if (!QCoreApplication::instance() || PkThread::currentThread() != QCoreApplication::instance()->thread()) {
+    if (!PkCoreApplication::instance() || PkThread::currentThread() != PkCoreApplication::instance()->thread()) {
         disableAssertMsg = true;
     }
 
@@ -69,19 +69,19 @@ void kis_assert_common(const char *assertion, const char *file, int line, bool a
 
     disableAssertMsg |= shouldIgnoreAsserts || forceCrashOnSafeAsserts;
 
-    QMessageBox::StandardButton button =
+    PkMessageBox::StandardButton button =
         isIgnorable && !forceCrashOnSafeAsserts ?
-            QMessageBox::Ignore : QMessageBox::Abort;
+            PkMessageBox::Ignore : PkMessageBox::Abort;
 
     if (!disableAssertMsg) {
         button =
-            QMessageBox::critical(qApp->activeWindow(), i18nc("@title:window", "Krita: Internal Error"),
+            PkMessageBox::critical(qApp->activeWindow(), i18nc("@title:window", "Krita: Internal Error"),
                                   longMessage,
-                                  QMessageBox::Ignore | QMessageBox::Abort,
-                                  QMessageBox::Ignore);
+                                  PkMessageBox::Ignore | PkMessageBox::Abort,
+                                  PkMessageBox::Ignore);
     }
 
-    if (button == QMessageBox::Abort || abort) {
+    if (button == PkMessageBox::Abort || abort) {
         qFatal("%s", shortMessage.toLatin1().data());
     } else if (isIgnorable) {
         // Assert is a bug! Please don't change this line to warnKrita,
@@ -110,8 +110,8 @@ void kis_assert_x_exception(const char *assertion,
                             const char *what,
                             const char *file, int line)
 {
-    QString res =
-        QString("ASSERT failure in %1: \"%2\" (%3)")
+    PkString res =
+        PkString("ASSERT failure in %1: \"%2\" (%3)")
         .arg(where, what, assertion);
 
     kis_assert_common(res.toLatin1().data(), file, line, true, false);

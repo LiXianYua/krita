@@ -7,13 +7,13 @@
 #ifndef KISMESSAGEBOXWRAPPER_H
 #define KISMESSAGEBOXWRAPPER_H
 
-class QMessageBox;
-class QString;
+class PkMessageBox;
+class PkString;
 
 #include "kritaglobal_export.h"
 
 /**
- * Wrap a QMessageBox
+ * Wrap a PkMessageBox
  */
 namespace KisMessageBoxWrapper {
 
@@ -25,9 +25,9 @@ namespace KisMessageBoxWrapper {
  * @param identifier a unique identifier that is used to store the the check
  * in the config file
  * @return the result of running the messagebox. If the messagebox is not shown,
- * the return value is QMessageBox::Yes
+ * the return value is PkMessageBox::Yes
  */
-KRITAGLOBAL_EXPORT int doNotAskAgainMessageBoxWrapper(QMessageBox *messageBox, const QString &identifier);
+KRITAGLOBAL_EXPORT int doNotAskAgainMessageBoxWrapper(PkMessageBox *messageBox, const PkString &identifier);
 
 }
 

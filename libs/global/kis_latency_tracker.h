@@ -48,7 +48,7 @@ private:
 
     typedef boost::heap::fibonacci_heap<T> heap_type;
 
-    QQueue<typename heap_type::handle_type> m_samples;
+    PkQueue<typename heap_type::handle_type> m_samples;
     heap_type m_values;
 };
 
@@ -60,7 +60,7 @@ public:
      * @param window The maximum number of elements to take into account for calculation
      * of max, mean and variance values.
      */
-    KisScalarTracker(const QString &name, int windowSize = 500) :
+    KisScalarTracker(const PkString &name, int windowSize = 500) :
         m_name(name),
         m_windowSize(windowSize),
         m_addCount(0),
@@ -84,7 +84,7 @@ public:
 
         if (m_addCount >= m_windowSize || m_printTimer.elapsed() >= 1000) {
             m_printTimer.restart();
-            QString s = format(boost::accumulators::rolling_mean(m_acc),
+            PkString s = format(boost::accumulators::rolling_mean(m_acc),
                   boost::accumulators::rolling_variance(m_acc),
                   m_max.max());
             print(s);
@@ -98,7 +98,7 @@ protected:
      * Print out a message.
      * @param message the message to print
      */
-    virtual void print(const QString &message) {
+    virtual void print(const PkString &message) {
         qInfo() << qUtf8Printable(message);
     }
 
@@ -108,12 +108,12 @@ protected:
      * @param variance the variance of the scalar in the window
      * @param max the max scalar in the window
      */
-    virtual QString format(qint64 mean, qint64 variance, qint64 max) {
-        return QString("%1: mean %2 ms, var %3, max %4 ms").arg(m_name).arg(mean).arg(variance).arg(max);
+    virtual PkString format(qint64 mean, qint64 variance, qint64 max) {
+        return PkString("%1: mean %2 ms, var %3, max %4 ms").arg(m_name).arg(mean).arg(variance).arg(max);
     }
 
 private:
-    const QString m_name;
+    const PkString m_name;
     const int m_windowSize;
     int m_addCount;
 

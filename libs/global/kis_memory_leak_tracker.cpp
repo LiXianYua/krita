@@ -58,25 +58,25 @@ struct BacktraceInfo {
 #endif
 
 struct WhatInfo {
-    QHash<const void*, BacktraceInfo*> infos;
-    QString name;
+    PkHash<const void*, BacktraceInfo*> infos;
+    PkString name;
 };
 
 struct KisMemoryLeakTracker::Private {
-    QHash<const void*, WhatInfo > whatWhoWhen;
+    PkHash<const void*, WhatInfo > whatWhoWhen;
     template<typename _T_>
-    void dumpReferencedObjectsAndDelete(QHash<const _T_*, WhatInfo >&, bool _delete);
+    void dumpReferencedObjectsAndDelete(PkHash<const _T_*, WhatInfo >&, bool _delete);
     PkMutex m;
 };
 
 template<typename _T_>
-void KisMemoryLeakTracker::Private::dumpReferencedObjectsAndDelete(QHash<const _T_*, WhatInfo >& map, bool _delete)
+void KisMemoryLeakTracker::Private::dumpReferencedObjectsAndDelete(PkHash<const _T_*, WhatInfo >& map, bool _delete)
 {
     PkMutexLocker l(&m);
-    for (typename QHash<const _T_*, WhatInfo >::iterator it = map.begin();
+    for (typename PkHash<const _T_*, WhatInfo >::iterator it = map.begin();
             it != map.end(); ++it) {
         qWarning() << "Object " << it.key() << "(" << it.value().name << ") is still referenced by " << it.value().infos.size() << " objects:";
-        for (QHash<const void*, BacktraceInfo*>::iterator it2 = it.value().infos.begin();
+        for (PkHash<const void*, BacktraceInfo*>::iterator it2 = it.value().infos.begin();
                 it2 != it.value().infos.end(); ++it2) {
             qWarning() << "Referenced by " << it2.key() << " at:";
 #ifdef HAVE_BACKTRACE_SUPPORT
@@ -144,7 +144,7 @@ void KisMemoryLeakTracker::dereference(const void* what, const void* bywho)
 {
     PkMutexLocker l(&d->m);
     if (d->whatWhoWhen.contains(what)) {
-        QHash<const void*, BacktraceInfo*>& whoWhen = d->whatWhoWhen[what].infos;
+        PkHash<const void*, BacktraceInfo*>& whoWhen = d->whatWhoWhen[what].infos;
         delete whoWhen[bywho];
         whoWhen.remove(bywho);
         if (whoWhen.isEmpty()) {
@@ -171,7 +171,7 @@ void KisMemoryLeakTracker::dumpReferences(const void* what)
 
     WhatInfo& info = d->whatWhoWhen[what];
     qInfo() << "Object " << what << "(" << info.name << ") is still referenced by " << info.infos.size() << " objects:";
-    for (QHash<const void*, BacktraceInfo*>::iterator it2 = info.infos.begin();
+    for (PkHash<const void*, BacktraceInfo*>::iterator it2 = info.infos.begin();
             it2 != info.infos.end(); ++it2) {
         qInfo() << "Referenced by " << it2.key() << " at:";
 #ifdef HAVE_BACKTRACE_SUPPORT

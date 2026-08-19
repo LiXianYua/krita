@@ -9,30 +9,30 @@
 #include <PkScopedPointer.h>
 
 namespace {
-void initDashedStyle(const QColor &baseColor, const QColor &handleFill, KisHandleStyle *style) {
-    QPen ants;
-    QPen outline;
+void initDashedStyle(const PkColor &baseColor, const PkColor &handleFill, KisHandleStyle *style) {
+    PkPen ants;
+    PkPen outline;
     KisPaintingTweaks::initAntsPen(&ants, &outline);
 
     ants.setColor(baseColor);
 
-    style->lineIterations << KisHandleStyle::IterationStyle(outline, Qt::NoBrush);
-    style->lineIterations << KisHandleStyle::IterationStyle(ants, Qt::NoBrush);
+    style->lineIterations << KisHandleStyle::IterationStyle(outline, Pk::NoBrush);
+    style->lineIterations << KisHandleStyle::IterationStyle(ants, Pk::NoBrush);
 
-    QPen handlePen(baseColor);
+    PkPen handlePen(baseColor);
     handlePen.setWidth(2);
     handlePen.setCosmetic(true);
-    handlePen.setJoinStyle(Qt::RoundJoin);
+    handlePen.setJoinStyle(Pk::RoundJoin);
 
     style->handleIterations << KisHandleStyle::IterationStyle(handlePen, handleFill);
 }
 
-static const QColor primaryColor(0, 0, 90, 180);
-static const QColor secondaryColor(0, 0, 255, 127);
-static const QColor gradientFillColor(255, 197, 39);
-static const QColor highlightColor(255, 100, 100);
-static const QColor highlightOutlineColor(155, 0, 0);
-static const QColor selectionColor(164, 227, 243);
+static const PkColor primaryColor(0, 0, 90, 180);
+static const PkColor secondaryColor(0, 0, 255, 127);
+static const PkColor gradientFillColor(255, 197, 39);
+static const PkColor highlightColor(255, 100, 100);
+static const PkColor highlightOutlineColor(155, 0, 0);
+static const PkColor selectionColor(164, 227, 243);
 
 }
 
@@ -55,7 +55,7 @@ KisHandleStyle &KisHandleStyle::primarySelection()
 
     if (!style) {
         style.reset(new KisHandleStyle());
-        initDashedStyle(primaryColor, Qt::white, style.data());
+        initDashedStyle(primaryColor, Pk::white, style.data());
     }
 
     return *style;
@@ -67,7 +67,7 @@ KisHandleStyle &KisHandleStyle::secondarySelection()
 
     if (!style) {
         style.reset(new KisHandleStyle());
-        initDashedStyle(secondaryColor, Qt::white, style.data());
+        initDashedStyle(secondaryColor, Pk::white, style.data());
     }
 
     return *style;
@@ -108,13 +108,13 @@ KisHandleStyle &KisHandleStyle::highlightedPrimaryHandlesWithSolidOutline()
 
     if (!style) {
         style.reset(new KisHandleStyle());
-        QPen h = QPen(highlightOutlineColor, 2);
+        PkPen h = PkPen(highlightOutlineColor, 2);
         h.setCosmetic(true);
         style->handleIterations << KisHandleStyle::IterationStyle(h, highlightColor);
-        QPen l = QPen(highlightOutlineColor, 1);
+        PkPen l = PkPen(highlightOutlineColor, 1);
         l.setCosmetic(true);
-        l.setJoinStyle(Qt::RoundJoin);
-        style->lineIterations << KisHandleStyle::IterationStyle(l, Qt::NoBrush);
+        l.setJoinStyle(Pk::RoundJoin);
+        style->lineIterations << KisHandleStyle::IterationStyle(l, Pk::NoBrush);
     }
 
     return *style;

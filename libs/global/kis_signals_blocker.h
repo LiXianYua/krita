@@ -12,9 +12,9 @@
 #include <PkVector.h>
 
 /**
- * Block QObject's signals in a safe and sane way.
+ * Block PkObject's signals in a safe and sane way.
  *
- * Avoid using direct calls to QObject::blockSignals(bool),
+ * Avoid using direct calls to PkObject::blockSignals(bool),
  * because:
  *
  * 1) They are not safe. One beautifully sunny day someone (it might
@@ -32,12 +32,12 @@ public:
     /**
      * Six should be enough for all usage cases! (c)
      */
-    KisSignalsBlocker(QObject *o1,
-                      QObject *o2,
-                      QObject *o3 = 0,
-                      QObject *o4 = 0,
-                      QObject *o5 = 0,
-                      QObject *o6 = 0)
+    KisSignalsBlocker(PkObject *o1,
+                      PkObject *o2,
+                      PkObject *o3 = 0,
+                      PkObject *o4 = 0,
+                      PkObject *o5 = 0,
+                      PkObject *o6 = 0)
     {
         if (o1) addObject(o1);
         if (o2) addObject(o2);
@@ -49,7 +49,7 @@ public:
         blockObjects();
     }
 
-    KisSignalsBlocker(QObject *object)
+    KisSignalsBlocker(PkObject *object)
     {
         addObject(object);
         blockObjects();
@@ -73,7 +73,7 @@ private:
         }
     }
 
-    inline void addObject(QObject *object) {
+    inline void addObject(PkObject *object) {
         m_objects.append(qMakePair(object, object->signalsBlocked()));
     }
 
@@ -81,7 +81,7 @@ private:
     Q_DISABLE_COPY(KisSignalsBlocker)
 
 private:
-    QVector<QPair<QObject*,bool>> m_objects;
+    PkVector<PkPair<PkObject*,bool>> m_objects;
 };
 
 #endif /* __KIS_SIGNALS_BLOCKER_H */

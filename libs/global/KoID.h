@@ -29,11 +29,11 @@
 class KRITAGLOBAL_EXPORT KoID
 {
 private:
-    struct TranslatedString : public QString
+    struct TranslatedString : public PkString
     {
         TranslatedString(const boost::optional<KLocalizedString> &source);
 
-        TranslatedString(const QString &value);
+        TranslatedString(const PkString &value);
     };
 
     using StorageType =
@@ -41,11 +41,11 @@ private:
         boost::optional<KLocalizedString>>;
 
     struct KoIDPrivate {
-        KoIDPrivate(QString _id, const KLocalizedString &_name);
+        KoIDPrivate(PkString _id, const KLocalizedString &_name);
 
-        KoIDPrivate(QString _id, const QString &_name);
+        KoIDPrivate(PkString _id, const PkString &_name);
 
-        QString id;
+        PkString id;
         StorageType name;
     };
 
@@ -61,7 +61,7 @@ public:
      * KoID("id", i18n("name"))
      * @endcode
      */
-    explicit KoID(const QString &id, const QString &name = QString());
+    explicit KoID(const PkString &id, const PkString &name = PkString());
 
     /**
      * Use this constructor for static KoID. as KoID("id", ki18n("name"));
@@ -69,15 +69,15 @@ public:
      * important because static objects are constructed before translations
      * are initialized.
      */
-    explicit KoID(const QString &id, const KLocalizedString &name);
+    explicit KoID(const PkString &id, const KLocalizedString &name);
 
     KoID(const KoID &rhs);
 
     KoID &operator=(const KoID &rhs);
 
-    QString id() const;
+    PkString id() const;
 
-    QString name() const;
+    PkString name() const;
 
     friend inline bool operator==(const KoID &, const KoID &);
     friend inline bool operator!=(const KoID &, const KoID &);

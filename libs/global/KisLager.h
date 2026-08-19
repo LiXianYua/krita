@@ -103,11 +103,11 @@ auto to_base = lager::lenses::getset(
 
 template <typename T>
 auto variant_to = lager::lenses::getset(
-    [] (const QVariant &src) {
+    [] (const PkVariant &src) {
         return src.value<T>();
     },
-    [] (QVariant src, const T &value) {
-        src = QVariant::fromValue<T>(value);
+    [] (PkVariant src, const T &value) {
+        src = PkVariant::fromValue<T>(value);
         return src;
     }
 );

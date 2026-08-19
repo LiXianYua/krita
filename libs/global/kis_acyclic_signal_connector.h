@@ -29,8 +29,8 @@ class KoColor;
  *
  * Suppose we have the following connections:
  *
- * 1) QDoubleSpinBox::valueChanged(double) -> Manager::slotSetValue(double)
- * 2) Manager::valueChanged(double) -> QDoubleSpinBox::setValue(double)
+ * 1) PkDoubleSpinBox::valueChanged(double) -> Manager::slotSetValue(double)
+ * 2) Manager::valueChanged(double) -> PkDoubleSpinBox::setValue(double)
  *
  * Now if the manager decides to change/correct the value, the spinbox
  * will go into an infinite loop.
@@ -50,7 +50,7 @@ class KoColor;
  *
  */
 
-class KRITAGLOBAL_EXPORT KisAcyclicSignalConnector : public QObject
+class KRITAGLOBAL_EXPORT KisAcyclicSignalConnector : public PkObject
 {
     Q_OBJECT
 public:
@@ -58,50 +58,50 @@ public:
 
 public:
 
-    KisAcyclicSignalConnector(QObject *parent = 0);
+    KisAcyclicSignalConnector(PkObject *parent = 0);
     ~KisAcyclicSignalConnector();
 
-    void connectForwardDouble(QObject *sender, const char *signal,
-                              QObject *receiver, const char *method);
+    void connectForwardDouble(PkObject *sender, const char *signal,
+                              PkObject *receiver, const char *method);
 
-    void connectBackwardDouble(QObject *sender, const char *signal,
-                               QObject *receiver, const char *method);
+    void connectBackwardDouble(PkObject *sender, const char *signal,
+                               PkObject *receiver, const char *method);
 
-    void connectForwardInt(QObject *sender, const char *signal,
-                           QObject *receiver, const char *method);
+    void connectForwardInt(PkObject *sender, const char *signal,
+                           PkObject *receiver, const char *method);
 
-    void connectBackwardInt(QObject *sender, const char *signal,
-                            QObject *receiver, const char *method);
+    void connectBackwardInt(PkObject *sender, const char *signal,
+                            PkObject *receiver, const char *method);
 
-    void connectForwardBool(QObject *sender, const char *signal,
-                            QObject *receiver, const char *method);
+    void connectForwardBool(PkObject *sender, const char *signal,
+                            PkObject *receiver, const char *method);
 
-    void connectBackwardBool(QObject *sender, const char *signal,
-                             QObject *receiver, const char *method);
+    void connectBackwardBool(PkObject *sender, const char *signal,
+                             PkObject *receiver, const char *method);
 
-    void connectForwardVoid(QObject *sender, const char *signal,
-                            QObject *receiver, const char *method);
+    void connectForwardVoid(PkObject *sender, const char *signal,
+                            PkObject *receiver, const char *method);
 
-    void connectBackwardVoid(QObject *sender, const char *signal,
-                             QObject *receiver, const char *method);
+    void connectBackwardVoid(PkObject *sender, const char *signal,
+                             PkObject *receiver, const char *method);
 
-    void connectForwardVariant(QObject *sender, const char *signal,
-                               QObject *receiver, const char *method);
+    void connectForwardVariant(PkObject *sender, const char *signal,
+                               PkObject *receiver, const char *method);
 
-    void connectBackwardVariant(QObject *sender, const char *signal,
-                                QObject *receiver, const char *method);
+    void connectBackwardVariant(PkObject *sender, const char *signal,
+                                PkObject *receiver, const char *method);
 
-    void connectForwardResourcePair(QObject *sender, const char *signal,
-                                     QObject *receiver, const char *method);
+    void connectForwardResourcePair(PkObject *sender, const char *signal,
+                                     PkObject *receiver, const char *method);
 
-    void connectBackwardResourcePair(QObject *sender, const char *signal,
-                                     QObject *receiver, const char *method);
+    void connectBackwardResourcePair(PkObject *sender, const char *signal,
+                                     PkObject *receiver, const char *method);
 
-    void connectForwardKoColor(QObject *sender, const char *signal,
-                               QObject *receiver, const char *method);
+    void connectForwardKoColor(PkObject *sender, const char *signal,
+                               PkObject *receiver, const char *method);
 
-    void connectBackwardKoColor(QObject *sender, const char *signal,
-                                QObject *receiver, const char *method);
+    void connectBackwardKoColor(PkObject *sender, const char *signal,
+                                PkObject *receiver, const char *method);
 
     /**
      * Lock the connector and all its coordinated child connectors
@@ -157,11 +157,11 @@ private Q_SLOTS:
     void forwardSlotVoid();
     void backwardSlotVoid();
 
-    void forwardSlotVariant(const QVariant &value);
-    void backwardSlotVariant(const QVariant &value);
+    void forwardSlotVariant(const PkVariant &value);
+    void backwardSlotVariant(const PkVariant &value);
 
-    void forwardSlotResourcePair(int key, const QVariant &resource);
-    void backwardSlotResourcePair(int key, const QVariant &resource);
+    void forwardSlotResourcePair(int key, const PkVariant &resource);
+    void backwardSlotResourcePair(int key, const PkVariant &resource);
 
     void forwardSlotKoColor(const KoColor &value);
     void backwardSlotKoColor(const KoColor &value);
@@ -179,18 +179,18 @@ Q_SIGNALS:
     void forwardSignalVoid();
     void backwardSignalVoid();
 
-    void forwardSignalVariant(const QVariant &value);
-    void backwardSignalVariant(const QVariant &value);
+    void forwardSignalVariant(const PkVariant &value);
+    void backwardSignalVariant(const PkVariant &value);
 
-    void forwardSignalResourcePair(int key, const QVariant &value);
-    void backwardSignalResourcePair(int key, const QVariant &value);
+    void forwardSignalResourcePair(int key, const PkVariant &value);
+    void backwardSignalResourcePair(int key, const PkVariant &value);
 
     void forwardSignalKoColor(const KoColor &value);
     void backwardSignalKoColor(const KoColor &value);
 
 private:
     int m_signalsBlocked;
-    QVector<PkPointer<KisAcyclicSignalConnector>> m_coordinatedConnectors;
+    PkVector<PkPointer<KisAcyclicSignalConnector>> m_coordinatedConnectors;
     PkPointer<KisAcyclicSignalConnector> m_parentConnector;
 };
 

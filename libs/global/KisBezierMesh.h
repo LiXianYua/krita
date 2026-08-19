@@ -22,7 +22,7 @@
 
 #include "kis_debug.h"
 
-class QDomElement;
+class PkXmlElement;
 
 namespace KisBezierMeshDetails {
 
@@ -1529,10 +1529,10 @@ KRITAGLOBAL_EXPORT
 PkDebug operator<<(PkDebug dbg, const BaseMeshNode &n);
 
 KRITAGLOBAL_EXPORT
-void saveValue(QDomElement *parent, const QString &tag, const BaseMeshNode &node);
+void saveValue(PkXmlElement *parent, const PkString &tag, const BaseMeshNode &node);
 
 KRITAGLOBAL_EXPORT
-bool loadValue(const QDomElement &parent, BaseMeshNode *node);
+bool loadValue(const PkXmlElement &parent, BaseMeshNode *node);
 
 }
 

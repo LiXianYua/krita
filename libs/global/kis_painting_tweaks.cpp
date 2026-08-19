@@ -7,16 +7,16 @@
 #include <kis_global.h>
 #include "kis_painting_tweaks.h"
 
-#include <QPen>
+#include <PkPen>
 #include <PkRegion.h>
-#include <QPainter>
+#include <PkPainter>
 #include <PkTransform.h>
 
 #include "kis_debug.h"
 
 namespace KisPaintingTweaks {
 
-PkRegion safeClipRegion(const QPainter &painter)
+PkRegion safeClipRegion(const PkPainter &painter)
 {
     const PkTransform t = painter.transform();
 
@@ -32,49 +32,49 @@ PkRegion safeClipRegion(const QPainter &painter)
     return region;
 }
 
-PkRect safeClipBoundingRect(const QPainter &painter)
+PkRect safeClipBoundingRect(const PkPainter &painter)
 {
     return painter.clipBoundingRect().toAlignedRect();
 }
 
-void initAntsPen(QPen *antsPen, QPen *outlinePen,
+void initAntsPen(PkPen *antsPen, PkPen *outlinePen,
                  int antLength, int antSpace)
 {
-    QVector<qreal> antDashPattern;
+    PkVector<qreal> antDashPattern;
     antDashPattern << antLength << antSpace;
 
-    *antsPen = QPen(Qt::CustomDashLine);
+    *antsPen = PkPen(Pk::CustomDashLine);
     antsPen->setDashPattern(antDashPattern);
     antsPen->setCosmetic(true);
-    antsPen->setColor(Qt::black);
+    antsPen->setColor(Pk::black);
 
-    *outlinePen = QPen(Qt::SolidLine);
+    *outlinePen = PkPen(Pk::SolidLine);
     outlinePen->setCosmetic(true);
-    outlinePen->setColor(Qt::white);
+    outlinePen->setColor(Pk::white);
 }
 
-PenBrushSaver::PenBrushSaver(QPainter *painter)
+PenBrushSaver::PenBrushSaver(PkPainter *painter)
     : m_painter(painter),
       m_pen(painter->pen()),
       m_brush(painter->brush())
 {
 }
 
-PenBrushSaver::PenBrushSaver(QPainter *painter, const QPen &pen, const QBrush &brush)
+PenBrushSaver::PenBrushSaver(PkPainter *painter, const PkPen &pen, const PkBrush &brush)
     : PenBrushSaver(painter)
 {
     m_painter->setPen(pen);
     m_painter->setBrush(brush);
 }
 
-PenBrushSaver::PenBrushSaver(QPainter *painter, const QPair<QPen, QBrush> &pair)
+PenBrushSaver::PenBrushSaver(PkPainter *painter, const PkPair<PkPen, PkBrush> &pair)
     : PenBrushSaver(painter)
 {
     m_painter->setPen(pair.first);
     m_painter->setBrush(pair.second);
 }
 
-PenBrushSaver::PenBrushSaver(QPainter *painter, const QPair<QPen, QBrush> &pair, allow_noop_t)
+PenBrushSaver::PenBrushSaver(PkPainter *painter, const PkPair<PkPen, PkBrush> &pair, allow_noop_t)
     : m_painter(painter)
 {
     if (m_painter) {
@@ -93,17 +93,17 @@ PenBrushSaver::~PenBrushSaver()
     }
 }
 
-QColor blendColors(const QColor &c1, const QColor &c2, qreal r1)
+PkColor blendColors(const PkColor &c1, const PkColor &c2, qreal r1)
 {
     const qreal r2 = 1.0 - r1;
 
-    return QColor::fromRgbF(
+    return PkColor::fromRgbF(
         c1.redF() * r1 + c2.redF() * r2,
         c1.greenF() * r1 + c2.greenF() * r2,
         c1.blueF() * r1 + c2.blueF() * r2);
 }
 
-qreal colorDifference(const QColor &c1, const QColor &c2)
+qreal colorDifference(const PkColor &c1, const PkColor &c2)
 {
     const qreal dr = c1.redF() - c2.redF();
     const qreal dg = c1.greenF() - c2.greenF();
@@ -112,11 +112,11 @@ qreal colorDifference(const QColor &c1, const QColor &c2)
     return std::sqrt(2 * pow2(dr) + 4 * pow2(dg) + 3 * pow2(db));
 }
 
-void dragColor(QColor *color, const QColor &baseColor, qreal threshold)
+void dragColor(PkColor *color, const PkColor &baseColor, qreal threshold)
 {
     while (colorDifference(*color, baseColor) < threshold) {
 
-        QColor newColor = *color;
+        PkColor newColor = *color;
 
         if (newColor.lightnessF() > baseColor.lightnessF()) {
             newColor = newColor.lighter(120);
@@ -136,7 +136,7 @@ void dragColor(QColor *color, const QColor &baseColor, qreal threshold)
 // Krita has the ability to precisely calculate this value,
 // but that seems overkill when all we want to know is whether
 // it passes a certain gray threshold.
-static QMap<qreal, qreal> sRgbTRCToLinear {
+static PkMap<qreal, qreal> sRgbTRCToLinear {
     {0.0, 0.0},
     {0.1, 0.01002},
     {0.2, 0.0331},
@@ -150,7 +150,7 @@ static QMap<qreal, qreal> sRgbTRCToLinear {
     {1.0, 1.0}
 };
 
-static QMap<qreal, qreal> linearToSRGBTRC {
+static PkMap<qreal, qreal> linearToSRGBTRC {
     {0.0, 0.0},
     {0.01002, 0.1},
     {0.0331, 0.2},
@@ -164,7 +164,7 @@ static QMap<qreal, qreal> linearToSRGBTRC {
     {1.0, 1.0}
 };
 
-qreal luminosityCoarse(const QColor &c, bool sRGBtrc)
+qreal luminosityCoarse(const PkColor &c, bool sRGBtrc)
 {
     qreal r = c.redF();
     qreal g = c.greenF();

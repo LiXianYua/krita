@@ -1,7 +1,7 @@
-#include <QString>
-#include <QFileInfo>
-#include <QDir>
-#include <QFile>
+#include <PkString>
+#include <PkFileInfo>
+#include <PkDir>
+#include <PkFile>
 #include <QLatin1Char>
 /*
     This file is part of the KDE libraries
@@ -19,31 +19,31 @@
 
 #include <PkDebug.h>
 
-bool KisBackup::backupFile(const QString &qFilename, const QString &backupDir)
+bool KisBackup::backupFile(const PkString &qFilename, const PkString &backupDir)
 {
-    return (simpleBackupFile(qFilename, backupDir, QStringLiteral("~")));
+    return (simpleBackupFile(qFilename, backupDir, PkString("~")));
 }
 
-bool KisBackup::simpleBackupFile(const QString &qFilename, const QString &backupDir, const QString &backupExtension)
+bool KisBackup::simpleBackupFile(const PkString &qFilename, const PkString &backupDir, const PkString &backupExtension)
 {
-    QString backupFileName = qFilename + backupExtension;
+    PkString backupFileName = qFilename + backupExtension;
 
     if (!backupDir.isEmpty()) {
-        QFileInfo fileInfo(qFilename);
+        PkFileInfo fileInfo(qFilename);
         backupFileName = backupDir + QLatin1Char('/') + fileInfo.fileName() + backupExtension;
     }
 
     //    qCDebug(KCOREADDONS_DEBUG) << "KisBackup copying " << qFilename << " to " << backupFileName;
-    QFile::remove(backupFileName);
-    return QFile::copy(qFilename, backupFileName);
+    PkFile::remove(backupFileName);
+    return PkFile::copy(qFilename, backupFileName);
 }
 
-bool KisBackup::numberedBackupFile(const QString &qFilename, const QString &backupDir, const QString &backupExtension, const uint maxBackups)
+bool KisBackup::numberedBackupFile(const PkString &qFilename, const PkString &backupDir, const PkString &backupExtension, const uint maxBackups)
 {
-    QFileInfo fileInfo(qFilename);
+    PkFileInfo fileInfo(qFilename);
 
     // The backup file name template.
-    QString sTemplate;
+    PkString sTemplate;
 
     if (backupDir.isEmpty()) {
         sTemplate = qFilename + QLatin1String(".%1") + backupExtension;
@@ -52,23 +52,23 @@ bool KisBackup::numberedBackupFile(const QString &qFilename, const QString &back
     }
     // First, search backupDir for numbered backup files to remove.
     // Remove all with number 'maxBackups' and greater.
-    QDir d = backupDir.isEmpty() ? fileInfo.dir() : backupDir;
-    d.setFilter(QDir::Files | QDir::Hidden | QDir::NoSymLinks);
+    PkDir d = backupDir.isEmpty() ? fileInfo.dir() : backupDir;
+    d.setFilter(PkDir::Files | PkDir::Hidden | PkDir::NoSymLinks);
 
-    QString nameFilter = fileInfo.fileName() + QLatin1String(".*") + backupExtension;
+    PkString nameFilter = fileInfo.fileName() + QLatin1String(".*") + backupExtension;
     nameFilter.replace('[', '*');
     nameFilter.replace(']', '*');
 
-    const QStringList nameFilters = QStringList(nameFilter);
+    const PkStringList nameFilters = PkStringList(nameFilter);
     d.setNameFilters(nameFilters);
-    d.setSorting(QDir::Name);
+    d.setSorting(PkDir::Name);
 
     uint maxBackupFound = 0;
-    const QFileInfoList infoList = d.entryInfoList();
-    for (const QFileInfo &fi : infoList) {
+    const PkFileInfoList infoList = d.entryInfoList();
+    for (const PkFileInfo &fi : infoList) {
         if (fi.fileName().endsWith(backupExtension)) {
             // sTemp holds the file name, without the ending backupExtension
-            QString sTemp = fi.fileName();
+            PkString sTemp = fi.fileName();
 
             sTemp.truncate(fi.fileName().length() - backupExtension.length());
 
@@ -77,13 +77,13 @@ bool KisBackup::numberedBackupFile(const QString &qFilename, const QString &back
             if (idex > 0) {
                 bool ok;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-                const uint num = QStringView(sTemp).mid(idex + 1).toUInt(&ok);
+                const uint num = PkStringView(sTemp).mid(idex + 1).toUInt(&ok);
 #else
                 const uint num = sTemp.midRef(idex + 1).toUInt(&ok);
 #endif
                 if (ok) {
                     if (num >= maxBackups) {
-                        QFile::remove(fi.filePath());
+                        PkFile::remove(fi.filePath());
                     } else {
                         maxBackupFound = qMax(maxBackupFound, num);
                     }
@@ -93,17 +93,17 @@ bool KisBackup::numberedBackupFile(const QString &qFilename, const QString &back
     }
 
     // Next, rename max-1 to max, max-2 to max-1, etc.
-    QString to = sTemplate.arg(maxBackupFound + 1);
+    PkString to = sTemplate.arg(maxBackupFound + 1);
 
     for (int i = maxBackupFound; i > 0; i--) {
-        QString from = sTemplate.arg(i);
+        PkString from = sTemplate.arg(i);
         //        qCDebug(KCOREADDONS_DEBUG) << "KisBackup renaming " << from << " to " << to;
-        QFile::rename(from, to);
+        PkFile::rename(from, to);
         to = from;
     }
 
     // Finally create most recent backup by copying the file to backup number 1.
     //    qCDebug(KCOREADDONS_DEBUG) << "KisBackup copying " << qFilename << " to " << sTemplate.arg(1);
-    bool r = QFile::copy(qFilename, sTemplate.arg(1));
+    bool r = PkFile::copy(qFilename, sTemplate.arg(1));
     return r;
 }

@@ -9,8 +9,8 @@
 
 #else
 
-using QJniEnvironment = QAndroidJniEnvironment;
-using QJniObject = QAndroidJniObject;
+using PkJniEnvironment = PkAndroidJniEnvironment;
+using PkJniObject = PkAndroidJniObject;
 #endif
 
 namespace KisAndroidUtils
@@ -20,7 +20,7 @@ void performInitialSetup()
 {
     KisAndroidLogHandler::handler_init();
 
-    QJniObject activity = QJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative",
+    PkJniObject activity = PkJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative",
                                                              "activity",
                                                              "()Landroid/app/Activity;");
     if (activity.isValid()) {
@@ -38,7 +38,7 @@ bool looksLikeXiaomiDevice()
     if (!checked) {
         checked = true;
         result =
-            QJniObject::callStaticMethod<jboolean>("org/krita/android/MainActivity", "looksLikeXiaomiDevice", "()Z");
+            PkJniObject::callStaticMethod<jboolean>("org/krita/android/MainActivity", "looksLikeXiaomiDevice", "()Z");
     }
     return result;
 }
@@ -50,16 +50,16 @@ bool isLowMemoryKillReportSupported()
     static bool result;
     if (!checked) {
         checked = true;
-        result = QJniObject::callStaticMethod<jboolean>("org/krita/android/MainActivity",
+        result = PkJniObject::callStaticMethod<jboolean>("org/krita/android/MainActivity",
                                                         "isLowMemoryKillReportSupported",
                                                         "()Z");
     }
     return result;
 }
 
-void clearJniException(const QString &location)
+void clearJniException(const PkString &location)
 {
-    QJniEnvironment env;
+    PkJniEnvironment env;
     if (env->ExceptionCheck()) {
         warnKrita << "JNI exception occurred" << location;
         env->ExceptionDescribe();
@@ -69,13 +69,13 @@ void clearJniException(const QString &location)
 
 bool isInFullScreen()
 {
-    QJniObject activity = QJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative",
+    PkJniObject activity = PkJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative",
                                                              "activity",
                                                              "()Landroid/app/Activity;");
-    KisAndroidUtils::clearJniException(QStringLiteral("getting activity in isInFullScreen"));
+    KisAndroidUtils::clearJniException(PkString("getting activity in isInFullScreen"));
     if (activity.isValid()) {
         bool fullScreen = activity.callMethod<jboolean>("isInFullScreen", "()Z");
-        KisAndroidUtils::clearJniException(QStringLiteral("calling isInFullScreen"));
+        KisAndroidUtils::clearJniException(PkString("calling isInFullScreen"));
         return fullScreen;
     } else {
         qWarning("isInFullScreen: activity not valid");
@@ -85,13 +85,13 @@ bool isInFullScreen()
 
 void setFullScreen(bool fullScreen)
 {
-    QJniObject activity = QJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative",
+    PkJniObject activity = PkJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative",
                                                              "activity",
                                                              "()Landroid/app/Activity;");
-    KisAndroidUtils::clearJniException(QStringLiteral("getting activity in setFullScreen"));
+    KisAndroidUtils::clearJniException(PkString("getting activity in setFullScreen"));
     if (activity.isValid()) {
         activity.callMethod<void>("setFullScreenOnUiThread", "(Z)V", jboolean(fullScreen));
-        KisAndroidUtils::clearJniException(QStringLiteral("calling setFullScreenOnUiThread"));
+        KisAndroidUtils::clearJniException(PkString("calling setFullScreenOnUiThread"));
     } else {
         qWarning("setFullScreen: activity not valid");
     }

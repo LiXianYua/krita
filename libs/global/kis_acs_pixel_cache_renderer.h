@@ -34,10 +34,10 @@ namespace Acs {
         template <class Sampler>
         static void render(Sampler *sampler,
                            const KisDisplayColorConverter *converter,
-                           const QRect &sampleRect,
+                           const PkRect &sampleRect,
                            KisPaintDeviceSP &realPixelCache,
-                           QImage &pixelCache,
-                           QPoint &pixelCacheOffset,
+                           PkImage &pixelCache,
+                           PkPoint &pixelCacheOffset,
                            qreal devicePixelRatioF)
             {
                 const KoColorSpace *cacheColorSpace = converter->paintingColorSpace();
@@ -49,7 +49,7 @@ namespace Acs {
 
                 KoColor color;
 
-                QRect sampleRectHighDPI = QRect(sampleRect.topLeft(), sampleRect.size()*devicePixelRatioF);
+                PkRect sampleRectHighDPI = PkRect(sampleRect.topLeft(), sampleRect.size()*devicePixelRatioF);
                 KisSequentialIterator it(realPixelCache, sampleRectHighDPI);
 
                 while (it.nextPixel()) {

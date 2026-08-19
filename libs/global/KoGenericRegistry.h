@@ -19,7 +19,7 @@
  *
  * Registered objects are owned by the registry.
  *
- * Items are mapped by QString as a unique Id.
+ * Items are mapped by PkString as a unique Id.
  *
  * Example of use:
  * @code
@@ -55,17 +55,17 @@ public:
 
 public:
     /**
-     * Add an object to the registry. If it is a QObject, make sure it isn't in the
-     * QObject ownership hierarchy, since the registry itself is responsible for
+     * Add an object to the registry. If it is a PkObject, make sure it isn't in the
+     * PkObject ownership hierarchy, since the registry itself is responsible for
      * deleting it.
      *
-     * @param item the item to add (NOTE: T must have an QString id() const   function)
+     * @param item the item to add (NOTE: T must have an PkString id() const   function)
      */
     void add(T item)
     {
         KIS_SAFE_ASSERT_RECOVER_RETURN(item);
 
-        const QString id = item->id();
+        const PkString id = item->id();
         KIS_SAFE_ASSERT_RECOVER_NOOP(!m_aliases.contains(id));
 
         if (m_hash.contains(id)) {
@@ -80,7 +80,7 @@ public:
      * @param id the id of the object
      * @param item the item to add
      */
-    void add(const QString &id, T item)
+    void add(const PkString &id, T item)
     {
         KIS_SAFE_ASSERT_RECOVER_RETURN(item);
         KIS_SAFE_ASSERT_RECOVER_NOOP(!m_aliases.contains(id));
@@ -95,18 +95,18 @@ public:
     /**
      * This function removes an item from the registry
      */
-    void remove(const QString &id)
+    void remove(const PkString &id)
     {
         m_hash.remove(id);
     }
 
-    void addAlias(const QString &alias, const QString &id)
+    void addAlias(const PkString &alias, const PkString &id)
     {
         KIS_SAFE_ASSERT_RECOVER_NOOP(!m_hash.contains(alias));
         m_aliases[alias] = id;
     }
 
-    void removeAlias(const QString &alias)
+    void removeAlias(const PkString &alias)
     {
         m_aliases.remove(alias);
     }
@@ -117,7 +117,7 @@ public:
      *
      * @param id the id
      */
-    T get(const QString &id) const
+    T get(const PkString &id) const
     {
         return value(id);
     }
@@ -127,7 +127,7 @@ public:
      * by the id.
      * @param id the unique identifier string
      */
-    bool contains(const QString &id) const
+    bool contains(const PkString &id) const
     {
         bool result = m_hash.contains(id);
 
@@ -142,7 +142,7 @@ public:
      * Retrieve the object from the registry based on the unique identifier string
      * @param id the id
      */
-    const T value(const QString &id) const
+    const T value(const PkString &id) const
     {
         T result = m_hash.value(id);
 
@@ -156,7 +156,7 @@ public:
     /**
      * @return a list of all keys
      */
-    QList<QString> keys() const
+    PkList<PkString> keys() const
     {
         return m_hash.keys();
     }
@@ -166,32 +166,32 @@ public:
         return m_hash.count();
     }
 
-    QList<T> values() const
+    PkList<T> values() const
     {
         return m_hash.values();
     }
 
-    QList<T> doubleEntries() const
+    PkList<T> doubleEntries() const
     {
         return m_doubleEntries;
     }
 
-    typename QHash<QString, T>::const_iterator constBegin() const {
+    typename PkHash<PkString, T>::const_iterator constBegin() const {
         return m_hash.constBegin();
     }
 
-    typename QHash<QString, T>::const_iterator constEnd() const {
+    typename PkHash<PkString, T>::const_iterator constEnd() const {
         return m_hash.constEnd();
     }
 
 private:
 
-    QList<T> m_doubleEntries;
+    PkList<T> m_doubleEntries;
 
 private:
 
-    QHash<QString, T> m_hash;
-    QHash<QString, QString> m_aliases;
+    PkHash<PkString, T> m_hash;
+    PkHash<PkString, PkString> m_aliases;
 };
 
 #endif

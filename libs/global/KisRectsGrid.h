@@ -49,7 +49,7 @@ public:
      * \param rc the rect to be added, not necessary aligned to the grid
      * \return the list of cells that has actually been changed
      */
-    QVector<PkRect> addRect(const PkRect &rc);
+    PkVector<PkRect> addRect(const PkRect &rc);
 
     /**
      * Remove an arbitrary (non-aligned) rect from the grid
@@ -65,7 +65,7 @@ public:
      * \param rc the rect to be removed, not necessary aligned to the grid
      * \return the list of cells that has actually been changed
      */
-    QVector<PkRect> removeRect(const PkRect &rc);
+    PkVector<PkRect> removeRect(const PkRect &rc);
 
     /**
      * Add an aligned rect to the grid
@@ -76,7 +76,7 @@ public:
      * \param rc the rect to be added, the rect must be aligned
      * \return the list of cells that has actually been changed
      */
-    QVector<PkRect> addAlignedRect(const PkRect &rc);
+    PkVector<PkRect> addAlignedRect(const PkRect &rc);
 
     /**
      * Remove an aligned rect from the grid
@@ -87,7 +87,7 @@ public:
      * \param rc the rect to be removed, not necessary aligned to the grid
      * \return the list of cells that has actually been changed
      */
-    QVector<PkRect> removeAlignedRect(const PkRect &rc);
+    PkVector<PkRect> removeAlignedRect(const PkRect &rc);
 
     /**
      * Return is \p rc is fully covered by the loaded cells of the grid
@@ -106,7 +106,7 @@ private:
 private:
     int m_gridSize;
     int m_logGridSize;
-    QVector<quint8> m_mapping;
+    PkVector<quint8> m_mapping;
     PkRect m_mappedAreaSize; // measured in col/row
 
 };

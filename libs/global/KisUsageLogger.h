@@ -28,23 +28,23 @@ public:
     /// basic system information
     ///    (there is other information spread in the code
     ///     check usages of writeSysInfo for details)
-    static QString basicSystemInfo();
+    static PkString basicSystemInfo();
 
     static void writeLocaleSysInfo();
 
     /// Logs with date/time
-    static void log(const QString &message);
+    static void log(const PkString &message);
 
     /// Writes without date/time
-    static void write(const QString &message);
+    static void write(const PkString &message);
 
     /// Writes to the system information file and Krita log
-    static void writeSysInfo(const QString &message);
+    static void writeSysInfo(const PkString &message);
 
     static void writeHeader();
 
     /// Returns information about all available screens
-    static QString screenInformation();
+    static PkString screenInformation();
 
 private:
 
@@ -55,7 +55,7 @@ private:
     struct Private;
     const PkScopedPointer<Private> d;
 
-    static const QString s_sectionHeader;
+    static const PkString s_sectionHeader;
     static const int s_maxLogs {20};
 
 };

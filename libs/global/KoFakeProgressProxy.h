@@ -25,8 +25,8 @@ public:
     int maximum() const override;
     void setValue(int value) override;
     void setRange(int minimum, int maximum) override;
-    void setFormat(const QString &format) override;
-    void setAutoNestedName(const QString &name) override;
+    void setFormat(const PkString &format) override;
+    void setAutoNestedName(const PkString &name) override;
 
     static KoProgressProxy* instance();
 };

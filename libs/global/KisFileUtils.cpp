@@ -12,31 +12,31 @@
 
 namespace KritaUtils {
 
-QString resolveAbsoluteFilePath(const QString &baseDir, const QString &fileName)
+PkString resolveAbsoluteFilePath(const PkString &baseDir, const PkString &fileName)
 {
-    if (QFileInfo(fileName).isAbsolute()) {
+    if (PkFileInfo(fileName).isAbsolute()) {
         return fileName;
     }
 
-    QFileInfo fallbackBaseDirInfo(baseDir);
+    PkFileInfo fallbackBaseDirInfo(baseDir);
 
-    return QFileInfo(QDir(fallbackBaseDirInfo.isDir() ?
+    return PkFileInfo(PkDir(fallbackBaseDirInfo.isDir() ?
                               fallbackBaseDirInfo.absoluteFilePath() :
                               fallbackBaseDirInfo.absolutePath()),
                      fileName).absoluteFilePath();
 }
 
-QString deduplicateFileName(const QString &fileName,
-                            const QString &separator,
-                            std::function<bool(QString)> fileAllowedCallback)
+PkString deduplicateFileName(const PkString &fileName,
+                            const PkString &separator,
+                            std::function<bool(PkString)> fileAllowedCallback)
 {
-    const QFileInfo fileInfo(fileName);
+    const PkFileInfo fileInfo(fileName);
 
     int counter = 0;
-    QString proposedFileName = fileInfo.fileName();
+    PkString proposedFileName = fileInfo.fileName();
 
-    QString baseName = fileInfo.baseName();
-    QString completeSuffix = fileInfo.completeSuffix();
+    PkString baseName = fileInfo.baseName();
+    PkString completeSuffix = fileInfo.completeSuffix();
 
     /**
      * Search for the separator around the leftmost dot in the filename
@@ -46,7 +46,7 @@ QString deduplicateFileName(const QString &fileName,
      * from the separator. Separator itself can have dots, but it cannot
      * be a part of the file extension.
      */
-    QRegularExpression rex(QString("^([^.]+)%1\\d+(\\.(.+))?$").arg(separator));
+    PkRegularExpression rex(PkString("^([^.]+)%1\\d+(\\.(.+))?$").arg(separator));
     auto match = rex.match(proposedFileName);
 
     if (match.hasMatch()) {
@@ -56,7 +56,7 @@ QString deduplicateFileName(const QString &fileName,
     }
 
     while (!fileAllowedCallback(proposedFileName)) {
-        QStringList fileParts = {baseName, separator, QString::number(counter++)};
+        PkStringList fileParts = {baseName, separator, PkString::number(counter++)};
 
         if (!completeSuffix.isEmpty()) {
             fileParts += ".";

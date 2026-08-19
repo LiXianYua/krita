@@ -8,13 +8,13 @@
 
 #include <PkString.h>
 
-void KoProgressProxy::setAutoNestedName(const QString &name)
+void KoProgressProxy::setAutoNestedName(const PkString &name)
 {
     if (name.isEmpty()) {
         setFormat("%p%");
     } else {
         if (maximum() > 0) {
-            setFormat(QString("%1: %p%").arg(name));
+            setFormat(PkString("%1: %p%").arg(name));
         } else {
             setFormat(name);
         }

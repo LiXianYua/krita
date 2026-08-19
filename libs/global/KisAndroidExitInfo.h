@@ -70,18 +70,18 @@ public:
         return m_importanceCode;
     }
 
-    const QString &description() const
+    const PkString &description() const
     {
         return m_description;
     }
 
-    QString buildLogString() const;
+    PkString buildLogString() const;
 
 private:
     KisAndroidExitInfo();
-    KisAndroidExitInfo(int reasonCode, int exitOrSignalCode, int importanceCode, const QString &description);
+    KisAndroidExitInfo(int reasonCode, int exitOrSignalCode, int importanceCode, const PkString &description);
 
-    const QString m_description;
+    const PkString m_description;
     const int m_reasonCode;
     const int m_exitOrSignalCode;
     const int m_importanceCode;

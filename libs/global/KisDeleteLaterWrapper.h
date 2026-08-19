@@ -10,11 +10,11 @@
 #include <PkConnect.h>
 
 namespace KisDeleteLaterWrapperPrivate {
-KRITAGLOBAL_EXPORT void moveToGuiThread(QObject *object);
+KRITAGLOBAL_EXPORT void moveToGuiThread(PkObject *object);
 }
 
 template <typename T>
-class KisDeleteLaterWrapper : public QObject
+class KisDeleteLaterWrapper : public PkObject
 {
 public:
     KisDeleteLaterWrapper(T value)
@@ -28,7 +28,7 @@ private:
 };
 
 template <typename T>
-class KisDeleteLaterWrapper<T*> : public QObject
+class KisDeleteLaterWrapper<T*> : public PkObject
 {
 public:
     KisDeleteLaterWrapper(T* value)

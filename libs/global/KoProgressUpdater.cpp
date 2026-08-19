@@ -44,11 +44,11 @@ public:
     int currentProgress = 0;
     bool isUndefinedState = false;
     KisSignalCompressor *updateCompressor;
-    QList<PkPointer<KoUpdaterPrivate> > subtasks;
+    PkList<PkPointer<KoUpdaterPrivate> > subtasks;
     bool canceled;
     int updateInterval = 250; // ms, 4 updates per second should be enough
     bool autoNestNames = false;
-    QString taskName;
+    PkString taskName;
     int taskMax = 99;
     bool isStarted = false;
 
@@ -62,9 +62,9 @@ public:
     }
 };
 
-// NOTE: do not make the KoProgressUpdater object part of the QObject
+// NOTE: do not make the KoProgressUpdater object part of the PkObject
 // hierarchy. Do not make KoProgressProxy its parent (note that KoProgressProxy
-// is not necessarily castable to QObject ). This prevents proper functioning
+// is not necessarily castable to PkObject ). This prevents proper functioning
 // of progress reporting in multi-threaded environments.
 KoProgressUpdater::KoProgressUpdater(KoProgressProxy *progressProxy, Mode mode)
     : d (new Private(this, progressProxy, 0, mode))
@@ -101,7 +101,7 @@ KoProgressUpdater::~KoProgressUpdater()
     delete d;
 }
 
-void KoProgressUpdater::start(int range, const QString &text)
+void KoProgressUpdater::start(int range, const PkString &text)
 {
     {
         PkMutexLocker l(&d->mutex);
@@ -116,7 +116,7 @@ void KoProgressUpdater::start(int range, const QString &text)
 }
 
 PkPointer<KoUpdater> KoProgressUpdater::startSubtask(int weight,
-                                                    const QString &name,
+                                                    const PkString &name,
                                                     bool isPersistent)
 {
     if (!d->isStarted) {
@@ -163,7 +163,7 @@ void KoProgressUpdater::cancel()
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThread() == this->thread());
 
-    QList<PkPointer<KoUpdaterPrivate> > subtasks;
+    PkList<PkPointer<KoUpdaterPrivate> > subtasks;
 
     {
         PkMutexLocker l(&d->mutex);
@@ -274,7 +274,7 @@ void KoProgressUpdater::Private::updateParentText()
 {
     if (!progressProxy()) return;
 
-    QString actionName = taskName;
+    PkString actionName = taskName;
 
     if (autoNestNames) {
         Q_FOREACH (PkPointer<KoUpdaterPrivate> updater, subtasks) {
@@ -284,13 +284,13 @@ void KoProgressUpdater::Private::updateParentText()
             }
 
             if (updater->progress() < 100) {
-                const QString subTaskName = updater->mergedSubTaskName();
+                const PkString subTaskName = updater->mergedSubTaskName();
 
                 if (!subTaskName.isEmpty()) {
                     if (actionName.isEmpty()) {
                         actionName = subTaskName;
                     } else {
-                        actionName = QString("%1: %2").arg(actionName).arg(subTaskName);
+                        actionName = PkString("%1: %2").arg(actionName).arg(subTaskName);
                     }
                 }
                 break;

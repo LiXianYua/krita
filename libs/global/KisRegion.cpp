@@ -49,8 +49,8 @@ struct VerticalMergePolicy
 };
 
 template <typename MergePolicy>
-QVector<PkRect>::iterator mergeRects(QVector<PkRect>::iterator beginIt,
-                                    QVector<PkRect>::iterator endIt,
+PkVector<PkRect>::iterator mergeRects(PkVector<PkRect>::iterator beginIt,
+                                    PkVector<PkRect>::iterator endIt,
                                     MergePolicy policy)
 {
     if (beginIt == endIt) return endIt;
@@ -143,7 +143,7 @@ struct VoidNoOp {
 
 struct MergeRectsOp
 {
-    MergeRectsOp(QVector<PkRect> &source, QVector<PkRect> &destination)
+    MergeRectsOp(PkVector<PkRect> &source, PkVector<PkRect> &destination)
         : m_source(source),
           m_destination(destination)
     {
@@ -156,21 +156,21 @@ struct MergeRectsOp
     }
 
 private:
-    QVector<PkRect> &m_source;
-    QVector<PkRect> &m_destination;
+    PkVector<PkRect> &m_source;
+    PkVector<PkRect> &m_destination;
 };
 
 template <typename Policy, typename RowMergeOp, typename OutIt>
-void splitRects(QVector<PkRect>::iterator beginIt, QVector<PkRect>::iterator endIt,
+void splitRects(PkVector<PkRect>::iterator beginIt, PkVector<PkRect>::iterator endIt,
                 OutIt resultIt,
-                QVector<PkRect> tempBuf[2],
+                PkVector<PkRect> tempBuf[2],
                 int gridSize,
                  RowMergeOp rowMergeOp)
 {
     if (beginIt == endIt) return;
 
-    QVector<PkRect> &nextRowExtra = tempBuf[0];
-    QVector<PkRect> &nextRowExtraTmp = tempBuf[1];
+    PkVector<PkRect> &nextRowExtra = tempBuf[0];
+    PkVector<PkRect> &nextRowExtraTmp = tempBuf[1];
 
     std::sort(beginIt, endIt, Policy::rowIsLess);
     int rowStart = Policy::rowStart(*beginIt);
@@ -229,22 +229,22 @@ void splitRects(QVector<PkRect>::iterator beginIt, QVector<PkRect>::iterator end
 
 }
 
-QVector<PkRect>::iterator KisRegion::mergeSparseRects(QVector<PkRect>::iterator beginIt, QVector<PkRect>::iterator endIt)
+PkVector<PkRect>::iterator KisRegion::mergeSparseRects(PkVector<PkRect>::iterator beginIt, PkVector<PkRect>::iterator endIt)
 {
     endIt = detail::mergeRects(beginIt, endIt, detail::HorizontalMergePolicy());
     endIt = detail::mergeRects(beginIt, endIt, detail::VerticalMergePolicy());
     return endIt;
 }
 
-void KisRegion::approximateOverlappingRects(QVector<PkRect> &rects, int gridSize)
+void KisRegion::approximateOverlappingRects(PkVector<PkRect> &rects, int gridSize)
 {
     using namespace detail;
 
     if (rects.isEmpty()) return;
 
-    QVector<PkRect> rowsBuf;
-    QVector<PkRect> intermediate;
-    QVector<PkRect> tempBuf[2];
+    PkVector<PkRect> rowsBuf;
+    PkVector<PkRect> intermediate;
+    PkVector<PkRect> tempBuf[2];
 
     splitRects<VerticalSplitPolicy>(rects.begin(), rects.end(),
                                     std::back_inserter(rowsBuf),
@@ -274,7 +274,7 @@ void KisRegion::approximateOverlappingRects(QVector<PkRect> &rects, int gridSize
     }
 }
 
-void KisRegion::makeGridLikeRectsUnique(QVector<PkRect> &rects)
+void KisRegion::makeGridLikeRectsUnique(PkVector<PkRect> &rects)
 {
     std::sort(rects.begin(), rects.end(), detail::HorizontalMergePolicy::elementIsLess);
     auto it = std::unique(rects.begin(), rects.end());
@@ -291,13 +291,13 @@ KisRegion::KisRegion(std::initializer_list<PkRect> rects)
 {
 }
 
-KisRegion::KisRegion(const QVector<PkRect> &rects)
+KisRegion::KisRegion(const PkVector<PkRect> &rects)
     : m_rects(rects)
 {
     mergeAllRects();
 }
 
-KisRegion::KisRegion(QVector<PkRect> &&rects)
+KisRegion::KisRegion(PkVector<PkRect> &&rects)
     : m_rects(rects)
 {
     mergeAllRects();
@@ -328,7 +328,7 @@ PkRect KisRegion::boundingRect() const
     return std::accumulate(m_rects.constBegin(), m_rects.constEnd(), PkRect(), std::bit_or<PkRect>());
 }
 
-QVector<PkRect> KisRegion::rects() const
+PkVector<PkRect> KisRegion::rects() const
 {
     return m_rects;
 }
@@ -381,9 +381,9 @@ KisRegion KisRegion::fromQRegion(const PkRegion &region)
     return result;
 }
 
-KisRegion KisRegion::fromOverlappingRects(const QVector<PkRect> &rects, int gridSize)
+KisRegion KisRegion::fromOverlappingRects(const PkVector<PkRect> &rects, int gridSize)
 {
-    QVector<PkRect> tmp = rects;
+    PkVector<PkRect> tmp = rects;
     approximateOverlappingRects(tmp, gridSize);
     return KisRegion(tmp);
 }

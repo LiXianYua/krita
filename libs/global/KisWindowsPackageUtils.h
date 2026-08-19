@@ -9,14 +9,14 @@
 
 #include "kritaglobal_export.h"
 
-class QString;
+class PkString;
 
 namespace KisWindowsPackageUtils
 {
 
 KRITAGLOBAL_EXPORT bool isRunningInPackage();
-KRITAGLOBAL_EXPORT bool tryGetCurrentPackageFamilyName(QString *outName = nullptr);
-KRITAGLOBAL_EXPORT bool tryGetCurrentPackageFullName(QString *outName = nullptr);
+KRITAGLOBAL_EXPORT bool tryGetCurrentPackageFamilyName(PkString *outName = nullptr);
+KRITAGLOBAL_EXPORT bool tryGetCurrentPackageFullName(PkString *outName = nullptr);
 
 /**
  * Get the RoamingAppData location. If the current process is a packaged app,
@@ -26,7 +26,7 @@ KRITAGLOBAL_EXPORT bool tryGetCurrentPackageFullName(QString *outName = nullptr)
  *
  * See also: https://docs.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-behind-the-scenes#appdata-operations-on-windows-10-version-1903-and-later
  */
-KRITAGLOBAL_EXPORT QString getPackageRoamingAppDataLocation();
+KRITAGLOBAL_EXPORT PkString getPackageRoamingAppDataLocation();
 
 } /* namespace KisWindowsPackageUtils */
 

@@ -37,26 +37,26 @@ static KisUsageLogger *s_instance()
     return &instance;
 }
 
-const QString KisUsageLogger::s_sectionHeader("================================================================================\n");
+const PkString KisUsageLogger::s_sectionHeader("================================================================================\n");
 
 struct KisUsageLogger::Private {
     bool active {false};
-    QFile logFile;
-    QFile sysInfoFile;
+    PkFile logFile;
+    PkFile sysInfoFile;
 };
 
 KisUsageLogger::KisUsageLogger()
     : d(new Private)
 {
-    if (!QFileInfo(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)).exists()) {
-        QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation));
+    if (!PkFileInfo(PkStandardPaths::writableLocation(PkStandardPaths::GenericDataLocation)).exists()) {
+        PkDir().mkpath(PkStandardPaths::writableLocation(PkStandardPaths::GenericDataLocation));
     }
-    d->logFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/krita.log");
-    d->sysInfoFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/krita-sysinfo.log");
+    d->logFile.setFileName(PkStandardPaths::writableLocation(PkStandardPaths::GenericDataLocation) + "/krita.log");
+    d->sysInfoFile.setFileName(PkStandardPaths::writableLocation(PkStandardPaths::GenericDataLocation) + "/krita-sysinfo.log");
 
-    QFileInfo fi(d->logFile.fileName());
+    PkFileInfo fi(d->logFile.fileName());
     if (fi.size() > 100 * 1000 * 1000) { // 100 mb seems a reasonable max
-        if (d->logFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        if (d->logFile.open(PkStream::WriteOnly | PkStream::Truncate)) {
             d->logFile.close();
         } else {
             qWarning() << "Could not clear the >100MB" << d->logFile.fileName() << ":" << d->logFile.errorString();
@@ -66,10 +66,10 @@ KisUsageLogger::KisUsageLogger()
         rotateLog();
     }
 
-    if (!d->logFile.open(QFile::Append | QFile::Text)) {
+    if (!d->logFile.open(PkFile::Append | PkFile::Text)) {
         qWarning() << "Could not open" << d->logFile.fileName() << "for writing:" << d->logFile.errorString();
     }
-    if (!d->sysInfoFile.open(QFile::WriteOnly | QFile::Text)) {
+    if (!d->sysInfoFile.open(PkFile::WriteOnly | PkFile::Text)) {
         qWarning() << "Could not open" << d->sysInfoFile.fileName() << "for writing:" << d->sysInfoFile.errorString();
     }
 }
@@ -85,13 +85,13 @@ void KisUsageLogger::initialize()
 {
     s_instance()->d->active = true;
 
-    QString systemInfo = basicSystemInfo();
+    PkString systemInfo = basicSystemInfo();
     s_instance()->d->sysInfoFile.write(systemInfo.toUtf8());
 }
 
-QString KisUsageLogger::basicSystemInfo()
+PkString KisUsageLogger::basicSystemInfo()
 {
-    QString systemInfo;
+    PkString systemInfo;
 
     // NOTE: This is intentionally not translated!
 
@@ -101,8 +101,8 @@ QString KisUsageLogger::basicSystemInfo()
 #ifdef Q_OS_WIN
     {
         using namespace KisWindowsPackageUtils;
-        QString packageFamilyName;
-        QString packageFullName;
+        PkString packageFamilyName;
+        PkString packageFullName;
         systemInfo.append("\n Installation type: ");
         if (tryGetCurrentPackageFamilyName(&packageFamilyName) && tryGetCurrentPackageFullName(&packageFullName)) {
             systemInfo.append("Store / MSIX package\n    Family Name: ")
@@ -116,7 +116,7 @@ QString KisUsageLogger::basicSystemInfo()
 #endif
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     // Attribute does nothing on Qt6
-    systemInfo.append("\n Hidpi: ").append(QCoreApplication::testAttribute(Qt::AA_EnableHighDpiScaling) ? "true" : "false");
+    systemInfo.append("\n Hidpi: ").append(PkCoreApplication::testAttribute(Qt::AA_EnableHighDpiScaling) ? "true" : "false");
 #endif
 #ifdef Q_OS_MACOS
     KisMacosEntitlements entitlements;
@@ -131,20 +131,20 @@ QString KisUsageLogger::basicSystemInfo()
 
     // OS information
     systemInfo.append("OS Information\n");
-    systemInfo.append("\n  Build ABI: ").append(QSysInfo::buildAbi());
-    systemInfo.append("\n  Build CPU: ").append(QSysInfo::buildCpuArchitecture());
-    systemInfo.append("\n  CPU: ").append(QSysInfo::currentCpuArchitecture());
-    systemInfo.append("\n  Kernel Type: ").append(QSysInfo::kernelType());
-    systemInfo.append("\n  Kernel Version: ").append(QSysInfo::kernelVersion());
-    systemInfo.append("\n  Pretty Productname: ").append(QSysInfo::prettyProductName());
-    systemInfo.append("\n  Product Type: ").append(QSysInfo::productType());
-    systemInfo.append("\n  Product Version: ").append(QSysInfo::productVersion());
+    systemInfo.append("\n  Build ABI: ").append(PkSysInfo::buildAbi());
+    systemInfo.append("\n  Build CPU: ").append(PkSysInfo::buildCpuArchitecture());
+    systemInfo.append("\n  CPU: ").append(PkSysInfo::currentCpuArchitecture());
+    systemInfo.append("\n  Kernel Type: ").append(PkSysInfo::kernelType());
+    systemInfo.append("\n  Kernel Version: ").append(PkSysInfo::kernelVersion());
+    systemInfo.append("\n  Pretty Productname: ").append(PkSysInfo::prettyProductName());
+    systemInfo.append("\n  Product Type: ").append(PkSysInfo::productType());
+    systemInfo.append("\n  Product Version: ").append(PkSysInfo::productVersion());
 
 #ifdef Q_OS_ANDROID
-    QString manufacturer =
-        QAndroidJniObject::getStaticObjectField("android/os/Build", "MANUFACTURER", "Ljava/lang/String;").toString();
-    const QString model =
-        QAndroidJniObject::getStaticObjectField("android/os/Build", "MODEL", "Ljava/lang/String;").toString();
+    PkString manufacturer =
+        PkAndroidJniObject::getStaticObjectField("android/os/Build", "MANUFACTURER", "Ljava/lang/String;").toString();
+    const PkString model =
+        PkAndroidJniObject::getStaticObjectField("android/os/Build", "MODEL", "Ljava/lang/String;").toString();
     manufacturer[0] = manufacturer[0].toUpper();
     systemInfo.append("\n  Product Model: ").append(manufacturer + " " + model);
 #elif defined(Q_OS_LINUX)
@@ -164,23 +164,23 @@ void KisUsageLogger::writeLocaleSysInfo()
     if (!s_instance()->d->active) {
         return;
     }
-    QString systemInfo;
+    PkString systemInfo;
     systemInfo.append("Locale\n");
     systemInfo.append("\n  Languages: ").append(KLocalizedString::languages().join(", "));
     systemInfo.append("\n  C locale: ").append(std::setlocale(LC_ALL, nullptr));
-    systemInfo.append("\n  QLocale current: ").append(QLocale().bcp47Name());
-    systemInfo.append("\n  QLocale system: ").append(QLocale::system().bcp47Name());
-    const QTextCodec *codecForLocale = QTextCodec::codecForLocale();
-    systemInfo.append("\n  QTextCodec for locale: ").append(codecForLocale->name());
+    systemInfo.append("\n  PkLocale current: ").append(PkLocale().bcp47Name());
+    systemInfo.append("\n  PkLocale system: ").append(PkLocale::system().bcp47Name());
+    const PkTextCodec *codecForLocale = PkTextCodec::codecForLocale();
+    systemInfo.append("\n  PkTextCodec for locale: ").append(codecForLocale->name());
 #ifdef Q_OS_WIN
     {
         systemInfo.append("\n  Process ACP: ");
         CPINFOEXW cpInfo {};
         if (GetCPInfoExW(CP_ACP, 0, &cpInfo)) {
-            systemInfo.append(QString::fromWCharArray(cpInfo.CodePageName));
+            systemInfo.append(PkString::fromWCharArray(cpInfo.CodePageName));
         } else {
             // Shouldn't happen, but just in case
-            systemInfo.append(QString::number(GetACP()));
+            systemInfo.append(PkString::number(GetACP()));
         }
         wchar_t lcData[2];
         int result = GetLocaleInfoEx(LOCALE_NAME_SYSTEM_DEFAULT, LOCALE_IDEFAULTANSICODEPAGE | LOCALE_RETURN_NUMBER, lcData, sizeof(lcData) / sizeof(lcData[0]));
@@ -190,10 +190,10 @@ void KisUsageLogger::writeLocaleSysInfo()
             if (systemACP == CP_ACP) {
                 systemInfo.append("N/A");
             } else if (GetCPInfoExW(systemACP, 0, &cpInfo)) {
-                systemInfo.append(QString::fromWCharArray(cpInfo.CodePageName));
+                systemInfo.append(PkString::fromWCharArray(cpInfo.CodePageName));
             } else {
                 // Shouldn't happen, but just in case
-                systemInfo.append(QString::number(systemACP));
+                systemInfo.append(PkString::number(systemACP));
             }
         }
     }
@@ -212,7 +212,7 @@ void KisUsageLogger::close()
     s_instance()->d->sysInfoFile.close();
 }
 
-void KisUsageLogger::log(const QString &message)
+void KisUsageLogger::log(const PkString &message)
 {
     if (!s_instance()->d->active) return;
     if (!s_instance()->d->logFile.isOpen()) return;
@@ -222,7 +222,7 @@ void KisUsageLogger::log(const QString &message)
     write(message);
 }
 
-void KisUsageLogger::write(const QString &message)
+void KisUsageLogger::write(const PkString &message)
 {
     if (!s_instance()->d->active) return;
     if (!s_instance()->d->logFile.isOpen()) return;
@@ -233,7 +233,7 @@ void KisUsageLogger::write(const QString &message)
     s_instance()->d->logFile.flush();
 }
 
-void KisUsageLogger::writeSysInfo(const QString &message)
+void KisUsageLogger::writeSysInfo(const PkString &message)
 {
     if (!s_instance()->d->active) return;
     if (!s_instance()->d->sysInfoFile.isOpen()) return;
@@ -250,62 +250,62 @@ void KisUsageLogger::writeHeader()
     Q_ASSERT(s_instance()->d->sysInfoFile.isOpen());
     s_instance()->d->logFile.write(s_sectionHeader.toUtf8());
 
-    QString sessionHeader = QString("SESSION: %1. Executing %2\n\n")
+    PkString sessionHeader = PkString("SESSION: %1. Executing %2\n\n")
             .arg(PkDateTime::currentDateTime().toString(Qt::RFC2822Date))
             .arg(qApp->arguments().join(' '));
 
     s_instance()->d->logFile.write(sessionHeader.toUtf8());
 
-    QString KritaAndQtVersion;
+    PkString KritaAndQtVersion;
     KritaAndQtVersion.append("Krita Version: ").append(KritaVersionWrapper::versionString(true))
             .append(", Qt version compiled: ").append(QT_VERSION_STR)
             .append(", loaded: ").append(qVersion())
             .append(". Process ID: ")
-            .append(QString::number(qApp->applicationPid())).append("\n");
+            .append(PkString::number(qApp->applicationPid())).append("\n");
 
     KritaAndQtVersion.append("-- -- -- -- -- -- -- --\n");
     s_instance()->d->logFile.write(KritaAndQtVersion.toUtf8());
     s_instance()->d->logFile.flush();
-    log(QString("Style: %1. Available styles: %2")
+    log(PkString("Style: %1. Available styles: %2")
         .arg(qApp->style()->objectName(),
-             QStyleFactory::keys().join(", ")));
+             PkStyleFactory::keys().join(", ")));
 
 #ifdef Q_OS_ANDROID
     KisAndroidExitInfo androidExitInfo = KisAndroidExitInfo::getLast();
     if (androidExitInfo.isValid()) {
-        log(QStringLiteral("Last exit: %1").arg(androidExitInfo.buildLogString()));
+        log(PkString("Last exit: %1").arg(androidExitInfo.buildLogString()));
     }
 #endif
 }
 
-QString KisUsageLogger::screenInformation()
+PkString KisUsageLogger::screenInformation()
 {
-    QList<QScreen*> screens = qApp->screens();
+    PkList<PkScreen*> screens = qApp->screens();
 
-    QString info;
+    PkString info;
     info.append("Display Information");
-    info.append("\nNumber of screens: ").append(QString::number(screens.size()));
+    info.append("\nNumber of screens: ").append(PkString::number(screens.size()));
 
     for (int i = 0; i < screens.size(); ++i ) {
-        QScreen *screen = screens[i];
-        info.append("\n\tScreen: ").append(QString::number(i));
+        PkScreen *screen = screens[i];
+        info.append("\n\tScreen: ").append(PkString::number(i));
         info.append("\n\t\tName: ").append(screen->name());
-        info.append("\n\t\tDepth: ").append(QString::number(screen->depth()));
-        info.append("\n\t\tScale: ").append(QString::number(screen->devicePixelRatio()));
-        info.append("\n\t\tPhysical DPI").append(QString::number(screen->physicalDotsPerInch()));
-        info.append("\n\t\tLogical DPI").append(QString::number(screen->logicalDotsPerInch()));
-        info.append("\n\t\tPhysical Size: ").append(QString::number(screen->physicalSize().width()))
+        info.append("\n\t\tDepth: ").append(PkString::number(screen->depth()));
+        info.append("\n\t\tScale: ").append(PkString::number(screen->devicePixelRatio()));
+        info.append("\n\t\tPhysical DPI").append(PkString::number(screen->physicalDotsPerInch()));
+        info.append("\n\t\tLogical DPI").append(PkString::number(screen->logicalDotsPerInch()));
+        info.append("\n\t\tPhysical Size: ").append(PkString::number(screen->physicalSize().width()))
                 .append(", ")
-                .append(QString::number(screen->physicalSize().height()));
-        info.append("\n\t\tPosition: ").append(QString::number(screen->geometry().x()))
+                .append(PkString::number(screen->physicalSize().height()));
+        info.append("\n\t\tPosition: ").append(PkString::number(screen->geometry().x()))
                 .append(", ")
-                .append(QString::number(screen->geometry().y()));
-        info.append("\n\t\tResolution in pixels: ").append(QString::number(screen->geometry().width()))
+                .append(PkString::number(screen->geometry().y()));
+        info.append("\n\t\tResolution in pixels: ").append(PkString::number(screen->geometry().width()))
                 .append("x")
-                .append(QString::number(screen->geometry().height()));
+                .append(PkString::number(screen->geometry().height()));
         info.append("\n\t\tManufacturer: ").append(screen->manufacturer());
         info.append("\n\t\tModel: ").append(screen->model());
-        info.append("\n\t\tRefresh Rate: ").append(QString::number(screen->refreshRate()));
+        info.append("\n\t\tRefresh Rate: ").append(PkString::number(screen->refreshRate()));
         info.append("\n\t\tSerial Number: ").append(screen->serialNumber());
 
     }
@@ -318,25 +318,25 @@ void KisUsageLogger::rotateLog()
     if (!d->logFile.exists()) { return; }
 
     // Check for CLOSING SESSION
-    if (d->logFile.open(QFile::ReadOnly)) {
-        QString log = QString::fromUtf8(d->logFile.readAll());
+    if (d->logFile.open(PkFile::ReadOnly)) {
+        PkString log = PkString::fromUtf8(d->logFile.readAll());
         if (!log.split(s_sectionHeader).last().contains("CLOSING SESSION")) {
             log.append("\nKRITA DID NOT CLOSE CORRECTLY\n");
-            QString crashLog = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/kritacrash.log");
-            QFile f(crashLog);
-            if (f.open(QFile::ReadOnly)) {
-                QString crashes = QString::fromUtf8(f.readAll());
+            PkString crashLog = PkStandardPaths::writableLocation(PkStandardPaths::GenericConfigLocation) + PkString("/kritacrash.log");
+            PkFile f(crashLog);
+            if (f.open(PkFile::ReadOnly)) {
+                PkString crashes = PkString::fromUtf8(f.readAll());
                 f.close();
 
-                QStringList crashlist = crashes.split("-------------------");
-                log.append(QString("\nThere were %1 crashes in total in the crash log.\n").arg(crashlist.size()));
+                PkStringList crashlist = crashes.split("-------------------");
+                log.append(PkString("\nThere were %1 crashes in total in the crash log.\n").arg(crashlist.size()));
 
                 if (crashes.size() > 0) {
                     log.append(crashlist.last());
                 }
             }
             d->logFile.close();
-            if (d->logFile.open(QFile::WriteOnly)) {
+            if (d->logFile.open(PkFile::WriteOnly)) {
                 d->logFile.write(log.toUtf8());
             }
         }
@@ -345,11 +345,11 @@ void KisUsageLogger::rotateLog()
     }
 
     // Rotate
-    if (d->logFile.open(QFile::ReadOnly)) {
-        QString log = QString::fromUtf8(d->logFile.readAll());
+    if (d->logFile.open(PkFile::ReadOnly)) {
+        PkString log = PkString::fromUtf8(d->logFile.readAll());
         d->logFile.close();
-        QStringList logItems = log.split("SESSION:");
-        QStringList keptItems;
+        PkStringList logItems = log.split("SESSION:");
+        PkStringList keptItems;
         int sectionCount = logItems.size();
         if (sectionCount > s_maxLogs) {
             for (int i = sectionCount - s_maxLogs; i < sectionCount; ++i) {
@@ -358,7 +358,7 @@ void KisUsageLogger::rotateLog()
                 }
             }
 
-            if (d->logFile.open(QFile::WriteOnly)) {
+            if (d->logFile.open(PkFile::WriteOnly)) {
                 d->logFile.write(keptItems.join("\nSESSION:").toUtf8());
                 d->logFile.flush();
                 d->logFile.close();

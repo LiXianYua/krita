@@ -76,7 +76,7 @@ constexpr LONG APPMODEL_ERROR_NO_PACKAGE = 15700;
 struct AppmodelFunctions {
     pGetCurrentPackageFamilyName_t getCurrentPackageFamilyName{};
     pGetCurrentPackageFullName_t getCurrentPackageFullName{};
-    QLibrary dllKernel32;
+    PkLibrary dllKernel32;
 
     template<typename T, typename U>
     inline T cast_to_function(U v) noexcept
@@ -110,7 +110,7 @@ bool isRunningInPackage()
     return tryGetCurrentPackageFamilyName(nullptr);
 }
 
-bool tryGetCurrentPackageFamilyName(QString *outName)
+bool tryGetCurrentPackageFamilyName(PkString *outName)
 {
     if (!AppmodelFunctions::instance().getCurrentPackageFamilyName) {
         // We are probably on Windows 7 or earlier.
@@ -130,7 +130,7 @@ bool tryGetCurrentPackageFamilyName(QString *outName)
                       "ERROR_INSUFFICIENT_BUFFER, required length is"
                    << nameLength;
         if (outName) {
-            *outName = QString();
+            *outName = PkString();
         }
         return true;
     }
@@ -151,12 +151,12 @@ bool tryGetCurrentPackageFamilyName(QString *outName)
         if (nameLength > 0 && name.at(nameLength - 1) == L'\0') {
             nameLength -= 1;
         }
-        *outName = QString::fromWCharArray(name.data(), static_cast<int>(nameLength));
+        *outName = PkString::fromWCharArray(name.data(), static_cast<int>(nameLength));
     }
     return true;
 }
 
-bool tryGetCurrentPackageFullName(QString *outName)
+bool tryGetCurrentPackageFullName(PkString *outName)
 {
     if (!AppmodelFunctions::instance().getCurrentPackageFullName) {
         // We are probably on Windows 7 or earlier.
@@ -176,7 +176,7 @@ bool tryGetCurrentPackageFullName(QString *outName)
                       "ERROR_INSUFFICIENT_BUFFER, required length is"
                    << nameLength;
         if (outName) {
-            *outName = QString();
+            *outName = PkString();
         }
         return true;
     }
@@ -197,12 +197,12 @@ bool tryGetCurrentPackageFullName(QString *outName)
         if (nameLength > 0 && name.at(nameLength - 1) == L'\0') {
             nameLength -= 1;
         }
-        *outName = QString::fromWCharArray(name.data(), static_cast<int>(nameLength));
+        *outName = PkString::fromWCharArray(name.data(), static_cast<int>(nameLength));
     }
     return true;
 }
 
-QString getPackageRoamingAppDataLocation()
+PkString getPackageRoamingAppDataLocation()
 {
     PWSTR path = nullptr;
     HRESULT result =
@@ -215,7 +215,7 @@ QString getPackageRoamingAppDataLocation()
         qWarning() << "SHGetKnownFolderPath did not return a path";
         return {};
     }
-    QString appData = QString::fromWCharArray(path);
+    PkString appData = PkString::fromWCharArray(path);
     CoTaskMemFree(path);
     return appData;
 }

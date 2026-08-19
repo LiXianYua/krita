@@ -25,14 +25,14 @@ class KoUpdater;
  * from the threads will only arrive when the eventloop in the gui
  * thread has a chance to deliver them.
  */
-class KoUpdaterPrivate : public QObject
+class KoUpdaterPrivate : public PkObject
 {
 
     Q_OBJECT
 
 public:
 
-    KoUpdaterPrivate(int weight, const QString& name, bool isPersistent = false);
+    KoUpdaterPrivate(int weight, const PkString& name, bool isPersistent = false);
 
     /// when deleting an updater, make sure the accompanying thread is
     /// interrupted, too.
@@ -44,9 +44,9 @@ public:
 
     int weight() const { return m_weight; }
 
-    QString autoNestedName() const;
-    QString subTaskName() const;
-    QString mergedSubTaskName() const;
+    PkString autoNestedName() const;
+    PkString subTaskName() const;
+    PkString mergedSubTaskName() const;
 
     bool hasValidRange() const;
     bool isPersistent() const;
@@ -64,7 +64,7 @@ public Q_SLOTS:
     /// progress comes from KoUpdater
     void setProgress( int percent );
 
-    void setAutoNestedName(const QString &name);
+    void setAutoNestedName(const PkString &name);
     void setHasValidRange(bool value);
 
 Q_SIGNALS:
@@ -79,8 +79,8 @@ private:
     int m_progress; // always in percent
     int m_weight;
     bool m_interrupted;
-    QString m_autoNestedName;
-    QString m_subTaskName;
+    PkString m_autoNestedName;
+    PkString m_subTaskName;
     bool m_hasValidRange;
     bool m_isPersistent;
     PkPointer<KoUpdater> m_connectedUpdater;

@@ -11,38 +11,38 @@
 
 KoID::TranslatedString::TranslatedString(
     const boost::optional<KLocalizedString> &source)
-    : QString(!source->isEmpty() ? source->toString() : QString())
+    : PkString(!source->isEmpty() ? source->toString() : PkString())
 {
 }
 
-KoID::TranslatedString::TranslatedString(const QString &value)
-    : QString(value)
+KoID::TranslatedString::TranslatedString(const PkString &value)
+    : PkString(value)
 {
 }
 
-KoID::KoIDPrivate::KoIDPrivate(QString _id, const KLocalizedString &_name)
+KoID::KoIDPrivate::KoIDPrivate(PkString _id, const KLocalizedString &_name)
     : id(std::move(_id))
     , name(_name)
 {
 }
 
-KoID::KoIDPrivate::KoIDPrivate(QString _id, const QString &_name)
+KoID::KoIDPrivate::KoIDPrivate(PkString _id, const PkString &_name)
     : id(std::move(_id))
     , name(StorageType::init_value_tag(), _name)
 {
 }
 
 KoID::KoID()
-    : m_d(new KoIDPrivate(QString(), QString()))
+    : m_d(new KoIDPrivate(PkString(), PkString()))
 {
 }
 
-KoID::KoID(const QString &id, const QString &name)
+KoID::KoID(const PkString &id, const PkString &name)
     : m_d(new KoIDPrivate(id, name))
 {
 }
 
-KoID::KoID(const QString &id, const KLocalizedString &name)
+KoID::KoID(const PkString &id, const KLocalizedString &name)
     : m_d(new KoIDPrivate(id, name))
 {
 }
@@ -60,12 +60,12 @@ KoID &KoID::operator=(const KoID &rhs)
     return *this;
 }
 
-QString KoID::id() const
+PkString KoID::id() const
 {
     return m_d->id;
 }
 
-QString KoID::name() const
+PkString KoID::name() const
 {
     return *m_d->name;
 }

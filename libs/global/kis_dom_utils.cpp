@@ -13,10 +13,10 @@
 
 namespace KisDomUtils {
 
-void saveValue(QDomElement *parent, const QString &tag, const QSize &size)
+void saveValue(PkXmlElement *parent, const PkString &tag, const PkSize &size)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "size");
@@ -25,10 +25,10 @@ void saveValue(QDomElement *parent, const QString &tag, const QSize &size)
     e.setAttribute("h", toString(size.height()));
 }
 
-void saveValue(QDomElement *parent, const QString &tag, const QRect &rc)
+void saveValue(PkXmlElement *parent, const PkString &tag, const PkRect &rc)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "rect");
@@ -39,10 +39,10 @@ void saveValue(QDomElement *parent, const QString &tag, const QRect &rc)
     e.setAttribute("h", toString(rc.height()));
 }
 
-void saveValue(QDomElement *parent, const QString &tag, const QRectF &rc)
+void saveValue(PkXmlElement *parent, const PkString &tag, const PkRectF &rc)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "rectf");
@@ -53,10 +53,10 @@ void saveValue(QDomElement *parent, const QString &tag, const QRectF &rc)
     e.setAttribute("h", toString(rc.height()));
 }
 
-void saveValue(QDomElement *parent, const QString &tag, const QPoint &pt)
+void saveValue(PkXmlElement *parent, const PkString &tag, const PkPoint &pt)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "point");
@@ -65,10 +65,10 @@ void saveValue(QDomElement *parent, const QString &tag, const QPoint &pt)
     e.setAttribute("y", toString(pt.y()));
 }
 
-void saveValue(QDomElement *parent, const QString &tag, const QPointF &pt)
+void saveValue(PkXmlElement *parent, const PkString &tag, const PkPointF &pt)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "pointf");
@@ -77,10 +77,10 @@ void saveValue(QDomElement *parent, const QString &tag, const QPointF &pt)
     e.setAttribute("y", toString(pt.y()));
 }
 
-void saveValue(QDomElement *parent, const QString &tag, const QVector3D &pt)
+void saveValue(PkXmlElement *parent, const PkString &tag, const PkVector3D &pt)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "vector3d");
@@ -90,10 +90,10 @@ void saveValue(QDomElement *parent, const QString &tag, const QVector3D &pt)
     e.setAttribute("z", toString(pt.z()));
 }
 
-void saveValue(QDomElement *parent, const QString &tag, const QTransform &t)
+void saveValue(PkXmlElement *parent, const PkString &tag, const PkTransform &t)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "transform");
@@ -111,21 +111,21 @@ void saveValue(QDomElement *parent, const QString &tag, const QTransform &t)
     e.setAttribute("m33", toString(t.m33()));
 }
 
-void saveValue(QDomElement *parent, const QString &tag, const QColor &c)
+void saveValue(PkXmlElement *parent, const PkString &tag, const PkColor &c)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "qcolor");
-    e.setAttribute("value", c.name(QColor::HexArgb));
+    e.setAttribute("value", c.name(PkColor::HexArgb));
 }
 
-bool findOnlyElement(const QDomElement &parent, const QString &tag, QDomElement *el, QStringList *errorMessages)
+bool findOnlyElement(const PkXmlElement &parent, const PkString &tag, PkXmlElement *el, PkStringList *errorMessages)
 {
-    QDomNodeList list = parent.elementsByTagName(tag);
+    PkXmlNodeList list = parent.elementsByTagName(tag);
     if (list.size() != 1 || !list.at(0).isElement()) {
-        QString msg = i18n("Could not find \"%1\" XML tag in \"%2\"", tag, parent.tagName());
+        PkString msg = i18n("Could not find \"%1\" XML tag in \"%2\"", tag, parent.tagName());
         if (errorMessages) {
             *errorMessages << msg;
         } else {
@@ -139,8 +139,8 @@ bool findOnlyElement(const QDomElement &parent, const QString &tag, QDomElement 
     return true;
 }
 
-bool removeElements(QDomElement &parent, const QString &tag) {
-    QDomNodeList list = parent.elementsByTagName(tag);
+bool removeElements(PkXmlElement &parent, const PkString &tag) {
+    PkXmlNodeList list = parent.elementsByTagName(tag);
     KIS_SAFE_ASSERT_RECOVER_NOOP(list.size() <= 1);
 
     for (int i = 0; i < list.size(); i++) {
@@ -151,9 +151,9 @@ bool removeElements(QDomElement &parent, const QString &tag) {
 }
 
 namespace Private {
-    bool checkType(const QDomElement &e, const QString &expectedType)
+    bool checkType(const PkXmlElement &e, const PkString &expectedType)
     {
-        QString type = e.attribute("type", "unknown-type");
+        PkString type = e.attribute("type", "unknown-type");
         if (type != expectedType) {
             warnKrita << i18n("Error: incorrect type (%2) for value %1. Expected %3", e.tagName(), type, expectedType);
             return false;
@@ -163,21 +163,21 @@ namespace Private {
     }
 }
 
-bool loadValue(const QDomElement &e, float *v)
+bool loadValue(const PkXmlElement &e, float *v)
 {
     if (!Private::checkType(e, "value")) return false;
     *v = toDouble(e.attribute("value", "0"));
     return true;
 }
 
-bool loadValue(const QDomElement &e, double *v)
+bool loadValue(const PkXmlElement &e, double *v)
 {
     if (!Private::checkType(e, "value")) return false;
     *v = toDouble(e.attribute("value", "0"));
     return true;
 }
 
-bool loadValue(const QDomElement &e, QSize *size)
+bool loadValue(const PkXmlElement &e, PkSize *size)
 {
     if (!Private::checkType(e, "size")) return false;
 
@@ -187,7 +187,7 @@ bool loadValue(const QDomElement &e, QSize *size)
     return true;
 }
 
-bool loadValue(const QDomElement &e, QRect *rc)
+bool loadValue(const PkXmlElement &e, PkRect *rc)
 {
     if (!Private::checkType(e, "rect")) return false;
 
@@ -199,7 +199,7 @@ bool loadValue(const QDomElement &e, QRect *rc)
     return true;
 }
 
-bool loadValue(const QDomElement &e, QRectF *rc)
+bool loadValue(const PkXmlElement &e, PkRectF *rc)
 {
     if (!Private::checkType(e, "rectf")) return false;
 
@@ -211,7 +211,7 @@ bool loadValue(const QDomElement &e, QRectF *rc)
     return true;
 }
 
-bool loadValue(const QDomElement &e, QPoint *pt)
+bool loadValue(const PkXmlElement &e, PkPoint *pt)
 {
     if (!Private::checkType(e, "point")) return false;
 
@@ -221,7 +221,7 @@ bool loadValue(const QDomElement &e, QPoint *pt)
     return true;
 }
 
-bool loadValue(const QDomElement &e, QPointF *pt)
+bool loadValue(const PkXmlElement &e, PkPointF *pt)
 {
     if (!Private::checkType(e, "pointf")) return false;
 
@@ -231,7 +231,7 @@ bool loadValue(const QDomElement &e, QPointF *pt)
     return true;
 }
 
-bool loadValue(const QDomElement &e, QVector3D *pt)
+bool loadValue(const PkXmlElement &e, PkVector3D *pt)
 {
     if (!Private::checkType(e, "vector3d")) return false;
 
@@ -242,7 +242,7 @@ bool loadValue(const QDomElement &e, QVector3D *pt)
     return true;
 }
 
-bool loadValue(const QDomElement &e, QTransform *t)
+bool loadValue(const PkXmlElement &e, PkTransform *t)
 {
     if (!Private::checkType(e, "transform")) return false;
 
@@ -266,14 +266,14 @@ bool loadValue(const QDomElement &e, QTransform *t)
     return true;
 }
 
-bool loadValue(const QDomElement &e, QString *value)
+bool loadValue(const PkXmlElement &e, PkString *value)
 {
     if (!Private::checkType(e, "value")) return false;
     *value = e.attribute("value", "no-value");
     return true;
 }
 
-bool loadValue(const QDomElement &e, QColor *value)
+bool loadValue(const PkXmlElement &e, PkColor *value)
 {
     if (!Private::checkType(e, "qcolor")) return false;
 #if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
@@ -284,19 +284,19 @@ bool loadValue(const QDomElement &e, QColor *value)
     return true;
 }
 
-QDomElement findElementByAttribute(QDomNode parent,
-                                   const QString &tag,
-                                   const QString &attribute,
-                                   const QString &value)
+PkXmlElement findElementByAttribute(PkXmlNode parent,
+                                   const PkString &tag,
+                                   const PkString &attribute,
+                                   const PkString &value)
 {
-    QDomElement e;
+    PkXmlElement e;
     for (e = parent.firstChildElement(tag); !e.isNull(); e = e.nextSiblingElement(tag)) {
         if (value == e.attribute(attribute, "<undefined>")) {
             return e;
         }
     }
 
-    return QDomElement();
+    return PkXmlElement();
 }
 
 }

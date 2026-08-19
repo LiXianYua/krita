@@ -28,7 +28,7 @@
  * called. std::bind allows us to call any method of any class without
  * changing signature of the class or creating special wrappers.
  */
-class KRITAGLOBAL_EXPORT SignalToFunctionProxy : public QObject
+class KRITAGLOBAL_EXPORT SignalToFunctionProxy : public PkObject
 {
     Q_OBJECT
 public:
@@ -64,7 +64,7 @@ private:
  *        Now every time `proxy.start()` is called, the signal `timeout()` is
  *        forwarded to `someDestinationSlot()`
  */
-class KRITAGLOBAL_EXPORT FunctionToSignalProxy : public QObject
+class KRITAGLOBAL_EXPORT FunctionToSignalProxy : public PkObject
 {
     Q_OBJECT
 

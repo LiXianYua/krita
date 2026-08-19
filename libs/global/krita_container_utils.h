@@ -14,7 +14,7 @@ namespace KritaUtils
 {
 
 template <class T>
-    bool compareListsUnordered(const QList<T> &a, const QList<T> &b) {
+    bool compareListsUnordered(const PkList<T> &a, const PkList<T> &b) {
     if (a.size() != b.size()) return false;
 
     Q_FOREACH(const T &t, a) {

@@ -23,9 +23,9 @@
  * WARNING: After creation this object moves itself into the main
  *          thread, so one must *not* delete it explicitly. Use
  *          deleteLater() instead. Moving into another thread is
- *          another reason why it cannot have parent QObject.
+ *          another reason why it cannot have parent PkObject.
  */
-class KRITAGLOBAL_EXPORT KisThreadSafeSignalCompressor : public QObject
+class KRITAGLOBAL_EXPORT KisThreadSafeSignalCompressor : public PkObject
 {
     Q_OBJECT
 public:

@@ -29,7 +29,7 @@ static const char* const unitNameList[KoUnit::TypeCount] =
     "px"
 };
 
-QString KoUnit::unitDescription(KoUnit::Type type)
+PkString KoUnit::unitDescription(KoUnit::Type type)
 {
     switch (type) {
     case KoUnit::Millimeter:
@@ -66,9 +66,9 @@ static const KoUnit::Type typesInUi[KoUnit::TypeCount] =
     KoUnit::Pixel,
 };
 
-QStringList KoUnit::listOfUnitNameForUi(ListOptions listOptions)
+PkStringList KoUnit::listOfUnitNameForUi(ListOptions listOptions)
 {
-    QStringList lst;
+    PkStringList lst;
     for (int i = 0; i < KoUnit::TypeCount; ++i) {
         const Type type = typesInUi[i];
         if ((type != Pixel) || ((listOptions & HideMask) == ListAll))
@@ -188,9 +188,9 @@ qreal KoUnit::toUserValue(qreal ptValue, bool rounding) const
     }
 }
 
-QString KoUnit::toUserStringValue(qreal ptValue) const
+PkString KoUnit::toUserStringValue(qreal ptValue) const
 {
-    return QLocale().toString(toUserValue(ptValue));
+    return PkLocale().toString(toUserValue(ptValue));
 }
 
 qreal KoUnit::fromUserValue(qreal value) const
@@ -216,17 +216,17 @@ qreal KoUnit::fromUserValue(qreal value) const
     }
 }
 
-qreal KoUnit::fromUserValue(const QString &value, bool *ok) const
+qreal KoUnit::fromUserValue(const PkString &value, bool *ok) const
 {
-    return fromUserValue(QLocale().toDouble(value, ok));
+    return fromUserValue(PkLocale().toDouble(value, ok));
 }
 
-qreal KoUnit::parseValue(const QString& _value, qreal defaultVal)
+qreal KoUnit::parseValue(const PkString& _value, qreal defaultVal)
 {
     if (_value.isEmpty())
         return defaultVal;
 
-    QString value(_value.simplified());
+    PkString value(_value.simplified());
     value.remove(QLatin1Char(' '));
 
     int firstLetter = -1;
@@ -242,7 +242,7 @@ qreal KoUnit::parseValue(const QString& _value, qreal defaultVal)
     if (firstLetter == -1)
         return value.toDouble();
 
-    const QString symbol = value.mid(firstLetter);
+    const PkString symbol = value.mid(firstLetter);
     value.truncate(firstLetter);
     const qreal val = value.toDouble();
 
@@ -263,7 +263,7 @@ qreal KoUnit::parseValue(const QString& _value, qreal defaultVal)
     return defaultVal;
 }
 
-KoUnit KoUnit::fromSymbol(const QString &symbol, bool *ok)
+KoUnit KoUnit::fromSymbol(const PkString &symbol, bool *ok)
 {
     Type result = Point;
 
@@ -339,17 +339,17 @@ qreal KoUnit::convertFromUnitToUnit(const qreal value, const KoUnit &fromUnit, c
 
 }
 
-QString KoUnit::symbol() const
+PkString KoUnit::symbol() const
 {
     return QLatin1String(unitNameList[m_type]);
 }
 
-qreal KoUnit::parseAngle(const QString& _value, qreal defaultVal)
+qreal KoUnit::parseAngle(const PkString& _value, qreal defaultVal)
 {
     if (_value.isEmpty())
         return defaultVal;
 
-    QString value(_value.simplified());
+    PkString value(_value.simplified());
     value.remove(QLatin1Char(' '));
 
     int firstLetter = -1;
@@ -365,7 +365,7 @@ qreal KoUnit::parseAngle(const QString& _value, qreal defaultVal)
     if (firstLetter == -1)
         return value.toDouble();
 
-    const QString type = value.mid(firstLetter);
+    const PkString type = value.mid(firstLetter);
     value.truncate(firstLetter);
     const qreal val = value.toDouble();
 
@@ -379,12 +379,12 @@ qreal KoUnit::parseAngle(const QString& _value, qreal defaultVal)
     return defaultVal;
 }
 
-qreal KoUnit::approxTransformScale(const QTransform &t)
+qreal KoUnit::approxTransformScale(const PkTransform &t)
 {
     return std::sqrt(qAbs(t.determinant()));
 }
 
-void KoUnit::adjustByPixelTransform(const QTransform &t)
+void KoUnit::adjustByPixelTransform(const PkTransform &t)
 {
     m_pixelConversion *= approxTransformScale(t);
 }

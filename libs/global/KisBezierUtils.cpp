@@ -26,14 +26,14 @@
 namespace KisBezierUtils
 {
 
-QVector<qreal> linearizeCurve(const PkPointF p0, const PkPointF p1, const PkPointF p2, const PkPointF p3, const qreal eps)
+PkVector<qreal> linearizeCurve(const PkPointF p0, const PkPointF p1, const PkPointF p2, const PkPointF p3, const qreal eps)
 {
     const qreal minStepSize = 2.0 / kisDistance(p0, p3);
 
-    QVector<qreal> steps;
+    PkVector<qreal> steps;
     steps << 0.0;
 
-    QStack<std::tuple<PkPointF, PkPointF, qreal>> stackedPoints;
+    PkStack<std::tuple<PkPointF, PkPointF, qreal>> stackedPoints;
     stackedPoints.push(std::make_tuple(p3, 3 * (p3 - p2), 1.0));
 
     PkPointF lastP = p0;
@@ -65,9 +65,9 @@ QVector<qreal> linearizeCurve(const PkPointF p0, const PkPointF p1, const PkPoin
     return steps;
 }
 
-QVector<qreal> mergeLinearizationSteps(const QVector<qreal> &a, const QVector<qreal> &b)
+PkVector<qreal> mergeLinearizationSteps(const PkVector<qreal> &a, const PkVector<qreal> &b)
 {
-    QVector<qreal> result;
+    PkVector<qreal> result;
 
     std::merge(a.constBegin(), a.constEnd(),
                b.constBegin(), b.constEnd(),
@@ -133,7 +133,7 @@ public:
         if (! deg)
             return PkPointF();
 
-        QVector<QVector<PkPointF> > Vtemp(deg + 1);
+        PkVector<PkVector<PkPointF> > Vtemp(deg + 1);
         for (int i = 0; i <= deg; ++i)
             Vtemp[i].resize(deg + 1);
 
@@ -166,9 +166,9 @@ public:
         return (Vtemp[deg][0]);
     }
 
-    QList<qreal> roots(int depth = 0) const
+    PkList<qreal> roots(int depth = 0) const
     {
-        QList<qreal> rootParams;
+        PkList<qreal> rootParams;
 
         if (! degree())
             return rootParams;
@@ -208,7 +208,7 @@ public:
         return rootParams;
     }
 
-    static uint controlPolygonZeros(const QList<PkPointF> &controlPoints)
+    static uint controlPolygonZeros(const PkList<PkPointF> &controlPoints)
     {
         int controlPointCount = controlPoints.count();
         if (controlPointCount < 2)
@@ -309,16 +309,16 @@ public:
     {
         int index = 0;
         Q_FOREACH (const PkPointF &p, points) {
-            qDebug() << QString("P%1 ").arg(index++) << p;
+            qDebug() << PkString("P%1 ").arg(index++) << p;
         }
     }
 #endif
 
 private:
-    QList<PkPointF> points;
+    PkList<PkPointF> points;
 };
 
-qreal nearestPoint(const QList<PkPointF> controlPoints, const PkPointF &point, qreal *resultDistance, PkPointF *resultPoint)
+qreal nearestPoint(const PkList<PkPointF> controlPoints, const PkPointF &point, qreal *resultDistance, PkPointF *resultPoint)
 {
     const int deg = controlPoints.size() - 1;
 
@@ -375,7 +375,7 @@ qreal nearestPoint(const QList<PkPointF> controlPoints, const PkPointF &point, q
     * This Bernstein-Bezier polynom representation can now be solved for its roots.
     */
 
-    QList<PkPointF> ctlPoints = controlPoints;
+    PkList<PkPointF> ctlPoints = controlPoints;
 
     // Calculate the c_i = point(i) - P.
     PkPointF * c_i = new PkPointF[ deg + 1 ];
@@ -437,7 +437,7 @@ qreal nearestPoint(const QList<PkPointF> controlPoints, const PkPointF &point, q
     delete[] products;
 
     // Find roots.
-    QList<qreal> rootParams = newCurve.roots();
+    PkList<qreal> rootParams = newCurve.roots();
 
     // Now compare the distances of the candidate points.
 
@@ -485,7 +485,7 @@ qreal nearestPoint(const QList<PkPointF> controlPoints, const PkPointF &point, q
     return resultParam;
 }
 
-int controlPolygonZeros(const QList<PkPointF> &controlPoints)
+int controlPolygonZeros(const PkList<PkPointF> &controlPoints)
 {
     return static_cast<int>(BezierSegment::controlPolygonZeros(controlPoints));
 }
@@ -1196,11 +1196,11 @@ std::pair<PkPointF, PkPointF> removeBezierNode(const PkPointF &p0,
 
     return std::make_pair(resultP0, resultP1);
 }
-QVector<qreal> intersectWithLineImpl(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, const PkPointF &p3, const PkLineF &line, qreal eps, qreal alpha, qreal beta)
+PkVector<qreal> intersectWithLineImpl(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, const PkPointF &p3, const PkLineF &line, qreal eps, qreal alpha, qreal beta)
 {
     using KisAlgebra2D::intersectLines;
 
-    QVector<qreal> result;
+    PkVector<qreal> result;
 
     const qreal length =
             kisDistance(p0, p1) +
@@ -1230,14 +1230,14 @@ QVector<qreal> intersectWithLineImpl(const PkPointF &p0, const PkPointF &p1, con
     return result;
 }
 
-QVector<qreal> intersectWithLine(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, const PkPointF &p3, const PkLineF &line, qreal eps)
+PkVector<qreal> intersectWithLine(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, const PkPointF &p3, const PkLineF &line, qreal eps)
 {
     return intersectWithLineImpl(p0, p1, p2, p3, line, eps, 1.0, 0.0);
 }
 
 boost::optional<qreal> intersectWithLineNearest(const PkPointF &p0, const PkPointF &p1, const PkPointF &p2, const PkPointF &p3, const PkLineF &line, const PkPointF &nearestAnchor, qreal eps)
 {
-    QVector<qreal> result = intersectWithLine(p0, p1, p2, p3, line, eps);
+    PkVector<qreal> result = intersectWithLine(p0, p1, p2, p3, line, eps);
 
     qreal minDistance = std::numeric_limits<qreal>::max();
     boost::optional<qreal> nearestRoot;

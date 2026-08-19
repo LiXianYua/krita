@@ -1,4 +1,4 @@
-#include <QApplication>
+#include <PkApplication>
 /*
  *  SPDX-FileCopyrightText: 2023 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -7,7 +7,7 @@
 
 #include "KisCursorOverrideLock.h"
 
-KisCursorOverrideLockAdapter::KisCursorOverrideLockAdapter(const QCursor &cursor)
+KisCursorOverrideLockAdapter::KisCursorOverrideLockAdapter(const PkCursor &cursor)
     : m_cursor(cursor)
 {
 }

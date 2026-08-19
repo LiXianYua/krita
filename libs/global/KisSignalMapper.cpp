@@ -23,10 +23,10 @@ public:
     void _q_senderDestroyed() {
         q->removeMappings(q->sender());
     }
-    QHash<QObject *, int> intHash;
-    QHash<QObject *, QString> stringHash;
-    QHash<QObject *, QWidget*> widgetHash;
-    QHash<QObject *, QObject*> objectHash;
+    PkHash<PkObject *, int> intHash;
+    PkHash<PkObject *, PkString> stringHash;
+    PkHash<PkObject *, PkWidget*> widgetHash;
+    PkHash<PkObject *, PkObject*> objectHash;
 
     
     KisSignalMapper *q;
@@ -72,7 +72,7 @@ public:
     \snippet KisSignalMapper/buttonwidget.cpp 2
 
     A list of texts is passed to the constructor. A signal mapper is
-    constructed and for each text in the list a QPushButton is
+    constructed and for each text in the list a PkPushButton is
     created. We connect each button's \c clicked() signal to the
     signal mapper's map() slot, and create a mapping in the signal
     mapper from each button to the button's text. Finally we connect
@@ -87,14 +87,14 @@ public:
 
     \snippet KisSignalMapper/buttonwidget.cpp 3
 
-    \sa QObject, QButtonGroup, QActionGroup
+    \sa PkObject, PkButtonGroup, PkActionGroup
 */
 
 /*!
     Constructs a KisSignalMapper with parent \a parent.
 */
-KisSignalMapper::KisSignalMapper(QObject* parent)
-    : QObject(parent)
+KisSignalMapper::KisSignalMapper(PkObject* parent)
+    : PkObject(parent)
     , d(new Private(this))
 {
 }
@@ -114,7 +114,7 @@ KisSignalMapper::~KisSignalMapper()
 
     \sa mapping()
 */
-void KisSignalMapper::setMapping(QObject *sender, int id)
+void KisSignalMapper::setMapping(PkObject *sender, int id)
 {
     d->intHash.insert(sender, id);
     connect(sender, SIGNAL(destroyed()), this, SLOT(_q_senderDestroyed()));
@@ -126,7 +126,7 @@ void KisSignalMapper::setMapping(QObject *sender, int id)
 
     There may be at most one text for each sender.
 */
-void KisSignalMapper::setMapping(QObject *sender, const QString &text)
+void KisSignalMapper::setMapping(PkObject *sender, const PkString &text)
 {
     d->stringHash.insert(sender, text);
     connect(sender, SIGNAL(destroyed()), this, SLOT(_q_senderDestroyed()));
@@ -138,7 +138,7 @@ void KisSignalMapper::setMapping(QObject *sender, const QString &text)
 
     There may be at most one widget for each sender.
 */
-void KisSignalMapper::setMapping(QObject *sender, QWidget *widget)
+void KisSignalMapper::setMapping(PkObject *sender, PkWidget *widget)
 {
     d->widgetHash.insert(sender, widget);
     connect(sender, SIGNAL(destroyed()), this, SLOT(_q_senderDestroyed()));
@@ -150,18 +150,18 @@ void KisSignalMapper::setMapping(QObject *sender, QWidget *widget)
 
     There may be at most one object for each sender.
 */
-void KisSignalMapper::setMapping(QObject *sender, QObject *object)
+void KisSignalMapper::setMapping(PkObject *sender, PkObject *object)
 {
     d->objectHash.insert(sender, object);
     connect(sender, SIGNAL(destroyed()), this, SLOT(_q_senderDestroyed()));
 }
 
 /*!
-    Returns the sender QObject that is associated with the \a id.
+    Returns the sender PkObject that is associated with the \a id.
 
     \sa setMapping()
 */
-QObject *KisSignalMapper::mapping(int id) const
+PkObject *KisSignalMapper::mapping(int id) const
 {
     return d->intHash.key(id);
 }
@@ -169,7 +169,7 @@ QObject *KisSignalMapper::mapping(int id) const
 /*!
     \overload mapping()
 */
-QObject *KisSignalMapper::mapping(const QString &id) const
+PkObject *KisSignalMapper::mapping(const PkString &id) const
 {
     return d->stringHash.key(id);
 }
@@ -177,9 +177,9 @@ QObject *KisSignalMapper::mapping(const QString &id) const
 /*!
     \overload mapping()
 
-    Returns the sender QObject that is associated with the \a widget.
+    Returns the sender PkObject that is associated with the \a widget.
 */
-QObject *KisSignalMapper::mapping(QWidget *widget) const
+PkObject *KisSignalMapper::mapping(PkWidget *widget) const
 {
     return d->widgetHash.key(widget);
 }
@@ -187,9 +187,9 @@ QObject *KisSignalMapper::mapping(QWidget *widget) const
 /*!
     \overload mapping()
 
-    Returns the sender QObject that is associated with the \a object.
+    Returns the sender PkObject that is associated with the \a object.
 */
-QObject *KisSignalMapper::mapping(QObject *object) const
+PkObject *KisSignalMapper::mapping(PkObject *object) const
 {
     return d->objectHash.key(object);
 }
@@ -202,7 +202,7 @@ QObject *KisSignalMapper::mapping(QObject *object) const
     \note This does not disconnect any signals. If \a sender is not destroyed
     then this will need to be done explicitly if required.
 */
-void KisSignalMapper::removeMappings(QObject *sender)
+void KisSignalMapper::removeMappings(PkObject *sender)
 {
     d->intHash.remove(sender);
     d->stringHash.remove(sender);
@@ -218,7 +218,7 @@ void KisSignalMapper::map() { map(sender()); }
 /*!
     This slot emits signals based on the \a sender object.
 */
-void KisSignalMapper::map(QObject *sender)
+void KisSignalMapper::map(PkObject *sender)
 {
     if (d->intHash.contains(sender))
         Q_EMIT mapped(d->intHash.value(sender));
@@ -241,7 +241,7 @@ void KisSignalMapper::map(QObject *sender)
 */
 
 /*!
-    \fn void KisSignalMapper::mapped(const QString &text)
+    \fn void KisSignalMapper::mapped(const PkString &text)
 
     This signal is emitted when map() is signalled from an object that
     has a string mapping set. The object's mapped string is passed in
@@ -251,7 +251,7 @@ void KisSignalMapper::map(QObject *sender)
 */
 
 /*!
-    \fn void KisSignalMapper::mapped(QWidget *widget)
+    \fn void KisSignalMapper::mapped(PkWidget *widget)
 
     This signal is emitted when map() is signalled from an object that
     has a widget mapping set. The object's mapped widget is passed in
@@ -261,7 +261,7 @@ void KisSignalMapper::map(QObject *sender)
 */
 
 /*!
-    \fn void KisSignalMapper::mapped(QObject *object)
+    \fn void KisSignalMapper::mapped(PkObject *object)
 
     This signal is emitted when map() is signalled from an object that
     has an object mapping set. The object provided by the map is passed in

@@ -13,7 +13,7 @@
 #include <PkVector.h>
 
 /**
- * A special wrapper class that represents a connection between two QObject objects.
+ * A special wrapper class that represents a connection between two PkObject objects.
  * It creates the connection on the construction and disconnects it on destruction.
  *
  * WARNING: never use PkScopedPointer::reset() for updating the
@@ -42,21 +42,21 @@ public:
     template<class Sender, class Signal, class Receiver, class Method>
     inline KisSignalAutoConnection(Sender sender, Signal signal,
                                   Receiver receiver, Method method,
-                                  Qt::ConnectionType type = Qt::AutoConnection)
-        : m_connection(QObject::connect(sender, signal, receiver, method, type))
+                                  Pk::ConnectionType type = Pk::AutoConnection)
+        : m_connection(PkObject::connect(sender, signal, receiver, method, type))
     {
     }
 
     inline ~KisSignalAutoConnection()
     {
-        QObject::disconnect(m_connection);
+        PkObject::disconnect(m_connection);
     }
 
 private:
     KisSignalAutoConnection(const KisSignalAutoConnection &rhs);
 
 private:
-    QMetaObject::Connection m_connection;
+    PkMetaObject::Connection m_connection;
 };
 
 typedef PkSharedPointer<KisSignalAutoConnection> KisSignalAutoConnectionSP;
@@ -80,7 +80,7 @@ public:
     template<class Sender, class Signal, class Receiver, class Method>
     inline void addConnection(Sender sender, Signal signal,
                               Receiver receiver, Method method,
-                              Qt::ConnectionType type = Qt::AutoConnection)
+                              Pk::ConnectionType type = Pk::AutoConnection)
     {
         m_connections.append(KisSignalAutoConnectionSP(
                                  new KisSignalAutoConnection(sender, signal,
@@ -98,7 +98,7 @@ public:
     {
         m_connections.append(KisSignalAutoConnectionSP(
                                  new KisSignalAutoConnection(sender, signal,
-                                                             receiver, method, Qt::UniqueConnection)));
+                                                             receiver, method, Pk::UniqueConnection)));
     }
 
     /**
@@ -113,7 +113,7 @@ public:
     }
 
 private:
-    QVector<KisSignalAutoConnectionSP> m_connections;
+    PkVector<KisSignalAutoConnectionSP> m_connections;
 };
 
 #endif /* __KIS_SIGNAL_AUTO_CONNECTOR_H */

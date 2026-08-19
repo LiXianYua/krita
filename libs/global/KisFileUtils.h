@@ -10,7 +10,7 @@
 #include "kritaglobal_export.h"
 #include <functional>
 
-class QString;
+class PkString;
 
 namespace KritaUtils {
 
@@ -21,11 +21,11 @@ namespace KritaUtils {
  * try to merge @p baseDir and @p filePath to form an absolute file
  * path
  */
-QString KRITAGLOBAL_EXPORT resolveAbsoluteFilePath(const QString &baseDir, const QString &filePath);
+PkString KRITAGLOBAL_EXPORT resolveAbsoluteFilePath(const PkString &baseDir, const PkString &filePath);
 
-QString KRITAGLOBAL_EXPORT deduplicateFileName(const QString &fileName,
-                                               const QString &separator,
-                                               std::function<bool(QString)> fileAllowedCallback);
+PkString KRITAGLOBAL_EXPORT deduplicateFileName(const PkString &fileName,
+                                               const PkString &separator,
+                                               std::function<bool(PkString)> fileAllowedCallback);
 }
 
 #endif // KISFILEUTILS_H

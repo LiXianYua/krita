@@ -13,7 +13,7 @@
 struct KisRandomSource::Private
 {
     Private()
-        : uniformSource(QRandomGenerator::global()->generate()) {}
+        : uniformSource(PkRandomGenerator::global()->generate()) {}
 
     Private(int seed)
         : uniformSource(seed) {}

@@ -41,16 +41,16 @@ public:
      * @param endIt iterator to the end of the source range
      * @return iteration pointing past the last element of the merged range
      */
-    static QVector<PkRect>::iterator mergeSparseRects(QVector<PkRect>::iterator beginIt, QVector<PkRect>::iterator endIt);
+    static PkVector<PkRect>::iterator mergeSparseRects(PkVector<PkRect>::iterator beginIt, PkVector<PkRect>::iterator endIt);
 
     /**
      * Simplifies \p rects in a way that they don't overlap anymore. The actual
      * resulting area may be larger than original \p rects, but not more than
      * \p gridSize in any dimension.
      */
-    static void approximateOverlappingRects(QVector<PkRect> &rects, int gridSize);
+    static void approximateOverlappingRects(PkVector<PkRect> &rects, int gridSize);
 
-    static void makeGridLikeRectsUnique(QVector<PkRect> &rects);
+    static void makeGridLikeRectsUnique(PkVector<PkRect> &rects);
 
 public:
     KisRegion() = default;
@@ -62,8 +62,8 @@ public:
      * @brief creates a region from a set of non-intersecting rectangles
      * @param rects rectangles that should be merged. Rectangles must not intersect.
      */
-    KisRegion(const QVector<PkRect> &rects);
-    KisRegion(QVector<PkRect> &&rects);
+    KisRegion(const PkVector<PkRect> &rects);
+    KisRegion(PkVector<PkRect> &&rects);
 
     KisRegion& operator=(const KisRegion &rhs);
     friend KRITAGLOBAL_EXPORT bool operator==(const KisRegion &lhs, const KisRegion &rhs);
@@ -71,7 +71,7 @@ public:
     KisRegion& operator&=(const PkRect &rect);
 
     PkRect boundingRect() const;
-    QVector<PkRect> rects() const;
+    PkVector<PkRect> rects() const;
     int rectCount() const;
     bool isEmpty() const;
 
@@ -87,13 +87,13 @@ public:
      * KisRegion may be larger than the original set of rects, but it is guaranteed
      * to cover it completely.
      */
-    static KisRegion fromOverlappingRects(const QVector<PkRect> &rects, int gridSize);
+    static KisRegion fromOverlappingRects(const PkVector<PkRect> &rects, int gridSize);
 
 private:
     void mergeAllRects();
 
 private:
-    QVector<PkRect> m_rects;
+    PkVector<PkRect> m_rects;
 };
 
 KRITAGLOBAL_EXPORT bool operator==(const KisRegion &lhs, const KisRegion &rhs);

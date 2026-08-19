@@ -16,7 +16,7 @@
  * An object that emits a signal to inform interested parties that the
  * configuration settings have changed.
  */
-class KRITAGLOBAL_EXPORT KisConfigNotifier : public QObject
+class KRITAGLOBAL_EXPORT KisConfigNotifier : public PkObject
 {
     Q_OBJECT
 public:
@@ -40,7 +40,7 @@ public:
     void notifyTouchPaintingChanged();
     void notifyColorSamplerPreviewStyleChanged();
 
-    void notifyColorThemeChanged(const QString &filename);
+    void notifyColorThemeChanged(const PkString &filename);
     void notifyLongPressChanged(bool enabled);
 
 #ifdef Q_OS_ANDROID
@@ -58,7 +58,7 @@ Q_SIGNALS:
     void colorHistoryModeChanged();
     void touchPaintingChanged();
     void sigColorSamplerPreviewStyleChanged();
-    void signalColorThemeChanged(const QString &filename);
+    void signalColorThemeChanged(const PkString &filename);
     void sigLongPressChanged(bool enabled);
 #ifdef Q_OS_ANDROID
     void sigUsePageUpDownMouseButtonEmulationWorkaroundChanged(bool enabled);

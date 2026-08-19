@@ -9,7 +9,7 @@
 
 #include "kritaglobal_export.h"
 
-class QString;
+class PkString;
 
 /**
  * A proxy interface for a real progress status reporting thing, either
@@ -26,8 +26,8 @@ public:
     virtual int maximum() const = 0;
     virtual void setValue(int value) = 0;
     virtual void setRange(int minimum, int maximum) = 0;
-    virtual void setFormat(const QString &format) = 0;
-    virtual void setAutoNestedName(const QString &name);
+    virtual void setFormat(const PkString &format) = 0;
+    virtual void setAutoNestedName(const PkString &name);
 };
 
 #endif

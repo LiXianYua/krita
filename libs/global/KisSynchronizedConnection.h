@@ -27,25 +27,25 @@
  * KisApplication will recognize this event type and postpone it until the
  * recursion state is over
  */
-struct KRITAGLOBAL_EXPORT KisSynchronizedConnectionEvent : public QEvent
+struct KRITAGLOBAL_EXPORT KisSynchronizedConnectionEvent : public PkEvent
 {
-    KisSynchronizedConnectionEvent(QObject *_destination);
+    KisSynchronizedConnectionEvent(PkObject *_destination);
     KisSynchronizedConnectionEvent(const KisSynchronizedConnectionEvent &rhs);
     ~KisSynchronizedConnectionEvent() override;
 
-    const PkPointer<QObject> destination;
+    const PkPointer<PkObject> destination;
 };
 
 /**
  * @brief A base class for KisSynchronizedConnection
  *
- * This class implements QEvent logic for KisSynchronizedConnection. Since
+ * This class implements PkEvent logic for KisSynchronizedConnection. Since
  * KisSynchronizedConnection is templated, it should be implemented fully
  * inline, but we don't want to expose our interactions with KisApplication.
  * Therefore we implement this logic in a separate non-templated class that
  * will be hidden in `kritaglobal`.
  */
-class KRITAGLOBAL_EXPORT KisSynchronizedConnectionBase : public QObject
+class KRITAGLOBAL_EXPORT KisSynchronizedConnectionBase : public PkObject
 {
 public:
     static int eventType();
@@ -64,7 +64,7 @@ public:
     static void forceDeliverAllSynchronizedEvents();
 
 protected:
-    bool event(QEvent *event) override;
+    bool event(PkEvent *event) override;
 
 protected:
     virtual void deliverEventToReceiver() = 0;
@@ -76,7 +76,7 @@ protected:
  * a recursive event processing loop.
  *
  * In several places in Krita we use queued signals for synchronizing
- * image changes to the GUI. In such cases we use Qt::DirectConnection
+ * image changes to the GUI. In such cases we use Pk::DirectConnection
  * to fetch some data from the image, wrap that into the signal
  * parameters and post at the events queue as a queued signal. Obviously,
  * we expect this queued signal to be executed "after all the currently
@@ -84,7 +84,7 @@ protected:
  *
  * In Qt the queued signal will be executed "as soon as execution path
  * returns to the event loop". And it can also happen when a nested
- * event loop started (by opening a QDialog) or QApplication::processEvent()
+ * event loop started (by opening a PkDialog) or PkApplication::processEvent()
  * is called. It means that the processing of a queued signal can start
  * before the currently running GUI action is finished (because the current
  * task has been recursively overridden by KisBusyWaitBroker.
@@ -92,10 +92,10 @@ protected:
  * KisSynchronizedConnection is workaround to this problem. Every connection
  * made via KisSynchronizedConnection ensures that the target slot
  * is executed without any recursion. The class tried to resemble new
- * member-function-pointer-based API of QObject::connect.
+ * member-function-pointer-based API of PkObject::connect.
  *
  * In case the signal is emitted from the GUI thread, KisSynchronizedConnection
- * behaves as Qt::AutoConnection, that is, delivers event right away, skipping
+ * behaves as Pk::AutoConnection, that is, delivers event right away, skipping
  * the event loop.
  *
  * Under the hood the class uses a custom event (KisSynchronizedConnectionEvent),
@@ -121,7 +121,7 @@ protected:
  *        connection.connectInputSignal(image, &KisImage::sigRequestNodeReselection);
  *        connection.connectOutputSlot(nodeManager, &KisNodeManager::slotImageRequestNodeReselection)
  *
- *        // if you want to connect them in one call (in QObject style)
+ *        // if you want to connect them in one call (in PkObject style)
  *        connection.connectSync(image, &KisImage::sigRequestNodeReselection,
  *                               nodeManager, &KisNodeManager::slotImageRequestNodeReselection);
  *
@@ -164,22 +164,22 @@ public:
      * Connect input signal to the connection
      *
      * This part of the connection is based on Qt-signal mechanism, therefore
-     * @p object should be convertible into `const QObject*`.
+     * @p object should be convertible into `const PkObject*`.
      */
     template <typename Dptr, typename C, typename R, typename ...MemFnArgs>
     void connectInputSignal(Dptr object, R (C::* memfn)(MemFnArgs...)) {
         static_assert (std::is_convertible<Dptr, const C*>::value, "Source object should be convertible into the base of the member pointer");
-        static_assert (std::is_convertible<Dptr, const QObject*>::value, "Source object should be convertible into QObject");
+        static_assert (std::is_convertible<Dptr, const PkObject*>::value, "Source object should be convertible into PkObject");
 
-        QObject::connect(static_cast<const C*>(object), memfn,
-                         this, &KisSynchronizedConnection::start, Qt::DirectConnection);
+        PkObject::connect(static_cast<const C*>(object), memfn,
+                         this, &KisSynchronizedConnection::start, Pk::DirectConnection);
     }
 
     /**
      * Connect output slot to the connection
      *
      * Since destination slot doesn't use Qt-signal machinery, the destination
-     * object shouldn't necessarily be a QObject. It should just be a member
+     * object shouldn't necessarily be a PkObject. It should just be a member
      * function with a compatible signature.
      */
     template <typename Dptr, typename C, typename R, typename ...MemFnArgs>

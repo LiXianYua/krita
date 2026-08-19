@@ -8,8 +8,8 @@
 
 KisAndroidExitInfo KisAndroidExitInfo::getLast()
 {
-    QAndroidJniEnvironment env;
-    QAndroidJniObject activity = QAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative",
+    PkAndroidJniEnvironment env;
+    PkAndroidJniObject activity = PkAndroidJniObject::callStaticObjectMethod("org/qtproject/qt5/android/QtNative",
                                                                            "activity",
                                                                            "()Landroid/app/Activity;");
     if (env->ExceptionCheck()) {
@@ -22,7 +22,7 @@ KisAndroidExitInfo KisAndroidExitInfo::getLast()
         return KisAndroidExitInfo();
     }
 
-    QAndroidJniObject exitInfo =
+    PkAndroidJniObject exitInfo =
         activity.callObjectMethod("getLastApplicationExitInfo", "()Landroid/app/ApplicationExitInfo;");
     if (env->ExceptionCheck()) {
         qWarning("KisAndroidExitInfo::getLast: JNI exception in getLastApplicationExitInfo");
@@ -58,9 +58,9 @@ KisAndroidExitInfo KisAndroidExitInfo::getLast()
         importanceCode = -1;
     }
 
-    QString description;
+    PkString description;
     {
-        QAndroidJniObject descriptionObject = exitInfo.callObjectMethod("getDescription", "()Ljava/lang/String;");
+        PkAndroidJniObject descriptionObject = exitInfo.callObjectMethod("getDescription", "()Ljava/lang/String;");
         if (env->ExceptionCheck()) {
             qWarning("KisAndroidExitInfo::getLast: JNI exception in getDescription");
             env->ExceptionDescribe();
@@ -84,7 +84,7 @@ KisAndroidExitInfo::KisAndroidExitInfo()
 KisAndroidExitInfo::KisAndroidExitInfo(int reasonCode,
                                        int exitOrSignalCode,
                                        int importanceCode,
-                                       const QString &description)
+                                       const PkString &description)
     : m_description(description)
     , m_reasonCode(reasonCode)
     , m_exitOrSignalCode(exitOrSignalCode)
@@ -93,126 +93,126 @@ KisAndroidExitInfo::KisAndroidExitInfo(int reasonCode,
 {
 }
 
-QString KisAndroidExitInfo::buildLogString() const
+PkString KisAndroidExitInfo::buildLogString() const
 {
     if (!isValid()) {
-        return QString();
+        return PkString();
     }
 
-    QString message;
+    PkString message;
 
-    message.append(QStringLiteral("reason %1").arg(m_reasonCode));
+    message.append(PkString("reason %1").arg(m_reasonCode));
     switch (m_reasonCode) {
     case int(Reason::Unknown):
-        message.append(QStringLiteral(" (UNKNOWN)"));
+        message.append(PkString(" (UNKNOWN)"));
         break;
     case int(Reason::ExitSelf):
-        message.append(QStringLiteral(" (EXIT_SELF)"));
+        message.append(PkString(" (EXIT_SELF)"));
         break;
     case int(Reason::Signaled):
-        message.append(QStringLiteral(" (SIGNALED)"));
+        message.append(PkString(" (SIGNALED)"));
         break;
     case int(Reason::LowMemory):
-        message.append(QStringLiteral(" (LOW_MEMORY)"));
+        message.append(PkString(" (LOW_MEMORY)"));
         break;
     case int(Reason::Crash):
-        message.append(QStringLiteral(" (CRASH)"));
+        message.append(PkString(" (CRASH)"));
         break;
     case int(Reason::CrashNative):
-        message.append(QStringLiteral(" (CRASH_NATIVE)"));
+        message.append(PkString(" (CRASH_NATIVE)"));
         break;
     case int(Reason::Anr):
-        message.append(QStringLiteral(" (ANR)"));
+        message.append(PkString(" (ANR)"));
         break;
     case int(Reason::InitializationFailure):
-        message.append(QStringLiteral(" (INITIALIZATION_FAILURE)"));
+        message.append(PkString(" (INITIALIZATION_FAILURE)"));
         break;
     case int(Reason::PermissionChange):
-        message.append(QStringLiteral(" (PERMISSION_CHANGE)"));
+        message.append(PkString(" (PERMISSION_CHANGE)"));
         break;
     case int(Reason::ExcessiveResourceUsage):
-        message.append(QStringLiteral(" (EXCESSIVE_RESOURCE_USAGE)"));
+        message.append(PkString(" (EXCESSIVE_RESOURCE_USAGE)"));
         break;
     case int(Reason::UserRequested):
-        message.append(QStringLiteral(" (USER_REQUESTED)"));
+        message.append(PkString(" (USER_REQUESTED)"));
         break;
     case int(Reason::UserStopped):
-        message.append(QStringLiteral(" (USER_STOPPED)"));
+        message.append(PkString(" (USER_STOPPED)"));
         break;
     case int(Reason::DependencyDied):
-        message.append(QStringLiteral(" (DEPENDENCY_DIED)"));
+        message.append(PkString(" (DEPENDENCY_DIED)"));
         break;
     case int(Reason::Other):
-        message.append(QStringLiteral(" (OTHER)"));
+        message.append(PkString(" (OTHER)"));
         break;
     case int(Reason::Freezer):
-        message.append(QStringLiteral(" (FREEZER)"));
+        message.append(PkString(" (FREEZER)"));
         break;
     case int(Reason::PackageStateChange):
-        message.append(QStringLiteral(" (PACKAGE_STATE_CHANGE)"));
+        message.append(PkString(" (PACKAGE_STATE_CHANGE)"));
         break;
     case int(Reason::PackageUpdated):
-        message.append(QStringLiteral(" (PACKAGE_UPDATED)"));
+        message.append(PkString(" (PACKAGE_UPDATED)"));
         break;
     default:
         break;
     }
 
-    message.append(QStringLiteral(", importance %1").arg(m_importanceCode));
+    message.append(PkString(", importance %1").arg(m_importanceCode));
     switch (m_importanceCode) {
     case int(Importance::Foreground):
-        message.append(QStringLiteral(" (FOREGROUND)"));
+        message.append(PkString(" (FOREGROUND)"));
         break;
     case int(Importance::ForegroundService):
-        message.append(QStringLiteral(" (FOREGROUND_SERVICE)"));
+        message.append(PkString(" (FOREGROUND_SERVICE)"));
         break;
     case int(Importance::PerceptiblePre26):
-        message.append(QStringLiteral(" (PERCEPTIBLE_PRE_26)"));
+        message.append(PkString(" (PERCEPTIBLE_PRE_26)"));
         break;
     case int(Importance::TopSleepingPre28):
-        message.append(QStringLiteral(" (TOP_SLEEPING_PRE_28)"));
+        message.append(PkString(" (TOP_SLEEPING_PRE_28)"));
         break;
     case int(Importance::Visible):
-        message.append(QStringLiteral(" (VISIBLE)"));
+        message.append(PkString(" (VISIBLE)"));
         break;
     case int(Importance::Perceptible):
-        message.append(QStringLiteral(" (PERCEPTIBLE)"));
+        message.append(PkString(" (PERCEPTIBLE)"));
         break;
     case int(Importance::Service):
-        message.append(QStringLiteral(" (SERVICE)"));
+        message.append(PkString(" (SERVICE)"));
         break;
     case int(Importance::TopSleeping):
-        message.append(QStringLiteral(" (TOP_SLEEPING)"));
+        message.append(PkString(" (TOP_SLEEPING)"));
         break;
     case int(Importance::CantSaveState):
-        message.append(QStringLiteral(" (CANT_SAVE_STATE)"));
+        message.append(PkString(" (CANT_SAVE_STATE)"));
         break;
     case int(Importance::Cached):
-        message.append(QStringLiteral(" (CACHED)"));
+        message.append(PkString(" (CACHED)"));
         break;
     case int(Importance::Empty):
-        message.append(QStringLiteral(" (EMPTY)"));
+        message.append(PkString(" (EMPTY)"));
         break;
     case int(Importance::Gone):
-        message.append(QStringLiteral(" (GONE)"));
+        message.append(PkString(" (GONE)"));
         break;
     default:
         break;
     }
 
-    message.append(QStringLiteral(", exit code/signal %1").arg(m_exitOrSignalCode));
+    message.append(PkString(", exit code/signal %1").arg(m_exitOrSignalCode));
 
-    message.append(QStringLiteral(", low-memory kill report "));
+    message.append(PkString(", low-memory kill report "));
     if (KisAndroidUtils::isLowMemoryKillReportSupported()) {
-        message.append(QStringLiteral("supported"));
+        message.append(PkString("supported"));
     } else {
-        message.append(QStringLiteral("not supported"));
+        message.append(PkString("not supported"));
     }
 
     if (m_description.isEmpty()) {
-        message.append(QStringLiteral(", no description"));
+        message.append(PkString(", no description"));
     } else {
-        message.append(QStringLiteral(", description '%1'").arg(m_description));
+        message.append(PkString(", description '%1'").arg(m_description));
     }
 
     return message;

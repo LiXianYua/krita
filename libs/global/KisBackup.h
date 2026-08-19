@@ -1,4 +1,4 @@
-#include <QString>
+#include <PkString>
 /*
     This file is part of the KDE libraries
 
@@ -21,10 +21,10 @@ class KRITAGLOBAL_EXPORT KisBackup
 public:
 
     static bool backupFile(const PkString &filename, const PkString &backupDir = PkString());
-    static bool simpleBackupFile(const PkString &filename, const PkString &backupDir = PkString(), const PkString &backupExtension = QStringLiteral("~"));
+    static bool simpleBackupFile(const PkString &filename, const PkString &backupDir = PkString(), const PkString &backupExtension = PkString("~"));
     static bool numberedBackupFile(const PkString &filename,
                                    const PkString &backupDir = PkString(),
-                                   const PkString &backupExtension = QStringLiteral("~"),
+                                   const PkString &backupExtension = PkString("~"),
                                    const uint maxBackups = 10);
 };
 

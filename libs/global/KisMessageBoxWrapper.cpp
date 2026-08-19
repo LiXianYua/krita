@@ -14,19 +14,19 @@
 
 namespace KisMessageBoxWrapper {
 
-int doNotAskAgainMessageBoxWrapper(QMessageBox *messageBox, const QString &identifier)
+int doNotAskAgainMessageBoxWrapper(PkMessageBox *messageBox, const PkString &identifier)
 {
     KConfigGroup cfg(KSharedConfig::openConfig(), "DoNotAskAgain");
     bool showMessage = cfg.readEntry(identifier, true);
     if (showMessage) {
-        QCheckBox *cb = new QCheckBox(i18n("Don't ask this again"));
+        PkCheckBox *cb = new PkCheckBox(i18n("Don't ask this again"));
         messageBox->setCheckBox(cb);
         const int res = messageBox->exec();
-        cfg.writeEntry(identifier, cb->checkState() == Qt::CheckState::Unchecked);
+        cfg.writeEntry(identifier, cb->checkState() == Pk::CheckState::Unchecked);
         return res;
     }
     else {
-        return QMessageBox::Yes;
+        return PkMessageBox::Yes;
     }
 }
 

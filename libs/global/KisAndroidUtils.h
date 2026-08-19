@@ -25,8 +25,8 @@ KRITAGLOBAL_EXPORT bool isLowMemoryKillReportSupported();
 
 // Checks , logs and clears the pending exception in the Java Native Interface.
 // If an exception occurs while one is pending, the application dies. Some Qt
-// stuff, such as QDesktopServices, can throw JNI errors and don't clear them.
-KRITAGLOBAL_EXPORT void clearJniException(const QString &location);
+// stuff, such as PkDesktopServices, can throw JNI errors and don't clear them.
+KRITAGLOBAL_EXPORT void clearJniException(const PkString &location);
 
 // Checks whether we are in immersive mode, which is basically full-screen.
 KRITAGLOBAL_EXPORT bool isInFullScreen();

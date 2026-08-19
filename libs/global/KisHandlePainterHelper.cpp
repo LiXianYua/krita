@@ -6,14 +6,14 @@
 
 #include "KisHandlePainterHelper.h"
 
-#include <QPainter>
+#include <PkPainter>
 #include <PkPainterPath.h>
 #include "kis_algebra_2d.h"
 #include "kis_painting_tweaks.h"
 
 using KisPaintingTweaks::PenBrushSaver;
 
-KisHandlePainterHelper::KisHandlePainterHelper(QPainter *_painter, qreal handleRadius, int decorationThickness)
+KisHandlePainterHelper::KisHandlePainterHelper(PkPainter *_painter, qreal handleRadius, int decorationThickness)
     : m_painter(_painter),
       m_originalPainterTransform(m_painter->transform()),
       m_painterTransform(m_painter->transform()),
@@ -24,7 +24,7 @@ KisHandlePainterHelper::KisHandlePainterHelper(QPainter *_painter, qreal handleR
     init();
 }
 
-KisHandlePainterHelper::KisHandlePainterHelper(QPainter *_painter, const QTransform &originalPainterTransform, qreal handleRadius, int decorationThickness)
+KisHandlePainterHelper::KisHandlePainterHelper(PkPainter *_painter, const PkTransform &originalPainterTransform, qreal handleRadius, int decorationThickness)
     : m_painter(_painter),
       m_originalPainterTransform(originalPainterTransform),
       m_painterTransform(m_painter->transform()),
@@ -54,12 +54,12 @@ void KisHandlePainterHelper::init()
 {
     m_handleStyle = KisHandleStyle::inheritStyle();
 
-    m_painter->setTransform(QTransform());
+    m_painter->setTransform(PkTransform());
     m_handleTransform = m_decomposedMatrix.shearTransform() * m_decomposedMatrix.rotateTransform();
 
     if (m_handleRadius > 0.0) {
-        const QRectF handleRect(-m_handleRadius, -m_handleRadius, 2 * m_handleRadius, 2 * m_handleRadius);
-        m_handlePolygon = m_handleTransform.map(QPolygonF(handleRect));
+        const PkRectF handleRect(-m_handleRadius, -m_handleRadius, 2 * m_handleRadius, 2 * m_handleRadius);
+        m_handlePolygon = m_handleTransform.map(PkPolygonF(handleRect));
     }
 }
 
@@ -74,20 +74,20 @@ void KisHandlePainterHelper::setHandleStyle(const KisHandleStyle &style)
     m_handleStyle = style;
 }
 
-void KisHandlePainterHelper::drawHandleRect(const QPointF &center, qreal radius, QPoint offset = QPoint(0,0))
+void KisHandlePainterHelper::drawHandleRect(const PkPointF &center, qreal radius, PkPoint offset = PkPoint(0,0))
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
 
-    QRectF handleRect(-radius, -radius, 2 * radius, 2 * radius);
-    QPolygonF handlePolygon = m_handleTransform.map(QPolygonF(handleRect));
+    PkRectF handleRect(-radius, -radius, 2 * radius, 2 * radius);
+    PkPolygonF handlePolygon = m_handleTransform.map(PkPolygonF(handleRect));
     handlePolygon.translate(m_painterTransform.map(center));
 
     handlePolygon.translate(offset);
 
-    const QPen originalPen = m_painter->pen();
+    const PkPen originalPen = m_painter->pen();
 
     // temporarily set the pen width to 2 to avoid pixel shifting dropping pixels the border
-    QPen customPen = m_painter->pen();
+    PkPen customPen = m_painter->pen();
     customPen.setCosmetic(true);
     customPen.setWidth(4);
     m_painter->setPen(customPen);
@@ -101,10 +101,10 @@ void KisHandlePainterHelper::drawHandleRect(const QPointF &center, qreal radius,
     m_painter->setPen(originalPen);
 }
 
-void KisHandlePainterHelper::drawHandleCircle(const QPointF &center, qreal radius) {
+void KisHandlePainterHelper::drawHandleCircle(const PkPointF &center, qreal radius) {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
 
-    QRectF handleRect(-radius, -radius, 2 * radius, 2 * radius);
+    PkRectF handleRect(-radius, -radius, 2 * radius, 2 * radius);
     handleRect.translate(m_painterTransform.map(center));
 
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
@@ -114,31 +114,31 @@ void KisHandlePainterHelper::drawHandleCircle(const QPointF &center, qreal radiu
     }
 }
 
-void KisHandlePainterHelper::drawHandleCircle(const QPointF &center)
+void KisHandlePainterHelper::drawHandleCircle(const PkPointF &center)
 {
     drawHandleCircle(center, m_handleRadius);
 }
 
-void KisHandlePainterHelper::drawHandleSmallCircle(const QPointF &center)
+void KisHandlePainterHelper::drawHandleSmallCircle(const PkPointF &center)
 {
     drawHandleCircle(center, 0.7 * m_handleRadius);
 }
 
-void KisHandlePainterHelper::drawHandleLine(const QLineF &line, qreal width, QVector<qreal> dashPattern, qreal dashOffset)
+void KisHandlePainterHelper::drawHandleLine(const PkLineF &line, qreal width, PkVector<qreal> dashPattern, qreal dashOffset)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
 
-    QPainterPath p;
+    PkPainterPath p;
     p.moveTo(m_painterTransform.map(line.p1()));
     p.lineTo(m_painterTransform.map(line.p2()));
-    QPainterPathStroker s;
+    PkPainterPathStroker s;
     s.setWidth(width);
     if (!dashPattern.isEmpty()) {
         s.setDashPattern(dashPattern);
         s.setDashOffset(dashOffset);
     }
-    s.setCapStyle(Qt::RoundCap);
-    s.setJoinStyle(Qt::RoundJoin);
+    s.setCapStyle(Pk::RoundCap);
+    s.setJoinStyle(Pk::RoundJoin);
     p = s.createStroke(p);
 
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
@@ -149,9 +149,9 @@ void KisHandlePainterHelper::drawHandleLine(const QLineF &line, qreal width, QVe
     }
 }
 
-void KisHandlePainterHelper::drawHandleRect(const QPointF &center) {
+void KisHandlePainterHelper::drawHandleRect(const PkPointF &center) {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
-    QPolygonF paintingPolygon = m_handlePolygon.translated(m_painterTransform.map(center));
+    PkPolygonF paintingPolygon = m_handlePolygon.translated(m_painterTransform.map(center));
 
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
@@ -160,15 +160,15 @@ void KisHandlePainterHelper::drawHandleRect(const QPointF &center) {
     }
 }
 
-void KisHandlePainterHelper::drawGradientHandle(const QPointF &center, qreal radius) {
+void KisHandlePainterHelper::drawGradientHandle(const PkPointF &center, qreal radius) {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
 
-    QPolygonF handlePolygon;
+    PkPolygonF handlePolygon;
 
-    handlePolygon << QPointF(-radius, 0);
-    handlePolygon << QPointF(0, radius);
-    handlePolygon << QPointF(radius, 0);
-    handlePolygon << QPointF(0, -radius);
+    handlePolygon << PkPointF(-radius, 0);
+    handlePolygon << PkPointF(0, radius);
+    handlePolygon << PkPointF(radius, 0);
+    handlePolygon << PkPointF(0, -radius);
 
     handlePolygon = m_handleTransform.map(handlePolygon);
     handlePolygon.translate(m_painterTransform.map(center));
@@ -180,16 +180,16 @@ void KisHandlePainterHelper::drawGradientHandle(const QPointF &center, qreal rad
     }
 }
 
-void KisHandlePainterHelper::drawGradientHandle(const QPointF &center)
+void KisHandlePainterHelper::drawGradientHandle(const PkPointF &center)
 {
     drawGradientHandle(center, 1.41 * m_handleRadius);
 }
 
-void KisHandlePainterHelper::drawGradientCrossHandle(const QPointF &center, qreal radius) {
+void KisHandlePainterHelper::drawGradientCrossHandle(const PkPointF &center, qreal radius) {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
 
     { // Draw a cross
-        QPainterPath p;
+        PkPainterPath p;
         p.moveTo(-radius, -radius);
         p.lineTo(radius, radius);
         p.moveTo(radius, -radius);
@@ -208,11 +208,11 @@ void KisHandlePainterHelper::drawGradientCrossHandle(const QPointF &center, qrea
     { // Draw a square
         const qreal halfRadius = 0.5 * radius;
 
-        QPolygonF handlePolygon;
-        handlePolygon << QPointF(-halfRadius, 0);
-        handlePolygon << QPointF(0, halfRadius);
-        handlePolygon << QPointF(halfRadius, 0);
-        handlePolygon << QPointF(0, -halfRadius);
+        PkPolygonF handlePolygon;
+        handlePolygon << PkPointF(-halfRadius, 0);
+        handlePolygon << PkPointF(0, halfRadius);
+        handlePolygon << PkPointF(halfRadius, 0);
+        handlePolygon << PkPointF(0, -halfRadius);
 
         handlePolygon = m_handleTransform.map(handlePolygon);
         handlePolygon.translate(m_painterTransform.map(center));
@@ -225,16 +225,16 @@ void KisHandlePainterHelper::drawGradientCrossHandle(const QPointF &center, qrea
     }
 }
 
-void KisHandlePainterHelper::drawArrow(const QPointF &pos, const QPointF &from, qreal radius)
+void KisHandlePainterHelper::drawArrow(const PkPointF &pos, const PkPointF &from, qreal radius)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
 
-    QPainterPath p;
+    PkPainterPath p;
 
-    QLineF line(pos, from);
+    PkLineF line(pos, from);
     line.setLength(radius);
 
-    QPointF norm = KisAlgebra2D::leftUnitNormal(pos - from);
+    PkPointF norm = KisAlgebra2D::leftUnitNormal(pos - from);
     norm *= 0.34 * radius;
 
     p.moveTo(line.p2() + norm);
@@ -252,11 +252,11 @@ void KisHandlePainterHelper::drawArrow(const QPointF &pos, const QPointF &from, 
     }
 }
 
-void KisHandlePainterHelper::drawGradientArrow(const QPointF &start, const QPointF &end, qreal radius)
+void KisHandlePainterHelper::drawGradientArrow(const PkPointF &start, const PkPointF &end, qreal radius)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
 
-    QPainterPath p;
+    PkPainterPath p;
     p.moveTo(start);
     p.lineTo(end);
     p = m_painterTransform.map(p);
@@ -268,7 +268,7 @@ void KisHandlePainterHelper::drawGradientArrow(const QPointF &start, const QPoin
     }
 
     const qreal length = kisDistance(start, end);
-    const QPointF diff = end - start;
+    const PkPointF diff = end - start;
 
     if (length > 5 * radius) {
         drawArrow(start + 0.33 * diff, start, radius);
@@ -278,10 +278,10 @@ void KisHandlePainterHelper::drawGradientArrow(const QPointF &start, const QPoin
     }
 }
 
-void KisHandlePainterHelper::drawRubberLine(const QPolygonF &poly) {
+void KisHandlePainterHelper::drawRubberLine(const PkPolygonF &poly) {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
 
-    QPolygonF paintingPolygon = m_painterTransform.map(poly);
+    PkPolygonF paintingPolygon = m_painterTransform.map(poly);
 
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.lineIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
@@ -290,17 +290,17 @@ void KisHandlePainterHelper::drawRubberLine(const QPolygonF &poly) {
     }
 }
 
-void KisHandlePainterHelper::drawConnectionLine(const QLineF &line)
+void KisHandlePainterHelper::drawConnectionLine(const PkLineF &line)
 {
     drawConnectionLine(line.p1(), line.p2());
 }
 
-void KisHandlePainterHelper::drawConnectionLine(const QPointF &p1, const QPointF &p2)
+void KisHandlePainterHelper::drawConnectionLine(const PkPointF &p1, const PkPointF &p2)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
 
-    QPointF realP1 = m_painterTransform.map(p1);
-    QPointF realP2 = m_painterTransform.map(p2);
+    PkPointF realP1 = m_painterTransform.map(p1);
+    PkPointF realP2 = m_painterTransform.map(p2);
 
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.lineIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
@@ -309,9 +309,9 @@ void KisHandlePainterHelper::drawConnectionLine(const QPointF &p1, const QPointF
     }
 }
 
-void KisHandlePainterHelper::drawPath(const QPainterPath &path)
+void KisHandlePainterHelper::drawPath(const PkPainterPath &path)
 {
-    const QPainterPath realPath = m_painterTransform.map(path);
+    const PkPainterPath realPath = m_painterTransform.map(path);
 
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.lineIterations) {
         it.stylePair.first.setWidthF(it.stylePair.first.widthF() * m_decorationThickness);
@@ -320,37 +320,37 @@ void KisHandlePainterHelper::drawPath(const QPainterPath &path)
     }
 }
 
-void KisHandlePainterHelper::drawPixmap(const QPixmap &pixmap, QPointF position, int size, QRectF sourceRect)
+void KisHandlePainterHelper::drawPixmap(const PkPixmap &pixmap, PkPointF position, int size, PkRectF sourceRect)
 {
-    QPointF handlePolygon = m_painterTransform.map(position);
+    PkPointF handlePolygon = m_painterTransform.map(position);
 
-    QPoint offsetPosition(0, 40);
+    PkPoint offsetPosition(0, 40);
     handlePolygon += offsetPosition;
 
-    handlePolygon -= QPointF(size*0.5,size*0.5);
+    handlePolygon -= PkPointF(size*0.5,size*0.5);
 
-    m_painter->drawPixmap(QRect(handlePolygon.x(), handlePolygon.y(),
+    m_painter->drawPixmap(PkRect(handlePolygon.x(), handlePolygon.y(),
                                 size, size),
                                 pixmap,
                                 sourceRect);
 }
 
-void KisHandlePainterHelper::fillHandleRect(const QPointF &center, qreal radius, QColor fillColor, QPoint offset = QPoint(0,0))
+void KisHandlePainterHelper::fillHandleRect(const PkPointF &center, qreal radius, PkColor fillColor, PkPoint offset = PkPoint(0,0))
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_painter);
 
-    QRectF handleRect(-radius, -radius, 2 * radius, 2 * radius);
-    QPolygonF handlePolygon = m_handleTransform.map(QPolygonF(handleRect));
+    PkRectF handleRect(-radius, -radius, 2 * radius, 2 * radius);
+    PkPolygonF handlePolygon = m_handleTransform.map(PkPolygonF(handleRect));
     handlePolygon.translate(m_painterTransform.map(center));
 
-    QPainterPath painterPath;
+    PkPainterPath painterPath;
     painterPath.addPolygon(handlePolygon);
 
     // offset that happens after zoom transform. This means the offset will be the same, no matter the zoom level
     // this is good for UI elements that need to be below the bounding box
     painterPath.translate(offset);
 
-    const QPainterPath pathToSend = painterPath;
-    const QBrush brushStyle(fillColor);
+    const PkPainterPath pathToSend = painterPath;
+    const PkBrush brushStyle(fillColor);
     m_painter->fillPath(pathToSend, brushStyle);
 }

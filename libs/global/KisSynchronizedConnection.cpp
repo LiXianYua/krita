@@ -12,12 +12,12 @@
 
 /**
  * @brief The KisSynchronizedConnectionEventTypeRegistrar is a simple
- * class to register QEvent type in the Qt's system
+ * class to register PkEvent type in the Qt's system
  */
 struct KisSynchronizedConnectionEventTypeRegistrar
 {
     KisSynchronizedConnectionEventTypeRegistrar() {
-        eventType = QEvent::registerEventType(QEvent::User + 1000);
+        eventType = PkEvent::registerEventType(PkEvent::User + 1000);
     }
 
     int eventType = -1;
@@ -44,14 +44,14 @@ static KisBarrierCallbackContainer *s_barrier()
 /*            KisSynchronizedConnectionEvent                            */
 /************************************************************************/
 
-KisSynchronizedConnectionEvent::KisSynchronizedConnectionEvent(QObject *_destination)
-    : QEvent(QEvent::Type(s_instance()->eventType)),
+KisSynchronizedConnectionEvent::KisSynchronizedConnectionEvent(PkObject *_destination)
+    : PkEvent(PkEvent::Type(s_instance()->eventType)),
       destination(_destination)
 {
 }
 
 KisSynchronizedConnectionEvent::KisSynchronizedConnectionEvent(const KisSynchronizedConnectionEvent &rhs)
-    : QEvent(QEvent::Type(s_instance()->eventType)),
+    : PkEvent(PkEvent::Type(s_instance()->eventType)),
       destination(rhs.destination)
 {
 }
@@ -93,12 +93,12 @@ void KisSynchronizedConnectionBase::forceDeliverAllSynchronizedEvents()
      * whatever the state of the recursion is (this call is called from
      * python filters only)
      */
-    qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
+    qApp->processEvents(PkEventLoop::ExcludeUserInputEvents);
     KIS_SAFE_ASSERT_RECOVER_RETURN(s_barrier()->callback);
     s_barrier()->callback();
 }
 
-bool KisSynchronizedConnectionBase::event(QEvent *event)
+bool KisSynchronizedConnectionBase::event(PkEvent *event)
 {
     if (event->type() == s_instance()->eventType) {
         KisSynchronizedConnectionEvent *typedEvent =
@@ -109,7 +109,7 @@ bool KisSynchronizedConnectionBase::event(QEvent *event)
         return true;
     }
 
-    return QObject::event(event);
+    return PkObject::event(event);
 }
 
 void KisSynchronizedConnectionBase::postEvent()

@@ -19,10 +19,10 @@ PkDebug KisBezierMeshDetails::operator<<(PkDebug dbg, const BaseMeshNode &n) {
     return dbg.nospace();
 }
 
-void KisBezierMeshDetails::saveValue(QDomElement *parent, const QString &tag, const KisBezierMeshDetails::BaseMeshNode &node)
+void KisBezierMeshDetails::saveValue(PkXmlElement *parent, const PkString &tag, const KisBezierMeshDetails::BaseMeshNode &node)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "mesh-node");
@@ -33,7 +33,7 @@ void KisBezierMeshDetails::saveValue(QDomElement *parent, const QString &tag, co
     KisDomUtils::saveValue(&e, "bottom-control", node.bottomControl);
 }
 
-bool KisBezierMeshDetails::loadValue(const QDomElement &parent, KisBezierMeshDetails::BaseMeshNode *node)
+bool KisBezierMeshDetails::loadValue(const PkXmlElement &parent, KisBezierMeshDetails::BaseMeshNode *node)
 {
     if (!KisDomUtils::Private::checkType(parent, "mesh-node")) return false;
 

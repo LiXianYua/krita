@@ -36,7 +36,7 @@ PkPointF KisBezierPatch::globalToLocal(const PkPointF &pt) const
     return KisBezierUtils::calculateLocalPos(points, pt);
 }
 
-void KisBezierPatch::sampleRegularGrid(PkSize &gridSize, QVector<PkPointF> &origPoints, QVector<PkPointF> &transfPoints, const PkPointF &dstStep) const
+void KisBezierPatch::sampleRegularGrid(PkSize &gridSize, PkVector<PkPointF> &origPoints, PkVector<PkPointF> &transfPoints, const PkPointF &dstStep) const
 {
     using KisAlgebra2D::lerp;
     using KisBezierUtils::bezierCurve;
@@ -125,7 +125,7 @@ void KisBezierPatch::sampleRegularGrid(PkSize &gridSize, QVector<PkPointF> &orig
     }
 }
 
-void KisBezierPatch::sampleRegularGridSVG2(PkSize &gridSize, QVector<PkPointF> &origPoints, QVector<PkPointF> &transfPoints, const PkPointF &dstStep) const
+void KisBezierPatch::sampleRegularGridSVG2(PkSize &gridSize, PkVector<PkPointF> &origPoints, PkVector<PkPointF> &transfPoints, const PkPointF &dstStep) const
 {
     using KisAlgebra2D::lerp;
     using KisBezierUtils::bezierCurve;

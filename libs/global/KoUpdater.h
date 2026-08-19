@@ -33,7 +33,7 @@ class KoUpdaterPrivate;
  *
  * @see KoProgressUpdater::startSubtask()
  */
-class KRITAGLOBAL_EXPORT KoUpdater : public QObject, public KoProgressProxy {
+class KRITAGLOBAL_EXPORT KoUpdater : public PkObject, public KoProgressProxy {
 
     Q_OBJECT
 
@@ -75,8 +75,8 @@ public: // KoProgressProxy implementation
     int maximum() const override;
     void setValue( int value ) override;
     void setRange( int minimum, int maximum ) override;
-    void setFormat( const QString & format ) override;
-    void setAutoNestedName(const QString &name) override;
+    void setFormat( const PkString & format ) override;
+    void setAutoNestedName(const PkString &name) override;
 
 Q_SIGNALS:
 
@@ -86,7 +86,7 @@ Q_SIGNALS:
     /// emitted whenever the subtask has called setProgress on us
     void sigProgress( int percent );
 
-    void sigNestedNameChanged(const QString &value);
+    void sigNestedNameChanged(const PkString &value);
     void sigHasValidRangeChanged(bool value);
 
 protected:

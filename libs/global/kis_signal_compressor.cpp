@@ -33,21 +33,21 @@
 #include "kis_debug.h"
 
 KisSignalCompressor::KisSignalCompressor()
-    : QObject(0)
-    , m_timer(new QTimer(this))
+    : PkObject(0)
+    , m_timer(new PkTimer(this))
 {
     m_timer->setSingleShot(false);
     connect(m_timer, SIGNAL(timeout()), SLOT(slotTimerExpired()));
 }
 
-KisSignalCompressor::KisSignalCompressor(int delay, Mode mode, QObject *parent)
+KisSignalCompressor::KisSignalCompressor(int delay, Mode mode, PkObject *parent)
     : KisSignalCompressor(delay, mode, PRECISE_INTERVAL, parent)
 {
 }
 
-KisSignalCompressor::KisSignalCompressor(int delay, Mode mode, SlowHandlerMode slowHandlerMode, QObject *parent)
-    : QObject(parent),
-      m_timer(new QTimer(this)),
+KisSignalCompressor::KisSignalCompressor(int delay, Mode mode, SlowHandlerMode slowHandlerMode, PkObject *parent)
+    : PkObject(parent),
+      m_timer(new PkTimer(this)),
       m_mode(mode),
       m_slowHandlerMode(slowHandlerMode),
       m_timeout(delay)

@@ -63,18 +63,18 @@ struct KisBezierPatchParamToSourceSampler
         return {yCoord1, yCoord2};
     };
 
-    QPointF point(qreal xParam, qreal yParam) const
+    PkPointF point(qreal xParam, qreal yParam) const
     {
         using KisAlgebra2D::lerp;
 
         const Range xRange = this->xRange(xParam);
         const Range yRange = this->yRange(yParam);
 
-        return QPointF(lerp(xRange.start, xRange.end, yParam),
+        return PkPointF(lerp(xRange.start, xRange.end, yParam),
                        lerp(yRange.start, yRange.end, xParam));
     }
 
-    QPointF point(const QPointF &pt) const {
+    PkPointF point(const PkPointF &pt) const {
         return point(pt.x(), pt.y());
     }
 };

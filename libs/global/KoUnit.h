@@ -94,7 +94,7 @@ public:
     /// Convert a unit symbol string into a KoUnit
     /// @param symbol symbol to convert
     /// @param ok if set, it will be true if the unit was known, false if unknown
-    static KoUnit fromSymbol(const QString &symbol, bool *ok = 0);
+    static KoUnit fromSymbol(const PkString &symbol, bool *ok = 0);
 
     /** Construction requires initialization. The factor is for variable factor units like pixel */
     explicit KoUnit(Type unit = Point, qreal factor = 1.0) {
@@ -148,7 +148,7 @@ public:
 
     /// This method is the one to use to display a value in a dialog
     /// @return the value @p ptValue converted the unit and rounded, ready to be displayed
-    QString toUserStringValue(qreal ptValue) const;
+    PkString toUserStringValue(qreal ptValue) const;
 
     /// This method is the one to use to read a value from a dialog
     /// @return the value converted to points for internal use
@@ -159,28 +159,28 @@ public:
     /// @param ok if set, the pointed bool is set to true if the value could be
     /// converted to a qreal, and to false otherwise.
     /// @return the value converted to points for internal use
-    qreal fromUserValue(const QString &value, bool *ok = 0) const;
+    qreal fromUserValue(const PkString &value, bool *ok = 0) const;
 
     /// Get the description string of the given unit
-    static QString unitDescription(KoUnit::Type type);
+    static PkString unitDescription(KoUnit::Type type);
 
     /// Get the symbol string of the unit
-    QString symbol() const;
+    PkString symbol() const;
 
     /// Returns the list of unit types for the UI, controlled with the given @p listOptions.
-    static QStringList listOfUnitNameForUi(ListOptions listOptions = ListAll);
+    static PkStringList listOfUnitNameForUi(ListOptions listOptions = ListAll);
 
     /// Get the index of this unit in the list of unit types for the UI,
     /// if it is controlled with the given @p listOptions.
     int indexInListForUi(ListOptions listOptions = ListAll) const;
 
     /// parse common Krita and Odf values, like "10cm", "5mm" to pt
-    static qreal parseValue(const QString &value, qreal defaultVal = 0.0);
+    static qreal parseValue(const PkString &value, qreal defaultVal = 0.0);
 
     /// parse an angle to its value in degrees
-    static qreal parseAngle(const QString &value, qreal defaultVal = 0.0);
+    static qreal parseAngle(const PkString &value, qreal defaultVal = 0.0);
 
-    QString toString() const {
+    PkString toString() const {
         return symbol();
     }
 
@@ -193,14 +193,14 @@ public:
      * matrices. For combinations having shears and perspective the
      * value will be average for the point near CS origin.
      */
-    static qreal approxTransformScale(const QTransform &t);
+    static qreal approxTransformScale(const PkTransform &t);
 
     /**
      * Adjust the unit by pixel transformation applied to the
      * describing object. It multiplies the pixel coefficient by the
      * average scale of the matrix.
      */
-    void adjustByPixelTransform(const QTransform &t);
+    void adjustByPixelTransform(const PkTransform &t);
 
 private:
     Type m_type;

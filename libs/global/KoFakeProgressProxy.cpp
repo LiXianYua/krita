@@ -32,12 +32,12 @@ void KoFakeProgressProxy::setRange(int minimum, int maximum)
     Q_UNUSED(maximum);
 }
 
-void KoFakeProgressProxy::setFormat(const QString &format)
+void KoFakeProgressProxy::setFormat(const PkString &format)
 {
     Q_UNUSED(format);
 }
 
-void KoFakeProgressProxy::setAutoNestedName(const QString &name)
+void KoFakeProgressProxy::setAutoNestedName(const PkString &name)
 {
     Q_UNUSED(name);
 }

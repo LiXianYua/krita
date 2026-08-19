@@ -9,17 +9,17 @@
 
 #include "kritaglobal_export.h"
 
-class QPainter;
+class PkPainter;
 
 class KRITAGLOBAL_EXPORT KisQPainterStateSaver
 {
 public:
-    KisQPainterStateSaver(QPainter *painter);
+    KisQPainterStateSaver(PkPainter *painter);
     ~KisQPainterStateSaver();
 
 private:
     KisQPainterStateSaver(const KisQPainterStateSaver &rhs);
-    QPainter *m_painter;
+    PkPainter *m_painter;
 };
 
 #endif // KISQPAINTERSTATESAVER_H

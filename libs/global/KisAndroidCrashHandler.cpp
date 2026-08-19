@@ -28,11 +28,11 @@
 namespace KisAndroidCrashHandler {
 
 static const std::array<int, 6> signals = {SIGABRT, SIGBUS, SIGFPE, SIGSEGV, SIGSYS, SIGTERM};
-static QMap<int, struct sigaction> g_old_actions;
+static PkMap<int, struct sigaction> g_old_actions;
 
 // we need to have keep this object alive
 static const std::string path =
-    QString(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/kritacrashlog.txt").toStdString();
+    PkString(PkStandardPaths::writableLocation(PkStandardPaths::AppDataLocation) + "/kritacrashlog.txt").toStdString();
 static const char *crashlog_path = path.c_str();
 
 static bool g_handling_crash = false;

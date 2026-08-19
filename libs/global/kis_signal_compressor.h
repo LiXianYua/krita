@@ -14,7 +14,7 @@
 #include <PkElapsedTimer.h>
 #include <functional>
 
-class QTimer;
+class PkTimer;
 
 /**
  * Sets a timer to delay or throttle activation of a Qt slot. One example of
@@ -46,7 +46,7 @@ class QTimer;
  * The current implementation allows the timeout() to be delayed by up to 2 times
  * \p delay in certain situations (for details see cpp file).
  */
-class KRITAGLOBAL_EXPORT KisSignalCompressor : public QObject
+class KRITAGLOBAL_EXPORT KisSignalCompressor : public PkObject
 {
     Q_OBJECT
 
@@ -66,8 +66,8 @@ public:
 
 public:
     KisSignalCompressor();
-    KisSignalCompressor(int delay, Mode mode, QObject *parent = 0);
-    KisSignalCompressor(int delay, Mode mode, SlowHandlerMode slowHandlerMode, QObject *parent = 0);
+    KisSignalCompressor(int delay, Mode mode, PkObject *parent = 0);
+    KisSignalCompressor(int delay, Mode mode, SlowHandlerMode slowHandlerMode, PkObject *parent = 0);
     bool isActive() const;
     void setMode(Mode mode);
 
@@ -92,7 +92,7 @@ private:
     void setDelayImpl(int delay);
 
 private:
-    QTimer *m_timer = 0;
+    PkTimer *m_timer = 0;
     Mode m_mode = UNDEFINED;
     SlowHandlerMode m_slowHandlerMode = PRECISE_INTERVAL;
     bool m_signalsPending = false;

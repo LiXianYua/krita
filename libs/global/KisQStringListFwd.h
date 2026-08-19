@@ -11,14 +11,14 @@
 #include <cmath>
 
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-class QStringList;
+class PkStringList;
 #else
-class QString;
-class QByteArray;
-template <typename T> class QList;
-template<typename T> using QVector = QList<T>;
-using QStringList = QList<QString>;
-using QByteArrayList = QList<QByteArray>;
+class PkString;
+class PkByteArray;
+template <typename T> class PkList;
+template<typename T> using PkVector = PkList<T>;
+using PkStringList = PkList<PkString>;
+using PkByteArrayList = PkList<PkByteArray>;
 #endif
 
 #endif // KISQSTRINGLISTFWD_H

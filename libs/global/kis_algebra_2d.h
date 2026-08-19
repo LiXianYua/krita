@@ -178,7 +178,7 @@ inline qreal lazyRound<qreal>(qreal value)
  *       is reversed
  */
 template <class T>
-int polygonDirection(const QVector<T> &polygon) {
+int polygonDirection(const PkVector<T> &polygon) {
 
     typename PointTypeTraits<T>::value_type doubleSum = 0;
 
@@ -439,7 +439,7 @@ bool KRITAGLOBAL_EXPORT intersectLineRect(PkLineF &line, const PkRect rect, bool
 // the same but with a convex polygon; uses Cyrus-Beck algorithm
 bool KRITAGLOBAL_EXPORT intersectLineConvexPolygon(PkLineF &line, const PkPolygonF polygon, bool extendFirst, bool extendSecond);
 
-//QList<PkLineF> KRITAGLOBAL_EXPORT intersectLineConcavePolygon(const PkPolygonF polygon, const PkLineF& line, bool extendFirst, bool extendSecond);
+//PkList<PkLineF> KRITAGLOBAL_EXPORT intersectLineConcavePolygon(const PkPolygonF polygon, const PkLineF& line, bool extendFirst, bool extendSecond);
 
 /**
  * @brief Crop line to rect; if it doesn't intersect, just return an empty line (PkLineF()).
@@ -647,18 +647,18 @@ public:
 
 public:
     VectorPath(const PkPainterPath& path);
-    VectorPath(const QList<VectorPathPoint> path);
+    VectorPath(const PkList<VectorPathPoint> path);
 
     int pointsCount() const;
     VectorPathPoint pointAt(int i) const;
     int segmentsCount() const;
-    QList<VectorPathPoint> segmentAt(int i) const;
+    PkList<VectorPathPoint> segmentAt(int i) const;
     std::optional<Segment> segmentAtAsSegment(int i) const;
 
     PkLineF segmentAtAsLine(int i) const;
 
-    static QList<PkPointF> intersectSegmentWithLineBounded(const PkLineF &line, const Segment &segment);
-    static QList<PkPointF> intersectSegmentWithLineBounded(const PkLineF &line, const VectorPathPoint &p1, const VectorPathPoint &p2);
+    static PkList<PkPointF> intersectSegmentWithLineBounded(const PkLineF &line, const Segment &segment);
+    static PkList<PkPointF> intersectSegmentWithLineBounded(const PkLineF &line, const VectorPathPoint &p1, const VectorPathPoint &p2);
 
     int pathIndexToSegmentIndex(int index);
     int segmentIndexToPathIndex(int index);
@@ -673,18 +673,18 @@ public:
 
 private:
     PkPainterPath m_originalPath;
-    QList<VectorPathPoint> m_points;
+    PkList<VectorPathPoint> m_points;
 
 };
 
 PkDebug KRITAGLOBAL_EXPORT operator<<(PkDebug debug, const VectorPath &path);
 PkDebug KRITAGLOBAL_EXPORT operator<<(PkDebug debug, const VectorPath::VectorPathPoint &point);
 
-QVector<PkPoint> KRITAGLOBAL_EXPORT sampleRectWithPoints(const PkRect &rect);
-QVector<PkPointF> KRITAGLOBAL_EXPORT sampleRectWithPoints(const PkRectF &rect);
+PkVector<PkPoint> KRITAGLOBAL_EXPORT sampleRectWithPoints(const PkRect &rect);
+PkVector<PkPointF> KRITAGLOBAL_EXPORT sampleRectWithPoints(const PkRectF &rect);
 
-PkRect KRITAGLOBAL_EXPORT approximateRectFromPoints(const QVector<PkPoint> &points);
-PkRectF KRITAGLOBAL_EXPORT approximateRectFromPoints(const QVector<PkPointF> &points);
+PkRect KRITAGLOBAL_EXPORT approximateRectFromPoints(const PkVector<PkPoint> &points);
+PkRectF KRITAGLOBAL_EXPORT approximateRectFromPoints(const PkVector<PkPointF> &points);
 
 PkRect KRITAGLOBAL_EXPORT approximateRectWithPointTransform(const PkRect &rect, std::function<PkPointF(PkPointF)> func);
 
@@ -719,7 +719,7 @@ int quadraticEquation(qreal a, qreal b, qreal c, qreal *x1, qreal *x2);
  * \return the found circles, the result can have 0, 1 or 2 points
  */
 KRITAGLOBAL_EXPORT
-QVector<PkPointF> intersectTwoCircles(const PkPointF &c1, qreal r1,
+PkVector<PkPointF> intersectTwoCircles(const PkPointF &c1, qreal r1,
                                      const PkPointF &c2, qreal r2);
 
 KRITAGLOBAL_EXPORT
@@ -874,13 +874,13 @@ bool isPolygonPixelAlignedRect(const Polygon &poly, Difference tolerance) {
 }
 
 template <class T>
-bool isPolygonTrulyConvex(const QVector<T> &polygon, bool ensureNoLoops = true) {
+bool isPolygonTrulyConvex(const PkVector<T> &polygon, bool ensureNoLoops = true) {
     int numPoints = polygon.size();
     if (numPoints < 3)
         return true;
 
     if (fuzzyPointCompare(polygon[0], polygon[numPoints - 1])) {
-        // common in QPainterPaths to have the startPoint and endPoint the same
+        // common in PkPainterPaths to have the startPoint and endPoint the same
         numPoints--;
     }
 
@@ -1020,7 +1020,7 @@ boost::optional<PkPointF> intersectLines(const PkPointF &p1, const PkPointF &p2,
  * a triangle, such that the distance between p1 ad p3 is \p a and the distance
  * between p2 and p3 is b. There might be 0, 1 or 2 such positions.
  */
-QVector<PkPointF> KRITAGLOBAL_EXPORT findTrianglePoint(const PkPointF &p1, const PkPointF &p2, qreal a, qreal b);
+PkVector<PkPointF> KRITAGLOBAL_EXPORT findTrianglePoint(const PkPointF &p1, const PkPointF &p2, qreal a, qreal b);
 
 /**
  * Find a point p3 that forms a triangle with \p1 and \p2 and is the nearest
@@ -1065,7 +1065,7 @@ PkPointF KRITAGLOBAL_EXPORT moveElasticPoint(const PkPointF &pt,
  */
 PkPointF KRITAGLOBAL_EXPORT moveElasticPoint(const PkPointF &pt,
                                             const PkPointF &base, const PkPointF &newBase,
-                                            const QVector<PkPointF> &anchorPoints);
+                                            const PkVector<PkPointF> &anchorPoints);
 
 PkPointF KRITAGLOBAL_EXPORT findNearestPointOnLine(const PkPointF &point, const PkLineF &line, bool unbounded = true);
 
@@ -1165,9 +1165,9 @@ qreal KRITAGLOBAL_EXPORT findMinimumTernarySection(std::function<qreal(qreal)> f
 // kis_global has the same function, this needs to be removed
 qreal KRITAGLOBAL_EXPORT pointToLineDistSquared(const PkPointF& pt, const PkLineF& line);
 
-QList<PkLineF> KRITAGLOBAL_EXPORT getParallelLines(const PkLineF& line, const qreal distance);
+PkList<PkLineF> KRITAGLOBAL_EXPORT getParallelLines(const PkLineF& line, const qreal distance);
 
-PkPainterPath KRITAGLOBAL_EXPORT getOnePathFromRectangleCutThrough(const QList<PkPointF> &points, const PkLineF &line, bool left);
+PkPainterPath KRITAGLOBAL_EXPORT getOnePathFromRectangleCutThrough(const PkList<PkPointF> &points, const PkLineF &line, bool left);
 
 ///
 /// \brief getPathsFromRectangleCutThrough get paths defining both sides of a rectangle cut through using two (supposedly parallel) lines
@@ -1178,10 +1178,10 @@ PkPainterPath KRITAGLOBAL_EXPORT getOnePathFromRectangleCutThrough(const QList<P
 /// \param rightLine right line of the rectangle (used for the right-(bottom) side of the rectangle
 /// \return
 ///
-QList<PkPainterPath> KRITAGLOBAL_EXPORT getPathsFromRectangleCutThrough(const PkRectF &rect, const PkLineF &leftLine, const PkLineF &rightLine);
+PkList<PkPainterPath> KRITAGLOBAL_EXPORT getPathsFromRectangleCutThrough(const PkRectF &rect, const PkLineF &leftLine, const PkLineF &rightLine);
 
 // isAlgebra2D::getLineSegmentCrossingLineIndexes(PkLineF const&, PkPainterPath const&)
-QList<int> KRITAGLOBAL_EXPORT getLineSegmentCrossingLineIndexes(const PkLineF &line, const PkPainterPath& shape);
+PkList<int> KRITAGLOBAL_EXPORT getLineSegmentCrossingLineIndexes(const PkLineF &line, const PkPainterPath& shape);
 
 ///
 /// \brief removeGutterSmart

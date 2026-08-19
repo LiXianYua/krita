@@ -32,21 +32,21 @@ const char*const applicationName="krita";
  *       some undefined reason it doesn't, so let's just force it with a custom
  *       handler.
  */
-void kritaQtMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+void kritaQtMessageHandler(QtMsgType type, const PkMessageLogContext& context, const PkString& msg)
 {
-    QString report = msg;
-    if (context.file && !QString(context.file).isEmpty()) {
+    PkString report = msg;
+    if (context.file && !PkString(context.file).isEmpty()) {
         report+=" in file ";
-        report+=QString(context.file);
+        report+=PkString(context.file);
         report+=" line ";
-        report+=QString::number(context.line);
+        report+=PkString::number(context.line);
     }
-    if (context.function && !QString(context.function).isEmpty()) {
+    if (context.function && !PkString(context.function).isEmpty()) {
         report+=+" function ";
-        report+=QString(context.function);
+        report+=PkString(context.function);
     }
 
-    const QByteArray local8bit = report.toLocal8Bit();
+    const PkByteArray local8bit = report.toLocal8Bit();
     const char *const local = local8bit.constData();
     switch (type) {
     case QtDebugMsg:

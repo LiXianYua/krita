@@ -105,7 +105,7 @@ inline PkPointF bezierCurve(const PkPointF p0,
 #endif
 }
 
-inline PkPointF bezierCurve(const QList<PkPointF> &points,
+inline PkPointF bezierCurve(const PkList<PkPointF> &points,
                            qreal t)
 {
     PkPointF result;
@@ -169,19 +169,19 @@ inline int bezierDegree(const PkPointF p0,
 }
 
 KRITAGLOBAL_EXPORT
-QVector<qreal> linearizeCurve(const PkPointF p0,
+PkVector<qreal> linearizeCurve(const PkPointF p0,
                               const PkPointF p1,
                               const PkPointF p2,
                               const PkPointF p3,
                               const qreal eps);
 KRITAGLOBAL_EXPORT
-QVector<qreal> mergeLinearizationSteps(const QVector<qreal> &a, const QVector<qreal> &b);
+PkVector<qreal> mergeLinearizationSteps(const PkVector<qreal> &a, const PkVector<qreal> &b);
 
 KRITAGLOBAL_EXPORT
-qreal nearestPoint(const QList<PkPointF> controlPoints, const PkPointF &point, qreal *resultDistance = 0, PkPointF *resultPoint = 0);
+qreal nearestPoint(const PkList<PkPointF> controlPoints, const PkPointF &point, qreal *resultDistance = 0, PkPointF *resultPoint = 0);
 
 KRITAGLOBAL_EXPORT
-int controlPolygonZeros(const QList<PkPointF> &controlPoints);
+int controlPolygonZeros(const PkList<PkPointF> &controlPoints);
 
 /**
  * @brief calculates local (u,v) coordinates of the patch corresponding to \p globalPoint
@@ -306,7 +306,7 @@ std::pair<PkPointF, PkPointF> removeBezierNode(const PkPointF &p0,
  * For cubic Bezier curves there can be at most three intersection points.
  */
 KRITAGLOBAL_EXPORT
-QVector<qreal> intersectWithLine(const PkPointF &p0,
+PkVector<qreal> intersectWithLine(const PkPointF &p0,
                                  const PkPointF &p1,
                                  const PkPointF &p2,
                                  const PkPointF &p3,
