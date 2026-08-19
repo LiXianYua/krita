@@ -8,6 +8,7 @@
 #include "../geometry/PkSize.h"
 #include "../geometry/PkRect.h"
 #include "../geometry/PkGlobal.h"   // Qt::GlobalColor（fill(Qt::GlobalColor) 用）
+#include "../geometry/PkTransform.h"   // Task 3：scaled()/transformed() 用
 
 class PkImage
 {
@@ -122,6 +123,36 @@ public:
     // 逐像素判断 R==G==B（alpha 无关）。Grayscale8/Alpha8/Mono/MonoLSB 本身就是
     // 灰度语义，直接返回 true（探针第 13 组：按定义实现，未专门探测这些格式）。
     bool allGray() const;
+
+    // ---- Task 3：格式转换、派生操作 ----
+    //
+    // copy()：无条件深拷贝（探针第 7 组，same-ptr=0，即使原本没有共享者也强制
+    // 产生新分配）。convertToFormat()：同格式共享而非拷贝（探针第 6 组）；不同
+    // 格式时逐像素转换，复用 rawPixelArgb/writeRawPixelArgb。convertTo()：原地
+    // 版本，语义 `*this = convertToFormat(newFormat)`；真 Qt 还有一个
+    // Qt::ImageConversionFlags 参数，但用量表没有任何真实调用点带这个参数，
+    // 故只提供单参数重载（判据①，不多加）。
+    PkImage copy() const;
+    PkImage convertToFormat(Format newFormat) const;
+    void convertTo(Format newFormat);
+
+    // scaled()/transformed()：Fast（最近邻）模式精确复刻真 Qt 探针实测的映射
+    // 公式；Smooth（双线性）模式是已声明偏离（岔路 B），不追求与 Qt 位对齐，只
+    // 保证良定义。devicePixelRatio 在两者之后原样透传（探针结论 4）。
+    PkImage scaled(const PkSize &size,
+                   Qt::AspectRatioMode aspectMode = Qt::IgnoreAspectRatio,
+                   Qt::TransformationMode mode = Qt::FastTransformation) const;
+    PkImage transformed(const PkTransform &matrix,
+                         Qt::TransformationMode mode = Qt::FastTransformation) const;
+
+    qreal devicePixelRatio() const;
+    void setDevicePixelRatio(qreal scaleFactor);
+
+    // operator==：深度像素内容比较（探针第 5 组）。共享指针相等是短路优化，不
+    // 共享时逐字节比较 format/width/height/bytesPerLine/pixels/colorTable；不
+    // 比较 devicePixelRatio（对齐真 Qt QImage::operator== 的语义）。
+    bool operator==(const PkImage &other) const;
+    bool operator!=(const PkImage &other) const;
 
     // ---- 只给单测用，不进 compat 垫片（先例：pk/container/PkArrayContainer.h）----
     // 真 Qt 的 isDetached()/isSharedWith() 在 Krita 调用点实测 0 处，这两个

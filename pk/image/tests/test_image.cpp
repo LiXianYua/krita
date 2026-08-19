@@ -403,4 +403,308 @@ void ImageCase::colorTableWritersDetachReadersDoNot()
     PK_VERIFY(!a.PkIsSharedWith(d));
 }
 
+// ---------------------------------------------------------------------------
+// Task 3：格式转换、派生操作
+// ---------------------------------------------------------------------------
+
+void ImageCase::copyIsUnconditionalDeepCopy()
+{
+    // 探针第 7 组：即使原本没有共享者，copy() 也必须强制产生新分配。
+    PkImage a(2, 2, PkImage::Format_ARGB32);
+    a.fill(0xFF112233u);
+    PK_COMPARE(a.PkUseCount(), 1L); // 未共享
+
+    PkImage b = a.copy();
+    PK_VERIFY(!a.PkIsSharedWith(b)); // 仍然强制深拷贝
+    PK_COMPARE(b.pixel(0, 0), 0xFF112233u); // 内容相同
+
+    // 也验证"本来就共享"的常规场景：copy() 之后同样不再共享。
+    PkImage c(a);
+    PK_VERIFY(a.PkIsSharedWith(c));
+    PkImage d = c.copy();
+    PK_VERIFY(!c.PkIsSharedWith(d));
+    PK_COMPARE(d.pixel(0, 0), 0xFF112233u);
+
+    // null 的 copy() 结果仍是 null。
+    PkImage n;
+    PkImage nCopy = n.copy();
+    PK_VERIFY(nCopy.isNull());
+}
+
+void ImageCase::convertToFormatSameFormatShares()
+{
+    // 探针第 6 组：目标格式与源格式相同时共享，不拷贝。
+    PkImage src(2, 2, PkImage::Format_ARGB32);
+    PkImage same = src.convertToFormat(PkImage::Format_ARGB32);
+    PK_VERIFY(src.PkIsSharedWith(same));
+}
+
+void ImageCase::convertToFormatCrossFormatRoundtrip()
+{
+    // ARGB32 -> Grayscale8：复用 Task 2 的 rawPixelArgb/writeRawPixelArgb，走
+    // 同一份 qGray 公式（(r*11+g*16+b*5)/32）。纯红 qGray(255,0,0)=87=0x57。
+    PkImage src(1, 1, PkImage::Format_ARGB32);
+    src.setPixel(0, 0, 0xFFFF0000u);
+    PkImage gray = src.convertToFormat(PkImage::Format_Grayscale8);
+    PK_VERIFY(!src.PkIsSharedWith(gray)); // 跨格式不共享
+    PK_COMPARE(static_cast<int>(gray.format()), static_cast<int>(PkImage::Format_Grayscale8));
+    PK_COMPARE(gray.pixel(0, 0), 0xFF575757u);
+
+    // r=g=b 是灰度化公式的不动点，往返精确。
+    PkImage srcMid(1, 1, PkImage::Format_ARGB32);
+    srcMid.setPixel(0, 0, 0xFF808080u);
+    PkImage grayMid = srcMid.convertToFormat(PkImage::Format_Grayscale8);
+    PK_COMPARE(grayMid.pixel(0, 0), 0xFF808080u);
+
+    // 再转回 ARGB32：灰度值本身应该原样透传成 R=G=B。
+    PkImage backToArgb = grayMid.convertToFormat(PkImage::Format_ARGB32);
+    PK_COMPARE(static_cast<int>(backToArgb.format()), static_cast<int>(PkImage::Format_ARGB32));
+    PK_COMPARE(backToArgb.pixel(0, 0), 0xFF808080u);
+}
+
+void ImageCase::convertToMutatesInPlace()
+{
+    // convertTo() 语义：*this = convertToFormat(newFormat)。
+    PkImage img(1, 1, PkImage::Format_ARGB32);
+    img.setPixel(0, 0, 0xFFFF0000u);
+    img.convertTo(PkImage::Format_Grayscale8);
+    PK_COMPARE(static_cast<int>(img.format()), static_cast<int>(PkImage::Format_Grayscale8));
+    PK_COMPARE(img.pixel(0, 0), 0xFF575757u);
+
+    // 同格式 convertTo：结果仍与自身逻辑等价（内容不变）。
+    PkImage same(2, 2, PkImage::Format_ARGB32);
+    same.fill(0xFF112233u);
+    same.convertTo(PkImage::Format_ARGB32);
+    PK_COMPARE(same.pixel(0, 0), 0xFF112233u);
+}
+
+void ImageCase::operatorEqualityFourScenarios()
+{
+    // 探针第 5 组：深度像素内容比较，不是只比共享指针。
+    PkImage a(2, 2, PkImage::Format_ARGB32);
+    a.fill(0xFF112233u);
+    PkImage b(2, 2, PkImage::Format_ARGB32);
+    b.fill(0xFF112233u);
+    PK_VERIFY(!a.PkIsSharedWith(b)); // 两个独立实例，未共享
+    PK_VERIFY(a == b); // 内容相同 -> true
+    PK_VERIFY(!(a != b));
+
+    PkImage c(2, 2, PkImage::Format_ARGB32);
+    c.fill(0xFF445566u);
+    PK_VERIFY(!(a == c)); // 内容不同 -> false
+    PK_VERIFY(a != c);
+
+    PkImage d(3, 2, PkImage::Format_ARGB32);
+    d.fill(0xFF112233u);
+    PK_VERIFY(!(a == d)); // 尺寸不同 -> false
+
+    PkImage n1;
+    PkImage n2;
+    PK_VERIFY(n1 == n2); // 两个 null -> true（共享指针短路：都指向哨兵）
+
+    // 共享指针相等的短路路径也要覆盖。
+    PkImage e(a);
+    PK_VERIFY(a.PkIsSharedWith(e));
+    PK_VERIFY(a == e);
+}
+
+void ImageCase::devicePixelRatioAccessorsAndPassthrough()
+{
+    PkImage img(2, 2, PkImage::Format_ARGB32);
+    PK_COMPARE(img.devicePixelRatio(), qreal(1.0)); // 默认值
+
+    img.setDevicePixelRatio(2.0);
+    PK_COMPARE(img.devicePixelRatio(), qreal(2.0));
+
+    // 结论 4：scaled()/transformed() 之后原样透传，不重置为 1.0。
+    PkImage scaledImg = img.scaled(PkSize(4, 4));
+    PK_COMPARE(scaledImg.devicePixelRatio(), qreal(2.0));
+
+    PkTransform t;
+    t.rotate(90);
+    PkImage rotated = img.transformed(t);
+    PK_COMPARE(rotated.devicePixelRatio(), qreal(2.0));
+}
+
+void ImageCase::scaledFastNearestNeighborMagnifyAndShrink()
+{
+    // 结论 3 探针①：3->7 宽度放大，src 索引序列 0,0,1,1,1,2,2
+    // （公式 floor((dst_x+0.5)*3/7) 逐点吻合，真实探针输出）。
+    PkImage src3(3, 1, PkImage::Format_ARGB32);
+    const uint32_t colors3[3] = {0xFFFF0000u, 0xFF00FF00u, 0xFF0000FFu};
+    for (int x = 0; x < 3; ++x) {
+        src3.setPixel(x, 0, colors3[x]);
+    }
+    PkImage magnified = src3.scaled(PkSize(7, 1), Qt::IgnoreAspectRatio, Qt::FastTransformation);
+    PK_COMPARE(magnified.width(), 7);
+    PK_COMPARE(magnified.height(), 1);
+    const int expectedMagnifyIdx[7] = {0, 0, 1, 1, 1, 2, 2};
+    for (int x = 0; x < 7; ++x) {
+        PK_COMPARE(magnified.pixel(x, 0), colors3[expectedMagnifyIdx[x]]);
+    }
+
+    // 结论 3 探针②：7->3 缩小，src 索引序列 1,3,5
+    // （公式 floor((dst_x+0.5)*7/3) 逐点吻合，真实探针输出）。
+    PkImage src7(7, 1, PkImage::Format_ARGB32);
+    uint32_t colors7[7];
+    for (int x = 0; x < 7; ++x) {
+        colors7[x] = 0xFF000000u | (static_cast<uint32_t>(x + 1) << 16);
+        src7.setPixel(x, 0, colors7[x]);
+    }
+    PkImage shrunk = src7.scaled(PkSize(3, 1), Qt::IgnoreAspectRatio, Qt::FastTransformation);
+    PK_COMPARE(shrunk.width(), 3);
+    PK_COMPARE(shrunk.height(), 1);
+    const int expectedShrinkIdx[3] = {1, 3, 5};
+    for (int x = 0; x < 3; ++x) {
+        PK_COMPARE(shrunk.pixel(x, 0), colors7[expectedShrinkIdx[x]]);
+    }
+}
+
+void ImageCase::scaledKeepAspectRatioClampsToOne()
+{
+    // PkSize(5,1).scaled(PkSize(1,1), KeepAspectRatio) 的 pre-clamp 结果是
+    // (1,0)（PkSize::scaled 是 R-03 VERIFIED 交付，实测核对过）——PkImage::scaled()
+    // 必须把高度 clamp 到至少 1，不能构造出一个高度为 0 的图像。
+    PkImage src(5, 1, PkImage::Format_ARGB32);
+    src.fill(0xFF112233u);
+    PkImage dst = src.scaled(PkSize(1, 1), Qt::KeepAspectRatio, Qt::FastTransformation);
+    PK_COMPARE(dst.width(), 1);
+    PK_COMPARE(dst.height(), 1); // clamp 到至少 1，不是 0
+    PK_VERIFY(!dst.isNull());
+}
+
+void ImageCase::scaledSameSizeShares()
+{
+    // 探针确认：目标尺寸与源尺寸相同时直接共享，不重新分配。
+    PkImage src(3, 2, PkImage::Format_ARGB32);
+    src.fill(0xFF112233u);
+    PkImage same = src.scaled(PkSize(3, 2), Qt::IgnoreAspectRatio, Qt::FastTransformation);
+    PK_VERIFY(src.PkIsSharedWith(same));
+}
+
+void ImageCase::transformedIdentityShares()
+{
+    // identity 变换（默认构造的 PkTransform）直接共享短路，跳过整个映射循环。
+    PkImage src(3, 2, PkImage::Format_ARGB32);
+    src.fill(0xFF112233u);
+    PkImage same = src.transformed(PkTransform(), Qt::FastTransformation);
+    PK_VERIFY(src.PkIsSharedWith(same));
+
+    // null 图像上的 identity 变换同样直接共享自身（isNull() 仍为 true）。
+    PkImage n;
+    PkImage nSame = n.transformed(PkTransform());
+    PK_VERIFY(n.PkIsSharedWith(nSame));
+}
+
+void ImageCase::transformedTranslateCancelsBoundingRectOffset()
+{
+    // 结论 3 探针③：纯 translate(1,0) 下，boundingRect 跟着平移，boundingRect
+    // 的偏移与逆映射里的偏移相减抵消，dst 与 src 变成恒等映射——验证的是
+    // boundingRect.x()/y() 那个减法方向没有搞反。
+    PkImage src(3, 2, PkImage::Format_ARGB32);
+    for (int y = 0; y < 2; ++y) {
+        for (int x = 0; x < 3; ++x) {
+            src.setPixel(x, y, 0xFF000000u | (static_cast<uint32_t>(y * 3 + x + 1) << 16));
+        }
+    }
+    PkTransform t = PkTransform::fromTranslate(1, 0);
+    PkImage dst = src.transformed(t, Qt::FastTransformation);
+    PK_COMPARE(dst.width(), src.width());
+    PK_COMPARE(dst.height(), src.height());
+    for (int y = 0; y < 2; ++y) {
+        for (int x = 0; x < 3; ++x) {
+            PK_COMPARE(dst.pixel(x, y), src.pixel(x, y));
+        }
+    }
+}
+
+void ImageCase::transformedRotate90ComposesToIdentity()
+{
+    // 不需要手算旋转后的具体像素坐标：连续应用 4 次 90° 旋转必须等于恒等
+    // 变换，这是几何本身的性质，直接拿真实实现的可组合性当断言。
+    PkImage src(3, 2, PkImage::Format_ARGB32);
+    for (int y = 0; y < 2; ++y) {
+        for (int x = 0; x < 3; ++x) {
+            src.setPixel(x, y, 0xFF000000u | (static_cast<uint32_t>(y * 3 + x + 1) << 16));
+        }
+    }
+    PkTransform t;
+    t.rotate(90);
+
+    PkImage r1 = src.transformed(t, Qt::FastTransformation);
+    PK_COMPARE(r1.width(), src.height()); // 结论 2：mapRect 决定的包围盒，宽高互换
+    PK_COMPARE(r1.height(), src.width());
+
+    PkImage r2 = r1.transformed(t, Qt::FastTransformation);
+    PkImage r3 = r2.transformed(t, Qt::FastTransformation);
+    PkImage r4 = r3.transformed(t, Qt::FastTransformation);
+
+    PK_COMPARE(r4.width(), src.width());
+    PK_COMPARE(r4.height(), src.height());
+    for (int y = 0; y < 2; ++y) {
+        for (int x = 0; x < 3; ++x) {
+            PK_COMPARE(r4.pixel(x, y), src.pixel(x, y));
+        }
+    }
+}
+
+void ImageCase::transformedShearOutOfBoundsIsTransparent()
+{
+    // 结论 2 + 结论 3 探针④：3x3 源图 shear(0.5,0.0) 后输出尺寸 5x3（真实探针
+    // 核对过的具体数值，与独立调用 mapRect(PkRect(0,0,3,3)) 算出的 x=0 y=0 w=5
+    // h=3 完全一致）；越界区域（顶行右侧，顶行 shear 位移为 0，只有源列
+    // 0..2 有效）输出 0x00000000（全透明黑）。
+    PkImage src(3, 3, PkImage::Format_ARGB32);
+    for (int y = 0; y < 3; ++y) {
+        for (int x = 0; x < 3; ++x) {
+            src.setPixel(x, y, 0xFF000000u | (static_cast<uint32_t>(y * 3 + x + 1) << 16));
+        }
+    }
+    PkTransform t;
+    t.shear(0.5, 0.0);
+    PkImage dst = src.transformed(t, Qt::FastTransformation);
+    PK_COMPARE(dst.width(), 5);
+    PK_COMPARE(dst.height(), 3);
+
+    PK_COMPARE(dst.pixel(4, 0), 0x00000000u); // 顶行右侧越界：全透明黑
+    PK_COMPARE(dst.pixel(0, 0), src.pixel(0, 0)); // 顶行左侧不受剪切影响，恒等映射
+}
+
+void ImageCase::transformedSmoothBilinearBlendsNeighbors()
+{
+    // 岔路 B：Smooth 模式是已声明偏离，不追求与 Qt 位对齐，只要求良定义——
+    // 断言的是本实现内部一致的双线性混合结果（黑->白渐变，四个分量各自线性
+    // 插值），不是跟真 Qt 对拍。
+    PkImage src(2, 1, PkImage::Format_ARGB32);
+    src.setPixel(0, 0, 0xFF000000u); // 黑
+    src.setPixel(1, 0, 0xFFFFFFFFu); // 白
+    PkTransform t = PkTransform::fromScale(2.0, 1.0);
+    PkImage dst = src.transformed(t, Qt::SmoothTransformation);
+    PK_COMPARE(dst.width(), 4);
+    PK_COMPARE(dst.height(), 1);
+    PK_COMPARE(dst.pixel(0, 0), 0xFF000000u);
+    PK_COMPARE(dst.pixel(1, 0), 0xFF404040u); // 25% 权重混入白色
+    PK_COMPARE(dst.pixel(2, 0), 0xFFBFBFBFu); // 75% 权重混入白色
+    PK_COMPARE(dst.pixel(3, 0), 0xFFFFFFFFu); // clamp-to-edge：右边界重复采样白色
+}
+
+void ImageCase::transformedSmoothIndexedFallsBackToNearest()
+{
+    // Smooth 模式对索引格式退化成最近邻：混合调色板索引没有良定义的颜色语义。
+    PkImage src(2, 1, PkImage::Format_Indexed8);
+    src.setColorCount(2);
+    src.setColor(0, 0xFF000000u);
+    src.setColor(1, 0xFFFFFFFFu);
+    src.setPixel(0, 0, 0);
+    src.setPixel(1, 0, 1);
+
+    PkTransform t = PkTransform::fromScale(2.0, 1.0);
+    PkImage dst = src.transformed(t, Qt::SmoothTransformation);
+    PK_COMPARE(dst.width(), 4);
+    const int expectedIdx[4] = {0, 0, 1, 1}; // 同 Fast 模式的最近邻索引序列
+    for (int x = 0; x < 4; ++x) {
+        PK_COMPARE(dst.pixelIndex(x, 0), expectedIdx[x]);
+    }
+}
+
 PK_TEST_MAIN(ImageCase)

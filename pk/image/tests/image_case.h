@@ -36,4 +36,23 @@ private Q_SLOTS:
     void outOfBoundsSetPixelDoesNotDetach();
     void fillDetaches();
     void colorTableWritersDetachReadersDoNot();
+
+    // ---- Task 3：格式转换、派生操作 ----
+    void copyIsUnconditionalDeepCopy();
+    void convertToFormatSameFormatShares();
+    void convertToFormatCrossFormatRoundtrip();
+    void convertToMutatesInPlace();
+    void operatorEqualityFourScenarios();
+    void devicePixelRatioAccessorsAndPassthrough();
+
+    void scaledFastNearestNeighborMagnifyAndShrink();
+    void scaledKeepAspectRatioClampsToOne();
+    void scaledSameSizeShares();
+
+    void transformedIdentityShares();
+    void transformedTranslateCancelsBoundingRectOffset();
+    void transformedRotate90ComposesToIdentity();
+    void transformedShearOutOfBoundsIsTransparent();
+    void transformedSmoothBilinearBlendsNeighbors();
+    void transformedSmoothIndexedFallsBackToNearest();
 };

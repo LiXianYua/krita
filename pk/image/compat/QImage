@@ -1,0 +1,24 @@
+#pragma once
+// 先包 QRect：它自己先包 QtGlobal（覆盖「pk/test/compat 与 pk/geometry/compat
+// 两份 qAbs/qFuzzyCompare 共存」那条纪律，见 pk/geometry/compat/QtGlobal 顶部
+// 注释），再包 ../PkRect.h 把 PkSize/PkPoint/PkPointF/PkSizeF/PkRect/PkRectF
+// 一并带进来——真 Qt 的 <QImage> 传递 include 了 QSize/QRect（QImage::size()/
+// rect() 的返回类型），顺序照 compat/QRect 的形态。
+#include "QRect"
+#include "../PkImage.h"
+
+// 兼容垫片：让真实调用点的 `#include <QImage>` 在**一个字都不改**的前提下解析
+// 到 PkImage。文件名刻意没有扩展名——调用点写的就是 <QImage>。做法照
+// pk/geometry/compat/QRect：宏而不是 `using QImage = PkImage;`——Krita 里可能
+// 有 `class QImage;` 这类前置声明，类型别名遇到它会报
+// "redeclared as different kind of entity"；宏则把那一行原样改写成
+// `class PkImage;`，前置声明照样成立。
+//
+// 只给最小垫片：`#include "QRect"`（经 ../PkRect.h 一并带来 PkSize/PkPoint 等
+// 几何类型）+ 宏替换。真 Qt 的 <QImage> 头在 Qt 里还传递 include 了哪些其它
+// 类型（例如 QColor、QStringList、QTransform 相关的重载），本 Task（Task 3）
+// 不做试接、没有真实调用点可以验证传递 include 关系是否够用——Task 5 撞上编
+// 不过再照实补，不在这里提前猜一份清单（brief「compat/QImage 垫片」一节）。
+#ifndef QImage
+#define QImage PkImage
+#endif

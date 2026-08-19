@@ -1,6 +1,8 @@
 #include "PkImage.h"
 
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstring>
 
 namespace {
@@ -273,6 +275,40 @@ uint32_t globalColorToArgb(Qt::GlobalColor color)
     }
 }
 
+// ---------------------------------------------------------------------------
+// Task 3：scaled()/transformed() 的 Smooth（双线性）模式辅助函数。
+//
+// 这是已声明偏离 Qt 的自定义实现（brief「岔路 B」），不追求与 Qt 位对齐，只
+// 要求良定义。坐标系与 Fast 模式共用同一套（结论 3）：整数 i 表示第 i 个像素
+// 占据连续区间 [i, i+1)，像素中心在 i+0.5。
+// ---------------------------------------------------------------------------
+
+// 越界坐标夹到最近边缘像素（clamp-to-edge），而不是补 0——补 0 会在缩放/旋转
+// 的边缘产生透明发黑的重影，clamp 是光栅库常见的双线性缺省寻址方式，视觉上
+// 更合理。这条本来就不要求跟 Qt 比对，选哪种都成立，写清楚理由即可。
+inline int clampCoord(int v, int maxExclusive)
+{
+    if (v < 0) return 0;
+    if (v >= maxExclusive) return maxExclusive - 1;
+    return v;
+}
+
+// 四个分量（A/R/G/B）分别做双线性插值，四舍五入回 uint8。
+uint32_t bilerpArgb(uint32_t c00, uint32_t c10, uint32_t c01, uint32_t c11, double fx, double fy)
+{
+    auto blendChannel = [fx, fy](uint8_t v00, uint8_t v10, uint8_t v01, uint8_t v11) -> uint8_t {
+        double top = v00 + (double(v10) - v00) * fx;
+        double bottom = v01 + (double(v11) - v01) * fx;
+        double val = top + (bottom - top) * fy;
+        return static_cast<uint8_t>(val + 0.5);
+    };
+    uint8_t a = blendChannel(argbAlpha(c00), argbAlpha(c10), argbAlpha(c01), argbAlpha(c11));
+    uint8_t r = blendChannel(argbRed(c00), argbRed(c10), argbRed(c01), argbRed(c11));
+    uint8_t g = blendChannel(argbGreen(c00), argbGreen(c10), argbGreen(c01), argbGreen(c11));
+    uint8_t b = blendChannel(argbBlue(c00), argbBlue(c10), argbBlue(c01), argbBlue(c11));
+    return packArgb(a, r, g, b);
+}
+
 } // namespace
 
 PkImage::PkImage() = default;
@@ -495,4 +531,222 @@ long PkImage::PkUseCount() const noexcept
 bool PkImage::PkIsSharedWith(const PkImage &other) const noexcept
 {
     return m_d.PkIsSharedWith(other.m_d);
+}
+
+// ---------------------------------------------------------------------------
+// Task 3：格式转换、派生操作
+// ---------------------------------------------------------------------------
+
+PkImage PkImage::copy() const
+{
+    // 探针第 7 组：无条件深拷贝，即使原本没有共享者也强制产生新分配。
+    // PkArrayData<C> 的 `explicit PkArrayData(C init)` 构造函数按「有没有显式
+    // 给 C」判独占，不看内容——传一份 PkImageData 的拷贝进去就是新的
+    // make_shared，全新独立引用计数（pk/container/PkArrayData.h:140）。
+    // null 的 copy() 结果仍是 null：PkConst() 在哨兵状态下的默认值就是 null
+    // 状态（width=height=format=0），直接拷贝即可，不需要特判。
+    PkImage result;
+    result.m_d = PkArrayData<PkImageData>(PkImageData(m_d.PkConst()));
+    return result;
+}
+
+PkImage PkImage::convertToFormat(Format newFormat) const
+{
+    // 探针第 6 组：同格式共享，不拷贝。
+    if (newFormat == format()) {
+        return *this;
+    }
+
+    PkImage result(width(), height(), newFormat);
+    if (result.isNull()) {
+        // 源本身是 null，或目标格式本身构造不出合法图像（Format_Invalid）。
+        return result;
+    }
+
+    const PkImageData &srcData = m_d.PkConst();
+    PkImageData &dstData = result.m_d.PkMut();
+    dstData.devicePixelRatio = srcData.devicePixelRatio;
+
+    // 转换到索引格式（Indexed8/Mono/MonoLSB）需要调色板生成算法（颜色量化/
+    // 最近色匹配），真实调用点用量表没有覆盖这个方向（判据①，一项不多）。
+    // rawPixelArgb() 读回的是已经查过表的 ARGB32 颜色值，而 writeRawPixelArgb()
+    // 对索引格式的语义是把 value 当**颜色表索引**写入（与 setPixel() 同一套
+    // 约定，见 Task 2）——两者直接拼起来会把 ARGB 的低 8 位错当索引写进去，
+    // 是真实的 bug，不是可以忽略的边角。这里选择保持构造时的零初始化状态
+    // （全部索引 0，颜色表为空）：确定性、不崩溃，不产出错误数据。
+    Format fmt = newFormat;
+    if (fmt == Format_Indexed8 || fmt == Format_Mono || fmt == Format_MonoLSB) {
+        return result;
+    }
+
+    int w = width();
+    int h = height();
+    Format srcFormat = format();
+    for (int y = 0; y < h; ++y) {
+        for (int x = 0; x < w; ++x) {
+            uint32_t argb = rawPixelArgb(srcData, srcFormat, x, y);
+            writeRawPixelArgb(dstData, fmt, x, y, argb);
+        }
+    }
+    return result;
+}
+
+void PkImage::convertTo(Format newFormat)
+{
+    *this = convertToFormat(newFormat);
+}
+
+qreal PkImage::devicePixelRatio() const
+{
+    return m_d.PkConst().devicePixelRatio;
+}
+
+void PkImage::setDevicePixelRatio(qreal scaleFactor)
+{
+    m_d.PkMut().devicePixelRatio = scaleFactor;
+}
+
+// 结论 1：scaled() 是 transformed(PkTransform::fromScale(sx, sy), mode) 的一层
+// 包装，不是独立算法（探针实测逐像素相等）。
+PkImage PkImage::scaled(const PkSize &targetSize, Qt::AspectRatioMode aspectMode, Qt::TransformationMode mode) const
+{
+    if (isNull()) {
+        // 源尺寸为 0 时避免下面 newSize.width()/width() 的比例除法产生
+        // inf/nan——探针没有覆盖这个退化输入，是防御性处理：inf 传进
+        // PkTransform 会在 mapRect 内部的 qRound(inf) 上触发未定义行为
+        // （浮点转 int 越界是 UB，与 -fwrapv 只挡整数溢出是两类问题）。
+        return PkImage();
+    }
+    PkSize newSize = size().scaled(targetSize, aspectMode);
+    // 探针确认：结果维度被 clamp 到至少 1（KeepAspectRatio 压扁到 0 的情形）。
+    newSize = PkSize(std::max(newSize.width(), 1), std::max(newSize.height(), 1));
+    if (newSize == size()) {
+        // 探针确认：相同尺寸直接共享（same-ptr=1），不重新分配。
+        return *this;
+    }
+    PkTransform t = PkTransform::fromScale(qreal(newSize.width()) / width(), qreal(newSize.height()) / height());
+    return transformed(t, mode);
+}
+
+PkImage PkImage::transformed(const PkTransform &matrix, Qt::TransformationMode mode) const
+{
+    // 结论 3 旁注：identity 变换直接共享短路，跳过整个映射循环（探针确认
+    // same-ptr=1）。放在最前面：null 图像上的 identity 变换也应该直接共享
+    // 自身，不需要单独判 isNull()。
+    if (matrix.isIdentity()) {
+        return *this;
+    }
+    if (isNull()) {
+        return PkImage();
+    }
+
+    // 结论 2：目标尺寸 = transform.mapRect(PkRect(0,0,width,height))，整数矩形
+    // 映射，PkTransform::mapRect(const PkRect&) 是 R-03 VERIFIED 交付，直接复用。
+    PkRect boundingRect = matrix.mapRect(rect());
+    PkImage result(boundingRect.width(), boundingRect.height(), format());
+    if (result.isNull()) {
+        // boundingRect 退化（宽或高 <=0）时 PkImage 构造函数本身就返回 null，
+        // 不需要额外判空分支。
+        return result;
+    }
+
+    const PkImageData &srcData = m_d.PkConst();
+    PkImageData &dstData = result.m_d.PkMut();
+    // 结论 4：devicePixelRatio 原样透传，不重置为 1.0（探针确认）。
+    dstData.devicePixelRatio = srcData.devicePixelRatio;
+
+    Format fmt = format();
+    bool isIndexedFmt = (fmt == Format_Indexed8 || fmt == Format_Mono || fmt == Format_MonoLSB);
+    if (isIndexedFmt) {
+        // 同一次 transformed() 内格式不变，索引配色表原样带过去，逐像素只搬
+        // 索引，不经 ARGB 往返——往返会把索引误当颜色值，与 convertToFormat()
+        // 里同一个理由。
+        dstData.colorTable = srcData.colorTable;
+    }
+
+    // 矩阵不可逆（det==0）时 PkTransform::inverted() 已经确定性地退回单位阵
+    // （见 PkTransform.h 类头注释），不需要额外分支——退化矩阵下退回恒等映射
+    // 是 PkTransform 自己的既有约定，不是本函数新引入的行为；不可逆标志无需
+    // 读取，用默认参数（nullptr）。
+    PkTransform inv = matrix.inverted();
+
+    const int dstWidth = boundingRect.width();
+    const int dstHeight = boundingRect.height();
+    const int srcWidth = width();
+    const int srcHeight = height();
+
+    // Smooth 模式对索引格式退化成最近邻：混合调色板索引没有良定义的颜色语义
+    // （岔路 B 范围内的自定义决策，不追求跟 Qt 位对齐）。
+    const bool useNearest = (mode == Qt::FastTransformation) || isIndexedFmt;
+
+    for (int dstY = 0; dstY < dstHeight; ++dstY) {
+        for (int dstX = 0; dstX < dstWidth; ++dstX) {
+            // 结论 3：像素中心逆映射后向下取整。
+            PkPointF srcPoint = inv.map(PkPointF(
+                dstX + boundingRect.x() + 0.5,
+                dstY + boundingRect.y() + 0.5));
+
+            if (useNearest) {
+                int srcX = static_cast<int>(std::floor(srcPoint.x()));
+                int srcY = static_cast<int>(std::floor(srcPoint.y()));
+                if (srcX >= 0 && srcX < srcWidth && srcY >= 0 && srcY < srcHeight) {
+                    if (isIndexedFmt) {
+                        int idx = rawPixelIndex(srcData, fmt, srcX, srcY);
+                        writeRawPixelIndex(dstData, fmt, dstX, dstY, static_cast<uint32_t>(idx));
+                    } else {
+                        uint32_t argb = rawPixelArgb(srcData, fmt, srcX, srcY);
+                        writeRawPixelArgb(dstData, fmt, dstX, dstY, argb);
+                    }
+                }
+                // else：越界区域保持构造时的零初始化（探针确认输出 0x00000000，
+                // 全透明黑；索引格式则是索引 0），不用写。
+                continue;
+            }
+
+            // Smooth（双线性）：把「像素中心」定义为整数坐标 + 0.5（与最近邻
+            // 分支同一套坐标系），取周围 4 个源像素按小数部分线性加权。
+            double fx = srcPoint.x() - 0.5;
+            double fy = srcPoint.y() - 0.5;
+            int x0 = static_cast<int>(std::floor(fx));
+            int y0 = static_cast<int>(std::floor(fy));
+            double wx = fx - x0;
+            double wy = fy - y0;
+            int x0c = clampCoord(x0, srcWidth);
+            int x1c = clampCoord(x0 + 1, srcWidth);
+            int y0c = clampCoord(y0, srcHeight);
+            int y1c = clampCoord(y0 + 1, srcHeight);
+            uint32_t c00 = rawPixelArgb(srcData, fmt, x0c, y0c);
+            uint32_t c10 = rawPixelArgb(srcData, fmt, x1c, y0c);
+            uint32_t c01 = rawPixelArgb(srcData, fmt, x0c, y1c);
+            uint32_t c11 = rawPixelArgb(srcData, fmt, x1c, y1c);
+            writeRawPixelArgb(dstData, fmt, dstX, dstY, bilerpArgb(c00, c10, c01, c11, wx, wy));
+        }
+    }
+
+    return result;
+}
+
+bool PkImage::operator==(const PkImage &other) const
+{
+    // 共享指针相等是短路优化：两个默认构造/null 图像都指向 PkArrayData 的
+    // 进程内共享空哨兵，天然共享，直接 true——对应探针第 5 组「两个 null 都
+    // 是 true」。
+    if (PkIsSharedWith(other)) {
+        return true;
+    }
+    // 不共享时逐字节比较像素内容与格式/尺寸。不比较 devicePixelRatio——对齐
+    // 真 Qt QImage::operator== 的语义（探针第 5 组旁注）。
+    const PkImageData &a = m_d.PkConst();
+    const PkImageData &b = other.m_d.PkConst();
+    return a.format == b.format
+        && a.width == b.width
+        && a.height == b.height
+        && a.bytesPerLine == b.bytesPerLine
+        && a.pixels == b.pixels
+        && a.colorTable == b.colorTable;
+}
+
+bool PkImage::operator!=(const PkImage &other) const
+{
+    return !(*this == other);
 }
