@@ -33,7 +33,7 @@ fi
 # 角括号 <QtGlobal> 按 -I 顺序查找，谁在前谁赢。我们的 QtGlobal 会自己再用相对
 # 路径 quote-include 到 pk/test/compat/QtGlobal（有 #pragma once 兜底），所以
 # pk/test 自己内部需要的 qAbs/qFuzzyCompare 仍然可见，顺序调换不丢东西。
-COMMON_INC=(-I pk/log -I pk/log/compat -I pk/string -I pk/string/compat -I "$STUBS" -I pk/test -I pk/test/compat)
+COMMON_INC=(-I pk/log -I pk/log/compat -I pk/string -I pk/string/compat -I pk/concurrent/compat -I pk/pointer/compat -I pk/container/compat -I "$STUBS" -I pk/test -I pk/test/compat)
 # kis_debug.h 从没写过 #include <QString>，真 Qt 靠 <QDebug>/<QLoggingCategory>
 # 透传把它带进来——同 pk/log/tests/graft/kis_debug_build.sh 的手法，编译参数，
 # 不是对调用点的改动。
@@ -170,12 +170,12 @@ run_one() {
 
     # ⑥ 判据③：产物不得有 Qt 未定义符号。
     local undef
-    undef=$(nm -u "$work/$name" 2>/dev/null | grep -i qt || true)
+    undef=$(nm -u -C "$work/$name" 2>/dev/null | grep -i qt || true)
     if [ -n "$undef" ]; then
         printf '  试接产物含 Qt 符号: %s\n%s\n' "$name" "$undef"
         rc=1
     else
-        printf '    nm -u %s | grep -i qt: 无输出\n' "$name"
+        printf '    nm -u -C %s | grep -i qt: 无输出\n' "$name"
     fi
 }
 
@@ -189,11 +189,20 @@ run_one KisRandomGenerator2DTest \
 # （同 QString/QtGlobal 那两条的手法，是编译参数不是对调用点的改动）。
 # kis_shared_ptr.h:479 直接用 QAtomicInt 却不 #include <QAtomicInt>（真 Qt 靠
 # 别的头把它带进来），同样的坑同样的手法。
+#
+# R-19：三个类型已从 R-08 的 graft 局部垫片（stubs/）改链真品并删除 stub：
+#   QAtomicInt     → pk/concurrent/compat/QAtomicInt（R-10，PkAtomicInt）
+#   QScopedPointer → pk/pointer/compat/QScopedPointer（R-04，PkScopedPointer）
+#   QVector        → pk/container/compat/QVector（R-02，PkVector）
+# 被压到的成员全部内联（QAtomicInt 的 ref/deref/operator int/fetchAndAddOrdered、
+# QScopedPointer 的构造/data/析构、QVector 的 iterator/const_iterator typedef），
+# 不新增链接依赖；stubs/ 里那三个文件已删除。kis_shared.h:10 的
+# `#include <QAtomicInt>`（尖括号）现由 COMMON_INC 里的 -I pk/concurrent/compat 命中。
 run_one KisSharedPtrTest \
     libs/image/tests kis_shared_ptr_test.h kis_shared_ptr_test.cpp \
     "libs/global,libs/image" \
     "libs/global/kis_shared.cpp,libs/global/kis_debug.cpp" \
-    "$STUBS/QAtomicInt,$STUBS/QScopedPointer,$STUBS/QVector" \
+    "pk/concurrent/compat/QAtomicInt,pk/pointer/compat/QScopedPointer,pk/container/compat/QVector" \
     pk/log/tests/graft/kis_shared_ptr_probe.inc
 
 # 源树零改动自证
