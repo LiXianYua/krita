@@ -4,7 +4,7 @@ target_link_libraries(kritatestsdk INTERFACE Qt${QT_MAJOR_VERSION}::Test kritagl
 
 target_compile_definitions(kritatestsdk INTERFACE 
     FILES_DEFAULT_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data/"
-    SYSTEM_RESOURCES_DATA_DIR="${CMAKE_SOURCE_DIR}/krita/data/"
+    SYSTEM_RESOURCES_DATA_DIR="${CMAKE_SOURCE_DIR}/data/"
 )
 
 add_library(kritatransformmaskstubs STATIC

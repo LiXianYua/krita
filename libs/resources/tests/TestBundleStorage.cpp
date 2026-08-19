@@ -31,7 +31,7 @@ void TestBundleStorage::initTestCase()
     QDir().mkpath(m_dstLocation + QString("/bundles"));
 
     const bool copyResult =
-        QFile::copy(KRITA_SOURCE_DIR + QString("/krita/data/bundles/Krita_4_Default_Resources.bundle"),
+        QFile::copy(KRITA_SOURCE_DIR + QString("/data/bundles/Krita_4_Default_Resources.bundle"),
                     m_dstLocation + QString("/bundles/Krita_4_Default_Resources.bundle"));
 
     QVERIFY(copyResult);

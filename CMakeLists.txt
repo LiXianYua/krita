@@ -1643,7 +1643,7 @@ add_subdirectory(plugins)
 if (BUILD_TESTING)
     add_subdirectory(benchmarks)
 endif()
-add_subdirectory(krita)
+add_subdirectory(data)
 
 configure_file(KoConfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/KoConfig.h )
 configure_file(KoTestConfig.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/KoTestConfig.h )
