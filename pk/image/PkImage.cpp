@@ -431,6 +431,15 @@ const uint8_t *PkImage::constScanLine(int y) const
     return rowPtr(d, y);
 }
 
+// 修复轮 1：const scanLine 重载，直接转发 constScanLine——绝不能转发给非 const
+// scanLine()（那会经 PkMut() 触发 detach，破坏探针第 4 组的硬约束）。真 Qt
+// QImage 里 const scanLine(int) const 与 constScanLine 逐字节是同一个函数
+// （qimage.h:226 vs 227），这里用转发保住同一语义。
+const uint8_t *PkImage::scanLine(int y) const
+{
+    return constScanLine(y);
+}
+
 uint8_t *PkImage::bits()
 {
     return m_d.PkMut().pixels.data();
@@ -439,6 +448,12 @@ uint8_t *PkImage::bits()
 const uint8_t *PkImage::constBits() const
 {
     return m_d.PkConst().pixels.data();
+}
+
+// 修复轮 1：const bits 重载，直接转发 constBits（理由同 const scanLine）。
+const uint8_t *PkImage::bits() const
+{
+    return constBits();
 }
 
 uint32_t PkImage::pixel(int x, int y) const

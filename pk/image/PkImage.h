@@ -77,8 +77,10 @@ public:
     // 选 nullptr 而不是做越界指针算术：构造越界指针本身就是 UB，即使不解引用；
     // 返回哨兵指针是更安全的确定性选择，调用方要检查空指针本就是常见约定。
     uint8_t *scanLine(int y);
+    const uint8_t *scanLine(int y) const; // 修复轮 1：转发 constScanLine，绝不 detach
     const uint8_t *constScanLine(int y) const;
     uint8_t *bits();
+    const uint8_t *bits() const; // 修复轮 1：转发 constBits，绝不 detach
     const uint8_t *constBits() const;
 
     // pixel()/setPixel()：对 Indexed8/Mono/MonoLSB，value 是颜色表**索引**

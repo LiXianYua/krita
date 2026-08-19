@@ -33,6 +33,8 @@ private Q_SLOTS:
     // ---- Task 2：detach 时机 ----
     void scanLineDetachesConstScanLineDoesNot();
     void bitsDetachesConstBitsDoesNot();
+    // ---- 修复轮 1：const scanLine/bits 重载 ----
+    void constScanLineConstBitsOverloadsDoNotDetach();
     void pixelDoesNotDetachSetPixelDoes();
     void outOfBoundsSetPixelDoesNotDetach();
     void fillDetaches();

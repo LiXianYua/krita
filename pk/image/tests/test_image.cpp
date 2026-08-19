@@ -369,6 +369,36 @@ void ImageCase::bitsDetachesConstBitsDoesNot()
     PK_VERIFY(!a.PkIsSharedWith(b));
 }
 
+// ---------------------------------------------------------------------------
+// 修复轮 1：const scanLine/bits 重载——真 Qt QImage 的 const 重载（qimage.h:226/
+// 217），compareQImagesImpl 拿 const QImage& 调 .scanLine(y) 解析到它。PkImage
+// 补上后，断言转发目标指针与 constScanLine/constBits 相同，且绝不 detach。
+// ---------------------------------------------------------------------------
+
+void ImageCase::constScanLineConstBitsOverloadsDoNotDetach()
+{
+    PkImage a(2, 2, PkImage::Format_ARGB32);
+    PkImage b(a);
+    PK_VERIFY(a.PkIsSharedWith(b));
+    const long before = a.PkUseCount();
+
+    const PkImage &ca = a;
+
+    // const scanLine(int) const 转发 constScanLine，返回同一行指针。
+    const uint8_t *row = ca.scanLine(1);
+    const uint8_t *rowRef = ca.constScanLine(1);
+    PK_VERIFY(row == rowRef);
+
+    // const bits() const 转发 constBits，返回同一缓冲指针。
+    const uint8_t *bits = ca.bits();
+    const uint8_t *bitsRef = ca.constBits();
+    PK_VERIFY(bits == bitsRef);
+
+    // 全程绝不 detach：共享关系保持，use count 不变。
+    PK_VERIFY(a.PkIsSharedWith(b));
+    PK_COMPARE(a.PkUseCount(), before);
+}
+
 void ImageCase::pixelDoesNotDetachSetPixelDoes()
 {
     PkImage a(2, 2, PkImage::Format_ARGB32);

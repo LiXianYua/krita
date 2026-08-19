@@ -58,8 +58,8 @@ JPEG 等经 `QImageIOHandler` 插件体系的能力，是「换库」不是「�
 
 | API | 语义要点 |
 |---|---|
-| `scanLine(y)`（非 const，**detach**）/ `constScanLine(y)`（**绝不 detach**） | 行指针；越界行返回 `nullptr`（确定性，不构造越界指针） |
-| `bits()` / `constBits()` | 同 detach 时机 |
+| `scanLine(y)`（非 const，**detach**）/ `scanLine(y) const`（转发 `constScanLine`，**绝不 detach**）/ `constScanLine(y)`（**绝不 detach**） | 行指针；越界行返回 `nullptr`（确定性，不构造越界指针） |
+| `bits()` / `bits() const`（转发 `constBits`，**绝不 detach**）/ `constBits()` | 同 detach 时机 |
 | `pixel(x,y)` / `setPixel(x,y,v)` | 直接色格式 v 是 0xAARRGGBB 打包；Indexed8/Mono/MonoLSB 的 v 是颜色表**索引** |
 | `pixelColor(x,y)` / `setPixelColor(x,y,v)` | 复用 pixel/setPixel 的 uint32 打包（无 PkColor，简化决策）；setPixelColor 在索引格式 no-op |
 | `pixelIndex(x,y)` | indexed 原始索引 |
