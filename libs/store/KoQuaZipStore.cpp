@@ -113,6 +113,11 @@ KoQuaZipStore::KoQuaZipStore(const PkString &_filename, KoStore::Mode _mode, con
     KoStorePrivate *d = d_func();
     d->localFileName = _filename;
     dd->archive = new PkZipArchive(_mode == KoStore::Write ? PkZipArchive::Write : PkZipArchive::Read);
+    // PkZipArchive 头文件契约：dataDescriptor 在 mz_zip_open 时应用（PkZipArchive.cpp
+    // openOnStream 里 mz_zip_set_data_descriptor 排在 mz_zip_open 之前），必须在
+    // openFile/openStream 之前设置才生效；zip64/autoClose 是 per-entry/close 时生效
+    // （PkZipArchive.cpp setZip64Enabled/setAutoClose 只缓存字段），留在 init() 里即可。
+    dd->archive->setDataDescriptorWritingEnabled(false);
     if (!dd->archive->openFile(_filename)) {
         d->good = false;
         return;
@@ -127,6 +132,8 @@ KoQuaZipStore::KoQuaZipStore(PkStream *dev, KoStore::Mode _mode, const PkByteArr
 {
     KoStorePrivate *d = d_func();
     dd->archive = new PkZipArchive(_mode == KoStore::Write ? PkZipArchive::Write : PkZipArchive::Read);
+    // dataDescriptor 必须在 openStream 之前设置（见文件名构造里的注释）。
+    dd->archive->setDataDescriptorWritingEnabled(false);
     // PkZipArchive::openStream 不替传入的 stream 调 open()（minizip-ng 只 read/write/
     // seek/tell 它），调用前必须已 open。
     if (!dev->open(_mode == KoStore::Write ? PkStream::WriteOnly : PkStream::ReadOnly)) {
@@ -223,13 +230,13 @@ void KoQuaZipStore::init(const PkByteArray &appIdentification)
         enableZip64 = PkSharedConfig::openConfig()->group("").readEntry<bool>("UseZip64", false);
     }
 
-    dd->archive->setDataDescriptorWritingEnabled(false);
     dd->archive->setZip64Enabled(enableZip64);
     dd->archive->setAutoClose(true);
 
     // openFile/openStream 已在构造里按 Mode 开好（PkZipArchive 构造即定 Mode，
     // openFile 内部用 MZ_OPEN_MODE_READ 或 MZ_OPEN_MODE_WRITE|CREATE）；这里不再
     // 有 archive->open()，good 由构造函数里的 openFile/openStream 结果决定。
+    // setDataDescriptorWritingEnabled 已在构造函数里、open 之前设置（见两个构造）。
     d->good = true;
 
     if (d->mode == Write) {
