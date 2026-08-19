@@ -1,0 +1,221 @@
+# R-16：PkDateTime/PkElapsedTimer 与 QDateTime/QElapsedTimer 的已知行为偏离
+#
+# 格式：<api>\t<tag>\t<≥20 UTF-8 码点理由>，tab 分隔，# 开头为注释（照抄
+# pk/string/oracle/R-13.deviation 的格式与结构——这是 Task 4 brief 指名的先例）。
+#
+# **出现过的每一个 DIFFTAG 都必须在这里有一行**，否则就是「没人判断过它可不可
+# 接受」。反过来，这里声明了但这次没观察到的，说明白名单过期、或对拍根本没走到
+# 那条路径 —— 两种都该查。
+#
+# 基线（2026-08-18，run_oracle.sh 最终跑图）：total=2228 mismatch=185，
+# 18 条 DIFFTAG，逐条列在下面。TZ=UTC + LC_ALL=C.UTF-8 已由 run_oracle.sh 钉死。
+
+# ══════════════════════════════════════════════════════════
+# 对齐口径
+# ══════════════════════════════════════════════════════════
+#
+# Task 4 对拍首轮跑出 total=2228 mismatch=347，其中一类差异（fromString 系列
+# 在 4 位数字年份落在 [1678,2261] 安全窗口之外时，PkDateTime 判 isValid()==true
+# 但 toSecsSinceEpoch() 解出的绝对时刻与输入年份南辕北辙——不是"拒绝 vs 接受"
+# 的宽严差异，是"悄悄给出一个貌似合法、实际错得离谱的值"）被判定为需要修的真实
+# 根因缺口，随即在本任务里修复（PkDateTime.cpp 新增 yearRepresentable() 校验，
+# 见下方「本任务的根因修复」一节）。修复后重跑：mismatch 347 → 185，此后的
+# 185 全部逐条登记在下面，判定均为「可接受」。
+
+# ══════════════════════════════════════════════════════════
+# 本任务的根因修复（对拍逼出的真 bug，不是范围决策）
+# ══════════════════════════════════════════════════════════
+#
+# PkDateTime 内部用 std::chrono::system_clock 存绝对时刻；这台机器（以及
+# 绝大多数 libstdc++/libc++ 实现）上它的原生 duration 精度是纳秒、int64
+# 计数——INT64_MAX ns ≈ 292.28 年，可安全表示的窗口只有约
+# [1677.72, 2262.28]（独立最小复现 /tmp/boundcheck2.cpp 验证过这个数值的来源；
+# 这是 std::chrono nanosecond-precision system_clock 的公开已知限制，不是这次
+# 才发现的新现象，但 Task 1-3 之前没有针对它写校验）。
+#
+# `fromString(s)`/`fromString(s, customFormat)` 这条日历字段解析链路
+# （`makeFromUtcFieldsChecked`）此前对年份没有任何范围校验，年份落在安全窗口
+# 之外时会在"日历字段 → time_t → TimePoint"换算链上发生有符号整数回绕：
+# 不是拒绝，是给出一个 isValid()==true 但完全错误的时刻。对拍实测例子（修复前）：
+#   fromString("9999-06-15T12:30:45", "yyyy-MM-ddThh:mm:ss")
+#     修复前：isValid()==true，toSecsSinceEpoch() 解出来的日期落在 1683 年附近
+#     修复后：isValid()==false（年份超出安全窗口，明确拒绝）
+# 真实调用点（EXIF/XMP 元数据日期）不会落在这个窗口之外，但"看起来合法的输入
+# 不能悄悄给错答案"这条原则不该因为"用不到"就放弃——补的是
+# `PkDateTime.cpp` 里 `yearRepresentable(year)`（`year>=1678 && year<=2261`），
+# 在 `makeFromUtcFieldsChecked` 里第一个校验。**没有改 Task 2 的裸 epoch 工厂
+# `fromSecsSinceEpoch`/`fromMSecsSinceEpoch`**——那两个函数是"给一个数字、存成
+# 时间点"的无校验工厂，真实 `QDateTime::fromSecsSinceEpoch`/
+# `fromMSecsSinceEpoch` 同样不做范围校验（已用独立最小复现验证，见下方
+# fromSecsSinceEpoch/fromMSecsSinceEpoch 条目），改了反而是新增了两侧原本都没有
+# 的契约，不在本次根因范围内。
+#
+# 修复后跑 `pk/time` 全部既有单测（`test_pktime`：TestElapsedTimer 9 条 +
+# TestDateTime 26 条）与 `date_parser_driver`（6 分支）——**35+6 条全绿，
+# 无回归**。
+
+# ══════════════════════════════════════════════════════════
+# 逐条声明（api\ttag\t理由）
+# ══════════════════════════════════════════════════════════
+
+fromMSecsSinceEpoch	extreme	R-16 Task4 手挑对抗用例：msecs 落在 int64 表示上限附近（kExtremeTok 的 MAX/2、MIN/2 一类，以及 kSecTok 里 9999/0001 年代表值 ×1000 之后进入 classifySec 的"extreme"桶）。真实 QDateTime 内部存毫秒（乘 1000 才到微秒/纳秒中间量），PkDateTime 内部存纳秒（乘 1e6），两侧各自的整数回绕点不同，回绕后落到不同值——两侧都是"未定义范围输入下的尽力而为"，不是谁错。真实调用点不会传这种量级的 msecs。
+fromMSecsSinceEpoch	int64-max	手挑对抗用例：msecs=INT64_MAX。已用独立最小复现（/tmp/qt_extreme_test.cpp 对比真 Qt5、/tmp/uboverflow_test.cpp 对比 std::chrono 裸换算）确认两侧在这台机器上 g++ -O0/-O2 均不崩溃，只是回绕到不同的具体数值（Qt: toSecsSinceEpoch=9223372036854775；Pk: 0）——回绕算法不同，都不是崩溃或未定义结果，真实调用点不会传这个量级。
+fromMSecsSinceEpoch	int64-min	同上一条，msecs=INT64_MIN 方向对称。
+fromSecsSinceEpoch	post-1970	kSecTok 里的 253402300799（9999-12-31T23:59:59）直接作为裸 epoch 秒喂给 fromSecsSinceEpoch（不经过 fromString 的年份校验——那条校验只挡 fromString 系列，裸 epoch 工厂按设计不做范围校验，见上「本任务的根因修复」）。两侧内部表示精度不同（ms vs ns），toSecsSinceEpoch() 回绕点不同，读回来的值不同。真实 QDateTime::fromSecsSinceEpoch 同样不校验范围（已用独立最小复现确认），这不是"该拒绝没拒绝"，是两侧对同一个超范围输入各自尽力而为、结果碰巧不同。
+fromSecsSinceEpoch	pre-1970	同上一条，kSecTok 里的 -62135596800（0001-01-01）方向对称。
+fromString-ISODate	len=18	手挑边界长度用例："2024-06-15T12:30:4"（19 字符阈值少 1 位，秒字段只剩 1 位数字）。真实 Qt 的 Qt::ISODate 解析器比 PkDateTime 的固定 19 字符校验宽松，能把这种截断形态解析成合法值；PkDateTime::fromString(s,DateFormat::ISODate) 只转发到 fromString(s,"yyyy-MM-ddThh:mm:ss")，后者严格要求恰好 19 字符——这是 PkDateTime.h 类注释里已经写明的设计（"只认这 5 个具体格式串...不做通用 format-token 解析器"），真实调用点（kis_exif_io.cpp、kis_exiv2_common.h）产出的都是标准 19 字符 ISODate 串，不会给这种截断形态。
+fromString-ISODate	len=19	手挑边界长度用例："9999-12-31T23:59:59"——年份超出 [1678,2261] 安全窗口，本任务修复后 PkDateTime 正确拒绝（isValid()==false），真实 QDateTime 内部毫秒表示可表示的范围远大于这个窗口，仍判为合法值。属于「本任务根因修复」小节描述的、修复之后residual 的、可接受的边界（宁可少支持极端年份，也不要悄悄给错答案）。
+fromString-ISODate	len=20	组合爆破用例："2024-06-15T12:30:456"（19 字符阈值多 1 位）。理由同 len=18 那条——真实 Qt::ISODate 解析器比固定长度校验宽松，会把多出来的一位数字当成别的字段处理并仍然给出合法值；PkDateTime 严格要求 19 字符，拒绝。设计依据同 PkDateTime.h 的"只认 5 个具体格式串"YAGNI 理由。
+fromString-custom	fmt=yyyy-MM-ddThh:mm:ss/len=19	5 条命中，两类根因都落在这一个 tag 下（同 (fmt,len) 但输入内容不同）：(a) 3 条"某月最多几天"精确校验缺失——"2024-06-31"（6 月只有 30 天）、"2024-02-30"（2 月最多 29 天）、"2023-02-29"（2023 非闰年，2 月只有 28 天）；PkDateTime.cpp 的 fieldsInRange 只做粗粒度范围校验（1<=day<=31），不做逐月天数精确校验——这是 Task 3 已经在代码注释里显式声明的设计（"不做'某月最多几天'这种精确闰年校验...真实调用点不会产出这类输入，过度校验不划算"），本轮对拍只是首次给它一个可观测的 DIFFTAG，不是新发现。(b) 2 条年份超出安全窗口——"0001-06-15T12:30:45"、"9999-06-15T12:30:45"，理由同 fromString-ISODate len=19 那条（本任务修复后的 residual 边界）。
+fromString-default	tokens=5	161 条，全部落在两类根因：(a) 绝大多数（约 150+ 条）是"Wed <月> <日> <时间> 9999"组合爆破——年份 9999 超出安全窗口，本任务修复后 PkDateTime 正确拒绝，真实 QDateTime 仍判合法（同 fromString-ISODate len=19 的 residual 边界；年份 0000 那部分已被本任务的修复消除，不再出现在这个 tag 下）。(b) 2 条手挑对抗用例："Wed May 20 3:40:13 2015"（单数位小时，PkDateTime::fromString(s) 的默认格式严格要求 hh:mm:ss 恰好 8 字符/两位小时，真实 Qt::TextDate 解析更宽松能接受单数位小时）与"Wed May 20 03:40:13 99999"（5 位年份，PkDateTime 的 yearStr.size()>4 直接拒绝，真实 Qt 仍能把它解析成一个巨大的合法年份）——两条都是 PkDateTime.h/.cpp 已经写明的"只认固定形态"YAGNI 设计的自然延伸，不是本轮新发现的缺口。
+toString-default	post-1970	通过裸 epoch 工厂 fromSecsSinceEpoch(253402300799) 构造出的 PkDateTime 对象本身内部表示已经因超范围回绕而错误（见 fromSecsSinceEpoch/post-1970 条目），toString() 只是如实渲染这个已经错误的内部时刻，不是 toString() 自己的问题。
+toString-default	pre-1970	同上，-62135596800 方向对称。
+toString-fmt	fmt=ISODate/post-1970	同 toString-default/post-1970 根因，只是换了一个格式化函数渲染同一个已经内部错误的对象。
+toString-fmt	fmt=ISODate/pre-1970	同上，方向对称。
+toString-fmt	fmt=ISODateWithMs/post-1970	同 toString-default/post-1970 根因。
+toString-fmt	fmt=ISODateWithMs/pre-1970	同上，方向对称。
+toString-fmt	fmt=RFC2822Date/post-1970	同 toString-default/post-1970 根因。
+toString-fmt	fmt=RFC2822Date/pre-1970	同上，方向对称。
+
+# ══════════════════════════════════════════════════════════
+# compat/QDate·QTime 裸 token 查证结果（brief 要求的"按需处理，不预先假设"）
+# ══════════════════════════════════════════════════════════
+#
+# `grep -rn '\bQDate\b|\bQTime\b' libs/ plugins/`（排除 QDateTime/tests/
+# benchmarks，2026-08-18 现场查）：QDate 命中 9 处、QTime 命中 30+ 处，
+# **全部是把 QDate/QTime 当独立值类型使用**（QDate::currentDate()、
+# `date.year()/month()/day()`、QTime::currentTime()、`.msec()`、
+# `QTime(h,m,s,ms)` 构造），这些 API 面完全不在 `pk/time`（PkDateTime/
+# PkElapsedTimer）的实现范围内——Task 1-3 只交付了 PkDateTime（日期时间的
+# epoch/字符串语义）与 PkElapsedTimer（单调计时），没有 PkDate/PkTime 这两个
+# 独立日历值类型。
+#
+# 唯一一处**裸 token 依赖 <QDateTime> 传递 include**（真实 Qt 的 qdatetime.h
+# 把 QDate/QTime/QDateTime 三个类定义在同一个头文件里，所以 <QDateTime> 天然
+# 传递给出 QDate/QTime）的调用点是
+# `plugins/metadata/common/kis_exiv2_common.h:142`：只 `#include <QDateTime>`
+# （无独立 `#include <QDate>`），却用 `QDate date = variant.toDate();` 加
+# `date.year()/month()/day()`。**这处虽然是真实的传递 include 依赖，但它用的
+# API（日历字段访问器）同样不在 pk/time 的实现范围内**——即便 compat/QDateTime
+# 把 QDate 也 #define 成 PkDateTime，PkDateTime 没有 year()/month()/day() 成员，
+# 这个调用点依然编不过（而且语义上也不该通：QDate 与 QDateTime 是不同的值
+# 类型，PkDateTime 冒充 QDate 是概念错误，不是"补个 include 就好"）。
+#
+# 结论：**compat/QDateTime、compat/QElapsedTimer 都不补 QDate/QTime 裸 token
+# 的传递 include**——不是"没有真实调用点"（kis_exiv2_common.h 那一处确实存在），
+# 是"存在但其 API 面不属于 pk/time 的保留范围，属于 Task 5 试接阶段会撞到的、
+# 需要另开一个日历值类型（PkDate，可能连带 PkTime）覆盖的真实缺口"，留给
+# Task 5 或后续任务处理，不在本任务里强行塞一个签名不匹配的宏定义。这与
+# compat/QRect 补 QPoint/QSize 传递 include 的先例不同：那次传递进来的类型
+# （QPoint/QSize）本身就是 pk/geometry 已实现的类型，只是 include 路径没接上；
+# 这次传递进来的类型（QDate）压根不在 pk/time 已实现的类型清单里。
+
+# ══════════════════════════════════════════════════════════
+# 覆盖度限制 —— 说不出覆盖不到什么的对拍，说明还没想清楚
+# ══════════════════════════════════════════════════════════
+#
+# 1. **`pk/time` 没有时区/日历系统**，这条本身就是范围限制：TZ=UTC 是对拍
+#    运行环境的钉死手段（让真实 QDateTime 的 Qt::LocalTime 渲染与 PkDateTime
+#    恒定的 UTC 渲染重合，比较才有意义），不是"两侧都支持时区、这次只测了
+#    UTC 这一个时区"——PkDateTime 从设计上就不支持除 UTC 外的任何时区语义，
+#    这条差异不由本对拍程序验证，是已经在 PkDateTime.h/.cpp 顶部注释写明的
+#    range 决策。
+# 2. **`toSecsSinceEpoch()` 没有独立的 ORACLE-COVER 计数**：它被 esQDT/esPDT
+#    这两个"可比较字符串"辅助函数内联调用，贯穿本文件几乎所有比较（total=2228
+#    里绝大多数都间接调了它），但没有单独的 diff 函数只测它自己——覆盖是真实
+#    的，只是不体现在 ORACLE-COVER 的按 api 计数里。
+# 3. **`currentDateTime()`/`currentDateTimeUtc()` 只做"5 秒容忍窗口内且都
+#    valid"的关系性对拍**，不比较精确到毫秒/纳秒的绝对值——这是两次独立
+#    "现在"调用之间必然存在真实时间差的结构性限制，不是对拍偷懒；容忍窗口
+#    选 5 秒是刻意放宽（远超两次背靠背调用的实际间隔，通常 <1ms），只用来
+#    确认两侧真的都在读同一个数量级的当前时刻，不能揪出"读错了几百毫秒"
+#    这类更细的偏差。
+# 4. **`elapsed()`/`nsecsElapsed()` 同理只做关系性对拍**（归零性质、非负性、
+#    与真实睡眠时长同数量级、ns/ms 比值落在 1e5~1e7 区间、restart() 真的归零），
+#    不比较跨进程/跨侧的绝对纳秒数字面量——两次 start() 调用之间、两次
+#    elapsed() 读数之间都存在真实的、不可控的线程调度抖动，字面量比较在这个
+#    量级上没有意义，brief 本身也明确允许这种口径（"对拍不能靠字面量比较毫秒
+#    数...只对拍归零/单调这类关系性质"）。容忍窗口选 30ms（sleep 时长 0/1/5/
+#    20/50ms 中最大的 50ms 的 6 折）——偏宽松，换来的是在正常 CI 机器负载下
+#    不会因为调度抖动产生假阳性；代价是像注入 D 那样"系数错了 1000 倍"这种
+#    严重错误才能稳定被抓住，误差在个位数毫秒量级的换算系数缺陷（比如 999000
+#    而不是 1000000）不保证被这套容忍窗口抓到——这是本对拍程序对 elapsed()
+#    数值精度判据的真实上限，不是不知道，是关系性对拍的固有代价。
+# 5. **`fromString(s, DateFormat fmt)` 只测了 ISODate 一支**：RFC2822Date/
+#    ISODateWithMs 传给这个重载目前没有真实调用点（PkDateTime.h 类注释已写明
+#    "等真的出现调用点再扩展"），对拍因此也没有为它们写 diff 函数——不是
+#    漏测，是这两支实现本身就恒返回无效实例，对拍这两支只会得到"两侧都不支持"
+#    这种没有信息量的结果。
+# 6. **内嵌 NUL 完全不覆盖**：本文件全部字符串 token 来自 C 字符串字面量
+#    （std::string(const char*) 走 strlen），PkDateTime 的字符串类 API
+#    （fromString 系列）本身也没有能表达内嵌 NUL 的重载，这条限制是 API 面
+#    本身决定的，不是对拍疏漏。
+
+# ══════════════════════════════════════════════════════════
+# 判据有效性自证：四组注入实验（改完即刻还原，pk/ 下无残留）
+# ══════════════════════════════════════════════════════════
+# 基线（本文件生效状态）：total=2228 mismatch=185，18 条 DIFFTAG（全部登记在
+# 上方「逐条声明」）。每组注入前后都用 `git diff --stat` + `grep INJECTION`
+# 确认改动范围与还原干净，四组跑完后额外做了一次干净的 `./run_oracle.sh`
+# 复核 mismatch 精确回到 185、DIFFTAG 集合精确回到基线的 18 条，并重跑
+# pk/time 全部既有单测（35 条）与 date_parser_driver（6 分支）确认无残留副作用。
+#
+#   A fromString(s,"yyyy") 分支的长度判断 `s.size() != 4` 改成 `s.size() < 4`
+#       论证（非空操作）：`!=` 改 `<` 之后，长度 >4 的字符串不再被长度判断挡住，
+#       只要前 4 个字符是数字就会被当成合法年份解析、忽略后面的内容——本文件
+#       kFmts 的边界长度用例本来就包含"exact+9"（len+1，追加一位数字）与跨格式
+#       组合爆破（kCrossInputs 里的多种长度输入喂给全部 5 个格式），预期会命中。
+#       结果：mismatch 185 → 191（+6），新增 5 条未声明 DIFFTAG：
+#       `fromString-custom fmt=yyyy/len=5`(1)、`len=7`(1)、`len=10`(2)、
+#       `len=16`(1)、`len=19`(1)——precisely 是 kCrossInputs 里长度 >4 的输入
+#       （"2024"是len4本身不受影响，"2024-06"/"2024-06-15"/
+#       "2024-06-15T12:30"/"2024-06-15T12:30:45"/"2024-06-15T12:30:45"+9 这几个
+#       被"yyyy"格式吃进去、只取前 4 位当年份）——与预期完全吻合，非空操作
+#       确认成立。
+#
+#   B fromString(s,"yyyy-MM-ddThh:mm:ss") 分支的长度判断
+#     `s.size() != 19` 改成 `s.size() < 19`
+#       论证（非空操作）：同 A，len+1（20 字符，末尾多一位数字）的输入会被
+#       当成合法解析，忽略最后一位——本文件 kFmts 边界长度用例的
+#       "exact+9"（"2024-06-15T12:30:459"）预期命中。
+#       结果：mismatch 185 → 185（**净变化 0，但 DIFFTAG 集合确实变了**——
+#       这是四组里最值得记录的一条）：新增未声明 tag
+#       `fromString-custom fmt=yyyy-MM-ddThh:mm:ss/len=20`(1)（与预期完全一致，
+#       该输入原本因长度不符被拒绝，注入后被当成合法值解析），但同时
+#       `fromString-ISODate len=20` 那条**基线本来就存在**的偏离
+#       （"2024-06-15T12:30:456"：修复前 qt=VALID pk=INVALID）从 DIFFTAG
+#       集合里消失了——因为 fromString(s,DateFormat::ISODate) 内部就是转发到
+#       这个被注入的分支，注入之后 Pk 一样"忽略末位、按前 19 位解析"，算出的
+#       toSecsSinceEpoch() 恰好与真实 Qt 对这个 20 字符输入的解析结果在整数秒
+#       粒度上重合，两侧从此"碰巧一致"。**净 mismatch 数字掩盖了真相**：
+#       total 计数不变，但如果只看这一个聚合数字会误判"注入 B 没有效果"——
+#       必须看 DIFFTAG 集合本身（新增了一条未声明 tag）才能发现注入确实生效。
+#       这正好印证 spec 里"tag 集合比聚合计数更可靠"的判据设计取舍，也确认了
+#       本对拍程序的判定不是靠比较 total 数字（`R-16.deviation` 的校验逻辑要求
+#       "出现过的 DIFFTAG 必须在这里逐条声明"，`fromString-custom
+#       fmt=yyyy-MM-ddThh:mm:ss/len=20` 未在基线声明列表里，会被判定为
+#       未声明差异，正确报警）。
+#
+#   C secsTo() 符号取反（`m_time - other.m_time` 而不是
+#     `other.m_time - m_time`）
+#       论证（非空操作）：secsTo 的方向探针钉死为"后减前"，取反之后所有非零
+#       间隔的用例（a!=b）符号翻转，a==b 的用例（间隔为零）不受影响。
+#       结果：mismatch 185 → 295（+110），新增 2 条未声明 DIFFTAG：
+#       `secsTo dir=a<b`(55)、`secsTo dir=a>b`(55)——kSecTok 有 11 个值，
+#       两两组合共 121 对，其中 11 对是 a==b（对角线，不受符号翻转影响），
+#       110 对 a!=b（55 对 a<b + 55 对 a>b，对称），全部翻转出未声明差异——
+#       与预期"所有非零间隔的用例报差异"精确吻合。
+#
+#   D elapsed() 的纳秒/毫秒换算系数从 1000000 改成 1000（少三个数量级）
+#       论证（非空操作）：sleep 时长为 0ms 时真实经过时间本来就在个位数毫秒
+#       量级，换算系数错误不足以让"小于 50ms"或"非负"这类粗判据翻转；sleep
+#       为 1/5/20/50ms 时，正确换算应给出与睡眠时长同数量级的 elapsed()，
+#       错误系数会让 elapsed() 读数偏小约 1000 倍，precisely 会让"两侧
+#       elapsed() 差值 <=30ms"「ns/ms 比值落在 1e5~1e7」「restart() 返回值
+#       与另一侧同数量级」这三类关系性判据全部失守。
+#       结果：mismatch 185 → 197（+12），新增 12 条未声明 DIFFTAG：
+#       `elapsed-ns-ratio post-sleep/sleep={1,5,20,50}`(各1)、
+#       `elapsed-restart post-sleep/sleep={1,5,20,50}`(各1)、
+#       `elapsed-seq post-sleep/sleep={1,5,20,50}`(各1)——sleep=0 那一组确实
+#       未受影响（与论证一致：0ms 睡眠的真实耗时太小，两侧读数都落在容忍窗口
+#       内，系数错误在这个量级上不可观测）。

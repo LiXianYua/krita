@@ -63,12 +63,36 @@ int monthNumberFromAbbrev(const std::string &abbrev)
 
 // 粗粒度范围校验（不做"某月最多几天"这种精确闰年校验）——够用来挡住
 // 明显不合法的字段组合（如月份 13），真实调用点（EXIF/元数据日期串）不会
-// 产出这类输入，过度校验不划算。
+// 产出这类输入，过度校验不划算。R-16 Task 4 对拍已实测确认这条设计选择本身
+// （day 不做闰年/每月天数精确校验、year 不禁 0）：真实 Qt 会拒绝
+// "2024-02-30"/"2023-02-29"（非闰年）/"0000-01-01" 这类输入，PkDateTime 按本
+// 函数的粗粒度校验接受——属于已裁定、已在本注释写明理由的范围决策，不是本轮
+// 新发现，登记见 pk/time/oracle/R-16.deviation。
 bool fieldsInRange(int month, int day, int hour, int minute, int second)
 {
     return month >= 1 && month <= 12 && day >= 1 && day <= 31 &&
            hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 &&
            second >= 0 && second <= 59;
+}
+
+// R-16 Task 4 对拍逼出的真实根因修复（不是范围决策，是内部表示的正确性
+// 缺口）：PkDateTime 内部用 std::chrono::system_clock 存绝对时刻，这台机器
+// 上（以及绝大多数 libstdc++/libc++ 实现）它的原生 duration 精度是纳秒、
+// 用 int64 计数——INT64_MAX ns ≈ 292.28 年，可安全表示的窗口只有约
+// [1677.72, 2262.28]（对拍程序 pk/time/oracle/difftest_time.cpp 用独立最小
+// 复现验证过这个边界的来源与数值）。超出这个窗口时，`makeFromUtcFieldsChecked`
+// 内部"日历字段 → time_t → TimePoint"这条换算链会发生有符号整数回绕：不是
+// "拒绝"，是**悄悄给出一个貌似合法、实际上错得离谱的时刻**——对拍实测例子：
+// `fromString("9999-06-15T12:30:45", "yyyy-MM-ddThh:mm:ss")` 在补这条校验
+// 之前 isValid()==true，但 toSecsSinceEpoch() 解出来的日期落在 1683 年附近，
+// 与输入的 9999 年南辕北辙。真实调用点（EXIF/XMP 元数据日期）不会落在这个
+// 窗口之外，但"看起来合法的输入不能悄悄给错答案"这条原则不能因为"用不到"就
+// 放弃——用一次朴素的年份区间校验把它变成"明确拒绝"（isValid()==false），
+// 而不是放着悄悄腐化数据。两端各留几年安全余量（不精确到 1677/2262 那两个
+// 边界年份本身，避免该年份内具体月日进一步逼近真实换算边界）。
+bool yearRepresentable(int year)
+{
+    return year >= 1678 && year <= 2261;
 }
 
 // 变异注入点：把 `checked` 判断反过来（fieldsInRange 通过时反而返回哨兵）会
@@ -77,6 +101,7 @@ bool fieldsInRange(int month, int day, int hour, int minute, int second)
 // 覆盖两个方向。
 PkDateTime makeFromUtcFieldsChecked(int year, int month, int day, int hour, int minute, int second)
 {
+    if (!yearRepresentable(year)) return PkDateTime();
     if (!fieldsInRange(month, day, hour, minute, second)) return PkDateTime();
 
     std::tm tmVal{};
