@@ -1,0 +1,7 @@
+#pragma once
+
+// pk/color 的 QtGlobal 兼容层：直接转交给 pk/global 的超集 shim。
+// pk/global 的 shim 内部用 __has_include 按**它自己文件所在目录**的相对路径
+// 去找 pk/test 与 pk/geometry 的 QtGlobal（都在各自工程里），这里转发即可，
+// 不必在此目录再复制一份。
+#include "../../global/compat/QtGlobal"

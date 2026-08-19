@@ -1,0 +1,11 @@
+#pragma once
+
+// pk/color 的 Qt 兼容层：把 `#include <QColor>` 解析为 pk/color 的 PkColor。
+// 用法（graft / difftest 侧的 Q 面兼容驱动）：
+//   -I pk/color/compat -include QColor
+// 本 shim 按 Qt 5.15 的暴露面把 QColor 替换为 PkColor；若未来需要 QString /
+// QColor 之外的 Qt 类型，再在各自子工程补 shim，这里不放。
+#include "QtGlobal"
+#include "../PkColor.h"
+
+#define QColor PkColor
