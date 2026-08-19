@@ -29,7 +29,7 @@
 // Qt 5.15 <QtCore/qflags.h>）。
 #pragma once
 
-#include "../global/PkGlobal.h"   // 标量 + Qt::AspectRatioMode/Axis（同一 namespace Qt 的成员）
+#include "../global/PkGlobal.h"   // 标量 + Qt 六个枚举：AspectRatioMode/Axis/SizeMode/FillRule/GlobalColor/TransformationMode（同一 namespace Qt 的成员）
 #include "../flags/PkFlags.h"     // PkFlags<Enum> + PK_DECLARE_FLAGS / PK_DECLARE_OPERATORS_FOR_FLAGS
 
 namespace Qt {

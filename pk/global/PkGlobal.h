@@ -171,10 +171,13 @@ constexpr inline bool qFuzzyIsNull(float f) { return pkQtFuzzyIsNull(f); }
 // 比较进入行为）。实测真 Qt 5.15.7：IgnoreAspectRatio=0 KeepAspectRatio=1
 // KeepAspectRatioByExpanding=2，XAxis=0 YAxis=1 ZAxis=2，sizeof=4。
 //
-// **这是全项目唯一一个真 `namespace`**，与「全局 Pk 前缀、不引 namespace」那条
-// 不冲突：那条针对的是我们自己的类型（compat 垫片靠 `#define QRect PkRect`，
-// 而 Krita 里有 `class QRect;` 前置声明），而这两个枚举在调用点上**本来就是
-// `Qt::` 限定的**，不套 namespace 反而对不上。
+// **这是全项目仅有的两个真 `namespace` 之一**（另一个是 pk/namespace 的
+// `PkNamespace.h`，两者分权共构完整 Qt 枚举集：本头提供 AspectRatioMode/Axis/
+// SizeMode/FillRule/GlobalColor/TransformationMode，pk/namespace 提供其余枚举，
+// 同一 TU 并集可见）。与「全局 Pk 前缀、不引 namespace」那条不冲突：那条针对的
+// 是我们自己的类型（compat 垫片靠 `#define QRect PkRect`，而 Krita 里有
+// `class QRect;` 前置声明），而这两个枚举在调用点上**本来就是 `Qt::` 限定的**，
+// 不套 namespace 反而对不上。
 //
 // 为什么住 pk/global 而不是 pk/geometry 或 compat/：geometry 的 PkSize.h /
 // PkTransform.h 成员签名要用它们（`scaled(const PkSize &, Qt::AspectRatioMode)`、
