@@ -191,17 +191,17 @@ inline T kisGrowRect(const T &rect, U offset) {
     return rect.adjusted(-offset, -offset, offset, offset);
 }
 
-inline qreal kisDistance(const QPointF &pt1, const QPointF &pt2) {
+inline double kisDistance(const PkPointF &pt1, const PkPointF &pt2) {
     return std::sqrt(pow2(pt1.x() - pt2.x()) + pow2(pt1.y() - pt2.y()));
 }
 
-inline qreal kisSquareDistance(const QPointF &pt1, const QPointF &pt2) {
+inline double kisSquareDistance(const PkPointF &pt1, const PkPointF &pt2) {
     return pow2(pt1.x() - pt2.x()) + pow2(pt1.y() - pt2.y());
 }
 
 template<typename PointType>
 inline PointType snapToClosestAxis(PointType P) {
-    if (qAbs(P.x()) < qAbs(P.y())) {
+    if (std::abs(P.x()) < std::abs(P.y())) {
         P.setX(0);
     } else {
         P.setY(0);
@@ -210,68 +210,66 @@ inline PointType snapToClosestAxis(PointType P) {
 }
 
 template<typename PointType>
-inline PointType snapToClosestNiceAngle(PointType point, PointType startPoint, qreal angle = (2 * M_PI) / 24) {
+inline PointType snapToClosestNiceAngle(PointType point, PointType startPoint, double angle = (2 * M_PI) / 24) {
     // default angle = 15 degrees
 
-    const QPointF lineVector = point - startPoint;
-    qreal lineAngle = std::atan2(lineVector.y(), lineVector.x());
+    const PkPointF lineVector = point - startPoint;
+    double lineAngle = std::atan2(lineVector.y(), lineVector.x());
 
     if (lineAngle < 0) {
         lineAngle += 2 * M_PI;
     }
 
-    const quint32 constrainedLineIndex = static_cast<quint32>((lineAngle / angle) + 0.5);
-    const qreal constrainedLineAngle = constrainedLineIndex * angle;
+    const uint32_t constrainedLineIndex = static_cast<uint32_t>((lineAngle / angle) + 0.5);
+    const double constrainedLineAngle = constrainedLineIndex * angle;
 
-    const qreal lineLength = kisDistance(lineVector, QPointF());
+    const double lineLength = kisDistance(lineVector, PkPointF());
 
-    const QPointF constrainedLineVector(lineLength * std::cos(constrainedLineAngle), lineLength * std::sin(constrainedLineAngle));
+    const PkPointF constrainedLineVector(lineLength * std::cos(constrainedLineAngle), lineLength * std::sin(constrainedLineAngle));
 
-    const QPointF result = startPoint + constrainedLineVector;
+    const PkPointF result = startPoint + constrainedLineVector;
 
     return result;
 }
 
 
-#include <QLineF>
-
-inline qreal kisDistanceToLine(const QPointF &m, const QLineF &line)
+inline double kisDistanceToLine(const PkPointF &m, const PkLineF &line)
 {
-    const QPointF &p1 = line.p1();
-    const QPointF &p2 = line.p2();
+    const PkPointF &p1 = line.p1();
+    const PkPointF &p2 = line.p2();
 
-    qreal distance = 0;
+    double distance = 0;
 
-    if (qFuzzyCompare(p1.x(), p2.x())) {
-        distance = qAbs(m.x() - p2.x());
-    } else if (qFuzzyCompare(p1.y(), p2.y())) {
-        distance = qAbs(m.y() - p2.y());
+    if (std::abs(p1.x() - p2.x()) < 1e-12) {
+        distance = std::abs(m.x() - p2.x());
+    } else if (std::abs(p1.y() - p2.y()) < 1e-12) {
+        distance = std::abs(m.y() - p2.y());
     } else {
-        qreal A = 1;
-        qreal B = - (p1.x() - p2.x()) / (p1.y() - p2.y());
-        qreal C = - p1.x() - B * p1.y();
+        double A = 1;
+        double B = - (p1.x() - p2.x()) / (p1.y() - p2.y());
+        double C = - p1.x() - B * p1.y();
 
-        distance = qAbs(A * m.x() + B * m.y() + C) / std::sqrt(pow2(A) + pow2(B));
+        distance = std::abs(A * m.x() + B * m.y() + C) / std::sqrt(pow2(A) + pow2(B));
     }
 
     return distance;
 }
 
-inline qreal kisSquareDistanceToLine(const QPointF &m, const QLineF &line)
+inline double kisSquareDistanceToLine(const PkPointF &m, const PkLineF &line)
 {
-    const QPointF &p1 = line.p1();
-    const QPointF &p2 = line.p2();
+    const PkPointF &p1 = line.p1();
+    const PkPointF &p2 = line.p2();
 
-    qreal distance = 0;
+    double distance = 0;
 
-    if (qFuzzyCompare(p1.x(), p2.x())) {
+    if (std::abs(p1.x() - p2.x()) < 1e-12) {
         distance = pow2(m.x() - p2.x());
-    } else if (qFuzzyCompare(p1.y(), p2.y())) {
+    } else if (std::abs(p1.y() - p2.y()) < 1e-12) {
         distance = pow2(m.y() - p2.y());
     } else {
-        qreal A = 1;
-        qreal B = - (p1.x() - p2.x()) / (p1.y() - p2.y());
-        qreal C = - p1.x() - B * p1.y();
+        double A = 1;
+        double B = - (p1.x() - p2.x()) / (p1.y() - p2.y());
+        double C = - p1.x() - B * p1.y();
 
         distance = pow2(A * m.x() + B * m.y() + C) / (pow2(A) + pow2(B));
     }
@@ -281,18 +279,17 @@ inline qreal kisSquareDistanceToLine(const QPointF &m, const QLineF &line)
 }
 
 
-inline QPointF kisProjectOnVector(const QPointF &base, const QPointF &v)
+inline PkPointF kisProjectOnVector(const PkPointF &base, const PkPointF &v)
 {
-    const qreal prod = base.x() * v.x() + base.y() * v.y();
-    const qreal lengthSq = pow2(base.x()) + pow2(base.y());
-    qreal coeff = prod / lengthSq;
+    const double prod = base.x() * v.x() + base.y() * v.y();
+    const double lengthSq = pow2(base.x()) + pow2(base.y());
+    double coeff = prod / lengthSq;
 
     return coeff * base;
 }
 
-#include <QRect>
 
-inline QRect kisEnsureInRect(QRect rc, const QRect &bounds)
+inline PkRect kisEnsureInRect(PkRect rc, const PkRect &bounds)
 {
     if(rc.right() > bounds.right()) {
         rc.translate(bounds.right() - rc.right(), 0);
@@ -313,36 +310,36 @@ inline QRect kisEnsureInRect(QRect rc, const QRect &bounds)
     return rc;
 }
 
-inline QRectF kisTrimLeft( int width, QRectF &toTakeFrom)
+inline PkRectF kisTrimLeft( int width, PkRectF &toTakeFrom)
 {
-    QPointF trimmedOrigin = toTakeFrom.topLeft();
-    QSize trimmedSize = QSize(width, toTakeFrom.height());
+    PkPointF trimmedOrigin = toTakeFrom.topLeft();
+    PkSize trimmedSize = PkSize(width, toTakeFrom.height());
     toTakeFrom.setWidth(toTakeFrom.width() - width);
     toTakeFrom.translate(width, 0);
-    return QRectF(trimmedOrigin, trimmedSize);
+    return PkRectF(trimmedOrigin, trimmedSize);
 }
 
-inline QRect kisTrimLeft( int width, QRect &toTakeFrom)
+inline PkRect kisTrimLeft( int width, PkRect &toTakeFrom)
 {
-    QRectF converted = QRectF(toTakeFrom);
-    QRectF toReturn = kisTrimLeft(width, converted);
+    PkRectF converted = PkRectF(toTakeFrom);
+    PkRectF toReturn = kisTrimLeft(width, converted);
     toTakeFrom = converted.toAlignedRect();
     return toReturn.toAlignedRect();
 }
 
-inline QRectF kisTrimTop( int height, QRectF& toTakeFrom)
+inline PkRectF kisTrimTop( int height, PkRectF& toTakeFrom)
 {
-    QPointF trimmedOrigin = toTakeFrom.topLeft();
-    QSize trimmedSize = QSize(toTakeFrom.width(), height);
+    PkPointF trimmedOrigin = toTakeFrom.topLeft();
+    PkSize trimmedSize = PkSize(toTakeFrom.width(), height);
     toTakeFrom.setHeight(toTakeFrom.height() - height);
     toTakeFrom.translate(0, height);
-    return QRectF(trimmedOrigin, trimmedSize);
+    return PkRectF(trimmedOrigin, trimmedSize);
 }
 
-inline QRect kisTrimTop( int height, QRect& toTakeFrom)
+inline PkRect kisTrimTop( int height, PkRect& toTakeFrom)
 {
-    QRectF converted = QRectF(toTakeFrom);
-    QRectF toReturn = kisTrimTop(height, converted);
+    PkRectF converted = PkRectF(toTakeFrom);
+    PkRectF toReturn = kisTrimTop(height, converted);
     toTakeFrom = converted.toAlignedRect();
     return toReturn.toAlignedRect();
 }
@@ -351,14 +348,24 @@ inline QRect kisTrimTop( int height, QRect& toTakeFrom)
 #include <type_traits>
 
 // Makes compilers happy because Linux and macOS differ on how they define
-// quint64 (unsigned long long) vs. size_t (unsigned long (int)).
+// uint64_t (unsigned long long) vs. size_t (unsigned long (int)).
 template <typename T>
 inline T nextPowerOfTwo(T v)
 {
     static_assert(std::is_integral<T>::value, "Value has to be an integral number");
-    using base_type = typename std::conditional<sizeof(T) == sizeof(quint64), quint64, quint32>::type;
+    using base_type = typename std::conditional<sizeof(T) == sizeof(uint64_t), uint64_t, uint32_t>::type;
     using common_type = typename std::conditional<std::is_signed<T>::value, typename std::make_signed<base_type>::type, typename std::make_unsigned<base_type>::type>::type;
-    return static_cast<T>(qNextPowerOfTwo(static_cast<common_type>(v)));
+    // qNextPowerOfTwo replacement: round up to next power of two
+    if (v == 0) return static_cast<T>(1);
+    v--;
+    T v2 = v;
+    v2 |= v2 >> 1;
+    v2 |= v2 >> 2;
+    v2 |= v2 >> 4;
+    v2 |= v2 >> 8;
+    v2 |= v2 >> 16;
+    v2++;
+    return static_cast<T>(v2);
 }
 
 
