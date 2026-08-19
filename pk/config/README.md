@@ -2,8 +2,9 @@
 
 本目录交付两个独立能力：
 
-- **`PkConfigGroup` / `PkSharedConfig` / `PkConfigStore` / `PkConfigColor`**
-  （Q-6）—— `KConfigGroup` / `KSharedConfig` 的零 Qt 替代。
+- **`PkConfigGroup` / `PkSharedConfig` / `PkConfigStore`**
+  （Q-6）—— `KConfigGroup` / `KSharedConfig` 的零 Qt 替代。颜色读写接
+  `pk/color` 的 `PkColor`（QColor 替代，R-27 Task 1 交付）。
 - **`PkMimeDatabase`**（Q-7）—— `libs/koplugin/KisMimeDatabase` 的零 Qt 替代，
   37 条硬编码 MIME 表。
 
@@ -30,19 +31,21 @@
 | `bool` | 字面量 `"true"` / `"false"` |
 | `int` | `std::to_string` 十进制 |
 | `double` | `snprintf("%.17g", ...)`——17 位十进制有效数字，保证任意 IEEE754 double 精确往返（`std::to_string` 固定 6 位小数不是往返安全的：小量会截成 `"0.000000"`，与真的存 0 无法区分，见 `PkConfigGroup.cpp` 里 `formatDouble` 的注释） |
-| `PkConfigColor` | `"r,g,b,a"` 十进制逗号分隔，每段范围 `[0,255]`，越界（如 `"300,-5,0,255"`）视为格式错误、退回 `defaultValue`，不做环绕/截断 |
+| `PkColor` | `"r,g,b,a"` 十进制逗号分隔，每段范围 `[0,255]`，越界（如 `"300,-5,0,255"`）视为格式错误、退回 `defaultValue`，不做环绕/截断 |
 | `PkPoint` | `"x,y"` 十进制逗号分隔 |
 | `PkStringList` | `'\x1f'`（ASCII Unit Separator）拼接，元素本身几乎不可能包含它，所以不用逗号（会跟元素内容冲突） |
 
-## 3. `PkConfigColor` 是临时的范围内代打
+## 3. 颜色类型：`PkConfigColor` 已退役，改接 `PkColor`
 
-`PkConfigColor` 只是 `PkConfigGroup::readEntry/writeEntry(..., PkConfigColor)`
-需要的一个 `(r,g,b,a)` 元组值类型——**不是通用颜色类型**。目前没有任何 R 任务
-认领 `QColor` 的完整替代（Task 3/4 的试接报告都确认过：不在 R-03 几何范围，
-不在 R-06 `PkVariant` 范围）。等某个后续任务交付真正的颜色类型后，
-`PkConfigColor` 应该退役，改用那个类型——这与其他 R 任务里"临时局部代打类型
-用完即退役"的一贯处置方式一致（同类先例见其他 R 任务对自己范围内临时 stub 的
-处置说明）。
+`PkConfigGroup::readEntry/writeEntry(..., PkColor)` 的 `(r,g,b,a)` 值类型是
+`pk/color` 的 `PkColor`（QColor 替代，R-27 Task 1 交付）。R-09 时代的临时
+范围内代打 `PkConfigColor`（一个 4×`uint8_t` 元组，分量越界被
+`static_cast<uint8_t>` 悄悄截断）已删除。
+
+语义变化一处：`PkColor` 越界输入构造出**无效色**（不是截断），但
+`readEntry` 对越界分量的处置不变——显式判 `[0,255]`、越界视为格式错误、退回
+`defaultValue`（见 `PkConfigGroup.cpp` `readEntry` 的注释），与「段数不对」
+的兜底行为一致。
 
 ## 4. 已知限制
 
@@ -88,7 +91,7 @@
 pk/config/
 ├── PkConfigStore.{h,cpp}     进程内单例，group→key→value 两级字符串存储
 ├── PkConfigGroup.{h,cpp}     KConfigGroup 替代，类型化读写 + 编解码
-├── PkConfigColor.h           readEntry/writeEntry(..., PkConfigColor) 的值类型（见 §3）
+│                             （颜色类型用 ../color/PkColor，见 §3）
 ├── PkSharedConfig.{h,cpp}    KSharedConfig 替代，openConfig() 单例 + group() 工厂
 ├── PkMimeDatabase.{h,cpp}    KisMimeDatabase 替代，37 条硬编码 MIME 表
 ├── compat/                   #include <KConfigGroup> 等零改动垫片

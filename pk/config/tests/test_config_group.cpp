@@ -2,7 +2,7 @@
 #include "../PkConfigStore.h"
 #include "../PkConfigGroup.h"
 #include "../PkSharedConfig.h"
-#include "../PkConfigColor.h"
+#include "../color/PkColor.h"
 
 #include <type_traits>
 
@@ -39,10 +39,10 @@ void TestConfigGroup::readWriteAllTypes()
     g.writeEntry("name", PkString("custom"));
     PK_COMPARE(g.readEntry("name", PkString("default")), PkString("custom"));
 
-    PkConfigColor fallbackColor(99, 99, 99);
-    PkConfigColor readColor = g.readEntry("color", fallbackColor);
+    PkColor fallbackColor(99, 99, 99);
+    PkColor readColor = g.readEntry("color", fallbackColor);
     PK_VERIFY(readColor == fallbackColor);
-    PkConfigColor customColor(10, 20, 30, 255);
+    PkColor customColor(10, 20, 30, 255);
     g.writeEntry("color", customColor);
     PK_VERIFY(g.readEntry("color", fallbackColor) == customColor);
 
@@ -202,20 +202,20 @@ void TestConfigGroup::twoArgConstructorFromSharedConfigHandle()
 
 void TestConfigGroup::colorReadEntryRejectsOutOfRangeSegments()
 {
-    // M-1：越界分量（如 300、-5）过去会被 static_cast<uint8_t> 悄悄环绕/截断成
-    // 无关颜色，而不是像段数不对时那样退回 defaultValue——两种"数据格式不对"
-    // 的场景现在必须有一致的兜底行为。
+    // M-1：越界分量（如 300、-5）必须视为格式错误退回 defaultValue，不能构造出
+    // 越界颜色（PkConfigColor 时代会 static_cast<uint8_t> 悄悄环绕/截断成无关颜色，
+    // PkColor 时代会构造出无效色）——两种"数据格式不对"的场景必须有一致的兜底行为。
     PkSharedConfig *cfg = PkSharedConfig::openConfig();
     PkConfigGroup g = cfg->group("colorrange");
-    PkConfigColor fallback(1, 2, 3, 4);
+    PkColor fallback(1, 2, 3, 4);
 
     PkConfigStore::instance().set("colorrange", "outOfRange", PkString("300,-5,0,255"));
     PK_VERIFY(g.readEntry("outOfRange", fallback) == fallback);
 
     // 边界值本身（0 与 255）仍然合法，不应被这条新检查误伤。
-    g.writeEntry("boundary", PkConfigColor(0, 255, 0, 255));
-    PkConfigColor boundary = g.readEntry("boundary", fallback);
-    PK_VERIFY(boundary == PkConfigColor(0, 255, 0, 255));
+    g.writeEntry("boundary", PkColor(0, 255, 0, 255));
+    PkColor boundary = g.readEntry("boundary", fallback);
+    PK_VERIFY(boundary == PkColor(0, 255, 0, 255));
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

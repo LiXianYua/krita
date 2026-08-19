@@ -1,7 +1,7 @@
 #pragma once
 #include "PkString.h"
 #include "PkStringList.h"
-#include "PkConfigColor.h"
+#include "../color/PkColor.h"
 #include "PkPoint.h"
 
 // 只需要指针类型：两参构造函数只做类型检查、不解引用，前置声明避免与
@@ -33,7 +33,7 @@ public:
         return readEntry(key, PkString(defaultValue));
     }
     PkStringList readEntry(const PkString &key, const PkStringList &defaultValue) const;
-    PkConfigColor readEntry(const PkString &key, const PkConfigColor &defaultValue) const;
+    PkColor readEntry(const PkString &key, const PkColor &defaultValue) const;
     PkPoint readEntry(const PkString &key, const PkPoint &defaultValue) const;
 
     // 显式模板实参形式：真实调用点里大量出现 `g.readEntry<bool>("k", def)` 这种
@@ -53,7 +53,7 @@ public:
     void writeEntry(const PkString &key, double value);
     void writeEntry(const PkString &key, const PkString &value);
     void writeEntry(const PkString &key, const PkStringList &value);
-    void writeEntry(const PkString &key, const PkConfigColor &value);
+    void writeEntry(const PkString &key, const PkColor &value);
     void writeEntry(const PkString &key, const PkPoint &value);
 
     // 同上的模板转发，专治 `writeEntry("k", quint32(v))` 这类调用：quint32

@@ -23,12 +23,12 @@ const PkString &falseLiteral()
     return s;
 }
 
-PkString formatColor(const PkConfigColor &c)
+PkString formatColor(const PkColor &c)
 {
-    std::string s = std::to_string(static_cast<int>(c.r)) + "," +
-                     std::to_string(static_cast<int>(c.g)) + "," +
-                     std::to_string(static_cast<int>(c.b)) + "," +
-                     std::to_string(static_cast<int>(c.a));
+    std::string s = std::to_string(c.red()) + "," +
+                     std::to_string(c.green()) + "," +
+                     std::to_string(c.blue()) + "," +
+                     std::to_string(c.alpha());
     return PkString(s.c_str());
 }
 
@@ -133,7 +133,7 @@ PkStringList PkConfigGroup::readEntry(const PkString &key, const PkStringList &d
     return result;
 }
 
-PkConfigColor PkConfigGroup::readEntry(const PkString &key, const PkConfigColor &defaultValue) const
+PkColor PkConfigGroup::readEntry(const PkString &key, const PkColor &defaultValue) const
 {
     PkConfigStore &store = PkConfigStore::instance();
     if (!store.has(m_groupName, key)) {
@@ -149,13 +149,14 @@ PkConfigColor PkConfigGroup::readEntry(const PkString &key, const PkConfigColor 
         bool ok = false;
         values[i] = parts[static_cast<std::size_t>(i)].toInt(&ok);
         // 每段必须落在 uint8_t 的有效范围内——没有这层检查，"300,-5,0,255" 这类
-        // 越界值会在下面 PkConfigColor 构造函数里被 static_cast<uint8_t> 悄悄
-        // 截断/环绕成完全不相关的颜色，而不是像段数不对时那样退回 defaultValue。
+        // 越界值会让下面 PkColor 构造出无效色（分量全 0），而不是像段数不对时那样
+        // 退回 defaultValue。显式判越界保证「数据格式不对 → 一律退回 defaultValue」
+        // 的行为一致（PkColor 的越界语义是置无效色，不能当格式错误处理）。
         if (!ok || values[i] < 0 || values[i] > 255) {
             return defaultValue;
         }
     }
-    return PkConfigColor(values[0], values[1], values[2], values[3]);
+    return PkColor(values[0], values[1], values[2], values[3]);
 }
 
 PkPoint PkConfigGroup::readEntry(const PkString &key, const PkPoint &defaultValue) const
@@ -203,7 +204,7 @@ void PkConfigGroup::writeEntry(const PkString &key, const PkStringList &value)
     PkConfigStore::instance().set(m_groupName, key, value.join(kListSeparator));
 }
 
-void PkConfigGroup::writeEntry(const PkString &key, const PkConfigColor &value)
+void PkConfigGroup::writeEntry(const PkString &key, const PkColor &value)
 {
     PkConfigStore::instance().set(m_groupName, key, formatColor(value));
 }

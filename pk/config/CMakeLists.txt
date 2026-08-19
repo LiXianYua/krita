@@ -32,6 +32,26 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(PKSTRING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../string)
 set(PKCONTAINER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../container)
 set(PKGEOMETRY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../geometry)
+set(PKCOLOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../color)
+set(PKNAMESPACE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../namespace)
+
+# pk/color（PkColor）：R-09 的 PkConfigColor 已退场，readEntry/writeEntry 改接
+# PkColor（R-27 Task 1 交付）。PkColor 的构造/分量 getter/operator== 实现在
+# PkColor.cpp（非 inline），PkColor.cpp 又引用 pk/global 的 pk_qt_assert —— 所以
+# 必须真正 add_subdirectory + 链接 libpkcolor（经它 PUBLIC 链到 libpkglobal /
+# libpkstring），不能像 pk/geometry 那样只取头文件目录。
+#
+# ⚠ add_subdirectory(pk/color) 必须放在本工程自己 add pk/string / pk/test 之前：
+# pk/color 的 CMakeLists 会（经 pk/global）无条件 add 同一份 pk/test 到二进制目录
+# ${CMAKE_BINARY_DIR}/pk_test、pk/string 到 ${CMAKE_BINARY_DIR}/pkstring。若本工程
+# 先 add 了 pk/string / pk/test（各自二进制目录），同一源目录配不同二进制目录会
+# 触发 CMake 硬错误（pk/color 自己 CMakeLists 的长注释就是这条坑的实录）。
+# 先 add pk/color 让 pktest/pkstring 目标先存在，下面本工程的 `if (NOT TARGET ...)`
+# 守卫自然跳过，不会重复 add。EXCLUDE_FROM_ALL：只把 libpkcolor 作为依赖拉进来，
+# 不让 pk/color 的 test_pkcolor 进默认 all 目标。
+if (NOT TARGET pkcolor)
+    add_subdirectory(${PKCOLOR_DIR} ${CMAKE_BINARY_DIR}/pkcolor EXCLUDE_FROM_ALL)
+endif()
 if (NOT TARGET pkstring)
     add_subdirectory(${PKSTRING_DIR} ${CMAKE_BINARY_DIR}/pkstring)
 endif()
@@ -44,8 +64,9 @@ add_library(pkconfig STATIC
 )
 target_include_directories(pkconfig PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${PKSTRING_DIR} ${PKCONTAINER_DIR} ${PKGEOMETRY_DIR})
-target_link_libraries(pkconfig PUBLIC pkstring)
+    ${PKSTRING_DIR} ${PKCONTAINER_DIR} ${PKGEOMETRY_DIR}
+    ${PKCOLOR_DIR} ${PKNAMESPACE_DIR})
+target_link_libraries(pkconfig PUBLIC pkstring pkcolor)
 
 set(PKTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../test)
 if (NOT TARGET pktest)
