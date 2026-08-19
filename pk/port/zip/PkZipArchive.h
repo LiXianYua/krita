@@ -120,6 +120,8 @@ public:
     // d->stream = dd->currentFile —— 条目本身就是一个 PkStream。
     // 必须先 locateEntry() 定位成功；失败（未定位 / 已有条目开着 / 底层
     // entry_read_open 失败）返回 nullptr。
+    // 返回流的 size()：Read 模式 = 条目解压后大小；Write 模式恒 0（见
+    // PkZipEntryStream 类头注释）。
     PkStream *openEntryForRead();
 
     // KoQuaZipStore::openWrite() 行193-216：

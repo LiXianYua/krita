@@ -67,3 +67,26 @@ target_include_directories(pkzip PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../strin
 # libpkport.a 和 libpkzip.a（minizip-ng 自己的 libminizip.a 是纯 C 第三方库，
 # 不必单独查，但查了也无害）。
 target_link_libraries(pkzip PUBLIC MINIZIP::minizip)
+
+# R-26 Task 2：entrySize 回归测试（修 PkZipEntryStream::size() 恒 0）。
+# 独立小 main()（不引入 pk/test harness，避免拉 pk/test 依赖），直接编 pk
+# 源文件——照 pk/port/CMakeLists.txt「直接编 pk 源文件」模式（PkZipArchive.cpp
+# 单独编一份进测试可执行文件，与 libpkzip.a 不冲突）。
+enable_testing()
+add_executable(test_entry_size
+    tests/test_entry_size.cpp
+    PkZipArchive.cpp
+    ${PK_STRING_DIR}/PkStringCodec.cpp
+    ${PK_STRING_DIR}/PkString_core.cpp
+    ${PK_STRING_DIR}/PkString_query.cpp
+    ${PK_STRING_DIR}/PkString_format.cpp
+    ${PK_STRING_DIR}/../container/PkArrayData.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../PkStream.cpp
+)
+target_include_directories(test_entry_size PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PK_STRING_DIR}
+    ${PK_STRING_DIR}/../container
+)
+target_link_libraries(test_entry_size PRIVATE MINIZIP::minizip)
+add_test(NAME test_entry_size COMMAND test_entry_size)

@@ -115,6 +115,10 @@ inline int32_t clampToInt32(PkStream::pk_int64 n)
 // 流本质上是顺序的（minizip-ng 的 entry_read/entry_write 不支持中途任意
 // seek），isSequential()==true，对齐真 QuaZipFile 的语义。
 //
+// size()：Read 模式 = 条目解压后大小（openEntryForRead() 从中央目录带出，
+// 修 KoStore::size() 恒 0）；Write 模式恒 0（写时大小未知，KoQuaZipStore 写
+// 路径不用 stream->size()，d->size 由 write 累加）。
+//
 // 析构里补一次 close()（不依赖调用方记得调用）：PkStream 基类故意不这么做
 // （见 PkStream.cpp 头注释），但这里必须做——不调用 entry_write_close()，
 // 写入的数据根本不会被写进中央目录，zip 文件是坏的。
@@ -127,11 +131,13 @@ public:
     //   失败一并反映到 PkZipArchive::lastError()。三者都不持有所有权，
     //   生命周期由 PkZipArchive 保证（entry 必须在 archive 之前销毁——同
     //   "同一时刻只能有一个条目开着"的约束）。
-    PkZipEntryStream(void *zipHandle, bool forWrite, bool *entryOpenFlag, int32_t *lastErrorOut)
+    PkZipEntryStream(void *zipHandle, bool forWrite, bool *entryOpenFlag, int32_t *lastErrorOut,
+                     pk_int64 knownSize = 0)
         : m_zip(zipHandle)
         , m_forWrite(forWrite)
         , m_entryOpenFlag(entryOpenFlag)
         , m_lastErrorOut(lastErrorOut)
+        , m_size(knownSize)
         , m_lowLevelClosed(false)
     {
         open(forWrite ? WriteOnly : ReadOnly);
@@ -140,6 +146,11 @@ public:
     ~PkZipEntryStream() override { close(); }
 
     bool isSequential() const override { return true; }
+
+    // Read 模式 = 条目解压后大小（openEntryForRead 带出）；Write 模式恒 0
+    // （写时大小未知）。未知时（get_info 失败）按 -1 表达"不知道"，调用方
+    // read(size()) 会得到 -1 错误而不是静默读 0 字节。
+    pk_int64 size() const override { return m_size; }
 
     void close() override
     {
@@ -201,6 +212,7 @@ private:
     bool m_forWrite;
     bool *m_entryOpenFlag;
     int32_t *m_lastErrorOut;
+    pk_int64 m_size;
     bool m_lowLevelClosed;
 };
 
@@ -412,7 +424,20 @@ PkStream *PkZipArchive::openEntryForRead()
         return nullptr;
     }
     m_impl->entryOpen = true;
-    return new PkZipEntryStream(m_impl->zip, /*forWrite=*/false, &m_impl->entryOpen, &m_impl->lastError);
+
+    // 带出条目解压后大小——修 KoQuaZipStore::openRead() 的
+    // `d->size = dd->currentFile->size()` 恒 0（→ KoStore::size() 恒 0 →
+    // 锁外几十处 store->read(store->size()) 读空，.kra 加载核心链）。minizip-ng
+    // 的 mz_zip_entry_get_info（mz_zip.c:2322）只要求 entry_scanned 为真——
+    // locateEntry() 的 mz_zip_locate_entry() 已置位，read_open 之后仍有效。
+    // 调用点顺序是 openEntryForRead() 之前必须成功 locateEntry()（这本来就是
+    // KoQuaZipStore::openRead 的既有顺序）。
+    mz_zip_file *info = nullptr;
+    PkStream::pk_int64 entrySize = -1; // 未知（正常不该发生）：按 -1 表达"不知道"，read(size()) 会得 -1 错误而非静默读 0
+    if (mz_zip_entry_get_info(m_impl->zip, &info) == MZ_OK && info) {
+        entrySize = static_cast<PkStream::pk_int64>(info->uncompressed_size);
+    }
+    return new PkZipEntryStream(m_impl->zip, /*forWrite=*/false, &m_impl->entryOpen, &m_impl->lastError, entrySize);
 }
 
 PkStream *PkZipArchive::openEntryForWrite(const PkString &name, uint32_t unixPermissions, bool compressionEnabled)
