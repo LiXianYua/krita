@@ -3,15 +3,17 @@
 
 #include <chrono>
 #include <cstdint>
+#include <string>
 
-// QDateTime 的核心值语义对应物。R-16 Task 2（`pk/time`）。
+// QDateTime 的核心值语义对应物。R-16 Task 2（`pk/time`）+ Task 3（字符串转换）。
 //
-// API 面严格按 .superpowers/sdd/R-16/task-2-brief.md——保留范围内只有下面这些
-// 成员（真实调用点分析出来的，不多不少）：
+// Task 2 的 API 面严格按 .superpowers/sdd/R-16/task-2-brief.md——保留范围内只有
+// 下面这些成员（真实调用点分析出来的，不多不少）：
 //   currentDateTime() / currentDateTimeUtc() / fromMSecsSinceEpoch() /
 //   fromSecsSinceEpoch() / toSecsSinceEpoch() / isValid() / isNull() /
 //   operator== / secsTo() / 默认构造
-// Task 3（toString/fromString/DateParser）不在本类型范围，本文件不实现。
+// Task 3（本次新增）按 .superpowers/sdd/R-16/task-3-brief.md 加了
+// toString()/toString(DateFormat)/fromString() 系列，见下方对应方法注释。
 //
 // 语义按 .superpowers/sdd/R-16/probe-facts.md 实测钉死（探针原始输出见
 // docs/superpowers/plans/R-16-probe/probe_time_output.txt）：
@@ -132,6 +134,54 @@ public:
     {
         return std::chrono::duration_cast<std::chrono::seconds>(other.m_time - m_time).count();
     }
+
+    // ---- R-16 Task 3：字符串转换 ----
+    //
+    // 日历字段（年/月/日/时/分/秒）的拆解与合成统一按 UTC 处理，不读取/依赖
+    // 机器本地时区：`pk/time` 没有时区数据库，`std::chrono`（C++17）本身也拿
+    // 不到系统时区偏移这类信息。这个决策同时解释了 RFC2822Date 固定输出
+    // "+0000" 时区尾缀的原因（详见 PkDateTime.cpp 顶部注释与
+    // .superpowers/sdd/R-16/task-3-report.md）。
+
+    // 仿 Qt `Qt::TextDate`（`toString()` 默认格式）里日期时间部分能表达的三种
+    // 常用定制格式，够真实调用点用——不做 Qt 全部 `Qt::DateFormat` 枚举。
+    enum class DateFormat { ISODate, RFC2822Date, ISODateWithMs };
+
+    // 仿 Qt::TextDate 默认格式："Www Mmm d hh:mm:ss yyyy"（星期缩写 月缩写 日
+    // 时:分:秒 年；日不补零，时分秒补零——照抄 Qt 自己的格式规则）。探针：
+    // `toString() default` → `Mon Jan 15 12:30:45 2024`。无效实例返回空串。
+    std::string toString() const;
+
+    // ISODate → "yyyy-MM-ddThh:mm:ss"（探针：`2024-01-15T12:30:45`）；
+    // RFC2822Date → "dd Mmm yyyy hh:mm:ss +0000"（时区尾缀固定 +0000，见上方
+    // 类注释；探针给的 "-0800" 是探针机器当时的本地偏移，不是恒定值，不能照抄
+    // 断言）；ISODateWithMs → "yyyy-MM-ddThh:mm:ss.zzz"（探针：
+    // `2024-01-15T12:30:45.000`）。无效实例返回空串。
+    std::string toString(DateFormat fmt) const;
+
+    // 无格式兜底，仿 Qt::TextDate 默认解析：只认 "Www Mmm d hh:mm:ss yyyy" 这
+    // 一种固定形态（5 个空白分隔 token：星期缩写/月缩写/日/hh:mm:ss/年），不
+    // 匹配（含空串、纯垃圾串）返回无效实例（isValid()==false）。真实调用点
+    // （`kis_meta_data_parser.cc` 的 `DateParser::parse` 兜底分支）输入永远是
+    // 不匹配前 5 种定制格式的字符串，不需要通用自然语言日期解析器——探针：
+    // `"Wed May 20 03:40:13 2015"` 能解析、纯垃圾串 `isValid()==false`。
+    static PkDateTime fromString(const std::string &s);
+
+    // 只实现这 5 个具体格式串："yyyy"/"yyyy-MM"/"yyyy-MM-dd"/
+    // "yyyy-MM-ddThh:mm"/"yyyy-MM-ddThh:mm:ss"（真实调用点
+    // `DateParser::parse` 六分支里前 5 支实际用到的全部格式），不做通用
+    // format-token 解析器——理由：真实调用点只有这 5 种，一般化解析器是
+    // "10 倍工作量买 0 收益"。缺失字段补默认值（月/日补 1，时分秒补 0）。
+    // `customFormat` 不是这 5 个之一、或 `s` 不匹配该格式（长度不对/非数字/
+    // 分隔符不对），返回无效实例；`s` 为空串额外 `isNull()==true`（沿用哨兵
+    // 语义，自动成立，不需要特判）。
+    static PkDateTime fromString(const std::string &s, const std::string &customFormat);
+
+    // 等价于 `fromString(s, "yyyy-MM-ddThh:mm:ss")`——真实调用点
+    // （`kis_exif_io.cpp`、`kis_exiv2_common.h`）传的都是 `Qt::ISODate`。只支持
+    // `DateFormat::ISODate`；其余枚举值当前没有真实调用点，直接返回无效实例
+    // （等真的出现调用点再扩展，不预先做通用化——同一条 YAGNI 理由）。
+    static PkDateTime fromString(const std::string &s, DateFormat fmt);
 
 private:
     TimePoint m_time;

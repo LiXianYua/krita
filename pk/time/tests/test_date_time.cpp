@@ -101,6 +101,161 @@ void TestDateTime::currentDateTimeAndUtcAreValid()
     PK_VERIFY(nowUtc.toSecsSinceEpoch() > 1577836800);
 }
 
+// ============================================================================
+// R-16 Task 3：字符串转换（toString / fromString 系列）
+//
+// 期望值全部来自探针原始输出（docs/superpowers/plans/R-16-probe/
+// probe_time_output.txt，逐字摘录进 .superpowers/sdd/R-16/task-3-context.md），
+// 不是弱断言——每条都逐值核对，不是只判断 isValid()。
+// ============================================================================
+
+void TestDateTime::fromStringYyyyBoundary()
+{
+    // 探针：`fromString("2024","yyyy") isValid => [true]`；
+    // `fromString("2024","yyyy") toString(ISODate) => [2024-01-01T00:00:00]`。
+    const PkDateTime dt = PkDateTime::fromString("2024", "yyyy");
+    PK_VERIFY(dt.isValid());
+    PK_VERIFY(dt.toString(PkDateTime::DateFormat::ISODate) == "2024-01-01T00:00:00");
+}
+
+void TestDateTime::fromStringYyyyMMBoundary()
+{
+    // 探针：`fromString("2024-03","yyyy-MM") toString(ISODate) =>
+    // [2024-03-01T00:00:00]`。
+    const PkDateTime dt = PkDateTime::fromString("2024-03", "yyyy-MM");
+    PK_VERIFY(dt.isValid());
+    PK_VERIFY(dt.toString(PkDateTime::DateFormat::ISODate) == "2024-03-01T00:00:00");
+}
+
+void TestDateTime::fromStringYyyyMMddBoundary()
+{
+    // 探针：`fromString("2024-03-15","yyyy-MM-dd") toString(ISODate) =>
+    // [2024-03-15T00:00:00]`。
+    const PkDateTime dt = PkDateTime::fromString("2024-03-15", "yyyy-MM-dd");
+    PK_VERIFY(dt.isValid());
+    PK_VERIFY(dt.toString(PkDateTime::DateFormat::ISODate) == "2024-03-15T00:00:00");
+}
+
+void TestDateTime::fromStringYyyyMMddThhMmBoundary()
+{
+    // 探针：`fromString(...THh:mm) toString(ISODate) => [2024-03-15T08:30:00]`
+    // ——缺失的秒字段补 0。
+    const PkDateTime dt = PkDateTime::fromString("2024-03-15T08:30", "yyyy-MM-ddThh:mm");
+    PK_VERIFY(dt.isValid());
+    PK_VERIFY(dt.toString(PkDateTime::DateFormat::ISODate) == "2024-03-15T08:30:00");
+}
+
+void TestDateTime::fromStringYyyyMMddThhMmSsBoundary()
+{
+    // 探针：`fromString(...THh:mm:ss) toString(ISODate) =>
+    // [2024-03-15T08:30:45]`。
+    const PkDateTime dt = PkDateTime::fromString("2024-03-15T08:30:45", "yyyy-MM-ddThh:mm:ss");
+    PK_VERIFY(dt.isValid());
+    PK_VERIFY(dt.toString(PkDateTime::DateFormat::ISODate) == "2024-03-15T08:30:45");
+}
+
+void TestDateTime::fromStringCustomFormatRejectsIllegalInput()
+{
+    // 探针：`fromString("abc","yyyy") isValid => [false]`。
+    PK_VERIFY(!PkDateTime::fromString("abc", "yyyy").isValid());
+    // 长度对但分隔符不对/非数字，同样必须拒绝（不是只测探针那一条）。
+    PK_VERIFY(!PkDateTime::fromString("2024.03", "yyyy-MM").isValid());
+    PK_VERIFY(!PkDateTime::fromString("abcd-03-15", "yyyy-MM-dd").isValid());
+    // 不支持的格式串：直接返回无效实例，不崩溃、不误判。
+    PK_VERIFY(!PkDateTime::fromString("2024-03-15", "yyyy/MM/dd").isValid());
+}
+
+void TestDateTime::fromStringCustomFormatEmptyStringIsNull()
+{
+    // 探针：`fromString("","yyyy") isValid => [false]`、
+    // `fromString("","yyyy") isNull => [true]`。
+    const PkDateTime dt = PkDateTime::fromString("", "yyyy");
+    PK_VERIFY(!dt.isValid());
+    PK_VERIFY(dt.isNull());
+}
+
+void TestDateTime::fromStringDefaultParsesTextDateShape()
+{
+    // 探针：`fromString(TextDate default) isValid => [true]`；
+    // `fromString(TextDate default) toString(ISODate) =>
+    // [2015-05-20T03:40:13]`。
+    const PkDateTime dt = PkDateTime::fromString("Wed May 20 03:40:13 2015");
+    PK_VERIFY(dt.isValid());
+    PK_VERIFY(dt.toString(PkDateTime::DateFormat::ISODate) == "2015-05-20T03:40:13");
+}
+
+void TestDateTime::fromStringDefaultRejectsGarbage()
+{
+    // 探针：`fromString(garbage) isValid => [false]`。
+    PK_VERIFY(!PkDateTime::fromString("not-a-date-at-all").isValid());
+    // token 数量对但字段不合法（月份缩写查不到）同样要拒绝。
+    PK_VERIFY(!PkDateTime::fromString("Wed Xyz 20 03:40:13 2015").isValid());
+    // token 数量多一个（第 6 个），形态不对，拒绝。
+    PK_VERIFY(!PkDateTime::fromString("Wed May 20 03:40:13 2015 extra").isValid());
+    PK_VERIFY(PkDateTime::fromString("").isNull());
+}
+
+void TestDateTime::fromStringIsoDateMarkerMatchesCustomFormat()
+{
+    // fromString(s, DateFormat::ISODate) 等价于
+    // fromString(s, "yyyy-MM-ddThh:mm:ss")——真实调用点
+    // kis_exif_io.cpp/kis_exiv2_common.h 用的是 Qt::ISODate。
+    const PkDateTime viaMarker =
+        PkDateTime::fromString("2024-01-15T12:30:45", PkDateTime::DateFormat::ISODate);
+    const PkDateTime viaCustomFormat =
+        PkDateTime::fromString("2024-01-15T12:30:45", "yyyy-MM-ddThh:mm:ss");
+    PK_VERIFY(viaMarker.isValid());
+    PK_VERIFY(viaMarker == viaCustomFormat);
+}
+
+void TestDateTime::toStringDefaultMatchesTextDateShape()
+{
+    // 探针：`toString() default => [Mon Jan 15 12:30:45 2024]`——2024-01-15
+    // 经 UTC 日历字段计算确实是星期一（2024-01-01 是周一，15 号仍是周一）。
+    const PkDateTime dt =
+        PkDateTime::fromString("2024-01-15T12:30:45", PkDateTime::DateFormat::ISODate);
+    PK_VERIFY(dt.toString() == "Mon Jan 15 12:30:45 2024");
+}
+
+void TestDateTime::toStringIsoDate()
+{
+    // 探针：`toString(Qt::ISODate) => [2024-01-15T12:30:45]`。
+    const PkDateTime dt =
+        PkDateTime::fromString("2024-01-15T12:30:45", PkDateTime::DateFormat::ISODate);
+    PK_VERIFY(dt.toString(PkDateTime::DateFormat::ISODate) == "2024-01-15T12:30:45");
+}
+
+void TestDateTime::toStringIsoDateWithMs()
+{
+    // 探针：`toString(Qt::ISODateWithMs) => [2024-01-15T12:30:45.000]`——本任务
+    // 的 fromString 系列都不解析毫秒字段，毫秒分量恒为 000。
+    const PkDateTime dt =
+        PkDateTime::fromString("2024-01-15T12:30:45", PkDateTime::DateFormat::ISODate);
+    PK_VERIFY(dt.toString(PkDateTime::DateFormat::ISODateWithMs) == "2024-01-15T12:30:45.000");
+}
+
+void TestDateTime::toStringRfc2822DateFixedUtcOffset()
+{
+    // 探针给的 "-0800" 是探针机器当时的本地时区偏移，不是跨机器恒定值——不
+    // 断言那个字面串。本任务把 RFC2822Date 的时区尾缀固定实现为 "+0000"
+    // （当作 UTC 处理，见 PkDateTime.cpp 顶部注释），这里断言的是我们自己
+    // 拍板、跨机器确定性的输出，不是探针那个会漂移的偏移量。
+    const PkDateTime dt =
+        PkDateTime::fromString("2024-01-15T12:30:45", PkDateTime::DateFormat::ISODate);
+    PK_VERIFY(dt.toString(PkDateTime::DateFormat::RFC2822Date) == "15 Jan 2024 12:30:45 +0000");
+}
+
+void TestDateTime::toStringOnInvalidReturnsEmpty()
+{
+    // 无效实例的 toString() 系列返回空串，不是给一段垃圾字符——真实调用点
+    // 拿到无效 PkDateTime 时不应该看到半截格式化结果。
+    const PkDateTime invalid;
+    PK_VERIFY(invalid.toString().empty());
+    PK_VERIFY(invalid.toString(PkDateTime::DateFormat::ISODate).empty());
+    PK_VERIFY(invalid.toString(PkDateTime::DateFormat::RFC2822Date).empty());
+    PK_VERIFY(invalid.toString(PkDateTime::DateFormat::ISODateWithMs).empty());
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_date_time.inc"

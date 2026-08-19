@@ -1,5 +1,9 @@
 #include "PkDateTime.h"
 
+#include <cctype>
+#include <cstdio>
+#include <ctime>
+#include <sstream>
 #include <type_traits>
 
 // 哨兵设计（TimePoint::min() 作"无效/未设置"标记）不应该给类型带来额外状态：
@@ -13,3 +17,251 @@ static_assert(sizeof(PkDateTime) == sizeof(PkDateTime::TimePoint),
 // 不能反过来。
 static_assert(std::is_same<PkDateTime::Clock, std::chrono::system_clock>::value,
               "PkDateTime requires std::chrono::system_clock (wall-clock semantics), not a steady clock");
+
+// ============================================================================
+// R-16 Task 3：字符串转换（toString / fromString 系列）
+//
+// 日历字段（年/月/日/时/分/秒）↔ TimePoint 的换算统一按 UTC 处理：全部走
+// `gmtime_r`/`timegm`（glibc GNU 扩展，CMakeLists.txt 未关 CXX_EXTENSIONS，
+// 默认 gnu++17 可见），不使用 `localtime`/`mktime`——`pk/time` 不接时区数据库，
+// 用 UTC 是唯一不依赖构建机器本地时区、可跨机器复现的选择。这也是
+// RFC2822Date 固定输出 "+0000" 尾缀的直接原因：既然日历字段本来就按 UTC
+// 拆解，时区尾缀理所当然标 UTC，不是巧合。
+//
+// 本文件所有测试用例都是"构造 → 拆解回同一批日历字段"的自洽往返（不依赖与
+// `fromMSecsSinceEpoch`/`fromSecsSinceEpoch` 等 epoch 工厂函数比较绝对值），
+// 所以这个 UTC 选择不会与 Task 2 已有的 epoch 语义冲突。
+// ============================================================================
+
+namespace {
+
+const char *const kDayNames[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+const char *const kMonthNames[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+bool isAllDigits(const std::string &s, std::size_t pos, std::size_t len)
+{
+    if (pos + len > s.size()) return false;
+    for (std::size_t i = 0; i < len; ++i) {
+        if (std::isdigit(static_cast<unsigned char>(s[pos + i])) == 0) return false;
+    }
+    return true;
+}
+
+int parseIntField(const std::string &s, std::size_t pos, std::size_t len)
+{
+    return std::stoi(s.substr(pos, len));
+}
+
+int monthNumberFromAbbrev(const std::string &abbrev)
+{
+    for (int i = 0; i < 12; ++i) {
+        if (abbrev == kMonthNames[i]) return i + 1;
+    }
+    return -1;
+}
+
+// 粗粒度范围校验（不做"某月最多几天"这种精确闰年校验）——够用来挡住
+// 明显不合法的字段组合（如月份 13），真实调用点（EXIF/元数据日期串）不会
+// 产出这类输入，过度校验不划算。
+bool fieldsInRange(int month, int day, int hour, int minute, int second)
+{
+    return month >= 1 && month <= 12 && day >= 1 && day <= 31 &&
+           hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 &&
+           second >= 0 && second <= 59;
+}
+
+// 变异注入点：把 `checked` 判断反过来（fieldsInRange 通过时反而返回哨兵）会
+// 让所有 fromString(customFormat) 系列用例连同"非法输入 isValid()==false"
+// 一起失败——tests/test_date_time.cpp 的边界长度用例与 illegalInput 系列同时
+// 覆盖两个方向。
+PkDateTime makeFromUtcFieldsChecked(int year, int month, int day, int hour, int minute, int second)
+{
+    if (!fieldsInRange(month, day, hour, minute, second)) return PkDateTime();
+
+    std::tm tmVal{};
+    tmVal.tm_year = year - 1900;
+    tmVal.tm_mon = month - 1;
+    tmVal.tm_mday = day;
+    tmVal.tm_hour = hour;
+    tmVal.tm_min = minute;
+    tmVal.tm_sec = second;
+    tmVal.tm_isdst = 0;
+    const std::time_t t = timegm(&tmVal);
+
+    const auto tp = std::chrono::system_clock::from_time_t(t);
+    const auto msecs =
+        std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count();
+    return PkDateTime::fromMSecsSinceEpoch(static_cast<std::int64_t>(msecs));
+}
+
+// 与 makeFromUtcFieldsChecked 对称的反方向：TimePoint → 日历字段（UTC）。
+// `gmtime_r` 对合法 time_t 基本不会失败，这里仍然检查返回值，失败时调用方
+// 应当把结果当"无法渲染"处理（返回空串），不静默产出半截数据。
+bool utcFieldsFromTimePoint(const PkDateTime::TimePoint &tp, std::tm &out)
+{
+    const std::time_t t = std::chrono::system_clock::to_time_t(tp);
+    return gmtime_r(&t, &out) != nullptr;
+}
+
+// 变异注入点：把 `% 1000` 换成别的系数，或漏掉负数修正，会被
+// tests/test_date_time.cpp 的 isoDateWithMsHasZeroMillisecondsForSecondGranularityInputs
+// 用例捕获（该用例断言毫秒字段恒为 "000"，因为本任务的 fromString 系列都不
+// 解析毫秒字段，往返出来的毫秒分量必须是 0，不能因为取模方向写反而产出非零
+// 或负数字符串）。
+int millisecondsPart(const PkDateTime::TimePoint &tp)
+{
+    using namespace std::chrono;
+    long long ms = duration_cast<milliseconds>(tp.time_since_epoch()).count() % 1000;
+    if (ms < 0) ms += 1000;
+    return static_cast<int>(ms);
+}
+
+} // namespace
+
+std::string PkDateTime::toString() const
+{
+    if (!isValid()) return std::string();
+    std::tm tmVal{};
+    if (!utcFieldsFromTimePoint(m_time, tmVal)) return std::string();
+    char buf[64];
+    // 变异注入点：把 "%d"（日，不补零）错改成 "%02d" 会在单数日的用例上产出
+    // 多余的前导零——本任务的探针钉死用例日期是两位数（15），单独这条不会
+    // 捕获该变异，但照抄 Qt 自身的格式规则（QString::number(date.day())
+    // 不补零）本身就是正确性依据，写在这里留痕。
+    std::snprintf(buf, sizeof(buf), "%s %s %d %02d:%02d:%02d %d",
+                  kDayNames[tmVal.tm_wday], kMonthNames[tmVal.tm_mon], tmVal.tm_mday,
+                  tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec, tmVal.tm_year + 1900);
+    return std::string(buf);
+}
+
+std::string PkDateTime::toString(DateFormat fmt) const
+{
+    if (!isValid()) return std::string();
+    std::tm tmVal{};
+    if (!utcFieldsFromTimePoint(m_time, tmVal)) return std::string();
+    char buf[64];
+    switch (fmt) {
+    case DateFormat::ISODate:
+        std::snprintf(buf, sizeof(buf), "%04d-%02d-%02dT%02d:%02d:%02d",
+                      tmVal.tm_year + 1900, tmVal.tm_mon + 1, tmVal.tm_mday,
+                      tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec);
+        return std::string(buf);
+    case DateFormat::ISODateWithMs: {
+        const int ms = millisecondsPart(m_time);
+        std::snprintf(buf, sizeof(buf), "%04d-%02d-%02dT%02d:%02d:%02d.%03d",
+                      tmVal.tm_year + 1900, tmVal.tm_mon + 1, tmVal.tm_mday,
+                      tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec, ms);
+        return std::string(buf);
+    }
+    case DateFormat::RFC2822Date:
+        // 时区尾缀固定输出 "+0000"（当作 UTC 处理）——理由见本文件顶部
+        // Task 3 小节注释；不要断言探针原始的 "-0800"，那是探针机器当时的
+        // 本地偏移，不是跨机器恒定值。
+        std::snprintf(buf, sizeof(buf), "%02d %s %04d %02d:%02d:%02d +0000",
+                      tmVal.tm_mday, kMonthNames[tmVal.tm_mon], tmVal.tm_year + 1900,
+                      tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec);
+        return std::string(buf);
+    }
+    return std::string();
+}
+
+// 变异注入点：token 数量判断（5 个、不多不少）、月份缩写查表失败、
+// hh:mm:ss 的冒号位置/数字校验，任一处被削弱都会让纯垃圾串误判为有效——被
+// tests/test_date_time.cpp 的 fromStringDefaultRejectsGarbage /
+// fromStringDefaultParsesTextDateShape 两个用例（一个覆盖拒绝方向，一个覆盖
+// 接受方向）捕获。
+PkDateTime PkDateTime::fromString(const std::string &s)
+{
+    std::istringstream iss(s);
+    std::string dayName;
+    std::string monthName;
+    std::string dayStr;
+    std::string timeStr;
+    std::string yearStr;
+    if (!(iss >> dayName >> monthName >> dayStr >> timeStr >> yearStr)) return PkDateTime();
+    std::string extra;
+    if (iss >> extra) return PkDateTime(); // 第 6 个 token：形态不对，拒绝
+
+    const int month = monthNumberFromAbbrev(monthName);
+    if (month < 0) return PkDateTime();
+
+    if (dayStr.empty() || dayStr.size() > 2 || !isAllDigits(dayStr, 0, dayStr.size())) {
+        return PkDateTime();
+    }
+    if (yearStr.empty() || yearStr.size() > 4 || !isAllDigits(yearStr, 0, yearStr.size())) {
+        return PkDateTime();
+    }
+    if (timeStr.size() != 8 || timeStr[2] != ':' || timeStr[5] != ':' ||
+        !isAllDigits(timeStr, 0, 2) || !isAllDigits(timeStr, 3, 2) || !isAllDigits(timeStr, 6, 2)) {
+        return PkDateTime();
+    }
+
+    const int day = std::stoi(dayStr);
+    const int hour = parseIntField(timeStr, 0, 2);
+    const int minute = parseIntField(timeStr, 3, 2);
+    const int second = parseIntField(timeStr, 6, 2);
+    const int year = std::stoi(yearStr);
+
+    return makeFromUtcFieldsChecked(year, month, day, hour, minute, second);
+}
+
+// 只实现 5 个具体格式串，逐条按固定长度 + 分隔符位置 + 全数字校验——不是通用
+// format-token 解析器。变异注入点：任一格式分支的长度阈值/分隔符下标写错，
+// 会被 tests/test_date_time.cpp 对应的边界长度用例（用探针钉死的期望输出）
+// 捕获；把 fieldsInRange 校验去掉会被非法输入用例捕获。
+PkDateTime PkDateTime::fromString(const std::string &s, const std::string &customFormat)
+{
+    if (customFormat == "yyyy") {
+        if (s.size() != 4 || !isAllDigits(s, 0, 4)) return PkDateTime();
+        return makeFromUtcFieldsChecked(parseIntField(s, 0, 4), 1, 1, 0, 0, 0);
+    }
+    if (customFormat == "yyyy-MM") {
+        if (s.size() != 7 || s[4] != '-' || !isAllDigits(s, 0, 4) || !isAllDigits(s, 5, 2)) {
+            return PkDateTime();
+        }
+        return makeFromUtcFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2), 1, 0, 0, 0);
+    }
+    if (customFormat == "yyyy-MM-dd") {
+        if (s.size() != 10 || s[4] != '-' || s[7] != '-' ||
+            !isAllDigits(s, 0, 4) || !isAllDigits(s, 5, 2) || !isAllDigits(s, 8, 2)) {
+            return PkDateTime();
+        }
+        return makeFromUtcFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2),
+                                         parseIntField(s, 8, 2), 0, 0, 0);
+    }
+    if (customFormat == "yyyy-MM-ddThh:mm") {
+        if (s.size() != 16 || s[4] != '-' || s[7] != '-' || s[10] != 'T' || s[13] != ':' ||
+            !isAllDigits(s, 0, 4) || !isAllDigits(s, 5, 2) || !isAllDigits(s, 8, 2) ||
+            !isAllDigits(s, 11, 2) || !isAllDigits(s, 14, 2)) {
+            return PkDateTime();
+        }
+        return makeFromUtcFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2),
+                                         parseIntField(s, 8, 2), parseIntField(s, 11, 2),
+                                         parseIntField(s, 14, 2), 0);
+    }
+    if (customFormat == "yyyy-MM-ddThh:mm:ss") {
+        if (s.size() != 19 || s[4] != '-' || s[7] != '-' || s[10] != 'T' || s[13] != ':' ||
+            s[16] != ':' ||
+            !isAllDigits(s, 0, 4) || !isAllDigits(s, 5, 2) || !isAllDigits(s, 8, 2) ||
+            !isAllDigits(s, 11, 2) || !isAllDigits(s, 14, 2) || !isAllDigits(s, 17, 2)) {
+            return PkDateTime();
+        }
+        return makeFromUtcFieldsChecked(parseIntField(s, 0, 4), parseIntField(s, 5, 2),
+                                         parseIntField(s, 8, 2), parseIntField(s, 11, 2),
+                                         parseIntField(s, 14, 2), parseIntField(s, 17, 2));
+    }
+    // 不支持的格式串：只实现这 5 个，其余一律当作不匹配处理，返回无效实例。
+    return PkDateTime();
+}
+
+PkDateTime PkDateTime::fromString(const std::string &s, DateFormat fmt)
+{
+    if (fmt == DateFormat::ISODate) {
+        return fromString(s, std::string("yyyy-MM-ddThh:mm:ss"));
+    }
+    // RFC2822Date/ISODateWithMs 目前没有真实调用点（真实调用点只有
+    // kis_exif_io.cpp / kis_exiv2_common.h，两处都传 Qt::ISODate）——按"不需要
+    // 的不做"，先返回无效实例，等真的出现调用点再补。
+    return PkDateTime();
+}

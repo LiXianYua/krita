@@ -47,3 +47,10 @@ set_source_files_properties(tests/test_elapsed_timer.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_elapsed_timer.inc")
 set_source_files_properties(tests/test_date_time.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_test_date_time.inc")
+
+# Task 3 依赖墙 driver：不接 pk/test harness（不是 QObject 风格的测试类，只是
+# 复刻 DateParser::parse 长度判断链的一个独立 main()，见
+# tests/graft/date_parser_driver.cpp 顶部注释与 task-3-report.md「driver 怎么
+# 接构建」）——单独一个可执行目标，只链 pktime，不链 pktest。
+add_executable(date_parser_driver tests/graft/date_parser_driver.cpp)
+target_link_libraries(date_parser_driver PRIVATE pktime)
