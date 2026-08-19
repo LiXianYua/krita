@@ -90,6 +90,11 @@ check_expect_fail libs/image/kis_refresh_subtree_walker.h  'kis_types'  'S-06 �
 # 卡 KisLodPreferences.h 的 kis_assert.h 依赖
 check_expect_fail libs/image/KisLodPreferences.h  'kis_assert'  'S-06 剥 image'
 
+# 插件 paintops 目录的三个声明头（flags 声明存在，但被非 flags 依赖阻挡）
+check_expect_fail plugins/paintops/libpaintop/kis_current_outline_fetcher.h  'kritapaintop_export'  'S-07-b 剥 libpaintop'
+check_expect_fail plugins/paintops/libpaintop/KisTextureOptionData.h  'boost/operators'  'S-07-b 剥 libpaintop'
+check_expect_fail plugins/paintops/libpaintop/strokes/freehand_stroke.h  'QPen'  'S-07-b 剥 libpaintop'
+
 # 零改动自证
 dirty=$(git status --porcelain -- libs/ plugins/)
 if [ -n "$dirty" ]; then printf '  源树被改动了 —— 试接必须零改动\n' >&2; printf '%s\n' "$dirty" >&2; fail=1; fi
