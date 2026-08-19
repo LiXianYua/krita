@@ -64,6 +64,7 @@
 #include <QVector2D>
 #include <QVector3D>
 #include <QVector4D>
+#include <QMatrix4x4>
 #include <QVector>
 #include <QString>
 #include <QtGlobal>
@@ -173,6 +174,12 @@ namespace pkoracle {
 // `pkoracle::PkVector2D::length`——两个不同的符号，链不上。纪律同上：
 // PkVectorND.cpp 只 #include <cmath>（上面的系统头区已有）。
 #include "PkVectorND.cpp"
+// ⚠ 同理 **PkMatrix4x4.cpp 也要进来**：inverted/scale/translate/rotate/toTransform
+// 这一批是 out-of-line 的（照 Qt 的形态，qmatrix4x4.cpp 编在 libQt5Gui.so 里）。
+// libpkgeometry.a 里那份定义的是 `::PkMatrix4x4::inverted`，本 TU 需要的是
+// `pkoracle::PkMatrix4x4::inverted`——两个不同的符号，链不上。纪律同上：
+// PkMatrix4x4.cpp 只 #include <cmath>（上面的系统头区已有）。
+#include "PkMatrix4x4.cpp"
 }
 
 using PkPoint  = pkoracle::PkPoint;
@@ -191,6 +198,7 @@ using PkPolygonF = pkoracle::PkPolygonF;
 using PkVector2D = pkoracle::PkVector2D;
 using PkVector3D = pkoracle::PkVector3D;
 using PkVector4D = pkoracle::PkVector4D;
+using PkMatrix4x4 = pkoracle::PkMatrix4x4;
 // PkPolygon(const PkVector<PkPoint>&) 的真实调用点需要在 pkoracle:: 之外也
 // 拼得出 `PkVector<T>` 这个名字——别名模板，不是新类型，等价于
 // `pkoracle::PkVector<T>`。
@@ -3883,6 +3891,140 @@ static void cmp_vec4d(float x, float y, float z, float w, float ax, float ay, fl
     rec("V4::toPointF", same_ptf(q.toPointF(), p.toPointF()), sh, in, qstr(q.toPointF()), qstr(p.toPointF()));
 }
 
+// ═══ Matrix4x4 族：比较原语 + 逐 API 对拍（R-21 T4）═════════════════════════
+//
+// PkMatrix4x4 是 float 4×4 矩阵（列主序 + 惰性 flagBits）。对拍逐元素比 float
+//（位比较，same_float 复用 VectorND 族的），逐 API 覆盖真实调用点那批：
+// 构造（默认/from PkTransform）、operator()、isIdentity/setToIdentity、
+// translate/scale/rotate、inverted（含 invertible 出参）、map(向量)、
+// operator*(矩阵×矩阵 / 矩阵×向量)、toTransform。flagBits 是**可观测语义**
+//（inverted/map/rotate 都走不同快速路径），所以两侧构造路径必须完全同构——这里
+// 都用同一套手挑输入喂给真 Qt 与本类，逐元素比结果，钉住快速路径分支。
+
+static std::string mstr(const QMatrix4x4 &m)
+{
+    std::string r = "{";
+    for (int col = 0; col < 4; ++col)
+        for (int row = 0; row < 4; ++row)
+            r += fstr(m(row, col)) + (col == 3 && row == 3 ? "" : ",");
+    return r + "}";
+}
+static std::string mstr(const PkMatrix4x4 &m)
+{
+    std::string r = "{";
+    for (int col = 0; col < 4; ++col)
+        for (int row = 0; row < 4; ++row)
+            r += fstr(m(row, col)) + (col == 3 && row == 3 ? "" : ",");
+    return r + "}";
+}
+static bool same_m4(const QMatrix4x4 &q, const PkMatrix4x4 &p)
+{
+    for (int col = 0; col < 4; ++col)
+        for (int row = 0; row < 4; ++row)
+            if (!same_float(q(row, col), p(row, col)))
+                return false;
+    return true;
+}
+
+// 用手挑 16 元素喂两侧的 operator()（构造路径），然后跑一遍全 API。
+static void cmp_m4_ctor(const float v[16])
+{
+    QMatrix4x4 q;
+    PkMatrix4x4 p;
+    for (int i = 0; i < 16; ++i) {
+        int row = i % 4, col = i / 4;
+        q(row, col) = v[i];
+        p(row, col) = v[i];
+    }
+    std::string in = "{";
+    for (int i = 0; i < 16; ++i) { if (i) in += ","; in += fstr(v[i]); }
+    in += "}";
+    const std::string sh = shapeOfF({v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7],
+                                     v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]});
+
+    rec("M4::operator()", same_m4(q, p), sh, in, mstr(q), mstr(p));
+    rec("M4::isIdentity", q.isIdentity() == p.isIdentity(), sh, in, bstr(q.isIdentity()), bstr(p.isIdentity()));
+    {
+        // 精确浮点逐元素比较（operator== 与 operator!= 互为否定）。
+        QMatrix4x4 q2; PkMatrix4x4 p2;
+        q2.setToIdentity(); p2.setToIdentity();
+        rec("M4::operator==", (q == q2) == (p == p2), sh, in, bstr(q == q2), bstr(p == p2));
+        rec("M4::operator!=", (q != q2) == (p != p2), sh, in, bstr(q != q2), bstr(p != p2));
+    }
+    {
+        // setToIdentity 直接调用（默认构造也走它，这里显式再走一遍并复位）。
+        QMatrix4x4 qs = q; PkMatrix4x4 ps = p;
+        qs.setToIdentity(); ps.setToIdentity();
+        rec("M4::setToIdentity", same_m4(qs, ps), sh, in, mstr(qs), mstr(ps));
+    }
+
+    bool qi = false, pi = false;
+    const QMatrix4x4 qinv = q.inverted(&qi);
+    const PkMatrix4x4 pinv = p.inverted(&pi);
+    rec("M4::inverted", same_m4(qinv, pinv) && qi == pi, sh, in,
+        mstr(qinv) + "|" + bstr(qi), mstr(pinv) + "|" + bstr(pi));
+
+    const QTransform qt = q.toTransform();
+    const PkTransform pt = p.toTransform();
+    rec("M4::toTransform", same_tf(qt, pt), sh, in, qstr(qt), qstr(pt));
+
+    const QTransform qt2 = q.toTransform(1024.0f);
+    const PkTransform pt2 = p.toTransform(1024.0f);
+    rec("M4::toTransform(dist)", same_tf(qt2, pt2), sh, in, qstr(qt2), qstr(pt2));
+}
+
+static void cmp_m4_mutate(const float v[16], float fx, float fy, float fz, float ang)
+{
+    // 平移
+    {
+        QMatrix4x4 q; PkMatrix4x4 p;
+        for (int i = 0; i < 16; ++i) { q(i % 4, i / 4) = v[i]; p(i % 4, i / 4) = v[i]; }
+        q.translate(fx, fy, fz); p.translate(fx, fy, fz);
+        rec("M4::translate", same_m4(q, p), "finite", fstr(fx) + "," + fstr(fy) + "," + fstr(fz), mstr(q), mstr(p));
+    }
+    // 缩放
+    {
+        QMatrix4x4 q; PkMatrix4x4 p;
+        for (int i = 0; i < 16; ++i) { q(i % 4, i / 4) = v[i]; p(i % 4, i / 4) = v[i]; }
+        q.scale(fx, fy, fz); p.scale(fx, fy, fz);
+        rec("M4::scale", same_m4(q, p), "finite", fstr(fx) + "," + fstr(fy) + "," + fstr(fz), mstr(q), mstr(p));
+    }
+    // 绕任意轴旋转
+    {
+        QMatrix4x4 q; PkMatrix4x4 p;
+        for (int i = 0; i < 16; ++i) { q(i % 4, i / 4) = v[i]; p(i % 4, i / 4) = v[i]; }
+        q.rotate(ang, fx, fy, fz); p.rotate(ang, fx, fy, fz);
+        rec("M4::rotate", same_m4(q, p), "finite", fstr(ang) + "," + fstr(fx) + "," + fstr(fy) + "," + fstr(fz), mstr(q), mstr(p));
+    }
+    // 矩阵乘矩阵
+    {
+        QMatrix4x4 q; PkMatrix4x4 p;
+        for (int i = 0; i < 16; ++i) { q(i % 4, i / 4) = v[i]; p(i % 4, i / 4) = v[i]; }
+        QMatrix4x4 qr; PkMatrix4x4 pr;
+        qr.rotate(ang, fx, fy, fz); pr.rotate(ang, fx, fy, fz);
+        rec("M4::operator*(m)", same_m4(q * qr, p * pr), "finite", fstr(ang), mstr(q * qr), mstr(p * pr));
+    }
+    // 矩阵乘向量（3D / 4D）
+    {
+        QMatrix4x4 q; PkMatrix4x4 p;
+        for (int i = 0; i < 16; ++i) { q(i % 4, i / 4) = v[i]; p(i % 4, i / 4) = v[i]; }
+        const QVector3D qv3(fx, fy, fz); const PkVector3D pv3(fx, fy, fz);
+        rec("M4::operator*(v3)", same_v3(q * qv3, p * pv3), "finite", fstr(fx), qstr(q * qv3), qstr(p * pv3));
+        const QVector4D qv4(fx, fy, fz, ang); const PkVector4D pv4(fx, fy, fz, ang);
+        rec("M4::operator*(v4)", same_v4(q * qv4, p * pv4), "finite", fstr(ang), qstr(q * qv4), qstr(p * pv4));
+        rec("M4::map(v3)", same_v3(q.map(qv3), p.map(pv3)), "finite", fstr(fx), qstr(q.map(qv3)), qstr(p.map(pv3)));
+        rec("M4::map(v4)", same_v4(q.map(qv4), p.map(pv4)), "finite", fstr(ang), qstr(q.map(qv4)), qstr(p.map(pv4)));
+    }
+}
+
+static void cmp_m4_from_transform(const PkTransform &pt)
+{
+    const QTransform qt(pt.m11(), pt.m12(), pt.m13(), pt.m21(), pt.m22(), pt.m23(), pt.dx(), pt.dy(), pt.m33());
+    const QMatrix4x4 q(qt);
+    const PkMatrix4x4 p(pt);
+    rec("M4::ctorFromTransform", same_m4(q, p), "finite", qstr(qt), mstr(q), mstr(p));
+}
+
 
 // ═══ canary：证明比较管道是活的 ════════════════════════════════════════════
 //
@@ -5224,6 +5366,42 @@ int main()
             for (int j = 0; j < nVT; ++j)
                 cmp_vec4d(kVecTok[i], kVecTok[(i + 1) % nVT], kVecTok[(i + 2) % nVT], kVecTok[(i + 3) % nVT],
                           kVecTok[j], kVecTok[(j + 1) % nVT], kVecTok[(j + 2) % nVT], kVecTok[(j + 3) % nVT]);
+    }
+
+    // ═══ Matrix4x4 族（R-21 T4）══════════════════════════════════════════════
+    {
+        // 手挑 16 元素矩阵集：单位阵 / 平移 / 缩放 / 旋转 / 透视投影 / 退化。
+        static const float kM4Hand[][16] = {
+            { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 },          // 单位
+            { 1,0,0,0, 0,1,0,0, 0,0,1,0, 5,-3,2,1 },         // 平移
+            { 2,0,0,0, 0,3,0,0, 0,0,4,0, 0,0,0,1 },          // 缩放
+            { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 },          // 单位（重复走一遍 ctor 路径）
+            { 1,0,0,0, 0,1,0,0, 0,0,1,0, 1,2,3,1 },          // 平移（非零 w 行）
+            { 1,0,0,0.5f, 0,1,0,0.25f, 0,0,1,0, 0,0,0,1 },  // 透视投影
+            { 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0 },          // 全零（奇异）
+            { 1,2,3,4, 5,6,7,8, 9,10,11,12, 13,14,15,16 },   // 一般满阵
+        };
+        const int nM4 = countOf(kM4Hand);
+        for (int i = 0; i < nM4; ++i)
+            cmp_m4_ctor(kM4Hand[i]);
+
+        static const float kM4MutateTok[] = { 0.0f, 1.0f, -1.0f, 2.0f, 0.5f, 90.0f, 180.0f, 30.0f };
+        const int nMM = countOf(kM4MutateTok);
+        for (int i = 0; i < nM4; ++i)
+            for (int a = 0; a < nMM; ++a)
+                cmp_m4_mutate(kM4Hand[i], kM4MutateTok[a], kM4MutateTok[(a + 1) % nMM],
+                              kM4MutateTok[(a + 2) % nMM], kM4MutateTok[(a + 3) % nMM]);
+
+        // 从 PkTransform 提升（真实调用点：kis_perspective_transform_strategy.cpp:146,542）。
+        static const PkTransform kM4FromTf[] = {
+            PkTransform(),
+            PkTransform(1, 0, 0, 0, 1, 0, 5, -3, 1),
+            PkTransform(2, 0, 0, 0, 3, 0, 0, 0, 1),
+            PkTransform(0, 1, 0, -1, 0, 0, 0, 0, 1),           // rotate(90)
+            PkTransform(1, 0, 0.5, 0, 1, 0.25, 0, 0, 1),      // 投影
+        };
+        for (const auto &t : kM4FromTf)
+            cmp_m4_from_transform(t);
     }
 
     for (const auto &kv : g_tags)

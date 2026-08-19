@@ -32,6 +32,7 @@ API_GROUPS=(
     "pk/geometry/PkMargins.h|PkMargins,PkMarginsF|pk/geometry/oracle/margins_api.map"
     "pk/geometry/PkPolygon.h|PkPolygon,PkPolygonF|pk/geometry/oracle/polygon_api.map"
     "pk/geometry/PkVectorND.h|PkVector2D,PkVector3D,PkVector4D|pk/geometry/oracle/vectornd_api.map"
+    "pk/geometry/PkMatrix4x4.h|PkMatrix4x4|pk/geometry/oracle/matrix4x4_api.map"
 )
 
 [ -f "$QT/include/QtCore/qpoint.h" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/qpoint.h" >&2; exit 1; }
@@ -266,7 +267,7 @@ def parse_decls(hdr_path, cls):
                         r'enum(\s+class)?\s+[A-Za-z_][A-Za-z0-9_]*'
                         r'(\s*:\s*[A-Za-z_][A-Za-z0-9_ ]*)?', stmt):
             continue
-        mm = re.search(r'(operator[^\s(]*|~?[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)'
+        mm = re.search(r'(operator\s*\(\s*\)|operator[^\s(]*|~?[A-Za-z_][A-Za-z0-9_]*)\s*\(([^()]*)\)'
                        r'\s*(const)?\s*(?:noexcept)?\s*$', stmt)
         if not mm:
             miss.append(stmt); continue

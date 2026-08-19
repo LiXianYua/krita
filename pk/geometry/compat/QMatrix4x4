@@ -1,0 +1,16 @@
+#pragma once
+// 必须先于 ../PkMatrix4x4.h，理由见 compat/QPoint 与 compat/QtGlobal 的 ⚠。
+#include "QtGlobal"
+#include "../PkMatrix4x4.h"
+
+// 兼容垫片：让真实调用点的 `#include <QMatrix4x4>` 在**一个字都不改**的前提下
+// 解析到 PkMatrix4x4。做法照 compat/QRect。单类单垫片（不孪生，QMatrix4x4 没有
+// 整数孪生）。
+//
+// `PkVector2D/PkVector3D/PkVector4D`（map/operator* 的参数与返回类型）与
+// `PkTransform`（PkMatrix4x4(const PkTransform&) 构造、toTransform 返回）经
+// ../PkMatrix4x4.h 一起进来。
+
+#ifndef QMatrix4x4
+#define QMatrix4x4 PkMatrix4x4
+#endif

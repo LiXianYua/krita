@@ -1,0 +1,38 @@
+# PkMatrix4x4 类体声明 → 对拍 rec() 标签的映射（规则三的机器闸门，人维护那一半）。
+# 格式、多标签分隔符、机械解析方式与 point_api.map / rect_api.map 完全一致，
+# 完整说明见 rect_api.map 顶部注释，这里不重复。
+#
+# 带参构造是 fixture 不是被测项（构造错了 operator() 当场变红），映射到
+# operator() 那批标签。const/non-const 的 operator()(int,int) 重载对由
+# run_oracle.sh 解析器给 const 那条追加 ` const` 后缀，两条各自有 rec。
+# 私有的 operator*=(const PkMatrix4x4&) 与 orthonormalInverse() 在 private:
+# 之后，规则三闸门只管 public 段（class X {(.*?)\n\s*private: 截到第一个 private:），
+# 不进本表——它们是 rotate/inverted 的内部 helper，由各自调用者的 rec 覆盖。
+
+PkMatrix4x4::PkMatrix4x4()	M4::operator()
+PkMatrix4x4::PkMatrix4x4(const PkTransform&)	M4::ctorFromTransform
+PkMatrix4x4::operator()(int,int) const	M4::operator()
+PkMatrix4x4::operator()(int,int)	M4::operator()
+PkMatrix4x4::isIdentity()	M4::isIdentity
+PkMatrix4x4::setToIdentity()	M4::setToIdentity
+PkMatrix4x4::inverted(bool*)	M4::inverted
+PkMatrix4x4::scale(const PkVector3D&)	M4::scale
+PkMatrix4x4::scale(float,float)	M4::scale
+PkMatrix4x4::scale(float,float,float)	M4::scale
+PkMatrix4x4::scale(float)	M4::scale
+PkMatrix4x4::translate(const PkVector3D&)	M4::translate
+PkMatrix4x4::translate(float,float)	M4::translate
+PkMatrix4x4::translate(float,float,float)	M4::translate
+PkMatrix4x4::rotate(float,const PkVector3D&)	M4::rotate
+PkMatrix4x4::rotate(float,float,float,float)	M4::rotate
+PkMatrix4x4::toTransform()	M4::toTransform
+PkMatrix4x4::toTransform(float)	M4::toTransform(dist)
+PkMatrix4x4::map(const PkVector3D&)	M4::map(v3)
+PkMatrix4x4::map(const PkVector4D&)	M4::map(v4)
+PkMatrix4x4::operator*(const PkMatrix4x4&,const PkMatrix4x4&)	M4::operator*(m)
+PkMatrix4x4::operator*(const PkMatrix4x4&,const PkVector3D&)	M4::operator*(v3)
+PkMatrix4x4::operator*(const PkVector3D&,const PkMatrix4x4&)	M4::operator*(v3)
+PkMatrix4x4::operator*(const PkVector4D&,const PkMatrix4x4&)	M4::operator*(v4)
+PkMatrix4x4::operator*(const PkMatrix4x4&,const PkVector4D&)	M4::operator*(v4)
+PkMatrix4x4::operator==(const PkMatrix4x4&)	M4::operator==
+PkMatrix4x4::operator!=(const PkMatrix4x4&)	M4::operator!=
