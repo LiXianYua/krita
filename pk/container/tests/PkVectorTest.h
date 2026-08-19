@@ -38,6 +38,7 @@ private Q_SLOTS:
 
     // ---- PkVector 专有 ----
     void sizedConstructors();
+    void lengthTest();
     // remove(int) / remove(int, int) 是 QVector 专有（QList 没有），
     // 所以它们的语义与 detach 行为都在这里压，不在共同用例里。
     void removeByIndex();

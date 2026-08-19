@@ -74,6 +74,10 @@ public:
 
     int size() const noexcept { return static_cast<int>(m_d.PkConst().size()); }
     int count() const noexcept { return size(); }
+    // Qt5 的 length() 是 size() 的 deprecated 别名。QVector、QList、QPolygonF 都有它。
+    // 真实调用点（R-21 交接）：libs/image/tests/KisFourPointInterpolatorTest.cpp:195,257
+    // 的 `src.length()` (PkPolygonF 继承自 PkVector<QPointF>)。
+    size_type length() const noexcept { return size(); }
     // count(const T&) 与无参 count() 是两个重载：数某个值出现了几次。
     int count(const T &t) const
     {

@@ -36,6 +36,19 @@ add_library(pkcontainer STATIC
 target_include_directories(pkcontainer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # ---------------------------------------------------------------------------
+# 单测：用 pk/test 的 PK_* harness。
+#
+# pk/test 是只读依赖，靠 add_subdirectory 引进来（而不是把它的源文件抄一份），
+# 这样 pktest 升级时本工程自动跟上。EXCLUDE_FROM_ALL：只构建本工程真正链到的
+# pktest 库，不连带把 pk/test 自己的 selftest 二进制也编一遍。
+#
+# pk/test 内部已包含 pk/string 的 add_subdirectory（见 pk/test/CMakeLists.txt:
+# 24-25），所以 pk/string 的库目标在这里已可用，无需再重复添加。
+# ---------------------------------------------------------------------------
+set(PKTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../test)
+add_subdirectory(${PKTEST_DIR} ${CMAKE_BINARY_DIR}/pktest EXCLUDE_FROM_ALL)
+
+# ---------------------------------------------------------------------------
 # pk/string 是**只给测试用的**依赖：PkStringHash.h 在本目录里给 PkString 补了
 # 一条 qHash 重载（PkHash<PkString,V> / PkSet<PkString> 是高频用法），压那条
 # 链路的单测需要链到 PkString 的实现。
@@ -44,21 +57,10 @@ target_include_directories(pkcontainer PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # 库里没有一个 .cpp include 它（PkHash.cpp 的显式实例化刻意只用 int 做 key）。
 # 判据③ `nm -u libpkcontainer.a` 因此不会因为这条依赖多出任何符号。
 #
-# EXCLUDE_FROM_ALL：只构建真正被链到的 pkstring 库，不连带编 pk/string 自己的
-# test_pkstring 二进制。
+# pk/string 的库目标已由 pk/test 的 add_subdirectory 提供，这里只声明
+# PKSTRING_DIR 供后续测试目标链接用，不再重复 add_subdirectory。
 # ---------------------------------------------------------------------------
 set(PKSTRING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../string)
-add_subdirectory(${PKSTRING_DIR} ${CMAKE_BINARY_DIR}/pkstring EXCLUDE_FROM_ALL)
-
-# ---------------------------------------------------------------------------
-# 单测：用 pk/test 的 PK_* harness。
-#
-# pk/test 是只读依赖，靠 add_subdirectory 引进来（而不是把它的源文件抄一份），
-# 这样 pktest 升级时本工程自动跟上。EXCLUDE_FROM_ALL：只构建本工程真正链到的
-# pktest 库，不连带把 pk/test 自己的 selftest 二进制也编一遍。
-# ---------------------------------------------------------------------------
-set(PKTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../test)
-add_subdirectory(${PKTEST_DIR} ${CMAKE_BINARY_DIR}/pktest EXCLUDE_FROM_ALL)
 
 # pk_test_generate 由 pk/test 定义：为测试头生成 PkTestBinder<T> 特化 .inc。
 # 产物落在**本目录**的 binary dir（函数体里用的是调用方的 CMAKE_CURRENT_BINARY_DIR）。

@@ -27,6 +27,8 @@ static_assert(std::is_same<decltype(std::declval<const IntVec &>().size()), int>
               "size() 必须返回 int");
 static_assert(std::is_same<decltype(std::declval<const IntVec &>().count()), int>::value,
               "count() 必须返回 int");
+static_assert(std::is_same<decltype(std::declval<const IntVec &>().length()), int>::value,
+              "length() 必须返回 int");
 static_assert(std::is_same<decltype(std::declval<const IntVec &>().capacity()), int>::value,
               "capacity() 必须返回 int");
 
@@ -67,6 +69,33 @@ static_assert(std::is_constructible<IntVec, int>::value, "PkVector(int) 必须�
 
 void PkVectorTest::sizeIsInt() { pkSeqTestSizeIsInt<PkVector>(); }
 void PkVectorTest::sizeAndEmptiness() { pkSeqTestSizeAndEmptiness<PkVector>(); }
+void PkVectorTest::lengthTest()
+{
+    // length() 必须是 size() 的别名，恒等钉住。
+    PkVector<int> empty;
+    PK_COMPARE(empty.length(), 0);
+    PK_COMPARE(empty.length(), empty.size());
+
+    PkVector<int> v{1, 2, 3};
+    PK_COMPARE(v.length(), 3);
+    PK_COMPARE(v.length(), v.size());
+
+    // 修改后仍然一致
+    v.append(4);
+    PK_COMPARE(v.length(), 4);
+    PK_COMPARE(v.length(), v.size());
+
+    // 空操作后安全
+    v.clear();
+    PK_COMPARE(v.length(), 0);
+    PK_COMPARE(v.length(), v.size());
+
+    // length() 是 const 路径：不得 detach
+    PkVector<int> a{1, 2};
+    PkVector<int> b(a);
+    (void)a.length();
+    PK_VERIFY(a.PkIsSharedWith(b));
+}
 void PkVectorTest::elementAccess() { pkSeqTestElementAccess<PkVector>(); }
 void PkVectorTest::valueOutOfRange() { pkSeqTestValueOutOfRange<PkVector>(); }
 void PkVectorTest::appendAndPrepend() { pkSeqTestAppendAndPrepend<PkVector>(); }

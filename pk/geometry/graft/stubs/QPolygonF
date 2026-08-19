@@ -1,4 +1,0 @@
-#pragma once
-// 试接垫片 —— 不是 R-03 的交付物。真 Qt 里 <QPolygonF> 与 <QPolygon> 指向同一个
-// qpolygon.h，这里照样把两个名字都指到同一份实现上，见 stubs/QPolygon 的头注释。
-#include "QPolygon"
