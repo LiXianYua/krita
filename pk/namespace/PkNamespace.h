@@ -6,8 +6,10 @@
 // Qt 不一致默认都是缺陷。
 //
 // **与 pk/global 的分权**（R-18 已交付）：PkGlobal.h 已定义 `namespace Qt` 的
-// `AspectRatioMode` / `Axis` 两个枚举（qnamespace.h:1235-1239 / 1386-1390）。
-// **本头不重定义这两个**——重定义会与 R-18 的 namespace Qt 同名枚举硬错。同一
+// `AspectRatioMode` / `Axis` / `SizeMode` / `FillRule` / `GlobalColor` /
+// `TransformationMode` 六个枚举（qnamespace.h:1235-1239 / 1386-1390 /
+// 1185-1187 / 1352-1355 / 75-96 / 1381-1384）。
+// **本头不重定义这六个**——重定义会与 R-18 的 namespace Qt 同名枚举硬错。同一
 // TU 同时 include pk/global + pk/namespace 时，两个 enum 集合在同一个 namespace
 // Qt 里**并集可见**（C++ 允许同名 namespace 多次打开，只要枚举名不重复）——这
 // 正好构成完整 Qt 枚举集。测试的 coexistWithGlobal 探针钉住这一点。
@@ -382,26 +384,12 @@ enum ConnectionType {
     UniqueConnection =  0x80
 };
 
-// ── qnamespace.h:1352-1355 ───────────────────────────────────────────────────
-// 探针：OddEven=0 Winding=1
-enum FillRule {
-    OddEvenFill,
-    WindingFill
-};
-
 // ── qnamespace.h:1362-1366 ───────────────────────────────────────────────────
 // IntersectClip 保留范围 5 处、NoClip 1 处（QPainter::setClip* 的 ClipOperation）。
 enum ClipOperation {
     NoClip,
     ReplaceClip,
     IntersectClip
-};
-
-// ── qnamespace.h:1381-1384 ───────────────────────────────────────────────────
-// 探针：Fast=0 Smooth=1
-enum TransformationMode {
-    FastTransformation,
-    SmoothTransformation
 };
 
 // ── qnamespace.h:1507-1511 ───────────────────────────────────────────────────
@@ -469,35 +457,6 @@ enum TimerType {
     PreciseTimer,
     CoarseTimer,
     VeryCoarseTimer
-};
-
-// ── qnamespace.h:75-96 ───────────────────────────────────────────────────────
-// 探针：color0=0 color1=1 black=2 white=3 darkGray=4 gray=5 lightGray=6 red=7
-// green=8 blue=9 cyan=10 magenta=11 yellow=12 darkRed=13 darkGreen=14 darkBlue=15
-// darkCyan=16 darkMagenta=17 darkYellow=18 transparent=19。保留范围只用到其中
-// ~17 个（color0/color1 各 0 处），照抄全集——QColor 构造的 Qt::GlobalColor 实参
-// 依赖这些序号的数值。
-enum GlobalColor {
-    color0,
-    color1,
-    black,
-    white,
-    darkGray,
-    gray,
-    lightGray,
-    red,
-    green,
-    blue,
-    cyan,
-    magenta,
-    yellow,
-    darkRed,
-    darkGreen,
-    darkBlue,
-    darkCyan,
-    darkMagenta,
-    darkYellow,
-    transparent
 };
 
 } // namespace Qt
