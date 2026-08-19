@@ -8,15 +8,15 @@
 #include <kritaversion.h>
 #include <kritagitversion.h>
 
-QString KritaVersionWrapper::versionString(bool checkGit)
+PkString KritaVersionWrapper::versionString(bool checkGit)
 {
-    QString kritaVersion = QStringLiteral(KRITA_VERSION_STRING);
-    QString version = kritaVersion;
+    PkString kritaVersion = PkString(KRITA_VERSION_STRING);
+    PkString version = kritaVersion;
 
     if (checkGit) {
 #ifdef KRITA_GIT_SHA1_STRING
-        QString gitVersion = QStringLiteral(KRITA_GIT_SHA1_STRING);
-        version = QStringLiteral("%1 (git %2)").arg(kritaVersion, gitVersion);
+        PkString gitVersion = PkString(KRITA_GIT_SHA1_STRING);
+        version = PkString("%1 (git %2)").arg(kritaVersion, gitVersion);
 #endif
     }
     return version;
@@ -24,8 +24,7 @@ QString KritaVersionWrapper::versionString(bool checkGit)
 
 bool KritaVersionWrapper::isDevelopersBuild()
 {
-    // Qt6 is not considered stable yet, don't present it as such.
-#if defined(KRITA_STABLE) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+#if defined(KRITA_STABLE)
     return false;
 #else
     return true;

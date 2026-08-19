@@ -7,11 +7,11 @@
 #define KRITAVERSIONWRAPPER_H
 
 #include "kritaversion_export.h"
-#include <QString>
+#include "PkString.h"
 
 namespace KritaVersionWrapper {
 
-    KRITAVERSION_EXPORT QString versionString(bool checkGit = false);
+    KRITAVERSION_EXPORT PkString versionString(bool checkGit = false);
     KRITAVERSION_EXPORT bool isDevelopersBuild();
 }
 
