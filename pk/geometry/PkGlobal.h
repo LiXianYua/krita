@@ -289,7 +289,6 @@ enum TransformationMode {
     FastTransformation,
     SmoothTransformation
 };
-};
 }
 
 // qnumeric.h:48 与 qnumeric.h:59。Qt 里这两个是 Q_CORE_EXPORT 的**非 inline**
