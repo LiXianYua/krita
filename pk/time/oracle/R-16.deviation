@@ -90,25 +90,54 @@ toString-fmt	fmt=RFC2822Date/pre-1970	同上，方向对称。
 # epoch/字符串语义）与 PkElapsedTimer（单调计时），没有 PkDate/PkTime 这两个
 # 独立日历值类型。
 #
-# 唯一一处**裸 token 依赖 <QDateTime> 传递 include**（真实 Qt 的 qdatetime.h
-# 把 QDate/QTime/QDateTime 三个类定义在同一个头文件里，所以 <QDateTime> 天然
-# 传递给出 QDate/QTime）的调用点是
-# `plugins/metadata/common/kis_exiv2_common.h:142`：只 `#include <QDateTime>`
-# （无独立 `#include <QDate>`），却用 `QDate date = variant.toDate();` 加
-# `date.year()/month()/day()`。**这处虽然是真实的传递 include 依赖，但它用的
-# API（日历字段访问器）同样不在 pk/time 的实现范围内**——即便 compat/QDateTime
-# 把 QDate 也 #define 成 PkDateTime，PkDateTime 没有 year()/month()/day() 成员，
-# 这个调用点依然编不过（而且语义上也不该通：QDate 与 QDateTime 是不同的值
-# 类型，PkDateTime 冒充 QDate 是概念错误，不是"补个 include 就好"）。
+# 【修复轮 1，2026-08-18】以下两处**裸 token 依赖 <QDateTime> 传递 include**
+# （真实 Qt 的 qdatetime.h 把 QDate/QTime/QDateTime 三个类定义在同一个头文件
+# 里，所以 <QDateTime> 天然传递给出 QDate/QTime）的调用点——**Task 4 报告与
+# 本文件早先的表述称第一处是"唯一一处"，经评审核实是事实错误：漏查了第二处
+# 同构调用点，现补全**：
 #
-# 结论：**compat/QDateTime、compat/QElapsedTimer 都不补 QDate/QTime 裸 token
-# 的传递 include**——不是"没有真实调用点"（kis_exiv2_common.h 那一处确实存在），
-# 是"存在但其 API 面不属于 pk/time 的保留范围，属于 Task 5 试接阶段会撞到的、
-# 需要另开一个日历值类型（PkDate，可能连带 PkTime）覆盖的真实缺口"，留给
-# Task 5 或后续任务处理，不在本任务里强行塞一个签名不匹配的宏定义。这与
-# compat/QRect 补 QPoint/QSize 传递 include 的先例不同：那次传递进来的类型
-# （QPoint/QSize）本身就是 pk/geometry 已实现的类型，只是 include 路径没接上；
-# 这次传递进来的类型（QDate）压根不在 pk/time 已实现的类型清单里。
+# 1. `plugins/metadata/common/kis_exiv2_common.h:142`：只 `#include <QDateTime>`
+#    （无独立 `#include <QDate>`），却用 `QDate date = variant.toDate();` 加
+#    `date.year()/month()/day()`。**这处虽然是真实的传递 include 依赖，但它用的
+#    API（日历字段访问器）同样不在 pk/time 的实现范围内**——即便 compat/QDateTime
+#    把 QDate 也 #define 成 PkDateTime，PkDateTime 没有 year()/month()/day() 成员，
+#    这个调用点依然编不过（而且语义上也不该通：QDate 与 QDateTime 是不同的值
+#    类型，PkDateTime 冒充 QDate 是概念错误，不是"补个 include 就好"）。
+#
+# 2. `plugins/filters/raindropsfilter/kis_raindrops_filter.cpp:383`：
+#    `config->setProperty("seed", QTime::currentTime().msec());`。该文件只
+#    `#include <QDateTime>`（第 19 行，无独立 `#include <QTime>`；其余 include
+#    含 `kis_raindrops_filter.h`、`filter/kis_filter.h`、`kis_paint_device.h`
+#    等均未提供 QTime），与 kis_exiv2_common.h 是**完全同构**的传递 include
+#    依赖——2026-08-18 现场用 `grep -n '^#include' plugins/filters/raindropsfilter/
+#    kis_raindrops_filter.cpp` 及其 `.h` 逐一核实确认。**这处用的 API
+#    （`currentTime()` 静态工厂 + `.msec()` 时间字段访问器）同样不在 pk/time
+#    的实现范围内**——PkDateTime 没有 `currentTime()`/`.msec()` 这套面向
+#    "独立 QTime 值类型" 的接口（pk/time 只实现了 PkDateTime 整体的 epoch/
+#    字符串语义），即便补上传递 include，这个调用点依然编不过，道理与第 1 处
+#    一致。
+#
+# 结论（不变）：**compat/QDateTime、compat/QElapsedTimer 都不补 QDate/QTime 裸
+# token 的传递 include**——不是"没有真实调用点"（上面两处确实存在），是"存在但
+# 其 API 面不属于 pk/time 的保留范围，属于 Task 5 试接阶段会撞到的、需要另开
+# 一个日历值类型（PkDate，可能连带 PkTime）覆盖的真实缺口"，留给 Task 5 或
+# 后续任务处理，不在本任务里强行塞一个签名不匹配的宏定义。这与 compat/QRect
+# 补 QPoint/QSize 传递 include 的先例不同：那次传递进来的类型（QPoint/QSize）
+# 本身就是 pk/geometry 已实现的类型，只是 include 路径没接上；这次传递进来的
+# 类型（QDate/QTime）压根不在 pk/time 已实现的类型清单里。
+#
+# 第三处排查（修复轮 1 一并做）：对 pk/time 保留范围内的全部目录（libs/{image,
+# brush,pigment,global,store,resources,flake,command,psd,psdutils,metadata,
+# impex,color,surfacecolormanagementapi,koplugin,version,multiarch} +
+# plugins/{paintops,filters,generators,impex,color,tools,flake,assistants,
+# metadata}，排除 tests/、benchmarks/）逐一核对：先 `grep -rlE '\bQDate\b|
+# \bQTime\b'` 取候选文件（22 个），再对每个候选文件核对它是否有自己的直接
+# `#include <QDate>`/`#include <QTime>`（含通过本地头文件间接拿到，例如
+# `kundo2stack.cpp` 靠 `kundo2stack.h:55` 的直接 `#include <QTime>`、
+# `kis_saved_commands.h/.cpp` 靠 `kundo2command.h` → `kundo2stack.h` 链路、
+# `KoProgressUpdater.h:18` 的 `class QTime;` 只是前向声明未构成值类型依赖）。
+# 排除这些之后，**只剩上面两处是"裸 token + 只靠 <QDateTime> 传递 include"**
+# 的形态。**确认只有这两处**，未发现第三处。
 
 # ══════════════════════════════════════════════════════════
 # 覆盖度限制 —— 说不出覆盖不到什么的对拍，说明还没想清楚
