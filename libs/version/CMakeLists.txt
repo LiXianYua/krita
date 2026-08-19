@@ -19,6 +19,11 @@ target_include_directories(kritaversion PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/container
 )
 
+target_link_libraries(kritaversion PUBLIC
+    pkstring
+    pkcontainer
+)
+
 set_target_properties(kritaversion PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
 )

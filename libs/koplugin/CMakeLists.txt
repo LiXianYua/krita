@@ -16,6 +16,13 @@ target_include_directories(kritaplugin PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/geometry
 )
 
+target_link_libraries(kritaplugin PUBLIC
+    pkconfig
+    pkstring
+    pkcontainer
+    pkgeometry
+)
+
 set_target_properties(kritaplugin PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
 )

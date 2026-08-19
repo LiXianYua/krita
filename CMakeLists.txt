@@ -1636,6 +1636,11 @@ include_directories(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}
                            ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# pk 库接入主构建树：全部 pk 能力的静态库 target，按依赖拓扑序构建。
+# 必须放在 libs 之前，因为 libs/*/CMakeLists.txt 的 target_link_libraries
+# 引用 pk 库 target。
+add_subdirectory(pk)
+
 add_subdirectory(sdk/tests)
 
 add_subdirectory(libs)

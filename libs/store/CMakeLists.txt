@@ -31,10 +31,19 @@ target_include_directories(kritastore PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/container
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/variant
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/port
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/port/zip
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/config
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/geometry
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/log
+)
+
+target_link_libraries(kritastore PUBLIC
+    pkstring
+    pkcontainer
+    pkvariant
+    pkport
+    pkconfig
+    pkgeometry
+    pklog
 )
 
 set_target_properties(kritastore PROPERTIES
