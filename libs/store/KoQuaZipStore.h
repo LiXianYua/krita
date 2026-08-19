@@ -8,41 +8,42 @@
 #define KoQuaZipStore_h
 
 #include "KoStore.h"
-#include <QScopedPointer>
+#include <memory>
 
-class QUrl;
+class PkStream;
+class PkByteArray;
+class PkString;
 
 class KoQuaZipStore : public KoStore
 {
 public:
-    KoQuaZipStore(const QString & _filename, Mode _mode, const QByteArray & appIdentification,
+    KoQuaZipStore(const PkString & _filename, Mode _mode, const PkByteArray & appIdentification,
                   bool writeMimetype = true);
 
-    KoQuaZipStore(QIODevice *dev, Mode mode, const QByteArray & appIdentification,
+    KoQuaZipStore(PkStream *dev, Mode mode, const PkByteArray & appIdentification,
                   bool writeMimetype = true);
 
     ~KoQuaZipStore() override;
 
     void setCompressionEnabled(bool enabled) override;
-    qint64 write(const char* _data, qint64 _len) override;
+    PkStream::pk_int64 write(const char* _data, PkStream::pk_int64 _len) override;
 
-    QStringList directoryList() const override;
+    PkStringList directoryList() const override;
 
 protected:
-    void init(const QByteArray& appIdentification);
+    void init(const PkByteArray& appIdentification);
     bool doFinalize() override;
-    bool openWrite(const QString& name) override;
-    bool openRead(const QString& name) override;
+    bool openWrite(const PkString& name) override;
+    bool openRead(const PkString& name) override;
     bool closeWrite() override;
     bool closeRead() override;
-    bool enterRelativeDirectory(const QString& dirName) override;
-    bool enterAbsoluteDirectory(const QString& path) override;
-    bool fileExists(const QString& absPath) const override;
+    bool enterRelativeDirectory(const PkString& dirName) override;
+    bool enterAbsoluteDirectory(const PkString& path) override;
+    bool fileExists(const PkString& absPath) const override;
 
 private:
     struct Private;
-    const QScopedPointer<Private> dd;
-    Q_DECLARE_PRIVATE(KoStore)
+    const std::unique_ptr<Private> dd;
 
 };
 

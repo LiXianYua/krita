@@ -8,60 +8,141 @@
 
 #include <StoreDebug.h>
 
-#include <zlib.h>
-#include <quazip.h>
-#include <quazipfile.h>
-#include <quazipdir.h>
-#include <quazipfileinfo.h>
-#include <quazipnewinfo.h>
+#include "PkZipArchive.h"
+#include "PkMemoryStream.h"
+#include "PkConfigGroup.h"
+#include "PkSharedConfig.h"
 
-#include <QTemporaryFile>
-#include <QTextCodec>
-#include <QByteArray>
-#include <QBuffer>
+#include <cstring>
+#include <memory>
+#include <vector>
 
-#include <KConfig>
-#include <KSharedConfig>
-#include <KConfigGroup>
+namespace {
+
+// PkString 没有 replace：手写折叠连续 '/'（fixedPath.replace("//", "/") 的对应物）。
+// "a//b" → "a/b"，"///" → "/"（与 Qt 的逐次非重叠替换语义略有出入，但意图一致——
+// zip 条目路径里连续斜杠折叠成单个）。
+PkString collapseSlashes(const PkString &path)
+{
+    PkString result;
+    bool prevSlash = false;
+    for (int i = 0; i < path.size(); ++i) {
+        if (path.at(i) == u'/') {
+            if (!prevSlash) {
+                result += path.mid(i, 1);
+            }
+            prevSlash = true;
+        } else {
+            result += path.mid(i, 1);
+            prevSlash = false;
+        }
+    }
+    return result;
+}
+
+// PkString 没有 replace/indexOf：手写 find-and-splice 子串替换
+// （fixedPath.replace(substituteThis, substituteWith) 的对应物）。替换全部出现。
+PkString replaceAll(const PkString &input, const PkString &from, const PkString &to)
+{
+    const int n = input.size();
+    const int m = from.size();
+    if (m == 0) {
+        return input;
+    }
+    if (m > n) {
+        return input;
+    }
+    PkString result;
+    int i = 0;
+    int runStart = 0;
+    while (i + m <= n) {
+        bool matched = true;
+        for (int j = 0; j < m; ++j) {
+            if (input.at(i + j) != from.at(j)) {
+                matched = false;
+                break;
+            }
+        }
+        if (matched) {
+            if (i > runStart) {
+                result += input.mid(runStart, i - runStart);
+            }
+            result += to;
+            i += m;
+            runStart = i;
+        } else {
+            ++i;
+        }
+    }
+    if (runStart < n) {
+        result += input.mid(runStart, n - runStart);
+    }
+    return result;
+}
+
+// PkZipArchive::entryNames() 返回 std::vector<PkString>，这里转成 PkStringList。
+PkStringList toPkStringList(const std::vector<PkString> &names)
+{
+    PkStringList out;
+    for (const PkString &n : names) {
+        out.append(n);
+    }
+    return out;
+}
+
+} // namespace
 
 struct KoQuaZipStore::Private {
 
     Private() {}
     ~Private() {}
 
-    QuaZip *archive {0};
-    QuaZipFile *currentFile {0};
-    QStringList directoryListCache;
+    PkZipArchive *archive {nullptr};
+    PkStream *currentFile {nullptr};
+    PkStringList directoryListCache;
     bool directoryListCached {false};
-    int compressionLevel {Z_DEFAULT_COMPRESSION};
-    bool usingSaveFile {false};
-    QByteArray cache;
-    QBuffer buffer;
+    bool compressionEnabled {true};   // 原 Z_DEFAULT_COMPRESSION/Z_NO_COMPRESSION 两档 → bool
+    PkMemoryStream buffer;
 };
 
 
-KoQuaZipStore::KoQuaZipStore(const QString &_filename, KoStore::Mode _mode, const QByteArray &appIdentification, bool writeMimetype)
+KoQuaZipStore::KoQuaZipStore(const PkString &_filename, KoStore::Mode _mode, const PkByteArray &appIdentification, bool writeMimetype)
     : KoStore(_mode, writeMimetype)
     , dd(new Private())
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
     d->localFileName = _filename;
-    dd->archive = new QuaZip(_filename);
+    dd->archive = new PkZipArchive(_mode == KoStore::Write ? PkZipArchive::Write : PkZipArchive::Read);
+    if (!dd->archive->openFile(_filename)) {
+        d->good = false;
+        return;
+    }
     init(appIdentification);
 
 }
 
-KoQuaZipStore::KoQuaZipStore(QIODevice *dev, KoStore::Mode _mode, const QByteArray &appIdentification, bool writeMimetype)
+KoQuaZipStore::KoQuaZipStore(PkStream *dev, KoStore::Mode _mode, const PkByteArray &appIdentification, bool writeMimetype)
     : KoStore(_mode, writeMimetype)
     , dd(new Private())
 {
-    dd->archive = new QuaZip(dev);
+    KoStorePrivate *d = d_func();
+    dd->archive = new PkZipArchive(_mode == KoStore::Write ? PkZipArchive::Write : PkZipArchive::Read);
+    // PkZipArchive::openStream 不替传入的 stream 调 open()（minizip-ng 只 read/write/
+    // seek/tell 它），调用前必须已 open。
+    if (!dev->open(_mode == KoStore::Write ? PkStream::WriteOnly : PkStream::ReadOnly)) {
+        d->good = false;
+        return;
+    }
+    if (!dd->archive->openStream(dev)) {
+        d->good = false;
+        return;
+    }
     init(appIdentification);
 }
 
 KoQuaZipStore::~KoQuaZipStore()
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
 
     if (d->good && dd->currentFile && dd->currentFile->isOpen()) {
         dd->currentFile->close();
@@ -81,7 +162,7 @@ KoQuaZipStore::~KoQuaZipStore()
     // In comparison, the archive can be deleted whenever and it doesn't check the current file.
     // Therefore we gotta delete the file first, then the zip archive.
 
-    //   From QuaZip code comments for `QuaZipFile(QuaZip *zip, QObject *parent =nullptr);`:
+    //   From QuaZip code comments for the QuaZipFile constructor:
     // "* Summary: do not close \c zip object or change its current file as
     // * long as QuaZipFile is open."
 
@@ -94,155 +175,143 @@ KoQuaZipStore::~KoQuaZipStore()
 
 void KoQuaZipStore::setCompressionEnabled(bool enabled)
 {
-
-    if (enabled) {
-        dd->compressionLevel = Z_DEFAULT_COMPRESSION;
-    }
-    else {
-        dd->compressionLevel = Z_NO_COMPRESSION;
-    }
+    dd->compressionEnabled = enabled;
 }
 
-qint64 KoQuaZipStore::write(const char *_data, qint64 _len)
+PkStream::pk_int64 KoQuaZipStore::write(const char *_data, PkStream::pk_int64 _len)
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
     if (_len == 0) return 0;
 
     if (!d->isOpen) {
-        errorStore << "KoStore: You must open before writing" << Qt::endl;
+        errorStore << "KoStore: You must open before writing";
         return 0;
     }
 
     if (d->mode != Write) {
-        errorStore << "KoStore: Can not write to store that is opened for reading" << Qt::endl;
+        errorStore << "KoStore: Can not write to store that is opened for reading";
         return 0;
     }
 
-    qint64 nwritten = dd->buffer.write(_data, _len);
+    PkStream::pk_int64 nwritten = dd->buffer.write(_data, _len);
     d->size += nwritten;
     return nwritten;
 }
 
-QStringList KoQuaZipStore::directoryList() const
+PkStringList KoQuaZipStore::directoryList() const
 {
     // If in Read mode, we can assume the directory listing won't change between invocations.
-    if(mode() == Read) {
-        if(!dd->directoryListCached) {
-            dd->directoryListCache = dd->archive->getFileNameList();
+    if (mode() == Read) {
+        if (!dd->directoryListCached) {
+            dd->directoryListCache = toPkStringList(dd->archive->entryNames());
             dd->directoryListCached = true;
         }
         return dd->directoryListCache;
     }
     else {
-        return dd->archive->getFileNameList();
+        return toPkStringList(dd->archive->entryNames());
     }
 }
 
-void KoQuaZipStore::init(const QByteArray &appIdentification)
+void KoQuaZipStore::init(const PkByteArray &appIdentification)
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
 
     bool enableZip64 = false;
-    if (appIdentification == "application/x-krita") {
-        enableZip64 = KSharedConfig::openConfig()->group("").readEntry<bool>("UseZip64", false);
+    // 实测 "application/x-krita" 是 19 字节（off-by-one 防呆：brief 草稿写 20）。
+    if (appIdentification.size() == 19 && std::memcmp(appIdentification.data(), "application/x-krita", 19) == 0) {
+        enableZip64 = PkSharedConfig::openConfig()->group("").readEntry<bool>("UseZip64", false);
     }
 
     dd->archive->setDataDescriptorWritingEnabled(false);
     dd->archive->setZip64Enabled(enableZip64);
-    dd->archive->setFileNameCodec("UTF-8");
-    dd->usingSaveFile = dd->archive->getIoDevice() && dd->archive->getIoDevice()->inherits("QSaveFile");
-    dd->archive->setAutoClose(!dd->usingSaveFile);
+    dd->archive->setAutoClose(true);
 
-    d->good = dd->archive->open(d->mode == Write ? QuaZip::mdCreate : QuaZip::mdUnzip);
-
-    if (!d->good) {
-        return;
-    }
+    // openFile/openStream 已在构造里按 Mode 开好（PkZipArchive 构造即定 Mode，
+    // openFile 内部用 MZ_OPEN_MODE_READ 或 MZ_OPEN_MODE_WRITE|CREATE）；这里不再
+    // 有 archive->open()，good 由构造函数里的 openFile/openStream 结果决定。
+    d->good = true;
 
     if (d->mode == Write) {
         if (d->writeMimetype) {
-            QuaZipFile f(dd->archive);
-            QuaZipNewInfo newInfo("mimetype");
-            newInfo.setPermissions(QFileDevice::ReadOwner | QFileDevice::ReadGroup | QFileDevice::ReadOther);
-            if (!f.open(QIODevice::WriteOnly, newInfo, 0, 0, 0, Z_NO_COMPRESSION)) {
+            PkStream *ms = dd->archive->openEntryForWrite("mimetype", 0444, false);
+            if (!ms) {
                 d->good = false;
                 return;
             }
-            f.write(appIdentification);
-            f.close();
+            ms->write(reinterpret_cast<const char *>(appIdentification.data()), appIdentification.size());
+            ms->close();
+            delete ms;
         }
     }
     else {
-        debugStore << dd->archive->getEntriesCount() << directoryList();
-        d->good = dd->archive->getEntriesCount();
+        const int64_t count = dd->archive->entryCount();
+        debugStore << count << directoryList();
     }
 }
 
 bool KoQuaZipStore::doFinalize()
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
 
     d->stream = 0;
-    if (d->good && !dd->usingSaveFile) {
+    if (d->good) {
         dd->archive->close();
     }
-    return dd->archive->getZipError() == ZIP_OK;
+    return dd->archive->lastError() == 0;
 
 }
 
-bool KoQuaZipStore::openWrite(const QString &name)
+bool KoQuaZipStore::openWrite(const PkString &name)
 {
-    Q_D(KoStore);
-    QString fixedPath = name;
-    fixedPath.replace("//", "/");
+    KoStorePrivate *d = d_func();
+    PkString fixedPath = collapseSlashes(name);
 
     delete d->stream;
     d->stream = 0; // Not used when writing
 
     delete dd->currentFile;
-    dd->currentFile = new QuaZipFile(dd->archive);
-    QuaZipNewInfo newInfo(fixedPath);
-    newInfo.setPermissions(QFileDevice::ReadOwner | QFileDevice::ReadGroup | QFileDevice::ReadOther);
-    bool r = dd->currentFile->open(QIODevice::WriteOnly, newInfo, 0, 0, Z_DEFLATED, dd->compressionLevel);
-    if (!r) {
-        qWarning() << "Could not open" << name << dd->currentFile->getZipError();
+    dd->currentFile = nullptr;
+
+    dd->currentFile = dd->archive->openEntryForWrite(fixedPath, 0444, dd->compressionEnabled);
+    if (!dd->currentFile) {
+        qWarning() << "Could not open" << name << dd->archive->lastError();
+        return false;
     }
 
-    dd->cache = QByteArray();
-    dd->buffer.setBuffer(&dd->cache);
-    dd->buffer.open(QBuffer::WriteOnly);
+    dd->buffer = PkMemoryStream();
+    dd->buffer.open(PkStream::WriteOnly);
 
-    return r;
+    return true;
 }
 
-bool KoQuaZipStore::openRead(const QString &name)
+bool KoQuaZipStore::openRead(const PkString &name)
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
 
-    QString fixedPath = name;
-    fixedPath.replace("//", "/");
+    PkString fixedPath = collapseSlashes(name);
 
     delete d->stream;
     d->stream = 0;
     delete dd->currentFile;
-    dd->currentFile = 0;
+    dd->currentFile = nullptr;
 
     if (!currentPath().isEmpty() && !fixedPath.startsWith(currentPath())) {
-        fixedPath = currentPath() + '/' + fixedPath;
+        fixedPath = currentPath() + PkString("/") + fixedPath;
     }
 
     if (!d->substituteThis.isEmpty()) {
-        fixedPath = fixedPath.replace(d->substituteThis, d->substituteWith);
+        fixedPath = replaceAll(fixedPath, d->substituteThis, d->substituteWith);
     }
 
-    if (!dd->archive->setCurrentFile(fixedPath)) {
-        qWarning() << "\t\tCould not set current file" << dd->archive->getZipError() << fixedPath;
+    if (!dd->archive->locateEntry(fixedPath)) {
+        qWarning() << "\t\tCould not set current file" << dd->archive->lastError() << fixedPath;
         return false;
     }
 
-    dd->currentFile = new QuaZipFile(dd->archive);
-    if (!dd->currentFile->open(QIODevice::ReadOnly)) {
-        qWarning() << "\t\t\tBut could not open!!!" << dd->archive->getZipError();
+    dd->currentFile = dd->archive->openEntryForRead();
+    if (!dd->currentFile) {
+        qWarning() << "\t\t\tBut could not open!!!" << dd->archive->lastError();
         return false;
     }
     d->stream = dd->currentFile;
@@ -252,56 +321,67 @@ bool KoQuaZipStore::openRead(const QString &name)
 
 bool KoQuaZipStore::closeWrite()
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
 
     bool r = true;
-    if (dd->currentFile->write(dd->cache) != dd->cache.size()) {
-        // write() returns number of bytes written, or -1 in case of error
-        // let's allow write 0 bytes in the cache, when needed
-        qWarning() << "Could not write buffer to the file";
-        r = false;
+    // PkMemoryStream 空缓冲时 data() 可能为 nullptr，短路跳过写。
+    if (dd->buffer.size() > 0) {
+        const PkStream::pk_int64 n = dd->currentFile->write(dd->buffer.data(), dd->buffer.size());
+        if (n != dd->buffer.size()) {
+            // write() returns number of bytes written, or -1 in case of error
+            // let's allow write 0 bytes in the cache, when needed
+            qWarning() << "Could not write buffer to the file";
+            r = false;
+        }
     }
     dd->buffer.close();
     dd->currentFile->close();
+    delete dd->currentFile;
+    dd->currentFile = nullptr;
     d->stream = 0;
-    return (r && dd->currentFile->getZipError() == ZIP_OK);
+    return (r && dd->archive->lastError() == 0);
 }
 
 bool KoQuaZipStore::closeRead()
 {
-    Q_D(KoStore);
+    KoStorePrivate *d = d_func();
     d->stream = 0;
     return true;
 }
 
-bool KoQuaZipStore::enterRelativeDirectory(const QString & /*path*/)
+bool KoQuaZipStore::enterRelativeDirectory(const PkString & /*path*/)
 {
     return true;
 }
 
-bool KoQuaZipStore::enterAbsoluteDirectory(const QString &path)
+bool KoQuaZipStore::enterAbsoluteDirectory(const PkString &path)
 {
-    QString fixedPath = path;
-    fixedPath.replace("//", "/");
+    PkString fixedPath = collapseSlashes(path);
 
     if (fixedPath.isEmpty()) {
         fixedPath = "/";
     }
 
-    QuaZipDir currentDir (dd->archive, fixedPath);
+    // 尾无 '/' 时拼 '/' 做目录前缀匹配；PkString 无 endsWith，用 right(1) 判尾斜杠。
+    const PkString prefix = (fixedPath.right(1) == PkString("/")) ? fixedPath : fixedPath + PkString("/");
 
-    return currentDir.exists();
+    const std::vector<PkString> names = dd->archive->entryNames();
+    for (const PkString &n : names) {
+        if (n == fixedPath || n.startsWith(prefix)) {
+            return true;
+        }
+    }
+    return false;
 }
 
-bool KoQuaZipStore::fileExists(const QString &absPath) const
+bool KoQuaZipStore::fileExists(const PkString &absPath) const
 {
-    Q_D(const KoStore);
+    const KoStorePrivate *d = d_func();
 
-    QString fixedPath = absPath;
-    fixedPath.replace("//", "/");
+    PkString fixedPath = collapseSlashes(absPath);
 
     if (!d->substituteThis.isEmpty()) {
-        fixedPath = fixedPath.replace(d->substituteThis, d->substituteWith);
+        fixedPath = replaceAll(fixedPath, d->substituteThis, d->substituteWith);
     }
 
     return directoryList().contains(fixedPath);
