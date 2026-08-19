@@ -338,6 +338,40 @@ void TestQuery::singleArgConstructorPreparesWithoutExecuting()
     PK_COMPARE(check.value(0).toInt(), 1);
 }
 
+void TestQuery::boundValuesReturnsNamedBinds()
+{
+    // R-17 全分支评审 Important #1：boundValues() 之前根本不存在（40 处
+    // qWarning() 诊断打印调用点会直接编译失败）。具名绑定场景：bindValue()
+    // 之后 boundValues() 里能查到对应 key 的值。
+    PkSqlQuery q;
+    PK_VERIFY(q.prepare("INSERT INTO t (name) VALUES (:name)"));
+    q.bindValue(":name", PkVariant("kritaBundle"));
+
+    PkVariantMap bound = q.boundValues();
+    auto it = bound.find(PkString(":name"));
+    PK_VERIFY(it != bound.end());
+    PK_COMPARE(it->second.toString(), PkString("kritaBundle"));
+}
+
+void TestQuery::boundValuesReturnsPositionalBindsByStringIndex()
+{
+    // 位置绑定场景：addBindValue() 之后 boundValues() 按调用顺序（第 0、1…个）
+    // 以十进制字符串 key 存下，同样能被诊断打印遍历到。
+    PkSqlQuery q;
+    PK_VERIFY(q.prepare("INSERT INTO t (id, name) VALUES (?, ?)"));
+    q.addBindValue(PkVariant(7));
+    q.addBindValue(PkVariant("brushPreset"));
+
+    PkVariantMap bound = q.boundValues();
+    PK_COMPARE(bound.size(), static_cast<std::size_t>(2));
+    auto it0 = bound.find(PkString("0"));
+    auto it1 = bound.find(PkString("1"));
+    PK_VERIFY(it0 != bound.end());
+    PK_VERIFY(it1 != bound.end());
+    PK_COMPARE(it0->second.toInt(), 7);
+    PK_COMPARE(it1->second.toString(), PkString("brushPreset"));
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_query.inc"

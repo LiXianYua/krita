@@ -157,6 +157,17 @@ public:
 
     PkSqlError lastError() const;
 
+    // QSqlQuery::boundValues() 的最小实现（R-17 全分支评审 Important #1 补齐——
+    // 原实现遗漏，40 处真实调用点用途全部是 `qWarning() << q.boundValues()`
+    // 诊断打印，不参与任何逻辑分支，见 plan §1 用量表「boundValues()」条目）。
+    // 返回一个可遍历的绑定值集合：`m_namedBinds` 原样并入（key 已经是占位符
+    // 名，形如 ":name"）；`m_positionalBinds` 按下标（"0"/"1"/...，十进制字符串）
+    // 补成 key——真实调用点没有具名+位置混用的场景（§1 用量表原话），key
+    // 格式冲突不是要处理的输入。语义只保证"诊断打印能看到当前已绑定的值"，
+    // 不追求与 Qt 内部对位置占位符的 key 命名规则字节对齐（README §4.3 已
+    // 标注为"合理选择"而非"复刻 Qt"）。
+    PkVariantMap boundValues() const;
+
     // ── 取值 ─────────────────────────────────────────────────────────────
     // 越界/未定位/下标不存在一律返回 Invalid 的 PkVariant，不设错误
     // （§0 P2，PkSqlCursor::value() 已经是这个语义，这里直接透传）。

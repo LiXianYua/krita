@@ -706,9 +706,10 @@ $ nm -u -C build/libpksql.a | grep -i qt
 
 ---
 
-## 6. 全量单测结果（Task 4）
+## 6. 全量单测结果（Task 4；§8 全分支评审修复轮后重跑，见该节原始输出）
 
-`./build/test_pksql` 完整输出（三个 `QObject` 测试类各自的 Totals 行）：
+`./build/test_pksql` 完整输出（三个 `QObject` 测试类各自的 Totals 行，Task 4
+交付时的版本，35 条）：
 
 ```
 ********* Start testing of TestError *********
@@ -762,7 +763,9 @@ test_pksql exit=0
 `TestQuery` 18；`TestQuery` 18 条里 14 条是 Task 2 交付，4 条是 Task 3 新增的
 execBatch/单参构造函数用例）。`ctest --test-dir build` 层面是 `1/1 Test`（整个
 `test_pksql` 可执行文件算一个 ctest 用例，内部再展开成上面 35 条 `QObject` 子
-用例）。
+用例）。**这是 Task 4 交付时的快照，之后 §8 全分支评审修复轮新增了 3 条
+（`TestDatabase` +1、`TestQuery` +2），当前实际总数是 38——以 §8 的原始输出
+为准，本节不回填，保留原始交付记录。**
 
 ---
 
@@ -867,3 +870,189 @@ void KisDatabaseTransactionLockAdapter::commit()
 S-02-b 换掉 `#include <QSqlDatabase>` 为 `pk/sql` 的 compat 垫片后这个文件本身
 大概率不用改一个字）。候选 1 试接（§3）已实测证明这份源码零改动可以直接对着
 `pk/sql` 的 compat 垫片编译+链接+跑绿。
+
+---
+
+## 8. 全分支评审修复轮（2026-08-18，Important #1 / #2 + Minor 五条）
+
+R-17 4 个 Task 各自通过 task-scoped 评审后，跑了一次全分支终审，发现 2 条
+Important 级问题，本节记录修复内容与依据。**不覆盖上面 §1–§7 的原始交付记录**
+（§6 的 35 条快照保留不动），本节是追加的修复轮记录。
+
+### 8.1 Important #1：`boundValues()` 承诺已交付但代码里根本不存在
+
+§1 用量表与 §4.3 一直把 `boundValues()` 描述成"是（最小实现）"，但 `PkSqlQuery`
+上此前**根本没有这个方法**（`grep -in "bound" pk/sql/*.h pk/sql/*.cpp` 零匹配）
+——40 处真实调用点（全部是 `qWarning() << q.boundValues()` 诊断打印，不参与
+逻辑分支）会在 S-02-b 接上时直接编译失败。
+
+**修复**：在 `PkSqlQuery`（`PkSqlQuery.h`/`PkSqlQuery.cpp`）上补上
+
+```cpp
+PkVariantMap boundValues() const;
+```
+
+实现直接复用现有存储（`m_namedBinds` 原样并入结果；`m_positionalBinds` 按下标
+转成十进制字符串 key "0"/"1"/... 补进去），与 §1/§4.3 原来的描述（"`PkVariantMap`，
+key 是占位符名/位置"）一致——**这条描述本身是对的，只是此前没有对应实现**，
+本轮补上后 §1/§4.3 不需要改文字。
+
+新增单测（`pk/sql/tests/test_query.h`/`.cpp`）：
+- `TestQuery::boundValuesReturnsNamedBinds`：具名 `bindValue(":name", ...)` 后
+  `boundValues()` 能按 `":name"` 查到值。
+- `TestQuery::boundValuesReturnsPositionalBindsByStringIndex`：位置
+  `addBindValue(...)` 两次后 `boundValues()` 能按 `"0"`/`"1"` 查到对应值，
+  且 `size()==2`。
+
+### 8.2 Important #2：`PkSqlQuery::exec()` 失败是否传播进 `PkSqlDatabase::lastError()`
+
+真实 `KisResourceCacheDb.cpp` 428-436/450-457 行有 `if (!q.exec()) { ...;
+return db.lastError(); }` 这种形态——返回的是**连接级** `lastError()`，不是
+`q` 自己的。`pk/sql` 现有实现里 `PkSqlQuery::execInternal()` 只写自己的
+`m_lastError`，`PkSqlDatabase` 的单例状态 `state().lastError` 只被
+`open()`/`transaction()`/`commit()`/`rollback()` 写——从未被一次 query 失败
+写过。这条语义此前**没有探针裁定**：如果真实 Qt SQLite 驱动会把 query 失败
+传播到连接级 `lastError()`，`pk/sql` 不传播就是一个真回归。
+
+**探针**：`/tmp/.../scratchpad/sql_probe5_lasterror_propagation.cpp`（环境
+`/home/qiansenwei/workspace/Krita_Linux_liyang/krita-ci-env/env` 的可读副本，
+手动 `-I`/`-L` 方式，命令与 §0 开头一致）。起一个 `:memory:` `QSqlDatabase`，
+分别用语法错误（`SELCT`）、UNIQUE 约束冲突（照抄 `addBindValue+exec` 形态）、
+以及直接复刻 428-436 行的 `return db.lastError();` 写法三种场景，紧接失败的
+`q.exec()` 之后读 `db.lastError()`。原始输出（完整）：
+
+```
+[0] db.open() = true
+[0] db.lastError() BEFORE any query: isValid= false  type= 0  text= ""
+[A] syntax-error exec ok= false
+[A] q.lastError(): isValid= true  type= 2  text= "near \"SELCT\": syntax error Unable to execute statement"
+[A] db.lastError() immediately after: isValid= false  type= 0  text= ""
+[A] db.lastError() == q.lastError() ? type match= false  text match= false
+[B] success exec ok= true
+[B] db.lastError() after a successful query: isValid= false  type= 0  text= ""
+[C] constraint-violation exec ok= false
+[C] q.lastError(): isValid= true  type= 1  text= "UNIQUE constraint failed: t.id Unable to fetch row"
+[C] db.lastError() immediately after: isValid= false  type= 0  text= ""
+[C] db.lastError() == q.lastError() ? type match= false  text match= false
+[D] q.exec() failed as expected, q.lastError().text()= "near \"SELCT\": syntax error Unable to execute statement"
+[D] simulate `return db.lastError();`: dbErr.isValid()= false  dbErr.type()= 0  dbErr.text()= ""
+[D] dbErr == qErr (would caller see the real failure)?  false
+```
+
+**结论：不传播。** 无论语法错误还是约束冲突，`db.lastError()` 在 query 失败前后
+恒为 `isValid()=false`/`type()=NoError`（`[0]`/`[A]`/`[B]`/`[C]` 全部一致），
+与 `q.lastError()`（失败时的真实错误）完全独立。`[D]` 直接印证真实
+`KisResourceCacheDb.cpp` 里 `return db.lastError();` 这个写法在真实 Qt 环境下
+**本来就拿不到失败原因**——这是 Krita/Qt 既有行为里的一个反直觉点（这个
+返回值实际上恒为 NoError，调用方 `initialize()` 的 `switch (err.type())`
+会把这类失败误判成 `NoError` 分支），不是 `pk/sql` 会引入的新偏差。
+
+**落地**：`pk/sql` 现有实现（`PkSqlQuery` 从不触碰 `PkSqlDatabase` 的单例状态）
+已经与这个结论一致，**不需要改代码**——同 §4.3/§7"哪些是猜的"里"死代码调用点"
+的处理方式（P6 先例）：原样复刻，不"修复"这个反直觉行为。
+
+新增单测：`TestDatabase::queryFailureDoesNotPropagateToConnectionLevelLastError`
+（`pk/sql/tests/test_database.h`/`.cpp`）——分别用语法错误与约束冲突两种失败
+场景，钉住 `db.lastError()` 全程保持 `NoError`/`!isValid()`，防止未来有人以为
+这是遗漏而"顺手"给 `PkSqlDatabase` 加传播逻辑。
+
+### 8.3 Minor 五条（记录，不改代码）
+
+3. `PkSqlDatabase::transaction()`/`commit()`/`rollback()`（`PkSqlDatabase.cpp`）
+   不像 `tables()` 那样防御 `state().handle == nullptr`——低风险，`sqlite3_exec`
+   对 `nullptr` db 参数本身是 NULL-safe（不会崩，会返回错误码），只是没有像
+   `tables()` 那样提前短路返回空结果。
+4. `pk/sql/CMakeLists.txt` 里手抄 `pkgeometry`/`pkvariant` 源文件列表（§4.1
+   绕开 `add_subdirectory` 双路径冲突的手段）有漂移风险：`pk/variant`/
+   `pk/geometry` 未来若新增源文件，这份手抄列表不会自动跟上，需要人工同步。
+5. SQL 里合法的 `NULL` 值与"未定位"/"越界"访问在当前实现里返回同一个 invalid
+   `PkVariant`（`columnValue()`/`PkSqlCursor::value()` 对 `SQLITE_NULL` 与
+   "没有当前行"/"下标越界"用的是同一份"空 `PkVariant`"表示），调用方用
+   `isValid()`/`isNull()` 无法区分"这一列本来就是 NULL"和"你没定位到有效行/
+   列不存在"——这是 `pk/variant` 自身没有"NULL 值"与"无效/未定位"两种独立
+   状态这个设计决定的下游后果，不是 `pk/sql` 能在自己范围内改的，S-02-b 若
+   有逻辑依赖这个区分需要另想办法。
+
+### 8.4 重跑验证（本轮修复后，完整产物）
+
+```bash
+$ cd pk/sql
+$ source /home/qiansenwei/workspace/Krita_Linux_liyang/krita-ci-env/env
+$ ninja -C build
+ninja: Entering directory `build'
+ninja: no work to do.
+ninja exit=0
+
+$ ctest --test-dir build --output-on-failure
+Internal ctest changing into directory: .../pk/sql/build
+Test project .../pk/sql/build
+    Start 1: test_pksql
+1/1 Test #1: test_pksql .......................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.01 sec
+ctest exit=0
+
+$ nm -u -C build/libpksql.a | grep -i qt
+（无输出，grep exit=1）
+```
+
+`./build/test_pksql` 完整输出（合计 **38 passed, 0 failed, 0 skipped**：
+`TestError` 9 + `TestDatabase` 9（原 8 + 本轮新增 1）+ `TestQuery` 20（原 18 +
+本轮新增 2）——新增的 3 条全部在下面输出里）：
+
+```
+********* Start testing of TestError *********
+PASS   : TestError::initTestCase()
+PASS   : TestError::noErrorIsInvalid()
+PASS   : TestError::syntaxErrorIsStatementError()
+PASS   : TestError::tableNotFoundIsStatementError()
+PASS   : TestError::prepareTimeSyntaxErrorIsStatementError()
+PASS   : TestError::uniqueConflictIsConnectionError()
+PASS   : TestError::primaryKeyConflictIsConnectionError()
+PASS   : TestError::notNullConflictIsConnectionError()
+PASS   : TestError::cleanupTestCase()
+Totals: 9 passed, 0 failed, 0 skipped
+********* Finished testing of TestError *********
+********* Start testing of TestDatabase *********
+PASS   : TestDatabase::initTestCase()
+PASS   : TestDatabase::openIsOpenClose()
+PASS   : TestDatabase::databaseOpenFalseDoesNotCloseAlreadyOpenConnection()
+PASS   : TestDatabase::connectionNamesReflectsAddDatabase()
+PASS   : TestDatabase::tablesListsUserTablesOnly()
+PASS   : TestDatabase::transactionCommitSucceedsWithNoError()
+PASS   : TestDatabase::nestedTransactionFailsWithTransactionError()
+PASS   : TestDatabase::queryFailureDoesNotPropagateToConnectionLevelLastError()
+PASS   : TestDatabase::cleanupTestCase()
+Totals: 9 passed, 0 failed, 0 skipped
+********* Finished testing of TestDatabase *********
+********* Start testing of TestQuery *********
+PASS   : TestQuery::initTestCase()
+PASS   : TestQuery::namedBindValueInsertsRow()
+PASS   : TestQuery::positionalBindValueInsertsRow()
+PASS   : TestQuery::prepareOnceLoopBindExecReusesStatement()
+PASS   : TestQuery::execOneShotSelectReadsRows()
+PASS   : TestQuery::valueBeforeNextIsInvalidNoError()
+PASS   : TestQuery::valueAfterNextExhaustedIsInvalidNoError()
+PASS   : TestQuery::valueColumnIndexOutOfRangeIsInvalid()
+PASS   : TestQuery::sizeIsAlwaysMinusOneRegardlessOfForwardOnly()
+PASS   : TestQuery::seekJumpsBackwardAfterForwardOnlyNext()
+PASS   : TestQuery::seekJumpsBackwardAfterRandomAccessNext()
+PASS   : TestQuery::namedValueLookupIsUnqualifiedColumnNameOnly()
+PASS   : TestQuery::clearResetsToEmptyQueryReadyForReprepare()
+PASS   : TestQuery::execBatchNamedValuesAsRowsInsertsAllRows()
+PASS   : TestQuery::execBatchPositionalValuesAsRowsMatchesDeleteStorageShape()
+PASS   : TestQuery::execBatchStopsAtFirstFailingRowLikeRealQtDriver()
+PASS   : TestQuery::singleArgConstructorPreparesWithoutExecuting()
+PASS   : TestQuery::boundValuesReturnsNamedBinds()
+PASS   : TestQuery::boundValuesReturnsPositionalBindsByStringIndex()
+PASS   : TestQuery::cleanupTestCase()
+Totals: 20 passed, 0 failed, 0 skipped
+********* Finished testing of TestQuery *********
+test_pksql exit=0
+```
+
+`build/libpksql.a` 含全部四个编译单元（`ar t build/libpksql.a` 未重跑，§5
+Task 4 已确认过、本轮未新增编译单元）——**判据③在本轮修复后仍然成立**，
+0 个 Qt 符号，35 条既有测试全部保持绿（+3 条新增）。

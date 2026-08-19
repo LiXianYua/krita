@@ -379,6 +379,16 @@ PkSqlError PkSqlQuery::lastError() const
     return m_lastError;
 }
 
+PkVariantMap PkSqlQuery::boundValues() const
+{
+    // 最小实现（R-17 全分支评审 Important #1）——见头文件该方法的注释。
+    PkVariantMap result = m_namedBinds;
+    for (std::size_t i = 0; i < m_positionalBinds.size(); ++i) {
+        result[PkString(std::to_string(i).c_str())] = m_positionalBinds[i];
+    }
+    return result;
+}
+
 PkVariant PkSqlQuery::value(int col) const
 {
     return m_cursor.value(col);

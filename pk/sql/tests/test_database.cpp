@@ -2,6 +2,7 @@
 
 #include "../PkSqlDatabase.h"
 #include "../PkSqlError.h"
+#include "../PkSqlQuery.h"
 
 #include <sqlite3.h>
 
@@ -93,6 +94,41 @@ void TestDatabase::nestedTransactionFailsWithTransactionError()
     PK_COMPARE(err.nativeErrorCode(), PkString());
 
     PK_VERIFY(db.rollback()); // 清理掉第一个仍然进行中的事务
+}
+
+void TestDatabase::queryFailureDoesNotPropagateToConnectionLevelLastError()
+{
+    // R-17 全分支评审修复 Important #2——真实 Qt/QSQLITE 探针实测结论（见
+    // pk/sql/README.md 追加节「query 失败是否传播进 db 级 lastError()」）：
+    // QSqlQuery::exec() 失败**不会**写连接级 QSqlDatabase::lastError()——
+    // 探针 [A]/[C]/[D] 全部显示 db.lastError() 在 query 失败前后恒为
+    // isValid()=false/type()=NoError，与 q.lastError() 各自独立。`pk/sql`
+    // 现有实现（PkSqlQuery::execInternal() 只写自己的 m_lastError，从不碰
+    // PkSqlDatabase 的单例状态）与这个真实结论一致，不需要改代码——这条测试
+    // 钉住"不传播"这个结论本身，防止未来有人以为这是遗漏而"顺手"加上传播。
+    PkSqlDatabase db = PkSqlDatabase::database();
+    sqlite3_exec(db.PkHandle(), "CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE)",
+                 nullptr, nullptr, nullptr);
+    PK_COMPARE(static_cast<int>(db.lastError().type()), static_cast<int>(PkSqlError::NoError));
+
+    // 语法错误：模拟 KisResourceCacheDb.cpp 428-436/450-457 行的调用形态
+    // （`if (!q.exec()) { ...; return db.lastError(); }`）。
+    PkSqlQuery q;
+    PK_VERIFY(!q.exec("SELCT * FROM t"));
+    PK_VERIFY(q.lastError().isValid());
+    PK_COMPARE(static_cast<int>(db.lastError().type()), static_cast<int>(PkSqlError::NoError));
+    PK_VERIFY(!db.lastError().isValid());
+
+    // 约束冲突场景同样不传播。
+    PkSqlQuery seed;
+    PK_VERIFY(seed.exec("INSERT INTO t (id, name) VALUES (1, 'x')"));
+    PkSqlQuery dup;
+    PK_VERIFY(dup.prepare("INSERT INTO t (id, name) VALUES (?, ?)"));
+    dup.addBindValue(PkVariant(1));
+    dup.addBindValue(PkVariant("y"));
+    PK_VERIFY(!dup.exec());
+    PK_VERIFY(dup.lastError().isValid());
+    PK_VERIFY(!db.lastError().isValid());
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

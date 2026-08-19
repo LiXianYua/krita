@@ -35,4 +35,8 @@ private Q_SLOTS:
     void execBatchPositionalValuesAsRowsMatchesDeleteStorageShape();
     void execBatchStopsAtFirstFailingRowLikeRealQtDriver();
     void singleArgConstructorPreparesWithoutExecuting();
+
+    // R-17 全分支评审修复 Important #1：boundValues() 最小实现。
+    void boundValuesReturnsNamedBinds();
+    void boundValuesReturnsPositionalBindsByStringIndex();
 };

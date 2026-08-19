@@ -20,4 +20,8 @@ private Q_SLOTS:
 
     void transactionCommitSucceedsWithNoError();
     void nestedTransactionFailsWithTransactionError();
+
+    // R-17 全分支评审修复 Important #2：钉住"query 失败不传播进连接级
+    // lastError()"这个结论（探针见 pk/sql/README.md 追加节 + plan §0）。
+    void queryFailureDoesNotPropagateToConnectionLevelLastError();
 };
