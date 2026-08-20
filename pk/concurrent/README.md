@@ -32,7 +32,7 @@
 | 10 | `QRunnable` 可运行任务 | 3 处 | `PkRunnable::run()` / `setAutoDelete()` / `autoDelete()` | 虚方法；`QThreadPool::start()` 接收其指针 |
 | 11 | `QWaitCondition` 条件变量 | 3 处 | `PkWaitCondition::wait(PkMutex*)` / `wakeOne()` / `wakeAll()` | Qt 语义：`wait()` 内解锁-等待-重新加锁 |
 | 12 | `QSemaphore` 信号量 | 3 处 | `PkSemaphore::acquire()` / `tryAcquire(int,int)` / `release()` | C++17 自写（std::counting_semaphore 是 C++20） |
-| 13 | `QThread::moveToThread()` + 事件循环残余 | 119 处（24+95） | **不交付，归后续任务** | 见下表缺口登记 |
+| 13 | `QThread::moveToThread()` + 事件循环残余 | R-30 现场重数见任务 SOT | `PkThreadCallQueue` + `PkEventLoop` + `PkTimer`；对象亲和与 `deleteLater()` 在 `pk/signal` | 显式 pump，不提供隐式事件循环；真实调用点迁移归 S 批次 |
 
 ### 交付的公开类型与入口
 
@@ -50,6 +50,9 @@
 | `PkRunnable` | `PkRunnable.h` | `QRunnable` 可运行任务 |
 | `PkWaitCondition` | `PkWaitCondition.h` | `QWaitCondition` 条件变量 |
 | `PkSemaphore` | `PkSemaphore.h` | `QSemaphore` 信号量 |
+| `PkThreadCallQueue` | `PkThreadCallQueue.h` | 跨线程排队 + 目标线程显式 pump |
+| `PkEventLoop` | `PkEventLoop.h` | `processEvents()` / 条件式 `exec()` 的薄封装 |
+| `PkTimer` | `PkTimer.h` | 到期后向指定线程 post 的显式-pump 定时器 |
 | `compat/Q*` 垫片 | `compat/` 目录 | `<QMutex>` / `<QReadWriteLock>` / `<QAtomicInt>` 等头文件 |
 
 ## 2. 内存序判读表
@@ -81,17 +84,14 @@
 
 ## 3. 偏离清单（对齐口径下逐条登记）
 
-1. **`QThread::moveToThread()` / `deleteLater()` / `QObject::thread()`**：
-   见下表缺口登记的理由。
-
-2. **事件循环残余（`QTimer`/`QCoreApplication`/`processEvents` 等）**：
-   见下表缺口登记的理由。
+1. **不提供 Qt 式隐式事件循环或应用对象**：R-30 只交付目标线程显式 pump、
+   条件式循环、timer-to-post 与 deferred deletion；消费方必须安装 pump。
 
 > `QReadWriteLock::tryLockForRead()`/`tryLockForWrite()` 此前在这里被记成
 > "零调用点、不实现"——final review 核实这是假前提（`libs/image/tiles3` 三处
 > 真实调用点），已补回实现，不再是偏离项，见 §1 表格第 3 行。
 
-## 4. 缺口登记表（两个大项，建议归口）
+## 4. 事件投递与生命周期交付记录
 
 ### 4.1 `moveToThread()` 及相关（24 处）—— R-24 已交付
 
@@ -129,21 +129,18 @@ BlockingQueued 不再退化为 Direct）。
 （每个文件按第一条 `fatal error` 只归一类）：导出宏头缺失 6 个、Qt 容器/基础
 类型未端口化 8 个、其他未交付依赖（`kundo2command.h`、boost）2 个。
 
-**`deleteLater()` 不在本次交付范围**——它需要"延迟删除队列"的 flush 时机，
-与"95 处事件循环残余"里的架构方向是同一个问题（见 §4.2），R-24 没有实现，
-`PkObject` 目前没有 `deleteLater()` 方法；这 24 处 `moveToThread` 调用点本身
-不依赖 `deleteLater()`（`moveToThread` 只是打线程标记，`deleteLater()` 是
-另一个独立方法）。
+**R-30 已补齐 `PkObject::deleteLater()`**：删除操作 post 到对象亲和线程，
+重复请求合并；父对象先析构子对象时，排队删除安全失效。执行仍依赖目标线程 pump。
 
-### 4.2 事件循环残余（95 处，架构待拍板）
+### 4.2 事件循环残余（R-30 已交付 pk 侧落点）
 
 | 缺口 | 数字 | 示例位置 | 理由 | 建议归口 |
 |---|---|---|---|---|
-| `QTimer` 计时器投递 | ~40 处 / ~20 文件 | kis_signal_compressor.h（信号节流）等 | 需要事件循环的周期投递；与 `PkObject` 生命周期耦合 | 与 moveToThread 同批处理；需先拍板"Pk 世界的事件循环模型" |
-| `QCoreApplication::instance()` 应用对象 | ~25 处 | kis_base_node.cpp 等 | 应用全局状态查询；没有 Pk 替代品 | 同上 |
-| `deleteLater()` 延迟删除 | ~50 处 | 信号投递与生命周期管理 | 依赖事件循环的后续投递；与 `moveToThread` 强耦合 | 同上 |
-| `processEvents()` 事件处理 | ~20 处 | kis_stroke.cpp 等阻塞等待 | 手工事件循环；无事件循环世界等价物 | 同上 |
-| `postEvent()` / `QEventLoop` | ~37 处 | 信号投递与任务调度 | 跨线程投递归 Q-8（`pk/signal` §1 Row 9 已决议退化为 Direct） | 同上 |
+| `QTimer` 计时器投递 | 见 R-30 SOT | kis_signal_compressor.h（信号节流）等 | `PkTimer` 到期后 post，回调只在目标线程 pump 时执行 | S 批次替换调用点 |
+| `QCoreApplication::instance()` 应用对象 | 见 R-30 SOT | 应用全局状态查询 | 线程身份用 `PkThread::mainThreadId()`；不建 Pk 应用对象 | S 批次按真实用途拆解 |
+| `deleteLater()` 延迟删除 | 见 R-30 SOT | 信号投递与生命周期管理 | `PkObject::deleteLater()` | S 批次替换调用点 |
+| `processEvents()` 事件处理 | 见 R-30 SOT | 阻塞等待 | `PkEventLoop::processEvents()` / `execUntil()` | S 批次替换调用点 |
+| `postEvent()` / `QEventLoop` | 见 R-30 SOT | 信号投递与任务调度 | `PkThreadCallQueue` + `PkEventLoop` | S 批次替换调用点 |
 
 ⚠ **投递不等于执行**：`PkThreadCallQueue::post()`/`postBlocking()` 投递到某个
 线程的调用不会自动执行，该线程必须自己调用 `processPendingCalls()`（或未来
@@ -162,9 +159,9 @@ I-3）。全仓 `pk/` 之外零 pump 调用点，第一个跨线程投递的消�
 NEW-I2；本仓 `pk/concurrent`/`pk/signal` 两边的既有跨线程测试基本靠这条预热
 规避——其中一个是靠同一可执行文件里更早跑过的另一个测试顺带完成预热，不是
 自己独立预热，final whole-branch review round 2 re-review 指出过这条不够
-严谨的地方，尚未收敛成通用写法，读这两份测试时留意）。要保证"第一批投递
-一定送达"，目标线程应该在把自己的线程 id 发布给任何人之前，先调用一次
-`processPendingCalls()`（此时队列必然为空，是无害 no-op）。不预热的后果
+严谨的地方）。R-30 已把通用写法收敛为
+`PkThreadCallQueue::warmUpCurrentThread()`：目标线程只发布这个 API 的返回值，
+不得先发布 `PkThread::currentThreadId()` 再补 pump。不预热的后果
 因入口不同而不同：`post()` 投的调用被丢弃时是静默降级，不报错、不崩溃；
 `postBlocking()` 投的调用**在目标线程第一次触达队列系统时被当成陈旧条目
 丢弃**，或者**目标线程至少 pump 过一次之后正常退出**，这两种情况下发射

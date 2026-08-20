@@ -74,15 +74,16 @@ static bool disconnect(const PkObject* sender, std::nullptr_t,
    `pk/` 之外零 pump 调用点，第一个把跨线程 `Auto`/`Queued` 连接搬进来的
    S 批次消费方必须自己在目标线程装 pump（I-3）。
    ⚠ **receiver 发布自己的线程 id（即 `moveToThread()` 之后被别的线程看见）
-   之前要先"预热"**：目标线程第一次 pump 会把它自己名下已经排队的条目
+   之前要先调用 canonical API `PkThreadCallQueue::warmUpCurrentThread()`**：
+   目标线程第一次 pump 会把它自己名下已经排队的条目
    当陈旧条目丢弃，这个判定分不清"陈旧"与"合法但我还没来得及第一次
    pump"，所以任何人在目标线程第一次 `processPendingCalls()` 之前发给它
    的 `Queued`/`BlockingQueued` 调用都有被丢弃的风险（final whole-branch
    review NEW-I2，详见 `pk/concurrent/PkThreadCallQueue.h` 类头注释与
    `pk/concurrent/README.md`）。**决策 4 提到的 8 处真实
    `BlockingQueuedConnection` 调用点**（工作线程 → GUI 线程单向送调用）
-   接入时，GUI 线程侧要保证在被工作线程知道自己的 id 之前先调用过一次
-   `processPendingCalls()`——遵守这条前提下，"预热之前投递"的后果不是
+   接入时，GUI 线程侧只发布 `warmUpCurrentThread()` 的返回值，不得先发布
+   `PkThread::currentThreadId()` 再补 pump——遵守这条前提下，"预热之前投递"的后果不是
    永久挂起：`postBlocking()` 丢弃这次调用时会正确唤醒发射线程、抛
    `PkCallAbandonedException`（见 NEW-C1），Queued 的等价后果是槽函数被
    悄悄丢弃、不执行、不报错。**但如果 GUI 线程从头到尾一次都没调用过
