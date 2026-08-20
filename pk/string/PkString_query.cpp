@@ -50,6 +50,11 @@ bool pkIsHighSurrogate(char16_t unit)
     return unit >= 0xD800 && unit <= 0xDBFF;
 }
 
+bool pkIsLowSurrogate(char16_t unit)
+{
+    return unit >= 0xDC00 && unit <= 0xDFFF;
+}
+
 std::uint32_t pkNextCaseUnit(const std::vector<char16_t>& input,
                              std::size_t& index,
                              std::size_t end)
@@ -103,12 +108,21 @@ bool pkConvertCase(const std::vector<char16_t>& input,
     // independently considered caseable.
     std::size_t firstChange = end;
     for (std::size_t index = 0; index < end;) {
-        const std::size_t unitStart = index;
         const std::uint32_t codePoint = pkNextCaseUnit(input, index, end);
         const PkUnicodeCaseData::Mapping* const mapping =
             pkFindCaseMapping(codePoint, mappings);
         if (mapping != nullptr) {
-            firstChange = unitStart;
+            // Qt calls QStringIterator::recedeUnchecked() after the scan sees
+            // a case diff. A valid pair backs up over both units, but an
+            // invalid high+non-low read backs up over only the second unit.
+            // The detached conversion therefore starts at that adjacent BMP
+            // unit (which may have a one-to-many mapping), preserving the high
+            // surrogate immediately before it.
+            --index;
+            if (pkIsLowSurrogate(input[index])) {
+                --index;
+            }
+            firstChange = index;
             break;
         }
     }

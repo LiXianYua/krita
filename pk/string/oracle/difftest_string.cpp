@@ -754,6 +754,60 @@ int main()
         diffCaseRawUtf16(probe.units, probe.shape);
     }
 
+    // Cartesian malformed-adjacency corpus. A single high+sharp-s example
+    // misses that Qt selects different conversion paths for simple and full
+    // mappings, and that an earlier mapping can change the detached write
+    // cursor. Cross prefix/high/mapping/suffix shapes so those interactions
+    // remain observable rather than pinning one accidental layout. The high
+    // tokens are chosen so QStringIterator's synthetic scalar remains within
+    // 0x10FFFF for every adjacent token: Qt's qGetProp() indexes out of bounds
+    // above that and its result is compiler/layout UB, not iterator semantics.
+    struct RawToken {
+        const char* name;
+        std::vector<char16_t> units;
+    };
+    const RawToken malformedPrefixes[] = {
+        {"prefix-empty", {}},
+        {"prefix-nul", {u'\0'}},
+        {"prefix-double-nul", {u'\0', u'\0'}},
+        {"prefix-caseable", {u'a'}},
+        {"prefix-low", {0xDC00}},
+    };
+    const RawToken malformedHighs[] = {
+        {"high-first", {0xD800}},
+        {"high-middle", {0xD83D}},
+        {"high-late", {0xDA00}},
+    };
+    const RawToken malformedAdjacencies[] = {
+        {"adj-upper-expansion-sharp-s", {0x00DF}},
+        {"adj-upper-expansion-ligature", {0xFB03}},
+        {"adj-lower-expansion-dotted-i", {0x0130}},
+        {"adj-upper-simple", {u'a'}},
+        {"adj-lower-simple", {u'A'}},
+        {"adj-uncased", {0x2603}},
+    };
+    const RawToken malformedSuffixes[] = {
+        {"suffix-empty", {}},
+        {"suffix-nul", {u'\0'}},
+        {"suffix-caseable", {u'B'}},
+        {"suffix-low", {0xDE00}},
+    };
+    for (const RawToken& prefix : malformedPrefixes) {
+        for (const RawToken& high : malformedHighs) {
+            for (const RawToken& adjacency : malformedAdjacencies) {
+                for (const RawToken& suffix : malformedSuffixes) {
+                    std::vector<char16_t> units = prefix.units;
+                    units.insert(units.end(), high.units.begin(), high.units.end());
+                    units.insert(units.end(), adjacency.units.begin(), adjacency.units.end());
+                    units.insert(units.end(), suffix.units.begin(), suffix.units.end());
+                    const std::string shape = std::string("malformed-product/")
+                        + prefix.name + "/" + high.name + "/" + adjacency.name + "/" + suffix.name;
+                    diffCaseRawUtf16(units, shape.c_str());
+                }
+            }
+        }
+    }
+
     // Single-scalar exhaustive pass catches every Unicode 13 table entry and
     // every identity gap. Surrogate code points are not Unicode scalars.
     for (unsigned cp = 0; cp <= 0x10FFFF; ++cp) {

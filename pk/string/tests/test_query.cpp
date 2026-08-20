@@ -169,5 +169,32 @@ void run_query_tests()
         _expect(malformedMixed.toUpper().PkToU16()
                     == std::u16string({u'A', 0xD83D, u'b', 0xDE00, u'C'}),
                 "toUpper leaves a mixed malformed UTF-16 sequence unchanged when no case mapping is seen");
+
+        const PkString nul = PkString::PkFromUtf8("\0", 1);
+        const PkString firstHigh = PkString("\xF0\x90\x80\x80").left(1); // D800
+        const PkString sharpS("\xC3\x9F");
+        const PkString ligatureFfi("\xEF\xAC\x83");
+        struct MalformedExpansionCase {
+            PkString input;
+            std::u16string expected;
+            const char* message;
+        };
+        const std::vector<MalformedExpansionCase> malformedExpansionCases = {
+            {nul + nul + firstHigh + sharpS,
+             {u'\0', u'\0', 0xD800, u'S', u'S'},
+             "toUpper backs up to sharp-s after a first high surrogate"},
+            {nul + loneHigh + sharpS,
+             {u'\0', 0xD83D, u'S', u'S'},
+             "toUpper backs up to sharp-s after a middle high surrogate"},
+            {firstHigh + ligatureFfi,
+             {0xD800, 0xFB03},
+             "toUpper leaves an expansion hidden by an unmapped malformed composite"},
+            {PkString("a") + firstHigh + sharpS,
+             {u'A', 0x24C5, 0x00DF},
+             "toUpper keeps detached write-cursor semantics after an earlier mapping"},
+        };
+        for (const MalformedExpansionCase& probe : malformedExpansionCases) {
+            _expect(probe.input.toUpper().PkToU16() == probe.expected, probe.message);
+        }
     }
 }
