@@ -10,6 +10,7 @@ private Q_SLOTS:
     void bareBoolMatchesQt46WireBytes();
     void rejectsNonCanonicalBoolPayloads();
     void rejectsNonCanonicalVariantNullFlags();
+    void rectExtremeCoordinatesDecodeWithoutOverflow();
     void readsQt46BigEndianFixtures();
     void readsQt515BigEndianFixtures();
     void writesQt46BigEndianFixtures();

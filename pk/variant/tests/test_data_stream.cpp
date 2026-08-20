@@ -7,6 +7,7 @@
 #include "pk_binder_data_stream_case.inc"
 
 #include <cstring>
+#include <array>
 #include <limits>
 #include <string>
 #include <type_traits>
@@ -248,6 +249,42 @@ void DataStreamCase::rejectsNonCanonicalVariantNullFlags()
                 stream >> value;
                 PK_COMPARE(stream.status(), PkDataStream::Ok);
                 PK_VERIFY(value.isValid() && !value.toBool());
+            }
+        }
+    }
+}
+
+void DataStreamCase::rectExtremeCoordinatesDecodeWithoutOverflow()
+{
+    const std::array<std::array<std::int32_t, 4>, 2> coordinates{{
+        {{(std::numeric_limits<std::int32_t>::min)(), (std::numeric_limits<std::int32_t>::min)(),
+          (std::numeric_limits<std::int32_t>::max)(), (std::numeric_limits<std::int32_t>::max)()}},
+        {{(std::numeric_limits<std::int32_t>::max)(), (std::numeric_limits<std::int32_t>::max)(),
+          (std::numeric_limits<std::int32_t>::min)(), (std::numeric_limits<std::int32_t>::min)()}},
+    }};
+
+    for (PkDataStream::Version version : {PkDataStream::Qt_4_6, PkDataStream::Qt_5_15}) {
+        for (PkDataStream::ByteOrder order : {PkDataStream::BigEndian, PkDataStream::LittleEndian}) {
+            for (const auto &input : coordinates) {
+                PkByteArray wire;
+                PkDataStream writer(&wire, PkStream::WriteOnly);
+                writer.setVersion(version);
+                writer.setByteOrder(order);
+                writer << PkVariant(PkRect(PkPoint(input[0], input[1]), PkPoint(input[2], input[3])));
+                PK_COMPARE(writer.status(), PkDataStream::Ok);
+
+                PkDataStream reader(wire);
+                reader.setVersion(version);
+                reader.setByteOrder(order);
+                PkVariant actual;
+                reader >> actual;
+                PK_COMPARE(reader.status(), PkDataStream::Ok);
+                PK_COMPARE(actual.type(), PkVariant::Rect);
+                const PkRect rect = actual.toRect();
+                PK_COMPARE(rect.left(), input[0]);
+                PK_COMPARE(rect.top(), input[1]);
+                PK_COMPARE(rect.right(), input[2]);
+                PK_COMPARE(rect.bottom(), input[3]);
             }
         }
     }
