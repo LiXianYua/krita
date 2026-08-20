@@ -230,17 +230,24 @@ fs::path resourceConfigFilePath()
         platformDir(PkResourceStorage::PlatformDir::GenericConfig), PkString("kritarc")));
 }
 
+fs::path resourceConfigLockPath(const fs::path &configPath)
+{
+    fs::path lockPath = configPath;
+    lockPath += ".lock";
+    return lockPath;
+}
+
 class ResourceConfigLock
 {
 public:
-    explicit ResourceConfigLock(const fs::path &configPath)
+    explicit ResourceConfigLock(const fs::path &configPath, bool createIfMissing = true)
     {
-        fs::path lockPath = configPath;
-        lockPath += ".lock";
+        const fs::path lockPath = resourceConfigLockPath(configPath);
 #ifdef _WIN32
         m_handle = CreateFileW(lockPath.c_str(), GENERIC_READ | GENERIC_WRITE,
                                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                               nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+                               nullptr, createIfMissing ? OPEN_ALWAYS : OPEN_EXISTING,
+                               FILE_ATTRIBUTE_NORMAL, nullptr);
         if (m_handle == INVALID_HANDLE_VALUE) {
             return;
         }
@@ -252,7 +259,7 @@ public:
         }
         m_locked = true;
 #else
-        m_fd = ::open(lockPath.c_str(), O_CREAT | O_RDWR, 0600);
+        m_fd = ::open(lockPath.c_str(), O_RDWR | (createIfMissing ? O_CREAT : 0), 0600);
         if (m_fd < 0) {
             return;
         }
@@ -334,6 +341,25 @@ bool readPersistentResourceLocationUnlocked(const fs::path &configPath, PkString
         }
     }
     return false;
+}
+
+bool readPersistentResourceLocationOptimistically(const fs::path &configPath,
+                                                   PkString *location,
+                                                   bool *hasLocation)
+{
+    std::error_code ec;
+    const fs::path lockPath = resourceConfigLockPath(configPath);
+    if (fs::exists(lockPath, ec) || ec) {
+        return false;
+    }
+
+    *hasLocation = readPersistentResourceLocationUnlocked(configPath, location);
+
+    ec.clear();
+    // A cooperating writer creates the lock before touching the config. If it
+    // appeared during the read, retry under that lock; if it appears after
+    // this check, this snapshot linearizes before the writer transaction.
+    return !fs::exists(lockPath, ec) && !ec;
 }
 
 fs::path resourceConfigTemporaryPath(const fs::path &configPath, std::uint64_t sequence)
@@ -430,7 +456,23 @@ bool atomicallyReplaceResourceConfig(const fs::path &temporaryPath, const fs::pa
 #else
     std::error_code ec;
     fs::rename(temporaryPath, configPath, ec);
-    return !ec;
+    if (ec) {
+        return false;
+    }
+    int flags = O_RDONLY;
+#ifdef O_DIRECTORY
+    flags |= O_DIRECTORY;
+#endif
+    const int directory = ::open(configPath.parent_path().c_str(), flags);
+    if (directory < 0) {
+        return false;
+    }
+    int result;
+    do {
+        result = ::fsync(directory);
+    } while (result < 0 && errno == EINTR);
+    ::close(directory);
+    return result == 0;
 #endif
 }
 
@@ -533,50 +575,65 @@ PkString configuredResourceLocation(PkConfigGroup &config)
     const PkString memoryValue = hasMemoryValue
                                      ? config.readEntry(kResourceLocationKey, PkString())
                                      : PkString();
+    std::map<std::string, PkString> &snapshots = resourceConfigSnapshots();
+    const auto snapshot = snapshots.find(snapshotKey);
+    const bool memoryMatchesSnapshot =
+        hasMemoryValue && snapshot != snapshots.end() && snapshot->second == memoryValue;
+    const bool hasExplicitMemoryValue = hasMemoryValue && !memoryMatchesSnapshot;
 
-    std::error_code ec;
-    const bool configExists = fs::exists(configPath, ec) && !ec;
-    if (!configExists && !hasMemoryValue) {
+    const auto adoptPersistedValue = [&] (bool hasPersistedValue,
+                                          const PkString &persistedValue) -> PkString {
+        if (hasPersistedValue) {
+            config.writeEntry(kResourceLocationKey, persistedValue);
+            snapshots[snapshotKey] = persistedValue;
+            return persistedValue;
+        }
+        if (hasMemoryValue) {
+            config.deleteEntry(kResourceLocationKey);
+        }
+        snapshots.erase(snapshotKey);
         return PkString();
-    }
-    if (hasMemoryValue) {
-        ec.clear();
+    };
+
+    // Ordinary reads first take a side-effect-free optimistic snapshot. A
+    // writer announces itself by creating the lock before changing kritarc;
+    // observing that lock before or after the read sends us to the exclusive
+    // protocol below. With no lock at either point, returning the observed
+    // value is linearizable before any writer that starts afterwards.
+    if (!hasExplicitMemoryValue) {
+        PkString persistedValue;
+        bool hasPersistedValue = false;
+        if (readPersistentResourceLocationOptimistically(
+                configPath, &persistedValue, &hasPersistedValue)) {
+            return adoptPersistedValue(hasPersistedValue, persistedValue);
+        }
+    } else {
+        std::error_code ec;
         fs::create_directories(configPath.parent_path(), ec);
         if (ec) {
             return memoryValue;
         }
     }
 
-    ResourceConfigLock lock(configPath);
+    ResourceConfigLock lock(configPath, hasExplicitMemoryValue);
     if (!lock.isLocked()) {
+        if (!hasExplicitMemoryValue) {
+            PkString persistedValue;
+            bool hasPersistedValue = false;
+            if (readPersistentResourceLocationOptimistically(
+                    configPath, &persistedValue, &hasPersistedValue)) {
+                return adoptPersistedValue(hasPersistedValue, persistedValue);
+            }
+        }
         return memoryValue;
     }
 
     PkString persistedValue;
     const bool hasPersistedValue =
         readPersistentResourceLocationUnlocked(configPath, &persistedValue);
-    std::map<std::string, PkString> &snapshots = resourceConfigSnapshots();
-    const auto snapshot = snapshots.find(snapshotKey);
 
-    if (!hasMemoryValue) {
-        if (hasPersistedValue) {
-            config.writeEntry(kResourceLocationKey, persistedValue);
-            snapshots[snapshotKey] = persistedValue;
-            return persistedValue;
-        }
-        return PkString();
-    }
-
-    // A value equal to our last disk snapshot came from an earlier read. If
-    // another process has since changed the file, refresh memory instead of
-    // turning this ordinary read into a stale write-back.
-    if (snapshot != snapshots.end() && snapshot->second == memoryValue) {
-        if (hasPersistedValue && persistedValue != memoryValue) {
-            config.writeEntry(kResourceLocationKey, persistedValue);
-            snapshots[snapshotKey] = persistedValue;
-            return persistedValue;
-        }
-        return memoryValue;
+    if (!hasExplicitMemoryValue) {
+        return adoptPersistedValue(hasPersistedValue, persistedValue);
     }
 
     // No matching snapshot means that the in-memory value was explicitly
