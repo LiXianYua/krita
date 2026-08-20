@@ -10,7 +10,6 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <limits>
 #include <vector>
 
@@ -25,6 +24,8 @@
 namespace {
 
 namespace fs = std::filesystem;
+
+constexpr std::size_t kMaxDecodedRgbaBytes = 256u * 1024u * 1024u;
 
 struct RgbaPixel {
     png_byte red = 0;
@@ -318,6 +319,22 @@ bool convertToRgba(const PkImage &image, std::vector<png_byte> &pixels)
     return true;
 }
 
+bool decodedRgbaSize(const png_image &image, std::size_t &byteCount)
+{
+    if (image.width == 0 || image.height == 0 ||
+        image.width > static_cast<png_uint_32>(std::numeric_limits<int>::max()) ||
+        image.height > static_cast<png_uint_32>(std::numeric_limits<int>::max()) ||
+        image.width > std::numeric_limits<std::size_t>::max() / 4u) {
+        return false;
+    }
+    const std::size_t rowBytes = static_cast<std::size_t>(image.width) * 4u;
+    if (image.height > std::numeric_limits<std::size_t>::max() / rowBytes) {
+        return false;
+    }
+    byteCount = rowBytes * static_cast<std::size_t>(image.height);
+    return byteCount <= kMaxDecodedRgbaBytes;
+}
+
 bool createTemporaryFile(const fs::path &target, fs::path &temporary, FILE *&file)
 {
     const fs::path directory = target.has_parent_path() ? target.parent_path() : fs::path(".");
@@ -406,6 +423,15 @@ bool publishIfAbsent(const fs::path &temporary, const fs::path &target)
 #endif
 }
 
+FILE *openFileForRead(const fs::path &path)
+{
+#ifdef _WIN32
+    return ::_wfopen(path.c_str(), L"rb");
+#else
+    return std::fopen(path.c_str(), "rb");
+#endif
+}
+
 } // namespace
 
 namespace KisResourceThumbnailCodec
@@ -413,21 +439,49 @@ namespace KisResourceThumbnailCodec
 
 PkImage loadPng(const PkString &path)
 {
-    std::ifstream input(fs::u8path(path.PkToUtf8()),
-                        std::ios::binary | std::ios::ate);
-    if (!input) {
+    FILE *file = openFileForRead(fs::u8path(path.PkToUtf8()));
+    if (!file) {
         return PkImage();
     }
-    const std::streamoff size = input.tellg();
-    if (size <= 0 || size > static_cast<std::streamoff>((std::numeric_limits<int>::max)())) {
+
+    png_image pngImage{};
+    pngImage.version = PNG_IMAGE_VERSION;
+    if (!png_image_begin_read_from_stdio(&pngImage, file)) {
+        png_image_free(&pngImage);
+        std::fclose(file);
         return PkImage();
     }
-    std::vector<char> encoded(static_cast<std::size_t>(size));
-    input.seekg(0);
-    if (!input.read(encoded.data(), size)) {
+    std::size_t byteCount = 0;
+    if (!decodedRgbaSize(pngImage, byteCount)) {
+        png_image_free(&pngImage);
+        std::fclose(file);
         return PkImage();
     }
-    return decodePng(PkByteArray(encoded.data(), static_cast<int>(encoded.size())));
+
+    pngImage.format = PNG_FORMAT_RGBA;
+    std::vector<png_byte> pixels(byteCount);
+    const bool read = png_image_finish_read(&pngImage, nullptr, pixels.data(), 0, nullptr) != 0;
+    const bool closed = std::fclose(file) == 0;
+    if (!read || !closed) {
+        png_image_free(&pngImage);
+        return PkImage();
+    }
+
+    PkImage image(static_cast<int>(pngImage.width), static_cast<int>(pngImage.height),
+                  PkImage::Format_ARGB32);
+    for (png_uint_32 y = 0; y < pngImage.height; ++y) {
+        for (png_uint_32 x = 0; x < pngImage.width; ++x) {
+            const std::size_t offset =
+                (static_cast<std::size_t>(y) * pngImage.width + x) * 4u;
+            image.setPixel(static_cast<int>(x), static_cast<int>(y),
+                           (static_cast<uint32_t>(pixels[offset + 3]) << 24) |
+                           (static_cast<uint32_t>(pixels[offset]) << 16) |
+                           (static_cast<uint32_t>(pixels[offset + 1]) << 8) |
+                           pixels[offset + 2]);
+        }
+    }
+    png_image_free(&pngImage);
+    return image;
 }
 
 PkImage decodePng(const PkByteArray &data)
@@ -444,19 +498,14 @@ PkImage decodePng(const PkByteArray &data)
         png_image_free(&pngImage);
         return PkImage();
     }
-    if (pngImage.width == 0 || pngImage.height == 0 ||
-        pngImage.width > static_cast<png_uint_32>(std::numeric_limits<int>::max()) ||
-        pngImage.height > static_cast<png_uint_32>(std::numeric_limits<int>::max()) ||
-        pngImage.width > std::numeric_limits<std::size_t>::max() / 4u ||
-        pngImage.height > std::numeric_limits<std::size_t>::max() /
-            (static_cast<std::size_t>(pngImage.width) * 4u)) {
+    std::size_t byteCount = 0;
+    if (!decodedRgbaSize(pngImage, byteCount)) {
         png_image_free(&pngImage);
         return PkImage();
     }
 
     pngImage.format = PNG_FORMAT_RGBA;
-    std::vector<png_byte> pixels(static_cast<std::size_t>(pngImage.width) *
-                                 static_cast<std::size_t>(pngImage.height) * 4u);
+    std::vector<png_byte> pixels(byteCount);
     if (!png_image_finish_read(&pngImage, nullptr, pixels.data(), 0, nullptr)) {
         png_image_free(&pngImage);
         return PkImage();

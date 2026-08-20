@@ -25,17 +25,23 @@
 
 namespace {
 
-std::filesystem::path resourcePath(const PkString &path)
+std::filesystem::path nativeResourcePath(const PkString &path)
 {
-    std::string utf8 = path.PkToUtf8();
-    std::replace(utf8.begin(), utf8.end(), '\\', '/');
-    return std::filesystem::u8path(utf8);
+    return std::filesystem::u8path(path.PkToUtf8());
 }
 
-PkString resourcePathString(const std::filesystem::path &path)
+PkString nativeResourcePathString(const std::filesystem::path &path)
 {
     const std::string utf8 = path.u8string();
     return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
+PkString logicalResourceFileName(const PkString &path)
+{
+    std::string utf8 = path.PkToUtf8();
+    std::replace(utf8.begin(), utf8.end(), '\\', '/');
+    const std::string filename = std::filesystem::u8path(utf8).filename().u8string();
+    return PkString::PkFromUtf8(filename.data(), static_cast<int>(filename.size()));
 }
 
 }
@@ -71,7 +77,7 @@ public:
                 }
 
                 m_tags[tagname]->setDefaultResources(m_tags[tagname]->defaultResources()
-                                                     << resourcePathString(resourcePath(resourceReference.resourcePath).filename()));
+                                                     << logicalResourceFileName(resourceReference.resourcePath));
             }
         }
         m_tagValues = m_tags.values();
@@ -224,7 +230,7 @@ PkSharedPointer<KisResourceStorage::ResourceIterator> KisBundleStorage::resource
     while (modifiedEntries->hasNext()) {
         modifiedEntries->next();
         VersionedResourceEntry entry;
-        entry.filename = resourcePathString(resourcePath(modifiedEntries->url()).filename());
+        entry.filename = nativeResourcePathString(nativeResourcePath(modifiedEntries->url()).filename());
         entry.lastModified = PkDateTime::fromMSecsSinceEpoch(modifiedEntries->lastModified());
         entry.tagList = {}; // TODO
         entry.resourceType = resourceType;

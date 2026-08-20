@@ -16,16 +16,13 @@
 #include "KisResourceThumbnailCodec.h"
 #include "ResourceDebug.h"
 
-#include <algorithm>
 #include <filesystem>
 
 namespace {
 
 std::filesystem::path resourcePath(const PkString &path)
 {
-    std::string utf8 = path.PkToUtf8();
-    std::replace(utf8.begin(), utf8.end(), '\\', '/');
-    return std::filesystem::u8path(utf8);
+    return std::filesystem::u8path(path.PkToUtf8());
 }
 
 PkString resourcePathString(const std::filesystem::path &path)

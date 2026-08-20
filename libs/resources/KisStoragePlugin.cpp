@@ -12,6 +12,8 @@
 #include <KisMimeDatabase.h>
 #include <KisResourceLoaderRegistry.h>
 
+#include <filesystem>
+
 class KisStoragePlugin::Private
 {
 public:
@@ -99,11 +101,9 @@ void KisStoragePlugin::sanitizeResourceFileNameCase(KoResourceSP resource, const
                                          PkResourceStorage::EntryKind::Files, false);
     if (result->hasNext()) {
         result->next();
-        const std::string path = result->url().PkToUtf8();
-        const std::size_t separator = path.find_last_of("/\\");
-        const std::size_t nameOffset = separator == std::string::npos ? 0 : separator + 1;
-        const PkString realName = PkString::PkFromUtf8(
-            path.data() + nameOffset, static_cast<int>(path.size() - nameOffset));
+        const std::string path = std::filesystem::u8path(result->url().PkToUtf8())
+                                     .filename().u8string();
+        const PkString realName = PkString::PkFromUtf8(path.data(), static_cast<int>(path.size()));
         if (realName != resource->filename()) {
             resource->setFilename(realName);
         }

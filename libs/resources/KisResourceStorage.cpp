@@ -40,9 +40,7 @@ namespace fs = std::filesystem;
 
 fs::path resourcePath(const PkString &path)
 {
-    std::string utf8 = path.PkToUtf8();
-    std::replace(utf8.begin(), utf8.end(), '\\', '/');
-    return fs::u8path(utf8);
+    return fs::u8path(path.PkToUtf8());
 }
 
 PkString resourcePathString(const fs::path &path)

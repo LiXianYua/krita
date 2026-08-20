@@ -27,7 +27,6 @@
 #include <KisTagModel.h>
 #include <ResourceDebug.h>
 
-#include <algorithm>
 #include <filesystem>
 
 template <class T>
@@ -119,10 +118,8 @@ public:
 
     void removeResourceFile(const PkString &filename)
     {
-        std::string utf8 = filename.PkToUtf8();
-        std::replace(utf8.begin(), utf8.end(), '\\', '/');
         const std::string nativeName =
-            std::filesystem::u8path(utf8).filename().u8string();
+            std::filesystem::u8path(filename.PkToUtf8()).filename().u8string();
         const PkString baseName = PkString::PkFromUtf8(
             nativeName.data(), static_cast<int>(nativeName.size()));
         PkSharedPointer<T> resource = resourceByFilename(baseName);

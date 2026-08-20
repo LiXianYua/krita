@@ -66,7 +66,7 @@ PkString currentBundleDate()
     return PkString(text);
 }
 
-PkString fileNameOnly(const PkString &path)
+PkString logicalFileName(const PkString &path)
 {
     std::string utf8 = path.PkToUtf8();
     std::replace(utf8.begin(), utf8.end(), '\\', '/');
@@ -266,7 +266,7 @@ bool KoResourceBundle::save()
             }
             if (!resource) {
                 const PkVector<KoResourceSP> candidates =
-                    model.resourcesForFilename(fileNameOnly(reference.resourcePath));
+                    model.resourcesForFilename(logicalFileName(reference.resourcePath));
                 if (!candidates.isEmpty()) {
                     resource = candidates.first();
                 }
