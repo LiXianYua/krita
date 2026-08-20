@@ -12,9 +12,10 @@
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
-#include <limits>
+#include <functional>
 #include <system_error>
 #include <type_traits>
+#include <utility>
 #include <variant>
 #include <vector>
 #ifdef _WIN32
@@ -72,7 +73,24 @@ bool isHidden(const fs::path &path)
 #endif
 }
 
-bool isReadable(const fs::path &path)
+bool hasEntryKind(const fs::directory_entry &entry, PkResourceStorage::EntryKind kind)
+{
+    std::error_code ec;
+    fs::file_status status = entry.symlink_status(ec);
+    if (ec) {
+        return false;
+    }
+    if (fs::is_symlink(status)) {
+        status = entry.status(ec);
+        if (ec) {
+            return false;
+        }
+    }
+    return kind == PkResourceStorage::EntryKind::Files
+        ? fs::is_regular_file(status) : fs::is_directory(status);
+}
+
+bool isReadable(const fs::path &path, PkResourceStorage::EntryKind kind)
 {
 #ifdef _WIN32
     const HANDLE handle = ::CreateFileW(path.c_str(), GENERIC_READ,
@@ -81,12 +99,26 @@ bool isReadable(const fs::path &path)
     if (handle == INVALID_HANDLE_VALUE) {
         return false;
     }
+    BY_HANDLE_FILE_INFORMATION information {};
+    const bool informationOk = ::GetFileInformationByHandle(handle, &information) != 0;
     ::CloseHandle(handle);
-    return true;
+    if (!informationOk) {
+        return false;
+    }
+    const bool isDirectory = (information.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+    return kind == PkResourceStorage::EntryKind::Directories ? isDirectory : !isDirectory;
 #else
     int flags = O_RDONLY;
 #ifdef O_CLOEXEC
     flags |= O_CLOEXEC;
+#endif
+#ifdef O_NONBLOCK
+    flags |= O_NONBLOCK;
+#endif
+#ifdef O_DIRECTORY
+    if (kind == PkResourceStorage::EntryKind::Directories) {
+        flags |= O_DIRECTORY;
+    }
 #endif
     const int descriptor = ::open(path.c_str(), flags);
     if (descriptor < 0) {
@@ -94,18 +126,23 @@ bool isReadable(const fs::path &path)
     }
     struct stat status {};
     const bool statusOk = ::fstat(descriptor, &status) == 0;
-    ::close(descriptor);
-    if (!statusOk) {
+    const bool rightKind = statusOk &&
+        (kind == PkResourceStorage::EntryKind::Files
+             ? S_ISREG(status.st_mode) : S_ISDIR(status.st_mode));
+    if (!rightKind) {
+        ::close(descriptor);
         return false;
     }
-    if (!S_ISDIR(status.st_mode)) {
+
+    if (kind != PkResourceStorage::EntryKind::Directories) {
+        ::close(descriptor);
         return true;
     }
 
-    // Opening "directory/." is a real read + traversal probe performed with
-    // the process's effective credentials. Unlike access(), it never switches
-    // to the real uid/gid, and it does not create or modify filesystem state.
-    const int traversal = ::open((path / ".").c_str(), flags);
+    // Resolve "." relative to the already validated directory descriptor to
+    // require traversal permission without reopening a raceable path.
+    const int traversal = ::openat(descriptor, ".", flags);
+    ::close(descriptor);
     if (traversal < 0) {
         return false;
     }
@@ -114,13 +151,36 @@ bool isReadable(const fs::path &path)
 #endif
 }
 
-bool caseFold(const PkString &value, std::vector<UChar32> &result)
+bool decodeUnicodeScalars(const PkString &value, std::vector<UChar32> &result)
 {
     const std::u16string utf16 = value.PkToU16();
+    result.clear();
+    for (int32_t offset = 0; offset < static_cast<int32_t>(utf16.size());) {
+        UChar32 character = 0;
+        U16_NEXT(utf16.data(), offset, static_cast<int32_t>(utf16.size()), character);
+        if (character < 0) {
+            result.clear();
+            return false;
+        }
+        result.push_back(character);
+    }
+    return true;
+}
+
+bool caseFoldScalars(const std::vector<UChar32> &value, std::vector<UChar32> &result)
+{
     std::vector<UChar> source;
-    source.reserve(utf16.size());
-    for (char16_t unit : utf16) {
-        source.push_back(static_cast<UChar>(unit));
+    source.reserve(value.size() * 2u);
+    for (UChar32 character : value) {
+        if (!U_IS_UNICODE_CHAR(character)) {
+            return false;
+        }
+        if (U16_LENGTH(character) == 1) {
+            source.push_back(static_cast<UChar>(character));
+        } else {
+            source.push_back(U16_LEAD(character));
+            source.push_back(U16_TRAIL(character));
+        }
     }
 
     UErrorCode error = U_ZERO_ERROR;
@@ -152,38 +212,127 @@ bool caseFold(const PkString &value, std::vector<UChar32> &result)
     return true;
 }
 
-bool globMatches(const PkString &patternValue, const PkString &textValue)
+struct GlobToken {
+    enum class Kind {
+        Literal,
+        Question,
+        Star
+    };
+
+    Kind kind;
+    std::vector<UChar32> foldedLiteral;
+};
+
+bool tokenizeGlob(const PkString &patternValue, std::vector<GlobToken> &tokens)
 {
     std::vector<UChar32> pattern;
-    std::vector<UChar32> text;
-    if (!caseFold(patternValue, pattern) || !caseFold(textValue, text)) {
+    if (!decodeUnicodeScalars(patternValue, pattern)) {
         return false;
     }
 
-    constexpr std::size_t noStar = std::numeric_limits<std::size_t>::max();
-    std::size_t patternOffset = 0;
-    std::size_t textOffset = 0;
-    std::size_t star = noStar;
-    std::size_t retry = 0;
-    while (textOffset < text.size()) {
-        if (patternOffset < pattern.size() &&
-            (pattern[patternOffset] == '?' || pattern[patternOffset] == text[textOffset])) {
-            ++patternOffset;
-            ++textOffset;
-        } else if (patternOffset < pattern.size() && pattern[patternOffset] == '*') {
-            star = patternOffset++;
-            retry = textOffset;
-        } else if (star != noStar) {
-            patternOffset = star + 1;
-            textOffset = ++retry;
-        } else {
+    tokens.clear();
+    std::vector<UChar32> literal;
+    const auto flushLiteral = [&tokens, &literal]() {
+        if (literal.empty()) {
+            return true;
+        }
+        GlobToken token{GlobToken::Kind::Literal, {}};
+        if (!caseFoldScalars(literal, token.foldedLiteral)) {
+            return false;
+        }
+        tokens.push_back(std::move(token));
+        literal.clear();
+        return true;
+    };
+
+    for (UChar32 character : pattern) {
+        if (character != '*' && character != '?') {
+            literal.push_back(character);
+            continue;
+        }
+        if (!flushLiteral()) {
+            return false;
+        }
+        const GlobToken::Kind kind = character == '*'
+            ? GlobToken::Kind::Star : GlobToken::Kind::Question;
+        if (kind != GlobToken::Kind::Star || tokens.empty() ||
+            tokens.back().kind != GlobToken::Kind::Star) {
+            tokens.push_back(GlobToken{kind, {}});
+        }
+    }
+    return flushLiteral();
+}
+
+bool globMatches(const PkString &patternValue, const PkString &textValue)
+{
+    std::vector<GlobToken> pattern;
+    std::vector<UChar32> text;
+    if (!tokenizeGlob(patternValue, pattern) || !decodeUnicodeScalars(textValue, text)) {
+        return false;
+    }
+
+    std::vector<std::vector<UChar32>> foldedText(text.size());
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        if (!caseFoldScalars(std::vector<UChar32>{text[i]}, foldedText[i])) {
             return false;
         }
     }
-    while (patternOffset < pattern.size() && pattern[patternOffset] == '*') {
-        ++patternOffset;
-    }
-    return patternOffset == pattern.size();
+
+    const auto consumeLiteral = [&foldedText](const std::vector<UChar32> &literal,
+                                               std::size_t start,
+                                               std::size_t &end) {
+        std::size_t foldedOffset = 0;
+        for (std::size_t textOffset = start; textOffset < foldedText.size(); ++textOffset) {
+            for (UChar32 character : foldedText[textOffset]) {
+                if (foldedOffset >= literal.size() || literal[foldedOffset] != character) {
+                    return false;
+                }
+                ++foldedOffset;
+            }
+            if (foldedOffset == literal.size()) {
+                end = textOffset + 1;
+                return true;
+            }
+        }
+        return false;
+    };
+
+    const std::size_t rowSize = text.size() + 1u;
+    std::vector<signed char> memo((pattern.size() + 1u) * rowSize, -1);
+    std::function<bool(std::size_t, std::size_t)> matchFrom =
+        [&](std::size_t patternOffset, std::size_t textOffset) {
+            signed char &cached = memo[patternOffset * rowSize + textOffset];
+            if (cached >= 0) {
+                return cached != 0;
+            }
+
+            bool matched = false;
+            if (patternOffset == pattern.size()) {
+                matched = textOffset == text.size();
+            } else {
+                const GlobToken &token = pattern[patternOffset];
+                switch (token.kind) {
+                case GlobToken::Kind::Star:
+                    matched = matchFrom(patternOffset + 1u, textOffset) ||
+                        (textOffset < text.size() && matchFrom(patternOffset, textOffset + 1u));
+                    break;
+                case GlobToken::Kind::Question:
+                    matched = textOffset < text.size() &&
+                        matchFrom(patternOffset + 1u, textOffset + 1u);
+                    break;
+                case GlobToken::Kind::Literal: {
+                    std::size_t end = textOffset;
+                    matched = consumeLiteral(token.foldedLiteral, textOffset, end) &&
+                        matchFrom(patternOffset + 1u, end);
+                    break;
+                }
+                }
+            }
+            cached = matched ? 1 : 0;
+            return matched;
+        };
+
+    return matchFrom(0, 0);
 }
 
 class DesktopEntryIterator final : public PkResourceStorage::EntryIterator
@@ -258,13 +407,10 @@ private:
 
     bool matches(const fs::directory_entry &entry) const
     {
-        if (isHidden(entry.path()) || !isReadable(entry.path())) {
+        if (isHidden(entry.path()) || !hasEntryKind(entry, m_kind)) {
             return false;
         }
-        std::error_code ec;
-        const bool rightKind = m_kind == PkResourceStorage::EntryKind::Files
-            ? entry.is_regular_file(ec) : entry.is_directory(ec);
-        if (ec || !rightKind) {
+        if (!isReadable(entry.path(), m_kind)) {
             return false;
         }
         if (m_filters.empty()) {
