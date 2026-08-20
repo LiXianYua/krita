@@ -11,6 +11,8 @@
 #include <QStandardPaths>
 #include <QDirIterator>
 
+#include <string>
+
 #include <KisMimeDatabase.h>
 #include <KisResourceLoaderRegistry.h>
 
@@ -24,12 +26,25 @@
 #include <KisSqlQueryLoader.h>
 #include <KisDatabaseTransactionLock.h>
 #include <KisResourceModelProvider.h>
+#include <PkSqlDatabase.h>
 
 #ifndef FILES_DATA_DIR
 #error "FILES_DATA_DIR not set. A directory with the data used for testing installing resources"
 #endif
 
 namespace ResourceTestHelper {
+
+inline PkString toPkString(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+
+inline QString toQString(const PkString &value)
+{
+    const std::string utf8 = value.PkToUtf8();
+    return QString::fromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
 
 const QString &filesDestDir() {
     static const QString s_path = QDir::cleanPath(
@@ -252,7 +267,7 @@ bool recreateDatabaseForATest(KisResourceLocator *locator, const QString &srcLoc
                                  "SELECT name FROM sqlite_master WHERE sql IS NOT NULL and name != \"sqlite_sequence\" "
                                  "and type = :db_resource_type",
                                  KisSqlQueryLoader::single_statement_mode);
-        loader.query().bindValue(":db_resource_type", dbResourceType);
+        loader.query().bindValue(":db_resource_type", toPkString(dbResourceType));
         loader.exec();
 
         QVector<QString> dbResources;
@@ -274,14 +289,14 @@ bool recreateDatabaseForATest(KisResourceLocator *locator, const QString &srcLoc
         return dbResources;
     };
 
-    if (QSqlDatabase::database(QSqlDatabase::defaultConnection, false).isOpen()) {
+    if (PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false).isOpen()) {
         try {
             KisResourceModelProvider::testingCloseAllQueries();
 
             // foreign keys should be disabled outside the transaction's scope!
             KisResourceCacheDb::setForeignKeysStateImpl(false);
 
-            KisDatabaseTransactionLock transactionLock(QSqlDatabase::database());
+            KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
 
             Q_FOREACH (const QString &dbResourceType, QStringList({"table", "index", "trigger", "view"})) {
                 auto resources = listDbResources(dbResourceType);

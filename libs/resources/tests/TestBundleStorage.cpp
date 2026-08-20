@@ -14,8 +14,6 @@
 #include "DummyResource.h"
 #include "ResourceTestHelper.h"
 
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
 #include <KisResourceLocator.h>
 
 #ifndef FILES_DATA_DIR
@@ -148,4 +146,3 @@ void TestBundleStorage::cleanupTestCase()
 
 
 SIMPLE_TEST_MAIN(TestBundleStorage)
-

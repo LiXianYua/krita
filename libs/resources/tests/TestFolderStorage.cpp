@@ -7,8 +7,8 @@
 #include "TestFolderStorage.h"
 #include <simpletest.h>
 
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <KritaVersionWrapper.h>
 
@@ -36,8 +36,9 @@ void TestFolderStorage::initTestCase()
     m_dstLocation = ResourceTestHelper::filesDestDir();
     ResourceTestHelper::cleanDstLocation(m_dstLocation);
 
-    KConfigGroup cfg(KSharedConfig::openConfig(), "");
-    cfg.writeEntry(KisResourceLocator::resourceLocationKey, m_dstLocation);
+    PkConfigGroup cfg(PkSharedConfig::openConfig(), PkString());
+    cfg.writeEntry(KisResourceLocator::resourceLocationKey,
+                   ResourceTestHelper::toPkString(m_dstLocation));
 
     m_locator = KisResourceLocator::instance();
 
@@ -146,4 +147,3 @@ void TestFolderStorage::cleanupTestCase()
 }
 
 SIMPLE_TEST_MAIN(TestFolderStorage)
-

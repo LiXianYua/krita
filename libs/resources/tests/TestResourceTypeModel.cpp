@@ -10,12 +10,11 @@
 #include <QDir>
 #include <QVersionNumber>
 #include <QDirIterator>
-#include <QSqlQuery>
+#include <PkSqlQuery.h>
 #include <QModelIndex>
 #include <QAbstractItemModelTester>
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <KisResourceCacheDb.h>
 #include <KisResourceLocator.h>
@@ -42,8 +41,9 @@ void TestResourceTypeModel::initTestCase()
     m_dstLocation = ResourceTestHelper::filesDestDir();
     ResourceTestHelper::cleanDstLocation(m_dstLocation);
 
-    KConfigGroup cfg(KSharedConfig::openConfig(), "");
-    cfg.writeEntry(KisResourceLocator::resourceLocationKey, m_dstLocation);
+    PkConfigGroup cfg(PkSharedConfig::openConfig(), PkString());
+    cfg.writeEntry(KisResourceLocator::resourceLocationKey,
+                   ResourceTestHelper::toPkString(m_dstLocation));
 
     m_locator = KisResourceLocator::instance();
 
@@ -69,7 +69,7 @@ void TestResourceTypeModel::testWithTagModelTester()
 
 void TestResourceTypeModel::testRowCount()
 {
-    QSqlQuery q;
+    PkSqlQuery q;
     QVERIFY(q.prepare("SELECT count(*)\n"
                       "FROM   resource_types"));
     QVERIFY(q.exec());
@@ -107,4 +107,3 @@ void TestResourceTypeModel::cleanupTestCase()
 
 
 SIMPLE_TEST_MAIN(TestResourceTypeModel)
-

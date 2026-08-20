@@ -10,14 +10,12 @@
 #include <QDir>
 #include <QVersionNumber>
 #include <QDirIterator>
-#include <QSqlError>
-#include <QSqlQuery>
+#include <PkSqlQuery.h>
 #include <QTemporaryFile>
 #include <QAbstractItemModelTester>
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <KisResourceCacheDb.h>
 #include <KisResourceLocator.h>
@@ -42,8 +40,9 @@ void TestResourceModel::initTestCase()
     m_dstLocation = ResourceTestHelper::filesDestDir();
     ResourceTestHelper::cleanDstLocation(m_dstLocation);
 
-    KConfigGroup cfg(KSharedConfig::openConfig(), "");
-    cfg.writeEntry(KisResourceLocator::resourceLocationKey, m_dstLocation);
+    PkConfigGroup cfg(PkSharedConfig::openConfig(), PkString());
+    cfg.writeEntry(KisResourceLocator::resourceLocationKey,
+                   ResourceTestHelper::toPkString(m_dstLocation));
 
     m_locator = KisResourceLocator::instance();
 
@@ -71,13 +70,13 @@ void TestResourceModel::testWithTagModelTester()
 
 void TestResourceModel::testRowCount()
 {
-    QSqlQuery q;
+    PkSqlQuery q;
     QVERIFY(q.prepare("SELECT count(*)\n"
                       "FROM   resources\n"
                       ",      resource_types\n"
                       "WHERE  resources.resource_type_id = resource_types.id\n"
                       "AND    resource_types.name = :resource_type"));
-    q.bindValue(":resource_type", m_resourceType);
+    q.bindValue(":resource_type", ResourceTestHelper::toPkString(m_resourceType));
     QVERIFY(q.exec());
     q.first();
     int rowCount = q.value(0).toInt();
@@ -270,21 +269,23 @@ void TestResourceModel::testRenameResource()
     const QString name = resource->name();
     bool r = resourceModel.renameResource(resource, "A New Name");
     QVERIFY(r);
-    QSqlQuery q;
+    PkSqlQuery q;
     if (!q.prepare("SELECT name\n"
                    "FROM   resources\n"
                    "WHERE  id = :resource_id\n")) {
-        qWarning() << "Could not prepare testRenameResource Query" << q.lastError();
+        qWarning() << "Could not prepare testRenameResource Query"
+                   << ResourceTestHelper::toQString(q.lastError().text());
     }
 
     q.bindValue(":resource_id", resource->resourceId());
 
     if (!q.exec()) {
-        qWarning() << "Could not execute testRenameResource Query" << q.lastError();
+        qWarning() << "Could not execute testRenameResource Query"
+                   << ResourceTestHelper::toQString(q.lastError().text());
     }
 
     q.first();
-    QString newName = q.value(0).toString();
+    QString newName = ResourceTestHelper::toQString(q.value(0).toString());
     QVERIFY(name != newName);
     QCOMPARE("A New Name", newName);
 }
@@ -314,7 +315,7 @@ void TestResourceModel::testUpdateResource()
         QVERIFY(resource->resourceId() == resourceId);
 
         // Check the versions in the database
-        QSqlQuery q;
+        PkSqlQuery q;
         QVERIFY(q.prepare("SELECT count(*)\n"
                           "FROM   versioned_resources\n"
                           "WHERE  resource_id = :resource_id\n"));
@@ -362,4 +363,3 @@ void TestResourceModel::cleanupTestCase()
 
 
 SIMPLE_TEST_MAIN(TestResourceModel)
-

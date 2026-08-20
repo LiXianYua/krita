@@ -10,13 +10,10 @@
 #include <QDir>
 #include <QVersionNumber>
 #include <QDirIterator>
-#include <QSqlError>
-#include <QSqlQuery>
 #include <QAbstractItemModelTester>
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <KisResourceCacheDb.h>
 #include <KisResourceLocator.h>
@@ -44,8 +41,9 @@ void TestStorageFilterProxyModel::initTestCase()
     m_dstLocation = ResourceTestHelper::filesDestDir();
     ResourceTestHelper::cleanDstLocation(m_dstLocation);
 
-    KConfigGroup cfg(KSharedConfig::openConfig(), "");
-    cfg.writeEntry(KisResourceLocator::resourceLocationKey, m_dstLocation);
+    PkConfigGroup cfg(PkSharedConfig::openConfig(), PkString());
+    cfg.writeEntry(KisResourceLocator::resourceLocationKey,
+                   ResourceTestHelper::toPkString(m_dstLocation));
 
     m_locator = KisResourceLocator::instance();
 
@@ -108,4 +106,3 @@ void TestStorageFilterProxyModel::cleanupTestCase()
 
 
 SIMPLE_TEST_MAIN(TestStorageFilterProxyModel)
-

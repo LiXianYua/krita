@@ -9,14 +9,12 @@
 #include <simpletest.h>
 #include <QVersionNumber>
 #include <QDirIterator>
-#include <QSqlError>
-#include <QSqlQuery>
+#include <PkSqlQuery.h>
 #include <QBuffer>
 #include <QTemporaryFile>
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <KritaVersionWrapper.h>
 
@@ -60,8 +58,9 @@ void TestResourceLocator::initTestCase()
     m_dstLocation = ResourceTestHelper::filesDestDir();
     ResourceTestHelper::cleanDstLocation(m_dstLocation);
 
-    KConfigGroup cfg(KSharedConfig::openConfig(), "");
-    cfg.writeEntry(KisResourceLocator::resourceLocationKey, m_dstLocation);
+    PkConfigGroup cfg(PkSharedConfig::openConfig(), PkString());
+    cfg.writeEntry(KisResourceLocator::resourceLocationKey,
+                   ResourceTestHelper::toPkString(m_dstLocation));
 
     m_locator = KisResourceLocator::instance();
 
@@ -110,28 +109,28 @@ void TestResourceLocator::testLocatorInitialization()
     QVERIFY(version == QVersionNumber::fromString(KritaVersionWrapper::versionString()));
 
     {
-        QSqlQuery query;
+        PkSqlQuery query;
         bool r = query.exec("SELECT COUNT(*) FROM storages");
         QVERIFY(r);
-        QVERIFY(query.lastError() == QSqlError());
+        QVERIFY(!query.lastError().isValid());
         query.first();
         QCOMPARE(query.value(0).toInt(), 4);
     }
 
     {
-        QSqlQuery query;
+        PkSqlQuery query;
         bool r = query.exec("SELECT COUNT(*) FROM resources");
         QVERIFY(r);
-        QVERIFY(query.lastError() == QSqlError());
+        QVERIFY(!query.lastError().isValid());
         query.first();
         QCOMPARE(query.value(0).toInt(), 7);
     }
 
     {
-        QSqlQuery query;
+        PkSqlQuery query;
         bool r = query.exec("SELECT COUNT(*) FROM tags");
         QVERIFY(r);
-        QVERIFY(query.lastError() == QSqlError());
+        QVERIFY(!query.lastError().isValid());
         query.first();
         QCOMPARE(query.value(0).toInt(), 1);
     }
@@ -1342,7 +1341,7 @@ void TestResourceLocator::testOrphanedMetadataRemoval()
     try {
         KisResourceCacheDb::setForeignKeysStateImpl(false);
 
-        KisDatabaseTransactionLock transactionLock(QSqlDatabase::database());
+        KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
 
         /**
          * Slightly break the database consistency by removing the resource
@@ -1373,7 +1372,7 @@ void TestResourceLocator::testOrphanedMetadataRemoval()
         KisResourceCacheDb::removeOrphanedMetaData();
     } else {
         try {
-            KisDatabaseTransactionLock transactionLock(QSqlDatabase::database());
+            KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
 
             KisSqlQueryLoader loader(":/0_0_18_0001_cleanup_metadata_table.sql");
             loader.exec();
@@ -1407,4 +1406,3 @@ void TestResourceLocator::cleanupTestCase()
 }
 
 SIMPLE_TEST_MAIN(TestResourceLocator)
-

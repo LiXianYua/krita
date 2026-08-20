@@ -10,13 +10,11 @@
 #include <QDir>
 #include <QVersionNumber>
 #include <QDirIterator>
-#include <QSqlError>
-#include <QSqlQuery>
+#include <PkSqlQuery.h>
 #include <QAbstractItemModelTester>
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <KisResourceCacheDb.h>
 #include <KisResourceLocator.h>
@@ -43,8 +41,9 @@ void TestTagFilterResourceProxyModel::initTestCase()
     m_dstLocation = ResourceTestHelper::filesDestDir();
     ResourceTestHelper::cleanDstLocation(m_dstLocation);
 
-    KConfigGroup cfg(KSharedConfig::openConfig(), "");
-    cfg.writeEntry(KisResourceLocator::resourceLocationKey, m_dstLocation);
+    PkConfigGroup cfg(PkSharedConfig::openConfig(), PkString());
+    cfg.writeEntry(KisResourceLocator::resourceLocationKey,
+                   ResourceTestHelper::toPkString(m_dstLocation));
 
     m_locator = KisResourceLocator::instance();
 
@@ -70,13 +69,13 @@ void TestTagFilterResourceProxyModel::testWithTagModelTester()
 
 void TestTagFilterResourceProxyModel::testRowCount()
 {
-    QSqlQuery q;
+    PkSqlQuery q;
     QVERIFY(q.prepare("SELECT count(*)\n"
                       "FROM   resources\n"
                       ",      resource_types\n"
                       "WHERE  resources.resource_type_id = resource_types.id\n"
                       "AND    resource_types.name = :resource_type"));
-    q.bindValue(":resource_type", m_resourceType);
+    q.bindValue(":resource_type", ResourceTestHelper::toPkString(m_resourceType));
     QVERIFY(q.exec());
     q.first();
     int rowCount = q.value(0).toInt();
@@ -266,4 +265,3 @@ void TestTagFilterResourceProxyModel::cleanupTestCase()
 
 #include <kistest.h>
 KISTEST_MAIN(TestTagFilterResourceProxyModel)
-

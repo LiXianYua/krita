@@ -10,13 +10,11 @@
 #include <QDir>
 #include <QVersionNumber>
 #include <QDirIterator>
-#include <QSqlError>
-#include <QSqlQuery>
+#include <PkSqlQuery.h>
 #include <QAbstractItemModelTester>
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <KisResourceCacheDb.h>
 #include <KisResourceLocator.h>
@@ -44,8 +42,9 @@ void TestTagResourceModel::initTestCase()
     m_dstLocation = ResourceTestHelper::filesDestDir();
     ResourceTestHelper::cleanDstLocation(m_dstLocation);
 
-    KConfigGroup cfg(KSharedConfig::openConfig(), "");
-    cfg.writeEntry(KisResourceLocator::resourceLocationKey, m_dstLocation);
+    PkConfigGroup cfg(PkSharedConfig::openConfig(), PkString());
+    cfg.writeEntry(KisResourceLocator::resourceLocationKey,
+                   ResourceTestHelper::toPkString(m_dstLocation));
 
     m_locator = KisResourceLocator::instance();
 
@@ -71,7 +70,7 @@ void TestTagResourceModel::testWithTagModelTester()
 
 void TestTagResourceModel::testRowCount()
 {
-    QSqlQuery q;
+    PkSqlQuery q;
     QVERIFY(q.prepare("SELECT count(*)\n"
                       "FROM   resource_tags\n"
                       "WHERE  resource_tags.active = 1\n"));
@@ -626,4 +625,3 @@ void ModelSignalChecker::addSignalInfo(int first, int last, ModelSignalChecker::
 }
 
 KISTEST_MAIN(TestTagResourceModel)
-

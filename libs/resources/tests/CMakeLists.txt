@@ -15,5 +15,5 @@ kis_add_tests(
     TestResourceSearchBoxFilter.cpp
     TestStorageFilterProxyModel.cpp
     TestTagResourceModel.cpp
-    LINK_LIBRARIES kritaglobal kritapigment kritaplugin kritaresources kritaversion kritatestsdk
+    LINK_LIBRARIES kritaglobal kritapigment kritaplugin kritaresources kritaversion kritatestsdk pksql pkconfig
     )

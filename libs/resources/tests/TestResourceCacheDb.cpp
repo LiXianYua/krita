@@ -6,9 +6,8 @@
 
 #include "TestResourceCacheDb.h"
 #include <simpletest.h>
-#include <QSqlError>
-#include <QSqlQuery>
-#include <QSqlDatabase>
+#include <PkSqlDatabase.h>
+#include <PkSqlQuery.h>
 #include <QStandardPaths>
 #include <QDir>
 #include <QImage>
@@ -32,7 +31,7 @@ void TestResourceCacheDb::testCreateDatabase()
     QVERIFY(res);
     QVERIFY(KisResourceCacheDb::isValid());
 
-    QSqlDatabase sqlDb = QSqlDatabase::database();
+    PkSqlDatabase sqlDb = PkSqlDatabase::database();
 
     QStringList tables = QStringList() << "version_information"
                                        << "storage_types"
@@ -42,10 +41,12 @@ void TestResourceCacheDb::testCreateDatabase()
                                        << "resources"
                                        << "versioned_resources"
                                        << "resource_tags";
-    QStringList dbTables = sqlDb.tables();
+    const PkStringList dbTables = sqlDb.tables();
 
     Q_FOREACH(const QString &table, tables) {
-        QVERIFY2(dbTables.contains(table), table.toLatin1());
+        const QByteArray tableUtf8 = table.toUtf8();
+        const PkString pkTable = PkString::PkFromUtf8(tableUtf8.constData(), tableUtf8.size());
+        QVERIFY2(dbTables.contains(pkTable), table.toLatin1());
     }
 
     res = KisResourceCacheDb::initialize(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
@@ -58,16 +59,16 @@ void TestResourceCacheDb::testCreateDatabase()
 
 void TestResourceCacheDb::testLookupTables()
 {
-    QSqlQuery query;
+    PkSqlQuery query;
     bool r = query.exec("SELECT COUNT(*) FROM storage_types");
     QVERIFY(r);
-    QVERIFY(query.lastError() == QSqlError());
+    QVERIFY(!query.lastError().isValid());
     query.first();
     QCOMPARE(query.value(0).toInt(), 7);
 
     r = query.exec("SELECT COUNT(*) FROM resource_types");
     QVERIFY(r);
-    QVERIFY(query.lastError() == QSqlError());
+    QVERIFY(!query.lastError().isValid());
     query.first();
     QVERIFY(query.value(0).toInt() == KisResourceLoaderRegistry::instance()->resourceTypes().count());
 }
@@ -100,7 +101,7 @@ void TestResourceCacheDb::testMetaData()
 
 void TestResourceCacheDb::cleanupTestCase()
 {
-    QSqlDatabase::database().close();
+    PkSqlDatabase::database().close();
     QDir dbLocation(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
     bool res = QFile(dbLocation.path() + "/" + KisResourceCacheDb::resourceCacheDbFilename).remove();
     Q_ASSERT(res);
@@ -109,4 +110,3 @@ void TestResourceCacheDb::cleanupTestCase()
 }
 
 SIMPLE_TEST_MAIN(TestResourceCacheDb)
-

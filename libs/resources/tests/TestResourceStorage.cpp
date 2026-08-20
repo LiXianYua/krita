@@ -13,8 +13,8 @@
 #include <QUuid>
 #include <QBuffer>
 
-#include <ksharedconfig.h>
-#include <kconfiggroup.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 #include <KoMD5Generator.h>
 #include <KoPattern.h>
@@ -35,8 +35,9 @@ void TestResourceStorage::initTestCase()
     m_dstLocation = ResourceTestHelper::filesDestDir();
     ResourceTestHelper::cleanDstLocation(m_dstLocation);
     QDir().mkpath(m_dstLocation);
-    KConfigGroup cfg(KSharedConfig::openConfig(), "");
-    cfg.writeEntry(KisResourceLocator::resourceLocationKey, m_dstLocation);
+    PkConfigGroup cfg(PkSharedConfig::openConfig(), PkString());
+    cfg.writeEntry(KisResourceLocator::resourceLocationKey,
+                   ResourceTestHelper::toPkString(m_dstLocation));
     m_locator = KisResourceLocator::instance();
     ResourceTestHelper::createDummyLoaderRegistry();
 }
@@ -212,4 +213,3 @@ void TestResourceStorage::cleanupTestCase()
 }
 
 SIMPLE_TEST_MAIN(TestResourceStorage)
-
