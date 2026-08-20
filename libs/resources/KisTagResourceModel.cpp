@@ -203,6 +203,7 @@ bool KisAllTagResourceModel::refresh()
             "MIN(resource_tags.id) AS first_relation_id "
             "FROM resource_tags "
             "JOIN resources ON resources.id = resource_tags.resource_id "
+            "JOIN storages ON storages.id = resources.storage_id "
             "JOIN resource_types ON resource_types.id = resources.resource_type_id "
             "JOIN tags ON tags.id = resource_tags.tag_id "
             "AND tags.resource_type_id = resource_types.id "
