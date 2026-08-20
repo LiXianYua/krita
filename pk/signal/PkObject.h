@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 #include <atomic>
+#include <mutex>
 #include <type_traits>
 #include <utility>
 #include "PkConnection.h"
@@ -93,6 +94,12 @@ protected:
     static void activateSignal(PkObject* sender, PkMemberFnKey key, Args... args);
 
 private:
+    struct LifecycleState {
+        std::recursive_mutex claim;
+        bool destroying = false;
+        std::atomic<bool> deleteScheduled{false};
+    };
+
     // 连接条目。类型擦除的槽 + 双方对象 + 状态 + 信号 key + 槽身份。
     struct ConnectionEntry {
         PkMemberFnKey key;
@@ -123,10 +130,12 @@ private:
     // 对象树：parent 裸指针 + children 拥有。FIFO 析构顺序（探针 1：c1→c2→c3）。
     PkObject* m_parent = nullptr;
     std::vector<PkObject*> m_children;
+    std::vector<std::shared_ptr<LifecycleState>> m_childLifecycle;
+    mutable std::mutex m_childrenMutex;
 
     // QPointer 存活标志（析构置 false）。
     std::shared_ptr<std::atomic<bool>> m_alive;
-    std::shared_ptr<std::atomic<bool>> m_deleteScheduled;
+    std::shared_ptr<LifecycleState> m_lifecycle;
 
     // 线程亲和性标记，构造时初始化为当前线程。原子类型见上方 thread()/
     // moveToThread() 注释（I-1：跨线程读写的数据竞争修复）。

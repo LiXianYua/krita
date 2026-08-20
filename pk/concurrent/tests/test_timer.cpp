@@ -82,6 +82,19 @@ void TestTimer::queuedCallbackIsCancelledByStopAndDestruction()
     PK_COMPARE(calls.load(), 0);
 }
 
+void TestTimer::queuedCallbackIsCancelledByDestructionAlone()
+{
+    PkThreadCallQueue::warmUpCurrentThread();
+    std::atomic<int> calls{0};
+    {
+        PkTimer timer;
+        timer.start(5ms, [&] { ++calls; }, true);
+        std::this_thread::sleep_for(20ms); // callback is already in the queue
+    } // destruction, without an explicit stop(), invalidates queued delivery
+    PkThreadCallQueue::processPendingCalls();
+    PK_COMPARE(calls.load(), 0);
+}
+
 #include "pk_binder_test_timer.inc"
 
 int run_timer_tests(int argc, char **argv)

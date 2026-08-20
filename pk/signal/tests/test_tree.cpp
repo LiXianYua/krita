@@ -2,6 +2,7 @@
 #include <utility>
 #include <atomic>
 #include <thread>
+#include <chrono>
 #include "../PkObject.h"
 #include "test_util.h"
 
@@ -19,6 +20,30 @@ struct SignalKeyProbe : PkObject {
     void methodA() {}
     void methodB() {}
 };
+
+struct CrossObjectDestructorProbe : PkObject {
+    std::atomic<bool>& startOtherDelete;
+    std::atomic<bool>& otherDeleteFinished;
+    bool& finishedWithoutGlobalSerialization;
+
+    CrossObjectDestructorProbe(PkObject* parent,
+                               std::atomic<bool>& start,
+                               std::atomic<bool>& finished,
+                               bool& observed)
+        : PkObject(parent), startOtherDelete(start),
+          otherDeleteFinished(finished),
+          finishedWithoutGlobalSerialization(observed) {}
+
+    ~CrossObjectDestructorProbe() override
+    {
+        startOtherDelete = true;
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(500);
+        while (!otherDeleteFinished.load() && std::chrono::steady_clock::now() < deadline) {
+            std::this_thread::yield();
+        }
+        finishedWithoutGlobalSerialization = otherDeleteFinished.load();
+    }
+};
 }
 
 void run_tree_tests()
@@ -32,8 +57,30 @@ void run_tree_tests()
         _expect(root.children().size() == 2, "root has 2 children");
     }
     {
+        // Deleting a child may run arbitrary derived destructor code.  An
+        // unrelated object's destruction must not be serialized behind that
+        // code by a process-wide lifecycle lock.
+        std::atomic<bool> startOtherDelete{false};
+        std::atomic<bool> otherDeleteFinished{false};
+        bool finishedWithoutGlobalSerialization = false;
+        PkObject* unrelated = new PkObject;
+        std::thread other([&] {
+            while (!startOtherDelete.load()) std::this_thread::yield();
+            delete unrelated;
+            otherDeleteFinished = true;
+        });
+        PkObject* parent = new PkObject;
+        new CrossObjectDestructorProbe(parent, startOtherDelete, otherDeleteFinished,
+                                       finishedWithoutGlobalSerialization);
+        delete parent;
+        other.join();
+        _expect(finishedWithoutGlobalSerialization,
+                "unrelated destruction is not blocked by child derived destructor");
+    }
+    {
         // A parent-owned teardown and the child's affinity pump may race.  Both
-        // paths must claim the same lifecycle gate before either frees memory.
+        // paths must claim the child's shared lifecycle state before either
+        // frees memory.
         for (int i = 0; i < 200; ++i) {
             std::atomic<bool> ready{false};
             std::atomic<bool> pump{false};

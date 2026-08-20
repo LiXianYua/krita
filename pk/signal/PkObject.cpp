@@ -1,25 +1,13 @@
 #include "PkObject.h"
-#include <mutex>
-
-namespace {
-std::recursive_mutex& lifecycleGate()
-{
-    // Parent teardown and an affinity-thread deleteLater pump can enter from
-    // different threads.  One process-lifetime gate covers the whole tree;
-    // recursive locking permits the winning callback to call delete and the
-    // parent destructor to recursively delete children while retaining the
-    // ownership claim until memory has actually been freed.
-    static auto* gate = new std::recursive_mutex;
-    return *gate;
-}
-}
 
 PkObject::PkObject(PkObject* parent)
     : m_alive(std::make_shared<std::atomic<bool>>(true)),
-      m_deleteScheduled(std::make_shared<std::atomic<bool>>(false))
+      m_lifecycle(std::make_shared<LifecycleState>())
 {
     if (parent) {
+        std::lock_guard<std::mutex> childrenLock(parent->m_childrenMutex);
         parent->m_children.push_back(this);
+        parent->m_childLifecycle.push_back(m_lifecycle);
         m_parent = parent;
     }
 }
@@ -27,18 +15,26 @@ PkObject::PkObject(PkObject* parent)
 void PkObject::deleteLater()
 {
     bool expected = false;
-    if (!m_deleteScheduled->compare_exchange_strong(expected, true)) return;
+    if (!m_lifecycle->deleteScheduled.compare_exchange_strong(expected, true)) return;
     PkObject* object = this;
     auto alive = m_alive;
-    PkThreadCallQueue::post(thread(), [object, alive] {
-        std::lock_guard<std::recursive_mutex> claim(lifecycleGate());
-        if (alive->load()) delete object;
+    auto lifecycle = m_lifecycle;
+    PkThreadCallQueue::post(thread(), [object, alive, lifecycle] {
+        std::lock_guard<std::recursive_mutex> claim(lifecycle->claim);
+        if (!lifecycle->destroying && alive->load()) {
+            lifecycle->destroying = true;
+            delete object;
+        }
     });
 }
 
 PkObject::~PkObject()
 {
-    std::lock_guard<std::recursive_mutex> claim(lifecycleGate());
+    // The claim is per object.  A parent deletion and this object's deferred
+    // callback serialize with each other, without blocking unrelated object
+    // destructors or holding a process-wide lock across derived destructors.
+    std::lock_guard<std::recursive_mutex> claim(m_lifecycle->claim);
+    m_lifecycle->destroying = true;
     // 1. 断开所有连接：把双方列表里条目的 state->alive 置 false 并清空。
     disconnectAllOutgoing();
     disconnectAllIncoming();
@@ -50,16 +46,35 @@ PkObject::~PkObject()
     //    子对象析构时会把自己从本对象的 m_children 里摘除（见步骤 4），因此
     //    m_children 在遍历中不断收缩——按索引遍历会跳过元素。改为每次取队首，
     //    删完后向量前移，天然按创建顺序（FIFO）逐个销毁，且循环终止。
-    while (!m_children.empty()) {
-        delete m_children[0];
+    while (true) {
+        PkObject* child = nullptr;
+        std::shared_ptr<LifecycleState> childLifecycle;
+        {
+            std::lock_guard<std::mutex> childrenLock(m_childrenMutex);
+            if (m_children.empty()) break;
+            child = m_children.front();
+            childLifecycle = m_childLifecycle.front();
+            m_children.erase(m_children.begin());
+            m_childLifecycle.erase(m_childLifecycle.begin());
+        }
+        std::lock_guard<std::recursive_mutex> childClaim(childLifecycle->claim);
+        if (!childLifecycle->destroying) {
+            childLifecycle->destroying = true;
+            delete child;
+        }
     }
-    m_children.clear();
 
     // 4. 从 parent 的 children 里摘除自己。
     if (m_parent) {
+        std::lock_guard<std::mutex> childrenLock(m_parent->m_childrenMutex);
         auto& sib = m_parent->m_children;
         for (auto it = sib.begin(); it != sib.end(); ++it) {
-            if (*it == this) { sib.erase(it); break; }
+            if (*it == this) {
+                const auto index = static_cast<std::size_t>(it - sib.begin());
+                sib.erase(it);
+                m_parent->m_childLifecycle.erase(m_parent->m_childLifecycle.begin() + index);
+                break;
+            }
         }
     }
 }

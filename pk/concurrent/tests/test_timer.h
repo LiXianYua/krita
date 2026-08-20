@@ -10,4 +10,5 @@ private Q_SLOTS:
     void repeatingTimerPostsMoreThanOnce();
     void warmedTargetThreadReceivesCallback();
     void queuedCallbackIsCancelledByStopAndDestruction();
+    void queuedCallbackIsCancelledByDestructionAlone();
 };
