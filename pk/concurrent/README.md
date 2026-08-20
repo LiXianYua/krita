@@ -4,6 +4,11 @@
 `PkReadWriteLock`/`PkReadLocker`/`PkWriteLocker`（读写锁）、`PkAtomicInt`/`PkAtomicPointer<T>`（原子数）、
 `PkThread::idealThreadCount()`（线程数查询）、`PkThreadPool`（线程池）、`PkRunnable`（可运行任务）、
 `PkWaitCondition`（条件变量）、`PkSemaphore`（信号量）。
+`PkThreadCallQueue::warmUpCurrentThread()` 把队列预热与线程 id 获取合成一个
+有顺序的操作：目标线程只发布其返回值，不得先发布 `currentThreadId()`。
+`PkEventLoop::processEvents()` 只处理入口时的队列快照；
+`PkEventLoop::execUntil()` 是调用者线程上的显式 pump + 谓词循环，没有后台
+线程或隐式事件循环。
 独立 `project(pkconcurrent)` 薄壳工程，不接入 Krita 主构建。
 
 范围上界 = `docs/Qt替代品选型.md` §6.8 的 Q-8 用量表 + 现场修正（下表逐项对照）。

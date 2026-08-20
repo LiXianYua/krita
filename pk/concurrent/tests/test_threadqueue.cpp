@@ -1,6 +1,7 @@
 #include "test_threadqueue.h"
 #include "../PkThread.h"
 #include "../PkThreadCallQueue.h"
+#include "../PkEventLoop.h"
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -469,6 +470,70 @@ void PkThreadCallQueueSelfTest::testPostDoesNotDiscardOwnInboundQueueOnOutboundP
 
     // 清理 worker 投给主线程自己的那条 no-op 调用，不留垃圾给后续用例。
     PkThreadCallQueue::processPendingCalls();
+}
+
+void PkThreadCallQueueSelfTest::testWarmUpReturnsCurrentThreadIdAfterDiscardingStaleEntries()
+{
+    std::atomic<bool> idPublished{false};
+    std::atomic<bool> candidateReady{false};
+    std::atomic<int> staleCallCount{0};
+    PkThreadId candidateId{};
+    PkThreadId publishedId{};
+
+    std::thread worker([&] {
+        candidateId = PkThread::currentThreadId();
+        candidateReady.store(true, std::memory_order_release);
+        while (PkThreadCallQueue::pendingCount() == 0) {
+            std::this_thread::yield();
+        }
+        publishedId = PkThreadCallQueue::warmUpCurrentThread();
+        idPublished.store(true, std::memory_order_release);
+    });
+
+    while (!candidateReady.load(std::memory_order_acquire)) {
+        std::this_thread::yield();
+    }
+    PkThreadCallQueue::post(candidateId, [&] { ++staleCallCount; });
+    worker.join();
+
+    PK_VERIFY(idPublished.load(std::memory_order_acquire));
+    PK_VERIFY(publishedId == candidateId);
+    PK_COMPARE(staleCallCount.load(), 0);
+}
+
+void PkThreadCallQueueSelfTest::testProcessEventsProcessesOneSnapshotOnly()
+{
+    PkThreadCallQueue::warmUpCurrentThread();
+    const PkThreadId me = PkThread::currentThreadId();
+    std::atomic<int> calls{0};
+
+    PkThreadCallQueue::post(me, [&] {
+        ++calls;
+        PkThreadCallQueue::post(me, [&] { ++calls; });
+    });
+
+    PK_COMPARE(PkEventLoop::processEvents(), 1);
+    PK_COMPARE(calls.load(), 1);
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), static_cast<std::size_t>(1));
+    PK_COMPARE(PkEventLoop::processEvents(), 1);
+    PK_COMPARE(calls.load(), 2);
+}
+
+void PkThreadCallQueueSelfTest::testExecUntilPumpsUntilPredicateIsSatisfied()
+{
+    PkThreadCallQueue::warmUpCurrentThread();
+    const PkThreadId me = PkThread::currentThreadId();
+    std::atomic<int> calls{0};
+
+    PkThreadCallQueue::post(me, [&] {
+        ++calls;
+        PkThreadCallQueue::post(me, [&] { ++calls; });
+    });
+
+    const int processed = PkEventLoop::execUntil([&] { return calls.load() == 2; });
+    PK_COMPARE(processed, 2);
+    PK_COMPARE(calls.load(), 2);
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), static_cast<std::size_t>(0));
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

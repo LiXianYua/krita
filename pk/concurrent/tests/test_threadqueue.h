@@ -32,4 +32,8 @@ private Q_SLOTS:
 
     // fix-wave re-review NEW-I1：post() 曾经错误地清空调用者自己的入站队列。
     void testPostDoesNotDiscardOwnInboundQueueOnOutboundPost();
+
+    void testWarmUpReturnsCurrentThreadIdAfterDiscardingStaleEntries();
+    void testProcessEventsProcessesOneSnapshotOnly();
+    void testExecUntilPumpsUntilPredicateIsSatisfied();
 };

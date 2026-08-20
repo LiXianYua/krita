@@ -88,6 +88,11 @@ public:
     // processEvents() "不保证处理执行期间新到的事件"这条语义）。
     static int processPendingCalls();
 
+    // Consume this thread's one-time stale-entry check, then return its id.
+    // Publish only the returned value: the ordering makes it impossible for a
+    // caller following this pattern to expose an id before queue warm-up.
+    static PkThreadId warmUpCurrentThread();
+
     // 仅供测试/试接观测：调用它的线程的队列里还有多少待执行调用未处理。
     static std::size_t pendingCount();
 };

@@ -188,6 +188,12 @@ int PkThreadCallQueue::processPendingCalls()
     return n;
 }
 
+PkThreadId PkThreadCallQueue::warmUpCurrentThread()
+{
+    processPendingCalls();
+    return PkThread::currentThreadId();
+}
+
 std::size_t PkThreadCallQueue::pendingCount()
 {
     Registry& r = registry();

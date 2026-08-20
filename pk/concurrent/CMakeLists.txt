@@ -13,6 +13,7 @@ add_library(pkconcurrent STATIC
     PkThread.cpp
     PkSemaphore.cpp
     PkThreadCallQueue.cpp
+    PkEventLoop.cpp
 )
 target_include_directories(pkconcurrent PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(pkconcurrent PUBLIC Threads::Threads)
