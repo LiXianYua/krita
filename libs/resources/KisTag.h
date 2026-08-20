@@ -7,17 +7,18 @@
 #ifndef KISTAGLOADER_H
 #define KISTAGLOADER_H
 
-#include <QDebug>
-#include <QString>
-#include <QScopedPointer>
-#include <QSharedPointer>
-
-class QIODevice;
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkMap.h>
+#include <PkSharedPointer.h>
+#include <PkScopedPointer.h>
+#include <PkStream.h>
+#include <PkDebug.h>
 
 #include "kritaresources_export.h"
 
 class KisTag;
-typedef QSharedPointer<KisTag> KisTagSP;
+typedef PkSharedPointer<KisTag> KisTagSP;
 
 
 /**
@@ -39,40 +40,40 @@ public:
     KisTag &operator=(const KisTag &rhs);
     KisTagSP clone() const;
 
-    static QString currentLocale();
+    static PkString currentLocale();
 
     bool valid() const;
 
     int id() const;
     bool active() const;
 
-    QString filename();
-    void setFilename(const QString &fileName);
+    PkString filename();
+    void setFilename(const PkString &fileName);
 
     /// The unique identifier for the tag. Since tag urls are compared COLLATE NOCASE, tag urls must be ASCII only.
-    QString url() const;
-    void setUrl(const QString &url);
+    PkString url() const;
+    void setUrl(const PkString &url);
 
     /// The translated names of the tag
-    QString name(bool translated = true) const;
-    void setName(const QString &name);
-    QMap<QString, QString> names() const;
-    void setNames(const QMap<QString, QString> &names);
+    PkString name(bool translated = true) const;
+    void setName(const PkString &name);
+    PkMap<PkString, PkString> names() const;
+    void setNames(const PkMap<PkString, PkString> &names);
 
     /// The translated tooltips for the tag
-    QString comment(bool translated = true) const;
-    void setComment(const QString comment);
-    QMap<QString, QString> comments() const;
-    void setComments(const QMap<QString, QString> &comments);
+    PkString comment(bool translated = true) const;
+    void setComment(const PkString comment);
+    PkMap<PkString, PkString> comments() const;
+    void setComments(const PkMap<PkString, PkString> &comments);
 
-    QString resourceType() const;
-    void setResourceType(const QString &resourceType);
+    PkString resourceType() const;
+    void setResourceType(const PkString &resourceType);
 
-    QStringList defaultResources() const;
-    void setDefaultResources(const QStringList &defaultResources);
+    PkStringList defaultResources() const;
+    void setDefaultResources(const PkStringList &defaultResources);
 
-    bool load(QIODevice &io);
-    bool save(QIODevice &io);
+    bool load(PkStream &io);
+    bool save(PkStream &io);
 
 private:
 
@@ -94,22 +95,22 @@ private:
     void setActive(bool active);
     void setValid(bool valid);
 
-    static const QString s_group;
-    static const QString s_type;
-    static const QString s_tag;
-    static const QString s_name;
-    static const QString s_resourceType;
-    static const QString s_url;
-    static const QString s_comment;
-    static const QString s_defaultResources;
-    static const QString s_desktop;
+    static const PkString s_group;
+    static const PkString s_type;
+    static const PkString s_tag;
+    static const PkString s_name;
+    static const PkString s_resourceType;
+    static const PkString s_url;
+    static const PkString s_comment;
+    static const PkString s_defaultResources;
+    static const PkString s_desktop;
 
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 
-inline QDebug operator<<(QDebug dbg, const KisTagSP tag)
+inline PkDebug operator<<(PkDebug dbg, const KisTagSP tag)
 {
     if (tag) {
         dbg.space() << "[TAG] Name" << tag->name()
@@ -122,7 +123,5 @@ inline QDebug operator<<(QDebug dbg, const KisTagSP tag)
 
     return dbg.space();
 }
-
-Q_DECLARE_METATYPE(QSharedPointer<KisTag>)
 
 #endif // KISTAGLOADER_H

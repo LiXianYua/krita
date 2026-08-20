@@ -6,7 +6,8 @@
 #ifndef KISRESOURCETYPES_H
 #define KISRESOURCETYPES_H
 
-#include <klocalizedstring.h>
+#include <PkString.h>
+#include <PkMap.h>
 #include "kritaresources_export.h"
 /**
  * These namespaces define the type keys and sub-type keys for resource types.
@@ -14,53 +15,54 @@
  * keys to different types that have their own resource loader instance.
  */
 namespace ResourceType {
-    KRITARESOURCES_EXPORT extern const QString PaintOpPresets;
-    KRITARESOURCES_EXPORT extern const QString Brushes;
-    KRITARESOURCES_EXPORT extern const QString Gradients;
-    KRITARESOURCES_EXPORT extern const QString Palettes;
-    KRITARESOURCES_EXPORT extern const QString Patterns;
-    KRITARESOURCES_EXPORT extern const QString Workspaces;
-    KRITARESOURCES_EXPORT extern const QString Symbols;
-    KRITARESOURCES_EXPORT extern const QString WindowLayouts;
-    KRITARESOURCES_EXPORT extern const QString Sessions;
-    KRITARESOURCES_EXPORT extern const QString GamutMasks;
-    KRITARESOURCES_EXPORT extern const QString SeExprScripts;
-    KRITARESOURCES_EXPORT extern const QString TaskSets;
-    KRITARESOURCES_EXPORT extern const QString LayerStyles;
-    KRITARESOURCES_EXPORT extern const QString FontFamilies;
-    KRITARESOURCES_EXPORT extern const QString CssStyles;
+    KRITARESOURCES_EXPORT extern const PkString PaintOpPresets;
+    KRITARESOURCES_EXPORT extern const PkString Brushes;
+    KRITARESOURCES_EXPORT extern const PkString Gradients;
+    KRITARESOURCES_EXPORT extern const PkString Palettes;
+    KRITARESOURCES_EXPORT extern const PkString Patterns;
+    KRITARESOURCES_EXPORT extern const PkString Workspaces;
+    KRITARESOURCES_EXPORT extern const PkString Symbols;
+    KRITARESOURCES_EXPORT extern const PkString WindowLayouts;
+    KRITARESOURCES_EXPORT extern const PkString Sessions;
+    KRITARESOURCES_EXPORT extern const PkString GamutMasks;
+    KRITARESOURCES_EXPORT extern const PkString SeExprScripts;
+    KRITARESOURCES_EXPORT extern const PkString TaskSets;
+    KRITARESOURCES_EXPORT extern const PkString LayerStyles;
+    KRITARESOURCES_EXPORT extern const PkString FontFamilies;
+    KRITARESOURCES_EXPORT extern const PkString CssStyles;
 }
 
 namespace ResourceSubType {
-    KRITARESOURCES_EXPORT extern const QString AbrBrushes;
-    KRITARESOURCES_EXPORT extern const QString GbrBrushes;
-    KRITARESOURCES_EXPORT extern const QString GihBrushes;
-    KRITARESOURCES_EXPORT extern const QString SvgBrushes;
-    KRITARESOURCES_EXPORT extern const QString PngBrushes;
-    KRITARESOURCES_EXPORT extern const QString SegmentedGradients;
-    KRITARESOURCES_EXPORT extern const QString StopGradients;
-    KRITARESOURCES_EXPORT extern const QString KritaPaintOpPresets;
-    KRITARESOURCES_EXPORT extern const QString MyPaintPaintOpPresets;
+    KRITARESOURCES_EXPORT extern const PkString AbrBrushes;
+    KRITARESOURCES_EXPORT extern const PkString GbrBrushes;
+    KRITARESOURCES_EXPORT extern const PkString GihBrushes;
+    KRITARESOURCES_EXPORT extern const PkString SvgBrushes;
+    KRITARESOURCES_EXPORT extern const PkString PngBrushes;
+    KRITARESOURCES_EXPORT extern const PkString SegmentedGradients;
+    KRITARESOURCES_EXPORT extern const PkString StopGradients;
+    KRITARESOURCES_EXPORT extern const PkString KritaPaintOpPresets;
+    KRITARESOURCES_EXPORT extern const PkString MyPaintPaintOpPresets;
 }
 
 namespace ResourceName {
-    KRITARESOURCES_EXPORT extern const KLocalizedString PaintOpPresets;
-    KRITARESOURCES_EXPORT extern const KLocalizedString Brushes;
-    KRITARESOURCES_EXPORT extern const KLocalizedString Gradients;
-    KRITARESOURCES_EXPORT extern const KLocalizedString Palettes;
-    KRITARESOURCES_EXPORT extern const KLocalizedString Patterns;
-    KRITARESOURCES_EXPORT extern const KLocalizedString Workspaces;
-    KRITARESOURCES_EXPORT extern const KLocalizedString Symbols;
-    KRITARESOURCES_EXPORT extern const KLocalizedString WindowLayouts;
-    KRITARESOURCES_EXPORT extern const KLocalizedString Sessions;
-    KRITARESOURCES_EXPORT extern const KLocalizedString GamutMasks;
-    KRITARESOURCES_EXPORT extern const KLocalizedString SeExprScripts;
-    KRITARESOURCES_EXPORT extern const KLocalizedString TaskSets;
-    KRITARESOURCES_EXPORT extern const KLocalizedString LayerStyles;
-    KRITARESOURCES_EXPORT extern const KLocalizedString FontFamilies;
-    KRITARESOURCES_EXPORT extern const KLocalizedString CssStyles;
+    // i18n 已移交横切项：KLocalizedString（ki18nc）删除，英文原文保留为 PkString 常量。
+    KRITARESOURCES_EXPORT extern const PkString PaintOpPresets;
+    KRITARESOURCES_EXPORT extern const PkString Brushes;
+    KRITARESOURCES_EXPORT extern const PkString Gradients;
+    KRITARESOURCES_EXPORT extern const PkString Palettes;
+    KRITARESOURCES_EXPORT extern const PkString Patterns;
+    KRITARESOURCES_EXPORT extern const PkString Workspaces;
+    KRITARESOURCES_EXPORT extern const PkString Symbols;
+    KRITARESOURCES_EXPORT extern const PkString WindowLayouts;
+    KRITARESOURCES_EXPORT extern const PkString Sessions;
+    KRITARESOURCES_EXPORT extern const PkString GamutMasks;
+    KRITARESOURCES_EXPORT extern const PkString SeExprScripts;
+    KRITARESOURCES_EXPORT extern const PkString TaskSets;
+    KRITARESOURCES_EXPORT extern const PkString LayerStyles;
+    KRITARESOURCES_EXPORT extern const PkString FontFamilies;
+    KRITARESOURCES_EXPORT extern const PkString CssStyles;
 
-    KRITARESOURCES_EXPORT QString resourceTypeToName(const QString &resourceType);
+    KRITARESOURCES_EXPORT PkString resourceTypeToName(const PkString &resourceType);
 
 }
 

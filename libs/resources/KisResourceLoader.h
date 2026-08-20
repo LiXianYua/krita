@@ -7,13 +7,12 @@
 #ifndef KISRESOURCELOADER_H
 #define KISRESOURCELOADER_H
 
-#include <QString>
-#include <QStringList>
-#include <QSharedPointer>
-#include <QIODevice>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkSharedPointer.h>
+#include <PkStream.h>
 
 #include <KoResource.h>
-#include <KoID.h>
 
 #include <kritaresources_export.h>
 
@@ -27,7 +26,7 @@ class KRITARESOURCES_EXPORT KisResourceLoaderBase
 {
 public:
 
-    KisResourceLoaderBase(const QString &resourceSubType, const QString &resourceType, const QString &name, const QStringList &mimetypes)
+    KisResourceLoaderBase(const PkString &resourceSubType, const PkString &resourceType, const PkString &name, const PkStringList &mimetypes)
     {
         m_resourceSubType = resourceSubType;
         m_resourceType = resourceType;
@@ -43,12 +42,12 @@ public:
      * @return a set of filters ("*.bla,*.foo") that is suitable for filtering
      * the contents of a directory.
      */
-    QStringList filters() const;
+    PkStringList filters() const;
 
     /**
      * @return the mimetypes this resource can load
      */
-    QStringList mimetypes() const
+    PkStringList mimetypes() const
     {
         return m_mimetypes;
     }
@@ -57,31 +56,31 @@ public:
      * @return the folder in the resource storage where resources
      * of this type are located
      */
-    QString resourceType() const
+    PkString resourceType() const
     {
         return m_resourceType;
     }
 
-    QString resourceSubType() const
+    PkString resourceSubType() const
     {
         return id();
     }
 
     /// For registration in KisResourceLoaderRegistry
-    QString id() const
+    PkString id() const
     {
         return m_resourceSubType;
     }
 
     /// The user-friendly name of the category
-    QString name() const
+    PkString name() const
     {
         return m_name;
     }
 
-    virtual KoResourceSP create(const QString &name) = 0;
+    virtual KoResourceSP create(const PkString &name) = 0;
 
-    bool load(KoResourceSP resource, QIODevice &dev, KisResourcesInterfaceSP resourcesInterface)
+    bool load(KoResourceSP resource, PkStream &dev, KisResourcesInterfaceSP resourcesInterface)
     {
         Q_ASSERT(dev.isOpen() && dev.isReadable());
         return resource->loadFromDevice(&dev, resourcesInterface);
@@ -91,7 +90,7 @@ public:
      * Load this resource.
      * @return a resource if loading the resource succeeded, 0 otherwise
      */
-    KoResourceSP load(const QString &name, QIODevice &dev, KisResourcesInterfaceSP resourcesInterface)
+    KoResourceSP load(const PkString &name, PkStream &dev, KisResourcesInterfaceSP resourcesInterface)
     {
         KoResourceSP resource = create(name);
         return load(resource, dev, resourcesInterface) ? resource : 0;
@@ -99,24 +98,24 @@ public:
 
 
 private:
-    QString m_resourceSubType;
-    QString m_resourceType;
-    QStringList m_mimetypes;
-    QString m_name;
+    PkString m_resourceSubType;
+    PkString m_resourceType;
+    PkStringList m_mimetypes;
+    PkString m_name;
 
 };
 
 template<typename T>
 class KisResourceLoader : public KisResourceLoaderBase {
 public:
-    KisResourceLoader(const QString &id, const QString &folder, const QString &name, const QStringList &mimetypes)
+    KisResourceLoader(const PkString &id, const PkString &folder, const PkString &name, const PkStringList &mimetypes)
         : KisResourceLoaderBase(id, folder, name, mimetypes)
     {
     }
 
-    virtual KoResourceSP create(const QString &name) override
+    virtual KoResourceSP create(const PkString &name) override
     {
-        QSharedPointer<T> resource = QSharedPointer<T>::create(name);
+        PkSharedPointer<T> resource = PkSharedPointer<T>::create(name);
         return resource;
     }
 };

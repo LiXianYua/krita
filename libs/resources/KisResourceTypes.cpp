@@ -4,82 +4,77 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 #include "KisResourceTypes.h"
-#include <QCoreApplication>
-#include <QMap>
-#include <QDebug>
-
-#include <ResourceDebug.h>
+#include <PkGlobal.h>
 
 namespace ResourceType {
-    const QString PaintOpPresets {QStringLiteral("paintoppresets")};
-    const QString Brushes {QStringLiteral("brushes")};
-    const QString Gradients {QStringLiteral("gradients")};
-    const QString Palettes {QStringLiteral("palettes")};
-    const QString Patterns {QStringLiteral("patterns")};
-    const QString Workspaces {QStringLiteral("workspaces")};
-    const QString Symbols {QStringLiteral("symbols")};
-    const QString WindowLayouts {QStringLiteral("windowlayouts")};
-    const QString Sessions {QStringLiteral("sessions")};
-    const QString GamutMasks {QStringLiteral("gamutmasks")};
-    const QString SeExprScripts {QStringLiteral("seexpr_scripts")};
-    const QString TaskSets {QStringLiteral("tasksets")};
-    const QString LayerStyles {QStringLiteral("layerstyles")};
-    const QString FontFamilies {QStringLiteral("fontfamilies")};
-    const QString CssStyles {QStringLiteral("css_styles")};
+    const PkString PaintOpPresets {"paintoppresets"};
+    const PkString Brushes {"brushes"};
+    const PkString Gradients {"gradients"};
+    const PkString Palettes {"palettes"};
+    const PkString Patterns {"patterns"};
+    const PkString Workspaces {"workspaces"};
+    const PkString Symbols {"symbols"};
+    const PkString WindowLayouts {"windowlayouts"};
+    const PkString Sessions {"sessions"};
+    const PkString GamutMasks {"gamutmasks"};
+    const PkString SeExprScripts {"seexpr_scripts"};
+    const PkString TaskSets {"tasksets"};
+    const PkString LayerStyles {"layerstyles"};
+    const PkString FontFamilies {"fontfamilies"};
+    const PkString CssStyles {"css_styles"};
 }
 
 namespace ResourceSubType {
-    const QString AbrBrushes {QStringLiteral("abr_brushes")};
-    const QString GbrBrushes {QStringLiteral("gbr_brushes")};
-    const QString GihBrushes {QStringLiteral("gih_brushes")};
-    const QString SvgBrushes {QStringLiteral("svg_brushes")};
-    const QString PngBrushes {QStringLiteral("png_brushes")};
-    const QString SegmentedGradients {QStringLiteral("segmented_gradients")};
-    const QString StopGradients {QStringLiteral("stop_gradients")};
-    const QString KritaPaintOpPresets {QStringLiteral("krita_paintop_presets")};
-    const QString MyPaintPaintOpPresets {QStringLiteral("mypaint_paintop_presets")};
+    const PkString AbrBrushes {"abr_brushes"};
+    const PkString GbrBrushes {"gbr_brushes"};
+    const PkString GihBrushes {"gih_brushes"};
+    const PkString SvgBrushes {"svg_brushes"};
+    const PkString PngBrushes {"png_brushes"};
+    const PkString SegmentedGradients {"segmented_gradients"};
+    const PkString StopGradients {"stop_gradients"};
+    const PkString KritaPaintOpPresets {"krita_paintop_presets"};
+    const PkString MyPaintPaintOpPresets {"mypaint_paintop_presets"};
 }
 
 namespace ResourceName {
-    const KLocalizedString PaintOpPresets = ki18nc("resource type", "Brush Presets");
-    const KLocalizedString Brushes = ki18nc("resource type", "Brush Tips");
-    const KLocalizedString Gradients = ki18nc("resource type", "Gradients");
-    const KLocalizedString Palettes = ki18nc("resource type", "Palettes");
-    const KLocalizedString Patterns = ki18nc("resource type", "Patterns");
-    const KLocalizedString Workspaces = ki18nc("resource type", "Workspaces");
-    const KLocalizedString Symbols = ki18nc("resource type", "Symbol Libraries");
-    const KLocalizedString WindowLayouts = ki18nc("resource type", "Window Layouts");
-    const KLocalizedString Sessions = ki18nc("resource type", "Sessions");
-    const KLocalizedString GamutMasks = ki18nc("resource type", "Gamut Masks");
-    const KLocalizedString SeExprScripts = ki18nc("resource type", "SeExpr Scripts");
-    const KLocalizedString TaskSets = ki18nc("resource type", "Task Sets");
-    const KLocalizedString LayerStyles = ki18nc("resource type", "Layer Styles");
-    const KLocalizedString FontFamilies = ki18nc("resource type", "Font Families");
-    const KLocalizedString CssStyles = ki18nc("resource type", "Style Presets");
+    // i18n 已移交横切项：ki18nc 的上下文参数删除，英文原文保留。
+    const PkString PaintOpPresets {"Brush Presets"};
+    const PkString Brushes {"Brush Tips"};
+    const PkString Gradients {"Gradients"};
+    const PkString Palettes {"Palettes"};
+    const PkString Patterns {"Patterns"};
+    const PkString Workspaces {"Workspaces"};
+    const PkString Symbols {"Symbol Libraries"};
+    const PkString WindowLayouts {"Window Layouts"};
+    const PkString Sessions {"Sessions"};
+    const PkString GamutMasks {"Gamut Masks"};
+    const PkString SeExprScripts {"SeExpr Scripts"};
+    const PkString TaskSets {"Task Sets"};
+    const PkString LayerStyles {"Layer Styles"};
+    const PkString FontFamilies {"Font Families"};
+    const PkString CssStyles {"Style Presets"};
 }
 
-QString ResourceName::resourceTypeToName(const QString &resourceType)
+PkString ResourceName::resourceTypeToName(const PkString &resourceType)
 {
-    static const QMap<QString, QString> typeMap = []() {
-        if (!QCoreApplication::instance()) {
-            warnResource << "QCoreApplication not valid when initializing resourceTypeNameMap in" << __FILE__ << "line" << __LINE__;
-        }
-        QMap<QString, QString> typeMap;
-        typeMap[ResourceType::PaintOpPresets] = ResourceName::PaintOpPresets.toString();
-        typeMap[ResourceType::Brushes] = ResourceName::Brushes.toString();
-        typeMap[ResourceType::Gradients] = ResourceName::Gradients.toString();
-        typeMap[ResourceType::Palettes] = ResourceName::Palettes.toString();
-        typeMap[ResourceType::Patterns] = ResourceName::Patterns.toString();
-        typeMap[ResourceType::Workspaces] = ResourceName::Workspaces.toString();
-        typeMap[ResourceType::Symbols] = ResourceName::Symbols.toString();
-        typeMap[ResourceType::WindowLayouts] = ResourceName::WindowLayouts.toString();
-        typeMap[ResourceType::Sessions] = ResourceName::Sessions.toString();
-        typeMap[ResourceType::GamutMasks] = ResourceName::GamutMasks.toString();
-        typeMap[ResourceType::SeExprScripts] = ResourceName::SeExprScripts.toString();
-        typeMap[ResourceType::TaskSets] = ResourceName::TaskSets.toString();
-        typeMap[ResourceType::LayerStyles] = ResourceName::LayerStyles.toString();
-        typeMap[ResourceType::FontFamilies] = ResourceName::FontFamilies.toString();
-        typeMap[ResourceType::CssStyles] = ResourceName::CssStyles.toString();
+    static const PkMap<PkString, PkString> typeMap = []() {
+        // 全局单例检查删除（无 Qt 单例）。
+        PkMap<PkString, PkString> typeMap;
+        typeMap[ResourceType::PaintOpPresets] = ResourceName::PaintOpPresets;
+        typeMap[ResourceType::Brushes] = ResourceName::Brushes;
+        typeMap[ResourceType::Gradients] = ResourceName::Gradients;
+        typeMap[ResourceType::Palettes] = ResourceName::Palettes;
+        typeMap[ResourceType::Patterns] = ResourceName::Patterns;
+        typeMap[ResourceType::Workspaces] = ResourceName::Workspaces;
+        typeMap[ResourceType::Symbols] = ResourceName::Symbols;
+        typeMap[ResourceType::WindowLayouts] = ResourceName::WindowLayouts;
+        typeMap[ResourceType::Sessions] = ResourceName::Sessions;
+        typeMap[ResourceType::GamutMasks] = ResourceName::GamutMasks;
+        typeMap[ResourceType::SeExprScripts] = ResourceName::SeExprScripts;
+        typeMap[ResourceType::TaskSets] = ResourceName::TaskSets;
+        typeMap[ResourceType::LayerStyles] = ResourceName::LayerStyles;
+        typeMap[ResourceType::FontFamilies] = ResourceName::FontFamilies;
+        typeMap[ResourceType::CssStyles] = ResourceName::CssStyles;
         return typeMap;
     }();
 
