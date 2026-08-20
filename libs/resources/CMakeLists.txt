@@ -1,4 +1,5 @@
 include_directories(${QUAZIP_INCLUDE_DIRS})
+find_package(ICU REQUIRED COMPONENTS uc)
 
 add_subdirectory(tests)
 
@@ -82,6 +83,7 @@ target_link_libraries(kritaresources
         KF${KF_MAJOR}::I18n
         ${QUAZIP_LIBRARIES}
         ${PNG_LIBRARIES}
+        ICU::uc
 )
 
 set_target_properties(kritaresources PROPERTIES

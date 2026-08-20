@@ -6,6 +6,7 @@
 #include <png.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -13,6 +14,8 @@
 #include <vector>
 
 #ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -61,6 +64,11 @@ png_byte expand6(uint32_t value)
 png_byte expand10(uint32_t value)
 {
     return static_cast<png_byte>((value * 255u + 511u) / 1023u);
+}
+
+png_byte normalize16To8(uint32_t value)
+{
+    return static_cast<png_byte>((value * 255u + 32767u) / 65535u);
 }
 
 png_byte unpremultiply(png_byte component, png_byte alpha)
@@ -258,15 +266,15 @@ bool readPixel(const PkImage &image, int x, int y, RgbaPixel &result)
             green = unpremultiplyNative(green, 0xffffu, alpha16, 0xffffu);
             blue = unpremultiplyNative(blue, 0xffffu, alpha16, 0xffffu);
         }
-        result = {static_cast<png_byte>(red >> 8),
-                  static_cast<png_byte>(green >> 8),
-                  static_cast<png_byte>(blue >> 8),
-                  static_cast<png_byte>(alpha16 >> 8)};
+        result = {normalize16To8(red),
+                  normalize16To8(green),
+                  normalize16To8(blue),
+                  normalize16To8(alpha16)};
         return true;
     }
     case PkImage::Format_Grayscale16: {
-        const png_byte gray = static_cast<png_byte>(
-            read16(row + static_cast<std::size_t>(x) * 2u) >> 8);
+        const png_byte gray = normalize16To8(
+            read16(row + static_cast<std::size_t>(x) * 2u));
         result = {gray, gray, gray, 0xff};
         return true;
     }
@@ -313,19 +321,43 @@ bool createTemporaryFile(const fs::path &target, fs::path &temporary, FILE *&fil
 {
     const fs::path directory = target.has_parent_path() ? target.parent_path() : fs::path(".");
 #ifdef _WIN32
-    wchar_t name[MAX_PATH + 1] = {};
-    if (::GetTempFileNameW(directory.c_str(), L"krt", 0, name) == 0) {
-        return false;
+    static std::atomic<unsigned long long> sequence{0};
+    for (int attempt = 0; attempt < 128; ++attempt) {
+        const std::wstring name = L"." + target.filename().wstring() + L".tmp." +
+            std::to_wstring(::GetCurrentProcessId()) + L"." +
+            std::to_wstring(sequence.fetch_add(1, std::memory_order_relaxed));
+        temporary = directory / name;
+        const HANDLE handle = ::CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr,
+                                             CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY, nullptr);
+        if (handle == INVALID_HANDLE_VALUE) {
+            if (::GetLastError() == ERROR_FILE_EXISTS ||
+                ::GetLastError() == ERROR_ALREADY_EXISTS) {
+                continue;
+            }
+            temporary.clear();
+            return false;
+        }
+        const int descriptor = ::_open_osfhandle(reinterpret_cast<intptr_t>(handle),
+                                                  _O_BINARY | _O_WRONLY);
+        if (descriptor < 0) {
+            ::CloseHandle(handle);
+            std::error_code ec;
+            fs::remove(temporary, ec);
+            temporary.clear();
+            return false;
+        }
+        file = ::_fdopen(descriptor, "wb");
+        if (!file) {
+            ::_close(descriptor);
+            std::error_code ec;
+            fs::remove(temporary, ec);
+            temporary.clear();
+            return false;
+        }
+        return true;
     }
-    temporary = fs::path(name);
-    file = ::_wfopen(temporary.c_str(), L"wb");
-    if (!file) {
-        std::error_code ec;
-        fs::remove(temporary, ec);
-        temporary.clear();
-        return false;
-    }
-    return true;
+    temporary.clear();
+    return false;
 #else
     std::string pattern = (directory / ("." + target.filename().string() + ".tmp.XXXXXX")).string();
     std::vector<char> writablePattern(pattern.begin(), pattern.end());
@@ -347,13 +379,29 @@ bool createTemporaryFile(const fs::path &target, fs::path &temporary, FILE *&fil
 #endif
 }
 
-bool replaceAtomically(const fs::path &temporary, const fs::path &target)
+bool flushFile(FILE *file)
+{
+    if (std::fflush(file) != 0) {
+        return false;
+    }
+#ifdef _WIN32
+    const intptr_t nativeHandle = ::_get_osfhandle(::_fileno(file));
+    return nativeHandle != -1 &&
+        ::FlushFileBuffers(reinterpret_cast<HANDLE>(nativeHandle)) != 0;
+#else
+    return ::fsync(::fileno(file)) == 0;
+#endif
+}
+
+bool publishIfAbsent(const fs::path &temporary, const fs::path &target)
 {
 #ifdef _WIN32
-    return ::MoveFileExW(temporary.c_str(), target.c_str(),
-                         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+    return ::MoveFileExW(temporary.c_str(), target.c_str(), MOVEFILE_WRITE_THROUGH) != 0;
 #else
-    return std::rename(temporary.c_str(), target.c_str()) == 0;
+    if (::link(temporary.c_str(), target.c_str()) != 0) {
+        return false;
+    }
+    return ::unlink(temporary.c_str()) == 0;
 #endif
 }
 
@@ -426,8 +474,9 @@ bool savePng(const PkString &path, const PkImage &image)
     pngImage.format = PNG_FORMAT_RGBA;
     const bool wrote = png_image_write_to_stdio(&pngImage, file, 0, pixels.data(), 0, nullptr) != 0;
     png_image_free(&pngImage);
+    const bool flushed = wrote && flushFile(file);
     const bool closed = std::fclose(file) == 0;
-    if (!wrote || !closed || !replaceAtomically(temporary, target)) {
+    if (!wrote || !flushed || !closed || !publishIfAbsent(temporary, target)) {
         std::error_code ec;
         fs::remove(temporary, ec);
         return false;

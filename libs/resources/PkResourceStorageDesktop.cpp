@@ -5,16 +5,23 @@
 
 #include <PkString.h>
 
+#include <unicode/ustring.h>
+#include <unicode/stringoptions.h>
+#include <unicode/utf16.h>
+
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
+#include <limits>
 #include <system_error>
 #include <type_traits>
 #include <variant>
+#include <vector>
 #ifdef _WIN32
 #include <windows.h>
 #else
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #endif
 
@@ -24,7 +31,7 @@ namespace fs = std::filesystem;
 
 PkString fromPath(const fs::path &path)
 {
-    const std::string text = path.string();
+    const std::string text = path.u8string();
     return PkString::PkFromUtf8(text.c_str(), static_cast<int>(text.size()));
 }
 
@@ -76,42 +83,107 @@ bool isReadable(const fs::path &path)
     }
     ::CloseHandle(handle);
     return true;
-#elif defined(AT_EACCESS)
-    return ::faccessat(AT_FDCWD, path.c_str(), R_OK, AT_EACCESS) == 0;
 #else
-    return ::access(path.c_str(), R_OK) == 0;
+    int flags = O_RDONLY;
+#ifdef O_CLOEXEC
+    flags |= O_CLOEXEC;
+#endif
+    const int descriptor = ::open(path.c_str(), flags);
+    if (descriptor < 0) {
+        return false;
+    }
+    struct stat status {};
+    const bool statusOk = ::fstat(descriptor, &status) == 0;
+    ::close(descriptor);
+    if (!statusOk) {
+        return false;
+    }
+    if (!S_ISDIR(status.st_mode)) {
+        return true;
+    }
+
+    // Opening "directory/." is a real read + traversal probe performed with
+    // the process's effective credentials. Unlike access(), it never switches
+    // to the real uid/gid, and it does not create or modify filesystem state.
+    const int traversal = ::open((path / ".").c_str(), flags);
+    if (traversal < 0) {
+        return false;
+    }
+    ::close(traversal);
+    return true;
 #endif
 }
 
-unsigned char foldAscii(unsigned char value)
+bool caseFold(const PkString &value, std::vector<UChar32> &result)
 {
-    return value >= 'A' && value <= 'Z'
-        ? static_cast<unsigned char>(value + ('a' - 'A')) : value;
+    const std::u16string utf16 = value.PkToU16();
+    std::vector<UChar> source;
+    source.reserve(utf16.size());
+    for (char16_t unit : utf16) {
+        source.push_back(static_cast<UChar>(unit));
+    }
+
+    UErrorCode error = U_ZERO_ERROR;
+    const int32_t required = u_strFoldCase(nullptr, 0, source.data(),
+                                           static_cast<int32_t>(source.size()),
+                                           U_FOLD_CASE_DEFAULT, &error);
+    if (error != U_BUFFER_OVERFLOW_ERROR && U_FAILURE(error)) {
+        return false;
+    }
+    error = U_ZERO_ERROR;
+    std::vector<UChar> folded(static_cast<std::size_t>(required) + 1u);
+    const int32_t length = u_strFoldCase(folded.data(), required + 1,
+                                         source.data(), static_cast<int32_t>(source.size()),
+                                         U_FOLD_CASE_DEFAULT, &error);
+    if (U_FAILURE(error)) {
+        return false;
+    }
+
+    result.clear();
+    for (int32_t offset = 0; offset < length;) {
+        UChar32 character = 0;
+        U16_NEXT(folded.data(), offset, length, character);
+        if (character < 0) {
+            result.clear();
+            return false;
+        }
+        result.push_back(character);
+    }
+    return true;
 }
 
-bool globMatches(const char *pattern, const char *text)
+bool globMatches(const PkString &patternValue, const PkString &textValue)
 {
-    const char *star = nullptr;
-    const char *retry = nullptr;
-    while (*text) {
-        if (*pattern == '?' || foldAscii(static_cast<unsigned char>(*pattern)) ==
-                                  foldAscii(static_cast<unsigned char>(*text))) {
-            ++pattern;
-            ++text;
-        } else if (*pattern == '*') {
-            star = pattern++;
-            retry = text;
-        } else if (star) {
-            pattern = star + 1;
-            text = ++retry;
+    std::vector<UChar32> pattern;
+    std::vector<UChar32> text;
+    if (!caseFold(patternValue, pattern) || !caseFold(textValue, text)) {
+        return false;
+    }
+
+    constexpr std::size_t noStar = std::numeric_limits<std::size_t>::max();
+    std::size_t patternOffset = 0;
+    std::size_t textOffset = 0;
+    std::size_t star = noStar;
+    std::size_t retry = 0;
+    while (textOffset < text.size()) {
+        if (patternOffset < pattern.size() &&
+            (pattern[patternOffset] == '?' || pattern[patternOffset] == text[textOffset])) {
+            ++patternOffset;
+            ++textOffset;
+        } else if (patternOffset < pattern.size() && pattern[patternOffset] == '*') {
+            star = patternOffset++;
+            retry = textOffset;
+        } else if (star != noStar) {
+            patternOffset = star + 1;
+            textOffset = ++retry;
         } else {
             return false;
         }
     }
-    while (*pattern == '*') {
-        ++pattern;
+    while (patternOffset < pattern.size() && pattern[patternOffset] == '*') {
+        ++patternOffset;
     }
-    return *pattern == '\0';
+    return patternOffset == pattern.size();
 }
 
 class DesktopEntryIterator final : public PkResourceStorage::EntryIterator
@@ -198,9 +270,9 @@ private:
         if (m_filters.empty()) {
             return true;
         }
-        const std::string name = entry.path().filename().string();
+        const PkString name = fromPath(entry.path().filename());
         for (const PkString &filter : m_filters) {
-            if (globMatches(filter.PkToUtf8().c_str(), name.c_str())) {
+            if (globMatches(filter, name)) {
                 return true;
             }
         }
