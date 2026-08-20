@@ -1,13 +1,18 @@
 # pk/time —— QDateTime / QElapsedTimer 的零 Qt 替代品
 
-`pk/time` 是 R-16 的交付：`PkElapsedTimer`（单调计时，`std::chrono::steady_clock`
-支撑）+ `PkDateTime`（墙钟时间的核心值语义与字符串转换，`std::chrono::system_clock`
-支撑）。独立薄壳工程，C++17，不接主构建，不 `find_package(Qt...)`。
+`pk/time` 是 R-16 交付 + R-29 归位的组合：`PkElapsedTimer`（单调计时，
+`std::chrono::steady_clock` 支撑）+ `PkDateTime`（墙钟时间核心值语义、字符串转换与
+calendar 运算，内部为 `PkDate` + `PkTime` 模型）+ `PkDate`/`PkTime`（calendar 版，
+对齐 Qt QDate/QTime）。独立薄壳工程，C++17，不接主构建，不 `find_package(Qt...)`。
 
 R-16 拆成 5 个 Task：Task 1 `PkElapsedTimer`（commit `9de59a1`）、Task 2
 `PkDateTime` 核心值语义（`1778c32`）、Task 3 字符串转换 + `DateParser` driver
 （`48f9b70`）、Task 4 compat 垫片 + oracle 对拍（`1e0e4e5`，修复轮 1 `ad3ab2e`）、
-本 Task 5 试接 + 本文档 + 收口验证。
+Task 5 试接 + 本文档 + 收口验证。**R-29（2026-08-19）**把 `PkDateTime` 从 epoch 版
+（内部 `std::chrono::system_clock::time_point`）改为 **calendar 版**（内部 `PkDate` +
+`PkTime`，对齐 Qt QDateTime 的 date+time 模型），并新增 `PkDate`/`PkTime` 两个独立类
+（原 variant 占位类删除，时间类型统一归位 pk/time）。epoch 换算 API 全部保留（经内部
+`toTimePoint()`/`fromTimePoint()` 走 `mktime`/`localtime_r`，LocalTime 语义不变）。
 
 ## 1. API 清单
 
@@ -55,15 +60,72 @@ R-16 拆成 5 个 Task：Task 1 `PkElapsedTimer`（commit `9de59a1`）、Task 2
 | `toSecsSinceEpoch()` | `QDateTime::toSecsSinceEpoch()` | 3 |
 | `operator==`/`operator!=` | 同名 | 1 |
 | 默认构造 | `QDateTime dt;` | 多处（`KisResourceStorage`/`KisMemoryStorage` 等结构体成员） |
+| `date()` | `QDateTime::date()` | 0（R-29 新增，对齐 Qt calendar） |
+| `time()` | `QDateTime::time()` | 0（R-29 新增） |
+| `addDays(qint64)` | `QDateTime::addDays(qint64)` | 0（R-29 新增） |
+| `addMonths(int)` | `QDateTime::addMonths(int)` | 0（R-29 新增） |
+| `addYears(int)` | `QDateTime::addYears(int)` | 0（R-29 新增） |
+| `addSecs(qint64)` | `QDateTime::addSecs(qint64)` | 0（R-29 新增） |
+| `addMSecs(qint64)` | `QDateTime::addMSecs(qint64)` | 0（R-29 新增） |
+| `daysTo(const PkDateTime&)` | `QDateTime::daysTo(const QDateTime&)` | 0（R-29 新增） |
+| `msecsTo(const PkDateTime&)` | `QDateTime::msecsTo(const QDateTime&)` | 0（R-29 新增） |
+| `operator<` | `QDateTime::operator<` | 0（R-29 新增） |
+| `setDate(const PkDate&)` | `QDateTime::setDate(const QDate&)` | 0（R-29 新增） |
+| `setTime(const PkTime&)` | `QDateTime::setTime(const QTime&)` | 0（R-29 新增） |
+
+### `PkDate`（对应 `QDate`，R-29 新增）
+
+| 方法 | 对应 Qt API | 真实调用点数 |
+|---|---|---:|
+| `PkDate()` | `QDate()` | — |
+| `PkDate(int y, int m, int d)` | `QDate(int, int, int)` | 0（R-29 新增） |
+| `year()`/`month()`/`day()` | `QDate::year()/month()/day()` | 0（无效返回 0，对齐 Qt） |
+| `dayOfWeek()` | `QDate::dayOfWeek()` | 0（1=Mon..7=Sun） |
+| `dayOfYear()` | `QDate::dayOfYear()` | 0 |
+| `daysInMonth()`/`daysInYear()` | `QDate::daysInMonth()/daysInYear()` | 0 |
+| `addDays(qint64)`/`addMonths(int)`/`addYears(int)` | `QDate::addDays/addMonths/addYears` | 0 |
+| `daysTo(const PkDate&)` | `QDate::daysTo` | 0 |
+| `toJulianDay()`/`fromJulianDay(qint64)` | `QDate::toJulianDay/fromJulianDay` | 0（julianDay 模型） |
+| `isValid()`/`isNull()` | `QDate::isValid()/isNull()` | 0 |
+| `operator==`/`!=`/`<`/`<=`/`>`/`>=` | 同名 | 0 |
+| `isLeapYear(int)` | `QDate::isLeapYear(int)` | 0 |
+| `currentDate()` | `QDate::currentDate()` | 0 |
+
+### `PkTime`（对应 `QTime`，R-29 新增）
+
+| 方法 | 对应 Qt API | 真实调用点数 |
+|---|---|---:|
+| `PkTime()` | `QTime()` | — |
+| `PkTime(int h, int m, int s = 0, int ms = 0)` | `QTime(int, int, int, int)` | 0 |
+| `hour()`/`minute()`/`second()`/`msec()` | `QTime::hour/minute/second/msec` | 0（无效返回 -1，对齐 Qt） |
+| `isValid()`/`isNull()` | `QTime::isValid()/isNull()` | 0 |
+| `setHMS(int, int, int, int)` | `QTime::setHMS` | 0 |
+| `addSecs(int)`/`addMSecs(int)` | `QTime::addSecs/addMSecs` | 0（跨午夜回绕） |
+| `secsTo(const PkTime&)`/`msecsTo(const PkTime&)` | `QTime::secsTo/msecsTo` | 0（无效返回 0） |
+| `fromMSecsSinceStartOfDay(int)`/`msecsSinceStartOfDay()` | `QTime::fromMSecsSinceStartOfDay/msecsSinceStartOfDay` | 0 |
+| `currentTime()` | `QTime::currentTime()` | 0 |
+| `operator==`/`!=`/`<`/`<=`/`>`/`>=` | 同名 | 0 |
 
 `DateFormat` 枚举（`ISODate`/`RFC2822Date`/`ISODateWithMs`）对应真实调用点里
-`Qt::ISODate`/`Qt::RFC2822Date`/`Qt::ISODateWithMs` 三个值——`compat/QDateTime`
-把 `Qt::` 这三个限定名直接映射到枚举值，调用点一个字不改。
+`Qt::ISODate`/`Qt::RFC2822Date`/`Qt::ISODateWithMs` 三个值——`PkDateTime.h` 底部
+`namespace Qt` 块直接提供这三个 constexpr 别名值，调用点 `toString(Qt::ISODate)`
+一字不改。`compat/QDateTime` 只留 `#define QDateTime PkDateTime`（别名值已由
+PkDateTime.h 提供）。
 
 **不做**（保留范围内零调用点，Qt 头文件通读 + 逐处核实后确认没有余项）：
-`date()`/`time()`/`daysTo()`/`msecsTo()`/`addSecs()`/`addDays()`/`addMonths()`/
 `setTimeSpec()`/`timeZone()`/`toTimeZone()`/`toOffsetFromUtc()`/`toUTC()`/
-`toLocalTime()`/`operator<`/`fromString(..., QCalendar)`/`setDate()`/`setTime()`。
+`toLocalTime()`/`fromString(..., QCalendar)`/`QDateTime::toTimeSpec`、
+`QDate::toString` 系列、`QTime::toString` 系列、`QDate::startOfDay/endOfDay`。
+
+**R-29 登记偏离**（探针证实，安全方向）：
+- `QDateTime()` 无效实例的 `addDays/addMonths/addYears` 在 Qt 会「愈合」到 julianDay=0
+  （date -4714-11-24）；`PkDateTime` 返回无效实例（更安全，真实调用点不会对无效实例调
+  `add*`）。
+- `toMSecsSinceEpoch()` 对负 epoch 亚秒输入（如 -1999ms）会丢失亚秒精度（返回 -999 而非
+  -1999）——calendar 模型（存正 msec 余数 + 整秒重建）的本质限制，真实调用点不做负亚秒
+  epoch，`toSecsSinceEpoch`/`secsTo` 不受影响。
+- `operator<` 对混合有效/无效实例违反严格弱序（无效既非 `<` 也非 `>` 有效，但 `==` 说它们
+  不等）；kernel 用途是纯有效比较，`std::set/map` 不会混合有效/无效。
 
 **用量表口径**：`grep -l`（文件）+ `grep -n`（行）现场数，排除 `tests/`/
 `benchmarks/`；`QMetaType::QDateTime`（`kis_meta_data_type_info.cc`、
