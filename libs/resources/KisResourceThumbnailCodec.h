@@ -11,6 +11,7 @@ namespace KisResourceThumbnailCodec
 {
 
 PkImage loadPng(const PkString &path);
+PkImage decodePng(const PkByteArray &data);
 PkByteArray encodePng(const PkImage &image);
 bool savePng(const PkString &path, const PkImage &image);
 

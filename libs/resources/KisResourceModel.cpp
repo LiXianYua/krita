@@ -1,58 +1,76 @@
 /*
  * SPDX-FileCopyrightText: 2018 Boudewijn Rempt <boud@valdyas.org>
- *
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
 #include "KisResourceModel.h"
 
-#include <QBuffer>
-#include <QSqlError>
-#include <QSqlQuery>
+#include <PkSqlQuery.h>
 
-#include <KisResourceLocator.h>
-#include <KisResourceCacheDb.h>
-
-#include <KisResourceModelProvider.h>
-#include <KisStorageModel.h>
-#include <KisTagModel.h>
-#include <KisResourceTypes.h>
-#include <kis_debug.h>
-#include <KisGlobalResourcesInterface.h>
-
+#include "KisResourceCacheDb.h"
+#include "KisResourceLocator.h"
+#include "KisResourceModelProvider.h"
 #include "KisResourceQueryMapper.h"
+#include "KisStorageModel.h"
 
-struct KisAllResourcesModel::Private {
-    QSqlQuery resourcesQuery;
-    QString resourceType;
-    int columnCount {StorageActive};
-    int cachedRowCount {-1};
-    int externalResourcesRemovedCount {0};
+struct KisAllResourcesModel::Private
+{
+    PkString resourceType;
+    PkVector<KisResourceRecord> records;
+    bool closed = false;
 };
 
-KisAllResourcesModel::KisAllResourcesModel(const QString &resourceType, QObject *parent)
-    : QAbstractTableModel(parent)
+KisAllResourcesModel::KisAllResourcesModel(const PkString &resourceType,
+                                           PkObject *parent)
+    : PkObject(parent)
     , d(new Private)
 {
-
-    /// we don't handle KisResourceLocator::storage{Added,Removed} signals
-    /// here, we use per-resource notifications from KisResourceLocator instead
-
-    connect(KisStorageModel::instance(), &KisStorageModel::storageEnabled, this, &KisAllResourcesModel::storageActiveStateChanged);
-    connect(KisStorageModel::instance(), &KisStorageModel::storageDisabled, this, &KisAllResourcesModel::storageActiveStateChanged);
-    connect(KisStorageModel::instance(), &KisStorageModel::storageResynchronized, this, &KisAllResourcesModel::storageResynchronized);
-    connect(KisStorageModel::instance(), &KisStorageModel::storagesBulkSynchronizationFinished, this, &KisAllResourcesModel::storagesBulkSynchronizationFinished);
-
-    connect(KisResourceLocator::instance(), &KisResourceLocator::beginExternalResourceImport, this, &KisAllResourcesModel::beginExternalResourceImport);
-    connect(KisResourceLocator::instance(), &KisResourceLocator::endExternalResourceImport, this, &KisAllResourcesModel::endExternalResourceImport);
-    connect(KisResourceLocator::instance(), &KisResourceLocator::beginExternalResourceRemove, this, &KisAllResourcesModel::beginExternalResourceRemove);
-    connect(KisResourceLocator::instance(), &KisResourceLocator::endExternalResourceRemove, this, &KisAllResourcesModel::endExternalResourceRemove);
-    connect(KisResourceLocator::instance(), &KisResourceLocator::resourceActiveStateChanged, this, &KisAllResourcesModel::slotResourceActiveStateChanged);
-
     d->resourceType = resourceType;
 
-    prepareQuery();
-    resetQuery();
+    KisStorageModel *storageModel = KisStorageModel::instance();
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    if (storageModel) {
+        PkObject::connect(storageModel,
+                          &KisStorageModel::storageEnabled,
+                          this,
+                          &KisAllResourcesModel::storageActiveStateChanged);
+        PkObject::connect(storageModel,
+                          &KisStorageModel::storageDisabled,
+                          this,
+                          &KisAllResourcesModel::storageActiveStateChanged);
+        PkObject::connect(storageModel,
+                          &KisStorageModel::storageResynchronized,
+                          this,
+                          &KisAllResourcesModel::storageResynchronized);
+        PkObject::connect(storageModel,
+                          &KisStorageModel::storagesBulkSynchronizationFinished,
+                          this,
+                          &KisAllResourcesModel::storagesBulkSynchronizationFinished);
+    }
+    if (locator) {
+        PkObject::connect(locator,
+                          &KisResourceLocator::beginExternalResourceImport,
+                          this,
+                          &KisAllResourcesModel::beginExternalResourceImport);
+        PkObject::connect(locator,
+                          &KisResourceLocator::endExternalResourceImport,
+                          this,
+                          &KisAllResourcesModel::endExternalResourceImport);
+        PkObject::connect(locator,
+                          &KisResourceLocator::beginExternalResourceRemove,
+                          this,
+                          &KisAllResourcesModel::beginExternalResourceRemove);
+        PkObject::connect(locator,
+                          &KisResourceLocator::endExternalResourceRemove,
+                          this,
+                          &KisAllResourcesModel::endExternalResourceRemove);
+        PkObject::connect(locator,
+                          &KisResourceLocator::resourceActiveStateChanged,
+                          this,
+                          &KisAllResourcesModel::slotResourceActiveStateChanged);
+    }
+
+    refresh();
 }
 
 KisAllResourcesModel::~KisAllResourcesModel()
@@ -60,755 +78,441 @@ KisAllResourcesModel::~KisAllResourcesModel()
     delete d;
 }
 
-int KisAllResourcesModel::columnCount(const QModelIndex &parent) const
+PkVector<KisResourceRecord> KisAllResourcesModel::records() const
 {
-    if (parent.isValid()) {
-        return 0;
-    }
-
-    return d->columnCount;
+    return d->records;
 }
 
-QVariant KisAllResourcesModel::data(const QModelIndex &index, int role) const
+PkVector<KoResourceSP> KisAllResourcesModel::resources() const
 {
-
-    QVariant v;
-    if (!index.isValid()) return v;
-
-    if (index.row() > rowCount()) return v;
-    if (index.column() > d->columnCount) return v;
-
-    bool pos = const_cast<KisAllResourcesModel*>(this)->d->resourcesQuery.seek(index.row());
-
-    if (pos) {
-        v = KisResourceQueryMapper::variantFromResourceQuery(d->resourcesQuery, index.column(), role, false);
-    }
-
-    return v;
-}
-
-QVariant KisAllResourcesModel::headerData(int section, Qt::Orientation orientation, int role) const
-{
-    if (role != Qt::DisplayRole) {
-        return {};
-    }
-    if (orientation == Qt::Horizontal) {
-        switch (section) {
-        case Id:
-            return i18n("Id");
-        case StorageId:
-            return i18n("Storage ID");
-        case Name:
-            return i18n("Name");
-        case Filename:
-            return i18n("File Name");
-        case Tooltip:
-            return i18n("Tooltip");
-        case Thumbnail:
-            return i18n("Image");
-        case Status:
-            return i18n("Status");
-        case Location:
-            return i18n("Location");
-        case ResourceType:
-            return i18n("Resource Type");
-        case ResourceActive:
-            return i18n("Active");
-        case StorageActive:
-            return i18n("Storage Active");
-        case MD5:
-            return i18n("md5sum");
-        case Tags:
-            return i18n("Tags");
-        case LargeThumbnail:
-            return i18n("Large Thumbnail");
-        case Dirty:
-            return i18n("Dirty");
-        case MetaData:
-            return i18n("Metadata");
-        case BrokenStatus:
-            return i18n("Broken Status");
-        case BrokenStatusMessage:
-            return i18n("Broken Status Message");
-        default:
-            return QString::number(section);
+    PkVector<KoResourceSP> result;
+    for (const KisResourceRecord &record : d->records) {
+        KoResourceSP resource = resourceForId(record.id);
+        if (resource) {
+            result.append(resource);
         }
     }
-    return {};
-}
-
-bool KisAllResourcesModel::setData(const QModelIndex &index, const QVariant &value, int role)
-{
-    if (index.isValid() && role == Qt::CheckStateRole &&
-            value.canConvert<bool>()) {
-
-        return setResourceActive(index, value.toBool());
-    }
-
-    return true;
-}
-
-Qt::ItemFlags KisAllResourcesModel::flags(const QModelIndex &index) const
-{
-    if (!index.isValid()) {
-        return Qt::NoItemFlags;
-    }
-    return QAbstractTableModel::flags(index) | Qt::ItemIsEditable | Qt::ItemNeverHasChildren;
-}
-
-QHash<int, QByteArray> KisAllResourcesModel::roleNames() const
-{
-    QHash<int, QByteArray> roles = QAbstractItemModel::roleNames();
-    roles[Qt::UserRole + Id] = "id";
-    roles[Qt::UserRole + StorageId] = "storageId";
-    roles[Qt::UserRole + Name] = "name";
-    roles[Qt::UserRole + Filename] = "filename";
-    //roles[Qt::UserRole + Tooltip] = "tooltip";
-    roles[Qt::UserRole + Thumbnail] = "thumbnail";
-    roles[Qt::UserRole + Status] = "status";
-    roles[Qt::UserRole + Location] = "location";
-    roles[Qt::UserRole + ResourceType] = "resourcetype";
-    roles[Qt::UserRole + MD5] = "md5";
-    roles[Qt::UserRole + Tags] = "tags";
-    roles[Qt::UserRole + LargeThumbnail] = "largethumbnail";
-    roles[Qt::UserRole + Dirty] = "dirty";
-    roles[Qt::UserRole + MetaData] = "metadata";
-    roles[Qt::UserRole + ResourceActive] = "resourceactive";
-    roles[Qt::UserRole + StorageActive] = "storageactive";
-    roles[Qt::UserRole + BrokenStatus] = "brokenstatus";
-    roles[Qt::UserRole + BrokenStatusMessage] = "brokenstatusmessage";
-
-    return roles;
-}
-
-KoResourceSP KisAllResourcesModel::resourceForIndex(QModelIndex index) const
-{
-    KoResourceSP resource = 0;
-
-    if (!index.isValid()) return resource;
-    if (index.row() > rowCount()) return resource;
-    if (index.column() > d->columnCount) return resource;
-
-    bool pos = const_cast<KisAllResourcesModel*>(this)->d->resourcesQuery.seek(index.row());
-    if (pos) {
-        int id = d->resourcesQuery.value("id").toInt();
-        resource = resourceForId(id);
-    }
-    return resource;
+    return result;
 }
 
 KoResourceSP KisAllResourcesModel::resourceForId(int id) const
 {
-    return KisResourceLocator::instance()->resourceForId(id);
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    return locator && id >= 0 ? locator->resourceForId(id) : KoResourceSP();
 }
 
-bool KisAllResourcesModel::resourceExists(const QString &md5, const QString &filename, const QString &name)
+bool KisAllResourcesModel::resourceExists(const PkString &md5,
+                                          const PkString &filename,
+                                          const PkString &name) const
 {
-    QSqlQuery q;
+    struct Candidate {
+        const PkString *value;
+        const char *column;
+        const char *placeholder;
+    };
+    const Candidate candidates[] = {
+        {&md5, "resources.md5sum", ":value"},
+        {&filename, "resources.filename", ":value"},
+        {&name, "resources.name", ":value"},
+    };
 
-    // md5
-
-    if (!md5.isEmpty()) {
-
-        bool r = q.prepare("SELECT resources.id AS id\n"
-                           "FROM   resources\n"
-                           "WHERE  md5sum = :md5sum");
-        if (!r) {
-            qWarning() << "Could not prepare find resourceExists by md5 query"  << q.lastError();
+    for (const Candidate &candidate : candidates) {
+        if (candidate.value->isEmpty()) {
+            continue;
         }
-
-        q.bindValue(":mdsum", md5);
-
-        r = q.exec();
-
-        if (!r) {
-            qWarning() << "Could not execute resourceExists by md5 query" << q.lastError();
+        const PkString sql =
+            PkString("SELECT resources.id FROM resources ") +
+            PkString("JOIN resource_types ON resource_types.id = resources.resource_type_id ") +
+            PkString("WHERE resource_types.name = :resource_type AND ") +
+            PkString(candidate.column) + PkString(" = ") +
+            PkString(candidate.placeholder) + PkString(" LIMIT 1");
+        PkSqlQuery query;
+        if (!query.prepare(sql)) {
+            continue;
         }
-
-        if (q.first()) {
+        query.bindValue(PkString(":resource_type"), PkVariant(d->resourceType));
+        query.bindValue(PkString(":value"), PkVariant(*candidate.value));
+        if (query.exec() && query.first()) {
             return true;
         }
     }
-
-    // filename
-
-    if (!filename.isEmpty()) {
-
-        bool r = q.prepare("SELECT resources.id AS id\n"
-                      "FROM   resources\n"
-                      "WHERE  filename = :filename");
-        if (!r) {
-            qWarning() << "Could not prepare find resourceExists by filename query"  << q.lastError();
-        }
-
-        q.bindValue(":filename", filename);
-
-        r = q.exec();
-
-        if (!r) {
-            qWarning() << "Could not execute resourceExists by filename query" << q.lastError();
-        }
-
-        if (q.first()) {
-            return true;
-        }
-    }
-
-    // name
-
-    if (!name.isEmpty()) {
-
-        bool r = q.prepare("SELECT resources.id AS id\n"
-                      "FROM   resources\n"
-                      "WHERE  name = :name");
-        if (!r) {
-            qWarning() << "Could not prepare find resourceExists by name query"  << q.lastError();
-        }
-
-        q.bindValue(":name", name);
-
-        r = q.exec();
-        if (!r) {
-            qWarning() << "Could not execute resourceExists by name query" << q.lastError();
-        }
-
-        if (q.first()) {
-            return true;
-        }
-    }
-
-    // failure
-
     return false;
 }
 
-QVector<KoResourceSP> KisAllResourcesModel::resourcesForFilename(QString filename) const
+PkVector<KoResourceSP> KisAllResourcesModel::resourcesForFilename(
+    const PkString &filename) const
 {
-    QVector<KoResourceSP> resources;
-
-    if (filename.isEmpty()) return resources;
-
-    QSqlQuery q;
-    bool r = q.prepare("SELECT resources.id AS id\n"
-                       "FROM   resources\n"
-                       ",      resource_types\n"
-                       "WHERE  resources.resource_type_id = resource_types.id\n"
-                       "AND    resources.filename = :resource_filename\n"
-                       "AND    resource_types.name = :resource_type\n");
-    if (!r) {
-        qWarning() << "Could not prepare KisAllResourcesModel query for resource name" << q.lastError();
-    }
-    q.bindValue(":resource_filename", filename);
-    q.bindValue(":resource_type", d->resourceType);
-
-    r = q.exec();
-    if (!r) {
-        qWarning() << "Could not select" << d->resourceType << "resources by filename" << q.lastError() << q.boundValues();
+    PkVector<KoResourceSP> result;
+    if (filename.isEmpty()) {
+        return result;
     }
 
-    while (q.next()) {
-        int id = q.value("id").toInt();
-        KoResourceSP resource = KisResourceLocator::instance()->resourceForId(id);
+    PkSqlQuery query;
+    if (!query.prepare(PkString(
+            "SELECT resources.id FROM resources "
+            "JOIN resource_types ON resources.resource_type_id = resource_types.id "
+            "WHERE resources.filename = :value AND resource_types.name = :resource_type "
+            "ORDER BY resources.id"))) {
+        return result;
+    }
+    query.bindValue(PkString(":value"), PkVariant(filename));
+    query.bindValue(PkString(":resource_type"), PkVariant(d->resourceType));
+    if (!query.exec()) {
+        return result;
+    }
+    while (query.next()) {
+        KoResourceSP resource = resourceForId(query.value(0).toInt());
         if (resource) {
-            resources << resource;
+            result.append(resource);
         }
-
     }
-
-    return resources;
+    return result;
 }
 
-QVector<KoResourceSP> KisAllResourcesModel::resourcesForName(const QString &name) const
+PkVector<KoResourceSP> KisAllResourcesModel::resourcesForName(
+    const PkString &name) const
 {
-    QVector<KoResourceSP> resources;
-
-    if (name.isEmpty()) return resources;
-
-    KoResourceSP resource = 0;
-
-    QSqlQuery q;
-    bool r = q.prepare("SELECT resources.id AS id\n"
-                       "FROM   resources\n"
-                       ",      resource_types\n"
-                       "WHERE  resources.resource_type_id = resource_types.id\n"
-                       "AND    resources.name = :resource_name\n"
-                       "AND    resource_types.name = :resource_type\n");
-    if (!r) {
-        qWarning() << "Could not prepare KisAllResourcesModel query for resource name" << q.lastError();
+    PkVector<KoResourceSP> result;
+    if (name.isEmpty()) {
+        return result;
     }
 
-    q.bindValue(":resource_type", d->resourceType);
-    q.bindValue(":resource_name", name);
-
-    r = q.exec();
-    if (!r) {
-        qWarning() << "Could not select" << d->resourceType << "resources by name" << q.lastError() << q.boundValues();
+    PkSqlQuery query;
+    if (!query.prepare(PkString(
+            "SELECT resources.id FROM resources "
+            "JOIN resource_types ON resources.resource_type_id = resource_types.id "
+            "WHERE resources.name = :value AND resource_types.name = :resource_type "
+            "ORDER BY resources.id"))) {
+        return result;
     }
-
-    while (q.next()) {
-        int id = q.value("id").toInt();
-        resource = KisResourceLocator::instance()->resourceForId(id);
+    query.bindValue(PkString(":value"), PkVariant(name));
+    query.bindValue(PkString(":resource_type"), PkVariant(d->resourceType));
+    if (!query.exec()) {
+        return result;
+    }
+    while (query.next()) {
+        KoResourceSP resource = resourceForId(query.value(0).toInt());
         if (resource) {
-            resources << resource;
+            result.append(resource);
         }
     }
-
-    return resources;
+    return result;
 }
 
-
-QVector<KoResourceSP> KisAllResourcesModel::resourcesForMD5(const QString &md5sum) const
+PkVector<KoResourceSP> KisAllResourcesModel::resourcesForMD5(
+    const PkString &md5sum) const
 {
-    QVector<KoResourceSP> resources;
-
-    if (md5sum.isEmpty()) return resources;
-
-    KoResourceSP resource = 0;
-
-    QSqlQuery q;
-    bool r = q.prepare("SELECT resource_id AS id\n"
-                       "FROM   versioned_resources\n"
-                       "WHERE  md5sum = :md5sum");
-    if (!r) {
-        qWarning() << "Could not prepare KisAllResourcesModel query for resource md5" << q.lastError();
-    }
-    q.bindValue(":md5sum", md5sum);
-
-    r = q.exec();
-    if (!r) {
-        qWarning() << "Could not select" << d->resourceType << "resources by md5" << q.lastError() << q.boundValues();
+    PkVector<KoResourceSP> result;
+    if (md5sum.isEmpty()) {
+        return result;
     }
 
-    while (q.next()) {
-        int id = q.value("id").toInt();
-        resource = KisResourceLocator::instance()->resourceForId(id);
+    PkSqlQuery query;
+    if (!query.prepare(PkString(
+            "SELECT DISTINCT versioned_resources.resource_id "
+            "FROM versioned_resources "
+            "JOIN resources ON resources.id = versioned_resources.resource_id "
+            "JOIN resource_types ON resource_types.id = resources.resource_type_id "
+            "WHERE versioned_resources.md5sum = :value "
+            "AND resource_types.name = :resource_type "
+            "ORDER BY versioned_resources.resource_id"))) {
+        return result;
+    }
+    query.bindValue(PkString(":value"), PkVariant(md5sum));
+    query.bindValue(PkString(":resource_type"), PkVariant(d->resourceType));
+    if (!query.exec()) {
+        return result;
+    }
+    while (query.next()) {
+        KoResourceSP resource = resourceForId(query.value(0).toInt());
         if (resource) {
-            resources << resource;
+            result.append(resource);
         }
     }
-    return resources;
+    return result;
 }
 
-QModelIndex KisAllResourcesModel::indexForResource(KoResourceSP resource) const
+PkVector<KisTagSP> KisAllResourcesModel::tagsForResource(int resourceId) const
 {
-    if (!resource || !resource->valid() || resource->resourceId() < 0) return QModelIndex();
-
-    // For now a linear seek to find the first resource with the right id
-    return indexForResourceId(resource->resourceId());
-}
-
-QModelIndex KisAllResourcesModel::indexForResourceId(int resourceId) const
-{
-    if (!d->resourcesQuery.first()) {
-        return QModelIndex();
+    PkVector<KisTagSP> result;
+    PkSqlQuery query;
+    if (!query.prepare(PkString(
+            "SELECT tags.url FROM tags "
+            "JOIN resource_tags ON resource_tags.tag_id = tags.id "
+            "JOIN resource_types ON resource_types.id = tags.resource_type_id "
+            "WHERE tags.active = 1 AND resource_tags.active = 1 "
+            "AND resource_tags.resource_id = :resource_id "
+            "AND resource_types.name = :resource_type "
+            "ORDER BY tags.id"))) {
+        return result;
+    }
+    query.bindValue(PkString(":resource_id"), PkVariant(resourceId));
+    query.bindValue(PkString(":resource_type"), PkVariant(d->resourceType));
+    if (!query.exec()) {
+        return result;
     }
 
-    do {
-        if (d->resourcesQuery.value("id").toInt() == resourceId) {
-            return index(d->resourcesQuery.at(), 0);
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    while (locator && query.next()) {
+        KisTagSP tag = locator->tagForUrl(query.value(0).toString(), d->resourceType);
+        if (tag && tag->valid()) {
+            result.append(tag);
         }
-    } while (d->resourcesQuery.next());
-
-    return QModelIndex();
-}
-
-bool KisAllResourcesModel::setResourceActive(const QModelIndex &index, bool value)
-{
-    if (index.row() > rowCount()) return false;
-    if (index.column() > d->columnCount) return false;
-
-    int resourceId = index.data(Qt::UserRole + Id).toInt();
-    if (!KisResourceLocator::instance()->setResourceActive(resourceId, value)) {
-        qWarning() << "Failed to change active state of the resource" << resourceId;
-        return false;
     }
-
-    return true;
+    return result;
 }
-//static int s_i6 {0};
 
-KoResourceSP KisAllResourcesModel::importResourceFile(const QString &filename, const bool allowOverwrite, const QString &storageId)
+bool KisAllResourcesModel::setResourceActive(int resourceId, bool value)
 {
-    KoResourceSP importedResource = KisResourceLocator::instance()->importResourceFromFile(d->resourceType, filename, allowOverwrite, storageId);
-
-    if (!importedResource) {
-        qWarning() << "Failed to import resource" << filename;
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    const bool result = locator && resourceId >= 0 &&
+        locator->setResourceActive(resourceId, value);
+    if (result) {
+        refresh();
     }
-    resetQuery();
-
-    return importedResource;
+    return result;
 }
 
-KoResourceSP KisAllResourcesModel::importResource(const QString &filename, QIODevice *device, const bool allowOverwrite, const QString &storageId)
+KoResourceSP KisAllResourcesModel::importResourceFile(const PkString &filename,
+                                                       bool allowOverwrite,
+                                                       const PkString &storageId)
 {
-    KoResourceSP importedResource = KisResourceLocator::instance()->importResource(d->resourceType, filename, device, allowOverwrite, storageId);
-
-    if (!importedResource) {
-        qWarning() << "Failed to import resource" << filename;
-    }
-    resetQuery();
-
-    return importedResource;
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    KoResourceSP resource = locator
+        ? locator->importResourceFromFile(d->resourceType,
+                                          filename,
+                                          allowOverwrite,
+                                          storageId)
+        : KoResourceSP();
+    refresh();
+    return resource;
 }
 
-bool KisAllResourcesModel::importWillOverwriteResource(const QString &fileName, const QString &storageLocation) const
+KoResourceSP KisAllResourcesModel::importResource(const PkString &filename,
+                                                   PkStream *device,
+                                                   bool allowOverwrite,
+                                                   const PkString &storageId)
 {
-    return KisResourceLocator::instance()->importWillOverwriteResource(d->resourceType, fileName, storageLocation);
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    KoResourceSP resource = locator
+        ? locator->importResource(d->resourceType,
+                                  filename,
+                                  device,
+                                  allowOverwrite,
+                                  storageId)
+        : KoResourceSP();
+    refresh();
+    return resource;
 }
 
-bool KisAllResourcesModel::exportResource(KoResourceSP resource, QIODevice *device)
+bool KisAllResourcesModel::importWillOverwriteResource(
+    const PkString &filename,
+    const PkString &storageLocation) const
 {
-    bool res = KisResourceLocator::instance()->exportResource(resource, device);
-    if (!res) {
-        qWarning() << "Failed to export resource" << resource->signature();
-    }
-    return res;
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    return locator && locator->importWillOverwriteResource(d->resourceType,
+                                                           filename,
+                                                           storageLocation);
 }
 
-bool KisAllResourcesModel::addResource(KoResourceSP resource, const QString &storageId)
+bool KisAllResourcesModel::exportResource(KoResourceSP resource,
+                                          PkStream *device)
+{
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    return locator && locator->exportResource(resource, device);
+}
+
+bool KisAllResourcesModel::addResource(KoResourceSP resource,
+                                       const PkString &storageId)
 {
     if (!resource || !resource->valid()) {
-        qWarning() << "Cannot add resource. Resource is null or not valid";
         return false;
     }
-
-    bool r = true;
-    beginInsertRows(QModelIndex(), rowCount(), rowCount());
-    if (!KisResourceLocator::instance()->addResource(d->resourceType, resource, storageId)) {
-        qWarning() << "Failed to add resource" << resource->name();
-        r = false;
-    }
-    resetQuery();
-    endInsertRows();
-
-    return r;
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    const bool result = locator &&
+        locator->addResource(d->resourceType, resource, storageId);
+    refresh();
+    return result;
 }
 
-bool KisAllResourcesModel::addResourceDeduplicateFileName(KoResourceSP resource, const QString &storageId)
+bool KisAllResourcesModel::addResourceDeduplicateFileName(
+    KoResourceSP resource,
+    const PkString &storageId)
 {
     if (!resource || !resource->valid()) {
-        qWarning() << "Cannot add resource. Resource is null or not valid";
         return false;
     }
-
-    bool r = true;
-    beginInsertRows(QModelIndex(), rowCount(), rowCount());
-    if (!KisResourceLocator::instance()->addResourceDeduplicateFileName(d->resourceType, resource, storageId)) {
-        qWarning() << "Failed to add resource with name deduplication" << resource->name();
-        r = false;
-    }
-    resetQuery();
-    endInsertRows();
-
-    return r;
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    const bool result = locator && locator->addResourceDeduplicateFileName(
+        d->resourceType, resource, storageId);
+    refresh();
+    return result;
 }
 
 bool KisAllResourcesModel::updateResource(KoResourceSP resource)
 {
     if (!resource || !resource->valid()) {
-        qWarning() << "Cannot update resource. Resource is null or not valid";
         return false;
     }
-
-    if (!KisResourceLocator::instance()->updateResource(d->resourceType, resource)) {
-        qWarning() << "Failed to update resource" << resource;
-        return false;
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    const bool result = locator && locator->updateResource(d->resourceType, resource);
+    if (result) {
+        refresh();
     }
-    bool r = resetQuery();
-    QModelIndex index = indexForResource(resource);
-    Q_EMIT dataChanged(index, index);
-    return r;
+    return result;
 }
 
 bool KisAllResourcesModel::reloadResource(KoResourceSP resource)
 {
     if (!resource || !resource->valid()) {
-        qWarning() << "Cannot reload resource. Resource is null or not valid";
         return false;
     }
-
-    if (!KisResourceLocator::instance()->reloadResource(d->resourceType, resource)) {
-        qWarning() << "Failed to reload resource" << resource;
-        return false;
-    }
-
-    /**
-     * We don't have to call reset query here, because reloading a resource
-     * doesn't change any database content.
-     */
-
-    QModelIndex index = indexForResource(resource);
-    Q_EMIT dataChanged(index, index);
-    return true;
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    return locator && locator->reloadResource(d->resourceType, resource);
 }
 
-bool KisAllResourcesModel::renameResource(KoResourceSP resource, const QString &name)
+bool KisAllResourcesModel::renameResource(KoResourceSP resource,
+                                          const PkString &name)
 {
     if (!resource || !resource->valid() || name.isEmpty()) {
-        qWarning() << "Cannot rename resources. Resource is NULL or not valid or name is empty";
         return false;
     }
     resource->setName(name);
-    if (!KisResourceLocator::instance()->updateResource(d->resourceType, resource)) {
-        qWarning() << "Failed to rename resource" << resource << name;
+    return updateResource(resource);
+}
+
+bool KisAllResourcesModel::setResourceMetaData(
+    KoResourceSP resource,
+    PkMap<PkString, PkVariant> metadata)
+{
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    const bool result = resource && resource->resourceId() >= 0 && locator &&
+        locator->setMetaDataForResource(resource->resourceId(), metadata);
+    if (result) {
+        refresh();
+    }
+    return result;
+}
+
+bool KisAllResourcesModel::refresh()
+{
+    PkSqlQuery query;
+    if (!query.prepare(PkString(
+            "SELECT resources.id, resources.storage_id, resources.name, "
+            "resources.filename, resources.tooltip, resources.status, "
+            "resources.md5sum, storages.location, "
+            "resource_types.name AS resource_type, "
+            "resources.status AS resource_active, "
+            "storages.active AS storage_active "
+            "FROM resources "
+            "JOIN resource_types ON resources.resource_type_id = resource_types.id "
+            "JOIN storages ON resources.storage_id = storages.id "
+            "WHERE resource_types.name = :resource_type "
+            "GROUP BY resources.name, resources.filename, resources.md5sum "
+            "ORDER BY resources.id"))) {
         return false;
     }
-    bool r = resetQuery();
-    QModelIndex index = indexForResource(resource);
-    Q_EMIT dataChanged(index, index);
-    return r;
-}
-
-//static int s_i9 {0};
-
-bool KisAllResourcesModel::setResourceMetaData(KoResourceSP resource, QMap<QString, QVariant> metadata)
-{
-    Q_ASSERT(resource->resourceId() > -1);
-    return KisResourceLocator::instance()->setMetaDataForResource(resource->resourceId(), metadata);
-}
-
-bool KisAllResourcesModel::prepareQuery()
-{
-    bool r = d->resourcesQuery.prepare(
-        "SELECT resources.id\n"
-        ",      resources.storage_id\n"
-        ",      resources.name\n"
-        ",      resources.filename\n"
-        ",      resources.tooltip\n"
-        ",      resources.status\n"
-        ",      resources.md5sum\n"
-        ",      storages.location\n"
-        ",      resource_types.name as resource_type\n"
-        ",      resources.status as resource_active\n"
-        ",      storages.active as storage_active\n"
-        "FROM   resources\n"
-        ",      resource_types\n"
-        ",      storages\n"
-        "WHERE  resources.resource_type_id = resource_types.id\n"
-        "AND    resources.storage_id = storages.id\n"
-        "AND    resource_types.name = :resource_type\n"
-        "GROUP BY resources.name\n"
-        ",        resources.filename\n"
-        ",        resources.md5sum\n"
-        "ORDER BY resources.id");
-
-    if (!r) {
-        qWarning() << "Could not prepare KisAllResourcesModel query" << d->resourcesQuery.lastError();
+    query.bindValue(PkString(":resource_type"), PkVariant(d->resourceType));
+    if (!query.exec()) {
         return false;
     }
 
-    d->resourcesQuery.bindValue(":resource_type", d->resourceType);
+    PkVector<KisResourceRecord> replacement;
+    while (query.next()) {
+        KisResourceRecord record =
+            KisResourceQueryMapper::resourceFromQuery(query, false);
+        for (const KisTagSP &tag : tagsForResource(record.id)) {
+            if (tag) {
+                record.tags.append(tag->name());
+            }
+        }
+        replacement.append(record);
+    }
+    d->records = replacement;
+    d->closed = false;
     return true;
 }
 
 void KisAllResourcesModel::closeQuery()
 {
-    d->resourcesQuery.clear();
+    d->records.clear();
+    d->closed = true;
 }
 
-bool KisAllResourcesModel::resetQuery()
+void KisAllResourcesModel::storageActiveStateChanged(const PkString &location)
 {
-    /**
-     * In case the query has been previously closed, try to restart it
-     * (used in unittests mostly)
-     */
-    if (!d->resourcesQuery.isValid()) {
-        d->resourcesQuery.clear();
-        prepareQuery();
-    }
-
-    bool r = d->resourcesQuery.exec();
-    if (!r) {
-        qWarning() << "Could not select" << d->resourceType << "resources" << d->resourcesQuery.lastError() << d->resourcesQuery.boundValues();
-    }
-    d->cachedRowCount = -1;
-
-    return r;
+    (void)location;
+    refresh();
 }
 
-QVector<KisTagSP> KisAllResourcesModel::tagsForResource(int resourceId) const
+void KisAllResourcesModel::storageResynchronized(const PkString &storage,
+                                                 bool bulk)
 {
-    bool r;
-
-    QSqlQuery q;
-
-    r = q.prepare("SELECT tags.url\n"
-                  "FROM   tags\n"
-                  ",      resource_tags\n"
-                  ",      resource_types\n"
-                  "WHERE  tags.active > 0\n"                               // make sure the tag is active
-                  "AND    tags.id = resource_tags.tag_id\n"                // join tags + resource_tags by tag_id
-                  "AND    resource_tags.resource_id = :resource_id\n"
-                  "AND    resource_types.id = tags.resource_type_id\n"     // make sure we're looking for tags for a specific resource
-                  "AND    resource_tags.active = 1\n");                    // and the tag must be active
-    if (!r)  {
-        qWarning() << "Could not prepare TagsForResource query" << q.lastError();
+    (void)storage;
+    if (!bulk) {
+        refresh();
     }
-
-    q.bindValue(":resource_id", resourceId);
-    r = q.exec();
-    if (!r) {
-        qWarning() << "Could not select tags for" << resourceId << q.lastError() << q.boundValues();
-    }
-
-    QVector<KisTagSP> tags;
-    while (q.next()) {
-        KisTagSP tag = KisResourceLocator::instance()->tagForUrl(q.value(0).toString(), d->resourceType);
-        if (tag && tag->valid()) {
-            tags << tag;
-        }
-    }
-    return tags;
-}
-
-
-int KisAllResourcesModel::rowCount(const QModelIndex &parent) const
-{
-    if (parent.isValid()) {
-        return 0;
-    }
-
-    if (d->cachedRowCount < 0) {
-        /**
-         * SQLite doesn't support COUNT(DISTINCT ...) over multiple columns, so
-         * we need to concatenate them manually on the fly. But SQLite doesn't
-         * support CONCAT function either, therefore we should use
-         * concatenation operator it provides.
-         */
-
-        QSqlQuery q;
-        bool r = q.prepare("SELECT COUNT(DISTINCT resources.name || resources.filename || resources.md5sum)\n"
-                  "FROM   resources\n"
-                  ",      resource_types\n"
-                  "WHERE  resources.resource_type_id = resource_types.id\n"
-                  "AND    resource_types.name = :resource_type\n");
-        if (!r) {
-            qWarning() << "Could not prepare all resources rowcount query" << q.lastError();
-            return 0;
-        }
-        q.bindValue(":resource_type", d->resourceType);
-        r = q.exec();
-        if (!r) {
-            qWarning() << "Could not execute all resources rowcount query" << q.lastError() << q.boundValues();
-            return 0;
-        }
-        q.first();
-
-        const_cast<KisAllResourcesModel*>(this)->d->cachedRowCount = q.value(0).toInt();
-    }
-
-    return d->cachedRowCount;
-}
-
-void KisAllResourcesModel::storageActiveStateChanged(const QString &location)
-{
-    const QVector<int> resourceIds = KisResourceCacheDb::resourcesForStorage(d->resourceType, location);
-    if (resourceIds.isEmpty()) return;
-
-    resetQuery();
-
-    Q_FOREACH (int resourceId, resourceIds) {
-        QModelIndex index = indexForResourceId(resourceId);
-
-        if (index.isValid()) {
-            Q_EMIT dataChanged(index, index, {Qt::UserRole + KisAbstractResourceModel::StorageActive});
-        }
-    }
-}
-
-void KisAllResourcesModel::storageResynchronized(const QString &storage, bool isBulkResynchronization)
-{
-    Q_UNUSED(storage);
-
-    // we handle bulk-synchronization separately in slotStoragesBulkSynchronizationFinished()
-    if (isBulkResynchronization) return;
-
-    // TODO: ideally, we should use more fine-grained updates for
-    //       updating the storages, but let's keep it this
-    beginResetModel();
-    resetQuery();
-    endResetModel();
 }
 
 void KisAllResourcesModel::storagesBulkSynchronizationFinished()
 {
-    beginResetModel();
-    resetQuery();
-    endResetModel();
+    refresh();
 }
 
-void KisAllResourcesModel::beginExternalResourceImport(const QString &resourceType, int numResources)
+void KisAllResourcesModel::beginExternalResourceImport(
+    const PkString &resourceType,
+    int count)
 {
-    if (resourceType != d->resourceType) return;
-
-    beginInsertRows(QModelIndex(), rowCount(), rowCount() + numResources - 1);
+    (void)resourceType;
+    (void)count;
 }
 
-void KisAllResourcesModel::endExternalResourceImport(const QString &resourceType)
+void KisAllResourcesModel::endExternalResourceImport(
+    const PkString &resourceType)
 {
-    if (resourceType != d->resourceType) return;
-
-    resetQuery();
-    endInsertRows();
-}
-
-void KisAllResourcesModel::beginExternalResourceRemove(const QString &resourceType, const QVector<int> &resourceIds)
-{
-    if (resourceType != d->resourceType) return;
-
-    Q_FOREACH (int resourceId, resourceIds) {
-        const QModelIndex index = indexForResourceId(resourceId);
-        if (index.isValid()) {
-            beginRemoveRows(QModelIndex(), index.row(), index.row());
-            d->externalResourcesRemovedCount++;
-        } else {
-            // it's fine if the index is invalid; it probably means it's one of the duplicates (another resource with the same type and content was already in the database)
-            dbgResources << "KisAllResourcesModel::beginExternalResourceRemove got invalid index" << index << "for resourceId" << resourceId
-                         << "of type" << resourceType << "(possibly the resource was deduplicated via sql query and that's why it doesn't appear in the model)";
-        }
+    if (resourceType == d->resourceType) {
+        refresh();
     }
 }
 
-void KisAllResourcesModel::endExternalResourceRemove(const QString &resourceType)
+void KisAllResourcesModel::beginExternalResourceRemove(
+    const PkString &resourceType,
+    PkVector<int> resourceIds)
 {
-    if (resourceType != d->resourceType) return;
-
-    if (d->externalResourcesRemovedCount > 0) {
-        resetQuery();
-    }
-    for (int i = 0; i < d->externalResourcesRemovedCount; i++) {
-        endRemoveRows();
-    }
-
-    d->externalResourcesRemovedCount = 0;
+    (void)resourceType;
+    (void)resourceIds;
 }
 
-void KisAllResourcesModel::slotResourceActiveStateChanged(const QString &resourceType, int resourceId)
+void KisAllResourcesModel::endExternalResourceRemove(
+    const PkString &resourceType)
 {
-    if (resourceType != d->resourceType) return;
-    if (resourceId < 0) return;
+    if (resourceType == d->resourceType) {
+        refresh();
+    }
+}
 
-    resetQuery();
-
-    QModelIndex index = indexForResourceId(resourceId);
-
-    if (index.isValid()) {
-        Q_EMIT dataChanged(index, index, {Qt::CheckStateRole, Qt::UserRole + KisAbstractResourceModel::ResourceActive});
+void KisAllResourcesModel::slotResourceActiveStateChanged(
+    const PkString &resourceType,
+    int resourceId)
+{
+    (void)resourceId;
+    if (resourceType == d->resourceType) {
+        refresh();
     }
 }
 
 struct KisResourceModel::Private
 {
-    ResourceFilter resourceFilter {ShowActiveResources};
-    StorageFilter storageFilter {ShowActiveStorages};
-    bool showOnlyUntaggedResources {false};
+    KisAllResourcesModel *source = nullptr;
+    ResourceFilter resourceFilter = ShowActiveResources;
+    StorageFilter storageFilter = ShowActiveStorages;
+    bool showOnlyUntaggedResources = false;
 };
 
-KisResourceModel::KisResourceModel(const QString &type, QObject *parent)
-    : QSortFilterProxyModel(parent)
-    , d(new Private)
+KisResourceModel::KisResourceModel(const PkString &type)
+    : d(new Private)
 {
-    setSourceModel(KisResourceModelProvider::resourceModel(type));
+    d->source = KisResourceModelProvider::resourceModel(type);
 }
 
 KisResourceModel::~KisResourceModel()
@@ -818,373 +522,247 @@ KisResourceModel::~KisResourceModel()
 
 void KisResourceModel::setResourceFilter(ResourceFilter filter)
 {
-    if (d->resourceFilter != filter) {
-        d->resourceFilter = filter;
-        invalidateFilter();
-    }
+    d->resourceFilter = filter;
 }
 
 void KisResourceModel::setStorageFilter(StorageFilter filter)
 {
-    if (d->storageFilter != filter) {
-        d->storageFilter = filter;
-        invalidateFilter();
-    }
+    d->storageFilter = filter;
 }
 
 void KisResourceModel::showOnlyUntaggedResources(bool showOnlyUntagged)
 {
     d->showOnlyUntaggedResources = showOnlyUntagged;
-    invalidateFilter();
 }
 
-KoResourceSP KisResourceModel::resourceForIndex(QModelIndex index) const
+bool KisResourceModel::accepts(const KisResourceRecord &record) const
 {
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    if (source) {
-        return source->resourceForIndex(mapToSource(index));
+    if (d->showOnlyUntaggedResources && !record.tags.isEmpty()) {
+        return false;
     }
-    return 0;
-}
-
-QModelIndex KisResourceModel::indexForResource(KoResourceSP resource) const
-{
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    if (source) {
-        return mapFromSource(source->indexForResource(resource));
-    }
-    return QModelIndex();
-}
-
-QModelIndex KisResourceModel::indexForResourceId(int resourceId) const
-{
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    if (source) {
-        return mapFromSource(source->indexForResourceId(resourceId));
-    }
-    return QModelIndex();
-}
-
-bool KisResourceModel::setResourceActive(const QModelIndex &index, bool value)
-{
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    if (source) {
-        return source->setResourceActive(mapToSource(index), value);
-    }
-    return false;
-}
-
-KoResourceSP KisResourceModel::importResourceFile(const QString &filename, const bool allowOverwrite, const QString &storageId)
-{
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    KoResourceSP res;
-    if (source) {
-        res = source->importResourceFile(filename, allowOverwrite, storageId);
-    }
-    invalidate();
-    return res;
-}
-
-KoResourceSP KisResourceModel::importResource(const QString &filename, QIODevice *device, const bool allowOverwrite, const QString &storageId)
-{
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    KoResourceSP res;
-    if (source) {
-        res = source->importResource(filename, device, allowOverwrite, storageId);
-    }
-    invalidate();
-    return res;
-}
-
-bool KisResourceModel::importWillOverwriteResource(const QString &fileName, const QString &storageLocation) const
-{
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    return source && source->importWillOverwriteResource(fileName, storageLocation);
-}
-
-bool KisResourceModel::exportResource(KoResourceSP resource, QIODevice *device)
-{
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    bool res = false;
-    if (source) {
-        res = source->exportResource(resource, device);
-    }
-    return res;
-}
-
-bool KisResourceModel::addResource(KoResourceSP resource, const QString &storageId)
-{
-    KisAllResourcesModel *source = qobject_cast<KisAllResourcesModel*>(sourceModel());
-    bool updateInsteadOfAdd = false;
-    bool result = false;
-
-    // Check whether the resource already existed, in that case, we will update
-    // and possibly reactivate the resource
-    QSqlQuery q;
-
-    if (!q.prepare("SELECT resources.id\n"
-                   ",      resources.md5sum\n"
-                   ",      storages.location\n"
-                   ",      resource_types.name\n"
-                   "FROM   resources\n"
-                   ",      storages\n"
-                   ",      resource_types\n"
-                   "WHERE  resources.name             = :name\n"
-                   "AND    resources.storage_id       = storages.id\n"
-                   "AND    resources.resource_type_id = resource_types.id\n"
-                   "AND    resources.status           = 0")) {
-        qWarning() << "Could not create KisResourceModel::addResource query" << q.lastError();
-    }
-
-    q.bindValue(":name", resource->name());
-
-    if (!q.exec()) {
-        qWarning() << "Could not execute KisResourceModel::addResource query" << q.lastError();
-    }
-
-    while (q.next()) {
-        int id = q.value(0).toInt();
-        QString md5sum = q.value(1).toString();
-        QString storageLocation = q.value(2).toString();
-        QString resourceType = q.value(3).toString();
-
-
-        QSqlQuery q2;
-
-        if (!q2.prepare("SELECT MAX(version)\n"
-                       "FROM   versioned_resources\n"
-                       "WHERE  resource_id = :id")) {
-            qWarning() << "Could not prepare versioned_resources query" << q.lastError();
-        }
-
-        q2.bindValue(":id", id);
-
-        if (!q2.exec()) {
-            qWarning() << "Could not execute versioned_resources query" << q.lastError();
-        }
-
-        if (!q2.first()) {
-            qWarning() << "No resource version found with id" << id;
-        }
-
-        q.first();
-
-        int version = q2.value(0).toInt();
-
-        if (resourceType == resource->resourceType().first) {
-            resource->setResourceId(id);
-            resource->setVersion(version);
-            resource->setMD5Sum(md5sum);
-            resource->setActive(true);
-            resource->setStorageLocation(storageLocation);
-            bool result = updateResource(resource);
-            updateInsteadOfAdd = result;
-            break;
+    if (d->resourceFilter != ShowAllResources) {
+        const bool wanted = d->resourceFilter == ShowActiveResources;
+        if (record.resourceActive != wanted) {
+            return false;
         }
     }
-
-    if (!updateInsteadOfAdd) {
-        result = source->addResource(resource, storageId);
+    if (d->storageFilter != ShowAllStorages) {
+        const bool wanted = d->storageFilter == ShowActiveStorages;
+        if (record.storageActive != wanted) {
+            return false;
+        }
     }
+    return true;
+}
 
-    if (result) {
-        invalidate();
+PkVector<KisResourceRecord> KisResourceModel::records() const
+{
+    PkVector<KisResourceRecord> result;
+    if (!d->source) {
+        return result;
     }
-
+    for (const KisResourceRecord &record : d->source->records()) {
+        if (accepts(record)) {
+            result.append(record);
+        }
+    }
     return result;
 }
 
-bool KisResourceModel::addResourceDeduplicateFileName(KoResourceSP resource, const QString &storageId)
+PkVector<KoResourceSP> KisResourceModel::resources() const
 {
-    KisAllResourcesModel *source = qobject_cast<KisAllResourcesModel*>(sourceModel());
+    PkVector<KoResourceSP> result;
+    for (const KisResourceRecord &record : records()) {
+        KoResourceSP resource = d->source->resourceForId(record.id);
+        if (resource) {
+            result.append(resource);
+        }
+    }
+    return result;
+}
 
-    const bool result = source->addResourceDeduplicateFileName(resource, storageId);
+KoResourceSP KisResourceModel::resourceForId(int id) const
+{
+    for (const KisResourceRecord &record : records()) {
+        if (record.id == id) {
+            return d->source->resourceForId(id);
+        }
+    }
+    return KoResourceSP();
+}
 
-    if (result) {
-        invalidate();
+bool KisResourceModel::setResourceActive(int resourceId, bool value)
+{
+    return d->source && d->source->setResourceActive(resourceId, value);
+}
+
+KoResourceSP KisResourceModel::importResourceFile(const PkString &filename,
+                                                   bool allowOverwrite,
+                                                   const PkString &storageId)
+{
+    return d->source
+        ? d->source->importResourceFile(filename, allowOverwrite, storageId)
+        : KoResourceSP();
+}
+
+KoResourceSP KisResourceModel::importResource(const PkString &filename,
+                                               PkStream *device,
+                                               bool allowOverwrite,
+                                               const PkString &storageId)
+{
+    return d->source
+        ? d->source->importResource(filename, device, allowOverwrite, storageId)
+        : KoResourceSP();
+}
+
+bool KisResourceModel::importWillOverwriteResource(
+    const PkString &filename,
+    const PkString &storageLocation) const
+{
+    return d->source &&
+        d->source->importWillOverwriteResource(filename, storageLocation);
+}
+
+bool KisResourceModel::exportResource(KoResourceSP resource, PkStream *device)
+{
+    return d->source && d->source->exportResource(resource, device);
+}
+
+bool KisResourceModel::addResource(KoResourceSP resource,
+                                   const PkString &storageId)
+{
+    if (!d->source || !resource || !resource->valid()) {
+        return false;
     }
 
-    return result;
+    PkSqlQuery query;
+    if (query.prepare(PkString(
+            "SELECT resources.id, resources.md5sum, storages.location "
+            "FROM resources "
+            "JOIN storages ON storages.id = resources.storage_id "
+            "JOIN resource_types ON resource_types.id = resources.resource_type_id "
+            "WHERE resources.name = :name AND resources.status = 0 "
+            "AND resource_types.name = :resource_type ORDER BY resources.id"))) {
+        query.bindValue(PkString(":name"), PkVariant(resource->name()));
+        query.bindValue(PkString(":resource_type"),
+                        PkVariant(resource->resourceType().first));
+        if (query.exec() && query.first()) {
+            const int id = query.value(0).toInt();
+            PkSqlQuery versionQuery;
+            if (versionQuery.prepare(PkString(
+                    "SELECT MAX(version) FROM versioned_resources "
+                    "WHERE resource_id = :id"))) {
+                versionQuery.bindValue(PkString(":id"), PkVariant(id));
+                if (versionQuery.exec() && versionQuery.first()) {
+                    resource->setResourceId(id);
+                    resource->setVersion(versionQuery.value(0).toInt());
+                    resource->setMD5Sum(query.value(1).toString());
+                    resource->setStorageLocation(query.value(2).toString());
+                    resource->setActive(true);
+                    return d->source->updateResource(resource);
+                }
+            }
+        }
+    }
+
+    return d->source->addResource(resource, storageId);
+}
+
+bool KisResourceModel::addResourceDeduplicateFileName(
+    KoResourceSP resource,
+    const PkString &storageId)
+{
+    return d->source &&
+        d->source->addResourceDeduplicateFileName(resource, storageId);
 }
 
 bool KisResourceModel::updateResource(KoResourceSP resource)
 {
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    if (source) {
-        return source->updateResource(resource);
-    }
-    return false;
+    return d->source && d->source->updateResource(resource);
 }
 
 bool KisResourceModel::reloadResource(KoResourceSP resource)
 {
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    if (source) {
-        return source->reloadResource(resource);
-    }
-    return false;
+    return d->source && d->source->reloadResource(resource);
 }
 
-bool KisResourceModel::renameResource(KoResourceSP resource, const QString &name)
+bool KisResourceModel::renameResource(KoResourceSP resource,
+                                      const PkString &name)
 {
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    if (source) {
-        return source->renameResource(resource, name);
-    }
-    return false;
+    return d->source && d->source->renameResource(resource, name);
 }
 
-bool KisResourceModel::setResourceMetaData(KoResourceSP resource, QMap<QString, QVariant> metadata)
+bool KisResourceModel::setResourceMetaData(
+    KoResourceSP resource,
+    PkMap<PkString, PkVariant> metadata)
 {
-    KisAbstractResourceModel *source = dynamic_cast<KisAbstractResourceModel*>(sourceModel());
-    if (source) {
-        return source->setResourceMetaData(resource, metadata);
-    }
-    return false;
+    return d->source && d->source->setResourceMetaData(resource, metadata);
 }
 
-QHash<int, QByteArray> KisResourceModel::roleNames() const
+PkVector<KoResourceSP> KisResourceModel::resourcesMatching(
+    const PkString &value,
+    Columns column) const
 {
-    if (sourceModel()) {
-        return sourceModel()->roleNames();
-    }
-    return QAbstractItemModel::roleNames();
-}
-
-bool KisResourceModel::filterAcceptsColumn(int /*source_column*/, const QModelIndex &/*source_parent*/) const
-{
-    return true;
-}
-
-bool KisResourceModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
-{
-    QModelIndex idx = sourceModel()->index(source_row, 0, source_parent);
-
-    if (idx.isValid()) {
-        int id = idx.data(Qt::UserRole + KisAbstractResourceModel::Id).toInt();
-
-        if (d->showOnlyUntaggedResources) {
-
-            QString queryString = ("SELECT COUNT(*)\n"
-                                   "FROM   resources\n"
-                                   ",      storages\n"
-                                   "WHERE  resources.id IN (select resource_id FROM resource_tags WHERE active = 1)\n"
-                                   "AND    storages.id  = resources.storage_id\n"
-                                   "AND    resources.id = :resource_id\n");
-
-            if (d->resourceFilter == ShowActiveResources) {
-                queryString.append("AND    resources.status > 0\n");
-            }
-            else if (d->resourceFilter == ShowInactiveResources) {
-                queryString.append("AND    resources.status = 0\n");
-            }
-
-            if (d->storageFilter == ShowActiveStorages) {
-                queryString.append("AND    storages.active > 0\n");
-            }
-            else if (d->storageFilter == ShowInactiveStorages) {
-                queryString.append("AND    storages.active = 0\n");
-            }
-
-            QSqlQuery q;
-
-            if (!q.prepare((queryString))) {
-                qWarning() << "KisResourceModel: Could not prepare resource_tags query" << q.lastError();
-            }
-
-            q.bindValue(":resource_id", id);
-
-            if (!q.exec()) {
-                qWarning() << "KisResourceModel: Could not execute resource_tags query" << q.lastError() << q.boundValues();
-            }
-
-            q.first();
-            if (q.value(0).toInt() > 0) {
-                return false;
+    PkVector<KoResourceSP> result;
+    for (const KisResourceRecord &record : records()) {
+        PkString candidate;
+        switch (column) {
+        case Filename:
+            candidate = record.filename;
+            break;
+        case Name:
+            candidate = record.name;
+            break;
+        case MD5:
+            candidate = record.md5;
+            break;
+        default:
+            break;
+        }
+        if (candidate == value) {
+            KoResourceSP resource = d->source->resourceForId(record.id);
+            if (resource) {
+                result.append(resource);
             }
         }
     }
-
-    return filterResource(idx);
+    return result;
 }
 
-bool KisResourceModel::lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const
+PkVector<KoResourceSP> KisResourceModel::resourcesForFilename(
+    const PkString &filename) const
 {
-    QString nameLeft = sourceModel()->data(source_left, Qt::UserRole + KisAbstractResourceModel::Name).toString();
-    QString nameRight = sourceModel()->data(source_right, Qt::UserRole + KisAbstractResourceModel::Name).toString();
-
-    return nameLeft.toLower() < nameRight.toLower();
+    return resourcesMatching(filename, Filename);
 }
 
-QVector<KoResourceSP> KisResourceModel::filterByColumn(const QString filter, KisAbstractResourceModel::Columns column) const
+PkVector<KoResourceSP> KisResourceModel::resourcesForName(
+    const PkString &name) const
 {
-    QVector<KoResourceSP> resources;
-    for (int i = 0; i < rowCount(); ++i) {
-        QModelIndex idx = index(i, 0);
-        if (idx.isValid() && data(idx, Qt::UserRole + column).toString() == filter) {
-            resources << resourceForIndex(idx);
+    return resourcesMatching(name, Name);
+}
+
+PkVector<KoResourceSP> KisResourceModel::resourcesForMD5(
+    const PkString &md5sum) const
+{
+    PkVector<KoResourceSP> result;
+    if (!d->source) {
+        return result;
+    }
+
+    PkVector<int> acceptedIds;
+    for (const KisResourceRecord &record : records()) {
+        acceptedIds.append(record.id);
+    }
+    for (const KoResourceSP &resource : d->source->resourcesForMD5(md5sum)) {
+        if (resource && acceptedIds.contains(resource->resourceId())) {
+            result.append(resource);
         }
     }
-
-    return resources;
+    return result;
 }
 
-bool KisResourceModel::filterResource(const QModelIndex &idx) const
+PkVector<KisTagSP> KisResourceModel::tagsForResource(int resourceId) const
 {
-    if (d->resourceFilter == ShowAllResources && d->storageFilter == ShowAllStorages) {
-        return true;
-    }
-
-    ResourceFilter resourceActive = (ResourceFilter)sourceModel()->data(idx, Qt::UserRole + KisAbstractResourceModel::ResourceActive).toInt();
-    StorageFilter storageActive =  (StorageFilter)sourceModel()->data(idx, Qt::UserRole + KisAbstractResourceModel::StorageActive).toInt();
-
-    if (d->resourceFilter == ShowAllResources) {
-        if (storageActive == d->storageFilter) {
-            return true;
-        }
-    }
-
-    if (d->storageFilter == ShowAllStorages) {
-        if (resourceActive == d->resourceFilter) {
-            return true;
-        }
-    }
-
-    if ((storageActive == d->storageFilter) && (resourceActive == d->resourceFilter)) {
-        return true;
-    }
-
-    return false;
-}
-
-
-KoResourceSP KisResourceModel::resourceForId(int id) const
-{
-    KoResourceSP res = static_cast<KisAllResourcesModel*>(sourceModel())->resourceForId(id);
-    QModelIndex idx = indexForResource(res);
-    if (idx.isValid()) {
-        return res;
-    }
-    return 0;
-}
-
-QVector<KoResourceSP> KisResourceModel::resourcesForFilename(QString filename) const
-{
-    return filterByColumn(filename, KisAllResourcesModel::Filename);
-
-}
-
-QVector<KoResourceSP> KisResourceModel::resourcesForName(QString name) const
-{
-    return filterByColumn(name, KisAllResourcesModel::Name);
-}
-
-QVector<KoResourceSP> KisResourceModel::resourcesForMD5(const QString md5sum) const
-{
-    return filterByColumn(md5sum, KisAllResourcesModel::MD5);
-}
-
-QVector<KisTagSP> KisResourceModel::tagsForResource(int resourceId) const
-{
-    return static_cast<KisAllResourcesModel*>(sourceModel())->tagsForResource(resourceId);
+    return d->source ? d->source->tagsForResource(resourceId)
+                     : PkVector<KisTagSP>();
 }

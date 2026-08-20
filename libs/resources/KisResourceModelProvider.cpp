@@ -1,110 +1,134 @@
 /*
- *  SPDX-FileCopyrightText: 2018 Boudewijn Rempt <boud@valdyas.org>
- *
- *  SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-FileCopyrightText: 2018 Boudewijn Rempt <boud@valdyas.org>
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
+
 #include "KisResourceModelProvider.h"
 
+#include <PkMap.h>
+
+#include <memory>
+
+#include "KisResourceMetaDataModel.h"
 #include "KisResourceModel.h"
 #include "KisTagModel.h"
 #include "KisTagResourceModel.h"
-#include "KisResourceMetaDataModel.h"
-
-#include "KoResource.h"
-
-#include <memory>
-#include <optional>
-
-#include <QGlobalStatic>
-
-Q_GLOBAL_STATIC(KisResourceModelProvider, s_instance)
 
 struct KisResourceModelProvider::Private
 {
-    QMap<QString, KisAllResourcesModel*> resourceModels;
-    QMap<QString, KisAllTagsModel*> tagModels;
-    QMap<QString, KisAllTagResourceModel*> tagResourceModels;
-    std::optional<KisResourceMetaDataModel> metaDataModel;
+    PkMap<PkString, KisAllResourcesModel *> resourceModels;
+    PkMap<PkString, KisAllTagsModel *> tagModels;
+    PkMap<PkString, KisAllTagResourceModel *> tagResourceModels;
+    std::unique_ptr<KisResourceMetaDataModel> metaDataModel;
 };
 
+namespace
+{
+
+KisResourceModelProvider &provider()
+{
+    static KisResourceModelProvider instance;
+    return instance;
+}
+
+} // namespace
+
 KisResourceModelProvider::KisResourceModelProvider()
-    : d(new Private())
+    : d(new Private)
 {
 }
 
 KisResourceModelProvider::~KisResourceModelProvider()
 {
-    qDeleteAll(d->resourceModels);
-    qDeleteAll(d->tagModels);
-    qDeleteAll(d->tagResourceModels);
+    for (KisAllResourcesModel *model : d->resourceModels) {
+        delete model;
+    }
+    for (KisAllTagsModel *model : d->tagModels) {
+        delete model;
+    }
+    for (KisAllTagResourceModel *model : d->tagResourceModels) {
+        delete model;
+    }
     delete d;
 }
 
-KisAllResourcesModel *KisResourceModelProvider::resourceModel(const QString &resourceType)
+KisAllResourcesModel *KisResourceModelProvider::resourceModel(
+    const PkString &resourceType)
 {
-    if (!s_instance->d->resourceModels.contains(resourceType)) {
-        s_instance->d->resourceModels[resourceType] = new KisAllResourcesModel(resourceType);
+    KisResourceModelProvider &instance = provider();
+    if (!instance.d->resourceModels.contains(resourceType)) {
+        instance.d->resourceModels.insert(resourceType,
+                                          new KisAllResourcesModel(resourceType));
     }
-    return s_instance->d->resourceModels[resourceType];
+    return instance.d->resourceModels.value(resourceType);
 }
 
-KisAllTagsModel *KisResourceModelProvider::tagModel(const QString &resourceType)
+bool KisResourceModelProvider::refreshResourceModel(
+    const PkString &resourceType)
 {
-    if (!s_instance->d->tagModels.contains(resourceType)) {
-       s_instance->d->tagModels[resourceType] = new KisAllTagsModel(resourceType);
-    }
-    return s_instance->d->tagModels[resourceType];
+    KisAllResourcesModel *model = resourceModel(resourceType);
+    return model && model->refresh();
 }
 
-
-KisAllTagResourceModel *KisResourceModelProvider::tagResourceModel(const QString &resourceType)
+KisAllTagsModel *KisResourceModelProvider::tagModel(
+    const PkString &resourceType)
 {
-    if (!s_instance->d->tagResourceModels.contains(resourceType)) {
-       s_instance->d->tagResourceModels[resourceType] = new KisAllTagResourceModel(resourceType);
+    KisResourceModelProvider &instance = provider();
+    if (!instance.d->tagModels.contains(resourceType)) {
+        instance.d->tagModels.insert(resourceType,
+                                     new KisAllTagsModel(resourceType));
     }
-    return s_instance->d->tagResourceModels[resourceType];
+    return instance.d->tagModels.value(resourceType);
+}
+
+KisAllTagResourceModel *KisResourceModelProvider::tagResourceModel(
+    const PkString &resourceType)
+{
+    KisResourceModelProvider &instance = provider();
+    if (!instance.d->tagResourceModels.contains(resourceType)) {
+        instance.d->tagResourceModels.insert(
+            resourceType,
+            new KisAllTagResourceModel(resourceType));
+    }
+    return instance.d->tagResourceModels.value(resourceType);
 }
 
 void KisResourceModelProvider::testingResetAllModels()
 {
-    for (auto it = s_instance->d->tagModels.begin(); it != s_instance->d->tagModels.end(); ++it) {
-        it.value()->resetQuery();
+    KisResourceModelProvider &instance = provider();
+    for (KisAllTagsModel *model : instance.d->tagModels) {
+        model->refresh();
     }
-    for (auto it = s_instance->d->resourceModels.begin(); it != s_instance->d->resourceModels.end(); ++it) {
-        it.value()->resetQuery();
+    for (KisAllResourcesModel *model : instance.d->resourceModels) {
+        model->refresh();
     }
-    for (auto it = s_instance->d->tagResourceModels.begin(); it != s_instance->d->tagResourceModels.end(); ++it) {
-        it.value()->resetQuery();
+    for (KisAllTagResourceModel *model : instance.d->tagResourceModels) {
+        model->refresh();
     }
-
-    /// NOTE: we just remove the entire metadata model when we want to reset it,
-    /// please refactor it when the metadata model becomes a QObject and will get
-    /// any kind of connection to outer world.
-    s_instance->d->metaDataModel = std::nullopt;
+    instance.d->metaDataModel.reset();
 }
 
 void KisResourceModelProvider::testingCloseAllQueries()
 {
-    for (auto it = s_instance->d->tagModels.begin(); it != s_instance->d->tagModels.end(); ++it) {
-        it.value()->closeQuery();
+    KisResourceModelProvider &instance = provider();
+    for (KisAllTagsModel *model : instance.d->tagModels) {
+        model->closeQuery();
     }
-    for (auto it = s_instance->d->resourceModels.begin(); it != s_instance->d->resourceModels.end(); ++it) {
-        it.value()->closeQuery();
+    for (KisAllResourcesModel *model : instance.d->resourceModels) {
+        model->closeQuery();
     }
-    for (auto it = s_instance->d->tagResourceModels.begin(); it != s_instance->d->tagResourceModels.end(); ++it) {
-        it.value()->closeQuery();
+    for (KisAllTagResourceModel *model : instance.d->tagResourceModels) {
+        model->closeQuery();
     }
-
-    /// NOTE: we just remove the entire metadata model when we want to reset it,
-    /// please refactor it when the metadata model becomes a QObject and will get
-    /// any kind of connection to outer world.
-    s_instance->d->metaDataModel = std::nullopt;
+    instance.d->metaDataModel.reset();
 }
 
-KisResourceMetaDataModel* KisResourceModelProvider::resourceMetadataModel()
+KisResourceMetaDataModel *KisResourceModelProvider::resourceMetadataModel()
 {
-    if (!s_instance->d->metaDataModel) {
-        s_instance->d->metaDataModel.emplace("resources");
+    KisResourceModelProvider &instance = provider();
+    if (!instance.d->metaDataModel) {
+        instance.d->metaDataModel.reset(
+            new KisResourceMetaDataModel(PkString("resources")));
     }
-    return &s_instance->d->metaDataModel.value();
+    return instance.d->metaDataModel.get();
 }

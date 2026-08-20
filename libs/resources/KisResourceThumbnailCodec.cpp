@@ -453,6 +453,56 @@ PkImage loadPng(const PkString &path)
     return image;
 }
 
+PkImage decodePng(const PkByteArray &data)
+{
+    if (data.isEmpty()) {
+        return PkImage();
+    }
+
+    png_image pngImage{};
+    pngImage.version = PNG_IMAGE_VERSION;
+    if (!png_image_begin_read_from_memory(&pngImage,
+                                          data.constData(),
+                                          static_cast<std::size_t>(data.size()))) {
+        png_image_free(&pngImage);
+        return PkImage();
+    }
+    if (pngImage.width == 0 || pngImage.height == 0 ||
+        pngImage.width > static_cast<png_uint_32>(std::numeric_limits<int>::max()) ||
+        pngImage.height > static_cast<png_uint_32>(std::numeric_limits<int>::max()) ||
+        pngImage.width > std::numeric_limits<std::size_t>::max() / 4u ||
+        pngImage.height > std::numeric_limits<std::size_t>::max() /
+            (static_cast<std::size_t>(pngImage.width) * 4u)) {
+        png_image_free(&pngImage);
+        return PkImage();
+    }
+
+    pngImage.format = PNG_FORMAT_RGBA;
+    std::vector<png_byte> pixels(static_cast<std::size_t>(pngImage.width) *
+                                 static_cast<std::size_t>(pngImage.height) * 4u);
+    if (!png_image_finish_read(&pngImage, nullptr, pixels.data(), 0, nullptr)) {
+        png_image_free(&pngImage);
+        return PkImage();
+    }
+
+    PkImage image(static_cast<int>(pngImage.width),
+                  static_cast<int>(pngImage.height),
+                  PkImage::Format_ARGB32);
+    for (png_uint_32 y = 0; y < pngImage.height; ++y) {
+        for (png_uint_32 x = 0; x < pngImage.width; ++x) {
+            const std::size_t offset =
+                (static_cast<std::size_t>(y) * pngImage.width + x) * 4u;
+            image.setPixel(static_cast<int>(x), static_cast<int>(y),
+                           (static_cast<uint32_t>(pixels[offset + 3]) << 24) |
+                           (static_cast<uint32_t>(pixels[offset]) << 16) |
+                           (static_cast<uint32_t>(pixels[offset + 1]) << 8) |
+                           pixels[offset + 2]);
+        }
+    }
+    png_image_free(&pngImage);
+    return image;
+}
+
 PkByteArray encodePng(const PkImage &image)
 {
     std::vector<png_byte> pixels;

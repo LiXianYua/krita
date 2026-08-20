@@ -1,105 +1,78 @@
 /*
  * SPDX-FileCopyrightText: 2019 Boudewijn Rempt <boud@valdyas.org>
  * SPDX-FileCopyrightText: 2023 L. E. Segovia <amy@amyspark.me>
- *
- *  SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #ifndef KISSTORAGEMODEL_H
 #define KISSTORAGEMODEL_H
 
-#include <QAbstractTableModel>
-#include <QObject>
-#include <QScopedPointer>
+#include <PkImage.h>
+#include <PkMap.h>
+#include <PkObject.h>
+#include <PkString.h>
+#include <PkVariant.h>
+#include <PkVector.h>
 
 #include "KisResourceStorage.h"
 #include "kritaresources_export.h"
 
-class QSqlQuery;
-
-/**
- * KisStorageModel provides a model of all registered storages, like
- * the folder storages, the bundle storages or the memory storages. Note
- * that inactive storages are also part of this model.
- */
-class KRITARESOURCES_EXPORT KisStorageModel : public QAbstractTableModel
+struct KRITARESOURCES_EXPORT KisStorageRecord
 {
-    Q_OBJECT
+    int id = -1;
+    PkString storageType;
+    PkString location;
+    long long timestamp = 0;
+    bool preInstalled = false;
+    bool active = false;
+    PkImage thumbnail;
+    PkString displayName;
+    PkMap<PkString, PkVariant> metaData;
+};
+
+/** Process-wide data snapshot of registered resource storages. */
+class KRITARESOURCES_EXPORT KisStorageModel : public PkObject
+{
 public:
-
-    enum Columns {
-        Id = 0,
-        StorageType,
-        Location,
-        TimeStamp,
-        PreInstalled,
-        Active,
-        Thumbnail,
-        DisplayName,
-        MetaData
-    };
-
     enum StorageImportOption {
         None,
         Overwrite,
         Rename,
     };
 
-    KisStorageModel(QObject *parent = 0);
+    explicit KisStorageModel(PkObject *parent = nullptr);
     ~KisStorageModel() override;
 
-    static KisStorageModel * instance();
+    static KisStorageModel *instance();
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role) const override;
+    PkVector<KisStorageRecord> storages() const;
+    KisResourceStorageSP storageForId(int storageId) const;
+    bool setStorageActive(int storageId, bool active);
 
-    /// Enable and disable the storage represented by index
-    bool setData(const QModelIndex &index, const QVariant &value, int role) override;
-    Qt::ItemFlags flags(const QModelIndex &index) const override;
+    bool importStorage(const PkString &filename,
+                       StorageImportOption importOption) const;
+    bool importStorageData(const PkString &filename,
+                           StorageImportOption importOption,
+                           const PkByteArray &data) const;
+    bool canImportStorage(const PkString &filename) const;
 
-    KisResourceStorageSP storageForIndex(const QModelIndex &index) const;
-    KisResourceStorageSP storageForId(const int storageId) const;
-
-    bool importStorage(const QString &filename, StorageImportOption importOption) const;
-    bool importStorageData(const QString &filename, StorageImportOption importOption, const QByteArray &data) const;
-    bool canImportStorage(const QString &filename) const;
-
-    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
-
-Q_SIGNALS:
-
-    void storageEnabled(const QString &storage);
-    void storageDisabled(const QString &storage);
-    
-    /// Emitted when an individual storage is initialized
-    void storageResynchronized(const QString &storage, bool isBulkResynchronization);
-
-    /// Emitted on loading when all the storages are finished initialization
+    void storageEnabled(const PkString &storage);
+    void storageDisabled(const PkString &storage);
+    void storageResynchronized(const PkString &storage, bool bulk);
     void storagesBulkSynchronizationFinished();
 
-private Q_SLOTS:
-
-    /// Called whenever a storage is added
-    void addStorage(const QString &location);
-
-    /// This is called when a storage really is deleted both from database and anywhere else
-    void removeStorage(const QString &location);
-
-    /// called when storages finished synchronization process
-    void slotStoragesBulkSynchronizationFinished();
-
-private :
-    static bool importStorageInternal(const QString &filename,
+private:
+    static bool importStorageInternal(const PkString &filename,
                                       StorageImportOption importOption,
                                       bool dryRun,
-                                      const QByteArray &data);
+                                      const PkByteArray &data);
 
-    void resetQuery();
-
-    static QImage getThumbnailFromQuery(const QSqlQuery &query);
+    void addStorage(const PkString &location);
+    void removeStorage(const PkString &location);
+    void slotStoragesBulkSynchronizationFinished();
+    bool refresh();
 
     struct Private;
-    QScopedPointer<Private> d;
+    Private *const d;
 };
 
 #endif // KISSTORAGEMODEL_H

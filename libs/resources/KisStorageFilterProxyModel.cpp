@@ -1,27 +1,21 @@
 /*
  * SPDX-FileCopyrightText: 2018 Boudewijn Rempt <boud@valdyas.org>
- *
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
-#include "KisStorageFilterProxyModel.h"
 
-#include <QDebug>
-#include <KisResourceModel.h>
-#include <kis_debug.h>
-#include <KisResourceSearchBoxFilter.h>
-#include <KisResourceLocator.h>
+#include "KisStorageFilterProxyModel.h"
 
 struct KisStorageFilterProxyModel::Private
 {
-    FilterType filterType {KisStorageFilterProxyModel::ByStorageType};
-    QVariant filter;
-
+    KisStorageModel *source = nullptr;
+    FilterType filterType = ByStorageType;
+    PkVariant filter;
 };
 
-KisStorageFilterProxyModel::KisStorageFilterProxyModel(QObject *parent)
-    : QSortFilterProxyModel(parent)
-    , d(new Private)
+KisStorageFilterProxyModel::KisStorageFilterProxyModel()
+    : d(new Private)
 {
+    d->source = KisStorageModel::instance();
 }
 
 KisStorageFilterProxyModel::~KisStorageFilterProxyModel()
@@ -29,65 +23,49 @@ KisStorageFilterProxyModel::~KisStorageFilterProxyModel()
     delete d;
 }
 
-KisResourceStorageSP KisStorageFilterProxyModel::storageForIndex(QModelIndex index) const
+void KisStorageFilterProxyModel::setFilter(FilterType filterType,
+                                           const PkVariant &filter)
 {
-    KisStorageModel *source = dynamic_cast<KisStorageModel*>(sourceModel());
-    if (source) {
-        return source->storageForIndex(mapToSource(index));
-    }
-    return 0;
-}
-
-void KisStorageFilterProxyModel::setFilter(KisStorageFilterProxyModel::FilterType filterType, QVariant filter)
-{
-    d->filter = filter;
     d->filterType = filterType;
+    d->filter = filter;
 }
 
-
-bool KisStorageFilterProxyModel::filterAcceptsColumn(int /*source_column*/, const QModelIndex &/*source_parent*/) const
+PkVector<KisStorageRecord> KisStorageFilterProxyModel::storages() const
 {
-    return true;
+    PkVector<KisStorageRecord> result;
+    if (!d->source) {
+        return result;
+    }
+    if (!d->filter.isValid() || d->filter.isNull()) {
+        return d->source->storages();
+    }
+
+    for (const KisStorageRecord &record : d->source->storages()) {
+        bool accepted = false;
+        switch (d->filterType) {
+        case ByFileName:
+            accepted = record.location.contains(d->filter.toString());
+            break;
+        case ByStorageType:
+            accepted = d->filter.toStringList().contains(record.storageType);
+            break;
+        case ByActive:
+            accepted = record.active == d->filter.toBool();
+            break;
+        }
+        if (accepted) {
+            result.append(record);
+        }
+    }
+    return result;
 }
 
-bool KisStorageFilterProxyModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
+KisResourceStorageSP KisStorageFilterProxyModel::storageForId(int storageId) const
 {
-    if (d->filter.isNull()) return true;
-
-    QModelIndex idx = sourceModel()->index(source_row, KisAbstractResourceModel::Name, source_parent);
-
-    switch (d->filterType) {
-    case ByFileName:
-    {
-        QString filename = d->filter.toString();
-        return (sourceModel()->data(idx, Qt::UserRole + KisStorageModel::Location).toString().contains(filename));
+    for (const KisStorageRecord &record : storages()) {
+        if (record.id == storageId) {
+            return d->source->storageForId(storageId);
+        }
     }
-    case ByStorageType:
-    {
-        QString storageType = sourceModel()->data(idx, Qt::UserRole + KisStorageModel::StorageType).toString();
-        return (d->filter.toStringList().contains(storageType));
-    }
-    case ByActive:
-    {
-        bool active = d->filter.toBool();
-        bool isActive = sourceModel()->data(idx, Qt::UserRole + KisStorageModel::Active).toBool();
-        return (active == isActive);
-    }
-    default:
-        ;
-    }
-
-    return false;
-}
-
-bool KisStorageFilterProxyModel::lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const
-{
-    QString nameLeft = sourceModel()->data(source_left, Qt::UserRole + KisAbstractResourceModel::Name).toString();
-    QString nameRight = sourceModel()->data(source_right, Qt::UserRole + KisAbstractResourceModel::Name).toString();
-    return nameLeft < nameRight;
-}
-
-void KisStorageFilterProxyModel::slotModelReset()
-{
-    invalidateFilter();
+    return KisResourceStorageSP();
 }

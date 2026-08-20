@@ -1,57 +1,48 @@
 /*
  * SPDX-FileCopyrightText: 2018 Boudewijn Rempt <boud@valdyas.org>
- *
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 #ifndef KISRESOURCEITERATOR_H
 #define KISRESOURCEITERATOR_H
 
-#include <QImage>
-#include <QString>
-#include <QScopedPointer>
-#include <QModelIndex>
+#include <PkImage.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
 
 #include <KoResource.h>
 
-class KisResourceModel;
+#include "KisResourceModel.h"
+#include "kritaresources_export.h"
 
-#include <kritaresources_export.h>
-
-/**
- * @brief The KisResourceItem class represents a resource, but until resource() is called,
- * the resource is not loaded; the rest of the information comes from the cache database.
- * 
- * KisResourceItem is used in the KisStoragePlugin's resource iterators to populate the
- * database.
- */
-class KRITARESOURCES_EXPORT KisResourceItem {
+class KRITARESOURCES_EXPORT KisResourceItem
+{
 private:
     friend class KisResourceIterator;
-    KisResourceItem(KisResourceModel *resourceModel, const QModelIndex &index);
+    KisResourceItem(KisResourceModel *resourceModel,
+                    const KisResourceRecord &record);
+
 public:
     int id();
-    QString resourceType();
-    QString name();
-    QString filename();
-    QString tooltip();
-    QString md5sum();
-    QImage thumbnail();
+    PkString resourceType();
+    PkString name();
+    PkString filename();
+    PkString tooltip();
+    PkString md5sum();
+    PkImage thumbnail();
     KoResourceSP resource();
+
 private:
-    KisResourceModel *m_resourceModel;
-    QModelIndex m_index;
+    KisResourceModel *m_resourceModel = nullptr;
+    KisResourceRecord m_record;
 };
 
-typedef QSharedPointer<KisResourceItem> KisResourceItemSP;
+using KisResourceItemSP = PkSharedPointer<KisResourceItem>;
 
-/**
- * @brief The KisResourceIterator class provides an iterator
- * for a KisResourceModel.
- */
+/** Stable iterator over a record snapshot captured at construction. */
 class KRITARESOURCES_EXPORT KisResourceIterator
 {
 public:
-    KisResourceIterator(KisResourceModel *resourceModel);
+    explicit KisResourceIterator(KisResourceModel *resourceModel);
     ~KisResourceIterator();
 
     bool hasNext() const;
@@ -65,7 +56,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    Private *const d;
 };
 
 #endif // KISRESOURCEITERATOR_H

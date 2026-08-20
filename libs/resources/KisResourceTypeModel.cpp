@@ -1,26 +1,48 @@
 /*
  * SPDX-FileCopyrightText: 2018 boud <boud@valdyas.org>
- *
- *  SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
+
 #include "KisResourceTypeModel.h"
-#include <QDebug>
-#include <QSqlError>
-#include <QSqlQuery>
 
-#include <KisResourceTypes.h>
+#include <PkSqlQuery.h>
 
-struct KisResourceTypeModel::Private {
-    int cachedRowCount {-1};
-    QSqlQuery query;
+#include "KisResourceTypes.h"
+
+namespace
+{
+
+PkString displayNameForType(const PkString &type)
+{
+    if (type == ResourceType::PaintOpPresets) return ResourceName::PaintOpPresets;
+    if (type == ResourceType::Brushes) return ResourceName::Brushes;
+    if (type == ResourceType::Gradients) return ResourceName::Gradients;
+    if (type == ResourceType::Palettes) return ResourceName::Palettes;
+    if (type == ResourceType::Patterns) return ResourceName::Patterns;
+    if (type == ResourceType::Workspaces) return ResourceName::Workspaces;
+    if (type == ResourceType::Symbols) return ResourceName::Symbols;
+    if (type == ResourceType::WindowLayouts) return ResourceName::WindowLayouts;
+    if (type == ResourceType::Sessions) return ResourceName::Sessions;
+    if (type == ResourceType::GamutMasks) return ResourceName::GamutMasks;
+    if (type == ResourceType::SeExprScripts) return ResourceName::SeExprScripts;
+    if (type == ResourceType::TaskSets) return ResourceName::TaskSets;
+    if (type == ResourceType::LayerStyles) return ResourceName::LayerStyles;
+    if (type == ResourceType::FontFamilies) return ResourceName::FontFamilies;
+    if (type == ResourceType::CssStyles) return ResourceName::CssStyles;
+    return type;
+}
+
+} // namespace
+
+struct KisResourceTypeModel::Private
+{
+    PkVector<KisResourceTypeRecord> records;
 };
 
-
-KisResourceTypeModel::KisResourceTypeModel(QObject *parent)
-    : QAbstractTableModel(parent)
-    , d(new Private)
+KisResourceTypeModel::KisResourceTypeModel()
+    : d(new Private)
 {
-    prepareQuery();
+    refresh();
 }
 
 KisResourceTypeModel::~KisResourceTypeModel()
@@ -28,88 +50,26 @@ KisResourceTypeModel::~KisResourceTypeModel()
     delete d;
 }
 
-int KisResourceTypeModel::rowCount(const QModelIndex &parent) const
+PkVector<KisResourceTypeRecord> KisResourceTypeModel::resourceTypes() const
 {
-    if (parent.isValid()) {
-        return 0;
-    }
-
-    if (d->cachedRowCount < 0) {
-        QSqlQuery q;
-        q.prepare("SELECT count(*)\n"
-                  "FROM   resource_types\n");
-        q.exec();
-        q.first();
-
-        const_cast<KisResourceTypeModel*>(this)->d->cachedRowCount = q.value(0).toInt();
-    }
-    return d->cachedRowCount;
+    return d->records;
 }
 
-int KisResourceTypeModel::columnCount(const QModelIndex &parent) const
+bool KisResourceTypeModel::refresh()
 {
-    if (parent.isValid()) {
-        return 0;
+    PkSqlQuery query;
+    if (!query.exec(PkString("SELECT id, name FROM resource_types ORDER BY id"))) {
+        return false;
     }
 
-    return 3;
-}
-
-QVariant KisResourceTypeModel::data(const QModelIndex &index, int role) const
-{
-    QVariant v;
-    if (!index.isValid()) return v;
-
-    if (index.row() > rowCount()) return v;
-    if (index.column() > (int)Name) return v;
-
-    bool pos = d->query.seek(index.row());
-
-    if (pos) {
-        QString id = d->query.value("id").toString();
-        QString resourceType = d->query.value("name").toString();
-        QString name = ResourceName::resourceTypeToName(resourceType);
-
-        switch(role) {
-        case Qt::DisplayRole:
-        {
-            switch(index.column()) {
-            case Id:
-                return id;
-            case ResourceType:
-                return resourceType;
-            case Name:
-            default:
-                return name;
-            }
-        }
-        case Qt::UserRole + Id:
-            return id;
-        case Qt::UserRole + ResourceType:
-            return resourceType;
-        case Qt::UserRole + Name:
-            return name;
-        default:
-            ;
-        }
+    PkVector<KisResourceTypeRecord> replacement;
+    while (query.next()) {
+        KisResourceTypeRecord record;
+        record.id = query.value(PkString("id")).toInt();
+        record.resourceType = query.value(PkString("name")).toString();
+        record.displayName = displayNameForType(record.resourceType);
+        replacement.append(record);
     }
-    return v;
-}
-
-bool KisResourceTypeModel::prepareQuery()
-{
-    beginResetModel();
-    bool r = d->query.prepare("SELECT id\n"
-                              ",      name\n"
-                              "FROM   resource_types\n");
-    if (!r) {
-        qWarning() << "Could not prepare KisResourceTypeModel query" << d->query.lastError();
-    }
-    r = d->query.exec();
-    if (!r) {
-        qWarning() << "Could not execute KisResourceTypeModel query" << d->query.lastError();
-    }
-    d->cachedRowCount = -1;
-    endResetModel();
-    return r;
+    d->records = replacement;
+    return true;
 }

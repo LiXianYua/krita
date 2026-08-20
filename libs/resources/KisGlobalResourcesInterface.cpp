@@ -42,7 +42,9 @@ protected:
     }
 public:
     KoResourceSP fallbackResource() const override {
-        return m_model->rowCount() > 0 ? m_model->resourceForIndex(m_model->index(0, 0)) : KoResourceSP();
+        const PkVector<KisResourceRecord> records = m_model->records();
+        return records.isEmpty() ? KoResourceSP()
+                                 : m_model->resourceForId(records.first().id);
     }
 
 private:

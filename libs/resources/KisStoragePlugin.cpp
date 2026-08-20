@@ -45,7 +45,7 @@ KoResourceSP KisStoragePlugin::resource(const PkString &url)
     const PkString resourceFilename = PkString::PkFromUtf8(
         text.data() + separator + 1, static_cast<int>(text.size() - separator - 1));
 
-    const PkString mime = KisMimeDatabase::mimeTypeForSuffix(resourceFilename);
+    const PkString mime = KisMimeDatabase::mimeTypeForFile(resourceFilename);
 
     KisResourceLoaderBase *loader = KisResourceLoaderRegistry::instance()->loader(resourceType, mime);
     if (!loader) {

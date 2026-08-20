@@ -1,214 +1,203 @@
 /*
- *  SPDX-FileCopyrightText: 2019 Agata Cacko <cacko.azh@gmail.com>
- *
- *  SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-FileCopyrightText: 2019 Agata Cacko <cacko.azh@gmail.com>
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
 #include "KisResourceSearchBoxFilter.h"
 
+#include <algorithm>
+#include <cctype>
+#include <set>
+#include <string>
+#include <vector>
 
-#include <QRegularExpression>
-#include <QList>
-#include <QSet>
-#include <kis_debug.h>
+namespace
+{
 
-class Q_DECL_HIDDEN KisResourceSearchBoxFilter::Private
+std::string trimAscii(std::string value)
+{
+    const auto notSpace = [](unsigned char character) {
+        return !std::isspace(character);
+    };
+    value.erase(value.begin(),
+                std::find_if(value.begin(), value.end(), notSpace));
+    value.erase(std::find_if(value.rbegin(), value.rend(), notSpace).base(),
+                value.end());
+    return value;
+}
+
+std::string lowerAscii(std::string value)
+{
+    std::transform(value.begin(), value.end(), value.begin(),
+                   [](unsigned char character) {
+                       return static_cast<char>(std::tolower(character));
+                   });
+    return value;
+}
+
+bool anyContains(const std::vector<std::string> &values,
+                 const std::string &part)
+{
+    for (const std::string &value : values) {
+        if (value.find(part) != std::string::npos) {
+            return true;
+        }
+    }
+    return false;
+}
+
+} // namespace
+
+class KisResourceSearchBoxFilter::Private
 {
 public:
-    Private()
-        : searchTokenizer("\\s*,+\\s*")
-    {}
-
-    QRegularExpression searchTokenizer;
-
-    QChar excludeBegin {'!'};
-    QChar tagBegin {'#'};
-    QChar exactMatchBeginEnd {'"'};
-
-    QSet<QString> tagExactMatchesIncluded;
-    QSet<QString> tagExactMatchesExcluded;
-    QSet<QString> resourceExactMatchesIncluded;
-    QSet<QString> resourceExactMatchesExcluded;
-
-    QList<QString> resourceNamesPartialIncluded;
-    QList<QString> resourceNamesPartialExcluded;
-    QList<QString> tagsPartialIncluded;
-    QList<QString> tagsPartialExcluded;
-
-    QString filter;
+    PkString filter;
+    std::set<std::string> tagExactIncluded;
+    std::set<std::string> tagExactExcluded;
+    std::set<std::string> resourceExactIncluded;
+    std::set<std::string> resourceExactExcluded;
+    std::vector<std::string> resourcePartialIncluded;
+    std::vector<std::string> resourcePartialExcluded;
+    std::vector<std::string> tagPartialIncluded;
+    std::vector<std::string> tagPartialExcluded;
 };
 
-
 KisResourceSearchBoxFilter::KisResourceSearchBoxFilter()
-    : m_d(new Private())
+    : d(new Private)
 {
 }
 
 KisResourceSearchBoxFilter::~KisResourceSearchBoxFilter()
 {
-
+    delete d;
 }
 
-bool checkDelimitersAndCut(const QChar& begin, const QChar& end, QString& token) {
-    if (token.startsWith(begin) && token.endsWith(end)) {
-        token.remove(0, 1);
-        token = token.left(token.length() - 1);
-        return true;
-    } else {
-        return false;
-    }
-}
-
-bool checkDelimitersAndCut(const QChar& beginEnd, QString& token) {
-    return checkDelimitersAndCut(beginEnd, beginEnd, token);
-}
-
-bool checkPrefixAndCut(QChar& prefix, QString& token) {
-    if (token.startsWith(prefix)) {
-        token.remove(0, 1);
-        return true;
-    } else {
-        return false;
-    }
-}
-
-void KisResourceSearchBoxFilter::setFilter(const QString& filter)
+void KisResourceSearchBoxFilter::setFilter(const PkString &filter)
 {
-    m_d->filter = QString(filter);
+    d->filter = filter;
     initializeFilterData();
 }
 
-
-bool KisResourceSearchBoxFilter::matchesResource(const QString &_resourceName, const QStringList &tagList) const
+bool KisResourceSearchBoxFilter::matchesResource(
+    const PkString &resourceName,
+    const PkStringList &tagList) const
 {
-    // exact matches
-    QString resourceName = _resourceName.toLower();
-
-    if (m_d->resourceExactMatchesIncluded.count() > 0
-            && !m_d->resourceExactMatchesIncluded.contains(resourceName)) {
-        return false;
-    }
-    if (m_d->resourceExactMatchesExcluded.contains(resourceName)) {
-        return false;
+    const std::string name = lowerAscii(resourceName.PkToUtf8());
+    std::vector<std::string> tags;
+    tags.reserve(static_cast<std::size_t>(tagList.size()));
+    for (const PkString &tag : tagList) {
+        tags.push_back(lowerAscii(tag.PkToUtf8()));
     }
 
-    // partial name matches
-    if (m_d->resourceNamesPartialIncluded.count() > 0) {
-        Q_FOREACH(const QString& partialName, m_d->resourceNamesPartialIncluded) {
-            if (!resourceName.contains(partialName) && tagList.filter(partialName, Qt::CaseInsensitive).isEmpty()) {
-                return false;
-            }
+    if (!d->resourceExactIncluded.empty() &&
+        d->resourceExactIncluded.count(name) == 0) {
+        return false;
+    }
+    if (d->resourceExactExcluded.count(name) != 0) {
+        return false;
+    }
+
+    for (const std::string &part : d->resourcePartialIncluded) {
+        if (name.find(part) == std::string::npos && !anyContains(tags, part)) {
+            return false;
         }
     }
-
-    Q_FOREACH(const QString& partialName, m_d->resourceNamesPartialExcluded) {
-        if (resourceName.contains(partialName) || tagList.filter(partialName, Qt::CaseInsensitive).size() > 0) {
+    for (const std::string &part : d->resourcePartialExcluded) {
+        if (name.find(part) != std::string::npos || anyContains(tags, part)) {
             return false;
         }
     }
 
-    // Tag partial matches
-    if (m_d->tagsPartialIncluded.count() > 0 ) {
-        Q_FOREACH(const QString& partialTag, m_d->tagsPartialIncluded) {
-            if (tagList.filter(partialTag, Qt::CaseInsensitive).isEmpty()) {
-                return false;
-            }
+    for (const std::string &part : d->tagPartialIncluded) {
+        if (!anyContains(tags, part)) {
+            return false;
+        }
+    }
+    for (const std::string &part : d->tagPartialExcluded) {
+        if (anyContains(tags, part)) {
+            return false;
         }
     }
 
-    if (m_d->tagsPartialExcluded.count() > 0) {
-        Q_FOREACH(const QString& partialTag, m_d->tagsPartialExcluded) {
-            if (tagList.filter(partialTag, Qt::CaseInsensitive).size() > 0) {
-                return false;
-            }
+    for (const std::string &tag : d->tagExactIncluded) {
+        if (std::find(tags.begin(), tags.end(), tag) == tags.end()) {
+            return false;
         }
     }
-
-    // Tag exact matches
-    if (m_d->tagExactMatchesIncluded.count() > 0) {
-        Q_FOREACH(const QString& tagName, m_d->tagExactMatchesIncluded) {
-            if (!tagList.contains(tagName, Qt::CaseInsensitive)) {
-                return false;
-            }
+    for (const std::string &tag : d->tagExactExcluded) {
+        if (std::find(tags.begin(), tags.end(), tag) != tags.end()) {
+            return false;
         }
     }
-
-    if (m_d->tagExactMatchesExcluded.count() > 0) {
-        Q_FOREACH(const QString excludedTag, m_d->tagExactMatchesExcluded) {
-            if (tagList.contains(excludedTag, Qt::CaseInsensitive)) {
-                return false;
-            }
-        }
-    }
-
     return true;
 }
 
-bool KisResourceSearchBoxFilter::isEmpty()
+bool KisResourceSearchBoxFilter::isEmpty() const
 {
-    return m_d->filter.isEmpty();
+    return d->filter.isEmpty();
 }
 
 void KisResourceSearchBoxFilter::clearFilterData()
 {
-    m_d->resourceExactMatchesIncluded.clear();
-    m_d->resourceExactMatchesExcluded.clear();
-    m_d->tagExactMatchesIncluded.clear();
-    m_d->tagExactMatchesExcluded.clear();
-
-    m_d->resourceNamesPartialIncluded.clear();
-    m_d->resourceNamesPartialExcluded.clear();
-    m_d->tagsPartialIncluded.clear();
-    m_d->tagsPartialExcluded.clear();
+    d->tagExactIncluded.clear();
+    d->tagExactExcluded.clear();
+    d->resourceExactIncluded.clear();
+    d->resourceExactExcluded.clear();
+    d->resourcePartialIncluded.clear();
+    d->resourcePartialExcluded.clear();
+    d->tagPartialIncluded.clear();
+    d->tagPartialExcluded.clear();
 }
 
 void KisResourceSearchBoxFilter::initializeFilterData()
 {
     clearFilterData();
 
-    QString tempFilter(m_d->filter);
+    const std::string source = d->filter.PkToUtf8();
+    std::size_t offset = 0;
+    while (offset <= source.size()) {
+        const std::size_t comma = source.find(',', offset);
+        std::string token = trimAscii(source.substr(
+            offset,
+            comma == std::string::npos ? std::string::npos : comma - offset));
+        offset = comma == std::string::npos ? source.size() + 1 : comma + 1;
+        if (token.empty()) {
+            continue;
+        }
 
-    QStringList tokens = tempFilter.split(m_d->searchTokenizer, Qt::SkipEmptyParts);
+        token = lowerAscii(token);
+        bool included = true;
+        if (!token.empty() && token.front() == '!') {
+            included = false;
+            token.erase(token.begin());
+        }
 
-    Q_FOREACH(const QString& token, tokens) {
-        QString workingToken(token.toLower());
-        const bool included = !checkPrefixAndCut(m_d->excludeBegin, workingToken);
+        bool tag = false;
+        if (!token.empty() && token.front() == '#') {
+            tag = true;
+            token.erase(token.begin());
+        }
 
-        if (checkPrefixAndCut(m_d->tagBegin, workingToken)) {
-            if (checkDelimitersAndCut(m_d->exactMatchBeginEnd, workingToken)) {
-                if (included) {
+        bool exact = token.size() >= 2 && token.front() == '"' &&
+            token.back() == '"';
+        if (exact) {
+            token = token.substr(1, token.size() - 2);
+        }
+        if (token.empty()) {
+            continue;
+        }
 
-                    m_d->tagExactMatchesIncluded.insert(workingToken);
-                } else {
-
-                    m_d->tagExactMatchesExcluded.insert(workingToken);
-                }
-            } else {
-                if (included) {
-
-                    m_d->tagsPartialIncluded.append(workingToken);
-                } else {
-
-                    m_d->tagsPartialExcluded.append(workingToken);
-                }
-            }
-        } else if (checkDelimitersAndCut(m_d->exactMatchBeginEnd, workingToken)) {
-            if (included) {
-
-                m_d->resourceExactMatchesIncluded.insert(workingToken);
-            } else {
-
-                m_d->resourceExactMatchesExcluded.insert(workingToken);
-            }
-
+        if (tag && exact) {
+            (included ? d->tagExactIncluded : d->tagExactExcluded).insert(token);
+        } else if (tag) {
+            (included ? d->tagPartialIncluded : d->tagPartialExcluded)
+                .push_back(token);
+        } else if (exact) {
+            (included ? d->resourceExactIncluded : d->resourceExactExcluded)
+                .insert(token);
         } else {
-            if (included) {
-
-                m_d->resourceNamesPartialIncluded.append(workingToken);
-            } else {
-
-                m_d->resourceNamesPartialExcluded.append(workingToken);
-            }
+            (included ? d->resourcePartialIncluded : d->resourcePartialExcluded)
+                .push_back(token);
         }
     }
 }

@@ -1,46 +1,38 @@
 /*
  * SPDX-FileCopyrightText: 2018 boud <boud@valdyas.org>
- *
- *  SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
 #ifndef KISRESOURCETYPEMODEL_H
 #define KISRESOURCETYPEMODEL_H
 
-#include <QAbstractTableModel>
-#include <QObject>
+#include <PkString.h>
+#include <PkVector.h>
 
 #include "kritaresources_export.h"
 
-/**
- * KisResourceTypeModel provides a view on the various resource types
- * defined in the database. This should be the same list as available
- * from KisResourceLoaderRegistry. 
- */
-class KRITARESOURCES_EXPORT KisResourceTypeModel : public QAbstractTableModel
+struct KRITARESOURCES_EXPORT KisResourceTypeRecord
 {
-    Q_OBJECT
+    int id = -1;
+    PkString resourceType;
+    PkString displayName;
+};
+
+/** A snapshot of resource types registered in the cache database. */
+class KRITARESOURCES_EXPORT KisResourceTypeModel
+{
 public:
+    KisResourceTypeModel();
+    ~KisResourceTypeModel();
 
-    enum Columns {
-        Id = 0,
-        ResourceType,
-        Name,
-    };
+    KisResourceTypeModel(const KisResourceTypeModel &) = delete;
+    KisResourceTypeModel &operator=(const KisResourceTypeModel &) = delete;
 
-    KisResourceTypeModel(QObject *parent = 0);
-    ~KisResourceTypeModel() override;
-
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role) const override;
+    PkVector<KisResourceTypeRecord> resourceTypes() const;
+    bool refresh();
 
 private:
-
-    bool prepareQuery();
-
     struct Private;
-    Private* const d;
-
+    Private *const d;
 };
 
 #endif // KISRESOURCETYPEMODEL_H

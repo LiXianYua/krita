@@ -1,26 +1,26 @@
 /*
- *  SPDX-License-Identifier: GPL-3.0-or-later
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 #ifndef KISRESOURCEQUERYMAPPER_H
 #define KISRESOURCEQUERYMAPPER_H
 
-#include <QSqlQuery>
-#include <QMap>
+#include <PkImage.h>
 
-class QImage;
+#include "KisResourceModel.h"
+
+class PkSqlQuery;
 
 class KisResourceQueryMapper
 {
 public:
-    /**
-     * @brief variantFromResourceQuery returns a QVariant for the given column and or role
-     * @param query the query: it supposed to be in the right position already
-     */
-    static QVariant variantFromResourceQuery(const QSqlQuery &query, int column, int role, bool useResourcePrefix);
+    /** Map the current database row to the ordinary resource record. */
+    static KisResourceRecord resourceFromQuery(const PkSqlQuery &query,
+                                               bool useResourcePrefix);
 
-private:
-    static QImage getThumbnailFromQuery(const QSqlQuery &query, bool useResourcePrefix);
+    /** Load and cache the thumbnail belonging to the current resource row. */
+    static PkImage thumbnailFromResourceQuery(const PkSqlQuery &query,
+                                              bool useResourcePrefix);
 };
 
 #endif // KISRESOURCEQUERYMAPPER_H

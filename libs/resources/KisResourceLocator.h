@@ -198,6 +198,7 @@ private:
     friend class KisResourceCacheDb;
     friend class KisStorageFilterProxyModel;
     friend class KisResourceQueryMapper;
+    friend class KisResourceMetaDataModel;
     friend class KisResourceUserOperations;
     friend class KisBrushTypeMetaDataFixup;
     friend class KisResourceThumbnailCache;

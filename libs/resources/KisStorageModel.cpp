@@ -1,571 +1,376 @@
 /*
  * SPDX-FileCopyrightText: 2019 Boudewijn Rempt <boud@valdyas.org>
  * SPDX-FileCopyrightText: 2023 L. E. Segovia <amy@amyspark.me>
- *
- *  SPDX-License-Identifier: GPL-2.0-or-later
+ * SPDX-License-Identifier: GPL-2.0-or-later
  */
+
 #include "KisStorageModel.h"
 
-#include <QBuffer>
-#include <QDir>
-#include <QFont>
-#include <QSqlError>
-#include <QSqlQuery>
-#include <KisResourceLocator.h>
-#include <KoResourcePaths.h>
-#include <KisResourceModelProvider.h>
-#include <KisResourceThumbnailCache.h>
-#include <QFileInfo>
-#include <QSaveFile>
-#include <kis_assert.h>
+#include <PkSqlQuery.h>
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
+#include <filesystem>
+#include <fstream>
+#include <string>
 
-#include <kis_debug.h>
+#include "KisResourceLocator.h"
+#include "KisResourceThumbnailCache.h"
+#include "KisResourceThumbnailCodec.h"
+#include "KoResourcePaths.h"
 
-Q_GLOBAL_STATIC(KisStorageModel, s_instance)
+namespace fs = std::filesystem;
 
-struct KisStorageModel::Private {
-    QList<QString> storages;
-};
-
-KisStorageModel::KisStorageModel(QObject *parent)
-    : QAbstractTableModel(parent)
-    , d(new Private())
+namespace
 {
-    connect(KisResourceLocator::instance(), &KisResourceLocator::storageAdded, this, &KisStorageModel::addStorage);
-    connect(KisResourceLocator::instance(), &KisResourceLocator::storageRemoved, this, &KisStorageModel::removeStorage);
-    connect(KisResourceLocator::instance(), &KisResourceLocator::storageResynchronized, this, &KisStorageModel::storageResynchronized);
-    connect(KisResourceLocator::instance(), &KisResourceLocator::storagesBulkSynchronizationFinished, this, &KisStorageModel::slotStoragesBulkSynchronizationFinished);
 
-    resetQuery();
+PkString fromPath(const fs::path &path)
+{
+    const std::string value = path.u8string();
+    return PkString::PkFromUtf8(value.data(), static_cast<int>(value.size()));
 }
 
-KisStorageModel *KisStorageModel::instance()
+fs::path toPath(const PkString &path)
 {
-    return s_instance;
+    return fs::u8path(path.PkToUtf8());
 }
 
-KisStorageModel::~KisStorageModel()
+PkString intString(int value)
 {
+    const std::string text = std::to_string(value);
+    return PkString::PkFromUtf8(text.data(), static_cast<int>(text.size()));
 }
 
-int KisStorageModel::rowCount(const QModelIndex &parent) const
+fs::path unusedPath(const fs::path &directory, const fs::path &filename)
 {
-    if (parent.isValid()) {
-        return 0;
-    }
-    return d->storages.size();
-
-}
-
-int KisStorageModel::columnCount(const QModelIndex &parent) const
-{
-    if (parent.isValid()) {
-        return 0;
+    fs::path candidate = directory / filename;
+    std::error_code error;
+    if (!fs::exists(candidate, error)) {
+        return candidate;
     }
 
-    return (int)MetaData;
+    const std::string stem = filename.stem().u8string();
+    const std::string extension = filename.extension().u8string();
+    for (int version = 1; version < 1000000; ++version) {
+        candidate = directory / fs::u8path(
+            stem + "_" + std::to_string(version) + extension);
+        error.clear();
+        if (!fs::exists(candidate, error)) {
+            return candidate;
+        }
+    }
+    return fs::path();
 }
 
-QImage KisStorageModel::getThumbnailFromQuery(const QSqlQuery &query)
+bool writeStorageFile(const fs::path &source,
+                      const fs::path &destination,
+                      const PkByteArray &data)
 {
-    const QString storageLocation = query.value("location").toString();
-    const QString storageType = query.value("storage_type").toString();
-    const QString storageIdAsString = query.value("id").toString();
+    std::error_code error;
+    fs::create_directories(destination.parent_path(), error);
+    if (error) {
+        return false;
+    }
 
-    QImage img = KisResourceThumbnailCache::instance()->originalImage(storageLocation, storageType, storageIdAsString);
-    if (!img.isNull()) {
-        return img;
+    fs::path temporary = destination;
+    temporary += ".importing";
+    for (int suffix = 0; fs::exists(temporary, error) && suffix < 1000; ++suffix) {
+        temporary = destination;
+        temporary += ".importing." + std::to_string(suffix + 1);
+    }
+
+    bool wrote = false;
+    if (!data.isEmpty()) {
+        std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
+        output.write(data.constData(), data.size());
+        output.flush();
+        wrote = output.good();
     } else {
-        const int storageId = query.value("id").toInt();
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(storageId >= 0, img);
-
-        bool result = false;
-        QSqlQuery thumbQuery;
-        result = thumbQuery.prepare("SELECT thumbnail FROM storages WHERE id = :id");
-        if (!result) {
-            qWarning() << "Failed to prepare query for thumbnail of" << storageId << thumbQuery.lastError();
-            return img;
-        }
-
-        thumbQuery.bindValue(":id", storageId);
-
-        result = thumbQuery.exec();
-
-        if (!result) {
-            qWarning() << "Failed to execute query for thumbnail of" << storageId << thumbQuery.lastError();
-            return img;
-        }
-
-        if (!thumbQuery.next()) {
-            qWarning() << "Failed to find thumbnail of" << storageId;
-            return img;
-        }
-
-        QByteArray ba = thumbQuery.value("thumbnail").toByteArray();
-        QBuffer buf(&ba);
-        buf.open(QBuffer::ReadOnly);
-        img.load(&buf, "PNG");
-        KisResourceThumbnailCache::instance()->insert(storageLocation, storageType, storageIdAsString, img);
-        return img;
+        error.clear();
+        wrote = fs::copy_file(source,
+                              temporary,
+                              fs::copy_options::overwrite_existing,
+                              error) && !error;
     }
-}
-
-QVariant KisStorageModel::data(const QModelIndex &index, int role) const
-{
-    QVariant v;
-
-    if (!index.isValid()) return v;
-    if (index.row() > rowCount()) return v;
-    if (index.column() > (int)MetaData) return v;
-
-    if (role == Qt::FontRole) {
-        return QFont();
+    if (!wrote) {
+        error.clear();
+        fs::remove(temporary, error);
+        return false;
     }
 
-    QString location = d->storages.at(index.row());
-
-    QSqlQuery query;
-
-    bool r = query.prepare(
-        "SELECT storages.id as id\n"
-        ",      storage_types.name as storage_type\n"
-        ",      location\n"
-        ",      timestamp\n"
-        ",      pre_installed\n"
-        ",      active\n"
-        "FROM   storages\n"
-        ",      storage_types\n"
-        "WHERE  storages.storage_type_id = storage_types.id\n"
-        "AND    location = :location");
-
-    if (!r) {
-        qWarning() << "Could not prepare KisStorageModel data query" << query.lastError();
-        return v;
+    error.clear();
+    if (fs::exists(destination, error)) {
+        fs::remove(temporary, error);
+        return false;
     }
-
-    query.bindValue(":location", location);
-
-    r = query.exec();
-
-    if (!r) {
-        qWarning() << "Could not execute KisStorageModel data query" << query.lastError() << query.boundValues();
-        return v;
-    }
-
-    if (!query.first()) {
-        qWarning() << "KisStorageModel data query did not return anything";
-        return v;
-    }
-
-    if ((role == Qt::DisplayRole || role == Qt::EditRole) && index.column() == Active) {
-        return query.value("active");
-    } else {
-        switch (role) {
-        case Qt::DisplayRole:
-        {
-            switch(index.column()) {
-            case Id:
-                return query.value("id");
-            case StorageType:
-                return query.value("storage_type");
-            case Location:
-                return query.value("location");
-            case TimeStamp:
-                return QDateTime::fromSecsSinceEpoch(query.value("timestamp").value<int>()).toString();
-            case PreInstalled:
-                return query.value("pre_installed");
-            case Active:
-                return query.value("active");
-            case Thumbnail:
-            {
-                return getThumbnailFromQuery(query);
-            }
-            case DisplayName:
-            {
-                QMap<QString, QVariant> r = KisResourceLocator::instance()->metaDataForStorage(query.value("location").toString());
-                QVariant name = query.value("location");
-                if (r.contains(KisResourceStorage::s_meta_name) && !r[KisResourceStorage::s_meta_name].toString().isNull()) {
-                    name = r[KisResourceStorage::s_meta_name];
-                }
-                else if (r.contains(KisResourceStorage::s_meta_title) && !r[KisResourceStorage::s_meta_title].toString().isNull()) {
-                    name = r[KisResourceStorage::s_meta_title];
-                }
-                return name;
-            }
-            case Qt::UserRole + MetaData:
-            {
-                QMap<QString, QVariant> r = KisResourceLocator::instance()->metaDataForStorage(query.value("location").toString());
-                return r;
-            }
-            default:
-                return v;
-            }
-        }
-        case Qt::CheckStateRole: {
-            switch (index.column()) {
-            case PreInstalled:
-                if (query.value("pre_installed").toInt() == 0) {
-                    return Qt::Unchecked;
-                } else {
-                    return Qt::Checked;
-                }
-            case Active:
-                if (query.value("active").toInt() == 0) {
-                    return Qt::Unchecked;
-                } else {
-                    return Qt::Checked;
-                }
-            default:
-                return {};
-            }
-        }
-        case Qt::DecorationRole: {
-            if (index.column() == Thumbnail) {
-                return getThumbnailFromQuery(query);
-            }
-            return {};
-        }
-        case Qt::UserRole + Id:
-            return query.value("id");
-        case Qt::UserRole + DisplayName:
-        {
-            QMap<QString, QVariant> r = KisResourceLocator::instance()->metaDataForStorage(query.value("location").toString());
-            QVariant name = query.value("location");
-            if (r.contains(KisResourceStorage::s_meta_name) && !r[KisResourceStorage::s_meta_name].toString().isNull()) {
-                name = r[KisResourceStorage::s_meta_name];
-            }
-            else if (r.contains(KisResourceStorage::s_meta_title) && !r[KisResourceStorage::s_meta_title].toString().isNull()) {
-                name = r[KisResourceStorage::s_meta_title];
-            }
-            return name;
-        }
-        case Qt::UserRole + StorageType:
-            return query.value("storage_type");
-        case Qt::UserRole + Location:
-            return query.value("location");
-        case Qt::UserRole + TimeStamp:
-            return query.value("timestamp");
-        case Qt::UserRole + PreInstalled:
-            return query.value("pre_installed");
-        case Qt::UserRole + Active:
-            return query.value("active");
-        case Qt::UserRole + Thumbnail:
-            return getThumbnailFromQuery(query);
-        case Qt::UserRole + MetaData:
-        {
-            QMap<QString, QVariant> r = KisResourceLocator::instance()->metaDataForStorage(query.value("location").toString());
-            return r;
-        }
-
-        default:
-            ;
-        }
-    }
-
-    return v;
-}
-
-bool KisStorageModel::setData(const QModelIndex &index, const QVariant &value, int role)
-{
-    if (index.isValid()) {
-
-        if (role == Qt::CheckStateRole) {
-            QSqlQuery query;
-            bool r = query.prepare("UPDATE storages\n"
-                                   "SET    active = :active\n"
-                                   "WHERE  id = :id\n");
-            query.bindValue(":active", value);
-            query.bindValue(":id", index.data(Qt::UserRole + Id));
-
-            if (!r) {
-                qWarning() << "Could not prepare KisStorageModel update query" << query.lastError();
-                return false;
-            }
-
-            r = query.exec();
-
-            if (!r) {
-                qWarning() << "Could not execute KisStorageModel update query" << query.lastError();
-                return false;
-            }
-
-        }
-
-        Q_EMIT dataChanged(index, index, {role});
-
-        if (value.toBool()) {
-            Q_EMIT storageEnabled(data(index, Qt::UserRole + Location).toString());
-        }
-        else {
-            Q_EMIT storageDisabled(data(index, Qt::UserRole + Location).toString());
-        }
-
-    }
-    return true;
-}
-
-Qt::ItemFlags KisStorageModel::flags(const QModelIndex &index) const
-{
-    if (!index.isValid()) {
-        return Qt::NoItemFlags;
-    }
-    return QAbstractTableModel::flags(index) | Qt::ItemIsEditable | Qt::ItemNeverHasChildren;
-}
-
-KisResourceStorageSP KisStorageModel::storageForIndex(const QModelIndex &index) const
-{
-
-    if (!index.isValid()) return 0;
-    if (index.row() > rowCount()) return 0;
-    if (index.column() > (int)MetaData) return 0;
-
-    QString location = d->storages.at(index.row());
-
-    return KisResourceLocator::instance()->storageByLocation(KisResourceLocator::instance()->makeStorageLocationAbsolute(location));
-}
-
-KisResourceStorageSP KisStorageModel::storageForId(const int storageId) const
-{
-    QSqlQuery query;
-
-    bool r = query.prepare("SELECT location\n"
-                           "FROM   storages\n"
-                           "WHERE  storages.id = :storageId");
-
-    if (!r) {
-        qWarning() << "Could not prepare KisStorageModel data query" << query.lastError();
-        return 0;
-    }
-
-    query.bindValue(":storageId", storageId);
-
-    r = query.exec();
-
-    if (!r) {
-        qWarning() << "Could not execute KisStorageModel data query" << query.lastError() << query.boundValues();
-        return 0;
-    }
-
-    if (!query.first()) {
-        qWarning() << "KisStorageModel data query did not return anything";
-        return 0;
-    }
-
-    return KisResourceLocator::instance()->storageByLocation(KisResourceLocator::instance()->makeStorageLocationAbsolute(query.value("location").toString()));
-}
-
-QString findUnusedName(QString location, QString filename)
-{
-    // the Save Incremental Version incrementation in KisViewManager is way too complex for this task
-    // and in that case there is a specific file to increment, while here we need to find just
-    // an unused filename
-    QFileInfo info = QFileInfo(location + "/" + filename);
-    if (!info.exists()) {
-        return filename;
-    }
-
-    QString extension = info.suffix();
-    QString filenameNoExtension = filename.left(filename.length() - extension.length());
-
-
-    QDir dir = QDir(location);
-    QStringList similarEntries = dir.entryList(QStringList() << filenameNoExtension + "*");
-
-    QList<int> versions;
-    int maxVersionUsed = -1;
-    for (int i = 0; i < similarEntries.count(); i++) {
-        QString entry = similarEntries[i];
-        //QFileInfo fi = QFileInfo(entry);
-        if (!entry.endsWith(extension)) {
-            continue;
-        }
-        QString versionStr = entry.right(entry.length() - filenameNoExtension.length()); // strip the common part
-        versionStr = versionStr.left(versionStr.length() - extension.length());
-        if (!versionStr.startsWith("_")) {
-            continue;
-        }
-        versionStr = versionStr.right(versionStr.length() - 1); // strip '_'
-        // now the part left should be a number
-        bool ok;
-        int version = versionStr.toInt(&ok);
-        if (!ok) {
-            continue;
-        }
-        if (version > maxVersionUsed) {
-            maxVersionUsed = version;
-        }
-    }
-
-    int versionToUse = maxVersionUsed > -1 ? maxVersionUsed + 1 : 1;
-    int versionStringLength = 3;
-    QString baseNewVersion = QString::number(versionToUse);
-    while (baseNewVersion.length() < versionStringLength) {
-        baseNewVersion.prepend("0");
-    }
-
-    QString newFilename = filenameNoExtension + "_" + QString::number(versionToUse) + extension;
-    bool success = !QFileInfo(location + "/" + newFilename).exists();
-
-    if (!success) {
-        qCritical() << "The new filename for the bundle does exist." << newFilename;
-    }
-
-    return newFilename;
-
-}
-
-bool KisStorageModel::importStorage(const QString &filename, StorageImportOption importOption) const
-{
-    return importStorageInternal(filename, importOption, false, QByteArray());
-}
-
-bool KisStorageModel::importStorageData(const QString &filename,
-                                        StorageImportOption importOption,
-                                        const QByteArray &data) const
-{
-    return !data.isEmpty() && importStorageInternal(filename, importOption, false, data);
-}
-
-bool KisStorageModel::canImportStorage(const QString &filename) const
-{
-    return importStorageInternal(filename, None, true, QByteArray());
-}
-
-bool KisStorageModel::importStorageInternal(const QString &filename,
-                                            StorageImportOption importOption,
-                                            bool dryRun,
-                                            const QByteArray &data)
-{
-    // 1. Copy the bundle/storage to the resource folder
-    QFileInfo oldFileInfo(filename);
-    QString newDir = KoResourcePaths::getAppDataLocation();
-    QString newName = oldFileInfo.fileName();
-    QString newLocation = newDir + '/' + newName;
-
-    QFileInfo newFileInfo(newLocation);
-    if (newFileInfo.exists()) {
-        if (importOption == Overwrite) {
-            //QFile::remove(newLocation);
-            return false;
-        } else if (importOption == Rename) {
-            newName = findUnusedName(newDir, newName);
-            newLocation = newDir + '/' + newName;
-            newFileInfo = QFileInfo(newLocation);
-        } else { // importOption == None
-            return false;
-        }
-    }
-
-    // Don't actually import, just check if we could.
-    if (dryRun) {
-        return true;
-    }
-
-    if (data.isEmpty()) {
-        QFile::copy(filename, newLocation);
-    } else {
-        QSaveFile f(newLocation);
-        f.setDirectWriteFallback(false);
-
-        if (!f.open(QIODevice::WriteOnly) || f.write(data) != data.size() || !f.flush()) {
-            qWarning() << "Error writing" << data.size() << "bytes to" << newLocation << "storage:" << f.errorString();
-            return false;
-        }
-
-        f.commit();
-    }
-
-    // 2. Add the bundle as a storage/update database
-    KisResourceStorageSP storage = QSharedPointer<KisResourceStorage>::create(newLocation);
-    KIS_ASSERT(!storage.isNull());
-    if (storage.isNull()) { return false; }
-    if (!KisResourceLocator::instance()->addStorage(newLocation, storage)) {
-        qWarning() << "Could not add bundle to the storages" << newLocation;
+    error.clear();
+    fs::rename(temporary, destination, error);
+    if (error) {
+        fs::remove(temporary, error);
         return false;
     }
     return true;
 }
 
-QVariant KisStorageModel::headerData(int section, Qt::Orientation orientation, int role) const
+} // namespace
+
+struct KisStorageModel::Private
 {
-    QVariant v = QVariant();
-    if (role != Qt::DisplayRole) {
-        return v;
+    PkVector<KisStorageRecord> records;
+};
+
+KisStorageModel::KisStorageModel(PkObject *parent)
+    : PkObject(parent)
+    , d(new Private)
+{
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    if (locator) {
+        PkObject::connect(locator,
+                          &KisResourceLocator::storageAdded,
+                          this,
+                          &KisStorageModel::addStorage);
+        PkObject::connect(locator,
+                          &KisResourceLocator::storageRemoved,
+                          this,
+                          &KisStorageModel::removeStorage);
+        PkObject::connect(locator,
+                          &KisResourceLocator::storageResynchronized,
+                          this,
+                          &KisStorageModel::storageResynchronized);
+        PkObject::connect(locator,
+                          &KisResourceLocator::storagesBulkSynchronizationFinished,
+                          this,
+                          &KisStorageModel::slotStoragesBulkSynchronizationFinished);
     }
-    if (orientation == Qt::Horizontal) {
-        switch(section) {
-        case Id:
-            return i18n("Id");
-        case StorageType:
-            return i18n("Type");
-        case Location:
-            return i18n("Location");
-        case TimeStamp:
-            return i18n("Creation Date");
-        case PreInstalled:
-            return i18n("Preinstalled");
-        case Active:
-            return i18n("Active");
-        case Thumbnail:
-            return i18n("Thumbnail");
-        case DisplayName:
-            return i18n("Name");
-        default:
-            v = QString::number(section);
+    refresh();
+}
+
+KisStorageModel::~KisStorageModel()
+{
+    delete d;
+}
+
+KisStorageModel *KisStorageModel::instance()
+{
+    static KisStorageModel model;
+    return &model;
+}
+
+PkVector<KisStorageRecord> KisStorageModel::storages() const
+{
+    return d->records;
+}
+
+KisResourceStorageSP KisStorageModel::storageForId(int storageId) const
+{
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    if (!locator) {
+        return KisResourceStorageSP();
+    }
+    for (const KisStorageRecord &record : d->records) {
+        if (record.id == storageId) {
+            return locator->storageByLocation(
+                locator->makeStorageLocationAbsolute(record.location));
         }
-        return v;
     }
-    return QAbstractTableModel::headerData(section, orientation, role);
+    return KisResourceStorageSP();
 }
 
-void KisStorageModel::addStorage(const QString &location)
+bool KisStorageModel::setStorageActive(int storageId, bool active)
 {
-    beginInsertRows(QModelIndex(), rowCount(), rowCount());
-    d->storages.append(location);
-    endInsertRows();
+    PkString location;
+    for (const KisStorageRecord &record : d->records) {
+        if (record.id == storageId) {
+            location = record.location;
+            break;
+        }
+    }
+    if (location.isEmpty()) {
+        return false;
+    }
+
+    PkSqlQuery query;
+    if (!query.prepare(PkString(
+            "UPDATE storages SET active = :active WHERE id = :id"))) {
+        return false;
+    }
+    query.bindValue(PkString(":active"), PkVariant(active));
+    query.bindValue(PkString(":id"), PkVariant(storageId));
+    if (!query.exec()) {
+        return false;
+    }
+    refresh();
+    if (active) {
+        storageEnabled(location);
+    } else {
+        storageDisabled(location);
+    }
+    return true;
 }
 
-void KisStorageModel::removeStorage(const QString &location)
+bool KisStorageModel::importStorage(const PkString &filename,
+                                    StorageImportOption importOption) const
 {
-    int row = d->storages.indexOf(QFileInfo(location).fileName());
-    beginRemoveRows(QModelIndex(), row, row);
-    d->storages.removeAt(row);
-    endRemoveRows();
+    return importStorageInternal(filename, importOption, false, PkByteArray());
+}
+
+bool KisStorageModel::importStorageData(const PkString &filename,
+                                        StorageImportOption importOption,
+                                        const PkByteArray &data) const
+{
+    return !data.isEmpty() &&
+        importStorageInternal(filename, importOption, false, data);
+}
+
+bool KisStorageModel::canImportStorage(const PkString &filename) const
+{
+    return importStorageInternal(filename, None, true, PkByteArray());
+}
+
+bool KisStorageModel::importStorageInternal(const PkString &filename,
+                                            StorageImportOption importOption,
+                                            bool dryRun,
+                                            const PkByteArray &data)
+{
+    const fs::path source = toPath(filename);
+    fs::path destinationDirectory = toPath(KoResourcePaths::getAppDataLocation());
+    fs::path destination = destinationDirectory / source.filename();
+
+    std::error_code error;
+    const bool sourceReadable = !data.isEmpty() ||
+        (fs::is_regular_file(source, error) && !error);
+    if (!sourceReadable || source.filename().empty()) {
+        return false;
+    }
+
+    error.clear();
+    if (fs::exists(destination, error)) {
+        if (importOption == Rename) {
+            destination = unusedPath(destinationDirectory, source.filename());
+            if (destination.empty()) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    if (dryRun) {
+        return true;
+    }
+    if (!writeStorageFile(source, destination, data)) {
+        return false;
+    }
+
+    KisResourceStorageSP storage = KisResourceStorageSP::create(fromPath(destination));
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    return storage && storage->valid() && locator &&
+        locator->addStorage(fromPath(destination), storage);
+}
+
+void KisStorageModel::storageEnabled(const PkString &storage)
+{
+    activateSignal<const PkString &>(this,
+                                     PkMemberFnKey::from(&KisStorageModel::storageEnabled),
+                                     storage);
+}
+
+void KisStorageModel::storageDisabled(const PkString &storage)
+{
+    activateSignal<const PkString &>(this,
+                                     PkMemberFnKey::from(&KisStorageModel::storageDisabled),
+                                     storage);
+}
+
+void KisStorageModel::storageResynchronized(const PkString &storage, bool bulk)
+{
+    if (!bulk) {
+        refresh();
+    }
+    activateSignal<const PkString &, bool>(
+        this,
+        PkMemberFnKey::from(&KisStorageModel::storageResynchronized),
+        storage,
+        bulk);
+}
+
+void KisStorageModel::storagesBulkSynchronizationFinished()
+{
+    activateSignal<>(
+        this,
+        PkMemberFnKey::from(&KisStorageModel::storagesBulkSynchronizationFinished));
+}
+
+void KisStorageModel::addStorage(const PkString &location)
+{
+    (void)location;
+    refresh();
+}
+
+void KisStorageModel::removeStorage(const PkString &location)
+{
+    (void)location;
+    refresh();
 }
 
 void KisStorageModel::slotStoragesBulkSynchronizationFinished()
 {
-    beginResetModel();
-    resetQuery();
-    endResetModel();
-
-    Q_EMIT storagesBulkSynchronizationFinished();
+    refresh();
+    storagesBulkSynchronizationFinished();
 }
 
-void KisStorageModel::resetQuery()
+bool KisStorageModel::refresh()
 {
-    QSqlQuery query;
-
-    bool r = query.prepare(
-        "SELECT location\n"
-        "FROM   storages\n"
-        "ORDER BY id");
-    if (!r) {
-        qWarning() << "Could not prepare KisStorageModel query" << query.lastError();
+    PkSqlQuery query;
+    if (!query.exec(PkString(
+            "SELECT storages.id AS id, storage_types.name AS storage_type, "
+            "storages.location AS location, storages.timestamp AS timestamp, "
+            "storages.pre_installed AS pre_installed, storages.active AS active, "
+            "storages.thumbnail AS thumbnail "
+            "FROM storages "
+            "JOIN storage_types ON storages.storage_type_id = storage_types.id "
+            "ORDER BY storages.id"))) {
+        return false;
     }
 
-    r = query.exec();
-
-    if (!r) {
-        qWarning() << "Could not execute KisStorageModel query" << query.lastError();
-    }
-
-    d->storages.clear();
+    PkVector<KisStorageRecord> replacement;
+    KisResourceLocator *locator = KisResourceLocator::instance();
+    KisResourceThumbnailCache *cache = KisResourceThumbnailCache::instance();
     while (query.next()) {
-        d->storages << query.value(0).toString();
+        KisStorageRecord record;
+        record.id = query.value(PkString("id")).toInt();
+        record.storageType = query.value(PkString("storage_type")).toString();
+        record.location = query.value(PkString("location")).toString();
+        record.timestamp = query.value(PkString("timestamp")).toLongLong();
+        record.preInstalled = query.value(PkString("pre_installed")).toBool();
+        record.active = query.value(PkString("active")).toBool();
+        if (locator) {
+            record.metaData = locator->metaDataForStorage(record.location);
+        }
+        record.displayName = record.location;
+        PkString name = record.metaData.value(KisResourceStorage::s_meta_name).toString();
+        if (name.isEmpty()) {
+            name = record.metaData.value(KisResourceStorage::s_meta_title).toString();
+        }
+        if (!name.isEmpty()) {
+            record.displayName = name;
+        }
+
+        if (cache) {
+            record.thumbnail = cache->originalImage(record.location,
+                                                     record.storageType,
+                                                     intString(record.id));
+        }
+        if (record.thumbnail.isNull()) {
+            record.thumbnail = KisResourceThumbnailCodec::decodePng(
+                query.value(PkString("thumbnail")).toByteArray());
+            if (cache && !record.thumbnail.isNull()) {
+                cache->insert(record.location,
+                              record.storageType,
+                              intString(record.id),
+                              record.thumbnail);
+            }
+        }
+        replacement.append(record);
     }
+    d->records = replacement;
+    return true;
 }
