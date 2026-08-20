@@ -1,5 +1,7 @@
 # pk/signal —— 自写信号槽库（Q-1 的自写替代）
 
+`PkObject::deleteLater()` 向对象亲和线程只投递一次删除；重复调用会合并，父对象先行析构子对象时，排队操作安全失效。目标线程仍须先预热并显式 pump。
+
 零 Qt 依赖的 C++17 信号槽：`PkObject`（父子树 + 生命周期 + 编译期 connect/emit/disconnect）、
 `PkConnection`（连接句柄）、`PkPointer`（弱引用防悬垂）、`compat/QObject`（一字不改的
 compat 垫片）+ `pk_signal_moc.py`（替代 moc 的信号定义生成器）。独立

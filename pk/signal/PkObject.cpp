@@ -1,12 +1,25 @@
 #include "PkObject.h"
 
 PkObject::PkObject(PkObject* parent)
-    : m_alive(std::make_shared<std::atomic<bool>>(true))
+    : m_alive(std::make_shared<std::atomic<bool>>(true)),
+      m_deleteScheduled(std::make_shared<std::atomic<bool>>(false))
 {
     if (parent) {
         parent->m_children.push_back(this);
         m_parent = parent;
     }
+}
+
+void PkObject::deleteLater()
+{
+    bool expected = false;
+    if (!m_deleteScheduled->compare_exchange_strong(expected, true)) return;
+    PkObject* object = this;
+    auto alive = m_alive;
+    PkThreadCallQueue::post(thread(), [object, alive] {
+        bool expectedAlive = true;
+        if (alive->compare_exchange_strong(expectedAlive, false)) delete object;
+    });
 }
 
 PkObject::~PkObject()

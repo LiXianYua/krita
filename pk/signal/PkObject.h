@@ -42,6 +42,8 @@ public:
     PkThreadId thread() const { return m_thread.load(); }
     void moveToThread(PkThreadId id) { m_thread.store(id); }
 
+    void deleteLater();
+
     // ---- 连接（同步直连）----
     // 成员函数指针 → 成员函数指针
     template <typename Func1, typename Func2>
@@ -124,6 +126,7 @@ private:
 
     // QPointer 存活标志（析构置 false）。
     std::shared_ptr<std::atomic<bool>> m_alive;
+    std::shared_ptr<std::atomic<bool>> m_deleteScheduled;
 
     // 线程亲和性标记，构造时初始化为当前线程。原子类型见上方 thread()/
     // moveToThread() 注释（I-1：跨线程读写的数据竞争修复）。

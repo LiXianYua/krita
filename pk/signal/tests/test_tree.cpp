@@ -30,6 +30,30 @@ void run_tree_tests()
         _expect(root.children().size() == 2, "root has 2 children");
     }
 
+    // A missing/incorrect deleteLater implementation makes these fail by
+    // deleting immediately, twice, or again after parent ownership wins.
+    {
+        PkThreadCallQueue::warmUpCurrentThread();
+        g_dtorOrder.clear();
+        Named* deferred = new Named("deferred");
+        deferred->deleteLater();
+        deferred->deleteLater();
+        _expect(g_dtorOrder.empty(), "deleteLater is deferred until the affinity thread pumps");
+        PkThreadCallQueue::processPendingCalls();
+        _expect(g_dtorOrder.size() == 1 && g_dtorOrder[0] == "deferred",
+                "repeated deleteLater schedules exactly one deletion");
+    }
+    {
+        g_dtorOrder.clear();
+        PkObject* parent = new PkObject;
+        Named* child = new Named("child", parent);
+        child->deleteLater();
+        delete parent;
+        PkThreadCallQueue::processPendingCalls();
+        _expect(g_dtorOrder.size() == 1 && g_dtorOrder[0] == "child",
+                "parent deletion cancels a child's pending deferred deletion");
+    }
+
     // 2. 析构顺序 = 创建顺序（FIFO），探针 1 实测 c1→c2→c3
     {
         g_dtorOrder.clear();
