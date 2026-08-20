@@ -8,6 +8,8 @@ class DataStreamCase : public QObject
 private Q_SLOTS:
     void defaultsAndStatus();
     void bareBoolMatchesQt46WireBytes();
+    void rejectsNonCanonicalBoolPayloads();
+    void rejectsNonCanonicalVariantNullFlags();
     void readsQt46BigEndianFixtures();
     void readsQt515BigEndianFixtures();
     void writesQt46BigEndianFixtures();

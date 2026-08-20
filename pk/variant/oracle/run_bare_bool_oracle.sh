@@ -27,7 +27,7 @@ LD_LIBRARY_PATH="$qt_prefix/lib:${LD_LIBRARY_PATH:-}" "$out_dir/qt_oracle" > "$o
 "$out_dir/pk_checker" > "$out_dir/pk.txt"
 
 # R-line oracle contract: mismatches are data for review, not process errors.
-# The first three fields encode the input shape and form the DIFFTAG.
+# The first four fields encode the input shape and form the DIFFTAG.
 awk '
     NR == FNR { qt[NR] = $0; qt_count = NR; next }
     { pk[FNR] = $0; pk_count = FNR }
@@ -40,7 +40,7 @@ awk '
                 source = qt[i] != "" ? qt[i] : pk[i]
                 count = split(source, fields, " ")
                 if (count >= 3) {
-                    tag = fields[1] "/" fields[2] "/" fields[3]
+                    tag = fields[1] "/" fields[2] "/" fields[3] "/" fields[4]
                     gsub(/=/, "-", tag)
                 } else {
                     tag = "line-" i

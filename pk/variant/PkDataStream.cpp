@@ -315,9 +315,14 @@ PkDataStream &PkDataStream::operator<<(bool value)
 
 PkDataStream &PkDataStream::operator>>(bool &value)
 {
-    std::int8_t encoded = 0;
+    std::uint8_t encoded = 0;
     *this >> encoded;
-    value = encoded != 0;
+    if (m_status == Ok && encoded > 1u) {
+        setStatus(ReadCorruptData);
+        value = false;
+        return *this;
+    }
+    value = m_status == Ok && encoded == 1u;
     return *this;
 }
 
@@ -794,6 +799,10 @@ PkDataStream &PkDataStream::operator>>(PkVariant &value)
     std::uint8_t nullFlag = 0;
     *this >> typeId >> nullFlag;
     if (m_status != Ok) return *this;
+    if (nullFlag > 1u) {
+        setStatus(ReadCorruptData);
+        return *this;
+    }
     if (m_version <= Qt_4_6 && typeId == kQt4FloatType) typeId = PkVariant::Float;
     const bool isUserType = (m_version <= Qt_4_6 && typeId == kQt4UserType)
                          || (m_version > Qt_4_6 && typeId >= kQt5UserType);
@@ -832,7 +841,12 @@ bool PkDataStream::readVariantPayload(std::uint32_t typeId, PkVariant &value)
         if (m_version <= Qt_4_6) { std::uint32_t ignored = 0; *this >> ignored; }
         value.clear();
         break;
-    case PkVariant::Bool: { std::uint8_t v = 0; *this >> v; value = PkVariant(v != 0); break; }
+    case PkVariant::Bool: {
+        bool v = false;
+        *this >> v;
+        if (m_status == Ok) value = PkVariant(v);
+        break;
+    }
     case PkVariant::Int: { std::int32_t v = 0; *this >> v; value = PkVariant(static_cast<int>(v)); break; }
     case PkVariant::UInt: { std::uint32_t v = 0; *this >> v; value = PkVariant(static_cast<unsigned int>(v)); break; }
     case PkVariant::LongLong: { std::int64_t v = 0; *this >> v; value = PkVariant(static_cast<long long>(v)); break; }
@@ -905,7 +919,7 @@ bool PkDataStream::readVariantPayload(std::uint32_t typeId, PkVariant &value)
     }
     case PkVariant::Rect: {
         std::int32_t x1=0,y1=0,x2=0,y2=0; *this >> x1 >> y1 >> x2 >> y2;
-        value = PkVariant(PkRect(x1, y1, x2 - x1 + 1, y2 - y1 + 1)); break;
+        value = PkVariant(PkRect(PkPoint(x1, y1), PkPoint(x2, y2))); break;
     }
     case PkVariant::RectF: {
         double x=0,y=0,w=0,h=0; *this >> x >> y >> w >> h; value = PkVariant(PkRectF(x,y,w,h)); break;

@@ -1,80 +1,21 @@
 #include <QByteArray>
 #include <QDataStream>
-
+#include <QRect>
+#include <QVariant>
 #include <cstdio>
+#include <algorithm>
 #include <type_traits>
-
 class PkDataStream;
-static_assert(!std::is_same<QDataStream, PkDataStream>::value,
-              "Qt and pk streams must be distinct");
-
+static_assert(!std::is_same<QDataStream, PkDataStream>::value);
 namespace {
-
-void printHex(const QByteArray &bytes)
-{
-    for (unsigned char byte : bytes) {
-        std::printf("%02x", static_cast<unsigned int>(byte));
-    }
+void hex(const QByteArray &b){for(unsigned char x:b)std::printf("%02x",x);}
+const char*vname(QDataStream::Version v){return v==QDataStream::Qt_4_6?"qt46":"qt515";}
+const char*oname(QDataStream::ByteOrder o){return o==QDataStream::BigEndian?"big":"little";}
+void pre(const char*k,QDataStream::Version v,QDataStream::ByteOrder o,const char*n,const QByteArray&i){std::printf("kind=%s version=%s order=%s case=%s input=",k,vname(v),oname(o),n);hex(i);}
+void bare(QDataStream::Version v,QDataStream::ByteOrder o,const char*n,const QByteArray&i){bool x=true;QDataStream s(i);s.setVersion(v);s.setByteOrder(o);s>>x;pre("bare",v,o,n,i);std::printf(" value=%u status=%d\n",x,int(s.status()));}
+void var(QDataStream::Version v,QDataStream::ByteOrder o,const char*n,const QByteArray&i){quint32 type=0;quint8 flag=0;quint8 b=0;QDataStream s(i);s.setVersion(v);s.setByteOrder(o);s>>type>>flag>>b;pre("variant",v,o,n,i);std::printf(" valid=%u type=%u bool=%u status=%d\n",s.status()==QDataStream::Ok,type,b!=0,int(s.status()));}
+void rect(QDataStream::Version v,QDataStream::ByteOrder o,const char*n,const QByteArray&i){QVariant x;QDataStream s(i);s.setVersion(v);s.setByteOrder(o);s>>x;QRect r=x.toRect();pre("rect",v,o,n,i);std::printf(" valid=%u x=%d y=%d w=%d h=%d status=%d\n",x.isValid(),r.x(),r.y(),r.width(),r.height(),int(s.status()));}
+QByteArray frame(const char*f,const char*p,QDataStream::ByteOrder o){QByteArray x=QByteArray::fromHex(o==QDataStream::BigEndian?"0000000100":"0100000000");x[4]=QByteArray::fromHex(f)[0];x+=QByteArray::fromHex(p);return x;}
+QByteArray rectFrame(const char*p,QDataStream::ByteOrder o){QByteArray x=QByteArray::fromHex(o==QDataStream::BigEndian?"0000001300":"1300000000");QByteArray c=QByteArray::fromHex(p);if(o==QDataStream::LittleEndian)for(int i=0;i<c.size();i+=4){char t=c[i];c[i]=c[i+3];c[i+3]=t;t=c[i+1];c[i+1]=c[i+2];c[i+2]=t;}x+=c;return x;}
 }
-
-void emitWrite(QDataStream::ByteOrder order)
-{
-    QByteArray bytes;
-    QDataStream writer(&bytes, QIODevice::WriteOnly);
-    writer.setVersion(QDataStream::Qt_4_6);
-    writer.setByteOrder(order);
-    writer << false << true;
-
-    std::printf("kind=write order=%s name=false-true bytes=",
-                order == QDataStream::BigEndian ? "big" : "little");
-    printHex(bytes);
-    std::printf(" status=%d\n", static_cast<int>(writer.status()));
-}
-
-void emitReadOne(const char *name, const QByteArray &bytes, QDataStream::ByteOrder order)
-{
-    bool value = true;
-    QDataStream reader(bytes);
-    reader.setVersion(QDataStream::Qt_4_6);
-    reader.setByteOrder(order);
-    reader >> value;
-
-    std::printf("kind=read-one order=%s name=%s input=",
-                order == QDataStream::BigEndian ? "big" : "little", name);
-    printHex(bytes);
-    std::printf(" value=%u status=%d\n", value ? 1u : 0u,
-                static_cast<int>(reader.status()));
-}
-
-void emitReadTwo(const char *name, const QByteArray &bytes, QDataStream::ByteOrder order)
-{
-    bool first = false;
-    bool second = true;
-    QDataStream reader(bytes);
-    reader.setVersion(QDataStream::Qt_4_6);
-    reader.setByteOrder(order);
-    reader >> first >> second;
-
-    std::printf("kind=read-two order=%s name=%s input=",
-                order == QDataStream::BigEndian ? "big" : "little", name);
-    printHex(bytes);
-    std::printf(" first=%u second=%u status=%d\n",
-                first ? 1u : 0u, second ? 1u : 0u,
-                static_cast<int>(reader.status()));
-}
-
-} // namespace
-
-int main()
-{
-    for (QDataStream::ByteOrder order : {QDataStream::BigEndian, QDataStream::LittleEndian}) {
-        emitWrite(order);
-        emitReadOne("empty", QByteArray(), order);
-        emitReadOne("false", QByteArray::fromHex("00"), order);
-        emitReadOne("true", QByteArray::fromHex("01"), order);
-        emitReadOne("raw-02", QByteArray::fromHex("02"), order);
-        emitReadOne("raw-ff", QByteArray::fromHex("ff"), order);
-        emitReadTwo("complete", QByteArray::fromHex("0100"), order);
-        emitReadTwo("short-second", QByteArray::fromHex("01"), order);
-    }
-}
+int main(){const char*b[]={"00","01","02","ff"};for(auto v:{QDataStream::Qt_4_6,QDataStream::Qt_5_15})for(auto o:{QDataStream::BigEndian,QDataStream::LittleEndian}){for(auto q:b)bare(v,o,q,QByteArray::fromHex(q));for(auto q:b)var(v,o,q,frame(q,"01",o));for(auto q:b)var(v,o,q,frame("00",q,o));rect(v,o,"int-min-max",rectFrame("80000000800000007fffffff7fffffff",o));rect(v,o,"reversed-extremes",rectFrame("7fffffff7fffffff8000000080000000",o));}}

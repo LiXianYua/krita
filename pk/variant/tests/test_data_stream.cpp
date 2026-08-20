@@ -176,6 +176,71 @@ void DataStreamCase::bareBoolMatchesQt46WireBytes()
     }
 }
 
+void DataStreamCase::rejectsNonCanonicalBoolPayloads()
+{
+    for (PkDataStream::Version version : {PkDataStream::Qt_4_6, PkDataStream::Qt_5_15}) {
+        for (PkDataStream::ByteOrder order : {PkDataStream::BigEndian, PkDataStream::LittleEndian}) {
+            for (const char *payload : {"02", "ff"}) {
+                PkDataStream bare(fromHex(payload));
+                bare.setVersion(version);
+                bare.setByteOrder(order);
+                bool value = true;
+                bare >> value;
+                PK_COMPARE(bare.status(), PkDataStream::ReadCorruptData);
+                PK_VERIFY(!value);
+            }
+            for (const char *payload : {"00", "01"}) {
+                PkDataStream bare(fromHex(payload));
+                bare.setVersion(version);
+                bare.setByteOrder(order);
+                bool value = false;
+                bare >> value;
+                PK_COMPARE(bare.status(), PkDataStream::Ok);
+                PK_VERIFY(value == (payload[1] == '1'));
+            }
+        }
+    }
+}
+
+void DataStreamCase::rejectsNonCanonicalVariantNullFlags()
+{
+    for (PkDataStream::Version version : {PkDataStream::Qt_4_6, PkDataStream::Qt_5_15}) {
+        for (PkDataStream::ByteOrder order : {PkDataStream::BigEndian, PkDataStream::LittleEndian}) {
+            const char *badNull[] = {order == PkDataStream::BigEndian ? "000000010201" : "010000000201",
+                                     order == PkDataStream::BigEndian ? "00000001ff01" : "01000000ff01"};
+            const char *badPayload[] = {order == PkDataStream::BigEndian ? "000000010002" : "010000000002",
+                                        order == PkDataStream::BigEndian ? "0000000100ff" : "0100000000ff"};
+            for (const char *hex : badNull) {
+                PkDataStream stream(fromHex(hex));
+                stream.setVersion(version);
+                stream.setByteOrder(order);
+                PkVariant value(true);
+                stream >> value;
+                PK_COMPARE(stream.status(), PkDataStream::ReadCorruptData);
+                PK_VERIFY(!value.isValid());
+            }
+            for (const char *hex : badPayload) {
+                PkDataStream stream(fromHex(hex));
+                stream.setVersion(version);
+                stream.setByteOrder(order);
+                PkVariant value(true);
+                stream >> value;
+                PK_COMPARE(stream.status(), PkDataStream::ReadCorruptData);
+                PK_VERIFY(!value.isValid());
+            }
+            for (const char *hex : {order == PkDataStream::BigEndian ? "000000010001" : "010000000001"}) {
+                PkDataStream stream(fromHex(hex));
+                stream.setVersion(version);
+                stream.setByteOrder(order);
+                PkVariant value;
+                stream >> value;
+                PK_COMPARE(stream.status(), PkDataStream::Ok);
+                PK_VERIFY(value.isValid() && value.toBool());
+            }
+        }
+    }
+}
+
 void DataStreamCase::readsQt46BigEndianFixtures()
 {
     verifyReads(fixtures46(), PkDataStream::Qt_4_6);
