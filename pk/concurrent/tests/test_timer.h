@@ -10,6 +10,7 @@ private Q_SLOTS:
     void repeatingTimerPostsMoreThanOnce();
     void zeroIntervalRepeatingTimerKeepsOneCallbackOutstanding();
     void negativeIntervalRepeatingTimerClampsToZero();
+    void zeroIntervalSingleShotRestartPreservesReplacementGeneration();
     void warmedTargetThreadReceivesCallback();
     void queuedCallbackIsCancelledByStopAndDestruction();
     void queuedCallbackIsCancelledByDestructionAlone();

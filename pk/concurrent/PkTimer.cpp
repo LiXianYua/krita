@@ -29,7 +29,9 @@ struct PkTimer::State : std::enable_shared_from_this<PkTimer::State> {
 
             callback();
             if (singleShot) {
-                current->active = false;
+                if (current->generation.load() == expectedGeneration) {
+                    current->active = false;
+                }
             } else if (current->active.load() &&
                        current->generation.load() == expectedGeneration) {
                 current->postZeroInterval(callback, false, expectedGeneration);

@@ -81,6 +81,28 @@ void TestTimer::negativeIntervalRepeatingTimerClampsToZero()
     PK_COMPARE(calls.load(), 1);
 }
 
+void TestTimer::zeroIntervalSingleShotRestartPreservesReplacementGeneration()
+{
+    PkThreadCallQueue::warmUpCurrentThread();
+    std::atomic<int> calls{0};
+    PkTimer timer;
+    timer.start(0ms, [&] {
+        ++calls;
+        timer.start(0ms, [&] { ++calls; }, true);
+    }, true);
+
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
+    PK_COMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    PK_COMPARE(calls.load(), 1);
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
+    PK_VERIFY(timer.isActive());
+
+    PK_COMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    PK_COMPARE(calls.load(), 2);
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), std::size_t(0));
+    PK_VERIFY(!timer.isActive());
+}
+
 void TestTimer::warmedTargetThreadReceivesCallback()
 {
     std::atomic<bool> ready{false};
