@@ -228,7 +228,10 @@ void DataStreamCase::rejectsNonCanonicalVariantNullFlags()
                 PK_COMPARE(stream.status(), PkDataStream::ReadCorruptData);
                 PK_VERIFY(!value.isValid());
             }
-            for (const char *hex : {order == PkDataStream::BigEndian ? "000000010001" : "010000000001"}) {
+            // Keep the two canonical dimensions independent: a typed-null
+            // Bool has a null flag of 1, while a non-null Bool payload of 0
+            // must still decode as a valid false value.
+            for (const char *hex : {order == PkDataStream::BigEndian ? "000000010101" : "010000000101"}) {
                 PkDataStream stream(fromHex(hex));
                 stream.setVersion(version);
                 stream.setByteOrder(order);
@@ -236,6 +239,15 @@ void DataStreamCase::rejectsNonCanonicalVariantNullFlags()
                 stream >> value;
                 PK_COMPARE(stream.status(), PkDataStream::Ok);
                 PK_VERIFY(value.isValid() && value.toBool());
+            }
+            for (const char *hex : {order == PkDataStream::BigEndian ? "000000010000" : "010000000000"}) {
+                PkDataStream stream(fromHex(hex));
+                stream.setVersion(version);
+                stream.setByteOrder(order);
+                PkVariant value(true);
+                stream >> value;
+                PK_COMPARE(stream.status(), PkDataStream::Ok);
+                PK_VERIFY(value.isValid() && !value.toBool());
             }
         }
     }

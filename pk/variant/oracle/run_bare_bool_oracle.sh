@@ -39,7 +39,7 @@ awk '
                 ++mismatch
                 source = qt[i] != "" ? qt[i] : pk[i]
                 count = split(source, fields, " ")
-                if (count >= 3) {
+                if (count >= 4) {
                     tag = fields[1] "/" fields[2] "/" fields[3] "/" fields[4]
                     gsub(/=/, "-", tag)
                 } else {
