@@ -15,6 +15,7 @@
 #include <PkStream.h>
 #include <PkXmlDocument.h>
 #include <PkXmlElement.h>
+#include <KritaVersionWrapper.h>
 
 #include "KisGlobalResourcesInterface.h"
 #include "KisResourceLoaderRegistry.h"
@@ -146,7 +147,8 @@ KoResourceBundle::KoResourceBundle(const PkString &fileName)
     : m_filename(fileName)
     , m_bundleVersion("1")
 {
-    m_metadata[KisResourceStorage::s_meta_generator] = PkString("Krita");
+    m_metadata[KisResourceStorage::s_meta_generator] =
+        PkString("Krita (") + KritaVersionWrapper::versionString(true) + PkString(")");
 }
 
 KoResourceBundle::~KoResourceBundle() = default;
