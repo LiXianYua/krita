@@ -6,19 +6,12 @@
 
 #include "KisResourceThumbnailCache.h"
 
-#include <QMap>
-#include <QModelIndex>
-#include <QSize>
+#include <PkMap.h>
 
-#include <KisResourceLocator.h>
-#include <KisResourceModel.h>
-
-#include <kis_global.h>
-
-Q_GLOBAL_STATIC(KisResourceThumbnailCache, s_instance);
+#include <kis_assert.h>
 
 struct ImageScalingParameters {
-    QSize size;
+    PkSize size;
     Qt::AspectRatioMode aspectRatioMode;
     Qt::TransformationMode transformationMode;
 
@@ -43,24 +36,24 @@ struct ImageScalingParameters {
 
 namespace
 {
-using ResourceKey = QPair<QString, QString>;
-using ThumbnailCacheT = QMap<ImageScalingParameters, QImage>;
+using ResourceKey = std::pair<PkString, PkString>;
+using ThumbnailCacheT = PkMap<ImageScalingParameters, PkImage>;
 } // namespace
 
 struct KisResourceThumbnailCache::Private {
-    QMap<ResourceKey, ThumbnailCacheT> scaledThumbnailCache;
-    QMap<ResourceKey, QImage> originalImageCache;
+    PkMap<ResourceKey, ThumbnailCacheT> scaledThumbnailCache;
+    PkMap<ResourceKey, PkImage> originalImageCache;
 
-    QImage getExactMatch(const ResourceKey &key, ImageScalingParameters param) const;
-    QImage getOriginal(const ResourceKey &key) const;
-    void insertOriginal(const ResourceKey &key, const QImage &image);
+    PkImage getExactMatch(const ResourceKey &key, ImageScalingParameters param) const;
+    PkImage getOriginal(const ResourceKey &key) const;
+    void insertOriginal(const ResourceKey &key, const PkImage &image);
     bool containsOriginal(const ResourceKey &key) const;
 
     ResourceKey
-    key(const QString &storageLocation, const QString &resourceType, const QString &filename) const;
+    key(const PkString &storageLocation, const PkString &resourceType, const PkString &filename) const;
 };
 
-QImage KisResourceThumbnailCache::Private::getExactMatch(const ResourceKey &key,
+PkImage KisResourceThumbnailCache::Private::getExactMatch(const ResourceKey &key,
                                                          ImageScalingParameters param) const
 {
     const auto thumbnailEntries = scaledThumbnailCache.find(key);
@@ -76,15 +69,15 @@ QImage KisResourceThumbnailCache::Private::getExactMatch(const ResourceKey &key,
         return *originalImage;
     }
 
-    return QImage();
+    return PkImage();
 }
 
-QImage KisResourceThumbnailCache::Private::getOriginal(const ResourceKey &key) const
+PkImage KisResourceThumbnailCache::Private::getOriginal(const ResourceKey &key) const
 {
     return originalImageCache[key];
 }
 
-void KisResourceThumbnailCache::Private::insertOriginal(const ResourceKey &key, const QImage &image)
+void KisResourceThumbnailCache::Private::insertOriginal(const ResourceKey &key, const PkImage &image)
 {
     // Someone else has added the image to this cache, when the only path to here is from a method which
     // checks whether this cache contains it or not.
@@ -97,16 +90,17 @@ bool KisResourceThumbnailCache::Private::containsOriginal(const ResourceKey &key
     return originalImageCache.contains(key);
 }
 
-ResourceKey KisResourceThumbnailCache::Private::key(const QString &storageLocation,
-                                                    const QString &resourceType,
-                                                    const QString &filename) const
+ResourceKey KisResourceThumbnailCache::Private::key(const PkString &storageLocation,
+                                                    const PkString &resourceType,
+                                                    const PkString &filename) const
 {
     return {storageLocation, resourceType + "/" + filename};
 }
 
 KisResourceThumbnailCache *KisResourceThumbnailCache::instance()
 {
-    return s_instance;
+    static KisResourceThumbnailCache cache;
+    return &cache;
 }
 
 KisResourceThumbnailCache::KisResourceThumbnailCache()
@@ -118,18 +112,18 @@ KisResourceThumbnailCache::~KisResourceThumbnailCache()
 {
 }
 
-QImage KisResourceThumbnailCache::originalImage(const QString &storageLocation,
-                                                const QString &resourceType,
-                                                const QString &filename) const
+PkImage KisResourceThumbnailCache::originalImage(const PkString &storageLocation,
+                                                 const PkString &resourceType,
+                                                 const PkString &filename) const
 {
     const ResourceKey key = m_d->key(storageLocation, resourceType, filename);
-    return m_d->containsOriginal(key) ? m_d->getOriginal(key) : QImage();
+    return m_d->containsOriginal(key) ? m_d->getOriginal(key) : PkImage();
 }
 
-void KisResourceThumbnailCache::insert(const QString &storageLocation,
-                                       const QString &resourceType,
-                                       const QString &filename,
-                                       const QImage &image)
+void KisResourceThumbnailCache::insert(const PkString &storageLocation,
+                                       const PkString &resourceType,
+                                       const PkString &filename,
+                                       const PkImage &image)
 {
     if (image.isNull()) {
         return;
@@ -137,19 +131,19 @@ void KisResourceThumbnailCache::insert(const QString &storageLocation,
     insert(m_d->key(storageLocation, resourceType, filename), image);
 }
 
-void KisResourceThumbnailCache::insert(const QPair<QString, QString> &key, const QImage &image)
+void KisResourceThumbnailCache::insert(const std::pair<PkString, PkString> &key, const PkImage &image)
 {
     m_d->insertOriginal(key, image);
 }
 
-void KisResourceThumbnailCache::remove(const QString &storageLocation,
-                                       const QString &resourceType,
-                                       const QString &filename)
+void KisResourceThumbnailCache::remove(const PkString &storageLocation,
+                                       const PkString &resourceType,
+                                       const PkString &filename)
 {
     remove(m_d->key(storageLocation, resourceType, filename));
 }
 
-void KisResourceThumbnailCache::remove(const QPair<QString, QString> &key)
+void KisResourceThumbnailCache::remove(const std::pair<PkString, PkString> &key)
 {
     if (m_d->originalImageCache.contains(key)) {
         m_d->originalImageCache.remove(key);
@@ -164,37 +158,32 @@ void KisResourceThumbnailCache::remove(const QPair<QString, QString> &key)
     }
 }
 
-QImage KisResourceThumbnailCache::getImage(const QModelIndex &index,
-                                           const QSize size,
+PkImage KisResourceThumbnailCache::getImage(const PkString &storageLocation,
+                                            const PkString &resourceType,
+                                            const PkString &filename,
+                                            const PkImage &source,
+                                            const PkSize size,
                                            Qt::AspectRatioMode aspectMode,
                                            Qt::TransformationMode transformMode)
 {
-    const QString storageLocation = KisResourceLocator::instance()->makeStorageLocationAbsolute(
-        index.data(Qt::UserRole + KisAbstractResourceModel::Location).value<QString>());
-    const QString resourceType =
-        index.data(Qt::UserRole + KisAbstractResourceModel::ResourceType).value<QString>();
-    const QString filename = index.data(Qt::UserRole + KisAbstractResourceModel::Filename).value<QString>();
-
     const ImageScalingParameters param = {size, aspectMode, transformMode};
 
     ResourceKey key = m_d->key(storageLocation, resourceType, filename);
 
-    QImage result = m_d->getExactMatch(key, param);
+    PkImage result = m_d->getExactMatch(key, param);
     if (!result.isNull()) {
         return result;
     } else if (m_d->containsOriginal(key)) {
         result = m_d->getOriginal(key);
     } else {
-        result = index.data(Qt::UserRole + KisAbstractResourceModel::Thumbnail).value<QImage>();
-        // KisResourceQueryMapper should have inserted the image, so we don't have to.
-        // Why there? Because most of the API usage for Thumbnail is going to be from index.data(), so we just
-        // remove the dependency that our user has to know this class for just accessing the cached original
-        // thumbnail.
-        KIS_SAFE_ASSERT_RECOVER_NOOP(result.isNull() || m_d->containsOriginal(key));
+        result = source;
+        if (!result.isNull()) {
+            m_d->insertOriginal(key, result);
+        }
     }
     // if the size that the has been demanded, we will then cache the size and then pass it.
     if (!result.isNull() && param.size.isValid()) {
-        const QImage scaledImage = result.scaled(param.size, param.aspectRatioMode, param.transformationMode);
+        const PkImage scaledImage = result.scaled(param.size, param.aspectRatioMode, param.transformationMode);
         if (m_d->scaledThumbnailCache.contains(key)) {
             m_d->scaledThumbnailCache[key].insert(param, scaledImage);
         } else {

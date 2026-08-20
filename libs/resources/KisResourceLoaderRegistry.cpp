@@ -6,37 +6,35 @@
 
 #include "KisResourceLoaderRegistry.h"
 
-#include <QApplication>
-#include <QString>
-#include <QDebug>
-
 #include <KisResourceCacheDb.h>
 #include <KisMimeDatabase.h>
+#include <PkMap.h>
 
 struct KisResourceLoaderRegistry::Private
 {
-    QMap<int, ResourceCacheFixup*> fixups;
+    PkMap<int, ResourceCacheFixup*> fixups;
 };
 
-KisResourceLoaderRegistry::KisResourceLoaderRegistry(QObject *parent)
-    : QObject(parent),
-      m_d(new Private)
+KisResourceLoaderRegistry::KisResourceLoaderRegistry()
+    : PkObject(nullptr)
+    , m_d(new Private)
 {
 }
 
 KisResourceLoaderRegistry::~KisResourceLoaderRegistry()
 {
-    qDeleteAll(values());
-    qDeleteAll(m_d->fixups);
+    for (KisResourceLoaderBase *loader : values()) {
+        delete loader;
+    }
+    for (ResourceCacheFixup *fixup : m_d->fixups) {
+        delete fixup;
+    }
 }
 
 KisResourceLoaderRegistry* KisResourceLoaderRegistry::instance()
 {
-    KisResourceLoaderRegistry *reg = qApp->findChild<KisResourceLoaderRegistry *>(QString());
-    if (!reg) {
-        reg = new KisResourceLoaderRegistry(qApp);
-    }
-    return reg;
+    static KisResourceLoaderRegistry registry;
+    return &registry;
 }
 
 void KisResourceLoaderRegistry::registerLoader(KisResourceLoaderBase *loader)
@@ -44,9 +42,9 @@ void KisResourceLoaderRegistry::registerLoader(KisResourceLoaderBase *loader)
     add(loader);
 }
 
-KisResourceLoaderBase *KisResourceLoaderRegistry::loader(const QString &resourceType, const QString &mimetype) const
+KisResourceLoaderBase *KisResourceLoaderRegistry::loader(const PkString &resourceType, const PkString &mimetype) const
 {
-    Q_FOREACH(KisResourceLoaderBase *loader, resourceTypeLoaders(resourceType)) {
+    for (KisResourceLoaderBase *loader : resourceTypeLoaders(resourceType)) {
 
         if (loader->mimetypes().contains(mimetype)) {
             return loader;
@@ -55,10 +53,10 @@ KisResourceLoaderBase *KisResourceLoaderRegistry::loader(const QString &resource
     return 0;
 }
 
-QVector<KisResourceLoaderBase *> KisResourceLoaderRegistry::resourceTypeLoaders(const QString &resourceType) const
+PkVector<KisResourceLoaderBase *> KisResourceLoaderRegistry::resourceTypeLoaders(const PkString &resourceType) const
 {
-    QVector<KisResourceLoaderBase *> r;
-    Q_FOREACH(KisResourceLoaderBase *loader, values()) {
+    PkVector<KisResourceLoaderBase *> r;
+    for (KisResourceLoaderBase *loader : values()) {
         if (loader->resourceType() == resourceType) {
             r << loader;
         }
@@ -71,21 +69,21 @@ void KisResourceLoaderRegistry::registerFixup(int priority, ResourceCacheFixup *
     m_d->fixups.insert(priority, fixup);
 }
 
-QStringList KisResourceLoaderRegistry::executeAllFixups()
+PkStringList KisResourceLoaderRegistry::executeAllFixups()
 {
-    QStringList errorMessages;
+    PkStringList errorMessages;
 
-    Q_FOREACH (ResourceCacheFixup *fixup, m_d->fixups) {
-        errorMessages << fixup->executeFix();
+    for (ResourceCacheFixup *fixup : m_d->fixups) {
+        errorMessages.append(fixup->executeFix());
     }
 
     return errorMessages;
 }
 
-QStringList KisResourceLoaderRegistry::filters(const QString &resourceType) const
+PkStringList KisResourceLoaderRegistry::filters(const PkString &resourceType) const
 {
-    QStringList r;
-    Q_FOREACH(KisResourceLoaderBase *loader, resourceTypeLoaders(resourceType)) {
+    PkStringList r;
+    for (KisResourceLoaderBase *loader : resourceTypeLoaders(resourceType)) {
         r.append(loader->filters());
     }
     r.removeDuplicates();
@@ -93,12 +91,13 @@ QStringList KisResourceLoaderRegistry::filters(const QString &resourceType) cons
     return r;
 }
 
-QStringList KisResourceLoaderRegistry::mimeTypes(const QString &resourceType) const
+PkStringList KisResourceLoaderRegistry::mimeTypes(const PkString &resourceType) const
 {
-    QStringList extensions = KisResourceLoaderRegistry::instance()->filters(resourceType);
-    QStringList mimeTypes;
-    Q_FOREACH(const QString &extension, extensions) {
-        mimeTypes << KisMimeDatabase::mimeTypeForSuffix(extension);
+    PkStringList extensions = KisResourceLoaderRegistry::instance()->filters(resourceType);
+    PkStringList mimeTypes;
+    for (const PkString &extension : extensions) {
+        const PkString suffix = extension.startsWith(PkString("*.")) ? extension.mid(2) : extension;
+        mimeTypes.append(KisMimeDatabase::mimeTypeForSuffix(suffix));
     }
     mimeTypes.removeDuplicates();
     mimeTypes.sort();
@@ -108,11 +107,11 @@ QStringList KisResourceLoaderRegistry::mimeTypes(const QString &resourceType) co
 
 
 
-QStringList KisResourceLoaderRegistry::resourceTypes() const
+PkStringList KisResourceLoaderRegistry::resourceTypes() const
 {
-    QStringList r;
-    Q_FOREACH(KisResourceLoaderBase *loader, values()) {
-        r << loader->resourceType();
+    PkStringList r;
+    for (KisResourceLoaderBase *loader : values()) {
+        r.append(loader->resourceType());
     }
     r.removeDuplicates();
     r.sort();

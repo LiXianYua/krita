@@ -6,12 +6,17 @@
 
 #include "KisRequiredResourcesOperators.h"
 
-#include <QApplication>
-#include <QBuffer>
-#include <QThread>
 #include <KisLocalStrokeResources.h>
 #include <KisResourceLoaderRegistry.h>
 #include <KisMimeDatabase.h>
+#include <PkMemoryStream.h>
+#include <PkThread.h>
+
+#include "ResourceDebug.h"
+
+namespace {
+const PkThreadId s_resourceSnapshotThread = PkThread::currentThreadId();
+}
 
 
 bool KisRequiredResourcesOperators::detail::isLocalResourcesStorage(KisResourcesInterfaceSP resourcesInterface)
@@ -21,15 +26,15 @@ bool KisRequiredResourcesOperators::detail::isLocalResourcesStorage(KisResources
 
 void KisRequiredResourcesOperators::detail::assertInGuiThread()
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN(QThread::currentThread() == qApp->thread());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThreadId() == s_resourceSnapshotThread);
 }
 
-KisResourcesInterfaceSP KisRequiredResourcesOperators::detail::createLocalResourcesStorage(const QList<KoResourceSP> &resources)
+KisResourcesInterfaceSP KisRequiredResourcesOperators::detail::createLocalResourcesStorage(const PkList<KoResourceSP> &resources)
 {
-    return QSharedPointer<KisLocalStrokeResources>::create(resources);
+    return PkSharedPointer<KisLocalStrokeResources>::create(resources);
 }
 
-void KisRequiredResourcesOperators::detail::addResourceOrWarnIfNotLoaded(KoResourceLoadResult loadedResource, QList<KoResourceSP> *resources, KisResourcesInterfaceSP resourcesInterface)
+void KisRequiredResourcesOperators::detail::addResourceOrWarnIfNotLoaded(KoResourceLoadResult loadedResource, PkList<KoResourceSP> *resources, KisResourcesInterfaceSP resourcesInterface)
 {
     switch (loadedResource.type()) {
     case KoResourceLoadResult::ExistingResource:
@@ -39,7 +44,7 @@ void KisRequiredResourcesOperators::detail::addResourceOrWarnIfNotLoaded(KoResou
             qWarning() << "Attempt to retrieve a resource that is null";
             return;
         }
-        *resources << loadedResource.resource();
+        resources->append(loadedResource.resource());
         break;
     case KoResourceLoadResult::EmbeddedResource: {
         /**
@@ -58,9 +63,13 @@ void KisRequiredResourcesOperators::detail::addResourceOrWarnIfNotLoaded(KoResou
             return;
         }
 
-        QByteArray ba = embeddedResource.data();
-        QBuffer buf(&ba);
-        buf.open(QBuffer::ReadOnly);
+        const PkByteArray ba = embeddedResource.data();
+        PkMemoryStream buf;
+        buf.open(static_cast<PkStream::OpenMode>(PkStream::ReadWrite | PkStream::Truncate));
+        if (buf.write(ba.constData(), ba.size()) != ba.size() || !buf.seek(0)) {
+            qWarning() << "createLocalResourcesSnapshot: Could not buffer embedded resource" << sig;
+            return;
+        }
 
         KoResourceSP resource = loader->load(sig.filename, buf, resourcesInterface);
 
@@ -69,7 +78,7 @@ void KisRequiredResourcesOperators::detail::addResourceOrWarnIfNotLoaded(KoResou
             resource->setVersion(0);
             resource->setDirty(false);
 
-            *resources << resource;
+            resources->append(resource);
         } else {
             qWarning() << "createLocalResourcesSnapshot: Could not import embedded resource" << sig;
         }

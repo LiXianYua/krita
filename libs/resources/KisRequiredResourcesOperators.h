@@ -10,18 +10,61 @@
 
 #include <KisResourcesInterface.h>
 #include <KoResourceLoadResult.h>
+#include <PkList.h>
+#include <PkSharedPointer.h>
+#include <PkVector.h>
 #include "kis_assert.h"
 
-#include "kis_pointer_utils.h"
+template<class T> class KisSharedPtr;
+template<class T> class KisPinnedSharedPtr;
 
 namespace KisRequiredResourcesOperators
 {
 
 namespace detail {
+template <typename T>
+struct SharedPointerTraits;
+
+template <typename T>
+struct SharedPointerTraits<PkSharedPointer<T>>
+{
+    using ValueType = T;
+
+    template <typename D, typename S>
+    static PkSharedPointer<D> dynamicCast(PkSharedPointer<S> source)
+    {
+        return source.template dynamicCast<D>();
+    }
+};
+
+template <typename T>
+struct SharedPointerTraits<KisSharedPtr<T>>
+{
+    using ValueType = T;
+
+    template <typename D, typename S>
+    static KisSharedPtr<D> dynamicCast(KisSharedPtr<S> source)
+    {
+        return KisSharedPtr<D>(dynamic_cast<D *>(source.data()));
+    }
+};
+
+template <typename T>
+struct SharedPointerTraits<KisPinnedSharedPtr<T>>
+{
+    using ValueType = T;
+
+    template <typename D, typename S>
+    static KisPinnedSharedPtr<D> dynamicCast(KisPinnedSharedPtr<S> source)
+    {
+        return KisPinnedSharedPtr<D>(dynamic_cast<D *>(source.data()));
+    }
+};
+
 bool KRITARESOURCES_EXPORT isLocalResourcesStorage(KisResourcesInterfaceSP resourcesInterface);
 void KRITARESOURCES_EXPORT assertInGuiThread();
-KisResourcesInterfaceSP KRITARESOURCES_EXPORT createLocalResourcesStorage(const QList<KoResourceSP> &resources);
-void KRITARESOURCES_EXPORT addResourceOrWarnIfNotLoaded(KoResourceLoadResult loadedResource, QList<KoResourceSP> *resources, KisResourcesInterfaceSP resourcesInterface);
+KisResourcesInterfaceSP KRITARESOURCES_EXPORT createLocalResourcesStorage(const PkList<KoResourceSP> &resources);
+void KRITARESOURCES_EXPORT addResourceOrWarnIfNotLoaded(KoResourceLoadResult loadedResource, PkList<KoResourceSP> *resources, KisResourcesInterfaceSP resourcesInterface);
 }
 
 
@@ -57,12 +100,12 @@ void createLocalResourcesSnapshot(T *object, KisResourcesInterfaceSP globalResou
             globalResourcesInterface :
             object->resourcesInterface();
 
-    QList<KoResourceLoadResult> loadedResources =
+    PkVector<KoResourceLoadResult> loadedResources =
         object->requiredResources(effectiveResourcesInterface);
 
-    QList<KoResourceSP> resources;
+    PkList<KoResourceSP> resources;
 
-    Q_FOREACH(const KoResourceLoadResult &loadedResource, loadedResources) {
+    for (const KoResourceLoadResult &loadedResource : loadedResources) {
         detail::addResourceOrWarnIfNotLoaded(loadedResource, &resources, effectiveResourcesInterface);
     }
 
@@ -80,12 +123,12 @@ void createLocalResourcesSnapshot(T *object, KisResourcesInterfaceSP globalResou
  * If a filter configuration object already has a resources snapshot, then
  * the function just clones the object without reloading anything.
  */
-template <typename TypeSP, typename T = typename KisSharedPointerTraits<TypeSP>::ValueType>
+template <typename TypeSP, typename T = typename detail::SharedPointerTraits<TypeSP>::ValueType>
 TypeSP cloneWithResourcesSnapshot(const T* object,
                                   KisResourcesInterfaceSP globalResourcesInterface = nullptr)
 {
     auto clonedStorage = object->clone();
-    TypeSP cloned = KisSharedPointerTraits<TypeSP>::template dynamicCastSP<T>(clonedStorage);
+    TypeSP cloned = detail::SharedPointerTraits<TypeSP>::template dynamicCast<T>(clonedStorage);
 
     if (!hasLocalResourcesSnapshot(cloned.data())) {
         createLocalResourcesSnapshot(cloned.data(), globalResourcesInterface);

@@ -7,8 +7,10 @@
 #ifndef KISRESOURCELOADERREGISTRY_H
 #define KISRESOURCELOADERREGISTRY_H
 
-#include <QObject>
-#include <QStringList>
+#include <PkObject.h>
+#include <PkScopedPointer.h>
+#include <PkStringList.h>
+#include <PkVector.h>
 
 #include <KoGenericRegistry.h>
 #include "KisResourceLoader.h"
@@ -23,9 +25,8 @@
  * 
  * KisResourceLoaderRegistry has full knowledge of all resource types that are defined for Krita.
  */
-class KRITARESOURCES_EXPORT KisResourceLoaderRegistry : public QObject, public KoGenericRegistry<KisResourceLoaderBase*>
+class KRITARESOURCES_EXPORT KisResourceLoaderRegistry : public PkObject, public KoGenericRegistry<KisResourceLoaderBase*>
 {
-    Q_OBJECT
 public:
     ~KisResourceLoaderRegistry() override;
 
@@ -37,27 +38,27 @@ public:
     void registerLoader(KisResourceLoaderBase* loader);
 
     /// @return the first loader for the given resource type and mimetype
-    KisResourceLoaderBase *loader(const QString &resourceType, const QString &mimetype) const;
+    KisResourceLoaderBase *loader(const PkString &resourceType, const PkString &mimetype) const;
 
     /**
      * @return a list of filename extensions that can be present for the given resource type
      */
-    QStringList filters(const QString &resourceType) const;
+    PkStringList filters(const PkString &resourceType) const;
 
     /**
      * @return a list of mimetypes that can be loaded for the given resource type
      */
-    QStringList mimeTypes(const QString &resourceType) const;
+    PkStringList mimeTypes(const PkString &resourceType) const;
 
     /**
      * @return the list of folders for which resource loaders have been registered
      */
-    QStringList resourceTypes() const;
+    PkStringList resourceTypes() const;
 
     /**
      * @return a list of loader plugins that can handle the resources stored in the folder. A folder can contain multiple subtypes.
      */
-    QVector<KisResourceLoaderBase*> resourceTypeLoaders(const QString &resourceType) const;
+    PkVector<KisResourceLoaderBase*> resourceTypeLoaders(const PkString &resourceType) const;
 
     /**
      * Sometimes the database needs updates without changing
@@ -67,21 +68,21 @@ public:
      */
     struct ResourceCacheFixup {
         virtual ~ResourceCacheFixup() {};
-        virtual QStringList executeFix() = 0;
+        virtual PkStringList executeFix() = 0;
     };
 
     void registerFixup(int priority, ResourceCacheFixup *fixup);
-    QStringList executeAllFixups();
+    PkStringList executeAllFixups();
 
 private:
 
-    KisResourceLoaderRegistry(QObject *parent);
-    KisResourceLoaderRegistry(const KisResourceLoaderRegistry&);
-    KisResourceLoaderRegistry operator=(const KisResourceLoaderRegistry&);
+    KisResourceLoaderRegistry();
+    KisResourceLoaderRegistry(const KisResourceLoaderRegistry&) = delete;
+    KisResourceLoaderRegistry &operator=(const KisResourceLoaderRegistry&) = delete;
 private:
 
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif // KISRESOURCELOADERREGISTRY_H

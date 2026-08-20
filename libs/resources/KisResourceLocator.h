@@ -7,10 +7,14 @@
 #ifndef KISRESOURCELOCATOR_H
 #define KISRESOURCELOCATOR_H
 
-#include <QObject>
-#include <QScopedPointer>
-#include <QStringList>
-#include <QString>
+#include <PkObject.h>
+#include <PkList.h>
+#include <PkMap.h>
+#include <PkScopedPointer.h>
+#include <PkStringList.h>
+#include <PkString.h>
+#include <PkVariant.h>
+#include <PkVector.h>
 
 #include "kritaresources_export.h"
 
@@ -23,22 +27,20 @@
  *
  * The resource location is always a writable folder.
  *
- * There is one resource locator which is owned by the QApplication
- * object.
+ * There is one process-wide resource locator.
  *
  * The resource location is configurable, but there is only one location
  * where Krita will look for resources.
  */
-class KRITARESOURCES_EXPORT KisResourceLocator : public QObject
+class KRITARESOURCES_EXPORT KisResourceLocator : public PkObject
 {
-    Q_OBJECT
 public:
 
     // The configuration key that holds the resource location
     // for this installation of Krita. The location is
-    // QStandardPaths::AppDataLocation by default, but that
+    // The platform application-data location is the default, but that
     // can be changed.
-    static const QString resourceLocationKey;
+    static const PkString resourceLocationKey;
 
     static KisResourceLocator *instance();
 
@@ -58,25 +60,25 @@ public:
      * @param installationResourcesLocation the place where the resources
      * that come packaged with Krita reside.
      */
-    LocatorError initialize(const QString &installationResourcesLocation);
+    LocatorError initialize(const PkString &installationResourcesLocation);
 
     /**
      * @brief errorMessages
      * @return
      */
-    QStringList errorMessages() const;
+    PkStringList errorMessages() const;
 
     /**
      * @brief resourceLocationBase is the place where all resource storages (folder,
      * bundles etc. are located. This is a writable place.
      * @return the base location for all storages.
      */
-    QString resourceLocationBase() const;
+    PkString resourceLocationBase() const;
 
     /**
      * @brief purge purges the local resource cache
      */
-    void purge(const QString &storageLocation, const QVector<int> &removedTagIds);
+    void purge(const PkString &storageLocation, const PkVector<int> &removedTagIds);
 
     /**
      * @brief addStorage Adds a new resource storage to the database. The storage is
@@ -86,21 +88,21 @@ public:
      * @param storage a storage object
      * @return true if the storage has been added successfully
      */
-    bool addStorage(const QString &storageLocation, KisResourceStorageSP storage);
+    bool addStorage(const PkString &storageLocation, KisResourceStorageSP storage);
 
     /**
      * @brief removeStorage removes the temporary storage from the database
      * @param storageLocation the unique name of the storage
      * @return true is successful.
      */
-    bool removeStorage(const QString &storageLocation);
+    bool removeStorage(const PkString &storageLocation);
 
     /**
      * @brief hasStorage can be used to check whether the given storage already exists
      * @param storageLocation the name of the storage
      * @return true if the storage is known
      */
-    bool hasStorage(const QString &storageLocation);
+    bool hasStorage(const PkString &storageLocation);
 
 
     /**
@@ -111,48 +113,49 @@ public:
     /**
      * Remove the given tag from the cache
      */
-    void purgeTag(const QString tagUrl, const QString resourceType);
+    void purgeTag(const PkString tagUrl, const PkString resourceType);
 
     /**
      * Returns the full file path of the resource if it has any
      * separate physical representation on the disk
      */
-    QString filePathForResource(KoResourceSP resource);
+    PkString filePathForResource(KoResourceSP resource);
 
     /// This updates the "fontregistry" storage. Called when the font directories change;
     void updateFontStorage();
 
-Q_SIGNALS:
+    // Pk signal declarations. Definitions dispatch through
+    // PkObject::activateSignal in KisResourceLocator.cpp.
 
-    void progressMessage(const QString&);
+    void progressMessage(const PkString&);
 
     /// Emitted whenever a storage is added
-    void storageAdded(const QString &location);
+    void storageAdded(const PkString &location);
 
     /// Emitted whenever a storage is removed
-    void storageRemoved(const QString &location);
+    void storageRemoved(const PkString &location);
 
     /// Emitted when the locator needs to add an embedded resource
-    void beginExternalResourceImport(const QString &resourceType, int numResources);
+    void beginExternalResourceImport(const PkString &resourceType, int numResources);
 
     /// Emitted when the locator finished importing the embedded resource
-    void endExternalResourceImport(const QString &resourceType);
+    void endExternalResourceImport(const PkString &resourceType);
 
     /// Emitted when the locator needs to add an embedded resource
-    void beginExternalResourceRemove(const QString &resourceType, const QVector<int> resourceIds);
+    void beginExternalResourceRemove(const PkString &resourceType, const PkVector<int> resourceIds);
 
     /// Emitted when the locator finished importing the embedded resource
-    void endExternalResourceRemove(const QString &resourceType);
+    void endExternalResourceRemove(const PkString &resourceType);
 
     /// Emitted when a resource changes its active state
-    void resourceActiveStateChanged(const QString &resourceType, int resourceId);
+    void resourceActiveStateChanged(const PkString &resourceType, int resourceId);
 
     /// Emitted when a storage is resynchronized using KisresourceCacheDb::synchronizeStorage()
     ///
     /// if \p isBulkResynchronization then this resynchronization happened as a part
     /// of bulk resynchronization at the start of Krita. At the end of this bulk
     /// action storagesBulkSynchronizationFinished() will be emitted as well.
-    void storageResynchronized(const QString &storage, bool isBulkResynchronization);
+    void storageResynchronized(const PkString &storage, bool isBulkResynchronization);
 
     /// Emitted when bulk-synchronization of all the storages has been finished
     ///
@@ -177,7 +180,7 @@ private:
     friend class KisResourceThumbnailCache;
 
     /// @return true if the resource is present in the cache, false if it hasn't been loaded
-    bool resourceCached(QString storageLocation, const QString &resourceType, const QString &filename) const;
+    bool resourceCached(PkString storageLocation, const PkString &resourceType, const PkString &filename) const;
 
     /**
      * @brief resource finds a physical resource in one of the storages
@@ -192,7 +195,7 @@ private:
      * any paths
      * @return A resource if found, or 0
      */
-    KoResourceSP resource(QString storageLocation, const QString &resourceType, const QString &filename);
+    KoResourceSP resource(PkString storageLocation, const PkString &resourceType, const PkString &filename);
 
     /**
      * @brief resourceForId returns the resource with the given id, or 0 if no such resource exists.
@@ -216,17 +219,17 @@ private:
      * @param storageLocation: optional, the storage where the resource will be stored. Empty means in the default Folder storage.
      * @return the imported resource, which has been added to the database and the cache
      */
-    KoResourceSP importResourceFromFile(const QString &resourceType, const QString &fileName, const bool allowOverwrite, const QString &storageLocation = QString());
+    KoResourceSP importResourceFromFile(const PkString &resourceType, const PkString &fileName, const bool allowOverwrite, const PkString &storageLocation = PkString());
 
     /**
      * @brief importResource
      * @param resourceType
      * @param fileName: filename that should be assigned to the resource
-     * @param device: QIODevice where the resource should be loaded from
+     * @param device: PkStream where the resource should be loaded from
      * @param storageLocation: optional, the storage where the resource will be stored. Empty means in the default Folder storage.
      * @return the imported resource, which has been added to the database and the cache
      */
-    KoResourceSP importResource(const QString &resourceType, const QString &fileName, QIODevice *device, const bool allowOverwrite, const QString &storageLocation = QString());
+    KoResourceSP importResource(const PkString &resourceType, const PkString &fileName, PkStream *device, const bool allowOverwrite, const PkString &storageLocation = PkString());
 
     /**
      * @brief importResourceDeduplicateFileName imports the resource fith file name deduplication
@@ -238,11 +241,11 @@ private:
      *
      * @param resourceType
      * @param proposedFileName: filename that should be assigned to the resource (will possibly be changed)
-     * @param device: QIODevice where the resource should be loaded from
+     * @param device: PkStream where the resource should be loaded from
      * @param storageLocation: optional, the storage where the resource will be stored. Empty means in the default Folder storage.
      * @return the imported resource, which has been added to the database and the cache
      */
-    KoResourceSP importResourceDeduplicateFileName(const QString &resourceType, const QString &proposedFileName, QIODevice *device, const QString &storageLocation = QString());
+    KoResourceSP importResourceDeduplicateFileName(const PkString &resourceType, const PkString &proposedFileName, PkStream *device, const PkString &storageLocation = PkString());
 
     /**
      * @brief addResourceDeduplicateFileName imports the resource fith file name deduplication
@@ -253,11 +256,11 @@ private:
      * address them using md5sum.
      *
      * @param resourceType
-     * @param device: QIODevice where the resource should be loaded from
+     * @param device: PkStream where the resource should be loaded from
      * @param storageLocation: optional, the storage where the resource will be stored. Empty means in the default Folder storage.
      * @return the imported resource, which has been added to the database and the cache
      */
-    bool addResourceDeduplicateFileName(const QString &resourceType, const KoResourceSP resource, const QString &storageLocation);
+    bool addResourceDeduplicateFileName(const PkString &resourceType, const KoResourceSP resource, const PkString &storageLocation);
 
     /**
      * @brief return whether importing will overwrite some existing resource
@@ -265,15 +268,15 @@ private:
      * @param fileName: filename that should be assigned to the resource
      * @param storageLocation: optional, the storage where the resource will be stored. Empty means in the default Folder storage.
      */
-    bool importWillOverwriteResource(const QString &resourceType, const QString &fileName, const QString &storageLocation = QString()) const;
+    bool importWillOverwriteResource(const PkString &resourceType, const PkString &fileName, const PkString &storageLocation = PkString()) const;
 
     /**
      * @brief exportResource
      * @param resource resource to be exported
-     * @param device: QIODevice where the resource should be loaded to
+     * @param device: PkStream where the resource should be loaded to
      * @return true if the resource has been exported successfully
      */
-    bool exportResource(KoResourceSP resource, QIODevice *device);
+    bool exportResource(KoResourceSP resource, PkStream *device);
 
     /**
      * @brief addResource adds the given resource to the database and potentially a storage
@@ -282,7 +285,7 @@ private:
      * @param storageLocation the storage where the resource will be saved. By default this is the default folder storage.
      * @return true if successful
      */
-    bool addResource(const QString &resourceType, const KoResourceSP resource, const QString &storageLocation = QString());
+    bool addResource(const PkString &resourceType, const KoResourceSP resource, const PkString &storageLocation = PkString());
 
     /**
      * @brief updateResource
@@ -290,7 +293,7 @@ private:
      * @param resource
      * @return
      */
-    bool updateResource(const QString &resourceType, const KoResourceSP resource);
+    bool updateResource(const PkString &resourceType, const KoResourceSP resource);
 
     /**
      * @brief Reloads the resource from its persistent storage
@@ -299,14 +302,14 @@ private:
      * @return true if reloading was successful. When returned false,
      *         \p resource is kept unchanged
      */
-    bool reloadResource(const QString &resourceType, const KoResourceSP resource);
+    bool reloadResource(const PkString &resourceType, const KoResourceSP resource);
 
     /**
      * @brief metaDataForResource
      * @param id
      * @return
      */
-    QMap<QString, QVariant> metaDataForResource(int id) const;
+    PkMap<PkString, PkVariant> metaDataForResource(int id) const;
 
     /**
      * @brief setMetaDataForResource
@@ -314,21 +317,21 @@ private:
      * @param map
      * @return
      */
-    bool setMetaDataForResource(int id, QMap<QString, QVariant> map) const;
+    bool setMetaDataForResource(int id, PkMap<PkString, PkVariant> map) const;
 
     /**
      * @brief metaDataForStorage
      * @param storage
      * @return
      */
-    QMap<QString, QVariant> metaDataForStorage(const QString &storageLocation) const;
+    PkMap<PkString, PkVariant> metaDataForStorage(const PkString &storageLocation) const;
 
     /**
      * @brief setMetaDataForStorage
      * @param storage
      * @param map
      */
-    void setMetaDataForStorage(const QString &storageLocation, QMap<QString, QVariant> map) const;
+    void setMetaDataForStorage(const PkString &storageLocation, PkMap<PkString, PkVariant> map) const;
 
     /**
      * Loads all the resources required by \p resource into the cache
@@ -343,7 +346,7 @@ private:
      * @param tagUrl the url
      * @return a complete tag with all translated names and comments.
      */
-    KisTagSP tagForUrl(const QString &tagUrl, const QString resourceType);
+    KisTagSP tagForUrl(const PkString &tagUrl, const PkString resourceType);
 
     /**
      * @brief tagForUrlNoCache create a tag from the database, don't use cache
@@ -351,11 +354,11 @@ private:
      * @param resourceType resource type of the tag
      * @return
      */
-    static KisTagSP tagForUrlNoCache(const QString &tagUrl, const QString resourceType);
+    static KisTagSP tagForUrlNoCache(const PkString &tagUrl, const PkString resourceType);
 
-    KisResourceLocator(QObject *parent);
-    KisResourceLocator(const KisResourceLocator&);
-    KisResourceLocator operator=(const KisResourceLocator&);
+    KisResourceLocator();
+    KisResourceLocator(const KisResourceLocator&) = delete;
+    KisResourceLocator &operator=(const KisResourceLocator&) = delete;
 
     enum class InitializationStatus {
         Unknown,      // We don't know whether Krita has run on this system for this resource location yet
@@ -365,33 +368,33 @@ private:
         Updating      // Krita is updating from an older version with resource locator
     };
 
-    LocatorError firstTimeInstallation(InitializationStatus initializationStatus, const QString &installationResourcesLocation);
+    LocatorError firstTimeInstallation(InitializationStatus initializationStatus, const PkString &installationResourcesLocation);
 
     // Synchronize on restarting Krita to see whether the user has added any storages or resources to the resources location
     bool synchronizeDb();
 
     void findStorages();
-    QList<KisResourceStorageSP> storages() const;
+    PkList<KisResourceStorageSP> storages() const;
 
-    KisResourceStorageSP storageByLocation(const QString &location) const;
+    KisResourceStorageSP storageByLocation(const PkString &location) const;
     KisResourceStorageSP folderStorage() const;
     KisResourceStorageSP memoryStorage() const;
     KisResourceStorageSP fontStorage() const;
 
     struct ResourceStorage {
-        QString storageLocation;
-        QString resourceType;
-        QString resourceFileName;
+        PkString storageLocation;
+        PkString resourceType;
+        PkString resourceFileName;
      };
 
     friend class KisMyPaintPaintOpPreset;
 
     ResourceStorage getResourceStorage(int resourceId) const;
-    QString makeStorageLocationAbsolute(QString storageLocation) const;
-    QString makeStorageLocationRelative(QString location) const;
+    PkString makeStorageLocationAbsolute(PkString storageLocation) const;
+    PkString makeStorageLocationRelative(PkString location) const;
 
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KISRESOURCELOCATOR_H
