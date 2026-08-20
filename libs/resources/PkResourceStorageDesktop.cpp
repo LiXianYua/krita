@@ -6,17 +6,16 @@
 #include <PkString.h>
 
 #include <chrono>
-#include <cctype>
 #include <cstdlib>
 #include <filesystem>
-#ifndef _WIN32
-#include <fnmatch.h>
-#endif
 #include <system_error>
 #include <type_traits>
 #include <variant>
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 namespace {
@@ -68,24 +67,35 @@ bool isHidden(const fs::path &path)
 
 bool isReadable(const fs::path &path)
 {
-    std::error_code ec;
-    const fs::perms permissions = fs::status(path, ec).permissions();
-    if (ec) {
+#ifdef _WIN32
+    const HANDLE handle = ::CreateFileW(path.c_str(), GENERIC_READ,
+                                        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                        nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
         return false;
     }
-    constexpr fs::perms readBits = fs::perms::owner_read |
-        fs::perms::group_read | fs::perms::others_read;
-    return (permissions & readBits) != fs::perms::none;
+    ::CloseHandle(handle);
+    return true;
+#elif defined(AT_EACCESS)
+    return ::faccessat(AT_FDCWD, path.c_str(), R_OK, AT_EACCESS) == 0;
+#else
+    return ::access(path.c_str(), R_OK) == 0;
+#endif
 }
 
-#ifdef _WIN32
+unsigned char foldAscii(unsigned char value)
+{
+    return value >= 'A' && value <= 'Z'
+        ? static_cast<unsigned char>(value + ('a' - 'A')) : value;
+}
+
 bool globMatches(const char *pattern, const char *text)
 {
     const char *star = nullptr;
     const char *retry = nullptr;
     while (*text) {
-        if (*pattern == '?' || std::tolower(static_cast<unsigned char>(*pattern)) ==
-                                  std::tolower(static_cast<unsigned char>(*text))) {
+        if (*pattern == '?' || foldAscii(static_cast<unsigned char>(*pattern)) ==
+                                  foldAscii(static_cast<unsigned char>(*text))) {
             ++pattern;
             ++text;
         } else if (*pattern == '*') {
@@ -103,12 +113,6 @@ bool globMatches(const char *pattern, const char *text)
     }
     return *pattern == '\0';
 }
-#else
-bool globMatches(const char *pattern, const char *text)
-{
-    return ::fnmatch(pattern, text, 0) == 0;
-}
-#endif
 
 class DesktopEntryIterator final : public PkResourceStorage::EntryIterator
 {
