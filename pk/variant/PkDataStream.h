@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <string>
 #include <type_traits>
 
 class PkDataStream
@@ -20,6 +21,8 @@ public:
     explicit PkDataStream(const PkByteArray &bytes);
     PkDataStream(PkByteArray *bytes, PkStream::OpenMode mode);
     explicit PkDataStream(PkStream *device);
+    PkDataStream(const PkDataStream &) = delete;
+    PkDataStream &operator=(const PkDataStream &) = delete;
 
     ByteOrder byteOrder() const;
     void setByteOrder(ByteOrder order);
@@ -30,6 +33,10 @@ public:
     Status status() const;
     void setStatus(Status status);
     void resetStatus();
+    // Maximum single decoded allocation / conservative container wire size.
+    // The default is 64 MiB; trusted callers can raise it explicitly.
+    std::size_t allocationLimit() const;
+    void setAllocationLimit(std::size_t bytes);
 
     PkDataStream &operator<<(std::int8_t value);
     PkDataStream &operator<<(std::uint8_t value);
@@ -91,6 +98,10 @@ private:
     bool readRaw(char *data, std::size_t size);
     bool writeVariantPayload(const PkVariant &value);
     bool readVariantPayload(std::uint32_t typeId, PkVariant &value);
+    bool writeStringCodeUnits(const std::u16string &units, bool isNull = false);
+    bool readStringCodeUnits(std::u16string &units, bool &isNull);
+    bool validateReadAllocation(std::uint64_t byteCount);
+    bool validateContainerCount(std::uint32_t count, std::size_t minimumWireBytes);
     bool writeVariantList(const PkVariantList &values);
     bool readVariantList(PkVariantList &values);
     bool writeStringList(const PkStringList &values);
@@ -112,4 +123,5 @@ private:
     Version m_version;
     FloatingPointPrecision m_precision;
     Status m_status;
+    std::size_t m_allocationLimit;
 };

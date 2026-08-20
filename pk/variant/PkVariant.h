@@ -1,6 +1,7 @@
 #pragma once
 
 #include <any>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <type_traits>
@@ -88,6 +89,16 @@ public:
         UserType = 127
     };
 
+    // QDateTime's serialized time-spec state. PkDateTime intentionally keeps
+    // calendar fields only; QVariant wire persistence still has to retain the
+    // state that follows those fields so a decode/encode cycle is lossless.
+    enum class DateTimeSpec : std::int8_t {
+        LocalTime = 0,
+        UTC = 1,
+        OffsetFromUTC = 2,
+        TimeZone = 3
+    };
+
     // ── 构造 / 析构 / 赋值 ──────────────────────────────────────────────
 
     PkVariant();
@@ -126,6 +137,12 @@ public:
     PkVariant(const PkTime& t);
     PkVariant(const PkDateTime& dt);
 
+    static PkVariant PkTypedNull(Type type);
+    static PkVariant PkFromStringCodeUnits(const std::u16string& codeUnits);
+    static PkVariant PkFromDateTime(const PkDateTime& dt, DateTimeSpec spec,
+                                    int offsetSeconds = 0,
+                                    const PkString& timeZoneId = PkString());
+
     // ── 查询 ────────────────────────────────────────────────────────────
 
     bool isNull() const;
@@ -162,6 +179,10 @@ public:
     PkDate toDate() const;
     PkTime toTime() const;
     PkDateTime toDateTime() const;
+    std::u16string PkStringCodeUnits() const;
+    DateTimeSpec PkDateTimeSpec() const;
+    int PkDateTimeOffsetSeconds() const;
+    PkString PkDateTimeZoneId() const;
 
     // ── 数据指针 ────────────────────────────────────────────────────────
 
@@ -181,7 +202,11 @@ public:
     bool operator!=(const PkVariant& other) const;
 
 private:
+    friend class PkDataStream;
+
     Type m_type;
+    bool m_isNull = true;
+    bool m_wireNullFlag = false;
 
     // POD 快速路径：tagged union
     union {
@@ -197,10 +222,20 @@ private:
     // 慢速路径：非 POD 类型（PkString、集合、几何、时间、自定义）走 std::any
     std::any m_any;
 
+    // Exact QString code units are retained independently because PkString's
+    // UTF-8 constructor deliberately normalizes malformed UTF-16. This field
+    // keeps isolated surrogate code units lossless at the wire boundary.
+    std::u16string m_stringCodeUnits;
+
+    DateTimeSpec m_dateTimeSpec = DateTimeSpec::LocalTime;
+    int m_dateTimeOffsetSeconds = 0;
+    PkString m_dateTimeZoneId;
+
     // data() 指针：POD 类型指向 union 成员，非 POD 类型指向 std::any 内容
     void* m_data_ptr;
 
     void initFromPOD();
+    void setDateTimeWireState(DateTimeSpec spec, int offsetSeconds, const PkString& timeZoneId);
     const char* typeNameForType(Type t) const;
     static const char* typeNameForTypeHelper(Type t);
 };

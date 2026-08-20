@@ -6,8 +6,13 @@
 #include "pk_binder_data_stream_case.inc"
 
 #include <cstring>
+#include <limits>
 #include <string>
+#include <type_traits>
 #include <vector>
+
+static_assert(!std::is_copy_constructible_v<PkDataStream>);
+static_assert(!std::is_copy_assignable_v<PkDataStream>);
 
 namespace {
 
@@ -245,6 +250,158 @@ void DataStreamCase::readsAndWritesThroughPkStream()
     reader >> value;
     PK_COMPARE(reader.status(), PkDataStream::Ok);
     PK_COMPARE(value.toInt(), 42);
+}
+
+void DataStreamCase::typedNullBuiltinsRoundTrip()
+{
+    struct NullFixture { PkDataStream::Version version; PkVariant::Type type; const char *hex; };
+    const NullFixture fixtures[]{
+        {PkDataStream::Qt_4_6, PkVariant::String, "0000000a01ffffffff"},
+        {PkDataStream::Qt_4_6, PkVariant::ByteArray, "0000000c01ffffffff"},
+        {PkDataStream::Qt_4_6, PkVariant::Date, "0000000e0000000000"},
+        {PkDataStream::Qt_4_6, PkVariant::Time, "0000000f00ffffffff"},
+        {PkDataStream::Qt_4_6, PkVariant::DateTime, "000000100000000000ffffffffff"},
+        {PkDataStream::Qt_5_15, PkVariant::String, "0000000a01ffffffff"},
+        {PkDataStream::Qt_5_15, PkVariant::ByteArray, "0000000c01ffffffff"},
+        {PkDataStream::Qt_5_15, PkVariant::Date, "0000000e008000000000000000"},
+        {PkDataStream::Qt_5_15, PkVariant::Time, "0000000f00ffffffff"},
+        {PkDataStream::Qt_5_15, PkVariant::DateTime, "00000010008000000000000000ffffffff00"},
+    };
+    for (const NullFixture &fixture : fixtures) {
+        PkDataStream reader(fromHex(fixture.hex));
+        reader.setVersion(fixture.version);
+        PkVariant value;
+        reader >> value;
+        PK_COMPARE(reader.status(), PkDataStream::Ok);
+        PK_COMPARE(value.type(), fixture.type);
+        PK_VERIFY(value.isValid());
+        PK_VERIFY(value.isNull());
+
+        PkByteArray encoded;
+        PkDataStream writer(&encoded, PkStream::WriteOnly);
+        writer.setVersion(fixture.version);
+        writer << value;
+        PK_COMPARE(writer.status(), PkDataStream::Ok);
+        PK_VERIFY(encoded == fromHex(fixture.hex));
+    }
+}
+
+void DataStreamCase::dateTimeWireStatesRoundTrip()
+{
+    struct DateTimeFixture {
+        PkDataStream::Version version;
+        const char *hex;
+        PkVariant::DateTimeSpec spec;
+        int offsetSeconds;
+        const char *zoneId;
+    };
+    const DateTimeFixture fixtures[]{
+        {PkDataStream::Qt_4_6, "000000100000258ad202b32c95ff", PkVariant::DateTimeSpec::LocalTime, 0, ""},
+        {PkDataStream::Qt_4_6, "000000100000258ad202b32c9502", PkVariant::DateTimeSpec::UTC, 0, ""},
+        {PkDataStream::Qt_4_6, "000000100000258ad202b32c9503", PkVariant::DateTimeSpec::OffsetFromUTC, 0, ""},
+        {PkDataStream::Qt_4_6, "000000100000258ad202b32c9504", PkVariant::DateTimeSpec::TimeZone, 0, ""},
+        {PkDataStream::Qt_5_15, "00000010000000000000258ad202b32c9500", PkVariant::DateTimeSpec::LocalTime, 0, ""},
+        {PkDataStream::Qt_5_15, "00000010000000000000258ad202b32c9501", PkVariant::DateTimeSpec::UTC, 0, ""},
+        {PkDataStream::Qt_5_15, "00000010000000000000258ad202b32c950200004d58", PkVariant::DateTimeSpec::OffsetFromUTC, 19800, ""},
+        {PkDataStream::Qt_5_15, "00000010000000000000258ad202b32c9503000000180041007300690061002f004b006f006c006b006100740061", PkVariant::DateTimeSpec::TimeZone, 0, "Asia/Kolkata"},
+    };
+    for (const DateTimeFixture &fixture : fixtures) {
+        PkDataStream reader(fromHex(fixture.hex));
+        reader.setVersion(fixture.version);
+        PkVariant value;
+        reader >> value;
+        PK_COMPARE(reader.status(), PkDataStream::Ok);
+        PK_COMPARE(value.type(), PkVariant::DateTime);
+        PK_COMPARE(value.PkDateTimeSpec(), fixture.spec);
+        PK_COMPARE(value.PkDateTimeOffsetSeconds(), fixture.offsetSeconds);
+        PK_VERIFY(value.PkDateTimeZoneId() == PkString(fixture.zoneId));
+
+        PkByteArray encoded;
+        PkDataStream writer(&encoded, PkStream::WriteOnly);
+        writer.setVersion(fixture.version);
+        writer << value;
+        PK_COMPARE(writer.status(), PkDataStream::Ok);
+        PK_VERIFY(encoded == fromHex(fixture.hex));
+    }
+}
+
+void DataStreamCase::isolatedUtf16CodeUnitsRoundTrip()
+{
+    const char *hex = "0000000a00000000080041d8000042dc00";
+    PkDataStream reader(fromHex(hex));
+    PkVariant value;
+    reader >> value;
+    PK_COMPARE(reader.status(), PkDataStream::Ok);
+    PK_VERIFY(value.PkStringCodeUnits() == std::u16string({u'A', 0xd800, u'B', 0xdc00}));
+    PK_VERIFY(value.toString().PkToU16() == std::u16string({u'A', 0xd800, u'B', 0xdc00}));
+
+    PkDataStream directReader(fromHex("000000080041d8000042dc00"));
+    PkString direct;
+    directReader >> direct;
+    PK_COMPARE(directReader.status(), PkDataStream::Ok);
+    PK_VERIFY(direct.PkToU16() == std::u16string({u'A', 0xd800, u'B', 0xdc00}));
+
+    PkByteArray encoded;
+    PkDataStream writer(&encoded, PkStream::WriteOnly);
+    writer << value;
+    PK_COMPARE(writer.status(), PkDataStream::Ok);
+    PK_VERIFY(encoded == fromHex(hex));
+}
+
+void DataStreamCase::multiElementHashRoundTripIsSemantic()
+{
+    PkVariantHash hash{{PkString("a"), PkVariant(3)},
+                       {PkString("b"), PkVariant(PkString("two"))},
+                       {PkString("c"), PkVariant(false)}};
+    PkByteArray bytes;
+    PkDataStream writer(&bytes, PkStream::WriteOnly);
+    writer << PkVariant(hash);
+    PK_COMPARE(writer.status(), PkDataStream::Ok);
+
+    PkDataStream reader(bytes);
+    PkVariant decoded;
+    reader >> decoded;
+    PK_COMPARE(reader.status(), PkDataStream::Ok);
+    PK_VERIFY(decoded.toHash() == hash);
+}
+
+void DataStreamCase::userTypeFailureConsumesTypeName()
+{
+    MemoryStream device(std::string("\0\0\4\0\0\0\0\0\rWireUserType\0\0\0\0*", 26));
+    device.open(PkStream::ReadOnly);
+    PkDataStream stream(&device);
+    PkVariant value(42);
+    stream >> value;
+    PK_COMPARE(stream.status(), PkDataStream::ReadCorruptData);
+    PK_COMPARE(device.pos(), 22LL);
+
+    stream.resetStatus();
+    std::int32_t payload = 0;
+    stream >> payload;
+    PK_COMPARE(payload, 42);
+    PK_COMPARE(stream.status(), PkDataStream::Ok);
+}
+
+void DataStreamCase::hostileLengthsAreRejectedBeforeAllocation()
+{
+    MemoryStream stringDevice(std::string("\x7f\xff\xff\xfe", 4));
+    stringDevice.open(PkStream::ReadOnly);
+    PkDataStream stringStream(&stringDevice);
+    stringStream.setAllocationLimit(1024);
+    PkString string;
+    stringStream >> string;
+    PK_COMPARE(stringStream.status(), PkDataStream::ReadCorruptData);
+    PK_VERIFY(string.isEmpty());
+
+    PkVariant list;
+    // QVariant List framing, then hostile element count.
+    MemoryStream variantDevice(std::string("\0\0\0\t\0\x7f\xff\xff\xff", 9));
+    variantDevice.open(PkStream::ReadOnly);
+    PkDataStream variantStream(&variantDevice);
+    variantStream.setAllocationLimit(1024);
+    variantStream >> list;
+    PK_COMPARE(variantStream.status(), PkDataStream::ReadCorruptData);
+    PK_VERIFY(!list.isValid());
 }
 
 PK_TEST_MAIN(DataStreamCase)

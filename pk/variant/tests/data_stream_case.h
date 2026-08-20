@@ -15,4 +15,10 @@ private Q_SLOTS:
     void shortReadIsStickyAndZeroesTarget();
     void rejectsUnknownAndUserTypes();
     void readsAndWritesThroughPkStream();
+    void typedNullBuiltinsRoundTrip();
+    void dateTimeWireStatesRoundTrip();
+    void isolatedUtf16CodeUnitsRoundTrip();
+    void multiElementHashRoundTripIsSemantic();
+    void userTypeFailureConsumesTypeName();
+    void hostileLengthsAreRejectedBeforeAllocation();
 };

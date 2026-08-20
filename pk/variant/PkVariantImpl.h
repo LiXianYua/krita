@@ -13,6 +13,8 @@ PkVariant PkVariant::fromValue(const T& value)
     } else {
         PkVariant v;
         v.m_type = UserType;
+        v.m_isNull = false;
+        v.m_wireNullFlag = false;
         v.m_any = value;
         if (v.m_any.has_value()) {
             v.m_data_ptr = std::any_cast<T>(&v.m_any);
@@ -117,6 +119,8 @@ void PkVariant::setValue(const T& value)
         *this = PkVariant(value);
     } else {
         m_type = UserType;
+        m_isNull = false;
+        m_wireNullFlag = false;
         m_any = value;
         if (m_any.has_value()) {
             m_data_ptr = std::any_cast<T>(&m_any);

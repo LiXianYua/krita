@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstring>
 #include <limits>
+#include <new>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -12,38 +14,8 @@ namespace {
 constexpr std::uint32_t kNullLength = 0xffffffffu;
 constexpr std::uint32_t kQt4FloatType = 135u;
 constexpr std::uint32_t kQt5UserType = 1024u;
-
-std::string utf16ToUtf8(const std::u16string &input)
-{
-    std::string output;
-    output.reserve(input.size() * 3);
-    for (std::size_t i = 0; i < input.size(); ++i) {
-        std::uint32_t cp = input[i];
-        if (cp >= 0xd800u && cp <= 0xdbffu && i + 1 < input.size()) {
-            const std::uint32_t low = input[i + 1];
-            if (low >= 0xdc00u && low <= 0xdfffu) {
-                cp = 0x10000u + ((cp - 0xd800u) << 10) + (low - 0xdc00u);
-                ++i;
-            }
-        }
-        if (cp <= 0x7fu) {
-            output.push_back(static_cast<char>(cp));
-        } else if (cp <= 0x7ffu) {
-            output.push_back(static_cast<char>(0xc0u | (cp >> 6)));
-            output.push_back(static_cast<char>(0x80u | (cp & 0x3fu)));
-        } else if (cp <= 0xffffu) {
-            output.push_back(static_cast<char>(0xe0u | (cp >> 12)));
-            output.push_back(static_cast<char>(0x80u | ((cp >> 6) & 0x3fu)));
-            output.push_back(static_cast<char>(0x80u | (cp & 0x3fu)));
-        } else {
-            output.push_back(static_cast<char>(0xf0u | (cp >> 18)));
-            output.push_back(static_cast<char>(0x80u | ((cp >> 12) & 0x3fu)));
-            output.push_back(static_cast<char>(0x80u | ((cp >> 6) & 0x3fu)));
-            output.push_back(static_cast<char>(0x80u | (cp & 0x3fu)));
-        }
-    }
-    return output;
-}
+constexpr std::uint32_t kQt4UserType = 127u;
+constexpr std::size_t kDefaultAllocationLimit = 64u * 1024u * 1024u;
 
 bool isSupportedType(std::uint32_t typeId)
 {
@@ -83,20 +55,22 @@ bool isSupportedType(std::uint32_t typeId)
 
 PkDataStream::PkDataStream()
     : m_device(nullptr), m_externalBytes(nullptr), m_position(0), m_mode(PkStream::NotOpen),
-      m_byteOrder(BigEndian), m_version(Qt_5_15), m_precision(DoublePrecision), m_status(Ok)
+      m_byteOrder(BigEndian), m_version(Qt_5_15), m_precision(DoublePrecision), m_status(Ok),
+      m_allocationLimit(kDefaultAllocationLimit)
 {
 }
 
 PkDataStream::PkDataStream(const PkByteArray &bytes)
     : m_device(nullptr), m_externalBytes(nullptr), m_bytes(bytes), m_position(0),
       m_mode(PkStream::ReadOnly), m_byteOrder(BigEndian), m_version(Qt_5_15),
-      m_precision(DoublePrecision), m_status(Ok)
+      m_precision(DoublePrecision), m_status(Ok), m_allocationLimit(kDefaultAllocationLimit)
 {
 }
 
 PkDataStream::PkDataStream(PkByteArray *bytes, PkStream::OpenMode mode)
     : m_device(nullptr), m_externalBytes(bytes), m_position(0), m_mode(mode),
-      m_byteOrder(BigEndian), m_version(Qt_5_15), m_precision(DoublePrecision), m_status(Ok)
+      m_byteOrder(BigEndian), m_version(Qt_5_15), m_precision(DoublePrecision), m_status(Ok),
+      m_allocationLimit(kDefaultAllocationLimit)
 {
     if (bytes && (mode & PkStream::Truncate)) {
         bytes->resize(0);
@@ -108,8 +82,9 @@ PkDataStream::PkDataStream(PkByteArray *bytes, PkStream::OpenMode mode)
 
 PkDataStream::PkDataStream(PkStream *device)
     : m_device(device), m_externalBytes(nullptr), m_position(0),
-      m_mode(device ? device->openMode() : PkStream::NotOpen), m_byteOrder(BigEndian),
-      m_version(Qt_5_15), m_precision(DoublePrecision), m_status(Ok)
+      m_mode(device ? device->openMode() : static_cast<PkStream::OpenMode>(PkStream::NotOpen)), m_byteOrder(BigEndian),
+      m_version(Qt_5_15), m_precision(DoublePrecision), m_status(Ok),
+      m_allocationLimit(kDefaultAllocationLimit)
 {
 }
 
@@ -122,6 +97,8 @@ void PkDataStream::setFloatingPointPrecision(FloatingPointPrecision precision) {
 PkDataStream::Status PkDataStream::status() const { return m_status; }
 void PkDataStream::setStatus(Status status) { if (m_status == Ok) m_status = status; }
 void PkDataStream::resetStatus() { m_status = Ok; }
+std::size_t PkDataStream::allocationLimit() const { return m_allocationLimit; }
+void PkDataStream::setAllocationLimit(std::size_t bytes) { m_allocationLimit = bytes; }
 
 const PkByteArray &PkDataStream::byteArray() const
 {
@@ -153,7 +130,15 @@ bool PkDataStream::writeRaw(const char *data, std::size_t size)
         return false;
     }
     const std::size_t end = m_position + size;
-    if (static_cast<std::size_t>(bytes->size()) < end) bytes->resize(static_cast<int>(end));
+    try {
+        if (static_cast<std::size_t>(bytes->size()) < end) bytes->resize(static_cast<int>(end));
+    } catch (const std::bad_alloc &) {
+        setStatus(WriteFailed);
+        return false;
+    } catch (const std::length_error &) {
+        setStatus(WriteFailed);
+        return false;
+    }
     if (size) std::memcpy(bytes->data() + m_position, data, size);
     m_position = end;
     return true;
@@ -285,43 +270,94 @@ PkDataStream &PkDataStream::operator>>(double &value)
 
 PkDataStream &PkDataStream::operator<<(const PkString &value)
 {
-    const std::u16string units = value.PkToU16();
+    writeStringCodeUnits(value.PkToU16());
+    return *this;
+}
+
+bool PkDataStream::writeStringCodeUnits(const std::u16string &units, bool isNull)
+{
+    if (isNull) {
+        *this << kNullLength;
+        return m_status == Ok;
+    }
     if (units.size() > (std::numeric_limits<std::uint32_t>::max)() / 2u) {
         setStatus(WriteFailed);
-        return *this;
+        return false;
     }
     *this << static_cast<std::uint32_t>(units.size() * 2u);
     for (char16_t unit : units) *this << static_cast<std::uint16_t>(unit);
-    return *this;
+    return m_status == Ok;
 }
 
 PkDataStream &PkDataStream::operator>>(PkString &value)
 {
+    std::u16string units;
+    bool isNull = false;
+    if (!readStringCodeUnits(units, isNull)) {
+        value = PkString();
+        return *this;
+    }
+    value = PkVariant::PkFromStringCodeUnits(units).toString();
+    return *this;
+}
+
+bool PkDataStream::validateReadAllocation(std::uint64_t byteCount)
+{
+    if (byteCount > static_cast<std::uint64_t>(m_allocationLimit)) {
+        setStatus(ReadCorruptData);
+        return false;
+    }
+    if (m_device) {
+        if (!m_device->isSequential()) {
+            const PkStream::pk_int64 available = m_device->bytesAvailable();
+            if (available < 0 || byteCount > static_cast<std::uint64_t>(available)) {
+                setStatus(ReadPastEnd);
+                return false;
+            }
+        }
+    } else if (m_position > static_cast<std::size_t>(byteArray().size()) ||
+               byteCount > static_cast<std::uint64_t>(static_cast<std::size_t>(byteArray().size()) - m_position)) {
+        setStatus(ReadPastEnd);
+        return false;
+    }
+    return true;
+}
+
+bool PkDataStream::validateContainerCount(std::uint32_t count, std::size_t minimumWireBytes)
+{
+    const std::uint64_t minimum = static_cast<std::uint64_t>(count) * minimumWireBytes;
+    return validateReadAllocation(minimum);
+}
+
+bool PkDataStream::readStringCodeUnits(std::u16string &units, bool &isNull)
+{
     std::uint32_t byteCount = 0;
     *this >> byteCount;
-    if (m_status != Ok) { value = PkString(); return *this; }
-    if (byteCount == kNullLength) { value = PkString(); return *this; }
+    units.clear();
+    isNull = false;
+    if (m_status != Ok) return false;
+    if (byteCount == kNullLength) { isNull = true; return true; }
     if ((byteCount & 1u) != 0u || byteCount > static_cast<std::uint32_t>((std::numeric_limits<int>::max)())) {
         setStatus(ReadCorruptData);
-        value = PkString();
-        return *this;
+        return false;
     }
-    if (!m_device && (m_position > static_cast<std::size_t>(byteArray().size()) ||
-        byteCount > static_cast<std::size_t>(byteArray().size()) - m_position)) {
-        setStatus(ReadPastEnd);
-        value = PkString();
-        return *this;
+    if (!validateReadAllocation(byteCount)) return false;
+    try {
+        units.assign(byteCount / 2u, u'\0');
+    } catch (const std::bad_alloc &) {
+        setStatus(ReadCorruptData);
+        return false;
+    } catch (const std::length_error &) {
+        setStatus(ReadCorruptData);
+        return false;
     }
-    std::u16string units(byteCount / 2u, u'\0');
     for (char16_t &unit : units) {
         std::uint16_t raw = 0;
         *this >> raw;
-        if (m_status != Ok) { value = PkString(); return *this; }
+        if (m_status != Ok) { units.clear(); return false; }
         unit = static_cast<char16_t>(raw);
     }
-    const std::string utf8 = utf16ToUtf8(units);
-    value = PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
-    return *this;
+    return true;
 }
 
 PkDataStream &PkDataStream::operator<<(const PkByteArray &value)
@@ -341,13 +377,18 @@ PkDataStream &PkDataStream::operator>>(PkByteArray &value)
         value = PkByteArray();
         return *this;
     }
-    if (!m_device && (m_position > static_cast<std::size_t>(byteArray().size()) ||
-        size > static_cast<std::size_t>(byteArray().size()) - m_position)) {
-        setStatus(ReadPastEnd);
+    if (!validateReadAllocation(size)) { value = PkByteArray(); return *this; }
+    try {
+        value.resize(static_cast<int>(size));
+    } catch (const std::bad_alloc &) {
+        setStatus(ReadCorruptData);
+        value = PkByteArray();
+        return *this;
+    } catch (const std::length_error &) {
+        setStatus(ReadCorruptData);
         value = PkByteArray();
         return *this;
     }
-    value.resize(static_cast<int>(size));
     if (!readRaw(value.data(), size)) value = PkByteArray();
     return *this;
 }
@@ -367,12 +408,21 @@ bool PkDataStream::readVariantList(PkVariantList &values)
         if (m_status == Ok) setStatus(ReadCorruptData);
         return false;
     }
+    if (!validateContainerCount(size, 5u)) return false;
     values.clear();
-    for (std::uint32_t i = 0; i < size; ++i) {
-        PkVariant value;
-        *this >> value;
-        if (m_status != Ok) return false;
-        values.push_back(std::move(value));
+    try {
+        for (std::uint32_t i = 0; i < size; ++i) {
+            PkVariant value;
+            *this >> value;
+            if (m_status != Ok) return false;
+            values.push_back(std::move(value));
+        }
+    } catch (const std::bad_alloc &) {
+        setStatus(ReadCorruptData);
+        return false;
+    } catch (const std::length_error &) {
+        setStatus(ReadCorruptData);
+        return false;
     }
     return true;
 }
@@ -392,12 +442,21 @@ bool PkDataStream::readStringList(PkStringList &values)
         if (m_status == Ok) setStatus(ReadCorruptData);
         return false;
     }
+    if (!validateContainerCount(size, 4u)) return false;
     values.clear();
-    for (std::uint32_t i = 0; i < size; ++i) {
-        PkString value;
-        *this >> value;
-        if (m_status != Ok) return false;
-        values.append(value);
+    try {
+        for (std::uint32_t i = 0; i < size; ++i) {
+            PkString value;
+            *this >> value;
+            if (m_status != Ok) return false;
+            values.append(value);
+        }
+    } catch (const std::bad_alloc &) {
+        setStatus(ReadCorruptData);
+        return false;
+    } catch (const std::length_error &) {
+        setStatus(ReadCorruptData);
+        return false;
     }
     return true;
 }
@@ -419,13 +478,22 @@ bool PkDataStream::readVariantMap(PkVariantMap &values)
         if (m_status == Ok) setStatus(ReadCorruptData);
         return false;
     }
+    if (!validateContainerCount(size, 9u)) return false;
     values.clear();
-    for (std::uint32_t i = 0; i < size; ++i) {
-        PkString key;
-        PkVariant value;
-        *this >> key >> value;
-        if (m_status != Ok) return false;
-        values.emplace(std::move(key), std::move(value));
+    try {
+        for (std::uint32_t i = 0; i < size; ++i) {
+            PkString key;
+            PkVariant value;
+            *this >> key >> value;
+            if (m_status != Ok) return false;
+            values.emplace(std::move(key), std::move(value));
+        }
+    } catch (const std::bad_alloc &) {
+        setStatus(ReadCorruptData);
+        return false;
+    } catch (const std::length_error &) {
+        setStatus(ReadCorruptData);
+        return false;
     }
     return true;
 }
@@ -433,6 +501,10 @@ bool PkDataStream::readVariantMap(PkVariantMap &values)
 bool PkDataStream::writeVariantHash(const PkVariantHash &values)
 {
     *this << static_cast<std::uint32_t>(values.size());
+    // QHash iteration order is intentionally unspecified (and salted), so a
+    // multi-entry QVariantHash has no contractual byte order. The oracle
+    // validates this output by having real Qt decode it and compare hash
+    // semantics; single-entry fixtures remain byte-exact.
     for (const auto &entry : values) *this << entry.first << entry.second;
     return m_status == Ok;
 }
@@ -445,13 +517,22 @@ bool PkDataStream::readVariantHash(PkVariantHash &values)
         if (m_status == Ok) setStatus(ReadCorruptData);
         return false;
     }
+    if (!validateContainerCount(size, 9u)) return false;
     values.clear();
-    for (std::uint32_t i = 0; i < size; ++i) {
-        PkString key;
-        PkVariant value;
-        *this >> key >> value;
-        if (m_status != Ok) return false;
-        values.emplace(std::move(key), std::move(value));
+    try {
+        for (std::uint32_t i = 0; i < size; ++i) {
+            PkString key;
+            PkVariant value;
+            *this >> key >> value;
+            if (m_status != Ok) return false;
+            values.emplace(std::move(key), std::move(value));
+        }
+    } catch (const std::bad_alloc &) {
+        setStatus(ReadCorruptData);
+        return false;
+    } catch (const std::length_error &) {
+        setStatus(ReadCorruptData);
+        return false;
     }
     return true;
 }
@@ -464,7 +545,7 @@ PkDataStream &PkDataStream::operator<<(const PkVariant &value)
     }
     std::uint32_t typeId = static_cast<std::uint32_t>(value.type());
     if (m_version <= Qt_4_6 && value.type() == PkVariant::Float) typeId = kQt4FloatType;
-    *this << typeId << static_cast<std::uint8_t>(value.isNull() ? 1u : 0u);
+    *this << typeId << static_cast<std::uint8_t>(value.m_wireNullFlag ? 1u : 0u);
     if (m_status == Ok) writeVariantPayload(value);
     return *this;
 }
@@ -482,23 +563,53 @@ bool PkDataStream::writeVariantPayload(const PkVariant &value)
     case PkVariant::ULongLong: *this << static_cast<std::uint64_t>(value.toULongLong()); break;
     case PkVariant::Double: *this << value.toDouble(); break;
     case PkVariant::Float: *this << value.toFloat(); break;
-    case PkVariant::String: *this << value.toString(); break;
-    case PkVariant::ByteArray: *this << value.toByteArray(); break;
+    case PkVariant::String:
+        writeStringCodeUnits(value.PkStringCodeUnits(), value.isNull());
+        break;
+    case PkVariant::ByteArray:
+        if (value.isNull()) *this << kNullLength;
+        else *this << value.toByteArray();
+        break;
     case PkVariant::StringList: return writeStringList(value.toStringList());
     case PkVariant::List: return writeVariantList(value.toList());
     case PkVariant::Map: return writeVariantMap(value.toMap());
     case PkVariant::Hash: return writeVariantHash(value.toHash());
     case PkVariant::Date:
-        if (m_version <= Qt_4_6) *this << static_cast<std::int32_t>(value.toDate().toJulianDay());
-        else *this << static_cast<std::int64_t>(value.toDate().toJulianDay());
+        if (m_version <= Qt_4_6) {
+            *this << static_cast<std::int32_t>(value.toDate().isValid()
+                ? value.toDate().toJulianDay() : 0);
+        } else {
+            *this << static_cast<std::int64_t>(value.toDate().toJulianDay());
+        }
         break;
-    case PkVariant::Time: *this << static_cast<std::uint32_t>(value.toTime().msecsSinceStartOfDay()); break;
+    case PkVariant::Time:
+        *this << static_cast<std::uint32_t>(value.toTime().isValid()
+            ? value.toTime().msecsSinceStartOfDay() : kNullLength);
+        break;
     case PkVariant::DateTime: {
         const PkDateTime dateTime = value.toDateTime();
-        if (m_version <= Qt_4_6) *this << static_cast<std::int32_t>(dateTime.date().toJulianDay());
-        else *this << static_cast<std::int64_t>(dateTime.date().toJulianDay());
-        *this << static_cast<std::uint32_t>(dateTime.time().msecsSinceStartOfDay());
-        *this << static_cast<std::int8_t>(m_version <= Qt_4_6 ? -1 : 0);
+        if (m_version <= Qt_4_6) {
+            *this << static_cast<std::int32_t>(dateTime.date().isValid()
+                ? dateTime.date().toJulianDay() : 0);
+        } else {
+            *this << static_cast<std::int64_t>(dateTime.date().toJulianDay());
+        }
+        *this << static_cast<std::uint32_t>(dateTime.time().isValid()
+            ? dateTime.time().msecsSinceStartOfDay() : kNullLength);
+        const PkVariant::DateTimeSpec spec = value.PkDateTimeSpec();
+        if (m_version <= Qt_4_6) {
+            const std::int8_t legacySpec = spec == PkVariant::DateTimeSpec::LocalTime
+                ? static_cast<std::int8_t>(-1)
+                : static_cast<std::int8_t>(static_cast<int>(spec) + 1);
+            *this << legacySpec;
+        } else {
+            *this << static_cast<std::int8_t>(spec);
+            if (spec == PkVariant::DateTimeSpec::OffsetFromUTC) {
+                *this << static_cast<std::int32_t>(value.PkDateTimeOffsetSeconds());
+            } else if (spec == PkVariant::DateTimeSpec::TimeZone) {
+                *this << value.PkDateTimeZoneId();
+            }
+        }
         break;
     }
     case PkVariant::Rect: {
@@ -545,13 +656,31 @@ PkDataStream &PkDataStream::operator>>(PkVariant &value)
     std::uint8_t nullFlag = 0;
     *this >> typeId >> nullFlag;
     if (m_status != Ok) return *this;
-    (void)nullFlag; // PkVariant has no typed-null state; the payload still carries the value.
     if (m_version <= Qt_4_6 && typeId == kQt4FloatType) typeId = PkVariant::Float;
-    if (typeId >= kQt5UserType || !isSupportedType(typeId)) {
+    const bool isUserType = (m_version <= Qt_4_6 && typeId == kQt4UserType)
+                         || (m_version > Qt_4_6 && typeId >= kQt5UserType);
+    if (isUserType) {
+        PkByteArray ignoredTypeName;
+        *this >> ignoredTypeName;
+        if (m_status == Ok) setStatus(ReadCorruptData);
+        return *this;
+    }
+    if (!isSupportedType(typeId)) {
         setStatus(ReadCorruptData);
         return *this;
     }
-    readVariantPayload(typeId, value);
+    try {
+        if (readVariantPayload(typeId, value)) {
+            value.m_wireNullFlag = nullFlag != 0;
+            value.m_isNull = value.m_isNull || value.m_wireNullFlag;
+        }
+    } catch (const std::bad_alloc &) {
+        setStatus(ReadCorruptData);
+        value.clear();
+    } catch (const std::length_error &) {
+        setStatus(ReadCorruptData);
+        value.clear();
+    }
     return *this;
 }
 
@@ -569,7 +698,15 @@ bool PkDataStream::readVariantPayload(std::uint32_t typeId, PkVariant &value)
     case PkVariant::ULongLong: { std::uint64_t v = 0; *this >> v; value = PkVariant(static_cast<unsigned long long>(v)); break; }
     case PkVariant::Double: { double v = 0; *this >> v; value = PkVariant(v); break; }
     case PkVariant::Float: { float v = 0; *this >> v; value = PkVariant(v); break; }
-    case PkVariant::String: { PkString v; *this >> v; value = PkVariant(v); break; }
+    case PkVariant::String: {
+        std::u16string units;
+        bool payloadNull = false;
+        if (readStringCodeUnits(units, payloadNull)) {
+            value = PkVariant::PkFromStringCodeUnits(units);
+            value.m_isNull = payloadNull;
+        }
+        break;
+    }
     case PkVariant::ByteArray: { PkByteArray v; *this >> v; value = PkVariant(v); break; }
     case PkVariant::StringList: { PkStringList v; if (readStringList(v)) value = PkVariant(v); break; }
     case PkVariant::List: { PkVariantList v; if (readVariantList(v)) value = PkVariant(v); break; }
@@ -579,7 +716,8 @@ bool PkDataStream::readVariantPayload(std::uint32_t typeId, PkVariant &value)
         std::int64_t jd = 0;
         if (m_version <= Qt_4_6) { std::int32_t oldJd = 0; *this >> oldJd; jd = oldJd; }
         else *this >> jd;
-        value = PkVariant(PkDate::fromJulianDay(jd));
+        value = PkVariant(m_version <= Qt_4_6 && jd == 0
+            ? PkDate() : PkDate::fromJulianDay(jd));
         break;
     }
     case PkVariant::Time: { std::uint32_t msecs = 0; *this >> msecs; value = PkVariant(PkTime::fromMSecsSinceStartOfDay(static_cast<int>(msecs))); break; }
@@ -587,10 +725,41 @@ bool PkDataStream::readVariantPayload(std::uint32_t typeId, PkVariant &value)
         std::int64_t jd = 0;
         if (m_version <= Qt_4_6) { std::int32_t oldJd = 0; *this >> oldJd; jd = oldJd; }
         else *this >> jd;
-        std::uint32_t msecs = 0; std::int8_t spec = 0;
-        *this >> msecs >> spec;
-        if (m_status == Ok && spec != 0 && !(m_version <= Qt_4_6 && spec == -1)) setStatus(ReadCorruptData);
-        if (m_status == Ok) value = PkVariant(PkDateTime(PkDate::fromJulianDay(jd), PkTime::fromMSecsSinceStartOfDay(static_cast<int>(msecs))));
+        std::uint32_t msecs = 0;
+        std::int8_t wireSpec = 0;
+        *this >> msecs >> wireSpec;
+        PkVariant::DateTimeSpec spec = PkVariant::DateTimeSpec::LocalTime;
+        int offsetSeconds = 0;
+        PkString timeZoneId;
+        if (m_status == Ok && m_version <= Qt_4_6) {
+            if (wireSpec == -1) spec = PkVariant::DateTimeSpec::LocalTime;
+            else if (wireSpec >= 2 && wireSpec <= 4) {
+                spec = static_cast<PkVariant::DateTimeSpec>(wireSpec - 1);
+            } else {
+                setStatus(ReadCorruptData);
+            }
+        } else if (m_status == Ok) {
+            if (wireSpec < 0 || wireSpec > 3) {
+                setStatus(ReadCorruptData);
+            } else {
+                spec = static_cast<PkVariant::DateTimeSpec>(wireSpec);
+                if (spec == PkVariant::DateTimeSpec::OffsetFromUTC) {
+                    std::int32_t wireOffset = 0;
+                    *this >> wireOffset;
+                    offsetSeconds = wireOffset;
+                } else if (spec == PkVariant::DateTimeSpec::TimeZone) {
+                    *this >> timeZoneId;
+                }
+            }
+        }
+        if (m_status == Ok) {
+            const PkTime time = msecs == kNullLength
+                ? PkTime() : PkTime::fromMSecsSinceStartOfDay(static_cast<int>(msecs));
+            const PkDate date = m_version <= Qt_4_6 && jd == 0
+                ? PkDate() : PkDate::fromJulianDay(jd);
+            value = PkVariant::PkFromDateTime(
+                PkDateTime(date, time), spec, offsetSeconds, timeZoneId);
+        }
         break;
     }
     case PkVariant::Rect: {

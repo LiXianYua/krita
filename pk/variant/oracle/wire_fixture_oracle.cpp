@@ -12,6 +12,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTime>
+#include <QTimeZone>
 #include <QVariant>
 
 #include <cstdio>
@@ -81,6 +82,16 @@ int main()
     QVariantMap map{{QStringLiteral("a"), QVariant(3)},
                     {QString::fromUtf8("\xCE\xB2"), QVariant(false)}};
     QVariantHash hash{{QStringLiteral("a"), QVariant(3)}};
+    QVariantHash multiHash{{QStringLiteral("a"), QVariant(3)},
+                           {QStringLiteral("b"), QVariant(QStringLiteral("two"))},
+                           {QStringLiteral("c"), QVariant(false)}};
+    const ushort isolatedUnits[]{0x0041, 0xd800, 0x0042, 0xdc00};
+    const QDateTime localDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789), Qt::LocalTime);
+    const QDateTime utcDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789), Qt::UTC);
+    const QDateTime offsetDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789),
+                                   Qt::OffsetFromUTC, 19800);
+    const QDateTime zoneDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789),
+                                 QTimeZone("Asia/Kolkata"));
     const std::vector<WireCase> cases{
         {"invalid", QVariant()},
         {"bool", QVariant(true)},
@@ -91,14 +102,27 @@ int main()
         {"double", QVariant(1234.5)},
         {"float", QVariant(12.25f)},
         {"string", QVariant(QString::fromUtf8("A\xF0\x9F\x8E\xA8"))},
+        {"string_isolated_utf16", QVariant(QString::fromUtf16(isolatedUnits, 4))},
+        {"string_null", QVariant(QVariant::String)},
         {"bytearray", QVariant(QByteArray("A\0Z", 3))},
+        {"bytearray_null", QVariant(QVariant::ByteArray)},
         {"stringlist", QVariant(QStringList{QStringLiteral("a"), QString::fromUtf8("\xCE\xB2")})},
         {"list", QVariant(list)},
         {"map", QVariant(map)},
         {"hash", QVariant(hash)},
+        {"hash_multi", QVariant(multiHash)},
         {"date", QVariant(QDate(2024, 2, 29))},
+        {"date_null", QVariant(QDate())},
+        {"date_typed_null", QVariant(QVariant::Date)},
         {"time", QVariant(QTime(12, 34, 56, 789))},
-        {"datetime", QVariant(QDateTime(QDate(2024, 2, 29), QTime(12, 34, 56, 789), Qt::LocalTime))},
+        {"time_null", QVariant(QTime())},
+        {"time_typed_null", QVariant(QVariant::Time)},
+        {"datetime", QVariant(localDateTime)},
+        {"datetime_null", QVariant(QDateTime())},
+        {"datetime_typed_null", QVariant(QVariant::DateTime)},
+        {"datetime_utc", QVariant(utcDateTime)},
+        {"datetime_offset", QVariant(offsetDateTime)},
+        {"datetime_timezone", QVariant(zoneDateTime)},
         {"rect", QVariant(QRect(-2, 3, 4, 5))},
         {"rectf", QVariant(QRectF(-2.5, 3.25, 4.5, 5.75))},
         {"size", QVariant(QSize(-2, 3))},
