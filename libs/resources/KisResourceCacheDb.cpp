@@ -28,6 +28,8 @@
 #include <KisResourceLoaderRegistry.h>
 #include <KisResourceTypes.h>
 
+#include <sqlite3.h>
+
 #include "ResourceDebug.h"
 #include <kis_assert.h>
 
@@ -128,13 +130,142 @@ const char kBase64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123
 // Metadata is control-plane state, not a bulk-blob store (resource thumbnails
 // have their own BLOB columns).  Bound both retained rows and retained Base64
 // text before materializing SQLite values.  A single owner may retain at most
-// 8 MiB across at most 1024 rows, and no one row may exceed 1 MiB.  The SQL
-// byte-length probe happens before q.value(...).toString(), so an over-limit
-// value remains in SQLite without an extra unbounded application copy.
+// 8 MiB across at most 1024 rows, and no one row may exceed 1 MiB.  Paged SQL
+// returns only row ids and storage classes; SQLite's incremental-blob API
+// measures and copies each TEXT/BLOB only after the bounds are known, so an
+// over-limit value remains in SQLite without an extra unbounded application
+// copy.
 constexpr std::uint64_t kMaximumMetadataPayloadBytes = 1024u * 1024u;
 constexpr std::uint64_t kMaximumMetadataPayloadBytesPerOwner = 8u * 1024u * 1024u;
 constexpr std::uint64_t kMaximumMetadataKeyBytes = 16u * 1024u;
 constexpr std::size_t kMaximumMetadataRowsPerOwner = 1024u;
+constexpr int kMetadataReadPageRows = 32;
+
+KisResourceCacheDb::MetaDataStorageClass metadataStorageClass(const PkString &name)
+{
+    if (name == PkString("null")) {
+        return KisResourceCacheDb::MetaDataStorageClass::Null;
+    }
+    if (name == PkString("integer")) {
+        return KisResourceCacheDb::MetaDataStorageClass::Integer;
+    }
+    if (name == PkString("real")) {
+        return KisResourceCacheDb::MetaDataStorageClass::Real;
+    }
+    if (name == PkString("text")) {
+        return KisResourceCacheDb::MetaDataStorageClass::Text;
+    }
+    if (name == PkString("blob")) {
+        return KisResourceCacheDb::MetaDataStorageClass::Blob;
+    }
+    return KisResourceCacheDb::MetaDataStorageClass::Unknown;
+}
+
+bool isByteStorageClass(KisResourceCacheDb::MetaDataStorageClass storageClass)
+{
+    return storageClass == KisResourceCacheDb::MetaDataStorageClass::Text ||
+           storageClass == KisResourceCacheDb::MetaDataStorageClass::Blob;
+}
+
+bool isValidUtf8(const PkByteArray &bytes)
+{
+    const auto *data = reinterpret_cast<const unsigned char *>(bytes.constData());
+    const std::size_t size = static_cast<std::size_t>(bytes.size());
+    std::size_t offset = 0;
+    while (offset < size) {
+        const unsigned char first = data[offset++];
+        if (first <= 0x7fu) {
+            continue;
+        }
+
+        std::uint32_t codePoint = 0;
+        std::size_t continuationCount = 0;
+        std::uint32_t minimumCodePoint = 0;
+        if (first >= 0xc2u && first <= 0xdfu) {
+            codePoint = first & 0x1fu;
+            continuationCount = 1;
+            minimumCodePoint = 0x80u;
+        } else if (first >= 0xe0u && first <= 0xefu) {
+            codePoint = first & 0x0fu;
+            continuationCount = 2;
+            minimumCodePoint = 0x800u;
+        } else if (first >= 0xf0u && first <= 0xf4u) {
+            codePoint = first & 0x07u;
+            continuationCount = 3;
+            minimumCodePoint = 0x10000u;
+        } else {
+            return false;
+        }
+
+        if (continuationCount > size - offset) {
+            return false;
+        }
+        for (std::size_t index = 0; index < continuationCount; ++index) {
+            const unsigned char continuation = data[offset++];
+            if ((continuation & 0xc0u) != 0x80u) {
+                return false;
+            }
+            codePoint = (codePoint << 6) | (continuation & 0x3fu);
+        }
+        if (codePoint < minimumCodePoint || codePoint > 0x10ffffu ||
+            (codePoint >= 0xd800u && codePoint <= 0xdfffu)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+struct BoundedMetadataColumn
+{
+    bool succeeded = false;
+    bool complete = false;
+    std::uint64_t byteCount = 0;
+    PkByteArray bytes;
+};
+
+BoundedMetadataColumn readBoundedMetadataColumn(sqlite3 *database,
+                                                long long rowId,
+                                                const char *column,
+                                                std::uint64_t maximumBytes)
+{
+    BoundedMetadataColumn result;
+    sqlite3_blob *blob = nullptr;
+    const int openResult = sqlite3_blob_open(database,
+                                             "main",
+                                             "metadata",
+                                             column,
+                                             static_cast<sqlite3_int64>(rowId),
+                                             0,
+                                             &blob);
+    if (openResult != SQLITE_OK) {
+        return result;
+    }
+
+    const int byteCount = sqlite3_blob_bytes(blob);
+    result.byteCount = static_cast<std::uint64_t>(byteCount);
+    result.succeeded = true;
+    if (result.byteCount <= maximumBytes) {
+        result.bytes.resize(byteCount);
+        if (byteCount == 0 ||
+            sqlite3_blob_read(blob, result.bytes.data(), byteCount, 0) == SQLITE_OK) {
+            result.complete = true;
+        } else {
+            result.succeeded = false;
+            result.bytes.resize(0);
+        }
+    }
+    if (sqlite3_blob_close(blob) != SQLITE_OK) {
+        result.succeeded = false;
+        result.complete = false;
+        result.bytes.resize(0);
+    }
+    return result;
+}
+
+PkString utf8BytesToPkString(const PkByteArray &bytes)
+{
+    return PkString::PkFromUtf8(bytes.constData(), bytes.size());
+}
 
 PkString base64Encode(const PkByteArray &bytes)
 {
@@ -589,7 +720,8 @@ public:
     MetadataSavepoint()
         : m_name(PkString("krita_metadata_") +
                  PkString(std::to_string(nextId().fetch_add(1)).c_str()))
-        , m_connectionGuard(PkSqlDatabase::database())
+        , m_database(PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false))
+        , m_connectionGuard(m_database)
     {
     }
 
@@ -610,10 +742,22 @@ public:
 
     bool begin()
     {
+        if (detail::resourceDatabaseConnectionIsPoisoned() ||
+            !m_database.isOpen() || !m_database.PkHandle()) {
+            qWarning() << detail::resourceDatabaseConnectionPoisonError();
+            return false;
+        }
+        m_outerTransactionActive =
+            sqlite3_get_autocommit(m_database.PkHandle()) == 0;
         if (!execControl(PkString("SAVEPOINT ") + m_name, "begin")) {
             return false;
         }
         m_active = true;
+        if (!detail::ensureResourceDatabaseAutocommitState(
+                m_database, false, m_connectionGuard, "savepoint begin")) {
+            m_active = false;
+            return false;
+        }
         return true;
     }
 
@@ -624,7 +768,11 @@ public:
         }
         if (execControl(PkString("RELEASE SAVEPOINT ") + m_name, "release")) {
             m_active = false;
-            return true;
+            return detail::ensureResourceDatabaseAutocommitState(
+                m_database,
+                !m_outerTransactionActive,
+                m_connectionGuard,
+                "savepoint release");
         }
 
         // RELEASE is the commit point for a top-level savepoint.  If it
@@ -644,14 +792,25 @@ public:
         if (!rolledBack) {
             // Releasing a savepoint whose rollback failed could commit the
             // very partial update this guard exists to contain.
+            detail::poisonResourceDatabaseConnection(
+                m_database, m_connectionGuard, "savepoint rollback-to");
+            m_active = false;
             return false;
         }
         const bool released =
             execControl(PkString("RELEASE SAVEPOINT ") + m_name, "release-after-rollback");
         if (released) {
             m_active = false;
+            return detail::ensureResourceDatabaseAutocommitState(
+                m_database,
+                !m_outerTransactionActive,
+                m_connectionGuard,
+                "savepoint rollback cleanup");
         }
-        return released;
+        detail::poisonResourceDatabaseConnection(
+            m_database, m_connectionGuard, "savepoint cleanup release");
+        m_active = false;
+        return false;
     }
 
 private:
@@ -673,8 +832,10 @@ private:
     }
 
     PkString m_name;
+    PkSqlDatabase m_database;
     detail::ResourceDatabaseConnectionGuard m_connectionGuard;
     bool m_active = false;
+    bool m_outerTransactionActive = false;
 };
 
 VariantDecodeResult deserializeVariant(const PkString &encoded)
@@ -765,11 +926,14 @@ PkString KisResourceCacheDb::s_lastError {PkString()};
 
 bool KisResourceCacheDb::isValid()
 {
-    return s_valid;
+    return s_valid && !detail::resourceDatabaseConnectionIsPoisoned();
 }
 
 PkString KisResourceCacheDb::lastError()
 {
+    if (detail::resourceDatabaseConnectionIsPoisoned()) {
+        return detail::resourceDatabaseConnectionPoisonError();
+    }
     return s_lastError;
 }
 
@@ -987,7 +1151,8 @@ PkSqlError createDatabase(const PkString &location)
                             || oldSchemaVersionNumber == SchemaVersion::fromString("0.0.16")
                             || oldSchemaVersionNumber == SchemaVersion::fromString("0.0.17");
 
-                    KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
+                    KisDatabaseTransactionLock transactionLock(
+                        PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false));
                     if (!transactionLock.transactionStarted()) {
                         return transactionFailure("schema upgrade begin");
                     }
@@ -1103,7 +1268,8 @@ PkSqlError createDatabase(const PkString &location)
                         .arg(oldSchemaVersionNumber.toString().isEmpty() ? PkString("database didn't exist") : ("old schema version: " + oldSchemaVersionNumber.toString()))
                         .arg("new schema version: " + newSchemaVersionNumber.toString()));
 
-    KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
+    KisDatabaseTransactionLock transactionLock(
+        PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false));
     if (!transactionLock.transactionStarted()) {
         return transactionFailure("schema creation begin");
     }
@@ -1197,6 +1363,11 @@ PkSqlError createDatabase(const PkString &location)
 
 bool KisResourceCacheDb::initialize(const PkString &location)
 {
+    if (detail::resourceDatabaseConnectionIsPoisoned()) {
+        s_valid = false;
+        s_lastError = detail::resourceDatabaseConnectionPoisonError();
+        return false;
+    }
     PkSqlError err;
     try {
         err = createDatabase(location);
@@ -1831,7 +2002,7 @@ bool KisResourceCacheDb::addResource(KisResourceStorageSP storage, PkDateTime ti
 {
     bool r = false;
 
-    if (!s_valid) {
+    if (!isValid()) {
         qWarning() << "KisResourceCacheDb::addResource: The database is not valid";
         return false;
     }
@@ -1938,7 +2109,8 @@ bool KisResourceCacheDb::addResource(KisResourceStorageSP storage, PkDateTime ti
 
 bool KisResourceCacheDb::addResources(KisResourceStorageSP storage, PkString resourceType)
 {
-    KisDatabaseTransactionLock transaction(PkSqlDatabase::database());
+    KisDatabaseTransactionLock transaction(
+        PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false));
     if (!transaction.transactionStarted()) {
         return false;
     }
@@ -2266,7 +2438,8 @@ bool KisResourceCacheDb::addTag(const PkString &resourceType, const PkString sto
 
 bool KisResourceCacheDb::addTags(KisResourceStorageSP storage, PkString resourceType)
 {
-    KisDatabaseTransactionLock transaction(PkSqlDatabase::database());
+    KisDatabaseTransactionLock transaction(
+        PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false));
     if (!transaction.transactionStarted()) {
         return false;
     }
@@ -2329,7 +2502,7 @@ bool KisResourceCacheDb::addStorage(KisResourceStorageSP storage, bool preinstal
 {
     bool r = true;
 
-    if (!s_valid) {
+    if (!isValid()) {
         qWarning() << "The database is not valid";
         return false;
     }
@@ -2439,7 +2612,8 @@ bool KisResourceCacheDb::deleteStorage(PkString location)
     // location is already relative
 
     try {
-        KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
+        KisDatabaseTransactionLock transactionLock(
+            PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false));
         if (!transactionLock.transactionStarted()) {
             return false;
         }
@@ -2633,7 +2807,7 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
     PkElapsedTimer t;
     t.start();
 
-    if (!s_valid) {
+    if (!isValid()) {
         qWarning() << "KisResourceCacheDb::addResource: The database is not valid";
         return false;
     }
@@ -2668,7 +2842,8 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
     storage->setStorageId(q.value("id").toInt());
 
     /// Start the transaction that will add all the resources
-    KisDatabaseTransactionLock transaction(PkSqlDatabase::database());
+    KisDatabaseTransactionLock transaction(
+        PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false));
     if (!transaction.transactionStarted()) {
         return false;
     }
@@ -2915,7 +3090,8 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
 bool KisResourceCacheDb::deleteTemporaryResources()
 {
     try {
-        KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
+        KisDatabaseTransactionLock transactionLock(
+            PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false));
         if (!transactionLock.transactionStarted()) {
             return false;
         }
@@ -3136,113 +3312,183 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
     int id, const PkString &tableName)
 {
     MetaDataReadResult result;
-    detail::ResourceDatabaseConnectionGuard connectionGuard(PkSqlDatabase::database());
-
-    PkSqlQuery q;
-    q.setForwardOnly(true);
-    if (!q.prepare(
-            "WITH limited AS MATERIALIZED (\n"
-            "    SELECT id AS metadata_id\n"
-            "    ,      CASE\n"
-            "             WHEN key IS NULL THEN -1\n"
-            "             WHEN typeof(key) = 'blob' THEN length(key)\n"
-            "             WHEN length(key) > :key_limit THEN :key_limit + 1\n"
-            "             ELSE length(CAST(key AS BLOB))\n"
-            "           END AS key_bytes\n"
-            "    ,      CASE\n"
-            "             WHEN value IS NULL THEN -1\n"
-            "             WHEN typeof(value) = 'blob' THEN length(value)\n"
-            "             WHEN length(value) > :payload_limit THEN :payload_limit + 1\n"
-            "             ELSE length(CAST(value AS BLOB))\n"
-            "           END AS value_bytes\n"
-            "    FROM metadata\n"
-            "    WHERE foreign_id = :id\n"
-            "    AND   table_name = :table\n"
-            "    ORDER BY key\n"
-            "    LIMIT :row_limit\n"
-            "), measured AS (\n"
-            "    SELECT metadata_id, key_bytes, value_bytes\n"
-            "    ,      SUM(CASE\n"
-            "                 WHEN key_bytes BETWEEN 0 AND :key_limit\n"
-            "                  AND value_bytes BETWEEN 0 AND :payload_limit\n"
-            "                 THEN value_bytes ELSE 0 END)\n"
-            "           OVER (ORDER BY metadata_id ROWS BETWEEN UNBOUNDED PRECEDING\n"
-            "                                      AND CURRENT ROW) AS retained_bytes\n"
-            "    FROM limited\n"
-            ")\n"
-            "SELECT CASE WHEN measured.key_bytes BETWEEN 0 AND :key_limit\n"
-            "            THEN CAST(substr(CAST(metadata.key AS BLOB), 1, :key_limit) AS TEXT)\n"
-            "            ELSE NULL END\n"
-            ",      measured.key_bytes\n"
-            ",      CASE WHEN measured.key_bytes BETWEEN 0 AND :key_limit\n"
-            "                 AND measured.value_bytes BETWEEN 0 AND :payload_limit\n"
-            "                 AND measured.retained_bytes <= :owner_limit\n"
-            "            THEN CAST(substr(CAST(metadata.value AS BLOB), 1, :payload_limit) AS TEXT)\n"
-            "            ELSE NULL END\n"
-            ",      measured.value_bytes\n"
-            ",      measured.retained_bytes\n"
-            "FROM measured\n"
-            "JOIN metadata ON metadata.id = measured.metadata_id\n"
-            "ORDER BY measured.metadata_id")) {
-        qWarning() << "Could not prepare metadata query" << q.lastError();
+    if (detail::resourceDatabaseConnectionIsPoisoned()) {
+        qWarning() << detail::resourceDatabaseConnectionPoisonError();
+        return result;
+    }
+    PkSqlDatabase database =
+        PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false);
+    if (!database.isOpen()) {
+        qWarning() << "Could not read metadata from a closed database connection";
+        return result;
+    }
+    detail::ResourceDatabaseConnectionGuard connectionGuard(database);
+    sqlite3 *nativeDatabase = database.PkHandle();
+    if (!nativeDatabase) {
         return result;
     }
 
-    q.bindValue(":id", id);
-    q.bindValue(":table", tableName);
-    q.bindValue(":row_limit", static_cast<long long>(kMaximumMetadataRowsPerOwner + 1));
-    q.bindValue(":key_limit", static_cast<long long>(kMaximumMetadataKeyBytes));
-    q.bindValue(":payload_limit", static_cast<long long>(kMaximumMetadataPayloadBytes));
-    q.bindValue(":owner_limit", static_cast<long long>(kMaximumMetadataPayloadBytesPerOwner));
-
-    if (!q.exec()) {
-        qWarning() << "Could not execute metadata query" << q.lastError();
-        return result;
-    }
-    result.querySucceeded = true;
-
+    result.rows.reserve(kMaximumMetadataRowsPerOwner);
     std::size_t rowCount = 0;
-    while (q.next()) {
-        if (rowCount >= kMaximumMetadataRowsPerOwner) {
-            result.resourceLimitExceeded = true;
-            break;
-        }
-        ++rowCount;
+    std::uint64_t retainedPayloadBytes = 0;
+    long long lastRowId = 0;
+    bool firstPage = true;
 
-        const long long keyByteCount = q.value(1).toLongLong();
-        if (keyByteCount < 0 ||
-            static_cast<std::uint64_t>(keyByteCount) > kMaximumMetadataKeyBytes) {
-            result.resourceLimitExceeded = true;
-            break;
+    for (;;) {
+        PkSqlQuery page;
+        page.setForwardOnly(true);
+        const PkString sql = firstPage
+            ? PkString("SELECT rowid,typeof(key),typeof(value) "
+                       "FROM metadata "
+                       "WHERE +foreign_id=:id AND +table_name=:table "
+                       "ORDER BY rowid LIMIT :page_limit")
+            : PkString("SELECT rowid,typeof(key),typeof(value) "
+                       "FROM metadata "
+                       "WHERE +foreign_id=:id AND +table_name=:table "
+                       "AND rowid>:last_rowid "
+                       "ORDER BY rowid LIMIT :page_limit");
+        if (!page.prepare(sql)) {
+            qWarning() << "Could not prepare metadata page query" << page.lastError();
+            result.querySucceeded = false;
+            return result;
         }
-        const PkString key = q.value(0).toString();
-        const long long payloadByteCount = q.value(3).toLongLong();
-        const long long retainedPayloadByteCount = q.value(4).toLongLong();
-        const bool rowExceedsLimit =
-            payloadByteCount < 0 ||
-            static_cast<std::uint64_t>(payloadByteCount) > kMaximumMetadataPayloadBytes;
-        const bool ownerExceedsLimit =
-            retainedPayloadByteCount < 0 ||
-            static_cast<std::uint64_t>(retainedPayloadByteCount) >
-                kMaximumMetadataPayloadBytesPerOwner;
-        if (rowExceedsLimit || ownerExceedsLimit) {
-            result.undecodable.insert(
-                key, MetaDataDecodeIssue{MetaDataDecodeStatus::PayloadLimitExceeded,
-                                         PkString(), false});
-            continue;
+        page.bindValue(":id", id);
+        page.bindValue(":table", tableName);
+        page.bindValue(":page_limit", kMetadataReadPageRows);
+        if (!firstPage) {
+            page.bindValue(":last_rowid", lastRowId);
+        }
+        if (!page.exec()) {
+            qWarning() << "Could not execute metadata page query" << page.lastError();
+            result.querySucceeded = false;
+            return result;
+        }
+        result.querySucceeded = true;
+
+        int rowsInPage = 0;
+        while (page.next()) {
+            ++rowsInPage;
+            lastRowId = page.value(0).toLongLong();
+            if (rowCount >= kMaximumMetadataRowsPerOwner) {
+                result.resourceLimitExceeded = true;
+                return result;
+            }
+            ++rowCount;
+
+            MetaDataReadRow row;
+            row.rowId = lastRowId;
+            row.keyStorageClass = metadataStorageClass(page.value(1).toString());
+            row.valueStorageClass = metadataStorageClass(page.value(2).toString());
+
+            std::optional<MetaDataDecodeStatus> keyIssue;
+            if (row.keyStorageClass == MetaDataStorageClass::Null) {
+                row.rawKeyAvailable = true;
+                keyIssue = MetaDataDecodeStatus::UnsupportedStorageClass;
+            } else if (isByteStorageClass(row.keyStorageClass)) {
+                const BoundedMetadataColumn keyColumn = readBoundedMetadataColumn(
+                    nativeDatabase, row.rowId, "key", kMaximumMetadataKeyBytes);
+                if (!keyColumn.succeeded) {
+                    qWarning() << "Could not incrementally read metadata key" << row.rowId;
+                    result.querySucceeded = false;
+                    return result;
+                }
+                row.rawKey = keyColumn.bytes;
+                row.rawKeyAvailable = keyColumn.complete;
+                if (!keyColumn.complete) {
+                    row.status = MetaDataDecodeStatus::PayloadLimitExceeded;
+                    result.rows.push_back(row);
+                    result.resourceLimitExceeded = true;
+                    return result;
+                }
+                if (row.keyStorageClass != MetaDataStorageClass::Text) {
+                    keyIssue = MetaDataDecodeStatus::UnsupportedStorageClass;
+                } else if (!isValidUtf8(row.rawKey)) {
+                    keyIssue = MetaDataDecodeStatus::InvalidUtf8;
+                } else {
+                    row.key = utf8BytesToPkString(row.rawKey);
+                    row.keyAvailable = true;
+                }
+            } else {
+                keyIssue = MetaDataDecodeStatus::UnsupportedStorageClass;
+            }
+
+            std::optional<MetaDataDecodeStatus> valueIssue;
+            VariantDecodeResult decoded;
+            if (row.valueStorageClass == MetaDataStorageClass::Null) {
+                row.rawPayloadAvailable = true;
+                valueIssue = MetaDataDecodeStatus::UnsupportedStorageClass;
+            } else if (isByteStorageClass(row.valueStorageClass)) {
+                const std::uint64_t ownerBytesRemaining =
+                    kMaximumMetadataPayloadBytesPerOwner - retainedPayloadBytes;
+                const std::uint64_t retainLimit =
+                    std::min(kMaximumMetadataPayloadBytes, ownerBytesRemaining);
+                const BoundedMetadataColumn payloadColumn = readBoundedMetadataColumn(
+                    nativeDatabase, row.rowId, "value", retainLimit);
+                if (!payloadColumn.succeeded) {
+                    qWarning() << "Could not incrementally read metadata value" << row.rowId;
+                    result.querySucceeded = false;
+                    return result;
+                }
+                row.rawPayload = payloadColumn.bytes;
+                row.rawPayloadAvailable = payloadColumn.complete;
+                if (!payloadColumn.complete) {
+                    valueIssue = MetaDataDecodeStatus::PayloadLimitExceeded;
+                } else {
+                    retainedPayloadBytes += payloadColumn.byteCount;
+                    if (row.valueStorageClass != MetaDataStorageClass::Text) {
+                        valueIssue = MetaDataDecodeStatus::UnsupportedStorageClass;
+                    } else if (!isValidUtf8(row.rawPayload)) {
+                        valueIssue = MetaDataDecodeStatus::InvalidUtf8;
+                    } else {
+                        decoded = deserializeVariant(utf8BytesToPkString(row.rawPayload));
+                        if (!decoded.decoded) {
+                            valueIssue = decoded.status;
+                        }
+                    }
+                }
+            } else {
+                valueIssue = MetaDataDecodeStatus::UnsupportedStorageClass;
+            }
+
+            if (keyIssue) {
+                row.status = *keyIssue;
+            } else if (valueIssue) {
+                row.status = *valueIssue;
+            } else {
+                row.decoded = true;
+                row.value = decoded.value;
+            }
+
+            result.rows.push_back(row);
+            const MetaDataReadRow &storedRow = result.rows.back();
+            if (!storedRow.keyAvailable) {
+                continue;
+            }
+            if (storedRow.decoded) {
+                if (!result.values.contains(storedRow.key)) {
+                    result.values.insert(storedRow.key, storedRow.value);
+                }
+                continue;
+            }
+
+            MetaDataDecodeIssue issue;
+            issue.status = storedRow.status;
+            issue.rawPayloadAvailable =
+                storedRow.valueStorageClass == MetaDataStorageClass::Text &&
+                storedRow.rawPayloadAvailable && isValidUtf8(storedRow.rawPayload);
+            if (issue.rawPayloadAvailable) {
+                issue.rawPayload = utf8BytesToPkString(storedRow.rawPayload);
+            }
+            if (!result.undecodable.contains(storedRow.key)) {
+                result.undecodable.insert(storedRow.key, issue);
+            }
         }
 
-        const PkString encoded = q.value(2).toString();
-        VariantDecodeResult decoded = deserializeVariant(encoded);
-        if (decoded.decoded) {
-            result.values.insert(key, decoded.value);
-        } else {
-            result.undecodable.insert(
-                key, MetaDataDecodeIssue{decoded.status, encoded});
+        if (rowsInPage < kMetadataReadPageRows) {
+            return result;
         }
+        firstPage = false;
     }
-
-    return result;
 }
 
 PkMap<PkString, PkVariant> KisResourceCacheDb::metaDataForId(int id,
@@ -3291,37 +3537,40 @@ bool KisResourceCacheDb::updateMetaDataForId(const PkMap<PkString, PkVariant> ma
         return rollbackAndFail();
     }
 
-    std::vector<PkString> keysToDelete;
-    keysToDelete.reserve(static_cast<std::size_t>(current.values.size()) +
-                         static_cast<std::size_t>(current.undecodable.size()));
-    for (auto iter = current.values.cbegin(); iter != current.values.cend(); ++iter) {
-        if (iter.value().isValid() && iter.value().isNull() &&
-            !serializedUpdates.contains(iter.key())) {
-            // Callers using the compatibility map can omit a typed null when
-            // changing an unrelated key.  Preserve it unless this update has
-            // an explicit, serializable replacement for the same key.
-            continue;
+    std::vector<long long> rowIdsToDelete;
+    rowIdsToDelete.reserve(current.rows.size());
+    for (const MetaDataReadRow &row : current.rows) {
+        if (row.decoded) {
+            if (row.value.isValid() && row.value.isNull() &&
+                !serializedUpdates.contains(row.key)) {
+                // Callers using the compatibility map can omit a typed null
+                // when changing an unrelated key. Preserve it unless this
+                // update has an explicit replacement for that TEXT key.
+                continue;
+            }
+            rowIdsToDelete.push_back(row.rowId);
+        } else if (row.keyAvailable && serializedUpdates.contains(row.key)) {
+            // Only a valid UTF-8 TEXT key is addressable through the PkString
+            // update API. Delete by physical row id so a BLOB key with the
+            // same bytes, a NULL key, or invalid UTF-8 remains byte-identical.
+            rowIdsToDelete.push_back(row.rowId);
         }
-        keysToDelete.push_back(iter.key());
-    }
-    for (auto iter = current.undecodable.cbegin(); iter != current.undecodable.cend(); ++iter) {
-        if (serializedUpdates.contains(iter.key())) keysToDelete.push_back(iter.key());
     }
 
     {
         PkSqlQuery q;
         if (!q.prepare("DELETE FROM metadata\n"
-                       "WHERE  foreign_id = :id\n"
-                       "AND    table_name = :table\n"
-                       "AND    key = :key\n")) {
+                       "WHERE  rowid = :row_id\n"
+                       "AND    foreign_id = :id\n"
+                       "AND    table_name = :table\n")) {
             qWarning() << "Could not prepare delete metadata query" << q.lastError();
             return rollbackAndFail();
         }
 
-        for (const PkString &key : keysToDelete) {
+        for (long long rowId : rowIdsToDelete) {
+            q.bindValue(":row_id", rowId);
             q.bindValue(":id", id);
             q.bindValue(":table", tableName);
-            q.bindValue(":key", key);
             if (!q.exec()) {
                 qWarning() << "Could not execute delete metadata query" << q.lastError();
                 return rollbackAndFail();
@@ -3387,7 +3636,8 @@ bool KisResourceCacheDb::removeOrphanedMetaData()
     };
 
     try {
-        KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
+        KisDatabaseTransactionLock transactionLock(
+            PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false));
         if (!transactionLock.transactionStarted()) {
             return false;
         }

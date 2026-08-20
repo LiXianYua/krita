@@ -30,6 +30,15 @@ public:
         PkString key;
         State state = State::Missing;
         PkVariant value;
+        long long rowId = -1;
+        KisResourceCacheDb::MetaDataStorageClass keyStorageClass =
+            KisResourceCacheDb::MetaDataStorageClass::Unknown;
+        KisResourceCacheDb::MetaDataStorageClass valueStorageClass =
+            KisResourceCacheDb::MetaDataStorageClass::Unknown;
+        PkByteArray rawKey;
+        bool rawKeyAvailable = false;
+        PkByteArray rawPayload;
+        bool rawPayloadBytesAvailable = false;
         KisResourceCacheDb::MetaDataDecodeStatus status =
             KisResourceCacheDb::MetaDataDecodeStatus::ReadCorruptData;
         PkString rawBase64;

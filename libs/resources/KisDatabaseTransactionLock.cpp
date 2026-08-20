@@ -12,9 +12,42 @@
 
 #include <sqlite3.h>
 
+#include <atomic>
+
 
 namespace detail
 {
+
+namespace {
+
+std::atomic<bool> &connectionPoisoned()
+{
+    static std::atomic<bool> poisoned {false};
+    return poisoned;
+}
+
+} // namespace
+
+void poisonResourceDatabaseConnection(PkSqlDatabase database,
+                                      ResourceDatabaseConnectionGuard &connectionGuard,
+                                      const char *operation) noexcept
+{
+    connectionPoisoned().store(true, std::memory_order_release);
+
+    // sqlite3_close() invalidates the connection mutex when it succeeds, so
+    // release the native mutex first while retaining the resources mutex.
+    // PkSqlDatabase::close() also clears its process-wide facade handle when
+    // SQLite reports BUSY; the poison bit then prevents accidental reopen/use.
+    connectionGuard.releaseNativeMutex();
+    try {
+        database.close();
+    } catch (...) {
+    }
+    try {
+        qWarning() << "Resource database connection poisoned after" << operation;
+    } catch (...) {
+    }
+}
 
 std::recursive_mutex &resourceDatabaseConnectionMutex()
 {
@@ -47,8 +80,40 @@ ResourceDatabaseConnectionGuard::ResourceDatabaseConnectionGuard(PkSqlDatabase d
 
 ResourceDatabaseConnectionGuard::~ResourceDatabaseConnectionGuard() noexcept
 {
+    releaseNativeMutex();
+}
+
+void ResourceDatabaseConnectionGuard::releaseNativeMutex() noexcept
+{
     unlockResourceDatabaseNativeMutex(m_nativeMutex);
     m_nativeMutex = nullptr;
+}
+
+bool resourceDatabaseConnectionIsPoisoned()
+{
+    return connectionPoisoned().load(std::memory_order_acquire);
+}
+
+PkString resourceDatabaseConnectionPoisonError()
+{
+    return PkString("Resource database connection is poisoned and closed after "
+                    "transaction cleanup failed");
+}
+
+bool ensureResourceDatabaseAutocommitState(
+    PkSqlDatabase database,
+    bool expectedAutocommit,
+    ResourceDatabaseConnectionGuard &connectionGuard,
+    const char *operation) noexcept
+{
+    sqlite3 *handle = database.PkHandle();
+    const bool stateMatches = handle &&
+        (sqlite3_get_autocommit(handle) != 0) == expectedAutocommit;
+    if (stateMatches) {
+        return true;
+    }
+    poisonResourceDatabaseConnection(database, connectionGuard, operation);
+    return false;
 }
 
 KisDatabaseTransactionLockAdapter::KisDatabaseTransactionLockAdapter(PkSqlDatabase database)
@@ -60,6 +125,14 @@ void KisDatabaseTransactionLockAdapter::lock()
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(!m_transactionStarted);
     KIS_SAFE_ASSERT_RECOVER_RETURN(!m_connectionGuard);
+
+    if (resourceDatabaseConnectionIsPoisoned()) {
+        if (m_database.isOpen()) {
+            m_database.close();
+        }
+        qWarning() << resourceDatabaseConnectionPoisonError();
+        return;
+    }
 
     // Allocate the owning guard before it acquires either mutex.  Keeping the
     // guard local until BEGIN succeeds makes every allocation/SQLite exception
@@ -83,14 +156,26 @@ void KisDatabaseTransactionLockAdapter::unlock() noexcept
     m_transactionStarted = false;
 
     if (transactionStarted) {
+        bool rollbackAttempted = false;
         try {
-            if (!m_database.rollback()) {
+            rollbackAttempted = m_database.rollback();
+            if (!rollbackAttempted) {
                 qWarning() << "WARNING: Failed to rollback a transaction:"
                            << m_database.lastError().text();
             }
         } catch (...) {
             // Lockable::unlock() is a no-throw destructor boundary.  The local
             // connectionGuard still releases both serialization layers.
+        }
+        if (connectionGuard &&
+            !ensureResourceDatabaseAutocommitState(m_database,
+                                                   true,
+                                                   *connectionGuard,
+                                                   rollbackAttempted
+                                                       ? "rollback"
+                                                       : "failed rollback")) {
+            // The verifier already poisoned and closed the facade before
+            // this noexcept cleanup path releases the outer mutex.
         }
     }
 }
@@ -121,6 +206,14 @@ bool KisDatabaseTransactionLockAdapter::commit()
             (void)m_database.rollback();
         } catch (...) {
         }
+        committed = false;
+    }
+    if (connectionGuard &&
+        !ensureResourceDatabaseAutocommitState(m_database,
+                                               true,
+                                               *connectionGuard,
+                                               committed ? "commit"
+                                                         : "commit cleanup")) {
         committed = false;
     }
     return committed;

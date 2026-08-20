@@ -56,25 +56,37 @@ KisResourceMetaDataModel::metaDataValueResult(
         return result;
     }
 
-    if (readResult.values.contains(key)) {
-        result.value = readResult.values.value(key);
-        if (!result.value.isValid()) {
-            result.state = MetaDataValueResult::State::InvalidNull;
-        } else if (result.value.isNull()) {
-            result.state = MetaDataValueResult::State::TypedNull;
-        } else {
-            result.state = MetaDataValueResult::State::DecodedValue;
+    for (const KisResourceCacheDb::MetaDataReadRow &row : readResult.rows) {
+        if (!row.keyAvailable || row.key != key) {
+            continue;
         }
-        return result;
-    }
 
-    if (readResult.undecodable.contains(key)) {
-        const KisResourceCacheDb::MetaDataDecodeIssue issue =
-            readResult.undecodable.value(key);
-        result.state = MetaDataValueResult::State::Opaque;
-        result.status = issue.status;
-        result.rawBase64 = issue.rawPayload;
-        result.rawBase64Available = issue.rawPayloadAvailable;
+        result.rowId = row.rowId;
+        result.keyStorageClass = row.keyStorageClass;
+        result.valueStorageClass = row.valueStorageClass;
+        result.rawKey = row.rawKey;
+        result.rawKeyAvailable = row.rawKeyAvailable;
+        result.rawPayload = row.rawPayload;
+        result.rawPayloadBytesAvailable = row.rawPayloadAvailable;
+        if (row.decoded) {
+            result.value = row.value;
+            if (!result.value.isValid()) {
+                result.state = MetaDataValueResult::State::InvalidNull;
+            } else if (result.value.isNull()) {
+                result.state = MetaDataValueResult::State::TypedNull;
+            } else {
+                result.state = MetaDataValueResult::State::DecodedValue;
+            }
+        } else {
+            result.state = MetaDataValueResult::State::Opaque;
+            result.status = row.status;
+            if (readResult.undecodable.contains(key)) {
+                const KisResourceCacheDb::MetaDataDecodeIssue issue =
+                    readResult.undecodable.value(key);
+                result.rawBase64 = issue.rawPayload;
+                result.rawBase64Available = issue.rawPayloadAvailable;
+            }
+        }
         return result;
     }
 

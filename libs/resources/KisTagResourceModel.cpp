@@ -94,7 +94,8 @@ bool KisAllTagResourceModel::tagResources(const KisTagSP &tag,
         return false;
     }
 
-    KisDatabaseTransactionLock transaction(PkSqlDatabase::database());
+    KisDatabaseTransactionLock transaction(
+        PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false));
     if (!transaction.transactionStarted()) {
         return false;
     }
@@ -142,7 +143,8 @@ bool KisAllTagResourceModel::untagResources(const KisTagSP &tag,
         return false;
     }
 
-    KisDatabaseTransactionLock transaction(PkSqlDatabase::database());
+    KisDatabaseTransactionLock transaction(
+        PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false));
     if (!transaction.transactionStarted()) {
         return false;
     }

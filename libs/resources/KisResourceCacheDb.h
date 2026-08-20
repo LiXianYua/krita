@@ -10,11 +10,14 @@
 #include <kritaresources_export.h>
 
 #include <KisResourceStorage.h>
+#include <PkAuxTypes.h>
 #include <PkDateTime.h>
 #include <PkMap.h>
 #include <PkStringList.h>
 #include <PkVariant.h>
 #include <PkVector.h>
+
+#include <vector>
 
 /**
  * @brief The KisResourceCacheDb class encapsulates the database that
@@ -82,7 +85,19 @@ public:
         ReadPastEnd,
         ReadCorruptData,
         TrailingData,
-        PayloadLimitExceeded
+        PayloadLimitExceeded,
+        InvalidUtf8,
+        UnsupportedStorageClass
+    };
+
+    enum class MetaDataStorageClass
+    {
+        Null,
+        Integer,
+        Real,
+        Text,
+        Blob,
+        Unknown
     };
 
     struct MetaDataDecodeIssue
@@ -92,8 +107,33 @@ public:
         bool rawPayloadAvailable = true;
     };
 
+    /**
+     * One physical metadata row. The row id and SQLite storage classes are
+     * retained even when the key/value cannot be decoded. Raw bytes are exact
+     * only when the corresponding availability flag is true.
+     */
+    struct MetaDataReadRow
+    {
+        long long rowId = -1;
+        MetaDataStorageClass keyStorageClass = MetaDataStorageClass::Unknown;
+        MetaDataStorageClass valueStorageClass = MetaDataStorageClass::Unknown;
+        PkByteArray rawKey;
+        bool rawKeyAvailable = false;
+        PkByteArray rawPayload;
+        bool rawPayloadAvailable = false;
+        PkString key;
+        bool keyAvailable = false;
+        PkVariant value;
+        bool decoded = false;
+        MetaDataDecodeStatus status = MetaDataDecodeStatus::ReadCorruptData;
+    };
+
     struct MetaDataReadResult
     {
+        // Authoritative row-preserving view. Unlike the compatibility maps
+        // below, this cannot conflate different SQLite storage classes or
+        // lossy UTF-8 normalizations under one PkString key.
+        std::vector<MetaDataReadRow> rows;
         PkMap<PkString, PkVariant> values;
         PkMap<PkString, MetaDataDecodeIssue> undecodable;
         bool querySucceeded = false;
@@ -102,9 +142,9 @@ public:
 
     /**
      * Reads metadata without conflating an undecodable persisted value with a
-     * missing key. Built-in Qt 5.15 variant payloads are returned in values;
-     * opaque, unknown, or malformed rows retain their exact database text in
-     * undecodable.
+     * missing key. The row-preserving view retains SQLite storage classes and
+     * bounded exact bytes; values/undecodable are compatibility projections
+     * for valid UTF-8 TEXT keys only.
      */
     static MetaDataReadResult metaDataReadResultForId(int id,
                                                       const PkString &tableName);

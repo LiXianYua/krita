@@ -37,6 +37,8 @@ public:
     explicit ResourceDatabaseConnectionGuard(PkSqlDatabase database);
     ~ResourceDatabaseConnectionGuard() noexcept;
 
+    void releaseNativeMutex() noexcept;
+
     ResourceDatabaseConnectionGuard(const ResourceDatabaseConnectionGuard &) = delete;
     ResourceDatabaseConnectionGuard &operator=(const ResourceDatabaseConnectionGuard &) = delete;
 
@@ -44,6 +46,18 @@ private:
     std::unique_lock<std::recursive_mutex> m_connectionLock;
     void *m_nativeMutex = nullptr;
 };
+
+KRITARESOURCES_EXPORT bool resourceDatabaseConnectionIsPoisoned();
+KRITARESOURCES_EXPORT PkString resourceDatabaseConnectionPoisonError();
+KRITARESOURCES_EXPORT void poisonResourceDatabaseConnection(
+    PkSqlDatabase database,
+    ResourceDatabaseConnectionGuard &connectionGuard,
+    const char *operation) noexcept;
+KRITARESOURCES_EXPORT bool ensureResourceDatabaseAutocommitState(
+    PkSqlDatabase database,
+    bool expectedAutocommit,
+    ResourceDatabaseConnectionGuard &connectionGuard,
+    const char *operation) noexcept;
 
 struct KRITARESOURCES_EXPORT KisDatabaseTransactionLockAdapter {
     explicit KisDatabaseTransactionLockAdapter(PkSqlDatabase database);
