@@ -11,7 +11,7 @@
 #include <QVersionNumber>
 #include <QDirIterator>
 #include <PkSqlQuery.h>
-#include <QAbstractItemModelTester>
+#include <PkFileStream.h>
 
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
@@ -46,20 +46,25 @@ void TestTagModel::initTestCase()
 
     m_locator = KisResourceLocator::instance();
 
-    if (!KisResourceCacheDb::initialize(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))) {
+    if (!KisResourceCacheDb::initialize(ResourceTestHelper::toPkString(
+            QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)))) {
         qDebug() << "Could not initialize KisResourceCacheDb on" << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     }
     QVERIFY(KisResourceCacheDb::isValid());
 
-    KisResourceLocator::LocatorError r = m_locator->initialize(m_srcLocation);
-    if (!m_locator->errorMessages().isEmpty()) qDebug() << m_locator->errorMessages();
+    KisResourceLocator::LocatorError r =
+        m_locator->initialize(ResourceTestHelper::toPkString(m_srcLocation));
+    for (const PkString &message : m_locator->errorMessages()) {
+        qDebug() << ResourceTestHelper::toQString(message);
+    }
 
     QVERIFY(r == KisResourceLocator::LocatorError::Ok);
     QVERIFY(QDir(m_dstLocation).exists());
 
     m_tag.reset(new KisTag());
-    QFile f(QString(FILES_DATA_DIR) + "paintoppresets/test.tag");
-    KIS_ASSERT(f.open(QFile::ReadOnly));
+    PkFileStream f(ResourceTestHelper::toPkString(
+        QString(FILES_DATA_DIR) + "paintoppresets/test.tag"));
+    KIS_ASSERT(f.open(PkStream::ReadOnly));
     m_tag->load(f);
 
     KisTagModel tagModel(m_resourceType);
@@ -69,8 +74,11 @@ void TestTagModel::initTestCase()
 void TestTagModel::testWithTagModelTester()
 {
     KisTagModel model(m_resourceType);
-    auto tester = new QAbstractItemModelTester(&model);
-    Q_UNUSED(tester);
+    for (const KisTagSP &tag : model.tags()) {
+        QVERIFY(tag);
+        QVERIFY(tag->valid());
+        QCOMPARE(model.tagForUrl(tag->url())->id(), tag->id());
+    }
 }
 
 
@@ -82,69 +90,57 @@ void TestTagModel::testRowCount()
                       ",      resource_types\n"
                       "WHERE  tags.resource_type_id = resource_types.id\n"
                       "AND    resource_types.name = :resource_type"));
-    q.bindValue(":resource_type", ResourceTestHelper::toPkString(m_resourceType));
+    q.bindValue(":resource_type", m_resourceType);
     QVERIFY(q.exec());
     q.first();
     int rowCount = q.value(0).toInt();
     QCOMPARE(rowCount, 1);
 
     KisTagModel tagModel(m_resourceType);
-    auto tester = new QAbstractItemModelTester(&tagModel);
-    Q_UNUSED(tester);
     // There is always an "All" tag in the first row
-    QCOMPARE(tagModel.rowCount(), rowCount + 2);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount + 2);
 }
 
 void TestTagModel::testData()
 {
     KisTagModel tagModel(m_resourceType);
-    auto tester = new QAbstractItemModelTester(&tagModel);
-    Q_UNUSED(tester);
-
-    QVariant v = tagModel.data(tagModel.index(0, 0), Qt::DisplayRole);
-    QCOMPARE(v.toString(), "All");
-
-    v = tagModel.data(tagModel.index(0, 0), Qt::UserRole + KisAllTagsModel::Url);
-    QCOMPARE(v.toString(), "All");
-
-    v = tagModel.data(tagModel.index(1, 0), Qt::DisplayRole);
-    QCOMPARE(v.toString(), "All untagged");
-
-    v = tagModel.data(tagModel.index(1, 0), Qt::UserRole + KisAllTagsModel::Url);
-    QCOMPARE(v.toString(), "All untagged");
-
-    v = tagModel.data(tagModel.index(2, 0), Qt::DisplayRole);
-    QCOMPARE(v.toString(), "* Favorites");
-
-    v = tagModel.data(tagModel.index(2, 0), Qt::UserRole + KisAllTagsModel::Url);
-    QCOMPARE(v.toString(), "* Favorites");
+    const auto tags = tagModel.tags();
+    QVERIFY(tags.size() >= 3);
+    QCOMPARE(ResourceTestHelper::toQString(tags[0]->name()), QString("All"));
+    QCOMPARE(ResourceTestHelper::toQString(tags[0]->url()), QString("All"));
+    QCOMPARE(ResourceTestHelper::toQString(tags[1]->name()), QString("All untagged"));
+    QCOMPARE(ResourceTestHelper::toQString(tags[1]->url()), QString("All untagged"));
+    QCOMPARE(ResourceTestHelper::toQString(tags[2]->name()), QString("* Favorites"));
+    QCOMPARE(ResourceTestHelper::toQString(tags[2]->url()), QString("* Favorites"));
 
 }
 
 void TestTagModel::testIndexForTag()
 {
     KisTagModel tagModel(m_resourceType);
-    QModelIndex idx = tagModel.indexForTag(m_tag);
-    QVERIFY(idx.isValid());
-    QCOMPARE(idx.data(Qt::UserRole + KisAllTagsModel::Url).toString(), m_tag->url());
-    QCOMPARE(idx.data(Qt::UserRole + KisAllTagsModel::Name).toString(), m_tag->name());
+    const KisTagSP tag = tagModel.tagForUrl(m_tag->url());
+    QVERIFY(tag);
+    QCOMPARE(ResourceTestHelper::toQString(tag->url()),
+             ResourceTestHelper::toQString(m_tag->url()));
+    QCOMPARE(ResourceTestHelper::toQString(tag->name()),
+             ResourceTestHelper::toQString(m_tag->name()));
 }
 
 void TestTagModel::testTagForIndex()
 {
     KisTagModel tagModel(m_resourceType);
 
-    QModelIndex idx = tagModel.index(0, 0);
-    KisTagSP tag = tagModel.tagForIndex(idx);
-    QCOMPARE(tag->url(), "All");
+    const auto tags = tagModel.tags();
+    QVERIFY(tags.size() >= 3);
+    KisTagSP tag = tags[0];
+    QCOMPARE(ResourceTestHelper::toQString(tag->url()), QString("All"));
 
-    idx = tagModel.index(1, 0);
-    tag = tagModel.tagForIndex(idx);
-    QCOMPARE(tag->url(), "All untagged");
+    tag = tags[1];
+    QCOMPARE(ResourceTestHelper::toQString(tag->url()), QString("All untagged"));
 
-    idx = tagModel.index(2, 0);
-    tag = tagModel.tagForIndex(idx);
-    QCOMPARE(tag->url(), m_tag->url());
+    tag = tags[2];
+    QCOMPARE(ResourceTestHelper::toQString(tag->url()),
+             ResourceTestHelper::toQString(m_tag->url()));
 }
 
 void TestTagModel::testTagForUrl()
@@ -153,15 +149,16 @@ void TestTagModel::testTagForUrl()
 
     KisTagSP tag = tagModel.tagForUrl("All");
     QVERIFY(tag);
-    QCOMPARE(tag->url(), "All");
+    QCOMPARE(ResourceTestHelper::toQString(tag->url()), QString("All"));
 
     tag = tagModel.tagForUrl("All untagged");
     QVERIFY(tag);
-    QCOMPARE(tag->url(), "All untagged");
+    QCOMPARE(ResourceTestHelper::toQString(tag->url()), QString("All untagged"));
 
     tag = tagModel.tagForUrl(m_tag->url());
     QVERIFY(tag);
-    QCOMPARE(tag->url(), m_tag->url());
+    QCOMPARE(ResourceTestHelper::toQString(tag->url()),
+             ResourceTestHelper::toQString(m_tag->url()));
 }
 
 void TestTagModel::testAddEmptyTag()
@@ -170,15 +167,12 @@ void TestTagModel::testAddEmptyTag()
 
     QString tagName("A Brand New Tag");
 
-    int rowCount = tagModel.rowCount();
-    tagModel.addTag(tagName, false, {});
+    int rowCount = static_cast<int>(tagModel.tags().size());
+    KisTagSP tag = tagModel.addTag(ResourceTestHelper::toPkString(tagName), false, {});
 
-    QCOMPARE(tagModel.rowCount(), rowCount + 1);
-    QModelIndex idx = tagModel.index(3, 0);
-    QVERIFY(idx.isValid());
-
-    KisTagSP tag = tagModel.tagForIndex(idx);
-    QCOMPARE(tag->name(), tagName);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount + 1);
+    QVERIFY(tag);
+    QCOMPARE(ResourceTestHelper::toQString(tag->name()), tagName);
     QCOMPARE(tag->id(), 2);
 }
 
@@ -189,34 +183,36 @@ void TestTagModel::testAddTag()
     QString tagName("test1");
 
     KisTagSP tag(new KisTag);
-    tag->setUrl(tagName);
-    tag->setName(tagName);
+    tag->setUrl(ResourceTestHelper::toPkString(tagName));
+    tag->setName(ResourceTestHelper::toPkString(tagName));
     tag->setComment("A tag for testing");
     tag->setValid(true);
     tag->setActive(true);
 
-    int rowCount = tagModel.rowCount();
+    int rowCount = static_cast<int>(tagModel.tags().size());
     tagModel.addTag(tag, false, {});
-    QCOMPARE(tagModel.rowCount(), rowCount + 1);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount + 1);
     QVERIFY(tag->id() >= 0);
 
     {
-        QCOMPARE(tagModel.rowCount(), rowCount + 1);
-        QModelIndex idx = tagModel.index(4, 0);
-        QVERIFY(idx.isValid());
-        QCOMPARE(idx.data(Qt::UserRole + KisAllTagsModel::Url).toString(), tag->url());
-        QCOMPARE(idx.data(Qt::UserRole + KisAllTagsModel::Name).toString(), tag->name());
-
-        KisTagSP tag = tagModel.tagForIndex(idx);
-        QCOMPARE(tag->name(), tagName);
-        QCOMPARE(tag->id(), 3);
+        QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount + 1);
+        KisTagSP stored = tagModel.tagForUrl(tag->url());
+        QVERIFY(stored);
+        QCOMPARE(ResourceTestHelper::toQString(stored->url()),
+                 ResourceTestHelper::toQString(tag->url()));
+        QCOMPARE(ResourceTestHelper::toQString(stored->name()),
+                 ResourceTestHelper::toQString(tag->name()));
+        QCOMPARE(ResourceTestHelper::toQString(stored->name()), tagName);
+        QCOMPARE(stored->id(), 3);
     }
 
     {
-        QModelIndex idx = tagModel.indexForTag(tag);
-        QVERIFY(idx.isValid());
-        QCOMPARE(idx.data(Qt::UserRole + KisAllTagsModel::Url).toString(), tag->url());
-        QCOMPARE(idx.data(Qt::UserRole + KisAllTagsModel::Name).toString(), tag->name());
+        KisTagSP stored = tagModel.tagForUrl(tag->url());
+        QVERIFY(stored);
+        QCOMPARE(ResourceTestHelper::toQString(stored->url()),
+                 ResourceTestHelper::toQString(tag->url()));
+        QCOMPARE(ResourceTestHelper::toQString(stored->name()),
+                 ResourceTestHelper::toQString(tag->name()));
     }
 
 }
@@ -225,70 +221,81 @@ void TestTagModel::testSetTagActiveInactive()
 {
     KisTagModel tagModel(m_resourceType);
 
-    int rowCount = tagModel.rowCount();
+    int rowCount = static_cast<int>(tagModel.tags().size());
 
     tagModel.setTagInactive(m_tag);
     QVERIFY(!m_tag->active());
-    QCOMPARE(tagModel.rowCount(), rowCount -1);
-    QModelIndex idx = tagModel.indexForTag(m_tag);
-
-    QCOMPARE(tagModel.data(idx, Qt::UserRole + KisAllTagsModel::Active).toBool(), false);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount - 1);
+    tagModel.setTagFilter(KisTagModel::ShowAllTags);
+    KisTagSP stored = tagModel.tagForUrl(m_tag->url());
+    QVERIFY(stored);
+    QVERIFY(!stored->active());
 
 
     tagModel.setTagActive(m_tag);
     QVERIFY(m_tag->active());
-    QCOMPARE(tagModel.rowCount(), rowCount);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount);
 
-    idx = tagModel.indexForTag(m_tag);
-
-    QCOMPARE(idx.data(Qt::UserRole + KisAllTagsModel::Url).toString(), m_tag->url());
-    QCOMPARE(idx.data(Qt::UserRole + KisAllTagsModel::Name).toString(), m_tag->name());
-    QCOMPARE(tagModel.data(idx, Qt::UserRole + KisAllTagsModel::Active).toBool(), true);
+    stored = tagModel.tagForUrl(m_tag->url());
+    QVERIFY(stored);
+    QCOMPARE(ResourceTestHelper::toQString(stored->url()),
+             ResourceTestHelper::toQString(m_tag->url()));
+    QCOMPARE(ResourceTestHelper::toQString(stored->name()),
+             ResourceTestHelper::toQString(m_tag->name()));
+    QVERIFY(stored->active());
 }
 
 void TestTagModel::testRenameTag()
 {
     KisTagModel tagModel(m_resourceType);
-    KisTagSP tag = tagModel.tagForIndex(tagModel.index(2,0));
-    QCOMPARE(tag->url(), m_tag->url());
-    QCOMPARE(tag->name(), m_tag->name());
+    const auto tagsBefore = tagModel.tags();
+    QVERIFY(tagsBefore.size() > 2);
+    KisTagSP tag = tagsBefore[2];
+    QCOMPARE(ResourceTestHelper::toQString(tag->url()),
+             ResourceTestHelper::toQString(m_tag->url()));
+    QCOMPARE(ResourceTestHelper::toQString(tag->name()),
+             ResourceTestHelper::toQString(m_tag->name()));
 
     QVERIFY(tagModel.renameTag(tag, "Another name altogether", true));
 
     /// We are renaming "* Favorites" into "Another...", which
     /// changed position of the item due to sorting order
 
-    tag = tagModel.tagForIndex(tagModel.index(3,0));
+    const auto tagsAfter = tagModel.tags();
+    QVERIFY(tagsAfter.size() > 3);
+    tag = tagsAfter[3];
 
-    QCOMPARE(tag->url(), "Another name altogether");
-    QCOMPARE(tag->name(), "Another name altogether");
+    QCOMPARE(ResourceTestHelper::toQString(tag->url()), QString("Another name altogether"));
+    QCOMPARE(ResourceTestHelper::toQString(tag->name()), QString("Another name altogether"));
 }
 
 void TestTagModel::testChangeTagActive()
 {
     KisTagModel tagModel(m_resourceType);
 
-    int rowCount = tagModel.rowCount();
+    int rowCount = static_cast<int>(tagModel.tags().size());
 
 
     KisTagSP tagToActivate = tagModel.tagForUrl("Another name altogether");
 
     tagModel.changeTagActive(tagToActivate, false);
     QVERIFY(!tagToActivate->active());
-    QCOMPARE(tagModel.rowCount(), rowCount -1);
-    QModelIndex idx = tagModel.indexForTag(tagToActivate);
-
-    QCOMPARE(tagModel.data(idx, Qt::UserRole + KisAllTagsModel::Active).toBool(), false);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount - 1);
+    tagModel.setTagFilter(KisTagModel::ShowAllTags);
+    KisTagSP stored = tagModel.tagForUrl(tagToActivate->url());
+    QVERIFY(stored);
+    QVERIFY(!stored->active());
 
     tagModel.changeTagActive(tagToActivate, true);
     QVERIFY(tagToActivate->active());
-    QCOMPARE(tagModel.rowCount(), rowCount);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), rowCount);
 
-    idx = tagModel.indexForTag(tagToActivate);
-
-    QCOMPARE(idx.data(Qt::UserRole + KisAllTagsModel::Url).toString(), tagToActivate->url());
-    QCOMPARE(idx.data(Qt::UserRole + KisAllTagsModel::Name).toString(), "Another name altogether");
-    QCOMPARE(tagModel.data(idx, Qt::UserRole + KisAllTagsModel::Active).toBool(), true);
+    stored = tagModel.tagForUrl(tagToActivate->url());
+    QVERIFY(stored);
+    QCOMPARE(ResourceTestHelper::toQString(stored->url()),
+             ResourceTestHelper::toQString(tagToActivate->url()));
+    QCOMPARE(ResourceTestHelper::toQString(stored->name()), QString("Another name altogether"));
+    QVERIFY(stored->active());
 
 }
 
@@ -298,13 +305,12 @@ void TestTagModel::testAddEmptyTagWithResources()
     KisResourceModel resourceModel("paintoppresets");
 
     QString tagName("A Brand New Tag");
-    QVector<KoResourceSP> resources;
-    for (int i = 0; i < resourceModel.rowCount(); ++i)
-    {
-        resources << resourceModel.resourceForIndex(resourceModel.index(i, 0));
+    PkVector<KoResourceSP> resources;
+    for (const KisResourceRecord &record : resourceModel.records()) {
+        resources << resourceModel.resourceForId(record.id);
     }
 
-    tagModel.addTag(tagName, false, resources);
+    tagModel.addTag(ResourceTestHelper::toPkString(tagName), false, resources);
 
     // XXX: check KisTagResourceModel
 }
@@ -316,11 +322,13 @@ void TestTagModel::testAddTagWithResources()
 
     QString tagName("test1");
 
-    KoResourceSP resource = resourceModel.resourceForIndex(resourceModel.index(0, 0));
+    const auto records = resourceModel.records();
+    QVERIFY(!records.empty());
+    KoResourceSP resource = resourceModel.resourceForId(records[0].id);
 
     KisTagSP tag(new KisTag);
-    tag->setUrl(tagName);
-    tag->setName(tagName);
+    tag->setUrl(ResourceTestHelper::toPkString(tagName));
+    tag->setName(ResourceTestHelper::toPkString(tagName));
     tag->setComment("A tag for testing");
     tag->setValid(true);
     tag->setActive(true);

@@ -5,14 +5,14 @@
  */
 #include "TestStorageModel.h"
 
+#include <algorithm>
+
 #include <simpletest.h>
 #include <QStandardPaths>
 #include <QDir>
 #include <QVersionNumber>
 #include <QDirIterator>
 #include <PkSqlQuery.h>
-#include <QModelIndex>
-#include <QAbstractItemModelTester>
 
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
@@ -47,13 +47,17 @@ void TestStorageModel::initTestCase()
 
     m_locator = KisResourceLocator::instance();
 
-    if (!KisResourceCacheDb::initialize(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))) {
+    if (!KisResourceCacheDb::initialize(ResourceTestHelper::toPkString(
+            QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)))) {
         qDebug() << "Could not initialize KisResourceCacheDb on" << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     }
     QVERIFY(KisResourceCacheDb::isValid());
 
-    KisResourceLocator::LocatorError r = m_locator->initialize(m_srcLocation);
-    if (!m_locator->errorMessages().isEmpty()) qDebug() << m_locator->errorMessages();
+    KisResourceLocator::LocatorError r =
+        m_locator->initialize(ResourceTestHelper::toPkString(m_srcLocation));
+    for (const PkString &message : m_locator->errorMessages()) {
+        qDebug() << ResourceTestHelper::toQString(message);
+    }
 
     QVERIFY(r == KisResourceLocator::LocatorError::Ok);
     QVERIFY(QDir(m_dstLocation).exists());
@@ -62,8 +66,10 @@ void TestStorageModel::initTestCase()
 void TestStorageModel::testWithTagModelTester()
 {
     KisStorageModel model;
-    auto tester = new QAbstractItemModelTester(&model, QAbstractItemModelTester::FailureReportingMode::QtTest);
-    Q_UNUSED(tester);
+    for (const KisStorageRecord &record : model.storages()) {
+        QVERIFY(record.id >= 0);
+        QVERIFY(model.storageForId(record.id));
+    }
 }
 
 
@@ -77,27 +83,41 @@ void TestStorageModel::testRowCount()
     int rowCount = q.value(0).toInt();
 
     KisStorageModel storageModel;
-    QCOMPARE(storageModel.rowCount(), rowCount);
+    QCOMPARE(static_cast<int>(storageModel.storages().size()), rowCount);
 }
 
 void TestStorageModel::testSetActive()
 {
     KisStorageModel storageModel;
 
-    for (int i = 0; i < storageModel.rowCount(); ++i)  {
+    const auto initialStorages = storageModel.storages();
+    for (const KisStorageRecord &initial : initialStorages) {
+        QVERIFY(storageModel.setStorageActive(initial.id, true));
+        const auto activeStorages = storageModel.storages();
+        const auto active = std::find_if(activeStorages.begin(), activeStorages.end(),
+                                         [id = initial.id](const KisStorageRecord &record) {
+                                             return record.id == id;
+                                         });
+        QVERIFY(active != activeStorages.end());
+        QVERIFY(active->active);
 
-        QModelIndex idx = storageModel.index(i, 0);
+        QVERIFY(storageModel.setStorageActive(initial.id, false));
+        const auto inactiveStorages = storageModel.storages();
+        const auto inactive = std::find_if(inactiveStorages.begin(), inactiveStorages.end(),
+                                           [id = initial.id](const KisStorageRecord &record) {
+                                               return record.id == id;
+                                           });
+        QVERIFY(inactive != inactiveStorages.end());
+        QVERIFY(!inactive->active);
 
-        storageModel.setData(idx, QVariant(true), Qt::CheckStateRole);
-
-        idx = storageModel.index(i, 0);
-        QVERIFY(idx.data(Qt::UserRole + KisStorageModel::Active).toBool() == true);
-
-        storageModel.setData(idx, QVariant(false), Qt::CheckStateRole);
-
-        idx = storageModel.index(i, 0);
-        QVERIFY(idx.data(Qt::UserRole + KisStorageModel::Active).toBool() == false);
-
+        QVERIFY(storageModel.setStorageActive(initial.id, initial.active));
+        const auto restoredStorages = storageModel.storages();
+        const auto restored = std::find_if(restoredStorages.begin(), restoredStorages.end(),
+                                           [id = initial.id](const KisStorageRecord &record) {
+                                               return record.id == id;
+                                           });
+        QVERIFY(restored != restoredStorages.end());
+        QCOMPARE(restored->active, initial.active);
     }
 }
 
@@ -111,34 +131,25 @@ void TestStorageModel::cleanupTestCase()
 void TestStorageModel::testMetaData()
 {
     KisStorageModel storageModel;
-    int rowCount = storageModel.rowCount();
+    int rowCount = static_cast<int>(storageModel.storages().size());
 
     KisResourceStorageSP storage {new KisResourceStorage("My Named Memory Storage")};
     KisResourceLocator::instance()->addStorage("My Named Memory Storage", storage);
     storage->setMetaData(KisResourceStorage::s_meta_name, "My Named Memory Storage");
 
     QVERIFY(storage->valid());
-    QVERIFY(storageModel.rowCount() > rowCount);
+    const auto storages = storageModel.storages();
+    QVERIFY(static_cast<int>(storages.size()) > rowCount);
 
-    QModelIndex idx;
-    for (int row = 0; row < storageModel.rowCount(); ++row) {
-        idx = storageModel.index(row, 7);
-        KisResourceStorageSP st = storageModel.storageForIndex(idx);
-        QVERIFY(st);
-        if (st == storage) {
-            break;
-        }
-    }
-
-    QVERIFY(idx.isValid());
-
-    QString displayName = storageModel.data(idx, Qt::DisplayRole).toString();
-    QCOMPARE("My Named Memory Storage", displayName);
-
-    idx = storageModel.index(idx.row(), 0);
-    QMap<QString, QVariant> metadata = storageModel.data(idx, Qt::UserRole + KisStorageModel::MetaData).toMap();
-    QVERIFY(metadata.contains(KisResourceStorage::s_meta_name));
-    QVERIFY(metadata[KisResourceStorage::s_meta_name] == "My Named Memory Storage");
+    const auto found = std::find_if(storages.begin(), storages.end(),
+                                    [&storageModel, &storage](const KisStorageRecord &record) {
+                                        return storageModel.storageForId(record.id) == storage;
+                                    });
+    QVERIFY(found != storages.end());
+    QCOMPARE(ResourceTestHelper::toQString(found->displayName), QString("My Named Memory Storage"));
+    QVERIFY(found->metaData.contains(KisResourceStorage::s_meta_name));
+    QCOMPARE(ResourceTestHelper::toQString(found->metaData.value(KisResourceStorage::s_meta_name).toString()),
+             QString("My Named Memory Storage"));
 }
 
 void TestStorageModel::testImportStorage()

@@ -37,7 +37,7 @@ private:
     QString m_dstLocation;
 
     KisResourceLocator *m_locator;
-    const QString m_resourceType = ResourceType::PaintOpPresets;
+    const PkString m_resourceType = ResourceType::PaintOpPresets;
 
 };
 

@@ -10,7 +10,6 @@
 #include <QDir>
 #include <QVersionNumber>
 #include <QDirIterator>
-#include <QAbstractItemModelTester>
 
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
@@ -47,13 +46,17 @@ void TestStorageFilterProxyModel::initTestCase()
 
     m_locator = KisResourceLocator::instance();
 
-    if (!KisResourceCacheDb::initialize(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))) {
+    if (!KisResourceCacheDb::initialize(ResourceTestHelper::toPkString(
+            QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)))) {
         qDebug() << "Could not initialize KisResourceCacheDb on" << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     }
     QVERIFY(KisResourceCacheDb::isValid());
 
-    KisResourceLocator::LocatorError r = m_locator->initialize(m_srcLocation);
-    if (!m_locator->errorMessages().isEmpty()) qDebug() << m_locator->errorMessages();
+    KisResourceLocator::LocatorError r =
+        m_locator->initialize(ResourceTestHelper::toPkString(m_srcLocation));
+    for (const PkString &message : m_locator->errorMessages()) {
+        qDebug() << ResourceTestHelper::toQString(message);
+    }
 
     QVERIFY(r == KisResourceLocator::LocatorError::Ok);
     QVERIFY(QDir(m_dstLocation).exists());
@@ -62,39 +65,52 @@ void TestStorageFilterProxyModel::initTestCase()
 void TestStorageFilterProxyModel::testWithTagModelTester()
 {
     KisStorageFilterProxyModel model;
-    model.setSourceModel(KisStorageModel::instance());
-    auto tester = new QAbstractItemModelTester(&model);
-    Q_UNUSED(tester);
+    QCOMPARE(model.storages().size(), KisStorageModel::instance()->storages().size());
+    for (const KisStorageRecord &record : model.storages()) {
+        QVERIFY(model.storageForId(record.id));
+    }
 }
 
 
 void TestStorageFilterProxyModel::testFilterByName()
 {
     QScopedPointer<KisStorageFilterProxyModel> proxyModel(new KisStorageFilterProxyModel());
-    proxyModel->setSourceModel(KisStorageModel::instance());
 
-    QString fileName = "test1";
+    const auto allStorages = proxyModel->storages();
+    QVERIFY(!allStorages.empty());
+    const PkString fileName = allStorages[0].location;
 
-    proxyModel->setFilter(KisStorageFilterProxyModel::ByStorageType, fileName);
+    proxyModel->setFilter(KisStorageFilterProxyModel::ByFileName,
+                          PkVariant(fileName));
+    const auto filteredStorages = proxyModel->storages();
+    QVERIFY(!filteredStorages.empty());
+    for (const KisStorageRecord &record : filteredStorages) {
+        QVERIFY(record.location.contains(fileName));
+    }
 
 }
 
 void TestStorageFilterProxyModel::testFilterByType()
 {
     QScopedPointer<KisStorageFilterProxyModel> proxyModel(new KisStorageFilterProxyModel());
-    proxyModel->setSourceModel(KisStorageModel::instance());
+    PkStringList storageTypes;
+    storageTypes << KisResourceStorage::storageTypeToUntranslatedString(KisResourceStorage::StorageType::Bundle)
+                 << KisResourceStorage::storageTypeToUntranslatedString(KisResourceStorage::StorageType::Folder);
     proxyModel->setFilter(KisStorageFilterProxyModel::ByStorageType,
-                          QStringList()
-                          << KisResourceStorage::storageTypeToUntranslatedString(KisResourceStorage::StorageType::Bundle)
-                          << KisResourceStorage::storageTypeToUntranslatedString(KisResourceStorage::StorageType::Folder));
+                          PkVariant(storageTypes));
+    for (const KisStorageRecord &record : proxyModel->storages()) {
+        QVERIFY(storageTypes.contains(record.storageType));
+    }
 
 }
 
 void TestStorageFilterProxyModel::testFilterByActive()
 {
     QScopedPointer<KisStorageFilterProxyModel> proxyModel(new KisStorageFilterProxyModel());
-    proxyModel->setSourceModel(KisStorageModel::instance());
-    proxyModel->setFilter(KisStorageFilterProxyModel::ByStorageType, true);
+    proxyModel->setFilter(KisStorageFilterProxyModel::ByActive, PkVariant(true));
+    for (const KisStorageRecord &record : proxyModel->storages()) {
+        QVERIFY(record.active);
+    }
 }
 
 

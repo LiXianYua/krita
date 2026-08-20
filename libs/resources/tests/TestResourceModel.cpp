@@ -12,7 +12,6 @@
 #include <QDirIterator>
 #include <PkSqlQuery.h>
 #include <QTemporaryFile>
-#include <QAbstractItemModelTester>
 
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
@@ -46,14 +45,18 @@ void TestResourceModel::initTestCase()
 
     m_locator = KisResourceLocator::instance();
 
-    if (!KisResourceCacheDb::initialize(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))) {
+    if (!KisResourceCacheDb::initialize(ResourceTestHelper::toPkString(
+            QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)))) {
         qWarning() << "Could not initialize KisResourceCacheDb on" << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     }
     QVERIFY(KisResourceCacheDb::isValid());
 
-    KisResourceLocator::LocatorError r = m_locator->initialize(m_srcLocation);
+    KisResourceLocator::LocatorError r =
+        m_locator->initialize(ResourceTestHelper::toPkString(m_srcLocation));
     if (!m_locator->errorMessages().isEmpty()) {
-        qDebug() << m_locator->errorMessages();
+        for (const PkString &message : m_locator->errorMessages()) {
+            qDebug() << ResourceTestHelper::toQString(message);
+        }
     }
 
     QVERIFY(r == KisResourceLocator::LocatorError::Ok);
@@ -63,8 +66,12 @@ void TestResourceModel::initTestCase()
 void TestResourceModel::testWithTagModelTester()
 {
     KisResourceModel model(m_resourceType);
-    auto tester = new QAbstractItemModelTester(&model);
-    Q_UNUSED(tester);
+    const auto records = model.records();
+    for (const KisResourceRecord &record : records) {
+        const KoResourceSP resource = model.resourceForId(record.id);
+        QVERIFY(resource);
+        QCOMPARE(resource->resourceId(), record.id);
+    }
 }
 
 
@@ -76,14 +83,14 @@ void TestResourceModel::testRowCount()
                       ",      resource_types\n"
                       "WHERE  resources.resource_type_id = resource_types.id\n"
                       "AND    resource_types.name = :resource_type"));
-    q.bindValue(":resource_type", ResourceTestHelper::toPkString(m_resourceType));
+    q.bindValue(":resource_type", m_resourceType);
     QVERIFY(q.exec());
     q.first();
     int rowCount = q.value(0).toInt();
     QVERIFY(rowCount == 3);
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
-    QCOMPARE(resourceModel.rowCount(), rowCount);
+    QCOMPARE(static_cast<int>(resourceModel.records().size()), rowCount);
 }
 
 void TestResourceModel::testData()
@@ -93,9 +100,8 @@ void TestResourceModel::testData()
 
     QStringList resourceNames;
 
-    for (int i = 0; i < resourceModel.rowCount(); ++i)  {
-        QVariant v = resourceModel.data(resourceModel.index(i, KisAbstractResourceModel::Name), Qt::DisplayRole);
-        resourceNames << v.toString();
+    for (const KisResourceRecord &record : resourceModel.records()) {
+        resourceNames << ResourceTestHelper::toQString(record.name);
     }
 
     QVERIFY(resourceNames.contains("test0.kpp"));
@@ -109,7 +115,9 @@ void TestResourceModel::testResourceForIndex()
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-    KoResourceSP resource = resourceModel.resourceForIndex(resourceModel.index(0, 0));
+    const auto records = resourceModel.records();
+    QVERIFY(!records.empty());
+    KoResourceSP resource = resourceModel.resourceForId(records[0].id);
     QVERIFY(resource);
     QVERIFY(resource->resourceId() > -1);
 }
@@ -119,26 +127,28 @@ void TestResourceModel::testIndexFromResource()
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-    KoResourceSP resource = resourceModel.resourceForIndex(resourceModel.index(1, 0));
-    QModelIndex idx = resourceModel.indexForResource(resource);
-    QVERIFY(idx.row() == 1);
-    QVERIFY(idx.column() == 0);
+    const auto records = resourceModel.records();
+    QVERIFY(records.size() > 1);
+    KoResourceSP resource = resourceModel.resourceForId(records[1].id);
+    QVERIFY(resource);
+    QCOMPARE(resource->resourceId(), records[1].id);
 }
 
 void TestResourceModel::testSetInactiveByIndex()
 {
     KisResourceModel resourceModel(m_resourceType);
-    int resourceCount = resourceModel.rowCount();
-    KoResourceSP resource = resourceModel.resourceForIndex(resourceModel.index(0, 0));
-    bool r = resourceModel.setResourceInactive(resourceModel.index(0, 0));
+    const auto initialRecords = resourceModel.records();
+    int resourceCount = static_cast<int>(initialRecords.size());
+    QVERIFY(!initialRecords.empty());
+    KoResourceSP resource = resourceModel.resourceForId(initialRecords[0].id);
+    bool r = resourceModel.setResourceInactive(resource);
     QVERIFY(r);
-    QCOMPARE(resourceCount - 1, resourceModel.rowCount());
-    QVERIFY(!resourceModel.indexForResource(resource).isValid());
+    QCOMPARE(resourceCount - 1, static_cast<int>(resourceModel.records().size()));
     QVERIFY(!resourceModel.resourceForId(resource->resourceId()));
     QVERIFY(resourceModel.resourcesForName(resource->name()).isEmpty());
     // verify that all mapped resources are still reachable by id
-    for (int i = 0; i < resourceCount - 1; i++) {
-        KoResourceSP resource2 = resourceModel.resourceForIndex(resourceModel.index(i, 0));
+    for (const KisResourceRecord &record : resourceModel.records()) {
+        KoResourceSP resource2 = resourceModel.resourceForId(record.id);
         QVERIFY(resource2);
         QVERIFY(resourceModel.resourceForId(resource2->resourceId()));
     }
@@ -154,10 +164,11 @@ void TestResourceModel::testImportResourceFile()
     f.write("0");
     f.close();
 
-    int resourceCount = resourceModel.rowCount();
-    bool r = bool(resourceModel.importResourceFile(f.fileName(), false));
+    int resourceCount = static_cast<int>(resourceModel.records().size());
+    bool r = bool(resourceModel.importResourceFile(
+        ResourceTestHelper::toPkString(f.fileName()), false));
     QVERIFY(r);
-    QCOMPARE(resourceModel.rowCount(), resourceCount + 1);
+    QCOMPARE(static_cast<int>(resourceModel.records().size()), resourceCount + 1);
 }
 
 void TestResourceModel::testAddResource()
@@ -165,12 +176,12 @@ void TestResourceModel::testAddResource()
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-    int resourceCount = resourceModel.rowCount();
+    int resourceCount = static_cast<int>(resourceModel.records().size());
     KoResourceSP resource(new DummyResource("dummy.kpp"));
     resource->setValid(true);
     bool r = resourceModel.addResource(resource);
     QVERIFY(r);
-    QCOMPARE(resourceCount + 1, resourceModel.rowCount());
+    QCOMPARE(resourceCount + 1, static_cast<int>(resourceModel.records().size()));
 }
 
 void TestResourceModel::testAddTemporaryResource()
@@ -178,12 +189,12 @@ void TestResourceModel::testAddTemporaryResource()
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-    int startResourceCount = resourceModel.rowCount();
+    int startResourceCount = static_cast<int>(resourceModel.records().size());
     KoResourceSP resource(new DummyResource("temporaryResource.kpp"));
     resource->setValid(true);
     bool r = resourceModel.addResource(resource, "memory");
     QVERIFY(r);
-    QCOMPARE(startResourceCount + 1, resourceModel.rowCount());
+    QCOMPARE(startResourceCount + 1, static_cast<int>(resourceModel.records().size()));
 }
 
 void TestResourceModel::testAddDuplicatedResource()
@@ -191,14 +202,14 @@ void TestResourceModel::testAddDuplicatedResource()
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-    const int startResourceCount = resourceModel.rowCount();
+    const int startResourceCount = static_cast<int>(resourceModel.records().size());
 
     KoResourceSP resource(new DummyResource("duplicated_resource.kpp"));
     resource->setValid(true);
     bool r = resourceModel.addResource(resource); // first add to the folder storage
 
     QVERIFY(r);
-    QCOMPARE(resourceModel.rowCount(), startResourceCount + 1);
+    QCOMPARE(static_cast<int>(resourceModel.records().size()), startResourceCount + 1);
 
     // Matching MD5, name and filename resources should be hidden -- BUG:445367
     // the copy of this resource has been added in testAddResource()
@@ -207,7 +218,7 @@ void TestResourceModel::testAddDuplicatedResource()
     r = resourceModel.addResource(resource, "memory"); // then add to the temporary storage
 
     QVERIFY(r);
-    QCOMPARE(resourceModel.rowCount(), startResourceCount + 1);
+    QCOMPARE(static_cast<int>(resourceModel.records().size()), startResourceCount + 1);
 }
 
 void TestResourceModel::testResourceForId()
@@ -215,11 +226,13 @@ void TestResourceModel::testResourceForId()
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-    KoResourceSP resource = resourceModel.resourceForIndex(resourceModel.index(0, 0));
+    const auto records = resourceModel.records();
+    QVERIFY(!records.empty());
+    KoResourceSP resource = resourceModel.resourceForId(records[0].id);
     QVERIFY(!resource.isNull());
     KoResourceSP resource2 = resourceModel.resourceForId(resource->resourceId());
     QVERIFY(!resource2.isNull());
-    QCOMPARE(resource, resource2);
+    QVERIFY(resource == resource2);
 }
 
 void TestResourceModel::testResourceForName()
@@ -227,11 +240,13 @@ void TestResourceModel::testResourceForName()
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-    KoResourceSP resource = resourceModel.resourceForIndex(resourceModel.index(0, 0));
+    const auto records = resourceModel.records();
+    QVERIFY(!records.empty());
+    KoResourceSP resource = resourceModel.resourceForId(records[0].id);
     QVERIFY(!resource.isNull());
     KoResourceSP resource2 = resourceModel.resourcesForName(resource->name()).first();
     QVERIFY(!resource2.isNull());
-    QCOMPARE(resource, resource2);
+    QVERIFY(resource == resource2);
 }
 
 void TestResourceModel::testResourceForFileName()
@@ -239,11 +254,13 @@ void TestResourceModel::testResourceForFileName()
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-    KoResourceSP resource = resourceModel.resourceForIndex(resourceModel.index(0, 0));
+    const auto records = resourceModel.records();
+    QVERIFY(!records.empty());
+    KoResourceSP resource = resourceModel.resourceForId(records[0].id);
     QVERIFY(!resource.isNull());
     KoResourceSP resource2 = resourceModel.resourcesForFilename(resource->filename()).first();
     QVERIFY(!resource2.isNull());
-    QCOMPARE(resource, resource2);
+    QVERIFY(resource == resource2);
 }
 
 void TestResourceModel::testResourceForMD5()
@@ -251,12 +268,15 @@ void TestResourceModel::testResourceForMD5()
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-    KoResourceSP resource = resourceModel.resourceForIndex(resourceModel.index(0, 0));
+    const auto records = resourceModel.records();
+    QVERIFY(!records.empty());
+    KoResourceSP resource = resourceModel.resourceForId(records[0].id);
     QVERIFY(!resource.isNull());
-    QVector<KoResourceSP> v = resourceModel.resourcesForMD5(resource->md5Sum());
+    const auto v = resourceModel.resourcesForMD5(resource->md5Sum());
     KoResourceSP resource2 = v.first();
     QVERIFY(!resource2.isNull());
-    QCOMPARE(resource->md5Sum(), resource2->md5Sum());
+    QCOMPARE(ResourceTestHelper::toQString(resource->md5Sum()),
+             ResourceTestHelper::toQString(resource2->md5Sum()));
 }
 
 void TestResourceModel::testRenameResource()
@@ -264,9 +284,11 @@ void TestResourceModel::testRenameResource()
     KisResourceModel resourceModel(m_resourceType);
     resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-    KoResourceSP resource = resourceModel.resourceForIndex(resourceModel.index(1, 0));
+    const auto records = resourceModel.records();
+    QVERIFY(records.size() > 1);
+    KoResourceSP resource = resourceModel.resourceForId(records[1].id);
     QVERIFY(!resource.isNull());
-    const QString name = resource->name();
+    const PkString name = resource->name();
     bool r = resourceModel.renameResource(resource, "A New Name");
     QVERIFY(r);
     PkSqlQuery q;
@@ -286,7 +308,7 @@ void TestResourceModel::testRenameResource()
 
     q.first();
     QString newName = ResourceTestHelper::toQString(q.value(0).toString());
-    QVERIFY(name != newName);
+    QVERIFY(ResourceTestHelper::toQString(name) != newName);
     QCOMPARE("A New Name", newName);
 }
 
@@ -297,7 +319,9 @@ void TestResourceModel::testUpdateResource()
         KisResourceModel resourceModel(m_resourceType);
         resourceModel.setResourceFilter(KisResourceModel::ShowAllResources);
 
-        KoResourceSP resource = resourceModel.resourceForIndex(resourceModel.index(0, 0));
+        const auto records = resourceModel.records();
+        QVERIFY(!records.empty());
+        KoResourceSP resource = resourceModel.resourceForId(records[0].id);
         QVERIFY(resource);
         resource.dynamicCast<DummyResource>()->setSomething("It's changed");
         resourceId = resource->resourceId();
@@ -336,7 +360,7 @@ void TestResourceModel::testTwoExistingResourceModels()
     resourceModelCopy.setResourceFilter(KisResourceModel::ShowAllResources);
 
 
-    int resourceCount = resourceModel.rowCount();
+    int resourceCount = static_cast<int>(resourceModel.records().size());
     KoResourceSP resource(new DummyResource("dummy_1.kpp"));
     resource->setValid(true);
 
@@ -349,9 +373,10 @@ void TestResourceModel::testTwoExistingResourceModels()
     // but it should work without it
     // resourceModelCopy.invalidate();
 
-    QCOMPARE(resourceModel.rowCount(), resourceModelCopy.rowCount());
-    QCOMPARE(resourceCount + 1, resourceModel.rowCount());
-    QCOMPARE(resourceCount + 1, resourceModelCopy.rowCount());
+    QCOMPARE(static_cast<int>(resourceModel.records().size()),
+             static_cast<int>(resourceModelCopy.records().size()));
+    QCOMPARE(resourceCount + 1, static_cast<int>(resourceModel.records().size()));
+    QCOMPARE(resourceCount + 1, static_cast<int>(resourceModelCopy.records().size()));
 }
 
 

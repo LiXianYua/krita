@@ -5,14 +5,14 @@
  */
 #include "TestResourceTypeModel.h"
 
+#include <algorithm>
+
 #include <simpletest.h>
 #include <QStandardPaths>
 #include <QDir>
 #include <QVersionNumber>
 #include <QDirIterator>
 #include <PkSqlQuery.h>
-#include <QModelIndex>
-#include <QAbstractItemModelTester>
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
 
@@ -47,13 +47,17 @@ void TestResourceTypeModel::initTestCase()
 
     m_locator = KisResourceLocator::instance();
 
-    if (!KisResourceCacheDb::initialize(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))) {
+    if (!KisResourceCacheDb::initialize(ResourceTestHelper::toPkString(
+            QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)))) {
         qDebug() << "Could not initialize KisResourceCacheDb on" << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     }
     QVERIFY(KisResourceCacheDb::isValid());
 
-    KisResourceLocator::LocatorError r = m_locator->initialize(m_srcLocation);
-    if (!m_locator->errorMessages().isEmpty()) qDebug() << m_locator->errorMessages();
+    KisResourceLocator::LocatorError r =
+        m_locator->initialize(ResourceTestHelper::toPkString(m_srcLocation));
+    for (const PkString &message : m_locator->errorMessages()) {
+        qDebug() << ResourceTestHelper::toQString(message);
+    }
 
     QVERIFY(r == KisResourceLocator::LocatorError::Ok);
     QVERIFY(QDir(m_dstLocation).exists());
@@ -62,8 +66,11 @@ void TestResourceTypeModel::initTestCase()
 void TestResourceTypeModel::testWithTagModelTester()
 {
     KisResourceTypeModel model;
-    auto tester = new QAbstractItemModelTester(&model);
-    Q_UNUSED(tester);
+    for (const KisResourceTypeRecord &record : model.resourceTypes()) {
+        QVERIFY(record.id >= 0);
+        QVERIFY(!record.resourceType.isEmpty());
+        QVERIFY(!record.displayName.isEmpty());
+    }
 }
 
 
@@ -78,22 +85,20 @@ void TestResourceTypeModel::testRowCount()
     QCOMPARE(rowCount, KisResourceLoaderRegistry::instance()->resourceTypes().count());
 
     KisResourceTypeModel typeModel;
-    QCOMPARE(typeModel.rowCount(), rowCount);
+    QCOMPARE(static_cast<int>(typeModel.resourceTypes().size()), rowCount);
 }
 
 void TestResourceTypeModel::testData()
 {
     KisResourceTypeModel typeModel;
-    for(int i = 0; i < typeModel.rowCount(); ++i) {
-
-        QModelIndex idx = typeModel.index(0, KisResourceTypeModel::ResourceType);
-//        qDebug() << "test" << idx.data(Qt::DisplayRole)
-//                 << idx.data(Qt::UserRole + KisResourceTypeModel::Id)
-//                 << idx.data(Qt::UserRole + KisResourceTypeModel::ResourceType)
-//                 << idx.data(Qt::UserRole + KisResourceTypeModel::Name);
-
-        QCOMPARE(ResourceName::resourceTypeToName(ResourceType::Brushes), idx.data(Qt::UserRole + KisResourceTypeModel::Name).toString());
-    }
+    const auto records = typeModel.resourceTypes();
+    const auto brushes = std::find_if(records.begin(), records.end(), [](const KisResourceTypeRecord &record) {
+        return record.resourceType == ResourceType::Brushes;
+    });
+    QVERIFY(brushes != records.end());
+    QCOMPARE(ResourceTestHelper::toQString(brushes->displayName),
+             ResourceTestHelper::toQString(
+                 ResourceName::resourceTypeToName(ResourceType::Brushes)));
 }
 
 

@@ -11,10 +11,12 @@
 #include <QRandomGenerator64>
 #include <KoMD5Generator.h>
 #include <KisResourceTypes.h>
+#include <PkAuxTypes.h>
+#include <PkStream.h>
 
 class DummyResource : public KoResource {
 public:
-    DummyResource(const QString &f, const QString &resourceType = ResourceType::PaintOpPresets)
+    DummyResource(const PkString &f, const PkString &resourceType)
         : KoResource(f)
         , m_resourceType(resourceType)
     {
@@ -27,21 +29,42 @@ public:
 
         m_something = QString::fromUtf8(ba);
 
-        setMD5Sum(KoMD5Generator::generateHash(ba));
+        setMD5Sum(KoMD5Generator::generateHash(PkByteArray(ba.constData(), ba.size())));
 
-        QImage img(512, 512, QImage::Format_RGB32);
-        img.fill(Qt::blue);
+        PkImage img(512, 512, PkImage::Format_RGB32);
+        img.fill(0xff0000ffU);
         setImage(img);
 
         // add some random metadata to the resource
-        addMetaData("test_metadata", expectedMetaData());
+        addMetaData(PkString("test_metadata"), PkVariant(toPkString(expectedMetaData())));
 
         setValid(true);
     }
 
+    explicit DummyResource(const char *f)
+        : DummyResource(PkString(f), ResourceType::PaintOpPresets)
+    {
+    }
+
+    DummyResource(const char *f, const PkString &resourceType)
+        : DummyResource(PkString(f), resourceType)
+    {
+    }
+
+    DummyResource(const QString &f, const QString &resourceType)
+        : DummyResource(toPkString(f), toPkString(resourceType))
+    {
+    }
+
+    DummyResource(const QString &f, const PkString &resourceType)
+        : DummyResource(toPkString(f), resourceType)
+    {
+    }
+
     DummyResource(const DummyResource &rhs)
         : KoResource(rhs),
-          m_something(rhs.m_something)
+          m_something(rhs.m_something),
+          m_resourceType(rhs.m_resourceType)
     {
     }
 
@@ -50,31 +73,43 @@ public:
         return KoResourceSP(new DummyResource(*this));
     }
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override
     {
         Q_UNUSED(resourcesInterface);
 
         if (!dev->isOpen()) {
-            dev->open(QIODevice::ReadOnly);
+            dev->open(PkStream::ReadOnly);
         }
-        setSomething(QString::fromUtf8(dev->readAll()));
+        QByteArray bytes;
+        char buffer[4096];
+        for (;;) {
+            const PkStream::pk_int64 count = dev->read(buffer, sizeof(buffer));
+            if (count < 0) {
+                return false;
+            }
+            if (count == 0) {
+                break;
+            }
+            bytes.append(buffer, static_cast<int>(count));
+        }
+        setSomething(QString::fromUtf8(bytes));
         setValid(true);
         return true;
     }
 
-    bool saveToDevice(QIODevice *dev) const override
+    bool saveToDevice(PkStream *dev) const override
     {
         if (!dev->isOpen()) {
-            dev->open(QIODevice::WriteOnly);
+            dev->open(PkStream::WriteOnly);
         }
-        dev->write(m_something.toUtf8());
-        return true;
+        const QByteArray bytes = m_something.toUtf8();
+        return dev->write(bytes.constData(), bytes.size()) == bytes.size();
     }
 
     void setSomething(const QString &something)
     {
         m_something = something;
-        addMetaData("test_metadata", expectedMetaData());
+        addMetaData(PkString("test_metadata"), PkVariant(toPkString(expectedMetaData())));
     }
 
     QString something() const
@@ -87,14 +122,20 @@ public:
         return m_something.left(8);
     }
 
-    QPair<QString, QString> resourceType() const override {
-        return QPair<QString, QString>(m_resourceType, "");
+    std::pair<PkString, PkString> resourceType() const override {
+        return std::make_pair(m_resourceType, PkString());
     }
 
 private:
 
+    static PkString toPkString(const QString &value)
+    {
+        const QByteArray utf8 = value.toUtf8();
+        return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+    }
+
     QString m_something;
-    QString m_resourceType;
+    PkString m_resourceType;
 };
 
 #endif // DUMMYRESOURCE_H

@@ -12,6 +12,8 @@
 #include <PkSqlQuery.h>
 #include <QBuffer>
 #include <QTemporaryFile>
+#include <PkFileStream.h>
+#include <PkMemoryStream.h>
 
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
@@ -45,9 +47,6 @@
 
 void TestResourceLocator::initTestCase()
 {
-    // disable database migration debug messages to avoid bloating the output
-    const_cast<QLoggingCategory&>(_30010()).setEnabled(QtDebugMsg, false);
-    const_cast<QLoggingCategory&>(_30010()).setEnabled(QtInfoMsg, false);
     qputenv("KRITA_OVERRIDE_USE_FOREIGN_KEYS", "1");
 
     ResourceTestHelper::initTestDb();
@@ -82,10 +81,13 @@ void TestResourceLocator::testForeignKeysAreEnabled()
         QCOMPARE(KisResourceCacheDb::getForeignKeysStateImpl(), true);
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:"
+                             << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:"
+                             << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:"
+                             << ResourceTestHelper::toQString(e.sqlError.text());
 
         QFAIL("SQL Error");
     }
@@ -94,7 +96,8 @@ void TestResourceLocator::testForeignKeysAreEnabled()
 void TestResourceLocator::testLocatorInitialization()
 {
     QVERIFY(QDir(m_dstLocation).exists());
-    Q_FOREACH(const QString &folder, KisResourceLoaderRegistry::instance()->resourceTypes()) {
+    for (const PkString &resourceType : KisResourceLoaderRegistry::instance()->resourceTypes()) {
+        const QString folder = ResourceTestHelper::toQString(resourceType);
         QDir dstDir(m_dstLocation + '/' + folder + '/');
         QDir srcDir(m_srcLocation + '/' + folder + '/');
 
@@ -106,7 +109,8 @@ void TestResourceLocator::testLocatorInitialization()
     QVERIFY(f.exists());
     KIS_ASSERT(f.open(QFile::ReadOnly));
     QVersionNumber version = QVersionNumber::fromString(QString::fromUtf8(f.readAll()));
-    QVERIFY(version == QVersionNumber::fromString(KritaVersionWrapper::versionString()));
+    QVERIFY(version == QVersionNumber::fromString(
+        ResourceTestHelper::toQString(KritaVersionWrapper::versionString())));
 
     {
         PkSqlQuery query;
@@ -138,7 +142,7 @@ void TestResourceLocator::testLocatorInitialization()
 
 void TestResourceLocator::testResourceLocationBase()
 {
-    QCOMPARE(m_locator->resourceLocationBase(), m_dstLocation);
+    QCOMPARE(ResourceTestHelper::toQString(m_locator->resourceLocationBase()), m_dstLocation);
 }
 
 void TestResourceLocator::testResource()
@@ -153,7 +157,7 @@ void TestResourceLocator::testResourceForId()
     int resourceId = KisResourceCacheDb::resourceIdForResource("test0.kpp", ResourceType::PaintOpPresets, "");
     QVERIFY(resourceId > -1);
     KoResourceSP res2 = m_locator->resourceForId(resourceId);
-    QCOMPARE(res, res2);
+    QVERIFY(res == res2);
 }
 
 void TestResourceLocator::testDocumentStorage()
@@ -161,30 +165,33 @@ void TestResourceLocator::testDocumentStorage()
     const QString &documentName("document");
 
     KisResourceModel model(ResourceType::PaintOpPresets);
-    int rowcount = model.rowCount();
+    int rowcount = static_cast<int>(model.records().size());
 
-    KisResourceStorageSP documentStorage = QSharedPointer<KisResourceStorage>::create(documentName);
+    KisResourceStorageSP documentStorage = KisResourceStorageSP::create(
+        ResourceTestHelper::toPkString(documentName));
     QVERIFY(documentStorage->valid());
     KoResourceSP resource(new DummyResource("test.kpp", ResourceType::PaintOpPresets));
     documentStorage->saveAsNewVersion(resource);
 
-    m_locator->addStorage(documentName, documentStorage);
+    m_locator->addStorage(ResourceTestHelper::toPkString(documentName), documentStorage);
 
-    QVERIFY(m_locator->hasStorage(documentName));
-    QVERIFY(model.rowCount() > rowcount);
+    QVERIFY(m_locator->hasStorage(ResourceTestHelper::toPkString(documentName)));
+    QVERIFY(static_cast<int>(model.records().size()) > rowcount);
 
-    m_locator->removeStorage(documentName);
-    QVERIFY(!m_locator->hasStorage(documentName));
+    m_locator->removeStorage(ResourceTestHelper::toPkString(documentName));
+    QVERIFY(!m_locator->hasStorage(ResourceTestHelper::toPkString(documentName)));
 
-    QVERIFY(model.rowCount() == rowcount);
+    QVERIFY(static_cast<int>(model.records().size()) == rowcount);
 }
 
 int countMetaDataForResourceImpl(int resourceId, const QString &tableName)
 {
     try {
         KisSqlQueryLoader loader("inline://count_metadata_for_resource",
-                                 QString("SELECT COUNT(*) FROM metadata\n"
-                                 "WHERE foreign_id = :resource_id AND table_name = \"%1\"").arg(tableName),
+                                 ResourceTestHelper::toPkString(
+                                     QString("SELECT COUNT(*) FROM metadata\n"
+                                             "WHERE foreign_id = :resource_id AND table_name = \"%1\"")
+                                         .arg(tableName)),
                                  KisSqlQueryLoader::single_statement_mode);
         loader.query().bindValue(":resource_id", resourceId);
         loader.exec();
@@ -193,10 +200,13 @@ int countMetaDataForResourceImpl(int resourceId, const QString &tableName)
         return loader.query().value(0).toInt();
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
-        qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-        qWarning().noquote() << "       file:" << e.filePath;
+        qWarning().noquote() << "ERROR: failed to execute query:"
+                             << ResourceTestHelper::toQString(e.message);
+        qWarning().noquote() << "       file:"
+                             << ResourceTestHelper::toQString(e.filePath);
         qWarning().noquote() << "       statement:" << e.statementIndex;
-        qWarning().noquote() << "       error:" << e.sqlError.text();
+        qWarning().noquote() << "       error:"
+                             << ResourceTestHelper::toQString(e.sqlError.text());
         return -1;
     }
 }
@@ -423,29 +433,31 @@ void TestResourceLocator::testLoadResourceMetadataFromStorage()
     KisResourceMetaDataModel *metadataModel = KisResourceModelProvider::resourceMetadataModel();
     
     KisResourceModel model(ResourceType::PaintOpPresets);
-    const int initialRowCount = model.rowCount();
+    const int initialRowCount = static_cast<int>(model.records().size());
 
-    KisResourceStorageSP documentStorage = QSharedPointer<KisResourceStorage>::create(documentName);
+    KisResourceStorageSP documentStorage = KisResourceStorageSP::create(
+        ResourceTestHelper::toPkString(documentName));
     QVERIFY(documentStorage->valid());
 
     documentStorage->setMetaData("test_metadata", "test_storage_metadata_value");
 
-    QSharedPointer<DummyResource> resource(new DummyResource("metadata_test.kpp", ResourceType::PaintOpPresets));
+    PkSharedPointer<DummyResource> resource(
+        new DummyResource("metadata_test.kpp", ResourceType::PaintOpPresets));
     resource->setSomething("123456789012345678901234567890");
 
     documentStorage->addResource(resource);
 
-    m_locator->addStorage(documentName, documentStorage);
+    m_locator->addStorage(ResourceTestHelper::toPkString(documentName), documentStorage);
 
-    QVERIFY(m_locator->hasStorage(documentName));
-    QCOMPARE(model.rowCount(), initialRowCount + 1);
+    QVERIFY(m_locator->hasStorage(ResourceTestHelper::toPkString(documentName)));
+    QCOMPARE(static_cast<int>(model.records().size()), initialRowCount + 1);
 
     // the storage was added, so verify its metadata is present
     const int documentStorageId = documentStorage->storageId();
     QCOMPARE(countStorageRecordsForStorageId(documentStorageId), 1);
     QCOMPARE(countMetaDataForStorage(documentStorageId), 1);
 
-    QSharedPointer<DummyResource> loadedResource;
+    PkSharedPointer<DummyResource> loadedResource;
     int loadedResourceId = -1;
 
     {
@@ -483,7 +495,7 @@ void TestResourceLocator::testLoadResourceMetadataFromStorage()
     }
 
     if (flags.testFlag(NewVersionViaStorageSync)) {
-        const QString resourceType = loadedResource->resourceType().first;
+        const PkString resourceType = loadedResource->resourceType().first;
         
         /**
          * Create a new version of the resource
@@ -551,7 +563,7 @@ void TestResourceLocator::testLoadResourceMetadataFromStorage()
     }
 
     if (flags.testFlag(DeleteStorageNormally)) {
-        m_locator->removeStorage(documentName);
+        m_locator->removeStorage(ResourceTestHelper::toPkString(documentName));
     }
 
     if (flags.testFlag(DeleteAllTemporaryStorages)) {
@@ -577,7 +589,7 @@ void TestResourceLocator::testLoadResourceMetadataFromStorage()
      * the database.
      */
     if (flags.testFlag(DeleteStorageNormally)) {
-        QCOMPARE(model.rowCount(), initialRowCount);
+        QCOMPARE(static_cast<int>(model.records().size()), initialRowCount);
     }
 }
 
@@ -597,19 +609,20 @@ public:
     const int tagIndex = 0;
     KisResourceStorageSP storage;
 
-    QString storageLocation() const {
-        return QString("document_%1").arg(storageIndex);
+    PkString storageLocation() const {
+        return ResourceTestHelper::toPkString(QString("document_%1").arg(storageIndex));
     }
-    QString tagUrl() const {
-        return QString("test_tag_url_%1").arg(tagIndex);
+    PkString tagUrl() const {
+        return ResourceTestHelper::toPkString(QString("test_tag_url_%1").arg(tagIndex));
     }
 
-    QString resourceType() const {
+    PkString resourceType() const {
         return ResourceType::PaintOpPresets;
     }
 
-    QString resourceName() const {
-        return QString("metadata_test_%1.kpp").arg(resourceIndex);
+    PkString resourceName() const {
+        return ResourceTestHelper::toPkString(
+            QString("metadata_test_%1.kpp").arg(resourceIndex));
     }
 
     KisMemoryStorage* memoryStorageBackend() const {
@@ -621,13 +634,14 @@ public:
         , resourceIndex(resourceIndexArg)
         , tagIndex(tagIndexTag)
     {
-        storage = QSharedPointer<KisResourceStorage>::create(storageLocation());
+        storage = KisResourceStorageSP::create(storageLocation());
         QVERIFY(storage->valid());
 
         KisMemoryStorage *memoryStorageBackend =
             dynamic_cast<KisMemoryStorage *>(storage->testingGetStoragePlugin());
 
-        QSharedPointer<DummyResource> resource(new DummyResource(resourceName(), resourceType()));
+        PkSharedPointer<DummyResource> resource(
+            new DummyResource(resourceName(), resourceType()));
         resource->setSomething(QString("123456789012345678901234567890_%1").arg(resourceIndex));
 
         // add a resource to the storage
@@ -636,8 +650,12 @@ public:
         {
             // add a tag to the storage
             KisTagSP tag(new KisTag());
-            tag->setName(QString("Test Tag %1").arg(tagIndex));
-            tag->setNames({{"ru", QString("Тестовый тег %1").arg(tagIndex)}});
+            tag->setName(ResourceTestHelper::toPkString(
+                QString("Test Tag %1").arg(tagIndex)));
+            PkMap<PkString, PkString> names;
+            names.insert(PkString("ru"), ResourceTestHelper::toPkString(
+                QString("Тестовый тег %1").arg(tagIndex)));
+            tag->setNames(names);
             tag->setUrl(tagUrl());
             tag->setResourceType(resourceType());
             tag->setDefaultResources({resource->filename()});
@@ -663,20 +681,20 @@ void TestResourceLocator::testRemoveTagsFromStorage()
     TestStorageWrapper storageWrapper(/* storage */ 1, /* resource */ 1, /* tag */ 1);
 
     KisTagModel tagModel(ResourceType::PaintOpPresets);
-    const int initialTagRowCount = tagModel.rowCount();
+    const int initialTagRowCount = static_cast<int>(tagModel.tags().size());
 
     KisTagResourceModel tagResourceModel(ResourceType::PaintOpPresets);
-    const int initialTagResourceRowCount = tagResourceModel.rowCount();
+    const int initialTagResourceRowCount = static_cast<int>(tagResourceModel.relations().size());
 
     KisResourceModel resourceModel(ResourceType::PaintOpPresets);
-    const int initialResourceRowCount = resourceModel.rowCount();
+    const int initialResourceRowCount = static_cast<int>(resourceModel.records().size());
 
     m_locator->addStorage(storageWrapper.storageLocation(), storageWrapper.storage);
 
     QVERIFY(m_locator->hasStorage(storageWrapper.storageLocation()));
-    QCOMPARE(resourceModel.rowCount(), initialResourceRowCount + 1);
-    QCOMPARE(tagModel.rowCount(), initialTagRowCount + 1);
-    QCOMPARE(tagResourceModel.rowCount(), initialTagResourceRowCount + 1);
+    QCOMPARE(static_cast<int>(resourceModel.records().size()), initialResourceRowCount + 1);
+    QCOMPARE(static_cast<int>(tagModel.tags().size()), initialTagRowCount + 1);
+    QCOMPARE(static_cast<int>(tagResourceModel.relations().size()), initialTagResourceRowCount + 1);
 
     const int documentStorageId = storageWrapper.storage->storageId();
     QCOMPARE(countStorageRecordsForStorageId(documentStorageId), 1);
@@ -870,7 +888,7 @@ void TestResourceLocator::testDeleteStorageWithCrossLinkedTags()
     QCOMPARE(countTagRecordsInTagStorages(tag1->id()), 1); // one storage is linked as the source of this tag
 
     tagResourceModel.setResourcesFilter({resource2});
-    QCOMPARE(tagResourceModel.rowCount(), 2);
+    QCOMPARE(static_cast<int>(tagResourceModel.relations().size()), 2);
 
     // now remove the first storage
 
@@ -914,7 +932,7 @@ void TestResourceLocator::testDeleteStorageWithCrossLinkedTags()
         }
 
         // the model is automatically updated
-        QCOMPARE(tagResourceModel.rowCount(), 1);
+        QCOMPARE(static_cast<int>(tagResourceModel.relations().size()), 1);
     }
 }
 
@@ -949,9 +967,9 @@ void TestResourceLocator::testDeleteStorageWithSharedTags()
                                                      storageWrapper2.resourceName());
         QVERIFY(resource2);
 
-        tagResourceModel.setTagsFilter(QVector<KisTagSP>{});
+        tagResourceModel.setTagsFilter(PkVector<KisTagSP>{});
         tagResourceModel.setResourcesFilter({resource2});
-        QCOMPARE(tagResourceModel.rowCount(), 1);
+        QCOMPARE(static_cast<int>(tagResourceModel.relations().size()), 1);
     }
 
     {
@@ -960,15 +978,15 @@ void TestResourceLocator::testDeleteStorageWithSharedTags()
                                                      storageWrapper2.resourceName());
         QVERIFY(resource1);
 
-        tagResourceModel.setTagsFilter(QVector<KisTagSP>{});
+        tagResourceModel.setTagsFilter(PkVector<KisTagSP>{});
         tagResourceModel.setResourcesFilter({resource1});
-        QCOMPARE(tagResourceModel.rowCount(), 1);
+        QCOMPARE(static_cast<int>(tagResourceModel.relations().size()), 1);
     }
 
     {
         tagResourceModel.setTagsFilter({tag1});
-        tagResourceModel.setResourcesFilter(QVector<KoResourceSP>{});
-        QCOMPARE(tagResourceModel.rowCount(), 2);
+        tagResourceModel.setResourcesFilter(PkVector<KoResourceSP>{});
+        QCOMPARE(static_cast<int>(tagResourceModel.relations().size()), 2);
     }
 
     // now remove the first storage
@@ -1010,9 +1028,9 @@ void TestResourceLocator::testDeleteStorageWithSharedTags()
                                                          storageWrapper2.resourceName());
             QVERIFY(resource2);
 
-            tagResourceModel.setTagsFilter(QVector<KisTagSP>{});
+            tagResourceModel.setTagsFilter(PkVector<KisTagSP>{});
             tagResourceModel.setResourcesFilter({resource2});
-            QCOMPARE(tagResourceModel.rowCount(), 1);
+            QCOMPARE(static_cast<int>(tagResourceModel.relations().size()), 1);
         }
     }
 }
@@ -1028,12 +1046,7 @@ void TestResourceLocator::testSyncVersions()
 
         KoResourceSP res = m_locator->resource("", ResourceType::PaintOpPresets, "test0.kpp");
         resourceId = KisResourceCacheDb::resourceIdForResource("test0.kpp", ResourceType::PaintOpPresets, "");
-        storageLocation = res->storageLocation();
-
-        // ENTER_FUNCTION() << ppVar(model.rowCount());
-        // for (int i = 0; i < model.rowCount(); i++) {
-        //     qDebug() << ppVar(model.data(model.index(i, KisResourceModel::Filename))) << model.data(model.index(i, KisResourceModel::Id));
-        // }
+        storageLocation = ResourceTestHelper::toQString(res->storageLocation());
 
         {
             bool result = m_locator->updateResource(res->resourceType().first, res);
@@ -1047,15 +1060,11 @@ void TestResourceLocator::testSyncVersions()
             QCOMPARE(res->version(), 2);
         }
 
-        // ENTER_FUNCTION() << ppVar(model.rowCount());
-        // for (int i = 0; i < model.rowCount(); i++) {
-        //     qDebug() << ppVar(model.data(model.index(i, KisResourceModel::Filename))) << model.data(model.index(i, KisResourceModel::Id));
-        // }
-
-        QCOMPARE(model.rowCount(), 3);
+        const auto records = model.records();
+        QCOMPARE(static_cast<int>(records.size()), 3);
 
         {
-            KoResourceSP res1 = model.resourceForIndex(model.index(0, 0));
+            KoResourceSP res1 = model.resourceForId(records[0].id);
             QVERIFY(res1);
             QCOMPARE(res1->resourceId(), resourceId);
             QCOMPARE(res1->version(), 2);
@@ -1074,14 +1083,10 @@ void TestResourceLocator::testSyncVersions()
         KisResourceModel model(ResourceType::PaintOpPresets);
         model.setResourceFilter(KisResourceModel::ShowAllResources);
 
-        // ENTER_FUNCTION() << ppVar(model.rowCount());
-        // for (int i = 0; i < model.rowCount(); i++) {
-        //     qDebug() << ppVar(model.data(model.index(i, KisResourceModel::Filename))) << model.data(model.index(i, KisResourceModel::Id));
-        // }
+        const auto records = model.records();
+        QCOMPARE(static_cast<int>(records.size()), 3);
 
-        QCOMPARE(model.rowCount(), 3);
-
-        KoResourceSP res1 = model.resourceForIndex(model.index(0, 0));
+        KoResourceSP res1 = model.resourceForId(records[0].id);
         QVERIFY(res1);
         QCOMPARE(res1->resourceId(), resourceId);
         QCOMPARE(res1->version(), 1);
@@ -1100,14 +1105,10 @@ void TestResourceLocator::testSyncVersions()
         KisResourceModel model(ResourceType::PaintOpPresets);
         model.setResourceFilter(KisResourceModel::ShowAllResources);
 
-        // ENTER_FUNCTION() << ppVar(model.rowCount());
-        // for (int i = 0; i < model.rowCount(); i++) {
-        //     qDebug() << ppVar(model.data(model.index(i, KisResourceModel::Filename))) << model.data(model.index(i, KisResourceModel::Id));
-        // }
+        const auto records = model.records();
+        QCOMPARE(static_cast<int>(records.size()), 3);
 
-        QCOMPARE(model.rowCount(), 3);
-
-        KoResourceSP res1 = model.resourceForIndex(model.index(0, 0));
+        KoResourceSP res1 = model.resourceForId(records[0].id);
         QVERIFY(res1);
         QVERIFY(res1->filename().startsWith("test0"));
         QCOMPARE(res1->resourceId(), resourceId);
@@ -1130,21 +1131,17 @@ void TestResourceLocator::testSyncVersions()
         KisResourceModel model(ResourceType::PaintOpPresets);
         model.setResourceFilter(KisResourceModel::ShowAllResources);
 
-        // ENTER_FUNCTION() << ppVar(model.rowCount());
-        // for (int i = 0; i < model.rowCount(); i++) {
-        //     qDebug() << ppVar(model.data(model.index(i, KisResourceModel::Filename))) << model.data(model.index(i, KisResourceModel::Id));
-        // }
-
-        QCOMPARE(model.rowCount(), 5);
+        const auto records = model.records();
+        QCOMPARE(static_cast<int>(records.size()), 5);
 
         {
-            KoResourceSP res1 = model.resourceForIndex(model.index(3, 0));
+            KoResourceSP res1 = model.resourceForId(records[3].id);
             QVERIFY(res1->filename().startsWith("test5"));
             QCOMPARE(res1->version(), 4);
         }
 
         {
-            KoResourceSP res1 = model.resourceForIndex(model.index(4, 0));
+            KoResourceSP res1 = model.resourceForId(records[4].id);
             QVERIFY(res1->filename().startsWith("test6"));
             QCOMPARE(res1->version(), 3);
         }
@@ -1161,14 +1158,10 @@ void TestResourceLocator::testSyncVersions()
         KisResourceModel model(ResourceType::PaintOpPresets);
         model.setResourceFilter(KisResourceModel::ShowAllResources);
 
-        // ENTER_FUNCTION() << ppVar(model.rowCount());
-        // for (int i = 0; i < model.rowCount(); i++) {
-        //     qDebug() << ppVar(model.data(model.index(i, KisResourceModel::Filename))) << model.data(model.index(i, KisResourceModel::Id));
-        // }
+        const auto records = model.records();
+        QCOMPARE(static_cast<int>(records.size()), 4);
 
-        QCOMPARE(model.rowCount(), 4);
-
-        KoResourceSP res1 = model.resourceForIndex(model.index(3, 0));
+        KoResourceSP res1 = model.resourceForId(records[3].id);
         QVERIFY(res1->filename().startsWith("test6"));
         QCOMPARE(res1->version(), 3);
     }
@@ -1181,50 +1174,55 @@ void TestResourceLocator::testImportExportResource()
     f.write("mysimpletestresource");
     f.close();
 
-    const QString dataMd5 = KoMD5Generator::generateHash(f.fileName());
+    const PkString dataMd5 = KoMD5Generator::generateHash(
+        ResourceTestHelper::toPkString(f.fileName()));
 
-    KoResourceSP resource = KisResourceLocator::instance()->importResourceFromFile(ResourceType::PaintOpPresets, f.fileName(), false);
+    KoResourceSP resource = KisResourceLocator::instance()->importResourceFromFile(
+        ResourceType::PaintOpPresets, ResourceTestHelper::toPkString(f.fileName()), false);
     QVERIFY(resource);
 
-    QCOMPARE(resource->md5Sum(false), dataMd5);
+    QVERIFY(resource->md5Sum(false) == dataMd5);
 
     {
-        QBuffer buffer;
-        buffer.open(QIODevice::WriteOnly);
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly);
         resource->saveToDevice(&buffer);
         buffer.close();
 
-        QCOMPARE(KoMD5Generator::generateHash(buffer.data()), dataMd5);
+        const PkByteArray bytes(buffer.data(), static_cast<int>(buffer.size()));
+        QVERIFY(KoMD5Generator::generateHash(bytes) == dataMd5);
     }
 
 
-    QSharedPointer<DummyResource> dummyResource = resource.dynamicCast<DummyResource>();
+    PkSharedPointer<DummyResource> dummyResource = resource.dynamicCast<DummyResource>();
     KIS_ASSERT(dummyResource);
 
     dummyResource->setSomething("some weird data to change MD5");
 
     // md5 sum of the resource is updated only after it is serialized
     // into the storage
-    QCOMPARE(resource->md5Sum(false), dataMd5);
+    QVERIFY(resource->md5Sum(false) == dataMd5);
 
     {
-        QBuffer buffer;
-        buffer.open(QIODevice::WriteOnly);
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly);
         resource->saveToDevice(&buffer);
         buffer.close();
 
         // mere saving the resource will obviously change the resource's MD5
-        QVERIFY(KoMD5Generator::generateHash(buffer.data()) != dataMd5);
+        const PkByteArray bytes(buffer.data(), static_cast<int>(buffer.size()));
+        QVERIFY(KoMD5Generator::generateHash(bytes) != dataMd5);
     }
 
     {
-        QBuffer buffer;
-        buffer.open(QIODevice::WriteOnly);
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly);
 
         // but exporting **not**, because it export the latest serialized
         // version
         KisResourceLocator::instance()->exportResource(resource, &buffer);
-        QCOMPARE(KoMD5Generator::generateHash(buffer.data()), dataMd5);
+        const PkByteArray bytes(buffer.data(), static_cast<int>(buffer.size()));
+        QVERIFY(KoMD5Generator::generateHash(bytes) == dataMd5);
     }
 
 }
@@ -1236,32 +1234,37 @@ void TestResourceLocator::testImportDuplicatedResource()
     f.write("mysimpletestresource_version1");
     f.close();
 
-    const QString dataMd5 = KoMD5Generator::generateHash(f.fileName());
-    const QString fileName = QFileInfo(f.fileName()).fileName();
+    const PkString dataMd5 = KoMD5Generator::generateHash(
+        ResourceTestHelper::toPkString(f.fileName()));
+    const PkString fileName = ResourceTestHelper::toPkString(
+        QFileInfo(f.fileName()).fileName());
 
-    KoResourceSP resource = KisResourceLocator::instance()->importResourceFromFile(ResourceType::PaintOpPresets, f.fileName(), false);
+    KoResourceSP resource = KisResourceLocator::instance()->importResourceFromFile(
+        ResourceType::PaintOpPresets, ResourceTestHelper::toPkString(f.fileName()), false);
     QVERIFY(resource);
 
-    QCOMPARE(resource->md5Sum(false), dataMd5);
+    QVERIFY(resource->md5Sum(false) == dataMd5);
     QCOMPARE(resource->version(), 0);
 
     /**
      * Without override importing should fail, even though it is exactly the
      * same resource
      */
-    KoResourceSP res0 = KisResourceLocator::instance()->importResourceFromFile(ResourceType::PaintOpPresets, f.fileName(), false);
+    KoResourceSP res0 = KisResourceLocator::instance()->importResourceFromFile(
+        ResourceType::PaintOpPresets, ResourceTestHelper::toPkString(f.fileName()), false);
     QVERIFY(!res0);
 
     /**
      * Since MD5 of the resource fully coincides with the existing resource, it
      * should return existing object while overriding
      */
-    KoResourceSP res1 = KisResourceLocator::instance()->importResourceFromFile(ResourceType::PaintOpPresets, f.fileName(), true);
+    KoResourceSP res1 = KisResourceLocator::instance()->importResourceFromFile(
+        ResourceType::PaintOpPresets, ResourceTestHelper::toPkString(f.fileName()), true);
 
     /**
      * The returned resource must be exactly the same object from the cache
      */
-    QCOMPARE(res1, resource);
+    QVERIFY(res1 == resource);
 
     /**
      * Update the resource to make sure it is now different from the imported one
@@ -1275,10 +1278,11 @@ void TestResourceLocator::testImportDuplicatedResource()
      * resource cannot work anymore, the resource will be wiped out and
      * created anew
      */
-    KoResourceSP res3 = KisResourceLocator::instance()->importResourceFromFile(ResourceType::PaintOpPresets, f.fileName(), true);
+    KoResourceSP res3 = KisResourceLocator::instance()->importResourceFromFile(
+        ResourceType::PaintOpPresets, ResourceTestHelper::toPkString(f.fileName()), true);
     QVERIFY(res3);
     QVERIFY(res3 != resource);
-    QCOMPARE(res3->md5Sum(false), dataMd5);
+    QVERIFY(res3->md5Sum(false) == dataMd5);
     QCOMPARE(res3->version(), 0);
 
     /**

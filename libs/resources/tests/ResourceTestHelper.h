@@ -46,6 +46,15 @@ inline QString toQString(const PkString &value)
     return QString::fromUtf8(utf8.data(), static_cast<int>(utf8.size()));
 }
 
+inline PkStringList toPkStringList(const QStringList &values)
+{
+    PkStringList result;
+    for (const QString &value : values) {
+        result.append(toPkString(value));
+    }
+    return result;
+}
+
 const QString &filesDestDir() {
     static const QString s_path = QDir::cleanPath(
             QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + "/testdest") + '/';
@@ -54,21 +63,25 @@ const QString &filesDestDir() {
 
 void rmTestDb() {
     QDir dbLocation(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
-    QFile(dbLocation.path() + "/" + KisResourceCacheDb::resourceCacheDbFilename).remove();
+    QFile(dbLocation.path() + "/" + toQString(KisResourceCacheDb::resourceCacheDbFilename)).remove();
     dbLocation.rmpath(dbLocation.path());
 }
 
 
 class KisDummyResourceLoader : public KisResourceLoaderBase {
 public:
-    KisDummyResourceLoader(const QString &id, const QString &folder, const QString &name, const QStringList &mimetypes)
-        : KisResourceLoaderBase(id, folder, name, mimetypes)
+    KisDummyResourceLoader(const PkString &id, const PkString &folder, const QString &name, const QStringList &mimetypes)
+        : KisResourceLoaderBase(id,
+                                folder,
+                                toPkString(name),
+                                toPkStringList(mimetypes))
     {
     }
 
-    virtual KoResourceSP create(const QString &name)
+    KoResourceSP create(const PkString &name) override
     {
-        QSharedPointer<DummyResource> resource = QSharedPointer<DummyResource>::create(name, resourceType());
+        PkSharedPointer<DummyResource> resource = PkSharedPointer<DummyResource>::create(
+            name, resourceType());
         return resource;
     }
 };
@@ -76,37 +89,37 @@ public:
 void createDummyLoaderRegistry() {
 
     KisResourceLoaderRegistry *reg = KisResourceLoaderRegistry::instance();
-    reg->add(new KisDummyResourceLoader(ResourceType::PaintOpPresets, ResourceType::PaintOpPresets,  i18n("Brush presets"), QStringList() << "application/x-krita-paintoppreset"));
-    reg->add(new KisDummyResourceLoader(ResourceSubType::GbrBrushes, ResourceType::Brushes, i18n("Brush tips"), QStringList() << "image/x-gimp-brush"));
-    reg->add(new KisDummyResourceLoader(ResourceSubType::GihBrushes, ResourceType::Brushes, i18n("Brush tips"), QStringList() << "image/x-gimp-brush-animated"));
-    reg->add(new KisDummyResourceLoader(ResourceSubType::SvgBrushes, ResourceType::Brushes, i18n("Brush tips"), QStringList() << "image/svg+xml"));
-    reg->add(new KisDummyResourceLoader(ResourceSubType::PngBrushes, ResourceType::Brushes, i18n("Brush tips"), QStringList() << "image/png"));
-    reg->add(new KisDummyResourceLoader(ResourceSubType::SegmentedGradients, ResourceType::Gradients, i18n("Gradients"), QStringList() << "application/x-gimp-gradient"));
-    reg->add(new KisDummyResourceLoader(ResourceSubType::StopGradients, ResourceType::Gradients, i18n("Gradients"), QStringList() << "image/svg+xml"));
-    reg->add(new KisDummyResourceLoader(ResourceType::Palettes, ResourceType::Palettes, i18n("Palettes"),
-                                        QStringList() << KisMimeDatabase::mimeTypeForSuffix("kpl")
-                                        << KisMimeDatabase::mimeTypeForSuffix("gpl")
-                                        << KisMimeDatabase::mimeTypeForSuffix("pal")
-                                        << KisMimeDatabase::mimeTypeForSuffix("act")
-                                        << KisMimeDatabase::mimeTypeForSuffix("aco")
-                                        << KisMimeDatabase::mimeTypeForSuffix("css")
-                                        << KisMimeDatabase::mimeTypeForSuffix("colors")
-                                        << KisMimeDatabase::mimeTypeForSuffix("xml")
-                                        << KisMimeDatabase::mimeTypeForSuffix("sbz")));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceType::PaintOpPresets, ResourceType::PaintOpPresets, QStringLiteral("Brush presets"), QStringList() << "application/x-krita-paintoppreset"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceSubType::GbrBrushes, ResourceType::Brushes, QStringLiteral("Brush tips"), QStringList() << "image/x-gimp-brush"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceSubType::GihBrushes, ResourceType::Brushes, QStringLiteral("Brush tips"), QStringList() << "image/x-gimp-brush-animated"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceSubType::SvgBrushes, ResourceType::Brushes, QStringLiteral("Brush tips"), QStringList() << "image/svg+xml"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceSubType::PngBrushes, ResourceType::Brushes, QStringLiteral("Brush tips"), QStringList() << "image/png"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceSubType::SegmentedGradients, ResourceType::Gradients, QStringLiteral("Gradients"), QStringList() << "application/x-gimp-gradient"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceSubType::StopGradients, ResourceType::Gradients, QStringLiteral("Gradients"), QStringList() << "image/svg+xml"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceType::Palettes, ResourceType::Palettes, QStringLiteral("Palettes"),
+                                        QStringList() << toQString(KisMimeDatabase::mimeTypeForSuffix("kpl"))
+                                        << toQString(KisMimeDatabase::mimeTypeForSuffix("gpl"))
+                                        << toQString(KisMimeDatabase::mimeTypeForSuffix("pal"))
+                                        << toQString(KisMimeDatabase::mimeTypeForSuffix("act"))
+                                        << toQString(KisMimeDatabase::mimeTypeForSuffix("aco"))
+                                        << toQString(KisMimeDatabase::mimeTypeForSuffix("css"))
+                                        << toQString(KisMimeDatabase::mimeTypeForSuffix("colors"))
+                                        << toQString(KisMimeDatabase::mimeTypeForSuffix("xml"))
+                                        << toQString(KisMimeDatabase::mimeTypeForSuffix("sbz"))));
 
     QList<QByteArray> src = QImageReader::supportedMimeTypes();
     QStringList allImageMimes;
     Q_FOREACH(const QByteArray ba, src) {
         allImageMimes << QString::fromUtf8(ba);
     }
-    allImageMimes << KisMimeDatabase::mimeTypeForSuffix("pat");
+    allImageMimes << toQString(KisMimeDatabase::mimeTypeForSuffix("pat"));
 
-    reg->add(new KisDummyResourceLoader(ResourceType::Patterns, ResourceType::Patterns, i18n("Patterns"), allImageMimes));
-    reg->add(new KisDummyResourceLoader(ResourceType::Workspaces, ResourceType::Workspaces, i18n("Workspaces"), QStringList() << "application/x-krita-workspace"));
-    reg->add(new KisDummyResourceLoader(ResourceType::Symbols, ResourceType::Symbols, i18n("SVG symbol libraries"), QStringList() << "image/svg+xml"));
-    reg->add(new KisDummyResourceLoader(ResourceType::WindowLayouts, ResourceType::WindowLayouts, i18n("Window layouts"), QStringList() << "application/x-krita-windowlayout"));
-    reg->add(new KisDummyResourceLoader(ResourceType::Sessions, ResourceType::Sessions, i18n("Sessions"), QStringList() << "application/x-krita-session"));
-    reg->add(new KisDummyResourceLoader(ResourceType::GamutMasks, ResourceType::GamutMasks, i18n("Gamut masks"), QStringList() << "application/x-krita-gamutmask"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceType::Patterns, ResourceType::Patterns, QStringLiteral("Patterns"), allImageMimes));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceType::Workspaces, ResourceType::Workspaces, QStringLiteral("Workspaces"), QStringList() << "application/x-krita-workspace"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceType::Symbols, ResourceType::Symbols, QStringLiteral("SVG symbol libraries"), QStringList() << "image/svg+xml"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceType::WindowLayouts, ResourceType::WindowLayouts, QStringLiteral("Window layouts"), QStringList() << "application/x-krita-windowlayout"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceType::Sessions, ResourceType::Sessions, QStringLiteral("Sessions"), QStringList() << "application/x-krita-session"));
+    reg->registerLoader(new KisDummyResourceLoader(ResourceType::GamutMasks, ResourceType::GamutMasks, QStringLiteral("Gamut masks"), QStringList() << "application/x-krita-gamutmask"));
 
 }
 
@@ -154,11 +167,12 @@ void testVersionedStorage(KisStoragePlugin &storage, const QString &resourceType
     auto verifyFileExists = [optionalFolderCheck, resourceType] (KoResourceSP res) {
         if (optionalFolderCheck.isEmpty()) return;
 
-        const QString filePath = optionalFolderCheck + "/" + resourceType + "/" + res->filename();
+        const QString filePath = optionalFolderCheck + "/" + resourceType + "/" +
+            toQString(res->filename());
 
         if (!QFileInfo(filePath).exists()) {
             qWarning() << "Couldn't find a file in the resource storage:";
-            qWarning() << "    " << ppVar(res->filename());
+            qWarning() << "    " << ppVar(toQString(res->filename()));
             qWarning() << "    " << ppVar(optionalFolderCheck);
             qWarning() << "    " << ppVar(filePath);
         }
@@ -166,15 +180,15 @@ void testVersionedStorage(KisStoragePlugin &storage, const QString &resourceType
         QVERIFY(QFileInfo(filePath).exists());
     };
 
-    KoResourceSP res1 = storage.resource(resourceUrl);
-    QCOMPARE(res1->filename(), fileInfo.fileName()); // filenames are not URLs
+    KoResourceSP res1 = storage.resource(toPkString(resourceUrl));
+    QCOMPARE(toQString(res1->filename()), fileInfo.fileName()); // filenames are not URLs
     QCOMPARE(res1->version(), -1); // storages don't work with versions
     QCOMPARE(res1->valid(), true);
 
     const QString originalSomething = res1.dynamicCast<DummyResource>()->something();
 
-    KoResourceSP res2 = storage.resource(resourceUrl);
-    QCOMPARE(res2->filename(), fileInfo.fileName());
+    KoResourceSP res2 = storage.resource(toPkString(resourceUrl));
+    QCOMPARE(toQString(res2->filename()), fileInfo.fileName());
     QCOMPARE(res2->version(), -1); // storages don't work with versions
     QCOMPARE(res2->valid(), true);
 
@@ -184,37 +198,37 @@ void testVersionedStorage(KisStoragePlugin &storage, const QString &resourceType
     QCOMPARE(res1.dynamicCast<DummyResource>()->something(), originalSomething);
     QCOMPARE(res2.dynamicCast<DummyResource>()->something(), "It's changed");
 
-    KoResourceSP res3 = storage.resource(resourceUrl);
-    QCOMPARE(res3->filename(), fileInfo.fileName());
+    KoResourceSP res3 = storage.resource(toPkString(resourceUrl));
+    QCOMPARE(toQString(res3->filename()), fileInfo.fileName());
     QCOMPARE(res3->version(), -1); // storages don't work with versions
     QCOMPARE(res3->valid(), true);
     QCOMPARE(res3.dynamicCast<DummyResource>()->something(), originalSomething);
 
     const QString versionedName = fileInfo.baseName() + ".0001." + fileInfo.suffix();
 
-    storage.saveAsNewVersion(resourceType, res2);
-    QCOMPARE(res2->filename(), versionedName);
+    storage.saveAsNewVersion(toPkString(resourceType), res2);
+    QCOMPARE(toQString(res2->filename()), versionedName);
     QCOMPARE(res2->version(), -1); // storages don't work with versions
     QCOMPARE(res2->valid(), true);
     verifyFileExists(res2);
 
-    KoResourceSP res4 = storage.resource(resourceType + "/" + versionedName);
-    QCOMPARE(res4->filename(), versionedName);
+    KoResourceSP res4 = storage.resource(toPkString(resourceType + "/" + versionedName));
+    QCOMPARE(toQString(res4->filename()), versionedName);
     QCOMPARE(res4->version(), -1); // storages don't work with versions
     QCOMPARE(res4->valid(), true);
     QCOMPARE(res4.dynamicCast<DummyResource>()->something(), "It's changed");
     verifyFileExists(res4);
 
     overrideResourceVersion(res4, 10000);
-    storage.saveAsNewVersion(resourceType, res4);
-    QCOMPARE(res4->filename(), fileInfo.baseName() + ".10000." + fileInfo.suffix());
+    storage.saveAsNewVersion(toPkString(resourceType), res4);
+    QCOMPARE(toQString(res4->filename()), fileInfo.baseName() + ".10000." + fileInfo.suffix());
     verifyFileExists(res4);
 
     overrideResourceVersion(res4, -1);
     const QString versionedName2 = fileInfo.baseName() + ".10001." + fileInfo.suffix();
 
-    storage.saveAsNewVersion(resourceType, res4);
-    QCOMPARE(res4->filename(), versionedName2);
+    storage.saveAsNewVersion(toPkString(resourceType), res4);
+    QCOMPARE(toQString(res4->filename()), versionedName2);
     QCOMPARE(res4->version(), -1); // storages don't work with versions
     QCOMPARE(res4->valid(), true);
     verifyFileExists(res4);
@@ -224,7 +238,8 @@ void testVersionedStorageIterator(KisStoragePlugin &storage, const QString &reso
 {
     const QString basename = QFileInfo(resourceUrl).baseName();
 
-    QSharedPointer<KisResourceStorage::ResourceIterator> iter = storage.resources(resourceType);
+    PkSharedPointer<KisResourceStorage::ResourceIterator> iter =
+        storage.resources(toPkString(resourceType));
     QVERIFY(iter->hasNext());
     int count = 0;
     int numVersions = 0;
@@ -233,10 +248,10 @@ void testVersionedStorageIterator(KisStoragePlugin &storage, const QString &reso
 
         //qDebug() << iter->url() << ppVar(iter->guessedVersion()) << ppVar(iter->lastModified());
 
-        if (iter->url().contains(basename)) {
+        if (iter->url().contains(toPkString(basename))) {
 
             // because of versioning, the URL should have been changed
-            QVERIFY(iter->url() != resourceUrl);
+            QVERIFY(iter->url() != toPkString(resourceUrl));
 
             //qDebug() << iter->url() << ppVar(iter->guessedVersion()) << ppVar(iter->lastModified());
 
@@ -246,9 +261,9 @@ void testVersionedStorageIterator(KisStoragePlugin &storage, const QString &reso
             while (verIt->hasNext()) {
                 verIt->next();
 
-                qDebug() << verIt->url() << ppVar(verIt->guessedVersion());
+                qDebug() << toQString(verIt->url()) << ppVar(verIt->guessedVersion());
                 numVersions++;
-                QVERIFY(verIt->url().contains(basename));
+                QVERIFY(verIt->url().contains(toPkString(basename)));
             }
         }
 
@@ -272,19 +287,19 @@ bool recreateDatabaseForATest(KisResourceLocator *locator, const QString &srcLoc
 
         QVector<QString> dbResources;
         while (loader.query().next()) {
-            dbResources.append(loader.query().value(0).toString());
+            dbResources.append(toQString(loader.query().value(0).toString()));
         }
         return dbResources;
     };
 
     auto dropDbResource = [](const QString &dbResourceType, const QString &dbResourceName) {
-        KisSqlQueryLoader loader("inline://drop_db_resource_" + dbResourceType,
-                                 QString("DROP %1 %2").arg(dbResourceType.toUpper(), dbResourceName));
+        KisSqlQueryLoader loader(toPkString("inline://drop_db_resource_" + dbResourceType),
+                                 toPkString(QString("DROP %1 %2").arg(dbResourceType.toUpper(), dbResourceName)));
         loader.exec();
 
         QVector<QString> dbResources;
         while (loader.query().next()) {
-            dbResources.append(loader.query().value(0).toString());
+            dbResources.append(toQString(loader.query().value(0).toString()));
         }
         return dbResources;
     };
@@ -312,10 +327,10 @@ bool recreateDatabaseForATest(KisResourceLocator *locator, const QString &srcLoc
             KisResourceCacheDb::setForeignKeysStateImpl(true);
 
         } catch (const KisSqlQueryLoader::SQLException &e) {
-            qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
-            qWarning().noquote() << "       file:" << e.filePath;
+            qWarning().noquote() << "ERROR: failed to execute query:" << toQString(e.message);
+            qWarning().noquote() << "       file:" << toQString(e.filePath);
             qWarning().noquote() << "       statement:" << e.statementIndex;
-            qWarning().noquote() << "       error:" << e.sqlError.text();
+            qWarning().noquote() << "       error:" << toQString(e.sqlError.text());
 
             return false;
         }
@@ -324,13 +339,16 @@ bool recreateDatabaseForATest(KisResourceLocator *locator, const QString &srcLoc
     ResourceTestHelper::cleanDstLocation(dstLocation);
 
     // Reinitialize the database from scratch
-    KisResourceCacheDb::initialize(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+    KisResourceCacheDb::initialize(
+        toPkString(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)));
 
-    KisResourceLocator::LocatorError r = locator->initialize(srcLocation);
+    KisResourceLocator::LocatorError r = locator->initialize(toPkString(srcLocation));
     KisResourceModelProvider::testingResetAllModels();
 
     if (!locator->errorMessages().isEmpty()) {
-        qDebug() << locator->errorMessages();
+        for (const PkString &message : locator->errorMessages()) {
+            qDebug() << toQString(message);
+        }
     }
     if (r != KisResourceLocator::LocatorError::Ok) {
         return false;
