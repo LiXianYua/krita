@@ -68,7 +68,8 @@ static bool disconnect(const PkObject* sender, std::nullptr_t,
 
 1. ~~`Queued`/`BlockingQueued` 在 R-05 阶段退化为 `Direct`~~：**R-24 已交付真实投递**——`PkObject` 现在有线程亲和性（`thread()`/`moveToThread()`），`Auto` 按 sender/receiver 是否同线程决定退化 `Direct` 还是走 `Queued`；显式 `Queued`/`BlockingQueued` 一律走 `pk/concurrent` 的 `PkThreadCallQueue`（按线程 id 分桶的待执行调用队列 + 显式 `processPendingCalls()` pump，不是隐式事件循环）。语义细节（同线程显式 Queued 不折叠为立即执行、BlockingQueued 阻塞发射线程直到目标线程 pump 执行完）逐条对齐真 Qt 实测（探针见 `docs/superpowers/plans/R-24.md`）。`pk/signal` 现在依赖 `pk/concurrent`（此前不依赖），CMake 已接线。
    ⚠ **投递不等于执行**：投递到某个线程的调用不会自动执行，该线程必须自己
-   调用 `PkThreadCallQueue::processPendingCalls()`（或未来某个封装它的机制）
+   调用 `PkThreadCallQueue::processPendingCalls()`，或调用 R-30 已交付的
+   `PkEventLoop::processEvents()` / `PkEventLoop::execUntil()`
    来抽干队列——不这么做，投递的调用会永远停在队列里，不报错、不崩溃、
    不打日志，是一个纯静默的行为缺失。final whole-branch review 核实：全仓
    `pk/` 之外零 pump 调用点，第一个把跨线程 `Auto`/`Queued` 连接搬进来的

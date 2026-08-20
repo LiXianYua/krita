@@ -51,7 +51,7 @@
 | `PkWaitCondition` | `PkWaitCondition.h` | `QWaitCondition` 条件变量 |
 | `PkSemaphore` | `PkSemaphore.h` | `QSemaphore` 信号量 |
 | `PkThreadCallQueue` | `PkThreadCallQueue.h` | 跨线程排队 + 目标线程显式 pump |
-| `PkEventLoop` | `PkEventLoop.h` | `processEvents()` / 条件式 `exec()` 的薄封装 |
+| `PkEventLoop` | `PkEventLoop.h` | `processEvents()` / 条件式 `execUntil()` 的薄封装 |
 | `PkTimer` | `PkTimer.h` | 到期后向指定线程 post 的显式-pump 定时器 |
 | `compat/Q*` 垫片 | `compat/` 目录 | `<QMutex>` / `<QReadWriteLock>` / `<QAtomicInt>` 等头文件 |
 
@@ -143,8 +143,10 @@ BlockingQueued 不再退化为 Direct）。
 | `postEvent()` / `QEventLoop` | 见 R-30 SOT | 信号投递与任务调度 | `PkThreadCallQueue` + `PkEventLoop` | S 批次替换调用点 |
 
 ⚠ **投递不等于执行**：`PkThreadCallQueue::post()`/`postBlocking()` 投递到某个
-线程的调用不会自动执行，该线程必须自己调用 `processPendingCalls()`（或未来
-某个封装它的机制）来抽干队列——不这么做，投递的调用会永远停在队列里，不
+线程的调用不会自动执行，该线程必须自己调用
+`PkThreadCallQueue::processPendingCalls()`，或调用 R-30 已交付的
+`PkEventLoop::processEvents()` / `PkEventLoop::execUntil()` 来抽干队列——
+不这么做，投递的调用会永远停在队列里，不
 报错、不崩溃、不打日志，是一个纯静默的行为缺失（final whole-branch review
 I-3）。全仓 `pk/` 之外零 pump 调用点，第一个跨线程投递的消费方必须自己在
 目标线程装 pump。
@@ -183,29 +185,29 @@ NEW-I2；本仓 `pk/concurrent`/`pk/signal` 两边的既有跨线程测试基本
 谁先碰这批残余谁现场重数，不要直接拿本表任何一行当权威值用
 （final whole-branch review M-6 的后续裁决）。
 
-**为何不在 R-10 实现**：
-- 核心方法（尤其 `deleteLater()`）与 `PkObject` 生命周期强耦合，前置同上
-- "要不要有事件循环"是一个**跨 R-05/R-10 的架构决策**（不只是"实现细节"）
-- `S-00` 已交接这个问题、明确注记"跨 R-05/R-10 才能回答"
-- 本任务**不拍板**这个架构问题，只如实登记；**建议主会话在收到 Task 5 报告后判断是否单独发起一次决策讨论**
-- 这不是"技术停工"，而是"超范围的架构问题"
+**R-10 当时未实现的原因（历史背景）**：
+- 核心方法（尤其 `deleteLater()`）与 `PkObject` 生命周期强耦合，超出 R-10 前置与锁范围。
+- "要不要有事件循环"当时是跨 R-05/R-10 的架构决策，`S-00` 因此把它
+  交接给后续任务，而非由 R-10 越界拍板。
+- 后续 R-24 确认显式 pump 架构方向，R-30 再交付下文列出的薄封装；
+  这个历史阻塞已解除。
 
-**架构方向（R-24 交接，供后续任务参考，不代表已实现）**：R-24 摸清 24 处
+**架构方向（R-24 历史交接与 R-30 交付）**：R-24 摸清 24 处
 `moveToThread` + 8 处真实 `Queued`/`BlockingQueued` connect 调用点后确认：
 **这批残余不需要 `QThread::exec()`/`QCoreApplication` 式的隐式事件循环**。
-`PkThreadCallQueue`（R-24 交付）已经是"投递到指定线程执行"的完整最小原语
-——`QTimer` 的落点可以是"定时调用 `PkThreadCallQueue::post()`"而不需要
-新造一层事件系统；`deleteLater()` 的落点是"把 delete 操作 post 进对象所在
-线程的队列"；`processEvents()`/`QEventLoop` 的落点是直接调
-`PkThreadCallQueue::processPendingCalls()`（如果调用方需要"阻塞直到某个
-条件达成才返回"的 `QEventLoop::exec()` 语义，需要在 `processPendingCalls()`
-基础上加一层循环+条件判断，不需要动 `PkThreadCallQueue` 本身）；
+`PkThreadCallQueue`（R-24 交付）已经是"投递到指定线程执行"的完整最小原语。
+R-30 按这个方向交付了具体封装：`PkTimer::start()` 在到期后向目标线程
+post 回调，`PkTimer::stop()`/析构会取消并 join；
+`PkObject::deleteLater()` 把删除操作 post 进对象亲和线程的队列；
+`PkEventLoop::processEvents()` 处理入口时队列快照，
+`PkEventLoop::execUntil(const std::function<bool()>&)` 在调用者线程上持续 pump
+直到谓词成立。这些 API 均不启动隐式事件循环，消费方仍必须显式 pump。
 `QCoreApplication::instance()`/`qApp` 的落点是 `PkThread::mainThreadId()`
 （R-24 交付，调用方需要先在真正的程序入口调一次
 `PkThread::registerMainThread()`，这一步本身仍然是"要不要有一个 Pk 应用
 对象"这个更大问题的一部分，R-24 不越权回答，只确认底层原语已经够用）。
-**这不是"架构问题已解决"，是"实现这批残余不再需要新的核心原语，可以直接
-消费 R-24 的交付物"**——具体每一处怎么改仍然是各 S 批次替换调用点时的事。
+R-30 因此已解决 pk 侧核心原语与薄封装的交付；具体每一处 Krita
+消费点怎么改，仍然是各 S 批次替换调用点时的事。
 
 ### 4.3 Task 5 编译试接补充：`kis_updater_context.h` 预期失败细节
 
