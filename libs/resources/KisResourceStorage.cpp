@@ -7,40 +7,100 @@
 
 #include "KisResourceStorage.h"
 
-#include <QApplication>
-#include <QDebug>
-#include <QFileInfo>
-#include <QUuid>
-#include <QtMath>
-#include <QRegularExpression>
-
 #include <cmath>
-#include <quazip.h>
 #include <boost/optional.hpp>
+#include <algorithm>
+#include <cctype>
+#include <cstdio>
+#include <filesystem>
+#include <regex>
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
-#include <kis_debug.h>
-#include <kis_pointer_utils.h>
+#include <kis_assert.h>
 
 
 #include "KisFolderStorage.h"
 #include "KisBundleStorage.h"
 #include "KisMemoryStorage.h"
+#include "PkResourceStorageDesktop.h"
+#include "ResourceDebug.h"
+
+#include <PkFileStream.h>
+#include <PkZipArchive.h>
 
 
 namespace {
-KisResourceStorage::StorageType autoDetectStorageType(const QString &location) {
-    QFileInfo fi(location);
-    if (fi.isDir()) {
+namespace fs = std::filesystem;
+
+std::string lowerAscii(std::string text)
+{
+    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return std::tolower(c); });
+    return text;
+}
+
+bool endsWithAsciiCaseInsensitive(const PkString &value, const char *suffix)
+{
+    const std::string text = lowerAscii(value.PkToUtf8());
+    const std::string tail = lowerAscii(suffix);
+    return text.size() >= tail.size() && text.compare(text.size() - tail.size(), tail.size(), tail) == 0;
+}
+
+PkString fileName(const PkString &path)
+{
+    return PkString(fs::path(path.PkToUtf8()).filename().string().c_str());
+}
+
+PkDateTime lastModified(const PkString &path, const PkResourceStorageDesktop &storage)
+{
+    const PkString absolute = storage.absolutePath(path);
+    const fs::path native(path.PkToUtf8());
+    const PkString parent(native.parent_path().string().c_str());
+    const auto find = [&](PkResourceStorage::EntryKind kind) {
+        auto it = storage.listEntries(parent, {fileName(path)}, kind, false);
+        while (it->hasNext()) {
+            it->next();
+            if (it->url() == absolute) return it->lastModified();
+        }
+        return int64_t(0);
+    };
+    int64_t timestamp = find(PkResourceStorage::EntryKind::Files);
+    if (!timestamp) timestamp = find(PkResourceStorage::EntryKind::Directories);
+    return timestamp ? PkDateTime::fromMSecsSinceEpoch(timestamp) : PkDateTime();
+}
+
+bool looksLikeUuid(const std::string &text)
+{
+    static const std::regex uuid("^\\{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\}?$");
+    return std::regex_match(text, uuid);
+}
+
+bool pathAccess(const PkString &path, int mode)
+{
+#ifdef _WIN32
+    return ::_access(path.PkToUtf8().c_str(), mode) == 0;
+#else
+    return ::access(path.PkToUtf8().c_str(), mode) == 0;
+#endif
+}
+
+KisResourceStorage::StorageType autoDetectStorageType(const PkString &location) {
+    PkResourceStorageDesktop storage;
+    const fs::path native(location.PkToUtf8());
+    if (fs::is_directory(native)) {
         return KisResourceStorage::StorageType::Folder;
-    } else if (location.endsWith(".bundle", Qt::CaseInsensitive)) {
+    } else if (endsWithAsciiCaseInsensitive(location, ".bundle")) {
         return KisResourceStorage::StorageType::Bundle;
-    } else if (location.endsWith(".abr", Qt::CaseInsensitive)) {
+    } else if (endsWithAsciiCaseInsensitive(location, ".abr")) {
         return KisResourceStorage::StorageType::AdobeBrushLibrary;
-    } else if (location.endsWith(".asl", Qt::CaseInsensitive)) {
+    } else if (endsWithAsciiCaseInsensitive(location, ".asl")) {
         return KisResourceStorage::StorageType::AdobeStyleLibrary;
     } else if (location == "fontregistry") {
         return KisResourceStorage::StorageType::FontStorage;
-    } else if (location == "memory" || !QUuid::fromString(location).isNull() || (!location.isEmpty() && !fi.exists())) {
+    } else if (location == "memory" || looksLikeUuid(location.PkToUtf8()) || (!location.isEmpty() && !storage.exists(location))) {
         return KisResourceStorage::StorageType::Memory;
     }
 
@@ -48,26 +108,24 @@ KisResourceStorage::StorageType autoDetectStorageType(const QString &location) {
 }
 } // namespace
 
-const QString KisResourceStorage::s_xmlns_meta("urn:oasis:names:tc:opendocument:xmlns:meta:1.0");
-const QString KisResourceStorage::s_xmlns_dc("http://purl.org/dc/elements/1.1");
+const PkString KisResourceStorage::s_xmlns_meta("urn:oasis:names:tc:opendocument:xmlns:meta:1.0");
+const PkString KisResourceStorage::s_xmlns_dc("http://purl.org/dc/elements/1.1");
 
-const QString KisResourceStorage::s_meta_generator("meta:generator");
-const QString KisResourceStorage::s_meta_author("dc:author");
-const QString KisResourceStorage::s_meta_title("dc:title");
-const QString KisResourceStorage::s_meta_description("dc:description");
-const QString KisResourceStorage::s_meta_initial_creator("meta:initial-creator");
-const QString KisResourceStorage::s_meta_creator("dc:creator");
-const QString KisResourceStorage::s_meta_creation_date("meta:creation-date");
-const QString KisResourceStorage::s_meta_dc_date("meta:dc-date");
-const QString KisResourceStorage::s_meta_user_defined("meta:meta-userdefined");
-const QString KisResourceStorage::s_meta_name("meta:name");
-const QString KisResourceStorage::s_meta_value("meta:value");
-const QString KisResourceStorage::s_meta_version("meta:bundle-version");
-const QString KisResourceStorage::s_meta_email("meta:email");
-const QString KisResourceStorage::s_meta_license("meta:license");
-const QString KisResourceStorage::s_meta_website("meta:website");
-
-Q_GLOBAL_STATIC(KisStoragePluginRegistry, s_instance);
+const PkString KisResourceStorage::s_meta_generator("meta:generator");
+const PkString KisResourceStorage::s_meta_author("dc:author");
+const PkString KisResourceStorage::s_meta_title("dc:title");
+const PkString KisResourceStorage::s_meta_description("dc:description");
+const PkString KisResourceStorage::s_meta_initial_creator("meta:initial-creator");
+const PkString KisResourceStorage::s_meta_creator("dc:creator");
+const PkString KisResourceStorage::s_meta_creation_date("meta:creation-date");
+const PkString KisResourceStorage::s_meta_dc_date("meta:dc-date");
+const PkString KisResourceStorage::s_meta_user_defined("meta:meta-userdefined");
+const PkString KisResourceStorage::s_meta_name("meta:name");
+const PkString KisResourceStorage::s_meta_value("meta:value");
+const PkString KisResourceStorage::s_meta_version("meta:bundle-version");
+const PkString KisResourceStorage::s_meta_email("meta:email");
+const PkString KisResourceStorage::s_meta_license("meta:license");
+const PkString KisResourceStorage::s_meta_website("meta:website");
 
 KisStoragePluginRegistry::KisStoragePluginRegistry()
 {
@@ -78,7 +136,7 @@ KisStoragePluginRegistry::KisStoragePluginRegistry()
 
 KisStoragePluginRegistry::~KisStoragePluginRegistry()
 {
-    qDeleteAll(m_storageFactoryMap.values());
+    for (KisStoragePluginFactoryBase *factory : m_storageFactoryMap.values()) delete factory;
 }
 
 void KisStoragePluginRegistry::addStoragePluginFactory(KisResourceStorage::StorageType storageType, KisStoragePluginFactoryBase *factory)
@@ -86,32 +144,33 @@ void KisStoragePluginRegistry::addStoragePluginFactory(KisResourceStorage::Stora
     m_storageFactoryMap[storageType] = factory;
 }
 
-QList<KisResourceStorage::StorageType> KisStoragePluginRegistry::storageTypes() const
+PkList<KisResourceStorage::StorageType> KisStoragePluginRegistry::storageTypes() const
 {
     return m_storageFactoryMap.keys();
 }
 
 KisStoragePluginRegistry *KisStoragePluginRegistry::instance()
 {
-    return s_instance;
+    static KisStoragePluginRegistry registry;
+    return &registry;
 }
 
 class KisResourceStorage::Private {
 public:
-    QString name;
-    QString location;
+    PkString name;
+    PkString location;
     bool valid {false};
     KisResourceStorage::StorageType storageType {KisResourceStorage::StorageType::Unknown};
-    QSharedPointer<KisStoragePlugin> storagePlugin;
+    PkSharedPointer<KisStoragePlugin> storagePlugin;
     int storageId {-1};
 };
 
-KisResourceStorage::KisResourceStorage(const QString &location, KisResourceStorage::StorageType storageType)
+KisResourceStorage::KisResourceStorage(const PkString &location, KisResourceStorage::StorageType storageType)
     : d(new Private())
 {
     d->location = location;
 
-    auto createMemoryStorage = [this] (const QString &location, bool isValid) {
+    auto createMemoryStorage = [this] (const PkString &location, bool isValid) {
         d->name = location;
         d->storageType = StorageType::Memory;
         d->storagePlugin.reset(KisStoragePluginRegistry::instance()->m_storageFactoryMap[StorageType::Memory]->create(location));
@@ -120,37 +179,36 @@ KisResourceStorage::KisResourceStorage(const QString &location, KisResourceStora
 
     switch (storageType) {
         case StorageType::Folder: {
-            QFileInfo fi(d->location);
-            if (fi.isDir()) {
-                d->name = fi.fileName();
+            PkResourceStorageDesktop storage;
+            if (fs::is_directory(fs::path(d->location.PkToUtf8()))) {
+                d->name = fileName(d->location);
                 d->storageType = StorageType::Folder;
                 d->storagePlugin.reset(KisStoragePluginRegistry::instance()->m_storageFactoryMap[StorageType::Folder]->create(location));
-                d->valid = fi.isWritable();
+                d->valid = pathAccess(d->location, 2);
             } else {
                 createMemoryStorage(location, false);
             }
             break;
         }
         case StorageType::Bundle: {
-            QFileInfo fi(d->location);
-            d->name = fi.fileName();
+            d->name = fileName(d->location);
             d->storageType = StorageType::Bundle;
             d->storagePlugin.reset(KisStoragePluginRegistry::instance()->m_storageFactoryMap[StorageType::Bundle]->create(location));
             // XXX: should we also check whether there's a valid metadata entry? Or is this enough?
-            d->valid = (fi.isReadable() && QuaZip(d->location).open(QuaZip::mdUnzip));
+            PkZipArchive archive(PkZipArchive::Read);
+            d->valid = archive.openFile(d->location);
+            if (d->valid) archive.close();
             break;
         }
         case StorageType::AdobeBrushLibrary: {
-            QFileInfo fi(d->location);
-            d->name = fi.fileName();
+            d->name = fileName(d->location);
             d->storageType = StorageType::AdobeBrushLibrary;
             d->storagePlugin.reset(KisStoragePluginRegistry::instance()->m_storageFactoryMap[StorageType::AdobeBrushLibrary]->create(location));
-            d->valid = fi.isReadable();
+            d->valid = pathAccess(d->location, 4);
             break;
         }
         case StorageType::AdobeStyleLibrary: {
-            QFileInfo fi(d->location);
-            d->name = fi.fileName();
+            d->name = fileName(d->location);
             d->storageType = StorageType::AdobeStyleLibrary;
             d->storagePlugin.reset(KisStoragePluginRegistry::instance()->m_storageFactoryMap[StorageType::AdobeStyleLibrary]->create(location));
             d->valid = d->storagePlugin->isValid();
@@ -177,7 +235,7 @@ KisResourceStorage::KisResourceStorage(const QString &location, KisResourceStora
     }
 }
 
-KisResourceStorage::KisResourceStorage(const QString &location)
+KisResourceStorage::KisResourceStorage(const PkString &location)
     : KisResourceStorage(location, autoDetectStorageType(location))
 {
 }
@@ -199,9 +257,9 @@ KisResourceStorage &KisResourceStorage::operator=(const KisResourceStorage &rhs)
         d->location = rhs.d->location;
         d->storageType = rhs.d->storageType;
         if (d->storageType == StorageType::Memory) {
-            const QSharedPointer<KisMemoryStorage> memoryStorage = rhs.d->storagePlugin.dynamicCast<KisMemoryStorage>();
+            const PkSharedPointer<KisMemoryStorage> memoryStorage = rhs.d->storagePlugin.dynamicCast<KisMemoryStorage>();
             KIS_ASSERT(memoryStorage);
-            d->storagePlugin = QSharedPointer<KisMemoryStorage>(new KisMemoryStorage(*memoryStorage));
+            d->storagePlugin = PkSharedPointer<KisMemoryStorage>(new KisMemoryStorage(*memoryStorage));
         }
         else {
             d->storagePlugin = rhs.d->storagePlugin;
@@ -216,12 +274,12 @@ KisResourceStorageSP KisResourceStorage::clone() const
     return KisResourceStorageSP(new KisResourceStorage(*this));
 }
 
-QString KisResourceStorage::name() const
+PkString KisResourceStorage::name() const
 {
     return d->name;
 }
 
-QString KisResourceStorage::location() const
+PkString KisResourceStorage::location() const
 {
     return d->location;
 }
@@ -231,56 +289,57 @@ KisResourceStorage::StorageType KisResourceStorage::type() const
     return d->storageType;
 }
 
-QImage KisResourceStorage::thumbnail() const
+PkImage KisResourceStorage::thumbnail() const
 {
     return d->storagePlugin->thumbnail();
 }
 
-QDateTime KisResourceStorage::timestamp() const
+PkDateTime KisResourceStorage::timestamp() const
 {
     return d->storagePlugin->timestamp();
 }
 
-QDateTime KisResourceStorage::timeStampForResource(const QString &resourceType, const QString &filename) const
+PkDateTime KisResourceStorage::timeStampForResource(const PkString &resourceType, const PkString &filename) const
 {
-    QFileInfo li(d->location);
-    if (li.suffix().toLower() == "bundle") {
-        QFileInfo bf(d->location + "_modified/" + resourceType + "/" + filename);
-        if (bf.exists()) {
-            return bf.lastModified();
+    PkResourceStorageDesktop storage;
+    if (endsWithAsciiCaseInsensitive(d->location, ".bundle")) {
+        const PkString modified = d->location + "_modified/" + resourceType + "/" + filename;
+        if (storage.exists(modified)) {
+            return lastModified(modified, storage);
         }
-    } else if (QFileInfo(d->location + "/" + resourceType + "/" + filename).exists()) {
-        return QFileInfo(d->location + "/" + resourceType + "/" + filename).lastModified();
+    } else {
+        const PkString resourcePath = d->location + "/" + resourceType + "/" + filename;
+        if (storage.exists(resourcePath)) return lastModified(resourcePath, storage);
     }
     return this->timestamp();
 }
 
-KisResourceStorage::ResourceItem KisResourceStorage::resourceItem(const QString &url)
+KisResourceStorage::ResourceItem KisResourceStorage::resourceItem(const PkString &url)
 {
     return d->storagePlugin->resourceItem(url);
 }
 
-KoResourceSP KisResourceStorage::resource(const QString &url)
+KoResourceSP KisResourceStorage::resource(const PkString &url)
 {
     return d->storagePlugin->resource(url);
 }
 
-QString KisResourceStorage::resourceMd5(const QString &url)
+PkString KisResourceStorage::resourceMd5(const PkString &url)
 {
     return d->storagePlugin->resourceMd5(url);
 }
 
-QString KisResourceStorage::resourceFilePath(const QString &url)
+PkString KisResourceStorage::resourceFilePath(const PkString &url)
 {
     return d->storagePlugin->resourceFilePath(url);
 }
 
-QSharedPointer<KisResourceStorage::ResourceIterator> KisResourceStorage::resources(const QString &resourceType) const
+PkSharedPointer<KisResourceStorage::ResourceIterator> KisResourceStorage::resources(const PkString &resourceType) const
 {
     return d->storagePlugin->resources(resourceType);
 }
 
-QSharedPointer<KisResourceStorage::TagIterator> KisResourceStorage::tags(const QString &resourceType) const
+PkSharedPointer<KisResourceStorage::TagIterator> KisResourceStorage::tags(const PkString &resourceType) const
 {
     return d->storagePlugin->tags(resourceType);
 }
@@ -299,12 +358,12 @@ bool KisResourceStorage::addResource(KoResourceSP resource)
     return d->storagePlugin->addResource(resource->resourceType().first, resource);
 }
 
-bool KisResourceStorage::importResource(const QString &url, QIODevice *device)
+bool KisResourceStorage::importResource(const PkString &url, PkStream *device)
 {
     return d->storagePlugin->importResource(url, device);
 }
 
-bool KisResourceStorage::exportResource(const QString &url, QIODevice *device)
+bool KisResourceStorage::exportResource(const PkString &url, PkStream *device)
 {
     return d->storagePlugin->exportResource(url, device);
 }
@@ -319,7 +378,7 @@ bool KisResourceStorage::loadVersionedResource(KoResourceSP resource)
     return d->storagePlugin->loadVersionedResource(resource);
 }
 
-void KisResourceStorage::setMetaData(const QString &key, const QVariant &value)
+void KisResourceStorage::setMetaData(const PkString &key, const PkVariant &value)
 {
     d->storagePlugin->setMetaData(key, value);
 }
@@ -329,12 +388,12 @@ bool KisResourceStorage::valid() const
     return d->valid;
 }
 
-QStringList KisResourceStorage::metaDataKeys() const
+PkStringList KisResourceStorage::metaDataKeys() const
 {
     return d->storagePlugin->metaDataKeys();
 }
 
-QVariant KisResourceStorage::metaData(const QString &key) const
+PkVariant KisResourceStorage::metaData(const PkString &key) const
 {
     return d->storagePlugin->metaData(key);
 }
@@ -356,62 +415,66 @@ KisStoragePlugin* KisResourceStorage::testingGetStoragePlugin()
 
 struct VersionedFileParts
 {
-    QString basename;
+    PkString basename;
     int version = 0;
-    QString suffix;
+    PkString suffix;
 };
 
-boost::optional<VersionedFileParts> guessFilenameParts(const QString &filename)
+boost::optional<VersionedFileParts> guessFilenameParts(const PkString &filename)
 {
-    QRegularExpression exp("^(.*)\\.(\\d\\d*)\\.(.+)$");
-
-    QRegularExpressionMatch res = exp.match(filename);
-
-    if (res.hasMatch()) {
-        return VersionedFileParts({res.captured(1), res.captured(2).toInt(), res.captured(3)});
+    static const std::regex expression("^(.*)\\.([0-9][0-9]*)\\.(.+)$");
+    std::smatch match;
+    const std::string text = filename.PkToUtf8();
+    if (std::regex_match(text, match, expression)) {
+        return VersionedFileParts({PkString(match[1].str().c_str()), std::stoi(match[2].str()),
+                                   PkString(match[3].str().c_str())});
     }
 
     return boost::none;
 }
 
-VersionedFileParts guessFileNamePartsLazy(const QString &filename, int minVersion)
+VersionedFileParts guessFileNamePartsLazy(const PkString &filename, int minVersion)
 {
     boost::optional<VersionedFileParts> guess = guessFilenameParts(filename);
     if (guess) {
-        guess->version = qMax(guess->version, minVersion);
+        guess->version = std::max(guess->version, minVersion);
     } else {
-        QFileInfo info(filename);
+        const fs::path info(filename.PkToUtf8());
         guess = VersionedFileParts();
-        guess->basename = info.baseName();
+        const std::string fullName = info.filename().string();
+        const std::size_t firstDot = fullName.find('.');
+        guess->basename = PkString((firstDot == std::string::npos ? fullName : fullName.substr(0, firstDot)).c_str());
         guess->version = minVersion;
-        guess->suffix = info.completeSuffix();
+        guess->suffix = PkString((firstDot == std::string::npos ? std::string() : fullName.substr(firstDot + 1)).c_str());
     }
 
     return *guess;
 }
 
-QString KisStorageVersioningHelper::chooseUniqueName(KoResourceSP resource,
+PkString KisStorageVersioningHelper::chooseUniqueName(KoResourceSP resource,
                                                      int minVersion,
-                                                     std::function<bool(QString)> checkExists)
+                                                     std::function<bool(PkString)> checkExists)
 {
-    int version = qMax(resource->version(), minVersion);
+    int version = std::max(resource->version(), minVersion);
 
     VersionedFileParts parts = guessFileNamePartsLazy(resource->filename(), version);
     version = parts.version;
 
-    QString newFilename;
+    PkString newFilename;
 
     while (1) {
         int numPlaceholders = 4;
 
         if (version > 9999) {
-            numPlaceholders = qFloor(std::log10(version)) + 1;
+            numPlaceholders = static_cast<int>(std::floor(std::log10(version))) + 1;
         }
 
-        QString versionString = QString("%1").arg(version, numPlaceholders, 10, QChar('0'));
+        char versionBuffer[64];
+        std::snprintf(versionBuffer, sizeof(versionBuffer), "%0*d", numPlaceholders, version);
+        const PkString versionString(versionBuffer);
 
         // XXX: Temporary, until I've fixed the tests
-        if (versionString == "0000" && qApp->applicationName() == "krita") {
+        if (versionString == "0000") {
             newFilename = resource->filename();
         }
         else {
@@ -424,7 +487,7 @@ QString KisStorageVersioningHelper::chooseUniqueName(KoResourceSP resource,
         if (checkExists(newFilename)) {
             version++;
             if (version == std::numeric_limits<int>::max()) {
-                return QString();
+                return PkString();
             }
             continue;
         }
@@ -435,7 +498,7 @@ QString KisStorageVersioningHelper::chooseUniqueName(KoResourceSP resource,
     return newFilename;
 }
 
-void KisStorageVersioningHelper::detectFileVersions(QVector<VersionedResourceEntry> &allFiles)
+void KisStorageVersioningHelper::detectFileVersions(PkVector<VersionedResourceEntry> &allFiles)
 {
     for (auto it = allFiles.begin(); it != allFiles.end(); ++it) {
         VersionedFileParts parts = guessFileNamePartsLazy(it->filename, -1);
@@ -445,7 +508,7 @@ void KisStorageVersioningHelper::detectFileVersions(QVector<VersionedResourceEnt
 
     std::sort(allFiles.begin(), allFiles.end(), VersionedResourceEntry::KeyVersionLess());
 
-    boost::optional<QString> lastResourceKey;
+    boost::optional<PkString> lastResourceKey;
     int availableVersion = 0;
     for (auto it = allFiles.begin(); it != allFiles.end(); ++it) {
         if (!lastResourceKey || *lastResourceKey != it->guessedKey) {
@@ -461,53 +524,47 @@ void KisStorageVersioningHelper::detectFileVersions(QVector<VersionedResourceEnt
     }
 }
 
-bool KisStorageVersioningHelper::addVersionedResource(const QString &saveLocation,
+bool KisStorageVersioningHelper::addVersionedResource(const PkString &saveLocation,
                                                       KoResourceSP resource,
                                                       int minVersion)
 {
-    int version = qMax(resource->version(), minVersion);
+    int version = std::max(resource->version(), minVersion);
 
     VersionedFileParts parts = guessFileNamePartsLazy(resource->filename(), version);
     version = parts.version;
 
-    QString newFilename =
+    PkString newFilename =
         chooseUniqueName(resource, minVersion,
-                         [saveLocation] (const QString &filename) {
-                             return QFileInfo(saveLocation + "/" + filename).exists();
+                         [saveLocation] (const PkString &filename) {
+                             return PkResourceStorageDesktop().exists(
+                                 PkResourceStorage::joinPath(saveLocation, filename));
                          });
 
     if (newFilename.isEmpty()) return false;
 
-    QFile file(saveLocation + "/" + newFilename);
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!file.exists(), false);
+    const PkString path = PkResourceStorage::joinPath(saveLocation, newFilename);
+    PkResourceStorageDesktop storage;
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!storage.exists(path), false);
 
-    if (!file.open(QFile::WriteOnly)) {
-        qWarning() << "Could not open resource file for writing" << newFilename;
+    PkFileStream file(path);
+    if (!file.open(PkStream::WriteOnly | PkStream::Truncate)) {
+        qCWarning(RESOURCE_LOG) << "Could not open resource file for writing" << newFilename;
         return false;
     }
 
     if (!resource->saveToDevice(&file)) {
-        qWarning() << "Could not save resource file" << newFilename;
+        qCWarning(RESOURCE_LOG) << "Could not save resource file" << newFilename;
         return false;
     }
 
     resource->setFilename(newFilename);
     file.close();
 
-    if (!resource->thumbnailPath().isEmpty()) {
-        // hack for MyPaint brush presets thumbnails
-        // note: for all versions of the preset, it will try to save in the same place
-        if (!QFileInfo(saveLocation + "/" + resource->thumbnailPath()).exists()) {
-            QImage thumbnail = resource->thumbnail();
-            thumbnail.save(saveLocation + "/" + resource->thumbnailPath());
-        }
-    }
-
     return true;
 }
 
 
-QSharedPointer<KisResourceStorage::ResourceIterator> KisResourceStorage::ResourceIterator::versions() const
+PkSharedPointer<KisResourceStorage::ResourceIterator> KisResourceStorage::ResourceIterator::versions() const
 {
     struct DumbIterator : public ResourceIterator
     {
@@ -525,17 +582,17 @@ QSharedPointer<KisResourceStorage::ResourceIterator> KisResourceStorage::Resourc
             KIS_SAFE_ASSERT_RECOVER_NOOP(!m_isStarted);
             m_isStarted = true;
         }
-        QString url() const override
+        PkString url() const override
         {
             return m_parent->url();
         }
 
-        QString type() const override
+        PkString type() const override
         {
             return m_parent->type();
         }
 
-        QDateTime lastModified() const override
+        PkDateTime lastModified() const override
         {
             return m_parent->lastModified();
         }
@@ -545,9 +602,9 @@ QSharedPointer<KisResourceStorage::ResourceIterator> KisResourceStorage::Resourc
             return m_parent->guessedVersion();
         }
 
-        QSharedPointer<KisResourceStorage::ResourceIterator> versions() const override
+        PkSharedPointer<KisResourceStorage::ResourceIterator> versions() const override
         {
-            return toQShared(new DumbIterator(m_parent));
+            return PkSharedPointer<KisResourceStorage::ResourceIterator>(new DumbIterator(m_parent));
         }
 
     protected:
@@ -561,7 +618,7 @@ QSharedPointer<KisResourceStorage::ResourceIterator> KisResourceStorage::Resourc
         const ResourceIterator *m_parent;
     };
 
-    return QSharedPointer<KisResourceStorage::ResourceIterator>(new DumbIterator(this));
+    return PkSharedPointer<KisResourceStorage::ResourceIterator>(new DumbIterator(this));
 }
 
 KoResourceSP KisResourceStorage::ResourceIterator::resource() const
@@ -576,11 +633,11 @@ KoResourceSP KisResourceStorage::ResourceIterator::resource() const
     return m_cachedResource;
 }
 
-KisVersionedStorageIterator::KisVersionedStorageIterator(const QVector<VersionedResourceEntry> &entries, KisStoragePlugin *_q)
+KisVersionedStorageIterator::KisVersionedStorageIterator(const PkVector<VersionedResourceEntry> &entries, KisStoragePlugin *_q)
     : q(_q)
     , m_entries(entries)
-    , m_begin(m_entries.constBegin())
-    , m_end(m_entries.constEnd())
+    , m_begin(m_entries.cbegin())
+    , m_end(m_entries.cend())
 
 {
     //    ENTER_FUNCTION() << ppVar(std::distance(m_begin, m_end));
@@ -589,9 +646,9 @@ KisVersionedStorageIterator::KisVersionedStorageIterator(const QVector<Versioned
     //    }
 }
 
-KisVersionedStorageIterator::KisVersionedStorageIterator(const QVector<VersionedResourceEntry> &entries,
-                                                         QVector<VersionedResourceEntry>::const_iterator begin,
-                                                         QVector<VersionedResourceEntry>::const_iterator end,
+KisVersionedStorageIterator::KisVersionedStorageIterator(const PkVector<VersionedResourceEntry> &entries,
+                                                         PkVector<VersionedResourceEntry>::const_iterator begin,
+                                                         PkVector<VersionedResourceEntry>::const_iterator end,
                                                          KisStoragePlugin *_q)
     : q(_q)
     , m_entries(entries)
@@ -627,17 +684,17 @@ void KisVersionedStorageIterator::next()
     m_it = std::prev(nextChunk);
 }
 
-QString KisVersionedStorageIterator::url() const
+PkString KisVersionedStorageIterator::url() const
 {
     return m_it->resourceType + "/" + m_it->filename;
 }
 
-QString KisVersionedStorageIterator::type() const
+PkString KisVersionedStorageIterator::type() const
 {
     return m_it->resourceType;
 }
 
-QDateTime KisVersionedStorageIterator::lastModified() const
+PkDateTime KisVersionedStorageIterator::lastModified() const
 {
     return m_it->lastModified;
 }
@@ -652,13 +709,13 @@ int KisVersionedStorageIterator::guessedVersion() const
     return m_it->guessedVersion;
 }
 
-QSharedPointer<KisResourceStorage::ResourceIterator> KisVersionedStorageIterator::versions() const
+PkSharedPointer<KisResourceStorage::ResourceIterator> KisVersionedStorageIterator::versions() const
 {
     struct VersionsIterator : public KisVersionedStorageIterator
     {
-        VersionsIterator(const QVector<VersionedResourceEntry> &entries,
-                         QVector<VersionedResourceEntry>::const_iterator begin,
-                         QVector<VersionedResourceEntry>::const_iterator end,
+        VersionsIterator(const PkVector<VersionedResourceEntry> &entries,
+                         PkVector<VersionedResourceEntry>::const_iterator begin,
+                         PkVector<VersionedResourceEntry>::const_iterator end,
                          KisStoragePlugin *_q)
             : KisVersionedStorageIterator(entries, begin, end, _q)
         {
@@ -673,10 +730,12 @@ QSharedPointer<KisResourceStorage::ResourceIterator> KisVersionedStorageIterator
             }
         }
 
-        QSharedPointer<KisResourceStorage::ResourceIterator> versions() const override{
-            return toQShared(new VersionsIterator(m_entries, m_it, std::next(m_it), q));
+        PkSharedPointer<KisResourceStorage::ResourceIterator> versions() const override{
+            return PkSharedPointer<KisResourceStorage::ResourceIterator>(
+                new VersionsIterator(m_entries, m_it, std::next(m_it), q));
         }
     };
 
-    return toQShared(new VersionsIterator(m_entries, m_chunkStart, std::next(m_it), q));
+    return PkSharedPointer<KisResourceStorage::ResourceIterator>(
+        new VersionsIterator(m_entries, m_chunkStart, std::next(m_it), q));
 }

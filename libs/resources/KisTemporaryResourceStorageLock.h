@@ -10,7 +10,7 @@
 #include <kritaresources_export.h>
 #include <KisAdaptedLock.h>
 
-#include <QString>
+#include <PkString.h>
 
 
 /**
@@ -19,17 +19,17 @@
 class KRITARESOURCES_EXPORT KisTemporaryResourceStorageLockAdapter
 {
 public:
-    KisTemporaryResourceStorageLockAdapter(const QString &temporaryStorageLocationTemplate);
+    KisTemporaryResourceStorageLockAdapter(const PkString &temporaryStorageLocationTemplate);
 
     bool try_lock();
     void lock();
     void unlock();
 
-    QString storageLocation() const;
+    PkString storageLocation() const;
 
 private:
-    QString m_temporaryStorageLocationTemplate;
-    QString m_temporaryStorageLocation;
+    PkString m_temporaryStorageLocationTemplate;
+    PkString m_temporaryStorageLocation;
 };
 
 class KisTemporaryResourceStorageLock : public KisAdaptedLock<KisTemporaryResourceStorageLockAdapter>

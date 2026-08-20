@@ -21,25 +21,25 @@
 class KRITARESOURCES_EXPORT KisFolderStorage : public KisStoragePlugin
 {
 public:
-    KisFolderStorage(const QString &location);
+    KisFolderStorage(const PkString &location);
     virtual ~KisFolderStorage();
 
     /// Adds or updates this resource to the storage
-    bool saveAsNewVersion(const QString &resourceType, KoResourceSP resource) override;
+    bool saveAsNewVersion(const PkString &resourceType, KoResourceSP resource) override;
 
-    KisResourceStorage::ResourceItem resourceItem(const QString &url) override;
+    KisResourceStorage::ResourceItem resourceItem(const PkString &url) override;
     bool loadVersionedResource(KoResourceSP resource) override;
-    QSharedPointer<KisResourceStorage::ResourceIterator> resources(const QString &resourceType) override;
-    QSharedPointer<KisResourceStorage::TagIterator> tags(const QString &resourceType) override;
-    bool importResource(const QString &url, QIODevice *device) override;
-    bool exportResource(const QString &url, QIODevice *device) override;
-    bool addResource(const QString  &resourceType, KoResourceSP resource) override;
+    PkSharedPointer<KisResourceStorage::ResourceIterator> resources(const PkString &resourceType) override;
+    PkSharedPointer<KisResourceStorage::TagIterator> tags(const PkString &resourceType) override;
+    bool importResource(const PkString &url, PkStream *device) override;
+    bool exportResource(const PkString &url, PkStream *device) override;
+    bool addResource(const PkString  &resourceType, KoResourceSP resource) override;
 
-    QStringList metaDataKeys() const override;
-    QVariant metaData(const QString &key) const override;
+    PkStringList metaDataKeys() const override;
+    PkVariant metaData(const PkString &key) const override;
 
-    QString resourceMd5(const QString &url) override;
-    QString resourceFilePath(const QString &url) override;
+    PkString resourceMd5(const PkString &url) override;
+    PkString resourceFilePath(const PkString &url) override;
 private:
     friend class FolderIterator;
 

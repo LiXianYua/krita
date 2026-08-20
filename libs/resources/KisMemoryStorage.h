@@ -20,7 +20,7 @@
 class KRITARESOURCES_EXPORT KisMemoryStorage : public KisStoragePlugin
 {
 public:
-    KisMemoryStorage(const QString &location = QString("memory"));
+    KisMemoryStorage(const PkString &location = PkString("memory"));
     virtual ~KisMemoryStorage();
 
     /// Copying the memory storage clones all contained resources and tags
@@ -29,33 +29,33 @@ public:
     /// This clones all contained resources and tags from rhs
     KisMemoryStorage &operator=(const KisMemoryStorage &rhs);
 
-    bool saveAsNewVersion(const QString &resourceType, KoResourceSP resource) override;
+    bool saveAsNewVersion(const PkString &resourceType, KoResourceSP resource) override;
 
-    KisResourceStorage::ResourceItem resourceItem(const QString &url) override;
+    KisResourceStorage::ResourceItem resourceItem(const PkString &url) override;
     bool loadVersionedResource(KoResourceSP resource) override;
-    bool importResource(const QString &url, QIODevice *device) override;
-    bool exportResource(const QString &url, QIODevice *device) override;
-    bool addResource(const QString &resourceType,  KoResourceSP resource) override;
+    bool importResource(const PkString &url, PkStream *device) override;
+    bool exportResource(const PkString &url, PkStream *device) override;
+    bool addResource(const PkString &resourceType,  KoResourceSP resource) override;
 
-    QString resourceMd5(const QString &url) override;
-    QSharedPointer<KisResourceStorage::ResourceIterator> resources(const QString &resourceType) override;
-    QSharedPointer<KisResourceStorage::TagIterator> tags(const QString &resourceType) override;
+    PkString resourceMd5(const PkString &url) override;
+    PkSharedPointer<KisResourceStorage::ResourceIterator> resources(const PkString &resourceType) override;
+    PkSharedPointer<KisResourceStorage::TagIterator> tags(const PkString &resourceType) override;
 
-    void setMetaData(const QString &key, const QVariant &value) override;
-    QStringList metaDataKeys() const override;
-    QVariant metaData(const QString &key) const override;
+    void setMetaData(const PkString &key, const PkVariant &value) override;
+    PkStringList metaDataKeys() const override;
+    PkVariant metaData(const PkString &key) const override;
 
 private:
     friend class TestMemoryStorage;
     friend class TestResourceLocator;
     friend class TestStorageWrapper;
-    bool testingRemoveResource(const QString &url);
-    bool testingAddTag(const QString &resourceType, KisTagSP tag);
-    bool testingRemoveTag(const QString &resourceType, const QString &tagUrl);
+    bool testingRemoveResource(const PkString &url);
+    bool testingAddTag(const PkString &resourceType, KisTagSP tag);
+    bool testingRemoveTag(const PkString &resourceType, const PkString &tagUrl);
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 
 };
 

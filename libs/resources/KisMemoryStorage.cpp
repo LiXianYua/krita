@@ -7,18 +7,15 @@
 #include "KisMemoryStorage.h"
 
 #include <optional>
-#include <QVector>
-
 #include <KisMimeDatabase.h>
-#include <kis_debug.h>
 #include <KisTag.h>
 #include <KisResourceStorage.h>
-#include <QBuffer>
 #include <KisGlobalResourcesInterface.h>
-#include <kis_pointer_utils.h>
 #include <KoMD5Generator.h>
 #include <kis_assert.h>
-#include <KisMpl.h>
+#include <PkMemoryStream.h>
+#include <PkHash.h>
+#include "ResourceDebug.h"
 
 
 namespace detail {
@@ -27,17 +24,16 @@ namespace detail {
      * TODO: move this function into KisStorageVersioningHelper with fixing the
      * versioning functions to handle subfolders as well
      */
-    std::optional<std::pair<QString, QString>> splitResourceUrl(const QString &url)
+    std::optional<std::pair<PkString, PkString>> splitResourceUrl(const PkString &url)
     {
-        if (!url.contains('/')) return std::nullopt;
+        if (!url.contains("/")) return std::nullopt;
 
-        QStringList parts = url.split('/', Qt::SkipEmptyParts);
-
-        if (parts.isEmpty()) return std::nullopt;
-
-        const QString resourceType = parts[0];
-        parts.removeFirst();
-        const QString resourceFilename = parts.join('/');
+        const std::string text = url.PkToUtf8();
+        const std::size_t separator = text.find('/');
+        if (separator == std::string::npos || separator == 0 || separator + 1 >= text.size()) return std::nullopt;
+        const PkString resourceType = PkString::PkFromUtf8(text.data(), static_cast<int>(separator));
+        const PkString resourceFilename = PkString::PkFromUtf8(
+            text.data() + separator + 1, static_cast<int>(text.size() - separator - 1));
         return std::make_pair(resourceType, resourceFilename);
     }
 
@@ -45,36 +41,37 @@ namespace detail {
 
 struct StoredResource
 {
-    QDateTime timestamp;
-    QSharedPointer<QByteArray> data;
+    PkDateTime timestamp;
+    PkSharedPointer<PkMemoryStream> data;
     KoResourceSP resource;
 };
 
 class MemoryTagIterator : public KisResourceStorage::TagIterator
 {
 public:
-    MemoryTagIterator(const QVector<KisTagSP> &tags)
-        : m_it(tags)
+    MemoryTagIterator(const PkVector<KisTagSP> &tags)
+        : m_tags(tags)
     {
     }
 
     bool hasNext() const override
     {
-        return m_it.hasNext();
+        return m_index + 1 < m_tags.size();
     }
 
     void next() override
     {
-        m_it.next();
+        ++m_index;
     }
 
     KisTagSP tag() const override
     {
-        return m_it.peekPrevious();
+        return m_tags.at(m_index);
     }
 
 private:
-    QVectorIterator<KisTagSP> m_it;
+    PkVector<KisTagSP> m_tags;
+    int m_index = -1;
 };
 
 
@@ -87,13 +84,13 @@ public:
 
 class KisMemoryStorage::Private {
 public:
-    QHash<QString, QHash<QString, StoredResource>> resourcesNew;
-    QHash<QString, QVector<KisTagSP>> tags;
-    QMap<QString, QVariant> metadata;
+    PkHash<PkString, PkHash<PkString, StoredResource>> resourcesNew;
+    PkHash<PkString, PkVector<KisTagSP>> tags;
+    PkMap<PkString, PkVariant> metadata;
 };
 
 
-KisMemoryStorage::KisMemoryStorage(const QString &location)
+KisMemoryStorage::KisMemoryStorage(const PkString &location)
     : KisStoragePlugin(location)
     , d(new Private)
 {
@@ -118,10 +115,10 @@ KisMemoryStorage &KisMemoryStorage::operator=(const KisMemoryStorage &rhs)
     if (this != &rhs) {
         d->resourcesNew = rhs.d->resourcesNew;
 
-        Q_FOREACH(const QString &key, rhs.d->tags.keys()) {
-            Q_FOREACH(const KisTagSP tag, rhs.d->tags[key]) {
+        for (const PkString &key : rhs.d->tags.keys()) {
+            for (const KisTagSP &tag : rhs.d->tags[key]) {
                 if (!d->tags.contains(key)) {
-                    d->tags[key] = QVector<KisTagSP>();
+                    d->tags[key] = PkVector<KisTagSP>();
                 }
                 d->tags[key] << tag->clone();
             }
@@ -130,17 +127,17 @@ KisMemoryStorage &KisMemoryStorage::operator=(const KisMemoryStorage &rhs)
     return *this;
 }
 
-bool KisMemoryStorage::saveAsNewVersion(const QString &resourceType, KoResourceSP resource)
+bool KisMemoryStorage::saveAsNewVersion(const PkString &resourceType, KoResourceSP resource)
 {
-    QHash<QString, StoredResource> &typedResources =
+    PkHash<PkString, StoredResource> &typedResources =
         d->resourcesNew[resourceType];
 
     auto checkExists =
-        [&typedResources] (const QString &filename) {
+        [&typedResources] (const PkString &filename) {
             return typedResources.contains(filename);
         };
 
-    const QString newFilename =
+    const PkString newFilename =
         KisStorageVersioningHelper::chooseUniqueName(resource, 0, checkExists);
 
     if (newFilename.isEmpty()) return false;
@@ -148,12 +145,11 @@ bool KisMemoryStorage::saveAsNewVersion(const QString &resourceType, KoResourceS
     resource->setFilename(newFilename);
 
     StoredResource storedResource;
-    storedResource.timestamp = QDateTime::currentDateTime();
-    storedResource.data.reset(new QByteArray());
-    QBuffer buffer(storedResource.data.data());
-    buffer.open(QIODevice::WriteOnly);
-    bool result = resource->saveToDevice(&buffer);
-    buffer.close();
+    storedResource.timestamp = PkDateTime::currentDateTime();
+    storedResource.data.reset(new PkMemoryStream());
+    storedResource.data->open(PkStream::WriteOnly | PkStream::Truncate);
+    bool result = resource->saveToDevice(storedResource.data.data());
+    storedResource.data->close();
     if (!result) {
         storedResource.resource = resource;
     }
@@ -163,19 +159,19 @@ bool KisMemoryStorage::saveAsNewVersion(const QString &resourceType, KoResourceS
     return true;
 }
 
-KisResourceStorage::ResourceItem KisMemoryStorage::resourceItem(const QString &url)
+KisResourceStorage::ResourceItem KisMemoryStorage::resourceItem(const PkString &url)
 {
     MemoryItem item;
     item.url = url;
-    item.folder = QString();
-    item.lastModified = QDateTime::fromMSecsSinceEpoch(0);
+    item.folder = PkString();
+    item.lastModified = PkDateTime::fromMSecsSinceEpoch(0);
     return item;
 }
 
 bool KisMemoryStorage::loadVersionedResource(KoResourceSP resource)
 {
-    const QString resourceType = resource->resourceType().first;
-    const QString resourceFilename = resource->filename();
+    const PkString resourceType = resource->resourceType().first;
+    const PkString resourceFilename = resource->filename();
 
     bool retval = false;
 
@@ -186,12 +182,13 @@ bool KisMemoryStorage::loadVersionedResource(KoResourceSP resource)
             d->resourcesNew[resourceType][resourceFilename];
 
         if (storedResource.data->size() > 0) {
-            QBuffer buffer(storedResource.data.data());
-            buffer.open(QIODevice::ReadOnly);
-            resource->loadFromDevice(&buffer, KisGlobalResourcesInterface::instance());
+            storedResource.data->close();
+            storedResource.data->open(PkStream::ReadOnly);
+            resource->loadFromDevice(storedResource.data.data(), KisGlobalResourcesInterface::instance());
+            storedResource.data->close();
         } else {
             KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(storedResource.data->size() > 0, false);
-            qWarning() << "Cannot load resource from device in KisMemoryStorage::loadVersionedResource";
+            qCWarning(RESOURCE_LOG) << "Cannot load resource from device in KisMemoryStorage::loadVersionedResource";
             return false;
         }
         retval = true;
@@ -200,7 +197,7 @@ bool KisMemoryStorage::loadVersionedResource(KoResourceSP resource)
     return retval;
 }
 
-bool KisMemoryStorage::importResource(const QString &url, QIODevice *device)
+bool KisMemoryStorage::importResource(const PkString &url, PkStream *device)
 {
     auto parsedUrl = detail::splitResourceUrl(url);
     if (!parsedUrl) return false;
@@ -213,17 +210,21 @@ bool KisMemoryStorage::importResource(const QString &url, QIODevice *device)
     }
 
     StoredResource storedResource;
-    storedResource.timestamp = QDateTime::currentDateTime();
-    storedResource.data.reset(new QByteArray(device->readAll()));
+    storedResource.timestamp = PkDateTime::currentDateTime();
+    storedResource.data.reset(new PkMemoryStream());
+    storedResource.data->open(PkStream::WriteOnly | PkStream::Truncate);
+    char buffer[8192];
+    for (PkStream::pk_int64 n; (n = device->read(buffer, sizeof(buffer))) > 0;) storedResource.data->write(buffer, n);
+    storedResource.data->close();
 
-    QHash<QString, StoredResource> &typedResources =
+    PkHash<PkString, StoredResource> &typedResources =
         d->resourcesNew[resourceType];
     typedResources.insert(resourceFilename, storedResource);
 
     return true;
 }
 
-bool KisMemoryStorage::exportResource(const QString &url, QIODevice *device)
+bool KisMemoryStorage::exportResource(const PkString &url, PkStream *device)
 {
     auto parsedUrl = detail::splitResourceUrl(url);
     if (!parsedUrl) return false;
@@ -238,17 +239,21 @@ bool KisMemoryStorage::exportResource(const QString &url, QIODevice *device)
         d->resourcesNew[resourceType][resourceFilename];
 
     if (!storedResource.data) {
-        qWarning() << "Stored resource doesn't have a serialized representation!";
+        qCWarning(RESOURCE_LOG) << "Stored resource doesn't have a serialized representation!";
         return false;
     }
 
-    device->write(*storedResource.data);
+    storedResource.data->close();
+    storedResource.data->open(PkStream::ReadOnly);
+    char buffer[8192];
+    for (PkStream::pk_int64 n; (n = storedResource.data->read(buffer, sizeof(buffer))) > 0;) device->write(buffer, n);
+    storedResource.data->close();
     return true;
 }
 
-bool KisMemoryStorage::addResource(const QString &resourceType,  KoResourceSP resource)
+bool KisMemoryStorage::addResource(const PkString &resourceType,  KoResourceSP resource)
 {
-    QHash<QString, StoredResource> &typedResources = d->resourcesNew[resourceType];
+    PkHash<PkString, StoredResource> &typedResources = d->resourcesNew[resourceType];
 
     if (typedResources.contains(resource->filename())) {
         /// here we silently overwrite the resource if the filename
@@ -258,15 +263,14 @@ bool KisMemoryStorage::addResource(const QString &resourceType,  KoResourceSP re
     };
 
     StoredResource storedResource;
-    storedResource.timestamp = QDateTime::currentDateTime();
-    storedResource.data.reset(new QByteArray());
+    storedResource.timestamp = PkDateTime::currentDateTime();
+    storedResource.data.reset(new PkMemoryStream());
     if (resource->isSerializable()) {
-        QBuffer buffer(storedResource.data.data());
-        buffer.open(QIODevice::WriteOnly);
-        if (!resource->saveToDevice(&buffer)) {
+        storedResource.data->open(PkStream::WriteOnly | PkStream::Truncate);
+        if (!resource->saveToDevice(storedResource.data.data())) {
             storedResource.resource = resource;
         }
-        buffer.close();
+        storedResource.data->close();
     } else {
         storedResource.resource = resource;
     }
@@ -276,7 +280,7 @@ bool KisMemoryStorage::addResource(const QString &resourceType,  KoResourceSP re
     return true;
 }
 
-bool KisMemoryStorage::testingRemoveResource(const QString &url)
+bool KisMemoryStorage::testingRemoveResource(const PkString &url)
 {
     auto parsedUrl = detail::splitResourceUrl(url);
     if (!parsedUrl) return false;
@@ -289,13 +293,15 @@ bool KisMemoryStorage::testingRemoveResource(const QString &url)
     return false;
 }
 
-bool KisMemoryStorage::testingAddTag(const QString &resourceType, KisTagSP tag)
+bool KisMemoryStorage::testingAddTag(const PkString &resourceType, KisTagSP tag)
 {
     KIS_SAFE_ASSERT_RECOVER_NOOP(resourceType == tag->resourceType());
 
-    QVector<KisTagSP> &typedTags = d->tags[resourceType];
+    PkVector<KisTagSP> &typedTags = d->tags[resourceType];
 
-    auto existingIt = std::find_if(typedTags.begin(), typedTags.end(), kismpl::mem_equal_to(&KisTag::url, tag->url()));
+    auto existingIt = std::find_if(typedTags.begin(), typedTags.end(), [&tag](const KisTagSP &value) {
+        return value->url() == tag->url();
+    });
     if (existingIt != typedTags.end()) {
         typedTags.erase(existingIt);
     }
@@ -305,11 +311,13 @@ bool KisMemoryStorage::testingAddTag(const QString &resourceType, KisTagSP tag)
     return true;
 }
 
-bool KisMemoryStorage::testingRemoveTag(const QString &resourceType, const QString &tagUrl)
+bool KisMemoryStorage::testingRemoveTag(const PkString &resourceType, const PkString &tagUrl)
 {
-    QVector<KisTagSP> &typedTags = d->tags[resourceType];
+    PkVector<KisTagSP> &typedTags = d->tags[resourceType];
 
-    auto existingIt = std::find_if(typedTags.begin(), typedTags.end(), kismpl::mem_equal_to(&KisTag::url, tagUrl));
+    auto existingIt = std::find_if(typedTags.begin(), typedTags.end(), [&tagUrl](const KisTagSP &value) {
+        return value->url() == tagUrl;
+    });
     if (existingIt != typedTags.end()) {
         typedTags.erase(existingIt);
         return true;
@@ -318,13 +326,13 @@ bool KisMemoryStorage::testingRemoveTag(const QString &resourceType, const QStri
     return false;
 }
 
-QString KisMemoryStorage::resourceMd5(const QString &url)
+PkString KisMemoryStorage::resourceMd5(const PkString &url)
 {
     auto parsedUrl = detail::splitResourceUrl(url);
-    if (!parsedUrl) return QString();
+    if (!parsedUrl) return PkString();
     auto [resourceType, resourceFilename] = *parsedUrl;
 
-    QString result;
+    PkString result;
 
     if (d->resourcesNew.contains(resourceType) &&
         d->resourcesNew[resourceType].contains(resourceFilename)) {
@@ -333,7 +341,10 @@ QString KisMemoryStorage::resourceMd5(const QString &url)
             d->resourcesNew[resourceType][resourceFilename];
 
         if (storedResource.data->size() > 0 || storedResource.resource.isNull()) {
-            result = KoMD5Generator::generateHash(*storedResource.data);
+            storedResource.data->close();
+            storedResource.data->open(PkStream::ReadOnly);
+            result = KoMD5Generator::generateHash(storedResource.data.data());
+            storedResource.data->close();
         } else {
             result = storedResource.resource->md5Sum();
         }
@@ -342,12 +353,12 @@ QString KisMemoryStorage::resourceMd5(const QString &url)
     return result;
 }
 
-QSharedPointer<KisResourceStorage::ResourceIterator> KisMemoryStorage::resources(const QString &resourceType)
+PkSharedPointer<KisResourceStorage::ResourceIterator> KisMemoryStorage::resources(const PkString &resourceType)
 {
-    QVector<VersionedResourceEntry> entries;
+    PkVector<VersionedResourceEntry> entries;
 
 
-    QHash<QString, StoredResource> &typedResources =
+    PkHash<PkString, StoredResource> &typedResources =
         d->resourcesNew[resourceType];
 
     for (auto it = typedResources.begin(); it != typedResources.end(); ++it) {
@@ -362,22 +373,22 @@ QSharedPointer<KisResourceStorage::ResourceIterator> KisMemoryStorage::resources
 
     KisStorageVersioningHelper::detectFileVersions(entries);
 
-    return toQShared(new KisVersionedStorageIterator(entries, this));
+    return PkSharedPointer<KisResourceStorage::ResourceIterator>(new KisVersionedStorageIterator(entries, this));
 }
 
-QSharedPointer<KisResourceStorage::TagIterator> KisMemoryStorage::tags(const QString &resourceType)
+PkSharedPointer<KisResourceStorage::TagIterator> KisMemoryStorage::tags(const PkString &resourceType)
 {
-    return QSharedPointer<KisResourceStorage::TagIterator>(new MemoryTagIterator(d->tags[resourceType]));
+    return PkSharedPointer<KisResourceStorage::TagIterator>(new MemoryTagIterator(d->tags[resourceType]));
 }
 
-void KisMemoryStorage::setMetaData(const QString &key, const QVariant &value)
+void KisMemoryStorage::setMetaData(const PkString &key, const PkVariant &value)
 {
     d->metadata[key] = value;
 }
 
-QStringList KisMemoryStorage::metaDataKeys() const
+PkStringList KisMemoryStorage::metaDataKeys() const
 {
-    QStringList keys = d->metadata.keys();
+    PkStringList keys = d->metadata.keys();
 
     if (!keys.contains(KisResourceStorage::s_meta_name)) {
         keys << KisResourceStorage::s_meta_name;
@@ -386,9 +397,9 @@ QStringList KisMemoryStorage::metaDataKeys() const
     return keys;
 }
 
-QVariant KisMemoryStorage::metaData(const QString &key) const
+PkVariant KisMemoryStorage::metaData(const PkString &key) const
 {
-    QVariant r;
+    PkVariant r;
     if (d->metadata.contains(key)) {
         r = d->metadata[key];
     }

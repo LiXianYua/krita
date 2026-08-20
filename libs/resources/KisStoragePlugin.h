@@ -7,13 +7,13 @@
 #ifndef KISSTORAGEPLUGIN_H
 #define KISSTORAGEPLUGIN_H
 
-#include <QScopedPointer>
-#include <QString>
+#include <PkScopedPointer.h>
+#include <PkString.h>
 
 #include <KisResourceStorage.h>
 #include "kritaresources_export.h"
 
-class QDir;
+class PkStream;
 
 /**
  * The KisStoragePlugin class is the base class
@@ -25,38 +25,38 @@ class QDir;
 class KRITARESOURCES_EXPORT KisStoragePlugin
 {
 public:
-    KisStoragePlugin(const QString &location);
+    KisStoragePlugin(const PkString &location);
     virtual ~KisStoragePlugin();
 
-    virtual KisResourceStorage::ResourceItem resourceItem(const QString &url) = 0;
+    virtual KisResourceStorage::ResourceItem resourceItem(const PkString &url) = 0;
 
     /// Retrieve the given resource. The url is the unique identifier of the resource,
     /// for instance resourcetype plus filename.
-    virtual KoResourceSP resource(const QString &url);
-    virtual QString resourceMd5(const QString &url);
-    virtual QString resourceFilePath(const QString &url);
+    virtual KoResourceSP resource(const PkString &url);
+    virtual PkString resourceMd5(const PkString &url);
+    virtual PkString resourceFilePath(const PkString &url);
     virtual bool loadVersionedResource(KoResourceSP resource) = 0;
     virtual bool supportsVersioning() const;
-    virtual QSharedPointer<KisResourceStorage::ResourceIterator> resources(const QString &resourceType) = 0;
-    virtual QSharedPointer<KisResourceStorage::TagIterator> tags(const QString &resourceType) = 0;
+    virtual PkSharedPointer<KisResourceStorage::ResourceIterator> resources(const PkString &resourceType) = 0;
+    virtual PkSharedPointer<KisResourceStorage::TagIterator> tags(const PkString &resourceType) = 0;
 
-    virtual bool saveAsNewVersion(const QString &resourceType, KoResourceSP resource) {Q_UNUSED(resourceType); Q_UNUSED(resource); return false;}
-    virtual bool importResource(const QString &url, QIODevice *device) {Q_UNUSED(url); Q_UNUSED(device); return false;}
-    virtual bool exportResource(const QString &url, QIODevice *device) {Q_UNUSED(url); Q_UNUSED(device); return false;}
-    virtual bool addResource(const QString &resourceType, KoResourceSP resource) {Q_UNUSED(resourceType); Q_UNUSED(resource); return false;}
-    virtual QImage thumbnail() const { return QImage(); }
+    virtual bool saveAsNewVersion(const PkString &, KoResourceSP) { return false; }
+    virtual bool importResource(const PkString &, PkStream *) { return false; }
+    virtual bool exportResource(const PkString &, PkStream *) { return false; }
+    virtual bool addResource(const PkString &, KoResourceSP) { return false; }
+    virtual PkImage thumbnail() const { return PkImage(); }
 
-    virtual void setMetaData(const QString &key, const QVariant &value) {Q_UNUSED(key); Q_UNUSED(value);}
-    virtual QStringList metaDataKeys() const { return QStringList(); }
-    virtual QVariant metaData(const QString &key) const { Q_UNUSED(key); return QString(); }
+    virtual void setMetaData(const PkString &, const PkVariant &) {}
+    virtual PkStringList metaDataKeys() const { return PkStringList(); }
+    virtual PkVariant metaData(const PkString &) const { return PkVariant(); }
 
-    QDateTime timestamp();
+    PkDateTime timestamp();
 
     virtual bool isValid() const;
 
 protected:
     friend class TestBundleStorage;
-    QString location() const;
+    PkString location() const;
 
     /**
      * On some systems, e.g. Windows, the file names are case-insensitive,
@@ -65,11 +65,11 @@ protected:
      * sure that its filename is set to the **real** filename, not the one
      * with incorrect casing.
      */
-    void sanitizeResourceFileNameCase(KoResourceSP resource, const QDir &parentDir);
+    void sanitizeResourceFileNameCase(KoResourceSP resource, const PkString &parentDir);
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KISSTORAGEPLUGIN_H

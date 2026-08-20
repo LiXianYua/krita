@@ -9,7 +9,7 @@
 #include <kis_assert.h>
 #include <KisResourceLocator.h>
 
-KisTemporaryResourceStorageLockAdapter::KisTemporaryResourceStorageLockAdapter(const QString &temporaryStorageLocationTemplate)
+KisTemporaryResourceStorageLockAdapter::KisTemporaryResourceStorageLockAdapter(const PkString &temporaryStorageLocationTemplate)
     : m_temporaryStorageLocationTemplate(temporaryStorageLocationTemplate)
 {
 }
@@ -17,10 +17,10 @@ KisTemporaryResourceStorageLockAdapter::KisTemporaryResourceStorageLockAdapter(c
 void KisTemporaryResourceStorageLockAdapter::lock()
 {
     int counter = 0;
-    QString storageLocation = m_temporaryStorageLocationTemplate;
+    PkString storageLocation = m_temporaryStorageLocationTemplate;
 
     while (KisResourceLocator::instance()->hasStorage(storageLocation)) {
-        storageLocation = QString("%1_%2").arg(m_temporaryStorageLocationTemplate).arg(counter++);
+        storageLocation = PkString("%1_%2").arg(m_temporaryStorageLocationTemplate).arg(counter++);
     }
 
     KisResourceStorageSP newStorage(new KisResourceStorage(storageLocation, KisResourceStorage::StorageType::Memory));
@@ -33,10 +33,10 @@ void KisTemporaryResourceStorageLockAdapter::unlock()
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(!m_temporaryStorageLocation.isEmpty());
     KisResourceLocator::instance()->removeStorage(m_temporaryStorageLocation);
-    m_temporaryStorageLocation.clear();
+    m_temporaryStorageLocation = PkString();
 }
 
-QString KisTemporaryResourceStorageLockAdapter::storageLocation() const
+PkString KisTemporaryResourceStorageLockAdapter::storageLocation() const
 {
     return m_temporaryStorageLocation;
 }

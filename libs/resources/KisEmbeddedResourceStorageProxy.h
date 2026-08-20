@@ -8,7 +8,7 @@
 #define KISEMBEDDEDRESOURCESTORAGEPROXY_H
 
 #include "kritaresources_export.h"
-#include "KisResourceModel.h"
+#include <KisResourceModel.h>
 #include "KisLocalStrokeResources.h"
 
 /**
@@ -17,7 +17,7 @@
  * the embedded resources into a local storage
  */
 struct KRITARESOURCES_EXPORT KisEmbeddedResourceStorageProxy {
-    KisEmbeddedResourceStorageProxy(const QString &storageLocation);
+    KisEmbeddedResourceStorageProxy(const PkString &storageLocation);
 
     void addResource(KoResourceSP resource);;
 
@@ -44,8 +44,8 @@ struct KRITARESOURCES_EXPORT KisEmbeddedResourceStorageProxy {
     KisResourcesInterfaceSP detachedResourcesInterface();
 
 private:
-    QString m_storageLocation;
-    QSharedPointer<KisLocalStrokeResources> m_fallbackResourcesInterface;
+    PkString m_storageLocation;
+    PkSharedPointer<KisLocalStrokeResources> m_fallbackResourcesInterface;
     KisResourcesInterfaceSP m_rootResourcesInterface;
 
     KisResourceModel m_stylesModel;

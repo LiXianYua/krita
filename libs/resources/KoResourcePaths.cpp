@@ -6,6 +6,7 @@
 #include "KoResourcePaths.h"
 
 #include "ResourceDebug.h"
+#include "PkResourceStorageDesktop.h"
 
 #include <PkConfigGroup.h>
 #include <PkMap.h>
@@ -191,34 +192,19 @@ PkString platformDir(PkResourceStorage::PlatformDir kind)
             haikuDirectory(B_USER_DIRECTORY, home), PkString("Pictures"));
     }
 #else
+    PkResourceStorageDesktop desktopStorage;
     switch (kind) {
     case PkResourceStorage::PlatformDir::AppData:
-    case PkResourceStorage::PlatformDir::AppLocalData: {
-        const PkString base = environment("XDG_DATA_HOME");
-        return PkResourceStorage::joinPath(base.isEmpty()
-                                               ? PkResourceStorage::joinPath(home, PkString(".local/share"))
-                                               : base,
-                                           PkString("krita"));
-    }
-    case PkResourceStorage::PlatformDir::GenericData: {
-        const PkString base = environment("XDG_DATA_HOME");
-        return base.isEmpty() ? PkResourceStorage::joinPath(home, PkString(".local/share")) : base;
-    }
-    case PkResourceStorage::PlatformDir::GenericConfig: {
-        const PkString base = environment("XDG_CONFIG_HOME");
-        return base.isEmpty() ? PkResourceStorage::joinPath(home, PkString(".config")) : base;
-    }
-    case PkResourceStorage::PlatformDir::Cache: {
-        const PkString base = environment("XDG_CACHE_HOME");
-        return PkResourceStorage::joinPath(base.isEmpty()
-                                               ? PkResourceStorage::joinPath(home, PkString(".cache"))
-                                               : base,
-                                           PkString("krita"));
-    }
+    case PkResourceStorage::PlatformDir::AppLocalData:
+        return PkResourceStorage::joinPath(desktopStorage.platformDir(kind), PkString("krita"));
+    case PkResourceStorage::PlatformDir::GenericData:
+    case PkResourceStorage::PlatformDir::GenericConfig:
+        return desktopStorage.platformDir(kind);
+    case PkResourceStorage::PlatformDir::Cache:
+        return PkResourceStorage::joinPath(desktopStorage.platformDir(kind), PkString("krita"));
     case PkResourceStorage::PlatformDir::Home:
-        return home;
     case PkResourceStorage::PlatformDir::Pictures:
-        return PkResourceStorage::joinPath(home, PkString("Pictures"));
+        return desktopStorage.platformDir(kind);
     }
 #endif
     return home;

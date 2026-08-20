@@ -8,8 +8,10 @@
 
 #include "kis_assert.h"
 #include "KisGlobalResourcesInterface.h"
+#include "KisResourceTypes.h"
+#include "ResourceDebug.h"
 
-KisEmbeddedResourceStorageProxy::KisEmbeddedResourceStorageProxy(const QString &storageLocation)
+KisEmbeddedResourceStorageProxy::KisEmbeddedResourceStorageProxy(const PkString &storageLocation)
     : m_storageLocation(storageLocation),
       m_stylesModel(ResourceType::LayerStyles),
       m_patternsModel(ResourceType::Patterns),
@@ -39,7 +41,7 @@ void KisEmbeddedResourceStorageProxy::addResource(KoResourceSP resource)
         } else if (resource->resourceType().first == ResourceType::Gradients) {
             m_gradientsModel.addResource(resource, m_storageLocation);
         } else {
-            qWarning() << "WARNING: fallback resource proxy is not implemented for type" << resource->resourceType().first;
+            qCWarning(RESOURCE_LOG) << "WARNING: fallback resource proxy is not implemented for type" << resource->resourceType().first;
             KIS_SAFE_ASSERT_RECOVER_NOOP(0 && "fallback resource proxy is not implemented");
         }
     }

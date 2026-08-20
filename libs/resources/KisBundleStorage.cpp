@@ -6,28 +6,27 @@
 
 #include "KisBundleStorage.h"
 
-#include <QDebug>
-#include <QFileInfo>
-#include <QDir>
-#include <QDirIterator>
-
 #include <KisTag.h>
 #include "KisResourceStorage.h"
 #include <KoMD5Generator.h>
-#include "KoResourceBundle.h"
-#include "KoResourceBundleManifest.h"
+#include <KoResourceBundle.h>
+#include <KoResourceBundleManifest.h>
 #include <KisGlobalResourcesInterface.h>
 
 #include <KisResourceLoaderRegistry.h>
-#include <kis_pointer_utils.h>
-#include <kis_debug.h>
+#include <PkFileStream.h>
+#include "PkResourceStorageDesktop.h"
+#include "ResourceDebug.h"
+#include <kis_assert.h>
+
+#include <filesystem>
 
 class KisBundleStorage::Private {
 public:
     Private(KisBundleStorage *_q) : q(_q) {}
 
     KisBundleStorage *q;
-    QScopedPointer<KoResourceBundle> bundle;
+    PkScopedPointer<KoResourceBundle> bundle;
 };
 
 
@@ -35,15 +34,15 @@ class BundleTagIterator : public KisResourceStorage::TagIterator
 {
 public:
 
-    BundleTagIterator(KoResourceBundle *bundle, const QString &resourceType)
+    BundleTagIterator(KoResourceBundle *bundle, const PkString &resourceType)
         : m_bundle(bundle)
         , m_resourceType(resourceType)
     {
-        QList<KoResourceBundleManifest::ResourceReference> resources = m_bundle->manifest().files(resourceType);
-        Q_FOREACH(const KoResourceBundleManifest::ResourceReference &resourceReference, resources) {
-            Q_FOREACH(const QString &tagname, resourceReference.tagList) {
+        PkList<KoResourceBundleManifest::ResourceReference> resources = m_bundle->manifest().files(resourceType);
+        for (const KoResourceBundleManifest::ResourceReference &resourceReference : resources) {
+            for (const PkString &tagname : resourceReference.tagList) {
                 if (!m_tags.contains(tagname)){
-                    KisTagSP tag = QSharedPointer<KisTag>(new KisTag());
+                    KisTagSP tag = PkSharedPointer<KisTag>(new KisTag());
                     tag->setName(tagname);
                     tag->setComment(tagname);
                     tag->setUrl(tagname);
@@ -53,39 +52,40 @@ public:
                 }
 
                 m_tags[tagname]->setDefaultResources(m_tags[tagname]->defaultResources()
-                                                     << QFileInfo(resourceReference.resourcePath).fileName());
+                                                     << PkString(std::filesystem::path(resourceReference.resourcePath.PkToUtf8()).filename().string().c_str()));
             }
         }
-        m_tagIterator.reset(new QListIterator<KisTagSP>(m_tags.values()));
+        m_tagValues = m_tags.values();
     }
 
     bool hasNext() const override
     {
-        return m_tagIterator->hasNext();
+        return m_tagIndex + 1 < m_tagValues.size();
     }
 
     void next() override
     {
-        m_tag = m_tagIterator->next();
+        m_tag = m_tagValues.at(++m_tagIndex);
     }
     KisTagSP tag() const override { return m_tag; }
 
 private:
-    QHash<QString, KisTagSP> m_tags;
+    PkMap<PkString, KisTagSP> m_tags;
     KoResourceBundle *m_bundle {0};
-    QString m_resourceType;
-    QScopedPointer<QListIterator<KisTagSP> > m_tagIterator;
+    PkString m_resourceType;
+    PkList<KisTagSP> m_tagValues;
+    int m_tagIndex = -1;
     KisTagSP m_tag;
 };
 
 
-KisBundleStorage::KisBundleStorage(const QString &location)
+KisBundleStorage::KisBundleStorage(const PkString &location)
     : KisStoragePlugin(location)
     , d(new Private(this))
 {
     d->bundle.reset(new KoResourceBundle(location));
     if (!d->bundle->load()) {
-        qWarning() << "Could not load bundle" << location;
+        qCWarning(RESOURCE_LOG) << "Could not load bundle" << location;
     }
 }
 
@@ -93,15 +93,20 @@ KisBundleStorage::~KisBundleStorage()
 {
 }
 
-KisResourceStorage::ResourceItem KisBundleStorage::resourceItem(const QString &url)
+KisResourceStorage::ResourceItem KisBundleStorage::resourceItem(const PkString &url)
 {
     KisResourceStorage::ResourceItem item;
     item.url = url;
-    QStringList parts = url.split('/', Qt::SkipEmptyParts);
-    Q_ASSERT(parts.size() == 2);
+    const std::vector<PkString> parts = url.split(u'/');
+    KIS_ASSERT(parts.size() == 2);
     item.folder = parts[0];
     item.resourceType = parts[0];
-    item.lastModified = QFileInfo(d->bundle->filename()).lastModified();
+    PkResourceStorageDesktop storage;
+    const std::filesystem::path path(d->bundle->filename().PkToUtf8());
+    auto entries = storage.listEntries(PkString(path.parent_path().string().c_str()),
+                                       {PkString(path.filename().string().c_str())},
+                                       PkResourceStorage::EntryKind::Files, false);
+    if (entries->hasNext()) { entries->next(); item.lastModified = PkDateTime::fromMSecsSinceEpoch(entries->lastModified()); }
     return item;
 }
 
@@ -109,35 +114,27 @@ bool KisBundleStorage::loadVersionedResource(KoResourceSP resource)
 {
     bool foundVersionedFile = false;
 
-    const QString resourceType = resource->resourceType().first;
-    const QString resourceUrl = resourceType + "/" + resource->filename();
+    const PkString resourceType = resource->resourceType().first;
 
-    const QString bundleSaveLocation = location() + "_modified" + "/" + resourceType;
+    const PkString bundleSaveLocation = location() + "_modified" + "/" + resourceType;
 
-    if (QDir(bundleSaveLocation).exists()) {
-        const QString fn = bundleSaveLocation  + "/" + resource->filename();
-        const QFileInfo fi(fn);
-        if (fi.exists()) {
+    PkResourceStorageDesktop storage;
+    if (storage.exists(bundleSaveLocation)) {
+        const PkString fn = bundleSaveLocation  + "/" + resource->filename();
+        if (storage.exists(fn)) {
             foundVersionedFile = true;
 
-            QFile f(fn);
-            if (!f.open(QFile::ReadOnly)) {
-                qWarning() << "Could not open resource file for reading" << fn;
+            PkFileStream f(fn);
+            if (!f.open(PkStream::ReadOnly)) {
+                qCWarning(RESOURCE_LOG) << "Could not open resource file for reading" << fn;
                 return false;
             }
             if (!resource->loadFromDevice(&f, KisGlobalResourcesInterface::instance())) {
-                qWarning() << "Could not reload resource file" << fn;
+                qCWarning(RESOURCE_LOG) << "Could not reload resource file" << fn;
                 return false;
             }
 
-            sanitizeResourceFileNameCase(resource, fi.dir());
-
-            // Check for the thumbnail
-            if ((resource->image().isNull() || resource->thumbnail().isNull()) && !resource->thumbnailPath().isNull()) {
-                QImage img(bundleSaveLocation  + "/" +  '/' + resource->thumbnailPath());
-                resource->setImage(img);
-                resource->updateThumbnail();
-            }
+            sanitizeResourceFileNameCase(resource, bundleSaveLocation);
             f.close();
         }
     }
@@ -149,13 +146,14 @@ bool KisBundleStorage::loadVersionedResource(KoResourceSP resource)
     return true;
 }
 
-QString KisBundleStorage::resourceMd5(const QString &url)
+PkString KisBundleStorage::resourceMd5(const PkString &url)
 {
-    QString result;
+    PkString result;
 
-    QFile modifiedFile(location() + "_modified" + "/" + url);
-    if (modifiedFile.exists() && modifiedFile.open(QIODevice::ReadOnly)) {
-        result = KoMD5Generator::generateHash(modifiedFile.readAll());
+    const PkString modifiedPath = location() + "_modified" + "/" + url;
+    PkFileStream modifiedFile(modifiedPath);
+    if (PkResourceStorageDesktop().exists(modifiedPath) && modifiedFile.open(PkStream::ReadOnly)) {
+        result = KoMD5Generator::generateHash(&modifiedFile);
     } else {
         result = d->bundle->resourceMd5(url);
     }
@@ -163,11 +161,11 @@ QString KisBundleStorage::resourceMd5(const QString &url)
     return result;
 }
 
-QSharedPointer<KisResourceStorage::ResourceIterator> KisBundleStorage::resources(const QString &resourceType)
+PkSharedPointer<KisResourceStorage::ResourceIterator> KisBundleStorage::resources(const PkString &resourceType)
 {
-    QVector<VersionedResourceEntry> entries;
+    PkVector<VersionedResourceEntry> entries;
 
-    QList<KoResourceBundleManifest::ResourceReference> references =
+    PkList<KoResourceBundleManifest::ResourceReference> references =
         d->bundle->manifest().files(resourceType);
 
     for (auto it = references.begin(); it != references.end(); ++it) {
@@ -175,32 +173,33 @@ QSharedPointer<KisResourceStorage::ResourceIterator> KisBundleStorage::resources
         // it->resourcePath() contains paths like "brushes/ink.png" or "brushes/subfolder/splash.png".
         // we need to cut off the first part and get "ink.png" in the first case,
         // but "subfolder/splash.png" in the second case in order for subfolders to work
-        // so it cannot just use QFileInfo(verIt->url()).fileName() here.
-        QString path = QDir::fromNativeSeparators(it->resourcePath); // make sure it uses Unix separators
-        int folderEndIdx = path.indexOf("/");
-        QString properFilenameWithSubfolders = path.right(path.length() - folderEndIdx - 1);
+        // so it cannot just use a basename-only helper here.
+        std::string path = it->resourcePath.PkToUtf8();
+        std::replace(path.begin(), path.end(), '\\', '/');
+        const std::size_t folderEndIdx = path.find('/');
+        const PkString properFilenameWithSubfolders(
+            (folderEndIdx == std::string::npos ? path : path.substr(folderEndIdx + 1)).c_str());
 
         entry.filename = properFilenameWithSubfolders;
-        entry.lastModified = QFileInfo(location()).lastModified();
+        entry.lastModified = timestamp();
         entry.tagList = it->tagList;
         entry.resourceType = resourceType;
         entries.append(entry);
     }
 
-    const QString bundleSaveLocation = location() + "_modified" + "/" + resourceType;
+    const PkString bundleSaveLocation = location() + "_modified" + "/" + resourceType;
 
-    QDirIterator it(bundleSaveLocation,
-                    KisResourceLoaderRegistry::instance()->filters(resourceType),
-                    QDir::Files | QDir::Readable,
-                    QDirIterator::Subdirectories);;
+    std::vector<PkString> filters;
+    for (const PkString &filter : KisResourceLoaderRegistry::instance()->filters(resourceType)) filters.push_back(filter);
+    PkResourceStorageDesktop storage;
+    auto modifiedEntries = storage.listEntries(bundleSaveLocation, filters,
+                                                PkResourceStorage::EntryKind::Files, true);
 
-    while (it.hasNext()) {
-        it.next();
-        QFileInfo info(it.fileInfo());
-
+    while (modifiedEntries->hasNext()) {
+        modifiedEntries->next();
         VersionedResourceEntry entry;
-        entry.filename = info.fileName();
-        entry.lastModified = info.lastModified();
+        entry.filename = PkString(std::filesystem::path(modifiedEntries->url().PkToUtf8()).filename().string().c_str());
+        entry.lastModified = PkDateTime::fromMSecsSinceEpoch(modifiedEntries->lastModified());
         entry.tagList = {}; // TODO
         entry.resourceType = resourceType;
         entries.append(entry);
@@ -208,23 +207,23 @@ QSharedPointer<KisResourceStorage::ResourceIterator> KisBundleStorage::resources
 
     KisStorageVersioningHelper::detectFileVersions(entries);
 
-    return toQShared(new KisVersionedStorageIterator(entries, this));
+    return PkSharedPointer<KisResourceStorage::ResourceIterator>(new KisVersionedStorageIterator(entries, this));
 }
 
-QSharedPointer<KisResourceStorage::TagIterator> KisBundleStorage::tags(const QString &resourceType)
+PkSharedPointer<KisResourceStorage::TagIterator> KisBundleStorage::tags(const PkString &resourceType)
 {
-    return QSharedPointer<KisResourceStorage::TagIterator>(new BundleTagIterator(d->bundle.data(), resourceType));
+    return PkSharedPointer<KisResourceStorage::TagIterator>(new BundleTagIterator(d->bundle.data(), resourceType));
 }
 
-QImage KisBundleStorage::thumbnail() const
+PkImage KisBundleStorage::thumbnail() const
 {
     return d->bundle->image();
 }
 
-QStringList KisBundleStorage::metaDataKeys() const
+PkStringList KisBundleStorage::metaDataKeys() const
 {
 
-    return QStringList() << KisResourceStorage::s_meta_generator
+    return PkStringList() << KisResourceStorage::s_meta_generator
                          << KisResourceStorage::s_meta_author
                          << KisResourceStorage::s_meta_title
                          << KisResourceStorage::s_meta_description
@@ -239,46 +238,48 @@ QStringList KisBundleStorage::metaDataKeys() const
 
 }
 
-QVariant KisBundleStorage::metaData(const QString &key) const
+PkVariant KisBundleStorage::metaData(const PkString &key) const
 {
     return d->bundle->metaData(key);
 }
 
-bool KisBundleStorage::saveAsNewVersion(const QString &resourceType, KoResourceSP resource)
+bool KisBundleStorage::saveAsNewVersion(const PkString &resourceType, KoResourceSP resource)
 {
-    QString bundleSaveLocation = location() + "_modified" + "/" + resourceType;
+    PkString bundleSaveLocation = location() + "_modified" + "/" + resourceType;
 
-    if (!QDir(bundleSaveLocation).exists()) {
-        QDir().mkpath(bundleSaveLocation);
+    if (!PkResourceStorageDesktop().exists(bundleSaveLocation)) {
+        PkResourceStorageDesktop().mkpath(bundleSaveLocation);
     }
 
     return KisStorageVersioningHelper::addVersionedResource(bundleSaveLocation, resource, 1);
 }
 
-bool KisBundleStorage::exportResource(const QString &url, QIODevice *device)
+bool KisBundleStorage::exportResource(const PkString &url, PkStream *device)
 {
-    QStringList parts = url.split('/', Qt::SkipEmptyParts);
-    Q_ASSERT(parts.size() == 2);
+    const std::vector<PkString> parts = url.split(u'/');
+    KIS_ASSERT(parts.size() == 2);
 
-    const QString resourceType = parts[0];
-    const QString resourceFileName = parts[1];
+    const PkString resourceType = parts[0];
+    const PkString resourceFileName = parts[1];
 
     bool foundVersionedFile = false;
 
-    const QString bundleSaveLocation = location() + "_modified" + "/" + resourceType;
+    const PkString bundleSaveLocation = location() + "_modified" + "/" + resourceType;
 
-    if (QDir(bundleSaveLocation).exists()) {
-        const QString fn = bundleSaveLocation  + "/" + resourceFileName;
-        if (QFileInfo(fn).exists()) {
+    PkResourceStorageDesktop storage;
+    if (storage.exists(bundleSaveLocation)) {
+        const PkString fn = bundleSaveLocation  + "/" + resourceFileName;
+        if (storage.exists(fn)) {
             foundVersionedFile = true;
 
-            QFile f(fn);
-            if (!f.open(QFile::ReadOnly)) {
-                qWarning() << "Could not open resource file for reading" << fn;
+            PkFileStream f(fn);
+            if (!f.open(PkStream::ReadOnly)) {
+                qCWarning(RESOURCE_LOG) << "Could not open resource file for reading" << fn;
                 return false;
             }
 
-            device->write(f.readAll());
+            char buffer[8192];
+            for (PkStream::pk_int64 n; (n = f.read(buffer, sizeof(buffer))) > 0;) device->write(buffer, n);
         }
     }
 

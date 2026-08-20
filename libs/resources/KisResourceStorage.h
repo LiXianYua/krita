@@ -7,39 +7,44 @@
 #ifndef KISRESOURCESTORAGE_H
 #define KISRESOURCESTORAGE_H
 
-#include <QSharedPointer>
-#include <QScopedPointer>
-#include <QString>
-#include <QDateTime>
-#include <QMap>
+#include <PkSharedPointer.h>
+#include <PkScopedPointer.h>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkDateTime.h>
+#include <PkMap.h>
+#include <PkList.h>
+#include <PkVector.h>
+#include <PkVariant.h>
+#include <PkImage.h>
+#include <PkDebug.h>
 
 #include <KoResource.h>
 #include <KisTag.h>
 
-#include <klocalizedstring.h>
-
 #include <kritaresources_export.h>
 
 class KisStoragePlugin;
+class PkStream;
 
 class KisStoragePluginFactoryBase
 {
 public:
     virtual ~KisStoragePluginFactoryBase(){}
-    virtual KisStoragePlugin *create(const QString &/*location*/) { return 0; }
+    virtual KisStoragePlugin *create(const PkString &/*location*/) { return nullptr; }
 };
 
 template<typename T>
 class KisStoragePluginFactory : public KisStoragePluginFactoryBase
 {
 public:
-    KisStoragePlugin *create(const QString &location) override {
+    KisStoragePlugin *create(const PkString &location) override {
         return new T(location);
     }
 };
 
 class KisResourceStorage;
-typedef QSharedPointer<KisResourceStorage> KisResourceStorageSP;
+typedef PkSharedPointer<KisResourceStorage> KisResourceStorageSP;
 
 
 /**
@@ -56,10 +61,10 @@ public:
     struct ResourceItem {
 
         virtual ~ResourceItem() {}
-        QString url;
-        QString folder;
-        QString resourceType;
-        QDateTime lastModified;
+        PkString url;
+        PkString folder;
+        PkString resourceType;
+        PkDateTime lastModified;
     };
 
     class KRITARESOURCES_EXPORT TagIterator
@@ -84,11 +89,11 @@ public:
         /// The iterator is only valid if next() has been called at least once.
         virtual void next() = 0;
 
-        virtual QString url() const = 0;
-        virtual QString type() const = 0;
-        virtual QDateTime lastModified() const = 0;
+        virtual PkString url() const = 0;
+        virtual PkString type() const = 0;
+        virtual PkDateTime lastModified() const = 0;
         virtual int guessedVersion() const { return 0; }
-        virtual QSharedPointer<KisResourceStorage::ResourceIterator> versions() const;
+        virtual PkSharedPointer<KisResourceStorage::ResourceIterator> versions() const;
 
         KoResourceSP resource() const;
 
@@ -98,7 +103,7 @@ public:
 
     private:
         mutable KoResourceSP m_cachedResource;
-        mutable QString m_cachedResourceUrl;
+        mutable PkString m_cachedResourceUrl;
     };
 
     enum class StorageType : int {
@@ -111,29 +116,29 @@ public:
         FontStorage = 7
     };
 
-    static QString storageTypeToString(StorageType storageType) {
+    static PkString storageTypeToString(StorageType storageType) {
         switch (storageType) {
         case StorageType::Unknown:
-            return i18n("Unknown");
+            return PkString("Unknown");
         case StorageType::Folder:
-            return i18n("Folder");
+            return PkString("Folder");
         case StorageType::Bundle:
-            return i18n("Bundle");
+            return PkString("Bundle");
         case StorageType::AdobeBrushLibrary:
-            return i18n("Adobe Brush Library");
+            return PkString("Adobe Brush Library");
         case StorageType::AdobeStyleLibrary:
-            return i18n("Adobe Style Library");
+            return PkString("Adobe Style Library");
         case StorageType::FontStorage:
-            return i18n("Font Storage");
+            return PkString("Font Storage");
         case StorageType::Memory:
-            return i18n("Memory");
+            return PkString("Memory");
         default:
-            return i18n("Invalid");
+            return PkString("Invalid");
         }
     }
 
 
-    static QString storageTypeToUntranslatedString(StorageType storageType) {
+    static PkString storageTypeToUntranslatedString(StorageType storageType) {
         switch (storageType) {
         case StorageType::Unknown:
             return ("Unknown");
@@ -155,8 +160,8 @@ public:
     }
 
 
-    KisResourceStorage(const QString &location, KisResourceStorage::StorageType storageType);
-    KisResourceStorage(const QString &location);
+    KisResourceStorage(const PkString &location, KisResourceStorage::StorageType storageType);
+    KisResourceStorage(const PkString &location);
     ~KisResourceStorage();
     KisResourceStorage(const KisResourceStorage &rhs);
     KisResourceStorage &operator=(const KisResourceStorage &rhs);
@@ -165,10 +170,10 @@ public:
     /// The filename of the storage if it's a bundle or Adobe Library. This can
     /// also be empty (for the folder storage) or "memory" for the storage for
     /// temporary resources, a UUID for storages associated with documents.
-    QString name() const;
+    PkString name() const;
 
     /// The absolute location of the storage
-    QString location() const;
+    PkString location() const;
 
     /// true if the storage exists and can be used
     bool valid() const;
@@ -177,41 +182,41 @@ public:
     StorageType type() const;
 
     /// The icond for the storage
-    QImage thumbnail() const;
+    PkImage thumbnail() const;
 
     /// The time and date when the storage was last modified, or created
     /// for memory storages.
-    QDateTime timestamp() const;
+    PkDateTime timestamp() const;
 
     /// The time and date when the resource was last modified
     /// For filestorage
-    QDateTime timeStampForResource(const QString &resourceType, const QString &filename) const;
+    PkDateTime timeStampForResource(const PkString &resourceType, const PkString &filename) const;
 
     /// And entry in the storage; this is not the loaded resource
-    ResourceItem resourceItem(const QString &url);
+    ResourceItem resourceItem(const PkString &url);
 
     /// The loaded resource for an entry in the storage
-    KoResourceSP resource(const QString &url);
+    KoResourceSP resource(const PkString &url);
 
     /// The MD5 checksum of the resource in the storage
-    QString resourceMd5(const QString &url);
+    PkString resourceMd5(const PkString &url);
 
     /// If the resource is present on the filesystem as a distinct fine,
     /// returns the full file path of it, otherwise returns an empty string.
     ///
     /// Never manipulate the file in any way directly! It will destroy the
     /// resources database. Use this file path only for informational purposes.
-    QString resourceFilePath(const QString &url);
+    PkString resourceFilePath(const PkString &url);
 
     /// An iterator over all the resources in the storage
-    QSharedPointer<ResourceIterator> resources(const QString &resourceType) const;
+    PkSharedPointer<ResourceIterator> resources(const PkString &resourceType) const;
 
     /// An iterator over all the tags in the resource
-    QSharedPointer<TagIterator> tags(const QString &resourceType) const;
+    PkSharedPointer<TagIterator> tags(const PkString &resourceType) const;
 
     /// Adds a tag to the storage, however, it does not store the links between
     /// tags and resources.
-    bool addTag(const QString &resourceType, KisTagSP tag);
+    bool addTag(const PkString &resourceType, KisTagSP tag);
 
     /// Creates a new version of the given resource.
     bool saveAsNewVersion(KoResourceSP resource);
@@ -228,7 +233,7 @@ public:
      * @param url is the URL of the resource inside the storage, which is usually
      *            resource_type/resource_filename.ext
      */
-    bool importResource(const QString &url, QIODevice *device);
+    bool importResource(const PkString &url, PkStream *device);
 
     /**
      * Copies the given resource from the storage into \p device
@@ -236,7 +241,7 @@ public:
      * @param url is the URL of the resource inside the storage, which is usually
      *            resource_type/resource_filename.ext
      */
-    bool exportResource(const QString &url, QIODevice *device);
+    bool exportResource(const PkString &url, PkStream *device);
 
     /// Returns true if the storage supports versioning of the resources.
     /// It enables loadVersionedResource() call.
@@ -245,28 +250,28 @@ public:
     /// Reloads the given resource from the persistent storage
     bool loadVersionedResource(KoResourceSP resource);
 
-    static const QString s_xmlns_meta;
-    static const QString s_xmlns_dc;
+    static const PkString s_xmlns_meta;
+    static const PkString s_xmlns_dc;
 
-    static const QString s_meta_generator;
-    static const QString s_meta_author;
-    static const QString s_meta_title;
-    static const QString s_meta_description;
-    static const QString s_meta_initial_creator;
-    static const QString s_meta_creator;
-    static const QString s_meta_creation_date;
-    static const QString s_meta_dc_date;
-    static const QString s_meta_user_defined;
-    static const QString s_meta_name;
-    static const QString s_meta_value;
-    static const QString s_meta_version;
-    static const QString s_meta_license;
-    static const QString s_meta_email;
-    static const QString s_meta_website;
+    static const PkString s_meta_generator;
+    static const PkString s_meta_author;
+    static const PkString s_meta_title;
+    static const PkString s_meta_description;
+    static const PkString s_meta_initial_creator;
+    static const PkString s_meta_creator;
+    static const PkString s_meta_creation_date;
+    static const PkString s_meta_dc_date;
+    static const PkString s_meta_user_defined;
+    static const PkString s_meta_name;
+    static const PkString s_meta_value;
+    static const PkString s_meta_version;
+    static const PkString s_meta_license;
+    static const PkString s_meta_email;
+    static const PkString s_meta_website;
 
-    void setMetaData(const QString &key, const QVariant &value);
-    QStringList metaDataKeys() const;
-    QVariant metaData(const QString &key) const;
+    void setMetaData(const PkString &key, const PkVariant &value);
+    PkStringList metaDataKeys() const;
+    PkVariant metaData(const PkString &key) const;
 
 private:
 
@@ -282,12 +287,12 @@ private:
     int storageId();
 
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 
 
-inline QDebug operator<<(QDebug dbg, const KisResourceStorageSP storage)
+inline PkDebug operator<<(PkDebug dbg, const KisResourceStorageSP storage)
 {
     if (storage.isNull()) {
         dbg.nospace() << "[RESOURCESTORAGE] NULL";
@@ -309,22 +314,22 @@ public:
     virtual ~KisStoragePluginRegistry();
 
     void addStoragePluginFactory(KisResourceStorage::StorageType storageType, KisStoragePluginFactoryBase *factory);
-    QList<KisResourceStorage::StorageType> storageTypes() const;
+    PkList<KisResourceStorage::StorageType> storageTypes() const;
     static KisStoragePluginRegistry *instance();
 private:
     friend class KisResourceStorage;
-    QMap<KisResourceStorage::StorageType, KisStoragePluginFactoryBase*> m_storageFactoryMap;
+    PkMap<KisResourceStorage::StorageType, KisStoragePluginFactoryBase*> m_storageFactoryMap;
 
 };
 
 struct VersionedResourceEntry
 {
-    QString resourceType;
-    QString filename;
-    QList<QString> tagList;
-    QDateTime lastModified;
+    PkString resourceType;
+    PkString filename;
+    PkList<PkString> tagList;
+    PkDateTime lastModified;
     int guessedVersion = -1;
-    QString guessedKey;
+    PkString guessedKey;
 
     struct KeyVersionLess {
         bool operator()(const VersionedResourceEntry &lhs, const VersionedResourceEntry &rhs) const {
@@ -343,12 +348,12 @@ struct VersionedResourceEntry
 class KRITARESOURCES_EXPORT KisStorageVersioningHelper {
 public:
 
-    static bool addVersionedResource(const QString &saveLocation, KoResourceSP resource, int minVersion);
-    static QString chooseUniqueName(KoResourceSP resource,
+    static bool addVersionedResource(const PkString &saveLocation, KoResourceSP resource, int minVersion);
+    static PkString chooseUniqueName(KoResourceSP resource,
                                     int minVersion,
-                                    std::function<bool(QString)> checkExists);
+                                    std::function<bool(PkString)> checkExists);
 
-    static void detectFileVersions(QVector<VersionedResourceEntry> &allFiles);
+    static void detectFileVersions(PkVector<VersionedResourceEntry> &allFiles);
 
 
 };
@@ -356,32 +361,32 @@ public:
 class KisVersionedStorageIterator : public KisResourceStorage::ResourceIterator
 {
 public:
-    KisVersionedStorageIterator(const QVector<VersionedResourceEntry> &entries,
+    KisVersionedStorageIterator(const PkVector<VersionedResourceEntry> &entries,
                                 KisStoragePlugin *_q);
 
     bool hasNext() const override;
     void next() override;
-    QString url() const override;
-    QString type() const override;
-    QDateTime lastModified() const override;
+    PkString url() const override;
+    PkString type() const override;
+    PkDateTime lastModified() const override;
     KoResourceSP resourceImpl() const override;
 
     int guessedVersion() const override;
 
-    QSharedPointer<KisResourceStorage::ResourceIterator> versions() const override;
+    PkSharedPointer<KisResourceStorage::ResourceIterator> versions() const override;
 
 protected:
-    KisVersionedStorageIterator(const QVector<VersionedResourceEntry> &entries,
-                                QVector<VersionedResourceEntry>::const_iterator begin,
-                                QVector<VersionedResourceEntry>::const_iterator end,
+    KisVersionedStorageIterator(const PkVector<VersionedResourceEntry> &entries,
+                                PkVector<VersionedResourceEntry>::const_iterator begin,
+                                PkVector<VersionedResourceEntry>::const_iterator end,
                                 KisStoragePlugin *_q);
 protected:
     KisStoragePlugin *q = 0;
-    const QVector<VersionedResourceEntry> m_entries;
-    QVector<VersionedResourceEntry>::const_iterator m_it;
-    QVector<VersionedResourceEntry>::const_iterator m_chunkStart;
-    QVector<VersionedResourceEntry>::const_iterator m_begin;
-    QVector<VersionedResourceEntry>::const_iterator m_end;
+    const PkVector<VersionedResourceEntry> m_entries;
+    PkVector<VersionedResourceEntry>::const_iterator m_it;
+    PkVector<VersionedResourceEntry>::const_iterator m_chunkStart;
+    PkVector<VersionedResourceEntry>::const_iterator m_begin;
+    PkVector<VersionedResourceEntry>::const_iterator m_end;
     bool m_isStarted = false;
 };
 
