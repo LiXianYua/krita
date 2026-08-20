@@ -203,4 +203,15 @@ private:
     std::chrono::system_clock::time_point toTimePoint() const;
 };
 
+// Qt::DateFormat 命名空间别名（主树消费方 `Qt::RFC2822Date` 等解析依赖）。
+// 照 Qt 组织：qdatetime.h 里 QDate/QTime/QDateTime 全在，QVariant 只前向声明引用。
+// 这些是 `PkDateTime::DateFormat`（enum class）的 constexpr 别名值——`toString(Qt::ISODate)`
+// 这类调用点把 `Qt::` 限定名直接映射到枚举值，一字不改。
+// 探针取值（R-27）：TextDate=0 ISODate=1 RFC2822Date=8 ISODateWithMs=9。
+namespace Qt {
+constexpr PkDateTime::DateFormat ISODate = PkDateTime::DateFormat::ISODate;
+constexpr PkDateTime::DateFormat RFC2822Date = PkDateTime::DateFormat::RFC2822Date;
+constexpr PkDateTime::DateFormat ISODateWithMs = PkDateTime::DateFormat::ISODateWithMs;
+}
+
 #endif // PK_TIME_PKDATETIME_H

@@ -15,6 +15,7 @@
 #include "PkRect.h"
 #include "PkLine.h"
 #include "PkAuxTypes.h"
+#include "../time/PkDateTime.h"   // pk/time：PkDate/PkTime/PkDateTime + Qt::DateFormat
 
 // PkString 的 std::hash 特化 —— PkVariantHash (= std::unordered_map<PkString, PkVariant>) 需要
 // PkString 是 COW 类，FNV-1a 逐码元哈希。

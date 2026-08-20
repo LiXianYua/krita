@@ -3,34 +3,6 @@
 
 // 兼容垫片：让真实调用点的 `#include <QDateTime>` 在一个字不改的前提下解析到
 // PkDateTime。文件名刻意没有扩展名 —— 调用点写的就是 <QDateTime>。
-//
-// 用宏而不是 `using QDateTime = PkDateTime;`：与 pk/string/compat/QString、
-// pk/geometry/compat/QRect 等先例同因——Krita 里可能存在
-// `class QDateTime;` 前置声明，类型别名遇到它会报
-// "QDateTime redeclared as different kind of entity"；宏则把那一行原样改写成
-// `class PkDateTime;`，前置声明照样成立。
+// `Qt::ISODate`/`Qt::RFC2822Date`/`Qt::ISODateWithMs` 三个 constexpr 别名值已由
+// PkDateTime.h 提供（见该文件底部 namespace Qt 块），这里不再重复定义。
 #define QDateTime PkDateTime
-
-// Qt::DateFormat 命名空间限定名 → 最小枚举别名，做法照抄
-// pk/signal/compat/QObject 「Qt::ConnectionType 命名空间 → 最小枚举别名」一节
-// （不套 pk 自己的 namespace，直接复刻 Qt:: 这个限定名本身，因为调用点写的就
-// 是 `Qt::ISODate` 这个全限定名）。
-//
-// 真实调用点全部用量表（grep 排除 tests/benchmarks 现场数，2026-08-18）：
-//   Qt::ISODate        libs/impex/KoDocumentInfo.cpp:34,232,317、
-//                       plugins/metadata/exif/kis_exif_io.cpp:103、
-//                       plugins/metadata/common/kis_exiv2_common.h:106
-//   Qt::RFC2822Date     libs/global/KisUsageLogger.cpp:229,264
-//   Qt::ISODateWithMs   libs/flake/text/KoFFWWSConverter.cpp:195
-// 三个值与 PkDateTime::DateFormat 的三个枚举项逐一对应（该枚举本身就是照着
-// 这张用量表定的，见 PkDateTime.h 顶部 Task 3 小节注释）——`Qt::TextDate` 没有
-// 真实调用点用 `.toString(Qt::TextDate)`/`.fromString(s, Qt::TextDate)` 这种
-// 显式传参形态（默认格式走的是无参 `toString()`/`fromString(s)` 重载），所以
-// 不补这个值，理由同 PkDateTime::fromString(s, DateFormat) 只支持 ISODate 一支
-// 的 YAGNI 依据。
-namespace Qt {
-using DateFormat = PkDateTime::DateFormat;
-constexpr PkDateTime::DateFormat ISODate = PkDateTime::DateFormat::ISODate;
-constexpr PkDateTime::DateFormat RFC2822Date = PkDateTime::DateFormat::RFC2822Date;
-constexpr PkDateTime::DateFormat ISODateWithMs = PkDateTime::DateFormat::ISODateWithMs;
-}
