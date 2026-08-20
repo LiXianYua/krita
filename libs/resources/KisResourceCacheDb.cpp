@@ -22,7 +22,6 @@
 
 #include <KisSqlQueryLoader.h>
 #include <KisDatabaseTransactionLock.h>
-#include "KisSqlScripts.h"
 #include "KisResourceThumbnailCodec.h"
 #include <KisResourceLocator.h>
 #include <KisResourceLoaderRegistry.h>
@@ -92,8 +91,7 @@ struct SchemaVersion
 
 PkString embeddedSql(const char *alias)
 {
-    const char *script = kisSqlScript(alias);
-    return script ? PkString(script) : PkString();
+    return KisSqlQueryLoader::loadEmbeddedScript(PkString(alias));
 }
 
 bool endsWithAsciiCaseInsensitive(const PkString &value, const char *suffix)
@@ -109,16 +107,17 @@ bool endsWithAsciiCaseInsensitive(const PkString &value, const char *suffix)
 
 PkString completeBaseName(const PkString &path)
 {
-    std::string name = std::filesystem::u8path(path.PkToUtf8()).filename().string();
+    std::string name = std::filesystem::u8path(path.PkToUtf8()).filename().u8string();
     const std::size_t dot = name.rfind('.');
     if (dot != std::string::npos && dot != 0) name.resize(dot);
     std::replace(name.begin(), name.end(), '_', ' ');
-    return PkString(name.c_str());
+    return PkString::PkFromUtf8(name.data(), static_cast<int>(name.size()));
 }
 
 PkString fileBaseName(const PkString &path)
 {
-    return PkString(std::filesystem::u8path(path.PkToUtf8()).stem().string().c_str());
+    const std::string name = std::filesystem::u8path(path.PkToUtf8()).stem().u8string();
+    return PkString::PkFromUtf8(name.data(), static_cast<int>(name.size()));
 }
 
 void appendU32(std::vector<std::uint8_t> &out, std::uint32_t value)
@@ -138,7 +137,7 @@ void appendU64(std::vector<std::uint8_t> &out, std::uint64_t value)
 
 bool readU32(const std::vector<std::uint8_t> &bytes, std::size_t &offset, std::uint32_t &value)
 {
-    if (offset + 4 > bytes.size()) return false;
+    if (offset > bytes.size() || bytes.size() - offset < 4) return false;
     value = (std::uint32_t(bytes[offset]) << 24) | (std::uint32_t(bytes[offset + 1]) << 16) |
             (std::uint32_t(bytes[offset + 2]) << 8) | std::uint32_t(bytes[offset + 3]);
     offset += 4;
@@ -147,7 +146,7 @@ bool readU32(const std::vector<std::uint8_t> &bytes, std::size_t &offset, std::u
 
 bool readU64(const std::vector<std::uint8_t> &bytes, std::size_t &offset, std::uint64_t &value)
 {
-    if (offset + 8 > bytes.size()) return false;
+    if (offset > bytes.size() || bytes.size() - offset < 8) return false;
     value = 0;
     for (int i = 0; i < 8; ++i) value = (value << 8) | bytes[offset++];
     return true;
@@ -172,26 +171,46 @@ PkString base64Encode(const std::vector<std::uint8_t> &bytes)
     return PkString(out.c_str());
 }
 
-std::vector<std::uint8_t> base64Decode(const PkString &text)
+bool base64Decode(const PkString &text, std::vector<std::uint8_t> &out)
 {
     std::array<int, 256> decode;
     decode.fill(-1);
     for (int i = 0; i < 64; ++i) decode[static_cast<unsigned char>(kBase64[i])] = i;
     const std::string input = text.PkToUtf8();
-    std::vector<std::uint8_t> out;
-    int accumulator = 0;
-    int bits = -8;
-    for (unsigned char ch : input) {
-        if (ch == '=') break;
-        if (decode[ch] < 0) continue;
-        accumulator = (accumulator << 6) | decode[ch];
-        bits += 6;
-        if (bits >= 0) {
-            out.push_back(static_cast<std::uint8_t>((accumulator >> bits) & 0xff));
-            bits -= 8;
+    out.clear();
+    if (input.empty() || input.size() % 4 != 0) return false;
+    out.reserve((input.size() / 4) * 3);
+
+    for (std::size_t offset = 0; offset < input.size(); offset += 4) {
+        const bool isLastQuartet = offset + 4 == input.size();
+        const unsigned char c0 = static_cast<unsigned char>(input[offset]);
+        const unsigned char c1 = static_cast<unsigned char>(input[offset + 1]);
+        const unsigned char c2 = static_cast<unsigned char>(input[offset + 2]);
+        const unsigned char c3 = static_cast<unsigned char>(input[offset + 3]);
+        if (decode[c0] < 0 || decode[c1] < 0) return false;
+
+        const std::uint32_t v0 = static_cast<std::uint32_t>(decode[c0]);
+        const std::uint32_t v1 = static_cast<std::uint32_t>(decode[c1]);
+        if (c2 == '=') {
+            if (!isLastQuartet || c3 != '=' || (v1 & 0x0fu) != 0) return false;
+            out.push_back(static_cast<std::uint8_t>((v0 << 2) | (v1 >> 4)));
+            continue;
         }
+        if (decode[c2] < 0) return false;
+
+        const std::uint32_t v2 = static_cast<std::uint32_t>(decode[c2]);
+        out.push_back(static_cast<std::uint8_t>((v0 << 2) | (v1 >> 4)));
+        out.push_back(static_cast<std::uint8_t>((v1 << 4) | (v2 >> 2)));
+        if (c3 == '=') {
+            if (!isLastQuartet || (v2 & 0x03u) != 0) return false;
+            continue;
+        }
+        if (decode[c3] < 0) return false;
+
+        const std::uint32_t v3 = static_cast<std::uint32_t>(decode[c3]);
+        out.push_back(static_cast<std::uint8_t>((v2 << 6) | v3));
     }
-    return out;
+    return true;
 }
 
 PkString serializeVariant(const PkVariant &value)
@@ -247,34 +266,55 @@ PkString serializeVariant(const PkVariant &value)
 
 PkVariant deserializeVariant(const PkString &encoded)
 {
-    const std::vector<std::uint8_t> bytes = base64Decode(encoded);
+    std::vector<std::uint8_t> bytes;
+    if (!base64Decode(encoded, bytes)) return PkVariant();
     std::size_t offset = 0;
     std::uint32_t type = 0;
     if (!readU32(bytes, offset, type) || offset >= bytes.size()) return PkVariant();
-    if (bytes[offset++] != 0) return PkVariant();
+    const std::uint8_t nullMarker = bytes[offset++];
+    if (nullMarker == 1) {
+        // A null encoded value has no payload. Metadata writers skip null values, but old
+        // databases may still contain one; either way it maps to an invalid PkVariant.
+        return PkVariant();
+    }
+    if (nullMarker != 0) return PkVariant();
     std::uint32_t u32 = 0;
     std::uint64_t u64 = 0;
     switch (static_cast<PkVariant::Type>(type)) {
     case PkVariant::Bool:
-        return offset < bytes.size() ? PkVariant(bytes[offset] != 0) : PkVariant();
+        return offset + 1 == bytes.size() && bytes[offset] <= 1
+            ? PkVariant(bytes[offset] != 0)
+            : PkVariant();
     case PkVariant::Int:
-        return readU32(bytes, offset, u32) ? PkVariant(static_cast<int>(u32)) : PkVariant();
+        return readU32(bytes, offset, u32) && offset == bytes.size()
+            ? PkVariant(static_cast<int>(u32))
+            : PkVariant();
     case PkVariant::UInt:
-        return readU32(bytes, offset, u32) ? PkVariant(u32) : PkVariant();
+        return readU32(bytes, offset, u32) && offset == bytes.size()
+            ? PkVariant(u32)
+            : PkVariant();
     case PkVariant::LongLong:
-        return readU64(bytes, offset, u64) ? PkVariant(static_cast<long long>(u64)) : PkVariant();
+        if (readU64(bytes, offset, u64) && offset == bytes.size()) {
+            long long signedValue = 0;
+            std::memcpy(&signedValue, &u64, sizeof(signedValue));
+            return PkVariant(signedValue);
+        }
+        return PkVariant();
     case PkVariant::ULongLong:
-        return readU64(bytes, offset, u64)
+        return readU64(bytes, offset, u64) && offset == bytes.size()
             ? PkVariant(static_cast<unsigned long long>(u64))
             : PkVariant();
     case PkVariant::Double: {
-        if (!readU64(bytes, offset, u64)) return PkVariant();
+        if (!readU64(bytes, offset, u64) || offset != bytes.size()) return PkVariant();
         double number = 0.0;
         std::memcpy(&number, &u64, sizeof(number));
         return PkVariant(number);
     }
     case PkVariant::String: {
-        if (!readU32(bytes, offset, u32) || (u32 % 2) != 0 || offset + u32 > bytes.size()) return PkVariant();
+        if (!readU32(bytes, offset, u32) || (u32 % 2) != 0 ||
+            offset > bytes.size() || u32 != bytes.size() - offset) {
+            return PkVariant();
+        }
         std::u16string text;
         text.reserve(u32 / 2);
         for (std::uint32_t i = 0; i < u32; i += 2) {
@@ -286,7 +326,10 @@ PkVariant deserializeVariant(const PkString &encoded)
         return PkVariant(PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size())));
     }
     case PkVariant::ByteArray:
-        if (!readU32(bytes, offset, u32) || offset + u32 > bytes.size()) return PkVariant();
+        if (!readU32(bytes, offset, u32) || offset > bytes.size() ||
+            u32 != bytes.size() - offset) {
+            return PkVariant();
+        }
         return PkVariant(PkByteArray(reinterpret_cast<const char *>(bytes.data() + offset),
                                     static_cast<int>(u32)));
     default:
@@ -357,10 +400,9 @@ PkSqlError runUpdateScriptFile(const PkString &path, const PkString &message)
         warnDbMigration.noquote() << "       error" << e.message;
         warnDbMigration.noquote() << "       file:" << e.filePath;
         warnDbMigration.noquote() << "       file-error:" << e.fileErrorString;
-        return
-            PkSqlError("Error executing SQL",
-                PkString("Could not find SQL file %1").arg(e.filePath),
-                PkSqlError::StatementError);
+        return PkSqlError(PkString("Could not find SQL file %1").arg(e.filePath),
+                          PkString("Error executing SQL"),
+                          PkSqlError::StatementError);
     } catch (const KisSqlQueryLoader::SQLException &e) {
         warnDbMigration.noquote() << "ERROR: Could not execute DB update step:" << message;
         warnDbMigration.noquote() << "       error" << e.message;
@@ -409,8 +451,8 @@ PkSqlError createDatabase(const PkString &location)
     std::error_code filesystemError;
     std::filesystem::create_directories(std::filesystem::u8path(location.PkToUtf8()), filesystemError);
     if (filesystemError) {
-        return PkSqlError("Error opening resource database directory",
-                          PkString(filesystemError.message().c_str()),
+        return PkSqlError(PkString(filesystemError.message().c_str()),
+                          PkString("Error opening resource database directory"),
                           PkSqlError::ConnectionError);
     }
 
@@ -583,19 +625,17 @@ PkSqlError createDatabase(const PkString &location)
                         }
                     }
 
-                    if (success) {
-                        if (!updateSchemaVersion()) {
-                            success = false;
-                        }
+                    if (success && !updateSchemaVersion()) {
+                        success = false;
+                    }
 
+                    if (success) {
                         transactionLock.commit();
 
-                        if (success) {
-                            PkSqlError error = runUpdateScript("VACUUM",
-                                                              "Vacuum database after updating schema");
-                            if (error.type() != PkSqlError::NoError) {
-                                success = false;
-                            }
+                        PkSqlError error = runUpdateScript("VACUUM",
+                                                          "Vacuum database after updating schema");
+                        if (error.type() != PkSqlError::NoError) {
+                            success = false;
                         }
                     } else {
                         transactionLock.rollback();
@@ -711,7 +751,9 @@ PkSqlError createDatabase(const PkString &location)
     }
 
     if (!updateSchemaVersion()) {
-       return PkSqlError("Error executing SQL", PkString("Could not update schema version."), PkSqlError::StatementError);
+       return PkSqlError(PkString("Could not update schema version."),
+                         PkString("Error executing SQL"),
+                         PkSqlError::StatementError);
     }
 
     transactionLock.commit();
@@ -725,7 +767,17 @@ PkSqlError createDatabase(const PkString &location)
 
 bool KisResourceCacheDb::initialize(const PkString &location)
 {
-    PkSqlError err = createDatabase(location);
+    PkSqlError err;
+    try {
+        err = createDatabase(location);
+    } catch (const KisSqlQueryLoader::FileException &e) {
+        warnDbMigration.noquote() << "ERROR: Missing embedded SQL during database initialization";
+        warnDbMigration.noquote() << "       file:" << e.filePath;
+        warnDbMigration.noquote() << "       file-error:" << e.fileErrorString;
+        err = PkSqlError(PkString("Could not find SQL file %1").arg(e.filePath),
+                         PkString("Error executing SQL"),
+                         PkSqlError::StatementError);
+    }
 
     s_valid = !err.isValid();
     switch (err.type()) {

@@ -55,6 +55,9 @@ public:
     KisSqlQueryLoader(const PkString &scriptName, const PkString &script, single_statement_mode_t);
     ~KisSqlQueryLoader();
 
+    /** Resolve a canonical alias or a legacy :/alias and report a missing entry explicitly. */
+    static PkString loadEmbeddedScript(const PkString &fileName);
+
     PkSqlQuery &query();
     void exec();
     void execBatch();

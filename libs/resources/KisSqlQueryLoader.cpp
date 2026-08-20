@@ -43,7 +43,7 @@ void KisSqlQueryLoader::init(const PkString &fileName, const PkString &entireScr
     }
 }
 
-void KisSqlQueryLoader::initEmbedded(const PkString &fileName, bool singleStatementMode)
+PkString KisSqlQueryLoader::loadEmbeddedScript(const PkString &fileName)
 {
     std::string alias = fileName.PkToUtf8();
     if (alias.rfind(":/", 0) == 0) alias.erase(0, 2);
@@ -54,7 +54,12 @@ void KisSqlQueryLoader::initEmbedded(const PkString &fileName, bool singleStatem
         throw FileException(PkString("Could not load embedded SQL script"), fileName,
                             PkString("Unknown SQL resource alias"));
     }
-    init(fileName, PkString(script), singleStatementMode);
+    return PkString(script);
+}
+
+void KisSqlQueryLoader::initEmbedded(const PkString &fileName, bool singleStatementMode)
+{
+    init(fileName, loadEmbeddedScript(fileName), singleStatementMode);
 }
 
 KisSqlQueryLoader::KisSqlQueryLoader(const PkString &fileName)
