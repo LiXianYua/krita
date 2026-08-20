@@ -13,6 +13,7 @@
 #include <KoMD5Generator.h>
 #include <PkFileStream.h>
 #include "PkResourceStorageDesktop.h"
+#include "KisResourceThumbnailCodec.h"
 #include "ResourceDebug.h"
 
 #include <filesystem>
@@ -102,9 +103,8 @@ KisResourceStorage::ResourceItem KisFolderStorage::resourceItem(const PkString &
     item.url = url;
     item.folder = PkString(native.parent_path().filename().string().c_str());
     PkResourceStorageDesktop storage;
-    auto it = storage.listEntries(PkString(native.parent_path().string().c_str()), {PkString(native.filename().string().c_str())},
-                                  PkResourceStorage::EntryKind::Files, false);
-    if (it->hasNext()) { it->next(); item.lastModified = PkDateTime::fromMSecsSinceEpoch(it->lastModified()); }
+    const int64_t modified = storage.lastModified(url);
+    if (modified) item.lastModified = PkDateTime::fromMSecsSinceEpoch(modified);
     return item;
 }
 
@@ -123,6 +123,17 @@ bool KisFolderStorage::loadVersionedResource(KoResourceSP resource)
     if (r) {
         sanitizeResourceFileNameCase(resource,
                                      location() + "/" + resource->resourceType().first);
+        if ((resource->image().isNull() || resource->thumbnail().isNull()) &&
+            !resource->thumbnailPath().isEmpty()) {
+            const PkString thumbnailPath = PkResourceStorage::joinPath(
+                location() + "/" + resource->resourceType().first,
+                resource->thumbnailPath());
+            const PkImage thumbnail = KisResourceThumbnailCodec::loadPng(thumbnailPath);
+            if (!thumbnail.isNull()) {
+                resource->setImage(thumbnail);
+                resource->updateThumbnail();
+            }
+        }
     }
 
     return r;

@@ -5,6 +5,8 @@
 
 #include <PkResourceStorage.h>
 
+#include <cstdint>
+
 class PkResourceStorageDesktop final : public PkResourceStorage
 {
 public:
@@ -17,4 +19,9 @@ public:
     bool remove(const PkString &path) const override;
     PkString absolutePath(const PkString &path) const override;
     PkString platformDir(PlatformDir kind) const override;
+
+    // Desktop-only metadata used by the resource backends. This stats the
+    // requested target directly, so symlinked storage roots and resources do
+    // not depend on comparing canonical and iterator spellings of a path.
+    int64_t lastModified(const PkString &path) const;
 };

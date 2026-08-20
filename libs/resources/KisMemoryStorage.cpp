@@ -7,6 +7,10 @@
 #include "KisMemoryStorage.h"
 
 #include <optional>
+#include <algorithm>
+#include <cstring>
+#include <memory>
+#include <vector>
 #include <KisMimeDatabase.h>
 #include <KisTag.h>
 #include <KisResourceStorage.h>
@@ -39,10 +43,66 @@ namespace detail {
 
 }
 
+namespace {
+
+using ImmutableBytes = std::shared_ptr<const std::vector<char>>;
+
+class ImmutableMemoryStream final : public PkStream
+{
+public:
+    explicit ImmutableMemoryStream(ImmutableBytes bytes)
+        : m_bytes(std::move(bytes))
+    {
+    }
+
+    pk_int64 size() const override
+    {
+        return m_bytes ? static_cast<pk_int64>(m_bytes->size()) : 0;
+    }
+
+protected:
+    pk_int64 readData(char *data, pk_int64 maxSize) override
+    {
+        if (!m_bytes || pos() < 0 || static_cast<std::size_t>(pos()) >= m_bytes->size()) {
+            return m_bytes ? 0 : -1;
+        }
+        const pk_int64 available = static_cast<pk_int64>(m_bytes->size()) - pos();
+        const pk_int64 count = std::min(maxSize, available);
+        std::memcpy(data, m_bytes->data() + pos(), static_cast<std::size_t>(count));
+        return count;
+    }
+
+    pk_int64 writeData(const char *, pk_int64) override { return -1; }
+
+private:
+    ImmutableBytes m_bytes;
+};
+
+ImmutableBytes freezeBytes(const PkMemoryStream &stream)
+{
+    auto bytes = std::make_shared<std::vector<char>>();
+    if (stream.size() > 0) {
+        bytes->assign(stream.data(), stream.data() + stream.size());
+    }
+    return bytes;
+}
+
+ImmutableBytes readBytes(PkStream *device)
+{
+    auto bytes = std::make_shared<std::vector<char>>();
+    char buffer[8192];
+    for (PkStream::pk_int64 count; (count = device->read(buffer, sizeof(buffer))) > 0;) {
+        bytes->insert(bytes->end(), buffer, buffer + count);
+    }
+    return bytes;
+}
+
+} // namespace
+
 struct StoredResource
 {
     PkDateTime timestamp;
-    PkSharedPointer<PkMemoryStream> data;
+    ImmutableBytes data;
     KoResourceSP resource;
 };
 
@@ -146,10 +206,11 @@ bool KisMemoryStorage::saveAsNewVersion(const PkString &resourceType, KoResource
 
     StoredResource storedResource;
     storedResource.timestamp = PkDateTime::currentDateTime();
-    storedResource.data.reset(new PkMemoryStream());
-    storedResource.data->open(PkStream::WriteOnly | PkStream::Truncate);
-    bool result = resource->saveToDevice(storedResource.data.data());
-    storedResource.data->close();
+    PkMemoryStream buffer;
+    buffer.open(PkStream::WriteOnly | PkStream::Truncate);
+    bool result = resource->saveToDevice(&buffer);
+    buffer.close();
+    storedResource.data = freezeBytes(buffer);
     if (!result) {
         storedResource.resource = resource;
     }
@@ -181,13 +242,13 @@ bool KisMemoryStorage::loadVersionedResource(KoResourceSP resource)
         const StoredResource &storedResource =
             d->resourcesNew[resourceType][resourceFilename];
 
-        if (storedResource.data->size() > 0) {
-            storedResource.data->close();
-            storedResource.data->open(PkStream::ReadOnly);
-            resource->loadFromDevice(storedResource.data.data(), KisGlobalResourcesInterface::instance());
-            storedResource.data->close();
+        if (storedResource.data && !storedResource.data->empty()) {
+            ImmutableMemoryStream stream(storedResource.data);
+            stream.open(PkStream::ReadOnly);
+            resource->loadFromDevice(&stream, KisGlobalResourcesInterface::instance());
+            stream.close();
         } else {
-            KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(storedResource.data->size() > 0, false);
+            KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(storedResource.data && !storedResource.data->empty(), false);
             qCWarning(RESOURCE_LOG) << "Cannot load resource from device in KisMemoryStorage::loadVersionedResource";
             return false;
         }
@@ -211,11 +272,7 @@ bool KisMemoryStorage::importResource(const PkString &url, PkStream *device)
 
     StoredResource storedResource;
     storedResource.timestamp = PkDateTime::currentDateTime();
-    storedResource.data.reset(new PkMemoryStream());
-    storedResource.data->open(PkStream::WriteOnly | PkStream::Truncate);
-    char buffer[8192];
-    for (PkStream::pk_int64 n; (n = device->read(buffer, sizeof(buffer))) > 0;) storedResource.data->write(buffer, n);
-    storedResource.data->close();
+    storedResource.data = readBytes(device);
 
     PkHash<PkString, StoredResource> &typedResources =
         d->resourcesNew[resourceType];
@@ -243,11 +300,17 @@ bool KisMemoryStorage::exportResource(const PkString &url, PkStream *device)
         return false;
     }
 
-    storedResource.data->close();
-    storedResource.data->open(PkStream::ReadOnly);
-    char buffer[8192];
-    for (PkStream::pk_int64 n; (n = storedResource.data->read(buffer, sizeof(buffer))) > 0;) device->write(buffer, n);
-    storedResource.data->close();
+    const char *cursor = storedResource.data->data();
+    std::size_t remaining = storedResource.data->size();
+    while (remaining > 0) {
+        const std::size_t chunk = std::min<std::size_t>(remaining, 8192);
+        if (device->write(cursor, static_cast<PkStream::pk_int64>(chunk)) !=
+            static_cast<PkStream::pk_int64>(chunk)) {
+            return false;
+        }
+        cursor += chunk;
+        remaining -= chunk;
+    }
     return true;
 }
 
@@ -264,13 +327,14 @@ bool KisMemoryStorage::addResource(const PkString &resourceType,  KoResourceSP r
 
     StoredResource storedResource;
     storedResource.timestamp = PkDateTime::currentDateTime();
-    storedResource.data.reset(new PkMemoryStream());
     if (resource->isSerializable()) {
-        storedResource.data->open(PkStream::WriteOnly | PkStream::Truncate);
-        if (!resource->saveToDevice(storedResource.data.data())) {
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly | PkStream::Truncate);
+        if (!resource->saveToDevice(&buffer)) {
             storedResource.resource = resource;
         }
-        storedResource.data->close();
+        buffer.close();
+        storedResource.data = freezeBytes(buffer);
     } else {
         storedResource.resource = resource;
     }
@@ -340,11 +404,11 @@ PkString KisMemoryStorage::resourceMd5(const PkString &url)
         const StoredResource &storedResource =
             d->resourcesNew[resourceType][resourceFilename];
 
-        if (storedResource.data->size() > 0 || storedResource.resource.isNull()) {
-            storedResource.data->close();
-            storedResource.data->open(PkStream::ReadOnly);
-            result = KoMD5Generator::generateHash(storedResource.data.data());
-            storedResource.data->close();
+        if (storedResource.data && (!storedResource.data->empty() || storedResource.resource.isNull())) {
+            ImmutableMemoryStream stream(storedResource.data);
+            stream.open(PkStream::ReadOnly);
+            result = KoMD5Generator::generateHash(&stream);
+            stream.close();
         } else {
             result = storedResource.resource->md5Sum();
         }

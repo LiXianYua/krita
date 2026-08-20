@@ -16,6 +16,7 @@
 #include <KisResourceLoaderRegistry.h>
 #include <PkFileStream.h>
 #include "PkResourceStorageDesktop.h"
+#include "KisResourceThumbnailCodec.h"
 #include "ResourceDebug.h"
 #include <kis_assert.h>
 
@@ -102,11 +103,8 @@ KisResourceStorage::ResourceItem KisBundleStorage::resourceItem(const PkString &
     item.folder = parts[0];
     item.resourceType = parts[0];
     PkResourceStorageDesktop storage;
-    const std::filesystem::path path(d->bundle->filename().PkToUtf8());
-    auto entries = storage.listEntries(PkString(path.parent_path().string().c_str()),
-                                       {PkString(path.filename().string().c_str())},
-                                       PkResourceStorage::EntryKind::Files, false);
-    if (entries->hasNext()) { entries->next(); item.lastModified = PkDateTime::fromMSecsSinceEpoch(entries->lastModified()); }
+    const int64_t modified = storage.lastModified(d->bundle->filename());
+    if (modified) item.lastModified = PkDateTime::fromMSecsSinceEpoch(modified);
     return item;
 }
 
@@ -135,6 +133,16 @@ bool KisBundleStorage::loadVersionedResource(KoResourceSP resource)
             }
 
             sanitizeResourceFileNameCase(resource, bundleSaveLocation);
+            if ((resource->image().isNull() || resource->thumbnail().isNull()) &&
+                !resource->thumbnailPath().isEmpty()) {
+                const PkString thumbnailPath = PkResourceStorage::joinPath(
+                    bundleSaveLocation, resource->thumbnailPath());
+                const PkImage thumbnail = KisResourceThumbnailCodec::loadPng(thumbnailPath);
+                if (!thumbnail.isNull()) {
+                    resource->setImage(thumbnail);
+                    resource->updateThumbnail();
+                }
+            }
             f.close();
         }
     }

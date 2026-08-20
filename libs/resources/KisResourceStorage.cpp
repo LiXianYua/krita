@@ -11,6 +11,7 @@
 #include <boost/optional.hpp>
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <cstdio>
 #include <filesystem>
 #include <regex>
@@ -27,6 +28,7 @@
 #include "KisBundleStorage.h"
 #include "KisMemoryStorage.h"
 #include "PkResourceStorageDesktop.h"
+#include "KisResourceThumbnailCodec.h"
 #include "ResourceDebug.h"
 
 #include <PkFileStream.h>
@@ -56,19 +58,7 @@ PkString fileName(const PkString &path)
 
 PkDateTime lastModified(const PkString &path, const PkResourceStorageDesktop &storage)
 {
-    const PkString absolute = storage.absolutePath(path);
-    const fs::path native(path.PkToUtf8());
-    const PkString parent(native.parent_path().string().c_str());
-    const auto find = [&](PkResourceStorage::EntryKind kind) {
-        auto it = storage.listEntries(parent, {fileName(path)}, kind, false);
-        while (it->hasNext()) {
-            it->next();
-            if (it->url() == absolute) return it->lastModified();
-        }
-        return int64_t(0);
-    };
-    int64_t timestamp = find(PkResourceStorage::EntryKind::Files);
-    if (!timestamp) timestamp = find(PkResourceStorage::EntryKind::Directories);
+    const int64_t timestamp = storage.lastModified(path);
     return timestamp ? PkDateTime::fromMSecsSinceEpoch(timestamp) : PkDateTime();
 }
 
@@ -426,7 +416,15 @@ boost::optional<VersionedFileParts> guessFilenameParts(const PkString &filename)
     std::smatch match;
     const std::string text = filename.PkToUtf8();
     if (std::regex_match(text, match, expression)) {
-        return VersionedFileParts({PkString(match[1].str().c_str()), std::stoi(match[2].str()),
+        const std::string versionText = match[2].str();
+        int version = 0;
+        const auto parsed = std::from_chars(versionText.data(),
+                                            versionText.data() + versionText.size(),
+                                            version);
+        if (parsed.ec != std::errc() || parsed.ptr != versionText.data() + versionText.size()) {
+            version = 0;
+        }
+        return VersionedFileParts({PkString(match[1].str().c_str()), version,
                                    PkString(match[3].str().c_str())});
     }
 
@@ -559,6 +557,15 @@ bool KisStorageVersioningHelper::addVersionedResource(const PkString &saveLocati
 
     resource->setFilename(newFilename);
     file.close();
+
+    if (!resource->thumbnailPath().isEmpty()) {
+        const PkString thumbnailPath = PkResourceStorage::joinPath(
+            saveLocation, resource->thumbnailPath());
+        if (!storage.exists(thumbnailPath) &&
+            !KisResourceThumbnailCodec::savePng(thumbnailPath, resource->thumbnail())) {
+            qCWarning(RESOURCE_LOG) << "Could not save resource thumbnail" << thumbnailPath;
+        }
+    }
 
     return true;
 }

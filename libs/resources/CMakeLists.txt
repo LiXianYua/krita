@@ -8,6 +8,7 @@ set(kritaresources_LIB_SRCS
     KisResourceLoaderRegistry.cpp
     KisResourceLocator.cpp
     KisResourceStorage.cpp
+    KisResourceThumbnailCodec.cpp
     KisResourceModel.cpp
     KisTagFilterResourceProxyModel.cpp
     KisResourceModelProvider.cpp
@@ -80,10 +81,10 @@ target_link_libraries(kritaresources
         KF${KF_MAJOR}::CoreAddons
         KF${KF_MAJOR}::I18n
         ${QUAZIP_LIBRARIES}
+        ${PNG_LIBRARIES}
 )
 
 set_target_properties(kritaresources PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}
 )
 install(TARGETS kritaresources ${INSTALL_TARGETS_DEFAULT_ARGS} )
-

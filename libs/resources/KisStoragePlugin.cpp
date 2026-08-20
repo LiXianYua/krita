@@ -82,19 +82,8 @@ bool KisStoragePlugin::supportsVersioning() const
 PkDateTime KisStoragePlugin::timestamp()
 {
     if (d->timestamp.isNull()) {
-        const PkString absoluteLocation = d->storage.absolutePath(d->location);
-        const PkString parent = d->storage.absolutePath(PkResourceStorage::joinPath(d->location, ".."));
-        for (PkResourceStorage::EntryKind kind : {PkResourceStorage::EntryKind::Files,
-                                                  PkResourceStorage::EntryKind::Directories}) {
-            auto it = d->storage.listEntries(parent, {}, kind, false);
-            while (it->hasNext()) {
-                it->next();
-                if (it->url() == absoluteLocation) {
-                    return PkDateTime::fromMSecsSinceEpoch(it->lastModified());
-                }
-            }
-        }
-        return PkDateTime();
+        const int64_t modified = d->storage.lastModified(d->location);
+        return modified ? PkDateTime::fromMSecsSinceEpoch(modified) : PkDateTime();
     }
     return d->timestamp;
 }

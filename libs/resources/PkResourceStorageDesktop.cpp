@@ -6,11 +6,18 @@
 #include <PkString.h>
 
 #include <chrono>
+#include <cctype>
 #include <cstdlib>
 #include <filesystem>
+#ifndef _WIN32
 #include <fnmatch.h>
+#endif
 #include <system_error>
+#include <type_traits>
 #include <variant>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 namespace {
 
@@ -27,11 +34,81 @@ fs::path toPath(const PkString &path)
     return fs::u8path(path.PkToUtf8());
 }
 
+int64_t lastModifiedMs(const fs::path &path)
+{
+    std::error_code ec;
+    const fs::file_time_type writeTime = fs::last_write_time(path, ec);
+    if (ec) {
+        return 0;
+    }
+    const auto systemTime = std::chrono::time_point_cast<std::chrono::milliseconds>(
+        writeTime - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
+    return systemTime.time_since_epoch().count();
+}
+
 PkString environmentPath(const char *name)
 {
     const char *value = std::getenv(name);
     return value && *value ? PkString(value) : PkString();
 }
+
+bool isHidden(const fs::path &path)
+{
+    const std::string name = path.filename().string();
+    if (!name.empty() && name.front() == '.') {
+        return true;
+    }
+#ifdef _WIN32
+    const DWORD attributes = ::GetFileAttributesW(path.c_str());
+    return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_HIDDEN) != 0;
+#else
+    return false;
+#endif
+}
+
+bool isReadable(const fs::path &path)
+{
+    std::error_code ec;
+    const fs::perms permissions = fs::status(path, ec).permissions();
+    if (ec) {
+        return false;
+    }
+    constexpr fs::perms readBits = fs::perms::owner_read |
+        fs::perms::group_read | fs::perms::others_read;
+    return (permissions & readBits) != fs::perms::none;
+}
+
+#ifdef _WIN32
+bool globMatches(const char *pattern, const char *text)
+{
+    const char *star = nullptr;
+    const char *retry = nullptr;
+    while (*text) {
+        if (*pattern == '?' || std::tolower(static_cast<unsigned char>(*pattern)) ==
+                                  std::tolower(static_cast<unsigned char>(*text))) {
+            ++pattern;
+            ++text;
+        } else if (*pattern == '*') {
+            star = pattern++;
+            retry = text;
+        } else if (star) {
+            pattern = star + 1;
+            text = ++retry;
+        } else {
+            return false;
+        }
+    }
+    while (*pattern == '*') {
+        ++pattern;
+    }
+    return *pattern == '\0';
+}
+#else
+bool globMatches(const char *pattern, const char *text)
+{
+    return ::fnmatch(pattern, text, 0) == 0;
+}
+#endif
 
 class DesktopEntryIterator final : public PkResourceStorage::EntryIterator
 {
@@ -65,15 +142,7 @@ public:
             return;
         }
         m_currentPath = currentEntry().path();
-        std::error_code ec;
-        const fs::file_time_type writeTime = currentEntry().last_write_time(ec);
-        if (ec) {
-            m_currentLastModified = 0;
-        } else {
-            const auto systemTime = std::chrono::time_point_cast<std::chrono::milliseconds>(
-                writeTime - fs::file_time_type::clock::now() + std::chrono::system_clock::now());
-            m_currentLastModified = systemTime.time_since_epoch().count();
-        }
+        m_currentLastModified = lastModifiedMs(m_currentPath);
         increment();
         findNext();
     }
@@ -97,6 +166,12 @@ private:
     void increment()
     {
         std::visit([](auto &it) {
+            using Iter = std::decay_t<decltype(it)>;
+            if constexpr (std::is_same_v<Iter, fs::recursive_directory_iterator>) {
+                if (it != Iter() && isHidden(it->path())) {
+                    it.disable_recursion_pending();
+                }
+            }
             std::error_code ec;
             it.increment(ec);
             if (ec) {
@@ -107,6 +182,9 @@ private:
 
     bool matches(const fs::directory_entry &entry) const
     {
+        if (isHidden(entry.path()) || !isReadable(entry.path())) {
+            return false;
+        }
         std::error_code ec;
         const bool rightKind = m_kind == PkResourceStorage::EntryKind::Files
             ? entry.is_regular_file(ec) : entry.is_directory(ec);
@@ -118,7 +196,7 @@ private:
         }
         const std::string name = entry.path().filename().string();
         for (const PkString &filter : m_filters) {
-            if (::fnmatch(filter.PkToUtf8().c_str(), name.c_str(), 0) == 0) {
+            if (globMatches(filter.PkToUtf8().c_str(), name.c_str())) {
                 return true;
             }
         }
@@ -217,4 +295,9 @@ PkString PkResourceStorageDesktop::platformDir(PlatformDir kind) const
         return underHome("Pictures");
     }
     return PkString();
+}
+
+int64_t PkResourceStorageDesktop::lastModified(const PkString &path) const
+{
+    return lastModifiedMs(toPath(path));
 }
