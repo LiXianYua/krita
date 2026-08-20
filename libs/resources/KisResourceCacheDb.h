@@ -132,7 +132,10 @@ public:
     {
         // Authoritative row-preserving view. Unlike the compatibility maps
         // below, this cannot conflate different SQLite storage classes or
-        // lossy UTF-8 normalizations under one PkString key.
+        // lossy UTF-8 normalizations under one PkString key. A failed page or
+        // incremental column read is all-or-error: querySucceeded is false
+        // and every projection below is empty. resourceLimitExceeded instead
+        // describes a successful, explicitly bounded read.
         std::vector<MetaDataReadRow> rows;
         PkMap<PkString, PkVariant> values;
         PkMap<PkString, MetaDataDecodeIssue> undecodable;

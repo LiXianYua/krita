@@ -223,6 +223,15 @@ struct BoundedMetadataColumn
     PkByteArray bytes;
 };
 
+void discardFailedMetadataRead(KisResourceCacheDb::MetaDataReadResult &result)
+{
+    result.rows.clear();
+    result.values.clear();
+    result.undecodable.clear();
+    result.querySucceeded = false;
+    result.resourceLimitExceeded = false;
+}
+
 BoundedMetadataColumn readBoundedMetadataColumn(sqlite3 *database,
                                                 long long rowId,
                                                 const char *column,
@@ -3349,7 +3358,7 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
                        "ORDER BY rowid LIMIT :page_limit");
         if (!page.prepare(sql)) {
             qWarning() << "Could not prepare metadata page query" << page.lastError();
-            result.querySucceeded = false;
+            discardFailedMetadataRead(result);
             return result;
         }
         page.bindValue(":id", id);
@@ -3360,16 +3369,16 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
         }
         if (!page.exec()) {
             qWarning() << "Could not execute metadata page query" << page.lastError();
-            result.querySucceeded = false;
+            discardFailedMetadataRead(result);
             return result;
         }
-        result.querySucceeded = true;
 
         int rowsInPage = 0;
         while (page.next()) {
             ++rowsInPage;
             lastRowId = page.value(0).toLongLong();
             if (rowCount >= kMaximumMetadataRowsPerOwner) {
+                result.querySucceeded = true;
                 result.resourceLimitExceeded = true;
                 return result;
             }
@@ -3389,7 +3398,7 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
                     nativeDatabase, row.rowId, "key", kMaximumMetadataKeyBytes);
                 if (!keyColumn.succeeded) {
                     qWarning() << "Could not incrementally read metadata key" << row.rowId;
-                    result.querySucceeded = false;
+                    discardFailedMetadataRead(result);
                     return result;
                 }
                 row.rawKey = keyColumn.bytes;
@@ -3397,6 +3406,7 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
                 if (!keyColumn.complete) {
                     row.status = MetaDataDecodeStatus::PayloadLimitExceeded;
                     result.rows.push_back(row);
+                    result.querySucceeded = true;
                     result.resourceLimitExceeded = true;
                     return result;
                 }
@@ -3426,7 +3436,7 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
                     nativeDatabase, row.rowId, "value", retainLimit);
                 if (!payloadColumn.succeeded) {
                     qWarning() << "Could not incrementally read metadata value" << row.rowId;
-                    result.querySucceeded = false;
+                    discardFailedMetadataRead(result);
                     return result;
                 }
                 row.rawPayload = payloadColumn.bytes;
@@ -3485,6 +3495,7 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
         }
 
         if (rowsInPage < kMetadataReadPageRows) {
+            result.querySucceeded = true;
             return result;
         }
         firstPage = false;
@@ -3495,6 +3506,9 @@ PkMap<PkString, PkVariant> KisResourceCacheDb::metaDataForId(int id,
                                                              const PkString &tableName)
 {
     const MetaDataReadResult result = metaDataReadResultForId(id, tableName);
+    if (!result.querySucceeded) {
+        return {};
+    }
     for (auto iter = result.undecodable.cbegin(); iter != result.undecodable.cend(); ++iter) {
         qWarning() << "Could not decode metadata value for key" << iter.key()
                    << "status" << static_cast<int>(iter.value().status);
