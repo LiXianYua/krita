@@ -217,6 +217,25 @@ void TestAtomic::testRefSeqCst()
     PkAtomicInt value(0);
     PK_VERIFY(value.ref());
     verifyHeaderContract("m_v.fetch_add(1, std::memory_order_seq_cst)");
+
+    // Store-buffering litmus over seq_cst RMWs. In the single total order,
+    // both ordered observations cannot precede the other thread's ref().
+    for (int iteration = 0; iteration < 100; ++iteration) {
+        PkAtomicInt left(0), right(0);
+        int sawRight = -1;
+        int sawLeft = -1;
+        std::thread first([&] {
+            left.ref();
+            sawRight = right.fetchAndAddOrdered(0);
+        });
+        std::thread second([&] {
+            right.ref();
+            sawLeft = left.fetchAndAddOrdered(0);
+        });
+        first.join();
+        second.join();
+        PK_VERIFY(sawRight != 0 || sawLeft != 0);
+    }
 }
 
 void TestAtomic::testDerefSeqCst()
@@ -224,6 +243,25 @@ void TestAtomic::testDerefSeqCst()
     PkAtomicInt value(1);
     PK_VERIFY(!value.deref());
     verifyHeaderContract("m_v.fetch_sub(1, std::memory_order_seq_cst)");
+
+    // The decrement variant of the same seq_cst litmus: both ordered
+    // observations cannot see the other counter before its deref().
+    for (int iteration = 0; iteration < 100; ++iteration) {
+        PkAtomicInt left(1), right(1);
+        int sawRight = -1;
+        int sawLeft = -1;
+        std::thread first([&] {
+            left.deref();
+            sawRight = right.fetchAndAddOrdered(0);
+        });
+        std::thread second([&] {
+            right.deref();
+            sawLeft = left.fetchAndAddOrdered(0);
+        });
+        first.join();
+        second.join();
+        PK_VERIFY(sawRight != 1 || sawLeft != 1);
+    }
 }
 
 void TestAtomic::testImplicitPointerLoadAcquire()

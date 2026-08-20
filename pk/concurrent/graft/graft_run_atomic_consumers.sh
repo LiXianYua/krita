@@ -7,7 +7,9 @@ mkdir -p "$work"
 cxx=${CXX:-g++}
 common=(-std=c++17 -pthread -Ipk/concurrent -Ipk/concurrent/compat -Ilibs/global -Ilibs/image/3rdparty/lock_free_map)
 
-"$cxx" "${common[@]}" -Ipk/concurrent/graft/stubs pk/concurrent/graft/atomic_kis_shared_ptr.cpp -o "$work/kis_shared_ptr"
+"$cxx" "${common[@]}" -Ipk/concurrent/graft/stubs \
+    -DKIS_DEBUG_H_ -D_KIS_MEMORY_LEAK_TRACKER_H_ \
+    pk/concurrent/graft/atomic_kis_shared_ptr.cpp -o "$work/kis_shared_ptr"
 "$cxx" "${common[@]}" -include pk/concurrent/compat/QAtomicInt pk/concurrent/graft/atomic_qsbr.cpp -o "$work/qsbr"
 "$cxx" "${common[@]}" pk/concurrent/graft/atomic_kis_lockless_stack.cpp -o "$work/kis_lockless_stack"
 
