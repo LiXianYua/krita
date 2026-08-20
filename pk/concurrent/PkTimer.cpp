@@ -13,6 +13,18 @@ struct PkTimer::State : std::enable_shared_from_this<PkTimer::State> {
     std::thread worker;
     std::atomic<bool> active{false};
     std::atomic<unsigned long long> generation{0};
+    bool deliveryOutstanding = false; // guarded by mutex
+
+    void acknowledgeDelivery(unsigned long long expectedGeneration)
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            if (generation.load() == expectedGeneration) {
+                deliveryOutstanding = false;
+            }
+        }
+        wake.notify_all();
+    }
 
     void postZeroInterval(std::function<void()> callback,
                           bool singleShot,
@@ -61,15 +73,34 @@ void PkTimer::start(std::chrono::milliseconds interval, std::function<void()> ca
             if (state->wake.wait_for(lock, interval, [&] {
                     return !state->active.load() || state->generation.load() != generation;
                 })) return;
+            state->deliveryOutstanding = true;
             PkThreadCallQueue::post(state->target, [weak = std::weak_ptr<State>(state),
-                                                    callback, generation] {
+                                                    callback, generation, singleShot] {
                 auto current = weak.lock();
-                if (current && current->generation.load() == generation) callback();
+                if (!current || current->generation.load() != generation) return;
+
+                if (singleShot) {
+                    callback();
+                    return;
+                }
+
+                try {
+                    callback();
+                } catch (...) {
+                    current->acknowledgeDelivery(generation);
+                    throw;
+                }
+                current->acknowledgeDelivery(generation);
             });
             if (singleShot) {
                 state->active = false;
                 return;
             }
+
+            state->wake.wait(lock, [&] {
+                return !state->deliveryOutstanding || !state->active.load() ||
+                       state->generation.load() != generation;
+            });
         } while (state->active.load() && state->generation.load() == generation);
     });
 }

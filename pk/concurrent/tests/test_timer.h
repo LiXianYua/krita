@@ -7,7 +7,7 @@ class TestTimer : public QObject {
 private Q_SLOTS:
     void callbackWaitsForExplicitPump();
     void stopAndDestructionCancelCallbacks();
-    void repeatingTimerPostsMoreThanOnce();
+    void positiveRepeatingTimerKeepsOneCallbackOutstanding();
     void zeroIntervalRepeatingTimerKeepsOneCallbackOutstanding();
     void negativeIntervalRepeatingTimerClampsToZero();
     void zeroIntervalSingleShotRestartPreservesReplacementGeneration();

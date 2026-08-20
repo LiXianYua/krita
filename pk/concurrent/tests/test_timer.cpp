@@ -32,13 +32,22 @@ void TestTimer::stopAndDestructionCancelCallbacks()
     PK_COMPARE(calls.load(), 0);
 }
 
-void TestTimer::repeatingTimerPostsMoreThanOnce()
+void TestTimer::positiveRepeatingTimerKeepsOneCallbackOutstanding()
 {
+    PkThreadCallQueue::warmUpCurrentThread();
     std::atomic<int> calls{0};
     PkTimer timer;
     timer.start(5ms, [&] { ++calls; });
     std::this_thread::sleep_for(50ms);
-    PkThreadCallQueue::processPendingCalls();
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
+    PK_COMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    PK_COMPARE(calls.load(), 1);
+
+    std::this_thread::sleep_for(20ms);
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
+    PK_COMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    PK_COMPARE(calls.load(), 2);
+
     timer.stop();
     const int stoppedCount = calls.load();
     PK_VERIFY(stoppedCount >= 2);

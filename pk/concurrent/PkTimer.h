@@ -12,10 +12,12 @@ public:
     PkTimer& operator=(const PkTimer&) = delete;
 
     // Starts or restarts the timer. Negative intervals are clamped to zero.
-    // A repeating zero-interval timer keeps at most one callback queued: the
+    // Every repeating timer keeps at most one callback queued: the
     // next callback is posted only after the target thread pumps and delivers
-    // the current one. Thus it runs once per pump pass without an unbounded
-    // producer loop. stop() invalidates every queued, not-yet-running callback.
+    // the current one. Positive intervals are measured again after delivery;
+    // non-positive intervals run once per pump pass. Thus a stalled target
+    // cannot accumulate an unbounded backlog. stop() invalidates every queued,
+    // not-yet-running callback.
     void start(std::chrono::milliseconds interval, std::function<void()> callback,
                bool singleShot = false);
     void stop();
