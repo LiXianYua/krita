@@ -577,6 +577,60 @@ void VariantCase::copyAndMove()
     PK_COMPARE(orig.toInt(), 0);
 }
 
+void VariantCase::nonPodCopiesOwnTheirDataPointers()
+{
+    const auto verifyCopyAndMove = [](const PkVariant &source) {
+        PkVariant assigned;
+        assigned = source;
+        PK_VERIFY(assigned == source);
+        PK_VERIFY(assigned.data() != source.constData());
+
+        PkVariant copied(source);
+        PK_VERIFY(copied == source);
+        PK_VERIFY(copied.data() != source.constData());
+
+        PkVariant moveSource(source);
+        PkVariant moved(std::move(moveSource));
+        PK_VERIFY(moved == source);
+
+        moveSource = source;
+        PkVariant moveAssigned;
+        moveAssigned = std::move(moveSource);
+        PK_VERIFY(moveAssigned == source);
+    };
+
+    verifyCopyAndMove(PkVariant(PkString("string")));
+    verifyCopyAndMove(PkVariant(PkByteArray("bytes", 5)));
+    verifyCopyAndMove(PkVariant(PkStringList{PkString("item")}));
+    verifyCopyAndMove(PkVariant(PkVariantList{PkVariant(1)}));
+    verifyCopyAndMove(PkVariant(PkVariantHash{{PkString("key"), PkVariant(1)}}));
+    verifyCopyAndMove(PkVariant(PkVariantMap{{PkString("key"), PkVariant(1)}}));
+    verifyCopyAndMove(PkVariant(PkPoint(1, 2)));
+    verifyCopyAndMove(PkVariant(PkPointF(1.0, 2.0)));
+    verifyCopyAndMove(PkVariant(PkRect(1, 2, 3, 4)));
+    verifyCopyAndMove(PkVariant(PkRectF(1.0, 2.0, 3.0, 4.0)));
+    verifyCopyAndMove(PkVariant(PkSize(1, 2)));
+    verifyCopyAndMove(PkVariant(PkSizeF(1.0, 2.0)));
+    verifyCopyAndMove(PkVariant(PkLine(1, 2, 3, 4)));
+    verifyCopyAndMove(PkVariant(PkLineF(1.0, 2.0, 3.0, 4.0)));
+    verifyCopyAndMove(PkVariant(PkDate(2024, 2, 29)));
+    verifyCopyAndMove(PkVariant(PkTime(12, 34, 56, 789)));
+    verifyCopyAndMove(PkVariant(PkDateTime(PkDate(2024, 2, 29), PkTime(12, 34, 56, 789))));
+    const PkVariant userSource = PkVariant::fromValue(std::vector<int>{1, 2, 3});
+    PkVariant userAssigned;
+    userAssigned = userSource;
+    PK_VERIFY(userAssigned.data() != userSource.constData());
+    PK_VERIFY(userAssigned.value<std::vector<int>>() == std::vector<int>({1, 2, 3}));
+
+    PkVariant userCopied(userSource);
+    PK_VERIFY(userCopied.data() != userSource.constData());
+    PK_VERIFY(userCopied.value<std::vector<int>>() == std::vector<int>({1, 2, 3}));
+
+    PkVariant userMoveSource(userSource);
+    PkVariant userMoved(std::move(userMoveSource));
+    PK_VERIFY(userMoved.value<std::vector<int>>() == std::vector<int>({1, 2, 3}));
+}
+
 void VariantCase::dataPointer()
 {
     PkVariant v(42);

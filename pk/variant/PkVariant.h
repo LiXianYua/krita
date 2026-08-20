@@ -227,9 +227,12 @@ private:
     PkString m_dateTimeZoneId;
 
     // data() 指针：POD 类型指向 union 成员，非 POD 类型指向 std::any 内容
+    using AnyDataAccessor = void *(*)(std::any &);
+    AnyDataAccessor m_anyDataAccessor = nullptr;
     void* m_data_ptr;
 
     void initFromPOD();
+    void rebindDataPointer();
     void setDateTimeWireState(DateTimeSpec spec, int offsetSeconds, const PkString& timeZoneId);
     const char* typeNameForType(Type t) const;
     static const char* typeNameForTypeHelper(Type t);

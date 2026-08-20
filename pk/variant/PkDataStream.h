@@ -91,6 +91,19 @@ public:
     PkDataStream &operator>>(PkVariant &value);
 
 private:
+    class DecodeScope
+    {
+    public:
+        explicit DecodeScope(PkDataStream &stream);
+        ~DecodeScope();
+
+        DecodeScope(const DecodeScope &) = delete;
+        DecodeScope &operator=(const DecodeScope &) = delete;
+
+    private:
+        PkDataStream &m_stream;
+    };
+
     template<typename T> PkDataStream &writeInteger(T value);
     template<typename T> PkDataStream &readInteger(T &value);
 
@@ -103,6 +116,7 @@ private:
     bool validateReadAllocation(std::uint64_t byteCount);
     bool validateContainerCount(std::uint32_t count, std::size_t minimumWireBytes,
                                 std::size_t decodedElementBytes);
+    bool chargeDecodedBytes(std::uint64_t byteCount);
     bool writeVariantList(const PkVariantList &values);
     bool readVariantList(PkVariantList &values);
     bool writeStringList(const PkStringList &values);
@@ -125,4 +139,6 @@ private:
     FloatingPointPrecision m_precision;
     Status m_status;
     std::size_t m_allocationLimit;
+    std::size_t m_decodeBudgetRemaining = 0;
+    std::size_t m_decodeDepth = 0;
 };

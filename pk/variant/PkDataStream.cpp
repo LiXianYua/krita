@@ -14,6 +14,10 @@ namespace {
 constexpr std::uint32_t kNullLength = 0xffffffffu;
 constexpr std::uint32_t kQt4FloatType = 135u;
 constexpr std::uint32_t kQt5UserType = 1024u;
+constexpr std::size_t kAllocationOverhead = 2u * sizeof(void *);
+constexpr std::size_t kTreeNodeOverhead = 4u * sizeof(void *);
+constexpr std::size_t kHashNodeOverhead = 2u * sizeof(void *);
+constexpr std::size_t kHashBucketAllowance = 2u * sizeof(void *);
 constexpr std::uint32_t kQt4UserType = 127u;
 constexpr std::size_t kDefaultAllocationLimit = 64u * 1024u * 1024u;
 
@@ -52,6 +56,19 @@ bool isSupportedType(std::uint32_t typeId)
 }
 
 } // namespace
+
+PkDataStream::DecodeScope::DecodeScope(PkDataStream &stream)
+    : m_stream(stream)
+{
+    if (m_stream.m_decodeDepth++ == 0u) {
+        m_stream.m_decodeBudgetRemaining = m_stream.m_allocationLimit;
+    }
+}
+
+PkDataStream::DecodeScope::~DecodeScope()
+{
+    --m_stream.m_decodeDepth;
+}
 
 PkDataStream::PkDataStream()
     : m_device(nullptr), m_externalBytes(nullptr), m_position(0), m_mode(PkStream::NotOpen),
@@ -291,6 +308,7 @@ bool PkDataStream::writeStringCodeUnits(const std::u16string &units, bool isNull
 
 PkDataStream &PkDataStream::operator>>(PkString &value)
 {
+    DecodeScope decode(*this);
     std::u16string units;
     bool isNull = false;
     if (!readStringCodeUnits(units, isNull)) {
@@ -326,13 +344,24 @@ bool PkDataStream::validateReadAllocation(std::uint64_t byteCount)
 bool PkDataStream::validateContainerCount(std::uint32_t count, std::size_t minimumWireBytes,
                                           std::size_t decodedElementBytes)
 {
-    if (decodedElementBytes != 0u
-        && static_cast<std::uint64_t>(count) > m_allocationLimit / decodedElementBytes) {
+    const std::uint64_t decodedBytes = static_cast<std::uint64_t>(count) * decodedElementBytes;
+    if (!chargeDecodedBytes(decodedBytes)) {
         setStatus(ReadCorruptData);
         return false;
     }
     const std::uint64_t minimum = static_cast<std::uint64_t>(count) * minimumWireBytes;
     return validateReadAllocation(minimum);
+}
+
+bool PkDataStream::chargeDecodedBytes(std::uint64_t byteCount)
+{
+    if (m_decodeDepth == 0u) return true;
+    if (byteCount > static_cast<std::uint64_t>(m_decodeBudgetRemaining)) {
+        setStatus(ReadCorruptData);
+        return false;
+    }
+    m_decodeBudgetRemaining -= static_cast<std::size_t>(byteCount);
+    return true;
 }
 
 bool PkDataStream::readStringCodeUnits(std::u16string &units, bool &isNull)
@@ -347,7 +376,11 @@ bool PkDataStream::readStringCodeUnits(std::u16string &units, bool &isNull)
         setStatus(ReadCorruptData);
         return false;
     }
-    if (!validateReadAllocation(byteCount)) return false;
+    if (!validateReadAllocation(byteCount)
+        || (byteCount != 0u
+            && !chargeDecodedBytes(static_cast<std::uint64_t>(byteCount) + kAllocationOverhead))) {
+        return false;
+    }
     try {
         units.assign(byteCount / 2u, u'\0');
     } catch (const std::bad_alloc &) {
@@ -375,6 +408,7 @@ PkDataStream &PkDataStream::operator<<(const PkByteArray &value)
 
 PkDataStream &PkDataStream::operator>>(PkByteArray &value)
 {
+    DecodeScope decode(*this);
     std::uint32_t size = 0;
     *this >> size;
     if (m_status != Ok || size == kNullLength) { value = PkByteArray(); return *this; }
@@ -383,7 +417,12 @@ PkDataStream &PkDataStream::operator>>(PkByteArray &value)
         value = PkByteArray();
         return *this;
     }
-    if (!validateReadAllocation(size)) { value = PkByteArray(); return *this; }
+    if (!validateReadAllocation(size)
+        || (size != 0u
+            && !chargeDecodedBytes(static_cast<std::uint64_t>(size) + kAllocationOverhead))) {
+        value = PkByteArray();
+        return *this;
+    }
     try {
         value.resize(static_cast<int>(size));
     } catch (const std::bad_alloc &) {
@@ -486,7 +525,10 @@ bool PkDataStream::readVariantMap(PkVariantMap &values)
         if (m_status == Ok) setStatus(ReadCorruptData);
         return false;
     }
-    if (!validateContainerCount(size, 9u, sizeof(PkVariantMap::value_type))) return false;
+    if (!validateContainerCount(size, 9u,
+                                sizeof(PkVariantMap::value_type) + kTreeNodeOverhead)) {
+        return false;
+    }
     values.clear();
     try {
         for (std::uint32_t i = 0; i < size; ++i) {
@@ -525,7 +567,11 @@ bool PkDataStream::readVariantHash(PkVariantHash &values)
         if (m_status == Ok) setStatus(ReadCorruptData);
         return false;
     }
-    if (!validateContainerCount(size, 9u, sizeof(PkVariantHash::value_type))) return false;
+    if (!validateContainerCount(size, 9u,
+                                sizeof(PkVariantHash::value_type) + kHashNodeOverhead
+                                    + kHashBucketAllowance)) {
+        return false;
+    }
     values.clear();
     try {
         values.reserve(size);
@@ -660,6 +706,7 @@ bool PkDataStream::writeVariantPayload(const PkVariant &value)
 
 PkDataStream &PkDataStream::operator>>(PkVariant &value)
 {
+    DecodeScope decode(*this);
     value.clear();
     std::uint32_t typeId = 0;
     std::uint8_t nullFlag = 0;

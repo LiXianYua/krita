@@ -55,5 +55,6 @@ private Q_SLOTS:
     void conversionEdgeCases();
     void nanAndInf();
     void copyAndMove();
+    void nonPodCopiesOwnTheirDataPointers();
     void dataPointer();
 };

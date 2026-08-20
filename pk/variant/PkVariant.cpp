@@ -58,59 +58,13 @@ PkVariant::PkVariant(const PkVariant& other)
     , m_dateTimeSpec(other.m_dateTimeSpec)
     , m_dateTimeOffsetSeconds(other.m_dateTimeOffsetSeconds)
     , m_dateTimeZoneId(other.m_dateTimeZoneId)
+    , m_anyDataAccessor(other.m_anyDataAccessor)
     , m_data_ptr(nullptr)
 {
     if (pkIsPODType(m_type)) {
         std::memcpy(&m_bool, &other.m_bool, sizeof(double)); // 足够大
-        // 修正 m_data_ptr
-        switch (m_type) {
-            case Bool: m_data_ptr = &m_bool; break;
-            case Int: m_data_ptr = &m_int; break;
-            case UInt: m_data_ptr = &m_uint; break;
-            case LongLong: m_data_ptr = &m_ll; break;
-            case ULongLong: m_data_ptr = &m_ull; break;
-            case Double: m_data_ptr = &m_double; break;
-            case Float: m_data_ptr = &m_float; break;
-            default: break;
-        }
-    } else if (m_type == String) {
-        m_data_ptr = std::any_cast<PkString>(&m_any);
-    } else if (m_type == ByteArray) {
-        m_data_ptr = const_cast<PkByteArray*>(std::any_cast<const PkByteArray>(&m_any));
-    } else if (m_type == StringList) {
-        m_data_ptr = const_cast<PkStringList*>(std::any_cast<const PkStringList>(&m_any));
-    } else if (m_type == List) {
-        m_data_ptr = const_cast<PkVariantList*>(std::any_cast<const PkVariantList>(&m_any));
-    } else if (m_type == Hash) {
-        m_data_ptr = const_cast<PkVariantHash*>(std::any_cast<const PkVariantHash>(&m_any));
-    } else if (m_type == Map) {
-        m_data_ptr = const_cast<PkVariantMap*>(std::any_cast<const PkVariantMap>(&m_any));
-    } else if (m_type == Point) {
-        m_data_ptr = const_cast<PkPoint*>(std::any_cast<const PkPoint>(&m_any));
-    } else if (m_type == PointF) {
-        m_data_ptr = const_cast<PkPointF*>(std::any_cast<const PkPointF>(&m_any));
-    } else if (m_type == Rect) {
-        m_data_ptr = const_cast<PkRect*>(std::any_cast<const PkRect>(&m_any));
-    } else if (m_type == RectF) {
-        m_data_ptr = const_cast<PkRectF*>(std::any_cast<const PkRectF>(&m_any));
-    } else if (m_type == Size) {
-        m_data_ptr = const_cast<PkSize*>(std::any_cast<const PkSize>(&m_any));
-    } else if (m_type == SizeF) {
-        m_data_ptr = const_cast<PkSizeF*>(std::any_cast<const PkSizeF>(&m_any));
-    } else if (m_type == Line) {
-        m_data_ptr = const_cast<PkLine*>(std::any_cast<const PkLine>(&m_any));
-    } else if (m_type == LineF) {
-        m_data_ptr = const_cast<PkLineF*>(std::any_cast<const PkLineF>(&m_any));
-    } else if (m_type == Date) {
-        m_data_ptr = const_cast<PkDate*>(std::any_cast<const PkDate>(&m_any));
-    } else if (m_type == Time) {
-        m_data_ptr = const_cast<PkTime*>(std::any_cast<const PkTime>(&m_any));
-    } else if (m_type == DateTime) {
-        m_data_ptr = const_cast<PkDateTime*>(std::any_cast<const PkDateTime>(&m_any));
-    } else if (m_type == UserType) {
-        // UserType: m_data_ptr 在 fromValue 中设置，复制时来自源
-        m_data_ptr = other.m_data_ptr;
     }
+    rebindDataPointer();
 }
 
 PkVariant::PkVariant(PkVariant&& other) noexcept
@@ -122,26 +76,18 @@ PkVariant::PkVariant(PkVariant&& other) noexcept
     m_dateTimeSpec = other.m_dateTimeSpec;
     m_dateTimeOffsetSeconds = other.m_dateTimeOffsetSeconds;
     m_dateTimeZoneId = std::move(other.m_dateTimeZoneId);
+    m_anyDataAccessor = other.m_anyDataAccessor;
     if (pkIsPODType(m_type)) {
         std::memcpy(&m_bool, &other.m_bool, sizeof(double));
-        switch (m_type) {
-            case Bool: m_data_ptr = &m_bool; break;
-            case Int: m_data_ptr = &m_int; break;
-            case UInt: m_data_ptr = &m_uint; break;
-            case LongLong: m_data_ptr = &m_ll; break;
-            case ULongLong: m_data_ptr = &m_ull; break;
-            case Double: m_data_ptr = &m_double; break;
-            case Float: m_data_ptr = &m_float; break;
-            default: break;
-        }
     } else {
         m_any = std::move(other.m_any);
-        m_data_ptr = other.m_data_ptr;
     }
+    rebindDataPointer();
     // 重置源为 null
     other.m_type = Invalid;
     other.m_isNull = true;
     other.m_wireNullFlag = true;
+    other.m_anyDataAccessor = nullptr;
     other.m_data_ptr = nullptr;
 }
 
@@ -155,23 +101,11 @@ PkVariant& PkVariant::operator=(const PkVariant& other)
     m_dateTimeSpec = other.m_dateTimeSpec;
     m_dateTimeOffsetSeconds = other.m_dateTimeOffsetSeconds;
     m_dateTimeZoneId = other.m_dateTimeZoneId;
+    m_anyDataAccessor = other.m_anyDataAccessor;
     if (pkIsPODType(m_type)) {
         std::memcpy(&m_bool, &other.m_bool, sizeof(double));
-        switch (m_type) {
-            case Bool: m_data_ptr = &m_bool; break;
-            case Int: m_data_ptr = &m_int; break;
-            case UInt: m_data_ptr = &m_uint; break;
-            case LongLong: m_data_ptr = &m_ll; break;
-            case ULongLong: m_data_ptr = &m_ull; break;
-            case Double: m_data_ptr = &m_double; break;
-            case Float: m_data_ptr = &m_float; break;
-            default: break;
-        }
-    } else if (m_type == Invalid) {
-        m_data_ptr = nullptr;
-    } else {
-        m_data_ptr = other.m_data_ptr;
     }
+    rebindDataPointer();
     return *this;
 }
 
@@ -181,28 +115,20 @@ PkVariant& PkVariant::operator=(PkVariant&& other) noexcept
     m_type = other.m_type;
     m_isNull = other.m_isNull;
     m_wireNullFlag = other.m_wireNullFlag;
-    m_data_ptr = other.m_data_ptr;
     m_dateTimeSpec = other.m_dateTimeSpec;
     m_dateTimeOffsetSeconds = other.m_dateTimeOffsetSeconds;
     m_dateTimeZoneId = std::move(other.m_dateTimeZoneId);
+    m_anyDataAccessor = other.m_anyDataAccessor;
     if (pkIsPODType(m_type)) {
         std::memcpy(&m_bool, &other.m_bool, sizeof(double));
-        switch (m_type) {
-            case Bool: m_data_ptr = &m_bool; break;
-            case Int: m_data_ptr = &m_int; break;
-            case UInt: m_data_ptr = &m_uint; break;
-            case LongLong: m_data_ptr = &m_ll; break;
-            case ULongLong: m_data_ptr = &m_ull; break;
-            case Double: m_data_ptr = &m_double; break;
-            case Float: m_data_ptr = &m_float; break;
-            default: break;
-        }
     } else {
         m_any = std::move(other.m_any);
     }
+    rebindDataPointer();
     other.m_type = Invalid;
     other.m_isNull = true;
     other.m_wireNullFlag = true;
+    other.m_anyDataAccessor = nullptr;
     other.m_data_ptr = nullptr;
     return *this;
 }
@@ -414,7 +340,42 @@ void PkVariant::clear()
     m_dateTimeSpec = DateTimeSpec::LocalTime;
     m_dateTimeOffsetSeconds = 0;
     m_dateTimeZoneId = PkString();
+    m_anyDataAccessor = nullptr;
     m_data_ptr = &m_bool;
+}
+
+void PkVariant::rebindDataPointer()
+{
+    switch (m_type) {
+    case Invalid: m_data_ptr = &m_bool; break;
+    case Bool: m_data_ptr = &m_bool; break;
+    case Int: m_data_ptr = &m_int; break;
+    case UInt: m_data_ptr = &m_uint; break;
+    case LongLong: m_data_ptr = &m_ll; break;
+    case ULongLong: m_data_ptr = &m_ull; break;
+    case Double: m_data_ptr = &m_double; break;
+    case Float: m_data_ptr = &m_float; break;
+    case String: m_data_ptr = std::any_cast<PkString>(&m_any); break;
+    case ByteArray: m_data_ptr = std::any_cast<PkByteArray>(&m_any); break;
+    case StringList: m_data_ptr = std::any_cast<PkStringList>(&m_any); break;
+    case List: m_data_ptr = std::any_cast<PkVariantList>(&m_any); break;
+    case Hash: m_data_ptr = std::any_cast<PkVariantHash>(&m_any); break;
+    case Map: m_data_ptr = std::any_cast<PkVariantMap>(&m_any); break;
+    case Point: m_data_ptr = std::any_cast<PkPoint>(&m_any); break;
+    case PointF: m_data_ptr = std::any_cast<PkPointF>(&m_any); break;
+    case Rect: m_data_ptr = std::any_cast<PkRect>(&m_any); break;
+    case RectF: m_data_ptr = std::any_cast<PkRectF>(&m_any); break;
+    case Size: m_data_ptr = std::any_cast<PkSize>(&m_any); break;
+    case SizeF: m_data_ptr = std::any_cast<PkSizeF>(&m_any); break;
+    case Line: m_data_ptr = std::any_cast<PkLine>(&m_any); break;
+    case LineF: m_data_ptr = std::any_cast<PkLineF>(&m_any); break;
+    case Date: m_data_ptr = std::any_cast<PkDate>(&m_any); break;
+    case Time: m_data_ptr = std::any_cast<PkTime>(&m_any); break;
+    case DateTime: m_data_ptr = std::any_cast<PkDateTime>(&m_any); break;
+    case UserType:
+        m_data_ptr = m_anyDataAccessor ? m_anyDataAccessor(m_any) : nullptr;
+        break;
+    }
 }
 
 // ── 转换 ─────────────────────────────────────────────────────────────────

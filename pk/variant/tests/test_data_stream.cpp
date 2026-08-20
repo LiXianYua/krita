@@ -430,8 +430,7 @@ void DataStreamCase::containerDecodedStorageIsBounded()
     };
     const auto verifyBoundary = [&](const PkVariant &twoElements,
                                     const PkVariant &threeElements,
-                                    std::size_t decodedElementSize) {
-        const std::size_t limit = 2u * decodedElementSize;
+                                    std::size_t limit) {
         PkDataStream accepted(encode(twoElements));
         accepted.setAllocationLimit(limit);
         PkVariant acceptedValue;
@@ -449,22 +448,78 @@ void DataStreamCase::containerDecodedStorageIsBounded()
 
     verifyBoundary(PkVariant(PkVariantList{PkVariant(), PkVariant()}),
                    PkVariant(PkVariantList{PkVariant(), PkVariant(), PkVariant()}),
-                   sizeof(PkVariant));
+                   2u * sizeof(PkVariant));
     verifyBoundary(PkVariant(PkStringList{PkString(), PkString()}),
                    PkVariant(PkStringList{PkString(), PkString(), PkString()}),
-                   sizeof(PkString));
+                   2u * sizeof(PkString));
     verifyBoundary(PkVariant(PkVariantMap{{PkString("a"), PkVariant()},
                                           {PkString("b"), PkVariant()}}),
                    PkVariant(PkVariantMap{{PkString("a"), PkVariant()},
                                           {PkString("b"), PkVariant()},
                                           {PkString("c"), PkVariant()}}),
-                   sizeof(PkVariantMap::value_type));
+                   2u * (sizeof(PkVariantMap::value_type) + 4u * sizeof(void *))
+                       + 3u * (2u + 2u * sizeof(void *)));
     verifyBoundary(PkVariant(PkVariantHash{{PkString("a"), PkVariant()},
                                            {PkString("b"), PkVariant()}}),
                    PkVariant(PkVariantHash{{PkString("a"), PkVariant()},
                                            {PkString("b"), PkVariant()},
                                            {PkString("c"), PkVariant()}}),
-                   sizeof(PkVariantHash::value_type));
+                   2u * (sizeof(PkVariantHash::value_type) + 4u * sizeof(void *))
+                       + 3u * (2u + 2u * sizeof(void *)));
+}
+
+void DataStreamCase::recursiveDecodeBudgetIncludesAssociativeOverheadAndPayload()
+{
+    const std::string payload(300, 'x');
+    const PkVariantList nested{
+        PkVariant(PkByteArray(payload.data(), static_cast<int>(payload.size()))),
+        PkVariant(PkByteArray(payload.data(), static_cast<int>(payload.size())))
+    };
+    const PkVariant values[]{
+        PkVariant(PkVariantMap{{PkString("unique-map-key"), PkVariant(nested)}}),
+        PkVariant(PkVariantHash{{PkString("unique-hash-key"), PkVariant(nested)}})
+    };
+
+    for (const PkVariant &expected : values) {
+        PkByteArray bytes;
+        PkDataStream writer(&bytes, PkStream::WriteOnly);
+        writer << expected;
+        PK_COMPARE(writer.status(), PkDataStream::Ok);
+
+        // Every individual node and payload is below 512 bytes. Only a single
+        // recursive budget that accumulates container/node/bucket/payload
+        // ownership rejects the aggregate.
+        PkDataStream rejected(bytes);
+        rejected.setAllocationLimit(512);
+        PkVariant rejectedValue;
+        rejected >> rejectedValue;
+        PK_COMPARE(rejected.status(), PkDataStream::ReadCorruptData);
+        PK_VERIFY(!rejectedValue.isValid());
+
+        PkDataStream accepted(bytes);
+        accepted.setAllocationLimit(2048);
+        PkVariant acceptedValue;
+        accepted >> acceptedValue;
+        PK_COMPARE(accepted.status(), PkDataStream::Ok);
+        PK_VERIFY(acceptedValue == expected);
+    }
+}
+
+void DataStreamCase::copyAssignedStringMutationSerializesDestination()
+{
+    PkVariant source(PkString("source"));
+    PkVariant destination(42);
+    destination = source;
+    *static_cast<PkString *>(destination.data()) = PkString("destination");
+
+    PK_VERIFY(source == PkVariant(PkString("source")));
+    PK_VERIFY(destination == PkVariant(PkString("destination")));
+
+    PkByteArray encoded;
+    PkDataStream writer(&encoded, PkStream::WriteOnly);
+    writer << destination;
+    PK_COMPARE(writer.status(), PkDataStream::Ok);
+    PK_VERIFY(encoded == fromHex("0000000a000000001600640065007300740069006e006100740069006f006e"));
 }
 
 PK_TEST_MAIN(DataStreamCase)

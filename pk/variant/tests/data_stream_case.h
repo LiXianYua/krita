@@ -23,4 +23,6 @@ private Q_SLOTS:
     void userTypeFailureConsumesTypeName();
     void hostileLengthsAreRejectedBeforeAllocation();
     void containerDecodedStorageIsBounded();
+    void recursiveDecodeBudgetIncludesAssociativeOverheadAndPayload();
+    void copyAssignedStringMutationSerializesDestination();
 };

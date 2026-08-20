@@ -16,8 +16,11 @@ PkVariant PkVariant::fromValue(const T& value)
         v.m_isNull = false;
         v.m_wireNullFlag = false;
         v.m_any = value;
+        v.m_anyDataAccessor = [](std::any &storage) -> void * {
+            return std::any_cast<T>(&storage);
+        };
         if (v.m_any.has_value()) {
-            v.m_data_ptr = std::any_cast<T>(&v.m_any);
+            v.rebindDataPointer();
         } else {
             v.m_data_ptr = nullptr;
         }
@@ -122,8 +125,11 @@ void PkVariant::setValue(const T& value)
         m_isNull = false;
         m_wireNullFlag = false;
         m_any = value;
+        m_anyDataAccessor = [](std::any &storage) -> void * {
+            return std::any_cast<T>(&storage);
+        };
         if (m_any.has_value()) {
-            m_data_ptr = std::any_cast<T>(&m_any);
+            rebindDataPointer();
         } else {
             m_data_ptr = nullptr;
         }
