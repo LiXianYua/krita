@@ -245,7 +245,75 @@ if (KSeExpr_FOUND)
     )
 endif()
 
-kis_add_library(kritaflake SHARED ${kritaflake_SRCS})
+set(kritaflake_OBJECT_DEPS
+    kritapigment
+    kritacommand
+    KF${KF_MAJOR}::WidgetsAddons
+    Qt${QT_MAJOR_VERSION}::Svg
+    KF${KF_MAJOR}::CoreAddons
+    KF${KF_MAJOR}::ConfigCore
+    KF${KF_MAJOR}::I18n
+    Qt${QT_MAJOR_VERSION}::Gui
+    Qt${QT_MAJOR_VERSION}::Xml
+    Boost::boost
+    Freetype::Freetype
+    HarfBuzz::HarfBuzz
+    Raqm::Raqm
+    Fontconfig::Fontconfig
+    libunibreak::libunibreak
+)
+
+if (QT_MAJOR_VERSION STREQUAL "6")
+    list(APPEND kritaflake_OBJECT_DEPS Qt${QT_MAJOR_VERSION}::OpenGLWidgets)
+endif()
+
+function(kritaflake_add_object_library target)
+    kis_add_library(${target} OBJECT ${ARGN})
+    target_link_libraries(${target} PRIVATE ${kritaflake_OBJECT_DEPS})
+    target_compile_definitions(${target} PRIVATE kritaflake_EXPORTS)
+    set_target_properties(${target} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endfunction()
+
+set(kritaflake_commands_SRCS ${kritaflake_SRCS})
+list(FILTER kritaflake_commands_SRCS INCLUDE REGEX "^commands/")
+
+set(kritaflake_html_SRCS ${kritaflake_SRCS})
+list(FILTER kritaflake_html_SRCS INCLUDE REGEX "^html/")
+
+set(kritaflake_tools_SRCS ${kritaflake_SRCS})
+list(FILTER kritaflake_tools_SRCS INCLUDE REGEX "^tools/")
+
+set(kritaflake_svg_SRCS ${kritaflake_SRCS})
+list(FILTER kritaflake_svg_SRCS INCLUDE REGEX "^svg/")
+
+set(kritaflake_text_SRCS ${kritaflake_SRCS})
+list(FILTER kritaflake_text_SRCS INCLUDE REGEX "^text/")
+
+set(kritaflake_resources_SRCS ${kritaflake_SRCS})
+list(FILTER kritaflake_resources_SRCS INCLUDE REGEX "^resources/")
+
+set(kritaflake_core_SRCS ${kritaflake_SRCS})
+list(FILTER kritaflake_core_SRCS EXCLUDE REGEX "^(commands|html|tools|svg|text|resources)/")
+list(REMOVE_ITEM kritaflake_core_SRCS ${__per_arch_alpha_applicator_factory_objs})
+
+kritaflake_add_object_library(kritaflake_commands_objects ${kritaflake_commands_SRCS})
+kritaflake_add_object_library(kritaflake_html_objects ${kritaflake_html_SRCS})
+kritaflake_add_object_library(kritaflake_tools_objects ${kritaflake_tools_SRCS})
+kritaflake_add_object_library(kritaflake_svg_objects ${kritaflake_svg_SRCS})
+kritaflake_add_object_library(kritaflake_text_objects ${kritaflake_text_SRCS})
+kritaflake_add_object_library(kritaflake_resources_objects ${kritaflake_resources_SRCS})
+kritaflake_add_object_library(kritaflake_core_objects ${kritaflake_core_SRCS})
+
+kis_add_library(kritaflake SHARED
+    $<TARGET_OBJECTS:kritaflake_commands_objects>
+    $<TARGET_OBJECTS:kritaflake_html_objects>
+    $<TARGET_OBJECTS:kritaflake_tools_objects>
+    $<TARGET_OBJECTS:kritaflake_svg_objects>
+    $<TARGET_OBJECTS:kritaflake_text_objects>
+    $<TARGET_OBJECTS:kritaflake_resources_objects>
+    $<TARGET_OBJECTS:kritaflake_core_objects>
+    ${__per_arch_alpha_applicator_factory_objs}
+)
 generate_export_header(kritaflake BASE_NAME kritaflake)
 
 target_include_directories(kritaflake
