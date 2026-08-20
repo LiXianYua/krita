@@ -567,7 +567,6 @@ PkColor PkColor::fromHslF(qreal h, qreal s, qreal l, qreal a)
 PkColor PkColor::fromWireState(const WireState &state) noexcept
 {
     PkColor color;
-    if (state.spec < Invalid || state.spec > ExtendedRgb) return color;
     color.cspec = state.spec;
     if (state.spec == ExtendedRgb) {
         color.ct.argbExt.alphaF = halfToFloat(state.channels[0]);
@@ -757,6 +756,7 @@ void PkColor::setRgbF(qreal r, qreal g, qreal b, qreal a)
         ct.argbExt.greenF = (float)g;
         ct.argbExt.blueF  = (float)b;
         ct.argbExt.alphaF = (float)a;
+        extendedWirePad = 0;
         return;
     }
     cspec = Rgb;

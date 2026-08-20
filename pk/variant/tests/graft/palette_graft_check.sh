@@ -12,6 +12,7 @@ g++ -std=c++17 -O2 -fwrapv \
     -Ipk/global -Ipk/namespace -Ipk/time \
     pk/variant/tests/graft/palette_generator_shape.cpp \
     "$build_dir/libpkvariant.a" "$build_dir/libpkcolor.a" "$build_dir/libpkstring.a" \
+    "$build_dir/libpkglobal.a" \
     "$build_dir/libpktime.a" "$build_dir/libpkgeometry.a" "$build_dir/libpkport.a" \
     "$build_dir/libpkzip.a" "$build_dir/libminizip-ng.a" -lz \
     -o "$out_dir/palette_generator_shape"

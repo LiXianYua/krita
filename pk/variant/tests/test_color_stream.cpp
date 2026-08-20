@@ -58,4 +58,64 @@ void ColorStreamCase::colorsMatchQt46WireBytes()
     }
 }
 
+void ColorStreamCase::shortReadsRetainQt46DecodedState()
+{
+    struct Fixture {
+        const char *hex;
+        PkDataStream::Status status;
+        int spec;
+        const char *reencodedHex;
+    };
+    const Fixture fixtures[]{
+        {"", PkDataStream::ReadPastEnd, 0, "0000000000000000000000"},
+        {"01", PkDataStream::ReadPastEnd, 1, "0100000000000000000000"},
+        {"0104", PkDataStream::ReadPastEnd, 1, "0100000000000000000000"},
+        {"010404", PkDataStream::ReadPastEnd, 1, "0104040000000000000000"},
+    };
+
+    for (const Fixture &fixture : fixtures) {
+        PkColor decoded(9, 8, 7, 6);
+        PkDataStream reader(fromHex(fixture.hex));
+        reader.setVersion(PkDataStream::Qt_4_6);
+        reader >> decoded;
+        PK_COMPARE(reader.status(), fixture.status);
+        PK_COMPARE(int(decoded.wireState().spec), fixture.spec);
+
+        PkByteArray encoded;
+        PkDataStream writer(&encoded, PkStream::WriteOnly);
+        writer.setVersion(PkDataStream::Qt_4_6);
+        writer << decoded;
+        PK_COMPARE(writer.status(), PkDataStream::Ok);
+        PK_VERIFY(encoded == fromHex(fixture.reencodedHex));
+    }
+}
+
+void ColorStreamCase::rawSpecsArePreservedLikeQt46()
+{
+    struct Fixture {
+        const char *hex;
+        int spec;
+    };
+    const Fixture fixtures[]{
+        {"0611112222333344445555", 6},
+        {"ff11112222333344445555", -1},
+    };
+
+    for (const Fixture &fixture : fixtures) {
+        PkColor decoded;
+        PkDataStream reader(fromHex(fixture.hex));
+        reader.setVersion(PkDataStream::Qt_4_6);
+        reader >> decoded;
+        PK_COMPARE(reader.status(), PkDataStream::Ok);
+        PK_COMPARE(int(decoded.wireState().spec), fixture.spec);
+
+        PkByteArray encoded;
+        PkDataStream writer(&encoded, PkStream::WriteOnly);
+        writer.setVersion(PkDataStream::Qt_4_6);
+        writer << decoded;
+        PK_COMPARE(writer.status(), PkDataStream::Ok);
+        PK_VERIFY(encoded == fromHex(fixture.hex));
+    }
+}
+
 PK_TEST_MAIN(ColorStreamCase)

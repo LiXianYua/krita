@@ -9,7 +9,7 @@
 # 依赖拓扑序（顶层 pk/* 目录，按此顺序构建）：
 #   1. container（无 pk 依赖）
 #   2. string（include 依赖 container）
-#   3. geometry（include 依赖 container）
+#   3. global + geometry（geometry 依赖 global、container）
 #   4. flags（无 pk 依赖，INTERFACE）
 #   5. concurrent（无 pk 依赖，Threads::Threads）
 #   6. log（无 pk 依赖，spdlog::spdlog）
@@ -57,12 +57,17 @@ target_include_directories(pkstring PUBLIC
 )
 
 # =========================================================================
-# 3. pk/geometry
+# 3. pk/global + pk/geometry
 #    注意：PkPolygon.h 继承 PkVector<PkPoint>（pk/container），
 #    PkVector<T> 是模板头文件，需要 include 路径。
 # =========================================================================
-add_library(pkgeometry STATIC
+add_library(pkglobal STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/global/PkGlobal.cpp
+)
+target_include_directories(pkglobal PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/global)
+target_compile_options(pkglobal PUBLIC -fwrapv)
+
+add_library(pkgeometry STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkPoint.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkSize.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkRect.cpp
@@ -81,6 +86,7 @@ target_include_directories(pkgeometry PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/global
 )
 target_compile_options(pkgeometry PUBLIC -fwrapv)
+target_link_libraries(pkgeometry PUBLIC pkglobal)
 
 # =========================================================================
 # 4. pk/flags（INTERFACE 库，纯头文件）
@@ -205,7 +211,7 @@ target_include_directories(pkcolor PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/string
     ${CMAKE_CURRENT_SOURCE_DIR}/container
 )
-target_link_libraries(pkcolor PUBLIC pkstring)
+target_link_libraries(pkcolor PUBLIC pkstring pkglobal)
 
 add_library(pkvariant STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/variant/PkAuxTypes.cpp

@@ -68,6 +68,10 @@ add_subdirectory(${PKPORT_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pkport EXCLUDE_FROM_A
 # pk/color. Define only its library target here instead of adding the color
 # test project (which would add pk/test a second time in this focused shell).
 set(PKCOLOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../color)
+set(PKGLOBAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../global)
+add_library(pkglobal STATIC ${PKGLOBAL_DIR}/PkGlobal.cpp)
+target_include_directories(pkglobal PUBLIC ${PKGLOBAL_DIR})
+target_compile_options(pkglobal PUBLIC -fwrapv)
 add_library(pkcolor STATIC ${PKCOLOR_DIR}/PkColor.cpp)
 target_include_directories(pkcolor PUBLIC
     ${PKCOLOR_DIR}
@@ -75,7 +79,7 @@ target_include_directories(pkcolor PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../namespace
     ${CMAKE_CURRENT_SOURCE_DIR}/../string
     ${CMAKE_CURRENT_SOURCE_DIR}/../container)
-target_link_libraries(pkcolor PUBLIC pkstring)
+target_link_libraries(pkcolor PUBLIC pkstring pkglobal)
 
 # ---------------------------------------------------------------------------
 # 依赖：pk/container —— 仅通过 include 路径引入（纯头文件）
@@ -135,3 +139,11 @@ set_source_files_properties(tests/test_color_stream.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_color_stream_case.inc")
 
 add_test(NAME test_pkdatastream_color COMMAND test_pkdatastream_color)
+
+# Link-only ownership guard: in Debug, PkColor's range checks reference
+# pk_qt_assert. This executable intentionally links only pkcolor so the target
+# must publish the assertion-runtime owner instead of borrowing it through an
+# unrelated consumer such as pkgeometry.
+add_executable(test_pkcolor_link tests/pkcolor_link_smoke.cpp)
+target_link_libraries(test_pkcolor_link PRIVATE pkcolor)
+add_test(NAME test_pkcolor_link COMMAND test_pkcolor_link)

@@ -106,6 +106,18 @@ void PkColorCase::wireStateIsLossless()
     PK_VERIFY(PkColor::fromWireState(invalid).wireState() == invalid);
 }
 
+void PkColorCase::setRgbFClearsExtendedWirePad()
+{
+    PkColor color = PkColor::fromWireState(
+        {PkColor::ExtendedRgb, {0x3a00u, 0x3d00u, 0xb400u, 0x3800u, 0xabcdu}});
+
+    color.setRgbF(0.25, 0.5, 0.75, 1.0);
+
+    const PkColor::WireState state = color.wireState();
+    PK_COMPARE(int(state.spec), int(PkColor::ExtendedRgb));
+    PK_COMPARE(state.channels[4], quint16(0));
+}
+
 // ── 数据驱动族试验 ────────────────────────────────────────
 
 void PkColorCase::globalColor_data()
