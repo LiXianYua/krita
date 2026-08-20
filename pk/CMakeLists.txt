@@ -61,7 +61,7 @@ target_include_directories(pkstring PUBLIC
 #    PkVector<T> 是模板头文件，需要 include 路径。
 # =========================================================================
 add_library(pkgeometry STATIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkGlobal.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/global/PkGlobal.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkPoint.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkSize.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry/PkRect.cpp
@@ -77,6 +77,7 @@ add_library(pkgeometry STATIC
 target_include_directories(pkgeometry PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry
     ${CMAKE_CURRENT_SOURCE_DIR}/container
+    ${CMAKE_CURRENT_SOURCE_DIR}/global
 )
 target_compile_options(pkgeometry PUBLIC -fwrapv)
 
@@ -200,9 +201,10 @@ add_library(pkvariant STATIC
 target_include_directories(pkvariant PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/variant
     ${CMAKE_CURRENT_SOURCE_DIR}/container
+    ${CMAKE_CURRENT_SOURCE_DIR}/time
 )
 target_compile_options(pkvariant PUBLIC -fwrapv)
-target_link_libraries(pkvariant PUBLIC pkstring pkgeometry)
+target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime)
 
 # =========================================================================
 # 12. pk/port/zip（minizip-ng FetchContent）—— PkZipArchive.cpp 内联到 pkport

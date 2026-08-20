@@ -43,15 +43,28 @@ set(PKGEOMETRY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../geometry)
 add_subdirectory(${PKGEOMETRY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pkgeometry EXCLUDE_FROM_ALL)
 
 # ---------------------------------------------------------------------------
+# 依赖：pk/time —— 通过 add_subdirectory 引入（Task 4 把时间类型迁到 pk/time 后，
+# PkVariant 的 PkDate/PkTime/PkDateTime 实现住在 libpktime.a）。
+# 必须放在 pk/geometry 之后：pk/time 的 CMakeLists 里 add_subdirectory(pk/test)
+# 有 `if (NOT TARGET pktest)` 守卫，此时 pktest 已被 pk/geometry 拉进来，守卫
+# 直接跳过，不会撞 binary dir。EXCLUDE_FROM_ALL 只取 pktime 库，不跟着构建
+# test_pktime/date_parser_driver。
+# ---------------------------------------------------------------------------
+set(PKTIME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../time)
+add_subdirectory(${PKTIME_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pktime EXCLUDE_FROM_ALL)
+
+# ---------------------------------------------------------------------------
 # 依赖：pk/container —— 仅通过 include 路径引入（纯头文件）
 # pk/geometry 和 pk/container 都通过 add_subdirectory 引入 pk/test，
 # 不能同时作为子目录。PkStringList.h、PkStringHash.h 是纯头文件，
 # 通过 include 路径引入即可。
 # ---------------------------------------------------------------------------
 target_include_directories(pkvariant PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../container)
+# pk/time：PkVariant.h 用 ../time/PkDateTime.h 相对 include，这里显式给上。
+target_include_directories(pkvariant PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../time)
 
-# pkvariant 链接 pkstring 和 pkgeometry
-target_link_libraries(pkvariant PUBLIC pkstring pkgeometry)
+# pkvariant 链接 pkstring、pkgeometry、pktime（时间类型归位后依赖 pk/time）
+target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime)
 
 # ---------------------------------------------------------------------------
 # 单测：用 pk/test 的 PK_* harness
@@ -62,7 +75,7 @@ pk_test_generate(PKVARIANT_GENERATED_SOURCES
 add_executable(test_pkvariant
     tests/test_variant.cpp
 )
-target_link_libraries(test_pkvariant PRIVATE pkvariant pktest pkstring)
+target_link_libraries(test_pkvariant PRIVATE pkvariant pktest pkstring pktime)
 target_include_directories(test_pkvariant PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../test/compat)
