@@ -37,10 +37,48 @@ void TestTimer::repeatingTimerPostsMoreThanOnce()
     std::atomic<int> calls{0};
     PkTimer timer;
     timer.start(5ms, [&] { ++calls; });
-    std::this_thread::sleep_for(25ms);
+    std::this_thread::sleep_for(50ms);
     PkThreadCallQueue::processPendingCalls();
     timer.stop();
-    PK_VERIFY(calls.load() >= 2);
+    const int stoppedCount = calls.load();
+    PK_VERIFY(stoppedCount >= 2);
+    std::this_thread::sleep_for(20ms);
+    PkThreadCallQueue::processPendingCalls();
+    PK_COMPARE(calls.load(), stoppedCount);
+}
+
+void TestTimer::zeroIntervalRepeatingTimerKeepsOneCallbackOutstanding()
+{
+    PkThreadCallQueue::warmUpCurrentThread();
+    std::atomic<int> calls{0};
+    PkTimer timer;
+    timer.start(0ms, [&] { ++calls; });
+    std::this_thread::sleep_for(2ms);
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
+    PK_COMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    PK_COMPARE(calls.load(), 1);
+    std::this_thread::sleep_for(2ms);
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
+    timer.stop();
+    PkThreadCallQueue::processPendingCalls();
+    PK_COMPARE(calls.load(), 1);
+}
+
+void TestTimer::negativeIntervalRepeatingTimerClampsToZero()
+{
+    PkThreadCallQueue::warmUpCurrentThread();
+    std::atomic<int> calls{0};
+    PkTimer timer;
+    timer.start(-5ms, [&] { ++calls; });
+    std::this_thread::sleep_for(2ms);
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
+    PK_COMPARE(PkThreadCallQueue::processPendingCalls(), 1);
+    PK_COMPARE(calls.load(), 1);
+    std::this_thread::sleep_for(2ms);
+    PK_COMPARE(PkThreadCallQueue::pendingCount(), std::size_t(1));
+    timer.stop();
+    PkThreadCallQueue::processPendingCalls();
+    PK_COMPARE(calls.load(), 1);
 }
 
 void TestTimer::warmedTargetThreadReceivesCallback()

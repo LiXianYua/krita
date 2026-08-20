@@ -1,6 +1,6 @@
 # pk/concurrent —— 零 Qt 依赖的并发原语库（Q-8 的自写替代）
 
-`PkTimer` 的可 join 等待线程只负责判断到期时机，回调一律 post 到指定线程并等显式 pump；`stop()`/析构会 join 并使已投递回调失效，不使用 detached 线程。
+`PkTimer` 的可 join 等待线程只负责判断正间隔的到期时机，回调一律 post 到指定线程并等显式 pump；`stop()`/析构会 join 并使已投递回调失效，不使用 detached 线程。负间隔按零间隔处理；重复零间隔定时器始终至多保留一个排队回调，只有目标线程 pump 并交付当前回调后才重新投递，因此每次 pump 快照至多触发一次且不会形成无界生产循环。
 
 零 Qt 依赖的 C++17 并发原语：`PkMutex`/`PkMutexLocker`（互斥锁）、
 `PkReadWriteLock`/`PkReadLocker`/`PkWriteLocker`（读写锁）、`PkAtomicInt`/`PkAtomicPointer<T>`（原子数）、
