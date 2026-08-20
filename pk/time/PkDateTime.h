@@ -65,16 +65,18 @@ public:
     bool isNull() const { return m_mds == NullTime; }
     bool isValid() const;
 
-    int hour() const { return ds() / 3600000; }
-    int minute() const { return (ds() / 60000) % 60; }
-    int second() const { return (ds() / 1000) % 60; }
-    int msec() const { return ds() % 1000; }
+    int hour() const { if (!isValid()) return -1; return ds() / 3600000; }
+    int minute() const { if (!isValid()) return -1; return (ds() / 60000) % 60; }
+    int second() const { if (!isValid()) return -1; return (ds() / 1000) % 60; }
+    int msec() const { if (!isValid()) return -1; return ds() % 1000; }
 
     bool setHMS(int h, int m, int s, int ms = 0);
     PkTime addSecs(int secs) const;
-    int secsTo(const PkTime &other) const { return other.m_mds / 1000 - m_mds / 1000; }
+    int secsTo(const PkTime &other) const
+    { if (!isValid() || !other.isValid()) return 0; return other.m_mds / 1000 - m_mds / 1000; }
     PkTime addMSecs(int ms) const;
-    int msecsTo(const PkTime &other) const { return other.m_mds - m_mds; }
+    int msecsTo(const PkTime &other) const
+    { if (!isValid() || !other.isValid()) return 0; return other.m_mds - m_mds; }
 
     bool operator==(const PkTime &other) const { return m_mds == other.m_mds; }
     bool operator!=(const PkTime &other) const { return m_mds != other.m_mds; }

@@ -40,4 +40,11 @@ private Q_SLOTS:
     void dateAddMonths();
     void timeHmsRoundTrip();
     void timeInvalidRejected();
+
+    // R-29 Task 2 fix round 1：无效态 accessor 语义对齐 Qt（探针实测，见
+    // .superpowers/sdd/R-29/task-2-fix1-findings.md）
+    void invalidDateAccessorsReturnZero();
+    void invalidTimeAccessorsReturnMinusOne();
+    void invalidTimeSecsToMsecsToReturnZero();
+    void invalidDateDaysToReturnZero();
 };

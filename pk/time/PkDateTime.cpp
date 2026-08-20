@@ -213,18 +213,19 @@ PkDate::PkDate(int y, int m, int d)
     m_jd = julianDayFromGregorian(y, m, d);
 }
 
-int PkDate::year() const { int y, m, d; getDateFromJulianDay(m_jd, y, m, d); return y; }
-int PkDate::month() const { int y, m, d; getDateFromJulianDay(m_jd, y, m, d); return m; }
-int PkDate::day() const { int y, m, d; getDateFromJulianDay(m_jd, y, m, d); return d; }
+int PkDate::year() const { if (!isValid()) return 0; int y, m, d; getDateFromJulianDay(m_jd, y, m, d); return y; }
+int PkDate::month() const { if (!isValid()) return 0; int y, m, d; getDateFromJulianDay(m_jd, y, m, d); return m; }
+int PkDate::day() const { if (!isValid()) return 0; int y, m, d; getDateFromJulianDay(m_jd, y, m, d); return d; }
 int PkDate::dayOfWeek() const
 {
+    if (!isValid()) return 0;
     // Qt: (jd % 7) + 1，jd=0 → 星期一（1）
     const std::int64_t r = m_jd % 7;
     return static_cast<int>(r < 0 ? r + 8 : r + 1);
 }
-int PkDate::dayOfYear() const { return static_cast<int>(m_jd - julianDayFromGregorian(year(), 1, 1)) + 1; }
-int PkDate::daysInMonth() const { return ::daysInMonth(year(), month()); }
-int PkDate::daysInYear() const { return isLeapYear(year()) ? 366 : 365; }
+int PkDate::dayOfYear() const { if (!isValid()) return 0; return static_cast<int>(m_jd - julianDayFromGregorian(year(), 1, 1)) + 1; }
+int PkDate::daysInMonth() const { if (!isValid()) return 0; return ::daysInMonth(year(), month()); }
+int PkDate::daysInYear() const { if (!isValid()) return 0; return isLeapYear(year()) ? 366 : 365; }
 
 bool PkDate::setDate(int year, int month, int day)
 {

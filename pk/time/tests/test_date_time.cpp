@@ -351,6 +351,56 @@ void TestDateTime::timeInvalidRejected()
     PK_VERIFY(!PkTime(0, 0, 0, 1000).isValid());
 }
 
+// ============================================================================
+// R-29 Task 2 fix round 1：无效态 accessor 语义对齐 Qt
+// （探针实测真 Qt 5.15.7，见 .superpowers/sdd/R-29/task-2-fix1-findings.md：
+//   QDate() → year/month/day/dayOfWeek/dayOfYear/daysInMonth/daysInYear 全 0
+//   QTime() → hour/minute/second/msec 全 -1
+//   secsTo/msecsTo/daysTo 任一侧无效 → 0）
+// ============================================================================
+
+void TestDateTime::invalidDateAccessorsReturnZero()
+{
+    const PkDate d;
+    PK_VERIFY(!d.isValid());
+    PK_VERIFY(d.year() == 0);
+    PK_VERIFY(d.month() == 0);
+    PK_VERIFY(d.day() == 0);
+    PK_VERIFY(d.dayOfWeek() == 0);
+    PK_VERIFY(d.dayOfYear() == 0);
+    PK_VERIFY(d.daysInMonth() == 0);
+    PK_VERIFY(d.daysInYear() == 0);
+}
+
+void TestDateTime::invalidTimeAccessorsReturnMinusOne()
+{
+    const PkTime t;
+    PK_VERIFY(!t.isValid());
+    PK_VERIFY(t.hour() == -1);
+    PK_VERIFY(t.minute() == -1);
+    PK_VERIFY(t.second() == -1);
+    PK_VERIFY(t.msec() == -1);
+}
+
+void TestDateTime::invalidTimeSecsToMsecsToReturnZero()
+{
+    const PkTime valid(12, 30, 45);
+    const PkTime invalid;
+    PK_VERIFY(valid.secsTo(invalid) == 0);
+    PK_VERIFY(invalid.secsTo(valid) == 0);
+    PK_VERIFY(invalid.secsTo(invalid) == 0);
+    PK_VERIFY(valid.msecsTo(invalid) == 0);
+    PK_VERIFY(invalid.msecsTo(valid) == 0);
+}
+
+void TestDateTime::invalidDateDaysToReturnZero()
+{
+    const PkDate valid(2024, 1, 15);
+    const PkDate invalid;
+    PK_VERIFY(valid.daysTo(invalid) == 0);
+    PK_VERIFY(invalid.daysTo(valid) == 0);
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_date_time.inc"
