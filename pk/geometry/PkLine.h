@@ -20,11 +20,13 @@
 // ——只用于构造后立即隐式转 PkLineF。所以 PkLine 只做：默认构造、
 // (int,int,int,int) 构造、(PkPoint,PkPoint) 构造，加 p1()/p2()（PkLineF 的
 // 隐式提升构造函数需要读它们，与 Qt 自己 `QLineF(const QLine&) : pt1(line.p1()),
-// pt2(line.p2()) {}` 的写法一致，不是新开的口子）。QLine 的其余公开成员
-// （isNull/x1/y1/x2/y2/dx/dy/translate/translated/center/setP1/setP2/
-// setPoints/setLine/operator==/operator!=）**实测调用点全部是 0**——那唯一的
-// 调用点连 p1()/p2() 都没有直接调，只是构造完立即转 QLineF——按判据①「一项
-// 不多」不实现，逐条记在下面。
+// pt2(line.p2()) {}` 的写法一致，不是新开的口子）。R-29 折叠 variant 后补
+// x1()/y1()/x2()/y2() 与 operator==/operator!=（PkVariant 的
+// toLine().x1()/toLine().p2().x() 测试调用点与 PkVariant::operator== 需要）。
+// QLine 的其余公开成员
+// （isNull/dx/dy/translate/translated/center/setP1/setP2/setPoints/setLine）
+// **实测调用点全部是 0**——那唯一的调用点连 p1()/p2() 都没有直接调，只是构造
+// 完立即转 QLineF——按判据①「一项不多」不实现，逐条记在下面。
 //
 // **PkLineF 是全新战场**：保留范围内类型名裸词命中 530 处 / 68 个文件（上界，
 // 现场重跑；R-21 plan.md 给的历史值 585/67 是更早一次基线，随 D 线删代码漂移
@@ -59,14 +61,26 @@ public:
     constexpr inline PkPoint p1() const;
     constexpr inline PkPoint p2() const;
 
+    // R-29 折叠 variant 后补：PkVariant 的 toLine().x1() 测试调用点依赖
+    //（test_variant.cpp:410），x2/y2 与 x1/y1 对称齐平（对齐 Qt qline.h 的
+    // QLine::x1() 等）。
+    constexpr inline int x1() const;
+    constexpr inline int y1() const;
+    constexpr inline int x2() const;
+    constexpr inline int y2() const;
+
+    // R-29 折叠 variant 后补：PkVariant::operator== 的 Line 分支要比较
+    // PkLine（语义对齐 variant 版 `m_p1==m_p2` 逐点比较）。
+    constexpr inline bool operator==(const PkLine &d) const;
+    constexpr inline bool operator!=(const PkLine &d) const { return !(*this == d); }
+
     // 明确不实现（qline.h 声明过的其余公开成员，保留范围内三种调用形态实测
     // 皆为 0，判据①「一项不多」）：
-    //   isNull() / x1() / y1() / x2() / y2() / dx() / dy() /
+    //   isNull() / dx() / dy() /
     //   translate(const PkPoint&) / translate(int,int) /
     //   translated(const PkPoint&) const / translated(int,int) const /
     //   center() const / setP1(const PkPoint&) / setP2(const PkPoint&) /
-    //   setPoints(const PkPoint&,const PkPoint&) / setLine(int,int,int,int) /
-    //   operator==(const PkLine&) / operator!=(const PkLine&)
+    //   setPoints(const PkPoint&,const PkPoint&) / setLine(int,int,int,int)
 
 private:
     PkPoint pt1, pt2;
@@ -92,6 +106,22 @@ constexpr inline PkPoint PkLine::p1() const
 constexpr inline PkPoint PkLine::p2() const
 { return pt2; }
 
+constexpr inline int PkLine::x1() const
+{ return pt1.x(); }
+
+constexpr inline int PkLine::y1() const
+{ return pt1.y(); }
+
+constexpr inline int PkLine::x2() const
+{ return pt2.x(); }
+
+constexpr inline int PkLine::y2() const
+{ return pt2.y(); }
+
+constexpr inline bool PkLine::operator==(const PkLine &d) const
+{
+    return pt1 == d.pt1 && pt2 == d.pt2;
+}
 
 // ---------------------------------------------------------------------------
 // PkLineF —— 逐字抄自 qline.h 的 QLineF 那一半。

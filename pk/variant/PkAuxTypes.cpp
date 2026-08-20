@@ -70,46 +70,6 @@ PkByteArray PkByteArray::number(unsigned int n, int base)
 bool PkByteArray::operator==(const PkByteArray& other) const { return m_data == other.m_data; }
 bool PkByteArray::operator!=(const PkByteArray& other) const { return !(*this == other); }
 
-// ── PkLine ─────────────────────────────────────────────────────────────────
-
-PkLine::PkLine() : m_p1(), m_p2() {}
-PkLine::PkLine(const PkPoint& p1, const PkPoint& p2) : m_p1(p1), m_p2(p2) {}
-PkLine::PkLine(int x1, int y1, int x2, int y2) : m_p1(x1, y1), m_p2(x2, y2) {}
-
-PkPoint PkLine::p1() const { return m_p1; }
-PkPoint PkLine::p2() const { return m_p2; }
-int PkLine::x1() const { return m_p1.x(); }
-int PkLine::y1() const { return m_p1.y(); }
-int PkLine::x2() const { return m_p2.x(); }
-int PkLine::y2() const { return m_p2.y(); }
-void PkLine::setP1(const PkPoint& p) { m_p1 = p; }
-void PkLine::setP2(const PkPoint& p) { m_p2 = p; }
-void PkLine::setLine(int x1, int y1, int x2, int y2) { m_p1 = PkPoint(x1, y1); m_p2 = PkPoint(x2, y2); }
-
-bool PkLine::isNull() const { return m_p1 == m_p2; }
-bool PkLine::operator==(const PkLine& other) const { return m_p1 == other.m_p1 && m_p2 == other.m_p2; }
-bool PkLine::operator!=(const PkLine& other) const { return !(*this == other); }
-
-// ── PkLineF ────────────────────────────────────────────────────────────────
-
-PkLineF::PkLineF() : m_p1(), m_p2() {}
-PkLineF::PkLineF(const PkPointF& p1, const PkPointF& p2) : m_p1(p1), m_p2(p2) {}
-PkLineF::PkLineF(qreal x1, qreal y1, qreal x2, qreal y2) : m_p1(x1, y1), m_p2(x2, y2) {}
-
-PkPointF PkLineF::p1() const { return m_p1; }
-PkPointF PkLineF::p2() const { return m_p2; }
-qreal PkLineF::x1() const { return m_p1.x(); }
-qreal PkLineF::y1() const { return m_p1.y(); }
-qreal PkLineF::x2() const { return m_p2.x(); }
-qreal PkLineF::y2() const { return m_p2.y(); }
-void PkLineF::setP1(const PkPointF& p) { m_p1 = p; }
-void PkLineF::setP2(const PkPointF& p) { m_p2 = p; }
-void PkLineF::setLine(qreal x1, qreal y1, qreal x2, qreal y2) { m_p1 = PkPointF(x1, y1); m_p2 = PkPointF(x2, y2); }
-
-bool PkLineF::isNull() const { return m_p1 == m_p2; }
-bool PkLineF::operator==(const PkLineF& other) const { return m_p1 == other.m_p1 && m_p2 == other.m_p2; }
-bool PkLineF::operator!=(const PkLineF& other) const { return !(*this == other); }
-
 // ── PkDate ─────────────────────────────────────────────────────────────────
 
 PkDate::PkDate() : m_year(0), m_month(0), m_day(0) {}

@@ -13,6 +13,7 @@
 #include "PkPoint.h"
 #include "PkSize.h"
 #include "PkRect.h"
+#include "PkLine.h"
 #include "PkAuxTypes.h"
 
 // PkString 的 std::hash 特化 —— PkVariantHash (= std::unordered_map<PkString, PkVariant>) 需要

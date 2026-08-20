@@ -44,64 +44,6 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// PkLine —— QLine 的零 Qt 替代。
-// ---------------------------------------------------------------------------
-class PkLine
-{
-public:
-    PkLine();
-    PkLine(const PkPoint& p1, const PkPoint& p2);
-    PkLine(int x1, int y1, int x2, int y2);
-
-    PkPoint p1() const;
-    PkPoint p2() const;
-    int x1() const;
-    int y1() const;
-    int x2() const;
-    int y2() const;
-    void setP1(const PkPoint& p);
-    void setP2(const PkPoint& p);
-    void setLine(int x1, int y1, int x2, int y2);
-
-    bool isNull() const;
-    bool operator==(const PkLine& other) const;
-    bool operator!=(const PkLine& other) const;
-
-private:
-    PkPoint m_p1;
-    PkPoint m_p2;
-};
-
-// ---------------------------------------------------------------------------
-// PkLineF —— QLineF 的零 Qt 替代。
-// ---------------------------------------------------------------------------
-class PkLineF
-{
-public:
-    PkLineF();
-    PkLineF(const PkPointF& p1, const PkPointF& p2);
-    PkLineF(qreal x1, qreal y1, qreal x2, qreal y2);
-
-    PkPointF p1() const;
-    PkPointF p2() const;
-    qreal x1() const;
-    qreal y1() const;
-    qreal x2() const;
-    qreal y2() const;
-    void setP1(const PkPointF& p);
-    void setP2(const PkPointF& p);
-    void setLine(qreal x1, qreal y1, qreal x2, qreal y2);
-
-    bool isNull() const;
-    bool operator==(const PkLineF& other) const;
-    bool operator!=(const PkLineF& other) const;
-
-private:
-    PkPointF m_p1;
-    PkPointF m_p2;
-};
-
-// ---------------------------------------------------------------------------
 // PkDate —— QDate 的零 Qt 替代。
 // 默认构造为 invalid（与 QDate() 一致）。
 // ---------------------------------------------------------------------------
