@@ -24,6 +24,7 @@
 #include "KisResourceThumbnailCodec.h"
 #include "ResourceDebug.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <limits>
@@ -67,18 +68,21 @@ PkString currentBundleDate()
 
 PkString fileNameOnly(const PkString &path)
 {
-    return PkString(std::filesystem::path(path.PkToUtf8())
-                        .filename().string().c_str());
+    std::string utf8 = path.PkToUtf8();
+    std::replace(utf8.begin(), utf8.end(), '\\', '/');
+    const std::string filename = std::filesystem::u8path(utf8).filename().u8string();
+    return PkString::PkFromUtf8(filename.data(), static_cast<int>(filename.size()));
 }
 
 PkString pathAfterFirstComponent(const PkString &path)
 {
     std::string value = path.PkToUtf8();
-    const std::size_t separator = value.find('/');
+    const std::size_t separator = value.find_first_of("/\\");
     if (separator == std::string::npos || separator + 1 >= value.size()) {
         return PkString();
     }
-    return PkString(value.substr(separator + 1).c_str());
+    const std::string relative = value.substr(separator + 1);
+    return PkString::PkFromUtf8(relative.data(), static_cast<int>(relative.size()));
 }
 
 bool writeBytes(KoStore *store, const PkByteArray &bytes)

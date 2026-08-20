@@ -55,8 +55,13 @@ const PkString kResourceLocationKey("ResourceDirectory");
 
 PkString fromPath(const fs::path &path)
 {
-    const std::string text = path.generic_string();
+    const std::string text = path.generic_u8string();
     return PkString::PkFromUtf8(text.data(), static_cast<int>(text.size()));
+}
+
+std::string pathKey(const fs::path &path)
+{
+    return path.generic_u8string();
 }
 
 fs::path toPath(const PkString &path)
@@ -66,8 +71,17 @@ fs::path toPath(const PkString &path)
 
 PkString environment(const char *name)
 {
+#ifdef _WIN32
+    std::wstring wideName;
+    for (const unsigned char character : std::string(name)) {
+        wideName.push_back(static_cast<wchar_t>(character));
+    }
+    const wchar_t *value = ::_wgetenv(wideName.c_str());
+    return value ? fromPath(fs::path(value)) : PkString();
+#else
     const char *value = std::getenv(name);
     return value ? PkString(value) : PkString();
+#endif
 }
 
 PkString homePath()
@@ -542,12 +556,12 @@ bool persistResourceLocation(const PkString &location)
     PkString persistedLocation;
     if (readPersistentResourceLocationUnlocked(configPath, &persistedLocation) &&
         persistedLocation == location) {
-        resourceConfigSnapshots()[configPath.generic_string()] = location;
+        resourceConfigSnapshots()[pathKey(configPath)] = location;
         return true;
     }
     const bool written = writePersistentResourceLocationUnlocked(configPath, location);
     if (written) {
-        resourceConfigSnapshots()[configPath.generic_string()] = location;
+        resourceConfigSnapshots()[pathKey(configPath)] = location;
     }
     return written;
 }
@@ -556,7 +570,7 @@ PkString configuredResourceLocation(PkConfigGroup &config)
 {
     std::lock_guard<std::mutex> processLock(resourceConfigProcessMutex());
     const fs::path configPath = resourceConfigFilePath();
-    const std::string snapshotKey = configPath.generic_string();
+    const std::string snapshotKey = pathKey(configPath);
     const bool hasMemoryValue = config.hasKey(kResourceLocationKey);
     const PkString memoryValue = hasMemoryValue
                                      ? config.readEntry(kResourceLocationKey, PkString())
@@ -850,7 +864,7 @@ PkString installationPrefix()
         executableBuffer.resize(executableBufferSize);
         _NSGetExecutablePath(executableBuffer.data(), &executableBufferSize);
     }
-    const fs::path executable = fs::weakly_canonical(fs::path(executableBuffer.data()));
+    const fs::path executable = fs::weakly_canonical(fs::u8path(executableBuffer.data()));
     const fs::path executableDir = executable.parent_path();
     if (executableDir.filename() == "MacOS" && executableDir.parent_path().filename() == "Contents") {
         const fs::path contents = executableDir.parent_path();
@@ -914,7 +928,7 @@ PkStringList filesInDir(const PkString &startDir, const PkString &filter, bool r
     for (fs::directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end;
          it != end; it.increment(ec)) {
         if (!ec) {
-            if (it->is_regular_file(ec) && globMatches(pattern, it->path().filename().string())) {
+            if (it->is_regular_file(ec) && globMatches(pattern, it->path().filename().u8string())) {
                 files.push_back(it->path());
             } else if (recursive && it->is_directory(ec)) {
                 directories.push_back(it->path());

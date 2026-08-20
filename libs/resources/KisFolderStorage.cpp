@@ -16,7 +16,25 @@
 #include "KisResourceThumbnailCodec.h"
 #include "ResourceDebug.h"
 
+#include <algorithm>
 #include <filesystem>
+
+namespace {
+
+std::filesystem::path resourcePath(const PkString &path)
+{
+    std::string utf8 = path.PkToUtf8();
+    std::replace(utf8.begin(), utf8.end(), '\\', '/');
+    return std::filesystem::u8path(utf8);
+}
+
+PkString resourcePathString(const std::filesystem::path &path)
+{
+    const std::string utf8 = path.u8string();
+    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
+}
 
 
 class FolderTagIterator : public KisResourceStorage::TagIterator
@@ -56,7 +74,7 @@ private:
     bool load(KisTagSP tag) const
     {
         PkFileStream f(m_dirIterator->url());
-        tag->setFilename(PkString(std::filesystem::path(m_dirIterator->url().PkToUtf8()).filename().string().c_str()));
+        tag->setFilename(resourcePathString(resourcePath(m_dirIterator->url()).filename()));
         if (f.open(PkStream::ReadOnly)) {
             if (!tag->load(f)) {
                 qCWarning(RESOURCE_LOG) << m_dirIterator->url() << "is not a valid tag desktop file";
@@ -98,10 +116,10 @@ bool KisFolderStorage::saveAsNewVersion(const PkString &resourceType, KoResource
 
 KisResourceStorage::ResourceItem KisFolderStorage::resourceItem(const PkString &url)
 {
-    const std::filesystem::path native(url.PkToUtf8());
+    const std::filesystem::path native = resourcePath(url);
     FolderItem item;
     item.url = url;
-    item.folder = PkString(native.parent_path().filename().string().c_str());
+    item.folder = resourcePathString(native.parent_path().filename());
     PkResourceStorageDesktop storage;
     const int64_t modified = storage.lastModified(url);
     if (modified) item.lastModified = PkDateTime::fromMSecsSinceEpoch(modified);

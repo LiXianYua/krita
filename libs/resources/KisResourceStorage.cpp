@@ -38,6 +38,19 @@
 namespace {
 namespace fs = std::filesystem;
 
+fs::path resourcePath(const PkString &path)
+{
+    std::string utf8 = path.PkToUtf8();
+    std::replace(utf8.begin(), utf8.end(), '\\', '/');
+    return fs::u8path(utf8);
+}
+
+PkString resourcePathString(const fs::path &path)
+{
+    const std::string utf8 = path.u8string();
+    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
 std::string lowerAscii(std::string text)
 {
     std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return std::tolower(c); });
@@ -53,7 +66,7 @@ bool endsWithAsciiCaseInsensitive(const PkString &value, const char *suffix)
 
 PkString fileName(const PkString &path)
 {
-    return PkString(fs::path(path.PkToUtf8()).filename().string().c_str());
+    return resourcePathString(resourcePath(path).filename());
 }
 
 PkDateTime lastModified(const PkString &path, const PkResourceStorageDesktop &storage)
@@ -71,15 +84,15 @@ bool looksLikeUuid(const std::string &text)
 bool pathAccess(const PkString &path, int mode)
 {
 #ifdef _WIN32
-    return ::_access(path.PkToUtf8().c_str(), mode) == 0;
+    return ::_waccess(resourcePath(path).c_str(), mode) == 0;
 #else
-    return ::access(path.PkToUtf8().c_str(), mode) == 0;
+    return ::access(resourcePath(path).c_str(), mode) == 0;
 #endif
 }
 
 KisResourceStorage::StorageType autoDetectStorageType(const PkString &location) {
     PkResourceStorageDesktop storage;
-    const fs::path native(location.PkToUtf8());
+    const fs::path native = resourcePath(location);
     if (fs::is_directory(native)) {
         return KisResourceStorage::StorageType::Folder;
     } else if (endsWithAsciiCaseInsensitive(location, ".bundle")) {
@@ -170,7 +183,7 @@ KisResourceStorage::KisResourceStorage(const PkString &location, KisResourceStor
     switch (storageType) {
         case StorageType::Folder: {
             PkResourceStorageDesktop storage;
-            if (fs::is_directory(fs::path(d->location.PkToUtf8()))) {
+            if (fs::is_directory(resourcePath(d->location))) {
                 d->name = fileName(d->location);
                 d->storageType = StorageType::Folder;
                 d->storagePlugin.reset(KisStoragePluginRegistry::instance()->m_storageFactoryMap[StorageType::Folder]->create(location));
@@ -437,13 +450,15 @@ VersionedFileParts guessFileNamePartsLazy(const PkString &filename, int minVersi
     if (guess) {
         guess->version = std::max(guess->version, minVersion);
     } else {
-        const fs::path info(filename.PkToUtf8());
+        const fs::path info = resourcePath(filename);
         guess = VersionedFileParts();
-        const std::string fullName = info.filename().string();
+        const std::string fullName = info.filename().u8string();
         const std::size_t firstDot = fullName.find('.');
-        guess->basename = PkString((firstDot == std::string::npos ? fullName : fullName.substr(0, firstDot)).c_str());
+        const std::string basename = firstDot == std::string::npos ? fullName : fullName.substr(0, firstDot);
+        const std::string suffix = firstDot == std::string::npos ? std::string() : fullName.substr(firstDot + 1);
+        guess->basename = PkString::PkFromUtf8(basename.data(), static_cast<int>(basename.size()));
         guess->version = minVersion;
-        guess->suffix = PkString((firstDot == std::string::npos ? std::string() : fullName.substr(firstDot + 1)).c_str());
+        guess->suffix = PkString::PkFromUtf8(suffix.data(), static_cast<int>(suffix.size()));
     }
 
     return *guess;

@@ -55,13 +55,22 @@ int64_t lastModifiedMs(const fs::path &path)
 
 PkString environmentPath(const char *name)
 {
+#ifdef _WIN32
+    std::wstring wideName;
+    for (const unsigned char character : std::string(name)) {
+        wideName.push_back(static_cast<wchar_t>(character));
+    }
+    const wchar_t *value = ::_wgetenv(wideName.c_str());
+    return value && *value ? fromPath(fs::path(value)) : PkString();
+#else
     const char *value = std::getenv(name);
     return value && *value ? PkString(value) : PkString();
+#endif
 }
 
 bool isHidden(const fs::path &path)
 {
-    const std::string name = path.filename().string();
+    const std::string name = path.filename().u8string();
     if (!name.empty() && name.front() == '.') {
         return true;
     }

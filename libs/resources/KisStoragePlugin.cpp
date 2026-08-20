@@ -100,8 +100,10 @@ void KisStoragePlugin::sanitizeResourceFileNameCase(KoResourceSP resource, const
     if (result->hasNext()) {
         result->next();
         const std::string path = result->url().PkToUtf8();
-        const std::size_t separator = path.find_last_of('/');
-        const PkString realName(path.substr(separator == std::string::npos ? 0 : separator + 1).c_str());
+        const std::size_t separator = path.find_last_of("/\\");
+        const std::size_t nameOffset = separator == std::string::npos ? 0 : separator + 1;
+        const PkString realName = PkString::PkFromUtf8(
+            path.data() + nameOffset, static_cast<int>(path.size() - nameOffset));
         if (realName != resource->filename()) {
             resource->setFilename(realName);
         }

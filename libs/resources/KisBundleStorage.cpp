@@ -20,7 +20,25 @@
 #include "ResourceDebug.h"
 #include <kis_assert.h>
 
+#include <algorithm>
 #include <filesystem>
+
+namespace {
+
+std::filesystem::path resourcePath(const PkString &path)
+{
+    std::string utf8 = path.PkToUtf8();
+    std::replace(utf8.begin(), utf8.end(), '\\', '/');
+    return std::filesystem::u8path(utf8);
+}
+
+PkString resourcePathString(const std::filesystem::path &path)
+{
+    const std::string utf8 = path.u8string();
+    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
+}
 
 class KisBundleStorage::Private {
 public:
@@ -53,7 +71,7 @@ public:
                 }
 
                 m_tags[tagname]->setDefaultResources(m_tags[tagname]->defaultResources()
-                                                     << PkString(std::filesystem::path(resourceReference.resourcePath.PkToUtf8()).filename().string().c_str()));
+                                                     << resourcePathString(resourcePath(resourceReference.resourcePath).filename()));
             }
         }
         m_tagValues = m_tags.values();
@@ -206,7 +224,7 @@ PkSharedPointer<KisResourceStorage::ResourceIterator> KisBundleStorage::resource
     while (modifiedEntries->hasNext()) {
         modifiedEntries->next();
         VersionedResourceEntry entry;
-        entry.filename = PkString(std::filesystem::path(modifiedEntries->url().PkToUtf8()).filename().string().c_str());
+        entry.filename = resourcePathString(resourcePath(modifiedEntries->url()).filename());
         entry.lastModified = PkDateTime::fromMSecsSinceEpoch(modifiedEntries->lastModified());
         entry.tagList = {}; // TODO
         entry.resourceType = resourceType;

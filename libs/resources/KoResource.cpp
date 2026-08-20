@@ -25,16 +25,18 @@ PkString resourceFileName(const PkString &path)
 {
     std::string utf8 = path.PkToUtf8();
 
-    // 对齐 Qt 语义：文件名只取路径末尾段，剥掉末尾的 '/'
-    while (utf8.size() > 1 && utf8.back() == '/') {
+    // Resource paths may originate from bundles or Windows callers. Treat
+    // both separators as path boundaries regardless of the host platform.
+    while (utf8.size() > 1 && (utf8.back() == '/' || utf8.back() == '\\')) {
         utf8.pop_back();
     }
 
-    const std::size_t slash = utf8.find_last_of('/');
+    const std::size_t slash = utf8.find_last_of("/\\");
     if (slash == std::string::npos) {
-        return PkString(utf8.c_str());
+        return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
     }
-    return PkString(utf8.c_str() + slash + 1);
+    return PkString::PkFromUtf8(utf8.data() + slash + 1,
+                                static_cast<int>(utf8.size() - slash - 1));
 }
 
 }
