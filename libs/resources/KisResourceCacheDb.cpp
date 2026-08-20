@@ -8,6 +8,7 @@
 #include <PkSqlError.h>
 #include <PkSqlQuery.h>
 #include <PkSqlDatabase.h>
+#include <PkDataStream.h>
 
 #include <PkElapsedTimer.h>
 #include <PkMessageLogger.h>
@@ -32,14 +33,14 @@
 
 #include <algorithm>
 #include <array>
-#include <codecvt>
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
-#include <locale>
+#include <limits>
+#include <new>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -120,220 +121,267 @@ PkString fileBaseName(const PkString &path)
     return PkString::PkFromUtf8(name.data(), static_cast<int>(name.size()));
 }
 
-void appendU32(std::vector<std::uint8_t> &out, std::uint32_t value)
-{
-    out.push_back(static_cast<std::uint8_t>(value >> 24));
-    out.push_back(static_cast<std::uint8_t>(value >> 16));
-    out.push_back(static_cast<std::uint8_t>(value >> 8));
-    out.push_back(static_cast<std::uint8_t>(value));
-}
-
-void appendU64(std::vector<std::uint8_t> &out, std::uint64_t value)
-{
-    for (int shift = 56; shift >= 0; shift -= 8) {
-        out.push_back(static_cast<std::uint8_t>(value >> shift));
-    }
-}
-
-bool readU32(const std::vector<std::uint8_t> &bytes, std::size_t &offset, std::uint32_t &value)
-{
-    if (offset > bytes.size() || bytes.size() - offset < 4) return false;
-    value = (std::uint32_t(bytes[offset]) << 24) | (std::uint32_t(bytes[offset + 1]) << 16) |
-            (std::uint32_t(bytes[offset + 2]) << 8) | std::uint32_t(bytes[offset + 3]);
-    offset += 4;
-    return true;
-}
-
-bool readU64(const std::vector<std::uint8_t> &bytes, std::size_t &offset, std::uint64_t &value)
-{
-    if (offset > bytes.size() || bytes.size() - offset < 8) return false;
-    value = 0;
-    for (int i = 0; i < 8; ++i) value = (value << 8) | bytes[offset++];
-    return true;
-}
-
 const char kBase64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-PkString base64Encode(const std::vector<std::uint8_t> &bytes)
+PkString base64Encode(const PkByteArray &bytes)
 {
     std::string out;
-    out.reserve(((bytes.size() + 2) / 3) * 4);
-    for (std::size_t i = 0; i < bytes.size(); i += 3) {
-        const std::uint32_t a = bytes[i];
-        const std::uint32_t b = i + 1 < bytes.size() ? bytes[i + 1] : 0;
-        const std::uint32_t c = i + 2 < bytes.size() ? bytes[i + 2] : 0;
+    const std::size_t size = static_cast<std::size_t>(bytes.size());
+    out.reserve(((size + 2) / 3) * 4);
+    for (std::size_t i = 0; i < size; i += 3) {
+        const auto byteAt = [&](std::size_t index) {
+            return static_cast<std::uint32_t>(
+                static_cast<unsigned char>(bytes.constData()[index]));
+        };
+        const std::uint32_t a = byteAt(i);
+        const std::uint32_t b = i + 1 < size ? byteAt(i + 1) : 0;
+        const std::uint32_t c = i + 2 < size ? byteAt(i + 2) : 0;
         const std::uint32_t value = (a << 16) | (b << 8) | c;
         out.push_back(kBase64[(value >> 18) & 63]);
         out.push_back(kBase64[(value >> 12) & 63]);
-        out.push_back(i + 1 < bytes.size() ? kBase64[(value >> 6) & 63] : '=');
-        out.push_back(i + 2 < bytes.size() ? kBase64[value & 63] : '=');
+        out.push_back(i + 1 < size ? kBase64[(value >> 6) & 63] : '=');
+        out.push_back(i + 2 < size ? kBase64[value & 63] : '=');
     }
     return PkString(out.c_str());
 }
 
-bool base64Decode(const PkString &text, std::vector<std::uint8_t> &out)
+enum class Base64DecodeStatus
 {
-    std::array<int, 256> decode;
-    decode.fill(-1);
-    for (int i = 0; i < 64; ++i) decode[static_cast<unsigned char>(kBase64[i])] = i;
-    const std::string input = text.PkToUtf8();
-    out.clear();
-    if (input.empty() || input.size() % 4 != 0) return false;
-    out.reserve((input.size() / 4) * 3);
+    Ok,
+    Invalid,
+    LimitExceeded
+};
 
-    for (std::size_t offset = 0; offset < input.size(); offset += 4) {
-        const bool isLastQuartet = offset + 4 == input.size();
-        const unsigned char c0 = static_cast<unsigned char>(input[offset]);
-        const unsigned char c1 = static_cast<unsigned char>(input[offset + 1]);
-        const unsigned char c2 = static_cast<unsigned char>(input[offset + 2]);
-        const unsigned char c3 = static_cast<unsigned char>(input[offset + 3]);
-        if (decode[c0] < 0 || decode[c1] < 0) return false;
-
-        const std::uint32_t v0 = static_cast<std::uint32_t>(decode[c0]);
-        const std::uint32_t v1 = static_cast<std::uint32_t>(decode[c1]);
-        if (c2 == '=') {
-            if (!isLastQuartet || c3 != '=' || (v1 & 0x0fu) != 0) return false;
-            out.push_back(static_cast<std::uint8_t>((v0 << 2) | (v1 >> 4)));
-            continue;
+Base64DecodeStatus base64Decode(const PkString &text,
+                                std::size_t outputLimit,
+                                std::vector<std::uint8_t> &out)
+{
+    try {
+        std::array<int, 256> decode;
+        decode.fill(-1);
+        for (int i = 0; i < 64; ++i) {
+            decode[static_cast<unsigned char>(kBase64[i])] = i;
         }
-        if (decode[c2] < 0) return false;
+        const std::string input = text.PkToUtf8();
+        out.clear();
+        if (input.empty() || input.size() % 4 != 0) return Base64DecodeStatus::Invalid;
+        out.reserve(std::min(outputLimit, (input.size() / 4) * 3));
 
-        const std::uint32_t v2 = static_cast<std::uint32_t>(decode[c2]);
-        out.push_back(static_cast<std::uint8_t>((v0 << 2) | (v1 >> 4)));
-        out.push_back(static_cast<std::uint8_t>((v1 << 4) | (v2 >> 2)));
-        if (c3 == '=') {
-            if (!isLastQuartet || (v2 & 0x03u) != 0) return false;
-            continue;
+        const auto appendByte = [&](std::uint8_t byte) {
+            if (out.size() >= outputLimit) return false;
+            out.push_back(byte);
+            return true;
+        };
+
+        for (std::size_t offset = 0; offset < input.size(); offset += 4) {
+            const bool isLastQuartet = offset + 4 == input.size();
+            const unsigned char c0 = static_cast<unsigned char>(input[offset]);
+            const unsigned char c1 = static_cast<unsigned char>(input[offset + 1]);
+            const unsigned char c2 = static_cast<unsigned char>(input[offset + 2]);
+            const unsigned char c3 = static_cast<unsigned char>(input[offset + 3]);
+            if (decode[c0] < 0 || decode[c1] < 0) return Base64DecodeStatus::Invalid;
+
+            const std::uint32_t v0 = static_cast<std::uint32_t>(decode[c0]);
+            const std::uint32_t v1 = static_cast<std::uint32_t>(decode[c1]);
+            if (c2 == '=') {
+                if (!isLastQuartet || c3 != '=' || (v1 & 0x0fu) != 0) {
+                    return Base64DecodeStatus::Invalid;
+                }
+                return appendByte(static_cast<std::uint8_t>((v0 << 2) | (v1 >> 4)))
+                    ? Base64DecodeStatus::Ok : Base64DecodeStatus::LimitExceeded;
+            }
+            if (decode[c2] < 0) return Base64DecodeStatus::Invalid;
+
+            const std::uint32_t v2 = static_cast<std::uint32_t>(decode[c2]);
+            if (!appendByte(static_cast<std::uint8_t>((v0 << 2) | (v1 >> 4))) ||
+                !appendByte(static_cast<std::uint8_t>((v1 << 4) | (v2 >> 2)))) {
+                return Base64DecodeStatus::LimitExceeded;
+            }
+            if (c3 == '=') {
+                if (!isLastQuartet || (v2 & 0x03u) != 0) {
+                    return Base64DecodeStatus::Invalid;
+                }
+                return Base64DecodeStatus::Ok;
+            }
+            if (decode[c3] < 0) return Base64DecodeStatus::Invalid;
+
+            const std::uint32_t v3 = static_cast<std::uint32_t>(decode[c3]);
+            if (!appendByte(static_cast<std::uint8_t>((v2 << 6) | v3))) {
+                return Base64DecodeStatus::LimitExceeded;
+            }
         }
-        if (decode[c3] < 0) return false;
-
-        const std::uint32_t v3 = static_cast<std::uint32_t>(decode[c3]);
-        out.push_back(static_cast<std::uint8_t>((v2 << 6) | v3));
+        return Base64DecodeStatus::Ok;
+    } catch (const std::bad_alloc &) {
+        out.clear();
+        return Base64DecodeStatus::LimitExceeded;
+    } catch (const std::length_error &) {
+        out.clear();
+        return Base64DecodeStatus::LimitExceeded;
     }
-    return true;
+}
+
+class MetadataReadStream final : public PkStream
+{
+public:
+    explicit MetadataReadStream(const std::vector<std::uint8_t> &bytes)
+        : m_bytes(bytes)
+    {
+        open(ReadOnly);
+    }
+
+    pk_int64 size() const override
+    {
+        return static_cast<pk_int64>(m_bytes.size());
+    }
+
+protected:
+    pk_int64 readData(char *data, pk_int64 maxSize) override
+    {
+        const std::size_t offset = static_cast<std::size_t>(pos());
+        if (offset >= m_bytes.size()) return 0;
+        const std::size_t available = m_bytes.size() - offset;
+        const std::size_t requested = static_cast<std::size_t>(maxSize);
+        const std::size_t count = std::min(available, requested);
+        if (count != 0) std::memcpy(data, m_bytes.data() + offset, count);
+        return static_cast<pk_int64>(count);
+    }
+
+    pk_int64 writeData(const char *, pk_int64) override
+    {
+        return -1;
+    }
+
+private:
+    const std::vector<std::uint8_t> &m_bytes;
+};
+
+bool isSupportedBuiltInVariantType(std::uint32_t typeId)
+{
+    switch (typeId) {
+    case PkVariant::Invalid:
+    case PkVariant::Bool:
+    case PkVariant::Int:
+    case PkVariant::UInt:
+    case PkVariant::LongLong:
+    case PkVariant::ULongLong:
+    case PkVariant::Double:
+    case PkVariant::Float:
+    case PkVariant::String:
+    case PkVariant::ByteArray:
+    case PkVariant::StringList:
+    case PkVariant::List:
+    case PkVariant::Map:
+    case PkVariant::Hash:
+    case PkVariant::Date:
+    case PkVariant::Time:
+    case PkVariant::DateTime:
+    case PkVariant::Rect:
+    case PkVariant::RectF:
+    case PkVariant::Size:
+    case PkVariant::SizeF:
+    case PkVariant::Line:
+    case PkVariant::LineF:
+    case PkVariant::Point:
+    case PkVariant::PointF:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool isUserTypeId(std::uint32_t typeId)
+{
+    constexpr std::uint32_t qt5UserType = 1024;
+    return typeId == static_cast<std::uint32_t>(PkVariant::UserType) ||
+           typeId >= qt5UserType;
+}
+
+KisResourceCacheDb::MetaDataDecodeStatus decodeStatusFromStream(
+    PkDataStream::Status status, std::uint32_t typeId)
+{
+    if (status == PkDataStream::ReadPastEnd) {
+        return KisResourceCacheDb::MetaDataDecodeStatus::ReadPastEnd;
+    }
+    if (status == PkDataStream::ReadCorruptData) {
+        if (isUserTypeId(typeId)) {
+            return KisResourceCacheDb::MetaDataDecodeStatus::UnsupportedUserType;
+        }
+        if (!isSupportedBuiltInVariantType(typeId)) {
+            return KisResourceCacheDb::MetaDataDecodeStatus::UnsupportedType;
+        }
+    }
+    return KisResourceCacheDb::MetaDataDecodeStatus::ReadCorruptData;
+}
+
+struct VariantDecodeResult
+{
+    bool decoded = false;
+    PkVariant value;
+    KisResourceCacheDb::MetaDataDecodeStatus status =
+        KisResourceCacheDb::MetaDataDecodeStatus::ReadCorruptData;
+};
+
+VariantDecodeResult deserializeVariant(const PkString &encoded)
+{
+    VariantDecodeResult result;
+    PkDataStream defaults;
+    const std::size_t allocationLimit = defaults.allocationLimit();
+    std::vector<std::uint8_t> bytes;
+    const Base64DecodeStatus base64Status = base64Decode(encoded, allocationLimit, bytes);
+    if (base64Status == Base64DecodeStatus::Invalid) {
+        result.status = KisResourceCacheDb::MetaDataDecodeStatus::InvalidBase64;
+        return result;
+    }
+    if (base64Status == Base64DecodeStatus::LimitExceeded) {
+        result.status = KisResourceCacheDb::MetaDataDecodeStatus::ReadCorruptData;
+        return result;
+    }
+
+    MetadataReadStream device(bytes);
+    std::uint32_t typeId = 0;
+    {
+        PkDataStream typeReader(&device);
+        typeReader.setVersion(PkDataStream::Qt_5_15);
+        typeReader.setAllocationLimit(allocationLimit);
+        typeReader >> typeId;
+        if (typeReader.status() != PkDataStream::Ok) {
+            result.status = decodeStatusFromStream(typeReader.status(), typeId);
+            return result;
+        }
+    }
+    if (!device.seek(0)) return result;
+
+    PkDataStream stream(&device);
+    stream.setVersion(PkDataStream::Qt_5_15);
+    stream.setAllocationLimit(allocationLimit);
+    stream >> result.value;
+    if (stream.status() != PkDataStream::Ok) {
+        result.status = decodeStatusFromStream(stream.status(), typeId);
+        result.value.clear();
+        return result;
+    }
+    if (!device.atEnd()) {
+        result.status = KisResourceCacheDb::MetaDataDecodeStatus::TrailingData;
+        result.value.clear();
+        return result;
+    }
+    result.decoded = true;
+    return result;
 }
 
 PkString serializeVariant(const PkVariant &value)
 {
-    std::vector<std::uint8_t> bytes;
-    appendU32(bytes, static_cast<std::uint32_t>(value.type()));
-    bytes.push_back(value.isNull() ? 1 : 0);
-    if (!value.isNull()) {
-        switch (value.type()) {
-        case PkVariant::Bool:
-            bytes.push_back(value.toBool() ? 1 : 0);
-            break;
-        case PkVariant::Int:
-            appendU32(bytes, static_cast<std::uint32_t>(value.toInt()));
-            break;
-        case PkVariant::UInt:
-            appendU32(bytes, value.toUInt());
-            break;
-        case PkVariant::LongLong:
-            appendU64(bytes, static_cast<std::uint64_t>(value.toLongLong()));
-            break;
-        case PkVariant::ULongLong:
-            appendU64(bytes, value.toULongLong());
-            break;
-        case PkVariant::Double: {
-            std::uint64_t raw = 0;
-            const double number = value.toDouble();
-            std::memcpy(&raw, &number, sizeof(raw));
-            appendU64(bytes, raw);
-            break;
-        }
-        case PkVariant::String: {
-            const std::u16string text = value.toString().PkToU16();
-            appendU32(bytes, static_cast<std::uint32_t>(text.size() * 2));
-            for (char16_t codeUnit : text) {
-                bytes.push_back(static_cast<std::uint8_t>(codeUnit >> 8));
-                bytes.push_back(static_cast<std::uint8_t>(codeUnit));
-            }
-            break;
-        }
-        case PkVariant::ByteArray: {
-            const PkByteArray array = value.toByteArray();
-            appendU32(bytes, static_cast<std::uint32_t>(array.size()));
-            bytes.insert(bytes.end(), array.constData(), array.constData() + array.size());
-            break;
-        }
-        default:
-            return PkString();
-        }
-    }
-    return base64Encode(bytes);
-}
-
-PkVariant deserializeVariant(const PkString &encoded)
-{
-    std::vector<std::uint8_t> bytes;
-    if (!base64Decode(encoded, bytes)) return PkVariant();
-    std::size_t offset = 0;
-    std::uint32_t type = 0;
-    if (!readU32(bytes, offset, type) || offset >= bytes.size()) return PkVariant();
-    const std::uint8_t nullMarker = bytes[offset++];
-    if (nullMarker == 1) {
-        // A null encoded value has no payload. Metadata writers skip null values, but old
-        // databases may still contain one; either way it maps to an invalid PkVariant.
-        return PkVariant();
-    }
-    if (nullMarker != 0) return PkVariant();
-    std::uint32_t u32 = 0;
-    std::uint64_t u64 = 0;
-    switch (static_cast<PkVariant::Type>(type)) {
-    case PkVariant::Bool:
-        return offset + 1 == bytes.size() && bytes[offset] <= 1
-            ? PkVariant(bytes[offset] != 0)
-            : PkVariant();
-    case PkVariant::Int:
-        return readU32(bytes, offset, u32) && offset == bytes.size()
-            ? PkVariant(static_cast<int>(u32))
-            : PkVariant();
-    case PkVariant::UInt:
-        return readU32(bytes, offset, u32) && offset == bytes.size()
-            ? PkVariant(u32)
-            : PkVariant();
-    case PkVariant::LongLong:
-        if (readU64(bytes, offset, u64) && offset == bytes.size()) {
-            long long signedValue = 0;
-            std::memcpy(&signedValue, &u64, sizeof(signedValue));
-            return PkVariant(signedValue);
-        }
-        return PkVariant();
-    case PkVariant::ULongLong:
-        return readU64(bytes, offset, u64) && offset == bytes.size()
-            ? PkVariant(static_cast<unsigned long long>(u64))
-            : PkVariant();
-    case PkVariant::Double: {
-        if (!readU64(bytes, offset, u64) || offset != bytes.size()) return PkVariant();
-        double number = 0.0;
-        std::memcpy(&number, &u64, sizeof(number));
-        return PkVariant(number);
-    }
-    case PkVariant::String: {
-        if (!readU32(bytes, offset, u32) || (u32 % 2) != 0 ||
-            offset > bytes.size() || u32 != bytes.size() - offset) {
-            return PkVariant();
-        }
-        std::u16string text;
-        text.reserve(u32 / 2);
-        for (std::uint32_t i = 0; i < u32; i += 2) {
-            text.push_back(static_cast<char16_t>((std::uint16_t(bytes[offset + i]) << 8) |
-                                                bytes[offset + i + 1]));
-        }
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
-        const std::string utf8 = converter.to_bytes(text);
-        return PkVariant(PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size())));
-    }
-    case PkVariant::ByteArray:
-        if (!readU32(bytes, offset, u32) || offset > bytes.size() ||
-            u32 != bytes.size() - offset) {
-            return PkVariant();
-        }
-        return PkVariant(PkByteArray(reinterpret_cast<const char *>(bytes.data() + offset),
-                                    static_cast<int>(u32)));
-    default:
-        return PkVariant();
+    try {
+        PkByteArray bytes;
+        PkDataStream stream(&bytes, PkStream::WriteOnly);
+        stream.setVersion(PkDataStream::Qt_5_15);
+        stream << value;
+        if (stream.status() != PkDataStream::Ok) return PkString();
+        return base64Encode(bytes);
+    } catch (const std::bad_alloc &) {
+        return PkString();
+    } catch (const std::length_error &) {
+        return PkString();
     }
 }
 
@@ -2675,9 +2723,10 @@ bool KisResourceCacheDb::registerResourceType(const PkString &resourceType)
     return true;
 }
 
-PkMap<PkString, PkVariant> KisResourceCacheDb::metaDataForId(int id, const PkString &tableName)
+KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultForId(
+    int id, const PkString &tableName)
 {
-    PkMap<PkString, PkVariant> map;
+    MetaDataReadResult result;
 
     PkSqlQuery q;
     q.setForwardOnly(true);
@@ -2687,7 +2736,7 @@ PkMap<PkString, PkVariant> KisResourceCacheDb::metaDataForId(int id, const PkStr
                    "WHERE  foreign_id = :id\n"
                    "AND    table_name = :table")) {
         qWarning() << "Could not prepare metadata query" << q.lastError();
-        return map;
+        return result;
     }
 
     q.bindValue(":id", id);
@@ -2695,47 +2744,89 @@ PkMap<PkString, PkVariant> KisResourceCacheDb::metaDataForId(int id, const PkStr
 
     if (!q.exec()) {
         qWarning() << "Could not execute metadata query" << q.lastError();
-        return map;
+        return result;
     }
+    result.querySucceeded = true;
 
     while (q.next()) {
-        PkString key = q.value(0).toString();
+        const PkString key = q.value(0).toString();
         const PkString encoded = q.value(1).toString();
-        if (!encoded.isEmpty()) {
-            const PkVariant value = deserializeVariant(encoded);
-            if (!value.isValid()) {
-                qWarning() << "Could not decode metadata value for key" << key;
-                continue;
-            }
-            map[key] = value;
+        VariantDecodeResult decoded = deserializeVariant(encoded);
+        if (decoded.decoded) {
+            result.values.insert(key, decoded.value);
+        } else {
+            result.undecodable.insert(
+                key, MetaDataDecodeIssue{decoded.status, encoded});
         }
     }
 
-    return map;
+    return result;
+}
+
+PkMap<PkString, PkVariant> KisResourceCacheDb::metaDataForId(int id,
+                                                             const PkString &tableName)
+{
+    const MetaDataReadResult result = metaDataReadResultForId(id, tableName);
+    for (auto iter = result.undecodable.cbegin(); iter != result.undecodable.cend(); ++iter) {
+        qWarning() << "Could not decode metadata value for key" << iter.key()
+                   << "status" << static_cast<int>(iter.value().status);
+    }
+    return result.values;
 }
 
 bool KisResourceCacheDb::updateMetaDataForId(const PkMap<PkString, PkVariant> map, int id, const PkString &tableName)
 {
+    PkMap<PkString, PkString> serializedUpdates;
+    for (auto iter = map.cbegin(); iter != map.cend(); ++iter) {
+        const PkVariant value = iter.value();
+        if (value.isNull() || !value.isValid()) continue;
+        const PkString encoded = serializeVariant(value);
+        if (encoded.isEmpty()) {
+            qWarning() << "Unsupported metadata value type for key" << iter.key()
+                       << value.typeName();
+            return false;
+        }
+        serializedUpdates.insert(iter.key(), encoded);
+    }
+
     PkSqlDatabase::database().transaction();
+
+    const MetaDataReadResult current = metaDataReadResultForId(id, tableName);
+    if (!current.querySucceeded) {
+        PkSqlDatabase::database().rollback();
+        return false;
+    }
+
+    std::vector<PkString> keysToDelete;
+    keysToDelete.reserve(static_cast<std::size_t>(current.values.size()) +
+                         static_cast<std::size_t>(current.undecodable.size()));
+    for (auto iter = current.values.cbegin(); iter != current.values.cend(); ++iter) {
+        keysToDelete.push_back(iter.key());
+    }
+    for (auto iter = current.undecodable.cbegin(); iter != current.undecodable.cend(); ++iter) {
+        if (serializedUpdates.contains(iter.key())) keysToDelete.push_back(iter.key());
+    }
 
     {
         PkSqlQuery q;
         if (!q.prepare("DELETE FROM metadata\n"
                        "WHERE  foreign_id = :id\n"
-                       "AND    table_name = :table\n")) {
+                       "AND    table_name = :table\n"
+                       "AND    key = :key\n")) {
             PkSqlDatabase::database().rollback();
             qWarning() << "Could not prepare delete metadata query" << q.lastError();
             return false;
         }
 
-        q.bindValue(":id", id);
-        q.bindValue(":table", tableName);
-
-        if (!q.exec()) {
-            PkSqlDatabase::database().rollback();
-            qWarning() << "Could not execute delete metadata query" << q.lastError();
-            return false;
-
+        for (const PkString &key : keysToDelete) {
+            q.bindValue(":id", id);
+            q.bindValue(":table", tableName);
+            q.bindValue(":key", key);
+            if (!q.exec()) {
+                PkSqlDatabase::database().rollback();
+                qWarning() << "Could not execute delete metadata query" << q.lastError();
+                return false;
+            }
         }
     }
 

@@ -74,6 +74,38 @@ public:
     /// have foreign_keys constraint enabled.
     static void synchronizeForeignKeysState();
 
+    enum class MetaDataDecodeStatus
+    {
+        InvalidBase64,
+        UnsupportedUserType,
+        UnsupportedType,
+        ReadPastEnd,
+        ReadCorruptData,
+        TrailingData
+    };
+
+    struct MetaDataDecodeIssue
+    {
+        MetaDataDecodeStatus status = MetaDataDecodeStatus::ReadCorruptData;
+        PkString rawPayload;
+    };
+
+    struct MetaDataReadResult
+    {
+        PkMap<PkString, PkVariant> values;
+        PkMap<PkString, MetaDataDecodeIssue> undecodable;
+        bool querySucceeded = false;
+    };
+
+    /**
+     * Reads metadata without conflating an undecodable persisted value with a
+     * missing key. Built-in Qt 5.15 variant payloads are returned in values;
+     * opaque, unknown, or malformed rows retain their exact database text in
+     * undecodable.
+     */
+    static MetaDataReadResult metaDataReadResultForId(int id,
+                                                      const PkString &tableName);
+
 private:
 
     friend class KisResourceLocator;
