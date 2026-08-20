@@ -18,12 +18,18 @@
 #include <cctype>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <system_error>
 #include <vector>
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
+#endif
+
+#ifdef __HAIKU__
+#include <FindDirectory.h>
+#include <StorageDefs.h>
 #endif
 
 namespace fs = std::filesystem;
@@ -68,6 +74,17 @@ PkString homePath()
     return fromPath(fs::current_path(ec));
 }
 
+#ifdef __HAIKU__
+PkString haikuDirectory(directory_which which, const PkString &fallback)
+{
+    char path[B_PATH_NAME_LENGTH] = {};
+    if (find_directory(which, -1, true, path, sizeof(path)) == B_OK) {
+        return PkString(path);
+    }
+    return fallback;
+}
+#endif
+
 PkString platformDir(PkResourceStorage::PlatformDir kind)
 {
     const PkString home = homePath();
@@ -91,6 +108,75 @@ PkString platformDir(PkResourceStorage::PlatformDir kind)
         return home;
     case PkResourceStorage::PlatformDir::Pictures:
         return PkResourceStorage::joinPath(home, PkString("Pictures"));
+    }
+#elif defined(__APPLE__)
+    const PkString library = PkResourceStorage::joinPath(home, PkString("Library"));
+    switch (kind) {
+    case PkResourceStorage::PlatformDir::AppData:
+    case PkResourceStorage::PlatformDir::AppLocalData:
+        return PkResourceStorage::joinPath(
+            PkResourceStorage::joinPath(library, PkString("Application Support")), PkString("krita"));
+    case PkResourceStorage::PlatformDir::GenericData:
+        return PkResourceStorage::joinPath(library, PkString("Application Support"));
+    case PkResourceStorage::PlatformDir::GenericConfig:
+        return PkResourceStorage::joinPath(library, PkString("Preferences"));
+    case PkResourceStorage::PlatformDir::Cache:
+        return PkResourceStorage::joinPath(
+            PkResourceStorage::joinPath(library, PkString("Caches")), PkString("krita"));
+    case PkResourceStorage::PlatformDir::Home:
+        return home;
+    case PkResourceStorage::PlatformDir::Pictures:
+        return PkResourceStorage::joinPath(home, PkString("Pictures"));
+    }
+#elif defined(__ANDROID__)
+    PkString applicationHome = environment("ANDROID_APP_DATA");
+    if (applicationHome.isEmpty()) {
+        applicationHome = environment("HOME");
+    }
+    if (applicationHome.isEmpty()) {
+        const PkString temporary = environment("TMPDIR");
+        if (!temporary.isEmpty()) {
+            applicationHome = fromPath(toPath(temporary).parent_path() / "files");
+        }
+    }
+    if (applicationHome.isEmpty()) {
+        applicationHome = home;
+    }
+    switch (kind) {
+    case PkResourceStorage::PlatformDir::AppData:
+    case PkResourceStorage::PlatformDir::AppLocalData:
+    case PkResourceStorage::PlatformDir::GenericData:
+    case PkResourceStorage::PlatformDir::GenericConfig:
+        return applicationHome;
+    case PkResourceStorage::PlatformDir::Cache: {
+        const PkString temporary = environment("TMPDIR");
+        return temporary.isEmpty() ? PkResourceStorage::joinPath(home, PkString("cache")) : temporary;
+    }
+    case PkResourceStorage::PlatformDir::Home:
+        return home;
+    case PkResourceStorage::PlatformDir::Pictures: {
+        const PkString external = environment("EXTERNAL_STORAGE");
+        return PkResourceStorage::joinPath(external.isEmpty() ? home : external, PkString("Pictures"));
+    }
+    }
+#elif defined(__HAIKU__)
+    switch (kind) {
+    case PkResourceStorage::PlatformDir::AppData:
+    case PkResourceStorage::PlatformDir::AppLocalData:
+        return PkResourceStorage::joinPath(
+            haikuDirectory(B_USER_NONPACKAGED_DATA_DIRECTORY, home), PkString("krita"));
+    case PkResourceStorage::PlatformDir::GenericData:
+        return haikuDirectory(B_USER_NONPACKAGED_DATA_DIRECTORY, home);
+    case PkResourceStorage::PlatformDir::GenericConfig:
+        return haikuDirectory(B_USER_SETTINGS_DIRECTORY, home);
+    case PkResourceStorage::PlatformDir::Cache:
+        return PkResourceStorage::joinPath(
+            haikuDirectory(B_USER_CACHE_DIRECTORY, home), PkString("krita"));
+    case PkResourceStorage::PlatformDir::Home:
+        return haikuDirectory(B_USER_DIRECTORY, home);
+    case PkResourceStorage::PlatformDir::Pictures:
+        return PkResourceStorage::joinPath(
+            haikuDirectory(B_USER_DIRECTORY, home), PkString("Pictures"));
     }
 #else
     switch (kind) {
@@ -126,6 +212,128 @@ PkString platformDir(PkResourceStorage::PlatformDir kind)
     return home;
 }
 
+fs::path resourceConfigFilePath()
+{
+    return toPath(PkResourceStorage::joinPath(
+        platformDir(PkResourceStorage::PlatformDir::GenericConfig), PkString("kritarc")));
+}
+
+bool readPersistentResourceLocation(PkString *location)
+{
+    std::ifstream input(resourceConfigFilePath(), std::ios::binary);
+    if (!input) {
+        return false;
+    }
+
+    std::string line;
+    while (std::getline(input, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if (!line.empty() && line.front() == '[') {
+            break;
+        }
+        static const std::string prefix = "ResourceDirectory=";
+        if (line.compare(0, prefix.size(), prefix) == 0) {
+            *location = PkString::PkFromUtf8(line.data() + prefix.size(),
+                                             static_cast<int>(line.size() - prefix.size()));
+            return true;
+        }
+    }
+    return false;
+}
+
+bool persistResourceLocation(const PkString &location)
+{
+    const fs::path configPath = resourceConfigFilePath();
+    std::error_code ec;
+    fs::create_directories(configPath.parent_path(), ec);
+    if (ec) {
+        return false;
+    }
+
+    std::vector<std::string> lines;
+    {
+        std::ifstream input(configPath, std::ios::binary);
+        std::string line;
+        while (std::getline(input, line)) {
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
+            lines.push_back(line);
+        }
+    }
+
+    const std::string entry = std::string("ResourceDirectory=") + location.PkToUtf8();
+    bool replaced = false;
+    std::size_t firstGroup = lines.size();
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        if (!lines[i].empty() && lines[i].front() == '[') {
+            firstGroup = i;
+            break;
+        }
+        if (lines[i].compare(0, std::string("ResourceDirectory=").size(), "ResourceDirectory=") == 0) {
+            lines[i] = entry;
+            replaced = true;
+            break;
+        }
+    }
+    if (!replaced) {
+        lines.insert(lines.begin() + static_cast<std::ptrdiff_t>(firstGroup), entry);
+    }
+
+    fs::path temporaryPath = configPath;
+    temporaryPath += ".tmp";
+    {
+        std::ofstream output(temporaryPath, std::ios::binary | std::ios::trunc);
+        if (!output) {
+            return false;
+        }
+        for (const std::string &line : lines) {
+            output << line << '\n';
+        }
+        output.flush();
+        if (!output) {
+            return false;
+        }
+    }
+    fs::rename(temporaryPath, configPath, ec);
+#ifdef _WIN32
+    if (ec) {
+        ec.clear();
+        fs::remove(configPath, ec);
+        ec.clear();
+        fs::rename(temporaryPath, configPath, ec);
+    }
+#endif
+    if (ec) {
+        fs::remove(temporaryPath, ec);
+        return false;
+    }
+    return true;
+}
+
+PkString configuredResourceLocation(PkConfigGroup &config)
+{
+    if (config.hasKey(kResourceLocationKey)) {
+        const PkString location = config.readEntry(kResourceLocationKey, PkString());
+        persistResourceLocation(location);
+        return location;
+    }
+
+    PkString location;
+    if (readPersistentResourceLocation(&location)) {
+        config.writeEntry(kResourceLocationKey, location);
+    }
+    return location;
+}
+
+void updateConfiguredResourceLocation(PkConfigGroup &config, const PkString &location)
+{
+    config.writeEntry(kResourceLocationKey, location);
+    persistResourceLocation(location);
+}
+
 PkStringList splitEnvironmentPaths(const char *name)
 {
     PkStringList result;
@@ -150,7 +358,24 @@ PkStringList platformSearchDirs(PkResourceStorage::PlatformDir kind)
 {
     PkStringList result;
     result.append(platformDir(kind));
-#ifndef _WIN32
+#if defined(__APPLE__)
+    if (kind == PkResourceStorage::PlatformDir::AppData ||
+        kind == PkResourceStorage::PlatformDir::AppLocalData) {
+        result.append(PkString("/Library/Application Support/krita"));
+        result.append(PkString("/Network/Library/Application Support/krita"));
+    } else if (kind == PkResourceStorage::PlatformDir::GenericData) {
+        result.append(PkString("/Library/Application Support"));
+        result.append(PkString("/Network/Library/Application Support"));
+    }
+#elif defined(__HAIKU__)
+    if (kind == PkResourceStorage::PlatformDir::AppData ||
+        kind == PkResourceStorage::PlatformDir::AppLocalData) {
+        result.append(PkResourceStorage::joinPath(
+            haikuDirectory(B_SYSTEM_NONPACKAGED_DATA_DIRECTORY, PkString()), PkString("krita")));
+    } else if (kind == PkResourceStorage::PlatformDir::GenericData) {
+        result.append(haikuDirectory(B_SYSTEM_NONPACKAGED_DATA_DIRECTORY, PkString()));
+    }
+#elif !defined(_WIN32) && !defined(__ANDROID__)
     if (kind == PkResourceStorage::PlatformDir::AppData ||
         kind == PkResourceStorage::PlatformDir::AppLocalData) {
         PkStringList system = splitEnvironmentPaths("XDG_DATA_DIRS");
@@ -189,6 +414,21 @@ PkString withTrailingSlash(const PkString &path)
         return cleaned;
     }
     return hasTrailingSlash(cleaned) ? cleaned : cleaned + PkString("/");
+}
+
+PkString normalizedRelativePath(const PkString &path)
+{
+    const std::string text = path.PkToUtf8();
+    const std::size_t firstRelativeCharacter = text.find_first_not_of("/\\");
+    if (firstRelativeCharacter == std::string::npos) {
+        return PkString();
+    }
+    return clean(PkString(text.substr(firstRelativeCharacter).c_str()));
+}
+
+PkString normalizedResourceAlias(const PkString &alias)
+{
+    return withTrailingSlash(normalizedRelativePath(alias));
 }
 
 bool startsWithPath(const PkString &path, const PkString &prefix)
@@ -363,27 +603,26 @@ PkStringList filesInDir(const PkString &startDir, const PkString &filter, bool r
         return result;
     }
     const std::string pattern = filter.isEmpty() ? "*" : filter.PkToUtf8();
-    std::vector<fs::path> paths;
-    if (recursive) {
-        for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end;
-             it != end; it.increment(ec)) {
-            if (!ec && it->is_regular_file(ec) && globMatches(pattern, it->path().filename().string())) {
-                paths.push_back(it->path());
+    std::vector<fs::path> files;
+    std::vector<fs::path> directories;
+    for (fs::directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end;
+         it != end; it.increment(ec)) {
+        if (!ec) {
+            if (it->is_regular_file(ec) && globMatches(pattern, it->path().filename().string())) {
+                files.push_back(it->path());
+            } else if (recursive && it->is_directory(ec)) {
+                directories.push_back(it->path());
             }
-            ec.clear();
         }
-    } else {
-        for (fs::directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end;
-             it != end; it.increment(ec)) {
-            if (!ec && it->is_regular_file(ec) && globMatches(pattern, it->path().filename().string())) {
-                paths.push_back(it->path());
-            }
-            ec.clear();
-        }
+        ec.clear();
     }
-    std::sort(paths.begin(), paths.end());
-    for (const fs::path &path : paths) {
+    std::sort(files.begin(), files.end());
+    for (const fs::path &path : files) {
         result.append(fromPath(path.lexically_normal()));
+    }
+    std::sort(directories.begin(), directories.end());
+    for (const fs::path &directory : directories) {
+        result += filesInDir(fromPath(directory), filter, true);
     }
     return result;
 }
@@ -448,7 +687,10 @@ PkString KoResourcePaths::getAppDataLocation()
 
     const PkString defaultPath = platformDir(PkResourceStorage::PlatformDir::AppData);
     PkConfigGroup config(PkSharedConfig::openConfig(), PkString());
-    PkString path = config.readEntry(kResourceLocationKey, defaultPath);
+    PkString path = configuredResourceLocation(config);
+    if (path.isEmpty()) {
+        path = defaultPath;
+    }
 
 #ifndef _WIN32
     const std::string text = path.PkToUtf8();
@@ -458,20 +700,20 @@ PkString KoResourcePaths::getAppDataLocation()
     if (looksLikeWindowsPath) {
         warnResource << "Resource path uses a Windows prefix; resetting" << path;
         path = defaultPath;
-        config.writeEntry(kResourceLocationKey, path);
+        updateConfiguredResourceLocation(config, path);
     }
 #else
     const std::string text = path.PkToUtf8();
     if (text.size() >= 2 && text[0] == '/' && text[1] != '/') {
         warnResource << "Resource path uses a Unix prefix; resetting" << path;
         path = defaultPath;
-        config.writeEntry(kResourceLocationKey, path);
+        updateConfiguredResourceLocation(config, path);
     }
 #endif
 
     if (!isAbsolute(path)) {
         path = absolutePath(path);
-        config.writeEntry(kResourceLocationKey, path);
+        updateConfiguredResourceLocation(config, path);
     }
 
     const fs::path nativePath = toPath(path);
@@ -553,7 +795,10 @@ void KoResourcePaths::addResourceTypeInternal(const PkString &type, const PkStri
         return;
     }
     assert(baseType == PkString("data"));
-    const PkString copy = withTrailingSlash(relativeName);
+    const PkString copy = normalizedResourceAlias(relativeName);
+    if (copy.isEmpty()) {
+        return;
+    }
     d->relativesMutex.lock();
     PkStringList &paths = d->relatives[type];
     if (!containsForPlatform(paths, copy)) {
@@ -579,18 +824,26 @@ void KoResourcePaths::addResourceDirInternal(const PkString &type, const PkStrin
 
 PkString KoResourcePaths::findResourceInternal(const PkString &type, const PkString &fileName)
 {
+    const PkString relativeFileName = normalizedRelativePath(fileName);
     const PkStringList aliases = d->aliases(type);
     const PkStringList roots = platformSearchDirs(d->mapTypeToPlatformDir(type));
-    for (const PkString &root : roots) {
-        const PkString direct = PkResourceStorage::joinPath(root, fileName);
+    for (const PkString &root : platformSearchDirs(PkResourceStorage::PlatformDir::AppData)) {
+        const PkString direct = PkResourceStorage::joinPath(root, relativeFileName);
         if (pathExists(direct)) {
             return direct;
         }
-        for (const PkString &alias : aliases) {
-            const PkString candidate = isAbsolute(alias)
-                                           ? PkResourceStorage::joinPath(alias, fileName)
-                                           : PkResourceStorage::joinPath(
-                                                 PkResourceStorage::joinPath(root, alias), fileName);
+    }
+    for (const PkString &alias : aliases) {
+        if (isAbsolute(alias)) {
+            const PkString candidate = PkResourceStorage::joinPath(alias, relativeFileName);
+            if (pathExists(candidate)) {
+                return candidate;
+            }
+            continue;
+        }
+        for (const PkString &root : roots) {
+            const PkString candidate = PkResourceStorage::joinPath(
+                PkResourceStorage::joinPath(root, alias), relativeFileName);
             if (pathExists(candidate)) {
                 return candidate;
             }
@@ -599,14 +852,22 @@ PkString KoResourcePaths::findResourceInternal(const PkString &type, const PkStr
 
     const PkString prefix = installationPrefix();
     for (const PkString &alias : aliases) {
+        if (isAbsolute(alias)) {
+            continue;
+        }
         const PkString share = PkResourceStorage::joinPath(
-            PkResourceStorage::joinPath(PkResourceStorage::joinPath(prefix, PkString("share")), alias), fileName);
+            PkResourceStorage::joinPath(PkResourceStorage::joinPath(prefix, PkString("share")), alias), relativeFileName);
         if (pathExists(share)) {
             return share;
         }
+    }
+    for (const PkString &alias : aliases) {
+        if (isAbsolute(alias)) {
+            continue;
+        }
         const PkString kritaShare = PkResourceStorage::joinPath(
             PkResourceStorage::joinPath(
-                PkResourceStorage::joinPath(prefix, PkString("share/krita")), alias), fileName);
+                PkResourceStorage::joinPath(prefix, PkString("share/krita")), alias), relativeFileName);
         if (pathExists(kritaShare)) {
             return kritaShare;
         }
@@ -614,14 +875,14 @@ PkString KoResourcePaths::findResourceInternal(const PkString &type, const PkStr
 
     for (const PkString &extra : findExtraResourceDirs()) {
         if (aliases.isEmpty()) {
-            const PkString candidate = PkResourceStorage::joinPath(extra, fileName);
+            const PkString candidate = PkResourceStorage::joinPath(extra, relativeFileName);
             if (pathExists(candidate)) {
                 return candidate;
             }
         }
         for (const PkString &alias : aliases) {
             const PkString candidate = PkResourceStorage::joinPath(
-                PkResourceStorage::joinPath(extra, alias), fileName);
+                PkResourceStorage::joinPath(extra, alias), relativeFileName);
             if (pathExists(candidate)) {
                 return candidate;
             }
@@ -679,38 +940,68 @@ PkStringList KoResourcePaths::findAllResourcesInternal(const PkString &type,
     }
     const PkString filter(filterText.c_str());
 
-    PkStringList directories;
     const PkStringList roots = platformSearchDirs(d->mapTypeToPlatformDir(type));
+    PkStringList resources;
     if (aliases.isEmpty()) {
-        directories += roots;
+        for (const PkString &root : roots) {
+            appendResources(&resources, filesInDir(root, filter, false), true);
+        }
     }
+
+    for (const PkString &extra : findExtraResourceDirs()) {
+        if (aliases.isEmpty()) {
+            appendResources(&resources,
+                            filesInDir(PkResourceStorage::joinPath(extra, type), filter, recursive),
+                            true);
+        } else {
+            for (const PkString &alias : aliases) {
+                if (!isAbsolute(alias)) {
+                    appendResources(&resources,
+                                    filesInDir(PkResourceStorage::joinPath(extra, alias), filter, recursive),
+                                    true);
+                }
+            }
+        }
+    }
+
+    const PkString prefix = installationPrefix();
     for (const PkString &alias : aliases) {
-        if (isAbsolute(alias)) {
+        PkStringList directories;
+        if (isAbsolute(alias) && directoryExists(alias)) {
             directories.append(alias);
         } else {
             for (const PkString &root : roots) {
-                directories.append(PkResourceStorage::joinPath(root, alias));
+                const PkString candidate = PkResourceStorage::joinPath(root, alias);
+                if (directoryExists(candidate)) {
+                    directories.append(candidate);
+                }
             }
             directories.append(PkResourceStorage::joinPath(
-                PkResourceStorage::joinPath(installationPrefix(), PkString("share")), alias));
+                PkResourceStorage::joinPath(prefix, PkString("share")), alias));
             directories.append(PkResourceStorage::joinPath(
-                PkResourceStorage::joinPath(installationPrefix(), PkString("share/krita")), alias));
+                PkResourceStorage::joinPath(prefix, PkString("share/krita")), alias));
+        }
+        for (const PkString &directory : directories) {
+            appendResources(&resources, filesInDir(directory, filter, recursive), true);
         }
     }
-    for (const PkString &extra : findExtraResourceDirs()) {
-        if (aliases.isEmpty()) {
-            directories.append(PkResourceStorage::joinPath(extra, type));
-        } else {
-            for (const PkString &alias : aliases) {
-                directories.append(PkResourceStorage::joinPath(extra, alias));
-            }
-        }
-    }
-    directories.removeDuplicates();
 
-    PkStringList resources;
-    for (const PkString &dir : directories) {
-        appendResources(&resources, filesInDir(dir, filter, recursive), true);
+    if (!inputFilter.isEmpty()) {
+        const fs::path inputPath = toPath(inputFilter);
+        const PkString relativeDirectory = fromPath(inputPath.parent_path());
+        const PkString fileFilter = fromPath(inputPath.filename());
+        appendResources(&resources,
+                        filesInDir(PkResourceStorage::joinPath(
+                                       PkResourceStorage::joinPath(prefix, PkString("share")),
+                                       relativeDirectory),
+                                   fileFilter, false),
+                        true);
+        appendResources(&resources,
+                        filesInDir(PkResourceStorage::joinPath(
+                                       PkResourceStorage::joinPath(prefix, PkString("share/krita")),
+                                       relativeDirectory),
+                                   fileFilter, false),
+                        true);
     }
     return resources;
 }
@@ -745,19 +1036,26 @@ PkString KoResourcePaths::saveLocationInternal(const PkString &type, const PkStr
 {
     const PkResourceStorage::PlatformDir location = d->mapTypeToPlatformDir(type);
     PkString path;
+    bool usesStandardLocation = false;
     if (location == PkResourceStorage::PlatformDir::AppData) {
         PkConfigGroup config(PkSharedConfig::openConfig(), PkString());
-        path = config.readEntry(kResourceLocationKey, PkString());
+        path = configuredResourceLocation(config);
     }
     if (path.isEmpty()) {
         path = platformDir(location);
+        usesStandardLocation = true;
     }
+#ifndef __ANDROID__
+    if (usesStandardLocation && toPath(path).filename() != fs::path("krita")) {
+        path = PkResourceStorage::joinPath(path, PkString("krita"));
+    }
+#endif
 
     const PkStringList aliases = d->aliases(type);
     if (!aliases.isEmpty()) {
         path = PkResourceStorage::joinPath(path, aliases.first());
     } else if (!suffix.isEmpty()) {
-        path = PkResourceStorage::joinPath(path, suffix);
+        path = PkResourceStorage::joinPath(path, normalizedRelativePath(suffix));
     }
 
     if (create) {
@@ -778,7 +1076,8 @@ PkString KoResourcePaths::locateInternal(const PkString &type, const PkString &f
 PkString KoResourcePaths::locateLocalInternal(const PkString &type, const PkString &filename,
                                               bool createDir)
 {
-    return PkResourceStorage::joinPath(saveLocationInternal(type, PkString(), createDir), filename);
+    return PkResourceStorage::joinPath(saveLocationInternal(type, PkString(), createDir),
+                                       normalizedRelativePath(filename));
 }
 
 PkStringList KoResourcePaths::findExtraResourceDirs() const
@@ -793,8 +1092,8 @@ PkStringList KoResourcePaths::findExtraResourceDirs() const
         }
     }
 
-    const PkConfigGroup config(PkSharedConfig::openConfig(), PkString());
-    const PkString customPath = config.readEntry(kResourceLocationKey, PkString());
+    PkConfigGroup config(PkSharedConfig::openConfig(), PkString());
+    const PkString customPath = configuredResourceLocation(config);
     if (!customPath.isEmpty()) {
         result.append(customPath);
     }
