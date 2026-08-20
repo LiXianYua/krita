@@ -9,6 +9,7 @@
 #include <PkSqlDatabase.h>
 #include <PkSqlQuery.h>
 
+#include "KisDatabaseTransactionLock.h"
 #include "KisResourceLocator.h"
 #include "KisResourceModelProvider.h"
 #include "KisResourceQueryMapper.h"
@@ -93,8 +94,8 @@ bool KisAllTagResourceModel::tagResources(const KisTagSP &tag,
         return false;
     }
 
-    PkSqlDatabase database = PkSqlDatabase::database();
-    if (!database.transaction()) {
+    KisDatabaseTransactionLock transaction(PkSqlDatabase::database());
+    if (!transaction.transactionStarted()) {
         return false;
     }
 
@@ -106,13 +107,11 @@ bool KisAllTagResourceModel::tagResources(const KisTagSP &tag,
         !reactivate.prepare(PkString(
             "UPDATE resource_tags SET active = 1 "
             "WHERE resource_id = :resource_id AND tag_id = :tag_id"))) {
-        database.rollback();
         return false;
     }
 
     for (int resourceId : resourceIds) {
         if (resourceId < 0) {
-            database.rollback();
             return false;
         }
         const int state = isResourceTagged(tag, resourceId);
@@ -123,13 +122,11 @@ bool KisAllTagResourceModel::tagResources(const KisTagSP &tag,
         query.bindValue(PkString(":resource_id"), PkVariant(resourceId));
         query.bindValue(PkString(":tag_id"), PkVariant(tag->id()));
         if (!query.exec()) {
-            database.rollback();
             return false;
         }
     }
 
-    if (!database.commit()) {
-        database.rollback();
+    if (!transaction.commit()) {
         return false;
     }
     const bool relationsRefreshed = refresh();
@@ -145,15 +142,14 @@ bool KisAllTagResourceModel::untagResources(const KisTagSP &tag,
         return false;
     }
 
-    PkSqlDatabase database = PkSqlDatabase::database();
-    if (!database.transaction()) {
+    KisDatabaseTransactionLock transaction(PkSqlDatabase::database());
+    if (!transaction.transactionStarted()) {
         return false;
     }
     PkSqlQuery query;
     if (!query.prepare(PkString(
             "UPDATE resource_tags SET active = 0 "
             "WHERE tag_id = :tag_id AND resource_id = :resource_id"))) {
-        database.rollback();
         return false;
     }
     for (int resourceId : resourceIds) {
@@ -163,12 +159,10 @@ bool KisAllTagResourceModel::untagResources(const KisTagSP &tag,
         query.bindValue(PkString(":tag_id"), PkVariant(tag->id()));
         query.bindValue(PkString(":resource_id"), PkVariant(resourceId));
         if (!query.exec()) {
-            database.rollback();
             return false;
         }
     }
-    if (!database.commit()) {
-        database.rollback();
+    if (!transaction.commit()) {
         return false;
     }
     const bool relationsRefreshed = refresh();

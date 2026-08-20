@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
@@ -42,6 +43,7 @@
 #include <limits>
 #include <new>
 #include <optional>
+#include <mutex>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -122,6 +124,17 @@ PkString fileBaseName(const PkString &path)
 }
 
 const char kBase64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+// Metadata is control-plane state, not a bulk-blob store (resource thumbnails
+// have their own BLOB columns).  Bound both retained rows and retained Base64
+// text before materializing SQLite values.  A single owner may retain at most
+// 8 MiB across at most 1024 rows, and no one row may exceed 1 MiB.  The SQL
+// byte-length probe happens before q.value(...).toString(), so an over-limit
+// value remains in SQLite without an extra unbounded application copy.
+constexpr std::uint64_t kMaximumMetadataPayloadBytes = 1024u * 1024u;
+constexpr std::uint64_t kMaximumMetadataPayloadBytesPerOwner = 8u * 1024u * 1024u;
+constexpr std::uint64_t kMaximumMetadataKeyBytes = 16u * 1024u;
+constexpr std::size_t kMaximumMetadataRowsPerOwner = 1024u;
 
 PkString base64Encode(const PkByteArray &bytes)
 {
@@ -296,6 +309,277 @@ bool isUserTypeId(std::uint32_t typeId)
            typeId >= qt5UserType;
 }
 
+enum class WireValidationStatus
+{
+    Valid,
+    ReadPastEnd,
+    Malformed,
+    UnsupportedUserType,
+    UnsupportedType,
+    TrailingData
+};
+
+struct WireValidationResult
+{
+    WireValidationStatus status = WireValidationStatus::Malformed;
+    std::uint32_t topLevelType = 0;
+};
+
+class Qt515VariantWireScanner
+{
+public:
+    explicit Qt515VariantWireScanner(const std::vector<std::uint8_t> &bytes)
+        : m_bytes(bytes)
+    {
+    }
+
+    WireValidationResult scan()
+    {
+        WireValidationResult result;
+        result.status = scanVariant(0, &result.topLevelType);
+        if (result.status == WireValidationStatus::Valid && m_offset != m_bytes.size()) {
+            result.status = WireValidationStatus::TrailingData;
+        }
+        return result;
+    }
+
+private:
+    static constexpr std::size_t kMaximumVariantDepth = 64;
+    static constexpr std::uint32_t kNullLength = 0xffffffffu;
+
+    bool readU8(std::uint8_t &value)
+    {
+        if (!canRead(1)) return false;
+        value = m_bytes[m_offset++];
+        return true;
+    }
+
+    bool readU32(std::uint32_t &value)
+    {
+        if (!canRead(4)) return false;
+        value = (static_cast<std::uint32_t>(m_bytes[m_offset]) << 24) |
+                (static_cast<std::uint32_t>(m_bytes[m_offset + 1]) << 16) |
+                (static_cast<std::uint32_t>(m_bytes[m_offset + 2]) << 8) |
+                static_cast<std::uint32_t>(m_bytes[m_offset + 3]);
+        m_offset += 4;
+        return true;
+    }
+
+    bool readI32(std::int32_t &value)
+    {
+        std::uint32_t bits = 0;
+        if (!readU32(bits)) return false;
+        static_assert(sizeof(bits) == sizeof(value), "32-bit wire integer required");
+        std::memcpy(&value, &bits, sizeof(value));
+        return true;
+    }
+
+    bool canRead(std::size_t count) const
+    {
+        return m_offset <= m_bytes.size() && count <= m_bytes.size() - m_offset;
+    }
+
+    bool skip(std::size_t count)
+    {
+        if (!canRead(count)) return false;
+        m_offset += count;
+        return true;
+    }
+
+    bool countCanFit(std::uint32_t count, std::size_t minimumBytes) const
+    {
+        const std::size_t remaining =
+            m_offset <= m_bytes.size() ? m_bytes.size() - m_offset : 0;
+        return minimumBytes == 0 ||
+               static_cast<std::uint64_t>(count) <=
+                   static_cast<std::uint64_t>(remaining / minimumBytes);
+    }
+
+    WireValidationStatus scanString()
+    {
+        std::uint32_t byteCount = 0;
+        if (!readU32(byteCount)) return WireValidationStatus::ReadPastEnd;
+        if (byteCount == kNullLength) return WireValidationStatus::Valid;
+        if ((byteCount & 1u) != 0u) return WireValidationStatus::Malformed;
+        return skip(byteCount) ? WireValidationStatus::Valid
+                               : WireValidationStatus::ReadPastEnd;
+    }
+
+    WireValidationStatus scanByteArray()
+    {
+        std::uint32_t byteCount = 0;
+        if (!readU32(byteCount)) return WireValidationStatus::ReadPastEnd;
+        if (byteCount == kNullLength) return WireValidationStatus::Valid;
+        return skip(byteCount) ? WireValidationStatus::Valid
+                               : WireValidationStatus::ReadPastEnd;
+    }
+
+    WireValidationStatus scanStringList()
+    {
+        std::uint32_t count = 0;
+        if (!readU32(count)) return WireValidationStatus::ReadPastEnd;
+        if (count > static_cast<std::uint32_t>((std::numeric_limits<int>::max)())) {
+            return WireValidationStatus::Malformed;
+        }
+        if (!countCanFit(count, 4)) return WireValidationStatus::ReadPastEnd;
+        for (std::uint32_t i = 0; i < count; ++i) {
+            const WireValidationStatus status = scanString();
+            if (status != WireValidationStatus::Valid) return status;
+        }
+        return WireValidationStatus::Valid;
+    }
+
+    WireValidationStatus scanVariantList(std::size_t depth)
+    {
+        std::uint32_t count = 0;
+        if (!readU32(count)) return WireValidationStatus::ReadPastEnd;
+        if (count > static_cast<std::uint32_t>((std::numeric_limits<int>::max)())) {
+            return WireValidationStatus::Malformed;
+        }
+        if (!countCanFit(count, 5)) return WireValidationStatus::ReadPastEnd;
+        for (std::uint32_t i = 0; i < count; ++i) {
+            const WireValidationStatus status = scanVariant(depth, nullptr);
+            if (status != WireValidationStatus::Valid) return status;
+        }
+        return WireValidationStatus::Valid;
+    }
+
+    WireValidationStatus scanVariantMap(std::size_t depth)
+    {
+        std::uint32_t count = 0;
+        if (!readU32(count)) return WireValidationStatus::ReadPastEnd;
+        if (count > static_cast<std::uint32_t>((std::numeric_limits<int>::max)())) {
+            return WireValidationStatus::Malformed;
+        }
+        if (!countCanFit(count, 9)) return WireValidationStatus::ReadPastEnd;
+        for (std::uint32_t i = 0; i < count; ++i) {
+            WireValidationStatus status = scanString();
+            if (status != WireValidationStatus::Valid) return status;
+            status = scanVariant(depth, nullptr);
+            if (status != WireValidationStatus::Valid) return status;
+        }
+        return WireValidationStatus::Valid;
+    }
+
+    WireValidationStatus scanDateTime()
+    {
+        if (!skip(8 + 4)) return WireValidationStatus::ReadPastEnd;
+        std::uint8_t spec = 0;
+        if (!readU8(spec)) return WireValidationStatus::ReadPastEnd;
+        if (spec > static_cast<std::uint8_t>(PkVariant::DateTimeSpec::TimeZone)) {
+            return WireValidationStatus::Malformed;
+        }
+        if (spec == static_cast<std::uint8_t>(PkVariant::DateTimeSpec::OffsetFromUTC)) {
+            return skip(4) ? WireValidationStatus::Valid
+                           : WireValidationStatus::ReadPastEnd;
+        }
+        if (spec == static_cast<std::uint8_t>(PkVariant::DateTimeSpec::TimeZone)) {
+            return scanString();
+        }
+        return WireValidationStatus::Valid;
+    }
+
+    WireValidationStatus scanRect()
+    {
+        std::int32_t x1 = 0;
+        std::int32_t y1 = 0;
+        std::int32_t x2 = 0;
+        std::int32_t y2 = 0;
+        if (!readI32(x1) || !readI32(y1) || !readI32(x2) || !readI32(y2)) {
+            return WireValidationStatus::ReadPastEnd;
+        }
+        // PkDataStream reconstructs PkRect with the left-associative int
+        // expressions `x2 - x1 + 1` and `y2 - y1 + 1`.  Validate both the
+        // subtraction and the increment, not merely the mathematical final
+        // result, before that decoder can evaluate either expression.
+        const std::int64_t widthDelta = static_cast<std::int64_t>(x2) - x1;
+        const std::int64_t heightDelta = static_cast<std::int64_t>(y2) - y1;
+        const std::int64_t minimum = (std::numeric_limits<int>::min)();
+        const std::int64_t maximumBeforeIncrement =
+            static_cast<std::int64_t>((std::numeric_limits<int>::max)()) - 1;
+        if (widthDelta < minimum || widthDelta > maximumBeforeIncrement ||
+            heightDelta < minimum || heightDelta > maximumBeforeIncrement) {
+            return WireValidationStatus::Malformed;
+        }
+        return WireValidationStatus::Valid;
+    }
+
+    WireValidationStatus scanVariant(std::size_t depth, std::uint32_t *typeOut)
+    {
+        if (depth >= kMaximumVariantDepth) return WireValidationStatus::Malformed;
+
+        std::uint32_t typeId = 0;
+        std::uint8_t nullFlag = 0;
+        if (!readU32(typeId) || !readU8(nullFlag)) {
+            return WireValidationStatus::ReadPastEnd;
+        }
+        if (typeOut) *typeOut = typeId;
+        if (nullFlag > 1u) return WireValidationStatus::Malformed;
+        if (isUserTypeId(typeId)) return WireValidationStatus::UnsupportedUserType;
+        if (!isSupportedBuiltInVariantType(typeId)) {
+            return WireValidationStatus::UnsupportedType;
+        }
+
+        switch (typeId) {
+        case PkVariant::Invalid:
+            return WireValidationStatus::Valid;
+        case PkVariant::Bool: {
+            std::uint8_t value = 0;
+            if (!readU8(value)) return WireValidationStatus::ReadPastEnd;
+            return value <= 1u ? WireValidationStatus::Valid
+                               : WireValidationStatus::Malformed;
+        }
+        case PkVariant::Int:
+        case PkVariant::UInt:
+        case PkVariant::Time:
+            return skip(4) ? WireValidationStatus::Valid
+                           : WireValidationStatus::ReadPastEnd;
+        case PkVariant::LongLong:
+        case PkVariant::ULongLong:
+        case PkVariant::Double:
+        case PkVariant::Float:
+        case PkVariant::Date:
+            return skip(8) ? WireValidationStatus::Valid
+                           : WireValidationStatus::ReadPastEnd;
+        case PkVariant::String:
+            return scanString();
+        case PkVariant::ByteArray:
+            return scanByteArray();
+        case PkVariant::StringList:
+            return scanStringList();
+        case PkVariant::List:
+            return scanVariantList(depth + 1);
+        case PkVariant::Map:
+        case PkVariant::Hash:
+            return scanVariantMap(depth + 1);
+        case PkVariant::DateTime:
+            return scanDateTime();
+        case PkVariant::Rect:
+            return scanRect();
+        case PkVariant::RectF:
+        case PkVariant::LineF:
+            return skip(32) ? WireValidationStatus::Valid
+                            : WireValidationStatus::ReadPastEnd;
+        case PkVariant::Size:
+        case PkVariant::Point:
+            return skip(8) ? WireValidationStatus::Valid
+                           : WireValidationStatus::ReadPastEnd;
+        case PkVariant::SizeF:
+        case PkVariant::PointF:
+            return skip(16) ? WireValidationStatus::Valid
+                            : WireValidationStatus::ReadPastEnd;
+        case PkVariant::Line:
+            return skip(16) ? WireValidationStatus::Valid
+                            : WireValidationStatus::ReadPastEnd;
+        default:
+            return WireValidationStatus::UnsupportedType;
+        }
+    }
+
+    const std::vector<std::uint8_t> &m_bytes;
+    std::size_t m_offset = 0;
+};
+
 KisResourceCacheDb::MetaDataDecodeStatus decodeStatusFromStream(
     PkDataStream::Status status, std::uint32_t typeId)
 {
@@ -321,6 +605,100 @@ struct VariantDecodeResult
         KisResourceCacheDb::MetaDataDecodeStatus::ReadCorruptData;
 };
 
+class MetadataSavepoint
+{
+public:
+    MetadataSavepoint()
+        : m_connectionLock(detail::resourceDatabaseConnectionMutex())
+        , m_database(PkSqlDatabase::database())
+        , m_nativeMutex(detail::lockResourceDatabaseNativeMutex(m_database))
+        , m_name(PkString("krita_metadata_") +
+                 PkString(std::to_string(nextId().fetch_add(1)).c_str()))
+    {
+    }
+
+    ~MetadataSavepoint()
+    {
+        if (m_active && !rollback()) {
+            qWarning() << "Failed to rollback metadata savepoint during cleanup" << m_name;
+        }
+        detail::unlockResourceDatabaseNativeMutex(m_nativeMutex);
+    }
+
+    MetadataSavepoint(const MetadataSavepoint &) = delete;
+    MetadataSavepoint &operator=(const MetadataSavepoint &) = delete;
+
+    bool begin()
+    {
+        if (!execControl(PkString("SAVEPOINT ") + m_name, "begin")) {
+            return false;
+        }
+        m_active = true;
+        return true;
+    }
+
+    bool release()
+    {
+        if (!m_active) {
+            return false;
+        }
+        if (execControl(PkString("RELEASE SAVEPOINT ") + m_name, "release")) {
+            m_active = false;
+            return true;
+        }
+
+        // RELEASE is the commit point for a top-level savepoint.  If it
+        // fails, make a best-effort checked rollback instead of allowing the
+        // destructor or an outer transaction to commit partial rows.
+        (void)rollback();
+        return false;
+    }
+
+    bool rollback()
+    {
+        if (!m_active) {
+            return true;
+        }
+        const bool rolledBack =
+            execControl(PkString("ROLLBACK TO SAVEPOINT ") + m_name, "rollback-to");
+        if (!rolledBack) {
+            // Releasing a savepoint whose rollback failed could commit the
+            // very partial update this guard exists to contain.
+            return false;
+        }
+        const bool released =
+            execControl(PkString("RELEASE SAVEPOINT ") + m_name, "release-after-rollback");
+        if (released) {
+            m_active = false;
+        }
+        return released;
+    }
+
+private:
+    static std::atomic<std::uint64_t> &nextId()
+    {
+        static std::atomic<std::uint64_t> value {1};
+        return value;
+    }
+
+    bool execControl(const PkString &statement, const char *operation)
+    {
+        PkSqlQuery query;
+        if (query.exec(statement)) {
+            return true;
+        }
+        qWarning() << "Could not" << operation << "metadata savepoint" << m_name
+                   << query.lastError();
+        return false;
+    }
+
+    std::lock_guard<std::recursive_mutex> m_connectionLock;
+    PkSqlDatabase m_database;
+    void *m_nativeMutex = nullptr;
+    PkString m_name;
+    bool m_active = false;
+};
+
 VariantDecodeResult deserializeVariant(const PkString &encoded)
 {
     VariantDecodeResult result;
@@ -337,26 +715,34 @@ VariantDecodeResult deserializeVariant(const PkString &encoded)
         return result;
     }
 
-    MetadataReadStream device(bytes);
-    std::uint32_t typeId = 0;
-    {
-        PkDataStream typeReader(&device);
-        typeReader.setVersion(PkDataStream::Qt_5_15);
-        typeReader.setAllocationLimit(allocationLimit);
-        typeReader >> typeId;
-        if (typeReader.status() != PkDataStream::Ok) {
-            result.status = decodeStatusFromStream(typeReader.status(), typeId);
-            return result;
-        }
+    const WireValidationResult framing = Qt515VariantWireScanner(bytes).scan();
+    switch (framing.status) {
+    case WireValidationStatus::Valid:
+        break;
+    case WireValidationStatus::ReadPastEnd:
+        result.status = KisResourceCacheDb::MetaDataDecodeStatus::ReadPastEnd;
+        return result;
+    case WireValidationStatus::Malformed:
+        result.status = KisResourceCacheDb::MetaDataDecodeStatus::ReadCorruptData;
+        return result;
+    case WireValidationStatus::UnsupportedUserType:
+        result.status = KisResourceCacheDb::MetaDataDecodeStatus::UnsupportedUserType;
+        return result;
+    case WireValidationStatus::UnsupportedType:
+        result.status = KisResourceCacheDb::MetaDataDecodeStatus::UnsupportedType;
+        return result;
+    case WireValidationStatus::TrailingData:
+        result.status = KisResourceCacheDb::MetaDataDecodeStatus::TrailingData;
+        return result;
     }
-    if (!device.seek(0)) return result;
 
+    MetadataReadStream device(bytes);
     PkDataStream stream(&device);
     stream.setVersion(PkDataStream::Qt_5_15);
     stream.setAllocationLimit(allocationLimit);
     stream >> result.value;
     if (stream.status() != PkDataStream::Ok) {
-        result.status = decodeStatusFromStream(stream.status(), typeId);
+        result.status = decodeStatusFromStream(stream.status(), framing.topLevelType);
         result.value.clear();
         return result;
     }
@@ -1550,7 +1936,10 @@ bool KisResourceCacheDb::addResource(KisResourceStorageSP storage, PkDateTime ti
 
 bool KisResourceCacheDb::addResources(KisResourceStorageSP storage, PkString resourceType)
 {
-    PkSqlDatabase::database().transaction();
+    KisDatabaseTransactionLock transaction(PkSqlDatabase::database());
+    if (!transaction.transactionStarted()) {
+        return false;
+    }
     PkSharedPointer<KisResourceStorage::ResourceIterator> iter = storage->resources(resourceType);
     while (iter->hasNext()) {
         iter->next();
@@ -1582,8 +1971,7 @@ bool KisResourceCacheDb::addResources(KisResourceStorageSP storage, PkString res
             }
         }
     }
-    PkSqlDatabase::database().commit();
-    return true;
+    return transaction.commit();
 }
 
 bool KisResourceCacheDb::setResourceActive(int resourceId, bool active)
@@ -1876,7 +2264,10 @@ bool KisResourceCacheDb::addTag(const PkString &resourceType, const PkString sto
 
 bool KisResourceCacheDb::addTags(KisResourceStorageSP storage, PkString resourceType)
 {
-    PkSqlDatabase::database().transaction();
+    KisDatabaseTransactionLock transaction(PkSqlDatabase::database());
+    if (!transaction.transactionStarted()) {
+        return false;
+    }
     PkSharedPointer<KisResourceStorage::TagIterator> iter = storage->tags(resourceType);
     while(iter->hasNext()) {
         iter->next();
@@ -1895,8 +2286,7 @@ bool KisResourceCacheDb::addTags(KisResourceStorageSP storage, PkString resource
             }
         }
     }
-    PkSqlDatabase::database().commit();
-    return true;
+    return transaction.commit();
 }
 
 bool KisResourceCacheDb::registerStorageType(const KisResourceStorage::StorageType storageType)
@@ -2271,7 +2661,10 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
     storage->setStorageId(q.value("id").toInt());
 
     /// Start the transaction that will add all the resources
-    PkSqlDatabase::database().transaction();
+    KisDatabaseTransactionLock transaction(PkSqlDatabase::database());
+    if (!transaction.transactionStarted()) {
+        return false;
+    }
 
     /// We compare resource versions one-by-one because the storage may have multiple
     /// versions of them
@@ -2504,7 +2897,9 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
         }
     }
 
-    PkSqlDatabase::database().commit();
+    if (!transaction.commit()) {
+        success = false;
+    }
     debugResource << "Synchronizing the storages took" << t.elapsed() << "milliseconds for" << storage->location();
 
     return success;
@@ -2731,10 +3126,13 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
     PkSqlQuery q;
     q.setForwardOnly(true);
     if (!q.prepare("SELECT key\n"
+                   ",      length(CAST(key AS BLOB))\n"
                    ",      value\n"
+                   ",      length(CAST(value AS BLOB))\n"
                    "FROM   metadata\n"
                    "WHERE  foreign_id = :id\n"
-                   "AND    table_name = :table")) {
+                   "AND    table_name = :table\n"
+                   "ORDER BY key")) {
         qWarning() << "Could not prepare metadata query" << q.lastError();
         return result;
     }
@@ -2748,9 +3146,39 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
     }
     result.querySucceeded = true;
 
+    std::size_t rowCount = 0;
+    std::uint64_t retainedPayloadBytes = 0;
     while (q.next()) {
+        if (rowCount >= kMaximumMetadataRowsPerOwner) {
+            result.resourceLimitExceeded = true;
+            break;
+        }
+        ++rowCount;
+
+        const long long keyByteCount = q.value(1).toLongLong();
+        if (keyByteCount < 0 ||
+            static_cast<std::uint64_t>(keyByteCount) > kMaximumMetadataKeyBytes) {
+            result.resourceLimitExceeded = true;
+            break;
+        }
         const PkString key = q.value(0).toString();
-        const PkString encoded = q.value(1).toString();
+        const long long payloadByteCount = q.value(3).toLongLong();
+        const bool rowExceedsLimit =
+            payloadByteCount < 0 ||
+            static_cast<std::uint64_t>(payloadByteCount) > kMaximumMetadataPayloadBytes;
+        const bool ownerExceedsLimit =
+            payloadByteCount >= 0 &&
+            static_cast<std::uint64_t>(payloadByteCount) >
+                kMaximumMetadataPayloadBytesPerOwner - retainedPayloadBytes;
+        if (rowExceedsLimit || ownerExceedsLimit) {
+            result.undecodable.insert(
+                key, MetaDataDecodeIssue{MetaDataDecodeStatus::PayloadLimitExceeded,
+                                         PkString(), false});
+            continue;
+        }
+
+        retainedPayloadBytes += static_cast<std::uint64_t>(payloadByteCount);
+        const PkString encoded = q.value(2).toString();
         VariantDecodeResult decoded = deserializeVariant(encoded);
         if (decoded.decoded) {
             result.values.insert(key, decoded.value);
@@ -2779,7 +3207,10 @@ bool KisResourceCacheDb::updateMetaDataForId(const PkMap<PkString, PkVariant> ma
     PkMap<PkString, PkString> serializedUpdates;
     for (auto iter = map.cbegin(); iter != map.cend(); ++iter) {
         const PkVariant value = iter.value();
-        if (value.isNull() || !value.isValid()) continue;
+        // An invalid PkVariant is the replace-all API's "no value" marker.
+        // A valid, typed null is persisted data and has a canonical R31 wire
+        // representation; conflating the two silently deletes typed nulls.
+        if (!value.isValid()) continue;
         const PkString encoded = serializeVariant(value);
         if (encoded.isEmpty()) {
             qWarning() << "Unsupported metadata value type for key" << iter.key()
@@ -2789,18 +3220,34 @@ bool KisResourceCacheDb::updateMetaDataForId(const PkMap<PkString, PkVariant> ma
         serializedUpdates.insert(iter.key(), encoded);
     }
 
-    PkSqlDatabase::database().transaction();
+    MetadataSavepoint transaction;
+    if (!transaction.begin()) {
+        return false;
+    }
+
+    const auto rollbackAndFail = [&transaction]() {
+        if (!transaction.rollback()) {
+            qWarning() << "Could not fully rollback metadata update savepoint";
+        }
+        return false;
+    };
 
     const MetaDataReadResult current = metaDataReadResultForId(id, tableName);
-    if (!current.querySucceeded) {
-        PkSqlDatabase::database().rollback();
-        return false;
+    if (!current.querySucceeded || current.resourceLimitExceeded) {
+        return rollbackAndFail();
     }
 
     std::vector<PkString> keysToDelete;
     keysToDelete.reserve(static_cast<std::size_t>(current.values.size()) +
                          static_cast<std::size_t>(current.undecodable.size()));
     for (auto iter = current.values.cbegin(); iter != current.values.cend(); ++iter) {
+        if (iter.value().isValid() && iter.value().isNull() &&
+            !serializedUpdates.contains(iter.key())) {
+            // Callers using the compatibility map can omit a typed null when
+            // changing an unrelated key.  Preserve it unless this update has
+            // an explicit, serializable replacement for the same key.
+            continue;
+        }
         keysToDelete.push_back(iter.key());
     }
     for (auto iter = current.undecodable.cbegin(); iter != current.undecodable.cend(); ++iter) {
@@ -2813,9 +3260,8 @@ bool KisResourceCacheDb::updateMetaDataForId(const PkMap<PkString, PkVariant> ma
                        "WHERE  foreign_id = :id\n"
                        "AND    table_name = :table\n"
                        "AND    key = :key\n")) {
-            PkSqlDatabase::database().rollback();
             qWarning() << "Could not prepare delete metadata query" << q.lastError();
-            return false;
+            return rollbackAndFail();
         }
 
         for (const PkString &key : keysToDelete) {
@@ -2823,21 +3269,17 @@ bool KisResourceCacheDb::updateMetaDataForId(const PkMap<PkString, PkVariant> ma
             q.bindValue(":table", tableName);
             q.bindValue(":key", key);
             if (!q.exec()) {
-                PkSqlDatabase::database().rollback();
                 qWarning() << "Could not execute delete metadata query" << q.lastError();
-                return false;
+                return rollbackAndFail();
             }
         }
     }
 
     const bool added = addMetaDataForId(map, id, tableName);
-    if (added) {
-        PkSqlDatabase::database().commit();
+    if (!added) {
+        return rollbackAndFail();
     }
-    else {
-        PkSqlDatabase::database().rollback();
-    }
-    return added;
+    return transaction.release();
 }
 
 bool KisResourceCacheDb::addMetaDataForId(const PkMap<PkString, PkVariant> map, int id, const PkString &tableName)
@@ -2848,7 +3290,6 @@ bool KisResourceCacheDb::addMetaDataForId(const PkMap<PkString, PkVariant> map, 
                    "(foreign_id, table_name, key, value)\n"
                    "VALUES\n"
                    "(:id, :table, :key, :value)")) {
-        PkSqlDatabase::database().rollback();
         qWarning() << "Could not create insert metadata query" << q.lastError();
         return false;
     }
@@ -2860,7 +3301,7 @@ bool KisResourceCacheDb::addMetaDataForId(const PkMap<PkString, PkVariant> map, 
         q.bindValue(":key", iter.key());
 
         PkVariant v = iter.value();
-        if (!v.isNull() && v.isValid()) {
+        if (v.isValid()) {
             const PkString encoded = serializeVariant(v);
             if (encoded.isEmpty()) {
                 qWarning() << "Unsupported metadata value type for key" << iter.key()

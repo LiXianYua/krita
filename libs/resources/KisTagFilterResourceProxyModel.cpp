@@ -106,8 +106,10 @@ bool KisTagFilterResourceProxyModel::accepts(
     KisResourceMetaDataModel *metaDataModel =
         KisResourceModelProvider::resourceMetadataModel();
     for (const PkString &key : d->metaDataMapFilter.keys()) {
-        const PkVariant value = metaDataModel->metaDataValue(record.id, key);
-        if (value.isValid() && value != d->metaDataMapFilter.value(key)) {
+        const KisResourceMetaDataModel::MetaDataValueResult result =
+            metaDataModel->metaDataValueResult(record.id, key);
+        if (!result.hasDecodedValue() ||
+            result.value != d->metaDataMapFilter.value(key)) {
             return false;
         }
     }

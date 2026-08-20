@@ -81,13 +81,15 @@ public:
         UnsupportedType,
         ReadPastEnd,
         ReadCorruptData,
-        TrailingData
+        TrailingData,
+        PayloadLimitExceeded
     };
 
     struct MetaDataDecodeIssue
     {
         MetaDataDecodeStatus status = MetaDataDecodeStatus::ReadCorruptData;
         PkString rawPayload;
+        bool rawPayloadAvailable = true;
     };
 
     struct MetaDataReadResult
@@ -95,6 +97,7 @@ public:
         PkMap<PkString, PkVariant> values;
         PkMap<PkString, MetaDataDecodeIssue> undecodable;
         bool querySucceeded = false;
+        bool resourceLimitExceeded = false;
     };
 
     /**

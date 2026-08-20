@@ -16,6 +16,7 @@
 #include <PkVariant.h>
 #include <PkVector.h>
 
+#include "KisResourceCacheDb.h"
 #include "kritaresources_export.h"
 
 #include <KisResourceStorage.h>
@@ -184,6 +185,10 @@ public:
     ///
     /// \see storageResynchronized
     void storagesBulkSynchronizationFinished();
+
+    /** Reads resource metadata while preserving opaque/error state. */
+    KisResourceCacheDb::MetaDataReadResult
+    metaDataReadResultForResource(int id) const;
 
 private:
 

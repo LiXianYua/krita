@@ -1115,6 +1115,12 @@ PkMap<PkString, PkVariant> KisResourceLocator::metaDataForResource(int id) const
     return KisResourceCacheDb::metaDataForId(id, "resources");
 }
 
+KisResourceCacheDb::MetaDataReadResult
+KisResourceLocator::metaDataReadResultForResource(int id) const
+{
+    return KisResourceCacheDb::metaDataReadResultForId(id, "resources");
+}
+
 bool KisResourceLocator::setMetaDataForResource(int id, PkMap<PkString, PkVariant> map) const
 {
     return KisResourceCacheDb::updateMetaDataForId(map, id, "resources");
