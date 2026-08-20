@@ -1,3 +1,9 @@
+#include <QString>
+#include <QTextStream>
+#include <QWidget>
+#include <QList>
+#include <QScreen>
+#include <QGuiApplication>
 /*
  *  SPDX-FileCopyrightText: 2024 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -10,12 +16,12 @@
 #include <sstream>
 #include <vector>
 
-#include <PkString>
-#include <PkTextStream>
-#include <PkWidget>
-#include <PkList>
-#include <PkScreen>
-#include <PkGuiApplication>
+#include <PkString.h>
+
+
+#include <PkList.h>
+
+
 
 #include "kritaglobal_export.h"
 

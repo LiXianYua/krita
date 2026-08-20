@@ -1,3 +1,7 @@
+#include <QPainter>
+#include <QPen>
+#include <QBrush>
+#include <QColor>
 /*
  *  SPDX-FileCopyrightText: 2016 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -10,7 +14,7 @@
 #include "kritaglobal_export.h"
 #include "kis_algebra_2d.h"
 
-#include <PkPainter>
+
 #include <KisHandleStyle.h>
 class PkPainter;
 class KoShape;

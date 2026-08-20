@@ -1,3 +1,7 @@
+#include <QPainter>
+#include <QPen>
+#include <QBrush>
+#include <QColor>
 /*
  *  SPDX-FileCopyrightText: 2017 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -8,8 +12,8 @@
 #define KISHANDLESTYLE_H
 
 #include <PkVector.h>
-#include <PkPen>
-#include <PkBrush>
+
+
 
 #include "kritaglobal_export.h"
 

@@ -71,7 +71,7 @@ void adjustIfOnPolygonBoundary(const PkPolygonF &poly, int polygonDirection, PkP
                     dbgKrita << ppVar(PkLineF(p0, p1));
                     dbgKrita << ppVar(salt);
 
-                    dbgKrita << ppVar(poly.containsPoint(*pt, Pk::OddEvenFill));
+                    dbgKrita << ppVar(poly.containsPoint(*pt, Qt::OddEvenFill));
 
                     dbgKrita << ppVar(kisDistanceToLine(*pt, PkLineF(p0, p1)));
                     dbgKrita << ppVar(kisDistanceToLine(adjustedPoint, PkLineF(p0, p1)));
@@ -256,7 +256,7 @@ bool intersectLineConvexPolygon(PkLineF &line, const PkPolygonF polygon, bool ex
     }
 
     // trivial case: no extends, all points inside the polygon
-    if (!extendFirst && !extendSecond && polygon.containsPoint(line.p1(), Pk::WindingFill) && polygon.containsPoint(line.p2(), Pk::WindingFill)) {
+    if (!extendFirst && !extendSecond && polygon.containsPoint(line.p1(), Qt::WindingFill) && polygon.containsPoint(line.p2(), Qt::WindingFill)) {
         return true;
     }
 
@@ -1364,7 +1364,7 @@ PkPolygonF calculateConvexHullFromPointsOverTheLine(const PkPolygonF &points, co
     PkPolygonF triangle;
     triangle << line.p1() << line.p2() << nextPoint << line.p1();
     Q_FOREACH(PkPointF point, points) {
-        if (triangle.containsPoint(point, Pk::WindingFill)) {
+        if (triangle.containsPoint(point, Qt::WindingFill)) {
             continue;
         }
         if (lineSideForPoint(lineForLeft, point) > 0) {

@@ -1,4 +1,8 @@
-#include <PkPainter>
+#include <QPainter>
+#include <QPen>
+#include <QBrush>
+#include <QColor>
+
 /*
  *  SPDX-FileCopyrightText: 2016 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -10,8 +14,8 @@
 
 #include "kritaglobal_export.h"
 
-#include <PkPen>
-#include <PkBrush>
+
+
 
 #include <PkVectorND.h>
 #include <PkVectorND.h>

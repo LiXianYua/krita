@@ -9,9 +9,9 @@
 KisThreadSafeSignalCompressor::KisThreadSafeSignalCompressor(int delay, KisSignalCompressor::Mode mode)
     : m_compressor(new KisSignalCompressor(delay, mode, this))
 {
-    connect(this, SIGNAL(internalRequestSignal()), m_compressor, SLOT(start()), Pk::AutoConnection);
-    connect(this, SIGNAL(internalStopSignal()), m_compressor, SLOT(stop()), Pk::AutoConnection);
-    connect(this, SIGNAL(internalSetDelay(int)), m_compressor, SLOT(setDelay(int)), Pk::AutoConnection);
+    connect(this, SIGNAL(internalRequestSignal()), m_compressor, SLOT(start()), Qt::AutoConnection);
+    connect(this, SIGNAL(internalStopSignal()), m_compressor, SLOT(stop()), Qt::AutoConnection);
+    connect(this, SIGNAL(internalSetDelay(int)), m_compressor, SLOT(setDelay(int)), Qt::AutoConnection);
     connect(m_compressor, SIGNAL(timeout()), SIGNAL(timeout()));
 
     // due to this line the object *must not* be deleted explicitly!

@@ -1,7 +1,7 @@
-#include <PkString>
-#include <PkFileInfo>
-#include <PkDir>
-#include <PkFile>
+#include <PkString.h>
+
+
+
 #include <QLatin1Char>
 /*
     This file is part of the KDE libraries

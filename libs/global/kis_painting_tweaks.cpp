@@ -7,9 +7,9 @@
 #include <kis_global.h>
 #include "kis_painting_tweaks.h"
 
-#include <PkPen>
+
 #include <PkRegion.h>
-#include <PkPainter>
+
 #include <PkTransform.h>
 
 #include "kis_debug.h"
@@ -43,14 +43,14 @@ void initAntsPen(PkPen *antsPen, PkPen *outlinePen,
     PkVector<qreal> antDashPattern;
     antDashPattern << antLength << antSpace;
 
-    *antsPen = PkPen(Pk::CustomDashLine);
+    *antsPen = PkPen(Qt::CustomDashLine);
     antsPen->setDashPattern(antDashPattern);
     antsPen->setCosmetic(true);
-    antsPen->setColor(Pk::black);
+    antsPen->setColor(Qt::black);
 
-    *outlinePen = PkPen(Pk::SolidLine);
+    *outlinePen = PkPen(Qt::SolidLine);
     outlinePen->setCosmetic(true);
-    outlinePen->setColor(Pk::white);
+    outlinePen->setColor(Qt::white);
 }
 
 PenBrushSaver::PenBrushSaver(PkPainter *painter)

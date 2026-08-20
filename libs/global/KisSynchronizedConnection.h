@@ -76,7 +76,7 @@ protected:
  * a recursive event processing loop.
  *
  * In several places in Krita we use queued signals for synchronizing
- * image changes to the GUI. In such cases we use Pk::DirectConnection
+ * image changes to the GUI. In such cases we use Qt::DirectConnection
  * to fetch some data from the image, wrap that into the signal
  * parameters and post at the events queue as a queued signal. Obviously,
  * we expect this queued signal to be executed "after all the currently
@@ -95,7 +95,7 @@ protected:
  * member-function-pointer-based API of PkObject::connect.
  *
  * In case the signal is emitted from the GUI thread, KisSynchronizedConnection
- * behaves as Pk::AutoConnection, that is, delivers event right away, skipping
+ * behaves as Qt::AutoConnection, that is, delivers event right away, skipping
  * the event loop.
  *
  * Under the hood the class uses a custom event (KisSynchronizedConnectionEvent),
@@ -172,7 +172,7 @@ public:
         static_assert (std::is_convertible<Dptr, const PkObject*>::value, "Source object should be convertible into PkObject");
 
         PkObject::connect(static_cast<const C*>(object), memfn,
-                         this, &KisSynchronizedConnection::start, Pk::DirectConnection);
+                         this, &KisSynchronizedConnection::start, Qt::DirectConnection);
     }
 
     /**

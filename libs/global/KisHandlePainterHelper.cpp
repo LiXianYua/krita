@@ -1,3 +1,7 @@
+#include <QPainter>
+#include <QPen>
+#include <QBrush>
+#include <QColor>
 /*
  *  SPDX-FileCopyrightText: 2016 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -6,7 +10,7 @@
 
 #include "KisHandlePainterHelper.h"
 
-#include <PkPainter>
+
 #include <PkPainterPath.h>
 #include "kis_algebra_2d.h"
 #include "kis_painting_tweaks.h"
@@ -137,8 +141,8 @@ void KisHandlePainterHelper::drawHandleLine(const PkLineF &line, qreal width, Pk
         s.setDashPattern(dashPattern);
         s.setDashOffset(dashOffset);
     }
-    s.setCapStyle(Pk::RoundCap);
-    s.setJoinStyle(Pk::RoundJoin);
+    s.setCapStyle(Qt::RoundCap);
+    s.setJoinStyle(Qt::RoundJoin);
     p = s.createStroke(p);
 
     Q_FOREACH (KisHandleStyle::IterationStyle it, m_handleStyle.handleIterations) {

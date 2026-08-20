@@ -33,10 +33,10 @@ public:
     int rowCount(const PkModelIndex &parent = PkModelIndex()) const override;
 
     /**
-     * When role == Pk::DisplayRole, this function will return the name of the
+     * When role == Qt::DisplayRole, this function will return the name of the
      * element.
      */
-    PkVariant data(const PkModelIndex &index, int role = Pk::DisplayRole) const override;
+    PkVariant data(const PkModelIndex &index, int role = Qt::DisplayRole) const override;
 
     /**
      * @return the element at the given index
@@ -71,7 +71,7 @@ PkVariant KoGenericRegistryModel<T>::data(const PkModelIndex &index, int role) c
     if (!index.isValid()) {
         return PkVariant();
     }
-    if (role == Pk::DisplayRole || role == Pk::EditRole) {
+    if (role == Qt::DisplayRole || role == Qt::EditRole) {
         return PkVariant(get(index)->name());
     }
     return PkVariant();

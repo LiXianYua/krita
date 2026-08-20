@@ -22,7 +22,7 @@ int doNotAskAgainMessageBoxWrapper(PkMessageBox *messageBox, const PkString &ide
         PkCheckBox *cb = new PkCheckBox(i18n("Don't ask this again"));
         messageBox->setCheckBox(cb);
         const int res = messageBox->exec();
-        cfg.writeEntry(identifier, cb->checkState() == Pk::CheckState::Unchecked);
+        cfg.writeEntry(identifier, cb->checkState() == Qt::CheckState::Unchecked);
         return res;
     }
     else {

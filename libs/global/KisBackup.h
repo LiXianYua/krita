@@ -1,4 +1,4 @@
-#include <PkString>
+#include <PkString.h>
 /*
     This file is part of the KDE libraries
 
