@@ -2890,13 +2890,15 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
                 // we need to cut off the first part and get "ink.png" in the first case,
                 // but "subfolder/splash.png" in the second case in order for subfolders to work
                 // so it cannot just use a basename helper here.
-                std::string normalizedPath = verIt->url().PkToUtf8();
-                std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
-                const std::size_t folderEndIdx = normalizedPath.find('/');
-                const PkString properFilenameWithSubfolders(
+                const std::string iteratorUrl = verIt->url().PkToUtf8();
+                const std::size_t folderEndIdx = iteratorUrl.find('/');
+                const std::string filenameWithSubfolders =
                     folderEndIdx == std::string::npos
-                        ? normalizedPath.c_str()
-                        : normalizedPath.substr(folderEndIdx + 1).c_str());
+                        ? iteratorUrl
+                        : iteratorUrl.substr(folderEndIdx + 1);
+                const PkString properFilenameWithSubfolders = PkString::PkFromUtf8(
+                    filenameWithSubfolders.data(),
+                    static_cast<int>(filenameWithSubfolders.size()));
                 int id = resourceIdForResource(properFilenameWithSubfolders,
                                                verIt->type(),
                                                KisResourceLocator::instance()->makeStorageLocationRelative(storage->location()));
