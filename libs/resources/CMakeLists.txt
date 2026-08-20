@@ -1,4 +1,3 @@
-include_directories(${QUAZIP_INCLUDE_DIRS})
 find_package(ICU REQUIRED COMPONENTS uc)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
@@ -57,6 +56,7 @@ set(kritaresources_LIB_SRCS
     KoResourceBundle.cpp
     KoResourceBundleManifest.cpp
     KoMD5Generator.cpp
+    MD5.cpp
     KoResourcePaths.cpp
     KoResourceSignature.cpp
     KoEmbeddedResource.cpp
@@ -81,30 +81,65 @@ set(kritaresources_LIB_SRCS
     KisSqlQueryLoader.cpp
     KisDatabaseTransactionLock.cpp
     KisTemporaryResourceStorageLock.cpp
+    PkResourceStorageDesktop.cpp
 )
 
 kis_add_library(kritaresources SHARED ${kritaresources_LIB_SRCS})
 
 generate_export_header(kritaresources BASE_NAME kritaresources)
 
-target_include_directories(kritaresources PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(kritaresources
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/string
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/container
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/variant
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/pointer
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/geometry
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/global
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/log
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/concurrent
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/image
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/time
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/config
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/flags
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/color
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/signal
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/sql
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/xml
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/port
+    PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../store
+        ${CMAKE_CURRENT_SOURCE_DIR}/../global
+        ${CMAKE_CURRENT_SOURCE_DIR}/../koplugin
+)
 
 target_link_libraries(kritaresources
     PUBLIC
-        Qt${QT_MAJOR_VERSION}::Core
-        Qt${QT_MAJOR_VERSION}::Widgets
-        Qt${QT_MAJOR_VERSION}::Sql
         Boost::boost
     PRIVATE
         kritaversion
         kritaglobal
         kritaplugin
         kritastore
-        KF${KF_MAJOR}::ConfigCore
-        KF${KF_MAJOR}::CoreAddons
-        KF${KF_MAJOR}::I18n
-        ${QUAZIP_LIBRARIES}
-        ${PNG_LIBRARIES}
+        pkstring
+        pkcontainer
+        pkvariant
+        pkpointer
+        pkport
+        pksignal
+        pkconcurrent
+        pkconfig
+        pklog
+        pkimage
+        pktime
+        pksql
+        pkxml
+        pkgeometry
+        pkglobal
+        pkcolor
+        pkflags
+        PNG::PNG
         ICU::uc
 )
 

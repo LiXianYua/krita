@@ -94,6 +94,23 @@ target_link_libraries(pkgeometry PUBLIC pkglobal)
 add_library(pkflags INTERFACE)
 target_include_directories(pkflags INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/flags)
 
+# pk/namespace is also header-only.  Keep it in the aggregate so consumers
+# never have to add one of the standalone pk projects a second time.
+add_library(pknamespace INTERFACE)
+target_include_directories(pknamespace INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/namespace)
+
+# pk/image consumes the already aggregated geometry/container targets.  Its
+# standalone CMake project cannot be added here because it recursively adds
+# pk/geometry and the shared pk/test target.
+add_library(pkimage STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/image/PkImage.cpp
+)
+target_include_directories(pkimage PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/image
+    ${CMAKE_CURRENT_SOURCE_DIR}/container
+)
+target_link_libraries(pkimage PUBLIC pkgeometry)
+
 # =========================================================================
 # 5. pk/concurrent
 # =========================================================================
