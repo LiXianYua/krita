@@ -99,7 +99,7 @@ set(PKVARIANT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../variant)
 set(PKTIME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../time)
 
 if (NOT TARGET pktime)
-    add_subdirectory(${PKTIME_DIR} ${CMAKE_BINARY_DIR}/pktime)
+    add_subdirectory(${PKTIME_DIR} ${CMAKE_BINARY_DIR}/pktime EXCLUDE_FROM_ALL)
 endif()
 
 if (NOT TARGET pkgeometry)
