@@ -14,14 +14,26 @@
 #include <PkSharedConfig.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <cctype>
+#include <cerrno>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <map>
+#include <mutex>
 #include <string>
 #include <system_error>
 #include <vector>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -218,9 +230,90 @@ fs::path resourceConfigFilePath()
         platformDir(PkResourceStorage::PlatformDir::GenericConfig), PkString("kritarc")));
 }
 
-bool readPersistentResourceLocation(PkString *location)
+class ResourceConfigLock
 {
-    std::ifstream input(resourceConfigFilePath(), std::ios::binary);
+public:
+    explicit ResourceConfigLock(const fs::path &configPath)
+    {
+        fs::path lockPath = configPath;
+        lockPath += ".lock";
+#ifdef _WIN32
+        m_handle = CreateFileW(lockPath.c_str(), GENERIC_READ | GENERIC_WRITE,
+                               FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                               nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (m_handle == INVALID_HANDLE_VALUE) {
+            return;
+        }
+        OVERLAPPED overlapped = {};
+        if (!LockFileEx(m_handle, LOCKFILE_EXCLUSIVE_LOCK, 0, MAXDWORD, MAXDWORD, &overlapped)) {
+            CloseHandle(m_handle);
+            m_handle = INVALID_HANDLE_VALUE;
+            return;
+        }
+        m_locked = true;
+#else
+        m_fd = ::open(lockPath.c_str(), O_CREAT | O_RDWR, 0600);
+        if (m_fd < 0) {
+            return;
+        }
+        struct flock lock = {};
+        lock.l_type = F_WRLCK;
+        lock.l_whence = SEEK_SET;
+        lock.l_start = 0;
+        lock.l_len = 0;
+        int result;
+        do {
+            result = ::fcntl(m_fd, F_SETLKW, &lock);
+        } while (result < 0 && errno == EINTR);
+        if (result < 0) {
+            ::close(m_fd);
+            m_fd = -1;
+            return;
+        }
+        m_locked = true;
+#endif
+    }
+
+    ~ResourceConfigLock()
+    {
+        if (!m_locked) {
+            return;
+        }
+#ifdef _WIN32
+        OVERLAPPED overlapped = {};
+        UnlockFileEx(m_handle, 0, MAXDWORD, MAXDWORD, &overlapped);
+        CloseHandle(m_handle);
+#else
+        struct flock lock = {};
+        lock.l_type = F_UNLCK;
+        lock.l_whence = SEEK_SET;
+        lock.l_start = 0;
+        lock.l_len = 0;
+        ::fcntl(m_fd, F_SETLK, &lock);
+        ::close(m_fd);
+#endif
+    }
+
+    ResourceConfigLock(const ResourceConfigLock &) = delete;
+    ResourceConfigLock &operator=(const ResourceConfigLock &) = delete;
+
+    bool isLocked() const
+    {
+        return m_locked;
+    }
+
+private:
+    bool m_locked = false;
+#ifdef _WIN32
+    HANDLE m_handle = INVALID_HANDLE_VALUE;
+#else
+    int m_fd = -1;
+#endif
+};
+
+bool readPersistentResourceLocationUnlocked(const fs::path &configPath, PkString *location)
+{
+    std::ifstream input(configPath, std::ios::binary);
     if (!input) {
         return false;
     }
@@ -243,15 +336,106 @@ bool readPersistentResourceLocation(PkString *location)
     return false;
 }
 
-bool persistResourceLocation(const PkString &location)
+fs::path resourceConfigTemporaryPath(const fs::path &configPath, std::uint64_t sequence)
 {
-    const fs::path configPath = resourceConfigFilePath();
-    std::error_code ec;
-    fs::create_directories(configPath.parent_path(), ec);
-    if (ec) {
-        return false;
-    }
+    fs::path temporaryPath = configPath;
+#ifdef _WIN32
+    const unsigned long processId = GetCurrentProcessId();
+#else
+    const long processId = static_cast<long>(::getpid());
+#endif
+    temporaryPath += ".tmp." + std::to_string(processId) + "." +
+                     std::to_string(sequence);
+    return temporaryPath;
+}
 
+bool writeUniqueResourceConfigTemporary(const fs::path &configPath,
+                                        const std::string &contents,
+                                        fs::path *temporaryPath)
+{
+    static std::atomic<std::uint64_t> sequence {0};
+    for (;;) {
+        const fs::path candidate = resourceConfigTemporaryPath(
+            configPath, sequence.fetch_add(1, std::memory_order_relaxed));
+#ifdef _WIN32
+        HANDLE file = CreateFileW(candidate.c_str(), GENERIC_WRITE, 0, nullptr,
+                                  CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (file == INVALID_HANDLE_VALUE) {
+            const DWORD error = GetLastError();
+            if (error == ERROR_FILE_EXISTS || error == ERROR_ALREADY_EXISTS) {
+                continue;
+            }
+            return false;
+        }
+        std::size_t writtenTotal = 0;
+        bool written = true;
+        while (writtenTotal < contents.size()) {
+            const std::size_t remaining = contents.size() - writtenTotal;
+            const DWORD chunkSize = static_cast<DWORD>(
+                std::min<std::size_t>(remaining, static_cast<std::size_t>(MAXDWORD)));
+            DWORD chunkWritten = 0;
+            if (!WriteFile(file, contents.data() + writtenTotal, chunkSize, &chunkWritten, nullptr) ||
+                chunkWritten == 0) {
+                written = false;
+                break;
+            }
+            writtenTotal += chunkWritten;
+        }
+        if (written && !FlushFileBuffers(file)) {
+            written = false;
+        }
+        CloseHandle(file);
+#else
+        const int file = ::open(candidate.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0600);
+        if (file < 0) {
+            if (errno == EEXIST) {
+                continue;
+            }
+            return false;
+        }
+        std::size_t writtenTotal = 0;
+        bool written = true;
+        while (writtenTotal < contents.size()) {
+            const ssize_t chunkWritten = ::write(file, contents.data() + writtenTotal,
+                                                 contents.size() - writtenTotal);
+            if (chunkWritten < 0 && errno == EINTR) {
+                continue;
+            }
+            if (chunkWritten <= 0) {
+                written = false;
+                break;
+            }
+            writtenTotal += static_cast<std::size_t>(chunkWritten);
+        }
+        if (written && ::fsync(file) != 0) {
+            written = false;
+        }
+        ::close(file);
+#endif
+        if (!written) {
+            std::error_code removeError;
+            fs::remove(candidate, removeError);
+            return false;
+        }
+        *temporaryPath = candidate;
+        return true;
+    }
+}
+
+bool atomicallyReplaceResourceConfig(const fs::path &temporaryPath, const fs::path &configPath)
+{
+#ifdef _WIN32
+    return MoveFileExW(temporaryPath.c_str(), configPath.c_str(),
+                       MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+#else
+    std::error_code ec;
+    fs::rename(temporaryPath, configPath, ec);
+    return !ec;
+#endif
+}
+
+bool writePersistentResourceLocationUnlocked(const fs::path &configPath, const PkString &location)
+{
     std::vector<std::string> lines;
     {
         std::ifstream input(configPath, std::ios::binary);
@@ -282,56 +466,135 @@ bool persistResourceLocation(const PkString &location)
         lines.insert(lines.begin() + static_cast<std::ptrdiff_t>(firstGroup), entry);
     }
 
-    fs::path temporaryPath = configPath;
-    temporaryPath += ".tmp";
-    {
-        std::ofstream output(temporaryPath, std::ios::binary | std::ios::trunc);
-        if (!output) {
-            return false;
-        }
-        for (const std::string &line : lines) {
-            output << line << '\n';
-        }
-        output.flush();
-        if (!output) {
-            return false;
-        }
+    std::string contents;
+    for (const std::string &line : lines) {
+        contents += line;
+        contents += '\n';
     }
-    fs::rename(temporaryPath, configPath, ec);
-#ifdef _WIN32
-    if (ec) {
-        ec.clear();
-        fs::remove(configPath, ec);
-        ec.clear();
-        fs::rename(temporaryPath, configPath, ec);
+
+    fs::path temporaryPath;
+    if (!writeUniqueResourceConfigTemporary(configPath, contents, &temporaryPath)) {
+        return false;
     }
-#endif
-    if (ec) {
-        fs::remove(temporaryPath, ec);
+    if (!atomicallyReplaceResourceConfig(temporaryPath, configPath)) {
+        std::error_code removeError;
+        fs::remove(temporaryPath, removeError);
         return false;
     }
     return true;
 }
 
-PkString configuredResourceLocation(PkConfigGroup &config)
+std::mutex &resourceConfigProcessMutex()
 {
-    if (config.hasKey(kResourceLocationKey)) {
-        const PkString location = config.readEntry(kResourceLocationKey, PkString());
-        persistResourceLocation(location);
-        return location;
+    static std::mutex mutex;
+    return mutex;
+}
+
+std::map<std::string, PkString> &resourceConfigSnapshots()
+{
+    static std::map<std::string, PkString> snapshots;
+    return snapshots;
+}
+
+bool persistResourceLocation(const PkString &location)
+{
+    std::lock_guard<std::mutex> processLock(resourceConfigProcessMutex());
+    const fs::path configPath = resourceConfigFilePath();
+    std::error_code ec;
+    fs::create_directories(configPath.parent_path(), ec);
+    if (ec) {
+        return false;
     }
 
-    PkString location;
-    if (readPersistentResourceLocation(&location)) {
-        config.writeEntry(kResourceLocationKey, location);
+    ResourceConfigLock lock(configPath);
+    if (!lock.isLocked()) {
+        return false;
     }
-    return location;
+
+    PkString persistedLocation;
+    if (readPersistentResourceLocationUnlocked(configPath, &persistedLocation) &&
+        persistedLocation == location) {
+        resourceConfigSnapshots()[configPath.generic_string()] = location;
+        return true;
+    }
+    const bool written = writePersistentResourceLocationUnlocked(configPath, location);
+    if (written) {
+        resourceConfigSnapshots()[configPath.generic_string()] = location;
+    }
+    return written;
+}
+
+PkString configuredResourceLocation(PkConfigGroup &config)
+{
+    std::lock_guard<std::mutex> processLock(resourceConfigProcessMutex());
+    const fs::path configPath = resourceConfigFilePath();
+    const std::string snapshotKey = configPath.generic_string();
+    const bool hasMemoryValue = config.hasKey(kResourceLocationKey);
+    const PkString memoryValue = hasMemoryValue
+                                     ? config.readEntry(kResourceLocationKey, PkString())
+                                     : PkString();
+
+    std::error_code ec;
+    const bool configExists = fs::exists(configPath, ec) && !ec;
+    if (!configExists && !hasMemoryValue) {
+        return PkString();
+    }
+    if (hasMemoryValue) {
+        ec.clear();
+        fs::create_directories(configPath.parent_path(), ec);
+        if (ec) {
+            return memoryValue;
+        }
+    }
+
+    ResourceConfigLock lock(configPath);
+    if (!lock.isLocked()) {
+        return memoryValue;
+    }
+
+    PkString persistedValue;
+    const bool hasPersistedValue =
+        readPersistentResourceLocationUnlocked(configPath, &persistedValue);
+    std::map<std::string, PkString> &snapshots = resourceConfigSnapshots();
+    const auto snapshot = snapshots.find(snapshotKey);
+
+    if (!hasMemoryValue) {
+        if (hasPersistedValue) {
+            config.writeEntry(kResourceLocationKey, persistedValue);
+            snapshots[snapshotKey] = persistedValue;
+            return persistedValue;
+        }
+        return PkString();
+    }
+
+    // A value equal to our last disk snapshot came from an earlier read. If
+    // another process has since changed the file, refresh memory instead of
+    // turning this ordinary read into a stale write-back.
+    if (snapshot != snapshots.end() && snapshot->second == memoryValue) {
+        if (hasPersistedValue && persistedValue != memoryValue) {
+            config.writeEntry(kResourceLocationKey, persistedValue);
+            snapshots[snapshotKey] = persistedValue;
+            return persistedValue;
+        }
+        return memoryValue;
+    }
+
+    // No matching snapshot means that the in-memory value was explicitly
+    // modified by a caller. Persist only when the disk value actually differs.
+    if ((!hasPersistedValue || persistedValue != memoryValue) &&
+        !writePersistentResourceLocationUnlocked(configPath, memoryValue)) {
+        return memoryValue;
+    }
+    snapshots[snapshotKey] = memoryValue;
+    return memoryValue;
 }
 
 void updateConfiguredResourceLocation(PkConfigGroup &config, const PkString &location)
 {
     config.writeEntry(kResourceLocationKey, location);
-    persistResourceLocation(location);
+    if (!persistResourceLocation(location)) {
+        warnResource << "Could not persist the resource directory configuration";
+    }
 }
 
 PkStringList splitEnvironmentPaths(const char *name)
