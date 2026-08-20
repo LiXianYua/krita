@@ -8,6 +8,8 @@
 
 #include <KisResourcesInterface.h>
 
+#include <PkList.h>
+
 class KisLocalStrokeResourcesPrivate;
 
 
@@ -24,7 +26,7 @@ class KRITARESOURCES_EXPORT KisLocalStrokeResources : public KisResourcesInterfa
 {
 public:
     KisLocalStrokeResources();
-    KisLocalStrokeResources(const QList<KoResourceSP> &localResources);
+    KisLocalStrokeResources(const PkList<KoResourceSP> &localResources);
 
     /**
      * Add a resource to this local resources storage
@@ -41,13 +43,18 @@ public:
     /**
      * Return all the resources that are present in this local resources storage
      */
-    QList<KoResourceSP> resources() const;
+    PkList<KoResourceSP> resources() const;
 
 protected:
-    ResourceSourceAdapter* createSourceImpl(const QString &type) const override;
+    ResourceSourceAdapter* createSourceImpl(const PkString &type) const override;
 
 private:
-    Q_DECLARE_PRIVATE(KisLocalStrokeResources);
+    // PIMPL 基类指针 d_ptr 指向的实际对象就是 KisLocalStrokeResourcesPrivate（见
+    // KisLocalStrokeResources.cpp 的构造），reinterpret_cast 语义与 Qt 的
+    // Q_DECLARE_PRIVATE 一致（后者展开也是 reinterpret_cast）；static_cast 到
+    // 不完整类型（KisLocalStrokeResourcesPrivate 只有前置声明）是编译错误。
+    KisLocalStrokeResourcesPrivate *d_func() const { return reinterpret_cast<KisLocalStrokeResourcesPrivate*>(d_ptr); }
+    friend class KisLocalStrokeResourcesPrivate;
 };
 
 #endif // KISLOCALSTROKERESOURCES_H

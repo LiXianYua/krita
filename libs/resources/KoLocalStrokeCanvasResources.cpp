@@ -5,13 +5,13 @@
  */
 #include "KoLocalStrokeCanvasResources.h"
 
-#include <QVariant>
-#include <QMap>
+#include <PkVariant.h>
+#include <PkMap.h>
 
 
 struct KoLocalStrokeCanvasResources::Private
 {
-    QMap<int, QVariant> resources;
+    PkMap<int, PkVariant> resources;
 };
 
 KoLocalStrokeCanvasResources::KoLocalStrokeCanvasResources()
@@ -36,12 +36,12 @@ KoLocalStrokeCanvasResources::~KoLocalStrokeCanvasResources()
 }
 
 
-QVariant KoLocalStrokeCanvasResources::resource(int key) const
+PkVariant KoLocalStrokeCanvasResources::resource(int key) const
 {
-    return m_d->resources.value(key, QVariant());
+    return m_d->resources.value(key, PkVariant());
 }
 
-void KoLocalStrokeCanvasResources::storeResource(int key, const QVariant &resource)
+void KoLocalStrokeCanvasResources::storeResource(int key, const PkVariant &resource)
 {
     m_d->resources[key] = resource;
 }

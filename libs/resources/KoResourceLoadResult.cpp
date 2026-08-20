@@ -80,9 +80,8 @@ KoResourceLoadResult::Type KoResourceLoadResult::type() const
         }, m_d->value);
 }
 
-QDebug operator<<(QDebug debug, const KoResourceLoadResult &result)
+PkDebug operator<<(PkDebug debug, const KoResourceLoadResult &result)
 {
-    QDebugStateSaver saver(debug);
     debug.nospace();
 
     switch (result.type()) {
@@ -97,5 +96,5 @@ QDebug operator<<(QDebug debug, const KoResourceLoadResult &result)
         break;
     }
 
-    return debug;
+    return debug.space();
 }

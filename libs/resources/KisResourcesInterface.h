@@ -8,12 +8,13 @@
 
 #include "kritaresources_export.h"
 
-#include <QScopedPointer>
+#include <PkString.h>
+#include <PkSharedPointer.h>
+#include <PkVector.h>
+#include <PkContainerAlgo.h>
 #include <KoResource.h>
 #include <KoResourceLoadResult.h>
 
-class QString;
-class QByteArray;
 class KisResourcesInterfacePrivate;
 
 /**
@@ -43,13 +44,13 @@ public:
     class KRITARESOURCES_EXPORT ResourceSourceAdapter
     {
     public:
-        ResourceSourceAdapter(const QString &type);
+        ResourceSourceAdapter(const PkString &type);
         virtual ~ResourceSourceAdapter();
 //protected:
         friend class KisResourcesInterface;
-        virtual QVector<KoResourceSP> resourcesForFilename(const QString& filename) const = 0;
-        virtual QVector<KoResourceSP> resourcesForName(const QString& name) const = 0;
-        virtual QVector<KoResourceSP> resourcesForMD5(const QString& md5) const = 0;
+        virtual PkVector<KoResourceSP> resourcesForFilename(const PkString& filename) const = 0;
+        virtual PkVector<KoResourceSP> resourcesForName(const PkString& name) const = 0;
+        virtual PkVector<KoResourceSP> resourcesForMD5(const PkString& md5) const = 0;
 public:
         /**
          * @brief bestMatch retrieves a resource, preferably by md5, but with filename and name
@@ -63,7 +64,7 @@ public:
          * @return a resource, or 0 of the resource doesn't exist.
          */
 
-        KoResourceSP bestMatch(const QString md5, const QString filename, const QString name);
+        KoResourceSP bestMatch(const PkString md5, const PkString filename, const PkString name);
 
         /**
          * @brief exactMatch retrieves a resource, preferably by md5, but with filename and name
@@ -76,7 +77,7 @@ public:
          *
          * @return a resource, or 0 of the resource doesn't exist.
          */
-        KoResourceSP exactMatch(const QString md5, const QString filename, const QString name);
+        KoResourceSP exactMatch(const PkString md5, const PkString filename, const PkString name);
 
         /**
          * Same as bestMatch(), but returns KoResourceLoadResult. In case the
@@ -84,15 +85,16 @@ public:
          * will be set in FailedLink state
          *
          */
-        KoResourceLoadResult bestMatchLoadResult(const QString md5, const QString filename, const QString name);
+        KoResourceLoadResult bestMatchLoadResult(const PkString md5, const PkString filename, const PkString name);
 
         virtual KoResourceSP fallbackResource() const = 0;
 
     private:
-        KoResourceSP findResource(const QString md5, const QString filename, const QString name, bool exactMatch);
+        KoResourceSP findResource(const PkString md5, const PkString filename, const PkString name, bool exactMatch);
     private:
-        Q_DISABLE_COPY(ResourceSourceAdapter);
-        const QString m_type;
+        ResourceSourceAdapter(const ResourceSourceAdapter &) = delete;
+        ResourceSourceAdapter &operator=(const ResourceSourceAdapter &) = delete;
+        const PkString m_type;
     };
 
     template <typename T>
@@ -104,29 +106,29 @@ public:
         {
         }
 private:
-        QVector<QSharedPointer<T>> resourcesForFilename(const QString& filename) const
+        PkVector<PkSharedPointer<T>> resourcesForFilename(const PkString& filename) const
         {
-            QVector<QSharedPointer<T>> r;
-            Q_FOREACH(KoResourceSP resource, m_source->resourcesForFilename(filename)) {
-                r << resource.dynamicCast<T>();
+            PkVector<PkSharedPointer<T>> r;
+            PK_FOREACH(KoResourceSP resource, m_source->resourcesForFilename(filename)) {
+                r.append(resource.dynamicCast<T>());
             }
             return r;
         }
 
-        QVector<QSharedPointer<T>> resourcesForName(const QString& name) const
+        PkVector<PkSharedPointer<T>> resourcesForName(const PkString& name) const
         {
-            QVector<QSharedPointer<T>> r;
-            Q_FOREACH(KoResourceSP resource, m_source->resourcesForName(name)) {
-                r << resource.dynamicCast<T>();
+            PkVector<PkSharedPointer<T>> r;
+            PK_FOREACH(KoResourceSP resource, m_source->resourcesForName(name)) {
+                r.append(resource.dynamicCast<T>());
             }
             return r;
         }
 
-        QVector<QSharedPointer<T>> resourcesForMD5(const QString& md5) const
+        PkVector<PkSharedPointer<T>> resourcesForMD5(const PkString& md5) const
         {
-            QVector<QSharedPointer<T>> r;
-            Q_FOREACH(KoResourceSP resource, m_source->resourcesForMD5(md5)) {
-                r << resource.dynamicCast<T>();
+            PkVector<PkSharedPointer<T>> r;
+            PK_FOREACH(KoResourceSP resource, m_source->resourcesForMD5(md5)) {
+                r.append(resource.dynamicCast<T>());
             }
             return r;
         }
@@ -143,7 +145,7 @@ public:
          * @return a resource, or 0 of the resource doesn't exist.
          */
 
-        QSharedPointer<T>  bestMatch(const QString md5, const QString filename, const QString name) {
+        PkSharedPointer<T>  bestMatch(const PkString md5, const PkString filename, const PkString name) {
             return m_source->bestMatch(md5, filename, name).dynamicCast<T>();
         }
 
@@ -158,7 +160,7 @@ public:
          *
          * @return a resource, or 0 of the resource doesn't exist.
          */
-        QSharedPointer<T>  exactMatch(const QString md5, const QString filename, const QString name) {
+        PkSharedPointer<T>  exactMatch(const PkString md5, const PkString filename, const PkString name) {
             return m_source->exactMatch(md5, filename, name).dynamicCast<T>();
         }
 
@@ -168,11 +170,11 @@ public:
          * will be set in FailedLink state
          *
          */
-        KoResourceLoadResult bestMatchLoadResult(const QString md5, const QString filename, const QString name) {
+        KoResourceLoadResult bestMatchLoadResult(const PkString md5, const PkString filename, const PkString name) {
             return m_source->bestMatchLoadResult(md5, filename, name);
         }
 
-        QSharedPointer<T> fallbackResource() const
+        PkSharedPointer<T> fallbackResource() const
         {
             return m_source->fallbackResource().dynamicCast<T>();
         }
@@ -191,7 +193,7 @@ public:
      * return un-casted resources of type KoResourceSP. If you want to have a
      * proper resource (in most of the cases), use a `server<T>(type)` instead.
      */
-    ResourceSourceAdapter& source(const QString &type) const;
+    ResourceSourceAdapter& source(const PkString &type) const;
 
     /**
      * The main fetcher of resource source for resources of a specific type.
@@ -207,21 +209,22 @@ public:
      *
      */
     template<typename T>
-    TypedResourceSourceAdapter<T> source(const QString &type) const {
+    TypedResourceSourceAdapter<T> source(const PkString &type) const {
         return TypedResourceSourceAdapter<T>(&this->source(type));
     }
 
 protected:
     KisResourcesInterface(KisResourcesInterfacePrivate *dd);
-    virtual ResourceSourceAdapter* createSourceImpl(const QString &type) const = 0;
+    virtual ResourceSourceAdapter* createSourceImpl(const PkString &type) const = 0;
 
 protected:
-    QScopedPointer<KisResourcesInterfacePrivate> d_ptr;
+    KisResourcesInterfacePrivate *d_ptr;
 
 private:
-    Q_DECLARE_PRIVATE(KisResourcesInterface)
+    KisResourcesInterfacePrivate *d_func() const { return d_ptr; }
+    friend class KisResourcesInterfacePrivate;
 };
 
-using KisResourcesInterfaceSP = QSharedPointer<KisResourcesInterface>;
+using KisResourcesInterfaceSP = PkSharedPointer<KisResourcesInterface>;
 
 #endif // KISRESOURCESINTERFACE_H

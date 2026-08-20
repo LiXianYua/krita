@@ -7,26 +7,30 @@
 #ifndef KORESOURCE_H
 #define KORESOURCE_H
 
-#include <QImage>
-#include <QString>
-#include <QSharedPointer>
-#include <QDebug>
+#include <PkImage.h>
+#include <PkString.h>
+#include <PkSharedPointer.h>
+#include <PkDebug.h>
+#include <PkVector.h>
+#include <PkMap.h>
+#include <PkVariant.h>
+#include <PkStringHash.h>
+#include <utility>
+#include <boost/operators.hpp>
 
 #include "KoResourceSignature.h"
 
-#include "KisResourceTypes.h"
-#include <boost/operators.hpp>
-
 #include <kritaresources_export.h>
 
-class QDomDocument;
-class QDomElement;
+class PkStream;
+class PkXmlDocument;
+class PkXmlElement;
 
 class KoResource;
-typedef QSharedPointer<KoResource> KoResourceSP;
+typedef PkSharedPointer<KoResource> KoResourceSP;
 
 class KisResourcesInterface;
-typedef QSharedPointer<KisResourcesInterface> KisResourcesInterfaceSP;
+typedef PkSharedPointer<KisResourcesInterface> KisResourcesInterfaceSP;
 
 class KoResourceLoadResult;
 
@@ -54,7 +58,7 @@ public:
      * @param filename the file name to save and load from.
      */
     KoResource();
-    explicit KoResource(const QString &filename);
+    explicit KoResource(const PkString &filename);
     virtual ~KoResource();
     KoResource(const KoResource &rhs);
     KoResource &operator=(const KoResource &rhs) = delete;
@@ -69,23 +73,23 @@ public:
      * @return true if loading the resource succeeded.
      */
     bool load(KisResourcesInterfaceSP resourcesInterface);
-    virtual bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) = 0;
+    virtual bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) = 0;
 
     /**
      * Save this resource.
      *@return true if saving the resource succeeded.
      */
     bool save();
-    virtual bool saveToDevice(QIODevice* dev) const;
+    virtual bool saveToDevice(PkStream* dev) const;
 
     /**
-     * @returns a QImage image representing this resource: in the case
+     * @returns a PkImage image representing this resource: in the case
      * of some resources, it is the actual resource.
      *
      * This image could be null. The image can be in any valid format.
      */
-    QImage image() const;
-    void setImage(const QImage &image);
+    PkImage image() const;
+    void setImage(const PkImage &image);
 
     /**
      * @brief updateThumbnail updates the thumbnail for this resource.
@@ -96,11 +100,11 @@ public:
 
     /**
      * @brief thumbnail the thumbnail image to use in resource selectors
-     * @return a valid qimage. All thumbnails for a given resource have the
+     * @return a valid PkImage. All thumbnails for a given resource have the
      * same size (which is not true for image(), but that size need not
      * be square. By default it's the same as image(), but that is not guaranteed.
      */
-    virtual QImage thumbnail() const;
+    virtual PkImage thumbnail() const;
 
     /**
      * @brief thumbnailPath returns the path to a separate thumbnail image, outside
@@ -109,7 +113,7 @@ public:
      *        that is, it starts with "/", it is from the root of the storage.
      * @return an empty string if the thumbnail is part of the resource
      */
-    virtual QString thumbnailPath() const;
+    virtual PkString thumbnailPath() const;
 
     /**
      * @param generateIfEmpty: if the resource does not have an md5sum set,
@@ -119,18 +123,18 @@ public:
      * @return the md5sum calculated over the contents of the resource. This
      * is in hex-encoded string format.
      */
-    QString md5Sum(bool generateIfEmpty = true) const;
+    PkString md5Sum(bool generateIfEmpty = true) const;
 
     /// Set the md5sum of this resource. It must be in hex-encoded string format
-    void setMD5Sum(const QString &md5sum);
+    void setMD5Sum(const PkString &md5sum);
 
     /// @return the filename of this resource within the container (folder, bundle, ...)
-    QString filename() const;
-    void setFilename(const QString& filename);
+    PkString filename() const;
+    void setFilename(const PkString& filename);
 
     /// @return the user-visible name of the resource
-    virtual QString name() const;
-    void setName(const QString& name);
+    virtual PkString name() const;
+    void setName(const PkString& name);
 
     /// @return true if the resource is ready for use
     bool valid() const;
@@ -141,15 +145,15 @@ public:
     void setActive(bool active);
 
     /// @return the default file extension which should be used when saving the resource
-    virtual QString defaultFileExtension() const;
+    virtual PkString defaultFileExtension() const;
 
     /// @return true if the resource is permanent and can't be removed by the user
     bool permanent() const;
     void setPermanent(bool permanent);
 
     /// @return the name of the storage location of the resource
-    QString storageLocation() const;
-    void setStorageLocation(const QString &location);
+    PkString storageLocation() const;
+    void setStorageLocation(const PkString &location);
 
     /// Mark the preset as modified but not saved
     void setDirty(bool value);
@@ -158,10 +162,10 @@ public:
     bool isDirty() const;
 
     /// store the given key, value pair in the resource
-    void addMetaData(QString key, QVariant value);
+    void addMetaData(PkString key, PkVariant value);
 
     /// get a map with all the metadata
-    QMap<QString, QVariant> metadata() const;
+    PkMap<PkString, PkVariant> metadata() const;
 
     /// Get the version of the resource
     int version() const;
@@ -172,7 +176,7 @@ public:
     void setResourceId(int id);
 
     /// @return the resource type
-    virtual QPair<QString, QString> resourceType() const = 0;
+    virtual std::pair<PkString, PkString> resourceType() const = 0;
 
     /**
      * @return the signature of the resource which is enough for referencing
@@ -215,7 +219,7 @@ public:
      *
      * The set of resources returned is basically: linkedResources() + embeddedResources()
      */
-    QList<KoResourceLoadResult> requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    PkVector<KoResourceLoadResult> requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     /**
      * @return all the resources that are needed but (*this) resource and
@@ -223,7 +227,7 @@ public:
      * \p globalResourcesInterface. If fetching of some resources is failed,
      * then (*this) resource is invalid.
      */
-    virtual QList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    virtual PkVector<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     /**
      * @return all the resources that were embedded into (*this) resource.
@@ -233,7 +237,7 @@ public:
      * These resources are embedded into the resource itself and are available
      * throughout the entire lifetime of the resource.
      */
-    virtual QList<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    virtual PkVector<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     /**
      * Returns all the side-loaded resources and clears the memory under them,
@@ -241,7 +245,7 @@ public:
      *
      * It is basically a combination of sideLoadedResources() + clearSideLoadedResources().
      */
-    QList<KoResourceLoadResult> takeSideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface);
+    PkVector<KoResourceLoadResult> takeSideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface);
 
     /**
      * Side-loaded resources are the resources embedded into the file format and
@@ -251,7 +255,7 @@ public:
      * After the locator has loaded them into the global storage, it can free the
      * memory by calling clearSideLoadedResources().
      */
-    virtual QList<KoResourceLoadResult> sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    virtual PkVector<KoResourceLoadResult> sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     /**
      * Clears memory under side-loaded resources. The method is called by
@@ -267,7 +271,7 @@ public:
      *
      * @return a list of canvas resources needed for the current resource
      */
-    virtual QList<int> requiredCanvasResources() const;
+    virtual PkVector<int> requiredCanvasResources() const;
 
 private:
     struct Private;
@@ -279,16 +283,12 @@ static inline bool operator==(const KoResource &resource1, const KoResource &res
     return (resource1.md5Sum() == resource2.md5Sum());
 }
 
-static inline uint qHash(const KoResource &resource)
+static inline unsigned int qHash(const KoResource &resource)
 {
     return qHash(resource.md5Sum());
 }
 
-Q_DECLARE_METATYPE(QSharedPointer<KoResource>)
-
-
-
-inline QDebug operator<<(QDebug dbg, const KoResourceSP res)
+inline PkDebug operator<<(PkDebug dbg, const KoResourceSP res)
 {
     if (!res) {
         dbg.noquote() << "NULL Resource";
@@ -306,4 +306,3 @@ inline QDebug operator<<(QDebug dbg, const KoResourceSP res)
 }
 
 #endif // KORESOURCE_H_
-

@@ -6,10 +6,8 @@
 
 #include "ResourceDebug.h"
 
-const QLoggingCategory &RESOURCE_LOG() \
+const PkLoggingCategory &RESOURCE_LOG()
 {
-    static const QLoggingCategory category("krita.lib.resource", QtInfoMsg);
+    static const PkLoggingCategory category("krita.lib.resource", PkLogInfo);
     return category;
 }
-
-

@@ -6,11 +6,11 @@
 #ifndef RESOURCE_DEBUG_H_
 #define RESOURCE_DEBUG_H_
 
-#include <QDebug>
-#include <QLoggingCategory>
+#include <PkLoggingCategory.h>
+#include <PkMessageLogger.h>
 #include <kritaresources_export.h>
 
-extern const KRITARESOURCES_EXPORT QLoggingCategory &RESOURCE_LOG();
+extern const KRITARESOURCES_EXPORT PkLoggingCategory &RESOURCE_LOG();
 
 #define debugResource qCDebug(RESOURCE_LOG)
 #define warnResource qCWarning(RESOURCE_LOG)

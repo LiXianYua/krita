@@ -7,44 +7,44 @@
 #include "KisResourcesInterface_p.h"
 
 #include "kis_assert.h"
-#include "kis_debug.h"
+#include "ResourceDebug.h"
 
 namespace {
 class LocalResourcesSource : public KisResourcesInterface::ResourceSourceAdapter
 {
 public:
-    LocalResourcesSource(const QString &resourceType, const QList<KoResourceSP> &cachedResources)
+    LocalResourcesSource(const PkString &resourceType, const PkList<KoResourceSP> &cachedResources)
         : KisResourcesInterface::ResourceSourceAdapter(resourceType)
         , m_resourceType(resourceType)
         , m_cachedResources(cachedResources)
     {
     }
 protected:
-    QVector<KoResourceSP> resourcesForFilename(const QString &filename) const override {
-        QVector<KoResourceSP> resources;
-        Q_FOREACH(KoResourceSP res, m_cachedResources) {
+    PkVector<KoResourceSP> resourcesForFilename(const PkString &filename) const override {
+        PkVector<KoResourceSP> resources;
+        PK_FOREACH(KoResourceSP res, m_cachedResources) {
             if (res->filename() == filename && res->resourceType().first == m_resourceType) {
-                resources << res;
+                resources.append(res);
             }
         }
         return resources;
     }
 
-    QVector<KoResourceSP> resourcesForName(const QString &name) const override {
-        QVector<KoResourceSP> resources;
-        Q_FOREACH(KoResourceSP res, m_cachedResources) {
+    PkVector<KoResourceSP> resourcesForName(const PkString &name) const override {
+        PkVector<KoResourceSP> resources;
+        PK_FOREACH(KoResourceSP res, m_cachedResources) {
             if (res->name() == name && res->resourceType().first == m_resourceType) {
-                resources << res;
+                resources.append(res);
             }
         }
         return resources;
     }
 
-    QVector<KoResourceSP> resourcesForMD5(const QString &md5) const override {
-        QVector<KoResourceSP> resources;
-        Q_FOREACH(KoResourceSP res, m_cachedResources) {
+    PkVector<KoResourceSP> resourcesForMD5(const PkString &md5) const override {
+        PkVector<KoResourceSP> resources;
+        PK_FOREACH(KoResourceSP res, m_cachedResources) {
             if (res->md5Sum() == md5 && res->resourceType().first == m_resourceType) {
-                resources << res;
+                resources.append(res);
             }
         }
         return resources;
@@ -62,15 +62,15 @@ public:
     }
 
 private:
-    const QString m_resourceType;
-    const QList<KoResourceSP> &m_cachedResources;
+    const PkString m_resourceType;
+    const PkList<KoResourceSP> &m_cachedResources;
 };
 }
 
 class KisLocalStrokeResourcesPrivate : public KisResourcesInterfacePrivate
 {
 public:
-    KisLocalStrokeResourcesPrivate(const QList<KoResourceSP> &_localResources)
+    KisLocalStrokeResourcesPrivate(const PkList<KoResourceSP> &_localResources)
         : localResources(_localResources)
     {
 
@@ -81,7 +81,7 @@ public:
 
 
     }
-    QList<KoResourceSP> localResources;
+    PkList<KoResourceSP> localResources;
 };
 
 
@@ -90,17 +90,17 @@ KisLocalStrokeResources::KisLocalStrokeResources()
 {
 }
 
-KisLocalStrokeResources::KisLocalStrokeResources(const QList<KoResourceSP> &localResources)
+KisLocalStrokeResources::KisLocalStrokeResources(const PkList<KoResourceSP> &localResources)
     : KisResourcesInterface(new KisLocalStrokeResourcesPrivate(localResources))
 {
 }
 
 void KisLocalStrokeResources::addResource(KoResourceSP resource)
 {
-    Q_D(KisLocalStrokeResources);
+    KisLocalStrokeResourcesPrivate *const d = d_func();
     KIS_SAFE_ASSERT_RECOVER(resource)
     {
-        warnKrita << "Attempted to insert a null resource into the local style resource server";
+        warnResource << "Attempted to insert a null resource into the local style resource server";
         return;
     }
     d->localResources.append(resource);
@@ -108,24 +108,24 @@ void KisLocalStrokeResources::addResource(KoResourceSP resource)
 
 void KisLocalStrokeResources::removeResource(KoResourceSP resource)
 {
-    Q_D(KisLocalStrokeResources);
+    KisLocalStrokeResourcesPrivate *const d = d_func();
     d->localResources.removeAll(resource);
 }
 
 KisLocalStrokeResources *KisLocalStrokeResources::clone() const
 {
-    Q_D(const KisLocalStrokeResources);
+    const KisLocalStrokeResourcesPrivate *const d = d_func();
     return new KisLocalStrokeResources(d->localResources);
 }
 
-KisResourcesInterface::ResourceSourceAdapter *KisLocalStrokeResources::createSourceImpl(const QString &type) const
+KisResourcesInterface::ResourceSourceAdapter *KisLocalStrokeResources::createSourceImpl(const PkString &type) const
 {
-    Q_D(const KisLocalStrokeResources);
+    const KisLocalStrokeResourcesPrivate *const d = d_func();
     return new LocalResourcesSource(type, d->localResources);
 }
 
-QList<KoResourceSP> KisLocalStrokeResources::resources() const
+PkList<KoResourceSP> KisLocalStrokeResources::resources() const
 {
-    Q_D(const KisLocalStrokeResources);
+    const KisLocalStrokeResourcesPrivate *const d = d_func();
     return d->localResources;
 }

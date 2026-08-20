@@ -5,21 +5,19 @@
  */
 #include "KisGlobalResourcesInterface.h"
 
-#include <QGlobalStatic>
 #include <KisResourceModel.h>
 #include <KisResourceModelProvider.h>
 
-#include <kis_debug.h>
+#include <PkMutex.h>
 
-#include <QBasicMutex>
-#include <QMutexLocker>
+#include "kis_assert.h"
 
 
 namespace {
 class GlobalResourcesSource : public KisResourcesInterface::ResourceSourceAdapter
 {
 public:
-    GlobalResourcesSource(const QString &resourceType, KisAllResourcesModel *model)
+    GlobalResourcesSource(const PkString &resourceType, KisAllResourcesModel *model)
         : KisResourcesInterface::ResourceSourceAdapter(resourceType)
         , m_model(model)
     {}
@@ -28,18 +26,18 @@ public:
     {
     }
 protected:
-    QVector<KoResourceSP> resourcesForFilename(const QString &filename) const override {
-        QVector<KoResourceSP> res = m_model->resourcesForFilename(filename);
+    PkVector<KoResourceSP> resourcesForFilename(const PkString &filename) const override {
+        PkVector<KoResourceSP> res = m_model->resourcesForFilename(filename);
         return res;
     }
 
-    QVector<KoResourceSP> resourcesForName(const QString &name) const override {
-        QVector<KoResourceSP> res = m_model->resourcesForName(name);
+    PkVector<KoResourceSP> resourcesForName(const PkString &name) const override {
+        PkVector<KoResourceSP> res = m_model->resourcesForName(name);
         return res;
     }
 
-    QVector<KoResourceSP> resourcesForMD5(const QString &md5) const override {
-        QVector<KoResourceSP> res = m_model->resourcesForMD5(md5);
+    PkVector<KoResourceSP> resourcesForMD5(const PkString &md5) const override {
+        PkVector<KoResourceSP> res = m_model->resourcesForMD5(md5);
         return res;
     }
 public:
@@ -54,30 +52,16 @@ private:
 
 KisResourcesInterfaceSP KisGlobalResourcesInterface::instance()
 {
-    // TODO: implement general macro like Q_GLOBAL_STATIC()
-
-    static QBasicAtomicInt guard = Q_BASIC_ATOMIC_INITIALIZER(QtGlobalStatic::Uninitialized);
+    static PkMutex mutex;
     static KisResourcesInterfaceSP d;
-    static QBasicMutex mutex;
-    int x = guard.loadAcquire();
-    if (Q_UNLIKELY(x >= QtGlobalStatic::Uninitialized)) {
-        QMutexLocker locker(&mutex);
-        if (guard.loadRelaxed() == QtGlobalStatic::Uninitialized) {
-            d.reset(new KisGlobalResourcesInterface());
-            static struct Cleanup {
-                ~Cleanup() {
-                    d.reset();
-                    guard.storeRelaxed(QtGlobalStatic::Destroyed);
-                }
-            } cleanup;
-            guard.storeRelease(QtGlobalStatic::Initialized);
-        }
+    PkMutexLocker locker(&mutex);
+    if (!d) {
+        d.reset(new KisGlobalResourcesInterface());
     }
-
     return d;
 }
 
-KisResourcesInterface::ResourceSourceAdapter *KisGlobalResourcesInterface::createSourceImpl(const QString &type) const
+KisResourcesInterface::ResourceSourceAdapter *KisGlobalResourcesInterface::createSourceImpl(const PkString &type) const
 {
     KisResourcesInterface::ResourceSourceAdapter *source =
         new GlobalResourcesSource(type, KisResourceModelProvider::resourceModel(type));

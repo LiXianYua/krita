@@ -11,36 +11,31 @@
 #include <unordered_map>
 #include <memory>
 
-#include <QReadWriteLock>
-#include <QReadLocker>
-#include <QWriteLocker>
+#include <PkReadWriteLock.h>
+#include <PkStringHash.h>
 
 #include "kis_assert.h"
 
-/// added to Qt in 5.14.0
-/// https://codereview.qt-project.org/c/qt/qtbase/+/261819
+namespace {
 
-#if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
-namespace std
+struct PkStringHasher
 {
-    template<> struct hash<QString>
-    {
-        std::size_t operator()(const QString &s) const noexcept {
-            return qHash(s);
-        }
-    };
+    std::size_t operator()(const PkString &s) const noexcept {
+        return static_cast<std::size_t>(qHash(s));
+    }
+};
+
 }
-#endif
 
 class KRITARESOURCES_EXPORT KisResourcesInterfacePrivate
 {
 public:
-    mutable std::unordered_map<QString,
+    mutable std::unordered_map<PkString,
                        std::unique_ptr<
-                           KisResourcesInterface::ResourceSourceAdapter>> sourceAdapters;
-    mutable QReadWriteLock lock;
+                           KisResourcesInterface::ResourceSourceAdapter>, PkStringHasher> sourceAdapters;
+    mutable PkReadWriteLock lock;
 
-    KisResourcesInterface::ResourceSourceAdapter* findExistingSource(const QString &type) const {
+    KisResourcesInterface::ResourceSourceAdapter* findExistingSource(const PkString &type) const {
         auto it = this->sourceAdapters.find(type);
         if (it != this->sourceAdapters.end()) {
             KIS_ASSERT(bool(it->second));

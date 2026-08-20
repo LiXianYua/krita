@@ -5,44 +5,48 @@
 */
 #include "KoMD5Generator.h"
 
-#include <QIODevice>
-#include <QFile>
-#include <QCryptographicHash>
+#include "MD5.h"
 
-QString KoMD5Generator::generateHash(const QByteArray &array)
+#include <PkFileStream.h>
+
+PkString KoMD5Generator::generateHash(const PkByteArray &array)
 {
-    QString result;
-
-    if (!array.isEmpty()) {
-        QCryptographicHash md5(QCryptographicHash::Md5);
-        md5.addData(array);
-        result = md5.result().toHex();
+    if (array.isEmpty()) {
+        return PkString();
     }
 
-    return result;
+    MD5 md5;
+    md5.addData(array.data(), static_cast<std::size_t>(array.size()));
+    return PkString(md5.toHex().c_str());
 }
 
-QString KoMD5Generator::generateHash(const QString &filename)
+PkString KoMD5Generator::generateHash(const PkString &filename)
 {
-    QString result;
-
-    QFile f(filename);
-    if (f.exists() && f.open(QIODevice::ReadOnly)) {
-        QCryptographicHash md5(QCryptographicHash::Md5);
-        md5.addData(&f);
-        result = md5.result().toHex();
+    PkFileStream f(filename);
+    if (f.open(PkStream::ReadOnly)) {
+        MD5 md5;
+        char buffer[8192];
+        PkStream::pk_int64 n = 0;
+        while ((n = f.read(buffer, sizeof(buffer))) > 0) {
+            md5.addData(buffer, static_cast<std::size_t>(n));
+        }
+        return PkString(md5.toHex().c_str());
     }
 
-    return result;
+    return PkString();
 }
 
-QString KoMD5Generator::generateHash(QIODevice *device)
+PkString KoMD5Generator::generateHash(PkStream *device)
 {
-    QString result;
+    if (!device) {
+        return PkString();
+    }
 
-    QCryptographicHash md5(QCryptographicHash::Md5);
-    md5.addData(device);
-    result = md5.result().toHex();
-
-    return result;
+    MD5 md5;
+    char buffer[8192];
+    PkStream::pk_int64 n = 0;
+    while ((n = device->read(buffer, sizeof(buffer))) > 0) {
+        md5.addData(buffer, static_cast<std::size_t>(n));
+    }
+    return PkString(md5.toHex().c_str());
 }

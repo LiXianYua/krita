@@ -6,13 +6,14 @@
 #ifndef KORESOURCELOADRESULT_H
 #define KORESOURCELOADRESULT_H
 
-#include <QSharedPointer>
-#include <QDebug>
+#include <PkSharedPointer.h>
+#include <PkScopedPointer.h>
+#include <PkDebug.h>
 #include <KoResourceSignature.h>
 #include <KoEmbeddedResource.h>
 
 class KoResource;
-typedef QSharedPointer<KoResource> KoResourceSP;
+typedef PkSharedPointer<KoResource> KoResourceSP;
 
 class KRITARESOURCES_EXPORT KoResourceLoadResult
 {
@@ -28,7 +29,7 @@ public:
     KoResourceLoadResult(KoResourceSignature signature);
 
     template <typename T, typename = typename std::is_convertible<T*, KoResource*>::type>
-    KoResourceLoadResult(QSharedPointer<T> resource)
+    KoResourceLoadResult(PkSharedPointer<T> resource)
         : KoResourceLoadResult(KoResourceSP(resource))
     {
     }
@@ -52,7 +53,7 @@ public:
      * cast to the destination type T
      */
     template <typename T>
-    QSharedPointer<T> resource() const {
+    PkSharedPointer<T> resource() const {
         return this->resource().dynamicCast<T>();
     }
 
@@ -84,9 +85,9 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
-KRITARESOURCES_EXPORT QDebug operator<<(QDebug debug, const KoResourceLoadResult &result);
+KRITARESOURCES_EXPORT PkDebug operator<<(PkDebug debug, const KoResourceLoadResult &result);
 
 #endif // KORESOURCELOADRESULT_H

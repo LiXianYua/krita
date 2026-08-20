@@ -11,7 +11,7 @@ KoEmbeddedResource::KoEmbeddedResource()
 {
 }
 
-KoEmbeddedResource::KoEmbeddedResource(const KoResourceSignature &sig, const QByteArray &data)
+KoEmbeddedResource::KoEmbeddedResource(const KoResourceSignature &sig, const PkByteArray &data)
     : m_sig(sig),
       m_data(data)
 {
@@ -23,7 +23,7 @@ const KoResourceSignature &KoEmbeddedResource::signature() const
     return m_sig;
 }
 
-QByteArray KoEmbeddedResource::data() const
+PkByteArray KoEmbeddedResource::data() const
 {
     return m_data;
 }

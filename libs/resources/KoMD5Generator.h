@@ -1,4 +1,4 @@
-#/*
+/*
  * SPDX-FileCopyrightText: 2015 Stefano Bonicatti <smjert@gmail.com>
  *
  * SPDX-License-Identifier: LGPL-2.1-or-later
@@ -6,12 +6,12 @@
 #ifndef KOMD5GENERATOR_H
 #define KOMD5GENERATOR_H
 
-#include <QByteArray>
-#include <QString>
+#include <PkString.h>
+#include <PkAuxTypes.h>
 
 #include <kritaresources_export.h>
 
-class QIODevice;
+class PkStream;
 
 class KRITARESOURCES_EXPORT KoMD5Generator
 {
@@ -22,21 +22,21 @@ public:
      * @param filename the file to open
      * @return a hex-encoded string representation of the md5sum
      */
-    static QString generateHash(const QString &filename);
+    static PkString generateHash(const PkString &filename);
 
     /**
      * @brief generateHash calculates the md5sum of the given bytes
-     * @param QByteArray the contents to be calculated
+     * @param PkByteArray the contents to be calculated
      * @return a hex-encoded string representation of the md5sum
      */
-    static QString generateHash(const QByteArray &array);
+    static PkString generateHash(const PkByteArray &array);
 
     /**
      * @brief generateHash calculates the md5sum of the given device
-     * @param QIODevice
+     * @param PkStream
      * @return a hex-encoded string representation of the md5sum
      */
-    static QString generateHash(QIODevice *device);
+    static PkString generateHash(PkStream *device);
 };
 
 #endif

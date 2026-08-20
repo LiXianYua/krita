@@ -8,6 +8,8 @@
 
 #include <KoResourceSignature.h>
 
+#include <PkAuxTypes.h>
+
 
 /**
  * A simple wrapper class for a resource that has been embedded into
@@ -19,10 +21,10 @@ class KRITARESOURCES_EXPORT KoEmbeddedResource
 {
 public:
     KoEmbeddedResource();
-    KoEmbeddedResource(const KoResourceSignature &sig, const QByteArray &data);
+    KoEmbeddedResource(const KoResourceSignature &sig, const PkByteArray &data);
 
     const KoResourceSignature &signature() const;
-    QByteArray data() const;
+    PkByteArray data() const;
 
     bool sanityCheckMd5() const;
 
@@ -30,7 +32,7 @@ public:
 
 private:
     KoResourceSignature m_sig;
-    QByteArray m_data;
+    PkByteArray m_data;
 };
 
 #endif // KOEMBEDDEDRESOURCE_H

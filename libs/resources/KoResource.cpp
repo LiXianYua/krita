@@ -7,36 +7,51 @@
  */
 #include <KoResource.h>
 
-#include <QDomElement>
-#include <QFileInfo>
-#include <QDebug>
-#include <QImage>
-#include <QBuffer>
+#include <string>
 
-#include <kis_debug.h>
+#include <PkGlobal.h>
+#include <PkFileStream.h>
+#include <PkMemoryStream.h>
+
+#include "ResourceDebug.h"
 #include "KoMD5Generator.h"
 #include "kis_assert.h"
 
 #include "KoResourceLoadResult.h"
-#include <KisStaticInitializer.h>
 
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<KoResourceSP>("KoResourceSP");
+namespace {
+
+PkString resourceFileName(const PkString &path)
+{
+    std::string utf8 = path.PkToUtf8();
+
+    // 对齐 Qt 语义：文件名只取路径末尾段，剥掉末尾的 '/'
+    while (utf8.size() > 1 && utf8.back() == '/') {
+        utf8.pop_back();
+    }
+
+    const std::size_t slash = utf8.find_last_of('/');
+    if (slash == std::string::npos) {
+        return PkString(utf8.c_str());
+    }
+    return PkString(utf8.c_str() + slash + 1);
 }
 
-struct Q_DECL_HIDDEN KoResource::Private {
+}
+
+struct KoResource::Private {
     int version {-1};
     int resourceId {-1};
     bool valid {false};
     bool active {true};
     bool permanent {false};
     bool modified {false};
-    QString name;
-    QString filename;
-    QString storageLocation;
-    QString md5sum;
-    QImage image;
-    QMap<QString, QVariant> metadata;
+    PkString name;
+    PkString filename;
+    PkString storageLocation;
+    PkString md5sum;
+    PkImage image;
+    PkMap<PkString, PkVariant> metadata;
 };
 
 KoResource::KoResource()
@@ -44,11 +59,11 @@ KoResource::KoResource()
 {
 }
 
-KoResource::KoResource(const QString& filename)
+KoResource::KoResource(const PkString& filename)
     : d(new Private)
 {
     d->filename = filename;
-    d->name = QFileInfo(filename).fileName();
+    d->name = resourceFileName(filename);
 }
 
 KoResource::~KoResource()
@@ -63,20 +78,16 @@ KoResource::KoResource(const KoResource &rhs)
 
 bool KoResource::load(KisResourcesInterfaceSP resourcesInterface)
 {
-    QFile file(filename());
+    PkFileStream file(filename());
 
-    if (!file.exists()) {
-        qWarning() << "Resource file doesn't exist: " << filename();
+    if (!file.open(PkStream::ReadOnly)) {
+        qWarning() << "Cannot open resource file for reading" << filename();
         return false;
     }
 
     if (file.size() == 0) {
         qWarning() << "Resource file is empty: " << filename();
-        return false;
-    }
-
-    if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "Cannot open resource file for reading" << filename();
+        file.close();
         return false;
     }
 
@@ -95,10 +106,10 @@ bool KoResource::save()
 {
     if (filename().isEmpty()) return false;
 
-    QFile file(filename());
+    PkFileStream file(filename());
 
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        warnKrita << "Can't open file for writing" << filename();
+    if (!file.open(static_cast<PkStream::OpenMode>(PkStream::WriteOnly | PkStream::Truncate))) {
+        warnResource << "Can't open file for writing" << filename();
         return false;
     }
 
@@ -108,13 +119,13 @@ bool KoResource::save()
     return true;
 }
 
-bool KoResource::saveToDevice(QIODevice *dev) const
+bool KoResource::saveToDevice(PkStream *dev) const
 {
-    Q_UNUSED(dev);
+    (void)dev;
     return true;
 }
 
-QImage KoResource::image() const
+PkImage KoResource::image() const
 {
     return d->image;
 }
@@ -123,40 +134,45 @@ void KoResource::updateThumbnail()
 {
 }
 
-QImage KoResource::thumbnail() const
+PkImage KoResource::thumbnail() const
 {
     return image();
 }
 
-QString KoResource::thumbnailPath() const
+PkString KoResource::thumbnailPath() const
 {
-    return QString();
+    return PkString();
 }
 
-void KoResource::setImage(const QImage &image)
+void KoResource::setImage(const PkImage &image)
 {
     d->image = image;
 }
 
-QString KoResource::md5Sum(bool generateIfEmpty) const
+PkString KoResource::md5Sum(bool generateIfEmpty) const
 {
     // [this assert is disputable] ephemeral resources have no md5
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!isEphemeral(), QString());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!isEphemeral(), PkString());
 
     if (d->md5sum.isEmpty() && generateIfEmpty) {
         // non-serializable resources should always have an externally generated md5
         KIS_SAFE_ASSERT_RECOVER_NOOP(isSerializable());
-        dbgResources << "No MD5 for" << this << this->name();
-        QBuffer buf;
-        buf.open(QFile::WriteOnly);
+        debugResource << "No MD5 for" << this << this->name();
+        PkMemoryStream buf;
+        buf.open(PkStream::WriteOnly);
         saveToDevice(&buf);
         buf.close();
-        const_cast<KoResource*>(this)->setMD5Sum(KoMD5Generator::generateHash(buf.data()));
+
+        PkByteArray data;
+        if (buf.size() > 0) {
+            data = PkByteArray(buf.data(), static_cast<int>(buf.size()));
+        }
+        const_cast<KoResource*>(this)->setMD5Sum(KoMD5Generator::generateHash(data));
     }
     return d->md5sum;
 }
 
-void KoResource::setMD5Sum(const QString &md5sum)
+void KoResource::setMD5Sum(const PkString &md5sum)
 {
     /// ephemeral resources have no md5, trying to assign
     /// them one is considered an error
@@ -168,22 +184,22 @@ void KoResource::setMD5Sum(const QString &md5sum)
     d->md5sum = md5sum;
 }
 
-QString KoResource::filename() const
+PkString KoResource::filename() const
 {
     return d->filename;
 }
 
-void KoResource::setFilename(const QString& filename)
+void KoResource::setFilename(const PkString& filename)
 {
-    d->filename = QFileInfo(filename).fileName();
+    d->filename = resourceFileName(filename);
 }
 
-QString KoResource::name() const
+PkString KoResource::name() const
 {
     return d->name;
 }
 
-void KoResource::setName(const QString& name)
+void KoResource::setName(const PkString& name)
 {
     d->name = name;
 }
@@ -209,9 +225,9 @@ void KoResource::setActive(bool active)
 }
 
 
-QString KoResource::defaultFileExtension() const
+PkString KoResource::defaultFileExtension() const
 {
-    return QString();
+    return PkString();
 }
 
 bool KoResource::permanent() const
@@ -229,36 +245,35 @@ int KoResource::resourceId() const
     return d->resourceId;
 }
 
-QList<KoResourceLoadResult> KoResource::requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkVector<KoResourceLoadResult> KoResource::requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    return linkedResources(globalResourcesInterface) + embeddedResources(globalResourcesInterface);
+    PkVector<KoResourceLoadResult> result = linkedResources(globalResourcesInterface);
+    result += embeddedResources(globalResourcesInterface);
+    return result;
 }
 
-QList<KoResourceLoadResult> KoResource::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkVector<KoResourceLoadResult> KoResource::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    QList<KoResourceLoadResult> list;
-    Q_UNUSED(list);
-
-    Q_UNUSED(globalResourcesInterface);
+    (void)globalResourcesInterface;
     return {};
 }
 
-QList<KoResourceLoadResult> KoResource::embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkVector<KoResourceLoadResult> KoResource::embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    Q_UNUSED(globalResourcesInterface);
+    (void)globalResourcesInterface;
     return {};
 }
 
-QList<KoResourceLoadResult> KoResource::takeSideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface)
+PkVector<KoResourceLoadResult> KoResource::takeSideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface)
 {
-    QList<KoResourceLoadResult> result = sideLoadedResources(globalResourcesInterface);
+    PkVector<KoResourceLoadResult> result = sideLoadedResources(globalResourcesInterface);
     clearSideLoadedResources();
     return result;
 }
 
-QList<KoResourceLoadResult> KoResource::sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkVector<KoResourceLoadResult> KoResource::sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    Q_UNUSED(globalResourcesInterface);
+    (void)globalResourcesInterface;
     return {};
 }
 
@@ -266,12 +281,12 @@ void KoResource::clearSideLoadedResources()
 {
 }
 
-QList<int> KoResource::requiredCanvasResources() const
+PkVector<int> KoResource::requiredCanvasResources() const
 {
     return {};
 }
 
-QString KoResource::storageLocation() const
+PkString KoResource::storageLocation() const
 {
     return d->storageLocation;
 }
@@ -286,7 +301,7 @@ bool KoResource::isDirty() const
     return d->modified;
 }
 
-void KoResource::addMetaData(QString key, QVariant value)
+void KoResource::addMetaData(PkString key, PkVariant value)
 {
     /**
      * It is responsibility of the resource itself to load all the necessary
@@ -300,7 +315,7 @@ void KoResource::addMetaData(QString key, QVariant value)
     d->metadata.insert(key, value);
 }
 
-QMap<QString, QVariant> KoResource::metadata() const
+PkMap<PkString, PkVariant> KoResource::metadata() const
 {
     return d->metadata;
 }
@@ -335,7 +350,7 @@ bool KoResource::isSerializable() const
     return !isEphemeral();
 }
 
-void KoResource::setStorageLocation(const QString &location)
+void KoResource::setStorageLocation(const PkString &location)
 {
     d->storageLocation = location;
 }

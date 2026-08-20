@@ -7,7 +7,8 @@
 #define KORESOURCESIGNATURE_H
 
 #include "kritaresources_export.h"
-#include <QString>
+#include <PkString.h>
+#include <PkDebug.h>
 #include <boost/operators.hpp>
 
 /**
@@ -21,17 +22,17 @@ class KRITARESOURCES_EXPORT KoResourceSignature : public boost::equality_compara
 {
 public:
     KoResourceSignature();
-    KoResourceSignature(const QString &type, const QString &md5sum, const QString &filename, const QString &name);
+    KoResourceSignature(const PkString &type, const PkString &md5sum, const PkString &filename, const PkString &name);
 
     KRITARESOURCES_EXPORT
     friend bool operator==(const KoResourceSignature &lhs, const KoResourceSignature &rhs);
 
-    QString type;
-    QString md5sum;
-    QString filename;
-    QString name;
+    PkString type;
+    PkString md5sum;
+    PkString filename;
+    PkString name;
 };
 
-KRITARESOURCES_EXPORT QDebug operator<<(QDebug dbg, const KoResourceSignature &sig);
+KRITARESOURCES_EXPORT PkDebug operator<<(PkDebug dbg, const KoResourceSignature &sig);
 
 #endif // KORESOURCESIGNATURE_H

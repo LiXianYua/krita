@@ -8,8 +8,10 @@
 
 #include "KoCanvasResourcesInterface.h"
 
-#include <QScopedPointer>
-#include <QSharedPointer>
+#include <PkScopedPointer.h>
+#include <PkSharedPointer.h>
+#include <PkMap.h>
+#include <PkVariant.h>
 
 #include <kritaresources_export.h>
 
@@ -21,14 +23,14 @@ public:
     KoLocalStrokeCanvasResources& operator=(const KoLocalStrokeCanvasResources &rhs);
     ~KoLocalStrokeCanvasResources();
 
-    QVariant resource(int key) const override;
-    void storeResource(int key, const QVariant &resource);
+    PkVariant resource(int key) const override;
+    void storeResource(int key, const PkVariant &resource);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
-using KoLocalStrokeCanvasResourcesSP = QSharedPointer<KoLocalStrokeCanvasResources>;
+using KoLocalStrokeCanvasResourcesSP = PkSharedPointer<KoLocalStrokeCanvasResources>;
 
 #endif // KOLOCALSTROKECANVASRESOURCES_H

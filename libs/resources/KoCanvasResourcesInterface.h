@@ -7,9 +7,9 @@
 #define KOCANVASRESOURCESINTERFACE_H
 
 #include "kritaresources_export.h"
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 
-class QVariant;
+class PkVariant;
 
 #include <kritaresources_export.h>
 
@@ -25,9 +25,9 @@ class KRITARESOURCES_EXPORT KoCanvasResourcesInterface
 public:
     virtual ~KoCanvasResourcesInterface();
 
-    virtual QVariant resource(int key) const = 0;
+    virtual PkVariant resource(int key) const = 0;
 };
 
-using KoCanvasResourcesInterfaceSP = QSharedPointer<KoCanvasResourcesInterface>;
+using KoCanvasResourcesInterfaceSP = PkSharedPointer<KoCanvasResourcesInterface>;
 
 #endif // KOCANVASRESOURCESINTERFACE_H

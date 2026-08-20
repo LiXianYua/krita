@@ -6,11 +6,9 @@
 #include "KisResourcesInterface.h"
 
 
-#include <QString>
+#include <utility>
 #include "kis_assert.h"
 #include "KisResourcesInterface_p.h"
-
-#include "kis_debug.h"
 
 //#define SANITY_CHECKS
 #define CRASH_ON_SANITY_CHECK_FAILURE
@@ -28,25 +26,25 @@ KisResourcesInterface::KisResourcesInterface(KisResourcesInterfacePrivate *dd)
 
 KisResourcesInterface::~KisResourcesInterface()
 {
-
+    delete d_ptr;
 }
 
-KisResourcesInterface::ResourceSourceAdapter &KisResourcesInterface::source(const QString &type) const
+KisResourcesInterface::ResourceSourceAdapter &KisResourcesInterface::source(const PkString &type) const
 {
-    Q_D(const KisResourcesInterface);
+    KisResourcesInterfacePrivate *const d = d_func();
 
     // use double-locking for fetching the source
 
     ResourceSourceAdapter *source = 0;
 
     {
-        QReadLocker l(&d->lock);
+        PkReadLocker l(&d->lock);
         source = d->findExistingSource(type);
         if (source) return *source;
     }
 
     {
-        QWriteLocker l(&d->lock);
+        PkWriteLocker l(&d->lock);
         source = d->findExistingSource(type);
         if (source) return *source;
 
@@ -60,7 +58,7 @@ KisResourcesInterface::ResourceSourceAdapter &KisResourcesInterface::source(cons
     return *source;
 }
 
-KisResourcesInterface::ResourceSourceAdapter::ResourceSourceAdapter(const QString &type)
+KisResourcesInterface::ResourceSourceAdapter::ResourceSourceAdapter(const PkString &type)
     : m_type(type)
 {
 }
@@ -69,22 +67,22 @@ KisResourcesInterface::ResourceSourceAdapter::~ResourceSourceAdapter()
 {
 }
 
-KoResourceSP KisResourcesInterface::ResourceSourceAdapter::bestMatch(const QString md5, const QString filename, const QString name)
+KoResourceSP KisResourcesInterface::ResourceSourceAdapter::bestMatch(const PkString md5, const PkString filename, const PkString name)
 {
     return findResource(md5, filename, name, false);
 }
 
-KoResourceSP KisResourcesInterface::ResourceSourceAdapter::exactMatch(const QString md5, const QString filename, const QString name)
+KoResourceSP KisResourcesInterface::ResourceSourceAdapter::exactMatch(const PkString md5, const PkString filename, const PkString name)
 {
     return findResource(md5, filename, name, true);
 }
 
-KoResourceSP KisResourcesInterface::ResourceSourceAdapter::findResource(const QString md5, const QString filename, const QString name, bool exactMatch)
+KoResourceSP KisResourcesInterface::ResourceSourceAdapter::findResource(const PkString md5, const PkString filename, const PkString name, bool exactMatch)
 {
-    QVector<QPair<KoResourceSP, int>> foundResources;
+    PkVector<std::pair<KoResourceSP, int>> foundResources;
 
     if (!md5.isEmpty()) {
-        Q_FOREACH (KoResourceSP res, resourcesForMD5(md5)) {
+        PK_FOREACH (KoResourceSP res, resourcesForMD5(md5)) {
             int penalty = 0;
 
             if (!res->active()) {
@@ -101,7 +99,7 @@ KoResourceSP KisResourcesInterface::ResourceSourceAdapter::findResource(const QS
                 penalty++;
             }
 
-            foundResources.append(qMakePair(res, penalty));
+            foundResources.append(std::make_pair(res, penalty));
         }
 
         /// In case of exact match we **must** find the resource
@@ -124,7 +122,7 @@ KoResourceSP KisResourcesInterface::ResourceSourceAdapter::findResource(const QS
 
     if (foundResources.isEmpty()) {
         if (!filename.isEmpty()) {
-            Q_FOREACH (KoResourceSP res, resourcesForFilename(filename)) {
+            PK_FOREACH (KoResourceSP res, resourcesForFilename(filename)) {
                 int penalty = 0;
 
                 if (!res->active()) {
@@ -135,24 +133,24 @@ KoResourceSP KisResourcesInterface::ResourceSourceAdapter::findResource(const QS
                     penalty++;
                 }
 
-                foundResources.append(qMakePair(res, penalty));
+                foundResources.append(std::make_pair(res, penalty));
             }
         } else if (!name.isEmpty()) {
-            Q_FOREACH (KoResourceSP res, resourcesForName(name)) {
+            PK_FOREACH (KoResourceSP res, resourcesForName(name)) {
                 int penalty = 0;
 
                 if (!res->active()) {
                     penalty += 100;
                 }
 
-                foundResources.append(qMakePair(res, penalty));
+                foundResources.append(std::make_pair(res, penalty));
             }
         }
     }
 
     auto it = std::min_element(foundResources.begin(), foundResources.end(),
-                               [] (const QPair<KoResourceSP, int> &lhs,
-                               const QPair<KoResourceSP, int> &rhs) {return lhs.second < rhs.second;});
+                               [] (const std::pair<KoResourceSP, int> &lhs,
+                               const std::pair<KoResourceSP, int> &rhs) {return lhs.second < rhs.second;});
 
     KoResourceSP result = it != foundResources.end() ? it->first : KoResourceSP();
 
@@ -172,7 +170,7 @@ KoResourceSP KisResourcesInterface::ResourceSourceAdapter::findResource(const QS
     return result;
 }
 
-KoResourceLoadResult KisResourcesInterface::ResourceSourceAdapter::bestMatchLoadResult(const QString md5, const QString filename, const QString name)
+KoResourceLoadResult KisResourcesInterface::ResourceSourceAdapter::bestMatchLoadResult(const PkString md5, const PkString filename, const PkString name)
 {
     KoResourceSP resource = bestMatch(md5, filename, name);
     return

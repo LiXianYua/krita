@@ -9,6 +9,8 @@
 #include "kritaresources_export.h"
 #include "KisResourcesInterface.h"
 
+#include <PkString.h>
+
 /**
  * @brief the main resource source in Krita
  *
@@ -23,7 +25,7 @@ public:
     static KisResourcesInterfaceSP instance();
 
 protected:
-    ResourceSourceAdapter* createSourceImpl(const QString &type) const override;
+    ResourceSourceAdapter* createSourceImpl(const PkString &type) const override;
 };
 
 #endif // KISGLOBALRESOURCESINTERFACE_H
