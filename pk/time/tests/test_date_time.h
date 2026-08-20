@@ -32,4 +32,12 @@ private Q_SLOTS:
     void toStringIsoDateWithMs();
     void toStringRfc2822DateReflectsLocalOffset();
     void toStringOnInvalidReturnsEmpty();
+
+    // R-29 Task 2：PkDate/PkTime
+    void dateJulianDayRoundTrip();
+    void dateInvalidRejected();
+    void dateLeapYear();
+    void dateAddMonths();
+    void timeHmsRoundTrip();
+    void timeInvalidRejected();
 };

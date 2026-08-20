@@ -285,6 +285,72 @@ void TestDateTime::toStringOnInvalidReturnsEmpty()
     PK_VERIFY(invalid.toString(PkDateTime::DateFormat::ISODateWithMs).empty());
 }
 
+// ============================================================================
+// R-29 Task 2：PkDate/PkTime（照 Qt QDate/QTime calendar 语义）
+// ============================================================================
+
+void TestDateTime::dateJulianDayRoundTrip()
+{
+    const PkDate d(2024, 1, 15);
+    PK_VERIFY(d.isValid());
+    PK_VERIFY(d.year() == 2024);
+    PK_VERIFY(d.month() == 1);
+    PK_VERIFY(d.day() == 15);
+    const std::int64_t jd = d.toJulianDay();
+    const PkDate back = PkDate::fromJulianDay(jd);
+    PK_VERIFY(back == d);
+    PK_VERIFY(back.year() == 2024);
+    PK_VERIFY(back.month() == 1);
+    PK_VERIFY(back.day() == 15);
+}
+
+void TestDateTime::dateInvalidRejected()
+{
+    PK_VERIFY(!PkDate::isValid(2024, 2, 30));   // 非闰年 2 月 30
+    PK_VERIFY(!PkDate::isValid(2023, 2, 29));   // 非闰年
+    PK_VERIFY(PkDate::isValid(2024, 2, 29));    // 闰年合法
+    PK_VERIFY(!PkDate(2024, 2, 30).isValid());
+    PK_VERIFY(!PkDate(2024, 13, 1).isValid());  // 月越界
+}
+
+void TestDateTime::dateLeapYear()
+{
+    PK_VERIFY(PkDate::isLeapYear(2024));
+    PK_VERIFY(PkDate::isLeapYear(2000));
+    PK_VERIFY(!PkDate::isLeapYear(1900));
+    PK_VERIFY(!PkDate::isLeapYear(2023));
+}
+
+void TestDateTime::dateAddMonths()
+{
+    const PkDate d(2024, 1, 31);
+    const PkDate next = d.addMonths(1);
+    PK_VERIFY(next.year() == 2024 && next.month() == 2 && next.day() == 29); // 钳到 2 月 29
+    const PkDate dec = d.addMonths(11);
+    PK_VERIFY(dec.year() == 2024 && dec.month() == 12 && dec.day() == 31);
+}
+
+void TestDateTime::timeHmsRoundTrip()
+{
+    const PkTime t(12, 30, 45, 500);
+    PK_VERIFY(t.isValid());
+    PK_VERIFY(t.hour() == 12);
+    PK_VERIFY(t.minute() == 30);
+    PK_VERIFY(t.second() == 45);
+    PK_VERIFY(t.msec() == 500);
+    PK_VERIFY(PkTime(12, 30, 45, 500) == PkTime(12, 30, 45, 500));
+    PK_VERIFY(PkTime(12, 30, 45) != PkTime(12, 30, 46));
+}
+
+void TestDateTime::timeInvalidRejected()
+{
+    PK_VERIFY(!PkTime::isValid(24, 0, 0));
+    PK_VERIFY(!PkTime::isValid(0, 60, 0));
+    PK_VERIFY(!PkTime::isValid(0, 0, 60));
+    PK_VERIFY(!PkTime(24, 0, 0).isValid());
+    PK_VERIFY(!PkTime(0, 0, 0, 1000).isValid());
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_date_time.inc"

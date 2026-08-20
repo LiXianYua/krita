@@ -1,5 +1,6 @@
 #include "PkDateTime.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
@@ -172,6 +173,166 @@ int millisecondsPart(const PkDateTime::TimePoint &tp)
 }
 
 } // namespace
+
+// ── PkDate 实现（照 Qt qdatetime.cpp 的格里历算法）──────────────────────────
+
+// 从 jd 拆出年月日（标准格里历算法，照 Qt QDatePrivate::getDateFromJulianDay）。
+static void getDateFromJulianDay(std::int64_t jd, int &year, int &month, int &day)
+{
+    std::int64_t a = jd + 32044;
+    std::int64_t b = (4 * a + 3) / 146097;
+    std::int64_t c = a - (146097 * b) / 4;
+    std::int64_t d = (4 * c + 3) / 1461;
+    std::int64_t e = c - (1461 * d) / 4;
+    std::int64_t m = (5 * e + 2) / 153;
+    day = static_cast<int>(e - (153 * m + 2) / 5 + 1);
+    month = static_cast<int>(m + 3 - 12 * (m / 10));
+    year = static_cast<int>(100 * b + d - 4800 + m / 10);
+}
+
+// 从年月日算 jd（标准格里历算法，照 Qt QDatePrivate::gregorianToJulianDay）。
+static std::int64_t julianDayFromGregorian(int y, int m, int d)
+{
+    if (m <= 2) { y -= 1; m += 12; }
+    std::int64_t a = y / 100;
+    std::int64_t b = 2 - a + a / 4;
+    return static_cast<std::int64_t>(365 * (y + 4716)) + (y + 4716) / 4
+           + static_cast<std::int64_t>(153 * (m + 1) / 5) + d + b - 1524;
+}
+
+static int daysInMonth(int y, int m)
+{
+    static const int kDaysInMonth[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    if (m == 2 && PkDate::isLeapYear(y)) return 29;
+    return kDaysInMonth[m - 1];
+}
+
+PkDate::PkDate(int y, int m, int d)
+{
+    if (!isValid(y, m, d)) { m_jd = nullJd(); return; }
+    m_jd = julianDayFromGregorian(y, m, d);
+}
+
+int PkDate::year() const { int y, m, d; getDateFromJulianDay(m_jd, y, m, d); return y; }
+int PkDate::month() const { int y, m, d; getDateFromJulianDay(m_jd, y, m, d); return m; }
+int PkDate::day() const { int y, m, d; getDateFromJulianDay(m_jd, y, m, d); return d; }
+int PkDate::dayOfWeek() const
+{
+    // Qt: (jd % 7) + 1，jd=0 → 星期一（1）
+    const std::int64_t r = m_jd % 7;
+    return static_cast<int>(r < 0 ? r + 8 : r + 1);
+}
+int PkDate::dayOfYear() const { return static_cast<int>(m_jd - julianDayFromGregorian(year(), 1, 1)) + 1; }
+int PkDate::daysInMonth() const { return ::daysInMonth(year(), month()); }
+int PkDate::daysInYear() const { return isLeapYear(year()) ? 366 : 365; }
+
+bool PkDate::setDate(int year, int month, int day)
+{
+    if (!isValid(year, month, day)) { m_jd = nullJd(); return false; }
+    m_jd = julianDayFromGregorian(year, month, day);
+    return true;
+}
+
+PkDate PkDate::addDays(std::int64_t days) const
+{
+    if (!isValid()) return PkDate();
+    const std::int64_t njd = m_jd + days;
+    return (njd >= minJd() && njd <= maxJd()) ? PkDate(njd) : PkDate();
+}
+PkDate PkDate::addMonths(int months) const
+{
+    if (!isValid()) return PkDate();
+    int y, m, d;
+    getDateFromJulianDay(m_jd, y, m, d);
+    // Qt: 月份算术（跨年进位/借位，日钳到当月天数）
+    int ny = y + months / 12;
+    int nm = m + months % 12;
+    if (nm <= 0) { nm += 12; ny -= 1; }
+    else if (nm > 12) { nm -= 12; ny += 1; }
+    const int nd = std::min(d, ::daysInMonth(ny, nm));
+    return PkDate(ny, nm, nd);
+}
+PkDate PkDate::addYears(int years) const
+{
+    if (!isValid()) return PkDate();
+    int y, m, d;
+    getDateFromJulianDay(m_jd, y, m, d);
+    const int nd = std::min(d, ::daysInMonth(y + years, m));
+    return PkDate(y + years, m, nd);
+}
+std::int64_t PkDate::daysTo(const PkDate &other) const
+{
+    if (!isValid() || !other.isValid()) return 0;
+    return other.m_jd - m_jd;
+}
+
+PkDate PkDate::currentDate()
+{
+    // 从系统当前时刻拆出本地日历字段
+    const std::time_t t = std::time(nullptr);
+    std::tm tmVal{};
+    localtime_r(&t, &tmVal);
+    return PkDate(tmVal.tm_year + 1900, tmVal.tm_mon + 1, tmVal.tm_mday);
+}
+
+bool PkDate::isValid(int y, int m, int d)
+{
+    // Qt: 年份范围对齐 minJd/maxJd 的格里历换算
+    if (y < 1 || y > 9999) return false;
+    if (m < 1 || m > 12) return false;
+    if (d < 1 || d > 31) return false;
+    if (d > ::daysInMonth(y, m)) return false;
+    return true;
+}
+bool PkDate::isLeapYear(int year)
+{
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+// ── PkTime 实现（照 Qt qdatetime.cpp）─────────────────────────────────────
+
+PkTime::PkTime(int h, int m, int s, int ms)
+{
+    if (!isValid(h, m, s, ms)) { m_mds = NullTime; return; }
+    m_mds = h * 3600000 + m * 60000 + s * 1000 + ms;
+}
+
+bool PkTime::isValid() const { return m_mds >= 0 && m_mds < 86400000; }
+
+bool PkTime::setHMS(int h, int m, int s, int ms)
+{
+    if (!isValid(h, m, s, ms)) { m_mds = NullTime; return false; }
+    m_mds = h * 3600000 + m * 60000 + s * 1000 + ms;
+    return true;
+}
+
+PkTime PkTime::addSecs(int secs) const
+{
+    if (!isValid()) return PkTime();
+    const int n = m_mds + secs * 1000;
+    const int wrapped = ((n % 86400000) + 86400000) % 86400000;
+    return PkTime(wrapped);
+}
+PkTime PkTime::addMSecs(int ms) const
+{
+    if (!isValid()) return PkTime();
+    const int n = m_mds + ms;
+    const int wrapped = ((n % 86400000) + 86400000) % 86400000;
+    return PkTime(wrapped);
+}
+
+PkTime PkTime::currentTime()
+{
+    const std::time_t t = std::time(nullptr);
+    std::tm tmVal{};
+    localtime_r(&t, &tmVal);
+    return PkTime(tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec);
+}
+
+bool PkTime::isValid(int h, int m, int s, int ms)
+{
+    return h >= 0 && h <= 23 && m >= 0 && m <= 59 && s >= 0 && s <= 59 && ms >= 0 && ms <= 999;
+}
 
 std::string PkDateTime::toString() const
 {

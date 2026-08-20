@@ -3,7 +3,101 @@
 
 #include <chrono>
 #include <cstdint>
+#include <limits>
 #include <string>
+
+// ── PkDate —— QDate 的零 Qt 替代（julianDay 模型，照 Qt 5.15 qdatetime.h/cpp 的
+// 格里历算法）。默认构造为无效（nullJd 哨兵，isNull()==!isValid()）。R-29 Task 2
+// 新增；PkDateTime 仍为 epoch 版（R-29 Task 3 才重写为依赖 PkDate/PkTime）。─────
+class PkDate
+{
+public:
+    PkDate() : m_jd(nullJd()) {}
+    PkDate(int y, int m, int d);
+    explicit PkDate(std::int64_t julianDay) : m_jd(julianDay) {}
+
+    bool isNull() const { return !isValid(); }
+    bool isValid() const { return m_jd >= minJd() && m_jd <= maxJd(); }
+
+    int year() const;
+    int month() const;
+    int day() const;
+    int dayOfWeek() const;
+    int dayOfYear() const;
+    int daysInMonth() const;
+    int daysInYear() const;
+
+    bool setDate(int year, int month, int day);
+    PkDate addDays(std::int64_t days) const;
+    PkDate addMonths(int months) const;
+    PkDate addYears(int years) const;
+    std::int64_t daysTo(const PkDate &other) const;
+
+    bool operator==(const PkDate &other) const { return m_jd == other.m_jd; }
+    bool operator!=(const PkDate &other) const { return m_jd != other.m_jd; }
+    bool operator<(const PkDate &other) const { return m_jd < other.m_jd; }
+    bool operator<=(const PkDate &other) const { return m_jd <= other.m_jd; }
+    bool operator>(const PkDate &other) const { return m_jd > other.m_jd; }
+    bool operator>=(const PkDate &other) const { return m_jd >= other.m_jd; }
+
+    static PkDate currentDate();
+    static bool isValid(int y, int m, int d);
+    static bool isLeapYear(int year);
+
+    static PkDate fromJulianDay(std::int64_t jd) { return (jd >= minJd() && jd <= maxJd()) ? PkDate(jd) : PkDate(); }
+    std::int64_t toJulianDay() const { return m_jd; }
+
+private:
+    static constexpr std::int64_t nullJd() { return (std::numeric_limits<std::int64_t>::min)(); }
+    static constexpr std::int64_t minJd() { return -784350574879LL; }
+    static constexpr std::int64_t maxJd() { return 784354017364LL; }
+    std::int64_t m_jd;
+};
+
+// ── PkTime —— QTime 的零 Qt 替代（msecs-since-midnight 模型，照 Qt 5.15）。
+// 默认构造为无效（NullTime 哨兵）。R-29 Task 2 新增。──────────────────────────
+class PkTime
+{
+public:
+    PkTime() : m_mds(NullTime) {}
+    PkTime(int h, int m, int s = 0, int ms = 0);
+
+    bool isNull() const { return m_mds == NullTime; }
+    bool isValid() const;
+
+    int hour() const { return ds() / 3600000; }
+    int minute() const { return (ds() / 60000) % 60; }
+    int second() const { return (ds() / 1000) % 60; }
+    int msec() const { return ds() % 1000; }
+
+    bool setHMS(int h, int m, int s, int ms = 0);
+    PkTime addSecs(int secs) const;
+    int secsTo(const PkTime &other) const { return other.m_mds / 1000 - m_mds / 1000; }
+    PkTime addMSecs(int ms) const;
+    int msecsTo(const PkTime &other) const { return other.m_mds - m_mds; }
+
+    bool operator==(const PkTime &other) const { return m_mds == other.m_mds; }
+    bool operator!=(const PkTime &other) const { return m_mds != other.m_mds; }
+    bool operator<(const PkTime &other) const { return m_mds < other.m_mds; }
+    bool operator<=(const PkTime &other) const { return m_mds <= other.m_mds; }
+    bool operator>(const PkTime &other) const { return m_mds > other.m_mds; }
+    bool operator>=(const PkTime &other) const { return m_mds >= other.m_mds; }
+
+    static PkTime fromMSecsSinceStartOfDay(int msecs) { return PkTime(msecs); }
+    int msecsSinceStartOfDay() const { return m_mds == NullTime ? 0 : m_mds; }
+
+    static PkTime currentTime();
+    static bool isValid(int h, int m, int s, int ms = 0);
+
+private:
+    enum { NullTime = -1 };
+    // 私有单参构造：msecs-since-midnight 语义（照 Qt 私有 `QTime(int ms)`），供
+    // fromMSecsSinceStartOfDay / addSecs / addMSecs 内部把"绕回一天内的毫秒数"
+    // 直接构造成 PkTime——public 面仍是 4 参构造，不暴露该入口。
+    explicit PkTime(int msecs) : m_mds(msecs) {}
+    int ds() const { return m_mds == NullTime ? 0 : m_mds; }
+    int m_mds;
+};
 
 // QDateTime 的核心值语义对应物。R-16 Task 2（`pk/time`）+ Task 3（字符串转换）。
 //
