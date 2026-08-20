@@ -45,15 +45,22 @@ int pkIndexOf(const std::vector<char16_t>& hay, const std::vector<char16_t>& nee
     return static_cast<int>(it - hay.begin());
 }
 
-std::uint32_t pkNextCodePoint(const std::vector<char16_t>& input, std::size_t& index)
+bool pkIsHighSurrogate(char16_t unit)
+{
+    return unit >= 0xD800 && unit <= 0xDBFF;
+}
+
+std::uint32_t pkNextCaseUnit(const std::vector<char16_t>& input,
+                             std::size_t& index,
+                             std::size_t end)
 {
     const std::uint32_t first = input[index++];
-    if (first >= 0xD800 && first <= 0xDBFF && index < input.size()) {
-        const std::uint32_t second = input[index];
-        if (second >= 0xDC00 && second <= 0xDFFF) {
-            ++index;
-            return 0x10000 + ((first - 0xD800) << 10) + (second - 0xDC00);
-        }
+    if (pkIsHighSurrogate(static_cast<char16_t>(first)) && index < end) {
+        // QStringIterator::nextUnchecked() consumes the following UTF-16 unit
+        // after every non-trailing high surrogate. Its validity check is a
+        // Q_ASSERT and therefore absent in the release Qt used by the oracle.
+        const std::uint32_t second = input[index++];
+        return (first << 10) + second - 0x35FDC00;
     }
     return first;
 }
@@ -73,15 +80,9 @@ const PkUnicodeCaseData::Mapping* pkFindCaseMapping(
     return it != end && it->source == codePoint ? it : nullptr;
 }
 
-void pkAppendCodePoint(std::vector<char16_t>& output, std::uint32_t codePoint)
+char16_t pkLowSurrogate(std::uint32_t codePoint)
 {
-    if (codePoint <= 0xFFFF) {
-        output.push_back(static_cast<char16_t>(codePoint));
-        return;
-    }
-    const std::uint32_t value = codePoint - 0x10000;
-    output.push_back(static_cast<char16_t>(0xD800 + (value >> 10)));
-    output.push_back(static_cast<char16_t>(0xDC00 + (value & 0x3FF)));
+    return static_cast<char16_t>(0xDC00 + (codePoint & 0x3FF));
 }
 
 template<std::size_t N, std::size_t M>
@@ -90,21 +91,60 @@ bool pkConvertCase(const std::vector<char16_t>& input,
                    const PkUnicodeCaseData::Mapping (&mappings)[N],
                    const char16_t (&values)[M])
 {
-    output.reserve(input.size());
-    bool changed = false;
-    for (std::size_t index = 0; index < input.size();) {
-        const std::uint32_t codePoint = pkNextCodePoint(input, index);
+    // Qt excludes trailing high surrogates from its unchecked case iterator.
+    std::size_t end = input.size();
+    while (end != 0 && pkIsHighSurrogate(input[end - 1])) {
+        --end;
+    }
+
+    // QString first scans for a mapping and returns the original shared data
+    // if none is found. This matters for malformed UTF-16: a high surrogate
+    // consumes the following unit during this scan, so that unit is not
+    // independently considered caseable.
+    std::size_t firstChange = end;
+    for (std::size_t index = 0; index < end;) {
+        const std::size_t unitStart = index;
+        const std::uint32_t codePoint = pkNextCaseUnit(input, index, end);
         const PkUnicodeCaseData::Mapping* const mapping =
             pkFindCaseMapping(codePoint, mappings);
-        if (mapping == nullptr) {
-            pkAppendCodePoint(output, codePoint);
-            continue;
+        if (mapping != nullptr) {
+            firstChange = unitStart;
+            break;
         }
-        changed = true;
-        output.insert(output.end(), values + mapping->offset,
-                      values + mapping->offset + mapping->length);
     }
-    return changed;
+    if (firstChange == end) {
+        return false;
+    }
+
+    // Mirror Qt's detached output buffer and independent input iterator. A
+    // malformed high+non-low pair can consume two input units while writing
+    // one or two output units; retaining the untouched tail is observable Qt
+    // behavior, so conversion is intentionally not a validating decoder.
+    output = input;
+    std::size_t writeIndex = firstChange;
+    for (std::size_t readIndex = firstChange; readIndex < end;) {
+        const std::uint32_t codePoint = pkNextCaseUnit(input, readIndex, end);
+        const PkUnicodeCaseData::Mapping* const mapping =
+            pkFindCaseMapping(codePoint, mappings);
+
+        if (codePoint >= 0x10000) {
+            ++writeIndex; // Qt preserves the high unit already in the output buffer.
+            output[writeIndex++] = mapping != nullptr && mapping->length == 2
+                ? values[mapping->offset + 1]
+                : pkLowSurrogate(codePoint);
+        } else if (mapping == nullptr) {
+            output[writeIndex++] = static_cast<char16_t>(codePoint);
+        } else if (mapping->length == 1) {
+            output[writeIndex++] = values[mapping->offset];
+        } else {
+            output.erase(output.begin() + static_cast<std::ptrdiff_t>(writeIndex));
+            output.insert(output.begin() + static_cast<std::ptrdiff_t>(writeIndex),
+                          values + mapping->offset,
+                          values + mapping->offset + mapping->length);
+            writeIndex += mapping->length;
+        }
+    }
+    return true;
 }
 
 } // namespace

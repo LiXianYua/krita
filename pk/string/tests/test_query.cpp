@@ -136,5 +136,38 @@ void run_query_tests()
                 "unchanged toLower result shares COW data");
         _expect(alreadyUpper.toUpper().PkIsSharedWith(alreadyUpper),
                 "unchanged toUpper result shares COW data");
+
+        // QString's release-build case iterator consumes a non-trailing high
+        // surrogate together with the following UTF-16 unit, even when that
+        // unit is not a low surrogate. Pin that observable malformed-input
+        // behavior with literal UTF-16 expectations.
+        const PkString emoji("\xF0\x9F\x98\x80");
+        const PkString loneHigh = emoji.left(1);
+        const PkString loneLow = emoji.mid(1, 1);
+        _expect(loneHigh.toLower().PkToU16() == std::u16string({0xD83D}),
+                "toLower preserves a lone trailing high surrogate");
+        _expect(loneLow.toUpper().PkToU16() == std::u16string({0xDE00}),
+                "toUpper preserves a lone low surrogate");
+
+        const PkString highBeforeUpper = loneHigh + PkString("A");
+        _expect(highBeforeUpper.toLower().PkToU16() == std::u16string({0xD83D, u'A'}),
+                "toLower preserves a high surrogate plus caseable uppercase BMP unit");
+        const PkString highBeforeLower = loneHigh + PkString("a");
+        _expect(highBeforeLower.toUpper().PkToU16() == std::u16string({0xD83D, u'a'}),
+                "toUpper preserves a high surrogate plus caseable lowercase BMP unit");
+
+        const PkString reversed = loneLow + loneHigh + PkString("A");
+        _expect(reversed.toLower().PkToU16()
+                    == std::u16string({0xDE00, 0xD83D, u'A'}),
+                "toLower preserves a reversed pair before a caseable BMP unit");
+
+        const PkString malformedMixed =
+            PkString("A") + loneHigh + PkString("b") + loneLow + PkString("C");
+        _expect(malformedMixed.toLower().PkToU16()
+                    == std::u16string({u'a', 0xD83D, 0xDC62, 0xDE00, u'c'}),
+                "toLower matches Qt's mixed malformed UTF-16 conversion shape");
+        _expect(malformedMixed.toUpper().PkToU16()
+                    == std::u16string({u'A', 0xD83D, u'b', 0xDE00, u'C'}),
+                "toUpper leaves a mixed malformed UTF-16 sequence unchanged when no case mapping is seen");
     }
 }

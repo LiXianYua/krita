@@ -549,6 +549,69 @@ void diffCase(const std::vector<unsigned>& codePoints, const char* coverage)
         inputDump, esQ(qUpper), esP(pUpper));
 }
 
+PkString pkStringFromRawUtf16(const std::vector<char16_t>& units)
+{
+    PkString result;
+    for (char16_t unit : units) {
+        unsigned cp = unit;
+        int slicePosition = 1;
+        if (unit >= 0xD800 && unit <= 0xDBFF) {
+            cp = 0x10000 + (static_cast<unsigned>(unit) - 0xD800) * 0x400;
+        } else if (unit >= 0xDC00 && unit <= 0xDFFF) {
+            cp = 0x10000 + (static_cast<unsigned>(unit) - 0xDC00);
+            slicePosition = 2;
+        }
+
+        const std::string anchored = "x" + pkUtf8Encode(cp);
+        const PkString decoded =
+            PkString::PkFromUtf8(anchored.data(), static_cast<int>(anchored.size())).mid(1);
+        result += decoded.mid(slicePosition - 1, 1);
+    }
+    return result;
+}
+
+std::string pkUtf16Units(const std::u16string& units)
+{
+    std::string dump;
+    char buffer[16];
+    for (char16_t unit : units) {
+        std::snprintf(buffer, sizeof(buffer), "%04X", static_cast<unsigned>(unit));
+        if (!dump.empty()) dump += "+";
+        dump += buffer;
+    }
+    return dump.empty() ? "empty" : dump;
+}
+
+std::u16string qUtf16Units(const QString& value)
+{
+    std::u16string units;
+    units.reserve(static_cast<std::size_t>(value.size()));
+    for (int i = 0; i < value.size(); ++i) {
+        units.push_back(static_cast<char16_t>(value.at(i).unicode()));
+    }
+    return units;
+}
+
+void diffCaseRawUtf16(const std::vector<char16_t>& units, const char* shape)
+{
+    const QString q = QString::fromUtf16(
+        reinterpret_cast<const ushort*>(units.data()), static_cast<int>(units.size()));
+    const PkString p = pkStringFromRawUtf16(units);
+    const std::string inputDump = pkUtf16Units(std::u16string(units.begin(), units.end()));
+
+    const std::u16string qLower = qUtf16Units(q.toLower());
+    const std::u16string pLower = p.toLower().PkToU16();
+    rec("toLower", qLower == pLower,
+        std::string("direction=lower/coverage=raw-utf16/shape=") + shape,
+        inputDump, pkUtf16Units(qLower), pkUtf16Units(pLower));
+
+    const std::u16string qUpper = qUtf16Units(q.toUpper());
+    const std::u16string pUpper = p.toUpper().PkToU16();
+    rec("toUpper", qUpper == pUpper,
+        std::string("direction=upper/coverage=raw-utf16/shape=") + shape,
+        inputDump, pkUtf16Units(qUpper), pkUtf16Units(pUpper));
+}
+
 int main()
 {
     qInstallMessageHandler([](QtMsgType, const QMessageLogContext&, const QString&) {});
@@ -668,6 +731,27 @@ int main()
     };
     for (const std::vector<unsigned>& probe : caseProbes) {
         diffCase(probe, "handpicked");
+    }
+
+    struct RawCaseProbe {
+        const char* shape;
+        std::vector<char16_t> units;
+    };
+    const RawCaseProbe rawCaseProbes[] = {
+        {"lone-high", {0xD83D}},
+        {"lone-low", {0xDE00}},
+        {"high-before-upper-bmp", {0xD83D, u'A'}},
+        {"high-before-lower-bmp", {0xD83D, u'a'}},
+        {"low-before-upper-bmp", {0xDE00, u'A'}},
+        {"low-before-lower-bmp", {0xDE00, u'a'}},
+        {"reversed-pair-upper-bmp", {0xDE00, 0xD83D, u'A'}},
+        {"reversed-pair-lower-bmp", {0xDE00, 0xD83D, u'a'}},
+        {"caseable-before-high", {u'A', 0xD83D}},
+        {"valid-pair-before-caseable", {0xD83D, 0xDE00, u'A'}},
+        {"mixed-malformed", {u'A', 0xD83D, u'b', 0xDE00, u'C'}},
+    };
+    for (const RawCaseProbe& probe : rawCaseProbes) {
+        diffCaseRawUtf16(probe.units, probe.shape);
     }
 
     // Single-scalar exhaustive pass catches every Unicode 13 table entry and
