@@ -1,0 +1,18 @@
+#pragma once
+
+#include <QObject>
+
+class DataStreamCase : public QObject
+{
+    Q_OBJECT
+private Q_SLOTS:
+    void defaultsAndStatus();
+    void readsQt46BigEndianFixtures();
+    void readsQt515BigEndianFixtures();
+    void writesQt46BigEndianFixtures();
+    void writesQt515BigEndianFixtures();
+    void littleEndianScalarRoundTrip();
+    void shortReadIsStickyAndZeroesTarget();
+    void rejectsUnknownAndUserTypes();
+    void readsAndWritesThroughPkStream();
+};

@@ -6,10 +6,11 @@
 # 中间通过 C 桥接（pk_side.h）连接，链接时靠 C 链接符号。
 #
 # 退出码：0 = 成功跑完；非 0 = FAIL。
+source /mnt/ssd-disk/liyang/projects/krita-ci-env/env
 set -euo pipefail
 cd "$(dirname "$0")/../../.." || exit 1
 
-QT=${PK_QT_PREFIX:-/home/qiansenwei/workspace/Krita_Linux_liyang/krita-ci-env/_install}
+QT=${PK_QT_PREFIX:-/mnt/ssd-disk/liyang/projects/krita-ci-env/_install}
 SRC=pk/variant/oracle
 
 [ -f "$QT/include/QtCore/QVariant" ] || { echo "找不到真 Qt5 的头：$QT/include/QtCore/QVariant" >&2; exit 1; }
@@ -37,12 +38,13 @@ g++ -std=c++17 -O2 -fPIC -fwrapv \
 echo "链接 oracle..."
 # pk_side.o 调用了 PkVariant/PkString/PkGeometry 的符号，需链上对应的静态库。
 # 从 cmake 构建目录（krita/build-ci）拿 .a 文件。
-CMAKE_BUILD=krita/build-ci
+CMAKE_BUILD=${PK_VARIANT_BUILD:-build-r31-variant}
 g++ -std=c++17 -O2 \
     pk/variant/build/oracle_qt.o pk/variant/build/pk_side.o \
     "$CMAKE_BUILD/libpkvariant.a" \
     "$CMAKE_BUILD/libpkstring.a" \
     "$CMAKE_BUILD/libpkgeometry.a" \
+    "$CMAKE_BUILD/libpktime.a" \
     -L"$QT/lib" -Wl,-rpath-link,"$QT/lib" -Wl,-rpath,"$QT/lib" \
     -lQt5Core -lQt5Gui \
     -o pk/variant/build/oracle

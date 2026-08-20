@@ -15,9 +15,11 @@ enable_testing()
 
 add_library(pkvariant STATIC
     PkAuxTypes.cpp
+    PkDataStream.cpp
     PkVariant.cpp
 )
 target_include_directories(pkvariant PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(pkvariant PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../port)
 
 # -fwrapv：与 pk/geometry 同一条理由——PkVariant 的 toInt/toUInt 等转换里
 # 有裸的整数运算（static_cast、qRound），在 -Os 下溢出是 UB。
@@ -70,7 +72,8 @@ target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime)
 # 单测：用 pk/test 的 PK_* harness
 # ---------------------------------------------------------------------------
 pk_test_generate(PKVARIANT_GENERATED_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/variant_case.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/variant_case.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/data_stream_case.h")
 
 add_executable(test_pkvariant
     tests/test_variant.cpp
@@ -83,3 +86,17 @@ set_source_files_properties(tests/test_variant.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_variant_case.inc")
 
 add_test(NAME test_pkvariant COMMAND test_pkvariant)
+
+add_executable(test_pkdatastream
+    tests/test_data_stream.cpp
+    ../port/PkStream.cpp
+)
+target_link_libraries(test_pkdatastream PRIVATE pkvariant pktest pkstring pktime)
+target_include_directories(test_pkdatastream PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../test/compat
+    ${CMAKE_CURRENT_SOURCE_DIR}/../port)
+set_source_files_properties(tests/test_data_stream.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_data_stream_case.inc")
+
+add_test(NAME test_pkdatastream COMMAND test_pkdatastream)
