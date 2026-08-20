@@ -69,15 +69,33 @@ PkVector<KisResourceRecord> KisTagFilterResourceProxyModel::sourceRecords() cons
         !d->filteringWithinCurrentTag && !d->filter->isEmpty();
 
     PkVector<KisResourceRecord> source;
-    if (!ignoreTagFiltering && d->currentTagFilter &&
-        d->currentTagFilter->url() != KisAllTagsModel::urlAll() &&
-        d->currentTagFilter->url() != KisAllTagsModel::urlAllUntagged()) {
-        d->tagResourceModel->setTagsFilter(
-            PkVector<KisTagSP>{d->currentTagFilter});
-        source = d->tagResourceModel->records();
+    if (d->currentResourceFilter) {
+        if (!ignoreTagFiltering && d->currentTagFilter &&
+            d->currentTagFilter->url() != KisAllTagsModel::urlAll() &&
+            d->currentTagFilter->url() != KisAllTagsModel::urlAllUntagged()) {
+            d->tagResourceModel->setTagsFilter(
+                PkVector<KisTagSP>{d->currentTagFilter});
+        } else {
+            d->tagResourceModel->setTagsFilter(PkVector<KisTagSP>());
+        }
+        d->tagResourceModel->setResourcesFilter(
+            PkVector<KoResourceSP>{d->currentResourceFilter});
+        for (const KisTagResourceRecord &relation :
+             d->tagResourceModel->relations()) {
+            source.append(relation.resource);
+        }
     } else {
-        d->tagResourceModel->setTagsFilter(PkVector<KisTagSP>());
-        source = d->resourceModel->records();
+        d->tagResourceModel->setResourcesFilter(PkVector<KoResourceSP>());
+        if (!ignoreTagFiltering && d->currentTagFilter &&
+            d->currentTagFilter->url() != KisAllTagsModel::urlAll() &&
+            d->currentTagFilter->url() != KisAllTagsModel::urlAllUntagged()) {
+            d->tagResourceModel->setTagsFilter(
+                PkVector<KisTagSP>{d->currentTagFilter});
+            source = d->tagResourceModel->records();
+        } else {
+            d->tagResourceModel->setTagsFilter(PkVector<KisTagSP>());
+            source = d->resourceModel->records();
+        }
     }
 
     PkVector<KisResourceRecord> result;
