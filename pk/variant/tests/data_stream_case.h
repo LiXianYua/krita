@@ -18,7 +18,9 @@ private Q_SLOTS:
     void typedNullBuiltinsRoundTrip();
     void dateTimeWireStatesRoundTrip();
     void isolatedUtf16CodeUnitsRoundTrip();
+    void mutatedStringDataIsAuthoritative();
     void multiElementHashRoundTripIsSemantic();
     void userTypeFailureConsumesTypeName();
     void hostileLengthsAreRejectedBeforeAllocation();
+    void containerDecodedStorageIsBounded();
 };

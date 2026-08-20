@@ -348,6 +348,22 @@ void DataStreamCase::isolatedUtf16CodeUnitsRoundTrip()
     PK_VERIFY(encoded == fromHex(hex));
 }
 
+void DataStreamCase::mutatedStringDataIsAuthoritative()
+{
+    PkVariant value(PkString("a"));
+    *static_cast<PkString *>(value.data()) = PkString("b");
+
+    PK_VERIFY(value == PkVariant(PkString("b")));
+    PK_VERIFY(value != PkVariant(PkString("a")));
+    PK_VERIFY(value.PkStringCodeUnits() == std::u16string({u'b'}));
+
+    PkByteArray encoded;
+    PkDataStream writer(&encoded, PkStream::WriteOnly);
+    writer << value;
+    PK_COMPARE(writer.status(), PkDataStream::Ok);
+    PK_VERIFY(encoded == fromHex("0000000a00000000020062"));
+}
+
 void DataStreamCase::multiElementHashRoundTripIsSemantic()
 {
     PkVariantHash hash{{PkString("a"), PkVariant(3)},
@@ -402,6 +418,53 @@ void DataStreamCase::hostileLengthsAreRejectedBeforeAllocation()
     variantStream >> list;
     PK_COMPARE(variantStream.status(), PkDataStream::ReadCorruptData);
     PK_VERIFY(!list.isValid());
+}
+
+void DataStreamCase::containerDecodedStorageIsBounded()
+{
+    const auto encode = [](const PkVariant &value) {
+        PkByteArray bytes;
+        PkDataStream writer(&bytes, PkStream::WriteOnly);
+        writer << value;
+        return bytes;
+    };
+    const auto verifyBoundary = [&](const PkVariant &twoElements,
+                                    const PkVariant &threeElements,
+                                    std::size_t decodedElementSize) {
+        const std::size_t limit = 2u * decodedElementSize;
+        PkDataStream accepted(encode(twoElements));
+        accepted.setAllocationLimit(limit);
+        PkVariant acceptedValue;
+        accepted >> acceptedValue;
+        PK_COMPARE(accepted.status(), PkDataStream::Ok);
+        PK_VERIFY(acceptedValue == twoElements);
+
+        PkDataStream rejected(encode(threeElements));
+        rejected.setAllocationLimit(limit);
+        PkVariant rejectedValue;
+        rejected >> rejectedValue;
+        PK_COMPARE(rejected.status(), PkDataStream::ReadCorruptData);
+        PK_VERIFY(!rejectedValue.isValid());
+    };
+
+    verifyBoundary(PkVariant(PkVariantList{PkVariant(), PkVariant()}),
+                   PkVariant(PkVariantList{PkVariant(), PkVariant(), PkVariant()}),
+                   sizeof(PkVariant));
+    verifyBoundary(PkVariant(PkStringList{PkString(), PkString()}),
+                   PkVariant(PkStringList{PkString(), PkString(), PkString()}),
+                   sizeof(PkString));
+    verifyBoundary(PkVariant(PkVariantMap{{PkString("a"), PkVariant()},
+                                          {PkString("b"), PkVariant()}}),
+                   PkVariant(PkVariantMap{{PkString("a"), PkVariant()},
+                                          {PkString("b"), PkVariant()},
+                                          {PkString("c"), PkVariant()}}),
+                   sizeof(PkVariantMap::value_type));
+    verifyBoundary(PkVariant(PkVariantHash{{PkString("a"), PkVariant()},
+                                           {PkString("b"), PkVariant()}}),
+                   PkVariant(PkVariantHash{{PkString("a"), PkVariant()},
+                                           {PkString("b"), PkVariant()},
+                                           {PkString("c"), PkVariant()}}),
+                   sizeof(PkVariantHash::value_type));
 }
 
 PK_TEST_MAIN(DataStreamCase)

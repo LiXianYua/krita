@@ -55,7 +55,6 @@ PkVariant::PkVariant(const PkVariant& other)
     , m_isNull(other.m_isNull)
     , m_wireNullFlag(other.m_wireNullFlag)
     , m_any(other.m_any)
-    , m_stringCodeUnits(other.m_stringCodeUnits)
     , m_dateTimeSpec(other.m_dateTimeSpec)
     , m_dateTimeOffsetSeconds(other.m_dateTimeOffsetSeconds)
     , m_dateTimeZoneId(other.m_dateTimeZoneId)
@@ -120,7 +119,6 @@ PkVariant::PkVariant(PkVariant&& other) noexcept
     m_type = other.m_type;
     m_isNull = other.m_isNull;
     m_wireNullFlag = other.m_wireNullFlag;
-    m_stringCodeUnits = std::move(other.m_stringCodeUnits);
     m_dateTimeSpec = other.m_dateTimeSpec;
     m_dateTimeOffsetSeconds = other.m_dateTimeOffsetSeconds;
     m_dateTimeZoneId = std::move(other.m_dateTimeZoneId);
@@ -154,7 +152,6 @@ PkVariant& PkVariant::operator=(const PkVariant& other)
     m_isNull = other.m_isNull;
     m_wireNullFlag = other.m_wireNullFlag;
     m_any = other.m_any;
-    m_stringCodeUnits = other.m_stringCodeUnits;
     m_dateTimeSpec = other.m_dateTimeSpec;
     m_dateTimeOffsetSeconds = other.m_dateTimeOffsetSeconds;
     m_dateTimeZoneId = other.m_dateTimeZoneId;
@@ -185,7 +182,6 @@ PkVariant& PkVariant::operator=(PkVariant&& other) noexcept
     m_isNull = other.m_isNull;
     m_wireNullFlag = other.m_wireNullFlag;
     m_data_ptr = other.m_data_ptr;
-    m_stringCodeUnits = std::move(other.m_stringCodeUnits);
     m_dateTimeSpec = other.m_dateTimeSpec;
     m_dateTimeOffsetSeconds = other.m_dateTimeOffsetSeconds;
     m_dateTimeZoneId = std::move(other.m_dateTimeZoneId);
@@ -222,7 +218,7 @@ PkVariant::PkVariant(double d) : m_type(Double), m_isNull(false), m_double(d), m
 PkVariant::PkVariant(float f) : m_type(Float), m_isNull(false), m_float(f), m_data_ptr(&m_float) {}
 
 PkVariant::PkVariant(const char* s) : PkVariant(PkString(s)) {}
-PkVariant::PkVariant(const PkString& s) : m_type(String), m_isNull(false), m_stringCodeUnits(s.PkToU16()) { m_any = s; m_data_ptr = std::any_cast<PkString>(&m_any); }
+PkVariant::PkVariant(const PkString& s) : m_type(String), m_isNull(false) { m_any = s; m_data_ptr = std::any_cast<PkString>(&m_any); }
 PkVariant::PkVariant(const PkByteArray& ba) : m_type(ByteArray), m_isNull(false) { m_any = ba; m_data_ptr = const_cast<PkByteArray*>(std::any_cast<const PkByteArray>(&m_any)); }
 PkVariant::PkVariant(const PkStringList& sl) : m_type(StringList), m_isNull(false) { m_any = sl; m_data_ptr = const_cast<PkStringList*>(std::any_cast<const PkStringList>(&m_any)); }
 PkVariant::PkVariant(const PkVariantList& vl) : m_type(List), m_isNull(false) { m_any = vl; m_data_ptr = const_cast<PkVariantList*>(std::any_cast<const PkVariantList>(&m_any)); }
@@ -325,7 +321,6 @@ PkVariant PkVariant::PkFromStringCodeUnits(const std::u16string& codeUnits)
         exact += piece;
     }
     PkVariant value(exact);
-    value.m_stringCodeUnits = codeUnits;
     return value;
 }
 
@@ -416,7 +411,6 @@ void PkVariant::clear()
     m_isNull = true;
     m_wireNullFlag = true;
     m_any.reset();
-    m_stringCodeUnits.clear();
     m_dateTimeSpec = DateTimeSpec::LocalTime;
     m_dateTimeOffsetSeconds = 0;
     m_dateTimeZoneId = PkString();
@@ -772,7 +766,9 @@ PkDateTime PkVariant::toDateTime() const
 
 std::u16string PkVariant::PkStringCodeUnits() const
 {
-    return m_type == String ? m_stringCodeUnits : std::u16string();
+    return m_type == String
+        ? std::any_cast<const PkString &>(m_any).PkToU16()
+        : std::u16string();
 }
 
 PkVariant::DateTimeSpec PkVariant::PkDateTimeSpec() const
@@ -819,7 +815,8 @@ bool PkVariant::operator==(const PkVariant& other) const
         case ULongLong: return m_ull == other.m_ull;
         case Double: return m_double == other.m_double;
         case Float: return m_float == other.m_float;
-        case String: return m_stringCodeUnits == other.m_stringCodeUnits;
+        case String: return *std::any_cast<const PkString>(&m_any)
+                         == *std::any_cast<const PkString>(&other.m_any);
         case ByteArray: return *std::any_cast<const PkByteArray>(&m_any) == *std::any_cast<const PkByteArray>(&other.m_any);
         case StringList: return *std::any_cast<const PkStringList>(&m_any) == *std::any_cast<const PkStringList>(&other.m_any);
         case List: return *std::any_cast<const PkVariantList>(&m_any) == *std::any_cast<const PkVariantList>(&other.m_any);

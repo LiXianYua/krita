@@ -222,11 +222,6 @@ private:
     // 慢速路径：非 POD 类型（PkString、集合、几何、时间、自定义）走 std::any
     std::any m_any;
 
-    // Exact QString code units are retained independently because PkString's
-    // UTF-8 constructor deliberately normalizes malformed UTF-16. This field
-    // keeps isolated surrogate code units lossless at the wire boundary.
-    std::u16string m_stringCodeUnits;
-
     DateTimeSpec m_dateTimeSpec = DateTimeSpec::LocalTime;
     int m_dateTimeOffsetSeconds = 0;
     PkString m_dateTimeZoneId;

@@ -323,8 +323,14 @@ bool PkDataStream::validateReadAllocation(std::uint64_t byteCount)
     return true;
 }
 
-bool PkDataStream::validateContainerCount(std::uint32_t count, std::size_t minimumWireBytes)
+bool PkDataStream::validateContainerCount(std::uint32_t count, std::size_t minimumWireBytes,
+                                          std::size_t decodedElementBytes)
 {
+    if (decodedElementBytes != 0u
+        && static_cast<std::uint64_t>(count) > m_allocationLimit / decodedElementBytes) {
+        setStatus(ReadCorruptData);
+        return false;
+    }
     const std::uint64_t minimum = static_cast<std::uint64_t>(count) * minimumWireBytes;
     return validateReadAllocation(minimum);
 }
@@ -408,9 +414,10 @@ bool PkDataStream::readVariantList(PkVariantList &values)
         if (m_status == Ok) setStatus(ReadCorruptData);
         return false;
     }
-    if (!validateContainerCount(size, 5u)) return false;
+    if (!validateContainerCount(size, 5u, sizeof(PkVariant))) return false;
     values.clear();
     try {
+        values.reserve(size);
         for (std::uint32_t i = 0; i < size; ++i) {
             PkVariant value;
             *this >> value;
@@ -442,9 +449,10 @@ bool PkDataStream::readStringList(PkStringList &values)
         if (m_status == Ok) setStatus(ReadCorruptData);
         return false;
     }
-    if (!validateContainerCount(size, 4u)) return false;
+    if (!validateContainerCount(size, 4u, sizeof(PkString))) return false;
     values.clear();
     try {
+        values.reserve(static_cast<int>(size));
         for (std::uint32_t i = 0; i < size; ++i) {
             PkString value;
             *this >> value;
@@ -478,7 +486,7 @@ bool PkDataStream::readVariantMap(PkVariantMap &values)
         if (m_status == Ok) setStatus(ReadCorruptData);
         return false;
     }
-    if (!validateContainerCount(size, 9u)) return false;
+    if (!validateContainerCount(size, 9u, sizeof(PkVariantMap::value_type))) return false;
     values.clear();
     try {
         for (std::uint32_t i = 0; i < size; ++i) {
@@ -517,9 +525,10 @@ bool PkDataStream::readVariantHash(PkVariantHash &values)
         if (m_status == Ok) setStatus(ReadCorruptData);
         return false;
     }
-    if (!validateContainerCount(size, 9u)) return false;
+    if (!validateContainerCount(size, 9u, sizeof(PkVariantHash::value_type))) return false;
     values.clear();
     try {
+        values.reserve(size);
         for (std::uint32_t i = 0; i < size; ++i) {
             PkString key;
             PkVariant value;

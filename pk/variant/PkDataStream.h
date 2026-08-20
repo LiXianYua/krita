@@ -33,7 +33,7 @@ public:
     Status status() const;
     void setStatus(Status status);
     void resetStatus();
-    // Maximum single decoded allocation / conservative container wire size.
+    // Maximum single decoded allocation, including container element storage.
     // The default is 64 MiB; trusted callers can raise it explicitly.
     std::size_t allocationLimit() const;
     void setAllocationLimit(std::size_t bytes);
@@ -101,7 +101,8 @@ private:
     bool writeStringCodeUnits(const std::u16string &units, bool isNull = false);
     bool readStringCodeUnits(std::u16string &units, bool &isNull);
     bool validateReadAllocation(std::uint64_t byteCount);
-    bool validateContainerCount(std::uint32_t count, std::size_t minimumWireBytes);
+    bool validateContainerCount(std::uint32_t count, std::size_t minimumWireBytes,
+                                std::size_t decodedElementBytes);
     bool writeVariantList(const PkVariantList &values);
     bool readVariantList(PkVariantList &values);
     bool writeStringList(const PkStringList &values);
