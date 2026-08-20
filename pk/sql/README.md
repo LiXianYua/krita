@@ -363,6 +363,7 @@ $ grep -rlE "QSqlDatabase|QSqlQuery|QSqlError|QSqlRecord|QSqlField|QSqlDriver" \
 | `setDatabaseName()` | 1 | 是 |
 | `open()` | 2 | 是 |
 | `close()` | 1 | 是 |
+| `PkClose()`（checked close） | R-33 cleanup 互操作 | 是——成功才释放 handle；BUSY 保留 handle/事务状态 |
 | `isOpen()` | 1 | 是 |
 | `isValid()` | 1 | 是 |
 | `QSqlDatabase::database(connName, open)`（静态，两参重载，`open=false` 用于"先查
@@ -374,6 +375,15 @@ $ grep -rlE "QSqlDatabase|QSqlQuery|QSqlError|QSqlRecord|QSqlField|QSqlDriver" \
   间接调用的） | 是 |
 | `lastError()` | 6 | 是 |
 | `databaseName()`/`removeDatabase()`/`isDriverAvailable()`/`driverName()` | 0 | **不实现**（判据①"一项不多"） |
+
+`close()` 保持 Qt 兼容的 `void` 表面；需要可靠 cleanup 的消费者应调用 `PkClose()`。
+它返回 `true` 表示连接已关闭或本来没有 handle，返回 `false` 表示 SQLite 拒绝关闭（例如
+BUSY），此时 handle 与事务标志仍由 `PkSqlDatabase` 持有。正确的失败生命周期顺序是：调用方
+先执行 poison（策略不在 `pk/sql`）→ `rollback()` → query `clear()` 或析构以 finalize
+statement → 重试 `PkClose()`。本任务的 SQLite 探针原始输出显示 `sqlite3_close()` 在
+事务和 pending `SELECT 1` statement 存在时返回 `SQLITE_BUSY`（十进制 `5`）；释放 statement
+后重试成功。本覆盖仅验证 checked primitive 与生命周期，不实现 S-02-b consumer poison
+状态机。
 
 ### `QSqlQuery` → `PkSqlQuery`
 

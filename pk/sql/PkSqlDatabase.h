@@ -50,6 +50,7 @@ public:
     void setDatabaseName(const PkString &name);
     bool open();
     void close();
+    bool PkClose();
     bool isOpen() const;
     bool isValid() const;
 

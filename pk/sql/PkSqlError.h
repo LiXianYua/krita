@@ -97,4 +97,6 @@ PkSqlError nestedTransactionError();
 // 试接时如发现真实 Qt 输出不同，以实测为准订正。
 PkSqlError fromOpenFailure(sqlite3 *db, int rc);
 
+PkSqlError fromCloseFailure(sqlite3 *db, int rc);
+
 } // namespace PkSqlErrorFactory

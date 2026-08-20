@@ -120,4 +120,11 @@ PkSqlError fromOpenFailure(sqlite3 *db, int rc)
                        rcToPk(rc));
 }
 
+PkSqlError fromCloseFailure(sqlite3 *db, int rc)
+{
+    return PkSqlError(utf8ToPk(db ? sqlite3_errmsg(db) : nullptr),
+                       PkString("Error closing database"), PkSqlError::ConnectionError,
+                       rcToPk(rc));
+}
+
 } // namespace PkSqlErrorFactory

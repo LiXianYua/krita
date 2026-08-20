@@ -30,6 +30,51 @@ void TestDatabase::openIsOpenClose()
     PK_VERIFY(db.open());
 }
 
+void TestDatabase::checkedCloseRetainsHandleThroughRollbackAndStatementRelease()
+{
+    PkSqlDatabase db = PkSqlDatabase::database();
+    PkSqlQuery pending;
+
+    PK_VERIFY(db.transaction());
+    PK_VERIFY(pending.prepare("SELECT 1"));
+    sqlite3 *const originalHandle = db.PkHandle();
+
+    PK_VERIFY(!db.PkClose());
+    PK_VERIFY(db.isOpen());
+    PK_VERIFY(db.PkHandle() == originalHandle);
+    PK_COMPARE(static_cast<int>(db.lastError().type()),
+               static_cast<int>(PkSqlError::ConnectionError));
+    PK_COMPARE(db.lastError().nativeErrorCode(), PkString("5"));
+
+    PK_VERIFY(db.rollback());
+    PK_VERIFY(!db.PkClose());
+    PK_VERIFY(db.PkHandle() == originalHandle);
+
+    pending.clear();
+    PK_VERIFY(db.PkClose());
+    PK_VERIFY(!db.isOpen());
+    PK_VERIFY(!db.lastError().isValid());
+
+    PK_VERIFY(db.open());
+}
+
+void TestDatabase::legacyCloseRetainsBusyHandle()
+{
+    PkSqlDatabase db = PkSqlDatabase::database();
+    PkSqlQuery pending;
+    PK_VERIFY(pending.prepare("SELECT 1"));
+    sqlite3 *const originalHandle = db.PkHandle();
+
+    db.close();
+    PK_VERIFY(db.isOpen());
+    PK_VERIFY(db.PkHandle() == originalHandle);
+
+    pending.clear();
+    PK_VERIFY(db.PkClose());
+    PK_VERIFY(!db.isOpen());
+    PK_VERIFY(db.open());
+}
+
 void TestDatabase::databaseOpenFalseDoesNotCloseAlreadyOpenConnection()
 {
     // §1 用量表：QSqlDatabase::database(connName, open=false) 用于"先查

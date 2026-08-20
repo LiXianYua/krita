@@ -14,6 +14,8 @@ private Q_SLOTS:
     void cleanup();
 
     void openIsOpenClose();
+    void checkedCloseRetainsHandleThroughRollbackAndStatementRelease();
+    void legacyCloseRetainsBusyHandle();
     void databaseOpenFalseDoesNotCloseAlreadyOpenConnection();
     void connectionNamesReflectsAddDatabase();
     void tablesListsUserTablesOnly();

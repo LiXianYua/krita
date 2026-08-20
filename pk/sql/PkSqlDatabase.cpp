@@ -102,12 +102,24 @@ bool PkSqlDatabase::open()
 
 void PkSqlDatabase::close()
 {
+    (void)PkClose();
+}
+
+bool PkSqlDatabase::PkClose()
+{
     auto &st = state();
-    if (st.handle) {
-        sqlite3_close(st.handle);
-        st.handle = nullptr;
+    if (!st.handle) {
+        return true;
     }
+    const int rc = sqlite3_close(st.handle);
+    if (rc != SQLITE_OK) {
+        st.lastError = PkSqlErrorFactory::fromCloseFailure(st.handle, rc);
+        return false;
+    }
+    st.handle = nullptr;
     st.inTransaction = false;
+    st.lastError = PkSqlError();
+    return true;
 }
 
 bool PkSqlDatabase::isOpen() const
