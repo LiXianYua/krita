@@ -37,7 +37,7 @@ namespace ResourceSubType {
 }
 
 namespace ResourceName {
-    // i18n 已移交横切项：ki18nc 的上下文参数删除，英文原文保留。
+    // 本地化上下文已移交横切项；这里保留英文原文。
     const PkString PaintOpPresets {"Brush Presets"};
     const PkString Brushes {"Brush Tips"};
     const PkString Gradients {"Gradients"};

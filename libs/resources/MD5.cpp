@@ -49,6 +49,7 @@ void MD5::reset()
     m_bitCount = 0;
     m_bufferLen = 0;
     m_finalized = false;
+    m_digest.fill(0);
     m_hex.clear();
 }
 
@@ -124,7 +125,7 @@ void MD5::processBlock(const std::uint8_t *block)
     m_state[3] += d;
 }
 
-std::string MD5::toHex()
+MD5::Digest MD5::digest()
 {
     if (!m_finalized) {
         // 填充：先补 0x80，再补零到长度 ≡ 56 (mod 64)，最后 64 位小端长度。
@@ -141,16 +142,27 @@ std::string MD5::toHex()
         }
         addData(lenBytes, 8);
 
-        static const char hexDigits[] = "0123456789abcdef";
-        m_hex.reserve(32);
+        std::size_t digestIndex = 0;
         for (int i = 0; i < 4; ++i) {
             for (int j = 0; j < 4; ++j) {
-                const unsigned char byte = static_cast<unsigned char>((m_state[i] >> (8 * j)) & 0xff);
-                m_hex.push_back(hexDigits[byte >> 4]);
-                m_hex.push_back(hexDigits[byte & 0x0f]);
+                m_digest[digestIndex++] =
+                    static_cast<std::uint8_t>((m_state[i] >> (8 * j)) & 0xff);
             }
+        }
+
+        static const char hexDigits[] = "0123456789abcdef";
+        m_hex.reserve(32);
+        for (const std::uint8_t byte : m_digest) {
+            m_hex.push_back(hexDigits[byte >> 4]);
+            m_hex.push_back(hexDigits[byte & 0x0f]);
         }
         m_finalized = true;
     }
+    return m_digest;
+}
+
+std::string MD5::toHex()
+{
+    digest();
     return m_hex;
 }

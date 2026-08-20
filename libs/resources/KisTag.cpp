@@ -139,7 +139,7 @@ KisTagSP KisTag::clone() const
 
 PkString KisTag::currentLocale()
 {
-    // i18n 已移交横切项：语言探测逻辑删除，
+    // 本地化横切项已移交，语言探测逻辑删除，
     // 硬编码 en_US（Task 8 的 Model 层消费方会照此适配）。
     return PkString("en_US");
 }

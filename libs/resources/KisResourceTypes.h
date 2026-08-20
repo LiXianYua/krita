@@ -45,7 +45,7 @@ namespace ResourceSubType {
 }
 
 namespace ResourceName {
-    // i18n 已移交横切项：KLocalizedString（ki18nc）删除，英文原文保留为 PkString 常量。
+    // 本地化上下文已移交横切项；英文原文保留为 PkString 常量。
     KRITARESOURCES_EXPORT extern const PkString PaintOpPresets;
     KRITARESOURCES_EXPORT extern const PkString Brushes;
     KRITARESOURCES_EXPORT extern const PkString Gradients;

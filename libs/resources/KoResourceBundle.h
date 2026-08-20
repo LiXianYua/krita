@@ -1,135 +1,93 @@
 /*
- *  SPDX-FileCopyrightText: 2014 Victor Lafon metabolic.ewilan @hotmail.fr
- *
+ * SPDX-FileCopyrightText: 2014 Victor Lafon metabolic.ewilan @hotmail.fr
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
 #ifndef KORESOURCEBUNDLE_H
 #define KORESOURCEBUNDLE_H
 
-#include <QSet>
-#include <QList>
-#include <QSharedPointer>
-#include <QDomDocument>
-
-#include <KoXmlWriter.h>
+#include <PkImage.h>
+#include <PkList.h>
+#include <PkMap.h>
+#include <PkScopedPointer.h>
+#include <PkSet.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkVector.h>
 
 #include <KoResource.h>
-#include "KoResourceBundleManifest.h"
 
+#include "KoResourceBundleManifest.h"
 #include "kritaresources_export.h"
 
 #include <KisTag.h>
 
 class KoStore;
+class KoXmlWriter;
+class PkStream;
 
-/**
- * @brief A KoResourceBundle is a zip file that contains resources,
- * some metadata about the creator of the bundle and a manifest file
- * that lists the contained resources.
- */
+/** A zip archive containing resources, metadata, a preview and a manifest. */
 class KRITARESOURCES_EXPORT KoResourceBundle
 {
-
 public:
-    /**
-     * @brief ResourceBundle : Ctor * @param bundlePath the path of the bundle
-     */
-    KoResourceBundle(QString const& fileName);
-
-    /**
-     * @brief ~ResourceBundle : Dtor
-     */
+    explicit KoResourceBundle(const PkString &fileName);
     virtual ~KoResourceBundle();
 
-    /**
-     * @brief defaultFileExtension
-     * @return the default file extension which should be when saving the resource
-     */
-    QString defaultFileExtension() const;
+    PkString defaultFileExtension() const;
 
-    /**
-     * @brief load : Load this resource.
-     * @return true if succeed, false otherwise.
-     */
     bool load();
-    bool loadFromDevice(QIODevice *dev);
-
-    /**
-     * @brief save : Save this resource.
-     * @return true if succeed, false otherwise.
-     */
+    bool loadFromDevice(PkStream *device);
     bool save();
+    bool saveToDevice(PkStream *device) const;
 
-    bool saveToDevice(QIODevice* dev) const;
+    void setMetaData(const PkString &key, const PkString &value);
+    PkString metaData(const PkString &key,
+                      const PkString &defaultValue = PkString()) const;
 
-    /**
-     * @brief addMeta : Add a Metadata to the resource
-     * @param type type of the metadata
-     * @param value value of the metadata
-     */
-    void setMetaData(const QString &key, const QString &value);
-    const QString metaData(const QString &key, const QString &defaultValue = QString()) const;
+    void addResource(PkString fileType,
+                     PkString filePath,
+                     PkVector<KisTagSP> fileTagList,
+                     const PkString &md5sum,
+                     int resourceId = -1,
+                     const PkString &filenameInBundle = PkString());
 
-    /**
-     * @brief addFile : Add a file to the bundle
-     * @param fileType type of the resource file
-     * @param filePath path of the resource file
-     */
-    void addResource(QString fileType, QString filePath, QVector<KisTagSP> fileTagList, const QString md5sum, const int resourceId = -1, const QString filenameInBundle = "");
+    PkList<PkString> getTagsList();
+    void setThumbnail(PkImage image);
 
-    QList<QString> getTagsList();
+    void saveMetadata(PkScopedPointer<KoStore> &store);
+    void saveManifest(PkScopedPointer<KoStore> &store);
 
-    void setThumbnail(QImage);
-
-    /**
-     * @brief saveMetadata: saves bundle metadata
-     * @param store bundle where to save the metadata
-     */
-    void saveMetadata(QScopedPointer<KoStore> &store);
-
-    /**
-     * @brief saveManifest: saves bundle manifest
-     * @param store bundle where to save the manifest
-     */
-    void saveManifest(QScopedPointer<KoStore> &store);
-
-    QStringList resourceTypes() const;
+    PkStringList resourceTypes() const;
     int resourceCount() const;
 
     KoResourceBundleManifest &manifest();
 
-    KoResourceSP resource(const QString &resourceType, const QString &filepath);
-    bool exportResource(const QString &resourceType, const QString &fileName, QIODevice *device);
+    KoResourceSP resource(const PkString &resourceType,
+                          const PkString &filepath);
+    bool exportResource(const PkString &resourceType,
+                        const PkString &fileName,
+                        PkStream *device);
     bool loadResource(KoResourceSP resource);
 
-    QImage image() const;
+    PkImage image() const;
+    PkString filename() const;
+    PkString resourceMd5(const PkString &url);
 
-    QString filename() const;
-
-    QString resourceMd5(const QString &url);
 private:
-
-    void writeMeta(const QString &metaTag, KoXmlWriter *writer);
-    void writeUserDefinedMeta(const QString &metaTag, KoXmlWriter *writer);
+    void writeMeta(const PkString &metaTag, KoXmlWriter *writer);
+    void writeUserDefinedMeta(const PkString &metaTag, KoXmlWriter *writer);
     bool readMetaData(KoStore *resourceStore);
+    bool loadFromStore(KoStore *resourceStore);
 
-private:
-    QImage m_thumbnail;
+    PkImage m_thumbnail;
     KoResourceBundleManifest m_manifest;
-    QMap<QString, QString> m_metadata;
-    QSet<QString> m_bundletags;
-    QList<QByteArray> m_gradientsMd5Installed;
-    QList<QByteArray> m_patternsMd5Installed;
-    QList<QByteArray> m_brushesMd5Installed;
-    QList<QByteArray> m_palettesMd5Installed;
-    QList<QByteArray> m_workspacesMd5Installed;
-    QList<QByteArray> m_presetsMd5Installed;
-    QString m_filename;
-    QString m_bundleVersion;
-
+    PkMap<PkString, PkString> m_metadata;
+    PkSet<PkString> m_bundletags;
+    PkString m_filename;
+    PkString m_bundleVersion;
 };
 
-typedef QSharedPointer<KoResourceBundle> KoResourceBundleSP;
+using KoResourceBundleSP = PkSharedPointer<KoResourceBundle>;
 
 #endif // KORESOURCEBUNDLE_H

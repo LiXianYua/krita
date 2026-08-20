@@ -3,228 +3,275 @@
 
    SPDX-License-Identifier: LGPL-2.1-or-later
 */
-#include "KoResourceBundleManifest.h"
 
-#include <QList>
-#include <QSet>
-#include <QString>
-#include <QDomDocument>
-#include <QDomElement>
-#include <QDomNode>
-#include <QDomNodeList>
-#include <QFileInfo>
+#include "KoResourceBundleManifest.h"
 
 #include <KoXmlNS.h>
 #include <KoXmlWriter.h>
+#include <PkStringHash.h>
+#include <PkSet.h>
+#include <PkStream.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
-#include <kis_debug.h>
+#include "ResourceDebug.h"
 
-#include "KisResourceTypes.h"
+namespace {
 
-QString resourceTypeToManifestType(const QString &type) {
-    if (type.startsWith("ko_")) {
+PkString resourceTypeToManifestType(const PkString &type)
+{
+    if (type.startsWith(PkString("ko_"))) {
         return type.mid(3);
     }
-    else if (type.startsWith("kis_")) {
+    if (type.startsWith(PkString("kis_"))) {
         return type.mid(4);
     }
-    else {
-        return type;
-    }
+    return type;
 }
 
-QString manifestTypeToResourceType(const QString &type) {
-    if (type == ResourceType::Patterns || type == ResourceType::Gradients || type == ResourceType::Palettes) {
-        return "ko_" + type;
+PkXmlElement firstChildWithLocalName(const PkXmlElement &parent,
+                                     const PkString &localName)
+{
+    for (PkXmlElement child = parent.firstChildElement();
+         !child.isNull();
+         child = child.nextSiblingElement()) {
+        if (child.localName() == localName &&
+            child.namespaceURI() == KoXmlNS::manifest) {
+            return child;
+        }
     }
-    else {
-        return "kis_" + type;
-    }
+    return PkXmlElement();
 }
 
-KoResourceBundleManifest::KoResourceBundleManifest()
+PkString bundleRelativePath(const PkString &fullPath,
+                            const PkString &mediaType)
+{
+    const PkString prefix = mediaType + PkString("/");
+    return fullPath.startsWith(prefix) ? fullPath.mid(prefix.size()) : fullPath;
+}
+
+} // namespace
+
+KoResourceBundleManifest::ResourceReference::ResourceReference(
+    const PkString &resourcePathValue,
+    const PkStringList &tagListValue,
+    const PkString &fileTypeNameValue,
+    const PkString &md5,
+    int resourceIdValue,
+    const PkString &filenameInBundleValue)
+    : resourcePath(resourcePathValue)
+    , tagList(tagListValue)
+    , fileTypeName(fileTypeNameValue)
+    , md5sum(md5)
+    , resourceId(resourceIdValue)
+    , filenameInBundle(filenameInBundleValue.isEmpty()
+                           ? resourcePathValue
+                           : filenameInBundleValue)
 {
 }
 
-KoResourceBundleManifest::~KoResourceBundleManifest()
-{
-}
+KoResourceBundleManifest::KoResourceBundleManifest() = default;
 
-bool KoResourceBundleManifest::load(QIODevice *device)
+KoResourceBundleManifest::~KoResourceBundleManifest() = default;
+
+bool KoResourceBundleManifest::load(PkStream *device)
 {
     m_resources.clear();
-    if (!device->isOpen()) {
-        if (!device->open(QIODevice::ReadOnly)) {
-            return false;
-        }
+    if (!device) {
+        return false;
     }
-
-    QDomDocument manifestDocument;
-#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
-    QString errorMessage;
-    int errorLine;
-    int errorColumn;
-    if (!manifestDocument.setContent(device, true, &errorMessage, &errorLine, &errorColumn)) {
-        warnKrita << "Error parsing manifest" << errorMessage
-                  << "line" << errorLine
-                  << "column" << errorColumn;
-#else
-    QDomDocument::ParseResult result = manifestDocument.setContent(device, QDomDocument::ParseOption::UseNamespaceProcessing);
-    if (!result) {
-        warnKrita << "Error parsing manifest" << result.errorMessage
-                  << "line" << result.errorLine
-                  << "column" << result.errorColumn;
-#endif
+    if (!device->isOpen() && !device->open(PkStream::ReadOnly)) {
         return false;
     }
 
-    QDomElement root = manifestDocument.documentElement();
-    if (root.localName() != "manifest" || root.namespaceURI() != KoXmlNS::manifest) {
+    PkXmlDocument manifestDocument;
+    PkString errorMessage;
+    int errorLine = -1;
+    int errorColumn = -1;
+    if (!manifestDocument.setContent(device, true, &errorMessage,
+                                     &errorLine, &errorColumn)) {
+        qCWarning(RESOURCE_LOG) << "Error parsing manifest" << errorMessage
+                                << "line" << errorLine
+                                << "column" << errorColumn;
         return false;
     }
 
-    QDomElement e = root.firstChildElement("file-entry");
-    for (; !e.isNull(); e = e.nextSiblingElement("file-entry")) {
-        if (!parseFileEntry(e)) {
-            warnKrita << "Skipping invalid manifest entry"
-                      << "line" << e.lineNumber();
-        }
+    const PkXmlElement root = manifestDocument.documentElement();
+    if (root.localName() != PkString("manifest") ||
+        root.namespaceURI() != KoXmlNS::manifest) {
+        return false;
     }
 
+    for (PkXmlElement element = root.firstChildElement();
+         !element.isNull();
+         element = element.nextSiblingElement()) {
+        if (!parseFileEntry(element)) {
+            qCWarning(RESOURCE_LOG) << "Skipping invalid manifest entry"
+                                    << "line" << element.lineNumber();
+        }
+    }
     return true;
 }
 
-bool KoResourceBundleManifest::parseFileEntry(const QDomElement &e)
+bool KoResourceBundleManifest::parseFileEntry(const PkXmlElement &element)
 {
-    if (e.localName() != "file-entry" || e.namespaceURI() != KoXmlNS::manifest) {
+    if (element.localName() != PkString("file-entry") ||
+        element.namespaceURI() != KoXmlNS::manifest) {
         return false;
     }
 
-    QString fullPath  = e.attributeNS(KoXmlNS::manifest, "full-path");
-    QString mediaType = e.attributeNS(KoXmlNS::manifest, "media-type");
-    QString md5sum    = e.attributeNS(KoXmlNS::manifest, "md5sum");
-    QString version   = e.attributeNS(KoXmlNS::manifest, "version");
+    const PkString fullPath = element.attributeNS(
+        KoXmlNS::manifest, PkString("full-path"));
+    const PkString mediaType = element.attributeNS(
+        KoXmlNS::manifest, PkString("media-type"));
+    const PkString md5sum = element.attributeNS(
+        KoXmlNS::manifest, PkString("md5sum"));
 
-    if (fullPath == "/" && mediaType == "application/x-krita-resourcebundle") {
-        // The manifest always contains an entry for the bundle root.
-        // This is not a resource, so skip it without indicating failure.
+    if (fullPath == PkString("/") &&
+        mediaType == PkString("application/x-krita-resourcebundle")) {
         return true;
-    } else if (fullPath.isNull() || mediaType.isNull() || md5sum.isNull()) {
+    }
+    if (fullPath.isEmpty() || mediaType.isEmpty() || md5sum.isEmpty()) {
         return false;
     }
 
-    QStringList tagList;
-    QDomElement t = e.firstChildElement("tags")
-                     .firstChildElement("tag");
-    for (; !t.isNull(); t = t.nextSiblingElement("tag")) {
-        QString tag = t.text();
-        if (!tag.isNull()) {
-            tagList.append(tag);
+    PkStringList tagList;
+    const PkXmlElement tagsElement = firstChildWithLocalName(
+        element, PkString("tags"));
+    for (PkXmlElement tagElement = tagsElement.isNull()
+             ? PkXmlElement()
+             : tagsElement.firstChildElement();
+         !tagElement.isNull();
+         tagElement = tagElement.nextSiblingElement()) {
+        if (tagElement.localName() == PkString("tag") &&
+            tagElement.namespaceURI() == KoXmlNS::manifest) {
+            tagList.append(tagElement.text());
         }
     }
 
-    addResource(mediaType, fullPath, tagList, QByteArray::fromHex(md5sum.toLatin1()), -1);
+    addResource(mediaType,
+                fullPath,
+                tagList,
+                md5sum,
+                -1,
+                bundleRelativePath(fullPath, mediaType));
     return true;
 }
 
-bool KoResourceBundleManifest::save(QIODevice *device)
+bool KoResourceBundleManifest::save(PkStream *device)
 {
-       if (!device->isOpen()) {
-           if (!device->open(QIODevice::WriteOnly)) {
-               return false;
-           }
-       }
-       KoXmlWriter manifestWriter(device);
-       manifestWriter.startDocument("manifest:manifest");
-       manifestWriter.startElement("manifest:manifest");
-       manifestWriter.addAttribute("xmlns:manifest", KoXmlNS::manifest);
-       manifestWriter.addAttribute("manifest:version", "1.2");
-       manifestWriter.addManifestEntry("/", "application/x-krita-resourcebundle");
-
-       Q_FOREACH (QString resourceType, m_resources.keys()) {
-           Q_FOREACH (const ResourceReference &resource, m_resources[resourceType].values()) {
-               manifestWriter.startElement("manifest:file-entry");
-               manifestWriter.addAttribute("manifest:media-type", resourceTypeToManifestType(resourceType));
-               // we cannot just use QFileInfo(resource.resourcePath).fileName() because it would cut off the subfolder
-               // but the resourcePath is already correct, so let's just add the resourceType
-               manifestWriter.addAttribute("manifest:full-path", resourceTypeToManifestType(resourceType) + "/" + resource.filenameInBundle);
-               manifestWriter.addAttribute("manifest:md5sum", resource.md5sum);
-               if (!resource.tagList.isEmpty()) {
-                   manifestWriter.startElement("manifest:tags");
-                   Q_FOREACH (const QString tag, resource.tagList) {
-                       manifestWriter.startElement("manifest:tag");
-                       manifestWriter.addTextNode(tag);
-                       manifestWriter.endElement();
-                   }
-                   manifestWriter.endElement();
-               }
-               manifestWriter.endElement();
-           }
-       }
-
-       manifestWriter.endElement();
-       manifestWriter.endDocument();
-
-       return true;
-}
-
-void KoResourceBundleManifest::addResource(const QString &fileTypeName, const QString &fileName, const QStringList &fileTagList, const QString &md5, const int resourceId, const QString filenameInBundle)
-{
-    ResourceReference ref(fileName, fileTagList, fileTypeName, md5, resourceId, filenameInBundle);
-    if (!m_resources.contains(fileTypeName)) {
-        m_resources[fileTypeName] = QMap<QString, ResourceReference>();
+    if (!device) {
+        return false;
     }
-    m_resources[fileTypeName].insert(fileName, ref);
-}
+    if (!device->isOpen() && !device->open(PkStream::WriteOnly)) {
+        return false;
+    }
 
-void KoResourceBundleManifest::removeResource(KoResourceBundleManifest::ResourceReference &resource)
-{
-    if (m_resources.contains(resource.fileTypeName)) {
-        if (m_resources[resource.fileTypeName].contains(resource.resourcePath)) {
-            m_resources[resource.fileTypeName].take(resource.resourcePath);
+    KoXmlWriter writer(device);
+    writer.startDocument("manifest:manifest");
+    writer.startElement("manifest:manifest");
+    writer.addAttribute("xmlns:manifest", KoXmlNS::manifest);
+    writer.addAttribute("manifest:version", "1.2");
+    writer.addManifestEntry(PkString("/"),
+                            PkString("application/x-krita-resourcebundle"));
+
+    for (const PkString &resourceType : m_resources.keys()) {
+        const PkMap<PkString, ResourceReference> typeResources =
+            m_resources.value(resourceType);
+        for (const ResourceReference &resource : typeResources.values()) {
+            const PkString manifestType = resourceTypeToManifestType(resourceType);
+            writer.startElement("manifest:file-entry");
+            writer.addAttribute("manifest:media-type", manifestType);
+            writer.addAttribute("manifest:full-path",
+                                manifestType + PkString("/") +
+                                    resource.filenameInBundle);
+            writer.addAttribute("manifest:md5sum", resource.md5sum);
+            if (!resource.tagList.isEmpty()) {
+                writer.startElement("manifest:tags");
+                for (const PkString &tag : resource.tagList) {
+                    writer.startElement("manifest:tag");
+                    writer.addTextNode(tag);
+                    writer.endElement();
+                }
+                writer.endElement();
+            }
+            writer.endElement();
         }
     }
+
+    writer.endElement();
+    writer.endDocument();
+    return true;
 }
 
-QStringList KoResourceBundleManifest::types() const
+void KoResourceBundleManifest::addResource(
+    const PkString &fileTypeName,
+    const PkString &fileName,
+    const PkStringList &fileTagList,
+    const PkString &md5,
+    int resourceId,
+    const PkString &filenameInBundle)
 {
-    return m_resources.keys();
+    m_resources[fileTypeName].insert(
+        fileName,
+        ResourceReference(fileName, fileTagList, fileTypeName, md5,
+                          resourceId, filenameInBundle));
 }
 
-QStringList KoResourceBundleManifest::tags() const
+void KoResourceBundleManifest::removeResource(ResourceReference &resource)
 {
-    QSet<QString> tags;
-    Q_FOREACH (const QString &type, m_resources.keys()) {
-        Q_FOREACH (const ResourceReference &ref, m_resources[type].values()) {
-            tags += QSet<QString>(ref.tagList.begin(), ref.tagList.end());
+    if (!m_resources.contains(resource.fileTypeName)) {
+        return;
+    }
+    PkMap<PkString, ResourceReference> &typeResources =
+        m_resources[resource.fileTypeName];
+    typeResources.remove(resource.resourcePath);
+    if (typeResources.isEmpty()) {
+        m_resources.remove(resource.fileTypeName);
+    }
+}
+
+PkStringList KoResourceBundleManifest::types() const
+{
+    return PkStringList(m_resources.keys());
+}
+
+PkStringList KoResourceBundleManifest::tags() const
+{
+    PkSet<PkString> uniqueTags;
+    for (const PkString &type : m_resources.keys()) {
+        for (const ResourceReference &reference :
+             m_resources.value(type).values()) {
+            for (const PkString &tag : reference.tagList) {
+                uniqueTags.insert(tag);
+            }
         }
     }
-    return QStringList(tags.begin(), tags.end());
- }
+    return PkStringList(uniqueTags.values());
+}
 
-QList<KoResourceBundleManifest::ResourceReference> KoResourceBundleManifest::files(const QString &type) const
+PkList<KoResourceBundleManifest::ResourceReference>
+KoResourceBundleManifest::files(const PkString &type) const
 {
-    QList<ResourceReference> resources;
-
+    PkList<ResourceReference> resources;
     if (type.isEmpty()) {
-        // If no type is specified we return all the resources.
-        Q_FOREACH (const QString &type, m_resources.keys()) {
-            resources += m_resources[type].values();
+        for (const PkString &resourceType : m_resources.keys()) {
+            resources += m_resources.value(resourceType).values();
         }
     } else if (m_resources.contains(type)) {
-        resources = m_resources[type].values();
+        resources = m_resources.value(type).values();
     }
-
     return resources;
 }
 
-void KoResourceBundleManifest::removeFile(QString fileName)
+void KoResourceBundleManifest::removeFile(PkString fileName)
 {
-    QList<QString> tags;
-    Q_FOREACH (const QString &type, m_resources.keys()) {
-        if (m_resources[type].contains(fileName)) {
-            m_resources[type].remove(fileName);
+    const PkStringList resourceTypes = m_resources.keys();
+    for (const PkString &type : resourceTypes) {
+        PkMap<PkString, ResourceReference> &typeResources = m_resources[type];
+        typeResources.remove(fileName);
+        if (typeResources.isEmpty()) {
+            m_resources.remove(type);
         }
     }
 }
-
