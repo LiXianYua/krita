@@ -30,14 +30,19 @@ class KRITARESOURCES_EXPORT KisResourceLoaderRegistry : public PkObject, public 
 public:
     ~KisResourceLoaderRegistry() override;
 
+    /**
+     * Return the process-wide registry, creating it on first use. Once
+     * shutdown() begins this returns nullptr forever.
+     */
     static KisResourceLoaderRegistry *instance();
 
     /**
      * Destroy all registered loaders and fixups before their plugins unload.
-     * The call is idempotent. A later instance() call creates an empty registry;
-     * loaders and fixups must then be registered again.
+     * The call is idempotent and terminal: instance() cannot create another
+     * registry generation after shutdown begins.
      *
-     * Application teardown must be serialized with all registry users.
+     * All registry users must stop before teardown. This is the final step,
+     * after thumbnail-cache and locator shutdown.
      */
     static void shutdown();
 

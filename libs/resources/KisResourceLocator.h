@@ -42,14 +42,28 @@ public:
     // can be changed.
     static const PkString resourceLocationKey;
 
+    /**
+     * Return the process-wide locator, creating it on first use.
+     *
+     * Once shutdown() begins this returns nullptr forever. Callers must stop
+     * all locator use and disconnect every raw pointer before shutdown().
+     */
     static KisResourceLocator *instance();
 
     /**
+     * Return the live locator without creating it, or nullptr when it has not
+     * been created or shutdown has begun.
+     */
+    static KisResourceLocator *existingInstance();
+
+    /**
      * Destroy the process-wide locator before resource-storage plugins are
-     * unloaded. The call is idempotent. A later instance() call creates a new,
-     * empty locator that must be initialized again.
+     * unloaded. The call is idempotent and terminal: instance() cannot create
+     * a new generation after shutdown begins.
      *
-     * Application teardown must be serialized with all locator users.
+     * Application teardown must first disconnect/stop all raw-pointer users,
+     * then call KisResourceThumbnailCache::shutdown(), this function, and
+     * finally KisResourceLoaderRegistry::shutdown(), in that order.
      */
     static void shutdown();
 

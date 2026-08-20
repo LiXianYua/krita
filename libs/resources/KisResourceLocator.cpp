@@ -36,6 +36,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <condition_variable>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -43,6 +44,7 @@
 #include <iterator>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <tuple>
 #include <vector>
 
@@ -160,7 +162,16 @@ PkString removeBasePath(const PkString &location, const PkString &base)
 
 struct LocatorSingletonSlot
 {
+    enum class State {
+        Available,
+        ShuttingDown,
+        Shutdown
+    };
+
     std::mutex mutex;
+    std::condition_variable condition;
+    State state = State::Available;
+    std::thread::id shutdownThread;
     KisResourceLocator *instance = nullptr;
 };
 
@@ -268,10 +279,20 @@ KisResourceLocator *KisResourceLocator::instance()
 {
     LocatorSingletonSlot &slot = locatorSingletonSlot();
     std::lock_guard<std::mutex> lock(slot.mutex);
+    if (slot.state != LocatorSingletonSlot::State::Available) {
+        return nullptr;
+    }
     if (!slot.instance) {
         slot.instance = new KisResourceLocator;
     }
     return slot.instance;
+}
+
+KisResourceLocator *KisResourceLocator::existingInstance()
+{
+    LocatorSingletonSlot &slot = locatorSingletonSlot();
+    std::lock_guard<std::mutex> lock(slot.mutex);
+    return slot.state == LocatorSingletonSlot::State::Available ? slot.instance : nullptr;
 }
 
 void KisResourceLocator::shutdown()
@@ -279,11 +300,33 @@ void KisResourceLocator::shutdown()
     LocatorSingletonSlot &slot = locatorSingletonSlot();
     KisResourceLocator *oldInstance = nullptr;
     {
-        std::lock_guard<std::mutex> lock(slot.mutex);
+        std::unique_lock<std::mutex> lock(slot.mutex);
+        if (slot.state == LocatorSingletonSlot::State::Shutdown) {
+            return;
+        }
+        if (slot.state == LocatorSingletonSlot::State::ShuttingDown) {
+            if (slot.shutdownThread == std::this_thread::get_id()) {
+                return;
+            }
+            slot.condition.wait(lock, [&slot] {
+                return slot.state == LocatorSingletonSlot::State::Shutdown;
+            });
+            return;
+        }
+
+        slot.state = LocatorSingletonSlot::State::ShuttingDown;
+        slot.shutdownThread = std::this_thread::get_id();
         oldInstance = slot.instance;
         slot.instance = nullptr;
     }
     delete oldInstance;
+
+    {
+        std::lock_guard<std::mutex> lock(slot.mutex);
+        slot.state = LocatorSingletonSlot::State::Shutdown;
+        slot.shutdownThread = std::thread::id();
+    }
+    slot.condition.notify_all();
 }
 
 KisResourceLocator::~KisResourceLocator()

@@ -12,7 +12,9 @@
 
 #include <kis_assert.h>
 
+#include <condition_variable>
 #include <mutex>
+#include <thread>
 
 struct ImageScalingParameters {
     PkSize size;
@@ -45,7 +47,16 @@ using ThumbnailCacheT = PkMap<ImageScalingParameters, PkImage>;
 
 struct ThumbnailSingletonSlot
 {
+    enum class State {
+        Available,
+        ShuttingDown,
+        Shutdown
+    };
+
     std::mutex mutex;
+    std::condition_variable condition;
+    State state = State::Available;
+    std::thread::id shutdownThread;
     KisResourceThumbnailCache *instance = nullptr;
 };
 
@@ -68,6 +79,7 @@ struct KisResourceThumbnailCache::Private {
     ResourceKey
     key(const PkString &storageLocation, const PkString &resourceType, const PkString &filename) const;
     ResourceKey normalizedKey(const ResourceKey &key) const;
+    PkString normalizedStorageLocation(const PkString &storageLocation) const;
 };
 
 PkImage KisResourceThumbnailCache::Private::getExactMatch(const ResourceKey &key,
@@ -111,20 +123,30 @@ ResourceKey KisResourceThumbnailCache::Private::key(const PkString &storageLocat
                                                     const PkString &resourceType,
                                                     const PkString &filename) const
 {
-    const PkString absoluteStorageLocation =
-        KisResourceLocator::instance()->makeStorageLocationAbsolute(storageLocation);
-    return {absoluteStorageLocation, resourceType + "/" + filename};
+    return {normalizedStorageLocation(storageLocation), resourceType + "/" + filename};
 }
 
 ResourceKey KisResourceThumbnailCache::Private::normalizedKey(const ResourceKey &key) const
 {
-    return {KisResourceLocator::instance()->makeStorageLocationAbsolute(key.first), key.second};
+    return {normalizedStorageLocation(key.first), key.second};
+}
+
+PkString KisResourceThumbnailCache::Private::normalizedStorageLocation(const PkString &storageLocation) const
+{
+    KisResourceLocator *locator = KisResourceLocator::existingInstance();
+    if (!locator || locator->resourceLocationBase().isEmpty()) {
+        return storageLocation;
+    }
+    return locator->makeStorageLocationAbsolute(storageLocation);
 }
 
 KisResourceThumbnailCache *KisResourceThumbnailCache::instance()
 {
     ThumbnailSingletonSlot &slot = thumbnailSingletonSlot();
     std::lock_guard<std::mutex> lock(slot.mutex);
+    if (slot.state != ThumbnailSingletonSlot::State::Available) {
+        return nullptr;
+    }
     if (!slot.instance) {
         slot.instance = new KisResourceThumbnailCache;
     }
@@ -136,11 +158,33 @@ void KisResourceThumbnailCache::shutdown()
     ThumbnailSingletonSlot &slot = thumbnailSingletonSlot();
     KisResourceThumbnailCache *oldInstance = nullptr;
     {
-        std::lock_guard<std::mutex> lock(slot.mutex);
+        std::unique_lock<std::mutex> lock(slot.mutex);
+        if (slot.state == ThumbnailSingletonSlot::State::Shutdown) {
+            return;
+        }
+        if (slot.state == ThumbnailSingletonSlot::State::ShuttingDown) {
+            if (slot.shutdownThread == std::this_thread::get_id()) {
+                return;
+            }
+            slot.condition.wait(lock, [&slot] {
+                return slot.state == ThumbnailSingletonSlot::State::Shutdown;
+            });
+            return;
+        }
+
+        slot.state = ThumbnailSingletonSlot::State::ShuttingDown;
+        slot.shutdownThread = std::this_thread::get_id();
         oldInstance = slot.instance;
         slot.instance = nullptr;
     }
     delete oldInstance;
+
+    {
+        std::lock_guard<std::mutex> lock(slot.mutex);
+        slot.state = ThumbnailSingletonSlot::State::Shutdown;
+        slot.shutdownThread = std::thread::id();
+    }
+    slot.condition.notify_all();
 }
 
 KisResourceThumbnailCache::KisResourceThumbnailCache()
