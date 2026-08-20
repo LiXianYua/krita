@@ -6,9 +6,7 @@
 
 #include "TestResourceLoaderRegistry.h"
 #include <simpletest.h>
-#include <QStandardPaths>
-#include <QDir>
-#include <QBuffer>
+#include <PkMemoryStream.h>
 
 #include <KisResourceLoaderRegistry.h>
 #include <KisResourceLoader.h>
@@ -16,22 +14,28 @@
 #include <KisGlobalResourcesInterface.h>
 
 #include "DummyResource.h"
+#include "ResourceTestHelper.h"
 
 void TestResourceLoaderRegistry::testRegistry()
 {
     KisResourceLoaderRegistry *reg = KisResourceLoaderRegistry::instance();
 
-    KisResourceLoader<DummyResource> *loader = new KisResourceLoader<DummyResource>("dummy", "dummy", i18n("Dummy"), QStringList() << "x-dummy");
-    reg->add(loader);
+    KisResourceLoaderBase *loader = new ResourceTestHelper::KisDummyResourceLoader(
+        PkString("dummy"),
+        PkString("dummy"),
+        PkString("Dummy"),
+        PkStringList{PkString("x-dummy")});
+    reg->registerLoader(loader);
     QVERIFY(reg->count() == 1);
 
-    KisResourceLoaderBase *l2 = reg->get("dummy");
-    QBuffer f;
-    f.open(QFile::ReadOnly);
-    KoResourceSP res = l2->load("test", f, KisGlobalResourcesInterface::instance());
+    KisResourceLoaderBase *l2 = reg->get(PkString("dummy"));
+    QVERIFY(l2 == loader);
+
+    PkMemoryStream stream;
+    QVERIFY(stream.open(PkStream::ReadOnly));
+    KoResourceSP res = l2->load(PkString("test"), stream, KisGlobalResourcesInterface::instance());
     QVERIFY(res.data());
     QVERIFY(dynamic_cast<DummyResource*>(res.data()));
 }
 
 SIMPLE_TEST_MAIN(TestResourceLoaderRegistry)
-

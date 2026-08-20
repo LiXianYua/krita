@@ -9,6 +9,26 @@
 
 #include <simpletest.h>
 
+namespace
+{
+
+PkString toPkString(const QString &value)
+{
+    const QByteArray utf8 = value.toUtf8();
+    return PkString::PkFromUtf8(utf8.constData(), utf8.size());
+}
+
+PkStringList toPkStringList(const QStringList &values)
+{
+    PkStringList result;
+    for (const QString &value : values) {
+        result.append(toPkString(value));
+    }
+    return result;
+}
+
+}
+
 
 TestResourceSearchBoxFilter::TestResourceSearchBoxFilter()
 {
@@ -18,8 +38,8 @@ TestResourceSearchBoxFilter::TestResourceSearchBoxFilter()
 bool TestResourceSearchBoxFilter::filterMatches(QString resourceName, QString filterText)
 {
     KisResourceSearchBoxFilter filter;
-    filter.setFilter(filterText);
-    return filter.matchesResource(resourceName, QStringList());
+    filter.setFilter(toPkString(filterText));
+    return filter.matchesResource(toPkString(resourceName), PkStringList());
 }
 
 void addNameDataColumns()
@@ -46,7 +66,7 @@ QList<MockResource> TestResourceSearchBoxFilter::filterResourceList(QList<MockRe
 {
     QList<MockResource> matches;
     Q_FOREACH(const MockResource& resource, resources) {
-        if (filter.matchesResource(resource.m_name, resource.m_tags)) {
+        if (filter.matchesResource(toPkString(resource.m_name), toPkStringList(resource.m_tags))) {
             matches.append(resource);
         }
     }
@@ -188,17 +208,17 @@ void TestResourceSearchBoxFilter::testResourceSearch()
     KisResourceSearchBoxFilter filter;
     QVERIFY(filter.isEmpty());
 
-    filter.setFilter("Pen");
+    filter.setFilter(PkString("Pen"));
     QVERIFY(!filter.isEmpty());
-    QVERIFY(filter.matchesResource("Pen", QStringList()));
-    QVERIFY(filter.matchesResource("pEn", QStringList())); //Test case insensitivity
+    QVERIFY(filter.matchesResource(PkString("Pen"), PkStringList()));
+    QVERIFY(filter.matchesResource(PkString("pEn"), PkStringList())); //Test case insensitivity
 
-    filter.setFilter(QString());
+    filter.setFilter(PkString());
     QVERIFY(filter.isEmpty());
 
 
     {   // Find all pencils
-        filter.setFilter("Pencil");
+        filter.setFilter(PkString("Pencil"));
         QList<MockResource> results = filterResourceList(resources, filter);
         QVERIFY(results.size() == 2);
         QVERIFY(results.contains(hbPencil));
@@ -208,7 +228,7 @@ void TestResourceSearchBoxFilter::testResourceSearch()
     }
 
     {   // Find all Ramon's brushes using partial search
-        filter.setFilter("Ramo");
+        filter.setFilter(PkString("Ramo"));
         QList<MockResource> results = filterResourceList(resources, filter);
         QVERIFY(results.size() == 2);
         QVERIFY(results.contains(impasto));
@@ -217,7 +237,7 @@ void TestResourceSearchBoxFilter::testResourceSearch()
     }
 
     {   // Find only the brushes with a specific tag
-        filter.setFilter("#\"" + tagTexture + "\"");
+        filter.setFilter(toPkString("#\"" + tagTexture + "\""));
         QList<MockResource> results = filterResourceList(resources, filter);
         QVERIFY(results.size() == 4);
         QVERIFY(results.contains(hbPencil));
@@ -226,7 +246,7 @@ void TestResourceSearchBoxFilter::testResourceSearch()
         QVERIFY(results.contains(impasto));
         QVERIFY(!results.contains(polymer));
 
-        filter.setFilter("!#\"" + tagTexture + "\"");
+        filter.setFilter(toPkString("!#\"" + tagTexture + "\""));
         results = filterResourceList(resources, filter);
         QVERIFY(results.size() == resources.size() - 4);
         QVERIFY(!results.contains(hbPencil));
@@ -237,7 +257,7 @@ void TestResourceSearchBoxFilter::testResourceSearch()
     }
 
     {   // Find with a very short partial search...
-        filter.setFilter("er");
+        filter.setFilter(PkString("er"));
         QList<MockResource> results = filterResourceList(resources, filter);
         QVERIFY(results.size() == 5);
         QVERIFY(results.contains(dullLeadHolder));
@@ -248,7 +268,7 @@ void TestResourceSearchBoxFilter::testResourceSearch()
     }
 
     {   // Set filter to be empty, should show everything.
-        filter.setFilter(QString());
+        filter.setFilter(PkString());
         QList<MockResource> results = filterResourceList(resources, filter);
         QVERIFY(results.size() == resources.size());
     }

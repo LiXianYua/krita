@@ -44,16 +44,19 @@ void TestFolderStorage::initTestCase()
 
     ResourceTestHelper::createDummyLoaderRegistry();
 
-    KisResourceCacheDb::initialize(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
-    m_locator->initialize(m_srcLocation);
+    KisResourceCacheDb::initialize(ResourceTestHelper::toPkString(
+        QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)));
+    m_locator->initialize(ResourceTestHelper::toPkString(m_srcLocation));
 
-    if (!m_locator->errorMessages().isEmpty()) qDebug() << m_locator->errorMessages();
+    if (!m_locator->errorMessages().isEmpty()) {
+        qDebug() << ResourceTestHelper::toQString(m_locator->errorMessages().join("\n"));
+    }
 }
 
 void TestFolderStorage ::testStorage()
 {
-    KisFolderStorage folderStorage(m_dstLocation);
-    QSharedPointer<KisResourceStorage::ResourceIterator> iter = folderStorage.resources(ResourceType::Brushes);
+    KisFolderStorage folderStorage(ResourceTestHelper::toPkString(m_dstLocation));
+    PkSharedPointer<KisResourceStorage::ResourceIterator> iter = folderStorage.resources(ResourceType::Brushes);
     QVERIFY(iter->hasNext());
     int count = 0;
     while (iter->hasNext()) {
@@ -66,8 +69,8 @@ void TestFolderStorage ::testStorage()
 
 void TestFolderStorage::testTagIterator()
 {
-    KisFolderStorage folderStorage(m_dstLocation);
-    QSharedPointer<KisResourceStorage::TagIterator> iter = folderStorage.tags(ResourceType::PaintOpPresets);
+    KisFolderStorage folderStorage(ResourceTestHelper::toPkString(m_dstLocation));
+    PkSharedPointer<KisResourceStorage::TagIterator> iter = folderStorage.tags(ResourceType::PaintOpPresets);
     QVERIFY(iter->hasNext());
     int count = 0;
     while (iter->hasNext()) {
@@ -84,17 +87,17 @@ void TestFolderStorage::testAddResource()
     resource->setValid(true);
     resource->setVersion(0);
 
-    KisFolderStorage folderStorage(m_dstLocation);
+    KisFolderStorage folderStorage(ResourceTestHelper::toPkString(m_dstLocation));
     bool r = folderStorage.saveAsNewVersion(ResourceType::PaintOpPresets, resource);
     QVERIFY(r);
 
     ResourceTestHelper::testVersionedStorage(folderStorage,
                                              ResourceType::PaintOpPresets,
-                                             "paintoppresets/anewresource.0000.kpp",
+                                             PkString("paintoppresets/anewresource.0000.kpp"),
                                              m_dstLocation);
     ResourceTestHelper::testVersionedStorageIterator(folderStorage,
                                                      ResourceType::PaintOpPresets,
-                                                     "paintoppresets/anewresource.0000.kpp");
+                                                     PkString("paintoppresets/anewresource.0000.kpp"));
 
 }
 
@@ -104,11 +107,12 @@ void TestFolderStorage::testResourceFilePath()
     resource->setValid(true);
     resource->setVersion(0);
 
-    KisFolderStorage folderStorage(m_dstLocation);
+    KisFolderStorage folderStorage(ResourceTestHelper::toPkString(m_dstLocation));
     bool r = folderStorage.saveAsNewVersion(ResourceType::PaintOpPresets, resource);
     QVERIFY(r);
 
-    QCOMPARE(folderStorage.resourceFilePath("paintoppresets/anewresource.0000.kpp"),
+    QCOMPARE(ResourceTestHelper::toQString(
+                 folderStorage.resourceFilePath(PkString("paintoppresets/anewresource.0000.kpp"))),
              QFileInfo(m_dstLocation + "/" + "paintoppresets/anewresource.0000.kpp").absoluteFilePath());
 }
 
@@ -118,13 +122,13 @@ void TestFolderStorage::testResourceCaseSensitivity()
     resource->setValid(true);
     resource->setVersion(0);
 
-    KisFolderStorage folderStorage(m_dstLocation);
+    KisFolderStorage folderStorage(ResourceTestHelper::toPkString(m_dstLocation));
     bool r = folderStorage.addResource(ResourceType::PaintOpPresets, resource);
     QVERIFY(r);
 
-    KoResourceSP res1 = folderStorage.resource("paintoppresets/resourcecasetest.kpp");
+    KoResourceSP res1 = folderStorage.resource(PkString("paintoppresets/resourcecasetest.kpp"));
     QVERIFY(res1);
-    QCOMPARE(res1->filename(), "resourcecasetest.kpp");
+    QVERIFY(res1->filename() == PkString("resourcecasetest.kpp"));
 
     /**
      * In the folder storage we expect all resources to have
@@ -134,9 +138,9 @@ void TestFolderStorage::testResourceCaseSensitivity()
      */
 
 #if defined Q_OS_WIN || defined Q_OS_MACOS
-    KoResourceSP res2 = folderStorage.resource("paintoppresets/ReSoUrCeCaSeTeSt.kpp");
+    KoResourceSP res2 = folderStorage.resource(PkString("paintoppresets/ReSoUrCeCaSeTeSt.kpp"));
     QVERIFY(res2);
-    QCOMPARE(res2->filename(), "resourcecasetest.kpp");
+    QVERIFY(res2->filename() == PkString("resourcecasetest.kpp"));
 #endif
 }
 

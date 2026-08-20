@@ -15,8 +15,6 @@ class TestTag: public QObject
 private Q_SLOTS:
     void testLoadTag();
     void testSaveTag();
-private:
-    QStringList m_languages;
 };
 
 #endif

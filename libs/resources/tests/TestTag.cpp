@@ -6,12 +6,11 @@
 
 #include "TestTag.h"
 #include <simpletest.h>
-#include <QBuffer>
+#include <PkFileStream.h>
+#include <PkMemoryStream.h>
 
 #include <KisTag.h>
 #include <KoResource.h>
-
-#include <KLocalizedString>
 
 #ifndef FILES_DATA_DIR
 #error "FILES_DATA_DIR not set. A directory with the data used for testing installing resources"
@@ -20,57 +19,56 @@
 void TestTag::testLoadTag()
 {
     KisTag tagLoader;
-    QFile f(QString(FILES_DATA_DIR) + "paintoppresets/test.tag");
+    const QString filePath = QString(FILES_DATA_DIR) + "paintoppresets/test.tag";
+    const QByteArray filePathUtf8 = filePath.toUtf8();
+    PkFileStream stream(PkString::PkFromUtf8(filePathUtf8.constData(), filePathUtf8.size()));
 
-    QVERIFY(f.exists());
+    QVERIFY(QFileInfo::exists(filePath));
+    QVERIFY(stream.open(PkStream::ReadOnly));
 
-    QVERIFY(f.open(QFile::ReadOnly));
+    bool r = tagLoader.load(stream);
 
-    bool r = tagLoader.load(f);
-
-    f.close();
+    stream.close();
 
     QVERIFY(r);
-    QVERIFY(tagLoader.name() == "* Favorites");
-    QVERIFY(tagLoader.comment() == "Your favorite brush presets");
-    QVERIFY(tagLoader.url() == "* Favorites");
+    QVERIFY(KisTag::currentLocale() == PkString("en_US"));
+    QVERIFY(tagLoader.name() == PkString("* Favorites"));
+    QVERIFY(tagLoader.comment() == PkString("Your favorite brush presets"));
+    QVERIFY(tagLoader.url() == PkString("* Favorites"));
 
-    m_languages = KLocalizedString::languages();
-    KLocalizedString::setLanguages(QStringList() << "nl");
-    QLocale::setDefault(QLocale("nl"));
-
-    QVERIFY(tagLoader.name() == "* Favorieten");
-    QVERIFY(tagLoader.comment() == "Uw favorite voorinstellingen van penselen");
-    QVERIFY(tagLoader.url() == "* Favorites");
-
-    KLocalizedString::setLanguages(m_languages);
-    QLocale::setDefault(QLocale("C"));
+    const PkMap<PkString, PkString> names = tagLoader.names();
+    const PkMap<PkString, PkString> comments = tagLoader.comments();
+    QVERIFY(names.value(PkString("nl")) == PkString("* Favorieten"));
+    QVERIFY(comments.value(PkString("nl")) ==
+            PkString("Uw favorite voorinstellingen van penselen"));
 }
 
 void TestTag::testSaveTag()
 {
     KisTag tag1;
-    QFile f(QString(FILES_DATA_DIR) + "paintoppresets/test.tag");
+    const QString filePath = QString(FILES_DATA_DIR) + "paintoppresets/test.tag";
+    const QByteArray filePathUtf8 = filePath.toUtf8();
+    PkFileStream stream(PkString::PkFromUtf8(filePathUtf8.constData(), filePathUtf8.size()));
 
-    QVERIFY(f.exists());
+    QVERIFY(QFileInfo::exists(filePath));
+    QVERIFY(stream.open(PkStream::ReadOnly));
 
-    QVERIFY(f.open(QFile::ReadOnly));
-
-    bool r = tag1.load(f);
+    bool r = tag1.load(stream);
     QVERIFY(r);
+    stream.close();
 
-    tag1.setName(QString("Test"));
+    tag1.setName(PkString("Test"));
 
-    QBuffer buf;
-    buf.open(QBuffer::WriteOnly);
+    PkMemoryStream buffer;
+    QVERIFY(buffer.open(PkStream::WriteOnly));
 
-    QVERIFY(tag1.save(buf));
+    QVERIFY(tag1.save(buffer));
 
-    buf.close();
-    buf.open(QBuffer::ReadOnly);
+    buffer.close();
+    QVERIFY(buffer.open(PkStream::ReadOnly));
 
     KisTag tag2;
-    tag2.load(buf);
+    QVERIFY(tag2.load(buffer));
     QVERIFY(tag2.url() == tag1.url());
     QVERIFY(tag2.name() == tag1.name());
     QVERIFY(tag2.resourceType() == tag1.resourceType());
@@ -80,4 +78,3 @@ void TestTag::testSaveTag()
 }
 
 SIMPLE_TEST_MAIN(TestTag)
-
