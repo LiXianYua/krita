@@ -9,7 +9,7 @@ class QDataStream;
 static_assert(!std::is_same<PkDataStream, QDataStream>::value);
 
 namespace {
-void hex(const PkByteArray &bytes) { for (int i = 0; i < bytes.size(); ++i) std::printf("%02x", (unsigned char)bytes.constData()[i]); }
+void hex(const PkByteArray &bytes) { for (int i = 0; i < bytes.size(); ++i) std::printf("%02x", static_cast<unsigned int>(static_cast<unsigned char>(bytes.constData()[i]))); }
 const char *versionName(PkDataStream::Version v) { return v == PkDataStream::Qt_4_6 ? "qt46" : "qt515"; }
 const char *orderName(PkDataStream::ByteOrder o) { return o == PkDataStream::BigEndian ? "big" : "little"; }
 PkByteArray fromHex(const char *text)
@@ -35,19 +35,23 @@ void prefix(const char *kind, PkDataStream::Version v, PkDataStream::ByteOrder o
 void bare(PkDataStream::Version v, PkDataStream::ByteOrder o, const char *caseName, const PkByteArray &input)
 {
     bool value = true; PkDataStream stream(input); stream.setVersion(v); stream.setByteOrder(o); stream >> value;
-    prefix("bare", v, o, caseName, input); std::printf(" value=%u status=%d\n", value, int(stream.status()));
+    prefix("bare", v, o, caseName, input); std::printf(" value=%u status=%d\n", static_cast<unsigned int>(value), int(stream.status()));
 }
 void variant(PkDataStream::Version v, PkDataStream::ByteOrder o, const char *kind, const char *caseName, const PkByteArray &input)
 {
     PkVariant value(true); PkDataStream stream(input); stream.setVersion(v); stream.setByteOrder(o); stream >> value;
     prefix(kind, v, o, caseName, input);
-    std::printf(" valid=%u null=%u type=%d bool=%u status=%d\n", value.isValid(), value.isNull(), value.type(), value.toBool(), int(stream.status()));
+    std::printf(" valid=%u null=%u type=%d bool=%u status=%d\n",
+                static_cast<unsigned int>(value.isValid()), static_cast<unsigned int>(value.isNull()),
+                value.type(), static_cast<unsigned int>(value.toBool()), int(stream.status()));
 }
 void rect(PkDataStream::Version v, PkDataStream::ByteOrder o, const char *caseName, const PkByteArray &input)
 {
     PkVariant value; PkDataStream stream(input); stream.setVersion(v); stream.setByteOrder(o); stream >> value; const PkRect rectangle = value.toRect();
     prefix("rect", v, o, caseName, input);
-    std::printf(" valid=%u x=%d y=%d w=%d h=%d status=%d\n", value.isValid(), rectangle.x(), rectangle.y(), rectangle.width(), rectangle.height(), int(stream.status()));
+    std::printf(" valid=%u left=%d top=%d right=%d bottom=%d status=%d\n",
+                static_cast<unsigned int>(value.isValid()), rectangle.left(), rectangle.top(),
+                rectangle.right(), rectangle.bottom(), int(stream.status()));
 }
 PkByteArray frame(const char *nullFlag, const char *payload, PkDataStream::ByteOrder o)
 {

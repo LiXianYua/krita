@@ -10,7 +10,7 @@ class PkDataStream;
 static_assert(!std::is_same<QDataStream, PkDataStream>::value);
 
 namespace {
-void hex(const QByteArray &bytes) { for (unsigned char byte : bytes) std::printf("%02x", byte); }
+void hex(const QByteArray &bytes) { for (unsigned char byte : bytes) std::printf("%02x", static_cast<unsigned int>(byte)); }
 const char *versionName(QDataStream::Version v) { return v == QDataStream::Qt_4_6 ? "qt46" : "qt515"; }
 const char *orderName(QDataStream::ByteOrder o) { return o == QDataStream::BigEndian ? "big" : "little"; }
 
@@ -27,7 +27,7 @@ void bare(QDataStream::Version v, QDataStream::ByteOrder o, const char *caseName
     QDataStream stream(input);
     stream.setVersion(v); stream.setByteOrder(o); stream >> value;
     prefix("bare", v, o, caseName, input);
-    std::printf(" value=%u status=%d\n", value, int(stream.status()));
+    std::printf(" value=%u status=%d\n", static_cast<unsigned int>(value), int(stream.status()));
 }
 
 void variant(QDataStream::Version v, QDataStream::ByteOrder o, const char *kind,
@@ -39,7 +39,8 @@ void variant(QDataStream::Version v, QDataStream::ByteOrder o, const char *kind,
     stream >> value;
     prefix(kind, v, o, caseName, input);
     std::printf(" valid=%u null=%u type=%d bool=%u status=%d\n",
-                value.isValid(), value.isNull(), int(value.type()), value.toBool(), int(stream.status()));
+                static_cast<unsigned int>(value.isValid()), static_cast<unsigned int>(value.isNull()),
+                int(value.type()), static_cast<unsigned int>(value.toBool()), int(stream.status()));
 }
 
 void rect(QDataStream::Version v, QDataStream::ByteOrder o, const char *caseName, const QByteArray &input)
@@ -49,8 +50,9 @@ void rect(QDataStream::Version v, QDataStream::ByteOrder o, const char *caseName
     stream.setVersion(v); stream.setByteOrder(o); stream >> value;
     const QRect rectangle = value.toRect();
     prefix("rect", v, o, caseName, input);
-    std::printf(" valid=%u x=%d y=%d w=%d h=%d status=%d\n", value.isValid(), rectangle.x(), rectangle.y(),
-                rectangle.width(), rectangle.height(), int(stream.status()));
+    std::printf(" valid=%u left=%d top=%d right=%d bottom=%d status=%d\n",
+                static_cast<unsigned int>(value.isValid()), rectangle.left(), rectangle.top(),
+                rectangle.right(), rectangle.bottom(), int(stream.status()));
 }
 
 QByteArray frame(const char *nullFlag, const char *payload, QDataStream::ByteOrder o)
