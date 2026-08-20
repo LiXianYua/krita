@@ -36,15 +36,21 @@ void poisonResourceDatabaseConnection(PkSqlDatabase database,
 
     // sqlite3_close() invalidates the connection mutex when it succeeds, so
     // release the native mutex first while retaining the resources mutex.
-    // PkSqlDatabase::close() also clears its process-wide facade handle when
-    // SQLite reports BUSY; the poison bit then prevents accidental reopen/use.
+    // A checked close keeps ownership of the facade handle and its error when
+    // SQLite reports BUSY.  The poison bit prevents accidental reopen/use while
+    // outstanding statements or the failed transaction are being released.
     connectionGuard.releaseNativeMutex();
+    bool connectionClosed = false;
     try {
-        database.close();
+        connectionClosed = database.PkClose();
     } catch (...) {
     }
     try {
         qWarning() << "Resource database connection poisoned after" << operation;
+        if (!connectionClosed) {
+            qWarning() << "Resource database checked close deferred:"
+                       << database.lastError().text();
+        }
     } catch (...) {
     }
 }
@@ -127,8 +133,9 @@ void KisDatabaseTransactionLockAdapter::lock()
     KIS_SAFE_ASSERT_RECOVER_RETURN(!m_connectionGuard);
 
     if (resourceDatabaseConnectionIsPoisoned()) {
-        if (m_database.isOpen()) {
-            m_database.close();
+        if (m_database.isOpen() && !m_database.PkClose()) {
+            qWarning() << "Resource database checked close still deferred:"
+                       << m_database.lastError().text();
         }
         qWarning() << resourceDatabaseConnectionPoisonError();
         return;
