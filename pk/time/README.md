@@ -121,11 +121,19 @@ PkDateTime.h 提供）。
 - `QDateTime()` 无效实例的 `addDays/addMonths/addYears` 在 Qt 会「愈合」到 julianDay=0
   （date -4714-11-24）；`PkDateTime` 返回无效实例（更安全，真实调用点不会对无效实例调
   `add*`）。
-- `toMSecsSinceEpoch()` 对负 epoch 亚秒输入（如 -1999ms）会丢失亚秒精度（返回 -999 而非
-  -1999）——calendar 模型（存正 msec 余数 + 整秒重建）的本质限制，真实调用点不做负亚秒
-  epoch，`toSecsSinceEpoch`/`secsTo` 不受影响。
-- `operator<` 对混合有效/无效实例违反严格弱序（无效既非 `<` 也非 `>` 有效，但 `==` 说它们
-  不等）；kernel 用途是纯有效比较，`std::set/map` 不会混合有效/无效。
+
+**R-29 已对齐 Qt 的行为**（2026-08-19 终审修复，探针实测真 Qt 5.15.7，见
+`.superpowers/sdd/R-29/final-fix-findings.md`）：
+- **负亚秒 epoch 精确往返**：`fromMSecsSinceEpoch(-1999).toMSecsSinceEpoch()==-1999`
+  （此前登记为「丢亚秒精度、返回 -999」是错的——根因是 `fromTimePoint` 把负亚秒余数转正
+  加到了错误的一天；修复后亚秒落在前一天，`toMSecsSinceEpoch` 精确往返，与 Qt 一致）。
+  `toSecsSinceEpoch == toMSecsSinceEpoch()/1000`（向零截断）：-1999 → -1、-999 → 0。
+- **`secsTo`/`msecsTo` 无效 guard**：任一侧无效返回 0（对齐 Qt）；`secsTo` 是 diff-based
+  （`(other.toMSecsSinceEpoch() - toMSecsSinceEpoch())/1000`，向零截断），亚秒 operand
+  也正确（`a(-999).secsTo(b(1))==1`）。
+- **`operator<` 是严格弱序**：无效 < 有效、无效互等，混合有效/无效 `std::sort`/`std::set`
+  正常——此前登记为「违反严格弱序」是错的（探针实测 PkDateTime 的 `operator<` 即
+  `qdatetime.h` 语义），已撤销该偏离登记，代码保持现状。
 
 **用量表口径**：`grep -l`（文件）+ `grep -n`（行）现场数，排除 `tests/`/
 `benchmarks/`；`QMetaType::QDateTime`（`kis_meta_data_type_info.cc`、

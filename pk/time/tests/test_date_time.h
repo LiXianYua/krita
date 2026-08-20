@@ -55,4 +55,10 @@ private Q_SLOTS:
 
     // R-29 Task 3 fix round 1：addSecs/addMSecs 无效态必须返回无效（评审 F1）
     void invalidAddSecsMsecsStayInvalid();
+
+    // R-29 终审修复（final-fix-findings F1-F3）：负亚秒 epoch 精确往返 +
+    // secsTo/msecsTo 无效 guard + 亚秒 diff-based 秒差
+    void negativeSubSecondEpochRoundTrip();
+    void invalidSecsToMsecsToReturnZero();
+    void secsToSubSecondDiffBased();
 };

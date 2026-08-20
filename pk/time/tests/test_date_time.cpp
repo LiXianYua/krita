@@ -456,6 +456,55 @@ void TestDateTime::invalidAddSecsMsecsStayInvalid()
     PK_VERIFY(valid.addSecs(10).time().second() == 55);
 }
 
+// ============================================================================
+// R-29 终审修复（.superpowers/sdd/R-29/final-fix-findings.md，探针实测真 Qt 5.15.7）：
+//   F1 secsTo/msecsTo 无效 guard（任一侧无效返回 0）
+//   F2 负亚秒 epoch 精确往返（fromMSecsSinceEpoch(-1999).toMSecsSinceEpoch()==-1999，
+//      亚秒 msec 落在前一天）
+//   F3 secsTo 是 diff-based（毫秒差 /1000 向零截断），不是 operand-wise
+// ============================================================================
+
+void TestDateTime::negativeSubSecondEpochRoundTrip()
+{
+    // Qt 精确模型：负亚秒 epoch 的 msec 落在前一天（fromMSecs(-1) → 1969-12-31
+    // 23:59:59.999），toMSecsSinceEpoch 精确往返（符号不翻转）。
+    const std::int64_t vals[] = {-1999, -1000, -999, -500, -1, 0, 1, 500, 999, 1999};
+    for (std::int64_t v : vals) {
+        const PkDateTime dt = PkDateTime::fromMSecsSinceEpoch(v);
+        PK_VERIFY(dt.isValid());
+        PK_VERIFY(dt.toMSecsSinceEpoch() == v);
+        // 亚秒分量对齐 Qt：-1 → 23:59:59.999（前一天）
+        if (v < 0 && v % 1000 != 0) {
+            PK_VERIFY(dt.time().msec() == static_cast<int>((v % 1000 + 1000) % 1000));
+        }
+    }
+}
+
+void TestDateTime::invalidSecsToMsecsToReturnZero()
+{
+    // 探针：Qt invalid.secsTo(valid)=0、valid.secsTo(invalid)=0、invalid 互比=0，
+    // msecsTo 同理（终审 F1 加的 guard，修复前 Pk invalid.secsTo(valid)=1500 错）。
+    const PkDateTime invalid;
+    const PkDateTime valid = PkDateTime::fromSecsSinceEpoch(1500);
+    PK_VERIFY(invalid.secsTo(valid) == 0);
+    PK_VERIFY(valid.secsTo(invalid) == 0);
+    PK_VERIFY(invalid.secsTo(invalid) == 0);
+    PK_VERIFY(invalid.msecsTo(valid) == 0);
+    PK_VERIFY(valid.msecsTo(invalid) == 0);
+    // 有效-有效仍正常（回归）
+    PK_VERIFY(valid.secsTo(valid) == 0);
+}
+
+void TestDateTime::secsToSubSecondDiffBased()
+{
+    // 探针：Qt a(-999).secsTo(b(1))=1（diff-based，毫秒差 /1000 向零截断，不是
+    // operand-wise——按两个 toSecsSinceEpoch 之差算得 0，错）。
+    const PkDateTime a = PkDateTime::fromMSecsSinceEpoch(-999);
+    const PkDateTime b = PkDateTime::fromMSecsSinceEpoch(1);
+    PK_VERIFY(a.secsTo(b) == 1);
+    PK_VERIFY(b.secsTo(a) == -1);
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_date_time.inc"

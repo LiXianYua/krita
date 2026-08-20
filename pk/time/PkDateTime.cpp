@@ -28,10 +28,13 @@
 // 东正西负），不再是硬编码 "+0000"——toString(RFC2822Date) 用 toTimePoint()
 // 重建 TimePoint → localtime_r 拆 tm_gmtoff，主体字段直接从 m_date/m_time 渲染。
 //
-// epoch 语义保持 R-16 探针钉死的行为：
-//   - toSecsSinceEpoch 用 duration_cast<seconds> 对 toTimePoint() 截断（向零）
-//     ——测试 millisecondsSubSecondTruncatesTowardZero 钉死
-//     fromMSecsSinceEpoch(-1999).toSecsSinceEpoch()==-1。
+// epoch 语义对齐 Qt 探针钉死的行为：
+//   - toSecsSinceEpoch == toMSecsSinceEpoch() / 1000（C++ 整数除法向零截断）——
+//     fromMSecsSinceEpoch(-1999).toSecsSinceEpoch()==-1、(-999)→0、(-1)→0（探针实测）。
+//     2026-08-19 终审修复（final-fix-findings F2）：fromTimePoint 对负亚秒做 floor 借位后
+//     toMSecsSinceEpoch() 精确往返，toSecsSinceEpoch 直接用它除 1000 即得 Qt 语义
+//     （旧实现 duration_cast<seconds> 对整秒重建截断，在 F2 借位下会给 -1999ms → -2，
+//     与 Qt 的 -1 不符）。
 //   - fromSecsSinceEpoch 直接 TimePoint(seconds(secs))，不 secs*1000（避免
 //     oracle kExtremeTok 的 INT64_MAX 有符号溢出 UB）。
 // ============================================================================
@@ -294,14 +297,23 @@ std::chrono::system_clock::time_point PkDateTime::toTimePoint() const
 // TimePoint → date+time（LocalTime，localtime_r 读系统 TZ）
 PkDateTime PkDateTime::fromTimePoint(const std::chrono::system_clock::time_point &tp)
 {
-    const std::time_t t = std::chrono::system_clock::to_time_t(tp);
+    const auto msSinceEpoch = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count();
+    // 拆成 整秒 + 亚秒。负 epoch 的亚秒要落到「整秒的前一秒」，不是转正当天：
+    // Qt 模型：fromMSecs(-1) → date 1969-12-31, time 23:59:59.999（msec 在前一天）。
+    // 做法：先取整秒（向零截断），亚秒用 floor 语义（对负值向 -inf 借位）。
+    std::int64_t wholeSecs = msSinceEpoch / 1000;          // 向零截断整秒
+    std::int64_t subMs = msSinceEpoch % 1000;              // -999..999
+    if (subMs < 0) {
+        // 负亚秒：整秒借 1，亚秒转成前一秒的正 msec（Qt 的 msecs-of-day 落在前一天）
+        wholeSecs -= 1;
+        subMs += 1000;
+    }
+    const std::time_t t = static_cast<std::time_t>(wholeSecs);
     std::tm tmVal{};
     localtime_r(&t, &tmVal);
     PkDateTime dt;
     dt.m_date = PkDate(tmVal.tm_year + 1900, tmVal.tm_mon + 1, tmVal.tm_mday);
-    dt.m_time = PkTime(tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec, 0);  // 毫秒经 duration 单独算
-    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(tp.time_since_epoch()).count() % 1000;
-    dt.m_time = PkTime(tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec, static_cast<int>(ms < 0 ? ms + 1000 : ms));
+    dt.m_time = PkTime(tmVal.tm_hour, tmVal.tm_min, tmVal.tm_sec, static_cast<int>(subMs));
     return dt;
 }
 
@@ -344,11 +356,13 @@ std::int64_t PkDateTime::toMSecsSinceEpoch() const
 std::int64_t PkDateTime::toSecsSinceEpoch() const
 {
     if (!isValid()) return 0;
-    // ⚠ 必须用 duration_cast<seconds> 对 toTimePoint() 截断，不能 toMSecsSinceEpoch()/1000：
-    // 测试 millisecondsSubSecondTruncatesTowardZero 钉死 fromMSecsSinceEpoch(-1999).toSecsSinceEpoch()==-1。
-    // duration_cast<seconds> 向零截断：-1999ms → toTimePoint()=整秒 -1000ms → -1；
-    // 而 -999/1000 整数除法 = 0，方向错。R-16 原文就是 duration_cast<seconds>。
-    return std::chrono::duration_cast<std::chrono::seconds>(toTimePoint().time_since_epoch()).count();
+    // Qt 探针：toSecsSinceEpoch == toMSecsSinceEpoch()/1000（C++ 向零截断）。
+    //   -1999ms → -1999/1000 = -1；-999ms → -999/1000 = 0；-1ms → -1/1000 = 0。
+    // F2 修复后 toMSecsSinceEpoch() 对负亚秒精确往返，除 1000 即得 Qt 语义
+    // （旧实现 duration_cast<seconds> 对整秒重建截断，在 floor 借位下 -1999ms
+    // 会得到 -2，与探针的 -1 不符）。测试 millisecondsSubSecondTruncatesTowardZero
+    // 钉死 -1999 → -1、1999 → 1。
+    return toMSecsSinceEpoch() / 1000;
 }
 PkDateTime PkDateTime::fromMSecsSinceEpoch(std::int64_t msecs)
 {
@@ -385,13 +399,18 @@ bool PkDateTime::operator<(const PkDateTime &other) const
 
 std::int64_t PkDateTime::secsTo(const PkDateTime &other) const
 {
-    // R-16 语义：duration_cast<seconds>(other - this)，向零截断。calendar 版等价于
-    // other.toSecsSinceEpoch() - toSecsSinceEpoch()（两个整秒 epoch 之差）。
-    // 测试 secsToSignConvention 钉死 a.secsTo(b)==500（1000→1500）。
-    return other.toSecsSinceEpoch() - toSecsSinceEpoch();
+    // 无效 guard：任一侧无效返回 0（探针：Qt invalid.secsTo(valid)=0 等，终审 F1）。
+    if (!isValid() || !other.isValid()) return 0;
+    // diff-based（不是 operand-wise）：(other - this) 的毫秒差除 1000、C++ 向零截断
+    // ——探针：a(-999).secsTo(b(1))=1（若按两个 toSecsSinceEpoch 之差算得 0，错）。
+    // 测试 secsToSignConvention 钉死 a.secsTo(b)==500（1000→1500）、
+    // secsToSubSecondDiffBased 钉死 a(-999).secsTo(b(1))==1。
+    return (other.toMSecsSinceEpoch() - toMSecsSinceEpoch()) / 1000;
 }
 std::int64_t PkDateTime::msecsTo(const PkDateTime &other) const
 {
+    // 无效 guard：任一侧无效返回 0（探针：Qt invalid.msecsTo(valid)=0 等，终审 F1）。
+    if (!isValid() || !other.isValid()) return 0;
     return other.toMSecsSinceEpoch() - toMSecsSinceEpoch();
 }
 std::int64_t PkDateTime::daysTo(const PkDateTime &other) const
