@@ -132,7 +132,17 @@ void KisDatabaseTransactionLockAdapter::lock()
     KIS_SAFE_ASSERT_RECOVER_RETURN(!m_transactionStarted);
     KIS_SAFE_ASSERT_RECOVER_RETURN(!m_connectionGuard);
 
+    // Acquire the resources mutex before observing poison.  A transaction that
+    // waited behind cleanup must recheck the state at the same linearization
+    // point used by poison-and-close, rather than acting on a stale pre-lock
+    // observation.
+    auto connectionGuard =
+        std::make_unique<ResourceDatabaseConnectionGuard>(m_database);
     if (resourceDatabaseConnectionIsPoisoned()) {
+        // sqlite3_close() invalidates the native mutex on success.  Retain the
+        // outer resources mutex so repeated poison cleanup cannot race facade
+        // state or close the same SQLite handle concurrently.
+        connectionGuard->releaseNativeMutex();
         if (m_database.isOpen() && !m_database.PkClose()) {
             qWarning() << "Resource database checked close still deferred:"
                        << m_database.lastError().text();
@@ -141,11 +151,8 @@ void KisDatabaseTransactionLockAdapter::lock()
         return;
     }
 
-    // Allocate the owning guard before it acquires either mutex.  Keeping the
-    // guard local until BEGIN succeeds makes every allocation/SQLite exception
-    // unwind both lock layers in native-then-outer order.
-    auto connectionGuard =
-        std::make_unique<ResourceDatabaseConnectionGuard>(m_database);
+    // Keeping the guard local until BEGIN succeeds makes every SQLite
+    // exception unwind both lock layers in native-then-outer order.
     if (!m_database.transaction()) {
         qWarning() << "WARNING: Failed to start a transaction:" << m_database.lastError().text();
     } else {
