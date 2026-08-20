@@ -5,16 +5,15 @@
  */
 #include "KoResourceCacheStorage.h"
 
-#include <QHash>
-#include <QString>
-#include <QVariant>
+#include <PkMap.h>
+#include <PkString.h>
+#include <PkVariant.h>
 
 #include "kis_assert.h"
-#include "kis_debug.h"
 
 struct KoResourceCacheStorage::Private
 {
-    QHash<QString, QVariant> map;
+    PkMap<PkString, PkVariant> map;
 };
 
 KoResourceCacheStorage::KoResourceCacheStorage()
@@ -26,12 +25,12 @@ KoResourceCacheStorage::~KoResourceCacheStorage()
 {
 }
 
-QVariant KoResourceCacheStorage::fetch(const QString &key) const
+PkVariant KoResourceCacheStorage::fetch(const PkString &key) const
 {
-    return m_d->map.value(key, QVariant());
+    return m_d->map.value(key, PkVariant());
 }
 
-void KoResourceCacheStorage::put(const QString &key, const QVariant &value)
+void KoResourceCacheStorage::put(const PkString &key, const PkVariant &value)
 {
     /// This assert here is intentional! It catches cache key
     /// aliasing problems. See dox in KoResourceCacheInterface

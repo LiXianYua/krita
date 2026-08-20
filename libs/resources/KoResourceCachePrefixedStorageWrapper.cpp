@@ -5,21 +5,21 @@
  */
 #include "KoResourceCachePrefixedStorageWrapper.h"
 
-#include <QVariant>
+#include <PkVariant.h>
 
 
-KoResourceCachePrefixedStorageWrapper::KoResourceCachePrefixedStorageWrapper(const QString &prefix, KoResourceCacheInterfaceSP baseInterface)
+KoResourceCachePrefixedStorageWrapper::KoResourceCachePrefixedStorageWrapper(const PkString &prefix, KoResourceCacheInterfaceSP baseInterface)
     : m_prefix(prefix),
       m_baseInterface(baseInterface)
 {
 }
 
-QVariant KoResourceCachePrefixedStorageWrapper::fetch(const QString &key) const
+PkVariant KoResourceCachePrefixedStorageWrapper::fetch(const PkString &key) const
 {
     return m_baseInterface->fetch(m_prefix + key);
 }
 
-void KoResourceCachePrefixedStorageWrapper::put(const QString &key, const QVariant &value)
+void KoResourceCachePrefixedStorageWrapper::put(const PkString &key, const PkVariant &value)
 {
     m_baseInterface->put(m_prefix + key, value);
 }

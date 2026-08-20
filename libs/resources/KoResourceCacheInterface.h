@@ -9,10 +9,12 @@
 
 #include "kritaresources_export.h"
 
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 
-class QString;
-class QVariant;
+#include <cstdint>
+
+class PkString;
+class PkVariant;
 
 
 /**
@@ -73,14 +75,14 @@ public:
     virtual ~KoResourceCacheInterface();
 
     /// fetch a cached object from the cache using \p key
-    virtual QVariant fetch(const QString &key) const = 0;
+    virtual PkVariant fetch(const PkString &key) const = 0;
 
     /// store a cached object \p value into the cache using \p key
     /// WARNING: storing an object twice with the same \p key is
     ///          considered as invalid operation and will assert!
     ///          This behavior is intentional to avoid cache key
     ///          aliasing.
-    virtual void put(const QString &key, const QVariant &value) = 0;
+    virtual void put(const PkString &key, const PkVariant &value) = 0;
 
     /**
      * A special cookie the resource may (or may not) initialize
@@ -108,8 +110,6 @@ private:
     RelatedResourceCookie m_cookie = RelatedResourceCookie();
 };
 
-using KoResourceCacheInterfaceSP = QSharedPointer<KoResourceCacheInterface>;
-
-Q_DECLARE_METATYPE(KoResourceCacheInterfaceSP)
+using KoResourceCacheInterfaceSP = PkSharedPointer<KoResourceCacheInterface>;
 
 #endif // KORESOURCECACHEINTERFACE_H

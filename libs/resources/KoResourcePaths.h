@@ -6,20 +6,22 @@
 #ifndef KORESOURCEPATHS_H
 #define KORESOURCEPATHS_H
 
-#include <QScopedPointer>
-#include <QString>
-#include <QStringList>
+#include <PkScopedPointer.h>
+#include <PkString.h>
+#include <PkStringList.h>
+
+#include <PkFlags.h>
 
 #include <kritaresources_export.h>
 
 
 /**
- * The usual place to look for assets is Qt's AppDataLocation.
+ * The usual place to look for assets is the platform AppDataLocation.
  * This corresponds to XDG_DATA_DIRS on Linux. To ensure your installation and
  * path are configured correctly, ensure your files are located in the directories
  * contained in this variable:
  *
- * QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
+ * platform resource-storage locations for AppDataLocation.
  *
  * This can be overridden in Krita's configuration.
  *
@@ -46,21 +48,21 @@ public:
                         Recursive = 1,
                         IgnoreExecBit = 4
                       };
-    Q_DECLARE_FLAGS(SearchOptions, SearchOption)
+    PK_DECLARE_FLAGS(SearchOptions, SearchOption)
 
 
 
-    static QString getApplicationRoot();
+    static PkString getApplicationRoot();
 
     /**
-     * @brief getAppDataLocation Use this instead of QStandardPaths::AppDataLocation! The
+     * @brief getAppDataLocation Returns the configured AppDataLocation. The
      * user can configure the location where resources and other user writable items are stored
      * now.
      *
      * @return the configured location for the appdata folder
      */
-    static QString s_overrideAppDataLocation; // This is set from KisApplicationArguments
-    static QString getAppDataLocation();
+    static PkString s_overrideAppDataLocation; // This is set from KisApplicationArguments
+    static PkString getAppDataLocation();
 
     /**
      * @brief getAllAppDataLocationsForWindowsStore Use this to get both private and general appdata folders
@@ -70,7 +72,7 @@ public:
      * @param privateLocation - location in private app %AppData% location, only relevant for Windows Store
      * @return either both appdata locations, or just the custom resource folder
      */
-    static void getAllUserResourceFoldersLocationsForWindowsStore(QString& standardLocation, QString& privateLocation);
+    static void getAllUserResourceFoldersLocationsForWindowsStore(PkString& standardLocation, PkString& privateLocation);
 
     /**
      * Adds suffixes for asset types.
@@ -90,8 +92,8 @@ public:
      * @param priority if true, the directory is added before any other,
      * otherwise after
      */
-    static void addAssetType(const QString &type, const char *basetype,
-                                const QString &relativeName, bool priority = true);
+    static void addAssetType(const PkString &type, const char *basetype,
+                                const PkString &relativeName, bool priority = true);
 
 
     /**
@@ -109,7 +111,7 @@ public:
      * @param priority if true, the directory is added before any other,
      * otherwise after
      */
-    static void addAssetDir(const QString &type, const QString &dir, bool priority = true);
+    static void addAssetDir(const PkString &type, const PkString &dir, bool priority = true);
 
     /**
      * Tries to find a resource in the following order:
@@ -125,17 +127,17 @@ public:
      *
      * Example:
      * @code
-     * QString iconfilename = KStandardPaths::findResource("icon",QString("oxygen/22x22/apps/ktip.png"));
+     * PkString iconfilename = KoResourcePaths::findAsset("icon", "oxygen/22x22/apps/ktip.png");
      * @endcode
      *
      * @param type The type of the wanted resource
      * @param filename A relative filename of the resource.
      *
      * @return A full path to the filename specified in the second
-     *         argument, or QString() if not found.
+     *         argument, or an empty string if not found.
      */
 
-    static QString findAsset(const QString &type, const QString &fileName);
+    static PkString findAsset(const PkString &type, const PkString &fileName);
 
     /**
      * Tries to find all directories whose names consist of the
@@ -155,7 +157,7 @@ public:
      * @return A list of matching directories, or an empty
      *         list if the resource specified is not found.
      */
-    static QStringList findDirs(const QString &type);
+    static PkStringList findDirs(const PkString &type);
 
     /**
      * Tries to find all resources with the specified type.
@@ -167,17 +169,17 @@ public:
      *
      * @param type The type of resource to locate directories for.
      * @param filter Only accept filenames that fit to filter. The filter
-     *        may consist of an optional directory and a QRegExp
+     *        may consist of an optional directory and a wildcard
      *        wildcard expression. E.g. <tt>"images\*.jpg"</tt>.
-     *        Use QString() if you do not want a filter.
+     *        Use an empty string if you do not want a filter.
      * @param options if the flags passed include Recursive, subdirectories
      *        will also be search.
      *
      * @return List of all the files whose filename matches the
      *         specified filter.
      */
-    static QStringList findAllAssets(const QString &type,
-                                        const QString &filter = QString(),
+    static PkStringList findAllAssets(const PkString &type,
+                                        const PkString &filter = PkString(),
                                         SearchOptions options = NoSearchOptions);
 
     /**
@@ -188,7 +190,7 @@ public:
      * Note, that the directories are assured to exist beside the save
      * location, which may not exist, but is returned anyway.
      */
-    static QStringList assetDirs(const QString &type);
+    static PkStringList assetDirs(const PkString &type);
 
     /**
      * Finds a location to save files into for the given type
@@ -205,9 +207,9 @@ public:
      *        needed (including those given by @p suffix).
      *
      * @return A path where resources of the specified type should be
-     *         saved, or QString() if the resource type is unknown.
+     *         saved, or an empty string if the resource type is unknown.
      */
-    static QString saveLocation(const QString &type, const QString &suffix = QString(), bool create = true);
+    static PkString saveLocation(const PkString &type, const PkString &suffix = PkString(), bool create = true);
 
     /**
      * This function is just for convenience. It simply calls
@@ -217,9 +219,9 @@ public:
      * @param filename   A relative filename of the resource
      *
      * @return A full path to the filename specified in the second
-     *         argument, or QString() if not found
+     *         argument, or an empty string if not found
      **/
-    static QString locate(const QString &type, const QString &filename);
+    static PkString locate(const PkString &type, const PkString &filename);
 
     /**
      * This function is much like locate. However it returns a
@@ -232,39 +234,39 @@ public:
      * @param filename   A relative filename of the resource
      *
      * @return A full path to the filename specified in the second
-     *         argument, or QString() if not found
+     *         argument, or an empty string if not found
      **/
-    static QString locateLocal(const QString &type, const QString &filename, bool createDir = false);
+    static PkString locateLocal(const PkString &type, const PkString &filename, bool createDir = false);
 
 private:
 
-    void addResourceTypeInternal(const QString &type, const QString &basetype,
-                                 const QString &relativeName, bool priority);
+    void addResourceTypeInternal(const PkString &type, const PkString &basetype,
+                                 const PkString &relativeName, bool priority);
 
-    void addResourceDirInternal(const QString &type, const QString &absdir, bool priority);
+    void addResourceDirInternal(const PkString &type, const PkString &absdir, bool priority);
 
-    QString findResourceInternal(const QString &type, const QString &fileName);
+    PkString findResourceInternal(const PkString &type, const PkString &fileName);
 
-    QStringList findDirsInternal(const QString &type);
+    PkStringList findDirsInternal(const PkString &type);
 
-    QStringList findAllResourcesInternal(const QString &type,
-                                         const QString &filter = QString(),
+    PkStringList findAllResourcesInternal(const PkString &type,
+                                         const PkString &filter = PkString(),
                                          SearchOptions options = NoSearchOptions) const;
 
-    QStringList resourceDirsInternal(const QString &type);
+    PkStringList resourceDirsInternal(const PkString &type);
 
-    QString saveLocationInternal(const QString &type, const QString &suffix = QString(), bool create = true);
+    PkString saveLocationInternal(const PkString &type, const PkString &suffix = PkString(), bool create = true);
 
-    QString locateInternal(const QString &type, const QString &filename);
+    PkString locateInternal(const PkString &type, const PkString &filename);
 
-    QString locateLocalInternal(const QString &type, const QString &filename, bool createDir = false);
+    PkString locateLocalInternal(const PkString &type, const PkString &filename, bool createDir = false);
 
-    QStringList findExtraResourceDirs() const;
+    PkStringList findExtraResourceDirs() const;
 
     class Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KoResourcePaths::SearchOptions)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KoResourcePaths::SearchOptions)
 
 #endif // KORESOURCEPATHS_H

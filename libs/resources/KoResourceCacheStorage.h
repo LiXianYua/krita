@@ -8,7 +8,7 @@
 #define KORESOURCECACHESTORAGE_H
 
 #include <KoResourceCacheInterface.h>
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 /**
  * A trivial implementation of KoResourceCacheInterface that just
@@ -20,12 +20,12 @@ public:
     KoResourceCacheStorage();
     ~KoResourceCacheStorage();
 
-    QVariant fetch(const QString &key) const override;
-    void put(const QString &key, const QVariant &value) override;
+    PkVariant fetch(const PkString &key) const override;
+    void put(const PkString &key, const PkVariant &value) override;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KORESOURCECACHESTORAGE_H

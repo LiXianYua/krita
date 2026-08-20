@@ -7,7 +7,7 @@
 #define KORESOURCECACHEPREFIXEDSTORAGEWRAPPER_H
 
 #include <KoResourceCacheInterface.h>
-#include <QString>
+#include <PkString.h>
 
 /**
  * A simple wrapper class that converts all the passed cache keys
@@ -21,13 +21,13 @@
 class KRITARESOURCES_EXPORT KoResourceCachePrefixedStorageWrapper : public KoResourceCacheInterface
 {
 public:
-    KoResourceCachePrefixedStorageWrapper(const QString &prefix, KoResourceCacheInterfaceSP baseInterface);
+    KoResourceCachePrefixedStorageWrapper(const PkString &prefix, KoResourceCacheInterfaceSP baseInterface);
 
-    QVariant fetch(const QString &key) const override;
-    void put(const QString &key, const QVariant &value) override;
+    PkVariant fetch(const PkString &key) const override;
+    void put(const PkString &key, const PkVariant &value) override;
 
 private:
-    QString m_prefix;
+    PkString m_prefix;
     KoResourceCacheInterfaceSP m_baseInterface;
 
 };

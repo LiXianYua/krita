@@ -5,201 +5,426 @@
  */
 #include "KoResourcePaths.h"
 
-#include <QGlobalStatic>
-#include <QString>
-#include <QStringList>
-#include <QMap>
-#include <QStandardPaths>
-#include <QDir>
-#include <QFileInfo>
-#include <QDebug>
-#include <QCoreApplication>
-#include <QMutex>
-#include <QRegularExpression>
-#include "kis_debug.h"
-#include "ksharedconfig.h"
-#include "kconfiggroup.h"
-#include "KisResourceLocator.h"
-#include "KisWindowsPackageUtils.h"
+#include "ResourceDebug.h"
 
-Q_GLOBAL_STATIC(KoResourcePaths, s_instance)
+#include <PkConfigGroup.h>
+#include <PkMap.h>
+#include <PkMutex.h>
+#include <PkResourceStorage.h>
+#include <PkSharedConfig.h>
 
-QString KoResourcePaths::s_overrideAppDataLocation;
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <cstdlib>
+#include <filesystem>
+#include <string>
+#include <system_error>
+#include <vector>
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
+namespace fs = std::filesystem;
+
+PkString KoResourcePaths::s_overrideAppDataLocation;
 
 namespace {
 
-static QString cleanup(const QString &path)
+const PkString kResourceLocationKey("ResourceDirectory");
+
+PkString fromPath(const fs::path &path)
 {
-    return QDir::cleanPath(path);
+    const std::string text = path.generic_string();
+    return PkString::PkFromUtf8(text.data(), static_cast<int>(text.size()));
 }
 
-
-static QStringList cleanup(const QStringList &pathList)
+fs::path toPath(const PkString &path)
 {
-    QStringList cleanedPathList;
+    return fs::u8path(path.PkToUtf8());
+}
 
-    bool getRidOfAppDataLocation = KoResourcePaths::getAppDataLocation() != QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    const QString writableLocation = []() {
-        QString location = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        // we have to ensure that the location has a trailing separator, because otherwise when we'll do startsWith
-        // check it will skip paths that start have the same path but different directory name. E.g:
-        // ~/.local/share/krita -> AppDataLocation
-        // ~/.local/share/krita3 -> custom location, but this will be skipped in getRidOfAppDataLocation.
-        if (location.back() == '/') {
-            return location;
+PkString environment(const char *name)
+{
+    const char *value = std::getenv(name);
+    return value ? PkString(value) : PkString();
+}
+
+PkString homePath()
+{
+#ifdef _WIN32
+    PkString value = environment("USERPROFILE");
+    if (value.isEmpty()) {
+        value = environment("HOMEPATH");
+    }
+#else
+    PkString value = environment("HOME");
+#endif
+    if (!value.isEmpty()) {
+        return value;
+    }
+    std::error_code ec;
+    return fromPath(fs::current_path(ec));
+}
+
+PkString platformDir(PkResourceStorage::PlatformDir kind)
+{
+    const PkString home = homePath();
+#ifdef _WIN32
+    switch (kind) {
+    case PkResourceStorage::PlatformDir::AppData:
+    case PkResourceStorage::PlatformDir::AppLocalData: {
+        const PkString appData = environment("APPDATA");
+        return PkResourceStorage::joinPath(appData.isEmpty() ? home : appData, PkString("krita"));
+    }
+    case PkResourceStorage::PlatformDir::GenericData:
+    case PkResourceStorage::PlatformDir::GenericConfig: {
+        const PkString appData = environment("APPDATA");
+        return appData.isEmpty() ? home : appData;
+    }
+    case PkResourceStorage::PlatformDir::Cache: {
+        const PkString local = environment("LOCALAPPDATA");
+        return PkResourceStorage::joinPath(local.isEmpty() ? home : local, PkString("krita/cache"));
+    }
+    case PkResourceStorage::PlatformDir::Home:
+        return home;
+    case PkResourceStorage::PlatformDir::Pictures:
+        return PkResourceStorage::joinPath(home, PkString("Pictures"));
+    }
+#else
+    switch (kind) {
+    case PkResourceStorage::PlatformDir::AppData:
+    case PkResourceStorage::PlatformDir::AppLocalData: {
+        const PkString base = environment("XDG_DATA_HOME");
+        return PkResourceStorage::joinPath(base.isEmpty()
+                                               ? PkResourceStorage::joinPath(home, PkString(".local/share"))
+                                               : base,
+                                           PkString("krita"));
+    }
+    case PkResourceStorage::PlatformDir::GenericData: {
+        const PkString base = environment("XDG_DATA_HOME");
+        return base.isEmpty() ? PkResourceStorage::joinPath(home, PkString(".local/share")) : base;
+    }
+    case PkResourceStorage::PlatformDir::GenericConfig: {
+        const PkString base = environment("XDG_CONFIG_HOME");
+        return base.isEmpty() ? PkResourceStorage::joinPath(home, PkString(".config")) : base;
+    }
+    case PkResourceStorage::PlatformDir::Cache: {
+        const PkString base = environment("XDG_CACHE_HOME");
+        return PkResourceStorage::joinPath(base.isEmpty()
+                                               ? PkResourceStorage::joinPath(home, PkString(".cache"))
+                                               : base,
+                                           PkString("krita"));
+    }
+    case PkResourceStorage::PlatformDir::Home:
+        return home;
+    case PkResourceStorage::PlatformDir::Pictures:
+        return PkResourceStorage::joinPath(home, PkString("Pictures"));
+    }
+#endif
+    return home;
+}
+
+PkStringList splitEnvironmentPaths(const char *name)
+{
+    PkStringList result;
+    const PkString raw = environment(name);
+    if (raw.isEmpty()) {
+        return result;
+    }
+#ifdef _WIN32
+    const char16_t separator = u';';
+#else
+    const char16_t separator = u':';
+#endif
+    for (const PkString &part : raw.split(separator)) {
+        if (!part.isEmpty()) {
+            result.append(part);
+        }
+    }
+    return result;
+}
+
+PkStringList platformSearchDirs(PkResourceStorage::PlatformDir kind)
+{
+    PkStringList result;
+    result.append(platformDir(kind));
+#ifndef _WIN32
+    if (kind == PkResourceStorage::PlatformDir::AppData ||
+        kind == PkResourceStorage::PlatformDir::AppLocalData) {
+        PkStringList system = splitEnvironmentPaths("XDG_DATA_DIRS");
+        if (system.isEmpty()) {
+            system = PkStringList{PkString("/usr/local/share"), PkString("/usr/share")};
+        }
+        for (const PkString &dir : system) {
+            result.append(PkResourceStorage::joinPath(dir, PkString("krita")));
+        }
+    } else if (kind == PkResourceStorage::PlatformDir::GenericData) {
+        PkStringList system = splitEnvironmentPaths("XDG_DATA_DIRS");
+        if (system.isEmpty()) {
+            system = PkStringList{PkString("/usr/local/share"), PkString("/usr/share")};
+        }
+        result += system;
+    }
+#endif
+    result.removeDuplicates();
+    return result;
+}
+
+PkString clean(const PkString &path)
+{
+    return path.isEmpty() ? path : PkResourceStorage::cleanPath(path);
+}
+
+bool hasTrailingSlash(const PkString &path)
+{
+    return !path.isEmpty() && path.at(path.size() - 1) == u'/';
+}
+
+PkString withTrailingSlash(const PkString &path)
+{
+    const PkString cleaned = clean(path);
+    if (cleaned.isEmpty()) {
+        return cleaned;
+    }
+    return hasTrailingSlash(cleaned) ? cleaned : cleaned + PkString("/");
+}
+
+bool startsWithPath(const PkString &path, const PkString &prefix)
+{
+    return withTrailingSlash(clean(path)).startsWith(withTrailingSlash(clean(prefix)));
+}
+
+PkStringList cleanedPaths(const PkStringList &paths, bool addTrailingSlash)
+{
+    PkStringList result;
+    const PkString defaultLocation = platformDir(PkResourceStorage::PlatformDir::AppData);
+    const bool removeDefaultLocation = KoResourcePaths::getAppDataLocation() != defaultLocation;
+    for (const PkString &path : paths) {
+        PkString cleaned = clean(path);
+        if (removeDefaultLocation && startsWithPath(cleaned, defaultLocation)) {
+            continue;
+        }
+        if (addTrailingSlash) {
+            cleaned = withTrailingSlash(cleaned);
+        }
+        if (!cleaned.isEmpty()) {
+            result.append(cleaned);
+        }
+    }
+    return result;
+}
+
+bool pathExists(const PkString &path)
+{
+    std::error_code ec;
+    return !path.isEmpty() && fs::exists(toPath(path), ec);
+}
+
+bool directoryExists(const PkString &path)
+{
+    std::error_code ec;
+    return !path.isEmpty() && fs::is_directory(toPath(path), ec);
+}
+
+bool isAbsolute(const PkString &path)
+{
+    return toPath(path).is_absolute();
+}
+
+bool isWritable(const fs::path &path)
+{
+    std::error_code ec;
+    const fs::perms permissions = fs::status(path, ec).permissions();
+    if (ec) {
+        return false;
+    }
+    const fs::perms writable = fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write;
+    return (permissions & writable) != fs::perms::none;
+}
+
+PkString absolutePath(const PkString &path)
+{
+    std::error_code ec;
+    const fs::path absolute = fs::absolute(toPath(path), ec);
+    return ec ? path : fromPath(absolute.lexically_normal());
+}
+
+bool equalForPlatform(const PkString &lhs, const PkString &rhs)
+{
+#ifdef _WIN32
+    const std::string a = lhs.PkToUtf8();
+    const std::string b = rhs.PkToUtf8();
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        if (std::tolower(static_cast<unsigned char>(a[i])) !=
+            std::tolower(static_cast<unsigned char>(b[i]))) {
+            return false;
+        }
+    }
+    return true;
+#else
+    return lhs == rhs;
+#endif
+}
+
+bool containsForPlatform(const PkStringList &list, const PkString &value)
+{
+    for (const PkString &entry : list) {
+        if (equalForPlatform(entry, value)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void appendResources(PkStringList *destination, const PkStringList &source, bool eliminateDuplicates)
+{
+    for (const PkString &resource : source) {
+        const PkString realPath = clean(resource);
+        if (!realPath.isEmpty() && (!eliminateDuplicates || !destination->contains(realPath))) {
+            destination->append(realPath);
+        }
+    }
+}
+
+PkString installationPrefix()
+{
+    const PkString testPrefix = environment("KIS_TEST_PREFIX_PATH");
+    if (!testPrefix.isEmpty()) {
+        return withTrailingSlash(testPrefix);
+    }
+#ifdef __APPLE__
+    std::vector<char> executableBuffer(1024);
+    uint32_t executableBufferSize = static_cast<uint32_t>(executableBuffer.size());
+    if (_NSGetExecutablePath(executableBuffer.data(), &executableBufferSize) != 0) {
+        executableBuffer.resize(executableBufferSize);
+        _NSGetExecutablePath(executableBuffer.data(), &executableBufferSize);
+    }
+    const fs::path executable = fs::weakly_canonical(fs::path(executableBuffer.data()));
+    const fs::path executableDir = executable.parent_path();
+    if (executableDir.filename() == "MacOS" && executableDir.parent_path().filename() == "Contents") {
+        const fs::path contents = executableDir.parent_path();
+        if (fs::exists(contents / "Resources" / "kritaplugins")) {
+            return withTrailingSlash(fromPath(contents));
+        }
+    }
+    return withTrailingSlash(fromPath(executableDir.parent_path()));
+#elif defined(__ANDROID__)
+    return withTrailingSlash(platformDir(PkResourceStorage::PlatformDir::AppData));
+#else
+#ifdef __linux__
+    std::error_code linkError;
+    const fs::path executable = fs::read_symlink("/proc/self/exe", linkError);
+    if (!linkError) {
+        return withTrailingSlash(fromPath(executable.parent_path().parent_path()));
+    }
+#endif
+    std::error_code currentPathError;
+    return withTrailingSlash(fromPath(fs::current_path(currentPathError)));
+#endif
+}
+
+bool globMatches(const std::string &pattern, const std::string &text)
+{
+    std::size_t p = 0;
+    std::size_t t = 0;
+    std::size_t star = std::string::npos;
+    std::size_t retry = 0;
+    while (t < text.size()) {
+        if (p < pattern.size() && (pattern[p] == '?' || pattern[p] == text[t])) {
+            ++p;
+            ++t;
+        } else if (p < pattern.size() && pattern[p] == '*') {
+            star = p++;
+            retry = t;
+        } else if (star != std::string::npos) {
+            p = star + 1;
+            t = ++retry;
         } else {
-            return QString(location + "/");
+            return false;
         }
-    }();
-
-     Q_FOREACH(const QString &path, pathList) {
-        QString cleanPath = cleanup(path);
-        if (getRidOfAppDataLocation && cleanPath.startsWith(writableLocation)) {
-            continue;
-        }
-        cleanedPathList << cleanPath;
     }
-    return cleanedPathList;
+    while (p < pattern.size() && pattern[p] == '*') {
+        ++p;
+    }
+    return p == pattern.size();
 }
 
-static QStringList cleanupDirs(const QStringList &pathList)
+PkStringList filesInDir(const PkString &startDir, const PkString &filter, bool recursive)
 {
-    QStringList cleanedPathList;
-
-    bool getRidOfAppDataLocation = KoResourcePaths::getAppDataLocation() != QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    const QString writableLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-
-    Q_FOREACH(const QString &path, pathList) {
-        QString cleanPath = QDir::cleanPath(path) + '/';
-        if (getRidOfAppDataLocation && cleanPath.startsWith(writableLocation)) {
-            continue;
-        }
-        cleanedPathList << cleanPath;
+    PkStringList result;
+    std::error_code ec;
+    const fs::path root = toPath(startDir);
+    if (!fs::is_directory(root, ec)) {
+        return result;
     }
-    return cleanedPathList;
+    const std::string pattern = filter.isEmpty() ? "*" : filter.PkToUtf8();
+    std::vector<fs::path> paths;
+    if (recursive) {
+        for (fs::recursive_directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end;
+             it != end; it.increment(ec)) {
+            if (!ec && it->is_regular_file(ec) && globMatches(pattern, it->path().filename().string())) {
+                paths.push_back(it->path());
+            }
+            ec.clear();
+        }
+    } else {
+        for (fs::directory_iterator it(root, fs::directory_options::skip_permission_denied, ec), end;
+             it != end; it.increment(ec)) {
+            if (!ec && it->is_regular_file(ec) && globMatches(pattern, it->path().filename().string())) {
+                paths.push_back(it->path());
+            }
+            ec.clear();
+        }
+    }
+    std::sort(paths.begin(), paths.end());
+    for (const fs::path &path : paths) {
+        result.append(fromPath(path.lexically_normal()));
+    }
+    return result;
 }
 
-void appendResources(QStringList *dst, const QStringList &src, bool eliminateDuplicates)
+KoResourcePaths &instance()
 {
-    Q_FOREACH (const QString &resource, src) {
-        QString realPath = QDir::cleanPath(resource);
-        if (!eliminateDuplicates || !dst->contains(realPath)) {
-            *dst << realPath;
-        }
-    }
+    static KoResourcePaths value;
+    return value;
 }
 
+} // namespace
 
-#ifdef Q_OS_WIN
-static const Qt::CaseSensitivity cs = Qt::CaseInsensitive;
-#else
-static const Qt::CaseSensitivity cs = Qt::CaseSensitive;
-#endif
-
-#ifdef Q_OS_MACOS
-#include <ApplicationServices/ApplicationServices.h>
-#include <CoreFoundation/CoreFoundation.h>
-#include <CoreServices/CoreServices.h>
-#endif
-
-QString getInstallationPrefix() {
-#ifdef Q_OS_MACOS
-    QString appPath = qApp->applicationDirPath();
-
-    dbgResources << "1" << appPath;
-    appPath.chop(QString("MacOS/").length());
-    dbgResources << "2" << appPath;
-
-    bool makeInstall = QDir(appPath + "/../../../share/kritaplugins").exists();
-    bool inBundle = QDir(appPath + "/Resources/kritaplugins").exists();
-
-    QString bundlePath;
-
-    if (inBundle) {
-        bundlePath = appPath + "/";
-    }
-    else if (makeInstall) {
-        appPath.chop(QString("Contents/").length());
-        bundlePath = appPath + "/../../";
-    }
-    else {
-        // This is needed as tests will not run outside of the
-        // install directory without this
-        // This needs krita to be installed.
-        QString envInstallPath = qgetenv("KIS_TEST_PREFIX_PATH");
-        if (!envInstallPath.isEmpty() && (
-                    QDir(envInstallPath + "/share/kritaplugins").exists()
-                    || QDir(envInstallPath + "/Resources/kritaplugins").exists() ))
-        {
-            bundlePath = envInstallPath;
-        }
-        else {
-            qFatal("Cannot calculate the bundle path from the app path");
-            qInfo() << "If running tests set KIS_TEST_PREFIX_PATH to krita install prefix";
-        }
-    }
-
-    return bundlePath;
-#elif defined(Q_OS_HAIKU)
-	return qApp->applicationDirPath() + "/";
-#elif defined(Q_OS_ANDROID)
-    // qApp->applicationDirPath() isn't writable and android system won't allow
-    // any files other than libraries
-    // NOTE the subscript [1]. It points to the internal location.
-    return QStandardPaths::standardLocations(QStandardPaths::AppDataLocation)[1] + "/";
-#else
-    return qApp->applicationDirPath() + "/../";
-#endif
-}
-
-}
-
-class Q_DECL_HIDDEN KoResourcePaths::Private {
+class KoResourcePaths::Private
+{
 public:
-    QMap<QString, QStringList> absolutes; // For each resource type, the list of absolute paths, from most local (most priority) to most global
-    QMap<QString, QStringList> relatives; // Same with relative paths
+    PkMap<PkString, PkStringList> absolutes;
+    PkMap<PkString, PkStringList> relatives;
+    PkMutex relativesMutex;
+    PkMutex absolutesMutex;
 
-    QMutex relativesMutex;
-    QMutex absolutesMutex;
-
-    QStringList aliases(const QString &type)
+    PkStringList aliases(const PkString &type)
     {
-        QStringList r;
-        QStringList a;
+        PkStringList result;
         relativesMutex.lock();
-        if (relatives.contains(type)) {
-            r += relatives[type];
-        }
+        result += relatives.value(type);
         relativesMutex.unlock();
         absolutesMutex.lock();
-        if (absolutes.contains(type)) {
-            a += absolutes[type];
-        }
+        result += absolutes.value(type);
         absolutesMutex.unlock();
-
-        return r + a;
+        return result;
     }
 
-    QStandardPaths::StandardLocation mapTypeToQStandardPaths(const QString &type)
+    PkResourceStorage::PlatformDir mapTypeToPlatformDir(const PkString &type) const
     {
-        if (type == "appdata") {
-            return QStandardPaths::AppDataLocation;
+        if (type == PkString("cache")) {
+            return PkResourceStorage::PlatformDir::Cache;
         }
-        else if (type == "data") {
-            return QStandardPaths::AppDataLocation;
+        if (type == PkString("genericdata")) {
+            return PkResourceStorage::PlatformDir::GenericData;
         }
-        else if (type == "cache") {
-            return QStandardPaths::CacheLocation;
-        }
-        else if (type == "locale") {
-            return QStandardPaths::AppDataLocation;
-        }
-        else if (type == "genericdata") {
-            return QStandardPaths::GenericDataLocation;
-        }
-        else {
-            return QStandardPaths::AppDataLocation;
-        }
+        return PkResourceStorage::PlatformDir::AppData;
     }
 };
 
@@ -208,566 +433,376 @@ KoResourcePaths::KoResourcePaths()
 {
 }
 
-KoResourcePaths::~KoResourcePaths()
+KoResourcePaths::~KoResourcePaths() = default;
+
+PkString KoResourcePaths::getApplicationRoot()
 {
+    return installationPrefix();
 }
 
-QString KoResourcePaths::getApplicationRoot()
-{
-    return getInstallationPrefix();
-}
-
-QString KoResourcePaths::getAppDataLocation()
+PkString KoResourcePaths::getAppDataLocation()
 {
     if (!s_overrideAppDataLocation.isEmpty()) {
-        return s_overrideAppDataLocation;
+        return clean(s_overrideAppDataLocation);
     }
 
-    QString path;
+    const PkString defaultPath = platformDir(PkResourceStorage::PlatformDir::AppData);
+    PkConfigGroup config(PkSharedConfig::openConfig(), PkString());
+    PkString path = config.readEntry(kResourceLocationKey, defaultPath);
 
-    KConfigGroup cfg(KSharedConfig::openConfig(), "");
-    path = cfg.readEntry(KisResourceLocator::resourceLocationKey, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
-
-    QFileInfo fi(path);
-
-#if defined Q_OS_UNIX
-    // Check that path is not a Windows path (e.g., "C:/", "D:/", etc.),
-    // that can happen when a config file from Windows installation is
-    // moved to a Linux system.
-    QRegularExpression windowsPathPattern("^[A-Za-z]:/");
-    if (windowsPathPattern.match(path).hasMatch()) {
-        warnResources << "WARNING: KoResourcePaths::getAppDataLocation(): path appears to be a Windows path! Resetting to default..."
-            << path
-            << "->"
-            << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        fi.setFile(path);
-        cfg.writeEntry(KisResourceLocator::resourceLocationKey, path);
+#ifndef _WIN32
+    const std::string text = path.PkToUtf8();
+    const bool looksLikeWindowsPath = text.size() >= 3 &&
+                                      std::isalpha(static_cast<unsigned char>(text[0])) &&
+                                      text[1] == ':' && text[2] == '/';
+    if (looksLikeWindowsPath) {
+        warnResource << "Resource path uses a Windows prefix; resetting" << path;
+        path = defaultPath;
+        config.writeEntry(kResourceLocationKey, path);
     }
-#elif defined Q_OS_WIN
-    // Check that path is not a Linux path, that can happen when a config
-    // file from Linux installation is moved to a Windows system.
-    QRegularExpression windowsPathPattern("^/[^/]");
-    if (windowsPathPattern.match(path).hasMatch()) {
-        warnResources << "WARNING: KoResourcePaths::getAppDataLocation(): path appears to be a Unix path! Resetting to default..."
-            << path
-            << "->"
-            << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        fi.setFile(path);
-        cfg.writeEntry(KisResourceLocator::resourceLocationKey, path);
-    }
-#endif /* Q_OS_UNIX */
-
-    /**
-     * Our code expects the resources location to be **absolute**. Otherwise functions like
-     * makeStorageLocationRelative() or makeStorageLocationAbsolute() do not work.
-     */
-    if (fi.isRelative()) {
-        warnResources << "WARNING: KoResourcePaths::getAppDataLocation(): resources location is not absolute! Fixing..." << path;
-        path = fi.absoluteFilePath();
-        fi.setFile(path);
-        cfg.writeEntry(KisResourceLocator::resourceLocationKey, path);
-    }
-
-    // Check whether an existing location is writable
-    if (fi.exists() && !fi.isWritable()) {
-        path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    }
-    else if (!fi.exists()) {
-        // Check whether a non-existing location can be created
-        if (!QDir().mkpath(path)) {
-            path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        }
-        QDir().rmpath(path);
-    }
-    return path;
-
-
-}
-
-void KoResourcePaths::getAllUserResourceFoldersLocationsForWindowsStore(QString &standardLocation, QString &privateLocation)
-{
-    standardLocation = "";
-    privateLocation = "";
-    QString resourcePath = QDir(KisResourceLocator::instance()->resourceLocationBase()).absolutePath();
-#ifndef Q_OS_WIN
-    // not Windows, no problem
-    standardLocation = resourcePath;
-    return;
 #else
-    if (!KisWindowsPackageUtils::isRunningInPackage()) {
-        standardLocation = resourcePath; // Windows, but not Windows Store, so no problem
-        return;
+    const std::string text = path.PkToUtf8();
+    if (text.size() >= 2 && text[0] == '/' && text[1] != '/') {
+        warnResource << "Resource path uses a Unix prefix; resetting" << path;
+        path = defaultPath;
+        config.writeEntry(kResourceLocationKey, path);
     }
-
-    // running inside Windows Store
-    const QDir resourceDir(resourcePath);
-    QDir appDataGeneralDir = QDir(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
-    appDataGeneralDir.cdUp();
-    const QString appDataGeneralDirPath = appDataGeneralDir.path();
-    if (resourceDir.absolutePath().contains(appDataGeneralDirPath, Qt::CaseInsensitive)) {
-        // resource folder location is inside appdata, so it can cause issues
-        // from inside of Krita, we can't determine whether it uses genuine %AppData% or the private Windows Store one
-        // so, half of the time, a custom folder inside %AppData% wouldn't work
-        // we can't fix that, we can only inform users about it or prevent them from choosing such folder
-        // in any case, here we need to return both folders: inside normal appdata and the private one
-        // (note that this case also handles the default resource folder called "krita" inside the appdata)
-
-
-        const QString folderName = QFileInfo(resourcePath).fileName();
-
-        const QString privateAppData = KisWindowsPackageUtils::getPackageRoamingAppDataLocation();
-        const QDir privateResourceDir(QDir::fromNativeSeparators(privateAppData) + '/' + folderName);
-
-        standardLocation = resourcePath;
-
-        if (privateResourceDir.exists()) {
-            privateLocation = privateResourceDir.absolutePath();
-        }
-
-        return;
-
-    } else {
-        standardLocation = resourcePath; // custom folder not inside AppData, so no problem (hopefully)
-        return;
-    }
-
 #endif
-}
 
-void KoResourcePaths::addAssetType(const QString &type, const char *basetype,
-                                      const QString &relativeName, bool priority)
-{
-    s_instance->addResourceTypeInternal(type, QString::fromLatin1(basetype), relativeName, priority);
-}
-
-void KoResourcePaths::addAssetDir(const QString &type, const QString &dir, bool priority)
-{
-    s_instance->addResourceDirInternal(type, dir, priority);
-}
-
-QString KoResourcePaths::findAsset(const QString &type, const QString &fileName)
-{
-    return cleanup(s_instance->findResourceInternal(type, fileName));
-}
-
-QStringList KoResourcePaths::findDirs(const QString &type)
-{
-    return cleanupDirs(s_instance->findDirsInternal(type));
-}
-
-QStringList KoResourcePaths::findAllAssets(const QString &type,
-                                              const QString &filter,
-                                              SearchOptions options)
-{
-    return cleanup(s_instance->findAllResourcesInternal(type, filter, options));
-}
-
-QStringList KoResourcePaths::assetDirs(const QString &type)
-{
-    return cleanupDirs(s_instance->resourceDirsInternal(type));
-}
-
-QString KoResourcePaths::saveLocation(const QString &type, const QString &suffix, bool create)
-{
-    return QDir::cleanPath(s_instance->saveLocationInternal(type, suffix, create)) + '/';
-}
-
-QString KoResourcePaths::locate(const QString &type, const QString &filename)
-{
-    return cleanup(s_instance->locateInternal(type, filename));
-}
-
-QString KoResourcePaths::locateLocal(const QString &type, const QString &filename, bool createDir)
-{
-    return cleanup(s_instance->locateLocalInternal(type, filename, createDir));
-}
-
-void KoResourcePaths::addResourceTypeInternal(const QString &type, const QString &basetype,
-                                              const QString &relativename,
-                                              bool priority)
-{
-    Q_UNUSED(basetype);
-    if (relativename.isEmpty()) return;
-
-    QString copy = relativename;
-
-    Q_ASSERT(basetype == "data");
-
-    if (!copy.endsWith(QLatin1Char('/'))) {
-        copy += QLatin1Char('/');
+    if (!isAbsolute(path)) {
+        path = absolutePath(path);
+        config.writeEntry(kResourceLocationKey, path);
     }
 
-    d->relativesMutex.lock();
-    QStringList &rels = d->relatives[type]; // find or insert
-
-    if (!rels.contains(copy, cs)) {
-        if (priority) {
-            rels.prepend(copy);
-        } else {
-            rels.append(copy);
+    const fs::path nativePath = toPath(path);
+    std::error_code ec;
+    if (fs::exists(nativePath, ec)) {
+        if (!isWritable(nativePath)) {
+            path = defaultPath;
         }
+    } else {
+        ec.clear();
+        const bool created = fs::create_directories(nativePath, ec);
+        if (ec) {
+            path = defaultPath;
+        } else if (created) {
+            fs::remove(nativePath, ec);
+        }
+    }
+    return clean(path);
+}
+
+void KoResourcePaths::getAllUserResourceFoldersLocationsForWindowsStore(PkString &standardLocation,
+                                                                         PkString &privateLocation)
+{
+    standardLocation = getAppDataLocation();
+    privateLocation = PkString();
+}
+
+void KoResourcePaths::addAssetType(const PkString &type, const char *baseType,
+                                   const PkString &relativeName, bool priority)
+{
+    instance().addResourceTypeInternal(type, PkString(baseType ? baseType : ""), relativeName, priority);
+}
+
+void KoResourcePaths::addAssetDir(const PkString &type, const PkString &dir, bool priority)
+{
+    instance().addResourceDirInternal(type, dir, priority);
+}
+
+PkString KoResourcePaths::findAsset(const PkString &type, const PkString &fileName)
+{
+    return clean(instance().findResourceInternal(type, fileName));
+}
+
+PkStringList KoResourcePaths::findDirs(const PkString &type)
+{
+    return cleanedPaths(instance().findDirsInternal(type), true);
+}
+
+PkStringList KoResourcePaths::findAllAssets(const PkString &type, const PkString &filter,
+                                            SearchOptions options)
+{
+    return cleanedPaths(instance().findAllResourcesInternal(type, filter, options), false);
+}
+
+PkStringList KoResourcePaths::assetDirs(const PkString &type)
+{
+    return cleanedPaths(instance().resourceDirsInternal(type), true);
+}
+
+PkString KoResourcePaths::saveLocation(const PkString &type, const PkString &suffix, bool create)
+{
+    return withTrailingSlash(instance().saveLocationInternal(type, suffix, create));
+}
+
+PkString KoResourcePaths::locate(const PkString &type, const PkString &filename)
+{
+    return clean(instance().locateInternal(type, filename));
+}
+
+PkString KoResourcePaths::locateLocal(const PkString &type, const PkString &filename, bool createDir)
+{
+    return clean(instance().locateLocalInternal(type, filename, createDir));
+}
+
+void KoResourcePaths::addResourceTypeInternal(const PkString &type, const PkString &baseType,
+                                              const PkString &relativeName, bool priority)
+{
+    if (relativeName.isEmpty()) {
+        return;
+    }
+    assert(baseType == PkString("data"));
+    const PkString copy = withTrailingSlash(relativeName);
+    d->relativesMutex.lock();
+    PkStringList &paths = d->relatives[type];
+    if (!containsForPlatform(paths, copy)) {
+        priority ? paths.prepend(copy) : paths.append(copy);
     }
     d->relativesMutex.unlock();
-
-    dbgResources << "addResourceType: type" << type << "basetype" << basetype << "relativename" << relativename << "priority" << priority << d->relatives[type];
 }
 
-void KoResourcePaths::addResourceDirInternal(const QString &type, const QString &absdir, bool priority)
+void KoResourcePaths::addResourceDirInternal(const PkString &type, const PkString &absoluteDir,
+                                             bool priority)
 {
-    if (absdir.isEmpty() || type.isEmpty()) return;
-
-    // find or insert entry in the map
-    QString copy = absdir;
-    if (copy.at(copy.length() - 1) != QLatin1Char('/')) {
-        copy += QLatin1Char('/');
+    if (absoluteDir.isEmpty() || type.isEmpty()) {
+        return;
     }
-
+    const PkString copy = withTrailingSlash(absoluteDir);
     d->absolutesMutex.lock();
-    QStringList &paths = d->absolutes[type];
-    if (!paths.contains(copy, cs)) {
-        if (priority) {
-            paths.prepend(copy);
-        } else {
-            paths.append(copy);
-        }
+    PkStringList &paths = d->absolutes[type];
+    if (!containsForPlatform(paths, copy)) {
+        priority ? paths.prepend(copy) : paths.append(copy);
     }
     d->absolutesMutex.unlock();
-
-    dbgResources << "addResourceDir: type" << type << "absdir" << absdir << "priority" << priority << d->absolutes[type];
 }
 
-QString KoResourcePaths::findResourceInternal(const QString &type, const QString &fileName)
+PkString KoResourcePaths::findResourceInternal(const PkString &type, const PkString &fileName)
 {
-    QStringList aliases = d->aliases(type);
-    dbgResources<< "aliases" << aliases << getApplicationRoot();
-    QString resource = QStandardPaths::locate(QStandardPaths::AppDataLocation, fileName, QStandardPaths::LocateFile);
-
-    if (resource.isEmpty()) {
-        Q_FOREACH (const QString &alias, aliases) {
-            resource = QStandardPaths::locate(d->mapTypeToQStandardPaths(type), alias + '/' + fileName, QStandardPaths::LocateFile);
-            if (QFile::exists(resource)) {
-                break;
-            }
+    const PkStringList aliases = d->aliases(type);
+    const PkStringList roots = platformSearchDirs(d->mapTypeToPlatformDir(type));
+    for (const PkString &root : roots) {
+        const PkString direct = PkResourceStorage::joinPath(root, fileName);
+        if (pathExists(direct)) {
+            return direct;
         }
-    }
-    if (resource.isEmpty() || !QFile::exists(resource)) {
-        QString approot = getApplicationRoot();
-        Q_FOREACH (const QString &alias, aliases) {
-            resource = approot + "/share/" + alias + '/' + fileName;
-            if (QFile::exists(resource)) {
-                break;
-            }
-        }
-    }
-    if (resource.isEmpty() || !QFile::exists(resource)) {
-        QString approot = getApplicationRoot();
-        Q_FOREACH (const QString &alias, aliases) {
-            resource = approot + "/share/krita/" + alias + '/' + fileName;
-            if (QFile::exists(resource)) {
-                break;
+        for (const PkString &alias : aliases) {
+            const PkString candidate = isAbsolute(alias)
+                                           ? PkResourceStorage::joinPath(alias, fileName)
+                                           : PkResourceStorage::joinPath(
+                                                 PkResourceStorage::joinPath(root, alias), fileName);
+            if (pathExists(candidate)) {
+                return candidate;
             }
         }
     }
 
-    if (resource.isEmpty() || !QFile::exists(resource)) {
-        QStringList extraResourceDirs = findExtraResourceDirs();
-
-        if (!extraResourceDirs.isEmpty()) {
-            Q_FOREACH(const QString &extraResourceDir, extraResourceDirs) {
-                if (aliases.isEmpty()) {
-                    resource = extraResourceDir + '/' + fileName;
-                    dbgResources<< "\t4" << resource;
-                    if (QFile::exists(resource)) {
-                        break;
-                    }
-                }
-                else {
-                    Q_FOREACH (const QString &alias, aliases) {
-                        resource = extraResourceDir + '/' + alias + '/' + fileName;
-                        dbgResources<< "\t4" << resource;
-                        if (QFile::exists(resource)) {
-                            break;
-                        }
-                    }
-                }
-            }
+    const PkString prefix = installationPrefix();
+    for (const PkString &alias : aliases) {
+        const PkString share = PkResourceStorage::joinPath(
+            PkResourceStorage::joinPath(PkResourceStorage::joinPath(prefix, PkString("share")), alias), fileName);
+        if (pathExists(share)) {
+            return share;
+        }
+        const PkString kritaShare = PkResourceStorage::joinPath(
+            PkResourceStorage::joinPath(
+                PkResourceStorage::joinPath(prefix, PkString("share/krita")), alias), fileName);
+        if (pathExists(kritaShare)) {
+            return kritaShare;
         }
     }
 
-    dbgResources<< "findResource: type" << type << "filename" << fileName << "resource" << resource;
-    Q_ASSERT(!resource.isEmpty());
-    return resource;
+    for (const PkString &extra : findExtraResourceDirs()) {
+        if (aliases.isEmpty()) {
+            const PkString candidate = PkResourceStorage::joinPath(extra, fileName);
+            if (pathExists(candidate)) {
+                return candidate;
+            }
+        }
+        for (const PkString &alias : aliases) {
+            const PkString candidate = PkResourceStorage::joinPath(
+                PkResourceStorage::joinPath(extra, alias), fileName);
+            if (pathExists(candidate)) {
+                return candidate;
+            }
+        }
+    }
+    return PkString();
 }
 
-
-QStringList filesInDir(const QString &startdir, const QString & filter, bool recursive)
+PkStringList KoResourcePaths::findDirsInternal(const PkString &type)
 {
-    dbgResources << "filesInDir: startdir" << startdir << "filter" << filter << "recursive" << recursive;
-    QStringList result;
-
-    // First the entries in this path
-    QStringList nameFilters;
-    nameFilters << filter;
-    const QStringList fileNames = QDir(startdir).entryList(nameFilters, QDir::Files | QDir::CaseSensitive, QDir::Name);
-    dbgResources << "\tFound:" << fileNames.size() << ":" << fileNames;
-    Q_FOREACH (const QString &fileName, fileNames) {
-        QString file = startdir + '/' + fileName;
-        result << file;
-    }
-
-    // And then everything underneath, if recursive is specified
-    if (recursive) {
-        const QStringList entries = QDir(startdir).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-        Q_FOREACH (const QString &subdir, entries) {
-            dbgResources << "\tGoing to look in subdir" << subdir << "of" << startdir;
-            result << filesInDir(startdir + '/' + subdir, filter, recursive);
+    PkStringList dirs;
+    const PkStringList roots = platformSearchDirs(d->mapTypeToPlatformDir(type));
+    for (const PkString &root : roots) {
+        if (directoryExists(root)) {
+            appendResources(&dirs, PkStringList{root}, true);
         }
+    }
+    const PkString prefix = installationPrefix();
+    for (const PkString &alias : d->aliases(type)) {
+        for (const PkString &root : roots) {
+            const PkString candidate = isAbsolute(alias) ? alias : PkResourceStorage::joinPath(root, alias);
+            if (directoryExists(candidate)) {
+                appendResources(&dirs, PkStringList{candidate}, true);
+            }
+        }
+        appendResources(&dirs,
+                        PkStringList{
+                            PkResourceStorage::joinPath(
+                                PkResourceStorage::joinPath(prefix, PkString("share")), alias),
+                            PkResourceStorage::joinPath(
+                                PkResourceStorage::joinPath(prefix, PkString("share/krita")), alias)},
+                        true);
+    }
+    appendResources(&dirs, PkStringList{saveLocationInternal(type, PkString(), true)}, true);
+    return dirs;
+}
+
+PkStringList KoResourcePaths::findAllResourcesInternal(const PkString &type,
+                                                       const PkString &inputFilter,
+                                                       SearchOptions options) const
+{
+    const bool recursive = options.testFlag(Recursive);
+    PkStringList aliases = d->aliases(type);
+    std::string filterText = inputFilter.isEmpty() ? "*" : inputFilter.PkToUtf8();
+    const std::size_t star = filterText.find('*');
+    if (star != std::string::npos && star > 0) {
+        std::string directoryPart = filterText.substr(0, star);
+        while (!directoryPart.empty() && directoryPart.back() == '/') {
+            directoryPart.pop_back();
+        }
+        if (!directoryPart.empty()) {
+            aliases.append(PkString(directoryPart.c_str()));
+        }
+        filterText = filterText.substr(star);
+    }
+    const PkString filter(filterText.c_str());
+
+    PkStringList directories;
+    const PkStringList roots = platformSearchDirs(d->mapTypeToPlatformDir(type));
+    if (aliases.isEmpty()) {
+        directories += roots;
+    }
+    for (const PkString &alias : aliases) {
+        if (isAbsolute(alias)) {
+            directories.append(alias);
+        } else {
+            for (const PkString &root : roots) {
+                directories.append(PkResourceStorage::joinPath(root, alias));
+            }
+            directories.append(PkResourceStorage::joinPath(
+                PkResourceStorage::joinPath(installationPrefix(), PkString("share")), alias));
+            directories.append(PkResourceStorage::joinPath(
+                PkResourceStorage::joinPath(installationPrefix(), PkString("share/krita")), alias));
+        }
+    }
+    for (const PkString &extra : findExtraResourceDirs()) {
+        if (aliases.isEmpty()) {
+            directories.append(PkResourceStorage::joinPath(extra, type));
+        } else {
+            for (const PkString &alias : aliases) {
+                directories.append(PkResourceStorage::joinPath(extra, alias));
+            }
+        }
+    }
+    directories.removeDuplicates();
+
+    PkStringList resources;
+    for (const PkString &dir : directories) {
+        appendResources(&resources, filesInDir(dir, filter, recursive), true);
+    }
+    return resources;
+}
+
+PkStringList KoResourcePaths::resourceDirsInternal(const PkString &type)
+{
+    PkStringList result;
+    const PkStringList roots = platformSearchDirs(d->mapTypeToPlatformDir(type));
+    for (const PkString &alias : d->aliases(type)) {
+        if (isAbsolute(alias)) {
+            appendResources(&result, PkStringList{alias}, true);
+            continue;
+        }
+        for (const PkString &root : roots) {
+            const PkString candidate = PkResourceStorage::joinPath(root, alias);
+            if (directoryExists(candidate)) {
+                appendResources(&result, PkStringList{candidate}, true);
+            }
+        }
+        appendResources(&result,
+                        PkStringList{
+                            PkResourceStorage::joinPath(
+                                PkResourceStorage::joinPath(installationPrefix(), PkString("share")), alias),
+                            PkResourceStorage::joinPath(
+                                PkResourceStorage::joinPath(installationPrefix(), PkString("share/krita")), alias)},
+                        true);
     }
     return result;
 }
 
-QStringList KoResourcePaths::findDirsInternal(const QString &type)
+PkString KoResourcePaths::saveLocationInternal(const PkString &type, const PkString &suffix, bool create)
 {
-    QStringList aliases = d->aliases(type);
-    dbgResources << type << aliases << d->mapTypeToQStandardPaths(type);
-
-    QStringList dirs;
-    QStringList standardDirs =
-            QStandardPaths::locateAll(d->mapTypeToQStandardPaths(type), "", QStandardPaths::LocateDirectory);
-
-    appendResources(&dirs, standardDirs, true);
-
-    Q_FOREACH (const QString &alias, aliases) {
-        QStringList aliasDirs =
-                QStandardPaths::locateAll(d->mapTypeToQStandardPaths(type), alias + '/', QStandardPaths::LocateDirectory);
-        appendResources(&dirs, aliasDirs, true);
-
-#ifdef Q_OS_MACOS
-        dbgResources << "MAC:" << getApplicationRoot();
-        QStringList bundlePaths;
-        bundlePaths << getApplicationRoot() + "/share/krita/" + alias;
-        bundlePaths << getApplicationRoot() + "/../share/krita/" + alias;
-        dbgResources << "bundlePaths" << bundlePaths;
-        appendResources(&dirs, bundlePaths, true);
-        Q_ASSERT(!dirs.isEmpty());
-#endif
-
-        QStringList fallbackPaths;
-        fallbackPaths << getApplicationRoot() + "/share/" + alias;
-        fallbackPaths << getApplicationRoot() + "/share/krita/" + alias;
-        appendResources(&dirs, fallbackPaths, true);
-
+    const PkResourceStorage::PlatformDir location = d->mapTypeToPlatformDir(type);
+    PkString path;
+    if (location == PkResourceStorage::PlatformDir::AppData) {
+        PkConfigGroup config(PkSharedConfig::openConfig(), PkString());
+        path = config.readEntry(kResourceLocationKey, PkString());
     }
-
-    QStringList saveLocationList;
-    saveLocationList << saveLocation(type, QString(), true);
-    appendResources(&dirs, saveLocationList, true);
-
-    dbgResources << "findDirs: type" << type << "resource" << dirs;
-    return dirs;
-}
-
-
-QStringList KoResourcePaths::findAllResourcesInternal(const QString &type,
-                                                      const QString &_filter,
-                                                      SearchOptions options) const
-{
-    dbgResources << "=====================================================";
-    dbgResources << type << _filter << QStandardPaths::standardLocations(d->mapTypeToQStandardPaths(type));
-
-    bool recursive = options & KoResourcePaths::Recursive;
-
-    dbgResources << "findAllResources: type" << type << "filter" << _filter << "recursive" << recursive;
-
-    QStringList aliases = d->aliases(type);
-    QString filter = _filter;
-
-    // In cases where the filter  is like "color-schemes/*.colors" instead of "*.kpp", used with unregistered resource types
-    if (filter.indexOf('*') > 0) {
-        aliases << filter.split('*').first();
-        filter = '*' + filter.split('*')[1];
-        dbgResources << "Split up alias" << aliases << "filter" << filter;
-    }
-
-    QStringList resources;
-    if (aliases.isEmpty()) {
-        QStringList standardResources =
-                QStandardPaths::locateAll(d->mapTypeToQStandardPaths(type),
-                                          filter, QStandardPaths::LocateFile);
-        dbgResources << "standardResources" << standardResources;
-        appendResources(&resources, standardResources, true);
-        dbgResources << "1" << resources;
-    }
-
-    QStringList extraResourceDirs = findExtraResourceDirs();
-
-    if (!extraResourceDirs.isEmpty()) {
-        Q_FOREACH(const QString &extraResourceDir, extraResourceDirs) {
-            if (aliases.isEmpty()) {
-                appendResources(&resources, filesInDir(extraResourceDir + '/' + type, filter, recursive), true);
-            }
-            else {
-                Q_FOREACH (const QString &alias, aliases) {
-                    appendResources(&resources, filesInDir(extraResourceDir + '/' + alias + '/', filter, recursive), true);
-                }
-            }
-        }
-
-    }
-
-    dbgResources << "\tresources from qstandardpaths:" << resources.size();
-
-    Q_FOREACH (const QString &alias, aliases) {
-        dbgResources << "\t\talias:" << alias;
-        QStringList dirs;
-
-        QFileInfo dirInfo(alias);
-        if (dirInfo.exists() && dirInfo.isDir() && dirInfo.isAbsolute()) {
-            dirs << alias;
-        } else {
-            dirs << QStandardPaths::locateAll(d->mapTypeToQStandardPaths(type), alias, QStandardPaths::LocateDirectory)
-                 << getInstallationPrefix() + "share/" + alias + "/"
-                 << getInstallationPrefix() + "share/krita/" + alias + "/";
-        }
-
-        Q_FOREACH (const QString &dir, dirs) {
-            appendResources(&resources,
-                            filesInDir(dir, filter, recursive),
-                            true);
-        }
-    }
-
-    dbgResources << "\tresources also from aliases:" << resources.size();
-
-    // if the original filter is "input/*", we only want share/input/* and share/krita/input/* here, but not
-    // share/*. therefore, use _filter here instead of filter which was split into alias and "*".
-    QFileInfo fi(_filter);
-
-    QStringList prefixResources;
-    prefixResources << filesInDir(getInstallationPrefix() + "share/" + fi.path(), fi.fileName(), false);
-    prefixResources << filesInDir(getInstallationPrefix() + "share/krita/" + fi.path(), fi.fileName(), false);
-    appendResources(&resources, prefixResources, true);
-
-    dbgResources << "\tresources from installation:" << resources.size();
-    dbgResources << "=====================================================";
-
-    return resources;
-}
-
-QStringList KoResourcePaths::resourceDirsInternal(const QString &type)
-{
-    QStringList resourceDirs;
-    QStringList aliases = d->aliases(type);
-
-    Q_FOREACH (const QString &alias, aliases) {
-        QStringList aliasDirs;
-
-        aliasDirs << QStandardPaths::locateAll(d->mapTypeToQStandardPaths(type), alias, QStandardPaths::LocateDirectory);
-
-        aliasDirs << getInstallationPrefix() + "share/" + alias + "/"
-                  << QStandardPaths::locateAll(d->mapTypeToQStandardPaths(type), alias, QStandardPaths::LocateDirectory);
-        aliasDirs << getInstallationPrefix() + "share/krita/" + alias + "/"
-                  << QStandardPaths::locateAll(d->mapTypeToQStandardPaths(type), alias, QStandardPaths::LocateDirectory);
-
-        appendResources(&resourceDirs, aliasDirs, true);
-    }
-
-    dbgResources << "resourceDirs: type" << type << resourceDirs;
-
-    return resourceDirs;
-}
-
-QString KoResourcePaths::saveLocationInternal(const QString &type, const QString &suffix, bool create)
-{
-    QString path;
-
-    bool useStandardLocation = false;
-    const QStringList aliases = d->aliases(type);
-    const QStandardPaths::StandardLocation location = d->mapTypeToQStandardPaths(type);
-
-    if (location == QStandardPaths::AppDataLocation) {
-        KConfigGroup cfg(KSharedConfig::openConfig(), "");
-        path = cfg.readEntry(KisResourceLocator::resourceLocationKey, "");
-    }
-
     if (path.isEmpty()) {
-        path = QStandardPaths::writableLocation(location);
-        useStandardLocation = true;
+        path = platformDir(location);
     }
 
-#ifndef Q_OS_ANDROID
-    // on Android almost all config locations we save to are app specific,
-    // and don't end with "krita".
-    if (!path.endsWith("krita") && useStandardLocation) {
-        path += "/krita";
-    }
-#endif
-
+    const PkStringList aliases = d->aliases(type);
     if (!aliases.isEmpty()) {
-        path += '/' + aliases.first();
-    } else {
+        path = PkResourceStorage::joinPath(path, aliases.first());
+    } else if (!suffix.isEmpty()) {
+        path = PkResourceStorage::joinPath(path, suffix);
+    }
 
-        if (!suffix.isEmpty()) {
-            path += "/" + suffix;
+    if (create) {
+        std::error_code ec;
+        fs::create_directories(toPath(path), ec);
+        if (ec) {
+            warnResource << "Unable to create resource directory" << path;
+        }
+    }
+    return clean(path);
+}
+
+PkString KoResourcePaths::locateInternal(const PkString &type, const PkString &filename)
+{
+    return findResourceInternal(type, filename);
+}
+
+PkString KoResourcePaths::locateLocalInternal(const PkString &type, const PkString &filename,
+                                              bool createDir)
+{
+    return PkResourceStorage::joinPath(saveLocationInternal(type, PkString(), createDir), filename);
+}
+
+PkStringList KoResourcePaths::findExtraResourceDirs() const
+{
+    PkStringList result;
+    const PkString raw = environment("EXTRA_RESOURCE_DIRS");
+    if (!raw.isEmpty()) {
+        for (const PkString &entry : raw.split(u';')) {
+            if (!entry.isEmpty()) {
+                result.append(entry);
+            }
         }
     }
 
-    QDir d(path);
-    if (!d.exists() && create) {
-        d.mkpath(path);
-    }
-    dbgResources << "saveLocation: type" << type << "suffix" << suffix << "create" << create << "path" << path;
-
-    return path;
-}
-
-QString KoResourcePaths::locateInternal(const QString &type, const QString &filename)
-{
-    QStringList aliases = d->aliases(type);
-
-    QStringList locations;
-    if (aliases.isEmpty()) {
-        locations << QStandardPaths::locate(d->mapTypeToQStandardPaths(type), filename, QStandardPaths::LocateFile);
-    }
-
-    Q_FOREACH (const QString &alias, aliases) {
-        locations << QStandardPaths::locate(d->mapTypeToQStandardPaths(type),
-                                            (alias.endsWith('/') ? alias : alias + '/') + filename, QStandardPaths::LocateFile);
-    }
-    dbgResources << "locate: type" << type << "filename" << filename << "locations" << locations;
-    if (locations.size() > 0) {
-        return locations.first();
-    }
-    else {
-        return "";
-    }
-}
-
-QString KoResourcePaths::locateLocalInternal(const QString &type, const QString &filename, bool createDir)
-{
-    QString path = saveLocationInternal(type, "", createDir);
-    dbgResources << "locateLocal: type" << type << "filename" << filename << "CreateDir" << createDir << "path" << path;
-    return path + '/' + filename;
-}
-
-QStringList KoResourcePaths::findExtraResourceDirs() const
-{
-    QStringList extraResourceDirs =
-        QString::fromUtf8(qgetenv("EXTRA_RESOURCE_DIRS"))
-            .split(';', Qt::SkipEmptyParts);
-
-    const KConfigGroup cfg(KSharedConfig::openConfig(), "");
-    const QString customPath =
-        cfg.readEntry(KisResourceLocator::resourceLocationKey, "");
+    const PkConfigGroup config(PkSharedConfig::openConfig(), PkString());
+    const PkString customPath = config.readEntry(kResourceLocationKey, PkString());
     if (!customPath.isEmpty()) {
-        extraResourceDirs << customPath;
+        result.append(customPath);
     }
-
-    if (getAppDataLocation() != QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)) {
-        extraResourceDirs << getAppDataLocation();
+    const PkString defaultPath = platformDir(PkResourceStorage::PlatformDir::AppData);
+    const PkString appDataPath = getAppDataLocation();
+    if (appDataPath != defaultPath) {
+        result.append(appDataPath);
     }
-
-    return extraResourceDirs;
+    result.removeDuplicates();
+    return result;
 }
