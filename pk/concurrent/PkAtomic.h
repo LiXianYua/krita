@@ -5,22 +5,22 @@
 // 替代 <QAtomicInt>。方法面 = 保留范围内实测用到的 5 个：
 // operator int()/operator=/ref()/deref()/fetchAndAddOrdered/
 // fetchAndStoreOrdered/testAndSetOrdered。内存序判读见本任务 plan 的
-// "内存序判读表"——ref()/deref() 与隐式 load/store 用 relaxed（对齐 Qt
-// 默认行为），*Ordered() 系列显式方法用 seq_cst（调用点自己要求的）。
+// "内存序判读表"——Qt 5.15 默认隐式 load/store 分别用 acquire/release，
+// ref()/deref() 用 ordered（seq_cst）。
 class PkAtomicInt {
 public:
     PkAtomicInt(int value = 0) : m_v(value) {}
 
-    operator int() const { return m_v.load(std::memory_order_relaxed); }
+    operator int() const { return m_v.load(std::memory_order_acquire); }
     PkAtomicInt& operator=(int value) {
-        m_v.store(value, std::memory_order_relaxed);
+        m_v.store(value, std::memory_order_release);
         return *this;
     }
 
     // Qt 语义：返回的是自增/自减后的"新值"是否非零，不是旧值、不是
     // 成功与否。fetch_add 返回旧值，+1/-1 换算成新值再判断。
-    bool ref()   { return m_v.fetch_add(1, std::memory_order_relaxed) + 1 != 0; }
-    bool deref() { return m_v.fetch_sub(1, std::memory_order_relaxed) - 1 != 0; }
+    bool ref()   { return m_v.fetch_add(1, std::memory_order_seq_cst) + 1 != 0; }
+    bool deref() { return m_v.fetch_sub(1, std::memory_order_seq_cst) - 1 != 0; }
 
     // Qt 语义：返回相加/交换前的旧值。
     int fetchAndAddOrdered(int valueToAdd) {
@@ -64,10 +64,10 @@ class PkAtomicPointer {
 public:
     PkAtomicPointer(T* value = nullptr) : m_v(value) {}
 
-    operator T*() const { return m_v.load(std::memory_order_relaxed); }
-    T* operator->() const { return m_v.load(std::memory_order_relaxed); }
+    operator T*() const { return m_v.load(std::memory_order_acquire); }
+    T* operator->() const { return m_v.load(std::memory_order_acquire); }
     PkAtomicPointer& operator=(T* value) {
-        m_v.store(value, std::memory_order_relaxed);
+        m_v.store(value, std::memory_order_release);
         return *this;
     }
 

@@ -2,6 +2,27 @@
 #include "../PkAtomic.h"
 #include <thread>
 #include <vector>
+#include <fstream>
+#include <sstream>
+#include <string>
+
+namespace {
+std::string atomicHeader()
+{
+    std::string path = __FILE__;
+    path.replace(path.rfind("tests/test_atomic.cpp"), sizeof("tests/test_atomic.cpp") - 1,
+                 "PkAtomic.h");
+    std::ifstream input(path);
+    std::ostringstream contents;
+    contents << input.rdbuf();
+    return contents.str();
+}
+
+void verifyHeaderContract(const char *fragment)
+{
+    PK_VERIFY(atomicHeader().find(fragment) != std::string::npos);
+}
+}
 
 void TestAtomic::testDefaultConstruct()
 {
@@ -174,6 +195,56 @@ void TestAtomic::testAtomicPointerFetchAndAddRelaxedAcquire()
     int* old2 = p.fetchAndAddAcquire(2);
     PK_COMPARE(old2, &arr[1]);
     PK_COMPARE(p.loadRelaxed(), &arr[3]);
+}
+
+void TestAtomic::testImplicitIntLoadAcquire()
+{
+    PkAtomicInt payload(0), ready(0);
+    std::thread writer([&] { payload.storeRelaxed(42); ready = 1; });
+    while ((int)ready == 0) std::this_thread::yield();
+    writer.join();
+    PK_COMPARE(payload.loadRelaxed(), 42);
+    verifyHeaderContract("operator int() const { return m_v.load(std::memory_order_acquire); }");
+}
+
+void TestAtomic::testImplicitIntStoreRelease()
+{
+    verifyHeaderContract("PkAtomicInt& operator=(int value) {\n        m_v.store(value, std::memory_order_release);");
+}
+
+void TestAtomic::testRefSeqCst()
+{
+    PkAtomicInt value(0);
+    PK_VERIFY(value.ref());
+    verifyHeaderContract("m_v.fetch_add(1, std::memory_order_seq_cst)");
+}
+
+void TestAtomic::testDerefSeqCst()
+{
+    PkAtomicInt value(1);
+    PK_VERIFY(!value.deref());
+    verifyHeaderContract("m_v.fetch_sub(1, std::memory_order_seq_cst)");
+}
+
+void TestAtomic::testImplicitPointerLoadAcquire()
+{
+    verifyHeaderContract("operator T*() const { return m_v.load(std::memory_order_acquire); }");
+}
+
+void TestAtomic::testImplicitPointerArrowAcquire()
+{
+    struct Payload { int value; } payload{42};
+    PkAtomicPointer<Payload> pointer;
+    std::thread writer([&] { pointer = &payload; });
+    while ((Payload *)pointer == nullptr) std::this_thread::yield();
+    writer.join();
+    PK_COMPARE(pointer->value, 42);
+    verifyHeaderContract("operator->() const { return m_v.load(std::memory_order_acquire); }");
+}
+
+void TestAtomic::testImplicitPointerStoreRelease()
+{
+    verifyHeaderContract("PkAtomicPointer& operator=(T* value) {\n        m_v.store(value, std::memory_order_release);");
 }
 
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU

@@ -21,4 +21,11 @@ private Q_SLOTS:
     void testAcquireReleaseSequencing();
     void testAtomicPointerLoadStoreRelaxedAcquireRelease();
     void testAtomicPointerFetchAndAddRelaxedAcquire();
+    void testImplicitIntLoadAcquire();
+    void testImplicitIntStoreRelease();
+    void testRefSeqCst();
+    void testDerefSeqCst();
+    void testImplicitPointerLoadAcquire();
+    void testImplicitPointerArrowAcquire();
+    void testImplicitPointerStoreRelease();
 };

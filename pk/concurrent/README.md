@@ -51,9 +51,9 @@
 
 | 方法 | 调用点示例 | 语义需求 | 实现内存序 | 判据 |
 |---|---|---|---|---|
-| `operator int()` (implicit load) | `if (m_frameSize > ...)`（kis_lockless_stack.h） | 非同步化场景，放宽 | `memory_order_relaxed` | 隐式读，无明确同步 |
-| `operator=()` (implicit store) | `m_bufferIndex = 0`（kis_lockless_stack.h） | 非同步化场景，放宽 | `memory_order_relaxed` | 隐式写，无明确同步 |
-| `ref()` / `deref()` | `if (m_refCount.deref())`（KisGlobalResourcesInterface）| Qt 语义：是否还有其他引用者，读后判断需相对强序 | `memory_order_relaxed` | Qt 默认行为；无跨线程 sync-before 需求 |
+| `operator int()` (implicit load) | `if (m_frameSize > ...)`（kis_lockless_stack.h） | Qt 5.15 implicit load 默认 acquire | `memory_order_acquire` | Qt 头文件 `loadAcquire()` 映射 |
+| `operator=()` (implicit store) | `m_bufferIndex = 0`（kis_lockless_stack.h） | Qt 5.15 implicit store 默认 release | `memory_order_release` | Qt 头文件 `storeRelease()` 映射 |
+| `ref()` / `deref()` | `if (m_refCount.deref())`（KisGlobalResourcesInterface）| Qt 5.15 默认调用 ordered ref/deref | `memory_order_seq_cst` | Qt 头文件 `ref()`/`deref()` 映射到 ordered |
 | `fetchAndAddOrdered()` | `m_refCount.fetchAndAddOrdered(-1)`（kis_stress_job.cpp） | 明确名字"Ordered" → 全同步化（seq_cst）| `memory_order_seq_cst` | 调用点显式要求 |
 | `fetchAndStoreOrdered()` | `old = m_p.fetchAndStoreOrdered(nullptr)`（kis_lockless_stack.h） | 明确名字"Ordered" → 全同步化（seq_cst） | `memory_order_seq_cst` | 调用点显式要求 |
 | `testAndSetOrdered()` | `while (!m_p.testAndSetOrdered(nullptr, new))`（kis_lockless_stack.h） | CAS 循环同步需求强，用 seq_cst | `memory_order_seq_cst` | 调用点显式要求；CAS 强序 |
@@ -68,7 +68,7 @@
 | `PkSemaphore::tryAcquire()` | 计数等待 | 信号量同步需全序 | std::condition_variable_any（隐含）| std::库保证 |
 
 **口径说明**：
-- `memory_order_relaxed` 的调用点（`ref()`/`deref()`/隐式 load/store）：保留范围内没有跨线程 happens-before 需求，只是原子性（防 data race）
+- Qt 默认隐式读/写与引用计数不能按调用点猜测放宽：分别固定为 acquire、release 与 seq_cst。
 - `*Ordered()` 系列（显式方法名）：调用点自己明确要求全同步化，不因作用域降序
 - `PkWaitCondition`/`PkThreadPool`/`PkSemaphore` 内部的内存序由 std 库保证，不需额外判读
 
