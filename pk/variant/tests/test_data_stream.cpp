@@ -422,6 +422,8 @@ void DataStreamCase::hostileLengthsAreRejectedBeforeAllocation()
 
 void DataStreamCase::containerDecodedStorageIsBounded()
 {
+    constexpr std::size_t objectAllowance = sizeof(PkVariant) + 2u * sizeof(void *);
+    constexpr std::size_t oneCodeUnitKeyPayload = 2u + 2u * sizeof(void *);
     const auto encode = [](const PkVariant &value) {
         PkByteArray bytes;
         PkDataStream writer(&bytes, PkStream::WriteOnly);
@@ -448,24 +450,26 @@ void DataStreamCase::containerDecodedStorageIsBounded()
 
     verifyBoundary(PkVariant(PkVariantList{PkVariant(), PkVariant()}),
                    PkVariant(PkVariantList{PkVariant(), PkVariant(), PkVariant()}),
-                   2u * sizeof(PkVariant));
+                   objectAllowance + 2u * sizeof(PkVariant));
     verifyBoundary(PkVariant(PkStringList{PkString(), PkString()}),
                    PkVariant(PkStringList{PkString(), PkString(), PkString()}),
-                   2u * sizeof(PkString));
+                   objectAllowance + 2u * sizeof(PkString));
     verifyBoundary(PkVariant(PkVariantMap{{PkString("a"), PkVariant()},
                                           {PkString("b"), PkVariant()}}),
                    PkVariant(PkVariantMap{{PkString("a"), PkVariant()},
                                           {PkString("b"), PkVariant()},
                                           {PkString("c"), PkVariant()}}),
-                   2u * (sizeof(PkVariantMap::value_type) + 4u * sizeof(void *))
-                       + 3u * (2u + 2u * sizeof(void *)));
+                   objectAllowance
+                       + 2u * (sizeof(PkVariantMap::value_type) + 4u * sizeof(void *))
+                       + 2u * oneCodeUnitKeyPayload);
     verifyBoundary(PkVariant(PkVariantHash{{PkString("a"), PkVariant()},
                                            {PkString("b"), PkVariant()}}),
                    PkVariant(PkVariantHash{{PkString("a"), PkVariant()},
                                            {PkString("b"), PkVariant()},
                                            {PkString("c"), PkVariant()}}),
-                   2u * (sizeof(PkVariantHash::value_type) + 4u * sizeof(void *))
-                       + 3u * (2u + 2u * sizeof(void *)));
+                   objectAllowance
+                       + 2u * (sizeof(PkVariantHash::value_type) + 4u * sizeof(void *))
+                       + 2u * oneCodeUnitKeyPayload);
 }
 
 void DataStreamCase::recursiveDecodeBudgetIncludesAssociativeOverheadAndPayload()
@@ -503,6 +507,41 @@ void DataStreamCase::recursiveDecodeBudgetIncludesAssociativeOverheadAndPayload(
         PK_COMPARE(accepted.status(), PkDataStream::Ok);
         PK_VERIFY(acceptedValue == expected);
     }
+}
+
+void DataStreamCase::variantObjectStorageIsBoundedRecursively()
+{
+    const auto encode = [](const PkVariant &value) {
+        PkByteArray bytes;
+        PkDataStream writer(&bytes, PkStream::WriteOnly);
+        writer << value;
+        return bytes;
+    };
+    const auto verifyBoundary = [&](const PkVariant &expected, std::size_t exactLimit) {
+        PkDataStream rejected(encode(expected));
+        rejected.setAllocationLimit(exactLimit - 1u);
+        PkVariant rejectedValue;
+        rejected >> rejectedValue;
+        PK_COMPARE(rejected.status(), PkDataStream::ReadCorruptData);
+        PK_VERIFY(!rejectedValue.isValid());
+
+        PkDataStream accepted(encode(expected));
+        accepted.setAllocationLimit(exactLimit);
+        PkVariant acceptedValue;
+        accepted >> acceptedValue;
+        PK_COMPARE(accepted.status(), PkDataStream::Ok);
+        PK_VERIFY(acceptedValue == expected);
+    };
+
+    // PkVariant's closed A1 non-POD set is stored out of line by std::any.
+    // The codec policy reserves one PkVariant-sized object plus a two-pointer
+    // allocator allowance for every such destination object.
+    constexpr std::size_t objectAllowance = sizeof(PkVariant) + 2u * sizeof(void *);
+
+    verifyBoundary(PkVariant(PkRectF(1.0, 2.0, 3.0, 4.0)), objectAllowance);
+    verifyBoundary(PkVariant(PkVariantList{}), objectAllowance);
+    verifyBoundary(PkVariant(PkVariantList{PkVariant(PkVariantList{})}),
+                   2u * objectAllowance + sizeof(PkVariant));
 }
 
 void DataStreamCase::copyAssignedStringMutationSerializesDestination()

@@ -21,6 +21,30 @@ constexpr std::size_t kHashBucketAllowance = 2u * sizeof(void *);
 constexpr std::uint32_t kQt4UserType = 127u;
 constexpr std::size_t kDefaultAllocationLimit = 64u * 1024u * 1024u;
 
+// Every non-POD value in the closed A1 set is held as a separate object by
+// PkVariant's std::any. Reserve a PkVariant-sized block plus the same
+// conservative two-pointer allocator overhead used for payload buffers. The
+// assertions make the allowance stay conservative if an approved destination
+// object changes size; recursively owned storage is charged at its own decode.
+constexpr std::size_t kVariantObjectAllowance = sizeof(PkVariant) + kAllocationOverhead;
+static_assert(sizeof(PkString) <= sizeof(PkVariant));
+static_assert(sizeof(PkByteArray) <= sizeof(PkVariant));
+static_assert(sizeof(PkStringList) <= sizeof(PkVariant));
+static_assert(sizeof(PkVariantList) <= sizeof(PkVariant));
+static_assert(sizeof(PkVariantMap) <= sizeof(PkVariant));
+static_assert(sizeof(PkVariantHash) <= sizeof(PkVariant));
+static_assert(sizeof(PkPoint) <= sizeof(PkVariant));
+static_assert(sizeof(PkPointF) <= sizeof(PkVariant));
+static_assert(sizeof(PkRect) <= sizeof(PkVariant));
+static_assert(sizeof(PkRectF) <= sizeof(PkVariant));
+static_assert(sizeof(PkSize) <= sizeof(PkVariant));
+static_assert(sizeof(PkSizeF) <= sizeof(PkVariant));
+static_assert(sizeof(PkLine) <= sizeof(PkVariant));
+static_assert(sizeof(PkLineF) <= sizeof(PkVariant));
+static_assert(sizeof(PkDate) <= sizeof(PkVariant));
+static_assert(sizeof(PkTime) <= sizeof(PkVariant));
+static_assert(sizeof(PkDateTime) <= sizeof(PkVariant));
+
 bool isSupportedType(std::uint32_t typeId)
 {
     switch (typeId) {
@@ -52,6 +76,23 @@ bool isSupportedType(std::uint32_t typeId)
         return true;
     default:
         return false;
+    }
+}
+
+bool hasVariantObjectStorage(std::uint32_t typeId)
+{
+    switch (typeId) {
+    case PkVariant::Invalid:
+    case PkVariant::Bool:
+    case PkVariant::Int:
+    case PkVariant::UInt:
+    case PkVariant::LongLong:
+    case PkVariant::ULongLong:
+    case PkVariant::Double:
+    case PkVariant::Float:
+        return false;
+    default:
+        return isSupportedType(typeId);
     }
 }
 
@@ -723,6 +764,9 @@ PkDataStream &PkDataStream::operator>>(PkVariant &value)
     }
     if (!isSupportedType(typeId)) {
         setStatus(ReadCorruptData);
+        return *this;
+    }
+    if (hasVariantObjectStorage(typeId) && !chargeDecodedBytes(kVariantObjectAllowance)) {
         return *this;
     }
     try {

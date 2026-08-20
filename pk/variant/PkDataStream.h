@@ -33,8 +33,10 @@ public:
     Status status() const;
     void setStatus(Status status);
     void resetStatus();
-    // Maximum single decoded allocation, including container element storage.
-    // The default is 64 MiB; trusted callers can raise it explicitly.
+    // Maximum retained storage for one recursive decode. The budget includes
+    // container slots/nodes, each PkVariant std::any destination object, and
+    // recursively owned string/byte-array payload. The default is 64 MiB;
+    // trusted callers can raise it explicitly.
     std::size_t allocationLimit() const;
     void setAllocationLimit(std::size_t bytes);
 
