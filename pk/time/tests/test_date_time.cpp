@@ -401,6 +401,47 @@ void TestDateTime::invalidDateDaysToReturnZero()
     PK_VERIFY(invalid.daysTo(valid) == 0);
 }
 
+// ============================================================================
+// R-29 Task 3：PkDateTime calendar 版新 API（date()/time()/addDays/addMonths/
+// epoch 语义保留）
+// ============================================================================
+
+void TestDateTime::dateTimeDateAndTimeAccessors()
+{
+    const PkDate d(2024, 1, 15);
+    const PkTime t(12, 30, 45);
+    const PkDateTime dt(d, t);
+    PK_VERIFY(dt.isValid());
+    PK_VERIFY(dt.date() == d);
+    PK_VERIFY(dt.time() == t);
+    PK_VERIFY(dt.date().year() == 2024);
+    PK_VERIFY(dt.time().hour() == 12);
+}
+
+void TestDateTime::dateTimeAddDaysAndMonths()
+{
+    const PkDateTime dt(PkDate(2024, 1, 31), PkTime(12, 0, 0));
+    const PkDateTime nextMonth = dt.addMonths(1);
+    PK_VERIFY(nextMonth.date().year() == 2024);
+    PK_VERIFY(nextMonth.date().month() == 2);
+    PK_VERIFY(nextMonth.date().day() == 29);
+    const PkDateTime tomorrow = dt.addDays(1);
+    PK_VERIFY(tomorrow.date().day() == 1);
+    PK_VERIFY(tomorrow.date().month() == 2);
+}
+
+void TestDateTime::dateTimeEpochStillWorks()
+{
+    const std::int64_t secs = 1500;
+    const PkDateTime dt = PkDateTime::fromSecsSinceEpoch(secs);
+    PK_VERIFY(dt.isValid());
+    PK_VERIFY(dt.toSecsSinceEpoch() == secs);
+    const std::int64_t msecs = 1500000;
+    const PkDateTime dm = PkDateTime::fromMSecsSinceEpoch(msecs);
+    PK_VERIFY(dm.toSecsSinceEpoch() == 1500);
+    PK_VERIFY(PkDateTime::fromMSecsSinceEpoch(msecs) == PkDateTime::fromSecsSinceEpoch(1500));
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_date_time.inc"

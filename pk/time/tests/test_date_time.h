@@ -47,4 +47,9 @@ private Q_SLOTS:
     void invalidTimeAccessorsReturnMinusOne();
     void invalidTimeSecsToMsecsToReturnZero();
     void invalidDateDaysToReturnZero();
+
+    // R-29 Task 3：PkDateTime calendar 版新 API
+    void dateTimeDateAndTimeAccessors();
+    void dateTimeAddDaysAndMonths();
+    void dateTimeEpochStillWorks();
 };
