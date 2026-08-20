@@ -43,6 +43,45 @@ void TestTimer::repeatingTimerPostsMoreThanOnce()
     PK_VERIFY(calls.load() >= 2);
 }
 
+void TestTimer::warmedTargetThreadReceivesCallback()
+{
+    std::atomic<bool> ready{false};
+    std::atomic<bool> pump{false};
+    std::atomic<bool> done{false};
+    std::atomic<bool> onTarget{false};
+    PkThreadId target;
+    std::thread receiver([&] {
+        PkThreadCallQueue::warmUpCurrentThread();
+        target = PkThread::currentThreadId();
+        ready = true;
+        while (!pump.load()) std::this_thread::yield();
+        PkThreadCallQueue::processPendingCalls();
+        done = true;
+    });
+    while (!ready.load()) std::this_thread::yield();
+    PkTimer timer(target);
+    timer.start(5ms, [&] { onTarget = PkThread::currentThreadId() == target; }, true);
+    std::this_thread::sleep_for(20ms);
+    pump = true;
+    receiver.join();
+    PK_VERIFY(done.load());
+    PK_VERIFY(onTarget.load());
+}
+
+void TestTimer::queuedCallbackIsCancelledByStopAndDestruction()
+{
+    PkThreadCallQueue::warmUpCurrentThread();
+    std::atomic<int> calls{0};
+    {
+        PkTimer timer;
+        timer.start(5ms, [&] { ++calls; }, true);
+        std::this_thread::sleep_for(20ms); // callback is already in the queue
+        timer.stop();
+    }
+    PkThreadCallQueue::processPendingCalls();
+    PK_COMPARE(calls.load(), 0);
+}
+
 #include "pk_binder_test_timer.inc"
 
 int run_timer_tests(int argc, char **argv)

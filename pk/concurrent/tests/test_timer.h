@@ -8,4 +8,6 @@ private Q_SLOTS:
     void callbackWaitsForExplicitPump();
     void stopAndDestructionCancelCallbacks();
     void repeatingTimerPostsMoreThanOnce();
+    void warmedTargetThreadReceivesCallback();
+    void queuedCallbackIsCancelledByStopAndDestruction();
 };

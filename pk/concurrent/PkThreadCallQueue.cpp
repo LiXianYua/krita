@@ -13,8 +13,11 @@ struct Registry {
     std::map<PkThreadId, std::deque<std::function<void()>>> queues;
 };
 Registry& registry() {
-    static Registry r;
-    return r;
+    // Calls can be posted by workers owned by static objects while C++ static
+    // destruction is in progress.  Deliberately retain the process registry:
+    // the OS reclaims it, and no worker can observe a destructed mutex/map.
+    static Registry* r = new Registry;
+    return *r;
 }
 
 // C-1 修复（线程 id 复用导致陈旧调用被无关新线程执行）：registry 按裸

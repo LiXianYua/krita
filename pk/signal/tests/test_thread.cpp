@@ -162,6 +162,39 @@ static void test_disconnected_queued_call_is_dropped()
     _expect(r.got.load() == 0, "disconnected-before-pump call is silently dropped, slot not invoked");
 }
 
+static void test_deleteLater_runs_on_warmed_affinity_thread()
+{
+    struct AffinityProbe : PkObject {
+        AffinityProbe(std::atomic<bool> *destroyed, std::atomic<bool> *onTarget,
+                      PkThreadId *target)
+            : destroyed(destroyed), onTarget(onTarget), target(target) {}
+        ~AffinityProbe() override {
+            *onTarget = PkThread::currentThreadId() == *target;
+            *destroyed = true;
+        }
+        std::atomic<bool> *destroyed;
+        std::atomic<bool> *onTarget;
+        PkThreadId *target;
+    };
+    std::atomic<bool> ready{false}, pump{false}, destroyed{false}, onTarget{false};
+    PkThreadId target;
+    AffinityProbe *probe = new AffinityProbe(&destroyed, &onTarget, &target);
+    std::thread worker([&] {
+        target = PkThreadCallQueue::warmUpCurrentThread();
+        ready = true;
+        while (!pump.load()) std::this_thread::yield();
+        PkThreadCallQueue::processPendingCalls();
+    });
+    while (!ready.load()) std::this_thread::yield();
+    probe->moveToThread(target);
+    probe->deleteLater();
+    _expect(!destroyed.load(), "deleteLater remains deferred before target pump");
+    pump = true;
+    worker.join();
+    _expect(destroyed.load() && onTarget.load(),
+            "deleteLater destructor runs on the warmed affinity thread");
+}
+
 // 6. fix-wave re-review NEW-I3：故意制造 moveToThread() 与 activateSignal
 // 读 thread() 之间的并发访问，给 TSan 一个能检测到的并发模式。M-5 把两个
 // 跨线程测试的 moveToThread() 从 worker 线程挪回主线程、加了 moveDone
@@ -214,5 +247,6 @@ void run_thread_tests()
     test_same_thread_explicit_queued_defers();
     test_cross_thread_blocking_queued_waits();
     test_disconnected_queued_call_is_dropped();
+    test_deleteLater_runs_on_warmed_affinity_thread();
     test_concurrent_moveToThread_and_activateSignal_read_is_safe();
 }

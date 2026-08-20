@@ -1,5 +1,7 @@
 #include <string>
 #include <utility>
+#include <atomic>
+#include <thread>
 #include "../PkObject.h"
 #include "test_util.h"
 
@@ -28,6 +30,28 @@ void run_tree_tests()
         PkObject b(&root);
         _expect(a.parent() == &root, "child parent points to root");
         _expect(root.children().size() == 2, "root has 2 children");
+    }
+    {
+        // A parent-owned teardown and the child's affinity pump may race.  Both
+        // paths must claim the same lifecycle gate before either frees memory.
+        for (int i = 0; i < 200; ++i) {
+            std::atomic<bool> ready{false};
+            std::atomic<bool> pump{false};
+            PkObject* parent = new PkObject;
+            Named* child = new Named("racing-child", parent);
+            std::thread target([&] {
+                PkThreadCallQueue::warmUpCurrentThread();
+                child->moveToThread(PkThread::currentThreadId());
+                ready = true;
+                while (!pump.load()) std::this_thread::yield();
+                PkThreadCallQueue::processPendingCalls();
+            });
+            while (!ready.load()) std::this_thread::yield();
+            child->deleteLater();
+            pump = true;
+            delete parent;
+            target.join();
+        }
     }
 
     // A missing/incorrect deleteLater implementation makes these fail by

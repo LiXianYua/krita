@@ -1,4 +1,18 @@
 #include "PkObject.h"
+#include <mutex>
+
+namespace {
+std::recursive_mutex& lifecycleGate()
+{
+    // Parent teardown and an affinity-thread deleteLater pump can enter from
+    // different threads.  One process-lifetime gate covers the whole tree;
+    // recursive locking permits the winning callback to call delete and the
+    // parent destructor to recursively delete children while retaining the
+    // ownership claim until memory has actually been freed.
+    static auto* gate = new std::recursive_mutex;
+    return *gate;
+}
+}
 
 PkObject::PkObject(PkObject* parent)
     : m_alive(std::make_shared<std::atomic<bool>>(true)),
@@ -17,13 +31,14 @@ void PkObject::deleteLater()
     PkObject* object = this;
     auto alive = m_alive;
     PkThreadCallQueue::post(thread(), [object, alive] {
-        bool expectedAlive = true;
-        if (alive->compare_exchange_strong(expectedAlive, false)) delete object;
+        std::lock_guard<std::recursive_mutex> claim(lifecycleGate());
+        if (alive->load()) delete object;
     });
 }
 
 PkObject::~PkObject()
 {
+    std::lock_guard<std::recursive_mutex> claim(lifecycleGate());
     // 1. 断开所有连接：把双方列表里条目的 state->alive 置 false 并清空。
     disconnectAllOutgoing();
     disconnectAllIncoming();
