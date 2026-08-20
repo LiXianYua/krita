@@ -296,7 +296,9 @@ codegraph 查官方只读 clone（见下）。
 - **本 worktree 目录下就有 `.codegraph/`**（claim 时建的；主 checkout `krita/` 也有）。评估影响面、
   找调用方、定位符号，**先跑 `codegraph explore "<符号名>"`**——它一次给符号原文 + 调用路径 +
   **blast radius**（谁依赖它），**含 grep 追不到的动态分派**（虚函数/信号槽）。`grep` 只做收尾复核；
-  只靠 grep 会漏动态分派的调用方，删代码时炸的都是这些。
+  只靠 grep 会漏动态分派的调用方，删代码时炸的都是这些。**只用 grep 定位符号/影响面 = 缺陷，
+  评审打回**——回报里只给 `grep -rl` 文件清单、没有 blast radius（调用方全集 / 依赖闭包 /
+  动态分派追索）的，不算完成。
 - **断边活（删 target / 断 `kritawidgetutils` 这类库的边）必须先拿 blast radius，不许逐文件 grep 起步**。
   断边 = 找出**全部**消费方并逐个改，而消费方清单散在几十上百个文件里，`grep` 是一次一个文件的线性扫。
   正确顺序：`codegraph explore "<被断的头/类名>"` → 它直接给出所有 caller/依赖文件全集 → **照着这份
