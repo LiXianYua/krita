@@ -16,6 +16,7 @@ private Q_SLOTS:
     void openIsOpenClose();
     void checkedCloseRetainsHandleThroughRollbackAndStatementRelease();
     void legacyCloseRetainsBusyHandle();
+    void checkedCloseClearsStaleErrorWithoutHandle();
     void databaseOpenFalseDoesNotCloseAlreadyOpenConnection();
     void connectionNamesReflectsAddDatabase();
     void tablesListsUserTablesOnly();

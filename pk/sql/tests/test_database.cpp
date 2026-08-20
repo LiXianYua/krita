@@ -75,6 +75,23 @@ void TestDatabase::legacyCloseRetainsBusyHandle()
     PK_VERIFY(db.open());
 }
 
+void TestDatabase::checkedCloseClearsStaleErrorWithoutHandle()
+{
+    PkSqlDatabase db = PkSqlDatabase::database();
+    PK_VERIFY(db.PkClose());
+    db.setDatabaseName("/proc/no-such-parent/pksql.db");
+    PK_VERIFY(!db.open());
+    PK_VERIFY(!db.isOpen());
+    PK_VERIFY(db.lastError().isValid());
+
+    PK_VERIFY(db.PkClose());
+    PK_VERIFY(!db.isOpen());
+    PK_VERIFY(!db.lastError().isValid());
+
+    db.setDatabaseName(":memory:");
+    PK_VERIFY(db.open());
+}
+
 void TestDatabase::databaseOpenFalseDoesNotCloseAlreadyOpenConnection()
 {
     // §1 用量表：QSqlDatabase::database(connName, open=false) 用于"先查

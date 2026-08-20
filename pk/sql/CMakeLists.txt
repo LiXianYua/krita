@@ -96,6 +96,11 @@ set(PKCONTAINER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../container)
 # ---------------------------------------------------------------------------
 set(PKGEOMETRY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../geometry)
 set(PKVARIANT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../variant)
+set(PKTIME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../time)
+
+if (NOT TARGET pktime)
+    add_subdirectory(${PKTIME_DIR} ${CMAKE_BINARY_DIR}/pktime)
+endif()
 
 if (NOT TARGET pkgeometry)
     add_library(pkgeometry STATIC
@@ -117,7 +122,7 @@ if (NOT TARGET pkvariant)
     )
     target_include_directories(pkvariant PUBLIC ${PKVARIANT_DIR} ${PKCONTAINER_DIR})
     target_compile_options(pkvariant PUBLIC -fwrapv)
-    target_link_libraries(pkvariant PUBLIC pkstring pkgeometry)
+    target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime)
 endif()
 
 add_library(pksql STATIC

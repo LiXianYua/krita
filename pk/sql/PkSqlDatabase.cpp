@@ -109,6 +109,7 @@ bool PkSqlDatabase::PkClose()
 {
     auto &st = state();
     if (!st.handle) {
+        st.lastError = PkSqlError();
         return true;
     }
     const int rc = sqlite3_close(st.handle);

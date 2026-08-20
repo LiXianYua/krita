@@ -495,6 +495,19 @@ endif()
 三 ABI 依赖流水线已经下载验证过的同版本，本 plan 现场 `sha256sum` 得到上面这个
 哈希；与 R-07/pugixml 的"tag+hash 钉死"是同一套做法。
 
+本计划的 SQLite 3.50.4 close 生命周期探针原始输出（verbatim）：
+
+```text
+open=0
+begin=0 autocommit=0
+prepare=0 stmt_nonnull=1
+close_with_transaction_and_statement=5 name=database is locked autocommit=0 errmsg=unable to close due to unfinalized statements or unfinished backups
+rollback_after_busy=0 autocommit=1 errmsg=not an error
+close_with_statement_only=5 name=database is locked errmsg=unable to close due to unfinalized statements or unfinished backups
+finalize=0
+close_after_finalize=0 name=not an error
+```
+
 **为什么 vendor amalgamation 而不是 `apt install libsqlite3-dev`**：`pk/sql` 是
 fork worktree 里的代码，构建环境不受本任务控制（线级 spec 明确"不 vendor 源码进
 fork"针对的是"把源码文件拷进仓库"，`FetchContent` 在 configure 期下载不算 vendor
