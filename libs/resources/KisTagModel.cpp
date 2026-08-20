@@ -9,29 +9,12 @@
 #include <PkSqlQuery.h>
 
 #include <algorithm>
-#include <cctype>
-#include <string>
 
 #include "KisResourceCacheDb.h"
 #include "KisResourceLocator.h"
 #include "KisResourceModelProvider.h"
 #include "KisStorageModel.h"
 #include "KisTagResourceModel.h"
-
-namespace
-{
-
-std::string lowerAscii(const PkString &value)
-{
-    std::string result = value.PkToUtf8();
-    std::transform(result.begin(), result.end(), result.begin(),
-                   [](unsigned char character) {
-                       return static_cast<char>(std::tolower(character));
-                   });
-    return result;
-}
-
-} // namespace
 
 struct KisAllTagsModel::Private
 {
@@ -205,9 +188,11 @@ bool KisAllTagsModel::changeTagActive(const KisTagSP &tag, bool active)
     }
     tag->setActive(active);
     const bool tagsRefreshed = refresh();
+    const bool relationsRefreshed =
+        KisResourceModelProvider::refreshTagResourceModel(d->resourceType);
     const bool resourcesRefreshed =
         KisResourceModelProvider::refreshResourceModel(d->resourceType);
-    return tagsRefreshed && resourcesRefreshed;
+    return tagsRefreshed && relationsRefreshed && resourcesRefreshed;
 }
 
 bool KisAllTagsModel::setTagActive(const KisTagSP &tag)
@@ -395,7 +380,7 @@ PkVector<KisTagSP> KisTagModel::tags() const
     }
     std::sort(ordinary.begin(), ordinary.end(),
               [](const KisTagSP &left, const KisTagSP &right) {
-                  return lowerAscii(left->name()) < lowerAscii(right->name());
+                  return left->name().toLower() < right->name().toLower();
               });
     special.append(ordinary);
     return special;

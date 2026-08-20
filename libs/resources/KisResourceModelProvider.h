@@ -34,6 +34,7 @@ private:
     friend class KisAllTagResourceModel;
 
     static bool refreshResourceModel(const PkString &resourceType);
+    static bool refreshTagResourceModel(const PkString &resourceType);
 
     KisResourceModelProvider(const KisResourceModelProvider &) = delete;
     KisResourceModelProvider &operator=(const KisResourceModelProvider &) = delete;

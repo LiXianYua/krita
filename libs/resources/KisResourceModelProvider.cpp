@@ -70,6 +70,13 @@ bool KisResourceModelProvider::refreshResourceModel(
     return model && model->refresh();
 }
 
+bool KisResourceModelProvider::refreshTagResourceModel(
+    const PkString &resourceType)
+{
+    KisAllTagResourceModel *model = tagResourceModel(resourceType);
+    return model && model->refresh();
+}
+
 KisAllTagsModel *KisResourceModelProvider::tagModel(
     const PkString &resourceType)
 {

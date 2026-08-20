@@ -265,12 +265,8 @@ PkVector<KisTagSP> KisAllResourcesModel::tagsForResource(int resourceId) const
 bool KisAllResourcesModel::setResourceActive(int resourceId, bool value)
 {
     KisResourceLocator *locator = KisResourceLocator::instance();
-    const bool result = locator && resourceId >= 0 &&
+    return locator && resourceId >= 0 &&
         locator->setResourceActive(resourceId, value);
-    if (result) {
-        refresh();
-    }
-    return result;
 }
 
 KoResourceSP KisAllResourcesModel::importResourceFile(const PkString &filename,
@@ -368,7 +364,12 @@ bool KisAllResourcesModel::reloadResource(KoResourceSP resource)
         return false;
     }
     KisResourceLocator *locator = KisResourceLocator::instance();
-    return locator && locator->reloadResource(d->resourceType, resource);
+    const bool result = locator &&
+        locator->reloadResource(d->resourceType, resource);
+    if (result) {
+        refresh();
+    }
+    return result;
 }
 
 bool KisAllResourcesModel::renameResource(KoResourceSP resource,

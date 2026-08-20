@@ -197,9 +197,22 @@ bool KisAllTagResourceModel::refresh()
 {
     PkSqlQuery query;
     if (!query.prepare(PkString(
+            "WITH selected_resources AS ("
             "SELECT resource_tags.tag_id AS tag_id, "
             "MIN(resources.id) AS resource_id, "
-            "MIN(resources.storage_id) AS storage_id, "
+            "MIN(resource_tags.id) AS first_relation_id "
+            "FROM resource_tags "
+            "JOIN resources ON resources.id = resource_tags.resource_id "
+            "JOIN resource_types ON resource_types.id = resources.resource_type_id "
+            "JOIN tags ON tags.id = resource_tags.tag_id "
+            "AND tags.resource_type_id = resource_types.id "
+            "WHERE resource_types.name = :resource_type "
+            "AND resource_tags.active = 1 "
+            "GROUP BY resource_tags.tag_id, resources.name, resources.filename, "
+            "resources.md5sum) "
+            "SELECT selected_resources.tag_id AS tag_id, "
+            "resources.id AS resource_id, "
+            "resources.storage_id AS storage_id, "
             "resources.name AS resource_name, "
             "resources.filename AS resource_filename, "
             "resources.tooltip AS resource_tooltip, "
@@ -211,18 +224,15 @@ bool KisAllTagResourceModel::refresh()
             "tags.url AS tag_url, tags.active AS tag_active, "
             "tags.name AS tag_name, "
             "tag_translations.name AS translated_name "
-            "FROM resource_tags "
-            "JOIN resources ON resources.id = resource_tags.resource_id "
+            "FROM selected_resources "
+            "JOIN resources ON resources.id = selected_resources.resource_id "
             "JOIN resource_types ON resource_types.id = resources.resource_type_id "
-            "JOIN tags ON tags.id = resource_tags.tag_id "
+            "JOIN tags ON tags.id = selected_resources.tag_id "
             "AND tags.resource_type_id = resource_types.id "
             "JOIN storages ON storages.id = resources.storage_id "
             "LEFT JOIN tag_translations ON tag_translations.tag_id = tags.id "
             "AND tag_translations.language = :language "
-            "WHERE resource_types.name = :resource_type "
-            "AND resource_tags.active = 1 "
-            "GROUP BY resource_tags.tag_id, resources.name, resources.filename, "
-            "resources.md5sum ORDER BY MIN(resource_tags.id)"))) {
+            "ORDER BY selected_resources.first_relation_id"))) {
         return false;
     }
     query.bindValue(PkString(":resource_type"), PkVariant(d->resourceType));

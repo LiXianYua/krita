@@ -26,13 +26,9 @@ std::string trimAscii(std::string value)
     return value;
 }
 
-std::string lowerAscii(std::string value)
+std::string lowerUnicodeUtf8(const PkString &value)
 {
-    std::transform(value.begin(), value.end(), value.begin(),
-                   [](unsigned char character) {
-                       return static_cast<char>(std::tolower(character));
-                   });
-    return value;
+    return value.toLower().PkToUtf8();
 }
 
 bool anyContains(const std::vector<std::string> &values,
@@ -82,11 +78,11 @@ bool KisResourceSearchBoxFilter::matchesResource(
     const PkString &resourceName,
     const PkStringList &tagList) const
 {
-    const std::string name = lowerAscii(resourceName.PkToUtf8());
+    const std::string name = lowerUnicodeUtf8(resourceName);
     std::vector<std::string> tags;
     tags.reserve(static_cast<std::size_t>(tagList.size()));
     for (const PkString &tag : tagList) {
-        tags.push_back(lowerAscii(tag.PkToUtf8()));
+        tags.push_back(lowerUnicodeUtf8(tag));
     }
 
     if (!d->resourceExactIncluded.empty() &&
@@ -165,7 +161,8 @@ void KisResourceSearchBoxFilter::initializeFilterData()
             continue;
         }
 
-        token = lowerAscii(token);
+        token = lowerUnicodeUtf8(PkString::PkFromUtf8(
+            token.data(), static_cast<int>(token.size())));
         bool included = true;
         if (!token.empty() && token.front() == '!') {
             included = false;
