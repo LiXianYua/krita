@@ -44,6 +44,15 @@ public:
 
     static KisResourceLocator *instance();
 
+    /**
+     * Destroy the process-wide locator before resource-storage plugins are
+     * unloaded. The call is idempotent. A later instance() call creates a new,
+     * empty locator that must be initialized again.
+     *
+     * Application teardown must be serialized with all locator users.
+     */
+    static void shutdown();
+
     ~KisResourceLocator();
 
     enum class LocatorError {

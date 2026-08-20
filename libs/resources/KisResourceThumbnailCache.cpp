@@ -6,9 +6,13 @@
 
 #include "KisResourceThumbnailCache.h"
 
+#include "KisResourceLocator.h"
+
 #include <PkMap.h>
 
 #include <kis_assert.h>
+
+#include <mutex>
 
 struct ImageScalingParameters {
     PkSize size;
@@ -38,6 +42,18 @@ namespace
 {
 using ResourceKey = std::pair<PkString, PkString>;
 using ThumbnailCacheT = PkMap<ImageScalingParameters, PkImage>;
+
+struct ThumbnailSingletonSlot
+{
+    std::mutex mutex;
+    KisResourceThumbnailCache *instance = nullptr;
+};
+
+ThumbnailSingletonSlot &thumbnailSingletonSlot()
+{
+    static ThumbnailSingletonSlot *slot = new ThumbnailSingletonSlot;
+    return *slot;
+}
 } // namespace
 
 struct KisResourceThumbnailCache::Private {
@@ -51,6 +67,7 @@ struct KisResourceThumbnailCache::Private {
 
     ResourceKey
     key(const PkString &storageLocation, const PkString &resourceType, const PkString &filename) const;
+    ResourceKey normalizedKey(const ResourceKey &key) const;
 };
 
 PkImage KisResourceThumbnailCache::Private::getExactMatch(const ResourceKey &key,
@@ -94,13 +111,36 @@ ResourceKey KisResourceThumbnailCache::Private::key(const PkString &storageLocat
                                                     const PkString &resourceType,
                                                     const PkString &filename) const
 {
-    return {storageLocation, resourceType + "/" + filename};
+    const PkString absoluteStorageLocation =
+        KisResourceLocator::instance()->makeStorageLocationAbsolute(storageLocation);
+    return {absoluteStorageLocation, resourceType + "/" + filename};
+}
+
+ResourceKey KisResourceThumbnailCache::Private::normalizedKey(const ResourceKey &key) const
+{
+    return {KisResourceLocator::instance()->makeStorageLocationAbsolute(key.first), key.second};
 }
 
 KisResourceThumbnailCache *KisResourceThumbnailCache::instance()
 {
-    static KisResourceThumbnailCache cache;
-    return &cache;
+    ThumbnailSingletonSlot &slot = thumbnailSingletonSlot();
+    std::lock_guard<std::mutex> lock(slot.mutex);
+    if (!slot.instance) {
+        slot.instance = new KisResourceThumbnailCache;
+    }
+    return slot.instance;
+}
+
+void KisResourceThumbnailCache::shutdown()
+{
+    ThumbnailSingletonSlot &slot = thumbnailSingletonSlot();
+    KisResourceThumbnailCache *oldInstance = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(slot.mutex);
+        oldInstance = slot.instance;
+        slot.instance = nullptr;
+    }
+    delete oldInstance;
 }
 
 KisResourceThumbnailCache::KisResourceThumbnailCache()
@@ -133,7 +173,7 @@ void KisResourceThumbnailCache::insert(const PkString &storageLocation,
 
 void KisResourceThumbnailCache::insert(const std::pair<PkString, PkString> &key, const PkImage &image)
 {
-    m_d->insertOriginal(key, image);
+    m_d->insertOriginal(m_d->normalizedKey(key), image);
 }
 
 void KisResourceThumbnailCache::remove(const PkString &storageLocation,
@@ -145,16 +185,17 @@ void KisResourceThumbnailCache::remove(const PkString &storageLocation,
 
 void KisResourceThumbnailCache::remove(const std::pair<PkString, PkString> &key)
 {
-    if (m_d->originalImageCache.contains(key)) {
-        m_d->originalImageCache.remove(key);
+    const ResourceKey normalizedKey = m_d->normalizedKey(key);
+    if (m_d->originalImageCache.contains(normalizedKey)) {
+        m_d->originalImageCache.remove(normalizedKey);
 
-        if (m_d->scaledThumbnailCache.contains(key)) {
-            m_d->scaledThumbnailCache.remove(key);
+        if (m_d->scaledThumbnailCache.contains(normalizedKey)) {
+            m_d->scaledThumbnailCache.remove(normalizedKey);
         }
     } else {
         // Something must have gone wrong for thumbnail to exist in scaledThumbnailCache but not be in
         // original.
-        KIS_ASSERT(!m_d->scaledThumbnailCache.contains(key));
+        KIS_ASSERT(!m_d->scaledThumbnailCache.contains(normalizedKey));
     }
 }
 

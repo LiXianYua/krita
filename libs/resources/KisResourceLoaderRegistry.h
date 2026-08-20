@@ -33,6 +33,15 @@ public:
     static KisResourceLoaderRegistry *instance();
 
     /**
+     * Destroy all registered loaders and fixups before their plugins unload.
+     * The call is idempotent. A later instance() call creates an empty registry;
+     * loaders and fixups must then be registered again.
+     *
+     * Application teardown must be serialized with all registry users.
+     */
+    static void shutdown();
+
+    /**
      * Adds the given loader and registers its type in the database, if it hasn't been registered yet.
      */
     void registerLoader(KisResourceLoaderBase* loader);

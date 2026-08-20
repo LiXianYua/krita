@@ -14,19 +14,15 @@
 
 #include "ResourceDebug.h"
 
-namespace {
-const PkThreadId s_resourceSnapshotThread = PkThread::currentThreadId();
-}
-
-
 bool KisRequiredResourcesOperators::detail::isLocalResourcesStorage(KisResourcesInterfaceSP resourcesInterface)
 {
     return !resourcesInterface.dynamicCast<KisLocalStrokeResources>().isNull();
 }
 
-void KisRequiredResourcesOperators::detail::assertInGuiThread()
+bool KisRequiredResourcesOperators::detail::assertInGuiThread()
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThreadId() == s_resourceSnapshotThread);
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(PkThread::currentThreadId() == PkThread::mainThreadId(), false);
+    return true;
 }
 
 KisResourcesInterfaceSP KisRequiredResourcesOperators::detail::createLocalResourcesStorage(const PkList<KoResourceSP> &resources)
@@ -66,8 +62,13 @@ void KisRequiredResourcesOperators::detail::addResourceOrWarnIfNotLoaded(KoResou
         const PkByteArray ba = embeddedResource.data();
         PkMemoryStream buf;
         buf.open(static_cast<PkStream::OpenMode>(PkStream::ReadWrite | PkStream::Truncate));
-        if (buf.write(ba.constData(), ba.size()) != ba.size() || !buf.seek(0)) {
+        if (buf.write(ba.constData(), ba.size()) != ba.size()) {
             qWarning() << "createLocalResourcesSnapshot: Could not buffer embedded resource" << sig;
+            return;
+        }
+        buf.close();
+        if (!buf.open(PkStream::ReadOnly)) {
+            qWarning() << "createLocalResourcesSnapshot: Could not reopen embedded resource" << sig;
             return;
         }
 

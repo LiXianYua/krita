@@ -10,6 +10,23 @@
 #include <KisMimeDatabase.h>
 #include <PkMap.h>
 
+#include <mutex>
+
+namespace
+{
+struct RegistrySingletonSlot
+{
+    std::mutex mutex;
+    KisResourceLoaderRegistry *instance = nullptr;
+};
+
+RegistrySingletonSlot &registrySingletonSlot()
+{
+    static RegistrySingletonSlot *slot = new RegistrySingletonSlot;
+    return *slot;
+}
+} // namespace
+
 struct KisResourceLoaderRegistry::Private
 {
     PkMap<int, ResourceCacheFixup*> fixups;
@@ -33,8 +50,24 @@ KisResourceLoaderRegistry::~KisResourceLoaderRegistry()
 
 KisResourceLoaderRegistry* KisResourceLoaderRegistry::instance()
 {
-    static KisResourceLoaderRegistry registry;
-    return &registry;
+    RegistrySingletonSlot &slot = registrySingletonSlot();
+    std::lock_guard<std::mutex> lock(slot.mutex);
+    if (!slot.instance) {
+        slot.instance = new KisResourceLoaderRegistry;
+    }
+    return slot.instance;
+}
+
+void KisResourceLoaderRegistry::shutdown()
+{
+    RegistrySingletonSlot &slot = registrySingletonSlot();
+    KisResourceLoaderRegistry *oldInstance = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(slot.mutex);
+        oldInstance = slot.instance;
+        slot.instance = nullptr;
+    }
+    delete oldInstance;
 }
 
 void KisResourceLoaderRegistry::registerLoader(KisResourceLoaderBase *loader)

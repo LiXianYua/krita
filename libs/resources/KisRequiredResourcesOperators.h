@@ -62,7 +62,7 @@ struct SharedPointerTraits<KisPinnedSharedPtr<T>>
 };
 
 bool KRITARESOURCES_EXPORT isLocalResourcesStorage(KisResourcesInterfaceSP resourcesInterface);
-void KRITARESOURCES_EXPORT assertInGuiThread();
+bool KRITARESOURCES_EXPORT assertInGuiThread();
 KisResourcesInterfaceSP KRITARESOURCES_EXPORT createLocalResourcesStorage(const PkList<KoResourceSP> &resources);
 void KRITARESOURCES_EXPORT addResourceOrWarnIfNotLoaded(KoResourceLoadResult loadedResource, PkList<KoResourceSP> *resources, KisResourcesInterfaceSP resourcesInterface);
 }
@@ -93,7 +93,9 @@ bool hasLocalResourcesSnapshot(const T *object)
 template <typename T>
 void createLocalResourcesSnapshot(T *object, KisResourcesInterfaceSP globalResourcesInterface = nullptr)
 {
-    detail::assertInGuiThread();
+    if (!detail::assertInGuiThread()) {
+        return;
+    }
 
     KisResourcesInterfaceSP effectiveResourcesInterface =
         globalResourcesInterface ?

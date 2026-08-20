@@ -39,7 +39,9 @@
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iterator>
+#include <mutex>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -117,7 +119,9 @@ PkByteArray readAll(PkStream *stream)
 bool loadMemoryStream(PkMemoryStream &stream, const PkByteArray &bytes)
 {
     if (!stream.open(static_cast<PkStream::OpenMode>(PkStream::ReadWrite | PkStream::Truncate))) return false;
-    return stream.write(bytes.constData(), bytes.size()) == bytes.size() && stream.seek(0);
+    if (stream.write(bytes.constData(), bytes.size()) != bytes.size()) return false;
+    stream.close();
+    return stream.open(PkStream::ReadOnly);
 }
 
 struct ResourceVersion
@@ -154,16 +158,66 @@ PkString removeBasePath(const PkString &location, const PkString &base)
     return location.startsWith(base) ? location.mid(base.size()) : location;
 }
 
-PkString deduplicatedFileName(const PkString &resourceType,
-                              const PkString &proposedFileName,
-                              const KisResourceStorageSP &storage)
+struct LocatorSingletonSlot
 {
-    const fs::path proposedPath = toPath(proposedFileName);
-    const std::string stem = proposedPath.stem().u8string();
-    const std::string extension = proposedPath.extension().u8string();
-    PkString candidate = fileName(proposedFileName);
-    for (int counter = 0; storage->resource(resourceType + "/" + candidate); ++counter) {
-        const std::string next = stem + "_embedded_" + std::to_string(counter) + extension;
+    std::mutex mutex;
+    KisResourceLocator *instance = nullptr;
+};
+
+LocatorSingletonSlot &locatorSingletonSlot()
+{
+    // The slot deliberately outlives process teardown. Only shutdown() owns
+    // destruction of the locator itself, so no atexit order can race plugin
+    // and storage destruction.
+    static LocatorSingletonSlot *slot = new LocatorSingletonSlot;
+    return *slot;
+}
+
+PkString deduplicateEmbeddedFileName(const PkString &proposedFileName,
+                                     const std::function<bool(PkString)> &fileAllowed)
+{
+    const std::string separator = "_embedded_";
+    const std::string original = toPath(proposedFileName).filename().u8string();
+    const std::size_t firstDot = original.find('.');
+    std::string baseName = original.substr(0, firstDot);
+    std::string completeSuffix = firstDot == std::string::npos
+        ? std::string()
+        : original.substr(firstDot + 1);
+
+    // Exact equivalent of KritaUtils::deduplicateFileName's separator
+    // recognition: the separator must be left of the first dot, followed by
+    // one or more decimal digits and then either end-of-name or a non-empty
+    // complete suffix.
+    const std::size_t separatorSearchEnd = firstDot == std::string::npos
+        ? original.size()
+        : firstDot;
+    std::size_t separatorPos = original.rfind(separator, separatorSearchEnd);
+    while (separatorPos != std::string::npos && separatorPos > 0) {
+        const std::size_t digitsBegin = separatorPos + separator.size();
+        std::size_t digitsEnd = digitsBegin;
+        while (digitsEnd < original.size() &&
+               std::isdigit(static_cast<unsigned char>(original[digitsEnd]))) {
+            ++digitsEnd;
+        }
+        const bool hasDigits = digitsEnd > digitsBegin;
+        const bool validTail = digitsEnd == original.size() ||
+            (original[digitsEnd] == '.' && digitsEnd + 1 < original.size());
+        if (hasDigits && validTail) {
+            baseName = original.substr(0, separatorPos);
+            completeSuffix = digitsEnd == original.size()
+                ? std::string()
+                : original.substr(digitsEnd + 1);
+            break;
+        }
+        separatorPos = original.rfind(separator, separatorPos - 1);
+    }
+
+    PkString candidate = PkString::PkFromUtf8(original.data(), static_cast<int>(original.size()));
+    for (int counter = 0; !fileAllowed(candidate); ++counter) {
+        std::string next = baseName + separator + std::to_string(counter);
+        if (!completeSuffix.empty()) {
+            next += "." + completeSuffix;
+        }
         candidate = PkString::PkFromUtf8(next.data(), static_cast<int>(next.size()));
     }
     return candidate;
@@ -212,8 +266,24 @@ KisResourceLocator::KisResourceLocator()
 
 KisResourceLocator *KisResourceLocator::instance()
 {
-    static KisResourceLocator locator;
-    return &locator;
+    LocatorSingletonSlot &slot = locatorSingletonSlot();
+    std::lock_guard<std::mutex> lock(slot.mutex);
+    if (!slot.instance) {
+        slot.instance = new KisResourceLocator;
+    }
+    return slot.instance;
+}
+
+void KisResourceLocator::shutdown()
+{
+    LocatorSingletonSlot &slot = locatorSingletonSlot();
+    KisResourceLocator *oldInstance = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(slot.mutex);
+        oldInstance = slot.instance;
+        slot.instance = nullptr;
+    }
+    delete oldInstance;
 }
 
 KisResourceLocator::~KisResourceLocator()
@@ -827,7 +897,11 @@ KoResourceSP KisResourceLocator::importResource(const PkString &resourceType, co
 namespace {
 PkString findDeduplicatedFileName(const PkString &resourceType, const PkString &proposedFileName, KisResourceStorageSP storage)
 {
-    return deduplicatedFileName(resourceType, proposedFileName, storage);
+    return deduplicateEmbeddedFileName(
+        proposedFileName,
+        [resourceType, storage](PkString candidate) {
+            return !storage->resource(resourceType + "/" + candidate);
+        });
 }
 }
 
@@ -1475,7 +1549,7 @@ bool KisResourceLocator::synchronizeDb()
     // directly; the model layer is a later task and is not part of this core.
     PkList<PkString> storagesToRemove;
     PkSqlQuery storageQuery;
-    if (!storageQuery.exec(PkString("SELECT location FROM storages"))) {
+    if (!storageQuery.exec(PkString("SELECT location FROM storages ORDER BY id"))) {
         d->errorMessages.append(PkString("Could not enumerate storages in the database"));
         return false;
     }

@@ -24,6 +24,18 @@ public:
 
     static KisResourceThumbnailCache *instance();
 
+    /**
+     * Clear and destroy the cache during application teardown. The call is
+     * idempotent; a later instance() call creates an empty cache.
+     * Application teardown must be serialized with all cache users.
+     */
+    static void shutdown();
+
+    /**
+     * Return a cached/scaled thumbnail. storageLocation may use the locator's
+     * relative storage spelling; cache keys always store its absolute spelling,
+     * so relative and absolute calls share one entry and one invalidation path.
+     */
     PkImage getImage(const PkString &storageLocation,
                      const PkString &resourceType,
                      const PkString &filename,
