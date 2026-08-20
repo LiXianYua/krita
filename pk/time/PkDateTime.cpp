@@ -422,10 +422,14 @@ PkDateTime PkDateTime::addYears(int years) const
 }
 PkDateTime PkDateTime::addSecs(std::int64_t secs) const
 {
+    // 无效态 guard（评审 F1，探针：Qt invalid.addSecs(10).isValid()==0）。
+    // 公式保持 msec 精度不变：照 Qt QDateTime::addSecs = addMSecs(secs*1000)。
+    if (!isValid()) return PkDateTime();
     return fromMSecsSinceEpoch(toMSecsSinceEpoch() + secs * 1000);
 }
 PkDateTime PkDateTime::addMSecs(std::int64_t msecs) const
 {
+    if (!isValid()) return PkDateTime();
     return fromMSecsSinceEpoch(toMSecsSinceEpoch() + msecs);
 }
 

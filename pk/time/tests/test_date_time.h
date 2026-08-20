@@ -52,4 +52,7 @@ private Q_SLOTS:
     void dateTimeDateAndTimeAccessors();
     void dateTimeAddDaysAndMonths();
     void dateTimeEpochStillWorks();
+
+    // R-29 Task 3 fix round 1：addSecs/addMSecs 无效态必须返回无效（评审 F1）
+    void invalidAddSecsMsecsStayInvalid();
 };

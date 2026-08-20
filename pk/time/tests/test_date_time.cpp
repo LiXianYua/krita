@@ -442,6 +442,20 @@ void TestDateTime::dateTimeEpochStillWorks()
     PK_VERIFY(PkDateTime::fromMSecsSinceEpoch(msecs) == PkDateTime::fromSecsSinceEpoch(1500));
 }
 
+// R-29 Task 3 fix round 1：addSecs/addMSecs 无效态必须返回无效（评审 F1，
+// 探针：Qt invalid.addSecs(10).isValid()==0，见
+// .superpowers/sdd/R-29/task-3-fix1-findings.md）
+void TestDateTime::invalidAddSecsMsecsStayInvalid()
+{
+    const PkDateTime invalid;
+    PK_VERIFY(!invalid.addSecs(10).isValid());
+    PK_VERIFY(!invalid.addMSecs(10).isValid());
+    // 有效实例的 addSecs 仍正常（回归保护）
+    const PkDateTime valid(PkDate(2024, 1, 15), PkTime(12, 30, 45));
+    PK_VERIFY(valid.addSecs(10).isValid());
+    PK_VERIFY(valid.addSecs(10).time().second() == 55);
+}
+
 // PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
 // （pk/test/CMakeLists.txt:74-79 的 ODR 硬规则）。
 #include "pk_binder_test_date_time.inc"
