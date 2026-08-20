@@ -53,7 +53,7 @@ public:
     static bool initialize(const PkString &location);
 
     /// Delete all storages that are Unknown or Memory and all resources that are marked temporary or belong to Unknown or Memory storages
-    static void deleteTemporaryResources();
+    static bool deleteTemporaryResources();
 
     /// perform optimize and vacuum when necessary
     static void performHouseKeepingOnExit();

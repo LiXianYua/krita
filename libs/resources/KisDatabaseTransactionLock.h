@@ -9,6 +9,7 @@
 
 #include <PkSqlDatabase.h>
 
+#include <memory>
 #include <mutex>
 
 #include <kritaresources_export.h>
@@ -26,11 +27,29 @@ KRITARESOURCES_EXPORT std::recursive_mutex &resourceDatabaseConnectionMutex();
 KRITARESOURCES_EXPORT void *lockResourceDatabaseNativeMutex(PkSqlDatabase database);
 KRITARESOURCES_EXPORT void unlockResourceDatabaseNativeMutex(void *nativeMutex);
 
+/**
+ * Own both serialization layers for the process-wide resources connection.
+ * The native SQLite mutex is released before the outer recursive mutex.
+ */
+class KRITARESOURCES_EXPORT ResourceDatabaseConnectionGuard
+{
+public:
+    explicit ResourceDatabaseConnectionGuard(PkSqlDatabase database);
+    ~ResourceDatabaseConnectionGuard() noexcept;
+
+    ResourceDatabaseConnectionGuard(const ResourceDatabaseConnectionGuard &) = delete;
+    ResourceDatabaseConnectionGuard &operator=(const ResourceDatabaseConnectionGuard &) = delete;
+
+private:
+    std::unique_lock<std::recursive_mutex> m_connectionLock;
+    void *m_nativeMutex = nullptr;
+};
+
 struct KRITARESOURCES_EXPORT KisDatabaseTransactionLockAdapter {
     explicit KisDatabaseTransactionLockAdapter(PkSqlDatabase database);
 
     void lock();
-    void unlock();
+    void unlock() noexcept;
     bool commit();
     bool transactionStarted() const { return m_transactionStarted; }
 
@@ -38,9 +57,8 @@ private:
     void releaseConnectionLocks();
 
     PkSqlDatabase m_database;
+    std::unique_ptr<ResourceDatabaseConnectionGuard> m_connectionGuard;
     bool m_transactionStarted {false};
-    bool m_connectionMutexLocked {false};
-    void *m_nativeMutex {nullptr};
 };
 } // namespace detail
 

@@ -365,15 +365,6 @@ private:
         return true;
     }
 
-    bool readI32(std::int32_t &value)
-    {
-        std::uint32_t bits = 0;
-        if (!readU32(bits)) return false;
-        static_assert(sizeof(bits) == sizeof(value), "32-bit wire integer required");
-        std::memcpy(&value, &bits, sizeof(value));
-        return true;
-    }
-
     bool canRead(std::size_t count) const
     {
         return m_offset <= m_bytes.size() && count <= m_bytes.size() - m_offset;
@@ -481,27 +472,14 @@ private:
 
     WireValidationStatus scanRect()
     {
-        std::int32_t x1 = 0;
-        std::int32_t y1 = 0;
-        std::int32_t x2 = 0;
-        std::int32_t y2 = 0;
-        if (!readI32(x1) || !readI32(y1) || !readI32(x2) || !readI32(y2)) {
-            return WireValidationStatus::ReadPastEnd;
-        }
-        // PkDataStream reconstructs PkRect with the left-associative int
-        // expressions `x2 - x1 + 1` and `y2 - y1 + 1`.  Validate both the
-        // subtraction and the increment, not merely the mathematical final
-        // result, before that decoder can evaluate either expression.
-        const std::int64_t widthDelta = static_cast<std::int64_t>(x2) - x1;
-        const std::int64_t heightDelta = static_cast<std::int64_t>(y2) - y1;
-        const std::int64_t minimum = (std::numeric_limits<int>::min)();
-        const std::int64_t maximumBeforeIncrement =
-            static_cast<std::int64_t>((std::numeric_limits<int>::max)()) - 1;
-        if (widthDelta < minimum || widthDelta > maximumBeforeIncrement ||
-            heightDelta < minimum || heightDelta > maximumBeforeIncrement) {
-            return WireValidationStatus::Malformed;
-        }
-        return WireValidationStatus::Valid;
+        // The Qt 5.15 wire format stores rectangles as four canonical int32
+        // endpoint coordinates.
+        // R32's PkDataStream decoder now constructs PkRect from those endpoints
+        // directly, so every four-int32 frame is valid, including descending and
+        // extreme endpoints that cannot be represented as x/y/width/height
+        // arithmetic without overflow.
+        return skip(16) ? WireValidationStatus::Valid
+                        : WireValidationStatus::ReadPastEnd;
     }
 
     WireValidationStatus scanVariant(std::size_t depth, std::uint32_t *typeOut)
@@ -609,20 +587,22 @@ class MetadataSavepoint
 {
 public:
     MetadataSavepoint()
-        : m_connectionLock(detail::resourceDatabaseConnectionMutex())
-        , m_database(PkSqlDatabase::database())
-        , m_nativeMutex(detail::lockResourceDatabaseNativeMutex(m_database))
-        , m_name(PkString("krita_metadata_") +
+        : m_name(PkString("krita_metadata_") +
                  PkString(std::to_string(nextId().fetch_add(1)).c_str()))
+        , m_connectionGuard(PkSqlDatabase::database())
     {
     }
 
-    ~MetadataSavepoint()
+    ~MetadataSavepoint() noexcept
     {
-        if (m_active && !rollback()) {
-            qWarning() << "Failed to rollback metadata savepoint during cleanup" << m_name;
+        try {
+            if (m_active && !rollback()) {
+                qWarning() << "Failed to rollback metadata savepoint during cleanup" << m_name;
+            }
+        } catch (...) {
+            // The owning connection guard still releases native then outer
+            // mutex during member destruction.
         }
-        detail::unlockResourceDatabaseNativeMutex(m_nativeMutex);
     }
 
     MetadataSavepoint(const MetadataSavepoint &) = delete;
@@ -692,10 +672,8 @@ private:
         return false;
     }
 
-    std::lock_guard<std::recursive_mutex> m_connectionLock;
-    PkSqlDatabase m_database;
-    void *m_nativeMutex = nullptr;
     PkString m_name;
+    detail::ResourceDatabaseConnectionGuard m_connectionGuard;
     bool m_active = false;
 };
 
@@ -802,6 +780,14 @@ PkString KisResourceCacheDb::lastError()
 PkString changeToEmptyIfNull(PkString s)
 {
     return s;
+}
+
+PkSqlError transactionFailure(const char *operation)
+{
+    return PkSqlError(PkString("Resource database transaction failed during ") +
+                          PkString(operation),
+                      PkString("Error executing SQL transaction"),
+                      PkSqlError::TransactionError);
 }
 
 bool updateSchemaVersion()
@@ -1002,6 +988,9 @@ PkSqlError createDatabase(const PkString &location)
                             || oldSchemaVersionNumber == SchemaVersion::fromString("0.0.17");
 
                     KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
+                    if (!transactionLock.transactionStarted()) {
+                        return transactionFailure("schema upgrade begin");
+                    }
 
                     bool success = true;
                     if (from14to15) {
@@ -1064,7 +1053,9 @@ PkSqlError createDatabase(const PkString &location)
                     }
 
                     if (success) {
-                        transactionLock.commit();
+                        if (!transactionLock.commit()) {
+                            return transactionFailure("schema upgrade commit");
+                        }
 
                         PkSqlError error = runUpdateScript("VACUUM",
                                                           "Vacuum database after updating schema");
@@ -1113,6 +1104,9 @@ PkSqlError createDatabase(const PkString &location)
                         .arg("new schema version: " + newSchemaVersionNumber.toString()));
 
     KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
+    if (!transactionLock.transactionStarted()) {
+        return transactionFailure("schema creation begin");
+    }
 
     // Create tables
     for (const PkString &table : tables) {
@@ -1190,7 +1184,9 @@ PkSqlError createDatabase(const PkString &location)
                          PkSqlError::StatementError);
     }
 
-    transactionLock.commit();
+    if (!transactionLock.commit()) {
+        return transactionFailure("schema creation commit");
+    }
 
     /// initialization is completed, transaction is over,
     /// now enable the foreign_keys constraint if necessary
@@ -1213,6 +1209,15 @@ bool KisResourceCacheDb::initialize(const PkString &location)
                          PkSqlError::StatementError);
     }
 
+    // Cleanup is part of successful initialization: a failed BEGIN/COMMIT
+    // must not be reported as a valid cache database, and no cleanup is run
+    // after schema creation itself failed.
+    if (err.type() == PkSqlError::NoError && !deleteTemporaryResources()) {
+        err = PkSqlError(PkString("Could not clean temporary resource rows."),
+                         PkString("Error committing database cleanup"),
+                         PkSqlError::TransactionError);
+    }
+
     s_valid = !err.isValid();
     switch (err.type()) {
     case PkSqlError::NoError:
@@ -1231,9 +1236,6 @@ bool KisResourceCacheDb::initialize(const PkString &location)
         s_lastError = PkString("Could not initialize the resource cache database. Unknown error: %1").arg(err.text());
         break;
     }
-
-    // Delete all storages that are no longer known to the resource locator (including the memory storages)
-    deleteTemporaryResources();
 
     return s_valid;
 }
@@ -2438,6 +2440,9 @@ bool KisResourceCacheDb::deleteStorage(PkString location)
 
     try {
         KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
+        if (!transactionLock.transactionStarted()) {
+            return false;
+        }
 
         {
             KisSqlQueryLoader loader(":/sql/delete_versioned_resources_for_storage_indirect.sql",
@@ -2563,7 +2568,9 @@ bool KisResourceCacheDb::deleteStorage(PkString location)
             loader.exec();
         }
 
-        transactionLock.commit();
+        if (!transactionLock.commit()) {
+            return false;
+        }
 
     } catch (const KisSqlQueryLoader::FileException &e) {
         qWarning().noquote() << "ERROR: deleteStorage:" << e.message;
@@ -2905,10 +2912,13 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
     return success;
 }
 
-void KisResourceCacheDb::deleteTemporaryResources()
+bool KisResourceCacheDb::deleteTemporaryResources()
 {
     try {
         KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
+        if (!transactionLock.transactionStarted()) {
+            return false;
+        }
 
         /**
          * Remove all temporary resources
@@ -3006,13 +3016,17 @@ void KisResourceCacheDb::deleteTemporaryResources()
             loader.exec();
         }
 
-        transactionLock.commit();
+        if (!transactionLock.commit()) {
+            return false;
+        }
     } catch (const KisSqlQueryLoader::SQLException &e) {
         qWarning().noquote() << "ERROR: failed to execute query:" << e.message;
         qWarning().noquote() << "       file:" << e.filePath;
         qWarning().noquote() << "       statement:" << e.statementIndex;
         qWarning().noquote() << "       error:" << e.sqlError.text();
+        return false;
     }
+    return true;
 }
 
 void KisResourceCacheDb::performHouseKeepingOnExit()
@@ -3122,23 +3136,64 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
     int id, const PkString &tableName)
 {
     MetaDataReadResult result;
+    detail::ResourceDatabaseConnectionGuard connectionGuard(PkSqlDatabase::database());
 
     PkSqlQuery q;
     q.setForwardOnly(true);
-    if (!q.prepare("SELECT key\n"
-                   ",      length(CAST(key AS BLOB))\n"
-                   ",      value\n"
-                   ",      length(CAST(value AS BLOB))\n"
-                   "FROM   metadata\n"
-                   "WHERE  foreign_id = :id\n"
-                   "AND    table_name = :table\n"
-                   "ORDER BY key")) {
+    if (!q.prepare(
+            "WITH limited AS MATERIALIZED (\n"
+            "    SELECT id AS metadata_id\n"
+            "    ,      CASE\n"
+            "             WHEN key IS NULL THEN -1\n"
+            "             WHEN typeof(key) = 'blob' THEN length(key)\n"
+            "             WHEN length(key) > :key_limit THEN :key_limit + 1\n"
+            "             ELSE length(CAST(key AS BLOB))\n"
+            "           END AS key_bytes\n"
+            "    ,      CASE\n"
+            "             WHEN value IS NULL THEN -1\n"
+            "             WHEN typeof(value) = 'blob' THEN length(value)\n"
+            "             WHEN length(value) > :payload_limit THEN :payload_limit + 1\n"
+            "             ELSE length(CAST(value AS BLOB))\n"
+            "           END AS value_bytes\n"
+            "    FROM metadata\n"
+            "    WHERE foreign_id = :id\n"
+            "    AND   table_name = :table\n"
+            "    ORDER BY key\n"
+            "    LIMIT :row_limit\n"
+            "), measured AS (\n"
+            "    SELECT metadata_id, key_bytes, value_bytes\n"
+            "    ,      SUM(CASE\n"
+            "                 WHEN key_bytes BETWEEN 0 AND :key_limit\n"
+            "                  AND value_bytes BETWEEN 0 AND :payload_limit\n"
+            "                 THEN value_bytes ELSE 0 END)\n"
+            "           OVER (ORDER BY metadata_id ROWS BETWEEN UNBOUNDED PRECEDING\n"
+            "                                      AND CURRENT ROW) AS retained_bytes\n"
+            "    FROM limited\n"
+            ")\n"
+            "SELECT CASE WHEN measured.key_bytes BETWEEN 0 AND :key_limit\n"
+            "            THEN CAST(substr(CAST(metadata.key AS BLOB), 1, :key_limit) AS TEXT)\n"
+            "            ELSE NULL END\n"
+            ",      measured.key_bytes\n"
+            ",      CASE WHEN measured.key_bytes BETWEEN 0 AND :key_limit\n"
+            "                 AND measured.value_bytes BETWEEN 0 AND :payload_limit\n"
+            "                 AND measured.retained_bytes <= :owner_limit\n"
+            "            THEN CAST(substr(CAST(metadata.value AS BLOB), 1, :payload_limit) AS TEXT)\n"
+            "            ELSE NULL END\n"
+            ",      measured.value_bytes\n"
+            ",      measured.retained_bytes\n"
+            "FROM measured\n"
+            "JOIN metadata ON metadata.id = measured.metadata_id\n"
+            "ORDER BY measured.metadata_id")) {
         qWarning() << "Could not prepare metadata query" << q.lastError();
         return result;
     }
 
     q.bindValue(":id", id);
     q.bindValue(":table", tableName);
+    q.bindValue(":row_limit", static_cast<long long>(kMaximumMetadataRowsPerOwner + 1));
+    q.bindValue(":key_limit", static_cast<long long>(kMaximumMetadataKeyBytes));
+    q.bindValue(":payload_limit", static_cast<long long>(kMaximumMetadataPayloadBytes));
+    q.bindValue(":owner_limit", static_cast<long long>(kMaximumMetadataPayloadBytesPerOwner));
 
     if (!q.exec()) {
         qWarning() << "Could not execute metadata query" << q.lastError();
@@ -3147,7 +3202,6 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
     result.querySucceeded = true;
 
     std::size_t rowCount = 0;
-    std::uint64_t retainedPayloadBytes = 0;
     while (q.next()) {
         if (rowCount >= kMaximumMetadataRowsPerOwner) {
             result.resourceLimitExceeded = true;
@@ -3163,13 +3217,14 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
         }
         const PkString key = q.value(0).toString();
         const long long payloadByteCount = q.value(3).toLongLong();
+        const long long retainedPayloadByteCount = q.value(4).toLongLong();
         const bool rowExceedsLimit =
             payloadByteCount < 0 ||
             static_cast<std::uint64_t>(payloadByteCount) > kMaximumMetadataPayloadBytes;
         const bool ownerExceedsLimit =
-            payloadByteCount >= 0 &&
-            static_cast<std::uint64_t>(payloadByteCount) >
-                kMaximumMetadataPayloadBytesPerOwner - retainedPayloadBytes;
+            retainedPayloadByteCount < 0 ||
+            static_cast<std::uint64_t>(retainedPayloadByteCount) >
+                kMaximumMetadataPayloadBytesPerOwner;
         if (rowExceedsLimit || ownerExceedsLimit) {
             result.undecodable.insert(
                 key, MetaDataDecodeIssue{MetaDataDecodeStatus::PayloadLimitExceeded,
@@ -3177,7 +3232,6 @@ KisResourceCacheDb::MetaDataReadResult KisResourceCacheDb::metaDataReadResultFor
             continue;
         }
 
-        retainedPayloadBytes += static_cast<std::uint64_t>(payloadByteCount);
         const PkString encoded = q.value(2).toString();
         VariantDecodeResult decoded = deserializeVariant(encoded);
         if (decoded.decoded) {
@@ -3329,20 +3383,33 @@ bool KisResourceCacheDb::removeOrphanedMetaData()
                                          "AND    table_name = \"%1\"\n")
                                          .arg(tableName));
         loader.exec();
-
-        if (loader.query().numRowsAffected() > 0) {
-            qWarning().noquote().nospace() << "WARNING: orphaned metadata records were found for " << tableName << "!";
-            qWarning().noquote().nospace() << "         Num records removed: " << loader.query().numRowsAffected();
-        }
+        return loader.query().numRowsAffected();
     };
 
     try {
         KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
+        if (!transactionLock.transactionStarted()) {
+            return false;
+        }
 
-        deleteMetadataForType(METADATA_RESOURCES);
-        deleteMetadataForType(METADATA_STORAGES);
+        const int removedResources = deleteMetadataForType(METADATA_RESOURCES);
+        const int removedStorages = deleteMetadataForType(METADATA_STORAGES);
 
-        transactionLock.commit();
+        if (!transactionLock.commit()) {
+            return false;
+        }
+
+        const auto reportRemoved = [](const PkString &tableName, int removed) {
+            if (removed > 0) {
+                qWarning().noquote().nospace()
+                    << "WARNING: orphaned metadata records were found for "
+                    << tableName << "!";
+                qWarning().noquote().nospace()
+                    << "         Num records removed: " << removed;
+            }
+        };
+        reportRemoved(METADATA_RESOURCES, removedResources);
+        reportRemoved(METADATA_STORAGES, removedStorages);
 
     } catch (const KisSqlQueryLoader::SQLException &e) {
         qWarning().noquote() << "ERROR: failed to execute query:" << e.message;

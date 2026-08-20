@@ -1252,6 +1252,10 @@ bool KisResourceLocator::removeStorage(const PkString &storageLocation)
     KisResourceStorageSP storage = d->storages.take(storageLocation);
 
     if (!KisResourceCacheDb::deleteStorage(storage)) {
+        d->storages.insert(storageLocation, storage);
+        for (const auto &typedResources : removedResources) {
+            endExternalResourceRemove(typedResources.first);
+        }
         d->errorMessages.append(PkString("Could not remove storage %1 from the database").arg(storage->location()));
         qWarning() << d->errorMessages;
         return false;
@@ -1582,8 +1586,6 @@ bool KisResourceLocator::synchronizeDb()
         }
     }
 
-    storagesBulkSynchronizationFinished();
-
     /**
      * In the current layout of the database we cannot set FOREIGN KEY
      * for the metadata table (since it links to both, resources and storages),
@@ -1592,7 +1594,10 @@ bool KisResourceLocator::synchronizeDb()
      * Theoretically, these should be none, if our code is correct, but who 
      * knows anything about our code...
      */
-    KisResourceCacheDb::removeOrphanedMetaData();
+    if (!KisResourceCacheDb::removeOrphanedMetaData()) {
+        d->errorMessages.append(PkString("Could not remove orphaned metadata"));
+        return false;
+    }
 
     // Remove database rows whose storage no longer exists. Query the cache
     // directly; the model layer is a later task and is not part of this core.
@@ -1623,6 +1628,9 @@ bool KisResourceLocator::synchronizeDb()
     d->errorMessages.append(KisResourceLoaderRegistry::instance()->executeAllFixups());
 
     d->resourceCache.clear();
+    if (d->errorMessages.isEmpty()) {
+        storagesBulkSynchronizationFinished();
+    }
     return d->errorMessages.isEmpty();
 }
 
