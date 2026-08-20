@@ -171,13 +171,8 @@ bool KoResourceBundle::load()
 
 bool KoResourceBundle::loadFromDevice(PkStream *device)
 {
-    if (!device) {
-        return false;
-    }
-    PkScopedPointer<KoStore> resourceStore(KoStore::createStore(
-        device, KoStore::Read, bundleMimeType(), KoStore::Zip));
-    return resourceStore && !resourceStore->bad() &&
-        loadFromStore(resourceStore.data());
+    (void)device;
+    return false;
 }
 
 bool KoResourceBundle::loadFromStore(KoStore *resourceStore)
