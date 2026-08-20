@@ -6,8 +6,7 @@
 
 #include "KisDatabaseTransactionLock.h"
 
-#include <QDebug>
-#include <QSqlError>
+#include <PkMessageLogger.h>
 
 #include <kis_assert.h>
 
@@ -15,7 +14,7 @@
 namespace detail
 {
 
-KisDatabaseTransactionLockAdapter::KisDatabaseTransactionLockAdapter(QSqlDatabase database)
+KisDatabaseTransactionLockAdapter::KisDatabaseTransactionLockAdapter(PkSqlDatabase database)
     : m_database(database)
 {
 }

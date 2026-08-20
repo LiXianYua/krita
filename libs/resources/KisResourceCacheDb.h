@@ -7,11 +7,14 @@
 #ifndef KISRESOURCECACHEDB_H
 #define KISRESOURCECACHEDB_H
 
-#include <QObject>
-
 #include <kritaresources_export.h>
 
 #include <KisResourceStorage.h>
+#include <PkDateTime.h>
+#include <PkMap.h>
+#include <PkStringList.h>
+#include <PkVariant.h>
+#include <PkVector.h>
 
 /**
  * @brief The KisResourceCacheDb class encapsulates the database that
@@ -24,10 +27,10 @@ class KRITARESOURCES_EXPORT KisResourceCacheDb
 {
 public:
 
-    static const QString resourceCacheDbFilename; ///< filename of the database
-    static const QString databaseVersion; ///< current schema version
-    static QStringList storageTypes; ///< kinds of places where resources can be stored
-    static QStringList disabledBundles; ///< the list of compatibility bundles that need to inactive by default
+    static const PkString resourceCacheDbFilename; ///< filename of the database
+    static const PkString databaseVersion; ///< current schema version
+    static PkStringList storageTypes; ///< kinds of places where resources can be stored
+    static PkStringList disabledBundles; ///< the list of compatibility bundles that need to inactive by default
 
     /**
      * @brief isValid
@@ -38,7 +41,7 @@ public:
     /**
      * @brief lastError returns the last SQL error.
      */
-    static QString lastError();
+    static PkString lastError();
 
     /**
      * @brief initializes the database and updates the scheme if necessary. Does not actually
@@ -47,7 +50,7 @@ public:
      * @param location the location of the database
      * @return true if the database has been initialized correctly
      */
-    static bool initialize(const QString &location);
+    static bool initialize(const PkString &location);
 
     /// Delete all storages that are Unknown or Memory and all resources that are marked temporary or belong to Unknown or Memory storages
     static void deleteTemporaryResources();
@@ -90,7 +93,7 @@ private:
      * @param resourceType the string that represents the type
      * @return true if the type was registered or had already been registered
      */
-    static bool registerResourceType(const QString &resourceType);
+    static bool registerResourceType(const PkString &resourceType);
 
     /**
      * Returns a list of tags related to the storage
@@ -99,13 +102,13 @@ private:
      * this very storage uniquely. The second item of the pair lists the
      * tags that are shared with other storages.
      */
-    static std::pair<QVector<int>,QVector<int>> tagsForStorage(const QString &resourceType, const QString &storageLocation);
+    static std::pair<PkVector<int>,PkVector<int>> tagsForStorage(const PkString &resourceType, const PkString &storageLocation);
     /**
      * Returns a list of resources owned by the storage
      */
-    static QVector<int> resourcesForStorage(const QString &resourceType, const QString &storageLocation);
-    static int resourceIdForResource(const QString &resourceFileName, const QString &resourceType, const QString &storageLocation);
-    static bool resourceNeedsUpdating(int resourceId, QDateTime timestamp);
+    static PkVector<int> resourcesForStorage(const PkString &resourceType, const PkString &storageLocation);
+    static int resourceIdForResource(const PkString &resourceFileName, const PkString &resourceType, const PkString &storageLocation);
+    static bool resourceNeedsUpdating(int resourceId, PkDateTime timestamp);
 
     /**
      * @brief addResourceVersion adds a new version of the resource to the database.
@@ -116,33 +119,33 @@ private:
      * @param resource
      * @return true if the database was successfully updated
      */
-    static bool addResourceVersion(int resourceId, QDateTime timestamp, KisResourceStorageSP storage, KoResourceSP resource);
+    static bool addResourceVersion(int resourceId, PkDateTime timestamp, KisResourceStorageSP storage, KoResourceSP resource);
 
-    static bool addResourceVersionImpl(int resourceId, QDateTime timestamp, KisResourceStorageSP storage, KoResourceSP resource);
+    static bool addResourceVersionImpl(int resourceId, PkDateTime timestamp, KisResourceStorageSP storage, KoResourceSP resource);
     static bool removeResourceVersionImpl(int resourceId, int version, KisResourceStorageSP storage);
 
-    static bool updateResourceTableForResourceIfNeeded(int resourceId, const QString &resourceType, KisResourceStorageSP storage);
+    static bool updateResourceTableForResourceIfNeeded(int resourceId, const PkString &resourceType, KisResourceStorageSP storage);
     static bool makeResourceTheCurrentVersion(int resourceId, KoResourceSP resource);
     static bool removeResourceCompletely(int resourceId);
 
     /// The function will find the resource only if it is the latest version
-    static bool getResourceIdFromFilename(QString filename, QString resourceType, QString storageLocation, int &outResourceId);
+    static bool getResourceIdFromFilename(PkString filename, PkString resourceType, PkString storageLocation, int &outResourceId);
     /// Note that here you can put even the original filename - any filename from the versioned_resources - and it will still find it
-    static bool getResourceIdFromVersionedFilename(QString filename, QString resourceType, QString storageLocation, int& outResourceId);
-    static bool getAllVersionsLocations(int resourceId, QStringList &outVersionsLocationsList);
+    static bool getResourceIdFromVersionedFilename(PkString filename, PkString resourceType, PkString storageLocation, int& outResourceId);
+    static bool getAllVersionsLocations(int resourceId, PkStringList &outVersionsLocationsList);
 
 
-    static bool addResource(KisResourceStorageSP storage, QDateTime timestamp, KoResourceSP resource, const QString &resourceType);
-    static bool addResources(KisResourceStorageSP storage, QString resourceType);
+    static bool addResource(KisResourceStorageSP storage, PkDateTime timestamp, KoResourceSP resource, const PkString &resourceType);
+    static bool addResources(KisResourceStorageSP storage, PkString resourceType);
 
     /// Make this resource active or inactive; this does not remove the resource from disk or from the database
     static bool setResourceActive(int resourceId, bool active = false);
 
-    static bool tagResource(const QString &resourceFileName, KisTagSP tag, const QString &resourceType);
-    static bool hasTag(const QString &url, const QString &resourceType);
-    static bool linkTagToStorage(const QString &url, const QString &resourceType, const QString &storageLocation);
-    static bool addTag(const QString &resourceType, const QString storageLocation, KisTagSP tag);
-    static bool addTags(KisResourceStorageSP storage, QString resourceType);
+    static bool tagResource(const PkString &resourceFileName, KisTagSP tag, const PkString &resourceType);
+    static bool hasTag(const PkString &url, const PkString &resourceType);
+    static bool linkTagToStorage(const PkString &url, const PkString &resourceType, const PkString &storageLocation);
+    static bool addTag(const PkString &resourceType, const PkString storageLocation, KisTagSP tag);
+    static bool addTags(KisResourceStorageSP storage, PkString resourceType);
 
     /**
      * @brief registerStorageType registers this storage type in the database
@@ -157,7 +160,7 @@ private:
     static bool deleteStorage(KisResourceStorageSP storage);
     /// Actually delete the storage and all its resources from the database (i.e., nothing is set to inactive, it's deleted)
     ///  location - relative
-    static bool deleteStorage(QString location);
+    static bool deleteStorage(PkString location);
     static bool synchronizeStorage(KisResourceStorageSP storage);
 
     /**
@@ -166,7 +169,7 @@ private:
      * @param tableName
      * @return
      */
-    static QMap<QString, QVariant> metaDataForId(int id, const QString &tableName);
+    static PkMap<PkString, PkVariant> metaDataForId(int id, const PkString &tableName);
 
     /**
      * @brief setMetaDataForId removes all metadata for the given id and table name,
@@ -175,8 +178,8 @@ private:
      * @param tableName
      * @return true if successful, false if not
      */
-    static bool updateMetaDataForId(const QMap<QString, QVariant> map, int id, const QString &tableName);
-    static bool addMetaDataForId(const QMap<QString, QVariant> map, int id, const QString &tableName);
+    static bool updateMetaDataForId(const PkMap<PkString, PkVariant> map, int id, const PkString &tableName);
+    static bool addMetaDataForId(const PkMap<PkString, PkVariant> map, int id, const PkString &tableName);
 
     /**
      * @brief removeOrphanedMetaData
@@ -187,7 +190,7 @@ private:
     static bool removeOrphanedMetaData();
 
     static bool s_valid;
-    static QString s_lastError;
+    static PkString s_lastError;
 };
 
 #endif // KISRESOURCECACHEDB_H

@@ -3,6 +3,7 @@
  */
 #pragma once
 
+#include <PkAuxTypes.h>
 #include <PkImage.h>
 #include <PkString.h>
 
@@ -10,6 +11,7 @@ namespace KisResourceThumbnailCodec
 {
 
 PkImage loadPng(const PkString &path);
+PkByteArray encodePng(const PkImage &image);
 bool savePng(const PkString &path, const PkImage &image);
 
 }

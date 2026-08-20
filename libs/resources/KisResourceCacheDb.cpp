@@ -5,24 +5,16 @@
  */
 #include "KisResourceCacheDb.h"
 
-#include <QSqlError>
-#include <QSqlQuery>
-#include <QSqlDatabase>
+#include <PkSqlError.h>
+#include <PkSqlQuery.h>
+#include <PkSqlDatabase.h>
 
-#include <QBuffer>
-#include <QVersionNumber>
-#include <QStandardPaths>
-#include <QDir>
-#include <QDirIterator>
-#include <QStringList>
-#include <QElapsedTimer>
-#include <QDataStream>
-#include <QByteArray>
-#include <QMessageBox>
+#include <PkElapsedTimer.h>
+#include <PkMessageLogger.h>
+#include <PkSet.h>
 
 #include <KritaVersionWrapper.h>
 
-#include <klocalizedstring.h>
 #include <KisBackup.h>
 
 #include <kis_debug.h>
@@ -30,69 +22,330 @@
 
 #include <KisSqlQueryLoader.h>
 #include <KisDatabaseTransactionLock.h>
-#include "KisResourceLocator.h"
-#include "KisResourceLoaderRegistry.h"
+#include "KisSqlScripts.h"
+#include "KisResourceThumbnailCodec.h"
+#include <KisResourceLocator.h>
+#include <KisResourceLoaderRegistry.h>
+#include <KisResourceTypes.h>
 
 #include "ResourceDebug.h"
 #include <kis_assert.h>
 
-#include <KisCppQuirks.h>
+#include <algorithm>
+#include <array>
+#include <codecvt>
+#include <cctype>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <locale>
+#include <optional>
+#include <string>
+#include <tuple>
+#include <vector>
 
-const QString dbDriver = "QSQLITE";
-const QString METADATA_RESOURCES = "resources";
-const QString METADATA_STORAGES = "storages";
+namespace {
 
-const QString KisResourceCacheDb::resourceCacheDbFilename { "resourcecache.sqlite" };
-const QString KisResourceCacheDb::databaseVersion { "0.0.18" };
-QStringList KisResourceCacheDb::storageTypes { QStringList() };
-QStringList KisResourceCacheDb::disabledBundles { QStringList() << "Krita_3_Default_Resources.bundle" };
+PkString operator+(const char *lhs, const PkString &rhs)
+{
+    return PkString(lhs) + rhs;
+}
+
+struct SchemaVersion
+{
+    int major = 0;
+    int minor = 0;
+    int patch = 0;
+
+    static SchemaVersion fromString(const PkString &text)
+    {
+        SchemaVersion result;
+        char trailing = '\0';
+        if (std::sscanf(text.PkToUtf8().c_str(), "%d.%d.%d%c",
+                        &result.major, &result.minor, &result.patch, &trailing) != 3) {
+            return {};
+        }
+        return result;
+    }
+
+    PkString toString() const
+    {
+        return PkString((std::to_string(major) + "." + std::to_string(minor) + "." +
+                         std::to_string(patch)).c_str());
+    }
+
+    friend bool operator==(const SchemaVersion &a, const SchemaVersion &b)
+    {
+        return std::tie(a.major, a.minor, a.patch) == std::tie(b.major, b.minor, b.patch);
+    }
+    friend bool operator!=(const SchemaVersion &a, const SchemaVersion &b) { return !(a == b); }
+    friend bool operator<(const SchemaVersion &a, const SchemaVersion &b)
+    {
+        return std::tie(a.major, a.minor, a.patch) < std::tie(b.major, b.minor, b.patch);
+    }
+    friend bool operator>(const SchemaVersion &a, const SchemaVersion &b) { return b < a; }
+    friend bool operator<=(const SchemaVersion &a, const SchemaVersion &b) { return !(b < a); }
+    friend bool operator>=(const SchemaVersion &a, const SchemaVersion &b) { return !(a < b); }
+};
+
+PkString embeddedSql(const char *alias)
+{
+    const char *script = kisSqlScript(alias);
+    return script ? PkString(script) : PkString();
+}
+
+bool endsWithAsciiCaseInsensitive(const PkString &value, const char *suffix)
+{
+    std::string text = value.PkToUtf8();
+    std::string ending = suffix;
+    auto lower = [](unsigned char c) { return static_cast<char>(std::tolower(c)); };
+    std::transform(text.begin(), text.end(), text.begin(), lower);
+    std::transform(ending.begin(), ending.end(), ending.begin(), lower);
+    return text.size() >= ending.size() &&
+           text.compare(text.size() - ending.size(), ending.size(), ending) == 0;
+}
+
+PkString completeBaseName(const PkString &path)
+{
+    std::string name = std::filesystem::u8path(path.PkToUtf8()).filename().string();
+    const std::size_t dot = name.rfind('.');
+    if (dot != std::string::npos && dot != 0) name.resize(dot);
+    std::replace(name.begin(), name.end(), '_', ' ');
+    return PkString(name.c_str());
+}
+
+PkString fileBaseName(const PkString &path)
+{
+    return PkString(std::filesystem::u8path(path.PkToUtf8()).stem().string().c_str());
+}
+
+void appendU32(std::vector<std::uint8_t> &out, std::uint32_t value)
+{
+    out.push_back(static_cast<std::uint8_t>(value >> 24));
+    out.push_back(static_cast<std::uint8_t>(value >> 16));
+    out.push_back(static_cast<std::uint8_t>(value >> 8));
+    out.push_back(static_cast<std::uint8_t>(value));
+}
+
+void appendU64(std::vector<std::uint8_t> &out, std::uint64_t value)
+{
+    for (int shift = 56; shift >= 0; shift -= 8) {
+        out.push_back(static_cast<std::uint8_t>(value >> shift));
+    }
+}
+
+bool readU32(const std::vector<std::uint8_t> &bytes, std::size_t &offset, std::uint32_t &value)
+{
+    if (offset + 4 > bytes.size()) return false;
+    value = (std::uint32_t(bytes[offset]) << 24) | (std::uint32_t(bytes[offset + 1]) << 16) |
+            (std::uint32_t(bytes[offset + 2]) << 8) | std::uint32_t(bytes[offset + 3]);
+    offset += 4;
+    return true;
+}
+
+bool readU64(const std::vector<std::uint8_t> &bytes, std::size_t &offset, std::uint64_t &value)
+{
+    if (offset + 8 > bytes.size()) return false;
+    value = 0;
+    for (int i = 0; i < 8; ++i) value = (value << 8) | bytes[offset++];
+    return true;
+}
+
+const char kBase64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+PkString base64Encode(const std::vector<std::uint8_t> &bytes)
+{
+    std::string out;
+    out.reserve(((bytes.size() + 2) / 3) * 4);
+    for (std::size_t i = 0; i < bytes.size(); i += 3) {
+        const std::uint32_t a = bytes[i];
+        const std::uint32_t b = i + 1 < bytes.size() ? bytes[i + 1] : 0;
+        const std::uint32_t c = i + 2 < bytes.size() ? bytes[i + 2] : 0;
+        const std::uint32_t value = (a << 16) | (b << 8) | c;
+        out.push_back(kBase64[(value >> 18) & 63]);
+        out.push_back(kBase64[(value >> 12) & 63]);
+        out.push_back(i + 1 < bytes.size() ? kBase64[(value >> 6) & 63] : '=');
+        out.push_back(i + 2 < bytes.size() ? kBase64[value & 63] : '=');
+    }
+    return PkString(out.c_str());
+}
+
+std::vector<std::uint8_t> base64Decode(const PkString &text)
+{
+    std::array<int, 256> decode;
+    decode.fill(-1);
+    for (int i = 0; i < 64; ++i) decode[static_cast<unsigned char>(kBase64[i])] = i;
+    const std::string input = text.PkToUtf8();
+    std::vector<std::uint8_t> out;
+    int accumulator = 0;
+    int bits = -8;
+    for (unsigned char ch : input) {
+        if (ch == '=') break;
+        if (decode[ch] < 0) continue;
+        accumulator = (accumulator << 6) | decode[ch];
+        bits += 6;
+        if (bits >= 0) {
+            out.push_back(static_cast<std::uint8_t>((accumulator >> bits) & 0xff));
+            bits -= 8;
+        }
+    }
+    return out;
+}
+
+PkString serializeVariant(const PkVariant &value)
+{
+    std::vector<std::uint8_t> bytes;
+    appendU32(bytes, static_cast<std::uint32_t>(value.type()));
+    bytes.push_back(value.isNull() ? 1 : 0);
+    if (!value.isNull()) {
+        switch (value.type()) {
+        case PkVariant::Bool:
+            bytes.push_back(value.toBool() ? 1 : 0);
+            break;
+        case PkVariant::Int:
+            appendU32(bytes, static_cast<std::uint32_t>(value.toInt()));
+            break;
+        case PkVariant::UInt:
+            appendU32(bytes, value.toUInt());
+            break;
+        case PkVariant::LongLong:
+            appendU64(bytes, static_cast<std::uint64_t>(value.toLongLong()));
+            break;
+        case PkVariant::ULongLong:
+            appendU64(bytes, value.toULongLong());
+            break;
+        case PkVariant::Double: {
+            std::uint64_t raw = 0;
+            const double number = value.toDouble();
+            std::memcpy(&raw, &number, sizeof(raw));
+            appendU64(bytes, raw);
+            break;
+        }
+        case PkVariant::String: {
+            const std::u16string text = value.toString().PkToU16();
+            appendU32(bytes, static_cast<std::uint32_t>(text.size() * 2));
+            for (char16_t codeUnit : text) {
+                bytes.push_back(static_cast<std::uint8_t>(codeUnit >> 8));
+                bytes.push_back(static_cast<std::uint8_t>(codeUnit));
+            }
+            break;
+        }
+        case PkVariant::ByteArray: {
+            const PkByteArray array = value.toByteArray();
+            appendU32(bytes, static_cast<std::uint32_t>(array.size()));
+            bytes.insert(bytes.end(), array.constData(), array.constData() + array.size());
+            break;
+        }
+        default:
+            return PkString();
+        }
+    }
+    return base64Encode(bytes);
+}
+
+PkVariant deserializeVariant(const PkString &encoded)
+{
+    const std::vector<std::uint8_t> bytes = base64Decode(encoded);
+    std::size_t offset = 0;
+    std::uint32_t type = 0;
+    if (!readU32(bytes, offset, type) || offset >= bytes.size()) return PkVariant();
+    if (bytes[offset++] != 0) return PkVariant();
+    std::uint32_t u32 = 0;
+    std::uint64_t u64 = 0;
+    switch (static_cast<PkVariant::Type>(type)) {
+    case PkVariant::Bool:
+        return offset < bytes.size() ? PkVariant(bytes[offset] != 0) : PkVariant();
+    case PkVariant::Int:
+        return readU32(bytes, offset, u32) ? PkVariant(static_cast<int>(u32)) : PkVariant();
+    case PkVariant::UInt:
+        return readU32(bytes, offset, u32) ? PkVariant(u32) : PkVariant();
+    case PkVariant::LongLong:
+        return readU64(bytes, offset, u64) ? PkVariant(static_cast<long long>(u64)) : PkVariant();
+    case PkVariant::ULongLong:
+        return readU64(bytes, offset, u64)
+            ? PkVariant(static_cast<unsigned long long>(u64))
+            : PkVariant();
+    case PkVariant::Double: {
+        if (!readU64(bytes, offset, u64)) return PkVariant();
+        double number = 0.0;
+        std::memcpy(&number, &u64, sizeof(number));
+        return PkVariant(number);
+    }
+    case PkVariant::String: {
+        if (!readU32(bytes, offset, u32) || (u32 % 2) != 0 || offset + u32 > bytes.size()) return PkVariant();
+        std::u16string text;
+        text.reserve(u32 / 2);
+        for (std::uint32_t i = 0; i < u32; i += 2) {
+            text.push_back(static_cast<char16_t>((std::uint16_t(bytes[offset + i]) << 8) |
+                                                bytes[offset + i + 1]));
+        }
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
+        const std::string utf8 = converter.to_bytes(text);
+        return PkVariant(PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size())));
+    }
+    case PkVariant::ByteArray:
+        if (!readU32(bytes, offset, u32) || offset + u32 > bytes.size()) return PkVariant();
+        return PkVariant(PkByteArray(reinterpret_cast<const char *>(bytes.data() + offset),
+                                    static_cast<int>(u32)));
+    default:
+        return PkVariant();
+    }
+}
+
+} // namespace
+
+const PkString dbDriver = "SQLITE";
+const PkString METADATA_RESOURCES = "resources";
+const PkString METADATA_STORAGES = "storages";
+
+const PkString KisResourceCacheDb::resourceCacheDbFilename { "resourcecache.sqlite" };
+const PkString KisResourceCacheDb::databaseVersion { "0.0.18" };
+PkStringList KisResourceCacheDb::storageTypes { PkStringList() };
+PkStringList KisResourceCacheDb::disabledBundles { PkStringList() << "Krita_3_Default_Resources.bundle" };
 
 bool KisResourceCacheDb::s_valid {false};
-QString KisResourceCacheDb::s_lastError {QString()};
+PkString KisResourceCacheDb::s_lastError {PkString()};
 
 bool KisResourceCacheDb::isValid()
 {
     return s_valid;
 }
 
-QString KisResourceCacheDb::lastError()
+PkString KisResourceCacheDb::lastError()
 {
     return s_lastError;
 }
 
-// use in WHERE QSqlQuery clauses
+// use in WHERE PkSqlQuery clauses
 // because if the string is null, the query will also have null there
 // and every comparison with null is false, so the query won't find anything
 // (especially important for storage location where empty string is common)
-QString changeToEmptyIfNull(QString s)
+PkString changeToEmptyIfNull(PkString s)
 {
-    return s.isNull() ? QString("") : s;
+    return s;
 }
 
 bool updateSchemaVersion()
 {
-    QFile f(":/fill_version_information.sql");
-    if (f.open(QFile::ReadOnly)) {
-        QString sql = f.readAll();
-        QSqlQuery q;
-        if (!q.prepare(sql)) {
-            warnDbMigration << "Could not prepare the schema information query" << q.lastError() << q.boundValues();
-            return false;
-        }
-        q.addBindValue(KisResourceCacheDb::databaseVersion);
-        q.addBindValue(KritaVersionWrapper::versionString());
-        q.addBindValue(QDateTime::currentDateTimeUtc().toSecsSinceEpoch());
-        if (!q.exec()) {
-            warnDbMigration << "Could not insert the current version" << q.lastError() << q.boundValues();
-            return false;
-        }
-
-        infoDbMigration << "Filled version table";
+    PkSqlQuery q;
+    if (!q.prepare(embeddedSql("fill_version_information.sql"))) {
+        warnDbMigration << "Could not prepare the schema information query" << q.lastError() << q.boundValues();
+        return false;
     }
+    q.addBindValue(KisResourceCacheDb::databaseVersion);
+    q.addBindValue(KritaVersionWrapper::versionString());
+    q.addBindValue(static_cast<long long>(PkDateTime::currentDateTimeUtc().toSecsSinceEpoch()));
+    if (!q.exec()) {
+        warnDbMigration << "Could not insert the current version" << q.lastError() << q.boundValues();
+        return false;
+    }
+    infoDbMigration << "Filled version table";
     return true;
 }
 
-QSqlError runUpdateScriptFile(const QString &path, const QString &message)
+PkSqlError runUpdateScriptFile(const PkString &path, const PkString &message)
 {
     try {
 
@@ -105,9 +358,9 @@ QSqlError runUpdateScriptFile(const QString &path, const QString &message)
         warnDbMigration.noquote() << "       file:" << e.filePath;
         warnDbMigration.noquote() << "       file-error:" << e.fileErrorString;
         return
-            QSqlError("Error executing SQL",
-                QString("Could not find SQL file %1").arg(e.filePath),
-                QSqlError::StatementError);
+            PkSqlError("Error executing SQL",
+                PkString("Could not find SQL file %1").arg(e.filePath),
+                PkSqlError::StatementError);
     } catch (const KisSqlQueryLoader::SQLException &e) {
         warnDbMigration.noquote() << "ERROR: Could not execute DB update step:" << message;
         warnDbMigration.noquote() << "       error" << e.message;
@@ -118,10 +371,10 @@ QSqlError runUpdateScriptFile(const QString &path, const QString &message)
     }
 
     infoDbMigration << "Completed DB update step:" << message;
-    return QSqlError();
+    return PkSqlError();
 }
 
-QSqlError runUpdateScript(const QString &script, const QString &message)
+PkSqlError runUpdateScript(const PkString &script, const PkString &message)
 {
     try {
 
@@ -136,15 +389,15 @@ QSqlError runUpdateScript(const QString &script, const QString &message)
     }
 
     infoDbMigration << "Completed DB update step:" << message;
-    return QSqlError();
+    return PkSqlError();
 }
 
-QSqlError createDatabase(const QString &location)
+PkSqlError createDatabase(const PkString &location)
 {
     // NOTE: if the id's of Unknown and Memory in the database
     //       will change, and that will break the queries that
     //       remove Unknown and Memory storages on start-up.
-    KisResourceCacheDb::storageTypes = QStringList {
+    KisResourceCacheDb::storageTypes = PkStringList {
         KisResourceStorage::storageTypeToUntranslatedString(KisResourceStorage::StorageType(1)),
         KisResourceStorage::storageTypeToUntranslatedString(KisResourceStorage::StorageType(2)),
         KisResourceStorage::storageTypeToUntranslatedString(KisResourceStorage::StorageType(3)),
@@ -153,27 +406,30 @@ QSqlError createDatabase(const QString &location)
         KisResourceStorage::storageTypeToUntranslatedString(KisResourceStorage::StorageType(6)),
         KisResourceStorage::storageTypeToUntranslatedString(KisResourceStorage::StorageType(7))};
 
-    QDir dbLocation(location);
-    if (!dbLocation.exists()) {
-        dbLocation.mkpath(dbLocation.path());
+    std::error_code filesystemError;
+    std::filesystem::create_directories(std::filesystem::u8path(location.PkToUtf8()), filesystemError);
+    if (filesystemError) {
+        return PkSqlError("Error opening resource database directory",
+                          PkString(filesystemError.message().c_str()),
+                          PkSqlError::ConnectionError);
     }
 
-    std::optional<QSqlDatabase> existingDatabase =
-        QSqlDatabase::database(QSqlDatabase::defaultConnection, false);
+    std::optional<PkSqlDatabase> existingDatabase =
+        PkSqlDatabase::database(PkSqlDatabase::defaultConnection, false);
 
-    const bool databaseConnectionExists = !QSqlDatabase::connectionNames().isEmpty()
+    const bool databaseConnectionExists = !PkSqlDatabase::connectionNames().isEmpty()
         && existingDatabase->isValid() && existingDatabase->isOpen();
 
     if (databaseConnectionExists && existingDatabase->tables().contains("version_information")) {
-        return QSqlError();
+        return PkSqlError();
     }
 
     existingDatabase = std::nullopt;
 
-    QSqlDatabase db;
+    PkSqlDatabase db;
 
     if (!databaseConnectionExists) {
-        db = QSqlDatabase::addDatabase(dbDriver);
+        db = PkSqlDatabase::addDatabase(dbDriver);
         db.setDatabaseName(location + "/" + KisResourceCacheDb::resourceCacheDbFilename);
 
         if (!db.open()) {
@@ -181,15 +437,15 @@ QSqlError createDatabase(const QString &location)
             return db.lastError();
         }
     } else {
-        db = QSqlDatabase::database();
+        db = PkSqlDatabase::database();
     }
 
     // will be filled correctly later
-    QVersionNumber oldSchemaVersionNumber;
-    QVersionNumber newSchemaVersionNumber = QVersionNumber::fromString(KisResourceCacheDb::databaseVersion);
+    SchemaVersion oldSchemaVersionNumber;
+    SchemaVersion newSchemaVersionNumber = SchemaVersion::fromString(KisResourceCacheDb::databaseVersion);
 
 
-    QStringList tables = QStringList() << "version_information"
+    PkStringList tables = PkStringList() << "version_information"
                                        << "storage_types"
                                        << "resource_types"
                                        << "storages"
@@ -201,12 +457,12 @@ QSqlError createDatabase(const QString &location)
                                        << "tags_storages"
                                        << "tag_translations";
 
-    QStringList dbTables;
+    PkStringList dbTables;
     // Verify whether we should recreate the database
     {
         bool allTablesPresent = true;
         dbTables = db.tables();
-        Q_FOREACH(const QString &table, tables) {
+        for (const PkString &table : tables) {
             if (!dbTables.contains(table)) {
                 allTablesPresent = false;
                 break;
@@ -214,15 +470,15 @@ QSqlError createDatabase(const QString &location)
         }
 
         bool schemaIsOutDated = false;
-        QString schemaVersion = "0.0.0";
-        QString kritaVersion = "Unknown";
+        PkString schemaVersion = "0.0.0";
+        PkString kritaVersion = "Unknown";
         int creationDate = 0;
 
         if (dbTables.contains("version_information")) {
             // Verify the version number
 
             {
-                QSqlQuery q(
+                PkSqlQuery q(
                     "SELECT database_version\n"
                     ",      krita_version\n"
                     ",      creation_date\n"
@@ -241,87 +497,87 @@ QSqlError createDatabase(const QString &location)
                 creationDate = q.value(2).toInt();
             }
 
-            oldSchemaVersionNumber = QVersionNumber::fromString(schemaVersion);
-            newSchemaVersionNumber = QVersionNumber::fromString(KisResourceCacheDb::databaseVersion);
+            oldSchemaVersionNumber = SchemaVersion::fromString(schemaVersion);
+            newSchemaVersionNumber = SchemaVersion::fromString(KisResourceCacheDb::databaseVersion);
 
-            if (QVersionNumber::compare(oldSchemaVersionNumber, newSchemaVersionNumber) != 0) {
+            if (oldSchemaVersionNumber != newSchemaVersionNumber) {
 
                 infoDbMigration << "Old schema:" << schemaVersion << "New schema:" << newSchemaVersionNumber;
 
                 schemaIsOutDated = true;
                 KisBackup::numberedBackupFile(location + "/" + KisResourceCacheDb::resourceCacheDbFilename);
 
-                if (newSchemaVersionNumber == QVersionNumber::fromString("0.0.18")
-                        && QVersionNumber::compare(oldSchemaVersionNumber, QVersionNumber::fromString("0.0.14")) >= 0
-                        && QVersionNumber::compare(oldSchemaVersionNumber, QVersionNumber::fromString("0.0.18")) < 0) {
+                if (newSchemaVersionNumber == SchemaVersion::fromString("0.0.18")
+                        && oldSchemaVersionNumber >= SchemaVersion::fromString("0.0.14")
+                        && oldSchemaVersionNumber < SchemaVersion::fromString("0.0.18")) {
 
-                    bool from14to15 = oldSchemaVersionNumber == QVersionNumber::fromString("0.0.14");
+                    bool from14to15 = oldSchemaVersionNumber == SchemaVersion::fromString("0.0.14");
 
-                    bool from15to16 = oldSchemaVersionNumber == QVersionNumber::fromString("0.0.14")
-                            || oldSchemaVersionNumber == QVersionNumber::fromString("0.0.15");
+                    bool from15to16 = oldSchemaVersionNumber == SchemaVersion::fromString("0.0.14")
+                            || oldSchemaVersionNumber == SchemaVersion::fromString("0.0.15");
 
-                    bool from16to17 = oldSchemaVersionNumber == QVersionNumber::fromString("0.0.14")
-                            || oldSchemaVersionNumber == QVersionNumber::fromString("0.0.15")
-                            || oldSchemaVersionNumber == QVersionNumber::fromString("0.0.16");
+                    bool from16to17 = oldSchemaVersionNumber == SchemaVersion::fromString("0.0.14")
+                            || oldSchemaVersionNumber == SchemaVersion::fromString("0.0.15")
+                            || oldSchemaVersionNumber == SchemaVersion::fromString("0.0.16");
 
-                    bool from17to18 = oldSchemaVersionNumber == QVersionNumber::fromString("0.0.14")
-                            || oldSchemaVersionNumber == QVersionNumber::fromString("0.0.15")
-                            || oldSchemaVersionNumber == QVersionNumber::fromString("0.0.16")
-                            || oldSchemaVersionNumber == QVersionNumber::fromString("0.0.17");
+                    bool from17to18 = oldSchemaVersionNumber == SchemaVersion::fromString("0.0.14")
+                            || oldSchemaVersionNumber == SchemaVersion::fromString("0.0.15")
+                            || oldSchemaVersionNumber == SchemaVersion::fromString("0.0.16")
+                            || oldSchemaVersionNumber == SchemaVersion::fromString("0.0.17");
 
-                    KisDatabaseTransactionLock transactionLock(QSqlDatabase::database());
+                    KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
 
                     bool success = true;
                     if (from14to15) {
-                        QSqlError error = runUpdateScript(
+                        PkSqlError error = runUpdateScript(
                             "ALTER TABLE  resource_tags\n"
                             "ADD   COLUMN active INTEGER NOT NULL DEFAULT 1", 
                             "Update resource tags table (add \'active\' column)");
-                        if (error.type() != QSqlError::NoError) {
+                        if (error.type() != PkSqlError::NoError) {
                             success = false;
                         }
                     }
                     if (success && from15to16) {
                         infoDbMigration << "Going to update indices";
 
-                        QStringList indexes = QStringList() << "tags" << "resources" << "tag_translations" << "resource_tags";
+                        PkStringList indexes = PkStringList() << "tags" << "resources" << "tag_translations" << "resource_tags";
 
-                        Q_FOREACH(const QString &index, indexes) {
-                            QSqlError error = runUpdateScriptFile(":/create_index_" + index + ".sql",
-                                                                  QString("Create index for %1").arg(index));
-                            if (error.type() != QSqlError::NoError) {
+                        for (const PkString &index : indexes) {
+                            PkSqlError error = runUpdateScriptFile(":/create_index_" + index + ".sql",
+                                                                  PkString("Create index for %1").arg(index));
+                            if (error.type() != PkSqlError::NoError) {
                                 success = false;
                             }
                         }
                     }
 
                     if (success && from16to17) {
-                        QSqlError error = runUpdateScriptFile(":/create_index_resources_signature.sql",
+                        PkSqlError error = runUpdateScriptFile(":/create_index_resources_signature.sql",
                                                               "Create index for resources_signature");
-                        if (error.type() != QSqlError::NoError) {
+                        if (error.type() != PkSqlError::NoError) {
                             success = false;
                         }
                     }
 
                     if (success && from17to18) {
                         {
-                            QSqlError error = runUpdateScriptFile(":/0_0_18_0001_cleanup_metadata_table.sql",
+                            PkSqlError error = runUpdateScriptFile(":/0_0_18_0001_cleanup_metadata_table.sql",
                                                                   "Cleanup and deduplicate metadata table");
-                            if (error.type() != QSqlError::NoError) {
+                            if (error.type() != PkSqlError::NoError) {
                                 success = false;
                             }
                         }
                         if (success) {
-                            QSqlError error = runUpdateScriptFile(":/0_0_18_0002_update_metadata_table_constraints.sql",
+                            PkSqlError error = runUpdateScriptFile(":/0_0_18_0002_update_metadata_table_constraints.sql",
                                                                   "Update metadata table constraints");
-                            if (error.type() != QSqlError::NoError) {
+                            if (error.type() != PkSqlError::NoError) {
                                 success = false;
                             }
                         }
                         if (success) {
-                            QSqlError error = runUpdateScriptFile(":/create_index_metadata_key.sql",
+                            PkSqlError error = runUpdateScriptFile(":/create_index_metadata_key.sql",
                                                                   "Create index for metadata_key");
-                            if (error.type() != QSqlError::NoError) {
+                            if (error.type() != PkSqlError::NoError) {
                                 success = false;
                             }
                         }
@@ -335,9 +591,9 @@ QSqlError createDatabase(const QString &location)
                         transactionLock.commit();
 
                         if (success) {
-                            QSqlError error = runUpdateScript("VACUUM",
+                            PkSqlError error = runUpdateScript("VACUUM",
                                                               "Vacuum database after updating schema");
-                            if (error.type() != QSqlError::NoError) {
+                            if (error.type() != PkSqlError::NoError) {
                                 success = false;
                             }
                         }
@@ -350,12 +606,14 @@ QSqlError createDatabase(const QString &location)
                 }
 
                 if (schemaIsOutDated) {
-                    QMessageBox::critical(0, i18nc("@title:window", "Krita"), i18n("The resource database scheme has changed. Krita will backup your database and create a new database."));
-                    if (QVersionNumber::compare(oldSchemaVersionNumber, QVersionNumber::fromString("0.0.14")) > 0) {
+                    qWarning() << "The resource database schema changed; backing up and recreating it";
+                    if (oldSchemaVersionNumber > SchemaVersion::fromString("0.0.14")) {
                         KisResourceLocator::instance()->saveTags();
                     }
                     db.close();
-                    QFile::remove(location + "/" + KisResourceCacheDb::resourceCacheDbFilename);
+                    std::filesystem::remove(
+                        std::filesystem::u8path((location + "/" + KisResourceCacheDb::resourceCacheDbFilename).PkToUtf8()),
+                        filesystemError);
                     db.open();
                 }
             }
@@ -363,46 +621,46 @@ QSqlError createDatabase(const QString &location)
         }
 
         if (allTablesPresent && !schemaIsOutDated) {
-            KisUsageLogger::log(QString("Database is up to date. Version: %1, created by Krita %2, at %3")
+            KisUsageLogger::log(PkString("Database is up to date. Version: %1, created by Krita %2, at %3")
                                 .arg(schemaVersion)
                                 .arg(kritaVersion)
-                                .arg(QDateTime::fromSecsSinceEpoch(creationDate).toString()));
+                                .arg(PkString(PkDateTime::fromSecsSinceEpoch(creationDate).toString().c_str())));
 
             /// initialization is completed, transaction is over,
             /// now enable the foreign_keys constraint if necessary
             KisResourceCacheDb::synchronizeForeignKeysState();
 
-            return QSqlError();
+            return PkSqlError();
         }
     }
 
-    KisUsageLogger::log(QString("Creating database from scratch (%1, %2).")
-                        .arg(oldSchemaVersionNumber.toString().isEmpty() ? QString("database didn't exist") : ("old schema version: " + oldSchemaVersionNumber.toString()))
+    KisUsageLogger::log(PkString("Creating database from scratch (%1, %2).")
+                        .arg(oldSchemaVersionNumber.toString().isEmpty() ? PkString("database didn't exist") : ("old schema version: " + oldSchemaVersionNumber.toString()))
                         .arg("new schema version: " + newSchemaVersionNumber.toString()));
 
-    KisDatabaseTransactionLock transactionLock(QSqlDatabase::database());
+    KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
 
     // Create tables
-    Q_FOREACH(const QString &table, tables) {
-        QSqlError error =
-            runUpdateScriptFile(":/create_" + table + ".sql", QString("Create table %1").arg(table));
-        if (error.type() != QSqlError::NoError) {
+    for (const PkString &table : tables) {
+        PkSqlError error =
+            runUpdateScriptFile(":/create_" + table + ".sql", PkString("Create table %1").arg(table));
+        if (error.type() != PkSqlError::NoError) {
             return error;
         }
     }
 
     {
         // metadata table constraints were updated in version 0.0.18
-        QSqlError error = runUpdateScriptFile(":/0_0_18_0002_update_metadata_table_constraints.sql",
+        PkSqlError error = runUpdateScriptFile(":/0_0_18_0002_update_metadata_table_constraints.sql",
                                               "Update metadata table constraints");
 
-        if (error.type() != QSqlError::NoError) {
+        if (error.type() != PkSqlError::NoError) {
             return error;
         }
     }
 
     // Create indexes
-    QStringList indexes;
+    PkStringList indexes;
 
     // these indexes came in version 0.0.16
     indexes << "storages" << "versioned_resources" << "tags" << "resources" << "tag_translations" << "resource_tags";
@@ -413,59 +671,47 @@ QSqlError createDatabase(const QString &location)
     // this index came in version 0.0.18
     indexes << "metadata_key";
 
-    Q_FOREACH(const QString &index, indexes) {
-        QSqlError error = runUpdateScriptFile(":/create_index_" + index + ".sql",
-                                              QString("Create index for %1").arg(index));
-        if (error.type() != QSqlError::NoError) {
+    for (const PkString &index : indexes) {
+        PkSqlError error = runUpdateScriptFile(":/create_index_" + index + ".sql",
+                                              PkString("Create index for %1").arg(index));
+        if (error.type() != PkSqlError::NoError) {
             return error;
         }
     }
 
     // Fill lookup tables
     {
-        QFile f(":/fill_storage_types.sql");
-        if (f.open(QFile::ReadOnly)) {
-            QString sql = f.readAll();
-            Q_FOREACH(const QString &originType, KisResourceCacheDb::storageTypes) {
-                const QString updateStep = QString("Register storage type: %1").arg(originType);
-                QSqlQuery q(sql);
-                q.addBindValue(originType);
-                if (!q.exec()) {
-                    warnDbMigration << "Could execute DB update step:" << updateStep << q.lastError();
-                    warnDbMigration << "    faulty statement:" << sql;
-                    return db.lastError();
-                }
-                infoDbMigration << "Completed DB update step:" << updateStep;
+        const PkString sql = embeddedSql("fill_storage_types.sql");
+        for (const PkString &originType : KisResourceCacheDb::storageTypes) {
+            const PkString updateStep = PkString("Register storage type: %1").arg(originType);
+            PkSqlQuery q(sql);
+            q.addBindValue(originType);
+            if (!q.exec()) {
+                warnDbMigration << "Could execute DB update step:" << updateStep << q.lastError();
+                warnDbMigration << "    faulty statement:" << sql;
+                return q.lastError();
             }
-        }
-        else {
-            return QSqlError("Error executing SQL", QString("Could not find SQL fill_storage_types.sql."), QSqlError::StatementError);
+            infoDbMigration << "Completed DB update step:" << updateStep;
         }
     }
 
     {
-        QFile f(":/fill_resource_types.sql");
-        if (f.open(QFile::ReadOnly)) {
-            QString sql = f.readAll();
-            Q_FOREACH(const QString &resourceType, KisResourceLoaderRegistry::instance()->resourceTypes()) {
-                const QString updateStep = QString("Register resource type: %1").arg(resourceType);
-                QSqlQuery q(sql);
-                q.addBindValue(resourceType);
-                if (!q.exec()) {
-                    warnDbMigration << "Could execute DB update step:" << updateStep << q.lastError();
-                    warnDbMigration << "    faulty statement:" << sql;
-                    return db.lastError();
-                }
-                infoDbMigration << "Completed DB update step:" << updateStep;
+        const PkString sql = embeddedSql("fill_resource_types.sql");
+        for (const PkString &resourceType : KisResourceLoaderRegistry::instance()->resourceTypes()) {
+            const PkString updateStep = PkString("Register resource type: %1").arg(resourceType);
+            PkSqlQuery q(sql);
+            q.addBindValue(resourceType);
+            if (!q.exec()) {
+                warnDbMigration << "Could execute DB update step:" << updateStep << q.lastError();
+                warnDbMigration << "    faulty statement:" << sql;
+                return q.lastError();
             }
-        }
-        else {
-            return QSqlError("Error executing SQL", QString("Could not find SQL fill_resource_types.sql."), QSqlError::StatementError);
+            infoDbMigration << "Completed DB update step:" << updateStep;
         }
     }
 
     if (!updateSchemaVersion()) {
-       return QSqlError("Error executing SQL", QString("Could not update schema version."), QSqlError::StatementError);
+       return PkSqlError("Error executing SQL", PkString("Could not update schema version."), PkSqlError::StatementError);
     }
 
     transactionLock.commit();
@@ -474,29 +720,29 @@ QSqlError createDatabase(const QString &location)
     /// now enable the foreign_keys constraint if necessary
     KisResourceCacheDb::synchronizeForeignKeysState();
 
-    return QSqlError();
+    return PkSqlError();
 }
 
-bool KisResourceCacheDb::initialize(const QString &location)
+bool KisResourceCacheDb::initialize(const PkString &location)
 {
-    QSqlError err = createDatabase(location);
+    PkSqlError err = createDatabase(location);
 
     s_valid = !err.isValid();
     switch (err.type()) {
-    case QSqlError::NoError:
-        s_lastError = QString();
+    case PkSqlError::NoError:
+        s_lastError = PkString();
         break;
-    case QSqlError::ConnectionError:
-        s_lastError = QString("Could not initialize the resource cache database. Connection error: %1").arg(err.text());
+    case PkSqlError::ConnectionError:
+        s_lastError = PkString("Could not initialize the resource cache database. Connection error: %1").arg(err.text());
         break;
-    case QSqlError::StatementError:
-        s_lastError = QString("Could not initialize the resource cache database. Statement error: %1").arg(err.text());
+    case PkSqlError::StatementError:
+        s_lastError = PkString("Could not initialize the resource cache database. Statement error: %1").arg(err.text());
         break;
-    case QSqlError::TransactionError:
-        s_lastError = QString("Could not initialize the resource cache database. Transaction error: %1").arg(err.text());
+    case PkSqlError::TransactionError:
+        s_lastError = PkString("Could not initialize the resource cache database. Transaction error: %1").arg(err.text());
         break;
-    case QSqlError::UnknownError:
-        s_lastError = QString("Could not initialize the resource cache database. Unknown error: %1").arg(err.text());
+    case PkSqlError::UnknownError:
+        s_lastError = PkString("Could not initialize the resource cache database. Unknown error: %1").arg(err.text());
         break;
     }
 
@@ -506,7 +752,7 @@ bool KisResourceCacheDb::initialize(const QString &location)
     return s_valid;
 }
 
-std::pair<QVector<int>,QVector<int>> KisResourceCacheDb::tagsForStorage(const QString &resourceType, const QString &storageLocation)
+std::pair<PkVector<int>,PkVector<int>> KisResourceCacheDb::tagsForStorage(const PkString &resourceType, const PkString &storageLocation)
 {
     try {
         KisSqlQueryLoader loader(":/sql/storage_tags_ref_count.sql", KisSqlQueryLoader::single_statement_mode);
@@ -514,8 +760,8 @@ std::pair<QVector<int>,QVector<int>> KisResourceCacheDb::tagsForStorage(const QS
         loader.query().bindValue(":location", changeToEmptyIfNull(storageLocation));
         loader.exec();
 
-        QVector<int> uniqueTags;
-        QVector<int> sharedTags;
+        PkVector<int> uniqueTags;
+        PkVector<int> sharedTags;
 
         while (loader.query().next()) {
             if (loader.query().value("ref_count").toInt() > 1) {
@@ -543,11 +789,11 @@ std::pair<QVector<int>,QVector<int>> KisResourceCacheDb::tagsForStorage(const QS
     return {};
 }
 
-QVector<int> KisResourceCacheDb::resourcesForStorage(const QString &resourceType, const QString &storageLocation)
+PkVector<int> KisResourceCacheDb::resourcesForStorage(const PkString &resourceType, const PkString &storageLocation)
 {
-    QVector<int> result;
+    PkVector<int> result;
 
-    QSqlQuery q;
+    PkSqlQuery q;
 
     if (!q.prepare("SELECT resources.id\n"
                    "FROM   resources\n"
@@ -577,11 +823,11 @@ QVector<int> KisResourceCacheDb::resourcesForStorage(const QString &resourceType
     return result;
 }
 
-int KisResourceCacheDb::resourceIdForResource(const QString &resourceFileName, const QString &resourceType, const QString &storageLocation)
+int KisResourceCacheDb::resourceIdForResource(const PkString &resourceFileName, const PkString &resourceType, const PkString &storageLocation)
 {
     //qDebug() << "resourceIdForResource" << resourceName << resourceFileName << resourceType << storageLocation;
 
-    QSqlQuery q;
+    PkSqlQuery q;
 
     if (!q.prepare("SELECT resources.id\n"
                    "FROM   resources\n"
@@ -645,9 +891,9 @@ int KisResourceCacheDb::resourceIdForResource(const QString &resourceFileName, c
 
 }
 
-bool KisResourceCacheDb::resourceNeedsUpdating(int resourceId, QDateTime timestamp)
+bool KisResourceCacheDb::resourceNeedsUpdating(int resourceId, PkDateTime timestamp)
 {
-    QSqlQuery q;
+    PkSqlQuery q;
     if (!q.prepare("SELECT timestamp\n"
                    "FROM   versioned_resources\n"
                    "WHERE  resource_id = :resource_id\n"
@@ -670,7 +916,7 @@ bool KisResourceCacheDb::resourceNeedsUpdating(int resourceId, QDateTime timesta
         return false;
     }
 
-    QVariant resourceTimeStamp = q.value(0);
+    PkVariant resourceTimeStamp = q.value(0);
 
     if (!resourceTimeStamp.isValid()) {
         qWarning() << "Could not retrieve timestamp from versioned_resources" << resourceId;
@@ -680,7 +926,7 @@ bool KisResourceCacheDb::resourceNeedsUpdating(int resourceId, QDateTime timesta
     return (timestamp.toSecsSinceEpoch() > resourceTimeStamp.toInt());
 }
 
-bool KisResourceCacheDb::addResourceVersion(int resourceId, QDateTime timestamp, KisResourceStorageSP storage, KoResourceSP resource)
+bool KisResourceCacheDb::addResourceVersion(int resourceId, PkDateTime timestamp, KisResourceStorageSP storage, KoResourceSP resource)
 {
     bool r = false;
 
@@ -694,7 +940,7 @@ bool KisResourceCacheDb::addResourceVersion(int resourceId, QDateTime timestamp,
     return r;
 }
 
-bool KisResourceCacheDb::addResourceVersionImpl(int resourceId, QDateTime timestamp, KisResourceStorageSP storage, KoResourceSP resource)
+bool KisResourceCacheDb::addResourceVersionImpl(int resourceId, PkDateTime timestamp, KisResourceStorageSP storage, KoResourceSP resource)
 {
     bool r = false;
 
@@ -707,7 +953,7 @@ bool KisResourceCacheDb::addResourceVersionImpl(int resourceId, QDateTime timest
 
     Q_ASSERT(resource->version() >= 0);
 
-    QSqlQuery q;
+    PkSqlQuery q;
     r = q.prepare("INSERT INTO versioned_resources \n"
                   "(resource_id, storage_id, version, filename, timestamp, md5sum)\n"
                   "VALUES\n"
@@ -730,7 +976,7 @@ bool KisResourceCacheDb::addResourceVersionImpl(int resourceId, QDateTime timest
     q.bindValue(":storage_location", changeToEmptyIfNull(KisResourceLocator::instance()->makeStorageLocationRelative(storage->location())));
     q.bindValue(":version", resource->version());
     q.bindValue(":filename", resource->filename());
-    q.bindValue(":timestamp", timestamp.toSecsSinceEpoch());
+    q.bindValue(":timestamp", static_cast<long long>(timestamp.toSecsSinceEpoch()));
     KIS_SAFE_ASSERT_RECOVER_NOOP(!resource->md5Sum().isEmpty());
     q.bindValue(":md5sum", resource->md5Sum());
     r = q.exec();
@@ -751,7 +997,7 @@ bool KisResourceCacheDb::removeResourceVersionImpl(int resourceId, int version, 
     // the versioned_resources table. The resources table should be updated by
     // the caller manually using updateResourceTableForResourceIfNeeded()
 
-    QSqlQuery q;
+    PkSqlQuery q;
     r = q.prepare("DELETE FROM versioned_resources \n"
                   "WHERE resource_id = :resource_id\n"
                   "AND version = :version\n"
@@ -777,13 +1023,13 @@ bool KisResourceCacheDb::removeResourceVersionImpl(int resourceId, int version, 
     return r;
 }
 
-bool KisResourceCacheDb::updateResourceTableForResourceIfNeeded(int resourceId, const QString &resourceType, KisResourceStorageSP storage)
+bool KisResourceCacheDb::updateResourceTableForResourceIfNeeded(int resourceId, const PkString &resourceType, KisResourceStorageSP storage)
 {
     bool r = false;
 
     int maxVersion = -1;
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         r = q.prepare("SELECT MAX(version)\n"
                       "FROM   versioned_resources\n"
                       "WHERE  resource_id = :resource_id;");
@@ -806,9 +1052,9 @@ bool KisResourceCacheDb::updateResourceTableForResourceIfNeeded(int resourceId, 
         maxVersion = q.value(0).toInt();
     }
 
-    QString maxVersionFilename;
+    PkString maxVersionFilename;
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         r = q.prepare("SELECT filename\n"
                       "FROM   versioned_resources\n"
                       "WHERE  resource_id = :resource_id\n"
@@ -834,9 +1080,9 @@ bool KisResourceCacheDb::updateResourceTableForResourceIfNeeded(int resourceId, 
         }
     }
 
-    QString currentFilename;
+    PkString currentFilename;
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         r = q.prepare("SELECT filename\n"
                       "FROM   resources\n"
                       "WHERE  id = :resource_id;");
@@ -860,7 +1106,7 @@ bool KisResourceCacheDb::updateResourceTableForResourceIfNeeded(int resourceId, 
     }
 
     if (currentFilename != maxVersionFilename) {
-        const QString url = resourceType + "/" + maxVersionFilename;
+        const PkString url = resourceType + "/" + maxVersionFilename;
         KoResourceSP resource = storage->resource(url);
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(resource, false);
         resource->setVersion(maxVersion);
@@ -876,7 +1122,7 @@ bool KisResourceCacheDb::makeResourceTheCurrentVersion(int resourceId, KoResourc
 {
     bool r = false;
 
-    QSqlQuery q;
+    PkSqlQuery q;
     r = q.prepare("UPDATE resources\n"
                   "SET name    = :name\n"
                   ", filename  = :filename\n"
@@ -892,14 +1138,10 @@ bool KisResourceCacheDb::makeResourceTheCurrentVersion(int resourceId, KoResourc
 
     q.bindValue(":name", resource->name());
     q.bindValue(":filename", resource->filename());
-    q.bindValue(":tooltip", i18n(resource->name().toUtf8()));
+    q.bindValue(":tooltip", resource->name());
     q.bindValue(":md5sum", resource->md5Sum());
 
-    QBuffer buf;
-    buf.open(QBuffer::WriteOnly);
-    resource->thumbnail().save(&buf, "PNG");
-    buf.close();
-    q.bindValue(":thumbnail", buf.data());
+    q.bindValue(":thumbnail", KisResourceThumbnailCodec::encodePng(resource->thumbnail()));
     q.bindValue(":id", resourceId);
 
     r = q.exec();
@@ -919,7 +1161,7 @@ bool KisResourceCacheDb::removeResourceCompletely(int resourceId)
     bool r = false;
 
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         r = q.prepare("DELETE FROM versioned_resources \n"
                       "WHERE resource_id = :resource_id;");
 
@@ -937,7 +1179,7 @@ bool KisResourceCacheDb::removeResourceCompletely(int resourceId)
     }
 
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         r = q.prepare("DELETE FROM resources \n"
                       "WHERE id = :resource_id;");
 
@@ -955,7 +1197,7 @@ bool KisResourceCacheDb::removeResourceCompletely(int resourceId)
     }
 
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         r = q.prepare("DELETE FROM resource_tags \n"
                       "WHERE resource_id = :resource_id;");
 
@@ -973,7 +1215,7 @@ bool KisResourceCacheDb::removeResourceCompletely(int resourceId)
     }
 
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         r = q.prepare("DELETE FROM metadata \n"
                       "WHERE foreign_id = :resource_id\n"
                       "AND    table_name = :table;");
@@ -995,9 +1237,9 @@ bool KisResourceCacheDb::removeResourceCompletely(int resourceId)
     return r;
 }
 
-bool KisResourceCacheDb::getResourceIdFromFilename(QString filename, QString resourceType, QString storageLocation, int &outResourceId)
+bool KisResourceCacheDb::getResourceIdFromFilename(PkString filename, PkString resourceType, PkString storageLocation, int &outResourceId)
 {
-    QSqlQuery q;
+    PkSqlQuery q;
 
     bool r = q.prepare("SELECT resources.id FROM resources\n"
                        ", resource_types\n"
@@ -1031,9 +1273,9 @@ bool KisResourceCacheDb::getResourceIdFromFilename(QString filename, QString res
     return r;
 }
 
-bool KisResourceCacheDb::getResourceIdFromVersionedFilename(QString filename, QString resourceType, QString storageLocation, int &outResourceId)
+bool KisResourceCacheDb::getResourceIdFromVersionedFilename(PkString filename, PkString resourceType, PkString storageLocation, int &outResourceId)
 {
-    QSqlQuery q;
+    PkSqlQuery q;
 
     bool r = q.prepare("SELECT resource_id FROM versioned_resources\n"
                        ", resources\n"
@@ -1070,9 +1312,9 @@ bool KisResourceCacheDb::getResourceIdFromVersionedFilename(QString filename, QS
     return r;
 }
 
-bool KisResourceCacheDb::getAllVersionsLocations(int resourceId, QStringList &outVersionsLocationsList)
+bool KisResourceCacheDb::getAllVersionsLocations(int resourceId, PkStringList &outVersionsLocationsList)
 {
-    QSqlQuery q;
+    PkSqlQuery q;
     bool r = q.prepare("SELECT filename FROM versioned_resources \n"
                   "WHERE resource_id = :resource_id;");
 
@@ -1088,7 +1330,7 @@ bool KisResourceCacheDb::getAllVersionsLocations(int resourceId, QStringList &ou
         return r;
     }
 
-    outVersionsLocationsList = QStringList();
+    outVersionsLocationsList = PkStringList();
     while (q.next()) {
         outVersionsLocationsList << q.value("filename").toString();
     }
@@ -1097,7 +1339,7 @@ bool KisResourceCacheDb::getAllVersionsLocations(int resourceId, QStringList &ou
 
 }
 
-bool KisResourceCacheDb::addResource(KisResourceStorageSP storage, QDateTime timestamp, KoResourceSP resource, const QString &resourceType)
+bool KisResourceCacheDb::addResource(KisResourceStorageSP storage, PkDateTime timestamp, KoResourceSP resource, const PkString &resourceType)
 {
     bool r = false;
 
@@ -1119,7 +1361,7 @@ bool KisResourceCacheDb::addResource(KisResourceStorageSP storage, QDateTime tim
         return true;
     }
 
-    QSqlQuery q;
+    PkSqlQuery q;
     r = q.prepare("INSERT INTO resources \n"
                   "(storage_id, resource_type_id, name, filename, tooltip, thumbnail, status, temporary, md5sum) \n"
                   "VALUES \n"
@@ -1147,38 +1389,27 @@ bool KisResourceCacheDb::addResource(KisResourceStorageSP storage, QDateTime tim
     q.bindValue(":name", resource->name());
     q.bindValue(":filename", resource->filename());
 
-    QString translationContext;
+    PkString translationContext;
     if (storage->type() == KisResourceStorage::StorageType::Bundle) {
         translationContext = "./krita/data/bundles/" + KisResourceLocator::instance()->makeStorageLocationRelative(storage->location())
                 + ":" + resourceType + "/" + resource->filename();
     } else if (storage->location() == "memory") {
         translationContext = "memory/" + resourceType + "/" + resource->filename();
     }
-    else if (resource->filename().endsWith(".myb", Qt::CaseInsensitive)) {
+    else if (endsWithAsciiCaseInsensitive(resource->filename(), ".myb")) {
         translationContext = "./plugins/paintops/mypaint/brushes/" + resource->filename();
     } else {
         translationContext = "./krita/data/" + resourceType + "/" + resource->filename();
     }
 
     {
-        QByteArray ctx = translationContext.toUtf8();
-        QString translatedName = i18nc(ctx, resource->name().toUtf8());
-        if (translatedName == resource->name()) {
-            // Try using the file name without the file extension, and replaces '_' with spaces.
-            QString altName = QFileInfo(resource->filename()).completeBaseName().replace('_', ' ');
-            QString altTranslatedName = i18nc(ctx, altName.toUtf8());
-            if (altName != altTranslatedName) {
-                translatedName = altTranslatedName;
-            }
-        }
-        q.bindValue(":tooltip", translatedName);
+        (void)translationContext;
+        q.bindValue(":tooltip", resource->name().isEmpty()
+                                    ? completeBaseName(resource->filename())
+                                    : resource->name());
     }
 
-    QBuffer buf;
-    buf.open(QBuffer::WriteOnly);
-    resource->image().save(&buf, "PNG");
-    buf.close();
-    q.bindValue(":thumbnail", buf.data());
+    q.bindValue(":thumbnail", KisResourceThumbnailCodec::encodePng(resource->image()));
 
     q.bindValue(":status", resource->active());
     q.bindValue(":temporary", (temporary ? 1 : 0));
@@ -1217,14 +1448,14 @@ bool KisResourceCacheDb::addResource(KisResourceStorageSP storage, QDateTime tim
 
 }
 
-bool KisResourceCacheDb::addResources(KisResourceStorageSP storage, QString resourceType)
+bool KisResourceCacheDb::addResources(KisResourceStorageSP storage, PkString resourceType)
 {
-    QSqlDatabase::database().transaction();
-    QSharedPointer<KisResourceStorage::ResourceIterator> iter = storage->resources(resourceType);
+    PkSqlDatabase::database().transaction();
+    PkSharedPointer<KisResourceStorage::ResourceIterator> iter = storage->resources(resourceType);
     while (iter->hasNext()) {
         iter->next();
 
-        QSharedPointer<KisResourceStorage::ResourceIterator> verIt =
+        PkSharedPointer<KisResourceStorage::ResourceIterator> verIt =
             iter->versions();
 
         int resourceId = -1;
@@ -1251,7 +1482,7 @@ bool KisResourceCacheDb::addResources(KisResourceStorageSP storage, QString reso
             }
         }
     }
-    QSqlDatabase::database().commit();
+    PkSqlDatabase::database().commit();
     return true;
 }
 
@@ -1261,7 +1492,7 @@ bool KisResourceCacheDb::setResourceActive(int resourceId, bool active)
         qWarning() << "Invalid resource id; cannot remove resource";
         return false;
     }
-    QSqlQuery q;
+    PkSqlQuery q;
     bool r = q.prepare("UPDATE resources\n"
                        "SET    status = :status\n"
                        "WHERE  id = :resource_id");
@@ -1278,38 +1509,35 @@ bool KisResourceCacheDb::setResourceActive(int resourceId, bool active)
     return true;
 }
 
-bool KisResourceCacheDb::tagResource(const QString &resourceFileName, KisTagSP tag, const QString &resourceType)
+bool KisResourceCacheDb::tagResource(const PkString &resourceFileName, KisTagSP tag, const PkString &resourceType)
 {
     // Get tag id
     int tagId {-1};
     {
-        QFile f(":/select_tag.sql");
-        if (f.open(QFile::ReadOnly)) {
-            QSqlQuery q;
-            if (!q.prepare(f.readAll())) {
-                qWarning() << "Could not read and prepare select_tag.sql" << q.lastError();
-                return false;
-            }
-            q.bindValue(":url", tag->url());
-            q.bindValue(":resource_type", resourceType);
-
-            if (!q.exec()) {
-                qWarning() << "Could not query tags" << q.boundValues() << q.lastError();
-                return false;
-            }
-
-            if (!q.first()) {
-                qWarning() << "Could not find tag" << q.boundValues() << q.lastError();
-                return false;
-            }
-
-            tagId = q.value(0).toInt();
+        PkSqlQuery q;
+        if (!q.prepare(embeddedSql("select_tag.sql"))) {
+            qWarning() << "Could not read and prepare select_tag.sql" << q.lastError();
+            return false;
         }
+        q.bindValue(":url", tag->url());
+        q.bindValue(":resource_type", resourceType);
+
+        if (!q.exec()) {
+            qWarning() << "Could not query tags" << q.boundValues() << q.lastError();
+            return false;
+        }
+
+        if (!q.first()) {
+            qWarning() << "Could not find tag" << q.boundValues() << q.lastError();
+            return false;
+        }
+
+        tagId = q.value(0).toInt();
     }
 
 
     // Get resource id
-    QSqlQuery q;
+    PkSqlQuery q;
     bool r = q.prepare("SELECT resources.id\n"
                        "FROM   resources\n"
                        ",      resource_types\n"
@@ -1340,7 +1568,7 @@ bool KisResourceCacheDb::tagResource(const QString &resourceFileName, KisTagSP t
         }
 
         {
-            QSqlQuery q;
+            PkSqlQuery q;
             if (!q.prepare("SELECT COUNT(*)\n"
                            "FROM   resource_tags\n"
                            "WHERE  resource_id = :resource_id\n"
@@ -1364,7 +1592,7 @@ bool KisResourceCacheDb::tagResource(const QString &resourceFileName, KisTagSP t
         }
 
         {
-            QSqlQuery q;
+            PkSqlQuery q;
             if (!q.prepare("INSERT INTO resource_tags\n"
                            "(resource_id, tag_id)\n"
                            "VALUES\n"
@@ -1385,29 +1613,22 @@ bool KisResourceCacheDb::tagResource(const QString &resourceFileName, KisTagSP t
     return true;
 }
 
-bool KisResourceCacheDb::hasTag(const QString &url, const QString &resourceType)
+bool KisResourceCacheDb::hasTag(const PkString &url, const PkString &resourceType)
 {
-    QFile f(":/select_tag.sql");
-    if (f.open(QFile::ReadOnly)) {
-        QSqlQuery q;
-        if (!q.prepare(f.readAll())) {
-            qWarning() << "Could not read and prepare select_tag.sql" << q.lastError();
-            return false;
-        }
-        q.bindValue(":url", url);
-        q.bindValue(":resource_type", resourceType);
-        if (!q.exec()) {
-            qWarning() << "Could not query tags" << q.boundValues() << q.lastError();
-        }
-        return q.first();
+    PkSqlQuery q;
+    if (!q.prepare(embeddedSql("select_tag.sql"))) {
+        qWarning() << "Could not read and prepare select_tag.sql" << q.lastError();
+        return false;
     }
-    qWarning() << "Could not open select_tag.sql";
-    return false;
+    q.bindValue(":url", url);
+    q.bindValue(":resource_type", resourceType);
+    if (!q.exec()) qWarning() << "Could not query tags" << q.boundValues() << q.lastError();
+    return q.first();
 }
 
-bool KisResourceCacheDb::linkTagToStorage(const QString &url, const QString &resourceType, const QString &storageLocation)
+bool KisResourceCacheDb::linkTagToStorage(const PkString &url, const PkString &resourceType, const PkString &storageLocation)
 {
-    QSqlQuery q;
+    PkSqlQuery q;
     if (!q.prepare("INSERT INTO tags_storages\n"
                    "(tag_id, storage_id)\n"
                    "VALUES\n"
@@ -1440,11 +1661,11 @@ bool KisResourceCacheDb::linkTagToStorage(const QString &url, const QString &res
 }
 
 
-bool KisResourceCacheDb::addTag(const QString &resourceType, const QString storageLocation, KisTagSP tag)
+bool KisResourceCacheDb::addTag(const PkString &resourceType, const PkString storageLocation, KisTagSP tag)
 {
     if (hasTag(tag->url(), resourceType)) {
         // Check whether this storage is already registered for this tag
-        QSqlQuery q;
+        PkSqlQuery q;
         if (!q.prepare("SELECT storages.location\n"
                        "FROM   tags_storages\n"
                        ",      tags\n"
@@ -1480,7 +1701,7 @@ bool KisResourceCacheDb::addTag(const QString &resourceType, const QString stora
 
     // Insert the tag
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         if (!q.prepare("INSERT INTO tags\n"
                        "(url, name, comment, resource_type_id, active, filename)\n"
                        "VALUES\n"
@@ -1511,15 +1732,15 @@ bool KisResourceCacheDb::addTag(const QString &resourceType, const QString stora
     }
 
     {
-        Q_FOREACH(const QString language, tag->names().keys()) {
+        for (const PkString language : tag->names().keys()) {
 
-            QString name = tag->names()[language];
-            QString comment = name;
+            PkString name = tag->names()[language];
+            PkString comment = name;
             if (tag->comments().contains(language)) {
                 comment = tag->comments()[language];
             }
 
-            QSqlQuery q;
+            PkSqlQuery q;
             if (!q.prepare("INSERT INTO tag_translations\n"
                            "( tag_id\n"
                            ", language\n"
@@ -1553,10 +1774,10 @@ bool KisResourceCacheDb::addTag(const QString &resourceType, const QString stora
     return true;
 }
 
-bool KisResourceCacheDb::addTags(KisResourceStorageSP storage, QString resourceType)
+bool KisResourceCacheDb::addTags(KisResourceStorageSP storage, PkString resourceType)
 {
-    QSqlDatabase::database().transaction();
-    QSharedPointer<KisResourceStorage::TagIterator> iter = storage->tags(resourceType);
+    PkSqlDatabase::database().transaction();
+    PkSharedPointer<KisResourceStorage::TagIterator> iter = storage->tags(resourceType);
     while(iter->hasNext()) {
         iter->next();
         KisTagSP tag = iter->tag();
@@ -1566,25 +1787,25 @@ bool KisResourceCacheDb::addTags(KisResourceStorageSP storage, QString resourceT
                 continue;
             }
             if (!tag->defaultResources().isEmpty()) {
-                Q_FOREACH(const QString &resourceFileName, tag->defaultResources()) {
+                for (const PkString &resourceFileName : tag->defaultResources()) {
                     if (!tagResource(resourceFileName, tag, resourceType)) {
-                        qWarning() << "Could not tag resource" << QFileInfo(resourceFileName).baseName() << "from" << storage->name() << "filename" << resourceFileName << "with tag" << iter->tag();
+                        qWarning() << "Could not tag resource" << fileBaseName(resourceFileName) << "from" << storage->name() << "filename" << resourceFileName << "with tag" << iter->tag();
                     }
                 }
             }
         }
     }
-    QSqlDatabase::database().commit();
+    PkSqlDatabase::database().commit();
     return true;
 }
 
 bool KisResourceCacheDb::registerStorageType(const KisResourceStorage::StorageType storageType)
 {
     // Check whether the type already exists
-    const QString name = KisResourceStorage::storageTypeToUntranslatedString(storageType);
+    const PkString name = KisResourceStorage::storageTypeToUntranslatedString(storageType);
 
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         if (!q.prepare("SELECT count(*)\n"
                        "FROM   storage_types\n"
                        "WHERE  name = :storage_type\n")) {
@@ -1603,19 +1824,13 @@ bool KisResourceCacheDb::registerStorageType(const KisResourceStorage::StorageTy
         }
     }
     // if not, add it
-    QFile f(":/fill_storage_types.sql");
-    if (f.open(QFile::ReadOnly)) {
-        QString sql = f.readAll();
-        QSqlQuery q(sql);
-        q.addBindValue(name);
-        if (!q.exec()) {
-            qWarning() << "Could not insert" << name << q.lastError();
-            return false;
-        }
-        return true;
+    PkSqlQuery q(embeddedSql("fill_storage_types.sql"));
+    q.addBindValue(name);
+    if (!q.exec()) {
+        qWarning() << "Could not insert" << name << q.lastError();
+        return false;
     }
-    qWarning() << "Could not open fill_storage_types.sql";
-    return false;
+    return true;
 }
 
 bool KisResourceCacheDb::addStorage(KisResourceStorageSP storage, bool preinstalled)
@@ -1628,7 +1843,7 @@ bool KisResourceCacheDb::addStorage(KisResourceStorageSP storage, bool preinstal
     }
 
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         r = q.prepare("SELECT * FROM storages WHERE location = :location");
         q.bindValue(":location", changeToEmptyIfNull(KisResourceLocator::instance()->makeStorageLocationRelative(storage->location())));
         r = q.exec();
@@ -1644,7 +1859,7 @@ bool KisResourceCacheDb::addStorage(KisResourceStorageSP storage, bool preinstal
 
     // Insert the storage;
     {
-        QSqlQuery q;
+        PkSqlQuery q;
 
         r = q.prepare("INSERT INTO storages\n "
                       "(storage_type_id, location, timestamp, pre_installed, active, thumbnail)\n"
@@ -1656,20 +1871,16 @@ bool KisResourceCacheDb::addStorage(KisResourceStorageSP storage, bool preinstal
             return r;
         }
 
-        const QString sanitizedStorageLocation =
+        const PkString sanitizedStorageLocation =
             changeToEmptyIfNull(KisResourceLocator::instance()->makeStorageLocationRelative(storage->location()));
 
         q.bindValue(":storage_type_id", static_cast<int>(storage->type()));
         q.bindValue(":location", sanitizedStorageLocation);
-        q.bindValue(":timestamp", storage->timestamp().toSecsSinceEpoch());
+        q.bindValue(":timestamp", static_cast<long long>(storage->timestamp().toSecsSinceEpoch()));
         q.bindValue(":pre_installed", preinstalled ? 1 : 0);
         q.bindValue(":active", !disabledBundles.contains(storage->name()));
 
-        QBuffer buf;
-        buf.open(QBuffer::WriteOnly);
-        storage->thumbnail().save(&buf, "PNG");
-        buf.close();
-        q.bindValue(":thumbnail", buf.data());
+        q.bindValue(":thumbnail", KisResourceThumbnailCodec::encodePng(storage->thumbnail()));
 
         r = q.exec();
 
@@ -1695,12 +1906,12 @@ bool KisResourceCacheDb::addStorage(KisResourceStorageSP storage, bool preinstal
 
     // Insert the metadata
     {
-        QStringList keys = storage->metaDataKeys();
+        PkStringList keys = storage->metaDataKeys();
         if (keys.size() > 0 && storage->storageId() >= 0) {
 
-            QMap<QString, QVariant> metadata;
+            PkMap<PkString, PkVariant> metadata;
 
-            Q_FOREACH(const QString &key, storage->metaDataKeys()) {
+            for (const PkString &key : storage->metaDataKeys()) {
                 metadata[key] = storage->metaData(key);
             }
 
@@ -1708,7 +1919,7 @@ bool KisResourceCacheDb::addStorage(KisResourceStorageSP storage, bool preinstal
         }
     }
 
-    Q_FOREACH(const QString &resourceType, KisResourceLoaderRegistry::instance()->resourceTypes()) {
+    for (const PkString &resourceType : KisResourceLoaderRegistry::instance()->resourceTypes()) {
         if (!KisResourceCacheDb::addResources(storage, resourceType)) {
             qWarning() << "Failed to add all resources for storage" << storage;
             r = false;
@@ -1722,7 +1933,7 @@ bool KisResourceCacheDb::addStorageTags(KisResourceStorageSP storage)
 {
 
     bool r = true;
-    Q_FOREACH(const QString &resourceType, KisResourceLoaderRegistry::instance()->resourceTypes()) {
+    for (const PkString &resourceType : KisResourceLoaderRegistry::instance()->resourceTypes()) {
         if (!KisResourceCacheDb::addTags(storage, resourceType)) {
             qWarning() << "Failed to add all tags for storage" << storage;
             r = false;
@@ -1731,12 +1942,12 @@ bool KisResourceCacheDb::addStorageTags(KisResourceStorageSP storage)
     return r;
 }
 
-bool KisResourceCacheDb::deleteStorage(QString location)
+bool KisResourceCacheDb::deleteStorage(PkString location)
 {
     // location is already relative
 
     try {
-        KisDatabaseTransactionLock transactionLock(QSqlDatabase::database());
+        KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
 
         {
             KisSqlQueryLoader loader(":/sql/delete_versioned_resources_for_storage_indirect.sql",
@@ -1795,7 +2006,7 @@ bool KisResourceCacheDb::deleteStorage(QString location)
          * have queries open at the moment, which means we will not be able
          * to remove these temporary tables
          */
-        QVariantList uniqueTagIdsToDelete;
+        PkVariantList uniqueTagIdsToDelete;
         {
             auto [unique, shared] = tagsForStorage(ResourceType::PaintOpPresets, location);
             std::copy(unique.begin(), unique.end(), std::back_inserter(uniqueTagIdsToDelete));
@@ -1814,7 +2025,7 @@ bool KisResourceCacheDb::deleteStorage(QString location)
                 loader.exec();
         }
 
-        if (!uniqueTagIdsToDelete.isEmpty()) {
+        if (!uniqueTagIdsToDelete.empty()) {
             {
                 KisSqlQueryLoader loader("inline://delete_tags_translations_for_storage",
                                          "DELETE FROM tag_translations WHERE tag_id = ?",
@@ -1890,8 +2101,8 @@ struct ResourceVersion : public boost::less_than_comparable<ResourceVersion>
 {
     int resourceId = -1;
     int version = -1;
-    QDateTime timestamp;
-    QString url;
+    PkDateTime timestamp;
+    PkString url;
 
     bool operator<(const ResourceVersion &rhs) const {
         return resourceId < rhs.resourceId ||
@@ -1908,7 +2119,7 @@ struct ResourceVersion : public boost::less_than_comparable<ResourceVersion>
 };
 
 [[maybe_unused]]
-QDebug operator<<(QDebug dbg, const ResourceVersion &ver)
+PkDebug operator<<(PkDebug dbg, const ResourceVersion &ver)
 {
     dbg.nospace() << "ResourceVersion("
                   << ver.resourceId << ", "
@@ -1922,7 +2133,7 @@ QDebug operator<<(QDebug dbg, const ResourceVersion &ver)
 
 bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
 {
-    QElapsedTimer t;
+    PkElapsedTimer t;
     t.start();
 
     if (!s_valid) {
@@ -1933,7 +2144,7 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
     bool success = true;
 
     // Find the storage in the database
-    QSqlQuery q;
+    PkSqlQuery q;
     if (!q.prepare("SELECT id\n"
                    ",      timestamp\n"
                    ",      pre_installed\n"
@@ -1960,17 +2171,17 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
     storage->setStorageId(q.value("id").toInt());
 
     /// Start the transaction that will add all the resources
-    QSqlDatabase::database().transaction();
+    PkSqlDatabase::database().transaction();
 
     /// We compare resource versions one-by-one because the storage may have multiple
     /// versions of them
 
-    Q_FOREACH(const QString &resourceType, KisResourceLoaderRegistry::instance()->resourceTypes()) {
+    for (const PkString &resourceType : KisResourceLoaderRegistry::instance()->resourceTypes()) {
 
         /// Firstly, fetch information about the existing resources
         /// in the storage
 
-        QVector<ResourceVersion> resourcesInStorage;
+        PkVector<ResourceVersion> resourcesInStorage;
 
         /// A fake resourceId to group resources which are not yet present
         /// in the database. This value is always negative, therefore it
@@ -1978,14 +2189,14 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
 
         int nextInexistentResourceId = std::numeric_limits<int>::min();
 
-        QSharedPointer<KisResourceStorage::ResourceIterator> iter = storage->resources(resourceType);
+        PkSharedPointer<KisResourceStorage::ResourceIterator> iter = storage->resources(resourceType);
         while (iter->hasNext()) {
             iter->next();
 
             const int firstResourceVersionPosition = resourcesInStorage.size();
 
             int detectedResourceId = nextInexistentResourceId;
-            QSharedPointer<KisResourceStorage::ResourceIterator> verIt =
+            PkSharedPointer<KisResourceStorage::ResourceIterator> verIt =
                     iter->versions();
 
             while (verIt->hasNext()) {
@@ -1994,10 +2205,14 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
                 // verIt->url() contains paths like "brushes/ink.png" or "brushes/subfolder/splash.png".
                 // we need to cut off the first part and get "ink.png" in the first case,
                 // but "subfolder/splash.png" in the second case in order for subfolders to work
-                // so it cannot just use QFileInfo(verIt->url()).fileName() here.
-                QString path = QDir::fromNativeSeparators(verIt->url()); // make sure it uses Unix separators
-                int folderEndIdx = path.indexOf("/");
-                QString properFilenameWithSubfolders = path.right(path.length() - folderEndIdx - 1);
+                // so it cannot just use a basename helper here.
+                std::string normalizedPath = verIt->url().PkToUtf8();
+                std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+                const std::size_t folderEndIdx = normalizedPath.find('/');
+                const PkString properFilenameWithSubfolders(
+                    folderEndIdx == std::string::npos
+                        ? normalizedPath.c_str()
+                        : normalizedPath.substr(folderEndIdx + 1).c_str());
                 int id = resourceIdForResource(properFilenameWithSubfolders,
                                                verIt->type(),
                                                KisResourceLocator::instance()->makeStorageLocationRelative(storage->location()));
@@ -2006,8 +2221,8 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
                 item.url = verIt->url();
                 item.version = verIt->guessedVersion();
 
-                // we use lower precision than the normal QDateTime
-                item.timestamp = QDateTime::fromSecsSinceEpoch(verIt->lastModified().toSecsSinceEpoch());
+                // we use lower precision than the normal PkDateTime
+                item.timestamp = PkDateTime::fromSecsSinceEpoch(verIt->lastModified().toSecsSinceEpoch());
 
                 item.resourceId = id;
 
@@ -2034,9 +2249,9 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
 
         /// Secondly, fetch the resources present in the database
 
-        QVector<ResourceVersion> resourcesInDatabase;
+        PkVector<ResourceVersion> resourcesInDatabase;
 
-        QSqlQuery q;
+        PkSqlQuery q;
         q.setForwardOnly(true);
         if (!q.prepare("SELECT versioned_resources.resource_id, versioned_resources.filename, versioned_resources.version, versioned_resources.timestamp\n"
                        "FROM   versioned_resources\n"
@@ -2064,13 +2279,13 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
             ResourceVersion item;
             item.url = resourceType + "/" + q.value(1).toString();
             item.version = q.value(2).toInt();
-            item.timestamp = QDateTime::fromSecsSinceEpoch(q.value(3).toInt());
+            item.timestamp = PkDateTime::fromSecsSinceEpoch(q.value(3).toInt());
             item.resourceId = q.value(0).toInt();
 
             resourcesInDatabase.append(item);
         }
 
-        QSet<int> resourceIdForUpdate;
+        PkSet<int> resourceIdForUpdate;
 
         std::sort(resourcesInStorage.begin(), resourcesInStorage.end());
         std::sort(resourcesInDatabase.begin(), resourcesInDatabase.end());
@@ -2189,7 +2404,7 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
         }
     }
 
-    QSqlDatabase::database().commit();
+    PkSqlDatabase::database().commit();
     debugResource << "Synchronizing the storages took" << t.elapsed() << "milliseconds for" << storage->location();
 
     return success;
@@ -2198,7 +2413,7 @@ bool KisResourceCacheDb::synchronizeStorage(KisResourceStorageSP storage)
 void KisResourceCacheDb::deleteTemporaryResources()
 {
     try {
-        KisDatabaseTransactionLock transactionLock(QSqlDatabase::database());
+        KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
 
         /**
          * Remove all temporary resources
@@ -2307,7 +2522,7 @@ void KisResourceCacheDb::deleteTemporaryResources()
 
 void KisResourceCacheDb::performHouseKeepingOnExit()
 {
-    QSqlQuery q;
+    PkSqlQuery q;
 
     if (!q.prepare("PRAGMA optimize;")) {
         qWarning() << "Could not prepare query" << q.lastQuery() << q.lastError();
@@ -2321,7 +2536,7 @@ void KisResourceCacheDb::performHouseKeepingOnExit()
 void KisResourceCacheDb::setForeignKeysStateImpl(bool isEnabled)
 {
     KisSqlQueryLoader loader("inline://set_foreign_keys_state",
-                             QString("PRAGMA foreign_keys = %1").arg(isEnabled ? "ON" : "OFF"));
+                             PkString("PRAGMA foreign_keys = %1").arg(isEnabled ? "ON" : "OFF"));
     loader.exec();
 }
 
@@ -2349,9 +2564,10 @@ void KisResourceCacheDb::synchronizeForeignKeysState()
     KisUsageLogger::log("INFO: detected unstable build of Krita, foreign_keys constraint will be enabled");
 #endif
 
-    if (qEnvironmentVariableIsSet("KRITA_OVERRIDE_USE_FOREIGN_KEYS")) {
-        useForeignKeys = qEnvironmentVariableIntValue("KRITA_OVERRIDE_USE_FOREIGN_KEYS") > 0;
-        KisUsageLogger::log("INFO: foreign_keys constraint was overridden by KRITA_OVERRIDE_USE_FOREIGN_KEYS: " + QString::number(useForeignKeys));
+    if (const char *overrideValue = std::getenv("KRITA_OVERRIDE_USE_FOREIGN_KEYS")) {
+        useForeignKeys = std::strtol(overrideValue, nullptr, 10) > 0;
+        KisUsageLogger::log(PkString("INFO: foreign_keys constraint was overridden by KRITA_OVERRIDE_USE_FOREIGN_KEYS: %1")
+                                .arg(useForeignKeys ? 1 : 0));
     }
 
     try {
@@ -2359,10 +2575,9 @@ void KisResourceCacheDb::synchronizeForeignKeysState()
 
         if (oldForeignKeysState != useForeignKeys) {
             KisUsageLogger::log(
-                "INFO: switch foreign_keys state: " +
-                QString::number(oldForeignKeysState) +
-                " -> " +
-                QString::number(useForeignKeys));
+                PkString("INFO: switch foreign_keys state: %1 -> %2")
+                    .arg(oldForeignKeysState ? 1 : 0)
+                    .arg(useForeignKeys ? 1 : 0));
 
             KisResourceCacheDb::setForeignKeysStateImpl(useForeignKeys);
         }
@@ -2376,11 +2591,11 @@ void KisResourceCacheDb::synchronizeForeignKeysState()
 
 }
 
-bool KisResourceCacheDb::registerResourceType(const QString &resourceType)
+bool KisResourceCacheDb::registerResourceType(const PkString &resourceType)
 {
     // Check whether the type already exists
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         if (!q.prepare("SELECT count(*)\n"
                        "FROM   resource_types\n"
                        "WHERE  name = :resource_type\n")) {
@@ -2399,26 +2614,20 @@ bool KisResourceCacheDb::registerResourceType(const QString &resourceType)
         }
     }
     // if not, add it
-    QFile f(":/fill_resource_types.sql");
-    if (f.open(QFile::ReadOnly)) {
-        QString sql = f.readAll();
-        QSqlQuery q(sql);
-        q.addBindValue(resourceType);
-        if (!q.exec()) {
-            qWarning() << "Could not insert" << resourceType << q.lastError();
-            return false;
-        }
-        return true;
+    PkSqlQuery q(embeddedSql("fill_resource_types.sql"));
+    q.addBindValue(resourceType);
+    if (!q.exec()) {
+        qWarning() << "Could not insert" << resourceType << q.lastError();
+        return false;
     }
-    qWarning() << "Could not open fill_resource_types.sql";
-    return false;
+    return true;
 }
 
-QMap<QString, QVariant> KisResourceCacheDb::metaDataForId(int id, const QString &tableName)
+PkMap<PkString, PkVariant> KisResourceCacheDb::metaDataForId(int id, const PkString &tableName)
 {
-    QMap<QString, QVariant> map;
+    PkMap<PkString, PkVariant> map;
 
-    QSqlQuery q;
+    PkSqlQuery q;
     q.setForwardOnly(true);
     if (!q.prepare("SELECT key\n"
                    ",      value\n"
@@ -2438,13 +2647,14 @@ QMap<QString, QVariant> KisResourceCacheDb::metaDataForId(int id, const QString 
     }
 
     while (q.next()) {
-        QString key = q.value(0).toString();
-        QByteArray ba = q.value(1).toByteArray();
-        if (!ba.isEmpty()) {
-            QDataStream ds(QByteArray::fromBase64(ba));
-            QVariant value;
-            ds.setVersion(QDataStream::Qt_5_15); // so Qt6 can read metatypes written by Qt5
-            ds >> value;
+        PkString key = q.value(0).toString();
+        const PkString encoded = q.value(1).toString();
+        if (!encoded.isEmpty()) {
+            const PkVariant value = deserializeVariant(encoded);
+            if (!value.isValid()) {
+                qWarning() << "Could not decode metadata value for key" << key;
+                continue;
+            }
             map[key] = value;
         }
     }
@@ -2452,16 +2662,16 @@ QMap<QString, QVariant> KisResourceCacheDb::metaDataForId(int id, const QString 
     return map;
 }
 
-bool KisResourceCacheDb::updateMetaDataForId(const QMap<QString, QVariant> map, int id, const QString &tableName)
+bool KisResourceCacheDb::updateMetaDataForId(const PkMap<PkString, PkVariant> map, int id, const PkString &tableName)
 {
-    QSqlDatabase::database().transaction();
+    PkSqlDatabase::database().transaction();
 
     {
-        QSqlQuery q;
+        PkSqlQuery q;
         if (!q.prepare("DELETE FROM metadata\n"
                        "WHERE  foreign_id = :id\n"
                        "AND    table_name = :table\n")) {
-            QSqlDatabase::database().rollback();
+            PkSqlDatabase::database().rollback();
             qWarning() << "Could not prepare delete metadata query" << q.lastError();
             return false;
         }
@@ -2470,49 +2680,51 @@ bool KisResourceCacheDb::updateMetaDataForId(const QMap<QString, QVariant> map, 
         q.bindValue(":table", tableName);
 
         if (!q.exec()) {
-            QSqlDatabase::database().rollback();
+            PkSqlDatabase::database().rollback();
             qWarning() << "Could not execute delete metadata query" << q.lastError();
             return false;
 
         }
     }
 
-    if (addMetaDataForId(map, id, tableName)) {
-        QSqlDatabase::database().commit();
+    const bool added = addMetaDataForId(map, id, tableName);
+    if (added) {
+        PkSqlDatabase::database().commit();
     }
     else {
-        QSqlDatabase::database().rollback();
+        PkSqlDatabase::database().rollback();
     }
-    return true;
+    return added;
 }
 
-bool KisResourceCacheDb::addMetaDataForId(const QMap<QString, QVariant> map, int id, const QString &tableName)
+bool KisResourceCacheDb::addMetaDataForId(const PkMap<PkString, PkVariant> map, int id, const PkString &tableName)
 {
 
-    QSqlQuery q;
+    PkSqlQuery q;
     if (!q.prepare("INSERT INTO metadata\n"
                    "(foreign_id, table_name, key, value)\n"
                    "VALUES\n"
                    "(:id, :table, :key, :value)")) {
-        QSqlDatabase::database().rollback();
+        PkSqlDatabase::database().rollback();
         qWarning() << "Could not create insert metadata query" << q.lastError();
         return false;
     }
 
-    QMap<QString, QVariant>::const_iterator iter = map.cbegin();
+    PkMap<PkString, PkVariant>::const_iterator iter = map.cbegin();
     while (iter != map.cend()) {
         q.bindValue(":id", id);
         q.bindValue(":table", tableName);
         q.bindValue(":key", iter.key());
 
-        QVariant v = iter.value();
+        PkVariant v = iter.value();
         if (!v.isNull() && v.isValid()) {
-            QByteArray ba;
-            QDataStream ds(&ba, QIODevice::WriteOnly);
-            ds.setVersion(QDataStream::Qt_5_15); // so Qt6 can write metatypes readable by Qt5
-            ds << v;
-            ba = ba.toBase64();
-            q.bindValue(":value", QString::fromLatin1(ba));
+            const PkString encoded = serializeVariant(v);
+            if (encoded.isEmpty()) {
+                qWarning() << "Unsupported metadata value type for key" << iter.key()
+                           << v.typeName();
+                return false;
+            }
+            q.bindValue(":value", encoded);
 
             if (!q.exec()) {
                 qWarning() << "Could not insert metadata" << q.lastError();
@@ -2526,9 +2738,9 @@ bool KisResourceCacheDb::addMetaDataForId(const QMap<QString, QVariant> map, int
 
 bool KisResourceCacheDb::removeOrphanedMetaData()
 {
-    auto deleteMetadataForType = [] (const QString &tableName) {
+    auto deleteMetadataForType = [] (const PkString &tableName) {
         KisSqlQueryLoader loader("inline://delete_orphaned_records (" + tableName + ")",
-                                 QString("DELETE FROM metadata\n"
+                                 PkString("DELETE FROM metadata\n"
                                          "WHERE  foreign_id NOT IN (SELECT id FROM %1)\n"
                                          "AND    table_name = \"%1\"\n")
                                          .arg(tableName));
@@ -2541,7 +2753,7 @@ bool KisResourceCacheDb::removeOrphanedMetaData()
     };
 
     try {
-        KisDatabaseTransactionLock transactionLock(QSqlDatabase::database());
+        KisDatabaseTransactionLock transactionLock(PkSqlDatabase::database());
 
         deleteMetadataForType(METADATA_RESOURCES);
         deleteMetadataForType(METADATA_STORAGES);

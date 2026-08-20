@@ -453,6 +453,35 @@ PkImage loadPng(const PkString &path)
     return image;
 }
 
+PkByteArray encodePng(const PkImage &image)
+{
+    std::vector<png_byte> pixels;
+    if (!convertToRgba(image, pixels)) {
+        return PkByteArray();
+    }
+
+    png_image pngImage{};
+    pngImage.version = PNG_IMAGE_VERSION;
+    pngImage.width = static_cast<png_uint_32>(image.width());
+    pngImage.height = static_cast<png_uint_32>(image.height());
+    pngImage.format = PNG_FORMAT_RGBA;
+    png_alloc_size_t byteCount = 0;
+    if (!png_image_write_to_memory(&pngImage, nullptr, &byteCount, 0,
+                                   pixels.data(), 0, nullptr)) {
+        png_image_free(&pngImage);
+        return PkByteArray();
+    }
+    std::vector<std::uint8_t> encoded(static_cast<std::size_t>(byteCount));
+    if (!png_image_write_to_memory(&pngImage, encoded.data(), &byteCount, 0,
+                                   pixels.data(), 0, nullptr)) {
+        png_image_free(&pngImage);
+        return PkByteArray();
+    }
+    png_image_free(&pngImage);
+    encoded.resize(static_cast<std::size_t>(byteCount));
+    return PkByteArray(encoded);
+}
+
 bool savePng(const PkString &path, const PkImage &image)
 {
     std::vector<png_byte> pixels;
