@@ -6,6 +6,7 @@
 // not the QByteArray codec API.
 
 #include "PkDataStream.h"
+#include "PkVariant.h"
 
 #include <cstdio>
 #include <string>

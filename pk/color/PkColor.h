@@ -42,6 +42,24 @@ public:
         HexArgb
     };
 
+    // QColor's Qt_4_6 QDataStream payload is its Spec plus five 16-bit words.
+    // This public value type exposes that persistence state without revealing
+    // the private union layout or reducing HSV/HSL/CMYK/ExtendedRgb to RGB.
+    struct WireState {
+        Spec spec;
+        quint16 channels[5];
+
+        bool operator==(const WireState &other) const noexcept
+        {
+            if (spec != other.spec) return false;
+            for (int i = 0; i < 5; ++i) {
+                if (channels[i] != other.channels[i]) return false;
+            }
+            return true;
+        }
+        bool operator!=(const WireState &other) const noexcept { return !(*this == other); }
+    };
+
     // ── 构造 ───────────────────────────────────────────────
     PkColor() noexcept;                                  // 无效，alpha=65535（rgba() 的 alpha 仍 255）
     PkColor(int r, int g, int b, int a = 255) noexcept;  // 越界 → 无效（分量全 0，含 alpha）
@@ -64,10 +82,12 @@ public:
     static PkColor fromHsvF(qreal h, qreal s, qreal v, qreal a = 1.0);
     static PkColor fromHsl(int h, int s, int l, int a = 255);
     static PkColor fromHslF(qreal h, qreal s, qreal l, qreal a = 1.0);
+    static PkColor fromWireState(const WireState &state) noexcept;
 
     // ── 状态 ───────────────────────────────────────────────
     bool isValid() const noexcept { return cspec != Invalid; }
     Spec spec() const noexcept { return cspec; }
+    WireState wireState() const noexcept;
 
     // ── 8-bit 分量 getter ──────────────────────────────────
     int red() const noexcept;
@@ -144,6 +164,7 @@ private:
     } ct;
 
     Spec cspec;
+    quint16 extendedWirePad = 0;
 };
 
 #endif // PK_COLOR_PKCOLOR_H

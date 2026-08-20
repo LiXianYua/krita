@@ -1,13 +1,23 @@
 #pragma once
 
 #include "PkAuxTypes.h"
-#include "PkVariant.h"
+#include "PkString.h"
+#include "PkStringList.h"
 #include "../port/PkStream.h"
 
 #include <cstdint>
 #include <cstddef>
+#include <map>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
+#include <vector>
+
+class PkColor;
+class PkVariant;
+using PkVariantList = std::vector<PkVariant>;
+using PkVariantHash = std::unordered_map<PkString, PkVariant>;
+using PkVariantMap = std::map<PkString, PkVariant>;
 
 class PkDataStream
 {
@@ -48,6 +58,7 @@ public:
     PkDataStream &operator<<(std::uint32_t value);
     PkDataStream &operator<<(std::int64_t value);
     PkDataStream &operator<<(std::uint64_t value);
+    PkDataStream &operator<<(bool value);
     template<typename T, std::enable_if_t<
         (std::is_same_v<T, long long> && !std::is_same_v<long long, std::int64_t>) ||
         (std::is_same_v<T, unsigned long long> && !std::is_same_v<unsigned long long, std::uint64_t>), int> = 0>
@@ -61,6 +72,7 @@ public:
     PkDataStream &operator<<(const PkString &value);
     PkDataStream &operator<<(const PkByteArray &value);
     PkDataStream &operator<<(const PkVariant &value);
+    PkDataStream &operator<<(const PkColor &value);
 
     PkDataStream &operator>>(std::int8_t &value);
     PkDataStream &operator>>(std::uint8_t &value);
@@ -70,6 +82,7 @@ public:
     PkDataStream &operator>>(std::uint32_t &value);
     PkDataStream &operator>>(std::int64_t &value);
     PkDataStream &operator>>(std::uint64_t &value);
+    PkDataStream &operator>>(bool &value);
     template<typename T, std::enable_if_t<
         (std::is_same_v<T, long long> && !std::is_same_v<long long, std::int64_t>) ||
         (std::is_same_v<T, unsigned long long> && !std::is_same_v<unsigned long long, std::uint64_t>), int> = 0>
@@ -91,6 +104,7 @@ public:
     PkDataStream &operator>>(PkString &value);
     PkDataStream &operator>>(PkByteArray &value);
     PkDataStream &operator>>(PkVariant &value);
+    PkDataStream &operator>>(PkColor &value);
 
 private:
     class DecodeScope
@@ -104,6 +118,22 @@ private:
 
     private:
         PkDataStream &m_stream;
+    };
+
+    class VariantDecodeScope
+    {
+    public:
+        explicit VariantDecodeScope(PkDataStream &stream);
+        ~VariantDecodeScope();
+
+        VariantDecodeScope(const VariantDecodeScope &) = delete;
+        VariantDecodeScope &operator=(const VariantDecodeScope &) = delete;
+
+        bool entered() const;
+
+    private:
+        PkDataStream &m_stream;
+        bool m_entered = false;
     };
 
     template<typename T> PkDataStream &writeInteger(T value);
@@ -143,4 +173,5 @@ private:
     std::size_t m_allocationLimit;
     std::size_t m_decodeBudgetRemaining = 0;
     std::size_t m_decodeDepth = 0;
+    std::size_t m_variantDecodeDepth = 0;
 };

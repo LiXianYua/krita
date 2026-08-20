@@ -303,6 +303,76 @@ bool getNamedRgb(const char *name, int len, quint32 *rgb)
     return getNamedRgbNoSpace(nameNoSpace, rgb);
 }
 
+float halfToFloat(quint16 half) noexcept
+{
+    const quint32 sign = static_cast<quint32>(half & 0x8000u) << 16;
+    int exponent = static_cast<int>((half >> 10) & 0x1fu);
+    quint32 mantissa = half & 0x03ffu;
+    quint32 bits = 0;
+    if (exponent == 0) {
+        if (mantissa == 0u) {
+            bits = sign;
+        } else {
+            exponent = 1;
+            while ((mantissa & 0x0400u) == 0u) {
+                mantissa <<= 1;
+                --exponent;
+            }
+            mantissa &= 0x03ffu;
+            bits = sign | (static_cast<quint32>(exponent + 112) << 23) | (mantissa << 13);
+        }
+    } else if (exponent == 0x1f) {
+        bits = sign | 0x7f800000u | (mantissa << 13);
+    } else {
+        bits = sign | (static_cast<quint32>(exponent + 112) << 23) | (mantissa << 13);
+    }
+    float value = 0.0f;
+    std::memcpy(&value, &bits, sizeof(value));
+    return value;
+}
+
+quint32 roundShiftRight(quint32 value, unsigned int shift) noexcept
+{
+    const quint32 result = value >> shift;
+    const quint32 mask = (quint32(1) << shift) - 1u;
+    const quint32 remainder = value & mask;
+    const quint32 halfway = quint32(1) << (shift - 1u);
+    return result + (remainder > halfway || (remainder == halfway && (result & 1u)) ? 1u : 0u);
+}
+
+quint16 floatToHalf(float value) noexcept
+{
+    quint32 bits = 0;
+    std::memcpy(&bits, &value, sizeof(bits));
+    const quint16 sign = static_cast<quint16>((bits >> 16) & 0x8000u);
+    const quint32 floatExponent = (bits >> 23) & 0xffu;
+    const quint32 mantissa = bits & 0x007fffffu;
+    if (floatExponent == 0xffu) {
+        if (mantissa == 0u) return static_cast<quint16>(sign | 0x7c00u);
+        const quint16 payload = static_cast<quint16>(mantissa >> 13);
+        return static_cast<quint16>(sign | 0x7c00u | (payload ? payload : 1u));
+    }
+
+    const int exponent = static_cast<int>(floatExponent) - 127 + 15;
+    if (exponent >= 31) return static_cast<quint16>(sign | 0x7c00u);
+    if (exponent <= 0) {
+        if (exponent < -10) return sign;
+        const quint32 significand = mantissa | 0x00800000u;
+        const unsigned int shift = static_cast<unsigned int>(14 - exponent);
+        return static_cast<quint16>(sign | roundShiftRight(significand, shift));
+    }
+
+    quint32 roundedMantissa = roundShiftRight(mantissa, 13u);
+    int roundedExponent = exponent;
+    if (roundedMantissa == 0x0400u) {
+        roundedMantissa = 0u;
+        ++roundedExponent;
+        if (roundedExponent >= 31) return static_cast<quint16>(sign | 0x7c00u);
+    }
+    return static_cast<quint16>(sign | (static_cast<quint16>(roundedExponent) << 10)
+                                | static_cast<quint16>(roundedMantissa));
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -492,6 +562,38 @@ PkColor PkColor::fromHslF(qreal h, qreal s, qreal l, qreal a)
     color.ct.ahsl.lightness  = quint16(qRound(l * kUShortMax));
     color.ct.ahsl.pad        = 0;
     return color;
+}
+
+PkColor PkColor::fromWireState(const WireState &state) noexcept
+{
+    PkColor color;
+    if (state.spec < Invalid || state.spec > ExtendedRgb) return color;
+    color.cspec = state.spec;
+    if (state.spec == ExtendedRgb) {
+        color.ct.argbExt.alphaF = halfToFloat(state.channels[0]);
+        color.ct.argbExt.redF = halfToFloat(state.channels[1]);
+        color.ct.argbExt.greenF = halfToFloat(state.channels[2]);
+        color.ct.argbExt.blueF = halfToFloat(state.channels[3]);
+        color.extendedWirePad = state.channels[4];
+    } else {
+        for (int i = 0; i < 5; ++i) color.ct.array[i] = state.channels[i];
+    }
+    return color;
+}
+
+PkColor::WireState PkColor::wireState() const noexcept
+{
+    WireState state{cspec, {0u, 0u, 0u, 0u, 0u}};
+    if (cspec == ExtendedRgb) {
+        state.channels[0] = floatToHalf(ct.argbExt.alphaF);
+        state.channels[1] = floatToHalf(ct.argbExt.redF);
+        state.channels[2] = floatToHalf(ct.argbExt.greenF);
+        state.channels[3] = floatToHalf(ct.argbExt.blueF);
+        state.channels[4] = extendedWirePad;
+    } else {
+        for (int i = 0; i < 5; ++i) state.channels[i] = ct.array[i];
+    }
+    return state;
 }
 
 // ---------------------------------------------------------------------------

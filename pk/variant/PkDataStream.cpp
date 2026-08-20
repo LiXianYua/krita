@@ -1,4 +1,5 @@
 #include "PkDataStream.h"
+#include "PkVariant.h"
 
 #include <algorithm>
 #include <cstring>
@@ -20,6 +21,10 @@ constexpr std::size_t kHashNodeOverhead = 2u * sizeof(void *);
 constexpr std::size_t kHashBucketAllowance = 2u * sizeof(void *);
 constexpr std::uint32_t kQt4UserType = 127u;
 constexpr std::size_t kDefaultAllocationLimit = 64u * 1024u * 1024u;
+// Count every recursively decoded QVariant, including the leaf. This keeps a
+// hostile chain of one-element containers bounded independently of payload
+// allocation size.
+constexpr std::size_t kMaximumVariantDecodeDepth = 64u;
 
 // Every non-POD value in the closed A1 set is held as a separate object by
 // PkVariant's std::any. Reserve a PkVariant-sized block plus the same
@@ -109,6 +114,27 @@ PkDataStream::DecodeScope::DecodeScope(PkDataStream &stream)
 PkDataStream::DecodeScope::~DecodeScope()
 {
     --m_stream.m_decodeDepth;
+}
+
+PkDataStream::VariantDecodeScope::VariantDecodeScope(PkDataStream &stream)
+    : m_stream(stream)
+{
+    if (m_stream.m_variantDecodeDepth >= kMaximumVariantDecodeDepth) {
+        m_stream.setStatus(ReadCorruptData);
+        return;
+    }
+    ++m_stream.m_variantDecodeDepth;
+    m_entered = true;
+}
+
+PkDataStream::VariantDecodeScope::~VariantDecodeScope()
+{
+    if (m_entered) --m_stream.m_variantDecodeDepth;
+}
+
+bool PkDataStream::VariantDecodeScope::entered() const
+{
+    return m_entered;
 }
 
 PkDataStream::PkDataStream()
@@ -281,6 +307,19 @@ PK_DATASTREAM_INTEGER_OVERLOADS(std::int64_t)
 PK_DATASTREAM_INTEGER_OVERLOADS(std::uint64_t)
 
 #undef PK_DATASTREAM_INTEGER_OVERLOADS
+
+PkDataStream &PkDataStream::operator<<(bool value)
+{
+    return *this << static_cast<std::int8_t>(value ? 1 : 0);
+}
+
+PkDataStream &PkDataStream::operator>>(bool &value)
+{
+    std::int8_t encoded = 0;
+    *this >> encoded;
+    value = encoded != 0;
+    return *this;
+}
 
 PkDataStream &PkDataStream::operator<<(float value)
 {
@@ -748,7 +787,9 @@ bool PkDataStream::writeVariantPayload(const PkVariant &value)
 PkDataStream &PkDataStream::operator>>(PkVariant &value)
 {
     DecodeScope decode(*this);
+    VariantDecodeScope nesting(*this);
     value.clear();
+    if (!nesting.entered()) return *this;
     std::uint32_t typeId = 0;
     std::uint8_t nullFlag = 0;
     *this >> typeId >> nullFlag;

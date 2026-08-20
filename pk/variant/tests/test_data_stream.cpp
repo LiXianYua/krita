@@ -1,6 +1,7 @@
 #include "data_stream_case.h"
 
 #include "PkDataStream.h"
+#include "PkVariant.h"
 #include "PkTest.h"
 
 #include "pk_binder_data_stream_case.inc"
@@ -150,6 +151,29 @@ void DataStreamCase::defaultsAndStatus()
     PK_COMPARE(stream.status(), PkDataStream::ReadCorruptData);
     stream.resetStatus();
     PK_COMPARE(stream.status(), PkDataStream::Ok);
+}
+
+void DataStreamCase::bareBoolMatchesQt46WireBytes()
+{
+    for (PkDataStream::ByteOrder order : {PkDataStream::BigEndian, PkDataStream::LittleEndian}) {
+        PkByteArray encoded;
+        PkDataStream writer(&encoded, PkStream::WriteOnly);
+        writer.setVersion(PkDataStream::Qt_4_6);
+        writer.setByteOrder(order);
+        writer << false << true;
+        PK_COMPARE(writer.status(), PkDataStream::Ok);
+        PK_VERIFY(encoded == fromHex("0001"));
+
+        bool first = true;
+        bool second = false;
+        PkDataStream reader(encoded);
+        reader.setVersion(PkDataStream::Qt_4_6);
+        reader.setByteOrder(order);
+        reader >> first >> second;
+        PK_COMPARE(reader.status(), PkDataStream::Ok);
+        PK_VERIFY(!first);
+        PK_VERIFY(second);
+    }
 }
 
 void DataStreamCase::readsQt46BigEndianFixtures()
@@ -542,6 +566,35 @@ void DataStreamCase::variantObjectStorageIsBoundedRecursively()
     verifyBoundary(PkVariant(PkVariantList{}), objectAllowance);
     verifyBoundary(PkVariant(PkVariantList{PkVariant(PkVariantList{})}),
                    2u * objectAllowance + sizeof(PkVariant));
+}
+
+void DataStreamCase::recursiveVariantNestingIsBounded()
+{
+    const auto nestedList = [](std::size_t listLevels) -> PkByteArray {
+        PkVariant value;
+        for (std::size_t i = 0; i < listLevels; ++i) {
+            value = PkVariant(PkVariantList{value});
+        }
+        PkByteArray bytes;
+        PkDataStream writer(&bytes, PkStream::WriteOnly);
+        writer << value;
+        return bytes;
+    };
+
+    // The cap counts every recursively decoded QVariant, including the leaf.
+    // 63 list wrappers plus one Invalid leaf are the last accepted depth.
+    PkDataStream accepted(nestedList(63));
+    PkVariant acceptedValue;
+    accepted >> acceptedValue;
+    PK_COMPARE(accepted.status(), PkDataStream::Ok);
+
+    // One additional wrapper must be rejected before recursively descending
+    // into untrusted input deeply enough to exhaust the process stack.
+    PkDataStream rejected(nestedList(64));
+    PkVariant rejectedValue;
+    rejected >> rejectedValue;
+    PK_COMPARE(rejected.status(), PkDataStream::ReadCorruptData);
+    PK_VERIFY(!rejectedValue.isValid());
 }
 
 void DataStreamCase::copyAssignedStringMutationSerializesDestination()

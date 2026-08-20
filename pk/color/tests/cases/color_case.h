@@ -35,6 +35,7 @@ private Q_SLOTS:
     void rgbCtorOutOfRange();
     void rgbCtorAlpha();
     void copyAssign();
+    void wireStateIsLossless();
 
     // ── 数据驱动族试验 ─────────────────────────────────
     void globalColor_data();

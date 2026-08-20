@@ -1,4 +1,5 @@
 #include "PkDataStream.h"
+#include "PkVariant.h"
 
 #include <cstdio>
 #include <cstring>

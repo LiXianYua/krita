@@ -83,6 +83,29 @@ void PkColorCase::copyAssign()
     PK_COMPARE(e.rgba(), 0xff0000ffu);
 }
 
+void PkColorCase::wireStateIsLossless()
+{
+    const PkColor::WireState cmyk{
+        PkColor::Cmyk, {0x3232u, 0x0a0au, 0x1414u, 0x1e1eu, 0x2828u}
+    };
+    const PkColor cmykColor = PkColor::fromWireState(cmyk);
+    PK_COMPARE(int(cmykColor.spec()), int(PkColor::Cmyk));
+    PK_VERIFY(cmykColor.wireState() == cmyk);
+
+    const PkColor::WireState extended{
+        PkColor::ExtendedRgb, {0x3a00u, 0x3d00u, 0xb400u, 0x3800u, 0x0000u}
+    };
+    const PkColor extendedColor = PkColor::fromWireState(extended);
+    PK_COMPARE(int(extendedColor.spec()), int(PkColor::ExtendedRgb));
+    PK_VERIFY(extendedColor.wireState() == extended);
+
+    const PkColor::WireState invalid{
+        PkColor::Invalid, {0xffffu, 0x0000u, 0x0000u, 0x0000u, 0x0000u}
+    };
+    PK_VERIFY(PkColor().wireState() == invalid);
+    PK_VERIFY(PkColor::fromWireState(invalid).wireState() == invalid);
+}
+
 // ── 数据驱动族试验 ────────────────────────────────────────
 
 void PkColorCase::globalColor_data()

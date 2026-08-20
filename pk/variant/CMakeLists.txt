@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(pkvariant CXX)
 
-# 独立薄壳工程，**不接入 Krita 主构建**，也不改根 CMakeLists.txt。
+# 独立 focused 验证工程；生产 target 另由 pk/CMakeLists.txt 接入主构建。
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -16,6 +16,7 @@ enable_testing()
 add_library(pkvariant STATIC
     PkAuxTypes.cpp
     PkDataStream.cpp
+    PkDataStreamColor.cpp
     PkVariant.cpp
 )
 target_include_directories(pkvariant PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -56,6 +57,27 @@ set(PKTIME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../time)
 add_subdirectory(${PKTIME_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pktime EXCLUDE_FROM_ALL)
 
 # ---------------------------------------------------------------------------
+# Dependency: pk/port. PkDataStream composes PkStream, so pkvariant must link
+# the owning target itself. The focused shell mirrors the production wiring in
+# pk/CMakeLists.txt while remaining independently configurable for tests.
+# ---------------------------------------------------------------------------
+set(PKPORT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../port)
+add_subdirectory(${PKPORT_DIR} ${CMAKE_CURRENT_BINARY_DIR}/pkport EXCLUDE_FROM_ALL)
+
+# QColor's Qt_4_6 stream operators consume the lossless public wire state from
+# pk/color. Define only its library target here instead of adding the color
+# test project (which would add pk/test a second time in this focused shell).
+set(PKCOLOR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../color)
+add_library(pkcolor STATIC ${PKCOLOR_DIR}/PkColor.cpp)
+target_include_directories(pkcolor PUBLIC
+    ${PKCOLOR_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../global
+    ${CMAKE_CURRENT_SOURCE_DIR}/../namespace
+    ${CMAKE_CURRENT_SOURCE_DIR}/../string
+    ${CMAKE_CURRENT_SOURCE_DIR}/../container)
+target_link_libraries(pkcolor PUBLIC pkstring)
+
+# ---------------------------------------------------------------------------
 # 依赖：pk/container —— 仅通过 include 路径引入（纯头文件）
 # pk/geometry 和 pk/container 都通过 add_subdirectory 引入 pk/test，
 # 不能同时作为子目录。PkStringList.h、PkStringHash.h 是纯头文件，
@@ -66,14 +88,16 @@ target_include_directories(pkvariant PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../conta
 target_include_directories(pkvariant PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../time)
 
 # pkvariant 链接 pkstring、pkgeometry、pktime（时间类型归位后依赖 pk/time）
-target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime)
+target_include_directories(pkvariant PUBLIC ${PKCOLOR_DIR})
+target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime pkport pkcolor)
 
 # ---------------------------------------------------------------------------
 # 单测：用 pk/test 的 PK_* harness
 # ---------------------------------------------------------------------------
 pk_test_generate(PKVARIANT_GENERATED_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/tests/variant_case.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/tests/data_stream_case.h")
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/data_stream_case.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/color_stream_case.h")
 
 add_executable(test_pkvariant
     tests/test_variant.cpp
@@ -89,7 +113,6 @@ add_test(NAME test_pkvariant COMMAND test_pkvariant)
 
 add_executable(test_pkdatastream
     tests/test_data_stream.cpp
-    ../port/PkStream.cpp
 )
 target_link_libraries(test_pkdatastream PRIVATE pkvariant pktest pkstring pktime)
 target_include_directories(test_pkdatastream PRIVATE
@@ -100,3 +123,15 @@ set_source_files_properties(tests/test_data_stream.cpp PROPERTIES
     OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_data_stream_case.inc")
 
 add_test(NAME test_pkdatastream COMMAND test_pkdatastream)
+
+add_executable(test_pkdatastream_color
+    tests/test_color_stream.cpp
+)
+target_link_libraries(test_pkdatastream_color PRIVATE pkvariant pktest pkcolor)
+target_include_directories(test_pkdatastream_color PRIVATE
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../test/compat)
+set_source_files_properties(tests/test_color_stream.cpp PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/pk_binder_color_stream_case.inc")
+
+add_test(NAME test_pkdatastream_color COMMAND test_pkdatastream_color)

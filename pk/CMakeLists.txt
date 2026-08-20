@@ -17,7 +17,8 @@
 #   8. config（依赖 string）
 #   9. pointer（无 pk 依赖）
 #  10. xml（依赖 string，内联 PkStream.cpp，pugixml）
-#  11. variant（依赖 string、geometry、container）
+#  11. color + variant（color 依赖 string；variant 依赖 string、geometry、time、port、color；
+#      port target 在后续段定义，CMake 按 target link edge 建立真实构建顺序）
 #  12. port（依赖 minizip-ng FetchContent，内联 PkZipArchive.cpp + pk/string .cpp）
 #  13. signal（依赖 concurrent，Python3）
 #  14. sql（依赖 variant、geometry、string，SQLite3）
@@ -192,19 +193,35 @@ target_include_directories(pkxml PUBLIC
 target_link_libraries(pkxml PUBLIC pugixml)
 
 # =========================================================================
-# 11. pk/variant（依赖 pkstring + pkgeometry）
+# 11. pk/color + pk/variant（variant 依赖 pkport + pkcolor）
 # =========================================================================
+add_library(pkcolor STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/color/PkColor.cpp
+)
+target_include_directories(pkcolor PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/color
+    ${CMAKE_CURRENT_SOURCE_DIR}/global
+    ${CMAKE_CURRENT_SOURCE_DIR}/namespace
+    ${CMAKE_CURRENT_SOURCE_DIR}/string
+    ${CMAKE_CURRENT_SOURCE_DIR}/container
+)
+target_link_libraries(pkcolor PUBLIC pkstring)
+
 add_library(pkvariant STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/variant/PkAuxTypes.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/variant/PkDataStream.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/variant/PkDataStreamColor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/variant/PkVariant.cpp
 )
 target_include_directories(pkvariant PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/variant
     ${CMAKE_CURRENT_SOURCE_DIR}/container
     ${CMAKE_CURRENT_SOURCE_DIR}/time
+    ${CMAKE_CURRENT_SOURCE_DIR}/port
+    ${CMAKE_CURRENT_SOURCE_DIR}/color
 )
 target_compile_options(pkvariant PUBLIC -fwrapv)
-target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime)
+target_link_libraries(pkvariant PUBLIC pkstring pkgeometry pktime pkport pkcolor)
 
 # =========================================================================
 # 12. pk/port/zip（minizip-ng FetchContent）—— PkZipArchive.cpp 内联到 pkport

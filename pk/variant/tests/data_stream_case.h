@@ -7,6 +7,7 @@ class DataStreamCase : public QObject
     Q_OBJECT
 private Q_SLOTS:
     void defaultsAndStatus();
+    void bareBoolMatchesQt46WireBytes();
     void readsQt46BigEndianFixtures();
     void readsQt515BigEndianFixtures();
     void writesQt46BigEndianFixtures();
@@ -25,5 +26,6 @@ private Q_SLOTS:
     void containerDecodedStorageIsBounded();
     void recursiveDecodeBudgetIncludesAssociativeOverheadAndPayload();
     void variantObjectStorageIsBoundedRecursively();
+    void recursiveVariantNestingIsBounded();
     void copyAssignedStringMutationSerializesDestination();
 };
