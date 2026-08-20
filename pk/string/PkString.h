@@ -7,8 +7,8 @@
 
 // PkString —— 零 Qt 依赖的 COW UTF-16 字符串。
 //
-// 公开 API 的范围**恰好**等于 docs/Qt替代品选型.md §2 的 QString 实测用量表
-// （14 项，见 .exec/replacement/R-01.api），一项不多一项不少。
+// 公开 API 的范围来自 docs/Qt替代品选型.md §2 的 QString 实测用量表，另含
+// R-31 实测补入的 Unicode 默认大小写转换。
 // 长度、下标、切片的单位一律是 **UTF-16 码元**，不是字素簇——与 QString 一致。
 //
 // 本头文件只写声明，实现全在 .cpp：验收脚本 replacement.sh ⑤ 会把头文件按
@@ -37,6 +37,8 @@ public:
     bool startsWith(const PkString& prefix) const;
     PkString trimmed() const;
     std::vector<PkString> split(char16_t sep) const;
+    PkString toLower() const;
+    PkString toUpper() const;
 
     // ── 用量表 · 格式化与转换 ────────────────────────────
     PkString& append(const PkString& other);
@@ -61,6 +63,7 @@ public:
     std::u16string PkToU16() const;
     std::string PkToUtf8() const;
     static PkString PkFromUtf8(const char* s, int len);
+    bool PkIsSharedWith(const PkString& other) const;
 
 private:
     // 只读访问，绝不 detach（PkArrayData::PkConst 的语义）。

@@ -114,3 +114,8 @@ PkString PkString::PkFromUtf8(const char* s, int len)
     r._data() = PkStringCodec::FromUtf8(s, n);
     return r;
 }
+
+bool PkString::PkIsSharedWith(const PkString& other) const
+{
+    return _d.PkIsSharedWith(other._d);
+}

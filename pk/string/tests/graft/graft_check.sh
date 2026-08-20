@@ -54,4 +54,24 @@ for f in libs/global/KoProgressProxy.cpp libs/version/KritaVersionWrapper.cpp; d
         fail=1
     fi
 done
+
+# R-31 default-case conversion graft. The driver itself documents the exact
+# real call sites and the dependency wall that prevents compiling those full
+# translation units within the pk/string lock.
+case_bin=pk/string/build/case_callshape
+case_out=$(
+    "$CXX" -std=c++17 -I pk/string -I pk/container \
+        pk/string/tests/graft/case_callshape.cpp \
+        pk/string/PkStringCodec.cpp pk/string/PkString_core.cpp \
+        pk/string/PkString_query.cpp pk/string/PkString_format.cpp \
+        -o "$case_bin" 2>&1
+)
+case_rc=$?
+if [ "$case_rc" -ne 0 ]; then
+    printf '  case graft compile FAILED\n'
+    printf '%s\n' "$case_out" | head -20 | sed 's/^/    /'
+    fail=1
+elif ! "$case_bin"; then
+    fail=1
+fi
 exit $fail

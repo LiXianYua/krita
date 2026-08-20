@@ -63,8 +63,10 @@ if ! "$OUT/difftest_string" > "$OUT/string.out" 2>&1; then
     exit 1
 fi
 grep -E '^ORACLE-QT ' "$OUT/string.out"
+grep -E '^ORACLE-COVER toLower ' "$OUT/string.out"
+grep -E '^ORACLE-COVER toUpper ' "$OUT/string.out"
 grep -E '^DIFFTAG ' "$OUT/string.out" || true
-grep -E '^DIFF total=' "$OUT/string.out"
+grep -E '^DIFF total=[0-9]+ mismatch=0$' "$OUT/string.out"
 
 echo
 echo "出现过的 DIFFTAG 必须在 $HERE/R-13.deviation 里逐条声明过。"

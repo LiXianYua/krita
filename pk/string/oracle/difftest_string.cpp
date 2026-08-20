@@ -124,8 +124,7 @@ std::string pkClassifyFmt(const std::string& fmt)
     return "num=none";
 }
 
-// 三字节内（本文件用到的码点范围 <= 0x3001）UTF-8 编码，用于 I3 的穷举码点
-// 构造——不能走 C 字符串字面量：cp=0（NUL）本身就是要覆盖的一个码点。
+// Unicode 标量的 UTF-8 编码。不能走 C 字符串字面量：穷举包含 cp=0（NUL）。
 std::string pkUtf8Encode(unsigned cp)
 {
     std::string out;
@@ -134,8 +133,13 @@ std::string pkUtf8Encode(unsigned cp)
     } else if (cp <= 0x7FF) {
         out.push_back(static_cast<char>(0xC0 | (cp >> 6)));
         out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
-    } else {
+    } else if (cp <= 0xFFFF) {
         out.push_back(static_cast<char>(0xE0 | (cp >> 12)));
+        out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    } else {
+        out.push_back(static_cast<char>(0xF0 | (cp >> 18)));
+        out.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
         out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
         out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
     }
@@ -482,6 +486,69 @@ void diffToDouble(const char* sIn)
         (qok ? "ok:" : "FAIL:") + esD(qr), (pok ? "ok:" : "FAIL:") + esD(pr));
 }
 
+std::string pkCaseInput(const std::vector<unsigned>& codePoints)
+{
+    std::string input;
+    for (unsigned cp : codePoints) {
+        input += pkUtf8Encode(cp);
+    }
+    return input;
+}
+
+std::string pkCaseShape(const std::vector<unsigned>& codePoints)
+{
+    bool hasAscii = false;
+    bool hasBmp = false;
+    bool hasAstral = false;
+    for (unsigned cp : codePoints) {
+        if (cp <= 0x7F) hasAscii = true;
+        else if (cp <= 0xFFFF) hasBmp = true;
+        else hasAstral = true;
+    }
+    std::string form;
+    if (hasAscii) form += "ascii+";
+    if (hasBmp) form += "bmp+";
+    if (hasAstral) form += "astral+";
+    if (!form.empty()) form.pop_back();
+    if (form.empty()) form = "empty";
+    return "units=" + std::to_string(codePoints.size()) + "/form=" + form;
+}
+
+std::string pkCaseCodePoints(const std::vector<unsigned>& codePoints)
+{
+    std::string dump;
+    char buffer[16];
+    for (unsigned cp : codePoints) {
+        std::snprintf(buffer, sizeof(buffer), "U+%04X", cp);
+        if (!dump.empty()) dump += "+";
+        dump += buffer;
+    }
+    return dump.empty() ? "empty" : dump;
+}
+
+void diffCase(const std::vector<unsigned>& codePoints, const char* coverage)
+{
+    const std::string input = pkCaseInput(codePoints);
+    // Anchor then slice so a leading U+FEFF is not interpreted as a UTF-8 BOM
+    // by QString::fromUtf8. Both sides still consume the same bytes, and the
+    // value entering the case algorithm is the intended code-point sequence.
+    const std::string anchored = "x" + input;
+    const QString q = QString::fromUtf8(anchored.data(), static_cast<int>(anchored.size())).mid(1);
+    const PkString p = PkString::PkFromUtf8(anchored.data(), static_cast<int>(anchored.size())).mid(1);
+    const std::string shape = std::string("coverage=") + coverage + "/" + pkCaseShape(codePoints);
+    const std::string inputDump = pkCaseCodePoints(codePoints);
+
+    const QString qLower = q.toLower();
+    const PkString pLower = p.toLower();
+    rec("toLower", esQ(qLower) == esP(pLower), "direction=lower/" + shape,
+        inputDump, esQ(qLower), esP(pLower));
+
+    const QString qUpper = q.toUpper();
+    const PkString pUpper = p.toUpper();
+    rec("toUpper", esQ(qUpper) == esP(pUpper), "direction=upper/" + shape,
+        inputDump, esQ(qUpper), esP(pUpper));
+}
+
 int main()
 {
     qInstallMessageHandler([](QtMsgType, const QMessageLogContext&, const QString&) {});
@@ -584,6 +651,44 @@ int main()
     for (int i = 0; i < kNNumTok; ++i) {
         diffToInt(kNumTok[i]);
         diffToDouble(kNumTok[i]);
+    }
+
+    // Unicode default case conversion: first pin the named adversarial shapes
+    // from the R-31 plan, including full mappings that change string length.
+    const std::vector<std::vector<unsigned>> caseProbes = {
+        {},
+        {'H', 'e', 'l', 'l', 'o', ' ', 'W', 'O', 'R', 'L', 'D'},
+        {0x00C4, 0x03A9, 0x0416},             // BMP Latin / Greek / Cyrillic
+        {0x10400, 0x10428},                   // supplementary-plane surrogate pairs
+        {'S', 't', 'r', 'a', 0x00DF, 'e'},    // sharp s expands when uppercased
+        {0xFB03},                              // ligature expands to FFI
+        {0x0130, 'I', 0x0131, 'i'},            // unconditional SpecialCasing
+        {0x039F, 0x03A3, 0x039F, 0x03A3},     // Qt default: no final-sigma tailoring
+        {0x039C, 0x03AC, 0x03CA, 0x03BF, 0x03C2},
+    };
+    for (const std::vector<unsigned>& probe : caseProbes) {
+        diffCase(probe, "handpicked");
+    }
+
+    // Single-scalar exhaustive pass catches every Unicode 13 table entry and
+    // every identity gap. Surrogate code points are not Unicode scalars.
+    for (unsigned cp = 0; cp <= 0x10FFFF; ++cp) {
+        if (cp >= 0xD800 && cp <= 0xDFFF) continue;
+        diffCase({cp}, "scalar-exhaustive");
+    }
+
+    // Category-token triple product checks ordering and expansion when ASCII,
+    // BMP, combining marks, uncased symbols, and astral mappings are adjacent.
+    const unsigned caseTokens[] = {
+        'A', 'a', 0x00DF, 0x0130, 0x03A3, 0x03C2, 0x0307,
+        0x0416, 0x4E2D, 0xFB03, 0x10400, 0x10428,
+    };
+    for (unsigned a : caseTokens) {
+        for (unsigned b : caseTokens) {
+            for (unsigned c : caseTokens) {
+                diffCase({a, b, c}, "category-product-3");
+            }
+        }
     }
 
     for (const auto& kv : g_cover) {

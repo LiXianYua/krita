@@ -1,6 +1,10 @@
 #include "PkString.h"
 
+#include "unicode_case/PkUnicodeCaseData.h"
+
 #include <algorithm>
+#include <cstdint>
+#include <utility>
 
 namespace {
 
@@ -39,6 +43,68 @@ int pkIndexOf(const std::vector<char16_t>& hay, const std::vector<char16_t>& nee
         return -1;
     }
     return static_cast<int>(it - hay.begin());
+}
+
+std::uint32_t pkNextCodePoint(const std::vector<char16_t>& input, std::size_t& index)
+{
+    const std::uint32_t first = input[index++];
+    if (first >= 0xD800 && first <= 0xDBFF && index < input.size()) {
+        const std::uint32_t second = input[index];
+        if (second >= 0xDC00 && second <= 0xDFFF) {
+            ++index;
+            return 0x10000 + ((first - 0xD800) << 10) + (second - 0xDC00);
+        }
+    }
+    return first;
+}
+
+template<std::size_t N>
+const PkUnicodeCaseData::Mapping* pkFindCaseMapping(
+    std::uint32_t codePoint,
+    const PkUnicodeCaseData::Mapping (&mappings)[N])
+{
+    const PkUnicodeCaseData::Mapping* const begin = mappings;
+    const PkUnicodeCaseData::Mapping* const end = mappings + N;
+    const PkUnicodeCaseData::Mapping* const it =
+        std::lower_bound(begin, end, codePoint,
+                         [](const PkUnicodeCaseData::Mapping& mapping, std::uint32_t value) {
+                             return mapping.source < value;
+                         });
+    return it != end && it->source == codePoint ? it : nullptr;
+}
+
+void pkAppendCodePoint(std::vector<char16_t>& output, std::uint32_t codePoint)
+{
+    if (codePoint <= 0xFFFF) {
+        output.push_back(static_cast<char16_t>(codePoint));
+        return;
+    }
+    const std::uint32_t value = codePoint - 0x10000;
+    output.push_back(static_cast<char16_t>(0xD800 + (value >> 10)));
+    output.push_back(static_cast<char16_t>(0xDC00 + (value & 0x3FF)));
+}
+
+template<std::size_t N, std::size_t M>
+bool pkConvertCase(const std::vector<char16_t>& input,
+                   std::vector<char16_t>& output,
+                   const PkUnicodeCaseData::Mapping (&mappings)[N],
+                   const char16_t (&values)[M])
+{
+    output.reserve(input.size());
+    bool changed = false;
+    for (std::size_t index = 0; index < input.size();) {
+        const std::uint32_t codePoint = pkNextCodePoint(input, index);
+        const PkUnicodeCaseData::Mapping* const mapping =
+            pkFindCaseMapping(codePoint, mappings);
+        if (mapping == nullptr) {
+            pkAppendCodePoint(output, codePoint);
+            continue;
+        }
+        changed = true;
+        output.insert(output.end(), values + mapping->offset,
+                      values + mapping->offset + mapping->length);
+    }
+    return changed;
 }
 
 } // namespace
@@ -140,4 +206,28 @@ std::vector<PkString> PkString::split(char16_t sep) const
         }
     }
     return out;
+}
+
+PkString PkString::toLower() const
+{
+    std::vector<char16_t> output;
+    if (!pkConvertCase(_cbuf(), output, PkUnicodeCaseData::kLowerMappings,
+                       PkUnicodeCaseData::kLowerValues)) {
+        return *this;
+    }
+    PkString result;
+    result._data() = std::move(output);
+    return result;
+}
+
+PkString PkString::toUpper() const
+{
+    std::vector<char16_t> output;
+    if (!pkConvertCase(_cbuf(), output, PkUnicodeCaseData::kUpperMappings,
+                       PkUnicodeCaseData::kUpperValues)) {
+        return *this;
+    }
+    PkString result;
+    result._data() = std::move(output);
+    return result;
 }

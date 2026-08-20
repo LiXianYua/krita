@@ -90,4 +90,51 @@ void run_query_tests()
         _expect(astral_test.mid(1, 1).PkToUtf8() == std::string("\x3F"),
                 "encoding a lone low surrogate (via mid() splitting a pair) emits single-byte 0x3F");
     }
+
+    // Unicode 13.0 default case conversion.  These are full-string mappings,
+    // not byte-wise std::tolower/std::toupper and not locale-tailored rules.
+    {
+        const PkString mixed("Hello WORLD");
+        _expect(mixed.toLower() == PkString("hello world"),
+                "toLower converts mixed ASCII case");
+        _expect(mixed.toUpper() == PkString("HELLO WORLD"),
+                "toUpper converts mixed ASCII case");
+
+        _expect(PkString("\xC3\x84\xCE\xA9\xD0\x96").toLower()
+                    == PkString("\xC3\xA4\xCF\x89\xD0\xB6"),
+                "toLower converts BMP Latin, Greek, and Cyrillic letters");
+        _expect(PkString("\xC3\xA4\xCF\x89\xD0\xB6").toUpper()
+                    == PkString("\xC3\x84\xCE\xA9\xD0\x96"),
+                "toUpper converts BMP Latin, Greek, and Cyrillic letters");
+
+        // U+10400 DESERET CAPITAL LETTER LONG I / U+10428 small counterpart.
+        _expect(PkString("\xF0\x90\x90\x80\xF0\x90\x90\xA8").toLower()
+                    == PkString("\xF0\x90\x90\xA8\xF0\x90\x90\xA8"),
+                "toLower decodes and maps supplementary-plane surrogate pairs");
+        _expect(PkString("\xF0\x90\x90\x80\xF0\x90\x90\xA8").toUpper()
+                    == PkString("\xF0\x90\x90\x80\xF0\x90\x90\x80"),
+                "toUpper decodes and maps supplementary-plane surrogate pairs");
+
+        _expect(PkString("Stra\xC3\x9F" "e").toUpper() == PkString("STRASSE"),
+                "toUpper applies one-to-many sharp-s mapping");
+        _expect(PkString("\xEF\xAC\x83").toUpper() == PkString("FFI"),
+                "toUpper applies one-to-many ligature mapping");
+        _expect(PkString("\xC4\xB0").toLower() == PkString("i\xCC\x87"),
+                "toLower applies unconditional SpecialCasing for capital dotted I");
+
+        const PkString source("Stra\xC3\x9F" "e \xC4\xB0");
+        const PkString sourceCopy = source;
+        const PkString lower = source.toLower();
+        const PkString upper = source.toUpper();
+        _expect(source == sourceCopy, "case conversion leaves the source object unchanged");
+        _expect(!lower.PkIsSharedWith(source), "changed lowercase result owns different COW data");
+        _expect(!upper.PkIsSharedWith(source), "changed uppercase result owns different COW data");
+
+        const PkString alreadyLower("already lower 123 \xCF\x89");
+        const PkString alreadyUpper("ALREADY UPPER 123 \xCE\xA9");
+        _expect(alreadyLower.toLower().PkIsSharedWith(alreadyLower),
+                "unchanged toLower result shares COW data");
+        _expect(alreadyUpper.toUpper().PkIsSharedWith(alreadyUpper),
+                "unchanged toUpper result shares COW data");
+    }
 }
