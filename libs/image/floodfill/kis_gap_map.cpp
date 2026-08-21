@@ -20,15 +20,11 @@
  */
 
 #include "kis_gap_map.h"
-#include <qglobal.h>
-#include <QtMath>
-#include <QMutex>
-#include <QMutexLocker>
 #include <KoColor.h>
 #include <KoColorSpaceRegistry.h>
 
 #if KIS_GAP_MAP_MEASURE_ELAPSED_TIME
-#include <QElapsedTimer>
+#include <PkElapsedTimer.h>
 #endif
 
 namespace
@@ -37,22 +33,22 @@ namespace
 // The following four transformation functions are used to parametrize the distance search algorithm.
 // All used together help cover the four octants (a 1/8th circular sector) of a half-circle covering a part of the map.
 
-ALWAYS_INLINE QPoint TransformNone(int x, int y, int xOffset, int yOffset)
+ALWAYS_INLINE PkPoint TransformNone(int x, int y, int xOffset, int yOffset)
 {
     return {x + xOffset, y + yOffset};
 }
 
-ALWAYS_INLINE QPoint TransformRotateClockwiseMirrorHorizontally(int x, int y, int xOffset, int yOffset)
+ALWAYS_INLINE PkPoint TransformRotateClockwiseMirrorHorizontally(int x, int y, int xOffset, int yOffset)
 {
     return {x - yOffset, y - xOffset};
 }
 
-ALWAYS_INLINE QPoint TransformRotateClockwise(int x, int y, int xOffset, int yOffset)
+ALWAYS_INLINE PkPoint TransformRotateClockwise(int x, int y, int xOffset, int yOffset)
 {
     return {x - yOffset, y + xOffset};
 }
 
-ALWAYS_INLINE QPoint TransformMirrorHorizontally(int x, int y, int xOffset, int yOffset)
+ALWAYS_INLINE PkPoint TransformMirrorHorizontally(int x, int y, int xOffset, int yOffset)
 {
     return {x + xOffset, y - yOffset};
 }
@@ -81,13 +77,13 @@ bool KisGapMap::isOpaque(int x, int y)
 }
 
 template<bool BoundsCheck>
-bool KisGapMap::isOpaque(const QPoint& p)
+bool KisGapMap::isOpaque(const PkPoint& p)
 {
     return isOpaque<BoundsCheck>(p.x(), p.y());
 }
 
 KisGapMap::KisGapMap(int gapSize,
-                     const QRect& mapBounds,
+                     const PkRect& mapBounds,
                      const FillOpacityFunc& fillOpacityFunc)
     : m_gapSize(gapSize)
     , m_size(mapBounds.size())
@@ -110,10 +106,10 @@ KisGapMap::KisGapMap(int gapSize,
     m_deviceSp->fill(mapBounds, color);
 }
 
-void KisGapMap::loadOpacityTiles(const QRect& tileRect)
+void KisGapMap::loadOpacityTiles(const PkRect& tileRect)
 {
 #if KIS_GAP_MAP_MEASURE_ELAPSED_TIME
-    QElapsedTimer timer;
+    PkElapsedTimer timer;
     timer.start();
 #endif
 
@@ -122,7 +118,7 @@ void KisGapMap::loadOpacityTiles(const QRect& tileRect)
             TileFlags* const pFlags = tileFlagsPtr(tx, ty);
             if ((*pFlags & TILE_OPACITY_LOADED) == 0) {
                 // Resize and clamp to image bounds.
-                QRect rect(tx * TileSize, ty * TileSize, TileSize, TileSize);
+                PkRect rect(tx * TileSize, ty * TileSize, TileSize, TileSize);
                 rect.setRight(qMin(rect.right(), m_size.width() - 1));
                 rect.setBottom(qMin(rect.bottom(), m_size.height() - 1));
 
@@ -177,10 +173,10 @@ void KisGapMap::distanceSearchRowInnerLoop(bool boundsCheck, int y, int x1, int 
  *  and must be at least equal to the gap size. We need to do calculations in
  *  a larger region in order to compute correct distances within the requested rect.
  */
-void KisGapMap::loadDistanceTile(const QPoint& tile, const QRect& nearbyTilesRect, int guardBand)
+void KisGapMap::loadDistanceTile(const PkPoint& tile, const PkRect& nearbyTilesRect, int guardBand)
 {
 #if KIS_GAP_MAP_MEASURE_ELAPSED_TIME
-    QElapsedTimer timer;
+    PkElapsedTimer timer;
     timer.start();
 #endif
 
@@ -211,7 +207,7 @@ void KisGapMap::loadDistanceTile(const QPoint& tile, const QRect& nearbyTilesRec
     }
 
     // The area of the image covered only by this tile.
-    QRect rect(tile.x() * TileSize, tile.y() * TileSize, TileSize, TileSize);
+    PkRect rect(tile.x() * TileSize, tile.y() * TileSize, TileSize, TileSize);
     rect.setRight(qMin(rect.right(), m_size.width() - 1));
     rect.setBottom(qMin(rect.bottom(), m_size.height() - 1));
 
@@ -316,9 +312,9 @@ void KisGapMap::gapDistanceSearch(int x, int y, CoordinateTransform op)
     }
 }
 
-void KisGapMap::updateDistance(const QPoint& globalPosition, quint16 newDistance)
+void KisGapMap::updateDistance(const PkPoint& globalPosition, quint16 newDistance)
 {
-    const QPoint p = globalPosition - m_tilePosition;
+    const PkPoint p = globalPosition - m_tilePosition;
 
     if ((p.x() < 0) || (p.x() >= TileSize) || (p.y() < 0) || (p.y() >= TileSize)) {
         return;
@@ -341,17 +337,17 @@ quint16 KisGapMap::lazyDistance(int x, int y)
     const int ty = y / TileSize;
 
     // Clamped tile neighborhood.
-    const QPoint topLeft(qMax(0, tx - 1),
+    const PkPoint topLeft(qMax(0, tx - 1),
                          qMax(0, ty - 1));
-    const QPoint bottomRight(qMin(tx + 1, m_numTiles.width() - 1),
+    const PkPoint bottomRight(qMin(tx + 1, m_numTiles.width() - 1),
                              qMin(ty + 1, m_numTiles.height() - 1));
-    const QRect nearbyTiles = QRect(topLeft, bottomRight);
+    const PkRect nearbyTiles = PkRect(topLeft, bottomRight);
 
     // For opacity data, we always load all the adjacent tiles (up to 9 tiles in total).
     loadOpacityTiles(nearbyTiles);
 
     // For distance data, we always load a single tile.
-    loadDistanceTile(QPoint(tx, ty), nearbyTiles, m_gapSize);
+    loadDistanceTile(PkPoint(tx, ty), nearbyTiles, m_gapSize);
 
     // The data is now ready to be returned.
     return dataPtr(x, y)->distance;

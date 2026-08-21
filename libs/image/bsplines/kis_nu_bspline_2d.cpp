@@ -32,8 +32,8 @@ struct Q_DECL_HIDDEN KisNUBSpline2D::Private
     float maxY;
 };
 
-KisNUBSpline2D::KisNUBSpline2D(const QVector<double> &xSamples, BorderCondition bcX,
-                               const QVector<double> &ySamples, BorderCondition bcY)
+KisNUBSpline2D::KisNUBSpline2D(const PkVector<double> &xSamples, BorderCondition bcX,
+                               const PkVector<double> &ySamples, BorderCondition bcY)
     : m_d(new Private),
       m_xSamples(xSamples),
       m_ySamples(ySamples)
@@ -63,7 +63,7 @@ KisNUBSpline2D::~KisNUBSpline2D()
     destroy_grid(m_d->yGrid);
 }
 
-void KisNUBSpline2D::initializeSplineImpl(const QVector<float> &values)
+void KisNUBSpline2D::initializeSplineImpl(const PkVector<float> &values)
 {
     BCtype_s bctypeX;
     bctypeX.lCode = bctypeX.rCode = convertBorderType(m_d->bcX);
@@ -103,14 +103,14 @@ float KisNUBSpline2D::value(float x, float y) const
     return value;
 }
 
-QPointF KisNUBSpline2D::topLeft() const
+PkPointF KisNUBSpline2D::topLeft() const
 {
-    return QPointF(m_d->minX, m_d->minY);
+    return PkPointF(m_d->minX, m_d->minY);
 }
 
-QPointF KisNUBSpline2D::bottomRight() const
+PkPointF KisNUBSpline2D::bottomRight() const
 {
-    return QPointF(m_d->maxX, m_d->maxY);
+    return PkPointF(m_d->maxX, m_d->maxY);
 }
 
 BorderCondition KisNUBSpline2D::borderConditionX() const

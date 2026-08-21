@@ -9,10 +9,9 @@
 
 #include <kritaimage_export.h>
 
-#include <QScopedPointer>
-#include <QVector>
-#include <QPointF>
-#include <QSize>
+#include <PkScopedPointer.h>
+#include <PkVector.h>
+#include <PkPoint.h>
 
 #include "kis_bspline.h"
 
@@ -22,8 +21,8 @@ namespace KisBSplines {
 class KRITAIMAGE_EXPORT KisNUBSpline2D
 {
 public:
-    KisNUBSpline2D(const QVector<double> &xSamples, BorderCondition bcX,
-                   const QVector<double> &ySamples, BorderCondition bcY);
+    KisNUBSpline2D(const PkVector<double> &xSamples, BorderCondition bcX,
+                   const PkVector<double> &ySamples, BorderCondition bcY);
 
     ~KisNUBSpline2D();
 
@@ -33,7 +32,7 @@ public:
         const int xSize = m_xSamples.size();
         const int ySize = m_ySamples.size();
 
-        QVector<float> values(xSize * ySize);
+        PkVector<float> values(xSize * ySize);
 
         for (int x = 0; x < xSize; x++) {
             double fx = m_xSamples[x];
@@ -50,25 +49,25 @@ public:
 
     float value(float x, float y) const;
 
-    QPointF topLeft() const;
-    QPointF bottomRight() const;
+    PkPointF topLeft() const;
+    PkPointF bottomRight() const;
 
     BorderCondition borderConditionX() const;
     BorderCondition borderConditionY() const;
 
 private:
-    void initializeSplineImpl(const QVector<float> &values);
+    void initializeSplineImpl(const PkVector<float> &values);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 
     /**
      * We need to store them separately, because they should
      * be accessible from the templated part
      */
-    const QVector<double> m_xSamples;
-    const QVector<double> m_ySamples;
+    const PkVector<double> m_xSamples;
+    const PkVector<double> m_ySamples;
 };
 
 }

@@ -51,7 +51,7 @@ public:
 };
 
 #include <kis_debug.h>
-inline QDebug operator<<(QDebug dbg, const KisFillInterval& i)
+inline PkDebug operator<<(PkDebug dbg, const KisFillInterval& i)
 {
 #ifndef NODEBUG
     dbg.nospace() << "KisFillInterval(" << i.start << ".." << i.end << "; " << i.row << ")";

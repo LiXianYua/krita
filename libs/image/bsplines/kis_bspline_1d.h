@@ -9,8 +9,8 @@
 
 #include <kritaimage_export.h>
 
-#include <QScopedPointer>
-#include <QVector>
+#include <PkScopedPointer.h>
+#include <PkVector.h>
 
 #include "kis_bspline.h"
 
@@ -28,7 +28,7 @@ public:
 
         FunctionOp op;
         float step = (m_gridEnd - m_gridStart) / (m_numSamples - 1);
-        QVector<float> values(m_numSamples);
+        PkVector<float> values(m_numSamples);
 
         for (int i = 0; i < m_numSamples; i++) {
             float x = m_gridStart + i * step;
@@ -51,11 +51,11 @@ public:
     }
 
 private:
-    void initializeSplineImpl(const QVector<float> &values);
+    void initializeSplineImpl(const PkVector<float> &values);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 
     /**
      * We need to store them separately, because they should

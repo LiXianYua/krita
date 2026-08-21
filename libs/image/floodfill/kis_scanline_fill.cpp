@@ -8,11 +8,11 @@
 
 #include <KoAlwaysInline.h>
 
-#include <QStack>
+#include <PkStack.h>
+#include <PkColor.h>
 #include <KoColor.h>
 #include <KoColorSpace.h>
 #include <KoCompositeOpRegistry.h>
-#include "kis_image.h"
 #include "kis_fill_interval_map.h"
 #include "kis_pixel_selection.h"
 #include "kis_random_accessor_ng.h"
@@ -23,7 +23,7 @@
 
 #define MEASURE_FILL_TIME 0
 #if MEASURE_FILL_TIME
-#include <QElapsedTimer>
+#include <PkElapsedTimer.h>
 #endif
 
 namespace {
@@ -277,19 +277,19 @@ private:
 struct Q_DECL_HIDDEN KisScanlineFill::Private
 {
     KisPaintDeviceSP device;
-    QPoint startPoint;
-    QRect boundingRect;
+    PkPoint startPoint;
+    PkRect boundingRect;
     int threshold;
     int opacitySpread;
 
     int rowIncrement;
     KisFillIntervalMap backwardMap;
-    QStack<KisFillInterval> forwardStack;
+    PkStack<KisFillInterval> forwardStack;
 
     int closeGap;           ///< try to close gaps up to this size in pixels
     KisGapMapSP gapMapSp;   ///< maintains the distance and opacity maps required for the algorithm
 
-    QRect fillExtent;
+    PkRect fillExtent;
 
     // The priority queue is required to correctly handle the fill "expansion" case
     // (starting in a corner and filling towards open areas, where distance is DISTANCE_INFINITE).
@@ -308,13 +308,13 @@ struct Q_DECL_HIDDEN KisScanlineFill::Private
                                      "FATAL: the forward stack must be empty "
                                      "on a direction swap");
 
-        forwardStack = QStack<KisFillInterval>(backwardMap.fetchAllIntervals(rowIncrement));
+        forwardStack = PkStack<KisFillInterval>(backwardMap.fetchAllIntervals(rowIncrement));
         backwardMap.clear();
     }
 };
 
 
-KisScanlineFill::KisScanlineFill(KisPaintDeviceSP device, const QPoint &startPoint, const QRect &boundingRect)
+KisScanlineFill::KisScanlineFill(KisPaintDeviceSP device, const PkPoint &startPoint, const PkRect &boundingRect)
     : m_d(new Private)
 {
     m_d->device = device;
@@ -347,7 +347,7 @@ void KisScanlineFill::setCloseGap(int closeGap)
     m_d->closeGap = closeGap;
 }
 
-QRect KisScanlineFill::fillExtent() const
+PkRect KisScanlineFill::fillExtent() const
 {
     return m_d->fillExtent;
 }
@@ -498,7 +498,7 @@ void KisScanlineFill::processLine(KisFillInterval interval, const int rowIncreme
             }
 
             pixelAccessPolicy.fillPixel(pixelPtr, opacity, x, row);
-            m_d->fillExtent = m_d->fillExtent.united(QRect(x, row, 1, 1));
+            m_d->fillExtent = m_d->fillExtent.united(PkRect(x, row, 1, 1));
 
             if (x == firstX) {
                 extendedPass(&currentForwardInterval, row, false,
@@ -585,7 +585,7 @@ KisFillInterval KisScanlineFill::closeGapPass(DifferencePolicy &differencePolicy
                     // We still continue the loop, to process all the pixels we can fill.
                 } else {
                     pixelAccessPolicy.fillPixel(pixelPtr, opacity, p.x, p.y);
-                    m_d->fillExtent = m_d->fillExtent.united(QRect(p.x, p.y, 1, 1));
+                    m_d->fillExtent = m_d->fillExtent.united(PkRect(p.x, p.y, 1, 1));
 
                     // Forward the context information to the next pixels.
                     // Spread the fill in four directions: up, down, left, right.
@@ -631,9 +631,9 @@ void KisScanlineFill::runImpl(DifferencePolicy &differencePolicy,
     }
 
 #if MEASURE_FILL_TIME
-    QElapsedTimer timerTotal;
-    QElapsedTimer timerScanlineFill;
-    QElapsedTimer timerGapClosingFill;
+    PkElapsedTimer timerTotal;
+    PkElapsedTimer timerScanlineFill;
+    PkElapsedTimer timerGapClosingFill;
     quint64 totalScanlineFillNanos = 0;
     quint64 totalGapClosingFillNanos = 0;
 
@@ -643,7 +643,7 @@ void KisScanlineFill::runImpl(DifferencePolicy &differencePolicy,
     if (gapSize > 0) {
         // We need to reuse the complex policies used by this class and only provide the final
         // "projection" of opacity for the distance map calculation.
-        auto opacityFunc = [&](KisPaintDevice* devicePtr, const QRect& rect) {
+        auto opacityFunc = [&](KisPaintDevice* devicePtr, const PkRect& rect) {
             return fillOpacity(differencePolicy, selectionPolicy, pixelAccessPolicy, devicePtr, rect);
         };
 
@@ -652,7 +652,7 @@ void KisScanlineFill::runImpl(DifferencePolicy &differencePolicy,
         m_d->gapMapSp = KisGapMapSP(new KisGapMap(gapSize, m_d->boundingRect, opacityFunc));
     }
 
-    m_d->fillExtent = QRect();
+    m_d->fillExtent = PkRect();
 
     KisFillInterval startInterval(m_d->startPoint.x(), m_d->startPoint.x(), m_d->startPoint.y());
 
@@ -1061,7 +1061,7 @@ bool KisScanlineFill::fillOpacity(DifferencePolicy &differencePolicy,
                                   SelectionPolicy &selectionPolicy,
                                   PixelAccessPolicy &pixelAccessPolicy,
                                   KisPaintDevice* const devicePtr,
-                                  const QRect& rect) const
+                                  const PkRect& rect) const
 {
 #if 0
     // These asserts affect the performance.
@@ -1111,8 +1111,8 @@ bool KisScanlineFill::fillOpacity(DifferencePolicy &differencePolicy,
 
 void KisScanlineFill::testingProcessLine(const KisFillInterval &processInterval)
 {
-    KoColor srcColor(QColor(0,0,0,0), m_d->device->colorSpace());
-    KoColor fillColor(QColor(200,200,200,200), m_d->device->colorSpace());
+    KoColor srcColor(PkColor(0,0,0,0), m_d->device->colorSpace());
+    KoColor fillColor(PkColor(200,200,200,200), m_d->device->colorSpace());
 
     using namespace KisColorSelectionPolicies;
 
@@ -1123,9 +1123,9 @@ void KisScanlineFill::testingProcessLine(const KisFillInterval &processInterval)
     processLine(processInterval, 1, dp, sp, pap);
 }
 
-QVector<KisFillInterval> KisScanlineFill::testingGetForwardIntervals() const
+PkVector<KisFillInterval> KisScanlineFill::testingGetForwardIntervals() const
 {
-    return QVector<KisFillInterval>(m_d->forwardStack);
+    return PkVector<KisFillInterval>(m_d->forwardStack);
 }
 
 KisFillIntervalMap* KisScanlineFill::testingGetBackwardIntervals() const

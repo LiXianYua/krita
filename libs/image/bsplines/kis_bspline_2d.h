@@ -9,10 +9,9 @@
 
 #include <kritaimage_export.h>
 
-#include <QScopedPointer>
-#include <QVector>
-#include <QPointF>
-#include <QSize>
+#include <PkScopedPointer.h>
+#include <PkVector.h>
+#include <PkPoint.h>
 
 #include "kis_bspline.h"
 
@@ -40,8 +39,8 @@ public:
 
     template <class Spline>
         static inline KisBSpline2D* createResampledSpline(const Spline &other, int xSamples, int ySamples) {
-        QPointF tl = other.topLeft();
-        QPointF br = other.bottomRight();
+        PkPointF tl = other.topLeft();
+        PkPointF br = other.bottomRight();
 
         KisBSpline2D *newSpline =
             new KisBSpline2D(tl.x(), br.x(), xSamples, other.borderConditionX(),
@@ -59,7 +58,7 @@ public:
         float xStep = (m_xEnd - m_xStart) / (m_numSamplesX - 1);
         float yStep = (m_yEnd - m_yStart) / (m_numSamplesY - 1);
 
-        QVector<float> values(m_numSamplesX * m_numSamplesY);
+        PkVector<float> values(m_numSamplesX * m_numSamplesY);
 
         for (int x = 0; x < m_numSamplesX; x++) {
             float fx = m_xStart + xStep * x;
@@ -76,23 +75,23 @@ public:
 
     float value(float x, float y) const;
 
-    inline QPointF topLeft() const {
-        return QPointF(m_xStart, m_yStart);
+    inline PkPointF topLeft() const {
+        return PkPointF(m_xStart, m_yStart);
     }
 
-    inline QPointF bottomRight() const {
-        return QPointF(m_xEnd, m_yEnd);
+    inline PkPointF bottomRight() const {
+        return PkPointF(m_xEnd, m_yEnd);
     }
 
     BorderCondition borderConditionX() const;
     BorderCondition borderConditionY() const;
 
 private:
-    void initializeSplineImpl(const QVector<float> &values);
+    void initializeSplineImpl(const PkVector<float> &values);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 
     /**
      * We need to store them separately, because they should

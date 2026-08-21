@@ -10,7 +10,9 @@
 #include <kis_types.h>
 #include <KoAlwaysInline.h>
 #include <kis_shared.h>
-#include <QRect>
+#include <PkPoint.h>
+#include <PkSize.h>
+#include <PkRect.h>
 #include <kis_paint_device.h>
 #include <kis_random_accessor_ng.h>
 
@@ -68,7 +70,7 @@ private:
     const quint32 m_pixelSize;
 
     KisRandomAccessorSP m_accessor;
-    QPoint m_tile;
+    PkPoint m_tile;
     quint8* m_tileRawData;
 };
 
@@ -91,7 +93,7 @@ public:
      *  @param rect the bounds within the fill region (image) that are requested.
      *  @return true, if at least one pixel within the tile is opaque
      */
-    typedef std::function<bool(KisPaintDevice* devicePtr, const QRect& rect)> FillOpacityFunc;
+    typedef std::function<bool(KisPaintDevice* devicePtr, const PkRect& rect)> FillOpacityFunc;
 
     /** Create a new gap distance map object and prepare it for lazy initialization.
      *  Some memory allocation will happen upfront, but most of the calculations
@@ -102,7 +104,7 @@ public:
      *  @param fillOpacityFunc a callback to obtain the opacity of pixels
      */
     KisGapMap(int gapSize,
-              const QRect& mapBounds,
+              const PkRect& mapBounds,
               const FillOpacityFunc& fillOpacityFunc);
 
     /** Query the gap distance at a pixel.
@@ -163,8 +165,8 @@ private:
     };
     static_assert(sizeof(Data) == sizeof(quint32));
 
-    void loadOpacityTiles(const QRect& tileRect);
-    void loadDistanceTile(const QPoint& tile, const QRect& nearbyTilesRect, int guardBand);
+    void loadOpacityTiles(const PkRect& tileRect);
+    void loadDistanceTile(const PkPoint& tile, const PkRect& nearbyTilesRect, int guardBand);
     void distanceSearchRowInnerLoop(bool boundsCheck, int y, int x1, int x2);
     quint16 lazyDistance(int x, int y);
 
@@ -175,8 +177,8 @@ private:
     void gapDistanceSearch(int x, int y, CoordinateTransform op);
 
     template<bool BoundsCheck> ALWAYS_INLINE bool isOpaque(int x, int y);
-    template<bool BoundsCheck> ALWAYS_INLINE bool isOpaque(const QPoint& p);
-    void updateDistance(const QPoint& globalPosition, quint16 newDistance);
+    template<bool BoundsCheck> ALWAYS_INLINE bool isOpaque(const PkPoint& p);
+    void updateDistance(const PkPoint& globalPosition, quint16 newDistance);
 
     ALWAYS_INLINE bool isDistanceAvailable(int x, int y)
     {
@@ -195,11 +197,11 @@ private:
     }
 
     const int m_gapSize;                      ///< Gap size in pixels for this map
-    const QSize m_size;                       ///< Size in pixels of the opacity/gap map
-    const QSize m_numTiles;                   ///< Map size in tiles
+    const PkSize m_size;                       ///< Size in pixels of the opacity/gap map
+    const PkSize m_numTiles;                   ///< Map size in tiles
     const FillOpacityFunc m_fillOpacityFunc;  ///< A callback to get the opacity data from the fill class
 
-    QPoint m_tilePosition;                    ///< The position of the currently computed tile compared to the whole region
+    PkPoint m_tilePosition;                    ///< The position of the currently computed tile compared to the whole region
     Data* m_tileDataPtr;                      ///< The pointer to the currently computed tile data
 
     KisPaintDeviceSP m_deviceSp;                            ///< A 32-bit per pixel paint device that holds the distance and other data

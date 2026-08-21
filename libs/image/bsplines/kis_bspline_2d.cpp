@@ -49,7 +49,7 @@ KisBSpline2D::~KisBSpline2D()
     }
 }
 
-void KisBSpline2D::initializeSplineImpl(const QVector<float> &values)
+void KisBSpline2D::initializeSplineImpl(const PkVector<float> &values)
 {
     Ugrid xGrid;
     xGrid.start = m_xStart;

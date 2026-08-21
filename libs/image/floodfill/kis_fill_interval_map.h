@@ -7,9 +7,9 @@
 #ifndef __KIS_FILL_INTERVAL_MAP_H
 #define __KIS_FILL_INTERVAL_MAP_H
 
-#include <QMap>
-#include <QStack>
-#include <QScopedPointer>
+#include <PkMap.h>
+#include <PkStack.h>
+#include <PkScopedPointer.h>
 #include "kritaimage_export.h"
 #include "kis_fill_interval.h"
 
@@ -25,7 +25,7 @@ public:
     void insertInterval(const KisFillInterval &interval);
     void cropInterval(KisFillInterval *interval);
 
-    QStack<KisFillInterval> fetchAllIntervals(int rowCorrection = 0) const;
+    PkStack<KisFillInterval> fetchAllIntervals(int rowCorrection = 0) const;
     void clear();
 
 private:
@@ -33,7 +33,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_FILL_INTERVAL_MAP_H */

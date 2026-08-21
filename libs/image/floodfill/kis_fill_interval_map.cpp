@@ -132,9 +132,9 @@ KisFillIntervalMap::Private::findFirstIntersectingInterval(const KisFillInterval
     return IteratorRange(it, end, rowMap);
 }
 
-QStack<KisFillInterval> KisFillIntervalMap::fetchAllIntervals(int rowCorrection) const
+PkStack<KisFillInterval> KisFillIntervalMap::fetchAllIntervals(int rowCorrection) const
 {
-    QStack<KisFillInterval> intervals;
+    PkStack<KisFillInterval> intervals;
 
     Private::GlobalMap::const_iterator rowMapIt = m_d->map.constBegin();
     Private::GlobalMap::const_iterator rowMapEndIt = m_d->map.constEnd();

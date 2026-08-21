@@ -7,7 +7,8 @@
 #ifndef __KIS_SCANLINE_FILL_H
 #define __KIS_SCANLINE_FILL_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkRect.h>
 
 #include <kritaimage_export.h>
 #include <kis_types.h>
@@ -19,7 +20,7 @@ class KisFillIntervalMap;
 class KRITAIMAGE_EXPORT KisScanlineFill
 {
 public:
-    KisScanlineFill(KisPaintDeviceSP device, const QPoint &startPoint, const QRect &boundingRect);
+    KisScanlineFill(KisPaintDeviceSP device, const PkPoint &startPoint, const PkRect &boundingRect);
     ~KisScanlineFill();
 
     /**
@@ -135,7 +136,7 @@ public:
     /**
      * Returns the extent of the last filled region
      */
-    QRect fillExtent() const;
+    PkRect fillExtent() const;
 
 private:
     friend class KisScanlineFillTest;
@@ -175,17 +176,17 @@ private:
                      SelectionPolicy &selectionPolicy,
                      PixelAccessPolicy &pixelAccessPolicy,
                      KisPaintDevice* const devicePtr,
-                     const QRect& rect) const;
+                     const PkRect& rect) const;
 
     inline bool tryPushingCloseGapSeed(int x, int y, bool allowExpand);
 
 private:
     void testingProcessLine(const KisFillInterval &processInterval);
-    QVector<KisFillInterval> testingGetForwardIntervals() const;
+    PkVector<KisFillInterval> testingGetForwardIntervals() const;
     KisFillIntervalMap* testingGetBackwardIntervals() const;
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_SCANLINE_FILL_H */

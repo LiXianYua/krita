@@ -43,7 +43,7 @@ KisBSpline1D::~KisBSpline1D()
     }
 }
 
-void KisBSpline1D::initializeSplineImpl(const QVector<float> &values)
+void KisBSpline1D::initializeSplineImpl(const PkVector<float> &values)
 {
     Ugrid grid;
     grid.start = m_gridStart;
