@@ -9,8 +9,8 @@
 #define KOALPHAMASKAPPLICATORBASE_H
 
 #include "kritapigment_export.h"
-#include <QtGlobal>
-#include <QColor>
+#include <PkGlobal.h>
+#include "PkRgb.h"
 
 
 class KRITAPIGMENT_EXPORT KoAlphaMaskApplicatorBase
@@ -22,7 +22,7 @@ public:
                                                           const float * alpha,
                                                           const quint8 *brushColor,
                                                           qint32 nPixels) const = 0;
-    virtual void fillGrayBrushWithColor(quint8 *dst, const QRgb *brush, quint8 *brushColor, qint32 nPixels) const = 0;
+    virtual void fillGrayBrushWithColor(quint8 *dst, const PkRgb *brush, quint8 *brushColor, qint32 nPixels) const = 0;
 
 
 };

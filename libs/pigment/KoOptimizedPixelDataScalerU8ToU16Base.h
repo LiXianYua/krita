@@ -7,7 +7,7 @@
 #ifndef KoOptimizedPixelDataScalerU8ToU16Base_H
 #define KoOptimizedPixelDataScalerU8ToU16Base_H
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include "kritapigment_export.h"
 
 /**
@@ -27,7 +27,7 @@
  * of the scaler optimized for your CPU architecture.
  *
  * \code{.cpp}
- * QScopedPointer<KoOptimizedPixelDataScalerU8ToU16Base> scaler(
+ * std::unique_ptr<KoOptimizedPixelDataScalerU8ToU16Base> scaler(
  *     KoOptimizedPixelDataScalerU8ToU16Factory::createRgbaScaler());
  *
  * // ...

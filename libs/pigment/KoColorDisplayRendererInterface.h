@@ -7,8 +7,10 @@
 #ifndef __KO_COLOR_DISPLAY_RENDERER_INTERFACE_H
 #define __KO_COLOR_DISPLAY_RENDERER_INTERFACE_H
 
-#include <QObject>
-#include <QColor>
+#include <PkObject.h>
+#include <PkColor.h>
+#include <PkImage.h>
+#include <PkSize.h>
 
 #include "KoColor.h"
 
@@ -23,34 +25,38 @@ class KoColorSpace;
  * reimplement this class and provide its instance to a supporting
  * widget.
  */
-class KRITAPIGMENT_EXPORT KoColorDisplayRendererInterface : public QObject
+class KRITAPIGMENT_EXPORT KoColorDisplayRendererInterface : public PkObject
 {
-    Q_OBJECT
+    // Task 8 处理 Qt 元对象系统（moc）：原文件为 Qt Object 基类 + Q_OBJECT +
+    // Q_SIGNALS（moc 文件）。本 Task 只剥类型（Object→PkObject），信号以普通
+    // 成员函数保留（访问控制按 Q_SIGNALS 展开写死为 public）；Task 8 改为
+    // PkSignal 形态并提供定义。PkObject 基类已 delete 拷贝构造/赋值，
+    // 原 Q_DISABLE_COPY 冗余，已移除。
 
 public:
     KoColorDisplayRendererInterface();
     ~KoColorDisplayRendererInterface() override;
 
     /**
-     * @brief Convert a consecutive block of pixel data to an ARGB32 QImage
+     * @brief Convert a consecutive block of pixel data to an ARGB32 PkImage
      * @param srcColorSpace the colorspace the pixel data is in
      * @param data a pointer to a byte array with color data; must cover the requested image size
      * @param size defines the dimensions of the resulting image
      * @param proofPaintColors optionally adjust the color data to painting gamut first
-     * @return a QImage that can be displayed
+     * @return a PkImage that can be displayed
      */
-    virtual QImage toQImage(const KoColorSpace *srcColorSpace, const quint8 *data, QSize size, bool proofPaintColors = false) const = 0;
+    virtual PkImage toQImage(const KoColorSpace *srcColorSpace, const quint8 *data, PkSize size, bool proofPaintColors = false) const = 0;
 
     /**
-     * Convert the color \p c to a custom QColor that will be
+     * Convert the color \p c to a custom PkColor that will be
      * displayed by the widget on screen. Please note, that the
      * reverse conversion may simply not exist.
      * @param proofPaintColors optionally adjust the color data to painting gamut first
      */
-    virtual QColor toQColor(const KoColor &c, bool proofToPaintColors = false) const = 0;
+    virtual PkColor toQColor(const KoColor &c, bool proofToPaintColors = false) const = 0;
 
     /**
-     * This tries to approximate a rendered QColor into the KoColor
+     * This tries to approximate a rendered PkColor into the KoColor
      * of the painting color space. Please note, that in most of the
      * cases the exact reverse transformation does not exist, so the
      * resulting color will be only a rough approximation. Never try
@@ -59,7 +65,7 @@ public:
      * // r will never be equal to c!
      * r = approximateFromRenderedQColor(toQColor(c));
      */
-    virtual KoColor approximateFromRenderedQColor(const QColor &c) const = 0;
+    virtual KoColor approximateFromRenderedQColor(const PkColor &c) const = 0;
 
     virtual KoColor fromHsv(int h, int s, int v, int a = 255) const = 0;
     virtual void getHsv(const KoColor &srcColor, int *h, int *s, int *v, int *a = 0) const = 0;
@@ -84,11 +90,12 @@ public:
      */
     virtual const KoColorSpace* getPaintingColorSpace() const = 0;
 
-Q_SIGNALS:
+public:
     void displayConfigurationChanged();
 
 private:
-    Q_DISABLE_COPY(KoColorDisplayRendererInterface)
+    KoColorDisplayRendererInterface(const KoColorDisplayRendererInterface&) = delete;
+    KoColorDisplayRendererInterface& operator=(const KoColorDisplayRendererInterface&) = delete;
 };
 
 /**
@@ -99,9 +106,9 @@ private:
 class KRITAPIGMENT_EXPORT KoDumbColorDisplayRenderer : public KoColorDisplayRendererInterface
 {
 public:
-    QImage toQImage(const KoColorSpace *srcColorSpace, const quint8 *data, QSize size, bool proofPaintColors = false) const override;
-    QColor toQColor(const KoColor &c, bool proofToPaintColors = false) const override;
-    KoColor approximateFromRenderedQColor(const QColor &c) const override;
+    PkImage toQImage(const KoColorSpace *srcColorSpace, const quint8 *data, PkSize size, bool proofPaintColors = false) const override;
+    PkColor toQColor(const KoColor &c, bool proofToPaintColors = false) const override;
+    KoColor approximateFromRenderedQColor(const PkColor &c) const override;
     KoColor fromHsv(int h, int s, int v, int a = 255) const override;
     void getHsv(const KoColor &srcColor, int *h, int *s, int *v, int *a = 0) const override;
 

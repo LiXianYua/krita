@@ -41,7 +41,7 @@ struct KoAlphaMaskApplicator : public KoAlphaMaskApplicatorBase
                 fillInverseAlphaNormedFloatMaskWithColor(pixels, alpha, brushColor, nPixels);
     }
 
-    void fillGrayBrushWithColor(quint8 *dst, const QRgb *brush, quint8 *brushColor, qint32 nPixels) const override {
+    void fillGrayBrushWithColor(quint8 *dst, const PkRgb *brush, quint8 *brushColor, qint32 nPixels) const override {
         KoColorSpaceTrait<
                 _channels_type_,
                 _channels_nb_,
@@ -126,7 +126,7 @@ struct KoAlphaMaskApplicator<
         return ((c >> 8) + c) >> 8;
     }
 
-    void fillGrayBrushWithColor(quint8 *dst, const QRgb *brush, quint8 *brushColor, qint32 nPixels) const override {
+    void fillGrayBrushWithColor(quint8 *dst, const PkRgb *brush, quint8 *brushColor, qint32 nPixels) const override {
         const int block1 = nPixels / static_cast<int>(float_v::size);
         const int block2 = nPixels % static_cast<int>(float_v::size);
         const int vectorPixelStride = numChannels * static_cast<int>(float_v::size);
