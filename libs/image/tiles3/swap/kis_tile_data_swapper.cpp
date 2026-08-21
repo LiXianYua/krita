@@ -4,8 +4,10 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QMutex>
-#include <QSemaphore>
+#include <PkSemaphore.h>
+#include <PkMutex.h>
+#include <PkAtomic.h>
+#include <PkList.h>
 
 #include "tiles3/swap/kis_tile_data_swapper.h"
 #include "tiles3/swap/kis_tile_data_swapper_p.h"
@@ -33,19 +35,18 @@ class SoftSwapStrategy;
 class AggressiveSwapStrategy;
 
 
-struct Q_DECL_HIDDEN KisTileDataSwapper::Private
+struct KisTileDataSwapper::Private
 {
 public:
-    QSemaphore semaphore;
-    QAtomicInt shouldExitFlag;
+    PkSemaphore semaphore;
+    PkAtomicInt shouldExitFlag;
     KisTileDataStore *store;
     KisStoreLimits limits;
-    QMutex cycleLock;
+    PkMutex cycleLock;
 };
 
 KisTileDataSwapper::KisTileDataSwapper(KisTileDataStore *store)
-    : QThread(),
-      m_d(new Private())
+    : m_d(new Private())
 {
     m_d->shouldExitFlag = 0;
     m_d->store = store;
@@ -53,7 +54,29 @@ KisTileDataSwapper::KisTileDataSwapper(KisTileDataStore *store)
 
 KisTileDataSwapper::~KisTileDataSwapper()
 {
+    terminateSwapper();
+
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
+
     delete m_d;
+}
+
+void KisTileDataSwapper::start()
+{
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    if (m_running) {
+        return;
+    }
+
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
+
+    m_d->shouldExitFlag = false;
+    m_running = true;
+    m_thread = std::thread(&KisTileDataSwapper::run, this);
 }
 
 void KisTileDataSwapper::kick()
@@ -63,11 +86,13 @@ void KisTileDataSwapper::kick()
 
 void KisTileDataSwapper::terminateSwapper()
 {
-    unsigned long exitTimeout = 100;
-    do {
-        m_d->shouldExitFlag = true;
+    std::unique_lock<std::mutex> lock(m_stateMutex);
+    m_d->shouldExitFlag = true;
+
+    while (m_running) {
         kick();
-    } while(!wait(exitTimeout));
+        m_stateCond.wait_for(lock, std::chrono::milliseconds(100));
+    }
 }
 
 void KisTileDataSwapper::waitForWork()
@@ -81,12 +106,18 @@ void KisTileDataSwapper::run()
         waitForWork();
 
         if (m_d->shouldExitFlag)
-            return;
+            break;
 
-        QThread::msleep(DELAY);
+        std::this_thread::sleep_for(std::chrono::milliseconds(DELAY));
 
         doJob();
     }
+
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        m_running = false;
+    }
+    m_stateCond.notify_all();
 }
 
 void KisTileDataSwapper::checkFreeMemory()
@@ -102,7 +133,7 @@ void KisTileDataSwapper::doJob()
      * In emergency case usual threads have access
      * to this function as well
      */
-    QMutexLocker locker(&m_d->cycleLock);
+    PkMutexLocker locker(&m_d->cycleLock);
 
     qint32 memoryMetric = m_d->store->memoryMetric();
 
@@ -185,7 +216,7 @@ template<class strategy>
 qint64 KisTileDataSwapper::pass(qint64 needToFreeMetric)
 {
     qint64 freedMetric = 0;
-    QList<KisTileData*> additionalCandidates;
+    PkList<KisTileData*> additionalCandidates;
 
     typename strategy::iterator *iter =
         strategy::beginIteration(m_d->store);
@@ -211,7 +242,7 @@ qint64 KisTileDataSwapper::pass(qint64 needToFreeMetric)
 
     }
 
-    Q_FOREACH (item, additionalCandidates) {
+    for (KisTileData *item : additionalCandidates) {
         if (freedMetric >= needToFreeMetric) break;
 
         if (iter->trySwapOut(item)) {

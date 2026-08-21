@@ -12,6 +12,7 @@
 #include "../kis_tiled_data_manager.h"
 
 class KisPaintDeviceWriter;
+class PkStream;
 /**
  * Base class for compressing a tile and wrapping it with a header
  */
@@ -41,7 +42,7 @@ public:
      *
      * \see decompressTile()
      */
-    virtual bool readTile(QIODevice *stream, KisTiledDataManager *dm) = 0;
+    virtual bool readTile(PkStream *stream, KisTiledDataManager *dm) = 0;
 
     /**
      * Compresses a \p tileData and writes it into the \p buffer.

@@ -8,6 +8,8 @@
 #define __KIS_TILE_COMPRESSOR_2_H
 
 #include "kis_abstract_tile_compressor.h"
+#include <PkString.h>
+#include <PkAuxTypes.h>
 
 class KisAbstractCompression;
 
@@ -18,7 +20,7 @@ public:
     ~KisTileCompressor2() override;
 
     bool writeTile(KisTileSP tile, KisPaintDeviceWriter &store) override;
-    bool readTile(QIODevice *io, KisTiledDataManager *dm) override;
+    bool readTile(PkStream *io, KisTiledDataManager *dm) override;
 
 
     void compressTileData(KisTileData *tileData,quint8 *buffer,
@@ -32,7 +34,7 @@ private:
      */
     qint32 maxHeaderLength();
 
-    QString getHeader(KisTileSP tile, qint32 compressedSize);
+    PkString getHeader(KisTileSP tile, qint32 compressedSize);
 
     void prepareWorkBuffers(qint32 tileDataSize);
     void prepareStreamingBuffer(qint32 tileDataSize);
@@ -42,11 +44,11 @@ private:
     static const qint8 COMPRESSED_DATA_FLAG = 1;
 
 private:
-    QByteArray m_linearizationBuffer;
-    QByteArray m_compressionBuffer;
-    QByteArray m_streamingBuffer;
+    PkByteArray m_linearizationBuffer;
+    PkByteArray m_compressionBuffer;
+    PkByteArray m_streamingBuffer;
     KisAbstractCompression *m_compression;
-    static const QString m_compressionName;
+    static const PkString m_compressionName;
 };
 
 #endif /* __KIS_TILE_COMPRESSOR_2_H */

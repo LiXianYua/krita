@@ -6,6 +6,7 @@
 
 #include "kis_debug.h"
 #include "kis_chunk_allocator.h"
+#include <iterator>
 
 
 #define GAP_SIZE(low, high) ((high) - (low) > 0 ? (high) - (low) - 1 : 0)
@@ -14,8 +15,8 @@
 #define HAS_PREVIOUS(list,iter) ((iter)!=(list).begin())
 
 #define PEEK_NEXT(iter) (*(iter))
-#define PEEK_PREVIOUS(iter) (*((iter)-1))
-#define WRAP_PREVIOUS_CHUNK_DATA(iter) (KisChunk((iter)-1))
+#define PEEK_PREVIOUS(iter) (*std::prev(iter))
+#define WRAP_PREVIOUS_CHUNK_DATA(iter) (KisChunk(std::prev(iter)))
 
 
 KisChunkAllocator::KisChunkAllocator(quint64 slabSize, quint64 storeSize)
@@ -37,7 +38,7 @@ KisChunk KisChunkAllocator::getChunk(quint64 size)
     KisChunkDataListIterator startPosition = m_iterator;
     START_COUNTING();
 
-    forever {
+    for(;;) {
         if(tryInsertChunk(m_list, m_iterator, size))
             return WRAP_PREVIOUS_CHUNK_DATA(m_iterator);
 
@@ -51,7 +52,7 @@ KisChunk KisChunkAllocator::getChunk(quint64 size)
     REGISTER_FAIL();
     m_iterator = m_list.begin();
 
-    forever {
+    for(;;) {
         if(tryInsertChunk(m_list, m_iterator, size))
             return WRAP_PREVIOUS_CHUNK_DATA(m_iterator);
 

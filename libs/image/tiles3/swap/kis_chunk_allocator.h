@@ -7,7 +7,7 @@
 #ifndef __KIS_CHUNK_LIST_H
 #define __KIS_CHUNK_LIST_H
 
-#include <QLinkedList>
+#include <list>
 #include "kritaimage_export.h"
 
 #define MiB (1ULL << 20)
@@ -43,7 +43,7 @@
 
 class KisChunkData;
 
-typedef QLinkedList<KisChunkData> KisChunkDataList;
+typedef std::list<KisChunkData> KisChunkDataList;
 typedef KisChunkDataList::iterator KisChunkDataListIterator;
 
 class KRITAIMAGE_EXPORT KisChunkData

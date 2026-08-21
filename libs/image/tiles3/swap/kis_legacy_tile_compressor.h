@@ -17,7 +17,7 @@ public:
     ~KisLegacyTileCompressor() override;
 
     bool writeTile(KisTileSP tile, KisPaintDeviceWriter &store) override;
-    bool readTile(QIODevice *stream, KisTiledDataManager *dm) override;
+    bool readTile(PkStream *stream, KisTiledDataManager *dm) override;
 
 
     void compressTileData(KisTileData *tileData,quint8 *buffer,

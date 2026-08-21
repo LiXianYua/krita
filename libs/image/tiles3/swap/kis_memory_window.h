@@ -7,7 +7,9 @@
 #ifndef __KIS_MEMORY_WINDOW_H
 #define __KIS_MEMORY_WINDOW_H
 
-#include <QTemporaryFile>
+#include <string>
+
+#include <PkString.h>
 
 #include "kis_chunk_allocator.h"
 
@@ -18,10 +20,10 @@ class KRITAIMAGE_EXPORT KisMemoryWindow
 {
 public:
     /**
-     * @param swapDir If the dir doesn't exist, it'll be created, if it's empty QDir::tempPath will be used.
+     * @param swapDir If the dir doesn't exist, it'll be created.
      * @param writeWindowSize write window size.
      */
-    KisMemoryWindow(const QString &swapDir, quint64 writeWindowSize = DEFAULT_WINDOW_SIZE);
+    KisMemoryWindow(const PkString &swapDir, quint64 writeWindowSize = DEFAULT_WINDOW_SIZE);
     ~KisMemoryWindow();
 
     inline quint8* getReadChunkPtr(KisChunk readChunk) {
@@ -48,6 +50,12 @@ private:
             return window + other.m_begin - chunk.m_begin;
         }
 
+        /**
+         * The mapping window. The mapping interface exposes the raw
+         * pointer (window) and its length (chunk.size()); the F-16 swap-out
+         * path will need both to call msync(MS_ASYNC) and
+         * madvise(MADV_DONTNEED) on the mapped region.
+         */
         KisChunkData chunk;
         quint8 *window;
         const quint64 defaultSize;
@@ -59,8 +67,14 @@ private:
                       MappingWindow *adjustingWindow,
                       MappingWindow *otherWindow);
 
+    quint8* mapFile(quint64 begin, quint64 size);
+    void unmapFile(quint8 *window, quint64 size);
+    quint64 fileSize() const;
+    bool resizeFile(quint64 newSize);
+
 private:
-    QTemporaryFile m_file;
+    int m_fileFd;
+    std::string m_fileName;
 
     bool m_valid;
     MappingWindow m_readWindowEx;
@@ -68,4 +82,3 @@ private:
 };
 
 #endif /* __KIS_MEMORY_WINDOW_H */
-

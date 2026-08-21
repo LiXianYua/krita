@@ -6,7 +6,8 @@
 
 #include "kis_legacy_tile_compressor.h"
 #include "kis_paint_device_writer.h"
-#include <QIODevice>
+#include <PkStream.h>
+#include <memory>
 
 #define TILE_DATA_SIZE(pixelSize) ((pixelSize) * KisTileData::WIDTH * KisTileData::HEIGHT)
 
@@ -23,15 +24,15 @@ bool KisLegacyTileCompressor::writeTile(KisTileSP tile, KisPaintDeviceWriter &st
     const qint32 tileDataSize = TILE_DATA_SIZE(tile->pixelSize());
 
     const qint32 bufferSize = maxHeaderLength() + 1;
-    QScopedArrayPointer<quint8> headerBuffer(new quint8[bufferSize]);
+    std::unique_ptr<quint8[]> headerBuffer(new quint8[bufferSize]);
 
-    bool retval = writeHeader(tile, headerBuffer.data());
+    bool retval = writeHeader(tile, headerBuffer.get());
     Q_ASSERT(retval);  // currently the code returns true unconditionally
     if (!retval) {
         return false;
     }
 
-    store.write((char *)headerBuffer.data(), strlen((char *)headerBuffer.data()));
+    store.write((char *)headerBuffer.get(), strlen((char *)headerBuffer.get()));
 
     tile->lockForRead();
     retval = store.write((char *)tile->data(), tileDataSize);
@@ -40,7 +41,7 @@ bool KisLegacyTileCompressor::writeTile(KisTileSP tile, KisPaintDeviceWriter &st
     return retval;
 }
 
-bool KisLegacyTileCompressor::readTile(QIODevice *stream, KisTiledDataManager *dm)
+bool KisLegacyTileCompressor::readTile(PkStream *stream, KisTiledDataManager *dm)
 {
     const qint32 tileDataSize = TILE_DATA_SIZE(pixelSize(dm));
 

@@ -9,11 +9,10 @@
 
 #include "kritaimage_export.h"
 
-#include <QMutex>
-#include <QByteArray>
+#include <PkMutex.h>
+#include <PkAuxTypes.h>
 
 
-class QMutex;
 class KisTileData;
 class KisAbstractTileCompressor;
 class KisChunkAllocator;
@@ -65,13 +64,13 @@ public:
     void debugStatistics();
 
 private:
-    QByteArray m_buffer;
+    PkByteArray m_buffer;
     KisAbstractTileCompressor *m_compressor;
 
     KisChunkAllocator *m_allocator;
     KisMemoryWindow *m_swapSpace;
 
-    QMutex m_lock;
+    PkMutex m_lock;
 
     qint64 m_totalSwapMemoryUsed;
 };

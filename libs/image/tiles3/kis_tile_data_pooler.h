@@ -6,9 +6,13 @@
 #ifndef KIS_TILE_DATA_POOLER_H_
 #define KIS_TILE_DATA_POOLER_H_
 
-#include <QObject>
-#include <QThread>
-#include <QSemaphore>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
+#include <PkSemaphore.h>
+#include <PkAtomic.h>
+#include <PkList.h>
 
 #include "kritaimage_export.h"
 
@@ -16,15 +20,14 @@ class KisTileDataStore;
 class KisTileData;
 
 
-class KRITAIMAGE_EXPORT KisTileDataPooler : public QThread
+class KRITAIMAGE_EXPORT KisTileDataPooler
 {
-    Q_OBJECT
-
 public:
 
     KisTileDataPooler(KisTileDataStore *store, qint32 memoryLimit = -1);
-    ~KisTileDataPooler() override;
+    ~KisTileDataPooler();
 
+    void start();
     void kick();
     void terminatePooler();
 
@@ -41,6 +44,8 @@ public:
      */
     void forceUpdateMemoryStats();
 
+    bool isRunning() const;
+
 protected:
     static const qint32 MAX_NUM_CLONES;
     static const qint32 MAX_TIMEOUT;
@@ -50,7 +55,7 @@ protected:
     void waitForWork();
     qint32 numClonesNeeded(KisTileData *td) const;
     void cloneTileData(KisTileData *td, qint32 numClones) const;
-    void run() override;
+    void run();
 
     inline int clonesMetric(KisTileData *td, int numClones);
     inline int clonesMetric(KisTileData *td);
@@ -58,24 +63,24 @@ protected:
     inline void tryFreeOrphanedClones(KisTileData *td);
     inline qint32 needMemory(KisTileData *td);
     inline qint32 canDonorMemory(KisTileData *td);
-    qint32 tryGetMemory(QList<KisTileData*> &donors, qint32 memoryMetric);
+    qint32 tryGetMemory(PkList<KisTileData*> &donors, qint32 memoryMetric);
 
     template<class Iter>
-        void getLists(Iter *iter, QList<KisTileData*> &beggars,
-                      QList<KisTileData*> &donors,
+        void getLists(Iter *iter, PkList<KisTileData*> &beggars,
+                      PkList<KisTileData*> &donors,
                       qint32 &memoryOccupied,
                       qint32 &statRealMemory,
                       qint32 &statHistoricalMemory);
 
-    bool processLists(QList<KisTileData*> &beggars,
-                      QList<KisTileData*> &donors,
+    bool processLists(PkList<KisTileData*> &beggars,
+                      PkList<KisTileData*> &donors,
                       qint32 &memoryOccupied);
 
 private:
     void debugTileStatistics();
 protected:
-    QSemaphore m_semaphore;
-    QAtomicInt m_shouldExitFlag;
+    PkSemaphore m_semaphore;
+    PkAtomicInt m_shouldExitFlag;
     KisTileDataStore *m_store;
     qint32 m_timeout;
     bool m_lastCycleHadWork;
@@ -83,9 +88,13 @@ protected:
     qint32 m_lastPoolMemoryMetric;
     qint32 m_lastRealMemoryMetric;
     qint32 m_lastHistoricalMemoryMetric;
+
+    std::thread m_thread;
+    std::mutex m_stateMutex;
+    std::condition_variable m_stateCond;
+    bool m_running = false;
 };
 
 
 
 #endif /* KIS_TILE_DATA_POOLER_H_ */
-

@@ -78,7 +78,6 @@ const qint32 KisTileDataPooler::TIMEOUT_FACTOR = 2;
 
 
 KisTileDataPooler::KisTileDataPooler(KisTileDataStore *store, qint32 memoryLimit)
-    : QThread()
 {
     m_shouldExitFlag = 0;
     m_store = store;
@@ -98,6 +97,32 @@ KisTileDataPooler::KisTileDataPooler(KisTileDataStore *store, qint32 memoryLimit
 
 KisTileDataPooler::~KisTileDataPooler()
 {
+    terminatePooler();
+
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
+}
+
+void KisTileDataPooler::start()
+{
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    if (m_running) {
+        return;
+    }
+
+    if (m_thread.joinable()) {
+        m_thread.join();
+    }
+
+    m_running = true;
+    m_thread = std::thread(&KisTileDataPooler::run, this);
+}
+
+bool KisTileDataPooler::isRunning() const
+{
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    return m_running;
 }
 
 void KisTileDataPooler::kick()
@@ -107,11 +132,13 @@ void KisTileDataPooler::kick()
 
 void KisTileDataPooler::terminatePooler()
 {
-    unsigned long exitTimeout = 100;
-    do {
-        m_shouldExitFlag = true;
+    std::unique_lock<std::mutex> lock(m_stateMutex);
+    m_shouldExitFlag = true;
+
+    while (m_running) {
         kick();
-    } while(!wait(exitTimeout));
+        m_stateCond.wait_for(lock, std::chrono::milliseconds(100));
+    }
 }
 
 qint32 KisTileDataPooler::numClonesNeeded(KisTileData *td) const
@@ -169,7 +196,12 @@ void KisTileDataPooler::waitForWork()
 
 void KisTileDataPooler::run()
 {
-    if(!m_memoryLimit) return;
+    if(!m_memoryLimit) {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        m_running = false;
+        m_stateCond.notify_all();
+        return;
+    }
 
     m_shouldExitFlag = false;
 
@@ -181,13 +213,13 @@ void KisTileDataPooler::run()
         if (m_shouldExitFlag)
             break;
 
-        QThread::msleep(0);
+        std::this_thread::yield();
         DEBUG_SIMPLE_ACTION("cycle started");
 
 
         KisTileDataStoreReverseIterator *iter = m_store->beginReverseIteration();
-        QList<KisTileData*> beggars;
-        QList<KisTileData*> donors;
+        PkList<KisTileData*> beggars;
+        PkList<KisTileData*> donors;
         qint32 memoryOccupied;
 
         qint32 statRealMemory;
@@ -211,6 +243,12 @@ void KisTileDataPooler::run()
         DEBUG_TILE_STATISTICS();
         DEBUG_SIMPLE_ACTION("cycle finished");
     }
+
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        m_running = false;
+    }
+    m_stateCond.notify_all();
 }
 
 void KisTileDataPooler::forceUpdateMemoryStats()
@@ -218,8 +256,8 @@ void KisTileDataPooler::forceUpdateMemoryStats()
     KIS_SAFE_ASSERT_RECOVER_RETURN(!isRunning());
 
     KisTileDataStoreReverseIterator *iter = m_store->beginReverseIteration();
-    QList<KisTileData*> beggars;
-    QList<KisTileData*> donors;
+    PkList<KisTileData*> beggars;
+    PkList<KisTileData*> donors;
     qint32 memoryOccupied;
 
     qint32 statRealMemory;
@@ -283,8 +321,8 @@ inline qint32 KisTileDataPooler::canDonorMemory(KisTileData *td)
 
 template<class Iter>
 void KisTileDataPooler::getLists(Iter *iter,
-                                 QList<KisTileData*> &beggars,
-                                 QList<KisTileData*> &donors,
+                                 PkList<KisTileData*> &beggars,
+                                 PkList<KisTileData*> &donors,
                                  qint32 &memoryOccupied,
                                  qint32 &statRealMemory,
                                  qint32 &statHistoricalMemory)
@@ -330,35 +368,32 @@ void KisTileDataPooler::getLists(Iter *iter,
                 donors, canDonorMemoryTotal);
 }
 
-qint32 KisTileDataPooler::tryGetMemory(QList<KisTileData*> &donors,
+qint32 KisTileDataPooler::tryGetMemory(PkList<KisTileData*> &donors,
                                        qint32 memoryMetric)
 {
     qint32 memoryFreed = 0;
 
-    QMutableListIterator<KisTileData*> iter(donors);
-    iter.toBack();
-
-    while(iter.hasPrevious() && memoryFreed < memoryMetric) {
-        KisTileData *item = iter.previous();
+    for (int i = donors.size() - 1; i >= 0 && memoryFreed < memoryMetric; --i) {
+        KisTileData *item = donors[i];
 
         qint32 numClones = item->m_clonesStack.size();
         cloneTileData(item, -numClones);
         memoryFreed += clonesMetric(item, numClones);
 
-        iter.remove();
+        donors.removeAt(i);
     }
 
     return memoryFreed;
 }
 
-bool KisTileDataPooler::processLists(QList<KisTileData*> &beggars,
-                                     QList<KisTileData*> &donors,
+bool KisTileDataPooler::processLists(PkList<KisTileData*> &beggars,
+                                     PkList<KisTileData*> &donors,
                                      qint32 &memoryOccupied)
 {
     bool hadWork = false;
 
 
-    Q_FOREACH (KisTileData *item, beggars) {
+    for (KisTileData *item : beggars) {
         qint32 clonesNeeded = numClonesNeeded(item);
         qint32 clonesMemory = clonesMetric(item, clonesNeeded);
 

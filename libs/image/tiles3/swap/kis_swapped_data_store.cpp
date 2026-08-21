@@ -4,7 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QMutexLocker>
+#include <PkMutex.h>
 //#include "kis_debug.h"
 #include "kis_swapped_data_store.h"
 #include "kis_memory_window.h"
@@ -39,7 +39,6 @@ KisSwappedDataStore::~KisSwappedDataStore()
 quint64 KisSwappedDataStore::numTiles() const
 {
     // We are not acquiring the lock here...
-    // Hope QLinkedList will ensure atomic access to it's size...
 
     return m_allocator->numChunks();
 }
@@ -47,7 +46,7 @@ quint64 KisSwappedDataStore::numTiles() const
 bool KisSwappedDataStore::trySwapOutTileData(KisTileData *td)
 {
     Q_ASSERT(td->data());
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
 
     /**
      * We are expecting that the lock of KisTileData
@@ -81,7 +80,7 @@ bool KisSwappedDataStore::trySwapOutTileData(KisTileData *td)
 void KisSwappedDataStore::swapInTileData(KisTileData *td)
 {
     Q_ASSERT(!td->data());
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
 
     // see comment in swapOutTileData()
 
@@ -99,7 +98,7 @@ void KisSwappedDataStore::swapInTileData(KisTileData *td)
 
 void KisSwappedDataStore::forgetTileData(KisTileData *td)
 {
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
 
     m_totalSwapMemoryUsed -= td->swapChunk().size();
 

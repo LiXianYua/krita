@@ -6,11 +6,12 @@
 
 #include "kis_tile_compressor_2.h"
 #include "kis_lzf_compression.h"
-#include <QIODevice>
+#include <PkStream.h>
 #include "kis_paint_device_writer.h"
+#include <cstdio>
 #define TILE_DATA_SIZE(pixelSize) ((pixelSize) * KisTileData::WIDTH * KisTileData::HEIGHT)
 
-const QString KisTileCompressor2::m_compressionName = "LZF";
+const PkString KisTileCompressor2::m_compressionName = "LZF";
 
 
 KisTileCompressor2::KisTileCompressor2()
@@ -35,9 +36,10 @@ bool KisTileCompressor2::writeTile(KisTileSP tile, KisPaintDeviceWriter &store)
                      m_streamingBuffer.size(), bytesWritten);
     tile->unlockForRead();
 
-    QString header = getHeader(tile, bytesWritten);
+    PkString header = getHeader(tile, bytesWritten);
     bool retval = true;
-    retval = store.write(header.toLatin1());
+    const std::string headerUtf8 = header.PkToUtf8();
+    retval = store.write(headerUtf8.data(), static_cast<qint64>(headerUtf8.size()));
     if (!retval) {
         warnFile << "Failed to write the tile header";
     }
@@ -48,36 +50,41 @@ bool KisTileCompressor2::writeTile(KisTileSP tile, KisPaintDeviceWriter &store)
     return retval;
 }
 
-bool KisTileCompressor2::readTile(QIODevice *stream, KisTiledDataManager *dm)
+bool KisTileCompressor2::readTile(PkStream *stream, KisTiledDataManager *dm)
 {
     const qint32 tileDataSize = TILE_DATA_SIZE(pixelSize(dm));
     prepareStreamingBuffer(tileDataSize);
 
-    QByteArray header = stream->readLine(maxHeaderLength());
-
-    QList<QByteArray> headerItems = header.trimmed().split(',');
-    if (headerItems.size() == 4) {
-        qint32 x = headerItems.takeFirst().toInt();
-        qint32 y = headerItems.takeFirst().toInt();
-        QString compressionName = headerItems.takeFirst();
-        qint32 dataSize = headerItems.takeFirst().toInt();
-
-        Q_ASSERT(headerItems.isEmpty());
-        Q_ASSERT(compressionName == m_compressionName);
-
-        qint32 row = yToRow(dm, y);
-        qint32 col = xToCol(dm, x);
-
-        KisTileSP tile = dm->getTile(col, row, true);
-
-        stream->read(m_streamingBuffer.data(), dataSize);
-
-        tile->lockForWrite();
-        bool res = decompressTileData((quint8*)m_streamingBuffer.data(), dataSize, tile->tileData());
-        tile->unlockForWrite();
-        return res;
+    // The header line is "x,y,compressionName,dataSize\n", at most
+    // maxHeaderLength() bytes.  readLine() stops at '\n' (or the buffer
+    // limit), so a fixed-size buffer cannot swallow the tile data that
+    // follows the header on the same stream.
+    char headerBuf[64] = {0};
+    if (stream->readLine(headerBuf, sizeof(headerBuf)) <= 0) {
+        return false;
     }
-    return false;
+
+    qint32 x = 0, y = 0, dataSize = 0;
+    char compressionName[16] = {0};
+    if (sscanf(headerBuf, "%d,%d,%15s,%d", &x, &y, compressionName, &dataSize) != 4) {
+        return false;
+    }
+
+    if (PkString(compressionName) != m_compressionName) {
+        return false;
+    }
+
+    qint32 row = yToRow(dm, y);
+    qint32 col = xToCol(dm, x);
+
+    KisTileSP tile = dm->getTile(col, row, true);
+
+    stream->read(m_streamingBuffer.data(), dataSize);
+
+    tile->lockForWrite();
+    bool res = decompressTileData((quint8*)m_streamingBuffer.data(), dataSize, tile->tileData());
+    tile->unlockForWrite();
+    return res;
 }
 
 void KisTileCompressor2::prepareStreamingBuffer(qint32 tileDataSize)
@@ -177,12 +184,12 @@ inline qint32 KisTileCompressor2::maxHeaderLength()
     return 3 * QINT32_LENGTH + COMPRESSION_NAME_LENGTH + SEPARATORS_LENGTH;
 }
 
-inline QString KisTileCompressor2::getHeader(KisTileSP tile,
-                                             qint32 compressedSize)
+inline PkString KisTileCompressor2::getHeader(KisTileSP tile,
+                                              qint32 compressedSize)
 {
     qint32 x, y;
     qint32 width, height;
     tile->extent().getRect(&x, &y, &width, &height);
 
-    return QString("%1,%2,%3,%4\n").arg(x).arg(y).arg(m_compressionName).arg(compressedSize);
+    return PkString("%1,%2,%3,%4\n").arg(x).arg(y).arg(m_compressionName).arg(compressedSize);
 }

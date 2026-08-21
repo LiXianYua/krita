@@ -7,12 +7,48 @@
 #include "kis_debug.h"
 #include "kis_memory_window.h"
 
-#include <QDir>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
+#include <vector>
 
 #define SWP_PREFIX "KRITA_SWAP_FILE_XXXXXX"
 
-KisMemoryWindow::KisMemoryWindow(const QString &swapDir, quint64 writeWindowSize)
-    : m_readWindowEx(writeWindowSize / 4),
+namespace {
+
+bool ensureDirExists(const std::string &path)
+{
+    struct stat st;
+    if (::stat(path.c_str(), &st) == 0) {
+        return S_ISDIR(st.st_mode);
+    }
+
+    // mkdir -p style: create intermediate directories
+    std::string p;
+    for (std::string::const_iterator it = path.begin(); it != path.end(); ++it) {
+        p += *it;
+        if (*it == '/') {
+            if (p.size() > 1 && ::stat(p.c_str(), &st) != 0) {
+                ::mkdir(p.c_str(), 0700);
+            }
+        }
+    }
+    ::mkdir(path.c_str(), 0700);
+
+    return ::stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+} // namespace
+
+KisMemoryWindow::KisMemoryWindow(const PkString &swapDir, quint64 writeWindowSize)
+    : m_fileFd(-1),
+      m_readWindowEx(writeWindowSize / 4),
       m_writeWindowEx(writeWindowSize)
 {
     m_valid = true;
@@ -23,28 +59,45 @@ KisMemoryWindow::KisMemoryWindow(const QString &swapDir, quint64 writeWindowSize
     // default swap dir here.
     KIS_SAFE_ASSERT_RECOVER_NOOP(!swapDir.isEmpty());
 
-    QDir d(swapDir);
-    if (!d.exists()) {
-        m_valid = d.mkpath(swapDir);
+    const std::string dir = swapDir.PkToUtf8();
+    if (!ensureDirExists(dir)) {
+        m_valid = false;
     }
 
-    const QString swapFileTemplate = swapDir + '/' + SWP_PREFIX;
-
     if (m_valid) {
-        m_file.setFileTemplate(swapFileTemplate);
-        bool res = m_file.open();
-        if (!res || m_file.fileName().isEmpty()) {
+        std::string swapFileTemplate = dir + '/' + SWP_PREFIX;
+        std::vector<char> nameBuf(swapFileTemplate.begin(), swapFileTemplate.end());
+        nameBuf.push_back('\0');
+
+        const int fd = ::mkstemp(nameBuf.data());
+        if (fd < 0) {
             m_valid = false;
+        } else {
+            m_fileFd = fd;
+            m_fileName = nameBuf.data();
         }
     }
 
     if (!m_valid) {
-        qWarning() << "Could not create or open swapfile; disabling swapfile" << swapFileTemplate;
+        qWarning() << "Could not create or open swapfile; disabling swapfile" << swapDir;
     }
 }
 
 KisMemoryWindow::~KisMemoryWindow()
 {
+    if (m_fileFd >= 0) {
+        if (m_readWindowEx.window) {
+            munmap(m_readWindowEx.window, m_readWindowEx.chunk.size());
+        }
+        if (m_writeWindowEx.window) {
+            munmap(m_writeWindowEx.window, m_writeWindowEx.chunk.size());
+        }
+        ::close(m_fileFd);
+        if (!m_fileName.empty()) {
+            ::unlink(m_fileName.c_str());
+        }
+        m_fileFd = -1;
+    }
 }
 
 quint8* KisMemoryWindow::getReadChunkPtr(const KisChunkData &readChunk)
@@ -65,15 +118,46 @@ quint8* KisMemoryWindow::getWriteChunkPtr(const KisChunkData &writeChunk)
     return m_writeWindowEx.calculatePointer(writeChunk);
 }
 
+quint8* KisMemoryWindow::mapFile(quint64 begin, quint64 size)
+{
+    void *ptr = ::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, m_fileFd,
+                       static_cast<off_t>(begin));
+    return ptr == MAP_FAILED ? nullptr : static_cast<quint8*>(ptr);
+}
+
+void KisMemoryWindow::unmapFile(quint8 *window, quint64 size)
+{
+    if (window) {
+        ::munmap(window, size);
+    }
+}
+
+quint64 KisMemoryWindow::fileSize() const
+{
+    struct stat st;
+    if (::fstat(m_fileFd, &st) == 0) {
+        return static_cast<quint64>(st.st_size);
+    }
+    return 0;
+}
+
+bool KisMemoryWindow::resizeFile(quint64 newSize)
+{
+    return ::ftruncate(m_fileFd, static_cast<off_t>(newSize)) == 0;
+}
+
 bool KisMemoryWindow::adjustWindow(const KisChunkData &requestedChunk,
                                    MappingWindow *adjustingWindow,
                                    MappingWindow *otherWindow)
 {
+    Q_UNUSED(otherWindow);
+
     if(!(adjustingWindow->window) ||
        !(requestedChunk.m_begin >= adjustingWindow->chunk.m_begin &&
          requestedChunk.m_end <= adjustingWindow->chunk.m_end))
     {
-        m_file.unmap(adjustingWindow->window);
+        unmapFile(adjustingWindow->window, adjustingWindow->chunk.size());
+        adjustingWindow->window = 0;
 
         quint64 windowSize = adjustingWindow->defaultSize;
         if(requestedChunk.size() > windowSize) {
@@ -87,47 +171,22 @@ bool KisMemoryWindow::adjustWindow(const KisChunkData &requestedChunk,
 
         adjustingWindow->chunk.setChunk(requestedChunk.m_begin, windowSize);
 
-        if(adjustingWindow->chunk.m_end >= (quint64)m_file.size()) {
+        if(adjustingWindow->chunk.m_end >= fileSize()) {
             // Align by 32 bytes
             quint64 newSize = (adjustingWindow->chunk.m_end + 1 + 32) & (~31ULL);
 
-#ifdef Q_OS_WIN32
-            /**
-             * Workaround for Qt's "feature"
-             *
-             * On windows QFSEnginePrivate caches the value of
-             * mapHandle which is limited to the size of the file at
-             * the moment of its (handle's) creation. That is we will
-             * not be able to use it after resizing the file.  The
-             * only way to free the handle is to release all the
-             * mappings we have. Sad but true.
-             */
-            if (otherWindow->chunk.size()) {
-                m_file.unmap(otherWindow->window);
-            }
-#else
-            Q_UNUSED(otherWindow);
-#endif
-
-            if (!m_file.resize(newSize)) {
+            if (!resizeFile(newSize)) {
                 return false;
             }
-
-#ifdef Q_OS_WIN32
-            if (otherWindow->chunk.size()) {
-                otherWindow->window = m_file.map(otherWindow->chunk.m_begin,
-                                                 otherWindow->chunk.size());
-            }
-#endif
         }
 
-#ifdef Q_OS_UNIX
-        // A workaround for https://bugreports.qt-project.org/browse/QTBUG-6330
-        m_file.exists();
-#endif
-
-        adjustingWindow->window = m_file.map(adjustingWindow->chunk.m_begin,
-                                             adjustingWindow->chunk.size());
+        /**
+         * Note: with raw mmap there is no Qt-internal map-handle cache to
+         * invalidate, so no other-window unmapping/re-mapping is needed after
+         * resize (that was a workaround for the Qt file-engine internals).
+         */
+        adjustingWindow->window = mapFile(adjustingWindow->chunk.m_begin,
+                                          adjustingWindow->chunk.size());
 
         if (!adjustingWindow->window) {
             return false;
