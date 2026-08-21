@@ -20,6 +20,7 @@ if(BUILD_TESTING)
         ../KisBackup.cpp
         ../KisUsageLogger.cpp
         ../kis_assert.cpp
+        ../kis_debug.cpp
     )
     target_include_directories(kritaglobal_file_io_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/..
@@ -32,6 +33,9 @@ if(BUILD_TESTING)
         ${CMAKE_SOURCE_DIR}/pk/port
         ${CMAKE_SOURCE_DIR}/pk/log
         ${CMAKE_SOURCE_DIR}/pk/global
+        ${CMAKE_SOURCE_DIR}/pk/geometry
+        ${CMAKE_SOURCE_DIR}/pk/color
+        ${CMAKE_SOURCE_DIR}/pk/xml
     )
     target_link_libraries(kritaglobal_file_io_test PRIVATE
         kritaversion
@@ -41,6 +45,9 @@ if(BUILD_TESTING)
         pktime
         pkport
         pklog
+        pkgeometry
+        pkcolor
+        pkxml
     )
     set_target_properties(kritaglobal_file_io_test PROPERTIES AUTOMOC OFF)
     add_test(NAME libs-global-KisGlobalFileIoTest COMMAND kritaglobal_file_io_test)

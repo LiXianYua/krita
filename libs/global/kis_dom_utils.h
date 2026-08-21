@@ -10,6 +10,7 @@
 #include <float.h>
 #include <algorithm>
 #include <charconv>
+#include <cctype>
 #include <system_error>
 #include <type_traits>
 
@@ -73,6 +74,56 @@ namespace KisDomUtils {
         int value = 0;
 
         value = str.toInt(&ok_locale);
+        if (!ok_locale) {
+            const std::string text = str.PkToUtf8();
+            auto begin = text.begin();
+            auto end = text.end();
+            while (begin != end && std::isspace(static_cast<unsigned char>(*begin))) {
+                ++begin;
+            }
+            while (begin != end && std::isspace(static_cast<unsigned char>(*(end - 1)))) {
+                --end;
+            }
+
+            std::string normalized;
+            auto group = begin;
+            if (group != end && (*group == '+' || *group == '-')) {
+                normalized.push_back(*group++);
+            }
+
+            const auto firstSeparator = std::find(group, end, '.');
+            const auto allDigits = [](auto first, auto last) {
+                return first != last && std::all_of(first, last, [](char character) {
+                    return character >= '0' && character <= '9';
+                });
+            };
+
+            bool validGrouping = firstSeparator != end &&
+                                 firstSeparator - group >= 1 &&
+                                 firstSeparator - group <= 3 &&
+                                 allDigits(group, firstSeparator);
+            if (validGrouping) {
+                normalized.append(group, firstSeparator);
+                group = firstSeparator;
+                while (group != end && validGrouping) {
+                    const auto nextSeparator = std::find(group + 1, end, '.');
+                    const auto groupEnd = nextSeparator == end ? end : nextSeparator;
+                    validGrouping = groupEnd - (group + 1) == 3 &&
+                                    allDigits(group + 1, groupEnd);
+                    if (validGrouping) {
+                        normalized.append(group + 1, groupEnd);
+                        group = groupEnd;
+                    }
+                }
+                validGrouping = validGrouping && group == end;
+            }
+
+            if (validGrouping) {
+                value = PkString::PkFromUtf8(normalized.data(),
+                                             static_cast<int>(normalized.size()))
+                            .toInt(&ok_locale);
+            }
+        }
 
         if (!ok_locale && ok == nullptr) {
             warnKrita << "WARNING: KisDomUtils::toInt failed:" << ppVar(str);

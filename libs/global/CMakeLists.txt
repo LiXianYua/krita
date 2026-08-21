@@ -15,7 +15,6 @@ set(kritaglobal_LIB_SRCS
     kis_memory_leak_tracker.cpp
     kis_shared.cpp
     kis_dom_utils.cpp
-    kis_painting_tweaks.cpp
     KisHandlePainterHelper.cpp
     KisHandleStyle.cpp
     kis_signal_compressor.cpp

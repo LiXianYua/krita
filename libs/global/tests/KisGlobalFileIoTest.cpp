@@ -2,12 +2,14 @@
 #include "KisFileUtils.h"
 #include "KisGlobalFileSystem.h"
 #include "KisUsageLogger.h"
+#include "kis_dom_utils.h"
 #include "kis_assert.h"
 
 #include "config-safe-asserts.h"
 
 #include <algorithm>
 #include <cerrno>
+#include <csignal>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -27,11 +29,46 @@ namespace fs = std::filesystem;
 
 namespace {
 
-bool setEnvironmentValue(const std::string &name,
-                         const std::optional<std::string> &value)
+#ifdef _WIN32
+using NativeString = std::wstring;
+using NativeCharacter = wchar_t;
+#else
+using NativeString = std::string;
+using NativeCharacter = char;
+#endif
+
+NativeString nativeText(const char *text)
 {
 #ifdef _WIN32
-    return ::_putenv_s(name.c_str(), value ? value->c_str() : "") == 0;
+    NativeString result;
+    while (*text) {
+        result.push_back(static_cast<unsigned char>(*text++));
+    }
+    return result;
+#else
+    return text;
+#endif
+}
+
+std::optional<NativeString> environmentValue(const NativeString &name)
+{
+#ifdef _WIN32
+    if (const wchar_t *value = ::_wgetenv(name.c_str())) {
+        return NativeString(value);
+    }
+#else
+    if (const char *value = std::getenv(name.c_str())) {
+        return NativeString(value);
+    }
+#endif
+    return std::nullopt;
+}
+
+bool setEnvironmentValue(const NativeString &name,
+                         const std::optional<NativeString> &value)
+{
+#ifdef _WIN32
+    return ::_wputenv_s(name.c_str(), value ? value->c_str() : L"") == 0;
 #else
     return value ? ::setenv(name.c_str(), value->c_str(), 1) == 0
                  : ::unsetenv(name.c_str()) == 0;
@@ -50,14 +87,12 @@ long long processId()
 class EnvironmentGuard
 {
 public:
-    EnvironmentGuard(const char *name, const std::string &value)
-        : m_name(name)
+    EnvironmentGuard(NativeString name, NativeString value)
+        : m_name(std::move(name))
     {
-        if (const char *oldValue = std::getenv(name)) {
-            m_oldValue = oldValue;
-        }
+        m_oldValue = environmentValue(m_name);
         if (!setEnvironmentValue(m_name, value)) {
-            std::cerr << "FAIL: could not set environment variable " << m_name << '\n';
+            std::cerr << "FAIL: could not set environment variable\n";
             std::exit(1);
         }
     }
@@ -70,8 +105,8 @@ public:
     }
 
 private:
-    std::string m_name;
-    std::optional<std::string> m_oldValue;
+    NativeString m_name;
+    std::optional<NativeString> m_oldValue;
 };
 
 class TemporaryDirectory
@@ -135,14 +170,23 @@ struct ChildResult
     int exitCode = -1;
 };
 
-ChildResult runChild(const fs::path &executable, const char *scenario)
-{
-    const std::string executableText = executable.string();
+constexpr int windowsAbortHandshakeStatus = 90;
+
 #ifdef _WIN32
-    const char *arguments[] = {
-        executableText.c_str(), "--assert-child", scenario, nullptr
+void abortHandshake(int)
+{
+    ::_exit(windowsAbortHandshakeStatus);
+}
+#endif
+
+ChildResult runChild(const fs::path &executable, const NativeString &scenario)
+{
+    const NativeString executableText = executable.native();
+#ifdef _WIN32
+    const wchar_t *arguments[] = {
+        executableText.c_str(), L"--assert-child", scenario.c_str(), nullptr
     };
-    const intptr_t status = ::_spawnv(_P_WAIT, executableText.c_str(), arguments);
+    const intptr_t status = ::_wspawnv(_P_WAIT, executableText.c_str(), arguments);
     return {status != -1, false, static_cast<int>(status)};
 #else
     const pid_t child = ::fork();
@@ -151,7 +195,7 @@ ChildResult runChild(const fs::path &executable, const char *scenario)
     }
     if (child == 0) {
         ::execl(executableText.c_str(), executableText.c_str(),
-                "--assert-child", scenario, static_cast<char *>(nullptr));
+                "--assert-child", scenario.c_str(), static_cast<char *>(nullptr));
         ::_exit(127);
     }
 
@@ -170,34 +214,83 @@ ChildResult runChild(const fs::path &executable, const char *scenario)
 #endif
 }
 
-bool terminatedBeforeReturn(const ChildResult &result, int returnedSentinel)
+bool terminatedByAbort(const ChildResult &result)
 {
-    return result.launched &&
-           (result.terminatedBySignal || result.exitCode != returnedSentinel);
+#ifdef _WIN32
+    return result.launched && !result.terminatedBySignal &&
+           result.exitCode == windowsAbortHandshakeStatus;
+#else
+    return result.launched && result.terminatedBySignal &&
+           result.exitCode == SIGABRT;
+#endif
 }
 
-void testAssertionPolicies(const fs::path &executable)
+void testDomIntegerParsing()
 {
-    constexpr int fatalReturned = 80;
-    constexpr int fatalXReturned = 81;
-    constexpr int hardRecoveryReturned = 82;
+    bool ok = false;
+    require(KisDomUtils::toInt(PkString("1234"), &ok) == 1234 && ok,
+            "DOM integer parsing must retain C-locale integers");
+    require(KisDomUtils::toInt(PkString("1.234"), &ok) == 1234 && ok,
+            "DOM integer parsing must accept German thousands grouping");
+    require(KisDomUtils::toInt(PkString("12.345.678"), &ok) == 12345678 && ok,
+            "DOM integer parsing must accept repeated German thousands grouping");
+    require(KisDomUtils::toInt(PkString("12.34"), &ok) == 0 && !ok,
+            "DOM integer parsing must reject malformed German grouping");
+    require(KisDomUtils::toInt(PkString("not-an-integer"), &ok) == 0 && !ok,
+            "DOM integer parsing must report failed conversion");
+}
+
+void testAssertionPolicies(const fs::path &executable, const fs::path &root)
+{
     constexpr int safeRecoveryReturned = 42;
 
-    const ChildResult fatal = runChild(executable, "fatal");
-    require(terminatedBeforeReturn(fatal, fatalReturned),
+    const fs::path dataRoot = root / "assert-data";
+    const fs::path configRoot = root / "assert-config";
+#ifdef _WIN32
+    EnvironmentGuard dataGuard(nativeText("APPDATA"), dataRoot.native());
+    const fs::path expectedDataRoot = dataRoot;
+    const fs::path expectedConfigRoot = dataRoot;
+#elif defined(__APPLE__)
+    EnvironmentGuard homeGuard(nativeText("HOME"), dataRoot.native());
+    const fs::path expectedDataRoot = dataRoot / "Library" / "Application Support";
+    const fs::path expectedConfigRoot = dataRoot / "Library" / "Preferences";
+#elif defined(__ANDROID__)
+    EnvironmentGuard dataGuard(nativeText("ANDROID_APP_DATA"), dataRoot.native());
+    const fs::path expectedDataRoot = dataRoot;
+    const fs::path expectedConfigRoot = dataRoot;
+#else
+    EnvironmentGuard dataGuard(nativeText("XDG_DATA_HOME"), dataRoot.native());
+    EnvironmentGuard configGuard(nativeText("XDG_CONFIG_HOME"), configRoot.native());
+    const fs::path expectedDataRoot = dataRoot;
+    const fs::path expectedConfigRoot = configRoot;
+#endif
+    EnvironmentGuard expectedDataGuard(nativeText("KRITA_ASSERT_EXPECTED_DATA"),
+                                       expectedDataRoot.native());
+    EnvironmentGuard expectedConfigGuard(nativeText("KRITA_ASSERT_EXPECTED_CONFIG"),
+                                         expectedConfigRoot.native());
+
+    require(!terminatedByAbort(runChild(executable, nativeText("ordinary-exit"))),
+            "an ordinary zero exit must not satisfy fatal assertion termination");
+    require(!terminatedByAbort(runChild(executable, nativeText("setup-failure"))),
+            "the child setup-failure status must not satisfy fatal assertion termination");
+    require(!terminatedByAbort(runChild(executable, nativeText("exec-failure"))),
+            "the exec-failure status must not satisfy fatal assertion termination");
+
+    const ChildResult fatal = runChild(executable, nativeText("fatal"));
+    require(terminatedByAbort(fatal),
             "fatal assertion must terminate its subprocess");
 
-    const ChildResult fatalX = runChild(executable, "fatal-x");
-    require(terminatedBeforeReturn(fatalX, fatalXReturned),
+    const ChildResult fatalX = runChild(executable, nativeText("fatal-x"));
+    require(terminatedByAbort(fatalX),
             "fatal X assertion must terminate its subprocess");
 
-    const ChildResult hardRecovery = runChild(executable, "hard-recover");
-    require(terminatedBeforeReturn(hardRecovery, hardRecoveryReturned),
+    const ChildResult hardRecovery = runChild(executable, nativeText("hard-recover"));
+    require(terminatedByAbort(hardRecovery),
             "non-safe recover assertion must terminate before its recovery branch");
 
-    const ChildResult safeRecovery = runChild(executable, "safe-recover");
+    const ChildResult safeRecovery = runChild(executable, nativeText("safe-recover"));
 #ifdef CRASH_ON_SAFE_ASSERTS
-    require(terminatedBeforeReturn(safeRecovery, safeRecoveryReturned),
+    require(terminatedByAbort(safeRecovery),
             "safe recover assertion must terminate when CRASH_ON_SAFE_ASSERTS is enabled");
 #else
     require(safeRecovery.launched && !safeRecovery.terminatedBySignal &&
@@ -206,32 +299,57 @@ void testAssertionPolicies(const fs::path &executable)
 #endif
 }
 
-int runAssertionChild(const std::string &scenario)
+int runAssertionChild(const NativeString &scenario)
 {
     constexpr int fatalReturned = 80;
     constexpr int fatalXReturned = 81;
     constexpr int hardRecoveryReturned = 82;
     constexpr int safeRecoveryReturned = 42;
 
-    if (!setEnvironmentValue("KRITA_NO_ASSERT_MSG", std::string("1"))) {
+    const std::optional<NativeString> expectedData =
+        environmentValue(nativeText("KRITA_ASSERT_EXPECTED_DATA"));
+    const std::optional<NativeString> expectedConfig =
+        environmentValue(nativeText("KRITA_ASSERT_EXPECTED_CONFIG"));
+    if (!expectedData || !expectedConfig ||
+        KisGlobalFileSystem::writableLocation(
+            KisGlobalFileSystem::Location::GenericData) != fs::path(*expectedData) ||
+        KisGlobalFileSystem::writableLocation(
+            KisGlobalFileSystem::Location::GenericConfig) != fs::path(*expectedConfig)) {
         return 79;
     }
-    if (scenario == "fatal") {
+
+    if (scenario == nativeText("ordinary-exit")) {
+        return 0;
+    }
+    if (scenario == nativeText("setup-failure")) {
+        return 79;
+    }
+    if (scenario == nativeText("exec-failure")) {
+        return 127;
+    }
+
+    if (!setEnvironmentValue(nativeText("KRITA_NO_ASSERT_MSG"), nativeText("1"))) {
+        return 79;
+    }
+#ifdef _WIN32
+    std::signal(SIGABRT, abortHandshake);
+#endif
+    if (scenario == nativeText("fatal")) {
         kis_assert_exception("false", __FILE__, __LINE__);
         return fatalReturned;
     }
-    if (scenario == "fatal-x") {
+    if (scenario == nativeText("fatal-x")) {
         kis_assert_x_exception("false", "assertion-test", "fatal X",
                                __FILE__, __LINE__);
         return fatalXReturned;
     }
-    if (scenario == "hard-recover") {
+    if (scenario == nativeText("hard-recover")) {
         KIS_ASSERT_RECOVER(false) {
             return hardRecoveryReturned;
         }
         return 83;
     }
-    if (scenario == "safe-recover") {
+    if (scenario == nativeText("safe-recover")) {
         KIS_SAFE_ASSERT_RECOVER(false) {
             return safeRecoveryReturned;
         }
@@ -245,7 +363,7 @@ void testPlatformLocationsAndUtf8RoundTrip(const fs::path &root)
     const fs::path dataRoot = root / "d\xC3\xA1ta";
     const fs::path configRoot = root / "config";
 #ifdef _WIN32
-    EnvironmentGuard dataGuard("APPDATA", dataRoot.string());
+    EnvironmentGuard dataGuard(nativeText("APPDATA"), dataRoot.native());
 
     require(KisGlobalFileSystem::writableLocation(
                 KisGlobalFileSystem::Location::GenericData) == dataRoot,
@@ -257,7 +375,7 @@ void testPlatformLocationsAndUtf8RoundTrip(const fs::path &root)
                 KisGlobalFileSystem::Location::AppData) == dataRoot / "krita",
             "AppData must be application-scoped under APPDATA");
 #elif defined(__APPLE__)
-    EnvironmentGuard homeGuard("HOME", dataRoot.string());
+    EnvironmentGuard homeGuard(nativeText("HOME"), dataRoot.native());
     const fs::path library = dataRoot / "Library";
 
     require(KisGlobalFileSystem::writableLocation(
@@ -273,7 +391,7 @@ void testPlatformLocationsAndUtf8RoundTrip(const fs::path &root)
                 library / "Application Support" / "krita",
             "AppData must be application-scoped under Application Support");
 #elif defined(__ANDROID__)
-    EnvironmentGuard dataGuard("ANDROID_APP_DATA", dataRoot.string());
+    EnvironmentGuard dataGuard(nativeText("ANDROID_APP_DATA"), dataRoot.native());
 
     require(KisGlobalFileSystem::writableLocation(
                 KisGlobalFileSystem::Location::GenericData) == dataRoot,
@@ -285,8 +403,8 @@ void testPlatformLocationsAndUtf8RoundTrip(const fs::path &root)
                 KisGlobalFileSystem::Location::AppData) == dataRoot,
             "AppData must honor ANDROID_APP_DATA");
 #else
-    EnvironmentGuard dataGuard("XDG_DATA_HOME", dataRoot.string());
-    EnvironmentGuard configGuard("XDG_CONFIG_HOME", configRoot.string());
+    EnvironmentGuard dataGuard(nativeText("XDG_DATA_HOME"), dataRoot.native());
+    EnvironmentGuard configGuard(nativeText("XDG_CONFIG_HOME"), configRoot.native());
 
     require(KisGlobalFileSystem::writableLocation(
                 KisGlobalFileSystem::Location::GenericData) == dataRoot,
@@ -383,16 +501,16 @@ void testUsageLoggerCreatesItsFiles(const fs::path &root)
 {
     const fs::path dataRoot = root / "usage-data";
 #ifdef _WIN32
-    EnvironmentGuard dataGuard("APPDATA", dataRoot.string());
+    EnvironmentGuard dataGuard(nativeText("APPDATA"), dataRoot.native());
     const fs::path expectedDataRoot = dataRoot;
 #elif defined(__APPLE__)
-    EnvironmentGuard homeGuard("HOME", dataRoot.string());
+    EnvironmentGuard homeGuard(nativeText("HOME"), dataRoot.native());
     const fs::path expectedDataRoot = dataRoot / "Library" / "Application Support";
 #elif defined(__ANDROID__)
-    EnvironmentGuard dataGuard("ANDROID_APP_DATA", dataRoot.string());
+    EnvironmentGuard dataGuard(nativeText("ANDROID_APP_DATA"), dataRoot.native());
     const fs::path expectedDataRoot = dataRoot;
 #else
-    EnvironmentGuard dataGuard("XDG_DATA_HOME", dataRoot.string());
+    EnvironmentGuard dataGuard(nativeText("XDG_DATA_HOME"), dataRoot.native());
     const fs::path expectedDataRoot = dataRoot;
 #endif
 
@@ -407,9 +525,9 @@ void testUsageLoggerCreatesItsFiles(const fs::path &root)
 
 } // namespace
 
-int main(int argc, char **argv)
+int testMain(int argc, NativeCharacter **argv)
 {
-    if (argc == 3 && std::string(argv[1]) == "--assert-child") {
+    if (argc == 3 && NativeString(argv[1]) == nativeText("--assert-child")) {
         return runAssertionChild(argv[2]);
     }
 
@@ -418,8 +536,21 @@ int main(int argc, char **argv)
     testResolveAbsolutePath(temporaryDirectory.path());
     testSimpleAndNumberedBackup(temporaryDirectory.path());
     testDeduplicateFileName();
+    testDomIntegerParsing();
     testUsageLoggerCreatesItsFiles(temporaryDirectory.path());
-    testAssertionPolicies(fs::absolute(argv[0]));
+    testAssertionPolicies(fs::absolute(argv[0]), temporaryDirectory.path());
     std::cout << "PASS: kritaglobal file I/O\n";
     return 0;
 }
+
+#ifdef _WIN32
+int wmain(int argc, wchar_t **argv)
+{
+    return testMain(argc, argv);
+}
+#else
+int main(int argc, char **argv)
+{
+    return testMain(argc, argv);
+}
+#endif

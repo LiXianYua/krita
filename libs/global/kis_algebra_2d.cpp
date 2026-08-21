@@ -20,6 +20,7 @@
 #include <PkVectorND.h>
 
 #include <cmath>
+#include <sstream>
 
 #include <config-gsl.h>
 
@@ -2351,18 +2352,19 @@ PkDebug operator<<(PkDebug debug, const VectorPath &path)
 
 PkDebug operator<<(PkDebug debug, const VectorPath::VectorPathPoint &point)
 {
-    debug.nospace();
-    debug << (point.type == VectorPath::VectorPathPoint::MoveTo ? "(move " : (point.type == VectorPath::VectorPathPoint::BezierTo ? "(curve " : "(line "));
-    debug << "(" << point.endPoint.x() << ", " << point.endPoint.y() << ")";
+    std::ostringstream formatted;
+    formatted << (point.type == VectorPath::VectorPathPoint::MoveTo ? "(move " : (point.type == VectorPath::VectorPathPoint::BezierTo ? "(curve " : "(line "));
+    formatted << "(" << point.endPoint.x() << ", " << point.endPoint.y() << ")";
     if (point.type == VectorPath::VectorPathPoint::BezierTo) {
-        debug << ": (";
-        debug << "(" << point.controlPoint1.x() << ", " << point.controlPoint1.y() << ")";
-        debug << ", ";
-        debug << "(" << point.controlPoint2.x() << ", " << point.controlPoint2.y() << ")";
-        debug << ")";
+        formatted << ": (";
+        formatted << "(" << point.controlPoint1.x() << ", " << point.controlPoint1.y() << ")";
+        formatted << ", ";
+        formatted << "(" << point.controlPoint2.x() << ", " << point.controlPoint2.y() << ")";
+        formatted << ")";
     }
-    debug << ")";
-    return debug.space();
+    formatted << ")";
+    debug << formatted.str();
+    return debug;
 }
 
 bool isInsideShape(const VectorPath &path, const PkPointF &point)
