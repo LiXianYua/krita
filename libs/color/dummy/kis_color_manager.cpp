@@ -6,16 +6,20 @@
 
 #include "kis_color_manager.h"
 
-Q_GLOBAL_STATIC(KisColorManager, s_instance)
+static KisColorManager *s_instance()
+{
+    static KisColorManager *s = new KisColorManager();
+    return s;
+}
 
 class KisColorManager::Private {
 public:
-    Private(QObject *)
+    Private(PkObject *)
     {}
 };
 
 KisColorManager::KisColorManager()
-    : QObject()
+    : PkObject()
     , d(new Private(this))
 {
 }
@@ -25,22 +29,22 @@ KisColorManager::~KisColorManager()
     delete d;
 }
 
-QString KisColorManager::deviceName(const QString &)
+PkString KisColorManager::deviceName(const PkString &)
 {
-    return QString();
+    return PkString();
 }
 
-QStringList KisColorManager::devices(DeviceType ) const
+PkStringList KisColorManager::devices(DeviceType ) const
 {
-    return QStringList();
+    return PkStringList();
 }
 
-QByteArray KisColorManager::displayProfile(const QString &, int ) const
+PkByteArray KisColorManager::displayProfile(const PkString &, int ) const
 {
-    return QByteArray();
+    return PkByteArray();
 }
 
 KisColorManager *KisColorManager::instance()
 {
-    return s_instance;
+    return s_instance();
 }

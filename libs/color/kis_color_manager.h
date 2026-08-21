@@ -6,10 +6,10 @@
 #ifndef KIS_COLOR_MANAGER_H
 #define KIS_COLOR_MANAGER_H
 
-#include <QObject>
-#include <QString>
-#include <QStringList>
-#include <QByteArray>
+#include <compat/QObject>
+#include "pk/string/PkString.h"
+#include "pk/container/PkStringList.h"
+#include "pk/variant/PkAuxTypes.h"
 
 #include "kritacolor_export.h"
 /**
@@ -18,7 +18,7 @@
  *
  * TODO: support other devices than monitors
  */
-class KRITACOLOR_EXPORT KisColorManager : public QObject
+class KRITACOLOR_EXPORT KisColorManager : public PkObject
 {
     Q_OBJECT
 
@@ -34,19 +34,19 @@ public:
     };
 
     /// Return the user-visible name for the given device
-    QString deviceName(const QString &id);
+    PkString deviceName(const PkString &id);
 
     /// Return a list of device id's for the specified type
-    QStringList devices(DeviceType type = screen) const;
+    PkStringList devices(DeviceType type = screen) const;
 
     /// Return the icc profile for the given device and index (if a device has more than one profile)
-    QByteArray displayProfile(const QString &device, int profile = 0) const;
+    PkByteArray displayProfile(const PkString &device, int profile = 0) const;
 
     static KisColorManager *instance();
 
 Q_SIGNALS:
 
-    void changed(const QString device);
+    void changed(const PkString device);
 
 public Q_SLOTS:
 
