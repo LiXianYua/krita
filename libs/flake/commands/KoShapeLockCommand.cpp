@@ -5,12 +5,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeLockCommand.h"
 #include "KoShape.h"
-
-#include <klocalizedstring.h>
-
-KoShapeLockCommand::KoShapeLockCommand(const QList<KoShape*> &shapes, const QList<bool> &oldLock, const QList<bool> &newLock, KUndo2Command *parent)
+KoShapeLockCommand::KoShapeLockCommand(const PkList<KoShape*> &shapes, const PkList<bool> &oldLock, const PkList<bool> &newLock, KUndo2Command *parent)
         : KUndo2Command(parent)
         , m_shapes(shapes)
         , m_oldLock(oldLock)
@@ -19,7 +18,7 @@ KoShapeLockCommand::KoShapeLockCommand(const QList<KoShape*> &shapes, const QLis
     Q_ASSERT(m_shapes.count() == m_oldLock.count());
     Q_ASSERT(m_shapes.count() == m_newLock.count());
 
-    setText(kundo2_i18n("Lock shapes"));
+    setText(kundo2_text("Lock shapes"));
 }
 
 KoShapeLockCommand::~KoShapeLockCommand()
@@ -30,7 +29,7 @@ void KoShapeLockCommand::redo()
 {
     KUndo2Command::redo();
     for (int i = 0; i < m_shapes.count(); ++i) {
-        m_shapes[i]->setGeometryProtected(m_newLock[i]);
+        m_shapes[i]->setGeometryProtected(m_newLock.at(i));
     }
 }
 
@@ -38,6 +37,6 @@ void KoShapeLockCommand::undo()
 {
     KUndo2Command::undo();
     for (int i = 0; i < m_shapes.count(); ++i) {
-        m_shapes[i]->setGeometryProtected(m_oldLock[i]);
+        m_shapes[i]->setGeometryProtected(m_oldLock.at(i));
     }
 }

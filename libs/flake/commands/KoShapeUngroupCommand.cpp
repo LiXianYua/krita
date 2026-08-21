@@ -5,19 +5,20 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+#include <memory>
+
 #include "KoShapeUngroupCommand.h"
 #include "KoShapeContainer.h"
 #include "KoShapeReorderCommand.h"
-
-#include <klocalizedstring.h>
 #include "kis_assert.h"
 
 
 struct KoShapeUngroupCommand::Private
 {
     Private(KoShapeContainer *_container,
-            const QList<KoShape *> &_shapes,
-            const QList<KoShape*> &_topLevelShapes)
+            const PkList<KoShape *> &_shapes,
+            const PkList<KoShape*> &_topLevelShapes)
         : container(_container),
           shapes(_shapes),
           topLevelShapes(_topLevelShapes)
@@ -28,18 +29,18 @@ struct KoShapeUngroupCommand::Private
 
 
     KoShapeContainer *container;
-    QList<KoShape*> shapes;
-    QList<KoShape*> topLevelShapes;
-    QScopedPointer<KUndo2Command> shapesReorderCommand;
+    PkList<KoShape*> shapes;
+    PkList<KoShape*> topLevelShapes;
+    std::unique_ptr<KUndo2Command> shapesReorderCommand;
 
 };
 
-KoShapeUngroupCommand::KoShapeUngroupCommand(KoShapeContainer *container, const QList<KoShape *> &shapes,
-                                             const QList<KoShape*> &topLevelShapes, KUndo2Command *parent)
+KoShapeUngroupCommand::KoShapeUngroupCommand(KoShapeContainer *container, const PkList<KoShape *> &shapes,
+                                             const PkList<KoShape*> &topLevelShapes, KUndo2Command *parent)
     : KUndo2Command(parent),
       m_d(new Private(container, shapes, topLevelShapes))
 {
-    setText(kundo2_i18n("Ungroup shapes"));
+    setText(kundo2_text("Ungroup shapes"));
 }
 
 KoShapeUngroupCommand::~KoShapeUngroupCommand()
@@ -52,8 +53,8 @@ void KoShapeUngroupCommand::redo()
 
     KoShapeContainer *newParent = m_d->container->parent();
 
-    QList<IndexedShape> indexedSiblings;
-    QList<KoShape*> perspectiveSiblings;
+    PkList<IndexedShape> indexedSiblings;
+    PkList<KoShape*> perspectiveSiblings;
 
     if (newParent) {
         perspectiveSiblings = newParent->shapes();
@@ -62,7 +63,7 @@ void KoShapeUngroupCommand::redo()
         perspectiveSiblings = m_d->topLevelShapes;
     }
 
-    Q_FOREACH (KoShape *shape, perspectiveSiblings) {
+    for (KoShape *shape : perspectiveSiblings) {
         indexedSiblings.append(shape);
     }
 
@@ -77,7 +78,7 @@ void KoShapeUngroupCommand::redo()
 
     indexedSiblings = KoShapeReorderCommand::homogenizeZIndexesLazy(indexedSiblings);
 
-    const QTransform ungroupTransform = m_d->container->absoluteTransformation();
+    const PkTransform ungroupTransform = m_d->container->absoluteTransformation();
     for (auto it = m_d->shapes.begin(); it != m_d->shapes.end(); ++it) {
         KoShape *shape = *it;
         KIS_SAFE_ASSERT_RECOVER(shape->parent() == m_d->container) { continue; }
@@ -94,7 +95,7 @@ void KoShapeUngroupCommand::redo()
 
 void KoShapeUngroupCommand::undo()
 {
-    const QTransform groupTransform = m_d->container->absoluteTransformation().inverted();
+    const PkTransform groupTransform = m_d->container->absoluteTransformation().inverted();
     for (auto it = m_d->shapes.begin(); it != m_d->shapes.end(); ++it) {
         KoShape *shape = *it;
 

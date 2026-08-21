@@ -8,11 +8,13 @@
 #ifndef KOSHAPEMOVECOMMAND_H
 #define KOSHAPEMOVECOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 #include <kundo2command.h>
-#include <QList>
-#include <QPointF>
+#include <pk/container/PkList.h>
+#include <pk/geometry/PkPoint.h>
 #include <KoFlake.h>
 
 class KoShape;
@@ -30,10 +32,10 @@ public:
      *  this list naturally must have the same amount of items as the shapes set.
      * @param parent the parent command used for macro commands
      */
-    KoShapeMoveCommand(const QList<KoShape*> &shapes, QList<QPointF> &previousPositions, QList<QPointF> &newPositions,
+    KoShapeMoveCommand(const PkList<KoShape*> &shapes, PkList<PkPointF> &previousPositions, PkList<PkPointF> &newPositions,
                        KoFlake::AnchorPosition anchor = KoFlake::Center, KUndo2Command *parent = 0);
 
-    KoShapeMoveCommand(const QList<KoShape*> &shapes, const QPointF &offset, KUndo2Command *parent = 0);
+    KoShapeMoveCommand(const PkList<KoShape*> &shapes, const PkPointF &offset, KUndo2Command *parent = 0);
 
     ~KoShapeMoveCommand() override;
     /// redo the command

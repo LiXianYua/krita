@@ -7,13 +7,12 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeStrokeCommand.h"
 #include "KoShape.h"
 #include "KoShapeStrokeModel.h"
 #include <KoShapeBulkActionLock.h>
-
-#include <klocalizedstring.h>
-
 #include "kis_command_ids.h"
 
 
@@ -35,28 +34,28 @@ public:
         newStrokes.append(newStroke);
     }
 
-    QList<KoShape*> shapes;                ///< the shapes to set stroke for
-    QList<KoShapeStrokeModelSP> oldStrokes; ///< the old strokes, one for each shape
-    QList<KoShapeStrokeModelSP> newStrokes; ///< the new strokes to set
+    PkList<KoShape*> shapes;                ///< the shapes to set stroke for
+    PkList<KoShapeStrokeModelSP> oldStrokes; ///< the old strokes, one for each shape
+    PkList<KoShapeStrokeModelSP> newStrokes; ///< the new strokes to set
 };
 
-KoShapeStrokeCommand::KoShapeStrokeCommand(const QList<KoShape*> &shapes, KoShapeStrokeModelSP stroke, KUndo2Command *parent)
+KoShapeStrokeCommand::KoShapeStrokeCommand(const PkList<KoShape*> &shapes, KoShapeStrokeModelSP stroke, KUndo2Command *parent)
     : KUndo2Command(parent)
     , d(new Private())
 {
     d->shapes = shapes;
 
     // save old strokes
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    for (KoShape *shape : d->shapes) {
         d->addOldStroke(shape->stroke());
         d->addNewStroke(stroke);
     }
 
-    setText(kundo2_i18n("Set stroke"));
+    setText(kundo2_text("Set stroke"));
 }
 
-KoShapeStrokeCommand::KoShapeStrokeCommand(const QList<KoShape*> &shapes,
-        const QList<KoShapeStrokeModelSP> &strokes,
+KoShapeStrokeCommand::KoShapeStrokeCommand(const PkList<KoShape*> &shapes,
+        const PkList<KoShapeStrokeModelSP> &strokes,
         KUndo2Command *parent)
         : KUndo2Command(parent)
         , d(new Private())
@@ -66,12 +65,12 @@ KoShapeStrokeCommand::KoShapeStrokeCommand(const QList<KoShape*> &shapes,
     d->shapes = shapes;
 
     // save old strokes
-    Q_FOREACH (KoShape *shape, shapes)
+    for (KoShape *shape : shapes)
         d->addOldStroke(shape->stroke());
-    foreach (KoShapeStrokeModelSP stroke, strokes)
+    for (KoShapeStrokeModelSP stroke : strokes)
         d->addNewStroke(stroke);
 
-    setText(kundo2_i18n("Set stroke"));
+    setText(kundo2_text("Set stroke"));
 }
 
 KoShapeStrokeCommand::KoShapeStrokeCommand(KoShape* shape, KoShapeStrokeModelSP stroke, KUndo2Command *parent)
@@ -82,7 +81,7 @@ KoShapeStrokeCommand::KoShapeStrokeCommand(KoShape* shape, KoShapeStrokeModelSP 
     d->addNewStroke(stroke);
     d->addOldStroke(shape->stroke());
 
-    setText(kundo2_i18n("Set stroke"));
+    setText(kundo2_text("Set stroke"));
 }
 
 KoShapeStrokeCommand::~KoShapeStrokeCommand()
@@ -96,8 +95,8 @@ void KoShapeStrokeCommand::redo()
 
     KoShapeBulkActionLock lock(d->shapes);
 
-    QList<KoShapeStrokeModelSP>::iterator strokeIt = d->newStrokes.begin();
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    PkList<KoShapeStrokeModelSP>::iterator strokeIt = d->newStrokes.begin();
+    for (KoShape *shape : d->shapes) {
         shape->setStroke(*strokeIt);
         ++strokeIt;
     }
@@ -111,8 +110,8 @@ void KoShapeStrokeCommand::undo()
 
     KoShapeBulkActionLock lock(d->shapes);
 
-    QList<KoShapeStrokeModelSP>::iterator strokeIt = d->oldStrokes.begin();
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    PkList<KoShapeStrokeModelSP>::iterator strokeIt = d->oldStrokes.begin();
+    for (KoShape *shape : d->shapes) {
         shape->setStroke(*strokeIt);
         ++strokeIt;
     }

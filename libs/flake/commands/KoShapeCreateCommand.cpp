@@ -5,13 +5,12 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeCreateCommand.h"
 #include "KoShape.h"
 #include "KoShapeContainer.h"
 #include "KoShapeControllerBase.h"
-
-#include <klocalizedstring.h>
-
 #include "kis_assert.h"
 #include <KoShapeLayer.h>
 #include <KoShapeReorderCommand.h>
@@ -25,7 +24,7 @@
 class Q_DECL_HIDDEN KoShapeCreateCommand::Private
 {
 public:
-    Private(KoShapeControllerBase *_document, const QList<KoShape*> &_shapes, KoShapeContainer *_parentShape)
+    Private(KoShapeControllerBase *_document, const PkList<KoShape*> &_shapes, KoShapeContainer *_parentShape)
             : shapesDocument(_document),
             shapes(_shapes),
             explicitParentShape(_parentShape)
@@ -33,7 +32,7 @@ public:
     }
 
     KoShapeControllerBase *shapesDocument;
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     KoShapeContainer *explicitParentShape;
 
     KisSurrogateUndoStore undoStore;
@@ -42,16 +41,16 @@ public:
 };
 
 KoShapeCreateCommand::KoShapeCreateCommand(KoShapeControllerBase *controller, KoShape *shape, KoShapeContainer *parentShape, KUndo2Command *parent)
-    : KoShapeCreateCommand(controller, QList<KoShape *>() << shape, parentShape, parent)
+    : KoShapeCreateCommand(controller, PkList<KoShape *>() << shape, parentShape, parent)
 {
 }
 
-KoShapeCreateCommand::KoShapeCreateCommand(KoShapeControllerBase *controller, const QList<KoShape *> shapes, KoShapeContainer *parentShape, KUndo2Command *parent)
-        : KoShapeCreateCommand(controller, shapes, parentShape, parent, kundo2_i18np("Create shape", "Create %1 shapes", shapes.size()))
+KoShapeCreateCommand::KoShapeCreateCommand(KoShapeControllerBase *controller, const PkList<KoShape *> shapes, KoShapeContainer *parentShape, KUndo2Command *parent)
+        : KoShapeCreateCommand(controller, shapes, parentShape, parent, kundo2_text_plural("Create shape", "Create %1 shapes", shapes.size()))
 {
 }
 
-KoShapeCreateCommand::KoShapeCreateCommand(KoShapeControllerBase *controller, const QList<KoShape *> shapes, KoShapeContainer *parentShape, KUndo2Command *parent, const KUndo2MagicString &undoString)
+KoShapeCreateCommand::KoShapeCreateCommand(KoShapeControllerBase *controller, const PkList<KoShape *> shapes, KoShapeContainer *parentShape, KUndo2Command *parent, const KUndo2MagicString &undoString)
         : KUndo2Command(undoString, parent)
         , d(new Private(controller, shapes, parentShape))
 {
@@ -68,7 +67,7 @@ void KoShapeCreateCommand::redo()
     KIS_SAFE_ASSERT_RECOVER_RETURN(d->explicitParentShape);
 
     if (d->firstRedo) {
-        Q_FOREACH(KoShape *shape, d->shapes) {
+        for (KoShape *shape : d->shapes) {
 
             d->undoStore.addCommand(new KoAddShapeCommand(shape, d->explicitParentShape));
 

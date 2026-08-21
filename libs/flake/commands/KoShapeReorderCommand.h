@@ -7,11 +7,13 @@
 #ifndef KOSHAPEREORDERCOMMAND_H
 #define KOSHAPEREORDERCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 #include <boost/operators.hpp>
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
 class KoShapeManager;
@@ -40,8 +42,8 @@ public:
      *  this list naturally must have the same amount of items as the shapes set.
      * @param parent the parent command used for macro commands
      */
-    KoShapeReorderCommand(const QList<KoShape*> &shapes, QList<int> &newIndexes, KUndo2Command *parent = 0);
-    KoShapeReorderCommand(const QList<IndexedShape> &shapes, KUndo2Command *parent = 0);
+    KoShapeReorderCommand(const PkList<KoShape*> &shapes, PkList<int> &newIndexes, KUndo2Command *parent = 0);
+    KoShapeReorderCommand(const PkList<IndexedShape> &shapes, KUndo2Command *parent = 0);
     ~KoShapeReorderCommand() override;
 
     /// An enum for defining what kind of reordering to use.
@@ -61,7 +63,7 @@ public:
      * @param parent the parent command for grouping purposes.
      * @return command for reordering the shapes or 0 if no reordering happened
      */
-    static KoShapeReorderCommand *createCommand(const QList<KoShape*> &shapes, KoShapeManager *manager,
+    static KoShapeReorderCommand *createCommand(const PkList<KoShape*> &shapes, KoShapeManager *manager,
             MoveShapeType move, KUndo2Command *parent = 0);
 
     /**
@@ -77,7 +79,7 @@ public:
      * @param parent the parent command for grouping purposes.
      * @return command for reordering the shapes or 0 if no reordering happened
      */
-    static KoShapeReorderCommand *mergeInShape(QList<KoShape*> shapes, KoShape *newShape,
+    static KoShapeReorderCommand *mergeInShape(PkList<KoShape*> shapes, KoShape *newShape,
                                                KUndo2Command *parent = 0);
 
     /**
@@ -87,8 +89,8 @@ public:
      * in IndexedShape are corrected.
      */
     static
-    QList<KoShapeReorderCommand::IndexedShape>
-    homogenizeZIndexes(QList<IndexedShape> shapes);
+    PkList<KoShapeReorderCommand::IndexedShape>
+    homogenizeZIndexes(PkList<IndexedShape> shapes);
 
     /**
      * Convenience version of homogenizeZIndexes() that removes all the IndexedShape
@@ -96,14 +98,14 @@ public:
      * you get a list that can be passed to KoShapeReorderCommand directly.
      */
     static
-    QList<KoShapeReorderCommand::IndexedShape>
-    homogenizeZIndexesLazy(QList<IndexedShape> shapes);
+    PkList<KoShapeReorderCommand::IndexedShape>
+    homogenizeZIndexesLazy(PkList<IndexedShape> shapes);
 
     /**
      * Put all the shapes in \p shapesAbove above the shapes in \p shapesBelow, adjusting their
      * z-index values.
      */
-    static QList<IndexedShape> mergeDownShapes(QList<KoShape*> shapesBelow, QList<KoShape*> shapesAbove);
+    static PkList<IndexedShape> mergeDownShapes(PkList<KoShape*> shapesBelow, PkList<KoShape*> shapesAbove);
 
     /// redo the command
     void redo() override;
@@ -114,6 +116,6 @@ private:
     KoShapeReorderCommandPrivate * const d;
 };
 
-KRITAFLAKE_EXPORT QDebug operator<<(QDebug dbg, const KoShapeReorderCommand::IndexedShape &indexedShape);
+KRITAFLAKE_EXPORT PkDebug operator<<(PkDebug dbg, const KoShapeReorderCommand::IndexedShape &indexedShape);
 
 #endif

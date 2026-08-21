@@ -5,14 +5,13 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeDistributeCommand.h"
 
 #include "commands/KoShapeMoveCommand.h"
 #include "KoShape.h"
-#include <QMap>
-
-#include <klocalizedstring.h>
-
+#include <pk/container/PkMap.h>
 class Q_DECL_HIDDEN KoShapeDistributeCommand::Private
 {
 public:
@@ -21,22 +20,22 @@ public:
         delete command;
     }
 
-    qreal getAvailableSpace(KoShape *first, KoShape *last, qreal extent, const QRectF &boundingRect);
+    qreal getAvailableSpace(KoShape *first, KoShape *last, qreal extent, const PkRectF &boundingRect);
 
     Distribute distribute;
     KoShapeMoveCommand *command;
 };
 
-KoShapeDistributeCommand::KoShapeDistributeCommand(const QList<KoShape*> &shapes, Distribute distribute, const QRectF &boundingRect, KUndo2Command *parent)
+KoShapeDistributeCommand::KoShapeDistributeCommand(const PkList<KoShape*> &shapes, Distribute distribute, const PkRectF &boundingRect, KUndo2Command *parent)
         : KUndo2Command(parent),
         d(new Private())
 {
     d->distribute = distribute;
-    QMap<qreal, KoShape*> sortedPos;
-    QRectF bRect;
+    PkMap<qreal, KoShape*> sortedPos;
+    PkRectF bRect;
     qreal extent = 0.0;
     // sort by position and calculate sum of objects width/height
-    Q_FOREACH (KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
         bRect = shape->absoluteOutlineRect();
         switch (d->distribute) {
         case HorizontalCenterDistribution:
@@ -64,17 +63,20 @@ KoShapeDistributeCommand::KoShapeDistributeCommand(const QList<KoShape*> &shapes
         }
     }
     KoShape* first = sortedPos.begin().value();
-    KoShape* last = (--sortedPos.end()).value();
+    KoShape* last = sortedPos.begin().value();
+    for (PkMap<qreal, KoShape*>::iterator it = sortedPos.begin(); it != sortedPos.end(); ++it) {
+        last = it.value();
+    }
 
     // determine the available space to distribute
     qreal space = d->getAvailableSpace(first, last, extent, boundingRect);
     qreal pos = 0.0, step = space / qreal(shapes.count() - 1);
 
-    QList<QPointF> previousPositions;
-    QList<QPointF> newPositions;
-    QPointF position;
-    QPointF delta;
-    QMapIterator<qreal, KoShape*> it(sortedPos);
+    PkList<PkPointF> previousPositions;
+    PkList<PkPointF> newPositions;
+    PkPointF position;
+    PkPointF delta;
+    PkMapIterator<qreal, KoShape*> it(sortedPos);
     while (it.hasNext()) {
         it.next();
         position = it.value()->absolutePosition();
@@ -83,30 +85,30 @@ KoShapeDistributeCommand::KoShapeDistributeCommand(const QList<KoShape*> &shapes
         bRect = it.value()->absoluteOutlineRect();
         switch (d->distribute)        {
         case HorizontalCenterDistribution:
-            delta = QPointF(boundingRect.x() + first->absoluteOutlineRect().width() / 2 + pos - bRect.width() / 2, bRect.y()) - bRect.topLeft();
+            delta = PkPointF(boundingRect.x() + first->absoluteOutlineRect().width() / 2 + pos - bRect.width() / 2, bRect.y()) - bRect.topLeft();
             break;
         case HorizontalGapsDistribution:
-            delta = QPointF(boundingRect.left() + pos, bRect.y()) - bRect.topLeft();
+            delta = PkPointF(boundingRect.left() + pos, bRect.y()) - bRect.topLeft();
             pos += bRect.width();
             break;
         case HorizontalLeftDistribution:
-            delta = QPointF(boundingRect.left() + pos, bRect.y()) - bRect.topLeft();
+            delta = PkPointF(boundingRect.left() + pos, bRect.y()) - bRect.topLeft();
             break;
         case HorizontalRightDistribution:
-            delta = QPointF(boundingRect.left() + first->absoluteOutlineRect().width() + pos - bRect.width(), bRect.y()) - bRect.topLeft();
+            delta = PkPointF(boundingRect.left() + first->absoluteOutlineRect().width() + pos - bRect.width(), bRect.y()) - bRect.topLeft();
             break;
         case VerticalCenterDistribution:
-            delta = QPointF(bRect.x(), boundingRect.y() + first->absoluteOutlineRect().height() / 2 + pos - bRect.height() / 2) - bRect.topLeft();
+            delta = PkPointF(bRect.x(), boundingRect.y() + first->absoluteOutlineRect().height() / 2 + pos - bRect.height() / 2) - bRect.topLeft();
             break;
         case VerticalGapsDistribution:
-            delta = QPointF(bRect.x(), boundingRect.top() + pos) - bRect.topLeft();
+            delta = PkPointF(bRect.x(), boundingRect.top() + pos) - bRect.topLeft();
             pos += bRect.height();
             break;
         case VerticalBottomDistribution:
-            delta = QPointF(bRect.x(), boundingRect.top() + first->absoluteOutlineRect().height() + pos - bRect.height()) - bRect.topLeft();
+            delta = PkPointF(bRect.x(), boundingRect.top() + first->absoluteOutlineRect().height() + pos - bRect.height()) - bRect.topLeft();
             break;
         case VerticalTopDistribution:
-            delta = QPointF(bRect.x(), boundingRect.top() + pos) - bRect.topLeft();
+            delta = PkPointF(bRect.x(), boundingRect.top() + pos) - bRect.topLeft();
             break;
         };
         newPositions  << position + delta;
@@ -114,7 +116,7 @@ KoShapeDistributeCommand::KoShapeDistributeCommand(const QList<KoShape*> &shapes
     }
     d->command = new KoShapeMoveCommand(sortedPos.values(), previousPositions, newPositions);
 
-    setText(kundo2_i18n("Distribute shapes"));
+    setText(kundo2_text("Distribute shapes"));
 }
 
 KoShapeDistributeCommand::~KoShapeDistributeCommand()
@@ -134,7 +136,7 @@ void KoShapeDistributeCommand::undo()
     d->command->undo();
 }
 
-qreal KoShapeDistributeCommand::Private::getAvailableSpace(KoShape *first, KoShape *last, qreal extent, const QRectF &boundingRect)
+qreal KoShapeDistributeCommand::Private::getAvailableSpace(KoShape *first, KoShape *last, qreal extent, const PkRectF &boundingRect)
 {
     switch (distribute) {
     case HorizontalCenterDistribution:

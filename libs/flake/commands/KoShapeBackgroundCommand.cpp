@@ -5,12 +5,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeBackgroundCommand.h"
 #include "KoShape.h"
 #include "KoShapeBackground.h"
-
-#include <klocalizedstring.h>
-
 #include "kis_command_ids.h"
 
 
@@ -24,36 +23,36 @@ public:
         newFills.clear();
     }
 
-    void addOldFill(QSharedPointer<KoShapeBackground>  oldFill)
+    void addOldFill(PkSharedPointer<KoShapeBackground>  oldFill)
     {
         oldFills.append(oldFill);
     }
 
-    void addNewFill(QSharedPointer<KoShapeBackground>  newFill)
+    void addNewFill(PkSharedPointer<KoShapeBackground>  newFill)
     {
         newFills.append(newFill);
     }
 
-    QList<KoShape*> shapes;    ///< the shapes to set background for
-    QList<QSharedPointer<KoShapeBackground> > oldFills;
-    QList<QSharedPointer<KoShapeBackground> > newFills;
+    PkList<KoShape*> shapes;    ///< the shapes to set background for
+    PkList<PkSharedPointer<KoShapeBackground> > oldFills;
+    PkList<PkSharedPointer<KoShapeBackground> > newFills;
 };
 
-KoShapeBackgroundCommand::KoShapeBackgroundCommand(const QList<KoShape*> &shapes, QSharedPointer<KoShapeBackground>  fill,
+KoShapeBackgroundCommand::KoShapeBackgroundCommand(const PkList<KoShape*> &shapes, PkSharedPointer<KoShapeBackground>  fill,
         KUndo2Command *parent)
         : KUndo2Command(parent)
         , d(new Private())
 {
     d->shapes = shapes;
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    for (KoShape *shape : d->shapes) {
         d->addOldFill(shape->background());
         d->addNewFill(fill);
     }
 
-    setText(kundo2_i18n("Set background"));
+    setText(kundo2_text("Set background"));
 }
 
-KoShapeBackgroundCommand::KoShapeBackgroundCommand(KoShape * shape, QSharedPointer<KoShapeBackground>  fill, KUndo2Command *parent)
+KoShapeBackgroundCommand::KoShapeBackgroundCommand(KoShape * shape, PkSharedPointer<KoShapeBackground>  fill, KUndo2Command *parent)
         : KUndo2Command(parent)
         , d(new Private())
 {
@@ -61,29 +60,29 @@ KoShapeBackgroundCommand::KoShapeBackgroundCommand(KoShape * shape, QSharedPoint
     d->addOldFill(shape->background());
     d->addNewFill(fill);
 
-    setText(kundo2_i18n("Set background"));
+    setText(kundo2_text("Set background"));
 }
 
-KoShapeBackgroundCommand::KoShapeBackgroundCommand(const QList<KoShape*> &shapes, const QList<QSharedPointer<KoShapeBackground> > &fills, KUndo2Command *parent)
+KoShapeBackgroundCommand::KoShapeBackgroundCommand(const PkList<KoShape*> &shapes, const PkList<PkSharedPointer<KoShapeBackground> > &fills, KUndo2Command *parent)
         : KUndo2Command(parent)
         , d(new Private())
 {
     d->shapes = shapes;
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    for (KoShape *shape : d->shapes) {
         d->addOldFill(shape->background());
     }
-    foreach (QSharedPointer<KoShapeBackground>  fill, fills) {
+    for (PkSharedPointer<KoShapeBackground>  fill : fills) {
         d->addNewFill(fill);
     }
 
-    setText(kundo2_i18n("Set background"));
+    setText(kundo2_text("Set background"));
 }
 
 void KoShapeBackgroundCommand::redo()
 {
     KUndo2Command::redo();
-    QList<QSharedPointer<KoShapeBackground> >::iterator brushIt = d->newFills.begin();
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    PkList<PkSharedPointer<KoShapeBackground> >::iterator brushIt = d->newFills.begin();
+    for (KoShape *shape : d->shapes) {
         shape->setBackground(*brushIt);
         shape->update();
         ++brushIt;
@@ -93,8 +92,8 @@ void KoShapeBackgroundCommand::redo()
 void KoShapeBackgroundCommand::undo()
 {
     KUndo2Command::undo();
-    QList<QSharedPointer<KoShapeBackground> >::iterator brushIt = d->oldFills.begin();
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    PkList<PkSharedPointer<KoShapeBackground> >::iterator brushIt = d->oldFills.begin();
+    for (KoShape *shape : d->shapes) {
         shape->setBackground(*brushIt);
         shape->update();
         ++brushIt;

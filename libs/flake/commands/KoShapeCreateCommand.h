@@ -7,6 +7,8 @@
 #ifndef KOSHAPECREATECOMMAND_H
 #define KOSHAPECREATECOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 #include <kundo2command.h>
 
@@ -34,7 +36,7 @@ public:
     * @param shapes the shapes that have just been created.
     * @param parent the parent command used for macro commands
     */
-    KoShapeCreateCommand(KoShapeControllerBase *controller, const QList<KoShape*> shape,
+    KoShapeCreateCommand(KoShapeControllerBase *controller, const PkList<KoShape*> shape,
                          KoShapeContainer *parentShape = 0,
                          KUndo2Command *parent = 0);
 
@@ -45,7 +47,7 @@ public:
     void undo() override;
 
 protected:
-    KoShapeCreateCommand(KoShapeControllerBase *controller, const QList<KoShape *> shapes,
+    KoShapeCreateCommand(KoShapeControllerBase *controller, const PkList<KoShape *> shapes,
                          KoShapeContainer *parentShape, KUndo2Command *parent,
                          const KUndo2MagicString &undoString);
 

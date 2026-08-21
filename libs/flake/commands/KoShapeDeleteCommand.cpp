@@ -5,12 +5,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeDeleteCommand.h"
 #include "KoShapeContainer.h"
 #include "KoShapeControllerBase.h"
-
-#include <klocalizedstring.h>
-
 class Q_DECL_HIDDEN KoShapeDeleteCommand::Private
 {
 public:
@@ -23,13 +22,13 @@ public:
         if (! deleteShapes)
             return;
 
-        Q_FOREACH (KoShape *shape, shapes)
+        for (KoShape *shape : shapes)
             delete shape;
     }
 
     KoShapeControllerBase *controller; ///< the shape controller to use for removing/readding
-    QList<KoShape*> shapes; ///< the list of shapes to delete
-    QList<KoShapeContainer*> oldParents; ///< the old parents of the shapes
+    PkList<KoShape*> shapes; ///< the list of shapes to delete
+    PkList<KoShapeContainer*> oldParents; ///< the old parents of the shapes
     bool deleteShapes;  ///< shows if shapes should be deleted when deleting the command
 };
 
@@ -40,20 +39,20 @@ KoShapeDeleteCommand::KoShapeDeleteCommand(KoShapeControllerBase *controller, Ko
     d->shapes.append(shape);
     d->oldParents.append(shape->parent());
 
-    setText(kundo2_i18nc("Delete one shape", "Delete shape"));
+    setText(kundo2_text_ctx("Delete one shape", "Delete shape"));
 }
 
-KoShapeDeleteCommand::KoShapeDeleteCommand(KoShapeControllerBase *controller, const QList<KoShape*> &shapes,
+KoShapeDeleteCommand::KoShapeDeleteCommand(KoShapeControllerBase *controller, const PkList<KoShape*> &shapes,
         KUndo2Command *parent)
         : KUndo2Command(parent),
         d(new Private(controller))
 {
     d->shapes = shapes;
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    for (KoShape *shape : d->shapes) {
         d->oldParents.append(shape->parent());
     }
 
-    setText(kundo2_i18np("Delete shape", "Delete shapes", shapes.count()));
+    setText(kundo2_text_plural("Delete shape", "Delete shapes", shapes.count()));
 }
 
 KoShapeDeleteCommand::~KoShapeDeleteCommand()

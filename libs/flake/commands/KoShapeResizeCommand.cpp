@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeResizeCommand.h"
 
 #include <KoShape.h>
@@ -13,27 +15,27 @@
 
 struct Q_DECL_HIDDEN KoShapeResizeCommand::Private
 {
-    QList<KoShape *> shapes;
+    PkList<KoShape *> shapes;
     qreal scaleX;
     qreal scaleY;
-    QPointF absoluteStillPoint;
+    PkPointF absoluteStillPoint;
     bool useGlobalMode;
     bool usePostScaling;
-    QTransform postScalingCoveringTransform;
+    PkTransform postScalingCoveringTransform;
 
-    QList<QSizeF> oldSizes;
-    QList<QTransform> oldTransforms;
+    PkList<PkSizeF> oldSizes;
+    PkList<PkTransform> oldTransforms;
 };
 
 
-KoShapeResizeCommand::KoShapeResizeCommand(const QList<KoShape*> &shapes,
+KoShapeResizeCommand::KoShapeResizeCommand(const PkList<KoShape*> &shapes,
                                            qreal scaleX, qreal scaleY,
-                                           const QPointF &absoluteStillPoint,
+                                           const PkPointF &absoluteStillPoint,
                                            bool useGLobalMode,
                                            bool usePostScaling,
-                                           const QTransform &postScalingCoveringTransform,
+                                           const PkTransform &postScalingCoveringTransform,
                                            KUndo2Command *parent)
-    : SkipFirstRedoBase(false, kundo2_i18n("Resize"), parent),
+    : SkipFirstRedoBase(false, kundo2_text("Resize"), parent),
       m_d(new Private)
 {
     m_d->shapes = shapes;
@@ -44,7 +46,7 @@ KoShapeResizeCommand::KoShapeResizeCommand(const QList<KoShape*> &shapes,
     m_d->usePostScaling = usePostScaling;
     m_d->postScalingCoveringTransform = postScalingCoveringTransform;
 
-    Q_FOREACH (KoShape *shape, m_d->shapes) {
+    for (KoShape *shape : m_d->shapes) {
         m_d->oldSizes << shape->size();
         m_d->oldTransforms << shape->transformation();
     }
@@ -74,7 +76,7 @@ void KoShapeResizeCommand::undoImpl()
 
 void KoShapeResizeCommand::redoNoUpdate()
 {
-    Q_FOREACH (KoShape *shape, m_d->shapes) {
+    for (KoShape *shape : m_d->shapes) {
         KoFlake::resizeShapeCommon(shape,
                              m_d->scaleX, m_d->scaleY,
                              m_d->absoluteStillPoint,
@@ -127,7 +129,7 @@ bool KoShapeResizeCommand::mergeWith(const KUndo2Command *command)
     return true;
 }
 
-void KoShapeResizeCommand::replaceResizeAction(qreal scaleX, qreal scaleY, const QPointF &absoluteStillPoint)
+void KoShapeResizeCommand::replaceResizeAction(qreal scaleX, qreal scaleY, const PkPointF &absoluteStillPoint)
 {
     KoShapeBulkActionLock lock(m_d->shapes);
 

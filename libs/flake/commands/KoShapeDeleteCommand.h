@@ -8,9 +8,11 @@
 #ifndef KOSHAPEDELETECOMMAND_H
 #define KOSHAPEDELETECOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
 class KoShapeControllerBase;
@@ -32,7 +34,7 @@ public:
      * @param shapes a set of all the shapes that should be deleted.
      * @param parent the parent command used for macro commands
      */
-    KoShapeDeleteCommand(KoShapeControllerBase *controller, const QList<KoShape*> &shapes, KUndo2Command *parent = 0);
+    KoShapeDeleteCommand(KoShapeControllerBase *controller, const PkList<KoShape*> &shapes, KUndo2Command *parent = 0);
     ~KoShapeDeleteCommand() override;
     /// redo the command
     void redo() override;

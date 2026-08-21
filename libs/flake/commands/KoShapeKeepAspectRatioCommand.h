@@ -7,9 +7,11 @@
 #ifndef KOSHAPEKEEPASPECTRATIOCOMMAND_H
 #define KOSHAPEKEEPASPECTRATIOCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
 
@@ -25,7 +27,7 @@ public:
      * @param newKeepAspectRatio the new setting
      * @param parent the parent command
      */
-    KoShapeKeepAspectRatioCommand(const QList<KoShape*> &shapes, bool newKeepAspectRatio, KUndo2Command* parent = 0);
+    KoShapeKeepAspectRatioCommand(const PkList<KoShape*> &shapes, bool newKeepAspectRatio, KUndo2Command* parent = 0);
     ~KoShapeKeepAspectRatioCommand() override;
 
     /// Execute the command
@@ -34,9 +36,9 @@ public:
     void undo() override;
 
 private:
-    QList<KoShape*> m_shapes;
-    QList<bool> m_oldKeepAspectRatio;
-    QList<bool> m_newKeepAspectRatio;
+    PkList<KoShape*> m_shapes;
+    PkList<bool> m_oldKeepAspectRatio;
+    PkList<bool> m_newKeepAspectRatio;
 };
 
 #endif

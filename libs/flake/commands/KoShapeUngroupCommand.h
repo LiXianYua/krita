@@ -8,9 +8,11 @@
 #ifndef KOSHAPEUNGROUPCOMMAND_H
 #define KOSHAPEUNGROUPCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 #include <kundo2command.h>
-#include <QScopedPointer>
+#include <memory>
 
 class KoShape;
 class KoShapeGroup;
@@ -27,8 +29,8 @@ public:
      * @param topLevelShapes a list of top level shapes.
      * @param parent the parent command used for macro commands
      */
-    KoShapeUngroupCommand(KoShapeContainer *container, const QList<KoShape *> &shapes,
-                          const QList<KoShape *> &topLevelShapes = QList<KoShape*>(), KUndo2Command *parent = 0);
+    KoShapeUngroupCommand(KoShapeContainer *container, const PkList<KoShape *> &shapes,
+                          const PkList<KoShape *> &topLevelShapes = PkList<KoShape*>(), KUndo2Command *parent = 0);
     ~KoShapeUngroupCommand();
 
     /// redo the command
@@ -38,7 +40,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const std::unique_ptr<Private> m_d;
 
 };
 

@@ -5,10 +5,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeMoveCommand.h"
 
 #include <KoShape.h>
-#include <klocalizedstring.h>
 #include "kis_command_ids.h"
 #include <kis_assert.h>
 #include <KoShapeBulkActionLock.h>
@@ -17,13 +18,13 @@
 class Q_DECL_HIDDEN KoShapeMoveCommand::Private
 {
 public:
-    QList<KoShape*> shapes;
-    QList<QPointF> previousPositions, newPositions;
+    PkList<KoShape*> shapes;
+    PkList<PkPointF> previousPositions, newPositions;
     KoFlake::AnchorPosition anchor;
 };
 
-KoShapeMoveCommand::KoShapeMoveCommand(const QList<KoShape*> &shapes, QList<QPointF> &previousPositions, QList<QPointF> &newPositions, KoFlake::AnchorPosition anchor, KUndo2Command *parent)
-        : KUndo2Command(kundo2_i18n("Move shapes"), parent),
+KoShapeMoveCommand::KoShapeMoveCommand(const PkList<KoShape*> &shapes, PkList<PkPointF> &previousPositions, PkList<PkPointF> &newPositions, KoFlake::AnchorPosition anchor, KUndo2Command *parent)
+        : KUndo2Command(kundo2_text("Move shapes"), parent),
         d(new Private())
 {
     d->shapes = shapes;
@@ -34,15 +35,15 @@ KoShapeMoveCommand::KoShapeMoveCommand(const QList<KoShape*> &shapes, QList<QPoi
     Q_ASSERT(d->shapes.count() == d->newPositions.count());
 }
 
-KoShapeMoveCommand::KoShapeMoveCommand(const QList<KoShape *> &shapes, const QPointF &offset, KUndo2Command *parent)
-    : KUndo2Command(kundo2_i18n("Move shapes"), parent),
+KoShapeMoveCommand::KoShapeMoveCommand(const PkList<KoShape *> &shapes, const PkPointF &offset, KUndo2Command *parent)
+    : KUndo2Command(kundo2_text("Move shapes"), parent),
       d(new Private())
 {
     d->shapes = shapes;
     d->anchor = KoFlake::Center;
 
-    Q_FOREACH (KoShape *shape, d->shapes) {
-        const QPointF pos = shape->absolutePosition();
+    for (KoShape *shape : d->shapes) {
+        const PkPointF pos = shape->absolutePosition();
 
         d->previousPositions << pos;
         d->newPositions << pos + offset;

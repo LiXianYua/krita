@@ -10,11 +10,13 @@
 #ifndef KOSHAPESTROKECOMMAND_H
 #define KOSHAPESTROKECOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 #include <KoFlakeTypes.h>
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
 class KoShapeStrokeModel;
@@ -29,7 +31,7 @@ public:
      * @param stroke the new stroke, the same for all given shapes
      * @param parent the parent command used for macro commands
      */
-    KoShapeStrokeCommand(const QList<KoShape*> &shapes, KoShapeStrokeModelSP stroke, KUndo2Command *parent = 0);
+    KoShapeStrokeCommand(const PkList<KoShape*> &shapes, KoShapeStrokeModelSP stroke, KUndo2Command *parent = 0);
 
     /**
      * Command to set new shape strokes.
@@ -37,7 +39,7 @@ public:
      * @param strokes the new strokes, one for each shape
      * @param parent the parent command used for macro commands
      */
-    KoShapeStrokeCommand(const QList<KoShape*> &shapes, const QList<KoShapeStrokeModelSP> &strokes, KUndo2Command *parent = 0);
+    KoShapeStrokeCommand(const PkList<KoShape*> &shapes, const PkList<KoShapeStrokeModelSP> &strokes, KUndo2Command *parent = 0);
 
     /**
      * Command to set a new shape stroke.

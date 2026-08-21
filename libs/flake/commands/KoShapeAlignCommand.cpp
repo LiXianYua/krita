@@ -5,12 +5,12 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeAlignCommand.h"
 #include "KoShape.h"
 #include "KoShapeGroup.h"
 #include "commands/KoShapeMoveCommand.h"
-
-#include <klocalizedstring.h>
 // #include <FlakeDebug.h>
 
 class Q_DECL_HIDDEN KoShapeAlignCommand::Private
@@ -23,16 +23,16 @@ public:
     KoShapeMoveCommand *command;
 };
 
-KoShapeAlignCommand::KoShapeAlignCommand(const QList<KoShape*> &shapes, Align align, const QRectF &boundingRect, KUndo2Command *parent)
+KoShapeAlignCommand::KoShapeAlignCommand(const PkList<KoShape*> &shapes, Align align, const PkRectF &boundingRect, KUndo2Command *parent)
         : KUndo2Command(parent),
         d(new Private())
 {
-    QList<QPointF> previousPositions;
-    QList<QPointF> newPositions;
-    QPointF position;
-    QPointF delta;
-    QRectF bRect;
-    Q_FOREACH (KoShape *shape, shapes) {
+    PkList<PkPointF> previousPositions;
+    PkList<PkPointF> newPositions;
+    PkPointF position;
+    PkPointF delta;
+    PkRectF bRect;
+    for (KoShape *shape : shapes) {
 //   if (dynamic_cast<KoShapeGroup*> (shape))
 //       debugFlake <<"Found Group";
 //   else if (dynamic_cast<KoShapeContainer*> (shape))
@@ -44,22 +44,22 @@ KoShapeAlignCommand::KoShapeAlignCommand(const QList<KoShape*> &shapes, Align al
         bRect = shape->absoluteOutlineRect();
         switch (align) {
         case HorizontalLeftAlignment:
-            delta = QPointF(boundingRect.left(), bRect.y()) - bRect.topLeft();
+            delta = PkPointF(boundingRect.left(), bRect.y()) - bRect.topLeft();
             break;
         case HorizontalCenterAlignment:
-            delta = QPointF(boundingRect.center().x() - bRect.width() / 2, bRect.y()) - bRect.topLeft();
+            delta = PkPointF(boundingRect.center().x() - bRect.width() / 2, bRect.y()) - bRect.topLeft();
             break;
         case HorizontalRightAlignment:
-            delta = QPointF(boundingRect.right() - bRect.width(), bRect.y()) - bRect.topLeft();
+            delta = PkPointF(boundingRect.right() - bRect.width(), bRect.y()) - bRect.topLeft();
             break;
         case VerticalTopAlignment:
-            delta = QPointF(bRect.x(), boundingRect.top()) - bRect.topLeft();
+            delta = PkPointF(bRect.x(), boundingRect.top()) - bRect.topLeft();
             break;
         case VerticalCenterAlignment:
-            delta = QPointF(bRect.x(), boundingRect.center().y() - bRect.height() / 2) - bRect.topLeft();
+            delta = PkPointF(bRect.x(), boundingRect.center().y() - bRect.height() / 2) - bRect.topLeft();
             break;
         case VerticalBottomAlignment:
-            delta = QPointF(bRect.x(), boundingRect.bottom() - bRect.height()) - bRect.topLeft();
+            delta = PkPointF(bRect.x(), boundingRect.bottom() - bRect.height()) - bRect.topLeft();
             break;
         };
         newPositions  << position + delta;
@@ -68,7 +68,7 @@ KoShapeAlignCommand::KoShapeAlignCommand(const QList<KoShape*> &shapes, Align al
     }
     d->command = new KoShapeMoveCommand(shapes, previousPositions, newPositions);
 
-    setText(kundo2_i18n("Align shapes"));
+    setText(kundo2_text("Align shapes"));
 }
 
 KoShapeAlignCommand::~KoShapeAlignCommand()

@@ -8,10 +8,12 @@
 #ifndef KOSHAPESIZECOMMAND_H
 #define KOSHAPESIZECOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
 
@@ -26,8 +28,8 @@ public:
      * @param newSizes the new sizes; in a list with a member for each shape
      * @param parent the parent command used for macro commands
      */
-    KoShapeSizeCommand(const QList<KoShape*> &shapes, const QList<QSizeF> &previousSizes,
-            const QList<QSizeF> &newSizes, KUndo2Command *parent = 0);
+    KoShapeSizeCommand(const PkList<KoShape*> &shapes, const PkList<PkSizeF> &previousSizes,
+            const PkList<PkSizeF> &newSizes, KUndo2Command *parent = 0);
     ~KoShapeSizeCommand() override;
 
     /// redo the command

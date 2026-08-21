@@ -5,22 +5,21 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeShearCommand.h"
 #include "KoShape.h"
-
-#include <klocalizedstring.h>
-
 class KoShapeShearCommandPrivate
 {
 public:
-    QList<KoShape*> shapes;
-    QList<qreal> previousShearXs;
-    QList<qreal> previousShearYs;
-    QList<qreal> newShearXs;
-    QList<qreal> newShearYs;
+    PkList<KoShape*> shapes;
+    PkList<qreal> previousShearXs;
+    PkList<qreal> previousShearYs;
+    PkList<qreal> newShearXs;
+    PkList<qreal> newShearYs;
 };
 
-KoShapeShearCommand::KoShapeShearCommand(const QList<KoShape*> &shapes, const QList<qreal> &previousShearXs, const QList<qreal> &previousShearYs, const QList<qreal> &newShearXs, const QList<qreal> &newShearYs, KUndo2Command *parent)
+KoShapeShearCommand::KoShapeShearCommand(const PkList<KoShape*> &shapes, const PkList<qreal> &previousShearXs, const PkList<qreal> &previousShearYs, const PkList<qreal> &newShearXs, const PkList<qreal> &newShearYs, KUndo2Command *parent)
     : KUndo2Command(parent),
     d(new KoShapeShearCommandPrivate())
 {
@@ -35,7 +34,7 @@ KoShapeShearCommand::KoShapeShearCommand(const QList<KoShape*> &shapes, const QL
     Q_ASSERT(d->shapes.count() == d->newShearXs.count());
     Q_ASSERT(d->shapes.count() == d->newShearYs.count());
 
-    setText(kundo2_i18n("Shear shapes"));
+    setText(kundo2_text("Shear shapes"));
 }
 
 KoShapeShearCommand::~KoShapeShearCommand()

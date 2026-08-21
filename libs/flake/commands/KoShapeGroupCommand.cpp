@@ -5,19 +5,19 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+#include <memory>
+
 #include "KoShapeGroupCommand.h"
 #include "KoShape.h"
 #include "KoShapeGroup.h"
 #include "KoShapeContainer.h"
 
 #include <commands/KoShapeReorderCommand.h>
-
-#include <klocalizedstring.h>
-
 // static
-KoShapeGroupCommand * KoShapeGroupCommand::createCommand(KoShapeContainer *container, const QList<KoShape *> &shapes, bool shouldNormalize)
+KoShapeGroupCommand * KoShapeGroupCommand::createCommand(KoShapeContainer *container, const PkList<KoShape *> &shapes, bool shouldNormalize)
 {
-    QList<KoShape*> orderedShapes(shapes);
+    PkList<KoShape*> orderedShapes(shapes);
     if (!orderedShapes.isEmpty()) {
         KoShape * top = orderedShapes.last();
         container->setParent(top->parent());
@@ -30,18 +30,18 @@ KoShapeGroupCommand * KoShapeGroupCommand::createCommand(KoShapeContainer *conta
 class KoShapeGroupCommandPrivate
 {
 public:
-    KoShapeGroupCommandPrivate(KoShapeContainer *container, const QList<KoShape *> &shapes, bool _shouldNormalize);
-    QRectF containerBoundingRect();
+    KoShapeGroupCommandPrivate(KoShapeContainer *container, const PkList<KoShape *> &shapes, bool _shouldNormalize);
+    PkRectF containerBoundingRect();
 
-    QList<KoShape*> shapes; ///<list of shapes to be grouped
+    PkList<KoShape*> shapes; ///<list of shapes to be grouped
     bool shouldNormalize; ///< Adjust the coordinate system of the group to its origin into the topleft of the group
     KoShapeContainer *container; ///< the container where the grouping should be for.
-    QList<KoShapeContainer*> oldParents; ///< the old parents of the shapes
+    PkList<KoShapeContainer*> oldParents; ///< the old parents of the shapes
 
-    QScopedPointer<KUndo2Command> shapesReorderCommand;
+    std::unique_ptr<KUndo2Command> shapesReorderCommand;
 };
 
-KoShapeGroupCommandPrivate::KoShapeGroupCommandPrivate(KoShapeContainer *c, const QList<KoShape *> &s, bool _shouldNormalize)
+KoShapeGroupCommandPrivate::KoShapeGroupCommandPrivate(KoShapeContainer *c, const PkList<KoShape *> &s, bool _shouldNormalize)
     : shapes(s),
       shouldNormalize(_shouldNormalize),
       container(c)
@@ -49,24 +49,24 @@ KoShapeGroupCommandPrivate::KoShapeGroupCommandPrivate(KoShapeContainer *c, cons
     std::stable_sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
 }
 
-KoShapeGroupCommand::KoShapeGroupCommand(KoShapeContainer *container, const QList<KoShape *> &shapes, KUndo2Command *parent)
+KoShapeGroupCommand::KoShapeGroupCommand(KoShapeContainer *container, const PkList<KoShape *> &shapes, KUndo2Command *parent)
     : KoShapeGroupCommand(container, shapes, false, parent)
 {
 }
 
-KoShapeGroupCommand::KoShapeGroupCommand(KoShapeContainer *container, const QList<KoShape *> &shapes,
+KoShapeGroupCommand::KoShapeGroupCommand(KoShapeContainer *container, const PkList<KoShape *> &shapes,
                                          bool shouldNormalize, KUndo2Command *parent)
     : KUndo2Command(parent),
       d(new KoShapeGroupCommandPrivate(container, shapes, shouldNormalize))
 {
-    Q_FOREACH (KoShape* shape, d->shapes) {
+    for (KoShape* shape : d->shapes) {
         d->oldParents.append(shape->parent());
     }
 
     if (d->container->shapes().isEmpty()) {
-        setText(kundo2_i18n("Group shapes"));
+        setText(kundo2_text("Group shapes"));
     } else {
-        setText(kundo2_i18n("Add shapes to group"));
+        setText(kundo2_text("Add shapes to group"));
     }
 }
 
@@ -79,33 +79,33 @@ void KoShapeGroupCommand::redo()
     KUndo2Command::redo();
 
     if (d->shouldNormalize &&  dynamic_cast<KoShapeGroup*>(d->container)) {
-        QRectF bound = d->containerBoundingRect();
-        QPointF oldGroupPosition = d->container->absolutePosition(KoFlake::TopLeft);
+        PkRectF bound = d->containerBoundingRect();
+        PkPointF oldGroupPosition = d->container->absolutePosition(KoFlake::TopLeft);
         d->container->setAbsolutePosition(bound.topLeft(), KoFlake::TopLeft);
         d->container->setSize(bound.size());
 
         if (d->container->shapeCount() > 0) {
             // the group has changed position and so have the group child shapes
             // -> we need compensate the group position change
-            QPointF positionOffset = oldGroupPosition - bound.topLeft();
-            Q_FOREACH (KoShape * child, d->container->shapes())
+            PkPointF positionOffset = oldGroupPosition - bound.topLeft();
+            for (KoShape * child : d->container->shapes())
                 child->setAbsolutePosition(child->absolutePosition() + positionOffset);
         }
     }
 
-    QTransform groupTransform = d->container->absoluteTransformation().inverted();
+    PkTransform groupTransform = d->container->absoluteTransformation().inverted();
 
-    QList<KoShape*> containerShapes(d->container->shapes());
+    PkList<KoShape*> containerShapes(d->container->shapes());
     std::stable_sort(containerShapes.begin(), containerShapes.end(), KoShape::compareShapeZIndex);
 
-    QList<KoShapeReorderCommand::IndexedShape> indexedShapes;
-    Q_FOREACH (KoShape *shape, containerShapes) {
+    PkList<KoShapeReorderCommand::IndexedShape> indexedShapes;
+    for (KoShape *shape : containerShapes) {
         indexedShapes.append(KoShapeReorderCommand::IndexedShape(shape));
     }
 
-    QList<KoShapeReorderCommand::IndexedShape> prependIndexedShapes;
+    PkList<KoShapeReorderCommand::IndexedShape> prependIndexedShapes;
 
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    for (KoShape *shape : d->shapes) {
         // test if they inherit the same parent
 
         if (!shape->hasCommonParent(d->container) ||
@@ -117,7 +117,8 @@ void KoShapeGroupCommand::redo()
         }
     }
 
-    indexedShapes = prependIndexedShapes + indexedShapes;
+    prependIndexedShapes.append(indexedShapes);
+    indexedShapes = prependIndexedShapes;
     indexedShapes = KoShapeReorderCommand::homogenizeZIndexesLazy(indexedShapes);
 
     if (!indexedShapes.isEmpty()) {
@@ -140,7 +141,7 @@ void KoShapeGroupCommand::undo()
 {
     KUndo2Command::undo();
 
-    QTransform ungroupTransform = d->container->absoluteTransformation();
+    PkTransform ungroupTransform = d->container->absoluteTransformation();
     for (int i = 0; i < d->shapes.count(); i++) {
         KoShape * shape = d->shapes[i];
         d->container->removeShape(shape);
@@ -156,11 +157,11 @@ void KoShapeGroupCommand::undo()
     }
 
     if (d->shouldNormalize && dynamic_cast<KoShapeGroup*>(d->container)) {
-        QPointF oldGroupPosition = d->container->absolutePosition(KoFlake::TopLeft);
+        PkPointF oldGroupPosition = d->container->absolutePosition(KoFlake::TopLeft);
         if (d->container->shapeCount() > 0) {
             bool boundingRectInitialized = false;
-            QRectF bound;
-            Q_FOREACH (KoShape * shape, d->container->shapes()) {
+            PkRectF bound;
+            for (KoShape * shape : d->container->shapes()) {
                 if (! boundingRectInitialized) {
                     bound = shape->boundingRect();
                     boundingRectInitialized = true;
@@ -169,8 +170,8 @@ void KoShapeGroupCommand::undo()
             }
             // the group has changed position and so have the group child shapes
             // -> we need compensate the group position change
-            QPointF positionOffset = oldGroupPosition - bound.topLeft();
-            Q_FOREACH (KoShape * child, d->container->shapes())
+            PkPointF positionOffset = oldGroupPosition - bound.topLeft();
+            for (KoShape * child : d->container->shapes())
                 child->setAbsolutePosition(child->absolutePosition() + positionOffset);
 
             d->container->setAbsolutePosition(bound.topLeft(), KoFlake::TopLeft);
@@ -179,14 +180,14 @@ void KoShapeGroupCommand::undo()
     }
 }
 
-QRectF KoShapeGroupCommandPrivate::containerBoundingRect()
+PkRectF KoShapeGroupCommandPrivate::containerBoundingRect()
 {
-    QRectF bound;
+    PkRectF bound;
     if (container->shapeCount() > 0) {
         bound = container->absoluteTransformation().mapRect(container->outlineRect());
     }
 
-    Q_FOREACH (KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
         bound |= shape->absoluteTransformation().mapRect(shape->outlineRect());
     }
 

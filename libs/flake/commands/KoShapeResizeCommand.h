@@ -7,15 +7,17 @@
 #ifndef KOSHAPERESIZECOMMAND_H
 #define KOSHAPERESIZECOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 #include "kundo2command.h"
 #include "kis_command_utils.h"
 
-#include <QList>
-#include <QPointF>
+#include <pk/container/PkList.h>
+#include <pk/geometry/PkPoint.h>
 #include <KoFlake.h>
 
-#include <QScopedPointer>
+#include <memory>
 
 class KoShape;
 
@@ -23,10 +25,10 @@ class KoShape;
 class KRITAFLAKE_EXPORT KoShapeResizeCommand : public KisCommandUtils::SkipFirstRedoBase
 {
 public:
-    KoShapeResizeCommand(const QList<KoShape*> &shapes,
+    KoShapeResizeCommand(const PkList<KoShape*> &shapes,
                          qreal scaleX, qreal scaleY,
-                         const QPointF &absoluteStillPoint, bool useGLobalMode,
-                         bool usePostScaling, const QTransform &postScalingCoveringTransform,
+                         const PkPointF &absoluteStillPoint, bool useGLobalMode,
+                         bool usePostScaling, const PkTransform &postScalingCoveringTransform,
                          KUndo2Command *parent = 0);
 
     ~KoShapeResizeCommand() override;
@@ -37,7 +39,7 @@ public:
     bool mergeWith(const KUndo2Command *command) override;
 
     void replaceResizeAction(qreal scaleX, qreal scaleY,
-                             const QPointF &absoluteStillPoint);
+                             const PkPointF &absoluteStillPoint);
 
 private:
     void redoNoUpdate();
@@ -45,7 +47,7 @@ private:
 
 private:
     struct Private;
-    QScopedPointer<Private> const m_d;
+    std::unique_ptr<Private> const m_d;
 
 };
 

@@ -8,13 +8,15 @@
 #ifndef KOSHAPEALIGNCOMMAND_H
 #define KOSHAPEALIGNCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
-class QRectF;
+class PkRectF;
 
 /// The undo / redo command for aligning shapes
 class KRITAFLAKE_EXPORT KoShapeAlignCommand : public KUndo2Command
@@ -36,7 +38,7 @@ public:
      * @param boundingRect the rect the shape will be aligned in
      * @param parent the parent command used for macro commands
      */
-    KoShapeAlignCommand(const QList<KoShape*> &shapes, Align align, const QRectF &boundingRect, KUndo2Command *parent = 0);
+    KoShapeAlignCommand(const PkList<KoShape*> &shapes, Align align, const PkRectF &boundingRect, KUndo2Command *parent = 0);
     ~KoShapeAlignCommand() override;
     /// redo the command
     void redo() override;

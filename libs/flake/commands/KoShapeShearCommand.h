@@ -8,10 +8,12 @@
 #ifndef KOSHAPESHEARCOMMAND_H
 #define KOSHAPESHEARCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
 class KoShapeShearCommandPrivate;
@@ -32,7 +34,7 @@ public:
      * @param newShearYs a list with the same amount of items as shapes with the new values.
      * @param parent the parent command used for macro commands
      */
-    KoShapeShearCommand(const QList<KoShape*> &shapes, const QList<qreal> &previousShearXs, const QList<qreal> &previousShearYs, const QList<qreal> &newShearXs, const QList<qreal> &newShearYs, KUndo2Command *parent = 0);
+    KoShapeShearCommand(const PkList<KoShape*> &shapes, const PkList<qreal> &previousShearXs, const PkList<qreal> &previousShearYs, const PkList<qreal> &newShearXs, const PkList<qreal> &newShearYs, KUndo2Command *parent = 0);
 
     ~KoShapeShearCommand() override;
     /// redo the command

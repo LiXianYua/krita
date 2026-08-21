@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeReorderCommand.h"
 #include "KoShape.h"
 #include "KoShape_p.h"
 #include "KoShapeManager.h"
 #include "KoShapeContainer.h"
-
-#include <klocalizedstring.h>
 #include <FlakeDebug.h>
 #include <limits.h>
 
@@ -32,38 +32,38 @@ class KoShapeReorderCommandPrivate
 {
 public:
     KoShapeReorderCommandPrivate() {}
-    KoShapeReorderCommandPrivate(const QList<KoShape*> &s, QList<int> &ni)
+    KoShapeReorderCommandPrivate(const PkList<KoShape*> &s, PkList<int> &ni)
         : shapes(s), newIndexes(ni)
     {
     }
 
-    QList<KoShape*> shapes;
-    QList<int> previousIndexes;
-    QList<int> newIndexes;
+    PkList<KoShape*> shapes;
+    PkList<int> previousIndexes;
+    PkList<int> newIndexes;
 };
 
-KoShapeReorderCommand::KoShapeReorderCommand(const QList<KoShape*> &shapes, QList<int> &newIndexes, KUndo2Command *parent)
+KoShapeReorderCommand::KoShapeReorderCommand(const PkList<KoShape*> &shapes, PkList<int> &newIndexes, KUndo2Command *parent)
     : KUndo2Command(parent),
       d(new KoShapeReorderCommandPrivate(shapes, newIndexes))
 {
     Q_ASSERT(shapes.count() == newIndexes.count());
-    foreach (KoShape *shape, shapes)
+    for (KoShape *shape : shapes)
         d->previousIndexes.append(shape->zIndex());
 
-    setText(kundo2_i18n("Reorder shapes"));
+    setText(kundo2_text("Reorder shapes"));
 }
 
-KoShapeReorderCommand::KoShapeReorderCommand(const QList<IndexedShape> &shapes, KUndo2Command *parent)
+KoShapeReorderCommand::KoShapeReorderCommand(const PkList<IndexedShape> &shapes, KUndo2Command *parent)
     : KUndo2Command(parent),
       d(new KoShapeReorderCommandPrivate())
 {
-    Q_FOREACH (const IndexedShape &index, shapes) {
+    for (const IndexedShape &index : shapes) {
         d->shapes.append(index.shape);
         d->newIndexes.append(index.zIndex);
         d->previousIndexes.append(index.shape->zIndex());
     }
 
-    setText(kundo2_i18n("Reorder shapes"));
+    setText(kundo2_text("Reorder shapes"));
 }
 
 KoShapeReorderCommand::~KoShapeReorderCommand()
@@ -93,12 +93,12 @@ void KoShapeReorderCommand::undo()
     }
 }
 
-static void prepare(KoShape *s, QMap<KoShape*, QList<KoShape*> > &newOrder, KoShapeManager *manager, KoShapeReorderCommand::MoveShapeType move)
+static void prepare(KoShape *s, PkMap<KoShape*, PkList<KoShape*> > &newOrder, KoShapeManager *manager, KoShapeReorderCommand::MoveShapeType move)
 {
     KoShapeContainer *parent = s->parent();
-    QMap<KoShape*, QList<KoShape*> >::iterator it(newOrder.find(parent));
+    PkMap<KoShape*, PkList<KoShape*> >::iterator it(newOrder.find(parent));
     if (it == newOrder.end()) {
-        QList<KoShape*> children;
+        PkList<KoShape*> children;
         if (parent != 0) {
             children = parent->shapes();
         }
@@ -112,7 +112,7 @@ static void prepare(KoShape *s, QMap<KoShape*, QList<KoShape*> > &newOrder, KoSh
         children.prepend(0);
         it = newOrder.insert(parent, children);
     }
-    QList<KoShape *> & shapes(newOrder[parent]);
+    PkList<KoShape *> & shapes(newOrder[parent]);
     int index = shapes.indexOf(s);
     if (index != -1) {
         shapes.removeAt(index);
@@ -139,17 +139,17 @@ static void prepare(KoShape *s, QMap<KoShape*, QList<KoShape*> > &newOrder, KoSh
 }
 
 // static
-KoShapeReorderCommand *KoShapeReorderCommand::createCommand(const QList<KoShape*> &shapes, KoShapeManager *manager, MoveShapeType move, KUndo2Command *parent)
+KoShapeReorderCommand *KoShapeReorderCommand::createCommand(const PkList<KoShape*> &shapes, KoShapeManager *manager, MoveShapeType move, KUndo2Command *parent)
 {
     /**
      * TODO: this method doesn't handle the case when one of the shapes
      *       has maximum or minimum zIndex value (which is 16-bit in our case)!
      */
 
-    QList<int> newIndexes;
-    QList<KoShape*> changedShapes;
-    QMap<KoShape*, QList<KoShape*> > newOrder;
-    QList<KoShape*> sortedShapes(shapes);
+    PkList<int> newIndexes;
+    PkList<KoShape*> changedShapes;
+    PkMap<KoShape*, PkList<KoShape*> > newOrder;
+    PkList<KoShape*> sortedShapes(shapes);
     std::sort(sortedShapes.begin(), sortedShapes.end(), KoShape::compareShapeZIndex);
     if (move == BringToFront || move == LowerShape) {
         for (int i = 0; i < sortedShapes.size(); ++i) {
@@ -162,9 +162,9 @@ KoShapeReorderCommand *KoShapeReorderCommand::createCommand(const QList<KoShape*
         }
     }
 
-    QMap<KoShape*, QList<KoShape*> >::iterator newIt(newOrder.begin());
+    PkMap<KoShape*, PkList<KoShape*> >::iterator newIt(newOrder.begin());
     for (; newIt != newOrder.end(); ++newIt) {
-        QList<KoShape*> order(newIt.value());
+        PkList<KoShape*> order(newIt.value());
         order.removeAll(nullptr);
         int index = -KoShape::maxZIndex - 1; // set minimum zIndex
         int pos = 0;
@@ -201,18 +201,18 @@ KoShapeReorderCommand *KoShapeReorderCommand::createCommand(const QList<KoShape*
     return changedShapes.isEmpty() ? 0: new KoShapeReorderCommand(changedShapes, newIndexes, parent);
 }
 
-KoShapeReorderCommand *KoShapeReorderCommand::mergeInShape(QList<KoShape *> shapes, KoShape *newShape, KUndo2Command *parent)
+KoShapeReorderCommand *KoShapeReorderCommand::mergeInShape(PkList<KoShape *> shapes, KoShape *newShape, KUndo2Command *parent)
 {
     std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
 
-    QList<KoShape*> reindexedShapes;
-    QList<int> reindexedIndexes;
+    PkList<KoShape*> reindexedShapes;
+    PkList<int> reindexedIndexes;
 
     const int originalShapeZIndex = newShape->zIndex();
     int newShapeZIndex = originalShapeZIndex;
     int lastOccupiedShapeZIndex = originalShapeZIndex + 1;
 
-    Q_FOREACH (KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
         if (shape == newShape) continue;
 
         const int zIndex = shape->zIndex();
@@ -239,8 +239,8 @@ KoShapeReorderCommand *KoShapeReorderCommand::mergeInShape(QList<KoShape *> shap
     return !reindexedShapes.isEmpty() ? new KoShapeReorderCommand(reindexedShapes, reindexedIndexes, parent) : 0;
 }
 
-QList<KoShapeReorderCommand::IndexedShape>
-KoShapeReorderCommand::homogenizeZIndexes(QList<KoShapeReorderCommand::IndexedShape> shapes)
+PkList<KoShapeReorderCommand::IndexedShape>
+KoShapeReorderCommand::homogenizeZIndexes(PkList<KoShapeReorderCommand::IndexedShape> shapes)
 {
     if (shapes.isEmpty()) return shapes;
 
@@ -279,8 +279,8 @@ KoShapeReorderCommand::homogenizeZIndexes(QList<KoShapeReorderCommand::IndexedSh
     return shapes;
 }
 
-QList<KoShapeReorderCommand::IndexedShape>
-KoShapeReorderCommand::homogenizeZIndexesLazy(QList<KoShapeReorderCommand::IndexedShape> shapes)
+PkList<KoShapeReorderCommand::IndexedShape>
+KoShapeReorderCommand::homogenizeZIndexesLazy(PkList<KoShapeReorderCommand::IndexedShape> shapes)
 {
     shapes = homogenizeZIndexes(shapes);
     // remove shapes that didn't change
@@ -295,25 +295,25 @@ KoShapeReorderCommand::homogenizeZIndexesLazy(QList<KoShapeReorderCommand::Index
     return shapes;
 }
 
-QList<KoShapeReorderCommand::IndexedShape>
-KoShapeReorderCommand::mergeDownShapes(QList<KoShape *> shapesBelow, QList<KoShape *> shapesAbove)
+PkList<KoShapeReorderCommand::IndexedShape>
+KoShapeReorderCommand::mergeDownShapes(PkList<KoShape *> shapesBelow, PkList<KoShape *> shapesAbove)
 {
     std::sort(shapesBelow.begin(), shapesBelow.end(), KoShape::compareShapeZIndex);
     std::sort(shapesAbove.begin(), shapesAbove.end(), KoShape::compareShapeZIndex);
 
-    QList<IndexedShape> shapes;
-    Q_FOREACH (KoShape *shape, shapesBelow) {
+    PkList<IndexedShape> shapes;
+    for (KoShape *shape : shapesBelow) {
         shapes.append(IndexedShape(shape));
     }
 
-    Q_FOREACH (KoShape *shape, shapesAbove) {
+    for (KoShape *shape : shapesAbove) {
         shapes.append(IndexedShape(shape));
     }
 
     return homogenizeZIndexesLazy(shapes);
 }
 
-QDebug operator<<(QDebug dbg, const KoShapeReorderCommand::IndexedShape &indexedShape)
+PkDebug operator<<(PkDebug dbg, const KoShapeReorderCommand::IndexedShape &indexedShape)
 {
     dbg.nospace() << "IndexedShape (" << indexedShape.shape << ", " << indexedShape.zIndex << ")";
     return dbg.space();

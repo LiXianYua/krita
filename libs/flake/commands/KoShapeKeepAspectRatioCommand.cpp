@@ -4,17 +4,16 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeKeepAspectRatioCommand.h"
-
-#include <klocalizedstring.h>
-
 #include <KoShape.h>
 
-KoShapeKeepAspectRatioCommand::KoShapeKeepAspectRatioCommand(const QList<KoShape *> &shapes, bool newKeepAspectRatio, KUndo2Command *parent)
-    : KUndo2Command(kundo2_i18n("Keep Aspect Ratio"), parent)
+KoShapeKeepAspectRatioCommand::KoShapeKeepAspectRatioCommand(const PkList<KoShape *> &shapes, bool newKeepAspectRatio, KUndo2Command *parent)
+    : KUndo2Command(kundo2_text("Keep Aspect Ratio"), parent)
     , m_shapes(shapes)
 {
-    Q_FOREACH (KoShape *shape, shapes) {
+    for (KoShape *shape : shapes) {
             m_oldKeepAspectRatio << shape->keepAspectRatio();
             m_newKeepAspectRatio << newKeepAspectRatio;
     }
@@ -28,7 +27,7 @@ void KoShapeKeepAspectRatioCommand::redo()
 {
     KUndo2Command::redo();
     for (int i = 0; i < m_shapes.count(); ++i) {
-        m_shapes[i]->setKeepAspectRatio(m_newKeepAspectRatio[i]);
+        m_shapes[i]->setKeepAspectRatio(m_newKeepAspectRatio.at(i));
     }
 }
 
@@ -36,6 +35,6 @@ void KoShapeKeepAspectRatioCommand::undo()
 {
     KUndo2Command::undo();
     for (int i = 0; i < m_shapes.count(); ++i) {
-        m_shapes[i]->setKeepAspectRatio(m_oldKeepAspectRatio[i]);
+        m_shapes[i]->setKeepAspectRatio(m_oldKeepAspectRatio.at(i));
     }
 }

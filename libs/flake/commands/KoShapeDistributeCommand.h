@@ -9,10 +9,13 @@
 #define KOSHAPEDISTRIBUTECOMMAND_H
 
 
+#include <PkXmlCompat.h>
+
+
 #include "kritaflake_export.h"
 
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
 
@@ -38,8 +41,8 @@ public:
      * @param boundingRect the rect the shapes will be distributed in
      * @param parent the parent command used for macro commands
      */
-    KoShapeDistributeCommand(const QList<KoShape*> &shapes, Distribute distribute,
-            const QRectF &boundingRect, KUndo2Command *parent = 0);
+    KoShapeDistributeCommand(const PkList<KoShape*> &shapes, Distribute distribute,
+            const PkRectF &boundingRect, KUndo2Command *parent = 0);
     ~KoShapeDistributeCommand() override;
     /// redo the command
     void redo() override;
