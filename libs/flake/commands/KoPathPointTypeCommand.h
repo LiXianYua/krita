@@ -8,8 +8,10 @@
 #ifndef KOPATHPOINTTYPECOMMAND_H
 #define KOPATHPOINTTYPECOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 #include "KoPathBaseCommand.h"
 #include "KoPathPoint.h"
 #include "KoPathPointData.h"
@@ -33,7 +35,7 @@ public:
      * @param pointType the new point type to set
      * @param parent the parent command used for macro commands
      */
-    KoPathPointTypeCommand(const QList<KoPathPointData> &pointDataList, PointType pointType, KUndo2Command *parent = 0);
+    KoPathPointTypeCommand(const PkList<KoPathPointData> &pointDataList, PointType pointType, KUndo2Command *parent = 0);
     ~KoPathPointTypeCommand() override;
 
     /// redo the command
@@ -50,19 +52,19 @@ private:
                 : m_pointData(pointData) {}
         KoPathPointData m_pointData;
         // old control points in document coordinates
-        QPointF m_oldControlPoint1;
-        QPointF m_oldControlPoint2;
+        PkPointF m_oldControlPoint1;
+        PkPointF m_oldControlPoint2;
         KoPathPoint::PointProperties m_oldProperties;
         bool m_hadControlPoint1 {false};
         bool m_hadControlPoint2 {false};
     };
 
     bool appendPointData(KoPathPointData data);
-    void undoChanges(const QList<PointData> &data);
+    void undoChanges(const PkList<PointData> &data);
 
     PointType m_pointType;
-    QList<PointData> m_oldPointData;
-    QList<PointData> m_additionalPointData;
+    PkList<PointData> m_oldPointData;
+    PkList<PointData> m_additionalPointData;
 };
 
 #endif // KOPATHPOINTTYPECOMMAND_H
