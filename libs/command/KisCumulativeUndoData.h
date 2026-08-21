@@ -9,8 +9,8 @@
 #include <boost/operators.hpp>
 #include "kritacommand_export.h"
 
-class KConfigGroup;
-class QDebug;
+class PkConfigGroup;
+class PkDebug;
 
 struct KRITACOMMAND_EXPORT KisCumulativeUndoData : boost::equality_comparable<KisCumulativeUndoData>
 {
@@ -26,12 +26,12 @@ struct KRITACOMMAND_EXPORT KisCumulativeUndoData : boost::equality_comparable<Ki
     int maxGroupSeparation {1000};
     int maxGroupDuration {5000};
 
-    bool read(const KConfigGroup *config);
-    void write(KConfigGroup *config) const;
+    bool read(const PkConfigGroup *config);
+    void write(PkConfigGroup *config) const;
 
     static const KisCumulativeUndoData defaultValue;
 };
 
-QDebug KRITACOMMAND_EXPORT operator<<(QDebug dbg, const KisCumulativeUndoData &data);
+PkDebug KRITACOMMAND_EXPORT operator<<(PkDebug dbg, const KisCumulativeUndoData &data);
 
 #endif // KISCUMULATIVEUNDODATA_H

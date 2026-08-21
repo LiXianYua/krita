@@ -10,6 +10,8 @@
 #include "kundo2command.h"
 #include "kis_undo_stores.h"
 #include "kritacommand_export.h"
+#include "pk/container/PkVector.h"
+#include "pk/pointer/PkScopedPointer.h"
 #include <functional>
 #include <memory>
 
@@ -73,7 +75,7 @@ namespace KisCommandUtils
 
     private:
         bool m_firstRedo;
-        QScopedPointer<KUndo2Command> m_child;
+        PkScopedPointer<KUndo2Command> m_child;
     };
 
 
@@ -129,7 +131,7 @@ namespace KisCommandUtils
         void undo() override;
 
     private:
-        QVector<KUndo2Command*> m_commands;
+        PkVector<KUndo2Command*> m_commands;
     };
 
     /**

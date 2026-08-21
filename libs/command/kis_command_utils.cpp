@@ -82,7 +82,7 @@ namespace KisCommandUtils
     }
 
     SkipFirstRedoWrapper::SkipFirstRedoWrapper(KUndo2Command *child, KUndo2Command *parent)
-        : KUndo2Command(child ? child->text() : kundo2_noi18n("<bug: unnamed command>"), parent), m_firstRedo(true), m_child(child) {}
+        : KUndo2Command(child ? child->text() : kundo2_text_raw("<bug: unnamed command>"), parent), m_firstRedo(true), m_child(child) {}
 
     void SkipFirstRedoWrapper::redo()
     {
@@ -175,7 +175,7 @@ namespace KisCommandUtils
         : KUndo2Command(parent) {}
 
     CompositeCommand::~CompositeCommand() {
-        qDeleteAll(m_commands);
+        for (KUndo2Command *cmd : m_commands) delete cmd;
     }
 
     void CompositeCommand::addCommand(KUndo2Command *cmd) {
@@ -186,7 +186,7 @@ namespace KisCommandUtils
 
     void CompositeCommand::redo() {
         KUndo2Command::redo();
-        Q_FOREACH (KUndo2Command *cmd, m_commands) {
+        for (KUndo2Command *cmd : m_commands) {
             cmd->redo();
         }
     }
@@ -200,7 +200,7 @@ namespace KisCommandUtils
 
     KUndo2Command* composeCommands(KUndo2Command *parent, KUndo2Command *cmd) {
         KIS_SAFE_ASSERT_RECOVER(cmd) {
-            cmd = new KUndo2Command(kundo2_noi18n("failed"));
+            cmd = new KUndo2Command(kundo2_text_raw("failed"));
         }
 
         KIS_SAFE_ASSERT_RECOVER_NOOP(!cmd->hasParent());

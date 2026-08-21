@@ -5,12 +5,12 @@
  */
 #include "KisCumulativeUndoData.h"
 
-#include <kconfiggroup.h>
+#include "pk/config/PkConfigGroup.h"
 #include <kis_debug.h>
 
 const KisCumulativeUndoData KisCumulativeUndoData::defaultValue;
 
-bool KisCumulativeUndoData::read(const KConfigGroup *config)
+bool KisCumulativeUndoData::read(const PkConfigGroup *config)
 {
     excludeFromMerge = config->readEntry("cumulativeUndoExcludeFromMerge",
                                              defaultValue.excludeFromMerge);
@@ -24,7 +24,7 @@ bool KisCumulativeUndoData::read(const KConfigGroup *config)
     return true;
 }
 
-void KisCumulativeUndoData::write(KConfigGroup *config) const
+void KisCumulativeUndoData::write(PkConfigGroup *config) const
 {
     config->writeEntry("cumulativeUndoExcludeFromMerge", excludeFromMerge);
     config->writeEntry("cumulativeUndoMergeTimeout", mergeTimeout);
@@ -32,7 +32,7 @@ void KisCumulativeUndoData::write(KConfigGroup *config) const
     config->writeEntry("cumulativeUndoMaxGroupDuration", maxGroupDuration);
 }
 
-QDebug KRITACOMMAND_EXPORT operator<<(QDebug dbg, const KisCumulativeUndoData &data)
+PkDebug KRITACOMMAND_EXPORT operator<<(PkDebug dbg, const KisCumulativeUndoData &data)
 {
     dbg.nospace() << "KisCumulativeUndoData(";
     dbg.space() << ppVar(data.excludeFromMerge);

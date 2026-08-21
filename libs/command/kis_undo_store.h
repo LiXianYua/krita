@@ -7,7 +7,7 @@
 #ifndef KIS_UNDO_STORE_H_
 #define KIS_UNDO_STORE_H_
 
-#include <QObject>
+#include <compat/QObject>
 
 #include <kritacommand_export.h>
 
@@ -41,7 +41,7 @@ class KUndo2MagicString;
  * KisDocument::createUndoStore() is just a factory method, the document
  * doesn't store the undo store itself.
  */
-class KRITACOMMAND_EXPORT KisUndoStore : public QObject
+class KRITACOMMAND_EXPORT KisUndoStore : public PkObject
 {
     Q_OBJECT
 public:
@@ -64,7 +64,8 @@ Q_SIGNALS:
     void historyStateChanged();
 
 private:
-    Q_DISABLE_COPY(KisUndoStore)
+    KisUndoStore(const KisUndoStore&) = delete;
+    KisUndoStore& operator=(const KisUndoStore&) = delete;
 };
 
 
