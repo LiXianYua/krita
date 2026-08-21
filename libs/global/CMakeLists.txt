@@ -130,12 +130,6 @@ target_link_libraries(kritaglobal
         pkpointer
         pkflags
         pkport
-        Qt${QT_MAJOR_VERSION}::Core
-        Qt${QT_MAJOR_VERSION}::Gui
-        Qt${QT_MAJOR_VERSION}::Widgets
-        Qt${QT_MAJOR_VERSION}::Xml
-        KF${KF_MAJOR}::I18n
-        KF${KF_MAJOR}::ConfigCore
         Boost::boost
         zug
         lager
@@ -143,9 +137,6 @@ target_link_libraries(kritaglobal
         Eigen3::Eigen
 )
 
-if (QT_MAJOR_VERSION STREQUAL "6")
-  target_link_libraries(kritaglobal PUBLIC Qt6::Core5Compat Qt6::OpenGL)
-endif()
 
 if (GSL_FOUND)
   target_link_libraries(kritaglobal PRIVATE GSL::gsl)
