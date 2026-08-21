@@ -7,6 +7,15 @@
 // PkObject。用宏不用 using：Krita 头里有 `class QObject;` 前置声明，类型别名
 // 遇到它会报 "redeclared as different kind of entity"；宏把那一行改写成
 // `class PkObject;`，前置声明照样成立（与 pk/string/compat/QString 同因）。
+//
+// 让位给真 Qt：real Qt 已进 TU（QT_CORE_LIB 定义）时，本头里与 Qt 同名的一切
+// （QObject/QPointer 宏、Q_OBJECT/Q_SIGNALS/Q_SLOTS 等访问控制宏、QMetaObject、
+// namespace Qt 的 ConnectionType 族）全部让位——libs/global 基线测试经
+// sdk/tests/simpletest.h 同时拉真 Qt <QTest> 与 KisSynchronizedConnection.h，
+// 后者经本头拉 PkObject.h→PkConnect.h，不守卫就与真 Qt 头重定义。PkObject.h/
+// PkConnect.h/PkPointer.h 的 include 保留在守卫外：消费方依赖 PkObject/
+// PkConnection 类型本身，与 real Qt 是否在场无关。
+#if !defined(QT_CORE_LIB)
 #define QObject PkObject
 
 // Q_OBJECT 在 Qt 里展开成一堆元对象声明，我们不需要元对象。
@@ -26,13 +35,12 @@ template <typename T> struct PkTestBinder;
 #define emit
 #define Q_EMIT
 
-// QMetaObject::Connection → PkConnection。QMetaObject 是个类，用「给 QMetaObject
-// 一个最小替身类」而非宏（宏会把 `QMetaObject::` 别的成员也改掉，而
-// invokeMethod 等我们明确不实现，留着让调用点编译期报"没有这个成员"）。
-class QMetaObject {
-public:
-    using Connection = PkConnection;
-};
+// QMetaObject::Connection → PkConnection。QMetaObject 用别名指向 PkMetaObject
+// （PkConnection.h 定义），而非「最小替身类」——替身类的成员面也只有 Connection，
+// 别名等价且不重复定义同一结构。invokeMethod 等成员我们明确不实现，留着让调用点
+// 编译期报"没有这个成员"。real Qt 在场时本段让位（QT_CORE_LIB），消费方要的
+// PkMetaObject::Connection 由 PkConnection.h 独立提供。
+using QMetaObject = PkMetaObject;
 
 // Qt::ConnectionType 命名空间 → 最小枚举别名。Krita 只用 ConnectionType 一族。
 namespace Qt {
@@ -47,3 +55,4 @@ constexpr PkConnectionType UniqueConnection = PkConnectionType::Unique;
 // QPointer → PkPointer（Task 3 按 Ruling 8 改名的弱引用）。QOverload 已在
 // PkConnect.h 定义（全局），这里无需再引。
 #define QPointer PkPointer
+#endif // !defined(QT_CORE_LIB)

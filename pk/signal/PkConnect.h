@@ -21,11 +21,15 @@ enum class PkConnectionType { Auto, Direct, Queued, BlockingQueued, Unique };
 
 // QOverload<Args...>::of(ptr) —— 信号/槽重载消歧。Qt 里同名信号有多组参数时，
 // `&C::sig` 是模糊的，必须 `QOverload<const QString&, const QString&>::of(&C::sig)`。
+// 让位守卫：真 Qt 的 qglobal.h 也定义 QOverload（同名同用途），real Qt 已进 TU
+// （QT_CORE_LIB）时让位，否则与真 Qt 头重定义（libs/global 基线测试的场景）。
+#if !defined(QT_CORE_LIB)
 template <typename... Args>
 struct QOverload {
     template <typename R, typename T>
     static constexpr auto of(R (T::*ptr)(Args...)) -> decltype(ptr) { return ptr; }
 };
+#endif
 
 // 类型擦除的槽基类。连接条目里存派生类 PkSlotImpl<Args...>，emit 时 dynamic_cast
 // 回具体类型调用。基类虚析构让条目销毁时正确释放 std::function，并满足 RTTI 多态。

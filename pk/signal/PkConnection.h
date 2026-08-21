@@ -25,3 +25,13 @@ private:
 
     std::shared_ptr<PkConnectionState> m_state;
 };
+
+// PkMetaObject::Connection —— 连接句柄类型的容器名。S-02-a 迁移时 Krita 消费方
+// （libs/global/kis_signal_auto_connection.h）把 QMetaObject::Connection 改写为
+// PkMetaObject::Connection；compat/QObject 的 QMetaObject 替身只在 real Qt 缺席时
+// 定义（real Qt 在场时让位给真 QMetaObject，语义不同），而 PkMetaObject 是 pk 自有
+// 名字、与 real Qt 是否在场无关，故独立于 QMetaObject 定义。消费方经
+// PkMetaObject::Connection 拿到的就是 PkConnection。
+struct PkMetaObject {
+    using Connection = PkConnection;
+};
