@@ -16,6 +16,7 @@ kis_add_tests(KisSignalAutoConnectionTest.cpp
 if(BUILD_TESTING)
     add_executable(kritaglobal_file_io_test
         KisGlobalFileIoTest.cpp
+        KisLatencyTrackerHeaderTest.cpp
         ../KisFileUtils.cpp
         ../KisBackup.cpp
         ../KisUsageLogger.cpp
@@ -28,6 +29,7 @@ if(BUILD_TESTING)
         ${CMAKE_SOURCE_DIR}/libs/version
         ${CMAKE_SOURCE_DIR}/pk/string
         ${CMAKE_SOURCE_DIR}/pk/container
+        ${CMAKE_SOURCE_DIR}/pk/concurrent
         ${CMAKE_SOURCE_DIR}/pk/pointer
         ${CMAKE_SOURCE_DIR}/pk/time
         ${CMAKE_SOURCE_DIR}/pk/port

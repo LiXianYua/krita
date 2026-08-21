@@ -12,7 +12,8 @@
 
 #include <PkQueue.h>
 #include <PkElapsedTimer.h>
-#include <PkDebug.h>
+#include <PkMessageLogger.h>
+#include <PkString.h>
 
 #include <boost/heap/fibonacci_heap.hpp>
 
@@ -20,6 +21,8 @@
 #include <boost/accumulators/statistics/stats.hpp>
 #include <boost/accumulators/statistics/rolling_mean.hpp>
 #include <boost/accumulators/statistics/rolling_variance.hpp>
+
+#include <string>
 
 template<typename T>
 class KisRollingMax {
@@ -99,7 +102,7 @@ protected:
      * @param message the message to print
      */
     virtual void print(const PkString &message) {
-        qInfo() << qUtf8Printable(message);
+        qInfo() << message.PkToUtf8().c_str();
     }
 
     /**
@@ -109,7 +112,11 @@ protected:
      * @param max the max scalar in the window
      */
     virtual PkString format(qint64 mean, qint64 variance, qint64 max) {
-        return PkString("%1: mean %2 ms, var %3, max %4 ms").arg(m_name).arg(mean).arg(variance).arg(max);
+        return PkString("%1: mean %2 ms, var %3, max %4 ms")
+            .arg(m_name)
+            .arg(PkString(std::to_string(mean).c_str()))
+            .arg(PkString(std::to_string(variance).c_str()))
+            .arg(PkString(std::to_string(max).c_str()));
     }
 
 private:
