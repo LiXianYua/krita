@@ -6,7 +6,6 @@
 
 #include "KoCompositeOp.h"
 
-#include <klocalizedstring.h>
 #include <KoID.h>
 
 #include "KoColorSpace.h"

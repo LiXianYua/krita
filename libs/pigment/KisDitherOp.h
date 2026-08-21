@@ -13,7 +13,6 @@
 #include <array>
 #include <cmath>
 
-#include <QtGlobal>
 
 class KoColorSpace;
 class KoID;
