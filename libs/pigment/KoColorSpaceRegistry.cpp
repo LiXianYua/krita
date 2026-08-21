@@ -167,6 +167,9 @@ void KoColorSpaceRegistry::init()
 
     KoColorSpaceEngineRegistry::instance()->add(new KoSimpleColorSpaceEngine());
 
+    // 原 KoPluginLoader::load("Krita/ColorSpace") 与 load("Krita/ColorSpaceExtension")
+    // 已随 D-01 移除；lcms2engine（IccColorSpaceEngine）与 colorspaceextensions 的
+    // 静态注册归 S-09/S-04（见 S-03-a 报告），add() 接口保留供其调用。
     addProfile(new KoDummyColorProfile);
 
     // Create the built-in colorspaces
