@@ -382,15 +382,25 @@ void testDeduplicateFileName()
 void testUsageLoggerCreatesItsFiles(const fs::path &root)
 {
     const fs::path dataRoot = root / "usage-data";
-    const fs::path configRoot = root / "usage-config";
+#ifdef _WIN32
+    EnvironmentGuard dataGuard("APPDATA", dataRoot.string());
+    const fs::path expectedDataRoot = dataRoot;
+#elif defined(__APPLE__)
+    EnvironmentGuard homeGuard("HOME", dataRoot.string());
+    const fs::path expectedDataRoot = dataRoot / "Library" / "Application Support";
+#elif defined(__ANDROID__)
+    EnvironmentGuard dataGuard("ANDROID_APP_DATA", dataRoot.string());
+    const fs::path expectedDataRoot = dataRoot;
+#else
     EnvironmentGuard dataGuard("XDG_DATA_HOME", dataRoot.string());
-    EnvironmentGuard configGuard("XDG_CONFIG_HOME", configRoot.string());
+    const fs::path expectedDataRoot = dataRoot;
+#endif
 
     {
         KisUsageLogger logger;
-        require(fs::exists(dataRoot / "krita.log"),
+        require(fs::exists(expectedDataRoot / "krita.log"),
                 "usage logger must create the session log");
-        require(fs::exists(dataRoot / "krita-sysinfo.log"),
+        require(fs::exists(expectedDataRoot / "krita-sysinfo.log"),
                 "usage logger must create the system-info log");
     }
 }
