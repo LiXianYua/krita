@@ -7,11 +7,12 @@
 #ifndef _KO_COLOR_TRANSFORMATION_FACTORY_H_
 #define _KO_COLOR_TRANSFORMATION_FACTORY_H_
 
-#include <QHash>
-#include <QVariant>
-#include <QList>
-#include <QPair>
-#include <QString>
+#include <PkHash.h>
+#include <PkStringHash.h>
+#include <PkVariant.h>
+#include <PkList.h>
+#include <PkPair.h>
+#include <PkString.h>
 
 class KoColorTransformation;
 class KoColorSpace;
@@ -26,16 +27,16 @@ class KoID;
 class KRITAPIGMENT_EXPORT KoColorTransformationFactory
 {
 public:
-    explicit KoColorTransformationFactory(const QString &id);
+    explicit KoColorTransformationFactory(const PkString &id);
     virtual ~KoColorTransformationFactory();
 public:
-    QString id() const;
+    PkString id() const;
 public:
     /**
      * @return an empty list if the factory support all type of colorspaces models.
      */
-    virtual QList< QPair< KoID, KoID > > supportedModels() const = 0;
-    virtual KoColorTransformation* createTransformation(const KoColorSpace* colorSpace, QHash<QString, QVariant> parameters) const = 0;
+    virtual PkList< PkPair< KoID, KoID > > supportedModels() const = 0;
+    virtual KoColorTransformation* createTransformation(const KoColorSpace* colorSpace, PkHash<PkString, PkVariant> parameters) const = 0;
 private:
     struct Private;
     Private* const d;

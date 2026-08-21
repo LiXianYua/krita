@@ -4,13 +4,15 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <PkXmlCompat.h>
+
 #include "KoColorTransformationFactory.h"
 
 struct Q_DECL_HIDDEN KoColorTransformationFactory::Private {
-    QString id;
+    PkString id;
 };
 
-KoColorTransformationFactory::KoColorTransformationFactory(const QString &id)
+KoColorTransformationFactory::KoColorTransformationFactory(const PkString &id)
     : d(new Private)
 {
     d->id = id;
@@ -21,7 +23,7 @@ KoColorTransformationFactory::~KoColorTransformationFactory()
     delete d;
 }
 
-QString KoColorTransformationFactory::id() const
+PkString KoColorTransformationFactory::id() const
 {
     return d->id;
 }

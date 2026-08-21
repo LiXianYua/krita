@@ -9,7 +9,9 @@
 
 #include "KoHistogramProducer.h"
 
-#include <QVector>
+#include <PkVector.h>
+#include <PkString.h>
+#include <PkList.h>
 
 #include <KoConfig.h>
 
@@ -34,7 +36,7 @@ public:
     const KoID& id() const override {
         return m_id;
     }
-    QList<KoChannelInfo *> channels() override {
+    PkList<KoChannelInfo *> channels() override {
         return m_colorSpace->channels();
     }
     qint32 numberOfBins() override {
@@ -78,15 +80,15 @@ protected:
     }
     // not virtual since that is useless: we call it from constructor
     void makeExternalToInternal();
-    typedef QVector<quint32> vBins;
-    QVector<vBins> m_bins;
+    typedef PkVector<quint32> vBins;
+    PkVector<vBins> m_bins;
     vBins m_outLeft, m_outRight;
     qreal m_from, m_width;
     qint32 m_count;
     int m_channels, m_nrOfBins;
     const KoColorSpace *m_colorSpace;
     KoID m_id;
-    QVector<qint32> m_external;
+    PkVector<qint32> m_external;
 };
 
 class KRITAPIGMENT_EXPORT KoBasicU8HistogramProducer : public KoBasicHistogramProducer
@@ -95,7 +97,7 @@ public:
     KoBasicU8HistogramProducer(const KoID& id, const KoColorSpace *colorSpace);
     ~KoBasicU8HistogramProducer() override {}
     void addRegionToBin(const quint8 * pixels, const quint8 * selectionMask, quint32 nPixels, const KoColorSpace *colorSpace) override;
-    QString positionToString(qreal pos) const override;
+    PkString positionToString(qreal pos) const override;
     qreal maximalZoom() const override {
         return 1.0;
     }
@@ -107,7 +109,7 @@ public:
     KoBasicU16HistogramProducer(const KoID& id, const KoColorSpace *colorSpace);
     ~KoBasicU16HistogramProducer() override {}
     void addRegionToBin(const quint8 * pixels, const quint8 * selectionMask, quint32 nPixels, const KoColorSpace *colorSpace) override;
-    QString positionToString(qreal pos) const override;
+    PkString positionToString(qreal pos) const override;
     qreal maximalZoom() const override;
 };
 
@@ -117,7 +119,7 @@ public:
     KoBasicF32HistogramProducer(const KoID& id, const KoColorSpace *colorSpace);
     ~KoBasicF32HistogramProducer() override {}
     void addRegionToBin(const quint8 * pixels, const quint8 * selectionMask, quint32 nPixels, const KoColorSpace *colorSpace) override;
-    QString positionToString(qreal pos) const override;
+    PkString positionToString(qreal pos) const override;
     qreal maximalZoom() const override;
 };
 
@@ -129,7 +131,7 @@ public:
     KoBasicF16HalfHistogramProducer(const KoID& id, const KoColorSpace *colorSpace);
     ~KoBasicF16HalfHistogramProducer() override {}
     void addRegionToBin(const quint8 * pixels, const quint8 * selectionMask, quint32 nPixels, const KoColorSpace *colorSpace) override;
-    QString positionToString(qreal pos) const override;
+    PkString positionToString(qreal pos) const override;
     qreal maximalZoom() const override;
 };
 #endif
@@ -143,7 +145,7 @@ public:
 template<class T> class KoBasicHistogramProducerFactory : public KoHistogramProducerFactory
 {
 public:
-    KoBasicHistogramProducerFactory(const KoID& id, const QString& modelId, const QString& depthId )
+    KoBasicHistogramProducerFactory(const KoID& id, const PkString& modelId, const PkString& depthId )
             : KoHistogramProducerFactory(id), m_modelId(modelId), m_depthId(depthId) {
     }
     ~KoBasicHistogramProducerFactory() override {}
@@ -167,7 +169,7 @@ public:
         return 0.5 * ( (colorSpace->colorModelId().id() == m_modelId) + (colorSpace->colorDepthId().id() == m_depthId) );
     }
 protected:
-    QString m_modelId, m_depthId;
+    PkString m_modelId, m_depthId;
 };
 
 /**
@@ -182,11 +184,11 @@ public:
     KoGenericRGBHistogramProducer();
     ~KoGenericRGBHistogramProducer() override {}
     void addRegionToBin(const quint8 * pixels, const quint8 * selectionMask, quint32 nPixels, const KoColorSpace *colorSpace) override;
-    QString positionToString(qreal pos) const override;
+    PkString positionToString(qreal pos) const override;
     qreal maximalZoom() const override;
-    QList<KoChannelInfo *> channels() override;
+    PkList<KoChannelInfo *> channels() override;
 protected:
-    QList<KoChannelInfo *> m_channelsList;
+    PkList<KoChannelInfo *> m_channelsList;
 };
 
 /** KoGenericRGBHistogramProducer his special Factory that isCompatibleWith everything. */
@@ -223,11 +225,11 @@ public:
     KoGenericLabHistogramProducer();
     ~KoGenericLabHistogramProducer() override;
     void addRegionToBin(const quint8 * pixels, const quint8 * selectionMask, quint32 nPixels, const KoColorSpace *colorSpace) override;
-    QString positionToString(qreal pos) const override;
+    PkString positionToString(qreal pos) const override;
     qreal maximalZoom() const override;
-    QList<KoChannelInfo *> channels() override;
+    PkList<KoChannelInfo *> channels() override;
 protected:
-    QList<KoChannelInfo *> m_channelsList;
+    PkList<KoChannelInfo *> m_channelsList;
 };
 
 /** KoGenericLabHistogramProducer his special Factory that isCompatibleWith everything. */

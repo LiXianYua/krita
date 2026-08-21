@@ -4,36 +4,36 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <PkXmlCompat.h>
+
 #include "KoColorTransformation.h"
-#include <QDebug>
-#include <QVariant>
 
 KoColorTransformation::~KoColorTransformation()
 {
 }
 
-QList<QString> KoColorTransformation::parameters() const
+PkList<PkString> KoColorTransformation::parameters() const
 {
-    return QList<QString>();
+    return PkList<PkString>();
 }
 
-int KoColorTransformation::parameterId(const QString& name) const
+int KoColorTransformation::parameterId(const PkString& name) const
 {
     Q_UNUSED(name);
     qFatal("No parameter for this transformation");
     return -1;
 }
 
-void KoColorTransformation::setParameter(int id, const QVariant& parameter)
+void KoColorTransformation::setParameter(int id, const PkVariant& parameter)
 {
     Q_UNUSED(id);
     Q_UNUSED(parameter);
     qFatal("No parameter for this transformation");
 }
 
-void KoColorTransformation::setParameters(const QHash<QString, QVariant> & parameters)
+void KoColorTransformation::setParameters(const PkHash<PkString, PkVariant> & parameters)
 {
-    for (QHash<QString, QVariant>::const_iterator it = parameters.begin(); it != parameters.end(); ++it) {
+    for (PkHash<PkString, PkVariant>::const_iterator it = parameters.begin(); it != parameters.end(); ++it) {
         setParameter( parameterId(it.key()), it.value());
     }
 

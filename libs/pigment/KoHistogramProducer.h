@@ -7,14 +7,16 @@
 #ifndef _KO_HISTOGRAM_PRODUCER_
 #define _KO_HISTOGRAM_PRODUCER_
 
-#include <QtGlobal>
+#include <PkGlobal.h>
+#include <PkList.h>
+#include <PkString.h>
 
 #include "kritapigment_export.h"
 
 #include <KoGenericRegistry.h>
 #include <KoID.h>
 
-class QString;
+class PkString;
 class KoChannelInfo;
 class KoColorSpace;
 
@@ -69,9 +71,9 @@ public:
 
     // Methods with general information about this specific producer
     virtual const KoID& id() const = 0;
-    virtual QList<KoChannelInfo *> channels() = 0;
+    virtual PkList<KoChannelInfo *> channels() = 0;
     virtual qint32 numberOfBins() = 0;
-    virtual QString positionToString(qreal pos) const = 0;
+    virtual PkString positionToString(qreal pos) const = 0;
     virtual qreal viewFrom() const = 0;
     virtual qreal viewWidth() const = 0;
     virtual qreal maximalZoom() const = 0;
@@ -101,11 +103,11 @@ public:
     /// Returns a float in the [0.0, 1.0] range, 0.0 means this is a very generic method
     virtual float preferrednessLevelWith(const KoColorSpace* colorSpace) const = 0;
 
-    virtual QString id() const {
+    virtual PkString id() const {
         return m_id.id();
     }
 
-    virtual QString name() const {
+    virtual PkString name() const {
         return m_id.name();
     }
 protected:
@@ -121,7 +123,7 @@ public:
     ~KoHistogramProducerFactoryRegistry() override;
     static KoHistogramProducerFactoryRegistry* instance();
     /// returns a list, sorted by preference: higher preference comes first
-    QList<QString> keysCompatibleWith(const KoColorSpace* colorSpace, bool isStrict=false) const;
+    PkList<PkString> keysCompatibleWith(const KoColorSpace* colorSpace, bool isStrict=false) const;
 
 private:
     KoHistogramProducerFactoryRegistry(const KoHistogramProducerFactoryRegistry&);

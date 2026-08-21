@@ -4,10 +4,9 @@
  *  SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-#include "KoBasicHistogramProducers.h"
+#include <PkXmlCompat.h>
 
-#include <QString>
-#include <klocalizedstring.h>
+#include "KoBasicHistogramProducers.h"
 
 #include <KoConfig.h>
 #ifdef HAVE_OPENEXR
@@ -73,7 +72,7 @@ void KoBasicHistogramProducer::makeExternalToInternal()
     // This function assumes that the pixel is has no 'gaps'. That is to say: if we start
     // at byte 0, we can get to the end of the pixel by adding consecutive size()s of
     // the channels
-    QList<KoChannelInfo *> c = channels();
+    PkList<KoChannelInfo *> c = channels();
     uint count = c.count();
     int currentPos = 0;
 
@@ -95,9 +94,9 @@ KoBasicU8HistogramProducer::KoBasicU8HistogramProducer(const KoID& id, const KoC
 {
 }
 
-QString KoBasicU8HistogramProducer::positionToString(qreal pos) const
+PkString KoBasicU8HistogramProducer::positionToString(qreal pos) const
 {
-    return QString("%1").arg(static_cast<quint8>(pos * UINT8_MAX));
+    return PkString("%1").arg(static_cast<quint8>(pos * UINT8_MAX));
 }
 
 void KoBasicU8HistogramProducer::addRegionToBin(const quint8 * pixels, const quint8 * selectionMask, quint32 nPixels, const KoColorSpace *cs)
@@ -143,9 +142,9 @@ KoBasicU16HistogramProducer::KoBasicU16HistogramProducer(const KoID& id, const K
 {
 }
 
-QString KoBasicU16HistogramProducer::positionToString(qreal pos) const
+PkString KoBasicU16HistogramProducer::positionToString(qreal pos) const
 {
-    return QString("%1").arg(static_cast<quint8>(pos * UINT8_MAX));
+    return PkString("%1").arg(static_cast<quint8>(pos * UINT8_MAX));
 }
 
 qreal KoBasicU16HistogramProducer::maximalZoom() const
@@ -165,7 +164,7 @@ void KoBasicU16HistogramProducer::addRegionToBin(const quint8 * pixels, const qu
     quint8 *dstPixels = new quint8[nPixels * dstPixelSize];
     cs->convertPixelsTo(pixels, dstPixels, m_colorSpace, nPixels, KoColorConversionTransformation::IntentAbsoluteColorimetric, KoColorConversionTransformation::Empty);
     quint8 *dst = dstPixels;
-    QVector<float> channels(m_colorSpace->channelCount());
+    PkVector<float> channels(m_colorSpace->channelCount());
 
     if (selectionMask) {
         while (nPixels > 0) {
@@ -214,9 +213,9 @@ KoBasicF32HistogramProducer::KoBasicF32HistogramProducer(const KoID& id, const K
 {
 }
 
-QString KoBasicF32HistogramProducer::positionToString(qreal pos) const
+PkString KoBasicF32HistogramProducer::positionToString(qreal pos) const
 {
-    return QString("%1").arg(static_cast<float>(pos)); // XXX I doubt this is correct!
+    return PkString("%1").arg(static_cast<float>(pos)); // XXX I doubt this is correct!
 }
 
 qreal KoBasicF32HistogramProducer::maximalZoom() const
@@ -237,7 +236,7 @@ void KoBasicF32HistogramProducer::addRegionToBin(const quint8 * pixels, const qu
     quint8 *dstPixels = new quint8[nPixels * dstPixelSize];
     cs->convertPixelsTo(pixels, dstPixels, m_colorSpace, nPixels, KoColorConversionTransformation::IntentAbsoluteColorimetric, KoColorConversionTransformation::Empty);
     quint8 *dst = dstPixels;
-    QVector<float> channels(m_colorSpace->channelCount());
+    PkVector<float> channels(m_colorSpace->channelCount());
 
     if (selectionMask) {
         while (nPixels > 0) {
@@ -289,9 +288,9 @@ KoBasicF16HalfHistogramProducer::KoBasicF16HalfHistogramProducer(const KoID& id,
 {
 }
 
-QString KoBasicF16HalfHistogramProducer::positionToString(qreal pos) const
+PkString KoBasicF16HalfHistogramProducer::positionToString(qreal pos) const
 {
-    return QString("%1").arg(static_cast<float>(pos)); // XXX I doubt this is correct!
+    return PkString("%1").arg(static_cast<float>(pos)); // XXX I doubt this is correct!
 }
 
 qreal KoBasicF16HalfHistogramProducer::maximalZoom() const
@@ -312,7 +311,7 @@ void KoBasicF16HalfHistogramProducer::addRegionToBin(const quint8 * pixels, cons
     quint8 *dstPixels = new quint8[nPixels * dstPixelSize];
     cs->convertPixelsTo(pixels, dstPixels, m_colorSpace, nPixels, KoColorConversionTransformation::IntentAbsoluteColorimetric, KoColorConversionTransformation::Empty);
     quint8 *dst = dstPixels;
-    QVector<float> channels(m_colorSpace->channelCount());
+    PkVector<float> channels(m_colorSpace->channelCount());
 
     if (selectionMask) {
         while (nPixels > 0) {
@@ -357,23 +356,23 @@ void KoBasicF16HalfHistogramProducer::addRegionToBin(const quint8 * pixels, cons
 
 // ------------ Generic RGB ---------------------
 KoGenericRGBHistogramProducer::KoGenericRGBHistogramProducer()
-    : KoBasicHistogramProducer(KoID("GENRGBHISTO", i18n("Generic RGB Histogram")), 3, 256)
+    : KoBasicHistogramProducer(KoID("GENRGBHISTO", PkString("Generic RGB Histogram")), 3, 256)
 {
     /* we set 0 as colorspace, because we are not based on a specific colorspace. This
        is no problem for the superclass since we override channels() */
-    m_channelsList.append(new KoChannelInfo(i18n("R"), 0, 0, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, QColor(255, 0, 0)));
-    m_channelsList.append(new KoChannelInfo(i18n("G"), 1, 1, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, QColor(0, 255, 0)));
-    m_channelsList.append(new KoChannelInfo(i18n("B"), 2, 2, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, QColor(0, 0, 255)));
+    m_channelsList.append(new KoChannelInfo(PkString("R"), 0, 0, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, PkColor(255, 0, 0)));
+    m_channelsList.append(new KoChannelInfo(PkString("G"), 1, 1, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, PkColor(0, 255, 0)));
+    m_channelsList.append(new KoChannelInfo(PkString("B"), 2, 2, KoChannelInfo::COLOR, KoChannelInfo::UINT8, 1, PkColor(0, 0, 255)));
 }
 
-QList<KoChannelInfo *> KoGenericRGBHistogramProducer::channels()
+PkList<KoChannelInfo *> KoGenericRGBHistogramProducer::channels()
 {
     return m_channelsList;
 }
 
-QString KoGenericRGBHistogramProducer::positionToString(qreal pos) const
+PkString KoGenericRGBHistogramProducer::positionToString(qreal pos) const
 {
-    return QString("%1").arg(static_cast<quint8>(pos * UINT8_MAX));
+    return PkString("%1").arg(static_cast<quint8>(pos * UINT8_MAX));
 }
 
 qreal KoGenericRGBHistogramProducer::maximalZoom() const
@@ -389,7 +388,7 @@ void KoGenericRGBHistogramProducer::addRegionToBin(const quint8 * pixels, const 
         m_outLeft[i] = 0;
     }
 
-    QColor c;
+    PkColor c;
     qint32 pSize = cs->pixelSize();
     if (selectionMask) {
         while (nPixels > 0) {
@@ -424,19 +423,19 @@ void KoGenericRGBHistogramProducer::addRegionToBin(const quint8 * pixels, const 
 }
 
 KoGenericRGBHistogramProducerFactory::KoGenericRGBHistogramProducerFactory()
-    : KoHistogramProducerFactory(KoID("GENRGBHISTO", i18n("Generic RGB Histogram")))
+    : KoHistogramProducerFactory(KoID("GENRGBHISTO", PkString("Generic RGB Histogram")))
 {
 }
 
 // ------------ Generic L*a*b* ---------------------
 KoGenericLabHistogramProducer::KoGenericLabHistogramProducer()
-    : KoBasicHistogramProducer(KoID("GENLABHISTO", i18n("L*a*b* Histogram")), 3, 256)
+    : KoBasicHistogramProducer(KoID("GENLABHISTO", PkString("L*a*b* Histogram")), 3, 256)
 {
     /* we set 0 as colorspace, because we are not based on a specific colorspace. This
        is no problem for the superclass since we override channels() */
-    m_channelsList.append(new KoChannelInfo(i18n("L*"), 0, 0, KoChannelInfo::COLOR, KoChannelInfo::UINT8));
-    m_channelsList.append(new KoChannelInfo(i18n("a*"), 1, 1, KoChannelInfo::COLOR, KoChannelInfo::UINT8));
-    m_channelsList.append(new KoChannelInfo(i18n("b*"), 2, 2, KoChannelInfo::COLOR, KoChannelInfo::UINT8));
+    m_channelsList.append(new KoChannelInfo(PkString("L*"), 0, 0, KoChannelInfo::COLOR, KoChannelInfo::UINT8));
+    m_channelsList.append(new KoChannelInfo(PkString("a*"), 1, 1, KoChannelInfo::COLOR, KoChannelInfo::UINT8));
+    m_channelsList.append(new KoChannelInfo(PkString("b*"), 2, 2, KoChannelInfo::COLOR, KoChannelInfo::UINT8));
 
     if (!m_labCs) {
         m_labCs = KoColorSpaceRegistry::instance()->lab16();
@@ -450,14 +449,14 @@ KoGenericLabHistogramProducer::~KoGenericLabHistogramProducer()
     delete m_channelsList[2];
 }
 
-QList<KoChannelInfo *> KoGenericLabHistogramProducer::channels()
+PkList<KoChannelInfo *> KoGenericLabHistogramProducer::channels()
 {
     return m_channelsList;
 }
 
-QString KoGenericLabHistogramProducer::positionToString(qreal pos) const
+PkString KoGenericLabHistogramProducer::positionToString(qreal pos) const
 {
-    return QString("%1").arg(static_cast<quint16>(pos * UINT16_MAX));
+    return PkString("%1").arg(static_cast<quint16>(pos * UINT16_MAX));
 }
 
 qreal KoGenericLabHistogramProducer::maximalZoom() const
@@ -508,6 +507,6 @@ void KoGenericLabHistogramProducer::addRegionToBin(const quint8 *pixels, const q
 }
 
 KoGenericLabHistogramProducerFactory::KoGenericLabHistogramProducerFactory()
-    : KoHistogramProducerFactory(KoID("GENLABHISTO", i18n("Generic L*a*b* Histogram")))
+    : KoHistogramProducerFactory(KoID("GENLABHISTO", PkString("Generic L*a*b* Histogram")))
 {
 }

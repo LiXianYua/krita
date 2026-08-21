@@ -7,13 +7,15 @@
 #ifndef _KO_COLOR_TRANSFORMATION_H_
 #define _KO_COLOR_TRANSFORMATION_H_
 
-#include <QHash>
+#include <PkHash.h>
+#include <PkStringHash.h>
+#include <PkString.h>
+#include <PkList.h>
+#include <PkVariant.h>
 
 #include "kritapigment_export.h"
 
-#include <QString>
-
-class QVariant;
+class PkVariant;
 
 /**
  * This is the base class of all color transform that takes n pixels in input
@@ -49,18 +51,18 @@ public:
     /**
      * @return the list of parameters
      */
-    virtual QList<QString> parameters() const;
+    virtual PkList<PkString> parameters() const;
     /**
      * Get the parameter id for a parameter name
      */
-    virtual int parameterId(const QString& name) const;
+    virtual int parameterId(const PkString& name) const;
 
-    void setParameters(const QHash<QString, QVariant> & parameters);
+    void setParameters(const PkHash<PkString, PkVariant> & parameters);
     /**
      * Update one parameter of a cached transformation object.
      *
      */
-    virtual void setParameter(int id, const QVariant& parameter);
+    virtual void setParameter(int id, const PkVariant& parameter);
 
     /// @return true
     virtual bool isValid() const { return true; }

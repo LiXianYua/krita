@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <PkXmlCompat.h>
+
 #include "KoColorTransformationFactoryRegistry.h"
 
 #include "KoColorTransformationFactory.h"
@@ -21,8 +23,12 @@ KoColorTransformationFactoryRegistry::KoColorTransformationFactoryRegistry() : d
 
 KoColorTransformationFactoryRegistry::~KoColorTransformationFactoryRegistry()
 {
-    qDeleteAll(doubleEntries());
-    qDeleteAll(values());
+    for (auto *entry : doubleEntries()) {
+        delete entry;
+    }
+    for (auto *entry : values()) {
+        delete entry;
+    }
     delete d;
 }
 
