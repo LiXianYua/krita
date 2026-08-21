@@ -6,8 +6,8 @@
 
 #include "KoAlphaDarkenParamsWrapper.h"
 
-#include <ksharedconfig.h>
-#include <kconfiggroup.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 #include "kis_debug.h"
 
 
@@ -17,7 +17,7 @@ bool useCreamyAlphaDarken()
     static bool useCreamyAlphaDarken = true;
 
     if (!isConfigInitialized) {
-        KConfigGroup cfg = KSharedConfig::openConfig()->group("");
+        PkConfigGroup cfg = PkSharedConfig::openConfig()->group("");
         useCreamyAlphaDarken = cfg.readEntry("useCreamyAlphaDarken", true);
         isConfigInitialized = true;
     }

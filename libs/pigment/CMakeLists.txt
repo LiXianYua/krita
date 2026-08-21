@@ -71,6 +71,8 @@ set(kritapigment_SRCS
     resources/KoCachedGradient.h
     resources/KisGradientConversion.cpp
     resources/KisUniqueColorSet.cpp
+    PkGradient.cpp
+    PkTextStream.cpp
 )
 
 if(MSVC OR (WIN32 AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel"))
@@ -81,6 +83,37 @@ endif()
 kis_add_library(kritapigment SHARED ${kritapigment_SRCS})
 
 generate_export_header(kritapigment)
+
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+# S-03-a Task8 迁到 PkSignal 形态的 3 个 moc 头：信号定义由 pk_signal_moc.py
+# 生成（替代 Qt moc 的 Q_SIGNALS 段 → activateSignal 调用）。
+set(kritapigment_SIGNAL_HEADERS
+    resources/KisUniqueColorSet.h
+    resources/KoColorSet.h
+    KoColorDisplayRendererInterface.h
+)
+set(kritapigment_SIGNAL_SRCS)
+foreach(signal_header IN LISTS kritapigment_SIGNAL_HEADERS)
+    get_filename_component(signal_name "${signal_header}" NAME_WE)
+    set(signal_source "${CMAKE_CURRENT_BINARY_DIR}/${signal_name}_pk_signals.cpp")
+    add_custom_command(
+        OUTPUT "${signal_source}"
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/pk/signal/pk_signal_moc.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${signal_header}"
+                -o "${signal_source}"
+        DEPENDS
+                "${CMAKE_SOURCE_DIR}/pk/signal/pk_signal_moc.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${signal_header}"
+        COMMENT "pk_signal_moc: generating ${signal_name} signal definitions"
+        VERBATIM
+    )
+    list(APPEND kritapigment_SIGNAL_SRCS "${signal_source}")
+endforeach()
+
+target_sources(kritapigment PRIVATE ${kritapigment_SIGNAL_SRCS})
+set_target_properties(kritapigment PROPERTIES AUTOMOC OFF)
 
 target_include_directories( kritapigment
     PUBLIC

@@ -8,8 +8,8 @@
 #include <PkStringList.h>
 #include <PkMessageLogger.h>
 #include <KoCompositeOpRegistry.h>
-#include <ksharedconfig.h>
-#include <kconfiggroup.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
 
 bool useSubtractiveBlendingForCmykColorSpaces()
 {
@@ -17,7 +17,7 @@ bool useSubtractiveBlendingForCmykColorSpaces()
     static bool useSubtractiveBlending = true;
 
     if (!isConfigInitialized) {
-        KConfigGroup cfg = KSharedConfig::openConfig()->group("");
+        PkConfigGroup cfg = PkSharedConfig::openConfig()->group("");
         useSubtractiveBlending = cfg.readEntry("useSubtractiveBlendingForCmykColorSpaces", true);
         isConfigInitialized = true;
 

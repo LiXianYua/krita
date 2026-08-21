@@ -9,6 +9,8 @@
 
 #include "kritapigment_export.h"
 
+#include <PkMessageLogger.h>
+
 #include <KoColorConversionTransformation.h>
 #include <KoColorProofingConversionTransformation.h>
 

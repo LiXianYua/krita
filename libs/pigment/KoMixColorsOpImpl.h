@@ -10,7 +10,7 @@
 
 #include "KoMixColorsOp.h"
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <type_traits>
 #include <KisCppQuirks.h>
 #include <KoColorSpaceMaths.h>
