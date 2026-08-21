@@ -18,7 +18,7 @@
 #define PK_SIGNAL_COMPAT_H
 
 // signals 在 Qt 语义里固定是 public（外部 connect 要取信号地址），moc 头
-// （KoColorSet.h 等）的信号段靠它展开才能解析。pk/test/compat/QObject 为测试类
+// （KoColorSet.h 等）的信号段靠它展开才能解析。pk/test/compat 的对象垫片为测试类
 // 的 `private Q_SLOTS:` 场景把 signals 预定义成空宏——那对生产头是错的：空展开后
 // `signals:` 变成孤立冒号、声明直接解析失败。生产头只认 public，测试类不写裸
 // `signals:`，因此这里强制覆盖任何既有定义（先 #undef 再 #define，不触发

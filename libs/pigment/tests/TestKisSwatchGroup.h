@@ -8,7 +8,7 @@
 #include <PkHash.h>
 #include <PkPair.h>
 
-// 原测试用 QHash<QPair<int,int>, KisSwatch>：真 Qt 在 qhashfunctions.h 里给
+// 原测试用哈希容器<std::pair<int,int>, KisSwatch>：真 Qt 在 qhashfunctions.h 里给
 // `qHash(std::pair)` 提供全局重载，PkHashFunctions 的 qHash 族没有 pair 重载
 // （PkHasher 模板定义点普通查找命中不了后加的声明，只靠实例化点 ADL）。
 // 这里补一份 `namespace std` 的 qHash 重载，靠 ADL 让 PkHasher 找到它——语义

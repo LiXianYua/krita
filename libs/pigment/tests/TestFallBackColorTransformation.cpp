@@ -51,7 +51,7 @@ void TestFallBackColorTransformation::parametersForward()
   // PK_COMPARE 的形参按 const auto& 绑定到独立语句；`fallback->parameters()[0]`
   // 是「函数返回的临时 PkList 的 operator[] 引用」，C++ 不会把临时容器寿命延长到
   // 那条声明语句之外——绑定语句结束后临时列表析构，pkCompareActual_ 悬垂。
-  // 先落到具名局部再下标，断言语义与原文（QCOMPARE 直接传实参、临时活在整条
+  // 先落到具名局部再下标，断言语义与原文（比较宏直接传实参、临时活在整条
   // 调用语句内）完全一致，只是绕开 PkTest 宏对「临时容器[下标]」的生命周期陷阱。
   const PkList<PkString> params = fallback->parameters();
   PK_COMPARE(params[0], PkString("test"));
