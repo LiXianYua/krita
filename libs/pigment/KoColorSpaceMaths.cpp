@@ -8,7 +8,7 @@
 
 #include <cfloat>
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 #ifdef HAVE_OPENEXR
 const half KoColorSpaceMathsTraits<half>::zeroValue = 0.0;

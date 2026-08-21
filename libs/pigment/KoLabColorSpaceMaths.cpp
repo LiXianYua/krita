@@ -9,7 +9,7 @@
 
 #include <cfloat>
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 #ifdef HAVE_OPENEXR
 const half KoLabColorSpaceMathsTraits<half>::zeroValueL = 0.0;
