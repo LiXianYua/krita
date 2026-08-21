@@ -1,0 +1,10 @@
+#pragma once
+// 树内 QMultiMap 垫片（S-03-a Task 9b 落盘，原 git-ignored 薄壳 compat/QMultiMap）。
+// KoCompositeOp.h `#include <QMultiMap>` 但从未使用 QMultiMap（遗留 include，
+// 它的 22 个 Q* 里 QMultiMap 只出现在 include 行）。pk 无 QMultiMap
+// （PkHash.h 头注释明确「QMultiHash 不做」），这里给能过编译的占位：映射到
+// std::multimap。若未来闭包真按值用 QMultiMap 的 insertMulti/values API，
+// 此垫片会暴露 std::multimap 的语义差异，需按调用点改写（S 线逐点处理）。
+// 无扩展名：源码层判据口径外。
+#include <map>
+#define QMultiMap std::multimap

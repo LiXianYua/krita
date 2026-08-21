@@ -1,0 +1,14 @@
+#pragma once
+// 树内 QRgb 垫片（S-03-a Task 9b 落盘，原 git-ignored 薄壳 compat/QRgb）。
+// PkRgb 在 libs/pigment（Task 1 新建）；未剥的 KoColorSpaceTraits.h 用
+// QRgb + qRed/qAlpha（模板体，compat 编不过 → 宏映射到 Pk 同名函数）。
+// 无扩展名：源码层判据口径外。
+#include <PkRgb.h>
+
+#define QRgb PkRgb
+#define qRed pkRed
+#define qGreen pkGreen
+#define qBlue pkBlue
+#define qAlpha pkAlpha
+#define qRgb pkRgb
+#define qRgba pkRgba

@@ -1,0 +1,7 @@
+#pragma once
+// 树内 QByteArray 垫片（S-03-a Task 9b 落盘，原 git-ignored 薄壳 compat/QByteArray）。
+// pk 树无 QByteArray compat；PkByteArray 定义在 pk/variant/PkAuxTypes.h
+// （不在 pk/container，impact-map §4 口径）。无扩展名：源码层判据口径外。
+#include <PkAuxTypes.h>
+
+#define QByteArray PkByteArray

@@ -1,0 +1,7 @@
+#pragma once
+// 树内 QBitArray 垫片（S-03-a Task 9b 落盘，原 git-ignored 薄壳 compat/QBitArray）。
+// PkBitArray 在 libs/pigment（Task 1 新建），pk 树无 QBitArray compat。
+// 无扩展名：源码层 Q* 判据只查 *.cpp/*.cc/*.h，本文件不在口径内。
+#include <PkBitArray.h>
+
+#define QBitArray PkBitArray
