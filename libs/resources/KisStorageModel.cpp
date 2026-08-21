@@ -177,13 +177,15 @@ KisResourceStorageSP KisStorageModel::storageForId(int storageId) const
 bool KisStorageModel::setStorageActive(int storageId, bool active)
 {
     PkString location;
+    bool found = false;
     for (const KisStorageRecord &record : d->records) {
         if (record.id == storageId) {
             location = record.location;
+            found = true;
             break;
         }
     }
-    if (location.isEmpty()) {
+    if (!found) {
         return false;
     }
 

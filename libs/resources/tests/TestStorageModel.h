@@ -17,6 +17,7 @@ private Q_SLOTS:
     void testWithTagModelTester();
     void testRowCount();
     void testSetActive();
+    void testSetDefaultStorageActive();
     void cleanupTestCase();
     void testMetaData();
     void testImportStorage();

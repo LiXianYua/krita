@@ -5,6 +5,8 @@
  */
 #include "TestStorageFilterProxyModel.h"
 
+#include <algorithm>
+
 #include <simpletest.h>
 #include <QStandardPaths>
 #include <QDir>
@@ -78,12 +80,20 @@ void TestStorageFilterProxyModel::testFilterByName()
 
     const auto allStorages = proxyModel->storages();
     QVERIFY(!allStorages.empty());
-    const PkString fileName = allStorages[0].location;
+    const auto selected = std::find_if(allStorages.begin(), allStorages.end(),
+                                       [](const KisStorageRecord &record) {
+                                           return !record.location.isEmpty();
+                                       });
+    QVERIFY2(selected != allStorages.end(),
+             "Filename filtering requires a storage with a non-empty location");
+    const PkString fileName = selected->location;
+    QVERIFY(!fileName.isEmpty());
 
     proxyModel->setFilter(KisStorageFilterProxyModel::ByFileName,
                           PkVariant(fileName));
     const auto filteredStorages = proxyModel->storages();
     QVERIFY(!filteredStorages.empty());
+    QVERIFY(filteredStorages.size() < allStorages.size());
     for (const KisStorageRecord &record : filteredStorages) {
         QVERIFY(record.location.contains(fileName));
     }

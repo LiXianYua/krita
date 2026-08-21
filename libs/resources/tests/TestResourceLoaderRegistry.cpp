@@ -14,13 +14,11 @@
 #include <KisGlobalResourcesInterface.h>
 
 #include "DummyResource.h"
-#include "ResourceTestHelper.h"
-
 void TestResourceLoaderRegistry::testRegistry()
 {
     KisResourceLoaderRegistry *reg = KisResourceLoaderRegistry::instance();
 
-    KisResourceLoaderBase *loader = new ResourceTestHelper::KisDummyResourceLoader(
+    KisResourceLoaderBase *loader = new KisResourceLoader<DummyResource>(
         PkString("dummy"),
         PkString("dummy"),
         PkString("Dummy"),

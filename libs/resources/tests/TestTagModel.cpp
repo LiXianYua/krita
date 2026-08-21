@@ -248,9 +248,11 @@ void TestTagModel::testSetTagActiveInactive()
 void TestTagModel::testRenameTag()
 {
     KisTagModel tagModel(m_resourceType);
+    tagModel.setTagFilter(KisTagModel::ShowAllTags);
     const auto tagsBefore = tagModel.tags();
     QVERIFY(tagsBefore.size() > 2);
-    KisTagSP tag = tagsBefore[2];
+    KisTagSP tag = tagModel.tagForUrl(m_tag->url());
+    QVERIFY(tag);
     QCOMPARE(ResourceTestHelper::toQString(tag->url()),
              ResourceTestHelper::toQString(m_tag->url()));
     QCOMPARE(ResourceTestHelper::toQString(tag->name()),
@@ -258,15 +260,18 @@ void TestTagModel::testRenameTag()
 
     QVERIFY(tagModel.renameTag(tag, "Another name altogether", true));
 
-    /// We are renaming "* Favorites" into "Another...", which
-    /// changed position of the item due to sorting order
-
     const auto tagsAfter = tagModel.tags();
-    QVERIFY(tagsAfter.size() > 3);
-    tag = tagsAfter[3];
+    QCOMPARE(tagsAfter.size(), tagsBefore.size() + 1);
 
-    QCOMPARE(ResourceTestHelper::toQString(tag->url()), QString("Another name altogether"));
-    QCOMPARE(ResourceTestHelper::toQString(tag->name()), QString("Another name altogether"));
+    const KisTagSP renamed = tagModel.tagForUrl("Another name altogether");
+    QVERIFY(renamed);
+    QCOMPARE(ResourceTestHelper::toQString(renamed->url()), QString("Another name altogether"));
+    QCOMPARE(ResourceTestHelper::toQString(renamed->name()), QString("Another name altogether"));
+    QVERIFY(renamed->active());
+
+    const KisTagSP retained = tagModel.tagForUrl(m_tag->url());
+    QVERIFY(retained);
+    QVERIFY(!retained->active());
 }
 
 void TestTagModel::testChangeTagActive()

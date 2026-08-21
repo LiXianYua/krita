@@ -41,6 +41,11 @@ public:
         setValid(true);
     }
 
+    explicit DummyResource(const PkString &f)
+        : DummyResource(f, ResourceType::PaintOpPresets)
+    {
+    }
+
     explicit DummyResource(const char *f)
         : DummyResource(PkString(f), ResourceType::PaintOpPresets)
     {

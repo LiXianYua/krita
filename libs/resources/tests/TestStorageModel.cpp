@@ -121,6 +121,39 @@ void TestStorageModel::testSetActive()
     }
 }
 
+void TestStorageModel::testSetDefaultStorageActive()
+{
+    KisStorageModel storageModel;
+    const auto initialStorages = storageModel.storages();
+    const auto initial = std::find_if(initialStorages.begin(), initialStorages.end(),
+                                      [](const KisStorageRecord &record) {
+                                          return record.location.isEmpty();
+                                      });
+    QVERIFY2(initial != initialStorages.end(),
+             "The default storage must be represented by an empty location");
+
+    const int storageId = initial->id;
+    const bool initialActive = initial->active;
+    QVERIFY(storageModel.setStorageActive(storageId, !initialActive));
+
+    const auto changedStorages = storageModel.storages();
+    const auto changed = std::find_if(changedStorages.begin(), changedStorages.end(),
+                                      [storageId](const KisStorageRecord &record) {
+                                          return record.id == storageId;
+                                      });
+    QVERIFY(changed != changedStorages.end());
+    QCOMPARE(changed->active, !initialActive);
+
+    QVERIFY(storageModel.setStorageActive(storageId, initialActive));
+    const auto restoredStorages = storageModel.storages();
+    const auto restored = std::find_if(restoredStorages.begin(), restoredStorages.end(),
+                                       [storageId](const KisStorageRecord &record) {
+                                           return record.id == storageId;
+                                       });
+    QVERIFY(restored != restoredStorages.end());
+    QCOMPARE(restored->active, initialActive);
+}
+
 
 void TestStorageModel::cleanupTestCase()
 {
