@@ -9,7 +9,6 @@
 #include <PkPointer.h>
 #include <PkSharedPointer.h>
 #include <PkString.h>
-#include <PkVector.h>
 #include <PkList.h>
 #include <PkXmlDocument.h>
 #include <PkXmlElement.h>
@@ -230,14 +229,14 @@ public:
     KisPaintOpPresetSP cloneWithResourcesSnapshot(KisResourcesInterfaceSP globalResourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface, KoResourceCacheInterfaceSP cacheInterface) const;
 
 
-    PkVector<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
 
-    PkVector<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkList<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
 
-    PkVector<KoResourceLoadResult> sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkList<KoResourceLoadResult> sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
     void clearSideLoadedResources() override;
 
-    PkVector<int> requiredCanvasResources() const override;
+    PkList<int> requiredCanvasResources() const override;
 
     /**
      * Set resource cache object generated for this preset (or its

@@ -1135,7 +1135,7 @@ void KoSegmentGradient::setSegments(const PkList<KoGradientSegment*> &segments)
     updatePreview();
 }
 
-PkVector<int> KoSegmentGradient::requiredCanvasResources() const
+PkList<int> KoSegmentGradient::requiredCanvasResources() const
 {
     bool hasVariableColors = false;
     for (int i = 0; i < m_segments.count(); i++) {
@@ -1145,7 +1145,7 @@ PkVector<int> KoSegmentGradient::requiredCanvasResources() const
         }
     }
 
-    PkVector<int> result;
+    PkList<int> result;
     if (hasVariableColors) {
         result << KoCanvasResource::ForegroundColor << KoCanvasResource::BackgroundColor;
     }

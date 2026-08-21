@@ -314,7 +314,7 @@ public:
     /// reimplemented
     void colorAt(KoColor& dst, qreal t) const override;
 
-    PkVector<int> requiredCanvasResources() const override;
+    PkList<int> requiredCanvasResources() const override;
     void bakeVariableColors(KoCanvasResourcesInterfaceSP canvasResourcesInterface) override;
     void updateVariableColors(KoCanvasResourcesInterfaceSP canvasResourcesInterface) override;
 

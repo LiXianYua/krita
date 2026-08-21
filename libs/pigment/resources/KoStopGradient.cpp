@@ -346,9 +346,9 @@ PkList<KoGradientStop> KoStopGradient::stops() const
     return m_stops;
 }
 
-PkVector<int> KoStopGradient::requiredCanvasResources() const
+PkList<int> KoStopGradient::requiredCanvasResources() const
 {
-    PkVector<int> result;
+    PkList<int> result;
 
     if (std::find_if_not(m_stops.begin(), m_stops.end(),
                          kismpl::mem_equal_to(&KoGradientStop::type, COLORSTOP))

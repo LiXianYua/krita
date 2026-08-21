@@ -11,7 +11,7 @@
 #include <PkString.h>
 #include <PkSharedPointer.h>
 #include <PkDebug.h>
-#include <PkVector.h>
+#include <PkList.h>
 #include <PkMap.h>
 #include <PkVariant.h>
 #include <PkStringHash.h>
@@ -219,7 +219,7 @@ public:
      *
      * The set of resources returned is basically: linkedResources() + embeddedResources()
      */
-    PkVector<KoResourceLoadResult> requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    PkList<KoResourceLoadResult> requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     /**
      * @return all the resources that are needed but (*this) resource and
@@ -227,7 +227,7 @@ public:
      * \p globalResourcesInterface. If fetching of some resources is failed,
      * then (*this) resource is invalid.
      */
-    virtual PkVector<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    virtual PkList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     /**
      * @return all the resources that were embedded into (*this) resource.
@@ -237,7 +237,7 @@ public:
      * These resources are embedded into the resource itself and are available
      * throughout the entire lifetime of the resource.
      */
-    virtual PkVector<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    virtual PkList<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     /**
      * Returns all the side-loaded resources and clears the memory under them,
@@ -245,7 +245,7 @@ public:
      *
      * It is basically a combination of sideLoadedResources() + clearSideLoadedResources().
      */
-    PkVector<KoResourceLoadResult> takeSideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface);
+    PkList<KoResourceLoadResult> takeSideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface);
 
     /**
      * Side-loaded resources are the resources embedded into the file format and
@@ -255,7 +255,7 @@ public:
      * After the locator has loaded them into the global storage, it can free the
      * memory by calling clearSideLoadedResources().
      */
-    virtual PkVector<KoResourceLoadResult> sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    virtual PkList<KoResourceLoadResult> sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     /**
      * Clears memory under side-loaded resources. The method is called by
@@ -271,7 +271,7 @@ public:
      *
      * @return a list of canvas resources needed for the current resource
      */
-    virtual PkVector<int> requiredCanvasResources() const;
+    virtual PkList<int> requiredCanvasResources() const;
 
 private:
     struct Private;

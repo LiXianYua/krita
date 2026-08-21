@@ -240,33 +240,33 @@ int KoResource::resourceId() const
     return d->resourceId;
 }
 
-PkVector<KoResourceLoadResult> KoResource::requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KoResource::requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    PkVector<KoResourceLoadResult> result = linkedResources(globalResourcesInterface);
+    PkList<KoResourceLoadResult> result = linkedResources(globalResourcesInterface);
     result += embeddedResources(globalResourcesInterface);
     return result;
 }
 
-PkVector<KoResourceLoadResult> KoResource::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KoResource::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
     (void)globalResourcesInterface;
     return {};
 }
 
-PkVector<KoResourceLoadResult> KoResource::embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KoResource::embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
     (void)globalResourcesInterface;
     return {};
 }
 
-PkVector<KoResourceLoadResult> KoResource::takeSideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface)
+PkList<KoResourceLoadResult> KoResource::takeSideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface)
 {
-    PkVector<KoResourceLoadResult> result = sideLoadedResources(globalResourcesInterface);
+    PkList<KoResourceLoadResult> result = sideLoadedResources(globalResourcesInterface);
     clearSideLoadedResources();
     return result;
 }
 
-PkVector<KoResourceLoadResult> KoResource::sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KoResource::sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
     (void)globalResourcesInterface;
     return {};
@@ -276,7 +276,7 @@ void KoResource::clearSideLoadedResources()
 {
 }
 
-PkVector<int> KoResource::requiredCanvasResources() const
+PkList<int> KoResource::requiredCanvasResources() const
 {
     return {};
 }

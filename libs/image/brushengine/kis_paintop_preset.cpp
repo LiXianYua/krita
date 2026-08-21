@@ -31,7 +31,6 @@
 
 #include <PkString.h>
 #include <PkStringList.h>
-#include <PkVector.h>
 #include <PkList.h>
 #include <PkScopedPointer.h>
 #include <PkPointer.h>
@@ -101,7 +100,7 @@ public:
     PkScopedPointer<KisPaintOpPresetUpdateProxy> updateProxy;
     KisPaintOpSettings::UpdateListenerSP settingsUpdateListener;
     PkString version;
-    PkVector<KoResourceLoadResult> sideLoadedResources;
+    PkList<KoResourceLoadResult> sideLoadedResources;
 };
 
 
@@ -297,7 +296,7 @@ void KisPaintOpPreset::toXML(PkXmlDocument& doc, PkXmlElement& elt) const
     elt.setAttribute("name", name());
 
 
-    PkVector<KoResourceLoadResult> linkedResources = this->linkedResources(resourcesInterface());
+    PkList<KoResourceLoadResult> linkedResources = this->linkedResources(resourcesInterface());
 
     elt.setAttribute("embedded_resources", KisDomUtils::toString(linkedResources.count()));
 
@@ -459,7 +458,7 @@ void KisPaintOpPreset::updateLinkedResourcesMetaData()
 
     if (d->version == "2.2") {
         KisResourcesInterfaceSP fakeResourcesInterface(new KisLocalStrokeResources());
-        PkVector<KoResourceLoadResult> dependentResources = this->linkedResources(fakeResourcesInterface);
+        PkList<KoResourceLoadResult> dependentResources = this->linkedResources(fakeResourcesInterface);
 
         PkStringList resourceFileNames;
 
@@ -554,7 +553,7 @@ KisPaintOpPresetSP KisPaintOpPreset::cloneWithResourcesSnapshot(KisResourcesInte
     KisPaintOpPresetSP result =
             KisRequiredResourcesOperators::cloneWithResourcesSnapshot<KisPaintOpPresetSP>(this, globalResourcesInterface);
 
-    const PkVector<int> canvasResources = result->requiredCanvasResources();
+    const PkList<int> canvasResources = result->requiredCanvasResources();
     if (!canvasResources.isEmpty()) {
         KoLocalStrokeCanvasResourcesSP storage(new KoLocalStrokeCanvasResources());
         for (int key : canvasResources) {
@@ -578,9 +577,9 @@ KisPaintOpPresetSP KisPaintOpPreset::cloneWithResourcesSnapshot(KisResourcesInte
     return result;
 }
 
-PkVector<KoResourceLoadResult> KisPaintOpPreset::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KisPaintOpPreset::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    PkVector<KoResourceLoadResult> resources;
+    PkList<KoResourceLoadResult> resources;
 
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(d->settings, resources);
 
@@ -601,9 +600,9 @@ PkVector<KoResourceLoadResult> KisPaintOpPreset::linkedResources(KisResourcesInt
     return resources;
 }
 
-PkVector<KoResourceLoadResult> KisPaintOpPreset::embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KisPaintOpPreset::embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    PkVector<KoResourceLoadResult> resources;
+    PkList<KoResourceLoadResult> resources;
 
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(d->settings, resources);
 
@@ -623,9 +622,9 @@ PkVector<KoResourceLoadResult> KisPaintOpPreset::embeddedResources(KisResourcesI
     return resources;
 }
 
-PkVector<KoResourceLoadResult> KisPaintOpPreset::sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KisPaintOpPreset::sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    PkVector<KoResourceLoadResult> resources;
+    PkList<KoResourceLoadResult> resources;
 
     for (const KoResourceLoadResult &resource : d->sideLoadedResources) {
         KoResourceSignature sig = resource.signature();
@@ -648,9 +647,9 @@ void KisPaintOpPreset::clearSideLoadedResources()
     d->sideLoadedResources.clear();
 }
 
-PkVector<int> KisPaintOpPreset::requiredCanvasResources() const
+PkList<int> KisPaintOpPreset::requiredCanvasResources() const
 {
-    return d->settings ? d->settings->requiredCanvasResources().toVector() : PkVector<int>();
+    return d->settings ? d->settings->requiredCanvasResources() : PkList<int>();
 }
 
 void KisPaintOpPreset::setResourceCacheInterface(KoResourceCacheInterfaceSP cacheInterface)

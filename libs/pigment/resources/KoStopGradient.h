@@ -130,7 +130,7 @@ public:
     void setStops(PkList<KoGradientStop> stops);
     PkList<KoGradientStop> stops() const;
 
-    PkVector<int> requiredCanvasResources() const override;
+    PkList<int> requiredCanvasResources() const override;
     void bakeVariableColors(KoCanvasResourcesInterfaceSP canvasResourcesInterface) override;
     void updateVariableColors(KoCanvasResourcesInterfaceSP canvasResourcesInterface) override;
 
