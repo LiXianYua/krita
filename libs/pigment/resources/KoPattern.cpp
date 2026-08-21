@@ -16,6 +16,7 @@
 #include <filesystem>
 #include <limits.h>
 #include <stdlib.h>
+#include <vector>
 
 #include <PkMimeDatabase.h>
 #include <PkMemoryStream.h>
@@ -58,6 +59,20 @@ PkString fileExtensionUpper(const PkString &filename)
         ext = ext.substr(1);
     }
     return PkString::PkFromUtf8(ext.data(), static_cast<int>(ext.size())).toUpper();
+}
+
+// readAllFromStream：PkStream::readAll()（PkByteArray 形态）在 pk/port 刻意声明
+// 不定义（R-12），这里用 char* read() 循环读全——与 PkTextStream.cpp 构造器同款
+// 模式，字节等价。
+PkByteArray readAllFromStream(PkStream *dev)
+{
+    std::vector<uint8_t> buf;
+    char chunk[8192];
+    PkStream::pk_int64 n = 0;
+    while ((n = dev->read(chunk, static_cast<PkStream::pk_int64>(sizeof(chunk)))) > 0) {
+        buf.insert(buf.end(), chunk, chunk + n);
+    }
+    return PkByteArray(buf);
 }
 
 // 图像文件编解码是 pk/image 的已知缺口（岔路 A，pk/image/README.md 待认领缺口①）：
@@ -113,7 +128,7 @@ KoResourceSP KoPattern::clone() const
 
 bool KoPattern::loadPatFromDevice(PkStream *dev)
 {
-    PkByteArray bytes = dev->readAll();
+    PkByteArray bytes = readAllFromStream(dev);
     int dataSize = bytes.size();
     const char* data = bytes.constData();
 
@@ -319,7 +334,7 @@ bool KoPattern::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesI
 {
     Q_UNUSED(resourcesInterface);
 
-    PkByteArray ba = dev->readAll();
+    PkByteArray ba = readAllFromStream(dev);
 
     PkMemoryStream buf;
     buf.open(PkStream::ReadWrite);

@@ -2060,11 +2060,10 @@ bool KoColorSet::Private::loadKplProfiles(std::unique_ptr<KoStore> &store)
         return false;
     }
 
-    PkByteArray bytes = store->read(store->size());
-    store->close();
-
     PkXmlDocument doc;
-    if(!doc.setContent(bytes)) {
+    const bool ok = doc.setContent(store->device());
+    store->close();
+    if (!ok) {
         return false;
     }
 
@@ -2094,11 +2093,10 @@ bool KoColorSet::Private::loadKplColorset(std::unique_ptr<KoStore> &store)
         return false;
     }
 
-    PkByteArray bytes = store->read(store->size());
-    store->close();
-
     PkXmlDocument doc;
-    if (!doc.setContent(bytes)) {
+    const bool ok = doc.setContent(store->device());
+    store->close();
+    if (!ok) {
         return false;
     }
 
@@ -2246,15 +2244,15 @@ bool KoColorSet::Private::loadSbzSwatchbook(std::unique_ptr<KoStore> &store)
         return false;
     }
 
-    PkByteArray bytes = store->read(store->size());
+    PkXmlDocument doc;
+    int errorLine, errorColumn;
+    PkString errorMessage;
+    const bool ok = doc.setContent(store->device(), &errorMessage, &errorLine, &errorColumn);
     store->close();
 
     dbgPigment << "XML palette: " << colorSet->filename() << ", SwatchBooker format";
 
-    PkXmlDocument doc;
-    int errorLine, errorColumn;
-    PkString errorMessage;
-    if (!doc.setContent(bytes, &errorMessage, &errorLine, &errorColumn)) {
+    if (!ok) {
         warnPigment << "Illegal XML palette:" << colorSet->filename();
         warnPigment << "Error (line" << errorLine
                     << ", column" << errorColumn
