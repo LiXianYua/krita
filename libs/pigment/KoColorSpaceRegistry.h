@@ -8,10 +8,13 @@
 #ifndef KOCOLORSPACEREGISTRY_H
 #define KOCOLORSPACEREGISTRY_H
 
-#include <QObject>
-#include <QList>
-#include <QString>
+#include <PkList.h>
+#include <PkString.h>
 #include "kritapigment_export.h"
+
+#include <PkVector.h>
+#include <PkAuxTypes.h>
+#include <PkPair.h>
 
 #include <KoGenericRegistry.h>
 #include <KoColorSpace.h>
@@ -104,17 +107,17 @@ public:
      * Create an alias to a profile with a different name. Then @ref profileByName
      * will return the profile @p to when passed @p name as a parameter.
      */
-    void addProfileAlias(const QString& name, const QString& to);
+    void addProfileAlias(const PkString& name, const PkString& to);
 
     /**
      * @return the profile alias, or name if not aliased
      */
-    QString profileAlias(const QString& name) const;
+    PkString profileAlias(const PkString& name) const;
 
     /**
      * create a profile of the specified type.
      */
-    const KoColorProfile *createColorProfile(const QString & colorModelId, const QString & colorDepthId, const QByteArray& rawData);
+    const KoColorProfile *createColorProfile(const PkString & colorModelId, const PkString & colorDepthId, const PkByteArray& rawData);
 
     /**
      * Return a profile by its given name, or 0 if none registered.
@@ -123,7 +126,7 @@ public:
      * @see addProfile()
      * @see KoColorProfile::productName()
      */
-    const KoColorProfile * profileByName(const QString & name) const ;
+    const KoColorProfile * profileByName(const PkString & name) const ;
 
 
     /**
@@ -133,9 +136,9 @@ public:
      * @param id unique ProfileID of the profile (MD5 sum of its header)
      * @return the profile or 0 if not found
      */
-    const KoColorProfile *profileByUniqueId(const QByteArray &id) const;
+    const KoColorProfile *profileByUniqueId(const PkByteArray &id) const;
 
-    bool profileIsCompatible(const KoColorProfile* profile, const QString &colorSpaceId);
+    bool profileIsCompatible(const KoColorProfile* profile, const PkString &colorSpaceId);
 
     /**
      * Return the list of profiles for a colorspace with the argument id.
@@ -145,8 +148,8 @@ public:
      * @param colorSpaceId the colorspace-id with which all the returned profiles will work.
      * @return a list of profiles for the factory
      */
-    QList<const KoColorProfile *>  profilesFor(const QString& csID) const;
-    QString defaultProfileForColorSpace(const QString &colorSpaceId) const;
+    PkList<const KoColorProfile *>  profilesFor(const PkString& csID) const;
+    PkString defaultProfileForColorSpace(const PkString &colorSpaceId) const;
 
     /**
      * This function is called by the color space to create a color conversion
@@ -172,7 +175,7 @@ public:
      * @param toCS the revert conversion to the source color space will be affected to this
      *             variable
      */
-    void createColorConverters(const KoColorSpace* colorSpace, const QList< QPair<KoID, KoID> >& possibilities, KoColorConversionTransformation*& fromCS, KoColorConversionTransformation*& toCS) const;
+    void createColorConverters(const KoColorSpace* colorSpace, const PkList< PkPair<KoID, KoID> >& possibilities, KoColorConversionTransformation*& fromCS, KoColorConversionTransformation*& toCS) const;
 
     /**
      * Return a colorspace that works with the parameter profile.
@@ -180,16 +183,16 @@ public:
      * @param profile the profile be combined with the colorspace
      * @return the wanted colorspace, or 0 when the cs and profile can not be combined.
      */
-    const KoColorSpace * colorSpace(const QString & colorModelId, const QString & colorDepthId, const KoColorProfile *profile);
+    const KoColorSpace * colorSpace(const PkString & colorModelId, const PkString & colorDepthId, const KoColorProfile *profile);
 
     /**
      * Return a colorspace that works with the parameter profile.
      * @param profileName the name of the KoColorProfile to be combined with the colorspace
      * @return the wanted colorspace, or 0 when the cs and profile can not be combined.
      */
-    const KoColorSpace * colorSpace(const QString & colorModelId, const QString & colorDepthId, const QString &profileName);
+    const KoColorSpace * colorSpace(const PkString & colorModelId, const PkString & colorDepthId, const PkString &profileName);
 
-    const KoColorSpace * colorSpace(const QString & colorModelId, const QString & colorDepthId);
+    const KoColorSpace * colorSpace(const PkString & colorModelId, const PkString & colorDepthId);
 
     /**
      * Return the id of the colorspace that have the defined colorModelId with colorDepthId.
@@ -197,7 +200,7 @@ public:
      * @param colorDepthId id of the color depth
      * @return the id of the wanted colorspace, or "" if no colorspace correspond to those ids
      */
-    QString colorSpaceId(const QString & colorModelId, const QString & colorDepthId) const;
+    PkString colorSpaceId(const PkString & colorModelId, const PkString & colorDepthId) const;
     /**
      * It's a convenient function that behave like the above.
      * Return the id of the colorspace that have the defined colorModelId with colorDepthId.
@@ -205,7 +208,7 @@ public:
      * @param colorDepthId id of the color depth
      * @return the id of the wanted colorspace, or "" if no colorspace correspond to those ids
      */
-    QString colorSpaceId(const KoID& colorModelId, const KoID& colorDepthId) const;
+    PkString colorSpaceId(const KoID& colorModelId, const KoID& colorDepthId) const;
 
     /**
      * @return the identifier of the color model for the given color space id.
@@ -213,7 +216,7 @@ public:
      * This function is a compatibility function used to get the color space from
      * all kra files.
      */
-    KoID colorSpaceColorModelId(const QString & _colorSpaceId) const;
+    KoID colorSpaceColorModelId(const PkString & _colorSpaceId) const;
 
     /**
      * @return the identifier of the color depth for the given color space id.
@@ -221,7 +224,7 @@ public:
      * This function is a compatibility function used to get the color space from
      * all kra files.
      */
-    KoID colorSpaceColorDepthId(const QString & _colorSpaceId) const;
+    KoID colorSpaceColorDepthId(const PkString & _colorSpaceId) const;
 
     /**
      * Convenience methods to get the often used alpha colorspaces
@@ -239,7 +242,7 @@ public:
      * @param profile the profile name
      * @return an 8 bit graya colorspace with the default profile or 0.
      */
-    const KoColorSpace *graya8(const QString &profile = QString());
+    const KoColorSpace *graya8(const PkString &profile = PkString());
 
     /**
      * Convenience method to get a GRAYA 8 bit colorspace. If a profile is not specified,
@@ -255,7 +258,7 @@ public:
      * @param the profile
      * @return an 8 bit graya colorspace with the default profile or 0.
      */
-    const KoColorSpace *graya16(const QString &profile = QString());
+    const KoColorSpace *graya16(const PkString &profile = PkString());
 
     /**
      * Convenience method to get a GRAYA 16 bit colorspace. If a profile is not specified,
@@ -272,7 +275,7 @@ public:
      * @param profileName the name of an RGB color profile
      * @return the wanted colorspace, or 0 if the color space and profile can not be combined.
      */
-    const KoColorSpace * rgb8(const QString &profileName = QString());
+    const KoColorSpace * rgb8(const PkString &profileName = PkString());
 
     /**
      * Convenience method to get an RGBA 8bit colorspace with the given profile.
@@ -287,7 +290,7 @@ public:
      * @param profileName the name of an RGB color profile
      * @return the wanted colorspace, or 0 if the color space and profile can not be combined.
      */
-    const KoColorSpace * rgb16(const QString &profileName = QString());
+    const KoColorSpace * rgb16(const PkString &profileName = PkString());
 
     /**
      * Convenience method to get an RGBA 16bit colorspace with the given profile.
@@ -302,7 +305,7 @@ public:
      * @param profileName the name of an Lab color profile
      * @return the wanted colorspace, or 0 if the color space and profile can not be combined.
      */
-    const KoColorSpace * lab16(const QString &profileName = QString());
+    const KoColorSpace * lab16(const PkString &profileName = PkString());
 
     /**
      * Convenience method to get an Lab 16bit colorspace with the given profile.
@@ -344,22 +347,22 @@ public:
      * @param transferFunction the transfer function, as defined in KoColorProfile.
      * @return a profile that matches these characteristics.
      */
-    const KoColorProfile *profileFor(const QVector<double> &colorants, ColorPrimaries colorPrimaries, TransferCharacteristics transferFunction) const;
+    const KoColorProfile *profileFor(const PkVector<double> &colorants, ColorPrimaries colorPrimaries, TransferCharacteristics transferFunction) const;
 
     /**
      * @return the list of available color models
      */
-    QList<KoID> colorModelsList(ColorSpaceListVisibility option) const;
+    PkList<KoID> colorModelsList(ColorSpaceListVisibility option) const;
 
     /**
      * @return the list of available color models for the given colorModelId
      */
-    QList<KoID> colorDepthList(const KoID& colorModelId, ColorSpaceListVisibility option) const;
+    PkList<KoID> colorDepthList(const KoID& colorModelId, ColorSpaceListVisibility option) const;
 
     /**
      * @return the list of available color models for the given colorModelId
      */
-    QList<KoID> colorDepthList(const QString & colorModelId, ColorSpaceListVisibility option) const;
+    PkList<KoID> colorDepthList(const PkString & colorModelId, ColorSpaceListVisibility option) const;
 
     /**
      * @return the cache of color conversion transformation to be use by KoColorSpace
@@ -376,7 +379,7 @@ public:
      * This function return a list of all the keys in KoID format by using the name() method
      * on the objects stored in the registry.
      */
-    QList<KoID> listKeys() const;
+    PkList<KoID> listKeys() const;
 
 private:
 
@@ -393,7 +396,7 @@ private:
     /**
      * @return a list with an instance of all color space with their default profile.
      */
-    QList<const KoColorSpace*> allColorSpaces(ColorSpaceListVisibility visibility, ColorSpaceListProfilesSelection pSelection);
+    PkList<const KoColorSpace*> allColorSpaces(ColorSpaceListVisibility visibility, ColorSpaceListProfilesSelection pSelection);
 
     /**
      * @return the color conversion system use by the registry and the color
