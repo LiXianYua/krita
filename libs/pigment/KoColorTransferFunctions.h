@@ -9,7 +9,7 @@
 
 #include <cmath>
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 #include <KoAlwaysInline.h>
 

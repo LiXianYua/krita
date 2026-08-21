@@ -11,6 +11,10 @@
 #include <KoGenericRegistry.h>
 #include <KoColorProfileConstants.h>
 
+#include <PkString.h>
+#include <PkAuxTypes.h>
+#include <PkVector.h>
+
 class KoColorProfile;
 
 /**
@@ -29,12 +33,12 @@ class KoColorProfile;
 class KRITAPIGMENT_EXPORT KoColorSpaceEngine : public KoColorConversionTransformationAbstractFactory
 {
 public:
-    KoColorSpaceEngine(const QString& id, const QString& name);
+    KoColorSpaceEngine(const PkString& id, const PkString& name);
     ~KoColorSpaceEngine() override;
-    const QString& id() const;
-    const QString& name() const;
-    virtual const KoColorProfile* addProfile(const QString &filename) = 0;
-    virtual const KoColorProfile* addProfile(const QByteArray &data) = 0;
+    const PkString& id() const;
+    const PkString& name() const;
+    virtual const KoColorProfile* addProfile(const PkString &filename) = 0;
+    virtual const KoColorProfile* addProfile(const PkByteArray &data) = 0;
     /**
      * @brief getProfile
      * This tries to generate a profile with the given characteristics and add it to the registry.
@@ -45,13 +49,13 @@ public:
      * @param transferFunction the transfer function, as defined in KoColorProfile.
      * @return a profile that matches these characteristics.
      */
-    virtual const KoColorProfile* getProfile(const QVector<double> &colorants, ColorPrimaries colorPrimaries, TransferCharacteristics transferFunction) = 0;
-    virtual void removeProfile(const QString &filename) = 0;
+    virtual const KoColorProfile* getProfile(const PkVector<double> &colorants, ColorPrimaries colorPrimaries, TransferCharacteristics transferFunction) = 0;
+    virtual void removeProfile(const PkString &filename) = 0;
 
     /**
      * \return true if the color space can be converted via this engine
      */
-    virtual bool supportsColorSpace(const QString& colorModelId, const QString& colorDepthId, const KoColorProfile *profile) const;
+    virtual bool supportsColorSpace(const PkString& colorModelId, const PkString& colorDepthId, const KoColorProfile *profile) const;
 
 private:
     struct Private;

@@ -93,8 +93,8 @@ private:
 
     static ThreadLocal &slotFor(const PkThreadStorage *self)
     {
-        static thread_local std::unordered_map<const PkThreadStorage *, ThreadLocal> slots;
-        return slots[self];
+        static thread_local std::unordered_map<const PkThreadStorage *, ThreadLocal> slotMap;
+        return slotMap[self];
     }
 };
 

@@ -8,7 +8,7 @@
 #define _KO_COLOR_SPACE_CONSTANTS_H_
 
 #include <climits>
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 // TODO: find a better place or way to define those stuff
 const quint8 OPACITY_TRANSPARENT_U8 = 0;

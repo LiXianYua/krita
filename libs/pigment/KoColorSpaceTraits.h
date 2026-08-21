@@ -7,7 +7,9 @@
 #ifndef _KO_COLORSPACE_TRAITS_H_
 #define _KO_COLORSPACE_TRAITS_H_
 
-#include <QVector>
+#include <PkVector.h>
+#include <PkRgb.h>
+#include <PkString.h>
 #include <type_traits>
 
 #include "KoColorSpaceConstants.h"
@@ -143,25 +145,25 @@ struct KoColorSpaceTrait {
         }
     }
 
-    inline static QString channelValueText(const quint8 *pixel, quint32 channelIndex) {
-        if (channelIndex > channels_nb) return QString("Error");
+    inline static PkString channelValueText(const quint8 *pixel, quint32 channelIndex) {
+        if (channelIndex > channels_nb) return PkString("Error");
         channels_type c = nativeArray(pixel)[channelIndex];
         return PkString("%1").arg(c);
     }
 
-    inline static QString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) {
-        if (channelIndex > channels_nb) return QString("Error");
+    inline static PkString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) {
+        if (channelIndex > channels_nb) return PkString("Error");
         channels_type c = nativeArray(pixel)[channelIndex];
         return PkString("%1").arg(100. *((qreal)c) / KoColorSpaceMathsTraits< channels_type>::unitValue);
     }
 
-    inline static void normalisedChannelsValue(const quint8 *pixel, QVector<float> &v)
+    inline static void normalisedChannelsValue(const quint8 *pixel, PkVector<float> &v)
     {
         return normalisedChannelsValueImpl<channels_type>(pixel, v);
     }
 
     template<typename I, typename std::enable_if_t<std::numeric_limits<I>::is_integer, int> = 1>
-    inline static void normalisedChannelsValueImpl(const quint8 *pixel, QVector<float> &v)
+    inline static void normalisedChannelsValueImpl(const quint8 *pixel, PkVector<float> &v)
     {
         Q_ASSERT((int)v.count() >= (int)channels_nb);
         channels_type c;
@@ -173,7 +175,7 @@ struct KoColorSpaceTrait {
     }
 
     template<typename I, typename std::enable_if_t<!std::numeric_limits<I>::is_integer, int> = 1>
-    inline static void normalisedChannelsValueImpl(const quint8 *pixel, QVector<float> &v)
+    inline static void normalisedChannelsValueImpl(const quint8 *pixel, PkVector<float> &v)
     {
         Q_ASSERT((int)v.count() >= (int)channels_nb);
         float *channels = v.data();
@@ -182,13 +184,13 @@ struct KoColorSpaceTrait {
         }
     }
 
-    inline static void fromNormalisedChannelsValue(quint8 *pixel, const QVector<float> &values)
+    inline static void fromNormalisedChannelsValue(quint8 *pixel, const PkVector<float> &values)
     {
         return fromNormalisedChannelsValueImpl<channels_type>(pixel, values);
     }
 
     template<typename I, typename std::enable_if_t<std::numeric_limits<I>::is_integer, int> = 1>
-    inline static void fromNormalisedChannelsValueImpl(quint8 *pixel, const QVector<float> &values)
+    inline static void fromNormalisedChannelsValueImpl(quint8 *pixel, const PkVector<float> &values)
     {
         Q_ASSERT((int)values.count() >= (int)channels_nb);
         channels_type c;
@@ -204,7 +206,7 @@ struct KoColorSpaceTrait {
     }
 
     template<typename I, typename std::enable_if_t<!std::numeric_limits<I>::is_integer, int> = 1>
-    inline static void fromNormalisedChannelsValueImpl(quint8 *pixel, const QVector<float> &values)
+    inline static void fromNormalisedChannelsValueImpl(quint8 *pixel, const PkVector<float> &values)
     {
         Q_ASSERT((int)values.count() >= (int)channels_nb);
         const float *v = values.data();
@@ -275,11 +277,11 @@ struct KoColorSpaceTrait {
     }
 
 
-    inline static void fillGrayBrushWithColor(quint8 *pixels, const QRgb *brush, quint8 *brushColor, qint32 nPixels) {
+    inline static void fillGrayBrushWithColor(quint8 *pixels, const PkRgb *brush, quint8 *brushColor, qint32 nPixels) {
         if (alpha_pos >= 0) {
             for (; nPixels > 0; --nPixels, pixels += pixelSize, ++brush) {
                 memcpy(pixels, brushColor, pixelSize);
-                const quint8 opacity = KoColorSpaceMaths<quint8>::multiply(OPACITY_OPAQUE_U8 - quint8(qRed(*brush)), quint8(qAlpha(*brush)));
+                const quint8 opacity = KoColorSpaceMaths<quint8>::multiply(OPACITY_OPAQUE_U8 - quint8(pkRed(*brush)), quint8(pkAlpha(*brush)));
                 *(nativeArray(pixels) + alpha_pos) = KoColorSpaceMaths<quint8, channels_type>::scaleToA(opacity);
             }
         } else {

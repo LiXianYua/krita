@@ -11,20 +11,22 @@
 #include "KoColorSpace.h"
 #include "KoColorSpaceEngine.h"
 #include "KoColorConversionTransformation.h"
-#include <QThreadStorage>
-#include <QPolygonF>
+#include <PkThreadStorage.h>
+#include <PkPolygon.h>
+#include <PkStringHash.h>
+#include <PkMap.h>
 
-struct Q_DECL_HIDDEN KoColorSpace::Private {
+struct KoColorSpace::Private {
     /**
      * Returns the thread-local conversion cache. If it doesn't exist
      * yet, it is created. If it is currently too small, it is resized.
      */
     struct ThreadLocalCache {
-        QVector<quint8> * get(quint32 size)
+        PkVector<quint8> * get(quint32 size)
         {
-            QVector<quint8> * ba = 0;
+            PkVector<quint8> * ba = nullptr;
             if (!m_cache.hasLocalData()) {
-                ba = new QVector<quint8>(size, '0');
+                ba = new PkVector<quint8>(size, '0');
                 m_cache.setLocalData(ba);
             } else {
                 ba = m_cache.localData();
@@ -34,18 +36,18 @@ struct Q_DECL_HIDDEN KoColorSpace::Private {
             return ba;
         }
     private:
-        QThreadStorage<QVector<quint8>*> m_cache;
+        PkThreadStorage<PkVector<quint8>> m_cache;
     };
 
 
-    QString id;
+    PkString id;
     quint32 idNumber;
-    QString name;
-    QHash<QString, KoCompositeOp*> compositeOps;
-    QList<KoChannelInfo *> channels;
+    PkString name;
+    PkHash<PkString, KoCompositeOp*> compositeOps;
+    PkList<KoChannelInfo *> channels;
     KoMixColorsOp* mixColorsOp;
     KoConvolutionOp* convolutionOp;
-    QHash<QString, QMap<DitherType, KisDitherOp*>> ditherOps;
+    PkHash<PkString, PkMap<DitherType, KisDitherOp*>> ditherOps;
 
     mutable ThreadLocalCache conversionCache;
     mutable ThreadLocalCache channelFlagsApplicationCache;
@@ -55,10 +57,10 @@ struct Q_DECL_HIDDEN KoColorSpace::Private {
     mutable KoColorConversionTransformation* transfoToLABA16;
     mutable KoColorConversionTransformation* transfoFromLABA16;
     
-    QPolygonF gamutXYY;
-    QPolygonF TRCXYY;
-    QVector <qreal> colorants;
-    QVector <qreal> lumaCoefficients;
+    PkPolygonF gamutXYY;
+    PkPolygonF TRCXYY;
+    PkVector<qreal> colorants;
+    PkVector<qreal> lumaCoefficients;
 
     KoColorSpaceEngine *iccEngine;
 

@@ -8,8 +8,10 @@
 #ifndef KOCOLORSPACEABSTRACT_H
 #define KOCOLORSPACEABSTRACT_H
 
-#include <QBitArray>
-#include <klocalizedstring.h>
+#include <PkColor.h>
+#include <PkVector.h>
+#include <PkBitArray.h>
+#include <PkScopedPointer.h>
 
 #include <KoColorSpace.h>
 #include <KoColorProfile.h>
@@ -41,7 +43,7 @@ public:
     typedef _CSTrait ColorSpaceTraits;
 
 public:
-    KoColorSpaceAbstract(const QString &id, const QString &name)
+    KoColorSpaceAbstract(const PkString &id, const PkString &name)
         : KoColorSpace(id, name, new KoMixColorsOpImpl< _CSTrait>(), new KoConvolutionOpImpl< _CSTrait>()),
           m_alphaMaskApplicator(KoAlphaMaskApplicatorFactory::create(colorDepthIdForChannelType<typename _CSTrait::channels_type>(), _CSTrait::channels_nb, _CSTrait::alpha_pos))
     {
@@ -67,19 +69,19 @@ public:
         return _CSTrait::pixelSize;
     }
 
-    QString channelValueText(const quint8 *pixel, quint32 channelIndex) const override {
+    PkString channelValueText(const quint8 *pixel, quint32 channelIndex) const override {
         return _CSTrait::channelValueText(pixel, channelIndex);
     }
 
-    QString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) const override {
+    PkString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) const override {
         return _CSTrait::normalisedChannelValueText(pixel, channelIndex);
     }
 
-    void normalisedChannelsValue(const quint8 *pixel, QVector<float> &channels) const override {
+    void normalisedChannelsValue(const quint8 *pixel, PkVector<float> &channels) const override {
         return _CSTrait::normalisedChannelsValue(pixel, channels);
     }
 
-    void fromNormalisedChannelsValue(quint8 *pixel, const QVector<float> &values) const override {
+    void fromNormalisedChannelsValue(quint8 *pixel, const PkVector<float> &values) const override {
         return _CSTrait::fromNormalisedChannelsValue(pixel, values);
     }
 
@@ -136,19 +138,19 @@ public:
         m_alphaMaskApplicator->fillInverseAlphaNormedFloatMaskWithColor(pixels, alpha, brushColor, nPixels);
     }
 
-    void fillGrayBrushWithColor(quint8 *dst, const QRgb *brush, quint8 *brushColor, qint32 nPixels) const override {
+    void fillGrayBrushWithColor(quint8 *dst, const PkRgb *brush, quint8 *brushColor, qint32 nPixels) const override {
         m_alphaMaskApplicator->fillGrayBrushWithColor(dst, brush, brushColor, nPixels);
     }
 
     /**
      * By default this does the same as toQColor
      */
-    void toQColor16(const quint8 *src, QColor *c) const override {
+    void toQColor16(const quint8 *src, PkColor *c) const override {
         this->toQColor(src, c);
     }
 
     quint8 intensity8(const quint8 * src) const override {
-        QColor c;
+        PkColor c;
         const_cast<KoColorSpaceAbstract<_CSTrait> *>(this)->toQColor(src, &c);
         // Integer version of:
         //      static_cast<quint8>(qRound(c.red() * 0.30 + c.green() * 0.59 + c.blue() * 0.11))
@@ -157,7 +159,7 @@ public:
     }
 
     qreal intensityF(const quint8 * src) const override {
-        QColor c;
+        PkColor c;
         const_cast<KoColorSpaceAbstract<_CSTrait> *>(this)->toQColor16(src, &c);
         return c.redF() * 0.30 + c.greenF() * 0.59 + c.blueF() * 0.11;
     }
@@ -195,7 +197,7 @@ public:
         }
     }
 
-    void convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const QBitArray selectedChannels) const override
+    void convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const PkBitArray selectedChannels) const override
     {
         for (uint pixelIndex = 0; pixelIndex < nPixels; ++pixelIndex) {
             const quint8 *srcPtr = src + pixelIndex * _CSTrait::pixelSize;
@@ -215,7 +217,7 @@ public:
     }
 
 private:
-    QScopedPointer<KoAlphaMaskApplicatorBase> m_alphaMaskApplicator;
+    PkScopedPointer<KoAlphaMaskApplicatorBase> m_alphaMaskApplicator;
 };
 
 #endif // KOCOLORSPACEABSTRACT_H

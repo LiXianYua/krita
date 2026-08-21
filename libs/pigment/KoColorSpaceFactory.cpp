@@ -4,12 +4,16 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoColorSpaceFactory.h"
 
 #include "DebugPigment.h"
 
-#include <QMutex>
-#include <QMutexLocker>
+#include <PkMutex.h>
+#include <PkList.h>
+#include <PkHash.h>
+#include <PkString.h>
 
 #include "KoColorProfile.h"
 #include "KoColorSpace.h"
@@ -17,12 +21,12 @@
 
 #include "kis_assert.h"
 
-struct Q_DECL_HIDDEN KoColorSpaceFactory::Private {
-    QList<KoColorProfile*> colorprofiles;
-    QHash<QString, KoColorSpace* > availableColorspaces;
-    QMutex mutex;
+struct KoColorSpaceFactory::Private {
+    PkList<KoColorProfile*> colorprofiles;
+    PkHash<PkString, KoColorSpace*> availableColorspaces;
+    PkMutex mutex;
 #ifndef NDEBUG
-    QHash<KoColorSpace*, QString> stackInformation;
+    PkHash<KoColorSpace*, PkString> stackInformation;
 #endif
 };
 
@@ -37,7 +41,7 @@ KoColorSpaceFactory::~KoColorSpaceFactory()
     int count = 0;
     count += d->availableColorspaces.size();
 
-    for(QHash<KoColorSpace*, QString>::const_iterator it = d->stackInformation.constBegin();
+    for (PkHash<KoColorSpace*, PkString>::const_iterator it = d->stackInformation.constBegin();
         it != d->stackInformation.constEnd(); ++it)
     {
         errorPigment << "*******************************************";
@@ -45,14 +49,14 @@ KoColorSpaceFactory::~KoColorSpaceFactory()
         errorPigment << it.value();
     }
 #endif
-    Q_FOREACH (KoColorProfile* profile, d->colorprofiles) {
+    for (KoColorProfile* profile : d->colorprofiles) {
         KoColorSpaceRegistry::instance()->removeProfile(profile);
         delete profile;
     }
     delete d;
 }
 
-const KoColorProfile *KoColorSpaceFactory::colorProfile(const QByteArray &rawData, KoColorSpaceFactory::ProfileRegistrationInterface *registrationInterface) const
+const KoColorProfile *KoColorSpaceFactory::colorProfile(const PkByteArray &rawData, KoColorSpaceFactory::ProfileRegistrationInterface *registrationInterface) const
 {
     KoColorProfile* colorProfile = createColorProfile(rawData);
     if (colorProfile && colorProfile->valid()) {
@@ -68,7 +72,7 @@ const KoColorProfile *KoColorSpaceFactory::colorProfile(const QByteArray &rawDat
 
 const KoColorSpace *KoColorSpaceFactory::grabColorSpace(const KoColorProfile * profile)
 {
-    QMutexLocker l(&d->mutex);
+    PkMutexLocker l(&d->mutex);
     Q_ASSERT(profile);
     auto it = d->availableColorspaces.find(profile->name());
     KoColorSpace* cs;

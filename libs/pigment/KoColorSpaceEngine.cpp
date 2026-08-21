@@ -4,19 +4,16 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include <KoColorSpaceEngine.h>
-#include <QGlobalStatic>
-#include <QString>
 
-
-Q_GLOBAL_STATIC(KoColorSpaceEngineRegistry, s_instance)
-
-struct Q_DECL_HIDDEN KoColorSpaceEngine::Private {
-    QString id;
-    QString name;
+struct KoColorSpaceEngine::Private {
+    PkString id;
+    PkString name;
 };
 
-KoColorSpaceEngine::KoColorSpaceEngine(const QString& id, const QString& name) : d(new Private)
+KoColorSpaceEngine::KoColorSpaceEngine(const PkString& id, const PkString& name) : d(new Private)
 {
     d->id = id;
     d->name = name;
@@ -27,17 +24,17 @@ KoColorSpaceEngine::~KoColorSpaceEngine()
     delete d;
 }
 
-const QString& KoColorSpaceEngine::id() const
+const PkString& KoColorSpaceEngine::id() const
 {
     return d->id;
 }
 
-const QString& KoColorSpaceEngine::name() const
+const PkString& KoColorSpaceEngine::name() const
 {
     return d->name;
 }
 
-bool KoColorSpaceEngine::supportsColorSpace(const QString &colorModelId, const QString &colorDepthId, const KoColorProfile *profile) const
+bool KoColorSpaceEngine::supportsColorSpace(const PkString &colorModelId, const PkString &colorDepthId, const KoColorProfile *profile) const
 {
     Q_UNUSED(colorModelId);
     Q_UNUSED(colorDepthId);
@@ -52,12 +49,13 @@ KoColorSpaceEngineRegistry::KoColorSpaceEngineRegistry()
 
 KoColorSpaceEngineRegistry::~KoColorSpaceEngineRegistry()
 {
-    Q_FOREACH (KoColorSpaceEngine* item, values()) {
+    for (KoColorSpaceEngine* item : values()) {
         delete item;
     }
 }
 
 KoColorSpaceEngineRegistry* KoColorSpaceEngineRegistry::instance()
 {
-    return s_instance;
+    static KoColorSpaceEngineRegistry s_instance;
+    return &s_instance;
 }

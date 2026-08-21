@@ -12,6 +12,10 @@
 #include <KoID.h>
 #include "kritapigment_export.h"
 
+#include <PkString.h>
+#include <PkAuxTypes.h>
+#include <PkList.h>
+
 class KoColorProfile;
 class KoColorConversionTransformationFactory;
 
@@ -27,12 +31,12 @@ public:
     /**
      * Return the unchanging name of this color space
      */
-    virtual QString id() const = 0;
+    virtual PkString id() const = 0;
 
     /**
      * return the i18n'able description.
      */
-    virtual QString name() const = 0;
+    virtual PkString name() const = 0;
 
     /**
      * @return true if the color space should be shown in a User Interface, or false
@@ -62,7 +66,7 @@ public:
     /**
      * @return the name of the color space engine for this color space, or "" if none
      */
-    virtual QString colorSpaceEngine() const = 0;
+    virtual PkString colorSpaceEngine() const = 0;
 
     /**
      * @return true if the color space supports High-Dynamic Range.
@@ -83,7 +87,7 @@ public:
      * @return the list of color conversion provided by this colorspace, the factories
      * constructed by this functions are owned by the caller of the function
      */
-    virtual QList<KoColorConversionTransformationFactory*> colorConversionLinks() const = 0;
+    virtual PkList<KoColorConversionTransformationFactory*> colorConversionLinks() const = 0;
 
     /**
      * @return the cost of the usage of the colorspace in the conversion graph. The higher the cost,
@@ -96,12 +100,12 @@ public:
      *
      * @return the default icc profile name
      */
-    virtual QString defaultProfile() const = 0;
+    virtual PkString defaultProfile() const = 0;
 
     struct ProfileRegistrationInterface
     {
         virtual ~ProfileRegistrationInterface() {}
-        virtual const KoColorProfile* profileByName(const QString &profileName) const = 0;
+        virtual const KoColorProfile* profileByName(const PkString &profileName) const = 0;
         virtual void registerNewProfile(KoColorProfile *profile) = 0;
     };
 
@@ -111,7 +115,7 @@ public:
      *
      * This will call the descendant's createColorProfile()
      */
-    const KoColorProfile* colorProfile(const QByteArray& rawData, ProfileRegistrationInterface *registrationInterface) const;
+    const KoColorProfile* colorProfile(const PkByteArray& rawData, ProfileRegistrationInterface *registrationInterface) const;
 
     /**
      * Create or reuse the existing colorspace for the given profile.
@@ -125,7 +129,7 @@ protected:
      * creates a color space using the given profile.
      */
     virtual KoColorSpace *createColorSpace(const KoColorProfile *) const = 0;
-    virtual KoColorProfile* createColorProfile(const QByteArray& rawData) const = 0;
+    virtual KoColorProfile* createColorProfile(const PkByteArray& rawData) const = 0;
 private:
     struct Private;
     Private* const d;
