@@ -23,7 +23,7 @@ struct OverCompositor32 {
             : channelFlags(params.channelFlags)
         {
         }
-        const QBitArray &channelFlags;
+        const PkBitArray &channelFlags;
     };
 
     // \see docs in AlphaDarkenCompositor32
@@ -172,7 +172,7 @@ struct OverCompositor32 {
                     dst[2] = KoStreamedMath<_impl>::lerp_mixed_u8_float(dst[2], src[2], srcBlendNorm);
                 }
             } else {
-                const QBitArray &channelFlags = oparams.channelFlags;
+                const PkBitArray &channelFlags = oparams.channelFlags;
 
                 if (srcBlendNorm == 1.0f) {
                     if(channelFlags.at(0)) dst[0] = src[0];
@@ -218,7 +218,7 @@ public:
     template <bool haveMask>
     inline void composite(const KoCompositeOp::ParameterInfo& params) const {
         if (params.channelFlags.isEmpty() ||
-            params.channelFlags == QBitArray(4, true)) {
+            params.channelFlags == PkBitArray(4, true)) {
 
             KoStreamedMath<_impl>::template genericComposite32<haveMask, false, OverCompositor32<quint8, quint32, false, true> >(params);
         } else {

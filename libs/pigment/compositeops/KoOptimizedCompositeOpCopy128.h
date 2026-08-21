@@ -22,7 +22,7 @@ struct CopyCompositor128 {
             : channelFlags(params.channelFlags)
         {
         }
-        const QBitArray &channelFlags;
+        const PkBitArray &channelFlags;
     };
 
     struct Pixel {
@@ -178,7 +178,7 @@ struct CopyCompositor128 {
                 if (d[alpha_pos] != KoColorSpaceMathsTraits<channels_type>::zeroValue ||
                     alphaLocked) {
 
-                    const QBitArray &channelFlags = oparams.channelFlags;
+                    const PkBitArray &channelFlags = oparams.channelFlags;
                     if (channelFlags.at(0)) d[0] = s[0];
                     if (channelFlags.at(1)) d[1] = s[1];
                     if (channelFlags.at(2)) d[2] = s[2];
@@ -187,7 +187,7 @@ struct CopyCompositor128 {
                 } else {
                     // Precondition: d[alpha_pos] == 0 && !alphaLocked
 
-                    const QBitArray &channelFlags = oparams.channelFlags;
+                    const PkBitArray &channelFlags = oparams.channelFlags;
                     d[0] = channelFlags.at(0) ? s[0] : KoColorSpaceMathsTraits<channels_type>::zeroValue;
                     d[1] = channelFlags.at(1) ? s[1] : KoColorSpaceMathsTraits<channels_type>::zeroValue;
                     d[2] = channelFlags.at(2) ? s[2] : KoColorSpaceMathsTraits<channels_type>::zeroValue;
@@ -204,7 +204,7 @@ struct CopyCompositor128 {
                 if ((allChannelsFlag && !alphaLocked) || dstAlpha == 0.0f) {
                     KoStreamedMathFunctions::clearPixel<sizeof(Pixel)>(dst);
                 } else {
-                    const QBitArray &channelFlags = oparams.channelFlags;
+                    const PkBitArray &channelFlags = oparams.channelFlags;
                     if (channelFlags.at(0)) d[0] = KoColorSpaceMathsTraits<channels_type>::zeroValue;
                     if (channelFlags.at(1)) d[1] = KoColorSpaceMathsTraits<channels_type>::zeroValue;
                     if (channelFlags.at(2)) d[2] = KoColorSpaceMathsTraits<channels_type>::zeroValue;
@@ -253,13 +253,13 @@ struct CopyCompositor128 {
                     d[2] = PixelWrapper<channels_type, _impl>::roundFloatToUint(dst_c3);
                 } else {
                     if (dstAlpha != 0.0f || alphaLocked) {
-                        const QBitArray &channelFlags = oparams.channelFlags;
+                        const PkBitArray &channelFlags = oparams.channelFlags;
                         if (channelFlags.at(0)) d[0] = PixelWrapper<channels_type, _impl>::roundFloatToUint(dst_c1);
                         if (channelFlags.at(1)) d[1] = PixelWrapper<channels_type, _impl>::roundFloatToUint(dst_c2);
                         if (channelFlags.at(2)) d[2] = PixelWrapper<channels_type, _impl>::roundFloatToUint(dst_c3);
                     } else {
                         // Precondition: dstAlpha == 0 && !alphaLocked
-                        const QBitArray &channelFlags = oparams.channelFlags;
+                        const PkBitArray &channelFlags = oparams.channelFlags;
                         d[0] = channelFlags.at(0) ? dst_c1 : KoColorSpaceMathsTraits<channels_type>::zeroValue;
                         d[1] = channelFlags.at(1) ? dst_c2 : KoColorSpaceMathsTraits<channels_type>::zeroValue;
                         d[2] = channelFlags.at(2) ? dst_c3 : KoColorSpaceMathsTraits<channels_type>::zeroValue;
@@ -301,7 +301,7 @@ public:
     template <bool haveMask>
     inline void composite(const KoCompositeOp::ParameterInfo& params) const {
         if (params.channelFlags.isEmpty() ||
-            params.channelFlags == QBitArray(4, true)) {
+            params.channelFlags == PkBitArray(4, true)) {
 
             KoStreamedMath<_impl>::template genericComposite128<haveMask, false, CopyCompositor128<float, false, true> >(params);
         } else {
@@ -345,7 +345,7 @@ public:
     template <bool haveMask>
     inline void composite(const KoCompositeOp::ParameterInfo& params) const {
         if (params.channelFlags.isEmpty() ||
-            params.channelFlags == QBitArray(4, true)) {
+            params.channelFlags == PkBitArray(4, true)) {
 
             KoStreamedMath<_impl>::template genericComposite64<haveMask, false, CopyCompositor128<quint16, false, true> >(params);
         } else {
@@ -390,7 +390,7 @@ public:
     template <bool haveMask>
     inline void composite(const KoCompositeOp::ParameterInfo& params) const {
         if (params.channelFlags.isEmpty() ||
-            params.channelFlags == QBitArray(4, true)) {
+            params.channelFlags == PkBitArray(4, true)) {
 
             KoStreamedMath<_impl>::template genericComposite32<haveMask, false, CopyCompositor128<quint8, false, true> >(params);
         } else {

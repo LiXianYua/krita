@@ -5,6 +5,9 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+// 薄壳预激活（Task 4 先例）：本 TU 经 KoColorSpaceTraits.h 闭包拉入未剥的
+// KoCmykColorSpaceTraits.h，其容器类型依赖需 PkXmlCompat 先激活 compat 映射。仅薄壳可解析。
+#include <PkXmlCompat.h>
 #include "KoOptimizedCompositeOpFactoryPerArch.h"
 
 #include "KoColorSpaceTraits.h"

@@ -24,7 +24,7 @@ struct OverCompositor128 {
             : channelFlags(params.channelFlags)
         {
         }
-        const QBitArray &channelFlags;
+        const PkBitArray &channelFlags;
     };
 
     struct Pixel {
@@ -205,7 +205,7 @@ struct OverCompositor128 {
                     d[2] = PixelWrapper<channels_type, _impl>::lerpMixedUintFloat(d[2], s[2], srcBlendNorm);
                 }
             } else {
-                const QBitArray &channelFlags = oparams.channelFlags;
+                const PkBitArray &channelFlags = oparams.channelFlags;
 
                 if (srcBlendNorm == 1.0f) {
                     if(channelFlags.at(0)) d[0] = s[0];
@@ -258,7 +258,7 @@ public:
     template <bool haveMask>
     inline void composite(const KoCompositeOp::ParameterInfo& params) const {
         if (params.channelFlags.isEmpty() ||
-            params.channelFlags == QBitArray(4, true)) {
+            params.channelFlags == PkBitArray(4, true)) {
 
             KoStreamedMath<_impl>::template genericComposite128<haveMask, false, OverCompositor128<float, false, true> >(params);
         } else {
@@ -302,7 +302,7 @@ public:
     template <bool haveMask>
     inline void composite(const KoCompositeOp::ParameterInfo& params) const {
         if (params.channelFlags.isEmpty() ||
-            params.channelFlags == QBitArray(4, true)) {
+            params.channelFlags == PkBitArray(4, true)) {
 
             KoStreamedMath<_impl>::template genericComposite64<haveMask, false, OverCompositor128<quint16, false, true> >(params);
         } else {
