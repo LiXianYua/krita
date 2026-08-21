@@ -8,10 +8,9 @@
 #ifndef KUNDO2MAGICSTRING_H
 #define KUNDO2MAGICSTRING_H
 
-#include <QString>
-#include <QDebug>
+#include <PkString.h>
+#include <PkDebug.h>
 
-#include <klocalizedstring.h>
 #include <boost/operators.hpp>
 
 #include "kritacommand_export.h"
@@ -19,9 +18,8 @@
 /**
  * \class KUndo2MagicString is a special wrapper for a string that is
  * going to passed to a KUndo2Command and be later shown in the undo
- * history and undo action in menu. The strings like that must have
- * (qtundo-format) context to let translators know that they are
- * allowed to use magic split in them.
+ * history and undo action in menu. The kernel returns the source text
+ * as-is; translation is handled by the Flutter side (D-6).
  *
  * Magic split is used in some languages to split the message in the
  * undo history docker (which is either verb or <a
@@ -41,24 +39,23 @@ class KRITACOMMAND_EXPORT KUndo2MagicString : public boost::equality_comparable<
 public:
     /**
      * Construct an empty string. Note that you cannot create a
-     * non-empty string without special functions, all the calls to which
-     * are processed by xgettext.
+     * non-empty string without the special functions declared below.
      */
     KUndo2MagicString();
 
     /**
-     * Fetch the main translated string. That is the one that goes to
+     * Fetch the main string. That is the one that goes to
      * undo history and resembles the action name in verb/nominative
      */
-    QString toString() const;
+    PkString toString() const;
 
     /**
      * Fetch the secondary string which will go to the undo/redo
-     * action.  This is usually a noun in accusative. If the
-     * translator didn't provide a secondary string, toString() and
+     * action.  This is usually a noun in accusative. If no
+     * secondary string was provided, toString() and
      * toSecondaryString() return the same values.
      */
-    QString toSecondaryString() const;
+    PkString toSecondaryString() const;
 
     /**
      * \return true if the contained string is empty
@@ -70,62 +67,68 @@ public:
 private:
     /**
      * Construction of a magic string is allowed only with the means
-     * of special macros which resemble their kde-wide counterparts
+     * of the special kundo2_text_* functions below.
      */
-    explicit KUndo2MagicString(const QString &text);
+    explicit KUndo2MagicString(const PkString &text);
 
 
-    friend KUndo2MagicString kundo2_noi18n(const QString &text);
+    friend KUndo2MagicString kundo2_text_raw(const PkString &text);
     template <typename A1>
-    friend KUndo2MagicString kundo2_noi18n(const char *text, const A1 &a1);
+    friend KUndo2MagicString kundo2_text_raw(const char *text, const A1 &a1);
     template <typename A1, typename A2>
-    friend KUndo2MagicString kundo2_noi18n(const char *text, const A1 &a1, const A2 &a2);
+    friend KUndo2MagicString kundo2_text_raw(const char *text, const A1 &a1, const A2 &a2);
     template <typename A1, typename A2, typename A3>
-    friend KUndo2MagicString kundo2_noi18n(const char *text, const A1 &a1, const A2 &a2, const A3 &a3);
+    friend KUndo2MagicString kundo2_text_raw(const char *text, const A1 &a1, const A2 &a2, const A3 &a3);
     template <typename A1, typename A2, typename A3, typename A4>
-    friend KUndo2MagicString kundo2_noi18n(const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4);
+    friend KUndo2MagicString kundo2_text_raw(const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4);
 
 
-    friend KUndo2MagicString kundo2_i18n(const char *text);
+    friend KUndo2MagicString kundo2_text(const char *text);
     template <typename A1>
-    friend KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1);
+    friend KUndo2MagicString kundo2_text(const char *text, const A1 &a1);
     template <typename A1, typename A2>
-    friend KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1, const A2 &a2);
+    friend KUndo2MagicString kundo2_text(const char *text, const A1 &a1, const A2 &a2);
     template <typename A1, typename A2, typename A3>
-    friend KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1, const A2 &a2, const A3 &a3);
+    friend KUndo2MagicString kundo2_text(const char *text, const A1 &a1, const A2 &a2, const A3 &a3);
     template <typename A1, typename A2, typename A3, typename A4>
-    friend KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4);
+    friend KUndo2MagicString kundo2_text(const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4);
 
 
-    friend KUndo2MagicString kundo2_i18nc(const char *ctxt, const char *text);
+    friend KUndo2MagicString kundo2_text_ctx(const char *ctxt, const char *text);
     template <typename A1>
-    friend KUndo2MagicString kundo2_i18nc(const char *ctxt, const char *text, const A1 &a1);
+    friend KUndo2MagicString kundo2_text_ctx(const char *ctxt, const char *text, const A1 &a1);
     template <typename A1, typename A2>
-    friend KUndo2MagicString kundo2_i18nc(const char *ctxt, const char *text, const A1 &a1, const A2 &a2);
+    friend KUndo2MagicString kundo2_text_ctx(const char *ctxt, const char *text, const A1 &a1, const A2 &a2);
     template <typename A1, typename A2, typename A3>
-    friend KUndo2MagicString kundo2_i18nc(const char *ctxt, const char *text, const A1 &a1, const A2 &a2, const A3 &a3);
-
-
-    template <typename A1>
-    friend KUndo2MagicString kundo2_i18np(const char *sing, const char *plur, const A1 &a1);
-    template <typename A1, typename A2>
-    friend KUndo2MagicString kundo2_i18np(const char *sing, const char *plur, const A1 &a1, const A2 &a2);
-    template <typename A1, typename A2, typename A3>
-    friend KUndo2MagicString kundo2_i18np(const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3);
+    friend KUndo2MagicString kundo2_text_ctx(const char *ctxt, const char *text, const A1 &a1, const A2 &a2, const A3 &a3);
+    template <typename A1, typename A2, typename A3, typename A4>
+    friend KUndo2MagicString kundo2_text_ctx(const char *ctxt, const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4);
 
 
     template <typename A1>
-    friend KUndo2MagicString kundo2_i18ncp(const char *ctxt, const char *sing, const char *plur, const A1 &a1);
+    friend KUndo2MagicString kundo2_text_plural(const char *sing, const char *plur, const A1 &a1);
     template <typename A1, typename A2>
-    friend KUndo2MagicString kundo2_i18ncp(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2);
+    friend KUndo2MagicString kundo2_text_plural(const char *sing, const char *plur, const A1 &a1, const A2 &a2);
     template <typename A1, typename A2, typename A3>
-    friend KUndo2MagicString kundo2_i18ncp(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3);
+    friend KUndo2MagicString kundo2_text_plural(const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3);
+    template <typename A1, typename A2, typename A3, typename A4>
+    friend KUndo2MagicString kundo2_text_plural(const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4);
+
+
+    template <typename A1>
+    friend KUndo2MagicString kundo2_text_ctx_plural(const char *ctxt, const char *sing, const char *plur, const A1 &a1);
+    template <typename A1, typename A2>
+    friend KUndo2MagicString kundo2_text_ctx_plural(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2);
+    template <typename A1, typename A2, typename A3>
+    friend KUndo2MagicString kundo2_text_ctx_plural(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3);
+    template <typename A1, typename A2, typename A3, typename A4>
+    friend KUndo2MagicString kundo2_text_ctx_plural(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4);
 
 private:
-    QString m_text;
+    PkString m_text;
 };
 
-inline QDebug operator<<(QDebug dbg, const KUndo2MagicString &v)
+inline PkDebug operator<<(PkDebug dbg, const KUndo2MagicString &v)
 {
     if (v.toString() != v.toSecondaryString()) {
         dbg.nospace() << v.toString() << "(" << v.toSecondaryString() << ")";
@@ -143,163 +146,178 @@ inline QDebug operator<<(QDebug dbg, const KUndo2MagicString &v)
  * either in testing or internal commands, which don't go to the
  * stack directly.
  */
-inline KUndo2MagicString kundo2_noi18n(const QString &text)
+inline KUndo2MagicString kundo2_text_raw(const PkString &text)
 {
     return KUndo2MagicString(text);
 }
 
 template <typename A1>
-inline KUndo2MagicString kundo2_noi18n(const char *text, const A1 &a1)
+inline KUndo2MagicString kundo2_text_raw(const char *text, const A1 &a1)
 {
-    return KUndo2MagicString(QString(text).arg(a1));
+    return KUndo2MagicString(PkString(text).arg(a1));
 }
 
 template <typename A1, typename A2>
-inline KUndo2MagicString kundo2_noi18n(const char *text, const A1 &a1, const A2 &a2)
+inline KUndo2MagicString kundo2_text_raw(const char *text, const A1 &a1, const A2 &a2)
 {
-    return KUndo2MagicString(QString(text).arg(a1).arg(a2));
+    return KUndo2MagicString(PkString(text).arg(a1).arg(a2));
 }
 
 template <typename A1, typename A2, typename A3>
-inline KUndo2MagicString kundo2_noi18n(const char *text, const A1 &a1, const A2 &a2, const A3 &a3)
+inline KUndo2MagicString kundo2_text_raw(const char *text, const A1 &a1, const A2 &a2, const A3 &a3)
 {
-    return KUndo2MagicString(QString(text).arg(a1).arg(a2).arg(a3));
+    return KUndo2MagicString(PkString(text).arg(a1).arg(a2).arg(a3));
 }
 
 template <typename A1, typename A2, typename A3, typename A4>
-inline KUndo2MagicString kundo2_noi18n(const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4)
+inline KUndo2MagicString kundo2_text_raw(const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4)
 {
-    return KUndo2MagicString(QString(text).arg(a1).arg(a2).arg(a3).arg(a4));
+    return KUndo2MagicString(PkString(text).arg(a1).arg(a2).arg(a3).arg(a4));
 }
 
 /**
- * Same as ki18n, but is supposed to work with strings going to
- * undo stack
+ * Same as kundo2_text_raw, but intended for strings going to
+ * the undo history. After D-6 it is a pass-through: the source text
+ * is returned as-is, translation is handled by the Flutter side.
  */
 
-inline KUndo2MagicString kundo2_i18n(const char *text)
+inline KUndo2MagicString kundo2_text(const char *text)
 {
-    return KUndo2MagicString(i18nc("(qtundo-format)", text));
+    return KUndo2MagicString(PkString(text));
 }
 
 template <typename A1>
-inline KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1)
+inline KUndo2MagicString kundo2_text(const char *text, const A1 &a1)
 {
-    return KUndo2MagicString(i18nc("(qtundo-format)", text, a1));
+    return KUndo2MagicString(PkString(text).arg(a1));
 }
 
 template <typename A1, typename A2>
-inline KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1, const A2 &a2)
+inline KUndo2MagicString kundo2_text(const char *text, const A1 &a1, const A2 &a2)
 {
-    return KUndo2MagicString(i18nc("(qtundo-format)", text, a1, a2));
+    return KUndo2MagicString(PkString(text).arg(a1).arg(a2));
 }
 
 template <typename A1, typename A2, typename A3>
-inline KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1, const A2 &a2, const A3 &a3)
+inline KUndo2MagicString kundo2_text(const char *text, const A1 &a1, const A2 &a2, const A3 &a3)
 {
-    return KUndo2MagicString(i18nc("(qtundo-format)", text, a1, a2, a3));
+    return KUndo2MagicString(PkString(text).arg(a1).arg(a2).arg(a3));
 }
 
 template <typename A1, typename A2, typename A3, typename A4>
-inline KUndo2MagicString kundo2_i18n(const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4)
+inline KUndo2MagicString kundo2_text(const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4)
 {
-    return KUndo2MagicString(i18nc("(qtundo-format)", text, a1, a2, a3, a4));
-}
-
-inline QString prependContext(const char *ctxt)
-{
-    return QString("(qtundo-format) %1").arg(ctxt);
+    return KUndo2MagicString(PkString(text).arg(a1).arg(a2).arg(a3).arg(a4));
 }
 
 /**
- * Same as ki18nc, but is supposed to work with strings going to
- * undo stack
+ * Context variant of kundo2_text. After D-6 the context argument is
+ * ignored (translation is handled by the Flutter side).
  */
-inline KUndo2MagicString kundo2_i18nc(const char *ctxt, const char *text)
+inline KUndo2MagicString kundo2_text_ctx(const char *ctxt, const char *text)
 {
-    return KUndo2MagicString(i18nc(prependContext(ctxt).toLatin1().data(), text));
+    (void)ctxt;
+    return KUndo2MagicString(PkString(text));
 }
 
 template <typename A1>
-inline KUndo2MagicString kundo2_i18nc(const char *ctxt, const char *text, const A1 &a1)
+inline KUndo2MagicString kundo2_text_ctx(const char *ctxt, const char *text, const A1 &a1)
 {
-    return KUndo2MagicString(i18nc(prependContext(ctxt).toLatin1().data(), text, a1));
+    (void)ctxt;
+    return KUndo2MagicString(PkString(text).arg(a1));
 }
 
 template <typename A1, typename A2>
-inline KUndo2MagicString kundo2_i18nc(const char *ctxt, const char *text, const A1 &a1, const A2 &a2)
+inline KUndo2MagicString kundo2_text_ctx(const char *ctxt, const char *text, const A1 &a1, const A2 &a2)
 {
-    return KUndo2MagicString(i18nc(prependContext(ctxt).toLatin1().data(), text, a1, a2));
+    (void)ctxt;
+    return KUndo2MagicString(PkString(text).arg(a1).arg(a2));
 }
 
 template <typename A1, typename A2, typename A3>
-inline KUndo2MagicString kundo2_i18nc(const char *ctxt, const char *text, const A1 &a1, const A2 &a2, const A3 &a3)
+inline KUndo2MagicString kundo2_text_ctx(const char *ctxt, const char *text, const A1 &a1, const A2 &a2, const A3 &a3)
 {
-    return KUndo2MagicString(i18nc(prependContext(ctxt).toLatin1().data(), text, a1, a2, a3));
+    (void)ctxt;
+    return KUndo2MagicString(PkString(text).arg(a1).arg(a2).arg(a3));
 }
 
 template <typename A1, typename A2, typename A3, typename A4>
-inline KUndo2MagicString kundo2_i18nc(const char *ctxt, const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4)
+inline KUndo2MagicString kundo2_text_ctx(const char *ctxt, const char *text, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4)
 {
-    return KUndo2MagicString(i18nc(prependContext(ctxt).toLatin1().data(), text, a1, a2, a3, a4));
+    (void)ctxt;
+    return KUndo2MagicString(PkString(text).arg(a1).arg(a2).arg(a3).arg(a4));
 }
 
 /**
- * Same as ki18np, but is supposed to work with strings going to
- * undo stack
+ * Plural-aware variant. After D-6 the kernel returns the plural source
+ * text (plur); the real plural selection is left to the Flutter
+ * translation layer.
  */
 
 template <typename A1>
-inline KUndo2MagicString kundo2_i18np(const char *sing, const char *plur, const A1 &a1)
+inline KUndo2MagicString kundo2_text_plural(const char *sing, const char *plur, const A1 &a1)
 {
-    return KUndo2MagicString(i18ncp("(qtundo-format)", sing, plur, a1));
+    (void)sing;
+    return KUndo2MagicString(PkString(plur).arg(a1));
 }
 
 template <typename A1, typename A2>
-inline KUndo2MagicString kundo2_i18np(const char *sing, const char *plur, const A1 &a1, const A2 &a2)
+inline KUndo2MagicString kundo2_text_plural(const char *sing, const char *plur, const A1 &a1, const A2 &a2)
 {
-    return i18ncp("(qtundo-format)", sing, plur, a1, a2);
+    (void)sing;
+    return KUndo2MagicString(PkString(plur).arg(a1).arg(a2));
 }
 
 template <typename A1, typename A2, typename A3>
-inline KUndo2MagicString kundo2_i18np(const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3)
+inline KUndo2MagicString kundo2_text_plural(const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3)
 {
-    return i18ncp("(qtundo-format)", sing, plur, a1, a2, a3);
+    (void)sing;
+    return KUndo2MagicString(PkString(plur).arg(a1).arg(a2).arg(a3));
 }
 
 template <typename A1, typename A2, typename A3, typename A4>
-inline KUndo2MagicString kundo2_i18np(const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4)
+inline KUndo2MagicString kundo2_text_plural(const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4)
 {
-    return i18ncp("(qtundo-format)", sing, plur, a1, a2, a3, a4);
+    (void)sing;
+    return KUndo2MagicString(PkString(plur).arg(a1).arg(a2).arg(a3).arg(a4));
 }
 
 
 /**
- * Same as ki18ncp, but is supposed to work with strings going to
- * undo stack
+ * Plural-aware variant with context. After D-6 both the context and the
+ * singular source text are ignored; the kernel returns the plural source
+ * text.
  */
 template <typename A1>
-inline KUndo2MagicString kundo2_i18ncp(const char *ctxt, const char *sing, const char *plur, const A1 &a1)
+inline KUndo2MagicString kundo2_text_ctx_plural(const char *ctxt, const char *sing, const char *plur, const A1 &a1)
 {
-    return KUndo2MagicString(i18ncp(prependContext(ctxt).toLatin1().data(), sing, plur, a1));
+    (void)ctxt;
+    (void)sing;
+    return KUndo2MagicString(PkString(plur).arg(a1));
 }
 
 template <typename A1, typename A2>
-inline KUndo2MagicString kundo2_i18ncp(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2)
+inline KUndo2MagicString kundo2_text_ctx_plural(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2)
 {
-    return i18ncp(prependContext(ctxt).toLatin1().data(), sing, plur, a1, a2);
+    (void)ctxt;
+    (void)sing;
+    return KUndo2MagicString(PkString(plur).arg(a1).arg(a2));
 }
 
 template <typename A1, typename A2, typename A3>
-inline KUndo2MagicString kundo2_i18ncp(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3)
+inline KUndo2MagicString kundo2_text_ctx_plural(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3)
 {
-    return i18ncp(prependContext(ctxt).toLatin1().data(), sing, plur, a1, a2, a3);
+    (void)ctxt;
+    (void)sing;
+    return KUndo2MagicString(PkString(plur).arg(a1).arg(a2).arg(a3));
 }
 
 template <typename A1, typename A2, typename A3, typename A4>
-inline KUndo2MagicString kundo2_i18ncp(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4)
+inline KUndo2MagicString kundo2_text_ctx_plural(const char *ctxt, const char *sing, const char *plur, const A1 &a1, const A2 &a2, const A3 &a3, const A4 &a4)
 {
-    return i18ncp(prependContext(ctxt).toLatin1().data(), sing, plur, a1, a2, a3, a4);
+    (void)ctxt;
+    (void)sing;
+    return KUndo2MagicString(PkString(plur).arg(a1).arg(a2).arg(a3).arg(a4));
 }
 
 #endif /* KUNDO2MAGICSTRING_H */
