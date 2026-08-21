@@ -2,6 +2,7 @@
 #include "KisFileUtils.h"
 #include "KisGlobalFileSystem.h"
 #include "KisUsageLogger.h"
+#include "kis_algebra_2d_debug_p.h"
 #include "kis_dom_utils.h"
 #include "kis_assert.h"
 
@@ -17,6 +18,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+
+#include <PkLogSink.h>
 
 #ifdef _WIN32
 #include <process.h>
@@ -163,6 +166,11 @@ void requirePath(const PkString &actual, const fs::path &expected, const char *m
             message);
 }
 
+void captureLog(PkLogLevel, const PkLogContext &, const char *message, void *userData)
+{
+    *static_cast<std::string *>(userData) = message ? message : "";
+}
+
 struct ChildResult
 {
     bool launched = false;
@@ -238,6 +246,36 @@ void testDomIntegerParsing()
             "DOM integer parsing must reject malformed German grouping");
     require(KisDomUtils::toInt(PkString("not-an-integer"), &ok) == 0 && !ok,
             "DOM integer parsing must report failed conversion");
+
+    // Qt 5.15.7 oracle: QString::toInt trims both Unicode spaces for the
+    // C-locale path, while QLocale(German) accepts the grouped form after the
+    // same trimming. Keep these literals independent from PkString::trimmed().
+    require(KisDomUtils::toInt(PkString(u8"\u00A0" "1234" "\u00A0"), &ok) == 1234 && ok,
+            "DOM integer parsing must trim NBSP around C-locale integers");
+    require(KisDomUtils::toInt(PkString(u8"\u202F" "1234" "\u202F"), &ok) == 1234 && ok,
+            "DOM integer parsing must trim NNBSP around C-locale integers");
+    require(KisDomUtils::toInt(PkString(u8"\u00A0" "12.345.678" "\u00A0"), &ok) == 12345678 && ok,
+            "DOM integer parsing must trim NBSP before German grouping fallback");
+    require(KisDomUtils::toInt(PkString(u8"\u202F" "12.345.678" "\u202F"), &ok) == 12345678 && ok,
+            "DOM integer parsing must trim NNBSP before German grouping fallback");
+}
+
+void testVectorPathPointDebugFormattingState()
+{
+    std::string captured;
+    const int sink = PkLogAddSink(captureLog, &captured);
+    {
+        PkDebug debug = PkDebugMakeForTest(PkLogDebug, "kritaglobal.format-test");
+        debug << qSetRealNumberPrecision(3) << qSetFieldWidth(4) << qSetPadChar('_');
+        KisAlgebra2D::Private::writeVectorPathPoint(
+            debug,
+            KisAlgebra2D::VectorPath::VectorPathPoint::lineTo(PkPointF(1.23456, 7.0)));
+        debug << 9.876;
+    }
+    PkLogRemoveSink(sink);
+
+    require(captured == "(line ___(1.23__, ___7___)___)___ 9.88___",
+            "VectorPathPoint debug formatting must preserve precision, field width, pad char, and spacing state");
 }
 
 void testAssertionPolicies(const fs::path &executable, const fs::path &root)
@@ -537,6 +575,7 @@ int testMain(int argc, NativeCharacter **argv)
     testSimpleAndNumberedBackup(temporaryDirectory.path());
     testDeduplicateFileName();
     testDomIntegerParsing();
+    testVectorPathPointDebugFormattingState();
     testUsageLoggerCreatesItsFiles(temporaryDirectory.path());
     testAssertionPolicies(fs::absolute(argv[0]), temporaryDirectory.path());
     std::cout << "PASS: kritaglobal file I/O\n";

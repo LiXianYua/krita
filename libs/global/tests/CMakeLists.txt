@@ -48,7 +48,11 @@ if(BUILD_TESTING)
         pkgeometry
         pkcolor
         pkxml
+        Boost::boost
     )
+    if(MINGW)
+        target_link_options(kritaglobal_file_io_test PRIVATE -municode)
+    endif()
     set_target_properties(kritaglobal_file_io_test PROPERTIES AUTOMOC OFF)
     add_test(NAME libs-global-KisGlobalFileIoTest COMMAND kritaglobal_file_io_test)
 endif()

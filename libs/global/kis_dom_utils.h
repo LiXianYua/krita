@@ -10,7 +10,6 @@
 #include <float.h>
 #include <algorithm>
 #include <charconv>
-#include <cctype>
 #include <system_error>
 #include <type_traits>
 
@@ -72,18 +71,13 @@ namespace KisDomUtils {
     inline int toInt(const PkString &str, bool *ok=nullptr) {
         bool ok_locale = false;
         int value = 0;
+        const PkString trimmed = str.trimmed();
 
-        value = str.toInt(&ok_locale);
+        value = trimmed.toInt(&ok_locale);
         if (!ok_locale) {
-            const std::string text = str.PkToUtf8();
-            auto begin = text.begin();
-            auto end = text.end();
-            while (begin != end && std::isspace(static_cast<unsigned char>(*begin))) {
-                ++begin;
-            }
-            while (begin != end && std::isspace(static_cast<unsigned char>(*(end - 1)))) {
-                --end;
-            }
+            const std::string text = trimmed.PkToUtf8();
+            const auto begin = text.begin();
+            const auto end = text.end();
 
             std::string normalized;
             auto group = begin;

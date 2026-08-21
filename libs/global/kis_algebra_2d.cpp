@@ -5,6 +5,7 @@
  */
 
 #include "kis_algebra_2d.h"
+#include "kis_algebra_2d_debug_p.h"
 
 #include <PkTransform.h>
 #include <PkPainterPath.h>
@@ -20,7 +21,6 @@
 #include <PkVectorND.h>
 
 #include <cmath>
-#include <sstream>
 
 #include <config-gsl.h>
 
@@ -2352,18 +2352,7 @@ PkDebug operator<<(PkDebug debug, const VectorPath &path)
 
 PkDebug operator<<(PkDebug debug, const VectorPath::VectorPathPoint &point)
 {
-    std::ostringstream formatted;
-    formatted << (point.type == VectorPath::VectorPathPoint::MoveTo ? "(move " : (point.type == VectorPath::VectorPathPoint::BezierTo ? "(curve " : "(line "));
-    formatted << "(" << point.endPoint.x() << ", " << point.endPoint.y() << ")";
-    if (point.type == VectorPath::VectorPathPoint::BezierTo) {
-        formatted << ": (";
-        formatted << "(" << point.controlPoint1.x() << ", " << point.controlPoint1.y() << ")";
-        formatted << ", ";
-        formatted << "(" << point.controlPoint2.x() << ", " << point.controlPoint2.y() << ")";
-        formatted << ")";
-    }
-    formatted << ")";
-    debug << formatted.str();
+    Private::writeVectorPathPoint(debug, point);
     return debug;
 }
 
