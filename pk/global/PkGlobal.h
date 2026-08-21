@@ -97,15 +97,30 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef unsigned long ulong;
 
-// 让位给真 Qt（R-34）：real Qt 已进 TU（QT_CORE_LIB 定义）时，本头里与 Qt 同名
-// 的一切（qAbs/qRound/qMin/qMax/qBound/qIsNull/qFuzzyCompare/qFuzzyIsNull/qFloor/
-// qCeil/qNextPowerOfTwo/qIsNaN/qInf/qQNaN 与 namespace Qt 枚举族）全部让位——
-// libs/global 基线测试经 kis_debug.h 拉本头，与真 Qt qglobal.h/qmath.h/qnumeric.h/
-// qnamespace.h 重定义。typedef（qreal/qint8…）重复声明同一类型合法、Q_UNUSED/
-// Q_ASSERT 自带 #if !defined 防重，均无需让位。pkQtFuzzyCompare/pkQtFuzzyIsNull
-// 是 pk 自有名、真 Qt 没有，**不**让位（geometry 头内部调用它们），只依赖
-// qAbs/qMin——real Qt 在场时解析到真 Qt 的实现，语义等价（见「语义等价」注释）。
-#if !defined(QT_CORE_LIB)
+// 让位给真 Qt（R-34，R-35 放宽守卫口径）：real Qt 的对应头已进 TU（各自 include
+// guard 宏定义）时，本头里与 Qt 同名的一切（qAbs/qRound/qMin/qMax/qBound/qIsNull/
+// qFuzzyCompare/qFuzzyIsNull/qFloor/qCeil/qNextPowerOfTwo/qIsNaN/qInf/qQNaN 与
+// namespace Qt 枚举族）全部让位——libs/global 基线测试经 kis_debug.h 拉本头，与真
+// Qt qglobal.h/qmath.h/qnumeric.h/qnamespace.h 重定义。
+//
+// ⚠ R-35 守卫口径（2026-08-21）：`!QT_CORE_LIB` 不够——主树编译行**全局**带
+// -DQT_CORE_LIB，但 TU 不一定 include 真 Qt 头（S-04 的 KisColorimetryUtils.cpp 经
+// PkVectorND.h 拉本头、无 Qt 头）。只看 QT_CORE_LIB 会让 pk 版让位、真 Qt 又不在场，
+// qAbs/qMin/qRound/qIsNull 解析不到（pkQtFuzzy* 与 pk/geometry 内联代码编译失败）。
+// 所以每组改用 `!QT_CORE_LIB || !<真 Qt 对应头的 include guard>`：对应头在场就让位
+// （与 R-34 同），不在场（含 -DQT_CORE_LIB 无真 Qt 头）就由 pk 提供。各组的真 Qt
+// 对应头：qglobal.h（QGLOBAL_H；qAbs/qRound/qMin/qMax/qBound/qIsNull/qFuzzy*）、
+// qmath.h（QMATH_H；qFloor/qCeil）、qalgorithms.h（QALGORITHMS_H；qNextPowerOfTwo）、
+// qnumeric.h（QNUMERIC_H；qIsNaN/qInf/qQNaN）、qnamespace.h（QNAMESPACE_H；namespace
+// Qt 枚举族）。mixed TU 必须「Qt 头在前」，反序（pk 先、Qt 后）会让 Qt 头无条件
+// 重定义——同 qFloor/qCeil 已登记的约定。
+//
+// typedef（qreal/qint8…）重复声明同一类型合法、Q_UNUSED/Q_ASSERT 自带 #if !defined
+// 防重，均无需让位。pkQtFuzzyCompare/pkQtFuzzyIsNull 是 pk 自有名、真 Qt 没有，
+// **不**让位（geometry 头内部调用它们），只依赖 qAbs/qMin——真 Qt qglobal.h 在场时
+// 解析到真 Qt 的实现，不在场时由本头守卫内提供，两条路径语义等价（公式逐字同源，
+// 见「语义等价」注释）。
+#if !defined(QT_CORE_LIB) || !defined(QGLOBAL_H)
 #ifndef PK_GLOBAL_SCALARS_FROM_PKTEST
 // qglobal.h:657-658。⚠ 条件是 `t >= 0` 而不是 `t > 0`：-0.0 >= 0 为真，所以
 // qAbs(-0.0) **原样返回 -0.0**（signbit 仍是 1，1.0/qAbs(-0.0) == -inf）。
@@ -135,7 +150,7 @@ constexpr inline const T &qMax(const T &a, const T &b) { return (a < b) ? b : a;
 template <typename T>
 constexpr inline const T &qBound(const T &min, const T &val, const T &max)
 { return qMax(min, qMin(max, val)); }
-#endif // !defined(QT_CORE_LIB)
+#endif // !defined(QT_CORE_LIB) || !defined(QGLOBAL_H)
 
 // qglobal.h:900-917。相对误差，右端取 qMin(|p1|, |p2|)：任何一侧是 0 时永远
 // 不成立（两个方向都是 false）。double 的相对阈值 1e-12、float 的 1e-5。
@@ -153,7 +168,7 @@ constexpr inline bool pkQtFuzzyCompare(float p1, float p2)
 constexpr inline bool pkQtFuzzyIsNull(double d) { return qAbs(d) <= 0.000000000001; }
 constexpr inline bool pkQtFuzzyIsNull(float f) { return qAbs(f) <= 0.00001f; }
 
-#if !defined(QT_CORE_LIB)
+#if !defined(QT_CORE_LIB) || !defined(QGLOBAL_H)
 // qglobal.h:930 —— `qIsNull(float)` = **精确零**比较（`f == 0.0f`），不是模糊
 // 比较。与 `qFuzzyIsNull`（阈值 1e-5）是**两个名字、两套语义**：QVector2D/3D/4D
 // 的 isNull() 与 toVector2DAffine/toVector3DAffine 用的是 `qIsNull`（精确零），
@@ -174,6 +189,9 @@ constexpr inline bool qFuzzyCompare(float p1, float p2) { return pkQtFuzzyCompar
 constexpr inline bool qFuzzyIsNull(double d) { return pkQtFuzzyIsNull(d); }
 constexpr inline bool qFuzzyIsNull(float f) { return pkQtFuzzyIsNull(f); }
 #endif
+
+#endif // !defined(QT_CORE_LIB) || !defined(QGLOBAL_H) —— qIsNull/qFuzzy* 段至此
+#if !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H)
 
 // ---------------------------------------------------------------------------
 // qnamespace.h:1235-1239（AspectRatioMode）、qnamespace.h:1386-1390（Axis），
@@ -304,7 +322,7 @@ enum TransformationMode {
     SmoothTransformation
 };
 }
-#endif // !defined(QT_CORE_LIB) —— namespace Qt 段至此（qnamespace.h 必被 QtCore 拉，QT_CORE_LIB 足够）
+#endif // !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H) —— namespace Qt 段至此（真 Qt qnamespace.h 在场则让位）
 
 #if !defined(QT_CORE_LIB) || !defined(QMATH_H)
 // qmath.h:68-76。语义是 int(floor(v))（向 -∞）与 int(ceil(v))（向 +∞）。
@@ -366,7 +384,7 @@ constexpr inline quint32 qNextPowerOfTwo(quint32 v)
 // 处理，下面编译与测试都过了。
 // float 重载不是摆设：qIsNaN(float) 按 float 精度判，实参提升到 double 后取值
 // 一致但语义不同，Krita 里 float 版有调用点。
-#if !defined(QT_CORE_LIB)  // qglobal.h:1303 拉 qnumeric.h——QT_CORE_LIB 在场则真 Qt 的 qIsNaN/qInf/qQNaN 已可见
+#if !defined(QT_CORE_LIB) || !defined(QNUMERIC_H)  // 真 Qt qnumeric.h（qglobal.h:1303 拉它）在场则让位
 constexpr inline bool qIsNaN(double d) { return std::isnan(d); }
 constexpr inline bool qIsNaN(float f) { return std::isnan(f); }
 constexpr inline double qInf() { return std::numeric_limits<double>::infinity(); }
@@ -374,7 +392,7 @@ constexpr inline double qInf() { return std::numeric_limits<double>::infinity();
 // qnumeric.h:58。quiet NaN，std::numeric_limits<double>::quiet_NaN()。无冲突，无条件。
 constexpr inline double qQNaN() { return std::numeric_limits<double>::quiet_NaN(); }
 
-#endif // !defined(QT_CORE_LIB)
+#endif // !defined(QT_CORE_LIB) || !defined(QNUMERIC_H)
 
 // PkGlobal.cpp 实现：fprintf(stderr, "ASSERT: %s in file %s, line %d\n") + abort()。
 void pk_qt_assert(const char *what, const char *file, int line);

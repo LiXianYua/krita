@@ -41,6 +41,7 @@ add_executable(test_pkglobal
     tests/test_global.cpp
     tests/test_inttypes.cpp
     tests/test_macros.cpp
+    tests/test_qtcore_lib_absent.cpp
     # 三种入口顺序下的「三份 compat/QtGlobal 共存」TU。它们能编过本身就是
     # 断言的一半，所以必须真的作为独立翻译单元编译，不能合并。
     tests/coexist_global_first.cpp
@@ -65,3 +66,8 @@ set_source_files_properties(tests/test_macros.cpp PROPERTIES
 # Q_UNUSED 消费，这里就编译失败。
 set_source_files_properties(tests/test_macros.cpp PROPERTIES
     COMPILE_OPTIONS "-Wall;-Werror")
+
+# R-35：本 TU 模拟主树「-DQT_CORE_LIB 定义但无真 Qt 头」——只对这个 TU 加
+# QT_CORE_LIB 定义，其余测试 TU 仍走无 QT_CORE_LIB 路径。
+set_source_files_properties(tests/test_qtcore_lib_absent.cpp PROPERTIES
+    COMPILE_DEFINITIONS QT_CORE_LIB)

@@ -5,6 +5,7 @@
 int run_global_tests();
 int run_inttypes_tests();
 int run_macros_tests();
+int run_qtcore_lib_absent_tests();
 
 int main()
 {
@@ -12,6 +13,7 @@ int main()
     failures += run_global_tests();
     failures += run_inttypes_tests();
     failures += run_macros_tests();
+    failures += run_qtcore_lib_absent_tests();
 
     if (failures == 0) {
         std::printf("all pkglobal tests passed\n");

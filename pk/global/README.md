@@ -154,7 +154,7 @@ run_oracle.sh: 通过 —— 全部差异都已声明，canary 齐全
 `oracle/global.deviation` 的当前内容：1 行 `Q_ASSERT	assert_gate` + 11 行
 `canary`——**与上表第 3 条一致**，其余真实差异为零。
 
-**让位给真 Qt（R-34，2026-08-21）**：real Qt 已进 TU（`QT_CORE_LIB` 定义）时，本头与 Qt 同名的一切（`qAbs`/`qRound`/`qMin`/`qMax`/`qBound`/`qIsNull`/`qFuzzyCompare`/`qFuzzyIsNull`/`qFloor`/`qCeil`/`qNextPowerOfTwo`/`qIsNaN`/`qInf`/`qQNaN` 与 `namespace Qt` 枚举族）让位，与真 Qt qglobal.h/qmath.h/qalgorithms.h/qnumeric.h/qnamespace.h 共存。`pkQtFuzzyCompare`/`pkQtFuzzyIsNull`（pk 自有名，geometry 头内部调用）保留。`qFloor`/`qCeil`/`qNextPowerOfTwo` 的守卫是 `!QT_CORE_LIB || !QMATH_H`（`!QALGORITHMS_H`）——qmath.h/qalgorithms.h 不被 qglobal.h 拉，real-Qt 在场但没 include `<QtMath>`/`<QtAlgorithms>` 的 TU 里 pk 版仍应可用；mixed TU 必须「Qt 头在前」。
+**让位给真 Qt（R-34，R-35 放宽守卫口径）**：real Qt 的对应头已进 TU（各自 include guard 宏定义）时，本头与 Qt 同名的一切（`qAbs`/`qRound`/`qMin`/`qMax`/`qBound`/`qIsNull`/`qFuzzyCompare`/`qFuzzyIsNull`/`qFloor`/`qCeil`/`qNextPowerOfTwo`/`qIsNaN`/`qInf`/`qQNaN` 与 `namespace Qt` 枚举族）让位，与真 Qt qglobal.h/qmath.h/qalgorithms.h/qnumeric.h/qnamespace.h 共存。`pkQtFuzzyCompare`/`pkQtFuzzyIsNull`（pk 自有名，geometry 头内部调用）保留。守卫从 R-34 的 `!QT_CORE_LIB` 放宽为 `!QT_CORE_LIB || !<真 Qt 对应头 include guard>`（`QGLOBAL_H`/`QMATH_H`/`QALGORITHMS_H`/`QNUMERIC_H`/`QNAMESPACE_H`）：R-35 原因是主树编译行**全局**带 `-DQT_CORE_LIB`，某 TU 若没 include 真 Qt 头（S-04 的 KisColorimetryUtils.cpp 经 PkVectorND.h 拉本头）时 pk 仍应可用——对应头在场就让位，不在场（含 `-DQT_CORE_LIB` 无真 Qt 头）就由 pk 提供。mixed TU 必须「Qt 头在前」（反序会让 Qt 头无条件重定义）。
 
 ## 覆盖度限制（照 R-01 先例写）
 
@@ -218,10 +218,11 @@ TU。`#include <QtGlobal>` 只命中 `-I` 里靠前的一份，靠两条机制�
 断言的一半**（重复定义 `qAbs`/`qRound` 是硬错误，`qFuzzyCompare` 的 `#define` 打架会当场
 改写坏）。纪律的完整论证在 `PkGlobal.h` 顶部「与 pk/test 的共存」一节。
 
-> ⚠ 另一个"共存"形态不覆盖：`PkGlobal.h` 的 `namespace Qt { enum … }` 与**真 Qt 的**
-> `qnamespace.h` 同进一个 TU 时是**重定义硬错**。对拍是唯一有这个形态的编译行（靠把
-> 替代品整包塞进 `namespace pkoracle` 绕开）。剥离完成后的 Krita 里不存在"真 Qt 与替代品
-> 共存"的编译行，所以只登记不解决——表现是响亮的编译错误，不是静默错行为。
+> ⚠ 另一个"共存"形态：`PkGlobal.h` 的 `namespace Qt { enum … }` 与**真 Qt 的**
+> `qnamespace.h` 同进一个 TU。R-34/R-35 守卫后 pk 侧在 `QNAMESPACE_H` 在场时让位，
+> 「Qt 头在前」约定（Qt 先定义、pk 后落）下不再重定义。反序（pk 先、Qt 后）仍是
+> 重定义硬错——所以 mixed TU 必须「Qt 头在前」。对拍 oracle 那种把替代品整包塞进
+> `namespace pkoracle` 的形态仍按原登记处理（不覆盖，靠命名空间隔离绕开）。
 
 ## 现在有什么
 
