@@ -86,6 +86,24 @@ target_include_directories( kritapigment
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/resources>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/compositeops>
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/string
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/container
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/variant
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/port
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/pointer
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/geometry
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/global
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/log
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/concurrent
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/image
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/time
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/config
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/flags
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/color
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/signal
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/sql
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/namespace
 )
 
 target_link_libraries( kritapigment
@@ -97,12 +115,23 @@ target_link_libraries( kritapigment
         kritacommand
         ${LINK_OPENEXR_LIB}
         kritamultiarch
-        KF${KF_MAJOR}::I18n 
-        KF${KF_MAJOR}::ConfigCore
-        Qt${QT_MAJOR_VERSION}::Core
-        Qt${QT_MAJOR_VERSION}::Gui
-        Qt${QT_MAJOR_VERSION}::Xml
         Boost::boost
+        pkstring
+        pkcontainer
+        pkcolor
+        pkgeometry
+        pkvariant
+        pkxml
+        pkimage
+        pkport
+        pkpointer
+        pkconcurrent
+        pklog
+        pksignal
+        pktime
+        pkconfig
+        pkflags
+        pknamespace
 )
 
 set_target_properties(kritapigment PROPERTIES
