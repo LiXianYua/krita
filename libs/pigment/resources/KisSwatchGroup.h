@@ -13,11 +13,16 @@
 
 #include "kritapigment_export.h"
 
-#include <QSharedPointer>
-#include <QList>
-#include <QMap>
+#include <PkDebug.h>
+#include <PkList.h>
+#include <PkMap.h>
+#include <PkPair.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
 
 #include <KisPropagateConstWrapper.h>
+
+#include <memory>
 
 /**
  * @brief The KisSwatchGroup class stores a matrix of color swatches
@@ -32,7 +37,7 @@ class KRITAPIGMENT_EXPORT KisSwatchGroup
 {
 public /* struct */:
     struct SwatchInfo {
-        QString group;
+        PkString group;
         KisSwatch swatch;
         int row;
         int column;
@@ -47,8 +52,8 @@ public:
     KisSwatchGroup(const KisSwatchGroup &rhs);
     KisSwatchGroup &operator=(const KisSwatchGroup &rhs);
 
-    void setName(const QString &name);
-    QString name() const;
+    void setName(const PkString &name);
+    PkString name() const;
 
     void setRowCount(int newRowCount);
     int rowCount() const;
@@ -60,7 +65,7 @@ public:
      * @brief getColors
      * @return the list of colors in this SwatchGroup, in no specific order.
      */
-    QList<SwatchInfo> infoList() const;
+    PkList<SwatchInfo> infoList() const;
 
     /**
      * @brief checkSwatch
@@ -128,7 +133,7 @@ private:
      * when column is set to 0, resize number of columns to default
      * @param e
      */
-    QPair<int, int> addSwatch(const KisSwatch &e);
+    PkPair<int, int> addSwatch(const KisSwatch &e);
 
     void clear();
 
@@ -144,13 +149,13 @@ private:
     std::experimental::propagate_const<std::unique_ptr<Private>> d;
 };
 
-inline QDebug operator<<(QDebug dbg, const KisSwatchGroup group)
+inline PkDebug operator<<(PkDebug dbg, const KisSwatchGroup group)
 {
     dbg.nospace() << "[Group] Name: " << group.name();
     return dbg.space();
 }
 
-typedef QSharedPointer<KisSwatchGroup> KisSwatchGroupSP;
+typedef PkSharedPointer<KisSwatchGroup> KisSwatchGroupSP;
 
 
 #endif // KISSWATCHGROUP_H

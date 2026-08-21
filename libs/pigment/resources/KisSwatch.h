@@ -12,20 +12,23 @@
 #include "kritapigment_export.h"
 #include "KoColor.h"
 #include "KoColorModelStandardIds.h"
-#include <QString>
+#include <PkString.h>
+
+class PkByteArray;
+class PkDataStream;
 
 class KRITAPIGMENT_EXPORT KisSwatch
 {
 public:
     KisSwatch() = default;
-    KisSwatch(const KoColor &color, const QString &name = QString());
+    KisSwatch(const KoColor &color, const PkString &name = PkString());
 
 public:
-    QString name() const { return m_name; }
-    void setName(const QString &name);
+    PkString name() const { return m_name; }
+    void setName(const PkString &name);
 
-    QString id() const { return m_id; }
-    void setId(const QString &id);
+    PkString id() const { return m_id; }
+    void setId(const PkString &id);
 
     KoColor color() const { return m_color; }
     void setColor(const KoColor &color);
@@ -35,9 +38,9 @@ public:
 
     bool isValid() const { return m_valid; }
 
-    void writeToStream(QDataStream& stream, const QString& groupName, int originalRow , int originalColumn);
-    static KisSwatch fromByteArray(QByteArray& data, QString &groupName, int &originalRow, int &originalColumn);
-    static KisSwatch fromByteArray(QByteArray &data);
+    void writeToStream(PkDataStream& stream, const PkString& groupName, int originalRow , int originalColumn);
+    static KisSwatch fromByteArray(PkByteArray& data, PkString &groupName, int &originalRow, int &originalColumn);
+    static KisSwatch fromByteArray(PkByteArray &data);
 
 public:
     bool operator==(const KisSwatch& rhs) const {
@@ -46,8 +49,8 @@ public:
 
 private:
     KoColor m_color;
-    QString m_name;
-    QString m_id;
+    PkString m_name;
+    PkString m_id;
     bool m_spotColor {false};
     bool m_valid {false};
 };

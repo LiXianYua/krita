@@ -4,17 +4,32 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#include "KisUniqueColorSet.h"
+#include <PkXmlCompat.h>
 
-#include <QHash>
-#include <deque>
+#include <resources/KisUniqueColorSet.h>
+
+#include <PkGlobal.h>
+#include <PkHash.h>
+#include <PkMessageLogger.h>
+
+#include <kis_assert.h>
+
 #include <algorithm>
+#include <deque>
 
-uint qHash(const KoColor &color, uint seed = 0)
+unsigned int qHash(const KoColor &color, unsigned int seed = 0)
 {
     // hash the color data bytes, while using the hash of the colorspace pointer as seed
     // TODO: take pixelSize directly from the color.m_size (private member)
-    return qHashBits(color.data(), color.colorSpace()->pixelSize(), qHash(color.colorSpace(), seed));
+    // （原实现用 Qt 的 qHashBits + qHash(pointer)；Pk 侧无 qHashBits，哈希数值
+    //   不必与 Qt 逐位相同，只要签名形状一致、值稳定。）
+    const quint8 *data = color.data();
+    const int size = color.colorSpace()->pixelSize();
+    unsigned int h = qHash(color.colorSpace(), seed);
+    for (int i = 0; i < size; ++i) {
+        h = pkHashMix64(h ^ static_cast<unsigned int>(data[i]), h);
+    }
+    return h;
 }
 
 struct KisUniqueColorSet::ColorEntry
@@ -31,14 +46,14 @@ struct KisUniqueColorSet::ColorEntry
 
 struct KisUniqueColorSet::Private
 {
-    QHash<KoColor, KisUniqueColorSet::ColorEntry*> colorHash;
+    PkHash<KoColor, KisUniqueColorSet::ColorEntry*> colorHash;
     std::deque<ColorEntry*> history;
     size_t maxSize {200};
     quint64 key {0};
 };
 
-KisUniqueColorSet::KisUniqueColorSet(QObject *parent)
-    : QObject(parent)
+KisUniqueColorSet::KisUniqueColorSet(PkObject *parent)
+    : PkObject(parent)
     , d(new Private)
 { }
 
@@ -64,7 +79,7 @@ void KisUniqueColorSet::addColor(const KoColor &color)
             d->history.erase(historyEl);
             node->key = ++d->key;
             d->history.push_front(node);
-            Q_EMIT sigColorMoved(oldPos, 0);
+            sigColorMoved(oldPos, 0);
         }
         else {
             qDebug() << "inconsistent color history state!";
@@ -78,14 +93,14 @@ void KisUniqueColorSet::addColor(const KoColor &color)
             KIS_ASSERT(d->colorHash.remove(entry->color) == 1);
             entry->color = color;
             entry->key = ++d->key;
-            Q_EMIT sigColorRemoved(d->maxSize - 1);
+            sigColorRemoved(d->maxSize - 1);
         }
         else {
             entry = new ColorEntry {color, ++d->key};
         }
         d->colorHash.insert(color, entry);
         d->history.push_front(entry);
-        Q_EMIT sigColorAdded(0);
+        sigColorAdded(0);
     }
 }
 
@@ -110,5 +125,5 @@ void KisUniqueColorSet::clear()
     d->history.clear();
     d->colorHash.clear();
     d->key = 0;
-    Q_EMIT sigReset();
+    sigReset();
 }

@@ -7,16 +7,23 @@
 
  */
 
-#include "KisSwatchGroup.h"
+#include <PkXmlCompat.h>
+
+#include <resources/KisSwatchGroup.h>
+
+#include <PkGlobal.h>
+#include <PkVector.h>
+
+#include <kis_assert.h>
 
 int KisSwatchGroup::DEFAULT_COLUMN_COUNT = 16;
 int KisSwatchGroup::DEFAULT_ROW_COUNT = 20;
 
 struct KisSwatchGroup::Private {
-    typedef QMap<int, KisSwatch> Column;
+    typedef PkMap<int, KisSwatch> Column;
 
-    QString name {QString()};
-    QVector<Column> colorMatrix {DEFAULT_COLUMN_COUNT};
+    PkString name {PkString()};
+    PkVector<Column> colorMatrix {DEFAULT_COLUMN_COUNT};
     int colorCount {0};
     int rowCount {DEFAULT_ROW_COUNT};
 };
@@ -90,7 +97,7 @@ bool KisSwatchGroup::removeSwatch(int column, int row)
         return false;
     }
 
-    // QMap::remove returns 1 if key found else 0
+    // PkMap::remove returns 1 if key found else 0
     if (d->colorMatrix[column].remove(row)) {
         d->colorCount -= 1;
         return true;
@@ -105,13 +112,13 @@ void KisSwatchGroup::setColumnCount(int columnCount)
 
 
     // Move 'removed' swatches into new row
-    QVector <KisSwatch> movedSwatches;
+    PkVector <KisSwatch> movedSwatches;
 
     for (int r = 0; r < rowCount(); r++ ) {
         for (int c = 0; c < d->colorMatrix.size(); c++ ) {
 
             if (c >= columnCount && checkSwatchExists(c, r)) {
-                movedSwatches.push_back(getSwatch(c, r));
+                movedSwatches.append(getSwatch(c, r));
             }
         }
     }
@@ -153,7 +160,7 @@ KisSwatch KisSwatchGroup::getSwatch(int column, int row) const
     return d->colorMatrix[column][row];
 }
 
-QPair<int, int> KisSwatchGroup::addSwatch(const KisSwatch &swatch)
+PkPair<int, int> KisSwatchGroup::addSwatch(const KisSwatch &swatch)
 {
     if (columnCount() == 0) {
         setColumnCount(DEFAULT_COLUMN_COUNT);
@@ -174,7 +181,7 @@ QPair<int, int> KisSwatchGroup::addSwatch(const KisSwatch &swatch)
 
     setSwatch(swatch, x, y);
 
-    return QPair<int, int> (x, y);
+    return PkPair<int, int> (x, y);
 }
 
 void KisSwatchGroup::clear()
@@ -210,9 +217,9 @@ int KisSwatchGroup::slotCount() const
     return columnCount() * rowCount();
 }
 
-QList<KisSwatchGroup::SwatchInfo> KisSwatchGroup::infoList() const
+PkList<KisSwatchGroup::SwatchInfo> KisSwatchGroup::infoList() const
 {
-    QList<SwatchInfo> res;
+    PkList<SwatchInfo> res;
     int column = 0;
     for (const Private::Column &c : d->colorMatrix) {
         int i = 0;
@@ -225,12 +232,12 @@ QList<KisSwatchGroup::SwatchInfo> KisSwatchGroup::infoList() const
     return res;
 }
 
-void KisSwatchGroup::setName(const QString &name)
+void KisSwatchGroup::setName(const PkString &name)
 {
     d->name = name;
 }
 
-QString KisSwatchGroup::name() const
+PkString KisSwatchGroup::name() const
 {
     return d->name;
 }

@@ -6,24 +6,28 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
-#include "KisSwatch.h"
-#include <QDomDocument>
-#include <QDomElement>
-#include <QIODevice>
+#include <PkXmlCompat.h>
 
-KisSwatch::KisSwatch(const KoColor &color, const QString &name)
+#include <resources/KisSwatch.h>
+
+#include <PkDataStream.h>
+#include <PkStream.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+
+KisSwatch::KisSwatch(const KoColor &color, const PkString &name)
     : m_color(color)
     , m_name(name)
     , m_valid(true)
 { }
 
-void KisSwatch::setName(const QString &name)
+void KisSwatch::setName(const PkString &name)
 {
     m_name = name;
     m_valid = true;
 }
 
-void KisSwatch::setId(const QString &id)
+void KisSwatch::setId(const PkString &id)
 {
     m_id = id;
     m_valid = true;
@@ -41,10 +45,10 @@ void KisSwatch::setSpotColor(bool spotColor)
     m_valid = true;
 }
 
-void KisSwatch::writeToStream(QDataStream &stream, const QString& groupName, int originalRow, int originalColumn)
+void KisSwatch::writeToStream(PkDataStream &stream, const PkString& groupName, int originalRow, int originalColumn)
 {
-    QDomDocument doc;
-    QDomElement root = doc.createElement("Color");
+    PkXmlDocument doc;
+    PkXmlElement root = doc.createElement("Color");
     root.setAttribute("bitdepth", color().colorSpace()->colorDepthId().id());
     doc.appendChild(root);
     color().toXML(doc, root);
@@ -54,30 +58,38 @@ void KisSwatch::writeToStream(QDataStream &stream, const QString& groupName, int
            << groupName << doc.toString();
 }
 
-KisSwatch KisSwatch::fromByteArray(QByteArray &data, QString &oldGroupName, int &originalRow, int &originalColumn)
+KisSwatch KisSwatch::fromByteArray(PkByteArray &data, PkString &oldGroupName, int &originalRow, int &originalColumn)
 {
-    QDataStream stream(&data, QIODevice::ReadOnly);
+    PkDataStream stream(&data, PkStream::ReadOnly);
     KisSwatch s;
-    QString name, id;
+    PkString name, id;
     bool spotColor;
-    QString colorXml;
+    PkString colorXml;
 
-    while (!stream.atEnd()) {
+    // PkDataStream 没有 atEnd()；status 一旦离开 Ok 只增不改（setStatus 仅在
+    // 当前为 Ok 时写入）。所以循环条件用 status == Ok，每批读完再验一次：
+    // 整批成功 status 仍为 Ok；读到流尾时首个字段读取置 ReadPastEnd，后续字段
+    // 短路，整批无效，break 丢弃。空输入 → 首读即 ReadPastEnd → 零次处理，
+    // 行为与原 Qt 数据流的 atEnd() 版本一致。
+    while (stream.status() == PkDataStream::Ok) {
         stream >> name >> id >> spotColor
                 >> originalRow >> originalColumn
                 >> oldGroupName
                 >> colorXml;
+        if (stream.status() != PkDataStream::Ok) {
+            break;
+        }
 
         s.setName(name);
         s.setId(id);
         s.setSpotColor(spotColor);
 
-        QDomDocument doc;
+        PkXmlDocument doc;
         doc.setContent(colorXml);
-        QDomElement e = doc.documentElement();
-        QDomElement c = e.firstChildElement();
+        PkXmlElement e = doc.documentElement();
+        PkXmlElement c = e.firstChildElement();
         if (!c.isNull()) {
-            QString colorDepthId = c.attribute("bitdepth", Integer8BitsColorDepthID.id());
+            PkString colorDepthId = c.attribute("bitdepth", Integer8BitsColorDepthID.id());
             s.setColor(KoColor::fromXML(c, colorDepthId));
         }
     }
@@ -85,9 +97,9 @@ KisSwatch KisSwatch::fromByteArray(QByteArray &data, QString &oldGroupName, int 
     return s;
 }
 
-KisSwatch KisSwatch::fromByteArray(QByteArray &data)
+KisSwatch KisSwatch::fromByteArray(PkByteArray &data)
 {
-    QString s;
+    PkString s;
     int x, y;
     return fromByteArray(data, s, y, x);
 }
