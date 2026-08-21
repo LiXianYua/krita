@@ -3,6 +3,15 @@
 #include "../../concurrent/PkThread.h"
 #include "test_util.h"
 
+// R-36 位值对拍：PkConnectionType 与真 Qt qnamespace.h:1337-1343 逐位一致
+// （Auto=0 Direct=1 Queued=2 BlockingQueued=3 Unique=0x80）。编译期断言，
+// 编译过 = 位值钉住。
+static_assert(int(PkConnectionType::Auto) == 0, "PkConnectionType::Auto == 0");
+static_assert(int(PkConnectionType::Direct) == 1, "PkConnectionType::Direct == 1");
+static_assert(int(PkConnectionType::Queued) == 2, "PkConnectionType::Queued == 2");
+static_assert(int(PkConnectionType::BlockingQueued) == 3, "PkConnectionType::BlockingQueued == 3");
+static_assert(int(PkConnectionType::Unique) == 0x80, "PkConnectionType::Unique == 0x80");
+
 namespace {
 struct Sender : PkObject {
     // 用生成器前的「手写信号」形态验证 connect/emit 机制本身。Task 4 换成生成器。

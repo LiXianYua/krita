@@ -13,6 +13,7 @@ QT=/mnt/ssd-disk/liyang/projects/krita-ci-env/_install
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PK_SIGNAL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PK_CONCURRENT_DIR="$(cd "$PK_SIGNAL_DIR/../concurrent" && pwd)"
+PK_NAMESPACE_DIR="$(cd "$PK_SIGNAL_DIR/../namespace" && pwd)"
 PROBE="$SCRIPT_DIR/coexist_qt_probe.cpp"
 TMP="$(mktemp -d /tmp/pk-coexist-qt.XXXXXX)"
 trap 'rm -rf "$TMP"' EXIT
@@ -60,7 +61,7 @@ fi
 
 echo "== 模式 B：无 Qt =="
 g++ -fPIC -std=c++17 "$PROBE" -o "$TMP/coexist_noqt" \
-  -I"$PK_SIGNAL_DIR" -I"$PK_CONCURRENT_DIR"
+  -I"$PK_SIGNAL_DIR" -I"$PK_CONCURRENT_DIR" -I"$PK_NAMESPACE_DIR"
 r=$?
 if [ $r -ne 0 ]; then echo "模式 B 编译失败（exit=$r）" >&2; exit $r; fi
 "$TMP/coexist_noqt"

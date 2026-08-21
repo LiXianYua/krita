@@ -17,7 +17,12 @@
 //   （自 R-24 Task 3 起真实投递，不再退化为 Direct）。
 // 投递均走 pk/concurrent 的 PkThreadCallQueue（PkObject::activateSignal 按
 // 类型分派），细节见 PkObject.h::activateSignal 与 README.md 偏离清单第 1 条。
-enum class PkConnectionType { Auto, Direct, Queued, BlockingQueued, Unique };
+// PkConnectionType 位值对齐真 Qt 5.15.7 qnamespace.h:1337-1343：
+// Auto=0 Direct=1 Queued=2 BlockingQueued=3 Unique=0x80（Unique 是 flag 位，
+// 不是序号 4）。R-36 修正：此前 Unique 隐式 =4，与 Qt 位值不一致；pk/signal
+// 内部只做 `==` 比较（PkObject.h:181/296/302/326），改位值无行为影响，但
+// 让 `int(Qt::UniqueConnection)`（经 compat 别名）对齐真 Qt。
+enum class PkConnectionType { Auto, Direct, Queued, BlockingQueued, Unique = 0x80 };
 
 // QOverload<Args...>::of(ptr) —— 信号/槽重载消歧。Qt 里同名信号有多组参数时，
 // `&C::sig` 是模糊的，必须 `QOverload<const QString&, const QString&>::of(&C::sig)`。

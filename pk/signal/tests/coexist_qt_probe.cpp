@@ -46,6 +46,12 @@ struct ProbeS { void sig(int) {} void sig(const QString&) {} };
 using ProbePtr = void (ProbeS::*)(int);
 constexpr ProbePtr probeP = QOverload<int>::of(&ProbeS::sig);
 static_assert(probeP != nullptr, "QOverload from real Qt must work");
+// R-36：PkConnectionType 位值与真 Qt 逐一对拍（qnamespace.h:1337-1343）。
+static_assert(int(PkConnectionType::Auto) == int(::Qt::AutoConnection), "Auto bit match");
+static_assert(int(PkConnectionType::Direct) == int(::Qt::DirectConnection), "Direct bit match");
+static_assert(int(PkConnectionType::Queued) == int(::Qt::QueuedConnection), "Queued bit match");
+static_assert(int(PkConnectionType::BlockingQueued) == int(::Qt::BlockingQueuedConnection), "BlockingQueued bit match");
+static_assert(int(PkConnectionType::Unique) == int(::Qt::UniqueConnection), "Unique bit match (0x80)");
 
 int main() {
     // QObject 构造与 connect 不需要 display（不用 QApplication），无头环境直接可跑。
@@ -55,6 +61,7 @@ int main() {
 }
 #else
 // ── 模式 B：无 Qt（正常 pk 用法）──────────────────────────────────────
+#include <PkNamespace.h>   // R-36：与 compat/QObject 同 TU 共存探针
 // compat/QObject 照常定义 QObject→PkObject。
 static_assert(std::is_same<QObject, PkObject>::value,
               "QObject must alias PkObject in no-Qt mode");
@@ -62,6 +69,15 @@ static_assert(std::is_same<PkMetaObject::Connection, PkConnection>::value,
               "PkMetaObject::Connection == PkConnection");
 static_assert(Qt::DirectConnection == PkConnectionType::Direct,
               "namespace Qt ConnectionType works");
+// R-36：pk/namespace（除 ConnectionType 外全枚举）+ compat/QObject（ConnectionType
+// 别名）同 TU 共存——PkNamespace.h 不再定义 ConnectionType，无重定义。
+static_assert(std::is_same<Qt::ConnectionType, PkConnectionType>::value,
+              "Qt::ConnectionType is the pk/signal alias in no-Qt mode");
+static_assert(int(Qt::UniqueConnection) == 0x80,
+              "Qt::UniqueConnection bit value is 0x80 via the alias");
+// pk/namespace 的枚举仍在同一 namespace Qt 里并集可见。
+static_assert(int(Qt::KeyboardModifier::ShiftModifier) == 0x02000000,
+              "PkNamespace.h enums coexist with compat/QObject");
 struct ProbeS { void sig(int) {} };
 using ProbePtr = void (ProbeS::*)(int);
 constexpr ProbePtr probeP = QOverload<int>::of(&ProbeS::sig);
