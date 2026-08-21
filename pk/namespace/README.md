@@ -40,7 +40,6 @@
 | `BrushStyle` | 全 19 值 | `TexturePattern=24`（见偏离登记） |
 | `CursorShape` | 全 23 值 | `LastCursor=DragLinkCursor` |
 | `TextFormat` | 全 3 值 | `PlainText=0` `RichText=1` `AutoText=2` |
-| `DateFormat` | 4 值 | `TextDate=0` `ISODate=1` `RFC2822Date=8` `ISODateWithMs=9` |
 | `TimeSpec` | 全 3 值 | `LocalTime=0` `UTC=1` `OffsetFromUTC=2` |
 | `ScrollBarPolicy` | 全 3 值 | |
 | `CaseSensitivity` | 全 2 值 | |
@@ -64,7 +63,6 @@
 | `CursorShape` | `BitmapCursor` `CustomCursor` |
 | `TextFormat` | `MarkdownText` |
 | `TimeSpec` | `TimeZone` |
-| `DateFormat` | deprecated 的 `SystemLocaleDate` `LocaleDate` `DefaultLocaleShort` 等 2-7 号位 |
 | `Key` | 真 Qt 全量 500+ 值，只实现用量 > 0 的 29 个（见偏离登记） |
 
 ## 偏离登记

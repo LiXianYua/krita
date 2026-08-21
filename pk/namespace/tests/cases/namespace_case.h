@@ -33,7 +33,6 @@ private Q_SLOTS:
     void brushStyleValues();
     void cursorShapeValues();
     void textFormatValues();
-    void dateFormatValues();
     void timeSpecValues();
     void scrollBarPolicyValues();
     void caseSensitivityValues();

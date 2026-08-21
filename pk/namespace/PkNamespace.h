@@ -342,16 +342,6 @@ enum TextFormat {
     AutoText
 };
 
-// ── qnamespace.h:1276-1290 ───────────────────────────────────────────────────
-// 探针：TextDate=0 ISODate=1 ISODateWithMs=9 RFC=8。deprecated 的
-// SystemLocaleDate/LocalDate 等（2-7 号位）保留范围 0 处，不抄。
-enum DateFormat {
-    TextDate,      // default Qt
-    ISODate,       // ISO 8601
-    RFC2822Date = 8,
-    ISODateWithMs = 9
-};
-
 // ── qnamespace.h:1292-1297 ───────────────────────────────────────────────────
 // 探针：Local=0 UTC=1 Offset=2。TimeZone（=3）保留范围 0 处，登记缺口。
 enum TimeSpec {

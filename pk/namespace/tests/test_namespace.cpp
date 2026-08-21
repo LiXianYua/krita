@@ -282,14 +282,6 @@ void PkNamespaceCase::textFormatValues()
     PK_COMPARE(int(Qt::AutoText), 2);
 }
 
-void PkNamespaceCase::dateFormatValues()
-{
-    PK_COMPARE(int(Qt::TextDate), 0);
-    PK_COMPARE(int(Qt::ISODate), 1);
-    PK_COMPARE(int(Qt::RFC2822Date), 8);
-    PK_COMPARE(int(Qt::ISODateWithMs), 9);
-}
-
 void PkNamespaceCase::timeSpecValues()
 {
     PK_COMPARE(int(Qt::LocalTime), 0);

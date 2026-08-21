@@ -266,10 +266,6 @@ int main()
     PKN_CHECK(TextFormat, PlainText);
     PKN_CHECK(TextFormat, RichText);
     PKN_CHECK(TextFormat, AutoText);
-    PKN_CHECK(DateFormat, TextDate);
-    PKN_CHECK(DateFormat, ISODate);
-    PKN_CHECK(DateFormat, RFC2822Date);
-    PKN_CHECK(DateFormat, ISODateWithMs);
     PKN_CHECK(TimeSpec, LocalTime);
     PKN_CHECK(TimeSpec, UTC);
     PKN_CHECK(TimeSpec, OffsetFromUTC);
