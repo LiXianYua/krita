@@ -12,7 +12,7 @@
 #include <kritaimage_export.h>
 #include <KisDelayedUpdateNodeInterface.h>
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KisFilterConfiguration;
 
@@ -38,7 +38,7 @@ public:
      * and selection. Note that the selection will be _copied_
      * (using COW, though).
      */
-    KisGeneratorLayer(KisImageWSP image, const QString &name, KisFilterConfigurationSP  kfc, KisSelectionSP selection);
+    KisGeneratorLayer(KisImageWSP image, const PkString &name, KisFilterConfigurationSP  kfc, KisSelectionSP selection);
     KisGeneratorLayer(const KisGeneratorLayer& rhs);
     ~KisGeneratorLayer() override;
 
@@ -66,14 +66,14 @@ public:
      * re-runs the generator with the specified configuration.
      * Used for previewing the layer inside the stroke.
      */
-    QWeakPointer<boost::none_t> previewWithStroke(const KisStrokeId stroke);
+    PkWeakPointer<boost::none_t> previewWithStroke(const KisStrokeId stroke);
 
     using KisSelectionBasedLayer::setDirty;
-    void setDirty(const QVector<QRect> &rects) override;
+    void setDirty(const PkVector<PkRect> &rects) override;
     /**
      * Updates the selected tiles without triggering the update job.
      */
-    void setDirtyWithoutUpdate(const QVector<QRect> &rects);
+    void setDirtyWithoutUpdate(const PkVector<PkRect> &rects);
     void setX(qint32 x) override;
     void setY(qint32 y) override;
 
@@ -103,7 +103,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif

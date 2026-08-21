@@ -4,6 +4,21 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_layer_style_projection_plane.cpp 阻塞登记（S-06 Task 6）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因（双重）：
+//   * 协变返回断裂：传递 include 到 kis_psd_layer_style.h（未剥），其覆盖
+//     KoResource 虚函数用 Qt 列表容器，与 KoResource.h 被剥成的 PkVector 不一致
+//   * mid()：include krita_utils.h 的模板 rasterizePolygonDDA 用 Qt 序列容器
+//     mid()，PkVector 无此方法，定义期即报错
+// 关闭条件：KoResource.h 的 旧列表容器→PkVector 误映射改回 PkList（原始为 Qt 的列表容器类型，§1
+// 应为 PkList；与 Task 3 KisRequiredResourcesOperators.h 同缺陷），且给 PkVector
+// 补 mid()（或改 krita_utils.h 模板）后解除。
+// 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
+// ===========================================================================
+
+
 #include "kis_layer_style_projection_plane.h"
 
 #include "kis_global.h"
@@ -28,9 +43,9 @@ struct Q_DECL_HIDDEN KisLayerStyleProjectionPlane::Private
 {
     KisLayerProjectionPlaneWSP sourceProjectionPlane;
 
-    QVector<KisLayerStyleFilterProjectionPlaneSP> stylesBefore;
-    QVector<KisLayerStyleFilterProjectionPlaneSP> stylesAfter;
-    QVector<KisLayerStyleFilterProjectionPlaneSP> stylesOverlay;
+    PkVector<KisLayerStyleFilterProjectionPlaneSP> stylesBefore;
+    PkVector<KisLayerStyleFilterProjectionPlaneSP> stylesAfter;
+    PkVector<KisLayerStyleFilterProjectionPlaneSP> stylesOverlay;
     KisStrokeLayerStyleFilterProjectionPlaneSP strokeStyle;
 
     KisCachedPaintDevice cachedPaintDevice;
@@ -50,8 +65,8 @@ struct Q_DECL_HIDDEN KisLayerStyleProjectionPlane::Private
         this->sourceLayer = sourceLayer;
     }
 
-    QVector<KisLayerStyleFilterProjectionPlaneSP> allStyles() const {
-        QVector<KisLayerStyleFilterProjectionPlaneSP> result;
+    PkVector<KisLayerStyleFilterProjectionPlaneSP> allStyles() const {
+        PkVector<KisLayerStyleFilterProjectionPlaneSP> result;
         result << stylesBefore;
         result << stylesOverlay;
         result << strokeStyle;
@@ -60,7 +75,7 @@ struct Q_DECL_HIDDEN KisLayerStyleProjectionPlane::Private
     }
 
     bool hasOverlayStyles() const {
-        Q_FOREACH (KisLayerStyleFilterProjectionPlaneSP plane, stylesOverlay) {
+        for (KisLayerStyleFilterProjectionPlaneSP plane : stylesOverlay) {
             if (!plane->isEmpty()) return true;
         }
 
@@ -68,11 +83,11 @@ struct Q_DECL_HIDDEN KisLayerStyleProjectionPlane::Private
     }
 
     bool hasKnockoutStyles() const {
-        Q_FOREACH (KisLayerStyleFilterProjectionPlaneSP plane, stylesBefore) {
+        for (KisLayerStyleFilterProjectionPlaneSP plane : stylesBefore) {
             if (!plane->knockoutBlower()->isEmpty()) return true;
         }
 
-        Q_FOREACH (KisLayerStyleFilterProjectionPlaneSP plane, stylesAfter) {
+        for (KisLayerStyleFilterProjectionPlaneSP plane : stylesAfter) {
             if (!plane->knockoutBlower()->isEmpty()) return true;
         }
 
@@ -83,7 +98,7 @@ struct Q_DECL_HIDDEN KisLayerStyleProjectionPlane::Private
 
     void applyComplexPlane(KisPainter *painter,
                            KisLayerStyleFilterProjectionPlaneSP plane,
-                           const QRect &rect,
+                           const PkRect &rect,
                            KisPaintDeviceSP originalClone);
 };
 
@@ -109,15 +124,15 @@ KisLayerStyleProjectionPlane::KisLayerStyleProjectionPlane(const KisLayerStylePr
         m_d->style = toQShared(new KisPSDLayerStyle());
     }
 
-    Q_FOREACH (KisLayerStyleFilterProjectionPlaneSP plane, rhs.m_d->stylesBefore) {
+    for (KisLayerStyleFilterProjectionPlaneSP plane : rhs.m_d->stylesBefore) {
         m_d->stylesBefore << toQShared(new KisLayerStyleFilterProjectionPlane(*plane, sourceLayer, m_d->style));
     }
 
-    Q_FOREACH (KisLayerStyleFilterProjectionPlaneSP plane, rhs.m_d->stylesAfter) {
+    for (KisLayerStyleFilterProjectionPlaneSP plane : rhs.m_d->stylesAfter) {
         m_d->stylesAfter << toQShared(new KisLayerStyleFilterProjectionPlane(*plane, sourceLayer, m_d->style));
     }
 
-    Q_FOREACH (KisLayerStyleFilterProjectionPlaneSP plane, rhs.m_d->stylesOverlay) {
+    for (KisLayerStyleFilterProjectionPlaneSP plane : rhs.m_d->stylesOverlay) {
         m_d->stylesOverlay << toQShared(new KisLayerStyleFilterProjectionPlane(*plane, sourceLayer, m_d->style));
     }
 
@@ -218,15 +233,15 @@ KisAbstractProjectionPlaneSP KisLayerStyleProjectionPlane::factoryObject(KisLaye
     return toQShared(new KisLayerStyleProjectionPlane(sourceLayer));
 }
 
-QRect KisLayerStyleProjectionPlane::recalculate(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags)
+PkRect KisLayerStyleProjectionPlane::recalculate(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags)
 {
     KisAbstractProjectionPlaneSP sourcePlane = m_d->sourceProjectionPlane.toStrongRef();
-    QRect result = rect;
+    PkRect result = rect;
 
     if (m_d->style->isEnabled()) {
         result = sourcePlane->recalculate(stylesNeedRect(rect), filthyNode, flags);
 
-        Q_FOREACH (const KisAbstractProjectionPlaneSP plane, m_d->allStyles()) {
+        for (const KisAbstractProjectionPlaneSP plane : m_d->allStyles()) {
             plane->recalculate(rect, filthyNode, flags);
         }
     } else {
@@ -238,7 +253,7 @@ QRect KisLayerStyleProjectionPlane::recalculate(const QRect& rect, KisNodeSP fil
 
 void KisLayerStyleProjectionPlane::Private::applyComplexPlane(KisPainter *painter,
                                                               KisLayerStyleFilterProjectionPlaneSP plane,
-                                                              const QRect &rect,
+                                                              const PkRect &rect,
                                                               KisPaintDeviceSP originalClone)
 {
     if (plane->isEmpty()) return;
@@ -257,7 +272,7 @@ void KisLayerStyleProjectionPlane::Private::applyComplexPlane(KisPainter *painte
     }
 }
 
-void KisLayerStyleProjectionPlane::apply(KisPainter *painter, const QRect &rect)
+void KisLayerStyleProjectionPlane::apply(KisPainter *painter, const PkRect &rect)
 {
     KisLayerProjectionPlaneSP sourcePlane = m_d->sourceProjectionPlane.toStrongRef();
 
@@ -267,7 +282,7 @@ void KisLayerStyleProjectionPlane::apply(KisPainter *painter, const QRect &rect)
             KisPaintDeviceSP originalClone = d1.device();
             originalClone->makeCloneFromRough(painter->device(), rect);
 
-            Q_FOREACH (const KisLayerStyleFilterProjectionPlaneSP plane, m_d->stylesBefore) {
+            for (const KisLayerStyleFilterProjectionPlaneSP plane : m_d->stylesBefore) {
                 m_d->applyComplexPlane(painter, plane, rect, originalClone);
             }
 
@@ -289,7 +304,7 @@ void KisLayerStyleProjectionPlane::apply(KisPainter *painter, const QRect &rect)
                     KisPainter overlayPainter(sourceProjection);
                     sourcePlane->applyMaxOutAlpha(&overlayPainter, rect, KritaUtils::ThresholdMaxOut);
 
-                    Q_FOREACH (const KisAbstractProjectionPlaneSP plane, m_d->stylesOverlay) {
+                    for (const KisAbstractProjectionPlaneSP plane : m_d->stylesOverlay) {
                         plane->apply(&overlayPainter, rect);
                     }
                 }
@@ -309,17 +324,17 @@ void KisLayerStyleProjectionPlane::apply(KisPainter *painter, const QRect &rect)
                 m_d->applyComplexPlane(painter, m_d->strokeStyle, rect, originalClone);
             }
 
-            Q_FOREACH (KisLayerStyleFilterProjectionPlaneSP plane, m_d->stylesAfter) {
+            for (KisLayerStyleFilterProjectionPlaneSP plane : m_d->stylesAfter) {
                 m_d->applyComplexPlane(painter, plane, rect, originalClone);
             }
         } else {
-            Q_FOREACH (const KisAbstractProjectionPlaneSP plane, m_d->stylesBefore) {
+            for (const KisAbstractProjectionPlaneSP plane : m_d->stylesBefore) {
                 plane->apply(painter, rect);
             }
 
             sourcePlane->apply(painter, rect);
 
-            Q_FOREACH (const KisAbstractProjectionPlaneSP plane, m_d->stylesAfter) {
+            for (const KisAbstractProjectionPlaneSP plane : m_d->stylesAfter) {
                 plane->apply(painter, rect);
             }
         }
@@ -334,7 +349,7 @@ KisPaintDeviceList KisLayerStyleProjectionPlane::getLodCapableDevices() const
     KisAbstractProjectionPlaneSP sourcePlane = m_d->sourceProjectionPlane.toStrongRef();
 
     if (m_d->style->isEnabled()) {
-        Q_FOREACH (const KisAbstractProjectionPlaneSP plane, m_d->allStyles()) {
+        for (const KisAbstractProjectionPlaneSP plane : m_d->allStyles()) {
             list << plane->getLodCapableDevices();
         }
 
@@ -346,7 +361,7 @@ KisPaintDeviceList KisLayerStyleProjectionPlane::getLodCapableDevices() const
     return list;
 }
 
-QRect KisLayerStyleProjectionPlane::needRect(const QRect &rect, KisLayer::PositionToFilthy pos) const
+PkRect KisLayerStyleProjectionPlane::needRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const
 {
     /**
      * Need rect should also be adjust for the layers that generate their 'original'
@@ -355,7 +370,7 @@ QRect KisLayerStyleProjectionPlane::needRect(const QRect &rect, KisLayer::Positi
      * \see bug 390299
      */
 
-    QRect needRect = rect;
+    PkRect needRect = rect;
 
     const bool adjustmentAboveDirty = m_d->dependsOnLowerNodes &&
         (pos & KisLayer::N_FILTHY || pos & KisLayer::N_ABOVE_FILTHY);
@@ -370,14 +385,14 @@ QRect KisLayerStyleProjectionPlane::needRect(const QRect &rect, KisLayer::Positi
     return needRect;
 }
 
-QRect KisLayerStyleProjectionPlane::changeRect(const QRect &rect, KisLayer::PositionToFilthy pos) const
+PkRect KisLayerStyleProjectionPlane::changeRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const
 {
     KisAbstractProjectionPlaneSP sourcePlane = m_d->sourceProjectionPlane.toStrongRef();
-    QRect layerChangeRect = sourcePlane->changeRect(rect, pos);
-    QRect changeRect = layerChangeRect;
+    PkRect layerChangeRect = sourcePlane->changeRect(rect, pos);
+    PkRect changeRect = layerChangeRect;
 
     if (m_d->style->isEnabled() && !layerChangeRect.isEmpty()) {
-        Q_FOREACH (const KisAbstractProjectionPlaneSP plane, m_d->allStyles()) {
+        for (const KisAbstractProjectionPlaneSP plane : m_d->allStyles()) {
             changeRect |= plane->changeRect(layerChangeRect, KisLayer::N_ABOVE_FILTHY);
         }
     }
@@ -385,13 +400,13 @@ QRect KisLayerStyleProjectionPlane::changeRect(const QRect &rect, KisLayer::Posi
     return changeRect;
 }
 
-QRect KisLayerStyleProjectionPlane::accessRect(const QRect &rect, KisLayer::PositionToFilthy pos) const
+PkRect KisLayerStyleProjectionPlane::accessRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const
 {
     KisAbstractProjectionPlaneSP sourcePlane = m_d->sourceProjectionPlane.toStrongRef();
-    QRect accessRect = sourcePlane->accessRect(rect, pos);
+    PkRect accessRect = sourcePlane->accessRect(rect, pos);
 
     if (m_d->style->isEnabled()) {
-        Q_FOREACH (const KisAbstractProjectionPlaneSP plane, m_d->allStyles()) {
+        for (const KisAbstractProjectionPlaneSP plane : m_d->allStyles()) {
             accessRect |= plane->accessRect(rect, KisLayer::N_ABOVE_FILTHY);
         }
     }
@@ -399,7 +414,7 @@ QRect KisLayerStyleProjectionPlane::accessRect(const QRect &rect, KisLayer::Posi
     return accessRect;
 }
 
-QRect KisLayerStyleProjectionPlane::needRectForOriginal(const QRect &rect) const
+PkRect KisLayerStyleProjectionPlane::needRectForOriginal(const PkRect &rect) const
 {
     /**
      * Need rect should also be adjust for the layers that generate their 'original'
@@ -408,7 +423,7 @@ QRect KisLayerStyleProjectionPlane::needRectForOriginal(const QRect &rect) const
      * \see bug 366419
      */
 
-    QRect needRect = rect;
+    PkRect needRect = rect;
 
     if (m_d->style->isEnabled()) {
         needRect |= stylesNeedRect(needRect);
@@ -420,35 +435,35 @@ QRect KisLayerStyleProjectionPlane::needRectForOriginal(const QRect &rect) const
     return needRect;
 }
 
-QRect KisLayerStyleProjectionPlane::tightUserVisibleBounds() const
+PkRect KisLayerStyleProjectionPlane::tightUserVisibleBounds() const
 {
     KisAbstractProjectionPlaneSP sourcePlane = m_d->sourceProjectionPlane.toStrongRef();
-    QRect rect = sourcePlane->tightUserVisibleBounds();
+    PkRect rect = sourcePlane->tightUserVisibleBounds();
 
-    Q_FOREACH (const KisAbstractProjectionPlaneSP plane, m_d->allStyles()) {
+    for (const KisAbstractProjectionPlaneSP plane : m_d->allStyles()) {
         rect |= plane->tightUserVisibleBounds();
     }
 
     return rect;
 }
 
-QRect KisLayerStyleProjectionPlane::looseUserVisibleBounds() const
+PkRect KisLayerStyleProjectionPlane::looseUserVisibleBounds() const
 {
     KisAbstractProjectionPlaneSP sourcePlane = m_d->sourceProjectionPlane.toStrongRef();
-    QRect rect = sourcePlane->looseUserVisibleBounds();
+    PkRect rect = sourcePlane->looseUserVisibleBounds();
 
-    Q_FOREACH (const KisAbstractProjectionPlaneSP plane, m_d->allStyles()) {
+    for (const KisAbstractProjectionPlaneSP plane : m_d->allStyles()) {
         rect |= plane->looseUserVisibleBounds();
     }
 
     return rect;
 }
 
-QRect KisLayerStyleProjectionPlane::stylesNeedRect(const QRect &rect) const
+PkRect KisLayerStyleProjectionPlane::stylesNeedRect(const PkRect &rect) const
 {
-    QRect needRect = rect;
+    PkRect needRect = rect;
 
-    Q_FOREACH (const KisAbstractProjectionPlaneSP plane, m_d->allStyles()) {
+    for (const KisAbstractProjectionPlaneSP plane : m_d->allStyles()) {
         needRect |= plane->needRect(rect, KisLayer::N_ABOVE_FILTHY);
     }
 

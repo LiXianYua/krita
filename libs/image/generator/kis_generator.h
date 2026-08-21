@@ -6,9 +6,8 @@
 #ifndef _KIS_GENERATOR_H_
 #define _KIS_GENERATOR_H_
 
-#include <QString>
+#include <PkString.h>
 
-#include <klocalizedstring.h>
 
 #include "KoID.h"
 #include "KoColorSpace.h"
@@ -34,7 +33,7 @@ class KRITAIMAGE_EXPORT KisGenerator : public KisBaseProcessor
     friend class KisGeneratorConfigurationFactory;
 public:
 
-    KisGenerator(const KoID& id, const KoID & category, const QString & entry);
+    KisGenerator(const KoID& id, const KoID & category, const PkString & entry);
     ~KisGenerator() override;
 
 public:
@@ -48,7 +47,7 @@ public:
      * @param progressUpdater the progress updater
      */
     virtual void generate(KisProcessingInformation dst,
-                          const QSize& size,
+                          const PkSize& size,
                           const KisFilterConfigurationSP config,
                           KoUpdater* progressUpdater
                          ) const = 0;
@@ -57,7 +56,7 @@ public:
      * Provided for convenience when no progress reporting is needed.
      */
     virtual void generate(KisProcessingInformation dst,
-                          const QSize& size,
+                          const PkSize& size,
                           const KisFilterConfigurationSP config
                          ) const;
 
@@ -67,7 +66,7 @@ public:
      *         is supposed to affect all pixels, then the function should return
      *         @p _imageArea
      */
-    virtual QRect generatedRect(QRect _imageArea, const KisFilterConfigurationSP = 0) const;
+    virtual PkRect generatedRect(PkRect _imageArea, const KisFilterConfigurationSP = 0) const;
 
     /**
      * Reports whether this generator can run properly while
@@ -82,7 +81,7 @@ public:
 protected:
 
     /// @return the name of config group in KConfig
-    QString configEntryGroup() const;
+    PkString configEntryGroup() const;
 
 };
 

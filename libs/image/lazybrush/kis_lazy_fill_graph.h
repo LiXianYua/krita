@@ -276,8 +276,8 @@ public:
     typedef VertexDescriptor vertex_descriptor;
     typedef std::pair<vertex_descriptor, vertex_descriptor> edge_descriptor;
 
-    friend QDebug operator<<(QDebug dbg, const KisLazyFillGraph::edge_descriptor &e);
-    friend QDebug operator<<(QDebug dbg, const KisLazyFillGraph::vertex_descriptor &v);
+    friend PkDebug operator<<(PkDebug dbg, const KisLazyFillGraph::edge_descriptor &e);
+    friend PkDebug operator<<(PkDebug dbg, const KisLazyFillGraph::vertex_descriptor &v);
 
     // vertex_iterator
     typedef counting_iterator<vertices_size_type> vertex_index_iterator;
@@ -319,7 +319,7 @@ public:
 
     KisLazyFillGraph() {}
 
-    KisLazyFillGraph(const QRect &mainRect,
+    KisLazyFillGraph(const PkRect &mainRect,
                      const KisRegion &aLabelRegion,
                      const KisRegion &bLabelRegion)
         : m_x(mainRect.x()),
@@ -345,27 +345,27 @@ public:
         m_edgeBins << EdgeIndexBin(m_edgeBins.last(), m_mainArea.adjusted(0, 0, 0, -1), VERTICAL);
         m_edgeBins << EdgeIndexBin(m_edgeBins.last(), m_mainArea.adjusted(0, 0, 0, -1), VERTICAL_REVERSED);
 
-        Q_FOREACH (const QRect &rc, m_aLabelRects) {
+        for (const PkRect &rc : m_aLabelRects) {
             m_edgeBins << EdgeIndexBin(m_edgeBins.last(), rc, LABEL_A);
         }
 
         // out_edge_at relies on the sequential layout of reversed edges of one type
         m_aReversedEdgesStart = m_edgeBins.last().last() + 1;
 
-        Q_FOREACH (const QRect &rc, m_aLabelRects) {
+        for (const PkRect &rc : m_aLabelRects) {
             m_edgeBins << EdgeIndexBin(m_edgeBins.last(), rc, LABEL_A_REVERSED);
         }
 
         m_numAEdges = m_edgeBins.last().last() + 1 - m_aReversedEdgesStart;
 
-        Q_FOREACH (const QRect &rc, m_bLabelRects) {
+        for (const PkRect &rc : m_bLabelRects) {
             m_edgeBins << EdgeIndexBin(m_edgeBins.last(), rc, LABEL_B);
         }
 
         // out_edge_at relies on the sequential layout of reversed edges of one type
         m_bReversedEdgesStart = m_edgeBins.last().last() + 1;
 
-        Q_FOREACH (const QRect &rc, m_bLabelRects) {
+        for (const PkRect &rc : m_bLabelRects) {
             m_edgeBins << EdgeIndexBin(m_edgeBins.last(), rc, LABEL_B_REVERSED);
         }
 
@@ -378,8 +378,8 @@ public:
 
     }
 
-    QSize size() const { return QSize(m_width, m_height); }
-    QRect rect() const { return QRect(m_x, m_y, m_width, m_height); }
+    PkSize size() const { return PkSize(m_width, m_height); }
+    PkRect rect() const { return PkRect(m_x, m_y, m_width, m_height); }
 
 
     vertices_size_type m_x;
@@ -412,7 +412,7 @@ public:
             : start(0), stride(0), size(0) {}
 
         EdgeIndexBin(edges_size_type _start,
-                     const QRect &_rect,
+                     const PkRect &_rect,
                      EdgeIndexBinId _binId)
             : start(_start),
               stride(_rect.width()),
@@ -424,7 +424,7 @@ public:
               rect(_rect) {}
 
         EdgeIndexBin(const EdgeIndexBin &putAfter,
-                     const QRect &_rect,
+                     const PkRect &_rect,
                      EdgeIndexBinId _binId)
             : start(putAfter.last() + 1),
               stride(_rect.width()),
@@ -499,7 +499,7 @@ public:
                 std::swap(src_vertex, dst_vertex);
             }
 
-            // using direct QRect::contains makes the code 30% slower
+            // using direct PkRect::contains makes the code 30% slower
             const int x = src_vertex.x;
             const int y = src_vertex.y;
             if (x < rect.x() || x > rect.right() ||
@@ -569,17 +569,17 @@ public:
         edges_size_type yOffset {0};
         EdgeIndexBinId binId {HORIZONTAL};
         bool isReversed {false};
-        QRect rect;
+        PkRect rect;
     };
 
-    QVector<EdgeIndexBin> m_edgeBins;
+    PkVector<EdgeIndexBin> m_edgeBins;
 
-    QRect m_aLabelArea;
-    QRect m_bLabelArea;
-    QRect m_mainArea;
+    PkRect m_aLabelArea;
+    PkRect m_bLabelArea;
+    PkRect m_mainArea;
 
-    QVector<QRect> m_aLabelRects;
-    QVector<QRect> m_bLabelRects;
+    PkVector<PkRect> m_aLabelRects;
+    PkVector<PkRect> m_bLabelRects;
 
 public:
 
@@ -665,7 +665,7 @@ public:
     }
 
 private:
-    static vertices_size_type numVacantEdges(const vertex_descriptor &vertex, const QRect &rc) {
+    static vertices_size_type numVacantEdges(const vertex_descriptor &vertex, const PkRect &rc) {
         vertices_size_type vacantEdges = 4;
 
         if (vertex.x == rc.x()) {
@@ -687,7 +687,7 @@ private:
         return vacantEdges;
     }
 
-    static inline bool findInRects(const QVector<QRect> &rects, const QPoint &pt) {
+    static inline bool findInRects(const PkVector<PkRect> &rects, const PkPoint &pt) {
         bool result = false;
 
         auto it = rects.constBegin();
@@ -710,7 +710,7 @@ public:
         case vertex_descriptor::NORMAL: {
             out_edge_count = numVacantEdges(vertex, m_mainArea);
 
-            const QPoint pt = QPoint(vertex.x, vertex.y);
+            const PkPoint pt = PkPoint(vertex.x, vertex.y);
 
             if (m_aLabelArea.contains(pt) && findInRects(m_aLabelRects, pt)) {
                 out_edge_count++;
@@ -738,7 +738,7 @@ public:
     edge_descriptor out_edge_at (vertex_descriptor vertex,
                                  degree_size_type out_edge_index) const {
 
-        const QPoint pt = QPoint(vertex.x, vertex.y);
+        const PkPoint pt = PkPoint(vertex.x, vertex.y);
         vertex_descriptor dst_vertex = vertex;
 
         switch (vertex.type) {
@@ -996,8 +996,8 @@ namespace boost {
     };
 }
 
-QDebug operator<<(QDebug dbg, const KisLazyFillGraph::vertex_descriptor &v) {
-    const QString type =
+PkDebug operator<<(PkDebug dbg, const KisLazyFillGraph::vertex_descriptor &v) {
+    const PkString type =
         v.type == KisLazyFillGraph::vertex_descriptor::NORMAL ? "normal" :
         v.type == KisLazyFillGraph::vertex_descriptor::LABEL_A ? "label_A" :
         v.type == KisLazyFillGraph::vertex_descriptor::LABEL_B ? "label_B" : "<unknown>";
@@ -1006,7 +1006,7 @@ QDebug operator<<(QDebug dbg, const KisLazyFillGraph::vertex_descriptor &v) {
     return dbg.space();
 }
 
-QDebug operator<<(QDebug dbg, const KisLazyFillGraph::edge_descriptor &e) {
+PkDebug operator<<(PkDebug dbg, const KisLazyFillGraph::edge_descriptor &e) {
     KisLazyFillGraph::vertex_descriptor src = e.first;
     KisLazyFillGraph::vertex_descriptor dst = e.second;
 

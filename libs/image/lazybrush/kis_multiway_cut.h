@@ -7,7 +7,7 @@
 #ifndef __KIS_MULTIWAY_CUT_H
 #define __KIS_MULTIWAY_CUT_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "kis_types.h"
 #include "kritaimage_export.h"
@@ -19,7 +19,7 @@ class KRITAIMAGE_EXPORT KisMultiwayCut
 public:
     KisMultiwayCut(KisPaintDeviceSP src,
                    KisPaintDeviceSP dst,
-                   const QRect &boundingRect);
+                   const PkRect &boundingRect);
     ~KisMultiwayCut();
 
     void addKeyStroke(KisPaintDeviceSP dev, const KoColor &color);
@@ -31,7 +31,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_MULTIWAY_CUT_H */

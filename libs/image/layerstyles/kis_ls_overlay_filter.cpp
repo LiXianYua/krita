@@ -4,11 +4,26 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_ls_overlay_filter.cpp 阻塞登记（S-06 Task 6）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
+//   * 本文件传递 include 未剥依赖头，最终到达 kis_psd_layer_style.h（未剥），
+//     其 KisPSDLayerStyle 用 Qt 列表容器覆盖 KoResource 的虚函数
+//     （linkedResources/sideLoadedResources/requiredCanvasResources），
+//     与 KoResource.h 被剥成的 PkVector 返回类型不一致 → 协变返回类型不匹配
+// 关闭条件：KoResource.h 这 6 处签名是 旧列表容器→PkVector 的误映射（原始为 Qt 的列表容器类型，
+// 按 Qt替代品选型 §1 应为 PkList；与 Task 3 修 KisRequiredResourcesOperators.h 同
+// 一类缺陷）。KoResource.h + 各 override 统一改回 PkList 后本文件即编过。
+// 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
+// ===========================================================================
+
+
 #include "kis_ls_overlay_filter.h"
 
 #include <cstdlib>
 
-#include <QBitArray>
+#include <PkBitArray.h>
 
 #include <resources/KoPattern.h>
 
@@ -35,7 +50,7 @@
 
 
 KisLsOverlayFilter::KisLsOverlayFilter(Mode mode)
-    : KisLayerStyleFilter(KoID("lsoverlay", i18n("Overlay (style)"))),
+    : KisLayerStyleFilter(KoID("lsoverlay", PkString("Overlay (style)"))),
       m_mode(mode)
 {
 }
@@ -53,20 +68,20 @@ KisLayerStyleFilter *KisLsOverlayFilter::clone() const
 
 void KisLsOverlayFilter::applyOverlay(KisPaintDeviceSP srcDevice,
                                       KisMultipleProjection *dst,
-                                      const QRect &applyRect,
+                                      const PkRect &applyRect,
                                       const psd_layer_effects_overlay_base *config,
                                       KisResourcesInterfaceSP resourcesInterface,
                                       KisLayerStyleFilterEnvironment *env) const
 {
     if (applyRect.isEmpty()) return;
 
-    const QString compositeOp = config->blendMode();
+    const PkString compositeOp = config->blendMode();
     const quint8 opacityU8 = quint8(qRound(255.0 / 100.0 * config->opacity()));
 
     KisPaintDeviceSP dstDevice = dst->getProjection(KisMultipleProjection::defaultProjectionId(),
                                                     compositeOp,
                                                     opacityU8,
-                                                    QBitArray(),
+                                                    PkBitArray(),
                                                     srcDevice);
 
     KisLsUtils::fillOverlayDevice(dstDevice, applyRect, config, resourcesInterface, env);
@@ -91,7 +106,7 @@ KisLsOverlayFilter::getOverlayStruct(KisPSDLayerStyleSP style) const
 void KisLsOverlayFilter::processDirectly(KisPaintDeviceSP src,
                                          KisMultipleProjection *dst,
                                          KisLayerStyleKnockoutBlower *blower,
-                                         const QRect &applyRect,
+                                         const PkRect &applyRect,
                                          KisPSDLayerStyleSP style,
                                          KisLayerStyleFilterEnvironment *env) const
 {
@@ -105,14 +120,14 @@ void KisLsOverlayFilter::processDirectly(KisPaintDeviceSP src,
     applyOverlay(src, dst, applyRect, config, style->resourcesInterface(), env);
 }
 
-QRect KisLsOverlayFilter::neededRect(const QRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
+PkRect KisLsOverlayFilter::neededRect(const PkRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
 {
     Q_UNUSED(style);
     Q_UNUSED(env);
     return rect;
 }
 
-QRect KisLsOverlayFilter::changedRect(const QRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
+PkRect KisLsOverlayFilter::changedRect(const PkRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
 {
     Q_UNUSED(style);
     Q_UNUSED(env);

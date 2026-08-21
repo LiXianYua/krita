@@ -6,8 +6,8 @@
 
 #include "kis_multiple_projection.h"
 
-#include <QMap>
-#include <QReadWriteLock>
+#include <PkMap.h>
+#include <PkReadWriteLock.h>
 
 
 #include <KoColorSpace.h>
@@ -19,16 +19,16 @@
 
 struct ProjectionStruct {
     KisPaintDeviceSP device;
-    QString compositeOpId;
+    PkString compositeOpId;
     quint8 opacity = OPACITY_OPAQUE_U8;
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
 };
 
-typedef QMap<QString, ProjectionStruct> PlanesMap;
+typedef PkMap<PkString, ProjectionStruct> PlanesMap;
 
 struct KisMultipleProjection::Private
 {
-    QReadWriteLock lock;
+    PkReadWriteLock lock;
     PlanesMap planes;
 };
 
@@ -41,7 +41,7 @@ KisMultipleProjection::KisMultipleProjection()
 KisMultipleProjection::KisMultipleProjection(const KisMultipleProjection &rhs)
     : m_d(new Private)
 {
-    QReadLocker readLocker(&rhs.m_d->lock);
+    PkReadLocker readLocker(&rhs.m_d->lock);
 
     auto it = rhs.m_d->planes.constBegin();
     for (; it != rhs.m_d->planes.constEnd(); ++it) {
@@ -59,18 +59,18 @@ KisMultipleProjection::~KisMultipleProjection()
 {
 }
 
-QString KisMultipleProjection::defaultProjectionId()
+PkString KisMultipleProjection::defaultProjectionId()
 {
     return "00_default";
 }
 
-KisPaintDeviceSP KisMultipleProjection::getProjection(const QString &id,
-                                                      const QString &compositeOpId,
+KisPaintDeviceSP KisMultipleProjection::getProjection(const PkString &id,
+                                                      const PkString &compositeOpId,
                                                       quint8 opacity,
-                                                      const QBitArray &channelFlags,
+                                                      const PkBitArray &channelFlags,
                                                       KisPaintDeviceSP prototype)
 {
-    QReadLocker readLocker(&m_d->lock);
+    PkReadLocker readLocker(&m_d->lock);
 
     PlanesMap::const_iterator constIt = m_d->planes.constFind(id);
 
@@ -83,7 +83,7 @@ KisPaintDeviceSP KisMultipleProjection::getProjection(const QString &id,
         readLocker.unlock();
 
         {
-            QWriteLocker writeLocker(&m_d->lock);
+            PkWriteLocker writeLocker(&m_d->lock);
 
             PlanesMap::iterator writeIt = m_d->planes.find(id);
             if (writeIt == m_d->planes.end()) {
@@ -110,21 +110,21 @@ KisPaintDeviceSP KisMultipleProjection::getProjection(const QString &id,
     return constIt->device;
 }
 
-void KisMultipleProjection::freeProjection(const QString &id)
+void KisMultipleProjection::freeProjection(const PkString &id)
 {
-    QWriteLocker writeLocker(&m_d->lock);
+    PkWriteLocker writeLocker(&m_d->lock);
     m_d->planes.remove(id);
 }
 
 void KisMultipleProjection::freeAllProjections()
 {
-    QWriteLocker writeLocker(&m_d->lock);
+    PkWriteLocker writeLocker(&m_d->lock);
     m_d->planes.clear();
 }
 
-void KisMultipleProjection::clear(const QRect &rc)
+void KisMultipleProjection::clear(const PkRect &rc)
 {
-    QReadLocker readLocker(&m_d->lock);
+    PkReadLocker readLocker(&m_d->lock);
 
     PlanesMap::const_iterator it = m_d->planes.constBegin();
     PlanesMap::const_iterator end = m_d->planes.constEnd();
@@ -134,9 +134,9 @@ void KisMultipleProjection::clear(const QRect &rc)
     }
 }
 
-void KisMultipleProjection::apply(KisPaintDeviceSP dstDevice, const QRect &rect, KisLayerStyleFilterEnvironment *env)
+void KisMultipleProjection::apply(KisPaintDeviceSP dstDevice, const PkRect &rect, KisLayerStyleFilterEnvironment *env)
 {
-    QReadLocker readLocker(&m_d->lock);
+    PkReadLocker readLocker(&m_d->lock);
 
     PlanesMap::const_iterator it = m_d->planes.constBegin();
     PlanesMap::const_iterator end = m_d->planes.constEnd();
@@ -151,7 +151,7 @@ void KisMultipleProjection::apply(KisPaintDeviceSP dstDevice, const QRect &rect,
 
 KisPaintDeviceList KisMultipleProjection::getLodCapableDevices() const
 {
-    QReadLocker readLocker(&m_d->lock);
+    PkReadLocker readLocker(&m_d->lock);
 
     PlanesMap::const_iterator it = m_d->planes.constBegin();
     PlanesMap::const_iterator end = m_d->planes.constEnd();

@@ -7,7 +7,7 @@
 #ifndef KIS_GENERATOR_REGISTRY_H_
 #define KIS_GENERATOR_REGISTRY_H_
 
-#include <QObject>
+#include <PkObject.h>
 
 #include "kis_generator.h"
 #include "kis_types.h"
@@ -15,13 +15,13 @@
 
 #include <kritaimage_export.h>
 
-class QString;
+class PkString;
 class KisFilterConfiguration;
 
 /**
  * XXX_DOCS
  */
-class KRITAIMAGE_EXPORT KisGeneratorRegistry : public QObject, public KoGenericRegistry<KisGeneratorSP>
+class KRITAIMAGE_EXPORT KisGeneratorRegistry : public PkObject, public KoGenericRegistry<KisGeneratorSP>
 {
 
     Q_OBJECT
@@ -31,15 +31,15 @@ public:
 
     static KisGeneratorRegistry* instance();
     void add(KisGeneratorSP item);
-    void add(const QString &id, KisGeneratorSP item);
+    void add(const PkString &id, KisGeneratorSP item);
 
 Q_SIGNALS:
 
-    void generatorAdded(QString id);
+    void generatorAdded(PkString id);
 
 private:
 
-    KisGeneratorRegistry(QObject *parent);
+    KisGeneratorRegistry();
     KisGeneratorRegistry(const KisGeneratorRegistry&);
     KisGeneratorRegistry operator=(const KisGeneratorRegistry&);
 };

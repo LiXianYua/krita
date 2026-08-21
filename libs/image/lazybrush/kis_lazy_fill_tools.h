@@ -20,10 +20,10 @@ class KoColor;
 namespace KisLazyFillTools
 {
     KRITAIMAGE_EXPORT
-    void normalizeAndInvertAlpha8Device(KisPaintDeviceSP dev, const QRect &rect);
+    void normalizeAndInvertAlpha8Device(KisPaintDeviceSP dev, const PkRect &rect);
 
     KRITAIMAGE_EXPORT
-    void normalizeAlpha8Device(KisPaintDeviceSP dev, const QRect &rect);
+    void normalizeAlpha8Device(KisPaintDeviceSP dev, const PkRect &rect);
 
     /**
      * Uses Boykov-Kolmogorov Max-Flow/Min-Cut algorithm to split the
@@ -44,7 +44,7 @@ namespace KisLazyFillTools
                    KisPaintDeviceSP backgroundScribble,
                    KisPaintDeviceSP resultDevice,
                    KisPaintDeviceSP maskDevice,
-                   const QRect &boundingRect);
+                   const PkRect &boundingRect);
 
     /**
      * Returns one pixel from each connected component of \p src.
@@ -54,7 +54,7 @@ namespace KisLazyFillTools
      */
 
     KRITAIMAGE_EXPORT
-    QVector<QPoint> splitIntoConnectedComponents(KisPaintDeviceSP src, const QRect &boundingRect);
+    PkVector<PkPoint> splitIntoConnectedComponents(KisPaintDeviceSP src, const PkRect &boundingRect);
 
     struct KRITAIMAGE_EXPORT KeyStroke : public boost::equality_comparable<KeyStroke>
     {

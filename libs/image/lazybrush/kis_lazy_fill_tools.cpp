@@ -4,6 +4,18 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_lazy_fill_tools.cpp 阻塞登记（S-06 Task 6）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
+//   * 必须 include krita_utils.h，其模板 rasterizePolygonDDA 体里用 Qt 序列容器
+//     的 mid()，而 PkVector 无 mid()（pk/container 未实现）。该表达式非模板依赖，
+//     编译器在定义期即报错，任何 include krita_utils.h 的 TU 都编不过
+// 关闭条件：给 PkVector 补 mid()，或 krita_utils.h 该模板改用 Pk 容器接口。
+// 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
+// ===========================================================================
+
+
 #define BOOST_DISABLE_ASSERTS 1
 
 #include "kis_lazy_fill_tools.h"
@@ -32,7 +44,7 @@
 
 namespace KisLazyFillTools {
 
-void normalizeAndInvertAlpha8Device(KisPaintDeviceSP dev, const QRect &rect)
+void normalizeAndInvertAlpha8Device(KisPaintDeviceSP dev, const PkRect &rect)
 {
     quint8 maxPixel = std::numeric_limits<quint8>::min();
     quint8 minPixel = std::numeric_limits<quint8>::max();
@@ -53,7 +65,7 @@ void normalizeAndInvertAlpha8Device(KisPaintDeviceSP dev, const QRect &rect)
                                    });
 }
 
-void normalizeAlpha8Device(KisPaintDeviceSP dev, const QRect &rect)
+void normalizeAlpha8Device(KisPaintDeviceSP dev, const PkRect &rect)
 {
     quint8 maxPixel = std::numeric_limits<quint8>::min();
     quint8 minPixel = std::numeric_limits<quint8>::max();
@@ -80,7 +92,7 @@ void cutOneWay(const KoColor &color,
                KisPaintDeviceSP backgroundScribble,
                KisPaintDeviceSP resultDevice,
                KisPaintDeviceSP maskDevice,
-               const QRect &boundingRect)
+               const PkRect &boundingRect)
 {
     using namespace boost;
 
@@ -136,13 +148,13 @@ void cutOneWay(const KoColor &color,
     }
 }
 
-QVector<QPoint> splitIntoConnectedComponents(KisPaintDeviceSP dev,
-                                             const QRect &boundingRect)
+PkVector<PkPoint> splitIntoConnectedComponents(KisPaintDeviceSP dev,
+                                             const PkRect &boundingRect)
 {
-    QVector<QPoint> points;
+    PkVector<PkPoint> points;
     const KoColorSpace *cs = dev->colorSpace();
 
-    const QRect rect = dev->exactBounds() & boundingRect;
+    const PkRect rect = dev->exactBounds() & boundingRect;
     if (rect.isEmpty()) return points;
 
     /**
@@ -155,7 +167,7 @@ QVector<QPoint> splitIntoConnectedComponents(KisPaintDeviceSP dev,
 
     while (dstIt.nextPixel()) {
         if (cs->opacityU8(dstIt.rawData()) > 0) {
-            const QPoint pt(dstIt.x(), dstIt.y());
+            const PkPoint pt(dstIt.x(), dstIt.y());
             points << pt;
 
             KisScanlineFill fill(dev, pt, rect);

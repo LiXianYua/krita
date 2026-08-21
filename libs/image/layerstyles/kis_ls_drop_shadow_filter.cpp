@@ -4,6 +4,21 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_ls_drop_shadow_filter.cpp 阻塞登记（S-06 Task 6）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
+//   * 本文件传递 include 未剥依赖头，最终到达 kis_psd_layer_style.h（未剥），
+//     其 KisPSDLayerStyle 用 Qt 列表容器覆盖 KoResource 的虚函数
+//     （linkedResources/sideLoadedResources/requiredCanvasResources），
+//     与 KoResource.h 被剥成的 PkVector 返回类型不一致 → 协变返回类型不匹配
+// 关闭条件：KoResource.h 这 6 处签名是 旧列表容器→PkVector 的误映射（原始为 Qt 的列表容器类型，
+// 按 Qt替代品选型 §1 应为 PkList；与 Task 3 修 KisRequiredResourcesOperators.h 同
+// 一类缺陷）。KoResource.h + 各 override 统一改回 PkList 后本文件即编过。
+// 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
+// ===========================================================================
+
+
 #include "kis_ls_drop_shadow_filter.h"
 
 #include <cstdlib>
@@ -33,7 +48,7 @@
 
 
 KisLsDropShadowFilter::KisLsDropShadowFilter(Mode mode)
-    : KisLayerStyleFilter(KoID("lsdropshadow", i18n("Drop Shadow (style)")))
+    : KisLayerStyleFilter(KoID("lsdropshadow", PkString("Drop Shadow (style)")))
     , m_mode(mode)
 {
 }
@@ -56,7 +71,7 @@ struct ShadowRectsData
         CHANGE_RECT
     };
 
-    ShadowRectsData(const QRect &applyRect,
+    ShadowRectsData(const PkRect &applyRect,
                     const psd_layer_effects_context *context,
                     const psd_layer_effects_shadow_base *shadow,
                     Direction direction)
@@ -87,29 +102,29 @@ struct ShadowRectsData
         // dbgKrita << ppVar(spreadNeedRect);
     }
 
-    inline QRect finalNeedRect() const {
+    inline PkRect finalNeedRect() const {
         return spreadNeedRect;
     }
 
-    inline QRect finalChangeRect() const {
+    inline PkRect finalChangeRect() const {
         // TODO: is it correct?
         return spreadNeedRect;
     }
 
     qint32 spread_size;
     qint32 blur_size;
-    QPoint offset;
+    PkPoint offset;
 
-    QRect srcRect;
-    QRect dstRect;
-    QRect noiseNeedRect;
-    QRect blurNeedRect;
-    QRect spreadNeedRect;
+    PkRect srcRect;
+    PkRect dstRect;
+    PkRect noiseNeedRect;
+    PkRect blurNeedRect;
+    PkRect spreadNeedRect;
 };
 
 void KisLsDropShadowFilter::applyDropShadow(KisPaintDeviceSP srcDevice,
                                             KisMultipleProjection *dst,
-                                            const QRect &applyRect,
+                                            const PkRect &applyRect,
                                             const psd_layer_effects_context *context,
                                             const psd_layer_effects_shadow_base *shadow,
                                             KisResourcesInterfaceSP resourcesInterface,
@@ -125,7 +140,7 @@ void KisLsDropShadowFilter::applyDropShadow(KisPaintDeviceSP srcDevice,
 
     KisPixelSelectionSP selection = baseSelection->pixelSelection();
 
-    //selection->convertToQImage(0, QRect(0,0,300,300)).save("0_selection_initial.png");
+    //selection->convertToQImage(0, PkRect(0,0,300,300)).save("0_selection_initial.png");
 
     if (shadow->invertsSelection()) {
         selection->invert();
@@ -156,12 +171,12 @@ void KisLsDropShadowFilter::applyDropShadow(KisPaintDeviceSP srcDevice,
         KisLsUtils::findEdge(selection, d.blurNeedRect, true /*shadow->edgeHidden()*/);
     }
 
-    //selection->convertToQImage(0, QRect(0,0,300,300)).save("1_selection_spread.png");
+    //selection->convertToQImage(0, PkRect(0,0,300,300)).save("1_selection_spread.png");
 
     if (d.blur_size) {
         KisLsUtils::applyGaussianWithTransaction(selection, d.noiseNeedRect, d.blur_size);
     }
-    //selection->convertToQImage(0, QRect(0,0,300,300)).save("2_selection_blur.png");
+    //selection->convertToQImage(0, PkRect(0,0,300,300)).save("2_selection_blur.png");
 
     if (shadow->range() != KisLsUtils::FULL_PERCENT_RANGE) {
         KisLsUtils::adjustRange(selection, d.noiseNeedRect, shadow->range());
@@ -184,7 +199,7 @@ void KisLsDropShadowFilter::applyDropShadow(KisPaintDeviceSP srcDevice,
                                        shadow->antiAliased(),
                                        shadow->edgeHidden());
 
-    //selection->convertToQImage(0, QRect(0,0,300,300)).save("3_selection_contour.png");
+    //selection->convertToQImage(0, PkRect(0,0,300,300)).save("3_selection_contour.png");
 
     /**
      * Noise
@@ -196,7 +211,7 @@ void KisLsDropShadowFilter::applyDropShadow(KisPaintDeviceSP srcDevice,
                                context,
                                env);
     }
-    //selection->convertToQImage(0, QRect(0,0,300,300)).save("4_selection_noise.png");
+    //selection->convertToQImage(0, PkRect(0,0,300,300)).save("4_selection_noise.png");
 
     if (!d.offset.isNull()) {
         selection->moveTo(selection->offset() + d.offset);
@@ -208,7 +223,7 @@ void KisLsDropShadowFilter::applyDropShadow(KisPaintDeviceSP srcDevice,
     if (shadow->knocksOut()) {
         KIS_ASSERT_RECOVER_RETURN(knockOutSelection);
 
-        QRect knockOutRect = !shadow->invertsSelection() ?
+        PkRect knockOutRect = !shadow->invertsSelection() ?
             d.srcRect : d.spreadNeedRect;
 
         knockOutRect &= d.dstRect;
@@ -217,7 +232,7 @@ void KisLsDropShadowFilter::applyDropShadow(KisPaintDeviceSP srcDevice,
         gc.setCompositeOpId(COMPOSITE_ERASE);
         gc.bitBlt(knockOutRect.topLeft(), knockOutSelection, knockOutRect);
     }
-    //selection->convertToQImage(0, QRect(0,0,300,300)).save("5_selection_knockout.png");
+    //selection->convertToQImage(0, PkRect(0,0,300,300)).save("5_selection_knockout.png");
 
     KisLsUtils::applyFinalSelection(KisMultipleProjection::defaultProjectionId(),
                                     baseSelection,
@@ -252,7 +267,7 @@ KisLsDropShadowFilter::getShadowStruct(KisPSDLayerStyleSP style) const
 void KisLsDropShadowFilter::processDirectly(KisPaintDeviceSP src,
                                             KisMultipleProjection *dst,
                                             KisLayerStyleKnockoutBlower *blower,
-                                            const QRect &applyRect,
+                                            const PkRect &applyRect,
                                             KisPSDLayerStyleSP style,
                                             KisLayerStyleFilterEnvironment *env) const
 {
@@ -266,7 +281,7 @@ void KisLsDropShadowFilter::processDirectly(KisPaintDeviceSP src,
     applyDropShadow(src, dst, applyRect, style->context(), w.config, style->resourcesInterface(), env);
 }
 
-QRect KisLsDropShadowFilter::neededRect(const QRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
+PkRect KisLsDropShadowFilter::neededRect(const PkRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
 {
     const psd_layer_effects_shadow_base *shadowStruct = getShadowStruct(style);
     if (!shadowStruct->effectEnabled()) return rect;
@@ -276,7 +291,7 @@ QRect KisLsDropShadowFilter::neededRect(const QRect &rect, KisPSDLayerStyleSP st
     return rect | d.finalNeedRect();
 }
 
-QRect KisLsDropShadowFilter::changedRect(const QRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
+PkRect KisLsDropShadowFilter::changedRect(const PkRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
 {
     const psd_layer_effects_shadow_base *shadowStruct = getShadowStruct(style);
     if (!shadowStruct->effectEnabled()) return rect;

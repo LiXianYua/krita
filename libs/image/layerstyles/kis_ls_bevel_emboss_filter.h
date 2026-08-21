@@ -9,6 +9,7 @@
 
 
 #include "kis_layer_style_filter.h"
+#include "kis_psd_layer_style.h"
 #include <kritaimage_export.h>
 
 struct psd_layer_effects_bevel_emboss;
@@ -24,12 +25,12 @@ public:
     void processDirectly(KisPaintDeviceSP src,
                          KisMultipleProjection *dst,
                          KisLayerStyleKnockoutBlower *blower,
-                         const QRect &applyRect,
+                         const PkRect &applyRect,
                          KisPSDLayerStyleSP style,
                          KisLayerStyleFilterEnvironment *env) const override;
 
-    QRect neededRect(const QRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
-    QRect changedRect(const QRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
+    PkRect neededRect(const PkRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
+    PkRect changedRect(const PkRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
 
 
 private:
@@ -37,7 +38,7 @@ private:
 
     void applyBevelEmboss(KisPaintDeviceSP srcDevice,
                           KisMultipleProjection *dst,
-                          const QRect &applyRect,
+                          const PkRect &applyRect,
                           const psd_layer_effects_bevel_emboss *config, KisResourcesInterfaceSP resourcesInterface,
                           KisLayerStyleFilterEnvironment *env) const;
 };

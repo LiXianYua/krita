@@ -7,8 +7,8 @@
 #ifndef __KIS_COLORIZE_STROKE_STRATEGY_H
 #define __KIS_COLORIZE_STROKE_STRATEGY_H
 
-#include <QScopedPointer>
-#include <QObject>
+#include <PkScopedPointer.h>
+#include <PkObject.h>
 
 #include "kis_types.h"
 #include "KisRunnableBasedStrokeStrategy.h"
@@ -20,7 +20,7 @@ struct FilteringOptions;
 }
 
 
-class KisColorizeStrokeStrategy : public QObject, public KisRunnableBasedStrokeStrategy
+class KisColorizeStrokeStrategy : public PkObject, public KisRunnableBasedStrokeStrategy
 {
     Q_OBJECT
 
@@ -29,7 +29,7 @@ public:
                               KisPaintDeviceSP dst,
                               KisPaintDeviceSP filteredSource,
                               bool filteredSourceValid,
-                              const QRect &boundingRect,
+                              const PkRect &boundingRect,
                               KisNodeSP progressNode,
                               bool prefilterOnly = false);
     KisColorizeStrokeStrategy(const KisColorizeStrokeStrategy &rhs, int levelOfDetail);
@@ -53,7 +53,7 @@ Q_SIGNALS:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_COLORIZE_STROKE_STRATEGY_H */

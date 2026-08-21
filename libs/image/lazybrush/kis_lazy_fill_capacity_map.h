@@ -16,6 +16,7 @@
 #include "kis_random_accessor_ng.h"
 #include "kis_global.h"
 #include <KisRegion.h>
+#include <vector>
 
 
 class KisLazyFillCapacityMap
@@ -34,7 +35,7 @@ public:
                            KisPaintDeviceSP aLabelImage,
                            KisPaintDeviceSP bLabelImage,
                            KisPaintDeviceSP maskImage,
-                           const QRect &boundingRect)
+                           const PkRect &boundingRect)
         : m_mainImage(mainImage),
           m_aLabelImage(aLabelImage),
           m_bLabelImage(bLabelImage),
@@ -150,9 +151,9 @@ private:
     KisPaintDeviceSP m_bLabelImage;
     KisPaintDeviceSP m_maskImage;
 
-    QRect m_mainRect;
-    QRect m_aLabelRect;
-    QRect m_bLabelRect;
+    PkRect m_mainRect;
+    PkRect m_aLabelRect;
+    PkRect m_bLabelRect;
 
     const KoColorSpace *m_colorSpace;
     int m_pixelSize;
@@ -160,7 +161,7 @@ private:
     KisRandomConstAccessorSP m_aAccessor;
     KisRandomConstAccessorSP m_bAccessor;
     KisRandomConstAccessorSP m_maskAccessor;
-    QByteArray m_srcPixelBuf;
+    std::vector<quint8> m_srcPixelBuf;
 
     KisLazyFillGraph m_graph;
 };

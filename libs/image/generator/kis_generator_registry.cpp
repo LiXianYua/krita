@@ -8,12 +8,7 @@
 
 #include <math.h>
 
-#include <QString>
-#include <QApplication>
-
-#include <klocalizedstring.h>
-
-#include <KoPluginLoader.h>
+#include <PkString.h>
 
 #include "filter/kis_filter_configuration.h"
 #include "kis_debug.h"
@@ -21,14 +16,13 @@
 #include "kis_paint_device.h"
 #include "generator/kis_generator.h"
 
-KisGeneratorRegistry::KisGeneratorRegistry(QObject *parent)
-    : QObject(parent)
+KisGeneratorRegistry::KisGeneratorRegistry()
 {
 }
 
 KisGeneratorRegistry::~KisGeneratorRegistry()
 {
-    Q_FOREACH (KisGeneratorSP generator, values()) {
+    for (KisGeneratorSP generator : values()) {
         remove(generator->id());
         generator.clear();
     }
@@ -37,13 +31,8 @@ KisGeneratorRegistry::~KisGeneratorRegistry()
 
 KisGeneratorRegistry* KisGeneratorRegistry::instance()
 {
-    KisGeneratorRegistry *reg = qApp->findChild<KisGeneratorRegistry *>(QString());
-    if (!reg) {
-        dbgRegistry << "initializing KisGeneratorRegistry";
-        reg = new KisGeneratorRegistry(qApp);
-        KoPluginLoader::instance()->load("Krita/Generator");
-    }
-    return reg;
+    static KisGeneratorRegistry s_instance;
+    return &s_instance;
 }
 
 void KisGeneratorRegistry::add(KisGeneratorSP item)
@@ -52,10 +41,9 @@ void KisGeneratorRegistry::add(KisGeneratorSP item)
     add(item->id(), item);
 }
 
-void KisGeneratorRegistry::add(const QString &id, KisGeneratorSP item)
+void KisGeneratorRegistry::add(const PkString &id, KisGeneratorSP item)
 {
     dbgPlugins << "adding " << item->name() << " with id " << id;
     KoGenericRegistry<KisGeneratorSP>::add(id, item);
-    emit(generatorAdded(id));
+    generatorAdded(id);
 }
-

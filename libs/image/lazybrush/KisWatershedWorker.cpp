@@ -29,9 +29,9 @@ using namespace KisLazyFillTools;
 
 namespace {
 
-struct CompareQPoints
+struct ComparePkPoints
 {
-    bool operator() (const QPoint &p1, const QPoint &p2) const {
+    bool operator() (const PkPoint &p1, const PkPoint &p2) const {
         return p1.y() < p2.y() || (p1.y() == p2.y() && p1.x() < p2.x());
     }
 };
@@ -55,13 +55,13 @@ struct FillGroup {
             return positiveEdgeSize + negativeEdgeSize + foreignEdgeSize + allyEdgeSize;
         }
 
-        QMap<qint32, std::multiset<QPoint, CompareQPoints>> conflictWithGroup;
+        PkMap<qint32, std::multiset<PkPoint, ComparePkPoints>> conflictWithGroup;
     };
 
-    QMap<int, LevelData> levels;
+    PkMap<int, LevelData> levels;
 };
 
-using GroupLevelPair = QPair<qint32, quint8>;
+using GroupLevelPair = PkPair<qint32, quint8>;
 
 enum PrevDirections
 {
@@ -76,40 +76,40 @@ struct NeighbourStaticOffset
 {
     const quint8 from;
     const bool statsOnly;
-    const QPoint offset;
+    const PkPoint offset;
 };
 
 static NeighbourStaticOffset staticOffsets[5][4] =
 {
     { // FROM_NOWHERE
-        { FROM_RIGHT,  false, QPoint(-1,  0) },
-        { FROM_LEFT,   false, QPoint( 1,  0) },
-        { FROM_BOTTOM, false, QPoint( 0, -1) },
-        { FROM_TOP,    false, QPoint( 0,  1) },
+        { FROM_RIGHT,  false, PkPoint(-1,  0) },
+        { FROM_LEFT,   false, PkPoint( 1,  0) },
+        { FROM_BOTTOM, false, PkPoint( 0, -1) },
+        { FROM_TOP,    false, PkPoint( 0,  1) },
     },
     { // FROM_RIGHT
-        { FROM_RIGHT,  false, QPoint(-1,  0) },
-        { FROM_LEFT,   true,  QPoint( 1,  0) },
-        { FROM_BOTTOM, false, QPoint( 0, -1) },
-        { FROM_TOP,    false, QPoint( 0,  1) },
+        { FROM_RIGHT,  false, PkPoint(-1,  0) },
+        { FROM_LEFT,   true,  PkPoint( 1,  0) },
+        { FROM_BOTTOM, false, PkPoint( 0, -1) },
+        { FROM_TOP,    false, PkPoint( 0,  1) },
     },
     { // FROM_LEFT
-        { FROM_RIGHT,  true,  QPoint(-1,  0) },
-        { FROM_LEFT,   false, QPoint( 1,  0) },
-        { FROM_BOTTOM, false, QPoint( 0, -1) },
-        { FROM_TOP,    false, QPoint( 0,  1) },
+        { FROM_RIGHT,  true,  PkPoint(-1,  0) },
+        { FROM_LEFT,   false, PkPoint( 1,  0) },
+        { FROM_BOTTOM, false, PkPoint( 0, -1) },
+        { FROM_TOP,    false, PkPoint( 0,  1) },
     },
     { // FROM_TOP
-        { FROM_RIGHT,  false, QPoint(-1,  0) },
-        { FROM_LEFT,   false, QPoint( 1,  0) },
-        { FROM_BOTTOM, true,  QPoint( 0, -1) },
-        { FROM_TOP,    false, QPoint( 0,  1) },
+        { FROM_RIGHT,  false, PkPoint(-1,  0) },
+        { FROM_LEFT,   false, PkPoint( 1,  0) },
+        { FROM_BOTTOM, true,  PkPoint( 0, -1) },
+        { FROM_TOP,    false, PkPoint( 0,  1) },
     },
     { // FROM_BOTTOM
-        { FROM_RIGHT,  false, QPoint(-1,  0) },
-        { FROM_LEFT,   false, QPoint( 1,  0) },
-        { FROM_BOTTOM, false, QPoint( 0, -1) },
-        { FROM_TOP,    true,  QPoint( 0,  1) },
+        { FROM_RIGHT,  false, PkPoint(-1,  0) },
+        { FROM_LEFT,   false, PkPoint( 1,  0) },
+        { FROM_BOTTOM, false, PkPoint( 0, -1) },
+        { FROM_TOP,    true,  PkPoint( 0,  1) },
     }
 };
 
@@ -134,7 +134,7 @@ struct CompareTaskPoints {
  * are set to the range 1...255, according to the height of this pixel
  * in the heightmap. The pixels not having any stroke have value 0
  */
-void mergeHeightmapOntoStroke(KisPaintDeviceSP stroke, KisPaintDeviceSP heightMap, const QRect &rc)
+void mergeHeightmapOntoStroke(KisPaintDeviceSP stroke, KisPaintDeviceSP heightMap, const PkRect &rc)
 {
     KisSequentialIterator dstIt(stroke, rc);
     KisSequentialConstIterator mapIt(heightMap, rc);
@@ -152,14 +152,14 @@ void mergeHeightmapOntoStroke(KisPaintDeviceSP stroke, KisPaintDeviceSP heightMa
     }
 }
 
-void parseColorIntoGroups(QVector<FillGroup> &groups,
+void parseColorIntoGroups(PkVector<FillGroup> &groups,
                           KisPaintDeviceSP groupMap,
                           KisPaintDeviceSP heightMap,
                           int colorIndex,
                           KisPaintDeviceSP stroke,
-                          const QRect &boundingRect)
+                          const PkRect &boundingRect)
 {
-    const QRect strokeRect = stroke->exactBounds();
+    const PkRect strokeRect = stroke->exactBounds();
     mergeHeightmapOntoStroke(stroke, heightMap, strokeRect);
 
     KisSequentialIterator dstIt(stroke, strokeRect);
@@ -168,7 +168,7 @@ void parseColorIntoGroups(QVector<FillGroup> &groups,
         quint8 *dstPtr = dstIt.rawData();
 
         if (*dstPtr > 0) {
-            const QPoint pt(dstIt.x(), dstIt.y());
+            const PkPoint pt(dstIt.x(), dstIt.y());
             KisScanlineFill fill(stroke, pt, boundingRect);
             /**
              * The threshold is set explicitly. If you want to raise it,
@@ -199,10 +199,10 @@ struct KisWatershedWorker::Private
     KisPaintDeviceSP heightMap;
     KisPaintDeviceSP dstDevice;
 
-    QRect boundingRect;
-    QVector<KeyStroke> keyStrokes;
+    PkRect boundingRect;
+    PkVector<KeyStroke> keyStrokes;
 
-    QVector<FillGroup> groups;
+    PkVector<FillGroup> groups;
     KisPaintDeviceSP groupsMap;
 
     CompareTaskPoints pointsComparator;
@@ -220,18 +220,18 @@ struct KisWatershedWorker::Private
 
     KoUpdater *progressUpdater = 0;
 
-    void initializeQueueFromGroupMap(const QRect &rc);
+    void initializeQueueFromGroupMap(const PkRect &rc);
 
-    ALWAYS_INLINE void visitNeighbour(const QPoint &currPt, const QPoint &prevPt, quint8 fromDirection, int prevDistance, quint8 prevLevel, qint32 prevGroupId, FillGroup &prevGroup, FillGroup::LevelData &prevLevelData, qint32 prevPrevGroupId, FillGroup &prevPrevGroup, bool statsOnly = false);
+    ALWAYS_INLINE void visitNeighbour(const PkPoint &currPt, const PkPoint &prevPt, quint8 fromDirection, int prevDistance, quint8 prevLevel, qint32 prevGroupId, FillGroup &prevGroup, FillGroup::LevelData &prevLevelData, qint32 prevPrevGroupId, FillGroup &prevPrevGroup, bool statsOnly = false);
     ALWAYS_INLINE void updateGroupLastDistance(FillGroup::LevelData &levelData, int distance);
     void processQueue(qint32 _backgroundGroupId);
     void writeColoring();
 
-    QVector<TaskPoint> tryRemoveConflictingPlane(qint32 group, quint8 level);
+    PkVector<TaskPoint> tryRemoveConflictingPlane(qint32 group, quint8 level);
 
     void updateNarrowRegionMetrics();
 
-    QVector<GroupLevelPair> calculateConflictingPairs();
+    PkVector<GroupLevelPair> calculateConflictingPairs();
     void cleanupForeignEdgeGroups(qreal cleanUpAmount);
 
     void dumpGroupMaps();
@@ -247,7 +247,7 @@ struct KisWatershedWorker::Private
 
 
 
-KisWatershedWorker::KisWatershedWorker(KisPaintDeviceSP heightMap, KisPaintDeviceSP dst, const QRect &boundingRect, KoUpdater *progress)
+KisWatershedWorker::KisWatershedWorker(KisPaintDeviceSP heightMap, KisPaintDeviceSP dst, const PkRect &boundingRect, KoUpdater *progress)
     : m_d(new Private)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(heightMap->colorSpace()->pixelSize() == 1);
@@ -274,7 +274,7 @@ void KisWatershedWorker::addKeyStroke(KisPaintDeviceSP dev, const KoColor &color
 
     for (auto it = m_d->keyStrokes.begin(); it != m_d->keyStrokes.end() - 1; ++it) {
         KisPaintDeviceSP dev = it->dev;
-        const QRect rc = dev->exactBounds() & lastDev->exactBounds();
+        const PkRect rc = dev->exactBounds() & lastDev->exactBounds();
         if (rc.isEmpty()) continue;
 
         KisSequentialIterator devIt(dev, rc);
@@ -310,7 +310,7 @@ void KisWatershedWorker::run(qreal cleanUpAmount)
 //    m_d->dumpGroupMaps();
 //    m_d->calcNumGroupMaps();
 
-    const QRect initRect =
+    const PkRect initRect =
         m_d->boundingRect & m_d->groupsMap->nonDefaultPixelArea();
 
     m_d->initializeQueueFromGroupMap(initRect);
@@ -357,11 +357,11 @@ int KisWatershedWorker::testingGroupConflicts(qint32 group, quint8 level, qint32
 
 void KisWatershedWorker::testingTryRemoveGroup(qint32 group, quint8 levelIndex)
 {
-    QVector<TaskPoint> taskPoints =
+    PkVector<TaskPoint> taskPoints =
         m_d->tryRemoveConflictingPlane(group, levelIndex);
 
     if (!taskPoints.isEmpty()) {
-        Q_FOREACH (const TaskPoint &pt, taskPoints) {
+        for (const TaskPoint &pt : taskPoints) {
             m_d->pointsQueue.push(pt);
         }
         m_d->processQueue(group);
@@ -370,7 +370,7 @@ void KisWatershedWorker::testingTryRemoveGroup(qint32 group, quint8 levelIndex)
     m_d->calcNumGroupMaps();
 }
 
-void KisWatershedWorker::Private::initializeQueueFromGroupMap(const QRect &rc)
+void KisWatershedWorker::Private::initializeQueueFromGroupMap(const PkRect &rc)
 {
     KisSequentialIterator groupMapIt(groupsMap, rc);
     KisSequentialConstIterator heightMapIt(heightMap, rc);
@@ -403,7 +403,7 @@ ALWAYS_INLINE void addForeignAlly(qint32 currGroupId,
                                   FillGroup &prevGroup,
                                   FillGroup::LevelData &currLevelData,
                                   FillGroup::LevelData &prevLevelData,
-                                  const QPoint &currPt, const QPoint &prevPt,
+                                  const PkPoint &currPt, const PkPoint &prevPt,
                                   bool sameLevel)
 {
     if (currGroup.colorIndex != prevGroup.colorIndex || !sameLevel) {
@@ -429,7 +429,7 @@ ALWAYS_INLINE  void removeForeignAlly(qint32 currGroupId,
                                       FillGroup &prevGroup,
                                       FillGroup::LevelData &currLevelData,
                                       FillGroup::LevelData &prevLevelData,
-                                      const QPoint &currPt, const QPoint &prevPt,
+                                      const PkPoint &currPt, const PkPoint &prevPt,
                                       bool sameLevel)
 {
     if (currGroup.colorIndex != prevGroup.colorIndex || !sameLevel) {
@@ -437,10 +437,10 @@ ALWAYS_INLINE  void removeForeignAlly(qint32 currGroupId,
         currLevelData.foreignEdgeSize--;
 
         if (sameLevel) {
-            std::multiset<QPoint, CompareQPoints> &currSet = currLevelData.conflictWithGroup[prevGroupId];
+            std::multiset<PkPoint, ComparePkPoints> &currSet = currLevelData.conflictWithGroup[prevGroupId];
             currSet.erase(currSet.find(currPt));
 
-            std::multiset<QPoint, CompareQPoints> &prevSet = prevLevelData.conflictWithGroup[currGroupId];
+            std::multiset<PkPoint, ComparePkPoints> &prevSet = prevLevelData.conflictWithGroup[currGroupId];
             prevSet.erase(prevSet.find(prevPt));
         }
 
@@ -484,7 +484,7 @@ ALWAYS_INLINE  void decrementLevelEdge(FillGroup::LevelData &currLevelData,
     }
 }
 
-void KisWatershedWorker::Private::visitNeighbour(const QPoint &currPt, const QPoint &prevPt,
+void KisWatershedWorker::Private::visitNeighbour(const PkPoint &currPt, const PkPoint &prevPt,
                                                  quint8 fromDirection, int prevDistance, quint8 prevLevel,
                                                  qint32 prevGroupId, FillGroup &prevGroup, FillGroup::LevelData &prevLevelData,
                                                  qint32 prevPrevGroupId, FillGroup &prevPrevGroup,
@@ -618,11 +618,11 @@ void KisWatershedWorker::Private::visitNeighbour(const QPoint &currPt, const QPo
     }
 }
 
-#include <QElapsedTimer>
+#include <PkElapsedTimer.h>
 
 void KisWatershedWorker::Private::processQueue(qint32 _backgroundGroupId)
 {
-    QElapsedTimer tt; tt.start();
+    PkElapsedTimer tt; tt.start();
 
 
     // TODO: lazy initialization of the iterator's position
@@ -668,12 +668,12 @@ void KisWatershedWorker::Private::processQueue(qint32 _backgroundGroupId)
             }
 
             const NeighbourStaticOffset *offsets = staticOffsets[pt.prevDirection];
-            const QPoint currPt(pt.x, pt.y);
+            const PkPoint currPt(pt.x, pt.y);
 
             for (int i = 0; i < 4; i++) {
                 const NeighbourStaticOffset &offset = offsets[i];
 
-                const QPoint nextPt = currPt + offset.offset;
+                const PkPoint nextPt = currPt + offset.offset;
                 visitNeighbour(nextPt, currPt,
                                offset.from, pt.distance, pt.level,
                                pt.group, currGroup, currLevelData,
@@ -714,7 +714,7 @@ void KisWatershedWorker::Private::writeColoring()
     KisSequentialConstIterator srcIt(groupsMap, boundingRect);
     KisSequentialIterator dstIt(dstDevice, boundingRect);
 
-    QVector<KoColor> colors;
+    PkVector<KoColor> colors;
     for (auto it = keyStrokes.begin(); it != keyStrokes.end(); ++it) {
         KoColor color = it->color;
         color.convertTo(dstDevice->colorSpace());
@@ -734,16 +734,16 @@ void KisWatershedWorker::Private::writeColoring()
     }
 }
 
-QVector<TaskPoint> KisWatershedWorker::Private::tryRemoveConflictingPlane(qint32 group, quint8 level)
+PkVector<TaskPoint> KisWatershedWorker::Private::tryRemoveConflictingPlane(qint32 group, quint8 level)
 {
-    QVector<TaskPoint> result;
+    PkVector<TaskPoint> result;
 
     FillGroup &g = groups[group];
     FillGroup::LevelData &l = g.levels[level];
 
     for (auto conflictIt = l.conflictWithGroup.begin(); conflictIt != l.conflictWithGroup.end(); ++conflictIt) {
 
-        std::vector<QPoint> uniquePoints;
+        std::vector<PkPoint> uniquePoints;
         std::unique_copy(conflictIt->begin(), conflictIt->end(), std::back_inserter(uniquePoints));
 
         for (auto pointIt = uniquePoints.begin(); pointIt != uniquePoints.end(); ++pointIt) {
@@ -775,9 +775,9 @@ void KisWatershedWorker::Private::updateNarrowRegionMetrics()
     }
 }
 
-QVector<GroupLevelPair> KisWatershedWorker::Private::calculateConflictingPairs()
+PkVector<GroupLevelPair> KisWatershedWorker::Private::calculateConflictingPairs()
 {
-    QVector<GroupLevelPair> result;
+    PkVector<GroupLevelPair> result;
 
 
     for (qint32 i = 0; i < groups.size(); i++) {
@@ -810,11 +810,11 @@ void KisWatershedWorker::Private::cleanupForeignEdgeGroups(qreal cleanUpAmount)
     // convert into the threshold range [0.05...0.5]
     const qreal foreignEdgePortionThreshold = 0.05 + 0.45 * (1.0 - qBound(0.0, cleanUpAmount, 1.0));
 
-    QVector<GroupLevelPair> conflicts = calculateConflictingPairs();
+    PkVector<GroupLevelPair> conflicts = calculateConflictingPairs();
 
     // sort the pairs by the total edge size
-    QMap<qreal, GroupLevelPair> sortedPairs;
-    Q_FOREACH (const GroupLevelPair &pair, conflicts) {
+    PkMap<qreal, GroupLevelPair> sortedPairs;
+    for (const GroupLevelPair &pair : conflicts) {
         const qint32 groupIndex = pair.first;
         const quint8 levelIndex = pair.second;
         FillGroup::LevelData &level = groups[groupIndex].levels[levelIndex];
@@ -860,14 +860,14 @@ void KisWatershedWorker::Private::cleanupForeignEdgeGroups(qreal cleanUpAmount)
         if (minMetric > 1.0 && meanMetric > 1.2) {
 //            qDebug() << "   * removing...";
 
-            QVector<TaskPoint> taskPoints =
+            PkVector<TaskPoint> taskPoints =
                 tryRemoveConflictingPlane(groupIndex, levelIndex);
 
             if (!taskPoints.isEmpty()) {
                 // dump before
                 // dumpGroupInfo(groupIndex, levelIndex);
 
-                Q_FOREACH (const TaskPoint &pt, taskPoints) {
+                for (const TaskPoint &pt : taskPoints) {
                     pointsQueue.push(pt);
                 }
                 processQueue(groupIndex);
@@ -906,7 +906,7 @@ void KisWatershedWorker::Private::dumpGroupMaps()
     KisSequentialIterator dstFedgeIt(fedgeDevice, boundingRect);
 
 
-    QVector<KoColor> colors;
+    PkVector<KoColor> colors;
     for (auto it = keyStrokes.begin(); it != keyStrokes.end(); ++it) {
         KoColor color = it->color;
         color.convertTo(colorDevice->colorSpace());
@@ -959,7 +959,7 @@ void KisWatershedWorker::Private::calcNumGroupMaps()
     KisSequentialConstIterator groupIt(groupsMap, boundingRect);
     KisSequentialConstIterator levelIt(heightMap, boundingRect);
 
-    QSet<QPair<qint32, quint8>> groups;
+    PkSet<PkPair<qint32, quint8>> groups;
 
     while (groupIt.nextPixel() && levelIt.nextPixel()) {
 

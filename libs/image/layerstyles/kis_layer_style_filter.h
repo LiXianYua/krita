@@ -10,8 +10,11 @@
 #include "kis_types.h"
 #include "kis_shared.h"
 #include "kritaimage_export.h"
-#include "kis_psd_layer_style.h"
-#include <QScopedPointer>
+#include <PkSharedPointer.h>
+
+class KisPSDLayerStyle;
+typedef PkSharedPointer<KisPSDLayerStyle> KisPSDLayerStyleSP;
+#include <PkScopedPointer.h>
 
 class KisLayerStyleFilterEnvironment;
 class KisMultipleProjection;
@@ -26,14 +29,14 @@ public:
     /**
      * \return Unique identifier for this filter
      */
-    QString id() const;
+    PkString id() const;
 
     virtual KisLayerStyleFilter* clone() const = 0;
 
     virtual void processDirectly(KisPaintDeviceSP src,
                                  KisMultipleProjection *dst,
                                  KisLayerStyleKnockoutBlower *blower,
-                                 const QRect &applyRect,
+                                 const PkRect &applyRect,
                                  KisPSDLayerStyleSP style,
                                  KisLayerStyleFilterEnvironment *env) const = 0;
 
@@ -41,7 +44,7 @@ public:
      * Some filters need pixels outside the current processing rect to compute the new
      * value (for instance, convolution filters)
      */
-    virtual QRect neededRect(const QRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const = 0;
+    virtual PkRect neededRect(const PkRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const = 0;
 
     /**
      * Similar to \ref neededRect: some filters will alter a lot of pixels that are
@@ -49,14 +52,14 @@ public:
      * in a device, the actual rectangle that will feel the influence of this change
      * might be bigger. Use this function to determine that rect.
      */
-    virtual QRect changedRect(const QRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const = 0;
+    virtual PkRect changedRect(const PkRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const = 0;
 
 protected:
     KisLayerStyleFilter(const KisLayerStyleFilter &rhs);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_LAYER_STYLE_FILTER_H */

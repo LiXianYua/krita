@@ -4,6 +4,21 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_ls_satin_filter.cpp 阻塞登记（S-06 Task 6）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
+//   * 本文件传递 include 未剥依赖头，最终到达 kis_psd_layer_style.h（未剥），
+//     其 KisPSDLayerStyle 用 Qt 列表容器覆盖 KoResource 的虚函数
+//     （linkedResources/sideLoadedResources/requiredCanvasResources），
+//     与 KoResource.h 被剥成的 PkVector 返回类型不一致 → 协变返回类型不匹配
+// 关闭条件：KoResource.h 这 6 处签名是 旧列表容器→PkVector 的误映射（原始为 Qt 的列表容器类型，
+// 按 Qt替代品选型 §1 应为 PkList；与 Task 3 修 KisRequiredResourcesOperators.h 同
+// 一类缺陷）。KoResource.h + 各 override 统一改回 PkList 后本文件即编过。
+// 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
+// ===========================================================================
+
+
 #include "kis_ls_satin_filter.h"
 
 #include <cstdlib>
@@ -31,7 +46,7 @@
 
 
 KisLsSatinFilter::KisLsSatinFilter()
-    : KisLayerStyleFilter(KoID("lssatin", i18n("Satin (style)")))
+    : KisLayerStyleFilter(KoID("lssatin", PkString("Satin (style)")))
 {
 }
 
@@ -52,7 +67,7 @@ struct SatinRectsData
         CHANGE_RECT
     };
 
-    SatinRectsData(const QRect &applyRect,
+    SatinRectsData(const PkRect &applyRect,
                     const psd_layer_effects_context *context,
                     const psd_layer_effects_satin *shadow,
                     Direction direction)
@@ -75,29 +90,29 @@ struct SatinRectsData
             KisLsUtils::growRectFromRadius(satinNeedRect, blur_size) : satinNeedRect;
     }
 
-    inline QRect finalNeedRect() const {
+    inline PkRect finalNeedRect() const {
         return blurNeedRect;
     }
 
-    inline QRect finalChangeRect() const {
+    inline PkRect finalChangeRect() const {
         // TODO: is it correct?
         return blurNeedRect;
     }
 
     qint32 blur_size;
-    QPoint offset;
+    PkPoint offset;
 
-    QRect srcRect;
-    QRect dstRect;
-    QRect satinNeedRect;
-    QRect blurNeedRect;
+    PkRect srcRect;
+    PkRect dstRect;
+    PkRect satinNeedRect;
+    PkRect blurNeedRect;
 };
 
 void blendAndOffsetSatinSelection(KisPixelSelectionSP dstSelection,
                                   KisPixelSelectionSP srcSelection,
                                   const bool invert,
-                                  const QPoint &offset,
-                                  const QRect &applyRect)
+                                  const PkPoint &offset,
+                                  const PkRect &applyRect)
 {
     KisSequentialIterator srcIt1(srcSelection, applyRect.translated(offset));
     KisSequentialIterator srcIt2(srcSelection, applyRect.translated(-offset));
@@ -121,7 +136,7 @@ void blendAndOffsetSatinSelection(KisPixelSelectionSP dstSelection,
 
 void KisLsSatinFilter::applySatin(KisPaintDeviceSP srcDevice,
                                   KisMultipleProjection *dst,
-                                  const QRect &applyRect,
+                                  const PkRect &applyRect,
                                   const psd_layer_effects_context *context,
                                   const psd_layer_effects_satin *config,
                                   KisResourcesInterfaceSP resourcesInterface,
@@ -141,11 +156,11 @@ void KisLsSatinFilter::applySatin(KisPaintDeviceSP srcDevice,
     KisPixelSelectionSP tempSelection = s2.selection()->pixelSelection();
     tempSelection->makeCloneFromRough(selection, selection->selectedRect());
 
-    //KIS_DUMP_DEVICE_2(tempSelection, QRect(0,0,64,64), "00_selection", "dd");
+    //KIS_DUMP_DEVICE_2(tempSelection, PkRect(0,0,64,64), "00_selection", "dd");
 
     KisLsUtils::applyGaussianWithTransaction(tempSelection, d.satinNeedRect, d.blur_size);
 
-    //KIS_DUMP_DEVICE_2(tempSelection, QRect(0,0,64,64), "01_gauss", "dd");
+    //KIS_DUMP_DEVICE_2(tempSelection, PkRect(0,0,64,64), "01_gauss", "dd");
 
     /**
      * Contour correction
@@ -156,7 +171,7 @@ void KisLsSatinFilter::applySatin(KisPaintDeviceSP srcDevice,
                                        config->antiAliased(),
                                        config->edgeHidden());
 
-    //KIS_DUMP_DEVICE_2(tempSelection, QRect(0,0,64,64), "02_contour", "dd");
+    //KIS_DUMP_DEVICE_2(tempSelection, PkRect(0,0,64,64), "02_contour", "dd");
 
     blendAndOffsetSatinSelection(selection,
                                  tempSelection,
@@ -164,7 +179,7 @@ void KisLsSatinFilter::applySatin(KisPaintDeviceSP srcDevice,
                                  d.offset,
                                  d.dstRect);
 
-    //KIS_DUMP_DEVICE_2(selection, QRect(0,0,64,64), "03_blended", "dd");
+    //KIS_DUMP_DEVICE_2(selection, PkRect(0,0,64,64), "03_blended", "dd");
 
     KisLsUtils::applyFinalSelection(KisMultipleProjection::defaultProjectionId(),
                                     baseSelection,
@@ -181,7 +196,7 @@ void KisLsSatinFilter::applySatin(KisPaintDeviceSP srcDevice,
 void KisLsSatinFilter::processDirectly(KisPaintDeviceSP src,
                                        KisMultipleProjection *dst,
                                        KisLayerStyleKnockoutBlower *blower,
-                                       const QRect &applyRect,
+                                       const PkRect &applyRect,
                                        KisPSDLayerStyleSP style,
                                        KisLayerStyleFilterEnvironment *env) const
 {
@@ -195,7 +210,7 @@ void KisLsSatinFilter::processDirectly(KisPaintDeviceSP src,
     applySatin(src, dst, applyRect, style->context(), w.config, style->resourcesInterface(), env);
 }
 
-QRect KisLsSatinFilter::neededRect(const QRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
+PkRect KisLsSatinFilter::neededRect(const PkRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
 {
     const psd_layer_effects_satin *config = style->satin();
     if (!config->effectEnabled()) return rect;
@@ -205,7 +220,7 @@ QRect KisLsSatinFilter::neededRect(const QRect &rect, KisPSDLayerStyleSP style, 
     return rect | d.finalNeedRect();
 }
 
-QRect KisLsSatinFilter::changedRect(const QRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
+PkRect KisLsSatinFilter::changedRect(const PkRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
 {
     const psd_layer_effects_satin *config = style->satin();
     if (!config->effectEnabled()) return rect;

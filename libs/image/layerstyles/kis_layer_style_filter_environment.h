@@ -7,8 +7,8 @@
 #ifndef __KIS_LAYER_STYLE_FILTER_ENVIRONMENT_H
 #define __KIS_LAYER_STYLE_FILTER_ENVIRONMENT_H
 
-#include <QScopedPointer>
-#include <QRect>
+#include <PkScopedPointer.h>
+#include <PkRect.h>
 
 #include <kritaimage_export.h>
 #include "kis_types.h"
@@ -16,8 +16,8 @@
 
 class KisPainter;
 class KisLayer;
-class QPainterPath;
-class QBitArray;
+class PkPainterPath;
+class PkBitArray;
 class KisCachedPaintDevice;
 class KisCachedSelection;
 
@@ -28,15 +28,15 @@ public:
     KisLayerStyleFilterEnvironment(KisLayer *sourceLayer);
     ~KisLayerStyleFilterEnvironment();
 
-    QRect layerBounds() const;
-    QRect defaultBounds() const;
+    PkRect layerBounds() const;
+    PkRect defaultBounds() const;
     int currentLevelOfDetail() const;
 
     void setupFinalPainter(KisPainter *gc,
                            quint8 opacity,
-                           const QBitArray &channelFlags) const;
+                           const PkBitArray &channelFlags) const;
 
-    KisPixelSelectionSP cachedRandomSelection(const QRect &requestedRect) const;
+    KisPixelSelectionSP cachedRandomSelection(const PkRect &requestedRect) const;
 
     KoPatternSP cachedFlattenedPattern(KoPatternSP pattern) const;
 
@@ -45,7 +45,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_LAYER_STYLE_FILTER_ENVIRONMENT_H */

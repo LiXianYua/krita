@@ -23,14 +23,14 @@ KisLayerStyleKnockoutBlower::KisLayerStyleKnockoutBlower(const KisLayerStyleKnoc
 KisSelectionSP KisLayerStyleKnockoutBlower::knockoutSelectionLazy()
 {
     {
-        QReadLocker l(&m_lock);
+        PkReadLocker l(&m_lock);
         if (m_knockoutSelection) {
             return m_knockoutSelection;
         }
     }
 
     {
-        QWriteLocker l(&m_lock);
+        PkWriteLocker l(&m_lock);
         if (m_knockoutSelection) {
             return m_knockoutSelection;
         } else {
@@ -43,24 +43,24 @@ KisSelectionSP KisLayerStyleKnockoutBlower::knockoutSelectionLazy()
 
 void KisLayerStyleKnockoutBlower::setKnockoutSelection(KisSelectionSP selection)
 {
-    QWriteLocker l(&m_lock);
+    PkWriteLocker l(&m_lock);
     m_knockoutSelection = selection;
 }
 
 void KisLayerStyleKnockoutBlower::resetKnockoutSelection()
 {
-    QWriteLocker l(&m_lock);
+    PkWriteLocker l(&m_lock);
     m_knockoutSelection = 0;
 }
 
-void KisLayerStyleKnockoutBlower::apply(KisPainter *painter, KisPaintDeviceSP mergedStyle, const QRect &rect) const
+void KisLayerStyleKnockoutBlower::apply(KisPainter *painter, KisPaintDeviceSP mergedStyle, const PkRect &rect) const
 {
-    QReadLocker l(&m_lock);
+    PkReadLocker l(&m_lock);
 
     KIS_SAFE_ASSERT_RECOVER_NOOP(m_knockoutSelection);
 
     painter->setOpacityToUnit();
-    painter->setChannelFlags(QBitArray());
+    painter->setChannelFlags(PkBitArray());
     painter->setCompositeOpId(COMPOSITE_COPY);
     painter->setSelection(m_knockoutSelection);
     painter->bitBlt(rect.topLeft(), mergedStyle, rect);
@@ -69,6 +69,6 @@ void KisLayerStyleKnockoutBlower::apply(KisPainter *painter, KisPaintDeviceSP me
 
 bool KisLayerStyleKnockoutBlower::isEmpty() const
 {
-    QReadLocker l(&m_lock);
+    PkReadLocker l(&m_lock);
     return !m_knockoutSelection;
 }

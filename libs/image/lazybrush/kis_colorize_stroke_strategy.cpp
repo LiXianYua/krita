@@ -4,9 +4,21 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_colorize_stroke_strategy.cpp 阻塞登记（S-06 Task 6）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
+//   * 必须 include krita_utils.h，其模板 rasterizePolygonDDA 体里用 Qt 序列容器
+//     的 mid()，而 PkVector 无 mid()（pk/container 未实现）。该表达式非模板依赖，
+//     编译器在定义期即报错，任何 include krita_utils.h 的 TU 都编不过
+// 关闭条件：给 PkVector 补 mid()，或 krita_utils.h 该模板改用 Pk 容器接口。
+// 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
+// ===========================================================================
+
+
 #include "kis_colorize_stroke_strategy.h"
 
-#include <QBitArray>
+#include <PkBitArray.h>
 
 #include "krita_utils.h"
 #include "kis_paint_device.h"
@@ -46,19 +58,19 @@ struct KisColorizeStrokeStrategy::Private
     {}
 
     KisNodeSP progressNode;
-    QSharedPointer<KisProcessingVisitor::ProgressHelper> progressHelper;
+    PkSharedPointer<KisProcessingVisitor::ProgressHelper> progressHelper;
     KisPaintDeviceSP src;
     KisPaintDeviceSP dst;
     KisPaintDeviceSP filteredSource;
     KisPaintDeviceSP heightMap;
     KisPaintDeviceSP internalFilteredSource;
     bool filteredSourceValid;
-    QRect boundingRect;
+    PkRect boundingRect;
 
     bool prefilterOnly = false;
     int levelOfDetail = 0;
 
-    QVector<KeyStroke> keyStrokes;
+    PkVector<KeyStroke> keyStrokes;
 
     // default values: disabled
     FilteringOptions filteringOptions;
@@ -68,10 +80,10 @@ KisColorizeStrokeStrategy::KisColorizeStrokeStrategy(KisPaintDeviceSP src,
                                                      KisPaintDeviceSP dst,
                                                      KisPaintDeviceSP filteredSource,
                                                      bool filteredSourceValid,
-                                                     const QRect &boundingRect,
+                                                     const PkRect &boundingRect,
                                                      KisNodeSP progressNode,
                                                      bool prefilterOnly)
-    : KisRunnableBasedStrokeStrategy(QLatin1String("colorize-stroke"), prefilterOnly ? kundo2_i18n("Prefilter Colorize Mask") : kundo2_i18n("Colorize")),
+    : KisRunnableBasedStrokeStrategy(PkString("colorize-stroke"), prefilterOnly ? kundo2_text("Prefilter Colorize Mask") : kundo2_text("Colorize")),
       m_d(new Private)
 {
     m_d->progressNode = progressNode;
@@ -125,9 +137,9 @@ void KisColorizeStrokeStrategy::initStrokeCallback()
 {
     using namespace KritaUtils;
 
-    QVector<KisRunnableStrokeJobData*> jobs;
+    PkVector<KisRunnableStrokeJobData*> jobs;
 
-    const QVector<QRect> patchRects =
+    const PkVector<PkRect> patchRects =
         splitRectIntoPatches(m_d->boundingRect, optimalPatchSize());
 
     if (!m_d->filteredSourceValid) {
@@ -136,14 +148,14 @@ void KisColorizeStrokeStrategy::initStrokeCallback()
         filteredMainDev->setDefaultBounds(m_d->src->defaultBounds());
 
         struct PrefilterSharedState {
-            QRect boundingRect;
+            PkRect boundingRect;
             KisPaintDeviceSP filteredMainDev;
             KisPaintDeviceSP filteredMainDevSavedCopy;
-            QScopedPointer<KisTransaction> activeTransaction;
+            PkScopedPointer<KisTransaction> activeTransaction;
             FilteringOptions filteringOptions;
         };
 
-        QSharedPointer<PrefilterSharedState> state(new PrefilterSharedState());
+        PkSharedPointer<PrefilterSharedState> state(new PrefilterSharedState());
         state->boundingRect = m_d->boundingRect;
         state->filteredMainDev = filteredMainDev;
         state->filteringOptions = m_d->filteringOptions;
@@ -155,14 +167,14 @@ void KisColorizeStrokeStrategy::initStrokeCallback()
                 state->activeTransaction.reset(new KisTransaction(state->filteredMainDev));
             });
 
-            Q_FOREACH (const QRect &rc, patchRects) {
+            for (const PkRect &rc : patchRects) {
                 addJobConcurrent(jobs, [state, rc] () {
                     KisLodTransformScalar t(state->filteredMainDev);
                     KisGaussianKernel::applyLoG(state->filteredMainDev,
                                                 rc,
                                                 t.scale(0.5 * state->filteringOptions.edgeDetectionSize),
                                                 -1.0,
-                                                QBitArray(), 0);
+                                                PkBitArray(), 0);
                 });
             }
 
@@ -172,14 +184,14 @@ void KisColorizeStrokeStrategy::initStrokeCallback()
                 state->activeTransaction.reset(new KisTransaction(state->filteredMainDev));
             });
 
-            Q_FOREACH (const QRect &rc, patchRects) {
+            for (const PkRect &rc : patchRects) {
                 addJobConcurrent(jobs, [state, rc] () {
                     KisLodTransformScalar t(state->filteredMainDev);
                     KisGaussianKernel::applyGaussian(state->filteredMainDev,
                                                      rc,
                                                      t.scale(state->filteringOptions.edgeDetectionSize),
                                                      t.scale(state->filteringOptions.edgeDetectionSize),
-                                                     QBitArray(), 0);
+                                                     PkBitArray(), 0);
                 });
             }
 
@@ -195,14 +207,14 @@ void KisColorizeStrokeStrategy::initStrokeCallback()
                 state->activeTransaction.reset(new KisTransaction(state->filteredMainDev));
             });
 
-            Q_FOREACH (const QRect &rc, patchRects) {
+            for (const PkRect &rc : patchRects) {
                 addJobConcurrent(jobs, [state, rc] () {
                     KisLodTransformScalar t(state->filteredMainDev);
                     KisGaussianKernel::applyGaussian(state->filteredMainDev,
                                                      rc,
                                                      t.scale(state->filteringOptions.fuzzyRadius),
                                                      t.scale(state->filteringOptions.fuzzyRadius),
-                                                     QBitArray(), 0);
+                                                     PkBitArray(), 0);
                     KisPainter gc(state->filteredMainDev);
                     gc.bitBlt(rc.topLeft(), state->filteredMainDevSavedCopy, rc);
                 });
@@ -228,7 +240,7 @@ void KisColorizeStrokeStrategy::initStrokeCallback()
             m_d->heightMap = new KisPaintDevice(*m_d->filteredSource);
         });
 
-        Q_FOREACH (const QRect &rc, patchRects) {
+        for (const PkRect &rc : patchRects) {
             addJobConcurrent(jobs, [this, rc] () {
                 KritaUtils::filterAlpha8Device(m_d->heightMap, rc,
                                                [](quint8 pixel) {
@@ -241,7 +253,7 @@ void KisColorizeStrokeStrategy::initStrokeCallback()
             m_d->progressHelper.reset(new KisProcessingVisitor::ProgressHelper(m_d->progressNode));
 
             KisWatershedWorker worker(m_d->heightMap, m_d->dst, m_d->boundingRect, m_d->progressHelper->updater());
-            Q_FOREACH (const KeyStroke &stroke, m_d->keyStrokes) {
+            for (const KeyStroke &stroke : m_d->keyStrokes) {
                 KoColor color =
                     !stroke.isTransparent ?
                     stroke.color : KoColor::createTransparent(m_d->dst->colorSpace());
@@ -268,7 +280,7 @@ void KisColorizeStrokeStrategy::cancelStrokeCallback()
 void KisColorizeStrokeStrategy::tryCancelCurrentStrokeJobAsync()
 {
     // NOTE: this method may be called by the GUI thread asynchronously!
-    QSharedPointer<KisProcessingVisitor::ProgressHelper> helper = m_d->progressHelper;
+    PkSharedPointer<KisProcessingVisitor::ProgressHelper> helper = m_d->progressHelper;
     if (helper) {
         helper->cancel();
     }

@@ -6,7 +6,7 @@
 
 #include "generator/kis_generator.h"
 
-#include <QString>
+#include <PkString.h>
 
 #include "kis_bookmarked_configuration_manager.h"
 #include "filter/kis_filter_configuration.h"
@@ -16,7 +16,7 @@
 #include "kis_types.h"
 
 
-KisGenerator::KisGenerator(const KoID& _id, const KoID & category, const QString & entry)
+KisGenerator::KisGenerator(const KoID& _id, const KoID & category, const PkString & entry)
     : KisBaseProcessor(_id, category, entry)
 {
     init(id() + "_generator_bookmarks");
@@ -27,14 +27,14 @@ KisGenerator::~KisGenerator()
 }
 
 void KisGenerator::generate(KisProcessingInformation dst,
-                            const QSize& size,
+                            const PkSize& size,
                             const KisFilterConfigurationSP config
                            ) const
 {
     generate(dst, size, config, 0);
 }
 
-QRect KisGenerator::generatedRect(QRect _imageArea, const KisFilterConfigurationSP) const
+PkRect KisGenerator::generatedRect(PkRect _imageArea, const KisFilterConfigurationSP) const
 {
     return _imageArea;
 }

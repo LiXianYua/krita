@@ -31,7 +31,7 @@ KisLayerStyleFilter::~KisLayerStyleFilter()
 {
 }
 
-QString KisLayerStyleFilter::id() const
+PkString KisLayerStyleFilter::id() const
 {
     return m_d->id.id();
 }

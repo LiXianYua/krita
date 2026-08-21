@@ -5,6 +5,21 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+
+// ===========================================================================
+// [GAP] kis_generator_stroke_strategy.cpp 阻塞登记（S-06 Task 6）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因（双重）：
+//   * 协变返回断裂：传递 include 到 kis_psd_layer_style.h（未剥），其覆盖
+//     KoResource 虚函数用 Qt 列表容器，与 KoResource.h 被剥成的 PkVector 不一致
+//   * mid()：include krita_utils.h 的模板 rasterizePolygonDDA 用 Qt 序列容器
+//     mid()，PkVector 无此方法，定义期即报错
+// 关闭条件：KoResource.h 的 旧列表容器→PkVector 误映射改回 PkList（原始为 Qt 的列表容器类型，§1
+// 应为 PkList；与 Task 3 KisRequiredResourcesOperators.h 同缺陷），且给 PkVector
+// 补 mid()（或改 krita_utils.h 模板）后解除。
+// 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
+// ===========================================================================
+
 #include <KisRunnableStrokeJobUtils.h>
 #include <filter/kis_filter_configuration.h>
 #include <kis_generator_layer.h>
@@ -16,7 +31,7 @@
 #include "kis_generator_stroke_strategy.h"
 
 KisGeneratorStrokeStrategy::KisGeneratorStrokeStrategy()
-    : KisRunnableBasedStrokeStrategy(QLatin1String("KisGenerator"), kundo2_i18n("Fill Layer Render"))
+    : KisRunnableBasedStrokeStrategy(PkString("KisGenerator"), kundo2_text("Fill Layer Render"))
 {
     enableJob(KisSimpleStrokeStrategy::JOB_INIT, true, KisStrokeJobData::BARRIER, KisStrokeJobData::EXCLUSIVE);
     enableJob(KisSimpleStrokeStrategy::JOB_DOSTROKE);
@@ -26,19 +41,19 @@ KisGeneratorStrokeStrategy::KisGeneratorStrokeStrategy()
     setCanForgetAboutMe(false);
 }
 
-QVector<KisStrokeJobData *>KisGeneratorStrokeStrategy::createJobsData(const KisGeneratorLayerSP layer, QSharedPointer<boost::none_t> cookie, const KisGeneratorSP f, const KisPaintDeviceSP dev, const QRegion &region, const KisFilterConfigurationSP filterConfig)
+PkVector<KisStrokeJobData *>KisGeneratorStrokeStrategy::createJobsData(const KisGeneratorLayerSP layer, PkSharedPointer<boost::none_t> cookie, const KisGeneratorSP f, const KisPaintDeviceSP dev, const PkRegion &region, const KisFilterConfigurationSP filterConfig)
 {
     using namespace KritaUtils;
 
-    QVector<KisStrokeJobData *> jobsData;
+    PkVector<KisStrokeJobData *> jobsData;
 
-    QSharedPointer<KisProcessingVisitor::ProgressHelper> helper(new KisProcessingVisitor::ProgressHelper(layer));
+    PkSharedPointer<KisProcessingVisitor::ProgressHelper> helper(new KisProcessingVisitor::ProgressHelper(layer));
 
     addJobBarrier(jobsData, nullptr);
 
     for (const auto& rc: region) {
         if (f->allowsSplittingIntoPatches()) {
-            QVector<QRect> tiles = splitRectIntoPatches(rc, optimalPatchSize());
+            PkVector<PkRect> tiles = splitRectIntoPatches(rc, optimalPatchSize());
 
             for(const auto& tile: tiles) {
                 KisProcessingInformation dstCfg(dev, tile.topLeft(), KisSelectionSP());
@@ -49,7 +64,7 @@ QVector<KisStrokeJobData *>KisGeneratorStrokeStrategy::createJobsData(const KisG
                     // this avoids cyclic loop with KisRecalculateGeneratorLayerJob::run()
                     const_cast<KisGeneratorLayerSP &>(layer)->setDirtyWithoutUpdate({tile});
 
-                    const_cast<QSharedPointer<boost::none_t> &>(cookie).clear();
+                    const_cast<PkSharedPointer<boost::none_t> &>(cookie).clear();
                 });
             }
         } else {
@@ -62,7 +77,7 @@ QVector<KisStrokeJobData *>KisGeneratorStrokeStrategy::createJobsData(const KisG
                 // this avoids cyclic loop with KisRecalculateGeneratorLayerJob::run()
                 const_cast<KisGeneratorLayerSP &>(layer)->setDirtyWithoutUpdate({rc});
 
-                const_cast<QSharedPointer<boost::none_t>&>(cookie).clear();
+                const_cast<PkSharedPointer<boost::none_t>&>(cookie).clear();
             });
         }
     }

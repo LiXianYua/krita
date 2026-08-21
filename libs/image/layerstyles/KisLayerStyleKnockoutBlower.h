@@ -7,7 +7,7 @@
 #define KISLAYERSTYLEKNOCKOUTBLOWER_H
 
 #include "kis_selection.h"
-#include <QReadWriteLock>
+#include <PkReadWriteLock.h>
 
 class KisPainter;
 
@@ -24,11 +24,11 @@ public:
     void resetKnockoutSelection();
 
 
-    void apply(KisPainter *painter, KisPaintDeviceSP mergedStyle, const QRect &rect) const;
+    void apply(KisPainter *painter, KisPaintDeviceSP mergedStyle, const PkRect &rect) const;
     bool isEmpty() const;
 
 private:
-    mutable QReadWriteLock m_lock;
+    mutable PkReadWriteLock m_lock;
     KisSelectionSP m_knockoutSelection;
 };
 

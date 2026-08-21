@@ -7,11 +7,26 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_ls_bevel_emboss_filter.cpp 阻塞登记（S-06 Task 6）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
+//   * 本文件传递 include 未剥依赖头，最终到达 kis_psd_layer_style.h（未剥），
+//     其 KisPSDLayerStyle 用 Qt 列表容器覆盖 KoResource 的虚函数
+//     （linkedResources/sideLoadedResources/requiredCanvasResources），
+//     与 KoResource.h 被剥成的 PkVector 返回类型不一致 → 协变返回类型不匹配
+// 关闭条件：KoResource.h 这 6 处签名是 旧列表容器→PkVector 的误映射（原始为 Qt 的列表容器类型，
+// 按 Qt替代品选型 §1 应为 PkList；与 Task 3 修 KisRequiredResourcesOperators.h 同
+// 一类缺陷）。KoResource.h + 各 override 统一改回 PkList 后本文件即编过。
+// 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
+// ===========================================================================
+
+
 #include "kis_ls_bevel_emboss_filter.h"
 
 #include <cstdlib>
 
-#include <QBitArray>
+#include <PkBitArray.h>
 
 #include <KoUpdater.h>
 #include <resources/KoPattern.h>
@@ -42,7 +57,7 @@
 
 
 KisLsBevelEmbossFilter::KisLsBevelEmbossFilter()
-    : KisLayerStyleFilter(KoID("lsstroke", i18n("Stroke (style)")))
+    : KisLayerStyleFilter(KoID("lsstroke", PkString("Stroke (style)")))
 {
 }
 
@@ -58,7 +73,7 @@ KisLsBevelEmbossFilter::KisLsBevelEmbossFilter(const KisLsBevelEmbossFilter &rhs
 
 void paintBevelSelection(KisPixelSelectionSP srcSelection,
                          KisPixelSelectionSP dstSelection,
-                         const QRect &applyRect,
+                         const PkRect &applyRect,
                          int size,
                          int initialSize,
                          bool invert,
@@ -86,7 +101,7 @@ void paintBevelSelection(KisPixelSelectionSP srcSelection,
 
         tmpSelection->makeCloneFromRough(srcSelection, srcSelection->selectedRect());
 
-        QRect changeRect = KisLsUtils::growSelectionUniform(tmpSelection, growSize, applyRect);
+        PkRect changeRect = KisLsUtils::growSelectionUniform(tmpSelection, growSize, applyRect);
 
         gc.setSelection(tmpBaseSelection);
         gc.bitBlt(changeRect.topLeft(), fillDevice, changeRect);
@@ -134,7 +149,7 @@ template <class MapOp>
 void mapPixelValues(KisPixelSelectionSP srcSelection,
                     KisPixelSelectionSP dstSelection,
                     MapOp mapOp,
-                    const QRect &applyRect)
+                    const PkRect &applyRect)
 {
     static quint8 mapTable[256];
     static bool mapInitialized = false;
@@ -160,7 +175,7 @@ void mapPixelValues(KisPixelSelectionSP srcSelection,
 template <class MapOp>
 void mapPixelValues(KisPixelSelectionSP dstSelection,
                     MapOp mapOp,
-                    const QRect &applyRect)
+                    const PkRect &applyRect)
 {
     static quint8 mapTable[256];
     static bool mapInitialized = false;
@@ -183,7 +198,7 @@ void mapPixelValues(KisPixelSelectionSP dstSelection,
 
 struct BevelEmbossRectCalculator
 {
-    BevelEmbossRectCalculator(const QRect &applyRect,
+    BevelEmbossRectCalculator(const PkRect &applyRect,
                               const psd_layer_effects_bevel_emboss *config) {
 
         shadowHighlightsFinalRect = applyRect;
@@ -196,32 +211,32 @@ struct BevelEmbossRectCalculator
         initialFetchRect = kisGrowRect(applyBevelRect, 1);
     }
 
-    QRect totalChangeRect(const QRect &applyRect, const psd_layer_effects_bevel_emboss *config) {
-        QRect changeRect = calcBevelChangeRect(applyRect, config);
+    PkRect totalChangeRect(const PkRect &applyRect, const psd_layer_effects_bevel_emboss *config) {
+        PkRect changeRect = calcBevelChangeRect(applyRect, config);
         changeRect = kisGrowRect(changeRect, 1); // bumpmap method
         changeRect = KisLsUtils::growRectFromRadius(changeRect, config->soften());
         return changeRect;
     }
 
-    QRect totalNeedRect(const QRect &applyRect, const psd_layer_effects_bevel_emboss *config) {
-        QRect changeRect = applyRect;
+    PkRect totalNeedRect(const PkRect &applyRect, const psd_layer_effects_bevel_emboss *config) {
+        PkRect changeRect = applyRect;
         changeRect = KisLsUtils::growRectFromRadius(changeRect, config->soften());
         changeRect = kisGrowRect(changeRect, 1); // bumpmap method
         changeRect = calcBevelNeedRect(applyRect, config);
         return changeRect;
     }
 
-    QRect initialFetchRect;
-    QRect applyBevelRect;
-    QRect applyTextureRect;
-    QRect applyContourRect;
-    QRect applyBumpmapRect;
-    QRect applyGlossContourRect;
-    QRect applyGaussianRect;
-    QRect shadowHighlightsFinalRect;
+    PkRect initialFetchRect;
+    PkRect applyBevelRect;
+    PkRect applyTextureRect;
+    PkRect applyContourRect;
+    PkRect applyBumpmapRect;
+    PkRect applyGlossContourRect;
+    PkRect applyGaussianRect;
+    PkRect shadowHighlightsFinalRect;
 
 private:
-    QRect calcBevelChangeRect(const QRect &applyRect, const psd_layer_effects_bevel_emboss *config) {
+    PkRect calcBevelChangeRect(const PkRect &applyRect, const psd_layer_effects_bevel_emboss *config) {
         const int size = config->size();
         int limitingGrowSize = 0;
 
@@ -250,7 +265,7 @@ private:
         return kisGrowRect(applyRect, limitingGrowSize);
     }
 
-    QRect calcBevelNeedRect(const QRect &applyRect, const psd_layer_effects_bevel_emboss *config) {
+    PkRect calcBevelNeedRect(const PkRect &applyRect, const psd_layer_effects_bevel_emboss *config) {
         const int size = config->size();
         int limitingGrowSize = size;
 
@@ -260,7 +275,7 @@ private:
 
 void KisLsBevelEmbossFilter::applyBevelEmboss(KisPaintDeviceSP srcDevice,
                                               KisMultipleProjection *dst,
-                                              const QRect &applyRect,
+                                              const PkRect &applyRect,
                                               const psd_layer_effects_bevel_emboss *config,
                                               KisResourcesInterfaceSP resourcesInterface,
                                               KisLayerStyleFilterEnvironment *env) const
@@ -314,14 +329,14 @@ void KisLsBevelEmbossFilter::applyBevelEmboss(KisPaintDeviceSP srcDevice,
     KisPixelSelectionSP limitingSelection = s3.selection()->pixelSelection();
     limitingSelection->makeCloneFromRough(selection, selection->selectedRect());
     {
-        QRect changeRectUnused =
+        PkRect changeRectUnused =
             KisLsUtils::growSelectionUniform(limitingSelection,
                                              limitingGrowSize,
                                              d.applyBevelRect);
         Q_UNUSED(changeRectUnused);
     }
 
-    //bumpmapSelection->convertToQImage(0, QRect(0,0,300,300)).save("1_selection_xconv.png");
+    //bumpmapSelection->convertToQImage(0, PkRect(0,0,300,300)).save("1_selection_xconv.png");
 
     if (config->textureEnabled()) {
         KisCachedSelection::Guard s4(*env->cachedSelection());
@@ -368,7 +383,7 @@ void KisLsBevelEmbossFilter::applyBevelEmboss(KisPaintDeviceSP srcDevice,
         }
     }
 
-    //bumpmapSelection->convertToQImage(0, QRect(0,0,300,300)).save("15_selection_texture.png");
+    //bumpmapSelection->convertToQImage(0, PkRect(0,0,300,300)).save("15_selection_texture.png");
 
     if (config->contourEnabled()) {
         if (config->range() != KisLsUtils::FULL_PERCENT_RANGE) {
@@ -394,7 +409,7 @@ void KisLsBevelEmbossFilter::applyBevelEmboss(KisPaintDeviceSP srcDevice,
 
     bumpmap(bumpmapSelection, d.applyBumpmapRect, bmvals);
 
-    //bumpmapSelection->convertToQImage(0, QRect(0,0,300,300)).save("3_selection_bumpmap.png");
+    //bumpmapSelection->convertToQImage(0, PkRect(0,0,300,300)).save("3_selection_bumpmap.png");
 
     { // TODO: optimize!
 
@@ -420,18 +435,18 @@ void KisLsBevelEmbossFilter::applyBevelEmboss(KisPaintDeviceSP srcDevice,
                    ShadowsFetchOp(), d.shadowHighlightsFinalRect);
     selection->applySelection(limitingSelection, SELECTION_INTERSECT);
 
-    //dstDevice->convertToQImage(0, QRect(0,0,300,300)).save("4_dst_before_apply.png");
-    //selection->convertToQImage(0, QRect(0,0,300,300)).save("4_shadows_sel.png");
+    //dstDevice->convertToQImage(0, PkRect(0,0,300,300)).save("4_dst_before_apply.png");
+    //selection->convertToQImage(0, PkRect(0,0,300,300)).save("4_shadows_sel.png");
 
     {
         KisPaintDeviceSP dstDevice = dst->getProjection("00_bevel_shadow",
                                                         config->shadowBlendMode(),
                                                         config->shadowOpacity(),
-                                                        QBitArray(),
+                                                        PkBitArray(),
                                                         srcDevice);
 
         const KoColor fillColor(config->shadowColor(), dstDevice->colorSpace());
-        const QRect &fillRect = d.shadowHighlightsFinalRect;
+        const PkRect &fillRect = d.shadowHighlightsFinalRect;
 
         KisCachedPaintDevice::Guard d1(dstDevice, *env->cachedPaintDevice());
         KisPaintDeviceSP fillDevice = d1.device();
@@ -445,17 +460,17 @@ void KisLsBevelEmbossFilter::applyBevelEmboss(KisPaintDeviceSP srcDevice,
                    HighlightsFetchOp(), d.shadowHighlightsFinalRect);
     selection->applySelection(limitingSelection, SELECTION_INTERSECT);
 
-    //selection->convertToQImage(0, QRect(0,0,300,300)).save("5_highlights_sel.png");
+    //selection->convertToQImage(0, PkRect(0,0,300,300)).save("5_highlights_sel.png");
 
     {
         KisPaintDeviceSP dstDevice = dst->getProjection("01_bevel_highlight",
                                                         config->highlightBlendMode(),
                                                         config->highlightOpacity(),
-                                                        QBitArray(),
+                                                        PkBitArray(),
                                                         srcDevice);
 
         const KoColor fillColor(config->highlightColor(), dstDevice->colorSpace());
-        const QRect &fillRect = d.shadowHighlightsFinalRect;
+        const PkRect &fillRect = d.shadowHighlightsFinalRect;
 
         KisCachedPaintDevice::Guard d1(dstDevice, *env->cachedPaintDevice());
         KisPaintDeviceSP fillDevice = d1.device();
@@ -468,7 +483,7 @@ void KisLsBevelEmbossFilter::applyBevelEmboss(KisPaintDeviceSP srcDevice,
 void KisLsBevelEmbossFilter::processDirectly(KisPaintDeviceSP src,
                                              KisMultipleProjection *dst,
                                              KisLayerStyleKnockoutBlower *blower,
-                                             const QRect &applyRect,
+                                             const PkRect &applyRect,
                                              KisPSDLayerStyleSP style,
                                              KisLayerStyleFilterEnvironment *env) const
 {
@@ -483,7 +498,7 @@ void KisLsBevelEmbossFilter::processDirectly(KisPaintDeviceSP src,
     applyBevelEmboss(src, dst, applyRect, w.config, style->resourcesInterface(), env);
 }
 
-QRect KisLsBevelEmbossFilter::neededRect(const QRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
+PkRect KisLsBevelEmbossFilter::neededRect(const PkRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
 {
     const psd_layer_effects_bevel_emboss *config = style->bevelAndEmboss();
     if (!config->effectEnabled()) return rect;
@@ -494,7 +509,7 @@ QRect KisLsBevelEmbossFilter::neededRect(const QRect &rect, KisPSDLayerStyleSP s
     return d.totalNeedRect(rect, w.config);
 }
 
-QRect KisLsBevelEmbossFilter::changedRect(const QRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
+PkRect KisLsBevelEmbossFilter::changedRect(const PkRect &rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const
 {
     const psd_layer_effects_bevel_emboss *config = style->bevelAndEmboss();
     if (!config->effectEnabled()) return rect;

@@ -12,7 +12,7 @@
 
 #include "gimp_bump_map.h"
 
-#include <QRect>
+#include <PkRect.h>
 #include "kis_pixel_selection.h"
 #include "kis_image.h"
 
@@ -62,7 +62,7 @@ void convertRow(quint8 *data, int width, const quint8 *lut)
 }
 
 void bumpmap (KisPixelSelectionSP device,
-              const QRect &selectionRect,
+              const PkRect &selectionRect,
               const bumpmap_vals_t &bmvals)
 {
     KIS_ASSERT_RECOVER_RETURN(bmvals.xofs == 0);
@@ -71,11 +71,11 @@ void bumpmap (KisPixelSelectionSP device,
     bumpmap_params_t  params;
     bumpmap_init_params (&params, bmvals);
 
-    const QRect dataRect = kisGrowRect(selectionRect, 1);
+    const PkRect dataRect = kisGrowRect(selectionRect, 1);
 
     const int dataRowSize = dataRect.width() * sizeof(quint8);
     const int selectionRowSize = selectionRect.width() * sizeof(quint8);
-    QScopedArrayPointer<quint8> dstRow(new quint8[selectionRowSize]);
+    PkScopedArrayPointer<quint8> dstRow(new quint8[selectionRowSize]);
 
     std::unique_ptr<quint8[]> bmRow1(new quint8[dataRowSize]);
     std::unique_ptr<quint8[]> bmRow2(new quint8[dataRowSize]);

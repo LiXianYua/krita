@@ -9,7 +9,7 @@
 
 #include "kis_abstract_projection_plane.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "kis_types.h"
 
@@ -24,15 +24,15 @@ public:
 
     ~KisLayerStyleProjectionPlane() override;
 
-    QRect recalculate(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags) override;
-    void apply(KisPainter *painter, const QRect &rect) override;
+    PkRect recalculate(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags) override;
+    void apply(KisPainter *painter, const PkRect &rect) override;
 
-    QRect needRect(const QRect &rect, KisLayer::PositionToFilthy pos) const override;
-    QRect changeRect(const QRect &rect, KisLayer::PositionToFilthy pos) const override;
-    QRect accessRect(const QRect &rect, KisLayer::PositionToFilthy pos) const override;
-    QRect needRectForOriginal(const QRect &rect) const override;
-    QRect tightUserVisibleBounds() const override;
-    QRect looseUserVisibleBounds() const override;
+    PkRect needRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const override;
+    PkRect changeRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const override;
+    PkRect accessRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const override;
+    PkRect needRectForOriginal(const PkRect &rect) const override;
+    PkRect tightUserVisibleBounds() const override;
+    PkRect looseUserVisibleBounds() const override;
 
     KisPaintDeviceList getLodCapableDevices() const override;
 
@@ -46,14 +46,14 @@ private:
 
     void init(KisLayer *sourceLayer, KisPSDLayerStyleSP layerStyle);
 
-    QRect stylesNeedRect(const QRect &rect) const;
+    PkRect stylesNeedRect(const PkRect &rect) const;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
-typedef QSharedPointer<KisLayerStyleProjectionPlane> KisLayerStyleProjectionPlaneSP;
-typedef QWeakPointer<KisLayerStyleProjectionPlane> KisLayerStyleProjectionPlaneWSP;
+typedef PkSharedPointer<KisLayerStyleProjectionPlane> KisLayerStyleProjectionPlaneSP;
+typedef PkWeakPointer<KisLayerStyleProjectionPlane> KisLayerStyleProjectionPlaneWSP;
 
 #endif /* __KIS_LAYER_STYLE_PROJECTION_PLANE_H */

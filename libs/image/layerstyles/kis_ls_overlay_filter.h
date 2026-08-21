@@ -9,6 +9,7 @@
 
 
 #include "kis_layer_style_filter.h"
+#include "kis_psd_layer_style.h"
 #include <kritaimage_export.h>
 
 struct psd_layer_effects_overlay_base;
@@ -31,12 +32,12 @@ public:
     void processDirectly(KisPaintDeviceSP src,
                          KisMultipleProjection *dst,
                          KisLayerStyleKnockoutBlower *blower,
-                         const QRect &applyRect,
+                         const PkRect &applyRect,
                          KisPSDLayerStyleSP style,
                          KisLayerStyleFilterEnvironment *env) const override;
 
-    QRect neededRect(const QRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
-    QRect changedRect(const QRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
+    PkRect neededRect(const PkRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
+    PkRect changedRect(const PkRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
 
 private:
     KisLsOverlayFilter(const KisLsOverlayFilter &rhs);
@@ -45,7 +46,7 @@ private:
 
     void applyOverlay(KisPaintDeviceSP srcDevice,
                       KisMultipleProjection *dst,
-                      const QRect &applyRect,
+                      const PkRect &applyRect,
                       const psd_layer_effects_overlay_base *config, KisResourcesInterfaceSP resourcesInterface,
                       KisLayerStyleFilterEnvironment *env) const;
 

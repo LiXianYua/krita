@@ -13,7 +13,6 @@
 #ifndef __GIMP_BUMP_MAP_H
 #define __GIMP_BUMP_MAP_H
 
-#include <QtGlobal>
 #include "kis_types.h"
 
 
@@ -59,7 +58,7 @@ struct bumpmap_vals_t
 };
 
 void KRITAIMAGE_EXPORT bumpmap (KisPixelSelectionSP device,
-                                const QRect &selectionRect,
+                                const PkRect &selectionRect,
                                 const bumpmap_vals_t &bmvals);
 
 #endif /* __GIMP_BUMP_MAP_H */

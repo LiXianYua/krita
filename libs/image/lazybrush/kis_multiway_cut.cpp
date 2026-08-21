@@ -25,16 +25,16 @@ struct KisMultiwayCut::Private
     KisPaintDeviceSP src;
     KisPaintDeviceSP dst;
     KisPaintDeviceSP mask;
-    QRect boundingRect;
+    PkRect boundingRect;
 
-    QVector<KeyStroke> keyStrokes;
+    PkVector<KeyStroke> keyStrokes;
 
-    static void maskOutKeyStroke(KisPaintDeviceSP keyStrokeDevice, KisPaintDeviceSP mask, const QRect &boundingRect);
+    static void maskOutKeyStroke(KisPaintDeviceSP keyStrokeDevice, KisPaintDeviceSP mask, const PkRect &boundingRect);
 };
 
 KisMultiwayCut::KisMultiwayCut(KisPaintDeviceSP src,
                                KisPaintDeviceSP dst,
-                               const QRect &boundingRect)
+                               const PkRect &boundingRect)
     : m_d(new Private)
 {
     m_d->src = src;
@@ -53,7 +53,7 @@ void KisMultiwayCut::addKeyStroke(KisPaintDeviceSP dev, const KoColor &color)
 }
 
 
-void KisMultiwayCut::Private::maskOutKeyStroke(KisPaintDeviceSP keyStrokeDevice, KisPaintDeviceSP mask, const QRect &boundingRect)
+void KisMultiwayCut::Private::maskOutKeyStroke(KisPaintDeviceSP keyStrokeDevice, KisPaintDeviceSP mask, const PkRect &boundingRect)
 {
     KIS_ASSERT_RECOVER_RETURN(keyStrokeDevice->pixelSize() == 1);
     KIS_ASSERT_RECOVER_RETURN(mask->pixelSize() == 1);
@@ -62,7 +62,7 @@ void KisMultiwayCut::Private::maskOutKeyStroke(KisPaintDeviceSP keyStrokeDevice,
         keyStrokeDevice->region() &
         mask->exactBounds() & boundingRect;
 
-    Q_FOREACH (const QRect &rc, region.rects()) {
+    for (const PkRect &rc : region.rects()) {
         KisSequentialIterator dstIt(keyStrokeDevice, rc);
         KisSequentialConstIterator mskIt(mask, rc);
 
@@ -82,8 +82,8 @@ bool keyStrokesOrder(const KeyStroke &a, const KeyStroke &b)
     if (aTransparent && !bTransparent) return true;
     if (!aTransparent && bTransparent) return false;
 
-    const QRect aRect = a.dev->extent();
-    const QRect bRect = b.dev->extent();
+    const PkRect aRect = a.dev->extent();
+    const PkRect bRect = b.dev->extent();
 
     const int aArea = aRect.width() * aRect.height();
     const int bArea = bRect.width() * bRect.height();
@@ -108,15 +108,16 @@ void KisMultiwayCut::run()
     std::stable_sort(m_d->keyStrokes.begin(), m_d->keyStrokes.end(), keyStrokesOrder);
 
     while (m_d->keyStrokes.size() > 1) {
-        KeyStroke current = m_d->keyStrokes.takeFirst();
+        KeyStroke current = m_d->keyStrokes.at(0);
+        m_d->keyStrokes.remove(0);
 
         // if current scribble is empty, it just has no effect
         if (current.dev->exactBounds().isEmpty()) continue;
 
         KisPainter gc(other);
 
-        Q_FOREACH (const KeyStroke &s, m_d->keyStrokes) {
-            const QRect rc = s.dev->extent() & m_d->boundingRect;
+        for (const KeyStroke &s : m_d->keyStrokes) {
+            const PkRect rc = s.dev->extent() & m_d->boundingRect;
             gc.bitBlt(rc.topLeft(), s.dev, rc);
         }
 
@@ -142,14 +143,15 @@ void KisMultiwayCut::run()
     // TODO: check if one can use the last cut for this purpose!
 
     if (m_d->keyStrokes.size() == 1) {
-        KeyStroke current = m_d->keyStrokes.takeLast();
+        KeyStroke current = m_d->keyStrokes.at(m_d->keyStrokes.size() - 1);
+        m_d->keyStrokes.remove(m_d->keyStrokes.size() - 1);
 
         m_d->maskOutKeyStroke(current.dev, m_d->mask, m_d->boundingRect);
 
-        QVector<QPoint> points =
+        PkVector<PkPoint> points =
             KisLazyFillTools::splitIntoConnectedComponents(current.dev, m_d->boundingRect);
 
-        Q_FOREACH (const QPoint &pt, points) {
+        for (const PkPoint &pt : points) {
             KisScanlineFill fill(m_d->mask, pt, m_d->boundingRect);
             fill.fill(current.color, m_d->dst);
         }

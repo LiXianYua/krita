@@ -7,7 +7,7 @@
 #ifndef __KIS_MIN_CUT_WORKER_H
 #define __KIS_MIN_CUT_WORKER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 
 class KisMinCutWorker
@@ -18,7 +18,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_MIN_CUT_WORKER_H */

@@ -8,7 +8,8 @@
 #ifndef __KIS_COLORIZE_MASK_H
 #define __KIS_COLORIZE_MASK_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkObject.h>
 
 #include "kis_types.h"
 #include "kis_effect_mask.h"
@@ -28,12 +29,12 @@ class KRITAIMAGE_EXPORT KisColorizeMask : public KisEffectMask
     Q_OBJECT
 public:
     struct KeyStrokeColors {
-        QVector<KoColor> colors;
+        PkVector<KoColor> colors;
         int transparentIndex = -1;
     };
 
 public:
-    KisColorizeMask(KisImageWSP image, const QString &name);
+    KisColorizeMask(KisImageWSP image, const PkString &name);
     ~KisColorizeMask() override;
 
     KisColorizeMask(const KisColorizeMask& rhs);
@@ -62,25 +63,25 @@ public:
     bool accept(KisNodeVisitor &v) override;
     void accept(KisProcessingVisitor &visitor, KisUndoAdapter *undoAdapter) override;
 
-    QRect decorateRect(KisPaintDeviceSP &src,
+    PkRect decorateRect(KisPaintDeviceSP &src,
                        KisPaintDeviceSP &dst,
-                       const QRect & rc,
+                       const PkRect & rc,
                        PositionToFilthy maskPos,
                        KisRenderPassFlags flags) const override;
 
     void setCurrentColor(const KoColor &color) override;
-    void mergeToLayerThreaded(KisNodeSP layer, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText, int timedID, QVector<KisRunnableStrokeJobData *> *jobs) override;
-    void writeMergeData(KisPainter *painter, KisPaintDeviceSP src, const QRect &rc) override;
+    void mergeToLayerThreaded(KisNodeSP layer, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText, int timedID, PkVector<KisRunnableStrokeJobData *> *jobs) override;
+    void writeMergeData(KisPainter *painter, KisPaintDeviceSP src, const PkRect &rc) override;
     bool supportsNonIndirectPainting() const override;
 
-    QRect exactBounds() const override;
-    QRect extent() const override;
+    PkRect exactBounds() const override;
+    PkRect extent() const override;
 
     /**
      * Colorize mask has its own "projection", so it should report it
      * to the parent layer using non-dependent-extent property
      */
-    QRect nonDependentExtent() const override;
+    PkRect nonDependentExtent() const override;
 
     void setSectionModelProperties(const KisBaseNode::PropertyList &properties) override;
     KisBaseNode::PropertyList sectionModelProperties() const override;
@@ -90,7 +91,7 @@ public:
 
     void removeKeyStroke(const KoColor &color);
 
-    QVector<KisPaintDeviceSP> allPaintDevices() const;
+    PkVector<KisPaintDeviceSP> allPaintDevices() const;
     void resetCache();
 
     void setUseEdgeDetection(bool value);
@@ -113,8 +114,8 @@ public:
 
     void forceRegenerateMask();
 
-    QList<KisLazyFillTools::KeyStroke> fetchKeyStrokesDirect() const;
-    void setKeyStrokesDirect(const QList<KisLazyFillTools::KeyStroke> &strokes);
+    PkList<KisLazyFillTools::KeyStroke> fetchKeyStrokesDirect() const;
+    void setKeyStrokesDirect(const PkList<KisLazyFillTools::KeyStroke> &strokes);
 
     qint32 x() const override;
     qint32 y() const override;
@@ -135,7 +136,7 @@ private Q_SLOTS:
 
 Q_SIGNALS:
     void sigKeyStrokesListChanged();
-    void sigUpdateOnDirtyParent() const;
+    void sigUpdateOnDirtyParent();
 
 private:
     // NOTE: please access this methods using model properties only!
@@ -153,10 +154,10 @@ private:
 
 private:
     void rerenderFakePaintDevice();
-    void moveAllInternalDevices(const QPoint &diff);
+    void moveAllInternalDevices(const PkPoint &diff);
 
     template <class DeviceMetricPolicy>
-    QRect calculateMaskBounds(DeviceMetricPolicy policy) const;
+    PkRect calculateMaskBounds(DeviceMetricPolicy policy) const;
 
     friend struct SetKeyStrokesColorSpaceCommand;
     friend struct KeyStrokeAddRemoveCommand;
@@ -164,7 +165,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 namespace KisColorizeMaskUtils

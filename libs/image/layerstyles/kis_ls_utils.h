@@ -25,23 +25,23 @@ class KisCachedSelection;
 namespace KisLsUtils
 {
 
-    QRect growSelectionUniform(KisPixelSelectionSP selection, int growSize, const QRect &applyRect);
+    PkRect growSelectionUniform(KisPixelSelectionSP selection, int growSize, const PkRect &applyRect);
 
     KRITAIMAGE_EXPORT void selectionFromAlphaChannel(KisPaintDeviceSP srcDevice,
                                                         KisSelectionSP dstSelection,
-                                                        const QRect &srcRect);
+                                                        const PkRect &srcRect);
 
-    void findEdge(KisPixelSelectionSP selection, const QRect &applyRect, const bool edgeHidden);
-    QRect growRectFromRadius(const QRect &rc, int radius);
+    void findEdge(KisPixelSelectionSP selection, const PkRect &applyRect, const bool edgeHidden);
+    PkRect growRectFromRadius(const PkRect &rc, int radius);
     void applyGaussianWithTransaction(KisPixelSelectionSP selection,
-                                      const QRect &applyRect,
+                                      const PkRect &applyRect,
                                       qreal radius);
 
     static const int FULL_PERCENT_RANGE = 100;
-    void adjustRange(KisPixelSelectionSP selection, const QRect &applyRect, const int range);
+    void adjustRange(KisPixelSelectionSP selection, const PkRect &applyRect, const int range);
 
     void applyContourCorrection(KisPixelSelectionSP selection,
-                                const QRect &applyRect,
+                                const PkRect &applyRect,
                                 const quint8 *lookup_table,
                                 bool antiAliased,
                                 bool edgeHidden);
@@ -49,20 +49,20 @@ namespace KisLsUtils
     extern const int noiseNeedBorder;
 
     void applyNoise(KisPixelSelectionSP selection,
-                    const QRect &applyRect,
+                    const PkRect &applyRect,
                     int noise,
                     const psd_layer_effects_context *context,
                     KisLayerStyleFilterEnvironment *env);
 
     void knockOutSelection(KisPixelSelectionSP selection,
                            KisPixelSelectionSP knockOutSelection,
-                           const QRect &srcRect,
-                           const QRect &dstRect,
-                           const QRect &totalNeedRect,
+                           const PkRect &srcRect,
+                           const PkRect &dstRect,
+                           const PkRect &totalNeedRect,
                            const bool knockOutInverted);
 
     void fillPattern(KisPaintDeviceSP fillDevice,
-                     const QRect &applyRect,
+                     const PkRect &applyRect,
                      KisLayerStyleFilterEnvironment *env,
                      int scale,
                      KoPatternSP pattern,
@@ -71,17 +71,17 @@ namespace KisLsUtils
                      bool alignWithLayer);
 
     void fillOverlayDevice(KisPaintDeviceSP fillDevice,
-                           const QRect &applyRect,
+                           const PkRect &applyRect,
                            const psd_layer_effects_overlay_base *config,
                            KisResourcesInterfaceSP resourcesInterface,
                            KisLayerStyleFilterEnvironment *env);
 
-    void applyFinalSelection(const QString &projectionId,
+    void applyFinalSelection(const PkString &projectionId,
                              KisSelectionSP baseSelection,
                              KisPaintDeviceSP srcDevice,
                              KisMultipleProjection *dst,
-                             const QRect &srcRect,
-                             const QRect &dstRect,
+                             const PkRect &srcRect,
+                             const PkRect &dstRect,
                              const psd_layer_effects_context *context,
                              const psd_layer_effects_shadow_base *config, KisResourcesInterfaceSP resourcesInterface,
                              const KisLayerStyleFilterEnvironment *env);
@@ -110,7 +110,7 @@ namespace KisLsUtils
         const ConfigStruct *config;
 
     private:
-        QScopedPointer<ConfigStruct> storage;
+        PkScopedPointer<ConfigStruct> storage;
     };
 
 }

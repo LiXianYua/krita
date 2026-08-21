@@ -34,9 +34,9 @@
 namespace KisLsUtils
 {
 
-    QRect growSelectionUniform(KisPixelSelectionSP selection, int growSize, const QRect &applyRect)
+    PkRect growSelectionUniform(KisPixelSelectionSP selection, int growSize, const PkRect &applyRect)
     {
-        QRect changeRect = applyRect;
+        PkRect changeRect = applyRect;
 
         if (growSize > 0) {
             KisGrowSelectionFilter filter(growSize, growSize);
@@ -53,7 +53,7 @@ namespace KisLsUtils
 
     void selectionFromAlphaChannel(KisPaintDeviceSP srcDevice,
                                       KisSelectionSP dstSelection,
-                                      const QRect &srcRect)
+                                      const PkRect &srcRect)
     {
         const KoColorSpace *cs = srcDevice->colorSpace();
 
@@ -71,7 +71,7 @@ namespace KisLsUtils
 
     }
 
-    void findEdge(KisPixelSelectionSP selection, const QRect &applyRect, const bool edgeHidden)
+    void findEdge(KisPixelSelectionSP selection, const PkRect &applyRect, const bool edgeHidden)
     {
         KisSequentialIterator dstIt(selection, applyRect);
 
@@ -93,25 +93,25 @@ namespace KisLsUtils
         }
     }
 
-    QRect growRectFromRadius(const QRect &rc, int radius)
+    PkRect growRectFromRadius(const PkRect &rc, int radius)
     {
         int halfSize = KisGaussianKernel::kernelSizeFromRadius(radius) / 2;
         return rc.adjusted(-halfSize, -halfSize, halfSize, halfSize);
     }
 
     void applyGaussianWithTransaction(KisPixelSelectionSP selection,
-                                      const QRect &applyRect,
+                                      const PkRect &applyRect,
                                       qreal radius)
     {
         KisGaussianKernel::applyGaussian(selection, applyRect,
                                          radius, radius,
-                                         QBitArray(), 0, true,
+                                         PkBitArray(), 0, true,
                                          BORDER_IGNORE);
     }
 
     namespace Private {
         void getGradientTable(const KoAbstractGradient *gradient,
-                              QVector<KoColor> *table,
+                              PkVector<KoColor> *table,
                               const KoColorSpace *colorSpace)
         {
             KIS_ASSERT_RECOVER_RETURN(table->size() == 256);
@@ -135,7 +135,7 @@ namespace KisLsUtils
 
         struct JitterGradientIndex
         {
-            JitterGradientIndex(const QRect &applyRect,
+            JitterGradientIndex(const PkRect &applyRect,
                                 int jitter,
                                 const KisLayerStyleFilterEnvironment *env)
                 : randomSelection(env->cachedRandomSelection(applyRect)),
@@ -165,8 +165,8 @@ namespace KisLsUtils
         template <class IndexFetcher>
         void applyGradientImpl(KisPaintDeviceSP device,
                                KisPixelSelectionSP selection,
-                               const QRect &applyRect,
-                               const QVector<KoColor> &table,
+                               const PkRect &applyRect,
+                               const PkVector<KoColor> &table,
                                bool edgeHidden,
                                IndexFetcher &indexFetcher)
         {
@@ -214,8 +214,8 @@ namespace KisLsUtils
 
         void applyGradient(KisPaintDeviceSP device,
                            KisPixelSelectionSP selection,
-                           const QRect &applyRect,
-                           const QVector<KoColor> &table,
+                           const PkRect &applyRect,
+                           const PkVector<KoColor> &table,
                            bool edgeHidden,
                            int jitter,
                            const KisLayerStyleFilterEnvironment *env)
@@ -233,14 +233,14 @@ namespace KisLsUtils
     const int noiseNeedBorder = 8;
 
     void applyNoise(KisPixelSelectionSP selection,
-                    const QRect &applyRect,
+                    const PkRect &applyRect,
                     int noise,
                     const psd_layer_effects_context *context,
                     KisLayerStyleFilterEnvironment *env)
     {
         Q_UNUSED(context);
 
-        const QRect overlayRect = kisGrowRect(applyRect, noiseNeedBorder);
+        const PkRect overlayRect = kisGrowRect(applyRect, noiseNeedBorder);
 
         KisPixelSelectionSP randomSelection = env->cachedRandomSelection(overlayRect);
 
@@ -279,7 +279,7 @@ namespace KisLsUtils
 
     //const int FULL_PERCENT_RANGE = 100;
 
-    void adjustRange(KisPixelSelectionSP selection, const QRect &applyRect, const int range)
+    void adjustRange(KisPixelSelectionSP selection, const PkRect &applyRect, const int range)
     {
         KIS_ASSERT_RECOVER_RETURN(range >= 1 && range <= 100);
 
@@ -298,7 +298,7 @@ namespace KisLsUtils
     }
 
     void applyContourCorrection(KisPixelSelectionSP selection,
-                                const QRect &applyRect,
+                                const PkRect &applyRect,
                                 const quint8 *lookup_table,
                                 bool antiAliased,
                                 bool edgeHidden)
@@ -352,14 +352,14 @@ namespace KisLsUtils
 
     void knockOutSelection(KisPixelSelectionSP selection,
                            KisPixelSelectionSP knockOutSelection,
-                           const QRect &srcRect,
-                           const QRect &dstRect,
-                           const QRect &totalNeedRect,
+                           const PkRect &srcRect,
+                           const PkRect &dstRect,
+                           const PkRect &totalNeedRect,
                            const bool knockOutInverted)
     {
         KIS_ASSERT_RECOVER_RETURN(knockOutSelection);
 
-        QRect knockOutRect = !knockOutInverted ? srcRect : totalNeedRect;
+        PkRect knockOutRect = !knockOutInverted ? srcRect : totalNeedRect;
         knockOutRect &= dstRect;
 
         KisPainter gc(selection);
@@ -368,7 +368,7 @@ namespace KisLsUtils
     }
 
     void fillPattern(KisPaintDeviceSP fillDevice,
-                     const QRect &applyRect,
+                     const PkRect &applyRect,
                      KisLayerStyleFilterEnvironment *env,
                      int scale,
                      KoPatternSP pattern,
@@ -378,12 +378,12 @@ namespace KisLsUtils
     {
         KIS_SAFE_ASSERT_RECOVER_RETURN(pattern);
 
-        QSize psize(pattern->width(), pattern->height());
+        PkSize psize(pattern->width(), pattern->height());
 
-        QPoint patternOffset(qreal(psize.width()) * horizontalPhase / 100,
+        PkPoint patternOffset(qreal(psize.width()) * horizontalPhase / 100,
                              qreal(psize.height()) * verticalPhase / 100);
 
-        const QRect boundsRect = alignWithLayer ?
+        const PkRect boundsRect = alignWithLayer ?
             env->layerBounds() : env->defaultBounds();
 
         patternOffset -= boundsRect.topLeft();
@@ -391,10 +391,10 @@ namespace KisLsUtils
         patternOffset.rx() %= psize.width();
         patternOffset.ry() %= psize.height();
 
-        QRect fillRect = applyRect | applyRect.translated(patternOffset);
+        PkRect fillRect = applyRect | applyRect.translated(patternOffset);
 
         KisFillPainter gc(fillDevice);
-        QTransform transform;
+        PkTransform transform;
         transform.translate(-patternOffset.x(), -patternOffset.y());
         qreal scaleNorm = qreal(scale*0.01);
         transform.scale(scaleNorm, scaleNorm);
@@ -403,7 +403,7 @@ namespace KisLsUtils
     }
 
     void fillOverlayDevice(KisPaintDeviceSP fillDevice,
-                           const QRect &applyRect,
+                           const PkRect &applyRect,
                            const psd_layer_effects_overlay_base *config,
                            KisResourcesInterfaceSP resourcesInterface,
                            KisLayerStyleFilterEnvironment *env)
@@ -427,11 +427,11 @@ namespace KisLsUtils
                         config->verticalPhase(),
                         config->alignWithLayer());
         } else if (config->fillType() == psd_fill_gradient) {
-            const QRect boundsRect = config->alignWithLayer() ?
+            const PkRect boundsRect = config->alignWithLayer() ?
                 env->layerBounds() : env->defaultBounds();
 
-            QPoint center = boundsRect.center();
-            center += QPoint(boundsRect.width() * config->gradientXOffset() / 100,
+            PkPoint center = boundsRect.center();
+            center += PkPoint(boundsRect.width() * config->gradientXOffset() / 100,
                              boundsRect.height() * config->gradientYOffset() / 100);
 
             int width = (boundsRect.width() * config->scale() + 100) / 200;
@@ -478,12 +478,12 @@ namespace KisLsUtils
 
             KisGradientPainter gc(fillDevice);
             gc.setGradient(config->gradient(resourcesInterface));
-            QPointF gradStart;
-            QPointF gradEnd;
+            PkPointF gradStart;
+            PkPointF gradEnd;
             KisGradientPainter::enumGradientRepeat repeat =
                 KisGradientPainter::GradientRepeatNone;
 
-            QPoint rectangularOffset(sign_x * radius_x, -sign_y * radius_y);
+            PkPoint rectangularOffset(sign_x * radius_x, -sign_y * radius_y);
 
 
             switch(config->style())
@@ -499,7 +499,7 @@ namespace KisLsUtils
                 gc.setGradientShape(KisGradientPainter::GradientShapeRadial);
                 repeat = KisGradientPainter::GradientRepeatNone;
                 gradStart = center;
-                gradEnd = center + QPointF(radius_corner, 0);
+                gradEnd = center + PkPointF(radius_corner, 0);
                 break;
 
             case psd_gradient_style_angle:
@@ -535,12 +535,12 @@ namespace KisLsUtils
         }
     }
 
-    void applyFinalSelection(const QString &projectionId,
+    void applyFinalSelection(const PkString &projectionId,
                              KisSelectionSP baseSelection,
                              KisPaintDeviceSP srcDevice,
                              KisMultipleProjection *dst,
-                             const QRect &/*srcRect*/,
-                             const QRect &dstRect,
+                             const PkRect &/*srcRect*/,
+                             const PkRect &dstRect,
                              const psd_layer_effects_context */*context*/,
                              const psd_layer_effects_shadow_base *config,
                              KisResourcesInterfaceSP resourcesInterface,
@@ -548,10 +548,10 @@ namespace KisLsUtils
     {
         const KoColor effectColor(config->color(), srcDevice->colorSpace());
 
-        const QRect effectRect(dstRect);
-        const QString compositeOp = config->blendMode();
+        const PkRect effectRect(dstRect);
+        const PkString compositeOp = config->blendMode();
         const quint8 opacityU8 = quint8(qRound(255.0 / 100.0 * config->opacity()));
-        KisPaintDeviceSP dstDevice = dst->getProjection(projectionId, compositeOp, opacityU8, QBitArray(), srcDevice);
+        KisPaintDeviceSP dstDevice = dst->getProjection(projectionId, compositeOp, opacityU8, PkBitArray(), srcDevice);
 
         if (config->fillType() == psd_fill_solid_color) {
             KisFillPainter gc(dstDevice);
@@ -566,7 +566,7 @@ namespace KisLsUtils
                 return;
             }
 
-            QVector<KoColor> table(256);
+            PkVector<KoColor> table(256);
             Private::getGradientTable(config->gradient(resourcesInterface).data(), &table, dstDevice->colorSpace());
 
             Private::applyGradient(dstDevice, baseSelection->pixelSelection(),
@@ -574,7 +574,7 @@ namespace KisLsUtils
                                    true, config->jitter(), env);
         }
 
-        //dstDevice->convertToQImage(0, QRect(0,0,300,300)).save("6_device_shadow.png");
+        //dstDevice->convertToQImage(0, PkRect(0,0,300,300)).save("6_device_shadow.png");
     }
 
     bool checkEffectEnabled(const psd_layer_effects_shadow_base *config, KisMultipleProjection *dst)

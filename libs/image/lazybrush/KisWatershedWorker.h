@@ -7,7 +7,7 @@
 #ifndef KISWATERSHEDWORKER_H
 #define KISWATERSHEDWORKER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "kis_types.h"
 #include "kritaimage_export.h"
@@ -31,7 +31,7 @@ public:
      */
     KisWatershedWorker(KisPaintDeviceSP heightMap,
                        KisPaintDeviceSP dst,
-                       const QRect &boundingRect,
+                       const PkRect &boundingRect,
                        KoUpdater *progress = 0);
     ~KisWatershedWorker();
 
@@ -65,7 +65,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISWATERSHEDWORKER_H

@@ -4,9 +4,24 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_layer_style_filter_environment.cpp 阻塞登记（S-06 Task 6）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因（双重）：
+//   * 协变返回断裂：传递 include 到 kis_psd_layer_style.h（未剥），其覆盖
+//     KoResource 虚函数用 Qt 列表容器，与 KoResource.h 被剥成的 PkVector 不一致
+//   * mid()：include krita_utils.h 的模板 rasterizePolygonDDA 用 Qt 序列容器
+//     mid()，PkVector 无此方法，定义期即报错
+// 关闭条件：KoResource.h 的 旧列表容器→PkVector 误映射改回 PkList（原始为 Qt 的列表容器类型，§1
+// 应为 PkList；与 Task 3 KisRequiredResourcesOperators.h 同缺陷），且给 PkVector
+// 补 mid()（或改 krita_utils.h 模板）后解除。
+// 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
+// ===========================================================================
+
+
 #include "kis_layer_style_filter_environment.h"
 
-#include <QBitArray>
+#include <PkBitArray.h>
 
 #include "kis_layer.h"
 #include "kis_ls_utils.h"
@@ -33,13 +48,13 @@ struct Q_DECL_HIDDEN KisLayerStyleFilterEnvironment::Private
     KisCachedPaintDevice globalCachedPaintDevice;
     KisLocalStrokeResources cachedFlattenedPattern;
 
-    static KisPixelSelectionSP generateRandomSelection(const QRect &rc);
+    static KisPixelSelectionSP generateRandomSelection(const PkRect &rc);
 };
 
 
 KisPixelSelectionSP
 KisLayerStyleFilterEnvironment::Private::
-generateRandomSelection(const QRect &rc)
+generateRandomSelection(const PkRect &rc)
 {
     KisPixelSelectionSP selection = new KisPixelSelection();
     KisSequentialIterator dstIt(selection, rc);
@@ -80,15 +95,15 @@ KisLayerStyleFilterEnvironment::~KisLayerStyleFilterEnvironment()
 {
 }
 
-QRect KisLayerStyleFilterEnvironment::layerBounds() const
+PkRect KisLayerStyleFilterEnvironment::layerBounds() const
 {
-    return m_d->sourceLayer ? m_d->sourceLayer->projection()->exactBounds() : QRect();
+    return m_d->sourceLayer ? m_d->sourceLayer->projection()->exactBounds() : PkRect(0, 0, 0, 0);
 }
 
-QRect KisLayerStyleFilterEnvironment::defaultBounds() const
+PkRect KisLayerStyleFilterEnvironment::defaultBounds() const
 {
     return m_d->sourceLayer ?
-        m_d->sourceLayer->original()->defaultBounds()->bounds() : QRect();
+        m_d->sourceLayer->original()->defaultBounds()->bounds() : PkRect(0, 0, 0, 0);
 }
 
 int KisLayerStyleFilterEnvironment::currentLevelOfDetail() const
@@ -99,7 +114,7 @@ int KisLayerStyleFilterEnvironment::currentLevelOfDetail() const
 
 void KisLayerStyleFilterEnvironment::setupFinalPainter(KisPainter *gc,
                                                        quint8 opacity,
-                                                       const QBitArray &channelFlags) const
+                                                       const PkBitArray &channelFlags) const
 {
     Q_ASSERT(m_d->sourceLayer);
     gc->setOpacityF(KritaUtils::mergeOpacityF(qreal(opacity) / OPACITY_OPAQUE_U8, qreal(m_d->sourceLayer->opacity()) / OPACITY_OPAQUE_U8));
@@ -107,11 +122,11 @@ void KisLayerStyleFilterEnvironment::setupFinalPainter(KisPainter *gc,
 
 }
 
-KisPixelSelectionSP KisLayerStyleFilterEnvironment::cachedRandomSelection(const QRect &requestedRect) const
+KisPixelSelectionSP KisLayerStyleFilterEnvironment::cachedRandomSelection(const PkRect &requestedRect) const
 {
     KisPixelSelectionSP selection = m_d->cachedRandomSelection;
 
-    QRect existingRect;
+    PkRect existingRect;
 
     if (selection) {
         existingRect = selection->selectedExactRect();

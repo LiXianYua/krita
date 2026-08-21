@@ -10,6 +10,7 @@
 #include <kritaimage_export.h>
 
 #include "kis_layer_style_filter.h"
+#include "kis_psd_layer_style.h"
 #include "krita_utils.h"
 
 struct psd_layer_effects_stroke;
@@ -25,12 +26,12 @@ public:
     void processDirectly(KisPaintDeviceSP src,
                          KisMultipleProjection *dst,
                          KisLayerStyleKnockoutBlower *blower,
-                         const QRect &applyRect,
+                         const PkRect &applyRect,
                          KisPSDLayerStyleSP style,
                          KisLayerStyleFilterEnvironment *env) const override;
 
-    QRect neededRect(const QRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
-    QRect changedRect(const QRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
+    PkRect neededRect(const PkRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
+    PkRect changedRect(const PkRect & rect, KisPSDLayerStyleSP style, KisLayerStyleFilterEnvironment *env) const override;
 
     KritaUtils::ThresholdMode sourcePlaneOpacityThresholdRequirement(KisPSDLayerStyleSP style) const;
 
@@ -40,7 +41,7 @@ private:
     void applyStroke(KisPaintDeviceSP srcDevice,
                      KisMultipleProjection *dst,
                      KisLayerStyleKnockoutBlower *blower,
-                     const QRect &applyRect,
+                     const PkRect &applyRect,
                      const psd_layer_effects_stroke *config,
                      KisResourcesInterfaceSP resourcesInterface,
                      KisLayerStyleFilterEnvironment *env) const;

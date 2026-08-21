@@ -21,6 +21,6 @@ public:
     KritaUtils::ThresholdMode sourcePlaneOpacityThresholdRequirement() const;
 };
 
-using KisStrokeLayerStyleFilterProjectionPlaneSP = QSharedPointer<KisStrokeLayerStyleFilterProjectionPlane>;
+using KisStrokeLayerStyleFilterProjectionPlaneSP = PkSharedPointer<KisStrokeLayerStyleFilterProjectionPlane>;
 
 #endif // KISSTROKELAYERSTYLEFILTERPROJECTIONPLANE_H
