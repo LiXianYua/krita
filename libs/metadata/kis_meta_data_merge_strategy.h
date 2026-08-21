@@ -7,11 +7,12 @@
 #ifndef _KIS_META_DATA_MERGE_STRATEGY_H_
 #define _KIS_META_DATA_MERGE_STRATEGY_H_
 
-#include <QList>
+#include <PkList.h>
+#include <PkString.h>
 
 #include <kritametadata_export.h>
 
-class QString;
+class PkString;
 
 namespace KisMetaData
 {
@@ -27,11 +28,11 @@ class KRITAMETADATA_EXPORT MergeStrategy
 public:
     virtual ~MergeStrategy();
     /// @return the id of this merge strategy
-    virtual QString id() const = 0;
+    virtual PkString id() const = 0;
     /// @return the name of this merge strategy
-    virtual QString name() const = 0;
+    virtual PkString name() const = 0;
     /// @return a description of this merge strategy
-    virtual QString description() const = 0;
+    virtual PkString description() const = 0;
     /**
      * Call this function to merge a list of meta data stores in one.
      * @param dst the destination store
@@ -42,7 +43,7 @@ public:
      *              to give a higher score to the biggest layer.
      * srcs and scores list must have the same size.
      */
-    virtual void merge(Store* dst, QList<const Store*> srcs, QList<double> scores) const = 0;
+    virtual void merge(Store* dst, PkList<const Store*> srcs, PkList<double> scores) const = 0;
 };
 
 }

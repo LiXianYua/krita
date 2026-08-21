@@ -3,14 +3,11 @@
  *
  *  SPDX-License-Identifier: LGPL-2.1-or-later
  */
-#include <QGlobalStatic>
+#include <PkStringHash.h>
 
 #include "kis_debug.h"
 #include "kis_meta_data_merge_strategy_registry.h"
 #include "kis_meta_data_merge_strategy_p.h"
-
-Q_GLOBAL_STATIC(KisMetaData::MergeStrategyRegistry, s_instance)
-
 
 using namespace KisMetaData;
 
@@ -33,7 +30,7 @@ MergeStrategyRegistry& MergeStrategyRegistry::operator=(const MergeStrategyRegis
 
 MergeStrategyRegistry::~MergeStrategyRegistry()
 {
-    Q_FOREACH (const QString &id, keys()) {
+    for (const PkString &id : keys()) {
         delete get(id);
     }
     dbgRegistry << "Deleting MergeStrategyRegistry";
@@ -41,6 +38,7 @@ MergeStrategyRegistry::~MergeStrategyRegistry()
 
 MergeStrategyRegistry* MergeStrategyRegistry::instance()
 {
-    return s_instance;
+    static MergeStrategyRegistry s_instance;
+    return &s_instance;
 }
 

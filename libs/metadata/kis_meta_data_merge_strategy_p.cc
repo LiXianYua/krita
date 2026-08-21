@@ -5,7 +5,10 @@
  */
 
 #include "kis_meta_data_merge_strategy_p.h"
-#include <klocalizedstring.h>
+
+#include <PkString.h>
+#include <PkVariant.h>
+#include <map>
 
 #include "kis_debug.h"
 
@@ -29,21 +32,21 @@ DropMergeStrategy::~DropMergeStrategy()
 {
 }
 
-QString DropMergeStrategy::id() const
+PkString DropMergeStrategy::id() const
 {
     return "Drop";
 }
-QString DropMergeStrategy::name() const
+PkString DropMergeStrategy::name() const
 {
-    return i18n("Drop");
+    return PkString("Drop");
 }
 
-QString DropMergeStrategy::description() const
+PkString DropMergeStrategy::description() const
 {
-    return i18n("Drop all meta data");
+    return PkString("Drop all meta data");
 }
 
-void DropMergeStrategy::merge(Store* dst, QList<const Store*> srcs, QList<double> score) const
+void DropMergeStrategy::merge(Store* dst, PkList<const Store*> srcs, PkList<double> score) const
 {
     Q_UNUSED(dst);
     Q_UNUSED(srcs);
@@ -63,28 +66,28 @@ PriorityToFirstMergeStrategy::~PriorityToFirstMergeStrategy()
 {
 }
 
-QString PriorityToFirstMergeStrategy::id() const
+PkString PriorityToFirstMergeStrategy::id() const
 {
     return "PriorityToFirst";
 }
-QString PriorityToFirstMergeStrategy::name() const
+PkString PriorityToFirstMergeStrategy::name() const
 {
-    return i18n("Priority to first meta data");
+    return PkString("Priority to first meta data");
 }
 
-QString PriorityToFirstMergeStrategy::description() const
+PkString PriorityToFirstMergeStrategy::description() const
 {
-    return i18n("Use in priority the meta data from the layers at the bottom of the stack.");
+    return PkString("Use in priority the meta data from the layers at the bottom of the stack.");
 }
 
-void PriorityToFirstMergeStrategy::merge(Store* dst, QList<const Store*> srcs, QList<double> score) const
+void PriorityToFirstMergeStrategy::merge(Store* dst, PkList<const Store*> srcs, PkList<double> score) const
 {
     Q_UNUSED(score);
     dbgMetaData << "Priority to first meta data";
 
-    Q_FOREACH (const Store* store, srcs) {
-        QList<QString> keys = store->keys();
-        Q_FOREACH (const QString & key, keys) {
+    for (const Store* store : srcs) {
+        PkList<PkString> keys = store->keys();
+        for (const PkString & key : keys) {
             if (!dst->containsEntry(key)) {
                 dst->addEntry(store->getEntry(key));
             }
@@ -103,33 +106,33 @@ OnlyIdenticalMergeStrategy::~OnlyIdenticalMergeStrategy()
 {
 }
 
-QString OnlyIdenticalMergeStrategy::id() const
+PkString OnlyIdenticalMergeStrategy::id() const
 {
     return "OnlyIdentical";
 }
-QString OnlyIdenticalMergeStrategy::name() const
+PkString OnlyIdenticalMergeStrategy::name() const
 {
-    return i18n("Only identical");
+    return PkString("Only identical");
 }
 
-QString OnlyIdenticalMergeStrategy::description() const
+PkString OnlyIdenticalMergeStrategy::description() const
 {
-    return i18n("Keep only meta data that are identical");
+    return PkString("Keep only meta data that are identical");
 }
 
-void OnlyIdenticalMergeStrategy::merge(Store* dst, QList<const Store*> srcs, QList<double> score) const
+void OnlyIdenticalMergeStrategy::merge(Store* dst, PkList<const Store*> srcs, PkList<double> score) const
 {
     Q_UNUSED(score);
     dbgMetaData << "OnlyIdenticalMergeStrategy";
     dbgMetaData << "Priority to first meta data";
 
     Q_ASSERT(srcs.size() > 0);
-    QList<QString> keys = srcs[0]->keys();
-    Q_FOREACH (const QString & key, keys) {
+    PkList<PkString> keys = srcs[0]->keys();
+    for (const PkString & key : keys) {
         bool keep = true;
         const Entry& e = srcs[0]->getEntry(key);
         const Value& v = e.value();
-        Q_FOREACH (const Store* store, srcs) {
+        for (const Store* store : srcs) {
             if (!(store->containsEntry(key) && e.value() == v)) {
                 keep = false;
                 break;
@@ -153,18 +156,18 @@ SmartMergeStrategy::~SmartMergeStrategy()
 {
 }
 
-QString SmartMergeStrategy::id() const
+PkString SmartMergeStrategy::id() const
 {
     return "Smart";
 }
-QString SmartMergeStrategy::name() const
+PkString SmartMergeStrategy::name() const
 {
-    return i18n("Smart");
+    return PkString("Smart");
 }
 
-QString SmartMergeStrategy::description() const
+PkString SmartMergeStrategy::description() const
 {
-    return i18n("This merge strategy attempts to find the best solution for merging, "
+    return PkString("This merge strategy attempts to find the best solution for merging, "
                 "for instance by merging the list of authors together, or keeping "
                 "identical photographic information.");
 }
@@ -174,9 +177,9 @@ struct ScoreValue {
     Value value;
 };
 
-Value SmartMergeStrategy::election(QList<const Store*> srcs, QList<double> scores, const QString & key) const
+Value SmartMergeStrategy::election(PkList<const Store*> srcs, PkList<double> scores, const PkString & key) const
 {
-    QList<ScoreValue> scoreValues;
+    PkList<ScoreValue> scoreValues;
     for (int i = 0; i < srcs.size(); i++) {
         if (srcs[i]->containsEntry(key)) {
             const Value& nv = srcs[i]->getEntry(key).value();
@@ -205,7 +208,7 @@ Value SmartMergeStrategy::election(QList<const Store*> srcs, QList<double> score
     }
     const ScoreValue* bestSv = 0;
     double bestScore = -1.0;
-    Q_FOREACH (const ScoreValue& sv, scoreValues) {
+    for (const ScoreValue& sv : scoreValues) {
         if (sv.score > bestScore) {
             bestScore = sv.score;
             bestSv = &sv;
@@ -219,11 +222,11 @@ Value SmartMergeStrategy::election(QList<const Store*> srcs, QList<double> score
     }
 }
 
-void SmartMergeStrategy::mergeEntry(Store* dst, QList<const Store*> srcs, const KisMetaData::Schema* schema, const QString & identifier) const
+void SmartMergeStrategy::mergeEntry(Store* dst, PkList<const Store*> srcs, const KisMetaData::Schema* schema, const PkString & identifier) const
 {
     bool foundOnce = false;
-    Value v(QList<Value>(), Value::OrderedArray);
-    Q_FOREACH (const Store* store, srcs) {
+    Value v(PkList<Value>(), Value::OrderedArray);
+    for (const Store* store : srcs) {
         if (store->containsEntry(schema, identifier)) {
             v += store->getEntry(schema, identifier).value();
             foundOnce = true;
@@ -234,7 +237,7 @@ void SmartMergeStrategy::mergeEntry(Store* dst, QList<const Store*> srcs, const 
     }
 }
 
-void SmartMergeStrategy::merge(Store* dst, QList<const Store*> srcs, QList<double> scores) const
+void SmartMergeStrategy::merge(Store* dst, PkList<const Store*> srcs, PkList<double> scores) const
 {
     dbgMetaData << "Smart merging of meta data";
     Q_ASSERT(srcs.size() == scores.size());
@@ -250,12 +253,20 @@ void SmartMergeStrategy::merge(Store* dst, QList<const Store*> srcs, QList<doubl
     const KisMetaData::Schema* XMPSchema = KisMetaData::SchemaRegistry::instance()->schemaFromUri(KisMetaData::Schema::XMPSchemaUri);
     // Sort the stores and scores
     {
-        QMultiMap<double, const Store*> scores2srcs;
+        // Qt 的多值映射无 pk 替代：std::multimap 按键升序迭代，
+        // 升序语义与原实现（多值映射容器的 values()/keys()）等价。
+        std::multimap<double, const Store*> scores2srcs;
         for (int i = 0; i < scores.size(); ++i) {
-            scores2srcs.insert(scores[i], srcs[i]);
+            scores2srcs.insert({scores[i], srcs[i]});
         }
-        srcs = scores2srcs.values();
-        scores = scores2srcs.keys();
+        PkList<const Store*> sortedSrcs;
+        PkList<double> sortedScores;
+        for (const auto &entry : scores2srcs) {
+            sortedSrcs.append(entry.second);
+            sortedScores.append(entry.first);
+        }
+        srcs = sortedSrcs;
+        scores = sortedScores;
     }
 
     // First attempt to see if one of the store has a higher score than the others
@@ -266,9 +277,9 @@ void SmartMergeStrategy::merge(Store* dst, QList<const Store*> srcs, QList<doubl
 
 
         // Election
-        Q_FOREACH (const Store* store, srcs) {
-            QList<QString> keys = store->keys();
-            Q_FOREACH (const QString & key, keys) {
+        for (const Store* store : srcs) {
+            PkList<PkString> keys = store->keys();
+            for (const PkString & key : keys) {
                 if (!dst->containsEntry(key)) {
                     Value v = election(srcs, scores, key);
                     if (v.type() != Value::Invalid) {
@@ -290,7 +301,7 @@ void SmartMergeStrategy::merge(Store* dst, QList<const Store*> srcs, QList<doubl
             }
         }
         if (norm > 0.01) {
-            dst->getEntry(XMPSchema, "Rating").value() = QVariant((int)(rating / norm));
+            dst->getEntry(XMPSchema, "Rating").value() = PkVariant((int)(rating / norm));
         }
     }
     // Merge the list of authors and keywords and other stuff
