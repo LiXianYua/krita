@@ -6,6 +6,7 @@
 #include "KisRegion.h"
 
 #include <PkRegion.h>
+#include <numeric>
 #include "kis_debug.h"
 
 namespace detail {

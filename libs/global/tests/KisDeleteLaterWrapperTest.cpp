@@ -8,20 +8,24 @@
 #include <PkThread.h>
 #include <PkThreadCallQueue.h>
 
+#include <thread>
+
 namespace {
 
 struct DestructionProbe {
-    explicit DestructionProbe(bool *destroyed)
-        : destroyed(destroyed)
+    explicit DestructionProbe(bool *destroyed, PkThreadId *destructionThread)
+        : destroyed(destroyed), destructionThread(destructionThread)
     {
     }
 
     ~DestructionProbe()
     {
         *destroyed = true;
+        *destructionThread = PkThread::currentThreadId();
     }
 
     bool *destroyed;
+    PkThreadId *destructionThread;
 };
 
 }
@@ -35,8 +39,17 @@ int main()
     }
 
     bool destroyed = false;
-    auto *wrapper = makeKisDeleteLaterWrapper(new DestructionProbe(&destroyed));
-    if (wrapper->thread() != PkThread::mainThreadId()) {
+    PkThreadId destructionThread{};
+    PkThreadId workerThread{};
+    KisDeleteLaterWrapper<DestructionProbe *> *wrapper = nullptr;
+    std::thread worker([&] {
+        workerThread = PkThread::currentThreadId();
+        wrapper = makeKisDeleteLaterWrapper(new DestructionProbe(&destroyed, &destructionThread));
+    });
+    worker.join();
+
+    if (!wrapper || wrapper->thread() != PkThread::mainThreadId() ||
+            wrapper->thread() == workerThread) {
         delete wrapper;
         return 2;
     }
@@ -46,7 +59,8 @@ int main()
         return 3;
     }
 
-    if (PkEventLoop::processEvents() <= 0 || !destroyed) {
+    if (PkEventLoop::processEvents() <= 0 || !destroyed ||
+            destructionThread != PkThread::mainThreadId()) {
         return 4;
     }
 
