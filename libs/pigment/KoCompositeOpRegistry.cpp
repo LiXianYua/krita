@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <PkXmlCompat.h>
+
 #include "KoCompositeOpRegistry.h"
 
-#include <QGlobalStatic>
 
-#include <klocalizedstring.h>
 
 #include <KoID.h>
 #include "KoCompositeOp.h"
@@ -17,185 +17,200 @@
 #include "kis_assert.h"
 #include "DebugPigment.h"
 
-Q_GLOBAL_STATIC(KoCompositeOpRegistry, registry)
+namespace {
+// std::multimap 迭代器解引用得 std::pair<const KoID,KoID>（不是 value），
+// 原多值映射的 std::find(m_map, KoID) 按值查找不成立——改按 value 线性查找。
+std::multimap<KoID,KoID>::const_iterator
+findCompositeOp(const std::multimap<KoID,KoID>& map, const KoID& id)
+{
+    for (auto it = map.cbegin(); it != map.cend(); ++it) {
+        if (it->second == id) {
+            return it;
+        }
+    }
+    return map.cend();
+}
+
+} // namespace
 
 static KoID koidCompositeOverStatic() {
-    static const KoID compositeOver(COMPOSITE_OVER, i18nc("Blending mode - Normal", "Normal"));
+    static const KoID compositeOver(COMPOSITE_OVER, PkString("Normal"));
     return compositeOver;
 }
 
 KoCompositeOpRegistry::KoCompositeOpRegistry()
 {
     m_categories
-        << KoID("arithmetic",  i18nc("Blending mode - category Arithmetic", "Arithmetic"))
-        << KoID("binary"    ,  i18nc("Blending mode - category Binary", "Binary"))
-        << KoID("dark"      ,  i18nc("Blending mode - category Darken", "Darken"))
-        << KoID("light"     ,  i18nc("Blending mode - category Lighten", "Lighten"))
-        << KoID("modulo"       ,  i18nc("Blending mode - category Modulo", "Modulo"))
-        << KoID("negative"  ,  i18nc("Blending mode - category Negative", "Negative"))
-        << KoID("mix"       ,  i18nc("Blending mode - category Mix", "Mix"))
-        << KoID("misc"      ,  i18nc("Blending mode - category Misc", "Misc"))
-        << KoID("hsy"       ,  i18nc("Blending mode - category HSY", "HSY"))
-        << KoID("hsi"       ,  i18nc("Blending mode - category HSI", "HSI"))
-        << KoID("hsl"       ,  i18nc("Blending mode - category HSL", "HSL"))
-        << KoID("hsv"       ,  i18nc("Blending mode - category HSV", "HSV"))
-        << KoID("quadratic" ,  i18nc("Blending mode - category Quadratic", "Quadratic"));
+        << KoID("arithmetic",  PkString("Arithmetic"))
+        << KoID("binary"    ,  PkString("Binary"))
+        << KoID("dark"      ,  PkString("Darken"))
+        << KoID("light"     ,  PkString("Lighten"))
+        << KoID("modulo"       ,  PkString("Modulo"))
+        << KoID("negative"  ,  PkString("Negative"))
+        << KoID("mix"       ,  PkString("Mix"))
+        << KoID("misc"      ,  PkString("Misc"))
+        << KoID("hsy"       ,  PkString("HSY"))
+        << KoID("hsi"       ,  PkString("HSI"))
+        << KoID("hsl"       ,  PkString("HSL"))
+        << KoID("hsv"       ,  PkString("HSV"))
+        << KoID("quadratic" ,  PkString("Quadratic"));
 
-    m_map.insert(m_categories[0], KoID(COMPOSITE_ADD             ,  i18nc("Blending mode - Addition", "Addition")));
-    m_map.insert(m_categories[0], KoID(COMPOSITE_SUBTRACT        ,  i18nc("Blending mode - Subtract", "Subtract")));
-    m_map.insert(m_categories[0], KoID(COMPOSITE_MULT            ,  i18nc("Blending mode - Multiply", "Multiply")));
-    m_map.insert(m_categories[0], KoID(COMPOSITE_DIVIDE          ,  i18nc("Blending mode - Divide", "Divide")));
-    m_map.insert(m_categories[0], KoID(COMPOSITE_INVERSE_SUBTRACT,  i18nc("Blending mode - Inverse Subtract", "Inverse Subtract")));
+    m_map.emplace(m_categories[0], KoID(COMPOSITE_ADD             ,  PkString("Addition")));
+    m_map.emplace(m_categories[0], KoID(COMPOSITE_SUBTRACT        ,  PkString("Subtract")));
+    m_map.emplace(m_categories[0], KoID(COMPOSITE_MULT            ,  PkString("Multiply")));
+    m_map.emplace(m_categories[0], KoID(COMPOSITE_DIVIDE          ,  PkString("Divide")));
+    m_map.emplace(m_categories[0], KoID(COMPOSITE_INVERSE_SUBTRACT,  PkString("Inverse Subtract")));
     
-    m_map.insert(m_categories[1], KoID(COMPOSITE_XOR             ,  i18nc("Blending mode - XOR", "XOR")));
-    m_map.insert(m_categories[1], KoID(COMPOSITE_OR              ,  i18nc("Blending mode - OR", "OR")));
-    m_map.insert(m_categories[1], KoID(COMPOSITE_AND             ,  i18nc("Blending mode - AND", "AND")));
-    m_map.insert(m_categories[1], KoID(COMPOSITE_NAND            ,  i18nc("Blending mode - NAND", "NAND")));
-    m_map.insert(m_categories[1], KoID(COMPOSITE_NOR             ,  i18nc("Blending mode - NOR", "NOR")));
-    m_map.insert(m_categories[1], KoID(COMPOSITE_XNOR            ,  i18nc("Blending mode - XNOR", "XNOR")));
-    m_map.insert(m_categories[1], KoID(COMPOSITE_IMPLICATION     ,  i18nc("Blending mode - IMPLICATION", "IMPLICATION")));
-    m_map.insert(m_categories[1], KoID(COMPOSITE_NOT_IMPLICATION ,  i18nc("Blending mode - NOT IMPLICATION", "NOT IMPLICATION")));
-    m_map.insert(m_categories[1], KoID(COMPOSITE_CONVERSE        ,  i18nc("Blending mode - CONVERSE", "CONVERSE")));
-    m_map.insert(m_categories[1], KoID(COMPOSITE_NOT_CONVERSE    ,  i18nc("Blending mode - NOT CONVERSE", "NOT CONVERSE")));
+    m_map.emplace(m_categories[1], KoID(COMPOSITE_XOR             ,  PkString("XOR")));
+    m_map.emplace(m_categories[1], KoID(COMPOSITE_OR              ,  PkString("OR")));
+    m_map.emplace(m_categories[1], KoID(COMPOSITE_AND             ,  PkString("AND")));
+    m_map.emplace(m_categories[1], KoID(COMPOSITE_NAND            ,  PkString("NAND")));
+    m_map.emplace(m_categories[1], KoID(COMPOSITE_NOR             ,  PkString("NOR")));
+    m_map.emplace(m_categories[1], KoID(COMPOSITE_XNOR            ,  PkString("XNOR")));
+    m_map.emplace(m_categories[1], KoID(COMPOSITE_IMPLICATION     ,  PkString("IMPLICATION")));
+    m_map.emplace(m_categories[1], KoID(COMPOSITE_NOT_IMPLICATION ,  PkString("NOT IMPLICATION")));
+    m_map.emplace(m_categories[1], KoID(COMPOSITE_CONVERSE        ,  PkString("CONVERSE")));
+    m_map.emplace(m_categories[1], KoID(COMPOSITE_NOT_CONVERSE    ,  PkString("NOT CONVERSE")));
 
-    m_map.insert(m_categories[2], KoID(COMPOSITE_BURN       ,  i18nc("Blending mode - Burn", "Burn")));
-    m_map.insert(m_categories[2], KoID(COMPOSITE_LINEAR_BURN,  i18nc("Blending mode - Linear Burn", "Linear Burn")));
-    m_map.insert(m_categories[2], KoID(COMPOSITE_DARKEN     ,  i18nc("Blending mode - Darken", "Darken")));
-    m_map.insert(m_categories[2], KoID(COMPOSITE_GAMMA_DARK ,  i18nc("Blending mode - Gamma Dark", "Gamma Dark")));
-    m_map.insert(m_categories[2], KoID(COMPOSITE_DARKER_COLOR     ,  i18nc("Blending mode - Darker Color", "Darker Color")));
-    m_map.insert(m_categories[2], KoID(COMPOSITE_SHADE_IFS_ILLUSIONS,  i18nc("Blending mode - Shade (IFS Illusions)", "Shade (IFS Illusions)")));
-    m_map.insert(m_categories[2], KoID(COMPOSITE_FOG_DARKEN_IFS_ILLUSIONS,  i18nc("Blending mode - Fog Darken (IFS Illusions)", "Fog Darken (IFS Illusions)")));
-    m_map.insert(m_categories[2], KoID(COMPOSITE_EASY_BURN       ,  i18nc("Blending mode - Easy Burn", "Easy Burn")));
+    m_map.emplace(m_categories[2], KoID(COMPOSITE_BURN       ,  PkString("Burn")));
+    m_map.emplace(m_categories[2], KoID(COMPOSITE_LINEAR_BURN,  PkString("Linear Burn")));
+    m_map.emplace(m_categories[2], KoID(COMPOSITE_DARKEN     ,  PkString("Darken")));
+    m_map.emplace(m_categories[2], KoID(COMPOSITE_GAMMA_DARK ,  PkString("Gamma Dark")));
+    m_map.emplace(m_categories[2], KoID(COMPOSITE_DARKER_COLOR     ,  PkString("Darker Color")));
+    m_map.emplace(m_categories[2], KoID(COMPOSITE_SHADE_IFS_ILLUSIONS,  PkString("Shade (IFS Illusions)")));
+    m_map.emplace(m_categories[2], KoID(COMPOSITE_FOG_DARKEN_IFS_ILLUSIONS,  PkString("Fog Darken (IFS Illusions)")));
+    m_map.emplace(m_categories[2], KoID(COMPOSITE_EASY_BURN       ,  PkString("Easy Burn")));
 
-    m_map.insert(m_categories[3], KoID(COMPOSITE_DODGE       ,  i18nc("Blending mode - Color Dodge", "Color Dodge")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_DODGE_HDR   ,  i18nc("Blending mode - Color Dodge HDR", "Color Dodge HDR")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_LINEAR_DODGE,  i18nc("Blending mode - Linear Dodge", "Linear Dodge")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_LIGHTEN     ,  i18nc("Blending mode - Lighten", "Lighten")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_LINEAR_LIGHT,  i18nc("Blending mode - Linear Light", "Linear Light")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_SCREEN      ,  i18nc("Blending mode - Screen", "Screen")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_PIN_LIGHT   ,  i18nc("Blending mode - Pin Light", "Pin Light")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_VIVID_LIGHT ,  i18nc("Blending mode - Vivid Light", "Vivid Light")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_VIVID_LIGHT_HDR , i18nc("Blending mode - Vivid Light HDR", "Vivid Light HDR")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_FLAT_LIGHT  ,  i18nc("Blending mode - Flat Light", "Flat Light")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_HARD_LIGHT  ,  i18nc("Blending mode - Hard Light", "Hard Light")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_SOFT_LIGHT_IFS_ILLUSIONS,  i18nc("Blending mode - Soft Light (IFS Illusions)", "Soft Light (IFS Illusions)")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_SOFT_LIGHT_PEGTOP_DELPHI,  i18nc("Blending mode - Soft Light (Pegtop-Delphi)", "Soft Light (Pegtop-Delphi)")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_SOFT_LIGHT_PHOTOSHOP,  i18nc("Blending mode - Soft Light (Photoshop)", "Soft Light (Photoshop)")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_SOFT_LIGHT_SVG,  i18nc("Blending mode - Soft Light (SVG)", "Soft Light (SVG)")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_GAMMA_LIGHT ,  i18nc("Blending mode - Gamma Light", "Gamma Light")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_GAMMA_ILLUMINATION ,  i18nc("Blending mode - Gamma Illumination", "Gamma Illumination")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_LIGHTER_COLOR     ,  i18nc("Blending mode - Lighter Color", "Lighter Color")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_PNORM_A           ,  i18nc("Blending mode - P-Norm A", "P-Norm A")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_PNORM_B           ,  i18nc("Blending mode - P-Norm B", "P-Norm B")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_SUPER_LIGHT     ,  i18nc("Blending mode - Super Light", "Super Light")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_TINT_IFS_ILLUSIONS,  i18nc("Blending mode - Tint (IFS Illusions)", "Tint (IFS Illusions)")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_FOG_LIGHTEN_IFS_ILLUSIONS,  i18nc("Blending mode - Fog Lighten (IFS Illusions)", "Fog Lighten (IFS Illusions)")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_EASY_DODGE       ,  i18nc("Blending mode - Easy Dodge", "Easy Dodge")));
-    m_map.insert(m_categories[3], KoID(COMPOSITE_LUMINOSITY_SAI       ,  i18nc("Blending mode - Luminosity/Shine (SAI)", "Luminosity/Shine (SAI)")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_DODGE       ,  PkString("Color Dodge")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_DODGE_HDR   ,  PkString("Color Dodge HDR")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_LINEAR_DODGE,  PkString("Linear Dodge")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_LIGHTEN     ,  PkString("Lighten")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_LINEAR_LIGHT,  PkString("Linear Light")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_SCREEN      ,  PkString("Screen")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_PIN_LIGHT   ,  PkString("Pin Light")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_VIVID_LIGHT ,  PkString("Vivid Light")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_VIVID_LIGHT_HDR , PkString("Vivid Light HDR")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_FLAT_LIGHT  ,  PkString("Flat Light")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_HARD_LIGHT  ,  PkString("Hard Light")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_SOFT_LIGHT_IFS_ILLUSIONS,  PkString("Soft Light (IFS Illusions)")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_SOFT_LIGHT_PEGTOP_DELPHI,  PkString("Soft Light (Pegtop-Delphi)")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_SOFT_LIGHT_PHOTOSHOP,  PkString("Soft Light (Photoshop)")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_SOFT_LIGHT_SVG,  PkString("Soft Light (SVG)")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_GAMMA_LIGHT ,  PkString("Gamma Light")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_GAMMA_ILLUMINATION ,  PkString("Gamma Illumination")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_LIGHTER_COLOR     ,  PkString("Lighter Color")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_PNORM_A           ,  PkString("P-Norm A")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_PNORM_B           ,  PkString("P-Norm B")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_SUPER_LIGHT     ,  PkString("Super Light")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_TINT_IFS_ILLUSIONS,  PkString("Tint (IFS Illusions)")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_FOG_LIGHTEN_IFS_ILLUSIONS,  PkString("Fog Lighten (IFS Illusions)")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_EASY_DODGE       ,  PkString("Easy Dodge")));
+    m_map.emplace(m_categories[3], KoID(COMPOSITE_LUMINOSITY_SAI       ,  PkString("Luminosity/Shine (SAI)")));
 
-    m_map.insert(m_categories[4], KoID(COMPOSITE_MOD              ,  i18nc("Blending mode - Modulo", "Modulo")));
-    m_map.insert(m_categories[4], KoID(COMPOSITE_MOD_CON          ,  i18nc("Blending mode - Modulo - Continuous", "Modulo - Continuous")));
-    m_map.insert(m_categories[4], KoID(COMPOSITE_DIVISIVE_MOD     ,  i18nc("Blending mode - Divisive Modulo", "Divisive Modulo")));
-    m_map.insert(m_categories[4], KoID(COMPOSITE_DIVISIVE_MOD_CON ,  i18nc("Blending mode - Divisive Modulo - Continuous", "Divisive Modulo - Continuous")));
-    m_map.insert(m_categories[4], KoID(COMPOSITE_MODULO_SHIFT     ,  i18nc("Blending mode - Modulo Shift", "Modulo Shift")));
-    m_map.insert(m_categories[4], KoID(COMPOSITE_MODULO_SHIFT_CON ,  i18nc("Blending mode - Modulo Shift - Continuous", "Modulo Shift - Continuous")));
+    m_map.emplace(m_categories[4], KoID(COMPOSITE_MOD              ,  PkString("Modulo")));
+    m_map.emplace(m_categories[4], KoID(COMPOSITE_MOD_CON          ,  PkString("Modulo - Continuous")));
+    m_map.emplace(m_categories[4], KoID(COMPOSITE_DIVISIVE_MOD     ,  PkString("Divisive Modulo")));
+    m_map.emplace(m_categories[4], KoID(COMPOSITE_DIVISIVE_MOD_CON ,  PkString("Divisive Modulo - Continuous")));
+    m_map.emplace(m_categories[4], KoID(COMPOSITE_MODULO_SHIFT     ,  PkString("Modulo Shift")));
+    m_map.emplace(m_categories[4], KoID(COMPOSITE_MODULO_SHIFT_CON ,  PkString("Modulo Shift - Continuous")));
 
-    m_map.insert(m_categories[5], KoID(COMPOSITE_DIFF                 ,  i18nc("Blending mode - Difference", "Difference")));
-    m_map.insert(m_categories[5], KoID(COMPOSITE_EQUIVALENCE          ,  i18nc("Blending mode - Equivalence", "Equivalence")));
-    m_map.insert(m_categories[5], KoID(COMPOSITE_ADDITIVE_SUBTRACTIVE ,  i18nc("Blending mode - Additive Subtractive", "Additive Subtractive")));
-    m_map.insert(m_categories[5], KoID(COMPOSITE_EXCLUSION            ,  i18nc("Blending mode - Exclusion", "Exclusion")));
-    m_map.insert(m_categories[5], KoID(COMPOSITE_ARC_TANGENT          ,  i18nc("Blending mode - Arcus Tangent", "Arcus Tangent")));
-    m_map.insert(m_categories[5], KoID(COMPOSITE_NEGATION             ,  i18nc("Blending mode - Negation", "Negation")));
+    m_map.emplace(m_categories[5], KoID(COMPOSITE_DIFF                 ,  PkString("Difference")));
+    m_map.emplace(m_categories[5], KoID(COMPOSITE_EQUIVALENCE          ,  PkString("Equivalence")));
+    m_map.emplace(m_categories[5], KoID(COMPOSITE_ADDITIVE_SUBTRACTIVE ,  PkString("Additive Subtractive")));
+    m_map.emplace(m_categories[5], KoID(COMPOSITE_EXCLUSION            ,  PkString("Exclusion")));
+    m_map.emplace(m_categories[5], KoID(COMPOSITE_ARC_TANGENT          ,  PkString("Arcus Tangent")));
+    m_map.emplace(m_categories[5], KoID(COMPOSITE_NEGATION             ,  PkString("Negation")));
 
-    m_map.insert(m_categories[6], koidCompositeOverStatic());
-    m_map.insert(m_categories[6], KoID(COMPOSITE_BEHIND          ,  i18nc("Blending mode - Behind", "Behind")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_GREATER         ,  i18nc("Blending mode - Greater", "Greater")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_OVERLAY         ,  i18nc("Blending mode - Overlay", "Overlay")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_LAMBERT_LIGHTING, i18nc("Blending mode - Lambert Lighting (Linear)", "Lambert Lighting (Linear)")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_LAMBERT_LIGHTING_GAMMA_2_2, i18nc("Blending mode - Lambert Lighting (Gamma 2.2)", "Lambert Lighting (Gamma 2.2)")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_ERASE           ,  i18nc("Blending mode - Erase", "Erase")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_ALPHA_DARKEN    ,  i18nc("Blending mode - Alpha Darken", "Alpha Darken")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_MARKER          ,  i18nc("Blending mode - Marker", "Marker")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_HARD_MIX        ,  i18nc("Blending mode - Hard Mix", "Hard Mix")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_HARD_MIX_HDR    ,  i18nc("Blending mode - Hard Mix HDR", "Hard Mix HDR")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_HARD_MIX_PHOTOSHOP,  i18nc("Blending mode - Hard Mix (Photoshop)", "Hard Mix (Photoshop)")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_HARD_MIX_SOFTER_PHOTOSHOP,  i18nc("Blending mode - Hard Mix Softer (Photoshop)", "Hard Mix Softer (Photoshop)")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_GRAIN_MERGE     ,  i18nc("Blending mode - Grain Merge", "Grain Merge")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_GRAIN_EXTRACT   ,  i18nc("Blending mode - Grain Extract", "Grain Extract")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_PARALLEL        ,  i18nc("Blending mode - Parallel", "Parallel")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_ALLANON         ,  i18nc("Blending mode - Allanon", "Allanon")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_GEOMETRIC_MEAN  ,  i18nc("Blending mode - Geometric Mean", "Geometric Mean")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_DESTINATION_ATOP,  i18nc("Blending mode - Destination Atop", "Destination Atop")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_DESTINATION_IN  ,  i18nc("Blending mode - Destination In", "Destination In")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_HARD_OVERLAY    ,  i18nc("Blending mode - Hard Overlay", "Hard Overlay")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_HARD_OVERLAY_HDR,  i18nc("Blending mode - Hard Overlay HDR", "Hard Overlay HDR")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_INTERPOLATION   ,  i18nc("Blending mode - Interpolation", "Interpolation")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_INTERPOLATIONB  ,  i18nc("Blending mode - Interpolation - 2X", "Interpolation - 2X")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_PENUMBRAA       ,  i18nc("Blending mode - Penumbra A", "Penumbra A")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_PENUMBRAB       ,  i18nc("Blending mode - Penumbra B", "Penumbra B")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_PENUMBRAC       ,  i18nc("Blending mode - Penumbra C", "Penumbra C")));
-    m_map.insert(m_categories[6], KoID(COMPOSITE_PENUMBRAD       ,  i18nc("Blending mode - Penumbra D", "Penumbra D")));
+    m_map.emplace(m_categories[6], koidCompositeOverStatic());
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_BEHIND          ,  PkString("Behind")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_GREATER         ,  PkString("Greater")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_OVERLAY         ,  PkString("Overlay")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_LAMBERT_LIGHTING, PkString("Lambert Lighting (Linear)")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_LAMBERT_LIGHTING_GAMMA_2_2, PkString("Lambert Lighting (Gamma 2.2)")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_ERASE           ,  PkString("Erase")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_ALPHA_DARKEN    ,  PkString("Alpha Darken")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_MARKER          ,  PkString("Marker")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_HARD_MIX        ,  PkString("Hard Mix")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_HARD_MIX_HDR    ,  PkString("Hard Mix HDR")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_HARD_MIX_PHOTOSHOP,  PkString("Hard Mix (Photoshop)")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_HARD_MIX_SOFTER_PHOTOSHOP,  PkString("Hard Mix Softer (Photoshop)")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_GRAIN_MERGE     ,  PkString("Grain Merge")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_GRAIN_EXTRACT   ,  PkString("Grain Extract")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_PARALLEL        ,  PkString("Parallel")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_ALLANON         ,  PkString("Allanon")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_GEOMETRIC_MEAN  ,  PkString("Geometric Mean")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_DESTINATION_ATOP,  PkString("Destination Atop")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_DESTINATION_IN  ,  PkString("Destination In")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_HARD_OVERLAY    ,  PkString("Hard Overlay")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_HARD_OVERLAY_HDR,  PkString("Hard Overlay HDR")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_INTERPOLATION   ,  PkString("Interpolation")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_INTERPOLATIONB  ,  PkString("Interpolation - 2X")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_PENUMBRAA       ,  PkString("Penumbra A")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_PENUMBRAB       ,  PkString("Penumbra B")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_PENUMBRAC       ,  PkString("Penumbra C")));
+    m_map.emplace(m_categories[6], KoID(COMPOSITE_PENUMBRAD       ,  PkString("Penumbra D")));
 
-    m_map.insert(m_categories[7], KoID(COMPOSITE_BUMPMAP   ,  i18nc("Blending mode - Bumpmap", "Bumpmap")));
-    m_map.insert(m_categories[7], KoID(COMPOSITE_COMBINE_NORMAL,  i18nc("Blending mode - Combine Normal Map", "Combine Normal Map")));
-    m_map.insert(m_categories[7], KoID(COMPOSITE_DISSOLVE  ,  i18nc("Blending mode - Dissolve", "Dissolve")));
-    m_map.insert(m_categories[7], KoID(COMPOSITE_COPY_RED  ,  i18nc("Blending mode - Copy Red", "Copy Red")));
-    m_map.insert(m_categories[7], KoID(COMPOSITE_COPY_GREEN,  i18nc("Blending mode - Copy Green", "Copy Green")));
-    m_map.insert(m_categories[7], KoID(COMPOSITE_COPY_BLUE ,  i18nc("Blending mode - Copy Blue", "Copy Blue")));
-    m_map.insert(m_categories[7], KoID(COMPOSITE_COPY      ,  i18nc("Blending mode - Copy", "Copy")));
-    m_map.insert(m_categories[7], KoID(COMPOSITE_TANGENT_NORMALMAP,  i18nc("Blending mode - Tangent Normalmap", "Tangent Normalmap")));
+    m_map.emplace(m_categories[7], KoID(COMPOSITE_BUMPMAP   ,  PkString("Bumpmap")));
+    m_map.emplace(m_categories[7], KoID(COMPOSITE_COMBINE_NORMAL,  PkString("Combine Normal Map")));
+    m_map.emplace(m_categories[7], KoID(COMPOSITE_DISSOLVE  ,  PkString("Dissolve")));
+    m_map.emplace(m_categories[7], KoID(COMPOSITE_COPY_RED  ,  PkString("Copy Red")));
+    m_map.emplace(m_categories[7], KoID(COMPOSITE_COPY_GREEN,  PkString("Copy Green")));
+    m_map.emplace(m_categories[7], KoID(COMPOSITE_COPY_BLUE ,  PkString("Copy Blue")));
+    m_map.emplace(m_categories[7], KoID(COMPOSITE_COPY      ,  PkString("Copy")));
+    m_map.emplace(m_categories[7], KoID(COMPOSITE_TANGENT_NORMALMAP,  PkString("Tangent Normalmap")));
 
-    m_map.insert(m_categories[8], KoID(COMPOSITE_COLOR         ,  i18nc("Blending mode - Color HSY", "Color")));
-    m_map.insert(m_categories[8], KoID(COMPOSITE_HUE           ,  i18nc("Blending mode - Hue HSY", "Hue")));
-    m_map.insert(m_categories[8], KoID(COMPOSITE_TINT          ,  i18nc("Blending mode - Tint HSY", "Tint")));
-    m_map.insert(m_categories[8], KoID(COMPOSITE_SATURATION    ,  i18nc("Blending mode - Saturation HSY", "Saturation")));
-    m_map.insert(m_categories[8], KoID(COMPOSITE_LUMINIZE      ,  i18nc("Blending mode - Luminosity HSY", "Luminosity")));
-    m_map.insert(m_categories[8], KoID(COMPOSITE_DEC_SATURATION,  i18nc("Blending mode - Decrease Saturation HSY", "Decrease Saturation")));
-    m_map.insert(m_categories[8], KoID(COMPOSITE_INC_SATURATION,  i18nc("Blending mode - Increase Saturation HSY", "Increase Saturation")));
-    m_map.insert(m_categories[8], KoID(COMPOSITE_DEC_LUMINOSITY,  i18nc("Blending mode - Decrease Luminosity HSY", "Decrease Luminosity")));
-    m_map.insert(m_categories[8], KoID(COMPOSITE_INC_LUMINOSITY,  i18nc("Blending mode - Increase Luminosity HSY", "Increase Luminosity")));
+    m_map.emplace(m_categories[8], KoID(COMPOSITE_COLOR         ,  PkString("Color")));
+    m_map.emplace(m_categories[8], KoID(COMPOSITE_HUE           ,  PkString("Hue")));
+    m_map.emplace(m_categories[8], KoID(COMPOSITE_TINT          ,  PkString("Tint")));
+    m_map.emplace(m_categories[8], KoID(COMPOSITE_SATURATION    ,  PkString("Saturation")));
+    m_map.emplace(m_categories[8], KoID(COMPOSITE_LUMINIZE      ,  PkString("Luminosity")));
+    m_map.emplace(m_categories[8], KoID(COMPOSITE_DEC_SATURATION,  PkString("Decrease Saturation")));
+    m_map.emplace(m_categories[8], KoID(COMPOSITE_INC_SATURATION,  PkString("Increase Saturation")));
+    m_map.emplace(m_categories[8], KoID(COMPOSITE_DEC_LUMINOSITY,  PkString("Decrease Luminosity")));
+    m_map.emplace(m_categories[8], KoID(COMPOSITE_INC_LUMINOSITY,  PkString("Increase Luminosity")));
 
-    m_map.insert(m_categories[9], KoID(COMPOSITE_COLOR_HSI         ,  i18nc("Blending mode - Color HSI", "Color HSI")));
-    m_map.insert(m_categories[9], KoID(COMPOSITE_HUE_HSI           ,  i18nc("Blending mode - Hue HSI", "Hue HSI")));
-    m_map.insert(m_categories[9], KoID(COMPOSITE_SATURATION_HSI    ,  i18nc("Blending mode - Saturation HSI", "Saturation HSI")));
-    m_map.insert(m_categories[9], KoID(COMPOSITE_INTENSITY         ,  i18nc("Blending mode - Intensity HSI", "Intensity")));
-    m_map.insert(m_categories[9], KoID(COMPOSITE_DEC_SATURATION_HSI,  i18nc("Blending mode - Decrease Saturation HSI", "Decrease Saturation HSI")));
-    m_map.insert(m_categories[9], KoID(COMPOSITE_INC_SATURATION_HSI,  i18nc("Blending mode - Increase Saturation HSI", "Increase Saturation HSI")));
-    m_map.insert(m_categories[9], KoID(COMPOSITE_DEC_INTENSITY     ,  i18nc("Blending mode - Decrease Intensity", "Decrease Intensity")));
-    m_map.insert(m_categories[9], KoID(COMPOSITE_INC_INTENSITY     ,  i18nc("Blending mode - Increase Intensity", "Increase Intensity")));
+    m_map.emplace(m_categories[9], KoID(COMPOSITE_COLOR_HSI         ,  PkString("Color HSI")));
+    m_map.emplace(m_categories[9], KoID(COMPOSITE_HUE_HSI           ,  PkString("Hue HSI")));
+    m_map.emplace(m_categories[9], KoID(COMPOSITE_SATURATION_HSI    ,  PkString("Saturation HSI")));
+    m_map.emplace(m_categories[9], KoID(COMPOSITE_INTENSITY         ,  PkString("Intensity")));
+    m_map.emplace(m_categories[9], KoID(COMPOSITE_DEC_SATURATION_HSI,  PkString("Decrease Saturation HSI")));
+    m_map.emplace(m_categories[9], KoID(COMPOSITE_INC_SATURATION_HSI,  PkString("Increase Saturation HSI")));
+    m_map.emplace(m_categories[9], KoID(COMPOSITE_DEC_INTENSITY     ,  PkString("Decrease Intensity")));
+    m_map.emplace(m_categories[9], KoID(COMPOSITE_INC_INTENSITY     ,  PkString("Increase Intensity")));
 
-    m_map.insert(m_categories[10], KoID(COMPOSITE_COLOR_HSL         ,  i18nc("Blending mode - Color HSL", "Color HSL")));
-    m_map.insert(m_categories[10], KoID(COMPOSITE_HUE_HSL           ,  i18nc("Blending mode - Hue HSL", "Hue HSL")));
-    m_map.insert(m_categories[10], KoID(COMPOSITE_SATURATION_HSL    ,  i18nc("Blending mode - Saturation HSL", "Saturation HSL")));
-    m_map.insert(m_categories[10], KoID(COMPOSITE_LIGHTNESS         ,  i18nc("Blending mode - Lightness HSI", "Lightness")));
-    m_map.insert(m_categories[10], KoID(COMPOSITE_DEC_SATURATION_HSL,  i18nc("Blending mode - Decrease Saturation HSL", "Decrease Saturation HSL")));
-    m_map.insert(m_categories[10], KoID(COMPOSITE_INC_SATURATION_HSL,  i18nc("Blending mode - Increase Saturation HSL", "Increase Saturation HSL")));
-    m_map.insert(m_categories[10], KoID(COMPOSITE_DEC_LIGHTNESS     ,  i18nc("Blending mode - Decrease Lightness", "Decrease Lightness")));
-    m_map.insert(m_categories[10], KoID(COMPOSITE_INC_LIGHTNESS     ,  i18nc("Blending mode - Increase Lightness", "Increase Lightness")));
+    m_map.emplace(m_categories[10], KoID(COMPOSITE_COLOR_HSL         ,  PkString("Color HSL")));
+    m_map.emplace(m_categories[10], KoID(COMPOSITE_HUE_HSL           ,  PkString("Hue HSL")));
+    m_map.emplace(m_categories[10], KoID(COMPOSITE_SATURATION_HSL    ,  PkString("Saturation HSL")));
+    m_map.emplace(m_categories[10], KoID(COMPOSITE_LIGHTNESS         ,  PkString("Lightness")));
+    m_map.emplace(m_categories[10], KoID(COMPOSITE_DEC_SATURATION_HSL,  PkString("Decrease Saturation HSL")));
+    m_map.emplace(m_categories[10], KoID(COMPOSITE_INC_SATURATION_HSL,  PkString("Increase Saturation HSL")));
+    m_map.emplace(m_categories[10], KoID(COMPOSITE_DEC_LIGHTNESS     ,  PkString("Decrease Lightness")));
+    m_map.emplace(m_categories[10], KoID(COMPOSITE_INC_LIGHTNESS     ,  PkString("Increase Lightness")));
 
-    m_map.insert(m_categories[11], KoID(COMPOSITE_COLOR_HSV         ,  i18nc("Blending mode - Color HSV", "Color HSV")));
-    m_map.insert(m_categories[11], KoID(COMPOSITE_HUE_HSV           ,  i18nc("Blending mode - Hue HSV", "Hue HSV")));
-    m_map.insert(m_categories[11], KoID(COMPOSITE_SATURATION_HSV    ,  i18nc("Blending mode - Saturation HSV", "Saturation HSV")));
-    m_map.insert(m_categories[11], KoID(COMPOSITE_VALUE             ,  i18nc("Blending mode - Value HSV", "Value")));
-    m_map.insert(m_categories[11], KoID(COMPOSITE_DEC_SATURATION_HSV,  i18nc("Blending mode - Decrease Saturation HSV", "Decrease Saturation HSV")));
-    m_map.insert(m_categories[11], KoID(COMPOSITE_INC_SATURATION_HSV,  i18nc("Blending mode - Increase Saturation HSV", "Increase Saturation HSV")));
-    m_map.insert(m_categories[11], KoID(COMPOSITE_DEC_VALUE         ,  i18nc("Blending mode - Decrease Value HSV", "Decrease Value")));
-    m_map.insert(m_categories[11], KoID(COMPOSITE_INC_VALUE         ,  i18nc("Blending mode - Increase Value HSV", "Increase Value")));
+    m_map.emplace(m_categories[11], KoID(COMPOSITE_COLOR_HSV         ,  PkString("Color HSV")));
+    m_map.emplace(m_categories[11], KoID(COMPOSITE_HUE_HSV           ,  PkString("Hue HSV")));
+    m_map.emplace(m_categories[11], KoID(COMPOSITE_SATURATION_HSV    ,  PkString("Saturation HSV")));
+    m_map.emplace(m_categories[11], KoID(COMPOSITE_VALUE             ,  PkString("Value")));
+    m_map.emplace(m_categories[11], KoID(COMPOSITE_DEC_SATURATION_HSV,  PkString("Decrease Saturation HSV")));
+    m_map.emplace(m_categories[11], KoID(COMPOSITE_INC_SATURATION_HSV,  PkString("Increase Saturation HSV")));
+    m_map.emplace(m_categories[11], KoID(COMPOSITE_DEC_VALUE         ,  PkString("Decrease Value")));
+    m_map.emplace(m_categories[11], KoID(COMPOSITE_INC_VALUE         ,  PkString("Increase Value")));
     
-    m_map.insert(m_categories[12], KoID(COMPOSITE_REFLECT          ,  i18nc("Blending mode - Reflect", "Reflect")));
-    m_map.insert(m_categories[12], KoID(COMPOSITE_GLOW             ,  i18nc("Blending mode - Glow", "Glow")));
-    m_map.insert(m_categories[12], KoID(COMPOSITE_FREEZE           ,  i18nc("Blending mode - Freeze", "Freeze")));
-    m_map.insert(m_categories[12], KoID(COMPOSITE_HEAT             ,  i18nc("Blending mode - Heat", "Heat")));
-    m_map.insert(m_categories[12], KoID(COMPOSITE_GLEAT            ,  i18nc("Blending mode - Glow-Heat", "Glow-Heat")));
-    m_map.insert(m_categories[12], KoID(COMPOSITE_HELOW            ,  i18nc("Blending mode - Heat-Glow", "Heat-Glow")));
-    m_map.insert(m_categories[12], KoID(COMPOSITE_REEZE            ,  i18nc("Blending mode - Reflect-Freeze", "Reflect-Freeze")));
-    m_map.insert(m_categories[12], KoID(COMPOSITE_FRECT            ,  i18nc("Blending mode - Freeze-Reflect", "Freeze-Reflect")));
-    m_map.insert(m_categories[12], KoID(COMPOSITE_FHYRD            ,  i18nc("Blending mode - Heat-Glow & Freeze-Reflect Hybrid", "Heat-Glow & Freeze-Reflect Hybrid")));
+    m_map.emplace(m_categories[12], KoID(COMPOSITE_REFLECT          ,  PkString("Reflect")));
+    m_map.emplace(m_categories[12], KoID(COMPOSITE_GLOW             ,  PkString("Glow")));
+    m_map.emplace(m_categories[12], KoID(COMPOSITE_FREEZE           ,  PkString("Freeze")));
+    m_map.emplace(m_categories[12], KoID(COMPOSITE_HEAT             ,  PkString("Heat")));
+    m_map.emplace(m_categories[12], KoID(COMPOSITE_GLEAT            ,  PkString("Glow-Heat")));
+    m_map.emplace(m_categories[12], KoID(COMPOSITE_HELOW            ,  PkString("Heat-Glow")));
+    m_map.emplace(m_categories[12], KoID(COMPOSITE_REEZE            ,  PkString("Reflect-Freeze")));
+    m_map.emplace(m_categories[12], KoID(COMPOSITE_FRECT            ,  PkString("Freeze-Reflect")));
+    m_map.emplace(m_categories[12], KoID(COMPOSITE_FHYRD            ,  PkString("Heat-Glow & Freeze-Reflect Hybrid")));
 }
 
 const KoCompositeOpRegistry& KoCompositeOpRegistry::instance()
 {
-    return *registry;
+    static KoCompositeOpRegistry registry;
+    return registry;
 }
 
 KoID KoCompositeOpRegistry::getDefaultCompositeOp() const
@@ -203,24 +218,24 @@ KoID KoCompositeOpRegistry::getDefaultCompositeOp() const
     return koidCompositeOverStatic();
 }
 
-KoID KoCompositeOpRegistry::getKoID(const QString& compositeOpID) const
+KoID KoCompositeOpRegistry::getKoID(const PkString& compositeOpID) const
 {
-    KoIDMap::const_iterator itr = std::find(m_map.begin(), m_map.end(), KoID(compositeOpID));
-    return (itr != m_map.end()) ? *itr : KoID();
+    KoIDMap::const_iterator itr = findCompositeOp(m_map, KoID(compositeOpID));
+    return (itr != m_map.end()) ? itr->second : KoID();
 }
 
-QString KoCompositeOpRegistry::getCompositeOpDisplayName(const QString& compositeOpID) const
+PkString KoCompositeOpRegistry::getCompositeOpDisplayName(const PkString& compositeOpID) const
 {
     // In and Out are created in lcms2engine but not registered in KoCompositeOpRegistry.
-    // FIXME: Change these to use i18nc with context?
+    // FIXME: 这两个名字目前没有注册进 KoCompositeOpRegistry，暂用英文原名。
     if (compositeOpID == COMPOSITE_IN) {
-        return i18n("In");
+        return PkString("In");
     } else if (compositeOpID == COMPOSITE_OUT) {
-        return i18n("Out");
+        return PkString("Out");
     }
 
-    const QString name = getKoID(compositeOpID).name();
-    if (name.isNull()) {
+    const PkString name = getKoID(compositeOpID).name();
+    if (name.isEmpty()) {
         warnPigment << "Got null display name for composite op" << compositeOpID;
         return compositeOpID;
     }
@@ -234,7 +249,7 @@ KoCompositeOpRegistry::KoIDMap KoCompositeOpRegistry::getCompositeOps() const
 
 KoCompositeOpRegistry::KoIDMap KoCompositeOpRegistry::getLayerStylesCompositeOps() const
 {
-    QVector<QString> ids;
+    PkVector<PkString> ids;
 
     // not available via the blending modes list in Krita
     // ids << COMPOSITE_PASS_THROUGH;
@@ -268,11 +283,11 @@ KoCompositeOpRegistry::KoIDMap KoCompositeOpRegistry::getLayerStylesCompositeOps
     ids << COMPOSITE_LUMINIZE;
 
     KoIDMap result;
-    Q_FOREACH (const QString &id, ids) {
-        KoIDMap::const_iterator iter = std::find(m_map.begin(), m_map.end(), KoID(id));
+    for (const PkString &id : ids) {
+        KoIDMap::const_iterator iter = findCompositeOp(m_map, KoID(id));
         KIS_SAFE_ASSERT_RECOVER(iter != m_map.end()) { continue; }
 
-        result.insert(iter.key(), iter.value());
+        result.emplace(iter->first, iter->second);
     }
 
     return result;
@@ -283,11 +298,11 @@ KoCompositeOpRegistry::KoIDList KoCompositeOpRegistry::getCategories() const
     return m_categories;
 }
 
-QString  KoCompositeOpRegistry::getCategoryDisplayName(const QString& categoryID) const
+PkString  KoCompositeOpRegistry::getCategoryDisplayName(const PkString& categoryID) const
 {
     KoIDList::const_iterator itr = std::find(m_categories.begin(), m_categories.end(), KoID(categoryID));
-    const QString name = (itr != m_categories.end()) ? itr->name() : QString();
-    if (name.isNull()) {
+    const PkString name = (itr != m_categories.end()) ? itr->name() : PkString();
+    if (name.isEmpty()) {
         warnPigment << "Got null display name for composite op category" << categoryID;
         return categoryID;
     }
@@ -296,22 +311,22 @@ QString  KoCompositeOpRegistry::getCategoryDisplayName(const QString& categoryID
 
 KoCompositeOpRegistry::KoIDList KoCompositeOpRegistry::getCompositeOps(const KoID& category, const KoColorSpace* colorSpace) const
 {
-    qint32                  num = m_map.count(category);
-    KoIDMap::const_iterator beg = m_map.find(category);
-    KoIDMap::const_iterator end = beg + num;
+    const qint32              num = static_cast<qint32>(m_map.count(category));
+    KoIDMap::const_iterator beg = m_map.lower_bound(category);
+    KoIDMap::const_iterator end = m_map.upper_bound(category);
 
     KoIDList list;
     list.reserve(num);
 
     if(colorSpace) {
         for(; beg!=end; ++beg){
-            if(colorSpace->hasCompositeOp(beg->id()))
-                list.push_back(*beg);
+            if(colorSpace->hasCompositeOp(beg->second.id()))
+                list.push_back(beg->second);
         }
     }
     else {
         for(; beg!=end; ++beg)
-            list.push_back(*beg);
+            list.push_back(beg->second);
     }
 
     return list;
@@ -327,13 +342,13 @@ KoCompositeOpRegistry::KoIDList KoCompositeOpRegistry::getCompositeOps(const KoC
 
     if(colorSpace) {
         for(; beg!=end; ++beg){
-            if(colorSpace->hasCompositeOp(beg->id()))
-                list.push_back(*beg);
+            if(colorSpace->hasCompositeOp(beg->second.id()))
+                list.push_back(beg->second);
         }
     }
     else {
         for(; beg!=end; ++beg)
-            list.push_back(*beg);
+            list.push_back(beg->second);
     }
 
     return list;
