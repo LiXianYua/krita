@@ -320,5 +320,5 @@ bool KisExiv2IODevice::renameToCurrent(const PkString srcPath)
 
 PkString KisExiv2IODevice::filePathQString() const
 {
-    return m_file.fileName();
+    return PkString(std::filesystem::absolute(m_file.fileName().PkToUtf8()).c_str());
 }

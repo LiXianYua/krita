@@ -10,6 +10,8 @@
 
 #include <exiv2/exiv2.hpp>
 
+#include <cstdio>
+
 #include "pk/container/PkMap.h"
 #include "pk/container/PkStringList.h"
 #include "pk/pointer/PkScopedPointer.h"
@@ -186,6 +188,16 @@ exivValueToKMDValue(const Exiv2::Value::AutoPtr &value, bool forceSeq, KisMetaDa
     return {};
 }
 
+// 零 Qt 等价物：C locale 下 toString(dt, "yyyy:MM:dd hh:mm:ss")，EXIF 规范格式。
+static std::string formatExifDateTime(const PkDateTime &dt)
+{
+    char buf[32];
+    std::snprintf(buf, sizeof(buf), "%04d:%02d:%02d %02d:%02d:%02d",
+                  dt.date().year(), dt.date().month(), dt.date().day(),
+                  dt.time().hour(), dt.time().minute(), dt.time().second());
+    return buf;
+}
+
 // Convert a PkVariant to an Exiv value
 inline Exiv2::Value *variantToExivValue(const PkVariant &variant, Exiv2::TypeId type)
 {
@@ -210,14 +222,12 @@ inline Exiv2::Value *variantToExivValue(const PkVariant &variant, Exiv2::TypeId 
     }
     case Exiv2::asciiString:
         if (variant.type() == PkVariant::DateTime) {
-            return new Exiv2::AsciiValue(
-                variant.toDateTime().toString(Qt::ISODate));
+            return new Exiv2::AsciiValue(formatExifDateTime(variant.toDateTime()));
         } else
             return new Exiv2::AsciiValue(variant.toString().PkToUtf8());
     case Exiv2::string: {
         if (variant.type() == PkVariant::DateTime) {
-            return new Exiv2::StringValue(
-                variant.toDateTime().toString(Qt::ISODate));
+            return new Exiv2::StringValue(formatExifDateTime(variant.toDateTime()));
         } else
             return new Exiv2::StringValue(variant.toString().PkToUtf8());
     }
