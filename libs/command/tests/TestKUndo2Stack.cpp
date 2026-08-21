@@ -5,7 +5,7 @@
  */
 #include "TestKUndo2Stack.h"
 
-#include <QTime>
+#include <PkDateTime.h>
 
 #include <kundo2stack.h>
 #include <kundo2command.h>
@@ -28,11 +28,11 @@ void TestKUndo2Stack::testExcludeFromMerge()
     int startTime = 0;
 
     for (int i = 0; i < 6; i++) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -48,11 +48,11 @@ void TestKUndo2Stack::testExcludeFromMerge()
 //    qDebug() << "===";
 
     for (int i = 0; i < 50; i++) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -64,7 +64,7 @@ void TestKUndo2Stack::testExcludeFromMerge()
     // verify that all the merged commands are merged into
     // command "50";
     for (int i = 0; i < stack.count(); i++) {
-        QCOMPARE(stack.command(i)->text().toString(), QString::number(i + 50));
+        QCOMPARE(stack.command(i)->text().toString(), PkString(std::to_string(i + 50).c_str()));
     }
 }
 
@@ -86,11 +86,11 @@ void TestKUndo2Stack::testMergeTimeout()
 
     // group 1
     for (int i = 0; i < 7; i++) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString("group 1: %1").arg(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString("group 1: %1").arg(startTime)));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -100,11 +100,11 @@ void TestKUndo2Stack::testMergeTimeout()
     QCOMPARE(stack.index(), stack.count());
 
     {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString("group 1: %1").arg(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString("group 1: %1").arg(startTime)));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -139,11 +139,11 @@ void TestKUndo2Stack::testGroupSeparation()
     int startTime = 0;
 
     for (int i = 0; i < 3; i++) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -156,11 +156,11 @@ void TestKUndo2Stack::testGroupSeparation()
     startTime += 1;
 
     for (int i = 0; i < 2; i++) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -173,11 +173,11 @@ void TestKUndo2Stack::testGroupSeparation()
     startTime += 6;
 
     {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -210,11 +210,11 @@ void TestKUndo2Stack::testMaxGroupDuration()
     int startTime = 0;
 
     for (int i = 0; i < 3; i++) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -228,11 +228,11 @@ void TestKUndo2Stack::testMaxGroupDuration()
     QCOMPARE(stack.command(2)->isMerged(), false);
 
     for (int i = 0; i < 3; i++) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -249,11 +249,11 @@ void TestKUndo2Stack::testMaxGroupDuration()
     startTime += 5;
 
     {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -285,11 +285,11 @@ void TestKUndo2Stack::testCleanIndexAfterMerge()
     int startTime = 0;
 
     for (int i = 0; i < 3; i++) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -303,11 +303,11 @@ void TestKUndo2Stack::testCleanIndexAfterMerge()
     QCOMPARE(stack.command(2)->isMerged(), false);
 
     for (int i = 0; i < 2; i++) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
 
@@ -331,11 +331,11 @@ void TestKUndo2Stack::testCleanIndexAfterMerge()
     startTime += 10;
 
     {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -370,11 +370,11 @@ void TestKUndo2Stack::testCleanIndexBeforeMerge()
     int startTime = 0;
 
     {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -386,11 +386,11 @@ void TestKUndo2Stack::testCleanIndexBeforeMerge()
     startTime += 3;
 
     for (int i = 0; i < 3; i++) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
@@ -408,11 +408,11 @@ void TestKUndo2Stack::testCleanIndexBeforeMerge()
     startTime += 10;
 
     {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_noi18n(QString::number(startTime)));
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text_raw(PkString(std::to_string(startTime).c_str())));
 
         cmd->setTimedID(1);
-        cmd->setTime(QTime(0, 0, startTime, 0));
-        cmd->setEndTime(QTime(0, 0, startTime, 500));
+        cmd->setTime(PkTime(0, 0, startTime, 0));
+        cmd->setEndTime(PkTime(0, 0, startTime, 500));
 
         stack.push(cmd);
         startTime++;
