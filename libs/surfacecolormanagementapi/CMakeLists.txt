@@ -1,10 +1,7 @@
 set(kritasurfacecolormanagementapi_LIB_SRCS
     KisColorimetryUtils.cpp
-    surfacecolormanagement/KisOutputColorInfoInterface.cpp
     surfacecolormanagement/KisSurfaceColorimetry.cpp
     surfacecolormanagement/KisSurfaceColorimetryIccUtils.cpp
-    surfacecolormanagement/KisSurfaceColorManagerInterface.cpp
-    surfacecolormanagement/KisSurfaceColorManagementInfo.cpp
 )
 
 kis_add_library(kritasurfacecolormanagementapi SHARED ${kritasurfacecolormanagementapi_LIB_SRCS})
@@ -14,7 +11,11 @@ target_link_libraries(kritasurfacecolormanagementapi
     PRIVATE
     kritaglobal
     kritapigment
-    ${QT_QTCORE_LIBRARY})
+    pkstring
+    pkcontainer
+    pklog
+    pkgeometry
+    pkglobal)
 
 set_target_properties(kritasurfacecolormanagementapi PROPERTIES
     VERSION ${GENERIC_KRITA_LIB_VERSION} SOVERSION ${GENERIC_KRITA_LIB_SOVERSION}

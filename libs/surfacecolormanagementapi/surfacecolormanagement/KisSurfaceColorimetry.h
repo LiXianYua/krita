@@ -9,6 +9,13 @@
 #include <boost/operators.hpp>
 #include <KisColorimetryUtils.h>
 
+#include <PkDebug.h>
+#include <PkString.h>
+
+#include <cstdint>
+#include <optional>
+#include <variant>
+
 
 namespace KisSurfaceColorimetry
 {
@@ -131,17 +138,17 @@ namespace KisSurfaceColorimetry
                    masteringInfo == other.masteringInfo;
         }
 
-        QString makeTextReport() const;
+        PkString makeTextReport() const;
     };
 
-    KRITASURFACECOLORMANAGEMENTAPI_EXPORT QDebug operator<<(QDebug debug, const NamedPrimaries &value);
-    KRITASURFACECOLORMANAGEMENTAPI_EXPORT QDebug operator<<(QDebug debug, const NamedTransferFunction &value);
-    KRITASURFACECOLORMANAGEMENTAPI_EXPORT QDebug operator<<(QDebug debug, const Luminance &value);
-    KRITASURFACECOLORMANAGEMENTAPI_EXPORT QDebug operator<<(QDebug debug, const MasteringLuminance &value);
-    KRITASURFACECOLORMANAGEMENTAPI_EXPORT QDebug operator<<(QDebug debug, const ColorSpace &value);
-    KRITASURFACECOLORMANAGEMENTAPI_EXPORT QDebug operator<<(QDebug debug, const MasteringInfo &value);
-    KRITASURFACECOLORMANAGEMENTAPI_EXPORT QDebug operator<<(QDebug debug, const SurfaceDescription &value);
-    KRITASURFACECOLORMANAGEMENTAPI_EXPORT QDebug operator<<(QDebug debug, const RenderIntent &value);
+    KRITASURFACECOLORMANAGEMENTAPI_EXPORT PkDebug operator<<(PkDebug debug, const NamedPrimaries &value);
+    KRITASURFACECOLORMANAGEMENTAPI_EXPORT PkDebug operator<<(PkDebug debug, const NamedTransferFunction &value);
+    KRITASURFACECOLORMANAGEMENTAPI_EXPORT PkDebug operator<<(PkDebug debug, const Luminance &value);
+    KRITASURFACECOLORMANAGEMENTAPI_EXPORT PkDebug operator<<(PkDebug debug, const MasteringLuminance &value);
+    KRITASURFACECOLORMANAGEMENTAPI_EXPORT PkDebug operator<<(PkDebug debug, const ColorSpace &value);
+    KRITASURFACECOLORMANAGEMENTAPI_EXPORT PkDebug operator<<(PkDebug debug, const MasteringInfo &value);
+    KRITASURFACECOLORMANAGEMENTAPI_EXPORT PkDebug operator<<(PkDebug debug, const SurfaceDescription &value);
+    KRITASURFACECOLORMANAGEMENTAPI_EXPORT PkDebug operator<<(PkDebug debug, const RenderIntent &value);
 }
 
 #endif /* KISSURFACECOLORIMETRY_H */

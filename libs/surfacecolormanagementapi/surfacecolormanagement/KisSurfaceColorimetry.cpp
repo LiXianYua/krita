@@ -6,12 +6,15 @@
 
 #include "KisSurfaceColorimetry.h"
 
-#include <QDebug>
+#include <PkDebug.h>
+#include <PkString.h>
+
+#include <sstream>
+#include <string>
 
 namespace KisSurfaceColorimetry {
 
-QDebug operator<<(QDebug debug, const NamedPrimaries &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const NamedPrimaries &value) {
     debug.nospace() << "NamedPrimaries(";
     switch (value) {
     case NamedPrimaries::primaries_unknown:
@@ -34,11 +37,10 @@ QDebug operator<<(QDebug debug, const NamedPrimaries &value) {
         break;
     }
     debug.nospace() << ")";
-    return debug;
+    return debug.space();
 }
 
-QDebug operator<<(QDebug debug, const NamedTransferFunction &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const NamedTransferFunction &value) {
     debug.nospace() << "NamedTransferFunction(";
     switch (value) {
     case NamedTransferFunction::transfer_function_unknown:
@@ -70,43 +72,39 @@ QDebug operator<<(QDebug debug, const NamedTransferFunction &value) {
         break;
     }
     debug.nospace() << ")";
-    return debug;
+    return debug.space();
 }
 
-QDebug operator<<(QDebug debug, const Luminance &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const Luminance &value) {
     debug.nospace() << "Luminance(minLuminance: " << value.minLuminance
                     << ", maxLuminance: " << value.maxLuminance
                     << ", referenceLuminance: " << value.referenceLuminance << ")";
-    return debug;
+    return debug.space();
 }
 
-QDebug operator<<(QDebug debug, const MasteringLuminance &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const MasteringLuminance &value) {
     debug.nospace() << "MasteringLuminance(minLuminance: " << value.minLuminance
                     << ", maxLuminance: " << value.maxLuminance << ")";
-    return debug;
+    return debug.space();
 }
 
-QDebug operator<<(QDebug debug, const ColorSpace &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const ColorSpace &value) {
 
     debug.nospace() << "ColorSpace(";
     std::visit([&] (auto &&v) {debug.nospace() << "primaries: " << v; }, value.primaries);
     std::visit([&] (auto &&v) {debug.nospace() << ", transferFunction: " << v; }, value.transferFunction);
     if (value.luminance) {
-        debug.nospace() << ", luminance: " << value.luminance;
+        debug.nospace() << ", luminance: " << *value.luminance;
     } else {
         debug.nospace() << ", luminance: " << "<none>";
     }
     debug.nospace() << ")";
-    return debug;
+    return debug.space();
 }
 
-QDebug operator<<(QDebug debug, const MasteringInfo &value) {
-    QDebugStateSaver saver(debug);
-    debug.nospace() << "MasteringInfo(primaries: " << value.primaries
-                    << ", luminance: " << value.luminance;
+PkDebug operator<<(PkDebug debug, const MasteringInfo &value) {
+    debug.nospace() << "MasteringInfo(primaries: " << value.primaries;
+    debug.nospace() << ", luminance: " << value.luminance;
     if (value.maxCll) {
         debug.nospace() << ", maxCll: " << *value.maxCll;
     }
@@ -114,21 +112,19 @@ QDebug operator<<(QDebug debug, const MasteringInfo &value) {
         debug.nospace() << ", maxFall: " << *value.maxFall;
     }
     debug.nospace() << ")";
-    return debug;
+    return debug.space();
 }
 
-QDebug operator<<(QDebug debug, const SurfaceDescription &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const SurfaceDescription &value) {
     debug.nospace() << "SurfaceDescription(colorSpace: " << value.colorSpace;
     if (value.masteringInfo) {
         debug.nospace() << ", masteringInfo: " << *value.masteringInfo;
     }
     debug.nospace() << ")";
-    return debug;
+    return debug.space();
 }
 
-QDebug operator<<(QDebug debug, const KisSurfaceColorimetry::RenderIntent &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const KisSurfaceColorimetry::RenderIntent &value) {
     debug.nospace() << "RenderIntent(";
     switch (value) {
     case KisSurfaceColorimetry::RenderIntent::render_intent_perceptual:
@@ -148,56 +144,118 @@ QDebug operator<<(QDebug debug, const KisSurfaceColorimetry::RenderIntent &value
         break;
     }
     debug.nospace() << ")";
-    return debug;
+    return debug.space();
 }
 
-QString SurfaceDescription::makeTextReport() const
+PkString SurfaceDescription::makeTextReport() const
 {
-    QString report;
-    QDebug str(&report);
+    std::ostringstream report;
 
-    str << "  Color Space:" << Qt::endl;
+    report << "  Color Space:" << '\n';
 
     if (std::holds_alternative<KisSurfaceColorimetry::NamedPrimaries>(this->colorSpace.primaries)) {
-        str << "    Primaries: " << std::get<KisSurfaceColorimetry::NamedPrimaries>(this->colorSpace.primaries) << Qt::endl;
+        report << "    Primaries: NamedPrimaries(";
+        switch (std::get<KisSurfaceColorimetry::NamedPrimaries>(this->colorSpace.primaries)) {
+        case NamedPrimaries::primaries_unknown:
+            report << "primaries_unknown";
+            break;
+        case NamedPrimaries::primaries_srgb:
+            report << "primaries_srgb";
+            break;
+        case NamedPrimaries::primaries_bt2020:
+            report << "primaries_bt2020";
+            break;
+        case NamedPrimaries::primaries_dci_p3:
+            report << "primaries_dci_p3";
+            break;
+        case NamedPrimaries::primaries_display_p3:
+            report << "primaries_display_p3";
+            break;
+        case NamedPrimaries::primaries_adobe_rgb:
+            report << "primaries_adobe_rgb";
+            break;
+        }
+        report << ")" << '\n';
     } else {
         auto col = std::get<KisSurfaceColorimetry::Colorimetry>(this->colorSpace.primaries);
-        str << "    Primaries: " << Qt::endl;
-        str << "        Red: " << col.red().toxy() << Qt::endl;
-        str << "        Green: " << col.green().toxy() << Qt::endl;
-        str << "        Blue: " << col.blue().toxy() << Qt::endl;
-        str << "        White: " << col.white().toxy() << Qt::endl;
+        report << "    Primaries: " << '\n';
+        auto red = col.red().toxy();
+        report << "        Red: xy(x: " << red.x << ", y: " << red.y << ")" << '\n';
+        auto green = col.green().toxy();
+        report << "        Green: xy(x: " << green.x << ", y: " << green.y << ")" << '\n';
+        auto blue = col.blue().toxy();
+        report << "        Blue: xy(x: " << blue.x << ", y: " << blue.y << ")" << '\n';
+        auto white = col.white().toxy();
+        report << "        White: xy(x: " << white.x << ", y: " << white.y << ")" << '\n';
     }
 
     if (std::holds_alternative<KisSurfaceColorimetry::NamedTransferFunction>(this->colorSpace.transferFunction)) {
-        str << "    Transfer Function: " << std::get<KisSurfaceColorimetry::NamedTransferFunction>(this->colorSpace.transferFunction) << Qt::endl;
+        report << "    Transfer Function: NamedTransferFunction(";
+        switch (std::get<KisSurfaceColorimetry::NamedTransferFunction>(this->colorSpace.transferFunction)) {
+        case NamedTransferFunction::transfer_function_unknown:
+            report << "transfer_function_unknown";
+            break;
+        case NamedTransferFunction::transfer_function_bt1886:
+            report << "transfer_function_bt1886";
+            break;
+        case NamedTransferFunction::transfer_function_gamma22:
+            report << "transfer_function_gamma22";
+            break;
+        case NamedTransferFunction::transfer_function_gamma28:
+            report << "transfer_function_gamma28";
+            break;
+        case NamedTransferFunction::transfer_function_ext_linear:
+            report << "transfer_function_ext_linear";
+            break;
+        case NamedTransferFunction::transfer_function_srgb:
+            report << "transfer_function_srgb";
+            break;
+        case NamedTransferFunction::transfer_function_ext_srgb:
+            report << "transfer_function_ext_srgb";
+            break;
+        case NamedTransferFunction::transfer_function_st2084_pq:
+            report << "transfer_function_st2084_pq";
+            break;
+        case NamedTransferFunction::transfer_function_st428:
+            report << "transfer_function_st428";
+            break;
+        }
+        report << ")" << '\n';
     } else {
         const uint32_t rawValue = std::get<uint32_t>(this->colorSpace.transferFunction);
-        str << "    Transfer Function (gamma): " << rawValue << "(" << qreal(rawValue) / 10000.0 << ")" << Qt::endl;
+        report << "    Transfer Function (gamma): " << rawValue << "(" << double(rawValue) / 10000.0 << ")" << '\n';
     }
 
     if (this->colorSpace.luminance) {
-        str << "    Luminance: " << *this->colorSpace.luminance << Qt::endl;
+        auto lum = *this->colorSpace.luminance;
+        report << "    Luminance: Luminance(minLuminance: " << lum.minLuminance
+               << ", maxLuminance: " << lum.maxLuminance
+               << ", referenceLuminance: " << lum.referenceLuminance << ")" << '\n';
     } else {
-        str << "    Luminance: " << "<none>" << Qt::endl;
+        report << "    Luminance: " << "<none>" << '\n';
     }
 
     if (this->masteringInfo) {
-        str << "  Mastering Info:" << Qt::endl;
+        report << "  Mastering Info:" << '\n';
         auto col = this->masteringInfo->primaries;
-        str << "    Primaries: " << Qt::endl;
-        str << "        Red: " << col.red().toxy() << Qt::endl;
-        str << "        Green: " << col.green().toxy() << Qt::endl;
-        str << "        Blue: " << col.blue().toxy() << Qt::endl;
-        str << "        White: " << col.white().toxy() << Qt::endl;
-        str << "    Luminance: " << this->masteringInfo->luminance << Qt::endl;
-        str << "    Max CLL: " << (this->masteringInfo->maxCll ? QString::number(*this->masteringInfo->maxCll) : "<none>") << Qt::endl;
-        str << "    Max FALL: " << (this->masteringInfo->maxFall ? QString::number(*this->masteringInfo->maxFall) : "<none>") << Qt::endl;
+        report << "    Primaries: " << '\n';
+        auto red = col.red().toxy();
+        report << "        Red: xy(x: " << red.x << ", y: " << red.y << ")" << '\n';
+        auto green = col.green().toxy();
+        report << "        Green: xy(x: " << green.x << ", y: " << green.y << ")" << '\n';
+        auto blue = col.blue().toxy();
+        report << "        Blue: xy(x: " << blue.x << ", y: " << blue.y << ")" << '\n';
+        auto white = col.white().toxy();
+        report << "        White: xy(x: " << white.x << ", y: " << white.y << ")" << '\n';
+        report << "    Luminance: MasteringLuminance(minLuminance: " << this->masteringInfo->luminance.minLuminance
+               << ", maxLuminance: " << this->masteringInfo->luminance.maxLuminance << ")" << '\n';
+        report << "    Max CLL: " << (this->masteringInfo->maxCll ? std::to_string(*this->masteringInfo->maxCll) : "<none>") << '\n';
+        report << "    Max FALL: " << (this->masteringInfo->maxFall ? std::to_string(*this->masteringInfo->maxFall) : "<none>") << '\n';
     } else {
-        str << "  Mastering Info: <none>" << Qt::endl;
+        report << "  Mastering Info: <none>" << '\n';
     }
 
-    return report;
+    return PkString(report.str().c_str());
 }
 
 } // namespace KisSurfaceColorimetry

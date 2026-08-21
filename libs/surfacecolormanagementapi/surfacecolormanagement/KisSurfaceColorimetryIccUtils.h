@@ -7,6 +7,8 @@
 #define KISSURFACECOLORIMETRYICCUTILS_H
 
 #include "KisSurfaceColorimetry.h"
+#include "pk/container/PkVector.h"
+
 #include <KoColorProfileConstants.h>
 
 namespace KisSurfaceColorimetry
@@ -20,7 +22,7 @@ namespace KisSurfaceColorimetry
     TransferCharacteristics namedTransferFunctionToPigmentTransferFunction(NamedTransferFunction transfer);
 
     struct PigmentProfileRequest {
-        QVector<double> colorants;
+        PkVector<double> colorants;
         ColorPrimaries colorPrimariesType = PRIMARIES_UNSPECIFIED;
         TransferCharacteristics transferFunction = TRC_UNSPECIFIED;
 

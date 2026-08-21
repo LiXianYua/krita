@@ -6,7 +6,7 @@
 
 #include "KisSurfaceColorimetryIccUtils.h"
 
-#include <QDebug>
+#include <PkDebug.h>
 
 namespace KisSurfaceColorimetry {
 

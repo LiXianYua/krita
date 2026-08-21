@@ -7,14 +7,14 @@
 
 #include "KisColorimetryUtils.h"
 
-#include <QDebug>
+#include <PkDebug.h>
 
 namespace KisColorimetryUtils
 {
 
-QMatrix4x4 matrixFromColumns(const QVector3D &first, const QVector3D &second, const QVector3D &third)
+PkMatrix4x4 matrixFromColumns(const PkVector3D &first, const PkVector3D &second, const PkVector3D &third)
 {
-    QMatrix4x4 ret;
+    PkMatrix4x4 ret;
     ret(0, 0) = first.x();
     ret(1, 0) = first.y();
     ret(2, 0) = first.z();
@@ -39,9 +39,9 @@ XYZ xy::toXYZ() const
     };
 }
 
-QVector2D xy::asVector() const
+PkVector2D xy::asVector() const
 {
-    return QVector2D(x, y);
+    return PkVector2D(x, y);
 }
 
 bool xy::operator==(const xy &other) const
@@ -127,12 +127,12 @@ XYZ XYZ::operator+(const XYZ &other) const
     };
 }
 
-QVector3D XYZ::asVector() const
+PkVector3D XYZ::asVector() const
 {
-    return QVector3D(X, Y, Z);
+    return PkVector3D(X, Y, Z);
 }
 
-XYZ XYZ::fromVector(const QVector3D &vector)
+XYZ XYZ::fromVector(const PkVector3D &vector)
 {
     return XYZ{
         .X = vector.x(),
@@ -146,10 +146,10 @@ bool XYZ::operator==(const XYZ &other) const
     return qFuzzyCompare(X, other.X) && qFuzzyCompare(Y, other.Y) && qFuzzyCompare(Z, other.Z);
 }
 
-QMatrix4x4 Colorimetry::chromaticAdaptationMatrix(XYZ sourceWhitepoint, XYZ destinationWhitepoint)
+PkMatrix4x4 Colorimetry::chromaticAdaptationMatrix(XYZ sourceWhitepoint, XYZ destinationWhitepoint)
 {
-    static const QMatrix4x4 bradford = []() {
-        QMatrix4x4 ret;
+    static const PkMatrix4x4 bradford = []() {
+        PkMatrix4x4 ret;
         ret(0, 0) = 0.8951;
         ret(0, 1) = 0.2664;
         ret(0, 2) = -0.1614;
@@ -161,8 +161,8 @@ QMatrix4x4 Colorimetry::chromaticAdaptationMatrix(XYZ sourceWhitepoint, XYZ dest
         ret(2, 2) = 1.0296;
         return ret;
     }();
-    static const QMatrix4x4 inverseBradford = []() {
-        QMatrix4x4 ret;
+    static const PkMatrix4x4 inverseBradford = []() {
+        PkMatrix4x4 ret;
         ret(0, 0) = 0.9869929;
         ret(0, 1) = -0.1470543;
         ret(0, 2) = 0.1599627;
@@ -175,21 +175,21 @@ QMatrix4x4 Colorimetry::chromaticAdaptationMatrix(XYZ sourceWhitepoint, XYZ dest
         return ret;
     }();
     if (sourceWhitepoint == destinationWhitepoint) {
-        return QMatrix4x4{};
+        return PkMatrix4x4{};
     }
-    const QVector3D factors = (bradford.map(destinationWhitepoint.asVector())) / (bradford.map(sourceWhitepoint.asVector()));
-    QMatrix4x4 adaptation{};
+    const PkVector3D factors = (bradford.map(destinationWhitepoint.asVector())) / (bradford.map(sourceWhitepoint.asVector()));
+    PkMatrix4x4 adaptation{};
     adaptation(0, 0) = factors.x();
     adaptation(1, 1) = factors.y();
     adaptation(2, 2) = factors.z();
     return inverseBradford * adaptation * bradford;
 }
 
-QMatrix4x4 Colorimetry::calculateToXYZMatrix(XYZ red, XYZ green, XYZ blue, XYZ white)
+PkMatrix4x4 Colorimetry::calculateToXYZMatrix(XYZ red, XYZ green, XYZ blue, XYZ white)
 {
-    const QVector3D r = red.asVector();
-    const QVector3D g = green.asVector();
-    const QVector3D b = blue.asVector();
+    const PkVector3D r = red.asVector();
+    const PkVector3D g = green.asVector();
+    const PkVector3D b = blue.asVector();
     const auto component_scale = (matrixFromColumns(r, g, b)).inverted().map(white.asVector());
     return matrixFromColumns(r * component_scale.x(), g * component_scale.y(), b * component_scale.z());
 }
@@ -204,7 +204,7 @@ Colorimetry Colorimetry::interpolateGamutTo(const Colorimetry &one, double facto
     };
 }
 
-static double triangleArea(QVector2D p1, QVector2D p2, QVector2D p3)
+static double triangleArea(PkVector2D p1, PkVector2D p2, PkVector2D p3)
 {
     return std::abs(0.5 * (p1.x() * (p2.y() - p3.y()) + p2.x() * (p3.y() - p1.y()) + p3.x() * (p1.y() - p2.y())));
 }
@@ -274,19 +274,19 @@ Colorimetry::Colorimetry(xy red, xy green, xy blue, xy white)
     m_fromXYZ = m_toXYZ.inverted();
 }
 
-const QMatrix4x4 &Colorimetry::toXYZ() const
+const PkMatrix4x4 &Colorimetry::toXYZ() const
 {
     return m_toXYZ;
 }
 
-const QMatrix4x4 &Colorimetry::fromXYZ() const
+const PkMatrix4x4 &Colorimetry::fromXYZ() const
 {
     return m_fromXYZ;
 }
 
 // converts from XYZ to LMS suitable for ICtCp
-static const QMatrix4x4 s_xyzToDolbyLMS = []() {
-    QMatrix4x4 ret;
+static const PkMatrix4x4 s_xyzToDolbyLMS = []() {
+    PkMatrix4x4 ret;
     ret(0, 0) = 0.3593;
     ret(0, 1) = 0.6976;
     ret(0, 2) = -0.0359;
@@ -298,14 +298,14 @@ static const QMatrix4x4 s_xyzToDolbyLMS = []() {
     ret(2, 2) = 0.8433;
     return ret;
 }();
-static const QMatrix4x4 s_inverseDolbyLMS = s_xyzToDolbyLMS.inverted();
+static const PkMatrix4x4 s_inverseDolbyLMS = s_xyzToDolbyLMS.inverted();
 
-QMatrix4x4 Colorimetry::toLMS() const
+PkMatrix4x4 Colorimetry::toLMS() const
 {
     return s_xyzToDolbyLMS * m_toXYZ;
 }
 
-QMatrix4x4 Colorimetry::fromLMS() const
+PkMatrix4x4 Colorimetry::fromLMS() const
 {
     return m_fromXYZ * s_inverseDolbyLMS;
 }
@@ -332,12 +332,12 @@ Colorimetry Colorimetry::withWhitepoint(xyY newWhitePoint) const
     };
 }
 
-QMatrix4x4 Colorimetry::relativeColorimetricTo(const Colorimetry &other) const
+PkMatrix4x4 Colorimetry::relativeColorimetricTo(const Colorimetry &other) const
 {
     return other.fromXYZ() * chromaticAdaptationMatrix(white(), other.white()) * toXYZ();
 }
 
-QMatrix4x4 Colorimetry::absoluteColorimetricTo(const Colorimetry &other) const
+PkMatrix4x4 Colorimetry::absoluteColorimetricTo(const Colorimetry &other) const
 {
     return other.fromXYZ() * toXYZ();
 }
@@ -428,28 +428,27 @@ const Colorimetry Colorimetry::AdobeRGB = Colorimetry{
     xy{0.3127, 0.3290},
 };
 
-QDebug operator<<(QDebug debug, const xy &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const xy &value) {
     debug.nospace() << "xy(x: " << value.x << ", y: " << value.y << ")";
-    return debug;
+    return debug.space();
 }
 
-QDebug operator<<(QDebug debug, const xyY &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const xyY &value) {
     debug.nospace() << "xyY(x: " << value.x << ", y: " << value.y << ", Y: " << value.Y << ")";
-    return debug;
+    return debug.space();
 }
 
-QDebug operator<<(QDebug debug, const XYZ &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const XYZ &value) {
     debug.nospace() << "XYZ(X: " << value.X << ", Y: " << value.Y << ", Z: " << value.Z << ")";
-    return debug;
+    return debug.space();
 }
 
-QDebug operator<<(QDebug debug, const Colorimetry &value) {
-    QDebugStateSaver saver(debug);
-    debug.nospace() << "Colorimetry(Red: " << value.red().toxy() << ", Green: " << value.green().toxy() << ", Blue: " << value.blue().toxy() << ", White: " << value.white().toxy() << ")";
-    return debug;
+PkDebug operator<<(PkDebug debug, const Colorimetry &value) {
+    debug.nospace() << "Colorimetry(Red: " << value.red().toxy();
+    debug.nospace() << ", Green: " << value.green().toxy();
+    debug.nospace() << ", Blue: " << value.blue().toxy();
+    debug.nospace() << ", White: " << value.white().toxy() << ")";
+    return debug.space();
 }
 
 } // namespace KisColorimetryUtils
