@@ -7,10 +7,12 @@
 #ifndef SVGLOADINGCONTEXT_H
 #define SVGLOADINGCONTEXT_H
 
+#include <PkXmlCompat.h>
+
 #include <functional>
-#include <QStringList>
-#include <QDomDocument>
-#include <QScopedPointer>
+#include <memory>
+#include <PkAuxTypes.h>
+#include <pk/container/PkStringHash.h>
 #include <KoSvgTextProperties.h>
 
 #include "kritaflake_export.h"
@@ -32,54 +34,54 @@ public:
     SvgGraphicsContext *currentGC() const;
 
     /// Pushes a new graphics context to the stack
-    SvgGraphicsContext *pushGraphicsContext(const QDomElement &element = QDomElement(), bool inherit = true);
+    SvgGraphicsContext *pushGraphicsContext(const PkXmlElement &element = PkXmlElement(), bool inherit = true);
 
     /// Pops the current graphics context from the stack
     void popGraphicsContext();
 
     /// Sets the initial xml base dir, i.e. the directory the svg file is read from
-    void setInitialXmlBaseDir(const QString &baseDir);
+    void setInitialXmlBaseDir(const PkString &baseDir);
 
     /// Returns the current xml base dir
-    QString xmlBaseDir() const;
+    PkString xmlBaseDir() const;
 
     /// Constructs an absolute file path from the given href and current xml base directory
-    QString absoluteFilePath(const QString &href);
+    PkString absoluteFilePath(const PkString &href);
 
-    QString relativeFilePath(const QString &href);
+    PkString relativeFilePath(const PkString &href);
 
     /// Returns the next z-index
     int nextZIndex();
 
     /// Registers a shape so it can be referenced later
-    void registerShape(const QString &id, KoShape *shape);
+    void registerShape(const PkString &id, KoShape *shape);
 
     /// Returns shape with specified id
-    KoShape* shapeById(const QString &id);
+    KoShape* shapeById(const PkString &id);
 
     /// Adds a definition for later use
-    void addDefinition(const QDomElement &element);
+    void addDefinition(const PkXmlElement &element);
 
     /// Returns the definition with the specified id
-    QDomElement definition(const QString &id) const;
+    PkXmlElement definition(const PkString &id) const;
 
     /// Checks if a definition with the specified id exists
-    bool hasDefinition(const QString &id) const;
+    bool hasDefinition(const PkString &id) const;
 
     /// Adds a css style sheet
-    void addStyleSheet(const QDomElement &styleSheet);
+    void addStyleSheet(const PkXmlElement &styleSheet);
 
     /// Returns list of css styles matching to the specified element
-    QStringList matchingCssStyles(const QDomElement &element) const;
+    PkStringList matchingCssStyles(const PkXmlElement &element) const;
 
     /// Returns a style parser to parse styles
     SvgStyleParser &styleParser();
 
     /// parses 'color-profile' tag and saves it in the context
-    void parseProfile(const QDomElement &element);
+    void parseProfile(const PkXmlElement &element);
 
     /// Return the profiles in the context.
-    QHash<QString, const KoColorProfile*> profiles();
+    PkHash<PkString, const KoColorProfile*> profiles();
 
     /// These are the text properties, completely resolved,
     /// ensuring that everything is inherited and the sizes are converted to pt.
@@ -88,14 +90,14 @@ public:
 
     bool isRootContext() const;
 
-    typedef std::function<QByteArray(const QString&)> FileFetcherFunc;
+    typedef std::function<PkByteArray(const PkString&)> FileFetcherFunc;
     void setFileFetcher(FileFetcherFunc func);
 
-    QByteArray fetchExternalFile(const QString &url);
+    PkByteArray fetchExternalFile(const PkString &url);
 
 private:
     class Private;
-    QScopedPointer<Private> d;
+    std::unique_ptr<Private> d;
 };
 
 #endif // SVGLOADINGCONTEXT_H

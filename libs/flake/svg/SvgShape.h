@@ -7,11 +7,12 @@
 #ifndef SVGSHAPE_H
 #define SVGSHAPE_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 class SvgSavingContext;
 class SvgLoadingContext;
-#include <QDomDocument>
 
 /// An interface providing svg loading and saving routines
 class KRITAFLAKE_EXPORT SvgShape
@@ -23,7 +24,7 @@ public:
     virtual bool saveSvg(SvgSavingContext &context);
 
     /// Loads data from specified svg element
-    virtual bool loadSvg(const QDomElement &element, SvgLoadingContext &context);
+    virtual bool loadSvg(const PkXmlElement &element, SvgLoadingContext &context);
 
     void saveMetadata(SvgSavingContext &context);
 };

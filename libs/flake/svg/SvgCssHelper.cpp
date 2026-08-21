@@ -4,10 +4,89 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "SvgCssHelper.h"
 #include <FlakeDebug.h>
-#include <QPair>
-#include <QRegularExpression>
+#include <pk/container/PkContainerAlgo.h>
+#include <utility>
+#include <regex>
+#include <string>
+#include <vector>
+
+// PkString 缺单字符成员方法与 simplified()/indexOf()/split(SkipEmptyParts)，
+// 这里补一组文件局部小工具，语义对齐原字符串类型的对应物。
+namespace {
+
+bool pkIsSpace(char16_t c)
+{
+    return c == u' ' || c == u'\t' || c == u'\n' || c == u'\r'
+        || c == u'\v' || c == u'\f' || c == 0x00A0 || c == 0x2028 || c == 0x2029;
+}
+
+// 单个 UTF-16 码元 → PkString（仅 BMP；CSS 选择器词法里的单字符都是 ASCII）。
+PkString pkCharString(char16_t c)
+{
+    std::string s;
+    if (c < 0x80) {
+        s.push_back(static_cast<char>(c));
+    } else if (c < 0x800) {
+        s.push_back(static_cast<char>(0xC0 | (c >> 6)));
+        s.push_back(static_cast<char>(0x80 | (c & 0x3F)));
+    } else {
+        s.push_back(static_cast<char>(0xE0 | (c >> 12)));
+        s.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3F)));
+        s.push_back(static_cast<char>(0x80 | (c & 0x3F)));
+    }
+    return PkString(s.c_str());
+}
+
+int pkIndexOf(const PkString &s, char16_t c)
+{
+    for (int i = 0; i < s.size(); ++i) {
+        if (s.at(i) == c)
+            return i;
+    }
+    return -1;
+}
+
+// 两端去空白、内部连续空白折叠成单个空格（原 simplified() 语义）。
+PkString pkSimplified(const PkString &s)
+{
+    PkString result;
+    bool pendingSpace = false;
+    bool hasWritten = false;
+    for (int i = 0; i < s.size(); ++i) {
+        const char16_t c = s.at(i);
+        if (pkIsSpace(c)) {
+            if (hasWritten)
+                pendingSpace = true;
+        } else {
+            if (pendingSpace) {
+                result.append(PkString(" "));
+                pendingSpace = false;
+            }
+            result.append(pkCharString(c));
+            hasWritten = true;
+        }
+    }
+    return result;
+}
+
+// 按分隔符切分并跳过空段（原 split(sep, SkipEmptyParts) 语义）：
+// PkString::split 保留空段，这里滤掉。
+PkStringList pkSplitSkipEmpty(const PkString &s, char16_t sep)
+{
+    PkStringList result;
+    const std::vector<PkString> parts = s.split(sep);
+    for (const PkString &p : parts) {
+        if (!p.isEmpty())
+            result.append(p);
+    }
+    return result;
+}
+
+}
 
 /// Token types used for tokenizing complex selectors
 enum CssTokenType {
@@ -16,7 +95,7 @@ enum CssTokenType {
 };
 
 /// A token used for tokenizing complex selectors
-typedef QPair<CssTokenType, QString> CssToken;
+typedef std::pair<CssTokenType, PkString> CssToken;
 
 /// Selector base class, merely an interface
 class CssSelectorBase
@@ -24,9 +103,9 @@ class CssSelectorBase
 public:
     virtual ~CssSelectorBase() {}
     /// Matches the given element
-    virtual bool match(const QDomElement &) = 0;
+    virtual bool match(const PkXmlElement &) = 0;
     /// Returns string representation of selector
-    virtual QString toString() const { return QString(); }
+    virtual PkString toString() const { return PkString(); }
     /**
      * Returns priority of selector
      * see http://www.w3.org/TR/1998/REC-CSS2-19980512/cascade.html#specificity
@@ -38,14 +117,14 @@ public:
 class UniversalSelector : public CssSelectorBase
 {
 public:
-    bool match(const QDomElement &) override
+    bool match(const PkXmlElement &) override
     {
         // matches always
         return true;
     }
-    QString toString() const override
+    PkString toString() const override
     {
-        return "*";
+        return PkString("*");
     }
 };
 
@@ -53,15 +132,15 @@ public:
 class TypeSelector : public CssSelectorBase
 {
 public:
-    TypeSelector(const QString &type)
+    TypeSelector(const PkString &type)
     : m_type(type)
     {
     }
-    bool match(const QDomElement &e) override
+    bool match(const PkXmlElement &e) override
     {
         return e.tagName() == m_type;
     }
-    QString toString() const override
+    PkString toString() const override
     {
         return m_type;
     }
@@ -71,71 +150,71 @@ public:
     }
 
 private:
-    QString m_type;
+    PkString m_type;
 };
 
 /// Id selector, matching the id attribute
 class IdSelector : public CssSelectorBase
 {
 public:
-    IdSelector(const QString &id)
+    IdSelector(const PkString &id)
     : m_id(id)
     {
-        if (id.startsWith('#'))
+        if (id.startsWith(PkString("#")))
             m_id = id.mid(1);
     }
-    bool match(const QDomElement &e) override
+    bool match(const PkXmlElement &e) override
     {
         return e.attribute("id") == m_id;
     }
-    QString toString() const override
+    PkString toString() const override
     {
-        return '#'+m_id;
+        return PkString("#") + m_id;
     }
     int priority() override
     {
         return 100;
     }
 private:
-    QString m_id;
+    PkString m_id;
 };
 
 /// Attribute selector, matching existence or content of attributes
 class AttributeSelector : public CssSelectorBase
 {
 public:
-    AttributeSelector(const QString &attribute)
+    AttributeSelector(const PkString &attribute)
     : m_type(Unknown)
     {
-        QString pattern = attribute;
-        if (pattern.startsWith('['))
-            pattern.remove(0,1);
-        if (pattern.endsWith(']'))
-            pattern.remove(pattern.length()-1,1);
-        int equalPos = pattern.indexOf('=');
+        PkString pattern = attribute;
+        if (pattern.startsWith(PkString("[")))
+            pattern = pattern.mid(1);
+        if (pattern.size() > 0 && pattern.at(pattern.size()-1) == u']')
+            pattern = pattern.left(pattern.size()-1);
+        int equalPos = pkIndexOf(pattern, u'=');
         if (equalPos == -1) {
             m_type = Exists;
             m_attribute = pattern;
         } else if (equalPos > 0){
-            if (pattern[equalPos-1] == '~') {
+            if (pattern[equalPos-1] == u'~') {
                 m_attribute = pattern.left(equalPos-1);
                 m_type = InList;
-            } else if(pattern[equalPos-1] == '|') {
-                m_attribute = pattern.left(equalPos-1) + '-';
+            } else if(pattern[equalPos-1] == u'|') {
+                m_attribute = pattern.left(equalPos-1) + PkString("-");
                 m_type = StartsWith;
             } else {
                 m_attribute = pattern.left(equalPos);
                 m_type = Equals;
             }
             m_value = pattern.mid(equalPos+1);
-            if (m_value.startsWith(QLatin1Char('"')))
-                m_value.remove(0,1);
-            if (m_value.endsWith(QLatin1Char('"')))
-                m_value.chop(1);
+            if (m_value.startsWith(PkString("\"")))
+                m_value = m_value.mid(1);
+            if (m_value.size() > 0 && m_value.at(m_value.size()-1) == u'"')
+                m_value = m_value.left(m_value.size()-1);
         }
     }
 
-    bool match(const QDomElement &e) override
+    bool match(const PkXmlElement &e) override
     {
         switch(m_type) {
             case Exists:
@@ -146,7 +225,7 @@ public:
                 break;
             case InList:
                 {
-                    QStringList tokens = e.attribute(m_attribute).split(' ', Qt::SkipEmptyParts);
+                    PkStringList tokens = pkSplitSkipEmpty(e.attribute(m_attribute), u' ');
                     return tokens.contains(m_value);
                 }
                 break;
@@ -157,19 +236,19 @@ public:
                 return false;
         }
     }
-    QString toString() const override
+    PkString toString() const override
     {
-        QString str('[');
+        PkString str = PkString("[");
         str += m_attribute;
         if (m_type == Equals) {
-            str += '=';
+            str += PkString("=");
         } else if (m_type == InList) {
-            str += "~=";
+            str += PkString("~=");
         } else if (m_type == StartsWith) {
-            str += "|=";
+            str += PkString("|=");
         }
         str += m_value;
-        str += ']';
+        str += PkString("]");
         return str;
     }
     int priority() override
@@ -185,8 +264,8 @@ private:
         InList,    ///< [att~=val] -> attribute is whitespace separated list where one is val
         StartsWith ///< [att|=val] -> attribute starts with val-
     };
-    QString m_attribute;
-    QString m_value;
+    PkString m_attribute;
+    PkString m_value;
     MatchType m_type;
 };
 
@@ -194,28 +273,26 @@ private:
 class PseudoClassSelector : public CssSelectorBase
 {
 public:
-    PseudoClassSelector(const QString &pseudoClass)
+    PseudoClassSelector(const PkString &pseudoClass)
     : m_pseudoClass(pseudoClass)
     {
     }
 
-    bool match(const QDomElement &e) override
+    bool match(const PkXmlElement &e) override
     {
         if (m_pseudoClass == ":first-child") {
-            QDomNode parent = e.parentNode();
+            PkXmlNode parent = e.parentNode();
             if (parent.isNull()) {
                 return false;
             }
-            QDomNode firstChild = parent.firstChild();
-            while(!firstChild.isElement() || firstChild.isNull()) {
-                firstChild = firstChild.nextSibling();
-            }
-            return firstChild == e;
+            // 原实现找 parent 的第一个元素子节点再与 e 比相等；PkXmlNode 无
+            // operator==，改为等价判定：e 前面没有元素兄弟 ⇔ e 是第一个元素子节点。
+            return e.previousSiblingElement().isNull();
         } else {
             return false;
         }
     }
-    QString toString() const override
+    PkString toString() const override
     {
         return m_pseudoClass;
     }
@@ -225,14 +302,14 @@ public:
     }
 
 private:
-    QString m_pseudoClass;
+    PkString m_pseudoClass;
 };
 
 /// A simple selector, i.e. a type/universal selector followed by attribute, id or pseudo-class selectors
 class CssSimpleSelector : public CssSelectorBase
 {
 public:
-    CssSimpleSelector(const QString &token)
+    CssSimpleSelector(const PkString &token)
     : m_token(token)
     {
         compile();
@@ -242,7 +319,7 @@ public:
         qDeleteAll(m_selectors);
     }
 
-    bool match(const QDomElement &e) override
+    bool match(const PkXmlElement &e) override
     {
         Q_FOREACH (CssSelectorBase *s, m_selectors) {
             if (!s->match(e))
@@ -252,9 +329,9 @@ public:
         return true;
     }
 
-    QString toString() const override
+    PkString toString() const override
     {
-        QString str;
+        PkString str;
         Q_FOREACH (CssSelectorBase *s, m_selectors) {
             str += s->toString();
         }
@@ -272,7 +349,7 @@ public:
 private:
     void compile()
     {
-        if (m_token == "*") {
+        if (m_token == PkString("*")) {
             m_selectors.append(new UniversalSelector());
             return;
         }
@@ -289,41 +366,41 @@ private:
         } state;
 
         // add terminator to string
-        QString expr = m_token + QChar();
+        PkString expr = m_token + PkString::PkFromUtf8("\0", 1);
         int i = 0;
         state = Start;
 
-        QString token;
-        QString sep("#[:.");
+        PkString token;
+        PkString sep("#[:.");
         // split into base selectors
-        while((state != Finish) && (state != Bad) && (i < expr.length())) {
-            QChar ch = expr[i];
+        while((state != Finish) && (state != Bad) && (i < expr.size())) {
+            char16_t ch = expr[i];
             switch(state) {
                 case Start:
-                    token += ch;
-                    if (ch == '#')
+                    token += pkCharString(ch);
+                    if (ch == u'#')
                         state = InId;
-                    else if (ch == '[')
+                    else if (ch == u'[')
                         state = InAttribute;
-                    else if (ch == ':')
+                    else if (ch == u':')
                         state = InPseudoClass;
-                    else if (ch == '.')
+                    else if (ch == u'.')
                         state = InClassAttribute;
-                    else if (ch != '*')
+                    else if (ch != u'*')
                         state = InType;
                     break;
                 case InAttribute:
-                    if (ch.isNull()) {
+                    if (ch == u'\0') {
                         // reset state and token string
                         state = Finish;
-                        token.clear();
+                        token = PkString();
                         continue;
                     } else {
-                        token += ch;
-                        if (ch == ']') {
+                        token += pkCharString(ch);
+                        if (ch == u']') {
                             m_selectors.append(new AttributeSelector(token));
                             state = Start;
-                            token.clear();
+                            token = PkString();
                         }
                     }
                     break;
@@ -332,24 +409,24 @@ private:
                 case InClassAttribute:
                 case InPseudoClass:
                     // are we at the start of the next selector or even finished?
-                    if (sep.contains(ch) || ch.isNull()) {
+                    if (sep.contains(pkCharString(ch)) || ch == u'\0') {
                         if (state == InType)
                             m_selectors.append(new TypeSelector(token));
                         else if (state == InId)
                             m_selectors.append(new IdSelector(token));
                         else if ( state == InClassAttribute)
-                            m_selectors.append(new AttributeSelector("[class~="+token.mid(1)+']'));
+                            m_selectors.append(new AttributeSelector(PkString("[class~=") + token.mid(1) + PkString("]")));
                         else if (state == InPseudoClass) {
                             m_selectors.append(new PseudoClassSelector(token));
                         }
                         // reset state and token string
-                        state = ch.isNull() ? Finish : Start;
-                        token.clear();
+                        state = ch == u'\0' ? Finish : Start;
+                        token = PkString();
                         continue;
                     } else {
                         // append character to current token
-                        if (!ch.isNull())
-                            token += ch;
+                        if (ch != u'\0')
+                            token += pkCharString(ch);
                     }
                     break;
                 default:
@@ -359,15 +436,15 @@ private:
         }
     }
 
-    QList<CssSelectorBase*> m_selectors;
-    QString m_token;
+    PkList<CssSelectorBase*> m_selectors;
+    PkString m_token;
 };
 
 /// Complex selector, i.e. a combination of simple selectors
 class CssComplexSelector : public CssSelectorBase
 {
 public:
-    CssComplexSelector(const QList<CssToken> &tokens)
+    CssComplexSelector(const PkList<CssToken> &tokens)
     {
         compile(tokens);
     }
@@ -375,29 +452,29 @@ public:
     {
         qDeleteAll(m_selectors);
     }
-    QString toString() const override
+    PkString toString() const override
     {
-        QString str;
+        PkString str;
         int selectorCount = m_selectors.count();
         if (selectorCount) {
             for(int i = 0; i < selectorCount-1; ++i) {
                 str += m_selectors[i]->toString() +
-                       m_combinators[i];
+                       pkCharString(m_combinators[i]);
             }
             str += m_selectors.last()->toString();
         }
         return str;
     }
 
-    bool match(const QDomElement &e) override
+    bool match(const PkXmlElement &e) override
     {
         int selectorCount = m_selectors.count();
-        int combinatorCount = m_combinators.length();
+        int combinatorCount = m_combinators.size();
         // check count of selectors and combinators
         if (selectorCount-combinatorCount != 1)
             return false;
 
-        QDomElement currentElement = e;
+        PkXmlElement currentElement = e;
 
         // match in reverse order
         for(int i = 0; i < selectorCount; ++i) {
@@ -410,11 +487,11 @@ public:
                 return true;
 
             CssSelectorBase * next = m_selectors[selectorCount-1-i-1];
-            QChar combinator = m_combinators[combinatorCount-1-i];
-            if (combinator == ' ') {
+            char16_t combinator = m_combinators[combinatorCount-1-i];
+            if (combinator == u' ') {
                 bool matched = false;
                 // descendant combinator
-                QDomNode parent = currentElement.parentNode();
+                PkXmlNode parent = currentElement.parentNode();
                 while(!parent.isNull()) {
                     currentElement = parent.toElement();
                     if (next->match(currentElement)) {
@@ -425,24 +502,24 @@ public:
                 }
                 if(!matched)
                     return false;
-            } else if (combinator == '>') {
+            } else if (combinator == u'>') {
                 // child selector
-                QDomNode parent = currentElement.parentNode();
+                PkXmlNode parent = currentElement.parentNode();
                 if (parent.isNull())
                     return false;
-                QDomElement parentElement = parent.toElement();
+                PkXmlElement parentElement = parent.toElement();
                 if (next->match(parentElement)) {
                     currentElement = parentElement;
                 } else {
                     return false;
                 }
-            } else if (combinator == '+') {
-                QDomNode neighbor = currentElement.previousSibling();
+            } else if (combinator == u'+') {
+                PkXmlNode neighbor = currentElement.previousSibling();
                 while(!neighbor.isNull() && !neighbor.isElement())
                     neighbor = neighbor.previousSibling();
                 if (neighbor.isNull() || !neighbor.isElement())
                     return false;
-                QDomElement neighborElement = neighbor.toElement();
+                PkXmlElement neighborElement = neighbor.toElement();
                 if (next->match(neighborElement)) {
                     currentElement = neighborElement;
                 } else {
@@ -464,7 +541,7 @@ public:
     }
 
 private:
-    void compile(const QList<CssToken> &tokens)
+    void compile(const PkList<CssToken> &tokens)
     {
         Q_FOREACH (const CssToken &token, tokens) {
             if(token.first == SelectorToken) {
@@ -475,14 +552,14 @@ private:
         }
     }
 
-    QString m_combinators;
-    QList<CssSelectorBase*> m_selectors;
+    PkString m_combinators;
+    PkList<CssSelectorBase*> m_selectors;
 };
 
 /// A group of selectors (comma separated in css style sheet)
-typedef QList<CssSelectorBase*> SelectorGroup;
+typedef PkList<CssSelectorBase*> SelectorGroup;
 /// A css rule consisting of group of selectors corresponding to a style
-typedef QPair<SelectorGroup, QString> CssRule;
+typedef std::pair<SelectorGroup, PkString> CssRule;
 
 class SvgCssHelper::Private
 {
@@ -494,23 +571,23 @@ public:
         }
     }
 
-    SelectorGroup parsePattern(const QString &pattern)
+    SelectorGroup parsePattern(const PkString &pattern)
     {
         SelectorGroup group;
 
-        QStringList selectors = pattern.split(',', Qt::SkipEmptyParts);
+        PkStringList selectors = pkSplitSkipEmpty(pattern, u',');
         for (int i = 0; i < selectors.count(); ++i ) {
-            CssSelectorBase * selector = compileSelector(selectors[i].simplified());
+            CssSelectorBase * selector = compileSelector(pkSimplified(selectors[i]));
             if (selector)
                 group.append(selector);
         }
         return group;
     }
 
-    QList<CssToken> tokenize(const QString &selector)
+    PkList<CssToken> tokenize(const PkString &selector)
     {
         // add terminator to string
-        QString expr = selector + QChar();
+        PkString expr = selector + PkString::PkFromUtf8("\0", 1);
         enum {
             Finish,
             Bad,
@@ -518,13 +595,13 @@ public:
             InSelector
         } state;
 
-        QChar combinator;
+        char16_t combinator = u'\0';
         int selectorStart = 0;
 
-        QList<CssToken> tokenList;
+        PkList<CssToken> tokenList;
 
-        QChar ch = expr[0];
-        if (ch.isSpace() || ch == '>' || ch == '+') {
+        char16_t ch = expr[0];
+        if (pkIsSpace(ch) || ch == u'>' || ch == u'+') {
             debugFlake << "selector starting with combinator is not allowed:" << selector;
             return tokenList;
         } else {
@@ -534,36 +611,36 @@ public:
         int i = 1;
 
         // split into simple selectors and combinators
-        while((state != Finish) && (state != Bad) && (i < expr.length())) {
-            QChar ch = expr[i];
+        while((state != Finish) && (state != Bad) && (i < expr.size())) {
+            char16_t ch = expr[i];
             switch(state) {
                 case InCombinator:
                     // consume as long as there a combinator characters
-                    if( ch == '>' || ch == '+') {
-                        if( ! combinator.isSpace() ) {
+                    if( ch == u'>' || ch == u'+') {
+                        if( ! pkIsSpace(combinator) ) {
                             // two non whitespace combinators in sequence are not allowed
                             state = Bad;
                         } else {
                             // switch combinator
                             combinator = ch;
                         }
-                    } else if (!ch.isSpace()) {
-                        tokenList.append(CssToken(CombinatorToken, combinator));
+                    } else if (!pkIsSpace(ch)) {
+                        tokenList.append(CssToken(CombinatorToken, pkCharString(combinator)));
                         state = InSelector;
                         selectorStart = i;
-                        combinator = QChar();
+                        combinator = u'\0';
                     }
                     break;
                 case InSelector:
                     // consume as long as there a non combinator characters
-                    if (ch.isSpace() || ch == '>' || ch == '+') {
+                    if (pkIsSpace(ch) || ch == u'>' || ch == u'+') {
                         state = InCombinator;
                         combinator = ch;
-                    } else if (ch.isNull()) {
+                    } else if (ch == u'\0') {
                         state = Finish;
                     }
                     if (state != InSelector) {
-                        QString simpleSelector = selector.mid(selectorStart, i-selectorStart);
+                        PkString simpleSelector = selector.mid(selectorStart, i-selectorStart);
                         tokenList.append(CssToken(SelectorToken, simpleSelector));
                     }
                     break;
@@ -576,9 +653,9 @@ public:
         return tokenList;
     }
 
-    CssSelectorBase * compileSelector(const QString &selector)
+    CssSelectorBase * compileSelector(const PkString &selector)
     {
-        QList<CssToken> tokenList = tokenize(selector);
+        PkList<CssToken> tokenList = tokenize(selector);
         if (tokenList.isEmpty())
             return 0;
 
@@ -592,8 +669,8 @@ public:
         return 0;
     }
 
-    QMap<QString, QString> cssStyles;
-    QList<CssRule> cssRules;
+    PkMap<PkString, PkString> cssStyles;
+    PkList<CssRule> cssRules;
 };
 
 SvgCssHelper::SvgCssHelper()
@@ -606,18 +683,18 @@ SvgCssHelper::~SvgCssHelper()
     delete d;
 }
 
-void SvgCssHelper::parseStylesheet(const QDomElement &e)
+void SvgCssHelper::parseStylesheet(const PkXmlElement &e)
 {
-    QString data;
+    PkString data;
 
     if (e.hasChildNodes()) {
-        QDomNode c = e.firstChild();
+        PkXmlNode c = e.firstChild();
         if (c.isCDATASection()) {
-            QDomCDATASection cdata = c.toCDATASection();
-            data = cdata.data().simplified();
+            PkXmlCDATASection cdata = c.toCDATASection();
+            data = pkSimplified(cdata.data());
         } else if (c.isText()) {
-            QDomText text = c.toText();
-            data = text.data().simplified();
+            PkXmlText text = c.toText();
+            data = pkSimplified(text.data());
         }
     }
     if (data.isEmpty())
@@ -627,23 +704,23 @@ void SvgCssHelper::parseStylesheet(const QDomElement &e)
     // NOTE: that must not be greedy as per definition of css-comments,
     //       the first closing '*/' sequence closes the entire comment
     //       block
-    QRegularExpression commentExp("\\/\\*.*?\\*\\/");
-    data.remove(commentExp);
+    std::regex commentExp("\\/\\*.*?\\*\\/");
+    data = PkString(std::regex_replace(data.PkToUtf8(), commentExp, "").c_str());
 
-    QStringList defs = data.split('}', Qt::SkipEmptyParts);
+    PkStringList defs = pkSplitSkipEmpty(data, u'}');
     for (int i = 0; i < defs.count(); ++i) {
-        QStringList def = defs[i].split('{');
-        if( def.count() != 2 )
+        std::vector<PkString> def = defs[i].split(u'{');
+        if (def.size() != 2)
             continue;
-        QString pattern = def[0].simplified();
+        PkString pattern = pkSimplified(def[0]);
         if (pattern.isEmpty())
             break;
-        QString style = def[1].simplified();
+        PkString style = pkSimplified(def[1]);
         if (style.isEmpty())
             break;
-        QStringList selectors = pattern.split(',', Qt::SkipEmptyParts);
+        PkStringList selectors = pkSplitSkipEmpty(pattern, u',');
         for (int i = 0; i < selectors.count(); ++i ) {
-            QString selector = selectors[i].simplified();
+            PkString selector = pkSimplified(selectors[i]);
             d->cssStyles[selector] = style;
         }
         SelectorGroup group = d->parsePattern(pattern);
@@ -651,9 +728,9 @@ void SvgCssHelper::parseStylesheet(const QDomElement &e)
     }
 }
 
-QStringList SvgCssHelper::matchStyles(const QDomElement &element) const
+PkStringList SvgCssHelper::matchStyles(const PkXmlElement &element) const
 {
-    QMap<int, QString> prioritizedRules;
+    PkMap<int, PkString> prioritizedRules;
     // match rules to element
     Q_FOREACH (const CssRule &rule, d->cssRules) {
         Q_FOREACH (CssSelectorBase *s, rule.first) {
@@ -664,13 +741,13 @@ QStringList SvgCssHelper::matchStyles(const QDomElement &element) const
     }
 
     // css style attribute has the priority of 100
-    QString styleAttribute = element.attribute("style").simplified();
+    PkString styleAttribute = pkSimplified(element.attribute("style"));
     if (!styleAttribute.isEmpty())
         prioritizedRules[100] = styleAttribute;
 
-    QStringList cssStyles;
+    PkStringList cssStyles;
     // add matching styles in correct order to style list
-    QMapIterator<int, QString> it(prioritizedRules);
+    PkMapIterator<int, PkString> it(prioritizedRules);
     while (it.hasNext()) {
         it.next();
         cssStyles.append(it.value());

@@ -4,11 +4,15 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "SvgLoadingContext.h"
 
-#include <QStack>
-#include <QFileInfo>
-#include <QDir>
+#include <filesystem>
+#include <cstdint>
+#include <vector>
+#include <pk/container/PkStack.h>
+#include <PkAuxTypes.h>
 
 #include <KoColorSpaceRegistry.h>
 #include <KoColorSpaceEngine.h>
@@ -23,6 +27,59 @@
 #include "SvgStyleParser.h"
 #include "kis_debug.h"
 
+
+// PkByteArray 缺 fromHex()/toHex()；color-profile 的唯一 id 往返需要
+// 这两个语义，本地补两个忠实复刻（原 fromHex 跳过空白、遇非法字符停止）。
+namespace {
+
+PkByteArray pkFromHex(const PkString &hexEncoded)
+{
+    std::vector<uint8_t> bytes;
+    bytes.reserve(static_cast<size_t>(hexEncoded.size()) / 2 + 1);
+    bool half = false;
+    uint8_t current = 0;
+    for (int i = 0; i < hexEncoded.size(); ++i) {
+        const char16_t c = hexEncoded.at(i);
+        int val = -1;
+        if (c >= u'0' && c <= u'9') {
+            val = c - u'0';
+        } else if (c >= u'a' && c <= u'f') {
+            val = c - u'a' + 10;
+        } else if (c >= u'A' && c <= u'F') {
+            val = c - u'A' + 10;
+        }
+        if (val >= 0) {
+            if (half) {
+                current = static_cast<uint8_t>(current | val);
+                bytes.push_back(current);
+                current = 0;
+                half = false;
+            } else {
+                current = static_cast<uint8_t>(val << 4);
+                half = true;
+            }
+        } else if (c != u' ' && c != u'\t' && c != u'\n' && c != u'\r' && c != u'\v' && c != u'\f') {
+            break;
+        }
+    }
+    return PkByteArray(bytes);
+}
+
+PkString pkToHex(const PkByteArray &ba)
+{
+    static const char digits[] = "0123456789abcdef";
+    std::string hex;
+    hex.reserve(static_cast<size_t>(ba.size()) * 2);
+    const char *data = ba.constData();
+    for (int i = 0; i < ba.size(); ++i) {
+        const unsigned char c = static_cast<unsigned char>(data[i]);
+        hex.push_back(digits[c >> 4]);
+        hex.push_back(digits[c & 0xF]);
+    }
+    return PkString(hex.c_str());
+}
+
+}
 
 class Q_DECL_HIDDEN SvgLoadingContext::Private
 {
@@ -45,13 +102,13 @@ public:
         gcStack.clear();
         delete styleParser;
     }
-    QStack<SvgGraphicsContext*> gcStack;
-    QString initialXmlBaseDir;
+    PkStack<SvgGraphicsContext*> gcStack;
+    PkString initialXmlBaseDir;
     int zIndex;
     KoDocumentResourceManager *documentResourceManager;
-    QHash<QString, KoShape*> loadedShapes;
-    QHash<QString, QDomElement> definitions;
-    QHash<QString, const KoColorProfile*> profiles;
+    PkHash<PkString, KoShape*> loadedShapes;
+    PkHash<PkString, PkXmlElement> definitions;
+    PkHash<PkString, const KoColorProfile*> profiles;
     SvgCssHelper cssStyles;
     SvgStyleParser *styleParser;
     FileFetcherFunc fileFetcher;
@@ -79,7 +136,7 @@ SvgGraphicsContext *SvgLoadingContext::currentGC() const
 
 #include "parsers/SvgTransformParser.h"
 
-SvgGraphicsContext *SvgLoadingContext::pushGraphicsContext(const QDomElement &element, bool inherit)
+SvgGraphicsContext *SvgLoadingContext::pushGraphicsContext(const PkXmlElement &element, bool inherit)
 {
     SvgGraphicsContext *gc;
     // copy data from current context
@@ -91,18 +148,18 @@ SvgGraphicsContext *SvgLoadingContext::pushGraphicsContext(const QDomElement &el
 
     gc->textProperties = KoSvgTextProperties();
 
-    gc->filterId.clear(); // filters are not inherited
-    gc->clipPathId.clear(); // clip paths are not inherited
-    gc->clipMaskId.clear(); // clip masks are not inherited
+    gc->filterId = PkString(); // filters are not inherited
+    gc->clipPathId = PkString(); // clip paths are not inherited
+    gc->clipMaskId = PkString(); // clip masks are not inherited
     gc->display = true; // display is not inherited
     gc->opacity = 1.0; // opacity is not inherited
-    gc->paintOrder = QString(); //paint order is inherited by default
+    gc->paintOrder = PkString(); //paint order is inherited by default
 
     if (!element.isNull()) {
         if (element.hasAttribute("transform")) {
             SvgTransformParser p(element.attribute("transform"));
             if (p.isValid()) {
-                QTransform mat = p.transform();
+                PkTransform mat = p.transform();
                 gc->matrix = mat * gc->matrix;
             }
         }
@@ -122,63 +179,75 @@ void SvgLoadingContext::popGraphicsContext()
     delete(d->gcStack.pop());
 }
 
-void SvgLoadingContext::setInitialXmlBaseDir(const QString &baseDir)
+void SvgLoadingContext::setInitialXmlBaseDir(const PkString &baseDir)
 {
     d->initialXmlBaseDir = baseDir;
 }
 
-QString SvgLoadingContext::xmlBaseDir() const
+PkString SvgLoadingContext::xmlBaseDir() const
 {
     SvgGraphicsContext *gc = currentGC();
     return (gc && !gc->xmlBaseDir.isEmpty()) ? gc->xmlBaseDir : d->initialXmlBaseDir;
 }
 
-QString SvgLoadingContext::absoluteFilePath(const QString &href)
+PkString SvgLoadingContext::absoluteFilePath(const PkString &href)
 {
-    QFileInfo info(href);
-    if (! info.isRelative())
+    std::filesystem::path info(href.PkToUtf8());
+    if (! info.is_relative())
         return href;
 
     SvgGraphicsContext *gc = currentGC();
     if (!gc)
         return d->initialXmlBaseDir;
 
-    QString baseDir = d->initialXmlBaseDir;
+    PkString baseDir = d->initialXmlBaseDir;
     if (! gc->xmlBaseDir.isEmpty())
         baseDir = absoluteFilePath(gc->xmlBaseDir);
 
-    QFileInfo pathInfo(QFileInfo(baseDir).filePath());
+    std::filesystem::path pathInfo(baseDir.PkToUtf8());
+    if (pathInfo.is_relative())
+        pathInfo = std::filesystem::absolute(pathInfo);
 
-    QString relFile = href;
-    while (relFile.startsWith(QLatin1String("../"))) {
-        relFile.remove(0, 3);
-        pathInfo.setFile(pathInfo.dir(), QString());
+    PkString relFile = href;
+    while (relFile.startsWith(PkString("../"))) {
+        relFile = relFile.mid(3);
+        // 原循环 `pathInfo.setFile(pathInfo.dir(), "")` 是恒等操作：
+        // 构造出的 filePath 仍为 p，不改变 pathInfo。忠实保留该结构。
     }
 
-    QString absFile = pathInfo.absolutePath() + '/' + relFile;
+    PkString absFile = PkString((pathInfo.parent_path() / std::filesystem::path(relFile.PkToUtf8())).string().c_str());
 
     return absFile;
 }
 
-QString SvgLoadingContext::relativeFilePath(const QString &href)
+PkString SvgLoadingContext::relativeFilePath(const PkString &href)
 {
     const SvgGraphicsContext *gc = currentGC();
     if (!gc) return href;
 
-    QString result = href;
+    PkString result = href;
 
-    QFileInfo info(href);
-    if (info.isRelative())
+    std::filesystem::path info(href.PkToUtf8());
+    if (info.is_relative())
         return href;
 
-
+    std::filesystem::path base;
     if (!gc->xmlBaseDir.isEmpty()) {
-        result = QDir(gc->xmlBaseDir).relativeFilePath(href);
+        base = std::filesystem::path(gc->xmlBaseDir.PkToUtf8());
     } else if (!d->initialXmlBaseDir.isEmpty()) {
-        result = QDir(d->initialXmlBaseDir).relativeFilePath(href);
+        base = std::filesystem::path(d->initialXmlBaseDir.PkToUtf8());
     }
+    if (base.is_relative())
+        base = std::filesystem::absolute(base);
 
-    return QDir::cleanPath(result);
+    std::filesystem::path rel = info.lexically_relative(base);
+    if (!rel.empty()) {
+        result = PkString(rel.lexically_normal().string().c_str());
+    }
+    // lexically_relative 返回空（根不同）时保持 href 原样 —— 对齐
+    // 原 relativeFilePath 在无法计算相对路径时返回 filePath 的行为。
+
+    return result;
 }
 
 int SvgLoadingContext::nextZIndex()
@@ -186,41 +255,41 @@ int SvgLoadingContext::nextZIndex()
     return d->zIndex++;
 }
 
-void SvgLoadingContext::registerShape(const QString &id, KoShape *shape)
+void SvgLoadingContext::registerShape(const PkString &id, KoShape *shape)
 {
     if (!id.isEmpty())
         d->loadedShapes.insert(id, shape);
 }
 
-KoShape* SvgLoadingContext::shapeById(const QString &id)
+KoShape* SvgLoadingContext::shapeById(const PkString &id)
 {
     return d->loadedShapes.value(id);
 }
 
-void SvgLoadingContext::addDefinition(const QDomElement &element)
+void SvgLoadingContext::addDefinition(const PkXmlElement &element)
 {
-    const QString id = element.attribute("id");
+    const PkString id = element.attribute("id");
     if (id.isEmpty() || d->definitions.contains(id))
         return;
     d->definitions.insert(id, element);
 }
 
-QDomElement SvgLoadingContext::definition(const QString &id) const
+PkXmlElement SvgLoadingContext::definition(const PkString &id) const
 {
     return d->definitions.value(id);
 }
 
-bool SvgLoadingContext::hasDefinition(const QString &id) const
+bool SvgLoadingContext::hasDefinition(const PkString &id) const
 {
     return d->definitions.contains(id);
 }
 
-void SvgLoadingContext::addStyleSheet(const QDomElement &styleSheet)
+void SvgLoadingContext::addStyleSheet(const PkXmlElement &styleSheet)
 {
     d->cssStyles.parseStylesheet(styleSheet);
 }
 
-QStringList SvgLoadingContext::matchingCssStyles(const QDomElement &element) const
+PkStringList SvgLoadingContext::matchingCssStyles(const PkXmlElement &element) const
 {
     return d->cssStyles.matchStyles(element);
 }
@@ -230,11 +299,11 @@ SvgStyleParser &SvgLoadingContext::styleParser()
     return *d->styleParser;
 }
 
-void SvgLoadingContext::parseProfile(const QDomElement &element)
+void SvgLoadingContext::parseProfile(const PkXmlElement &element)
 {
-    const QString href = element.attribute("xlink:href");
-    const QByteArray uniqueId = QByteArray::fromHex(element.attribute("local").toLatin1());
-    const QString name = element.attribute("name");
+    const PkString href = element.attribute("xlink:href");
+    const PkByteArray uniqueId = pkFromHex(element.attribute("local"));
+    const PkString name = element.attribute("name");
 
     if (element.attribute("rendering-intent", "auto") != "auto") {
         // WARNING: Krita does *not* treat rendering intents attributes of the profile!
@@ -253,15 +322,15 @@ void SvgLoadingContext::parseProfile(const QDomElement &element)
         KoColorSpaceEngine *engine = KoColorSpaceEngineRegistry::instance()->get("icc");
         KIS_ASSERT(engine);
         if (engine) {
-            const QString fileName = relativeFilePath(href);
-            const QByteArray profileData = d->fileFetcher(fileName);
+            const PkString fileName = relativeFilePath(href);
+            const PkByteArray profileData = d->fileFetcher(fileName);
             if (!profileData.isEmpty()) {
                 profile = engine->addProfile(profileData);
 
                 if (profile->uniqueId() != uniqueId) {
                     warnFlake << "WARNING: ProfileID of the attached profile doesn't match the one mentioned in SVG element";
-                    warnFlake << "       " << ppVar(profile->uniqueId().toHex());
-                    warnFlake << "       " << ppVar(uniqueId.toHex());
+                    warnFlake << "       " << ppVar(pkToHex(profile->uniqueId()));
+                    warnFlake << "       " << ppVar(pkToHex(uniqueId));
                 }
             } else {
                 warnFlake << "WARNING: couldn't fetch the ICCprofile file!" << fileName;
@@ -276,7 +345,7 @@ void SvgLoadingContext::parseProfile(const QDomElement &element)
     }
 }
 
-QHash<QString, const KoColorProfile *> SvgLoadingContext::profiles()
+PkHash<PkString, const KoColorProfile *> SvgLoadingContext::profiles()
 {
     return d->profiles;
 }
@@ -305,7 +374,7 @@ void SvgLoadingContext::setFileFetcher(SvgLoadingContext::FileFetcherFunc func)
     d->fileFetcher = func;
 }
 
-QByteArray SvgLoadingContext::fetchExternalFile(const QString &url)
+PkByteArray SvgLoadingContext::fetchExternalFile(const PkString &url)
 {
-    return d->fileFetcher ? d->fileFetcher(url) : QByteArray();
+    return d->fileFetcher ? d->fileFetcher(url) : PkByteArray();
 }

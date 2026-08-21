@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "SvgShape.h"
 
 
@@ -16,7 +18,7 @@ bool SvgShape::saveSvg(SvgSavingContext &/*context*/)
     return false;
 }
 
-bool SvgShape::loadSvg(const QDomElement &/*element*/, SvgLoadingContext &/*context*/)
+bool SvgShape::loadSvg(const PkXmlElement &/*element*/, SvgLoadingContext &/*context*/)
 {
     return false;
 }

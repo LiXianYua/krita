@@ -7,9 +7,7 @@
 #ifndef SVGCSSHELPER_H
 #define SVGCSSHELPER_H
 
-#include <QStringList>
-
-#include <QDomDocument>
+#include <PkXmlCompat.h>
 
 class SvgCssHelper
 {
@@ -18,14 +16,14 @@ public:
     ~SvgCssHelper();
 
     /// Parses css style sheet in given xml element
-    void parseStylesheet(const QDomElement &);
+    void parseStylesheet(const PkXmlElement &);
 
     /**
      * Matches css styles to given xml element and returns them
      * @param element the element to match styles for
      * @return list of matching css styles sorted by priority
      */
-    QStringList matchStyles(const QDomElement &element) const;
+    PkStringList matchStyles(const PkXmlElement &element) const;
 
 private:
     class Private;
