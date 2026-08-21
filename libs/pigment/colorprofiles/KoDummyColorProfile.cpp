@@ -78,9 +78,9 @@ bool KoDummyColorProfile::isLinear() const
 {
     return true;
 }
-QVector<double> KoDummyColorProfile::getColorantsXYZ() const
+PkVector<double> KoDummyColorProfile::getColorantsXYZ() const
 {
-    QVector<double> sRGBStandardAdaptedColorants = {
+    PkVector<double> sRGBStandardAdaptedColorants = {
         0.43603516, 0.22248840, 0.01391602,
         0.38511658, 0.71690369, 0.09706116,
         0.14305115, 0.06060791, 0.71392822
@@ -88,9 +88,9 @@ QVector<double> KoDummyColorProfile::getColorantsXYZ() const
     return sRGBStandardAdaptedColorants;
 }
 
-QVector<double> KoDummyColorProfile::getColorantsxyY() const
+PkVector<double> KoDummyColorProfile::getColorantsxyY() const
 {
-    QVector<double> result(9);
+    PkVector<double> result(9);
     auto srgb = getColorantsXYZ();
     result[0] = srgb[0] / (srgb[0] + srgb[1] + srgb[2]);
     result[1] = srgb[1] / (srgb[0] + srgb[1] + srgb[2]);
@@ -107,24 +107,24 @@ QVector<double> KoDummyColorProfile::getColorantsxyY() const
     return result;
 }
 
-QVector<double> KoDummyColorProfile::getWhitePointXYZ() const
+PkVector<double> KoDummyColorProfile::getWhitePointXYZ() const
 {
-    QVector<double> d50Dummy;
+    PkVector<double> d50Dummy;
     d50Dummy<<0.9642<<1.0000<<0.8249;
     return d50Dummy;
 }
 
-QVector<double> KoDummyColorProfile::getWhitePointxyY() const
+PkVector<double> KoDummyColorProfile::getWhitePointxyY() const
 {
-    QVector<double> d50Dummy;
+    PkVector<double> d50Dummy;
     d50Dummy<<0.34773<<0.35952<<1.0;
     return d50Dummy;
 }
 
-QVector <double> KoDummyColorProfile::getEstimatedTRC() const
+PkVector <double> KoDummyColorProfile::getEstimatedTRC() const
 
 {
-    QVector<double> Dummy(3);
+    PkVector<double> Dummy(3);
     Dummy.fill(2.2);
     return Dummy;
 }
@@ -134,18 +134,18 @@ bool KoDummyColorProfile::compareTRC(TransferCharacteristics, float) const
     return false;
 }
 
-void KoDummyColorProfile::linearizeFloatValue(QVector <double> & ) const
+void KoDummyColorProfile::linearizeFloatValue(PkVector <double> & ) const
 {
 }
 
-void KoDummyColorProfile::delinearizeFloatValue(QVector <double> & ) const
+void KoDummyColorProfile::delinearizeFloatValue(PkVector <double> & ) const
 {
 }
-void KoDummyColorProfile::linearizeFloatValueFast(QVector <double> & ) const
+void KoDummyColorProfile::linearizeFloatValueFast(PkVector <double> & ) const
 {
 }
 
-void KoDummyColorProfile::delinearizeFloatValueFast(QVector <double> & ) const
+void KoDummyColorProfile::delinearizeFloatValueFast(PkVector <double> & ) const
 {
 }
 bool KoDummyColorProfile::operator==(const KoColorProfile& rhs) const
@@ -153,8 +153,8 @@ bool KoDummyColorProfile::operator==(const KoColorProfile& rhs) const
     return dynamic_cast<const KoDummyColorProfile*>(&rhs);
 }
 
-QByteArray KoDummyColorProfile::uniqueId() const
+PkByteArray KoDummyColorProfile::uniqueId() const
 {
-    return QByteArray();
+    return PkByteArray();
 }
 

@@ -29,18 +29,18 @@ public:
     bool hasColorants() const override;
     bool hasTRC() const override;
     bool isLinear() const override;
-    QVector <double> getColorantsXYZ() const override;
-    QVector <double> getColorantsxyY() const override;
-    QVector <double> getWhitePointXYZ() const override;
-    QVector <double> getWhitePointxyY() const override;
-    QVector <double> getEstimatedTRC() const override;
+    PkVector <double> getColorantsXYZ() const override;
+    PkVector <double> getColorantsxyY() const override;
+    PkVector <double> getWhitePointXYZ() const override;
+    PkVector <double> getWhitePointxyY() const override;
+    PkVector <double> getEstimatedTRC() const override;
     bool compareTRC(TransferCharacteristics characteristics, float error) const override;
-    void linearizeFloatValue(QVector <double> & Value) const override;
-    void delinearizeFloatValue(QVector <double> & Value) const override;
-    void linearizeFloatValueFast(QVector <double> & Value) const override;
-    void delinearizeFloatValueFast(QVector <double> & Value) const override;
+    void linearizeFloatValue(PkVector <double> & Value) const override;
+    void delinearizeFloatValue(PkVector <double> & Value) const override;
+    void linearizeFloatValueFast(PkVector <double> & Value) const override;
+    void delinearizeFloatValueFast(PkVector <double> & Value) const override;
     bool operator==(const KoColorProfile&) const override;
-    QByteArray uniqueId() const override;
+    PkByteArray uniqueId() const override;
 };
 
 #endif
