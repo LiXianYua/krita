@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PkStream.h"
+#include <kritastore_export.h>
 
 #include <vector>
 
@@ -17,7 +18,7 @@
 //
 // 对外暴露只读 data()/size()：KoStore 要把内存缓冲构造为 PkByteArray——
 // PkByteArray 归 R-02 未交付，本类不改它，只把 data/size 接口留出来。
-class PkMemoryStream : public PkStream
+class KRITASTORE_EXPORT PkMemoryStream : public PkStream
 {
 public:
     PkMemoryStream();

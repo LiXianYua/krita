@@ -2,6 +2,7 @@
 
 #include "PkStream.h"
 #include "PkString.h"
+#include <kritastore_export.h>
 
 // PkFileStream —— PkStream 的文件适配器，对应 Qt 的文件设备类。
 //
@@ -19,7 +20,7 @@
 //
 // 头文件必须 #include "PkString.h" 拿完整定义：m_filePath 按值存储，不能只前置
 // 声明 PkString。
-class PkFileStream : public PkStream
+class KRITASTORE_EXPORT PkFileStream : public PkStream
 {
 public:
     PkFileStream();
