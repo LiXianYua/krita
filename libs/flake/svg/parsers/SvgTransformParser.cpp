@@ -4,9 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "SvgTransformParser.h"
+#include <PkXmlCompat.h>
 
-#include <QtGlobal>
+#include "SvgTransformParser.h"
 
 //#include "kis_debug.h"
 
@@ -64,17 +64,17 @@ struct transform_unit
     transform_unit() {}
 
     transform_unit(const matrix &m)
-    : transform(QTransform(m.a, m.b, m.c, m.d, m.e, m.f))
+    : transform(PkTransform(m.a, m.b, m.c, m.d, m.e, m.f))
     {
     }
 
     transform_unit(const translate &t)
-    : transform(QTransform::fromTranslate(t.tx, t.ty))
+    : transform(PkTransform::fromTranslate(t.tx, t.ty))
     {
     }
 
     transform_unit(const scale &sc)
-    : transform(QTransform::fromScale(sc.sx, sc.syPresent ? sc.sy : sc.sx))
+    : transform(PkTransform::fromScale(sc.sx, sc.syPresent ? sc.sy : sc.sx))
     {
     }
 
@@ -82,9 +82,9 @@ struct transform_unit
         transform.rotate(r.angle);
         if (r.cx != 0.0 || r.cy != 0.0) {
             transform =
-                QTransform::fromTranslate(-r.cx, -r.cy) *
+                PkTransform::fromTranslate(-r.cx, -r.cy) *
                 transform *
-                QTransform::fromTranslate(r.cx, r.cy);
+                PkTransform::fromTranslate(r.cx, r.cy);
         }
     }
 
@@ -100,7 +100,7 @@ struct transform_unit
         transform.shear(0, value);
     }
 
-    QTransform transform;
+    PkTransform transform;
 };
 }
 
@@ -230,7 +230,7 @@ namespace Private
 }
 
 
-SvgTransformParser::SvgTransformParser(const QString &_str)
+SvgTransformParser::SvgTransformParser(const PkString &_str)
     : m_isValid(false)
 {
     using boost::spirit::ascii::space;
@@ -238,7 +238,7 @@ SvgTransformParser::SvgTransformParser(const QString &_str)
     typedef Private::transform_unit_parser<iterator_type> transform_unit_parser;
 
     transform_unit_parser g; // Our grammar
-    const std::string str = _str.toStdString();
+    const std::string str = _str.PkToUtf8();
 
     std::vector<Private::transform_unit> transforms;
     iterator_type iter = str.begin();
@@ -258,7 +258,7 @@ bool SvgTransformParser::isValid() const
     return m_isValid;
 }
 
-QTransform SvgTransformParser::transform() const
+PkTransform SvgTransformParser::transform() const
 {
     return m_transform;
 }

@@ -7,8 +7,9 @@
 #ifndef SVGCLIPPATHHELPER_H
 #define SVGCLIPPATHHELPER_H
 
+#include <PkXmlCompat.h>
+
 #include <KoFlakeCoordinateSystem.h>
-#include <QList>
 
 class KoShape;
 
@@ -23,14 +24,14 @@ public:
     /// Returns the clip path units type
     KoFlake::CoordinateSystem clipPathUnits() const;
 
-    QList<KoShape *> shapes() const;
-    void setShapes(const QList<KoShape *> &shapes);
+    PkList<KoShape *> shapes() const;
+    void setShapes(const PkList<KoShape *> &shapes);
 
     bool isEmpty() const;
 
 private:
     KoFlake::CoordinateSystem m_clipPathUnits;
-    QList<KoShape*> m_shapes;
+    PkList<KoShape*> m_shapes;
 };
 
 #endif // SVGCLIPPATHHELPER_H

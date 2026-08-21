@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "SvgClipPathHelper.h"
 
 SvgClipPathHelper::SvgClipPathHelper()
@@ -25,12 +27,12 @@ KoFlake::CoordinateSystem SvgClipPathHelper::clipPathUnits() const
     return m_clipPathUnits;
 }
 
-QList<KoShape *> SvgClipPathHelper::shapes() const
+PkList<KoShape *> SvgClipPathHelper::shapes() const
 {
     return m_shapes;
 }
 
-void SvgClipPathHelper::setShapes(const QList<KoShape *> &shapes)
+void SvgClipPathHelper::setShapes(const PkList<KoShape *> &shapes)
 {
     m_shapes = shapes;
 }

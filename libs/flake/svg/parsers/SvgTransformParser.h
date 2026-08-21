@@ -7,20 +7,21 @@
 #ifndef SVGTRANSFORMPARSER_H
 #define SVGTRANSFORMPARSER_H
 
-#include <QTransform>
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 
 class KRITAFLAKE_EXPORT SvgTransformParser
 {
 public:
-    SvgTransformParser(const QString &str);
+    SvgTransformParser(const PkString &str);
     bool isValid() const;
-    QTransform transform() const;
+    PkTransform transform() const;
 
 private:
     bool m_isValid;
-    QTransform m_transform;
+    PkTransform m_transform;
 };
 
 #endif // SVGTRANSFORMPARSER_H

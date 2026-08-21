@@ -8,9 +8,12 @@
 #ifndef SVGGRAPHICCONTEXT_H
 #define SVGGRAPHICCONTEXT_H
 
+#include <PkXmlCompat.h>
+
+#include <pk/color/PkColor.h>
+
 #include "kritaflake_export.h"
 #include <KoShapeStroke.h>
-#include <QTransform>
 #include <text/KoSvgTextProperties.h>
 
 class KRITAFLAKE_EXPORT SvgGraphicsContext
@@ -31,44 +34,44 @@ public:
 
     StyleType     fillType  {Solid};  ///< the current fill type
     Qt::FillRule  fillRule  {Qt::WindingFill};  ///< the current fill rule
-    QColor        fillColor {QColor(Qt::black)}; ///< the current fill color. Default is black fill as per svg spec
-    QString       fillId;    ///< the current fill id (used for gradient/pattern fills)
+    PkColor        fillColor {PkColor(Qt::black)}; ///< the current fill color. Default is black fill as per svg spec
+    PkString       fillId;    ///< the current fill id (used for gradient/pattern fills)
 
     StyleType     strokeType {None};///< the current stroke type
-    QString       strokeId;  ///< the current stroke id (used for gradient strokes)
+    PkString       strokeId;  ///< the current stroke id (used for gradient strokes)
     KoShapeStrokeSP stroke;    ///< the current stroke
 
-    QString filterId;       ///< the current filter id
-    QString clipPathId;     ///< the current clip path id
-    QString clipMaskId;     ///< the current clip mask id
+    PkString filterId;       ///< the current filter id
+    PkString clipPathId;     ///< the current clip path id
+    PkString clipMaskId;     ///< the current clip mask id
     Qt::FillRule clipRule {Qt::WindingFill};  ///< the current clip rule
     qreal opacity {1.0};    ///< the shapes opacity
 
-    QTransform matrix;      ///< the current transformation matrix
-    QColor  currentColor {Qt::black};   ///< the current color
-    QString xmlBaseDir;     ///< the current base directory (used for loading external content)
+    PkTransform matrix;      ///< the current transformation matrix
+    PkColor  currentColor {Qt::black};   ///< the current color
+    PkString xmlBaseDir;     ///< the current base directory (used for loading external content)
     bool preserveWhitespace {false}; ///< preserve whitespace in element text
 
-    QRectF currentBoundingBox; ///< the current bound box used for bounding box units
+    PkRectF currentBoundingBox; ///< the current bound box used for bounding box units
     bool   forcePercentage {false}; ///< force parsing coordinates/length as percentages of currentBoundbox
-    QTransform viewboxTransform; ///< view box transformation
+    PkTransform viewboxTransform; ///< view box transformation
 
     bool display {true};           ///< controls display of shape
     bool visible {true};           ///< controls visibility of the shape (inherited)
     bool isResolutionFrame {false};
     qreal pixelsPerInch {72.0};    ///< controls the resolution of the image raster
 
-    QString markerStartId;
-    QString markerMidId;
-    QString markerEndId;
+    PkString markerStartId;
+    PkString markerMidId;
+    PkString markerEndId;
 
     bool autoFillMarkers {false};
 
     KoSvgTextProperties textProperties; ///< Stores textProperties
-    QString shapeInsideValue; ///< String of value shape-inside, will be parsed later.
-    QString shapeSubtractValue; ///< String of value shape-subtract, will be parsed later.
+    PkString shapeInsideValue; ///< String of value shape-inside, will be parsed later.
+    PkString shapeSubtractValue; ///< String of value shape-subtract, will be parsed later.
 
-    QString paintOrder; ///< String list indicating paint order;
+    PkString paintOrder; ///< String list indicating paint order;
 private:
     SvgGraphicsContext& operator=(const SvgGraphicsContext &gc) = default; ///< used by copy constructor, shouldn't be public
 };
