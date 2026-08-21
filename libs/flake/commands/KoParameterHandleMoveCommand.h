@@ -9,8 +9,10 @@
 #ifndef KOPARAMETERHANDLEMOVECOMMAND_H
 #define KOPARAMETERHANDLEMOVECOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
-#include <QPointF>
+#include <pk/geometry/PkPoint.h>
 #include "kritaflake_export.h"
 
 class KoParameterShape;
@@ -28,7 +30,7 @@ public:
      * @param keyModifiers the key modifiers used while moving.
      * @param parent the parent command if this is a compound undo command.
      */
-    KoParameterHandleMoveCommand(KoParameterShape *shape, int handleId, const QPointF &startPoint, const QPointF &endPoint, Qt::KeyboardModifiers keyModifiers, KUndo2Command *parent = 0);
+    KoParameterHandleMoveCommand(KoParameterShape *shape, int handleId, const PkPointF &startPoint, const PkPointF &endPoint, Qt::KeyboardModifiers keyModifiers, KUndo2Command *parent = 0);
     ~KoParameterHandleMoveCommand() override;
 
     /// redo the command
@@ -42,8 +44,8 @@ public:
 private:
     KoParameterShape *m_shape;
     int m_handleId;
-    QPointF m_startPoint;
-    QPointF m_endPoint;
+    PkPointF m_startPoint;
+    PkPointF m_endPoint;
     Qt::KeyboardModifiers m_keyModifiers;
 };
 

@@ -8,6 +8,8 @@
 #ifndef KOSUBPATHREMOVECOMMAND_H
 #define KOSUBPATHREMOVECOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
 #include "KoPathShape.h"
 #include "kritaflake_export.h"

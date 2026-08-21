@@ -4,13 +4,15 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoPathMergeUtils.h"
 
 #include "KoPathPoint.h"
 
-boost::optional<QPointF> KritaUtils::fetchControlPoint(KoPathPoint *pt, bool takeFirst)
+boost::optional<PkPointF> KritaUtils::fetchControlPoint(KoPathPoint *pt, bool takeFirst)
 {
-    boost::optional<QPointF> result;
+    boost::optional<PkPointF> result;
 
     if (takeFirst) {
         if (pt->activeControlPoint1()) {
@@ -40,7 +42,7 @@ void KritaUtils::makeSymmetric(KoPathPoint *pt, bool copyFromFirst)
     pt->setProperty(KoPathPoint::IsSymmetric);
 }
 
-void KritaUtils::restoreControlPoint(KoPathPoint *pt, bool restoreFirst, boost::optional<QPointF> savedPoint)
+void KritaUtils::restoreControlPoint(KoPathPoint *pt, bool restoreFirst, boost::optional<PkPointF> savedPoint)
 {
     if (restoreFirst) {
         if (savedPoint) {

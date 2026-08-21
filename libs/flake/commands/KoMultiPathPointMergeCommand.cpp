@@ -4,6 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+#include <memory>
+
 #include "KoMultiPathPointMergeCommand.h"
 #include <KoPathPointData.h>
 
@@ -30,12 +33,12 @@ struct Q_DECL_HIDDEN KoMultiPathPointMergeCommand::Private
     KoSelection *selection;
 
 
-    QScopedPointer<KoPathCombineCommand> combineCommand;
-    QScopedPointer<KUndo2Command> mergeCommand;
+    std::unique_ptr<KoPathCombineCommand> combineCommand;
+    std::unique_ptr<KUndo2Command> mergeCommand;
 };
 
 KoMultiPathPointMergeCommand::KoMultiPathPointMergeCommand(const KoPathPointData &pointData1, const KoPathPointData &pointData2, KoShapeControllerBase *controller, KoSelection *selection, KUndo2Command *parent)
-    : KUndo2Command(kundo2_i18n("Merge points"), parent),
+    : KUndo2Command(kundo2_text("Merge points"), parent),
       m_d(new Private(pointData1, pointData2, controller, selection))
 {
 }
@@ -56,7 +59,7 @@ void KoMultiPathPointMergeCommand::redo()
     if (m_d->pointData1.pathShape != m_d->pointData2.pathShape) {
         KIS_SAFE_ASSERT_RECOVER_RETURN(m_d->controller);
 
-        QList<KoPathShape*> shapes = {m_d->pointData1.pathShape, m_d->pointData2.pathShape};
+        PkList<KoPathShape*> shapes = {m_d->pointData1.pathShape, m_d->pointData2.pathShape};
         m_d->combineCommand.reset(new KoPathCombineCommand(m_d->controller, shapes));
         m_d->combineCommand->redo();
 

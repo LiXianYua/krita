@@ -5,11 +5,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoParameterToPathCommand.h"
 #include "KoPathPoint.h"
 #include "KoParameterShape.h"
-#include <klocalizedstring.h>
-
 class KoParameterToPathCommandPrivate
 {
 public:
@@ -18,8 +18,8 @@ public:
     }
     void initialize();
     void copyPath(KoPathShape *destination, KoPathShape *source);
-    QList<KoParameterShape*> shapes;
-    QList<KoPathShape*> copies;
+    PkList<KoParameterShape*> shapes;
+    PkList<KoPathShape*> copies;
 };
 
 KoParameterToPathCommand::KoParameterToPathCommand(KoParameterShape *shape, KUndo2Command *parent)
@@ -28,16 +28,16 @@ KoParameterToPathCommand::KoParameterToPathCommand(KoParameterShape *shape, KUnd
 {
     d->shapes.append(shape);
     d->initialize();
-    setText(kundo2_i18n("Convert to Path"));
+    setText(kundo2_text("Convert to Path"));
 }
 
-KoParameterToPathCommand::KoParameterToPathCommand(const QList<KoParameterShape*> &shapes, KUndo2Command *parent)
+KoParameterToPathCommand::KoParameterToPathCommand(const PkList<KoParameterShape*> &shapes, KUndo2Command *parent)
     : KUndo2Command(parent),
     d(new KoParameterToPathCommandPrivate())
 {
     d->shapes = shapes;
     d->initialize();
-    setText(kundo2_i18n("Convert to Path"));
+    setText(kundo2_text("Convert to Path"));
 }
 
 KoParameterToPathCommand::~KoParameterToPathCommand()
@@ -70,7 +70,7 @@ void KoParameterToPathCommand::undo()
 
 void KoParameterToPathCommandPrivate::initialize()
 {
-    Q_FOREACH (KoParameterShape *shape, shapes) {
+    for (KoParameterShape *shape : shapes) {
         KoPathShape *p = new KoPathShape();
         copyPath(p, shape);
         copies.append(p);

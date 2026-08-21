@@ -8,8 +8,10 @@
 #ifndef KOPARAMETERTOPATHCOMMAND_H
 #define KOPARAMETERTOPATHCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 #include "kritaflake_export.h"
 
@@ -31,7 +33,7 @@ public:
      * @param shapes the list of shapes this command works on
      * @param parent the parent command if this is a compound undo command.
      */
-    explicit KoParameterToPathCommand(const QList<KoParameterShape*> &shapes, KUndo2Command *parent = 0);
+    explicit KoParameterToPathCommand(const PkList<KoParameterShape*> &shapes, KUndo2Command *parent = 0);
     ~KoParameterToPathCommand() override;
 
     /// redo the command

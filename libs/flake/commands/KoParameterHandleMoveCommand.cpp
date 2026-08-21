@@ -6,12 +6,13 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoParameterHandleMoveCommand.h"
 #include "KoParameterShape.h"
-#include <klocalizedstring.h>
 #include "kis_command_ids.h"
 
-KoParameterHandleMoveCommand::KoParameterHandleMoveCommand(KoParameterShape *shape, int handleId, const QPointF &startPoint, const QPointF &endPoint, Qt::KeyboardModifiers keyModifiers, KUndo2Command *parent)
+KoParameterHandleMoveCommand::KoParameterHandleMoveCommand(KoParameterShape *shape, int handleId, const PkPointF &startPoint, const PkPointF &endPoint, Qt::KeyboardModifiers keyModifiers, KUndo2Command *parent)
         : KUndo2Command(parent)
         , m_shape(shape)
         , m_handleId(handleId)
@@ -19,7 +20,7 @@ KoParameterHandleMoveCommand::KoParameterHandleMoveCommand(KoParameterShape *sha
         , m_endPoint(endPoint)
         , m_keyModifiers(keyModifiers)
 {
-    setText(kundo2_i18n("Change parameter"));
+    setText(kundo2_text("Change parameter"));
 }
 
 KoParameterHandleMoveCommand::~KoParameterHandleMoveCommand()

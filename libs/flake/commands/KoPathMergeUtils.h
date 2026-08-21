@@ -7,17 +7,19 @@
 #ifndef KOPATHMERGEUTILS_H
 #define KOPATHMERGEUTILS_H
 
+#include <PkXmlCompat.h>
+
 #include <boost/optional.hpp>
 
-#include <QPointF>
+#include <pk/geometry/PkPoint.h>
 
 class KoPathPoint;
 
 namespace KritaUtils {
 
-boost::optional<QPointF> fetchControlPoint(KoPathPoint *pt, bool takeFirst);
+boost::optional<PkPointF> fetchControlPoint(KoPathPoint *pt, bool takeFirst);
 void makeSymmetric(KoPathPoint *pt, bool copyFromFirst);
-void restoreControlPoint(KoPathPoint *pt, bool restoreFirst, boost::optional<QPointF> savedPoint);
+void restoreControlPoint(KoPathPoint *pt, bool restoreFirst, boost::optional<PkPointF> savedPoint);
 
 }
 

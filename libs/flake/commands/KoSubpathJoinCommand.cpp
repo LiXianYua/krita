@@ -5,8 +5,9 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoSubpathJoinCommand.h"
-#include <klocalizedstring.h>
 #include "kis_assert.h"
 #include "KoPathMergeUtils.h"
 
@@ -40,9 +41,9 @@ KoSubpathJoinCommand::KoSubpathJoinCommand(const KoPathPointData &pointData1, co
             m_reverse |= ReverseFirst;
         if (m_pointData2.pointIndex.second != 0)
             m_reverse |= ReverseSecond;
-        setText(kundo2_i18n("Join subpaths"));
+        setText(kundo2_text("Join subpaths"));
     } else {
-        setText(kundo2_i18n("Close subpath"));
+        setText(kundo2_text("Close subpath"));
     }
 
     KoPathPoint * point1 = pathShape->pointByIndex(m_pointData1.pointIndex);
@@ -98,7 +99,7 @@ void KoSubpathJoinCommand::redo()
         pathShape->join(m_pointData1.pointIndex.first);
     }
 
-    QList<KoPathPointIndex> pointIndexes;
+    PkList<KoPathPointIndex> pointIndexes;
     pointIndexes << pathShape->pathPointIndex(point1);
     pointIndexes << pathShape->pathPointIndex(point2);
     pathShape->recommendPointSelectionChange(pointIndexes);
@@ -144,7 +145,7 @@ void KoSubpathJoinCommand::undo()
     point1->setProperties(m_oldProperties1);
     point2->setProperties(m_oldProperties2);
 
-    QList<KoPathPointIndex> pointIndexes;
+    PkList<KoPathPointIndex> pointIndexes;
     pointIndexes << pathShape->pathPointIndex(point1);
     pointIndexes << pathShape->pathPointIndex(point2);
     pathShape->recommendPointSelectionChange(pointIndexes);

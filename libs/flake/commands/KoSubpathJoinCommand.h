@@ -8,8 +8,10 @@
 #ifndef KOSUBPATHJOINCOMMAND_H
 #define KOSUBPATHJOINCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
-#include <QPointF>
+#include <pk/geometry/PkPoint.h>
 #include "KoPathPoint.h"
 #include "KoPathPointData.h"
 #include <boost/optional.hpp>
@@ -44,8 +46,8 @@ private:
     KoPathPointIndex m_splitIndex;
 
     // the control points have to be stored in shape coordinates
-    boost::optional<QPointF> m_savedControlPoint1;
-    boost::optional<QPointF> m_savedControlPoint2;
+    boost::optional<PkPointF> m_savedControlPoint1;
+    boost::optional<PkPointF> m_savedControlPoint2;
 
     KoPathPoint::PointProperties m_oldProperties1;
     KoPathPoint::PointProperties m_oldProperties2;

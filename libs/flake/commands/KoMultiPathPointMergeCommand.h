@@ -7,10 +7,12 @@
 #ifndef KOMULTIPATHPOINTMERGECOMMAND_H
 #define KOMULTIPATHPOINTMERGECOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
 
 #include "kritaflake_export.h"
-#include <QScopedPointer>
+#include <memory>
 
 class KoSelection;
 class KoPathShape;
@@ -38,7 +40,7 @@ protected:
                                               const KoPathPointData &pointData2);
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const std::unique_ptr<Private> m_d;
 };
 
 #endif // KOMULTIPATHPOINTMERGECOMMAND_H

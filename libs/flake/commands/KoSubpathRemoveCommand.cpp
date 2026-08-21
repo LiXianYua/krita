@@ -5,20 +5,20 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoSubpathRemoveCommand.h"
 
 #include "KoPathPointData.h"
 #include "KoPathPoint.h"
 #include "KoPathShape.h"
-#include <klocalizedstring.h>
-
 KoSubpathRemoveCommand::KoSubpathRemoveCommand(KoPathShape *pathShape, int subpathIndex, KUndo2Command *parent)
         : KUndo2Command(parent)
         , m_pathShape(pathShape)
         , m_subpathIndex(subpathIndex)
         , m_subpath(0)
 {
-    setText(kundo2_i18n("Remove subpath"));
+    setText(kundo2_text("Remove subpath"));
 }
 
 KoSubpathRemoveCommand::~KoSubpathRemoveCommand()
@@ -35,11 +35,11 @@ void KoSubpathRemoveCommand::redo()
     m_pathShape->update();
     m_subpath = m_pathShape->removeSubpath(m_subpathIndex);
     if (m_subpath) {
-        QPointF offset = m_pathShape->normalize();
+        PkPointF offset = m_pathShape->normalize();
 
-        QTransform matrix;
+        PkTransform matrix;
         matrix.translate(-offset.x(), -offset.y());
-        Q_FOREACH (KoPathPoint *point, *m_subpath) {
+        for (KoPathPoint *point : *m_subpath) {
             point->map(matrix);
         }
         m_pathShape->update();
