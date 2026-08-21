@@ -4,7 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkFlags.h>
+#include <compat/QFlags>
 #include <type_traits>
 
 #include <kritaglobal_export.h>
@@ -30,7 +30,6 @@ KisTransformComponents KRITAGLOBAL_EXPORT componentsForTransform(const PkTransfo
 KisTransformComponents KRITAGLOBAL_EXPORT compareTransformComponents(const PkTransform &lhs, const PkTransform &rhs);
 }
 
-Q_DECLARE_METATYPE(KisAlgebra2D::KisTransformComponents)
 Q_DECLARE_OPERATORS_FOR_FLAGS(KisAlgebra2D::KisTransformComponents)
 
 // we don't use Q_FLAGS's autogeneration of PkDebug here because we
