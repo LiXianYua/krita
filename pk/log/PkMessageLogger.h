@@ -60,10 +60,25 @@ private:
          pkLogCatEnabled = false)                                            \
     PkMessageLogger(__FILE__, __LINE__, __func__, &(category())).method()
 
+// 让位给真 Qt（R-34）：qDebug/qInfo/qWarning/qCritical/qFatal、qPrintable 宏与
+// QtMessageHandler/qInstallMessageHandler 是真 Qt qlogging.h 也有的名字，real Qt 已进
+// TU（QT_CORE_LIB）时让位。qCDebug/qCInfo/qCWarning/qCCritical 只在真 Qt 的
+// qloggingcategory.h 里定义（libs/global 基线测试的 include 集不拉它），用逐项
+// `#if !defined(...)` 让位——真 Qt 已可见就让位、否则用 pk 版（kis_debug.h 的
+// dbgKrita/warnKrita 一族经它工作，real Qt 在场时也依赖 pk 版）。
+// PkMessageLogger 类本身是 pk 自有名，保留。
+#if !defined(qCDebug)
 #define qCDebug(category)    PK_QCLOG_IMPL(category, isDebugEnabled, debug)
+#endif
+#if !defined(qCInfo)
 #define qCInfo(category)     PK_QCLOG_IMPL(category, isInfoEnabled, info)
+#endif
+#if !defined(qCWarning)
 #define qCWarning(category)  PK_QCLOG_IMPL(category, isWarningEnabled, warning)
+#endif
+#if !defined(qCCritical)
 #define qCCritical(category) PK_QCLOG_IMPL(category, isCriticalEnabled, critical)
+#endif
 
 // ---------------------------------------------------------------------------
 // qDebug/qInfo/qWarning/qCritical/qFatal：无分类版本。真 Qt 里这五个本身也是
@@ -80,11 +95,21 @@ private:
 // 上面哪一族重载（无参流式 vs printf 变参），两种形态调用点都真实存在。
 // ---------------------------------------------------------------------------
 
+#if !defined(qDebug)
 #define qDebug    PkMessageLogger(__FILE__, __LINE__, __func__).debug
+#endif
+#if !defined(qInfo)
 #define qInfo     PkMessageLogger(__FILE__, __LINE__, __func__).info
+#endif
+#if !defined(qWarning)
 #define qWarning  PkMessageLogger(__FILE__, __LINE__, __func__).warning
+#endif
+#if !defined(qCritical)
 #define qCritical PkMessageLogger(__FILE__, __LINE__, __func__).critical
+#endif
+#if !defined(qFatal)
 #define qFatal    PkMessageLogger(__FILE__, __LINE__, __func__).fatal
+#endif
 
 // qPrintable(x)：真 Qt 是 `(x).toLocal8Bit().constData()`。这里鸭子类型地
 // 只要求 x 有 `.PkToUtf8()`（PkString 族，与 PkDebug.h 的 PkDebugHasToUtf8
@@ -93,7 +118,9 @@ private:
 // （pk/log 不许 include/链接 pk/string 的硬约束因此不受影响）。
 // 与真 Qt 同款的生命周期注意事项：PkToUtf8() 返回的临时 std::string 活到
 // 整条语句结束为止，指针只能在同一语句内用（例如直接喂给 printf 变参）。
+#if !defined(qPrintable)
 #define qPrintable(str) ((str).PkToUtf8().c_str())
+#endif
 
 // QtMessageHandler / qInstallMessageHandler：真 Qt 签名是
 // `void (*)(QtMsgType, const QMessageLogContext &, const QString &)`。这里
@@ -111,6 +138,8 @@ private:
 // Task 的文件，本 Task 不顺手重构它。已知偏差：真 Qt 装了 handler 之后默认
 // 输出（这里对应 spdlog 的 stderr 落盘）会被完全接管，这里只是"多一路"，
 // PkLogBackend.cpp 该怎么落盘还怎么落盘，handler 收到的是旁路的第二份。
+#if !defined(QT_CORE_LIB)
 using QtMessageHandler = void (*)(PkLogLevel type, const PkLogContext &context,
                                    const char *message);
 QtMessageHandler qInstallMessageHandler(QtMessageHandler handler);
+#endif // !defined(QT_CORE_LIB)

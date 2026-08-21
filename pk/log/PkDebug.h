@@ -53,16 +53,25 @@ struct PkDebugIsOstreamable<
 // ---------------------------------------------------------------------------
 
 struct PkDebugFieldWidth { int width; };
+// 让位给真 Qt（R-34）：qSetFieldWidth/qSetPadChar/qSetRealNumberPrecision 与真 Qt
+// qtextstream.h 的操纵符同名（real Qt 返回 QTextStreamManipulator），real Qt 已进
+// TU（QT_CORE_LIB）时让位。结构体 PkDebugFieldWidth/PkDebugPadChar/
+// PkDebugRealNumberPrecision 是 pk 自有名，保留；PkDebug::operator<< 的对应重载
+// 引用的是结构体不是自由函数，无冲突。
+#if !defined(QT_CORE_LIB)
 inline PkDebugFieldWidth qSetFieldWidth(int width) { return PkDebugFieldWidth{width}; }
-
+#endif
 struct PkDebugPadChar { char ch; };
+#if !defined(QT_CORE_LIB)
 inline PkDebugPadChar qSetPadChar(char ch) { return PkDebugPadChar{ch}; }
-
+#endif
 struct PkDebugRealNumberPrecision { int precision; };
+#if !defined(QT_CORE_LIB)
 inline PkDebugRealNumberPrecision qSetRealNumberPrecision(int precision)
 {
     return PkDebugRealNumberPrecision{precision};
 }
+#endif
 
 class PkDebug
 {
