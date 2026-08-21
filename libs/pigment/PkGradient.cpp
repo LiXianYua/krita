@@ -91,16 +91,27 @@ void PkGradient::setStops(const PkGradientStops &stops)
 
 void PkGradient::setColorAt(qreal pos, const PkColor &color)
 {
-    // 对齐 Qt 5.15 setColorAt 语义：pos 越界忽略；stops 恰 1 项且 offset==pos 时
-    // 原地替换，否则 append（Qt 原样 append，不排序、不去重；消费方按升序调用，
-    // 两者等价）。colorAt 的排序插值依赖消费方按升序构造。
+    // 对齐 Qt 5.15 setColorAt 语义（实现见 Qt 源码 qbrush.cpp:1669-1684）：
+    //   · pos 越界（<0 或 >1）忽略；
+    //   · 升序扫描找到第一个 offset >= pos 的插入位 index；
+    //   · 该位已有 offset == pos 的 stop 则原地替换颜色；
+    //   · 否则在 index 插入（保持 stops 升序；重复 pos 天然折叠成单个 stop）。
+    // 消费方确实会产生重复 pos：KoSegmentGradient::toQGradient 在每个段边界调用
+    // 两次（段 i 末 offset == 段 i+1 首 offset）；KoStopGradient 的 SVG 载入会把
+    // off 夹回上一 stop 位置。Qt 对重复 pos 是「后写颜色替换先写」，此处一致。
     if (pos < 0.0 || pos > 1.0) {
         return;
     }
-    if (m_stops.size() == 1 && m_stops.at(0).offset == pos) {
-        m_stops[0].color = color;
+
+    int index = 0;
+    while (index < m_stops.size() && m_stops.at(index).offset < pos) {
+        ++index;
+    }
+
+    if (index < m_stops.size() && m_stops.at(index).offset == pos) {
+        m_stops[index].color = color;
     } else {
-        m_stops.append(PkGradientStop{pos, color});
+        m_stops.insert(index, PkGradientStop{pos, color});
     }
 }
 
