@@ -9,19 +9,21 @@
 #ifndef SVGSTYLEPARSER_H
 #define SVGSTYLEPARSER_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
-#include <QMap>
-#include <QGradient>
+#include <pk/container/PkMap.h>
+#include <pk/container/PkStringList.h>
+#include <pk/xml/PkXmlElement.h>
+#include <pk/color/PkColor.h>
+#include <PkGradient.h>
 
-#include <QDomDocument>
+#include <utility>
 
-typedef QMap<QString, QString> SvgStyles;
+typedef PkMap<PkString, PkString> SvgStyles;
 
 class SvgLoadingContext;
 class SvgGraphicsContext;
-class QColor;
-class QGradient;
-
 
 class KRITAFLAKE_EXPORT SvgStyleParser
 {
@@ -36,30 +38,30 @@ public:
     void parseFont(const SvgStyles &styles);
 
     /// Parses a color attribute
-    bool parseColor(QColor &, const QString &);
+    bool parseColor(PkColor &, const PkString &);
 
-    QPair<qreal, QColor> parseColorStop(const QDomElement&, SvgGraphicsContext* context, qreal& previousOffset);
+    std::pair<qreal, PkColor> parseColorStop(const PkXmlElement&, SvgGraphicsContext* context, qreal& previousOffset);
 
     /// Parses gradient color stops
-    void parseColorStops(QGradient *, const QDomElement &, SvgGraphicsContext *context, const QGradientStops &defaultStops);
+    void parseColorStops(PkGradient *, const PkXmlElement &, SvgGraphicsContext *context, const PkGradientStops &defaultStops);
 
     /// Creates style map from given xml element
-    SvgStyles collectStyles(const QDomElement &);
+    SvgStyles collectStyles(const PkXmlElement &);
 
     /// Merges two style elements, returning the merged style
     SvgStyles mergeStyles(const SvgStyles &, const SvgStyles &);
 
     /// Merges two style elements, returning the merged style
-    SvgStyles mergeStyles(const QDomElement &, const QDomElement &);
+    SvgStyles mergeStyles(const PkXmlElement &, const PkXmlElement &);
 
-    SvgStyles parseOneCssStyle(const QString &style, const QStringList &interestingAttributes);
+    SvgStyles parseOneCssStyle(const PkString &style, const PkStringList &interestingAttributes);
 private:
 
     /// Parses a single style attribute
-    void parsePA(SvgGraphicsContext *, const QString &, const QString &);
+    void parsePA(SvgGraphicsContext *, const PkString &, const PkString &);
 
     /// Returns inherited attribute value for specified element
-    QString inheritedAttribute(const QString &attributeName, const QDomElement &e);
+    PkString inheritedAttribute(const PkString &attributeName, const PkXmlElement &e);
 
     class Private;
     Private * const d;

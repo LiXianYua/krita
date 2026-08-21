@@ -10,6 +10,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "SvgStyleParser.h"
 #include "SvgLoadingContext.h"
 #include "SvgGraphicContext.h"
@@ -20,10 +22,99 @@
 #include <text/KoSvgText.h>
 #include <text/KoSvgTextProperties.h>
 
-#include <QStringList>
-#include <QColor>
-#include <QGradientStops>
+#include <pk/string/PkString.h>
+#include <pk/container/PkStringList.h>
+#include <pk/container/PkMap.h>
+#include <pk/container/PkMapIterator.h>
+#include <pk/xml/PkXmlElement.h>
+#include <pk/color/PkColor.h>
+#include <PkGradient.h>
 #include <KoColor.h>
+
+#include <string>
+#include <vector>
+
+namespace {
+
+// 辅助：PkString 没有 endsWith（对齐旧 Q 系字符串的 endsWith 语义）。
+bool pkEndsWith(const PkString &s, const PkString &suffix)
+{
+    if (suffix.size() > s.size()) {
+        return false;
+    }
+    return s.mid(s.size() - suffix.size()) == suffix;
+}
+
+// PkString 没有 indexOf(char, from)（对齐旧 Q 系字符串的 indexOf 语义）。
+int pkIndexOf(const PkString &s, char16_t ch, int from = 0)
+{
+    for (int i = from; i < s.size(); ++i) {
+        if (s.at(i) == ch) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// 按分隔符切分并丢弃空段（对齐旧 Q 系字符串的 split(sep, SkipEmptyParts)）。
+PkStringList pkSplitSkipEmpty(const PkString &s, char16_t sep)
+{
+    PkStringList result;
+    for (const PkString &part : s.split(sep)) {
+        if (!part.isEmpty()) {
+            result.push_back(part);
+        }
+    }
+    return result;
+}
+
+// 空白折叠为单空格并 trim（对齐旧 Q 系字符串的 simplified）。
+PkString pkSimplified(const PkString &s)
+{
+    const std::string in = s.PkToUtf8();
+    std::string out;
+    out.reserve(in.size());
+    bool lastWasSpace = false;
+    bool leading = true;
+    for (const char c : in) {
+        const bool isWs = (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v');
+        if (isWs) {
+            if (lastWasSpace || leading) {
+                continue;
+            }
+            lastWasSpace = true;
+            out.push_back(' ');
+        } else {
+            lastWasSpace = false;
+            leading = false;
+            out.push_back(c);
+        }
+    }
+    return PkString::PkFromUtf8(out.data(), static_cast<int>(out.size()));
+}
+
+// 把全部 from 替换为 to（对齐旧 Q 系字符串的 replace(ch1, ch2)）。
+PkString pkReplaceChar(const PkString &s, char16_t from, char16_t to)
+{
+    PkString out;
+    for (int i = 0; i < s.size(); ++i) {
+        char16_t c = s.at(i);
+        if (c == from) {
+            c = to;
+        }
+        out += pkCharToString(c);
+    }
+    return out;
+}
+
+// PkString 没有 toFloat()（对齐旧 Q 系字符串的 toFloat）。
+float pkToFloat(const PkString &s, bool *ok = nullptr)
+{
+    const double d = s.toDouble(ok);
+    return static_cast<float>(d);
+}
+
+} // namespace
 
 class Q_DECL_HIDDEN SvgStyleParser::Private
 {
@@ -96,9 +187,9 @@ public:
     }
 
     SvgLoadingContext &context;
-    QStringList textAttributes; ///< text related attributes
-    QStringList fontAttributes; ///< font related attributes
-    QStringList styleAttributes; ///< style related attributes
+    PkStringList textAttributes; ///< text related attributes
+    PkStringList fontAttributes; ///< font related attributes
+    PkStringList styleAttributes; ///< style related attributes
 };
 
 SvgStyleParser::SvgStyleParser(SvgLoadingContext &context)
@@ -123,8 +214,8 @@ void SvgStyleParser::parseStyle(const SvgStyles &styles, const bool inheritByDef
     }
 
     // make sure we parse the style attributes in the right order
-    Q_FOREACH (const QString & command, d->styleAttributes) {
-        const QString &params = styles.value(command);
+    for (const PkString &command : d->styleAttributes) {
+        const PkString &params = styles.value(command);
         if (params.isEmpty())
             continue;
         parsePA(gc, command, params);
@@ -138,25 +229,25 @@ void SvgStyleParser::parseFont(const SvgStyles &styles)
         return;
 
     // make sure to only parse font attributes here
-    Q_FOREACH (const QString & command, d->fontAttributes) {
-        const QString &params = styles.value(command);
+    for (const PkString &command : d->fontAttributes) {
+        const PkString &params = styles.value(command);
         if (params.isEmpty())
             continue;
         parsePA(gc, command, params);
     }
 
-    Q_FOREACH (const QString & command, d->textAttributes) {
-        const QString &params = styles.value(command);
+    for (const PkString &command : d->textAttributes) {
+        const PkString &params = styles.value(command);
         if (params.isEmpty())
             continue;
         parsePA(gc, command, params);
     }
 }
 #include <kis_debug.h>
-void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const QString &command, const QString &params)
+void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const PkString &command, const PkString &params)
 {
-    QColor fillcolor = gc->fillColor;
-    QColor strokecolor = gc->stroke->color();
+    PkColor fillcolor = gc->fillColor;
+    PkColor strokecolor = gc->stroke->color();
 
     if (params == "inherit")
         return;
@@ -164,9 +255,9 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const QString &command, con
     if (command == "fill") {
         if (params == "none") {
             gc->fillType = SvgGraphicsContext::None;
-        } else if (params.startsWith(QLatin1String("url("))) {
-            unsigned int start = params.indexOf('#') + 1;
-            unsigned int end = params.indexOf(')', start);
+        } else if (params.startsWith("url(")) {
+            int start = pkIndexOf(params, u'#') + 1;
+            int end = pkIndexOf(params, u')', start);
             gc->fillId = params.mid(start, end - start);
             gc->fillType = SvgGraphicsContext::Complex;
             // check if there is a fallback color
@@ -184,9 +275,9 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const QString &command, con
     } else if (command == "stroke") {
         if (params == "none") {
             gc->strokeType = SvgGraphicsContext::None;
-        } else if (params.startsWith(QLatin1String("url("))) {
-            unsigned int start = params.indexOf('#') + 1;
-            unsigned int end = params.indexOf(')', start);
+        } else if (params.startsWith("url(")) {
+            int start = pkIndexOf(params, u'#') + 1;
+            int end = pkIndexOf(params, u')', start);
             gc->strokeId = params.mid(start, end - start);
             gc->strokeType = SvgGraphicsContext::Complex;
             // check if there is a fallback color
@@ -213,14 +304,14 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const QString &command, con
         else if (params == "square")
             gc->stroke->setCapStyle(Qt::SquareCap);
     } else if (command == "stroke-miterlimit") {
-        gc->stroke->setMiterLimit(params.toFloat());
+        gc->stroke->setMiterLimit(pkToFloat(params));
     } else if (command == "stroke-dasharray") {
-        QVector<qreal> array;
+        PkVector<qreal> array;
         if (params != "none") {
-            QString dashString = params;
-            QStringList dashes = dashString.replace(',', ' ').simplified().split(' ');
-            for (QStringList::Iterator it = dashes.begin(); it != dashes.end(); ++it) {
-                array.append(SvgUtil::parseUnitXY(gc, d->context.resolvedProperties(), *it));
+            PkString dashString = params;
+            PkStringList dashes = pkSplitSkipEmpty(pkSimplified(pkReplaceChar(dashString, u',', u' ')), u' ');
+            for (const PkString &dash : dashes) {
+                array.append(SvgUtil::parseUnitXY(gc, d->context.resolvedProperties(), dash));
             }
 
             // if the array is odd repeat it according to the standard
@@ -230,7 +321,7 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const QString &command, con
         }
         gc->stroke->setLineStyle(Qt::CustomDashLine, array);
     } else if (command == "stroke-dashoffset") {
-        gc->stroke->setDashOffset(params.toFloat());
+        gc->stroke->setDashOffset(pkToFloat(params));
     }
     // handle opacity
     else if (command == "stroke-opacity")
@@ -280,7 +371,7 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const QString &command, con
         gc->textProperties.parseSvgTextAttribute(d->context, command, params);
 
     } else if (command == "color") {
-        QColor color;
+        PkColor color;
         parseColor(color, params);
         gc->currentColor = color;
     } else if (command == "display") {
@@ -291,14 +382,14 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const QString &command, con
         gc->visible = params == "visible";
     } else if (command == "filter") {
         if (params != "none" && params.startsWith("url(")) {
-            unsigned int start = params.indexOf('#') + 1;
-            unsigned int end = params.indexOf(')', start);
+            int start = pkIndexOf(params, u'#') + 1;
+            int end = pkIndexOf(params, u')', start);
             gc->filterId = params.mid(start, end - start);
         }
     } else if (command == "clip-path") {
         if (params != "none" && params.startsWith("url(")) {
-            unsigned int start = params.indexOf('#') + 1;
-            unsigned int end = params.indexOf(')', start);
+            int start = pkIndexOf(params, u'#') + 1;
+            int end = pkIndexOf(params, u')', start);
             gc->clipPathId = params.mid(start, end - start);
         }
     } else if (command == "shape-inside") {
@@ -312,32 +403,32 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const QString &command, con
             gc->clipRule = Qt::OddEvenFill;
     } else if (command == "mask") {
         if (params != "none" && params.startsWith("url(")) {
-            unsigned int start = params.indexOf('#') + 1;
-            unsigned int end = params.indexOf(')', start);
+            int start = pkIndexOf(params, u'#') + 1;
+            int end = pkIndexOf(params, u')', start);
             gc->clipMaskId = params.mid(start, end - start);
         }
     } else if (command == "marker-start") {
         if (params != "none" && params.startsWith("url(")) {
-            unsigned int start = params.indexOf('#') + 1;
-            unsigned int end = params.indexOf(')', start);
+            int start = pkIndexOf(params, u'#') + 1;
+            int end = pkIndexOf(params, u')', start);
             gc->markerStartId = params.mid(start, end - start);
         }
     } else if (command == "marker-end") {
         if (params != "none" && params.startsWith("url(")) {
-            unsigned int start = params.indexOf('#') + 1;
-            unsigned int end = params.indexOf(')', start);
+            int start = pkIndexOf(params, u'#') + 1;
+            int end = pkIndexOf(params, u')', start);
             gc->markerEndId = params.mid(start, end - start);
         }
     } else if (command == "marker-mid") {
         if (params != "none" && params.startsWith("url(")) {
-            unsigned int start = params.indexOf('#') + 1;
-            unsigned int end = params.indexOf(')', start);
+            int start = pkIndexOf(params, u'#') + 1;
+            int end = pkIndexOf(params, u')', start);
             gc->markerMidId = params.mid(start, end - start);
         }
     } else if (command == "marker") {
         if (params != "none" && params.startsWith("url(")) {
-            unsigned int start = params.indexOf('#') + 1;
-            unsigned int end = params.indexOf(')', start);
+            int start = pkIndexOf(params, u'#') + 1;
+            int end = pkIndexOf(params, u')', start);
             gc->markerStartId = params.mid(start, end - start);
             gc->markerMidId = gc->markerStartId;
             gc->markerEndId = gc->markerStartId;
@@ -358,7 +449,7 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const QString &command, con
     gc->stroke->setColor(strokecolor);
 }
 
-bool SvgStyleParser::parseColor(QColor &color, const QString &s)
+bool SvgStyleParser::parseColor(PkColor &color, const PkString &s)
 {
     if (s.isEmpty() || s == "none")
         return false;
@@ -371,17 +462,17 @@ bool SvgStyleParser::parseColor(QColor &color, const QString &s)
     return true;
 }
 
-QPair<qreal, QColor> SvgStyleParser::parseColorStop(const QDomElement& stop,
+std::pair<qreal, PkColor> SvgStyleParser::parseColorStop(const PkXmlElement& stop,
                                     SvgGraphicsContext *context,
                                     qreal& previousOffset)
 {
     qreal offset = 0.0;
-    QString offsetStr = stop.attribute("offset").trimmed();
-    if (offsetStr.endsWith('%')) {
-        offsetStr = offsetStr.left(offsetStr.length() - 1);
-        offset = offsetStr.toFloat() / 100.0;
+    PkString offsetStr = stop.attribute("offset").trimmed();
+    if (pkEndsWith(offsetStr, PkString("%"))) {
+        offsetStr = offsetStr.left(offsetStr.size() - 1);
+        offset = pkToFloat(offsetStr) / 100.0;
     } else {
-        offset = offsetStr.toFloat();
+        offset = pkToFloat(offsetStr);
     }
 
     // according to SVG the value must be within [0; 1] interval
@@ -391,12 +482,12 @@ QPair<qreal, QColor> SvgStyleParser::parseColorStop(const QDomElement& stop,
     offset = qMax(offset, previousOffset);
     previousOffset = offset;
 
-    QColor color;
+    PkColor color;
 
-    QString stopColorStr = stop.attribute("stop-color");
-    QString stopOpacityStr = stop.attribute("stop-opacity");
+    PkString stopColorStr = stop.attribute("stop-color");
+    PkString stopOpacityStr = stop.attribute("stop-opacity");
 
-    const QStringList attributes({"stop-color", "stop-opacity"});
+    const PkStringList attributes({PkString("stop-color"), PkString("stop-opacity")});
     SvgStyles styles = parseOneCssStyle(stop.attribute("style"), attributes);
 
     // SVG: CSS values have precedence over presentation attributes!
@@ -417,26 +508,27 @@ QPair<qreal, QColor> SvgStyleParser::parseColorStop(const QDomElement& stop,
     if (!stopOpacityStr.isEmpty() && stopOpacityStr != "inherit") {
         color.setAlphaF(qBound(0.0, KisDomUtils::toDouble(stopOpacityStr), 1.0));
     }
-    return QPair<qreal, QColor>(offset, color);
+    return std::make_pair(offset, color);
 }
 
 #define forEachElement( elem, parent ) \
-    for ( QDomNode _node = parent.firstChild(); !_node.isNull(); _node = _node.nextSibling() ) \
+    for ( PkXmlNode _node = parent.firstChild(); !_node.isNull(); _node = _node.nextSibling() ) \
     if ( ( elem = _node.toElement() ).isNull() ) {} else
 
-void SvgStyleParser::parseColorStops(QGradient *gradient,
-                                     const QDomElement &e,
+void SvgStyleParser::parseColorStops(PkGradient *gradient,
+                                     const PkXmlElement &e,
                                      SvgGraphicsContext *context,
-                                     const QGradientStops &defaultStops)
+                                     const PkGradientStops &defaultStops)
 {
-    QGradientStops stops;
+    PkGradientStops stops;
 
     qreal previousOffset = 0.0;
 
-    QDomElement stop;
+    PkXmlElement stop;
     forEachElement(stop, e) {
         if (stop.tagName() == "stop") {
-            stops.append(parseColorStop(stop, context, previousOffset));
+            const std::pair<qreal, PkColor> stopColor = parseColorStop(stop, context, previousOffset);
+            stops.append(PkGradientStop{stopColor.first, stopColor.second});
         }
     }
 
@@ -447,20 +539,20 @@ void SvgStyleParser::parseColorStops(QGradient *gradient,
     }
 }
 
-SvgStyles SvgStyleParser::parseOneCssStyle(const QString &style, const QStringList &interestingAttributes)
+SvgStyles SvgStyleParser::parseOneCssStyle(const PkString &style, const PkStringList &interestingAttributes)
 {
     SvgStyles parsedStyles;
     if (style.isEmpty()) return parsedStyles;
 
-    QStringList substyles = style.simplified().split(';', Qt::SkipEmptyParts);
+    PkStringList substyles = pkSplitSkipEmpty(pkSimplified(style), u';');
     if (!substyles.count()) return parsedStyles;
 
-    for (QStringList::Iterator it = substyles.begin(); it != substyles.end(); ++it) {
-        QStringList substyle = it->split(':');
-        if (substyle.count() != 2)
+    for (const PkString &substylePart : substyles) {
+        std::vector<PkString> substyle = substylePart.split(u':');
+        if (substyle.size() != 2)
             continue;
-        QString command = substyle[0].trimmed();
-        QString params  = substyle[1].trimmed();
+        PkString command = substyle[0].trimmed();
+        PkString params  = substyle[1].trimmed();
 
         if (interestingAttributes.isEmpty() || interestingAttributes.contains(command)) {
             parsedStyles[command] = params;
@@ -470,46 +562,46 @@ SvgStyles SvgStyleParser::parseOneCssStyle(const QString &style, const QStringLi
     return parsedStyles;
 }
 
-SvgStyles SvgStyleParser::collectStyles(const QDomElement &e)
+SvgStyles SvgStyleParser::collectStyles(const PkXmlElement &e)
 {
     SvgStyles styleMap;
 
     // collect individual presentation style attributes which have the priority 0
     // according to SVG standard
     // NOTE: font attributes should be parsed the first, because they defines 'em' and 'ex'
-    Q_FOREACH (const QString & command, d->fontAttributes) {
-        const QString attribute = e.attribute(command);
+    for (const PkString &command : d->fontAttributes) {
+        const PkString attribute = e.attribute(command);
         if (!attribute.isEmpty())
             styleMap[command] = attribute;
     }
-    Q_FOREACH (const QString &command, d->styleAttributes) {
-        const QString attribute = e.attribute(command);
+    for (const PkString &command : d->styleAttributes) {
+        const PkString attribute = e.attribute(command);
         if (!attribute.isEmpty())
             styleMap[command] = attribute;
     }
-    Q_FOREACH (const QString & command, d->textAttributes) {
-        const QString attribute = e.attribute(command);
+    for (const PkString &command : d->textAttributes) {
+        const PkString attribute = e.attribute(command);
         if (!attribute.isEmpty())
             styleMap[command] = attribute;
     }
 
     // match css style rules to element
-    QStringList cssStyles = d->context.matchingCssStyles(e);
+    PkStringList cssStyles = d->context.matchingCssStyles(e);
 
     // collect all css style attributes
-    Q_FOREACH (const QString &style, cssStyles) {
-        QStringList substyles = style.split(';', Qt::SkipEmptyParts);
+    for (const PkString &style : cssStyles) {
+        PkStringList substyles = pkSplitSkipEmpty(style, u';');
         if (!substyles.count())
             continue;
-        for (QStringList::Iterator it = substyles.begin(); it != substyles.end(); ++it) {
-            QStringList substyle = it->split(':');
-            if (substyle.count() != 2)
+        for (const PkString &substylePart : substyles) {
+            std::vector<PkString> substyle = substylePart.split(u':');
+            if (substyle.size() != 2)
                 continue;
-            QString command = substyle[0].trimmed();
-            QString params  = substyle[1].trimmed();
+            PkString command = substyle[0].trimmed();
+            PkString params  = substyle[1].trimmed();
 
             // toggle the namespace selector into the xml-like one
-            command.replace("|", ":");
+            command = pkReplaceChar(command, u'|', u':');
 
             // only use style and font attributes
             if (d->styleAttributes.contains(command) ||
@@ -524,7 +616,7 @@ SvgStyles SvgStyleParser::collectStyles(const QDomElement &e)
     // FIXME: if 'inherit' we should just remove the property and use the one from the context!
 
     // replace keyword "inherit" for style values
-    QMutableMapIterator<QString, QString> it(styleMap);
+    PkMutableMapIterator<PkString, PkString> it(styleMap);
     while (it.hasNext()) {
         it.next();
         if (it.value() == "inherit") {
@@ -549,20 +641,20 @@ SvgStyles SvgStyleParser::mergeStyles(const SvgStyles &referencedBy, const SvgSt
     return mergedStyles;
 }
 
-SvgStyles SvgStyleParser::mergeStyles(const QDomElement &e1, const QDomElement &e2)
+SvgStyles SvgStyleParser::mergeStyles(const PkXmlElement &e1, const PkXmlElement &e2)
 {
     return mergeStyles(collectStyles(e1), collectStyles(e2));
 }
 
-QString SvgStyleParser::inheritedAttribute(const QString &attributeName, const QDomElement &e)
+PkString SvgStyleParser::inheritedAttribute(const PkString &attributeName, const PkXmlElement &e)
 {
-    QDomNode parent = e.parentNode();
+    PkXmlNode parent = e.parentNode();
     while (!parent.isNull()) {
-        QDomElement currentElement = parent.toElement();
+        PkXmlElement currentElement = parent.toElement();
         if (currentElement.hasAttribute(attributeName)) {
             return currentElement.attribute(attributeName);
         }
         parent = currentElement.parentNode();
     }
-    return QString();
+    return PkString();
 }

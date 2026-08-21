@@ -7,17 +7,17 @@
 #ifndef SVGUTIL_H
 #define SVGUTIL_H
 
-#include "kritaflake_export.h"
-#include <QRectF>
-#include <KoSvgText.h>
-#include <KisQStringListFwd.h>
+#include <PkXmlCompat.h>
 
-class QString;
-class QTransform;
+#include "kritaflake_export.h"
+#include <KoSvgText.h>
+#include <pk/container/PkStringList.h>
+#include <pk/xml/PkXmlElement.h>
+
+class PkString;
+class PkTransform;
 class KoXmlWriter;
 class KoSvgTextProperties;
-
-#include <QDomDocument>
 
 class SvgGraphicsContext;
 
@@ -32,20 +32,20 @@ public:
     static double ptToPx(SvgGraphicsContext *gc, double value);
 
     /// Converts given point from points to userspace units.
-    static QPointF toUserSpace(const QPointF &point);
+    static PkPointF toUserSpace(const PkPointF &point);
 
     /// Converts given rectangle from points to userspace units.
-    static QRectF toUserSpace(const QRectF &rect);
+    static PkRectF toUserSpace(const PkRectF &rect);
 
     /// Converts given rectangle from points to userspace units.
-    static QSizeF toUserSpace(const QSizeF &size);
+    static PkSizeF toUserSpace(const PkSizeF &size);
 
     /**
      * Parses the given float percentage.
      * @param value the input number containing float percentage (0..1)
      * @return the percentage string (0%..100%), not normalized
      */
-    static QString toPercentage(qreal value);
+    static PkString toPercentage(qreal value);
 
     /**
      * Parses the given string containing a percentage.
@@ -53,89 +53,89 @@ public:
      * @param ok optional failure indicator
      * @return the float percentage (0..1), not normalized
      */
-    static double fromPercentage(QString s, bool *ok=nullptr);
+    static double fromPercentage(PkString s, bool *ok=nullptr);
 
     /**
      * Converts position from objectBoundingBox units to userSpace units.
      */
-    static QPointF objectToUserSpace(const QPointF &position, const QRectF &objectBound);
+    static PkPointF objectToUserSpace(const PkPointF &position, const PkRectF &objectBound);
 
     /**
      * Converts size from objectBoundingBox units to userSpace units.
      */
-    static QSizeF objectToUserSpace(const QSizeF &size, const QRectF &objectBound);
+    static PkSizeF objectToUserSpace(const PkSizeF &size, const PkRectF &objectBound);
 
     /**
      * Converts position from userSpace units to objectBoundingBox units.
      */
-    static QPointF userSpaceToObject(const QPointF &position, const QRectF &objectBound);
+    static PkPointF userSpaceToObject(const PkPointF &position, const PkRectF &objectBound);
 
     /**
      * Converts size from userSpace units to objectBoundingBox units.
      */
-    static QSizeF userSpaceToObject(const QSizeF &size, const QRectF &objectBound);
+    static PkSizeF userSpaceToObject(const PkSizeF &size, const PkRectF &objectBound);
 
     /// Converts specified transformation to a string
-    static QString transformToString(const QTransform &transform);
+    static PkString transformToString(const PkTransform &transform);
 
     /// Writes a \p transform as an attribute \p name iff the transform is not empty
-    static void writeTransformAttributeLazy(const QString &name, const QTransform &transform, KoXmlWriter &shapeWriter);
+    static void writeTransformAttributeLazy(const PkString &name, const PkTransform &transform, KoXmlWriter &shapeWriter);
 
     /// Parses a viewbox attribute into an rectangle
-    static bool parseViewBox(const QDomElement &e, const QRectF &elementBounds, QRectF *_viewRect, QTransform *_viewTransform);
+    static bool parseViewBox(const PkXmlElement &e, const PkRectF &elementBounds, PkRectF *_viewRect, PkTransform *_viewTransform);
 
     struct PreserveAspectRatioParser;
-    static void parseAspectRatio(const PreserveAspectRatioParser &p, const QRectF &elementBounds, const QRectF &viewRect, QTransform *_viewTransform);
+    static void parseAspectRatio(const PreserveAspectRatioParser &p, const PkRectF &elementBounds, const PkRectF &viewRect, PkTransform *_viewTransform);
 
     /// Parses a length attribute
     static qreal parseUnit(SvgGraphicsContext *gc,
                            const KoSvgTextProperties &resolved,
-                           QStringView,
+                           const PkString &unit,
                            bool horiz = false,
                            bool vert = false,
-                           const QRectF &bbox = QRectF());
+                           const PkRectF &bbox = PkRectF());
     /// Parse length attribute into a struct, always resolving the percentage to viewport
     static KoSvgText::CssLengthPercentage parseUnitStruct(SvgGraphicsContext *gc,
-                           QStringView unit,
+                           const PkString &unit,
                            bool horiz = false,
                            bool vert = false,
-                           const QRectF &bbox = QRectF());
+                           const PkRectF &bbox = PkRectF());
 
     /// Unit structs for text do not need the percentage to be resolved to viewport in most cases.
-    static KoSvgText::CssLengthPercentage parseTextUnitStruct(SvgGraphicsContext *gc, QStringView unit);
+    static KoSvgText::CssLengthPercentage parseTextUnitStruct(SvgGraphicsContext *gc, const PkString &unit);
 
     /// Parse length attribute into struct.
     static KoSvgText::CssLengthPercentage parseUnitStructImpl(SvgGraphicsContext *gc,
-                                                          QStringView,
+                                                          const PkString &unit,
                                                           bool horiz = false,
                                                           bool vert = false,
-                                                          const QRectF &bbox = QRectF(),
+                                                          const PkRectF &bbox = PkRectF(),
                                                           bool percentageViewBox = false);
 
     /// parses a length attribute in x-direction
-    static qreal parseUnitX(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const QString &unit);
+    static qreal parseUnitX(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const PkString &unit);
 
     /// parses a length attribute in y-direction
-    static qreal parseUnitY(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const QString &unit);
+    static qreal parseUnitY(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const PkString &unit);
 
     /// parses a length attribute in xy-direction
-    static qreal parseUnitXY(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const QString &unit);
+    static qreal parseUnitXY(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const PkString &unit);
 
     /// parses angle, result in *radians*!
-    static qreal parseUnitAngular(SvgGraphicsContext *gc, const QString &unit);
+    static qreal parseUnitAngular(SvgGraphicsContext *gc, const PkString &unit);
 
     /// parses the number into parameter number
     static const char * parseNumber(const char *ptr, qreal &number);
 
-    static qreal parseNumber(const QString &string);
+    static qreal parseNumber(const PkString &string);
 
-    static QString mapExtendedShapeTag(const QString &tagName, const QDomElement &element);
+    static PkString mapExtendedShapeTag(const PkString &tagName, const PkXmlElement &element);
 
-    static QStringList simplifyList(const QString &str);
+    static PkStringList simplifyList(const PkString &str);
 
     struct KRITAFLAKE_EXPORT PreserveAspectRatioParser
     {
-        PreserveAspectRatioParser(const QString &str);
+        PreserveAspectRatioParser(const PkString &str);
 
         enum Alignment {
             Min,
@@ -148,13 +148,13 @@ public:
         Alignment xAlignment = Min;
         Alignment yAlignment = Min;
 
-        QPointF rectAnchorPoint(const QRectF &rc) const;
+        PkPointF rectAnchorPoint(const PkRectF &rc) const;
 
-        QString toString() const;
+        PkString toString() const;
 
     private:
-        Alignment alignmentFromString(const QString &str) const;
-        QString alignmentToString(Alignment alignment) const;
+        Alignment alignmentFromString(const PkString &str) const;
+        PkString alignmentToString(Alignment alignment) const;
         static qreal alignedValue(qreal min, qreal max, Alignment alignment);
     };
 };

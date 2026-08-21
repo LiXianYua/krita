@@ -4,18 +4,19 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "SvgUtil.h"
 #include "SvgGraphicContext.h"
 
 #include <KoUnit.h>
 #include <KoSvgText.h>
 
-#include <QString>
-#include <QRectF>
-#include <QStringList>
-#include <QRegularExpression>
+#include <pk/string/PkString.h>
 
 #include <math.h>
+#include <regex>
+#include <string>
 #include "kis_debug.h"
 #include "kis_global.h"
 
@@ -25,6 +26,100 @@
 #define DPI 72.0
 
 #define DEG2RAD(degree) degree/180.0*M_PI
+
+namespace {
+
+// 辅助：PkString 没有 endsWith（对齐旧 Q 系字符串的 endsWith 语义）。
+bool pkEndsWith(const PkString &s, const PkString &suffix)
+{
+    if (suffix.size() > s.size()) {
+        return false;
+    }
+    return s.mid(s.size() - suffix.size()) == suffix;
+}
+
+// PkString 没有 indexOf(char, from)（对齐 Qt5 的 indexOf）。
+int pkIndexOf(const PkString &s, char16_t ch, int from = 0)
+{
+    for (int i = from; i < s.size(); ++i) {
+        if (s.at(i) == ch) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// 按分隔符切分并丢弃空段（对齐 Qt5 的 split(sep, Qt::SkipEmptyParts)）。
+PkStringList pkSplitSkipEmpty(const PkString &s, char16_t sep)
+{
+    PkStringList result;
+    for (const PkString &part : s.split(sep)) {
+        if (!part.isEmpty()) {
+            result.push_back(part);
+        }
+    }
+    return result;
+}
+
+// 空白折叠为单空格并 trim（对齐 Qt5 的 simplified）。
+PkString pkSimplified(const PkString &s)
+{
+    const std::string in = s.PkToUtf8();
+    std::string out;
+    out.reserve(in.size());
+    bool lastWasSpace = false;
+    bool leading = true;
+    for (const char c : in) {
+        const bool isWs = (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v');
+        if (isWs) {
+            if (lastWasSpace || leading) {
+                continue;
+            }
+            lastWasSpace = true;
+            out.push_back(' ');
+        } else {
+            lastWasSpace = false;
+            leading = false;
+            out.push_back(c);
+        }
+    }
+    return PkString::PkFromUtf8(out.data(), static_cast<int>(out.size()));
+}
+
+// 把全部 from 替换为 to（对齐 Qt5 的 replace(ch1, ch2)）。
+PkString pkReplaceChar(const PkString &s, char16_t from, char16_t to)
+{
+    PkString out;
+    for (int i = 0; i < s.size(); ++i) {
+        char16_t c = s.at(i);
+        if (c == from) {
+            c = to;
+        }
+        out += pkCharToString(c);
+    }
+    return out;
+}
+
+// 移除全部指定字符（对齐 Qt5 的 remove(ch)）。
+PkString pkRemoveChar(const PkString &s, char16_t ch)
+{
+    PkString out;
+    for (int i = 0; i < s.size(); ++i) {
+        const char16_t c = s.at(i);
+        if (c != ch) {
+            out += pkCharToString(c);
+        }
+    }
+    return out;
+}
+
+// 移除全部指定子串（对齐 Qt5 的 remove(str)）。
+PkString pkRemoveSubstr(const PkString &s, const PkString &sub)
+{
+    return pkStringReplaceAll(s, sub, PkString(), PkCaseSensitive);
+}
+
+} // namespace
 
 double SvgUtil::fromUserSpace(double value)
 {
@@ -41,49 +136,49 @@ double SvgUtil::ptToPx(SvgGraphicsContext *gc, double value)
     return value * gc->pixelsPerInch / DPI;
 }
 
-QPointF SvgUtil::toUserSpace(const QPointF &point)
+PkPointF SvgUtil::toUserSpace(const PkPointF &point)
 {
-    return QPointF(toUserSpace(point.x()), toUserSpace(point.y()));
+    return PkPointF(toUserSpace(point.x()), toUserSpace(point.y()));
 }
 
-QRectF SvgUtil::toUserSpace(const QRectF &rect)
+PkRectF SvgUtil::toUserSpace(const PkRectF &rect)
 {
-    return QRectF(toUserSpace(rect.topLeft()), toUserSpace(rect.size()));
+    return PkRectF(toUserSpace(rect.topLeft()), toUserSpace(rect.size()));
 }
 
-QSizeF SvgUtil::toUserSpace(const QSizeF &size)
+PkSizeF SvgUtil::toUserSpace(const PkSizeF &size)
 {
-    return QSizeF(toUserSpace(size.width()), toUserSpace(size.height()));
+    return PkSizeF(toUserSpace(size.width()), toUserSpace(size.height()));
 }
 
-QString SvgUtil::toPercentage(qreal value)
+PkString SvgUtil::toPercentage(qreal value)
 {
     return KisDomUtils::toString(value * 100.0) + "%";
 }
 
-double SvgUtil::fromPercentage(QString s, bool *ok)
+double SvgUtil::fromPercentage(PkString s, bool *ok)
 {
-    if (s.endsWith('%'))
-        return KisDomUtils::toDouble(s.remove('%'), ok) / 100.0;
+    if (pkEndsWith(s, PkString("%")))
+        return KisDomUtils::toDouble(pkRemoveChar(s, u'%'), ok) / 100.0;
     else
         return KisDomUtils::toDouble(s, ok);
 }
 
-QPointF SvgUtil::objectToUserSpace(const QPointF &position, const QRectF &objectBound)
+PkPointF SvgUtil::objectToUserSpace(const PkPointF &position, const PkRectF &objectBound)
 {
     qreal x = objectBound.left() + position.x() * objectBound.width();
     qreal y = objectBound.top() + position.y() * objectBound.height();
-    return QPointF(x, y);
+    return PkPointF(x, y);
 }
 
-QSizeF SvgUtil::objectToUserSpace(const QSizeF &size, const QRectF &objectBound)
+PkSizeF SvgUtil::objectToUserSpace(const PkSizeF &size, const PkRectF &objectBound)
 {
     qreal w = size.width() * objectBound.width();
     qreal h = size.height() * objectBound.height();
-    return QSizeF(w, h);
+    return PkSizeF(w, h);
 }
 
-QPointF SvgUtil::userSpaceToObject(const QPointF &position, const QRectF &objectBound)
+PkPointF SvgUtil::userSpaceToObject(const PkPointF &position, const PkRectF &objectBound)
 {
     qreal x = 0.0;
     if (objectBound.width() != 0)
@@ -91,27 +186,27 @@ QPointF SvgUtil::userSpaceToObject(const QPointF &position, const QRectF &object
     qreal y = 0.0;
     if (objectBound.height() != 0)
         y = (position.y() - objectBound.y()) / objectBound.height();
-    return QPointF(x, y);
+    return PkPointF(x, y);
 }
 
-QSizeF SvgUtil::userSpaceToObject(const QSizeF &size, const QRectF &objectBound)
+PkSizeF SvgUtil::userSpaceToObject(const PkSizeF &size, const PkRectF &objectBound)
 {
     qreal w = objectBound.width() != 0 ? size.width() / objectBound.width() : 0.0;
     qreal h = objectBound.height() != 0 ? size.height() / objectBound.height() : 0.0;
-    return QSizeF(w, h);
+    return PkSizeF(w, h);
 }
 
-QString SvgUtil::transformToString(const QTransform &transform)
+PkString SvgUtil::transformToString(const PkTransform &transform)
 {
     if (transform.isIdentity())
-        return QString();
+        return PkString();
 
-    if (transform.type() == QTransform::TxTranslate) {
-        return QString("translate(%1, %2)")
+    if (transform.type() == PkTransform::TxTranslate) {
+        return PkString("translate(%1, %2)")
                      .arg(KisDomUtils::toString(toUserSpace(transform.dx())))
                      .arg(KisDomUtils::toString(toUserSpace(transform.dy())));
     } else {
-        return QString("matrix(%1 %2 %3 %4 %5 %6)")
+        return PkString("matrix(%1 %2 %3 %4 %5 %6)")
                      .arg(KisDomUtils::toString(transform.m11()))
                      .arg(KisDomUtils::toString(transform.m12()))
                      .arg(KisDomUtils::toString(transform.m21()))
@@ -121,34 +216,35 @@ QString SvgUtil::transformToString(const QTransform &transform)
     }
 }
 
-void SvgUtil::writeTransformAttributeLazy(const QString &name, const QTransform &transform, KoXmlWriter &shapeWriter)
+void SvgUtil::writeTransformAttributeLazy(const PkString &name, const PkTransform &transform, KoXmlWriter &shapeWriter)
 {
-    const QString value = transformToString(transform);
+    const PkString value = transformToString(transform);
 
     if (!value.isEmpty()) {
-        shapeWriter.addAttribute(name.toLatin1().data(), value);
+        const std::string nameUtf8 = name.PkToUtf8();
+        shapeWriter.addAttribute(nameUtf8.c_str(), value);
     }
 }
 
-bool SvgUtil::parseViewBox(const QDomElement &e,
-                           const QRectF &elementBounds,
-                           QRectF *_viewRect, QTransform *_viewTransform)
+bool SvgUtil::parseViewBox(const PkXmlElement &e,
+                           const PkRectF &elementBounds,
+                           PkRectF *_viewRect, PkTransform *_viewTransform)
 {
     KIS_ASSERT(_viewRect);
     KIS_ASSERT(_viewTransform);
 
-    QString viewBoxStr = e.attribute("viewBox");
+    PkString viewBoxStr = e.attribute("viewBox");
     if (viewBoxStr.isEmpty()) return false;
 
     bool result = false;
 
-    QRectF viewBoxRect;
+    PkRectF viewBoxRect;
     // this is a workaround for bug 260429 for a file generated by blender
     // who has px in the viewbox which is wrong.
     // reported as bug https://developer.blender.org/T30971
-    viewBoxStr.remove("px");
+    viewBoxStr = pkRemoveSubstr(viewBoxStr, PkString("px"));
 
-    QStringList points = viewBoxStr.replace(',', ' ').simplified().split(' ');
+    PkStringList points = pkSplitSkipEmpty(pkReplaceChar(viewBoxStr, u',', u' '), u' ');
     if (points.count() == 4) {
         viewBoxRect.setX(SvgUtil::fromUserSpace(points[0].toDouble()));
         viewBoxRect.setY(SvgUtil::fromUserSpace(points[1].toDouble()));
@@ -171,14 +267,14 @@ bool SvgUtil::parseViewBox(const QDomElement &e,
         scaleY = elementBounds.height() / viewBoxRect.height();
     }
 
-    QTransform viewBoxTransform =
-        QTransform::fromTranslate(-viewBoxRect.x(), -viewBoxRect.y()) *
-        QTransform::fromScale(scaleX, scaleY) *
-        QTransform::fromTranslate(elementBounds.x(), elementBounds.y());
+    PkTransform viewBoxTransform =
+        PkTransform::fromTranslate(-viewBoxRect.x(), -viewBoxRect.y()) *
+        PkTransform::fromScale(scaleX, scaleY) *
+        PkTransform::fromTranslate(elementBounds.x(), elementBounds.y());
 
-    const QString aspectString = e.attribute("preserveAspectRatio");
+    const PkString aspectString = e.attribute("preserveAspectRatio");
     // give initial value if value not defined
-    PreserveAspectRatioParser p( (!aspectString.isEmpty())? aspectString : QString("xMidYMid meet"));
+    PreserveAspectRatioParser p( (!aspectString.isEmpty())? aspectString : PkString("xMidYMid meet"));
     parseAspectRatio(p, elementBounds, viewBoxRect, &viewBoxTransform);
 
     *_viewRect = viewBoxRect;
@@ -187,10 +283,10 @@ bool SvgUtil::parseViewBox(const QDomElement &e,
     return result;
 }
 
-void SvgUtil::parseAspectRatio(const PreserveAspectRatioParser &p, const QRectF &elementBounds, const QRectF &viewBoxRect, QTransform *_viewTransform)
+void SvgUtil::parseAspectRatio(const PreserveAspectRatioParser &p, const PkRectF &elementBounds, const PkRectF &viewBoxRect, PkTransform *_viewTransform)
 {
     if (p.mode != Qt::IgnoreAspectRatio) {
-        QTransform viewBoxTransform = *_viewTransform;
+        PkTransform viewBoxTransform = *_viewTransform;
 
         const qreal tan1 = viewBoxRect.height() / viewBoxRect.width();
         const qreal tan2 = elementBounds.height() / elementBounds.width();
@@ -201,27 +297,27 @@ void SvgUtil::parseAspectRatio(const PreserveAspectRatioParser &p, const QRectF 
                 elementBounds.width() / viewBoxRect.width();
 
         viewBoxTransform =
-            QTransform::fromTranslate(-viewBoxRect.x(), -viewBoxRect.y()) *
-            QTransform::fromScale(uniformScale, uniformScale) *
-            QTransform::fromTranslate(elementBounds.x(), elementBounds.y());
+            PkTransform::fromTranslate(-viewBoxRect.x(), -viewBoxRect.y()) *
+            PkTransform::fromScale(uniformScale, uniformScale) *
+            PkTransform::fromTranslate(elementBounds.x(), elementBounds.y());
 
-        const QPointF viewBoxAnchor = viewBoxTransform.map(p.rectAnchorPoint(viewBoxRect));
-        const QPointF elementAnchor = p.rectAnchorPoint(elementBounds);
-        const QPointF offset = elementAnchor - viewBoxAnchor;
+        const PkPointF viewBoxAnchor = viewBoxTransform.map(p.rectAnchorPoint(viewBoxRect));
+        const PkPointF elementAnchor = p.rectAnchorPoint(elementBounds);
+        const PkPointF offset = elementAnchor - viewBoxAnchor;
 
-        viewBoxTransform = viewBoxTransform * QTransform::fromTranslate(offset.x(), offset.y());
+        viewBoxTransform = viewBoxTransform * PkTransform::fromTranslate(offset.x(), offset.y());
 
         *_viewTransform = viewBoxTransform;
     }
 }
 
-qreal SvgUtil::parseUnit(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, QStringView unit, bool horiz, bool vert, const QRectF &bbox)
+qreal SvgUtil::parseUnit(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const PkString &unit, bool horiz, bool vert, const PkRectF &bbox)
 {
     if (unit.isEmpty())
         return 0.0;
-    QByteArray unitLatin1 = unit.toLatin1();
+    const std::string unitLatin1 = unit.PkToUtf8();
     // TODO : percentage?
-    const char *start = unitLatin1.data();
+    const char *start = unitLatin1.c_str();
     if (!start) {
         return 0.0;
     }
@@ -231,56 +327,56 @@ qreal SvgUtil::parseUnit(SvgGraphicsContext *gc, const KoSvgTextProperties &reso
     return length.value;
 }
 
-KoSvgText::CssLengthPercentage SvgUtil::parseUnitStruct(SvgGraphicsContext *gc, QStringView unit, bool horiz, bool vert, const QRectF &bbox)
+KoSvgText::CssLengthPercentage SvgUtil::parseUnitStruct(SvgGraphicsContext *gc, const PkString &unit, bool horiz, bool vert, const PkRectF &bbox)
 {
     return parseUnitStructImpl(gc, unit, horiz, vert, bbox, true);
 }
 
-KoSvgText::CssLengthPercentage SvgUtil::parseTextUnitStruct(SvgGraphicsContext *gc, QStringView unit)
+KoSvgText::CssLengthPercentage SvgUtil::parseTextUnitStruct(SvgGraphicsContext *gc, const PkString &unit)
 {
-    return parseUnitStructImpl(gc, unit, false, false, QRectF(), false);
+    return parseUnitStructImpl(gc, unit, false, false, PkRectF(), false);
 }
 
-KoSvgText::CssLengthPercentage SvgUtil::parseUnitStructImpl(SvgGraphicsContext *gc, QStringView unit, bool horiz, bool vert, const QRectF &bbox, bool percentageViewBox)
+KoSvgText::CssLengthPercentage SvgUtil::parseUnitStructImpl(SvgGraphicsContext *gc, const PkString &unit, bool horiz, bool vert, const PkRectF &bbox, bool percentageViewBox)
 {
     KoSvgText::CssLengthPercentage length;
 
     if (unit.isEmpty())
         return length;
-    QByteArray unitLatin1 = unit.trimmed().toLatin1();
+    const std::string unitLatin1 = unit.trimmed().PkToUtf8();
     // TODO : percentage?
-    const char *start = unitLatin1.data();
+    const char *start = unitLatin1.c_str();
     if (!start) {
         return length;
     }
     const char *end = parseNumber(start, length.value);
 
-    if (int(end - start) < unit.length()) {
-        if (unit.right(2) == QLatin1String("px"))
+    if (int(end - start) < unit.size()) {
+        if (unit.right(2) == "px")
             length.value = SvgUtil::fromUserSpace(length.value);
-        else if (unit.right(2) == QLatin1String("pt"))
+        else if (unit.right(2) == "pt")
             length.value = ptToPx(gc, length.value);
-        else if (unit.right(2) == QLatin1String("cm"))
+        else if (unit.right(2) == "cm")
             length.value = ptToPx(gc, CM_TO_POINT(length.value));
-        else if (unit.right(2) == QLatin1String("pc"))
+        else if (unit.right(2) == "pc")
             length.value = ptToPx(gc, PI_TO_POINT(length.value));
-        else if (unit.right(2) == QLatin1String("mm"))
+        else if (unit.right(2) == "mm")
             length.value = ptToPx(gc, MM_TO_POINT(length.value));
-        else if (unit.right(2) == QLatin1String("in"))
+        else if (unit.right(2) == "in")
             length.value = ptToPx(gc, INCH_TO_POINT(length.value));
-        else if (unit.right(2) == QLatin1String("em")) {
+        else if (unit.right(2) == "em") {
             length.unit = KoSvgText::CssLengthPercentage::Em;
-        } else if (unit.right(2) == QLatin1String("ex")) {
+        } else if (unit.right(2) == "ex") {
             length.unit = KoSvgText::CssLengthPercentage::Ex;
-        } else if (unit.right(3) == QLatin1String("cap")) {
+        } else if (unit.right(3) == "cap") {
             length.unit = KoSvgText::CssLengthPercentage::Cap;
-        } else if (unit.right(2) == QLatin1String("ch")) {
+        } else if (unit.right(2) == "ch") {
             length.unit = KoSvgText::CssLengthPercentage::Ch;
-        } else if (unit.right(2) == QLatin1String("ic")) {
+        } else if (unit.right(2) == "ic") {
             length.unit = KoSvgText::CssLengthPercentage::Ic;
-        } else if (unit.right(2) == QLatin1String("lh")) {
+        } else if (unit.right(2) == "lh") {
             length.unit = KoSvgText::CssLengthPercentage::Lh;
-        } else if (unit.right(1) == QLatin1Char('%')) {
+        } else if (unit.right(1) == "%") {
 
             if (percentageViewBox) {
                 if (horiz && vert)
@@ -301,7 +397,7 @@ KoSvgText::CssLengthPercentage SvgUtil::parseUnitStructImpl(SvgGraphicsContext *
     return length;
 }
 
-qreal SvgUtil::parseUnitX(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const QString &unit)
+qreal SvgUtil::parseUnitX(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const PkString &unit)
 {
     if (gc->forcePercentage) {
         return SvgUtil::fromPercentage(unit) * gc->currentBoundingBox.width();
@@ -310,7 +406,7 @@ qreal SvgUtil::parseUnitX(SvgGraphicsContext *gc, const KoSvgTextProperties &res
     }
 }
 
-qreal SvgUtil::parseUnitY(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const QString &unit)
+qreal SvgUtil::parseUnitY(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const PkString &unit)
 {
     if (gc->forcePercentage) {
         return SvgUtil::fromPercentage(unit) * gc->currentBoundingBox.height();
@@ -319,7 +415,7 @@ qreal SvgUtil::parseUnitY(SvgGraphicsContext *gc, const KoSvgTextProperties &res
     }
 }
 
-qreal SvgUtil::parseUnitXY(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const QString &unit)
+qreal SvgUtil::parseUnitXY(SvgGraphicsContext *gc, const KoSvgTextProperties &resolved, const PkString &unit)
 {
     if (gc->forcePercentage) {
         const qreal value = SvgUtil::fromPercentage(unit);
@@ -329,21 +425,21 @@ qreal SvgUtil::parseUnitXY(SvgGraphicsContext *gc, const KoSvgTextProperties &re
     }
 }
 
-qreal SvgUtil::parseUnitAngular(SvgGraphicsContext *gc, const QString &unit)
+qreal SvgUtil::parseUnitAngular(SvgGraphicsContext *gc, const PkString &unit)
 {
     Q_UNUSED(gc);
 
     qreal value = 0.0;
 
     if (unit.isEmpty()) return value;
-    QByteArray unitLatin1 = unit.toLower().toLatin1();
+    const std::string unitLatin1 = unit.toLower().PkToUtf8();
 
-    const char *start = unitLatin1.data();
+    const char *start = unitLatin1.c_str();
     if (!start) return value;
 
     const char *end = parseNumber(start, value);
 
-    if (int(end - start) < unit.length()) {
+    if (int(end - start) < unit.size()) {
         if (unit.right(3) == "deg") {
             value = kisDegreesToRadians(value);
         } else if (unit.right(4) == "grad") {
@@ -360,18 +456,18 @@ qreal SvgUtil::parseUnitAngular(SvgGraphicsContext *gc, const QString &unit)
     return value;
 }
 
-qreal SvgUtil::parseNumber(const QString &string)
+qreal SvgUtil::parseNumber(const PkString &string)
 {
     qreal value = 0.0;
 
     if (string.isEmpty()) return value;
-    QByteArray unitLatin1 = string.toLatin1();
+    const std::string unitLatin1 = string.PkToUtf8();
 
-    const char *start = unitLatin1.data();
+    const char *start = unitLatin1.c_str();
     if (!start) return value;
 
     const char *end = parseNumber(start, value);
-    KIS_SAFE_ASSERT_RECOVER_NOOP(int(end - start) == string.length());
+    KIS_SAFE_ASSERT_RECOVER_NOOP(int(end - start) == string.size());
     return value;
 }
 
@@ -429,13 +525,13 @@ const char * SvgUtil::parseNumber(const char *ptr, qreal &number)
     return ptr;
 }
 
-QString SvgUtil::mapExtendedShapeTag(const QString &tagName, const QDomElement &element)
+PkString SvgUtil::mapExtendedShapeTag(const PkString &tagName, const PkXmlElement &element)
 {
-    QString result = tagName;
+    PkString result = tagName;
 
     if (tagName == "path") {
-        QString kritaType = element.attribute("krita:type", "");
-        QString sodipodiType = element.attribute("sodipodi:type", "");
+        PkString kritaType = element.attribute("krita:type", "");
+        PkString sodipodiType = element.attribute("sodipodi:type", "");
 
         if (kritaType == "arc") {
             result = "krita:arc";
@@ -447,43 +543,44 @@ QString SvgUtil::mapExtendedShapeTag(const QString &tagName, const QDomElement &
     return result;
 }
 
-QStringList SvgUtil::simplifyList(const QString &str)
+PkStringList SvgUtil::simplifyList(const PkString &str)
 {
-    QString attribute = str;
-    attribute.replace(',', ' ');
-    attribute.remove('\r');
-    attribute.remove('\n');
-    return attribute.simplified().split(' ', Qt::SkipEmptyParts);
+    PkString attribute = str;
+    attribute = pkReplaceChar(attribute, u',', u' ');
+    attribute = pkRemoveChar(attribute, u'\r');
+    attribute = pkRemoveChar(attribute, u'\n');
+    return pkSplitSkipEmpty(pkSimplified(attribute), u' ');
 }
 
-SvgUtil::PreserveAspectRatioParser::PreserveAspectRatioParser(const QString &str)
+SvgUtil::PreserveAspectRatioParser::PreserveAspectRatioParser(const PkString &str)
 {
-    QRegularExpression rexp("(defer)?\\s*(none|(x(Min|Max|Mid)Y(Min|Max|Mid)))\\s*(meet|slice)?", QRegularExpression::CaseInsensitiveOption);
-    QRegularExpressionMatch match = rexp.match(str.toLower());
+    std::regex rexp("(defer)?\\s*(none|(x(Min|Max|Mid)Y(Min|Max|Mid)))\\s*(meet|slice)?", std::regex::icase);
+    std::smatch match;
+    const std::string lowered = str.toLower().PkToUtf8();
 
-    if (match.hasMatch()) {
-        if (match.captured(1) == "defer") {
+    if (std::regex_search(lowered, match, rexp)) {
+        if (match[1].str() == "defer") {
             defer = true;
         }
 
-        if (match.captured(2) != "none") {
-            xAlignment = alignmentFromString(match.captured(4));
-            yAlignment = alignmentFromString(match.captured(5));
-            mode = match.captured(6) == "slice" ?
+        if (match[2].str() != "none") {
+            xAlignment = alignmentFromString(PkString(match[4].str().c_str()));
+            yAlignment = alignmentFromString(PkString(match[5].str().c_str()));
+            mode = match[6].str() == "slice" ?
                 Qt::KeepAspectRatioByExpanding : Qt::KeepAspectRatio;
         }
     }
 }
 
-QPointF SvgUtil::PreserveAspectRatioParser::rectAnchorPoint(const QRectF &rc) const
+PkPointF SvgUtil::PreserveAspectRatioParser::rectAnchorPoint(const PkRectF &rc) const
 {
-    return QPointF(alignedValue(rc.x(), rc.x() + rc.width(), xAlignment),
-                   alignedValue(rc.y(), rc.y() + rc.height(), yAlignment));
+    return PkPointF(alignedValue(rc.x(), rc.x() + rc.width(), xAlignment),
+                    alignedValue(rc.y(), rc.y() + rc.height(), yAlignment));
 }
 
-QString SvgUtil::PreserveAspectRatioParser::toString() const
+PkString SvgUtil::PreserveAspectRatioParser::toString() const
 {
-    QString result;
+    PkString result;
 
     if (!defer &&
         xAlignment == Middle &&
@@ -500,7 +597,7 @@ QString SvgUtil::PreserveAspectRatioParser::toString() const
     if (mode == Qt::IgnoreAspectRatio) {
         result += "none";
     } else {
-        result += QString("x%1Y%2")
+        result += PkString("x%1Y%2")
             .arg(alignmentToString(xAlignment))
             .arg(alignmentToString(yAlignment));
 
@@ -512,13 +609,13 @@ QString SvgUtil::PreserveAspectRatioParser::toString() const
     return result;
 }
 
-SvgUtil::PreserveAspectRatioParser::Alignment SvgUtil::PreserveAspectRatioParser::alignmentFromString(const QString &str) const {
+SvgUtil::PreserveAspectRatioParser::Alignment SvgUtil::PreserveAspectRatioParser::alignmentFromString(const PkString &str) const {
     return
         str == "max" ? Max :
         str == "mid" ? Middle : Min;
 }
 
-QString SvgUtil::PreserveAspectRatioParser::alignmentToString(SvgUtil::PreserveAspectRatioParser::Alignment alignment) const
+PkString SvgUtil::PreserveAspectRatioParser::alignmentToString(SvgUtil::PreserveAspectRatioParser::Alignment alignment) const
 {
     return
         alignment == Max ? "Max" :
