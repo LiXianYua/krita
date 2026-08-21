@@ -6,9 +6,9 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoPathPointMoveCommand.h"
 #include "KoPathPoint.h"
-#include <klocalizedstring.h>
 #include "kis_command_ids.h"
 #include "krita_container_utils.h"
 #include <KoShapeBulkActionLock.h>
@@ -19,18 +19,18 @@ public:
     KoPathPointMoveCommandPrivate() { }
     void applyOffset(qreal factor);
 
-    QMap<KoPathPointData, QPointF > points;
-    QSet<KoPathShape*> paths;
+    PkMap<KoPathPointData, PkPointF > points;
+    PkSet<KoPathShape*> paths;
 };
 
 
-KoPathPointMoveCommand::KoPathPointMoveCommand(const QList<KoPathPointData> &pointData, const QPointF &offset, KUndo2Command *parent)
+KoPathPointMoveCommand::KoPathPointMoveCommand(const PkList<KoPathPointData> &pointData, const PkPointF &offset, KUndo2Command *parent)
     : KUndo2Command(parent),
     d(new KoPathPointMoveCommandPrivate())
 {
-    setText(kundo2_i18n("Move points"));
+    setText(kundo2_text("Move points"));
 
-    foreach (const KoPathPointData &data, pointData) {
+    for (const KoPathPointData &data : pointData) {
         if (!d->points.contains(data)) {
             d->points[data] = offset;
             d->paths.insert(data.pathShape);
@@ -38,13 +38,13 @@ KoPathPointMoveCommand::KoPathPointMoveCommand(const QList<KoPathPointData> &poi
     }
 }
 
-KoPathPointMoveCommand::KoPathPointMoveCommand(const QList<KoPathPointData> &pointData, const QList<QPointF> &offsets, KUndo2Command *parent)
+KoPathPointMoveCommand::KoPathPointMoveCommand(const PkList<KoPathPointData> &pointData, const PkList<PkPointF> &offsets, KUndo2Command *parent)
     : KUndo2Command(parent),
     d(new KoPathPointMoveCommandPrivate())
 {
     Q_ASSERT(pointData.count() == offsets.count());
 
-    setText(kundo2_i18n("Move points"));
+    setText(kundo2_text("Move points"));
 
     uint dataCount = pointData.count();
     for (uint i = 0; i < dataCount; ++i) {
@@ -100,17 +100,17 @@ bool KoPathPointMoveCommand::mergeWith(const KUndo2Command *command)
 
 void KoPathPointMoveCommandPrivate::applyOffset(qreal factor)
 {
-    QList<KoShape*> shapes;
+    PkList<KoShape*> shapes;
     std::copy(paths.begin(), paths.end(), std::back_inserter(shapes));
 
     KoShapeBulkActionLock lock(shapes);
 
-    QMap<KoPathPointData, QPointF>::iterator it(points.begin());
+    PkMap<KoPathPointData, PkPointF>::iterator it(points.begin());
     for (; it != points.end(); ++it) {
         KoPathShape *path = it.key().pathShape;
         // transform offset from document to shape coordinate system
-        QPointF shapeOffset = path->documentToShape(factor*it.value()) - path->documentToShape(QPointF());
-        QTransform matrix;
+        PkPointF shapeOffset = path->documentToShape(factor*it.value()) - path->documentToShape(PkPointF());
+        PkTransform matrix;
         matrix.translate(shapeOffset.x(), shapeOffset.y());
 
         KoPathPoint *p = path->pointByIndex(it.key().pointIndex);
@@ -118,7 +118,7 @@ void KoPathPointMoveCommandPrivate::applyOffset(qreal factor)
             p->map(matrix);
     }
 
-    foreach (KoPathShape *path, paths) {
+    for (KoPathShape *path : paths) {
         path->normalize();
     }
 

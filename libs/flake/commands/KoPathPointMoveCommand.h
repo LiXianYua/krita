@@ -11,12 +11,13 @@
 
 #include "kritaflake_export.h"
 
+#include <PkXmlCompat.h>
 #include <kundo2command.h>
 
 #include "KoPathPointData.h"
 
 class KoPathPointMoveCommandPrivate;
-class QPointF;
+class PkPointF;
 
 /// The undo / redo command for path point moving.
 class KRITAFLAKE_EXPORT KoPathPointMoveCommand : public KUndo2Command
@@ -28,7 +29,7 @@ public:
      * @param offset the offset by which the point is moved in document coordinates
      * @param parent the parent command used for macro commands
      */
-    KoPathPointMoveCommand(const QList<KoPathPointData> &pointData, const QPointF &offset, KUndo2Command *parent = 0);
+    KoPathPointMoveCommand(const PkList<KoPathPointData> &pointData, const PkPointF &offset, KUndo2Command *parent = 0);
 
     /**
     * Command to move path points.
@@ -36,7 +37,7 @@ public:
     * @param offsets the offsets by which the points are moved in document coordinates
     * @param parent the parent command used for macro commands
     */
-    KoPathPointMoveCommand(const QList<KoPathPointData> &pointData, const QList<QPointF> &offsets, KUndo2Command *parent = 0);
+    KoPathPointMoveCommand(const PkList<KoPathPointData> &pointData, const PkList<PkPointF> &offsets, KUndo2Command *parent = 0);
 
     ~KoPathPointMoveCommand() override;
 
