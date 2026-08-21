@@ -13,6 +13,10 @@
 
 #include "kritaglobal_export.h"
 
+#include <PkGlobal.h>
+#include <compat/QFlags>
+#include <PkTransform.h>
+
 #include <PkString.h>
 #include <PkDebug.h>
 #include <type_traits>
@@ -211,7 +215,6 @@ private:
 KRITAGLOBAL_EXPORT PkDebug operator<<(PkDebug, const KoUnit &);
 #endif
 
-Q_DECLARE_METATYPE(KoUnit)
 Q_DECLARE_OPERATORS_FOR_FLAGS(KoUnit::ListOptions)
 
 #endif

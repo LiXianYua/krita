@@ -16,6 +16,28 @@
 #include <algorithm>
 #include <cmath>
 
+// PkString 无 simplified()/remove()/truncate()/length()，解析单位串需要「去掉全部
+// 空白再找首个字母」。在 UTF-8 字节域过滤：ASCII 空白都是单字节，直接删；多字节
+// UTF-8 序列的字节都 >= 0x80，不会被误判成空白，原样透传。
+static PkString pkStripWhitespace(const PkString &s)
+{
+    const std::string utf8 = s.PkToUtf8();
+    std::string out;
+    out.reserve(utf8.size());
+    for (char c : utf8) {
+        if (c != ' ' && c != '\t' && c != '\n' && c != '\r' && c != '\f' && c != '\v') {
+            out += c;
+        }
+    }
+    return PkString::PkFromUtf8(out.data(), static_cast<int>(out.size()));
+}
+
+// 单位符号（mm/cm/inch/deg/rad...）都是 ASCII 字母；数字里只允许 'e' 作指数标记。
+static bool pkIsAsciiLetter(char16_t c)
+{
+    return (c >= u'a' && c <= u'z') || (c >= u'A' && c <= u'Z');
+}
+
 // ensure the same order as in KoUnit::Unit
 static const char* const unitNameList[KoUnit::TypeCount] =
 {
@@ -33,23 +55,23 @@ PkString KoUnit::unitDescription(KoUnit::Type type)
 {
     switch (type) {
     case KoUnit::Millimeter:
-        return i18n("Millimeters (mm)");
+        return PkString("Millimeters (mm)");
     case KoUnit::Centimeter:
-        return i18n("Centimeters (cm)");
+        return PkString("Centimeters (cm)");
     case KoUnit::Decimeter:
-        return i18n("Decimeters (dm)");
+        return PkString("Decimeters (dm)");
     case KoUnit::Inch:
-        return i18n("Inches (in)");
+        return PkString("Inches (in)");
     case KoUnit::Pica:
-        return i18n("Pica (pi)");
+        return PkString("Pica (pi)");
     case KoUnit::Cicero:
-        return i18n("Cicero (cc)");
+        return PkString("Cicero (cc)");
     case KoUnit::Point:
-        return i18n("Points (pt)");
+        return PkString("Points (pt)");
     case KoUnit::Pixel:
-        return i18n("Pixels (px)");
+        return PkString("Pixels (px)");
     default:
-        return i18n("Unsupported unit");
+        return PkString("Unsupported unit");
     }
 }
 
@@ -190,7 +212,7 @@ qreal KoUnit::toUserValue(qreal ptValue, bool rounding) const
 
 PkString KoUnit::toUserStringValue(qreal ptValue) const
 {
-    return PkLocale().toString(toUserValue(ptValue));
+    return PkString("%1").arg(toUserValue(ptValue));
 }
 
 qreal KoUnit::fromUserValue(qreal value) const
@@ -218,7 +240,7 @@ qreal KoUnit::fromUserValue(qreal value) const
 
 qreal KoUnit::fromUserValue(const PkString &value, bool *ok) const
 {
-    return fromUserValue(PkLocale().toDouble(value, ok));
+    return fromUserValue(value.toDouble(ok));
 }
 
 qreal KoUnit::parseValue(const PkString& _value, qreal defaultVal)
@@ -226,13 +248,13 @@ qreal KoUnit::parseValue(const PkString& _value, qreal defaultVal)
     if (_value.isEmpty())
         return defaultVal;
 
-    PkString value(_value.simplified());
-    value.remove(QLatin1Char(' '));
+    const PkString value = pkStripWhitespace(_value);
 
     int firstLetter = -1;
-    for (int i = 0; i < value.length(); ++i) {
-        if (value.at(i).isLetter()) {
-            if (value.at(i) == QLatin1Char('e'))
+    for (int i = 0; i < value.size(); ++i) {
+        const char16_t c = value.at(i);
+        if (pkIsAsciiLetter(c)) {
+            if (c == u'e')
                 continue;
             firstLetter = i;
             break;
@@ -243,10 +265,9 @@ qreal KoUnit::parseValue(const PkString& _value, qreal defaultVal)
         return value.toDouble();
 
     const PkString symbol = value.mid(firstLetter);
-    value.truncate(firstLetter);
-    const qreal val = value.toDouble();
+    const qreal val = value.left(firstLetter).toDouble();
 
-    if (symbol == QLatin1String("pt"))
+    if (symbol == PkString("pt"))
         return val;
 
     bool ok;
@@ -254,9 +275,9 @@ qreal KoUnit::parseValue(const PkString& _value, qreal defaultVal)
     if (ok)
         return u.fromUserValue(val);
 
-    if (symbol == QLatin1String("m"))
+    if (symbol == PkString("m"))
         return DM_TO_POINT(val * 10.0);
-    else if (symbol == QLatin1String("km"))
+    else if (symbol == PkString("km"))
         return DM_TO_POINT(val * 10000.0);
 
     // TODO : add support for mi/ft ?
@@ -267,7 +288,7 @@ KoUnit KoUnit::fromSymbol(const PkString &symbol, bool *ok)
 {
     Type result = Point;
 
-    if (symbol == QLatin1String("inch") /*compat*/) {
+    if (symbol == PkString("inch") /*compat*/) {
         result = Inch;
         if (ok)
             *ok = true;
@@ -276,7 +297,7 @@ KoUnit KoUnit::fromSymbol(const PkString &symbol, bool *ok)
             *ok = false;
 
         for (int i = 0; i < TypeCount; ++i) {
-            if (symbol == QLatin1String(unitNameList[i])) {
+            if (symbol == PkString(unitNameList[i])) {
                 result = static_cast<Type>(i);
                 if (ok)
                     *ok = true;
@@ -341,7 +362,7 @@ qreal KoUnit::convertFromUnitToUnit(const qreal value, const KoUnit &fromUnit, c
 
 PkString KoUnit::symbol() const
 {
-    return QLatin1String(unitNameList[m_type]);
+    return PkString(unitNameList[m_type]);
 }
 
 qreal KoUnit::parseAngle(const PkString& _value, qreal defaultVal)
@@ -349,13 +370,13 @@ qreal KoUnit::parseAngle(const PkString& _value, qreal defaultVal)
     if (_value.isEmpty())
         return defaultVal;
 
-    PkString value(_value.simplified());
-    value.remove(QLatin1Char(' '));
+    const PkString value = pkStripWhitespace(_value);
 
     int firstLetter = -1;
-    for (int i = 0; i < value.length(); ++i) {
-        if (value.at(i).isLetter()) {
-            if (value.at(i) == QLatin1Char('e'))
+    for (int i = 0; i < value.size(); ++i) {
+        const char16_t c = value.at(i);
+        if (pkIsAsciiLetter(c)) {
+            if (c == u'e')
                 continue;
             firstLetter = i;
             break;
@@ -366,14 +387,13 @@ qreal KoUnit::parseAngle(const PkString& _value, qreal defaultVal)
         return value.toDouble();
 
     const PkString type = value.mid(firstLetter);
-    value.truncate(firstLetter);
-    const qreal val = value.toDouble();
+    const qreal val = value.left(firstLetter).toDouble();
 
-    if (type == QLatin1String("deg"))
+    if (type == PkString("deg"))
         return val;
-    else if (type == QLatin1String("rad"))
+    else if (type == PkString("rad"))
         return val * 180 / M_PI;
-    else if (type == QLatin1String("grad"))
+    else if (type == PkString("grad"))
         return val * 0.9;
 
     return defaultVal;
