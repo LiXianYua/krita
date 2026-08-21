@@ -7,20 +7,12 @@
 #include "KisSynchronizedConnection.h"
 
 #include <PkThread.h>
+#include <PkThreadCallQueue.h>
 
 #include <kis_assert.h>
 
-/**
- * @brief The KisSynchronizedConnectionEventTypeRegistrar is a simple
- * class to register PkEvent type in the Qt's system
- */
-struct KisSynchronizedConnectionEventTypeRegistrar
+struct KisSynchronizedConnectionState
 {
-    KisSynchronizedConnectionEventTypeRegistrar() {
-        eventType = PkEvent::registerEventType(PkEvent::User + 1000);
-    }
-
-    int eventType = -1;
     bool enableAutoModeForUnittests = false;
 };
 
@@ -29,9 +21,9 @@ struct KisBarrierCallbackContainer
     std::function<void()> callback;
 };
 
-static KisSynchronizedConnectionEventTypeRegistrar *s_instance()
+static KisSynchronizedConnectionState *s_state()
 {
-    static KisSynchronizedConnectionEventTypeRegistrar instance;
+    static KisSynchronizedConnectionState instance;
     return &instance;
 }
 static KisBarrierCallbackContainer *s_barrier()
@@ -41,33 +33,8 @@ static KisBarrierCallbackContainer *s_barrier()
 }
 
 /************************************************************************/
-/*            KisSynchronizedConnectionEvent                            */
-/************************************************************************/
-
-KisSynchronizedConnectionEvent::KisSynchronizedConnectionEvent(PkObject *_destination)
-    : PkEvent(PkEvent::Type(s_instance()->eventType)),
-      destination(_destination)
-{
-}
-
-KisSynchronizedConnectionEvent::KisSynchronizedConnectionEvent(const KisSynchronizedConnectionEvent &rhs)
-    : PkEvent(PkEvent::Type(s_instance()->eventType)),
-      destination(rhs.destination)
-{
-}
-
-KisSynchronizedConnectionEvent::~KisSynchronizedConnectionEvent()
-{
-}
-
-/************************************************************************/
 /*            KisSynchronizedConnectionBase                             */
 /************************************************************************/
-
-int KisSynchronizedConnectionBase::eventType()
-{
-    return s_instance()->eventType;
-}
 
 void KisSynchronizedConnectionBase::registerSynchronizedEventBarrier(std::function<void ()> callback)
 {
@@ -77,57 +44,36 @@ void KisSynchronizedConnectionBase::registerSynchronizedEventBarrier(std::functi
 
 void KisSynchronizedConnectionBase::setAutoModeForUnittestsEnabled(bool value)
 {
-    s_instance()->enableAutoModeForUnittests = value;
+    s_state()->enableAutoModeForUnittests = value;
 }
 
 bool KisSynchronizedConnectionBase::isAutoModeForUnittestsEnabled()
 {
-    return s_instance()->enableAutoModeForUnittests;
+    return s_state()->enableAutoModeForUnittests;
 }
 
 void KisSynchronizedConnectionBase::forceDeliverAllSynchronizedEvents()
 {
-    /**
-     * We need to first make sure that all the events are delivered
-     * to the applications object and then make sure they are processed
-     * whatever the state of the recursion is (this call is called from
-     * python filters only)
-     */
-    qApp->processEvents(PkEventLoop::ExcludeUserInputEvents);
+    // 抽干当前线程队列里排队中的同步连接投递，然后执行屏障回调。
+    PkThreadCallQueue::processPendingCalls();
     KIS_SAFE_ASSERT_RECOVER_RETURN(s_barrier()->callback);
     s_barrier()->callback();
 }
 
-bool KisSynchronizedConnectionBase::event(PkEvent *event)
-{
-    if (event->type() == s_instance()->eventType) {
-        KisSynchronizedConnectionEvent *typedEvent =
-                static_cast<KisSynchronizedConnectionEvent*>(event);
-
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(typedEvent->destination == this, false);
-        deliverEventToReceiver();
-        return true;
-    }
-
-    return PkObject::event(event);
-}
-
 void KisSynchronizedConnectionBase::postEvent()
 {
-    if (s_instance()->enableAutoModeForUnittests && PkThread::currentThread() == this->thread()) {
-        /// TODO: check if we need s_barrier at all now!
-
-        /// TODO: This assert triggers in unittests that don't have a fully-featured
-        /// KisApplication object. Perhaps we should add a fake callback to KISTEST_MAIN
-        /// KIS_SAFE_ASSERT_RECOVER_NOOP(s_barrier()->callback);
-
+    if (s_state()->enableAutoModeForUnittests &&
+            PkThread::currentThreadId() == this->thread()) {
         if (s_barrier()->callback) {
             s_barrier()->callback();
         }
-
         deliverEventToReceiver();
     } else {
-        qApp->postEvent(this, new KisSynchronizedConnectionEvent(this));
+        // R-30 迁移：postEvent 的跨线程投递改用 PkThreadCallQueue。
+        // 目标线程必须安装显式 pump（PkThreadCallQueue::processPendingCalls）
+        // 才会真正执行——pump 所有权归 F-00，本任务只迁移投递机制。
+        PkThreadCallQueue::post(this->thread(), [this]() {
+            deliverEventToReceiver();
+        });
     }
 }
-

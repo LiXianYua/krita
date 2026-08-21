@@ -9,32 +9,18 @@
 
 #include <kritaglobal_export.h>
 
+#include <compat/QObject>
+
 #include <PkObject.h>
 #include <PkConnect.h>
 
 #include <KisMpl.h>
-#include <PkMutex.h>
 #include <PkMutex.h>
 #include <PkPointer.h>
 #include <boost/bind/bind.hpp>
 #include <functional>
 #include <kis_assert.h>
 #include <queue>
-
-/**
- * @brief Event type used for synchronizing connection in KisSynchronizedConnection
- *
- * KisApplication will recognize this event type and postpone it until the
- * recursion state is over
- */
-struct KRITAGLOBAL_EXPORT KisSynchronizedConnectionEvent : public PkEvent
-{
-    KisSynchronizedConnectionEvent(PkObject *_destination);
-    KisSynchronizedConnectionEvent(const KisSynchronizedConnectionEvent &rhs);
-    ~KisSynchronizedConnectionEvent() override;
-
-    const PkPointer<PkObject> destination;
-};
 
 /**
  * @brief A base class for KisSynchronizedConnection
@@ -48,7 +34,6 @@ struct KRITAGLOBAL_EXPORT KisSynchronizedConnectionEvent : public PkEvent
 class KRITAGLOBAL_EXPORT KisSynchronizedConnectionBase : public PkObject
 {
 public:
-    static int eventType();
     static void registerSynchronizedEventBarrier(std::function<void()> callback);
 
     /**
@@ -62,9 +47,6 @@ public:
     static bool isAutoModeForUnittestsEnabled();
 
     static void forceDeliverAllSynchronizedEvents();
-
-protected:
-    bool event(PkEvent *event) override;
 
 protected:
     virtual void deliverEventToReceiver() = 0;
@@ -98,9 +80,9 @@ protected:
  * behaves as Qt::AutoConnection, that is, delivers event right away, skipping
  * the event loop.
  *
- * Under the hood the class uses a custom event (KisSynchronizedConnectionEvent),
- * which is recognized by KisApplication and postponed until the recursion state
- * is over.
+ * Under the hood the class delivers the queued invocation through
+ * PkThreadCallQueue to the destination thread, so it runs in that thread's
+ * explicit pump (PkThreadCallQueue::processPendingCalls) without recursion.
  *
  * @param Args... the list of arguments that are passed through the signal
  *
