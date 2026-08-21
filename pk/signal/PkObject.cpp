@@ -20,7 +20,7 @@ void PkObject::deleteLater()
     auto alive = m_alive;
     auto lifecycle = m_lifecycle;
     PkThreadCallQueue::post(thread(), [object, alive, lifecycle] {
-        std::lock_guard<std::recursive_mutex> claim(lifecycle->claim);
+        std::lock_guard<std::recursive_mutex> claim(*lifecycle->claim);
         if (!lifecycle->destroying && alive->load()) {
             lifecycle->destroying = true;
             delete object;
@@ -33,7 +33,7 @@ PkObject::~PkObject()
     // The claim is per object.  A parent deletion and this object's deferred
     // callback serialize with each other, without blocking unrelated object
     // destructors or holding a process-wide lock across derived destructors.
-    std::lock_guard<std::recursive_mutex> claim(m_lifecycle->claim);
+    std::lock_guard<std::recursive_mutex> claim(*m_lifecycle->claim);
     m_lifecycle->destroying = true;
     // 1. 断开所有连接：把双方列表里条目的 state->alive 置 false 并清空。
     disconnectAllOutgoing();
@@ -57,7 +57,7 @@ PkObject::~PkObject()
             m_children.erase(m_children.begin());
             m_childLifecycle.erase(m_childLifecycle.begin());
         }
-        std::lock_guard<std::recursive_mutex> childClaim(childLifecycle->claim);
+        std::lock_guard<std::recursive_mutex> childClaim(*childLifecycle->claim);
         if (!childLifecycle->destroying) {
             childLifecycle->destroying = true;
             delete child;
@@ -143,4 +143,12 @@ PkObject* PkObject::sender()
 {
     auto& stack = s_emitStack();
     return stack.empty() ? nullptr : stack.back();
+}
+
+PkCallLifetime PkObject::callLifetime() const
+{
+    // R-34 Task 4：把析构用的 claim 锁与存活标志一起交给投递侧。析构持同一
+    // 把 claim（见 ~PkObject 顶部），投递执行侧在 claim 下重查 alive，两者
+    // 串行化，关闭「对象先死 + 目标线程后 pump」的悬垂 UB。
+    return { m_lifecycle->claim, m_alive };
 }

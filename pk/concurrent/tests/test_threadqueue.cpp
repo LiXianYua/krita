@@ -4,6 +4,8 @@
 #include "../PkEventLoop.h"
 #include <atomic>
 #include <chrono>
+#include <memory>
+#include <mutex>
 #include <thread>
 #include <vector>
 #include <stdexcept>
@@ -470,6 +472,44 @@ void PkThreadCallQueueSelfTest::testPostDoesNotDiscardOwnInboundQueueOnOutboundP
 
     // 清理 worker 投给主线程自己的那条 no-op 调用，不留垃圾给后续用例。
     PkThreadCallQueue::processPendingCalls();
+}
+
+void PkThreadCallQueueSelfTest::testPostWithLifetimeGuard()
+{
+    // R-34 Task 4：三参 post(target, fn, PkCallLifetime) —— 存活 lifetime 的
+    // 调用正常执行。预热（理由同 testProcessEventsProcessesOneSnapshotOnly）：
+    // 本用例"先 post 给自己、再 processPendingCalls()"，必须先消耗掉 C-1 的
+    // 一次性"首次触达丢弃陈旧条目"判定，否则 post 进去的条目会被当成陈旧
+    // 条目一并清空（PkThreadCallQueue.h 类头注释"预热"那段）。
+    PkThreadCallQueue::warmUpCurrentThread();
+    auto claim = std::make_shared<std::recursive_mutex>();
+    auto alive = std::make_shared<std::atomic<bool>>(true);
+    PkCallLifetime lt{claim, alive};
+    int calls = 0;
+    PkThreadCallQueue::post(PkThread::currentThreadId(),
+                            [&calls]{ ++calls; }, lt);
+    const int n = PkThreadCallQueue::processPendingCalls();
+    PK_COMPARE(n, 1);
+    PK_COMPARE(calls, 1);
+}
+
+void PkThreadCallQueueSelfTest::testPostWithLifetimeGuardDroppedAfterDeath()
+{
+    // R-34 Task 4：对象已"析构"（在 claim 下置 alive=false——PkObject 析构持
+    // 同一 claim 做同样的事）后，排队的调用在 pump 时被静默丢弃，不执行 fn。
+    // 预热理由同上。
+    PkThreadCallQueue::warmUpCurrentThread();
+    auto claim = std::make_shared<std::recursive_mutex>();
+    auto alive = std::make_shared<std::atomic<bool>>(true);
+    PkCallLifetime lt{claim, alive};
+    int calls = 0;
+    PkThreadCallQueue::post(PkThread::currentThreadId(),
+                            [&calls]{ ++calls; }, lt);
+    // 模拟对象析构：在 claim 下置 alive=false（对齐 PkObject 析构的持锁语义）。
+    { std::lock_guard<std::recursive_mutex> l(*claim); alive->store(false); }
+    const int n = PkThreadCallQueue::processPendingCalls();
+    PK_COMPARE(n, 1);
+    PK_COMPARE(calls, 0);
 }
 
 void PkThreadCallQueueSelfTest::testWarmUpReturnsCurrentThreadIdAfterDiscardingStaleEntries()

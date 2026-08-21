@@ -1,6 +1,9 @@
 #pragma once
-#include <functional>
+#include <atomic>
 #include <cstddef>
+#include <functional>
+#include <memory>
+#include <mutex>
 #include <stdexcept>
 #include "PkThread.h"
 
@@ -64,6 +67,20 @@ public:
               "or the target thread exited without pumping it)") {}
 };
 
+// R-34 Task 4：post(target, fn, lt) 三参重载的对象存活保护句柄。
+// - claim：与目标对象的析构共享的 recursive_mutex。执行侧在 pump 时先锁它，
+//   与析构串行化（析构持同一把锁），保证「对象正在析构 / 已析构」不会与
+//   排队调用并发触碰对象。
+// - alive：目标对象的存活标志（PkObject::m_alive 的别名视图）。执行侧在
+//   claim 下重查它，对象已析构（false）则静默丢弃本次调用——对齐 Qt「析构
+//   时清除已投递的 posted events」的语义。
+// 由 PkObject::callLifetime() 产出；消费方接线（KisSynchronizedConnection、
+// activateSignal 的 queued 投递）是 S 线的活，本任务只提供机制。
+struct PkCallLifetime {
+    std::shared_ptr<std::recursive_mutex> claim;
+    std::shared_ptr<std::atomic<bool>> alive;
+};
+
 class PkThreadCallQueue {
 public:
     // 投递一个待执行调用到 target 线程的队列，立即返回，不等待执行。
@@ -74,6 +91,13 @@ public:
     // 唯一合适位置是 processPendingCalls()，因为只有那里才是"消费自己的
     // 队列"，见该方法的注释）。
     static void post(PkThreadId target, std::function<void()> fn);
+
+    // R-34 Task 4：带对象存活保护的重载。语义与两参 post() 相同，差别只在
+    // 执行侧——目标线程 pump 时先在 lt.claim 下重查 lt.alive：对象已析构
+    // （alive==false）则静默丢弃，不执行 fn；否则照常执行。与 PkObject 析构
+    // 串行化（析构持同一 claim），关闭「对象先死 + 目标线程后 pump」的悬垂
+    // UB。PkCallLifetime 见上方 struct。
+    static void post(PkThreadId target, std::function<void()> fn, PkCallLifetime lt);
 
     // 投递并阻塞调用线程，直到 target 线程通过 processPendingCalls() 把这次
     // 调用真正执行完、或者这次调用被丢弃为止。前者：fn() 若抛出异常，

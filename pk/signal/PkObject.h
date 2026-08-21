@@ -81,6 +81,12 @@ public:
     // 析构时置 false；QPointer 持有 weak 视图据此判断 isNull()。
     std::shared_ptr<std::atomic<bool>> aliveFlag() const { return m_alive; }
 
+    // R-34 Task 4：给跨线程排队投递用的对象存活句柄（claim + alive）。
+    // 消费方用它调 PkThreadCallQueue::post(target, fn, callLifetime())——
+    // 目标线程 pump 时在 claim 下重查 alive，对象已析构则静默丢弃调用，
+    // 与 PkObject 析构串行化（析构持同一 claim）。接线归 S 线。
+    PkCallLifetime callLifetime() const;
+
     // 析构时断开与 this 相关的全部连接。
     void disconnectAllOutgoing();
     void disconnectAllIncoming();
@@ -95,7 +101,12 @@ protected:
 
 private:
     struct LifecycleState {
-        std::recursive_mutex claim;
+        // R-34 Task 4：从裸 recursive_mutex 改成 shared_ptr——析构与排队投递
+        // （PkThreadCallQueue::post 三参重载）共享同一把锁，让投递侧能借
+        // PkObject::callLifetime() 把锁与存活标志一起传过去，在目标线程
+        // pump 时与析构串行化。
+        std::shared_ptr<std::recursive_mutex> claim =
+            std::make_shared<std::recursive_mutex>();
         bool destroying = false;
         std::atomic<bool> deleteScheduled{false};
     };

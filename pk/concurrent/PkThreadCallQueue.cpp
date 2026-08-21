@@ -82,6 +82,22 @@ void PkThreadCallQueue::post(PkThreadId target, std::function<void()> fn)
     r.queues[target].push_back(std::move(fn));
 }
 
+void PkThreadCallQueue::post(PkThreadId target, std::function<void()> fn, PkCallLifetime lt)
+{
+    // R-34 Task 4：对象存活保护重载。执行侧在 lt.claim 下重查 lt.alive——
+    // 与 PkObject 析构串行化（析构持同一 claim），对象已析构则静默丢弃，
+    // 对齐 Qt「析构时清除已投递的 posted events」。lt 按值捕获进闭包，让
+    // claim/alive 的 shared_ptr 引用计数撑到目标线程执行（或队列清理）为止。
+    Registry& r = registry();
+    PkMutexLocker lock(&r.mutex);
+    r.queues[target].push_back(
+        [fn = std::move(fn), lt = std::move(lt)]() mutable {
+            std::lock_guard<std::recursive_mutex> claim(*lt.claim);
+            if (!lt.alive->load()) return;   // 对象已析构，静默丢弃
+            fn();
+        });
+}
+
 void PkThreadCallQueue::postBlocking(PkThreadId target, std::function<void()> fn)
 {
     // NEW-C1 修复：C-1 的 ThreadRegistryGuard 丢弃陈旧条目时，做法是直接
