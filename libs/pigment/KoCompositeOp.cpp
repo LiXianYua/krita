@@ -12,35 +12,35 @@
 #include "KoColorSpace.h"
 #include "KoCompositeOpRegistry.h"
 
-static QString compositeOpDisplayName(const QString &id)
+static PkString compositeOpDisplayName(const PkString &id)
 {
     return KoCompositeOpRegistry::instance().getCompositeOpDisplayName(id);
 }
 
-static QString categoryDisplayName(const QString &id)
+static PkString categoryDisplayName(const PkString &id)
 {
     return KoCompositeOpRegistry::instance().getCategoryDisplayName(id);
 }
 
 #define LAZY_STATIC_CATEGORY_DISPLAY_NAME(n) \
     []() { \
-        static const QString name = categoryDisplayName(QStringLiteral(n)); \
+        static const PkString name = categoryDisplayName(PkString(n)); \
         return name; \
     }()
 
-QString KoCompositeOp::categoryArithmetic() { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("arithmetic"); }
-QString KoCompositeOp::categoryBinary()     { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("binary");     }
-QString KoCompositeOp::categoryModulo()     { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("modulo");     }
-QString KoCompositeOp::categoryNegative()   { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("negative");   }
-QString KoCompositeOp::categoryLight()      { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("light");      }
-QString KoCompositeOp::categoryDark()       { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("dark");       }
-QString KoCompositeOp::categoryHSY()        { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("hsy");        }
-QString KoCompositeOp::categoryHSI()        { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("hsi");        }
-QString KoCompositeOp::categoryHSL()        { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("hsl");        }
-QString KoCompositeOp::categoryHSV()        { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("hsv");        }
-QString KoCompositeOp::categoryMix()        { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("mix");        }
-QString KoCompositeOp::categoryMisc()       { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("misc");       }
-QString KoCompositeOp::categoryQuadratic()  { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("quadratic");  }
+PkString KoCompositeOp::categoryArithmetic() { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("arithmetic"); }
+PkString KoCompositeOp::categoryBinary()     { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("binary");     }
+PkString KoCompositeOp::categoryModulo()     { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("modulo");     }
+PkString KoCompositeOp::categoryNegative()   { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("negative");   }
+PkString KoCompositeOp::categoryLight()      { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("light");      }
+PkString KoCompositeOp::categoryDark()       { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("dark");       }
+PkString KoCompositeOp::categoryHSY()        { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("hsy");        }
+PkString KoCompositeOp::categoryHSI()        { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("hsi");        }
+PkString KoCompositeOp::categoryHSL()        { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("hsl");        }
+PkString KoCompositeOp::categoryHSV()        { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("hsv");        }
+PkString KoCompositeOp::categoryMix()        { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("mix");        }
+PkString KoCompositeOp::categoryMisc()       { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("misc");       }
+PkString KoCompositeOp::categoryQuadratic()  { return LAZY_STATIC_CATEGORY_DISPLAY_NAME("quadratic");  }
 
 KoCompositeOp::ParameterInfo::ParameterInfo()
     : opacity(1.0f)
@@ -106,10 +106,10 @@ void KoCompositeOp::ParameterInfo::updateOpacityAndAverage(float value) {
 
 struct Q_DECL_HIDDEN KoCompositeOp::Private {
     const KoColorSpace * colorSpace;
-    QString id;
-    QString description;
-    QString category;
-    QBitArray defaultChannelFlags;
+    PkString id;
+    PkString description;
+    PkString category;
+    PkBitArray defaultChannelFlags;
 };
 
 KoCompositeOp::KoCompositeOp() : d(new Private)
@@ -122,7 +122,7 @@ KoCompositeOp::~KoCompositeOp()
     delete d;
 }
 
-KoCompositeOp::KoCompositeOp(const KoColorSpace * cs, const QString& id, const QString & category)
+KoCompositeOp::KoCompositeOp(const KoColorSpace * cs, const PkString& id, const PkString & category)
         : d(new Private)
 {
     d->colorSpace = cs;
@@ -138,7 +138,7 @@ void KoCompositeOp::composite(quint8 *dstRowStart, qint32 dstRowStride,
                                const quint8 *srcRowStart, qint32 srcRowStride,
                                const quint8 *maskRowStart, qint32 maskRowStride,
                                qint32 rows, qint32 numColumns,
-                               float opacity, const QBitArray& channelFlags) const
+                               float opacity, const PkBitArray& channelFlags) const
 {
     KoCompositeOp::ParameterInfo params;
     params.dstRowStart   = dstRowStart;
@@ -165,17 +165,17 @@ void KoCompositeOp::composite(const KoCompositeOp::ParameterInfo& params) const
               params.opacity, params.channelFlags );
 }
 
-QString KoCompositeOp::category() const
+PkString KoCompositeOp::category() const
 {
     return d->category;
 }
 
-QString KoCompositeOp::id() const
+PkString KoCompositeOp::id() const
 {
     return d->id;
 }
 
-QString KoCompositeOp::description() const
+PkString KoCompositeOp::description() const
 {
     return d->description;
 }

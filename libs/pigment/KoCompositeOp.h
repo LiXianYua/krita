@@ -7,9 +7,9 @@
 #ifndef KOCOMPOSITEOP_H
 #define KOCOMPOSITEOP_H
 
-#include <QString>
-#include <QMultiMap>
-#include <QBitArray>
+#include <PkString.h>
+#include <PkBitArray.h>
+#include <PkGlobal.h>
 
 #include <boost/optional.hpp>
 
@@ -25,19 +25,19 @@ class KoColorSpace;
 class KRITAPIGMENT_EXPORT KoCompositeOp
 {
 public:
-    static QString categoryArithmetic();
-    static QString categoryBinary();
-    static QString categoryModulo();
-    static QString categoryNegative();
-    static QString categoryLight();
-    static QString categoryDark();
-    static QString categoryHSY();
-    static QString categoryHSI();
-    static QString categoryHSL();
-    static QString categoryHSV();
-    static QString categoryMix();
-    static QString categoryMisc();    
-    static QString categoryQuadratic();
+    static PkString categoryArithmetic();
+    static PkString categoryBinary();
+    static PkString categoryModulo();
+    static PkString categoryNegative();
+    static PkString categoryLight();
+    static PkString categoryDark();
+    static PkString categoryHSY();
+    static PkString categoryHSI();
+    static PkString categoryHSL();
+    static PkString categoryHSV();
+    static PkString categoryMix();
+    static PkString categoryMisc();    
+    static PkString categoryQuadratic();
 
     struct KRITAPIGMENT_EXPORT ParameterInfo
     {
@@ -57,7 +57,7 @@ public:
         float         flow {0.0};
         float         _lastOpacityData {0.0};
         float*        lastOpacity {0};
-        QBitArray     channelFlags;
+        PkBitArray     channelFlags;
 
         void setOpacityAndAverage(float _opacity, float _averageOpacity);
 
@@ -75,17 +75,17 @@ public:
      * @param userVisible define whether or not that composite op should be visible in a user
      *                    interface
      */
-    KoCompositeOp(const KoColorSpace * cs, const QString& id, const QString & category = KoCompositeOp::categoryMisc());
+    KoCompositeOp(const KoColorSpace * cs, const PkString& id, const PkString & category = KoCompositeOp::categoryMisc());
     virtual ~KoCompositeOp();
 
     /**
      * @return the identifier of this composite op
      */
-    QString id() const;
+    PkString id() const;
     /**
      * @return the user visible string for this composite op
      */
-    QString description() const;
+    PkString description() const;
     /**
      * @return the color space that can use and own this composite op
      */
@@ -93,7 +93,7 @@ public:
     /**
      * @return the category associated with the composite op
      */
-    QString category() const;
+    PkString category() const;
 
     /**
      * @param dstRowStart pointer to the start of the byte array we will composite the source on
@@ -114,7 +114,7 @@ public:
                    const quint8 *srcRowStart, qint32 srcRowStride,
                    const quint8 *maskRowStart, qint32 maskRowStride,
                    qint32 rows, qint32 numColumns,
-                   float opacity, const QBitArray& channelFlags = QBitArray()) const;
+                   float opacity, const PkBitArray& channelFlags = PkBitArray()) const;
 
 
     /**
