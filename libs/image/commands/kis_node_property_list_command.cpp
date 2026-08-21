@@ -5,16 +5,15 @@
  */
 
 // ===========================================================================
-// [GAP] kis_node_property_list_command.cpp 阻塞登记（S-06 Task 5）
+// [GAP] kis_node_property_list_command.cpp 阻塞登记（S-06 Task 5，修复轮更新）
 //
-// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
-//   * 本文件传递 include kis_layer.h → kis_psd_layer_style.h（未剥），未剥的
-//     KisPSDLayerStyle 仍用 Qt 列表容器覆盖 KoResource 已被剥成 PkVector 的虚函数
-//     （linkedResources/sideLoadedResources/requiredCanvasResources），
-//     协变返回类型不匹配 —— 跨任务类型断裂（与 Task 4 kis_paintop_registry.cc 同因）
-// 关闭条件：libs/image 的 KoResource 族 virtuals 全量转 PkVector/PkList +
-// layer 系头剥 Qt 后解除（Task 8）。当前状态：Qt 仅经未剥依赖头传递进入，
-// 不参与薄壳构建。
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。原「协变返回断裂」
+// 阻塞点已由 KoResource 族 PkVector→PkList 修复解除（修复轮验证：编过）。现阻塞：
+//   * PkSet 缺 `contains(const PkSet<T>&)` 子集重载（Pk 对应的 Qt 容器有：
+//     redo/undo 的 `propsWithNoUpdates().contains(changed)`，changed 是
+//     PkSet<PkString>）。编译错误 `cannot convert 'const PkSet<PkString>'
+//     to 'const PkString&'`（kis_node_property_list_command.cpp:92/106）。
+// 关闭条件：给 PkSet 补 `contains(const PkSet<T>&)`（子集判定），或改写该调用。
 
 
 #include "kis_node.h"

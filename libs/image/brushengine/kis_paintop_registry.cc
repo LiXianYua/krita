@@ -4,22 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-// ===========================================================================
-// [GAP] kis_paintop_registry.cc 阻塞登记（S-06 Task 4）
-//
-// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
-//   * paintOp() 以值传 KisNodeSP / KisImageSP（KisSharedPtr 的 ref/deref 需要
-//     完整类型定义），所以必须 include kis_layer.h / kis_image.h
-//   * kis_layer.h → kis_psd_layer_style.h → psd.h（未剥），未剥的
-//     KisPSDLayerStyle 仍用 Qt 列表容器覆盖 KoResource 已被剥成 PkVector 的虚函数
-//     （linkedResources/sideLoadedResources/requiredCanvasResources），
-//     协变返回类型不匹配 —— 跨任务类型断裂
-// 关闭条件：layerstyles 任务把 kis_psd_layer_style.h 的返回类型剥成
-// PkVector 后，本文件可加入薄壳 SHELL_SOURCES。当前状态：签名已与剥离后的
-// 头文件对齐（KisNodeSP/KisImageSP 由 kis_types.h 提供），Qt 仅经未剥依赖头
-// 传递进入，不参与薄壳构建。
-// ===========================================================================
-
 #include "kis_paintop_registry.h"
 
 #include <KoGenericRegistry.h>

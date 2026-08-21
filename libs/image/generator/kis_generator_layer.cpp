@@ -6,19 +6,18 @@
  */
 
 // ===========================================================================
-// [GAP] kis_generator_layer.cpp 阻塞登记（S-06 Task 6）
+// [GAP] kis_generator_layer.cpp 阻塞登记（S-06 Task 6，修复轮更新）
 //
-// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
-//   * 本文件传递 include 未剥依赖头，最终到达 kis_psd_layer_style.h（未剥），
-//     其 KisPSDLayerStyle 用 Qt 列表容器覆盖 KoResource 的虚函数
-//     （linkedResources/sideLoadedResources/requiredCanvasResources），
-//     与 KoResource.h 被剥成的 PkVector 返回类型不一致 → 协变返回类型不匹配
-// 关闭条件：KoResource.h 这 6 处签名是 旧列表容器→PkVector 的误映射（原始为 Qt 的列表容器类型，
-// 按 Qt替代品选型 §1 应为 PkList；与 Task 3 修 KisRequiredResourcesOperators.h 同
-// 一类缺陷）。KoResource.h + 各 override 统一改回 PkList 后本文件即编过。
-// 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
-// ===========================================================================
-
+// 本文件不进薄壳。源文件 Q* 已归零、机械替换已完成，**单独编译通过**（无 mid()
+// 报错，原「兼 mid」预判不成立）。现阻塞在**符号层**：本 TU 发射
+// KisGeneratorLayer 的 vtable，引用两个仍未剥的缩略图虚函数
+// KisSelectionBasedLayer::createThumbnail 与 KisLayer::createThumbnailForFrame
+// （声明见 kis_selection_based_layer.h:153 / kis_layer.h:251/255），签名带
+// Qt::AspectRatioMode（Qt 类型未剥），链接层 `nm -u | grep -i qt` 出现 Qt 符号，
+// 违反 S 线 L3 判据。
+// 关闭条件：Task 8 剥到这两个缩略图虚函数（Qt::AspectRatioMode → Pk 枚举、
+// 返回类型 Q* 图像 → Pk 图像类型）后解除。
+//
 
 #include <PkMutex.h>
 

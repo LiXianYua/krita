@@ -5,16 +5,13 @@
  */
 
 // ===========================================================================
-// [GAP] kis_ls_stroke_filter.cpp 阻塞登记（S-06 Task 6）
+// [GAP] kis_ls_stroke_filter.cpp 阻塞登记（S-06 Task 6，修复轮更新）
 //
-// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因（双重）：
-//   * 协变返回断裂：传递 include 到 kis_psd_layer_style.h（未剥），其覆盖
-//     KoResource 虚函数用 Qt 列表容器，与 KoResource.h 被剥成的 PkVector 不一致
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。原「协变返回断裂」
+// 阻塞点已由 KoResource 族 PkVector→PkList 修复解除（修复轮验证：编过）。现阻塞：
 //   * mid()：include krita_utils.h 的模板 rasterizePolygonDDA 用 Qt 序列容器
-//     mid()，PkVector 无此方法，定义期即报错
-// 关闭条件：KoResource.h 的 旧列表容器→PkVector 误映射改回 PkList（原始为 Qt 的列表容器类型，§1
-// 应为 PkList；与 Task 3 KisRequiredResourcesOperators.h 同缺陷），且给 PkVector
-// 补 mid()（或改 krita_utils.h 模板）后解除。
+//     mid()，PkVector 无此方法，定义期即报错（krita_utils.h:270）。
+// 关闭条件：给 PkVector 补 mid()，或 krita_utils.h 该模板改用 Pk 容器接口。
 // 当前状态：Qt 仅经未剥依赖头传递进入，不参与薄壳构建。
 // ===========================================================================
 
