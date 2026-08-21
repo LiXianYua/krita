@@ -3,10 +3,14 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <PkXmlCompat.h>
+
+#include <algorithm>
+
 #include "SvgMeshArray.h"
 
 #include <KoPathSegment.h>
-#include <kis_global.h>
+#include <kis_assert.h>
 
 SvgMeshArray::SvgMeshArray()
 {
@@ -33,13 +37,13 @@ SvgMeshArray::~SvgMeshArray()
 
 void SvgMeshArray::newRow()
 {
-    m_array << QVector<SvgMeshPatch*>();
+    m_array << PkVector<SvgMeshPatch*>();
 }
 
 void SvgMeshArray::createDefaultMesh(const int nrows,
                                      const int ncols,
-                                     const QColor color,
-                                     const QSizeF size)
+                                     const PkColor color,
+                                     const PkSizeF size)
 {
     // individual patch size should be:
     qreal patchWidth  = size.width()  / ncols;
@@ -49,9 +53,9 @@ void SvgMeshArray::createDefaultMesh(const int nrows,
     patchWidth  /= size.width();
     patchHeight /= size.height();
 
-    QRectF start(0, 0, patchWidth, patchHeight);
+    PkRectF start(0, 0, patchWidth, patchHeight);
 
-    QColor colors[2] = {Qt::white, color};
+    PkColor colors[2] = {Qt::white, color};
 
     for (int irow = 0; irow < nrows; ++irow) {
         newRow();
@@ -93,7 +97,7 @@ void SvgMeshArray::createDefaultMesh(const int nrows,
     }
 }
 
-bool SvgMeshArray::addPatch(QList<QPair<QString, QColor>> stops, const QPointF initialPoint)
+bool SvgMeshArray::addPatch(PkList<PkPair<PkString, PkColor>> stops, const PkPointF initialPoint)
 {
     // This is function is full of edge-case landmines, please run TestMeshArray after any changes
     if (stops.size() > 4 || stops.size() < 2)
@@ -115,9 +119,9 @@ bool SvgMeshArray::addPatch(QList<QPair<QString, QColor>> stops, const QPointF i
         stops.removeFirst();
     } else {
         // path is already defined for rows >= 1
-        QColor color = getStop(SvgMeshPatch::Left, irow - 1, icol).color;
+        PkColor color = getStop(SvgMeshPatch::Left, irow - 1, icol).color;
 
-        std::array<QPointF, 4> points = getPath(SvgMeshPatch::Bottom, irow - 1, icol);
+        std::array<PkPointF, 4> points = getPath(SvgMeshPatch::Bottom, irow - 1, icol);
         std::reverse(points.begin(), points.end());
 
         patch->addStop(points, color, SvgMeshPatch::Top);
@@ -153,10 +157,10 @@ bool SvgMeshArray::addPatch(QList<QPair<QString, QColor>> stops, const QPointF i
                 true, getStop(SvgMeshPatch::Top, irow, icol).point);
         stops.removeFirst();
     } else {
-        QColor color = getStop(SvgMeshPatch::Bottom, irow, icol - 1).color;
+        PkColor color = getStop(SvgMeshPatch::Bottom, irow, icol - 1).color;
 
         // reuse Right side of the previous patch
-        std::array<QPointF, 4> points = getPath(SvgMeshPatch::Right, irow, icol - 1);
+        std::array<PkPointF, 4> points = getPath(SvgMeshPatch::Right, irow, icol - 1);
         std::reverse(points.begin(), points.end());
 
         patch->addStop(points, color, SvgMeshPatch::Left);
@@ -193,7 +197,7 @@ SvgMeshStop SvgMeshArray::getStop(const SvgMeshPosition &pos) const
     return getStop(pos.segmentType, pos.row, pos.col);
 }
 
-std::array<QPointF, 4> SvgMeshArray::getPath(const SvgMeshPatch::Type edge, const int row, const int col) const
+std::array<PkPointF, 4> SvgMeshArray::getPath(const SvgMeshPatch::Type edge, const int row, const int col) const
 {
     KIS_ASSERT(row < m_array.size() && col < m_array[row].size()
             && row >= 0 && col >= 0);
@@ -226,7 +230,7 @@ int SvgMeshArray::numColumns() const
     return m_array.first().size();
 }
 
-void SvgMeshArray::setTransform(const QTransform& matrix)
+void SvgMeshArray::setTransform(const PkTransform& matrix)
 {
     for (auto& row: m_array) {
         for (auto& patch: row) {
@@ -235,18 +239,18 @@ void SvgMeshArray::setTransform(const QTransform& matrix)
     }
 }
 
-QRectF SvgMeshArray::boundingRect() const
+PkRectF SvgMeshArray::boundingRect() const
 {
     KIS_ASSERT(numRows() > 0 && numColumns() > 0);
 
-    QPointF topLeft = m_array[0][0]->boundingRect().topLeft();
-    QPointF bottomRight = m_array.last().last()->boundingRect().bottomRight();
+    PkPointF topLeft = m_array[0][0]->boundingRect().topLeft();
+    PkPointF bottomRight = m_array.last().last()->boundingRect().bottomRight();
 
     // mesharray may be backwards, in which case we might get the right most value
     // but we need topLeft for things to work as expected
     for (int i = 0; i < numRows(); ++i) {
         for (int j = 0; j < numColumns(); ++j) {
-            QPointF left  = m_array[i][j]->boundingRect().topLeft();
+            PkPointF left  = m_array[i][j]->boundingRect().topLeft();
             if (left.x() < topLeft.x()) {
                 topLeft.rx() = left.x();
             }
@@ -254,7 +258,7 @@ QRectF SvgMeshArray::boundingRect() const
                 topLeft.ry() = left.y();
             }
 
-            QPointF right = m_array[i][j]->boundingRect().bottomRight();
+            PkPointF right = m_array[i][j]->boundingRect().bottomRight();
             if (bottomRight.x() < right.x()) {
                 bottomRight.rx() = right.x();
             }
@@ -265,12 +269,12 @@ QRectF SvgMeshArray::boundingRect() const
     }
 
     // return extremas
-    return QRectF(topLeft, bottomRight);
+    return PkRectF(topLeft, bottomRight);
 }
 
-QVector<SvgMeshPosition> SvgMeshArray::getConnectedPaths(const SvgMeshPosition &position) const
+PkVector<SvgMeshPosition> SvgMeshArray::getConnectedPaths(const SvgMeshPosition &position) const
 {
-    QVector<SvgMeshPosition> positions;
+    PkVector<SvgMeshPosition> positions;
 
     int row = position.row;
     int col = position.col;
@@ -305,9 +309,9 @@ QVector<SvgMeshPosition> SvgMeshArray::getConnectedPaths(const SvgMeshPosition &
 }
 
 void SvgMeshArray::modifyHandle(const SvgMeshPosition &position,
-                                const std::array<QPointF, 4> &newPath)
+                                const std::array<PkPointF, 4> &newPath)
 {
-    std::array<QPointF, 4> reversed = newPath;
+    std::array<PkPointF, 4> reversed = newPath;
     std::reverse(reversed.begin(), reversed.end());
 
     if (position.segmentType == SvgMeshPatch::Top && position.row > 0) {
@@ -322,29 +326,29 @@ void SvgMeshArray::modifyHandle(const SvgMeshPosition &position,
 }
 
 void SvgMeshArray::modifyCorner(const SvgMeshPosition &position,
-                                const QPointF &newPos)
+                                const PkPointF &newPos)
 {
-    QVector<SvgMeshPosition> paths = getSharedPaths(position);
+    PkVector<SvgMeshPosition> paths = getSharedPaths(position);
 
-    QPointF delta = m_array[position.row][position.col]->getStop(position.segmentType).point - newPos;
+    PkPointF delta = m_array[position.row][position.col]->getStop(position.segmentType).point - newPos;
 
     for (const auto &path: paths) {
         m_array[path.row][path.col]->modifyCorner(path.segmentType, delta);
     }
 }
 
-void SvgMeshArray::modifyColor(const SvgMeshPosition &position, const QColor &color)
+void SvgMeshArray::modifyColor(const SvgMeshPosition &position, const PkColor &color)
 {
-    QVector<SvgMeshPosition> paths = getSharedPaths(position);
+    PkVector<SvgMeshPosition> paths = getSharedPaths(position);
 
     for (const auto &path: paths) {
         m_array[path.row][path.col]->setStopColor(path.segmentType, color);
     }
 }
 
-QVector<SvgMeshPosition> SvgMeshArray::getSharedPaths(const SvgMeshPosition &position) const
+PkVector<SvgMeshPosition> SvgMeshArray::getSharedPaths(const SvgMeshPosition &position) const
 {
-    QVector<SvgMeshPosition> positions;
+    PkVector<SvgMeshPosition> positions;
 
     int row = position.row;
     int col = position.col;
@@ -377,7 +381,7 @@ QVector<SvgMeshPosition> SvgMeshArray::getSharedPaths(const SvgMeshPosition &pos
     return positions;
 }
 
-QColor SvgMeshArray::getColor(SvgMeshPatch::Type edge, int row, int col) const
+PkColor SvgMeshArray::getColor(SvgMeshPatch::Type edge, int row, int col) const
 {
     return getStop(edge, row, col).color;
 }

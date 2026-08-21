@@ -6,31 +6,29 @@
 #ifndef SVGMESHPATCH_H
 #define SVGMESHPATCH_H
 
-#include <array>
+#include <PkXmlCompat.h>
 
-#include <QColor>
-#include <QPointF>
-#include <QVector>
-#include <QMap>
-#include <QPainterPath>
+#include <pk/color/PkColor.h>
+
+#include <array>
 
 #include <KoPathShape.h>
 
 struct SvgMeshStop {
-    QColor color;
-    QPointF point;
+    PkColor color;
+    PkPointF point;
 
     SvgMeshStop()
     {}
 
-    SvgMeshStop(QColor color, QPointF point)
+    SvgMeshStop(PkColor color, PkPointF point)
         : color(color), point(point)
     {}
 
     bool isValid() const { return color.isValid(); }
 };
 
-using SvgMeshPath = std::array<QPointF, 4>;
+using SvgMeshPath = std::array<PkPointF, 4>;
 
 class KRITAFLAKE_EXPORT SvgMeshPatch
 {
@@ -44,53 +42,53 @@ public:
         Size,
     };
 
-    SvgMeshPatch(QPointF startingPoint);
+    SvgMeshPatch(PkPointF startingPoint);
     SvgMeshPatch(const SvgMeshPatch& other);
 
     // NOTE: NO path is created here
     // sets a new starting point for the patch
-    void moveTo(const QPointF& p);
+    void moveTo(const PkPointF& p);
     /// Helper to convert to a cubic curve internally.
-    void lineTo(const QPointF& p);
+    void lineTo(const PkPointF& p);
     /// add points as curve.
-    void curveTo(const QPointF& c1, const QPointF& c2, const QPointF& p);
+    void curveTo(const PkPointF& c1, const PkPointF& c2, const PkPointF& p);
 
     /// returns the starting point of the stop
     SvgMeshStop getStop(Type type) const;
 
     /// returns the midPoint in parametric space
-    inline QPointF getMidpointParametric(Type type) const {
+    inline PkPointF getMidpointParametric(Type type) const {
         return (m_parametricCoords[type] + m_parametricCoords[(type + 1) % Size]) * 0.5;
     }
 
     /// get the point on a segment using De Casteljau's algorithm
-    QPointF segmentPointAt(Type type, qreal t) const;
+    PkPointF segmentPointAt(Type type, qreal t) const;
 
     /// split a segment using De Casteljau's algorithm
-    QPair<std::array<QPointF, 4>, std::array<QPointF, 4>> segmentSplitAt(Type type, qreal t) const;
+    PkPair<std::array<PkPointF, 4>, std::array<PkPointF, 4>> segmentSplitAt(Type type, qreal t) const;
 
     /// Get a segment of the path in the meshpatch
-    std::array<QPointF, 4> getSegment(Type type) const;
+    std::array<PkPointF, 4> getSegment(Type type) const;
 
     /// Get full (closed) meshpath
-    QPainterPath getPath() const;
+    PkPainterPath getPath() const;
 
     /// Get size swept by mesh in pts
-    QSizeF size() const;
+    PkSizeF size() const;
 
-    QRectF boundingRect() const;
+    PkRectF boundingRect() const;
 
     /// Gets the curve passing through the middle of meshpatch
-    std::array<QPointF, 4> getMidCurve(bool isVertical) const;
+    std::array<PkPointF, 4> getMidCurve(bool isVertical) const;
 
-    void subdivideHorizontally(QVector<SvgMeshPatch*>& subdivided,
-                               const QVector<QColor>& colors) const;
+    void subdivideHorizontally(PkVector<SvgMeshPatch*>& subdivided,
+                               const PkVector<PkColor>& colors) const;
 
-    void subdivideVertically(QVector<SvgMeshPatch*>& subdivided,
-                             const QVector<QColor>& colors) const;
+    void subdivideVertically(PkVector<SvgMeshPatch*>& subdivided,
+                             const PkVector<PkColor>& colors) const;
 
-    void subdivide(QVector<SvgMeshPatch*>& subdivided,
-                   const QVector<QColor>& colors) const;
+    void subdivide(PkVector<SvgMeshPatch*>& subdivided,
+                   const PkVector<PkColor>& colors) const;
 
     bool isDivisibleVertically() const;
     bool isDivisibleHorizontally() const;
@@ -101,26 +99,26 @@ public:
      * complete, it will have to be computed and given with pathIncomplete = true
      * (Ideal case for std::optional)
      */
-    void addStop(const QString& pathStr, QColor color, Type edge, bool pathIncomplete = false, QPointF lastPoint = QPointF());
+    void addStop(const PkString& pathStr, PkColor color, Type edge, bool pathIncomplete = false, PkPointF lastPoint = PkPointF());
 
     /// Adds path to the shape
-    void addStop(const std::array<QPointF, 4>& pathPoints, QColor color, Type edge);
+    void addStop(const std::array<PkPointF, 4>& pathPoints, PkColor color, Type edge);
 
     /// Adds linear path to the shape
-    void addStopLinear(const std::array<QPointF, 2>& pathPoints, QColor color, Type edge);
+    void addStopLinear(const std::array<PkPointF, 2>& pathPoints, PkColor color, Type edge);
 
-    void modifyPath(SvgMeshPatch::Type type, std::array<QPointF, 4> newPath);
-    void modifyCorner(SvgMeshPatch::Type type, const QPointF &delta);
+    void modifyPath(SvgMeshPatch::Type type, std::array<PkPointF, 4> newPath);
+    void modifyCorner(SvgMeshPatch::Type type, const PkPointF &delta);
 
-    void setStopColor(SvgMeshPatch::Type type, const QColor &color);
+    void setStopColor(SvgMeshPatch::Type type, const PkColor &color);
 
-    void setTransform(const QTransform& matrix);
+    void setTransform(const PkTransform& matrix);
 
 private:
     /* Parses path and adds it to m_path and returns the last point of the curve/line
      * see also: SvgMeshPatch::addStop
      */
-    QPointF parseMeshPath(const QString& path, bool pathIncomplete = false, const QPointF lastPoint = QPointF());
+    PkPointF parseMeshPath(const PkString& path, bool pathIncomplete = false, const PkPointF lastPoint = PkPointF());
     const char* getCoord(const char* ptr, qreal& number);
 
 private:
@@ -128,12 +126,12 @@ private:
     int counter {0};
 
     /// This is the starting point for each path
-    QPointF m_startingPoint;
+    PkPointF m_startingPoint;
 
     std::array<SvgMeshStop, Size> m_nodes;
-    std::array<std::array<QPointF, 4>, 4> controlPoints;
+    std::array<std::array<PkPointF, 4>, 4> controlPoints;
     /// Coordinates in UV space
-    std::array<QPointF, 4> m_parametricCoords;
+    std::array<PkPointF, 4> m_parametricCoords;
 };
 
 #endif // SVGMESHPATCH_H

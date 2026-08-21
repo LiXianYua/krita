@@ -6,7 +6,7 @@
 #ifndef KISMESHGRADIENT_H
 #define KISMESHGRADIENT_H
 
-#include <QGradient>
+#include <PkXmlCompat.h>
 
 #include <KoFlakeCoordinateSystem.h>
 #include "SvgMeshPatch.h"
@@ -26,7 +26,7 @@ public:
     void setType(Shading type);
     SvgMeshGradient::Shading type() const;
 
-    void setTransform(const QTransform& matrix);
+    void setTransform(const PkTransform& matrix);
     bool isValid() const;
 
     void setGradientUnits(KoFlake::CoordinateSystem units = KoFlake::UserSpaceOnUse) {
@@ -37,15 +37,15 @@ public:
         return m_gradientUnits;
     }
 
-    // returns boundingRect of the meshpatches in "user" coordinates (QPainter's)
-    QRectF boundingRect() const;
+    // returns boundingRect of the meshpatches in "user" coordinates (painter's)
+    PkRectF boundingRect() const;
 
-    const QScopedPointer<SvgMeshArray>& getMeshArray() const;
+    const PkScopedPointer<SvgMeshArray>& getMeshArray() const;
 
 private:
     Shading m_type;
     KoFlake::CoordinateSystem m_gradientUnits;
-    QScopedPointer<SvgMeshArray> m_mesharray;
+    PkScopedPointer<SvgMeshArray> m_mesharray;
 };
 
 #endif // KISMESHGRADIENT_H
