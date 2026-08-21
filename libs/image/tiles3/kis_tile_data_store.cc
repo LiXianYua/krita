@@ -8,15 +8,17 @@
 // to disable assert when the leak tracker is active
 #include "config-memory-leak-tracker.h"
 
-#include <QGlobalStatic>
-
 #include "kis_tile_data_store.h"
 #include "kis_tile_data.h"
 #include "kis_debug.h"
 
 #include "kis_tile_data_store_iterators.h"
 
-Q_GLOBAL_STATIC(KisTileDataStore, s_instance)
+KisTileDataStore* s_instance()
+{
+    static KisTileDataStore instance;
+    return &instance;
+}
 
 //#define DEBUG_PRECLONE
 
@@ -81,12 +83,12 @@ KisTileDataStore::~KisTileDataStore()
 
 KisTileDataStore* KisTileDataStore::instance()
 {
-    return s_instance;
+    return s_instance();
 }
 
 KisTileDataStore::MemoryStatistics KisTileDataStore::memoryStatistics()
 {
-    QReadLocker lock(&m_iteratorLock);
+    PkReadLocker lock(&m_iteratorLock);
 
     MemoryStatistics stats;
 
@@ -126,12 +128,12 @@ inline void KisTileDataStore::registerTileDataImp(KisTileData *td)
     m_tileDataMap.getGC().update();
 
     m_numTiles.ref();
-    m_memoryMetric += td->pixelSize();
+    m_memoryMetric.fetchAndAddOrdered(td->pixelSize());
 }
 
 void KisTileDataStore::registerTileData(KisTileData *td)
 {
-    QReadLocker lock(&m_iteratorLock);
+    PkReadLocker lock(&m_iteratorLock);
     registerTileDataImp(td);
 }
 
@@ -152,7 +154,7 @@ inline void KisTileDataStore::unregisterTileDataImp(KisTileData *td)
     td->m_tileNumber = -1;
     m_tileDataMap.erase(index);
     m_numTiles.deref();
-    m_memoryMetric -= td->pixelSize();
+    m_memoryMetric.fetchAndAddOrdered(-(qint32)td->pixelSize());
 
     m_tileDataMap.getGC().unlockRawPointerAccess();
     m_tileDataMap.getGC().update();
@@ -160,7 +162,7 @@ inline void KisTileDataStore::unregisterTileDataImp(KisTileData *td)
 
 void KisTileDataStore::unregisterTileData(KisTileData *td)
 {
-    QReadLocker lock(&m_iteratorLock);
+    PkReadLocker lock(&m_iteratorLock);
     unregisterTileDataImp(td);
 }
 
@@ -349,7 +351,7 @@ void KisTileDataStore::debugSwapAll()
 
 void KisTileDataStore::debugClear()
 {
-    QWriteLocker l(&m_iteratorLock);
+    PkWriteLocker l(&m_iteratorLock);
     ConcurrentMap<int, KisTileData*>::Iterator iter(m_tileDataMap);
 
     while (iter.isValid()) {

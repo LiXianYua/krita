@@ -8,8 +8,8 @@
 #ifndef KIS_TILE_DATA_INTERFACE_H_
 #define KIS_TILE_DATA_INTERFACE_H_
 
-#include <QReadWriteLock>
-#include <QAtomicInt>
+#include <PkReadWriteLock.h>
+#include <PkAtomic.h>
 
 #include "kis_lockless_stack.h"
 #include "swap/kis_chunk_allocator.h"
@@ -26,10 +26,6 @@ class KisTileDataStore;
 
 typedef KisLocklessStack<KisTileData*> KisTileDataCache;
 
-typedef QLinkedList<KisTileData*> KisTileDataList;
-typedef KisTileDataList::iterator KisTileDataListIterator;
-typedef KisTileDataList::const_iterator KisTileDataListConstIterator;
-
 
 class SimpleCache
 {
@@ -39,7 +35,7 @@ public:
 
     bool push(int pixelSize, quint8 *&ptr)
     {
-        QReadLocker l(&m_cacheLock);
+        PkReadLocker l(&m_cacheLock);
         switch (pixelSize) {
         case 4:
             m_4Pool.push(ptr);
@@ -59,7 +55,7 @@ public:
 
     bool pop(int pixelSize, quint8 *&ptr)
     {
-        QReadLocker l(&m_cacheLock);
+        PkReadLocker l(&m_cacheLock);
         switch (pixelSize) {
         case 4:
             return m_4Pool.pop(ptr);
@@ -75,7 +71,7 @@ public:
     void clear();
 
 private:
-    QReadWriteLock m_cacheLock;
+    PkReadWriteLock m_cacheLock;
     KisLocklessStack<quint8*> m_4Pool;
     KisLocklessStack<quint8*> m_8Pool;
     KisLocklessStack<quint8*> m_16Pool;
@@ -278,7 +274,7 @@ private:
      * tryLockForWrite() - used by swapper to check no-one reads
      *                     this tile data
      */
-    QReadWriteLock m_swapLock;
+    PkReadWriteLock m_swapLock;
 
 private:
     friend class KisLowMemoryTests;
@@ -293,12 +289,12 @@ private:
      * How many tiles/mementoes use
      * this tiledata through COW?
      */
-    mutable QAtomicInt m_usersCount;
+    mutable PkAtomicInt m_usersCount;
 
     /**
      * Shared pointer counter
      */
-    mutable QAtomicInt m_refCount;
+    mutable PkAtomicInt m_refCount;
 
 
     qint32 m_pixelSize;

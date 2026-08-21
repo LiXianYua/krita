@@ -8,7 +8,8 @@
 #define KIS_TILEDDATAMANAGER_H_
 
 #include <QtGlobal>
-#include <QVector>
+#include <PkVector.h>
+#include <PkReadWriteLock.h>
 #include <KisRegion.h>
 
 #include <kis_shared.h>
@@ -34,7 +35,7 @@ typedef KisSharedPtr<KisTiledDataManager> KisTiledDataManagerSP;
 class KisTiledIterator;
 class KisTiledRandomAccessor;
 class KisPaintDeviceWriter;
-class QIODevice;
+class PkStream;
 
 /**
  * KisTiledDataManager implements the interface that KisDataManager defines
@@ -132,7 +133,7 @@ public:
     }
 
     KisMementoSP getMemento() {
-        QWriteLocker locker(&m_lock);
+        PkWriteLocker locker(&m_lock);
         KisMementoSP memento = m_mementoManager->getMemento();
         memento->saveOldDefaultPixel(m_defaultPixel, m_pixelSize);
         return memento;
@@ -142,7 +143,7 @@ public:
      * Finishes having already started transaction
      */
     void commit() {
-        QWriteLocker locker(&m_lock);
+        PkWriteLocker locker(&m_lock);
 
         KisMementoSP memento = m_mementoManager->currentMemento();
         if(memento) {
@@ -155,7 +156,7 @@ public:
     void rollback(KisMementoSP memento) {
         commit();
 
-        QWriteLocker locker(&m_lock);
+        PkWriteLocker locker(&m_lock);
         m_mementoManager->rollback(m_hashTable, memento);
         const quint8 *defaultPixel = memento->oldDefaultPixel();
         if(memcmp(m_defaultPixel, defaultPixel, m_pixelSize)) {
@@ -166,7 +167,7 @@ public:
     void rollforward(KisMementoSP memento) {
         commit();
 
-        QWriteLocker locker(&m_lock);
+        PkWriteLocker locker(&m_lock);
         m_mementoManager->rollforward(m_hashTable, memento);
         const quint8 *defaultPixel = memento->newDefaultPixel();
         if(memcmp(m_defaultPixel, defaultPixel, m_pixelSize)) {
@@ -186,7 +187,7 @@ public:
      * rollback(someMemento) anymore.
      */
     void purgeHistory(KisMementoSP oldestMemento) {
-        QWriteLocker locker(&m_lock);
+        PkWriteLocker locker(&m_lock);
         m_mementoManager->purgeHistory(oldestMemento);
     }
 
@@ -197,9 +198,9 @@ protected:
      * Reads and writes the tiles
      */
     bool write(KisPaintDeviceWriter &store);
-    bool read(QIODevice *stream);
+    bool read(PkStream *stream);
 
-    void purge(const QRect& area);
+    void purge(const PkRect& area);
 
     inline quint32 pixelSize() const {
         return m_pixelSize;
@@ -211,13 +212,13 @@ public:
 
     void  extent(qint32 &x, qint32 &y, qint32 &w, qint32 &h) const;
     void  setExtent(qint32 x, qint32 y, qint32 w, qint32 h);
-    QRect extent() const;
-    void  setExtent(QRect newRect);
+    PkRect extent() const;
+    void  setExtent(PkRect newRect);
 
     KisRegion region() const;
 
-    void clear(QRect clearRect, quint8 clearValue);
-    void clear(QRect clearRect, const quint8 *clearPixel);
+    void clear(PkRect clearRect, quint8 clearValue);
+    void clear(PkRect clearRect, const quint8 *clearPixel);
     void clear(qint32 x, qint32 y, qint32 w, qint32 h, quint8 clearValue);
     void clear(qint32 x, qint32 y,  qint32 w, qint32 h, const quint8 *clearPixel);
     void clear();
@@ -228,12 +229,12 @@ public:
      * copy-on-write. Parts of the rect that cannot be shared
      * (cross tiles) are deep-copied,
      */
-    void bitBlt(KisTiledDataManager *srcDM, const QRect &rect);
+    void bitBlt(KisTiledDataManager *srcDM, const PkRect &rect);
 
     /**
      * The same as \ref bitBlt(), but reads old data
      */
-    void bitBltOldData(KisTiledDataManager *srcDM, const QRect &rect);
+    void bitBltOldData(KisTiledDataManager *srcDM, const PkRect &rect);
 
     /**
      * Clones rect from another datamanager in a rough and fast way.
@@ -242,12 +243,12 @@ public:
      * requested. This method is supposed to be used for bitBlt'ing
      * into temporary paint devices.
      */
-    void bitBltRough(KisTiledDataManager *srcDM, const QRect &rect);
+    void bitBltRough(KisTiledDataManager *srcDM, const PkRect &rect);
 
     /**
      * The same as \ref bitBltRough(), but reads old data
      */
-    void bitBltRoughOldData(KisTiledDataManager *srcDM, const QRect &rect);
+    void bitBltRoughOldData(KisTiledDataManager *srcDM, const PkRect &rect);
 
     /**
      * write the specified data to x, y. There is no checking on pixelSize!
@@ -298,7 +299,7 @@ public:
      * paint device. If the specified area is larger than the paint
      * device's extent, the default pixel will be read.
      */
-    QVector<quint8*> readPlanarBytes(QVector<qint32> channelsizes, qint32 x, qint32 y, qint32 w, qint32 h) const;
+    PkVector<quint8*> readPlanarBytes(PkVector<qint32> channelsizes, qint32 x, qint32 y, qint32 w, qint32 h) const;
 
     /**
      * Write the data in the separate arrays to the channels. If there
@@ -311,7 +312,7 @@ public:
      * your paint device with areas of memory you never wanted to be
      * read. Krita may also crash.
      */
-    void writePlanarBytes(QVector<quint8*> planes, QVector<qint32> channelsizes, qint32 x, qint32 y, qint32 w, qint32 h);
+    void writePlanarBytes(PkVector<quint8*> planes, PkVector<qint32> channelsizes, qint32 x, qint32 y, qint32 w, qint32 h);
 
     /**
      * Get the number of contiguous columns starting at x, valid for all values
@@ -338,7 +339,7 @@ private:
     qint32 m_pixelSize;
     KisTiledExtentManager m_extentManager;
 
-    mutable QReadWriteLock m_lock;
+    mutable PkReadWriteLock m_lock;
 
 private:
     // Allow compression routines to calculate (col,row) coordinates
@@ -358,7 +359,7 @@ private:
     void setDefaultPixelImpl(const quint8 *defPixel);
 
     bool writeTilesHeader(KisPaintDeviceWriter &store, quint32 numTiles);
-    bool processTilesHeader(QIODevice *stream, quint32 &numTiles);
+    bool processTilesHeader(PkStream *stream, quint32 &numTiles);
 
     inline qint32 divideRoundDown(qint32 x, const qint32 y) const
     {
@@ -375,9 +376,9 @@ private:
     quint8* duplicatePixel(qint32 num, const quint8 *pixel);
 
     template<bool useOldSrcData>
-        void bitBltImpl(KisTiledDataManager *srcDM, const QRect &rect);
+        void bitBltImpl(KisTiledDataManager *srcDM, const PkRect &rect);
     template<bool useOldSrcData>
-        void bitBltRoughImpl(KisTiledDataManager *srcDM, const QRect &rect);
+        void bitBltRoughImpl(KisTiledDataManager *srcDM, const PkRect &rect);
 
     void writeBytesBody(const quint8 *data,
                         qint32 x, qint32 y,
@@ -389,10 +390,10 @@ private:
                        qint32 dataRowStride = -1) const;
 
     template <bool allChannelsPresent>
-    void writePlanarBytesBody(QVector<quint8*> planes,
-                              QVector<qint32> channelsizes,
+    void writePlanarBytesBody(PkVector<quint8*> planes,
+                              PkVector<qint32> channelsizes,
                               qint32 x, qint32 y, qint32 w, qint32 h);
-    QVector<quint8*> readPlanarBytesBody(QVector<qint32> channelsizes,
+    PkVector<quint8*> readPlanarBytesBody(PkVector<qint32> channelsizes,
                                          qint32 x, qint32 y,
                                          qint32 w, qint32 h) const;
 public:

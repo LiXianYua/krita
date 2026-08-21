@@ -8,9 +8,11 @@
 #ifndef KISTILEDEXTENTMANAGER_H
 #define KISTILEDEXTENTMANAGER_H
 
-#include <QReadWriteLock>
-#include <QMap>
-#include <QRect>
+#include <PkReadWriteLock.h>
+#include <PkRect.h>
+#include <PkPoint.h>
+#include <PkVector.h>
+#include <PkAtomic.h>
 #include "kritaimage_export.h"
 
 
@@ -26,14 +28,14 @@ class KRITAIMAGE_EXPORT KisTiledExtentManager
 
         bool add(qint32 index);
         bool remove(qint32 index);
-        void replace(const QVector<qint32> &indexes);
+        void replace(const PkVector<qint32> &indexes);
         void clear();
         bool isEmpty();
         qint32 min();
         qint32 max();
 
     public:
-        QReadWriteLock m_extentLock;
+        PkReadWriteLock m_extentLock;
 
     private:
         inline void unsafeAdd(qint32 index);
@@ -48,8 +50,8 @@ class KRITAIMAGE_EXPORT KisTiledExtentManager
         qint32 m_offset;
         qint32 m_capacity;
         qint32 m_count;
-        QAtomicInt *m_buffer;
-        QReadWriteLock m_migrationLock;
+        PkAtomicInt *m_buffer;
+        PkReadWriteLock m_migrationLock;
     };
 
 public:
@@ -57,17 +59,17 @@ public:
 
     void notifyTileAdded(qint32 col, qint32 row);
     void notifyTileRemoved(qint32 col, qint32 row);
-    void replaceTileStats(const QVector<QPoint> &indexes);
+    void replaceTileStats(const PkVector<PkPoint> &indexes);
     void clear();
-    QRect extent() const;
+    PkRect extent() const;
 
 private:
     void updateExtent();
     friend class KisTiledDataManagerTest;
 
 private:
-    mutable QReadWriteLock m_extentLock;
-    QRect m_currentExtent;
+    mutable PkReadWriteLock m_extentLock;
+    PkRect m_currentExtent;
     Data m_colsData;
     Data m_rowsData;
 };

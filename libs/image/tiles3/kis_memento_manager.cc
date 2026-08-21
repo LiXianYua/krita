@@ -88,7 +88,7 @@ KisMementoManager::KisMementoManager(const KisMementoManager& rhs)
 KisMementoManager::~KisMementoManager()
 {
     // Nothing to be done here. Happily...
-    // Everything is done by QList and KisSharedPtr...
+    // Everything is done by PkList and KisSharedPtr...
     DEBUG_LOG_SIMPLE_ACTION("died\n");
 }
 
@@ -331,10 +331,8 @@ void KisMementoManager::rollforward(KisTileHashTable *ht, KisMementoSP memento)
     //               the revisions list we have locally
     KIS_SAFE_ASSERT_RECOVER_NOOP(changeList.memento == memento);
 
-    KisMementoItemSP mi;
-
     blockRegistration();
-    Q_FOREACH (mi, changeList.itemList) {
+    for (KisMementoItemSP mi : changeList.itemList) {
         if (mi->parent()->type() == KisMementoItem::CHANGED)
             ht->deleteTile(mi->col(), mi->row());
         if (mi->type() == KisMementoItem::CHANGED)
@@ -385,9 +383,8 @@ qint32 KisMementoManager::findRevisionByMemento(KisMementoSP memento) const
 void KisMementoManager::resetRevisionHistory(KisMementoItemList list)
 {
     KisMementoItemSP parentMI;
-    KisMementoItemSP mi;
 
-    Q_FOREACH (mi, list) {
+    for (KisMementoItemSP mi : list) {
         parentMI = mi->parent();
         if(!parentMI) continue;
 
@@ -418,18 +415,18 @@ void KisMementoManager::debugPrintInfo()
 
     printf("Revisions list:\n");
     qint32 i = 0;
-    Q_FOREACH (const KisHistoryItem &changeList, m_revisions) {
+    for (const KisHistoryItem &changeList : m_revisions) {
         printf("--- revision #%d ---\n", i++);
-        Q_FOREACH (mi, changeList.itemList) {
+        for (KisMementoItemSP mi : changeList.itemList) {
             mi->debugPrintInfo();
         }
     }
 
     printf("\nCancelled revisions list:\n");
     i = 0;
-    Q_FOREACH (const KisHistoryItem &changeList, m_cancelledRevisions) {
+    for (const KisHistoryItem &changeList : m_cancelledRevisions) {
         printf("--- revision #%d ---\n", m_revisions.size() + i++);
-        Q_FOREACH (mi, changeList.itemList) {
+        for (KisMementoItemSP mi : changeList.itemList) {
             mi->debugPrintInfo();
         }
     }

@@ -7,14 +7,13 @@
 #ifndef KIS_MEMENTO_MANAGER_
 #define KIS_MEMENTO_MANAGER_
 
-#include <QList>
-#include <QMutex>
+#include <PkList.h>
+#include <PkMutex.h>
 
 #include "kis_memento_item.h"
 #include "config-hash-table-implementation.h"
 
-typedef QList<KisMementoItemSP> KisMementoItemList;
-typedef QListIterator<KisMementoItemSP> KisMementoItemListIterator;
+typedef PkList<KisMementoItemSP> KisMementoItemList;
 
 class KisMemento;
 struct KisHistoryItem {
@@ -22,7 +21,7 @@ struct KisHistoryItem {
     KisMementoItemList itemList;
 };
 
-typedef QList<KisHistoryItem> KisHistoryList;
+typedef PkList<KisHistoryItem> KisHistoryList;
 
 class KisMemento;
 typedef KisSharedPtr<KisMemento> KisMementoSP;
@@ -37,8 +36,8 @@ typedef KisTileHashTableIteratorTraits2<KisMementoItem> KisMementoItemHashTableI
 #include "kis_tile_hash_table.h"
 
 typedef KisTileHashTableTraits<KisMementoItem> KisMementoItemHashTable;
-typedef KisTileHashTableIteratorTraits<KisMementoItem, QWriteLocker> KisMementoItemHashTableIterator;
-typedef KisTileHashTableIteratorTraits<KisMementoItem, QReadLocker> KisMementoItemHashTableIteratorConst;
+typedef KisTileHashTableIteratorTraits<KisMementoItem, PkWriteLocker> KisMementoItemHashTableIterator;
+typedef KisTileHashTableIteratorTraits<KisMementoItem, PkReadLocker> KisMementoItemHashTableIteratorConst;
 #endif // USE_LOCK_FREE_HASH_TABLE
 
 
@@ -148,7 +147,7 @@ protected:
      * It is the "name" of current named transaction
      */
     KisMementoSP m_currentMemento;
-    QMutex m_currentMementoExtentLock;
+    PkMutex m_currentMementoExtentLock;
 
     /**
      * The flag that blocks registration of changes on tiles.

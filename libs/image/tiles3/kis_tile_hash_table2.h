@@ -12,6 +12,8 @@
 #include "3rdparty/lock_free_map/concurrent_map.h"
 #include "kis_tile.h"
 #include "kis_debug.h"
+#include <PkReadWriteLock.h>
+#include <PkAtomic.h>
 
 #define SANITY_CHECK
 
@@ -35,7 +37,7 @@ template <class T>
 class KisTileHashTableTraits2
 {
     static constexpr bool isInherited = std::is_convertible<T*, KisShared*>::value;
-    Q_STATIC_ASSERT_X(isInherited, "Template must inherit KisShared");
+    static_assert(isInherited, "Template must inherit KisShared");
 
 public:
     typedef T TileType;
@@ -158,7 +160,7 @@ private:
         TileType *tile = 0;
 
         {
-            QReadLocker locker(&m_iteratorLock);
+            PkReadLocker locker(&m_iteratorLock);
             m_map.getGC().lockRawPointerAccess();
             tile = m_map.assign(idx, item.data());
         }
@@ -186,7 +188,7 @@ private:
             tile->notifyDetachedFromDataManager();
 
             wasDeleted = true;
-            m_numTiles.fetchAndSubRelaxed(1);
+            m_numTiles.fetchAndAddRelaxed(-1);
             m_map.getGC().enqueue(&MemoryReclaimer::destroy, new MemoryReclaimer(tile));
         }
 
@@ -205,10 +207,10 @@ private:
      * We still need something to guard changes in m_defaultTileData,
      * otherwise there will be concurrent read/writes, resulting in broken memory.
      */
-    QReadWriteLock m_defaultPixelDataLock;
-    mutable QReadWriteLock m_iteratorLock;
+    PkReadWriteLock m_defaultPixelDataLock;
+    mutable PkReadWriteLock m_iteratorLock;
 
-    QAtomicInt m_numTiles;
+    PkAtomicInt m_numTiles;
     KisTileData *m_defaultTileData;
     KisMementoManager *m_mementoManager;
 };
@@ -280,7 +282,7 @@ KisTileHashTableTraits2<T>::KisTileHashTableTraits2(const KisTileHashTableTraits
 {
     setDefaultTileData(ht.m_defaultTileData);
 
-    QWriteLocker locker(&ht.m_iteratorLock);
+    PkWriteLocker locker(&ht.m_iteratorLock);
     typename ConcurrentMap<quint32, TileType*>::Iterator iter(ht.m_map);
 
     while (iter.isValid()) {
@@ -334,7 +336,7 @@ typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getT
         /// manager
         newTile = false;
 
-        QReadLocker locker(&m_defaultPixelDataLock);
+        PkReadLocker locker(&m_defaultPixelDataLock);
         return new TileType(col, row, m_defaultTileData, 0);
     }
 
@@ -350,7 +352,7 @@ typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getT
         m_map.getGC().unlockRawPointerAccess();
 
         {
-            QReadLocker locker(&m_defaultPixelDataLock);
+            PkReadLocker locker(&m_defaultPixelDataLock);
             tile = new TileType(col, row, m_defaultTileData, 0);
         }
 
@@ -414,7 +416,7 @@ typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getR
         /// getTileLazy())
         existingTile = false;
 
-        QReadLocker locker(&m_defaultPixelDataLock);
+        PkReadLocker locker(&m_defaultPixelDataLock);
         return new TileType(col, row, m_defaultTileData, 0);
     }
 
@@ -425,7 +427,7 @@ typename KisTileHashTableTraits2<T>::TileTypeSP KisTileHashTableTraits2<T>::getR
     existingTile = tile;
 
     if (!existingTile) {
-        QReadLocker locker(&m_defaultPixelDataLock);
+        PkReadLocker locker(&m_defaultPixelDataLock);
         tile = new TileType(col, row, m_defaultTileData, 0);
     }
 
@@ -462,7 +464,7 @@ template<class T>
 void KisTileHashTableTraits2<T>::clear()
 {
     {
-        QWriteLocker locker(&m_iteratorLock);
+        PkWriteLocker locker(&m_iteratorLock);
 
         typename ConcurrentMap<quint32, TileType*>::Iterator iter(m_map);
         TileType *tile = 0;
@@ -490,7 +492,7 @@ void KisTileHashTableTraits2<T>::clear()
 template <class T>
 inline void KisTileHashTableTraits2<T>::setDefaultTileData(KisTileData *defaultTileData)
 {
-    QWriteLocker locker(&m_defaultPixelDataLock);
+    PkWriteLocker locker(&m_defaultPixelDataLock);
 
     if (m_defaultTileData) {
         m_defaultTileData->release();
@@ -506,14 +508,14 @@ inline void KisTileHashTableTraits2<T>::setDefaultTileData(KisTileData *defaultT
 template <class T>
 inline KisTileData* KisTileHashTableTraits2<T>::defaultTileData()
 {
-    QReadLocker locker(&m_defaultPixelDataLock);
+    PkReadLocker locker(&m_defaultPixelDataLock);
     return m_defaultTileData;
 }
 
 template <class T>
 inline KisTileData* KisTileHashTableTraits2<T>::refAndFetchDefaultTileData()
 {
-    QReadLocker locker(&m_defaultPixelDataLock);
+    PkReadLocker locker(&m_defaultPixelDataLock);
     m_defaultTileData->ref();
     return m_defaultTileData;
 }

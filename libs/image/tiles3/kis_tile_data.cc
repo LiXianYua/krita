@@ -12,6 +12,8 @@
 #include <kis_debug.h>
 
 #include <boost/pool/singleton_pool.hpp>
+#include <PkVector.h>
+#include <PkAuxTypes.h>
 #include "kis_tile_data_store_iterators.h"
 
 // BPP == bytes per pixel
@@ -33,7 +35,7 @@ SimpleCache::~SimpleCache()
 
 void SimpleCache::clear()
 {
-    QWriteLocker l(&m_cacheLock);
+    PkWriteLocker l(&m_cacheLock);
     quint8 *ptr = 0;
 
     while (m_4Pool.pop(ptr)) {
@@ -182,8 +184,8 @@ void KisTileData::releaseInternalPools()
 
     if (KisTileDataStore::instance()->numTilesInMemory() < maxMigratedTiles) {
 
-        QVector<KisTileData*> dataObjects;
-        QVector<QByteArray> memoryChunks;
+        PkVector<KisTileData*> dataObjects;
+        PkVector<PkByteArray> memoryChunks;
         bool failedToLock = false;
 
         KisTileDataStoreIterator *iter = KisTileDataStore::instance()->beginIteration();
@@ -214,8 +216,8 @@ void KisTileData::releaseInternalPools()
                 }
 
                 const int chunkSize = item->m_pixelSize * WIDTH * HEIGHT;
-                dataObjects << item;
-                memoryChunks << QByteArray((const char*)item->m_data, chunkSize);
+                dataObjects.append(item);
+                memoryChunks.append(PkByteArray((const char*)item->m_data, chunkSize));
             }
 
         }
@@ -239,7 +241,7 @@ void KisTileData::releaseInternalPools()
                 item->m_swapLock.unlock();
             }
         } else {
-            Q_FOREACH (KisTileData *item, dataObjects) {
+            for (KisTileData *item : dataObjects) {
                 item->m_swapLock.unlock();
             }
 

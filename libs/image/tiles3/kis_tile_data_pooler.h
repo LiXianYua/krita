@@ -90,7 +90,7 @@ protected:
     qint32 m_lastHistoricalMemoryMetric;
 
     std::thread m_thread;
-    std::mutex m_stateMutex;
+    mutable std::mutex m_stateMutex;
     std::condition_variable m_stateCond;
     bool m_running = false;
 };

@@ -6,7 +6,7 @@
  */
 
 
-#include <QMutexLocker>
+#include <PkMutex.h>
 #include "kis_tile_data.h"
 #include "kis_tile_data_store.h"
 #include "kis_tile.h"
@@ -21,8 +21,8 @@ void KisTile::init(qint32 col, qint32 row,
     m_row = row;
     m_lockCounter = 0;
 
-    m_extent = QRect(m_col * KisTileData::WIDTH, m_row * KisTileData::HEIGHT,
-                     KisTileData::WIDTH, KisTileData::HEIGHT);
+    m_extent = PkRect(m_col * KisTileData::WIDTH, m_row * KisTileData::HEIGHT,
+                      KisTileData::WIDTH, KisTileData::HEIGHT);
 
     m_tileData = defaultTileData;
     m_tileData->acquire();
@@ -118,7 +118,7 @@ void KisTile::notifyAttachedToDataManager(KisMementoManager *mm)
 
     // TODO: check if we really need locking here
     if (!m_mementoManager.loadAcquire()) {
-        QMutexLocker locker(&m_COWMutex);
+        PkMutexLocker locker(&m_COWMutex);
 
         if (!m_mementoManager.loadAcquire()) {
 
@@ -164,7 +164,7 @@ inline void KisTile::blockSwapping() const
      * why we can not use atomic operations here.
      */
 
-    QMutexLocker locker(&m_swapBarrierLock);
+    PkMutexLocker locker(&m_swapBarrierLock);
     Q_ASSERT(m_lockCounter >= 0);
 
     if(!m_lockCounter++)
@@ -175,14 +175,14 @@ inline void KisTile::blockSwapping() const
 
 inline void KisTile::unblockSwapping() const
 {
-    QMutexLocker locker(&m_swapBarrierLock);
+    PkMutexLocker locker(&m_swapBarrierLock);
     Q_ASSERT(m_lockCounter > 0);
 
     if(--m_lockCounter == 0) {
         m_tileData->unblockSwapping();
 
         if(!m_oldTileData.isEmpty()) {
-            Q_FOREACH (KisTileData *td, m_oldTileData) {
+            for (KisTileData *td : m_oldTileData) {
                 td->unblockSwapping();
                 td->release();
             }
@@ -193,7 +193,7 @@ inline void KisTile::unblockSwapping() const
 
 inline void KisTile::safeReleaseOldTileData(KisTileData *td)
 {
-    QMutexLocker locker(&m_swapBarrierLock);
+    PkMutexLocker locker(&m_swapBarrierLock);
     Q_ASSERT(m_lockCounter >= 0);
 
     if(m_lockCounter > 0) {

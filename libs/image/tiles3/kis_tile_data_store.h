@@ -10,7 +10,7 @@
 
 #include "kritaimage_export.h"
 
-#include <QReadWriteLock>
+#include <PkReadWriteLock.h>
 #include "kis_tile_data_interface.h"
 
 #include "kis_tile_data_pooler.h"
@@ -163,12 +163,12 @@ private:
      * of memory occupied by tile data objects.
      * metric = num_bytes / (KisTileData::WIDTH * KisTileData::HEIGHT)
      */
-    QAtomicInt m_numTiles;
-    QAtomicInt m_memoryMetric;
-    QAtomicInt m_counter;
-    QAtomicInt m_clockIndex;
+    PkAtomicInt m_numTiles;
+    PkAtomicInt m_memoryMetric;
+    PkAtomicInt m_counter;
+    PkAtomicInt m_clockIndex;
     ConcurrentMap<int, KisTileData*> m_tileDataMap;
-    QReadWriteLock m_iteratorLock;
+    PkReadWriteLock m_iteratorLock;
 };
 
 template<typename T>

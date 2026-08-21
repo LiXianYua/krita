@@ -7,6 +7,8 @@
 
 
 
+#include <PkVector.h>
+
 /* FIXME: Think over SSE here */
 void KisTiledDataManager::writeBytesBody(const quint8 *data,
                                          qint32 x, qint32 y,
@@ -148,8 +150,8 @@ void KisTiledDataManager::readBytesBody(quint8 *data,
     _idx++)
 
 template <bool allChannelsPresent>
-void KisTiledDataManager::writePlanarBytesBody(QVector </*const*/ quint8* > planes,
-                                               QVector<qint32> channelSizes,
+void KisTiledDataManager::writePlanarBytesBody(PkVector </*const*/ quint8* > planes,
+                                               PkVector<qint32> channelSizes,
                                                qint32 x, qint32 y,
                                                qint32 width, qint32 height)
 {
@@ -226,7 +228,7 @@ void KisTiledDataManager::writePlanarBytesBody(QVector </*const*/ quint8* > plan
     }
 }
 
-QVector<quint8*> KisTiledDataManager::readPlanarBytesBody(QVector<qint32> channelSizes,
+PkVector<quint8*> KisTiledDataManager::readPlanarBytesBody(PkVector<qint32> channelSizes,
                                                           qint32 x, qint32 y,
                                                           qint32 width, qint32 height) const
 {
@@ -238,7 +240,7 @@ QVector<quint8*> KisTiledDataManager::readPlanarBytesBody(QVector<qint32> channe
     const qint32 numChannels = channelSizes.size();
     const qint32 pixelSize = this->pixelSize();
 
-    QVector<quint8*> planes;
+    PkVector<quint8*> planes;
     forEachChannel(i, channelSize) {
         planes.append(new quint8[width * height * channelSize]);
     }

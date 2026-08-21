@@ -10,6 +10,7 @@
 #include "kis_base_iterator.h"
 #include "kritaimage_export.h"
 #include "kis_iterator_ng.h"
+#include <PkVector.h>
 
 class KRITAIMAGE_EXPORT KisHLineIterator2 : public KisHLineIteratorNG, public KisBaseIterator {
     KisHLineIterator2(const KisHLineIterator2&);
@@ -65,7 +66,7 @@ private:
     qint32 m_leftInLeftmostTile {0};
     qint32 m_yInTile {0};
 
-    QVector<KisTileInfo> m_tilesCache;
+    PkVector<KisTileInfo> m_tilesCache;
     quint32 m_tilesCacheSize {0};
     
 private:

@@ -7,13 +7,11 @@
 #ifndef KIS_TILE_H_
 #define KIS_TILE_H_
 
-#include <QReadWriteLock>
+#include <PkMutex.h>
+#include <PkAtomic.h>
 
-#include <QMutex>
-#include <QAtomicPointer>
-
-#include <QRect>
-#include <QStack>
+#include <PkRect.h>
+#include <PkStack.h>
 
 #include <kis_shared.h>
 #include <kis_shared_ptr.h>
@@ -96,10 +94,8 @@ public:
         return m_col;
     }
 
-    inline QRect extent() const {
+    inline PkRect extent() const {
         return m_extent;
-//QRect(m_col * KisTileData::WIDTH, m_row * KisTileData::HEIGHT,
-//                     KisTileData::WIDTH, KisTileData::HEIGHT);
     }
 
     inline KisTileSP next() const {
@@ -130,7 +126,7 @@ private:
 
 private:
     KisTileData *m_tileData;
-    mutable QStack<KisTileData*> m_oldTileData;
+    mutable PkStack<KisTileData*> m_oldTileData;
     mutable volatile int m_lockCounter;
 
     qint32 m_col;
@@ -139,14 +135,14 @@ private:
     /**
      * Added for faster retrieving by processors
      */
-    QRect m_extent;
+    PkRect m_extent;
 
     /**
      * For KisTiledDataManager's hash table
      */
     KisTileSP m_nextTile;
 
-    QAtomicPointer<KisMementoManager> m_mementoManager;
+    PkAtomicPointer<KisMementoManager> m_mementoManager;
 
     /**
      * This is a special mutex for guarding copy-on-write
@@ -154,22 +150,22 @@ private:
      * create too much overhead for the most common operations
      * like "read the pointer of m_tileData".
      */
-    QMutex m_COWMutex;
+    PkMutex m_COWMutex;
 
     /**
      * This lock is used to ensure no one will read the tile data
      * before it has been loaded from to the memory.
      */
-    mutable QMutex m_swapBarrierLock;
+    mutable PkMutex m_swapBarrierLock;
 
 
 #ifdef DEAD_TILES_SANITY_CHECK
-    QAtomicInt m_sanityHasBeenDetached;
-    QAtomicInt m_sanityIsDead;
-    QAtomicInt m_sanityMMHasBeenInitializedManually;
-    QAtomicInt m_sanityNumCOWHappened;
-    QAtomicInt m_sanityLockedForWrite;
-    mutable QAtomicInt m_sanityLockedForRead;
+    PkAtomicInt m_sanityHasBeenDetached;
+    PkAtomicInt m_sanityIsDead;
+    PkAtomicInt m_sanityMMHasBeenInitializedManually;
+    PkAtomicInt m_sanityNumCOWHappened;
+    PkAtomicInt m_sanityLockedForWrite;
+    mutable PkAtomicInt m_sanityLockedForRead;
 
     void sanityCheckIsNotDestroyedYet();
     void sanityCheckIsNotLockedForWrite();

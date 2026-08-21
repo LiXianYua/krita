@@ -6,6 +6,7 @@
  */
 
 #include <QtGlobal>
+#include <PkString.h>
 #include "kis_debug.h"
 #include "kis_global.h"
 
@@ -14,10 +15,9 @@
 
 template<class T>
 KisTileHashTableTraits<T>::KisTileHashTableTraits(KisMementoManager *mm)
-        : m_lock(QReadWriteLock::NonRecursive)
+        : m_lock(PkReadWriteLock::NonRecursive)
 {
     m_hashTable = new TileTypeSP [TABLE_SIZE];
-    Q_CHECK_PTR(m_hashTable);
 
     m_numTiles = 0;
     m_defaultTileData = 0;
@@ -27,16 +27,15 @@ KisTileHashTableTraits<T>::KisTileHashTableTraits(KisMementoManager *mm)
 template<class T>
 KisTileHashTableTraits<T>::KisTileHashTableTraits(const KisTileHashTableTraits<T> &ht,
         KisMementoManager *mm)
-        : m_lock(QReadWriteLock::NonRecursive)
+        : m_lock(PkReadWriteLock::NonRecursive)
 {
-    QReadLocker locker(&ht.m_lock);
+    PkReadLocker locker(&ht.m_lock);
 
     m_mementoManager = mm;
     m_defaultTileData = 0;
     setDefaultTileDataImp(ht.m_defaultTileData);
 
     m_hashTable = new TileTypeSP [TABLE_SIZE];
-    Q_CHECK_PTR(m_hashTable);
 
 
     TileTypeSP foreignTile;
@@ -210,7 +209,7 @@ KisTileHashTableTraits<T>::getExistingTile(qint32 col, qint32 row)
     // NOTE: minefield walk is disabled due to supposed unsafety,
     //       see bug 391270
 
-    QReadLocker locker(&m_lock);
+    PkReadLocker locker(&m_lock);
     return getTile(col, row, idx);
 }
 
@@ -228,12 +227,12 @@ KisTileHashTableTraits<T>::getTileLazy(qint32 col, qint32 row,
     TileTypeSP tile;
 
     {
-        QReadLocker locker(&m_lock);
+        PkReadLocker locker(&m_lock);
         tile = getTile(col, row, idx);
     }
 
     if (!tile) {
-        QWriteLocker locker(&m_lock);
+        PkWriteLocker locker(&m_lock);
         tile = new TileType(col, row, m_defaultTileData, m_mementoManager);
         linkTile(tile, idx);
         newTile = true;
@@ -251,7 +250,7 @@ KisTileHashTableTraits<T>::getReadOnlyTileLazy(qint32 col, qint32 row, bool &exi
     // NOTE: minefield walk is disabled due to supposed unsafety,
     //       see bug 391270
 
-    QReadLocker locker(&m_lock);
+    PkReadLocker locker(&m_lock);
 
     TileTypeSP tile = getTile(col, row, idx);
     existingTile = tile;
@@ -268,7 +267,7 @@ void KisTileHashTableTraits<T>::addTile(TileTypeSP tile)
 {
     const qint32 idx = calculateHash(tile->col(), tile->row());
 
-    QWriteLocker locker(&m_lock);
+    PkWriteLocker locker(&m_lock);
     linkTile(tile, idx);
 }
 
@@ -277,7 +276,7 @@ bool KisTileHashTableTraits<T>::deleteTile(qint32 col, qint32 row)
 {
     const qint32 idx = calculateHash(col, row);
 
-    QWriteLocker locker(&m_lock);
+    PkWriteLocker locker(&m_lock);
     return unlinkTile(col, row, idx);
 }
 
@@ -290,7 +289,7 @@ bool KisTileHashTableTraits<T>::deleteTile(TileTypeSP tile)
 template<class T>
 void KisTileHashTableTraits<T>::clear()
 {
-    QWriteLocker locker(&m_lock);
+    PkWriteLocker locker(&m_lock);
     TileTypeSP tile = TileTypeSP();
     qint32 i;
 
@@ -321,21 +320,21 @@ void KisTileHashTableTraits<T>::clear()
 template<class T>
 void KisTileHashTableTraits<T>::setDefaultTileData(KisTileData *defaultTileData)
 {
-    QWriteLocker locker(&m_lock);
+    PkWriteLocker locker(&m_lock);
     setDefaultTileDataImp(defaultTileData);
 }
 
 template<class T>
 KisTileData* KisTileHashTableTraits<T>::defaultTileData() const
 {
-    QWriteLocker locker(&m_lock);
+    PkWriteLocker locker(&m_lock);
     return defaultTileDataImp();
 }
 
 template <class T>
 inline KisTileData* KisTileHashTableTraits<T>::refAndFetchDefaultTileData() const
 {
-    QWriteLocker locker(&m_lock);
+    PkWriteLocker locker(&m_lock);
     KisTileData *result = defaultTileDataImp();
     result->ref();
     return result;
@@ -403,12 +402,12 @@ void KisTileHashTableTraits<T>::debugListLengthDistribution()
         array[tmp-min]++;
     }
 
-    qInfo() << QString("   minChain: %1\n").arg(min);
-    qInfo() << QString("   maxChain: %1\n").arg(max);
+    qInfo() << PkString("   minChain: %1\n").arg(min);
+    qInfo() << PkString("   maxChain: %1\n").arg(max);
 
     qInfo() << "   Chain size distribution:";
     for (qint32 i = 0; i < arraySize; i++)
-        qInfo() << QString("      %1: %2").arg(i + min).arg(array[i]);
+        qInfo() << PkString("      %1: %2").arg(i + min).arg(array[i]);
 
     delete[] array;
 }

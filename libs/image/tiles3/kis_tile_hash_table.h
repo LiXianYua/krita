@@ -9,6 +9,7 @@
 #define KIS_TILEHASHTABLE_H_
 
 #include "kis_tile.h"
+#include <PkReadWriteLock.h>
 
 
 
@@ -112,7 +113,7 @@ private:
     KisTileData *m_defaultTileData;
     KisMementoManager *m_mementoManager;
 
-    mutable QReadWriteLock m_lock;
+    mutable PkReadWriteLock m_lock;
 };
 
 #include "kis_tile_hash_table_p.h"
@@ -126,7 +127,7 @@ private:
  *       The only thing you can do is to delete current tile.
  *
  * LockerType defines if the iterator is constant or mutable. One should
- * pass either QReadLocker or QWriteLocker as a parameter.
+ * pass either PkReadLocker or PkWriteLocker as a parameter.
  */
 template<class T, class LockerType>
 class KisTileHashTableIteratorTraits
@@ -173,7 +174,7 @@ public:
 
     // disable the method if we didn't lock for writing
     template <class Helper = LockerType>
-    typename std::enable_if<std::is_same<Helper, QWriteLocker>::value, void>::type
+    typename std::enable_if<std::is_same<Helper, PkWriteLocker>::value, void>::type
     deleteCurrent() {
         TileTypeSP tile = m_tile;
         next();
@@ -184,7 +185,7 @@ public:
 
     // disable the method if we didn't lock for writing
     template <class Helper = LockerType>
-    typename std::enable_if<std::is_same<Helper, QWriteLocker>::value, void>::type
+    typename std::enable_if<std::is_same<Helper, PkWriteLocker>::value, void>::type
     moveCurrentToHashTable(KisTileHashTableTraits<T> *newHashTable) {
         TileTypeSP tile = m_tile;
         next();
@@ -213,12 +214,13 @@ protected:
         return idx;
     }
 private:
-    Q_DISABLE_COPY(KisTileHashTableIteratorTraits)
+    KisTileHashTableIteratorTraits(const KisTileHashTableIteratorTraits&) = delete;
+    KisTileHashTableIteratorTraits& operator=(const KisTileHashTableIteratorTraits&) = delete;
 };
 
 
 typedef KisTileHashTableTraits<KisTile> KisTileHashTable;
-typedef KisTileHashTableIteratorTraits<KisTile, QWriteLocker> KisTileHashTableIterator;
-typedef KisTileHashTableIteratorTraits<KisTile, QReadLocker> KisTileHashTableConstIterator;
+typedef KisTileHashTableIteratorTraits<KisTile, PkWriteLocker> KisTileHashTableIterator;
+typedef KisTileHashTableIteratorTraits<KisTile, PkReadLocker> KisTileHashTableConstIterator;
 
 #endif /* KIS_TILEHASHTABLE_H_ */

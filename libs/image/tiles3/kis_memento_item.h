@@ -9,6 +9,10 @@
 
 #include <kis_shared.h>
 #include <kis_shared_ptr.h>
+#include <PkString.h>
+#include <string>
+#include <cstdint>
+
 #include "kis_tile.h"
 
 
@@ -175,21 +179,21 @@ public:
     }
 
     void debugPrintInfo() {
-        QString s = QString("------\n"
+        PkString s = PkString("------\n"
                    "Memento item:\t\t0x%1 (0x%2)\n"
                    "   status:\t(%3,%4) %5%6\n"
                    "   parent:\t0x%7 (0x%8)\n"
                    "   next:\t0x%9 (0x%10)\n")
-                .arg((quintptr)this)
-                .arg((quintptr)m_tileData)
+                .arg(PkString(std::to_string((uintptr_t)this).c_str()))
+                .arg(PkString(std::to_string((uintptr_t)m_tileData).c_str()))
                 .arg(m_col)
                 .arg(m_row)
-                .arg((m_type == CHANGED) ? 'W' : 'D')
-                .arg(m_committedFlag ? 'C' : '-')
-                .arg((quintptr)m_parent.data())
-                .arg(m_parent ? (quintptr)m_parent->m_tileData : 0)
-                .arg((quintptr)m_next.data())
-                .arg(m_next ? (quintptr)m_next->m_tileData : 0);
+                .arg(m_type == CHANGED ? "W" : "D")
+                .arg(m_committedFlag ? "C" : "-")
+                .arg(PkString(std::to_string((uintptr_t)m_parent.data()).c_str()))
+                .arg(PkString(std::to_string((uintptr_t)(m_parent ? m_parent->m_tileData : 0)).c_str()))
+                .arg(PkString(std::to_string((uintptr_t)m_next.data()).c_str()))
+                .arg(PkString(std::to_string((uintptr_t)(m_next ? m_next->m_tileData : 0)).c_str()));
         dbgKrita << s;
     }
 

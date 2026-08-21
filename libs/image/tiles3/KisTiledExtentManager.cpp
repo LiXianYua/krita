@@ -7,7 +7,7 @@
 
 #include "KisTiledExtentManager.h"
 
-#include <QVector>
+#include <PkVector.h>
 #include "kis_tile_data_interface.h"
 #include "kis_assert.h"
 #include "kis_global.h"
@@ -16,21 +16,21 @@
 KisTiledExtentManager::Data::Data()
     : m_min(qint32_MAX), m_max(qint32_MIN), m_count(0)
 {
-    QWriteLocker lock(&m_migrationLock);
+    PkWriteLocker lock(&m_migrationLock);
     m_capacity = InitialBufferSize;
     m_offset = 1;
-    m_buffer = new QAtomicInt[m_capacity];
+    m_buffer = new PkAtomicInt[m_capacity];
 }
 
 KisTiledExtentManager::Data::~Data()
 {
-    QWriteLocker lock(&m_migrationLock);
+    PkWriteLocker lock(&m_migrationLock);
     delete[] m_buffer;
 }
 
 bool KisTiledExtentManager::Data::add(qint32 index)
 {
-    QReadLocker lock(&m_migrationLock);
+    PkReadLocker lock(&m_migrationLock);
     qint32 currentIndex = m_offset + index;
 
     if (currentIndex < 0 || currentIndex >= m_capacity) {
@@ -44,12 +44,12 @@ bool KisTiledExtentManager::Data::add(qint32 index)
     bool needsUpdateExtent = false;
 
     while (true) {
-        QReadLocker rl(&m_extentLock);
+        PkReadLocker rl(&m_extentLock);
 
         int oldValue = m_buffer[currentIndex].loadAcquire();
         if (oldValue == 0) {
             rl.unlock();
-            QWriteLocker wl(&m_extentLock);
+            PkWriteLocker wl(&m_extentLock);
 
             if ((oldValue = m_buffer[currentIndex].loadAcquire()) == 0) {
 
@@ -75,11 +75,11 @@ bool KisTiledExtentManager::Data::add(qint32 index)
 
 bool KisTiledExtentManager::Data::remove(qint32 index)
 {
-    QReadLocker lock(&m_migrationLock);
+    PkReadLocker lock(&m_migrationLock);
     qint32 currentIndex = m_offset + index;
 
     bool needsUpdateExtent = false;
-    QReadLocker rl(&m_extentLock);
+    PkReadLocker rl(&m_extentLock);
 
     const int oldValue = m_buffer[currentIndex].fetchAndAddAcquire(-1);
 
@@ -97,7 +97,7 @@ bool KisTiledExtentManager::Data::remove(qint32 index)
 
     if (oldValue == 1) {
         rl.unlock();
-        QWriteLocker wl(&m_extentLock);
+        PkWriteLocker wl(&m_extentLock);
 
         if (m_min == index) updateMin();
         if (m_max == index) updateMax();
@@ -109,10 +109,10 @@ bool KisTiledExtentManager::Data::remove(qint32 index)
     return needsUpdateExtent;
 }
 
-void KisTiledExtentManager::Data::replace(const QVector<qint32> &indexes)
+void KisTiledExtentManager::Data::replace(const PkVector<qint32> &indexes)
 {
-    QWriteLocker lock(&m_migrationLock);
-    QWriteLocker l(&m_extentLock);
+    PkWriteLocker lock(&m_migrationLock);
+    PkWriteLocker l(&m_extentLock);
 
     for (qint32 i = 0; i < m_capacity; ++i) {
         m_buffer[i].storeRelaxed(0);
@@ -122,15 +122,15 @@ void KisTiledExtentManager::Data::replace(const QVector<qint32> &indexes)
     m_max = qint32_MIN;
     m_count = 0;
 
-    Q_FOREACH (const qint32 index, indexes) {
+    for (const qint32 index : indexes) {
         unsafeAdd(index);
     }
 }
 
 void KisTiledExtentManager::Data::clear()
 {
-    QWriteLocker lock(&m_migrationLock);
-    QWriteLocker l(&m_extentLock);
+    PkWriteLocker lock(&m_migrationLock);
+    PkWriteLocker l(&m_extentLock);
 
     for (qint32 i = 0; i < m_capacity; ++i) {
         m_buffer[i].storeRelaxed(0);
@@ -188,7 +188,7 @@ void KisTiledExtentManager::Data::unsafeMigrate(qint32 index)
     }
 
     if (m_capacity != oldCapacity) {
-        QAtomicInt *newBuffer = new QAtomicInt[m_capacity];
+        PkAtomicInt *newBuffer = new PkAtomicInt[m_capacity];
         qint32 start = m_offset - oldOffset;
 
         for (qint32 i = 0; i < oldCapacity; ++i) {
@@ -202,7 +202,7 @@ void KisTiledExtentManager::Data::unsafeMigrate(qint32 index)
 
 void KisTiledExtentManager::Data::migrate(qint32 index)
 {
-    QWriteLocker lock(&m_migrationLock);
+    PkWriteLocker lock(&m_migrationLock);
     unsafeMigrate(index);
 }
 
@@ -244,8 +244,8 @@ void KisTiledExtentManager::Data::updateMax()
 
 KisTiledExtentManager::KisTiledExtentManager()
 {
-    QWriteLocker l(&m_extentLock);
-    m_currentExtent = QRect();
+    PkWriteLocker l(&m_extentLock);
+    m_currentExtent = PkRect(0, 0, 0, 0);
 }
 
 void KisTiledExtentManager::notifyTileAdded(qint32 col, qint32 row)
@@ -272,12 +272,12 @@ void KisTiledExtentManager::notifyTileRemoved(qint32 col, qint32 row)
     }
 }
 
-void KisTiledExtentManager::replaceTileStats(const QVector<QPoint> &indexes)
+void KisTiledExtentManager::replaceTileStats(const PkVector<PkPoint> &indexes)
 {
-    QVector<qint32> colsIndexes;
-    QVector<qint32> rowsIndexes;
+    PkVector<qint32> colsIndexes;
+    PkVector<qint32> rowsIndexes;
 
-    Q_FOREACH (const QPoint &index, indexes) {
+    for (const PkPoint &index : indexes) {
         colsIndexes.append(index.x());
         rowsIndexes.append(index.y());
     }
@@ -292,13 +292,13 @@ void KisTiledExtentManager::clear()
     m_colsData.clear();
     m_rowsData.clear();
 
-    QWriteLocker lock(&m_extentLock);
-    m_currentExtent = QRect();
+    PkWriteLocker lock(&m_extentLock);
+    m_currentExtent = PkRect(0, 0, 0, 0);
 }
 
-QRect KisTiledExtentManager::extent() const
+PkRect KisTiledExtentManager::extent() const
 {
-    QReadLocker lock(&m_extentLock);
+    PkReadLocker lock(&m_extentLock);
     return m_currentExtent;
 }
 
@@ -307,7 +307,7 @@ void KisTiledExtentManager::updateExtent()
     qint32 minX, width, minY, height;
 
     {
-        QReadLocker cl(&m_colsData.m_extentLock);
+        PkReadLocker cl(&m_colsData.m_extentLock);
 
         if (m_colsData.isEmpty()) {
             minX = 0;
@@ -319,7 +319,7 @@ void KisTiledExtentManager::updateExtent()
     }
 
     {
-        QReadLocker rl(&m_rowsData.m_extentLock);
+        PkReadLocker rl(&m_rowsData.m_extentLock);
 
         if (m_rowsData.isEmpty()) {
             minY = 0;
@@ -330,6 +330,6 @@ void KisTiledExtentManager::updateExtent()
         }
     }
 
-    QWriteLocker lock(&m_extentLock);
-    m_currentExtent = QRect(minX, minY, width, height);
+    PkWriteLocker lock(&m_extentLock);
+    m_currentExtent = PkRect(minX, minY, width, height);
 }

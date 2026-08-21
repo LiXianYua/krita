@@ -9,7 +9,8 @@
 #define KIS_MEMENTO_H_
 
 #include <QtGlobal>
-#include <QRect>
+#include <PkRect.h>
+#include <PkMutex.h>
 
 #include "kis_global.h"
 
@@ -58,10 +59,10 @@ public:
         }
     }
 
-    inline QRect extent() {
+    inline PkRect extent() {
         qint32 x, y, w, h;
         extent(x, y, w, h);
-        return QRect(x, y, w, h);
+        return PkRect(x, y, w, h);
     }
 
     void saveOldDefaultPixel(const quint8* pixel, quint32 pixelSize) {
@@ -85,7 +86,7 @@ public:
 private:
     friend class KisMementoManager;
 
-    inline void updateExtent(qint32 col, qint32 row, QMutex *currentMementoExtentLock) {
+    inline void updateExtent(qint32 col, qint32 row, PkMutex *currentMementoExtentLock) {
         const qint32 tileMinX = col * KisTileData::WIDTH;
         const qint32 tileMinY = row * KisTileData::HEIGHT;
         const qint32 tileMaxX = tileMinX + KisTileData::WIDTH - 1;
@@ -100,7 +101,7 @@ private:
              * do KisTileData::WIDTH/HEIGHT multiplication
              * under the lock held.
              */
-            QMutexLocker l(currentMementoExtentLock);
+            PkMutexLocker l(currentMementoExtentLock);
             m_extentMinX = qMin(m_extentMinX, tileMinX);
             m_extentMaxX = qMax(m_extentMaxX, tileMaxX);
             m_extentMinY = qMin(m_extentMinY, tileMinY);
