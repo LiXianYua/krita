@@ -51,7 +51,6 @@
 #include <klocalizedstring.h>
 #include "kundo2stack.h"
 #include "kundo2stack_p.h"
-#include "kundo2group.h"
 #include <QtGlobal>
 #include "kis_assert.h"
 
@@ -74,9 +73,7 @@
     \snippet doc/src/snippets/code/src_gui_util_qundostack.cpp 0
 
     A KUndo2Command has an associated text(). This is a short string
-    describing what the command does. It is used to update the text
-    properties of the stack's undo and redo actions; see
-    KUndo2QStack::createUndoAction() and KUndo2QStack::createRedoAction().
+    describing what the command does.
 
     KUndo2Command objects are owned by the stack they were pushed on.
     KUndo2QStack deletes a command if it has been undone and a new command is pushed. For example:
@@ -249,7 +246,7 @@ void KUndo2Command::undo()
     The text is used when the text properties of the stack's undo and redo
     actions are updated.
 
-    \sa setText(), KUndo2QStack::createUndoAction(), KUndo2QStack::createRedoAction()
+    \sa setText()
 */
 
 QString KUndo2Command::actionText() const
@@ -267,7 +264,7 @@ QString KUndo2Command::actionText() const
     The text is used when the text properties of the stack's undo and redo
     actions are updated.
 
-    \sa setText(), KUndo2QStack::createUndoAction(), KUndo2QStack::createRedoAction()
+    \sa setText()
 */
 
 KUndo2MagicString KUndo2Command::text() const
@@ -281,7 +278,7 @@ KUndo2MagicString KUndo2Command::text() const
     The specified text should be a short user-readable string describing what this
     command does.
 
-    \sa text() KUndo2QStack::createUndoAction() KUndo2QStack::createRedoAction()
+    \sa text()
 */
 
 void KUndo2Command::setText(const KUndo2MagicString &undoText)
@@ -457,8 +454,7 @@ void KUndo2Command::setExtraData(KUndo2CommandExtraData *data)
     document.
 
     New commands are pushed on the stack using push(). Commands can be
-    undone and redone using undo() and redo(), or by triggering the
-    actions returned by createUndoAction() and createRedoAction().
+    undone and redone using undo() and redo().
 
     KUndo2QStack keeps track of the \a current command. This is the command
     which will be executed by the next call to redo(). The index of this
@@ -469,15 +465,6 @@ void KUndo2Command::setExtraData(KUndo2CommandExtraData *data)
     KUndo2QStack provides support for undo and redo actions, command
     compression, command macros, and supports the concept of a
     \e{clean state}.
-
-    \section1 Undo and Redo Actions
-
-    KUndo2QStack provides convenient undo and redo QAction objects, which
-    can be inserted into a menu or a toolbar. When commands are undone or
-    redone, KUndo2QStack updates the text properties of these actions
-    to reflect what change they will trigger. The actions are also disabled
-    when no command is available for undo or redo. These actions
-    are returned by KUndo2QStack::createUndoAction() and KUndo2QStack::createRedoAction().
 
     \section1 Command Compression and Macros
 
@@ -519,27 +506,8 @@ void KUndo2Command::setExtraData(KUndo2CommandExtraData *data)
     and to update the document's title to reflect that it contains unsaved
     changes.
 
-    \sa KUndo2Command, KUndo2View
+    \sa KUndo2Command
 */
-
-#ifndef QT_NO_ACTION
-
-KUndo2Action::KUndo2Action(const QString &textTemplate, const QString &defaultText, QObject *parent)
-    : QAction(parent)
-    , m_textTemplate(textTemplate)
-    , m_defaultText(defaultText)
-{
-}
-
-void KUndo2Action::setPrefixedText(const QString &text)
-{
-    if (text.isEmpty())
-        setText(m_defaultText);
-    else
-        setText(m_textTemplate.arg(text));
-}
-
-#endif // QT_NO_ACTION
 
 /*! \internal
     Sets the current index to \a idx, emitting appropriate signals. If \a clean is true,
@@ -624,35 +592,25 @@ bool KUndo2QStack::checkUndoLimit()
 
 /*!
     Constructs an empty undo stack with the parent \a parent. The
-    stack will initially be in the clean state. If \a parent is a
-    KUndo2Group object, the stack is automatically added to the group.
+    stack will initially be in the clean state.
 
     \sa push()
 */
 
 KUndo2QStack::KUndo2QStack(QObject *parent)
-    : QObject(parent), m_index(0), m_clean_index(0), m_group(0), m_undo_limit(0)
+    : QObject(parent), m_index(0), m_clean_index(0), m_undo_limit(0)
     , m_useCumulativeUndoRedo(false)
 {
-#ifndef QT_NO_UNDOGROUP
-    if (KUndo2Group *group = qobject_cast<KUndo2Group*>(parent))
-        group->addStack(this);
-#endif
 }
 
 /*!
-    Destroys the undo stack, deleting any commands that are on it. If the
-    stack is in a KUndo2Group, the stack is automatically removed from the group.
+    Destroys the undo stack, deleting any commands that are on it.
 
     \sa KUndo2QStack()The number of last strokes which Krita should store separately
 */
 
 KUndo2QStack::~KUndo2QStack()
 {
-#ifndef QT_NO_UNDOGROUP
-    if (m_group != 0)
-        m_group->removeStack(this);
-#endif
     clear();
 }
 
@@ -1124,62 +1082,6 @@ QString KUndo2QStack::redoText() const
     return QString();
 }
 
-#ifndef QT_NO_ACTION
-
-/*!
-    Creates an undo QAction object with the given \a parent.
-
-    Triggering this action will cause a call to undo(). The text of this action
-    is the text of the command which will be undone in the next call to undo(),
-    prefixed by the specified \a prefix. If there is no command available for undo,
-    this action will be disabled.
-
-    If \a prefix is empty, the default prefix "Undo" is used.
-
-    \sa createRedoAction(), canUndo(), KUndo2Command::text()
-*/
-
-QAction *KUndo2QStack::createUndoAction(QObject *parent) const
-{
-    KUndo2Action *result = new KUndo2Action(i18n("Undo %1"), i18nc("Default text for undo action", "Undo"), parent);
-    result->setEnabled(canUndo());
-    result->setPrefixedText(undoText());
-    connect(this, SIGNAL(canUndoChanged(bool)),
-            result, SLOT(setEnabled(bool)));
-    connect(this, SIGNAL(undoTextChanged(QString)),
-            result, SLOT(setPrefixedText(QString)));
-    connect(result, SIGNAL(triggered()), this, SLOT(undo()));
-    return result;
-}
-
-/*!
-    Creates an redo QAction object with the given \a parent.
-
-    Triggering this action will cause a call to redo(). The text of this action
-    is the text of the command which will be redone in the next call to redo(),
-    prefixed by the specified \a prefix. If there is no command available for redo,
-    this action will be disabled.
-
-    If \a prefix is empty, the default prefix "Redo" is used.
-
-    \sa createUndoAction(), canRedo(), KUndo2Command::text()
-*/
-
-QAction *KUndo2QStack::createRedoAction(QObject *parent) const
-{
-    KUndo2Action *result = new KUndo2Action(i18n("Redo %1"), i18nc("Default text for redo action", "Redo"), parent);
-    result->setEnabled(canRedo());
-    result->setPrefixedText(redoText());
-    connect(this, SIGNAL(canRedoChanged(bool)),
-            result, SLOT(setEnabled(bool)));
-    connect(this, SIGNAL(redoTextChanged(QString)),
-            result, SLOT(setPrefixedText(QString)));
-    connect(result, SIGNAL(triggered()), this, SLOT(redo()));
-    return result;
-}
-
-#endif // QT_NO_ACTION
-
 /*!
     Begins composition of a macro command with the given \a text description.
 
@@ -1328,39 +1230,20 @@ int KUndo2QStack::undoLimit() const
     \brief the active status of this stack.
 
     An application often has multiple undo stacks, one for each opened document. The active
-    stack is the one associated with the currently active document. If the stack belongs
-    to a KUndo2Group, calls to KUndo2Group::undo() or KUndo2Group::redo() will be forwarded
-    to this stack when it is active. If the KUndo2Group is watched by a KUndo2View, the view
-    will display the contents of this stack when it is active. If the stack does not belong to
-    a KUndo2Group, making it active has no effect.
+    stack is the one associated with the currently active document.
 
     It is the programmer's responsibility to specify which stack is active by
     calling setActive(), usually when the associated document window receives focus.
-
-    \sa KUndo2Group
 */
 
 void KUndo2QStack::setActive(bool active)
 {
-#ifdef QT_NO_UNDOGROUP
     Q_UNUSED(active);
-#else
-    if (m_group != 0) {
-        if (active)
-            m_group->setActiveStack(this);
-        else if (m_group->activeStack() == this)
-            m_group->setActiveStack(0);
-    }
-#endif
 }
 
 bool KUndo2QStack::isActive() const
 {
-#ifdef QT_NO_UNDOGROUP
     return true;
-#else
-    return m_group == 0 || m_group->activeStack() == this;
-#endif
 }
 void KUndo2QStack::setUseCumulativeUndoRedo(bool value)
 {
@@ -1380,38 +1263,6 @@ void KUndo2QStack::setCumulativeUndoData(const KisCumulativeUndoData &data)
 KisCumulativeUndoData KUndo2QStack::cumulativeUndoData()
 {
     return m_cumulativeUndoData;
-}
-
-QAction* KUndo2Stack::createRedoAction(QObject* actionCollection, const QString& actionName)
-{
-    QAction* action = KUndo2QStack::createRedoAction(actionCollection);
-
-    if (actionName.isEmpty()) {
-        action->setObjectName("edit_redo");
-    } else {
-        action->setObjectName(actionName);
-    }
-
-    action->setIconText(QCoreApplication::translate("KUndo2Stack", "Redo"));
-    action->setShortcuts(QKeySequence::Redo);
-
-    return action;
-}
-
-QAction* KUndo2Stack::createUndoAction(QObject* actionCollection, const QString& actionName)
-{
-    QAction* action = KUndo2QStack::createUndoAction(actionCollection);
-
-    if (actionName.isEmpty()) {
-        action->setObjectName("edit_undo");
-    } else {
-        action->setObjectName(actionName);
-    }
-
-    action->setIconText(QCoreApplication::translate("KUndo2Stack", "Undo"));
-    action->setShortcuts(QKeySequence::Undo);
-
-    return action;
 }
 
 /*!
@@ -1441,32 +1292,28 @@ QAction* KUndo2Stack::createUndoAction(QObject* actionCollection, const QString&
 /*!
     \fn void KUndo2QStack::undoTextChanged(const QString &undoText)
 
-    This signal is emitted whenever the value of undoText() changes. It is
-    used to update the text property of the undo action returned by createUndoAction().
+    This signal is emitted whenever the value of undoText() changes.
     \a undoText specifies the new text.
 */
 
 /*!
     \fn void KUndo2QStack::canUndoChanged(bool canUndo)
 
-    This signal is emitted whenever the value of canUndo() changes. It is
-    used to enable or disable the undo action returned by createUndoAction().
+    This signal is emitted whenever the value of canUndo() changes.
     \a canUndo specifies the new value.
 */
 
 /*!
     \fn void KUndo2QStack::redoTextChanged(const QString &redoText)
 
-    This signal is emitted whenever the value of redoText() changes. It is
-    used to update the text property of the redo action returned by createRedoAction().
+    This signal is emitted whenever the value of redoText() changes.
     \a redoText specifies the new text.
 */
 
 /*!
     \fn void KUndo2QStack::canRedoChanged(bool canRedo)
 
-    This signal is emitted whenever the value of canRedo() changes. It is
-    used to enable or disable the redo action returned by createRedoAction().
+    This signal is emitted whenever the value of canRedo() changes.
     \a canRedo specifies the new value.
 */
 

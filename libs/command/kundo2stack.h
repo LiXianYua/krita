@@ -61,7 +61,6 @@
 class QAction;
 class QObject;
 class KUndo2CommandPrivate;
-class KUndo2Group;
 
 #ifndef QT_NO_UNDOCOMMAND
 
@@ -178,11 +177,6 @@ public:
     QString actionText(int idx) const;
     QString text(int idx) const;
 
-#ifndef QT_NO_ACTION
-    QAction *createUndoAction(QObject *parent) const;
-    QAction *createRedoAction(QObject *parent) const;
-#endif // QT_NO_ACTION
-
     bool isActive() const;
     bool isClean() const;
     int cleanIndex() const;
@@ -227,7 +221,6 @@ private:
     QList<KUndo2Command*> m_macro_stack;
     int m_index;
     int m_clean_index;
-    KUndo2Group *m_group;
     int m_undo_limit;
     bool m_useCumulativeUndoRedo;
     KisCumulativeUndoData m_cumulativeUndoData;
@@ -237,17 +230,12 @@ private:
     bool checkUndoLimit();
 
     Q_DISABLE_COPY(KUndo2QStack)
-    friend class KUndo2Group;
 };
 
 class KRITACOMMAND_EXPORT KUndo2Stack : public KUndo2QStack
 {
 public:
     explicit KUndo2Stack(QObject *parent = 0);
-
-    // functions from KUndoStack
-    QAction* createRedoAction(QObject* actionCollection, const QString& actionName = QString());
-    QAction* createUndoAction(QObject* actionCollection, const QString& actionName = QString());
 };
 
 #endif // QT_NO_UNDOSTACK

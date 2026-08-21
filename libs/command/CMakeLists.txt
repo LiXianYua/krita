@@ -2,9 +2,6 @@ add_subdirectory( tests )
 
 set(kritacommand_LIB_SRCS
 	kundo2stack.cpp
-	kundo2group.cpp
-	kundo2view.cpp
-	kundo2model.cpp
 	kundo2magicstring.cpp
 	kundo2commandextradata.cpp
         kis_undo_store.cpp
