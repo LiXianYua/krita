@@ -23,6 +23,9 @@ public:
     void unlock();
 };
 
+// 注意：当前类不可默认构造（KIS_DECLARE_ADAPTED_LOCK 的 using BaseClass::BaseClass
+// 不继承默认构造）。全树零消费方（死代码）；消费方接入时需先恢复构造路径
+// （给 Adapter 加带参构造 + 相应转发，或给 KisAdaptedLock 补默认构造）。
 KIS_DECLARE_ADAPTED_LOCK(KisCursorOverrideLock, KisCursorOverrideLockAdapter)
 
 #endif // KISCURSOROVERRIDELOCK_H

@@ -25,11 +25,14 @@
 /**
  * @brief A base class for KisSynchronizedConnection
  *
- * This class implements PkEvent logic for KisSynchronizedConnection. Since
- * KisSynchronizedConnection is templated, it should be implemented fully
- * inline, but we don't want to expose our interactions with KisApplication.
- * Therefore we implement this logic in a separate non-templated class that
- * will be hidden in `kritaglobal`.
+ * Since KisSynchronizedConnection is templated, it should be implemented fully
+ * inline, but we don't want to expose the delivery machinery in the header.
+ * Therefore the non-templated part of the queued delivery lives here: the
+ * connection posts the invocation through PkThreadCallQueue to the destination
+ * thread, where it runs in that thread's explicit pump
+ * (PkThreadCallQueue::processPendingCalls) without recursion. This class also
+ * carries the unittest auto-mode switch and the event barrier; it is hidden in
+ * `kritaglobal`.
  */
 class KRITAGLOBAL_EXPORT KisSynchronizedConnectionBase : public PkObject
 {

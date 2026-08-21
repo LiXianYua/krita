@@ -13,6 +13,7 @@
 #include <PkStream.h>
 
 #include <cstdint>
+#include <vector>
 
 namespace {
 
@@ -52,10 +53,14 @@ PkByteArray pkBase64Decode(const std::string &s)
     std::vector<unsigned char> out;
     unsigned int buf = 0;
     int bits = 0;
+    // 解码：遇 '='（padding）终止，对齐 Qt fromBase64 的 padding 语义。
+    // 非法字符处理与 Qt 默认行为不同：Qt 跳过非法字符继续，本 helper 停止。
+    // 对规范 base64（toBase64 产物）两者逐字节一致；非规范输入属损坏数据，
+    // Pk 侧按 R-31 显式失败，不静默继续。
     for (char c : s) {
-        if (c == '=') break;            // padding 终止，对齐 Qt
+        if (c == '=') break;
         const int v = pkBase64Value(c);
-        if (v < 0) break;               // Qt 在首个非法字符处停止
+        if (v < 0) break;
         buf = (buf << 6) | static_cast<unsigned int>(v);
         bits += 6;
         if (bits >= 8) {
