@@ -6,6 +6,9 @@
 
 #include "kis_random_source.h"
 
+#include <chrono>
+#include <random>
+
 #include <boost/random/normal_distribution.hpp>
 #include <boost/random/taus88.hpp>
 #include <boost/random/uniform_smallint.hpp>
@@ -13,7 +16,12 @@
 struct KisRandomSource::Private
 {
     Private()
-        : uniformSource(PkRandomGenerator::global()->generate()) {}
+        : uniformSource([]() {
+              std::random_device rd;
+              const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+              return static_cast<boost::uint32_t>(rd() ^ static_cast<unsigned>(now));
+          }())
+    {}
 
     Private(int seed)
         : uniformSource(seed) {}

@@ -7,19 +7,7 @@
 
 #include "KisCursorOverrideLock.h"
 
-KisCursorOverrideLockAdapter::KisCursorOverrideLockAdapter(const PkCursor &cursor)
-    : m_cursor(cursor)
-{
-}
-
-KisCursorOverrideLockAdapter::~KisCursorOverrideLockAdapter() = default;
-
-void KisCursorOverrideLockAdapter::lock()
-{
-    qApp->setOverrideCursor(m_cursor);
-}
-
-void KisCursorOverrideLockAdapter::unlock()
-{
-    qApp->restoreOverrideCursor();
-}
+KisCursorOverrideLockAdapter::KisCursorOverrideLockAdapter() {}
+KisCursorOverrideLockAdapter::~KisCursorOverrideLockAdapter() {}
+void KisCursorOverrideLockAdapter::lock() {}
+void KisCursorOverrideLockAdapter::unlock() {}

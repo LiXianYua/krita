@@ -16,14 +16,11 @@
 class KRITAGLOBAL_EXPORT KisCursorOverrideLockAdapter
 {
 public:
-    KisCursorOverrideLockAdapter(const PkCursor &cursor);
+    KisCursorOverrideLockAdapter();
     ~KisCursorOverrideLockAdapter();
 
     void lock();
     void unlock();
-
-private:
-    PkCursor m_cursor;
 };
 
 KIS_DECLARE_ADAPTED_LOCK(KisCursorOverrideLock, KisCursorOverrideLockAdapter)

@@ -6,28 +6,13 @@
 
 #include <KisMessageBoxWrapper.h>
 
-#include <PkString.h>
-
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <ksharedconfig.h>
-
 namespace KisMessageBoxWrapper {
 
-int doNotAskAgainMessageBoxWrapper(PkMessageBox *messageBox, const PkString &identifier)
+int doNotAskAgainMessageBoxWrapper(PkMessageBox *, const PkString &)
 {
-    KConfigGroup cfg(KSharedConfig::openConfig(), "DoNotAskAgain");
-    bool showMessage = cfg.readEntry(identifier, true);
-    if (showMessage) {
-        PkCheckBox *cb = new PkCheckBox(i18n("Don't ask this again"));
-        messageBox->setCheckBox(cb);
-        const int res = messageBox->exec();
-        cfg.writeEntry(identifier, cb->checkState() == Qt::CheckState::Unchecked);
-        return res;
-    }
-    else {
-        return PkMessageBox::Yes;
-    }
+    // S-02-a: 剥离后空实现。PkMessageBox 不存在于内核；"Do Not Ask Again" 状态
+    // 由 Flutter 侧负责。返回 QMessageBox::Yes（0x4000）等价默认值。
+    return 16384;
 }
 
 }
