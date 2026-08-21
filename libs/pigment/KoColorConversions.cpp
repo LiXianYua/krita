@@ -9,7 +9,7 @@
 
 #include <cmath>
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 /**
  * A number of often-used conversions between color models

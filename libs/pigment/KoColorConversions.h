@@ -7,7 +7,7 @@
 #ifndef _KO_COLORCONVERSIONS_H_
 #define _KO_COLORCONVERSIONS_H_
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include "kritapigment_export.h"
 
 /**

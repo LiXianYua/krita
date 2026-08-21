@@ -6,11 +6,12 @@
 #ifndef _DEBUG_PIGMENT_H_
 #define _DEBUG_PIGMENT_H_
 
-#include <QDebug>
-#include <QLoggingCategory>
+#include <PkDebug.h>
+#include <PkLoggingCategory.h>
+#include <PkMessageLogger.h>
 #include <kritapigment_export.h>
 
-extern const KRITAPIGMENT_EXPORT QLoggingCategory &PIGMENT_log();
+extern const KRITAPIGMENT_EXPORT PkLoggingCategory &PIGMENT_log();
 
 #define dbgPigment qCDebug(PIGMENT_log)
 #define dbgPigmentCCS dbgPigment

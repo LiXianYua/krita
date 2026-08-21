@@ -9,9 +9,11 @@
 
 #include <limits>
 
-#include <QColor>
-#include <QString>
-#include <QList>
+#include <PkColor.h>
+#include <PkString.h>
+#include <PkList.h>
+#include <PkGlobal.h>
+#include <PkContainerAlgo.h>
 
 /**
  * This class gives some basic information about a channel,
@@ -69,13 +71,13 @@ public:
      * @param color a color to represent that channel (for instance in an histogram)
      * @param uiMinMax the UI range
      */
-    KoChannelInfo(const QString & name,
+    KoChannelInfo(const PkString & name,
                   qint32 npos,
                   qint32 displayPosition,
                   enumChannelType channelType,
                   enumChannelValueType channelValueType,
                   qint32 size = -1,
-                  const QColor &color = QColor(0, 0, 0),
+                  const PkColor &color = PkColor(0, 0, 0),
                   const DoubleRange &uiMinMax = DoubleRange())
         : m_name(name)
         , m_pos(npos)
@@ -153,7 +155,7 @@ public:
     /**
      * converts the display position to the pixel-order index in the channels vector.
      */
-    static int displayPositionToChannelIndex(int displayPosition, const QList<KoChannelInfo*> &channels)
+    static int displayPositionToChannelIndex(int displayPosition, const PkList<KoChannelInfo*> &channels)
     {
         for (int i = 0; i < channels.size(); ++i) {
             if (channels.at(i)->displayPosition() == displayPosition) {
@@ -163,11 +165,11 @@ public:
         return -1;
     }
 
-    static QList<KoChannelInfo*> displayOrderSorted(const QList<KoChannelInfo*> &channels)
+    static PkList<KoChannelInfo*> displayOrderSorted(const PkList<KoChannelInfo*> &channels)
     {
-        QList <KoChannelInfo*> sortedChannels;
+        PkList <KoChannelInfo*> sortedChannels;
         for (int i = 0; i < channels.size(); ++i) {
-            Q_FOREACH (KoChannelInfo* channel, channels) {
+            PK_FOREACH (KoChannelInfo* channel, channels) {
                 if (channel->displayPosition() == i) {
                     sortedChannels << channel;
                     break;
@@ -181,7 +183,7 @@ public:
     /**
      * User-friendly name for this channel for presentation purposes in the gui
      */
-    inline QString name() const {
+    inline PkString name() const {
         return m_name;
     }
 
@@ -222,7 +224,7 @@ public:
      * This is a color that can be used to represent this channel in histograms and so.
      * By default this is black, so keep in mind that many channels might look the same
      */
-    inline QColor color() const {
+    inline PkColor color() const {
         return m_color;
     }
 
@@ -260,13 +262,13 @@ public:
 
 private:
 
-    QString m_name;
+    PkString m_name;
     qint32 m_pos;
     qint32 m_displayPosition;
     enumChannelType m_channelType;
     enumChannelValueType m_channelValueType;
     qint32 m_size;
-    QColor m_color;
+    PkColor m_color;
     DoubleRange m_uiMinMax;
 
 };

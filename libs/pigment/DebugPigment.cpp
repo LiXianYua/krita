@@ -5,9 +5,9 @@
  */
 
 #include "DebugPigment.h"
-const QLoggingCategory &PIGMENT_log() \
+const PkLoggingCategory &PIGMENT_log()
 {
-    static const QLoggingCategory category("krita.lib.pigment", QtInfoMsg);
+    static const PkLoggingCategory category("krita.lib.pigment", PkLogInfo);
     return category;
 }
 
