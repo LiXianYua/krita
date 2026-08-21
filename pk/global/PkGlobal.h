@@ -304,7 +304,9 @@ enum TransformationMode {
     SmoothTransformation
 };
 }
+#endif // !defined(QT_CORE_LIB) —— namespace Qt 段至此（qnamespace.h 必被 QtCore 拉，QT_CORE_LIB 足够）
 
+#if !defined(QT_CORE_LIB) || !defined(QMATH_H)
 // qmath.h:68-76。语义是 int(floor(v))（向 -∞）与 int(ceil(v))（向 +∞）。
 // ⚠ 逐字照抄 `int(floor(v))` 写不了 constexpr（std::floor 在 C++17 非 constexpr），
 // 这里用等价公式 `int(v) - (v < int(v))` / `int(v) + (v > int(v))`（int(v) 是向
@@ -332,7 +334,14 @@ constexpr inline int qCeil(qreal v)
         return pkTruncated;   // 非有限值：原样截断（x86 → INT_MIN），同 Qt int(ceil(±inf))
     return (v > pkTruncated) ? pkTruncated + 1 : pkTruncated;
 }
+#endif // !defined(QT_CORE_LIB) || !defined(QMATH_H)
+// ⚠ 让位守卫（R-34 终审）：qmath.h 不被 qglobal.h 拉（只有 <QtMath>/QtCore umbrella
+// 拉它）。real-Qt 在场但没 include <QtMath> 的 TU 里，真 Qt 的 qFloor/qCeil 不可见，
+// pk 版仍应可用——所以守卫是 `!QT_CORE_LIB || !QMATH_H`（QMATH_H 是真 Qt qmath.h 的
+// include guard；mixed TU 按「Qt 头在前」顺序，Qt 先定义则 pk 让位、Qt 未定义则 pk
+// 提供）。反序（pk 先、Qt 后）会让 Qt qmath.h 无条件重定义，同 README 登记的约定。
 
+#if !defined(QT_CORE_LIB) || !defined(QALGORITHMS_H)
 // qmath.h:247-258 的「非内置 clz」分支（逐字照抄）。语义：返回**严格大于** v 的
 // 最小 2 的幂，v==0 → 1；v ≥ 2^31（含 0x80000000）时 OR 级联把低 31 位全填成 1、
 // ++v 回绕到 0（实测真 Qt 5.15.7 确认，内置 clz 路径同样给 0）。所以 v=1024 → 2048
@@ -347,6 +356,8 @@ constexpr inline quint32 qNextPowerOfTwo(quint32 v)
     ++v;
     return v;
 }
+#endif // !defined(QT_CORE_LIB) || !defined(QALGORITHMS_H)
+// qNextPowerOfTwo 在真 Qt qalgorithms.h（同样不被 qglobal.h 拉），守卫同 qFloor 一条。
 
 // qnumeric.h:48-59。真 Qt 里这些是 Q_CORE_EXPORT 的非 inline 函数（实现在
 // qnumeric_p.h，就是 std::isnan 与 std::numeric_limits）。R-03 的 geometry 侧
@@ -355,6 +366,7 @@ constexpr inline quint32 qNextPowerOfTwo(quint32 v)
 // 处理，下面编译与测试都过了。
 // float 重载不是摆设：qIsNaN(float) 按 float 精度判，实参提升到 double 后取值
 // 一致但语义不同，Krita 里 float 版有调用点。
+#if !defined(QT_CORE_LIB)  // qglobal.h:1303 拉 qnumeric.h——QT_CORE_LIB 在场则真 Qt 的 qIsNaN/qInf/qQNaN 已可见
 constexpr inline bool qIsNaN(double d) { return std::isnan(d); }
 constexpr inline bool qIsNaN(float f) { return std::isnan(f); }
 constexpr inline double qInf() { return std::numeric_limits<double>::infinity(); }

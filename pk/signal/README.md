@@ -101,6 +101,8 @@ static bool disconnect(const PkObject* sender, std::nullptr_t,
    - **任何线程在 `activateSignal` 遍历 `sender->m_outgoing` 期间对同一 sender 做 `connect()`/`disconnect()`/析构，都是 UB**（vector 重分配/`clear()` 使正在遍历的迭代器失效），与是不是 `BlockingQueued` 无关——3 只是这条更宽约束下的一个具体触发路径（"反向操作自己正阻塞等待的 sender"），不是唯一路径。
    - **receiver 必须在它自己的（即 pump 的）线程上析构**。否则 `PkObject.h` 里排队路径的 `if (!state->alive) return;` 是一个 TOCTOU：pump 线程读到 `alive==true` 之后、`impl2->fn(args...)` 执行之前，receiver 在第三个线程析构 ⇒ 槽闭包里捕获的 receiver 裸指针悬垂 ⇒ use-after-free。
 
+5. **让位给真 Qt（R-34，2026-08-21）**：`compat/QObject` 与 `PkConnect.h` 的 `QOverload` 在 `QT_CORE_LIB`（real Qt 已进 TU）定义时让位——libs/global 基线测试经 `sdk/tests/simpletest.h` 同时拉真 Qt `<QTest>` 与 `KisSynchronizedConnection.h`（经 compat/QObject），不守卫就与真 Qt 头重定义（QOverload/QMetaObject/namespace Qt）。让位是逐项的：凡真 Qt 有同名的实体（宏 `Q_OBJECT`/`Q_SIGNALS`/`Q_SLOTS`/`emit`/`QPointer`、类型 `QMetaObject`/`namespace Qt`、`QOverload`）一律让位；pk 自有名（`PkObject`/`PkConnection`/`PkMetaObject`）无条件保留。**coexist 探针**（`tests/coexist_qt_probe.sh`）编+跑两种模式（real Qt + compat 同 TU / 无 Qt）证明共存。**mixed TU 约定**：必须「Qt 头在前」——real Qt 的头先 include、pk compat 后 include；反序会让真 Qt 无条件重定义 pk 已定义的宏（真 Qt qlogging.h:164-168 无 `#ifndef` 包裹）。当前观测的基线测试全部满足该顺序。
+
 ## 2. 三条缺口登记（逐条 + 建议归口）
 
 试接与全量扫描口径下，本任务**明确不交付**、已定位的三条：

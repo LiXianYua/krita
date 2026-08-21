@@ -37,6 +37,10 @@ static_assert(!std::is_same<QObject, PkObject>::value,
 // pk 类型必须仍可用（KisSynchronizedConnection 等消费方依赖）。
 static_assert(std::is_same<PkMetaObject::Connection, PkConnection>::value,
               "PkMetaObject::Connection == PkConnection");
+// namespace Qt 必须是真 Qt 的（真 Qt ConnectionType 是普通 enum，pk 是 enum class，
+// 必不相等——钉住让位没把 compat 的 namespace Qt 漏出来）。
+static_assert(!std::is_same<Qt::ConnectionType, PkConnectionType>::value,
+              "namespace Qt must be real Qt's under QT_CORE_LIB");
 // QOverload 必须是真 Qt 的（对 &C::sig 重载消歧）。
 struct ProbeS { void sig(int) {} void sig(const QString&) {} };
 using ProbePtr = void (ProbeS::*)(int);

@@ -154,6 +154,8 @@ run_oracle.sh: 通过 —— 全部差异都已声明，canary 齐全
 `oracle/global.deviation` 的当前内容：1 行 `Q_ASSERT	assert_gate` + 11 行
 `canary`——**与上表第 3 条一致**，其余真实差异为零。
 
+**让位给真 Qt（R-34，2026-08-21）**：real Qt 已进 TU（`QT_CORE_LIB` 定义）时，本头与 Qt 同名的一切（`qAbs`/`qRound`/`qMin`/`qMax`/`qBound`/`qIsNull`/`qFuzzyCompare`/`qFuzzyIsNull`/`qFloor`/`qCeil`/`qNextPowerOfTwo`/`qIsNaN`/`qInf`/`qQNaN` 与 `namespace Qt` 枚举族）让位，与真 Qt qglobal.h/qmath.h/qalgorithms.h/qnumeric.h/qnamespace.h 共存。`pkQtFuzzyCompare`/`pkQtFuzzyIsNull`（pk 自有名，geometry 头内部调用）保留。`qFloor`/`qCeil`/`qNextPowerOfTwo` 的守卫是 `!QT_CORE_LIB || !QMATH_H`（`!QALGORITHMS_H`）——qmath.h/qalgorithms.h 不被 qglobal.h 拉，real-Qt 在场但没 include `<QtMath>`/`<QtAlgorithms>` 的 TU 里 pk 版仍应可用；mixed TU 必须「Qt 头在前」。
+
 ## 覆盖度限制（照 R-01 先例写）
 
 | 对拍覆盖不到什么 | 怎么补的 |

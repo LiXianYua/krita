@@ -90,6 +90,12 @@ void PkThreadCallQueue::post(PkThreadId target, std::function<void()> fn, PkCall
     // claim/alive 的 shared_ptr 引用计数撑到目标线程执行（或队列清理）为止。
     Registry& r = registry();
     PkMutexLocker lock(&r.mutex);
+    // 空守卫（claim 或 alive 为 null，例如默认构造的 PkCallLifetime{}）时
+    // 退化成无守卫投递，等价于两参 post——不做存活检查也不解引用空指针。
+    if (!lt.claim || !lt.alive) {
+        r.queues[target].push_back(std::move(fn));
+        return;
+    }
     r.queues[target].push_back(
         [fn = std::move(fn), lt = std::move(lt)]() mutable {
             std::lock_guard<std::recursive_mutex> claim(*lt.claim);
