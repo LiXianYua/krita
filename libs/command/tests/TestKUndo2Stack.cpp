@@ -429,4 +429,8 @@ void TestKUndo2Stack::testCleanIndexBeforeMerge()
     QCOMPARE(stack.command(2)->isMerged(), false);
 }
 
+// PkTestBinder<T> 是显式特化，qExec<T> 实例化处必须与它同一个 TU
+// （pk/test/CMakeLists.txt 的 ODR 硬规则；照 pk/time/tests/test_elapsed_timer.cpp:99）。
+#include "pk_binder_testkundo2stack.inc"
+
 SIMPLE_TEST_MAIN(TestKUndo2Stack)
