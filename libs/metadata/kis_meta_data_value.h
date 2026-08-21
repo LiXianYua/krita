@@ -6,13 +6,16 @@
 #ifndef _KIS_META_DATA_VALUE_H_
 #define _KIS_META_DATA_VALUE_H_
 
-#include <QList>
-#include <QMap>
+#include <PkDebug.h>
+#include <PkGlobal.h>
+#include <PkList.h>
+#include <PkMap.h>
+#include <PkString.h>
 
 #include <kritametadata_export.h>
 #include <boost/operators.hpp>
 
-class QVariant;
+class PkVariant;
 
 namespace KisMetaData
 {
@@ -28,7 +31,7 @@ struct Rational : public boost::equality_comparable<Rational>
 };
 
 /**
- * Value is build on top of QVariant to extend it to support the various types
+ * Value is build on top of PkVariant to extend it to support the various types
  * and extensions through property qualifiers.
  */
 class KRITAMETADATA_EXPORT Value
@@ -48,20 +51,20 @@ public:
     };
 public:
     Value();
-    Value(const QVariant& value);
+    Value(const PkVariant& value);
     /**
     * @param type is one of OrderedArray, UnorderedArray, AlternativeArray
     * or LangArray
     */
-    Value(const QList<Value>& array, ValueType type = OrderedArray);
-    Value(const QMap<QString, Value>& structure);
+    Value(const PkList<Value>& array, ValueType type = OrderedArray);
+    Value(const PkMap<PkString, Value>& structure);
     Value(const KisMetaData::Rational& rational);
     Value(const Value& v);
     Value& operator=(const Value& v);
     ~Value();
 public:
-    void addPropertyQualifier(const QString& _name, const Value&);
-    const QMap<QString, Value>& propertyQualifiers() const;
+    void addPropertyQualifier(const PkString& _name, const Value&);
+    const PkMap<PkString, Value>& propertyQualifiers() const;
 public:
     /// @return the type of this Value
     ValueType type() const;
@@ -74,16 +77,16 @@ public:
     */
     int asInteger() const;
     /**
-    * @return the Variant hold by this Value, or an empty QVariant if this Value is not a Variant
+    * @return the Variant hold by this Value, or an empty PkVariant if this Value is not a Variant
     */
-    QVariant asVariant() const;
+    PkVariant asVariant() const;
     /**
     * Set this Value to the given variant, or does nothing if this Value is not a Variant.
     * @return true if the value was changed
     */
-    bool setVariant(const QVariant& variant);
-    bool setStructureVariant(const QString& fieldNAme, const QVariant& variant);
-    bool setArrayVariant(int index, const QVariant& variant);
+    bool setVariant(const PkVariant& variant);
+    bool setStructureVariant(const PkString& fieldNAme, const PkVariant& variant);
+    bool setArrayVariant(int index, const PkVariant& variant);
     /**
     * @return the Rational hold by this Value, or a null rational if this Value is not
     * an Rational
@@ -93,7 +96,7 @@ public:
     * @return the array hold by this Value, or an empty array if this Value is not either
     * an OrderedArray, UnorderedArray or AlternativeArray
     */
-    QList<KisMetaData::Value> asArray() const;
+    PkList<KisMetaData::Value> asArray() const;
     /**
     * @return true if this Value is either an OrderedArray, UnorderedArray or AlternativeArray
     */
@@ -101,13 +104,13 @@ public:
     /**
     * @return the structure hold by this Value, or an empty structure if this Value is not a Structure
     */
-    QMap<QString, KisMetaData::Value> asStructure() const;
+    PkMap<PkString, KisMetaData::Value> asStructure() const;
     /**
     * It's a convenient function that build a map from a LangArray using the property
     * qualifier "xml:lang" for the key of the map.
     */
-    QMap<QString, KisMetaData::Value> asLangArray() const;
-    QString toString() const;
+    PkMap<PkString, KisMetaData::Value> asLangArray() const;
+    PkString toString() const;
 public:
     bool operator==(const Value&) const;
     Value& operator+=(const Value&);
@@ -117,6 +120,6 @@ private:
 }
 
 
-KRITAMETADATA_EXPORT QDebug operator<<(QDebug debug, const KisMetaData::Value &v);
+KRITAMETADATA_EXPORT PkDebug operator<<(PkDebug debug, const KisMetaData::Value &v);
 
 #endif

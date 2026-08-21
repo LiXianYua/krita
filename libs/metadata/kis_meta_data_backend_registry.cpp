@@ -7,13 +7,9 @@
 
 #include "kis_meta_data_backend_registry.h"
 
-#include <QGlobalStatic>
-
-#include <KoPluginLoader.h>
+#include <PkStringHash.h>
 
 #include <kis_debug.h>
-
-Q_GLOBAL_STATIC(KisMetadataBackendRegistry, s_instance)
 
 KisMetadataBackendRegistry::KisMetadataBackendRegistry()
 {
@@ -21,7 +17,7 @@ KisMetadataBackendRegistry::KisMetadataBackendRegistry()
 
 KisMetadataBackendRegistry::~KisMetadataBackendRegistry()
 {
-    Q_FOREACH (const QString &id, keys()) {
+    for (const PkString &id : keys()) {
         delete get(id);
     }
     dbgRegistry << "Deleting KisMetadataBackendRegistry";
@@ -29,14 +25,12 @@ KisMetadataBackendRegistry::~KisMetadataBackendRegistry()
 
 void KisMetadataBackendRegistry::init()
 {
-    KoPluginLoader::instance()->load("Krita/Metadata");
+    // D-12：静态注册由 S-09-c 的 registerAllPlugins() 调用 instance()->add() 完成。
+    // 这里保留为空，不再动态加载 "Krita/Metadata" 插件。
 }
 
 KisMetadataBackendRegistry *KisMetadataBackendRegistry::instance()
 {
-    if (!s_instance.exists()) {
-        dbgRegistry << "initializing KisMetadataBackendRegistry";
-        s_instance->init();
-    }
-    return s_instance;
+    static KisMetadataBackendRegistry s_instance;
+    return &s_instance;
 }

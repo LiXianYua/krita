@@ -10,8 +10,8 @@
 
 #include <kritametadata_export.h>
 
-class QIODevice;
-class QString;
+class PkStream;
+class PkString;
 
 namespace KisMetaData
 {
@@ -38,9 +38,9 @@ public:
 public:
     virtual ~IOBackend(){};
 
-    virtual QString id() const = 0;
+    virtual PkString id() const = 0;
 
-    virtual QString name() const = 0;
+    virtual PkString name() const = 0;
 
     /**
      * @return the type of the backend
@@ -59,7 +59,7 @@ public:
      *                   which type of header
      * @return true if the save was successful (XXX: actually, all backends always return true...)
      */
-    virtual bool saveTo(const Store *store, QIODevice *ioDevice, HeaderType headerType = NoHeader) const = 0;
+    virtual bool saveTo(const Store *store, PkStream *ioDevice, HeaderType headerType = NoHeader) const = 0;
 
     /**
      * @param store the list of metadata
@@ -78,7 +78,7 @@ public:
      * @param ioDevice the device from where the metadata will be loaded
      * @return true if the load was successful
      */
-    virtual bool loadFrom(Store *store, QIODevice *ioDevice) const = 0;
+    virtual bool loadFrom(Store *store, PkStream *ioDevice) const = 0;
 };
 }
 

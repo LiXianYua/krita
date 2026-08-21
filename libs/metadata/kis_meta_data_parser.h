@@ -9,7 +9,7 @@
 
 #include <kritametadata_export.h>
 
-#include <QString>
+#include <PkString.h>
 
 namespace KisMetaData
 {
@@ -23,7 +23,7 @@ class KRITAMETADATA_EXPORT Parser
     friend class TypeInfo;
 public:
     virtual ~Parser();
-    virtual Value parse(const QString&) const = 0;
+    virtual Value parse(const PkString&) const = 0;
 };
 }
 

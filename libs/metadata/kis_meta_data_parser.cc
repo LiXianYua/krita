@@ -16,44 +16,47 @@ Parser::~Parser()
 
 #include "kis_meta_data_parser_p.h"
 
-#include <QDateTime>
-#include <QRegularExpression>
-#include <QVariant>
+#include <PkDateTime.h>
+#include <PkVariant.h>
+
+#include <regex>
+#include <string>
 
 
-Value IntegerParser::parse(const QString& _v) const
+Value IntegerParser::parse(const PkString& _v) const
 {
     return Value(_v.toInt());
 }
 
-Value TextParser::parse(const QString& _v) const
+Value TextParser::parse(const PkString& _v) const
 {
     return Value(_v);
 }
 
-Value DateParser::parse(const QString& _v) const
+Value DateParser::parse(const PkString& _v) const
 {
-    if (_v.length() <= 4) {
-        return Value(QDateTime::fromString(_v, "yyyy"));
-    } else if (_v.length() <= 7) {
-        return Value(QDateTime::fromString(_v, "yyyy-MM"));
-    } else if (_v.length() <= 10) {
-        return Value(QDateTime::fromString(_v, "yyyy-MM-dd"));
-    } else if (_v.length() <= 16) {
-        return Value(QDateTime::fromString(_v, "yyyy-MM-ddThh:mm"));
-    } else if (_v.length() <= 19) {
-        return Value(QDateTime::fromString(_v, "yyyy-MM-ddThh:mm:ss"));
+    if (_v.size() <= 4) {
+        return Value(PkDateTime::fromString(_v.PkToUtf8(), "yyyy"));
+    } else if (_v.size() <= 7) {
+        return Value(PkDateTime::fromString(_v.PkToUtf8(), "yyyy-MM"));
+    } else if (_v.size() <= 10) {
+        return Value(PkDateTime::fromString(_v.PkToUtf8(), "yyyy-MM-dd"));
+    } else if (_v.size() <= 16) {
+        return Value(PkDateTime::fromString(_v.PkToUtf8(), "yyyy-MM-ddThh:mm"));
+    } else if (_v.size() <= 19) {
+        return Value(PkDateTime::fromString(_v.PkToUtf8(), "yyyy-MM-ddThh:mm:ss"));
     } else {
-        return Value(QDateTime::fromString(_v));
+        return Value(PkDateTime::fromString(_v.PkToUtf8()));
     }
 }
 
-Value RationalParser::parse(const QString& _v) const
+Value RationalParser::parse(const PkString& _v) const
 {
-    QRegularExpression regexp("(\\-?\\d+)[ ]*/[ ]*(\\d+)");
-    QRegularExpressionMatch match = regexp.match(_v);
+    std::regex regexp("(\\-?\\d+)[ ]*/[ ]*(\\d+)");
+    std::smatch match;
+    const std::string text = _v.PkToUtf8();
 
-    if (match.capturedTexts().size() > 2)
-        return Value(Rational(match.captured(1).toInt(), match.captured(2).toInt()));
+    if (std::regex_match(text, match, regexp) && match.size() > 2)
+        return Value(Rational(std::stoi(match[1].str()), std::stoi(match[2].str())));
     return Value();
 }

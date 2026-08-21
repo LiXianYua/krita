@@ -5,27 +5,29 @@
  */
 
 #include "kis_meta_data_value.h"
-#include <QPoint>
-#include <QRegularExpression>
-#include <QTime>
-#include <QVariant>
 
-#include <klocalizedstring.h>
+#include <PkDebug.h>
+#include <PkDateTime.h>
+#include <PkPoint.h>
+#include <PkStringList.h>
+#include <PkVariant.h>
+
+#include <algorithm>
 
 #include <kis_debug.h>
 
 using namespace KisMetaData;
 
-struct Q_DECL_HIDDEN Value::Private {
+struct Value::Private {
     Private() : type(Invalid) {}
     union {
-        QVariant* variant;
-        QList<Value>* array;
-        QMap<QString, Value>* structure;
+        PkVariant* variant;
+        PkList<Value>* array;
+        PkMap<PkString, Value>* structure;
         KisMetaData::Rational* rational;
     } value;
     ValueType type;
-    QMap<QString, Value> propertyQualifiers;
+    PkMap<PkString, Value> propertyQualifiers;
 };
 
 Value::Value() : d(new Private)
@@ -34,23 +36,23 @@ Value::Value() : d(new Private)
 }
 
 
-Value::Value(const QVariant& variant) : d(new Private)
+Value::Value(const PkVariant& variant) : d(new Private)
 {
     d->type = Value::Variant;
-    d->value.variant = new QVariant(variant);
+    d->value.variant = new PkVariant(variant);
 }
 
-Value::Value(const QList<Value>& array, ValueType type) : d(new Private)
+Value::Value(const PkList<Value>& array, ValueType type) : d(new Private)
 {
     Q_ASSERT(type == OrderedArray || type == UnorderedArray || type == AlternativeArray || type == LangArray);
-    d->value.array = new QList<Value>(array);
+    d->value.array = new PkList<Value>(array);
     d->type = type; // TODO: I am hesitating about LangArray to keep them as array or convert them to maps
 }
 
-Value::Value(const QMap<QString, Value>& structure) : d(new Private)
+Value::Value(const PkMap<PkString, Value>& structure) : d(new Private)
 {
     d->type = Structure;
-    d->value.structure = new QMap<QString, Value>(structure);
+    d->value.structure = new PkMap<PkString, Value>(structure);
 }
 
 Value::Value(const KisMetaData::Rational& signedRational) : d(new Private)
@@ -74,16 +76,16 @@ Value& Value::operator=(const Value & v)
     case Invalid:
         break;
     case Variant:
-        d->value.variant = new QVariant(*v.d->value.variant);
+        d->value.variant = new PkVariant(*v.d->value.variant);
         break;
     case OrderedArray:
     case UnorderedArray:
     case AlternativeArray:
     case LangArray:
-        d->value.array = new QList<Value>(*v.d->value.array);
+        d->value.array = new PkList<Value>(*v.d->value.array);
         break;
     case Structure:
-        d->value.structure = new QMap<QString, Value>(*v.d->value.structure);
+        d->value.structure = new PkMap<PkString, Value>(*v.d->value.structure);
         break;
     case Rational:
         d->value.rational = new KisMetaData::Rational(*v.d->value.rational);
@@ -97,12 +99,12 @@ Value::~Value()
     delete d;
 }
 
-void Value::addPropertyQualifier(const QString& _name, const Value& _value)
+void Value::addPropertyQualifier(const PkString& _name, const Value& _value)
 {
     d->propertyQualifiers[_name] = _value;
 }
 
-const QMap<QString, Value>& Value::propertyQualifiers() const
+const PkMap<PkString, Value>& Value::propertyQualifiers() const
 {
     return d->propertyQualifiers;
 }
@@ -116,7 +118,7 @@ double Value::asDouble() const
 {
     switch (type()) {
     case Variant:
-        return d->value.variant->toDouble(0);
+        return d->value.variant->toDouble();
     case Rational:
         return d->value.rational->numerator / (double)d->value.rational->denominator;
     default:
@@ -129,7 +131,7 @@ int Value::asInteger() const
 {
     switch (type()) {
     case Variant:
-        return d->value.variant->toInt(0);
+        return d->value.variant->toInt();
     case Rational:
         return d->value.rational->numerator / d->value.rational->denominator;
     default:
@@ -138,26 +140,25 @@ int Value::asInteger() const
     return 0;
 }
 
-QVariant Value::asVariant() const
+PkVariant Value::asVariant() const
 {
     switch (type()) {
     case Variant:
         return *d->value.variant;
     case Rational:
-        return QVariant(QString("%1 / %2").arg(d->value.rational->numerator).arg(d->value.rational->denominator));
+        return PkVariant(PkString("%1 / %2").arg(d->value.rational->numerator).arg(d->value.rational->denominator));
     default: break;
     }
-    return QVariant();
+    return PkVariant();
 }
 
-bool Value::setVariant(const QVariant& variant)
+bool Value::setVariant(const PkVariant& variant)
 {
     switch (type()) {
     case KisMetaData::Value::Invalid:
         *this = KisMetaData::Value(variant);
         return true;
     case Rational: {
-        QRegularExpression rx("([^\\/]*)\\/([^\\/]*)");
         // TODO: erm... did someone forgot to write actual code here?
 
         // for now just safe assert and return a failure
@@ -177,7 +178,7 @@ bool Value::setVariant(const QVariant& variant)
     return false;
 }
 
-bool Value::setStructureVariant(const QString& fieldNAme, const QVariant& variant)
+bool Value::setStructureVariant(const PkString& fieldNAme, const PkVariant& variant)
 {
     if (type() == Structure) {
         return (*d->value.structure)[fieldNAme].setVariant(variant);
@@ -185,7 +186,7 @@ bool Value::setStructureVariant(const QString& fieldNAme, const QVariant& varian
     return false;
 }
 
-bool Value::setArrayVariant(int index, const QVariant& variant)
+bool Value::setArrayVariant(int index, const PkVariant& variant)
 {
     if (isArray()) {
         for (int i = d->value.array->size(); i <= index; ++i) {
@@ -204,12 +205,12 @@ KisMetaData::Rational Value::asRational() const
     return KisMetaData::Rational();
 }
 
-QList<Value> Value::asArray() const
+PkList<Value> Value::asArray() const
 {
     if (isArray()) {
         return *d->value.array;
     }
-    return QList<Value>();
+    return PkList<Value>();
 }
 
 
@@ -218,31 +219,31 @@ bool Value::isArray() const
     return type() == OrderedArray || type() == UnorderedArray || type() == AlternativeArray;
 }
 
-QMap<QString, KisMetaData::Value> Value::asStructure() const
+PkMap<PkString, KisMetaData::Value> Value::asStructure() const
 {
     if (type() == Structure) {
         return *d->value.structure;
     }
-    return QMap<QString, KisMetaData::Value>();
+    return PkMap<PkString, KisMetaData::Value>();
 }
 
-QDebug operator<<(QDebug debug, const Value &v)
+PkDebug operator<<(PkDebug debug, const Value &v)
 {
     switch (v.type()) {
     case Value::Invalid:
         debug.nospace() << "invalid value";
         break;
     case Value::Variant:
-        debug.nospace() << "Variant: " << v.asVariant();
+        debug.nospace() << "Variant: " << v.asVariant().toString();
         break;
     case Value::OrderedArray:
     case Value::UnorderedArray:
     case Value::AlternativeArray:
     case Value::LangArray:
-        debug.nospace() << "Array: " << v.asArray();
+        debug.nospace() << "Array: " << v.toString();
         break;
     case Value::Structure:
-        debug.nospace() << "Structure: " << v.asStructure();
+        debug.nospace() << "Structure: " << v.toString();
         break;
     case Value::Rational:
         debug.nospace() << "Rational: " << v.asRational().numerator << " / " << v.asRational().denominator;
@@ -281,46 +282,53 @@ Value& Value::operator+=(const Value & v)
     case Value::Variant:
         Q_ASSERT(v.type() == Value::Variant);
         {
-            QVariant v1 = *d->value.variant;
-            QVariant v2 = *v.d->value.variant;
-            Q_ASSERT(v2.canConvert(v1.type()));
+            PkVariant v1 = *d->value.variant;
+            PkVariant v2 = *v.d->value.variant;
+            Q_ASSERT(pkCanConvert(v2.type(), v1.type()));
             switch (v1.type()) {
             default:
                 warnMetaData << "KisMetaData: Merging metadata of type" << v1.type() << "is unsupported!";
                 break;
-            case QMetaType::QDate:
-                *d->value.variant = qMax(v1.toDate(), v2.toDate());
+            case PkVariant::Date:
+                *d->value.variant = PkVariant(std::max(v1.toDate(), v2.toDate()));
                 break;
-            case QMetaType::QDateTime:
-                *d->value.variant = qMax(v1.toDate(), v2.toDate());
+            case PkVariant::DateTime:
+                *d->value.variant = PkVariant(std::max(v1.toDate(), v2.toDate()));
                 break;
-            case QMetaType::Double:
-                *d->value.variant = v1.toDouble() + v2.toDouble();
+            case PkVariant::Double:
+                *d->value.variant = PkVariant(v1.toDouble() + v2.toDouble());
                 break;
-            case QMetaType::Int:
-                *d->value.variant = v1.toInt() + v2.toInt();
+            case PkVariant::Int:
+                *d->value.variant = PkVariant(v1.toInt() + v2.toInt());
                 break;
-            case QMetaType::QVariantList:
-                *d->value.variant = v1.toList() + v2.toList();
+            case PkVariant::List: {
+                PkVariantList l1 = v1.toList();
+                const PkVariantList l2 = v2.toList();
+                l1.insert(l1.end(), l2.begin(), l2.end());
+                *d->value.variant = PkVariant(l1);
+            }
+            break;
+            case PkVariant::LongLong:
+                *d->value.variant = PkVariant(v1.toLongLong() + v2.toLongLong());
                 break;
-            case QMetaType::LongLong:
-                *d->value.variant = v1.toLongLong() + v2.toLongLong();
+            case PkVariant::Point:
+                *d->value.variant = PkVariant(v1.toPoint() + v2.toPoint());
                 break;
-            case QMetaType::QPoint:
-                *d->value.variant = v1.toPoint() + v2.toPoint();
+            case PkVariant::PointF:
+                *d->value.variant = PkVariant(v1.toPointF() + v2.toPointF());
                 break;
-            case QMetaType::QPointF:
-                *d->value.variant = v1.toPointF() + v2.toPointF();
+            case PkVariant::String:
+                *d->value.variant = PkVariant(v1.toString() + v2.toString());
                 break;
-            case QMetaType::QString:
-                *d->value.variant = QVariant(v1.toString() + v2.toString());
-                break;
-            case QMetaType::QStringList:
-                *d->value.variant = v1.toStringList() + v2.toStringList();
-                break;
-            case QMetaType::QTime: {
-                QTime t1 = v1.toTime();
-                QTime t2 = v2.toTime();
+            case PkVariant::StringList: {
+                PkStringList sl = v1.toStringList();
+                sl += v2.toStringList();
+                *d->value.variant = PkVariant(sl);
+            }
+            break;
+            case PkVariant::Time: {
+                PkTime t1 = v1.toTime();
+                PkTime t2 = v2.toTime();
                 int h = t1.hour() + t2.hour();
                 int m = t1.minute() + t2.minute();
                 int s = t1.second() + t2.second();
@@ -337,14 +345,14 @@ Value& Value::operator+=(const Value & v)
                 if (h > 24) {
                     h -= 24;
                 }
-                *d->value.variant = QTime(h, m, s, ms);
+                *d->value.variant = PkVariant(PkTime(h, m, s, ms));
             }
             break;
-            case QMetaType::UInt:
-                *d->value.variant = v1.toUInt() + v2.toUInt();
+            case PkVariant::UInt:
+                *d->value.variant = PkVariant(v1.toUInt() + v2.toUInt());
                 break;
-            case QMetaType::ULongLong:
-                *d->value.variant = v1.toULongLong() + v2.toULongLong();
+            case PkVariant::ULongLong:
+                *d->value.variant = PkVariant(v1.toULongLong() + v2.toULongLong());
                 break;
             }
 
@@ -382,26 +390,26 @@ Value& Value::operator+=(const Value & v)
     return *this;
 }
 
-QMap<QString, KisMetaData::Value> Value::asLangArray() const
+PkMap<PkString, KisMetaData::Value> Value::asLangArray() const
 {
     Q_ASSERT(d->type == LangArray);
-    QMap<QString, KisMetaData::Value> langArray;
-    Q_FOREACH (const KisMetaData::Value& val, *d->value.array) {
+    PkMap<PkString, KisMetaData::Value> langArray;
+    for (const KisMetaData::Value& val : *d->value.array) {
         Q_ASSERT(val.d->propertyQualifiers.contains("xml:lang"));  // TODO probably worth to have an assert for this in the constructor as well
         KisMetaData::Value valKeyVal = val.d->propertyQualifiers.value("xml:lang");
         Q_ASSERT(valKeyVal.type() == Variant);
-        QVariant valKeyVar = valKeyVal.asVariant();
-        Q_ASSERT(valKeyVar.type() == QMetaType::QString);
+        PkVariant valKeyVar = valKeyVal.asVariant();
+        Q_ASSERT(valKeyVar.type() == PkVariant::String);
         langArray[valKeyVar.toString()] = val;
     }
     return langArray;
 }
 
-QString Value::toString() const
+PkString Value::toString() const
 {
     switch (type()) {
     case Value::Invalid:
-        return i18n("Invalid value.");
+        return PkString("Invalid value.");
     case Value::Variant:
         return d->value.variant->toString();
         break;
@@ -409,36 +417,36 @@ QString Value::toString() const
     case Value::UnorderedArray:
     case Value::AlternativeArray:
     case Value::LangArray: {
-        QString r = QString("[%1]{ ").arg(d->value.array->size());
+        PkString r = PkString("[%1]{ ").arg(d->value.array->size());
         for (int i = 0; i < d->value.array->size(); ++i) {
             const Value& val = d->value.array->at(i);
             r += val.toString();
             if (i != d->value.array->size() - 1) {
-                r += ',';
+                r += PkString(",");
             }
-            r += ' ';
+            r += PkString(" ");
         }
-        r += '}';
+        r += PkString("}");
         return r;
     }
     case Value::Structure: {
-        QString r = "{ ";
-        QList<QString> fields = d->value.structure->keys();
+        PkString r = PkString("{ ");
+        PkList<PkString> fields = d->value.structure->keys();
         for (int i = 0; i < fields.count(); ++i) {
-            const QString& field = fields[i];
+            const PkString& field = fields[i];
             const Value& val = d->value.structure->value(field);
             r += field + " => " + val.toString();
             if (i != d->value.array->size() - 1) {
-                r += ',';
+                r += PkString(",");
             }
-            r += ' ';
+            r += PkString(" ");
         }
-        r += '}';
+        r += PkString("}");
         return r;
     }
     break;
     case Value::Rational:
-        return QString("%1 / %2").arg(d->value.rational->numerator).arg(d->value.rational->denominator);
+        return PkString("%1 / %2").arg(d->value.rational->numerator).arg(d->value.rational->denominator);
     }
-    return i18n("Invalid value.");
+    return PkString("Invalid value.");
 }
