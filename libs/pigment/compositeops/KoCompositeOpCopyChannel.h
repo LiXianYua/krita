@@ -27,14 +27,14 @@ class KoCompositeOpCopyChannel: public KoCompositeOpBase< Traits, KoCompositeOpC
     static const qint32 alpha_pos = Traits::alpha_pos;
     
 public:
-    KoCompositeOpCopyChannel(const KoColorSpace* cs, const QString& id, const QString& category)
+    KoCompositeOpCopyChannel(const KoColorSpace* cs, const PkString& id, const PkString& category)
         : base_class(cs, id, category) { }
 
 public:
     template<bool alphaLocked, bool allChannelFlags>
     inline static channels_type composeColorChannels(const channels_type* src, channels_type srcAlpha,
                                                      channels_type*       dst, channels_type dstAlpha, channels_type maskAlpha,
-                                                     channels_type opacity, const QBitArray& channelFlags) {
+                                                     channels_type opacity, const PkBitArray& channelFlags) {
         using namespace Arithmetic;
         opacity = mul(opacity, maskAlpha);
         

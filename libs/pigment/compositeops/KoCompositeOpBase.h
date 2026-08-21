@@ -23,7 +23,7 @@
  *            channels_type dstAlpha,
  *            channels_type maskAlpha,
  *            channels_type opacity,
- *            const QBitArray& channelFlags
+ *            const PkBitArray& channelFlags
  *        )
  *
  *        where channels_type is _CSTraits::channels_type
@@ -37,15 +37,15 @@ class KoCompositeOpBase : public KoCompositeOp
     static const qint32 pixel_size   = _CSTraits::pixelSize;
 
 public:
-    KoCompositeOpBase(const KoColorSpace* cs, const QString& id, const QString& category)
+    KoCompositeOpBase(const KoColorSpace* cs, const PkString& id, const PkString& category)
         : KoCompositeOp(cs, id, category) { }
 
     using KoCompositeOp::composite;
 
     void composite(const KoCompositeOp::ParameterInfo& params) const override {
 
-        const QBitArray& flags           = params.channelFlags.isEmpty() ? QBitArray(channels_nb,true) : params.channelFlags;
-        bool             allChannelFlags = params.channelFlags.isEmpty() || params.channelFlags == QBitArray(channels_nb,true);
+        const PkBitArray& flags           = params.channelFlags.isEmpty() ? PkBitArray(channels_nb,true) : params.channelFlags;
+        bool             allChannelFlags = params.channelFlags.isEmpty() || params.channelFlags == PkBitArray(channels_nb,true);
         bool             alphaLocked     = (alpha_pos != -1) && !flags.testBit(alpha_pos);
         bool             useMask         = params.maskRowStart != 0;
 
@@ -73,7 +73,7 @@ public:
 
 private:
     template<bool useMask, bool alphaLocked, bool allChannelFlags>
-    void genericComposite(const KoCompositeOp::ParameterInfo& params, const QBitArray& channelFlags) const {
+    void genericComposite(const KoCompositeOp::ParameterInfo& params, const PkBitArray& channelFlags) const {
 
         using namespace Arithmetic;
 

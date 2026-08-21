@@ -61,14 +61,14 @@ class KoCompositeOpGenericSCFunctor: public KoCompositeOpBase< Traits, KoComposi
     static const qint32 alpha_pos   = Traits::alpha_pos;
     
 public:
-    KoCompositeOpGenericSCFunctor(const KoColorSpace* cs, const QString& id, const QString& category)
+    KoCompositeOpGenericSCFunctor(const KoColorSpace* cs, const PkString& id, const PkString& category)
         : base_class(cs, id, category) { }
 
 public:
     template<bool alphaLocked, bool allChannelFlags>
     inline static channels_type composeColorChannels(const channels_type* src, channels_type srcAlpha,
                                                      channels_type*       dst, channels_type dstAlpha, channels_type maskAlpha,
-                                                     channels_type opacity, const QBitArray& channelFlags) {
+                                                     channels_type opacity, const PkBitArray& channelFlags) {
         using namespace Arithmetic;
         
         srcAlpha = mul(srcAlpha, maskAlpha, opacity);
@@ -208,14 +208,14 @@ class KoCompositeOpGenericHSLFunctor: public KoCompositeOpBase< Traits, KoCompos
     static const qint32 blue_pos  = Traits::blue_pos;
     
 public:
-    KoCompositeOpGenericHSLFunctor(const KoColorSpace* cs, const QString& id, const QString& category)
+    KoCompositeOpGenericHSLFunctor(const KoColorSpace* cs, const PkString& id, const PkString& category)
         : base_class(cs, id, category) { }
     
 public:
     template<bool alphaLocked, bool allChannelFlags>
     inline static channels_type composeColorChannels(const channels_type* src, channels_type srcAlpha,
                                                      channels_type*       dst, channels_type dstAlpha, channels_type maskAlpha,
-                                                     channels_type opacity, const QBitArray& channelFlags) {
+                                                     channels_type opacity, const PkBitArray& channelFlags) {
         using namespace Arithmetic;
 
         srcAlpha = mul(srcAlpha, maskAlpha, opacity);
@@ -304,14 +304,14 @@ class KoCompositeOpGenericSCAlpha: public KoCompositeOpBase< Traits, KoComposite
     static const qint32 alpha_pos  = Traits::alpha_pos;
 
 public:
-    KoCompositeOpGenericSCAlpha(const KoColorSpace* cs, const QString& id, const QString& category)
+    KoCompositeOpGenericSCAlpha(const KoColorSpace* cs, const PkString& id, const PkString& category)
         : base_class(cs, id, category) { }
 
 public:
     template<bool alphaLocked, bool allChannelFlags>
     inline static channels_type composeColorChannels(const channels_type* src, channels_type srcAlpha,
                                                      channels_type*       dst, channels_type dstAlpha, channels_type maskAlpha,
-                                                     channels_type opacity, const QBitArray& channelFlags)
+                                                     channels_type opacity, const PkBitArray& channelFlags)
     {
         using namespace Arithmetic;
 

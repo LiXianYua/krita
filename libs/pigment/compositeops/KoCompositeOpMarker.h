@@ -32,8 +32,8 @@ public:
     void composite(const KoCompositeOp::ParameterInfo &params) const override
     {
         bool useMask = params.maskRowStart != 0;
-        const QBitArray &flags = params.channelFlags.isEmpty() ? QBitArray(channels_nb, true) : params.channelFlags;
-        bool allChannelFlags = params.channelFlags.isEmpty() || params.channelFlags == QBitArray(channels_nb, true);
+        const PkBitArray &flags = params.channelFlags.isEmpty() ? PkBitArray(channels_nb, true) : params.channelFlags;
+        bool allChannelFlags = params.channelFlags.isEmpty() || params.channelFlags == PkBitArray(channels_nb, true);
         bool alphaLocked = (alpha_pos != -1) && !flags.testBit(alpha_pos);
         if (useMask) {
             if (alphaLocked) {
@@ -67,7 +67,7 @@ public:
     }
 
     template<bool useMask, bool alphaLocked, bool allChannelFlags>
-    void genericComposite(const KoCompositeOp::ParameterInfo &params, const QBitArray *channelFlags) const
+    void genericComposite(const KoCompositeOp::ParameterInfo &params, const PkBitArray *channelFlags) const
     {
         using namespace Arithmetic;
 

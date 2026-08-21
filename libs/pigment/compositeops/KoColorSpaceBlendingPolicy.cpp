@@ -5,6 +5,8 @@
  */
 #include "KoColorSpaceBlendingPolicy.h"
 
+#include <PkStringList.h>
+#include <PkMessageLogger.h>
 #include <KoCompositeOpRegistry.h>
 #include <ksharedconfig.h>
 #include <kconfiggroup.h>
@@ -27,7 +29,7 @@ bool useSubtractiveBlendingForCmykColorSpaces()
     return useSubtractiveBlending;
 }
 
-QStringList subtractiveBlendingModesInCmyk()
+PkStringList subtractiveBlendingModesInCmyk()
 {
     /**
      * Here is the list of blendmodes which are not invariant
@@ -38,7 +40,7 @@ QStringList subtractiveBlendingModesInCmyk()
      * This is a behavior-change in Krita 5.2
      */
 
-    QStringList ids;
+    PkStringList ids;
 
     ids << COMPOSITE_BEHIND;
     ids << COMPOSITE_GREATER;

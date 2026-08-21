@@ -18,7 +18,7 @@ struct KoCompositeOpOverCompositor {
                                             const channels_type* srcN,
                                             channels_type* dstN,
                                             bool allChannelFlags,
-                                            const QBitArray & channelFlags) {
+                                            const PkBitArray & channelFlags) {
         if (channel != _CSTraits::alpha_pos && (allChannelFlags || channelFlags.testBit(channel)))
             dstN[channel] = KoColorSpaceMaths<channels_type>::blend(srcN[channel], dstN[channel], srcBlend);
         KoCompositeOpOverCompositor<_CSTraits, channel - 1>::composeColorChannels(srcBlend, srcN, dstN, allChannelFlags, channelFlags);
@@ -32,7 +32,7 @@ struct KoCompositeOpOverCompositor<_CSTraits, -1> {
                                             const channels_type* /*srcN*/,
                                             channels_type* /*dstN*/,
                                             bool /*allChannelFlags*/,
-                                            const QBitArray & /*channelFlags*/) {
+                                            const PkBitArray & /*channelFlags*/) {
     }
 };
 
@@ -60,7 +60,7 @@ public:
                                             const channels_type* srcN,
                                             channels_type* dstN,
                                             bool allChannelFlags,
-                                            const QBitArray & channelFlags) {
+                                            const PkBitArray & channelFlags) {
         if (srcBlend == NATIVE_OPACITY_OPAQUE) {
             for (int i = 0; (uint)i <  _CSTraits::channels_nb; i++) {
                 if (i != _CSTraits::alpha_pos && (allChannelFlags || channelFlags.testBit(i)))

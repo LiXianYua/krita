@@ -11,7 +11,7 @@
 #include <KoCompositeOp.h>
 
 #include <kis_random_source.h>
-#include <QThreadStorage>
+#include <PkThreadStorage.h>
 
 template<class Traits>
 class KoCompositeOpDissolve: public KoCompositeOp
@@ -21,10 +21,10 @@ class KoCompositeOpDissolve: public KoCompositeOp
     static const qint32 channels_nb = Traits::channels_nb;
     static const qint32 alpha_pos   = Traits::alpha_pos;
 
-    mutable QThreadStorage<KisRandomSource> m_randomGenerator;
+    mutable PkThreadStorage<KisRandomSource> m_randomGenerator;
 
 public:
-    KoCompositeOpDissolve(const KoColorSpace* cs, const QString& category)
+    KoCompositeOpDissolve(const KoColorSpace* cs, const PkString& category)
         : KoCompositeOp(cs, COMPOSITE_DISSOLVE, category)
     {
     }
@@ -36,14 +36,13 @@ public:
          * Initialize local per-thread random generator from the global one, it will
          * reduce contestion over the global generator in the main compositing loop.
          *
-         * KisRandomSource is automatically initialized from QRandomGenerator::global()
-         * internally.
+         * KisRandomSource is automatically initialized internally.
          */
         if (!m_randomGenerator.hasLocalData()) {
             m_randomGenerator.setLocalData(KisRandomSource());
         }
 
-        const QBitArray& flags       = params.channelFlags.isEmpty() ? QBitArray(channels_nb,true) : params.channelFlags;
+        const PkBitArray& flags       = params.channelFlags.isEmpty() ? PkBitArray(channels_nb,true) : params.channelFlags;
         bool             alphaLocked = (alpha_pos != -1) && !flags.testBit(alpha_pos);
 
         using namespace Arithmetic;
@@ -70,7 +69,7 @@ public:
                 channels_type dstAlpha = (alpha_pos == -1) ? unitValue : dst[alpha_pos];
                 channels_type blend    = useMask ? mul(opacity, scale<channels_type>(*mask), srcAlpha) : mul(opacity, srcAlpha);
 
-                if (m_randomGenerator.localData().generate(0, 255) <= scale<quint8>(blend)
+                if (m_randomGenerator.localDataRef().generate(0, 255) <= scale<quint8>(blend)
                     && blend != KoColorSpaceMathsTraits<channels_type>::zeroValue) {
                     for(qint32 i=0; i <channels_nb; i++) {
                         if(i != alpha_pos && flags.testBit(i))

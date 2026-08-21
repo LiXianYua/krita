@@ -136,7 +136,7 @@ struct AddGeneralOps<Traits, true>
      static constexpr bool IsIntegerSpace = std::numeric_limits<Arg>::is_integer;
 
      template<CompositeFunc func>
-     static void add(KoColorSpace* cs, const QString& id, const QString& category) {
+     static void add(KoColorSpace* cs, const PkString& id, const PkString& category) {
         if constexpr (std::is_base_of_v<KoCmykTraits<typename Traits::channels_type>, Traits>) {
             if (useSubtractiveBlendingForCmykColorSpaces()) {
                 cs->addCompositeOp(new KoCompositeOpGenericSC<Traits, func, KoSubtractiveBlendingPolicy<Traits>>(cs, id, category));
@@ -149,7 +149,7 @@ struct AddGeneralOps<Traits, true>
      }
 
      template<typename Functor>
-     static void add(KoColorSpace* cs, const QString& id, const QString& category) {
+     static void add(KoColorSpace* cs, const PkString& id, const PkString& category) {
          if constexpr (std::is_base_of_v<KoCmykTraits<typename Traits::channels_type>, Traits>) {
              if (useSubtractiveBlendingForCmykColorSpaces()) {
                  cs->addCompositeOp(new KoCompositeOpGenericSCFunctor<Traits, Functor, KoSubtractiveBlendingPolicy<Traits>>(cs, id, category));
@@ -320,7 +320,7 @@ struct AddRGBOps<Traits, true>
     static const qint32 blue_pos  = Traits::blue_pos;
 
     template<typename Functor>
-    static void add(KoColorSpace* cs, const QString& id, const QString& category) {
+    static void add(KoColorSpace* cs, const PkString& id, const PkString& category) {
         cs->addCompositeOp(new KoCompositeOpGenericHSLFunctor<Traits, Functor>(cs, id, category));
     }
 
@@ -397,7 +397,7 @@ struct AddGeneralAlphaOps<Traits, true>
     template<void compositeFunc(Arg, Arg, Arg&, Arg&)>
 
 
-    static void add(KoColorSpace* cs, const QString& id, const QString& category)
+    static void add(KoColorSpace* cs, const PkString& id, const PkString& category)
     {
         if constexpr (std::is_base_of_v<KoCmykTraits<typename Traits::channels_type>, Traits>) {
             if (useSubtractiveBlendingForCmykColorSpaces()) {

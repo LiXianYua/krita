@@ -33,7 +33,7 @@ public:
     inline static channels_type composeColorChannels(const channels_type* src, channels_type srcAlpha,
                                                      channels_type*       dst, channels_type dstAlpha,
                                                      channels_type  maskAlpha, channels_type  opacity,
-                                                     const QBitArray& channelFlags                    )  {
+                                                     const PkBitArray& channelFlags                    )  {
         using namespace Arithmetic;
 
         channels_type appliedAlpha       = mul(maskAlpha, srcAlpha, opacity);
