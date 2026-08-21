@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoMultiPathPointJoinCommand.h"
 
 #include <KoSubpathJoinCommand.h>
@@ -15,7 +17,7 @@ KoMultiPathPointJoinCommand::KoMultiPathPointJoinCommand(const KoPathPointData &
                                                          KUndo2Command *parent)
     : KoMultiPathPointMergeCommand(pointData1, pointData2, controller, selection, parent)
 {
-    setText(kundo2_i18n("Join subpaths"));
+    setText(kundo2_text("Join subpaths"));
 }
 
 KUndo2Command *KoMultiPathPointJoinCommand::createMergeCommand(const KoPathPointData &pointData1, const KoPathPointData &pointData2)

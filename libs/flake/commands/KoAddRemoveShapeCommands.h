@@ -7,6 +7,8 @@
 #ifndef KoAddRemoveShapeCommands_H
 #define KoAddRemoveShapeCommands_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 #include "kis_command_utils.h"

@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoAddRemoveShapeCommands.h"
 
 #include <KoShapeContainer.h>
