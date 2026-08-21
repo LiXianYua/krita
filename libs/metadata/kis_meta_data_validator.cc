@@ -16,7 +16,7 @@ using namespace KisMetaData;
 
 //------------------- Validator::Reason -------------------//
 
-struct Q_DECL_HIDDEN Validator::Reason::Private {
+struct Validator::Reason::Private {
     Type type;
 };
 
@@ -47,11 +47,11 @@ Validator::Reason::Type Validator::Reason::type() const
 
 //------------------- Validator -------------------//
 
-struct Q_DECL_HIDDEN Validator::Private {
+struct Validator::Private {
     Private() : countValidEntries(0) {
     }
     int countValidEntries;
-    QMap<QString, Reason> invalidEntries;
+    PkMap<PkString, Reason> invalidEntries;
     const Store* store;
 };
 
@@ -68,10 +68,10 @@ Validator::~Validator()
 
 void Validator::revalidate()
 {
-    QList<Entry> entries = d->store->entries();
+    PkList<Entry> entries = d->store->entries();
     d->countValidEntries = 0;
     d->invalidEntries.clear();
-    Q_FOREACH (const Entry& entry, entries) {
+    for (const Entry& entry : entries) {
         const TypeInfo* typeInfo = entry.schema()->propertyType(entry.name());
         if (typeInfo) {
             if (typeInfo->hasCorrectType(entry.value())) {
@@ -97,7 +97,7 @@ int Validator::countValidEntries() const
 {
     return d->countValidEntries;
 }
-const QMap<QString, Validator::Reason>& Validator::invalidEntries() const
+const PkMap<PkString, Validator::Reason>& Validator::invalidEntries() const
 {
     return d->invalidEntries;
 }

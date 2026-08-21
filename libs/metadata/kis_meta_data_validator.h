@@ -7,8 +7,8 @@
 #ifndef _KIS_META_DATA_VALIDATION_RESULT_H_
 #define _KIS_META_DATA_VALIDATION_RESULT_H_
 
-#include <QMap>
-#include <QString>
+#include <PkMap.h>
+#include <PkString.h>
 
 #include <kritametadata_export.h>
 
@@ -24,7 +24,6 @@ public:
     class KRITAMETADATA_EXPORT Reason
     {
         friend class Validator;
-        friend class QMap<QString, Reason>;
     public:
         enum Type {
             UNKNOWN_REASON,
@@ -51,7 +50,7 @@ public:
     ~Validator();
     int countInvalidEntries() const;
     int countValidEntries() const;
-    const QMap<QString, Reason>& invalidEntries() const;
+    const PkMap<PkString, Reason>& invalidEntries() const;
     /**
      * Call this function to revalidate the store.
      */
