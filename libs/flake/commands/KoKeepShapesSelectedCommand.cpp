@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoKeepShapesSelectedCommand.h"
 
 #include <KoShape.h>
@@ -11,8 +13,8 @@
 #include <KoSelectedShapesProxy.h>
 
 
-KoKeepShapesSelectedCommand::KoKeepShapesSelectedCommand(const QList<KoShape*> &selectedBefore,
-                                                         const QList<KoShape*> &selectedAfter,
+KoKeepShapesSelectedCommand::KoKeepShapesSelectedCommand(const PkList<KoShape*> &selectedBefore,
+                                                         const PkList<KoShape*> &selectedAfter,
                                                          KoSelectedShapesProxy *selectionProxy,
                                                          bool isFinalizing,
                                                          KUndo2Command *parent)
@@ -30,10 +32,10 @@ void KoKeepShapesSelectedCommand::partB()
 
     selection->deselectAll();
 
-    const QList<KoShape*> newSelectedShapes =
+    const PkList<KoShape*> newSelectedShapes =
         getState() == FlipFlopCommand::State::FINALIZING ? m_selectedAfter : m_selectedBefore;
 
-    Q_FOREACH (KoShape *shape, newSelectedShapes) {
+    for (KoShape *shape : newSelectedShapes) {
         selection->select(shape);
     }
 }

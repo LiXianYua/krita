@@ -4,15 +4,14 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeClipCommand.h"
 #include "KoClipPath.h"
 #include "KoShape.h"
 #include "KoShapeContainer.h"
 #include "KoPathShape.h"
 #include "KoShapeControllerBase.h"
-
-#include <klocalizedstring.h>
-
 #include "kis_pointer_utils.h"
 
 class Q_DECL_HIDDEN KoShapeClipCommand::Private
@@ -30,34 +29,34 @@ public:
         }
     }
 
-    QList<KoShape*> shapesToClip;
-    QList<KoClipPath*> oldClipPaths;
-    QList<KoPathShape*> clipPathShapes;
-    QList<KoClipPath*> newClipPaths;
-    QList<KoShapeContainer*> oldParents;
+    PkList<KoShape*> shapesToClip;
+    PkList<KoClipPath*> oldClipPaths;
+    PkList<KoPathShape*> clipPathShapes;
+    PkList<KoClipPath*> newClipPaths;
+    PkList<KoShapeContainer*> oldParents;
     KoShapeControllerBase *controller;
     bool executed;
 };
 
-KoShapeClipCommand::KoShapeClipCommand(KoShapeControllerBase *controller, const QList<KoShape*> &shapes, const QList<KoPathShape*> &clipPathShapes, KUndo2Command *parent)
+KoShapeClipCommand::KoShapeClipCommand(KoShapeControllerBase *controller, const PkList<KoShape*> &shapes, const PkList<KoPathShape*> &clipPathShapes, KUndo2Command *parent)
         : KUndo2Command(parent), d(new Private(controller))
 {
     d->shapesToClip = shapes;
     d->clipPathShapes = clipPathShapes;
 
-    Q_FOREACH (KoShape *shape, d->shapesToClip) {
+    for (KoShape *shape : d->shapesToClip) {
         d->oldClipPaths.append(shape->clipPath());
         d->newClipPaths.append(new KoClipPath(implicitCastList<KoShape*>(clipPathShapes), KoFlake::UserSpaceOnUse));
     }
 
-    Q_FOREACH (KoPathShape *path, clipPathShapes) {
+    for (KoPathShape *path : clipPathShapes) {
         d->oldParents.append(path->parent());
     }
 
-    setText(kundo2_i18n("Clip Shape"));
+    setText(kundo2_text("Clip Shape"));
 }
 
-KoShapeClipCommand::KoShapeClipCommand(KoShapeControllerBase *controller, KoShape *shape, const QList<KoPathShape*> &clipPathShapes, KUndo2Command *parent)
+KoShapeClipCommand::KoShapeClipCommand(KoShapeControllerBase *controller, KoShape *shape, const PkList<KoPathShape*> &clipPathShapes, KUndo2Command *parent)
         : KUndo2Command(parent), d(new Private(controller))
 {
     d->shapesToClip.append(shape);
@@ -65,11 +64,11 @@ KoShapeClipCommand::KoShapeClipCommand(KoShapeControllerBase *controller, KoShap
     d->oldClipPaths.append(shape->clipPath());
     d->newClipPaths.append(new KoClipPath(implicitCastList<KoShape*>(clipPathShapes), KoFlake::UserSpaceOnUse));
 
-    Q_FOREACH (KoPathShape *path, clipPathShapes) {
+    for (KoPathShape *path : clipPathShapes) {
         d->oldParents.append(path->parent());
     }
 
-    setText(kundo2_i18n("Clip Shape"));
+    setText(kundo2_text("Clip Shape"));
 }
 
 KoShapeClipCommand::~KoShapeClipCommand()

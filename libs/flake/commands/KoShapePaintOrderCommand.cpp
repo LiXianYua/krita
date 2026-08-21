@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include "KoShapePaintOrderCommand.h"
+#include <PkXmlCompat.h>
 
-#include <klocalizedstring.h>
+#include "KoShapePaintOrderCommand.h"
 #include "kis_command_ids.h"
 
 class Q_DECL_HIDDEN KoShapePaintOrderCommand::Private
@@ -17,15 +17,15 @@ public:
     ~Private() {
     }
 
-    QList<KoShape*> shapes;
-    QList<KoShape::PaintOrder> oldFirst;
-    QList<KoShape::PaintOrder> oldSecond;
-    QList<bool> paintOrderInherited;
+    PkList<KoShape*> shapes;
+    PkList<KoShape::PaintOrder> oldFirst;
+    PkList<KoShape::PaintOrder> oldSecond;
+    PkList<bool> paintOrderInherited;
     KoShape::PaintOrder first;
     KoShape::PaintOrder second;
 };
 
-KoShapePaintOrderCommand::KoShapePaintOrderCommand(const QList<KoShape *> &shapes,
+KoShapePaintOrderCommand::KoShapePaintOrderCommand(const PkList<KoShape *> &shapes,
                                                    KoShape::PaintOrder first,
                                                    KoShape::PaintOrder second,
                                                    KUndo2Command *parent)
@@ -33,7 +33,7 @@ KoShapePaintOrderCommand::KoShapePaintOrderCommand(const QList<KoShape *> &shape
     , d(new Private())
 {
     d->shapes = shapes;
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    for (KoShape *shape : d->shapes) {
         d->oldFirst.append(shape->paintOrder().at(0));
         d->oldSecond.append(shape->paintOrder().at(1));
         d->paintOrderInherited.append(shape->inheritPaintOrder());
@@ -41,7 +41,7 @@ KoShapePaintOrderCommand::KoShapePaintOrderCommand(const QList<KoShape *> &shape
     d->first = first;
     d->second = second;
 
-    setText(kundo2_i18n("Set paint order"));
+    setText(kundo2_text("Set paint order"));
 }
 
 KoShapePaintOrderCommand::~KoShapePaintOrderCommand()
@@ -53,7 +53,7 @@ KoShapePaintOrderCommand::~KoShapePaintOrderCommand()
 void KoShapePaintOrderCommand::redo()
 {
     KUndo2Command::redo();
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    for (KoShape *shape : d->shapes) {
         shape->setPaintOrder(d->first, d->second);
         shape->update();
     }
@@ -62,10 +62,10 @@ void KoShapePaintOrderCommand::redo()
 void KoShapePaintOrderCommand::undo()
 {
     KUndo2Command::undo();
-    QList<KoShape::PaintOrder>::iterator firstIt = d->oldFirst.begin();
-    QList<KoShape::PaintOrder>::iterator secondIt = d->oldSecond.begin();
-    QList<bool>::iterator inheritIt = d->paintOrderInherited.begin();
-    Q_FOREACH (KoShape *shape, d->shapes) {
+    PkList<KoShape::PaintOrder>::iterator firstIt = d->oldFirst.begin();
+    PkList<KoShape::PaintOrder>::iterator secondIt = d->oldSecond.begin();
+    PkList<bool>::iterator inheritIt = d->paintOrderInherited.begin();
+    for (KoShape *shape : d->shapes) {
         shape->setPaintOrder(*firstIt, *secondIt);
         shape->setInheritPaintOrder(*inheritIt);
         shape->update();

@@ -7,6 +7,8 @@
 #ifndef KOSHAPEPAINTORDERCOMMAND_H
 #define KOSHAPEPAINTORDERCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 #include <kundo2command.h>
@@ -16,7 +18,7 @@
 class KRITAFLAKE_EXPORT KoShapePaintOrderCommand: public KUndo2Command
 {
 public:
-    KoShapePaintOrderCommand(const QList<KoShape *> &shapes, KoShape::PaintOrder first, KoShape::PaintOrder second, KUndo2Command *parent = nullptr);
+    KoShapePaintOrderCommand(const PkList<KoShape *> &shapes, KoShape::PaintOrder first, KoShape::PaintOrder second, KUndo2Command *parent = nullptr);
 
     ~KoShapePaintOrderCommand() override;
     /// redo the command

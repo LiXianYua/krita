@@ -7,9 +7,11 @@
 #ifndef KOSHAPECLIPCOMMAND_H
 #define KOSHAPECLIPCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
 class KoPathShape;
@@ -26,7 +28,7 @@ public:
      * @param clipPathShapes the path shapes to be used a clipping path
      * @param parent the parent command used for macro commands
      */
-    KoShapeClipCommand(KoShapeControllerBase *controller, const QList<KoShape*> &shapes, const QList<KoPathShape*> &clipPathShapes, KUndo2Command *parent = 0);
+    KoShapeClipCommand(KoShapeControllerBase *controller, const PkList<KoShape*> &shapes, const PkList<KoPathShape*> &clipPathShapes, KUndo2Command *parent = 0);
 
     /**
      * Command to set a new shape clipping path for a single shape
@@ -35,7 +37,7 @@ public:
      * @param clipPathShapes the path shapes to be used a clipping path
      * @param parent the parent command used for macro commands
      */
-    KoShapeClipCommand(KoShapeControllerBase *controller, KoShape *shape, const QList<KoPathShape*> &clipPathShapes, KUndo2Command *parent = 0);
+    KoShapeClipCommand(KoShapeControllerBase *controller, KoShape *shape, const PkList<KoPathShape*> &clipPathShapes, KUndo2Command *parent = 0);
 
     /// Destroys the command
     ~KoShapeClipCommand() override;

@@ -7,10 +7,12 @@
 #ifndef KOSHAPETRANSPARENCYCOMMAND_H
 #define KOSHAPETRANSPARENCYCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
 
@@ -24,7 +26,7 @@ public:
      * @param transparency the new shape transparency
      * @param parent the parent command used for macro commands
      */
-    KoShapeTransparencyCommand(const QList<KoShape*> &shapes, qreal transparency, KUndo2Command *parent = 0);
+    KoShapeTransparencyCommand(const PkList<KoShape*> &shapes, qreal transparency, KUndo2Command *parent = 0);
 
     /**
      * Command to set a new shape transparency.
@@ -40,7 +42,7 @@ public:
      * @param fills the new transparencies, one for each shape
      * @param parent the parent command used for macro commands
      */
-    KoShapeTransparencyCommand(const QList<KoShape*> &shapes, const QList<qreal> &transparencies, KUndo2Command *parent = 0);
+    KoShapeTransparencyCommand(const PkList<KoShape*> &shapes, const PkList<qreal> &transparencies, KUndo2Command *parent = 0);
 
     ~KoShapeTransparencyCommand() override;
     /// redo the command

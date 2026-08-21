@@ -7,6 +7,8 @@
 #ifndef KOKEEPSHAPESSELECTEDCOMMAND_H
 #define KOKEEPSHAPESSELECTEDCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kis_command_utils.h"
 #include <kritaflake_export.h>
 
@@ -17,8 +19,8 @@ class KoShape;
 class KRITAFLAKE_EXPORT KoKeepShapesSelectedCommand : public KisCommandUtils::FlipFlopCommand
 {
 public:
-    KoKeepShapesSelectedCommand(const QList<KoShape*> &selectedBefore,
-                                const QList<KoShape*> &selectedAfter,
+    KoKeepShapesSelectedCommand(const PkList<KoShape*> &selectedBefore,
+                                const PkList<KoShape*> &selectedAfter,
                                 KoSelectedShapesProxy *selectionProxy,
                                 bool isFinalizing,
                                 KUndo2Command *parent);
@@ -27,8 +29,8 @@ protected:
     void partB() override;
 
 private:
-    QList<KoShape*> m_selectedBefore;
-    QList<KoShape*> m_selectedAfter;
+    PkList<KoShape*> m_selectedBefore;
+    PkList<KoShape*> m_selectedAfter;
     KoSelectedShapesProxy *m_selectionProxy;
 };
 

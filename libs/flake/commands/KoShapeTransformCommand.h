@@ -8,11 +8,13 @@
 #ifndef KOSHAPETRANSFORMCOMMAND_H
 #define KOSHAPETRANSFORMCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 #include <kundo2command.h>
 
 class KoShape;
-class QTransform;
+class PkTransform;
 
 /**
  * A command to transform a selection of shapes with the same transformation.
@@ -30,7 +32,7 @@ public:
      * @see KoShape::transformation()
      * @see KoShape::setTransformation()
      */
-    KoShapeTransformCommand(const QList<KoShape*> &shapes, const QList<QTransform> &oldState, const QList<QTransform> &newState, KUndo2Command * parent = 0);
+    KoShapeTransformCommand(const PkList<KoShape*> &shapes, const PkList<PkTransform> &oldState, const PkList<PkTransform> &newState, KUndo2Command * parent = 0);
     ~KoShapeTransformCommand() override;
     /// redo the command
     void redo() override;

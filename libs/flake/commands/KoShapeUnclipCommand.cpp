@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoShapeUnclipCommand.h"
 #include "KoClipPath.h"
 #include "KoShape.h"
@@ -11,9 +13,6 @@
 #include "KoPathShape.h"
 #include "KoShapeControllerBase.h"
 #include <kis_assert.h>
-
-#include <klocalizedstring.h>
-
 class KoShapeUnclipCommand::Private
 {
 public:
@@ -34,12 +33,12 @@ public:
         if (!clipPathShapes.isEmpty())
             return;
 
-        Q_FOREACH (KoShape *shape, shapesToUnclip) {
+        for (KoShape *shape : shapesToUnclip) {
             KoClipPath *clipPath = shape->clipPath();
             if (!clipPath)
                 continue;
 
-            Q_FOREACH (KoShape *clipShape, clipPath->clipPathShapes()) {
+            for (KoShape *clipShape : clipPath->clipPathShapes()) {
                 KoShape *clone = clipShape->cloneShape();
 
                 KoPathShape *pathShape = dynamic_cast<KoPathShape*>(clone);
@@ -52,7 +51,7 @@ public:
             }
 
             // apply transformations
-            Q_FOREACH (KoPathShape *pathShape, clipPathShapes) {
+            for (KoPathShape *pathShape : clipPathShapes) {
                 // apply transformation so that it matches the current clipped shapes clip path
                 pathShape->applyAbsoluteTransformation(clipPath->clipDataTransformation(shape));
                 pathShape->setZIndex(shape->zIndex() + 1);
@@ -61,10 +60,10 @@ public:
         }
     }
 
-    QList<KoShape*> shapesToUnclip;
-    QList<KoClipPath*> oldClipPaths;
-    QList<KoPathShape*> clipPathShapes;
-    QList<KoShapeContainer*> clipPathParents;
+    PkList<KoShape*> shapesToUnclip;
+    PkList<KoClipPath*> oldClipPaths;
+    PkList<KoPathShape*> clipPathShapes;
+    PkList<KoShapeContainer*> clipPathParents;
 
     // TODO: damn! this is not a controller, this is a document! Needs refactoring!
     KoShapeControllerBase *controller;
@@ -72,15 +71,15 @@ public:
     bool executed;
 };
 
-KoShapeUnclipCommand::KoShapeUnclipCommand(KoShapeControllerBase *controller, const QList<KoShape*> &shapes, KUndo2Command *parent)
+KoShapeUnclipCommand::KoShapeUnclipCommand(KoShapeControllerBase *controller, const PkList<KoShape*> &shapes, KUndo2Command *parent)
         : KUndo2Command(parent), d(new Private(controller))
 {
     d->shapesToUnclip = shapes;
-    Q_FOREACH (KoShape *shape, d->shapesToUnclip) {
+    for (KoShape *shape : d->shapesToUnclip) {
         d->oldClipPaths.append(shape->clipPath());
     }
 
-    setText(kundo2_i18n("Unclip Shape"));
+    setText(kundo2_text("Unclip Shape"));
 }
 
 KoShapeUnclipCommand::KoShapeUnclipCommand(KoShapeControllerBase *controller, KoShape *shape, KUndo2Command *parent)
@@ -89,7 +88,7 @@ KoShapeUnclipCommand::KoShapeUnclipCommand(KoShapeControllerBase *controller, Ko
     d->shapesToUnclip.append(shape);
     d->oldClipPaths.append(shape->clipPath());
 
-    setText(kundo2_i18n("Unclip Shapes"));
+    setText(kundo2_text("Unclip Shapes"));
 }
 
 KoShapeUnclipCommand::~KoShapeUnclipCommand()

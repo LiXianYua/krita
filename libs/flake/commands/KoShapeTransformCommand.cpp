@@ -5,27 +5,29 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "kis_command_ids.h"
 
 #include <KoShapeBulkActionLock.h>
 #include "KoShapeTransformCommand.h"
 #include "KoShape.h"
 
-#include <QList>
-#include <QTransform>
+#include <pk/container/PkList.h>
+#include <pk/geometry/PkTransform.h>
 
 #include <FlakeDebug.h>
 
 class Q_DECL_HIDDEN KoShapeTransformCommand::Private
 {
 public:
-    Private(const QList<KoShape*> &list) : shapes(list) { }
-    QList<KoShape*> shapes;
-    QList<QTransform> oldState;
-    QList<QTransform> newState;
+    Private(const PkList<KoShape*> &list) : shapes(list) { }
+    PkList<KoShape*> shapes;
+    PkList<PkTransform> oldState;
+    PkList<PkTransform> newState;
 };
 
-KoShapeTransformCommand::KoShapeTransformCommand(const QList<KoShape*> &shapes, const QList<QTransform> &oldState, const QList<QTransform> &newState, KUndo2Command * parent)
+KoShapeTransformCommand::KoShapeTransformCommand(const PkList<KoShape*> &shapes, const PkList<PkTransform> &oldState, const PkList<PkTransform> &newState, KUndo2Command * parent)
         : KUndo2Command(parent),
         d(new Private(shapes))
 {

@@ -7,9 +7,11 @@
 #ifndef KOSHAPEUNCLIPCOMMAND_H
 #define KOSHAPEUNCLIPCOMMAND_H
 
+#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 #include <kundo2command.h>
-#include <QList>
+#include <pk/container/PkList.h>
 
 class KoShape;
 class KoShapeControllerBase;
@@ -24,7 +26,7 @@ public:
      * @param shapes a set of all the shapes to remove the clip path from.
      * @param parent the parent command used for macro commands
      */
-    KoShapeUnclipCommand(KoShapeControllerBase *controller, const QList<KoShape*> &shapes, KUndo2Command *parent = 0);
+    KoShapeUnclipCommand(KoShapeControllerBase *controller, const PkList<KoShape*> &shapes, KUndo2Command *parent = 0);
 
     /**
      * Command to remove clip path from a single shape.
