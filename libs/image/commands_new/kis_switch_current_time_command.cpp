@@ -12,9 +12,8 @@
 #include "kis_keyframe_channel.h"
 #include "kis_node.h"
 
-
 KisSwitchCurrentTimeCommand::KisSwitchCurrentTimeCommand(KisImageAnimationInterface *animation, int oldTime, int newTime, KUndo2Command *parent)
-    : KUndo2Command(kundo2_i18n("Switch current time"), parent),
+    : KUndo2Command(kundo2_text("Switch current time"), parent),
       m_animation(animation),
       m_oldTime(oldTime),
       m_newTime(newTime)
@@ -56,7 +55,7 @@ void KisSwitchCurrentTimeCommand::undo()
 // ====================================//
 
 KisSwitchCurrentTimeToKeyframeCommand::KisSwitchCurrentTimeToKeyframeCommand(KisImageAnimationInterface *animation, int oldTime, KisNodeSP node, KoID channelId, KisKeyframeSP targetKeyframe, KUndo2Command *parent)
-    : KUndo2Command(kundo2_i18n("Switch current time to keyframe"), parent),
+    : KUndo2Command(kundo2_text("Switch current time to keyframe"), parent),
       m_animation(animation),
       m_oldTime(oldTime),
       m_node(node),

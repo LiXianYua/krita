@@ -7,8 +7,7 @@
 #ifndef KIS_MOVE_COMMAND_COMMON_H
 #define KIS_MOVE_COMMAND_COMMON_H
 
-#include <QPoint>
-#include <klocalizedstring.h>
+#include <PkPoint.h>
 #include "kundo2command.h"
 #include "kritaimage_export.h"
 #include "kis_types.h"
@@ -24,8 +23,8 @@ template <class ObjectSP>
 class KRITAIMAGE_EXPORT KisMoveCommandCommon : public KUndo2Command
 {
 public:
-    KisMoveCommandCommon(ObjectSP object, const QPoint& oldPos, const QPoint& newPos, KUndo2Command *parent = 0)
-        : KUndo2Command(kundo2_i18n("Move"), parent),
+    KisMoveCommandCommon(ObjectSP object, const PkPoint& oldPos, const PkPoint& newPos, KUndo2Command *parent = 0)
+        : KUndo2Command(kundo2_text("Move"), parent),
           m_oldPos(oldPos),
           m_newPos(newPos),
           m_object(object)
@@ -41,7 +40,7 @@ public:
     }
 
 private:
-    void moveTo(const QPoint& pos) {
+    void moveTo(const PkPoint& pos) {
         /**
          * FIXME: Hack alert:
          * Our iterators don't have guarantees on thread-safety
@@ -53,8 +52,8 @@ private:
     }
 
 private:
-    QPoint m_oldPos;
-    QPoint m_newPos;
+    PkPoint m_oldPos;
+    PkPoint m_newPos;
 
 protected:
     ObjectSP m_object;

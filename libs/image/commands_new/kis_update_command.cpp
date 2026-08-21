@@ -9,11 +9,10 @@
 #include "kis_image_interfaces.h"
 #include "kis_node.h"
 
-
-KisUpdateCommand::KisUpdateCommand(KisNodeSP node, QRect dirtyRect,
+KisUpdateCommand::KisUpdateCommand(KisNodeSP node, PkRect dirtyRect,
                                    KisUpdatesFacade *updatesFacade,
                                    bool needsFullRefresh)
-    : KUndo2Command(kundo2_noi18n("UPDATE_COMMAND")),
+    : KUndo2Command(kundo2_text_raw("UPDATE_COMMAND")),
       m_node(node),
       m_dirtyRect(dirtyRect),
       m_sharedDirtyRect(nullptr),
@@ -22,10 +21,10 @@ KisUpdateCommand::KisUpdateCommand(KisNodeSP node, QRect dirtyRect,
 {
 }
 
-KisUpdateCommand::KisUpdateCommand(KisNodeSP node, QSharedPointer<QRect> dirtyRect,
+KisUpdateCommand::KisUpdateCommand(KisNodeSP node, PkSharedPointer<PkRect> dirtyRect,
                                    KisUpdatesFacade *updatesFacade,
                                    bool needsFullRefresh)
-    : KUndo2Command(kundo2_noi18n("UPDATE_COMMAND")),
+    : KUndo2Command(kundo2_text_raw("UPDATE_COMMAND")),
       m_node(node),
       m_sharedDirtyRect(dirtyRect),
       m_updatesFacade(updatesFacade),

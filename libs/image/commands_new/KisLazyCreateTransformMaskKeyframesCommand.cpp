@@ -17,7 +17,7 @@ KisLazyCreateTransformMaskKeyframesCommand::KisLazyCreateTransformMaskKeyframesC
 
 bool KisLazyCreateTransformMaskKeyframesCommand::maskHasAnimation(KisTransformMaskSP mask)
 {
-    const QVector<QString> ids = {KisKeyframeChannel::PositionX.id(),
+    const PkVector<PkString> ids = {KisKeyframeChannel::PositionX.id(),
                                   KisKeyframeChannel::PositionY.id(),
                                   KisKeyframeChannel::ScaleX.id(),
                                   KisKeyframeChannel::ScaleY.id(),
@@ -27,7 +27,7 @@ bool KisLazyCreateTransformMaskKeyframesCommand::maskHasAnimation(KisTransformMa
                                   KisKeyframeChannel::RotationY.id(),
                                   KisKeyframeChannel::RotationZ.id()};
 
-    Q_FOREACH (const QString &id, ids) {
+    for (const PkString &id : ids) {
         if (mask->getKeyframeChannel(id)) return true;
     }
 

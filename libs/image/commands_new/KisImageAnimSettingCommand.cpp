@@ -10,7 +10,7 @@
 #include "kis_time_span.h"
 
 KisImageAnimSettingCommand::KisImageAnimSettingCommand(KisImageAnimationInterface *const p_animInterface, Settings p_after, KUndo2Command *parent)
-    : KUndo2Command(kundo2_i18n("Update Animation Settings"), parent),
+    : KUndo2Command(kundo2_text("Update Animation Settings"), parent),
       m_animInterface(p_animInterface),
       m_after(p_after)
 {

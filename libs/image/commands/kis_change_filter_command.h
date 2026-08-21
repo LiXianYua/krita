@@ -8,7 +8,6 @@
 
 #include <kundo2command.h>
 #include "kis_types.h"
-#include <klocalizedstring.h>
 #include "filter/kis_filter_configuration.h"
 #include "kis_node.h"
 #include "kis_node_filter_interface.h"
@@ -18,7 +17,6 @@
 #include "generator/kis_generator_registry.h"
 #include "generator/kis_generator.h"
 
-
 class KisChangeFilterCmd : public KUndo2Command
 {
 
@@ -26,7 +24,7 @@ public:
     KisChangeFilterCmd(KisNodeSP node,
                        KisFilterConfigurationSP configBefore,
                        KisFilterConfigurationSP configAfter)
-            : KUndo2Command(kundo2_i18n("Change Filter")) {
+            : KUndo2Command(kundo2_text("Change Filter")) {
         m_node = node;
         m_filterInterface = dynamic_cast<KisNodeFilterInterface*>(node.data());
         Q_ASSERT(m_filterInterface);

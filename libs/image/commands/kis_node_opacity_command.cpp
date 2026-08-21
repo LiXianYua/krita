@@ -5,7 +5,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <klocalizedstring.h>
 #include "kis_node.h"
 #include "commands/kis_node_opacity_command.h"
 #include "kis_command_ids.h"
@@ -19,7 +18,7 @@
 using namespace KisCommandUtils;
 
 KisNodeOpacityCommand::KisNodeOpacityCommand(KisNodeSP node, quint8 newOpacity) :
-        KisNodeCommand(kundo2_i18n("Opacity Change"), node)
+        KisNodeCommand(kundo2_text("Opacity Change"), node)
 {
     m_newOpacity = newOpacity;
 
@@ -52,7 +51,7 @@ void KisNodeOpacityCommand::redo()
     // BUG:499389 workaround.
     // Unlike drawing, non-animated opacity changes need to be recached across all raster frames.
     // It's probably better to change KisNode::setDirty, KisImage::requestProjectionUpdate, and/or KisProjectionUpdateFlags.
-    m_node->invalidateFrames(KisTimeSpan::infinite(0), QRect());
+    m_node->invalidateFrames(KisTimeSpan::infinite(0), PkRect(0, 0, 0, 0));
 }
 
 void KisNodeOpacityCommand::undo()
@@ -95,7 +94,6 @@ bool KisNodeOpacityCommand::canMergeWith(const KUndo2Command *command) const
     const KisNodeOpacityCommand *other =
         dynamic_cast<const KisNodeOpacityCommand*>(command);
     if (!other) return false;
-
 
     bool otherCreatedKeyframe = bool(other->m_autokey);
     bool weCreatedKeyframe = bool(m_autokey);

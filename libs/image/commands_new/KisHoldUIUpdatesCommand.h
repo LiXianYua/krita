@@ -10,10 +10,9 @@
 #include "kis_stroke_strategy_undo_command_based.h"
 #include "kis_node.h"
 #include "kis_command_utils.h"
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 
 class KisUpdatesFacade;
-
 
 class KRITAIMAGE_EXPORT KisHoldUIUpdatesCommand : public KisCommandUtils::FlipFlopCommand, public KisStrokeStrategyUndoCommandBased::MutatedCommandInterface
 {
@@ -25,7 +24,7 @@ public:
 
 private:
     KisUpdatesFacade *m_updatesFacade;
-    QSharedPointer<bool> m_batchUpdateStarted;
+    PkSharedPointer<bool> m_batchUpdateStarted;
 };
 
 #endif // KISHOLDUIUPDATESCOMMAND_H

@@ -4,7 +4,19 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <klocalizedstring.h>
+// ===========================================================================
+// [GAP] kis_node_property_list_command.cpp 阻塞登记（S-06 Task 5）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
+//   * 本文件传递 include kis_layer.h → kis_psd_layer_style.h（未剥），未剥的
+//     KisPSDLayerStyle 仍用 Qt 列表容器覆盖 KoResource 已被剥成 PkVector 的虚函数
+//     （linkedResources/sideLoadedResources/requiredCanvasResources），
+//     协变返回类型不匹配 —— 跨任务类型断裂（与 Task 4 kis_paintop_registry.cc 同因）
+// 关闭条件：libs/image 的 KoResource 族 virtuals 全量转 PkVector/PkList +
+// layer 系头剥 Qt 后解除（Task 8）。当前状态：Qt 仅经未剥依赖头传递进入，
+// 不参与薄壳构建。
+
+
 #include "kis_node.h"
 #include "kis_layer.h"
 #include "kis_image.h"
@@ -23,14 +35,14 @@
 
 namespace {
 
-QSet<QString> changedProperties(const KisBaseNode::PropertyList &before,
+PkSet<PkString> changedProperties(const KisBaseNode::PropertyList &before,
                                 const KisBaseNode::PropertyList &after)
 {
-    QSet<QString> changedIds;
+    PkSet<PkString> changedIds;
 
-    auto valueForId = [] (const QString &id, const KisBaseNode::PropertyList &list) {
-        QVariant value;
-        Q_FOREACH (const KisBaseNode::Property &prop, list) {
+    auto valueForId = [] (const PkString &id, const KisBaseNode::PropertyList &list) {
+        PkVariant value;
+        for (const KisBaseNode::Property &prop : list) {
             if (prop.id == id) {
                 value = prop.state;
                 break;
@@ -45,7 +57,7 @@ QSet<QString> changedProperties(const KisBaseNode::PropertyList &before,
     const KisBaseNode::PropertyList &list1 = before.size() >= after.size() ? before : after;
     const KisBaseNode::PropertyList &list2 = before.size() >= after.size() ? after : before;
 
-    Q_FOREACH (const KisBaseNode::Property &prop, list1) {
+    for (const KisBaseNode::Property &prop : list1) {
         if (prop.state != valueForId(prop.id, list2)) {
             changedIds.insert(prop.id);
         }
@@ -56,9 +68,8 @@ QSet<QString> changedProperties(const KisBaseNode::PropertyList &before,
 
 }
 
-
 KisNodePropertyListCommand::KisNodePropertyListCommand(KisNodeSP node, KisBaseNode::PropertyList newPropertyList)
-    : KisNodeCommand(kundo2_i18n("Property Changes"), node),
+    : KisNodeCommand(kundo2_text("Property Changes"), node),
       m_newPropertyList(newPropertyList),
       m_oldPropertyList(node->sectionModelProperties())
     /**
@@ -72,10 +83,10 @@ KisNodePropertyListCommand::KisNodePropertyListCommand(KisNodeSP node, KisBaseNo
 void KisNodePropertyListCommand::redo()
 {
     const KisBaseNode::PropertyList propsBefore = m_node->sectionModelProperties();
-    const QSet<QString> changed = changedProperties(propsBefore, m_newPropertyList);
+    const PkSet<PkString> changed = changedProperties(propsBefore, m_newPropertyList);
     if (changed.isEmpty()) return;
 
-    const QRect oldExtent = m_node->projectionPlane()->tightUserVisibleBounds();
+    const PkRect oldExtent = m_node->projectionPlane()->tightUserVisibleBounds();
     m_node->setSectionModelProperties(m_newPropertyList);
 
     if (!propsWithNoUpdates().contains(changed)) {
@@ -86,10 +97,10 @@ void KisNodePropertyListCommand::redo()
 void KisNodePropertyListCommand::undo()
 {
     const KisBaseNode::PropertyList propsBefore = m_node->sectionModelProperties();
-    const QSet<QString> changed = changedProperties(propsBefore, m_oldPropertyList);
+    const PkSet<PkString> changed = changedProperties(propsBefore, m_oldPropertyList);
     if (changed.isEmpty()) return;
 
-    const QRect oldExtent = m_node->projectionPlane()->tightUserVisibleBounds();
+    const PkRect oldExtent = m_node->projectionPlane()->tightUserVisibleBounds();
     m_node->setSectionModelProperties(m_oldPropertyList);
 
     if (!propsWithNoUpdates().contains(changed)) {
@@ -112,7 +123,7 @@ bool KisNodePropertyListCommand::mergeWith(const KUndo2Command *command)
          changedProperties(m_oldPropertyList, m_newPropertyList) ==
              changedProperties(other->m_oldPropertyList, other->m_newPropertyList))) {
 
-        const QSet<QString> changedInTheMeantime =
+        const PkSet<PkString> changedInTheMeantime =
             changedProperties(m_newPropertyList, other->m_oldPropertyList);
 
         KIS_SAFE_ASSERT_RECOVER_NOOP(changedInTheMeantime.isEmpty() ||
@@ -152,10 +163,9 @@ bool checkOnionSkinChanged(const KisBaseNode::PropertyList &oldPropertyList,
     return changedProperties(oldPropertyList, newPropertyList).contains(KisLayerPropertiesIcons::onionSkins.id());
 }
 
-
 void KisNodePropertyListCommand::doUpdate(const KisBaseNode::PropertyList &oldPropertyList,
                                           const KisBaseNode::PropertyList &newPropertyList,
-                                          const QRect &totalUpdateExtent)
+                                          const PkRect &totalUpdateExtent)
 {
     /**
      * Sometimes the node might refuse to change the property, e.g. needs-update for colorize
@@ -171,7 +181,7 @@ void KisNodePropertyListCommand::doUpdate(const KisBaseNode::PropertyList &oldPr
     bool oldVisibilityValue = false;
     bool newVisibilityValue = false;
 
-    Q_FOREACH (const KisBaseNode::Property &prop, oldPropertyList) {
+    for (const KisBaseNode::Property &prop : oldPropertyList) {
         if (prop.id == KisLayerPropertiesIcons::passThrough.id()) {
             oldPassThroughValue = prop.state.toBool();
         }
@@ -180,7 +190,7 @@ void KisNodePropertyListCommand::doUpdate(const KisBaseNode::PropertyList &oldPr
         }
     }
 
-    Q_FOREACH (const KisBaseNode::Property &prop, newPropertyList) {
+    for (const KisBaseNode::Property &prop : newPropertyList) {
         if (prop.id == KisLayerPropertiesIcons::passThrough.id()) {
             newPassThroughValue = prop.state.toBool();
         }
@@ -190,7 +200,7 @@ void KisNodePropertyListCommand::doUpdate(const KisBaseNode::PropertyList &oldPr
     }
 
     if (oldPassThroughValue && !newPassThroughValue) {
-        KisLayerSP layer(qobject_cast<KisLayer*>(m_node.data()));
+        KisLayerSP layer(dynamic_cast<KisLayer*>(m_node.data()));
         KisImageSP image = layer->image().toStrongRef();
         if (image) {
             image->refreshGraphAsync(layer);
@@ -199,7 +209,7 @@ void KisNodePropertyListCommand::doUpdate(const KisBaseNode::PropertyList &oldPr
                (oldPassThroughValue && newPassThroughValue &&
                 !oldVisibilityValue && newVisibilityValue)) {
 
-        KisLayerSP layer(qobject_cast<KisLayer*>(m_node->parent().data()));
+        KisLayerSP layer(dynamic_cast<KisLayer*>(m_node->parent().data()));
         KisImageSP image = layer->image().toStrongRef();
         if (image) {
             image->refreshGraphAsync(layer);
@@ -211,9 +221,9 @@ void KisNodePropertyListCommand::doUpdate(const KisBaseNode::PropertyList &oldPr
     }
 }
 
-const QSet<QString>& KisNodePropertyListCommand::propsWithNoUpdates()
+const PkSet<PkString>& KisNodePropertyListCommand::propsWithNoUpdates()
 {
-    static const QSet<QString> noUpdates {
+    static const PkSet<PkString> noUpdates {
         KisLayerPropertiesIcons::locked.id(),
         KisLayerPropertiesIcons::alphaLocked.id(),
         KisLayerPropertiesIcons::selectionActive.id(),
@@ -227,7 +237,7 @@ const QSet<QString>& KisNodePropertyListCommand::propsWithNoUpdates()
 
 void KisNodePropertyListCommand::setNodePropertiesAutoUndo(KisNodeSP node, KisImageSP image, PropertyList proplist)
 {
-    const QSet<QString> properties = changedProperties(node->sectionModelProperties(), proplist);
+    const PkSet<PkString> properties = changedProperties(node->sectionModelProperties(), proplist);
 
     const bool undo = !properties.isEmpty() &&
         (properties.size() != 1 ||
@@ -252,7 +262,7 @@ void KisNodePropertyListCommand::setNodePropertiesAutoUndo(KisNodeSP node, KisIm
 
         struct SimpleLodResettingStroke : public KisSimpleStrokeStrategy {
             SimpleLodResettingStroke(KUndo2Command *cmd)
-                : KisSimpleStrokeStrategy(QLatin1String("SimpleLodResettingStroke")),
+                : KisSimpleStrokeStrategy(PkString("SimpleLodResettingStroke")),
                   m_cmd(cmd)
             {
                 setClearsRedoOnStart(false);
@@ -267,7 +277,7 @@ void KisNodePropertyListCommand::setNodePropertiesAutoUndo(KisNodeSP node, KisIm
             }
 
         private:
-            QScopedPointer<KUndo2Command> m_cmd;
+            PkScopedPointer<KUndo2Command> m_cmd;
         };
 
         KisStrokeId strokeId = image->startStroke(new SimpleLodResettingStroke(cmd.release()));

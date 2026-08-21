@@ -11,7 +11,6 @@
 #include "kis_base_node.h"
 #include "commands_new/KisAsynchronouslyMergeableCommandInterface.h"
 
-
 /// The command for changing the property list of a layer
 class KRITAIMAGE_EXPORT KisNodePropertyListCommand : public KisNodeCommand, public KisAsynchronouslyMergeableCommandInterface
 {
@@ -37,8 +36,8 @@ public:
 
 private:
     void doUpdate(const KisBaseNode::PropertyList &oldPropertyList,
-                  const KisBaseNode::PropertyList &newPropertyList, const QRect &totalUpdateExtent);
-    static const QSet<QString>& propsWithNoUpdates();
+                  const KisBaseNode::PropertyList &newPropertyList, const PkRect &totalUpdateExtent);
+    static const PkSet<PkString>& propsWithNoUpdates();
 private:
     KisBaseNode::PropertyList m_newPropertyList;
     KisBaseNode::PropertyList m_oldPropertyList;

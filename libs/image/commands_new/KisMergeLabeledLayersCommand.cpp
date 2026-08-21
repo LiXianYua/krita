@@ -5,6 +5,19 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] KisMergeLabeledLayersCommand.cpp 阻塞登记（S-06 Task 5）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
+//   * 本文件传递 include kis_layer.h → kis_psd_layer_style.h（未剥），未剥的
+//     KisPSDLayerStyle 仍用 Qt 列表容器覆盖 KoResource 已被剥成 PkVector 的虚函数
+//     （linkedResources/sideLoadedResources/requiredCanvasResources），
+//     协变返回类型不匹配 —— 跨任务类型断裂（与 Task 4 kis_paintop_registry.cc 同因）
+// 关闭条件：libs/image 的 KoResource 族 virtuals 全量转 PkVector/PkList +
+// layer 系头剥 Qt 后解除（Task 8）。当前状态：Qt 仅经未剥依赖头传递进入，
+// 不参与薄壳构建。
+
+
 #include "KisMergeLabeledLayersCommand.h"
 
 #include "KoCompositeOpRegistry.h"
@@ -22,9 +35,9 @@
 
 KisMergeLabeledLayersCommand::KisMergeLabeledLayersCommand(KisImageSP image,
                                                            KisPaintDeviceSP newRefPaintDevice,
-                                                           QList<int> selectedLabels,
+                                                           PkList<int> selectedLabels,
                                                            GroupSelectionPolicy groupSelectionPolicy)
-    : KUndo2Command(kundo2_noi18n("MERGE_LABELED_LAYERS"))
+    : KUndo2Command(kundo2_text_raw("MERGE_LABELED_LAYERS"))
     , m_refImage(new KisImage(new KisSurrogateUndoStore(), image->width(), image->height(), image->colorSpace(), "Merge Labeled Layers Reference Image"))
     , m_prevRefNodeInfoList(nullptr)
     , m_newRefNodeInfoList(nullptr)
@@ -48,11 +61,11 @@ KisMergeLabeledLayersCommand::KisMergeLabeledLayersCommand(KisImageSP image,
                                                            ReferenceNodeInfoListSP newRefNodeInfoList,
                                                            KisPaintDeviceSP prevRefPaintDevice,
                                                            KisPaintDeviceSP newRefPaintDevice,
-                                                           QList<int> selectedLabels,
+                                                           PkList<int> selectedLabels,
                                                            GroupSelectionPolicy groupSelectionPolicy,
                                                            bool forceRegeneration,
                                                            KisNodeSP activeNode)
-    : KUndo2Command(kundo2_noi18n("MERGE_LABELED_LAYERS"))
+    : KUndo2Command(kundo2_text_raw("MERGE_LABELED_LAYERS"))
     , m_refImage(new KisImage(new KisSurrogateUndoStore(), image->width(), image->height(), image->colorSpace(), "Merge Labeled Layers Reference Image"))
     , m_prevRefNodeInfoList(prevRefNodeInfoList)
     , m_newRefNodeInfoList(newRefNodeInfoList)
@@ -90,12 +103,12 @@ void KisMergeLabeledLayersCommand::redo()
     KUndo2Command::redo();
 }
 
-KisPaintDeviceSP KisMergeLabeledLayersCommand::createRefPaintDevice(KisImageSP originalImage, QString name)
+KisPaintDeviceSP KisMergeLabeledLayersCommand::createRefPaintDevice(KisImageSP originalImage, PkString name)
 {
     return KisPaintDeviceSP(new KisPaintDevice(originalImage->colorSpace(), name));
 }
 
-QPair<KisNodeSP, QPair<bool, bool>> KisMergeLabeledLayersCommand::collectNode(KisNodeSP node) const
+PkPair<KisNodeSP, PkPair<bool, bool>> KisMergeLabeledLayersCommand::collectNode(KisNodeSP node) const
 {
     if (!node->parent()) {
         // This is the root node. Do not use nor visit the siblings,
@@ -176,9 +189,9 @@ QPair<KisNodeSP, QPair<bool, bool>> KisMergeLabeledLayersCommand::collectNode(Ki
     return {node, {true, false}};
 }
 
-bool KisMergeLabeledLayersCommand::collectNodes(KisNodeSP node, QList<KisNodeSP> &nodeList, ReferenceNodeInfoList &nodeInfoList) const
+bool KisMergeLabeledLayersCommand::collectNodes(KisNodeSP node, PkList<KisNodeSP> &nodeList, ReferenceNodeInfoList &nodeInfoList) const
 {
-    QPair<KisNodeSP, QPair<bool, bool>> result = collectNode(node);
+    PkPair<KisNodeSP, PkPair<bool, bool>> result = collectNode(node);
     KisNodeSP collectedNode = result.first;
     const bool visitNextSibling = result.second.first;
     const bool visitChildren = result.second.second;
@@ -189,7 +202,7 @@ bool KisMergeLabeledLayersCommand::collectNodes(KisNodeSP node, QList<KisNodeSP>
         // Store additional info to check if the new list of reference nodes
         // is different. Use the original node to extract the info
         if (hasToCheckForChangesInNodes()) {
-            const QUuid uuid = node->uuid();
+            const PkNodeId uuid = node->uuid();
             const int sequenceNumber = node->projection()->sequenceNumber();
             const int opacity = node->opacity();
             nodeInfoList.append({uuid, sequenceNumber, opacity});
@@ -212,7 +225,7 @@ bool KisMergeLabeledLayersCommand::collectNodes(KisNodeSP node, QList<KisNodeSP>
 
 void KisMergeLabeledLayersCommand::mergeLabeledLayers()
 {
-    QList<KisNodeSP> currentNodesList;
+    PkList<KisNodeSP> currentNodesList;
     ReferenceNodeInfoList currentNodeInfoList;
 
     collectNodes(m_currentRoot, currentNodesList, currentNodeInfoList);
@@ -225,7 +238,7 @@ void KisMergeLabeledLayersCommand::mergeLabeledLayers()
         m_newRefPaintDevice->prepareClone(m_prevRefPaintDevice);
         m_newRefPaintDevice->makeCloneFromRough(m_prevRefPaintDevice, m_prevRefPaintDevice->extent());
     } else {
-        QList<KisNodeSP> currentNodesListCopy;
+        PkList<KisNodeSP> currentNodesListCopy;
         for (KisNodeSP node : currentNodesList) {
             KisNodeSP copy = node->clone();
 
@@ -236,7 +249,7 @@ void KisMergeLabeledLayersCommand::mergeLabeledLayers()
             if (copy->inherits("KisLayer")) {
                 KisLayer* layerCopy = dynamic_cast<KisLayer*>(copy.data());
                 KIS_ASSERT(layerCopy);
-                layerCopy->setChannelFlags(QBitArray());
+                layerCopy->setChannelFlags(PkBitArray());
             }
 
             copy->setCompositeOpId(COMPOSITE_OVER);

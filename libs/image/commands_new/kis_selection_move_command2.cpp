@@ -10,7 +10,7 @@
 //#include "kis_node.h"
 #include "kis_image.h"
 
-KisSelectionMoveCommand2::KisSelectionMoveCommand2(KisSelectionSP object, const QPoint& oldPos, const QPoint& newPos, KUndo2Command *parent)
+KisSelectionMoveCommand2::KisSelectionMoveCommand2(KisSelectionSP object, const PkPoint& oldPos, const PkPoint& newPos, KUndo2Command *parent)
     : KisMoveCommandCommon<KisSelectionSP>(object, oldPos, newPos, parent)
 {
 }

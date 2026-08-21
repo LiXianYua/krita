@@ -7,21 +7,19 @@
 #ifndef __KIS_UPDATE_COMMAND_H
 #define __KIS_UPDATE_COMMAND_H
 
-
 #include "kundo2command.h"
 #include "kritaimage_export.h"
 #include "kis_types.h"
 
 class KisUpdatesFacade;
 
-
 class KRITAIMAGE_EXPORT KisUpdateCommand : public KUndo2Command
 {
 public:
-    KisUpdateCommand(KisNodeSP node, QRect dirtyRect,
+    KisUpdateCommand(KisNodeSP node, PkRect dirtyRect,
                      KisUpdatesFacade *updatesFacade,
                      bool needsFullRefresh = false);
-    KisUpdateCommand(KisNodeSP node, QSharedPointer<QRect> dirtyRect,
+    KisUpdateCommand(KisNodeSP node, PkSharedPointer<PkRect> dirtyRect,
                      KisUpdatesFacade *updatesFacade,
                      bool needsFullRefresh = false);
     ~KisUpdateCommand() override;
@@ -34,8 +32,8 @@ private:
 
 private:
     KisNodeSP m_node;
-    QRect m_dirtyRect;
-    QSharedPointer<QRect> m_sharedDirtyRect;
+    PkRect m_dirtyRect;
+    PkSharedPointer<PkRect> m_sharedDirtyRect;
     KisUpdatesFacade *m_updatesFacade;
     bool m_needsFullRefresh;
 };

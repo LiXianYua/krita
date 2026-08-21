@@ -14,13 +14,11 @@
 
 class KisStrokesFacade;
 
-
 class KRITAIMAGE_EXPORT KisSavedCommandBase : public KUndo2Command
 {
 public:
     KisSavedCommandBase(const KUndo2MagicString &name, KisStrokesFacade *strokesFacade);
     ~KisSavedCommandBase() override;
-
 
     void undo() override;
     void redo() override;
@@ -49,13 +47,13 @@ public:
     bool canAnnihilateWith(const KUndo2Command *command) const override;
 
     bool timedMergeWith(KUndo2Command *other) override;
-    QVector<KUndo2Command*> mergeCommandsVector() const override;
-    void setTime(const QTime &time) override;
+    PkVector<KUndo2Command*> mergeCommandsVector() const override;
+    void setTime(const PkTime &time) override;
     using KisSavedCommandBase::setTime;
-    QTime time() const override;
-    void setEndTime(const QTime &time) override;
+    PkTime time() const override;
+    void setEndTime(const PkTime &time) override;
     using KisSavedCommandBase::setEndTime;
-    QTime endTime() const override;
+    PkTime endTime() const override;
     bool isMerged() const override;
 
     /**
@@ -100,9 +98,9 @@ public:
                     KisStrokeJobData::Sequentiality sequentiality = KisStrokeJobData::SEQUENTIAL,
                     KisStrokeJobData::Exclusivity exclusivity = KisStrokeJobData::NORMAL);
 
-    void getCommandExecutionJobs(QVector<KisStrokeJobData*> *jobs, bool undo, bool shouldGoToHistory = true) const;
+    void getCommandExecutionJobs(PkVector<KisStrokeJobData*> *jobs, bool undo, bool shouldGoToHistory = true) const;
 
-    void setOverrideInfo(const KisSavedMacroCommand *overriddenCommand, const QVector<const KUndo2Command *> &skipWhileOverride);
+    void setOverrideInfo(const KisSavedMacroCommand *overriddenCommand, const PkVector<const KUndo2Command *> &skipWhileOverride);
 protected:
     void addCommands(KisStrokeId id, bool undo) override;
 

@@ -12,7 +12,7 @@
 KisUpdateCommandEx::KisUpdateCommandEx(KisBatchNodeUpdateSP updateData,
                                        KisUpdatesFacade *updatesFacade,
                                        State state,
-                                       QWeakPointer<boost::none_t> blockUpdatesCookie)
+                                       PkWeakPointer<boost::none_t> blockUpdatesCookie)
     : FlipFlopCommand(state),
       m_updateData(updateData),
       m_blockUpdatesCookie(blockUpdatesCookie),
@@ -25,7 +25,7 @@ KisUpdateCommandEx::~KisUpdateCommandEx()
 }
 
 KisUpdateCommandEx::KisUpdateCommandEx(KisBatchNodeUpdateSP updateData, KisUpdatesFacade *updatesFacade, State state)
-    : KisUpdateCommandEx(updateData, updatesFacade, state, QWeakPointer<boost::none_t>())
+    : KisUpdateCommandEx(updateData, updatesFacade, state, PkWeakPointer<boost::none_t>())
 {
 }
 

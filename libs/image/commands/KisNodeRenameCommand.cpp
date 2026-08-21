@@ -6,13 +6,12 @@
 
 #include "KisNodeRenameCommand.h"
 
-#include <klocalizedstring.h>
 #include "kis_node.h"
 #include "commands/kis_node_commands.h"
 #include "kis_command_ids.h"
 
-KisNodeRenameCommand::KisNodeRenameCommand(KisNodeSP node, const QString &oldName, const QString &newName)
-    : KisNodeCommand(kundo2_i18n("Node Rename"), node)
+KisNodeRenameCommand::KisNodeRenameCommand(KisNodeSP node, const PkString &oldName, const PkString &newName)
+    : KisNodeCommand(kundo2_text("Node Rename"), node)
 {
     m_oldName = oldName;
     m_newName = newName;

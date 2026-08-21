@@ -8,9 +8,8 @@
 
 #include <kis_node.h>
 
-
 KisLayerCollapseCommand::KisLayerCollapseCommand(KisNodeSP node, bool oldValue, bool newValue, KUndo2Command *parent)
-    : KUndo2Command(newValue ? kundo2_i18n("Collapse node %1", node->name()) : kundo2_i18n("Expand node %1", node->name()), parent)
+    : KUndo2Command(newValue ? kundo2_text("Collapse node %1", node->name()) : kundo2_text("Expand node %1", node->name()), parent)
     , m_node(node)
     , m_oldValue(oldValue)
     , m_newValue(newValue)

@@ -6,12 +6,11 @@
 
 #include "kis_saved_commands.h"
 
-#include <QVector>
+#include <PkVector.h>
 
 #include "kis_image_interfaces.h"
 #include "kis_stroke_strategy_undo_command_based.h"
 #include <KisAsynchronouslyMergeableCommandInterface.h>
-
 
 KisSavedCommandBase::KisSavedCommandBase(const KUndo2MagicString &name,
                                          KisStrokesFacade *strokesFacade)
@@ -47,8 +46,6 @@ void KisSavedCommandBase::undo()
     runStroke(true);
 }
 
-
-
 void KisSavedCommandBase::redo()
 {
     /**
@@ -64,7 +61,6 @@ void KisSavedCommandBase::redo()
 
     runStroke(false);
 }
-
 
 KisSavedCommand::KisSavedCommand(KUndo2CommandSP command,
                                  KisStrokesFacade *strokesFacade)
@@ -115,25 +111,25 @@ bool KisSavedCommand::timedMergeWith(KUndo2Command *other)
 
     return m_command->timedMergeWith(other);
 }
-QVector<KUndo2Command*> KisSavedCommand::mergeCommandsVector() const
+PkVector<KUndo2Command*> KisSavedCommand::mergeCommandsVector() const
 {
     return m_command->mergeCommandsVector();
 }
-void KisSavedCommand::setTime(const QTime &time)
+void KisSavedCommand::setTime(const PkTime &time)
 {
     m_command->setTime(time);
 }
 
-QTime KisSavedCommand::time() const
+PkTime KisSavedCommand::time() const
 {
     return m_command->time();
 }
-void KisSavedCommand::setEndTime(const QTime &time)
+void KisSavedCommand::setEndTime(const PkTime &time)
 {
     m_command->setEndTime(time);
 }
 
-QTime KisSavedCommand::endTime() const
+PkTime KisSavedCommand::endTime() const
 {
     return m_command->endTime();
 }
@@ -141,8 +137,6 @@ bool KisSavedCommand::isMerged() const
 {
     return m_command->isMerged();
 }
-
-
 
 struct KisSavedMacroCommand::Private
 {
@@ -152,11 +146,11 @@ struct KisSavedMacroCommand::Private
         KisStrokeJobData::Exclusivity exclusivity;
     };
 
-    QVector<SavedCommand> commands;
+    PkVector<SavedCommand> commands;
     int macroId = -1;
 
     const KisSavedMacroCommand *overriddenCommand = 0;
-    QVector<const KUndo2Command*> skipWhenOverride;
+    PkVector<const KUndo2Command*> skipWhenOverride;
 };
 
 KisSavedMacroCommand::KisSavedMacroCommand(const KUndo2MagicString &name,
@@ -188,12 +182,12 @@ bool KisSavedMacroCommand::mergeWith(const KUndo2Command* command)
 
     if (!other || other->id() != id() || id() < 0 || other->id() < 0) return false;
 
-    QVector<Private::SavedCommand> &otherCommands = other->m_d->commands;
+    PkVector<Private::SavedCommand> &otherCommands = other->m_d->commands;
 
     if (other->m_d->overriddenCommand == this) {
         m_d->commands.clear();
 
-        Q_FOREACH (Private::SavedCommand cmd, other->m_d->commands) {
+        for (Private::SavedCommand cmd : other->m_d->commands) {
             if (!other->m_d->skipWhenOverride.contains(cmd.command.data())) {
                 m_d->commands.append(cmd);
             }
@@ -263,7 +257,7 @@ bool KisSavedMacroCommand::canAnnihilateWith(const KUndo2Command* command) const
 
     if (!other || other->id() != id() || id() < 0 || other->id() < 0) return false;
 
-    QVector<Private::SavedCommand> &otherCommands = other->m_d->commands;
+    PkVector<Private::SavedCommand> &otherCommands = other->m_d->commands;
 
     if (other->m_d->overriddenCommand) return false;
     if (m_d->commands.size() != otherCommands.size()) return false;
@@ -307,9 +301,9 @@ void KisSavedMacroCommand::addCommand(KUndo2CommandSP command,
     m_d->commands.append(item);
 }
 
-void KisSavedMacroCommand::getCommandExecutionJobs(QVector<KisStrokeJobData *> *jobs, bool undo, bool shouldGoToHistory) const
+void KisSavedMacroCommand::getCommandExecutionJobs(PkVector<KisStrokeJobData *> *jobs, bool undo, bool shouldGoToHistory) const
 {
-    QVector<Private::SavedCommand>::iterator it;
+    PkVector<Private::SavedCommand>::iterator it;
 
     if(!undo) {
         for(it = m_d->commands.begin(); it != m_d->commands.end(); it++) {
@@ -335,7 +329,7 @@ void KisSavedMacroCommand::getCommandExecutionJobs(QVector<KisStrokeJobData *> *
     }
 }
 
-void KisSavedMacroCommand::setOverrideInfo(const KisSavedMacroCommand *overriddenCommand, const QVector<const KUndo2Command*> &skipWhileOverride)
+void KisSavedMacroCommand::setOverrideInfo(const KisSavedMacroCommand *overriddenCommand, const PkVector<const KUndo2Command*> &skipWhileOverride)
 {
     m_d->overriddenCommand = overriddenCommand;
     m_d->skipWhenOverride = skipWhileOverride;
@@ -343,10 +337,10 @@ void KisSavedMacroCommand::setOverrideInfo(const KisSavedMacroCommand *overridde
 
 void KisSavedMacroCommand::addCommands(KisStrokeId id, bool undo)
 {
-    QVector<KisStrokeJobData *> jobs;
+    PkVector<KisStrokeJobData *> jobs;
     getCommandExecutionJobs(&jobs, undo);
 
-    Q_FOREACH (KisStrokeJobData *job, jobs) {
+    for (KisStrokeJobData *job : jobs) {
         strokesFacade()->addJob(id, job);
     }
 }

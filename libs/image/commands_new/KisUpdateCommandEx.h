@@ -16,7 +16,6 @@
 
 class KisUpdatesFacade;
 
-
 class KRITAIMAGE_EXPORT KisUpdateCommandEx : public KisCommandUtils::FlipFlopCommand
 {
 public:
@@ -27,7 +26,7 @@ public:
     KisUpdateCommandEx(KisBatchNodeUpdateSP updateData,
                        KisUpdatesFacade *updatesFacade,
                        State state,
-                       QWeakPointer<boost::none_t> blockUpdatesCookie);
+                       PkWeakPointer<boost::none_t> blockUpdatesCookie);
 
     ~KisUpdateCommandEx();
 
@@ -35,7 +34,7 @@ public:
 
 private:
     KisBatchNodeUpdateSP m_updateData;
-    QWeakPointer<boost::none_t> m_blockUpdatesCookie;
+    PkWeakPointer<boost::none_t> m_blockUpdatesCookie;
     KisUpdatesFacade *m_updatesFacade;
 };
 

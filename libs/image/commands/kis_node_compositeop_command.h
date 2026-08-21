@@ -22,7 +22,7 @@ public:
      * @param oldCompositeOp the old node composite op
      * @param newCompositeOp the new node composite op
      */
-    KisNodeCompositeOpCommand(KisNodeSP node, const QString& newCompositeOp);
+    KisNodeCompositeOpCommand(KisNodeSP node, const PkString& newCompositeOp);
 
     void redo() override;
     void undo() override;
@@ -34,11 +34,11 @@ public:
     bool canAnnihilateWith(const KUndo2Command *command) const override;
 
 private:
-    void setCompositeOpImpl(const QString &compositeOp);
+    void setCompositeOpImpl(const PkString &compositeOp);
 
 private:
-    boost::optional<QString> m_oldCompositeOp;
-    QString m_newCompositeOp;
+    boost::optional<PkString> m_oldCompositeOp;
+    PkString m_newCompositeOp;
 };
 
 #endif /* KIS_NODE_COMPOSITEOP_COMMAND_H */

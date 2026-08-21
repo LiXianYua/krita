@@ -13,13 +13,12 @@
 
 #include <kundo2command.h>
 
-
 class KRITAIMAGE_EXPORT KisSimpleModifyTransformMaskCommand : public KUndo2Command
 {
 public:
     KisSimpleModifyTransformMaskCommand(KisTransformMaskSP mask,
                                         KisTransformMaskParamsInterfaceSP newParams,
-                                        QWeakPointer<boost::none_t> updatesBlockerCookie = QWeakPointer<boost::none_t>(),
+                                        PkWeakPointer<boost::none_t> updatesBlockerCookie = PkWeakPointer<boost::none_t>(),
                                         KUndo2Command *parent = nullptr);
 
     int id() const override;
@@ -37,7 +36,7 @@ private:
     KisTransformMaskParamsInterfaceSP m_oldParams;
     KisTransformMaskParamsInterfaceSP m_newParams;
 
-    QWeakPointer<boost::none_t> m_updatesBlockerCookie;
+    PkWeakPointer<boost::none_t> m_updatesBlockerCookie;
 
     std::vector<std::unique_ptr<KUndo2Command>> m_undoCommands;
 };

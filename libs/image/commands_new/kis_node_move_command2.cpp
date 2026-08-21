@@ -7,8 +7,7 @@
 
 #include "kis_selection_mask.h"
 
-
-KisNodeMoveCommand2::KisNodeMoveCommand2(KisNodeSP object, const QPoint& oldPos, const QPoint& newPos, KUndo2Command *parent)
+KisNodeMoveCommand2::KisNodeMoveCommand2(KisNodeSP object, const PkPoint& oldPos, const PkPoint& newPos, KUndo2Command *parent)
     : KisMoveCommandCommon<KisNodeSP>(object, oldPos, newPos, parent)
 {
 }

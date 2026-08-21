@@ -5,25 +5,24 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <klocalizedstring.h>
 #include <KoCompositeOp.h>
 #include "kis_node.h"
 #include "commands/kis_node_commands.h"
 #include "kis_command_ids.h"
 
-KisNodeCompositeOpCommand::KisNodeCompositeOpCommand(KisNodeSP node, const QString& newCompositeOp) :
-        KisNodeCommand(kundo2_i18n("Composition Mode Change"), node)
+KisNodeCompositeOpCommand::KisNodeCompositeOpCommand(KisNodeSP node, const PkString& newCompositeOp) :
+        KisNodeCommand(kundo2_text("Composition Mode Change"), node)
 {
     m_newCompositeOp = newCompositeOp;
 }
 
-void KisNodeCompositeOpCommand::setCompositeOpImpl(const QString &compositeOp)
+void KisNodeCompositeOpCommand::setCompositeOpImpl(const PkString &compositeOp)
 {
     /**
      * The node might have had "Destination Atop" blending
      * that changes extent of the layer
      */
-    const QRect oldExtent = m_node->extent();
+    const PkRect oldExtent = m_node->extent();
     m_node->setCompositeOpId(compositeOp);
     m_node->setDirty(oldExtent | m_node->extent());
 }

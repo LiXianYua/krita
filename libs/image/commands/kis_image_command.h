@@ -12,11 +12,10 @@
 
 #include <kundo2command.h>
 
-#include <QSize>
-#include <QRect>
+#include <PkSize.h>
+#include <PkRect.h>
 #include "kis_types.h"
 #include "kis_paint_device.h"
-
 
 /// the base command for commands altering a KisImage
 class KRITAIMAGE_EXPORT KisImageCommand : public KUndo2Command
@@ -43,12 +42,12 @@ public:
     class UpdateTarget
     {
     public:
-        UpdateTarget(KisImageWSP image, KisNodeSP removedNode, const QRect &updateRect);
+        UpdateTarget(KisImageWSP image, KisNodeSP removedNode, const PkRect &updateRect);
         void update();
 
     private:
         KisImageWSP m_image;
-        QRect m_updateRect;
+        PkRect m_updateRect;
         int m_removedNodeIndex;
         KisNodeSP m_removedNodeParent;
     };

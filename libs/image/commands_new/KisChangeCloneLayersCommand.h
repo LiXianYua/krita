@@ -15,7 +15,7 @@ class KRITAIMAGE_EXPORT KisChangeCloneLayersCommand : public KUndo2Command
 {
 
 public:
-    KisChangeCloneLayersCommand(QList<KisCloneLayerSP> cloneLayers, KisLayerSP newSource, KUndo2Command *parent = 0);
+    KisChangeCloneLayersCommand(PkList<KisCloneLayerSP> cloneLayers, KisLayerSP newSource, KUndo2Command *parent = 0);
 
     void undo() override;
     void redo() override;
@@ -23,7 +23,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KIS_CHANGE_CLONE_LAYERS_COMMAND_H_

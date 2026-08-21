@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 
 #include <kis_types.h>
 
@@ -25,14 +25,14 @@ public:
     };
 
     struct Recipe {
-        QVector<NodeTask> nodesToAdd;
-        QVector<NodeTask> nodesToRemove;
+        PkVector<NodeTask> nodesToAdd;
+        PkVector<NodeTask> nodesToRemove;
 
         std::vector<KisImageCommand::UpdateTarget> addedNodesUpdateTargets;
         std::vector<KisImageCommand::UpdateTarget> removedNodesUpdateTargets;
     };
 
-    using RecipeSP = QSharedPointer<Recipe>;
+    using RecipeSP = PkSharedPointer<Recipe>;
 
 public:
     KisBatchUpdateLayerModificationCommand(KisImageWSP image,

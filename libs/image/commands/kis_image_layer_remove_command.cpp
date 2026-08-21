@@ -6,16 +6,14 @@
 
 #include "kis_image_layer_remove_command.h"
 
-#include <klocalizedstring.h>
 #include "kis_image.h"
 #include "kis_image_layer_remove_command_impl.h"
-
 
 KisImageLayerRemoveCommand::KisImageLayerRemoveCommand(KisImageWSP image,
                                                        KisNodeSP node,
                                                        bool doRedoUpdates,
                                                        bool doUndoUpdates)
-    : KisImageCommand(kundo2_i18n("Remove Layer"), image),
+    : KisImageCommand(kundo2_text("Remove Layer"), image),
       m_node(node),
       m_doRedoUpdates(doRedoUpdates),
       m_doUndoUpdates(doUndoUpdates)

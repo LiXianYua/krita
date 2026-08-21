@@ -8,9 +8,9 @@
 #ifndef __KIS_MERGE_LABELED_LAYERS_H
 #define __KIS_MERGE_LABELED_LAYERS_H
 
-#include <QList>
-#include <QString>
-#include <QSharedPointer>
+#include <PkList.h>
+#include <PkString.h>
+#include <PkSharedPointer.h>
 
 #include "kundo2command.h"
 #include "kritaimage_export.h"
@@ -52,7 +52,7 @@ public:
      */
     struct ReferenceNodeInfo
     {
-        QUuid nodeId;
+        PkNodeId nodeId;
         int sequenceNumber;
         int opacity;
 
@@ -62,8 +62,8 @@ public:
         }
     };
 
-    using ReferenceNodeInfoList = QList<ReferenceNodeInfo>;
-    using ReferenceNodeInfoListSP = QSharedPointer<ReferenceNodeInfoList>;
+    using ReferenceNodeInfoList = PkList<ReferenceNodeInfo>;
+    using ReferenceNodeInfoListSP = PkSharedPointer<ReferenceNodeInfoList>;
 
     /**
      * @brief Construct a new KisMergeLabeledLayersCommand that does not use
@@ -76,7 +76,7 @@ public:
      */
     KisMergeLabeledLayersCommand(KisImageSP image,
                                  KisPaintDeviceSP newRefPaintDevice,
-                                 QList<int> selectedLabels,
+                                 PkList<int> selectedLabels,
                                  GroupSelectionPolicy groupSelectionPolicy = GroupSelectionPolicy_SelectAlways);
 
     /**
@@ -101,7 +101,7 @@ public:
                                  ReferenceNodeInfoListSP newRefNodeInfoList,
                                  KisPaintDeviceSP prevRefPaintDevice,
                                  KisPaintDeviceSP newRefPaintDevice,
-                                 QList<int> selectedLabels,
+                                 PkList<int> selectedLabels,
                                  GroupSelectionPolicy groupSelectionPolicy = GroupSelectionPolicy_SelectAlways,
                                  bool forceRegeneration = false,
                                  KisNodeSP activeNode = nullptr);
@@ -111,13 +111,13 @@ public:
     void undo() override;
     void redo() override;
 
-    static KisPaintDeviceSP createRefPaintDevice(KisImageSP originalImage, QString name = "Merge Labeled Layers Reference Paint Device");
+    static KisPaintDeviceSP createRefPaintDevice(KisImageSP originalImage, PkString name = "Merge Labeled Layers Reference Paint Device");
 
 private:
     void mergeLabeledLayers();
     bool hasToCheckForChangesInNodes() const;
-    QPair<KisNodeSP, QPair<bool, bool>> collectNode(KisNodeSP node) const;
-    bool collectNodes(KisNodeSP node, QList<KisNodeSP> &nodeList, ReferenceNodeInfoList &nodeInfoList) const;
+    PkPair<KisNodeSP, PkPair<bool, bool>> collectNode(KisNodeSP node) const;
+    bool collectNodes(KisNodeSP node, PkList<KisNodeSP> &nodeList, ReferenceNodeInfoList &nodeInfoList) const;
 
 private:
     KisImageSP m_refImage;
@@ -126,7 +126,7 @@ private:
     KisPaintDeviceSP m_prevRefPaintDevice;
     KisPaintDeviceSP m_newRefPaintDevice;
     KisNodeSP m_currentRoot;
-    QList<int> m_selectedLabels;
+    PkList<int> m_selectedLabels;
     GroupSelectionPolicy m_groupSelectionPolicy;
     bool m_forceRegeneration;
     KisNodeSP m_activeNode;

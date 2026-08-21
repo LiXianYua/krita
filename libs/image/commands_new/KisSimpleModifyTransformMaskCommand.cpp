@@ -9,10 +9,9 @@
 #include <kis_command_ids.h>
 #include <kis_transform_mask.h>
 
-
 KisSimpleModifyTransformMaskCommand::KisSimpleModifyTransformMaskCommand(KisTransformMaskSP mask,
                                                                          KisTransformMaskParamsInterfaceSP newParams,
-                                                                         QWeakPointer<boost::none_t> updatesBlockerCookie,
+                                                                         PkWeakPointer<boost::none_t> updatesBlockerCookie,
                                                                          KUndo2Command *parent)
     : KUndo2Command(parent),
       m_mask(mask),

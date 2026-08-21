@@ -4,13 +4,12 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-
 #ifndef KIS_CHANGE_CHANNEL_LOCK_FLAGS_COMMAND_H_
 #define KIS_CHANGE_CHANNEL_LOCK_FLAGS_COMMAND_H_
 
 #include <kritaimage_export.h>
 
-#include <QBitArray>
+#include <PkBitArray.h>
 
 #include "kis_types.h"
 #include <kundo2command.h>
@@ -19,13 +18,12 @@ class KisChangeChannelLockFlagsCommand : public KUndo2Command
 {
 
 public:
-    KisChangeChannelLockFlagsCommand(const QBitArray &newFlags,
+    KisChangeChannelLockFlagsCommand(const PkBitArray &newFlags,
                                      KisPaintLayerSP layer,
                                      KUndo2Command *parentCommand = 0);
 
-
-    KisChangeChannelLockFlagsCommand(const QBitArray &newFlags,
-                                     const QBitArray &oldFlags,
+    KisChangeChannelLockFlagsCommand(const PkBitArray &newFlags,
+                                     const PkBitArray &oldFlags,
                                      KisPaintLayerSP layer,
                                      KUndo2Command *parentCommand = 0);
 
@@ -34,8 +32,8 @@ public:
 
 protected:
     KisPaintLayerSP m_layer;
-    QBitArray m_oldFlags;
-    QBitArray m_newFlags;
+    PkBitArray m_oldFlags;
+    PkBitArray m_newFlags;
 };
 
 #endif

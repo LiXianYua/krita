@@ -5,10 +5,22 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_image_layer_remove_command_impl.cpp 阻塞登记（S-06 Task 5）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
+//   * 本文件传递 include kis_layer.h → kis_psd_layer_style.h（未剥），未剥的
+//     KisPSDLayerStyle 仍用 Qt 列表容器覆盖 KoResource 已被剥成 PkVector 的虚函数
+//     （linkedResources/sideLoadedResources/requiredCanvasResources），
+//     协变返回类型不匹配 —— 跨任务类型断裂（与 Task 4 kis_paintop_registry.cc 同因）
+// 关闭条件：libs/image 的 KoResource 族 virtuals 全量转 PkVector/PkList +
+// layer 系头剥 Qt 后解除（Task 8）。当前状态：Qt 仅经未剥依赖头传递进入，
+// 不参与薄壳构建。
+
+
 #include "kis_image_layer_remove_command_impl.h"
 #include "kis_image.h"
 
-#include <klocalizedstring.h>
 #include "kis_layer.h"
 #include "kis_clone_layer.h"
 #include "kis_paint_layer.h"
@@ -22,8 +34,8 @@ struct Q_DECL_HIDDEN KisImageLayerRemoveCommandImpl::Private {
     KisNodeSP prevParent;
     KisNodeSP prevAbove;
 
-    QList<KisCloneLayerSP> clonesList;
-    QList<KisLayerSP> reincarnatedNodes;
+    PkList<KisCloneLayerSP> clonesList;
+    PkList<KisLayerSP> reincarnatedNodes;
 
     void restoreClones();
     void processClones(KisNodeSP node);
@@ -32,7 +44,7 @@ struct Q_DECL_HIDDEN KisImageLayerRemoveCommandImpl::Private {
 };
 
 KisImageLayerRemoveCommandImpl::KisImageLayerRemoveCommandImpl(KisImageWSP image, KisNodeSP node, KUndo2Command *parent)
-    : KisImageCommand(kundo2_i18n("Remove Layer"), image, parent),
+    : KisImageCommand(kundo2_text("Remove Layer"), image, parent),
       m_d(new Private(this))
 {
     m_d->node = node;
@@ -85,14 +97,14 @@ void KisImageLayerRemoveCommandImpl::Private::restoreClones()
 
 void KisImageLayerRemoveCommandImpl::Private::processClones(KisNodeSP node)
 {
-    KisLayerSP layer(qobject_cast<KisLayer*>(node.data()));
+    KisLayerSP layer(dynamic_cast<KisLayer*>(node.data()));
     if(!layer || !layer->hasClones()) return;
 
     if(reincarnatedNodes.isEmpty()) {
         /**
          * Initialize the list of reincarnates nodes
          */
-        Q_FOREACH (KisCloneLayerWSP _clone, layer->registeredClones()) {
+        for (KisCloneLayerWSP _clone : layer->registeredClones()) {
             KisCloneLayerSP clone = _clone;
             Q_ASSERT(clone);
 
@@ -136,7 +148,7 @@ void KisImageLayerRemoveCommandImpl::Private::moveChildren(KisNodeSP src, KisNod
 
 void KisImageLayerRemoveCommandImpl::Private::moveClones(KisLayerSP src, KisLayerSP dst)
 {
-    Q_FOREACH (KisCloneLayerWSP _clone, src->registeredClones()) {
+    for (KisCloneLayerWSP _clone : src->registeredClones()) {
         KisCloneLayerSP clone = _clone;
         Q_ASSERT(clone);
 

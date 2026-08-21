@@ -14,8 +14,8 @@ class KRITAIMAGE_EXPORT KisNodeRenameCommand : public KisNodeCommand, public Kis
 {
 public:
     KisNodeRenameCommand(KisNodeSP node,
-                         const QString &oldName,
-                         const QString &newName);
+                         const PkString &oldName,
+                         const PkString &newName);
 
     void redo() override;
     void undo() override;
@@ -26,8 +26,8 @@ public:
 
 private:
 
-    QString m_oldName;
-    QString m_newName;
+    PkString m_oldName;
+    PkString m_newName;
 };
 
 #endif // KISNODERENAMECOMMAND_H

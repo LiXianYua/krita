@@ -12,20 +12,19 @@
 #include "kis_types.h"
 
 #include <kundo2command.h>
-#include <QSize>
-
+#include <PkSize.h>
 
 class KRITAIMAGE_EXPORT KisImageResizeCommand : public KUndo2Command
 {
 public:
-    KisImageResizeCommand(KisImageWSP image, const QSize& newRect, KUndo2Command *parent = 0);
+    KisImageResizeCommand(KisImageWSP image, const PkSize& newRect, KUndo2Command *parent = 0);
 
     void redo() override;
     void undo() override;
 
 private:
-    QSize m_sizeBefore;
-    QSize m_sizeAfter;
+    PkSize m_sizeBefore;
+    PkSize m_sizeAfter;
     KisImageWSP m_image;
 };
 

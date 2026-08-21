@@ -7,7 +7,6 @@
 #ifndef KIS_SET_LAYER_STYLE_COMMAND_H
 #define KIS_SET_LAYER_STYLE_COMMAND_H
 
-#include <klocalizedstring.h>
 #include "kundo2command.h"
 #include "kritaimage_export.h"
 #include "kis_types.h"
