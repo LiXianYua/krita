@@ -14,6 +14,7 @@
 #endif
 
 #include "KoColorTransformation.h"
+#include <PkColor.h>
 
 template<typename _lab_channels_type_>
 struct KoLabDarkenColorTransformation : public KoColorTransformation {
@@ -29,7 +30,7 @@ struct KoLabDarkenColorTransformation : public KoColorTransformation {
     {
         *((quint32 *)dst) = *((const quint32 *)src);
 
-        QColor c;
+        PkColor c;
 
         for (unsigned int i = 0; i < nPixels*m_colorSpace->pixelSize(); i+=m_colorSpace->pixelSize()) {
             if (m_compensate) {

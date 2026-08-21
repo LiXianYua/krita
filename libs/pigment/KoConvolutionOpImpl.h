@@ -12,6 +12,7 @@
 #include "KoColorSpaceMaths.h"
 #include "KoConvolutionOp.h"
 #include "KoColorSpaceTraits.h"
+#include <PkBitArray.h>
 
 template<class _CSTrait>
 class KoConvolutionOpImpl : public KoConvolutionOp
@@ -60,7 +61,7 @@ public:
      *      @p factor and incremented by @p offset.
      */
 
-    void convolveColors(const quint8* const* colors, const qreal* kernelValues, quint8 *dst, qreal factor, qreal offset, qint32 nPixels, const QBitArray & channelFlags) const override {
+    void convolveColors(const quint8* const* colors, const qreal* kernelValues, quint8 *dst, qreal factor, qreal offset, qint32 nPixels, const PkBitArray & channelFlags) const override {
 
         // Create and initialize to 0 the array of totals
         qreal totals[_CSTrait::channels_nb];

@@ -7,6 +7,8 @@
 #ifndef KO_CONVOLUTION_OP_H
 #define KO_CONVOLUTION_OP_H
 
+#include <PkBitArray.h>
+
 /**
  * Base class of a convolution operation. A convolution operation is
  * defined by sum(colors[i] * kernelValues[i]) / factor + offset). The
@@ -34,7 +36,7 @@ public:
      * This function is thread-safe.
      *
      */
-    virtual void convolveColors(const quint8* const* colors, const qreal* kernelValues, quint8 *dst, qreal factor, qreal offset, qint32 nColors, const QBitArray & channelFlags) const = 0;
+    virtual void convolveColors(const quint8* const* colors, const qreal* kernelValues, quint8 *dst, qreal factor, qreal offset, qint32 nColors, const PkBitArray & channelFlags) const = 0;
 };
 
 #endif

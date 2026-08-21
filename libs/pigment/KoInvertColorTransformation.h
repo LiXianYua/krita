@@ -15,6 +15,8 @@
 #include "KoColorSpaceMaths.h"
 
 #include "KoColorModelStandardIds.h"
+#include <PkList.h>
+#include <PkVector.h>
 
 #include <KoConfig.h>
 #ifdef HAVE_OPENEXR
@@ -30,7 +32,7 @@ public:
         , m_chanCount(cs->channelCount())
     {
         // Only invert COLOR channels
-        const QList<KoChannelInfo *> channels = cs->channels();
+        const PkList<KoChannelInfo *> channels = cs->channels();
         for(quint8 i = 0; i < m_chanCount; i++){
             if(channels.at(i)->channelType() == KoChannelInfo::COLOR)
                 m_channels.append(i);
@@ -68,7 +70,7 @@ public:
     // Once CMYK and LAB 32 float are normalized, this inverts will invert properly
 //    template<typename T>
 //    void transformC(const quint8 *src, quint8 *dst, qint32 nPixels) const {
-//        QVector<float> normChan(m_chanCount);
+//        PkVector<float> normChan(m_chanCount);
 
 //        float *m_rgba;
 //        float *m_dst = (float*)(dst);
@@ -85,7 +87,7 @@ public:
 //    }
 
 protected:
-    QList<quint8> m_channels;
+    PkList<quint8> m_channels;
 private:
     const KoColorSpace* m_colorSpace;
     quint32 m_psize;

@@ -9,6 +9,8 @@
 #define _KO_LAB_COLORSPACE_TRAITS_H_
 
 #include <KoLabColorSpaceMaths.h>
+#include <PkString.h>
+#include <PkVector.h>
 
 /**
  * LAB traits, it provides some convenient functions to
@@ -74,10 +76,10 @@ struct KoLabTraits : public KoColorSpaceTrait<_channels_type_, 4, 3> {
     }
 
     // Lab has some... particulars
-    inline static QString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex)
+    inline static PkString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex)
     {
         if (channelIndex > parent::channels_nb)
-            return QString("Error");
+            return PkString("Error");
         channels_type c = parent::nativeArray(pixel)[channelIndex];
         switch (channelIndex) {
         case L_pos:
@@ -92,10 +94,10 @@ struct KoLabTraits : public KoColorSpaceTrait<_channels_type_, 4, 3> {
         case 3:
             return PkString("%1").arg(100.0 * qBound((qreal)0, ((qreal)c) / math_trait::unitValue, (qreal)math_trait::unitValue));
         default:
-            return QString("Error");
+            return PkString("Error");
         }
     }
-    inline static void normalisedChannelsValue(const quint8 *pixel, QVector<float> &v)
+    inline static void normalisedChannelsValue(const quint8 *pixel, PkVector<float> &v)
     {
         Q_ASSERT((int)v.count() >= (int)parent::channels_nb);
         channels_type c;
@@ -122,7 +124,7 @@ struct KoLabTraits : public KoColorSpaceTrait<_channels_type_, 4, 3> {
             }
         }
     }
-    inline static void fromNormalisedChannelsValue(quint8 *pixel, const QVector<float> &values)
+    inline static void fromNormalisedChannelsValue(quint8 *pixel, const PkVector<float> &values)
     {
         Q_ASSERT((int)values.count() >= (int)parent::channels_nb);
         channels_type c;

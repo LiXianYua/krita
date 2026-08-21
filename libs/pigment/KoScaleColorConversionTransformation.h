@@ -9,6 +9,7 @@
 
 #include <KoColorConversionTransformation.h>
 #include <KoColorConversionTransformationFactory.h>
+#include <PkString.h>
 /**
  * This transformation allows to convert between two color spaces with the same
  * color model but different channel type.
@@ -36,7 +37,7 @@ template<typename _src_CSTraits_, typename _dst_CSTraits_>
 class KoScaleColorConversionTransformationFactory : public KoColorConversionTransformationFactory
 {
 public:
-    KoScaleColorConversionTransformationFactory(const QString& _colorModelId, const QString& _profileName, const QString& _srcDepthId, const QString& _dstDepthId)
+    KoScaleColorConversionTransformationFactory(const PkString& _colorModelId, const PkString& _profileName, const PkString& _srcDepthId, const PkString& _dstDepthId)
             : KoColorConversionTransformationFactory(_colorModelId,  _srcDepthId, _profileName, _colorModelId, _dstDepthId, _profileName),
             hdr(((srcColorDepthId() == Float16BitsColorDepthID.id()) &&
                  (dstColorDepthId() == Float32BitsColorDepthID.id())) ||

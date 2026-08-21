@@ -9,6 +9,8 @@
 #define _KO_CMYK_COLORSPACE_TRAITS_H_
 
 #include <KoCmykColorSpaceMaths.h>
+#include <PkString.h>
+#include <PkVector.h>
 
 /** 
  * Base class for CMYK traits, it provides some convenient functions to
@@ -88,8 +90,8 @@ struct KoCmykU16Traits : public KoCmykTraits<quint16> {
 
 struct KoCmykF16Traits : public KoCmykTraits<half> {
 
-    inline static QString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) {
-        if (channelIndex > parent::channels_nb) return QString("Error");
+    inline static PkString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) {
+        if (channelIndex > parent::channels_nb) return PkString("Error");
         channels_type c = nativeArray(pixel)[channelIndex];
         switch (channelIndex) {
         case c_pos:
@@ -104,11 +106,11 @@ struct KoCmykF16Traits : public KoCmykTraits<half> {
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue));
         default:
-            return QString("Error");
+            return PkString("Error");
         }
     }
 
-    inline static void normalisedChannelsValue(const quint8 *pixel, QVector<float> &v)
+    inline static void normalisedChannelsValue(const quint8 *pixel, PkVector<float> &v)
     {
         Q_ASSERT((int)v.count() == (int)parent::channels_nb);
         channels_type c;
@@ -135,7 +137,7 @@ struct KoCmykF16Traits : public KoCmykTraits<half> {
         }
     }
 
-    inline static void fromNormalisedChannelsValue(quint8 *pixel, const QVector<float> &values) {
+    inline static void fromNormalisedChannelsValue(quint8 *pixel, const PkVector<float> &values) {
         Q_ASSERT((int)values.count() == (int)parent::channels_nb);
         channels_type c;
         for (uint i = 0; i < parent::channels_nb; i++) {
@@ -165,8 +167,8 @@ struct KoCmykF16Traits : public KoCmykTraits<half> {
 
 struct KoCmykF32Traits : public KoCmykTraits<float> {
 
-    inline static QString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) {
-        if (channelIndex > parent::channels_nb) return QString("Error");
+    inline static PkString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) {
+        if (channelIndex > parent::channels_nb) return PkString("Error");
         channels_type c = nativeArray(pixel)[channelIndex];
         switch (channelIndex) {
         case c_pos:
@@ -181,11 +183,11 @@ struct KoCmykF32Traits : public KoCmykTraits<float> {
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue));
         default:
-            return QString("Error");
+            return PkString("Error");
         }
     }
 
-    inline static void normalisedChannelsValue(const quint8 *pixel, QVector<float> &v)
+    inline static void normalisedChannelsValue(const quint8 *pixel, PkVector<float> &v)
     {
         Q_ASSERT((int)v.count() == (int)parent::channels_nb);
         channels_type c;
@@ -212,7 +214,7 @@ struct KoCmykF32Traits : public KoCmykTraits<float> {
         }
     }
 
-    inline static void fromNormalisedChannelsValue(quint8 *pixel, const QVector<float> &values) {
+    inline static void fromNormalisedChannelsValue(quint8 *pixel, const PkVector<float> &values) {
         Q_ASSERT((int)values.count() == (int)parent::channels_nb);
         channels_type c;
         for (uint i = 0; i < parent::channels_nb; i++) {
@@ -240,8 +242,8 @@ struct KoCmykF32Traits : public KoCmykTraits<float> {
 
 struct KoCmykF64Traits : public KoCmykTraits<double> {
 
-    inline static QString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) {
-        if (channelIndex > parent::channels_nb) return QString("Error");
+    inline static PkString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) {
+        if (channelIndex > parent::channels_nb) return PkString("Error");
         channels_type c = nativeArray(pixel)[channelIndex];
         switch (channelIndex) {
         case c_pos:
@@ -256,11 +258,11 @@ struct KoCmykF64Traits : public KoCmykTraits<double> {
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue));
         default:
-            return QString("Error");
+            return PkString("Error");
         }
     }
 
-    inline static void normalisedChannelsValue(const quint8 *pixel, QVector<float> &v)
+    inline static void normalisedChannelsValue(const quint8 *pixel, PkVector<float> &v)
     {
         Q_ASSERT((int)v.count() == (int)parent::channels_nb);
         channels_type c;
@@ -287,7 +289,7 @@ struct KoCmykF64Traits : public KoCmykTraits<double> {
         }
     }
 
-    inline static void fromNormalisedChannelsValue(quint8 *pixel, const QVector<float> &values) {
+    inline static void fromNormalisedChannelsValue(quint8 *pixel, const PkVector<float> &values) {
         Q_ASSERT((int)values.count() == (int)parent::channels_nb);
         channels_type c;
         for (uint i = 0; i < parent::channels_nb; i++) {

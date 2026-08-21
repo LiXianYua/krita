@@ -7,11 +7,13 @@
 #ifndef KOCOLORPROFILESTORAGE_H
 #define KOCOLORPROFILESTORAGE_H
 
-#include <QScopedPointer>
+#include <PkAuxTypes.h>
+#include <PkList.h>
+#include <PkScopedPointer.h>
+#include <PkString.h>
+#include <PkVector.h>
 #include "KoColorProfileConstants.h"
 
-class QByteArray;
-class QString;
 class KoColorProfile;
 class KoColorSpaceFactory;
 
@@ -64,12 +66,12 @@ public:
      * Create an alias to a profile with a different name. Then @ref profileByName
      * will return the profile @p to when passed @p name as a parameter.
      */
-    void addProfileAlias(const QString& name, const QString& to);
+    void addProfileAlias(const PkString& name, const PkString& to);
 
     /**
      * @return the profile alias, or name if not aliased
      */
-    QString profileAlias(const QString& name) const;
+    PkString profileAlias(const PkString& name) const;
 
     /**
      * Return a profile by its given name, or 0 if none registered.
@@ -78,7 +80,7 @@ public:
      * @see addProfile()
      * @see KoColorProfile::productName()
      */
-    const KoColorProfile * profileByName(const QString & name) const ;
+    const KoColorProfile * profileByName(const PkString & name) const ;
 
 
     /**
@@ -88,7 +90,7 @@ public:
      * @param id unique ProfileID of the profile (MD5 sum of its header)
      * @return the profile or 0 if not found
      */
-    const KoColorProfile *profileByUniqueId(const QByteArray &id) const;
+    const KoColorProfile *profileByUniqueId(const PkByteArray &id) const;
 
     /**
      * Return the list of profiles for a colorspace represented by its factory.
@@ -98,7 +100,7 @@ public:
      * @param csf is a factory for the requested color space
      * @return a list of profiles for the factory
      */
-    QList<const KoColorProfile *>  profilesFor(const KoColorSpaceFactory * csf) const;
+    PkList<const KoColorProfile *>  profilesFor(const KoColorSpaceFactory * csf) const;
     /**
      * @brief profilesFor
      * Return the list of profiles for a colorspace represented by it's colorants and type.
@@ -110,14 +112,14 @@ public:
      * @param error the margin of error with which the colorants get compared.
      * @return list of available profiles.
      */
-    QList<const KoColorProfile *> profilesFor(const QVector<double>& colorants,
+    PkList<const KoColorProfile *> profilesFor(const PkVector<double>& colorants,
                                               ColorPrimaries colorantType,
                                               TransferCharacteristics transferType,
                                               double error = 0.00001);
 
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 };
 
 #endif // KOCOLORPROFILESTORAGE_H

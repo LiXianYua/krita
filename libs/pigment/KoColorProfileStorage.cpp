@@ -8,9 +8,12 @@
 
 #include <cmath>
 
-#include <QHash>
-#include <QReadWriteLock>
-#include <QString>
+#include <PkAuxTypes.h>
+#include <PkHash.h>
+#include <PkList.h>
+#include <PkReadWriteLock.h>
+#include <PkString.h>
+#include <PkVector.h>
 
 #include "DebugPigment.h"
 #include "KoColorSpaceFactory.h"
@@ -18,29 +21,42 @@
 #include "kis_assert.h"
 
 
+// PkByteArray 的 qHash：pk 树未提供该重载，本 target 首个以 PkByteArray 为
+// PkHash 键的调用点（profileUniqueIdMap）。按 PkHashFunctions.h 的 ADL 机制补在
+// 全局命名空间。哈希值不要求与 Qt 逐位相同（该头已声明此约定）。
+unsigned int qHash(const PkByteArray &key, unsigned int seed = 0)
+{
+    unsigned int h = seed;
+    const char *data = key.constData();
+    for (int i = 0; i < key.size(); ++i) {
+        h = (h ^ static_cast<unsigned char>(data[i])) * 16777619u; // FNV-1a
+    }
+    return h;
+}
+
 struct KoColorProfileStorage::Private {
-    QHash<QString, KoColorProfile * > profileMap;
-    QHash<QByteArray, KoColorProfile * > profileUniqueIdMap;
-    QList<KoColorProfile *> duplicates;
-    QHash<QString, QString> profileAlias;
-    QReadWriteLock lock;
+    PkHash<PkString, KoColorProfile * > profileMap;
+    PkHash<PkByteArray, KoColorProfile * > profileUniqueIdMap;
+    PkList<KoColorProfile *> duplicates;
+    PkHash<PkString, PkString> profileAlias;
+    PkReadWriteLock lock;
 
     void populateUniqueIdMap();
 
     ~Private()
     {
-        Q_FOREACH (KoColorProfile *p, profileMap) {
+        for (KoColorProfile *p : profileMap) {
             profileUniqueIdMap.remove(p->uniqueId());
             duplicates.removeAll(p);
             delete p;
         }
         profileMap.clear();
-        Q_FOREACH (KoColorProfile *p, profileUniqueIdMap) {
+        for (KoColorProfile *p : profileUniqueIdMap) {
             duplicates.removeAll(p);
             delete p;
         }
         profileUniqueIdMap.clear();
-        Q_FOREACH(KoColorProfile *p, duplicates) {
+        for (KoColorProfile *p : duplicates) {
             delete p;
         }
         duplicates.clear();
@@ -59,7 +75,7 @@ KoColorProfileStorage::~KoColorProfileStorage()
 
 void KoColorProfileStorage::addProfile(KoColorProfile *profile)
 {
-    QWriteLocker locker(&d->lock);
+    PkWriteLocker locker(&d->lock);
 
     if (profile->valid()) {
         d->profileMap[profile->name()] = profile;
@@ -73,7 +89,7 @@ void KoColorProfileStorage::addProfile(KoColorProfile *profile)
 
 void KoColorProfileStorage::removeProfile(KoColorProfile *profile)
 {
-    QWriteLocker locker(&d->lock);
+    PkWriteLocker locker(&d->lock);
 
     d->profileMap.remove(profile->name());
     d->profileUniqueIdMap.remove(profile->uniqueId());
@@ -82,31 +98,31 @@ void KoColorProfileStorage::removeProfile(KoColorProfile *profile)
 
 bool KoColorProfileStorage::containsProfile(const KoColorProfile *profile)
 {
-    QReadLocker l(&d->lock);
+    PkReadLocker l(&d->lock);
     return d->profileMap.contains(profile->name());
 }
 
-void KoColorProfileStorage::addProfileAlias(const QString &name, const QString &to)
+void KoColorProfileStorage::addProfileAlias(const PkString &name, const PkString &to)
 {
-    QWriteLocker l(&d->lock);
+    PkWriteLocker l(&d->lock);
     d->profileAlias[name] = to;
 }
 
-QString KoColorProfileStorage::profileAlias(const QString &name) const
+PkString KoColorProfileStorage::profileAlias(const PkString &name) const
 {
-    QReadLocker l(&d->lock);
+    PkReadLocker l(&d->lock);
     return d->profileAlias.value(name, name);
 }
 
-const KoColorProfile *KoColorProfileStorage::profileByName(const QString &name) const
+const KoColorProfile *KoColorProfileStorage::profileByName(const PkString &name) const
 {
-    QReadLocker l(&d->lock);
+    PkReadLocker l(&d->lock);
     return d->profileMap.value(d->profileAlias.value(name, name), 0);
 }
 
 void KoColorProfileStorage::Private::populateUniqueIdMap()
 {
-    QWriteLocker l(&lock);
+    PkWriteLocker l(&lock);
     profileUniqueIdMap.clear();
 
     for (auto it = profileMap.constBegin();
@@ -114,7 +130,7 @@ void KoColorProfileStorage::Private::populateUniqueIdMap()
          ++it) {
 
         KoColorProfile *profile = it.value();
-        QByteArray id = profile->uniqueId();
+        PkByteArray id = profile->uniqueId();
 
         if (!id.isEmpty()) {
             profileUniqueIdMap.insert(id, profile);
@@ -123,9 +139,9 @@ void KoColorProfileStorage::Private::populateUniqueIdMap()
 }
 
 
-const KoColorProfile *KoColorProfileStorage::profileByUniqueId(const QByteArray &id) const
+const KoColorProfile *KoColorProfileStorage::profileByUniqueId(const PkByteArray &id) const
 {
-    QReadLocker l(&d->lock);
+    PkReadLocker l(&d->lock);
     if (d->profileUniqueIdMap.isEmpty()) {
         l.unlock();
         d->populateUniqueIdMap();
@@ -135,14 +151,14 @@ const KoColorProfile *KoColorProfileStorage::profileByUniqueId(const QByteArray 
 
 }
 
-QList<const KoColorProfile *> KoColorProfileStorage::profilesFor(const KoColorSpaceFactory *csf) const
+PkList<const KoColorProfile *> KoColorProfileStorage::profilesFor(const KoColorSpaceFactory *csf) const
 {
-    QList<const KoColorProfile *>  profiles;
+    PkList<const KoColorProfile *>  profiles;
     if (!csf) return profiles;
 
-    QReadLocker l(&d->lock);
+    PkReadLocker l(&d->lock);
 
-    QHash<QString, KoColorProfile * >::ConstIterator it;
+    PkHash<PkString, KoColorProfile * >::ConstIterator it;
     for (it = d->profileMap.constBegin(); it != d->profileMap.constEnd(); ++it) {
         KoColorProfile *  profile = it.value();
         if (csf->profileIsCompatible(profile)) {
@@ -154,15 +170,15 @@ QList<const KoColorProfile *> KoColorProfileStorage::profilesFor(const KoColorSp
     return profiles;
 }
 
-QList<const KoColorProfile *> KoColorProfileStorage::profilesFor(const QVector<double> &colorants, ColorPrimaries colorantType, TransferCharacteristics transferType, double error)
+PkList<const KoColorProfile *> KoColorProfileStorage::profilesFor(const PkVector<double> &colorants, ColorPrimaries colorantType, TransferCharacteristics transferType, double error)
 {
-    QList<const KoColorProfile *> profiles;
+    PkList<const KoColorProfile *> profiles;
 
     if (colorants.isEmpty() && colorantType == PRIMARIES_UNSPECIFIED && transferType == TRC_UNSPECIFIED) {
         return profiles;
     }
 
-    QReadLocker l(&d->lock);
+    PkReadLocker l(&d->lock);
     for (const KoColorProfile* profile : d->profileMap) {
         bool colorantMatch = (colorants.isEmpty() || colorantType != PRIMARIES_UNSPECIFIED);
         bool colorantTypeMatch = (colorantType == PRIMARIES_UNSPECIFIED);
@@ -179,14 +195,14 @@ QList<const KoColorProfile *> KoColorProfileStorage::profilesFor(const QVector<d
         }
 
         if (!colorants.isEmpty() && colorantType == PRIMARIES_UNSPECIFIED) {
-            QVector<qreal> wp = profile->getWhitePointxyY();
+            PkVector<qreal> wp = profile->getWhitePointxyY();
             if (profile->hasColorants() && colorants.size() == 8) {
-                QVector<qreal> col = profile->getColorantsxyY();
+                PkVector<qreal> col = profile->getColorantsxyY();
                 if (col.size() < 8 || wp.size() < 2) {
                     // too few colorants, skip.
                     continue;
                 }
-                QVector<double> compare = {wp[0], wp[1], col[0], col[1], col[3], col[4], col[6], col[7]};
+                PkVector<double> compare = {wp[0], wp[1], col[0], col[1], col[3], col[4], col[6], col[7]};
 
                 for (int i = 0; i < compare.size(); i++) {
                     colorantMatch = std::fabs(compare[i] - colorants[i]) < error;
