@@ -36,7 +36,6 @@ private Q_SLOTS:
     void timeSpecValues();
     void scrollBarPolicyValues();
     void caseSensitivityValues();
-    void connectionTypeValues();
     void fillRuleValues();
     void clipOperationValues();
     void transformationModeValues();

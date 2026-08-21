@@ -14,6 +14,15 @@
 // Qt 里**并集可见**（C++ 允许同名 namespace 多次打开，只要枚举名不重复）——这
 // 正好构成完整 Qt 枚举集。测试的 coexistWithGlobal 探针钉住这一点。
 //
+// **与 pk/signal 的分权**（R-36）：`Qt::ConnectionType`（及 AutoConnection/
+// DirectConnection/QueuedConnection/BlockingQueuedConnection/UniqueConnection
+// 五个值）的权威是 pk/signal 的 `PkConnectionType`（PkConnect.h）——
+// compat/QObject 在 `!QT_CORE_LIB` 下提供 `namespace Qt { using ConnectionType
+// = PkConnectionType; constexpr ... }` 别名。本头**不定义 ConnectionType**
+// ——重定义（enum vs using）会让同 TU 同时 include pk/namespace + pk/signal
+// compat/QObject 硬错（S-08 实测阻塞主树 flake 构建）。位值对齐由 pk/signal
+// 测试钉住（Auto=0 Direct=1 Queued=2 BlockingQueued=3 Unique=0x80）。
+//
 // **工程形态**（R-18 先例）：真 `namespace Qt { ... }`，不是 `#define Qt`。
 // #define 会炸 `#include <Qt>` 伞形头（libs/flake 有 4 处）与 QTextStream::fixed。
 //
@@ -362,16 +371,6 @@ enum ScrollBarPolicy {
 enum CaseSensitivity {
     CaseInsensitive,
     CaseSensitive
-};
-
-// ── qnamespace.h:1337-1343 ───────────────────────────────────────────────────
-// 探针：Auto=0 Direct=1 Queued=2 BlockingQueued=3 Unique=128
-enum ConnectionType {
-    AutoConnection,
-    DirectConnection,
-    QueuedConnection,
-    BlockingQueuedConnection,
-    UniqueConnection =  0x80
 };
 
 // ── qnamespace.h:1362-1366 ───────────────────────────────────────────────────

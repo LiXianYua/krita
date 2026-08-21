@@ -302,15 +302,6 @@ void PkNamespaceCase::caseSensitivityValues()
     PK_COMPARE(int(Qt::CaseSensitive), 1);
 }
 
-void PkNamespaceCase::connectionTypeValues()
-{
-    PK_COMPARE(int(Qt::AutoConnection), 0);
-    PK_COMPARE(int(Qt::DirectConnection), 1);
-    PK_COMPARE(int(Qt::QueuedConnection), 2);
-    PK_COMPARE(int(Qt::BlockingQueuedConnection), 3);
-    PK_COMPARE(int(Qt::UniqueConnection), 0x80);
-}
-
 void PkNamespaceCase::fillRuleValues()
 {
     PK_COMPARE(int(Qt::OddEvenFill), 0);

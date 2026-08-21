@@ -11,13 +11,18 @@
 位值探针证据在 `.superpowers/sdd/R-27/probe_qnamespace.out`。想记成"可接受偏离"的，
 逐条写进下面的偏离清单，由 reviewer 判。
 
-## 与 pk/global 的分权（R-18 已交付，只读）
+## 与 pk/global / pk/signal 的分权（R-18 / R-36，只读）
 
 `PkGlobal.h` 已定义 `namespace Qt` 的 `AspectRatioMode` / `Axis` 两个枚举。
 **本头不重定义这两个**——重定义会与 R-18 的 `namespace Qt` 同名枚举硬错。同一 TU
 同时 include 两份时，两个枚举集合在同一个 `namespace Qt` 里**并集可见**（C++ 允许
 同名 namespace 多次打开，只要枚举名不重复）——这正好构成完整 Qt 枚举集。
 `tests` 的 `coexistWithGlobalEnums` / `coexistAxisEnum` 两条探针钉住这一点。
+`ConnectionType` 归 pk/signal（R-36）：本头不定义它，权威是 pk/signal 的
+`PkConnectionType`（PkConnect.h）——compat/QObject 在 `!QT_CORE_LIB` 下提供
+`namespace Qt { using ConnectionType = PkConnectionType; ... }` 别名。同头注释
+口径：本头若再定义（enum vs using）会让同 TU include
+pk/namespace + pk/signal 硬错（S-08 实测阻塞主树 flake 构建）。
 
 ## 范围表（2026-08-18 收口）
 
@@ -43,7 +48,6 @@
 | `TimeSpec` | 全 3 值 | `LocalTime=0` `UTC=1` `OffsetFromUTC=2` |
 | `ScrollBarPolicy` | 全 3 值 | |
 | `CaseSensitivity` | 全 2 值 | |
-| `ConnectionType` | 全 5 值 | `UniqueConnection=0x80` |
 | `FillRule` | 全 2 值 | |
 | `ClipOperation` | 全 3 值 | `IntersectClip` 保留范围 5 处 |
 | `TransformationMode` | 全 2 值 | |
@@ -115,10 +119,10 @@ git status --porcelain: 改动全部落在 pk/namespace/ 前缀内
 
 | 口径 | 数 | 怎么数的 |
 |---|---:|---|
-| 测试函数（slot） | 33 | `namespace_case.h` 33 个 `void ...();` |
-| 断言（写在源里的） | 270 | `test_namespace.cpp` 的 `PK_COMPARE|PK_VERIFY` 出现次数（本文件无注释内断言、无共享宏展开，源内 = 展开后） |
-| 运行输出 `Totals` 行 | 35 | harness 口径：slot 数 + `initTestCase` + `cleanupTestCase`，**不是**断言数 |
-| 枚举项 `static_assert`（oracle） | 269 | `difftest_namespace.cpp` 的 `PKN_CHECK` 条数（含 PkGlobal.h 的 6 项） |
+| 测试函数（slot） | 31 | `namespace_case.h` 31 个 `void ...();` |
+| 断言（写在源里的） | 261 | `test_namespace.cpp` 的 `PK_COMPARE|PK_VERIFY` 出现次数（本文件无注释内断言、无共享宏展开，源内 = 展开后） |
+| 运行输出 `Totals` 行 | 33 | harness 口径：slot 数 + `initTestCase` + `cleanupTestCase`，**不是**断言数 |
+| 枚举项 `static_assert`（oracle） | 260 | `difftest_namespace.cpp` 的 `PKN_CHECK` 条数（含 PkGlobal.h 的 6 项；运行期 `DIFF total` 同值） |
 
 ### `run_oracle.sh` —— 与真 Qt5 逐值对拍
 

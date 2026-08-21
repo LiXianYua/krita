@@ -273,14 +273,9 @@ int main()
     PKN_CHECK(ScrollBarPolicy, ScrollBarAlwaysOff);
     PKN_CHECK(ScrollBarPolicy, ScrollBarAlwaysOn);
 
-    // ── CaseSensitivity / ConnectionType / FillRule / ClipOperation ────
+    // ── CaseSensitivity / FillRule / ClipOperation ────
     PKN_CHECK(CaseSensitivity, CaseInsensitive);
     PKN_CHECK(CaseSensitivity, CaseSensitive);
-    PKN_CHECK(ConnectionType, AutoConnection);
-    PKN_CHECK(ConnectionType, DirectConnection);
-    PKN_CHECK(ConnectionType, QueuedConnection);
-    PKN_CHECK(ConnectionType, BlockingQueuedConnection);
-    PKN_CHECK(ConnectionType, UniqueConnection);
     PKN_CHECK(FillRule, OddEvenFill);
     PKN_CHECK(FillRule, WindingFill);
     PKN_CHECK(ClipOperation, NoClip);
