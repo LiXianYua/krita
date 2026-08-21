@@ -1120,6 +1120,10 @@ void KoColorSet::notifySwatchChanged(const PkString &groupName, int column, int 
 }
 
 
+// TODO(S-03-b): 这两个 slot 原由 KUndo2Stack 的 canUndoChanged/canRedoChanged
+// 信号连接驱动（标记调色板已修改）。KUndo2Stack 是 libs/command 的真 Qt 对象，
+// 未剥前 PkObject::connect 无法连接；S-03-b 剥 libs/command 后需重建此连接。
+// 当前是死代码（无人调用）。
 void KoColorSet::canUndoChanged(bool canUndo)
 {
     if (canUndo) {
