@@ -102,7 +102,7 @@ void createLocalResourcesSnapshot(T *object, KisResourcesInterfaceSP globalResou
             globalResourcesInterface :
             object->resourcesInterface();
 
-    PkVector<KoResourceLoadResult> loadedResources =
+    PkList<KoResourceLoadResult> loadedResources =
         object->requiredResources(effectiveResourcesInterface);
 
     PkList<KoResourceSP> resources;
