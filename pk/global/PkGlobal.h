@@ -97,6 +97,15 @@ typedef unsigned short ushort;
 typedef unsigned int uint;
 typedef unsigned long ulong;
 
+// 让位给真 Qt（R-34）：real Qt 已进 TU（QT_CORE_LIB 定义）时，本头里与 Qt 同名
+// 的一切（qAbs/qRound/qMin/qMax/qBound/qIsNull/qFuzzyCompare/qFuzzyIsNull/qFloor/
+// qCeil/qNextPowerOfTwo/qIsNaN/qInf/qQNaN 与 namespace Qt 枚举族）全部让位——
+// libs/global 基线测试经 kis_debug.h 拉本头，与真 Qt qglobal.h/qmath.h/qnumeric.h/
+// qnamespace.h 重定义。typedef（qreal/qint8…）重复声明同一类型合法、Q_UNUSED/
+// Q_ASSERT 自带 #if !defined 防重，均无需让位。pkQtFuzzyCompare/pkQtFuzzyIsNull
+// 是 pk 自有名、真 Qt 没有，**不**让位（geometry 头内部调用它们），只依赖
+// qAbs/qMin——real Qt 在场时解析到真 Qt 的实现，语义等价（见「语义等价」注释）。
+#if !defined(QT_CORE_LIB)
 #ifndef PK_GLOBAL_SCALARS_FROM_PKTEST
 // qglobal.h:657-658。⚠ 条件是 `t >= 0` 而不是 `t > 0`：-0.0 >= 0 为真，所以
 // qAbs(-0.0) **原样返回 -0.0**（signbit 仍是 1，1.0/qAbs(-0.0) == -inf）。
@@ -126,6 +135,7 @@ constexpr inline const T &qMax(const T &a, const T &b) { return (a < b) ? b : a;
 template <typename T>
 constexpr inline const T &qBound(const T &min, const T &val, const T &max)
 { return qMax(min, qMin(max, val)); }
+#endif // !defined(QT_CORE_LIB)
 
 // qglobal.h:900-917。相对误差，右端取 qMin(|p1|, |p2|)：任何一侧是 0 时永远
 // 不成立（两个方向都是 false）。double 的相对阈值 1e-12、float 的 1e-5。
@@ -143,6 +153,7 @@ constexpr inline bool pkQtFuzzyCompare(float p1, float p2)
 constexpr inline bool pkQtFuzzyIsNull(double d) { return qAbs(d) <= 0.000000000001; }
 constexpr inline bool pkQtFuzzyIsNull(float f) { return qAbs(f) <= 0.00001f; }
 
+#if !defined(QT_CORE_LIB)
 // qglobal.h:930 —— `qIsNull(float)` = **精确零**比较（`f == 0.0f`），不是模糊
 // 比较。与 `qFuzzyIsNull`（阈值 1e-5）是**两个名字、两套语义**：QVector2D/3D/4D
 // 的 isNull() 与 toVector2DAffine/toVector3DAffine 用的是 `qIsNull`（精确零），
@@ -350,6 +361,8 @@ constexpr inline double qInf() { return std::numeric_limits<double>::infinity();
 
 // qnumeric.h:58。quiet NaN，std::numeric_limits<double>::quiet_NaN()。无冲突，无条件。
 constexpr inline double qQNaN() { return std::numeric_limits<double>::quiet_NaN(); }
+
+#endif // !defined(QT_CORE_LIB)
 
 // PkGlobal.cpp 实现：fprintf(stderr, "ASSERT: %s in file %s, line %d\n") + abort()。
 void pk_qt_assert(const char *what, const char *file, int line);
