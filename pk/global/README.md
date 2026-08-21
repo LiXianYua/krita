@@ -231,7 +231,7 @@ TU。`#include <QtGlobal>` 只命中 `-I` 里靠前的一份，靠两条机制�
 | `PkGlobal.h` | 标量地基唯一实现（交付面全部 + 让位机制 + `Qt` 枚举） |
 | `PkGlobal.cpp` | `pk_qt_assert`（Q_ASSERT 触发路径：fprintf + abort） |
 | `compat/QtGlobal` | `<QtGlobal>` 垫片（超集链 + 共存纪律） |
-| `tests/` | `test_global.cpp`（16 函数）、`test_inttypes.cpp`（5）、`test_macros.cpp`（3）、三个 `coexist_*.cpp` 共存 TU、`coexist.h` 探针 |
+| `tests/` | `test_global.cpp`（16 函数）、`test_inttypes.cpp`（5）、`test_macros.cpp`（3）、`test_qtcore_lib_absent.cpp`（R-35 回归 TU，`COMPILE_DEFINITIONS QT_CORE_LIB`，无真 Qt 头路径，15 断言 + 6 static_assert）、三个 `coexist_*.cpp` 共存 TU、`coexist.h` 探针 |
 | `oracle/` | `global_difftest.cpp`（对拍骨架 + 全部 `rec()`）、`run_oracle.sh`、`global.deviation`（1 行 Q_ASSERT + 11 行 canary）、`api_seen.expected`（24 行，规则三闸门） |
 | `graft/` | `graft_run.sh`（两目标 + 自证）、`rename.sed`（pk/test 逐字副本）、`driver_global_scalars.cpp`（标量调用点 driver）、`stubs/`（当前空）、`README.md` |
 
