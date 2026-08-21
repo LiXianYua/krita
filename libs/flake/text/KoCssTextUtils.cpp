@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "KoCssTextUtils.h"
+#include "KoLcLocale.h"
 #include "graphemebreak.h"
 #include <QChar>
 #include <kis_assert.h>
@@ -35,11 +36,32 @@ QVector<QPair<int, int>> positionDifference(QStringList a, QStringList b) {
     return positions;
 }
 
+// ── R-31 过渡边界：QString ↔ PkString ─────────────────────────
+// KoCssTextUtils 是过渡文件（其余部分仍用 Qt 类型，不进薄壳），但 R-31 的
+// locale 感知 casing 统一走 KoLcLocale。这两处转换是边界胶水，待本文件整体剥
+// Pk 时删除——casing 语义的真相源是 KoLcLocale（oracle 对拍见
+// .superpowers/sdd/S-08/locale/oracle/）。
+namespace {
+PkString qStringToPk(const QString &s)
+{
+    const QByteArray u8 = s.toUtf8();
+    return PkString::PkFromUtf8(u8.constData(), u8.size());
+}
+
+QString pkToQString(const PkString &s)
+{
+    const std::string u8 = s.PkToUtf8();
+    return QString::fromUtf8(u8.data(), int(u8.size()));
+}
+} // namespace
+
 QString KoCssTextUtils::transformTextToUpperCase(const QString &text, const QString &langCode, QVector<QPair<int, int> > &positions)
 {
     if (text.isEmpty()) return text;
-    QLocale locale(langCode.split("-").join("_"));
-    QString transformedText = locale.toUpper(text);
+    // R-31：QLocale casing → KoLcLocale。原代码把 langCode 的 "-" 换成 "_" 喂
+    // QLocale，capitalize 却直接用连字符——KoLcLocale 内部统一归一化，无需在这里
+    // 对齐（见 locale/KoLcLocale-design.md）。
+    const QString transformedText = pkToQString(KoLc::toUpper(qStringToPk(text), qStringToPk(langCode)));
     positions = positionDifference(textToUnicodeGraphemeClusters(text, langCode), textToUnicodeGraphemeClusters(transformedText, langCode));
     return transformedText;
 }
@@ -47,8 +69,7 @@ QString KoCssTextUtils::transformTextToUpperCase(const QString &text, const QStr
 QString KoCssTextUtils::transformTextToLowerCase(const QString &text, const QString &langCode, QVector<QPair<int, int> > &positions)
 {
     if (text.isEmpty()) return text;
-    QLocale locale(langCode.split("-").join("_"));
-    QString transformedText = locale.toLower(text);
+    const QString transformedText = pkToQString(KoLc::toLower(qStringToPk(text), qStringToPk(langCode)));
     positions = positionDifference(textToUnicodeGraphemeClusters(text, langCode), textToUnicodeGraphemeClusters(transformedText, langCode));
     return transformedText;
 }
@@ -56,7 +77,10 @@ QString KoCssTextUtils::transformTextToLowerCase(const QString &text, const QStr
 QString KoCssTextUtils::transformTextCapitalize(const QString &text, const QString langCode, QVector<QPair<int, int>> &positions)
 {
     if (text.isEmpty()) return text;
-    QLocale locale(langCode);
+    // R-31：QLocale::Dutch 判定 → KoLcLocale::isDutch（原代码在循环外构造
+    // QLocale，这里也把 isDutch 提到循环外算一次）。
+    const PkString pkLang = qStringToPk(langCode);
+    const bool dutch = KoLc::isDutch(pkLang);
 
     QStringList graphemes = textToUnicodeGraphemeClusters(text, langCode);
     QStringList oldGraphemes = graphemes;
@@ -67,11 +91,12 @@ QString KoCssTextUtils::transformTextCapitalize(const QString &text, const QStri
             capitalizeGrapheme = true;
 
         } else if (capitalizeGrapheme) {
-            graphemes[i] = locale.toUpper(grapheme);
+            const PkString pkGrapheme = qStringToPk(grapheme);
+            graphemes[i] = pkToQString(KoLc::toUpper(pkGrapheme, pkLang));
             if (i + 1 < graphemes.size()) {
                 /// While this is the only case I know of, make no mistake,
                 /// "IJsbeer" (Polar bear) is much more readable than "Ijsbeer".
-                if (locale == QLocale::Dutch && grapheme.toLower().startsWith("i") && graphemes.at(i + 1).toLower().startsWith("j")) {
+                if (dutch && KoLc::toLower(pkGrapheme, pkLang).startsWith("i") && graphemes.at(i + 1).toLower().startsWith("j")) {
                     capitalizeGrapheme = true;
                     continue;
                 }
