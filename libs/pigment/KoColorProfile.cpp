@@ -12,17 +12,17 @@
 #include "DebugPigment.h"
 #include "kis_assert.h"
 
-struct Q_DECL_HIDDEN KoColorProfile::Private {
-    QString name;
-    QString info;
-    QString fileName;
-    QString manufacturer;
-    QString copyright;
+struct KoColorProfile::Private {
+    PkString name;
+    PkString info;
+    PkString fileName;
+    PkString manufacturer;
+    PkString copyright;
     int primaries {-1};
     TransferCharacteristics characteristics {TRC_UNSPECIFIED};
 };
 
-KoColorProfile::KoColorProfile(const QString &fileName) : d(new Private)
+KoColorProfile::KoColorProfile(const PkString &fileName) : d(new Private)
 {
 //     dbgPigment <<" Profile filename =" << fileName;
     d->fileName = fileName;
@@ -43,36 +43,36 @@ bool KoColorProfile::load()
     return false;
 }
 
-bool KoColorProfile::save(const QString & filename)
+bool KoColorProfile::save(const PkString & filename)
 {
     Q_UNUSED(filename);
     return false;
 }
 
 
-QString KoColorProfile::name() const
+PkString KoColorProfile::name() const
 {
     return d->name;
 }
 
-QString KoColorProfile::info() const
+PkString KoColorProfile::info() const
 {
     return d->info;
 }
-QString KoColorProfile::manufacturer() const
+PkString KoColorProfile::manufacturer() const
 {
     return d->manufacturer;
 }
-QString KoColorProfile::copyright() const
+PkString KoColorProfile::copyright() const
 {
     return d->copyright;
 }
-QString KoColorProfile::fileName() const
+PkString KoColorProfile::fileName() const
 {
     return d->fileName;
 }
 
-void KoColorProfile::setFileName(const QString &f)
+void KoColorProfile::setFileName(const PkString &f)
 {
     d->fileName = f;
 }
@@ -81,21 +81,21 @@ ColorPrimaries KoColorProfile::getColorPrimaries() const
 {
     if (d->primaries == -1) {
         ColorPrimaries primaries = PRIMARIES_UNSPECIFIED;
-        QVector<qreal> wp = getWhitePointxyY();
+        PkVector<qreal> wp = getWhitePointxyY();
 
         bool match = false;
         if (hasColorants()) {
-            QVector<qreal> col = getColorantsxyY();
+            PkVector<qreal> col = getColorantsxyY();
             if (col.size()<8) {
                 KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(col.size() < 8, PRIMARIES_UNSPECIFIED);
                 //too few colorants.
                 d->primaries = int(primaries);
                 return (primaries);
             }
-            QVector<double> colorants = {wp[0], wp[1], col[0], col[1], col[3], col[4], col[6], col[7]};
-            QVector<double> compare;
+            PkVector<double> colorants = {wp[0], wp[1], col[0], col[1], col[3], col[4], col[6], col[7]};
+            PkVector<double> compare;
 
-            QVector<ColorPrimaries> primariesList = {PRIMARIES_ITU_R_BT_709_5, PRIMARIES_ITU_R_BT_601_6, PRIMARIES_ITU_R_BT_470_6_SYSTEM_M,
+            PkVector<ColorPrimaries> primariesList = {PRIMARIES_ITU_R_BT_709_5, PRIMARIES_ITU_R_BT_601_6, PRIMARIES_ITU_R_BT_470_6_SYSTEM_M,
                                                      PRIMARIES_ITU_R_BT_2020_2_AND_2100_0, PRIMARIES_SMPTE_EG_432_1, PRIMARIES_SMPTE_RP_431_2,
                                                      PRIMARIES_SMPTE_ST_428_1, PRIMARIES_GENERIC_FILM, PRIMARIES_SMPTE_240M, PRIMARIES_EBU_Tech_3213_E,
                                                      PRIMARIES_ADOBE_RGB_1998, PRIMARIES_PROPHOTO, PRIMARIES_ITU_R_BT_470_6_SYSTEM_B_G};
@@ -124,42 +124,42 @@ ColorPrimaries KoColorProfile::getColorPrimaries() const
     return ColorPrimaries(d->primaries);
 }
 
-QString KoColorProfile::getColorPrimariesName(ColorPrimaries primaries)
+PkString KoColorProfile::getColorPrimariesName(ColorPrimaries primaries)
 {
     switch (primaries) {
     case PRIMARIES_ITU_R_BT_709_5:
-        return QStringLiteral("Rec. 709");
+        return PkString("Rec. 709");
     case PRIMARIES_ITU_R_BT_470_6_SYSTEM_M:
-        return QStringLiteral("BT. 470 System M");
+        return PkString("BT. 470 System M");
     case PRIMARIES_ITU_R_BT_470_6_SYSTEM_B_G:
-        return QStringLiteral("BT. 470 System B, G");
+        return PkString("BT. 470 System B, G");
     case PRIMARIES_GENERIC_FILM:
-        return QStringLiteral("Generic Film");
+        return PkString("Generic Film");
     case PRIMARIES_SMPTE_240M:
-        return QStringLiteral("SMPTE 240 M");
+        return PkString("SMPTE 240 M");
     case PRIMARIES_ITU_R_BT_2020_2_AND_2100_0:
-        return QStringLiteral("Rec. 2020");
+        return PkString("Rec. 2020");
     case PRIMARIES_ITU_R_BT_601_6:
-        return QStringLiteral("Rec. 601");
+        return PkString("Rec. 601");
     case PRIMARIES_SMPTE_EG_432_1:
-        return QStringLiteral("Display P3");
+        return PkString("Display P3");
     case PRIMARIES_SMPTE_RP_431_2:
-        return QStringLiteral("DCI P3");
+        return PkString("DCI P3");
     case PRIMARIES_SMPTE_ST_428_1:
-        return QStringLiteral("XYZ primaries");
+        return PkString("XYZ primaries");
     case PRIMARIES_EBU_Tech_3213_E:
-        return QStringLiteral("EBU Tech 3213 E");
+        return PkString("EBU Tech 3213 E");
     case PRIMARIES_PROPHOTO:
-        return QStringLiteral("ProPhoto");
+        return PkString("ProPhoto");
     case PRIMARIES_ADOBE_RGB_1998:
-        return QStringLiteral("A98");
+        return PkString("A98");
     case PRIMARIES_UNSPECIFIED:
         break;
     }
-    return QStringLiteral("Unspecified");
+    return PkString("Unspecified");
 }
 
-void KoColorProfile::colorantsForType(ColorPrimaries primaries, QVector<double> &colorants)
+void KoColorProfile::colorantsForType(ColorPrimaries primaries, PkVector<double> &colorants)
 {
     switch (ColorPrimaries(primaries)) {
     case PRIMARIES_UNSPECIFIED:
@@ -258,7 +258,7 @@ void KoColorProfile::colorantsForType(ColorPrimaries primaries, QVector<double> 
 TransferCharacteristics KoColorProfile::getTransferCharacteristics() const
 {
     // Parse from an estimated gamma
-    const QVector<double> estimatedTRC = getEstimatedTRC();
+    const PkVector<double> estimatedTRC = getEstimatedTRC();
     const double error = 0.0001;
     // Make sure the TRC is uniform across all channels
     const bool isUniformTRC = (estimatedTRC[0] == estimatedTRC[1] && estimatedTRC[0] == estimatedTRC[2]);
@@ -312,68 +312,68 @@ void KoColorProfile::setCharacteristics(ColorPrimaries primaries, TransferCharac
     d->characteristics = curve;
 }
 
-QString KoColorProfile::getTransferCharacteristicName(TransferCharacteristics curve)
+PkString KoColorProfile::getTransferCharacteristicName(TransferCharacteristics curve)
 {
     switch (curve) {
     case TRC_ITU_R_BT_709_5:
     case TRC_ITU_R_BT_601_6:
     case TRC_ITU_R_BT_2020_2_10bit:
-        return QString("rec 709 trc");
+        return PkString("rec 709 trc");
     case TRC_ITU_R_BT_2020_2_12bit:
-        return QString("rec 2020 12bit trc");
+        return PkString("rec 2020 12bit trc");
     case TRC_ITU_R_BT_470_6_SYSTEM_M:
-        return QString("Gamma 2.2");
+        return PkString("Gamma 2.2");
     case TRC_ITU_R_BT_470_6_SYSTEM_B_G:
-        return QString("Gamma 2.8");
+        return PkString("Gamma 2.8");
     case TRC_SMPTE_240M:
-        return QString("SMPTE 240 trc");
+        return PkString("SMPTE 240 trc");
     case TRC_LINEAR:
-        return QString("Linear");
+        return PkString("Linear");
     case TRC_LOGARITHMIC_100:
-        return QString("Logarithmic 100");
+        return PkString("Logarithmic 100");
     case TRC_LOGARITHMIC_100_sqrt10:
-        return QString("Logarithmic 100 sqrt10");
+        return PkString("Logarithmic 100 sqrt10");
     case TRC_IEC_61966_2_4:
-        return QString("IEC 61966 2.4");
+        return PkString("IEC 61966 2.4");
     case TRC_ITU_R_BT_1361:
     case TRC_IEC_61966_2_1:
-        return QString("sRGB trc");
+        return PkString("sRGB trc");
     case TRC_SMPTE_ST_428_1:
-        return QString("SMPTE ST 428");
+        return PkString("SMPTE ST 428");
     case TRC_ITU_R_BT_2100_0_PQ:
-        return QString("Perceptual Quantizer");
+        return PkString("Perceptual Quantizer");
     case TRC_ITU_R_BT_2100_0_HLG:
-        return QString("Hybrid Log Gamma");
+        return PkString("Hybrid Log Gamma");
     case TRC_GAMMA_1_8:
-        return QString("Gamma 1.8");
+        return PkString("Gamma 1.8");
     case TRC_GAMMA_2_4:
-        return QString("Gamma 2.4");
+        return PkString("Gamma 2.4");
     case TRC_A98:
-        return QString("Gamma A98");
+        return PkString("Gamma A98");
     case TRC_PROPHOTO:
-        return QString("ProPhoto trc");
+        return PkString("ProPhoto trc");
     case TRC_LAB_L:
-        return QString("Lab L* trc");
+        return PkString("Lab L* trc");
     case TRC_UNSPECIFIED:
         break;
     }
 
-    return QString("Unspecified");
+    return PkString("Unspecified");
 }
 
-void KoColorProfile::setName(const QString &name)
+void KoColorProfile::setName(const PkString &name)
 {
     d->name = name;
 }
-void KoColorProfile::setInfo(const QString &info)
+void KoColorProfile::setInfo(const PkString &info)
 {
     d->info = info;
 }
-void KoColorProfile::setManufacturer(const QString &manufacturer)
+void KoColorProfile::setManufacturer(const PkString &manufacturer)
 {
     d->manufacturer = manufacturer;
 }
-void KoColorProfile::setCopyright(const QString &copyright)
+void KoColorProfile::setCopyright(const PkString &copyright)
 {
     d->copyright = copyright;
 }

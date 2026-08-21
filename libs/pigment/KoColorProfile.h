@@ -8,9 +8,10 @@
 #define _KO_COLOR_PROFILE_H_
 
 #include <boost/operators.hpp>
-#include <QString>
-#include <QVector>
-#include <QVariant>
+#include <PkAuxTypes.h>
+#include <PkGlobal.h>
+#include <PkString.h>
+#include <PkVector.h>
 
 #include "KoColorProfileConstants.h"
 #include "kritapigment_export.h"
@@ -26,15 +27,15 @@ public:
     /**
      * @param fileName file name to load or save that profile
      */
-    explicit KoColorProfile(const QString &fileName = QString());
+    explicit KoColorProfile(const PkString &fileName = PkString());
     KoColorProfile(const KoColorProfile& profile);
     virtual ~KoColorProfile();
 
     /**
      * @return the type of this profile (icc, ctlcs etc)
      */
-    virtual QString type() const {
-        return QString();
+    virtual PkString type() const {
+        return PkString();
     }
 
     /**
@@ -58,7 +59,7 @@ public:
      * @param fileName destination
      * @return true if the profile has been successfully saved
      */
-    virtual bool save(const QString &fileName);
+    virtual bool save(const PkString &fileName);
 
     /**
      * @return true if the profile is valid, false if it isn't been loaded in memory yet, or
@@ -69,26 +70,26 @@ public:
     /**
      * @return the name of this profile
      */
-    QString name() const;
+    PkString name() const;
     /**
      * @return the info of this profile
      */
-    QString info() const;
+    PkString info() const;
     /** @return manufacturer of the profile
      */
-    QString manufacturer() const;
+    PkString manufacturer() const;
     /**
      * @return the copyright of the profile
      */
-    QString copyright() const;
+    PkString copyright() const;
     /**
      * @return the filename of the profile (it might be empty)
      */
-    QString fileName() const;
+    PkString fileName() const;
     /**
      * @param filename new filename
      */
-    void setFileName(const QString &filename);
+    void setFileName(const PkString &filename);
 
     /**
      * Return version
@@ -98,8 +99,8 @@ public:
     /**
      * @return a string for a color model id.
      */
-    virtual QString colorModelID() const {
-        return QString();
+    virtual PkString colorModelID() const {
+        return PkString();
     };
     /**
      * @return true if this profile can be used to convert color from a different profile to this one
@@ -136,24 +137,24 @@ public:
     /**
      * @return a qvector <double>(9) with the RGB colorants in XYZ
      */
-    virtual QVector <qreal> getColorantsXYZ() const = 0;
+    virtual PkVector <qreal> getColorantsXYZ() const = 0;
     /**
      * @return a qvector <double>(9) with the RGB colorants in xyY
      */
-    virtual QVector <qreal> getColorantsxyY() const = 0;
+    virtual PkVector <qreal> getColorantsxyY() const = 0;
     /**
      * @return a qvector <double>(3) with the whitepoint in XYZ
      */
-    virtual QVector <qreal> getWhitePointXYZ() const = 0;
+    virtual PkVector <qreal> getWhitePointXYZ() const = 0;
     /**
      * @return a qvector <double>(3) with the whitepoint in xyY
      */
-    virtual QVector <qreal> getWhitePointxyY() const = 0;
+    virtual PkVector <qreal> getWhitePointxyY() const = 0;
     
     /**
      * @return estimated gamma for RGB and Grayscale profiles
      */
-    virtual QVector <qreal> getEstimatedTRC() const = 0;
+    virtual PkVector <qreal> getEstimatedTRC() const = 0;
 
     /**
      * @return if the profile has a TRC(required for linearisation).
@@ -164,22 +165,22 @@ public:
      */
     virtual bool isLinear() const = 0;
     /**
-     * Linearizes first 3 values of QVector, leaving other values unchanged.
-     * Returns the same QVector if it is not possible to linearize.
+     * Linearizes first 3 values of PkVector, leaving other values unchanged.
+     * Returns the same PkVector if it is not possible to linearize.
      */
-    virtual void linearizeFloatValue(QVector <qreal> & Value) const = 0;
+    virtual void linearizeFloatValue(PkVector <qreal> & Value) const = 0;
     /**
-     * Delinearizes first 3 values of QVector, leaving other values unchanged.
-     * Returns the same QVector if it is not possible to delinearize.
+     * Delinearizes first 3 values of PkVector, leaving other values unchanged.
+     * Returns the same PkVector if it is not possible to delinearize.
      * Effectively undoes LinearizeFloatValue.
      */
-    virtual void delinearizeFloatValue(QVector <qreal> & Value) const = 0;
+    virtual void delinearizeFloatValue(PkVector <qreal> & Value) const = 0;
     /**
      * More imprecise versions of the above(limited to 16bit, and can't
      * delinearize above 1.0.) Use this for filters and images.
      */
-    virtual void linearizeFloatValueFast(QVector <qreal> & Value) const = 0;
-    virtual void delinearizeFloatValueFast(QVector <qreal> & Value) const = 0;
+    virtual void linearizeFloatValueFast(PkVector <qreal> & Value) const = 0;
+    virtual void delinearizeFloatValueFast(PkVector <qreal> & Value) const = 0;
 
     /**
      * Comparing profile's TRC against the other with defined error threshold,
@@ -187,15 +188,15 @@ public:
      */
     virtual bool compareTRC(TransferCharacteristics characteristics, float error) const = 0;
 
-    virtual QByteArray uniqueId() const = 0;
+    virtual PkByteArray uniqueId() const = 0;
     
     virtual bool operator==(const KoColorProfile&) const = 0;
 
     /**
      * @return an array with the raw data of the profile
      */
-    virtual QByteArray rawData() const {
-        return QByteArray();
+    virtual PkByteArray rawData() const {
+        return PkByteArray();
     }
 
     /**
@@ -209,15 +210,15 @@ public:
      * @param primaries
      * @return human friendly name of the primary.
      */
-    static QString getColorPrimariesName(ColorPrimaries primaries);
+    static PkString getColorPrimariesName(ColorPrimaries primaries);
     /**
      * @brief colorantsForPrimaries
-     * fills a QVector<float> with the xy values of the whitepoint and red, green, blue colorants for
+     * fills a PkVector<float> with the xy values of the whitepoint and red, green, blue colorants for
      * a given predefined value. Will not change the vector when the primaries are set to 'undefined'.
      * @param primaries predefined value.
      * @param colorants the vector to fill.
      */
-    static void colorantsForType(ColorPrimaries primaries, QVector<double> &colorants);
+    static void colorantsForType(ColorPrimaries primaries, PkVector<double> &colorants);
 
     /**
      * @brief getTransferCharacteristics
@@ -231,25 +232,25 @@ public:
      * @param curve the number
      * @return name of the characteristic
      */
-    static QString getTransferCharacteristicName(TransferCharacteristics curve);
+    static PkString getTransferCharacteristicName(TransferCharacteristics curve);
 
 protected:
     /**
      * Allows to define the name of this profile.
      */
-    void setName(const QString &name);
+    void setName(const PkString &name);
     /**
      * Allows to set the information string of that profile.
      */
-    void setInfo(const QString &info);
+    void setInfo(const PkString &info);
     /**
      * Allows to set the manufacturer string of that profile.
      */
-    void setManufacturer(const QString &manufacturer);
+    void setManufacturer(const PkString &manufacturer);
     /**
      * Allows to set the copyright string of that profile.
      */
-    void setCopyright(const QString &copyright);
+    void setCopyright(const PkString &copyright);
 
     /**
      * @brief setCharacteristics
