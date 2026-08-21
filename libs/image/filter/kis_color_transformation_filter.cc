@@ -13,13 +13,10 @@
 #include <kis_paint_device.h>
 #include <kis_selection.h>
 
-#ifndef NDEBUG
-#include <QTime>
-#endif
 #include <KisSequentialIteratorProgress.h>
 #include "kis_color_transformation_configuration.h"
 
-KisColorTransformationFilter::KisColorTransformationFilter(const KoID& id, const KoID & category, const QString & entry) : KisFilter(id, category, entry)
+KisColorTransformationFilter::KisColorTransformationFilter(const KoID& id, const KoID & category, const PkString & entry) : KisFilter(id, category, entry)
 {
     setSupportsLevelOfDetail(true);
 }
@@ -29,7 +26,7 @@ KisColorTransformationFilter::~KisColorTransformationFilter()
 }
 
 void KisColorTransformationFilter::processImpl(KisPaintDeviceSP device,
-                                               const QRect& applyRect,
+                                               const PkRect& applyRect,
                                                const KisFilterConfigurationSP config,
                                                KoUpdater* progressUpdater
                                                ) const

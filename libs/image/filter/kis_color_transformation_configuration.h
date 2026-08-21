@@ -6,6 +6,9 @@
 #ifndef _KIS_COLOR_TRANSFORMATION_CONFIGURATION_H_
 #define _KIS_COLOR_TRANSFORMATION_CONFIGURATION_H_
 
+#include <PkString.h>
+#include <PkVariant.h>
+
 #include "kis_filter_configuration.h"
 #include "kritaimage_export.h"
 
@@ -19,13 +22,13 @@ typedef KisSharedPtr<KisColorTransformationConfiguration> KisColorTransformation
 class KRITAIMAGE_EXPORT KisColorTransformationConfiguration : public KisFilterConfiguration
 {
 public:
-    KisColorTransformationConfiguration(const QString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface);
+    KisColorTransformationConfiguration(const PkString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface);
     KisColorTransformationConfiguration(const KisColorTransformationConfiguration &rhs);
     ~KisColorTransformationConfiguration() override;
 
     KisFilterConfigurationSP clone() const override;
 
-    void setProperty(const QString &name, const QVariant &value) override;
+    void setProperty(const PkString &name, const PkVariant &value) override;
 
     KoColorTransformation *colorTransformation(const KoColorSpace *cs, const KisColorTransformationFilter *filter) const;
 

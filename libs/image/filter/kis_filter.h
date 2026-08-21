@@ -8,9 +8,8 @@
 
 #include <list>
 
-#include <QString>
-
-#include <klocalizedstring.h>
+#include <PkRect.h>
+#include <PkString.h>
 
 #include "KoID.h"
 #include "KoColorSpace.h"
@@ -30,7 +29,7 @@ public:
     /**
      * Construct a Krita filter
      */
-    KisFilter(const KoID& id, const KoID & category, const QString & entry);
+    KisFilter(const KoID& id, const KoID & category, const PkString & entry);
     ~KisFilter() override;
 
     /**
@@ -46,7 +45,7 @@ public:
      * @param progressUpdater to pass on the progress the filter is making
      */
     virtual void processImpl(KisPaintDeviceSP device,
-                             const QRect& applyRect,
+                             const PkRect& applyRect,
                              const KisFilterConfigurationSP config,
                              KoUpdater* progressUpdater = 0 ) const = 0;
 
@@ -65,7 +64,7 @@ public:
     void process(const KisPaintDeviceSP src,
                  KisPaintDeviceSP dst,
                  KisSelectionSP selection,
-                 const QRect& applyRect,
+                 const PkRect& applyRect,
                  const KisFilterConfigurationSP config,
                  KoUpdater* progressUpdater = 0 ) const;
 
@@ -74,7 +73,7 @@ public:
      * A convenience method for a two-device process() function
      */
     void process(KisPaintDeviceSP device,
-                 const QRect& applyRect,
+                 const PkRect& applyRect,
                  const KisFilterConfigurationSP config,
                  KoUpdater* progressUpdater = 0 ) const;
 
@@ -82,7 +81,7 @@ public:
      * Some filters need pixels outside the current processing rect to compute the new
      * value (for instance, convolution filters)
      */
-    virtual QRect neededRect(const QRect & rect, const KisFilterConfigurationSP config, int lod) const;
+    virtual PkRect neededRect(const PkRect & rect, const KisFilterConfigurationSP config, int lod) const;
 
     /**
     * Similar to @ref neededRect : some filters will alter a lot of pixels that are
@@ -90,7 +89,7 @@ public:
     * in a device, the actual rectangle that will feel the influence of this change
     * might be bigger. Use this function to determine that rect.
      */
-    virtual QRect changedRect(const QRect & rect, const KisFilterConfigurationSP config, int lod) const;
+    virtual PkRect changedRect(const PkRect & rect, const KisFilterConfigurationSP config, int lod) const;
 
     /**
      * Returns true if the filter is capable of handling LoD scaled planes
@@ -105,7 +104,7 @@ public:
 
 protected:
 
-    QString configEntryGroup() const;
+    PkString configEntryGroup() const;
     void setSupportsLevelOfDetail(bool value);
 
 

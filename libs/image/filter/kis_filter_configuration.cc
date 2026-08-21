@@ -8,8 +8,15 @@
 #include "filter/kis_filter.h"
 
 #include <kis_debug.h>
-#include <QDomDocument>
-#include <QString>
+
+#include <string>
+
+#include <PkAtomic.h>
+#include <PkBitArray.h>
+#include <PkString.h>
+#include <PkVariant.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 #include "filter/kis_filter_registry.h"
 #include "kis_transaction.h"
@@ -22,12 +29,12 @@
 
 
 struct Q_DECL_HIDDEN KisFilterConfiguration::Private {
-    QString name;
+    PkString name;
     qint32 version;
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
     KisResourcesInterfaceSP resourcesInterface = 0;
 
-    Private(const QString & _name, qint32 _version, KisResourcesInterfaceSP _resourcesInterface)
+    Private(const PkString & _name, qint32 _version, KisResourcesInterfaceSP _resourcesInterface)
         : name(_name),
           version(_version),
           resourcesInterface(_resourcesInterface)
@@ -43,11 +50,11 @@ struct Q_DECL_HIDDEN KisFilterConfiguration::Private {
     }
 
 #ifdef SANITY_CHECK_FILTER_CONFIGURATION_OWNER
-    QAtomicInt sanityUsageCounter;
+    PkAtomicInt sanityUsageCounter;
 #endif /* SANITY_CHECK_FILTER_CONFIGURATION_OWNER */
 };
 
-KisFilterConfiguration::KisFilterConfiguration(const QString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface)
+KisFilterConfiguration::KisFilterConfiguration(const PkString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface)
     : d(new Private(name, version, resourcesInterface))
 {
 }
@@ -68,37 +75,37 @@ KisFilterConfiguration::~KisFilterConfiguration()
     delete d;
 }
 
-void KisFilterConfiguration::fromLegacyXML(const QDomElement& root)
+void KisFilterConfiguration::fromLegacyXML(const PkXmlElement& root)
 {
     clearProperties();
     d->name = root.attribute("name");
     d->version = root.attribute("version").toInt();
 
-    QDomElement e;
+    PkXmlElement e;
     for (e = root.firstChildElement("property"); !e.isNull(); e = e.nextSiblingElement()) {
-        QString name = e.attribute("name");
-        QString type = e.attribute("type");
-        QString value = e.text();
+        PkString name = e.attribute("name");
+        PkString type = e.attribute("type");
+        PkString value = e.text();
 
         // XXX: Convert the variant pro-actively to the right type?
-        setProperty(name, QVariant(value));
+        setProperty(name, PkVariant(value));
     }
 }
 
-void KisFilterConfiguration::fromXML(const QDomElement& elt)
+void KisFilterConfiguration::fromXML(const PkXmlElement& elt)
 {
     d->version = elt.attribute("version").toInt();
     KisPropertiesConfiguration::fromXML(elt);
 }
 
-void KisFilterConfiguration::toXML(QDomDocument& doc, QDomElement& elt) const
+void KisFilterConfiguration::toXML(PkXmlDocument& doc, PkXmlElement& elt) const
 {
-    elt.setAttribute("version", d->version);
+    elt.setAttribute("version", PkString(std::to_string(d->version).c_str()));
     KisPropertiesConfiguration::toXML(doc, elt);
 }
 
 
-const QString & KisFilterConfiguration::name() const
+const PkString & KisFilterConfiguration::name() const
 {
     return d->name;
 }
@@ -138,18 +145,20 @@ KisFilterConfigurationSP KisFilterConfiguration::cloneWithResourcesSnapshot(KisR
     return KisRequiredResourcesOperators::cloneWithResourcesSnapshot<KisFilterConfigurationSP>(this, globalResourcesInterface);
 }
 
-QList<KoResourceLoadResult> KisFilterConfiguration::requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KisFilterConfiguration::requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    return linkedResources(globalResourcesInterface) + embeddedResources(globalResourcesInterface);
+    PkList<KoResourceLoadResult> result = linkedResources(globalResourcesInterface);
+    result += embeddedResources(globalResourcesInterface);
+    return result;
 }
 
-QList<KoResourceLoadResult> KisFilterConfiguration::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KisFilterConfiguration::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
     Q_UNUSED(globalResourcesInterface);
     return {};
 }
 
-QList<KoResourceLoadResult> KisFilterConfiguration::embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KisFilterConfiguration::embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
     Q_UNUSED(globalResourcesInterface);
     return {};
@@ -171,12 +180,12 @@ bool KisFilterConfiguration::compareTo(const KisPropertiesConfiguration *rhs) co
             && channelFlags() == otherConfig->channelFlags();
 }
 
-QBitArray KisFilterConfiguration::channelFlags() const
+PkBitArray KisFilterConfiguration::channelFlags() const
 {
     return d->channelFlags;
 }
 
-void KisFilterConfiguration::setChannelFlags(QBitArray channelFlags)
+void KisFilterConfiguration::setChannelFlags(PkBitArray channelFlags)
 {
     d->channelFlags = channelFlags;
 }

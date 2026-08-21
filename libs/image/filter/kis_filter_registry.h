@@ -8,7 +8,8 @@
 #ifndef KIS_FILTER_REGISTRY_H_
 #define KIS_FILTER_REGISTRY_H_
 
-#include <QObject>
+#include <compat/QObject>
+#include <PkString.h>
 
 #include "kis_filter.h"
 #include "kis_types.h"
@@ -16,10 +17,9 @@
 
 #include <kritaimage_export.h>
 
-class QString;
 class KisFilterConfiguration;
 
-class KRITAIMAGE_EXPORT KisFilterRegistry : public QObject, public KoGenericRegistry<KisFilterSP>
+class KRITAIMAGE_EXPORT KisFilterRegistry : public PkObject, public KoGenericRegistry<KisFilterSP>
 {
 
     Q_OBJECT
@@ -30,17 +30,17 @@ public:
 
     static KisFilterRegistry* instance();
     void add(KisFilterSP item);
-    void add(const QString &id, KisFilterSP item);
+    void add(const PkString &id, KisFilterSP item);
 
     KisFilterSP fallbackFilter() const;
 
 Q_SIGNALS:
 
-    void filterAdded(QString id);
+    void filterAdded(PkString id);
 
 private:
 
-    KisFilterRegistry(QObject *parent);
+    KisFilterRegistry();
     KisFilterRegistry(const KisFilterRegistry&);
     KisFilterRegistry operator=(const KisFilterRegistry&);
 

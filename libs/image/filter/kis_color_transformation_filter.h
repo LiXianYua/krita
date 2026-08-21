@@ -17,10 +17,10 @@
 class KRITAIMAGE_EXPORT KisColorTransformationFilter : public KisFilter
 {
 public:
-    KisColorTransformationFilter(const KoID& id, const KoID & category, const QString & entry);
+    KisColorTransformationFilter(const KoID& id, const KoID & category, const PkString & entry);
     ~KisColorTransformationFilter() override;
     void processImpl(KisPaintDeviceSP device,
-                             const QRect& applyRect,
+                             const PkRect& applyRect,
                              const KisFilterConfigurationSP config,
                              KoUpdater* progressUpdater
                              ) const override;

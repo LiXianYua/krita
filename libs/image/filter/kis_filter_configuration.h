@@ -6,7 +6,11 @@
 #ifndef _KIS_FILTER_CONFIGURATION_H_
 #define _KIS_FILTER_CONFIGURATION_H_
 
-#include <QMetaType>
+#include <PkBitArray.h>
+#include <PkList.h>
+#include <PkSharedPointer.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 #include "kis_properties_configuration.h"
 
@@ -15,21 +19,21 @@
 
 
 class KoResource;
-typedef QSharedPointer<KoResource> KoResourceSP;
+typedef PkSharedPointer<KoResource> KoResourceSP;
 
 class KisResourcesInterface;
-typedef QSharedPointer<KisResourcesInterface> KisResourcesInterfaceSP;
+typedef PkSharedPointer<KisResourcesInterface> KisResourcesInterfaceSP;
 
 class KoResourceLoadResult;
 
 /**
- * KisFilterConfiguration does inherit neither KisShared or QSharedData
- * so sometimes there might be problem with broken QSharedPointer counters.
+ * KisFilterConfiguration does inherit neither KisShared nor shared-data
+ * so sometimes there might be problem with broken shared-pointer counters.
  * This macro activates debugging routines for such stuff.
  *
  * In the future, please either port the entire KisNodeFilterInterface
  * into KisFilterConfigurationSP or derive filter configuration
- * interface from QSharedData to handle these cases.
+ * interface from shared-data classes to handle these cases.
  */
 #define SANITY_CHECK_FILTER_CONFIGURATION_OWNER
 
@@ -48,7 +52,7 @@ public:
     /**
      * Create a new filter config.
      */
-    KisFilterConfiguration(const QString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface);
+    KisFilterConfiguration(const PkString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface);
 
     /**
      * @return an exact copy of the filter configuration. Resources interface is
@@ -69,18 +73,18 @@ public:
     /**
      * This function is use to convert from legacy XML as used in .kra file.
      */
-    virtual void fromLegacyXML(const QDomElement&);
+    virtual void fromLegacyXML(const PkXmlElement&);
 
     using KisPropertiesConfiguration::fromXML;
     using KisPropertiesConfiguration::toXML;
 
-    void fromXML(const QDomElement&) override;
-    void toXML(QDomDocument&, QDomElement&) const override;
+    void fromXML(const PkXmlElement&) override;
+    void toXML(PkXmlDocument&, PkXmlElement&) const override;
 
     /**
      * Get the unique, language independent name of the filter.
      */
-    const QString & name() const;
+    const PkString & name() const;
 
     /**
      * Get the version of the filter that has created this config
@@ -100,14 +104,14 @@ public:
      * alone. It is up to the filter to decide whether channels that
      * are to be left alone are copied to the dest file or not.
      */
-    QBitArray channelFlags() const;
+    PkBitArray channelFlags() const;
 
     /**
      * Set the channel flags. An empty array is allowed; that means
      * that all channels are to be filtered. Filters can optimize on
      * that. The array must be in the order of the pixel layout.
      */
-    void setChannelFlags(QBitArray channelFlags);
+    void setChannelFlags(PkBitArray channelFlags);
 
     /**
      * @return resource interface that is used by KisFilterConfiguration object for
@@ -145,7 +149,7 @@ public:
      *
      * The set of resources returned is basically: linkedResources() + embeddedResources()
      */
-    QList<KoResourceLoadResult> requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    PkList<KoResourceLoadResult> requiredResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     /**
      * @return all the resources that are needed but (*this) filter and
@@ -153,14 +157,14 @@ public:
      * \p globalResourcesInterface. If fetching of some resources is failed,
      * then (*this) filter is invalid.
      */
-    virtual QList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    virtual PkList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     /**
      * @return all the resources that were embedded into (*this) filter.
      * If the resources were already added to the global database, then they
      * are fetched from \p globalResourcesInterface to save time/memory.
      */
-    virtual QList<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
+    virtual PkList<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const;
 
     virtual bool compareTo(const KisPropertiesConfiguration *rhs) const override;
 
@@ -178,7 +182,5 @@ private:
     struct Private;
     Private* const d;
 };
-
-Q_DECLARE_METATYPE(KisFilterConfiguration*)
 
 #endif // _KIS_FILTER_CONFIGURATION_H_

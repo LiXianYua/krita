@@ -9,13 +9,6 @@
 
 #include <math.h>
 
-#include <QString>
-#include <QApplication>
-
-#include <klocalizedstring.h>
-
-#include <KoPluginLoader.h>
-
 #include "kis_debug.h"
 #include "kis_types.h"
 
@@ -23,15 +16,15 @@
 #include "filter/kis_filter.h"
 #include "kis_filter_configuration.h"
 
-KisFilterRegistry::KisFilterRegistry(QObject *parent)
-    : QObject(parent)
+KisFilterRegistry::KisFilterRegistry()
+    : PkObject()
 {
 }
 
 KisFilterRegistry::~KisFilterRegistry()
 {
     dbgRegistry << "deleting KisFilterRegistry";
-    Q_FOREACH (KisFilterSP filter, values()) {
+    for (KisFilterSP filter : values()) {
         remove(filter->id());
         filter.clear();
     }
@@ -39,13 +32,8 @@ KisFilterRegistry::~KisFilterRegistry()
 
 KisFilterRegistry* KisFilterRegistry::instance()
 {
-    KisFilterRegistry *reg = qApp->findChild<KisFilterRegistry *>(QString());
-    if (!reg) {
-        dbgRegistry << "initializing KisFilterRegistry";
-        reg = new KisFilterRegistry(qApp);
-        KoPluginLoader::instance()->load("Krita/Filter");
-    }
-    return reg;
+    static KisFilterRegistry s_instance;
+    return &s_instance;
 }
 
 void KisFilterRegistry::add(KisFilterSP item)
@@ -53,10 +41,10 @@ void KisFilterRegistry::add(KisFilterSP item)
     add(item->id(), item);
 }
 
-void KisFilterRegistry::add(const QString &id, KisFilterSP item)
+void KisFilterRegistry::add(const PkString &id, KisFilterSP item)
 {
     KoGenericRegistry<KisFilterSP>::add(id, item);
-    emit(filterAdded(id));
+    filterAdded(id);
 }
 
 KisFilterSP KisFilterRegistry::fallbackFilter() const

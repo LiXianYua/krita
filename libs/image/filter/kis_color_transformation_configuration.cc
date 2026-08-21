@@ -6,10 +6,10 @@
 
 #include "filter/kis_color_transformation_configuration.h"
 
-#include <QMutex>
-#include <QMutexLocker>
-#include <QMap>
-#include <QThread>
+#include <map>
+
+#include <PkMutex.h>
+#include <PkThread.h>
 #include "filter/kis_color_transformation_filter.h"
 
 struct Q_DECL_HIDDEN KisColorTransformationConfiguration::Private {
@@ -23,17 +23,19 @@ struct Q_DECL_HIDDEN KisColorTransformationConfiguration::Private {
 
     void destroyCache()
     {
-        QMutexLocker locker(&mutex);
-        qDeleteAll(colorTransformation);
+        PkMutexLocker locker(&mutex);
+        for (auto &pair : colorTransformation) {
+            delete pair.second;
+        }
         colorTransformation.clear();
     }
 
     // XXX: Threadlocal storage!!!
-    QMap<QThread*, KoColorTransformation*> colorTransformation;
-    QMutex mutex;
+    std::map<PkThreadId, KoColorTransformation*> colorTransformation;
+    PkMutex mutex;
 };
 
-KisColorTransformationConfiguration::KisColorTransformationConfiguration(const QString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface)
+KisColorTransformationConfiguration::KisColorTransformationConfiguration(const PkString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface)
     : KisFilterConfiguration(name, version, resourcesInterface)
     , d(new Private())
 {
@@ -60,7 +62,7 @@ KisFilterConfigurationSP KisColorTransformationConfiguration::clone() const
  * regenerating the color transforms also when a property of this object
  * changes, not only when the object is copied
  */
-void KisColorTransformationConfiguration::setProperty(const QString &name, const QVariant &value)
+void KisColorTransformationConfiguration::setProperty(const PkString &name, const PkVariant &value)
 {
     KisFilterConfiguration::setProperty(name, value);
     invalidateColorTransformationCache();
@@ -68,12 +70,14 @@ void KisColorTransformationConfiguration::setProperty(const QString &name, const
 
 KoColorTransformation* KisColorTransformationConfiguration::colorTransformation(const KoColorSpace *cs, const KisColorTransformationFilter *filter) const
 {
-    QMutexLocker locker(&d->mutex);
-    KoColorTransformation *transformation = d->colorTransformation.value(QThread::currentThread(), 0);
+    PkMutexLocker locker(&d->mutex);
+    const PkThreadId threadId = PkThread::currentThreadId();
+    auto it = d->colorTransformation.find(threadId);
+    KoColorTransformation *transformation = (it != d->colorTransformation.end()) ? it->second : 0;
     if (!transformation) {
         KisFilterConfigurationSP config(clone().data());
         transformation = filter->createTransformation(cs, config);
-        d->colorTransformation.insert(QThread::currentThread(), transformation);
+        d->colorTransformation.emplace(threadId, transformation);
     }
     locker.unlock();
     return transformation;

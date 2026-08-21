@@ -6,7 +6,8 @@
 
 #include "filter/kis_filter.h"
 
-#include <QString>
+#include <PkRect.h>
+#include <PkScopedPointer.h>
 
 #include <KoCompositeOpRegistry.h>
 #include "kis_bookmarked_configuration_manager.h"
@@ -19,7 +20,7 @@
 #include <kis_painter.h>
 #include <KoUpdater.h>
 
-KisFilter::KisFilter(const KoID& _id, const KoID & category, const QString & entry)
+KisFilter::KisFilter(const KoID& _id, const KoID & category, const PkString & entry)
     : KisBaseProcessor(_id, category, entry),
       m_supportsLevelOfDetail(false)
 {
@@ -31,7 +32,7 @@ KisFilter::~KisFilter()
 }
 
 void KisFilter::process(KisPaintDeviceSP device,
-                        const QRect& applyRect,
+                        const PkRect& applyRect,
                         const KisFilterConfigurationSP config,
                         KoUpdater* progressUpdater) const
 {
@@ -41,14 +42,14 @@ void KisFilter::process(KisPaintDeviceSP device,
 void KisFilter::process(const KisPaintDeviceSP src,
                         KisPaintDeviceSP dst,
                         KisSelectionSP selection,
-                        const QRect& applyRect,
+                        const PkRect& applyRect,
                         const KisFilterConfigurationSP config,
                         KoUpdater* progressUpdater ) const
 {
     KIS_SAFE_ASSERT_RECOVER_NOOP(config->hasLocalResourcesSnapshot());
 
     if (applyRect.isEmpty()) return;
-    QRect needRect = neededRect(applyRect, config, src->defaultBounds()->currentLevelOfDetail());
+    PkRect needRect = neededRect(applyRect, config, src->defaultBounds()->currentLevelOfDetail());
 
     KisPaintDeviceSP temporary;
     KisTransaction *transaction = 0;
@@ -66,7 +67,7 @@ void KisFilter::process(const KisPaintDeviceSP src,
     }
 
     try {
-        QScopedPointer<KoDummyUpdaterHolder> updaterHolder;
+        PkScopedPointer<KoDummyUpdaterHolder> updaterHolder;
 
         if (!progressUpdater) {
             // TODO: remove dependency on KoUpdater, depend on KoProgressProxy,
@@ -88,14 +89,14 @@ void KisFilter::process(const KisPaintDeviceSP src,
     }
 }
 
-QRect KisFilter::neededRect(const QRect & rect, const KisFilterConfigurationSP c, int lod) const
+PkRect KisFilter::neededRect(const PkRect & rect, const KisFilterConfigurationSP c, int lod) const
 {
     Q_UNUSED(c);
     Q_UNUSED(lod);
     return rect;
 }
 
-QRect KisFilter::changedRect(const QRect & rect, const KisFilterConfigurationSP c, int lod) const
+PkRect KisFilter::changedRect(const PkRect & rect, const KisFilterConfigurationSP c, int lod) const
 {
     Q_UNUSED(c);
     Q_UNUSED(lod);
