@@ -8,6 +8,7 @@
 #define _KO_COLOR_CONVERSION_ALPHA_TRANSFORMATION_H_
 
 #include "KoColorConversionTransformation.h"
+#include <PkString.h>
 #include "KoColorConversionTransformationFactory.h"
 
 #include <KoConfig.h>
@@ -24,7 +25,7 @@ template<typename alpha_channel_type>
 class KoColorConversionFromAlphaTransformationFactoryImpl : public KoColorConversionTransformationFactory
 {
 public:
-    KoColorConversionFromAlphaTransformationFactoryImpl(const QString& _dstModelId, const QString& _dstDepthId, const QString& _dstProfileName);
+    KoColorConversionFromAlphaTransformationFactoryImpl(const PkString& _dstModelId, const PkString& _dstDepthId, const PkString& _dstProfileName);
     KoColorConversionTransformation* createColorTransformation(const KoColorSpace* srcColorSpace,
                                                                        const KoColorSpace* dstColorSpace,
                                                                        KoColorConversionTransformation::Intent renderingIntent,
@@ -47,7 +48,7 @@ template <typename alpha_channel_type>
 class KoColorConversionToAlphaTransformationFactoryImpl : public KoColorConversionTransformationFactory
 {
 public:
-    KoColorConversionToAlphaTransformationFactoryImpl(const QString& _dstModelId, const QString& _dstDepthId, const QString& _srcProfileName);
+    KoColorConversionToAlphaTransformationFactoryImpl(const PkString& _dstModelId, const PkString& _dstDepthId, const PkString& _srcProfileName);
     KoColorConversionTransformation* createColorTransformation(const KoColorSpace* srcColorSpace,
                                                                        const KoColorSpace* dstColorSpace,
                                                                        KoColorConversionTransformation::Intent renderingIntent,

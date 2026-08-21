@@ -108,7 +108,7 @@ public:
 
 template<typename alpha_channel_type>
 KoColorConversionFromAlphaTransformationFactoryImpl<alpha_channel_type>::
-    KoColorConversionFromAlphaTransformationFactoryImpl(const QString& _dstModelId, const QString& _dstDepthId, const QString& _dstProfileName)
+    KoColorConversionFromAlphaTransformationFactoryImpl(const PkString& _dstModelId, const PkString& _dstDepthId, const PkString& _dstProfileName)
         : KoColorConversionTransformationFactory(AlphaColorModelID.id(),
                                                  colorDepthIdForChannelType<alpha_channel_type>().id(),
                                                  "default",
@@ -254,7 +254,7 @@ public:
 
 template <typename alpha_channel_type>
 KoColorConversionToAlphaTransformationFactoryImpl<alpha_channel_type>::
-    KoColorConversionToAlphaTransformationFactoryImpl(const QString& _srcModelId, const QString& _srcDepthId, const QString& _srcProfileName)
+    KoColorConversionToAlphaTransformationFactoryImpl(const PkString& _srcModelId, const PkString& _srcDepthId, const PkString& _srcProfileName)
         : KoColorConversionTransformationFactory(_srcModelId, _srcDepthId, _srcProfileName,
                                                  AlphaColorModelID.id(), colorDepthIdForChannelType<alpha_channel_type>().id(), "default")
 {
