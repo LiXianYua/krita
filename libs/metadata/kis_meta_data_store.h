@@ -10,7 +10,8 @@
 
 #include <kritametadata_export.h>
 
-#include <QHash>
+#include <PkHash.h>
+#include <PkString.h>
 
 namespace KisMetaData
 {
@@ -59,60 +60,60 @@ public:
      * Give access to a metadata entry
      * @param entryKey the entryKey as the qualified name of the entry
      */
-    Entry& getEntry(const QString & entryKey);
+    Entry& getEntry(const PkString & entryKey);
 
     /**
      * Give access to a metadata entry
      * @param uri the uri of the schema
      * @param entryName the name of the entry
      */
-    Entry& getEntry(const QString & uri, const QString & entryName);
+    Entry& getEntry(const PkString & uri, const PkString & entryName);
 
     /**
      * Give access to a metadata entry
      * @param schema the schema
      * @param entryName the name of the entry
      */
-    Entry& getEntry(const KisMetaData::Schema* schema, const QString & entryName);
+    Entry& getEntry(const KisMetaData::Schema* schema, const PkString & entryName);
 
     /**
      * Give access to a metadata entry
      * @param entryKey the entryKey as the qualified name of the entry
      */
-    const Entry& getEntry(const QString & entryKey) const;
+    const Entry& getEntry(const PkString & entryKey) const;
     /**
      * Give access to a metadata entry
      * @param uri the uri of the schema
      * @param entryName the name of the entry
      */
-    const Entry& getEntry(const QString & uri, const QString & entryName) const;
+    const Entry& getEntry(const PkString & uri, const PkString & entryName) const;
 
     /**
      * Give access to a metadata entry
      * @param schema the schema
      * @param entryName the name of the entry
      */
-    const Entry& getEntry(const KisMetaData::Schema* schema, const QString & entryName) const;
+    const Entry& getEntry(const KisMetaData::Schema* schema, const PkString & entryName) const;
 
     /**
      * Remove an entry.
      * @param entryKey the entryKey as the qualified name of the entry
      */
-    void removeEntry(const QString & entryKey);
+    void removeEntry(const PkString & entryKey);
 
     /**
      * Remove an entry.
      * @param uri the uri of the schema
      * @param entryName the name of the entry
      */
-    void removeEntry(const QString & uri, const QString & entryName);
+    void removeEntry(const PkString & uri, const PkString & entryName);
 
     /**
      * Remove an entry.
      * @param schema the schema
      * @param entryName the name of the entry
      */
-    void removeEntry(const KisMetaData::Schema* schema, const QString & entryName);
+    void removeEntry(const KisMetaData::Schema* schema, const PkString & entryName);
 
     /**
      * Return the value associated with this entry name and uri.
@@ -120,28 +121,28 @@ public:
      * @param entryName
      * @return the value
      */
-    const Value& getValue(const QString & uri, const QString & entryName) const;
+    const Value& getValue(const PkString & uri, const PkString & entryName) const;
 
-    QHash<QString, Entry>::const_iterator begin() const;
-    QHash<QString, Entry>::const_iterator end() const;
+    PkHash<PkString, Entry>::const_iterator begin() const;
+    PkHash<PkString, Entry>::const_iterator end() const;
 
     /**
      * @param entryKey the entryKey as the qualified name of the entry
      * @return true if an entry with the given key exist in the store
      */
-    bool containsEntry(const QString & entryKey) const;
+    bool containsEntry(const PkString & entryKey) const;
 
     /**
      * @return true if the store contains this entry
      */
-    bool containsEntry(const KisMetaData::Schema* schema, const QString & entryName) const;
+    bool containsEntry(const KisMetaData::Schema* schema, const PkString & entryName) const;
 
     /**
      * @param uri
      * @param entryName
      * @return true if an entry with the given uri and entry name exist in the store
      */
-    bool containsEntry(const QString & uri, const QString & entryName) const;
+    bool containsEntry(const PkString & uri, const PkString & entryName) const;
 
     /**
      * Dump on kdDebug the metadata store.
@@ -151,17 +152,17 @@ public:
     /**
      * Apply a list of filters on a store
      */
-    void applyFilters(const QList<const Filter*> & filters);
+    void applyFilters(const PkList<const Filter*> & filters);
 
     /**
      * @return the list of keys
      */
-    QList<QString> keys() const;
+    PkList<PkString> keys() const;
 
     /**
      * @return the list of entries
      */
-    QList<Entry> entries() const;
+    PkList<Entry> entries() const;
 private:
     Private* const d;
 };

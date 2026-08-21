@@ -6,8 +6,9 @@
 
 #include "kis_meta_data_schema_registry.h"
 
-#include <QGlobalStatic>
-#include <QString>
+#include <PkHash.h>
+#include <PkString.h>
+#include <PkStringHash.h>
 
 #include <KoResourcePaths.h>
 
@@ -18,16 +19,15 @@ using namespace KisMetaData;
 
 // ---- Schema Registry ---- //
 
-struct Q_DECL_HIDDEN SchemaRegistry::Private {
-    QHash<QString, Schema*> uri2Schema;
-    QHash<QString, Schema*> prefix2Schema;
+struct SchemaRegistry::Private {
+    PkHash<PkString, Schema*> uri2Schema;
+    PkHash<PkString, Schema*> prefix2Schema;
 };
-
-Q_GLOBAL_STATIC(SchemaRegistry, s_instance)
 
 SchemaRegistry* SchemaRegistry::instance()
 {
-    return s_instance;
+    static SchemaRegistry s_instance;
+    return &s_instance;
 }
 
 SchemaRegistry::SchemaRegistry()
@@ -35,9 +35,9 @@ SchemaRegistry::SchemaRegistry()
 {
     KoResourcePaths::addAssetType("metadata_schema", "data", "/metadata/schemas/");
 
-    QStringList schemasFilenames = KoResourcePaths::findAllAssets("metadata_schema", "*.schema");
+    PkStringList schemasFilenames = KoResourcePaths::findAllAssets("metadata_schema", "*.schema");
 
-    Q_FOREACH (const QString& fileName, schemasFilenames) {
+    for (const PkString& fileName : schemasFilenames) {
         Schema* schema = new Schema();
         schema->d->load(fileName);
         if (schemaFromUri(schema->uri())) {
@@ -64,17 +64,17 @@ SchemaRegistry::~SchemaRegistry()
 }
 
 
-const Schema* SchemaRegistry::schemaFromUri(const QString & uri) const
+const Schema* SchemaRegistry::schemaFromUri(const PkString & uri) const
 {
     return d->uri2Schema[uri];
 }
 
-const Schema* SchemaRegistry::schemaFromPrefix(const QString & prefix) const
+const Schema* SchemaRegistry::schemaFromPrefix(const PkString & prefix) const
 {
     return d->prefix2Schema[prefix];
 }
 
-const Schema* SchemaRegistry::create(const QString & uri, const QString & prefix)
+const Schema* SchemaRegistry::create(const PkString & uri, const PkString & prefix)
 {
     // First search for the schema
     const Schema* schema = schemaFromUri(uri);

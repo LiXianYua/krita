@@ -9,8 +9,8 @@
 
 #include <kritametadata_export.h>
 
-class QString;
-class QDebug;
+class PkString;
+class PkDebug;
 
 namespace KisMetaData
 {
@@ -37,15 +37,15 @@ public:
      * for the uri, but the prefix was already used, and it can be an already existing
      * schema if the uri was already included)
      */
-    const KisMetaData::Schema* create(const QString & uri, const QString & prefix);
+    const KisMetaData::Schema* create(const PkString & uri, const PkString & prefix);
     /**
      * @return the schema for this uri
      */
-    const Schema* schemaFromUri(const QString & uri) const;
+    const Schema* schemaFromUri(const PkString & uri) const;
     /**
      * @return the schema for this prefix
      */
-    const Schema* schemaFromPrefix(const QString & prefix) const;
+    const Schema* schemaFromPrefix(const PkString & prefix) const;
     /**
      * Return an instance of the SchemaRegistry.
      * Creates an instance if that has never happened before and returns
@@ -58,6 +58,6 @@ private:
 };
 }
 
-KRITAMETADATA_EXPORT QDebug operator<<(QDebug debug, const KisMetaData::Schema &c);
+KRITAMETADATA_EXPORT PkDebug operator<<(PkDebug debug, const KisMetaData::Schema &c);
 
 #endif
