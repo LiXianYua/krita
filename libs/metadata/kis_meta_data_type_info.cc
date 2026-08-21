@@ -6,7 +6,7 @@
 
 #include "kis_meta_data_type_info.h"
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include "kis_meta_data_parser_p.h"
 #include "kis_meta_data_type_info_p.h"
@@ -15,9 +15,9 @@
 
 using namespace KisMetaData;
 
-QHash< const TypeInfo*, const TypeInfo*> TypeInfo::Private::orderedArrays;
-QHash< const TypeInfo*, const TypeInfo*> TypeInfo::Private::unorderedArrays;
-QHash< const TypeInfo*, const TypeInfo*> TypeInfo::Private::alternativeArrays;
+PkHash< const TypeInfo*, const TypeInfo*> TypeInfo::Private::orderedArrays;
+PkHash< const TypeInfo*, const TypeInfo*> TypeInfo::Private::unorderedArrays;
+PkHash< const TypeInfo*, const TypeInfo*> TypeInfo::Private::alternativeArrays;
 
 const TypeInfo* TypeInfo::Private::Boolean = new TypeInfo(TypeInfo::BooleanType);
 const TypeInfo* TypeInfo::Private::Integer = new TypeInfo(TypeInfo::IntegerType);
@@ -56,12 +56,12 @@ const TypeInfo* TypeInfo::Private::alternativeArray(const TypeInfo* _typeInfo)
     return info;
 }
 
-const TypeInfo* TypeInfo::Private::createChoice(PropertyType _propertiesType, const TypeInfo* _embedded, const QList< Choice >& _choices)
+const TypeInfo* TypeInfo::Private::createChoice(PropertyType _propertiesType, const TypeInfo* _embedded, const PkList< Choice >& _choices)
 {
     return new TypeInfo(_propertiesType, _embedded, _choices);
 }
 
-const TypeInfo* TypeInfo::Private::createStructure(Schema* _structureSchema, const QString& name)
+const TypeInfo* TypeInfo::Private::createStructure(Schema* _structureSchema, const PkString& name)
 {
     return new TypeInfo(_structureSchema, name);
 }
@@ -92,12 +92,12 @@ TypeInfo::TypeInfo(TypeInfo::PropertyType _propertyType) : d(new Private)
     }
 }
 
-struct Q_DECL_HIDDEN TypeInfo::Choice::Private {
+struct TypeInfo::Choice::Private {
     Value value;
-    QString hint;
+    PkString hint;
 };
 
-TypeInfo::Choice::Choice(const Value& value, const QString& hint) : d(new Private)
+TypeInfo::Choice::Choice(const Value& value, const PkString& hint) : d(new Private)
 {
     d->value = value;
     d->hint = hint;
@@ -122,7 +122,7 @@ const Value& TypeInfo::Choice::value() const
     return d->value;
 }
 
-const QString& TypeInfo::Choice::hint() const
+const PkString& TypeInfo::Choice::hint() const
 {
     return d->hint;
 }
@@ -134,7 +134,7 @@ TypeInfo::TypeInfo(PropertyType _propertyType, const TypeInfo* _embedded) : d(ne
     d->embeddedTypeInfo = _embedded;
 }
 
-TypeInfo::TypeInfo(PropertyType _propertyType, const TypeInfo* _embedded, const QList< Choice >& _choices) : d(new Private)
+TypeInfo::TypeInfo(PropertyType _propertyType, const TypeInfo* _embedded, const PkList< Choice >& _choices) : d(new Private)
 {
     Q_ASSERT(_propertyType == ClosedChoice || _propertyType == OpenedChoice);
     d->propertyType = _propertyType;
@@ -143,7 +143,7 @@ TypeInfo::TypeInfo(PropertyType _propertyType, const TypeInfo* _embedded, const 
     d->choices = _choices;
 }
 
-TypeInfo::TypeInfo(Schema* _structureSchema, const QString& name) : d(new Private)
+TypeInfo::TypeInfo(Schema* _structureSchema, const PkString& name) : d(new Private)
 {
     d->propertyType = TypeInfo::StructureType;
     d->structureSchema = _structureSchema;
@@ -166,7 +166,7 @@ const TypeInfo* TypeInfo::embeddedPropertyType() const
     return d->embeddedTypeInfo;
 }
 
-const QList< TypeInfo::Choice >& TypeInfo::choices() const
+const PkList< TypeInfo::Choice >& TypeInfo::choices() const
 {
     return d->choices;
 }
@@ -176,7 +176,7 @@ Schema* TypeInfo::structureSchema() const
     return d->structureSchema;
 }
 
-const QString& TypeInfo::structureName() const
+const PkString& TypeInfo::structureName() const
 {
     return d->structureName;
 }
@@ -188,8 +188,8 @@ const Parser* TypeInfo::parser() const
 
 bool checkArray(const Value& value, const TypeInfo* typeInfo)
 {
-    QList< Value > values = value.asArray();
-    Q_FOREACH (const Value& val, values) {
+    PkList< Value > values = value.asArray();
+    for (const Value& val : values) {
         if (!typeInfo->hasCorrectType(val)) {
             return false;
         }
@@ -201,14 +201,14 @@ bool TypeInfo::hasCorrectType(const Value& value) const
 {
     switch (d->propertyType) {
     case BooleanType:
-        return value.type() == Value::Variant && value.asVariant().type() == QMetaType::Bool;
+        return value.type() == Value::Variant && value.asVariant().type() == PkVariant::Bool;
     case IntegerType:
-        return value.type() == Value::Variant && value.asVariant().type() == QMetaType::Int;
+        return value.type() == Value::Variant && value.asVariant().type() == PkVariant::Int;
     case DateType:
-        return value.type() == Value::Variant && value.asVariant().type() == QMetaType::QDateTime;
+        return value.type() == Value::Variant && value.asVariant().type() == PkVariant::DateTime;
     case GPSCoordinateType:
     case TextType:
-        return value.type() == Value::Variant && value.asVariant().type() == QMetaType::QString;
+        return value.type() == Value::Variant && value.asVariant().type() == PkVariant::String;
     case OrderedArrayType:
         if (value.type() == Value::OrderedArray) {
             return checkArray(value, d->embeddedTypeInfo);
@@ -229,8 +229,8 @@ bool TypeInfo::hasCorrectType(const Value& value) const
         }
     case LangArrayType:
         if (value.type() == Value::LangArray) {
-            QList< Value > values = value.asArray();
-            Q_FOREACH (const Value& vallang, values) {
+            PkList< Value > values = value.asArray();
+            for (const Value& vallang : values) {
                 if (!Private::Text->hasCorrectType(vallang) ||
                         !Private::Text->hasCorrectType(vallang.propertyQualifiers()["xml:lang"])) {
                     return false;
@@ -242,8 +242,8 @@ bool TypeInfo::hasCorrectType(const Value& value) const
         }
     case StructureType:
         if (value.type() == Value::Structure) {
-            QMap<QString, KisMetaData::Value> structure = value.asStructure();
-            for (QMap<QString, KisMetaData::Value>::iterator it = structure.begin();
+            PkMap<PkString, KisMetaData::Value> structure = value.asStructure();
+            for (PkMap<PkString, KisMetaData::Value>::iterator it = structure.begin();
                     it != structure.end(); ++it) {
                 const TypeInfo* typeInfo = d->structureSchema->propertyType(it.key());
                 if (!typeInfo || !typeInfo->hasCorrectType(it.value())) {
@@ -266,7 +266,7 @@ bool TypeInfo::hasCorrectType(const Value& value) const
 bool TypeInfo::hasCorrectValue(const Value& value) const
 {
     if (d->propertyType == ClosedChoice) {
-        Q_FOREACH (const Choice& choice, d->choices) {
+        for (const Choice& choice : d->choices) {
             if (choice.value() == value) {
                 return true;
             }

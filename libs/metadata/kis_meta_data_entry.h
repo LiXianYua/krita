@@ -11,7 +11,7 @@
 #include <kritametadata_export.h>
 #include <kis_debug.h>
 
-class QString;
+class PkString;
 
 namespace KisMetaData
 {
@@ -36,13 +36,13 @@ public:
      * @param namespacePrefix
      * @param value
      */
-    Entry(const KisMetaData::Schema* schema, QString name, const KisMetaData::Value& value);
+    Entry(const KisMetaData::Schema* schema, PkString name, const KisMetaData::Value& value);
     Entry(const Entry&);
     ~Entry();
     /**
      * @return the name of this entry
      */
-    QString name() const;
+    PkString name() const;
     /**
      * @return the namespace of this entry
      */
@@ -51,7 +51,7 @@ public:
      * @return the qualified name of this entry, which is the concatenation of the
      * namespace and of the name
      */
-    QString qualifiedName() const;
+    PkString qualifiedName() const;
     /**
      * @return the value of this entry
      */
@@ -67,7 +67,7 @@ public:
     /**
      * @return true if the name in argument is valid entry name.
      */
-    static bool isValidName(const QString& _name);
+    static bool isValidName(const PkString& _name);
     /**
      * Affect the content of entry to this entry if entry is valid
      */
@@ -80,6 +80,6 @@ private:
 };
 }
 
-KRITAMETADATA_EXPORT QDebug operator<<(QDebug debug, const KisMetaData::Entry &c);
+KRITAMETADATA_EXPORT PkDebug operator<<(PkDebug debug, const KisMetaData::Entry &c);
 
 #endif

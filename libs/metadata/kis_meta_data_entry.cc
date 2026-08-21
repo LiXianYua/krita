@@ -5,7 +5,7 @@
  */
 
 #include "kis_meta_data_entry.h"
-#include <QString>
+#include <PkString.h>
 
 #include <kis_debug.h>
 
@@ -14,8 +14,8 @@
 
 using namespace KisMetaData;
 
-struct Q_DECL_HIDDEN Entry::Private {
-    QString name;
+struct Entry::Private {
+    PkString name;
     const Schema* schema;
     Value value;
     bool valid;
@@ -28,13 +28,13 @@ Entry::Entry() :
     d->valid = false;
 }
 
-Entry::Entry(const Schema* schema, QString name, const Value& value) :
+Entry::Entry(const Schema* schema, PkString name, const Value& value) :
         d(new Private)
 {
     Q_ASSERT(!name.isEmpty());
     if (!isValidName(name)) {
         errKrita << "Invalid metadata name:" << name;
-        d->name = QString("INVALID: %1").arg(name);
+        d->name = PkString("INVALID: %1").arg(name);
     }
     else {
         d->name = name;
@@ -55,7 +55,7 @@ Entry::~Entry()
     delete d;
 }
 
-QString Entry::name() const
+PkString Entry::name() const
 {
     return d->name;
 }
@@ -72,7 +72,7 @@ void Entry::setSchema(const KisMetaData::Schema* schema)
     d->schema = schema;
 }
 
-QString Entry::qualifiedName() const
+PkString Entry::qualifiedName() const
 {
     Q_ASSERT(d->schema);
     return d->schema->generateQualifiedName(d->name);
@@ -93,19 +93,30 @@ bool Entry::isValid() const
     return d->valid;
 }
 
-bool Entry::isValidName(const QString& _name)
+namespace {
+bool isAsciiLetter(char16_t c)
 {
-    if (_name.length() < 1) {
+    return (c >= u'a' && c <= u'z') || (c >= u'A' && c <= u'Z');
+}
+bool isAsciiLetterOrNumber(char16_t c)
+{
+    return isAsciiLetter(c) || (c >= u'0' && c <= u'9');
+}
+}
+
+bool Entry::isValidName(const PkString& _name)
+{
+    if (_name.size() < 1) {
         dbgMetaData << "Too small";
         return false;
     }
-    if (!_name[0].isLetter()) {
+    if (!isAsciiLetter(_name[0])) {
         dbgMetaData << _name << " doesn't start by a letter";
         return false;
     }
-    for (int i = 1; i < _name.length(); ++i) {
-        QChar c = _name[i];
-        if (!c.isLetterOrNumber()) {
+    for (int i = 1; i < _name.size(); ++i) {
+        char16_t c = _name[i];
+        if (!isAsciiLetterOrNumber(c)) {
             dbgMetaData << _name << " " << i << "th character isn't a letter or a digit";
             return false;
         }
@@ -131,7 +142,7 @@ Entry& Entry::operator=(const Entry & e)
     return *this;
 }
 
-QDebug operator<<(QDebug debug, const Entry &c)
+PkDebug operator<<(PkDebug debug, const Entry &c)
 {
     debug.nospace() << "Name: " << c.name() << " Qualified name: " << c.qualifiedName() << " Value: " << c.value();
     return debug.space();

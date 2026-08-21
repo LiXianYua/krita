@@ -6,29 +6,30 @@
 
 #include "kis_meta_data_schema.h"
 
-#include <QHash>
+#include <PkHash.h>
+#include <PkString.h>
 
-class QDomElement;
+class PkXmlElement;
 
 namespace KisMetaData
 {
-struct Q_DECL_HIDDEN Schema::Private {
-    QString uri;
-    QString prefix;
+struct Schema::Private {
+    PkString uri;
+    PkString prefix;
     struct EntryInfo {
         const TypeInfo* propertyType;
-        QHash<QString, TypeInfo*> qualifiers;
+        PkHash<PkString, TypeInfo*> qualifiers;
     };
-    QHash<QString, EntryInfo> types;
-    QHash<QString, const TypeInfo*> structures;
-    bool load(const QString&);
+    PkHash<PkString, EntryInfo> types;
+    PkHash<PkString, const TypeInfo*> structures;
+    bool load(const PkString&);
 private:
-    void parseStructures(QDomElement&);
-    void parseStructure(QDomElement&);
-    void parseProperties(QDomElement&);
-    bool parseEltType(QDomElement&, EntryInfo& entryInfo, QString& name, bool ignoreStructure, bool ignoreName);
-    const TypeInfo* parseAttType(QDomElement&, bool ignoreStructure);
-    const TypeInfo* parseEmbType(QDomElement&, bool ignoreStructure);
-    const TypeInfo* parseChoice(QDomElement&);
+    void parseStructures(PkXmlElement&);
+    void parseStructure(PkXmlElement&);
+    void parseProperties(PkXmlElement&);
+    bool parseEltType(PkXmlElement&, EntryInfo& entryInfo, PkString& name, bool ignoreStructure, bool ignoreName);
+    const TypeInfo* parseAttType(PkXmlElement&, bool ignoreStructure);
+    const TypeInfo* parseEmbType(PkXmlElement&, bool ignoreStructure);
+    const TypeInfo* parseChoice(PkXmlElement&);
 };
 }

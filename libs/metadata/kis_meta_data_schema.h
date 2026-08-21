@@ -10,7 +10,7 @@
 #include <kritametadata_export.h>
 #include <kis_debug.h>
 
-class QString;
+class PkString;
 
 namespace KisMetaData
 {
@@ -26,31 +26,31 @@ public:
 
     virtual ~Schema();
 
-    static const QString TIFFSchemaUri;
-    static const QString EXIFSchemaUri;
-    static const QString DublinCoreSchemaUri;
-    static const QString XMPSchemaUri;
-    static const QString XMPRightsSchemaUri;
-    static const QString XMPMediaManagementUri;
-    static const QString MakerNoteSchemaUri;
-    static const QString IPTCSchemaUri;
-    static const QString PhotoshopSchemaUri;
+    static const PkString TIFFSchemaUri;
+    static const PkString EXIFSchemaUri;
+    static const PkString DublinCoreSchemaUri;
+    static const PkString XMPSchemaUri;
+    static const PkString XMPRightsSchemaUri;
+    static const PkString XMPMediaManagementUri;
+    static const PkString MakerNoteSchemaUri;
+    static const PkString IPTCSchemaUri;
+    static const PkString PhotoshopSchemaUri;
 private:
     Schema();
-    Schema(const QString & _uri, const QString & _ns);
+    Schema(const PkString & _uri, const PkString & _ns);
 public:
     /**
      * @return the \ref TypeInfo associated with a given a property ( @p _propertyName ).
      */
-    const TypeInfo* propertyType(const QString& _propertyName) const;
+    const TypeInfo* propertyType(const PkString& _propertyName) const;
     /**
      * @return the \ref TypeInfo describing a given structure of that schema
      */
-    const TypeInfo* structure(const QString& _structureName) const;
+    const TypeInfo* structure(const PkString& _structureName) const;
 public:
-    QString uri() const;
-    QString prefix() const;
-    QString generateQualifiedName(const QString &) const;
+    PkString uri() const;
+    PkString prefix() const;
+    PkString generateQualifiedName(const PkString &) const;
 private:
     struct Private;
     Private* const d;
@@ -58,6 +58,6 @@ private:
 
 }
 
-KRITAMETADATA_EXPORT QDebug operator<<(QDebug debug, const KisMetaData::Schema &c);
+KRITAMETADATA_EXPORT PkDebug operator<<(PkDebug debug, const KisMetaData::Schema &c);
 
 #endif

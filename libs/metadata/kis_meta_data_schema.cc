@@ -6,11 +6,16 @@
 
 #include "kis_meta_data_schema.h"
 
-#include <QDateTime>
-#include <QDomDocument>
-#include <QFile>
-#include <QString>
-#include <QVariant>
+#include <PkString.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkVariant.h>
+
+#include <fstream>
+#include <iterator>
+#include <sstream>
+
+#include <PkStringHash.h>
 
 #include "kis_meta_data_type_info_p.h"
 #include "kis_meta_data_schema_p.h"
@@ -18,36 +23,35 @@
 
 using namespace KisMetaData;
 
-const QString Schema::TIFFSchemaUri = "http://ns.adobe.com/tiff/1.0/";
-const QString Schema::EXIFSchemaUri = "http://ns.adobe.com/exif/1.0/";
-const QString Schema::DublinCoreSchemaUri = "http://purl.org/dc/elements/1.1/";
-const QString Schema::XMPSchemaUri = "http://ns.adobe.com/xap/1.0/";
-const QString Schema::XMPRightsSchemaUri = "http://ns.adobe.com/xap/1.0/rights/";
-const QString Schema::XMPMediaManagementUri = "http://ns.adobe.com/xap/1.0/sType/ResourceRef#";
-const QString Schema::MakerNoteSchemaUri = "http://www.calligra.org/krita/xmp/MakerNote/1.0/";
-const QString Schema::IPTCSchemaUri = "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/";
-const QString Schema::PhotoshopSchemaUri = "http://ns.adobe.com/photoshop/1.0/";
+const PkString Schema::TIFFSchemaUri = "http://ns.adobe.com/tiff/1.0/";
+const PkString Schema::EXIFSchemaUri = "http://ns.adobe.com/exif/1.0/";
+const PkString Schema::DublinCoreSchemaUri = "http://purl.org/dc/elements/1.1/";
+const PkString Schema::XMPSchemaUri = "http://ns.adobe.com/xap/1.0/";
+const PkString Schema::XMPRightsSchemaUri = "http://ns.adobe.com/xap/1.0/rights/";
+const PkString Schema::XMPMediaManagementUri = "http://ns.adobe.com/xap/1.0/sType/ResourceRef#";
+const PkString Schema::MakerNoteSchemaUri = "http://www.calligra.org/krita/xmp/MakerNote/1.0/";
+const PkString Schema::IPTCSchemaUri = "http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/";
+const PkString Schema::PhotoshopSchemaUri = "http://ns.adobe.com/photoshop/1.0/";
 
-bool Schema::Private::load(const QString& _fileName)
+bool Schema::Private::load(const PkString& _fileName)
 {
     dbgMetaData << "Loading from " << _fileName;
 
-    QDomDocument document;
-    QFile file(_fileName);
-#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
-    QString error;
-    int line, column;
-    if (!document.setContent(&file, &error, &line, &column)) {
+    std::ifstream file(_fileName.PkToUtf8(), std::ios::binary);
+    if (!file) {
+        return false;
+    }
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    PkXmlDocument document;
+    PkString error;
+    int line = 0, column = 0;
+    if (!document.setContent(PkString(content.c_str()), &error, &line, &column)) {
         dbgMetaData << error << " at " << line << ", " << column << " in " << _fileName;
-#else
-    QDomDocument::ParseResult result = document.setContent(&file);
-    if (!result) {
-        dbgMetaData << result.errorMessage << " at " << result.errorLine << ", " << result.errorColumn << " in " << _fileName;
-#endif
         return false;
     }
 
-    QDomElement docElem = document.documentElement();
+    PkXmlElement docElem = document.documentElement();
     if (docElem.tagName() != "schema") {
         dbgMetaData << _fileName << ": invalid root name";
         return false;
@@ -67,12 +71,12 @@ bool Schema::Private::load(const QString& _fileName)
     uri = docElem.attribute("uri");
     dbgMetaData << ppVar(prefix) << ppVar(uri);
 
-    QDomElement structuresElt = docElem.firstChildElement("structures");
+    PkXmlElement structuresElt = docElem.firstChildElement("structures");
     if (structuresElt.isNull()) {
         return false;
     }
 
-    QDomElement propertiesElt = docElem.firstChildElement("properties");
+    PkXmlElement propertiesElt = docElem.firstChildElement("properties");
     if (propertiesElt.isNull()) {
         return false;
     }
@@ -83,12 +87,12 @@ bool Schema::Private::load(const QString& _fileName)
     return true;
 }
 
-void Schema::Private::parseStructures(QDomElement& elt)
+void Schema::Private::parseStructures(PkXmlElement& elt)
 {
     Q_ASSERT(elt.tagName() == "structures");
     dbgMetaData << "Parse structures";
 
-    QDomElement e = elt.firstChildElement();
+    PkXmlElement e = elt.firstChildElement();
     for (; !e.isNull(); e = e.nextSiblingElement()) {
         if (e.tagName() == "structure") {
             parseStructure(e);
@@ -98,7 +102,7 @@ void Schema::Private::parseStructures(QDomElement& elt)
     }
 }
 
-void Schema::Private::parseStructure(QDomElement& elt)
+void Schema::Private::parseStructure(PkXmlElement& elt)
 {
     Q_ASSERT(elt.tagName() == "structure");
 
@@ -107,7 +111,7 @@ void Schema::Private::parseStructure(QDomElement& elt)
         return;
     }
 
-    QString structureName = elt.attribute("name");
+    PkString structureName = elt.attribute("name");
     if (structures.contains(structureName)) {
         errMetaData << structureName << " is defined twice";
         return;
@@ -124,15 +128,15 @@ void Schema::Private::parseStructure(QDomElement& elt)
         return;
     }
 
-    QString structurePrefix = elt.attribute("prefix");
-    QString structureUri = elt.attribute("uri");
+    PkString structurePrefix = elt.attribute("prefix");
+    PkString structureUri = elt.attribute("uri");
     dbgMetaData << ppVar(structurePrefix) << ppVar(structureUri);
 
     Schema* schema = new Schema(structureUri, structurePrefix);
-    QDomElement e;
+    PkXmlElement e;
     for (e = elt.firstChildElement(); !e.isNull(); e = e.nextSiblingElement()) {
         EntryInfo info;
-        QString name;
+        PkString name;
 
         if (!parseEltType(e, info, name, false, false)) {
             continue;
@@ -149,15 +153,15 @@ void Schema::Private::parseStructure(QDomElement& elt)
     structures[ structureName ] = TypeInfo::Private::createStructure(schema, structureName);
 }
 
-void Schema::Private::parseProperties(QDomElement& elt)
+void Schema::Private::parseProperties(PkXmlElement& elt)
 {
     Q_ASSERT(elt.tagName() == "properties");
     dbgMetaData << "Parse properties";
 
-    QDomElement e;
+    PkXmlElement e;
     for (e = elt.firstChildElement(); !e.isNull(); e = e.nextSiblingElement()) {
         EntryInfo info;
-        QString name;
+        PkString name;
 
         if (!parseEltType(e, info, name, false, false)) {
             continue;
@@ -172,15 +176,15 @@ void Schema::Private::parseProperties(QDomElement& elt)
     }
 }
 
-bool Schema::Private::parseEltType(QDomElement &elt,
+bool Schema::Private::parseEltType(PkXmlElement &elt,
                                    EntryInfo &entryInfo,
-                                   QString &name,
+                                   PkString &name,
                                    bool ignoreStructure,
                                    bool ignoreName)
 {
-    dbgMetaData << elt.tagName() << elt.attributes().count() << name << ignoreStructure << ignoreName;
+    dbgMetaData << elt.tagName() << name << ignoreStructure << ignoreName;
 
-    QString tagName = elt.tagName();
+    PkString tagName = elt.tagName();
     if (!ignoreName && !elt.hasAttribute("name")) {
         errMetaData << "Missing name attribute for tag " << tagName;
         return false;
@@ -250,13 +254,13 @@ bool Schema::Private::parseEltType(QDomElement &elt,
     return true;
 }
 
-const TypeInfo* Schema::Private::parseAttType(QDomElement& elt, bool ignoreStructure)
+const TypeInfo* Schema::Private::parseAttType(PkXmlElement& elt, bool ignoreStructure)
 {
     if (!elt.hasAttribute("type")) {
         return 0;
     }
 
-    QString type = elt.attribute("type");
+    PkString type = elt.attribute("type");
     if (type == "integer") {
         return TypeInfo::Private::Integer;
     } else if (type == "boolean") {
@@ -275,13 +279,13 @@ const TypeInfo* Schema::Private::parseAttType(QDomElement& elt, bool ignoreStruc
     return nullptr;
 }
 
-const TypeInfo* Schema::Private::parseEmbType(QDomElement& elt, bool ignoreStructure)
+const TypeInfo* Schema::Private::parseEmbType(PkXmlElement& elt, bool ignoreStructure)
 {
     dbgMetaData << "Parse embedded type for " << elt.tagName();
 
-    QDomElement e;
+    PkXmlElement e;
     for (e = elt.firstChildElement(); !e.isNull(); e = e.nextSiblingElement()) {
-        QString type = e.tagName();
+        PkString type = e.tagName();
         if (type == "integer") {
             return TypeInfo::Private::Integer;
         } else if (type == "boolean") {
@@ -300,7 +304,7 @@ const TypeInfo* Schema::Private::parseEmbType(QDomElement& elt, bool ignoreStruc
     return nullptr;
 }
 
-const TypeInfo* Schema::Private::parseChoice(QDomElement& elt)
+const TypeInfo* Schema::Private::parseChoice(PkXmlElement& elt)
 {
     const TypeInfo* choiceType = parseAttType(elt, true);
     TypeInfo::PropertyType propertyType;
@@ -311,11 +315,11 @@ const TypeInfo* Schema::Private::parseChoice(QDomElement& elt)
         propertyType = TypeInfo::ClosedChoice;
     }
 
-    QDomElement e;
-    QList<TypeInfo::Choice> choices;
+    PkXmlElement e;
+    PkList<TypeInfo::Choice> choices;
     for (e = elt.firstChildElement(); !e.isNull(); e = e.nextSiblingElement()) {
         EntryInfo info;
-        QString name;
+        PkString name;
 
         if (!parseEltType(e, info, name, true, true)) {
             continue;
@@ -330,15 +334,15 @@ const TypeInfo* Schema::Private::parseChoice(QDomElement& elt)
             continue;
         }
 
-        QString text = e.text();
-        QVariant var = text;
+        PkString text = e.text();
+        PkVariant var = text;
 
         if (choiceType->propertyType() == TypeInfo::IntegerType) {
-            var = var.toInt();
+            var = PkVariant(var.toInt());
         } else if (choiceType->propertyType() == TypeInfo::DateType) {
-            // TODO: QVariant date parser isn't very good with XMP date
+            // TODO: the date parser isn't very good with XMP date
             // (it doesn't support YYYY and YYYY-MM)
-            var = var.toDateTime();
+            var = PkVariant(var.toDateTime());
         }
         choices.push_back(TypeInfo::Choice(Value(var), name));
     }
@@ -351,7 +355,7 @@ Schema::Schema()
 {
 }
 
-Schema::Schema(const QString & _uri, const QString & _ns)
+Schema::Schema(const PkString & _uri, const PkString & _ns)
         : d(new Private)
 {
     d->uri = _uri;
@@ -365,7 +369,7 @@ Schema::~Schema()
     delete d;
 }
 
-const TypeInfo* Schema::propertyType(const QString& _propertyName) const
+const TypeInfo* Schema::propertyType(const PkString& _propertyName) const
 {
     if (d->types.contains(_propertyName)) {
         return d->types.value(_propertyName).propertyType;
@@ -373,30 +377,30 @@ const TypeInfo* Schema::propertyType(const QString& _propertyName) const
     return 0;
 }
 
-const TypeInfo* Schema::structure(const QString& _structureName) const
+const TypeInfo* Schema::structure(const PkString& _structureName) const
 {
     return d->structures.value(_structureName);
 }
 
 
-QString Schema::uri() const
+PkString Schema::uri() const
 {
     return d->uri;
 }
 
-QString Schema::prefix() const
+PkString Schema::prefix() const
 {
     return d->prefix;
 }
 
-QString Schema::generateQualifiedName(const QString & name) const
+PkString Schema::generateQualifiedName(const PkString & name) const
 {
     dbgMetaData << "generateQualifiedName for " << name;
-    Q_ASSERT(!name.isEmpty() && !name.isNull());
-    return prefix() + ':' + name;
+    Q_ASSERT(!name.isEmpty());
+    return prefix() + PkString(":") + name;
 }
 
-QDebug operator<<(QDebug debug, const KisMetaData::Schema &c)
+PkDebug operator<<(PkDebug debug, const KisMetaData::Schema &c)
 {
     debug.nospace() << "Uri = " << c.uri() << " Prefix = " << c.prefix();
     return debug.space();

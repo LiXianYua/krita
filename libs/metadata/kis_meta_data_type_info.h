@@ -7,8 +7,8 @@
 #ifndef _KIS_META_DATA_TYPE_INFO_H_
 #define _KIS_META_DATA_TYPE_INFO_H_
 
-#include <QList>
-#include <QString>
+#include <PkList.h>
+#include <PkString.h>
 #include <kritametadata_export.h>
 
 namespace KisMetaData
@@ -37,13 +37,13 @@ public:
     class KRITAMETADATA_EXPORT Choice
     {
     public:
-        Choice(const Value&, const QString& hint);
+        Choice(const Value&, const PkString& hint);
         Choice(const Choice&);
         Choice& operator=(const Choice&);
         ~Choice();
     public:
         const Value& value() const;
-        const QString& hint() const;
+        const PkString& hint() const;
     private:
         struct Private;
         Private* const d;
@@ -58,18 +58,18 @@ private:
      * Create a \ref TypeInfo for a choice (either open or closed).
      * @param _propertiesType either OpenedChoice or ClosedChoice
      */
-    TypeInfo(PropertyType _propertiesType, const TypeInfo* _embedded, const QList< Choice >&);
+    TypeInfo(PropertyType _propertiesType, const TypeInfo* _embedded, const PkList< Choice >&);
     /**
      * Create a \ref TypeInfo for a structure.
      */
-    TypeInfo(Schema* _structureSchema, const QString& name);
+    TypeInfo(Schema* _structureSchema, const PkString& name);
     ~TypeInfo();
 public:
     PropertyType propertyType() const;
     const TypeInfo* embeddedPropertyType() const;
-    const QList< Choice >& choices() const;
+    const PkList< Choice >& choices() const;
     Schema* structureSchema() const;
-    const QString& structureName() const;
+    const PkString& structureName() const;
     const Parser* parser() const;
     /**
      * @return true if @p value has a type that is correct for this \ref TypeInfo
