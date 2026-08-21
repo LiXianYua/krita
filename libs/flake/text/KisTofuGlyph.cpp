@@ -4,56 +4,66 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KisTofuGlyph.h"
 
-#include <QPainterPath>
-#include <QPolygon>
-#include <QTransform>
-#include <QVector>
 
 namespace KisTofuGlyph
 {
 
-// These functions build the QPainterPath for each hex char using polygons.
+// PkPainterPath::addPolygon 只收 PkPolygonF，这里把 int 坐标的 PkPolygon 显式转一次
+// （真 Qt 里 addPolygon(PkPolygon) 走隐式 PkPolygon->PkPolygonF 转换）。
+static PkPolygonF toPolygonF(const PkPolygon &poly)
+{
+    PkVector<PkPointF> pts;
+    for (const PkPoint &pt : poly) {
+        pts.push_back(PkPointF(pt.x(), pt.y()));
+    }
+    return PkPolygonF(pts);
+}
+
+
+// These functions build the PkPainterPath for each hex char using polygons.
 // Each char glyph is formed by 3x5 grid of squares constructed from polygons
 // wound in the clockwise direction (counterclockwise to subtract).
 
-static inline QPolygon upperHole()
+static inline PkPolygon upperHole()
 {
-    return {QVector<QPoint>{{1, 1}, {1, 2}, {2, 2}, {2, 1}}};
+    return {PkVector<PkPoint>{{1, 1}, {1, 2}, {2, 2}, {2, 1}}};
 }
 
-static inline QPolygon lowerHole()
+static inline PkPolygon lowerHole()
 {
-    return {QVector<QPoint>{{1, 3}, {1, 4}, {2, 4}, {2, 3}}};
+    return {PkVector<PkPoint>{{1, 3}, {1, 4}, {2, 4}, {2, 3}}};
 }
 
-static inline QPainterPath hexChar0()
+static inline PkPainterPath hexChar0()
 {
-    static const QPainterPath s_path0 = []() {
-        const QPolygon b{QVector<QPoint>{{1, 1}, {1, 4}, {2, 4}, {2, 1}}};
-        QPainterPath p;
+    static const PkPainterPath s_path0 = []() {
+        const PkPolygon b{PkVector<PkPoint>{{1, 1}, {1, 4}, {2, 4}, {2, 1}}};
+        PkPainterPath p;
         p.addRect(0, 0, 3, 5);
-        p.addPolygon(b);
+        p.addPolygon(toPolygonF(b));
         return p;
     }();
     return s_path0;
 }
 
-static inline QPainterPath hexChar1()
+static inline PkPainterPath hexChar1()
 {
-    static const QPainterPath s_path1 = []() {
-        QPainterPath p;
+    static const PkPainterPath s_path1 = []() {
+        PkPainterPath p;
         p.addRect(1, 0, 1, 5);
         return p;
     }();
     return s_path1;
 }
 
-static inline QPainterPath hexChar2()
+static inline PkPainterPath hexChar2()
 {
-    static const QPainterPath s_path2 = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_path2 = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {3, 0},
             {3, 3},
@@ -67,17 +77,17 @@ static inline QPainterPath hexChar2()
             {2, 1},
             {0, 1},
         }};
-        QPainterPath p;
-        p.addPolygon(a);
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
         return p;
     }();
     return s_path2;
 }
 
-static inline QPainterPath hexChar3()
+static inline PkPainterPath hexChar3()
 {
-    static const QPainterPath s_path3 = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_path3 = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {3, 0},
             {3, 5},
@@ -91,17 +101,17 @@ static inline QPainterPath hexChar3()
             {2, 1},
             {0, 1},
         }};
-        QPainterPath p;
-        p.addPolygon(a);
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
         return p;
     }();
     return s_path3;
 }
 
-static inline QPainterPath hexChar4()
+static inline PkPainterPath hexChar4()
 {
-    static const QPainterPath s_path4 = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_path4 = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {1, 0},
             {1, 2},
@@ -113,27 +123,27 @@ static inline QPainterPath hexChar4()
             {2, 3},
             {0, 3},
         }};
-        QPainterPath p;
-        p.addPolygon(a);
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
         return p;
     }();
     return s_path4;
 }
 
-static inline QPainterPath hexChar5()
+static inline PkPainterPath hexChar5()
 {
-    static const QPainterPath s_path5 = []() {
+    static const PkPainterPath s_path5 = []() {
         // Just mirror a "2".
-        QPainterPath p = hexChar2();
-        return QTransform::fromScale(-1, 1).map(p).toReversed().translated(3, 0);
+        PkPainterPath p = hexChar2();
+        return PkTransform::fromScale(-1, 1).map(p).toReversed().translated(3, 0);
     }();
     return s_path5;
 }
 
-static inline QPainterPath hexChar6()
+static inline PkPainterPath hexChar6()
 {
-    static const QPainterPath s_path6 = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_path6 = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {3, 0},
             {3, 1},
@@ -143,18 +153,18 @@ static inline QPainterPath hexChar6()
             {3, 5},
             {0, 5},
         }};
-        QPainterPath p;
-        p.addPolygon(a);
-        p.addPolygon(lowerHole());
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
+        p.addPolygon(toPolygonF(lowerHole()));
         return p;
     }();
     return s_path6;
 }
 
-static inline QPainterPath hexChar7()
+static inline PkPainterPath hexChar7()
 {
-    static const QPainterPath s_path7 = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_path7 = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {3, 0},
             {3, 5},
@@ -162,39 +172,39 @@ static inline QPainterPath hexChar7()
             {2, 1},
             {0, 1},
         }};
-        QPainterPath p;
-        p.addPolygon(a);
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
         return p;
     }();
     return s_path7;
 }
 
-static inline QPainterPath hexChar8()
+static inline PkPainterPath hexChar8()
 {
-    static const QPainterPath s_path8 = []() {
-        QPainterPath p;
+    static const PkPainterPath s_path8 = []() {
+        PkPainterPath p;
         p.addRect(0, 0, 3, 5);
-        p.addPolygon(upperHole());
-        p.addPolygon(lowerHole());
+        p.addPolygon(toPolygonF(upperHole()));
+        p.addPolygon(toPolygonF(lowerHole()));
         return p;
     }();
     return s_path8;
 }
 
-static inline QPainterPath hexChar9()
+static inline PkPainterPath hexChar9()
 {
-    static const QPainterPath s_path9 = []() {
+    static const PkPainterPath s_path9 = []() {
         // Just rotate a "6" upside-down
-        QPainterPath p = hexChar6();
-        return QTransform::fromScale(-1, -1).map(p).translated(3, 5);
+        PkPainterPath p = hexChar6();
+        return PkTransform::fromScale(-1, -1).map(p).translated(3, 5);
     }();
     return s_path9;
 }
 
-static inline QPainterPath hexCharA()
+static inline PkPainterPath hexCharA()
 {
-    static const QPainterPath s_pathA = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_pathA = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {3, 0},
             {3, 5},
@@ -204,18 +214,18 @@ static inline QPainterPath hexCharA()
             {1, 5},
             {0, 5},
         }};
-        QPainterPath p;
-        p.addPolygon(a);
-        p.addPolygon(upperHole());
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
+        p.addPolygon(toPolygonF(upperHole()));
         return p;
     }();
     return s_pathA;
 }
 
-static inline QPainterPath hexCharB()
+static inline PkPainterPath hexCharB()
 {
-    static const QPainterPath s_pathB = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_pathB = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {2, 0},
             {2, 1},
@@ -229,19 +239,19 @@ static inline QPainterPath hexCharB()
             {2, 5},
             {0, 5},
         }};
-        QPainterPath p;
-        p.addPolygon(a);
-        p.addPolygon(upperHole());
-        p.addPolygon(lowerHole());
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
+        p.addPolygon(toPolygonF(upperHole()));
+        p.addPolygon(toPolygonF(lowerHole()));
         return p;
     }();
     return s_pathB;
 }
 
-static inline QPainterPath hexCharC()
+static inline PkPainterPath hexCharC()
 {
-    static const QPainterPath s_pathC = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_pathC = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {3, 0},
             {3, 1},
@@ -251,17 +261,17 @@ static inline QPainterPath hexCharC()
             {3, 5},
             {0, 5},
         }};
-        QPainterPath p;
-        p.addPolygon(a);
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
         return p;
     }();
     return s_pathC;
 }
 
-static inline QPainterPath hexCharD()
+static inline PkPainterPath hexCharD()
 {
-    static const QPainterPath s_pathD = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_pathD = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {2, 0},
             {2, 1},
@@ -271,19 +281,19 @@ static inline QPainterPath hexCharD()
             {2, 5},
             {0, 5},
         }};
-        const QPolygon b{QVector<QPoint>{{2, 1}, {3, 1}, {3, 4}, {2, 4}}};
-        QPainterPath p;
-        p.addPolygon(a);
-        p.addPolygon(b);
+        const PkPolygon b{PkVector<PkPoint>{{2, 1}, {3, 1}, {3, 4}, {2, 4}}};
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
+        p.addPolygon(toPolygonF(b));
         return p;
     }();
     return s_pathD;
 }
 
-static inline QPainterPath hexCharE()
+static inline PkPainterPath hexCharE()
 {
-    static const QPainterPath s_pathE = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_pathE = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {3, 0},
             {3, 1},
@@ -297,17 +307,17 @@ static inline QPainterPath hexCharE()
             {3, 5},
             {0, 5},
         }};
-        QPainterPath p;
-        p.addPolygon(a);
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
         return p;
     }();
     return s_pathE;
 }
 
-static inline QPainterPath hexCharF()
+static inline PkPainterPath hexCharF()
 {
-    static const QPainterPath s_pathF = []() {
-        const QPolygon a{QVector<QPoint>{
+    static const PkPainterPath s_pathF = []() {
+        const PkPolygon a{PkVector<PkPoint>{
             {0, 0},
             {3, 0},
             {3, 1},
@@ -319,14 +329,14 @@ static inline QPainterPath hexCharF()
             {1, 5},
             {0, 5},
         }};
-        QPainterPath p;
-        p.addPolygon(a);
+        PkPainterPath p;
+        p.addPolygon(toPolygonF(a));
         return p;
     }();
     return s_pathF;
 }
 
-static QPainterPath getHexChar(unsigned value)
+static PkPainterPath getHexChar(unsigned value)
 {
     switch (value) {
     case 0x0:
@@ -366,11 +376,11 @@ static QPainterPath getHexChar(unsigned value)
 }
 
 /**
- * @brief Adds a hex char at the specified row/column to the QPainterPath.
+ * @brief Adds a hex char at the specified row/column to the PkPainterPath.
  */
-static void addHexChar(QPainterPath &p, unsigned value, int row, int col)
+static void addHexChar(PkPainterPath &p, unsigned value, int row, int col)
 {
-    QPainterPath glyph = getHexChar(value);
+    PkPainterPath glyph = getHexChar(value);
     glyph.translate(2 + col * 4, 2 + row * 6);
     p.addPath(glyph);
 }
@@ -390,28 +400,28 @@ static constexpr unsigned valueAt(const char32_t codepoint, const unsigned place
 /**
  * @brief Creates the frame of a tofu glyph
  */
-static inline QPainterPath makeFrame(const int width)
+static inline PkPainterPath makeFrame(const int width)
 {
     const int inner = width - 1;
-    const QPolygon a{QVector<QPoint>{{0, 0}, {width, 0}, {width, 15}, {0, 15}}};
-    const QPolygon b{QVector<QPoint>{{1, 1}, {1, 14}, {inner, 14}, {inner, 1}}};
-    QPainterPath p;
-    p.addPolygon(a);
-    p.addPolygon(b);
+    const PkPolygon a{PkVector<PkPoint>{{0, 0}, {width, 0}, {width, 15}, {0, 15}}};
+    const PkPolygon b{PkVector<PkPoint>{{1, 1}, {1, 14}, {inner, 14}, {inner, 1}}};
+    PkPainterPath p;
+    p.addPolygon(toPolygonF(a));
+    p.addPolygon(toPolygonF(b));
     return p;
 }
 
-QPainterPath create(const char32_t codepoint, double height)
+PkPainterPath create(const char32_t codepoint, double height)
 {
     // We build the glyph as a 15x15 or 11x15 grid of squares.
-    QPainterPath p;
+    PkPainterPath p;
     if (codepoint > 0xFFFF) {
         // Codepoints outside the BMP need more than 4 digits to display, so we show 6.
         // +---+
         // |01F|
         // |389| => U+1F389
         // +---+
-        static const QPainterPath s_outline15 = makeFrame(15);
+        static const PkPainterPath s_outline15 = makeFrame(15);
         p.addPath(s_outline15);
         addHexChar(p, valueAt(codepoint, 5), 0, 0);
         addHexChar(p, valueAt(codepoint, 4), 0, 1);
@@ -424,7 +434,7 @@ QPainterPath create(const char32_t codepoint, double height)
         // |27|
         // |64| => U+2764
         // +--+
-        static const QPainterPath s_outline11 = makeFrame(11);
+        static const PkPainterPath s_outline11 = makeFrame(11);
         p.addPath(s_outline11);
         addHexChar(p, valueAt(codepoint, 3), 0, 0);
         addHexChar(p, valueAt(codepoint, 2), 0, 1);
@@ -432,7 +442,7 @@ QPainterPath create(const char32_t codepoint, double height)
         addHexChar(p, valueAt(codepoint, 0), 1, 1);
     }
     const auto scale = (1. / 15.) * height;
-    return QTransform::fromScale(scale, scale).map(p);
+    return PkTransform::fromScale(scale, scale).map(p);
 }
 
 } // namespace KisTofuGlyph

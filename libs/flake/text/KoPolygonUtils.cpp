@@ -4,23 +4,25 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoPolygonUtils.h"
 #include <boost/polygon/polygon.hpp>
-#include <QPolygon>
-#include <QList>
+#include <pk/geometry/PkPoint.h>
+#include <pk/geometry/PkPolygon.h>
 
 namespace boost { namespace polygon {
-    // QPoint wrapper
+    // PkPoint wrapper
     template <>
-    struct geometry_concept<QPoint> {
+    struct geometry_concept<PkPoint> {
         typedef point_concept type;
     };
 
     template <>
-    struct point_traits<QPoint> {
+    struct point_traits<PkPoint> {
         typedef int coordinate_type;
 
-        static inline coordinate_type get(const QPoint& point,
+        static inline coordinate_type get(const PkPoint& point,
                                           orientation_2d orient) {
             if(orient == HORIZONTAL)
                 return point.x();
@@ -29,58 +31,58 @@ namespace boost { namespace polygon {
     };
 
     template <>
-    struct point_mutable_traits<QPoint> {
-        static inline void set(QPoint& point, orientation_2d orient, int value) {
+    struct point_mutable_traits<PkPoint> {
+        static inline void set(PkPoint& point, orientation_2d orient, int value) {
             if(orient == HORIZONTAL)
                 point.rx() = value;
             else
                 point.ry() = value;
         }
-        static inline QPoint construct(int x_value, int y_value) {
-            QPoint retval;
+        static inline PkPoint construct(int x_value, int y_value) {
+            PkPoint retval;
             retval.rx() = x_value;
             retval.ry() = y_value;
             return retval;
         }
     };
 
-    // QPolygon wrapper
+    // PkPolygon wrapper
     template <>
-    struct geometry_concept<QPolygon>{ typedef polygon_concept type; };
+    struct geometry_concept<PkPolygon>{ typedef polygon_concept type; };
 
     template <>
-    struct polygon_traits<QPolygon> {
+    struct polygon_traits<PkPolygon> {
         typedef int coordinate_type;
-        typedef QPolygon::const_iterator iterator_type;
-        typedef QPoint point_type;
+        typedef PkPolygon::const_iterator iterator_type;
+        typedef PkPoint point_type;
 
-        static inline iterator_type begin_points(const QPolygon& t) {
+        static inline iterator_type begin_points(const PkPolygon& t) {
             return t.begin();
         }
 
-        static inline iterator_type end_points(const QPolygon& t) {
+        static inline iterator_type end_points(const PkPolygon& t) {
             return t.end();
         }
 
-        static inline std::size_t size(const QPolygon& t) {
+        static inline std::size_t size(const PkPolygon& t) {
             return t.size();
         }
 
-        static inline winding_direction winding(const QPolygon& t) {
+        static inline winding_direction winding(const PkPolygon& t) {
             Q_UNUSED(t);
             return unknown_winding;
         }
     };
 
     template <>
-    struct polygon_mutable_traits<QPolygon> {
+    struct polygon_mutable_traits<PkPolygon> {
         template <typename iT>
-        static inline QPolygon& set_points(QPolygon& t,
+        static inline PkPolygon& set_points(PkPolygon& t,
                                            iT input_begin, iT input_end) {
             t.clear();
 
             for(iT iter = input_begin; iter != input_end; iter++) {
-                t.push_back(QPoint(iter->x(), iter->y()));
+                t.push_back(PkPoint(iter->x(), iter->y()));
             }
             return t;
         }
@@ -88,11 +90,11 @@ namespace boost { namespace polygon {
     };
 } }
 
-typedef std::vector<QPolygon> PolygonSet;
+typedef std::vector<PkPolygon> PolygonSet;
 
 
 
-QPolygon KoPolygonUtils::offsetPolygon(const QPolygon &polygon, int offset, bool rounded, int circleSegments)
+PkPolygon KoPolygonUtils::offsetPolygon(const PkPolygon &polygon, int offset, bool rounded, int circleSegments)
 {
     PolygonSet polygonSet;
     polygonSet.push_back(polygon);
@@ -100,18 +102,17 @@ QPolygon KoPolygonUtils::offsetPolygon(const QPolygon &polygon, int offset, bool
     return polygonSet[0];
 }
 
-QList<QPolygon> KoPolygonUtils::offsetPolygons(const QList<QPolygon> polygons, int offset, bool rounded, int circleSegments)
+PkList<PkPolygon> KoPolygonUtils::offsetPolygons(const PkList<PkPolygon> polygons, int offset, bool rounded, int circleSegments)
 {
     PolygonSet polygonSet;
-    Q_FOREACH(QPolygon polygon, polygons) {
+    for (const PkPolygon &polygon : polygons) {
         polygonSet.push_back(polygon);
     }
     boost::polygon::resize(polygonSet, offset, rounded, circleSegments);
 
-    QList<QPolygon> finalPolygons;
+    PkList<PkPolygon> finalPolygons;
     for (int i=0; i < int(polygonSet.size()); i++) {
         finalPolygons.append(polygonSet.at(i));
     }
     return finalPolygons;
 }
-

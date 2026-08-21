@@ -4,7 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QPainterPath>
+#include <PkXmlCompat.h>
+
+#include <pk/geometry/PkPainterPath.h>
 
 /**
  * @brief Tasty tofu for Kiki.
@@ -27,8 +29,8 @@ namespace KisTofuGlyph
  * Unicode codepoint.
  * 
  * @param codepoint Unicode codepoint to display
- * @return QPainterPath the glyph scaled to the specified height.
+ * @return PkPainterPath the glyph scaled to the specified height.
  */
-QPainterPath create(char32_t codepoint, double height);
+PkPainterPath create(char32_t codepoint, double height);
 
 } // namespace KisTofuGlyph
