@@ -14,6 +14,17 @@
 
 #include <QFileInfo>
 
+namespace {
+
+// R-09 边界层：PkString → QString（与 KoCssTextUtils.cpp 的 qStringToPk/pkToQString 一致）。
+QString pkToQString(const PkString &s)
+{
+    const std::string u8 = s.PkToUtf8();
+    return QString::fromUtf8(u8.data(), int(u8.size()));
+}
+
+}
+
 
 /**
  * @brief The FontFamilySizeInfo class
@@ -281,60 +292,29 @@ const QString SLANT_TAG = "slnt";
 const QString ITALIC_TAG = "ital";
 const QString OPTICAL_TAG = "opsz";
 
-bool KoFFWWSConverter::addFontFromPattern(const FcPattern *pattern, FT_LibrarySP freeTypeLibrary)
+bool KoFFWWSConverter::addFontFromEntry(const PkFontProvider::FontEntry &entry, FT_LibrarySP freeTypeLibrary, const PkFontProvider *provider)
 {
     if (!freeTypeLibrary.data()) {
         return false;
     }
 
-    bool getFile = false;
-    FcChar8 *fileValue{};
-    if (FcPatternGetString(pattern, FC_FILE, 0, &fileValue) != FcResultMatch) {
-        qWarning() << "Failed to get font file for" << pattern;
-    } else {
-        getFile = true;
-    }
-    QString filename = QString::fromUtf8(reinterpret_cast<char *>(fileValue));
-
-    int indexValue{};
-    if (FcPatternGetInteger(pattern, FC_INDEX, 0, &indexValue) != FcResultMatch) {
-        qWarning() << "Failed to get font index for" << pattern << "(file:" << filename << ")";
-        getFile = false;
-    }
-
-    if (getFile == false) {
-        return getFile;
-    }
+    // 原 addFontFromPattern 从 FcPattern 读 FC_FILE/FC_INDEX/FC_LANG；端口化后这些
+    // 字段由适配器在 FontEntry 里给好（I-6 分工表：handle/familyName/languages），
+    // 这里直接消费，不再有「读不到 pattern 字段」的失败分支。
+    const QString filename = pkToQString(entry.handle.filePath);
+    const int indexValue = entry.handle.faceIndex;
 
     if (indexValue > 0xffff) { // this indicates the font is a variable font instance, so we don't try to load it.
         return false;
     }
 
     bool success = addFontFromFile(filename, indexValue, freeTypeLibrary);
-    if (success) {
-        FcLangSet *set;
-        if (FcPatternGetLangSet(pattern, FC_LANG, 0, &set) != FcResultMatch) {
-            qWarning() << "Failed to get font index for" << pattern << "(file:" << filename << ")";
-            return success;
-        }
-        FcStrList *list = FcStrListCreate(FcLangSetGetLangs(set));
-        FcStrListFirst(list);
-        FcChar8 *langString = FcStrListNext(list);
-        QString lang = QString::fromUtf8(reinterpret_cast<char *>(langString));
+    if (success && !entry.languages.empty() && provider) {
         QList<QLocale> languages;
-        while (!lang.isEmpty()) {
-            languages.append(QLocale(lang));
-
-            langString = FcStrListNext(list);
-            lang = QString::fromUtf8(reinterpret_cast<char *>(langString));
+        for (const PkString &lang : entry.languages) {
+            languages.append(QLocale(pkToQString(lang)));
         }
-        FcStrListDone(list);
-        FcCharSet *charSet = nullptr;
-        if (FcPatternGetCharSet(pattern, FC_CHARSET, 0, &charSet) != FcResultMatch) {
-            return success;
-        }
-        addSupportedLanguagesByFile(filename, indexValue, languages, charSet);
-
+        addSupportedLanguagesByFile(filename, indexValue, languages, provider, entry.handle);
     }
     return success;
 }
@@ -636,7 +616,7 @@ bool KoFFWWSConverter::addFontFromFile(const QString &filename, const int index,
 }
 
 #include <KoWritingSystemUtils.h>
-void KoFFWWSConverter::addSupportedLanguagesByFile(const QString &filename, const int index, const QList<QLocale> &supportedLanguages, FcCharSet *set)
+void KoFFWWSConverter::addSupportedLanguagesByFile(const QString &filename, const int index, const QList<QLocale> &supportedLanguages, const PkFontProvider *provider, const PkFontProvider::FontHandle &handle)
 {
     auto it = d->fontFamilyCollection.depthFirstTailBegin();
     for (; it!= d->fontFamilyCollection.depthFirstTailEnd(); it++) {
@@ -653,7 +633,9 @@ void KoFFWWSConverter::addSupportedLanguagesByFile(const QString &filename, cons
             QString sample = samples.keys().at(i);
             bool matching = true;
             Q_FOREACH (uint unicode, sample.toUcs4()) {
-                if (!FcCharSetHasChar(set, unicode)) {
+                // R-12 评审 M-5：端口只给逐码点 coversCodepoint()，没有整个字符集粒度
+                // ——FcCharSetHasChar(set, unicode) → provider->coversCodepoint(handle, unicode)。
+                if (!provider->coversCodepoint(handle, unicode)) {
                     matching = false;
                     break;
                 }

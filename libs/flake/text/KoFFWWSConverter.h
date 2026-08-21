@@ -9,6 +9,7 @@
 #include <QHash>
 #include <KoFontLibraryResourceUtils.h>
 #include "KoCSSFontInfo.h"
+#include "PkFontProvider.h"
 #include <kritaflake_export.h>
 
 #include <KoSvgText.h>
@@ -65,15 +66,18 @@ public:
         int fontIndex;
     };
 
-    /// Add a font from a fontconfig pattern.
-    bool addFontFromPattern(const FcPattern *pattern, FT_LibrarySP freeTypeLibrary);
+    /// Add a font from a PkFontProvider enumeration entry (handle + familyName + languages).
+    /// The provider is passed along so languages can be resolved into writing-system
+    /// samples per codepoint (R-12 评审 M-5：端口只给逐码点 coversCodepoint()，没有整个
+    /// 字符集粒度)。
+    bool addFontFromEntry(const PkFontProvider::FontEntry &entry, FT_LibrarySP freeTypeLibrary, const PkFontProvider *provider);
 
     /// Add a font from a filename and index.
     /// This will use freetype and harfbuzz to figure out the family name(s), styles
     /// and other font features.
     bool addFontFromFile(const QString &filename, const int index, FT_LibrarySP freeTypeLibrary);
 
-    void addSupportedLanguagesByFile(const QString &filename, const int index, const QList<QLocale> &supportedLanguages, FcCharSet *set);
+    void addSupportedLanguagesByFile(const QString &filename, const int index, const QList<QLocale> &supportedLanguages, const PkFontProvider *provider, const PkFontProvider::FontHandle &handle);
 
     /// Sort any straggling fonts into WWSFamilies.
     void sortIntoWWSFamilies();
