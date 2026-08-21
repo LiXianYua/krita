@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <cmath>
+#include <PkGlobal.h>
 #include <PkScopedPointer.h>
 #include "kritaglobal_export.h"
 
