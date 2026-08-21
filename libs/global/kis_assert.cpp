@@ -55,7 +55,7 @@ void kis_assert_common(const char *assertion, const char *file, int line, bool f
         std::fflush(stderr);
     }
 
-    if (fatal || (isIgnorable && forceCrashOnSafeAsserts)) {
+    if (fatal || !isIgnorable || forceCrashOnSafeAsserts) {
         std::abort();
     }
 }

@@ -21,8 +21,9 @@ KRITAGLOBAL_EXPORT void kis_safe_assert_recoverable(const char *assertion, const
 // NOLINTBEGIN(cppcoreguidelines-macro-usage, readability-simplify-boolean-expr)
 
 /**
- * The KIS_ASSERT family provides fatal assertions and recoverable
- * assertions with caller-supplied recovery branches.
+ * The KIS_ASSERT family provides hard assertions and safe recoverable
+ * assertions. In the headless core, hard failures terminate; safe failures
+ * execute caller-supplied recovery branches.
  *
  * Note, the macro are present in Release mode by default!
  */
@@ -40,9 +41,9 @@ KRITAGLOBAL_EXPORT void kis_safe_assert_recoverable(const char *assertion, const
 #define KIS_ASSERT_X(cond, where, what) ((!(cond)) ? kis_assert_x_exception(#cond,where, what,__FILE__,__LINE__) : (void)0)
 
 /**
- * This is a recoverable variant of KIS_ASSERT. It doesn't throw any
- * exceptions. It logs the failure and executes user-supplied code. The
- * typical usecase is the following:
+ * This hard recover form doesn't throw any exceptions. In the headless core
+ * it logs the failure and terminates before the caller-supplied recovery
+ * branch. The typical usecase is the following:
  *
  * int fooBar = ...;
  * KIS_ASSERT_RECOVER (fooBar > 0) {

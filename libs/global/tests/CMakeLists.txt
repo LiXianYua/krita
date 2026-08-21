@@ -19,6 +19,7 @@ if(BUILD_TESTING)
         ../KisFileUtils.cpp
         ../KisBackup.cpp
         ../KisUsageLogger.cpp
+        ../kis_assert.cpp
     )
     target_include_directories(kritaglobal_file_io_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/..
