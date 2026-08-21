@@ -6,30 +6,23 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include <resources/KoPattern.h>
 
 #include <sys/types.h>
-#include <QtEndian>
 
+#include <cstring>
+#include <filesystem>
 #include <limits.h>
 #include <stdlib.h>
 
-#include <QFileInfo>
-#include <QDir>
-#include <QPoint>
-#include <QSize>
-#include <QImage>
-#include <QMap>
-#include <QFile>
-#include <QBuffer>
-#include <QFileInfo>
-#include <QImageReader>
+#include <PkMimeDatabase.h>
+#include <PkMemoryStream.h>
+#include <PkRgb.h>
 
 #include <DebugPigment.h>
-#include <klocalizedstring.h>
 #include <kis_pointer_utils.h>
-
-#include <KisMimeDatabase.h>
 
 namespace
 {
@@ -44,16 +37,58 @@ struct GimpPatternHeader {
 
 // Yes! This is _NOT_ what my pat.txt file says. It's really not 'GIMP', but 'GPAT'
 quint32 const GimpPatternMagic = (('G' << 24) + ('P' << 16) + ('A' << 8) + ('T' << 0));
+
+// QtEndian 的 qFromBigEndian/qToBigEndian 等价物（本机为小端，直接字节交换）。
+inline quint32 qFromBigEndian(quint32 v) { return __builtin_bswap32(v); }
+inline quint32 qToBigEndian(quint32 v) { return __builtin_bswap32(v); }
+
+// 已知图像 mime 白名单（对齐 Qt 位图读入器支持的常见格式）。
+bool isSupportedImageMime(const PkString &mime)
+{
+    return mime == "image/png" || mime == "image/jpeg" || mime == "image/gif"
+        || mime == "image/bmp" || mime == "image/tiff" || mime == "image/webp";
+}
+
+// 从文件名取后缀并大写（去点），对齐 Qt 的文件信息类 suffix().toUpper()。
+PkString fileExtensionUpper(const PkString &filename)
+{
+    std::filesystem::path p(filename.PkToUtf8());
+    std::string ext = p.extension().u8string();
+    if (!ext.empty() && ext[0] == '.') {
+        ext = ext.substr(1);
+    }
+    return PkString::PkFromUtf8(ext.data(), static_cast<int>(ext.size())).toUpper();
+}
+
+// 图像文件编解码是 pk/image 的已知缺口（岔路 A，pk/image/README.md 待认领缺口①）：
+// PkImage 没有 load()/save()，本批次不引入外部编解码库。GPAT 路径完整保留；非
+// GPAT 图像（PNG/JPEG 等）的 load/save 在此显式失败，等 impex / libs/resources
+// 各自的编解码落地后替换为真实实现（消费方保持 loadFromDevice/saveToDevice 不变）。
+bool pkImageLoad(PkImage &image, PkStream *dev, const PkString &format)
+{
+    Q_UNUSED(image);
+    Q_UNUSED(dev);
+    Q_UNUSED(format);
+    return false;
+}
+
+bool pkImageSave(const PkImage &image, PkStream *dev, const PkString &format)
+{
+    Q_UNUSED(image);
+    Q_UNUSED(dev);
+    Q_UNUSED(format);
+    return false;
+}
 }
 
 
-KoPattern::KoPattern(const QString& file)
+KoPattern::KoPattern(const PkString& file)
     : KoResource(file)
 {
 }
 
-KoPattern::KoPattern(const QImage &image, const QString &name, const QString &filename)
-    : KoResource(QString())
+KoPattern::KoPattern(const PkImage &image, const PkString &name, const PkString &filename)
+    : KoResource(PkString())
 {
     setPatternImage(image);
     setName(name);
@@ -76,9 +111,9 @@ KoResourceSP KoPattern::clone() const
     return KoResourceSP(new KoPattern(*this));
 }
 
-bool KoPattern::loadPatFromDevice(QIODevice *dev)
+bool KoPattern::loadPatFromDevice(PkStream *dev)
 {
-    QByteArray bytes = dev->readAll();
+    PkByteArray bytes = dev->readAll();
     int dataSize = bytes.size();
     const char* data = bytes.constData();
 
@@ -99,8 +134,8 @@ bool KoPattern::loadPatFromDevice(QIODevice *dev)
     bh.bytes = qFromBigEndian(bh.bytes);
     bh.magic_number = qFromBigEndian(bh.magic_number);
 
-    if (bytes.mid(20, 4) != "GPAT") {
-        qWarning() << filename() << "is not a .pat pattern file";
+    if (std::memcmp(bytes.constData() + 20, "GPAT", 4) != 0) {
+        dbgPigment << filename() << "is not a .pat pattern file";
         return false;
     }
 
@@ -116,8 +151,8 @@ bool KoPattern::loadPatFromDevice(QIODevice *dev)
         return false;
     }
 
-    // size -1 so we don't add the end 0 to the QString...
-    QString newName = QString::fromUtf8(name, size - 1);
+    // size -1 so we don't add the end 0 to the PkString...
+    PkString newName = PkString::PkFromUtf8(name, size - 1);
     if (!newName.isEmpty()) { // if it's empty, it's better to leave the name that was there before (based on filename)
         setName(newName);
     }
@@ -127,67 +162,67 @@ bool KoPattern::loadPatFromDevice(QIODevice *dev)
         return false;
     }
 
-    QImage::Format imageFormat;
+    PkImage::Format imageFormat;
 
     if (bh.bytes == 1 || bh.bytes == 3) {
-        imageFormat = QImage::Format_RGB32;
+        imageFormat = PkImage::Format_RGB32;
     } else {
-        imageFormat = QImage::Format_ARGB32;
+        imageFormat = PkImage::Format_ARGB32;
     }
 
-    QImage pattern = QImage(bh.width, bh.height, imageFormat);
+    PkImage pattern(static_cast<int>(bh.width), static_cast<int>(bh.height), imageFormat);
     if (pattern.isNull()) {
         return false;
     }
-    k = bh.header_size;
+    k = static_cast<qint32>(bh.header_size);
 
     if (bh.bytes == 1) {
         // Grayscale
         qint32 val;
         for (quint32 y = 0; y < bh.height; ++y) {
-            QRgb* pixels = reinterpret_cast<QRgb*>( pattern.scanLine(y) );
+            PkRgb* pixels = reinterpret_cast<PkRgb*>(pattern.scanLine(static_cast<int>(y)));
             for (quint32 x = 0; x < bh.width; ++x, ++k) {
                 if (k > dataSize) {
-                    qWarning() << "failed to load grayscale pattern" << filename();
+                    dbgPigment << "failed to load grayscale pattern" << filename();
                     return false;
                 }
 
                 val = data[k];
-                pixels[x] = qRgb(val, val, val);
+                pixels[x] = pkRgb(val, val, val);
             }
         }
         // It was grayscale, so make the pattern as small as possible
         // by converting it to Indexed8
-        pattern.convertTo(QImage::Format_Indexed8);
+        pattern.convertTo(PkImage::Format_Indexed8);
     }
     else if (bh.bytes == 2) {
         // Grayscale + A
         qint32 val;
         qint32 alpha;
         for (quint32 y = 0; y < bh.height; ++y) {
-            QRgb* pixels = reinterpret_cast<QRgb*>( pattern.scanLine(y) );
+            PkRgb* pixels = reinterpret_cast<PkRgb*>(pattern.scanLine(static_cast<int>(y)));
             for (quint32 x = 0; x < bh.width; ++x, ++k) {
                 if (k + 2 > dataSize) {
-                    qWarning() << "failed to load grayscale +_ alpha pattern" << filename();
+                    dbgPigment << "failed to load grayscale +_ alpha pattern" << filename();
                     return false;
                 }
 
                 val = data[k];
                 alpha = data[k++];
-                pixels[x] = qRgba(val, val, val, alpha);
+                pixels[x] = pkRgba(val, val, val, alpha);
             }
         }
     }
     else if (bh.bytes == 3) {
         // RGB without alpha
         for (quint32 y = 0; y < bh.height; ++y) {
-            QRgb* pixels = reinterpret_cast<QRgb*>( pattern.scanLine(y) );
+            PkRgb* pixels = reinterpret_cast<PkRgb*>(pattern.scanLine(static_cast<int>(y)));
             for (quint32 x = 0; x < bh.width; ++x) {
                 if (k + 3 > dataSize) {
-                    qWarning() << "failed to load RGB pattern" << filename();
+                    dbgPigment << "failed to load RGB pattern" << filename();
                     return false;
                 }
-                pixels[x] = qRgb(data[k],
+                pixels[x] = pkRgb(data[k],
                                  data[k + 1],
                                  data[k + 2]);
                 k += 3;
@@ -196,14 +231,14 @@ bool KoPattern::loadPatFromDevice(QIODevice *dev)
     } else if (bh.bytes == 4) {
         // Has alpha
         for (quint32 y = 0; y < bh.height; ++y) {
-            QRgb* pixels = reinterpret_cast<QRgb*>( pattern.scanLine(y) );
+            PkRgb* pixels = reinterpret_cast<PkRgb*>(pattern.scanLine(static_cast<int>(y)));
             for (quint32 x = 0; x < bh.width; ++x) {
                 if (k + 4 > dataSize) {
-                    qWarning() << "failed to load RGB + Alpha pattern" << filename();
+                    dbgPigment << "failed to load RGB + Alpha pattern" << filename();
                     return false;
                 }
 
-                pixels[x] = qRgba(data[k],
+                pixels[x] = pkRgba(data[k],
                                   data[k + 1],
                                   data[k + 2],
                                   data[k + 3]);
@@ -225,7 +260,7 @@ bool KoPattern::loadPatFromDevice(QIODevice *dev)
 
 }
 
-bool KoPattern::savePatToDevice(QIODevice* dev) const
+bool KoPattern::savePatToDevice(PkStream* dev) const
 {
     // Header: header_size (24+name length),version,width,height,colordepth of brush,magic,name
     // depth: 1 = greyscale, 2 = greyscale + A, 3 = RGB, 4 = RGBA
@@ -238,9 +273,9 @@ bool KoPattern::savePatToDevice(QIODevice* dev) const
 
 
     GimpPatternHeader ph;
-    QByteArray utf8Name = name().toUtf8();
-    char const* name = utf8Name.data();
-    int nameLength = qstrlen(name);
+    std::string utf8Name = name().PkToUtf8();
+    char const* name = utf8Name.c_str();
+    int nameLength = static_cast<int>(std::strlen(name));
 
     ph.header_size = qToBigEndian((quint32)sizeof(GimpPatternHeader) + nameLength + 1); // trailing 0
     ph.version = qToBigEndian((quint32)1);
@@ -249,9 +284,7 @@ bool KoPattern::savePatToDevice(QIODevice* dev) const
     ph.bytes = qToBigEndian((quint32)4);
     ph.magic_number = qToBigEndian((quint32)GimpPatternMagic);
 
-    QByteArray bytes = QByteArray::fromRawData(reinterpret_cast<char*>(&ph), sizeof(GimpPatternHeader));
-    int wrote = dev->write(bytes);
-    bytes.clear();
+    PkStream::pk_int64 wrote = dev->write(reinterpret_cast<char*>(&ph), sizeof(GimpPatternHeader));
 
     if (wrote == -1)
         return false;
@@ -261,41 +294,46 @@ bool KoPattern::savePatToDevice(QIODevice* dev) const
         return false;
 
     int k = 0;
+    PkByteArray bytes;
     bytes.resize(width() * height() * 4);
+    char* bdata = bytes.data();
     for (qint32 y = 0; y < height(); ++y) {
         for (qint32 x = 0; x < width(); ++x) {
             // RGBA only
-            QRgb pixel = m_pattern.pixel(x, y);
-            bytes[k++] = static_cast<char>(qRed(pixel));
-            bytes[k++] = static_cast<char>(qGreen(pixel));
-            bytes[k++] = static_cast<char>(qBlue(pixel));
-            bytes[k++] = static_cast<char>(qAlpha(pixel));
+            PkRgb pixel = m_pattern.pixel(x, y);
+            bdata[k++] = static_cast<char>(pkRed(pixel));
+            bdata[k++] = static_cast<char>(pkGreen(pixel));
+            bdata[k++] = static_cast<char>(pkBlue(pixel));
+            bdata[k++] = static_cast<char>(pkAlpha(pixel));
         }
     }
 
-    wrote = dev->write(bytes);
+    wrote = dev->write(bdata, bytes.size());
     if (wrote == -1)
         return false;
 
     return true;
 }
 
-bool KoPattern::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KoPattern::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
 
-    QByteArray ba = dev->readAll();
+    PkByteArray ba = dev->readAll();
 
-    QBuffer buf(&ba);
-    buf.open(QBuffer::ReadOnly);
+    PkMemoryStream buf;
+    buf.open(PkStream::ReadWrite);
+    buf.write(ba.constData(), ba.size());
+    buf.seek(0);
 
     bool result = false;
 
-    if (QImageReader::supportedMimeTypes().contains(KisMimeDatabase::mimeTypeForData(ba).toLatin1())) {
-        QFileInfo fi(filename());
-        QImage image;
-        result = image.load(&buf, fi.suffix().toUpper().toLatin1());
-        setPatternImage(image);
+    if (isSupportedImageMime(PkMimeDatabase::mimeTypeForData(ba))) {
+        PkImage image;
+        result = pkImageLoad(image, &buf, fileExtensionUpper(filename()));
+        if (result) {
+            setPatternImage(image);
+        }
     }
     else {
         result = loadPatFromDevice(&buf);
@@ -305,10 +343,9 @@ bool KoPattern::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resources
 
 }
 
-bool KoPattern::saveToDevice(QIODevice *dev) const
+bool KoPattern::saveToDevice(PkStream *dev) const
 {
-    QFileInfo fi(filename());
-    QString fileExtension = fi.suffix().toUpper();
+    PkString fileExtension = fileExtensionUpper(filename());
 
     bool result = false;
 
@@ -319,7 +356,7 @@ bool KoPattern::saveToDevice(QIODevice *dev) const
         if (fileExtension.isEmpty()) {
             fileExtension = "PNG";
         }
-        result = m_pattern.save(dev, fileExtension.toLatin1());
+        result = pkImageSave(m_pattern, dev, fileExtension);
     }
 
     return result;
@@ -336,7 +373,7 @@ qint32 KoPattern::height() const
     return m_pattern.height();
 }
 
-void KoPattern::setPatternImage(const QImage& image)
+void KoPattern::setPatternImage(const PkImage& image)
 {
     m_pattern = image;
     checkForAlpha(image);
@@ -345,22 +382,22 @@ void KoPattern::setPatternImage(const QImage& image)
 }
 
 
-QString KoPattern::defaultFileExtension() const
+PkString KoPattern::defaultFileExtension() const
 {
-    return QString(".pat");
+    return PkString(".pat");
 }
 
 
-QImage KoPattern::pattern() const
+PkImage KoPattern::pattern() const
 {
     return m_pattern;
 }
 
-void KoPattern::checkForAlpha(const QImage& image) {
+void KoPattern::checkForAlpha(const PkImage& image) {
     m_hasAlpha = false;
     for (int y = 0; y < image.height(); y++) {
         for (int x = 0; x < image.width(); x++) {
-            if (qAlpha(image.pixel(x, y)) != 255) {
+            if (pkAlpha(image.pixel(x, y)) != 255) {
                 m_hasAlpha = true;
                 break;
             }
@@ -377,14 +414,14 @@ KoPatternSP KoPattern::cloneWithoutAlpha() const
 {
     if (!hasAlpha()) return clone().dynamicCast<KoPattern>();
 
-    QImage image = this->image();
+    PkImage image = this->image();
 
     for (int y = 0; y < image.height(); ++y) {
-        QRgb *ptr = reinterpret_cast<QRgb*>(image.scanLine(y));
+        PkRgb *ptr = reinterpret_cast<PkRgb*>(image.scanLine(y));
 
         for (int x = 0; x < image.width(); ++x) {
-            const qreal coeff = qAlpha(*ptr) / 255.0;
-            *ptr = qRgba(qRound(coeff * qRed(*ptr)), qRound(coeff * qGreen(*ptr)), qRound(coeff * qBlue(*ptr)), 255);
+            const qreal coeff = pkAlpha(*ptr) / 255.0;
+            *ptr = pkRgba(qRound(coeff * pkRed(*ptr)), qRound(coeff * pkGreen(*ptr)), qRound(coeff * pkBlue(*ptr)), 255);
             ptr++;
         }
     }

@@ -6,14 +6,19 @@
 #ifndef KOPATTERN_H
 #define KOPATTERN_H
 
+#include <PkImage.h>
+#include <PkPair.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
+
 #include <KoResource.h>
+#include <KisResourceTypes.h>
 #include <kritapigment_export.h>
 
-#include <QMetaType>
-#include <QSharedPointer>
+class PkStream;
 
 class KoPattern;
-typedef QSharedPointer<KoPattern> KoPatternSP;
+typedef PkSharedPointer<KoPattern> KoPatternSP;
 
 
 /// Write API docs here
@@ -27,7 +32,7 @@ public:
      *
      * @param filename the file name to save and load from.
      */
-    explicit KoPattern(const QString &filename);
+    explicit KoPattern(const PkString &filename);
 
     /**
      * Create a new pattern from scratch, without loading it from a file
@@ -36,7 +41,7 @@ public:
      * @param name the name of the pattern
      * @param filename the filename of the pattern (note that this filename does not need to exist)
      */
-    KoPattern(const QImage &image, const QString &name, const QString &filename);
+    KoPattern(const PkImage &image, const PkString &name, const PkString &filename);
     ~KoPattern() override;
 
     KoPattern(const KoPattern &rhs);
@@ -46,26 +51,26 @@ public:
 
 public:
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice* dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream* dev) const override;
 
-    bool loadPatFromDevice(QIODevice *dev);
-    bool savePatToDevice(QIODevice* dev) const;
+    bool loadPatFromDevice(PkStream *dev);
+    bool savePatToDevice(PkStream* dev) const;
 
     qint32 width() const;
     qint32 height() const;
 
-    QString defaultFileExtension() const override;
+    PkString defaultFileExtension() const override;
 
-    QPair<QString, QString> resourceType() const override {
-        return QPair<QString, QString>(ResourceType::Patterns, "");
+    PkPair<PkString, PkString> resourceType() const override {
+        return PkPair<PkString, PkString>(ResourceType::Patterns, "");
     }
 
     /**
      * @brief pattern the actual pattern image
-     * @return a valid QImage. There are no guarantees to the image format.
+     * @return a valid PkImage. There are no guarantees to the image format.
      */
-    QImage pattern() const;
+    PkImage pattern() const;
 
     bool hasAlpha() const;
 
@@ -81,17 +86,12 @@ public:
 
 private:
 
-    void setPatternImage(const QImage& image);
-    void checkForAlpha(const QImage& image);
+    void setPatternImage(const PkImage& image);
+    void checkForAlpha(const PkImage& image);
 
 private:
-    QImage m_pattern;
+    PkImage m_pattern;
     bool m_hasAlpha = false;
 };
 
-Q_DECLARE_METATYPE(KoPattern*)
-
-Q_DECLARE_METATYPE(QSharedPointer<KoPattern>)
-
 #endif // KOPATTERN_H
-
