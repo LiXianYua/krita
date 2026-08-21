@@ -5,21 +5,21 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoPathSegmentTypeCommand.h"
 
 #include <KoPathSegment.h>
-#include <klocalizedstring.h>
 
 KoPathSegmentTypeCommand::KoPathSegmentTypeCommand(const KoPathPointData & pointData, SegmentType segmentType, KUndo2Command *parent)
 : KUndo2Command(parent)
 , m_segmentType(segmentType)
 {
-    QList<KoPathPointData> pointDataList;
+    PkList<KoPathPointData> pointDataList;
     pointDataList.append(pointData);
     initialize(pointDataList);
 }
 
-KoPathSegmentTypeCommand::KoPathSegmentTypeCommand(const QList<KoPathPointData> & pointDataList, SegmentType segmentType,
+KoPathSegmentTypeCommand::KoPathSegmentTypeCommand(const PkList<KoPathPointData> & pointDataList, SegmentType segmentType,
         KUndo2Command *parent)
         : KUndo2Command(parent)
         , m_segmentType(segmentType)
@@ -34,7 +34,7 @@ KoPathSegmentTypeCommand::~KoPathSegmentTypeCommand()
 void KoPathSegmentTypeCommand::redo()
 {
     KUndo2Command::redo();
-    QList<KoPathPointData>::const_iterator it(m_pointDataList.constBegin());
+    PkList<KoPathPointData>::const_iterator it(m_pointDataList.constBegin());
     for (; it != m_pointDataList.constEnd(); ++it) {
         KoPathShape * pathShape = it->pathShape;
         pathShape->update();
@@ -43,7 +43,7 @@ void KoPathSegmentTypeCommand::redo()
 
         if (m_segmentType == Curve) {
             // we change type to curve -> set control point positions
-            QPointF pointDiff = segment.second()->point() - segment.first()->point();
+            PkPointF pointDiff = segment.second()->point() - segment.first()->point();
             segment.first()->setControlPoint2(segment.first()->point() + pointDiff / 3.0);
             segment.second()->setControlPoint1(segment.first()->point() + pointDiff * 2.0 / 3.0);
         } else {
@@ -84,9 +84,9 @@ void KoPathSegmentTypeCommand::undo()
     }
 }
 
-void KoPathSegmentTypeCommand::initialize(const QList<KoPathPointData> & pointDataList)
+void KoPathSegmentTypeCommand::initialize(const PkList<KoPathPointData> & pointDataList)
 {
-    QList<KoPathPointData>::const_iterator it(pointDataList.begin());
+    PkList<KoPathPointData>::const_iterator it(pointDataList.begin());
     for (; it != pointDataList.end(); ++it) {
         KoPathSegment segment = it->pathShape->segmentByIndex(it->pointIndex);
         if (segment.isValid()) {
@@ -118,8 +118,8 @@ void KoPathSegmentTypeCommand::initialize(const QList<KoPathPointData> & pointDa
     }
 
     if (m_segmentType == Curve) {
-        setText(kundo2_i18n("Change segments to curves"));
+        setText(kundo2_text("Change segments to curves"));
     } else {
-        setText(kundo2_i18n("Change segments to lines"));
+        setText(kundo2_text("Change segments to lines"));
     }
 }

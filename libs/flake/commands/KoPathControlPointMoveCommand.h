@@ -8,8 +8,8 @@
 #ifndef KOPATHCONTROLPOINTMOVECOMMAND_H
 #define KOPATHCONTROLPOINTMOVECOMMAND_H
 
+#include <PkXmlCompat.h>
 #include <kundo2command.h>
-#include <QPointF>
 #include "KoPathPointData.h"
 #include "KoPathPoint.h"
 #include "kritaflake_export.h"
@@ -26,7 +26,7 @@ public:
      * @param pointType the type of the point to move
      * @param parent the parent command used for macro commands
      */
-    KoPathControlPointMoveCommand(const KoPathPointData &pointData, const QPointF &offset,
+    KoPathControlPointMoveCommand(const KoPathPointData &pointData, const PkPointF &offset,
             KoPathPoint::PointType pointType, KUndo2Command *parent = 0);
     /// redo the command
     void redo() override;
@@ -39,7 +39,7 @@ public:
 private:
     KoPathPointData m_pointData;
     // the offset in shape coordinates
-    QPointF m_offset;
+    PkPointF m_offset;
     KoPathPoint::PointType m_pointType;
 };
 

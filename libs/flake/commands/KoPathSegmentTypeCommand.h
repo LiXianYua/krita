@@ -8,9 +8,8 @@
 #ifndef KOPATHSEGMENTTYPECOMMAND_H
 #define KOPATHSEGMENTTYPECOMMAND_H
 
+#include <PkXmlCompat.h>
 #include <kundo2command.h>
-#include <QList>
-#include <QPointF>
 #include "KoPathPoint.h"
 #include "KoPathPointData.h"
 #include "kritaflake_export.h"
@@ -39,7 +38,7 @@ public:
      * @param segmentType to which the segments should be changed to
      * @param parent the parent command used for macro commands
      */
-    KoPathSegmentTypeCommand(const QList<KoPathPointData> &pointDataList, SegmentType segmentType, KUndo2Command *parent = 0);
+    KoPathSegmentTypeCommand(const PkList<KoPathPointData> &pointDataList, SegmentType segmentType, KUndo2Command *parent = 0);
     ~KoPathSegmentTypeCommand() override;
 
     /// redo the command
@@ -51,16 +50,16 @@ private:
     // used for storing the data for undo
     struct SegmentTypeData {
         // old control points in document coordinates
-        QPointF m_controlPoint1;
-        QPointF m_controlPoint2;
+        PkPointF m_controlPoint1;
+        PkPointF m_controlPoint2;
         KoPathPoint::PointProperties m_properties1;
         KoPathPoint::PointProperties m_properties2;
     };
 
-    void initialize(const QList<KoPathPointData> &pointDataList);
+    void initialize(const PkList<KoPathPointData> &pointDataList);
 
-    QList<KoPathPointData> m_pointDataList;
-    QList<SegmentTypeData> m_segmentData;
+    PkList<KoPathPointData> m_pointDataList;
+    PkList<SegmentTypeData> m_segmentData;
     SegmentType m_segmentType;
 };
 

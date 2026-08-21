@@ -5,9 +5,9 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoPathSegmentBreakCommand.h"
 #include "KoPathPoint.h"
-#include <klocalizedstring.h>
 #include <math.h>
 
 KoPathSegmentBreakCommand::KoPathSegmentBreakCommand(const KoPathPointData & pointData, KUndo2Command *parent)
@@ -22,7 +22,7 @@ KoPathSegmentBreakCommand::KoPathSegmentBreakCommand(const KoPathPointData & poi
         const int numPoints = m_pointData.pathShape->subpathPointCount(m_startIndex.first);
         m_startIndex.second = (m_startIndex.second + 1) % numPoints;
     }
-    setText(kundo2_i18n("Break subpath"));
+    setText(kundo2_text("Break subpath"));
 }
 
 KoPathSegmentBreakCommand::~KoPathSegmentBreakCommand()

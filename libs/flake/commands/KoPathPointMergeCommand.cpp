@@ -5,12 +5,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoPathPointMergeCommand.h"
 #include "KoPathPoint.h"
 #include "KoPathPointData.h"
 #include "KoPathShape.h"
-#include <klocalizedstring.h>
-#include <QPointF>
 #include "kis_assert.h"
 #include "KoPathMergeUtils.h"
 
@@ -47,10 +46,10 @@ public:
 
     void mergePoints(KoPathPoint * p1, KoPathPoint * p2, KoPathPoint *dstPoint)
     {
-        QPointF mergePosition = 0.5 * (p1->point() + p2->point());
+        PkPointF mergePosition = 0.5 * (p1->point() + p2->point());
 
-        boost::optional<QPointF> mergedControlPoint1;
-        boost::optional<QPointF> mergedControlPoint2;
+        boost::optional<PkPointF> mergedControlPoint1;
+        boost::optional<PkPointF> mergedControlPoint2;
 
         if (p1->activeControlPoint1()) {
             mergedControlPoint1 = mergePosition + (p1->controlPoint1() - p1->point());
@@ -84,10 +83,10 @@ public:
 
     int reverse;
 
-    QPointF savedNodePoint1;
+    PkPointF savedNodePoint1;
 
-    boost::optional<QPointF> savedControlPoint11;
-    boost::optional<QPointF> savedControlPoint12;
+    boost::optional<PkPointF> savedControlPoint11;
+    boost::optional<PkPointF> savedControlPoint12;
 };
 
 /**
@@ -132,7 +131,7 @@ KoPathPointMergeCommand::KoPathPointMergeCommand(const KoPathPointData &pointDat
         }
     }
 
-    setText(kundo2_i18n("Merge points"));
+    setText(kundo2_text("Merge points"));
 }
 
 KoPathPointMergeCommand::~KoPathPointMergeCommand()

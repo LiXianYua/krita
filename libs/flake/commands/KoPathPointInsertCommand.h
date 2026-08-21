@@ -8,8 +8,8 @@
 #ifndef KOPATHPOINTINSERTCOMMAND_H
 #define KOPATHPOINTINSERTCOMMAND_H
 
+#include <PkXmlCompat.h>
 #include <kundo2command.h>
-#include <QList>
 #include "KoPathPointData.h"
 #include "kritaflake_export.h"
 
@@ -31,7 +31,7 @@ public:
      * @param insertPosition the position to insert at [0..1]
      * @param parent the parent command used for macro commands
      */
-    KoPathPointInsertCommand(const QList<KoPathPointData> &pointDataList, qreal insertPosition, KUndo2Command *parent = 0);
+    KoPathPointInsertCommand(const PkList<KoPathPointData> &pointDataList, qreal insertPosition, KUndo2Command *parent = 0);
     ~KoPathPointInsertCommand() override;
 
     /// redo the command
@@ -40,7 +40,7 @@ public:
     void undo() override;
 
     /// Returns list of inserted points
-    QList<KoPathPoint*> insertedPoints() const;
+    PkList<KoPathPoint*> insertedPoints() const;
 
 private:
     KoPathPointInsertCommandPrivate * const d;

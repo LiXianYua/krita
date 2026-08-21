@@ -5,11 +5,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoPathPointInsertCommand.h"
 
 #include "KoPathPoint.h"
 #include <KoPathSegment.h>
-#include <klocalizedstring.h>
 
 class KoPathPointInsertCommandPrivate
 {
@@ -20,13 +20,13 @@ public:
             qDeleteAll(points);
         }
     }
-    QList<KoPathPointData> pointDataList;
-    QList<KoPathPoint*> points;
-    QList<QPair<QPointF, QPointF> > controlPoints;
+    PkList<KoPathPointData> pointDataList;
+    PkList<KoPathPoint*> points;
+    PkList<PkPair<PkPointF, PkPointF> > controlPoints;
     bool deletePoints;
 };
 
-KoPathPointInsertCommand::KoPathPointInsertCommand(const QList<KoPathPointData> &pointDataList, qreal insertPosition, KUndo2Command *parent)
+KoPathPointInsertCommand::KoPathPointInsertCommand(const PkList<KoPathPointData> &pointDataList, qreal insertPosition, KUndo2Command *parent)
         : KUndo2Command(parent),
         d(new KoPathPointInsertCommandPrivate())
 {
@@ -37,7 +37,7 @@ KoPathPointInsertCommand::KoPathPointInsertCommand(const QList<KoPathPointData> 
 
     //TODO the list needs to be sorted
 
-    QList<KoPathPointData>::const_iterator it(pointDataList.begin());
+    PkList<KoPathPointData>::const_iterator it(pointDataList.begin());
     for (; it != pointDataList.end(); ++it) {
         KoPathShape * pathShape = it->pathShape;
 
@@ -49,7 +49,7 @@ KoPathPointInsertCommand::KoPathPointInsertCommand(const QList<KoPathPointData> 
 
         d->pointDataList.append(*it);
 
-        QPair<KoPathSegment, KoPathSegment> splitSegments = segment.splitAt(insertPosition);
+        PkPair<KoPathSegment, KoPathSegment> splitSegments = segment.splitAt(insertPosition);
 
         KoPathPoint * split1 = splitSegments.first.second();
         KoPathPoint * split2 = splitSegments.second.first();
@@ -60,11 +60,11 @@ KoPathPointInsertCommand::KoPathPointInsertCommand(const QList<KoPathPointData> 
             splitPoint->setControlPoint2(split2->controlPoint2());
 
         d->points.append(splitPoint);
-        QPointF cp1 = splitSegments.first.first()->controlPoint2();
-        QPointF cp2 = splitSegments.second.second()->controlPoint1();
-        d->controlPoints.append(QPair<QPointF, QPointF>(cp1, cp2));
+        PkPointF cp1 = splitSegments.first.first()->controlPoint2();
+        PkPointF cp2 = splitSegments.second.second()->controlPoint1();
+        d->controlPoints.append(PkPair<PkPointF, PkPointF>(cp1, cp2));
     }
-    setText(kundo2_i18n("Insert points"));
+    setText(kundo2_text("Insert points"));
 }
 
 KoPathPointInsertCommand::~KoPathPointInsertCommand()
@@ -84,13 +84,13 @@ void KoPathPointInsertCommand::redo()
         ++pointData.pointIndex.second;
 
         if (segment.first()->activeControlPoint2()) {
-            QPointF controlPoint2 = segment.first()->controlPoint2();
+            PkPointF controlPoint2 = segment.first()->controlPoint2();
             std::swap(controlPoint2, d->controlPoints[i].first);
             segment.first()->setControlPoint2(controlPoint2);
         }
 
         if (segment.second()->activeControlPoint1()) {
-            QPointF controlPoint1 = segment.second()->controlPoint1();
+            PkPointF controlPoint1 = segment.second()->controlPoint1();
             std::swap(controlPoint1, d->controlPoints[i].second);
             segment.second()->setControlPoint1(controlPoint1);
         }
@@ -122,18 +122,18 @@ void KoPathPointInsertCommand::undo()
         KoPathPoint * after = pathShape->pointByIndex(piAfter);
 
         if (before->activeControlPoint2()) {
-            QPointF controlPoint2 = before->controlPoint2();
+            PkPointF controlPoint2 = before->controlPoint2();
             std::swap(controlPoint2, d->controlPoints[i].first);
             before->setControlPoint2(controlPoint2);
         }
 
         if (after->activeControlPoint1()) {
-            QPointF controlPoint1 = after->controlPoint1();
+            PkPointF controlPoint1 = after->controlPoint1();
             std::swap(controlPoint1, d->controlPoints[i].second);
             after->setControlPoint1(controlPoint1);
         }
 
-        QList<KoPathPointIndex> segmentPoints;
+        PkList<KoPathPointIndex> segmentPoints;
         segmentPoints << pdBefore.pointIndex;
 
         KoPathPointIndex nextPoint(pdBefore.pointIndex.first, pdBefore.pointIndex.second + 1);
@@ -147,7 +147,7 @@ void KoPathPointInsertCommand::undo()
     d->deletePoints = true;
 }
 
-QList<KoPathPoint*> KoPathPointInsertCommand::insertedPoints() const
+PkList<KoPathPoint*> KoPathPointInsertCommand::insertedPoints() const
 {
     return d->points;
 }

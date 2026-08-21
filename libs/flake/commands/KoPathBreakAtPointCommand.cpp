@@ -5,10 +5,10 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoPathBreakAtPointCommand.h"
 
 #include "KoPathPoint.h"
-#include <klocalizedstring.h>
 
 /*
  * The algorithm to break a multiple open or closed subpaths is:
@@ -18,15 +18,15 @@
  * Not closed
  * - break from the back of the subpath
  */
-KoPathBreakAtPointCommand::KoPathBreakAtPointCommand(const QList<KoPathPointData> & pointDataList, KUndo2Command *parent)
+KoPathBreakAtPointCommand::KoPathBreakAtPointCommand(const PkList<KoPathPointData> & pointDataList, KUndo2Command *parent)
         : KUndo2Command(parent)
         , m_deletePoints(true)
 {
-    QList<KoPathPointData> sortedPointDataList(pointDataList);
+    PkList<KoPathPointData> sortedPointDataList(pointDataList);
     std::sort(sortedPointDataList.begin(), sortedPointDataList.end());
-    setText(kundo2_i18n("Break subpath at points"));
+    setText(kundo2_text("Break subpath at points"));
 
-    QList<KoPathPointData>::const_iterator it(sortedPointDataList.constBegin());
+    PkList<KoPathPointData>::const_iterator it(sortedPointDataList.constBegin());
     for (; it != sortedPointDataList.constEnd(); ++it) {
         KoPathShape * pathShape = it->pathShape;
         KoPathPoint * point = pathShape->pointByIndex(it->pointIndex);
@@ -116,7 +116,7 @@ void KoPathBreakAtPointCommand::undo()
     KUndo2Command::undo();
     KoPathShape * lastPathShape = 0;
 
-    QMap<KoPathShape *, QList<KoPathPointIndex>> pointsMap;
+    PkMap<KoPathShape *, PkList<KoPathPointIndex>> pointsMap;
 
     for (int i = 0; i < m_pointDataList.size(); ++i) {
         const KoPathPointData & pd = m_pointDataList.at(i);

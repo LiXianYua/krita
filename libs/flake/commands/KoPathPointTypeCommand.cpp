@@ -5,21 +5,21 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoPathPointTypeCommand.h"
 
-#include <klocalizedstring.h>
 #include <math.h>
 
 #include "KoPathSegment.h"
 
 KoPathPointTypeCommand::KoPathPointTypeCommand(
-    const QList<KoPathPointData> & pointDataList,
+    const PkList<KoPathPointData> & pointDataList,
     PointType pointType,
     KUndo2Command *parent)
         : KoPathBaseCommand(parent)
         , m_pointType(pointType)
 {
-    QList<KoPathPointData>::const_iterator it(pointDataList.begin());
+    PkList<KoPathPointData>::const_iterator it(pointDataList.begin());
     for (; it != pointDataList.end(); ++it) {
         KoPathPoint *point = it->pathShape->pointByIndex(it->pointIndex);
         if (point) {
@@ -33,7 +33,7 @@ KoPathPointTypeCommand::KoPathPointTypeCommand(
             m_shapes.insert(it->pathShape);
         }
     }
-    setText(kundo2_i18n("Set point type"));
+    setText(kundo2_text("Set point type"));
 }
 
 KoPathPointTypeCommand::~KoPathPointTypeCommand()
@@ -46,7 +46,7 @@ void KoPathPointTypeCommand::redo()
     repaint(false);
     m_additionalPointData.clear();
 
-    QList<PointData>::iterator it(m_oldPointData.begin());
+    PkList<PointData>::iterator it(m_oldPointData.begin());
     for (; it != m_oldPointData.end(); ++it) {
         KoPathPoint *point = it->m_pointData.pathShape->pointByIndex(it->m_pointData.pointIndex);
         KoPathPoint::PointProperties properties = point->properties();
@@ -101,11 +101,11 @@ void KoPathPointTypeCommand::redo()
             properties |= KoPathPoint::IsSymmetric;
 
             // calculate vector from node point to first control point and normalize it
-            QPointF directionC1 = point->controlPoint1() - point->point();
+            PkPointF directionC1 = point->controlPoint1() - point->point();
             qreal dirLengthC1 = sqrt(directionC1.x() * directionC1.x() + directionC1.y() * directionC1.y());
             directionC1 /= dirLengthC1;
             // calculate vector from node point to second control point and normalize it
-            QPointF directionC2 = point->controlPoint2() - point->point();
+            PkPointF directionC2 = point->controlPoint2() - point->point();
             qreal dirLengthC2 = sqrt(directionC2.x() * directionC2.x() + directionC2.y() * directionC2.y());
             directionC2 /= dirLengthC2;
             // calculate the average distance of the control points to the node point
@@ -138,7 +138,7 @@ void KoPathPointTypeCommand::undo()
     repaint(false);
 
     /*
-    QList<PointData>::iterator it(m_oldPointData.begin());
+    PkList<PointData>::iterator it(m_oldPointData.begin());
     for (; it != m_oldPointData.end(); ++it)
     {
         KoPathShape *pathShape = it->m_pointData.pathShape;
@@ -169,11 +169,11 @@ void KoPathPointTypeCommand::makeCubicPointSmooth(KoPathPoint *point)
     properties |= KoPathPoint::IsSmooth;
 
     // calculate vector from node point to first control point and normalize it
-    QPointF directionC1 = point->controlPoint1() - point->point();
+    PkPointF directionC1 = point->controlPoint1() - point->point();
     qreal dirLengthC1 = sqrt(directionC1.x() * directionC1.x() + directionC1.y() * directionC1.y());
     directionC1 /= dirLengthC1;
     // calculate vector from node point to second control point and normalize it
-    QPointF directionC2 = point->controlPoint2() - point->point();
+    PkPointF directionC2 = point->controlPoint2() - point->point();
     qreal dirLengthC2 = sqrt(directionC2.x() * directionC2.x() + directionC2.y() * directionC2.y());
     directionC2 /= dirLengthC2;
     // compute position of the control points so that they lie on a line going through the node point
@@ -184,9 +184,9 @@ void KoPathPointTypeCommand::makeCubicPointSmooth(KoPathPoint *point)
     point->setProperties(properties);
 }
 
-void KoPathPointTypeCommand::undoChanges(const QList<PointData> &data)
+void KoPathPointTypeCommand::undoChanges(const PkList<PointData> &data)
 {
-    QList<PointData>::const_iterator it(data.begin());
+    PkList<PointData>::const_iterator it(data.begin());
     for (; it != data.end(); ++it) {
         KoPathShape *pathShape = it->m_pointData.pathShape;
         KoPathPoint *point = pathShape->pointByIndex(it->m_pointData.pointIndex);

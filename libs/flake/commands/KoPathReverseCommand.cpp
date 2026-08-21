@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoPathReverseCommand.h"
 #include "KoPathShape.h"
-#include <klocalizedstring.h>
 
 class Q_DECL_HIDDEN KoPathReverseCommand::Private
 {
 public:
-    Private(const QList<KoPathShape*> &p)
+    Private(const PkList<KoPathShape*> &p)
             : paths(p) {
     }
     ~Private() {
@@ -21,21 +21,21 @@ public:
         if (! paths.size())
             return;
 
-        Q_FOREACH (KoPathShape* shape, paths) {
+        for (KoPathShape* shape : paths) {
             int subpathCount = shape->subpathCount();
             for (int i = 0; i < subpathCount; ++i)
                 shape->reverseSubpath(i);
         }
     }
 
-    QList<KoPathShape*> paths;
+    PkList<KoPathShape*> paths;
 };
 
-KoPathReverseCommand::KoPathReverseCommand(const QList<KoPathShape*> &paths, KUndo2Command *parent)
+KoPathReverseCommand::KoPathReverseCommand(const PkList<KoPathShape*> &paths, KUndo2Command *parent)
         : KUndo2Command(parent),
         d(new Private(paths))
 {
-    setText(kundo2_i18n("Reverse paths"));
+    setText(kundo2_text("Reverse paths"));
 }
 
 KoPathReverseCommand::~KoPathReverseCommand()

@@ -8,8 +8,8 @@
 #ifndef KOPATHBREAKATPOINTCOMMAND_H
 #define KOPATHBREAKATPOINTCOMMAND_H
 
+#include <PkXmlCompat.h>
 #include <kundo2command.h>
-#include <QList>
 #include "KoPathPointData.h"
 
 class KoPathPoint;
@@ -27,7 +27,7 @@ public:
      * @param pointDataList List of point data where the path should be split.
      * @param parent the parent command used for macro commands
      */
-    explicit KoPathBreakAtPointCommand(const QList<KoPathPointData> &pointDataList, KUndo2Command *parent = 0);
+    explicit KoPathBreakAtPointCommand(const PkList<KoPathPointData> &pointDataList, KUndo2Command *parent = 0);
     ~KoPathBreakAtPointCommand() override;
 
     /// redo the command
@@ -36,11 +36,11 @@ public:
     void undo() override;
 
 private:
-    QList<KoPathPointData> m_pointDataList;
-    QList<KoPathPoint*> m_points;
+    PkList<KoPathPointData> m_pointDataList;
+    PkList<KoPathPoint*> m_points;
     // used for storing where to open the subpath. In case it not used for the open
     // status use .second to the store offset caused by a open of a subpath.
-    QList<KoPathPointIndex> m_closedIndex;
+    PkList<KoPathPointIndex> m_closedIndex;
     bool m_deletePoints;
 };
 

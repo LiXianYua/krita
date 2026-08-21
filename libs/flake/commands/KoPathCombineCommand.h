@@ -8,8 +8,8 @@
 #ifndef KOPATHCOMBINECOMMAND_H
 #define KOPATHCOMBINECOMMAND_H
 
+#include <PkXmlCompat.h>
 #include <kundo2command.h>
-#include <QList>
 #include "kritaflake_export.h"
 
 class KoShapeControllerBase;
@@ -26,7 +26,7 @@ public:
      * @param paths the list of paths to combine
      * @param parent the parent command used for macro commands
      */
-    KoPathCombineCommand(KoShapeControllerBase *controller, const QList<KoPathShape*> &paths, KUndo2Command *parent = 0);
+    KoPathCombineCommand(KoShapeControllerBase *controller, const PkList<KoPathShape*> &paths, KUndo2Command *parent = 0);
     ~KoPathCombineCommand() override;
     /// redo the command
     void redo() override;

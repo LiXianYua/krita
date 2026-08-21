@@ -7,8 +7,8 @@
 #ifndef KOPATHREVERSECOMMAND_H
 #define KOPATHREVERSECOMMAND_H
 
+#include <PkXmlCompat.h>
 #include <kundo2command.h>
-#include <QList>
 #include "kritaflake_export.h"
 
 class KoPathShape;
@@ -22,7 +22,7 @@ public:
      * @param paths the list of paths to reverse
      * @param parent the parent command used for macro commands
      */
-    explicit KoPathReverseCommand(const QList<KoPathShape*> &paths, KUndo2Command *parent = 0);
+    explicit KoPathReverseCommand(const PkList<KoPathShape*> &paths, KUndo2Command *parent = 0);
     ~KoPathReverseCommand() override;
     /// redo the command
     void redo() override;

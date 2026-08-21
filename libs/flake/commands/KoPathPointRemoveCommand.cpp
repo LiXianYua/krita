@@ -5,11 +5,11 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoPathPointRemoveCommand.h"
 #include "KoSubpathRemoveCommand.h"
 #include "KoShapeController.h"
 #include "KoPathPoint.h"
-#include <klocalizedstring.h>
 
 class KoPathPointRemoveCommandPrivate
 {
@@ -19,13 +19,13 @@ public:
         if (deletePoints)
             qDeleteAll(points);
     }
-    QList<KoPathPointData> pointDataList;
-    QList<KoPathPoint*> points;
+    PkList<KoPathPointData> pointDataList;
+    PkList<KoPathPoint*> points;
     bool deletePoints;
 };
 
 KUndo2Command *KoPathPointRemoveCommand::createCommand(
-    const QList<KoPathPointData> &pointDataList,
+    const PkList<KoPathPointData> &pointDataList,
     KoShapeController *shapeController,
     KUndo2Command *parent)
 {
@@ -36,7 +36,7 @@ KUndo2Command *KoPathPointRemoveCommand::createCommand(
      * 3. delete a complete path
      */
 
-    QList<KoPathPointData> sortedPointData(pointDataList);
+    PkList<KoPathPointData> sortedPointData(pointDataList);
     std::sort(sortedPointData.begin(), sortedPointData.end());
 
     KoPathPointData last(0, KoPathPointIndex(-1, -1));
@@ -44,15 +44,15 @@ KUndo2Command *KoPathPointRemoveCommand::createCommand(
     // the right places.
     sortedPointData.append(last);
 
-    QList<KoPathPointData> pointsOfSubpath; // points of current subpath
-    QList<KoPathPointData> subpathsOfPath;  // subpaths of current path
-    QList<KoPathPointData> pointsToDelete;  // single points to delete
-    QList<KoPathPointData> subpathToDelete; // single subpaths to delete
-    QList<KoShape*> shapesToDelete;         // single paths to delete
+    PkList<KoPathPointData> pointsOfSubpath; // points of current subpath
+    PkList<KoPathPointData> subpathsOfPath;  // subpaths of current path
+    PkList<KoPathPointData> pointsToDelete;  // single points to delete
+    PkList<KoPathPointData> subpathToDelete; // single subpaths to delete
+    PkList<KoShape*> shapesToDelete;         // single paths to delete
 
     last = sortedPointData.first();
 
-    QList<KoPathPointData>::const_iterator it(sortedPointData.constBegin());
+    PkList<KoPathPointData>::const_iterator it(sortedPointData.constBegin());
     for (; it != sortedPointData.constEnd(); ++it) {
         // check if we have come to the next subpath of the same or another path
         if (last.pathShape != it->pathShape || last.pointIndex.first != it->pointIndex.first) {
@@ -88,12 +88,12 @@ KUndo2Command *KoPathPointRemoveCommand::createCommand(
         pointsOfSubpath.append(*it);
     }
 
-    KUndo2Command *cmd = new KUndo2Command(kundo2_i18n("Remove points"), parent);
+    KUndo2Command *cmd = new KUndo2Command(kundo2_text("Remove points"), parent);
 
     if (pointsToDelete.size() > 0) {
         new KoPathPointRemoveCommand(pointsToDelete, cmd);
     }
-    Q_FOREACH (const KoPathPointData & pd, subpathToDelete) {
+    for (const KoPathPointData & pd : subpathToDelete) {
         new KoSubpathRemoveCommand(pd.pathShape, pd.pointIndex.first, cmd);
     }
     if (shapesToDelete.size() > 0) {
@@ -103,12 +103,12 @@ KUndo2Command *KoPathPointRemoveCommand::createCommand(
     return cmd;
 }
 
-KoPathPointRemoveCommand::KoPathPointRemoveCommand(const QList<KoPathPointData> & pointDataList,
+KoPathPointRemoveCommand::KoPathPointRemoveCommand(const PkList<KoPathPointData> & pointDataList,
         KUndo2Command *parent)
     : KUndo2Command(parent),
     d(new KoPathPointRemoveCommandPrivate())
 {
-    QList<KoPathPointData>::const_iterator it(pointDataList.begin());
+    PkList<KoPathPointData>::const_iterator it(pointDataList.begin());
     for (; it != pointDataList.end(); ++it) {
         KoPathPoint *point = it->pathShape->pointByIndex(it->pointIndex);
         if (point) {
@@ -117,7 +117,7 @@ KoPathPointRemoveCommand::KoPathPointRemoveCommand(const QList<KoPathPointData> 
         }
     }
     std::sort(d->pointDataList.begin(), d->pointDataList.end());
-    setText(kundo2_i18n("Remove points"));
+    setText(kundo2_text("Remove points"));
 }
 
 KoPathPointRemoveCommand::~KoPathPointRemoveCommand()
@@ -137,9 +137,9 @@ void KoPathPointRemoveCommand::redo()
 
         if (lastPathShape != pd.pathShape) {
             if (lastPathShape) {
-                QPointF offset = lastPathShape->normalize();
+                PkPointF offset = lastPathShape->normalize();
 
-                QTransform matrix;
+                PkTransform matrix;
                 matrix.translate(-offset.x(), -offset.y());
                 for (int j = i + 1; j < updateBefore; ++j) {
                     d->points.at(j)->map(matrix);
@@ -152,9 +152,9 @@ void KoPathPointRemoveCommand::redo()
     }
 
     if (lastPathShape) {
-        QPointF offset = lastPathShape->normalize();
+        PkPointF offset = lastPathShape->normalize();
 
-        QTransform matrix;
+        PkTransform matrix;
         matrix.translate(-offset.x(), -offset.y());
         for (int j = 0; j < updateBefore; ++j) {
             d->points.at(j)->map(matrix);
@@ -170,7 +170,7 @@ void KoPathPointRemoveCommand::undo()
     KUndo2Command::undo();
     KoPathShape * lastPathShape = 0;
 
-    QMap<KoPathShape *, QList<KoPathPointIndex>> pointsMap;
+    PkMap<KoPathShape *, PkList<KoPathPointIndex>> pointsMap;
 
     for (int i = 0; i < d->pointDataList.size(); ++i) {
         const KoPathPointData &pd = d->pointDataList.at(i);
