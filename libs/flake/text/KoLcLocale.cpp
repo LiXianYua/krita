@@ -34,6 +34,40 @@ bool langIs(const PkString &langCode, const char *iso)
     return languageSubtag(langCode) == PkString(iso);
 }
 
+// 取 langCode 的地区子标签：lang [-script(4)] [-country(2)] [-rest]。无地区返回空。
+// 只认 BCP47 形态（isDutch 用，country 是 2/3 位字母）。
+PkString countrySubtag(const PkString &langCode)
+{
+    int pos = 0;
+    const int n = langCode.size();
+    auto readSubtag = [&](int &p) -> PkString {
+        int start = p;
+        while (p < n && langCode.at(p) != u'-' && langCode.at(p) != u'_') {
+            ++p;
+        }
+        PkString s = langCode.mid(start, p - start);
+        if (p < n) {
+            ++p;
+        }
+        return s;
+    };
+    readSubtag(pos); // lang
+    if (pos >= n) {
+        return PkString();
+    }
+    const PkString s2 = readSubtag(pos);
+    if (s2.size() == 4) { // script
+        if (pos < n) {
+            return readSubtag(pos).toUpper();
+        }
+        return PkString();
+    }
+    if (s2.size() == 2 || s2.size() == 3) {
+        return s2.toUpper();
+    }
+    return PkString();
+}
+
 // ── UTF-16 <-> 码点 工具（capitalize/bcp47Name 用）─────────────
 // 取 text 在 UTF-16 码元下标 i 处的码点（处理代理对），返回码点并写码元宽度。
 unsigned codePointAt(const PkString &text, int i, int &width)
@@ -385,7 +419,15 @@ PkString bcp47Name(const PkString &langCode)
 // ── isDutch ───────────────────────────────────────────────────
 bool isDutch(const PkString &langCode)
 {
-    return langIs(langCode, "nl");
+    // Qt 语义（真 5.15.7 探针实测）：QLocale(lang) == QLocale::Dutch ⟺ language=Dutch
+    // 且 country 为空或为 NL（Dutch 的 default territory）。nl-BE（Dutch/Belgium）
+    // 的 country=BE，`== QLocale::Dutch` 为 false——原 KoCssTextUtils.cpp:74 的
+    // `locale == QLocale::Dutch` 判定必须保留这个语义，不能按语言前缀一刀切。
+    if (!langIs(langCode, "nl")) {
+        return false;
+    }
+    const PkString country = countrySubtag(langCode);
+    return country.isEmpty() || country == PkString("NL");
 }
 
 } // namespace KoLc
