@@ -48,18 +48,16 @@
 #ifndef KUNDO2STACK_H
 #define KUNDO2STACK_H
 
-#include <QObject>
-#include <QString>
-#include <QList>
-#include <QAction>
-#include <QTime>
-#include <QVector>
+#include <compat/QObject>
+#include "pk/string/PkString.h"
+#include "pk/container/PkList.h"
+#include "pk/time/PkDateTime.h"
+#include "pk/container/PkVector.h"
 
 
 #include "kritacommand_export.h"
 
-class QAction;
-class QObject;
+class PkObject;
 class KUndo2CommandPrivate;
 
 #ifndef QT_NO_UNDOCOMMAND
@@ -70,16 +68,16 @@ class KUndo2CommandPrivate;
 
 
 /**
- * WARNING: In general, don't derive undo commands from QObject. And
- *          if you really need it, don't use QObject lifetime tracking
+ * WARNING: In general, don't derive undo commands from PkObject. And
+ *          if you really need it, don't use PkObject lifetime tracking
  *          for the commands:  KUndo2Command has its own, *nonvirtual*
  *          hierarchy, and don't make it a parent or a child of any
- *          QObject. Otherwise two different parents will try to track
+ *          PkObject. Otherwise two different parents will try to track
  *          the lifetime of your command and, most probably, you'll
  *          get a crash.
  *
  *          As a general rule: an undo command should be derived
- *          from QObject only for the sake of signal/slots capabilities.
+ *          from PkObject only for the sake of signal/slots capabilities.
  *          Nothing else.
  */
 class KRITACOMMAND_EXPORT KUndo2Command
@@ -94,7 +92,7 @@ public:
     virtual void undo();
     virtual void redo();
 
-    QString actionText() const;
+    PkString actionText() const;
     KUndo2MagicString text() const;
     void setText(const KUndo2MagicString &text);
 
@@ -111,13 +109,13 @@ public:
 
     bool hasParent() const;
     void setTime();
-    virtual void setTime(const QTime &time);
-    virtual QTime time() const;
+    virtual void setTime(const PkTime &time);
+    virtual PkTime time() const;
     void setEndTime();
-    virtual void setEndTime(const QTime &time);
-    virtual QTime endTime() const;
+    virtual void setEndTime(const PkTime &time);
+    virtual PkTime endTime() const;
 
-    virtual QVector<KUndo2Command*> mergeCommandsVector() const;
+    virtual PkVector<KUndo2Command*> mergeCommandsVector() const;
     virtual bool isMerged() const;
     virtual void undoMergedCommands();
     virtual void redoMergedCommands();
@@ -137,31 +135,30 @@ public:
     void setExtraData(KUndo2CommandExtraData *data);
 
 private:
-    Q_DISABLE_COPY(KUndo2Command)
+    KUndo2Command(const KUndo2Command&) = delete;
+    KUndo2Command& operator=(const KUndo2Command&) = delete;
     friend class KUndo2QStack;
 
 
     bool m_hasParent {false};
     int m_timedID {-1};
 
-    QTime m_timeOfCreation;
-    QTime m_endOfCommand;
-    QVector<KUndo2Command*> m_mergeCommandsVector;
+    PkTime m_timeOfCreation;
+    PkTime m_endOfCommand;
+    PkVector<KUndo2Command*> m_mergeCommandsVector;
 };
 
 #endif // QT_NO_UNDOCOMMAND
 
 #ifndef QT_NO_UNDOSTACK
 
-class KRITACOMMAND_EXPORT KUndo2QStack : public QObject
+class KRITACOMMAND_EXPORT KUndo2QStack : public PkObject
 {
     Q_OBJECT
 //    Q_DECLARE_PRIVATE(KUndo2QStack)
-    Q_PROPERTY(bool active READ isActive WRITE setActive)
-    Q_PROPERTY(int undoLimit READ undoLimit WRITE setUndoLimit)
 
 public:
-    explicit KUndo2QStack(QObject *parent = 0);
+    explicit KUndo2QStack(PkObject *parent = 0);
     ~KUndo2QStack() override;
     void clear();
 
@@ -169,13 +166,13 @@ public:
 
     bool canUndo() const;
     bool canRedo() const;
-    QString undoText() const;
-    QString redoText() const;
+    PkString undoText() const;
+    PkString redoText() const;
 
     int count() const;
     int index() const;
-    QString actionText(int idx) const;
-    QString text(int idx) const;
+    PkString actionText(int idx) const;
+    PkString text(int idx) const;
 
     bool isActive() const;
     bool isClean() const;
@@ -209,33 +206,34 @@ Q_SIGNALS:
     void cleanChanged(bool clean);
     void canUndoChanged(bool canUndo);
     void canRedoChanged(bool canRedo);
-    void undoTextChanged(const QString &undoActionText);
-    void redoTextChanged(const QString &redoActionText);
+    void undoTextChanged(const PkString &undoActionText);
+    void redoTextChanged(const PkString &redoActionText);
 
 protected:
     virtual void notifySetIndexChangedOneCommand();
 
 private:
-    // from QUndoStackPrivate
-    QList<KUndo2Command*> m_command_list;
-    QList<KUndo2Command*> m_macro_stack;
+    // from the undo stack private data
+    PkList<KUndo2Command*> m_command_list;
+    PkList<KUndo2Command*> m_macro_stack;
     int m_index;
     int m_clean_index;
     int m_undo_limit;
     bool m_useCumulativeUndoRedo;
     KisCumulativeUndoData m_cumulativeUndoData;
 
-    // also from QUndoStackPrivate
+    // also from the undo stack private data
     void setIndex(int idx, bool clean);
     bool checkUndoLimit();
 
-    Q_DISABLE_COPY(KUndo2QStack)
+    KUndo2QStack(const KUndo2QStack&) = delete;
+    KUndo2QStack& operator=(const KUndo2QStack&) = delete;
 };
 
 class KRITACOMMAND_EXPORT KUndo2Stack : public KUndo2QStack
 {
 public:
-    explicit KUndo2Stack(QObject *parent = 0);
+    explicit KUndo2Stack(PkObject *parent = 0);
 };
 
 #endif // QT_NO_UNDOSTACK

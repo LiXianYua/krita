@@ -42,9 +42,9 @@
 #ifndef KUNDO2STACK_P_H
 #define KUNDO2STACK_P_H
 
-#include <QList>
-#include <QString>
-#include <QAction>
+#include "pk/container/PkList.h"
+#include "pk/string/PkString.h"
+#include "pk/pointer/PkScopedPointer.h"
 
 #include "kundo2stack.h"
 
@@ -65,12 +65,12 @@ class KUndo2CommandPrivate
 {
 public:
     KUndo2CommandPrivate() : id(-1) {}
-    QList<KUndo2Command*> child_list;
-    QString actionText;
+    PkList<KUndo2Command*> child_list;
+    PkString actionText;
     KUndo2MagicString text;
     int id;
 
-    QScopedPointer<KUndo2CommandExtraData> extraData;
+    PkScopedPointer<KUndo2CommandExtraData> extraData;
 };
 
 #ifndef QT_NO_UNDOSTACK

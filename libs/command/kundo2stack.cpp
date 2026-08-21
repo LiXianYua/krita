@@ -45,13 +45,11 @@
 **
 ****************************************************************************/
 
-#include <QDebug>
-#include <QCoreApplication>
-#include <QKeySequence>
-#include <klocalizedstring.h>
+#include <PkMessageLogger.h>
+#include "pk/global/PkGlobal.h"
+#include "pk/container/PkContainerAlgo.h"
 #include "kundo2stack.h"
 #include "kundo2stack_p.h"
-#include <QtGlobal>
 #include "kis_assert.h"
 
 
@@ -118,7 +116,7 @@
 
 KUndo2Command::KUndo2Command(const KUndo2MagicString &text, KUndo2Command *parent)
     : m_hasParent(parent != 0)
-    , m_endOfCommand(QTime::currentTime())
+    , m_endOfCommand(PkTime::currentTime())
 {
     d = new KUndo2CommandPrivate;
     if (parent != 0) {
@@ -249,12 +247,12 @@ void KUndo2Command::undo()
     \sa setText()
 */
 
-QString KUndo2Command::actionText() const
+PkString KUndo2Command::actionText() const
 {
     if (!d->actionText.isEmpty())
         return d->actionText;
     else
-        return QString();
+        return PkString();
 }
 
 /*!
@@ -365,28 +363,28 @@ bool KUndo2Command::canAnnihilateWith(const KUndo2Command *other) const
 
 void KUndo2Command::setTime()
 {
-    setTime(QTime::currentTime());
+    setTime(PkTime::currentTime());
 }
 
-void KUndo2Command::setTime(const QTime &time)
+void KUndo2Command::setTime(const PkTime &time)
 {
     m_timeOfCreation = time;
 }
 
-QTime KUndo2Command::time() const
+PkTime KUndo2Command::time() const
 {
     return m_timeOfCreation;
 }
 
 void KUndo2Command::setEndTime()
 {
-    setEndTime(QTime::currentTime());
+    setEndTime(PkTime::currentTime());
 }
-void KUndo2Command::setEndTime(const QTime &time)
+void KUndo2Command::setEndTime(const PkTime &time)
 {
     m_endOfCommand  = time;
 }
-QTime KUndo2Command::endTime() const
+PkTime KUndo2Command::endTime() const
 {
     return m_endOfCommand;
 }
@@ -396,10 +394,7 @@ void KUndo2Command::undoMergedCommands()
 
     undo();
     if (!mergeCommandsVector().isEmpty()) {
-        QVectorIterator<KUndo2Command*> it(mergeCommandsVector());
-        it.toFront();
-        while (it.hasNext()) {
-            KUndo2Command* cmd = it.next();
+        for (KUndo2Command *cmd : mergeCommandsVector()) {
             cmd->undoMergedCommands();
         }
     }
@@ -409,16 +404,14 @@ void KUndo2Command::redoMergedCommands()
 {
     if (!mergeCommandsVector().isEmpty()) {
 
-        QVectorIterator<KUndo2Command*> it(mergeCommandsVector());
-        it.toBack();
-        while (it.hasPrevious()) {
-            KUndo2Command* cmd = it.previous();
-            cmd->redoMergedCommands();
+        const auto mergeCommands = mergeCommandsVector();
+        for (auto it = mergeCommands.rbegin(); it != mergeCommands.rend(); ++it) {
+            (*it)->redoMergedCommands();
         }
     }
     redo();
 }
-QVector<KUndo2Command*> KUndo2Command::mergeCommandsVector() const
+PkVector<KUndo2Command*> KUndo2Command::mergeCommandsVector() const
 {
     return m_mergeCommandsVector;
 }
@@ -597,8 +590,8 @@ bool KUndo2QStack::checkUndoLimit()
     \sa push()
 */
 
-KUndo2QStack::KUndo2QStack(QObject *parent)
-    : QObject(parent), m_index(0), m_clean_index(0), m_undo_limit(0)
+KUndo2QStack::KUndo2QStack(PkObject *parent)
+    : PkObject(parent), m_index(0), m_clean_index(0), m_undo_limit(0)
     , m_useCumulativeUndoRedo(false)
 {
 }
@@ -645,9 +638,9 @@ void KUndo2QStack::clear()
 
     Q_EMIT indexChanged(0);
     Q_EMIT canUndoChanged(false);
-    Q_EMIT undoTextChanged(QString());
+    Q_EMIT undoTextChanged(PkString());
     Q_EMIT canRedoChanged(false);
-    Q_EMIT redoTextChanged(QString());
+    Q_EMIT redoTextChanged(PkString());
 
     if (!was_clean)
         Q_EMIT cleanChanged(true);
@@ -707,7 +700,7 @@ void KUndo2QStack::push(KUndo2Command *cmd)
 
     /**
      * Here we are going to try to merge several commands together using the
-     * QVector field in the commands using 3 parameters.
+     * PkVector field in the commands using 3 parameters.
      *
      * N : Number of commands that should remain individual at the top of the
      *     stack.
@@ -757,8 +750,8 @@ void KUndo2QStack::push(KUndo2Command *cmd)
 
         int extraCheckDepth = 0;
         int newDepth = 1; // `cmd` will be added soon and will increase the total depth!
-        QTime oldTimeBase = lastcmd->time(); // needed to calculate already processed items
-        QTime newTimeBase = cmd->time();
+        PkTime oldTimeBase = lastcmd->time(); // needed to calculate already processed items
+        PkTime newTimeBase = cmd->time();
 
         auto it = std::make_reverse_iterator(m_command_list.end());
         auto next = std::next(it);
@@ -1056,15 +1049,15 @@ bool KUndo2QStack::canRedo() const
     \sa KUndo2Command::text() redoActionText() undoItemText()
 */
 
-QString KUndo2QStack::undoText() const
+PkString KUndo2QStack::undoText() const
 {
     if (!m_macro_stack.isEmpty()) {
-        return QString();
+        return PkString();
     }
     if (m_index > 0 && m_command_list.count() >= m_index -1 && m_command_list.at(m_index - 1) != 0) {
         return m_command_list.at(m_index - 1)->actionText();
     }
-    return QString();
+    return PkString();
 }
 
 /*!
@@ -1073,13 +1066,13 @@ QString KUndo2QStack::undoText() const
     \sa KUndo2Command::text() undoActionText() redoItemText()
 */
 
-QString KUndo2QStack::redoText() const
+PkString KUndo2QStack::redoText() const
 {
     if (!m_macro_stack.isEmpty())
-        return QString();
+        return PkString();
     if (m_index < m_command_list.size())
         return m_command_list.at(m_index)->actionText();
-    return QString();
+    return PkString();
 }
 
 /*!
@@ -1130,9 +1123,9 @@ void KUndo2QStack::beginMacro(const KUndo2MagicString &text)
 
     if (m_macro_stack.count() == 1) {
         Q_EMIT canUndoChanged(false);
-        Q_EMIT undoTextChanged(QString());
+        Q_EMIT undoTextChanged(PkString());
         Q_EMIT canRedoChanged(false);
-        Q_EMIT redoTextChanged(QString());
+        Q_EMIT redoTextChanged(PkString());
     }
 }
 
@@ -1185,10 +1178,10 @@ const KUndo2Command *KUndo2QStack::command(int index) const
     \sa beginMacro()
 */
 
-QString KUndo2QStack::text(int idx) const
+PkString KUndo2QStack::text(int idx) const
 {
     if (idx < 0 || idx >= m_command_list.size())
-        return QString();
+        return PkString();
     return m_command_list.at(idx)->text().toString();
 }
 
@@ -1290,7 +1283,7 @@ KisCumulativeUndoData KUndo2QStack::cumulativeUndoData()
 */
 
 /*!
-    \fn void KUndo2QStack::undoTextChanged(const QString &undoText)
+    \fn void KUndo2QStack::undoTextChanged(const PkString &undoText)
 
     This signal is emitted whenever the value of undoText() changes.
     \a undoText specifies the new text.
@@ -1304,7 +1297,7 @@ KisCumulativeUndoData KUndo2QStack::cumulativeUndoData()
 */
 
 /*!
-    \fn void KUndo2QStack::redoTextChanged(const QString &redoText)
+    \fn void KUndo2QStack::redoTextChanged(const PkString &redoText)
 
     This signal is emitted whenever the value of redoText() changes.
     \a redoText specifies the new text.
@@ -1317,7 +1310,7 @@ KisCumulativeUndoData KUndo2QStack::cumulativeUndoData()
     \a canRedo specifies the new value.
 */
 
-KUndo2Stack::KUndo2Stack(QObject *parent):
+KUndo2Stack::KUndo2Stack(PkObject *parent):
     KUndo2QStack(parent)
 {
 }
