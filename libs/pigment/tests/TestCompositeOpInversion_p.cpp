@@ -39,7 +39,7 @@ struct OpsStorage {
     static constexpr bool IsIntegerSpace = std::numeric_limits<Arg>::is_integer;
 
     template<CompositeFunc func>
-    void add(const KoColorSpace* cs, const QString& id, const QString& category) {
+    void add(const KoColorSpace* cs, const PkString& id, const PkString& category) {
         if constexpr (std::is_base_of_v<KoCmykTraits<typename Traits::channels_type>, Traits>) {
             if (useSubtractiveBlendingForCmykColorSpaces()) {
                 m_ops.insert(id, new KoCompositeOpGenericSC<Traits, func, KoSubtractiveBlendingPolicy<Traits>>(cs, id, category));
@@ -52,7 +52,7 @@ struct OpsStorage {
     }
 
     template<typename Functor>
-    void add(const KoColorSpace* cs, const QString& id, const QString& category) {
+    void add(const KoColorSpace* cs, const PkString& id, const PkString& category) {
         if constexpr (std::is_base_of_v<KoCmykTraits<typename Traits::channels_type>, Traits>) {
             if (useSubtractiveBlendingForCmykColorSpaces()) {
                 m_ops.insert(id, new KoCompositeOpGenericSCFunctor<Traits, Functor, KoSubtractiveBlendingPolicy<Traits>>(cs, id, category));
@@ -193,13 +193,13 @@ struct OpsStorage {
         return !m_ops.isEmpty();
     }
 
-    const KoCompositeOp* compositeOp(const QString &id) {
+    const KoCompositeOp* compositeOp(const PkString &id) {
         return m_ops.value(id);
     }
 
 private:
 
-    QMap<QString, KoCompositeOp*> m_ops;
+    PkMap<PkString, KoCompositeOp*> m_ops;
 };
 
 template<class Traits>
@@ -211,12 +211,12 @@ struct RgbOpsStorage {
     static const qint32 blue_pos  = Traits::blue_pos;
 
     template<void compositeFunc(float, float, float, float&, float&, float&)>
-    void add(const KoColorSpace* cs, const QString& id, const QString& category) {
+    void add(const KoColorSpace* cs, const PkString& id, const PkString& category) {
         m_ops.insert(id, new KoCompositeOpGenericHSL<Traits, compositeFunc>(cs, id, category));
     }
 
     template<typename Functor>
-    void add(const KoColorSpace* cs, const QString& id, const QString& category) {
+    void add(const KoColorSpace* cs, const PkString& id, const PkString& category) {
         m_ops.insert(id, new KoCompositeOpGenericHSLFunctor<Traits, Functor>(cs, id, category));
     }
 
@@ -275,13 +275,13 @@ struct RgbOpsStorage {
         return !m_ops.isEmpty();
     }
 
-    const KoCompositeOp* compositeOp(const QString &id) {
+    const KoCompositeOp* compositeOp(const PkString &id) {
         return m_ops.value(id);
     }
 
 private:
 
-    QMap<QString, KoCompositeOp*> m_ops;
+    PkMap<PkString, KoCompositeOp*> m_ops;
 };
 
 OpsStorage<KoBgrU16Traits> sU16Ops;
@@ -296,7 +296,7 @@ RgbOpsStorage<KoRgbF32Traits> sF32RgbOps;
 
 #endif /* USE_LOCAL_BUILD_OF_OPS */
 
-const KoCompositeOp* createOp(const KoColorSpace *cs, const QString &id, bool isHDR)
+const KoCompositeOp* createOp(const KoColorSpace *cs, const PkString &id, bool isHDR)
 {
     using namespace KoCompositeOpClampPolicy;
 
@@ -304,7 +304,7 @@ const KoCompositeOp* createOp(const KoColorSpace *cs, const QString &id, bool is
 
 #ifdef USE_LOCAL_BUILD_OF_OPS
     const bool isFloat = cs->colorDepthId() == Float32BitsColorDepthID || cs->colorDepthId() == Float16BitsColorDepthID;
-    QString effectiveId = id;
+    PkString effectiveId = id;
 
     if (isHDR && isFloat) {
         if (id == COMPOSITE_DODGE) {
@@ -382,19 +382,19 @@ const KoCompositeOp* createOp(const KoColorSpace *cs, const QString &id, bool is
         }
     } else if (id == COMPOSITE_DODGE) {
         const bool isFloat = cs->colorDepthId() == Float32BitsColorDepthID || cs->colorDepthId() == Float16BitsColorDepthID;
-        const QString newId = isHDR && isFloat ? COMPOSITE_DODGE_HDR : COMPOSITE_DODGE;
+        const PkString newId = isHDR && isFloat ? COMPOSITE_DODGE_HDR : COMPOSITE_DODGE;
         op = cs->compositeOp(newId);
     } else if (id == COMPOSITE_VIVID_LIGHT) {
         const bool isFloat = cs->colorDepthId() == Float32BitsColorDepthID || cs->colorDepthId() == Float16BitsColorDepthID;
-        const QString newId = isHDR && isFloat ? COMPOSITE_VIVID_LIGHT_HDR : COMPOSITE_VIVID_LIGHT;
+        const PkString newId = isHDR && isFloat ? COMPOSITE_VIVID_LIGHT_HDR : COMPOSITE_VIVID_LIGHT;
         op = cs->compositeOp(newId);
     } else if (id == COMPOSITE_HARD_MIX) {
         const bool isFloat = cs->colorDepthId() == Float32BitsColorDepthID || cs->colorDepthId() == Float16BitsColorDepthID;
-        const QString newId = isHDR && isFloat ? COMPOSITE_HARD_MIX_HDR : COMPOSITE_HARD_MIX;
+        const PkString newId = isHDR && isFloat ? COMPOSITE_HARD_MIX_HDR : COMPOSITE_HARD_MIX;
         op = cs->compositeOp(newId);
     } else if (id == COMPOSITE_HARD_OVERLAY) {
         const bool isFloat = cs->colorDepthId() == Float32BitsColorDepthID || cs->colorDepthId() == Float16BitsColorDepthID;
-        const QString newId = isHDR && isFloat? COMPOSITE_HARD_OVERLAY_HDR : COMPOSITE_HARD_OVERLAY;
+        const PkString newId = isHDR && isFloat? COMPOSITE_HARD_OVERLAY_HDR : COMPOSITE_HARD_OVERLAY;
         op = cs->compositeOp(newId);
     } else {
         op = cs->compositeOp(id);

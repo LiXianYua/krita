@@ -145,7 +145,7 @@ struct KisColorPairSampler
             using namespace Arithmetic;
 
             auto scaleChannel = [] (qreal value) -> quint16 {
-                return qFuzzyCompare(value, 0.5) ?
+                return pkFuzzyCompare(value, 0.5) ?
                     KoColorSpaceMathsTraits<quint16>::halfValue :
                     qRound(qBound(0.0, value, 1.0) * unitValue<quint16>());
             };
@@ -175,7 +175,7 @@ struct KisColorPairSampler
             if (colorSpace->hasHighDynamicRange()) {
                 KoColor result(colorSpace);
 
-                QVector<float> colors;
+                PkVector<float> colors;
                 colors.resize(4);
                 colors[0] = red;
                 colors[1] = green;

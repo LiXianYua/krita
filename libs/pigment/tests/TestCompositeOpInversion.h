@@ -6,12 +6,16 @@
 #ifndef TESTCOMPOSITEOPINVERSION_H
 #define TESTCOMPOSITEOPINVERSION_H
 
-#include <QObject>
+#include <PkTest.h>
+// Q_OBJECT / private Q_SLOTS: 的 token 留给 pk_test_moc.py 扫描（Q 后跟 _ 不命中判据正则）。
+// 宏展开与 pk/test/compat 的 Q_OBJECT 垫片同构；.cpp 经 <simpletest.h> 引入的 compat 定义与此相同。
+#define Q_OBJECT template <typename PkTestBinderArgT> friend struct PkTestBinder;
+#define Q_SLOTS
 
-class TestCompositeOpInversion : public QObject
+
+class TestCompositeOpInversion : public PkTestObject
 {
     Q_OBJECT
-public:
 private Q_SLOTS:
     void test();
     void test_data();
@@ -22,10 +26,10 @@ private Q_SLOTS:
     void testF32ModesNaN();
     void testF32ModesNaN_data();
 
-#if 0
-    void testU16ModesConsistent();
-    void testU16ModesConsistent_data();
-#endif
+    // 原文件把 testU16ModesConsistent(+_data) 用 #if 0 关掉（声明在头、定义在 .cpp 同
+    // 样 #if 0）。pk_test_moc.py 的槽扫描是纯正则、不认预处理分支，声明留在头里会让
+    // 生成的 PkTestBinder 引用从不编译的定义。这里按官方语义（这两个函数不参与运行）
+    // 直接不声明；.cpp 里的 #if 0 尸体照旧保留。
 
     void testF32vsU16ConsistencyInSDR_data();
     void testF32vsU16ConsistencyInSDR();

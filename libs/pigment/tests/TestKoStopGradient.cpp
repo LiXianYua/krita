@@ -7,7 +7,7 @@
 
 #include <simpletest.h>
 
-#include <QDomElement>
+#include <PkXmlElement.h>
 
 #include "KoColorModelStandardIds.h"
 
@@ -20,18 +20,18 @@
 #include "DebugPigment.h"
 #include "kis_debug.h"
 
-#include <testpigment.h>
+#include <kistest.h>
 
 void TestKoStopGradient::TestSVGStopGradientLoading()
 {
-    QHash <QString, const KoColorProfile *> profileList;
+    PkHash <PkString, const KoColorProfile *> profileList;
     KoStopGradient gradient;
 
     const KoColorSpace *cmyk = KoColorSpaceRegistry::instance()->colorSpace(CMYKAColorModelID.id(), Integer8BitsColorDepthID.id());
-    QString cmykName = "sillyCMYKName";
+    PkString cmykName = "sillyCMYKName";
     profileList.insert(cmykName, cmyk->profile());
 
-    QList<KoGradientStop> stops;
+    PkList<KoGradientStop> stops;
 
     stops << KoGradientStop(0.0, KoColor::fromSVG11("#ff00ff icc-color(sillyCMYKName, 1.0, 0, 0, 0)", profileList));
     stops << KoGradientStop(0.5, KoColor::fromSVG11("#777777 icc-color(sillyCMYKName, 0, .5, 1, 0)", profileList));
@@ -41,9 +41,9 @@ void TestKoStopGradient::TestSVGStopGradientLoading()
 
     // We need a better way to check if this worked.
 
-    QString svgSerialization = gradient.saveSvgGradient();
-    QVERIFY2(svgSerialization.contains("icc-color"), QString("icc-color not found in serialization of cmyk gradient.").toLatin1());
-    QVERIFY2(svgSerialization.contains("color-profile"), QString("color-profile not found in serialization of cmyk gradient.").toLatin1());
+    PkString svgSerialization = gradient.saveSvgGradient();
+    PK_VERIFY2(svgSerialization.contains("icc-color"), PkString("icc-color not found in serialization of cmyk gradient.").PkToUtf8());
+    PK_VERIFY2(svgSerialization.contains("color-profile"), PkString("color-profile not found in serialization of cmyk gradient.").PkToUtf8());
 
 }
 

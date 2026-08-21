@@ -69,30 +69,30 @@ void KoRgbU8ColorSpaceTester::testMixColors()
 
     mixOp->mixColors(pixelPtrs, weights, 2, outputPixel);
 
-    QVERIFY((int)outputPixel[PIXEL_RED] == 255);
-    QVERIFY((int)outputPixel[PIXEL_GREEN] == 255);
-    QVERIFY((int)outputPixel[PIXEL_BLUE] == 255);
-    QVERIFY((int)outputPixel[PIXEL_ALPHA] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_RED] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_GREEN] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_BLUE] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_ALPHA] == 255);
 
     weights[0] = 0;
     weights[1] = 255;
 
     mixOp->mixColors(pixelPtrs, weights, 2, outputPixel);
 
-    QVERIFY((int)outputPixel[PIXEL_RED] == 0);
-    QVERIFY((int)outputPixel[PIXEL_GREEN] == 0);
-    QVERIFY((int)outputPixel[PIXEL_BLUE] == 0);
-    QVERIFY((int)outputPixel[PIXEL_ALPHA] == 0);
+    PK_VERIFY((int)outputPixel[PIXEL_RED] == 0);
+    PK_VERIFY((int)outputPixel[PIXEL_GREEN] == 0);
+    PK_VERIFY((int)outputPixel[PIXEL_BLUE] == 0);
+    PK_VERIFY((int)outputPixel[PIXEL_ALPHA] == 0);
 
     weights[0] = 128;
     weights[1] = 127;
 
     mixOp->mixColors(pixelPtrs, weights, 2, outputPixel);
 
-    QVERIFY((int)outputPixel[PIXEL_RED] == 255);
-    QVERIFY((int)outputPixel[PIXEL_GREEN] == 255);
-    QVERIFY((int)outputPixel[PIXEL_BLUE] == 255);
-    QVERIFY((int)outputPixel[PIXEL_ALPHA] == 128);
+    PK_VERIFY((int)outputPixel[PIXEL_RED] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_GREEN] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_BLUE] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_ALPHA] == 128);
 
     pixel1[PIXEL_RED] = 200;
     pixel1[PIXEL_GREEN] = 100;
@@ -106,10 +106,10 @@ void KoRgbU8ColorSpaceTester::testMixColors()
 
     mixOp->mixColors(pixelPtrs, weights, 2, outputPixel);
 
-    QVERIFY((int)outputPixel[PIXEL_RED] == 150);
-    QCOMPARE((int)outputPixel[PIXEL_GREEN], 150);
-    QVERIFY((int)outputPixel[PIXEL_BLUE] == 35);
-    QVERIFY((int)outputPixel[PIXEL_ALPHA] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_RED] == 150);
+    PK_COMPARE((int)outputPixel[PIXEL_GREEN], 150);
+    PK_VERIFY((int)outputPixel[PIXEL_BLUE] == 35);
+    PK_VERIFY((int)outputPixel[PIXEL_ALPHA] == 255);
 
     pixel1[PIXEL_RED] = 0;
     pixel1[PIXEL_GREEN] = 0;
@@ -126,10 +126,10 @@ void KoRgbU8ColorSpaceTester::testMixColors()
 
     mixOp->mixColors(pixelPtrs, weights, 2, outputPixel);
 
-    QVERIFY((int)outputPixel[PIXEL_RED] == 255);
-    QVERIFY((int)outputPixel[PIXEL_GREEN] == 255);
-    QVERIFY((int)outputPixel[PIXEL_BLUE] == 255);
-    QVERIFY((int)outputPixel[PIXEL_ALPHA] == 165);
+    PK_VERIFY((int)outputPixel[PIXEL_RED] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_GREEN] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_BLUE] == 255);
+    PK_VERIFY((int)outputPixel[PIXEL_ALPHA] == 165);
 }
 void KoRgbU8ColorSpaceTester::testMixColorsAverage()
 {
@@ -158,25 +158,25 @@ void KoRgbU8ColorSpaceTester::testMixColorsAverage()
 
     mixOp->mixColors(pixelPtrs, 2, outputPixel);
 
-    QCOMPARE((int)outputPixel[PIXEL_RED], 255);
-    QCOMPARE((int)outputPixel[PIXEL_GREEN], 255);
-    QCOMPARE((int)outputPixel[PIXEL_BLUE], 255);
-    QCOMPARE((int)outputPixel[PIXEL_ALPHA], 128);
+    PK_COMPARE((int)outputPixel[PIXEL_RED], 255);
+    PK_COMPARE((int)outputPixel[PIXEL_GREEN], 255);
+    PK_COMPARE((int)outputPixel[PIXEL_BLUE], 255);
+    PK_COMPARE((int)outputPixel[PIXEL_ALPHA], 128);
 
     pixel2[PIXEL_ALPHA] = 255;
     mixOp->mixColors(pixelPtrs, 2, outputPixel);
 
-    QCOMPARE((int)outputPixel[PIXEL_RED], 128);
-    QCOMPARE((int)outputPixel[PIXEL_GREEN], 128);
-    QCOMPARE((int)outputPixel[PIXEL_BLUE], 128);
-    QCOMPARE((int)outputPixel[PIXEL_ALPHA], 255);
+    PK_COMPARE((int)outputPixel[PIXEL_RED], 128);
+    PK_COMPARE((int)outputPixel[PIXEL_GREEN], 128);
+    PK_COMPARE((int)outputPixel[PIXEL_BLUE], 128);
+    PK_COMPARE((int)outputPixel[PIXEL_ALPHA], 255);
 }
 
 void KoRgbU8ColorSpaceTester::testCompositeOps()
 {
     // Just COMPOSITE_COPY for now
 
-    QList<KoID> depthIDs = KoColorSpaceRegistry::instance()->colorDepthList(RGBAColorModelID.id(),
+    PkList<KoID> depthIDs = KoColorSpaceRegistry::instance()->colorDepthList(RGBAColorModelID.id(),
                            KoColorSpaceRegistry::AllColorSpaces);
 
     Q_FOREACH (const KoID& depthId, depthIDs) {
@@ -190,9 +190,9 @@ void KoRgbU8ColorSpaceTester::testCompositeOps()
         const KoCompositeOp* copyOp = cs->compositeOp(COMPOSITE_COPY);
         KoColor src(cs), dst(cs);
 
-        QColor red(255, 0, 0);
-        QColor blue(0, 0, 255);
-        QColor transparentRed(255, 0, 0, 0);
+        PkColor red(255, 0, 0);
+        PkColor blue(0, 0, 255);
+        PkColor transparentRed(255, 0, 0, 0);
 
         // Copying a color over another color should replace the original color
         src.fromQColor(red);
@@ -200,37 +200,37 @@ void KoRgbU8ColorSpaceTester::testCompositeOps()
         
         qDebug() << src.toQColor() << dst.toQColor();
 
-        QVERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) != 0);
+        PK_VERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) != 0);
 
         copyOp->composite(dst.data(), cs->pixelSize(), src.data(), cs->pixelSize(),
                           0, 0, 1, 1, OPACITY_OPAQUE_F);
 
         src.fromQColor(red);
-        QVERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) == 0);
+        PK_VERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) == 0);
 
         // Copying something transparent over something non-transparent should, of course, make the dst transparent
         src.fromQColor(transparentRed);
         dst.fromQColor(blue);
 
-        QVERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) != 0);
+        PK_VERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) != 0);
 
         copyOp->composite(dst.data(), cs->pixelSize(), src.data(), cs->pixelSize(),
                           0, 0, 1, 1, OPACITY_OPAQUE_F);
 
         src.fromQColor(transparentRed);
-        QVERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) == 0);
+        PK_VERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) == 0);
 
         // Copying something solid over something transparent
         src.fromQColor(blue);
         dst.fromQColor(transparentRed);
 
-        QVERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) != 0);
+        PK_VERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) != 0);
 
         copyOp->composite(dst.data(), cs->pixelSize(), src.data(), cs->pixelSize(),
                           0, 0, 1, 1, OPACITY_OPAQUE_F);
 
         src.fromQColor(blue);
-        QVERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) == 0);
+        PK_VERIFY(memcmp(dst.data(), src.data(), cs->pixelSize()) == 0);
 
     }
 }
@@ -238,7 +238,7 @@ void KoRgbU8ColorSpaceTester::testCompositeOps()
 void KoRgbU8ColorSpaceTester::testCompositeOpsWithChannelFlags()
 {
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
-    QList<KoCompositeOp*> ops = cs->compositeOps();
+    PkList<KoCompositeOp*> ops = cs->compositeOps();
 
     Q_FOREACH (const KoCompositeOp *op, ops) {
         /**
@@ -262,8 +262,8 @@ void KoRgbU8ColorSpaceTester::testCompositeOpsWithChannelFlags()
         params.opacity       = 1.0f;
         params.flow          = 1.0f;
 
-        QBitArray channelFlags(4, true);
-        channelFlags[2] = false;
+        PkBitArray channelFlags(4, true);
+        channelFlags.setBit(2, false);
         params.channelFlags  = channelFlags;
 
         params.srcRowStart   = src;
@@ -288,7 +288,7 @@ void KoRgbU8ColorSpaceTester::testCompositeOpsWithChannelFlags()
             qDebug() << "Expected Blue channel:" << 0;
             qDebug() << "Actual Blue channel:  " << badDst[2];
 
-            QFAIL("Failed to erase color channel");
+            PK_FAIL("Failed to erase color channel");
         }
     }
 }
@@ -362,7 +362,7 @@ void KoRgbU8ColorSpaceTester::testCompositeCopyDivisionByZero()
             qDebug() << "expD" << expectedDst[0] << expectedDst[1] << expectedDst[2] << expectedDst[3];
             qDebug() << "dst1" << badPixelDstPtr[0] << badPixelDstPtr[1] << badPixelDstPtr[2] << badPixelDstPtr[3];
 #if !defined(XSIMD_NO_SUPPORTED_ARCHITECTURE)
-            QFAIL("Failed to compose pixels");
+            PK_FAIL("Failed to compose pixels");
 #else
             qWarning() << "Skipping failed test when xsimd library is not used";
 #endif

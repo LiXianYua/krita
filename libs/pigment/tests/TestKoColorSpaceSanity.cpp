@@ -10,15 +10,15 @@
 #include <KoColorSpaceRegistry.h>
 #include <KoChannelInfo.h>
 
-#include <testpigment.h>
+#include <kistest.h>
 
 void TestKoColorSpaceSanity::testChannelsInfo()
 {
     Q_FOREACH (const KoColorSpace* colorSpace, KoColorSpaceRegistry::instance()->allColorSpaces(KoColorSpaceRegistry::AllColorSpaces, KoColorSpaceRegistry::OnlyDefaultProfile))
     {
 
-        QCOMPARE(colorSpace->channelCount(), quint32(colorSpace->channels().size()));
-        QList<int> displayPositions;
+        PK_COMPARE(colorSpace->channelCount(), quint32(colorSpace->channels().size()));
+        PkList<int> displayPositions;
         quint32 colorChannels = 0;
         quint32 size = 0;
         Q_FOREACH (KoChannelInfo* info, colorSpace->channels())
@@ -28,25 +28,25 @@ void TestKoColorSpaceSanity::testChannelsInfo()
             }
             // Check poses
             qint32 pos = info->pos();
-            QVERIFY(pos + info->size() <= (qint32)colorSpace->pixelSize());
+            PK_VERIFY(pos + info->size() <= (qint32)colorSpace->pixelSize());
             Q_FOREACH (KoChannelInfo* info2, colorSpace->channels())
             {
                 if( info != info2 )
                 {
-                    QVERIFY( pos >= (info2->pos() + info2->size()) || pos + info->size() <= info2->pos());
+                    PK_VERIFY( pos >= (info2->pos() + info2->size()) || pos + info->size() <= info2->pos());
                 }
             }
 
             // Check displayPosition
             quint32 displayPosition = info->displayPosition();
-            QVERIFY(displayPosition < colorSpace->channelCount());
-            QVERIFY(displayPositions.indexOf(displayPosition) == -1);
+            PK_VERIFY(displayPosition < colorSpace->channelCount());
+            PK_VERIFY(displayPositions.indexOf(displayPosition) == -1);
             displayPositions.push_back(displayPosition);
 
             size += info->size();
         }
-        QCOMPARE(size, colorSpace->pixelSize());
-        QCOMPARE(colorSpace->colorChannelCount(), colorChannels);
+        PK_COMPARE(size, colorSpace->pixelSize());
+        PK_COMPARE(colorSpace->colorChannelCount(), colorChannels);
     }
 }
 

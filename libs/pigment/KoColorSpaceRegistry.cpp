@@ -134,9 +134,18 @@ private:
 
 KoColorSpaceRegistry* KoColorSpaceRegistry::instance()
 {
+    // 原 Q_GLOBAL_STATIC 语义：对象在 init() 之前完成构造（exists() 即为真），
+    // 因此 init → add → 工厂 ctor → instance() 的递归重入时能直接返回部分初始化
+    // 的单例。C++ 函数局部 static 的 __cxa_guard 不允许递归重入（会抛
+    // recursive_init_error），不能把 init 放进 static 初始化器；改用先置位 bool
+    // 旗标再 init()，递归重入时看到 s_initDone 为真即返回。测试路径单线程，
+    // 与 Q_GLOBAL_STATIC 的并发首调用保护语义有偏差（可接受的薄壳差异）。
     static KoColorSpaceRegistry s_instance;
-    static bool s_initDone = (s_instance.init(), true);
-    (void)s_initDone;
+    static bool s_initDone = false;
+    if (!s_initDone) {
+        s_initDone = true;
+        s_instance.init();
+    }
     return &s_instance;
 }
 

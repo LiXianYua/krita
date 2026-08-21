@@ -4,24 +4,26 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <simpletest.h>
 #include "TestColorConversionSystem.h"
 
-#include <simpletest.h>
 
 #include <DebugPigment.h>
 #include <KoColorConversionSystem.h>
 #include <KoColorModelStandardIds.h>
 #include <KoColorProfile.h>
 #include <KoColorSpaceRegistry.h>
-#include <testpigment.h>
+#include <kistest.h>
 
-#include <QRandomGenerator>
+#include <PkContainerAlgo.h>
+
+#include <random>
 
 TestColorConversionSystem::TestColorConversionSystem()
 {
     Q_FOREACH (const KoID& modelId, KoColorSpaceRegistry::instance()->colorModelsList(KoColorSpaceRegistry::AllColorSpaces)) {
         Q_FOREACH (const KoID& depthId, KoColorSpaceRegistry::instance()->colorDepthList(modelId, KoColorSpaceRegistry::AllColorSpaces)) {
-            QList< const KoColorProfile * > profiles =
+            PkList< const KoColorProfile * > profiles =
                 KoColorSpaceRegistry::instance()->profilesFor(
                     KoColorSpaceRegistry::instance()->colorSpaceId(modelId, depthId));
             Q_FOREACH (const KoColorProfile * profile, profiles) {
@@ -36,7 +38,7 @@ void TestColorConversionSystem::testConnections()
 {
     Q_FOREACH (const ModelDepthProfile& srcCS, listModels) {
         Q_FOREACH (const ModelDepthProfile& dstCS, listModels) {
-            QVERIFY2(KoColorSpaceRegistry::instance()->colorConversionSystem()->existsPath(srcCS.model, srcCS.depth, srcCS.profile, dstCS.model, dstCS.depth, dstCS.profile) , QString("No path between %1 / %2 and %3 / %4").arg(srcCS.model).arg(srcCS.depth).arg(dstCS.model).arg(dstCS.depth).toLatin1());
+            PK_VERIFY2(KoColorSpaceRegistry::instance()->colorConversionSystem()->existsPath(srcCS.model, srcCS.depth, srcCS.profile, dstCS.model, dstCS.depth, dstCS.profile) , PkString("No path between %1 / %2 and %3 / %4").arg(srcCS.model).arg(srcCS.depth).arg(dstCS.model).arg(dstCS.depth).PkToUtf8());
         }
     }
 }
@@ -56,7 +58,7 @@ void TestColorConversionSystem::testGoodConnections()
     if (!KoColorSpaceRegistry::instance()->colorSpace( RGBAColorModelID.id(), Float32BitsColorDepthID.id(), 0) && KoColorSpaceRegistry::instance()->colorSpace( "KS6", Float32BitsColorDepthID.id(), 0) ) {
         failed = 42;
     }
-    QVERIFY2(countFail == failed, QString("%1 tests have fails (it should have been %2)").arg(countFail).arg(failed).toLatin1());
+    PK_VERIFY2(countFail == failed, PkString("%1 tests have fails (it should have been %2)").arg(countFail).arg(failed).PkToUtf8());
 }
 
 #include <KoColor.h>
@@ -64,30 +66,7 @@ void TestColorConversionSystem::testGoodConnections()
 #include <KoColorConversionSystem_p.h>
 #include <kis_debug.h>
 
-namespace QTest {
-inline bool qCompare(const std::vector<KoColorConversionSystem::NodeKey> &t1,
-                     const std::vector<KoColorConversionSystem::NodeKey> &t2,
-                     const char *actual, const char *expected,
-                     const char *file, int line) {
 
-    bool result = t1 == t2;
-
-    if (!result) {
-        QString actualStr;
-        QDebug act(&actualStr);
-        act.nospace() << actual << ": " << t1;
-
-        QString expectedStr;
-        QDebug exp(&expectedStr);
-        exp.nospace() << expected << ": " << t2;
-
-        QString message = QString("Compared paths are not the same:\n Expected: %1\n Actual: %2").arg(expectedStr).arg(actualStr);
-        QTest::qFail(message.toLocal8Bit(), file, line);
-    }
-
-    return t1 == t2;
-}
-}
 
 std::vector<KoColorConversionSystem::NodeKey> TestColorConversionSystem::calcPath(const std::vector<KoColorConversionSystem::NodeKey> &expectedPath) {
 
@@ -123,97 +102,97 @@ void TestColorConversionSystem::testAlphaConnectionPaths()
     expectedPath =
         {{GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{GrayAColorModelID.id(), Integer16BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
 #ifdef HAVE_OPENEXR
     expectedPath =
         {{GrayAColorModelID.id(), Float16BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 #endif
 
     expectedPath =
         {{GrayAColorModelID.id(), Float32BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {AlphaColorModelID.id(), Integer16BitsColorDepthID.id(), alpha8->profile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()},
          {GrayAColorModelID.id(), Integer16BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {AlphaColorModelID.id(), Integer16BitsColorDepthID.id(), alpha8->profile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     // from Alpha8 conversions. Everything should go via GrayA color space
 
     expectedPath =
         {{alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Integer16BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
 #ifdef HAVE_OPENEXR
     expectedPath =
         {{alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Float16BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 #endif
 
     expectedPath =
         {{alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Float32BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
 
     expectedPath =
         {{alpha8->colorModelId().id(), alpha8->colorDepthId().id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{AlphaColorModelID.id(), Integer16BitsColorDepthID.id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
         {{AlphaColorModelID.id(), Integer16BitsColorDepthID.id(), alpha8->profile()->name()},
          {GrayAColorModelID.id(), Integer16BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
          {RGBAColorModelID.id(), Integer16BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 }
 
 void TestColorConversionSystem::testAlphaConversions()
@@ -223,53 +202,53 @@ void TestColorConversionSystem::testAlphaConversions()
     const KoColorSpace *rgb16 = KoColorSpaceRegistry::instance()->rgb16();
 
     {
-        KoColor c(QColor(255,255,255,255), alpha8);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        KoColor c(PkColor(255,255,255,255), alpha8);
+        PK_COMPARE(c.opacityU8(), quint8(255));
         c.convertTo(rgb8);
-        QCOMPARE(c.toQColor(), QColor(255,255,255));
+        PK_COMPARE(c.toQColor(), PkColor(255,255,255));
         c.convertTo(alpha8);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        PK_COMPARE(c.opacityU8(), quint8(255));
     }
 
     {
-        KoColor c(QColor(255,255,255,0), alpha8);
+        KoColor c(PkColor(255,255,255,0), alpha8);
         c.convertTo(rgb8);
-        QCOMPARE(c.toQColor(), QColor(0,0,0,255));
+        PK_COMPARE(c.toQColor(), PkColor(0,0,0,255));
         c.convertTo(alpha8);
-        QCOMPARE(c.opacityU8(), quint8(0));
+        PK_COMPARE(c.opacityU8(), quint8(0));
     }
 
     {
-        KoColor c(QColor(255,255,255,128), alpha8);
+        KoColor c(PkColor(255,255,255,128), alpha8);
         c.convertTo(rgb8);
-        QCOMPARE(c.toQColor(), QColor(128,128,128,255));
+        PK_COMPARE(c.toQColor(), PkColor(128,128,128,255));
         c.convertTo(alpha8);
-        QCOMPARE(c.opacityU8(), quint8(128));
+        PK_COMPARE(c.opacityU8(), quint8(128));
     }
 
     {
-        KoColor c(QColor(255,255,255,255), alpha8);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        KoColor c(PkColor(255,255,255,255), alpha8);
+        PK_COMPARE(c.opacityU8(), quint8(255));
         c.convertTo(rgb16);
-        QCOMPARE(c.toQColor(), QColor(255,255,255));
+        PK_COMPARE(c.toQColor(), PkColor(255,255,255));
         c.convertTo(alpha8);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        PK_COMPARE(c.opacityU8(), quint8(255));
     }
 
     {
-        KoColor c(QColor(255,255,255,0), alpha8);
+        KoColor c(PkColor(255,255,255,0), alpha8);
         c.convertTo(rgb16);
-        QCOMPARE(c.toQColor(), QColor(0,0,0,255));
+        PK_COMPARE(c.toQColor(), PkColor(0,0,0,255));
         c.convertTo(alpha8);
-        QCOMPARE(c.opacityU8(), quint8(0));
+        PK_COMPARE(c.opacityU8(), quint8(0));
     }
 
     {
-        KoColor c(QColor(255,255,255,128), alpha8);
+        KoColor c(PkColor(255,255,255,128), alpha8);
         c.convertTo(rgb16);
-        QCOMPARE(c.toQColor(), QColor(128,128,128,255));
+        PK_COMPARE(c.toQColor(), PkColor(128,128,128,255));
         c.convertTo(alpha8);
-        QCOMPARE(c.opacityU8(), quint8(128));
+        PK_COMPARE(c.opacityU8(), quint8(128));
     }
 }
 
@@ -281,53 +260,53 @@ void TestColorConversionSystem::testAlphaU16Conversions()
     const KoColorSpace *rgb16 = KoColorSpaceRegistry::instance()->rgb16();
 
     {
-        KoColor c(QColor(255,255,255,255), alpha16);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        KoColor c(PkColor(255,255,255,255), alpha16);
+        PK_COMPARE(c.opacityU8(), quint8(255));
         c.convertTo(rgb8);
-        QCOMPARE(c.toQColor(), QColor(255,255,255));
+        PK_COMPARE(c.toQColor(), PkColor(255,255,255));
         c.convertTo(alpha16);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        PK_COMPARE(c.opacityU8(), quint8(255));
     }
 
     {
-        KoColor c(QColor(255,255,255,0), alpha16);
+        KoColor c(PkColor(255,255,255,0), alpha16);
         c.convertTo(rgb8);
-        QCOMPARE(c.toQColor(), QColor(0,0,0,255));
+        PK_COMPARE(c.toQColor(), PkColor(0,0,0,255));
         c.convertTo(alpha16);
-        QCOMPARE(c.opacityU8(), quint8(0));
+        PK_COMPARE(c.opacityU8(), quint8(0));
     }
 
     {
-        KoColor c(QColor(255,255,255,128), alpha16);
+        KoColor c(PkColor(255,255,255,128), alpha16);
         c.convertTo(rgb8);
-        QCOMPARE(c.toQColor(), QColor(128,128,128,255));
+        PK_COMPARE(c.toQColor(), PkColor(128,128,128,255));
         c.convertTo(alpha16);
-        QCOMPARE(c.opacityU8(), quint8(128));
+        PK_COMPARE(c.opacityU8(), quint8(128));
     }
 
     {
-        KoColor c(QColor(255,255,255,255), alpha16);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        KoColor c(PkColor(255,255,255,255), alpha16);
+        PK_COMPARE(c.opacityU8(), quint8(255));
         c.convertTo(rgb16);
-        QCOMPARE(c.toQColor(), QColor(255,255,255));
+        PK_COMPARE(c.toQColor(), PkColor(255,255,255));
         c.convertTo(alpha16);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        PK_COMPARE(c.opacityU8(), quint8(255));
     }
 
     {
-        KoColor c(QColor(255,255,255,0), alpha16);
+        KoColor c(PkColor(255,255,255,0), alpha16);
         c.convertTo(rgb16);
-        QCOMPARE(c.toQColor(), QColor(0,0,0,255));
+        PK_COMPARE(c.toQColor(), PkColor(0,0,0,255));
         c.convertTo(alpha16);
-        QCOMPARE(c.opacityU8(), quint8(0));
+        PK_COMPARE(c.opacityU8(), quint8(0));
     }
 
     {
-        KoColor c(QColor(255,255,255,128), alpha16);
+        KoColor c(PkColor(255,255,255,128), alpha16);
         c.convertTo(rgb16);
-        QCOMPARE(c.toQColor(), QColor(128,128,128,255));
+        PK_COMPARE(c.toQColor(), PkColor(128,128,128,255));
         c.convertTo(alpha16);
-        QCOMPARE(c.opacityU8(), quint8(128));
+        PK_COMPARE(c.opacityU8(), quint8(128));
     }
 }
 
@@ -340,24 +319,24 @@ void TestColorConversionSystem::testGrayAConnectionPaths()
     expectedPath =
        {{GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
         {GrayAColorModelID.id(), Integer16BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
 
     expectedPath =
        {{GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
         {RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
     expectedPath =
        {{GrayAColorModelID.id(), Integer16BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"},
         {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
 
     expectedPath =
        {{RGBAColorModelID.id(), Integer8BitsColorDepthID.id(), KoColorSpaceRegistry::instance()->p709SRGBProfile()->name()},
         {GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc"}};
-    QCOMPARE(calcPath(expectedPath), expectedPath);
+    PK_COMPARE(calcPath(expectedPath), expectedPath);
 
 
 }
@@ -371,44 +350,44 @@ void TestColorConversionSystem::testGrayAConversions()
 
     {
         KoColor c(Qt::transparent, graya8);
-        QCOMPARE(c.opacityU8(), quint8(0));
+        PK_COMPARE(c.opacityU8(), quint8(0));
         c.convertTo(graya16);
-        QCOMPARE(c.opacityU8(), quint8(0));
-        QCOMPARE(c.toQColor(), QColor(Qt::transparent));
+        PK_COMPARE(c.opacityU8(), quint8(0));
+        PK_COMPARE(c.toQColor(), PkColor(Qt::transparent));
         c.convertTo(graya8);
-        QCOMPARE(c.opacityU8(), quint8(0));
+        PK_COMPARE(c.opacityU8(), quint8(0));
 
         c.convertTo(rgb8);
-        QCOMPARE(c.opacityU8(), quint8(0));
-        QCOMPARE(c.toQColor(), QColor(Qt::transparent));
+        PK_COMPARE(c.opacityU8(), quint8(0));
+        PK_COMPARE(c.toQColor(), PkColor(Qt::transparent));
     }
 
     {
-        KoColor c(QColor(255,255,255), graya8);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        KoColor c(PkColor(255,255,255), graya8);
+        PK_COMPARE(c.opacityU8(), quint8(255));
         c.convertTo(graya16);
-        QCOMPARE(c.opacityU8(), quint8(255));
-        QCOMPARE(c.toQColor(), QColor(Qt::white));
+        PK_COMPARE(c.opacityU8(), quint8(255));
+        PK_COMPARE(c.toQColor(), PkColor(Qt::white));
         c.convertTo(graya8);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        PK_COMPARE(c.opacityU8(), quint8(255));
 
         c.convertTo(rgb8);
-        QCOMPARE(c.opacityU8(), quint8(255));
-        QCOMPARE(c.toQColor(), QColor(Qt::white));
+        PK_COMPARE(c.opacityU8(), quint8(255));
+        PK_COMPARE(c.toQColor(), PkColor(Qt::white));
     }
 
     {
-        KoColor c(QColor(180,180,180), graya8);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        KoColor c(PkColor(180,180,180), graya8);
+        PK_COMPARE(c.opacityU8(), quint8(255));
         c.convertTo(graya16);
-        QCOMPARE(c.opacityU8(), quint8(255));
-        QCOMPARE(c.toQColor(), QColor(180,180,180));
+        PK_COMPARE(c.opacityU8(), quint8(255));
+        PK_COMPARE(c.toQColor(), PkColor(180,180,180));
         c.convertTo(graya8);
-        QCOMPARE(c.opacityU8(), quint8(255));
+        PK_COMPARE(c.opacityU8(), quint8(255));
 
         c.convertTo(rgb8);
-        QCOMPARE(c.opacityU8(), quint8(255));
-        QCOMPARE(c.toQColor(), QColor(180,180,180));
+        PK_COMPARE(c.opacityU8(), quint8(255));
+        PK_COMPARE(c.toQColor(), PkColor(180,180,180));
     }
 }
 
@@ -418,15 +397,17 @@ void TestColorConversionSystem::benchmarkAlphaToRgbConversion()
     const KoColorSpace *rgb8 = KoColorSpaceRegistry::instance()->rgb8();
 
     const int numPixels = 1024 * 4096;
-    QByteArray srcBuf(numPixels * alpha8->pixelSize(), '\0');
-    QByteArray dstBuf(numPixels * rgb8->pixelSize(), '\0');
+    PkByteArray srcBuf;
+    srcBuf.resize(numPixels * alpha8->pixelSize());
+    PkByteArray dstBuf;
+    dstBuf.resize(numPixels * rgb8->pixelSize());
 
-    QRandomGenerator rng{};
+    std::mt19937 rng(42);
     for (int i = 0; i < srcBuf.size(); i++) {
-        srcBuf[i] = static_cast<char>(rng.bounded(256));
+        srcBuf.data()[i] = static_cast<char>(rng() % 256);
     }
 
-    QBENCHMARK {
+    {
         alpha8->convertPixelsTo((quint8*)srcBuf.data(),
                                 (quint8*)dstBuf.data(),
                                 rgb8,
@@ -442,15 +423,17 @@ void TestColorConversionSystem::benchmarkRgbToAlphaConversion()
     const KoColorSpace *rgb8 = KoColorSpaceRegistry::instance()->rgb8();
 
     const int numPixels = 1024 * 4096;
-    QByteArray srcBuf(numPixels * rgb8->pixelSize(), '\0');
-    QByteArray dstBuf(numPixels * alpha8->pixelSize(), '\0');
+    PkByteArray srcBuf;
+    srcBuf.resize(numPixels * rgb8->pixelSize());
+    PkByteArray dstBuf;
+    dstBuf.resize(numPixels * alpha8->pixelSize());
 
-    QRandomGenerator rng{};
+    std::mt19937 rng(42);
     for (int i = 0; i < srcBuf.size(); i++) {
-        srcBuf[i] = static_cast<char>(rng.bounded(256));
+        srcBuf.data()[i] = static_cast<char>(rng() % 256);
     }
 
-    QBENCHMARK {
+    {
         rgb8->convertPixelsTo((quint8*)srcBuf.data(),
                               (quint8*)dstBuf.data(),
                               alpha8,
@@ -481,7 +464,7 @@ void TestColorConversionSystem::testCmykBitnessConversion()
 //    ENTER_FUNCTION() << ppVar(cmyk16->profile()->fileName());
 
 
-    KoColor color(QColor(177, 180, 42, 255), cmyk8);
+    KoColor color(PkColor(177, 180, 42, 255), cmyk8);
 //    qDebug() << ppVar(color);
     color.convertTo(cmyk16);
 //    qDebug() << ppVar(color);
@@ -493,7 +476,7 @@ void TestColorConversionSystem::testCmykBitnessConversion()
      * to-from 16-bit representation. So the code that relies on that should
      * use KoOptimizedCmykPixelDataScalerU8ToU16Factory::create().
      */
-    QVERIFY(color != color2);
+    PK_VERIFY(color != color2);
 
 }
 
