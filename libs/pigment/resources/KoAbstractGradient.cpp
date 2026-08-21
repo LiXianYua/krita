@@ -6,30 +6,30 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include <resources/KoAbstractGradient.h>
 #include "KoColorSpaceRegistry.h"
 
 #include <KoColor.h>
 
-#include <QBuffer>
-
 #define PREVIEW_WIDTH 2048
 #define PREVIEW_HEIGHT 1
 
 
-struct Q_DECL_HIDDEN KoAbstractGradient::Private {
+struct KoAbstractGradient::Private {
     const KoColorSpace* colorSpace;
-    QGradient::Spread spread;
-    QGradient::Type type;
+    PkGradientEnums::Spread spread;
+    PkGradientEnums::Type type;
 };
 
-KoAbstractGradient::KoAbstractGradient(const QString& filename)
+KoAbstractGradient::KoAbstractGradient(const PkString& filename)
         : KoResource(filename)
         , d(new Private)
 {
     d->colorSpace = KoColorSpaceRegistry::instance()->rgb8();
-    d->spread = QGradient::PadSpread;
-    d->type = QGradient::NoGradient;
+    d->spread = PkGradientEnums::PadSpread;
+    d->type = PkGradientEnums::NoGradient;
 }
 
 KoAbstractGradient::~KoAbstractGradient()
@@ -86,34 +86,34 @@ const KoColorSpace* KoAbstractGradient::colorSpace() const
     return d->colorSpace;
 }
 
-void KoAbstractGradient::setSpread(QGradient::Spread spreadMethod)
+void KoAbstractGradient::setSpread(PkGradientEnums::Spread spreadMethod)
 {
     d->spread = spreadMethod;
 }
 
-QGradient::Spread KoAbstractGradient::spread() const
+PkGradientEnums::Spread KoAbstractGradient::spread() const
 {
     return d->spread;
 }
 
-void KoAbstractGradient::setType(QGradient::Type repeatType)
+void KoAbstractGradient::setType(PkGradientEnums::Type repeatType)
 {
     d->type = repeatType;
 }
 
-QGradient::Type KoAbstractGradient::type() const
+PkGradientEnums::Type KoAbstractGradient::type() const
 {
     return d->type;
 }
 
-QImage KoAbstractGradient::generatePreview(int width, int height) const
+PkImage KoAbstractGradient::generatePreview(int width, int height) const
 {
-    QImage image(width, height, QImage::Format_ARGB32);
+    PkImage image(width, height, PkImage::Format_ARGB32);
 
-    QRgb * firstLine = reinterpret_cast<QRgb*>(image.scanLine(0));
+    PkRgb * firstLine = reinterpret_cast<PkRgb*>(image.scanLine(0));
 
     KoColor c;
-    QColor color;
+    PkColor color;
     // first create a reference line
     for (int x = 0; x < image.width(); ++x) {
 
@@ -128,7 +128,7 @@ QImage KoAbstractGradient::generatePreview(int width, int height) const
 
     // now copy lines accordingly
     for (int y = 1; y < image.height(); ++y) {
-        QRgb * line = reinterpret_cast<QRgb*>(image.scanLine(y));
+        PkRgb * line = reinterpret_cast<PkRgb*>(image.scanLine(y));
 
         memcpy(line, firstLine, bytesPerLine);
     }
@@ -136,9 +136,9 @@ QImage KoAbstractGradient::generatePreview(int width, int height) const
     return image;
 }
 
-QImage KoAbstractGradient::generatePreview(int width, int height, KoCanvasResourcesInterfaceSP canvasResourcesInterface) const
+PkImage KoAbstractGradient::generatePreview(int width, int height, KoCanvasResourcesInterfaceSP canvasResourcesInterface) const
 {
-    QImage result;
+    PkImage result;
 
     if (!requiredCanvasResources().isEmpty()) {
         KoAbstractGradientSP gradient = cloneAndBakeVariableColors(canvasResourcesInterface);

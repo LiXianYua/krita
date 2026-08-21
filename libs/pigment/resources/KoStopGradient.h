@@ -6,17 +6,26 @@
 #ifndef KOSTOPGRADIENT_H
 #define KOSTOPGRADIENT_H
 
-#include <QPair>
-#include <QGradient>
-#include <QtAlgorithms>
+#include <PkPair.h>
+#include <PkGradient.h>
+#include <PkList.h>
+#include <PkString.h>
+#include <PkHash.h>
+#include <PkSharedPointer.h>
+#include <PkPoint.h>
 
 #include "KoColor.h"
 #include <resources/KoAbstractGradient.h>
 #include <KoResource.h>
+#include <KisResourceTypes.h>
 #include <kritapigment_export.h>
 #include <boost/operators.hpp>
 
-enum KoGradientStopType 
+class PkStream;
+class PkXmlDocument;
+class PkXmlElement;
+
+enum KoGradientStopType
 {
     COLORSTOP,
     FOREGROUNDSTOP,
@@ -29,7 +38,7 @@ struct KoGradientStop : public boost::equality_comparable<KoGradientStop>
     KoColor color;
     qreal position;
 
-    KoGradientStop(qreal _position = 0.0, KoColor _color = KoColor(), KoGradientStopType _type = COLORSTOP) 
+    KoGradientStop(qreal _position = 0.0, KoColor _color = KoColor(), KoGradientStopType _type = COLORSTOP)
     {
         type = _type;
         color = _color;
@@ -37,13 +46,13 @@ struct KoGradientStop : public boost::equality_comparable<KoGradientStop>
     }
 
     bool operator == (const KoGradientStop& other) const
-    { 
+    {
         return this->type == other.type && this->color == other.color && this->position == other.position;
     }
 
 
 
-    QString typeString() const 
+    PkString typeString() const
     {
         switch (type) {
         case COLORSTOP:
@@ -57,7 +66,7 @@ struct KoGradientStop : public boost::equality_comparable<KoGradientStop>
         }
     }
 
-    static KoGradientStopType typeFromString(QString typestring) {
+    static KoGradientStopType typeFromString(PkString typestring) {
         if (typestring == "foreground-stop") {
             return FOREGROUNDSTOP;
         } else if (typestring == "background-stop") {
@@ -72,14 +81,14 @@ struct KoGradientStop : public boost::equality_comparable<KoGradientStop>
 struct KoGradientStopValueSort
 {
     inline bool operator() (const KoGradientStop& a, const KoGradientStop& b) {
-        return (a.color.toQColor().valueF() < b.color.toQColor().valueF());
+        return (a.color.toQColor().value() < b.color.toQColor().value());
     }
 };
 
 struct KoGradientStopHueSort
 {
     inline bool operator() (const KoGradientStop& a, const KoGradientStop& b) {
-        return (a.color.toQColor().hueF() < b.color.toQColor().hueF());
+        return (a.color.toQColor().hue() < b.color.toQColor().hue());
     }
 };
 
@@ -90,23 +99,23 @@ class KRITAPIGMENT_EXPORT KoStopGradient : public KoAbstractGradient, public boo
 {
 
 public:
-    
-    explicit KoStopGradient(const QString &filename = QString());
+
+    explicit KoStopGradient(const PkString &filename = PkString());
     ~KoStopGradient() override;
     KoStopGradient(const KoStopGradient &rhs);
     bool operator==(const KoStopGradient &rhs) const;
     KoStopGradient &operator=(const KoStopGradient &rhs) = delete;
     KoResourceSP clone() const override;
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice* dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream* dev) const override;
 
-    QPair<QString, QString> resourceType() const override {
-        return QPair<QString, QString>(ResourceType::Gradients, ResourceSubType::StopGradients);
+    PkPair<PkString, PkString> resourceType() const override {
+        return PkPair<PkString, PkString>(ResourceType::Gradients, ResourceSubType::StopGradients);
     }
 
     /// reimplemented
-    QGradient* toQGradient() const override;
+    PkGradient* toQGradient() const override;
 
     /// Find stops surrounding position, returns false if position outside gradient
     bool stopsAt(KoGradientStop& leftStop, KoGradientStop& rightStop, qreal t) const;
@@ -114,50 +123,49 @@ public:
     /// reimplemented
     void colorAt(KoColor&, qreal t) const override;
 
-    /// Creates KoStopGradient from a QGradient
-    static QSharedPointer<KoStopGradient> fromQGradient(const QGradient *gradient);
+    /// Creates KoStopGradient from a gradient
+    static PkSharedPointer<KoStopGradient> fromQGradient(const PkGradient *gradient);
 
     /// Sets the gradient stops
-    void setStops(QList<KoGradientStop> stops);
-    QList<KoGradientStop> stops() const;    
+    void setStops(PkList<KoGradientStop> stops);
+    PkList<KoGradientStop> stops() const;
 
-    QList<int> requiredCanvasResources() const override;
+    PkVector<int> requiredCanvasResources() const override;
     void bakeVariableColors(KoCanvasResourcesInterfaceSP canvasResourcesInterface) override;
     void updateVariableColors(KoCanvasResourcesInterfaceSP canvasResourcesInterface) override;
 
 
     /// reimplemented
-    QString defaultFileExtension() const override;
+    PkString defaultFileExtension() const override;
 
     /**
      * @brief toXML
      * Convert the gradient to an XML string.
      */
-    void toXML(QDomDocument& doc, QDomElement& gradientElt) const;
+    void toXML(PkXmlDocument& doc, PkXmlElement& gradientElt) const;
     /**
      * @brief fromXML
      * convert a gradient from xml.
      * @return a gradient.
      */
-    static KoStopGradient fromXML(const QDomElement& elt);
+    static KoStopGradient fromXML(const PkXmlElement& elt);
 
-    QString saveSvgGradient() const;
+    PkString saveSvgGradient() const;
 
 protected:
 
-    QList<KoGradientStop> m_stops;
+    PkList<KoGradientStop> m_stops;
     bool m_hasVariableStops = false;
-    QPointF m_start;
-    QPointF m_stop;
-    QPointF m_focalPoint;
+    PkPointF m_start;
+    PkPointF m_stop;
+    PkPointF m_focalPoint;
 
 private:
 
-    void loadSvgGradient(QIODevice *file);
-    void parseSvgGradient(const QDomElement& element, QHash<QString, const KoColorProfile*> profiles);
+    void loadSvgGradient(PkStream *file);
+    void parseSvgGradient(const PkXmlElement& element, PkHash<PkString, const KoColorProfile*> profiles);
 };
 
-typedef QSharedPointer<KoStopGradient> KoStopGradientSP;
+typedef PkSharedPointer<KoStopGradient> KoStopGradientSP;
 
 #endif // KOSTOPGRADIENT_H
-

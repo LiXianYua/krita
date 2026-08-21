@@ -11,14 +11,23 @@
 #ifndef KOSEGMENTGRADIENT_H
 #define KOSEGMENTGRADIENT_H
 
-#include <QList>
-#include <QColor>
+#include <PkColor.h>
+#include <PkGradient.h>
+#include <PkList.h>
+#include <PkPair.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
 
 #include <KoResource.h>
+#include <KisResourceTypes.h>
 #include <resources/KoAbstractGradient.h>
 #include "KoColor.h"
 
 #include <kritapigment_export.h>
+
+class PkStream;
+class PkXmlDocument;
+class PkXmlElement;
 
 
 enum {
@@ -289,23 +298,23 @@ class KRITAPIGMENT_EXPORT KoSegmentGradient : public KoAbstractGradient
 {
 
 public:
-    explicit KoSegmentGradient(const QString &file = QString());
+    explicit KoSegmentGradient(const PkString &file = PkString());
     ~KoSegmentGradient() override;
     KoSegmentGradient(const KoSegmentGradient &rhs);
     KoSegmentGradient &operator=(const KoSegmentGradient &rhs) = delete;
     KoResourceSP clone() const override;
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice* dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream* dev) const override;
 
-    QPair<QString, QString> resourceType() const override {
-        return QPair<QString, QString>(ResourceType::Gradients, ResourceSubType::SegmentedGradients);
+    PkPair<PkString, PkString> resourceType() const override {
+        return PkPair<PkString, PkString>(ResourceType::Gradients, ResourceSubType::SegmentedGradients);
     }
 
     /// reimplemented
     void colorAt(KoColor& dst, qreal t) const override;
 
-    QList<int> requiredCanvasResources() const override;
+    PkVector<int> requiredCanvasResources() const override;
     void bakeVariableColors(KoCanvasResourcesInterfaceSP canvasResourcesInterface) override;
     void updateVariableColors(KoCanvasResourcesInterfaceSP canvasResourcesInterface) override;
 
@@ -317,22 +326,22 @@ public:
     KoGradientSegment *segmentAt(qreal t) const;
 
     /// reimplemented
-    QGradient* toQGradient() const override;
+    PkGradient* toQGradient() const override;
 
     /// reimplemented
-    QString defaultFileExtension() const override;
+    PkString defaultFileExtension() const override;
 
     /**
      * @brief toXML
      * convert the gradient to xml.
      */
-    void toXML(QDomDocument& doc, QDomElement& gradientElt) const;
+    void toXML(PkXmlDocument& doc, PkXmlElement& gradientElt) const;
     /**
      * @brief fromXML
      * get a segment gradient from xml.
      * @return gradient
      */
-    static KoSegmentGradient fromXML(const QDomElement& elt);
+    static KoSegmentGradient fromXML(const PkXmlElement& elt);
 
         /**
      * a gradient color picker can consist of one or more segments.
@@ -350,7 +359,7 @@ public:
      * @return void
      */
     void createSegment(int interpolation, int colorInterpolation, double startOffset, double endOffset, double middleOffset,
-                       const QColor & leftColor, const QColor & rightColor,
+                       const PkColor & leftColor, const PkColor & rightColor,
                        KoGradientSegmentEndpointType leftType = COLOR_ENDPOINT, KoGradientSegmentEndpointType rightType = COLOR_ENDPOINT);
 
     void createSegment(int interpolation, int colorInterpolation, double startOffset, double endOffset, double middleOffset,
@@ -364,14 +373,14 @@ public:
      * endpoints.
      * @return a list of double values
      */
-    const QList<double> getHandlePositions() const;
+    const PkList<double> getHandlePositions() const;
 
     /**
      * gets a list of middle points of the segments in the gradient
      * color picker.
      * @return a list of double values
      */
-    const QList<double> getMiddleHandlePositions() const;
+    const PkList<double> getMiddleHandlePositions() const;
 
     /**
      * Moves the StartOffset of the specified segment to the
@@ -467,8 +476,8 @@ public:
      */
     bool removeSegmentPossible() const;
 
-    const QList<KoGradientSegment *>& segments() const;
-    void setSegments(const QList<KoGradientSegment*> &segments);
+    const PkList<KoGradientSegment *>& segments() const;
+    void setSegments(const PkList<KoGradientSegment*> &segments);
 
 protected:
 
@@ -476,13 +485,12 @@ protected:
         m_segments.push_back(segment);
     }
 
-    QList<KoGradientSegment *> m_segments;
+    PkList<KoGradientSegment *> m_segments;
 
 private:
     bool init();
 };
 
-typedef QSharedPointer<KoSegmentGradient> KoSegmentGradientSP;
+typedef PkSharedPointer<KoSegmentGradient> KoSegmentGradientSP;
 
 #endif // KOSEGMENTGRADIENT_H
-

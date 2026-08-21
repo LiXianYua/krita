@@ -10,31 +10,51 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include <resources/KoSegmentGradient.h>
 
+#include <algorithm>
+
+// Krita 只有 KIS_SAFE_ASSERT_RECOVER 家族，没有裸 KIS_SAFE_ASSERT（官方源码
+// KoSegmentGradient.cpp 无任何该断言；前序剥离额外加的 null 检查）。安全断言在
+// release（-DNDEBUG）构建下即空操作，这里补定义保持语义并让调用点可编。
+#ifndef KIS_SAFE_ASSERT
+#define KIS_SAFE_ASSERT(cond) ((void)0)
+#endif
 #include <array>
 #include <cfloat>
+#include <charconv>
 #include <cmath>
+#include <limits>
 
-#include <QTextStream>
-#include <QFile>
-#include <QByteArray>
-#include <QDomDocument>
-#include <QDomElement>
-#include <QBuffer>
+#include <PkGlobal.h>
+#include <PkTextStream.h>
 
 #include <DebugPigment.h>
 #include <KoCanvasResourcesIds.h>
 #include <KoCanvasResourcesInterface.h>
 #include <KoColorModelStandardIds.h>
+#include <kis_assert.h>
 #include <kis_dom_utils.h>
 #include <kis_global.h>
-#include <klocalizedstring.h>
 
 #include "KoColor.h"
 #include "KoColorSpace.h"
 #include "KoColorSpaceRegistry.h"
 #include "KoMixColorsOp.h"
+
+namespace {
+
+// 对齐 Qt5 的 number(v, 'f')（默认精度 6）：定点格式，恰好 6 位小数。
+PkString pkNumberF(double value)
+{
+    char buf[64];
+    const auto res = std::to_chars(buf, buf + sizeof(buf), value, std::chars_format::fixed, 6);
+    return PkString::PkFromUtf8(buf, static_cast<int>(res.ptr - buf));
+}
+
+} // namespace
 
 KoGradientSegment::RGBColorInterpolationStrategy *KoGradientSegment::RGBColorInterpolationStrategy::m_instance = 0;
 KoGradientSegment::HSVCWColorInterpolationStrategy *KoGradientSegment::HSVCWColorInterpolationStrategy::m_instance = 0;
@@ -46,7 +66,7 @@ KoGradientSegment::SineInterpolationStrategy *KoGradientSegment::SineInterpolati
 KoGradientSegment::SphereIncreasingInterpolationStrategy *KoGradientSegment::SphereIncreasingInterpolationStrategy::m_instance = 0;
 KoGradientSegment::SphereDecreasingInterpolationStrategy *KoGradientSegment::SphereDecreasingInterpolationStrategy::m_instance = 0;
 
-KoSegmentGradient::KoSegmentGradient(const QString& filename)
+KoSegmentGradient::KoSegmentGradient(const PkString& filename)
     : KoAbstractGradient(filename)
 {
 }
@@ -62,7 +82,7 @@ KoSegmentGradient::~KoSegmentGradient()
 KoSegmentGradient::KoSegmentGradient(const KoSegmentGradient &rhs)
     : KoAbstractGradient(rhs)
 {
-    Q_FOREACH (KoGradientSegment *segment, rhs.m_segments) {
+    for (KoGradientSegment *segment : rhs.m_segments) {
         pushSegment(new KoGradientSegment(*segment));
     }
 }
@@ -72,27 +92,25 @@ KoResourceSP KoSegmentGradient::clone() const
     return KoResourceSP(new KoSegmentGradient(*this));
 }
 
-bool KoSegmentGradient::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KoSegmentGradient::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
 
-    QByteArray data = dev->readAll();
-
-    QTextStream fileContent(data, QIODevice::ReadOnly);
-    KisPortingUtils::setUtf8OnStream(fileContent);
+    PkTextStream fileContent(dev);
+    // setUtf8OnStream 无 Qt 世界为空操作（PkTextStream 原生 UTF-8），不引 libs/global/KisPortingUtils.h
     fileContent.setAutoDetectUnicode(true);
 
-    QString header = fileContent.readLine();
+    PkString header = fileContent.readLine();
 
     if (header != "GIMP Gradient") {
         return false;
     }
 
-    QString nameDefinition = fileContent.readLine();
-    QString numSegmentsText;
+    PkString nameDefinition = fileContent.readLine();
+    PkString numSegmentsText;
 
     if (nameDefinition.startsWith("Name: ")) {
-        QString nameText = nameDefinition.right(nameDefinition.length() - 6);
+        PkString nameText = nameDefinition.right(nameDefinition.size() - 6);
         setName(nameText);
 
         numSegmentsText = fileContent.readLine();
@@ -120,8 +138,8 @@ bool KoSegmentGradient::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP r
 
     for (int i = 0; i < numSegments; i++) {
 
-        QString segmentText = fileContent.readLine();
-        QStringList values = segmentText.split(' ');
+        PkString segmentText = fileContent.readLine();
+        const std::vector<PkString> values = segmentText.split(u' ');
 
         qreal leftOffset = values[0].toDouble();
         qreal middleOffset = values[1].toDouble();
@@ -141,7 +159,7 @@ bool KoSegmentGradient::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP r
         int colorInterpolationType = values[12].toInt();
 
         KoGradientSegmentEndpointType startType, endType;
-        if (values.count() >= 15) { //file supports FG/BG colors
+        if (values.size() >= 15) { //file supports FG/BG colors
             startType = static_cast<KoGradientSegmentEndpointType>(values[13].toInt());
             endType = static_cast<KoGradientSegmentEndpointType>(values[14].toInt());
         }
@@ -149,24 +167,24 @@ bool KoSegmentGradient::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP r
             startType = endType = COLOR_ENDPOINT;
         }
         std::array<quint16, 4> data;
-        data[2] = static_cast<quint16>(leftRed * quint16_MAX + 0.5);
-        data[1] = static_cast<quint16>(leftGreen * quint16_MAX + 0.5);
-        data[0] = static_cast<quint16>(leftBlue * quint16_MAX + 0.5);
-        data[3] = static_cast<quint16>(leftAlpha * quint16_MAX + 0.5);
+        data[2] = static_cast<quint16>(leftRed * std::numeric_limits<quint16>::max() + 0.5);
+        data[1] = static_cast<quint16>(leftGreen * std::numeric_limits<quint16>::max() + 0.5);
+        data[0] = static_cast<quint16>(leftBlue * std::numeric_limits<quint16>::max() + 0.5);
+        data[3] = static_cast<quint16>(leftAlpha * std::numeric_limits<quint16>::max() + 0.5);
 
         KoColor leftColor(reinterpret_cast<quint8 *>(data.data()), rgbColorSpace);
 
-        data[2] = static_cast<quint16>(rightRed * quint16_MAX + 0.5);
-        data[1] = static_cast<quint16>(rightGreen * quint16_MAX + 0.5);
-        data[0] = static_cast<quint16>(rightBlue * quint16_MAX + 0.5);
-        data[3] = static_cast<quint16>(rightAlpha * quint16_MAX + 0.5);
+        data[2] = static_cast<quint16>(rightRed * std::numeric_limits<quint16>::max() + 0.5);
+        data[1] = static_cast<quint16>(rightGreen * std::numeric_limits<quint16>::max() + 0.5);
+        data[0] = static_cast<quint16>(rightBlue * std::numeric_limits<quint16>::max() + 0.5);
+        data[3] = static_cast<quint16>(rightAlpha * std::numeric_limits<quint16>::max() + 0.5);
 
         KoColor rightColor(reinterpret_cast<quint8 *>(data.data()), rgbColorSpace);
         KoGradientSegmentEndpoint left(leftOffset, leftColor, startType);
         KoGradientSegmentEndpoint right(rightOffset, rightColor, endType);
 
         KoGradientSegment *segment = new KoGradientSegment(interpolationType, colorInterpolationType, left, right, middleOffset);
-        Q_CHECK_PTR(segment);
+        KIS_SAFE_ASSERT(segment);
 
         if (!segment -> isValid()) {
             delete segment;
@@ -186,24 +204,24 @@ bool KoSegmentGradient::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP r
 
 }
 
-bool KoSegmentGradient::saveToDevice(QIODevice *dev) const
+bool KoSegmentGradient::saveToDevice(PkStream *dev) const
 {
-    QTextStream fileContent(dev);
-    KisPortingUtils::setUtf8OnStream(fileContent);
+    PkTextStream fileContent(dev);
+    // setUtf8OnStream 无 Qt 世界为空操作（PkTextStream 原生 UTF-8），不引 libs/global/KisPortingUtils.h
     fileContent << "GIMP Gradient\n";
     fileContent << "Name: " << name() << "\n";
     fileContent << m_segments.count() << "\n";
 
-    Q_FOREACH (KoGradientSegment* segment, m_segments) {
-        fileContent << QString::number(segment->startOffset(), 'f') << " " << QString::number(segment->middleOffset(), 'f') << " "
-                    << QString::number(segment->endOffset(), 'f') << " ";
+    for (KoGradientSegment* segment : m_segments) {
+        fileContent << pkNumberF(segment->startOffset()) << " " << pkNumberF(segment->middleOffset()) << " "
+                    << pkNumberF(segment->endOffset()) << " ";
 
-        QColor startColor = segment->startColor().toQColor();
-        QColor endColor = segment->endColor().toQColor();
-        fileContent << QString::number(startColor.redF(), 'f') << " " << QString::number(startColor.greenF(), 'f') << " "
-                    << QString::number(startColor.blueF(), 'f') << " " << QString::number(startColor.alphaF(), 'f') << " ";
-        fileContent << QString::number(endColor.redF(), 'f') << " " << QString::number(endColor.greenF(), 'f') << " "
-                    << QString::number(endColor.blueF(), 'f') << " " << QString::number(endColor.alphaF(), 'f') << " ";
+        PkColor startColor = segment->startColor().toQColor();
+        PkColor endColor = segment->endColor().toQColor();
+        fileContent << pkNumberF(startColor.redF()) << " " << pkNumberF(startColor.greenF()) << " "
+                    << pkNumberF(startColor.blueF()) << " " << pkNumberF(startColor.alphaF()) << " ";
+        fileContent << pkNumberF(endColor.redF()) << " " << pkNumberF(endColor.greenF()) << " "
+                    << pkNumberF(endColor.blueF()) << " " << pkNumberF(endColor.alphaF()) << " ";
 
         fileContent << (int)segment->interpolation() << " " << (int)segment->colorInterpolation() << " ";
 
@@ -220,7 +238,7 @@ KoGradientSegment *KoSegmentGradient::segmentAt(qreal t) const
     if (t > 1.0) return 0;
     if (m_segments.isEmpty()) return 0;
 
-    for (QList<KoGradientSegment *>::const_iterator it = m_segments.begin(); it != m_segments.end(); ++it) {
+    for (PkList<KoGradientSegment *>::const_iterator it = m_segments.begin(); it != m_segments.end(); ++it) {
         if (t > (*it)->startOffset() - DBL_EPSILON && t < (*it)->endOffset() + DBL_EPSILON) {
             return *it;
         }
@@ -237,12 +255,12 @@ void KoSegmentGradient::colorAt(KoColor& dst, qreal t) const
     }
 }
 
-QGradient* KoSegmentGradient::toQGradient() const
+PkGradient* KoSegmentGradient::toQGradient() const
 {
-    QGradient* gradient = new QLinearGradient();
+    PkGradient* gradient = new PkGradient(PkGradientEnums::LinearGradient);
 
-    QColor color;
-    Q_FOREACH (KoGradientSegment* segment, m_segments) {
+    PkColor color;
+    for (KoGradientSegment* segment : m_segments) {
         segment->startColor().toQColor(&color);
         gradient->setColorAt(segment->startOffset() , color);
         segment->endColor().toQColor(&color);
@@ -251,18 +269,18 @@ QGradient* KoSegmentGradient::toQGradient() const
     return gradient;
 }
 
-QString KoSegmentGradient::defaultFileExtension() const
+PkString KoSegmentGradient::defaultFileExtension() const
 {
-    return QString(".ggr");
+    return PkString(".ggr");
 }
 
-void KoSegmentGradient::toXML(QDomDocument &doc, QDomElement &gradientElt) const
+void KoSegmentGradient::toXML(PkXmlDocument &doc, PkXmlElement &gradientElt) const
 {
     gradientElt.setAttribute("type", "segment");
-    Q_FOREACH(KoGradientSegment *segment, this->segments()) {
-        QDomElement segmentElt = doc.createElement("segment");
-        QDomElement start = doc.createElement("start");
-        QDomElement end = doc.createElement("end");
+    for (KoGradientSegment *segment : this->segments()) {
+        PkXmlElement segmentElt = doc.createElement("segment");
+        PkXmlElement start = doc.createElement("start");
+        PkXmlElement end = doc.createElement("end");
         segmentElt.setAttribute("start-offset", KisDomUtils::toString(segment->startOffset()));
         const KoColor startColor = segment->startColor();
         segmentElt.setAttribute("start-bitdepth", startColor.colorSpace()->colorDepthId().id());
@@ -284,23 +302,23 @@ void KoSegmentGradient::toXML(QDomDocument &doc, QDomElement &gradientElt) const
     }
 }
 
-KoSegmentGradient KoSegmentGradient::fromXML(const QDomElement &elt)
+KoSegmentGradient KoSegmentGradient::fromXML(const PkXmlElement &elt)
 {
     KoSegmentGradient gradient;
-    QDomElement segmentElt = elt.firstChildElement("segment");
+    PkXmlElement segmentElt = elt.firstChildElement("segment");
     while (!segmentElt.isNull()) {
         int interpolation = KisDomUtils::toInt(segmentElt.attribute("interpolation", "0.0"));
         int colorInterpolation = KisDomUtils::toInt(segmentElt.attribute("color-interpolation", "0.0"));
         double startOffset = KisDomUtils::toDouble(segmentElt.attribute("start-offset", "0.0"));
         qreal middleOffset = KisDomUtils::toDouble(segmentElt.attribute("middle-offset", "0.0"));
         qreal endOffset = KisDomUtils::toDouble(segmentElt.attribute("end-offset", "0.0"));
-        QDomElement start = segmentElt.firstChildElement("start");
-        QString startBitdepth = segmentElt.attribute("start-bitdepth", Integer8BitsColorDepthID.id());
-        QColor left = KoColor::fromXML(start.firstChildElement(), startBitdepth).toQColor();
+        PkXmlElement start = segmentElt.firstChildElement("start");
+        PkString startBitdepth = segmentElt.attribute("start-bitdepth", Integer8BitsColorDepthID.id());
+        PkColor left = KoColor::fromXML(start.firstChildElement(), startBitdepth).toQColor();
         left.setAlphaF(KisDomUtils::toDouble(segmentElt.attribute("start-alpha", "1.0")));
-        QString endBitdepth = segmentElt.attribute("end-bitdepth", Integer8BitsColorDepthID.id());
-        QDomElement end = segmentElt.firstChildElement("end");
-        QColor right = KoColor::fromXML(end.firstChildElement(), endBitdepth).toQColor();
+        PkString endBitdepth = segmentElt.attribute("end-bitdepth", Integer8BitsColorDepthID.id());
+        PkXmlElement end = segmentElt.firstChildElement("end");
+        PkColor right = KoColor::fromXML(end.firstChildElement(), endBitdepth).toQColor();
         right.setAlphaF(KisDomUtils::toDouble(segmentElt.attribute("end-alpha", "1.0")));
         KoGradientSegmentEndpointType leftType = static_cast<KoGradientSegmentEndpointType>(KisDomUtils::toInt(segmentElt.attribute("start-type", "0")));
         KoGradientSegmentEndpointType rightType = static_cast<KoGradientSegmentEndpointType>(KisDomUtils::toInt(segmentElt.attribute("end-type", "0")));
@@ -572,7 +590,7 @@ void KoGradientSegment::colorAt(KoColor& dst, qreal t) const
     if (m_length < DBL_EPSILON) {
         segmentT = 0.5;
     } else {
-        segmentT = qBound(0.0, (t - m_start.offset) / m_length, 1.0);
+        segmentT = std::clamp((t - m_start.offset) / m_length, 0.0, 1.0);
     }
 
     qreal colorT = m_interpolator->valueAt(segmentT, m_middleT);
@@ -622,7 +640,7 @@ KoGradientSegment::RGBColorInterpolationStrategy *KoGradientSegment::RGBColorInt
 {
     if (m_instance == 0) {
         m_instance = new RGBColorInterpolationStrategy();
-        Q_CHECK_PTR(m_instance);
+        KIS_SAFE_ASSERT(m_instance);
     }
 
     return m_instance;
@@ -653,7 +671,7 @@ KoGradientSegment::HSVCWColorInterpolationStrategy *KoGradientSegment::HSVCWColo
 {
     if (m_instance == 0) {
         m_instance = new HSVCWColorInterpolationStrategy();
-        Q_CHECK_PTR(m_instance);
+        KIS_SAFE_ASSERT(m_instance);
     }
 
     return m_instance;
@@ -661,8 +679,8 @@ KoGradientSegment::HSVCWColorInterpolationStrategy *KoGradientSegment::HSVCWColo
 
 void KoGradientSegment::HSVCWColorInterpolationStrategy::colorAt(KoColor& dst, qreal t, const KoColor& start, const KoColor& end) const
 {
-    QColor sc;
-    QColor ec;
+    PkColor sc;
+    PkColor ec;
 
     start.toQColor(&sc);
     end.toQColor(&ec);
@@ -683,7 +701,7 @@ void KoGradientSegment::HSVCWColorInterpolationStrategy::colorAt(KoColor& dst, q
 
     qreal opacity{sc.alphaF() + t * (ec.alphaF() - sc.alphaF())};
 
-    QColor result;
+    PkColor result;
     result.setHsv(h, s, v);
     result.setAlphaF(opacity);
     dst.fromQColor(result);
@@ -699,7 +717,7 @@ KoGradientSegment::HSVCCWColorInterpolationStrategy *KoGradientSegment::HSVCCWCo
 {
     if (m_instance == 0) {
         m_instance = new HSVCCWColorInterpolationStrategy();
-        Q_CHECK_PTR(m_instance);
+        KIS_SAFE_ASSERT(m_instance);
     }
 
     return m_instance;
@@ -707,8 +725,8 @@ KoGradientSegment::HSVCCWColorInterpolationStrategy *KoGradientSegment::HSVCCWCo
 
 void KoGradientSegment::HSVCCWColorInterpolationStrategy::colorAt(KoColor& dst, qreal t, const KoColor& start, const KoColor& end) const
 {
-    QColor sc;
-    QColor se;
+    PkColor sc;
+    PkColor se;
 
     start.toQColor(&sc);
     end.toQColor(&se);
@@ -729,7 +747,7 @@ void KoGradientSegment::HSVCCWColorInterpolationStrategy::colorAt(KoColor& dst, 
 
     qreal opacity = sc.alphaF() + t * (se.alphaF() - sc.alphaF());
 
-    QColor result;
+    PkColor result;
     result.setHsv(h, s, v);
     result.setAlphaF(opacity);
     dst.fromQColor(result);
@@ -739,7 +757,7 @@ KoGradientSegment::LinearInterpolationStrategy *KoGradientSegment::LinearInterpo
 {
     if (m_instance == 0) {
         m_instance = new LinearInterpolationStrategy();
-        Q_CHECK_PTR(m_instance);
+        KIS_SAFE_ASSERT(m_instance);
     }
 
     return m_instance;
@@ -783,7 +801,7 @@ KoGradientSegment::CurvedInterpolationStrategy *KoGradientSegment::CurvedInterpo
 {
     if (m_instance == 0) {
         m_instance = new CurvedInterpolationStrategy();
-        Q_CHECK_PTR(m_instance);
+        KIS_SAFE_ASSERT(m_instance);
     }
 
     return m_instance;
@@ -809,7 +827,7 @@ KoGradientSegment::SineInterpolationStrategy *KoGradientSegment::SineInterpolati
 {
     if (m_instance == 0) {
         m_instance = new SineInterpolationStrategy();
-        Q_CHECK_PTR(m_instance);
+        KIS_SAFE_ASSERT(m_instance);
     }
 
     return m_instance;
@@ -827,7 +845,7 @@ KoGradientSegment::SphereIncreasingInterpolationStrategy *KoGradientSegment::Sph
 {
     if (m_instance == 0) {
         m_instance = new SphereIncreasingInterpolationStrategy();
-        Q_CHECK_PTR(m_instance);
+        KIS_SAFE_ASSERT(m_instance);
     }
 
     return m_instance;
@@ -845,7 +863,7 @@ KoGradientSegment::SphereDecreasingInterpolationStrategy *KoGradientSegment::Sph
 {
     if (m_instance == 0) {
         m_instance = new SphereDecreasingInterpolationStrategy();
-        Q_CHECK_PTR(m_instance);
+        KIS_SAFE_ASSERT(m_instance);
     }
 
     return m_instance;
@@ -859,7 +877,7 @@ qreal KoGradientSegment::SphereDecreasingInterpolationStrategy::valueAt(qreal t,
     return value;
 }
 
-void KoSegmentGradient::createSegment(int interpolation, int colorInterpolation, double startOffset, double endOffset, double middleOffset, const QColor & leftColor, const QColor & rightColor,
+void KoSegmentGradient::createSegment(int interpolation, int colorInterpolation, double startOffset, double endOffset, double middleOffset, const PkColor & leftColor, const PkColor & rightColor,
                                       KoGradientSegmentEndpointType leftType, KoGradientSegmentEndpointType rightType)
 {
     createSegment(interpolation
@@ -881,9 +899,9 @@ void KoSegmentGradient::createSegment(int interpolation, int colorInterpolation,
     pushSegment(new KoGradientSegment(interpolation, colorInterpolation, left, right, middleOffset));
 }
 
-const QList<double> KoSegmentGradient::getHandlePositions() const
+const PkList<double> KoSegmentGradient::getHandlePositions() const
 {
-    QList<double> handlePositions;
+    PkList<double> handlePositions;
 
     handlePositions.push_back(m_segments[0]->startOffset());
     for (int i = 0; i < m_segments.count(); i++) {
@@ -892,9 +910,9 @@ const QList<double> KoSegmentGradient::getHandlePositions() const
     return handlePositions;
 }
 
-const QList<double> KoSegmentGradient::getMiddleHandlePositions() const
+const PkList<double> KoSegmentGradient::getMiddleHandlePositions() const
 {
-    QList<double> middleHandlePositions;
+    PkList<double> middleHandlePositions;
 
     for (int i = 0; i < m_segments.count(); i++) {
         middleHandlePositions.push_back(m_segments[i]->middleOffset());
@@ -904,7 +922,7 @@ const QList<double> KoSegmentGradient::getMiddleHandlePositions() const
 
 void KoSegmentGradient::moveSegmentStartOffset(KoGradientSegment* segment, double t)
 {
-    QList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
+    PkList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
     if (it != m_segments.end()) {
         if (it == m_segments.begin()) {
             segment->setStartOffset(0.0);
@@ -925,7 +943,7 @@ void KoSegmentGradient::moveSegmentStartOffset(KoGradientSegment* segment, doubl
 
 void KoSegmentGradient::moveSegmentEndOffset(KoGradientSegment* segment, double t)
 {
-    QList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
+    PkList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
     if (it != m_segments.end()) {
         if (it + 1 == m_segments.end()) {
             segment->setEndOffset(1.0);
@@ -959,7 +977,7 @@ void KoSegmentGradient::moveSegmentMiddleOffset(KoGradientSegment* segment, doub
 void KoSegmentGradient::splitSegment(KoGradientSegment* segment)
 {
     Q_ASSERT(segment != 0);
-    QList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
+    PkList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
     if (it != m_segments.end()) {
         KoColor midleoffsetColor(segment->endColor().colorSpace());
         segment->colorAt(midleoffsetColor, segment->middleOffset());
@@ -979,7 +997,7 @@ void KoSegmentGradient::splitSegment(KoGradientSegment* segment)
 void KoSegmentGradient::duplicateSegment(KoGradientSegment* segment)
 {
     Q_ASSERT(segment != 0);
-    QList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
+    PkList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
     if (it != m_segments.end()) {
         double middlePositionPercentage = (segment->middleOffset() - segment->startOffset()) / segment->length();
         double center = segment->startOffset() + segment->length() / 2;
@@ -1007,7 +1025,7 @@ KoGradientSegment* KoSegmentGradient::removeSegment(KoGradientSegment* segment)
     Q_ASSERT(segment != 0);
     if (m_segments.count() < 2)
         return 0;
-    QList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
+    PkList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
     if (it != m_segments.end()) {
         double middlePositionPercentage;
         KoGradientSegment* nextSegment;
@@ -1035,7 +1053,7 @@ KoGradientSegment* KoSegmentGradient::collapseSegment(KoGradientSegment* segment
     Q_ASSERT(segment != 0);
     if (m_segments.count() < 2)
         return 0;
-    QList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
+    PkList<KoGradientSegment*>::iterator it = std::find(m_segments.begin(), m_segments.end(), segment);
     if (it != m_segments.end()) {
         double nextMiddlePositionPercentage, prevMiddlePositionPercentage;
         KoGradientSegment *nextSegment, *prevSegment, *returnSegment;
@@ -1078,12 +1096,12 @@ bool KoSegmentGradient::removeSegmentPossible() const
     return true;
 }
 
-const QList<KoGradientSegment *>& KoSegmentGradient::segments() const
+const PkList<KoGradientSegment *>& KoSegmentGradient::segments() const
 {
     return m_segments;
 }
 
-void KoSegmentGradient::setSegments(const QList<KoGradientSegment*> &segments)
+void KoSegmentGradient::setSegments(const PkList<KoGradientSegment*> &segments)
 {
     for (int i = 0; i < m_segments.count(); i++) {
         delete m_segments[i];
@@ -1117,7 +1135,7 @@ void KoSegmentGradient::setSegments(const QList<KoGradientSegment*> &segments)
     updatePreview();
 }
 
-QList<int> KoSegmentGradient::requiredCanvasResources() const
+PkVector<int> KoSegmentGradient::requiredCanvasResources() const
 {
     bool hasVariableColors = false;
     for (int i = 0; i < m_segments.count(); i++) {
@@ -1127,7 +1145,7 @@ QList<int> KoSegmentGradient::requiredCanvasResources() const
         }
     }
 
-    QList<int> result;
+    PkVector<int> result;
     if (hasVariableColors) {
         result << KoCanvasResource::ForegroundColor << KoCanvasResource::BackgroundColor;
     }

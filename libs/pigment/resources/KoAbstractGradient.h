@@ -6,18 +6,21 @@
 #ifndef KOABSTRACTGRADIENT_H
 #define KOABSTRACTGRADIENT_H
 
-#include <QGradient>
-#include <QMetaType>
+#include <PkGradient.h>
+#include <PkImage.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
+#include <PkDebug.h>
 
 #include "KoColorSpace.h"
 #include <KoResource.h>
 #include <kritapigment_export.h>
 
 class KoAbstractGradient;
-typedef QSharedPointer<KoAbstractGradient> KoAbstractGradientSP;
+typedef PkSharedPointer<KoAbstractGradient> KoAbstractGradientSP;
 
 class KoCanvasResourcesInterface;
-using KoCanvasResourcesInterfaceSP = QSharedPointer<KoCanvasResourcesInterface>;
+using KoCanvasResourcesInterfaceSP = PkSharedPointer<KoCanvasResourcesInterface>;
 
 class KoColor;
 
@@ -27,15 +30,15 @@ class KoColor;
 class KRITAPIGMENT_EXPORT KoAbstractGradient : public KoResource
 {
 public:
-    explicit KoAbstractGradient(const QString &filename);
+    explicit KoAbstractGradient(const PkString &filename);
     ~KoAbstractGradient() override;
 
     /**
-    * Creates a QGradient from the gradient.
-    * The resulting QGradient might differ from original gradient
+    * Creates a gradient from the gradient.
+    * The resulting gradient might differ from original gradient
     */
-    virtual QGradient* toQGradient() const {
-        return new QGradient();
+    virtual PkGradient* toQGradient() const {
+        return new PkGradient();
     }
 
     /// gets the color at position 0 <= t <= 1
@@ -44,16 +47,16 @@ public:
     void setColorSpace(KoColorSpace* colorSpace);
     const KoColorSpace * colorSpace() const;
 
-    void setSpread(QGradient::Spread spreadMethod);
-    QGradient::Spread spread() const;
+    void setSpread(PkGradientEnums::Spread spreadMethod);
+    PkGradientEnums::Spread spread() const;
 
-    void setType(QGradient::Type repeatType);
-    QGradient::Type type() const;
+    void setType(PkGradientEnums::Type repeatType);
+    PkGradientEnums::Type type() const;
 
     void updatePreview();
 
-    QImage generatePreview(int width, int height) const;
-    QImage generatePreview(int width, int height, KoCanvasResourcesInterfaceSP canvasResourcesInterface) const;
+    PkImage generatePreview(int width, int height) const;
+    PkImage generatePreview(int width, int height, KoCanvasResourcesInterfaceSP canvasResourcesInterface) const;
 
     KoAbstractGradient(const KoAbstractGradient &rhs);
 
@@ -68,10 +71,7 @@ private:
     Private* const d;
 };
 
-Q_DECLARE_METATYPE(KoAbstractGradient*)
-Q_DECLARE_METATYPE(QSharedPointer<KoAbstractGradient>)
-
-inline QDebug operator<<(QDebug dbg, const KoAbstractGradientSP res)
+inline PkDebug operator<<(PkDebug dbg, const KoAbstractGradientSP res)
 {
     if (!res) {
         dbg.noquote() << "NULL Gradient";

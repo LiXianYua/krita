@@ -5,6 +5,17 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#ifndef KOCACHEDGRADIENT_H
+#define KOCACHEDGRADIENT_H
+
+#include <PkGradient.h>
+#include <PkPair.h>
+#include <PkString.h>
+#include <PkVector.h>
+
+#include <resources/KoAbstractGradient.h>
+
+class PkStream;
 
 class KoCachedGradient : public KoAbstractGradient
 {
@@ -27,10 +38,10 @@ public:
     }
 
     /**
-    * Creates a QGradient from the gradient.
-    * The resulting QGradient might differ from original gradient
+    * Creates a gradient object from the gradient.
+    * The resulting gradient might differ from original gradient
     */
-    QGradient* toQGradient() const override
+    PkGradient* toQGradient() const override
     {
         return m_subject->toQGradient();
     }
@@ -46,7 +57,7 @@ public:
         KoColor tmpColor(m_colorSpace);
         for (qint32 i = 0; i < steps; i++) {
             m_subject->colorAt(tmpColor, qreal(i) / m_max);
-            m_colors << tmpColor;
+            m_colors.append(tmpColor);
         }
     }
 
@@ -71,8 +82,8 @@ public:
     {
         m_subject->colorAt(color, t);
     }
-    void setColorSpace(const KoColorSpace* colorSpace) 
-    { 
+    void setColorSpace(const KoColorSpace* colorSpace)
+    {
         if (!m_colorSpace || *m_colorSpace != *colorSpace) {
             m_colorSpace = colorSpace;
             for (qint32 i = 0; i < m_colors.size(); i++) {
@@ -84,11 +95,11 @@ public:
 
     KoAbstractGradientSP gradient() { return m_subject; }
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override {
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override {
         return m_subject->loadFromDevice(dev, resourcesInterface);
     }
 
-    QPair<QString, QString> resourceType() const override {
+    PkPair<PkString, PkString> resourceType() const override {
         return m_subject->resourceType();
     }
 
@@ -97,6 +108,8 @@ private:
     KoAbstractGradientSP m_subject;
     const KoColorSpace* m_colorSpace = 0;
     qint32 m_max = 0;
-    QVector<KoColor> m_colors;
+    PkVector<KoColor> m_colors;
     KoColor m_black;
 };
+
+#endif // KOCACHEDGRADIENT_H
