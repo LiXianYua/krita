@@ -110,7 +110,7 @@ nm -u -C pk/namespace/build/test_pknamespace | grep -i qt    # 必须无输出
 ### `run_tests.sh` 收口时重跑（2026-08-18）
 
 ```
-Totals: 35 passed, 0 failed, 0 skipped（PkNamespaceCase：33 slot + init + cleanup）
+Totals: 33 passed, 0 failed, 0 skipped（PkNamespaceCase：31 slot + init + cleanup）
 nm -u -C test_pknamespace | grep -i qt: 无输出
 git status --porcelain: 改动全部落在 pk/namespace/ 前缀内
 ```
@@ -132,7 +132,7 @@ git status --porcelain: 改动全部落在 pk/namespace/ 前缀内
 契约行。`ldd` 必须看得到 `libQt5Core`（`-lQt5Core` 显式给，链不上就 FAIL）——枚举全
 编译期内联，链不链 Qt 库运行结果都一样，所以必须靠 ldd 证明两侧真的各链各的。
 
-**收口时重跑（2026-08-18）**：`DIFF total=269 mismatch=0`，`run_oracle.sh: 通过`。
+**收口时重跑（2026-08-18）**：`DIFF total=260 mismatch=0`，`run_oracle.sh: 通过`。
 
 ## 锁外处置
 
