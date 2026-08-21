@@ -175,7 +175,7 @@ target_include_directories(pkconfig PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/container
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry
 )
-target_link_libraries(pkconfig PUBLIC pkstring)
+target_link_libraries(pkconfig PUBLIC pkstring pkcolor)
 
 # =========================================================================
 # 9. pk/pointer
@@ -215,7 +215,7 @@ target_include_directories(pkxml PUBLIC
     ${PKPORT_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/string
 )
-target_link_libraries(pkxml PUBLIC pugixml)
+target_link_libraries(pkxml PUBLIC pkstring pugixml)
 
 # =========================================================================
 # 11. pk/color + pk/variant（variant 依赖 pkport + pkcolor）
