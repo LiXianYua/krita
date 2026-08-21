@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoCopyColorConversionTransformation.h"
 
 #include <KoColorSpace.h>
@@ -19,7 +21,7 @@ void KoCopyColorConversionTransformation::transform(const quint8 *srcU8, quint8 
 }
 
 // --- KoCopyColorConversionTransformationFactory ---
-KoCopyColorConversionTransformationFactory::KoCopyColorConversionTransformationFactory(const QString& _colorModelId, const QString& _depthId, const QString& _profileName) : KoColorConversionTransformationFactory(_colorModelId, _depthId, _profileName, _colorModelId, _depthId, _profileName)
+KoCopyColorConversionTransformationFactory::KoCopyColorConversionTransformationFactory(const PkString& _colorModelId, const PkString& _depthId, const PkString& _profileName) : KoColorConversionTransformationFactory(_colorModelId, _depthId, _profileName, _colorModelId, _depthId, _profileName)
 {}
 KoColorConversionTransformation* KoCopyColorConversionTransformationFactory::createColorTransformation(const KoColorSpace* srcColorSpace, const KoColorSpace* dstColorSpace, KoColorConversionTransformation::Intent renderingIntent, KoColorConversionTransformation::ConversionFlags conversionFlags) const
 {

@@ -9,7 +9,8 @@
 
 #include "KoColorTransformation.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkVector.h>
 
 
 /**
@@ -55,11 +56,11 @@ public:
      * is only one non-null transform, it is returned directly to
      * avoid extra virtual calls added by KoCompositeColorTransformation.
      */
-    static KoColorTransformation* createOptimizedCompositeTransform(const QVector<KoColorTransformation*> transforms);
+    static KoColorTransformation* createOptimizedCompositeTransform(const PkVector<KoColorTransformation*> transforms);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KO_COMPOSITE_COLOR_TRANSFORMATION_H */

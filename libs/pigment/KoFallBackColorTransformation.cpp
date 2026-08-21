@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoFallBackColorTransformation.h"
 
 #include "KoColorConversionTransformation.h"
@@ -14,7 +16,7 @@
 
 #include "DebugPigment.h"
 
-struct Q_DECL_HIDDEN KoFallBackColorTransformation::Private {
+struct KoFallBackColorTransformation::Private {
     const KoColorSpace* fallBackColorSpace;
     KoCachedColorConversionTransformation* csToFallBackCache;
     KoCachedColorConversionTransformation* fallBackToCsCache;
@@ -80,17 +82,17 @@ void KoFallBackColorTransformation::transform(const quint8 *src, quint8 *dst, qi
     d->fallBackToCs->transform(d->buff, dst, nPixels);
 }
 
-QList<QString> KoFallBackColorTransformation::parameters() const
+PkList<PkString> KoFallBackColorTransformation::parameters() const
 {
   return d->colorTransformation->parameters();
 }
 
-int KoFallBackColorTransformation::parameterId(const QString& name) const
+int KoFallBackColorTransformation::parameterId(const PkString& name) const
 {
   return d->colorTransformation->parameterId(name);
 }
 
-void KoFallBackColorTransformation::setParameter(int id, const QVariant& parameter)
+void KoFallBackColorTransformation::setParameter(int id, const PkVariant& parameter)
 {
   d->colorTransformation->setParameter(id, parameter);
 }

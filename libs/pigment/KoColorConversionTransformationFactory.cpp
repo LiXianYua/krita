@@ -4,25 +4,27 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <PkXmlCompat.h>
+
 #include "KoColorConversionTransformationFactory.h"
 
-#include <QString>
+#include <PkString.h>
 
 #include "KoColorProfile.h"
 #include "KoColorSpace.h"
 #include "DebugPigment.h"
 #include "KoColorSpaceRegistry.h"
 
-struct Q_DECL_HIDDEN KoColorConversionTransformationFactory::Private {
-    QString srcModelId;
-    QString srcDepthId;
-    QString dstModelId;
-    QString dstDepthId;
-    QString srcProfile;
-    QString dstProfile;
+struct KoColorConversionTransformationFactory::Private {
+    PkString srcModelId;
+    PkString srcDepthId;
+    PkString dstModelId;
+    PkString dstDepthId;
+    PkString srcProfile;
+    PkString dstProfile;
 };
 
-KoColorConversionTransformationFactory::KoColorConversionTransformationFactory(const QString &_srcModelId, const QString &_srcDepthId, const QString &_srcProfile, const QString &_dstModelId, const QString &_dstDepthId, const QString &_dstProfile) : d(new Private)
+KoColorConversionTransformationFactory::KoColorConversionTransformationFactory(const PkString &_srcModelId, const PkString &_srcDepthId, const PkString &_srcProfile, const PkString &_dstModelId, const PkString &_dstDepthId, const PkString &_dstProfile) : d(new Private)
 {
     d->srcModelId = _srcModelId;
     d->srcDepthId = _srcDepthId;
@@ -52,30 +54,30 @@ bool KoColorConversionTransformationFactory::canBeDestination(const KoColorSpace
             && (d->dstProfile == "" || dstCS->profile()->name() == d->dstProfile));
 }
 
-QString KoColorConversionTransformationFactory::srcColorModelId() const
+PkString KoColorConversionTransformationFactory::srcColorModelId() const
 {
     return d->srcModelId;
 }
-QString KoColorConversionTransformationFactory::srcColorDepthId() const
+PkString KoColorConversionTransformationFactory::srcColorDepthId() const
 {
     return d->srcDepthId;
 }
 
-QString KoColorConversionTransformationFactory::srcProfile() const
+PkString KoColorConversionTransformationFactory::srcProfile() const
 {
     return d->srcProfile;
 }
 
-QString KoColorConversionTransformationFactory::dstColorModelId() const
+PkString KoColorConversionTransformationFactory::dstColorModelId() const
 {
     return d->dstModelId;
 }
-QString KoColorConversionTransformationFactory::dstColorDepthId() const
+PkString KoColorConversionTransformationFactory::dstColorDepthId() const
 {
     return d->dstDepthId;
 }
 
-QString KoColorConversionTransformationFactory::dstProfile() const
+PkString KoColorConversionTransformationFactory::dstProfile() const
 {
     return d->dstProfile;
 }

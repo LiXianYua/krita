@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <PkXmlCompat.h>
+
 #include "KoColorProofingConversionTransformation.h"
 
 #include "KoColorSpace.h"

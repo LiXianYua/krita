@@ -10,7 +10,7 @@
 class KoColorSpace;
 class KoColorConversionTransformation;
 
-#include <QString>
+#include <PkString.h>
 #include <KoColorConversionTransformationAbstractFactory.h>
 
 /**
@@ -31,36 +31,36 @@ public:
      * @param _srcProfile name of the source profile, or empty if any profile
      * @param _dstProfile name of the destination profile, or empty if any profile
      */
-    KoColorConversionTransformationFactory(const QString &_srcModelId, const QString &_srcDepthId, const QString &_srcProfile, const QString &_dstModelId, const QString &_dstDepthId, const QString &_dstProfile);
+    KoColorConversionTransformationFactory(const PkString &_srcModelId, const PkString &_srcDepthId, const PkString &_srcProfile, const PkString &_dstModelId, const PkString &_dstDepthId, const PkString &_dstProfile);
     ~KoColorConversionTransformationFactory() override;
 
 public:
     /**
      * @return the id of the source color model
      */
-    QString srcColorModelId() const;
+    PkString srcColorModelId() const;
     /**
      * @return the id of the source color depth
      */
-    QString srcColorDepthId() const;
+    PkString srcColorDepthId() const;
     /**
      * @return the name of the source profile (note that an empty name
      *         means all profiles can be used)
      */
-    QString srcProfile() const;
+    PkString srcProfile() const;
     /**
      * @return the id of the destination color model
      */
-    QString dstColorModelId() const;
+    PkString dstColorModelId() const;
     /**
      * @return the id of the destination color depth
      */
-    QString dstColorDepthId() const;
+    PkString dstColorDepthId() const;
     /**
      * @return the name of the destination profile (note that an empty name
      *         means all profiles can be used)
      */
-    QString dstProfile() const;
+    PkString dstProfile() const;
 protected:
     /**
      * @param srcCS source color space

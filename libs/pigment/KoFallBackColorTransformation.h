@@ -10,6 +10,9 @@
 #include "KoColorTransformation.h"
 
 #include "kritapigment_export.h"
+#include <PkList.h>
+#include <PkString.h>
+#include <PkVariant.h>
 
 class KoColorSpace;
 class KoColorConversionTransformation;
@@ -47,9 +50,9 @@ public:
     KoFallBackColorTransformation(KoColorConversionTransformation* _csToFallBack, KoColorConversionTransformation* _fallBackToCs, KoColorTransformation* _transfo);
     ~KoFallBackColorTransformation() override;
     void transform(const quint8 *src, quint8 *dst, qint32 nPixels) const override;
-    QList<QString> parameters() const override;
-    int parameterId(const QString& name) const override;
-    void setParameter(int id, const QVariant& parameter) override;
+    PkList<PkString> parameters() const override;
+    int parameterId(const PkString& name) const override;
+    void setParameter(int id, const PkVariant& parameter) override;
 private:
     struct Private;
     Private* const d;

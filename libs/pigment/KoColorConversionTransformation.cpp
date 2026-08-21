@@ -4,17 +4,15 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <PkXmlCompat.h>
+
 #include "KoColorConversionTransformation.h"
 
 #include "KoColorSpace.h"
 
-#include <KisStaticInitializer.h>
+#include <PkAuxTypes.h>
 
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<KoColorConversionTransformation::Intent>();
-}
-
-struct Q_DECL_HIDDEN KoColorConversionTransformation::Private {
+struct KoColorConversionTransformation::Private {
     const KoColorSpace* srcColorSpace;
     const KoColorSpace* dstColorSpace;
     Intent renderingIntent;
@@ -66,7 +64,8 @@ void KoColorConversionTransformation::transformInPlace(const quint8 *src, quint8
     if (src != dst) {
         transform(src, dst, nPixels);
     } else {
-        QByteArray buffer(srcColorSpace()->pixelSize() * nPixels, 0);
+        PkByteArray buffer;
+        buffer.resize(srcColorSpace()->pixelSize() * nPixels);
         transform(src, reinterpret_cast<quint8*>(buffer.data()), nPixels);
         memcpy(dst, buffer.data(), buffer.size());
     }

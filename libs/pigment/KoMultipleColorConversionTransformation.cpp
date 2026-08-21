@@ -4,14 +4,16 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <PkXmlCompat.h>
+
 #include "KoMultipleColorConversionTransformation.h"
 
-#include <QList>
+#include <PkList.h>
 
 #include <KoColorSpace.h>
 
-struct Q_DECL_HIDDEN KoMultipleColorConversionTransformation::Private {
-    QList<KoColorConversionTransformation*> transfos;
+struct KoMultipleColorConversionTransformation::Private {
+    PkList<KoColorConversionTransformation*> transfos;
     quint32 maxPixelSize;
 };
 
@@ -24,7 +26,7 @@ KoMultipleColorConversionTransformation::KoMultipleColorConversionTransformation
 }
 KoMultipleColorConversionTransformation::~KoMultipleColorConversionTransformation()
 {
-    Q_FOREACH (KoColorConversionTransformation* transfo, d->transfos) {
+    for (KoColorConversionTransformation* transfo : d->transfos) {
         delete transfo;
     }
     delete d;

@@ -4,25 +4,29 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoCompositeColorTransformation.h"
 
-#include <QVector>
+#include <PkVector.h>
 
 
-struct Q_DECL_HIDDEN KoCompositeColorTransformation::Private
+struct KoCompositeColorTransformation::Private
 {
     ~Private() {
-        qDeleteAll(transformations);
+        for (KoColorTransformation* t : transformations) {
+            delete t;
+        }
     }
 
-    QVector<KoColorTransformation*> transformations;
+    PkVector<KoColorTransformation*> transformations;
 };
 
 
 KoCompositeColorTransformation::KoCompositeColorTransformation(Mode mode)
     : m_d(new Private)
 {
-    Q_ASSERT_X(mode == INPLACE, "KoCompositeColorTransformation", "BUFFERED mode is not implemented yet!");
+    Q_ASSERT(mode == INPLACE);
     Q_UNUSED(mode);
 }
 
@@ -39,9 +43,9 @@ void KoCompositeColorTransformation::appendTransform(KoColorTransformation *tran
 
 void KoCompositeColorTransformation::transform(const quint8 *src, quint8 *dst, qint32 nPixels) const
 {
-    QVector<KoColorTransformation*>::const_iterator begin = m_d->transformations.constBegin();
-    QVector<KoColorTransformation*>::const_iterator it = begin;
-    QVector<KoColorTransformation*>::const_iterator end = m_d->transformations.constEnd();
+    PkVector<KoColorTransformation*>::const_iterator begin = m_d->transformations.constBegin();
+    PkVector<KoColorTransformation*>::const_iterator it = begin;
+    PkVector<KoColorTransformation*>::const_iterator end = m_d->transformations.constEnd();
 
     for (; it != end; ++it) {
         if (it == begin) {
@@ -52,12 +56,12 @@ void KoCompositeColorTransformation::transform(const quint8 *src, quint8 *dst, q
     }
 }
 
-KoColorTransformation* KoCompositeColorTransformation::createOptimizedCompositeTransform(const QVector<KoColorTransformation*> transforms)
+KoColorTransformation* KoCompositeColorTransformation::createOptimizedCompositeTransform(const PkVector<KoColorTransformation*> transforms)
 {
     KoColorTransformation *finalTransform = 0;
 
     int numValidTransforms = 0;
-    foreach (KoColorTransformation *t, transforms) {
+    for (KoColorTransformation *t : transforms) {
         numValidTransforms += bool(t);
     }
 
@@ -66,7 +70,7 @@ KoColorTransformation* KoCompositeColorTransformation::createOptimizedCompositeT
             new KoCompositeColorTransformation(
                 KoCompositeColorTransformation::INPLACE);
 
-        foreach (KoColorTransformation *t, transforms) {
+        for (KoColorTransformation *t : transforms) {
             if (t) {
                 compositeTransform->appendTransform(t);
             }
@@ -75,7 +79,7 @@ KoColorTransformation* KoCompositeColorTransformation::createOptimizedCompositeT
         finalTransform = compositeTransform;
 
     } else if (numValidTransforms == 1) {
-        foreach (KoColorTransformation *t, transforms) {
+        for (KoColorTransformation *t : transforms) {
             if (t) {
                 finalTransform = t;
                 break;

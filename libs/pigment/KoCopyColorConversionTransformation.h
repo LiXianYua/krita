@@ -20,7 +20,7 @@ public:
 class KoCopyColorConversionTransformationFactory : public KoColorConversionTransformationFactory
 {
 public:
-    KoCopyColorConversionTransformationFactory(const QString& _colorModelId, const QString& _depthId, const QString& _profileName);
+    KoCopyColorConversionTransformationFactory(const PkString& _colorModelId, const PkString& _depthId, const PkString& _profileName);
     KoColorConversionTransformation* createColorTransformation(const KoColorSpace* srcColorSpace,
                                                                        const KoColorSpace* dstColorSpace,
                                                                        KoColorConversionTransformation::Intent renderingIntent,
