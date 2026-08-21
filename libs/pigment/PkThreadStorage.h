@@ -43,7 +43,7 @@ public:
     PkThreadStorage &operator=(const PkThreadStorage &) = delete;
 
     // 返回当前线程已存储的 T 指针；未 set 过返回 nullptr（对齐 Qt 对指针形态
-    // QThreadStorage<T*>::localData() 的语义：未 set 返回 null，不自动创建）。
+    // 线程局部存储的 localData() 语义：未 set 返回 null，不自动创建）。
     // Task 3 实测：自动创建在 FastPathCacheItem（= std::pair<KoColorConversion
     // CacheKey, KoCachedColorConversionTransformation>）上编不过——该 pair 的两个
     // 成员都无默认构造函数。指针消费方（KoColorConversionCache、KoColorSpace_p）
@@ -58,8 +58,8 @@ public:
     }
 
     // 值类型消费方取引用（KoCompositeOpDissolve 的 localDataRef().generate()
-    // 剥离形态）。未 set 过则自动创建默认构造的 T（对齐 Qt 对值形态
-    // QThreadStorage<T>::localData() 首访自动构造的语义）。
+    // 剥离形态）。未 set 过则自动创建默认构造的 T（对齐 Qt 对值形态的
+    // 线程局部存储 localData() 首访自动构造的语义）。
     T &localDataRef()
     {
         auto &slot = slotFor(this);
