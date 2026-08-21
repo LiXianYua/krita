@@ -10,6 +10,7 @@
 #include "kritaglobal_export.h"
 
 #include <PkRect.h>
+#include <PkVector.h>
 #include <array>
 
 class PkDebug;

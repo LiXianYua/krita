@@ -8,6 +8,7 @@
 #define KISFILTEREDROLLINGMEAN_H
 
 #include "kritaglobal_export.h"
+#include <PkGlobal.h>
 
 #include <vector>
 #include <boost/circular_buffer.hpp>

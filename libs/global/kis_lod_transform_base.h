@@ -7,7 +7,7 @@
 #ifndef KIS_LOD_TRANSFORM_BASE_H
 #define KIS_LOD_TRANSFORM_BASE_H
 
-#include <QtCore/qmath.h>
+#include <PkGlobal.h>
 #include <PkTransform.h>
 
 #include <kritaglobal_export.h>

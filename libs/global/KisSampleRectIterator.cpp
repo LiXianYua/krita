@@ -6,6 +6,7 @@
 #include "KisSampleRectIterator.h"
 
 #include <kis_algebra_2d.h>
+#include <cstdlib>
 
 struct KisSampleRectIterator::HaltonSampler {
     HaltonSampler() : x(2), y(3) {}
@@ -76,5 +77,5 @@ PkPointF KisSampleRectIterator::dereference() const {
             m_rect);
     }
 
-    Q_UNREACHABLE();
+    std::abort();
 }

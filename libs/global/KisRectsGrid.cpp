@@ -6,7 +6,7 @@
 
 #include "KisRectsGrid.h"
 #include "kis_assert.h"
-#include <QtCore/qmath.h>
+#include <PkGlobal.h>
 #include "kis_lod_transform_base.h"
 #include "kis_global.h"
 #include "kis_algebra_2d.h"

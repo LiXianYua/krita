@@ -23,23 +23,23 @@ int KoFakeProgressProxy::maximum() const
 
 void KoFakeProgressProxy::setValue(int value)
 {
-    Q_UNUSED(value);
+    (void)value;
 }
 
 void KoFakeProgressProxy::setRange(int minimum, int maximum)
 {
-    Q_UNUSED(minimum);
-    Q_UNUSED(maximum);
+    (void)minimum;
+    (void)maximum;
 }
 
 void KoFakeProgressProxy::setFormat(const PkString &format)
 {
-    Q_UNUSED(format);
+    (void)format;
 }
 
 void KoFakeProgressProxy::setAutoNestedName(const PkString &name)
 {
-    Q_UNUSED(name);
+    (void)name;
 }
 
 KoProgressProxy *KoFakeProgressProxy::instance()

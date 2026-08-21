@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <PkAtomic.h>
+#include <PkGlobal.h>
 
 #include <kis_debug.h>
 
@@ -315,7 +316,7 @@ public:
     inline T* data() {
         if (!isConsistent()) {
             warnKrita.noquote() << kisBacktrace();
-            Q_ASSERT_X(0, "KisWeakSharedPtr", "Weak pointer is not valid!");
+            Q_ASSERT(0);
         }
 
         return d;
@@ -327,7 +328,7 @@ public:
     inline const T* data() const {
         if (!isConsistent()) {
             warnKrita.noquote() << kisBacktrace();
-            Q_ASSERT_X(0, "KisWeakSharedPtr", "Weak pointer is not valid!");
+            Q_ASSERT(0);
         }
 
         return d;
@@ -339,7 +340,7 @@ public:
     inline const T* constData() const {
         if (!isConsistent()) {
             warnKrita.noquote() << kisBacktrace();
-            Q_ASSERT_X(0, "KisWeakSharedPtr", "Weak pointer is not valid!");
+            Q_ASSERT(0);
         }
 
         return d;
@@ -360,7 +361,7 @@ public:
     inline const T& operator*() const {
         if (!isValid()) {
             warnKrita.noquote() << kisBacktrace();
-            Q_ASSERT_X(0, "KisWeakSharedPtr", "Weak pointer is not valid!");
+            Q_ASSERT(0);
         }
 
         return *d;
@@ -369,7 +370,7 @@ public:
     inline T& operator*() {
         if (!isValid()) {
             warnKrita.noquote() << kisBacktrace();
-            Q_ASSERT_X(0, "KisWeakSharedPtr", "Weak pointer is not valid!");
+            Q_ASSERT(0);
         }
 
         return *d;
@@ -378,7 +379,7 @@ public:
     inline const T* operator->() const {
         if (!isValid()) {
             warnKrita.noquote() << kisBacktrace();
-            Q_ASSERT_X(0, "KisWeakSharedPtr", "Weak pointer is not valid!");
+            Q_ASSERT(0);
         }
 
         return d;
@@ -387,7 +388,7 @@ public:
     inline T* operator->() {
         if (!isValid()) {
             warnKrita.noquote() << kisBacktrace();
-            Q_ASSERT_X(0, "KisWeakSharedPtr", "Weak pointer is not valid!");
+            Q_ASSERT(0);
         }
 
         return d;
@@ -483,7 +484,7 @@ private:
 };
 
 template <class T>
-Q_INLINE_TEMPLATE  KisSharedPtr<T>::KisSharedPtr(const KisWeakSharedPtr<T>& o)
+inline  KisSharedPtr<T>::KisSharedPtr(const KisWeakSharedPtr<T>& o)
         : d(o.d)
 {
     if (o.isValid()) {
@@ -501,7 +502,7 @@ Q_INLINE_TEMPLATE  KisSharedPtr<T>::KisSharedPtr(const KisWeakSharedPtr<T>& o)
 }
 
 template <class T>
-Q_INLINE_TEMPLATE void KisSharedPtr<T>::attach(T* p)
+inline void KisSharedPtr<T>::attach(T* p)
 {
     if (d != p) {
         ref(this, p);
@@ -512,7 +513,7 @@ Q_INLINE_TEMPLATE void KisSharedPtr<T>::attach(T* p)
 }
 
 template <class T>
-Q_INLINE_TEMPLATE void KisSharedPtr<T>::clear()
+inline void KisSharedPtr<T>::clear()
 {
     attach((T*)0);
 }
