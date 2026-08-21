@@ -15,8 +15,8 @@ class KoID;
 
 #include "KoColorConversionTransformation.h"
 
-#include <QList>
-#include <QPair>
+#include <PkList.h>
+#include <PkPair.h>
 
 #include "kritapigment_export.h"
 
@@ -35,17 +35,17 @@ public:
     struct RegistryInterface {
         virtual ~RegistryInterface() {}
 
-        virtual const KoColorSpace * colorSpace(const QString & colorModelId, const QString & colorDepthId, const QString &profileName) = 0;
-        virtual const KoColorSpaceFactory* colorSpaceFactory(const QString &colorModelId, const QString &colorDepthId) const = 0;
-        virtual QList<const KoColorProfile *>  profilesFor(const KoColorSpaceFactory * csf) const = 0;
-        virtual QList<const KoColorSpaceFactory*> colorSpacesFor(const KoColorProfile* profile) const = 0;
+        virtual const KoColorSpace * colorSpace(const PkString & colorModelId, const PkString & colorDepthId, const PkString &profileName) = 0;
+        virtual const KoColorSpaceFactory* colorSpaceFactory(const PkString &colorModelId, const PkString &colorDepthId) const = 0;
+        virtual PkList<const KoColorProfile *>  profilesFor(const KoColorSpaceFactory * csf) const = 0;
+        virtual PkList<const KoColorSpaceFactory*> colorSpacesFor(const KoColorProfile* profile) const = 0;
     };
 
 public:
     struct Node;
     struct Vertex;
     struct NodeKey;
-    friend uint qHash(const KoColorConversionSystem::NodeKey &key);
+    friend unsigned int qHash(const KoColorConversionSystem::NodeKey &key);
     struct Path;
     /**
      * Construct a Color Conversion System, leave to the KoColorSpaceRegistry to
@@ -84,34 +84,34 @@ public:
      * @param toCS the revert conversion to the source color space will be affected to this
      *             variable
      */
-    void createColorConverters(const KoColorSpace* colorSpace, const QList< QPair<KoID, KoID> >& possibilities, KoColorConversionTransformation*& fromCS, KoColorConversionTransformation*& toCS) const;
+    void createColorConverters(const KoColorSpace* colorSpace, const PkList< PkPair<KoID, KoID> >& possibilities, KoColorConversionTransformation*& fromCS, KoColorConversionTransformation*& toCS) const;
 public:
     /**
      * This function return a text that can be compiled using dot to display
      * the graph of color conversion connection.
      */
-    QString toDot() const;
+    PkString toDot() const;
     /**
      * This function return a text that can be compiled using dot to display
      * the graph of color conversion connection, with a red link to show the
      * path of the best color conversion.
      */
-    QString bestPathToDot(const QString& srcKey, const QString& dstKey) const;
+    PkString bestPathToDot(const PkString& srcKey, const PkString& dstKey) const;
 public:
     /**
      * @return true if there is a path between two color spaces
      */
-    bool existsPath(const QString& srcModelId, const QString& srcDepthId, const QString& srcProfileName, const QString& dstModelId, const QString& dstDepthId, const QString& dstProfileName) const;
+    bool existsPath(const PkString& srcModelId, const PkString& srcDepthId, const PkString& srcProfileName, const PkString& dstModelId, const PkString& dstDepthId, const PkString& dstProfileName) const;
     /**
      * @return true if there is a good path between two color spaces
      */
-    bool existsGoodPath(const QString& srcModelId, const QString& srcDepthId, const QString& srcProfileName, const QString& dstModelId, const QString& dstDepthId, const QString& dstProfileName) const;
+    bool existsGoodPath(const PkString& srcModelId, const PkString& srcDepthId, const PkString& srcProfileName, const PkString& dstModelId, const PkString& dstDepthId, const PkString& dstProfileName) const;
 
     /**
      * @return the best path for the specified color spaces. Used for
      * testing purposes only
      */
-    Path findBestPath(const QString& srcModelId, const QString& srcDepthId, const QString& srcProfileName, const QString& dstModelId, const QString& dstDepthId, const QString& dstProfileName) const;
+    Path findBestPath(const PkString& srcModelId, const PkString& srcDepthId, const PkString& srcProfileName, const PkString& dstModelId, const PkString& dstDepthId, const PkString& dstProfileName) const;
 
     /**
      * @return the best path for the specified color spaces. Used for
@@ -119,7 +119,7 @@ public:
      */
     Path findBestPath(const NodeKey &src, const NodeKey &dst) const;
 private:
-    QString vertexToDot(Vertex* v, const QString &options) const;
+    PkString vertexToDot(Vertex* v, const PkString &options) const;
 private:
     /**
      * Insert an engine.
@@ -134,7 +134,7 @@ private:
     /**
      * Create a new node
      */
-    Node* createNode(const QString& _modelId, const QString& _depthId, const QString& _profileName);
+    Node* createNode(const PkString& _modelId, const PkString& _depthId, const PkString& _profileName);
     /**
      * Initialise a node for ICC color spaces
      */
@@ -148,12 +148,12 @@ private:
     /**
      * @return the list of nodes that correspond to a given model and depth.
      */
-    QList<Node*> nodesFor(const QString& _modelId, const QString& _depthId);
+    PkList<Node*> nodesFor(const PkString& _modelId, const PkString& _depthId);
     /**
      * @return the node associated with that key, and create it if needed
      */
-    Node* nodeFor(const QString& colorModelId, const QString& colorDepthId, const QString& _profileName);
-    const Node* nodeFor(const QString& colorModelId, const QString& colorDepthId, const QString& _profileName) const;
+    Node* nodeFor(const PkString& colorModelId, const PkString& colorDepthId, const PkString& _profileName);
+    const Node* nodeFor(const PkString& colorModelId, const PkString& colorDepthId, const PkString& _profileName) const;
     /**
      * @return the vertex between two nodes, or null if the vertex doesn't exist
      */
@@ -169,7 +169,7 @@ private:
     /**
      * Delete all the paths of the list given in argument.
      */
-    void deletePaths(QList<KoColorConversionSystem::Path*> paths) const;
+    void deletePaths(PkList<KoColorConversionSystem::Path*> paths) const;
 
 private:
     struct Private;

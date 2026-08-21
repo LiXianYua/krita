@@ -15,7 +15,13 @@
 #include "KoColorConversionSystem.h"
 #include <boost/operators.hpp>
 
-#include <QList>
+#include <PkList.h>
+#include <PkHash.h>
+#include <PkStringHash.h>
+#include <PkPair.h>
+#include <PkString.h>
+#include <PkDebug.h>
+#include <PkFlags.h>
 
 enum NodeCapability {
     None = 0x0,
@@ -24,8 +30,8 @@ enum NodeCapability {
     HasHdr = 0x4
 };
 
-Q_DECLARE_FLAGS(NodeCapabilities, NodeCapability)
-Q_DECLARE_OPERATORS_FOR_FLAGS(NodeCapabilities)
+PK_DECLARE_FLAGS(NodeCapabilities, NodeCapability)
+PK_DECLARE_OPERATORS_FOR_FLAGS(NodeCapabilities)
 
 struct KoColorConversionSystem::Node : boost::equality_comparable<KoColorConversionSystem::Node>
 {
@@ -80,7 +86,7 @@ struct KoColorConversionSystem::Node : boost::equality_comparable<KoColorConvers
         m_capabilities = HasAlpha | HasColor | HasHdr;
     }
 
-    QString id() const {
+    PkString id() const {
         return modelId + " " + depthId + " " + profileName;
     }
 
@@ -96,12 +102,12 @@ struct KoColorConversionSystem::Node : boost::equality_comparable<KoColorConvers
         return m_capabilities;
     }
 
-    QString modelId;
-    QString depthId;
-    QString profileName;
+    PkString modelId;
+    PkString depthId;
+    PkString profileName;
     bool isInitialized;
     int referenceDepth;
-    QList<Vertex*> outputVertexes;
+    PkList<Vertex*> outputVertexes;
     int crossingCost;
     const KoColorSpaceFactory* colorSpaceFactory;
     bool isEngine;
@@ -109,9 +115,7 @@ struct KoColorConversionSystem::Node : boost::equality_comparable<KoColorConvers
     NodeCapabilities m_capabilities = None;
 };
 
-Q_DECLARE_TYPEINFO(KoColorConversionSystem::Node, Q_MOVABLE_TYPE);
-
-QDebug operator<<(QDebug dbg, const KoColorConversionSystem::Node &node)
+PkDebug operator<<(PkDebug dbg, const KoColorConversionSystem::Node &node)
 {
     dbg.nospace() << "Node(" << node.modelId << ", " << node.depthId << ", " << node.profileName << ")";
     return dbg.space();
@@ -162,7 +166,7 @@ struct KoColorConversionSystem::NodeKey
         : public boost::equality_comparable<NodeKey>
 {
 
-    NodeKey(const QString &_modelId, const QString &_depthId, const QString &_profileName)
+    NodeKey(const PkString &_modelId, const PkString &_depthId, const PkString &_profileName)
         : modelId(_modelId)
         , depthId(_depthId)
         , profileName(_profileName) {}
@@ -171,13 +175,12 @@ struct KoColorConversionSystem::NodeKey
         return modelId == rhs.modelId && depthId == rhs.depthId && profileName == rhs.profileName;
     }
 
-    QString modelId;
-    QString depthId;
-    QString profileName;
+    PkString modelId;
+    PkString depthId;
+    PkString profileName;
 };
-Q_DECLARE_TYPEINFO(KoColorConversionSystem::NodeKey, Q_MOVABLE_TYPE);
 
-QDebug operator<<(QDebug dbg, const KoColorConversionSystem::NodeKey &key)
+PkDebug operator<<(PkDebug dbg, const KoColorConversionSystem::NodeKey &key)
 {
     dbg.nospace() << "NodeKey(" << key.modelId << ", " << key.depthId << ", " << key.profileName << ")";
     return dbg.space();
@@ -254,12 +257,12 @@ struct KoColorConversionSystem::Path {
     }
 
     // Compress path to hide the Engine node and correctly select the factory
-    typedef QPair<Node*, const KoColorConversionTransformationAbstractFactory* > node2factory;
-    QList< node2factory > compressedPath() const {
-        QList< node2factory > nodes;
+    typedef PkPair<Node*, const KoColorConversionTransformationAbstractFactory* > node2factory;
+    PkList< node2factory > compressedPath() const {
+        PkList< node2factory > nodes;
         nodes.push_back(node2factory(vertexes.first()->srcNode , vertexes.first()->factory()));
         const KoColorConversionTransformationAbstractFactory* previousFactory = 0;
-        Q_FOREACH (Vertex* vertex, vertexes) { // Unless the node is the icc node, add it to the path
+        for (Vertex* vertex : vertexes) { // Unless the node is the icc node, add it to the path
             Node* n = vertex->dstNode;
             if (n->isEngine) {
                 previousFactory = n->engine;
@@ -278,7 +281,7 @@ struct KoColorConversionSystem::Path {
     }
 
     bool contains(Node* n) const {
-        Q_FOREACH (Vertex* v, vertexes) {
+        for (Vertex* v : vertexes) {
             if (v->srcNode == n || v->dstNode == n) {
                 return true;
             }
@@ -286,21 +289,20 @@ struct KoColorConversionSystem::Path {
         return false;
     }
 
-    QList<Vertex*> vertexes;
+    PkList<Vertex*> vertexes;
     int referenceDepth;
     bool isGood;
     int cost;
     NodeCapabilities commonNodeCapabilities = None;
 
 };
-Q_DECLARE_TYPEINFO(KoColorConversionSystem::Path, Q_MOVABLE_TYPE);
 
 
-inline QDebug operator<<(QDebug dbg, const KoColorConversionSystem::Path &path)
+inline PkDebug operator<<(PkDebug dbg, const KoColorConversionSystem::Path &path)
 {
     bool havePrintedFirst = false;
 
-    Q_FOREACH (const KoColorConversionSystem::Vertex *v, path.vertexes) {
+    for (const KoColorConversionSystem::Vertex *v : path.vertexes) {
         if (!havePrintedFirst) {
             dbg.nospace() << v->srcNode->id();
             havePrintedFirst = true;
@@ -313,20 +315,20 @@ inline QDebug operator<<(QDebug dbg, const KoColorConversionSystem::Path &path)
 }
 
 
-typedef QHash<KoColorConversionSystem::Node*, KoColorConversionSystem::Path > Node2PathHash;
+typedef PkHash<KoColorConversionSystem::Node*, KoColorConversionSystem::Path > Node2PathHash;
 
 
-uint qHash(const KoColorConversionSystem::NodeKey &key)
+unsigned int qHash(const KoColorConversionSystem::NodeKey &key)
 {
     return qHash(key.modelId) + qHash(key.depthId);
 }
 
-struct Q_DECL_HIDDEN KoColorConversionSystem::Private {
+struct KoColorConversionSystem::Private {
 
     Private(RegistryInterface *_registryInterface) : registryInterface(_registryInterface) {}
 
-    QHash<NodeKey, Node*> graph;
-    QList<Vertex*> vertexes;
+    PkHash<NodeKey, Node*> graph;
+    PkList<Vertex*> vertexes;
     RegistryInterface *registryInterface;
 };
 

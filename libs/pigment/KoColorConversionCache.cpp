@@ -4,12 +4,16 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+#include <PkXmlCompat.h>
+
 #include "KoColorConversionCache.h"
 
-#include <QList>
-#include <QMutex>
-#include <QMutexLocker>
-#include <QThreadStorage>
+#include <PkHash.h>
+#include <PkList.h>
+#include <PkPair.h>
+#include <PkAtomic.h>
+#include <PkMutex.h>
+#include <PkThreadStorage.h>
 
 #include <KoColorSpace.h>
 
@@ -38,7 +42,7 @@ struct KoColorConversionCacheKey {
     KoColorConversionTransformation::ConversionFlags conversionFlags;
 };
 
-uint qHash(const KoColorConversionCacheKey& key)
+unsigned int qHash(const KoColorConversionCacheKey& key)
 {
     return qHash(key.src) + qHash(key.dst) + qHash(key.renderingIntent) + qHash(key.conversionFlags);
 }
@@ -58,16 +62,16 @@ struct KoColorConversionCache::CachedTransformation {
     }
 
     KoColorConversionTransformation* transfo;
-    QAtomicInt use;
+    PkAtomicInt use;
 };
 
-typedef QPair<KoColorConversionCacheKey, KoCachedColorConversionTransformation> FastPathCacheItem;
+typedef PkPair<KoColorConversionCacheKey, KoCachedColorConversionTransformation> FastPathCacheItem;
 
 struct KoColorConversionCache::Private {
-    QMultiHash< KoColorConversionCacheKey, CachedTransformation*> cache;
-    QMutex cacheMutex;
+    PkHash< KoColorConversionCacheKey, PkList<CachedTransformation*> > cache;
+    PkMutex cacheMutex;
 
-    QThreadStorage<FastPathCacheItem*> fastStorage;
+    PkThreadStorage<FastPathCacheItem> fastStorage;
 };
 
 
@@ -77,8 +81,10 @@ KoColorConversionCache::KoColorConversionCache() : d(new Private)
 
 KoColorConversionCache::~KoColorConversionCache()
 {
-    Q_FOREACH (CachedTransformation* transfo, d->cache) {
-        delete transfo;
+    for (auto& cts : d->cache) {
+        for (CachedTransformation* transfo : cts) {
+            delete transfo;
+        }
     }
     delete d;
 }
@@ -101,21 +107,19 @@ KoCachedColorConversionTransformation KoColorConversionCache::cachedConverter(co
 
     cacheItem = 0;
 
-    QMutexLocker lock(&d->cacheMutex);
-    QList< CachedTransformation* > cachedTransfos = d->cache.values(key);
-    if (cachedTransfos.size() != 0) {
-        Q_FOREACH (CachedTransformation* ct, cachedTransfos) {
-            ct->transfo->setSrcColorSpace(src);
-            ct->transfo->setDstColorSpace(dst);
+    PkMutexLocker lock(&d->cacheMutex);
+    PkList< CachedTransformation* > cachedTransfos = d->cache.value(key);
+    if (!cachedTransfos.isEmpty()) {
+        CachedTransformation* ct = cachedTransfos.first();
+        ct->transfo->setSrcColorSpace(src);
+        ct->transfo->setDstColorSpace(dst);
 
-            cacheItem = new FastPathCacheItem(key, KoCachedColorConversionTransformation(ct));
-            break;
-        }
+        cacheItem = new FastPathCacheItem(key, KoCachedColorConversionTransformation(ct));
     }
     if (!cacheItem) {
         KoColorConversionTransformation* transfo = src->createColorConverter(dst, _renderingIntent, _conversionFlags);
         CachedTransformation* ct = new CachedTransformation(transfo);
-        d->cache.insert(key, ct);
+        d->cache[key].append(ct);
         cacheItem = new FastPathCacheItem(key, KoCachedColorConversionTransformation(ct));
     }
 
@@ -127,12 +131,14 @@ void KoColorConversionCache::colorSpaceIsDestroyed(const KoColorSpace* cs)
 {
     d->fastStorage.setLocalData(0);
 
-    QMutexLocker lock(&d->cacheMutex);
-    QMultiHash< KoColorConversionCacheKey, CachedTransformation*>::iterator endIt = d->cache.end();
-    for (QMultiHash< KoColorConversionCacheKey, CachedTransformation*>::iterator it = d->cache.begin(); it != endIt;) {
+    PkMutexLocker lock(&d->cacheMutex);
+    PkHash< KoColorConversionCacheKey, PkList<CachedTransformation*> >::iterator it = d->cache.begin();
+    while (it != d->cache.end()) {
         if (it.key().src == cs || it.key().dst == cs) {
-            Q_ASSERT(it.value()->isNotInUse()); // That's terribly evil, if that assert fails, that means that someone is using a color transformation with a color space which is currently being deleted
-            delete it.value();
+            for (CachedTransformation* ct : it.value()) {
+                Q_ASSERT(ct->isNotInUse()); // That's terribly evil, if that assert fails, that means that someone is using a color transformation with a color space which is currently being deleted
+                delete ct;
+            }
             it = d->cache.erase(it);
         } else {
             ++it;

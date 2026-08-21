@@ -4,11 +4,15 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
+#include <PkXmlCompat.h>
+
 #include "KoColorConversionSystem.h"
 #include "KoColorConversionSystem_p.h"
 
-#include <QHash>
-#include <QString>
+#include <PkHash.h>
+#include <PkList.h>
+#include <PkString.h>
+#include <PkPair.h>
 
 #include "KoColorConversionAlphaTransformation.h"
 #include "KoColorConversionTransformation.h"
@@ -25,8 +29,12 @@ KoColorConversionSystem::KoColorConversionSystem(RegistryInterface *registryInte
 
 KoColorConversionSystem::~KoColorConversionSystem()
 {
-    qDeleteAll(d->graph);
-    qDeleteAll(d->vertexes);
+    for (Node* node : d->graph) {
+        delete node;
+    }
+    for (Vertex* v : d->vertexes) {
+        delete v;
+    }
     delete d;
 }
 
@@ -56,9 +64,9 @@ KoColorConversionSystem::Node* KoColorConversionSystem::insertEngine(const KoCol
 void KoColorConversionSystem::insertColorSpace(const KoColorSpaceFactory* csf)
 {
     dbgPigment << "Inserting color space " << csf->name() << " (" << csf->id() << ") Model: " << csf->colorModelId() << " Depth: " << csf->colorDepthId() << " into the CCS";
-    const QList<const KoColorProfile*> profiles = d->registryInterface->profilesFor(csf);
-    QString modelId = csf->colorModelId().id();
-    QString depthId = csf->colorDepthId().id();
+    const PkList<const KoColorProfile*> profiles = d->registryInterface->profilesFor(csf);
+    PkString modelId = csf->colorModelId().id();
+    PkString depthId = csf->colorDepthId().id();
     if (profiles.isEmpty()) { // There is no profile for this CS, create a node without profile name if the color engine isn't icc-based
         if (csf->colorSpaceEngine() != "icc") {
             Node* n = nodeFor(modelId, depthId, "default");
@@ -69,7 +77,7 @@ void KoColorConversionSystem::insertColorSpace(const KoColorSpaceFactory* csf)
         }
     } else {
         // Initialise the nodes
-        Q_FOREACH (const KoColorProfile* profile, profiles) {
+        for (const KoColorProfile* profile : profiles) {
             Node* n = nodeFor(modelId, depthId, profile->name());
             n->init(csf);
             if (!csf->colorSpaceEngine().isEmpty()) {
@@ -77,7 +85,7 @@ void KoColorConversionSystem::insertColorSpace(const KoColorSpaceFactory* csf)
                 Q_ASSERT(engine);
                 NodeKey engineKey(engine->id(), engine->id(), engine->id());
                 Node* engineNode = 0;
-                QHash<NodeKey, Node*>::ConstIterator it = d->graph.constFind(engineKey);
+                PkHash<NodeKey, Node*>::ConstIterator it = d->graph.constFind(engineKey);
                 if (it != d->graph.constEnd()) {
                     engineNode = it.value();
                 } else {
@@ -91,8 +99,8 @@ void KoColorConversionSystem::insertColorSpace(const KoColorSpaceFactory* csf)
         }
     }
     // Construct a link for "custom" transformation
-    const QList<KoColorConversionTransformationFactory*> cctfs = csf->colorConversionLinks();
-    Q_FOREACH (KoColorConversionTransformationFactory* cctf, cctfs) {
+    const PkList<KoColorConversionTransformationFactory*> cctfs = csf->colorConversionLinks();
+    for (KoColorConversionTransformationFactory* cctf : cctfs) {
         Node* srcNode = nodeFor(cctf->srcColorModelId(), cctf->srcColorDepthId(), cctf->srcProfile());
         Q_ASSERT(srcNode);
         Node* dstNode = nodeFor(cctf->dstColorModelId(), cctf->dstColorDepthId(), cctf->dstProfile());
@@ -116,10 +124,10 @@ void KoColorConversionSystem::insertColorSpace(const KoColorSpaceFactory* csf)
 void KoColorConversionSystem::insertColorProfile(const KoColorProfile* _profile)
 {
     dbgPigmentCCS << _profile->name();
-    const QList< const KoColorSpaceFactory* >& factories = d->registryInterface->colorSpacesFor(_profile);
-    Q_FOREACH (const KoColorSpaceFactory* factory, factories) {
-        QString modelId = factory->colorModelId().id();
-        QString depthId = factory->colorDepthId().id();
+    const PkList< const KoColorSpaceFactory* >& factories = d->registryInterface->colorSpacesFor(_profile);
+    for (const KoColorSpaceFactory* factory : factories) {
+        PkString modelId = factory->colorModelId().id();
+        PkString depthId = factory->colorDepthId().id();
         Node* n = nodeFor(modelId, depthId, _profile->name());
         n->init(factory);
         if (!factory->colorSpaceEngine().isEmpty()) {
@@ -132,8 +140,8 @@ void KoColorConversionSystem::insertColorProfile(const KoColorProfile* _profile)
                 connectToEngine(n, engineNode);
             }
         }
-        const QList<KoColorConversionTransformationFactory*> cctfs = factory->colorConversionLinks();
-        Q_FOREACH (KoColorConversionTransformationFactory* cctf, cctfs) {
+        const PkList<KoColorConversionTransformationFactory*> cctfs = factory->colorConversionLinks();
+        for (KoColorConversionTransformationFactory* cctf : cctfs) {
             Node* srcNode = nodeFor(cctf->srcColorModelId(), cctf->srcColorDepthId(), cctf->srcProfile());
             Q_ASSERT(srcNode);
             Node* dstNode = nodeFor(cctf->dstColorModelId(), cctf->dstColorDepthId(), cctf->dstProfile());
@@ -162,7 +170,7 @@ const KoColorSpace* KoColorConversionSystem::defaultColorSpaceForNode(const Node
     return d->registryInterface->colorSpace(node->modelId, node->depthId, node->profileName);
 }
 
-KoColorConversionSystem::Node* KoColorConversionSystem::createNode(const QString& _modelId, const QString& _depthId, const QString& _profileName)
+KoColorConversionSystem::Node* KoColorConversionSystem::createNode(const PkString& _modelId, const PkString& _depthId, const PkString& _profileName)
 {
     Node* n = new Node;
     n->modelId = _modelId;
@@ -179,7 +187,7 @@ const KoColorConversionSystem::Node* KoColorConversionSystem::nodeFor(const KoCo
                    profile ? profile->name() : "default");
 }
 
-const KoColorConversionSystem::Node* KoColorConversionSystem::nodeFor(const QString& _colorModelId, const QString& _colorDepthId, const QString& _profileName) const
+const KoColorConversionSystem::Node* KoColorConversionSystem::nodeFor(const PkString& _colorModelId, const PkString& _colorDepthId, const PkString& _profileName) const
 {
     dbgPigmentCCS << "Look for node: " << _colorModelId << " " << _colorDepthId << " " << _profileName;
     return nodeFor(NodeKey(_colorModelId, _colorDepthId, _profileName));
@@ -191,14 +199,14 @@ const KoColorConversionSystem::Node* KoColorConversionSystem::nodeFor(const Node
     return d->graph.value(key);
 }
 
-KoColorConversionSystem::Node* KoColorConversionSystem::nodeFor(const QString& _colorModelId, const QString& _colorDepthId, const QString& _profileName)
+KoColorConversionSystem::Node* KoColorConversionSystem::nodeFor(const PkString& _colorModelId, const PkString& _colorDepthId, const PkString& _profileName)
 {
     return nodeFor(NodeKey(_colorModelId, _colorDepthId, _profileName));
 }
 
 KoColorConversionSystem::Node* KoColorConversionSystem::nodeFor(const KoColorConversionSystem::NodeKey& key)
 {
-    QHash<NodeKey, Node*>::ConstIterator it = d->graph.constFind(key);
+    PkHash<NodeKey, Node*>::ConstIterator it = d->graph.constFind(key);
     if (it != d->graph.constEnd()) {
         return it.value();
     } else {
@@ -206,12 +214,12 @@ KoColorConversionSystem::Node* KoColorConversionSystem::nodeFor(const KoColorCon
     }
 }
 
-QList<KoColorConversionSystem::Node*> KoColorConversionSystem::nodesFor(const QString& _modelId, const QString& _depthId)
+PkList<KoColorConversionSystem::Node*> KoColorConversionSystem::nodesFor(const PkString& _modelId, const PkString& _depthId)
 {
-    QList<Node*> nodes;
-    Q_FOREACH (Node* node, d->graph) {
+    PkList<Node*> nodes;
+    for (Node* node : d->graph) {
         if (node->modelId == _modelId &&  node->depthId == _depthId) {
-            nodes << node;
+            nodes.append(node);
         }
     }
     return nodes;
@@ -237,7 +245,7 @@ KoColorConversionTransformation* KoColorConversionSystem::createColorConverter(c
     return transfo;
 }
 
-void KoColorConversionSystem::createColorConverters(const KoColorSpace* colorSpace, const QList< QPair<KoID, KoID> >& possibilities, KoColorConversionTransformation*& fromCS, KoColorConversionTransformation*& toCS) const
+void KoColorConversionSystem::createColorConverters(const KoColorSpace* colorSpace, const PkList< PkPair<KoID, KoID> >& possibilities, KoColorConversionTransformation*& fromCS, KoColorConversionTransformation*& toCS) const
 {
     // TODO This function currently only select the best conversion only based on the transformation
     // from colorSpace to one of the color spaces in the list, but not the other way around
@@ -246,8 +254,8 @@ void KoColorConversionSystem::createColorConverters(const KoColorSpace* colorSpa
     PathQualityChecker pQC(csNode->referenceDepth);
     // Look for a color conversion
     Path bestPath;
-    typedef QPair<KoID, KoID> KoID2KoID;
-    Q_FOREACH (const KoID2KoID & possibility, possibilities) {
+    typedef PkPair<KoID, KoID> KoID2KoID;
+    for (const KoID2KoID & possibility : possibilities) {
         const KoColorSpaceFactory* csf = d->registryInterface->colorSpaceFactory(possibility.first.id(), possibility.second.id());
         if (csf) {
             Path path = findBestPath(csNode, nodeFor(csf->colorModelId().id(), csf->colorDepthId().id(), csf->defaultProfile()));
@@ -280,7 +288,7 @@ KoColorConversionTransformation* KoColorConversionSystem::createTransformationFr
 
     KoColorConversionTransformation* transfo;
 
-    const QList< Path::node2factory > pathOfNode = path.compressedPath();
+    const PkList< Path::node2factory > pathOfNode = path.compressedPath();
 
     if (pathOfNode.size() == 2) { // Direct connection
         transfo = pathOfNode[1].second->createColorTransformation(srcColorSpace, dstColorSpace, renderingIntent, conversionFlags);
@@ -316,7 +324,7 @@ KoColorConversionTransformation* KoColorConversionSystem::createTransformationFr
 
 KoColorConversionSystem::Vertex* KoColorConversionSystem::vertexBetween(KoColorConversionSystem::Node* srcNode, KoColorConversionSystem::Node* dstNode)
 {
-    Q_FOREACH (Vertex* oV, srcNode->outputVertexes) {
+    for (Vertex* oV : srcNode->outputVertexes) {
         if (oV->dstNode == dstNode) {
             return oV;
         }
@@ -334,22 +342,22 @@ KoColorConversionSystem::Vertex* KoColorConversionSystem::createVertex(Node* src
 
 // -- Graph visualization functions --
 
-QString KoColorConversionSystem::vertexToDot(KoColorConversionSystem::Vertex* v, const QString &options) const
+PkString KoColorConversionSystem::vertexToDot(KoColorConversionSystem::Vertex* v, const PkString &options) const
 {
-    return QString("  \"%1\" -> \"%2\" %3\n").arg(v->srcNode->id()).arg(v->dstNode->id()).arg(options);
+    return PkString("  \"%1\" -> \"%2\" %3\n").arg(v->srcNode->id()).arg(v->dstNode->id()).arg(options);
 }
 
-QString KoColorConversionSystem::toDot() const
+PkString KoColorConversionSystem::toDot() const
 {
-    QString dot = "digraph CCS {\n";
-    Q_FOREACH (Vertex* oV, d->vertexes) {
+    PkString dot = "digraph CCS {\n";
+    for (Vertex* oV : d->vertexes) {
         dot += vertexToDot(oV, "default") ;
     }
     dot += "}\n";
     return dot;
 }
 
-bool KoColorConversionSystem::existsPath(const QString& srcModelId, const QString& srcDepthId, const QString& srcProfileName, const QString& dstModelId, const QString& dstDepthId, const QString& dstProfileName) const
+bool KoColorConversionSystem::existsPath(const PkString& srcModelId, const PkString& srcDepthId, const PkString& srcProfileName, const PkString& dstModelId, const PkString& dstDepthId, const PkString& dstProfileName) const
 {
     dbgPigmentCCS << "srcModelId = " << srcModelId << " srcDepthId = " << srcDepthId << " srcProfileName = " << srcProfileName << " dstModelId = " << dstModelId << " dstDepthId = " << dstDepthId << " dstProfileName = " << dstProfileName;
     const Node* srcNode = nodeFor(srcModelId, srcDepthId, srcProfileName);
@@ -362,7 +370,7 @@ bool KoColorConversionSystem::existsPath(const QString& srcModelId, const QStrin
     return exist;
 }
 
-bool KoColorConversionSystem::existsGoodPath(const QString& srcModelId, const QString& srcDepthId, const QString& srcProfileName, const QString& dstModelId, const QString& dstDepthId, const QString& dstProfileName) const
+bool KoColorConversionSystem::existsGoodPath(const PkString& srcModelId, const PkString& srcDepthId, const PkString& srcProfileName, const PkString& dstModelId, const PkString& dstDepthId, const PkString& dstProfileName) const
 {
     const Node* srcNode = nodeFor(srcModelId, srcDepthId, srcProfileName);
     const Node* dstNode = nodeFor(dstModelId, dstDepthId, dstProfileName);
@@ -374,7 +382,7 @@ bool KoColorConversionSystem::existsGoodPath(const QString& srcModelId, const QS
     return existAndGood;
 }
 
-KoColorConversionSystem::Path KoColorConversionSystem::findBestPath(const QString &srcModelId, const QString &srcDepthId, const QString &srcProfileName, const QString &dstModelId, const QString &dstDepthId, const QString &dstProfileName) const
+KoColorConversionSystem::Path KoColorConversionSystem::findBestPath(const PkString &srcModelId, const PkString &srcDepthId, const PkString &srcProfileName, const PkString &dstModelId, const PkString &dstDepthId, const PkString &dstProfileName) const
 {
     const Node *srcNode = nodeFor(srcModelId, srcDepthId, srcProfileName);
     const Node *dstNode = nodeFor(dstModelId, dstDepthId, dstProfileName);
@@ -397,11 +405,11 @@ KoColorConversionSystem::Path KoColorConversionSystem::findBestPath(const KoColo
 }
 
 
-QString KoColorConversionSystem::bestPathToDot(const QString& srcKey, const QString& dstKey) const
+PkString KoColorConversionSystem::bestPathToDot(const PkString& srcKey, const PkString& dstKey) const
 {
     const Node* srcNode = 0;
     const Node* dstNode = 0;
-    Q_FOREACH (Node* node, d->graph) {
+    for (Node* node : d->graph) {
         if (node->id() == srcKey) {
             srcNode = node;
         }
@@ -411,11 +419,11 @@ QString KoColorConversionSystem::bestPathToDot(const QString& srcKey, const QStr
     }
     Path p = findBestPath(srcNode, dstNode);
     Q_ASSERT(!p.isEmpty());
-    QString dot = "digraph CCS {\n" +
-            QString("  \"%1\" [color=red]\n").arg(srcNode->id()) +
-            QString("  \"%1\" [color=red]\n").arg(dstNode->id());
-    Q_FOREACH (Vertex* oV, d->vertexes) {
-        QString options;
+    PkString dot = PkString("digraph CCS {\n") +
+            PkString("  \"%1\" [color=red]\n").arg(srcNode->id()) +
+            PkString("  \"%1\" [color=red]\n").arg(dstNode->id());
+    for (Vertex* oV : d->vertexes) {
+        PkString options;
         if (p.vertexes.contains(oV)) {
             options = "[color=red]";
         }
@@ -434,7 +442,7 @@ KoColorConversionSystem::Path KoColorConversionSystem::findBestPath(const KoColo
 
     PathQualityChecker pQC(qMin(srcNode->referenceDepth, dstNode->referenceDepth));
     Node2PathHash node2path; // current best path to reach a given node
-    QList<Path> possiblePaths; // list of all paths
+    PkList<Path> possiblePaths; // list of all paths
     // Generate the initial list of paths
     Q_FOREACH (Vertex* v, srcNode->outputVertexes) {
         if (v->dstNode->isInitialized) {
@@ -458,7 +466,7 @@ KoColorConversionSystem::Path KoColorConversionSystem::findBestPath(const KoColo
     while (possiblePaths.size() > 0) {
 
         // Loop through all paths and explore one step further
-        const QList<Path> currentPaths = possiblePaths;
+        const PkList<Path> currentPaths = possiblePaths;
         for (const Path &p : currentPaths) {
             const Node* endNode = p.endNode();
             for (Vertex* v : endNode->outputVertexes) {

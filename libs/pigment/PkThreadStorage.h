@@ -42,27 +42,31 @@ public:
     PkThreadStorage(const PkThreadStorage &) = delete;
     PkThreadStorage &operator=(const PkThreadStorage &) = delete;
 
-    // 返回当前线程的 T 指针；不存在则创建默认构造的 T。
-    // 注意：KoColorConversionCache 的 `if (cacheItem)` 判空在自动创建下首调会
-    // 拿到一个默认值，但其 key 与真实 key 必不相等，随后走 setLocalData 覆盖，
-    // 可观察行为不变。
+    // 返回当前线程已存储的 T 指针；未 set 过返回 nullptr（对齐 Qt 对指针形态
+    // QThreadStorage<T*>::localData() 的语义：未 set 返回 null，不自动创建）。
+    // Task 3 实测：自动创建在 FastPathCacheItem（= std::pair<KoColorConversion
+    // CacheKey, KoCachedColorConversionTransformation>）上编不过——该 pair 的两个
+    // 成员都无默认构造函数。指针消费方（KoColorConversionCache、KoColorSpace_p）
+    // 都先 hasLocalData() 判空再取，语义与 Qt 一致。
     T *localData()
     {
-        auto &slot = slotFor(this);
-        if (!slot.value) {
-            slot.value = std::make_unique<T>();
-        }
-        return slot.value.get();
+        return slotFor(this).value.get();
     }
     T *localData() const
     {
         return const_cast<PkThreadStorage *>(this)->localData();
     }
 
-    // 值类型消费方取引用（KoCompositeOpDissolve 的 localData().generate() 剥离形态）。
+    // 值类型消费方取引用（KoCompositeOpDissolve 的 localDataRef().generate()
+    // 剥离形态）。未 set 过则自动创建默认构造的 T（对齐 Qt 对值形态
+    // QThreadStorage<T>::localData() 首访自动构造的语义）。
     T &localDataRef()
     {
-        return *localData();
+        auto &slot = slotFor(this);
+        if (!slot.value) {
+            slot.value = std::make_unique<T>();
+        }
+        return *slot.value.get();
     }
 
     bool hasLocalData() const
