@@ -8,7 +8,8 @@
 #define __KIS_PAINTOP_LOD_LIMITATIONS_H
 
 #include <KoID.h>
-#include <QMetaType>
+#include <PkSet.h>
+#include <PkStringHash.h>
 #include <boost/operators.hpp>
 
 inline uint qHash(const KoID &id) {
@@ -31,10 +32,8 @@ public:
         return *this;
     }
 
-    QSet<KoID> limitations;
-    QSet<KoID> blockers;
+    PkSet<KoID> limitations;
+    PkSet<KoID> blockers;
 };
-
-Q_DECLARE_METATYPE(KisPaintopLodLimitations);
 
 #endif /* __KIS_PAINTOP_LOD_LIMITATIONS_H */

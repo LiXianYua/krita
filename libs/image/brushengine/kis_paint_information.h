@@ -8,7 +8,6 @@
 #define _KIS_PAINT_INFORMATION_
 
 #include <kis_debug.h>
-#include <QTime>
 
 #include "kis_global.h"
 #include "kritaimage_export.h"
@@ -18,9 +17,11 @@
 #include "kis_spacing_information.h"
 #include "kis_timing_information.h"
 
+#include <PkPoint.h>
 
-class QDomDocument;
-class QDomElement;
+
+class PkXmlDocument;
+class PkXmlElement;
 class KisDistanceInformation;
 
 
@@ -71,7 +72,7 @@ public:
     /**
      * Create a new KisPaintInformation object.
      */
-    KisPaintInformation(const QPointF & pos,
+    KisPaintInformation(const PkPointF & pos,
                         qreal pressure,
                         qreal xTilt,
                         qreal yTilt,
@@ -81,13 +82,13 @@ public:
                         qreal time,
                         qreal speed);
 
-    KisPaintInformation(const QPointF & pos,
+    KisPaintInformation(const PkPointF & pos,
                         qreal pressure,
                         qreal xTilt,
                         qreal yTilt,
                         qreal rotation);
 
-    KisPaintInformation(const QPointF & pos = QPointF(),
+    KisPaintInformation(const PkPointF & pos = PkPointF(),
                         qreal pressure = PRESSURE_DEFAULT);
 
     KisPaintInformation(const KisPaintInformation& rhs);
@@ -116,8 +117,8 @@ public:
         distanceInfo->registerPaintedDab(*this, spacingInfo, timingInfo);
     }
 
-    const QPointF& pos() const;
-    void setPos(const QPointF& p);
+    const PkPointF& pos() const;
+    void setPos(const PkPointF& p);
 
     /// The pressure of the value (from 0.0 to 1.0)
     qreal pressure() const;
@@ -160,7 +161,7 @@ public:
      * WARNING: this method is available *only* inside paintAt() call,
      * that is when the distance information is registered.
      */
-    QPointF drawingDirectionVector() const;
+    PkPointF drawingDirectionVector() const;
 
     /**
      * Current brush speed computed from the cursor movement
@@ -243,7 +244,7 @@ public:
      *
      * \see isHoveringMode()
      */
-    static KisPaintInformation createHoveringModeInfo(const QPointF &pos,
+    static KisPaintInformation createHoveringModeInfo(const PkPointF &pos,
             qreal pressure = PRESSURE_DEFAULT,
             qreal xTilt = 0.0, qreal yTilt = 0.0,
             qreal rotation = 0.0,
@@ -295,9 +296,9 @@ public:
      */
     void setTiltDirectionOffset(qreal angle);
 
-    void toXML(QDomDocument&, QDomElement&) const;
+    void toXML(PkXmlDocument&, PkXmlElement&) const;
 
-    static KisPaintInformation fromXML(const QDomElement&);
+    static KisPaintInformation fromXML(const PkXmlElement&);
 
     // TODO: Refactor the static mix functions to non-static in-place mutation
     //       versions like mixOtherOnlyPosition and mixOtherWithoutTime.
@@ -308,9 +309,9 @@ public:
 
     /// (1-t) * p1 + t * p2
     static KisPaintInformation mixOnlyPosition(qreal t, const KisPaintInformation& mixedPi, const KisPaintInformation& basePi);
-    static KisPaintInformation mix(const QPointF& p, qreal t, const KisPaintInformation& p1, const KisPaintInformation& p2);
+    static KisPaintInformation mix(const PkPointF& p, qreal t, const KisPaintInformation& p1, const KisPaintInformation& p2);
     static KisPaintInformation mix(qreal t, const KisPaintInformation& pi1, const KisPaintInformation& pi2);
-    static KisPaintInformation mixWithoutTime(const QPointF &p, qreal t, const KisPaintInformation &p1, const KisPaintInformation &p2);
+    static KisPaintInformation mixWithoutTime(const PkPointF &p, qreal t, const KisPaintInformation &p1, const KisPaintInformation &p2);
     static KisPaintInformation mixWithoutTime(qreal t, const KisPaintInformation &pi1, const KisPaintInformation &pi2);
     void mixOtherOnlyPosition(qreal t, const KisPaintInformation& other);
     void mixOtherWithoutTime(qreal t, const KisPaintInformation& other);
@@ -318,15 +319,15 @@ public:
     static qreal tiltElevation(const KisPaintInformation& info, qreal maxTiltX = 60.0, qreal maxTiltY = 60.0, bool normalize = true);
 
 private:
-    static KisPaintInformation mixImpl(const QPointF &p, qreal t, const KisPaintInformation &p1, const KisPaintInformation &p2, bool posOnly, bool mixTime);
-    void mixOtherImpl(const QPointF &p, qreal t, const KisPaintInformation &other, bool posOnly, bool mixTime);
+    static KisPaintInformation mixImpl(const PkPointF &p, qreal t, const KisPaintInformation &p1, const KisPaintInformation &p2, bool posOnly, bool mixTime);
+    void mixOtherImpl(const PkPointF &p, qreal t, const KisPaintInformation &other, bool posOnly, bool mixTime);
 
 private:
     struct Private;
     Private* const d;
 };
 
-KRITAIMAGE_EXPORT QDebug operator<<(QDebug debug, const KisPaintInformation& info);
+KRITAIMAGE_EXPORT PkDebug operator<<(PkDebug debug, const KisPaintInformation& info);
 
 
 #endif

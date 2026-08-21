@@ -6,7 +6,9 @@
 
 #include <brushengine/kis_paint_information.h>
 
-#include <QDomElement>
+#include <PkXmlElement.h>
+#include <PkXmlDocument.h>
+#include <PkVectorND.h>
 #include <boost/optional.hpp>
 
 #include "kis_paintop.h"
@@ -17,7 +19,7 @@
 #include <kis_dom_utils.h>
 
 struct KisPaintInformation::Private {
-    Private(const QPointF & pos_,
+    Private(const PkPointF & pos_,
             qreal pressure_,
             qreal xTilt_, qreal yTilt_,
             qreal rotation_,
@@ -84,7 +86,7 @@ struct KisPaintInformation::Private {
     }
 
 
-    QPointF pos;
+    PkPointF pos;
     qreal pressure;
     qreal xTilt;
     qreal yTilt;
@@ -109,7 +111,7 @@ struct KisPaintInformation::Private {
         DirectionHistoryInfo(qreal _totalDistance,
                              int _currentDabSeqNo,
                              qreal _lastAngle,
-                             QPointF _lastPosition,
+                             PkPointF _lastPosition,
                              qreal _lastMaxPressure,
                              boost::optional<qreal> _lockedDrawingAngle)
             : totalStrokeLength(_totalDistance),
@@ -124,7 +126,7 @@ struct KisPaintInformation::Private {
         qreal totalStrokeLength = 0.0;
         int currentDabSeqNo = 0;
         qreal lastAngle = 0.0;
-        QPointF lastPosition;
+        PkPointF lastPosition;
         qreal lastMaxPressure = 0.0;
         boost::optional<qreal> lockedDrawingAngle;
     };
@@ -171,7 +173,7 @@ KisPaintInformation::DistanceInformationRegistrar::
     }
 }
 
-KisPaintInformation::KisPaintInformation(const QPointF & pos,
+KisPaintInformation::KisPaintInformation(const PkPointF & pos,
                                          qreal pressure,
                                          qreal xTilt, qreal yTilt,
                                          qreal rotation,
@@ -191,7 +193,7 @@ KisPaintInformation::KisPaintInformation(const QPointF & pos,
 {
 }
 
-KisPaintInformation::KisPaintInformation(const QPointF & pos,
+KisPaintInformation::KisPaintInformation(const PkPointF & pos,
                                          qreal pressure,
                                          qreal xTilt,
                                          qreal yTilt,
@@ -209,7 +211,7 @@ KisPaintInformation::KisPaintInformation(const QPointF & pos,
 
 }
 
-KisPaintInformation::KisPaintInformation(const QPointF &pos,
+KisPaintInformation::KisPaintInformation(const PkPointF &pos,
                                          qreal pressure)
     : d(new Private(pos,
                     pressure,
@@ -245,7 +247,7 @@ bool KisPaintInformation::isHoveringMode() const
 
 
 KisPaintInformation
-KisPaintInformation::createHoveringModeInfo(const QPointF &pos,
+KisPaintInformation::createHoveringModeInfo(const PkPointF &pos,
         qreal pressure,
         qreal xTilt, qreal yTilt,
         qreal rotation,
@@ -312,24 +314,24 @@ void KisPaintInformation::setTiltDirectionOffset(qreal value)
     d->tiltDirectionOffset = normalizeAngleDegrees(value);
 }
 
-void KisPaintInformation::toXML(QDomDocument&, QDomElement& e) const
+void KisPaintInformation::toXML(PkXmlDocument&, PkXmlElement& e) const
 {
     // hovering mode infos are not supposed to be saved
     KIS_ASSERT_RECOVER_NOOP(!d->isHoveringMode);
 
-    e.setAttribute("pointX", QString::number(pos().x(), 'g', 15));
-    e.setAttribute("pointY", QString::number(pos().y(), 'g', 15));
-    e.setAttribute("pressure", QString::number(pressure(), 'g', 15));
-    e.setAttribute("xTilt", QString::number(xTilt(), 'g', 15));
-    e.setAttribute("yTilt", QString::number(yTilt(), 'g', 15));
-    e.setAttribute("rotation", QString::number(rotation(), 'g', 15));
-    e.setAttribute("tangentialPressure", QString::number(tangentialPressure(), 'g', 15));
-    e.setAttribute("perspective", QString::number(perspective(), 'g', 15));
-    e.setAttribute("time", QString::number(d->time, 'g', 15));
-    e.setAttribute("speed", QString::number(d->speed, 'g', 15));
+    e.setAttribute("pointX", KisDomUtils::toString(pos().x()));
+    e.setAttribute("pointY", KisDomUtils::toString(pos().y()));
+    e.setAttribute("pressure", KisDomUtils::toString(pressure()));
+    e.setAttribute("xTilt", KisDomUtils::toString(xTilt()));
+    e.setAttribute("yTilt", KisDomUtils::toString(yTilt()));
+    e.setAttribute("rotation", KisDomUtils::toString(rotation()));
+    e.setAttribute("tangentialPressure", KisDomUtils::toString(tangentialPressure()));
+    e.setAttribute("perspective", KisDomUtils::toString(perspective()));
+    e.setAttribute("time", KisDomUtils::toString(d->time));
+    e.setAttribute("speed", KisDomUtils::toString(d->speed));
 }
 
-KisPaintInformation KisPaintInformation::fromXML(const QDomElement& e)
+KisPaintInformation KisPaintInformation::fromXML(const PkXmlElement& e)
 {
     qreal pointX = qreal(KisDomUtils::toDouble(e.attribute("pointX", "0.0")));
     qreal pointY = qreal(KisDomUtils::toDouble(e.attribute("pointY", "0.0")));
@@ -342,16 +344,16 @@ KisPaintInformation KisPaintInformation::fromXML(const QDomElement& e)
     qreal time = KisDomUtils::toDouble(e.attribute("time", "0"));
     qreal speed = KisDomUtils::toDouble(e.attribute("speed", "0"));
 
-    return KisPaintInformation(QPointF(pointX, pointY), pressure, xTilt, yTilt,
+    return KisPaintInformation(PkPointF(pointX, pointY), pressure, xTilt, yTilt,
                                rotation, tangentialPressure, perspective, time, speed);
 }
 
-const QPointF& KisPaintInformation::pos() const
+const PkPointF& KisPaintInformation::pos() const
 {
     return d->pos;
 }
 
-void KisPaintInformation::setPos(const QPointF& p)
+void KisPaintInformation::setPos(const PkPointF& p)
 {
     d->pos = p;
 }
@@ -421,10 +423,10 @@ qreal KisPaintInformation::drawingAngle(bool considerLockedAngle) const
                                                 d->directionHistoryInfo->lastAngle);
 }
 
-QPointF KisPaintInformation::drawingDirectionVector() const
+PkPointF KisPaintInformation::drawingDirectionVector() const
 {
     const qreal angle = drawingAngle(false);
-    return QPointF(cos(angle), sin(angle));
+    return PkPointF(cos(angle), sin(angle));
 }
 
 qreal KisPaintInformation::drawingDistance() const
@@ -434,7 +436,7 @@ qreal KisPaintInformation::drawingDistance() const
         return 1.0;
     }
 
-    QVector2D diff(pos() - d->directionHistoryInfo->lastPosition);
+    PkVector2D diff(pos() - d->directionHistoryInfo->lastPosition);
     qreal length = diff.length();
 
     if (d->levelOfDetail) {
@@ -540,7 +542,7 @@ void KisPaintInformation::setLevelOfDetail(int levelOfDetail)
     d->levelOfDetail = levelOfDetail;
 }
 
-QDebug operator<<(QDebug dbg, const KisPaintInformation &info)
+PkDebug operator<<(PkDebug dbg, const KisPaintInformation &info)
 {
 #ifdef NDEBUG
     Q_UNUSED(info);
@@ -562,52 +564,52 @@ QDebug operator<<(QDebug dbg, const KisPaintInformation &info)
 
 KisPaintInformation KisPaintInformation::mixOnlyPosition(qreal t, const KisPaintInformation& mixedPi, const KisPaintInformation& basePi)
 {
-    QPointF pt = (1 - t) * mixedPi.pos() + t * basePi.pos();
+    PkPointF pt = (1 - t) * mixedPi.pos() + t * basePi.pos();
     return mixImpl(pt, t, mixedPi, basePi, true, false);
 }
 
 KisPaintInformation KisPaintInformation::mix(qreal t, const KisPaintInformation& pi1, const KisPaintInformation& pi2)
 {
-    QPointF pt = (1 - t) * pi1.pos() + t * pi2.pos();
+    PkPointF pt = (1 - t) * pi1.pos() + t * pi2.pos();
     return mix(pt, t, pi1, pi2);
 }
 
-KisPaintInformation KisPaintInformation::mix(const QPointF& p, qreal t, const KisPaintInformation& pi1, const KisPaintInformation& pi2)
+KisPaintInformation KisPaintInformation::mix(const PkPointF& p, qreal t, const KisPaintInformation& pi1, const KisPaintInformation& pi2)
 {
     return mixImpl(p, t, pi1, pi2, false, true);
 }
 
 KisPaintInformation KisPaintInformation::mixWithoutTime(qreal t, const KisPaintInformation& pi1, const KisPaintInformation& pi2)
 {
-    QPointF pt = (1 - t) * pi1.pos() + t * pi2.pos();
+    PkPointF pt = (1 - t) * pi1.pos() + t * pi2.pos();
     return mixWithoutTime(pt, t, pi1, pi2);
 }
 
-KisPaintInformation KisPaintInformation::mixWithoutTime(const QPointF& p, qreal t, const KisPaintInformation& pi1, const KisPaintInformation& pi2)
+KisPaintInformation KisPaintInformation::mixWithoutTime(const PkPointF& p, qreal t, const KisPaintInformation& pi1, const KisPaintInformation& pi2)
 {
     return mixImpl(p, t, pi1, pi2, false, false);
 }
 
 void KisPaintInformation::mixOtherOnlyPosition(qreal t, const KisPaintInformation& other)
 {
-    QPointF pt = (1 - t) * other.pos() + t * this->pos();
+    PkPointF pt = (1 - t) * other.pos() + t * this->pos();
     this->mixOtherImpl(pt, t, other, true, false);
 }
 
 void KisPaintInformation::mixOtherWithoutTime(qreal t, const KisPaintInformation& other)
 {
-    QPointF pt = (1 - t) * other.pos() + t * this->pos();
+    PkPointF pt = (1 - t) * other.pos() + t * this->pos();
     this->mixOtherImpl(pt, t, other, false, false);
 }
 
-KisPaintInformation KisPaintInformation::mixImpl(const QPointF &p, qreal t, const KisPaintInformation &pi1, const KisPaintInformation &pi2, bool posOnly, bool mixTime)
+KisPaintInformation KisPaintInformation::mixImpl(const PkPointF &p, qreal t, const KisPaintInformation &pi1, const KisPaintInformation &pi2, bool posOnly, bool mixTime)
 {
     KisPaintInformation result(pi2);
     result.mixOtherImpl(p, t, pi1, posOnly, mixTime);
     return result;
 }
 
-void KisPaintInformation::mixOtherImpl(const QPointF &p, qreal t, const KisPaintInformation &other, bool posOnly, bool mixTime)
+void KisPaintInformation::mixOtherImpl(const PkPointF &p, qreal t, const KisPaintInformation &other, bool posOnly, bool mixTime)
 {
     if (posOnly) {
         this->d->pos = p;

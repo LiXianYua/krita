@@ -15,6 +15,10 @@
 
 #include "kritaimage_export.h"
 
+#include <PkPoint.h>
+#include <PkVector.h>
+#include <PkRect.h>
+
 struct KisRenderedDab;
 
 namespace KisPaintOpUtils {
@@ -40,7 +44,7 @@ bool paintFan(PaintOp &op,
 
         qreal t = angleStep * i++ / fullDistance;
 
-        QPointF pt = pi1.pos() + t * (pi2.pos() - pi1.pos());
+        PkPointF pt = pi1.pos() + t * (pi2.pos() - pi1.pos());
         KisPaintInformation pi = KisPaintInformation::mix(pt, t, pi1, pi2);
         pi.overrideDrawingAngle(lastAngle);
         pi.paintAt(op, currentDistance);
@@ -58,7 +62,7 @@ void paintLine(PaintOp &op,
                bool fanCornersEnabled,
                qreal fanCornersStep)
 {
-    QPointF end = pi2.pos();
+    PkPointF end = pi2.pos();
     qreal endTime = pi2.currentTime();
 
     KisPaintInformation pi = pi1;
@@ -117,8 +121,8 @@ public:
      * \return the previously used point, which is guaranteed not to
      *         be equal to \p pt and updates the history if needed
      */
-    QPointF pushThroughHistory(const QPointF &pt, qreal zoom) {
-        QPointF result;
+    PkPointF pushThroughHistory(const PkPointF &pt, qreal zoom) {
+        PkPointF result;
         const qreal pointSwapThreshold = 7.0 / zoom;
 
         /**
@@ -143,15 +147,15 @@ public:
         return result;
     }
 
-    void reset(const QPointF &pt)
+    void reset(const PkPointF &pt)
     {
         m_first = pt;
         m_second = pt;
     }
 
 private:
-    QPointF m_first;
-    QPointF m_second;
+    PkPointF m_first;
+    PkPointF m_second;
 };
 
 inline bool checkSizeTooSmall(qreal scale, qreal width, qreal height)
@@ -164,12 +168,12 @@ inline qreal calcAutoSpacing(qreal value, qreal coeff)
     return coeff * (value < 1.0 ? value : sqrt(value));
 }
 
-inline QPointF calcAutoSpacing(const QPointF &pt, qreal coeff, qreal lodScale)
+inline PkPointF calcAutoSpacing(const PkPointF &pt, qreal coeff, qreal lodScale)
 {
     const qreal invLodScale = 1.0 / lodScale;
-    const QPointF lod0Point = invLodScale * pt;
+    const PkPointF lod0Point = invLodScale * pt;
 
-    return lodScale * QPointF(calcAutoSpacing(lod0Point.x(), coeff), calcAutoSpacing(lod0Point.y(), coeff));
+    return lodScale * PkPointF(calcAutoSpacing(lod0Point.x(), coeff), calcAutoSpacing(lod0Point.y(), coeff));
 }
 
 KRITAIMAGE_EXPORT
@@ -191,10 +195,10 @@ KisTimingInformation effectiveTiming(bool timingEnabled,
                                      qreal rateExtraScale);
 
 KRITAIMAGE_EXPORT
-QVector<QRect> splitAndFilterDabRect(const QRect &totalRect, const QVector<QRect> &dabRects, int idealPatchSize);
+PkVector<PkRect> splitAndFilterDabRect(const PkRect &totalRect, const PkVector<PkRect> &dabRects, int idealPatchSize);
 
 KRITAIMAGE_EXPORT
-QVector<QRect> splitDabsIntoRects(const QVector<QRect> &dabRects, int idealNumRects, int diameter, qreal spacing);
+PkVector<PkRect> splitDabsIntoRects(const PkVector<PkRect> &dabRects, int idealNumRects, int diameter, qreal spacing);
 
 }
 

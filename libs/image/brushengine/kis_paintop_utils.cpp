@@ -4,26 +4,42 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_paintop_utils.cpp 阻塞登记（S-06 Task 4）
+//
+// 本文件不进薄壳，仅剥可机械映射类型（源文件 Q* 已归零）。阻塞原因：
+//   * 本文件用 KritaUtils::splitRectIntoPatches / filterContainer，必须 include
+//     krita_utils.h / krita_container_utils.h
+//   * krita_utils.h 的模板 rasterizePolygonDDA 体里用 Qt 序列容器的 mid()，而 PkVector
+//     无 mid()（pk/container 未实现）。该表达式非模板依赖，编译器在定义期即报错，
+//     任何 include krita_utils.h 的 TU 都编不过，与是否实例化无关
+// 关闭条件：krita_utils.h 剥离（改写 rasterizePolygonDDA 不用 mid()）或 pk/container
+// 给 PkVector 补 mid()。当前状态：签名已与剥离后的头文件对齐，Qt 仅经未剥的
+// krita_utils.h 模板传入，不参与薄壳构建。
+// ===========================================================================
+
 #include "kis_paintop_utils.h"
 
 #include "krita_utils.h"
 #include "krita_container_utils.h"
 #include <KisRenderedDab.h>
+#include <PkSize.h>
 
 #include <functional>
+#include <numeric>
 
 namespace KisPaintOpUtils {
 
 
 KisSpacingInformation effectiveSpacing(qreal dabWidth, qreal dabHeight, qreal extraScale, bool distanceSpacingEnabled, bool isotropicSpacing, qreal rotation, bool axesFlipped, qreal spacingVal, bool autoSpacingActive, qreal autoSpacingCoeff, qreal lodScale)
 {
-    QPointF spacing;
+    PkPointF spacing;
 
     if (!isotropicSpacing) {
         if (autoSpacingActive) {
-            spacing = calcAutoSpacing(QPointF(dabWidth, dabHeight), autoSpacingCoeff, lodScale);
+            spacing = calcAutoSpacing(PkPointF(dabWidth, dabHeight), autoSpacingCoeff, lodScale);
         } else {
-            spacing = QPointF(dabWidth, dabHeight);
+            spacing = PkPointF(dabWidth, dabHeight);
             spacing *= spacingVal;
         }
     }
@@ -34,7 +50,7 @@ KisSpacingInformation effectiveSpacing(qreal dabWidth, qreal dabHeight, qreal ex
         } else {
             significantDimension *= spacingVal;
         }
-        spacing = QPointF(significantDimension, significantDimension);
+        spacing = PkPointF(significantDimension, significantDimension);
         rotation = 0.0;
         axesFlipped = false;
     }
@@ -56,13 +72,13 @@ KisTimingInformation effectiveTiming(bool timingEnabled, qreal timingInterval, q
     }
 }
 
-QVector<QRect> splitAndFilterDabRect(const QRect &totalRect, const QVector<QRect> &dabRects, int idealPatchSize)
+PkVector<PkRect> splitAndFilterDabRect(const PkRect &totalRect, const PkVector<PkRect> &dabRects, int idealPatchSize)
 {
-    QVector<QRect> rects = KritaUtils::splitRectIntoPatches(totalRect, QSize(idealPatchSize,idealPatchSize));
+    PkVector<PkRect> rects = KritaUtils::splitRectIntoPatches(totalRect, PkSize(idealPatchSize,idealPatchSize));
 
     KritaUtils::filterContainer(rects,
-        [dabRects] (const QRect &rc) {
-            Q_FOREACH (const QRect &dab, dabRects) {
+        [dabRects] (const PkRect &rc) {
+            for (const PkRect &dab : dabRects) {
                 if (dab.intersects(rc)) {
                     return true;
                 }
@@ -72,10 +88,10 @@ QVector<QRect> splitAndFilterDabRect(const QRect &totalRect, const QVector<QRect
     return rects;
 }
 
-QVector<QRect> splitDabsIntoRects(const QVector<QRect> &dabRects, int idealNumRects, int diameter, qreal spacing)
+PkVector<PkRect> splitDabsIntoRects(const PkVector<PkRect> &dabRects, int idealNumRects, int diameter, qreal spacing)
 {
-    const QRect totalRect =
-        std::accumulate(dabRects.begin(), dabRects.end(), QRect(), std::bit_or<QRect>());
+    const PkRect totalRect =
+        std::accumulate(dabRects.begin(), dabRects.end(), PkRect(), std::bit_or<PkRect>());
 
     constexpr int minPatchSize = 128;
     constexpr int maxPatchSize = 512;
@@ -88,7 +104,7 @@ QVector<QRect> splitDabsIntoRects(const QVector<QRect> &dabRects, int idealNumRe
                                 maxPatchSize);
 
 
-    QVector<QRect> rects = splitAndFilterDabRect(totalRect, dabRects, idealPatchSize);
+    PkVector<PkRect> rects = splitAndFilterDabRect(totalRect, dabRects, idealPatchSize);
 
     while (rects.size() < idealNumRects && idealPatchSize >minPatchSize) {
         idealPatchSize = qMax(minPatchSize, idealPatchSize - patchStep);

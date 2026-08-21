@@ -7,6 +7,11 @@
 #include <brushengine/kis_locked_properties_proxy.h>
 
 #include <KoResource.h>
+#include <kis_debug.h>
+#include <PkString.h>
+#include <PkVariant.h>
+#include <PkList.h>
+#include <PkSet.h>
 #include <KisDirtyStateSaver.h>
 
 #include <brushengine/kis_locked_properties.h>
@@ -25,7 +30,7 @@ KisLockedPropertiesProxy::~KisLockedPropertiesProxy()
 {
 }
 
-QVariant KisLockedPropertiesProxy::getProperty(const QString &name) const
+PkVariant KisLockedPropertiesProxy::getProperty(const PkString &name) const
 {
     KisPaintOpSettings *t = dynamic_cast<KisPaintOpSettings*>(m_parent);
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(t, m_parent->getProperty(name));
@@ -44,7 +49,7 @@ QVariant KisLockedPropertiesProxy::getProperty(const QString &name) const
                 m_parent->setPropertyNotSaved(name + "_previous");
             }
 
-            const QVariant lockedProp = m_lockedProperties->lockedProperties()->getProperty(name);
+            const PkVariant lockedProp = m_lockedProperties->lockedProperties()->getProperty(name);
 
             if (m_parent->getProperty(name) != lockedProp) {
                 m_parent->setProperty(name, lockedProp);
@@ -62,7 +67,7 @@ QVariant KisLockedPropertiesProxy::getProperty(const QString &name) const
     return m_parent->getProperty(name);
 }
 
-void KisLockedPropertiesProxy::setProperty(const QString & name, const QVariant & value)
+void KisLockedPropertiesProxy::setProperty(const PkString & name, const PkVariant & value)
 {
     KisPaintOpSettings *t = dynamic_cast<KisPaintOpSettings*>(m_parent);
     KIS_SAFE_ASSERT_RECOVER_RETURN(t);
@@ -87,7 +92,7 @@ void KisLockedPropertiesProxy::setProperty(const QString & name, const QVariant 
     m_parent->setProperty(name, value);
 }
 
-bool KisLockedPropertiesProxy::hasProperty(const QString &name) const
+bool KisLockedPropertiesProxy::hasProperty(const PkString &name) const
 {
     KisPaintOpSettings *t = dynamic_cast<KisPaintOpSettings*>(m_parent);
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(t, m_parent->hasProperty(name));
@@ -99,20 +104,27 @@ bool KisLockedPropertiesProxy::hasProperty(const QString &name) const
 
 }
 
-QList<QString> KisLockedPropertiesProxy::getPropertiesKeys() const
+PkList<PkString> KisLockedPropertiesProxy::getPropertiesKeys() const
 {
     KisPaintOpSettings *t = dynamic_cast<KisPaintOpSettings*>(m_parent);
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(t, m_parent->getPropertiesKeys());
     if (!t->updateListener()) return m_parent->getPropertiesKeys();
 
-    QList<QString> result = m_parent->getPropertiesKeys();
+    PkList<PkString> result = m_parent->getPropertiesKeys();
 
     if (m_lockedProperties->lockedProperties() && !m_lockedProperties->lockedProperties()->getPropertiesKeys().isEmpty()) {
-        QSet<QString> properties(result.begin(), result.end());
+        PkSet<PkString> properties;
+        for (const PkString &key : result) {
+            properties.insert(key);
+        }
         auto lockedPropertiesKeys = m_lockedProperties->lockedProperties()->getPropertiesKeys();
-        QSet<QString> lockedProperties(lockedPropertiesKeys.begin(), lockedPropertiesKeys.end());
-        properties += lockedProperties;
-        result = QList<QString>(properties.begin(), properties.end()) ;
+        for (const PkString &key : lockedPropertiesKeys) {
+            properties.insert(key);
+        }
+        result.clear();
+        for (const PkString &key : properties) {
+            result.append(key);
+        }
     }
 
     return result;
@@ -120,12 +132,12 @@ QList<QString> KisLockedPropertiesProxy::getPropertiesKeys() const
 
 void KisLockedPropertiesProxy::dump() const
 {
-    qDebug() << "=== KisLockedPropertiesProxy::dump() ===";
-    qDebug() << "parent properties:";
+    dbgRegistry << "=== KisLockedPropertiesProxy::dump() ===";
+    dbgRegistry << "parent properties:";
     m_parent->dump();
 
     if (m_lockedProperties->lockedProperties()) {
-        qDebug() << "locked properties:";
+        dbgRegistry << "locked properties:";
         m_lockedProperties->lockedProperties()->dump();
     }
 }

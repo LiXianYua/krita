@@ -6,6 +6,11 @@
  */
 #include <brushengine/kis_locked_properties.h>
 
+#include <PkString.h>
+#include <PkVariant.h>
+#include <PkMap.h>
+#include <PkMapIterator.h>
+
 
 KisLockedProperties::KisLockedProperties()
 {
@@ -23,10 +28,10 @@ void KisLockedProperties::addToLockedProperties(KisPropertiesConfigurationSP p)
 
 void KisLockedProperties::addToLockedProperties(const KisPropertiesConfiguration *p)
 {
-    QMapIterator<QString, QVariant> i(p->getProperties());
+    PkMapIterator<PkString, PkVariant> i(p->getProperties());
     while (i.hasNext()) {
         i.next();
-        m_lockedProperties->setProperty(i.key(), QVariant(i.value()));
+        m_lockedProperties->setProperty(i.key(), PkVariant(i.value()));
     }
 }
 
@@ -38,23 +43,23 @@ void KisLockedProperties::removeFromLockedProperties(KisPropertiesConfigurationS
 void KisLockedProperties::removeFromLockedProperties(const KisPropertiesConfiguration *p)
 {
     KisPropertiesConfigurationSP temp = new KisPropertiesConfiguration();
-    QMapIterator<QString, QVariant> i(m_lockedProperties->getProperties());
+    PkMapIterator<PkString, PkVariant> i(m_lockedProperties->getProperties());
     while (i.hasNext()) {
         i.next();
-        temp->setProperty(i.key(), QVariant(i.value()));
+        temp->setProperty(i.key(), PkVariant(i.value()));
     }
     m_lockedProperties->clearProperties();
-    QMapIterator<QString, QVariant> j(temp->getProperties());
+    PkMapIterator<PkString, PkVariant> j(temp->getProperties());
     while (j.hasNext()) {
         j.next();
         if (!p->hasProperty(j.key())) {
-            m_lockedProperties->setProperty(j.key(), QVariant(j.value()));
+            m_lockedProperties->setProperty(j.key(), PkVariant(j.value()));
         }
 
     }
 }
 
-bool KisLockedProperties::hasProperty(const QString &p)
+bool KisLockedProperties::hasProperty(const PkString &p)
 {
     return m_lockedProperties->hasProperty(p);
 }

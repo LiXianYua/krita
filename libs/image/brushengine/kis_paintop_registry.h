@@ -7,7 +7,8 @@
 #ifndef KIS_PAINTOP_REGISTRY_H_
 #define KIS_PAINTOP_REGISTRY_H_
 
-#include <QObject>
+#include <PkObject.h>
+#include <PkList.h>
 
 #include "KoGenericRegistry.h"
 
@@ -27,7 +28,7 @@ class KisPainter;
 /**
  * Manages the loading and creating of all paintop plugins.
  */
-class KRITAIMAGE_EXPORT KisPaintOpRegistry : public QObject, public KoGenericRegistry<KisPaintOpFactory*>
+class KRITAIMAGE_EXPORT KisPaintOpRegistry : public PkObject, public KoGenericRegistry<KisPaintOpFactory*>
 {
 
     Q_OBJECT
@@ -61,14 +62,11 @@ public:
      */
     KisPaintOpPresetSP defaultPreset(const KoID& id, KisResourcesInterfaceSP resourcesInterface) const;
 
-    // Get the icon to show in the user interface
-    QIcon icon(const KoID & id) const;
-
     /**
      * This function return a list of all the keys in KoID format by using the name() method
      * on the objects stored in the registry.
      */
-    QList<KoID> listKeys() const;
+    PkList<KoID> listKeys() const;
 
 public:
 
@@ -78,7 +76,6 @@ private:
 
     KisPaintOpRegistry(const KisPaintOpRegistry&);
     KisPaintOpRegistry operator=(const KisPaintOpRegistry&);
-    void initRegistry();
 
 
     // So the settings can get a paintop to render their sample image
@@ -87,7 +84,7 @@ private:
     /**
      * Return a newly created paintop. You are responsible for deleting
      */
-    KisPaintOp * paintOp(const QString& id, const KisPaintOpSettingsSP settings, KisPainter * painter, KisNodeSP node, KisImageSP image) const;
+    KisPaintOp * paintOp(const PkString& id, const KisPaintOpSettingsSP settings, KisPainter * painter, KisNodeSP node, KisImageSP image) const;
 
 };
 

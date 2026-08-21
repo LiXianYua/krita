@@ -9,23 +9,23 @@
 
 #include "kis_types.h"
 #include "kritaimage_export.h"
-#include <QObject>
-#include <QString>
-#include <QIcon>
-#include <QStringList>
+#include <PkObject.h>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkList.h>
+#include <PkSharedPointer.h>
 #include <kis_threaded_text_rendering_workaround.h>
 #include <brushengine/kis_paintop_settings.h>
 
 class KisPainter;
 class KisPaintOp;
-class QWidget;
 class KisInterstrokeDataFactory;
 
 class KoResource;
-using KoResourceSP = QSharedPointer<KoResource>;
+using KoResourceSP = PkSharedPointer<KoResource>;
 
 class KisResourcesInterface;
-using KisResourcesInterfaceSP = QSharedPointer<KisResourcesInterface>;
+using KisResourcesInterfaceSP = PkSharedPointer<KisResourcesInterface>;
 
 class KoResourceLoadResult;
 
@@ -34,7 +34,7 @@ class KoResourceLoadResult;
  * If there is an optionWidget, the derived paintop itself must support settings,
  * and it's up to the factory to do that.
  */
-class KRITAIMAGE_EXPORT KisPaintOpFactory : public QObject
+class KRITAIMAGE_EXPORT KisPaintOpFactory : public PkObject
 {
     Q_OBJECT
 
@@ -49,10 +49,10 @@ public:
     /**
      * @param whiteListedCompositeOps list of compositeops that don't work with this paintop
      */
-    KisPaintOpFactory(const QStringList & whiteListedCompositeOps = QStringList());
+    KisPaintOpFactory(const PkStringList & whiteListedCompositeOps = PkStringList());
     ~KisPaintOpFactory() override {}
 
-    static QString categoryStable();
+    static PkString categoryStable();
 
 #ifdef HAVE_THREADED_TEXT_RENDERING_WORKAROUND
     virtual void preinitializePaintOpIfNeeded(const KisPaintOpSettingsSP settings);
@@ -66,34 +66,28 @@ public:
      * @param image the image used to draw
      */
     virtual KisPaintOp * createOp(const KisPaintOpSettingsSP settings, KisPainter * painter, KisNodeSP node, KisImageSP image) = 0;
-    virtual QString id() const = 0;
-    virtual QString name() const = 0;
-    virtual QString category() const = 0;
+    virtual PkString id() const = 0;
+    virtual PkString name() const = 0;
+    virtual PkString category() const = 0;
     virtual bool lodSizeThresholdSupported() const = 0;
 
     /**
      * @return all the resources linked to \p settings.
      */
-    virtual QList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface) = 0;
+    virtual PkList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface) = 0;
 
     /**
      * @return all the resources embedded into \p settings. The resources are first tried to be loaded
      * from \p resourcesInterface, and, if it fails, loaded from the embedded data.
      */
-    virtual QList<KoResourceLoadResult> prepareEmbeddedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface) = 0;
+    virtual PkList<KoResourceLoadResult> prepareEmbeddedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface) = 0;
 
     virtual KisInterstrokeDataFactory* createInterstrokeDataFactory(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface) const;
 
     /**
      * List of usually hidden compositeops that are useful for this paintop.
      */
-    QStringList whiteListedCompositeOps() const;
-
-    /**
-     * @brief icon
-     * @return the icon to represent this paintop.
-     */
-    virtual QIcon icon();
+    PkStringList whiteListedCompositeOps() const;
 
     /**
      * Create and return an settings object for this paintop.
@@ -111,7 +105,7 @@ public:
     int priority() const;
 
 private:
-    QStringList m_whiteListedCompositeOps;
+    PkStringList m_whiteListedCompositeOps;
     int m_priority;
     PaintopVisibility m_visibility;
 };

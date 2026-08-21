@@ -6,9 +6,17 @@
 #ifndef KIS_PAINTOP_PRESET_H
 #define KIS_PAINTOP_PRESET_H
 
-#include <QPointer>
+#include <PkPointer.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
+#include <PkVector.h>
+#include <PkList.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkStream.h>
 
 #include <KoResource.h>
+#include <KisResourceTypes.h>
 #include "KoID.h"
 
 #include "kis_types.h"
@@ -18,10 +26,10 @@
 #include <KisPaintOpPresetUpdateProxy.h>
 
 class KoCanvasResourcesInterface;
-using KoCanvasResourcesInterfaceSP = QSharedPointer<KoCanvasResourcesInterface>;
+using KoCanvasResourcesInterfaceSP = PkSharedPointer<KoCanvasResourcesInterface>;
 
 class KoResourceCacheInterface;
-using KoResourceCacheInterfaceSP = QSharedPointer<KoResourceCacheInterface>;
+using KoResourceCacheInterfaceSP = PkSharedPointer<KoResourceCacheInterface>;
 
 /**
  * A KisPaintOpPreset contains a particular set of settings
@@ -108,14 +116,14 @@ public:
         ~UpdatedPostponer();
 
     private:
-        QPointer<KisPaintOpPresetUpdateProxy> m_updateProxy;
+        PkPointer<KisPaintOpPresetUpdateProxy> m_updateProxy;
     };
 
 public:
 
     KisPaintOpPreset();
 
-    KisPaintOpPreset(const QString& filename);
+    KisPaintOpPreset(const PkString& filename);
 
     ~KisPaintOpPreset() override;
 
@@ -129,7 +137,7 @@ public:
     /// return the id of the paintop plugin
     KoID paintOp() const;
 
-    QString name() const override;
+    PkString name() const override;
 
     /// replace the current settings object with the specified settings
     void setSettings(KisPaintOpSettingsSP settings);
@@ -137,33 +145,33 @@ public:
     /// return the settings that define this paintop preset
     KisPaintOpSettingsSP settings() const;
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
 
-    bool saveToDevice(QIODevice* dev) const override;
+    bool saveToDevice(PkStream* dev) const override;
 
-    QPair<QString, QString> resourceType() const override
+    std::pair<PkString, PkString> resourceType() const override
     {
-        return QPair<QString, QString>(ResourceType::PaintOpPresets, "");
+        return std::pair<PkString, PkString>(ResourceType::PaintOpPresets, "");
     }
 
     void updateLinkedResourcesMetaData();
 
-    void toXML(QDomDocument& doc, QDomElement& elt) const;
+    void toXML(PkXmlDocument& doc, PkXmlElement& elt) const;
 
-    void fromXML(const QDomElement& elt, KisResourcesInterfaceSP resourcesInterface);
+    void fromXML(const PkXmlElement& elt, KisResourcesInterfaceSP resourcesInterface);
 
     bool removable() const {
         return true;
     }
 
-    QString defaultFileExtension() const override {
+    PkString defaultFileExtension() const override {
         return ".kpp";
     }
 
-    QPointer<KisPaintOpPresetUpdateProxy> updateProxy() const;
-    QPointer<KisPaintOpPresetUpdateProxy> updateProxyNoCreate() const;
+    PkPointer<KisPaintOpPresetUpdateProxy> updateProxy() const;
+    PkPointer<KisPaintOpPresetUpdateProxy> updateProxyNoCreate() const;
 
-    QList<KisUniformPaintOpPropertySP> uniformProperties();
+    PkList<KisUniformPaintOpPropertySP> uniformProperties();
 
     /**
      * @return true if this preset demands a secondary masked brush running
@@ -222,14 +230,14 @@ public:
     KisPaintOpPresetSP cloneWithResourcesSnapshot(KisResourcesInterfaceSP globalResourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface, KoResourceCacheInterfaceSP cacheInterface) const;
 
 
-    QList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkVector<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
 
-    QList<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkVector<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
 
-    QList<KoResourceLoadResult> sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkVector<KoResourceLoadResult> sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
     void clearSideLoadedResources() override;
 
-    QList<int> requiredCanvasResources() const override;
+    PkVector<int> requiredCanvasResources() const override;
 
     /**
      * Set resource cache object generated for this preset (or its
@@ -270,7 +278,5 @@ private:
     struct Private;
     Private * const d;
 };
-
-Q_DECLARE_METATYPE(KisPaintOpPresetSP)
 
 #endif

@@ -7,9 +7,7 @@
 #include <brushengine/kis_locked_properties_server.h>
 #include <brushengine/kis_locked_properties.h>
 
-#include <QGlobalStatic>
 
-Q_GLOBAL_STATIC(KisLockedPropertiesServer, s_instance)
 
 
 
@@ -35,11 +33,8 @@ KisLockedPropertiesProxySP KisLockedPropertiesServer::createLockedPropertiesProx
 
 KisLockedPropertiesServer* KisLockedPropertiesServer::instance()
 {
-    if (s_instance) {
-        return s_instance;
-    }
-
-    return NULL;
+    static KisLockedPropertiesServer s_instance;
+    return &s_instance;
 }
 
 KisLockedPropertiesSP KisLockedPropertiesServer::lockedProperties()
@@ -66,7 +61,7 @@ bool KisLockedPropertiesServer::propertiesFromLocked()
 {
     return m_propertiesFromLocked;
 }
-bool KisLockedPropertiesServer::hasProperty(const QString &p)
+bool KisLockedPropertiesServer::hasProperty(const PkString &p)
 {
     return m_lockedProperties->hasProperty(p);
 }

@@ -7,34 +7,32 @@
 #ifndef __KIS_COMBO_BASED_PAINTOP_PROPERTY_H
 #define __KIS_COMBO_BASED_PAINTOP_PROPERTY_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkObject.h>
+#include <PkList.h>
+#include <PkString.h>
 
 #include "kis_image_export.h"
 #include "kis_types.h"
 #include "kis_uniform_paintop_property.h"
 
-class QIcon;
-
 
 class KRITAIMAGE_EXPORT KisComboBasedPaintOpProperty : public KisUniformPaintOpProperty
 {
 public:
-    KisComboBasedPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
+    KisComboBasedPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
     ~KisComboBasedPaintOpProperty() override;
 
     // callback-compatible c-tor
-    KisComboBasedPaintOpProperty(Type type, SubType subType, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
-    KisComboBasedPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
+    KisComboBasedPaintOpProperty(Type type, SubType subType, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
+    KisComboBasedPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
 
-    QList<QString> items() const;
-    void setItems(const QList<QString> &list);
-
-    QList<QIcon> icons() const;
-    void setIcons(const QList<QIcon> &list);
+    PkList<PkString> items() const;
+    void setItems(const PkList<PkString> &list);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #include "kis_callback_based_paintop_property.h"

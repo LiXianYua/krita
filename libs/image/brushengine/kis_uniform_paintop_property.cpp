@@ -6,7 +6,7 @@
 
 #include "kis_uniform_paintop_property.h"
 
-#include <QVariant>
+#include <PkVariant.h>
 #include "kis_debug.h"
 #include "kis_paintop_settings.h"
 
@@ -26,27 +26,27 @@ struct KisUniformPaintOpProperty::Private
     SubType subType;
     KoID id;
 
-    QVariant value;
+    PkVariant value;
 
     KisPaintOpSettingsSP settings;
     bool isReadingValue;
     bool isWritingValue;
 };
 
-KisUniformPaintOpProperty::KisUniformPaintOpProperty(Type type, SubType subType, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
-    : QObject(parent)
+KisUniformPaintOpProperty::KisUniformPaintOpProperty(Type type, SubType subType, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
+    : PkObject(parent)
     , m_d(new Private(type, subType, id, settings))
 {
 }
 
-KisUniformPaintOpProperty::KisUniformPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
-    : QObject(parent)
+KisUniformPaintOpProperty::KisUniformPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
+    : PkObject(parent)
     , m_d(new Private(type, SubType_None, id, settings))
 {
 }
 
-KisUniformPaintOpProperty::KisUniformPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
-    : QObject(parent)
+KisUniformPaintOpProperty::KisUniformPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
+    : PkObject(parent)
     , m_d(new Private(Bool, SubType_None, id, settings))
 {
 }
@@ -55,12 +55,12 @@ KisUniformPaintOpProperty::~KisUniformPaintOpProperty()
 {
 }
 
-QString KisUniformPaintOpProperty::id() const
+PkString KisUniformPaintOpProperty::id() const
 {
     return m_d->id.id();
 }
 
-QString KisUniformPaintOpProperty::name() const
+PkString KisUniformPaintOpProperty::name() const
 {
     return m_d->id.name();
 }
@@ -75,17 +75,12 @@ KisUniformPaintOpProperty::SubType KisUniformPaintOpProperty::subType() const
     return m_d->subType;
 }
 
-QVariant KisUniformPaintOpProperty::value() const
+PkVariant KisUniformPaintOpProperty::value() const
 {
     return m_d->value;
 }
 
-QWidget *KisUniformPaintOpProperty::createPropertyWidget()
-{
-    return nullptr;
-}
-
-void KisUniformPaintOpProperty::setValue(const QVariant &value)
+void KisUniformPaintOpProperty::setValue(const PkVariant &value)
 {
     if (m_d->value == value) return;
     m_d->value = value;

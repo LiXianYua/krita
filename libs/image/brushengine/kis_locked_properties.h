@@ -8,6 +8,7 @@
 #define KISLOCKEDPROPERTIES_H
 
 #include "kis_properties_configuration.h"
+#include <PkString.h>
 
 /**
  * This class maintains a list of all the PaintOp Options that are supposed to be
@@ -29,7 +30,7 @@ public:
     /**Whenever any property is unlocked**/
     void removeFromLockedProperties(KisPropertiesConfigurationSP p);
     void removeFromLockedProperties(const KisPropertiesConfiguration *p);
-    bool hasProperty(const QString &p);
+    bool hasProperty(const PkString &p);
 
     KisPropertiesConfigurationSP lockedProperties();
 

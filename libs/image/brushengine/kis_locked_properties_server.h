@@ -9,6 +9,8 @@
 #define KIS_LOCKED_PROPERTIES_SERVER_H
 
 #include <brushengine/kis_locked_properties_proxy.h>
+#include <PkObject.h>
+#include <PkString.h>
 #include "kis_properties_configuration.h"
 
 class KisLockedPropertiesProxy;
@@ -19,7 +21,7 @@ class KisLockedPropertiesProxy;
  * by other classes/objects to access the LockedProperties object.
  */
 
-class KRITAIMAGE_EXPORT KisLockedPropertiesServer: public QObject
+class KRITAIMAGE_EXPORT KisLockedPropertiesServer: public PkObject
 {
 public:
     KisLockedPropertiesServer();
@@ -33,7 +35,7 @@ public:
     bool propertiesFromLocked();
     KisLockedPropertiesProxySP createLockedPropertiesProxy(KisPropertiesConfiguration *settings);
     KisLockedPropertiesProxySP createLockedPropertiesProxy(KisPropertiesConfigurationSP settings);
-    bool hasProperty(const QString &p);
+    bool hasProperty(const PkString &p);
 
 private:
 

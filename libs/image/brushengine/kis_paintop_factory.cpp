@@ -5,16 +5,15 @@
  */
 #include <brushengine/kis_paintop_factory.h>
 
-#include <klocalizedstring.h>
 #include <KoColorSpace.h>
 
-KisPaintOpFactory::KisPaintOpFactory(const QStringList & whiteListedCompositeOps)
+KisPaintOpFactory::KisPaintOpFactory(const PkStringList & whiteListedCompositeOps)
     : m_whiteListedCompositeOps(whiteListedCompositeOps), m_priority(100)
     , m_visibility(AUTO)
 {
 }
 
-QStringList KisPaintOpFactory::whiteListedCompositeOps() const
+PkStringList KisPaintOpFactory::whiteListedCompositeOps() const
 {
     return m_whiteListedCompositeOps;
 }
@@ -26,16 +25,9 @@ void KisPaintOpFactory::preinitializePaintOpIfNeeded(const KisPaintOpSettingsSP 
 }
 #endif /* HAVE_THREADED_TEXT_RENDERING_WORKAROUND */
 
-QIcon KisPaintOpFactory::icon()
+PkString KisPaintOpFactory::categoryStable()
 {
-    QPixmap p = QPixmap(22, 22);
-    p.fill(Qt::transparent);
-    return QIcon(p);
-}
-
-QString KisPaintOpFactory::categoryStable()
-{
-    return i18nc("Category of brush engines", "Brush engines");
+    return PkString("Brush engines");
 }
 
 KisInterstrokeDataFactory *KisPaintOpFactory::createInterstrokeDataFactory(const KisPaintOpSettingsSP /*settings*/, KisResourcesInterfaceSP /*resourcesInterface*/) const

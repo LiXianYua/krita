@@ -6,15 +6,43 @@
  */
 #include <brushengine/kis_paintop_preset.h>
 
-#include <QFile>
-#include <QSize>
+// ===========================================================================
+// [GAP] kis_paintop_preset.cpp 阻塞登记（S-06 Task 4）
+//
+// 本文件不进薄壳，仅剥可机械映射类型；下列阻塞点保留 Qt 原样并标注 [GAP]：
+//   * PNG 编解码 QImageReader / QImageWriter / QImage —— 依赖 S-03-e
+//     （pk/image PNG codec，未交付）
+//   * base64 内存缓冲：PkByteArray 已有（pk/variant/PkAuxTypes.h）但无
+//     fromBase64 / toBase64，且无 PkBuffer 等价物 —— loadFromDevice 的嵌入
+//     资源解码、toXML 的导出都压在它上面
+//   * 正则 QRegularExpression —— 无对应 Pk 模块
+//   * PkString::replace 未实现（name() 的空格归一、loadFromDevice 的 CDATA
+//     清理都压在它上面）
+//   * settings->fromXML(...) 依赖 kis_properties_configuration 的 Qt 兼容层
+//     （本文件进薄壳时由 compat 宏把 QDomElement→PkXmlElement 对上）
+// 关闭条件：上述依赖交付后，把 [GAP] 处换成 Pk 等价物，并将本文件加入薄壳
+// SHELL_SOURCES。当前状态：签名已与剥离后的头文件对齐，可机械映射类型已转 Pk，
+// 其余留 Qt + [GAP] 标记，不参与薄壳构建。
+// ===========================================================================
 #include <QImage>
 #include <QImageWriter>
 #include <QImageReader>
-#include <QDomDocument>
 #include <QBuffer>
 
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkVector.h>
+#include <PkList.h>
+#include <PkScopedPointer.h>
+#include <PkPointer.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkXmlCDATASection.h>
+#include <PkStream.h>
+
 #include <KisDirtyStateSaver.h>
+
+#include "kis_dom_utils.h"
 
 #include <brushengine/kis_paintop_settings.h>
 #include "kis_paintop_registry.h"
@@ -70,23 +98,24 @@ public:
     }
 
     KisPaintOpSettingsSP settings {0};
-    QScopedPointer<KisPaintOpPresetUpdateProxy> updateProxy;
+    PkScopedPointer<KisPaintOpPresetUpdateProxy> updateProxy;
     KisPaintOpSettings::UpdateListenerSP settingsUpdateListener;
-    QString version;
-    QList<KoResourceLoadResult> sideLoadedResources;
+    PkString version;
+    PkVector<KoResourceLoadResult> sideLoadedResources;
 };
 
 
 KisPaintOpPreset::KisPaintOpPreset()
-    : KoResource(QString())
+    : KoResource(PkString())
     , d(new Private(this))
 {
 }
 
-KisPaintOpPreset::KisPaintOpPreset(const QString & fileName)
+KisPaintOpPreset::KisPaintOpPreset(const PkString & fileName)
     : KoResource(fileName)
     , d(new Private(this))
 {
+    // [GAP] PkString::replace 未实现
     setName(name().replace("_", " "));
 }
 
@@ -127,15 +156,16 @@ KoID KisPaintOpPreset::paintOp() const
     return KoID(d->settings->getString("paintop"));
 }
 
-QString KisPaintOpPreset::name() const
+PkString KisPaintOpPreset::name() const
 {
+    // [GAP] PkString::replace 未实现
     return KoResource::name().replace("_", " ");
 }
 
 void KisPaintOpPreset::setSettings(KisPaintOpSettingsSP settings)
 {
     Q_ASSERT(settings);
-    Q_ASSERT(!settings->getString("paintop", QString()).isEmpty());
+    Q_ASSERT(!settings->getString("paintop", PkString()).isEmpty());
 
     KisDirtyStateSaver<KisPaintOpPreset*> dirtyStateSaver(this);
 
@@ -159,13 +189,14 @@ void KisPaintOpPreset::setSettings(KisPaintOpSettingsSP settings)
 KisPaintOpSettingsSP KisPaintOpPreset::settings() const
 {
     Q_ASSERT(d->settings);
-    Q_ASSERT(!d->settings->getString("paintop", QString()).isEmpty());
+    Q_ASSERT(!d->settings->getString("paintop", PkString()).isEmpty());
 
     return d->settings;
 }
 
-bool KisPaintOpPreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KisPaintOpPreset::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
+    // [GAP] PNG 解码（QImageReader / QImage）+ preset 字符串提取 —— 依赖 S-03-e
     QImageReader reader(dev, "PNG");
 
     d->version = reader.text("version");
@@ -181,6 +212,8 @@ bool KisPaintOpPreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP re
         return false;
     }
 
+    // [GAP] preset 字符串清洗：PkString::replace 未实现 + QRegularExpression
+    //       无对应 Pk 模块
     //Workaround for broken presets
     //Presets was saved with nested cdata section
     preset.replace("<curve><![CDATA[", "<curve>");
@@ -191,22 +224,22 @@ bool KisPaintOpPreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP re
         preset.replace(patternMd5.captured(0), "");
     }
 
-    QDomDocument doc;
-    if (!doc.setContent(preset)) {
+    PkXmlDocument doc;
+    if (!doc.setContent(preset)) {   // preset 仍为 QString（[GAP]），关闭后换 PkString
         return false;
     }
 
-    QDomElement root = doc.documentElement();
+    PkXmlElement root = doc.documentElement();
 
     if (d->version == "5.0") {
         // Load any embedded resources
-        QDomElement e = root.firstChildElement("resources");
+        PkXmlElement e = root.firstChildElement("resources");
         if (!e.isNull()) {
             for (e = e.firstChildElement("resource"); !e.isNull(); e = e.nextSiblingElement("resource")) {
-                QString name = e.attribute("name");
-                QString filename = e.attribute("filename");
-                QString resourceType = e.attribute("type");
-                QString md5sum = e.attribute("md5sum");
+                PkString name = e.attribute("name");
+                PkString filename = e.attribute("filename");
+                PkString resourceType = e.attribute("type");
+                PkString md5sum = e.attribute("md5sum");
 
                 KoResourceSP existingResource = resourcesInterface
                         ->source(resourceType)
@@ -216,6 +249,7 @@ bool KisPaintOpPreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP re
                     continue;
                 }
 
+                // [GAP] base64 内存缓冲：PkByteArray 无 fromBase64、无 PkBuffer 等价物
                 QByteArray ba = QByteArray::fromBase64(e.text().toLatin1());
                 QBuffer buf(&ba);
                 buf.open(QBuffer::ReadOnly);
@@ -236,6 +270,7 @@ bool KisPaintOpPreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP re
 
     setValid(d->settings->isValid());
 
+    // [GAP] 图片去元数据：QImage 纹理剥离 —— 依赖 S-03-e
     if (!img.textKeys().isEmpty()) {
         QImage strippedImage(img.size(), img.format());
         memcpy(strippedImage.bits(), img.bits(), img.sizeInBytes());
@@ -254,22 +289,22 @@ bool KisPaintOpPreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP re
     return true;
 }
 
-void KisPaintOpPreset::toXML(QDomDocument& doc, QDomElement& elt) const
+void KisPaintOpPreset::toXML(PkXmlDocument& doc, PkXmlElement& elt) const
 {
-    QString paintopid = d->settings->getString("paintop", QString());
+    PkString paintopid = d->settings->getString("paintop", PkString());
 
     elt.setAttribute("paintopid", paintopid);
     elt.setAttribute("name", name());
 
 
-    QList<KoResourceLoadResult> linkedResources = this->linkedResources(resourcesInterface());
+    PkVector<KoResourceLoadResult> linkedResources = this->linkedResources(resourcesInterface());
 
-    elt.setAttribute("embedded_resources", linkedResources.count());
+    elt.setAttribute("embedded_resources", KisDomUtils::toString(linkedResources.count()));
 
     if (!linkedResources.isEmpty()) {
-        QDomElement resourcesElement = doc.createElement("resources");
+        PkXmlElement resourcesElement = doc.createElement("resources");
         elt.appendChild(resourcesElement);
-        Q_FOREACH(KoResourceLoadResult linkedResource, linkedResources) {
+        for (const KoResourceLoadResult &linkedResource : linkedResources) {
             // we have requested linked resources, how can it be an embedded one?
             KIS_SAFE_ASSERT_RECOVER(linkedResource.type() != KoResourceLoadResult::EmbeddedResource) { continue; }
 
@@ -287,14 +322,16 @@ void KisPaintOpPreset::toXML(QDomDocument& doc, QDomElement& elt) const
                 continue;
             }
 
+            // [GAP] base64 导出：QBuffer + PkByteArray::toBase64 + QString::fromLatin1
+            //       未实现（PkByteArray 无 toBase64、无 PkBuffer 等价物）
             QBuffer buf;
             buf.open(QBuffer::WriteOnly);
             KisResourceModel model(resource->resourceType().first);
             bool r = model.exportResource(resource, &buf);
             buf.close();
             if (r) {
-                QDomText text = doc.createCDATASection(QString::fromLatin1(buf.data().toBase64()));
-                QDomElement e = doc.createElement("resource");
+                PkXmlCDATASection text = doc.createCDATASection(QString::fromLatin1(buf.data().toBase64()));
+                PkXmlElement e = doc.createElement("resource");
                 e.setAttribute("type", resource->resourceType().first);
                 e.setAttribute("md5sum", resource->md5Sum());
                 e.setAttribute("name", resource->name());
@@ -309,7 +346,7 @@ void KisPaintOpPreset::toXML(QDomDocument& doc, QDomElement& elt) const
     // sanitize the settings
     bool hasTexture = d->settings->getBool("Texture/Pattern/Enabled");
     if (!hasTexture) {
-        Q_FOREACH (const QString & key, d->settings->getProperties().keys()) {
+        for (const PkString & key : d->settings->getProperties().keys()) {
             if (key.startsWith("Texture") && key != "Texture/Pattern/Enabled") {
                 d->settings->removeProperty(key);
             }
@@ -319,10 +356,10 @@ void KisPaintOpPreset::toXML(QDomDocument& doc, QDomElement& elt) const
     d->settings->toXML(doc, elt);
 }
 
-void KisPaintOpPreset::fromXML(const QDomElement& presetElt, KisResourcesInterfaceSP resourcesInterface)
+void KisPaintOpPreset::fromXML(const PkXmlElement& presetElt, KisResourcesInterfaceSP resourcesInterface)
 {
     setName(presetElt.attribute("name"));
-    QString paintopid = presetElt.attribute("paintopid");
+    PkString paintopid = presetElt.attribute("paintopid");
 
     if (!metadata().contains("paintopid")) {
         addMetaData("paintopid", paintopid);
@@ -335,26 +372,30 @@ void KisPaintOpPreset::fromXML(const QDomElement& presetElt, KisResourcesInterfa
     }
 
     if (KisPaintOpRegistry::instance()->get(paintopid) == 0) {
+        // [GAP] QDebug<<PkString 流运算符缺失
         dbgImage << "No paintop " << paintopid;
         setValid(false);
         return;
     }
 
-    KoID id(paintopid, QString());
+    KoID id(paintopid, PkString());
 
     KisPaintOpSettingsSP settings = KisPaintOpRegistry::instance()->createSettings(id, resourcesInterface);
     if (!settings) {
         setValid(false);
+        // [GAP] QDebug<<PkString 流运算符缺失
         warnKrita << "Could not load settings for preset" << paintopid;
         return;
     }
 
+    // settings->fromXML(...) 依赖 kis_properties_configuration 的兼容层
+    //（进薄壳时 compat 宏把 QDomElement→PkXmlElement 对上；见文件头 [GAP] 登记）
     settings->fromXML(presetElt);
 
     // sanitize the settings
     bool hasTexture = settings->getBool("Texture/Pattern/Enabled");
     if (!hasTexture) {
-        Q_FOREACH (const QString & key, settings->getProperties().keys()) {
+        for (const PkString & key : settings->getProperties().keys()) {
             if (key.startsWith("Texture") && key != "Texture/Pattern/Enabled") {
                 settings->removeProperty(key);
             }
@@ -364,12 +405,13 @@ void KisPaintOpPreset::fromXML(const QDomElement& presetElt, KisResourcesInterfa
 
 }
 
-bool KisPaintOpPreset::saveToDevice(QIODevice *dev) const
+bool KisPaintOpPreset::saveToDevice(PkStream* dev) const
 {
+    // [GAP] PNG 编码 QImageWriter —— 依赖 S-03-e
     QImageWriter writer(dev, "PNG");
 
-    QDomDocument doc;
-    QDomElement root = doc.createElement("Preset");
+    PkXmlDocument doc;
+    PkXmlElement root = doc.createElement("Preset");
 
     toXML(doc, root);
 
@@ -395,6 +437,7 @@ bool KisPaintOpPreset::saveToDevice(QIODevice *dev) const
     writer.setText("version", d->version);
     writer.setText("preset", doc.toString());
 
+    // [GAP] QImage 纹理 —— 依赖 S-03-e
     QImage img;
 
     if (image().isNull()) {
@@ -416,12 +459,12 @@ void KisPaintOpPreset::updateLinkedResourcesMetaData()
 
     if (d->version == "2.2") {
         KisResourcesInterfaceSP fakeResourcesInterface(new KisLocalStrokeResources());
-        QList<KoResourceLoadResult> dependentResources = this->linkedResources(fakeResourcesInterface);
+        PkVector<KoResourceLoadResult> dependentResources = this->linkedResources(fakeResourcesInterface);
 
-        QStringList resourceFileNames;
+        PkStringList resourceFileNames;
 
-        Q_FOREACH (KoResourceLoadResult resource, dependentResources) {
-            const QString filename = resource.signature().filename;
+        for (const KoResourceLoadResult &resource : dependentResources) {
+            const PkString filename = resource.signature().filename;
 
             if (!filename.isEmpty()) {
                 resourceFileNames.append(filename);
@@ -434,11 +477,11 @@ void KisPaintOpPreset::updateLinkedResourcesMetaData()
             addMetaData("dependent_resources_filenames", resourceFileNames);
         }
     } else {
-        addMetaData("dependent_resources_filenames", QStringList());
+        addMetaData("dependent_resources_filenames", PkStringList());
     }
 }
 
-QPointer<KisPaintOpPresetUpdateProxy> KisPaintOpPreset::updateProxy() const
+PkPointer<KisPaintOpPresetUpdateProxy> KisPaintOpPreset::updateProxy() const
 {
     if (!d->updateProxy) {
         d->updateProxy.reset(new KisPaintOpPresetUpdateProxy());
@@ -446,12 +489,12 @@ QPointer<KisPaintOpPresetUpdateProxy> KisPaintOpPreset::updateProxy() const
     return d->updateProxy.data();
 }
 
-QPointer<KisPaintOpPresetUpdateProxy> KisPaintOpPreset::updateProxyNoCreate() const
+PkPointer<KisPaintOpPresetUpdateProxy> KisPaintOpPreset::updateProxyNoCreate() const
 {
     return d->updateProxy.data();
 }
 
-QList<KisUniformPaintOpPropertySP> KisPaintOpPreset::uniformProperties()
+PkList<KisUniformPaintOpPropertySP> KisPaintOpPreset::uniformProperties()
 {
     /// we pass a shared pointer to settings explicitly,
     /// because the settings will not be able to wrap
@@ -511,10 +554,10 @@ KisPaintOpPresetSP KisPaintOpPreset::cloneWithResourcesSnapshot(KisResourcesInte
     KisPaintOpPresetSP result =
             KisRequiredResourcesOperators::cloneWithResourcesSnapshot<KisPaintOpPresetSP>(this, globalResourcesInterface);
 
-    const QList<int> canvasResources = result->requiredCanvasResources();
+    const PkVector<int> canvasResources = result->requiredCanvasResources();
     if (!canvasResources.isEmpty()) {
         KoLocalStrokeCanvasResourcesSP storage(new KoLocalStrokeCanvasResources());
-        Q_FOREACH (int key, canvasResources) {
+        for (int key : canvasResources) {
             storage->storeResource(key, canvasResourcesInterface->resource(key));
         }
         result->setCanvasResourcesInterface(storage);
@@ -535,15 +578,15 @@ KisPaintOpPresetSP KisPaintOpPreset::cloneWithResourcesSnapshot(KisResourcesInte
     return result;
 }
 
-QList<KoResourceLoadResult> KisPaintOpPreset::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkVector<KoResourceLoadResult> KisPaintOpPreset::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    QList<KoResourceLoadResult> resources;
+    PkVector<KoResourceLoadResult> resources;
 
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(d->settings, resources);
 
     KisPaintOpFactory* f = KisPaintOpRegistry::instance()->value(paintOp().id());
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(f, resources);
-    resources << f->prepareLinkedResources(d->settings, globalResourcesInterface);
+    resources << f->prepareLinkedResources(d->settings, globalResourcesInterface).toVector();
 
     if (hasMaskingPreset()) {
         KisPaintOpPresetSP maskingPreset = createMaskingPreset();
@@ -551,40 +594,40 @@ QList<KoResourceLoadResult> KisPaintOpPreset::linkedResources(KisResourcesInterf
 
         KisPaintOpFactory* f = KisPaintOpRegistry::instance()->value(maskingPreset->paintOp().id());
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(f, resources);
-        resources << f->prepareLinkedResources(maskingPreset->settings(), globalResourcesInterface);
+        resources << f->prepareLinkedResources(maskingPreset->settings(), globalResourcesInterface).toVector();
 
     }
 
     return resources;
 }
 
-QList<KoResourceLoadResult> KisPaintOpPreset::embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkVector<KoResourceLoadResult> KisPaintOpPreset::embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    QList<KoResourceLoadResult> resources;
+    PkVector<KoResourceLoadResult> resources;
 
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(d->settings, resources);
 
     KisPaintOpFactory* f = KisPaintOpRegistry::instance()->value(paintOp().id());
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(f, resources);
-    resources << f->prepareEmbeddedResources(d->settings, globalResourcesInterface);
+    resources << f->prepareEmbeddedResources(d->settings, globalResourcesInterface).toVector();
 
     if (hasMaskingPreset()) {
         KisPaintOpPresetSP maskingPreset = createMaskingPreset();
         Q_ASSERT(maskingPreset);
         KisPaintOpFactory* f = KisPaintOpRegistry::instance()->value(maskingPreset->paintOp().id());
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(f, resources);
-        resources << f->prepareEmbeddedResources(maskingPreset->settings(), globalResourcesInterface);
+        resources << f->prepareEmbeddedResources(maskingPreset->settings(), globalResourcesInterface).toVector();
 
     }
 
     return resources;
 }
 
-QList<KoResourceLoadResult> KisPaintOpPreset::sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkVector<KoResourceLoadResult> KisPaintOpPreset::sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    QList<KoResourceLoadResult> resources;
+    PkVector<KoResourceLoadResult> resources;
 
-    Q_FOREACH(const KoResourceLoadResult &resource, d->sideLoadedResources) {
+    for (const KoResourceLoadResult &resource : d->sideLoadedResources) {
         KoResourceSignature sig = resource.signature();
 
         /**
@@ -605,9 +648,9 @@ void KisPaintOpPreset::clearSideLoadedResources()
     d->sideLoadedResources.clear();
 }
 
-QList<int> KisPaintOpPreset::requiredCanvasResources() const
+PkVector<int> KisPaintOpPreset::requiredCanvasResources() const
 {
-    return d->settings ? d->settings->requiredCanvasResources() : QList<int>();
+    return d->settings ? d->settings->requiredCanvasResources().toVector() : PkVector<int>();
 }
 
 void KisPaintOpPreset::setResourceCacheInterface(KoResourceCacheInterfaceSP cacheInterface)

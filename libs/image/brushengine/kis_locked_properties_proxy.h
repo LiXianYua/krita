@@ -8,6 +8,9 @@
 #define KIS_LOCKED_PROPERTIES_PROXY_H
 
 #include "kis_properties_configuration.h"
+#include <PkString.h>
+#include <PkVariant.h>
+#include <PkList.h>
 
 /**
  * This class acts as a proxy for all transfers between KisLockedPropertiesServer
@@ -30,13 +33,13 @@ public:
     ~KisLockedPropertiesProxy() override;
 
     using KisPropertiesConfiguration::getProperty;
-    QVariant getProperty(const QString &name) const override;
+    PkVariant getProperty(const PkString &name) const override;
     using KisPropertiesConfiguration::setProperty;
-    void setProperty(const QString & name, const QVariant & value) override;
+    void setProperty(const PkString & name, const PkVariant & value) override;
 
-    bool hasProperty(const QString& name) const override;
+    bool hasProperty(const PkString& name) const override;
 
-    QList<QString> getPropertiesKeys() const override;
+    PkList<PkString> getPropertiesKeys() const override;
 
     void dump() const override;
 

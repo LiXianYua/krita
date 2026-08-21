@@ -6,10 +6,11 @@
 
 #include "KisPerStrokeRandomSource.h"
 
-#include <QHash>
-#include <QMutex>
-#include <QMutexLocker>
-#include <QRandomGenerator>
+#include <PkHash.h>
+#include <PkStringHash.h>
+#include <PkMutex.h>
+#include <chrono>
+#include <random>
 
 #include <boost/random/normal_distribution.hpp>
 #include <boost/random/taus88.hpp>
@@ -31,16 +32,16 @@ struct KisPerStrokeRandomSource::Private
     {
     }
 
-    qint64 fetchInt(const QString &key);
+    qint64 fetchInt(const PkString &key);
 
     int seed = 0;
     qint64 generatorMax = 0;
-    QHash<QString, qint64> valuesCache;
-    QMutex mutex;
+    PkHash<PkString, qint64> valuesCache;
+    PkMutex mutex;
 };
 
 KisPerStrokeRandomSource::KisPerStrokeRandomSource()
-    : m_d(new Private(QRandomGenerator::global()->generate()))
+    : m_d(new Private([](){ std::random_device rd; return rd(); }()))
 {
 
 }
@@ -56,9 +57,9 @@ KisPerStrokeRandomSource::~KisPerStrokeRandomSource()
 }
 
 
-qint64 KisPerStrokeRandomSource::Private::fetchInt(const QString &key)
+qint64 KisPerStrokeRandomSource::Private::fetchInt(const PkString &key)
 {
-    QMutexLocker l(&mutex);
+    PkMutexLocker l(&mutex);
 
     auto it = valuesCache.find(key);
     if (it != valuesCache.end()) {
@@ -73,12 +74,12 @@ qint64 KisPerStrokeRandomSource::Private::fetchInt(const QString &key)
     return newValue;
 }
 
-int KisPerStrokeRandomSource::generate(const QString &key, int min, int max) const
+int KisPerStrokeRandomSource::generate(const PkString &key, int min, int max) const
 {
     return min + m_d->fetchInt(key) % (max - min);
 }
 
-qreal KisPerStrokeRandomSource::generateNormalized(const QString &key) const
+qreal KisPerStrokeRandomSource::generateNormalized(const PkString &key) const
 {
     return qreal(m_d->fetchInt(key)) / m_d->generatorMax;
 }

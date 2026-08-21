@@ -7,29 +7,26 @@
 #include "kis_combo_based_paintop_property.h"
 #include "kis_paintop_settings.h"
 
-#include "QIcon"
-
 
 struct KisComboBasedPaintOpProperty::Private
 {
-    QList<QString> items;
-    QList<QIcon> icons;
+    PkList<PkString> items;
 };
 
-KisComboBasedPaintOpProperty::KisComboBasedPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
+KisComboBasedPaintOpProperty::KisComboBasedPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
     : KisUniformPaintOpProperty(Combo, id, settings, parent)
     , m_d(new Private)
 {
 }
 
-KisComboBasedPaintOpProperty::KisComboBasedPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
+KisComboBasedPaintOpProperty::KisComboBasedPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
     : KisUniformPaintOpProperty(Combo, id, settings, parent)
     , m_d(new Private)
 {
     KIS_ASSERT_RECOVER_RETURN(type == Combo);
 }
 
-KisComboBasedPaintOpProperty::KisComboBasedPaintOpProperty(Type type, SubType subType, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
+KisComboBasedPaintOpProperty::KisComboBasedPaintOpProperty(Type type, SubType subType, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
     : KisUniformPaintOpProperty(Combo, subType, id, settings, parent)
     , m_d(new Private)
 {
@@ -40,24 +37,14 @@ KisComboBasedPaintOpProperty::~KisComboBasedPaintOpProperty()
 {
 }
 
-QList<QString> KisComboBasedPaintOpProperty::items() const
+PkList<PkString> KisComboBasedPaintOpProperty::items() const
 {
     return m_d->items;
 }
 
-void KisComboBasedPaintOpProperty::setItems(const QList<QString> &list)
+void KisComboBasedPaintOpProperty::setItems(const PkList<PkString> &list)
 {
     m_d->items = list;
-}
-
-QList<QIcon> KisComboBasedPaintOpProperty::icons() const
-{
-    return m_d->icons;
-}
-
-void KisComboBasedPaintOpProperty::setIcons(const QList<QIcon> &list)
-{
-    m_d->icons = list;
 }
 
 #include "kis_callback_based_paintop_property_impl.h"

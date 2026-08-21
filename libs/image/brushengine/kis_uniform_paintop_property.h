@@ -8,13 +8,15 @@
 #ifndef __KIS_UNIFORM_PAINT_OP_PROPERTY_H
 #define __KIS_UNIFORM_PAINT_OP_PROPERTY_H
 
-#include <QScopedPointer>
-#include <QObject>
+#include <PkScopedPointer.h>
+#include <PkObject.h>
+#include <PkVariant.h>
+#include <PkString.h>
 
 #include "kis_image_export.h"
 #include "kis_types.h"
 
-class KRITAIMAGE_EXPORT KisUniformPaintOpProperty : public QObject
+class KRITAIMAGE_EXPORT KisUniformPaintOpProperty : public PkObject
 {
     Q_OBJECT
 public:
@@ -34,30 +36,28 @@ public:
     };
 
 public:
-    KisUniformPaintOpProperty(Type type, SubType subType, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
-    KisUniformPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
-    KisUniformPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
+    KisUniformPaintOpProperty(Type type, SubType subType, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
+    KisUniformPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
+    KisUniformPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
     ~KisUniformPaintOpProperty() override;
 
-    QString id() const;
-    QString name() const;
+    PkString id() const;
+    PkString name() const;
     Type type() const;
     SubType subType() const;
 
-    QVariant value() const;
-
-    QWidget *createPropertyWidget();
+    PkVariant value() const;
 
     KisPaintOpSettingsSP settings() const;
 
     virtual bool isVisible() const;
 
 public Q_SLOTS:
-    void setValue(const QVariant &value);
+    void setValue(const PkVariant &value);
     void requestReadValue();
 
 Q_SIGNALS:
-    void valueChanged(const QVariant &value);
+    void valueChanged(const PkVariant &value);
 
 protected:
     virtual void readValueImpl();
@@ -65,15 +65,15 @@ protected:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
-template<class T> class QSharedPointer;
-template<class T> class QWeakPointer;
-template<class T> class QList;
+template<class T> class PkSharedPointer;
+template<class T> class PkWeakPointer;
+template<class T> class PkList;
 
-using KisUniformPaintOpPropertySP = QSharedPointer<KisUniformPaintOpProperty>;
-using KisUniformPaintOpPropertyWSP = QWeakPointer<KisUniformPaintOpProperty>;
+using KisUniformPaintOpPropertySP = PkSharedPointer<KisUniformPaintOpProperty>;
+using KisUniformPaintOpPropertyWSP = PkWeakPointer<KisUniformPaintOpProperty>;
 
 #include "kis_callback_based_paintop_property.h"
 extern template class KisCallbackBasedPaintopProperty<

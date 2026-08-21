@@ -10,16 +10,11 @@
 
 #include "kis_paintop.h"
 
-#include <QtMath>
-
 #include <KoColor.h>
 #include <KoColorSpace.h>
-#include <KoPointerEvent.h>
 
 #include "kis_painter.h"
-#include "kis_layer.h"
 
-#include "kis_image.h"
 #include "kis_paint_device.h"
 #include "kis_global.h"
 #include "kis_datamanager.h"
@@ -33,8 +28,6 @@
 
 #define BEZIER_FLATNESS_THRESHOLD 0.5
 #include <kis_distance_information.h>
-
-#include <qnumeric.h>
 
 struct Q_DECL_HIDDEN KisPaintOp::Private {
     Private(KisPaintOp *_q)
@@ -89,7 +82,7 @@ void KisPaintOp::splitCoordinate(qreal coordinate, qint32 *whole, qreal *fractio
     *fraction = f;
 }
 
-std::pair<int, bool> KisPaintOp::doAsynchronousUpdate(QVector<KisRunnableStrokeJobData *> &jobs)
+std::pair<int, bool> KisPaintOp::doAsynchronousUpdate(PkVector<KisRunnableStrokeJobData *> &jobs)
 {
     Q_UNUSED(jobs);
     return std::make_pair(40, false);
@@ -127,8 +120,8 @@ static void paintBezierCurve(KisPaintOp *paintOp,
 }
 
 void KisPaintOp::paintBezierCurve(const KisPaintInformation &pi1,
-                                  const QPointF &control1,
-                                  const QPointF &control2,
+                                  const PkPointF &control1,
+                                  const PkPointF &control2,
                                   const KisPaintInformation &pi2,
                                   KisDistanceInformation *currentDistance)
 {

@@ -7,8 +7,8 @@
 #ifndef __KIS_PAINTOP_PRESET_UPDATE_PROXY_H
 #define __KIS_PAINTOP_PRESET_UPDATE_PROXY_H
 
-#include <QScopedPointer>
-#include <QObject>
+#include <PkScopedPointer.h>
+#include <PkObject.h>
 
 #include "kritaimage_export.h"
 
@@ -16,7 +16,7 @@
 /**
  * @brief The KisPaintOpPresetUpdateProxy class
  */
-class KRITAIMAGE_EXPORT KisPaintOpPresetUpdateProxy : public QObject
+class KRITAIMAGE_EXPORT KisPaintOpPresetUpdateProxy : public PkObject
 {
     Q_OBJECT
 
@@ -62,7 +62,7 @@ private Q_SLOTS:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_PAINTOP_PRESET_UPDATE_PROXY_H */

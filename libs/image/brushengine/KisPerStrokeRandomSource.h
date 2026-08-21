@@ -7,7 +7,8 @@
 #ifndef KISPERSTROKERANDOMSOURCE_H
 #define KISPERSTROKERANDOMSOURCE_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkString.h>
 #include "kis_shared.h"
 #include "kis_shared_ptr.h"
 
@@ -25,16 +26,16 @@ public:
     /**
      * Generates a random number in a range from \p min to \p max
      */
-    int generate(const QString &key, int min, int max) const;
+    int generate(const PkString &key, int min, int max) const;
 
     /**
      * Generates a random number in a closed range [0; 1.0]
      */
-    qreal generateNormalized(const QString &key) const;
+    qreal generateNormalized(const PkString &key) const;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 class KisPerStrokeRandomSource;

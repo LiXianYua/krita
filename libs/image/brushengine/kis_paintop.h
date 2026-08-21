@@ -15,9 +15,11 @@
 #include "kis_shared.h"
 #include "kis_types.h"
 
+#include <PkVector.h>
+
 #include <kritaimage_export.h>
 
-class QPointF;
+class PkPointF;
 class KoColorSpace;
 
 class KisPainter;
@@ -81,8 +83,8 @@ public:
      * because the currently set brush has a spacing greater than that distance.
      */
     virtual void paintBezierCurve(const KisPaintInformation &pi1,
-                                  const QPointF &control1,
-                                  const QPointF &control2,
+                                  const PkPointF &control1,
+                                  const PkPointF &control2,
                                   const KisPaintInformation &pi2,
                                   KisDistanceInformation *currentDistance
                                   );
@@ -107,7 +109,7 @@ public:
      *
      * @return a pair of <the desired FPS rate (period of updates); are there any unprocessed update jobs left?>
      */
-    virtual std::pair<int, bool> doAsynchronousUpdate(QVector<KisRunnableStrokeJobData*> &jobs);
+    virtual std::pair<int, bool> doAsynchronousUpdate(PkVector<KisRunnableStrokeJobData*> &jobs);
 
 protected:
     friend class KisPaintInformation;

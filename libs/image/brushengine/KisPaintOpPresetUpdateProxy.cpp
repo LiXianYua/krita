@@ -27,7 +27,8 @@ struct KisPaintOpPresetUpdateProxy::Private
 KisPaintOpPresetUpdateProxy::KisPaintOpPresetUpdateProxy()
     : m_d(new Private)
 {
-    connect(&m_d->updatesCompressor, SIGNAL(timeout()), SLOT(slotDeliverSettingsChanged()));
+    PkObject::connect(&m_d->updatesCompressor, &KisSignalCompressor::timeout,
+                      this, &KisPaintOpPresetUpdateProxy::slotDeliverSettingsChanged);
 }
 
 KisPaintOpPresetUpdateProxy::~KisPaintOpPresetUpdateProxy()

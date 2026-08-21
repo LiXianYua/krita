@@ -9,6 +9,8 @@
 
 #include <functional>
 
+#include <PkObject.h>
+
 template<class ParentClass>
 class KRITAIMAGE_EXPORT_TEMPLATE KisCallbackBasedPaintopProperty
     : public ParentClass
@@ -18,11 +20,11 @@ public:
                                     typename ParentClass::SubType subType,
                                     const KoID &id,
                                     KisPaintOpSettingsRestrictedSP settings,
-                                    QObject *parent);
+                                    PkObject *parent);
 
-    KisCallbackBasedPaintopProperty(typename ParentClass::Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
+    KisCallbackBasedPaintopProperty(typename ParentClass::Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
 
-    KisCallbackBasedPaintopProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
+    KisCallbackBasedPaintopProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
 
     typedef std::function<void (KisUniformPaintOpProperty*)> Callback;
     typedef std::function<bool (const KisUniformPaintOpProperty*)> VisibleCallback;

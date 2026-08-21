@@ -8,11 +8,11 @@
 #define KISSTROKESPEEDMEASURER_H
 
 #include "kritaimage_export.h"
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkVector.h>
 
-#include <QtGlobal>
 
-class QPointF;
+class PkPointF;
 
 
 class KRITAIMAGE_EXPORT KisStrokeSpeedMeasurer
@@ -21,8 +21,8 @@ public:
     KisStrokeSpeedMeasurer(int timeSmoothWindow);
     ~KisStrokeSpeedMeasurer();
 
-    void addSample(const QPointF &pt, int time);
-    void addSamples(const QVector<QPointF> &points, int time);
+    void addSample(const PkPointF &pt, int time);
+    void addSamples(const PkVector<PkPointF> &points, int time);
 
     qreal averageSpeed() const;
     qreal currentSpeed() const;
@@ -35,7 +35,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISSTROKESPEEDMEASURER_H

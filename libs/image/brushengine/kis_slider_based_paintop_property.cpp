@@ -7,13 +7,14 @@
 #include "kis_slider_based_paintop_property.h"
 
 #include "kis_paintop_settings.h"
+#include "kis_assert.h"
 
 template<typename T>
 KisSliderBasedPaintOpProperty<T>::KisSliderBasedPaintOpProperty(Type type,
                                                                 SubType subType,
                                                                 const KoID &id,
                                                                 KisPaintOpSettingsRestrictedSP settings,
-                                                                QObject *parent)
+                                                                PkObject *parent)
     : KisSliderBasedPaintOpPropertyBase(type, subType, id, settings, parent)
     , m_min(T(0))
     , m_max(T(100))
@@ -25,7 +26,7 @@ KisSliderBasedPaintOpProperty<T>::KisSliderBasedPaintOpProperty(Type type,
 }
 
 template<typename T>
-KisSliderBasedPaintOpProperty<T>::KisSliderBasedPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
+KisSliderBasedPaintOpProperty<T>::KisSliderBasedPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
     : KisSliderBasedPaintOpPropertyBase(type, id, settings, parent)
     , m_min(T(0))
     , m_max(T(100))
@@ -37,7 +38,7 @@ KisSliderBasedPaintOpProperty<T>::KisSliderBasedPaintOpProperty(Type type, const
 }
 
 template<typename T>
-KisSliderBasedPaintOpProperty<T>::KisSliderBasedPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
+KisSliderBasedPaintOpProperty<T>::KisSliderBasedPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
     : KisSliderBasedPaintOpPropertyBase(Int, id, settings, parent)
     , m_min(T(0))
     , m_max(T(100))
@@ -46,7 +47,7 @@ KisSliderBasedPaintOpProperty<T>::KisSliderBasedPaintOpProperty(const KoID &id, 
     , m_exponentRatio(1.0)
     , m_decimals(2)
 {
-    qFatal("Should have never been called!");
+    KIS_ASSERT(false && "Should have never been called!");
 }
 
 template <typename T>
@@ -123,13 +124,13 @@ void KisSliderBasedPaintOpProperty<T>::setDecimals(int value)
 }
 
 template <typename T>
-QString KisSliderBasedPaintOpProperty<T>::suffix() const
+PkString KisSliderBasedPaintOpProperty<T>::suffix() const
 {
     return m_suffix;
 }
 
 template <typename T>
-void KisSliderBasedPaintOpProperty<T>::setSuffix(QString value)
+void KisSliderBasedPaintOpProperty<T>::setSuffix(PkString value)
 {
     m_suffix = value;
 }

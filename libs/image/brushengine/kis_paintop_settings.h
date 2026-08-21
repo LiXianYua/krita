@@ -10,7 +10,16 @@
 #include "kis_types.h"
 #include "kritaimage_export.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkVariant.h>
+#include <PkList.h>
+#include <PkPointer.h>
+#include <PkPainterPath.h>
+#include <PkPoint.h>
+#include <PkNamespace.h>
 
 #include "kis_properties_configuration.h"
 #include <brushengine/kis_paint_information.h>
@@ -19,37 +28,37 @@
 class KisPaintOpPresetUpdateProxy;
 
 class KisResourcesInterface;
-using KisResourcesInterfaceSP = QSharedPointer<KisResourcesInterface>;
+using KisResourcesInterfaceSP = PkSharedPointer<KisResourcesInterface>;
 
 class KoCanvasResourcesInterface;
-using KoCanvasResourcesInterfaceSP = QSharedPointer<KoCanvasResourcesInterface>;
+using KoCanvasResourcesInterfaceSP = PkSharedPointer<KoCanvasResourcesInterface>;
 
 class KoResourceCacheInterface;
-using KoResourceCacheInterfaceSP = QSharedPointer<KoResourceCacheInterface>;
+using KoResourceCacheInterfaceSP = PkSharedPointer<KoResourceCacheInterface>;
 
 class KisOptimizedBrushOutline;
 
 /**
  * Configuration property used to control whether airbrushing is enabled.
  */
-const QString AIRBRUSH_ENABLED = "PaintOpSettings/isAirbrushing";
+const PkString AIRBRUSH_ENABLED = "PaintOpSettings/isAirbrushing";
 
 /**
  * Configuration property used to control airbrushing rate. The value should be in dabs per second.
  */
-const QString AIRBRUSH_RATE = "PaintOpSettings/rate";
+const PkString AIRBRUSH_RATE = "PaintOpSettings/rate";
 
 /**
  * Configuration property used to control whether airbrushing is configured to ignore distance-based
  * spacing.
  */
-const QString AIRBRUSH_IGNORE_SPACING = "PaintOpSettings/ignoreSpacing";
+const PkString AIRBRUSH_IGNORE_SPACING = "PaintOpSettings/ignoreSpacing";
 
 /**
  * Configuration property used to control whether the spacing settings can be updated between
  * painted dabs.
  */
-const QString SPACING_USE_UPDATES = "PaintOpSettings/updateSpacingBetweenDabs";
+const PkString SPACING_USE_UPDATES = "PaintOpSettings/updateSpacingBetweenDabs";
 
 /**
  * This class is used to cache the settings for a paintop
@@ -74,8 +83,8 @@ public:
         virtual void notifySettingsChanged() = 0;
     };
 
-    using UpdateListenerSP = QSharedPointer<UpdateListener>;
-    using UpdateListenerWSP = QWeakPointer<UpdateListener>;
+    using UpdateListenerSP = PkSharedPointer<UpdateListener>;
+    using UpdateListenerWSP = PkWeakPointer<UpdateListener>;
 
 public:
 
@@ -108,7 +117,7 @@ public:
      * Removes all the settings from the object while keeping the paintop id,
      * which is loaded to the object by the factory
      */
-    virtual void resetSettings(const QStringList &preserveProperties = QStringList());
+    virtual void resetSettings(const PkStringList &preserveProperties = PkStringList());
 
     /**
      * @return the node the paintop is working on.
@@ -136,7 +145,7 @@ public:
      * should be initialized to. This is used by clone op to reset
      * the composite op to COMPOSITE_COPY
      */
-    virtual QString indirectPaintingCompositeOp() const;
+    virtual PkString indirectPaintingCompositeOp() const;
 
     /**
      * Whether this paintop wants to deposit paint even when not moving, i.e. the tool needs to
@@ -200,8 +209,8 @@ public:
      * Brush diameter or width are common choices for this.
      * @param angle is the angle between the two sides of the triangle.
      */
-    static QPainterPath makeTiltIndicator(KisPaintInformation const& info,
-        QPointF const& start, qreal lengthScale, qreal angle);
+    static PkPainterPath makeTiltIndicator(KisPaintInformation const& info,
+        PkPointF const& start, qreal lengthScale, qreal angle);
 
     /**
      * Set paintop opacity directly in the properties
@@ -226,7 +235,7 @@ public:
     /**
      * Set paintop composite mode directly in the properties
      */
-    void setPaintOpCompositeOp(const QString &value);
+    void setPaintOpCompositeOp(const PkString &value);
 
     /**
      * @return opacity saved in the properties
@@ -251,7 +260,7 @@ public:
     /**
      * @return composite mode saved in the properties
      */
-    QString paintOpCompositeOp();
+    PkString paintOpCompositeOp();
 
     /**
      * Set paintop size directly in the properties
@@ -292,7 +301,7 @@ public:
     qreal savedBrushOpacity() const;
     void setSavedBrushOpacity(qreal value);
 
-    QString effectivePaintOpCompositeOp();
+    PkString effectivePaintOpCompositeOp();
 
     void setUpdateListener(UpdateListenerWSP listener);
 
@@ -301,12 +310,12 @@ public:
     /**
      * @return filename of the 3D brush model, empty if no brush is set
      */
-    virtual QString modelName() const;
+    virtual PkString modelName() const;
 
     /**
     * Set filename of 3D brush model. By default no brush is set
     */
-    void setModelName(const QString & modelName);
+    void setModelName(const PkString & modelName);
 
     /// Check if the settings are valid, setting might be invalid through missing brushes etc
     /// Overwrite if the settings of a paintop can be invalid
@@ -317,9 +326,9 @@ public:
      * Overrides the method in KisPropertiesConfiguration to allow
      * onPropertyChanged() callback
      */
-    void setProperty(const QString & name, const QVariant & value) override;
+    void setProperty(const PkString & name, const PkVariant & value) override;
 
-    virtual QList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy);
+    virtual PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy);
 
     static bool isLodUserAllowed(const KisPropertiesConfigurationSP config);
     static void setLodUserAllowed(KisPropertiesConfigurationSP config, bool value);
@@ -347,7 +356,7 @@ public:
      * Please take into account that the brush itself always paints in alpha-
      * darken mode, but the final result is combined with this composite op.
      */
-    QString maskingBrushCompositeOp() const;
+    PkString maskingBrushCompositeOp() const;
 
     /**
      * @return resource interface that is used for loading linked resources
@@ -362,7 +371,7 @@ public:
 
     virtual bool hasPatternSettings() const;
 
-    virtual QList<int> requiredCanvasResources() const;
+    virtual PkList<int> requiredCanvasResources() const;
 
     KoCanvasResourcesInterfaceSP canvasResourcesInterface() const;
     void setCanvasResourcesInterface(KoCanvasResourcesInterfaceSP canvasResourcesInterface);
@@ -386,7 +395,7 @@ private:
 
 
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 };
 
 #endif

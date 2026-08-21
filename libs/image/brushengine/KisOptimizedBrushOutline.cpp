@@ -6,34 +6,33 @@
 
 #include "KisOptimizedBrushOutline.h"
 
-#include <QPainterPath>
-#include <QTransform>
+#include <PkPainterPath.h>
 #include <kis_algebra_2d.h>
 
 KisOptimizedBrushOutline::KisOptimizedBrushOutline()
 {
 }
 
-KisOptimizedBrushOutline::KisOptimizedBrushOutline(const QPainterPath &path, const std::optional<QRectF> &bounds)
-    : KisOptimizedBrushOutline(path.toSubpathPolygons().toVector(), bounds)
+KisOptimizedBrushOutline::KisOptimizedBrushOutline(const PkPainterPath &path, const std::optional<PkRectF> &bounds)
+    : KisOptimizedBrushOutline(path.toSubpathPolygons(PkTransform()), bounds)
 {
-    // storing in a form of a QVector is much more efficient
-    // than in a QList
+    // storing in a form of a PkVector is much more efficient
+    // than in a PkList
 }
 
-KisOptimizedBrushOutline::KisOptimizedBrushOutline(const QVector<QPolygonF> &subpaths, const std::optional<QRectF> &bounds)
+KisOptimizedBrushOutline::KisOptimizedBrushOutline(const PkVector<PkPolygonF> &subpaths, const std::optional<PkRectF> &bounds)
     : m_subpaths(subpaths)
     , m_explicitBounds(bounds)
 {
 }
 
-void KisOptimizedBrushOutline::map(const QTransform &t)
+void KisOptimizedBrushOutline::map(const PkTransform &t)
 {
     m_transform *= t;
-    m_cachedBoundingRect = QRectF();
+    m_cachedBoundingRect = PkRectF();
 }
 
-KisOptimizedBrushOutline KisOptimizedBrushOutline::mapped(const QTransform &t) const
+KisOptimizedBrushOutline KisOptimizedBrushOutline::mapped(const PkTransform &t) const
 {
     KisOptimizedBrushOutline result(*this);
     result.map(t);
@@ -50,7 +49,7 @@ KisOptimizedBrushOutline::const_iterator KisOptimizedBrushOutline::end() const
     return const_iterator(this, m_subpaths.size() + m_additionalDecorations.size());
 }
 
-QRectF KisOptimizedBrushOutline::boundingRect() const
+PkRectF KisOptimizedBrushOutline::boundingRect() const
 {
     if (!m_cachedBoundingRect.isNull()) return m_cachedBoundingRect;
 
@@ -61,7 +60,7 @@ QRectF KisOptimizedBrushOutline::boundingRect() const
      * over points.
      */
 
-    QRectF result;
+    PkRectF result;
     bool resultInitialized = false;
 
     if (m_explicitBounds && !m_explicitBounds->isEmpty()) {
@@ -74,7 +73,7 @@ QRectF KisOptimizedBrushOutline::boundingRect() const
          * This is a highly optimized way to accumulate a rect from a
          * set of points:
          *
-         * 1) `QRectF::isEmpty()` is expensive, so use `resultInitialized` instead
+         * 1) `PkRectF::isEmpty()` is expensive, so use `resultInitialized` instead
          * 2) Use `KisAlgebra2D::accumulateBoundsNonEmpty` to avoid calling `isEmpty()`
          */
 
@@ -116,28 +115,28 @@ bool KisOptimizedBrushOutline::isEmpty() const
     return begin() == end();
 }
 
-void KisOptimizedBrushOutline::addRect(const QRectF &rc)
+void KisOptimizedBrushOutline::addRect(const PkRectF &rc)
 {
-    QPainterPath path;
+    PkPainterPath path;
     path.addRect(rc);
     addPath(path);
 }
 
-void KisOptimizedBrushOutline::addEllipse(const QPointF &center, qreal rx, qreal ry)
+void KisOptimizedBrushOutline::addEllipse(const PkPointF &center, qreal rx, qreal ry)
 {
-    QPainterPath path;
+    PkPainterPath path;
     path.addEllipse(center, rx, ry);
     addPath(path);
 }
 
-void KisOptimizedBrushOutline::addPath(const QPainterPath &path)
+void KisOptimizedBrushOutline::addPath(const PkPainterPath &path)
 {
     addPath(KisOptimizedBrushOutline(path));
 }
 
 void KisOptimizedBrushOutline::addPath(const KisOptimizedBrushOutline &path)
 {
-    const QTransform invertedTransform = path.m_transform * m_transform.inverted();
+    const PkTransform invertedTransform = path.m_transform * m_transform.inverted();
 
     m_additionalDecorations.reserve(m_additionalDecorations.size() +
                                     path.m_subpaths.size() +
@@ -151,20 +150,20 @@ void KisOptimizedBrushOutline::addPath(const KisOptimizedBrushOutline &path)
         m_additionalDecorations.append(invertedTransform.map(*it));
     }
 
-    m_cachedBoundingRect = QRectF();
+    m_cachedBoundingRect = PkRectF();
 }
 
 void KisOptimizedBrushOutline::translate(qreal tx, qreal ty)
 {
-    map(QTransform::fromTranslate(tx, ty));
+    map(PkTransform::fromTranslate(tx, ty));
 }
 
-void KisOptimizedBrushOutline::translate(const QPointF &offset)
+void KisOptimizedBrushOutline::translate(const PkPointF &offset)
 {
     translate(offset.x(), offset.y());
 }
 
-QPolygonF KisOptimizedBrushOutline::const_iterator::dereference() const
+PkPolygonF KisOptimizedBrushOutline::const_iterator::dereference() const
 {
     int index = m_index;
 
@@ -173,8 +172,8 @@ QPolygonF KisOptimizedBrushOutline::const_iterator::dereference() const
     }
 
     index -= m_outline->m_subpaths.size();
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(index >= 0, QPolygonF());
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(index < m_outline->m_additionalDecorations.size(), QPolygonF());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(index >= 0, PkPolygonF());
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(index < m_outline->m_additionalDecorations.size(), PkPolygonF());
 
     return m_outline->m_transform.map(m_outline->m_additionalDecorations.at(index));
 }

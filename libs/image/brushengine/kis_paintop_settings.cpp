@@ -7,23 +7,28 @@
 
 #include <brushengine/kis_paintop_settings.h>
 
-#include <QColor>
-#include <QDomDocument>
-#include <QDomElement>
-#include <QPainterPath>
-#include <QPointer>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkPainterPath.h>
+#include <PkPointer.h>
+#include <PkMapIterator.h>
+#include <PkMap.h>
+#include <PkHash.h>
+#include <PkRect.h>
+#include <PkTransform.h>
+#include <PkLine.h>
+#include <PkPoint.h>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkVariant.h>
+#include <PkNamespace.h>
+#include "kis_pointer_utils.h"
 
-#include <KoPointerEvent.h>
 #include <KoColor.h>
 #include <KoCompositeOpRegistry.h>
-#include <KoViewConverter.h>
 
 #include "kis_dom_utils.h"
 #include "kis_paintop_preset.h"
-#include "kis_paint_layer.h"
-#include "kis_image.h"
-#include "kis_painter.h"
-#include "kis_paint_device.h"
 #include "kis_paintop_registry.h"
 #include "kis_timing_information.h"
 #include <brushengine/kis_paint_information.h>
@@ -31,7 +36,6 @@
 #include "KisPaintOpPresetUpdateProxy.h"
 #include <time.h>
 #include <kis_types.h>
-#include <kis_signals_blocker.h>
 
 #include <brushengine/kis_locked_properties_server.h>
 #include <brushengine/kis_locked_properties_proxy.h>
@@ -73,9 +77,9 @@ struct Q_DECL_HIDDEN KisPaintOpSettings::Private {
         ///       properly
     }
 
-    QString modelName;
+    PkString modelName;
     UpdateListenerWSP updateListener;
-    QList<KisUniformPaintOpPropertyWSP> uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> uniformProperties;
     KisResourcesInterfaceSP resourcesInterface;
     KoCanvasResourcesInterfaceSP canvasResourcesInterface;
     KoResourceCacheInterfaceSP resourceCacheInterface;
@@ -138,7 +142,7 @@ KisPaintOpSettingsSP KisPaintOpSettings::createMaskingSettings() const
 {
     if (!hasMaskingSettings()) return KisPaintOpSettingsSP();
 
-    const KoID pixelBrushId(KisPaintOpUtils::MaskingBrushPaintOpId, QString());
+    const KoID pixelBrushId(KisPaintOpUtils::MaskingBrushPaintOpId, PkString());
 
     KisPaintOpSettingsSP maskingSettings = KisPaintOpRegistry::instance()->createSettings(pixelBrushId, resourcesInterface());
     maskingSettings->setCanvasResourcesInterface(canvasResourcesInterface());
@@ -169,7 +173,7 @@ KisPaintOpSettingsSP KisPaintOpSettings::createMaskingSettings() const
 
     if (d->resourceCacheInterface) {
         maskingSettings->setResourceCacheInterface(
-                    toQShared(new KoResourceCachePrefixedStorageWrapper(
+                    KoResourceCacheInterfaceSP(new KoResourceCachePrefixedStorageWrapper(
                                   KisPaintOpUtils::MaskingBrushPresetPrefix,
                                   d->resourceCacheInterface)));
     }
@@ -182,7 +186,7 @@ bool KisPaintOpSettings::hasPatternSettings() const
     return false;
 }
 
-QList<int> KisPaintOpSettings::requiredCanvasResources() const
+PkList<int> KisPaintOpSettings::requiredCanvasResources() const
 {
     return {};
 }
@@ -213,7 +217,7 @@ void KisPaintOpSettings::regenerateResourceCache(KoResourceCacheInterfaceSP cach
         KisPaintOpSettingsSP maskingSettings = createMaskingSettings();
 
         KoResourceCacheInterfaceSP wrappedCacheInterface =
-            toQShared(new KoResourceCachePrefixedStorageWrapper(
+            KoResourceCacheInterfaceSP(new KoResourceCachePrefixedStorageWrapper(
                           KisPaintOpUtils::MaskingBrushPresetPrefix,
                           cacheInterface));
 
@@ -230,7 +234,7 @@ quint64 KisPaintOpSettings::sanityVersionCookie() const
 #endif
 }
 
-QString KisPaintOpSettings::maskingBrushCompositeOp() const
+PkString KisPaintOpSettings::maskingBrushCompositeOp() const
 {
     return getString(KisPaintOpUtils::MaskingBrushCompositeOpTag, COMPOSITE_MULT);
 }
@@ -247,15 +251,15 @@ void KisPaintOpSettings::setResourcesInterface(KisResourcesInterfaceSP resources
 
 KisPaintOpSettingsSP KisPaintOpSettings::clone() const
 {
-    QString paintopID = getString("paintop");
+    PkString paintopID = getString("paintop");
     if (paintopID.isEmpty())
         return 0;
 
     KisPaintOpSettingsSP settings = KisPaintOpRegistry::instance()->createSettings(KoID(paintopID), resourcesInterface());
-    QMapIterator<QString, QVariant> i(getProperties());
+    PkMapIterator<PkString, PkVariant> i(getProperties());
     while (i.hasNext()) {
         i.next();
-        settings->setProperty(i.key(), QVariant(i.value()));
+        settings->setProperty(i.key(), PkVariant(i.value()));
     }
 
     settings->setCanvasResourcesInterface(this->canvasResourcesInterface());
@@ -267,15 +271,15 @@ KisPaintOpSettingsSP KisPaintOpSettings::clone() const
     return settings;
 }
 
-void KisPaintOpSettings::resetSettings(const QStringList &preserveProperties)
+void KisPaintOpSettings::resetSettings(const PkStringList &preserveProperties)
 {
-    QStringList allKeys = preserveProperties;
+    PkStringList allKeys = preserveProperties;
     allKeys << "paintop";
 
-    QHash<QString, QVariant> preserved;
-    Q_FOREACH (const QString &key, allKeys) {
+    PkHash<PkString, PkVariant> preserved;
+    for (const PkString &key : allKeys) {
         if (hasProperty(key)) {
-            preserved[key] = getProperty(key);
+            preserved.insert(key, getProperty(key));
         }
     }
 
@@ -314,14 +318,20 @@ void KisPaintOpSettings::setPaintOpFade(qreal value)
     if (!proxy->hasProperty("brush_definition")) return;
 
     // Setting the Fade value is a bit more complex.
-    QDomDocument doc;
+    PkXmlDocument doc;
     doc.setContent(proxy->getString("brush_definition"));
 
-    QDomElement element = doc.documentElement();
-    QDomElement elementChild = element.elementsByTagName("MaskGenerator").item(0).toElement();
+    PkXmlElement element = doc.documentElement();
+    PkXmlElement elementChild = element.elementsByTagName("MaskGenerator").item(0).toElement();
 
-    elementChild.attributeNode("hfade").setValue(KisDomUtils::toString(value));
-    elementChild.attributeNode("vfade").setValue(KisDomUtils::toString(value));
+    // PkXmlAttr 没有 setValue()：只改写已存在的属性，语义与 Qt 的
+    // attributeNode(...).setValue(...) 一致（缺失的属性保持不动）。
+    if (!elementChild.attributeNode("hfade").isNull()) {
+        elementChild.setAttribute("hfade", KisDomUtils::toString(value));
+    }
+    if (!elementChild.attributeNode("vfade").isNull()) {
+        elementChild.setAttribute("vfade", KisDomUtils::toString(value));
+    }
 
     proxy->setProperty("brush_definition", doc.toString());
 }
@@ -337,7 +347,7 @@ void KisPaintOpSettings::setPaintOpScatter(qreal value)
     proxy->setProperty("PressureScatter", !qFuzzyIsNull(value));
 }
 
-void KisPaintOpSettings::setPaintOpCompositeOp(const QString &value)
+void KisPaintOpSettings::setPaintOpCompositeOp(const PkString &value)
 {
     KisLockedPropertiesProxySP proxy(
                 KisLockedPropertiesServer::instance()->createLockedPropertiesProxy(this));
@@ -367,11 +377,11 @@ qreal KisPaintOpSettings::paintOpFade()
 
     if (!proxy->hasProperty("brush_definition")) return 1.0;
 
-    QDomDocument doc;
+    PkXmlDocument doc;
     doc.setContent(proxy->getString("brush_definition"));
 
-    QDomElement element = doc.documentElement();
-    QDomElement elementChild = element.elementsByTagName("MaskGenerator").item(0).toElement();
+    PkXmlElement element = doc.documentElement();
+    PkXmlElement elementChild = element.elementsByTagName("MaskGenerator").item(0).toElement();
 
     if (elementChild.attributeNode("hfade").value().toDouble() >= elementChild.attributeNode("vfade").value().toDouble()) {
         return elementChild.attributeNode("hfade").value().toDouble();
@@ -398,7 +408,7 @@ qreal KisPaintOpSettings::paintOpPatternSize()
     return proxy->getDouble("Texture/Pattern/Scale", 0.5);
 }
 
-QString KisPaintOpSettings::paintOpCompositeOp()
+PkString KisPaintOpSettings::paintOpCompositeOp()
 {
     KisLockedPropertiesProxySP proxy(
                 KisLockedPropertiesServer::instance()->createLockedPropertiesProxy(this));
@@ -422,7 +432,7 @@ bool KisPaintOpSettings::eraserMode()
     return proxy->getBool("EraserMode", false);
 }
 
-QString KisPaintOpSettings::effectivePaintOpCompositeOp()
+PkString KisPaintOpSettings::effectivePaintOpCompositeOp()
 {
     return !eraserMode() ? paintOpCompositeOp() : COMPOSITE_ERASE;
 }
@@ -471,12 +481,12 @@ void KisPaintOpSettings::setSavedBrushOpacity(qreal value)
     setPropertyNotSaved("SavedBrushOpacity");
 }
 
-QString KisPaintOpSettings::modelName() const
+PkString KisPaintOpSettings::modelName() const
 {
     return d->modelName;
 }
 
-void KisPaintOpSettings::setModelName(const QString & modelName)
+void KisPaintOpSettings::setModelName(const PkString & modelName)
 {
     d->modelName = modelName;
 }
@@ -486,7 +496,7 @@ bool KisPaintOpSettings::isValid() const
     return true;
 }
 
-QString KisPaintOpSettings::indirectPaintingCompositeOp() const
+PkString KisPaintOpSettings::indirectPaintingCompositeOp() const
 {
     return COMPOSITE_ALPHA_DARKEN;
 }
@@ -524,7 +534,7 @@ KisOptimizedBrushOutline KisPaintOpSettings::brushOutline(const KisPaintInformat
         path = ellipseOutline(10, 10, 1.0, 0);
 
         if (mode.showTiltDecoration) {
-            path.addPath(makeTiltIndicator(info, QPointF(0.0, 0.0), 0.0, 2.0));
+            path.addPath(makeTiltIndicator(info, PkPointF(0.0, 0.0), 0.0, 2.0));
         }
 
         path.translate(KisAlgebra2D::alignForZoom(info.pos(), alignForZoom));
@@ -535,29 +545,29 @@ KisOptimizedBrushOutline KisPaintOpSettings::brushOutline(const KisPaintInformat
 
 KisOptimizedBrushOutline KisPaintOpSettings::ellipseOutline(qreal width, qreal height, qreal scale, qreal rotation)
 {
-    QPainterPath path;
-    QRectF ellipse(0, 0, width * scale, height * scale);
+    PkPainterPath path;
+    PkRectF ellipse(0, 0, width * scale, height * scale);
     ellipse.translate(-ellipse.center());
     path.addEllipse(ellipse);
 
-    QTransform m;
+    PkTransform m;
     m.reset();
     m.rotate(rotation);
     path = m.map(path);
     return path;
 }
 
-QPainterPath KisPaintOpSettings::makeTiltIndicator(KisPaintInformation const& info,
-                                                   QPointF const& start, qreal maxLength, qreal angle)
+PkPainterPath KisPaintOpSettings::makeTiltIndicator(KisPaintInformation const& info,
+                                                   PkPointF const& start, qreal maxLength, qreal angle)
 {
     if (maxLength == 0.0) maxLength = 50.0;
     maxLength = qMax(maxLength, 50.0);
     qreal const length = maxLength * (1 - info.tiltElevation(info, 60.0, 60.0, true));
     qreal const baseAngle = 360.0 - fmod(KisPaintInformation::tiltDirection(info, true) * 360.0 + 270.0, 360.0);
 
-    QLineF guideLine = QLineF::fromPolar(length, baseAngle + angle);
+    PkLineF guideLine = PkLineF::fromPolar(length, baseAngle + angle);
     guideLine.translate(start);
-    QPainterPath ret;
+    PkPainterPath ret;
     ret.moveTo(guideLine.p1());
     ret.lineTo(guideLine.p2());
     guideLine.setAngle(baseAngle - angle);
@@ -566,7 +576,7 @@ QPainterPath KisPaintOpSettings::makeTiltIndicator(KisPaintInformation const& in
     return ret;
 }
 
-void KisPaintOpSettings::setProperty(const QString & name, const QVariant & value)
+void KisPaintOpSettings::setProperty(const PkString & name, const PkVariant & value)
 {
     if (value != KisPropertiesConfiguration::getProperty(name)) {
         UpdateListenerSP updateListener = d->updateListener.toStrongRef();
@@ -624,9 +634,9 @@ void KisPaintOpSettings::setLodSizeThreshold(qreal value)
 
 #include "kis_standard_uniform_properties_factory.h"
 
-QList<KisUniformPaintOpPropertySP> KisPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
             listWeakToStrong(d->uniformProperties);
 
 

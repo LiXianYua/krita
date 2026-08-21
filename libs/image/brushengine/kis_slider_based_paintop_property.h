@@ -8,6 +8,7 @@
 #define __KIS_SLIDER_BASED_PAINTOP_PROPERTY_H
 
 #include "kis_uniform_paintop_property.h"
+#include <PkString.h>
 
 class KRITAIMAGE_EXPORT KisSliderBasedPaintOpPropertyBase
     : public KisUniformPaintOpProperty
@@ -37,11 +38,11 @@ class KRITAIMAGE_EXPORT_TEMPLATE KisSliderBasedPaintOpProperty
     : public KisSliderBasedPaintOpPropertyBase
 {
 public:
-    KisSliderBasedPaintOpProperty(Type type, SubType subType, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
+    KisSliderBasedPaintOpProperty(Type type, SubType subType, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
 
-    KisSliderBasedPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
+    KisSliderBasedPaintOpProperty(Type type, const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
 
-    KisSliderBasedPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
+    KisSliderBasedPaintOpProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
 
     T min() const;
     T max() const;
@@ -57,8 +58,8 @@ public:
     int decimals() const;
     void setDecimals(int value);
 
-    QString suffix() const;
-    void setSuffix(QString value);
+    PkString suffix() const;
+    void setSuffix(PkString value);
 
 private:
     T m_min;
@@ -69,7 +70,7 @@ private:
     qreal m_exponentRatio;
 
     int m_decimals;
-    QString m_suffix;
+    PkString m_suffix;
 };
 
 #include "kis_callback_based_paintop_property.h"

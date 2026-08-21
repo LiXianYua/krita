@@ -10,6 +10,8 @@
 #include "kis_paintop_settings.h"
 #include "KisPaintOpPresetUpdateProxy.h"
 #include "kis_image_config.h"
+#include <PkObject.h>
+#include "kis_assert.h"
 
 namespace KisStandardUniformPropertiesFactory {
 
@@ -22,7 +24,7 @@ KisUniformPaintOpPropertySP createProperty(const KoID &id,
     return createProperty(id.id(), settings, updateProxy);
 }
 
-KisUniformPaintOpPropertySP createProperty(const QString &id,
+KisUniformPaintOpPropertySP createProperty(const PkString &id,
                                            KisPaintOpSettingsRestrictedSP settings,
                                            KisPaintOpPresetUpdateProxy *updateProxy)
 {
@@ -31,13 +33,13 @@ KisUniformPaintOpPropertySP createProperty(const QString &id,
 
     if (id == size.id()) {
         KisDoubleSliderBasedPaintOpPropertyCallback *prop =
-            new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double, KoID("size", i18n("Size")), settings, 0);
+            new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double, KoID("size", PkString("Size")), settings, 0);
 
         prop->setRange(0, KisImageConfig(true).maxBrushSize());
         prop->setDecimals(2);
         prop->setSingleStep(1);
         prop->setExponentRatio(3.0);
-        prop->setSuffix(i18n(" px"));
+        prop->setSuffix(PkString(" px"));
 
         prop->setReadCallback(
                     [](KisUniformPaintOpProperty *prop) {
@@ -48,9 +50,10 @@ KisUniformPaintOpPropertySP createProperty(const QString &id,
             prop->settings()->setPaintOpSize(prop->value().toReal());
         });
 
-        QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+        PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                          prop, &KisUniformPaintOpProperty::requestReadValue);
         prop->requestReadValue();
-        result = toQShared(prop);
+        result = PkSharedPointer<KisUniformPaintOpProperty>(prop);
     } else if (id == opacity.id()) {
         KisDoubleSliderBasedPaintOpPropertyCallback *prop =
             new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double, opacity, settings, 0);
@@ -67,9 +70,10 @@ KisUniformPaintOpPropertySP createProperty(const QString &id,
             prop->settings()->setPaintOpOpacity(prop->value().toReal());
         });
 
-        QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+        PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                          prop, &KisUniformPaintOpProperty::requestReadValue);
         prop->requestReadValue();
-        result = toQShared(prop);
+        result = PkSharedPointer<KisUniformPaintOpProperty>(prop);
     } else if (id == flow.id()) {
         KisDoubleSliderBasedPaintOpPropertyCallback *prop =
             new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double, flow, settings, 0);
@@ -86,13 +90,14 @@ KisUniformPaintOpPropertySP createProperty(const QString &id,
             prop->settings()->setPaintOpFlow(prop->value().toReal());
         });
 
-        QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+        PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged,
+                          prop, &KisUniformPaintOpProperty::requestReadValue);
         prop->requestReadValue();
-        result = toQShared(prop);
+        result = PkSharedPointer<KisUniformPaintOpProperty>(prop);
     } else if (id == angle.id()) {
-        qFatal("Not implemented");
+        KIS_ASSERT(false && "Not implemented");
     } else if (id == spacing.id()) {
-        qFatal("Not implemented");
+        KIS_ASSERT(false && "Not implemented");
     }
 
     if (!result) {

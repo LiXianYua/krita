@@ -8,6 +8,7 @@
 #define __KIS_STANDARD_UNIFORM_PROPERTIES_FACTORY_H
 
 #include <KoID.h>
+#include <PkString.h>
 
 #include "kis_uniform_paintop_property.h"
 
@@ -15,15 +16,15 @@ class KisPaintOpPresetUpdateProxy;
 
 namespace KisStandardUniformPropertiesFactory
 {
-static const KoID size("size", ki18n("Size"));
-static const KoID opacity("opacity", ki18n("Opacity"));
-static const KoID flow("flow", ki18n("Flow"));
-static const KoID angle("angle", ki18n("Angle"));
-static const KoID spacing("spacing", ki18n("Spacing"));
+static const KoID size("size", PkString("Size"));
+static const KoID opacity("opacity", PkString("Opacity"));
+static const KoID flow("flow", PkString("Flow"));
+static const KoID angle("angle", PkString("Angle"));
+static const KoID spacing("spacing", PkString("Spacing"));
 
 
 /**
-     * Overload of createProperty(const QString &id, ...)
+     * Overload of createProperty(const PkString &id, ...)
      */
 KisUniformPaintOpPropertySP createProperty(const KoID &id,
                                            KisPaintOpSettingsRestrictedSP settings,
@@ -33,7 +34,7 @@ KisUniformPaintOpPropertySP createProperty(const KoID &id,
      * Factory for creating standard uniform properties. Right now
      * it supports only size, opacity and flow.
      */
-KisUniformPaintOpPropertySP createProperty(const QString &id,
+KisUniformPaintOpPropertySP createProperty(const PkString &id,
                                            KisPaintOpSettingsRestrictedSP settings,
                                            KisPaintOpPresetUpdateProxy *updateProxy);
 }

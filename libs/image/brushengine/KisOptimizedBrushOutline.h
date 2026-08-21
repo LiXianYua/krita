@@ -7,18 +7,19 @@
 #ifndef KISOPTIMIZEDBRUSHOUTLINE_H
 #define KISOPTIMIZEDBRUSHOUTLINE_H
 
-#include <QPolygonF>
-#include <QTransform>
+#include <PkPolygon.h>
+#include <PkTransform.h>
+#include <PkRect.h>
 #include <boost/iterator/iterator_facade.hpp>
 #include <optional>
 #include <kritaimage_export.h>
 
-class QPainterPath;
+class PkPainterPath;
 
 /**
  * An special class for storing the brush outline
  * in an optimized way. It converts the outline into
- * the vector of QPolygonF objects right away and avoids
+ * the vector of PkPolygonF objects right away and avoids
  * doing any modifications and/or transformations to it
  * until the final stage, when the outline is requested
  * to be drawn.
@@ -28,9 +29,9 @@ class KRITAIMAGE_EXPORT KisOptimizedBrushOutline
 public:
     class KRITAIMAGE_EXPORT const_iterator :
         public boost::iterator_facade <const_iterator,
-                                       QPolygonF,
+                                       PkPolygonF,
                                        boost::forward_traversal_tag,
-                                       QPolygonF>
+                                       PkPolygonF>
     {
     public:
         const_iterator()
@@ -53,7 +54,7 @@ public:
                 m_outline == other.m_outline;
         }
 
-        QPolygonF dereference() const;
+        PkPolygonF dereference() const;
 
     private:
         const KisOptimizedBrushOutline *m_outline;
@@ -62,20 +63,20 @@ public:
 
 public:
     KisOptimizedBrushOutline();
-    KisOptimizedBrushOutline(const QPainterPath &path, const std::optional<QRectF> &bounds = std::nullopt);
-    KisOptimizedBrushOutline(const QVector<QPolygonF> &subpaths, const std::optional<QRectF> &bounds = std::nullopt);
+    KisOptimizedBrushOutline(const PkPainterPath &path, const std::optional<PkRectF> &bounds = std::nullopt);
+    KisOptimizedBrushOutline(const PkVector<PkPolygonF> &subpaths, const std::optional<PkRectF> &bounds = std::nullopt);
 
-    QRectF boundingRect() const;
+    PkRectF boundingRect() const;
 
     bool isEmpty() const;
 
-    void addRect(const QRectF &rc);
-    void addEllipse(const QPointF &center, qreal rx, qreal ry);
-    void addPath(const QPainterPath &path);
+    void addRect(const PkRectF &rc);
+    void addEllipse(const PkPointF &center, qreal rx, qreal ry);
+    void addPath(const PkPainterPath &path);
     void addPath(const KisOptimizedBrushOutline &path);
 
     void translate(qreal tx, qreal ty);
-    void translate(const QPointF &offset);
+    void translate(const PkPointF &offset);
 
     /**
      * Transforms all the polygons belonging to the outline.
@@ -83,17 +84,17 @@ public:
      * no polygons are transformed until the final iteration
      * over them.
      */
-    void map(const QTransform &t);
+    void map(const PkTransform &t);
 
     /**
      * A helper function for \see map()
      */
-    KisOptimizedBrushOutline mapped(const QTransform &t) const;
+    KisOptimizedBrushOutline mapped(const PkTransform &t) const;
 
     /**
      * Begins iteration over the polygons contained in the
      * brush outline. KisOptimizedBrushOutline will never return
-     * a constructed QVector of the polygons, because it may
+     * a constructed PkVector of the polygons, because it may
      * require too many memory allocations.
      *
      * One cannot change the internal polygon, because the
@@ -108,11 +109,11 @@ public:
     const_iterator end() const;
 
 private:
-    QVector<QPolygonF> m_subpaths;
-    QVector<QPolygonF> m_additionalDecorations;
-    std::optional<QRectF> m_explicitBounds;
-    QTransform m_transform;
-    mutable QRectF m_cachedBoundingRect;
+    PkVector<PkPolygonF> m_subpaths;
+    PkVector<PkPolygonF> m_additionalDecorations;
+    std::optional<PkRectF> m_explicitBounds;
+    PkTransform m_transform;
+    mutable PkRectF m_cachedBoundingRect;
 };
 
 #endif // KISOPTIMIZEDBRUSHOUTLINE_H

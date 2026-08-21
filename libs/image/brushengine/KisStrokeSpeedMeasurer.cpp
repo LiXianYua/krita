@@ -6,8 +6,8 @@
 
 #include "KisStrokeSpeedMeasurer.h"
 
-#include <QQueue>
-#include <QVector>
+#include <PkPoint.h>
+#include <PkList.h>
 
 #include "kis_global.h"
 
@@ -23,14 +23,14 @@ struct KisStrokeSpeedMeasurer::Private
 
     int timeSmoothWindow = 0;
 
-    QList<StrokeSample> samples;
-    QPointF lastSamplePos;
+    PkList<StrokeSample> samples;
+    PkPointF lastSamplePos;
     int startTime = 0;
 
     qreal maxSpeed = 0;
 
     void purgeOldSamples();
-    void addSampleImpl(const QPointF &pt, int time);
+    void addSampleImpl(const PkPointF &pt, int time);
 };
 
 KisStrokeSpeedMeasurer::KisStrokeSpeedMeasurer(int timeSmoothWindow)
@@ -43,7 +43,7 @@ KisStrokeSpeedMeasurer::~KisStrokeSpeedMeasurer()
 {
 }
 
-void KisStrokeSpeedMeasurer::Private::addSampleImpl(const QPointF &pt, int time)
+void KisStrokeSpeedMeasurer::Private::addSampleImpl(const PkPointF &pt, int time)
 {
     if (samples.isEmpty()) {
         lastSamplePos = pt;
@@ -63,14 +63,14 @@ void KisStrokeSpeedMeasurer::Private::addSampleImpl(const QPointF &pt, int time)
     }
 }
 
-void KisStrokeSpeedMeasurer::addSample(const QPointF &pt, int time)
+void KisStrokeSpeedMeasurer::addSample(const PkPointF &pt, int time)
 {
     m_d->addSampleImpl(pt, time);
     m_d->purgeOldSamples();
     sampleMaxSpeed();
 }
 
-void KisStrokeSpeedMeasurer::addSamples(const QVector<QPointF> &points, int time)
+void KisStrokeSpeedMeasurer::addSamples(const PkVector<PkPointF> &points, int time)
 {
     const int lastSampleTime = !m_d->samples.isEmpty() ? m_d->samples.last().time : 0;
 
@@ -145,7 +145,7 @@ qreal KisStrokeSpeedMeasurer::maxSpeed() const
 void KisStrokeSpeedMeasurer::reset()
 {
     m_d->samples.clear();
-    m_d->lastSamplePos = QPointF();
+    m_d->lastSamplePos = PkPointF();
     m_d->startTime = 0;
     m_d->maxSpeed = 0;
 }

@@ -7,7 +7,7 @@
 #ifndef __KIS_STROKE_RANDOM_SOURCE_H
 #define __KIS_STROKE_RANDOM_SOURCE_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "kritaimage_export.h"
 #include "kis_random_source.h"
@@ -38,7 +38,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_STROKE_RANDOM_SOURCE_H */

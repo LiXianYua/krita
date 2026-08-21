@@ -14,7 +14,7 @@ KisCallbackBasedPaintopProperty<ParentClass>::KisCallbackBasedPaintopProperty(ty
                                                                               typename ParentClass::SubType subType,
                                                                               const KoID &id,
                                                                               KisPaintOpSettingsRestrictedSP settings,
-                                                                              QObject *parent)
+                                                                              PkObject *parent)
     : ParentClass(type, subType, id, settings, parent)
 {
 }
@@ -23,13 +23,13 @@ template<class ParentClass>
 KisCallbackBasedPaintopProperty<ParentClass>::KisCallbackBasedPaintopProperty(typename ParentClass::Type type,
                                                                               const KoID &id,
                                                                               KisPaintOpSettingsRestrictedSP settings,
-                                                                              QObject *parent)
+                                                                              PkObject *parent)
     : ParentClass(type, id, settings, parent)
 {
 }
 
 template<class ParentClass>
-KisCallbackBasedPaintopProperty<ParentClass>::KisCallbackBasedPaintopProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
+KisCallbackBasedPaintopProperty<ParentClass>::KisCallbackBasedPaintopProperty(const KoID &id, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
     : ParentClass(id, settings, parent)
 {
 }
