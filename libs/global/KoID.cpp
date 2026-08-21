@@ -9,26 +9,9 @@
 
 #include "KoID.h"
 
-KoID::TranslatedString::TranslatedString(
-    const boost::optional<KLocalizedString> &source)
-    : PkString(!source->isEmpty() ? source->toString() : PkString())
-{
-}
-
-KoID::TranslatedString::TranslatedString(const PkString &value)
-    : PkString(value)
-{
-}
-
-KoID::KoIDPrivate::KoIDPrivate(PkString _id, const KLocalizedString &_name)
-    : id(std::move(_id))
-    , name(_name)
-{
-}
-
 KoID::KoIDPrivate::KoIDPrivate(PkString _id, const PkString &_name)
     : id(std::move(_id))
-    , name(StorageType::init_value_tag(), _name)
+    , name(_name)
 {
 }
 
@@ -38,11 +21,6 @@ KoID::KoID()
 }
 
 KoID::KoID(const PkString &id, const PkString &name)
-    : m_d(new KoIDPrivate(id, name))
-{
-}
-
-KoID::KoID(const PkString &id, const KLocalizedString &name)
     : m_d(new KoIDPrivate(id, name))
 {
 }
@@ -67,5 +45,5 @@ PkString KoID::id() const
 
 PkString KoID::name() const
 {
-    return *m_d->name;
+    return m_d->name;
 }

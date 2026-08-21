@@ -15,10 +15,7 @@
 #include <PkString.h>
 #include <PkSharedPointer.h>
 
-#include <boost/optional.hpp>
 #include <utility>
-
-#include <KisLazyStorage.h>
 
 #include "kritaglobal_export.h"
 
@@ -29,47 +26,22 @@
 class KRITAGLOBAL_EXPORT KoID
 {
 private:
-    struct TranslatedString : public PkString
-    {
-        TranslatedString(const boost::optional<KLocalizedString> &source);
-
-        TranslatedString(const PkString &value);
-    };
-
-    using StorageType =
-        KisLazyStorage<TranslatedString,
-        boost::optional<KLocalizedString>>;
-
     struct KoIDPrivate {
-        KoIDPrivate(PkString _id, const KLocalizedString &_name);
-
         KoIDPrivate(PkString _id, const PkString &_name);
 
         PkString id;
-        StorageType name;
+        PkString name;
     };
 
 public:
     KoID();
 
     /**
-     * Construct a KoID with the given id, and name, id is the untranslated
-     * official name of the id, name should be translatable as it will be used
-     * in the UI.
-     *
-     * @code
-     * KoID("id", i18n("name"))
-     * @endcode
+     * Construct a KoID with the given id, and name. The id is the untranslated
+     * official name of the resource; name is the human-visible string used in
+     * the UI.
      */
     explicit KoID(const PkString &id, const PkString &name = PkString());
-
-    /**
-     * Use this constructor for static KoID. as KoID("id", ki18n("name"));
-     * the name will be translated the first time it is needed. This is
-     * important because static objects are constructed before translations
-     * are initialized.
-     */
-    explicit KoID(const PkString &id, const KLocalizedString &name);
 
     KoID(const KoID &rhs);
 
@@ -93,8 +65,6 @@ private:
     PkSharedPointer<KoIDPrivate> m_d;
 };
 
-Q_DECLARE_METATYPE(KoID)
-
 inline bool operator==(const KoID &v1, const KoID &v2)
 {
     return v1.m_d == v2.m_d || v1.m_d->id == v2.m_d->id;
@@ -112,7 +82,7 @@ inline bool operator<(const KoID &v1, const KoID &v2)
 
 inline bool operator>(const KoID &v1, const KoID &v2)
 {
-    return v1.m_d->id > v2.m_d->id;;
+    return v2.m_d->id < v1.m_d->id;
 }
 
 inline PkDebug operator<<(PkDebug dbg, const KoID &id)
