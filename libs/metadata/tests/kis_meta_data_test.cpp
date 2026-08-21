@@ -18,6 +18,9 @@
 #include "kis_meta_data_parser.h"
 #include "kis_meta_data_validator.h"
 
+#include <PkVariant.h>
+#include <PkStringHash.h>
+
 #include <kistest.h>
 
 using namespace KisMetaData;
@@ -39,8 +42,10 @@ KisMetaData::Value KisMetaDataTest::createStringValue()
 
 KisMetaData::Value KisMetaDataTest::createListValue()
 {
-    QList<Value> list;
-    list << createRationalValue() << createIntegerValue() << createStringValue();
+    PkList<Value> list;
+    list.append(createRationalValue());
+    list.append(createIntegerValue());
+    list.append(createStringValue());
     return list;
 }
 
@@ -53,7 +58,7 @@ KisMetaData::Value KisMetaDataTest::createListValue()
         QCOMPARE(schema, SchemaRegistry::instance()->schemaFromPrefix(schema->prefix()) ); \
         QVERIFY( !SchemaRegistry::instance()->create("http://tartampion.com", schema->prefix())); \
         QCOMPARE(schema, SchemaRegistry::instance()->create(KisMetaData::Schema::uriStr, "tartampion")); \
-        QCOMPARE(QString(schema->prefix() + ":hello"), schema->generateQualifiedName("hello")); \
+        QCOMPARE(schema->prefix() + PkString(":hello"), schema->generateQualifiedName("hello")); \
     }
 
 
@@ -109,7 +114,7 @@ void KisMetaDataTest::testValueCreation()
     {
         Value v("Hello World !");
         QCOMPARE(v.type(), Value::Variant);
-        QCOMPARE(v.asVariant().toString(), QString("Hello World !"));
+        QCOMPARE(v.asVariant().toString(), PkString("Hello World !"));
         QCOMPARE(createStringValue().type(), Value::Variant);
     }
     {
@@ -131,8 +136,10 @@ void KisMetaDataTest::testValueCreation()
         QCOMPARE(v.asDouble(), 42.0 / 12.0);
     }
     {
-        QList<Value> list;
-        list << createRationalValue() << createIntegerValue() << createStringValue();
+        PkList<Value> list;
+        list.append(createRationalValue());
+        list.append(createIntegerValue());
+        list.append(createStringValue());
         Value v(list);
         QCOMPARE(v.type(), Value::OrderedArray);
         QVERIFY(v.isArray());
@@ -140,17 +147,17 @@ void KisMetaDataTest::testValueCreation()
         QCOMPARE(createListValue().type(), Value::OrderedArray);
     }
     {
-        Value v(QList<Value>(), Value::OrderedArray);
+        Value v(PkList<Value>(), Value::OrderedArray);
         QCOMPARE(v.type(), Value::OrderedArray);
         QVERIFY(v.isArray());
     }
     {
-        Value v(QList<Value>(), Value::UnorderedArray);
+        Value v(PkList<Value>(), Value::UnorderedArray);
         QCOMPARE(v.type(), Value::UnorderedArray);
         QVERIFY(v.isArray());
     }
     {
-        Value v(QList<Value>(), Value::AlternativeArray);
+        Value v(PkList<Value>(), Value::AlternativeArray);
         QCOMPARE(v.type(), Value::AlternativeArray);
         QVERIFY(v.isArray());
     }
@@ -188,7 +195,7 @@ void KisMetaDataTest::testEntry()
     Value v2 = createIntegerValue(12);
     Entry e(schema, "test", v1);
     QVERIFY(schema);
-    QCOMPARE(e.name(), QString("test"));
+    QCOMPARE(e.name(), PkString("test"));
     QCOMPARE(e.schema(), schema);
     QCOMPARE(e.qualifiedName(), schema->generateQualifiedName("test"));
     QCOMPARE(e.value(), v1);
@@ -234,8 +241,8 @@ void KisMetaDataTest::testFilters()
         s.addEntry(Entry(psSchema, "Credit", Value("somevalue")));
         s.addEntry(Entry(psSchema, "City", Value("somevalue")));
         s.addEntry(Entry(psSchema, "Country", Value("somevalue")));
-        QList<const KisMetaData::Filter*> filters;
-        filters << filter;
+        PkList<const KisMetaData::Filter*> filters;
+        filters.append(filter);
         s.applyFilters(filters);
         QVERIFY(!s.containsEntry(dcSchema, "contributor"));
         QVERIFY(!s.containsEntry(dcSchema, "creator"));
@@ -278,7 +285,7 @@ void KisMetaDataTest::testTypeInfo()
     QVERIFY(TypeInfo::Private::Date->propertyType() == TypeInfo::DateType);
     QVERIFY(TypeInfo::Private::Date->embeddedPropertyType() == 0);
     QVERIFY(TypeInfo::Private::Date->choices().size() == 0);
-    QVERIFY(TypeInfo::Private::Date->hasCorrectType(Value(QDateTime())));
+    QVERIFY(TypeInfo::Private::Date->hasCorrectType(Value(PkDateTime())));
     QVERIFY(!TypeInfo::Private::Date->hasCorrectType(createIntegerValue()));
     QVERIFY(!TypeInfo::Private::Date->hasCorrectType(createStringValue()));
     QVERIFY(!TypeInfo::Private::Date->hasCorrectType(createListValue()));
@@ -300,10 +307,10 @@ void KisMetaDataTest::testTypeInfo()
     QVERIFY(TypeInfo::Private::LangArray->choices().size() == 0);
 
     // Create List of integer Value
-    QList< Value > goodIntegerList;
+    PkList< Value > goodIntegerList;
     goodIntegerList.push_back(createIntegerValue());
     goodIntegerList.push_back(createIntegerValue(12));
-    QList< Value > badIntegerList;
+    PkList< Value > badIntegerList;
     badIntegerList.push_back(createIntegerValue());
     badIntegerList.push_back(createStringValue());
     badIntegerList.push_back(createIntegerValue(12));
@@ -363,7 +370,7 @@ void KisMetaDataTest::testTypeInfo()
     QVERIFY(!arrAA1->hasCorrectType(Value(badIntegerList, Value::AlternativeArray)));
 
     // Test Choice
-    QList< TypeInfo::Choice > choices;
+    PkList< TypeInfo::Choice > choices;
     choices.push_back(TypeInfo::Choice(Value(12), "Hello"));
     choices.push_back(TypeInfo::Choice(Value(42), "World"));
     const TypeInfo* oChoice = TypeInfo::Private::createChoice(TypeInfo::OpenedChoice, TypeInfo::Private::Integer, choices);
@@ -455,34 +462,34 @@ void KisMetaDataTest::testParser()
     Value intV = TypeInfo::Private::Integer->parser()->parse("1242");
     QVERIFY(intV.type() == Value::Variant);
     QVERIFY(intV.asVariant() == 1242);
-    QVERIFY(intV.asVariant().type() == QMetaType::Int);
+    QVERIFY(intV.asVariant().type() == PkVariant::Int);
 
     Value textV = TypeInfo::Private::Text->parser()->parse("Bouh");
     QVERIFY(textV.type() == Value::Variant);
     QVERIFY(textV.asVariant() == "Bouh");
-    QVERIFY(textV.asVariant().type() == QMetaType::QString);
+    QVERIFY(textV.asVariant().type() == PkVariant::String);
 
     Value dateV1 = TypeInfo::Private::Date->parser()->parse("2005-10-31");
     QVERIFY(dateV1.type() == Value::Variant);
-    QDateTime d1 = dateV1.asVariant().toDateTime();
+    PkDateTime d1 = dateV1.asVariant().toDateTime();
     QVERIFY(d1.date().year() == 2005);
     QVERIFY(d1.date().month() == 10);
     QVERIFY(d1.date().day() == 31);
 
     Value dateV2 = TypeInfo::Private::Date->parser()->parse("2005");
     QVERIFY(dateV2.type() == Value::Variant);
-    QDateTime d2 = dateV2.asVariant().toDateTime();
+    PkDateTime d2 = dateV2.asVariant().toDateTime();
     QVERIFY(d2.date().year() == 2005);
 
     Value dateV3 = TypeInfo::Private::Date->parser()->parse("2005-12");
     QVERIFY(dateV3.type() == Value::Variant);
-    QDateTime d3 = dateV3.asVariant().toDateTime();
+    PkDateTime d3 = dateV3.asVariant().toDateTime();
     QVERIFY(d3.date().year() == 2005);
     QVERIFY(d3.date().month() == 12);
 
     Value dateV4 = TypeInfo::Private::Date->parser()->parse("2005-10-31T12:20");
     QVERIFY(dateV4.type() == Value::Variant);
-    QDateTime d4 = dateV4.asVariant().toDateTime();
+    PkDateTime d4 = dateV4.asVariant().toDateTime();
     QVERIFY(d4.date().year() == 2005);
     QVERIFY(d4.date().month() == 10);
     QVERIFY(d4.date().day() == 31);
@@ -491,7 +498,7 @@ void KisMetaDataTest::testParser()
 
     Value dateV5 = TypeInfo::Private::Date->parser()->parse("2005-10-31T12:20:32");
     QVERIFY(dateV5.type() == Value::Variant);
-    QDateTime d5 = dateV5.asVariant().toDateTime();
+    PkDateTime d5 = dateV5.asVariant().toDateTime();
     QVERIFY(d5.date().year() == 2005);
     QVERIFY(d5.date().month() == 10);
     QVERIFY(d5.date().day() == 31);
