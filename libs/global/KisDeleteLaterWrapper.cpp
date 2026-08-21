@@ -4,7 +4,9 @@
 
 #include "KisDeleteLaterWrapper.h"
 
+#include <PkThread.h>
+
 void KisDeleteLaterWrapperPrivate::moveToGuiThread(PkObject *object)
 {
-    object->moveToThread(qApp->thread());
+    object->moveToThread(PkThread::mainThreadId());
 }

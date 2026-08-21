@@ -57,4 +57,21 @@ if(BUILD_TESTING)
     endif()
     set_target_properties(kritaglobal_file_io_test PROPERTIES AUTOMOC OFF)
     add_test(NAME libs-global-KisGlobalFileIoTest COMMAND kritaglobal_file_io_test)
+
+    add_executable(kritaglobal_delete_later_test
+        KisDeleteLaterWrapperTest.cpp
+        ../KisDeleteLaterWrapper.cpp
+    )
+    target_include_directories(kritaglobal_delete_later_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/..
+        ${CMAKE_CURRENT_BINARY_DIR}/..
+        ${CMAKE_SOURCE_DIR}/pk/concurrent
+        ${CMAKE_SOURCE_DIR}/pk/signal
+    )
+    target_link_libraries(kritaglobal_delete_later_test PRIVATE
+        pksignal
+        pkconcurrent
+    )
+    set_target_properties(kritaglobal_delete_later_test PROPERTIES AUTOMOC OFF)
+    add_test(NAME libs-global-KisDeleteLaterWrapperTest COMMAND kritaglobal_delete_later_test)
 endif()
