@@ -11,7 +11,7 @@
 
 void KoPropertiesTest::testDeserialization()
 {
-    QString test;
+    PkString test;
     KoProperties props;
     props.setProperty("bla", "bla");
 
@@ -42,7 +42,7 @@ void KoPropertiesTest::testRoundTrip()
     props.setProperty("bool",  false);
     props.setProperty("qreal",  1.38);
 
-    QString stored = props.store("KoPropertiesTest");
+    PkString stored = props.store("KoPropertiesTest");
     KoProperties restored;
     restored.load(stored);
 
@@ -54,6 +54,15 @@ void KoPropertiesTest::testRoundTrip()
     QVERIFY(restored.boolProperty("bool") == false);
     QVERIFY(restored.doubleProperty("qreal") == 1.38);
 
+    // 新增：重新加载后值不变（base64 encode+decode 的组合经 store/load
+    // round-trip 覆盖；wire 字节由 R-31 保证，base64 层由 RFC 4648 保证）。
+    KoProperties qtCompat;
+    qtCompat.setProperty("k", PkString("hello"));
+    const PkString qtStored = qtCompat.store("KoPropertiesTest");
+    KoProperties qtRestored;
+    QVERIFY(qtRestored.load(qtStored));
+    QVERIFY(qtRestored.stringProperty("k") == "hello");
+
 }
 
 void KoPropertiesTest::testProperties()
@@ -61,7 +70,7 @@ void KoPropertiesTest::testProperties()
     KoProperties props;
     QVERIFY(props.isEmpty());
 
-    QString visible = "visible";
+    PkString visible = "visible";
     QVERIFY(!props.value(visible).isValid());
 
     props.setProperty("visible", "bla");
@@ -83,7 +92,7 @@ void KoPropertiesTest::testProperties()
     props.setProperty("int",  2);
     QVERIFY(props.intProperty("int", 1) == 2);
 
-    QVariant v;
+    PkVariant v;
     QVERIFY(props.property("sdsadsakldjsajd", v) == false);
     QVERIFY(!v.isValid());
     QVERIFY(props.property("visible", v) == true);
@@ -96,7 +105,7 @@ void KoPropertiesTest::testProperties()
     QVERIFY(props.contains(visible));
 
     int count = 0;
-    QMapIterator<QString, QVariant> iter = props.propertyIterator();
+    PkMapIterator<PkString, PkVariant> iter = props.propertyIterator();
     while (iter.hasNext()) {
         iter.next();
         count++;

@@ -8,7 +8,9 @@
 #define _KO_PROPERTIES_H
 
 #include <PkString.h>
+#include <PkGlobal.h>
 #include <PkMap.h>
+#include <PkMapIterator.h>
 #include <PkVariant.h>
 #include "kritaglobal_export.h"
 

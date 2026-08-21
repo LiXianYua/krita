@@ -8,10 +8,67 @@
 #include "KoProperties.h"
 
 #include <PkXmlDocument.h>
+#include <PkDataStream.h>
 
 #include <PkStream.h>
 
-class Q_DECL_HIDDEN KoProperties::Private
+#include <cstdint>
+
+namespace {
+
+const char kB64Alphabet[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+std::string pkBase64Encode(const PkByteArray &data)
+{
+    std::string out;
+    const char *src = data.constData();
+    const int len = data.size();
+    for (int i = 0; i < len; i += 3) {
+        const unsigned int n =
+            (static_cast<unsigned char>(src[i]) << 16) |
+            (i + 1 < len ? static_cast<unsigned char>(src[i + 1]) << 8 : 0u) |
+            (i + 2 < len ? static_cast<unsigned char>(src[i + 2]) : 0u);
+        out.push_back(kB64Alphabet[(n >> 18) & 0x3f]);
+        out.push_back(kB64Alphabet[(n >> 12) & 0x3f]);
+        out.push_back(i + 1 < len ? kB64Alphabet[(n >> 6) & 0x3f] : '=');
+        out.push_back(i + 2 < len ? kB64Alphabet[n & 0x3f] : '=');
+    }
+    return out;
+}
+
+int pkBase64Value(char c)
+{
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    if (c >= '0' && c <= '9') return c - '0' + 52;
+    if (c == '+') return 62;
+    if (c == '/') return 63;
+    return -1;
+}
+
+PkByteArray pkBase64Decode(const std::string &s)
+{
+    std::vector<unsigned char> out;
+    unsigned int buf = 0;
+    int bits = 0;
+    for (char c : s) {
+        if (c == '=') break;            // padding 终止，对齐 Qt
+        const int v = pkBase64Value(c);
+        if (v < 0) break;               // Qt 在首个非法字符处停止
+        buf = (buf << 6) | static_cast<unsigned int>(v);
+        bits += 6;
+        if (bits >= 8) {
+            bits -= 8;
+            out.push_back(static_cast<unsigned char>((buf >> bits) & 0xff));
+        }
+    }
+    return PkByteArray(out);
+}
+
+} // namespace
+
+class KoProperties::Private
 {
 public:
     PkMap<PkString, PkVariant> properties;
@@ -58,7 +115,7 @@ void  KoProperties::load(const PkXmlElement &root)
                 const PkString name = e.attribute("name");
                 const PkString type = e.attribute("type");
                 const PkString value = e.text();
-                PkDataStream in(PkByteArray::fromBase64(value.toLatin1()));
+                PkDataStream in(pkBase64Decode(value.PkToUtf8()));
                 PkVariant v;
                 in >> v;
                 d->properties[name] = v;
@@ -85,14 +142,15 @@ void KoProperties::save(PkXmlElement &root) const
     PkMap<PkString, PkVariant>::Iterator it;
     for (it = d->properties.begin(); it != d->properties.end(); ++it) {
         PkXmlElement e = doc.createElement("property");
-        e.setAttribute("name", PkString(it.key().toLatin1()));
+        e.setAttribute("name", it.key());
         PkVariant v = it.value();
         e.setAttribute("type", v.typeName());
 
         PkByteArray bytes;
         PkDataStream out(&bytes, PkStream::WriteOnly);
         out << v;
-        PkXmlText text = doc.createCDATASection(PkString::fromLatin1(bytes.toBase64()));
+        const std::string b64 = pkBase64Encode(bytes);
+        PkXmlText text = doc.createCDATASection(PkString(b64.c_str()));
         e.appendChild(text);
         root.appendChild(e);
     }
