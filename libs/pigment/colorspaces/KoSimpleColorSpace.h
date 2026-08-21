@@ -7,7 +7,9 @@
 #ifndef KOSIMPLECOLORSPACE_H
 #define KOSIMPLECOLORSPACE_H
 
-#include <QColor>
+#include <PkColor.h>
+#include <PkString.h>
+#include <PkVector.h>
 
 #include "DebugPigment.h"
 
@@ -22,8 +24,8 @@ class KoSimpleColorSpace : public KoColorSpaceAbstract<_CSTraits>
 
 public:
 
-    KoSimpleColorSpace(const QString& id,
-                       const QString& name,
+    KoSimpleColorSpace(const PkString& id,
+                       const PkString& name,
                        const KoID& colorModelId,
                        const KoID& colorDepthId)
             : KoColorSpaceAbstract<_CSTraits>(id, name)
@@ -57,14 +59,14 @@ public:
     quint8 difference(const quint8 *src1, const quint8 *src2) const override {
         Q_UNUSED(src1);
         Q_UNUSED(src2);
-        warnPigment << i18n("Undefined operation in the %1 space", m_name);
+        warnPigment << PkString("Undefined operation in the %1 space").arg(m_name);
         return 0;
     }
 
     quint8 differenceA(const quint8 *src1, const quint8 *src2) const override {
         Q_UNUSED(src1);
         Q_UNUSED(src2);
-        warnPigment << i18n("Undefined operation in the %1 space", m_name);
+        warnPigment << PkString("Undefined operation in the %1 space").arg(m_name);
         return 0;
     }
 
@@ -81,51 +83,51 @@ public:
     }
 
     KoColorTransformation* createBrightnessContrastAdjustment(const quint16*) const override {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
         return 0;
     }
 
     virtual KoColorTransformation* createDesaturateAdjustment() const {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
         return 0;
     }
 
     KoColorTransformation* createPerChannelAdjustment(const quint16* const*) const override {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
         return 0;
     }
 
     KoColorTransformation *createDarkenAdjustment(qint32 , bool , qreal) const override {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
         return 0;
     }
 
     virtual void invertColor(quint8*, qint32) const {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
     }
 
-    void colorToXML(const quint8* , QDomDocument& , QDomElement&) const override {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
+    void colorToXML(const quint8* , PkXmlDocument& , PkXmlElement&) const override {
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
     }
 
-    void colorFromXML(quint8* , const QDomElement&) const override {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
+    void colorFromXML(quint8* , const PkXmlElement&) const override {
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
     }
-    void toHSY(const QVector<double> &, qreal *, qreal *, qreal *) const override {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
+    void toHSY(const PkVector<double> &, qreal *, qreal *, qreal *) const override {
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
     }
-    QVector <double> fromHSY(qreal *, qreal *, qreal *) const override {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
-        QVector <double> channelValues (2);
+    PkVector <double> fromHSY(qreal *, qreal *, qreal *) const override {
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
+        PkVector <double> channelValues (2);
         channelValues.fill(0.0);
         return channelValues;
     }
-    void toYUV(const QVector<double> &, qreal *, qreal *, qreal *) const override {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
+    void toYUV(const PkVector<double> &, qreal *, qreal *, qreal *) const override {
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
     }
-    QVector <double> fromYUV(qreal *, qreal *, qreal *) const override {
-        warnPigment << i18n("Undefined operation in the %1 color space", m_name);
-        QVector <double> channelValues (2);
+    PkVector <double> fromYUV(qreal *, qreal *, qreal *) const override {
+        warnPigment << PkString("Undefined operation in the %1 color space").arg(m_name);
+        PkVector <double> channelValues (2);
         channelValues.fill(0.0);
         return channelValues;
     }
@@ -183,7 +185,7 @@ public:
         Q_UNUSED(renderingIntent);
         Q_UNUSED(conversionFlags);
 
-        QColor c;
+        PkColor c;
         quint32 srcPixelsize = this->pixelSize();
         quint32 dstPixelsize = dstColorSpace->pixelSize();
 
@@ -201,12 +203,12 @@ public:
     }
 
 
-    virtual QString colorSpaceEngine() const {
+    virtual PkString colorSpaceEngine() const {
         return "simple";
     }
 
 private:
-    QString m_name;
+    PkString m_name;
     KoID m_colorModelId;
     KoID m_colorDepthId;
     KoColorProfile* m_profile;

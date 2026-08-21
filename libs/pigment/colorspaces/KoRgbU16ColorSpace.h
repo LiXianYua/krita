@@ -7,7 +7,9 @@
 #ifndef KORGBU16COLORSPACE_H
 #define KORGBU16COLORSPACE_H
 
-#include <QColor>
+#include <PkColor.h>
+#include <PkString.h>
+#include <PkVector.h>
 
 #include "KoSimpleColorSpace.h"
 #include "KoSimpleColorSpaceFactory.h"
@@ -27,22 +29,22 @@ public:
     KoRgbU16ColorSpace();
     ~KoRgbU16ColorSpace() override;
 
-    static QString colorSpaceId();
+    static PkString colorSpaceId();
 
     virtual KoColorSpace* clone() const;
 
-    void fromQColor(const QColor& color, quint8 *dst) const override;
+    void fromQColor(const PkColor& color, quint8 *dst) const override;
 
-    void toQColor(const quint8 *src, QColor *c) const override;
+    void toQColor(const quint8 *src, PkColor *c) const override;
     
-    void toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
-    QVector <double> fromHSY(qreal *hue, qreal *sat, qreal *luma) const override;
-    void toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
-    QVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
+    void toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
+    PkVector <double> fromHSY(qreal *hue, qreal *sat, qreal *luma) const override;
+    void toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
+    PkVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
 
-    void fillGrayBrushWithColorAndLightnessOverlay(quint8 *dst, const QRgb *brush, quint8 *brushColor, qint32 nPixels) const override;
-    void fillGrayBrushWithColorAndLightnessWithStrength(quint8* dst, const QRgb* brush, quint8* brushColor, qreal strength, qint32 nPixels) const override;
-    void modulateLightnessByGrayBrush(quint8 *dst, const QRgb *brush, qreal strength, qint32 nPixels) const override;
+    void fillGrayBrushWithColorAndLightnessOverlay(quint8 *dst, const PkRgb *brush, quint8 *brushColor, qint32 nPixels) const override;
+    void fillGrayBrushWithColorAndLightnessWithStrength(quint8* dst, const PkRgb* brush, quint8* brushColor, qreal strength, qint32 nPixels) const override;
+    void modulateLightnessByGrayBrush(quint8 *dst, const PkRgb *brush, qreal strength, qint32 nPixels) const override;
 
 };
 
@@ -52,7 +54,7 @@ class KoRgbU16ColorSpaceFactory : public KoSimpleColorSpaceFactory
 public:
     KoRgbU16ColorSpaceFactory()
             : KoSimpleColorSpaceFactory(KoRgbU16ColorSpace::colorSpaceId(),
-                                        i18n("RGB (16-bit integer/channel, unmanaged)"),
+                                        PkString("RGB (16-bit integer/channel, unmanaged)"),
                                         true,
                                         RGBAColorModelID,
                                         Integer16BitsColorDepthID) {

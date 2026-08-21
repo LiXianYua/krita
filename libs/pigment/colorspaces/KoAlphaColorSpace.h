@@ -6,7 +6,10 @@
 #ifndef KOALPHACOLORSPACE_H
 #define KOALPHACOLORSPACE_H
 
-#include <QColor>
+#include <PkColor.h>
+#include <PkString.h>
+#include <PkVector.h>
+#include <PkBitArray.h>
 
 #include "DebugPigment.h"
 #include "kritapigment_export.h"
@@ -32,16 +35,16 @@ typedef KoColorSpaceTrait<quint16, 1, 0> AlphaU16Traits;
 typedef KoColorSpaceTrait<float, 1, 0> AlphaF32Traits;
 
 template <typename channel_type> KoID alphaIdFromChannelType();
-template <> inline KoID alphaIdFromChannelType<quint8>() { return KoID("ALPHA", i18n("Alpha (8-bit integer)")); }
-template <> inline KoID alphaIdFromChannelType<quint16>() { return KoID("ALPHAU16", i18n("Alpha (16-bit integer)")); }
-template <> inline KoID alphaIdFromChannelType<float>() { return KoID("ALPHAF32", i18n("Alpha (32-bit floating point)")); }
+template <> inline KoID alphaIdFromChannelType<quint8>() { return KoID("ALPHA", PkString("Alpha (8-bit integer)")); }
+template <> inline KoID alphaIdFromChannelType<quint16>() { return KoID("ALPHAU16", PkString("Alpha (16-bit integer)")); }
+template <> inline KoID alphaIdFromChannelType<float>() { return KoID("ALPHAF32", PkString("Alpha (32-bit floating point)")); }
 
 #ifdef HAVE_OPENEXR
 typedef KoColorSpaceTrait<half, 1, 0> AlphaF16Traits;
-template <> inline KoID alphaIdFromChannelType<half>() { return KoID("ALPHAF16", i18n("Alpha (16-bit floating point)")); }
+template <> inline KoID alphaIdFromChannelType<half>() { return KoID("ALPHAF16", PkString("Alpha (16-bit floating point)")); }
 #endif
 
-class QBitArray;
+class PkBitArray;
 
 /**
  * The alpha mask is a special color strategy that treats all pixels as
@@ -62,7 +65,7 @@ public:
 
     ~KoAlphaColorSpaceImpl() override;
 
-    static QString colorSpaceId() {
+    static PkString colorSpaceId() {
         return alphaIdFromChannelType<channels_type>().id();
     }
 
@@ -85,9 +88,9 @@ public:
         return false;
     }
 
-    void fromQColor(const QColor& color, quint8 *dst) const override;
+    void fromQColor(const PkColor& color, quint8 *dst) const override;
 
-    void toQColor(const quint8 *src, QColor *c) const override;
+    void toQColor(const quint8 *src, PkColor *c) const override;
 
     quint8 difference(const quint8 *src1, const quint8 *src2) const override;
     quint8 differenceA(const quint8 *src1, const quint8 *src2) const override;
@@ -96,11 +99,11 @@ public:
         return 0;
     }
 
-    QString channelValueText(const quint8 *pixel, quint32 channelIndex) const override;
+    PkString channelValueText(const quint8 *pixel, quint32 channelIndex) const override;
 
-    QString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) const override;
+    PkString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) const override;
 
-    virtual void convolveColors(quint8** colors, qreal* kernelValues, quint8 *dst, qreal factor, qreal offset, qint32 nColors, const QBitArray & channelFlags) const;
+    virtual void convolveColors(quint8** colors, qreal* kernelValues, quint8 *dst, qreal factor, qreal offset, qint32 nColors, const PkBitArray & channelFlags) const;
 
     virtual quint32 colorSpaceType() const {
         return 0;
@@ -114,7 +117,7 @@ public:
         return m_profile;
     }
 
-    QImage convertToQImage(const quint8 *data, qint32 width, qint32 height,
+    PkImage convertToQImage(const quint8 *data, qint32 width, qint32 height,
                                    const KoColorProfile *  dstProfile,
                                    KoColorConversionTransformation::Intent renderingIntent,
                                    KoColorConversionTransformation::ConversionFlags conversionFlags) const override;
@@ -127,50 +130,50 @@ public:
 
     KoColorTransformation* createBrightnessContrastAdjustment(const quint16* transferValues) const override {
         Q_UNUSED(transferValues);
-        warnPigment << i18n("Undefined operation in the alpha color space");
+        warnPigment << PkString("Undefined operation in the alpha color space");
         return 0;
     }
 
     KoColorTransformation* createPerChannelAdjustment(const quint16* const*) const override {
-        warnPigment << i18n("Undefined operation in the alpha color space");
+        warnPigment << PkString("Undefined operation in the alpha color space");
         return 0;
     }
 
     KoColorTransformation *createDarkenAdjustment(qint32 , bool , qreal) const override {
-        warnPigment << i18n("Undefined operation in the alpha color space");
+        warnPigment << PkString("Undefined operation in the alpha color space");
         return 0;
     }
 
     virtual void invertColor(quint8*, qint32) const {
-        warnPigment << i18n("Undefined operation in the alpha color space");
+        warnPigment << PkString("Undefined operation in the alpha color space");
     }
 
-    void colorToXML(const quint8* , QDomDocument& , QDomElement&) const override {
-        warnPigment << i18n("Undefined operation in the alpha color space");
+    void colorToXML(const quint8* , PkXmlDocument& , PkXmlElement&) const override {
+        warnPigment << PkString("Undefined operation in the alpha color space");
     }
 
-    void colorFromXML(quint8* , const QDomElement&) const override {
-        warnPigment << i18n("Undefined operation in the alpha color space");
+    void colorFromXML(quint8* , const PkXmlElement&) const override {
+        warnPigment << PkString("Undefined operation in the alpha color space");
     }
 
-    void toHSY(const QVector<double> &, qreal *, qreal *, qreal *) const override {
-        warnPigment << i18n("Undefined operation in the alpha color space");
+    void toHSY(const PkVector<double> &, qreal *, qreal *, qreal *) const override {
+        warnPigment << PkString("Undefined operation in the alpha color space");
     }
 
-    QVector <double> fromHSY(qreal *, qreal *, qreal *) const override {
-        warnPigment << i18n("Undefined operation in the alpha color space");
-        QVector <double> channelValues (1);
+    PkVector <double> fromHSY(qreal *, qreal *, qreal *) const override {
+        warnPigment << PkString("Undefined operation in the alpha color space");
+        PkVector <double> channelValues (1);
         channelValues.fill(0.0);
         return channelValues;
     }
 
-    void toYUV(const QVector<double> &, qreal *, qreal *, qreal *) const override {
-        warnPigment << i18n("Undefined operation in the alpha color space");
+    void toYUV(const PkVector<double> &, qreal *, qreal *, qreal *) const override {
+        warnPigment << PkString("Undefined operation in the alpha color space");
     }
 
-    QVector <double> fromYUV(qreal *, qreal *, qreal *) const override {
-        warnPigment << i18n("Undefined operation in the alpha color space");
-        QVector <double> channelValues (1);
+    PkVector <double> fromYUV(qreal *, qreal *, qreal *) const override {
+        warnPigment << PkString("Undefined operation in the alpha color space");
+        PkVector <double> channelValues (1);
         channelValues.fill(0.0);
         return channelValues;
     }
@@ -210,7 +213,7 @@ public:
         return new KoAlphaColorSpaceImpl<_CSTrait>();
     }
 
-    QList<KoColorConversionTransformationFactory*> colorConversionLinks() const override;
+    PkList<KoColorConversionTransformationFactory*> colorConversionLinks() const override;
 };
 
 typedef KoAlphaColorSpaceFactoryImpl<AlphaU8Traits> KoAlphaColorSpaceFactory;

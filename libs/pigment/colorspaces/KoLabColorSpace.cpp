@@ -5,15 +5,15 @@
  *
  *  SPDX-License-Identifier: LGPL-2.1-or-later
  */
+#include <PkXmlCompat.h>
+
 #include "KoLabColorSpace.h"
 
 #include <limits.h>
 #include <stdlib.h>
 #include <math.h>
 
-#include <QBitArray>
-
-#include <klocalizedstring.h>
+#include <PkBitArray.h>
 
 #include "KoChannelInfo.h"
 #include "KoID.h"
@@ -25,14 +25,14 @@
 
 KoLabColorSpace::KoLabColorSpace() :
         KoSimpleColorSpace<KoLabU16Traits>(colorSpaceId(),
-                                           i18n("L*a*b* (16-bit integer/channel, unmanaged)"),
+                                           PkString("L*a*b* (16-bit integer/channel, unmanaged)"),
                                            LABAColorModelID,
                                            Integer16BitsColorDepthID)
 {
-    addChannel(new KoChannelInfo(i18nc("Lightness value in Lab color model", "Lightness"), CHANNEL_L     * sizeof(quint16), CHANNEL_L, KoChannelInfo::COLOR, KoChannelInfo::UINT16, sizeof(quint16), QColor(100, 100, 100)));
-    addChannel(new KoChannelInfo(i18n("a*"),        CHANNEL_A     * sizeof(quint16), CHANNEL_A, KoChannelInfo::COLOR, KoChannelInfo::UINT16, sizeof(quint16), QColor(150, 150, 150)));
-    addChannel(new KoChannelInfo(i18n("b*"),        CHANNEL_B     * sizeof(quint16), CHANNEL_B, KoChannelInfo::COLOR, KoChannelInfo::UINT16, sizeof(quint16), QColor(200, 200, 200)));
-    addChannel(new KoChannelInfo(i18n("Alpha"),     CHANNEL_ALPHA * sizeof(quint16), CHANNEL_ALPHA, KoChannelInfo::ALPHA, KoChannelInfo::UINT16, sizeof(quint16)));
+    addChannel(new KoChannelInfo(PkString("Lightness"), CHANNEL_L     * sizeof(quint16), CHANNEL_L, KoChannelInfo::COLOR, KoChannelInfo::UINT16, sizeof(quint16), PkColor(100, 100, 100)));
+    addChannel(new KoChannelInfo(PkString("a*"),        CHANNEL_A     * sizeof(quint16), CHANNEL_A, KoChannelInfo::COLOR, KoChannelInfo::UINT16, sizeof(quint16), PkColor(150, 150, 150)));
+    addChannel(new KoChannelInfo(PkString("b*"),        CHANNEL_B     * sizeof(quint16), CHANNEL_B, KoChannelInfo::COLOR, KoChannelInfo::UINT16, sizeof(quint16), PkColor(200, 200, 200)));
+    addChannel(new KoChannelInfo(PkString("Alpha"),     CHANNEL_ALPHA * sizeof(quint16), CHANNEL_ALPHA, KoChannelInfo::ALPHA, KoChannelInfo::UINT16, sizeof(quint16)));
 
     // ADD, ALPHA_DARKEN, BURN, DIVIDE, DODGE, ERASE, MULTIPLY, OVER, OVERLAY, SCREEN, SUBTRACT
     addStandardCompositeOps<KoLabU16Traits>(this);
@@ -44,9 +44,9 @@ KoLabColorSpace::~KoLabColorSpace()
 }
 
 
-QString KoLabColorSpace::colorSpaceId()
+PkString KoLabColorSpace::colorSpaceId()
 {
-    return QStringLiteral("LABA");
+    return PkString("LABA");
 }
 
 
@@ -55,14 +55,14 @@ KoColorSpace* KoLabColorSpace::clone() const
     return new KoLabColorSpace();
 }
 
-void KoLabColorSpace::fromQColor(const QColor& c, quint8 *dst) const
+void KoLabColorSpace::fromQColor(const PkColor& c, quint8 *dst) const
 {
     // Convert between RGB and CIE-Lab color spaces
     // Uses ITU-R recommendation BT.709 with D65 as reference white.
     // algorithm contributed by "Mark A. Ruzon" <ruzon@CS.Stanford.EDU>
 
     int R, G, B, A;
-    c.getRgb(&R, &G, &B, &A);
+    R = c.red(); G = c.green(); B = c.blue(); A = c.alpha();
 
     double X, Y, Z, fX, fY, fZ;
 
@@ -103,7 +103,7 @@ void KoLabColorSpace::fromQColor(const QColor& c, quint8 *dst) const
     dst[CHANNEL_ALPHA] = UINT8_TO_UINT16(A);
 }
 
-void KoLabColorSpace::toQColor(const quint8 * src, QColor *c) const
+void KoLabColorSpace::toQColor(const quint8 * src, PkColor *c) const
 {
     // Convert between RGB and CIE-Lab color spaces
     // Uses ITU-R recommendation BT.709 with D65 as reference white.
@@ -151,32 +151,32 @@ void KoLabColorSpace::toQColor(const quint8 * src, QColor *c) const
     quint8 G = GG < 0 ? 0 : GG > 255 ? 255 : GG;
     quint8 B = BB < 0 ? 0 : BB > 255 ? 255 : BB;
 
-    c->setRgba(qRgba(R, G, B, A));
+    c->setRgba(pkRgba(R, G, B, A));
 }
 
-void KoLabColorSpace::toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
+void KoLabColorSpace::toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const
 {
     LabToLCH(channelValues[0],channelValues[1],channelValues[2], luma, sat, hue);
 }
 
-QVector <double> KoLabColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
+PkVector <double> KoLabColorSpace::fromHSY(qreal *hue, qreal *sat, qreal *luma) const
 {
-    QVector <double> channelValues(4);
+    PkVector <double> channelValues(4);
     LCHToLab(*luma, *sat, *hue, &channelValues[0],&channelValues[1],&channelValues[2]);
     channelValues[3]=1.0;
     return channelValues;
 }
 
-void KoLabColorSpace::toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
+void KoLabColorSpace::toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const
 {
     *y =channelValues[0];
     *v=channelValues[1];
     *u=channelValues[2];
 }
 
-QVector <double> KoLabColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
+PkVector <double> KoLabColorSpace::fromYUV(qreal *y, qreal *u, qreal *v) const
 {
-    QVector <double> channelValues(4);
+    PkVector <double> channelValues(4);
     channelValues[0]=*y;
     channelValues[1]=*v;
     channelValues[2]=*u;
@@ -243,7 +243,7 @@ void KoLabColorSpace::convertChannelToVisualRepresentation(const quint8 *src, qu
     }
 }
 
-void KoLabColorSpace::convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const QBitArray selectedChannels) const
+void KoLabColorSpace::convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const PkBitArray selectedChannels) const
 {
     for (uint pixelIndex = 0; pixelIndex < nPixels; ++pixelIndex) {
         for (uint channelIndex = 0; channelIndex < ColorSpaceTraits::channels_nb; ++channelIndex) {

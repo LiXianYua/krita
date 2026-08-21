@@ -7,7 +7,10 @@
 #ifndef KOLABCOLORSPACE_H
 #define KOLABCOLORSPACE_H
 
-#include <QColor>
+#include <PkColor.h>
+#include <PkString.h>
+#include <PkVector.h>
+#include <PkBitArray.h>
 
 #include "KoSimpleColorSpace.h"
 #include "KoSimpleColorSpaceFactory.h"
@@ -27,21 +30,21 @@ public:
 
     ~KoLabColorSpace() override;
 
-    static QString colorSpaceId();
+    static PkString colorSpaceId();
 
     virtual KoColorSpace* clone() const;
 
-    void fromQColor(const QColor& color, quint8 *dst) const override;
+    void fromQColor(const PkColor& color, quint8 *dst) const override;
 
-    void toQColor(const quint8 *src, QColor *c) const override;
+    void toQColor(const quint8 *src, PkColor *c) const override;
     
-    void toHSY(const QVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
-    QVector <double> fromHSY(qreal *hue, qreal *sat, qreal *luma) const override;
-    void toYUV(const QVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
-    QVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
+    void toHSY(const PkVector<double> &channelValues, qreal *hue, qreal *sat, qreal *luma) const override;
+    PkVector <double> fromHSY(qreal *hue, qreal *sat, qreal *luma) const override;
+    void toYUV(const PkVector<double> &channelValues, qreal *y, qreal *u, qreal *v) const override;
+    PkVector <double> fromYUV(qreal *y, qreal *u, qreal *v) const override;
     quint8 scaleToU8(const quint8 * srcPixel, qint32 channelIndex) const override;
     void convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const qint32 selectedChannelIndex) const override;
-    void convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const QBitArray selectedChannels) const override;
+    void convertChannelToVisualRepresentation(const quint8 *src, quint8 *dst, quint32 nPixels, const PkBitArray selectedChannels) const override;
 
 private:
 
@@ -63,7 +66,7 @@ public:
 
     KoLabColorSpaceFactory()
             : KoSimpleColorSpaceFactory("LABA",
-                                        i18n("L*a*b* (16-bit integer/channel, unmanaged)"),
+                                        PkString("L*a*b* (16-bit integer/channel, unmanaged)"),
                                         true,
                                         LABAColorModelID,
                                         Integer16BitsColorDepthID) {

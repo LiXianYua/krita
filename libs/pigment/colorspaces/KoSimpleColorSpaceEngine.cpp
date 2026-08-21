@@ -4,17 +4,18 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <PkXmlCompat.h>
+
 #include "KoSimpleColorSpaceEngine.h"
 
 #include "KoColorModelStandardIds.h"
 
-#include <klocalizedstring.h>
 
 #include "KoColorSpace.h"
 
 #include "DebugPigment.h"
 
-#include <QColor>
+#include <PkColor.h>
 
 // -- KoSimpleColorConversionTransformation --
 
@@ -37,7 +38,7 @@ public:
         quint32 srcPixelsize = srcCs->pixelSize();
         quint32 dstPixelsize = dstCs->pixelSize();
 
-        QColor c;
+        PkColor c;
         while (numPixels > 0) {
 
             srcCs->toQColor(src, &c);
@@ -55,7 +56,7 @@ public:
 
 
 KoSimpleColorSpaceEngine::KoSimpleColorSpaceEngine()
-    : KoColorSpaceEngine("simple", i18n("Simple Color Conversion Engine"))
+    : KoColorSpaceEngine("simple", PkString("Simple Color Conversion Engine"))
 {
 }
 

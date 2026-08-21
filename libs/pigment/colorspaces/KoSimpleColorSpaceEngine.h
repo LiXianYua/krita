@@ -7,7 +7,9 @@
 #ifndef _KO_SIMPLE_COLOR_SPACE_ENGINE_H_
 #define _KO_SIMPLE_COLOR_SPACE_ENGINE_H_
 
-#include <QVector>
+#include <PkVector.h>
+#include <PkString.h>
+#include <PkAuxTypes.h>
 
 #include <KoColorSpaceEngine.h>
 
@@ -20,11 +22,11 @@ public:
                                                                        const KoColorSpace* dstColorSpace,
                                                                        KoColorConversionTransformation::Intent renderingIntent,
                                                                        KoColorConversionTransformation::ConversionFlags conversionFlags) const override;
-    const KoColorProfile* addProfile(const QString &profile ) override { Q_UNUSED(profile); return 0; }
-    const KoColorProfile* addProfile(const QByteArray &data) override { Q_UNUSED(data); return 0; }
-    void removeProfile(const QString &profile ) override { Q_UNUSED(profile); }
+    const KoColorProfile* addProfile(const PkString &profile ) override { Q_UNUSED(profile); return 0; }
+    const KoColorProfile* addProfile(const PkByteArray &data) override { Q_UNUSED(data); return 0; }
+    void removeProfile(const PkString &profile ) override { Q_UNUSED(profile); }
 
-    const KoColorProfile * getProfile(const QVector<double> &colorants, ColorPrimaries colorPrimaries, TransferCharacteristics transferFunction) override {
+    const KoColorProfile * getProfile(const PkVector<double> &colorants, ColorPrimaries colorPrimaries, TransferCharacteristics transferFunction) override {
         Q_UNUSED(colorants);
         Q_UNUSED(colorPrimaries);
         Q_UNUSED(transferFunction);

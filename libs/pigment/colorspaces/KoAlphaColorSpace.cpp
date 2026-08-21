@@ -5,15 +5,15 @@
  *
  *  SPDX-License-Identifier: LGPL-2.1-or-later
  */
+#include <PkXmlCompat.h>
+
 #include "KoAlphaColorSpace.h"
 
 #include <limits.h>
 #include <stdlib.h>
 
-#include <QImage>
-#include <QBitArray>
-
-#include <klocalizedstring.h>
+#include <PkImage.h>
+#include <PkBitArray.h>
 
 #include "KoChannelInfo.h"
 #include "KoID.h"
@@ -50,7 +50,7 @@ public:
     template<bool alphaLocked, bool allChannelFlags>
     inline static channels_type composeColorChannels(const channels_type* src, channels_type srcAlpha,
                                                      channels_type*       dst, channels_type dstAlpha, channels_type maskAlpha,
-                                                     channels_type opacity, const QBitArray& channelFlags) {
+                                                     channels_type opacity, const PkBitArray& channelFlags) {
         using namespace Arithmetic;
 
         Q_UNUSED(allChannelFlags);
@@ -76,7 +76,7 @@ KoAlphaColorSpaceImpl<_CSTrait>::KoAlphaColorSpaceImpl()
                                      alphaIdFromChannelType<channels_type>().name())
     , m_profile(new KoDummyColorProfile)
 {
-    this->addChannel(new KoChannelInfo(i18n("Alpha"), 0, 0, KoChannelInfo::ALPHA, channelInfoIdFromChannelType<channels_type>()));
+    this->addChannel(new KoChannelInfo(PkString("Alpha"), 0, 0, KoChannelInfo::ALPHA, channelInfoIdFromChannelType<channels_type>()));
 
     this->addCompositeOp(new KoCompositeOpOver<_CSTrait>(this));
     this->addCompositeOp(new KoCompositeOpErase<_CSTrait>(this));
@@ -93,15 +93,15 @@ KoAlphaColorSpaceImpl<_CSTrait>::~KoAlphaColorSpaceImpl()
 }
 
 template <class _CSTrait>
-void KoAlphaColorSpaceImpl<_CSTrait>::fromQColor(const QColor& c, quint8 *dst) const
+void KoAlphaColorSpaceImpl<_CSTrait>::fromQColor(const PkColor& c, quint8 *dst) const
 {
     _CSTrait::nativeArray(dst)[0] = _MathsFromU8::scaleToA(c.alpha());
 }
 
 template <class _CSTrait>
-void KoAlphaColorSpaceImpl<_CSTrait>::toQColor(const quint8 * src, QColor *c) const
+void KoAlphaColorSpaceImpl<_CSTrait>::toQColor(const quint8 * src, PkColor *c) const
 {
-    c->setRgba(qRgba(255, 255, 255, _MathsToU8::scaleToA(_CSTrait::nativeArray(src)[0])));
+    c->setRgba(pkRgba(255, 255, 255, _MathsToU8::scaleToA(_CSTrait::nativeArray(src)[0])));
 }
 
 template <class _CSTrait>
@@ -117,23 +117,23 @@ quint8 KoAlphaColorSpaceImpl<_CSTrait>::differenceA(const quint8 *src1, const qu
 }
 
 template <class _CSTrait>
-QString KoAlphaColorSpaceImpl<_CSTrait>::channelValueText(const quint8 *pixel, quint32 channelIndex) const
+PkString KoAlphaColorSpaceImpl<_CSTrait>::channelValueText(const quint8 *pixel, quint32 channelIndex) const
 {
     Q_ASSERT(channelIndex < this->channelCount());
     const quint32 channelPosition = this->channels()[channelIndex]->pos();
-    return QString().setNum(_CSTrait::nativeArray(pixel)[channelPosition]);
+    return PkString("%1").arg(_CSTrait::nativeArray(pixel)[channelPosition]);
 }
 
 template <class _CSTrait>
-QString KoAlphaColorSpaceImpl<_CSTrait>::normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) const
+PkString KoAlphaColorSpaceImpl<_CSTrait>::normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) const
 {
     Q_ASSERT(channelIndex < this->channelCount());
     const quint32 channelPosition = this->channels()[channelIndex]->pos();
-    return QString().setNum(KoColorSpaceMaths<channels_type, float>::scaleToA(_CSTrait::nativeArray(pixel)[channelPosition]));
+    return PkString("%1").arg(KoColorSpaceMaths<channels_type, float>::scaleToA(_CSTrait::nativeArray(pixel)[channelPosition]));
 }
 
 template <class _CSTrait>
-void KoAlphaColorSpaceImpl<_CSTrait>::convolveColors(quint8** colors, qreal * kernelValues, quint8 *dst, qreal factor, qreal offset, qint32 nColors, const QBitArray & channelFlags) const
+void KoAlphaColorSpaceImpl<_CSTrait>::convolveColors(quint8** colors, qreal * kernelValues, quint8 *dst, qreal factor, qreal offset, qint32 nColors, const PkBitArray & channelFlags) const
 {
     qreal totalAlpha = 0;
 
@@ -153,16 +153,16 @@ void KoAlphaColorSpaceImpl<_CSTrait>::convolveColors(quint8** colors, qreal * ke
 }
 
 template <class _CSTrait>
-QImage KoAlphaColorSpaceImpl<_CSTrait>::convertToQImage(const quint8 *data, qint32 width, qint32 height,
+PkImage KoAlphaColorSpaceImpl<_CSTrait>::convertToQImage(const quint8 *data, qint32 width, qint32 height,
                                           const KoColorProfile *  /*dstProfile*/,
                                           KoColorConversionTransformation::Intent /*renderingIntent*/,
                                           KoColorConversionTransformation::ConversionFlags /*conversionFlags*/) const
 {
     const channels_type *srcPtr = _CSTrait::nativeArray(data);
 
-    QImage img(width, height, QImage::Format_Indexed8);
-    QVector<QRgb> table;
-    for (int i = 0; i < 256; ++i) table.append(qRgb(i, i, i));
+    PkImage img(width, height, PkImage::Format_Indexed8);
+    std::vector<PkRgb> table;
+    for (int i = 0; i < 256; ++i) table.push_back(pkRgb(i, i, i));
     img.setColorTable(table);
 
     quint8* data_img;
@@ -264,14 +264,14 @@ template class KoAlphaColorSpaceImpl<AlphaF32Traits>;
 #include <KoColorConversionAlphaTransformation.h>
 
 template <class _CSTrait>
-QList<KoColorConversionTransformationFactory *> KoAlphaColorSpaceFactoryImpl<_CSTrait>::colorConversionLinks() const
+PkList<KoColorConversionTransformationFactory *> KoAlphaColorSpaceFactoryImpl<_CSTrait>::colorConversionLinks() const
 {
     /**
      * Out Alpha color space is defined as "a flattened representation of a GrayA color space with sRGB tone curve".
      * Therefore we do **not** define direct conversions to/from LabA, because LabA has a linear tone curve.
      */
 
-    QList<KoColorConversionTransformationFactory*> factories;
+    PkList<KoColorConversionTransformationFactory*> factories;
 
     factories << new KoColorConversionFromAlphaTransformationFactoryImpl<channels_type>(GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc");
     factories << new KoColorConversionToAlphaTransformationFactoryImpl<channels_type>(GrayAColorModelID.id(), Integer8BitsColorDepthID.id(), "Gray-D50-elle-V2-srgbtrc.icc");

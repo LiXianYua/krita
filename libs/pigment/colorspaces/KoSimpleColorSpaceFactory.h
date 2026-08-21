@@ -14,13 +14,17 @@
 
 #include <KoColorModelStandardIds.h>
 
+#include <PkString.h>
+#include <PkList.h>
+#include <PkAuxTypes.h>
+
 class KoSimpleColorSpaceFactory : public KoColorSpaceFactory
 {
 
 public:
 
-    KoSimpleColorSpaceFactory(const QString& id,
-                              const QString& name,
+    KoSimpleColorSpaceFactory(const PkString& id,
+                              const PkString& name,
                               bool userVisible,
                               const KoID& colorModelId,
                               const KoID& colorDepthId,
@@ -50,11 +54,11 @@ public:
     }
 
 
-    QString id() const override {
+    PkString id() const override {
         return m_id;
     }
 
-    QString name() const override {
+    PkString name() const override {
         return m_name;
     }
 
@@ -74,7 +78,7 @@ public:
         return dynamic_cast<const KoDummyColorProfile*>(profile);
     }
 
-    QString colorSpaceEngine() const override {
+    PkString colorSpaceEngine() const override {
         return "simple";
     }
 
@@ -90,21 +94,21 @@ public:
         return m_crossingCost;
     }
 
-    QList<KoColorConversionTransformationFactory*> colorConversionLinks() const override {
-        return QList<KoColorConversionTransformationFactory*>();
+    PkList<KoColorConversionTransformationFactory*> colorConversionLinks() const override {
+        return PkList<KoColorConversionTransformationFactory*>();
     }
 
-    QString defaultProfile() const override {
-        return QString("default");
+    PkString defaultProfile() const override {
+        return PkString("default");
     }
 protected:
-    KoColorProfile* createColorProfile(const QByteArray& /*rawData*/) const override {
+    KoColorProfile* createColorProfile(const PkByteArray& /*rawData*/) const override {
         return 0;
     }
 private:
 
-    QString m_id;
-    QString m_name;
+    PkString m_id;
+    PkString m_name;
     bool    m_userVisible;
     KoID    m_colorModelId;
     KoID    m_colorDepthId;
