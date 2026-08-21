@@ -7,7 +7,9 @@
 #ifndef __KISEXIV2IODEVICE_H_
 #define __KISEXIV2IODEVICE_H_
 
-#include <QFile>
+#include <PkFileStream.h>
+
+#include "pk/string/PkString.h"
 
 #include <exiv2/exiv2.hpp>
 
@@ -24,7 +26,7 @@ public:
     using ptr_type = Exiv2::BasicIo::AutoPtr;
 #endif
 
-    KisExiv2IODevice(QString path);
+    KisExiv2IODevice(PkString path);
     ~KisExiv2IODevice() override;
 
     int open() override;
@@ -71,11 +73,12 @@ public:
 #endif
 
 private:
-    bool open(QFile::OpenMode mode);
-    bool renameToCurrent(const QString srcPath);
-    QString filePathQString() const;
+    bool open(PkStream::OpenMode mode);
+    bool renameToCurrent(const PkString srcPath);
+    PkString filePathQString() const;
 
-    mutable QFile m_file;
+    mutable PkFileStream m_file;
+    int m_error {0};
 
     Exiv2::byte *m_mappedArea;
 };

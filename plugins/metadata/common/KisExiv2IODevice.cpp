@@ -6,10 +6,15 @@
 
 #include "KisExiv2IODevice.h"
 
-#include <QDebug>
-#include <QFileInfo>
+#include "kis_debug.h"
 
-KisExiv2IODevice::KisExiv2IODevice(QString path)
+#include <fcntl.h>
+#include <filesystem>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+KisExiv2IODevice::KisExiv2IODevice(PkString path)
     : m_file(path)
     , m_mappedArea(nullptr)
 {
@@ -27,7 +32,9 @@ int KisExiv2IODevice::open()
     }
 
     // return zero if successful
-    return !m_file.open(QFile::ReadWrite);
+    const bool ok = m_file.open(PkStream::ReadWrite);
+    m_error = ok ? 0 : 1;
+    return ok ? 0 : 1;
 }
 
 int KisExiv2IODevice::close()
@@ -49,7 +56,7 @@ long KisExiv2IODevice::write(const Exiv2::byte *data, long wcount)
         qWarning() << "KisExiv2IODevice: File not open for writing.";
         return 0;
     }
-    const qint64 writeCount = m_file.write(reinterpret_cast<const char *>(data), wcount);
+    const std::int64_t writeCount = m_file.write(reinterpret_cast<const char *>(data), wcount);
     if (writeCount > 0) {
         return writeCount;
     }
@@ -119,7 +126,7 @@ size_t KisExiv2IODevice::read(Exiv2::byte *buf, size_t rcount)
 long KisExiv2IODevice::read(Exiv2::byte *buf, long rcount)
 #endif
 {
-    const qint64 bytesRead = m_file.read(reinterpret_cast<char *>(buf), rcount);
+    const std::int64_t bytesRead = m_file.read(reinterpret_cast<char *>(buf), rcount);
     if (bytesRead > 0) {
         return bytesRead;
     } else {
@@ -145,22 +152,22 @@ void KisExiv2IODevice::transfer(Exiv2::BasicIo &src)
     bool useFallback = false;
 
     if (isFileBased) {
-        const QString srcPath = QString::fromStdString(src.path());
+        const PkString srcPath = PkString(src.path().c_str());
         // use fallback if copying failed (e.g on Android :( )
         useFallback = !renameToCurrent(srcPath);
     }
 
     if (!isFileBased || useFallback) {
         const bool wasOpen = isopen();
-        const QIODevice::OpenMode oldMode = m_file.openMode();
+        const PkStream::OpenMode oldMode = m_file.openMode();
 
         // this sets file positioner to the beginning.
         if (src.open() != 0) {
-            qWarning() << "KisExiv2IODevice::transfer: Couldn't open src file" << QString::fromStdString(src.path());
+            qWarning() << "KisExiv2IODevice::transfer: Couldn't open src file" << src.path().c_str();
             return;
         }
 
-        if (!open(QIODevice::ReadWrite | QIODevice::Truncate)) {
+        if (!open(PkStream::ReadWrite | PkStream::Truncate)) {
             qWarning() << "KisExiv2IODevice::transfer: Couldn't open dest file" << filePathQString();
             return;
         }
@@ -181,7 +188,7 @@ int KisExiv2IODevice::seek(int64_t offset, Exiv2::BasicIo::Position position)
 int KisExiv2IODevice::seek(long offset, Exiv2::BasicIo::Position position)
 #endif
 {
-    qint64 pos = 0;
+    std::int64_t pos = 0;
     switch (position) {
     case Exiv2::BasicIo::beg:
         pos = offset;
@@ -198,27 +205,36 @@ int KisExiv2IODevice::seek(long offset, Exiv2::BasicIo::Position position)
 
 Exiv2::byte *KisExiv2IODevice::mmap(bool isWriteable)
 {
-    Q_UNUSED(isWriteable);
+    (void)isWriteable;
 
     if (munmap() != 0) {
         qWarning() << "KisExiv2IODevice::mmap: Couldn't unmap the mapped file";
         return nullptr;
     }
 
-    m_mappedArea = m_file.map(0, size(), QFile::NoOptions);
-    if (!m_mappedArea) {
-        // We show a warning, but originally we should be throwing an exception.
-        qWarning() << "KisExiv2IODevice::mmap: Couldn't map the file" << m_file.fileName();
+    const std::string path = filePathQString().PkToUtf8();
+    const int fd = ::open(path.c_str(), O_RDWR);
+    if (fd < 0) {
+        qWarning() << "KisExiv2IODevice::mmap: Couldn't open file for mapping" << path.c_str();
+        return nullptr;
     }
+    const size_t sz = static_cast<size_t>(size());
+    void *addr = ::mmap(nullptr, sz, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    ::close(fd);
+    if (addr == MAP_FAILED) {
+        qWarning() << "KisExiv2IODevice::mmap: Couldn't map the file" << path.c_str();
+        return nullptr;
+    }
+    m_mappedArea = static_cast<Exiv2::byte *>(addr);
     return m_mappedArea;
 }
 
 int KisExiv2IODevice::munmap()
 {
     if (m_mappedArea) {
-        bool successful = m_file.unmap(m_mappedArea);
+        const bool ok = (::munmap(m_mappedArea, static_cast<size_t>(size())) == 0);
         m_mappedArea = nullptr;
-        return !successful;
+        return ok ? 0 : 1;
     }
     return 0;
 }
@@ -244,7 +260,7 @@ size_t KisExiv2IODevice::size() const
     if (m_file.isWritable()) {
         m_file.flush();
     }
-    return m_file.size();
+    return static_cast<size_t>(m_file.size());
 }
 
 bool KisExiv2IODevice::isopen() const
@@ -255,7 +271,7 @@ bool KisExiv2IODevice::isopen() const
 int KisExiv2IODevice::error() const
 {
     // zero if no error
-    return m_file.error() != QFileDevice::NoError;
+    return m_error;
 }
 
 bool KisExiv2IODevice::eof() const
@@ -269,10 +285,10 @@ const std::string& KisExiv2IODevice::path() const noexcept
 std::string KisExiv2IODevice::path() const
 #endif
 {
-    return filePathQString().toStdString();
+    return filePathQString().PkToUtf8();
 }
 
-bool KisExiv2IODevice::open(QFile::OpenMode mode)
+bool KisExiv2IODevice::open(PkStream::OpenMode mode)
 {
     if (m_file.isOpen()) {
         m_file.close();
@@ -280,21 +296,29 @@ bool KisExiv2IODevice::open(QFile::OpenMode mode)
     return m_file.open(mode);
 }
 
-bool KisExiv2IODevice::renameToCurrent(const QString srcPath)
+bool KisExiv2IODevice::renameToCurrent(const PkString srcPath)
 {
-    QFile::Permissions permissions = QFile::permissions(filePathQString());
-    if (QFile::exists(filePathQString())) {
-        QFile::remove(filePathQString());
+    namespace fs = std::filesystem;
+    const std::string dst = filePathQString().PkToUtf8();
+    const std::string src = srcPath.PkToUtf8();
+    std::error_code ec;
+    const auto perms = fs::status(dst, ec).permissions();
+    ec.clear();
+    if (fs::exists(dst, ec)) {
+        fs::remove(dst, ec);
+        ec.clear();
     }
-
-    if (!QFile(srcPath).rename(filePathQString())) {
-        qWarning() << "KisExiv2IODevice:renameToCurrent Couldn't copy file from" << srcPath << "to" << filePathQString();
+    fs::rename(src, dst, ec);
+    if (ec) {
+        qWarning() << "KisExiv2IODevice:renameToCurrent Couldn't copy file from"
+                   << src.c_str() << "to" << dst.c_str();
         return false;
     }
-    return QFile(filePathQString()).setPermissions(permissions);
+    fs::permissions(dst, perms, ec);
+    return !ec;
 }
 
-QString KisExiv2IODevice::filePathQString() const
+PkString KisExiv2IODevice::filePathQString() const
 {
-    return QFileInfo(m_file).absoluteFilePath();
+    return m_file.fileName();
 }
