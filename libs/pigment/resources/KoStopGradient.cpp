@@ -700,7 +700,7 @@ PkString KoStopGradient::saveSvgGradient() const
         PkXmlElement stopEl = doc.createElement("stop");
         stopEl.setAttribute("stop-color", stop.color.toSVG11(&profiles));
         stopEl.setAttribute("offset", KisDomUtils::numberToString(stop.position, 6));
-        stopEl.setAttribute("stop-opacity", KisDomUtils::numberToString(stop.color.opacityF(), 17));
+        stopEl.setAttribute("stop-opacity", KisDomUtils::numberToString(stop.color.opacityF(), 6));
         stopEl.setAttribute("krita:stop-type", stop.typeString());
         gradient.appendChild(stopEl);
     }

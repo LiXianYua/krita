@@ -329,7 +329,7 @@ void KoColor::toXML(PkXmlDocument& doc, PkXmlElement& colorElt) const
         } else if (v.type() == PkVariant::Int) {
             e.setAttribute(attrName, KisDomUtils::numberToString(v.toInt()));
         } else if (v.type() == PkVariant::Double) {
-            e.setAttribute(attrName, KisDomUtils::numberToString(v.toDouble(), 17));
+            e.setAttribute(attrName, KisDomUtils::numberToString(v.toDouble(), 6));
         } else if (v.type() == PkVariant::Bool) {
             e.setAttribute(attrName, KisDomUtils::numberToString(v.toBool()));
         } else {
