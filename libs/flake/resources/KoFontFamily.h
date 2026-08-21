@@ -9,8 +9,10 @@
 #include <KoResource.h>
 #include <KoFFWWSConverter.h>
 
+#include <memory>
+
 class KoFontFamily;
-typedef QSharedPointer<KoFontFamily> KoFontFamilySP;
+typedef PkSharedPointer<KoFontFamily> KoFontFamilySP;
 
 /**
  * @brief The KoFontFamily class
@@ -21,17 +23,17 @@ class KRITAFLAKE_EXPORT KoFontFamily : public KoResource
 public:
     explicit KoFontFamily(KoFontFamilyWWSRepresentation representation);
 
-    KoFontFamily(const QString &filename);
+    KoFontFamily(const PkString &filename);
     ~KoFontFamily();
 
     KoFontFamily(const KoFontFamily &rhs);
     KoFontFamily &operator=(const KoFontFamily &rhs) = delete;
     KoResourceSP clone() const override;
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
 
     bool isSerializable() const override;
-    QPair<QString, QString> resourceType() const override;
+    std::pair<PkString, PkString> resourceType() const override;
 
     void updateThumbnail() override;
 
@@ -59,7 +61,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> d;
+    std::unique_ptr<Private> d;
 };
 
 #endif // KOFONTFAMILY_H
