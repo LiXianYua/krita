@@ -81,16 +81,16 @@ struct KoLabTraits : public KoColorSpaceTrait<_channels_type_, 4, 3> {
         channels_type c = parent::nativeArray(pixel)[channelIndex];
         switch (channelIndex) {
         case L_pos:
-            return QString().setNum(100.0 * qBound((qreal)0, ((qreal)c) / math_trait::unitValueL, (qreal)math_trait::unitValueL));
+            return PkString("%1").arg(100.0 * qBound((qreal)0, ((qreal)c) / math_trait::unitValueL, (qreal)math_trait::unitValueL));
         case a_pos:
         case b_pos:
             if (c <= math_trait::halfValueAB) {
-                return QString().setNum(100.0 * (qreal)((c - math_trait::zeroValueAB) / (2.0 * (math_trait::halfValueAB - math_trait::zeroValueAB))));
+                return PkString("%1").arg(100.0 * (qreal)((c - math_trait::zeroValueAB) / (2.0 * (math_trait::halfValueAB - math_trait::zeroValueAB))));
             } else {
-                return QString().setNum(100.0 * (qreal)(0.5 + (c - math_trait::halfValueAB) / (2.0 * (math_trait::unitValueAB - math_trait::halfValueAB))));
+                return PkString("%1").arg(100.0 * (qreal)(0.5 + (c - math_trait::halfValueAB) / (2.0 * (math_trait::unitValueAB - math_trait::halfValueAB))));
             }
         case 3:
-            return QString().setNum(100.0 * qBound((qreal)0, ((qreal)c) / math_trait::unitValue, (qreal)math_trait::unitValue));
+            return PkString("%1").arg(100.0 * qBound((qreal)0, ((qreal)c) / math_trait::unitValue, (qreal)math_trait::unitValue));
         default:
             return QString("Error");
         }

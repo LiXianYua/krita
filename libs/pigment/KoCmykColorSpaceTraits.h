@@ -96,11 +96,11 @@ struct KoCmykF16Traits : public KoCmykTraits<half> {
         case m_pos:
         case y_pos:
         case k_pos:
-            return QString().setNum(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * qBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK));
         case 4:
-            return QString().setNum(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * qBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue));
         default:
@@ -173,11 +173,11 @@ struct KoCmykF32Traits : public KoCmykTraits<float> {
         case m_pos:
         case y_pos:
         case k_pos:
-            return QString().setNum(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * qBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK));
         case 4:
-            return QString().setNum(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * qBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue));
         default:
@@ -248,11 +248,11 @@ struct KoCmykF64Traits : public KoCmykTraits<double> {
         case m_pos:
         case y_pos:
         case k_pos:
-            return QString().setNum(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * qBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValueCMYK));
         case 4:
-            return QString().setNum(100.0 * qBound((qreal)0,
+            return PkString("%1").arg(100.0 * qBound((qreal)0,
                                                    ((qreal)c) / KoCmykColorSpaceMathsTraits<channels_type>::unitValue,
                                                    (qreal)KoCmykColorSpaceMathsTraits<channels_type>::unitValue));
         default:

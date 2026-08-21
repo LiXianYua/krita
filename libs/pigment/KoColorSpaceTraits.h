@@ -146,13 +146,13 @@ struct KoColorSpaceTrait {
     inline static QString channelValueText(const quint8 *pixel, quint32 channelIndex) {
         if (channelIndex > channels_nb) return QString("Error");
         channels_type c = nativeArray(pixel)[channelIndex];
-        return QString().setNum(c);
+        return PkString("%1").arg(c);
     }
 
     inline static QString normalisedChannelValueText(const quint8 *pixel, quint32 channelIndex) {
         if (channelIndex > channels_nb) return QString("Error");
         channels_type c = nativeArray(pixel)[channelIndex];
-        return QString().setNum(100. *((qreal)c) / KoColorSpaceMathsTraits< channels_type>::unitValue);
+        return PkString("%1").arg(100. *((qreal)c) / KoColorSpaceMathsTraits< channels_type>::unitValue);
     }
 
     inline static void normalisedChannelsValue(const quint8 *pixel, QVector<float> &v)

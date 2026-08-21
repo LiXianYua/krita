@@ -7,9 +7,13 @@
 #ifndef KOCOLOR_H
 #define KOCOLOR_H
 
-#include <QColor>
-#include <QMetaType>
-#include <QtGlobal>
+#include <PkColor.h>
+#include <PkString.h>
+#include <PkVariant.h>
+#include <PkHash.h>
+#include <PkStringHash.h>
+#include <PkMap.h>
+#include <PkGlobal.h>
 #include "kritapigment_export.h"
 #include "KoColorConversionTransformation.h"
 #include "KoColorSpaceRegistry.h"
@@ -17,8 +21,9 @@
 #include <boost/operators.hpp>
 
 
-class QDomDocument;
-class QDomElement;
+class PkXmlDocument;
+class PkXmlElement;
+class PkDebug;
 
 class KoColorProfile;
 class KoColorSpace;
@@ -37,9 +42,9 @@ public:
     /// Create a null KoColor. It will be valid, but all channels will be set to 0
     explicit KoColor(const KoColorSpace * colorSpace);
 
-    /// Create a KoColor from a QColor. The QColor is immediately converted to native. The QColor
+    /// Create a KoColor from a PkColor. The PkColor is immediately converted to native. The PkColor
     /// is assumed to have the current monitor profile.
-    KoColor(const QColor & color, const KoColorSpace * colorSpace);
+    KoColor(const PkColor & color, const KoColorSpace * colorSpace);
 
     /// Create a KoColor using a native color strategy. The data is copied.
     KoColor(const quint8 * data, const KoColorSpace * colorSpace);
@@ -118,9 +123,9 @@ public:
     void fromKoColor(const KoColor& src);
 
     /// a convenience method for the above.
-    void toQColor(QColor *c) const;
+    void toQColor(PkColor *c) const;
     /// a convenience method for the above.
-    QColor toQColor() const;
+    PkColor toQColor() const;
 
     /**
      * Convenient function to set the opacity of the color.
@@ -133,8 +138,8 @@ public:
     quint8 opacityU8() const;
     qreal opacityF() const;
 
-    /// Convenient function for converting from a QColor
-    void fromQColor(const QColor& c);
+    /// Convenient function for converting from a PkColor
+    void fromQColor(const PkColor& c);
 
     /**
      * @return the buffer associated with this color object to be used with the
@@ -195,7 +200,7 @@ public:
      *                 element is \<color /\>
      * @param doc is the document containing colorElt
      */
-    void toXML(QDomDocument& doc, QDomElement& colorElt) const;
+    void toXML(PkXmlDocument& doc, PkXmlElement& colorElt) const;
 
     /**
      * Unserialize a color following Create's swatch color specification available
@@ -209,7 +214,7 @@ public:
      * @return the unserialize color, or an empty color object if the function failed
      *         to unserialize the color
      */
-    static KoColor fromXML(const QDomElement& elt, const QString & channelDepthId);
+    static KoColor fromXML(const PkXmlElement& elt, const PkString & channelDepthId);
 
     /**
      * Unserialize a color following Create's swatch color specification available
@@ -224,7 +229,7 @@ public:
      * @return the unserialize color, or an empty color object if the function failed
      *         to unserialize the color
      */
-    static KoColor fromXML(const QDomElement& elt, const QString & channelDepthId, bool* ok);
+    static KoColor fromXML(const PkXmlElement& elt, const PkString & channelDepthId, bool* ok);
 
 
     /**
@@ -233,7 +238,7 @@ public:
      * channel depth.
      * @return a valid XML document in a string
      */
-    QString toXML() const;
+    PkString toXML() const;
 
     /**
      * @brief fromXML restores a KoColor from a string saved with toXML(). If the
@@ -241,14 +246,14 @@ public:
      * @param xml a valid XML document
      * @return a new KoColor object
      */
-    static KoColor fromXML(const QString &xml);
+    static KoColor fromXML(const PkString &xml);
 
     /**
      * @brief toSVG11
      * @param profileList list of profiles, this will map the profile to a name, so it may be embedded.
      * @return a color definition string with both a srgb hexcode fallback as well as a icc-color definition.
      */
-    QString toSVG11(QHash<QString, const KoColorProfile *> *profileList) const;
+    PkString toSVG11(PkHash<PkString, const KoColorProfile *> *profileList) const;
 
     /**
      * @brief fromSVG11
@@ -268,26 +273,26 @@ public:
      * @param current the current color.
      * @return a KoColor as parsed from the value string.
      */
-    static KoColor fromSVG11(const QString value, QHash<QString, const KoColorProfile*> profileList, KoColor current = KoColor());
+    static KoColor fromSVG11(const PkString value, PkHash<PkString, const KoColorProfile*> profileList, KoColor current = KoColor());
 
     /**
      * @brief toQString create a user-visible string of the channel names and the channel values
      * @param color the color to create the string from
      * @return a string that can be used to display the values of this color to the user.
      */
-    static QString toQString(const KoColor &color);
+    static PkString toQString(const KoColor &color);
 
     /**
      * store the given key, value pair in a KoColor.
      */
-    void addMetadata(QString key, QVariant value);
+    void addMetadata(PkString key, PkVariant value);
 
     /**
      * Get a map with all the metadata
      * The metadata is used by parsing functions to store extra data,
      * like for example spot color names, or the original parsing model.
      */
-    QMap<QString, QVariant> metadata() const;
+    PkMap<PkString, PkVariant> metadata() const;
 
     /**
      * @brief clearMetadata
@@ -296,7 +301,7 @@ public:
     void clearMetadata();
 
     /**
-     * Not all color spaces support creation of a color from QColor,
+     * Not all color spaces support creation of a color from PkColor,
      * so we should create the default backdrop color explicitly.
      *
      * @see KoColorSpace::transparentColor
@@ -320,12 +325,10 @@ private:
     const KoColorSpace *m_colorSpace;
     quint8 m_data[MAX_PIXEL_SIZE];
     quint8 m_size;
-    QMap<QString, QVariant> m_metadata;
+    PkMap<PkString, PkVariant> m_metadata;
 };
 
-Q_DECLARE_METATYPE(KoColor)
-
-KRITAPIGMENT_EXPORT QDebug operator<<(QDebug dbg, const KoColor &color);
+KRITAPIGMENT_EXPORT PkDebug operator<<(PkDebug dbg, const KoColor &color);
 
 
 #endif
