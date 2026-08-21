@@ -4,28 +4,27 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoShapeRenameCommand.h"
 
-#include <QString>
-#include <klocalizedstring.h>
 #include "KoShape.h"
 
 class Q_DECL_HIDDEN KoShapeRenameCommand::Private
 {
 public:
-    Private(KoShape *shape, const QString &newName)
+    Private(KoShape *shape, const PkString &newName)
     : shape(shape)
     , newName(newName)
     , oldName(shape->name())
     {}
 
     KoShape *shape;
-    QString newName;
-    QString oldName;
+    PkString newName;
+    PkString oldName;
 };
 
-KoShapeRenameCommand::KoShapeRenameCommand(KoShape *shape, const QString &newName, KUndo2Command *parent)
-    : KUndo2Command(kundo2_i18n("Rename Shape"), parent)
+KoShapeRenameCommand::KoShapeRenameCommand(KoShape *shape, const PkString &newName, KUndo2Command *parent)
+    : KUndo2Command(kundo2_text("Rename Shape"), parent)
 , d(new Private(shape, newName))
 {
 }

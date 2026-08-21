@@ -8,8 +8,9 @@
 #ifndef KOPATHBASECOMMAND_H
 #define KOPATHBASECOMMAND_H
 
+#include <PkXmlCompat.h>
 #include <kundo2command.h>
-#include <QSet>
+#include <pk/container/PkSet.h>
 
 class KoPathShape;
 
@@ -35,7 +36,7 @@ protected:
      */
     void repaint(bool normalizeShapes);
 
-    QSet<KoPathShape*> m_shapes; ///< the shapes the command operates on
+    PkSet<KoPathShape*> m_shapes; ///< the shapes the command operates on
 };
 
 #endif // KOPATHBASECOMMAND_H

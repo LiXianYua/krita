@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <PkXmlCompat.h>
 #include "KoPathBaseCommand.h"
 #include "KoPathShape.h"
 
@@ -21,7 +22,7 @@ KoPathBaseCommand::KoPathBaseCommand(KoPathShape *shape, KUndo2Command *parent)
 
 void KoPathBaseCommand::repaint(bool normalizeShapes)
 {
-    Q_FOREACH (KoPathShape *shape, m_shapes) {
+    for (KoPathShape *shape : m_shapes) {
         if (normalizeShapes)
             shape->normalize();
         shape->update();

@@ -7,17 +7,18 @@
 #ifndef KOSHAPERENAMECOMMAND_H
 #define KOSHAPERENAMECOMMAND_H
 
+#include <PkXmlCompat.h>
 #include "kritaflake_export.h"
 #include <kundo2command.h>
 
-class QString;
+class PkString;
 class KoShape;
 
 /// API docs go here
 class KRITAFLAKE_EXPORT KoShapeRenameCommand : public KUndo2Command
 {
 public:
-    KoShapeRenameCommand(KoShape *shape, const QString &newName, KUndo2Command *parent = 0);
+    KoShapeRenameCommand(KoShape *shape, const PkString &newName, KUndo2Command *parent = 0);
     ~KoShapeRenameCommand() override;
 
     /// redo the command
