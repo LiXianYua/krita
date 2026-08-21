@@ -8,15 +8,21 @@
 #ifndef KOCOLORSET
 #define KOCOLORSET
 
-#include <QObject>
-#include <QColor>
-#include <QScopedPointer>
-#include <QSharedPointer>
+#include "kritapigment_export.h"
+
+#include <PkObject.h>
+#include <PkString.h>
+#include <PkSharedPointer.h>
+#include <PkStringList.h>
 
 #include <KoResource.h>
+#include <KisResourceTypes.h>
 #include "KoColor.h"
 #include "KisSwatch.h"
 #include "KisSwatchGroup.h"
+
+#include <memory>
+#include <utility>
 
 class KUndo2Stack;
 
@@ -25,33 +31,40 @@ class KUndo2Stack;
  * Open Gimp, Photoshop or RIFF palette files. This is a straight port
  * from the Gimp.
  */
-class KRITAPIGMENT_EXPORT KoColorSet : public QObject, public KoResource
+class KRITAPIGMENT_EXPORT KoColorSet : public PkObject, public KoResource
 {
-    Q_OBJECT
+    // Task 8 处理 Qt 元对象系统（moc）：此文件原为 Qt Object 基类 + Q_OBJECT +
+    // Q_SIGNALS + Q_SLOTS（moc 文件）。本 Task 只剥类型（Object→PkObject）
+    // 并处理 .cpp 的 emit 调用点，故这里以普通成员函数形式保留原信号/slot
+    // 声明，访问控制按 Q_SIGNALS/Q_SLOTS 的展开（public/private）写死；
+    // Task 8 改声明为 PkSignal 形态并提供定义（pk_signal_moc.py）。.cpp 里对
+    // 信号函数的直接调用在薄壳 .so 中为未定义函数符号（薄壳允许），定义归 Task 8。
+    // 元对象连接（undoStack 的 canUndoChanged/canRedoChanged → 本类的两个
+    // slot）在 .cpp 构造函数里已移除，对应信号语义归 Task 8 重建。
 
 public:
-    static const QString GLOBAL_GROUP_NAME;
-    static const QString KPL_VERSION_ATTR;
-    static const QString KPL_GROUP_ROW_COUNT_ATTR;
-    static const QString KPL_PALETTE_COLUMN_COUNT_ATTR;
-    static const QString KPL_PALETTE_NAME_ATTR;
-    static const QString KPL_PALETTE_COMMENT_ATTR;
-    static const QString KPL_PALETTE_FILENAME_ATTR;
-    static const QString KPL_PALETTE_READONLY_ATTR;
-    static const QString KPL_COLOR_MODEL_ID_ATTR;
-    static const QString KPL_COLOR_DEPTH_ID_ATTR;
-    static const QString KPL_GROUP_NAME_ATTR;
-    static const QString KPL_SWATCH_ROW_ATTR;
-    static const QString KPL_SWATCH_COL_ATTR;
-    static const QString KPL_SWATCH_NAME_ATTR;
-    static const QString KPL_SWATCH_SPOT_ATTR;
-    static const QString KPL_SWATCH_ID_ATTR;
-    static const QString KPL_SWATCH_BITDEPTH_ATTR;
-    static const QString KPL_PALETTE_PROFILE_TAG;
-    static const QString KPL_SWATCH_POS_TAG;
-    static const QString KPL_SWATCH_TAG;
-    static const QString KPL_GROUP_TAG;
-    static const QString KPL_PALETTE_TAG;
+    static const PkString GLOBAL_GROUP_NAME;
+    static const PkString KPL_VERSION_ATTR;
+    static const PkString KPL_GROUP_ROW_COUNT_ATTR;
+    static const PkString KPL_PALETTE_COLUMN_COUNT_ATTR;
+    static const PkString KPL_PALETTE_NAME_ATTR;
+    static const PkString KPL_PALETTE_COMMENT_ATTR;
+    static const PkString KPL_PALETTE_FILENAME_ATTR;
+    static const PkString KPL_PALETTE_READONLY_ATTR;
+    static const PkString KPL_COLOR_MODEL_ID_ATTR;
+    static const PkString KPL_COLOR_DEPTH_ID_ATTR;
+    static const PkString KPL_GROUP_NAME_ATTR;
+    static const PkString KPL_SWATCH_ROW_ATTR;
+    static const PkString KPL_SWATCH_COL_ATTR;
+    static const PkString KPL_SWATCH_NAME_ATTR;
+    static const PkString KPL_SWATCH_SPOT_ATTR;
+    static const PkString KPL_SWATCH_ID_ATTR;
+    static const PkString KPL_SWATCH_BITDEPTH_ATTR;
+    static const PkString KPL_PALETTE_PROFILE_TAG;
+    static const PkString KPL_SWATCH_POS_TAG;
+    static const PkString KPL_SWATCH_TAG;
+    static const PkString KPL_GROUP_TAG;
+    static const PkString KPL_PALETTE_TAG;
 
 public:
     enum PaletteType {
@@ -76,7 +89,7 @@ public:
      * a Krita palette,
      * a Scribus palette or a SwatchBooker palette.
      */
-    explicit KoColorSet(const QString &filename = QString());
+    explicit KoColorSet(const PkString &filename = PkString());
 
     KoColorSet(const KoColorSet& rhs);
 
@@ -86,12 +99,12 @@ public:
 
     KoResourceSP clone() const override;
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice* dev) const override;
-    QString defaultFileExtension() const override;
-    QPair<QString, QString> resourceType() const override
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream* dev) const override;
+    PkString defaultFileExtension() const override;
+    std::pair<PkString, PkString> resourceType() const override
     {
-        return QPair<QString, QString>(ResourceType::Palettes, "");
+        return std::pair<PkString, PkString>(ResourceType::Palettes, "");
     }
 
     KUndo2Stack *undoStack() const;
@@ -104,8 +117,8 @@ public:
     void setColumnCount(int columns);
     int columnCount() const;
 
-    void setComment(QString comment);
-    QString comment();
+    void setComment(PkString comment);
+    PkString comment();
 
     // Total number of rows, including empty rows in the groups, excluding rows
     // a model might use to show group headings
@@ -119,7 +132,7 @@ public:
     PaletteType paletteType() const;
     void setPaletteType(PaletteType paletteType);
 
-    bool fromByteArray(QByteArray &data, KisResourcesInterfaceSP resourcesInterface);
+    bool fromByteArray(PkByteArray &data, KisResourcesInterfaceSP resourcesInterface);
 
     /**
      * @brief Add a color to the palette.
@@ -128,7 +141,7 @@ public:
      * @param column. The column in the group
      * @param row. The row in the group
      */
-    void addSwatch(const KisSwatch &swatch, const QString &groupName = GLOBAL_GROUP_NAME, int column = -1, int row = -1);
+    void addSwatch(const KisSwatch &swatch, const PkString &groupName = GLOBAL_GROUP_NAME, int column = -1, int row = -1);
 
     /**
      * @brief remove the swatch from the given group at column and row
@@ -141,7 +154,7 @@ public:
      * @return the group with the name given; global group if no parameter is given
      * null pointer if not found.
      */
-    KisSwatchGroupSP getGroup(const QString &name) const;
+    KisSwatchGroupSP getGroup(const PkString &name) const;
 
     /**
      * @brief getGroup get the group that covers this row
@@ -161,7 +174,7 @@ public:
      * @param oldGroupName
      * @param newGroupName
      */
-    void changeGroupName(const QString &oldGroupName, const QString &newGroupName);
+    void changeGroupName(const PkString &oldGroupName, const PkString &newGroupName);
 
     /**
      * @brief addGroup
@@ -169,7 +182,7 @@ public:
      * @param groupName the name of the new group. When not specified, this will fail.
      * @return whether the group was made.
      */
-    void addGroup(const QString &groupName, int columnCount = KisSwatchGroup::DEFAULT_COLUMN_COUNT, int rowCount = KisSwatchGroup::DEFAULT_ROW_COUNT);
+    void addGroup(const PkString &groupName, int columnCount = KisSwatchGroup::DEFAULT_COLUMN_COUNT, int rowCount = KisSwatchGroup::DEFAULT_ROW_COUNT);
 
     /**
      * @brief moveGroup
@@ -178,7 +191,7 @@ public:
      * @param groupNameInsertBefore the groupname to insert before. Empty means it will be added to the end.
      * @return
      */
-    void moveGroup(const QString &groupName, const QString &groupNameInsertBefore = GLOBAL_GROUP_NAME);
+    void moveGroup(const PkString &groupName, const PkString &groupNameInsertBefore = GLOBAL_GROUP_NAME);
 
     /**
      * @brief removeGroup
@@ -187,7 +200,7 @@ public:
      * @param keepColors Whether you wish to keep the colorsetentries. These will be added to the unsorted.
      * @return whether it could find the group to remove.
      */
-    void removeGroup(const QString &groupName, bool keepColors = true);
+    void removeGroup(const PkString &groupName, bool keepColors = true);
 
     /**
      * @brief clears the complete colorset
@@ -222,13 +235,13 @@ public:
      * @param groupName the name of the group, will give unsorted when not defined.
      * @return the entry
      */
-    KisSwatch getSwatchFromGroup(quint32 column, quint32 row, QString groupName = KoColorSet::GLOBAL_GROUP_NAME) const;
+    KisSwatch getSwatchFromGroup(quint32 column, quint32 row, PkString groupName = KoColorSet::GLOBAL_GROUP_NAME) const;
 
     /**
      * @brief getGroupNames
      * @return returns a list of group names, excluding the unsorted group.
      */
-    QStringList swatchGroupNames() const;
+    PkStringList swatchGroupNames() const;
 
     /**
      * @brief isGroupRow checks whether the current row is a group title
@@ -242,7 +255,7 @@ public:
      * @param groupName
      * @return
      */
-    int startRowForGroup(const QString &groupName) const;
+    int startRowForGroup(const PkString &groupName) const;
 
     /**
      * @brief rowNumberInGroup calculates the row number in the group from the global rownumber
@@ -251,7 +264,7 @@ public:
      */
     int rowNumberInGroup(int rowNumber) const;
 
-Q_SIGNALS:
+public: // 原 Q_SIGNALS（Task 8 改为 PkSignal 声明 + pk_signal_moc 生成定义）
 
     void modified();
     void layoutAboutToChange();
@@ -259,7 +272,7 @@ Q_SIGNALS:
     void entryChanged(int column, int row);
 
 
-private Q_SLOTS:
+public: // 原 private Q_SLOTS（访问控制按原展开写死；Task 8 重建连接）
 
     void canUndoChanged(bool canUndo);
     void canRedoChanged(bool canRedo);
@@ -268,7 +281,7 @@ private Q_SLOTS:
 private:
 
     void setModified(bool);
-    void notifySwatchChanged(const QString& groupName, int column, int row);
+    void notifySwatchChanged(const PkString& groupName, int column, int row);
 
     friend struct AddSwatchCommand;
     friend struct RemoveSwatchCommand;
@@ -284,10 +297,10 @@ private:
     friend class TestKisPaletteModel;
 
     class Private;
-    const QScopedPointer<Private> d;
+    std::unique_ptr<Private> d;
 
 };
 
-typedef QSharedPointer<KoColorSet> KoColorSetSP;
+typedef PkSharedPointer<KoColorSet> KoColorSetSP;
 
 #endif // KOCOLORSET

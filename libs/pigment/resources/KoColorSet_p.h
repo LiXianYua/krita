@@ -5,14 +5,24 @@
 #ifndef KOCOLORSET_P_H
 #define KOCOLORSET_P_H
 
-#include <QXmlStreamReader>
-#include <QDomElement>
+#include <PkXmlStreamReader.h>
+#include <PkXmlElement.h>
+#include <PkXmlDocument.h>
+#include <PkAuxTypes.h>
 #include <kundo2stack.h>
+
+#include <PkList.h>
+#include <PkSet.h>
 
 #include <KisSwatch.h>
 #include <KisSwatchGroup.h>
 
 #include "KoColorSet.h"
+
+#include <memory>
+
+class KoStore;          // 薄壳头不引 libs/store/KoStore.h，声明参数用到的类
+class KoColorProfile;   // 同上，仅指针返回
 
 struct RiffHeader {
     quint32 riff;
@@ -38,7 +48,7 @@ public:
 public:
     bool init();
 
-    bool saveGpl(QIODevice *dev) const;
+    bool saveGpl(PkStream *dev) const;
     bool loadGpl();
 
     bool loadAct();
@@ -51,16 +61,16 @@ public:
     bool loadAcb();
     bool loadCss();
 
-    bool saveKpl(QIODevice *dev) const;
+    bool saveKpl(PkStream *dev) const;
     bool loadKpl();
 
 public:
 
     KoColorSet *colorSet {0};
     KoColorSet::PaletteType paletteType {UNKNOWN};
-    QByteArray data;
-    QString comment;
-    QList<KisSwatchGroupSP> swatchGroups;
+    PkByteArray data;
+    PkString comment;
+    PkList<KisSwatchGroupSP> swatchGroups;
     KUndo2Stack undoStack;
     bool isLocked {false};
     int columns;
@@ -78,26 +88,26 @@ private:
     friend struct SetPaletteTypeCommand;
     friend struct MoveGroupCommand;
 
-    KoColorSet::PaletteType detectFormat(const QString &fileName, const QByteArray &ba);
-    void scribusParseColor(KoColorSet *set, QXmlStreamReader *xml);
-    bool loadScribusXmlPalette(KoColorSet *set, QXmlStreamReader *xml);
-    quint8 readByte(QIODevice *io);
-    quint16 readShort(QIODevice *io);
-    qint32 readInt(QIODevice *io);
-    float readFloat(QIODevice *io);
-    QString readUnicodeString(QIODevice *io, bool sizeIsInt = false);
+    KoColorSet::PaletteType detectFormat(const PkString &fileName, const PkByteArray &ba);
+    void scribusParseColor(KoColorSet *set, PkXmlStreamReader *xml);
+    bool loadScribusXmlPalette(KoColorSet *set, PkXmlStreamReader *xml);
+    quint8 readByte(PkStream *io);
+    quint16 readShort(PkStream *io);
+    qint32 readInt(PkStream *io);
+    float readFloat(PkStream *io);
+    PkString readUnicodeString(PkStream *io, bool sizeIsInt = false);
 
-    const KoColorProfile *loadColorProfile(QScopedPointer<KoStore> &store,
-                                           const QString &path,
-                                           const QString &modelId,
-                                           const QString &colorDepthId);
+    const KoColorProfile *loadColorProfile(std::unique_ptr<KoStore> &store,
+                                           const PkString &path,
+                                           const PkString &modelId,
+                                           const PkString &colorDepthId);
 
-    void saveKplGroup(QDomDocument &doc, QDomElement &groupEle,
-                      const KisSwatchGroupSP group, QSet<const KoColorSpace *> &colorSetSet) const;
-    bool loadKplProfiles(QScopedPointer<KoStore> &store);
-    bool loadKplColorset(QScopedPointer<KoStore> &store);
-    bool loadSbzSwatchbook(QScopedPointer<KoStore> &store);
-    void loadKplGroup(const QDomDocument &doc, const QDomElement &parentElement, KisSwatchGroupSP group, QString version);
+    void saveKplGroup(PkXmlDocument &doc, PkXmlElement &groupEle,
+                      const KisSwatchGroupSP group, PkSet<const KoColorSpace *> &colorSetSet) const;
+    bool loadKplProfiles(std::unique_ptr<KoStore> &store);
+    bool loadKplColorset(std::unique_ptr<KoStore> &store);
+    bool loadSbzSwatchbook(std::unique_ptr<KoStore> &store);
+    void loadKplGroup(const PkXmlDocument &doc, const PkXmlElement &parentElement, KisSwatchGroupSP group, PkString version);
 };
 
 #endif // KOCOLORSET_P_H
