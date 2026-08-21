@@ -20,7 +20,8 @@
  *
  *        std::function<void ()> destinationFunctionCall(std::bind(someNiceFunc, firstParam, secondParam));
  *        SignalToFunctionProxy proxy(destinationFunctionCall);
- *        connect(srcObject, SIGNAL(sigSomethingChanged()), &proxy, SLOT(start()));
+ *        PkObject::connect(srcObject, &SourceObject::sigSomethingChanged,
+ *                          &proxy, &SignalToFunctionProxy::start);
  *
  *        \endcode
  *
@@ -57,7 +58,8 @@ private:
  *        \code{.cpp}
  *
  *        FunctionToSignalProxy proxy;
- *        connect(&proxy, SIGNAL(timeout()), &dstObject, SLOT(someDestinationSlot()));
+ *        PkObject::connect(&proxy, &FunctionToSignalProxy::timeout,
+ *                          &dstObject, &DestinationObject::someDestinationSlot);
  *
  *        \endcode
  *
@@ -120,7 +122,8 @@ KisSignalCompressorWithParam(int delay, CallbackFunction function, KisSignalComp
             std::bind(&KisSignalCompressorWithParam<T>::fakeSlotTimeout, this));
         m_signalProxy.reset(new SignalToFunctionProxy(callback));
 
-        m_compressor.connect(&m_compressor, SIGNAL(timeout()), m_signalProxy.data(), SLOT(start()));
+        PkObject::connect(&m_compressor, &KisSignalCompressor::timeout,
+                          m_signalProxy.data(), &SignalToFunctionProxy::start);
     }
 
     ~KisSignalCompressorWithParam()

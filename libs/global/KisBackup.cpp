@@ -1,8 +1,3 @@
-#include <PkString.h>
-
-
-
-#include <QLatin1Char>
 /*
     This file is part of the KDE libraries
 
@@ -17,7 +12,58 @@
 
 #include "KisBackup.h"
 
-#include <PkDebug.h>
+#include "KisGlobalFileSystem.h"
+
+#include <algorithm>
+#include <charconv>
+#include <filesystem>
+#include <string>
+#include <system_error>
+#include <vector>
+
+namespace {
+
+namespace fs = std::filesystem;
+
+fs::path withExtension(fs::path path, const std::string &extension)
+{
+    path += fs::u8path(extension);
+    return path;
+}
+
+bool copyReplacing(const fs::path &source, const fs::path &destination)
+{
+    std::error_code error;
+    fs::remove(destination, error);
+    error.clear();
+    return fs::copy_file(source, destination, fs::copy_options::none, error) && !error;
+}
+
+bool parseBackupNumber(const std::string &name,
+                       const std::string &prefix,
+                       const std::string &suffix,
+                       unsigned int *number)
+{
+    if (name.size() < prefix.size() + suffix.size() + 1 ||
+        name.compare(0, prefix.size(), prefix) != 0 ||
+        name.compare(name.size() - suffix.size(), suffix.size(), suffix) != 0) {
+        return false;
+    }
+
+    const std::size_t numberLength = name.size() - prefix.size() - suffix.size();
+    const std::string numberText = name.substr(prefix.size(), numberLength);
+    unsigned int parsed = 0;
+    const auto result = std::from_chars(numberText.data(),
+                                        numberText.data() + numberText.size(),
+                                        parsed);
+    if (result.ec != std::errc() || result.ptr != numberText.data() + numberText.size()) {
+        return false;
+    }
+    *number = parsed;
+    return true;
+}
+
+} // namespace
 
 bool KisBackup::backupFile(const PkString &qFilename, const PkString &backupDir)
 {
@@ -26,84 +72,77 @@ bool KisBackup::backupFile(const PkString &qFilename, const PkString &backupDir)
 
 bool KisBackup::simpleBackupFile(const PkString &qFilename, const PkString &backupDir, const PkString &backupExtension)
 {
-    PkString backupFileName = qFilename + backupExtension;
+    const fs::path source = KisGlobalFileSystem::toPath(qFilename);
+    const std::string extension = backupExtension.PkToUtf8();
+    fs::path backupFileName = withExtension(source, extension);
 
     if (!backupDir.isEmpty()) {
-        PkFileInfo fileInfo(qFilename);
-        backupFileName = backupDir + QLatin1Char('/') + fileInfo.fileName() + backupExtension;
+        backupFileName = withExtension(
+            KisGlobalFileSystem::toPath(backupDir) / source.filename(), extension);
     }
 
-    //    qCDebug(KCOREADDONS_DEBUG) << "KisBackup copying " << qFilename << " to " << backupFileName;
-    PkFile::remove(backupFileName);
-    return PkFile::copy(qFilename, backupFileName);
+    return copyReplacing(source, backupFileName);
 }
 
 bool KisBackup::numberedBackupFile(const PkString &qFilename, const PkString &backupDir, const PkString &backupExtension, const uint maxBackups)
 {
-    PkFileInfo fileInfo(qFilename);
-
-    // The backup file name template.
-    PkString sTemplate;
-
-    if (backupDir.isEmpty()) {
-        sTemplate = qFilename + QLatin1String(".%1") + backupExtension;
-    } else {
-        sTemplate = backupDir + QLatin1Char('/') + fileInfo.fileName() + QLatin1String(".%1") + backupExtension;
+    const fs::path source = KisGlobalFileSystem::toPath(qFilename);
+    fs::path directory = backupDir.isEmpty()
+        ? source.parent_path() : KisGlobalFileSystem::toPath(backupDir);
+    if (directory.empty()) {
+        directory = fs::path(".");
     }
-    // First, search backupDir for numbered backup files to remove.
-    // Remove all with number 'maxBackups' and greater.
-    PkDir d = backupDir.isEmpty() ? fileInfo.dir() : backupDir;
-    d.setFilter(PkDir::Files | PkDir::Hidden | PkDir::NoSymLinks);
+    const std::string sourceName = source.filename().u8string();
+    const std::string extension = backupExtension.PkToUtf8();
+    const std::string prefix = sourceName + ".";
 
-    PkString nameFilter = fileInfo.fileName() + QLatin1String(".*") + backupExtension;
-    nameFilter.replace('[', '*');
-    nameFilter.replace(']', '*');
+    const auto backupPath = [&](unsigned int number) {
+        return directory / fs::u8path(prefix + std::to_string(number) + extension);
+    };
 
-    const PkStringList nameFilters = PkStringList(nameFilter);
-    d.setNameFilters(nameFilters);
-    d.setSorting(PkDir::Name);
+    std::vector<fs::directory_entry> entries;
+    std::error_code error;
+    for (fs::directory_iterator iterator(directory, fs::directory_options::skip_permission_denied, error), end;
+         !error && iterator != end;
+         iterator.increment(error)) {
+        entries.push_back(*iterator);
+    }
+    std::sort(entries.begin(), entries.end(), [](const fs::directory_entry &left,
+                                                  const fs::directory_entry &right) {
+        return left.path().filename().u8string() < right.path().filename().u8string();
+    });
 
     uint maxBackupFound = 0;
-    const PkFileInfoList infoList = d.entryInfoList();
-    for (const PkFileInfo &fi : infoList) {
-        if (fi.fileName().endsWith(backupExtension)) {
-            // sTemp holds the file name, without the ending backupExtension
-            PkString sTemp = fi.fileName();
+    for (const fs::directory_entry &entry : entries) {
+        error.clear();
+        if (fs::is_symlink(entry.symlink_status(error)) || error ||
+            !entry.is_regular_file(error) || error) {
+            continue;
+        }
 
-            sTemp.truncate(fi.fileName().length() - backupExtension.length());
-
-            // compute the backup number
-            int idex = sTemp.lastIndexOf(QLatin1Char('.'));
-            if (idex > 0) {
-                bool ok;
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-                const uint num = PkStringView(sTemp).mid(idex + 1).toUInt(&ok);
-#else
-                const uint num = sTemp.midRef(idex + 1).toUInt(&ok);
-#endif
-                if (ok) {
-                    if (num >= maxBackups) {
-                        PkFile::remove(fi.filePath());
-                    } else {
-                        maxBackupFound = qMax(maxBackupFound, num);
-                    }
-                }
-            }
+        uint number = 0;
+        if (!parseBackupNumber(entry.path().filename().u8string(), prefix, extension, &number)) {
+            continue;
+        }
+        if (number >= maxBackups) {
+            error.clear();
+            fs::remove(entry.path(), error);
+        } else {
+            maxBackupFound = std::max(maxBackupFound, number);
         }
     }
 
     // Next, rename max-1 to max, max-2 to max-1, etc.
-    PkString to = sTemplate.arg(maxBackupFound + 1);
+    fs::path to = backupPath(maxBackupFound + 1);
 
-    for (int i = maxBackupFound; i > 0; i--) {
-        PkString from = sTemplate.arg(i);
-        //        qCDebug(KCOREADDONS_DEBUG) << "KisBackup renaming " << from << " to " << to;
-        PkFile::rename(from, to);
+    for (uint i = maxBackupFound; i > 0; --i) {
+        const fs::path from = backupPath(i);
+        error.clear();
+        fs::rename(from, to, error);
         to = from;
     }
 
     // Finally create most recent backup by copying the file to backup number 1.
-    //    qCDebug(KCOREADDONS_DEBUG) << "KisBackup copying " << qFilename << " to " << sTemplate.arg(1);
-    bool r = PkFile::copy(qFilename, sTemplate.arg(1));
-    return r;
+    error.clear();
+    return fs::copy_file(source, backupPath(1), fs::copy_options::none, error) && !error;
 }

@@ -509,7 +509,7 @@ bool intersectLineConvexPolygon(PkLineF &line, const PkPolygonF polygon, bool ex
         accumulator_set<qreal, stats<tag::min, tag::max > > accX;
         accumulator_set<qreal, stats<tag::min, tag::max > > accY;
 
-        Q_FOREACH (const Point &pt, points) {
+        for (const Point &pt : points) {
             accX(pt.x());
             accY(pt.y());
         }
@@ -545,7 +545,7 @@ bool intersectLineConvexPolygon(PkLineF &line, const PkPolygonF polygon, bool ex
         accumulator_set<qreal, stats<tag::min, tag::max > > accX;
         accumulator_set<qreal, stats<tag::min, tag::max > > accY;
 
-        Q_FOREACH (const PkPoint &pt, points) {
+        for (const PkPoint &pt : points) {
             PkPointF dstPt = func(pt);
 
             accX(dstPt.x());
@@ -1138,7 +1138,7 @@ double elasticMotionError(const gsl_vector * x, void *paramsPtr)
     PkVector<qreal> Li;
     PkVector<qreal> cosMuI;
     PkVector<qreal> sinMuI;
-    Q_FOREACH (const PkPointF &anchorPoint, p->anchorPoints) {
+    for (const PkPointF &anchorPoint : p->anchorPoints) {
         const PkPointF vecLi = newResultPoint - anchorPoint;
         const qreal _Li = norm(vecLi);
 
@@ -1306,17 +1306,17 @@ PkPolygonF combineConvexHullParts(const PkPolygonF &leftPolygon, PkPolygonF &rig
     PkPolygonF left = leftPolygon;
     PkPolygonF right = rightPolygon;
 
-    left.removeLast(); // remove p1 from the end (but not the beginning)
-    left.removeLast(); // remove nextPoint as well, since it's present in rightPolygon (twice)
+    left.remove(left.size() - 1); // remove p1 from the end (but not the beginning)
+    left.remove(left.size() - 1); // remove nextPoint as well, since it's present in rightPolygon (twice)
 
-    right.removeLast(); // remove nextPoint from the end (but not the beginning)
+    right.remove(right.size() - 1); // remove nextPoint from the end (but not the beginning)
 
     PkPolygonF result;
-    Q_FOREACH(PkPointF point, left) {
+    for (PkPointF point : left) {
         result << point;
     }
 
-    Q_FOREACH(PkPointF point, right) {
+    for (PkPointF point : right) {
         result << point;
     }
 
@@ -1349,7 +1349,7 @@ PkPolygonF calculateConvexHullFromPointsOverTheLine(const PkPolygonF &points, co
 
     double maxDistance = 0;
     PkPointF nextPoint = points[0];
-    Q_FOREACH(PkPointF point, points) {
+    for (PkPointF point : points) {
         double distance = kisSquareDistanceToLine(point, line);
         if (distance > maxDistance) {
             maxDistance = distance;
@@ -1363,7 +1363,7 @@ PkPolygonF calculateConvexHullFromPointsOverTheLine(const PkPolygonF &points, co
     PkLineF lineForRight = PkLineF(nextPoint, line.p2());
     PkPolygonF triangle;
     triangle << line.p1() << line.p2() << nextPoint << line.p1();
-    Q_FOREACH(PkPointF point, points) {
+    for (PkPointF point : points) {
         if (triangle.containsPoint(point, Qt::WindingFill)) {
             continue;
         }
@@ -1394,7 +1394,7 @@ PkPolygonF calculateConvexHull(const PkPolygonF &polygon)
         rightPoint = polygon[0];
     }
 
-    Q_FOREACH(PkPointF point, polygon) {
+    for (PkPointF point : polygon) {
         if (point.x() < leftPoint.x()) {
             leftPoint = point;
         } else if (point.x() > rightPoint.x()) {
@@ -1406,7 +1406,7 @@ PkPolygonF calculateConvexHull(const PkPolygonF &polygon)
     PkPolygonF left;
     PkPolygonF right;
 
-    Q_FOREACH(PkPointF point, polygon) {
+    for (PkPointF point : polygon) {
         qCritical() << "Checking point " << point << "and line" << line << ": " << lineSideForPoint(line, point);
         if (lineSideForPoint(line, point) > 0) {
             left << point;
@@ -1732,8 +1732,8 @@ PkPointF findNearestPointOnLine(const PkPointF &point, const PkLineF &line, bool
 
     PkLineF pointToLineNormalLine = PkLineF(point, point + lineNormalVector);
     PkPointF result;
-    PkLineF::IntersectionType intersectionType = pointToLineNormalLine.intersects(line, &result);
-    if (unbounded || intersectionType == PkLineF::IntersectionType::BoundedIntersection) {
+    const PkLineF::IntersectType intersectionType = pointToLineNormalLine.intersects(line, &result);
+    if (unbounded || intersectionType == PkLineF::BoundedIntersection) {
         return result;
     }
     qreal distance1 = kisDistance(line.p1(), result);
@@ -1827,7 +1827,7 @@ PkPainterPath removeGutterOneEndSmart(const PkPainterPath &shape1, int index1, c
     };
 
     PkPointF intersectionPoint;
-    PkLineF::IntersectionType intersectionType = leftLine.intersects(rightLine, &intersectionPoint);
+    const PkLineF::IntersectType intersectionType = leftLine.intersects(rightLine, &intersectionPoint);
 
     qreal distanceToMiddle = 0;
     if (intersectionType != PkLineF::NoIntersection) {
@@ -1999,8 +1999,8 @@ PkList<int> getLineSegmentCrossingLineIndexes(const PkLineF &line, const PkPaint
 
             PkLineF lineSegment = path.segmentAtAsLine(i);
             PkPointF intersection;
-            PkLineF::IntersectionType type = lineSegment.intersects(line, &intersection);
-            if (type == PkLineF::IntersectionType::BoundedIntersection) {
+            const PkLineF::IntersectType type = lineSegment.intersects(line, &intersection);
+            if (type == PkLineF::BoundedIntersection) {
                 indexes << path.segmentIndexToPathIndex(i);
             }
         }
@@ -2292,7 +2292,7 @@ bool VectorPath::fuzzyComparePointsCyclic(const VectorPath &path, qreal eps) con
         }
     }
 
-    Q_FOREACH(int startId, rightStartingPoints) {
+    for (int startId : rightStartingPoints) {
         bool isEqual = true;
         for (int i = 0; i < pointsCount(); i++) {
             int rightId = wrapValue(i + startId, 0, pointsCount());
@@ -2351,8 +2351,7 @@ PkDebug operator<<(PkDebug debug, const VectorPath &path)
 
 PkDebug operator<<(PkDebug debug, const VectorPath::VectorPathPoint &point)
 {
-    bool autoInsertSpaces = debug.autoInsertSpaces();
-    debug.setAutoInsertSpaces(false);
+    debug.nospace();
     debug << (point.type == VectorPath::VectorPathPoint::MoveTo ? "(move " : (point.type == VectorPath::VectorPathPoint::BezierTo ? "(curve " : "(line "));
     debug << "(" << point.endPoint.x() << ", " << point.endPoint.y() << ")";
     if (point.type == VectorPath::VectorPathPoint::BezierTo) {
@@ -2363,8 +2362,7 @@ PkDebug operator<<(PkDebug debug, const VectorPath::VectorPathPoint &point)
         debug << ")";
     }
     debug << ")";
-    debug.setAutoInsertSpaces(autoInsertSpaces);
-    return debug;
+    return debug.space();
 }
 
 bool isInsideShape(const VectorPath &path, const PkPointF &point)
@@ -2395,7 +2393,7 @@ bool isInsideShape(const VectorPath &path, const PkPointF &point)
     }
 
     if (isPolygon) {
-        return path.asPainterPath().toFillPolygon(PkTransform()).containsPoint(point, PkPolygonF::WindingFill);
+        return path.asPainterPath().toFillPolygon(PkTransform()).containsPoint(point, Qt::WindingFill);
     }
 
     boundRect = kisGrowRect(boundRect, 5); // just safety margins
@@ -2457,7 +2455,7 @@ bool isInsideShape(const PkPainterPath &path, const PkPointF &point)
         }
     }
 
-    return path.toFillPolygon(PkTransform()).containsPoint(point, PkPolygonF::WindingFill);
+    return path.toFillPolygon(PkTransform()).containsPoint(point, Qt::WindingFill);
 }
 
 bool isOnLine(const PkLineF &line, const PkPointF &point, const qreal eps, bool boundedStart, bool boundedEnd, bool includeEnds)

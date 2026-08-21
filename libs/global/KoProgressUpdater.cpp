@@ -8,8 +8,12 @@
 
 #include <PkString.h>
 #include <PkThread.h>
+#include <PkEventLoop.h>
+#include <PkList.h>
 #include <PkMutex.h>
-#include <PkMutex.h>
+
+#include <algorithm>
+#include <cmath>
 
 #include "KoUpdaterPrivate_p.h"
 #include "KoUpdater.h"
@@ -19,7 +23,7 @@
 
 #include <kis_debug.h>
 
-class Q_DECL_HIDDEN KoProgressUpdater::Private
+class KoProgressUpdater::Private
 {
 public:
 
@@ -70,8 +74,10 @@ KoProgressUpdater::KoProgressUpdater(KoProgressProxy *progressProxy, Mode mode)
     : d (new Private(this, progressProxy, 0, mode))
 {
     KIS_ASSERT_RECOVER_RETURN(progressProxy);
-    connect(d->updateCompressor, SIGNAL(timeout()), SLOT(updateUi()));
-    connect(this, SIGNAL(triggerUpdateAsynchronously()), d->updateCompressor, SLOT(start()));
+    PkObject::connect(d->updateCompressor, &KisSignalCompressor::timeout,
+                      this, &KoProgressUpdater::updateUi);
+    PkObject::connect(this, &KoProgressUpdater::triggerUpdateAsynchronously,
+                      d->updateCompressor, &KisSignalCompressor::start);
     Q_EMIT triggerUpdateAsynchronously();
 }
 
@@ -79,8 +85,10 @@ KoProgressUpdater::KoProgressUpdater(PkPointer<KoUpdater> updater)
     : d (new Private(this, 0, updater, Unthreaded))
 {
     KIS_ASSERT_RECOVER_RETURN(updater);
-    connect(d->updateCompressor, SIGNAL(timeout()), SLOT(updateUi()));
-    connect(this, SIGNAL(triggerUpdateAsynchronously()), d->updateCompressor, SLOT(start()));
+    PkObject::connect(d->updateCompressor, &KisSignalCompressor::timeout,
+                      this, &KoProgressUpdater::updateUi);
+    PkObject::connect(this, &KoProgressUpdater::triggerUpdateAsynchronously,
+                      d->updateCompressor, &KisSignalCompressor::start);
     Q_EMIT triggerUpdateAsynchronously();
 }
 
@@ -95,7 +103,9 @@ KoProgressUpdater::~KoProgressUpdater()
     // the data we are going to delete right now
     d->updateCompressor->stop();
 
-    qDeleteAll(d->subtasks);
+    for (PkPointer<KoUpdaterPrivate> updater : d->subtasks) {
+        delete updater.data();
+    }
     d->subtasks.clear();
 
     delete d;
@@ -130,8 +140,10 @@ PkPointer<KoUpdater> KoProgressUpdater::startSubtask(int weight,
         PkMutexLocker l(&d->mutex);
         d->subtasks.append(p);
     }
-    connect(p, SIGNAL(sigUpdated()), SLOT(update()));
-    connect(p, SIGNAL(sigCancelled()), SLOT(cancel()));
+    PkObject::connect(p, &KoUpdaterPrivate::sigUpdated,
+                      this, &KoProgressUpdater::update);
+    PkObject::connect(p, &KoUpdaterPrivate::sigCancelled,
+                      this, &KoProgressUpdater::cancel);
 
     PkPointer<KoUpdater> updater = p->connectedUpdater();
 
@@ -161,7 +173,7 @@ void KoProgressUpdater::removePersistentSubtask(PkPointer<KoUpdater> updater)
 
 void KoProgressUpdater::cancel()
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThread() == this->thread());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThreadId() == this->thread());
 
     PkList<PkPointer<KoUpdaterPrivate> > subtasks;
 
@@ -170,7 +182,7 @@ void KoProgressUpdater::cancel()
         subtasks = d->subtasks;
     }
 
-    Q_FOREACH (PkPointer<KoUpdaterPrivate> updater, subtasks) {
+    for (PkPointer<KoUpdaterPrivate> updater : subtasks) {
         if (!updater) continue;
 
         updater->setProgress(100);
@@ -183,10 +195,10 @@ void KoProgressUpdater::cancel()
 
 void KoProgressUpdater::update()
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThread() == this->thread());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThreadId() == this->thread());
 
     if (d->mode == Unthreaded) {
-        qApp->processEvents();
+        PkEventLoop::processEvents();
     }
 
     d->updateCompressor->start();
@@ -194,7 +206,7 @@ void KoProgressUpdater::update()
 
 void KoProgressUpdater::updateUi()
 {
-    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThread() == this->thread());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(PkThread::currentThreadId() == this->thread());
 
     // This function runs in the app main thread. All the progress
     // updates arrive at the KoUpdaterPrivate instances through
@@ -211,7 +223,8 @@ void KoProgressUpdater::updateUi()
             int totalWeight = 0;
             d->isUndefinedState = false;
 
-            Q_FOREACH (PkPointer<KoUpdaterPrivate> updater, d->subtasks) {
+            const PkList<PkPointer<KoUpdaterPrivate> > subtasks = d->subtasks;
+            for (PkPointer<KoUpdaterPrivate> updater : subtasks) {
                 if (updater->interrupted()) {
                     d->currentProgress = -1;
                     break;
@@ -228,7 +241,7 @@ void KoProgressUpdater::updateUi()
                     continue;
                 }
 
-                const int progress = qBound(0, updater->progress(), 100);
+                const int progress = std::clamp(updater->progress(), 0, 100);
                 totalProgress += progress * updater->weight();
                 totalWeight += updater->weight();
             }
@@ -238,7 +251,7 @@ void KoProgressUpdater::updateUi()
             d->currentProgress =
                     d->taskMax == 99 ?
                         progressPercent :
-                        qRound(qreal(progressPercent) * d->taskMax / 99.0);
+                        static_cast<int>(std::lround(double(progressPercent) * d->taskMax / 99.0));
         }
 
     }
@@ -277,7 +290,7 @@ void KoProgressUpdater::Private::updateParentText()
     PkString actionName = taskName;
 
     if (autoNestNames) {
-        Q_FOREACH (PkPointer<KoUpdaterPrivate> updater, subtasks) {
+        for (PkPointer<KoUpdaterPrivate> updater : subtasks) {
 
             if (updater->isPersistent() && updater->isCompleted()) {
                 continue;

@@ -8,9 +8,6 @@
 #define KIS_POINTER_UTILS_H
 
 #include <PkSharedPointer.h>
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-
-#endif
 
 /**
  * Convert a raw pointer into a shared pointer
@@ -26,7 +23,7 @@ inline PkSharedPointer<T> toQShared(T* ptr) {
 template <class A, template <class C> class List>
 List<PkSharedPointer<A>> listToQShared(const List<A*> list) {
     List<PkSharedPointer<A>> newList;
-    Q_FOREACH(A* value, list) {
+    for (A *value : list) {
         newList.append(toQShared(value));
     }
     return newList;
@@ -39,7 +36,7 @@ template <template <class> class Container, class T>
 Container<PkWeakPointer<T>> listStrongToWeak(const Container<PkSharedPointer<T>> &container)
 {
     Container<PkWeakPointer<T> > result;
-    Q_FOREACH (PkSharedPointer<T> v, container) {
+    for (PkSharedPointer<T> v : container) {
         result << v;
     }
     return result;
@@ -58,7 +55,7 @@ template <template <class> class Container, class T>
                                                    bool allOrNothing = true)
 {
     Container<PkSharedPointer<T> > result;
-    Q_FOREACH (PkWeakPointer<T> v, container) {
+    for (PkWeakPointer<T> v : container) {
         PkSharedPointer<T> strong(v);
         if (!strong && allOrNothing) {
             result.clear();
@@ -83,7 +80,7 @@ inline Container<R> implicitCastList(const Container<T> &list)
 {
     Container<R> result;
 
-    Q_FOREACH(const T &item, list) {
+    for (const T &item : list) {
         result.append(item);
     }
     return result;
@@ -172,4 +169,3 @@ struct KisSharedPointerTraits<KisPinnedSharedPtr<T>>
 };
 
 #endif // KIS_POINTER_UTILS_H
-

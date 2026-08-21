@@ -7,6 +7,7 @@
 #define KIS_DEBUG_H_
 
 #include <PkDebug.h>
+#include <PkGlobal.h>
 #include <PkLoggingCategory.h>
 #include <PkMessageLogger.h>
 #include <PkString.h>
@@ -154,11 +155,6 @@ KRITAGLOBAL_EXPORT PkString kisBacktrace();
  * Use this macro to display in the output stream the name of a variable followed by its value.
  */
 #define ppVar( var ) #var << "=" << (var)
-
-#ifndef QT_NO_DEBUG
-#  undef Q_ASSERT
-#  define Q_ASSERT(cond) if(!(cond)) { errKrita.noquote() << kisBacktrace(); qt_assert(#cond,__FILE__,__LINE__); } qt_noop()
-#endif
 
 #ifdef __GNUC__
 KRITAGLOBAL_EXPORT PkString __methodName(const char *prettyFunction);

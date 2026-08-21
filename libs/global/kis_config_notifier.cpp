@@ -24,7 +24,8 @@ struct KisConfigNotifier::Private
 KisConfigNotifier::KisConfigNotifier()
     : m_d(new Private)
 {
-    connect(&m_d->dropFramesModeCompressor, SIGNAL(timeout()), SIGNAL(dropFramesModeChanged()));
+    PkObject::connect(&m_d->dropFramesModeCompressor, &KisSignalCompressor::timeout,
+                      this, &KisConfigNotifier::dropFramesModeChanged);
 }
 
 KisConfigNotifier::~KisConfigNotifier()

@@ -8,6 +8,7 @@
 #define _KIS_SHARED_H_
 
 #include <PkAtomic.h>
+#include <PkGlobal.h>
 #include "kritaglobal_export.h"
 
 class KRITAGLOBAL_EXPORT KisShared

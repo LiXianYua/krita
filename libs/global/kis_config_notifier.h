@@ -6,9 +6,9 @@
 #ifndef KIS_CONFIG_NOTIFIER_H_
 #define KIS_CONFIG_NOTIFIER_H_
 
-#include <PkObject.h>
-#include <PkConnect.h>
+#include <compat/QObject>
 #include <PkScopedPointer.h>
+#include <PkString.h>
 
 #include "kritaglobal_export.h"
 
@@ -52,7 +52,7 @@ Q_SIGNALS:
     /**
      * This signal is emitted whenever notifyConfigChanged() is called.
      */
-    void configChanged(void);
+    void configChanged();
     void dropFramesModeChanged();
     void pixelGridModeChanged();
     void colorHistoryModeChanged();
@@ -60,10 +60,8 @@ Q_SIGNALS:
     void sigColorSamplerPreviewStyleChanged();
     void signalColorThemeChanged(const PkString &filename);
     void sigLongPressChanged(bool enabled);
-#ifdef Q_OS_ANDROID
     void sigUsePageUpDownMouseButtonEmulationWorkaroundChanged(bool enabled);
     void sigUseIgnoreHistoricTabletEventsWorkaroundChanged(bool enabled);
-#endif
 
 private:
     KisConfigNotifier(const KisConfigNotifier&);

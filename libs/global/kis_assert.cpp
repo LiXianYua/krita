@@ -8,10 +8,12 @@
 
 #include <PkString.h>
 
-#include <PkThread.h>
-
 #include <KisUsageLogger.h>
+
+#include <cstdio>
+#include <cstdlib>
 #include <string>
+
 #include "config-safe-asserts.h"
 
 /**
@@ -27,7 +29,7 @@
  *    lead to an infinite loop.
  */
 
-void kis_assert_common(const char *assertion, const char *file, int line, bool abort, bool isIgnorable)
+void kis_assert_common(const char *assertion, const char *file, int line, bool fatal, bool isIgnorable)
 {
     PkString shortMessage =
         PkString("%4ASSERT (krita): \"%1\" in file %2, line %3")
@@ -36,57 +38,25 @@ void kis_assert_common(const char *assertion, const char *file, int line, bool a
         .arg(line)
         .arg(isIgnorable ? "SAFE " : "");
 
-    PkString longMessage =
-        PkString(
-            "Krita has encountered an internal error:\n\n"
-            "%1\n\n"
-            "Please report a bug to developers!\n\n"
-            "Press Ignore to try to continue.\n"
-            "Press Abort to see developers information (all unsaved data will be lost)")
-        .arg(shortMessage);
-
     KisUsageLogger::log(shortMessage);
 
-    bool disableAssertMsg =
-        PkProcessEnvironment::systemEnvironment().value("KRITA_NO_ASSERT_MSG", "0").toInt();
-
-    // disable message box if the assert happened in non-gui thread
-    // or if the GUI is not yet instantiated
-    if (!PkCoreApplication::instance() || PkThread::currentThread() != PkCoreApplication::instance()->thread()) {
-        disableAssertMsg = true;
-    }
-
-    bool shouldIgnoreAsserts = false;
+    const char *const noAssertMessage = std::getenv("KRITA_NO_ASSERT_MSG");
+    const bool suppressAssertMessage =
+        noAssertMessage && std::strtol(noAssertMessage, nullptr, 10) != 0;
     bool forceCrashOnSafeAsserts = false;
-
-#ifdef HIDE_SAFE_ASSERTS
-    shouldIgnoreAsserts |= HIDE_SAFE_ASSERTS;
-#endif
 
 #ifdef CRASH_ON_SAFE_ASSERTS
     forceCrashOnSafeAsserts |= CRASH_ON_SAFE_ASSERTS;
 #endif
 
-    disableAssertMsg |= shouldIgnoreAsserts || forceCrashOnSafeAsserts;
-
-    PkMessageBox::StandardButton button =
-        isIgnorable && !forceCrashOnSafeAsserts ?
-            PkMessageBox::Ignore : PkMessageBox::Abort;
-
-    if (!disableAssertMsg) {
-        button =
-            PkMessageBox::critical(qApp->activeWindow(), i18nc("@title:window", "Krita: Internal Error"),
-                                  longMessage,
-                                  PkMessageBox::Ignore | PkMessageBox::Abort,
-                                  PkMessageBox::Ignore);
+    if (!suppressAssertMessage) {
+        const std::string utf8Message = shortMessage.PkToUtf8();
+        std::fprintf(stderr, "%s\n", utf8Message.c_str());
+        std::fflush(stderr);
     }
 
-    if (button == PkMessageBox::Abort || abort) {
-        qFatal("%s", shortMessage.toLatin1().data());
-    } else if (isIgnorable) {
-        // Assert is a bug! Please don't change this line to warnKrita,
-        // the user must see it!
-        qWarning("%s", shortMessage.toLatin1().data());
+    if (fatal || (isIgnorable && forceCrashOnSafeAsserts)) {
+        std::abort();
     }
 }
 
@@ -114,5 +84,6 @@ void kis_assert_x_exception(const char *assertion,
         PkString("ASSERT failure in %1: \"%2\" (%3)")
         .arg(where, what, assertion);
 
-    kis_assert_common(res.toLatin1().data(), file, line, true, false);
+    const std::string utf8Message = res.PkToUtf8();
+    kis_assert_common(utf8Message.c_str(), file, line, true, false);
 }

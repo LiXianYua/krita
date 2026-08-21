@@ -53,14 +53,14 @@ bool testForestIteration(Iterator begin, Iterator end,
         {
             QDebug deb = qDebug();
             deb << "    result:";
-            Q_FOREACH(value_type value, values) {
+            for (value_type value : values) {
                 deb << value;
             }
         }
         {
             QDebug deb = qDebug();
             deb << "    ref.  :";
-            Q_FOREACH(value_type value, reference) {
+            for (value_type value : reference) {
                 deb << value;
             }
         }

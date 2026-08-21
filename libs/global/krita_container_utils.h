@@ -17,7 +17,7 @@ template <class T>
     bool compareListsUnordered(const PkList<T> &a, const PkList<T> &b) {
     if (a.size() != b.size()) return false;
 
-    Q_FOREACH(const T &t, a) {
+    for (const T &t : a) {
         if (!b.contains(t)) return false;
     }
 
@@ -102,4 +102,3 @@ struct is_appendable_container
 }
 
 #endif // KRITA_CONTAINER_UTILS_H
-

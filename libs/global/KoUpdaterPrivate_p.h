@@ -8,9 +8,9 @@
 #ifndef KO_UPDATERPRIVATE__P_H
 #define KO_UPDATERPRIVATE__P_H
 
-#include <PkObject.h>
-#include <PkConnect.h>
+#include <compat/QObject>
 #include <PkPointer.h>
+#include <PkString.h>
 
 class KoUpdater;
 

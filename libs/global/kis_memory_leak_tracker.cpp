@@ -90,7 +90,7 @@ void KisMemoryLeakTracker::Private::dumpReferencedObjectsAndDelete(PkHash<const 
                 it2.value() = 0;
             }
 #else
-            Q_UNUSED(_delete);
+            (void)_delete;
             qWarning() << "Enable backtrace support by running 'cmake -DHAVE_BACKTRACE_SUPPORT=ON'";
 #endif
         }
@@ -203,15 +203,15 @@ KisMemoryLeakTracker::~KisMemoryLeakTracker()
 
 void KisMemoryLeakTracker::reference(const void* what, const void* bywho, const char* whatName)
 {
-    Q_UNUSED(what);
-    Q_UNUSED(bywho);
-    Q_UNUSED(whatName);
+    (void)what;
+    (void)bywho;
+    (void)whatName;
 }
 
 void KisMemoryLeakTracker::dereference(const void* what, const void* bywho)
 {
-    Q_UNUSED(what);
-    Q_UNUSED(bywho);
+    (void)what;
+    (void)bywho;
 }
 
 void KisMemoryLeakTracker::dumpReferences()
@@ -220,7 +220,7 @@ void KisMemoryLeakTracker::dumpReferences()
 
 void KisMemoryLeakTracker::dumpReferences(const void* what)
 {
-    Q_UNUSED(what);
+    (void)what;
 }
 
 #endif

@@ -43,14 +43,16 @@ public:
 
     static void writeHeader();
 
-    /// Returns information about all available screens
+    /// Screen enumeration belongs to the UI; the headless core reports that
+    /// display information is unavailable.
     static PkString screenInformation();
 
 private:
 
     void rotateLog();
 
-    Q_DISABLE_COPY(KisUsageLogger)
+    KisUsageLogger(const KisUsageLogger &) = delete;
+    KisUsageLogger &operator=(const KisUsageLogger &) = delete;
 
     struct Private;
     const PkScopedPointer<Private> d;

@@ -7,8 +7,7 @@
 #ifndef __KIS_SIGNAL_COMPRESSOR_H
 #define __KIS_SIGNAL_COMPRESSOR_H
 
-#include <PkObject.h>
-#include <PkConnect.h>
+#include <compat/QObject>
 #include "kritaglobal_export.h"
 
 #include <PkElapsedTimer.h>
@@ -68,6 +67,7 @@ public:
     KisSignalCompressor();
     KisSignalCompressor(int delay, Mode mode, PkObject *parent = 0);
     KisSignalCompressor(int delay, Mode mode, SlowHandlerMode slowHandlerMode, PkObject *parent = 0);
+    ~KisSignalCompressor() override;
     bool isActive() const;
     void setMode(Mode mode);
 
@@ -90,6 +90,7 @@ private:
     bool tryEmitOnTick(bool isFromTimer);
     bool tryEmitSignalSafely();
     void setDelayImpl(int delay);
+    void startTimer();
 
 private:
     PkTimer *m_timer = 0;
@@ -99,6 +100,7 @@ private:
     PkElapsedTimer m_lastEmittedTimer;
     int m_isEmitting = 0;
     int m_timeout = 0;
+    int m_timerInterval = 0;
     std::function<bool()> m_idleCallback;
     int m_sanityIsStarting = 0;
 };

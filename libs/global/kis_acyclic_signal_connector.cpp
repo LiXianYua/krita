@@ -18,109 +18,6 @@ KisAcyclicSignalConnector::~KisAcyclicSignalConnector()
 {
 }
 
-void KisAcyclicSignalConnector::connectForwardDouble(PkObject *sender, const char *signal,
-                                                  PkObject *receiver, const char *method)
-{
-
-    connect(sender, signal, this, SLOT(forwardSlotDouble(double)), Qt::UniqueConnection);
-    connect(this, SIGNAL(forwardSignalDouble(double)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectBackwardDouble(PkObject *sender, const char *signal,
-                                                   PkObject *receiver, const char *method)
-{
-
-    connect(sender, signal, this, SLOT(backwardSlotDouble(double)), Qt::UniqueConnection);
-    connect(this, SIGNAL(backwardSignalDouble(double)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectForwardInt(PkObject *sender, const char *signal,
-                                                  PkObject *receiver, const char *method)
-{
-
-    connect(sender, signal, this, SLOT(forwardSlotInt(int)), Qt::UniqueConnection);
-    connect(this, SIGNAL(forwardSignalInt(int)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectBackwardInt(PkObject *sender, const char *signal,
-                                                   PkObject *receiver, const char *method)
-{
-
-    connect(sender, signal, this, SLOT(backwardSlotInt(int)), Qt::UniqueConnection);
-    connect(this, SIGNAL(backwardSignalInt(int)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectForwardBool(PkObject *sender, const char *signal,
-                                                  PkObject *receiver, const char *method)
-{
-
-    connect(sender, signal, this, SLOT(forwardSlotBool(bool)), Qt::UniqueConnection);
-    connect(this, SIGNAL(forwardSignalBool(bool)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectBackwardBool(PkObject *sender, const char *signal,
-                                                   PkObject *receiver, const char *method)
-{
-
-    connect(sender, signal, this, SLOT(backwardSlotBool(bool)), Qt::UniqueConnection);
-    connect(this, SIGNAL(backwardSignalBool(bool)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectForwardVoid(PkObject *sender, const char *signal,
-                                                  PkObject *receiver, const char *method)
-{
-
-    connect(sender, signal, this, SLOT(forwardSlotVoid()), Qt::UniqueConnection);
-    connect(this, SIGNAL(forwardSignalVoid()), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectBackwardVoid(PkObject *sender, const char *signal,
-                                                 PkObject *receiver, const char *method)
-{
-
-    connect(sender, signal, this, SLOT(backwardSlotVoid()), Qt::UniqueConnection);
-    connect(this, SIGNAL(backwardSignalVoid()), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectForwardVariant(PkObject *sender, const char *signal,
-                                                  PkObject *receiver, const char *method)
-{
-
-    connect(sender, signal, this, SLOT(forwardSlotVariant(PkVariant)), Qt::UniqueConnection);
-    connect(this, SIGNAL(forwardSignalVariant(PkVariant)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectBackwardVariant(PkObject *sender, const char *signal,
-                                                       PkObject *receiver, const char *method)
-{
-    connect(sender, signal, this, SLOT(backwardSlotVariant(PkVariant)), Qt::UniqueConnection);
-    connect(this, SIGNAL(backwardSignalVariant(PkVariant)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectForwardResourcePair(PkObject *sender, const char *signal, PkObject *receiver, const char *method)
-{
-    connect(sender, signal, this, SLOT(forwardSlotResourcePair(int,PkVariant)), Qt::UniqueConnection);
-    connect(this, SIGNAL(forwardSignalResourcePair(int,PkVariant)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectBackwardResourcePair(PkObject *sender, const char *signal, PkObject *receiver, const char *method)
-{
-    connect(sender, signal, this, SLOT(backwardSlotResourcePair(int,PkVariant)), Qt::UniqueConnection);
-    connect(this, SIGNAL(backwardSignalResourcePair(int,PkVariant)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectForwardKoColor(PkObject *sender, const char *signal, PkObject *receiver, const char *method)
-{
-    connect(sender, signal, this, SLOT(forwardSlotKoColor(KoColor)), Qt::UniqueConnection);
-    connect(this, SIGNAL(forwardSignalKoColor(KoColor)), receiver, method, Qt::UniqueConnection);
-}
-
-void KisAcyclicSignalConnector::connectBackwardKoColor(PkObject *sender, const char *signal, PkObject *receiver, const char *method)
-{
-    connect(sender, signal, this, SLOT(backwardSlotKoColor(KoColor)), Qt::UniqueConnection);
-    connect(this, SIGNAL(backwardSignalKoColor(KoColor)), receiver, method, Qt::UniqueConnection);
-}
-
 void KisAcyclicSignalConnector::lock()
 {
     if (m_parentConnector) {
@@ -128,7 +25,7 @@ void KisAcyclicSignalConnector::lock()
     } else {
         coordinatedLock();
 
-        Q_FOREACH(PkPointer<KisAcyclicSignalConnector> conn, m_coordinatedConnectors) {
+        for (PkPointer<KisAcyclicSignalConnector> conn : m_coordinatedConnectors) {
             if (!conn) continue;
             conn->coordinatedLock();
         }
@@ -140,7 +37,7 @@ void KisAcyclicSignalConnector::unlock()
     if (m_parentConnector) {
         m_parentConnector->unlock();
     } else {
-        Q_FOREACH(PkPointer<KisAcyclicSignalConnector> conn, m_coordinatedConnectors) {
+        for (PkPointer<KisAcyclicSignalConnector> conn : m_coordinatedConnectors) {
             if (!conn) continue;
             conn->coordinatedUnlock();
         }
@@ -277,23 +174,5 @@ void KisAcyclicSignalConnector::backwardSlotResourcePair(int key, const PkVarian
 
     lock();
     Q_EMIT backwardSignalResourcePair(key, resource);
-    unlock();
-}
-
-void KisAcyclicSignalConnector::forwardSlotKoColor(const KoColor &value)
-{
-    if (m_signalsBlocked) return;
-
-    lock();
-    Q_EMIT forwardSignalKoColor(value);
-    unlock();
-}
-
-void KisAcyclicSignalConnector::backwardSlotKoColor(const KoColor &value)
-{
-    if (m_signalsBlocked) return;
-
-    lock();
-    Q_EMIT backwardSignalKoColor(value);
     unlock();
 }

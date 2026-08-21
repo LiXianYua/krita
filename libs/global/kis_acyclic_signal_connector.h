@@ -7,16 +7,15 @@
 #ifndef __KIS_ACYCLIC_SIGNAL_CONNECTOR_H
 #define __KIS_ACYCLIC_SIGNAL_CONNECTOR_H
 
-#include <PkObject.h>
-#include <PkConnect.h>
+#include <compat/QObject>
 #include "kritaglobal_export.h"
 #include <mutex>
 
 class KisAcyclicSignalConnector;
-class KoColor;
 
 #include <PkVector.h>
 #include <PkPointer.h>
+#include <PkVariant.h>
 
 /**
  * A special class for connecting UI elements to manager classes.
@@ -61,47 +60,101 @@ public:
     KisAcyclicSignalConnector(PkObject *parent = 0);
     ~KisAcyclicSignalConnector();
 
-    void connectForwardDouble(PkObject *sender, const char *signal,
-                              PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectForwardDouble(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::forwardSlotDouble,
+                     &KisAcyclicSignalConnector::forwardSignalDouble);
+    }
 
-    void connectBackwardDouble(PkObject *sender, const char *signal,
-                               PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectBackwardDouble(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::backwardSlotDouble,
+                     &KisAcyclicSignalConnector::backwardSignalDouble);
+    }
 
-    void connectForwardInt(PkObject *sender, const char *signal,
-                           PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectForwardInt(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::forwardSlotInt,
+                     &KisAcyclicSignalConnector::forwardSignalInt);
+    }
 
-    void connectBackwardInt(PkObject *sender, const char *signal,
-                            PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectBackwardInt(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::backwardSlotInt,
+                     &KisAcyclicSignalConnector::backwardSignalInt);
+    }
 
-    void connectForwardBool(PkObject *sender, const char *signal,
-                            PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectForwardBool(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::forwardSlotBool,
+                     &KisAcyclicSignalConnector::forwardSignalBool);
+    }
 
-    void connectBackwardBool(PkObject *sender, const char *signal,
-                             PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectBackwardBool(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::backwardSlotBool,
+                     &KisAcyclicSignalConnector::backwardSignalBool);
+    }
 
-    void connectForwardVoid(PkObject *sender, const char *signal,
-                            PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectForwardVoid(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::forwardSlotVoid,
+                     &KisAcyclicSignalConnector::forwardSignalVoid);
+    }
 
-    void connectBackwardVoid(PkObject *sender, const char *signal,
-                             PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectBackwardVoid(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::backwardSlotVoid,
+                     &KisAcyclicSignalConnector::backwardSignalVoid);
+    }
 
-    void connectForwardVariant(PkObject *sender, const char *signal,
-                               PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectForwardVariant(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::forwardSlotVariant,
+                     &KisAcyclicSignalConnector::forwardSignalVariant);
+    }
 
-    void connectBackwardVariant(PkObject *sender, const char *signal,
-                                PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectBackwardVariant(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::backwardSlotVariant,
+                     &KisAcyclicSignalConnector::backwardSignalVariant);
+    }
 
-    void connectForwardResourcePair(PkObject *sender, const char *signal,
-                                     PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectForwardResourcePair(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::forwardSlotResourcePair,
+                     &KisAcyclicSignalConnector::forwardSignalResourcePair);
+    }
 
-    void connectBackwardResourcePair(PkObject *sender, const char *signal,
-                                     PkObject *receiver, const char *method);
-
-    void connectForwardKoColor(PkObject *sender, const char *signal,
-                               PkObject *receiver, const char *method);
-
-    void connectBackwardKoColor(PkObject *sender, const char *signal,
-                                PkObject *receiver, const char *method);
+    template <typename Sender, typename Signal, typename Receiver, typename Method>
+    void connectBackwardResourcePair(Sender *sender, Signal signal, Receiver *receiver, Method method)
+    {
+        connectTyped(sender, signal, receiver, method,
+                     &KisAcyclicSignalConnector::backwardSlotResourcePair,
+                     &KisAcyclicSignalConnector::backwardSignalResourcePair);
+    }
 
     /**
      * Lock the connector and all its coordinated child connectors
@@ -134,6 +187,15 @@ public:
 
 private:
 
+    template <typename Sender, typename Signal, typename Receiver, typename Method,
+              typename RelaySlot, typename RelaySignal>
+    void connectTyped(Sender *sender, Signal signal, Receiver *receiver, Method method,
+                      RelaySlot relaySlot, RelaySignal relaySignal)
+    {
+        PkObject::connect(sender, signal, this, relaySlot, PkConnectionType::Unique);
+        PkObject::connect(this, relaySignal, receiver, method, PkConnectionType::Unique);
+    }
+
     /**
      * Lock this connector only.
      */
@@ -163,9 +225,6 @@ private Q_SLOTS:
     void forwardSlotResourcePair(int key, const PkVariant &resource);
     void backwardSlotResourcePair(int key, const PkVariant &resource);
 
-    void forwardSlotKoColor(const KoColor &value);
-    void backwardSlotKoColor(const KoColor &value);
-
 Q_SIGNALS:
     void forwardSignalDouble(double value);
     void backwardSignalDouble(double value);
@@ -184,9 +243,6 @@ Q_SIGNALS:
 
     void forwardSignalResourcePair(int key, const PkVariant &value);
     void backwardSignalResourcePair(int key, const PkVariant &value);
-
-    void forwardSignalKoColor(const KoColor &value);
-    void backwardSignalKoColor(const KoColor &value);
 
 private:
     int m_signalsBlocked;

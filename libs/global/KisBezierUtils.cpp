@@ -308,7 +308,7 @@ public:
     void printDebug() const
     {
         int index = 0;
-        Q_FOREACH (const PkPointF &p, points) {
+        for (const PkPointF &p : points) {
             qDebug() << PkString("P%1 ").arg(index++) << p;
         }
     }
@@ -453,7 +453,7 @@ qreal nearestPoint(const PkList<PkPointF> controlPoints, const PkPointF &point, 
     }
 
     // Iterate over the found candidate params.
-    Q_FOREACH (qreal root, rootParams) {
+    for (qreal root : rootParams) {
         const PkPointF rootPoint = bezierCurve(controlPoints, root);
         distanceSquared = kisSquareDistance(point, rootPoint);
 
@@ -1242,7 +1242,7 @@ boost::optional<qreal> intersectWithLineNearest(const PkPointF &p0, const PkPoin
     qreal minDistance = std::numeric_limits<qreal>::max();
     boost::optional<qreal> nearestRoot;
 
-    Q_FOREACH (qreal root, result) {
+    for (qreal root : result) {
         const PkPointF pt = bezierCurve(p0, p1, p2, p3, root);
         const qreal distance = kisDistance(pt, nearestAnchor);
 

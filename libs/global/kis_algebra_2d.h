@@ -278,7 +278,7 @@ inline void accumulateBoundsNonEmpty(const Point &pt, Rect *bounds)
 template <template <class T> class Container, class Point, class Rect>
 inline void accumulateBounds(const Container<Point> &points, Rect *bounds)
 {
-    Q_FOREACH (const Point &pt, points) {
+    for (const Point &pt : points) {
         accumulateBounds(pt, bounds);
     }
 }
@@ -289,7 +289,7 @@ accumulateBounds(const Container<Point> &points)
 {
     typename PointTypeTraits<Point>::rect_type result;
 
-    Q_FOREACH (const Point &pt, points) {
+    for (const Point &pt : points) {
         accumulateBounds(pt, &result);
     }
 

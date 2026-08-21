@@ -10,26 +10,55 @@
 ****************************************************************************/
 
 #include "KisSignalMapper.h"
-#include "qhash.h"
+#include <PkHash.h>
 
 class KisSignalMapper::Private
 {
 public:
-    
-    Private(KisSignalMapper *_q)
-        :q(_q)
-        {}
-    
-    void _q_senderDestroyed() {
-        q->removeMappings(q->sender());
+    bool registerSender(PkObject *sender)
+    {
+        if (!sender) {
+            return false;
+        }
+
+        if (senders.contains(sender) && senders.value(sender).data() != sender) {
+            removeMappings(sender);
+        }
+        senders.insert(sender, PkPointer<PkObject>(sender));
+        return true;
     }
+
+    bool isLiveSender(PkObject *sender) const
+    {
+        return sender && senders.value(sender).data() == sender;
+    }
+
+    template <typename Value>
+    PkObject *liveSenderFor(const PkHash<PkObject *, Value> &mappings,
+                            const Value &value) const
+    {
+        for (auto it = mappings.constBegin(); it != mappings.constEnd(); ++it) {
+            if (it.value() == value && isLiveSender(it.key())) {
+                return it.key();
+            }
+        }
+        return nullptr;
+    }
+
+    void removeMappings(PkObject *sender)
+    {
+        intHash.remove(sender);
+        stringHash.remove(sender);
+        widgetHash.remove(sender);
+        objectHash.remove(sender);
+        senders.remove(sender);
+    }
+
     PkHash<PkObject *, int> intHash;
     PkHash<PkObject *, PkString> stringHash;
     PkHash<PkObject *, PkWidget*> widgetHash;
     PkHash<PkObject *, PkObject*> objectHash;
-
-    
-    KisSignalMapper *q;
+    PkHash<PkObject *, PkPointer<PkObject>> senders;
 };
 
 /*!
@@ -95,7 +124,7 @@ public:
 */
 KisSignalMapper::KisSignalMapper(PkObject* parent)
     : PkObject(parent)
-    , d(new Private(this))
+    , d(new Private)
 {
 }
 
@@ -116,8 +145,10 @@ KisSignalMapper::~KisSignalMapper()
 */
 void KisSignalMapper::setMapping(PkObject *sender, int id)
 {
+    if (!d->registerSender(sender)) {
+        return;
+    }
     d->intHash.insert(sender, id);
-    connect(sender, SIGNAL(destroyed()), this, SLOT(_q_senderDestroyed()));
 }
 
 /*!
@@ -128,8 +159,10 @@ void KisSignalMapper::setMapping(PkObject *sender, int id)
 */
 void KisSignalMapper::setMapping(PkObject *sender, const PkString &text)
 {
+    if (!d->registerSender(sender)) {
+        return;
+    }
     d->stringHash.insert(sender, text);
-    connect(sender, SIGNAL(destroyed()), this, SLOT(_q_senderDestroyed()));
 }
 
 /*!
@@ -140,8 +173,10 @@ void KisSignalMapper::setMapping(PkObject *sender, const PkString &text)
 */
 void KisSignalMapper::setMapping(PkObject *sender, PkWidget *widget)
 {
+    if (!d->registerSender(sender)) {
+        return;
+    }
     d->widgetHash.insert(sender, widget);
-    connect(sender, SIGNAL(destroyed()), this, SLOT(_q_senderDestroyed()));
 }
 
 /*!
@@ -152,8 +187,10 @@ void KisSignalMapper::setMapping(PkObject *sender, PkWidget *widget)
 */
 void KisSignalMapper::setMapping(PkObject *sender, PkObject *object)
 {
+    if (!d->registerSender(sender)) {
+        return;
+    }
     d->objectHash.insert(sender, object);
-    connect(sender, SIGNAL(destroyed()), this, SLOT(_q_senderDestroyed()));
 }
 
 /*!
@@ -163,7 +200,7 @@ void KisSignalMapper::setMapping(PkObject *sender, PkObject *object)
 */
 PkObject *KisSignalMapper::mapping(int id) const
 {
-    return d->intHash.key(id);
+    return d->liveSenderFor(d->intHash, id);
 }
 
 /*!
@@ -171,7 +208,7 @@ PkObject *KisSignalMapper::mapping(int id) const
 */
 PkObject *KisSignalMapper::mapping(const PkString &id) const
 {
-    return d->stringHash.key(id);
+    return d->liveSenderFor(d->stringHash, id);
 }
 
 /*!
@@ -181,7 +218,7 @@ PkObject *KisSignalMapper::mapping(const PkString &id) const
 */
 PkObject *KisSignalMapper::mapping(PkWidget *widget) const
 {
-    return d->widgetHash.key(widget);
+    return d->liveSenderFor(d->widgetHash, widget);
 }
 
 /*!
@@ -191,7 +228,7 @@ PkObject *KisSignalMapper::mapping(PkWidget *widget) const
 */
 PkObject *KisSignalMapper::mapping(PkObject *object) const
 {
-    return d->objectHash.key(object);
+    return d->liveSenderFor(d->objectHash, object);
 }
 
 /*!
@@ -204,10 +241,7 @@ PkObject *KisSignalMapper::mapping(PkObject *object) const
 */
 void KisSignalMapper::removeMappings(PkObject *sender)
 {
-    d->intHash.remove(sender);
-    d->stringHash.remove(sender);
-    d->widgetHash.remove(sender);
-    d->objectHash.remove(sender);
+    d->removeMappings(sender);
 }
 
 /*!
@@ -220,6 +254,11 @@ void KisSignalMapper::map() { map(sender()); }
 */
 void KisSignalMapper::map(PkObject *sender)
 {
+    if (!d->isLiveSender(sender)) {
+        d->removeMappings(sender);
+        return;
+    }
+
     if (d->intHash.contains(sender))
         Q_EMIT mapped(d->intHash.value(sender));
     if (d->stringHash.contains(sender))
@@ -269,6 +308,3 @@ void KisSignalMapper::map(PkObject *sender)
 
     \sa setMapping()
 */
-
-#include "moc_KisSignalMapper.cpp"
-

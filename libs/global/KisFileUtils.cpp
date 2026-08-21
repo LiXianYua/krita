@@ -6,37 +6,112 @@
 
 #include "KisFileUtils.h"
 
+#include "KisGlobalFileSystem.h"
+
 #include <PkString.h>
 
-#include <KisPortingUtils.h>
+#include <cctype>
+#include <filesystem>
+#include <string>
+#include <system_error>
+
+namespace {
+
+namespace fs = std::filesystem;
+
+PkString fromUtf8(const std::string &text)
+{
+    return PkString::PkFromUtf8(text.data(), static_cast<int>(text.size()));
+}
+
+struct FileNameParts {
+    std::string baseName;
+    std::string completeSuffix;
+};
+
+FileNameParts splitFileName(const std::string &fileName)
+{
+    const std::size_t firstDot = fileName.find('.');
+    if (firstDot == std::string::npos) {
+        return {fileName, std::string()};
+    }
+    return {fileName.substr(0, firstDot), fileName.substr(firstDot + 1)};
+}
+
+bool reuseCounterPrefix(const std::string &fileName,
+                        const std::string &separator,
+                        FileNameParts *parts)
+{
+    // This is the literal-string equivalent of the old anchored regular
+    // expression.  Searching from right to left preserves its greedy prefix
+    // behavior for an empty separator ("foo12" reuses the final digit).
+    for (std::size_t separatorPosition = fileName.size(); separatorPosition > 1;) {
+        --separatorPosition;
+        const std::string prefix = fileName.substr(0, separatorPosition);
+        if (prefix.find('.') != std::string::npos) {
+            continue;
+        }
+        if (fileName.compare(separatorPosition, separator.size(), separator) != 0) {
+            continue;
+        }
+
+        const std::size_t digitsBegin = separatorPosition + separator.size();
+        if (digitsBegin >= fileName.size() ||
+            std::isdigit(static_cast<unsigned char>(fileName[digitsBegin])) == 0) {
+            continue;
+        }
+
+        std::size_t digitsEnd = digitsBegin;
+        while (digitsEnd < fileName.size() &&
+               std::isdigit(static_cast<unsigned char>(fileName[digitsEnd])) != 0) {
+            ++digitsEnd;
+        }
+
+        if (digitsEnd != fileName.size() &&
+            (fileName[digitsEnd] != '.' || digitsEnd + 1 == fileName.size())) {
+            continue;
+        }
+
+        parts->baseName = prefix;
+        parts->completeSuffix = digitsEnd == fileName.size()
+            ? std::string() : fileName.substr(digitsEnd + 1);
+        return true;
+    }
+    return false;
+}
+
+} // namespace
 
 namespace KritaUtils {
 
 PkString resolveAbsoluteFilePath(const PkString &baseDir, const PkString &fileName)
 {
-    if (PkFileInfo(fileName).isAbsolute()) {
+    const fs::path requestedPath = KisGlobalFileSystem::toPath(fileName);
+    if (requestedPath.is_absolute()) {
         return fileName;
     }
 
-    PkFileInfo fallbackBaseDirInfo(baseDir);
+    const fs::path basePath = KisGlobalFileSystem::toPath(baseDir);
+    std::error_code error;
+    const bool baseIsDirectory = fs::is_directory(basePath, error);
+    const fs::path parent = baseIsDirectory ? basePath : basePath.parent_path();
+    const fs::path combined = parent / requestedPath;
+    error.clear();
+    const fs::path absolute = fs::absolute(combined, error);
 
-    return PkFileInfo(PkDir(fallbackBaseDirInfo.isDir() ?
-                              fallbackBaseDirInfo.absoluteFilePath() :
-                              fallbackBaseDirInfo.absolutePath()),
-                     fileName).absoluteFilePath();
+    return KisGlobalFileSystem::fromPath(
+        (error ? combined : absolute).lexically_normal());
 }
 
 PkString deduplicateFileName(const PkString &fileName,
                             const PkString &separator,
                             std::function<bool(PkString)> fileAllowedCallback)
 {
-    const PkFileInfo fileInfo(fileName);
-
-    int counter = 0;
-    PkString proposedFileName = fileInfo.fileName();
-
-    PkString baseName = fileInfo.baseName();
-    PkString completeSuffix = fileInfo.completeSuffix();
+    const std::string proposedName =
+        KisGlobalFileSystem::toPath(fileName).filename().u8string();
+    const std::string separatorText = separator.PkToUtf8();
+    std::string proposedFileName = proposedName;
+    FileNameParts parts = splitFileName(proposedName);
 
     /**
      * Search for the separator around the leftmost dot in the filename
@@ -46,25 +121,18 @@ PkString deduplicateFileName(const PkString &fileName,
      * from the separator. Separator itself can have dots, but it cannot
      * be a part of the file extension.
      */
-    PkRegularExpression rex(PkString("^([^.]+)%1\\d+(\\.(.+))?$").arg(separator));
-    auto match = rex.match(proposedFileName);
+    reuseCounterPrefix(proposedName, separatorText, &parts);
 
-    if (match.hasMatch()) {
-        using KisPortingUtils::stringRemoveFirst;
-        baseName = match.captured(1);
-        completeSuffix = stringRemoveFirst(match.captured(2));
-    }
+    unsigned long long counter = 0;
+    while (!fileAllowedCallback(fromUtf8(proposedFileName))) {
+        proposedFileName = parts.baseName + separatorText + std::to_string(counter++);
 
-    while (!fileAllowedCallback(proposedFileName)) {
-        PkStringList fileParts = {baseName, separator, PkString::number(counter++)};
-
-        if (!completeSuffix.isEmpty()) {
-            fileParts += ".";
-            fileParts += completeSuffix;
+        if (!parts.completeSuffix.empty()) {
+            proposedFileName += ".";
+            proposedFileName += parts.completeSuffix;
         }
-        proposedFileName = fileParts.join("");
     }
 
-    return proposedFileName;
+    return fromUtf8(proposedFileName);
 }
 }

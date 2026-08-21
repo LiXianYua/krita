@@ -9,10 +9,10 @@
 #define KO_UPDATER_H
 
 #include "KoProgressProxy.h"
-#include <PkObject.h>
-#include <PkConnect.h>
+#include <compat/QObject>
 #include <PkPointer.h>
 #include <PkAtomic.h>
+#include <PkString.h>
 
 class KoProgressUpdater;
 class KoUpdaterPrivate;
@@ -121,9 +121,11 @@ public:
     KoUpdater *updater();
 
 private:
-    Q_DISABLE_COPY_MOVE(KoDummyUpdaterHolder)
+    KoDummyUpdaterHolder(const KoDummyUpdaterHolder &) = delete;
+    KoDummyUpdaterHolder &operator=(const KoDummyUpdaterHolder &) = delete;
+    KoDummyUpdaterHolder(KoDummyUpdaterHolder &&) = delete;
+    KoDummyUpdaterHolder &operator=(KoDummyUpdaterHolder &&) = delete;
     KoUpdaterPrivate *d;
 };
 
 #endif
-

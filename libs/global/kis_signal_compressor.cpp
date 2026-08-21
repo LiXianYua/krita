@@ -31,13 +31,11 @@
 
 #include "kis_assert.h"
 #include "kis_debug.h"
+#include <PkTimer.h>
 
 KisSignalCompressor::KisSignalCompressor()
     : PkObject(0)
-    , m_timer(new PkTimer(this))
 {
-    m_timer->setSingleShot(false);
-    connect(m_timer, SIGNAL(timeout()), SLOT(slotTimerExpired()));
 }
 
 KisSignalCompressor::KisSignalCompressor(int delay, Mode mode, PkObject *parent)
@@ -47,28 +45,40 @@ KisSignalCompressor::KisSignalCompressor(int delay, Mode mode, PkObject *parent)
 
 KisSignalCompressor::KisSignalCompressor(int delay, Mode mode, SlowHandlerMode slowHandlerMode, PkObject *parent)
     : PkObject(parent),
-      m_timer(new PkTimer(this)),
       m_mode(mode),
       m_slowHandlerMode(slowHandlerMode),
-      m_timeout(delay)
+      m_timeout(delay),
+      m_timerInterval(delay)
 {
-    m_timer->setSingleShot(false);
-    m_timer->setInterval(delay);
-    connect(m_timer, SIGNAL(timeout()), SLOT(slotTimerExpired()));
+}
+
+KisSignalCompressor::~KisSignalCompressor()
+{
+    delete m_timer;
+}
+
+void KisSignalCompressor::startTimer()
+{
+    if (!m_timer) {
+        m_timer = new PkTimer(thread());
+    }
+
+    m_timer->start(std::chrono::milliseconds(m_timerInterval),
+                   [this] { slotTimerExpired(); }, false);
 }
 
 void KisSignalCompressor::setDelayImpl(int delay)
 {
-    const bool wasActive = m_timer->isActive();
+    const bool wasActive = m_timer && m_timer->isActive();
 
     if (wasActive) {
         m_timer->stop();
     }
 
-    m_timer->setInterval(delay);
+    m_timerInterval = delay;
 
     if (wasActive) {
-        m_timer->start();
+        startTimer();
     }
 }
 
@@ -90,7 +100,7 @@ void KisSignalCompressor::start()
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_mode != UNDEFINED);
 
-    const bool isFirstStart = !m_timer->isActive();
+    const bool isFirstStart = !m_timer || !m_timer->isActive();
 
     KIS_SAFE_ASSERT_RECOVER_NOOP(!isFirstStart || !m_signalsPending);
     m_sanityIsStarting++;
@@ -98,7 +108,7 @@ void KisSignalCompressor::start()
     switch (m_mode) {
     case POSTPONE:
         if (isFirstStart) {
-            m_timer->start();
+            startTimer();
         }
         m_lastEmittedTimer.restart();
         m_signalsPending = true;
@@ -106,7 +116,7 @@ void KisSignalCompressor::start()
     case FIRST_ACTIVE_POSTPONE_NEXT:
     case FIRST_ACTIVE:
         if (isFirstStart) {
-            m_timer->start();
+            startTimer();
             if (m_slowHandlerMode == PRECISE_INTERVAL) {
                 m_lastEmittedTimer.restart();
             }
@@ -129,7 +139,7 @@ void KisSignalCompressor::start()
         break;
     case FIRST_INACTIVE:
         if (isFirstStart) {
-            m_timer->start();
+            startTimer();
             m_lastEmittedTimer.restart();
             m_signalsPending = true;
         } else {
@@ -142,8 +152,8 @@ void KisSignalCompressor::start()
 
     m_sanityIsStarting--;
 
-    KIS_SAFE_ASSERT_RECOVER(m_timer->isActive()) {
-        m_timer->start();
+    KIS_SAFE_ASSERT_RECOVER(m_timer && m_timer->isActive()) {
+        startTimer();
     }
 }
 
@@ -212,21 +222,25 @@ void KisSignalCompressor::slotTimerExpired()
         if (!m_lastEmittedTimer.isValid() ||
             m_lastEmittedTimer.elapsed() > calmDownInterval) {
 
-            m_timer->stop();
+            if (m_timer) {
+                m_timer->stop();
+            }
         }
     }
 }
 
 void KisSignalCompressor::stop()
 {
-    m_timer->stop();
+    if (m_timer) {
+        m_timer->stop();
+    }
     m_signalsPending = false;
     m_lastEmittedTimer.invalidate();
 }
 
 bool KisSignalCompressor::isActive() const
 {
-    return m_signalsPending && m_timer->isActive();
+    return m_signalsPending && m_timer && m_timer->isActive();
 }
 
 void KisSignalCompressor::setMode(KisSignalCompressor::Mode mode)

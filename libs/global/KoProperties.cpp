@@ -181,7 +181,7 @@ bool KoProperties::operator==(const KoProperties &other) const
 {
     if (d->properties.count() != other.d->properties.count())
         return false;
-    Q_FOREACH (const PkString & key, d->properties.keys()) {
+    for (const PkString &key : d->properties.keys()) {
         if (other.d->properties.value(key) != d->properties.value(key))
             return false;
     }

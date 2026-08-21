@@ -10,16 +10,21 @@
 
 #include "KoUpdaterPrivate_p.h"
 
+#include <algorithm>
+#include <cassert>
+
 KoUpdater::KoUpdater(KoUpdaterPrivate *_d)
     : m_progressPercent(0)
 {
     d = _d;
-    Q_ASSERT(!d.isNull());
+    assert(!d.isNull());
 
-    connect(this, SIGNAL(sigCancel()), d, SLOT(cancel()));
-    connect(this, SIGNAL(sigProgress(int)), d, SLOT(setProgress(int)));
-    connect(this, SIGNAL(sigNestedNameChanged(PkString)), d, SLOT(setAutoNestedName(PkString)));
-    connect(this, SIGNAL(sigHasValidRangeChanged(bool)), d, SLOT(setHasValidRange(bool)));
+    PkObject::connect(this, &KoUpdater::sigCancel, d.data(), &KoUpdaterPrivate::cancel);
+    PkObject::connect(this, &KoUpdater::sigProgress, d.data(), &KoUpdaterPrivate::setProgress);
+    PkObject::connect(this, &KoUpdater::sigNestedNameChanged,
+                      d.data(), &KoUpdaterPrivate::setAutoNestedName);
+    PkObject::connect(this, &KoUpdater::sigHasValidRangeChanged,
+                      d.data(), &KoUpdaterPrivate::setHasValidRange);
 
     setRange(0, 100);
     m_interrupted = false;
@@ -62,7 +67,7 @@ int KoUpdater::maximum() const
 
 void KoUpdater::setValue( int value )
 {
-    value = qBound(min, value, max);
+    value = std::clamp(value, min, max);
 
     // Go from range to percent
     const int range = max - min;

@@ -119,6 +119,8 @@ add_library(pkconcurrent STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/concurrent/PkThread.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/concurrent/PkSemaphore.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/concurrent/PkThreadCallQueue.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/concurrent/PkTimer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/concurrent/PkEventLoop.cpp
 )
 target_include_directories(pkconcurrent PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/concurrent)
 target_link_libraries(pkconcurrent PUBLIC Threads::Threads)

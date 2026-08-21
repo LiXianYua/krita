@@ -6,6 +6,8 @@
 
 #include "KisAndroidCrashHandler.h"
 
+#include "KisGlobalFileSystem.h"
+
 #include <KritaVersionWrapper.h>
 
 #include <PkDateTime.h>
@@ -16,6 +18,7 @@
 
 #include <android/log.h>
 #include <array>
+#include <filesystem>
 #include <fcntl.h>
 #include <signal.h>
 #include <sstream>
@@ -31,8 +34,9 @@ static const std::array<int, 6> signals = {SIGABRT, SIGBUS, SIGFPE, SIGSEGV, SIG
 static PkMap<int, struct sigaction> g_old_actions;
 
 // we need to have keep this object alive
-static const std::string path =
-    PkString(PkStandardPaths::writableLocation(PkStandardPaths::AppDataLocation) + "/kritacrashlog.txt").toStdString();
+static const std::filesystem::path crashlog_directory =
+    KisGlobalFileSystem::writableLocation(KisGlobalFileSystem::Location::AppData);
+static const std::string path = (crashlog_directory / "kritacrashlog.txt").u8string();
 static const char *crashlog_path = path.c_str();
 
 static bool g_handling_crash = false;
@@ -82,13 +86,17 @@ void dump_backtrace(siginfo_t *info, void *ucontext)
     }
 
     const int fd = open(crashlog_path, O_CREAT | O_APPEND | O_WRONLY, S_IRUSR | S_IWUSR);
+    if (fd < 0) {
+        CRASH_LOGGER("Couldn't open the crash log");
+        return;
+    }
 
     std::stringstream header;
     header << "********************** Dumping backtrace **********************\n"
            << "Signal: " << info->si_signo << " (" << get_signal_name(info->si_signo) << ")"
            << " (Code: " << info->si_code << ")"
-           << " Time: " << PkDateTime::currentDateTimeUtc().toString().toStdString().c_str()
-           << " Version: " << KritaVersionWrapper::versionString(true).toStdString().c_str() << "\n";
+           << " Time: " << PkDateTime::currentDateTimeUtc().toString()
+           << " Version: " << KritaVersionWrapper::versionString(true).PkToUtf8() << "\n";
     write(fd, header.str().c_str(), header.str().size());
 
     for (size_t i = 0; i < frames.size(); ++i) {
@@ -123,6 +131,13 @@ void crash_callback(int sig, siginfo_t *info, void *ucontext)
 
 void handler_init()
 {
+    std::error_code error;
+    std::filesystem::create_directories(crashlog_directory, error);
+    if (error) {
+        CRASH_LOGGER("Couldn't create the crash-log directory: %s", error.message().c_str());
+        return;
+    }
+
     // create an alternate stack to make sure we can handle overflows
     stack_t alternate_stack;
     alternate_stack.ss_flags = 0;

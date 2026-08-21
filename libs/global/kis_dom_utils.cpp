@@ -125,7 +125,8 @@ bool findOnlyElement(const PkXmlElement &parent, const PkString &tag, PkXmlEleme
 {
     PkXmlNodeList list = parent.elementsByTagName(tag);
     if (list.size() != 1 || !list.at(0).isElement()) {
-        PkString msg = i18n("Could not find \"%1\" XML tag in \"%2\"", tag, parent.tagName());
+        const PkString msg = PkString("Could not find \"%1\" XML tag in \"%2\"")
+                                 .arg(tag, parent.tagName());
         if (errorMessages) {
             *errorMessages << msg;
         } else {
@@ -155,7 +156,8 @@ namespace Private {
     {
         PkString type = e.attribute("type", "unknown-type");
         if (type != expectedType) {
-            warnKrita << i18n("Error: incorrect type (%2) for value %1. Expected %3", e.tagName(), type, expectedType);
+            warnKrita << PkString("Error: incorrect type (%2) for value %1. Expected %3")
+                             .arg(e.tagName(), type, expectedType);
             return false;
         }
 
@@ -276,11 +278,7 @@ bool loadValue(const PkXmlElement &e, PkString *value)
 bool loadValue(const PkXmlElement &e, PkColor *value)
 {
     if (!Private::checkType(e, "qcolor")) return false;
-#if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
     value->setNamedColor(e.attribute("value", "#FFFF0000"));
-#else
-    value->fromString(e.attribute("value", "#FFFF0000"));
-#endif
     return true;
 }
 

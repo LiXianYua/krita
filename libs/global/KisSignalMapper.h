@@ -12,10 +12,13 @@
 #ifndef KisSignalMapper_H
 #define KisSignalMapper_H
 
-#include <QtCore/qobject.h>
+#include <compat/QObject>
 #include "kritaglobal_export.h"
 
 #include <PkScopedPointer.h>
+#include <PkString.h>
+
+class PkWidget;
 
 /*!
     \class KisSignalMapper
@@ -218,8 +221,8 @@ private:
     class Private;
     PkScopedPointer<Private> d;
     
-    Q_DISABLE_COPY(KisSignalMapper)
-    Q_PRIVATE_SLOT(d, void _q_senderDestroyed())
+    KisSignalMapper(const KisSignalMapper &) = delete;
+    KisSignalMapper &operator=(const KisSignalMapper &) = delete;
 };
 
 #endif // KisSignalMapper_H

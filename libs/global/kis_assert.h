@@ -21,31 +21,28 @@ KRITAGLOBAL_EXPORT void kis_safe_assert_recoverable(const char *assertion, const
 // NOLINTBEGIN(cppcoreguidelines-macro-usage, readability-simplify-boolean-expr)
 
 /**
- * KIS_ASSERT family of macros allows the user to choose whether to
- * try to continue working in Krita or to abort an application and see
- * a backtrace.
+ * The KIS_ASSERT family provides fatal assertions and recoverable
+ * assertions with caller-supplied recovery branches.
  *
  * Note, the macro are present in Release mode by default!
  */
 
 /**
- * Checks the condition and depending on the user action either aborts
- * the program or throws an exception, which restarts event loop.
+ * Checks the condition and aborts the program on failure.
  */
-#define KIS_ASSERT(cond) ((!(cond)) ? kis_assert_exception(#cond,__FILE__,__LINE__) : qt_noop())
+#define KIS_ASSERT(cond) ((!(cond)) ? kis_assert_exception(#cond,__FILE__,__LINE__) : (void)0)
 
 /**
  * Same as KIS_ASSERT, but allows to show more text to the user.
  *
  * \see KIS_ASSERT
  */
-#define KIS_ASSERT_X(cond, where, what) ((!(cond)) ? kis_assert_x_exception(#cond,where, what,__FILE__,__LINE__) : qt_noop())
+#define KIS_ASSERT_X(cond, where, what) ((!(cond)) ? kis_assert_x_exception(#cond,where, what,__FILE__,__LINE__) : (void)0)
 
 /**
  * This is a recoverable variant of KIS_ASSERT. It doesn't throw any
- * exceptions.  It checks the condition, and either aborts the
- * application, or executes user-supplied code. The typical usecase is
- * the following:
+ * exceptions. It logs the failure and executes user-supplied code. The
+ * typical usecase is the following:
  *
  * int fooBar = ...;
  * KIS_ASSERT_RECOVER (fooBar > 0) {
@@ -91,18 +88,17 @@ KRITAGLOBAL_EXPORT void kis_safe_assert_recoverable(const char *assertion, const
  * Equivalent of the following:
  *
  * KIS_ASSERT_RECOVER(cond) {
- *     qt_noop();
+ *     (void)0;
  * }
  *
  */
-#define KIS_ASSERT_RECOVER_NOOP(cond) do { KIS_ASSERT_RECOVER(cond) { qt_noop(); } } while (0)
+#define KIS_ASSERT_RECOVER_NOOP(cond) do { KIS_ASSERT_RECOVER(cond) { (void)0; } } while (0)
 
 /**
  * This set of macros work in exactly the same way as their non-safe
  * counterparts, but they are automatically converted into console
- * warnings in release builds. That is the user will not see any
- * message box, just a warning message will be printed in a terminal
- * and a recovery branch will be taken automatically.
+ * warnings in release builds and a recovery branch is taken. Builds
+ * configured with CRASH_ON_SAFE_ASSERTS abort instead.
  *
  * Rules when to use "safe" asserts. Use them if the following
  * conditions are met:
@@ -127,7 +123,7 @@ KRITAGLOBAL_EXPORT void kis_safe_assert_recoverable(const char *assertion, const
 #define KIS_SAFE_ASSERT_RECOVER_BREAK(cond) KIS_SAFE_ASSERT_RECOVER(cond) { break; }
 #define KIS_SAFE_ASSERT_RECOVER_RETURN(cond) do { KIS_SAFE_ASSERT_RECOVER(cond) { return; } } while (0)
 #define KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(cond, val) do { KIS_SAFE_ASSERT_RECOVER(cond) { return (val); } } while (0)
-#define KIS_SAFE_ASSERT_RECOVER_NOOP(cond) do { KIS_SAFE_ASSERT_RECOVER(cond) { qt_noop(); } } while (0)
+#define KIS_SAFE_ASSERT_RECOVER_NOOP(cond) do { KIS_SAFE_ASSERT_RECOVER(cond) { (void)0; } } while (0)
 
 // NOLINTEND(cppcoreguidelines-macro-usage, readability-simplify-boolean-expr)
 

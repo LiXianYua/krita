@@ -6,17 +6,27 @@
 
 #include "kis_thread_safe_signal_compressor.h"
 
+#include <PkThread.h>
+
 KisThreadSafeSignalCompressor::KisThreadSafeSignalCompressor(int delay, KisSignalCompressor::Mode mode)
     : m_compressor(new KisSignalCompressor(delay, mode, this))
 {
-    connect(this, SIGNAL(internalRequestSignal()), m_compressor, SLOT(start()), Qt::AutoConnection);
-    connect(this, SIGNAL(internalStopSignal()), m_compressor, SLOT(stop()), Qt::AutoConnection);
-    connect(this, SIGNAL(internalSetDelay(int)), m_compressor, SLOT(setDelay(int)), Qt::AutoConnection);
-    connect(m_compressor, SIGNAL(timeout()), SIGNAL(timeout()));
+    PkObject::connect(this, &KisThreadSafeSignalCompressor::internalRequestSignal,
+                      m_compressor, &KisSignalCompressor::start, PkConnectionType::Auto);
+    PkObject::connect(this, &KisThreadSafeSignalCompressor::internalStopSignal,
+                      m_compressor, &KisSignalCompressor::stop, PkConnectionType::Auto);
+    PkObject::connect(
+        this, &KisThreadSafeSignalCompressor::internalSetDelay,
+        m_compressor,
+        static_cast<void (KisSignalCompressor::*)(int)>(&KisSignalCompressor::setDelay),
+        PkConnectionType::Auto);
+    PkObject::connect(m_compressor, &KisSignalCompressor::timeout,
+                      this, &KisThreadSafeSignalCompressor::timeout,
+                      PkConnectionType::Auto);
 
-    // due to this line the object *must not* be deleted explicitly!
-    this->setObjectName("KisThreadSafeSignalCompressor");
-    this->moveToThread(PkApplication::instance()->thread());
+    const PkThreadId mainThread = PkThread::mainThreadId();
+    this->moveToThread(mainThread);
+    m_compressor->moveToThread(mainThread);
 }
 
 bool KisThreadSafeSignalCompressor::isActive() const

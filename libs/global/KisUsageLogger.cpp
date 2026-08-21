@@ -5,72 +5,244 @@
  */
 #include "KisUsageLogger.h"
 
-#include <PkDebug.h>
-#include <PkDateTime.h>
-
-#include <PkThread.h>
+#include "KisGlobalFileSystem.h"
 
 #include <KritaVersionWrapper.h>
 
-#ifdef Q_OS_WIN
-#include "KisWindowsPackageUtils.h"
-#include <windows.h>
-#include <versionhelpers.h>
-#endif
-
-#ifdef Q_OS_ANDROID
-#include <KisAndroidExitInfo.h>
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-#include <QtAndroidExtras/QtAndroid>
-#endif
-#endif
-
-#ifdef Q_OS_MACOS
-#include "KisMacosEntitlements.h"
-#endif
+#include <PkDateTime.h>
+#include <PkMessageLogger.h>
 
 #include <clocale>
+#include <cstdint>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <locale>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <system_error>
+#include <thread>
+#include <vector>
 
-static KisUsageLogger *s_instance()
+#ifdef _WIN32
+#include <process.h>
+#include <windows.h>
+#else
+#include <sys/utsname.h>
+#include <unistd.h>
+#endif
+
+#ifdef __APPLE__
+#include <crt_externs.h>
+#endif
+
+#ifdef __ANDROID__
+#include <KisAndroidExitInfo.h>
+#endif
+
+namespace {
+
+namespace fs = std::filesystem;
+
+KisUsageLogger *s_instance()
 {
     static KisUsageLogger instance;
     return &instance;
 }
 
-const PkString KisUsageLogger::s_sectionHeader("================================================================================\n");
+PkString fromUtf8(const std::string &text)
+{
+    return PkString::PkFromUtf8(text.data(), static_cast<int>(text.size()));
+}
+
+std::string currentTimestamp()
+{
+    return PkDateTime::currentDateTime().toString(PkDateTime::DateFormat::RFC2822Date);
+}
+
+long long processId()
+{
+#ifdef _WIN32
+    return static_cast<long long>(::_getpid());
+#else
+    return static_cast<long long>(::getpid());
+#endif
+}
+
+bool readFile(const fs::path &path, std::string *contents);
+
+std::string processCommandLine()
+{
+#ifdef _WIN32
+    const wchar_t *commandLine = ::GetCommandLineW();
+    return commandLine ? fs::path(commandLine).u8string() : std::string();
+#elif defined(__APPLE__)
+    const int count = *_NSGetArgc();
+    char **arguments = *_NSGetArgv();
+    std::string commandLine;
+    for (int i = 0; arguments && i < count; ++i) {
+        if (i != 0) {
+            commandLine.push_back(' ');
+        }
+        commandLine += arguments[i] ? arguments[i] : "";
+    }
+    return commandLine;
+#elif defined(__linux__) || defined(__ANDROID__)
+    std::string commandLine;
+    if (!readFile("/proc/self/cmdline", &commandLine)) {
+        return std::string();
+    }
+    for (char &character : commandLine) {
+        if (character == '\0') {
+            character = ' ';
+        }
+    }
+    while (!commandLine.empty() && commandLine.back() == ' ') {
+        commandLine.pop_back();
+    }
+    return commandLine;
+#else
+    return std::string();
+#endif
+}
+
+bool readFile(const fs::path &path, std::string *contents)
+{
+    std::ifstream stream(path, std::ios::binary);
+    if (!stream) {
+        return false;
+    }
+    contents->assign(std::istreambuf_iterator<char>(stream),
+                     std::istreambuf_iterator<char>());
+    return stream.good() || stream.eof();
+}
+
+bool replaceFile(const fs::path &path, const std::string &contents)
+{
+    std::ofstream stream(path, std::ios::binary | std::ios::trunc);
+    if (!stream) {
+        return false;
+    }
+    stream.write(contents.data(), static_cast<std::streamsize>(contents.size()));
+    stream.flush();
+    return stream.good();
+}
+
+std::vector<std::string> splitKeepingEmptyParts(const std::string &text,
+                                                 const std::string &separator)
+{
+    std::vector<std::string> parts;
+    std::size_t start = 0;
+    while (true) {
+        const std::size_t position = text.find(separator, start);
+        if (position == std::string::npos) {
+            parts.push_back(text.substr(start));
+            return parts;
+        }
+        parts.push_back(text.substr(start, position - start));
+        start = position + separator.size();
+    }
+}
+
+std::string join(const std::vector<std::string> &parts,
+                 std::size_t first,
+                 const std::string &separator)
+{
+    std::string result;
+    for (std::size_t i = first; i < parts.size(); ++i) {
+        if (i != first) {
+            result += separator;
+        }
+        result += parts[i];
+    }
+    return result;
+}
+
+const char *platformName()
+{
+#if defined(_WIN32)
+    return "Windows";
+#elif defined(__ANDROID__)
+    return "Android";
+#elif defined(__APPLE__)
+    return "macOS";
+#elif defined(__linux__)
+    return "Linux";
+#elif defined(__FreeBSD__)
+    return "FreeBSD";
+#else
+    return "Unknown";
+#endif
+}
+
+const char *architectureName()
+{
+#if defined(__aarch64__) || defined(_M_ARM64)
+    return "arm64";
+#elif defined(__arm__) || defined(_M_ARM)
+    return "arm";
+#elif defined(__x86_64__) || defined(_M_X64)
+    return "x86_64";
+#elif defined(__i386__) || defined(_M_IX86)
+    return "x86";
+#else
+    return "unknown";
+#endif
+}
+
+} // namespace
+
+const PkString KisUsageLogger::s_sectionHeader(
+    "================================================================================\n");
 
 struct KisUsageLogger::Private {
     bool active {false};
-    PkFile logFile;
-    PkFile sysInfoFile;
+    fs::path logPath;
+    fs::path sysInfoPath;
+    std::ofstream logFile;
+    std::ofstream sysInfoFile;
 };
 
 KisUsageLogger::KisUsageLogger()
     : d(new Private)
 {
-    if (!PkFileInfo(PkStandardPaths::writableLocation(PkStandardPaths::GenericDataLocation)).exists()) {
-        PkDir().mkpath(PkStandardPaths::writableLocation(PkStandardPaths::GenericDataLocation));
+    const fs::path dataDirectory = KisGlobalFileSystem::writableLocation(
+        KisGlobalFileSystem::Location::GenericData);
+    std::error_code error;
+    fs::create_directories(dataDirectory, error);
+    if (error) {
+        qWarning() << "Could not create usage-log directory"
+                   << KisGlobalFileSystem::fromPath(dataDirectory)
+                   << error.message();
     }
-    d->logFile.setFileName(PkStandardPaths::writableLocation(PkStandardPaths::GenericDataLocation) + "/krita.log");
-    d->sysInfoFile.setFileName(PkStandardPaths::writableLocation(PkStandardPaths::GenericDataLocation) + "/krita-sysinfo.log");
 
-    PkFileInfo fi(d->logFile.fileName());
-    if (fi.size() > 100 * 1000 * 1000) { // 100 mb seems a reasonable max
-        if (d->logFile.open(PkStream::WriteOnly | PkStream::Truncate)) {
-            d->logFile.close();
-        } else {
-            qWarning() << "Could not clear the >100MB" << d->logFile.fileName() << ":" << d->logFile.errorString();
+    d->logPath = dataDirectory / "krita.log";
+    d->sysInfoPath = dataDirectory / "krita-sysinfo.log";
+
+    error.clear();
+    const std::uintmax_t logSize = fs::file_size(d->logPath, error);
+    if (!error && logSize > 100ULL * 1000ULL * 1000ULL) {
+        std::ofstream truncate(d->logPath, std::ios::binary | std::ios::trunc);
+        if (!truncate) {
+            qWarning() << "Could not clear the >100MB usage log"
+                       << KisGlobalFileSystem::fromPath(d->logPath);
         }
-    }
-    else {
+    } else {
         rotateLog();
     }
 
-    if (!d->logFile.open(PkFile::Append | PkFile::Text)) {
-        qWarning() << "Could not open" << d->logFile.fileName() << "for writing:" << d->logFile.errorString();
+    d->logFile.open(d->logPath, std::ios::binary | std::ios::app);
+    if (!d->logFile) {
+        qWarning() << "Could not open usage log for writing"
+                   << KisGlobalFileSystem::fromPath(d->logPath);
     }
-    if (!d->sysInfoFile.open(PkFile::WriteOnly | PkFile::Text)) {
-        qWarning() << "Could not open" << d->sysInfoFile.fileName() << "for writing:" << d->sysInfoFile.errorString();
+
+    d->sysInfoFile.open(d->sysInfoPath, std::ios::binary | std::ios::trunc);
+    if (!d->sysInfoFile) {
+        qWarning() << "Could not open system-info log for writing"
+                   << KisGlobalFileSystem::fromPath(d->sysInfoPath);
     }
 }
 
@@ -83,195 +255,151 @@ KisUsageLogger::~KisUsageLogger()
 
 void KisUsageLogger::initialize()
 {
-    s_instance()->d->active = true;
+    KisUsageLogger *logger = s_instance();
+    logger->d->active = true;
 
-    PkString systemInfo = basicSystemInfo();
-    s_instance()->d->sysInfoFile.write(systemInfo.toUtf8());
+    const std::string systemInfo = basicSystemInfo().PkToUtf8();
+    if (logger->d->sysInfoFile.is_open()) {
+        logger->d->sysInfoFile.write(systemInfo.data(),
+                                     static_cast<std::streamsize>(systemInfo.size()));
+        logger->d->sysInfoFile.flush();
+    }
 }
 
 PkString KisUsageLogger::basicSystemInfo()
 {
-    PkString systemInfo;
+    std::ostringstream information;
+    information << "Krita\n"
+                << "\n Version: " << KritaVersionWrapper::versionString(true).PkToUtf8()
+                << "\n\nOS Information\n"
+                << "\n  Platform: " << platformName()
+                << "\n  CPU Architecture: " << architectureName()
+                << "\n  Hardware Threads: " << std::thread::hardware_concurrency();
 
-    // NOTE: This is intentionally not translated!
-
-    // Krita version info
-    systemInfo.append("Krita\n");
-    systemInfo.append("\n Version: ").append(KritaVersionWrapper::versionString(true));
-#ifdef Q_OS_WIN
-    {
-        using namespace KisWindowsPackageUtils;
-        PkString packageFamilyName;
-        PkString packageFullName;
-        systemInfo.append("\n Installation type: ");
-        if (tryGetCurrentPackageFamilyName(&packageFamilyName) && tryGetCurrentPackageFullName(&packageFullName)) {
-            systemInfo.append("Store / MSIX package\n    Family Name: ")
-                .append(packageFamilyName)
-                .append("\n    Full Name: ")
-                .append(packageFullName);
-        } else {
-            systemInfo.append("installer / portable package");
-        }
+#ifndef _WIN32
+    struct utsname systemName {};
+    if (::uname(&systemName) == 0) {
+        information << "\n  Kernel: " << systemName.sysname
+                    << "\n  Kernel Version: " << systemName.release
+                    << "\n  Machine: " << systemName.machine;
     }
 #endif
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    // Attribute does nothing on Qt6
-    systemInfo.append("\n Hidpi: ").append(PkCoreApplication::testAttribute(Qt::AA_EnableHighDpiScaling) ? "true" : "false");
+
+#if defined(__linux__) && !defined(__ANDROID__)
+    if (const char *desktop = std::getenv("XDG_CURRENT_DESKTOP")) {
+        information << "\n  Desktop: " << desktop;
+    }
+    information << "\n  AppImage build: "
+                << (std::getenv("APPIMAGE") ? "Yes" : "No");
 #endif
-#ifdef Q_OS_MACOS
-    KisMacosEntitlements entitlements;
-    systemInfo.append("\n Sandbox: ").append((entitlements.sandbox()) ? "true" : "false");
-#endif
-    systemInfo.append("\n\n");
-
-    systemInfo.append("Qt\n");
-    systemInfo.append("\n  Version (compiled): ").append(QT_VERSION_STR);
-    systemInfo.append("\n  Version (loaded): ").append(qVersion());
-    systemInfo.append("\n\n");
-
-    // OS information
-    systemInfo.append("OS Information\n");
-    systemInfo.append("\n  Build ABI: ").append(PkSysInfo::buildAbi());
-    systemInfo.append("\n  Build CPU: ").append(PkSysInfo::buildCpuArchitecture());
-    systemInfo.append("\n  CPU: ").append(PkSysInfo::currentCpuArchitecture());
-    systemInfo.append("\n  Kernel Type: ").append(PkSysInfo::kernelType());
-    systemInfo.append("\n  Kernel Version: ").append(PkSysInfo::kernelVersion());
-    systemInfo.append("\n  Pretty Productname: ").append(PkSysInfo::prettyProductName());
-    systemInfo.append("\n  Product Type: ").append(PkSysInfo::productType());
-    systemInfo.append("\n  Product Version: ").append(PkSysInfo::productVersion());
-
-#ifdef Q_OS_ANDROID
-    PkString manufacturer =
-        PkAndroidJniObject::getStaticObjectField("android/os/Build", "MANUFACTURER", "Ljava/lang/String;").toString();
-    const PkString model =
-        PkAndroidJniObject::getStaticObjectField("android/os/Build", "MODEL", "Ljava/lang/String;").toString();
-    manufacturer[0] = manufacturer[0].toUpper();
-    systemInfo.append("\n  Product Model: ").append(manufacturer + " " + model);
-#elif defined(Q_OS_LINUX)
-    systemInfo.append("\n  Desktop: ").append(qgetenv("XDG_CURRENT_DESKTOP"));
-
-    systemInfo.append("\n  Appimage build: ").append(qEnvironmentVariableIsSet("APPIMAGE") ? "Yes" : "No");
-#elif defined(Q_OS_WIN)
-    systemInfo.append("\n  Result of IsWindows10OrGreater(): ").append(IsWindows10OrGreater() ? "Yes" : "No");
-#endif
-    systemInfo.append("\n\n");
-
-    return systemInfo;
+    information << "\n\n";
+    return fromUtf8(information.str());
 }
 
 void KisUsageLogger::writeLocaleSysInfo()
 {
-    if (!s_instance()->d->active) {
+    KisUsageLogger *logger = s_instance();
+    if (!logger->d->active || !logger->d->sysInfoFile.is_open()) {
         return;
     }
-    PkString systemInfo;
-    systemInfo.append("Locale\n");
-    systemInfo.append("\n  Languages: ").append(KLocalizedString::languages().join(", "));
-    systemInfo.append("\n  C locale: ").append(std::setlocale(LC_ALL, nullptr));
-    systemInfo.append("\n  PkLocale current: ").append(PkLocale().bcp47Name());
-    systemInfo.append("\n  PkLocale system: ").append(PkLocale::system().bcp47Name());
-    const PkTextCodec *codecForLocale = PkTextCodec::codecForLocale();
-    systemInfo.append("\n  PkTextCodec for locale: ").append(codecForLocale->name());
-#ifdef Q_OS_WIN
-    {
-        systemInfo.append("\n  Process ACP: ");
-        CPINFOEXW cpInfo {};
-        if (GetCPInfoExW(CP_ACP, 0, &cpInfo)) {
-            systemInfo.append(PkString::fromWCharArray(cpInfo.CodePageName));
-        } else {
-            // Shouldn't happen, but just in case
-            systemInfo.append(PkString::number(GetACP()));
-        }
-        wchar_t lcData[2];
-        int result = GetLocaleInfoEx(LOCALE_NAME_SYSTEM_DEFAULT, LOCALE_IDEFAULTANSICODEPAGE | LOCALE_RETURN_NUMBER, lcData, sizeof(lcData) / sizeof(lcData[0]));
-        if (result == 2) {
-            systemInfo.append("\n  System locale default ACP: ");
-            int systemACP = lcData[1] << 16 | lcData[0];
-            if (systemACP == CP_ACP) {
-                systemInfo.append("N/A");
-            } else if (GetCPInfoExW(systemACP, 0, &cpInfo)) {
-                systemInfo.append(PkString::fromWCharArray(cpInfo.CodePageName));
-            } else {
-                // Shouldn't happen, but just in case
-                systemInfo.append(PkString::number(systemACP));
-            }
-        }
+
+    std::ostringstream information;
+    information << "Locale\n";
+    const char *cLocale = std::setlocale(LC_ALL, nullptr);
+    information << "\n  C locale: " << (cLocale ? cLocale : "unknown");
+    try {
+        information << "\n  C++ locale: " << std::locale("").name();
+    } catch (const std::runtime_error &) {
+        information << "\n  C++ locale: unavailable";
     }
-#endif
-    systemInfo.append("\n\n");
-    s_instance()->d->sysInfoFile.write(systemInfo.toUtf8());
+    information << "\n\n";
+
+    const std::string text = information.str();
+    logger->d->sysInfoFile.write(text.data(), static_cast<std::streamsize>(text.size()));
+    logger->d->sysInfoFile.flush();
 }
 
 void KisUsageLogger::close()
 {
-    log("CLOSING SESSION");
-    s_instance()->d->active = false;
-    s_instance()->d->logFile.flush();
-    s_instance()->d->logFile.close();
-    s_instance()->d->sysInfoFile.flush();
-    s_instance()->d->sysInfoFile.close();
+    KisUsageLogger *logger = s_instance();
+    if (logger->d->active) {
+        log("CLOSING SESSION");
+    }
+    logger->d->active = false;
+    if (logger->d->logFile.is_open()) {
+        logger->d->logFile.flush();
+        logger->d->logFile.close();
+    }
+    if (logger->d->sysInfoFile.is_open()) {
+        logger->d->sysInfoFile.flush();
+        logger->d->sysInfoFile.close();
+    }
 }
 
 void KisUsageLogger::log(const PkString &message)
 {
-    if (!s_instance()->d->active) return;
-    if (!s_instance()->d->logFile.isOpen()) return;
+    KisUsageLogger *logger = s_instance();
+    if (!logger->d->active || !logger->d->logFile.is_open()) {
+        return;
+    }
 
-    s_instance()->d->logFile.write(PkDateTime::currentDateTime().toString(Qt::RFC2822Date).toUtf8());
-    s_instance()->d->logFile.write(": ");
+    const std::string timestamp = currentTimestamp();
+    logger->d->logFile.write(timestamp.data(), static_cast<std::streamsize>(timestamp.size()));
+    logger->d->logFile.write(": ", 2);
     write(message);
 }
 
 void KisUsageLogger::write(const PkString &message)
 {
-    if (!s_instance()->d->active) return;
-    if (!s_instance()->d->logFile.isOpen()) return;
+    KisUsageLogger *logger = s_instance();
+    if (!logger->d->active || !logger->d->logFile.is_open()) {
+        return;
+    }
 
-    s_instance()->d->logFile.write(message.toUtf8());
-    s_instance()->d->logFile.write("\n");
-
-    s_instance()->d->logFile.flush();
+    const std::string text = message.PkToUtf8();
+    logger->d->logFile.write(text.data(), static_cast<std::streamsize>(text.size()));
+    logger->d->logFile.put('\n');
+    logger->d->logFile.flush();
 }
 
 void KisUsageLogger::writeSysInfo(const PkString &message)
 {
-    if (!s_instance()->d->active) return;
-    if (!s_instance()->d->sysInfoFile.isOpen()) return;
+    KisUsageLogger *logger = s_instance();
+    if (!logger->d->active || !logger->d->sysInfoFile.is_open()) {
+        return;
+    }
 
-    s_instance()->d->sysInfoFile.write(message.toUtf8());
-    s_instance()->d->sysInfoFile.write("\n");
-
-    s_instance()->d->sysInfoFile.flush();
-
+    const std::string text = message.PkToUtf8();
+    logger->d->sysInfoFile.write(text.data(), static_cast<std::streamsize>(text.size()));
+    logger->d->sysInfoFile.put('\n');
+    logger->d->sysInfoFile.flush();
 }
 
 void KisUsageLogger::writeHeader()
 {
-    Q_ASSERT(s_instance()->d->sysInfoFile.isOpen());
-    s_instance()->d->logFile.write(s_sectionHeader.toUtf8());
+    KisUsageLogger *logger = s_instance();
+    if (!logger->d->active || !logger->d->logFile.is_open()) {
+        return;
+    }
 
-    PkString sessionHeader = PkString("SESSION: %1. Executing %2\n\n")
-            .arg(PkDateTime::currentDateTime().toString(Qt::RFC2822Date))
-            .arg(qApp->arguments().join(' '));
+    const std::string sectionHeader = s_sectionHeader.PkToUtf8();
+    logger->d->logFile.write(sectionHeader.data(),
+                             static_cast<std::streamsize>(sectionHeader.size()));
 
-    s_instance()->d->logFile.write(sessionHeader.toUtf8());
+    std::ostringstream sessionHeader;
+    const std::string commandLine = processCommandLine();
+    sessionHeader << "SESSION: " << currentTimestamp() << ". Executing "
+                  << (commandLine.empty() ? "unknown" : commandLine) << "\n\n"
+                  << "Krita Version: "
+                  << KritaVersionWrapper::versionString(true).PkToUtf8()
+                  << ". Process ID: " << processId() << "\n"
+                  << "-- -- -- -- -- -- -- --\n";
+    const std::string text = sessionHeader.str();
+    logger->d->logFile.write(text.data(), static_cast<std::streamsize>(text.size()));
+    logger->d->logFile.flush();
 
-    PkString KritaAndQtVersion;
-    KritaAndQtVersion.append("Krita Version: ").append(KritaVersionWrapper::versionString(true))
-            .append(", Qt version compiled: ").append(QT_VERSION_STR)
-            .append(", loaded: ").append(qVersion())
-            .append(". Process ID: ")
-            .append(PkString::number(qApp->applicationPid())).append("\n");
-
-    KritaAndQtVersion.append("-- -- -- -- -- -- -- --\n");
-    s_instance()->d->logFile.write(KritaAndQtVersion.toUtf8());
-    s_instance()->d->logFile.flush();
-    log(PkString("Style: %1. Available styles: %2")
-        .arg(qApp->style()->objectName(),
-             PkStyleFactory::keys().join(", ")));
-
-#ifdef Q_OS_ANDROID
-    KisAndroidExitInfo androidExitInfo = KisAndroidExitInfo::getLast();
+#ifdef __ANDROID__
+    const KisAndroidExitInfo androidExitInfo = KisAndroidExitInfo::getLast();
     if (androidExitInfo.isValid()) {
         log(PkString("Last exit: %1").arg(androidExitInfo.buildLogString()));
     }
@@ -280,90 +408,47 @@ void KisUsageLogger::writeHeader()
 
 PkString KisUsageLogger::screenInformation()
 {
-    PkList<PkScreen*> screens = qApp->screens();
-
-    PkString info;
-    info.append("Display Information");
-    info.append("\nNumber of screens: ").append(PkString::number(screens.size()));
-
-    for (int i = 0; i < screens.size(); ++i ) {
-        PkScreen *screen = screens[i];
-        info.append("\n\tScreen: ").append(PkString::number(i));
-        info.append("\n\t\tName: ").append(screen->name());
-        info.append("\n\t\tDepth: ").append(PkString::number(screen->depth()));
-        info.append("\n\t\tScale: ").append(PkString::number(screen->devicePixelRatio()));
-        info.append("\n\t\tPhysical DPI").append(PkString::number(screen->physicalDotsPerInch()));
-        info.append("\n\t\tLogical DPI").append(PkString::number(screen->logicalDotsPerInch()));
-        info.append("\n\t\tPhysical Size: ").append(PkString::number(screen->physicalSize().width()))
-                .append(", ")
-                .append(PkString::number(screen->physicalSize().height()));
-        info.append("\n\t\tPosition: ").append(PkString::number(screen->geometry().x()))
-                .append(", ")
-                .append(PkString::number(screen->geometry().y()));
-        info.append("\n\t\tResolution in pixels: ").append(PkString::number(screen->geometry().width()))
-                .append("x")
-                .append(PkString::number(screen->geometry().height()));
-        info.append("\n\t\tManufacturer: ").append(screen->manufacturer());
-        info.append("\n\t\tModel: ").append(screen->model());
-        info.append("\n\t\tRefresh Rate: ").append(PkString::number(screen->refreshRate()));
-        info.append("\n\t\tSerial Number: ").append(screen->serialNumber());
-
-    }
-    info.append("\n");
-    return info;
+    return PkString("Display Information\n  Unavailable in the headless core\n");
 }
 
 void KisUsageLogger::rotateLog()
 {
-    if (!d->logFile.exists()) { return; }
-
-    // Check for CLOSING SESSION
-    if (d->logFile.open(PkFile::ReadOnly)) {
-        PkString log = PkString::fromUtf8(d->logFile.readAll());
-        if (!log.split(s_sectionHeader).last().contains("CLOSING SESSION")) {
-            log.append("\nKRITA DID NOT CLOSE CORRECTLY\n");
-            PkString crashLog = PkStandardPaths::writableLocation(PkStandardPaths::GenericConfigLocation) + PkString("/kritacrash.log");
-            PkFile f(crashLog);
-            if (f.open(PkFile::ReadOnly)) {
-                PkString crashes = PkString::fromUtf8(f.readAll());
-                f.close();
-
-                PkStringList crashlist = crashes.split("-------------------");
-                log.append(PkString("\nThere were %1 crashes in total in the crash log.\n").arg(crashlist.size()));
-
-                if (crashes.size() > 0) {
-                    log.append(crashlist.last());
-                }
-            }
-            d->logFile.close();
-            if (d->logFile.open(PkFile::WriteOnly)) {
-                d->logFile.write(log.toUtf8());
-            }
-        }
-        d->logFile.flush();
-        d->logFile.close();
+    std::error_code error;
+    if (!fs::exists(d->logPath, error) || error) {
+        return;
     }
 
-    // Rotate
-    if (d->logFile.open(PkFile::ReadOnly)) {
-        PkString log = PkString::fromUtf8(d->logFile.readAll());
-        d->logFile.close();
-        PkStringList logItems = log.split("SESSION:");
-        PkStringList keptItems;
-        int sectionCount = logItems.size();
-        if (sectionCount > s_maxLogs) {
-            for (int i = sectionCount - s_maxLogs; i < sectionCount; ++i) {
-                if (logItems.size() > i ) {
-                    keptItems.append(logItems[i]);
-                }
-            }
+    std::string logContents;
+    if (!readFile(d->logPath, &logContents)) {
+        return;
+    }
 
-            if (d->logFile.open(PkFile::WriteOnly)) {
-                d->logFile.write(keptItems.join("\nSESSION:").toUtf8());
-                d->logFile.flush();
-                d->logFile.close();
+    const std::string sectionHeader = s_sectionHeader.PkToUtf8();
+    const std::size_t lastHeader = logContents.rfind(sectionHeader);
+    const std::string lastSession = lastHeader == std::string::npos
+        ? logContents : logContents.substr(lastHeader + sectionHeader.size());
+    if (lastSession.find("CLOSING SESSION") == std::string::npos) {
+        logContents += "\nKRITA DID NOT CLOSE CORRECTLY\n";
+
+        const fs::path crashLog = KisGlobalFileSystem::writableLocation(
+            KisGlobalFileSystem::Location::GenericConfig) / "kritacrash.log";
+        std::string crashes;
+        if (readFile(crashLog, &crashes)) {
+            const std::vector<std::string> crashItems =
+                splitKeepingEmptyParts(crashes, "-------------------");
+            logContents += "\nThere were " + std::to_string(crashItems.size()) +
+                           " crashes in total in the crash log.\n";
+            if (!crashes.empty()) {
+                logContents += crashItems.back();
             }
         }
+        replaceFile(d->logPath, logContents);
+    }
+
+    const std::vector<std::string> logItems =
+        splitKeepingEmptyParts(logContents, "SESSION:");
+    if (logItems.size() > static_cast<std::size_t>(s_maxLogs)) {
+        const std::size_t first = logItems.size() - static_cast<std::size_t>(s_maxLogs);
+        replaceFile(d->logPath, join(logItems, first, "\nSESSION:"));
     }
 }
-

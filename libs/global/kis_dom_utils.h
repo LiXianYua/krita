@@ -8,22 +8,48 @@
 #define __KIS_DOM_UTILS_H
 
 #include <float.h>
+#include <algorithm>
+#include <charconv>
+#include <system_error>
+#include <type_traits>
 
 #include <PkPoint.h>
+#include <PkColor.h>
+#include <PkStringList.h>
+#include <PkTransform.h>
+#include <PkXmlDocument.h>
 #include <PkXmlElement.h>
-
-#include <PkStream.h>
 
 #include "kis_global.h"
 
 #include "kritaglobal_export.h"
 #include "kis_debug.h"
 #include "krita_container_utils.h"
-#include "KisPortingUtils.h"
 
 class PkVector3D;
 
 namespace KisDomUtils {
+
+    template<typename T>
+    inline PkString numberToString(T value, int precision = -1) {
+        char buffer[64];
+        std::to_chars_result result;
+
+        if constexpr (std::is_floating_point<T>::value) {
+            result = std::to_chars(buffer, buffer + sizeof(buffer), value,
+                                   std::chars_format::general, precision);
+        } else if constexpr (std::is_same<T, bool>::value) {
+            buffer[0] = value ? '1' : '0';
+            result = {buffer + 1, std::errc()};
+        } else {
+            result = std::to_chars(buffer, buffer + sizeof(buffer), value);
+        }
+
+        if (result.ec != std::errc()) {
+            return PkString();
+        }
+        return PkString::PkFromUtf8(buffer, static_cast<int>(result.ptr - buffer));
+    }
 
     inline PkString toString(const PkString &value) {
         return value;
@@ -31,39 +57,22 @@ namespace KisDomUtils {
 
     template<typename T>
         inline PkString toString(T value) {
-        return PkString::number(value);
+        return numberToString(value);
     }
 
     inline PkString toString(float value) {
-        PkString str;
-        PkTextStream stream;
-        KisPortingUtils::setUtf8OnStream(stream);
-        stream.setString(&str, PkStream::WriteOnly);
-        stream.setRealNumberPrecision(FLT_DIG);
-        stream << value;
-        return str;
+        return numberToString(value, FLT_DIG);
     }
 
     inline PkString toString(double value) {
-        PkString str;
-        PkTextStream stream;
-        KisPortingUtils::setUtf8OnStream(stream);
-        stream.setString(&str, PkStream::WriteOnly);
-        stream.setRealNumberPrecision(15);
-        stream << value;
-        return str;
+        return numberToString(value, 15);
     }
 
     inline int toInt(const PkString &str, bool *ok=nullptr) {
         bool ok_locale = false;
         int value = 0;
 
-        PkLocale c(PkLocale::German);
-
         value = str.toInt(&ok_locale);
-        if (!ok_locale) {
-            value = c.toInt(str, &ok_locale);
-        }
 
         if (!ok_locale && ok == nullptr) {
             warnKrita << "WARNING: KisDomUtils::toInt failed:" << ppVar(str);
@@ -81,8 +90,6 @@ namespace KisDomUtils {
         bool ok_locale = false;
         double value = 0;
 
-        PkLocale c(PkLocale::German);
-
         /**
          * A special workaround to handle ','/'.' decimal point
          * in different locales. Added for backward compatibility,
@@ -95,7 +102,14 @@ namespace KisDomUtils {
 
         value = str.toDouble(&ok_locale);
         if (!ok_locale) {
-            value = c.toDouble(str, &ok_locale);
+            std::string decimal = str.PkToUtf8();
+            const auto decimalComma = std::find(decimal.begin(), decimal.end(), ',');
+            if (decimalComma != decimal.end()) {
+                decimal.erase(std::remove(decimal.begin(), decimal.end(), '.'), decimal.end());
+                std::replace(decimal.begin(), decimal.end(), ',', '.');
+            }
+            value = PkString::PkFromUtf8(decimal.data(), static_cast<int>(decimal.size()))
+                        .toDouble(&ok_locale);
         }
 
         if (!ok_locale && ok == nullptr) {
@@ -113,17 +127,17 @@ namespace KisDomUtils {
     inline PkString qColorToQString(PkColor color)
     {
         // color channels will usually have 0-255
-        PkString customColor = PkString::number(color.red()).append(",")
-                             .append(PkString::number(color.green())).append(",")
-                             .append(PkString::number(color.blue())).append(",")
-                             .append(PkString::number(color.alpha()));
+        PkString customColor = toString(color.red()).append(",")
+                             .append(toString(color.green())).append(",")
+                             .append(toString(color.blue())).append(",")
+                             .append(toString(color.alpha()));
 
         return customColor;
     }
 
     inline PkColor qStringToQColor(PkString colorString)
     {
-        PkStringList colorComponents = colorString.split(',');
+        const std::vector<PkString> colorComponents = colorString.split(',');
         return PkColor(colorComponents[0].toInt(), colorComponents[1].toInt(), colorComponents[2].toInt(), colorComponents[3].toInt());
     }
 
@@ -180,7 +194,7 @@ saveValue(PkXmlElement *parent, const PkString &tag, const Container<T, Args...>
     e.setAttribute("type", "array");
 
     int i = 0;
-    Q_FOREACH (const T &v, array) {
+    for (const T &v : array) {
         saveValue(&e, PkString("item_%1").arg(i++), v);
     }
 }
@@ -231,8 +245,14 @@ loadValue(const PkXmlElement &e, T *value)
 {
     if (!Private::checkType(e, "value")) return false;
 
-    PkVariant v(e.attribute("value", "no-value"));
-    *value = v.value<T>();
+    const PkString serialized = e.attribute("value", "no-value");
+    if constexpr (std::is_same<T, bool>::value) {
+        *value = serialized == "true" || serialized == "1";
+    } else if constexpr (std::is_integral<T>::value) {
+        *value = static_cast<T>(toInt(serialized));
+    } else {
+        *value = static_cast<T>(toDouble(serialized));
+    }
     return true;
 }
 

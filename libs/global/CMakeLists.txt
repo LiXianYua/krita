@@ -29,6 +29,7 @@ set(kritaglobal_LIB_SRCS
     kis_config_notifier.cpp
     KisDeleteLaterWrapper.cpp
     KisUsageLogger.cpp
+    KisGlobalFileSystem.cpp
     KisFileUtils.cpp
     KisSignalMapper.cpp
     KisRegion.cpp
@@ -54,6 +55,39 @@ set(kritaglobal_LIB_SRCS
     KoProperties.cpp
 )
 
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+set(kritaglobal_SIGNAL_HEADERS
+    KoProgressUpdater.h
+    KoUpdater.h
+    KoUpdaterPrivate_p.h
+    kis_acyclic_signal_connector.h
+    kis_config_notifier.h
+    kis_signal_compressor.h
+    kis_signal_compressor_with_param.h
+    kis_thread_safe_signal_compressor.h
+    KisSignalMapper.h
+)
+
+set(kritaglobal_SIGNAL_SRCS)
+foreach(signal_header IN LISTS kritaglobal_SIGNAL_HEADERS)
+    get_filename_component(signal_name "${signal_header}" NAME_WE)
+    set(signal_source "${CMAKE_CURRENT_BINARY_DIR}/${signal_name}_pk_signals.cpp")
+    add_custom_command(
+        OUTPUT "${signal_source}"
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/pk/signal/pk_signal_moc.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${signal_header}"
+                -o "${signal_source}"
+        DEPENDS
+                "${CMAKE_SOURCE_DIR}/pk/signal/pk_signal_moc.py"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${signal_header}"
+        COMMENT "pk_signal_moc: generating ${signal_name} signal definitions"
+        VERBATIM
+    )
+    list(APPEND kritaglobal_SIGNAL_SRCS "${signal_source}")
+endforeach()
+
 if(WIN32)
     set(kritaglobal_LIB_SRCS
         ${kritaglobal_LIB_SRCS}
@@ -73,6 +107,9 @@ endif()
 
 kis_add_library(kritaglobal SHARED ${kritaglobal_LIB_SRCS}
    )
+
+target_sources(kritaglobal PRIVATE ${kritaglobal_SIGNAL_SRCS})
+set_target_properties(kritaglobal PROPERTIES AUTOMOC OFF)
 
 target_sources(kritaglobal
   PRIVATE
@@ -137,4 +174,3 @@ set_target_properties(kritaglobal PROPERTIES
 )
 
 install(TARGETS kritaglobal  ${INSTALL_TARGETS_DEFAULT_ARGS})
-
