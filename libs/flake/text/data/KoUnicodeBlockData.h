@@ -6,20 +6,20 @@
 #ifndef KOUNICODEBLOCKDATA_H
 #define KOUNICODEBLOCKDATA_H
 
-#include <QString>
-#include <QChar>
-#include <QScopedPointer>
+#include <PkXmlCompat.h>
+
+#include <pk/string/PkString.h>
+#include <pk/pointer/PkScopedPointer.h>
 #include "kritaflake_export.h"
 
 #include <boost/operators.hpp>
-#include <klocalizedstring.h>
 
 struct KRITAFLAKE_EXPORT KoUnicodeBlockData : public boost::equality_comparable<KoUnicodeBlockData> {
-    KoUnicodeBlockData(QString name, uint start, uint end)
+    KoUnicodeBlockData(PkString name, uint start, uint end)
         : name(name)
         , start(start)
         , end(end) {}
-    QString name; ///< Name of the block.
+    PkString name; ///< Name of the block.
     uint start; ///< Start char
     uint end; ///< End char
 
@@ -44,13 +44,13 @@ public:
 
     // Default block when there's no other blocks.
     static KoUnicodeBlockData noBlock() {
-        static const QString noBlockName = i18nc("@title", "No Block");
+        static const PkString noBlockName = PkString("No Block");
         return KoUnicodeBlockData(noBlockName, 0x10FFFF, 0x10FFFF);
     }
 private:
     struct Private;
 
-    QScopedPointer<Private> d;
+    PkScopedPointer<Private> d;
 };
 
 #endif // KOUNICODEBLOCKDATA_H

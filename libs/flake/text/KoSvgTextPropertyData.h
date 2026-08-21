@@ -6,11 +6,13 @@
 #ifndef KOSVGTEXTPROPERTYDATA_H
 #define KOSVGTEXTPROPERTYDATA_H
 
+#include <PkXmlCompat.h>
+
 #include "KoSvgTextProperties.h"
 #include "kritaflake_export.h"
 
 #include <boost/operators.hpp>
-#include <QDebug>
+#include <pk/log/PkDebug.h>
 
 /**
  * @brief The KoSvgTextPropertyData struct
@@ -31,7 +33,7 @@ struct KRITAFLAKE_EXPORT KoSvgTextPropertyData : public boost::equality_comparab
     KoSvgTextProperties inheritedProperties {KoSvgTextProperties::defaultProperties()};
 
     /// The properties that are not common (tri-state) between the selected text.
-    QSet<KoSvgTextProperties::PropertyId> tristate;
+    PkSet<KoSvgTextProperties::PropertyId> tristate;
 
     /// Whether we're currently selecting a span of text as opposed to editing the whole paragraph.
     bool spanSelection {false};
@@ -47,7 +49,7 @@ struct KRITAFLAKE_EXPORT KoSvgTextPropertyData : public boost::equality_comparab
     }
 };
 
-QDebug KRITAFLAKE_EXPORT operator<<(QDebug dbg, const KoSvgTextPropertyData &prop);
+PkDebug KRITAFLAKE_EXPORT operator<<(PkDebug dbg, const KoSvgTextPropertyData &prop);
 
 Q_DECLARE_METATYPE(KoSvgTextPropertyData)
 
