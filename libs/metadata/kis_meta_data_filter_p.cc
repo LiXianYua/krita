@@ -5,9 +5,11 @@
  */
 
 #include "kis_meta_data_filter_p.h"
-#include <QDate>
 
-#include <klocalizedstring.h>
+#include <PkDateTime.h>
+#include <PkString.h>
+#include <PkVariant.h>
+
 #include <KritaVersionWrapper.h>
 
 #include "kis_meta_data_entry.h"
@@ -29,19 +31,19 @@ bool AnonymizerFilter::defaultEnabled() const
     return false;
 }
 
-QString AnonymizerFilter::id() const
+PkString AnonymizerFilter::id() const
 {
     return "Anonymizer";
 }
 
-QString AnonymizerFilter::name() const
+PkString AnonymizerFilter::name() const
 {
-    return i18n("Anonymizer");
+    return PkString("Anonymizer");
 }
 
-QString AnonymizerFilter::description() const
+PkString AnonymizerFilter::description() const
 {
-    return i18n("Remove personal information: author, location...");
+    return PkString("Remove personal information: author, location...");
 }
 
 void AnonymizerFilter::filter(KisMetaData::Store* store) const
@@ -74,27 +76,28 @@ bool ToolInfoFilter::defaultEnabled() const
     return true;
 }
 
-QString ToolInfoFilter::id() const
+PkString ToolInfoFilter::id() const
 {
     return "ToolInfo";
 }
 
-QString ToolInfoFilter::name() const
+PkString ToolInfoFilter::name() const
 {
-    return i18n("Tool information");
+    return PkString("Tool information");
 }
 
-QString ToolInfoFilter::description() const
+PkString ToolInfoFilter::description() const
 {
-    return i18n("Add the name of the tool used for creation and the modification date");
+    return PkString("Add the name of the tool used for creation and the modification date");
 }
 
 void ToolInfoFilter::filter(KisMetaData::Store* store) const
 {
     const KisMetaData::Schema* xmpSchema = KisMetaData::SchemaRegistry::instance()->schemaFromUri(KisMetaData::Schema::XMPSchemaUri);
-    store->getEntry(xmpSchema, "ModifyDate").value() = Value(QDate::currentDate());
-    store->getEntry(xmpSchema, "MetadataDate").value() = Value(QDate::currentDate());
+    store->getEntry(xmpSchema, "ModifyDate").value() = Value(PkDate::currentDate());
+    store->getEntry(xmpSchema, "MetadataDate").value() = Value(PkDate::currentDate());
     if (!store->containsEntry(xmpSchema, "CreatorTool")) {
-        store->getEntry(xmpSchema, "CreatorTool").value() = Value(i18n("Krita %1", KritaVersionWrapper::versionString()));
+        store->getEntry(xmpSchema, "CreatorTool").value() =
+            Value(PkString("Krita %1").arg(KritaVersionWrapper::versionString()));
     }
 }

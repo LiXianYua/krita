@@ -17,9 +17,9 @@ class AnonymizerFilter : public Filter
 {
 public:
     ~AnonymizerFilter() override;
-    QString id() const override;
-    QString name() const override;
-    QString description() const override;
+    PkString id() const override;
+    PkString name() const override;
+    PkString description() const override;
     bool defaultEnabled() const override;
     void filter(KisMetaData::Store*) const override;
 };
@@ -31,9 +31,9 @@ class ToolInfoFilter : public Filter
 {
 public:
     ~ToolInfoFilter() override;
-    QString id() const override;
-    QString name() const override;
-    QString description() const override;
+    PkString id() const override;
+    PkString name() const override;
+    PkString description() const override;
     bool defaultEnabled() const override;
     void filter(KisMetaData::Store*) const override;
 };

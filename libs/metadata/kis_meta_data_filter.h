@@ -8,7 +8,7 @@
 #define _KIS_META_DATA_FILTER_H_
 
 #include <kritametadata_export.h>
-class QString;
+class PkString;
 
 namespace KisMetaData
 {
@@ -25,11 +25,11 @@ public:
     /// @return true if the filter is enabled by default when exporting
     virtual bool defaultEnabled() const = 0;
     /// @return the id of this filter
-    virtual QString id() const = 0;
+    virtual PkString id() const = 0;
     /// @return the name of this filter
-    virtual QString name() const = 0;
+    virtual PkString name() const = 0;
     /// @return a description of this filter
-    virtual QString description() const = 0;
+    virtual PkString description() const = 0;
     /**
      * Apply a filter on a meta data store.
      */

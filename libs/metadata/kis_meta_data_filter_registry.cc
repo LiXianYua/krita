@@ -8,12 +8,9 @@
 #include "kis_meta_data_filter_p.h"
 #include "kis_debug.h"
 
-#include <QGlobalStatic>
+#include <PkStringHash.h>
 
 using namespace KisMetaData;
-
-Q_GLOBAL_STATIC(FilterRegistry, s_instance)
-
 
 FilterRegistry::FilterRegistry()
 {
@@ -33,15 +30,16 @@ FilterRegistry& FilterRegistry::operator=(const FilterRegistry&)
 
 FilterRegistry::~FilterRegistry()
 {
-    Q_FOREACH (const QString &id, keys()) {
+    for (const PkString &id : keys()) {
         delete get(id);
     }
     dbgRegistry << "Deleting FilterRegistry";
-    
+
 }
 
 FilterRegistry* FilterRegistry::instance()
 {
-    return s_instance;
+    static FilterRegistry s_instance;
+    return &s_instance;
 }
 
