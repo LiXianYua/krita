@@ -14,6 +14,7 @@
 #include <PkString.h>
 #include <PkSharedPointer.h>
 #include <PkStringList.h>
+#include <PkSignalCompat.h>
 
 #include <KoResource.h>
 #include <KisResourceTypes.h>
@@ -33,14 +34,12 @@ class KUndo2Stack;
  */
 class KRITAPIGMENT_EXPORT KoColorSet : public PkObject, public KoResource
 {
-    // Task 8 处理 Qt 元对象系统（moc）：此文件原为 Qt Object 基类 + Q_OBJECT +
-    // Q_SIGNALS + Q_SLOTS（moc 文件）。本 Task 只剥类型（Object→PkObject）
-    // 并处理 .cpp 的 emit 调用点，故这里以普通成员函数形式保留原信号/slot
-    // 声明，访问控制按 Q_SIGNALS/Q_SLOTS 的展开（public/private）写死；
-    // Task 8 改声明为 PkSignal 形态并提供定义（pk_signal_moc.py）。.cpp 里对
-    // 信号函数的直接调用在薄壳 .so 中为未定义函数符号（薄壳允许），定义归 Task 8。
-    // 元对象连接（undoStack 的 canUndoChanged/canRedoChanged → 本类的两个
-    // slot）在 .cpp 构造函数里已移除，对应信号语义归 Task 8 重建。
+    // 信号/slot 声明采用 PkSignal 形态（pk/signal）：信号段用 signals 标记声明，
+    // 定义由 pk/signal/pk_signal_moc.py 生成（体内调用 activateSignal）；
+    // canUndoChanged/canRedoChanged 保持原 moc 的 private 访问控制。.cpp 里对
+    // 信号函数的直接调用即发射。undoStack（libs/command 的真 Qt 对象，未剥）
+    // 到本类两个 slot 的元对象连接随 moc 移除且无法重建（PkObject::connect 只
+    // 接受 PkObject 派生类作连接对象），两个 slot 保留为普通私有成员函数。
 
 public:
     static const PkString GLOBAL_GROUP_NAME;
@@ -264,16 +263,13 @@ public:
      */
     int rowNumberInGroup(int rowNumber) const;
 
-public: // 原 Q_SIGNALS（Task 8 改为 PkSignal 声明 + pk_signal_moc 生成定义）
-
+signals:
     void modified();
     void layoutAboutToChange();
     void layoutChanged();
     void entryChanged(int column, int row);
 
-
-public: // 原 private Q_SLOTS（访问控制按原展开写死；Task 8 重建连接）
-
+private:
     void canUndoChanged(bool canUndo);
     void canRedoChanged(bool canRedo);
 

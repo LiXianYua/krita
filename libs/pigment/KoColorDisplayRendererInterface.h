@@ -11,6 +11,7 @@
 #include <PkColor.h>
 #include <PkImage.h>
 #include <PkSize.h>
+#include <PkSignalCompat.h>
 
 #include "KoColor.h"
 
@@ -27,11 +28,10 @@ class KoColorSpace;
  */
 class KRITAPIGMENT_EXPORT KoColorDisplayRendererInterface : public PkObject
 {
-    // Task 8 处理 Qt 元对象系统（moc）：原文件为 Qt Object 基类 + Q_OBJECT +
-    // Q_SIGNALS（moc 文件）。本 Task 只剥类型（Object→PkObject），信号以普通
-    // 成员函数保留（访问控制按 Q_SIGNALS 展开写死为 public）；Task 8 改为
-    // PkSignal 形态并提供定义。PkObject 基类已 delete 拷贝构造/赋值，
-    // 原 Q_DISABLE_COPY 冗余，已移除。
+    // 信号声明采用 PkSignal 形态（pk/signal）：displayConfigurationChanged 用
+    // signals 标记声明，定义由 pk/signal/pk_signal_moc.py 生成（体内调用
+    // activateSignal）。继承 PkObject 以满足信号连接的生命周期绑定；
+    // 拷贝构造/赋值由 PkObject 基类 delete。
 
 public:
     KoColorDisplayRendererInterface();
@@ -90,7 +90,7 @@ public:
      */
     virtual const KoColorSpace* getPaintingColorSpace() const = 0;
 
-public:
+signals:
     void displayConfigurationChanged();
 
 private:

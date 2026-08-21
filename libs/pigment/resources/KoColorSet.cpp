@@ -900,9 +900,10 @@ KoColorSet::KoColorSet(const PkString &filename)
     , KoResource(filename)
     , d(new Private(this))
 {
-    // Task 8：原 connect(&d->undoStack, SIGNAL(canUndoChanged(bool)), this,
-    // SLOT(canUndoChanged(bool))) 两条元对象连接已移除，对应信号语义由
-    // Task 8 重建（undoStack 的 canUndoChanged/canRedoChanged → 本类 slot）。
+    // 元对象连接（undoStack 的 canUndoChanged/canRedoChanged → 本类两个 slot）
+    // 已随 moc 移除：KUndo2Stack 是 libs/command 的真 Qt 对象（未剥），
+    // PkObject::connect 只接受 PkObject 派生类作连接对象，该连接无法重建。
+    // 本类 canUndoChanged/canRedoChanged 保留为普通私有成员函数（定义见下）。
 }
 
 /// Create an copied palette
