@@ -296,6 +296,101 @@ set(kritaflake_core_SRCS ${kritaflake_SRCS})
 list(FILTER kritaflake_core_SRCS EXCLUDE REGEX "^(commands|html|tools|svg|text|resources)/")
 list(REMOVE_ITEM kritaflake_core_SRCS ${__per_arch_alpha_applicator_factory_objs})
 
+# ===== S-08 Task 6：上层绘图过渡层（保留 Qt，不进薄壳）=====
+# 分类口径：文件自身（.cpp 去 include 行 或 配对 .h）出现无 Pk 替代的
+# 绘图/UI/排版硬类型（QPainter/QPen/QBrush/QWidget/QFont/QTextLayout/QTextDocument/
+# 事件族/QAction/QCursor/QClipboard 等，见 S-08 impact-map §compat 缺口 1+2 类）
+# → 归入上层绘图，保留过渡 Qt；不建 PkPainter/PkPen/PkBrush（S-02-b 裁决）。
+# 含 S-02-b 交接的 4 个 libs/global 闭包（本任务搬入 libs/flake）与 Qt 版 KisAlgebra2D。
+set(kritaflake_painting_SRCS
+    kis_painting_tweaks.cpp
+    KisHandlePainterHelper.cpp
+    KisHandleStyle.cpp
+    KisQPainterStateSaver.cpp
+    KisAlgebra2D.cpp
+    KoCanvasBase.cpp
+    KoCanvasController.cpp
+    KoCanvasResourceProvider.cpp
+    KoClipMask.cpp
+    KoClipMaskPainter.cpp
+    KoClipPath.cpp
+    KoColorBackground.cpp
+    KoDocumentResourceManager.cpp
+    KoDrag.cpp
+    KoGradientBackground.cpp
+    KoHatchBackground.cpp
+    KoInputDevice.cpp
+    KoMarker.cpp
+    KoMeshGradientBackground.cpp
+    KoParameterShape.cpp
+    KoPathPoint.cpp
+    KoPathShape.cpp
+    KoPatternBackground.cpp
+    KoPointerEvent.cpp
+    KoSelection.cpp
+    KoShape.cpp
+    KoShapeAnchor.cpp
+    KoShapeBackground.cpp
+    KoShapeContainer.cpp
+    KoShapeFillWrapper.cpp
+    KoShapeGroup.cpp
+    KoShapeLayer.cpp
+    KoShapeManager.cpp
+    KoShapeStroke.cpp
+    KoShapeStrokeModel.cpp
+    KoSnapGuide.cpp
+    KoSvgPaste.cpp
+    KoToolBase.cpp
+    KoToolFactoryBase.cpp
+    KoToolManager.cpp
+    KoToolManager_p.cpp
+    KoToolProxy.cpp
+    KoVectorPatternBackground.cpp
+    resources/KoGamutMask.cpp
+    resources/KoSvgSymbolCollectionResource.cpp
+    svg/KoShapePainter.cpp
+    svg/SvgParser.cpp
+    svg/SvgStyleWriter.cpp
+    svg/SvgWriter.cpp
+    tests/MockShapes.cpp
+    text/KoFFWWSConverter.cpp
+    text/KoFontRegistry.cpp
+    text/KoSvgText.cpp
+    text/KoSvgTextProperties.cpp
+    text/KoSvgTextShape.cpp
+    text/KoSvgTextShapeMarkupConverter.cpp
+    text/KoSvgTextShapeOutlineHelper.cpp
+    text/KoSvgTextShape_p_glyphs.cpp
+    text/KoSvgTextShape_p_layout.cpp
+    text/KoSvgTextShape_p_output.cpp
+    text/KoWritingSystemUtils.cpp
+    tools/KoCreatePathTool.cpp
+    tools/KoInteractionStrategy.cpp
+    tools/KoInteractionStrategyFactory.cpp
+    tools/KoInteractionTool.cpp
+    tools/KoPathTool.cpp
+    tools/KoPathToolFactory.cpp
+    tools/KoPathToolHandle.cpp
+    tools/KoPathToolSelection.cpp
+    tools/KoPencilTool.cpp
+    tools/KoShapeRubberSelectStrategy.cpp
+    tools/KoZoomTool.cpp
+)
+
+# 绘图文件从各组摘走，避免重复编译（REMOVE_ITEM 精确匹配，跨组无效）
+list(REMOVE_ITEM kritaflake_commands_SRCS ${kritaflake_painting_SRCS})
+list(REMOVE_ITEM kritaflake_html_SRCS ${kritaflake_painting_SRCS})
+list(REMOVE_ITEM kritaflake_tools_SRCS ${kritaflake_painting_SRCS})
+list(REMOVE_ITEM kritaflake_svg_SRCS ${kritaflake_painting_SRCS})
+list(REMOVE_ITEM kritaflake_text_SRCS ${kritaflake_painting_SRCS})
+list(REMOVE_ITEM kritaflake_resources_SRCS ${kritaflake_painting_SRCS})
+list(REMOVE_ITEM kritaflake_core_SRCS ${kritaflake_painting_SRCS})
+
+kritaflake_add_object_library(kritaflake_painting_objects ${kritaflake_painting_SRCS})
+# KisAlgebra2D（DecomposedMatrix）用 Eigen 做矩阵分解——Eigen 原为 libs/global 的
+# PRIVATE 依赖（kis_algebra_2d.cpp 随闭包搬入 flake），这里随搬移补上。
+target_link_libraries(kritaflake_painting_objects PRIVATE Eigen3::Eigen)
+
 kritaflake_add_object_library(kritaflake_commands_objects ${kritaflake_commands_SRCS})
 kritaflake_add_object_library(kritaflake_html_objects ${kritaflake_html_SRCS})
 kritaflake_add_object_library(kritaflake_tools_objects ${kritaflake_tools_SRCS})
@@ -312,6 +407,7 @@ kis_add_library(kritaflake SHARED
     $<TARGET_OBJECTS:kritaflake_text_objects>
     $<TARGET_OBJECTS:kritaflake_resources_objects>
     $<TARGET_OBJECTS:kritaflake_core_objects>
+    $<TARGET_OBJECTS:kritaflake_painting_objects>
     ${__per_arch_alpha_applicator_factory_objs}
 )
 generate_export_header(kritaflake BASE_NAME kritaflake)
