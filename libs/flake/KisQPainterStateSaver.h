@@ -1,7 +1,3 @@
-#include <QPainter>
-#include <QPen>
-#include <QBrush>
-#include <QColor>
 /*
  *  SPDX-FileCopyrightText: 2017 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -11,19 +7,19 @@
 #ifndef KISQPAINTERSTATESAVER_H
 #define KISQPAINTERSTATESAVER_H
 
-#include "kritaglobal_export.h"
+#include "kritaflake_export.h"
 
-class PkPainter;
+class QPainter;
 
-class KRITAGLOBAL_EXPORT KisQPainterStateSaver
+class KRITAFLAKE_EXPORT KisQPainterStateSaver
 {
 public:
-    KisQPainterStateSaver(PkPainter *painter);
+    KisQPainterStateSaver(QPainter *painter);
     ~KisQPainterStateSaver();
 
 private:
     KisQPainterStateSaver(const KisQPainterStateSaver &rhs);
-    PkPainter *m_painter;
+    QPainter *m_painter;
 };
 
 #endif // KISQPAINTERSTATESAVER_H

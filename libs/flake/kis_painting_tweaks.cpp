@@ -4,77 +4,86 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <kis_global.h>
 #include "kis_painting_tweaks.h"
 
+#include <QPen>
+#include <QRegion>
+#include <QPainter>
+#include <QTransform>
+#include <QDebug>
 
-#include <PkRegion.h>
+#include <cmath>
 
-#include <PkTransform.h>
+namespace {
+// S-08 Task 6：libs/global 的 kis_global.h 已 Pk 化（S-02-a），在保留 Qt 的
+// 绘图闭包内不能引入（pk/geometry 的 qAbs 与 Qt 冲突）。此处仅补本文件用到
+// 的 pow2 模板，其余依赖保持 Qt 原生。
+template <typename T>
+inline T pow2(const T &x) { return x * x; }
+}
 
-#include "kis_debug.h"
 
 namespace KisPaintingTweaks {
 
-PkRegion safeClipRegion(const PkPainter &painter)
+QRegion safeClipRegion(const QPainter &painter)
 {
-    const PkTransform t = painter.transform();
+    const QTransform t = painter.transform();
 
-    PkRegion region = t.type() <= PkTransform::TxScale ?
+    QRegion region = t.type() <= QTransform::TxScale ?
         painter.clipRegion() :
-        PkRegion(painter.clipBoundingRect().toAlignedRect());
+        QRegion(painter.clipBoundingRect().toAlignedRect());
 
     if (region.rectCount() > 1000) {
-        qWarning() << "WARNING: KisPaintingTweaks::safeClipRegion: too many rectangles in the region!" << ppVar(region.rectCount());
-        region = PkRegion(painter.clipBoundingRect().toAlignedRect());
+        qWarning() << "WARNING: KisPaintingTweaks::safeClipRegion: too many rectangles in the region!" << "rectCount=" << region.rectCount();
+        region = QRegion(painter.clipBoundingRect().toAlignedRect());
     }
 
     return region;
 }
 
-PkRect safeClipBoundingRect(const PkPainter &painter)
+QRect safeClipBoundingRect(const QPainter &painter)
 {
     return painter.clipBoundingRect().toAlignedRect();
 }
 
-void initAntsPen(PkPen *antsPen, PkPen *outlinePen,
+void initAntsPen(QPen *antsPen, QPen *outlinePen,
                  int antLength, int antSpace)
 {
-    PkVector<qreal> antDashPattern;
+    QVector<qreal> antDashPattern;
     antDashPattern << antLength << antSpace;
 
-    *antsPen = PkPen(Qt::CustomDashLine);
+    *antsPen = QPen(Qt::CustomDashLine);
     antsPen->setDashPattern(antDashPattern);
     antsPen->setCosmetic(true);
     antsPen->setColor(Qt::black);
 
-    *outlinePen = PkPen(Qt::SolidLine);
+    *outlinePen = QPen(Qt::SolidLine);
     outlinePen->setCosmetic(true);
     outlinePen->setColor(Qt::white);
 }
 
-PenBrushSaver::PenBrushSaver(PkPainter *painter)
+PenBrushSaver::PenBrushSaver(QPainter *painter)
     : m_painter(painter),
       m_pen(painter->pen()),
       m_brush(painter->brush())
 {
 }
 
-PenBrushSaver::PenBrushSaver(PkPainter *painter, const PkPen &pen, const PkBrush &brush)
+PenBrushSaver::PenBrushSaver(QPainter *painter, const QPen &pen, const QBrush &brush)
     : PenBrushSaver(painter)
 {
     m_painter->setPen(pen);
     m_painter->setBrush(brush);
 }
 
-PenBrushSaver::PenBrushSaver(PkPainter *painter, const PkPair<PkPen, PkBrush> &pair)
+PenBrushSaver::PenBrushSaver(QPainter *painter, const QPair<QPen, QBrush> &pair)
     : PenBrushSaver(painter)
 {
     m_painter->setPen(pair.first);
     m_painter->setBrush(pair.second);
 }
 
-PenBrushSaver::PenBrushSaver(PkPainter *painter, const PkPair<PkPen, PkBrush> &pair, allow_noop_t)
+PenBrushSaver::PenBrushSaver(QPainter *painter, const QPair<QPen, QBrush> &pair, allow_noop_t)
     : m_painter(painter)
 {
     if (m_painter) {
@@ -93,17 +102,17 @@ PenBrushSaver::~PenBrushSaver()
     }
 }
 
-PkColor blendColors(const PkColor &c1, const PkColor &c2, qreal r1)
+QColor blendColors(const QColor &c1, const QColor &c2, qreal r1)
 {
     const qreal r2 = 1.0 - r1;
 
-    return PkColor::fromRgbF(
+    return QColor::fromRgbF(
         c1.redF() * r1 + c2.redF() * r2,
         c1.greenF() * r1 + c2.greenF() * r2,
         c1.blueF() * r1 + c2.blueF() * r2);
 }
 
-qreal colorDifference(const PkColor &c1, const PkColor &c2)
+qreal colorDifference(const QColor &c1, const QColor &c2)
 {
     const qreal dr = c1.redF() - c2.redF();
     const qreal dg = c1.greenF() - c2.greenF();
@@ -112,11 +121,11 @@ qreal colorDifference(const PkColor &c1, const PkColor &c2)
     return std::sqrt(2 * pow2(dr) + 4 * pow2(dg) + 3 * pow2(db));
 }
 
-void dragColor(PkColor *color, const PkColor &baseColor, qreal threshold)
+void dragColor(QColor *color, const QColor &baseColor, qreal threshold)
 {
     while (colorDifference(*color, baseColor) < threshold) {
 
-        PkColor newColor = *color;
+        QColor newColor = *color;
 
         if (newColor.lightnessF() > baseColor.lightnessF()) {
             newColor = newColor.lighter(120);
@@ -136,7 +145,7 @@ void dragColor(PkColor *color, const PkColor &baseColor, qreal threshold)
 // Krita has the ability to precisely calculate this value,
 // but that seems overkill when all we want to know is whether
 // it passes a certain gray threshold.
-static PkMap<qreal, qreal> sRgbTRCToLinear {
+static QMap<qreal, qreal> sRgbTRCToLinear {
     {0.0, 0.0},
     {0.1, 0.01002},
     {0.2, 0.0331},
@@ -150,7 +159,7 @@ static PkMap<qreal, qreal> sRgbTRCToLinear {
     {1.0, 1.0}
 };
 
-static PkMap<qreal, qreal> linearToSRGBTRC {
+static QMap<qreal, qreal> linearToSRGBTRC {
     {0.0, 0.0},
     {0.01002, 0.1},
     {0.0331, 0.2},
@@ -164,7 +173,7 @@ static PkMap<qreal, qreal> linearToSRGBTRC {
     {1.0, 1.0}
 };
 
-qreal luminosityCoarse(const PkColor &c, bool sRGBtrc)
+qreal luminosityCoarse(const QColor &c, bool sRGBtrc)
 {
     qreal r = c.redF();
     qreal g = c.greenF();

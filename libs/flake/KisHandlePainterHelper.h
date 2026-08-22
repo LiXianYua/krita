@@ -1,7 +1,3 @@
-#include <QPainter>
-#include <QPen>
-#include <QBrush>
-#include <QColor>
 /*
  *  SPDX-FileCopyrightText: 2016 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -11,12 +7,12 @@
 #ifndef KISHANDLEPAINTERHELPER_H
 #define KISHANDLEPAINTERHELPER_H
 
-#include "kritaglobal_export.h"
-#include "kis_algebra_2d.h"
+#include "kritaflake_export.h"
+#include "KisAlgebra2D.h"
 
-
+#include <QPainter>
 #include <KisHandleStyle.h>
-class PkPainter;
+class QPainter;
 class KoShape;
 class KoViewConverter;
 
@@ -27,7 +23,7 @@ class KoViewConverter;
  *        in the painter. The handles will also be rotated/skewed if the object
  *        itself has these transformations.
  *
- *        On construction it resets PkPainter transformation and on destruction
+ *        On construction it resets QPainter transformation and on destruction
  *        recovers it back.
  *
  * Please consider using KoShape::createHandlePainterHelper instead of direct
@@ -35,7 +31,7 @@ class KoViewConverter;
  * transformations needed for a shape.
  */
 
-class KRITAGLOBAL_EXPORT KisHandlePainterHelper
+class KRITAFLAKE_EXPORT KisHandlePainterHelper
 {
 public:
 
@@ -43,14 +39,14 @@ public:
      * Creates the helper, initializes all the internal transformations and
      * *resets* the transformation of the painter.
      */
-    KisHandlePainterHelper(PkPainter *_painter, qreal handleRadius = 0.0, int decorationThickness = 1);
+    KisHandlePainterHelper(QPainter *_painter, qreal handleRadius = 0.0, int decorationThickness = 1);
 
     /**
      * Creates the helper, initializes all the internal transformations and
      * *resets* the transformation of the painter. This override also adjusts the
      * transformation of the painter into the coordinate system of the shape
      */
-    KisHandlePainterHelper(PkPainter *_painter, const PkTransform &originalPainterTransform, qreal handleRadius, int decorationThickness = 1);
+    KisHandlePainterHelper(QPainter *_painter, const QTransform &originalPainterTransform, qreal handleRadius, int decorationThickness = 1);
 
     /**
      * Move c-tor. Used to create and return the helper from functions by-value.
@@ -72,82 +68,82 @@ public:
     /**
      * Draws a handle rect with a custom \p radius at position \p center
      */
-    void drawHandleRect(const PkPointF &center, qreal radius);
-    void drawHandleRect(const PkPointF &center, qreal radius, PkPoint offset);
-    void fillHandleRect(const PkPointF &center, qreal radius, PkColor fillColor, PkPoint offset);
+    void drawHandleRect(const QPointF &center, qreal radius);
+    void drawHandleRect(const QPointF &center, qreal radius, QPoint offset);
+    void fillHandleRect(const QPointF &center, qreal radius, QColor fillColor, QPoint offset);
 
     /**
      * Draws a handle circle with a custom \p radius at position \p center
      */
-    void drawHandleCircle(const PkPointF &center, qreal radius);
+    void drawHandleCircle(const QPointF &center, qreal radius);
 
     /**
      * Optimized version of the drawing method for drawing handles of
      * predefined size
      */
-    void drawHandleRect(const PkPointF &center);
+    void drawHandleRect(const QPointF &center);
 
     /**
      * Optimized version of the drawing method for drawing handles of
      * predefined size
      */
-    void drawHandleCircle(const PkPointF &center);
+    void drawHandleCircle(const QPointF &center);
 
     /**
      * Optimized version of the drawing method for drawing handles of
      * predefined size
      */
-    void drawHandleSmallCircle(const PkPointF &center);
+    void drawHandleSmallCircle(const QPointF &center);
 
     /**
      * Draws a line in the style of a handle with \p width indicating the thickness.
      */
-    void drawHandleLine(const PkLineF &line, qreal width = 1.0, PkVector<qreal> dashPattern = {}, qreal dashOffset = 0.0);
+    void drawHandleLine(const QLineF &line, qreal width = 1.0, QVector<qreal> dashPattern = {}, qreal dashOffset = 0.0);
 
     /**
      * Draw a rotated handle representing the gradient handle
      */
-    void drawGradientHandle(const PkPointF &center, qreal radius);
+    void drawGradientHandle(const QPointF &center, qreal radius);
 
     /**
      * Draw a rotated handle representing the gradient handle
      */
-    void drawGradientHandle(const PkPointF &center);
+    void drawGradientHandle(const QPointF &center);
 
     /**
      * Draw a special handle representing the center of the gradient
      */
-    void drawGradientCrossHandle(const PkPointF &center, qreal radius);
+    void drawGradientCrossHandle(const QPointF &center, qreal radius);
 
     /**
      * Draw an arrow representing gradient position
      */
-    void drawGradientArrow(const PkPointF &start, const PkPointF &end, qreal radius);
+    void drawGradientArrow(const QPointF &start, const QPointF &end, qreal radius);
 
     /**
      * Draw a line showing the bounding box of the selection
      */
-    void drawRubberLine(const PkPolygonF &poly);
+    void drawRubberLine(const QPolygonF &poly);
 
     /**
      * Draw a line connecting two points
      */
-    void drawConnectionLine(const PkLineF &line);
+    void drawConnectionLine(const QLineF &line);
 
     /**
      * Draw a line connecting two points
      */
-    void drawConnectionLine(const PkPointF &p1, const PkPointF &p2);
+    void drawConnectionLine(const QPointF &p1, const QPointF &p2);
 
     /**
      * Draw an arbitrary path
      */
-    void drawPath(const PkPainterPath &path);
+    void drawPath(const QPainterPath &path);
 
     /**
      * Draw an a given pixmap on the UI
      */
-    void drawPixmap(const PkPixmap &pixmap, PkPointF position, int size, PkRectF sourceRect);
+    void drawPixmap(const QPixmap &pixmap, QPointF position, int size, QRectF sourceRect);
 
 private:
 
@@ -155,19 +151,19 @@ private:
      * Draw a single arrow with the tip at position \p pos, directed from \p from,
      * of size \p radius.
      */
-    void drawArrow(const PkPointF &pos, const PkPointF &from, qreal radius);
+    void drawArrow(const QPointF &pos, const QPointF &from, qreal radius);
 
     void init();
 
 private:
-    PkPainter *m_painter;
-    PkTransform m_originalPainterTransform;
-    PkTransform m_painterTransform;
+    QPainter *m_painter;
+    QTransform m_originalPainterTransform;
+    QTransform m_painterTransform;
     qreal m_handleRadius;
     int m_decorationThickness;
     KisAlgebra2D::DecomposedMatrix m_decomposedMatrix;
-    PkTransform m_handleTransform;
-    PkPolygonF m_handlePolygon;
+    QTransform m_handleTransform;
+    QPolygonF m_handlePolygon;
     KisHandleStyle m_handleStyle;
 };
 

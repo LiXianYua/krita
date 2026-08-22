@@ -1,7 +1,3 @@
-#include <QPainter>
-#include <QPen>
-#include <QBrush>
-#include <QColor>
 /*
  *  SPDX-FileCopyrightText: 2017 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -11,17 +7,18 @@
 #ifndef KISHANDLESTYLE_H
 #define KISHANDLESTYLE_H
 
-#include <PkVector.h>
+#include <QVector>
+#include <QPen>
+#include <QBrush>
 
+#include "kritaflake_export.h"
 
-
-#include "kritaglobal_export.h"
 
 /**
  * A special class that defines a set of predefined styles for painting handles.
  * Please use static methods for requesting standard krita styles.
  */
-class KRITAGLOBAL_EXPORT KisHandleStyle
+class KRITAFLAKE_EXPORT KisHandleStyle
 {
 public:
 
@@ -79,18 +76,18 @@ public:
 
     struct IterationStyle {
         IterationStyle() : isValid(false) {}
-        IterationStyle(const PkPen &pen, const PkBrush &brush)
+        IterationStyle(const QPen &pen, const QBrush &brush)
             : isValid(true),
               stylePair(pen, brush)
         {
         }
 
         bool isValid;
-        PkPair<PkPen, PkBrush> stylePair;
+        QPair<QPen, QBrush> stylePair;
     };
 
-    PkVector<IterationStyle> handleIterations;
-    PkVector<IterationStyle> lineIterations;
+    QVector<IterationStyle> handleIterations;
+    QVector<IterationStyle> lineIterations;
 };
 
 #endif // KISHANDLESTYLE_H

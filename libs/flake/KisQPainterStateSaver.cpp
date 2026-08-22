@@ -1,7 +1,3 @@
-#include <QPainter>
-#include <QPen>
-#include <QBrush>
-#include <QColor>
 /*
  *  SPDX-FileCopyrightText: 2017 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -10,9 +6,9 @@
 
 #include "KisQPainterStateSaver.h"
 
+#include <QPainter>
 
-
-KisQPainterStateSaver::KisQPainterStateSaver(PkPainter *painter)
+KisQPainterStateSaver::KisQPainterStateSaver(QPainter *painter)
     : m_painter(painter)
 {
     m_painter->save();
