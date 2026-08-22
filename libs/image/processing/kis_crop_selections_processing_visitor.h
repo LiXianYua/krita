@@ -7,25 +7,25 @@
 #ifndef __KIS_CROP_SELECTIONS_PROCESSING_VISITOR_H
 #define __KIS_CROP_SELECTIONS_PROCESSING_VISITOR_H
 
-#include <QScopedPointer>
+#include "PkScopedPointer.h"
 
 #include "kis_do_nothing_processing_visitor.h"
 
-class QRect;
+class PkRect;
 class KisCropProcessingVisitor;
 
 
 class KisCropSelectionsProcessingVisitor : public KisDoNothingProcessingVisitor
 {
 public:
-    KisCropSelectionsProcessingVisitor(const QRect &rect);
+    KisCropSelectionsProcessingVisitor(const PkRect &rect);
     ~KisCropSelectionsProcessingVisitor() override;
 
     using KisDoNothingProcessingVisitor::visit;
     void visit(KisSelectionMask *mask, KisUndoAdapter *undoAdapter) override;
 
 private:
-    QScopedPointer<KisCropProcessingVisitor> m_cropVisitor;
+    PkScopedPointer<KisCropProcessingVisitor> m_cropVisitor;
 };
 
 #endif /* __KIS_CROP_SELECTIONS_PROCESSING_VISITOR_H */

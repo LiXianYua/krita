@@ -8,14 +8,14 @@
 #define __KIS_CROP_PROCESSING_VISITOR_H
 
 #include "kis_simple_processing_visitor.h"
-#include <QRect>
+#include "PkRect.h"
 #include "kis_types.h"
 
 
 class KRITAIMAGE_EXPORT  KisCropProcessingVisitor : public KisSimpleProcessingVisitor
 {
 public:
-    KisCropProcessingVisitor(const QRect &rect, bool cropLayers, bool moveLayers);
+    KisCropProcessingVisitor(const PkRect &rect, bool cropLayers, bool moveLayers);
 
 private:
     void visitNodeWithPaintDevice(KisNode *node, KisUndoAdapter *undoAdapter) override;
@@ -32,7 +32,7 @@ private:
     void cropPaintDeviceImpl(KisPaintDeviceSP device, KisUndoAdapter *undoAdapter);
 
 private:
-    QRect m_rect;
+    PkRect m_rect;
     bool m_cropLayers;
     bool m_moveLayers;
 };

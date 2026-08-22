@@ -6,8 +6,6 @@
 
 #include "kis_transform_processing_visitor.h"
 
-#include "klocalizedstring.h"
-
 #include <KoUpdater.h>
 
 #include "kis_layer.h"
@@ -44,7 +42,7 @@ KisTransformProcessingVisitor(qreal  xscale, qreal  yscale,
                               qreal angle,
                               qreal  tx, qreal  ty,
                               KisFilterStrategy *filter,
-                              const QTransform &shapesCorrection)
+                              const PkTransform &shapesCorrection)
     : m_sx(xscale), m_sy(yscale)
     , m_tx(tx), m_ty(ty)
     , m_shearx(xshear), m_sheary(yshear)
@@ -161,18 +159,18 @@ void KisTransformProcessingVisitor::visit(KisSelectionMask *mask, KisUndoAdapter
 
 void KisTransformProcessingVisitor::visit(KisColorizeMask *mask, KisUndoAdapter *undoAdapter)
 {
-    QVector<KisPaintDeviceSP> devices = mask->allPaintDevices();
+    PkVector<KisPaintDeviceSP> devices = mask->allPaintDevices();
 
-    Q_FOREACH (KisPaintDeviceSP device, devices) {
+    for (KisPaintDeviceSP device : devices) {
         transformPaintDevice(device, undoAdapter, ProgressHelper(mask));
     }
 }
 
 void KisTransformProcessingVisitor::transformClones(KisLayer *layer, KisUndoAdapter *undoAdapter)
 {
-    QList<KisCloneLayerWSP> clones = layer->registeredClones();
+    PkList<KisCloneLayerWSP> clones = layer->registeredClones();
 
-    Q_FOREACH (KisCloneLayerSP clone, clones) {
+    for (KisCloneLayerSP clone : clones) {
         // we have just casted an object from a weak pointer,
         // so check validity first
         if(!clone) continue;
@@ -181,13 +179,13 @@ void KisTransformProcessingVisitor::transformClones(KisLayer *layer, KisUndoAdap
                               m_angle, m_tx, m_ty, 0,
                               m_filter);
 
-        QTransform trans  = tw.transform();
-        QTransform offsetTrans = QTransform::fromTranslate(clone->x(), clone->y());
+        PkTransform trans  = tw.transform();
+        PkTransform offsetTrans = PkTransform::fromTranslate(clone->x(), clone->y());
 
-        QTransform newTrans = trans.inverted() * offsetTrans * trans;
+        PkTransform newTrans = trans.inverted() * offsetTrans * trans;
 
-        QPoint oldPos(clone->x(), clone->y());
-        QPoint newPos(newTrans.dx(), newTrans.dy());
+        PkPoint oldPos(clone->x(), clone->y());
+        PkPoint newPos(newTrans.dx(), newTrans.dy());
         KUndo2Command *command = new KisNodeMoveCommand2(clone, oldPos, newPos);
         undoAdapter->addCommand(command);
     }

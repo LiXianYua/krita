@@ -20,7 +20,7 @@
 #include <functional>
 
 
-KisMirrorProcessingVisitor::KisMirrorProcessingVisitor(const QRect &bounds, Qt::Orientation orientation)
+KisMirrorProcessingVisitor::KisMirrorProcessingVisitor(const PkRect &bounds, Qt::Orientation orientation)
     : m_bounds(bounds),
       m_orientation(orientation),
       m_selectionHelper(0, std::bind(&KisMirrorProcessingVisitor::mirrorDevice, this, std::placeholders::_1))
@@ -77,9 +77,9 @@ void KisMirrorProcessingVisitor::visitExternalLayer(KisExternalLayer *layer, Kis
 
 void KisMirrorProcessingVisitor::visitColorizeMask(KisColorizeMask *node, KisUndoAdapter *undoAdapter)
 {
-    QVector<KisPaintDeviceSP> devices = node->allPaintDevices();
+    PkVector<KisPaintDeviceSP> devices = node->allPaintDevices();
 
-    Q_FOREACH (KisPaintDeviceSP device, devices) {
+    for (KisPaintDeviceSP device : devices) {
         transformPaintDevice(device, undoAdapter);
     }
 }

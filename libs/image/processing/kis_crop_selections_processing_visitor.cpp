@@ -7,7 +7,7 @@
 #include "kis_crop_selections_processing_visitor.h"
 #include "kis_crop_processing_visitor.h"
 
-KisCropSelectionsProcessingVisitor::KisCropSelectionsProcessingVisitor(const QRect &rect)
+KisCropSelectionsProcessingVisitor::KisCropSelectionsProcessingVisitor(const PkRect &rect)
     : m_cropVisitor(new KisCropProcessingVisitor(rect, true, false))
 {
 }

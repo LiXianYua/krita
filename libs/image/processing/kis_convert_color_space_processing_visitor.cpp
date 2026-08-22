@@ -24,6 +24,7 @@
 #include "kis_time_span.h"
 #include <KoColorConversionTransformation.h>
 #include <KoUpdater.h>
+#include "PkBitArray.h"
 #include <commands_new/KisChangeChannelFlagsCommand.h>
 #include <commands_new/KisChangeChannelLockFlagsCommand.h>
 #include <commands_new/KisResetGroupLayerCacheCommand.h>
@@ -91,10 +92,10 @@ void KisConvertColorSpaceProcessingVisitor::visitNodeWithPaintDevice(KisNode *no
 
     if (m_srcColorSpace->colorModelId() != m_dstColorSpace->colorModelId()) {
         alphaDisabled = layer->alphaChannelDisabled();
-        new KisChangeChannelFlagsCommand(QBitArray(), layer, parentConversionCommand);
+        new KisChangeChannelFlagsCommand(PkBitArray(), layer, parentConversionCommand);
         if ((paintLayer = dynamic_cast<KisPaintLayer*>(layer))) {
             alphaLock = paintLayer->alphaLocked();
-            new KisChangeChannelLockFlagsCommand(QBitArray(), paintLayer, parentConversionCommand);
+            new KisChangeChannelLockFlagsCommand(PkBitArray(), paintLayer, parentConversionCommand);
         }
     }
 
@@ -138,7 +139,7 @@ void KisConvertColorSpaceProcessingVisitor::visit(KisGroupLayer *layer, KisUndoA
     undoAdapter->addCommand(new KisResetGroupLayerCacheCommand(layer, dstColorSpace, KisResetGroupLayerCacheCommand::FINALIZING));
 
     if (srcColorSpace->colorModelId() != dstColorSpace->colorModelId()) {
-        QBitArray channelFlags;
+        PkBitArray channelFlags;
 
         if (alphaDisabled) {
             channelFlags = dstColorSpace->channelFlags(true, false);

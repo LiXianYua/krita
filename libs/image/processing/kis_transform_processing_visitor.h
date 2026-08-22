@@ -12,7 +12,7 @@
 
 #include <kis_types.h>
 
-#include <QTransform>
+#include "PkTransform.h"
 
 class KisFilterStrategy;
 
@@ -24,7 +24,7 @@ public:
                                   qreal  xshear, qreal  yshear, qreal angle,
                                   qreal  tx, qreal ty,
                                   KisFilterStrategy *filter,
-                                  const QTransform &shapesCorrection = QTransform());
+                                  const PkTransform &shapesCorrection = PkTransform());
 
     void setSelection(KisSelectionSP selection);
     KUndo2Command *createInitCommand() override;
@@ -56,7 +56,7 @@ private:
     qreal m_shearx, m_sheary;
     KisFilterStrategy *m_filter;
     qreal m_angle;
-    QTransform m_shapesCorrection;
+    PkTransform m_shapesCorrection;
     KisSelectionBasedProcessingHelper m_selectionHelper;
 };
 

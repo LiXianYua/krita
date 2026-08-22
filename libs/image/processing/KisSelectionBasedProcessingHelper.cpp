@@ -73,8 +73,8 @@ void KisSelectionBasedProcessingHelper::transformPaintDevice(KisPaintDeviceSP de
         if (device != static_cast<KisPaintDevice*>(m_selection->pixelSelection().data())) {
             KisTransaction transaction(device);
 
-            const QRect cutBounds = m_cutSelection->selectedExactRect();
-            const QRect pasteBounds = m_selection->selectedExactRect();
+            const PkRect cutBounds = m_cutSelection->selectedExactRect();
+            const PkRect pasteBounds = m_selection->selectedExactRect();
 
 
             KisPaintDeviceSP tempDev = new KisPaintDevice(device->colorSpace());

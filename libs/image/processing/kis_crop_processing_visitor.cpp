@@ -6,8 +6,6 @@
 
 #include "kis_crop_processing_visitor.h"
 
-#include <klocalizedstring.h>
-
 #include "commands_new/kis_node_move_command2.h"
 
 #include "kis_external_layer_iface.h"
@@ -20,7 +18,7 @@
 #include "lazybrush/kis_colorize_mask.h"
 
 
-KisCropProcessingVisitor::KisCropProcessingVisitor(const QRect &rect, bool cropLayers, bool moveLayers)
+KisCropProcessingVisitor::KisCropProcessingVisitor(const PkRect &rect, bool cropLayers, bool moveLayers)
     : m_rect(rect),
       m_cropLayers(cropLayers),
       m_moveLayers(moveLayers)
@@ -37,8 +35,8 @@ void KisCropProcessingVisitor::visitExternalLayer(KisExternalLayer *layer, KisUn
 void KisCropProcessingVisitor::moveNodeImpl(KisNode *node, KisUndoAdapter *undoAdapter)
 {
     if (m_moveLayers) {
-        QPoint oldPos(node->x(), node->y());
-        QPoint newPos(node->x() - m_rect.x(), node->y() - m_rect.y());
+        PkPoint oldPos(node->x(), node->y());
+        PkPoint newPos(node->x() - m_rect.x(), node->y() - m_rect.y());
         KUndo2Command *command = new KisNodeMoveCommand2(KisNodeSP(node), oldPos, newPos);
         undoAdapter->addCommand(command);
     }
@@ -52,7 +50,7 @@ void KisCropProcessingVisitor::cropPaintDeviceImpl(KisPaintDeviceSP device, KisU
      */
 
     if (m_cropLayers) {
-        KisTransaction transaction(kundo2_noi18n("crop"), device);
+        KisTransaction transaction(kundo2_text_raw("crop"), device);
         device->crop(m_rect);
         transaction.commit(undoAdapter);
     }
@@ -72,9 +70,9 @@ void KisCropProcessingVisitor::visit(KisTransformMask *node, KisUndoAdapter *und
 
 void KisCropProcessingVisitor::visitColorizeMask(KisColorizeMask *node, KisUndoAdapter *undoAdapter)
 {
-    QVector<KisPaintDeviceSP> devices = node->allPaintDevices();
+    PkVector<KisPaintDeviceSP> devices = node->allPaintDevices();
 
-    Q_FOREACH (KisPaintDeviceSP device, devices) {
+    for (KisPaintDeviceSP device : devices) {
         cropPaintDeviceImpl(device, undoAdapter);
     }
 

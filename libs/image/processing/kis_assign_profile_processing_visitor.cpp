@@ -18,7 +18,7 @@
 #include "kis_projection_leaf.h"
 #include "kis_paint_layer.h"
 #include "kis_time_span.h"
-#include <QSet>
+#include "PkSet.h"
 
 
 KisAssignProfileProcessingVisitor::KisAssignProfileProcessingVisitor(const KoColorSpace *srcColorSpace,
@@ -40,14 +40,14 @@ void KisAssignProfileProcessingVisitor::visitNodeWithPaintDevice(KisNode *node, 
     if (!node->projectionLeaf()->isLayer()) return;
     if (*m_dstColorSpace == *node->colorSpace()) return;
 
-    QSet<KisPaintDeviceSP> paintDevices;
+    PkSet<KisPaintDeviceSP> paintDevices;
     paintDevices.insert(node->paintDevice());
     paintDevices.insert(node->original());
     paintDevices.insert(node->projection());
 
     KUndo2Command *parentConversionCommand = new KUndo2Command();
 
-    Q_FOREACH (KisPaintDeviceSP dev, paintDevices) {
+    for (KisPaintDeviceSP dev : paintDevices) {
         if (dev->colorSpace()->colorModelId() == m_srcColorSpace->colorModelId()) {
             dev->setProfile(m_dstColorSpace->profile(), parentConversionCommand);
         }
