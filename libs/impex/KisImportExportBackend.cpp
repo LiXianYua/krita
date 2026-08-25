@@ -28,23 +28,23 @@ public:
     KisDocument *document() const override { return m_document; }
     KisImageSP image() const override { return m_document->image().toStrongRef(); }
     KisImageSP savingImage() const override { return m_document->savingImage(); }
-    QByteArray nativeFormatMimeType() const override { return m_document->nativeFormatMimeType(); }
+    PkByteArray nativeFormatMimeType() const override { return m_document->nativeFormatMimeType(); }
     bool batchMode() const override { return m_document->fileBatchMode(); }
     KisImportUserFeedbackInterface *createImportFeedback() const override
     {
         return &s_headlessFeedback;
     }
     KisImportExportErrorCode runAction(
-        const QString &,
+        const PkString &,
         std::function<KisImportExportErrorCode()> action) override
     {
         return action();
     }
-    void saveExportConfiguration(const QByteArray &, KisPropertiesConfigurationSP) override {}
+    void saveExportConfiguration(const PkByteArray &, KisPropertiesConfigurationSP) override {}
     bool askExportConfiguration(KisImportExportFilter *,
                                 KisPropertiesConfigurationSP,
-                                const QByteArray &,
-                                const QByteArray &,
+                                const PkByteArray &,
+                                const PkByteArray &,
                                 bool,
                                 bool,
                                 bool *alsoAsKra,
@@ -55,7 +55,7 @@ public:
         }
         return true;
     }
-    void setErrorMessage(const QString &message) override
+    void setErrorMessage(const PkString &message) override
     {
         m_document->setErrorMessage(message);
     }
@@ -67,10 +67,10 @@ private:
 class HeadlessUiServices final : public KisImportExportUiServices
 {
 public:
-    QString askForAudioFileName(const QString &, QWidget *) override { return {}; }
-    QString getUriForAdditionalFile(const QString &, QWidget *) override { return {}; }
-    QString exportConfigurationXml(const QByteArray &) override { return {}; }
-    bool chooseColorSpace(QWidget *, const KoColorSpace *, const KoColorSpace **,
+    PkString askForAudioFileName(const PkString &, PkWidget *) override { return {}; }
+    PkString getUriForAdditionalFile(const PkString &, PkWidget *) override { return {}; }
+    PkString exportConfigurationXml(const PkByteArray &) override { return {}; }
+    bool chooseColorSpace(PkWidget *, const KoColorSpace *, const KoColorSpace **,
                           int *, int *) override
     {
         return false;

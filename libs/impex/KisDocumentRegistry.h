@@ -6,9 +6,9 @@
 #ifndef KIS_DOCUMENT_REGISTRY_H
 #define KIS_DOCUMENT_REGISTRY_H
 
-#include <QObject>
-#include <QList>
-#include <QString>
+#include <PkList.h>
+#include <PkObject.h>
+#include <PkString.h>
 
 #include "kritaimpex_export.h"
 
@@ -20,12 +20,12 @@ class KisDocument;
  * The registry and its default document lifecycle belong to the lower
  * document/import-export domain; desktop shells only observe its signals.
  */
-class KRITAIMPEX_EXPORT KisDocumentRegistry : public QObject
+class KRITAIMPEX_EXPORT KisDocumentRegistry : public PkObject
 {
     Q_OBJECT
 
 public:
-    explicit KisDocumentRegistry(QObject *parent = nullptr);
+    explicit KisDocumentRegistry(PkObject *parent = nullptr);
     ~KisDocumentRegistry() override;
 
     static KisDocumentRegistry *instance();
@@ -34,14 +34,14 @@ public:
     KisDocument *createTemporaryDocument() const;
 
     void addDocument(KisDocument *document, bool notify = true);
-    QList<KisDocument *> documents() const;
+    PkList<KisDocument *> documents() const;
     int documentCount() const;
     void removeDocument(KisDocument *document, bool deleteDocument = true);
 
 Q_SIGNALS:
     void sigDocumentAdded(KisDocument *document);
-    void sigDocumentSaved(const QString &path);
-    void sigDocumentRemoved(const QString &path);
+    void sigDocumentSaved(const PkString &path);
+    void sigDocumentRemoved(const PkString &path);
 
 private:
     class Private;

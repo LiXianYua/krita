@@ -6,18 +6,20 @@
 #include "KisDocumentRegistry.h"
 #include "KisDocument.h"
 
-#include <QGlobalStatic>
-
-Q_GLOBAL_STATIC(KisDocumentRegistry, s_documentRegistry)
+#include <PkPointer.h>
 
 class KisDocumentRegistry::Private
 {
 public:
-    QList<KisDocument *> documents;
+    // PkObject 无 destroyed 信号；用 PkPointer（Qt 弱指针 Q 指针的替代）观察文档
+    // 生命周期：文档在未走 removeDocument 路径被析构时条目自动置 null，
+    // documents()/documentCount() 读取时过滤——语义与原 Qt 的 destroyed 信号连接
+    // （析构即从注册表摘除）一致，防悬垂指针。
+    PkList<PkPointer<KisDocument>> documents;
 };
 
-KisDocumentRegistry::KisDocumentRegistry(QObject *parent)
-    : QObject(parent)
+KisDocumentRegistry::KisDocumentRegistry(PkObject *parent)
+    : PkObject(parent)
     , d(new Private)
 {
 }
@@ -29,7 +31,8 @@ KisDocumentRegistry::~KisDocumentRegistry()
 
 KisDocumentRegistry *KisDocumentRegistry::instance()
 {
-    return s_documentRegistry;
+    static KisDocumentRegistry s_documentRegistry;
+    return &s_documentRegistry;
 }
 
 KisDocument *KisDocumentRegistry::createDocument() const
@@ -52,23 +55,32 @@ void KisDocumentRegistry::addDocument(KisDocument *document, bool notify)
 
     connect(document, &KisDocument::sigSavingFinished,
             this, &KisDocumentRegistry::sigDocumentSaved);
-    connect(document, &QObject::destroyed, this, [this, document]() {
-        d->documents.removeAll(document);
-    });
 
     if (notify) {
-        Q_EMIT sigDocumentAdded(document);
+        sigDocumentAdded(document);
     }
 }
 
-QList<KisDocument *> KisDocumentRegistry::documents() const
+PkList<KisDocument *> KisDocumentRegistry::documents() const
 {
-    return d->documents;
+    PkList<KisDocument *> result;
+    for (const auto &ptr : d->documents) {
+        if (!ptr.isNull()) {
+            result.append(ptr.data());
+        }
+    }
+    return result;
 }
 
 int KisDocumentRegistry::documentCount() const
 {
-    return d->documents.size();
+    int count = 0;
+    for (const auto &ptr : d->documents) {
+        if (!ptr.isNull()) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 void KisDocumentRegistry::removeDocument(KisDocument *document, bool deleteDocument)
@@ -78,7 +90,7 @@ void KisDocumentRegistry::removeDocument(KisDocument *document, bool deleteDocum
     }
 
     d->documents.removeAll(document);
-    Q_EMIT sigDocumentRemoved(document->path());
+    sigDocumentRemoved(document->path());
 
     if (deleteDocument) {
         document->deleteLater();
