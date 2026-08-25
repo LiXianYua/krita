@@ -19,8 +19,6 @@
 #include "lazybrush/kis_colorize_mask.h"
 #include "generator/kis_generator_layer.h"
 
-#include <klocalizedstring.h>
-
 KisTranslateLayerNamesVisitor::KisTranslateLayerNamesVisitor(PkMap<PkString, PkString> dictionary)
     : m_dictionary(dictionary)
 {
@@ -53,30 +51,30 @@ PkMap<PkString, PkString> KisTranslateLayerNamesVisitor::defaultDictionary()
 {
     PkMap<PkString, PkString> dictionary;
 
-    dictionary["Background"] = i18nc("Layer name for translation of template", "Background");
-    dictionary["Group"] = i18nc("Layer name for translation of template", "Group");
-    dictionary["Margins"] = i18nc("Layer name for translation of template", "Margins");
-    dictionary["Bleed"] = i18nc("Layer name for translation of template", "Bleed");
-    dictionary["Lines"] = i18nc("Layer name for translation of template", "Lines");
-    dictionary["Colors"] = i18nc("Layer name for translation of template", "Colors");
-    dictionary["Sketch"] = i18nc("Layer name for translation of template", "Sketch");
-    dictionary["Shade"] = i18nc("Layer name for translation of template", "Shade");
-    dictionary["Filter"] = i18nc("Layer name for translation of template", "Filter");
-    dictionary["Mask"] = i18nc("Layer name for translation of template", "Mask");
-    dictionary["Layer"] = i18nc("Layer name for translation of template", "Layer");
-    dictionary["Indirect light"] = i18nc("Layer name for translation of template", "Indirect light");
-    dictionary["Highlight"] = i18nc("Layer name for translation of template", "Highlight");
-    dictionary["Flat"] = i18nc("Layer name for translation of template", "Flat");
-    dictionary["Panel"] = i18nc("Layer name for translation of template", "Panel");
-    dictionary["Text"] = i18nc("Layer name for translation of template", "Text");
-    dictionary["Effect"] = i18nc("Layer name for translation of template", "Effect");
-    dictionary["Tones"] = i18nc("Layer name for translation of template", "Tones");
-    dictionary["Textures"] = i18nc("Layer name for translation of template", "Textures");
-    dictionary["Guides"] = i18nc("Layer name for translation of template", "Guides");
-    dictionary["Balloons"] = i18nc("Layer name for translation of template", "Balloons");
-    dictionary["Clone"] = i18nc("Layer name for translation of template", "Clone");
-    dictionary["In Betweening"] = i18nc("Layer name for translation of template", "In Betweening");
-    dictionary["Layout"] = i18nc("Layer name for translation of template", "Layout");
+    dictionary["Background"] = PkString("Background");
+    dictionary["Group"] = PkString("Group");
+    dictionary["Margins"] = PkString("Margins");
+    dictionary["Bleed"] = PkString("Bleed");
+    dictionary["Lines"] = PkString("Lines");
+    dictionary["Colors"] = PkString("Colors");
+    dictionary["Sketch"] = PkString("Sketch");
+    dictionary["Shade"] = PkString("Shade");
+    dictionary["Filter"] = PkString("Filter");
+    dictionary["Mask"] = PkString("Mask");
+    dictionary["Layer"] = PkString("Layer");
+    dictionary["Indirect light"] = PkString("Indirect light");
+    dictionary["Highlight"] = PkString("Highlight");
+    dictionary["Flat"] = PkString("Flat");
+    dictionary["Panel"] = PkString("Panel");
+    dictionary["Text"] = PkString("Text");
+    dictionary["Effect"] = PkString("Effect");
+    dictionary["Tones"] = PkString("Tones");
+    dictionary["Textures"] = PkString("Textures");
+    dictionary["Guides"] = PkString("Guides");
+    dictionary["Balloons"] = PkString("Balloons");
+    dictionary["Clone"] = PkString("Clone");
+    dictionary["In Betweening"] = PkString("In Betweening");
+    dictionary["Layout"] = PkString("Layout");
 
     return dictionary;
 }

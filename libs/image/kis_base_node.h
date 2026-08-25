@@ -51,7 +51,7 @@ public:
     {
         PkString id;
 
-        /** i18n-ed name, suitable for displaying */
+        /** user-visible name (source text; translation at Flutter layer), suitable for displaying */
         PkString name;
 
         /** Whether the property is a boolean (e.g. locked, visible) which can be toggled directly from the widget itself. */

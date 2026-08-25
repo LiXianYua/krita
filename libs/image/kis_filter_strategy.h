@@ -9,8 +9,6 @@
 #ifndef KIS_FILTER_STRATEGY_H_
 #define KIS_FILTER_STRATEGY_H_
 
-#include <klocalizedstring.h>
-
 #include "KoGenericRegistry.h"
 #include "KoID.h"
 #include "kritaimage_export.h"
@@ -57,7 +55,7 @@ protected:
 class KRITAIMAGE_EXPORT KisHermiteFilterStrategy : public KisFilterStrategy
 {
 public:
-    KisHermiteFilterStrategy() : KisFilterStrategy(KoID("Hermite", i18n("Hermite"))) {
+    KisHermiteFilterStrategy() : KisFilterStrategy(KoID("Hermite", PkString("Hermite"))) {
         supportVal = 1.0; intSupportVal = 256;
     }
     ~KisHermiteFilterStrategy() override {}
@@ -69,13 +67,13 @@ public:
 class KRITAIMAGE_EXPORT KisBicubicFilterStrategy : public KisFilterStrategy
 {
 public:
-    KisBicubicFilterStrategy() : KisFilterStrategy(KoID("Bicubic", i18n("Bicubic"))) {
+    KisBicubicFilterStrategy() : KisFilterStrategy(KoID("Bicubic", PkString("Bicubic"))) {
         supportVal = 2.0; intSupportVal = 512;
     }
     ~KisBicubicFilterStrategy() override {}
 
     PkString description() override {
-        return i18n("Adds pixels using the color of surrounding pixels. Produces smoother tonal gradations than Bilinear.");
+        return PkString("Adds pixels using the color of surrounding pixels. Produces smoother tonal gradations than Bilinear.");
     }
 
     qint32 intValueAt(qint32 t, qreal weightsPositionScale) const override;
@@ -83,7 +81,7 @@ public:
 class KRITAIMAGE_EXPORT KisBoxFilterStrategy : public KisFilterStrategy
 {
 public:
-    KisBoxFilterStrategy() : KisFilterStrategy(KoID("NearestNeighbor", i18n("Nearest Neighbor"))) {
+    KisBoxFilterStrategy() : KisFilterStrategy(KoID("NearestNeighbor", PkString("Nearest Neighbor"))) {
         // 0.5 and 128, but with a bit of margin to ensure the correct pixel will be used
         // even in case of calculation errors
         supportVal = 0.51; intSupportVal = 129;
@@ -91,7 +89,7 @@ public:
     ~KisBoxFilterStrategy() override {}
 
     PkString description() override {
-        return i18n("Replicate pixels in the image. Preserves all the original detail, but can produce jagged effects.");
+        return PkString("Replicate pixels in the image. Preserves all the original detail, but can produce jagged effects.");
     }
 
     virtual qreal support(qreal weightsPositionScale) override;
@@ -105,13 +103,13 @@ public:
 class KRITAIMAGE_EXPORT KisBilinearFilterStrategy : public KisFilterStrategy
 {
 public:
-    KisBilinearFilterStrategy() : KisFilterStrategy(KoID("Bilinear", i18n("Bilinear"))) {
+    KisBilinearFilterStrategy() : KisFilterStrategy(KoID("Bilinear", PkString("Bilinear"))) {
         supportVal = 1.0; intSupportVal = 256;
     }
     ~KisBilinearFilterStrategy() override {}
 
     PkString description() override {
-        return i18n("Adds pixels averaging the color values of surrounding pixels. Produces medium quality results when the image is scaled from half to two times the original size.");
+        return PkString("Adds pixels averaging the color values of surrounding pixels. Produces medium quality results when the image is scaled from half to two times the original size.");
     }
 
     qint32 intValueAt(qint32 t, qreal weightsPositionScale) const override;
@@ -121,7 +119,7 @@ public:
 class KRITAIMAGE_EXPORT KisBellFilterStrategy : public KisFilterStrategy
 {
 public:
-    KisBellFilterStrategy() : KisFilterStrategy(KoID("Bell", i18n("Bell"))) {
+    KisBellFilterStrategy() : KisFilterStrategy(KoID("Bell", PkString("Bell"))) {
         supportVal = 1.5; intSupportVal = 128 + 256;
     }
     ~KisBellFilterStrategy() override {}
@@ -132,7 +130,7 @@ public:
 class KRITAIMAGE_EXPORT KisBSplineFilterStrategy : public KisFilterStrategy
 {
 public:
-    KisBSplineFilterStrategy() : KisFilterStrategy(KoID("BSpline", i18n("BSpline"))) {
+    KisBSplineFilterStrategy() : KisFilterStrategy(KoID("BSpline", PkString("BSpline"))) {
         supportVal = 2.0; intSupportVal = 512;
     }
     ~KisBSplineFilterStrategy() override {}
@@ -143,13 +141,13 @@ public:
 class KRITAIMAGE_EXPORT KisLanczos3FilterStrategy : public KisFilterStrategy
 {
 public:
-    KisLanczos3FilterStrategy() : KisFilterStrategy(KoID("Lanczos3", i18n("Lanczos3"))) {
+    KisLanczos3FilterStrategy() : KisFilterStrategy(KoID("Lanczos3", PkString("Lanczos3"))) {
         supportVal = 3.0; intSupportVal = 768;
     }
     ~KisLanczos3FilterStrategy() override {}
 
     PkString description() override {
-        return i18n("Offers similar results than Bicubic, but maybe a little bit sharper. Can produce light and dark halos along strong edges.");
+        return PkString("Offers similar results than Bicubic, but maybe a little bit sharper. Can produce light and dark halos along strong edges.");
     }
 
     qreal valueAt(qreal t, qreal weightsPositionScale) const override;
@@ -160,7 +158,7 @@ private:
 class KRITAIMAGE_EXPORT  KisMitchellFilterStrategy : public KisFilterStrategy
 {
 public:
-    KisMitchellFilterStrategy() : KisFilterStrategy(KoID("Mitchell", i18n("Mitchell"))) {
+    KisMitchellFilterStrategy() : KisFilterStrategy(KoID("Mitchell", PkString("Mitchell"))) {
         supportVal = 2.0; intSupportVal = 256;
     }
     ~KisMitchellFilterStrategy() override {}

@@ -15,17 +15,15 @@
 #include <PkXmlElement.h>
 
 #include <KoID.h>
-#include <klocalizedstring.h>
-
 #include "kritaimage_export.h"
 
 class PkXmlElement;
 class PkXmlDocument;
 class KisBrushMaskApplicatorBase;
 
-const KoID DefaultId("default", ki18n("Default")); ///< generate Krita default mask generator
-const KoID SoftId("soft", ki18n("Soft")); ///< generate brush mask from former softbrush paintop, where softness is based on curve
-const KoID GaussId("gauss", ki18n("Gaussian")); ///< generate brush mask with a Gaussian-blurred edge
+const KoID DefaultId("default", PkString("Default")); ///< generate Krita default mask generator
+const KoID SoftId("soft", PkString("Soft")); ///< generate brush mask from former softbrush paintop, where softness is based on curve
+const KoID GaussId("gauss", PkString("Gaussian")); ///< generate brush mask with a Gaussian-blurred edge
 
 static const int OVERSAMPLING = 4;
 

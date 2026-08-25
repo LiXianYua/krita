@@ -8,8 +8,6 @@
 
 #include <pk/container/PkMap.h>
 
-#include <klocalizedstring.h> // ki18n/i18nc 编译期占位（S-06 薄壳 compat，PkString 原文）
-
 Q_GLOBAL_STATIC(KisLayerPropertiesIcons, s_instance)
 
 #include <KoColorSpace.h>
@@ -20,23 +18,23 @@ Q_GLOBAL_STATIC(KisLayerPropertiesIcons, s_instance)
 #include "kis_image.h"
 
 
-const KoID KisLayerPropertiesIcons::locked("locked", ki18n("Locked"));
-const KoID KisLayerPropertiesIcons::visible("visible", ki18n("Visible"));
-const KoID KisLayerPropertiesIcons::layerStyle("layer-style", ki18n("Layer Style"));
-const KoID KisLayerPropertiesIcons::inheritAlpha("inherit-alpha", ki18n("Inherit Alpha"));
-const KoID KisLayerPropertiesIcons::alphaLocked("alpha-locked", ki18n("Alpha Locked"));
-const KoID KisLayerPropertiesIcons::onionSkins("onion-skins", ki18n("Onion Skins"));
-const KoID KisLayerPropertiesIcons::passThrough("pass-through", ki18n("Pass Through"));
-const KoID KisLayerPropertiesIcons::selectionActive("selection-active", ki18n("Active"));
-const KoID KisLayerPropertiesIcons::colorLabelIndex("color-label", ki18n("Color Label"));
-const KoID KisLayerPropertiesIcons::colorOverlay("color-overlay", ki18n("Color Overlay"));
-const KoID KisLayerPropertiesIcons::colorizeNeedsUpdate("colorize-needs-update", ki18n("Update Result"));
-const KoID KisLayerPropertiesIcons::colorizeEditKeyStrokes("colorize-show-key-strokes", ki18n("Edit Key Strokes"));
-const KoID KisLayerPropertiesIcons::colorizeShowColoring("colorize-show-coloring", ki18n("Show Coloring"));
-const KoID KisLayerPropertiesIcons::openFileLayerFile("open-file-layer-file", ki18n("Open File"));
-const KoID KisLayerPropertiesIcons::layerError("layer-error", ki18n("Error"));
-const KoID KisLayerPropertiesIcons::layerColorSpaceMismatch("layer-color-space-mismatch", ki18n("Layer Color Space Mismatch"));
-const KoID KisLayerPropertiesIcons::antialiased("antialiased", ki18n("Anti-aliasing"));
+const KoID KisLayerPropertiesIcons::locked("locked", PkString("Locked"));
+const KoID KisLayerPropertiesIcons::visible("visible", PkString("Visible"));
+const KoID KisLayerPropertiesIcons::layerStyle("layer-style", PkString("Layer Style"));
+const KoID KisLayerPropertiesIcons::inheritAlpha("inherit-alpha", PkString("Inherit Alpha"));
+const KoID KisLayerPropertiesIcons::alphaLocked("alpha-locked", PkString("Alpha Locked"));
+const KoID KisLayerPropertiesIcons::onionSkins("onion-skins", PkString("Onion Skins"));
+const KoID KisLayerPropertiesIcons::passThrough("pass-through", PkString("Pass Through"));
+const KoID KisLayerPropertiesIcons::selectionActive("selection-active", PkString("Active"));
+const KoID KisLayerPropertiesIcons::colorLabelIndex("color-label", PkString("Color Label"));
+const KoID KisLayerPropertiesIcons::colorOverlay("color-overlay", PkString("Color Overlay"));
+const KoID KisLayerPropertiesIcons::colorizeNeedsUpdate("colorize-needs-update", PkString("Update Result"));
+const KoID KisLayerPropertiesIcons::colorizeEditKeyStrokes("colorize-show-key-strokes", PkString("Edit Key Strokes"));
+const KoID KisLayerPropertiesIcons::colorizeShowColoring("colorize-show-coloring", PkString("Show Coloring"));
+const KoID KisLayerPropertiesIcons::openFileLayerFile("open-file-layer-file", PkString("Open File"));
+const KoID KisLayerPropertiesIcons::layerError("layer-error", PkString("Error"));
+const KoID KisLayerPropertiesIcons::layerColorSpaceMismatch("layer-color-space-mismatch", PkString("Layer Color Space Mismatch"));
+const KoID KisLayerPropertiesIcons::antialiased("antialiased", PkString("Anti-aliasing"));
 
 struct IconsPair {
     IconsPair() {}
@@ -125,11 +123,9 @@ KisBaseNode::Property KisLayerPropertiesIcons::getErrorProperty(const PkString &
 
 KisBaseNode::Property KisLayerPropertiesIcons::getColorSpaceMismatchProperty(const KoColorSpace *cs)
 {
-    const PkString message =
-        i18nc("a tooltip shown in when hovering layer's property",
-              "Layer color space is different from the image color space:\n%1 [%2],\noperations may be slow",
-              cs->name(),
-              cs->profile() ? cs->profile()->name() : "");
+    const PkString message = PkString(
+        "Layer color space is different from the image color space:\n%1 [%2],\noperations may be slow")
+        .arg(cs->name(), cs->profile() ? cs->profile()->name() : PkString(""));
 
     const IconsPair pair = lookupIconsPair(instance()->m_d->icons, layerColorSpaceMismatch.id());
 
