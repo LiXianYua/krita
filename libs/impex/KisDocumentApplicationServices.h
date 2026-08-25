@@ -9,12 +9,12 @@
 #include <memory>
 #include <optional>
 
-#include <QImage>
-#include <QList>
-#include <QPoint>
-#include <QColor>
-#include <QString>
-#include <QStringList>
+#include <PkColor.h>
+#include <PkImage.h>
+#include <PkList.h>
+#include <PkPoint.h>
+#include <PkString.h>
+#include <PkStringList.h>
 
 #include <KisCumulativeUndoData.h>
 #include <KoCanvasResourcesInterface.h>
@@ -24,7 +24,7 @@
 
 class KoColor;
 class KisDocument;
-class QMutex;
+class PkMutex;
 
 class KRITAIMPEX_EXPORT KisDocumentBusyCursor
 {
@@ -64,10 +64,10 @@ public:
     };
 
     struct DocumentMessage {
-        QString title;
-        QString message;
-        QStringList warnings;
-        QString details;
+        PkString title;
+        PkString message;
+        PkStringList warnings;
+        PkString details;
         MessageType type = MessageType::Warning;
     };
 
@@ -80,30 +80,30 @@ public:
     virtual void synchronizeDocumentViews();
     virtual void closeDocumentViews(KisDocument *document);
     virtual KoCanvasResourcesInterfaceSP canvasResourcesForImage(KisImageSP image);
-    virtual KoUpdaterPtr createUpdater(const QString &actionName, UpdaterMode mode);
-    virtual void waitForMutexWithFeedback(QMutex &mutex, const QString &message);
+    virtual KoUpdaterPtr createUpdater(const PkString &actionName, UpdaterMode mode);
+    virtual void waitForMutexWithFeedback(PkMutex &mutex, const PkString &message);
 
-    virtual RecoveryChoice chooseNamedAutosave(const QString &mainFile,
-                                               const QString &autosaveFile);
+    virtual RecoveryChoice chooseNamedAutosave(const PkString &mainFile,
+                                               const PkString &autosaveFile);
     virtual void showDocumentMessage(const DocumentMessage &message);
-    virtual void addRecentFile(const QString &path);
+    virtual void addRecentFile(const PkString &path);
     virtual bool queryClose(KisDocument *document);
 
-    virtual QString autoSaveLocation() const;
-    virtual QImage previewCheckerboard(int tileSize) const;
+    virtual PkString autoSaveLocation() const;
+    virtual PkImage previewCheckerboard(int tileSize) const;
 
     virtual bool securityBookmarksEnabled() const;
-    virtual bool parentDirectoryHasPermissions(const QString &path) const;
-    virtual void createSavedFileBookmark(const QString &path);
+    virtual bool parentDirectoryHasPermissions(const PkString &path) const;
+    virtual void createSavedFileBookmark(const PkString &path);
 
     virtual std::unique_ptr<KisDocumentBusyCursor> createBusyCursor();
-    virtual std::optional<QList<KoColor>> activeColorHistory() const;
+    virtual std::optional<PkList<KoColor>> activeColorHistory() const;
 
-    virtual QColor defaultAssistantsColor() const;
+    virtual PkColor defaultAssistantsColor() const;
     virtual bool backupFileEnabled() const;
     virtual int backupFileLocation() const;
     virtual int numberOfBackupFiles() const;
-    virtual QString backupFileSuffix() const;
+    virtual PkString backupFileSuffix() const;
     virtual bool trimKra() const;
     virtual bool trimFramesImport() const;
     virtual int autoSaveInterval() const;
@@ -113,13 +113,13 @@ public:
     virtual KisCumulativeUndoData cumulativeUndoData() const;
     virtual bool autoPinLayersToTimeline() const;
 
-    virtual void setDefaultGridSpacing(const QPoint &spacing);
+    virtual void setDefaultGridSpacing(const PkPoint &spacing);
     virtual void storeNewImageDefaults(qint32 width,
                                        qint32 height,
                                        qreal resolution,
-                                       const QString &colorModel,
-                                       const QString &colorDepth,
-                                       const QString &colorProfile);
+                                       const PkString &colorModel,
+                                       const PkString &colorDepth,
+                                       const PkString &colorProfile);
 };
 
 #endif // KIS_DOCUMENT_APPLICATION_SERVICES_H
