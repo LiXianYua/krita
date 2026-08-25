@@ -8,6 +8,7 @@
  */
 
 #include "kis_shape_layer.h"
+#include "KisQtConnectionsStore.h"
 
 #include <QPainter>
 #include <QPainterPath>
@@ -135,7 +136,7 @@ public:
     int x;
     int y;
     bool isAntialiased;
-    KisSignalAutoConnectionsStore imageConnections;
+    KisQtConnectionsStore imageConnections;
 };
 
 
@@ -275,18 +276,18 @@ void KisShapeLayer::initShapeLayerImpl(KoShapeControllerBase* controller,
 
     m_d->canvas->shapeManager()->selection()->disconnect(this);
 
-    connect(m_d->canvas->selectedShapesProxy(), SIGNAL(selectionChanged()), this, SIGNAL(selectionChanged()));
-    connect(m_d->canvas->selectedShapesProxy(), SIGNAL(currentLayerChanged(const KoShapeLayer*)),
-            this, SIGNAL(currentLayerChanged(const KoShapeLayer*)));
+    connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged, this, &KisShapeLayer::selectionChanged);
+    connect(m_d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::currentLayerChanged,
+            this, &KisShapeLayer::currentLayerChanged);
 
-    connect(this, SIGNAL(sigMoveShapes(QPointF)), SLOT(slotMoveShapes(QPointF)));
+    connect(this, &KisShapeLayer::sigMoveShapes, this, &KisShapeLayer::slotMoveShapes);
 
     ShapeLayerContainerModel *model = dynamic_cast<ShapeLayerContainerModel*>(this->model());
     KIS_SAFE_ASSERT_RECOVER_RETURN(model);
     model->setAssociatedRootShapeManager(m_d->canvas->shapeManager());
 
     if (this->image()) {
-        m_d->imageConnections.addUniqueConnection(this->image(), SIGNAL(sigResolutionChanged(double, double)), this, SLOT(slotImageResolutionChanged()));
+        m_d->imageConnections.addUniqueConnection(this->image(), &KisImage::sigResolutionChanged, this, &KisShapeLayer::slotImageResolutionChanged);
         slotImageResolutionChanged();
     }
 }
@@ -305,7 +306,7 @@ void KisShapeLayer::setImage(KisImageWSP _image)
         m_d->paintDevice->setDefaultBounds(new KisDefaultBounds(_image));
     }
     if (_image) {
-        m_d->imageConnections.addUniqueConnection(_image, SIGNAL(sigResolutionChanged(double, double)), this, SLOT(slotImageResolutionChanged()));
+        m_d->imageConnections.addUniqueConnection(_image, &KisImage::sigResolutionChanged, this, &KisShapeLayer::slotImageResolutionChanged);
         slotImageResolutionChanged();
     }
 }

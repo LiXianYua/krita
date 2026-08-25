@@ -18,6 +18,7 @@
 #include "kis_shape_selection.h"
 #include "kis_selection.h"
 #include "kis_selection_mask.h"
+#include "KisQtConnectionsStore.h"
 #include "kis_selection_component.h"
 #include "kis_image.h"
 #include "kis_group_layer.h"
@@ -38,7 +39,7 @@ struct KisShapeController::Private
 {
 public:
     KisNameServer *nameServer;
-    KisSignalAutoConnectionsStore imageConnections;
+    KisQtConnectionsStore imageConnections;
 
     KisNodeShapesGraph shapesGraph;
 };
@@ -91,12 +92,12 @@ void KisShapeController::addNodeImpl(KisNodeSP node, KisNodeSP parent, KisNodeSP
     KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(node.data());
     if (shapeLayer) {
         // Forward local shape-manager signals through the stable controller.
-        connect(shapeLayer, SIGNAL(selectionChanged()),
-                SIGNAL(selectionChanged()));
-        connect(shapeLayer->shapeManager(), SIGNAL(selectionContentChanged()),
-                SIGNAL(selectionContentChanged()));
-        connect(shapeLayer, SIGNAL(currentLayerChanged(const KoShapeLayer*)),
-                SIGNAL(currentLayerChanged(const KoShapeLayer*)));
+        connect(shapeLayer, &KisShapeLayer::selectionChanged,
+                this, &KisShapeController::selectionChanged);
+        connect(shapeLayer->shapeManager(), &KoShapeManager::selectionContentChanged,
+                this, &KisShapeController::selectionContentChanged);
+        connect(shapeLayer, &KisShapeLayer::currentLayerChanged,
+                this, &KisShapeController::currentLayerChanged);
     }
 }
 
@@ -208,8 +209,8 @@ void KisShapeController::setImage(KisImageWSP image, KisNodeSP activeNode)
     m_d->imageConnections.clear();
 
     if (image) {
-        m_d->imageConnections.addConnection(image, SIGNAL(sigResolutionChanged(double, double)), this, SLOT(slotUpdateDocumentResolution()));
-        m_d->imageConnections.addConnection(image, SIGNAL(sigSizeChanged(QPointF, QPointF)), this, SLOT(slotUpdateDocumentSize()));
+        m_d->imageConnections.addConnection(image, &KisImage::sigResolutionChanged, this, &KisShapeController::slotUpdateDocumentResolution);
+        m_d->imageConnections.addConnection(image, &KisImage::sigSizeChanged, this, &KisShapeController::slotUpdateDocumentSize);
     }
 
     KisDummiesFacadeBase::setImage(image, activeNode);
