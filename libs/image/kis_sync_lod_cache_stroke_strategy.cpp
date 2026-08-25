@@ -19,7 +19,7 @@ struct KisSyncLodCacheStrokeStrategy::Private
 };
 
 KisSyncLodCacheStrokeStrategy::KisSyncLodCacheStrokeStrategy(KisImageWSP image, bool forgettable)
-    : KisRunnableBasedStrokeStrategy(QLatin1String("SyncLodCacheStroke"), kundo2_i18n("Instant Preview")),
+    : KisRunnableBasedStrokeStrategy(QLatin1String("SyncLodCacheStroke"), kundo2_text("Instant Preview")),
       m_d(new Private)
 {
     m_d->image = image;
@@ -42,25 +42,25 @@ KisSyncLodCacheStrokeStrategy::~KisSyncLodCacheStrokeStrategy()
 
 void KisSyncLodCacheStrokeStrategy::initStrokeCallback()
 {
-    QVector<KisStrokeJobData *> jobs;
+    PkVector<KisStrokeJobData *> jobs;
     createJobsData(jobs, m_d->image->root(), m_d->image.data(), m_d->image->currentLevelOfDetail());
     addMutatedJobs(jobs);
 }
 
-QList<KisStrokeJobData*> KisSyncLodCacheStrokeStrategy::createJobsData(KisImageWSP /*_image*/)
+PkList<KisStrokeJobData*> KisSyncLodCacheStrokeStrategy::createJobsData(KisImageWSP /*_image*/)
 {
     // all the jobs are populates in the init job
     return {};
 }
 
-void KisSyncLodCacheStrokeStrategy::createJobsData(QVector<KisStrokeJobData *> &jobs, KisNodeSP imageRoot, KisUpdatesFacade *updatesFacade, int levelOfDetail, KisPaintDeviceList extraDevices)
+void KisSyncLodCacheStrokeStrategy::createJobsData(PkVector<KisStrokeJobData *> &jobs, KisNodeSP imageRoot, KisUpdatesFacade *updatesFacade, int levelOfDetail, KisPaintDeviceList extraDevices)
 {
     using KisLayerUtils::recursiveApplyNodes;
     using KritaUtils::splitRegionIntoPatches;
     using KritaUtils::optimalPatchSize;
 
-    using SharedData = QHash<KisPaintDeviceSP, QSharedPointer<KisPaintDevice::LodDataStruct>>;
-    using SharedDataSP = QSharedPointer<SharedData>;
+    using SharedData = PkHash<KisPaintDeviceSP, PkSharedPointer<KisPaintDevice::LodDataStruct>>;
+    using SharedDataSP = PkSharedPointer<SharedData>;
 
     SharedDataSP sharedData(new SharedData());
 
@@ -87,9 +87,9 @@ void KisSyncLodCacheStrokeStrategy::createJobsData(QVector<KisStrokeJobData *> &
 
     Q_FOREACH (KisPaintDeviceSP device, deviceList) {
         KisRegion region = device->regionForLodSyncing();
-        QVector<QRect> rects = splitRegionIntoPatches(region, optimalPatchSize());
+        PkVector<PkRect> rects = splitRegionIntoPatches(region, optimalPatchSize());
 
-        Q_FOREACH (const QRect &rc, rects) {
+        Q_FOREACH (const PkRect &rc, rects) {
             KritaUtils::addJobConcurrent(jobs, [sharedData, device, rc] () mutable {
                 KIS_ASSERT(sharedData->contains(device));
 

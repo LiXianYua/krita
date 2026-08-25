@@ -20,10 +20,10 @@ public:
     virtual ~KisRunnableStrokeJobsInterface();
 
     void addRunnableJob(KisRunnableStrokeJobDataBase *data);
-    virtual void addRunnableJobs(const QVector<KisRunnableStrokeJobDataBase*> &list) = 0;
+    virtual void addRunnableJobs(const PkVector<KisRunnableStrokeJobDataBase*> &list) = 0;
 
     template <typename T>
-    void addRunnableJobs(const QVector<T*> &list) {
+    void addRunnableJobs(const PkVector<T*> &list) {
         this->addRunnableJobs(implicitCastList<KisRunnableStrokeJobDataBase*>(list));
     }
 };

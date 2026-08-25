@@ -9,7 +9,7 @@
 #include <KisRunnableStrokeJobData.h>
 #include <kis_assert.h>
 
-#include <QVector>
+#include <PkVector.h>
 
 KisFakeRunnableStrokeJobsExecutor::KisFakeRunnableStrokeJobsExecutor()
     : m_flags(None)
@@ -21,7 +21,7 @@ KisFakeRunnableStrokeJobsExecutor::KisFakeRunnableStrokeJobsExecutor(Flags flags
 {
 }
 
-void KisFakeRunnableStrokeJobsExecutor::addRunnableJobs(const QVector<KisRunnableStrokeJobDataBase *> &list)
+void KisFakeRunnableStrokeJobsExecutor::addRunnableJobs(const PkVector<KisRunnableStrokeJobDataBase *> &list)
 {
     Q_FOREACH (KisRunnableStrokeJobDataBase *data, list) {
         KIS_SAFE_ASSERT_RECOVER_NOOP(m_flags.testFlag(AllowBarrierJobs) ||

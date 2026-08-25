@@ -7,7 +7,7 @@
 #ifndef __KIS_STROKE_STRATEGY_H
 #define __KIS_STROKE_STRATEGY_H
 
-#include <QString>
+#include <PkString.h>
 #include "kis_types.h"
 #include "kundo2magicstring.h"
 #include "kritaimage_export.h"
@@ -118,7 +118,7 @@ public:
      */
     qreal balancingRatioOverride() const;
 
-    QString id() const;
+    PkString id() const;
     KUndo2MagicString name() const;
 
     /**
@@ -153,7 +153,7 @@ protected:
      *     because addMutatedJob does not initiate processQueues(), because
      *     it may lead to a deadlock.
      */
-    void addMutatedJobs(const QVector<KisStrokeJobData*> list);
+    void addMutatedJobs(const PkVector<KisStrokeJobData*> list);
 
     /**
      * Convenience override for addMutatedJobs()

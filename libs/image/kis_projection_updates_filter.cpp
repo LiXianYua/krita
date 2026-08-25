@@ -8,13 +8,13 @@
 
 
 #include <QtGlobal>
-#include <QRect>
+#include <PkRect.h>
 
 KisProjectionUpdatesFilter::~KisProjectionUpdatesFilter()
 {
 }
 
-bool KisDropAllProjectionUpdatesFilter::filter(KisImage *image, KisNode *node, const QVector<QRect> &rects, KisProjectionUpdateFlags flags)
+bool KisDropAllProjectionUpdatesFilter::filter(KisImage *image, KisNode *node, const PkVector<PkRect> &rects, KisProjectionUpdateFlags flags)
 {
     Q_UNUSED(image);
     Q_UNUSED(node);
@@ -23,7 +23,7 @@ bool KisDropAllProjectionUpdatesFilter::filter(KisImage *image, KisNode *node, c
     return true;
 }
 
-bool KisDropAllProjectionUpdatesFilter::filterRefreshGraph(KisImage *image, KisNode *node, const QVector<QRect> &rects, const QRect &cropRect, KisProjectionUpdateFlags flags)
+bool KisDropAllProjectionUpdatesFilter::filterRefreshGraph(KisImage *image, KisNode *node, const PkVector<PkRect> &rects, const PkRect &cropRect, KisProjectionUpdateFlags flags)
 {
     Q_UNUSED(image);
     Q_UNUSED(node);

@@ -7,8 +7,8 @@
 #ifndef __KIS_STROKE_H
 #define __KIS_STROKE_H
 
-#include <QQueue>
-#include <QScopedPointer>
+#include <PkQueue.h>
+#include <PkScopedPointer.h>
 
 #include <kis_types.h>
 #include "kritaimage_export.h"
@@ -34,10 +34,10 @@ public:
     ~KisStroke();
 
     void addJob(KisStrokeJobData *data);
-    void addMutatedJobs(const QVector<KisStrokeJobData *> list);
+    void addMutatedJobs(const PkVector<KisStrokeJobData *> list);
 
     KUndo2MagicString name() const;
-    QString id() const;
+    PkString id() const;
 
     bool hasJobs() const;
     qint32 numJobs() const;
@@ -91,21 +91,21 @@ private:
     // for testing use only, do not use in real code
     friend class KisStrokeTest;
     friend class KisStrokeStrategyUndoCommandBasedTest;
-    QQueue<KisStrokeJob*>& testingGetQueue() {
+    PkQueue<KisStrokeJob*>& testingGetQueue() {
         return m_jobsQueue;
     }
 
 private:
     // the strategies are owned by the stroke
-    QScopedPointer<KisStrokeStrategy> m_strokeStrategy;
-    QScopedPointer<KisStrokeJobStrategy> m_initStrategy;
-    QScopedPointer<KisStrokeJobStrategy> m_dabStrategy;
-    QScopedPointer<KisStrokeJobStrategy> m_cancelStrategy;
-    QScopedPointer<KisStrokeJobStrategy> m_finishStrategy;
-    QScopedPointer<KisStrokeJobStrategy> m_suspendStrategy;
-    QScopedPointer<KisStrokeJobStrategy> m_resumeStrategy;
+    PkScopedPointer<KisStrokeStrategy> m_strokeStrategy;
+    PkScopedPointer<KisStrokeJobStrategy> m_initStrategy;
+    PkScopedPointer<KisStrokeJobStrategy> m_dabStrategy;
+    PkScopedPointer<KisStrokeJobStrategy> m_cancelStrategy;
+    PkScopedPointer<KisStrokeJobStrategy> m_finishStrategy;
+    PkScopedPointer<KisStrokeJobStrategy> m_suspendStrategy;
+    PkScopedPointer<KisStrokeJobStrategy> m_resumeStrategy;
 
-    QQueue<KisStrokeJob*> m_jobsQueue;
+    PkQueue<KisStrokeJob*> m_jobsQueue;
     bool m_strokeInitialized;
     bool m_strokeEnded;
     bool m_strokeSuspended;

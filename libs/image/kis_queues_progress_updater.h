@@ -7,21 +7,21 @@
 #ifndef __KIS_QUEUES_PROGRESS_UPDATER_H
 #define __KIS_QUEUES_PROGRESS_UPDATER_H
 
-#include <QObject>
+#include <PkObject.h>
 #include "kritaimage_export.h"
 
 class KoProgressProxy;
 
 
-class KRITAIMAGE_EXPORT KisQueuesProgressUpdater : public QObject
+class KRITAIMAGE_EXPORT KisQueuesProgressUpdater : public PkShellObject
 {
     Q_OBJECT
 
 public:
-    KisQueuesProgressUpdater(KoProgressProxy *progressProxy, QObject *parent = 0);
+    KisQueuesProgressUpdater(KoProgressProxy *progressProxy, PkObject *parent = 0);
     ~KisQueuesProgressUpdater() override;
 
-    void updateProgress(int queueSizeMetric, const QString &jobName);
+    void updateProgress(int queueSizeMetric, const PkString &jobName);
     void hide();
 
 private Q_SLOTS:
@@ -34,6 +34,8 @@ Q_SIGNALS:
     void sigStopTicking();
 
 private:
+    void startDelayElapsed();
+
     struct Private;
     Private * const m_d;
 };

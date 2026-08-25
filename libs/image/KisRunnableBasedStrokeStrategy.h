@@ -26,7 +26,7 @@ public:
     KisRunnableStrokeJobsInterface *runnableJobsInterface() const;
 
 private:
-    const QScopedPointer<KisRunnableStrokeJobsInterface> m_jobsInterface;
+    const PkScopedPointer<KisRunnableStrokeJobsInterface> m_jobsInterface;
 };
 
 #endif // KISRUNNABLEBASEDSTROKESTRATEGY_H

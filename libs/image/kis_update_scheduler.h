@@ -7,7 +7,7 @@
 #ifndef __KIS_UPDATE_SCHEDULER_H
 #define __KIS_UPDATE_SCHEDULER_H
 
-#include <QObject>
+#include <PkObject.h>
 #include "kritaimage_export.h"
 #include "kis_types.h"
 
@@ -17,19 +17,19 @@
 #include "KisLodPreferences.h"
 #include "KisProjectionUpdateFlags.h"
 
-class QRect;
+class PkRect;
 class KoProgressProxy;
 class KisProjectionUpdateListener;
 class KisSpontaneousJob;
 class KisPostExecutionUndoAdapter;
 
 
-class KRITAIMAGE_EXPORT KisUpdateScheduler : public QObject, public KisStrokesFacade
+class KRITAIMAGE_EXPORT KisUpdateScheduler : public PkShellObject, public KisStrokesFacade
 {
     Q_OBJECT
 
 public:
-    KisUpdateScheduler(KisProjectionUpdateListener *projectionUpdateListener, QObject *parent = 0);
+    KisUpdateScheduler(KisProjectionUpdateListener *projectionUpdateListener, PkObject *parent = 0);
     ~KisUpdateScheduler() override;
 
     /**
@@ -125,14 +125,14 @@ public:
      */
     void unblockUpdates();
 
-    void updateProjection(KisNodeSP node, const QVector<QRect> &rects, const QRect &cropRect, KisProjectionUpdateFlags flags);
-    void fullRefreshAsync(KisNodeSP root, const QVector<QRect>& rects, const QRect &cropRect, KisProjectionUpdateFlags flags);
+    void updateProjection(KisNodeSP node, const PkVector<PkRect> &rects, const PkRect &cropRect, KisProjectionUpdateFlags flags);
+    void fullRefreshAsync(KisNodeSP root, const PkVector<PkRect>& rects, const PkRect &cropRect, KisProjectionUpdateFlags flags);
 
     // simplified override for testing purposes
-    void updateProjection(KisNodeSP node, const QRect &rc, const QRect &cropRect);
+    void updateProjection(KisNodeSP node, const PkRect &rc, const PkRect &cropRect);
 
     // simplified override for testing purposes
-    void fullRefreshAsync(KisNodeSP root, const QRect &rc, const QRect &cropRect);
+    void fullRefreshAsync(KisNodeSP root, const PkRect &rc, const PkRect &cropRect);
 
     void addSpontaneousJob(KisSpontaneousJob *spontaneousJob);
 
@@ -216,7 +216,7 @@ public:
     bool wrapAroundModeSupported() const;
     int currentLevelOfDetail() const;
 
-    void continueUpdate(const QRect &rect);
+    void continueUpdate(const PkRect &rect);
     void doSomeUsefulWork();
     void spareThreadAppeared();
 

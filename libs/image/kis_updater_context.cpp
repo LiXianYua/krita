@@ -6,9 +6,9 @@
 
 #include "kis_updater_context.h"
 
-#include <QThread>
-#include <QThreadPool>
-#include <QMutexLocker>
+#include <PkThread.h>
+#include <PkThreadPool.h>
+#include <PkMutex.h>
 
 #include "kis_update_job_item.h"
 #include "kis_stroke_job.h"
@@ -19,7 +19,7 @@ KisUpdaterContext::KisUpdaterContext(qint32 threadCount, KisUpdateScheduler *par
     : m_scheduler(parent)
 {
     if(threadCount <= 0) {
-        threadCount = QThread::idealThreadCount();
+        threadCount = PkThread::idealThreadCount();
         threadCount = threadCount > 0 ? threadCount : 1;
     }
 
@@ -146,7 +146,7 @@ bool KisUpdaterContext::isJobAllowed(KisBaseRectsWalkerSP walker)
 void KisUpdaterContext::startThread(int index)
 {
     {
-        QMutexLocker l(&m_runningThreadsMutex);
+        PkMutexLocker l(&m_runningThreadsMutex);
         m_numRunningThreads++;
     }
 
@@ -208,7 +208,7 @@ void KisUpdaterContext::addSpontaneousJob(KisSpontaneousJob *spontaneousJob)
 
 void KisUpdaterContext::waitForDone()
 {
-    QMutexLocker l(&m_runningThreadsMutex);
+    PkMutexLocker l(&m_runningThreadsMutex);
 
     while(m_numRunningThreads > 0) {
         m_waitForDoneCondition.wait(l.mutex());
@@ -217,7 +217,7 @@ void KisUpdaterContext::waitForDone()
 
 bool KisUpdaterContext::isIdle() const
 {
-    std::unique_lock<QMutex> locker(m_runningThreadsMutex, std::try_to_lock);
+    std::unique_lock<PkMutex> locker(m_runningThreadsMutex, std::try_to_lock);
     if (!locker.owns_lock()) return false;
 
     return m_numRunningThreads == 0;
@@ -280,7 +280,7 @@ int KisUpdaterContext::threadsLimit() const
     return m_jobs.size();
 }
 
-void KisUpdaterContext::continueUpdate(const QRect& rc)
+void KisUpdaterContext::continueUpdate(const PkRect& rc)
 {
     if (m_scheduler) m_scheduler->continueUpdate(rc);
 }
@@ -298,7 +298,7 @@ void KisUpdaterContext::jobFinished()
 
 void KisUpdaterContext::jobThreadExited()
 {
-    QMutexLocker l(&m_runningThreadsMutex);
+    PkMutexLocker l(&m_runningThreadsMutex);
     m_numRunningThreads--;
     KIS_SAFE_ASSERT_RECOVER_NOOP(m_numRunningThreads >= 0);
 
@@ -312,7 +312,7 @@ void KisUpdaterContext::setTestingMode(bool value)
     m_testingMode = value;
 }
 
-const QVector<KisUpdateJobItem*> KisUpdaterContext::getJobs()
+const PkVector<KisUpdateJobItem*> KisUpdaterContext::getJobs()
 {
     return m_jobs;
 }

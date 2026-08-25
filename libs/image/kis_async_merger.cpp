@@ -47,7 +47,7 @@
 class KisUpdateOriginalVisitor : public KisNodeVisitor
 {
 public:
-    KisUpdateOriginalVisitor(const QRect &updateRect, KisPaintDeviceSP projection)
+    KisUpdateOriginalVisitor(const PkRect &updateRect, KisPaintDeviceSP projection)
         : m_updateRect(updateRect),
           m_projection(projection)
         {
@@ -69,13 +69,13 @@ public:
             return true;
         }
 
-        const QRect originalUpdateRect =
+        const PkRect originalUpdateRect =
             layer->projectionPlane()->needRectForOriginal(m_updateRect);
 
         KisPaintDeviceSP originalDevice = layer->original();
         originalDevice->clear(originalUpdateRect);
 
-        const QRect applyRect = originalUpdateRect & m_projection->extent();
+        const PkRect applyRect = originalUpdateRect & m_projection->extent();
 
         // If the intersection of the updaterect and the projection extent is
         //      null, we are finish here.
@@ -93,7 +93,7 @@ public:
         }
 
         KisSelectionSP selection = layer->fetchComposedInternalSelection(applyRect);
-        const QRect filterRect = selection ? applyRect & selection->selectedRect() : applyRect;
+        const PkRect filterRect = selection ? applyRect & selection->selectedRect() : applyRect;
 
         KisFilterSP filter = KisFilterRegistry::instance()->value(filterConfig->name());
         if (!filter) return false;
@@ -160,7 +160,7 @@ public:
     }
 
 private:
-    QRect m_updateRect;
+    PkRect m_updateRect;
     KisPaintDeviceSP m_projection;
 };
 
@@ -189,7 +189,7 @@ void KisAsyncMerger::startMerge(KisBaseRectsWalker &walker, bool notifyClones) {
         // All the masks should be filtered by the walkers
         KIS_SAFE_ASSERT_RECOVER_RETURN(currentLeaf->isLayer());
 
-        QRect applyRect = item.m_applyRect;
+        PkRect applyRect = item.m_applyRect;
 
         if (currentLeaf->isRoot()) {
             currentLeaf->projectionPlane()->recalculate(applyRect, walker.startNode(), item.m_renderFlags);
@@ -274,7 +274,7 @@ void KisAsyncMerger::resetProjection() {
     m_finalProjection = 0;
 }
 
-void KisAsyncMerger::setupProjection(KisProjectionLeafSP currentLeaf, const QRect& rect, bool useTempProjection) {
+void KisAsyncMerger::setupProjection(KisProjectionLeafSP currentLeaf, const PkRect& rect, bool useTempProjection) {
     KisPaintDeviceSP parentOriginal = currentLeaf->parent()->lazyDestinationForSubtreeComposition();
 
     if (parentOriginal) {
@@ -302,7 +302,7 @@ void KisAsyncMerger::setupProjection(KisProjectionLeafSP currentLeaf, const QRec
     }
 }
 
-void KisAsyncMerger::writeProjection(KisProjectionLeafSP topmostLeaf, bool useTempProjection, const QRect &rect) {
+void KisAsyncMerger::writeProjection(KisProjectionLeafSP topmostLeaf, bool useTempProjection, const PkRect &rect) {
     Q_UNUSED(useTempProjection);
     Q_UNUSED(topmostLeaf);
     if (!m_currentProjection) return;
@@ -313,7 +313,7 @@ void KisAsyncMerger::writeProjection(KisProjectionLeafSP topmostLeaf, bool useTe
     DEBUG_NODE_ACTION("Writing projection", "", topmostLeaf->parent(), rect);
 }
 
-bool KisAsyncMerger::compositeWithProjection(KisProjectionLeafSP leaf, const QRect &rect) {
+bool KisAsyncMerger::compositeWithProjection(KisProjectionLeafSP leaf, const PkRect &rect) {
 
     if (!m_currentProjection) return true;
     if (!leaf->visible()) return true;

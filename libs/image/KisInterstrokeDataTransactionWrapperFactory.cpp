@@ -53,7 +53,7 @@ private:
     bool m_firstRedo {true};
     KisPaintDeviceSP m_device;
     KisInterstrokeDataSP m_interstrokeData;
-    QScopedPointer<KUndo2Command> m_dataSwapCommand;
+    PkScopedPointer<KUndo2Command> m_dataSwapCommand;
 };
 
 struct EndInterstrokeDataTransactionCommand : public KUndo2Command
@@ -83,7 +83,7 @@ struct EndInterstrokeDataTransactionCommand : public KUndo2Command
 
 private:
     KisPaintDeviceSP m_device;
-    QScopedPointer<KUndo2Command> m_transactionCommand;
+    PkScopedPointer<KUndo2Command> m_transactionCommand;
 };
 
 }
@@ -91,7 +91,7 @@ private:
 
 struct KisInterstrokeDataTransactionWrapperFactory::Private
 {
-    QScopedPointer<KisInterstrokeDataFactory> factory;
+    PkScopedPointer<KisInterstrokeDataFactory> factory;
     KisPaintDeviceSP device;
     bool supportsContinuedInterstrokeData = true;
 };

@@ -11,9 +11,9 @@
 #include "kis_types.h"
 
 
-#include <QVector>
-class QPointF;
-class QRect;
+#include <PkVector.h>
+class PkPointF;
+class PkRect;
 
 
 class KRITAIMAGE_EXPORT KisUpdateTimeMonitor
@@ -27,12 +27,12 @@ public:
     void endStrokeMeasure();
     void reportPaintOpPreset(KisPaintOpPresetSP preset);
 
-    void reportMouseMove(const QPointF &pos);
+    void reportMouseMove(const PkPointF &pos);
     void printValues();
 
     void reportJobStarted(void *key);
-    void reportJobFinished(void *key, const QVector<QRect> &rects);
-    void reportUpdateFinished(const QRect &rect);
+    void reportJobFinished(void *key, const PkVector<PkRect> &rects);
+    void reportUpdateFinished(const PkRect &rect);
 
 
 private:

@@ -6,7 +6,7 @@
 
 #include "KisRunnableStrokeJobsInterface.h"
 
-#include <QVector>
+#include <PkVector.h>
 
 KisRunnableStrokeJobsInterface::~KisRunnableStrokeJobsInterface()
 {

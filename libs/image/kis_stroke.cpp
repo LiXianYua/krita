@@ -73,7 +73,7 @@ void KisStroke::addJob(KisStrokeJobData *data)
     enqueue(m_dabStrategy.data(), data);
 }
 
-void KisStroke::addMutatedJobs(const QVector<KisStrokeJobData *> list)
+void KisStroke::addMutatedJobs(const PkVector<KisStrokeJobData *> list)
 {
     // factory methods can return null, if no action is needed
     if (!m_dabStrategy) {
@@ -114,7 +114,7 @@ KUndo2MagicString KisStroke::name() const
     return m_strokeStrategy->name();
 }
 
-QString KisStroke::id() const
+PkString KisStroke::id() const
 {
     return m_strokeStrategy->id();
 }
@@ -212,7 +212,7 @@ bool KisStroke::sanityCheckAllJobsAreCancellable() const
 
 void KisStroke::clearQueueOnCancel()
 {
-    QQueue<KisStrokeJob*>::iterator it = m_jobsQueue.begin();
+    PkQueue<KisStrokeJob*>::iterator it = m_jobsQueue.begin();
 
     while (it != m_jobsQueue.end()) {
         if ((*it)->isCancellable()) {

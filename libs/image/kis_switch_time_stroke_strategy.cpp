@@ -6,8 +6,8 @@
 
 #include "kis_switch_time_stroke_strategy.h"
 
-#include <QMutex>
-#include <QMutexLocker>
+#include <PkMutex.h>
+#include <PkMutex.h>
 
 #include "kis_image_animation_interface.h"
 #include "kis_post_execution_undo_adapter.h"
@@ -30,7 +30,7 @@ KisSwitchTimeStrokeStrategy::KisSwitchTimeStrokeStrategy(int frameId,
                                                          bool needsRegeneration,
                                                          KisImageAnimationInterface *interface,
                                                          KisPostExecutionUndoAdapter *undoAdapter)
-    : KisSimpleStrokeStrategy(QLatin1String("switch_current_frame_stroke"), kundo2_i18n("Switch Frames")),
+    : KisSimpleStrokeStrategy(QLatin1String("switch_current_frame_stroke"), kundo2_text("Switch Frames")),
       m_d(new Private(frameId, needsRegeneration))
 {
     m_d->interface = interface;
@@ -99,7 +99,7 @@ struct KisSwitchTimeStrokeStrategy::SharedToken::Private {
     {
     }
 
-    QMutex mutex;
+    PkMutex mutex;
     int time;
     bool needsRegeneration;
     bool isCompleted;
@@ -116,7 +116,7 @@ KisSwitchTimeStrokeStrategy::SharedToken::~SharedToken()
 
 bool KisSwitchTimeStrokeStrategy::SharedToken::tryResetDestinationTime(int time, bool needsRegeneration)
 {
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
 
     const bool result =
         !m_d->isCompleted &&
@@ -131,7 +131,7 @@ bool KisSwitchTimeStrokeStrategy::SharedToken::tryResetDestinationTime(int time,
 
 int KisSwitchTimeStrokeStrategy::SharedToken::fetchTime() const
 {
-    QMutexLocker l(&m_d->mutex);
+    PkMutexLocker l(&m_d->mutex);
     KIS_SAFE_ASSERT_RECOVER_NOOP(!m_d->isCompleted);
 
     m_d->isCompleted = true;

@@ -8,8 +8,8 @@
 #define KISINTERSTROKEDATA_H
 
 #include <kritaimage_export.h>
-#include <QSharedPointer>
-#include <QPoint>
+#include <PkSharedPointer.h>
+#include <PkPoint.h>
 #include <kis_types.h>
 
 class KUndo2Command;
@@ -40,12 +40,12 @@ public:
     bool isStillCompatible() const;
 
 private:
-    QPoint m_linkedDeviceOffset;
+    PkPoint m_linkedDeviceOffset;
     const KoColorSpace *m_linkedColorSpace = 0;
     KisPaintDeviceWSP m_linkedPaintDevice;
 };
 
-using KisInterstrokeDataSP = QSharedPointer<KisInterstrokeData>;
+using KisInterstrokeDataSP = PkSharedPointer<KisInterstrokeData>;
 
 
 #endif // KISINTERSTROKEDATA_H

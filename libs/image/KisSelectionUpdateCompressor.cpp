@@ -16,7 +16,8 @@ KisSelectionUpdateCompressor::KisSelectionUpdateCompressor(KisSelection *selecti
     : m_parentSelection(selection)
     , m_updateSignalCompressor(new KisThreadSafeSignalCompressor(100, KisSignalCompressor::POSTPONE))
 {
-    connect(m_updateSignalCompressor, SIGNAL(timeout()), this, SLOT(startUpdateJob()));
+    PkObject::connect(m_updateSignalCompressor, &KisThreadSafeSignalCompressor::timeout,
+                      this, &KisSelectionUpdateCompressor::startUpdateJob);
 
     this->moveToThread(m_updateSignalCompressor->thread());
 }
@@ -26,10 +27,10 @@ KisSelectionUpdateCompressor::~KisSelectionUpdateCompressor()
     m_updateSignalCompressor->deleteLater();
 }
 
-void KisSelectionUpdateCompressor::requestUpdate(const QRect &updateRect)
+void KisSelectionUpdateCompressor::requestUpdate(const PkRect &updateRect)
 {
     m_fullUpdateRequested |= updateRect.isEmpty();
-    m_updateRect = !m_fullUpdateRequested ? m_updateRect | updateRect : QRect();
+    m_updateRect = !m_fullUpdateRequested ? m_updateRect | updateRect : PkRect();
     m_updateSignalCompressor->start();
 }
 
@@ -59,7 +60,7 @@ void KisSelectionUpdateCompressor::startUpdateJob()
     if (image) {
         image->addSpontaneousJob(new KisUpdateSelectionJob(m_parentSelection, m_updateRect));
     }
-    m_updateRect = QRect();
+    m_updateRect = PkRect();
     m_fullUpdateRequested = false;
     m_hasStalledUpdate = false;
 }

@@ -13,16 +13,16 @@
 class KRITAIMAGE_EXPORT KisUpdateSelectionJob : public KisSpontaneousJob
 {
 public:
-    KisUpdateSelectionJob(KisSelectionSP selection, const QRect &updateRect = QRect());
+    KisUpdateSelectionJob(KisSelectionSP selection, const PkRect &updateRect = PkRect());
 
     bool overrides(const KisSpontaneousJob *otherJob) override;
     void run() override;
     int levelOfDetail() const override;
-    QString debugName() const override;
+    PkString debugName() const override;
 
 private:
     KisSelectionSP m_selection;
-    QRect m_updateRect;
+    PkRect m_updateRect;
 };
 
 #endif /* __KIS_UPDATE_SELECTION_JOB_H */

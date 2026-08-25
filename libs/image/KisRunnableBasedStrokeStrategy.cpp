@@ -6,7 +6,7 @@
 
 #include "KisRunnableBasedStrokeStrategy.h"
 
-#include <QRunnable>
+#include <PkRunnable.h>
 #include <functional>
 
 #include "KisRunnableStrokeJobData.h"
@@ -20,9 +20,9 @@ struct KisRunnableBasedStrokeStrategy::JobsInterface : public KisRunnableStrokeJ
     }
 
     void addRunnableJobs(
-        const QVector<KisRunnableStrokeJobDataBase *> &list) override
+        const PkVector<KisRunnableStrokeJobDataBase *> &list) override
     {
-        QVector<KisStrokeJobData*> newList;
+        PkVector<KisStrokeJobData*> newList;
 
         Q_FOREACH (KisRunnableStrokeJobDataBase *item, list) {
             newList.append(item);

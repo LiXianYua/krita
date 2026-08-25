@@ -7,7 +7,7 @@
 #include "kis_update_outline_job.h"
 
 
-KisUpdateOutlineJob::KisUpdateOutlineJob(KisSelectionSP selection, bool updateThumbnail, const QColor &maskColor)
+KisUpdateOutlineJob::KisUpdateOutlineJob(KisSelectionSP selection, bool updateThumbnail, const PkColor &maskColor)
     : m_selection(selection),
       m_updateThumbnail(updateThumbnail),
       m_maskColor(maskColor)
@@ -33,7 +33,7 @@ int KisUpdateOutlineJob::levelOfDetail() const
     return 0;
 }
 
-QString KisUpdateOutlineJob::debugName() const
+PkString KisUpdateOutlineJob::debugName() const
 {
     return "KisUpdateOutlineJob";
 }

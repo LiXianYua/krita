@@ -46,7 +46,7 @@ public:
 
         KisStrokeJobData* createLodClone(int levelOfDetail) override;
 
-        using IdleBarrierCookie = QWeakPointer<std::tuple<>>;
+        using IdleBarrierCookie = PkWeakPointer<std::tuple<>>;
 
         IdleBarrierCookie idleBarrierCookie() const {
             return m_idleBarrierCookie;
@@ -59,19 +59,19 @@ public:
          {
             // the cookie is used for preview only, therefore in
             // instant preview mode we pass it to the lodn stroke
-            rhs.m_idleBarrierCookie.swap(m_idleBarrierCookie);
+            std::swap(rhs.m_idleBarrierCookie, m_idleBarrierCookie);
          }
 
-        QSharedPointer<std::tuple<>> m_idleBarrierCookie;
+        PkSharedPointer<std::tuple<>> m_idleBarrierCookie;
     };
 
     struct ExternalCancelUpdatesStorage {
-        QRect updateRect;
-        QRect cancelledLod0UpdateRect;
-        QAtomicInt shouldIssueCancellationUpdates;
+        PkRect updateRect;
+        PkRect cancelledLod0UpdateRect;
+        PkAtomicInt shouldIssueCancellationUpdates;
     };
 
-    using ExternalCancelUpdatesStorageSP = QSharedPointer<ExternalCancelUpdatesStorage>;
+    using ExternalCancelUpdatesStorageSP = PkSharedPointer<ExternalCancelUpdatesStorage>;
 
 public:
     KisFilterStrokeStrategy(KisFilterSP filter,

@@ -29,9 +29,9 @@
 
 struct OptionalInterstrokeInfo
 {
-    QScopedPointer<KisTransactionWrapperFactory> factory;
-    QScopedPointer<KUndo2Command> beginTransactionCommand;
-    QScopedPointer<KUndo2Command> endTransactionCommand;
+    PkScopedPointer<KisTransactionWrapperFactory> factory;
+    PkScopedPointer<KUndo2Command> beginTransactionCommand;
+    PkScopedPointer<KUndo2Command> endTransactionCommand;
 };
 
 class Q_DECL_HIDDEN KisTransactionData::Private
@@ -41,27 +41,27 @@ public:
     KisMementoSP memento;
     bool firstRedo;
     bool transactionFinished;
-    QPoint oldOffset;
-    QPoint newOffset;
+    PkPoint oldOffset;
+    PkPoint newOffset;
 
     KoColor oldDefaultPixel;
     bool defaultPixelChanged = false;
 
     bool savedOutlineCacheValid;
-    QPainterPath savedOutlineCache;
-    QScopedPointer<KUndo2Command> flattenUndoCommand;
+    PkPainterPath savedOutlineCache;
+    PkScopedPointer<KUndo2Command> flattenUndoCommand;
     bool resetSelectionOutlineCache;
 
     int transactionTime;
     int transactionFrameId;
     KisDataManagerSP savedDataManager;
 
-    QScopedPointer<OptionalInterstrokeInfo> interstrokeInfo;
+    PkScopedPointer<OptionalInterstrokeInfo> interstrokeInfo;
     bool suppressUpdates = false;
 
     void possiblySwitchCurrentTime();
     KisDataManagerSP dataManager();
-    void moveDevice(const QPoint newOffset);
+    void moveDevice(const PkPoint newOffset);
 };
 
 KisTransactionData::KisTransactionData(const KUndo2MagicString& name, KisPaintDeviceSP device, bool resetSelectionOutlineCache, KisTransactionWrapperFactory *interstrokeDataFactory, KUndo2Command* parent, bool suppressUpdates)
@@ -91,7 +91,7 @@ void KisTransactionData::init(KisPaintDeviceSP device)
     m_d->device = device;
     DEBUG_ACTION("Transaction started");
 
-    m_d->oldOffset = QPoint(device->x(), device->y());
+    m_d->oldOffset = PkPoint(device->x(), device->y());
     m_d->oldDefaultPixel = device->defaultPixel();
     m_d->firstRedo = true;
     m_d->transactionFinished = false;
@@ -120,7 +120,7 @@ KisTransactionData::~KisTransactionData()
     delete m_d;
 }
 
-void KisTransactionData::Private::moveDevice(const QPoint newOffset)
+void KisTransactionData::Private::moveDevice(const PkPoint newOffset)
 {
     if (transactionFrameId >= 0) {
         device->framesInterface()->setFrameOffset(transactionFrameId, newOffset);
@@ -139,7 +139,7 @@ void KisTransactionData::endTransaction()
         DEBUG_ACTION("Transaction ended");
         m_d->transactionFinished = true;
         m_d->savedDataManager->commit();
-        m_d->newOffset = QPoint(m_d->device->x(), m_d->device->y());
+        m_d->newOffset = PkPoint(m_d->device->x(), m_d->device->y());
         m_d->defaultPixelChanged = m_d->oldDefaultPixel != m_d->device->defaultPixel();
 
         if (m_d->interstrokeInfo) {
@@ -160,13 +160,13 @@ void KisTransactionData::startUpdates()
         m_d->transactionFrameId ==
         m_d->device->framesInterface()->currentFrameId()) {
 
-        QRect rc;
-        QRect mementoExtent = m_d->memento->extent();
+        PkRect rc;
+        PkRect mementoExtent = m_d->memento->extent();
 
         if (m_d->newOffset == m_d->oldOffset) {
             rc = mementoExtent.translated(m_d->device->x(), m_d->device->y());
         } else {
-            QRect totalExtent =
+            PkRect totalExtent =
                 m_d->savedDataManager->extent() | mementoExtent;
 
             rc = totalExtent.translated(m_d->oldOffset) |
@@ -337,7 +337,7 @@ void KisTransactionData::restoreSelectionOutlineCache(bool undo)
 
     if (pixelSelection) {
         bool savedOutlineCacheValid;
-        QPainterPath savedOutlineCache;
+        PkPainterPath savedOutlineCache;
 
         savedOutlineCacheValid = pixelSelection->outlineCacheValid();
         if (savedOutlineCacheValid) {

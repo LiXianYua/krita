@@ -26,12 +26,12 @@ struct KisRegenerateFrameStrokeStrategy::Private
     int previousFrameId;
     KisRegion dirtyRegion;
     KisImageAnimationInterface *interface;
-    QStack<KisProjectionUpdatesFilterSP> prevUpdatesFilters;
+    PkStack<KisProjectionUpdatesFilterSP> prevUpdatesFilters;
     std::optional<KisLockFrameGenerationLock> frameGenerationLock;
 
     class Data : public KisStrokeJobData {
     public:
-        Data(KisNodeSP _root, const QRect &_rect, const QRect &_cropRect)
+        Data(KisNodeSP _root, const PkRect &_rect, const PkRect &_cropRect)
             : KisStrokeJobData(CONCURRENT),
               root(_root), rect(_rect), cropRect(_cropRect)
             {}
@@ -42,8 +42,8 @@ struct KisRegenerateFrameStrokeStrategy::Private
         }
 
         KisNodeSP root;
-        QRect rect;
-        QRect cropRect;
+        PkRect rect;
+        PkRect cropRect;
     };
 
     void saveAndResetUpdatesFilter() {
@@ -99,7 +99,7 @@ KisRegenerateFrameStrokeStrategy::KisRegenerateFrameStrokeStrategy(int frameId,
 }
 
 KisRegenerateFrameStrokeStrategy::KisRegenerateFrameStrokeStrategy(KisImageAnimationInterface *interface)
-    : KisSimpleStrokeStrategy(QLatin1String("regenerate_current_frame_stroke"), kundo2_i18n("Render Animation")),
+    : KisSimpleStrokeStrategy(QLatin1String("regenerate_current_frame_stroke"), kundo2_text("Render Animation")),
       m_d(new Private)
 {
     m_d->type = CURRENT_FRAME;
@@ -241,17 +241,17 @@ void KisRegenerateFrameStrokeStrategy::resumeStrokeCallback()
     }
 }
 
-QList<KisStrokeJobData*> KisRegenerateFrameStrokeStrategy::createJobsData(KisImageWSP _image)
+PkList<KisStrokeJobData*> KisRegenerateFrameStrokeStrategy::createJobsData(KisImageWSP _image)
 {
     using KritaUtils::splitRectIntoPatches;
     using KritaUtils::optimalPatchSize;
     KisImageSP image = _image;
 
-    const QRect cropRect = image->bounds();
-    QVector<QRect> rects = splitRectIntoPatches(image->bounds(), optimalPatchSize());
-    QList<KisStrokeJobData*> jobsData;
+    const PkRect cropRect = image->bounds();
+    PkVector<PkRect> rects = splitRectIntoPatches(image->bounds(), optimalPatchSize());
+    PkList<KisStrokeJobData*> jobsData;
 
-    Q_FOREACH (const QRect &rc, rects) {
+    Q_FOREACH (const PkRect &rc, rects) {
         jobsData << new Private::Data(image->root(), rc, cropRect);
     }
 

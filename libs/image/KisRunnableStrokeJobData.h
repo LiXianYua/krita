@@ -11,11 +11,11 @@
 #include "KisRunnableStrokeJobDataBase.h"
 #include <functional>
 
-class QRunnable;
+class PkRunnable;
 
 class KRITAIMAGE_EXPORT KisRunnableStrokeJobData : public KisRunnableStrokeJobDataBase {
 public:
-    KisRunnableStrokeJobData(QRunnable *runnable, KisStrokeJobData::Sequentiality sequentiality = KisStrokeJobData::SEQUENTIAL,
+    KisRunnableStrokeJobData(PkRunnable *runnable, KisStrokeJobData::Sequentiality sequentiality = KisStrokeJobData::SEQUENTIAL,
                              KisStrokeJobData::Exclusivity exclusivity = KisStrokeJobData::NORMAL);
 
     KisRunnableStrokeJobData(std::function<void()> func, KisStrokeJobData::Sequentiality sequentiality = KisStrokeJobData::SEQUENTIAL,
@@ -26,7 +26,7 @@ public:
     void run() override;
 
 private:
-    QRunnable *m_runnable = 0;
+    PkRunnable *m_runnable = 0;
     std::function<void()> m_func;
 };
 

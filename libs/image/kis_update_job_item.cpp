@@ -7,5 +7,5 @@
 #include "kis_update_job_item.h"
 
 /**
- * This cpp-file is for QObject support mostly
+ * This cpp-file is for PkObject support mostly
  */

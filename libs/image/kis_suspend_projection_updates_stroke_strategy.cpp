@@ -3,8 +3,8 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
-#include <QMutex>
-#include <QMutexLocker>
+#include <PkMutex.h>
+#include <PkMutex.h>
 
 #include "kis_suspend_projection_updates_stroke_strategy.h"
 
@@ -19,10 +19,11 @@
 #include "KisRunnableStrokeJobsInterface.h"
 #include "kis_paintop_utils.h"
 
+#include <numeric>
 #include <memory>
 
 
-inline uint qHash(const QRect &rc) {
+inline uint qHash(const PkRect &rc) {
     return rc.x() +
         (rc.y() << 16) +
         (rc.width() << 8) +
@@ -33,7 +34,7 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
 {
     KisImageWSP image;
     bool suspend;
-    QVector<QRect> accumulatedDirtyRects;
+    PkVector<PkRect> accumulatedDirtyRects;
     bool sanityResumingFinished = false;
     int updatesEpoch = 0;
     bool haveDisabledGUILodSync = false;
@@ -47,61 +48,61 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
 
         struct Request {
             Request() : flags(KisProjectionUpdateFlag::None) {}
-            Request(const QRect &_rect, KisProjectionUpdateFlags _flags)
+            Request(const PkRect &_rect, KisProjectionUpdateFlags _flags)
                 : rect(_rect), flags(_flags)
             {
             }
 
-            QRect rect;
+            PkRect rect;
             KisProjectionUpdateFlags flags;
         };
 
         struct FullRefreshRequest {
             FullRefreshRequest() {}
-            FullRefreshRequest(const QRect &_rect, const QRect &_cropRect, KisProjectionUpdateFlags _flags)
+            FullRefreshRequest(const PkRect &_rect, const PkRect &_cropRect, KisProjectionUpdateFlags _flags)
                 : rect(_rect), cropRect(_cropRect), flags(_flags)
             {
             }
 
-            QRect rect;
-            QRect cropRect;
+            PkRect rect;
+            PkRect cropRect;
             KisProjectionUpdateFlags flags;
         };
 
-        typedef QHash<KisNodeSP, QVector<Request> > UpdatesHash;
-        typedef QHash<KisNodeSP, QVector<FullRefreshRequest> > RefreshesHash;
+        typedef PkHash<KisNodeSP, PkVector<Request> > UpdatesHash;
+        typedef PkHash<KisNodeSP, PkVector<FullRefreshRequest> > RefreshesHash;
     public:
         SuspendLod0Updates()
         {
         }
 
-        void addExplicitUIUpdateRect(const QRect &rc) override
+        void addExplicitUIUpdateRect(const PkRect &rc) override
         {
             m_explicitUIUpdateRequest |= rc;
         }
 
-        QRect explicitUIUpdateRequest() const {
+        PkRect explicitUIUpdateRequest() const {
             return m_explicitUIUpdateRequest;
         }
 
-        bool filter(KisImage *image, KisNode *node, const QVector<QRect> &rects,  KisProjectionUpdateFlags flags) override {
+        bool filter(KisImage *image, KisNode *node, const PkVector<PkRect> &rects,  KisProjectionUpdateFlags flags) override {
             if (image->currentLevelOfDetail() > 0) return false;
 
-            QMutexLocker l(&m_mutex);
+            PkMutexLocker l(&m_mutex);
 
-            Q_FOREACH(const QRect &rc, rects) {
+            Q_FOREACH(const PkRect &rc, rects) {
                 m_requestsHash[KisNodeSP(node)].append(Request(rc, flags));
             }
 
             return true;
         }
 
-        bool filterRefreshGraph(KisImage *image, KisNode *node, const QVector<QRect> &rects, const QRect &cropRect, KisProjectionUpdateFlags flags) override {
+        bool filterRefreshGraph(KisImage *image, KisNode *node, const PkVector<PkRect> &rects, const PkRect &cropRect, KisProjectionUpdateFlags flags) override {
             if (image->currentLevelOfDetail() > 0) return false;
 
-            QMutexLocker l(&m_mutex);
+            PkMutexLocker l(&m_mutex);
 
-            Q_FOREACH(const QRect &rc, rects) {
+            Q_FOREACH(const PkRect &rc, rects) {
                 m_refreshesHash[KisNodeSP(node)].append(FullRefreshRequest(rc, cropRect, flags));
             }
 
@@ -118,7 +119,7 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
                 for (; it != end; ++it) {
                     KisNodeSP node = it.key();
 
-                    QHash<QRect, QVector<QRect>> fullRefreshRequests;
+                    PkHash<PkRect, PkVector<PkRect>> fullRefreshRequests;
 
                     bool invalidateFrames = false;
 
@@ -135,7 +136,7 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
 
                     auto reqIt = fullRefreshRequests.begin();
                     for (; reqIt != fullRefreshRequests.end(); ++reqIt) {
-                        const QVector<QRect> simplifiedRects = KisRegion::fromOverlappingRects(reqIt.value(), step).rects();
+                        const PkVector<PkRect> simplifiedRects = KisRegion::fromOverlappingRects(reqIt.value(), step).rects();
                         image->refreshGraphAsync(node, simplifiedRects, reqIt.key(), finalFlags);
                     }
                 }
@@ -151,7 +152,7 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
                 for (; it != end; ++it) {
                     KisNodeSP node = it.key();
 
-                    QVector<QRect> dirtyRects;
+                    PkVector<PkRect> dirtyRects;
 
                     bool invalidateFrames = false;
 
@@ -166,7 +167,7 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
                     finalFlags.setFlag(KisProjectionUpdateFlag::DontInvalidateFrames, !invalidateFrames);
                     finalFlags.setFlag(KisProjectionUpdateFlag::NoFilthy, noFilthyUpdates);
 
-                    const QVector<QRect> simplifiedRects = KisRegion::fromOverlappingRects(dirtyRects, step).rects();
+                    const PkVector<PkRect> simplifiedRects = KisRegion::fromOverlappingRects(dirtyRects, step).rects();
 
                     // FIXME: constness: port requestProjectionUpdate to shared pointers
                     image->requestProjectionUpdate(const_cast<KisNode*>(node.data()), simplifiedRects, finalFlags);
@@ -180,11 +181,11 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
     private:
         UpdatesHash m_requestsHash;
         RefreshesHash m_refreshesHash;
-        QRect m_explicitUIUpdateRequest;
-        QMutex m_mutex;
+        PkRect m_explicitUIUpdateRequest;
+        PkMutex m_mutex;
     };
 
-    QVector<QSharedPointer<SuspendLod0Updates>> usedFilters;
+    PkVector<PkSharedPointer<SuspendLod0Updates>> usedFilters;
 
 
     struct StrokeJobCommand : public KUndo2Command
@@ -283,7 +284,7 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
 
     struct UploadDataToUIData : public KisRunnableStrokeJobDataBase
     {
-        UploadDataToUIData(const QRect &rc, int updateEpoch, KisSuspendProjectionUpdatesStrokeStrategy *strategy)
+        UploadDataToUIData(const PkRect &rc, int updateEpoch, KisSuspendProjectionUpdatesStrokeStrategy *strategy)
             : KisRunnableStrokeJobDataBase(KisStrokeJobData::CONCURRENT),
               m_strategy(strategy),
               m_rc(rc),
@@ -304,7 +305,7 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
         }
 
         KisSuspendProjectionUpdatesStrokeStrategy *m_strategy;
-        QRect m_rc;
+        PkRect m_rc;
         int m_updateEpoch;
     };
 
@@ -342,12 +343,12 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
              * We accumulate dirty rects from all(!) epochs, because some updates of the
              * previous epochs might have been cancelled without doing any real work.
              */
-            const QVector<QRect> totalDirtyRects =
-                image->enableUIUpdates() + m_strategy->m_d->accumulatedDirtyRects;
+            PkVector<PkRect> totalDirtyRects = image->enableUIUpdates();
+            totalDirtyRects += m_strategy->m_d->accumulatedDirtyRects;
 
-            const QRect totalRect =
+            const PkRect totalRect =
                 image->bounds() &
-                std::accumulate(totalDirtyRects.begin(), totalDirtyRects.end(), QRect(), std::bit_or<QRect>());
+                std::accumulate(totalDirtyRects.begin(), totalDirtyRects.end(), PkRect(), std::bit_or<PkRect>());
 
             m_strategy->m_d->accumulatedDirtyRects =
                 KisPaintOpUtils::splitAndFilterDabRect(totalRect,
@@ -356,8 +357,8 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
 
             image->signalRouter()->emitNotifyBatchUpdateStarted();
 
-            QVector<KisRunnableStrokeJobDataBase*> jobsData;
-            Q_FOREACH (const QRect &rc, m_strategy->m_d->accumulatedDirtyRects) {
+            PkVector<KisRunnableStrokeJobDataBase*> jobsData;
+            Q_FOREACH (const PkRect &rc, m_strategy->m_d->accumulatedDirtyRects) {
                 jobsData << new Private::UploadDataToUIData(rc, m_strategy->m_d->updatesEpoch, m_strategy);
             }
 
@@ -420,7 +421,7 @@ struct KisSuspendProjectionUpdatesStrokeStrategy::Private
     };
 
 
-    QVector<StrokeJobCommand*> executedCommands;
+    PkVector<StrokeJobCommand*> executedCommands;
 };
 
 KisSuspendProjectionUpdatesStrokeStrategy::KisSuspendProjectionUpdatesStrokeStrategy(KisImageWSP image, bool suspend, SharedDataSP sharedData)
@@ -459,7 +460,7 @@ KisSuspendProjectionUpdatesStrokeStrategy::~KisSuspendProjectionUpdatesStrokeStr
 
 void KisSuspendProjectionUpdatesStrokeStrategy::initStrokeCallback()
 {
-    QVector<KisRunnableStrokeJobDataBase*> jobs;
+    PkVector<KisRunnableStrokeJobDataBase*> jobs;
 
     if (m_d->suspend) {
         jobs << new Private::UndoableData(new Private::SuspendUpdatesCommand(m_d.data()));
@@ -524,14 +525,14 @@ void KisSuspendProjectionUpdatesStrokeStrategy::doStrokeCallback(KisStrokeJobDat
     }
 }
 
-QList<KisStrokeJobData*> KisSuspendProjectionUpdatesStrokeStrategy::createSuspendJobsData(KisImageWSP /*image*/)
+PkList<KisStrokeJobData*> KisSuspendProjectionUpdatesStrokeStrategy::createSuspendJobsData(KisImageWSP /*image*/)
 {
-    return QList<KisStrokeJobData*>();
+    return PkList<KisStrokeJobData*>();
 }
 
-QList<KisStrokeJobData*> KisSuspendProjectionUpdatesStrokeStrategy::createResumeJobsData(KisImageWSP /*_image*/)
+PkList<KisStrokeJobData*> KisSuspendProjectionUpdatesStrokeStrategy::createResumeJobsData(KisImageWSP /*_image*/)
 {
-    return QList<KisStrokeJobData*>();
+    return PkList<KisStrokeJobData*>();
 }
 
 KisSuspendProjectionUpdatesStrokeStrategy::SharedDataSP KisSuspendProjectionUpdatesStrokeStrategy::createSharedData()
@@ -548,7 +549,7 @@ void KisSuspendProjectionUpdatesStrokeStrategy::Private::tryFetchUsedUpdatesFilt
 
     KIS_SAFE_ASSERT_RECOVER_RETURN(filter);
 
-    QSharedPointer<Private::SuspendLod0Updates> localFilter =
+    PkSharedPointer<Private::SuspendLod0Updates> localFilter =
         filter.dynamicCast<Private::SuspendLod0Updates>();
 
     KIS_SAFE_ASSERT_RECOVER_RETURN(localFilter);
@@ -558,7 +559,7 @@ void KisSuspendProjectionUpdatesStrokeStrategy::Private::tryFetchUsedUpdatesFilt
 
 void KisSuspendProjectionUpdatesStrokeStrategy::Private::tryIssueRecordedDirtyRequests(KisImageSP image)
 {
-    Q_FOREACH (QSharedPointer<Private::SuspendLod0Updates> filter, usedFilters) {
+    Q_FOREACH (PkSharedPointer<Private::SuspendLod0Updates> filter, usedFilters) {
         filter->notifyUpdates(image.data());
 
         if (!filter->explicitUIUpdateRequest().isEmpty()) {
@@ -622,7 +623,7 @@ void KisSuspendProjectionUpdatesStrokeStrategy::suspendStrokeCallback()
 
 void KisSuspendProjectionUpdatesStrokeStrategy::resumeStrokeCallback()
 {
-    QVector<KisRunnableStrokeJobDataBase*> jobs;
+    PkVector<KisRunnableStrokeJobDataBase*> jobs;
 
     Q_FOREACH (Private::StrokeJobCommand *command, m_d->executedCommands) {
         jobs << new Private::UndoableData(command);

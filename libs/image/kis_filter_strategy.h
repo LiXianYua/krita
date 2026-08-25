@@ -14,7 +14,7 @@
 #include "KoGenericRegistry.h"
 #include "KoID.h"
 #include "kritaimage_export.h"
-#include <QSize>
+#include <PkSize.h>
 
 class KRITAIMAGE_EXPORT KisFilterStrategy
 {
@@ -22,10 +22,10 @@ public:
     KisFilterStrategy(KoID id) : m_id(id) {}
     virtual ~KisFilterStrategy() {  }
 
-    QString id() {
+    PkString id() {
         return m_id.id();
     }
-    QString name() {
+    PkString name() {
         return m_id.name();
     }
     virtual qreal valueAt(qreal t, qreal weightsPositionScale) const {
@@ -44,8 +44,8 @@ public:
         Q_UNUSED(weightsPositionScale);
         return intSupportVal;
     }
-    virtual QString description() {
-        return QString();
+    virtual PkString description() {
+        return PkString();
     }
 
 protected:
@@ -74,7 +74,7 @@ public:
     }
     ~KisBicubicFilterStrategy() override {}
 
-    QString description() override {
+    PkString description() override {
         return i18n("Adds pixels using the color of surrounding pixels. Produces smoother tonal gradations than Bilinear.");
     }
 
@@ -90,7 +90,7 @@ public:
     }
     ~KisBoxFilterStrategy() override {}
 
-    QString description() override {
+    PkString description() override {
         return i18n("Replicate pixels in the image. Preserves all the original detail, but can produce jagged effects.");
     }
 
@@ -110,7 +110,7 @@ public:
     }
     ~KisBilinearFilterStrategy() override {}
 
-    QString description() override {
+    PkString description() override {
         return i18n("Adds pixels averaging the color values of surrounding pixels. Produces medium quality results when the image is scaled from half to two times the original size.");
     }
 
@@ -148,7 +148,7 @@ public:
     }
     ~KisLanczos3FilterStrategy() override {}
 
-    QString description() override {
+    PkString description() override {
         return i18n("Offers similar results than Bicubic, but maybe a little bit sharper. Can produce light and dark halos along strong edges.");
     }
 
@@ -181,18 +181,18 @@ public:
      * This function return a list of all the keys in KoID format by using the name() method
      * on the objects stored in the registry.
      */
-    QList<KoID> listKeys() const;
+    PkList<KoID> listKeys() const;
 
     /**
      * This function return a string formatted in HTML that contains the descriptions of all objects
      * (with a non empty description) stored in the registry.
      */
-    QString formattedDescriptions() const;
+    PkString formattedDescriptions() const;
 
     /**
      * Try to select an appropriate image filtering strategy based on original and desired parameters.
      */
-    KisFilterStrategy* autoFilterStrategy(QSize originalSize, QSize desiredSize) const;
+    KisFilterStrategy* autoFilterStrategy(PkSize originalSize, PkSize desiredSize) const;
 
 private:
 

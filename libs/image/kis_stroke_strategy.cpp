@@ -142,7 +142,7 @@ bool KisStrokeStrategy::supportsWrapAroundMode() const
     return m_supportsWrapAroundMode;
 }
 
-QString KisStrokeStrategy::id() const
+PkString KisStrokeStrategy::id() const
 {
     return m_id;
 }
@@ -164,7 +164,7 @@ void KisStrokeStrategy::setMutatedJobsInterface(KisStrokesQueueMutatedJobInterfa
     m_strokeId = strokeId;
 }
 
-void KisStrokeStrategy::addMutatedJobs(const QVector<KisStrokeJobData *> list)
+void KisStrokeStrategy::addMutatedJobs(const PkVector<KisStrokeJobData *> list)
 {
     KIS_SAFE_ASSERT_RECOVER(m_mutatedJobsInterface && m_strokeId) {
         qDeleteAll(list);

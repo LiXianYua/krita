@@ -9,7 +9,7 @@
 
 #include <kis_simple_stroke_strategy.h>
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KisImageAnimationInterface;
 class KisPostExecutionUndoAdapter;
@@ -27,11 +27,11 @@ public:
 
     private:
         struct Private;
-        QScopedPointer<Private> m_d;
+        PkScopedPointer<Private> m_d;
     };
 
-    typedef QSharedPointer<SharedToken> SharedTokenSP;
-    typedef QWeakPointer<SharedToken> SharedTokenWSP;
+    typedef PkSharedPointer<SharedToken> SharedTokenSP;
+    typedef PkWeakPointer<SharedToken> SharedTokenWSP;
 
 public:
     /**
@@ -54,7 +54,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_SWITCH_TIME_STROKE_STRATEGY_H */

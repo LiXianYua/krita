@@ -9,8 +9,8 @@
 
 #include <atomic>
 
-#include <QRunnable>
-#include <QReadWriteLock>
+#include <PkRunnable.h>
+#include <PkReadWriteLock.h>
 
 #include "kis_stroke_job.h"
 #include "kis_spontaneous_job.h"
@@ -21,7 +21,7 @@
 
 //#define DEBUG_JOBS_SEQUENCE
 
-class KRITAIMAGE_EXPORT KisUpdateJobItem : public QObject, public QRunnable
+class KRITAIMAGE_EXPORT KisUpdateJobItem : public PkShellObject, public PkRunnable
 {
     Q_OBJECT
 public:
@@ -59,8 +59,8 @@ private:
         if (!isRunning()) return;
 
         /**
-         * Here we break the idea of QThreadPool a bit. Ideally, we should split the
-         * jobs into distinct QRunnable objects and pass all of them to QThreadPool.
+         * Here we break the idea of PkThreadPool a bit. Ideally, we should split the
+         * jobs into distinct PkRunnable objects and pass all of them to PkThreadPool.
          * That is a nice idea, but it doesn't work well when the jobs are small enough
          * and the number of available cores is high (>4 cores). It this case the
          * threads just tend to execute the job very quickly and go to sleep, which is
@@ -125,7 +125,7 @@ public:
         KIS_SAFE_ASSERT_RECOVER_RETURN(m_atomicType == Type::MERGE);
         KIS_SAFE_ASSERT_RECOVER_RETURN(m_walker);
         // dbgKrita << "Executing merge job" << m_walker->changeRect()
-        //          << "on thread" << QThread::currentThreadId();
+        //          << "on thread" << PkThread::currentThreadId();
 
 #ifdef DEBUG_JOBS_SEQUENCE
         qDebug() << "running: merge " << m_walker->startNode() << m_walker->changeRect();
@@ -134,7 +134,7 @@ public:
 
         m_merger.startMerge(*m_walker);
 
-        QRect changeRect = m_walker->changeRect();
+        PkRect changeRect = m_walker->changeRect();
         m_updaterContext->continueUpdate(changeRect);
     }
 
@@ -162,7 +162,7 @@ public:
 
         m_exclusive = strokeJob->isExclusive();
         m_walker = 0;
-        m_accessRect = m_changeRect = QRect();
+        m_accessRect = m_changeRect = PkRect();
 
         const Type oldState = m_atomicType.exchange(Type::STROKE);
         return oldState == Type::EMPTY;
@@ -176,7 +176,7 @@ public:
 
         m_exclusive = spontaneousJob->isExclusive();
         m_walker = 0;
-        m_accessRect = m_changeRect = QRect();
+        m_accessRect = m_changeRect = PkRect();
 
         const Type oldState = m_atomicType.exchange(Type::SPONTANEOUS);
         return oldState == Type::EMPTY;
@@ -197,11 +197,11 @@ public:
         return m_atomicType;
     }
 
-    inline const QRect& accessRect() const {
+    inline const PkRect& accessRect() const {
         return m_accessRect;
     }
 
-    inline const QRect& changeRect() const {
+    inline const PkRect& changeRect() const {
         return m_changeRect;
     }
 
@@ -257,8 +257,8 @@ private:
      * These rects cache actual values from the walker
      * to eliminate concurrent access to a walker structure
      */
-    QRect m_accessRect;
-    QRect m_changeRect;
+    PkRect m_accessRect;
+    PkRect m_changeRect;
 };
 
 

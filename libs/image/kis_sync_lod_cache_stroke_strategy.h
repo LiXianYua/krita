@@ -10,7 +10,7 @@
 #include "kritaimage_export.h"
 #include <KisRunnableBasedStrokeStrategy.h>
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KisUpdatesFacade;
 
@@ -20,16 +20,16 @@ public:
     KisSyncLodCacheStrokeStrategy(KisImageWSP image, bool forgettable);
     ~KisSyncLodCacheStrokeStrategy() override;
 
-    static QList<KisStrokeJobData*> createJobsData(KisImageWSP image);
+    static PkList<KisStrokeJobData*> createJobsData(KisImageWSP image);
 
-    static void createJobsData(QVector<KisStrokeJobData *> &jobs, KisNodeSP imageRoot, KisUpdatesFacade *updatesFacade, int levelOfDetail, KisPaintDeviceList extraDevices = {});
+    static void createJobsData(PkVector<KisStrokeJobData *> &jobs, KisNodeSP imageRoot, KisUpdatesFacade *updatesFacade, int levelOfDetail, KisPaintDeviceList extraDevices = {});
 
 private:
     void initStrokeCallback() override;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_SYNC_LOD_CACHE_STROKE_STRATEGY_H */

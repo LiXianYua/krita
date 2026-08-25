@@ -6,8 +6,8 @@
 #ifndef KISSAFEBLOCKINGQUEUECONNECTIONPROXY_H
 #define KISSAFEBLOCKINGQUEUECONNECTIONPROXY_H
 
-#include <QObject>
-#include <QQueue>
+#include <PkObject.h>
+#include <PkQueue.h>
 #include <functional>
 #include "kis_signal_compressor_with_param.h"
 #include "kis_assert.h"
@@ -15,7 +15,7 @@
 
 namespace KisSafeBlockingQueueConnectionProxyPrivate {
 void KRITAIMAGE_EXPORT passBlockingSignalSafely(FunctionToSignalProxy &source, SignalToFunctionProxy &destination);
-void KRITAIMAGE_EXPORT initProxyObject(QObject *object);
+void KRITAIMAGE_EXPORT initProxyObject(PkObject *object);
 }
 
 
@@ -30,11 +30,11 @@ void KRITAIMAGE_EXPORT initProxyObject(QObject *object);
  *        \code{.cpp}
  *
  *        // create the proxy
- *        KisSafeBlockingQueueConnectionProxy<QTransform> proxy(
+ *        KisSafeBlockingQueueConnectionProxy<PkTransform> proxy(
  *            std::bind(&KisShapeLayer::slotTransformShapes, shapeLayer));
  *
  *        // Q_EMIT synchronous signal with deadlock-avoidance
- *        proxy.start(QTransform::fromScale(0.5, 0.5));
+ *        proxy.start(PkTransform::fromScale(0.5, 0.5));
  *
  *        \endcode
  */
@@ -50,7 +50,8 @@ public:
         KisSafeBlockingQueueConnectionProxyPrivate::initProxyObject(&m_source);
         KisSafeBlockingQueueConnectionProxyPrivate::initProxyObject(&m_destination);
 
-        QObject::connect(&m_source, SIGNAL(timeout()), &m_destination, SLOT(start()), Qt::BlockingQueuedConnection);
+        PkObject::connect(&m_source, &FunctionToSignalProxy::timeout,
+                      &m_destination, &SignalToFunctionProxy::start, PkConnectionType::BlockingQueued);
     }
 
     void start(T value) {
@@ -72,7 +73,7 @@ private:
     CallbackFunction m_function;
     FunctionToSignalProxy m_source;
     SignalToFunctionProxy m_destination;
-    QQueue<T> m_value;
+    PkQueue<T> m_value;
 };
 
 /**
@@ -91,7 +92,8 @@ public:
         KisSafeBlockingQueueConnectionProxyPrivate::initProxyObject(&m_source);
         KisSafeBlockingQueueConnectionProxyPrivate::initProxyObject(&m_destination);
 
-        QObject::connect(&m_source, SIGNAL(timeout()), &m_destination, SLOT(start()), Qt::BlockingQueuedConnection);
+        PkObject::connect(&m_source, &FunctionToSignalProxy::timeout,
+                      &m_destination, &SignalToFunctionProxy::start, PkConnectionType::BlockingQueued);
     }
 
     void start() {

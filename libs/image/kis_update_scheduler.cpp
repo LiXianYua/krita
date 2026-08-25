@@ -18,7 +18,7 @@
 #include "kis_queues_progress_updater.h"
 #include "KisImageConfigNotifier.h"
 
-#include <QReadWriteLock>
+#include <PkReadWriteLock.h>
 #include "kis_lazy_wait_condition.h"
 #include <mutex>
 
@@ -52,8 +52,8 @@ struct Q_DECL_HIDDEN KisUpdateScheduler::Private {
     KisProjectionUpdateListener *projectionUpdateListener;
     KisQueuesProgressUpdater *progressUpdater = 0;
 
-    QAtomicInt updatesLockCounter;
-    QReadWriteLock updatesStartLock;
+    PkAtomicInt updatesLockCounter;
+    PkReadWriteLock updatesStartLock;
     KisLazyWaitCondition updatesFinishedCondition;
 
     qreal balancingRatio() const {
@@ -62,8 +62,8 @@ struct Q_DECL_HIDDEN KisUpdateScheduler::Private {
     }
 };
 
-KisUpdateScheduler::KisUpdateScheduler(KisProjectionUpdateListener *projectionUpdateListener, QObject *parent)
-    : QObject(parent),
+KisUpdateScheduler::KisUpdateScheduler(KisProjectionUpdateListener *projectionUpdateListener, PkObject *parent)
+    : PkShellObject(parent),
       m_d(new Private(this, projectionUpdateListener))
 {
     updateSettings();
@@ -105,8 +105,8 @@ int KisUpdateScheduler::threadsLimit() const
 
 void KisUpdateScheduler::connectSignals()
 {
-    connect(KisImageConfigNotifier::instance(), SIGNAL(configChanged()),
-            SLOT(updateSettings()));
+    PkObject::connect(KisImageConfigNotifier::instance(), &KisImageConfigNotifier::configChanged,
+                      this, &KisUpdateScheduler::updateSettings);
 }
 
 void KisUpdateScheduler::setProgressProxy(KoProgressProxy *progressProxy)
@@ -121,7 +121,7 @@ void KisUpdateScheduler::progressUpdate()
     if (!m_d->progressUpdater) return;
 
     if(!m_d->strokesQueue.hasOpenedStrokes()) {
-        QString jobName = m_d->strokesQueue.currentStrokeName().toString();
+        PkString jobName = m_d->strokesQueue.currentStrokeName().toString();
         if(jobName.isEmpty()) {
             jobName = i18n("Updating...");
         }
@@ -138,24 +138,24 @@ void KisUpdateScheduler::progressUpdate()
     }
 }
 
-void KisUpdateScheduler::updateProjection(KisNodeSP node, const QVector<QRect> &rects, const QRect &cropRect, KisProjectionUpdateFlags flags)
+void KisUpdateScheduler::updateProjection(KisNodeSP node, const PkVector<PkRect> &rects, const PkRect &cropRect, KisProjectionUpdateFlags flags)
 {
     m_d->updatesQueue.addUpdateJob(node, rects, cropRect, currentLevelOfDetail(), flags);
     processQueues();
 }
 
-void KisUpdateScheduler::fullRefreshAsync(KisNodeSP root, const QVector<QRect>& rects, const QRect &cropRect, KisProjectionUpdateFlags flags)
+void KisUpdateScheduler::fullRefreshAsync(KisNodeSP root, const PkVector<PkRect>& rects, const PkRect &cropRect, KisProjectionUpdateFlags flags)
 {
     m_d->updatesQueue.addFullRefreshJob(root, rects, cropRect, currentLevelOfDetail(), flags);
     processQueues();
 }
 
-void KisUpdateScheduler::updateProjection(KisNodeSP node, const QRect &rc, const QRect &cropRect)
+void KisUpdateScheduler::updateProjection(KisNodeSP node, const PkRect &rc, const PkRect &cropRect)
 {
     updateProjection(node, {rc}, cropRect, KisProjectionUpdateFlag::None);
 }
 
-void KisUpdateScheduler::fullRefreshAsync(KisNodeSP root, const QRect &rc, const QRect &cropRect)
+void KisUpdateScheduler::fullRefreshAsync(KisNodeSP root, const PkRect &rc, const PkRect &cropRect)
 {
     fullRefreshAsync(root, {rc}, cropRect, KisProjectionUpdateFlag::None);
 }
@@ -424,7 +424,7 @@ void KisUpdateScheduler::wakeUpWaitingThreads()
 
 void KisUpdateScheduler::tryProcessUpdatesQueue()
 {
-    QReadLocker locker(&m_d->updatesStartLock);
+    PkReadLocker locker(&m_d->updatesStartLock);
     if(m_d->updatesLockCounter) return;
 
     m_d->updatesQueue.processQueue(m_d->updaterContext);
@@ -432,7 +432,7 @@ void KisUpdateScheduler::tryProcessUpdatesQueue()
 
 bool KisUpdateScheduler::haveUpdatesRunning()
 {
-    QWriteLocker locker(&m_d->updatesStartLock);
+    PkWriteLocker locker(&m_d->updatesStartLock);
 
     qint32 numMergeJobs, numStrokeJobs;
     m_d->updaterContext.getJobsSnapshot(numMergeJobs, numStrokeJobs);
@@ -440,7 +440,7 @@ bool KisUpdateScheduler::haveUpdatesRunning()
     return numMergeJobs;
 }
 
-void KisUpdateScheduler::continueUpdate(const QRect &rect)
+void KisUpdateScheduler::continueUpdate(const PkRect &rect)
 {
     Q_ASSERT(m_d->projectionUpdateListener);
     m_d->projectionUpdateListener->notifyProjectionUpdated(rect);

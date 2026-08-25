@@ -12,7 +12,7 @@
 
 class KisImage;
 class KisNode;
-class QRect;
+class PkRect;
 
 class KRITAIMAGE_EXPORT KisProjectionUpdatesFilter
 {
@@ -22,8 +22,8 @@ public:
     /**
      * \return true if an update should be dropped by the image
      */
-    virtual bool filter(KisImage *image, KisNode *node, const QVector<QRect> &rects, KisProjectionUpdateFlags flags) = 0;
-    virtual bool filterRefreshGraph(KisImage *image, KisNode *node, const QVector<QRect> &rect, const QRect &cropRect, KisProjectionUpdateFlags flags) = 0;
+    virtual bool filter(KisImage *image, KisNode *node, const PkVector<PkRect> &rects, KisProjectionUpdateFlags flags) = 0;
+    virtual bool filterRefreshGraph(KisImage *image, KisNode *node, const PkVector<PkRect> &rect, const PkRect &cropRect, KisProjectionUpdateFlags flags) = 0;
 };
 
 
@@ -34,8 +34,8 @@ public:
 class KRITAIMAGE_EXPORT KisDropAllProjectionUpdatesFilter : public KisProjectionUpdatesFilter
 {
 public:
-    bool filter(KisImage *image, KisNode *node, const QVector<QRect> &rects, KisProjectionUpdateFlags flags) override;
-    bool filterRefreshGraph(KisImage *image, KisNode *node, const QVector<QRect> &rects, const QRect &cropRect, KisProjectionUpdateFlags flags) override;
+    bool filter(KisImage *image, KisNode *node, const PkVector<PkRect> &rects, KisProjectionUpdateFlags flags) override;
+    bool filterRefreshGraph(KisImage *image, KisNode *node, const PkVector<PkRect> &rects, const PkRect &cropRect, KisProjectionUpdateFlags flags) override;
 };
 
 #endif /* __KIS_PROJECTION_UPDATES_FILTER_H */

@@ -7,17 +7,17 @@
 #ifndef __KIS_SIMPLE_UPDATE_QUEUE_H
 #define __KIS_SIMPLE_UPDATE_QUEUE_H
 
-#include <QMutex>
+#include <PkMutex.h>
 #include "kis_updater_context.h"
 #include <KisProjectionUpdateFlags.h>
 
-typedef QList<KisBaseRectsWalkerSP> KisWalkersList;
-typedef QListIterator<KisBaseRectsWalkerSP> KisWalkersListIterator;
-typedef QMutableListIterator<KisBaseRectsWalkerSP> KisMutableWalkersListIterator;
+typedef PkList<KisBaseRectsWalkerSP> KisWalkersList;
+typedef PkListIterator<KisBaseRectsWalkerSP> KisWalkersListIterator;
+typedef PkMutableListIterator<KisBaseRectsWalkerSP> KisMutableWalkersListIterator;
 
-typedef QList<KisSpontaneousJob*> KisSpontaneousJobsList;
-typedef QListIterator<KisSpontaneousJob*> KisSpontaneousJobsListIterator;
-typedef QMutableListIterator<KisSpontaneousJob*> KisMutableSpontaneousJobsListIterator;
+typedef PkList<KisSpontaneousJob*> KisSpontaneousJobsList;
+typedef PkListIterator<KisSpontaneousJob*> KisSpontaneousJobsListIterator;
+typedef PkMutableListIterator<KisSpontaneousJob*> KisMutableSpontaneousJobsListIterator;
 
 
 class KRITAIMAGE_EXPORT KisSimpleUpdateQueue
@@ -28,14 +28,14 @@ public:
 
     void processQueue(KisUpdaterContext &updaterContext);
 
-    void addUpdateJob(KisNodeSP node, const QVector<QRect> &rects, const QRect& cropRect, int levelOfDetail, KisProjectionUpdateFlags flags);
-    void addFullRefreshJob(KisNodeSP node, const QVector<QRect> &rects, const QRect& cropRect, int levelOfDetail, KisProjectionUpdateFlags flags);
+    void addUpdateJob(KisNodeSP node, const PkVector<PkRect> &rects, const PkRect& cropRect, int levelOfDetail, KisProjectionUpdateFlags flags);
+    void addFullRefreshJob(KisNodeSP node, const PkVector<PkRect> &rects, const PkRect& cropRect, int levelOfDetail, KisProjectionUpdateFlags flags);
 
     // simplified overload for testing purposes only
-    void addUpdateJob(KisNodeSP node, const QRect &rc, const QRect& cropRect, int levelOfDetail);
+    void addUpdateJob(KisNodeSP node, const PkRect &rc, const PkRect& cropRect, int levelOfDetail);
 
     // simplified overload for testing purposes only
-    void addFullRefreshJob(KisNodeSP node, const QRect &rc, const QRect& cropRect, int levelOfDetail);
+    void addFullRefreshJob(KisNodeSP node, const PkRect &rc, const PkRect& cropRect, int levelOfDetail);
 
     void addSpontaneousJob(KisSpontaneousJob *spontaneousJob);
 
@@ -64,20 +64,20 @@ public:
     int overrideLevelOfDetail() const;
 
 protected:
-    void addJob(KisNodeSP node, const QVector<QRect> &rects, const QRect& cropRect, int levelOfDetail, KisBaseRectsWalker::UpdateType type, bool dontInvalidateFrames);
+    void addJob(KisNodeSP node, const PkVector<PkRect> &rects, const PkRect& cropRect, int levelOfDetail, KisBaseRectsWalker::UpdateType type, bool dontInvalidateFrames);
 
     bool processOneJob(KisUpdaterContext &updaterContext);
 
-    bool trySplitJob(KisNodeSP node, const QRect& rc, const QRect& cropRect, int levelOfDetail, KisBaseRectsWalker::UpdateType type, bool dontInvalidateFrames);
-    bool tryMergeJob(KisNodeSP node, const QRect& rc, const QRect& cropRect, int levelOfDetail, KisBaseRectsWalker::UpdateType type, bool dontInvalidateFrames);
+    bool trySplitJob(KisNodeSP node, const PkRect& rc, const PkRect& cropRect, int levelOfDetail, KisBaseRectsWalker::UpdateType type, bool dontInvalidateFrames);
+    bool tryMergeJob(KisNodeSP node, const PkRect& rc, const PkRect& cropRect, int levelOfDetail, KisBaseRectsWalker::UpdateType type, bool dontInvalidateFrames);
 
-    void collectJobs(KisBaseRectsWalkerSP &baseWalker, QRect baseRect,
+    void collectJobs(KisBaseRectsWalkerSP &baseWalker, PkRect baseRect,
                      const qreal maxAlpha);
-    bool joinRects(QRect& baseRect, const QRect& newRect, qreal maxAlpha);
+    bool joinRects(PkRect& baseRect, const PkRect& newRect, qreal maxAlpha);
 
 protected:
 
-    mutable QMutex m_lock;
+    mutable PkMutex m_lock;
     KisWalkersList m_updatesList;
     KisSpontaneousJobsList m_spontaneousJobsList;
 

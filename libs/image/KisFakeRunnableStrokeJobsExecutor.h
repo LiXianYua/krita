@@ -31,7 +31,7 @@ public:
     KisFakeRunnableStrokeJobsExecutor();
     KisFakeRunnableStrokeJobsExecutor(Flags flags);
 
-    void addRunnableJobs(const QVector<KisRunnableStrokeJobDataBase*> &list) override;
+    void addRunnableJobs(const PkVector<KisRunnableStrokeJobDataBase*> &list) override;
 
 private:
     Flags m_flags;

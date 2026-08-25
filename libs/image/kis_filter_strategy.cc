@@ -11,11 +11,10 @@
 #include <math.h>
 
 #include <klocalizedstring.h>
-#include <QGlobalStatic>
 
 #include "kis_debug.h"
 #include <QtMath>
-#include <QSize>
+#include <PkSize.h>
 
 Q_GLOBAL_STATIC(KisFilterStrategyRegistry, s_instance)
 
@@ -194,7 +193,7 @@ KisFilterStrategyRegistry::KisFilterStrategyRegistry()
 
 KisFilterStrategyRegistry::~KisFilterStrategyRegistry()
 {
-    Q_FOREACH (const QString &id, keys()) {
+    Q_FOREACH (const PkString &id, keys()) {
         delete get(id);
     }
     dbgRegistry << "deleting KisFilterStrategyRegistry";
@@ -217,23 +216,23 @@ KisFilterStrategyRegistry* KisFilterStrategyRegistry::instance()
     return s_instance;
 }
 
-QList<KoID> KisFilterStrategyRegistry::listKeys() const
+PkList<KoID> KisFilterStrategyRegistry::listKeys() const
 {
-    QList<KoID> answer;
-    Q_FOREACH (const QString key, keys()) {
+    PkList<KoID> answer;
+    Q_FOREACH (const PkString key, keys()) {
         answer.append(KoID(key, get(key)->name()));
     }
 
     return answer;
 }
 
-QString KisFilterStrategyRegistry::formattedDescriptions() const
+PkString KisFilterStrategyRegistry::formattedDescriptions() const
 {
-    QString formatedDescription("<html><head/><body>");
+    PkString formatedDescription("<html><head/><body>");
 
-    Q_FOREACH (const QString key, keys()) {
+    Q_FOREACH (const PkString key, keys()) {
         KisFilterStrategy *strategy = get(key);
-        QString description = strategy->description();
+        PkString description = strategy->description();
 
         if (!description.isEmpty()) {
             formatedDescription.append("<p><span style=\"font-weight:600;\">");
@@ -248,7 +247,7 @@ QString KisFilterStrategyRegistry::formattedDescriptions() const
     return formatedDescription;
 }
 
-KisFilterStrategy *KisFilterStrategyRegistry::autoFilterStrategy(QSize originalSize, QSize desiredSize) const
+KisFilterStrategy *KisFilterStrategyRegistry::autoFilterStrategy(PkSize originalSize, PkSize desiredSize) const
 {
     // Default to nearest neighbor scaling for tiny source images. (i.e: icons or small sprite sheets.)
     const int pixelArtThreshold = 256;

@@ -49,8 +49,8 @@ public:
         }
     }
 
-    QString debugId() const override {
-        return QString("%1/%2")
+    PkString debugId() const override {
+        return PkString("%1/%2")
             .arg(m_parentStroke->id())
             .arg(KisSimpleStrokeStrategy::jobTypeToString(m_type));
     }

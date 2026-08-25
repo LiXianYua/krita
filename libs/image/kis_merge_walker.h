@@ -32,7 +32,7 @@ public:
 
     Q_DECLARE_FLAGS(Flags, Flag)
 
-    KisMergeWalker(QRect cropRect, Flags flags = DEFAULT);
+    KisMergeWalker(PkRect cropRect, Flags flags = DEFAULT);
 
     ~KisMergeWalker() override;
 

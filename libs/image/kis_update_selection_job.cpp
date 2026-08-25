@@ -9,7 +9,7 @@
 #include "kis_projection_leaf.h"
 
 
-KisUpdateSelectionJob::KisUpdateSelectionJob(KisSelectionSP selection, const QRect &updateRect)
+KisUpdateSelectionJob::KisUpdateSelectionJob(KisSelectionSP selection, const PkRect &updateRect)
     : m_selection(selection),
       m_updateRect(updateRect)
 {
@@ -43,7 +43,7 @@ bool KisUpdateSelectionJob::overrides(const KisSpontaneousJob *_otherJob)
 
 void KisUpdateSelectionJob::run()
 {
-    QRect dirtyRect;
+    PkRect dirtyRect;
 
     KisNodeSP parentNode = m_selection->parentNode();
     if (parentNode) {
@@ -75,7 +75,7 @@ int KisUpdateSelectionJob::levelOfDetail() const
     return 0;
 }
 
-QString KisUpdateSelectionJob::debugName() const
+PkString KisUpdateSelectionJob::debugName() const
 {
     return "KisUpdateSelectionJob";
 }

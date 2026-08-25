@@ -9,7 +9,7 @@
 
 
 
-KisMergeWalker::KisMergeWalker(QRect cropRect,  Flags flags)
+KisMergeWalker::KisMergeWalker(PkRect cropRect,  Flags flags)
     : m_flags(flags)
 {
     setCropRect(cropRect);

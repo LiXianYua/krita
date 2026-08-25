@@ -7,7 +7,7 @@
 #ifndef KISINTERSTROKEDATATRANSACTIONWRAPPERFACTORY_H
 #define KISINTERSTROKEDATATRANSACTIONWRAPPERFACTORY_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include "KisTransactionWrapperFactory.h"
 
 class KisInterstrokeDataFactory;
@@ -32,7 +32,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif // KISINTERSTROKEDATATRANSACTIONWRAPPERFACTORY_H

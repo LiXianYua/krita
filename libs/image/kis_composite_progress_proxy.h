@@ -7,7 +7,7 @@
 #ifndef __KIS_COMPOSITE_PROGRESS_PROXY_H
 #define __KIS_COMPOSITE_PROGRESS_PROXY_H
 
-#include <QList>
+#include <PkList.h>
 #include <KoProgressProxy.h>
 #include "kritaimage_export.h"
 
@@ -21,12 +21,12 @@ public:
     int maximum() const override;
     void setValue(int value) override;
     void setRange(int minimum, int maximum) override;
-    void setFormat(const QString &format) override;
-    void setAutoNestedName(const QString &name) override;
+    void setFormat(const PkString &format) override;
+    void setAutoNestedName(const PkString &name) override;
 
 private:
-    QList<KoProgressProxy*> m_proxies;
-    QList<KoProgressProxy*> m_uniqueProxies;
+    PkList<KoProgressProxy*> m_proxies;
+    PkList<KoProgressProxy*> m_uniqueProxies;
 };
 
 #endif /* __KIS_COMPOSITE_PROGRESS_PROXY_H */

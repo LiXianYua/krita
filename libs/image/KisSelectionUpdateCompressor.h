@@ -11,10 +11,10 @@
 #include "kis_thread_safe_signal_compressor.h"
 
 #include "kis_types.h"
-#include <QRect>
+#include <PkRect.h>
 
 
-class KisSelectionUpdateCompressor : public QObject
+class KisSelectionUpdateCompressor : public PkShellObject
 {
     Q_OBJECT
 public:
@@ -22,7 +22,7 @@ public:
     ~KisSelectionUpdateCompressor();
 
 public Q_SLOTS:
-    void requestUpdate(const QRect &updateRect);
+    void requestUpdate(const PkRect &updateRect);
     void tryProcessStalledUpdate();
 
 private Q_SLOTS:
@@ -31,7 +31,7 @@ private Q_SLOTS:
 private:
     KisSelection *m_parentSelection {0};
     KisThreadSafeSignalCompressor *m_updateSignalCompressor {0};
-    QRect m_updateRect;
+    PkRect m_updateRect;
     bool m_fullUpdateRequested {false};
 
     bool m_hasStalledUpdate {false};

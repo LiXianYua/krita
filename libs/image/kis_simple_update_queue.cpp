@@ -6,8 +6,8 @@
 
 #include "kis_simple_update_queue.h"
 
-#include <QMutexLocker>
-#include <QVector>
+#include <PkMutex.h>
+#include <PkVector.h>
 
 #include "kis_image_config.h"
 #include "kis_full_refresh_walker.h"
@@ -49,7 +49,7 @@ KisSimpleUpdateQueue::KisSimpleUpdateQueue()
 
 KisSimpleUpdateQueue::~KisSimpleUpdateQueue()
 {
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
 
     while (!m_spontaneousJobsList.isEmpty()) {
         delete m_spontaneousJobsList.takeLast();
@@ -58,7 +58,7 @@ KisSimpleUpdateQueue::~KisSimpleUpdateQueue()
 
 void KisSimpleUpdateQueue::updateSettings()
 {
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
 
     KisImageConfig config(true);
 
@@ -87,7 +87,7 @@ void KisSimpleUpdateQueue::processQueue(KisUpdaterContext &updaterContext)
 
 bool KisSimpleUpdateQueue::processOneJob(KisUpdaterContext &updaterContext)
 {
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
 
     KisBaseRectsWalkerSP item;
     KisMutableWalkersListIterator iter(m_updatesList);
@@ -146,7 +146,7 @@ bool KisSimpleUpdateQueue::processOneJob(KisUpdaterContext &updaterContext)
     return jobAdded;
 }
 
-void KisSimpleUpdateQueue::addUpdateJob(KisNodeSP node, const QVector<QRect> &rects, const QRect &cropRect, int levelOfDetail, KisProjectionUpdateFlags flags)
+void KisSimpleUpdateQueue::addUpdateJob(KisNodeSP node, const PkVector<PkRect> &rects, const PkRect &cropRect, int levelOfDetail, KisProjectionUpdateFlags flags)
 {
     KisBaseRectsWalker::UpdateType type =
         !flags.testFlag(KisProjectionUpdateFlag::NoFilthy) ?
@@ -158,7 +158,7 @@ void KisSimpleUpdateQueue::addUpdateJob(KisNodeSP node, const QVector<QRect> &re
            flags.testFlag(KisProjectionUpdateFlag::DontInvalidateFrames));
 }
 
-void KisSimpleUpdateQueue::addFullRefreshJob(KisNodeSP node, const QVector<QRect> &rects, const QRect &cropRect, int levelOfDetail, KisProjectionUpdateFlags flags)
+void KisSimpleUpdateQueue::addFullRefreshJob(KisNodeSP node, const PkVector<PkRect> &rects, const PkRect &cropRect, int levelOfDetail, KisProjectionUpdateFlags flags)
 {
     KisBaseRectsWalker::UpdateType type =
         !flags.testFlag(KisProjectionUpdateFlag::NoFilthy) ?
@@ -170,25 +170,25 @@ void KisSimpleUpdateQueue::addFullRefreshJob(KisNodeSP node, const QVector<QRect
            flags.testFlag(KisProjectionUpdateFlag::DontInvalidateFrames));
 }
 
-void KisSimpleUpdateQueue::addUpdateJob(KisNodeSP node, const QRect &rc, const QRect& cropRect, int levelOfDetail)
+void KisSimpleUpdateQueue::addUpdateJob(KisNodeSP node, const PkRect &rc, const PkRect& cropRect, int levelOfDetail)
 {
     addUpdateJob(node, {rc}, cropRect, levelOfDetail, KisProjectionUpdateFlag::None);
 }
 
-void KisSimpleUpdateQueue::addFullRefreshJob(KisNodeSP node, const QRect &rc, const QRect& cropRect, int levelOfDetail)
+void KisSimpleUpdateQueue::addFullRefreshJob(KisNodeSP node, const PkRect &rc, const PkRect& cropRect, int levelOfDetail)
 {
     addFullRefreshJob(node, {rc}, cropRect, levelOfDetail, KisProjectionUpdateFlag::None);
 }
 
-void KisSimpleUpdateQueue::addJob(KisNodeSP node, const QVector<QRect> &rects,
-                                  const QRect& cropRect,
+void KisSimpleUpdateQueue::addJob(KisNodeSP node, const PkVector<PkRect> &rects,
+                                  const PkRect& cropRect,
                                   int levelOfDetail,
                                   KisBaseRectsWalker::UpdateType type,
                                   bool dontInvalidateFrames)
 {
-    QList<KisBaseRectsWalkerSP> walkers;
+    PkList<KisBaseRectsWalkerSP> walkers;
 
-    Q_FOREACH (const QRect &rc, rects) {
+    Q_FOREACH (const PkRect &rc, rects) {
         if (rc.isEmpty()) continue;
 
         KisBaseRectsWalkerSP walker;
@@ -243,7 +243,7 @@ void KisSimpleUpdateQueue::addJob(KisNodeSP node, const QVector<QRect> &rects,
 
 void KisSimpleUpdateQueue::addSpontaneousJob(KisSpontaneousJob *spontaneousJob)
 {
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
 
     KisSpontaneousJob *item;
     KisMutableSpontaneousJobsListIterator iter(m_spontaneousJobsList);
@@ -264,25 +264,25 @@ void KisSimpleUpdateQueue::addSpontaneousJob(KisSpontaneousJob *spontaneousJob)
 
 bool KisSimpleUpdateQueue::isEmpty() const
 {
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
     return m_updatesList.isEmpty() && m_spontaneousJobsList.isEmpty();
 }
 
 bool KisSimpleUpdateQueue::isIdle() const
 {
-    std::unique_lock<QMutex> locker(m_lock, std::try_to_lock);
+    std::unique_lock<PkMutex> locker(m_lock, std::try_to_lock);
     if (!locker.owns_lock()) return false;
     return m_updatesList.isEmpty() && m_spontaneousJobsList.isEmpty();
 }
 
 qint32 KisSimpleUpdateQueue::sizeMetric() const
 {
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
     return m_updatesList.size() + m_spontaneousJobsList.size();
 }
 
-bool KisSimpleUpdateQueue::trySplitJob(KisNodeSP node, const QRect& rc,
-                                       const QRect& cropRect,
+bool KisSimpleUpdateQueue::trySplitJob(KisNodeSP node, const PkRect& rc,
+                                       const PkRect& cropRect,
                                        int levelOfDetail,
                                        KisBaseRectsWalker::UpdateType type,
                                        bool dontInvalidateFrames)
@@ -298,13 +298,13 @@ bool KisSimpleUpdateQueue::trySplitJob(KisNodeSP node, const QRect& rc,
     qint32 lastCol = (rc.x() + rc.width()) / m_patchWidth;
     qint32 lastRow = (rc.y() + rc.height()) / m_patchHeight;
 
-    QVector<QRect> splitRects;
+    PkVector<PkRect> splitRects;
 
     for(qint32 i = firstRow; i <= lastRow; i++) {
         for(qint32 j = firstCol; j <= lastCol; j++) {
-            QRect maxPatchRect(j * m_patchWidth, i * m_patchHeight,
+            PkRect maxPatchRect(j * m_patchWidth, i * m_patchHeight,
                                m_patchWidth, m_patchHeight);
-            QRect patchRect = rc & maxPatchRect;
+            PkRect patchRect = rc & maxPatchRect;
             splitRects.append(patchRect);
         }
     }
@@ -315,15 +315,15 @@ bool KisSimpleUpdateQueue::trySplitJob(KisNodeSP node, const QRect& rc,
     return true;
 }
 
-bool KisSimpleUpdateQueue::tryMergeJob(KisNodeSP node, const QRect& rc,
-                                       const QRect& cropRect,
+bool KisSimpleUpdateQueue::tryMergeJob(KisNodeSP node, const PkRect& rc,
+                                       const PkRect& cropRect,
                                        int levelOfDetail,
                                        KisBaseRectsWalker::UpdateType type,
                                        bool dontInvalidateFrames)
 {
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
 
-    QRect baseRect = rc;
+    PkRect baseRect = rc;
 
     KisBaseRectsWalkerSP goodCandidate;
     KisBaseRectsWalkerSP item;
@@ -359,18 +359,18 @@ bool KisSimpleUpdateQueue::tryMergeJob(KisNodeSP node, const QRect& rc,
 
 void KisSimpleUpdateQueue::optimize()
 {
-    QMutexLocker locker(&m_lock);
+    PkMutexLocker locker(&m_lock);
 
     if(m_updatesList.size() <= 1) return;
 
     KisBaseRectsWalkerSP baseWalker = m_updatesList.first();
-    QRect baseRect = baseWalker->requestedRect();
+    PkRect baseRect = baseWalker->requestedRect();
 
     collectJobs(baseWalker, baseRect, m_maxCollectAlpha);
 }
 
 void KisSimpleUpdateQueue::collectJobs(KisBaseRectsWalkerSP &baseWalker,
-                                       QRect baseRect,
+                                       PkRect baseRect,
                                        const qreal maxAlpha)
 {
     KisBaseRectsWalkerSP item;
@@ -396,10 +396,10 @@ void KisSimpleUpdateQueue::collectJobs(KisBaseRectsWalkerSP &baseWalker,
     }
 }
 
-bool KisSimpleUpdateQueue::joinRects(QRect& baseRect,
-                                     const QRect& newRect, qreal maxAlpha)
+bool KisSimpleUpdateQueue::joinRects(PkRect& baseRect,
+                                     const PkRect& newRect, qreal maxAlpha)
 {
-    QRect unitedRect = baseRect | newRect;
+    PkRect unitedRect = baseRect | newRect;
     if(unitedRect.width() > m_patchWidth || unitedRect.height() > m_patchHeight)
         return false;
 

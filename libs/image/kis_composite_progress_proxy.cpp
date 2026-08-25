@@ -45,14 +45,14 @@ void KisCompositeProgressProxy::setRange(int minimum, int maximum)
     }
 }
 
-void KisCompositeProgressProxy::setFormat(const QString &format)
+void KisCompositeProgressProxy::setFormat(const PkString &format)
 {
     Q_FOREACH (KoProgressProxy *proxy, m_uniqueProxies) {
         proxy->setFormat(format);
     }
 }
 
-void KisCompositeProgressProxy::setAutoNestedName(const QString &name)
+void KisCompositeProgressProxy::setAutoNestedName(const PkString &name)
 {
     Q_FOREACH (KoProgressProxy *proxy, m_uniqueProxies) {
         proxy->setAutoNestedName(name);

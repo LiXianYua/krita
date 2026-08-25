@@ -10,7 +10,7 @@
 #include "kis_types.h"
 #include "KisRenderPassFlags.h"
 
-class QRect;
+class PkRect;
 class KisBaseRectsWalker;
 
 class KRITAIMAGE_EXPORT KisAsyncMerger
@@ -20,9 +20,9 @@ public:
 
 private:
     inline void resetProjection();
-    inline void setupProjection(KisProjectionLeafSP currentLeaf, const QRect& rect, bool useTempProjection);
-    inline void writeProjection(KisProjectionLeafSP topmostLeaf, bool useTempProjection, const QRect &rect);
-    inline bool compositeWithProjection(KisProjectionLeafSP leaf, const QRect &rect);
+    inline void setupProjection(KisProjectionLeafSP currentLeaf, const PkRect& rect, bool useTempProjection);
+    inline void writeProjection(KisProjectionLeafSP topmostLeaf, bool useTempProjection, const PkRect &rect);
+    inline bool compositeWithProjection(KisProjectionLeafSP leaf, const PkRect &rect);
     inline void doNotifyClones(KisBaseRectsWalker &walker);
 
 private:

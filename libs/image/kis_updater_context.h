@@ -7,10 +7,10 @@
 #ifndef __KIS_UPDATER_CONTEXT_H
 #define __KIS_UPDATER_CONTEXT_H
 
-#include <QMutex>
-#include <QReadWriteLock>
-#include <QThreadPool>
-#include <QWaitCondition>
+#include <PkMutex.h>
+#include <PkReadWriteLock.h>
+#include <PkThreadPool.h>
+#include <PkWaitCondition.h>
 
 #include "kis_base_rects_walker.h"
 #include "kis_async_merger.h"
@@ -136,7 +136,7 @@ public:
      */
     int threadsLimit() const;
 
-    void continueUpdate(const QRect& rc);
+    void continueUpdate(const PkRect& rc);
     void doSomeUsefulWork();
     void jobFinished();
     void jobThreadExited();
@@ -155,14 +155,14 @@ protected:
      * it locks the lock for read access. When an exclusive
      * access is requested, it locks it for write
      */
-    QReadWriteLock m_exclusiveJobLock;
+    PkReadWriteLock m_exclusiveJobLock;
 
-    QMutex m_lock;
-    mutable QMutex m_runningThreadsMutex;
+    PkMutex m_lock;
+    mutable PkMutex m_runningThreadsMutex;
     int m_numRunningThreads = 0;
-    QWaitCondition m_waitForDoneCondition;
-    QVector<KisUpdateJobItem*> m_jobs;
-    QThreadPool m_threadPool;
+    PkWaitCondition m_waitForDoneCondition;
+    PkVector<KisUpdateJobItem*> m_jobs;
+    PkThreadPool m_threadPool;
     KisLockFreeLodCounter m_lodCounter;
     KisUpdateScheduler *m_scheduler;
     bool m_testingMode = false;
@@ -175,7 +175,7 @@ private:
     friend class KisSimpleUpdateQueueTest;
     friend class KisUpdateJobItem;
 
-    const QVector<KisUpdateJobItem*> getJobs();
+    const PkVector<KisUpdateJobItem*> getJobs();
     void clear();
 
     void startThread(int index);

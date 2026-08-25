@@ -9,7 +9,7 @@
 
 #include <kis_simple_stroke_strategy.h>
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KisRegion;
 
@@ -58,11 +58,11 @@ public:
     void suspendStrokeCallback() override;
     void resumeStrokeCallback() override;
 
-    static QList<KisStrokeJobData*> createJobsData(KisImageWSP image);
+    static PkList<KisStrokeJobData*> createJobsData(KisImageWSP image);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_REGENERATE_FRAME_STROKE_STRATEGY_H */

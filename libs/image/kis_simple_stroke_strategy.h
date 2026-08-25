@@ -7,7 +7,7 @@
 #ifndef __KIS_SIMPLE_STROKE_STRATEGY_H
 #define __KIS_SIMPLE_STROKE_STRATEGY_H
 
-#include <QVector>
+#include <PkVector.h>
 #include "kis_stroke_strategy.h"
 #include "kis_stroke_job_strategy.h"
 
@@ -64,9 +64,9 @@ private:
     KisStrokeJobData* createData(JobType type);
 
 private:
-    QVector<bool> m_jobEnabled;
-    QVector<KisStrokeJobData::Sequentiality> m_jobSequentiality;
-    QVector<KisStrokeJobData::Exclusivity> m_jobExclusivity;
+    std::vector<bool> m_jobEnabled;
+    PkVector<KisStrokeJobData::Sequentiality> m_jobSequentiality;
+    PkVector<KisStrokeJobData::Exclusivity> m_jobExclusivity;
 };
 
 #endif /* __KIS_SIMPLE_STROKE_STRATEGY_H */
