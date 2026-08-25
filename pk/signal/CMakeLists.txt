@@ -16,7 +16,12 @@ set(PKCONCURRENT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../concurrent)
 if (NOT TARGET pkconcurrent)
     add_subdirectory(${PKCONCURRENT_DIR} ${CMAKE_BINARY_DIR}/pkconcurrent)
 endif()
-target_link_libraries(pksignal PUBLIC pkconcurrent)
+set(PKSTRING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../string)
+if (NOT TARGET pkstring)
+    add_subdirectory(${PKSTRING_DIR} ${CMAKE_BINARY_DIR}/pkstring)
+endif()
+# PkObject.h 合入 objectName/setObjectName（PkString 存储）后需要 pkstring 链接。
+target_link_libraries(pksignal PUBLIC pkconcurrent pkstring)
 
 # Task 4：信号生成器产物。test_generator.cpp 需要生成器从自测输入生成的
 # gen_signals.inc（信号成员函数定义，必须进该 TU）。custom_command 用 Python3

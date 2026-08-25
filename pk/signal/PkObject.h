@@ -9,6 +9,7 @@
 #include "PkConnect.h"
 #include "../concurrent/PkThread.h"
 #include "../concurrent/PkThreadCallQueue.h"
+#include "../string/PkString.h"
 
 // QObject 的替代：父子树 + 生命周期 + （Task 2 起）信号连接。
 // 无元对象、无字符串表、无属性系统——那三样在 Q-1 §6.1 的用量表里都是零或
@@ -42,6 +43,22 @@ public:
     // `moveToThread()` 的调用方语义不变，只是读写现在真正同步。
     PkThreadId thread() const { return m_thread.load(); }
     void moveToThread(PkThreadId id) { m_thread.store(id); }
+
+    // QObject::objectName()/setObjectName() 的替代。S-06 收口时从壳本地
+    // PkShellObject 合入 committed PkObject：libs/image 的 KisBaseNode 族
+    // （kis_base_node.h name()/setName() 内联体）与 KisImage（kis_image.cc）
+    // 把节点/图像的用户可见名字存这里。
+    PkString objectName() const { return m_objectName; }
+    void setObjectName(const PkString &name) { m_objectName = name; }
+
+    // Qt 的 `QObject::disconnect()`（无参）= 断开该对象的全部连接（发出与接收
+    // 都断）。PkObject 已有的都是带参静态版本；Krita 里析构/换根时的
+    // `xxx->disconnect(); // in case Qt gets confused` 落到这里。
+    void disconnect()
+    {
+        disconnectAllOutgoing();
+        disconnectAllIncoming();
+    }
 
     void deleteLater();
 
@@ -148,6 +165,9 @@ private:
     std::shared_ptr<std::atomic<bool>> m_alive;
     std::shared_ptr<LifecycleState> m_lifecycle;
 
+    // objectName()/setObjectName() 的存储（KisBaseNode/KisImage 的用户可见名字）。
+    PkString m_objectName;
+
     // 线程亲和性标记，构造时初始化为当前线程。原子类型见上方 thread()/
     // moveToThread() 注释（I-1：跨线程读写的数据竞争修复）。
     std::atomic<PkThreadId> m_thread{PkThread::currentThreadId()};
@@ -156,6 +176,12 @@ private:
     std::vector<ConnectionEntry> m_outgoing;   // this 作为 sender
     std::vector<ConnectionEntry> m_incoming;   // this 作为 receiver
 };
+
+// S-06 修复 I1：PkShellObject 从 gitignored 壳 compat 合入 committed pk。
+// libs/image 31 个产品文件仍写 `class X : public PkShellObject`（kis_image.h、
+// kis_base_node.h 等），尚未逐一迁移到 PkObject；别名让它们在主树（无壳）也能
+// 解析。objectName()/setObjectName()/无参 disconnect() 已在类内提供。
+using PkShellObject = PkObject;
 
 // ---- 模板定义（成员模板只能放头文件）----
 

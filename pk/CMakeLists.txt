@@ -318,7 +318,8 @@ add_library(pksignal STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/signal/PkObject.cpp
 )
 target_include_directories(pksignal PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/signal)
-target_link_libraries(pksignal PUBLIC pkconcurrent)
+# PkObject.h 合入 objectName/setObjectName（PkString 存储）后需要 pkstring 链接。
+target_link_libraries(pksignal PUBLIC pkconcurrent pkstring)
 
 # =========================================================================
 # 15. pk/sql（依赖 SQLite3 + pkvariant + pkgeometry + pkstring）

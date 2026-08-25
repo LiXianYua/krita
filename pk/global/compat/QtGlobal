@@ -38,3 +38,85 @@
 #endif
 
 #include "../PkGlobal.h"
+
+// Q_ 宏层（S-06 修复 I1 合入 committed pk compat）：原先只由壳 PkCompatAll.h
+// 提供，主树没有壳 → 补进 committed QtGlobal 垫片，让主树能编译用这些宏的头。
+// 全部 #ifndef 守卫，与壳 PkCompatAll.h 的同名定义共存（谁先 include 谁生效）。
+// 语义对齐真 Qt（qcompilerdetection.h / qglobal.h / qlogging.h）与壳里已验证的
+// 映射（见 S-06 shell compat/PkCompatAll.h 200-280 行注释）。
+#if !defined(Q_DECL_HIDDEN)
+#define Q_DECL_HIDDEN __attribute__((visibility("hidden")))
+#endif
+#if !defined(Q_DECL_DEPRECATED)
+#define Q_DECL_DEPRECATED __attribute__((deprecated))
+#endif
+#if !defined(Q_DISABLE_COPY)
+#define Q_DISABLE_COPY(Class) \
+    Class(const Class&) = delete; \
+    Class& operator=(const Class&) = delete;
+#endif
+#if !defined(Q_DISABLE_COPY_MOVE)
+#define Q_DISABLE_COPY_MOVE(Class) \
+    Q_DISABLE_COPY(Class) \
+    Class(Class&&) = delete; \
+    Class& operator=(Class&&) = delete;
+#endif
+// Q_ASSERT_X：Qt 语义带 where/what 消息断言；pk 侧未提供，映射到 Q_ASSERT
+// （PkGlobal.h 已按 NDEBUG/QT_NO_DEBUG 决定 Q_ASSERT 是否激活）。
+#if !defined(Q_ASSERT_X)
+#define Q_ASSERT_X(cond, where, what) Q_ASSERT(cond)
+#endif
+// Q_CHECK_PTR：Qt 语义 = 断言指针非空（release 下为空操作）。
+#if !defined(Q_CHECK_PTR)
+#define Q_CHECK_PTR(x) Q_ASSERT(x)
+#endif
+// Q_FALLTHROUGH：Qt 语义 = 告诉编译器 switch 里故意落空 → C++17 [[fallthrough]]。
+#if !defined(Q_FALLTHROUGH)
+#define Q_FALLTHROUGH() [[fallthrough]]
+#endif
+// Q_PRIVATE_SLOT：真 Qt 里对 moc 有意义，C++ 侧展开为空（壳里无 moc）。
+#if !defined(Q_PRIVATE_SLOT)
+#define Q_PRIVATE_SLOT(...)
+#endif
+// Q_GLOBAL_STATIC(TYPE, NAME)：Qt 语义 NAME 是函数对象（NAME() 取实例指针、
+// NAME-> 解引用、NAME* 隐式转指针、NAME.exists() 判断是否已创建）→ 函数局部
+// static 单例（S-03-a 模式）。kis_filter_strategy.cc 等用 exists()/operator->/
+// 隐式转指针三态。
+#if !defined(Q_GLOBAL_STATIC)
+#define Q_GLOBAL_STATIC(TYPE, NAME) \
+    static inline bool &NAME##_created() { \
+        static bool created = false; \
+        return created; \
+    } \
+    static inline TYPE *&NAME##_slot() { \
+        static TYPE *slot = nullptr; \
+        return slot; \
+    } \
+    static inline TYPE *NAME##_instance() { \
+        if (!NAME##_created()) { \
+            NAME##_slot() = new TYPE(); \
+            NAME##_created() = true; \
+        } \
+        return NAME##_slot(); \
+    } \
+    static inline struct Q_GS_##NAME { \
+        TYPE *operator()() const { return NAME##_instance(); } \
+        TYPE *operator->() const { return NAME##_instance(); } \
+        TYPE &operator*() const { return *NAME##_instance(); } \
+        operator TYPE*() const { return NAME##_instance(); } \
+        bool exists() const { return NAME##_created(); } \
+    } NAME;
+#endif
+// qobject_cast：壳里没有对象系统实现（pk README 单列），PkObject 有虚析构，
+// dynamic_cast 语义等价（RTTI 开启）。
+#if !defined(qobject_cast)
+#define qobject_cast dynamic_cast
+#endif
+// qRegisterMetaType：壳里没有元类型系统，注册是无操作（类型身份由 C++ 类型系统
+// 提供）。模板默认实参同时兼容 qRegisterMetaType<T>() 与 qRegisterMetaType<T>("name")。
+// 注意：这是模板不是宏，#ifndef 守卫不保护重复定义——与壳 PkCompatAll.h 的同名
+// 定义必须二选一（S-06 修复已从壳移除，见 PkCompatAll.h）。
+#if !defined(qRegisterMetaType)
+template <typename T>
+inline void qRegisterMetaType(const char * = nullptr) {}
+#endif
