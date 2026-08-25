@@ -1,9 +1,3 @@
-#include <QString>
-#include <QTextStream>
-#include <QWidget>
-#include <QList>
-#include <QScreen>
-#include <QGuiApplication>
 /*
  *  SPDX-FileCopyrightText: 2024 Dmitry Kazakov <dimula73@gmail.com>
  *
@@ -12,61 +6,29 @@
 #ifndef KIS_PORTING_UTILS_H
 #define KIS_PORTING_UTILS_H
 
-#include <string>
-#include <sstream>
-#include <vector>
+#include <QTextStream>
 
-#include <PkString.h>
+// S-08 恢复：上一版被过度剥离（去掉 namespace、setUtf8OnStream 改收不存在的
+// PkTextStream、伪造 screens/widgetScreen/pixelsToPoints 引用不存在的
+// PkScreen/PkGuiApplication/PkWidget/PkString::number），7 个真实调用点
+// （SvgStyleWriter/SvgWriter/SvgParser/HtmlWriter + libs/image×2 + libs/brush）
+// 传的全是**真 QTextStream**。恢复为 namespace + 真 QTextStream 签名；未使用的
+// 三个伪造函数删除（原版 Krita 也没有它们，见官方 v6.0.3 同名头）。libs/pigment
+// 的纯 Pk TU 不调本函数（PkTextStream 原生 UTF-8，setUtf8OnStream 为空操作）。
 
-
-#include <PkList.h>
-
-
-
-#include "kritaglobal_export.h"
-
-// This file provides Qt porting utilities. It is being gradually migrated away from Qt.
-// TODO: Remove Qt dependencies as pk replacements become available.
-
-inline void setUtf8OnStream(PkTextStream &stream)
+namespace KisPortingUtils
 {
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+
+inline void setUtf8OnStream(QTextStream &stream)
+{
     stream.setCodec("UTF-8");
-#else
-    Q_UNUSED(stream)
-#endif
 }
 
-inline PkList<PkScreen *> screens()
-{
-#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-    return PkGuiApplication::screens();
-#else
-    return PkGuiApplication::screens();
-#endif
 }
 
-inline PkWidget *widgetScreen(const PkWidget *w)
-{
-#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
-    if (w) {
-        return w->screen() ? w->screen() : PkGuiApplication::primaryScreen();
-    }
-    return PkGuiApplication::primaryScreen();
-#else
-    if (w) {
-        return w->screen() ? w->screen() : PkGuiApplication::primaryScreen();
-    }
-    return PkGuiApplication::primaryScreen();
+// libs/canvas/kis_coordinates_converter.cpp 仍用 Qt5 形态的 Q_UNREACHABLE_RETURN。
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+#define Q_UNREACHABLE_RETURN(...) Q_UNREACHABLE(); return __VA_ARGS__
 #endif
-}
-
-inline PkString pixelsToPoints(const PkScreen *screen, int pixels)
-{
-    if (screen) {
-        return PkString::number(pixels * 72.0 / screen->physicalDotsPerInchY(), 'f', 1);
-    }
-    return PkString::number(0.0, 'f', 1);
-}
 
 #endif /* KIS_PORTING_UTILS_H */
