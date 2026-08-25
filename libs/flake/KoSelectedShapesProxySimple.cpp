@@ -8,6 +8,7 @@
 
 #include "kis_assert.h"
 #include <KoShapeManager.h>
+#include <KoShapeLayer.h>
 #include <KoSelection.h>
 
 KoSelectedShapesProxySimple::KoSelectedShapesProxySimple(KoShapeManager *shapeManager)
@@ -15,9 +16,9 @@ KoSelectedShapesProxySimple::KoSelectedShapesProxySimple(KoShapeManager *shapeMa
 {
     KIS_ASSERT_RECOVER_RETURN(m_shapeManager);
 
-    connect(m_shapeManager.data(), SIGNAL(selectionChanged()), SIGNAL(selectionChanged()));
-    connect(m_shapeManager.data(), SIGNAL(selectionContentChanged()), SIGNAL(selectionContentChanged()));
-    connect(m_shapeManager->selection(), SIGNAL(currentLayerChanged(const KoShapeLayer*)), SIGNAL(currentLayerChanged(const KoShapeLayer*)));
+    connect(m_shapeManager.data(), &KoShapeManager::selectionChanged, this, &KoSelectedShapesProxy::selectionChanged);
+    connect(m_shapeManager.data(), &KoShapeManager::selectionContentChanged, this, &KoSelectedShapesProxy::selectionContentChanged);
+    connect(m_shapeManager->selection(), &KoSelection::currentLayerChanged, this, &KoSelectedShapesProxy::currentLayerChanged);
 }
 
 KoSelection *KoSelectedShapesProxySimple::selection()

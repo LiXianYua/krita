@@ -25,7 +25,7 @@ KoFontChangeTracker::KoFontChangeTracker(QStringList paths, QObject *parent)
     : QObject(parent)
     , d(new Private(paths))
 {
-    connect(&d->fileSystemWatcher, SIGNAL(directoryChanged(QString)), SLOT(directoriesChanged()));
+    connect(&d->fileSystemWatcher, &QFileSystemWatcher::directoryChanged, this, &KoFontChangeTracker::directoriesChanged);
 }
 
 KoFontChangeTracker::~KoFontChangeTracker()

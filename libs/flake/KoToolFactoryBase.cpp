@@ -52,7 +52,7 @@ QList<QAction *> KoToolFactoryBase::createActions(QObject *actionCollection)
     if (actionCollection) {
         action->setParent(actionCollection);
     }
-    connect(action, SIGNAL(triggered()), SLOT(activateTool()));
+    connect(action, &QAction::triggered, this, &KoToolFactoryBase::activateTool);
     //qDebug() << action << action->shortcut();
 
 
