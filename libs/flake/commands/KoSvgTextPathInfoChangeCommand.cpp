@@ -14,7 +14,7 @@ KoSvgTextPathInfoChangeCommand::KoSvgTextPathInfoChangeCommand(KoSvgTextShape *s
     , m_pos(pos)
     , m_newInfo(textPathInfo)
 {
-    setText(kundo2_i18n("Change Text On Path Properties"));
+    setText(kundo2_text("Change Text On Path Properties"));
 }
 
 void KoSvgTextPathInfoChangeCommand::redo()

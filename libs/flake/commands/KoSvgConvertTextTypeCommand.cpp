@@ -12,7 +12,7 @@ KoSvgConvertTextTypeCommand::KoSvgConvertTextTypeCommand(KoSvgTextShape *shape, 
     , m_conversionType(type)
     , m_pos(pos)
 {
-    setText(kundo2_i18n("Convert Text Type"));
+    setText(kundo2_text("Convert Text Type"));
 }
 
 void KoSvgConvertTextTypeCommand::redo()

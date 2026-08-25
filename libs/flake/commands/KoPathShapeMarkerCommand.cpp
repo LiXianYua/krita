@@ -26,7 +26,7 @@ struct Q_DECL_HIDDEN KoPathShapeMarkerCommand::Private
 };
 
 KoPathShapeMarkerCommand::KoPathShapeMarkerCommand(const QList<KoPathShape*> &shapes, KoMarker *marker, KoFlake::MarkerPosition position, KUndo2Command *parent)
-    : KUndo2Command(kundo2_i18n("Set marker"), parent),
+    : KUndo2Command(kundo2_text("Set marker"), parent),
       m_d(new Private)
 {
     m_d->shapes = shapes;

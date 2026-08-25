@@ -97,7 +97,7 @@ struct KisReferenceImage::Private : public QSharedData
 
 
 KisReferenceImage::SetSaturationCommand::SetSaturationCommand(const QList<KoShape *> &shapes, qreal newSaturation, KUndo2Command *parent)
-    : KUndo2Command(kundo2_i18n("Set saturation"), parent)
+    : KUndo2Command(kundo2_text("Set saturation"), parent)
     , newSaturation(newSaturation)
 {
     images.reserve(shapes.count());

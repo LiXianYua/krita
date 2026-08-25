@@ -292,7 +292,7 @@ void KoPathTool::convertToPath()
     }
 
     if (!textShapes.isEmpty()) {
-        KUndo2Command *cmd = new KUndo2Command(kundo2_i18n("Convert to Path")); // TODO: reuse the text from KoParameterToPathCommand
+        KUndo2Command *cmd = new KUndo2Command(kundo2_text("Convert to Path")); // TODO: reuse the text from KoParameterToPathCommand
         const QList<KoShape*> oldSelectedShapes = implicitCastList<KoShape*>(textShapes);
 
 

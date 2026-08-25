@@ -12,7 +12,7 @@
 
 
 KisTakeAllShapesCommand::KisTakeAllShapesCommand(KisShapeSelection *shapeSelection, bool takeSilently, bool restoreSilently)
-    : KUndo2Command(kundo2_i18n("Clear Vector Selection")),
+    : KUndo2Command(kundo2_text("Clear Vector Selection")),
       m_shapeSelection(shapeSelection),
       m_takeSilently(takeSilently),
       m_restoreSilently(restoreSilently)
