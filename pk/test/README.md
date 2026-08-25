@@ -135,6 +135,11 @@
   项）。`qint8..quint64`/`qreal` 这批标量 typedef 与 `qMin`/`qMax` 不在这里：
   零真实调用点的东西不预先实现（线级 spec 判据①），这批类型归 R-02（容器）/
   R-03（几何）交付。
+- **`compat/QtGlobal` 带「让位给真 Qt」守卫（R-38）**：真 Qt qglobal.h 进 TU
+  （`QGLOBAL_H` 定义）时，本头的 qAbs/宏全部让位给真 Qt（守卫口径同 R-35：
+  `!QT_CORE_LIB || !QGLOBAL_H`）——过渡 TU（真 Qt + pk test 同 TU，S-08 主树
+  flake 构建）与真 Qt qAbs 不重定义。mixed TU 必须「Qt 头在前」。纯 pk /
+  `-DQT_CORE_LIB` 无真 Qt 头时由本头照常提供。
 - **`PkTestDataRow::operator<<` 非模板重载已交付（R-14）**：Qt 的
   `QTestData& operator<<(QTestData&, const char*)`（`qtestdata.h:81-86`）会把
   字符串字面量自动转成 `QString` 再存。R-14 给 `PkTestDataRow` 补了同款非模板重载
