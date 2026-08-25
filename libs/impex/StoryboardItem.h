@@ -7,17 +7,20 @@
 #ifndef STORYBOARD_ITEM
 #define STORYBOARD_ITEM
 
-#include <QVariant>
-#include <QVector>
-#include <QPixmap>
+#include <PkVariant.h>
+#include <PkList.h>
+#include <PkSharedPointer.h>
+#include <PkImage.h>
+
+#include <memory>
 
 #include "kritaimpex_export.h"
 #include "kis_types.h"
 
 //each storyboardItem contains pointer to child data
 class StoryboardItem;
-class QDomDocument;
-class QDomElement;
+class PkXmlDocument;
+class PkXmlElement;
 
 /**
  * @struct Comment
@@ -30,14 +33,14 @@ class StoryboardComment
 public:
     StoryboardComment() = default;
 
-    QString name;
+    PkString name;
     bool visibility = true;
 };
 
 /**
  * @class CommentBox
- * @brief This class is a simple combination of two QVariants.
- * It can be converted to and from QVariant type and
+ * @brief This class is a simple combination of two PkVariants.
+ * It can be converted to and from PkVariant type and
  * is used in StoryboardModel.
  */
 class CommentBox
@@ -57,18 +60,18 @@ public:
     /**
      * @brief the text content of the Comment
      */
-    QVariant content;
+    PkVariant content;
     /**
      * @brief the value of the scroll bar of the comment scrollbar
      */
-    QVariant scrollValue;
+    PkVariant scrollValue;
 };
 
 
 /**
  * @class ThumbnailData
- * @brief This class is a simple combination of two QVariants.
- * It can be converted to and from QVariant type and
+ * @brief This class is a simple combination of two PkVariants.
+ * It can be converted to and from PkVariant type and
  * is used in StoryboardModel.
  */
 class ThumbnailData
@@ -76,7 +79,7 @@ class ThumbnailData
 public:
     ThumbnailData()
     : frameNum("")
-    , pixmap(QPixmap())
+    , pixmap(PkVariant::fromValue<PkImage>(PkImage()))
     {}
     ThumbnailData(const ThumbnailData& other)
     : frameNum(other.frameNum)
@@ -89,27 +92,24 @@ public:
      * @brief the frame number corresponding to this item
      * in the timeline docker
      */
-    QVariant frameNum;
+    PkVariant frameNum;
 
     /**
      * @brief a scaled down thumbnail version of the frame
      */
-    QVariant pixmap;
+    PkVariant pixmap;
 };
-
-Q_DECLARE_METATYPE(CommentBox)
-Q_DECLARE_METATYPE(ThumbnailData)
 
 /**
  * @class StoryboardChild
  * @brief This class makes up the StoryboardItem
  * class. It consists of pointer to its parent item
- * and the data stored as QVariant.
+ * and the data stored as PkVariant.
  */
 class StoryboardChild
 {
 public:
-    StoryboardChild(QVariant data)
+    StoryboardChild(PkVariant data)
         : m_data(data)
     {}
 
@@ -117,28 +117,33 @@ public:
         : m_data(rhs.m_data)
     {}
 
-    StoryboardItemSP parent()
+    // parent 链用 std::shared_ptr/std::weak_ptr：父指针来自
+    // std::enable_shared_from_this（StoryboardItem 的基类），产出 std::shared_ptr；
+    // PkSharedPointer 无公开的 std::shared_ptr 桥（fromShared 私有），无法在本锁内
+    // 转成 PkSharedPointer。弱引用存父，跟踪的是真实所有权控制块，生命周期语义与
+    // 原 Qt 弱指针一致。
+    std::shared_ptr<StoryboardItem> parent()
     {
-        return m_parentItem.toStrongRef();
+        return m_parentItem.lock();
     }
 
-    void setParent(StoryboardItemSP parent)
+    void setParent(std::shared_ptr<StoryboardItem> parent)
     {
         m_parentItem = parent;
     }
 
-    QVariant data()
-    { 
+    PkVariant data()
+    {
         return m_data;
     }
-    void setData(QVariant value)
+    void setData(PkVariant value)
     {
         m_data = value;
     }
 
 private:
-    QVariant m_data;
-    QWeakPointer<StoryboardItem> m_parentItem;
+    PkVariant m_data;
+    std::weak_ptr<StoryboardItem> m_parentItem;
 };
 
 /**
@@ -148,23 +153,23 @@ private:
  * item type must be stored at specific indices
  * @param childType enum for the indices and corresponding data type to be stored.
  */
-class KRITAIMPEX_EXPORT StoryboardItem : public QEnableSharedFromThis<StoryboardItem>
+class KRITAIMPEX_EXPORT StoryboardItem : public std::enable_shared_from_this<StoryboardItem>
 {
 public:
     explicit StoryboardItem();
     StoryboardItem(const StoryboardItem& other);
     ~StoryboardItem();
 
-    void appendChild(QVariant data);
+    void appendChild(PkVariant data);
     void cloneChildrenFrom(const StoryboardItem &other);
-    void insertChild(int row, QVariant data = QVariant());
+    void insertChild(int row, PkVariant data = PkVariant());
     void removeChild(int row);
     void moveChild(int from, int to);
     int childCount() const;
-    QSharedPointer<StoryboardChild> child(int row) const;
+    PkSharedPointer<StoryboardChild> child(int row) const;
 
-    QDomElement toXML(QDomDocument doc);
-    void loadXML(const QDomElement &itemNode);
+    PkXmlElement toXML(PkXmlDocument doc);
+    void loadXML(const PkXmlElement &itemNode);
 
     static StoryboardItemList cloneStoryboardItemList(const StoryboardItemList &list);
 
@@ -203,7 +208,7 @@ public:
     };
 
 private:
-    QVector<QSharedPointer<StoryboardChild>> m_childData;
+    PkList<PkSharedPointer<StoryboardChild>> m_childData;
 };
 
 #endif

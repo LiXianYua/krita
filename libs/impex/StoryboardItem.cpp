@@ -6,8 +6,10 @@
 
 #include "StoryboardItem.h"
 
-#include <QDomElement>
-#include <QDomDocument>
+#include <PkXmlElement.h>
+#include <PkXmlDocument.h>
+
+#include <string>
 
 #include "kis_pointer_utils.h"
 
@@ -16,7 +18,7 @@ StoryboardItem::StoryboardItem()
 {}
 
 StoryboardItem::StoryboardItem(const StoryboardItem& other)
-    : QEnableSharedFromThis<StoryboardItem>()
+    : std::enable_shared_from_this<StoryboardItem>()
     , m_childData()
 {
     cloneChildrenFrom(other);
@@ -27,10 +29,12 @@ StoryboardItem::~StoryboardItem()
     m_childData.clear();
 }
 
-void StoryboardItem::appendChild(QVariant data)
+void StoryboardItem::appendChild(PkVariant data)
 {
-    QSharedPointer<StoryboardChild> child = toQShared( new StoryboardChild(data) );
-    child->setParent(sharedFromThis());
+    PkSharedPointer<StoryboardChild> child = toQShared( new StoryboardChild(data) );
+    if (!weak_from_this().expired()) {
+        child->setParent(shared_from_this());
+    }
     m_childData.append(child);
 }
 
@@ -38,16 +42,20 @@ void StoryboardItem::cloneChildrenFrom(const StoryboardItem& other)
 {
     m_childData.clear();
     for (int i = 0; i < other.m_childData.count(); i++) {
-        QSharedPointer<StoryboardChild> child = toQShared( new StoryboardChild(*other.m_childData.at(i)));
-        child->setParent(sharedFromThis());
+        PkSharedPointer<StoryboardChild> child = toQShared( new StoryboardChild(*other.m_childData.at(i)));
+        if (!weak_from_this().expired()) {
+            child->setParent(shared_from_this());
+        }
         m_childData.append(child);
     }
 }
 
-void StoryboardItem::insertChild(int row, QVariant data)
+void StoryboardItem::insertChild(int row, PkVariant data)
 {
-    QSharedPointer<StoryboardChild> child = toQShared( new StoryboardChild(data) );
-    child->setParent(sharedFromThis());
+    PkSharedPointer<StoryboardChild> child = toQShared( new StoryboardChild(data) );
+    if (!weak_from_this().expired()) {
+        child->setParent(shared_from_this());
+    }
     m_childData.insert(row, child);
 }
 
@@ -66,7 +74,7 @@ int StoryboardItem::childCount() const
     return m_childData.count();
 }
 
-QSharedPointer<StoryboardChild> StoryboardItem::child(int row) const
+PkSharedPointer<StoryboardChild> StoryboardItem::child(int row) const
 {
     if (row < 0 || row >= m_childData.size()) {
         return nullptr;
@@ -74,22 +82,22 @@ QSharedPointer<StoryboardChild> StoryboardItem::child(int row) const
     return m_childData.at(row);
 }
 
-QDomElement StoryboardItem::toXML(QDomDocument doc)
+PkXmlElement StoryboardItem::toXML(PkXmlDocument doc)
 {
-    QDomElement itemElement = doc.createElement("storyboarditem");
+    PkXmlElement itemElement = doc.createElement("storyboarditem");
 
-    int frame = qvariant_cast<ThumbnailData>(child(FrameNumber)->data()).frameNum.toInt();
-    itemElement.setAttribute("frame", frame);
+    int frame = child(FrameNumber)->data().value<ThumbnailData>().frameNum.toInt();
+    itemElement.setAttribute("frame", PkString(std::to_string(frame).c_str()));
     itemElement.setAttribute("item-name", child(ItemName)->data().toString());
-    itemElement.setAttribute("duration-second", child(DurationSecond)->data().toInt());
-    itemElement.setAttribute("duration-frame", child(DurationFrame)->data().toInt());
+    itemElement.setAttribute("duration-second", PkString(std::to_string(child(DurationSecond)->data().toInt()).c_str()));
+    itemElement.setAttribute("duration-frame", PkString(std::to_string(child(DurationFrame)->data().toInt()).c_str()));
 
     for (int i = Comments; i < childCount(); i++) {
-        CommentBox comment = qvariant_cast<CommentBox>(child(i)->data());
-        QDomElement commentElement = doc.createElement("comment");
+        CommentBox comment = child(i)->data().value<CommentBox>();
+        PkXmlElement commentElement = doc.createElement("comment");
 
         commentElement.setAttribute("content", comment.content.toString());
-        commentElement.setAttribute("scroll-value", comment.scrollValue.toInt());
+        commentElement.setAttribute("scroll-value", PkString(std::to_string(comment.scrollValue.toInt()).c_str()));
 
         itemElement.appendChild(commentElement);
     }
@@ -97,16 +105,16 @@ QDomElement StoryboardItem::toXML(QDomDocument doc)
     return itemElement;
 }
 
-void StoryboardItem::loadXML(const QDomElement &itemNode)
+void StoryboardItem::loadXML(const PkXmlElement &itemNode)
 {
     ThumbnailData thumbnail;
     thumbnail.frameNum = itemNode.attribute("frame").toInt();
-    appendChild(QVariant::fromValue<ThumbnailData>(thumbnail));
+    appendChild(PkVariant::fromValue<ThumbnailData>(thumbnail));
     appendChild(itemNode.attribute("item-name"));
     appendChild(itemNode.attribute("duration-second").toInt());
     appendChild(itemNode.attribute("duration-frame").toInt());
 
-    for (QDomElement commentNode = itemNode.firstChildElement(); !commentNode.isNull(); commentNode = commentNode.nextSiblingElement()) {
+    for (PkXmlElement commentNode = itemNode.firstChildElement(); !commentNode.isNull(); commentNode = commentNode.nextSiblingElement()) {
         if (commentNode.nodeName().toUpper() != "COMMENT") continue;
 
         CommentBox comment;
@@ -116,7 +124,7 @@ void StoryboardItem::loadXML(const QDomElement &itemNode)
         if (commentNode.hasAttribute("scroll-value")) {
             comment.scrollValue = commentNode.attribute("scroll-value");
         }
-        appendChild(QVariant::fromValue<CommentBox>(comment));
+        appendChild(PkVariant::fromValue<CommentBox>(comment));
     }
 }
 
