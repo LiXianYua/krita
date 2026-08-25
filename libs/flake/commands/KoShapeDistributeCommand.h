@@ -7,9 +7,9 @@
 
 #ifndef KOSHAPEDISTRIBUTECOMMAND_H
 #define KOSHAPEDISTRIBUTECOMMAND_H
+#include <PkList.h>
+#include <PkRect.h>
 
-
-#include <PkXmlCompat.h>
 
 
 #include "kritaflake_export.h"

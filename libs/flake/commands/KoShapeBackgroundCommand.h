@@ -7,8 +7,9 @@
 
 #ifndef KOSHAPEBACKGROUNDCOMMAND_H
 #define KOSHAPEBACKGROUNDCOMMAND_H
+#include <PkList.h>
+#include <PkSharedPointer.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

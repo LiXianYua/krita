@@ -5,8 +5,10 @@
  */
 #ifndef KISMESHGRADIENT_H
 #define KISMESHGRADIENT_H
+#include <PkRect.h>
+#include <PkScopedPointer.h>
+#include <PkTransform.h>
 
-#include <PkXmlCompat.h>
 
 #include <KoFlakeCoordinateSystem.h>
 #include "SvgMeshPatch.h"

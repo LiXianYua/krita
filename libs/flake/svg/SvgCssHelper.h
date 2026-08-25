@@ -6,8 +6,9 @@
 
 #ifndef SVGCSSHELPER_H
 #define SVGCSSHELPER_H
+#include <PkStringList.h>
+#include <PkXmlElement.h>
 
-#include <PkXmlCompat.h>
 
 class SvgCssHelper
 {

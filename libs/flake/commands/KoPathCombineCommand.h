@@ -7,8 +7,9 @@
 
 #ifndef KOPATHCOMBINECOMMAND_H
 #define KOPATHCOMBINECOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
 #include "kritaflake_export.h"
 

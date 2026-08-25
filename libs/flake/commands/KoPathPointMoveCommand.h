@@ -8,10 +8,12 @@
 
 #ifndef KOPATHPOINTMOVECOMMAND_H
 #define KOPATHPOINTMOVECOMMAND_H
+#include <PkList.h>
+#include <PkPoint.h>
+
 
 #include "kritaflake_export.h"
 
-#include <PkXmlCompat.h>
 #include <kundo2command.h>
 
 #include "KoPathPointData.h"

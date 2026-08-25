@@ -7,8 +7,6 @@
 #ifndef KOMULTIPATHPOINTJOINCOMMAND_H
 #define KOMULTIPATHPOINTJOINCOMMAND_H
 
-#include <PkXmlCompat.h>
-
 #include <KoMultiPathPointMergeCommand.h>
 
 class KRITAFLAKE_EXPORT KoMultiPathPointJoinCommand : public KoMultiPathPointMergeCommand

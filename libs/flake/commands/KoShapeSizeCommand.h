@@ -7,8 +7,9 @@
 
 #ifndef KOSHAPESIZECOMMAND_H
 #define KOSHAPESIZECOMMAND_H
+#include <PkList.h>
+#include <PkSize.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

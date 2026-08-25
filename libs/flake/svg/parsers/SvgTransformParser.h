@@ -6,8 +6,9 @@
 
 #ifndef SVGTRANSFORMPARSER_H
 #define SVGTRANSFORMPARSER_H
+#include <PkString.h>
+#include <PkTransform.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

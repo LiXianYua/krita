@@ -6,12 +6,16 @@
 
 #ifndef SVGLOADINGCONTEXT_H
 #define SVGLOADINGCONTEXT_H
+#include <PkAuxTypes.h>
+#include <PkHash.h>
+#include <PkString.h>
+#include <PkStringHash.h>
+#include <PkStringList.h>
+#include <PkXmlElement.h>
 
-#include <PkXmlCompat.h>
 
 #include <functional>
 #include <memory>
-#include <PkAuxTypes.h>
 #include <pk/container/PkStringHash.h>
 #include <KoSvgTextProperties.h>
 

@@ -7,8 +7,9 @@
 
 #ifndef KOSHAPEALIGNCOMMAND_H
 #define KOSHAPEALIGNCOMMAND_H
+#include <PkList.h>
+#include <PkRect.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

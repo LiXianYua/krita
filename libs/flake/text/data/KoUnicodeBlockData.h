@@ -5,8 +5,9 @@
  */
 #ifndef KOUNICODEBLOCKDATA_H
 #define KOUNICODEBLOCKDATA_H
+#include <PkScopedPointer.h>
+#include <PkString.h>
 
-#include <PkXmlCompat.h>
 
 #include <pk/string/PkString.h>
 #include <pk/pointer/PkScopedPointer.h>

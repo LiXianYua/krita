@@ -7,8 +7,8 @@
 
 #ifndef KOSHAPEDELETECOMMAND_H
 #define KOSHAPEDELETECOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 #include <kundo2command.h>

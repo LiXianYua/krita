@@ -7,8 +7,8 @@
 
 #ifndef KOSHAPELOCKCOMMAND_H
 #define KOSHAPELOCKCOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include <kundo2command.h>
 #include <pk/container/PkList.h>

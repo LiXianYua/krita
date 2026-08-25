@@ -6,8 +6,9 @@
 
 #ifndef KOSHAPEREORDERCOMMAND_H
 #define KOSHAPEREORDERCOMMAND_H
+#include <PkDebug.h>
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

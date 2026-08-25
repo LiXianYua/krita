@@ -6,8 +6,8 @@
 
 #ifndef KOSHAPECREATECOMMAND_H
 #define KOSHAPECREATECOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 #include <kundo2command.h>

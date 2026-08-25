@@ -7,8 +7,10 @@
 
 #ifndef KOPATHSEGMENTTYPECOMMAND_H
 #define KOPATHSEGMENTTYPECOMMAND_H
+#include <PkList.h>
+#include <PkPoint.h>
 
-#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
 #include "KoPathPoint.h"
 #include "KoPathPointData.h"

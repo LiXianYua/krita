@@ -7,8 +7,9 @@
 
 #ifndef KOPATHCONTROLPOINTMOVECOMMAND_H
 #define KOPATHCONTROLPOINTMOVECOMMAND_H
+#include <PkPoint.h>
 
-#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
 #include "KoPathPointData.h"
 #include "KoPathPoint.h"

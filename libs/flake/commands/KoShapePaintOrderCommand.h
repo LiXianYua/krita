@@ -6,8 +6,8 @@
 
 #ifndef KOSHAPEPAINTORDERCOMMAND_H
 #define KOSHAPEPAINTORDERCOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

@@ -7,8 +7,9 @@
 
 #ifndef KOSHAPETRANSFORMCOMMAND_H
 #define KOSHAPETRANSFORMCOMMAND_H
+#include <PkList.h>
+#include <PkTransform.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 #include <kundo2command.h>

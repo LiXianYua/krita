@@ -8,15 +8,20 @@
 
 #ifndef SVGSTYLEPARSER_H
 #define SVGSTYLEPARSER_H
+#include <PkColor.h>
+#include <PkGlobal.h>
+#include <PkGradient.h>
+#include <PkMap.h>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkXmlElement.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 #include <pk/container/PkMap.h>
 #include <pk/container/PkStringList.h>
 #include <pk/xml/PkXmlElement.h>
 #include <pk/color/PkColor.h>
-#include <PkGradient.h>
 
 #include <utility>
 

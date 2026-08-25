@@ -6,8 +6,11 @@
 
 #ifndef KOSHAPERESIZECOMMAND_H
 #define KOSHAPERESIZECOMMAND_H
+#include <PkGlobal.h>
+#include <PkList.h>
+#include <PkPoint.h>
+#include <PkTransform.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 #include "kundo2command.h"

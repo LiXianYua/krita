@@ -6,8 +6,9 @@
 
 #ifndef KOPATHREVERSECOMMAND_H
 #define KOPATHREVERSECOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
 #include "kritaflake_export.h"
 

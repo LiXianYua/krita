@@ -6,8 +6,8 @@
 
 #ifndef KOSHAPECLIPCOMMAND_H
 #define KOSHAPECLIPCOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 #include <kundo2command.h>

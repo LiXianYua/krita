@@ -7,8 +7,10 @@
 
 #ifndef KOPATHPOINTINSERTCOMMAND_H
 #define KOPATHPOINTINSERTCOMMAND_H
+#include <PkGlobal.h>
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
 #include "KoPathPointData.h"
 #include "kritaflake_export.h"

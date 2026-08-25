@@ -5,8 +5,16 @@
  */
 #ifndef SVGMESHARRAY_H
 #define SVGMESHARRAY_H
+#include <PkColor.h>
+#include <PkList.h>
+#include <PkPair.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSize.h>
+#include <PkString.h>
+#include <PkTransform.h>
+#include <PkVector.h>
 
-#include <PkXmlCompat.h>
 
 #include <pk/color/PkColor.h>
 

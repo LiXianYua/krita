@@ -7,8 +7,6 @@
 #ifndef KOMULTIPATHPOINTMERGECOMMAND_H
 #define KOMULTIPATHPOINTMERGECOMMAND_H
 
-#include <PkXmlCompat.h>
-
 #include <kundo2command.h>
 
 #include "kritaflake_export.h"

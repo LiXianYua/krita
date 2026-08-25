@@ -7,7 +7,6 @@
 #ifndef KOPATHPOINTMERGECOMMAND_H
 #define KOPATHPOINTMERGECOMMAND_H
 
-#include <PkXmlCompat.h>
 #include <kundo2command.h>
 
 #include "kritaflake_export.h"

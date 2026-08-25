@@ -6,8 +6,8 @@
 
 #ifndef SVGSHAPE_H
 #define SVGSHAPE_H
+#include <PkXmlElement.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

@@ -6,8 +6,9 @@
 
 #ifndef KOSHAPERENAMECOMMAND_H
 #define KOSHAPERENAMECOMMAND_H
+#include <PkString.h>
 
-#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 #include <kundo2command.h>
 

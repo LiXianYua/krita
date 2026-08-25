@@ -7,8 +7,9 @@
 
 #ifndef KOSHAPEMOVECOMMAND_H
 #define KOSHAPEMOVECOMMAND_H
+#include <PkList.h>
+#include <PkPoint.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

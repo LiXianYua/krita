@@ -7,8 +7,9 @@
 
 #ifndef KOPATHPOINTREMOVECOMMAND_H
 #define KOPATHPOINTREMOVECOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
 #include "KoPathPointData.h"
 #include "kritaflake_export.h"

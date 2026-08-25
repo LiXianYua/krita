@@ -6,13 +6,13 @@
 #ifndef KOSVGTEXTPROPERTYDATA_H
 #define KOSVGTEXTPROPERTYDATA_H
 
-#include <PkXmlCompat.h>
+#include <PkDebug.h>
+#include <PkSet.h>
 
 #include "KoSvgTextProperties.h"
 #include "kritaflake_export.h"
 
 #include <boost/operators.hpp>
-#include <pk/log/PkDebug.h>
 
 /**
  * @brief The KoSvgTextPropertyData struct

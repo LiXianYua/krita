@@ -7,8 +7,12 @@
 
 #ifndef SVGGRAPHICCONTEXT_H
 #define SVGGRAPHICCONTEXT_H
+#include <PkColor.h>
+#include <PkGlobal.h>
+#include <PkRect.h>
+#include <PkString.h>
+#include <PkTransform.h>
 
-#include <PkXmlCompat.h>
 
 #include <pk/color/PkColor.h>
 

@@ -7,8 +7,9 @@
 
 #ifndef KOSHAPESHEARCOMMAND_H
 #define KOSHAPESHEARCOMMAND_H
+#include <PkGlobal.h>
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

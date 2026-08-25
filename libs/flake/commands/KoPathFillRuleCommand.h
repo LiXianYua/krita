@@ -6,8 +6,9 @@
 
 #ifndef KOPATHFILLRULECOMMAND_H
 #define KOPATHFILLRULECOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
+
 #include "kritaflake_export.h"
 
 #include <kundo2command.h>

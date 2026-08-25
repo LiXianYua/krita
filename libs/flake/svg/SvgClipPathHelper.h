@@ -6,8 +6,8 @@
 
 #ifndef SVGCLIPPATHHELPER_H
 #define SVGCLIPPATHHELPER_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include <KoFlakeCoordinateSystem.h>
 

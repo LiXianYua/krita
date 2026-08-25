@@ -9,8 +9,8 @@
 
 #ifndef KOSHAPESTROKECOMMAND_H
 #define KOSHAPESTROKECOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

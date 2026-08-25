@@ -6,8 +6,15 @@
 
 #ifndef SVGUTIL_H
 #define SVGUTIL_H
+#include <PkGlobal.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSize.h>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkTransform.h>
+#include <PkXmlElement.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 #include <KoSvgText.h>

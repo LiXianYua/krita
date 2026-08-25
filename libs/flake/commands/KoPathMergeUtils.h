@@ -6,8 +6,8 @@
 
 #ifndef KOPATHMERGEUTILS_H
 #define KOPATHMERGEUTILS_H
+#include <PkPoint.h>
 
-#include <PkXmlCompat.h>
 
 #include <boost/optional.hpp>
 

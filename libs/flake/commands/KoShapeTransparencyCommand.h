@@ -6,8 +6,9 @@
 
 #ifndef KOSHAPETRANSPARENCYCOMMAND_H
 #define KOSHAPETRANSPARENCYCOMMAND_H
+#include <PkGlobal.h>
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

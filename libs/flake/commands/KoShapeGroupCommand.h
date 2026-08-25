@@ -7,8 +7,8 @@
 
 #ifndef KOSHAPEGROUPCOMMAND_H
 #define KOSHAPEGROUPCOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 

@@ -6,8 +6,8 @@
 
 #ifndef KOKEEPSHAPESSELECTEDCOMMAND_H
 #define KOKEEPSHAPESSELECTEDCOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kis_command_utils.h"
 #include <kritaflake_export.h>

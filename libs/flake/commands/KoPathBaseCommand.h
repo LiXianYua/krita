@@ -7,8 +7,9 @@
 
 #ifndef KOPATHBASECOMMAND_H
 #define KOPATHBASECOMMAND_H
+#include <PkSet.h>
 
-#include <PkXmlCompat.h>
+
 #include <kundo2command.h>
 #include <pk/container/PkSet.h>
 

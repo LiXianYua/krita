@@ -5,8 +5,17 @@
  */
 #ifndef SVGMESHPATCH_H
 #define SVGMESHPATCH_H
+#include <PkColor.h>
+#include <PkGlobal.h>
+#include <PkPainterPath.h>
+#include <PkPair.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSize.h>
+#include <PkString.h>
+#include <PkTransform.h>
+#include <PkVector.h>
 
-#include <PkXmlCompat.h>
 
 #include <pk/color/PkColor.h>
 

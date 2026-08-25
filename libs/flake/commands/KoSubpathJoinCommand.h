@@ -7,8 +7,8 @@
 
 #ifndef KOSUBPATHJOINCOMMAND_H
 #define KOSUBPATHJOINCOMMAND_H
+#include <PkPoint.h>
 
-#include <PkXmlCompat.h>
 
 #include <kundo2command.h>
 #include <pk/geometry/PkPoint.h>

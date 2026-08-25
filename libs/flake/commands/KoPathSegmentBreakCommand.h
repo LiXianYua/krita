@@ -8,7 +8,6 @@
 #ifndef KOPATHSEGMENTBREAKCOMMAND_H
 #define KOPATHSEGMENTBREAKCOMMAND_H
 
-#include <PkXmlCompat.h>
 #include <kundo2command.h>
 #include "KoPathPointData.h"
 

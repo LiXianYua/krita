@@ -6,8 +6,8 @@
 
 #ifndef KOSHAPEKEEPASPECTRATIOCOMMAND_H
 #define KOSHAPEKEEPASPECTRATIOCOMMAND_H
+#include <PkList.h>
 
-#include <PkXmlCompat.h>
 
 #include "kritaflake_export.h"
 #include <kundo2command.h>

@@ -7,7 +7,7 @@
 #ifndef KOPOLYGONUTILS_H
 #define KOPOLYGONUTILS_H
 
-#include <PkXmlCompat.h>
+#include <pk/container/PkList.h>
 
 #include <pk/geometry/PkPolygon.h>
 
