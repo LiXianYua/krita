@@ -11,7 +11,6 @@
 #include <PkString.h>
 
 #include <klocalizedstring.h>
-#include <PkKeySequence>
 
 #include "KoID.h"
 #include "KoColorSpace.h"
@@ -88,13 +87,6 @@ public:
     PkString menuEntry() const;
 
     /**
-     * Return the default keyboard shortcut for activation of this filter
-     *
-     * @return the shortcut
-     */
-    PkKeySequence shortcut() const;
-
-    /**
      * Create the configuration widget for this processor.
      *
      * @param parent the Qt owner widget of this widget
@@ -141,11 +133,6 @@ protected:
     void setSupportsThreading(bool v);
     void setColorSpaceIndependence(ColorSpaceIndependence v);
     void setShowConfigurationWidget(bool v);
-
-    /**
-     * Set the default shortcut for activation of this filter.
-     */
-    void setShortcut(const PkKeySequence & shortcut);
 
 protected:
 

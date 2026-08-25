@@ -48,8 +48,6 @@ public:
     static void setDefaultFileOpener(FileOpener fileOpener);
     static void setDefaultIconProvider(IconProvider iconProvider);
 
-    QIcon icon() const override;
-
     void resetCache(const KoColorSpace *colorSpace = 0) override;
 
     KisPaintDeviceSP original() const override;

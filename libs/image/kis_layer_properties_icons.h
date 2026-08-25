@@ -57,8 +57,6 @@ public:
      */
     static PkVariant nodeProperty(KisNodeSP node, const KoID &id, const PkVariant &defaultValue);
 
-    void updateIcons();
-
     /**
      * Check if the property is actually stateless, i.e.
      * cannot be modified by a requesting change. These

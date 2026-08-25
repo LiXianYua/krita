@@ -48,10 +48,6 @@ public:
         return 0;
     }
 
-    QIcon icon() const override {
-        return QIcon();
-    }
-
     KisNodeSP clone() const override {
         return new TestLayer(image(), name(), opacity());
     }
@@ -115,10 +111,6 @@ public:
 
     KisPaintDeviceSP paintDevice() const override {
         return m_device;
-    }
-
-    QIcon icon() const override {
-        return QIcon();
     }
 
     KisNodeSP clone() const override {

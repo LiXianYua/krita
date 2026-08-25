@@ -127,11 +127,6 @@ KisFileLayer::KisFileLayer(const KisFileLayer &rhs)
     m_loader.setPath(path());
 }
 
-QIcon KisFileLayer::icon() const
-{
-    return defaultIconProvider() ? defaultIconProvider()() : QIcon();
-}
-
 void KisFileLayer::resetCache(const KoColorSpace *colorSpace)
 {
     Q_UNUSED(colorSpace);

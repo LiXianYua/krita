@@ -6,8 +6,6 @@
 
 #include "kis_layer_properties_icons.h"
 
-#include <pk/container/PkMap.h>
-
 Q_GLOBAL_STATIC(KisLayerPropertiesIcons, s_instance)
 
 #include <KoColorSpace.h>
@@ -36,42 +34,13 @@ const KoID KisLayerPropertiesIcons::layerError("layer-error", PkString("Error"))
 const KoID KisLayerPropertiesIcons::layerColorSpaceMismatch("layer-color-space-mismatch", PkString("Layer Color Space Mismatch"));
 const KoID KisLayerPropertiesIcons::antialiased("antialiased", PkString("Anti-aliasing"));
 
-struct IconsPair {
-    IconsPair() {}
-    IconsPair(const PkIcon &_on, const PkIcon &_off) : on(_on), off(_off) {}
-
-    PkIcon on;
-    PkIcon off;
-
-    const PkIcon& getIcon(bool state) {
-        return state ? on : off;
-    }
-};
-
 struct KisLayerPropertiesIcons::Private
 {
-    PkMap<PkString, IconsPair> icons;
 };
-
-namespace {
-/**
- * Read-only lookup into the shared icon map.
- *
- * Must not use PkMap::operator[]: KisLayerPropertiesIcons is a Q_GLOBAL_STATIC and
- * getProperty() is reached from image stroke/update jobs as well as from the GUI
- * thread, so an inserting lookup would be a concurrent write to shared state.
- * Missing ids resolve to a pair of null icons.
- */
-IconsPair lookupIconsPair(const PkMap<PkString, IconsPair> &icons, const PkString &id)
-{
-    return icons.value(id);
-}
-}
 
 KisLayerPropertiesIcons::KisLayerPropertiesIcons()
     : m_d(new Private)
 {
-    updateIcons();
 }
 
 KisLayerPropertiesIcons::~KisLayerPropertiesIcons()
@@ -83,40 +52,23 @@ KisLayerPropertiesIcons *KisLayerPropertiesIcons::instance()
     return s_instance;
 }
 
-void KisLayerPropertiesIcons::updateIcons()
-{
-    // Intentionally empty: icons are a UI concern and libs/image must not depend on
-    // kritawidgetutils, where the icon loader lives. Property ids, names and states
-    // stay here; every property therefore reports a pair of null icons.
-    m_d->icons.clear();
-}
-
 KisBaseNode::Property KisLayerPropertiesIcons::getProperty(const KoID &id, bool state)
 {
-    const IconsPair pair = lookupIconsPair(instance()->m_d->icons, id.id());
-    return KisBaseNode::Property(id,
-                                 pair.on, pair.off, state);
+    return KisBaseNode::Property(id, state);
 }
 
 KisBaseNode::Property KisLayerPropertiesIcons::getProperty(const KoID &id, bool state,
                                                                        bool isInStasis, bool stateInStasis)
 {
-    const IconsPair pair = lookupIconsPair(instance()->m_d->icons, id.id());
-    return KisBaseNode::Property(id,
-                                 pair.on, pair.off, state,
-                                 isInStasis, stateInStasis);
+    return KisBaseNode::Property(id, state, isInStasis, stateInStasis);
 }
 
 KisBaseNode::Property KisLayerPropertiesIcons::getErrorProperty(const PkString &message)
 {
-    const IconsPair pair = lookupIconsPair(instance()->m_d->icons, layerError.id());
-
     KisBaseNode::Property prop;
     prop.id = layerError.id();
     prop.name =  layerError.name();
     prop.state = message;
-    prop.onIcon = pair.on;
-    prop.offIcon = pair.off;
 
     return prop;
 }
@@ -127,14 +79,10 @@ KisBaseNode::Property KisLayerPropertiesIcons::getColorSpaceMismatchProperty(con
         "Layer color space is different from the image color space:\n%1 [%2],\noperations may be slow")
         .arg(cs->name(), cs->profile() ? cs->profile()->name() : PkString(""));
 
-    const IconsPair pair = lookupIconsPair(instance()->m_d->icons, layerColorSpaceMismatch.id());
-
     KisBaseNode::Property prop;
     prop.id = layerColorSpaceMismatch.id();
     prop.name =  layerColorSpaceMismatch.name();
     prop.state = message;
-    prop.onIcon = pair.on;
-    prop.offIcon = pair.off;
 
     return prop;
 }

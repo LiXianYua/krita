@@ -34,7 +34,6 @@ void KisBaseNodeTest::testCreation()
     KisBaseNodeSP node = new TestNode();
     QVERIFY(node->name().isEmpty());
     QVERIFY(node->name() == node->objectName());
-    QVERIFY(node->icon().isNull());
     QVERIFY(node->visible() == true);
     QVERIFY(node->userLocked() == false);
     QVERIFY(node->x() == 0);

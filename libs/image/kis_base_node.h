@@ -7,7 +7,6 @@
 #define _KIS_BASE_NODE_H
 
 #include <PkObject.h>
-#include <PkIcon>
 #include <PkString.h>
 
 #include <KoID.h>
@@ -57,10 +56,6 @@ public:
         /** Whether the property is a boolean (e.g. locked, visible) which can be toggled directly from the widget itself. */
         bool isMutable {false};
 
-        /** Provide these if the property isMutable. */
-        PkIcon onIcon;
-        PkIcon offIcon;
-
         /** If the property isMutable, provide a boolean. Otherwise, a string suitable for displaying. */
         PkVariant state;
 
@@ -83,14 +78,13 @@ public:
         Property(): isMutable( false ), isInStasis(false) { }
 
         /// Constructor for a mutable property.
-        Property( const KoID &n, const PkIcon &on, const PkIcon &off, bool isOn )
-                : id(n.id()), name( n.name() ), isMutable( true ), onIcon( on ), offIcon( off ), state( isOn ),
+        Property( const KoID &n, bool isOn )
+                : id(n.id()), name( n.name() ), isMutable( true ), state( isOn ),
                   canHaveStasis( false ), isInStasis(false) { }
 
         /** Constructor for a mutable property accepting stasis */
-        Property( const KoID &n, const PkIcon &on, const PkIcon &off, bool isOn,
-                  bool _isInStasis, bool _stateInStasis = false )
-                : id(n.id()), name(n.name()), isMutable( true ), onIcon( on ), offIcon( off ), state( isOn ),
+        Property( const KoID &n, bool isOn, bool _isInStasis, bool _stateInStasis = false )
+                : id(n.id()), name(n.name()), isMutable( true ), state( isOn ),
                   canHaveStasis( true ), isInStasis( _isInStasis ), stateInStasis( _stateInStasis ) { }
 
         /// Constructor for a nonmutable property.
@@ -220,14 +214,6 @@ public:
     void setName(const PkString& name) {
         setObjectName(name);
         baseNodeChangedCallback();
-    }
-
-    /**
-     * @return the icon used to represent the node type, for instance
-     * in the layerbox and in the menu.
-     */
-    virtual PkIcon icon() const {
-        return PkIcon();
     }
 
     /**

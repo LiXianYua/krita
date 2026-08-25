@@ -48,7 +48,6 @@ struct Q_DECL_HIDDEN KisBaseProcessor::Private {
     KoID id;
     KoID category; // The category in the filter menu this filter fits
     PkString entry; // the translated accelerated menu text
-    PkKeySequence shortcut;
     bool supportsPainting;
     bool supportsAdjustmentLayers;
     bool supportsThreading;
@@ -113,16 +112,6 @@ KoID KisBaseProcessor::menuCategory() const
 PkString KisBaseProcessor::menuEntry() const
 {
     return d->entry;
-}
-
-PkKeySequence KisBaseProcessor::shortcut() const
-{
-    return d->shortcut;
-}
-
-void KisBaseProcessor::setShortcut(const PkKeySequence & shortcut)
-{
-    d->shortcut = shortcut;
 }
 
 bool KisBaseProcessor::supportsPainting() const
