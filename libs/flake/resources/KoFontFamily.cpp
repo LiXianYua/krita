@@ -378,11 +378,11 @@ QList<KoSvgText::FontFamilyStyleInfo> KoFontFamily::styles() const
     return converted;
 }
 
-QDateTime KoFontFamily::lastModified() const
+PkDateTime KoFontFamily::lastModified() const
 {
     const PkDateTime dt = metadata().value(KoFontFamilyMetadata::KEY_LAST_MODIFIED).toDateTime();
     if (!dt.isValid()) {
-        return QDateTime();
+        return PkDateTime();
     }
-    return QDateTime::fromSecsSinceEpoch(dt.toSecsSinceEpoch(), Qt::LocalTime);
+    return PkDateTime::fromSecsSinceEpoch(dt.toSecsSinceEpoch());
 }

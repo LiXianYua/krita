@@ -14,7 +14,7 @@
 
 #include <KoSvgText.h>
 #include <QLocale>
-#include <QDateTime>
+#include <PkDateTime.h>
 
 #include <optional>
 
@@ -28,7 +28,7 @@ struct KoFontFamilyWWSRepresentation {
     QHash<QLocale, QString> localizedTypographicFamily;
     QHash<QLocale, QString> localizedTypographicStyles;
 
-    QDateTime lastModified; ///< Value of the most recently modified font family. Used for updates.
+    PkDateTime lastModified; ///< Value of the most recently modified font family. Used for updates.
 
     QHash<QString, QString> sampleStrings; /// sample string used to generate the preview;
     QList<QLocale> supportedLanguages;

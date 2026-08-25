@@ -13,6 +13,7 @@
 #include FT_TRUETYPE_TABLES_H
 
 #include <QFileInfo>
+#include <QDateTime>
 
 namespace {
 
@@ -86,7 +87,7 @@ struct FontFamilyNode {
     QList<QLocale> supportedLanguages; /// Languages supported, according to fontconfig.
 
     QStringList otherFiles; /// Other files that seem related. These might be duplicate font files, or fonts where only the tech differs.
-    QDateTime lastModified; /// Last time the file was modified.
+    PkDateTime lastModified; /// Last time the file was modified.
 
     // The localized font-families. This should be the name associated with the current node,
     // and thus is the typographic, wws or ribbi name depending on the depth.
@@ -203,7 +204,7 @@ QStringList FontFamilyNode::debugInfo() const
     const QString fullname = localizedFullName.empty()? "": localizedFullName.values().first();
     QStringList debug = {QString("\'%1\' \'%2\', style: %3, type:%4, full name: %5").arg(fontFamily, fontStyle, style).arg(type).arg(fullname)};
     debug.append(QString("Index: %1, File: %2").arg(fileIndex).arg(fileName));
-    debug.append(QString("Last Modified: %1").arg(lastModified.toString(Qt::ISODateWithMs)));
+    debug.append(QString("Last Modified: %1").arg(QString::fromUtf8(lastModified.toString(PkDateTime::DateFormat::ISODateWithMs).c_str())));
     for (int i=0; i< axes.size(); i++) {
         KoSvgText::FontFamilyAxis axis = axes.value(axes.keys().at(i));
         debug.append(axis.debugInfo());
@@ -341,13 +342,13 @@ bool KoFFWWSConverter::addFontFromFile(const QString &filename, const int index,
 
     fontFamily.fontFamily = face->family_name;
     fontFamily.fontStyle = face->style_name;
-    fontFamily.lastModified = QFileInfo(fontFamily.fileName).lastModified();
+    fontFamily.lastModified = PkDateTime::fromMSecsSinceEpoch(QFileInfo(fontFamily.fileName).lastModified().toMSecsSinceEpoch());
     if (!fontFamily.lastModified.isValid()) {
         QDateTime time = QFileInfo(fontFamily.fileName).birthTime();
         if (time.isValid()) {
-            fontFamily.lastModified = time;
+            fontFamily.lastModified = PkDateTime::fromMSecsSinceEpoch(time.toMSecsSinceEpoch());
         } else {
-            fontFamily.lastModified = QDateTime::fromMSecsSinceEpoch(0);
+            fontFamily.lastModified = PkDateTime::fromMSecsSinceEpoch(0);
         }
     }
     FontFamilyNode typographicFamily;

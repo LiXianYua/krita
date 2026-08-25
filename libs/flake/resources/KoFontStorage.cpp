@@ -52,7 +52,7 @@ public:
         return ResourceType::FontFamilies;
     }
 
-    QDateTime lastModified() const override {
+    PkDateTime lastModified() const override {
         return m_currentResource->lastModified();
     }
 
@@ -104,7 +104,7 @@ KisResourceStorage::ResourceItem KoFontStorage::resourceItem(const QString &url)
     item.resourceType = ResourceType::FontFamilies;
     item.url = url;
     item.folder = location();
-    item.lastModified =  QDateTime::fromMSecsSinceEpoch(0);
+    item.lastModified =  PkDateTime::fromMSecsSinceEpoch(0);
     return item;
 }
 

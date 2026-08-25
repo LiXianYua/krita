@@ -8,6 +8,7 @@
 
 #include <KoResource.h>
 #include <KoFFWWSConverter.h>
+#include <PkDateTime.h>
 
 #include <memory>
 
@@ -57,7 +58,7 @@ public:
     QList<KoSvgText::FontFamilyAxis> axes() const;
     QList<KoSvgText::FontFamilyStyleInfo> styles() const;
 
-    QDateTime lastModified() const;
+    PkDateTime lastModified() const;
 
 private:
     struct Private;
