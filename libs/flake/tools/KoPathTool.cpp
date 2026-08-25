@@ -107,7 +107,7 @@ KoPathTool::KoPathTool(KoCanvasBase *canvas)
     m_selectCursor = QCursor(QIcon(":/cursor-needle.svg").pixmap(32), 0, 0);
     m_moveCursor = QCursor(QIcon(":/cursor-needle-move.svg").pixmap(32), 0, 0);
 
-    connect(&m_pointSelection, SIGNAL(selectionChanged()), SLOT(repaintDecorations()));
+    connect(&m_pointSelection, &KoPathToolSelection::selectionChanged, this, &KoPathTool::repaintDecorations);
 }
 
 KoPathTool::~KoPathTool()
@@ -844,11 +844,11 @@ void KoPathTool::activate(const QSet<KoShape*> &shapes)
     d->canvas->snapGuide()->reset();
 
     useCursor(m_selectCursor);
-    m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), SIGNAL(selectionChanged()), this, SLOT(slotSelectionChanged()));
-    m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), SIGNAL(selectionContentChanged()), this, SLOT(updateActions()));
+    m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged, this, &KoPathTool::slotSelectionChanged);
+    m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionContentChanged, this, &KoPathTool::updateActions);
 
-    m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), SIGNAL(selectionChanged()), this, SLOT(repaintDecorations()));
-    m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), SIGNAL(selectionContentChanged()), this, SLOT(repaintDecorations()));
+    m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionChanged, this, &KoPathTool::repaintDecorations);
+    m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionContentChanged, this, &KoPathTool::repaintDecorations);
     m_shapeFillResourceConnector.connectToCanvas(d->canvas);
     initializeWithShapes(QList<KoShape*>(shapes.begin(), shapes.end()));
     connect(m_actionCurvePoint, SIGNAL(triggered()), this, SLOT(pointToCurve()), Qt::UniqueConnection);

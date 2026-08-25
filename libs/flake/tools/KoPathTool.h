@@ -14,6 +14,7 @@
 #include "KoToolBase.h"
 #include "KoPathToolSelection.h"
 #include "kis_signal_auto_connection.h"
+#include "KisQtConnectionsStore.h"
 #include <QList>
 #include <QCursor>
 #include <KoShapeFillResourceConnector.h>
@@ -133,7 +134,7 @@ private:
     QCursor m_moveCursor;
     QScopedPointer<QMenu> m_contextMenu;
     QScopedPointer<KoSvgTextShapeOutlineHelper> m_textOutlineHelper;
-    KisSignalAutoConnectionsStore m_canvasConnections;
+    KisQtConnectionsStore m_canvasConnections;
     KoShapeFillResourceConnector m_shapeFillResourceConnector;
 
     Q_DECLARE_PRIVATE(KoToolBase)
