@@ -24,7 +24,8 @@ KoSelection::KoSelection(QObject *parent)
     , KoShape()
     , d(new Private)
 {
-    connect(d->selectionChangedCompressor, SIGNAL(timeout()), SIGNAL(selectionChanged()));
+    PkObject::connect(d->selectionChangedCompressor, &KisThreadSafeSignalCompressor::timeout,
+                      d->selectionChangedCompressor, [this]() { emit selectionChanged(); });
 }
 
 KoSelection::KoSelection(const KoSelection &rhs)

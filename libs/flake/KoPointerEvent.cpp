@@ -26,8 +26,8 @@ private:
     Q_OBJECT
 public:
     KisTouchPressureSensitivityOptionContainer() {
-        connect(KisConfigNotifier::instance(), SIGNAL(configChanged()),
-                this, SLOT(slotSettingsChanged()));
+        PkObject::connect(KisConfigNotifier::instance(), &KisConfigNotifier::configChanged,
+                          KisConfigNotifier::instance(), [this]() { slotSettingsChanged(); });
         slotSettingsChanged();
     }
 

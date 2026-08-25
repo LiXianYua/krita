@@ -23,7 +23,8 @@ public:
         , m_fallbackProjection(new KisPaintDevice(parent, cs, defaultBounds))
         , m_compressor(KisThreadSafeSignalCompressor(25, KisSignalCompressor::FIRST_ACTIVE))
     {
-        connect(&m_compressor, SIGNAL(timeout()), this, SLOT(slotAsyncRepaint()));
+        PkObject::connect(&m_compressor, &KisThreadSafeSignalCompressor::timeout,
+                          &m_compressor, [this]() { slotAsyncRepaint(); });
     }
 
     ReferenceImagesCanvas(const ReferenceImagesCanvas &rhs, KisReferenceImagesLayer *parent)
@@ -32,7 +33,8 @@ public:
         , m_fallbackProjection(new KisPaintDevice(*rhs.m_fallbackProjection))
         , m_compressor(KisThreadSafeSignalCompressor(25, KisSignalCompressor::FIRST_ACTIVE))
     {
-        connect(&m_compressor, SIGNAL(timeout()), this, SLOT(slotAsyncRepaint()));
+        PkObject::connect(&m_compressor, &KisThreadSafeSignalCompressor::timeout,
+                          &m_compressor, [this]() { slotAsyncRepaint(); });
     }
 
     void updateCanvas(const QRectF &rect) override
