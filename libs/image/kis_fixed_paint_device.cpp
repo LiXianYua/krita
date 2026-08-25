@@ -46,7 +46,7 @@ KisFixedPaintDevice& KisFixedPaintDevice::operator=(const KisFixedPaintDevice& r
     return *this;
 }
 
-void KisFixedPaintDevice::setRect(const QRect& rc)
+void KisFixedPaintDevice::setRect(const PkRect& rc)
 {
     m_bounds = rc;
 }
@@ -56,7 +56,7 @@ void KisFixedPaintDevice::setColorSpace(const KoColorSpace *cs)
     m_colorSpace = cs;
 }
 
-QRect KisFixedPaintDevice::bounds() const
+PkRect KisFixedPaintDevice::bounds() const
 {
     return m_bounds;
 }
@@ -151,12 +151,12 @@ void KisFixedPaintDevice::setProfile(const KoColorProfile *profile)
     m_colorSpace = dstColorSpace;
 }
 
-void KisFixedPaintDevice::convertFromQImage(const QImage& _image, const QString &srcProfileName)
+void KisFixedPaintDevice::convertFromQImage(const PkImage& _image, const PkString &srcProfileName)
 {
-    QImage image = _image;
+    PkImage image = _image;
 
-    if (image.format() != QImage::Format_ARGB32) {
-        image.convertTo(QImage::Format_ARGB32);
+    if (image.format() != PkImage::Format_ARGB32) {
+        image.convertTo(PkImage::Format_ARGB32);
     }
     setRect(image.rect());
     lazyGrowBufferWithoutInitialization();
@@ -173,7 +173,7 @@ void KisFixedPaintDevice::convertFromQImage(const QImage& _image, const QString 
     }
 }
 
-QImage KisFixedPaintDevice::convertToQImage(const KoColorProfile *  dstProfile, KoColorConversionTransformation::Intent intent, KoColorConversionTransformation::ConversionFlags conversionFlags) const
+PkImage KisFixedPaintDevice::convertToQImage(const KoColorProfile *  dstProfile, KoColorConversionTransformation::Intent intent, KoColorConversionTransformation::ConversionFlags conversionFlags) const
 {
     qint32 x1;
     qint32 y1;
@@ -188,17 +188,17 @@ QImage KisFixedPaintDevice::convertToQImage(const KoColorProfile *  dstProfile, 
     return convertToQImage(dstProfile, x1, y1, w, h, intent, conversionFlags);
 }
 
-QImage KisFixedPaintDevice::convertToQImage(const KoColorProfile *  dstProfile, qint32 x1, qint32 y1, qint32 w, qint32 h, KoColorConversionTransformation::Intent intent, KoColorConversionTransformation::ConversionFlags conversionFlags) const
+PkImage KisFixedPaintDevice::convertToQImage(const KoColorProfile *  dstProfile, qint32 x1, qint32 y1, qint32 w, qint32 h, KoColorConversionTransformation::Intent intent, KoColorConversionTransformation::ConversionFlags conversionFlags) const
 {
-    Q_ASSERT( m_bounds.contains(QRect(x1,y1,w,h)) );
+    Q_ASSERT( m_bounds.contains(PkRect(x1,y1,w,h)) );
 
     if (w < 0)
-        return QImage();
+        return PkImage();
 
     if (h < 0)
-        return QImage();
+        return PkImage();
 
-    if (QRect(x1, y1, w, h) == m_bounds) {
+    if (PkRect(x1, y1, w, h) == m_bounds) {
         return colorSpace()->convertToQImage(constData(), w, h, dstProfile,
                                              intent, conversionFlags);
     } else {
@@ -215,16 +215,16 @@ QImage KisFixedPaintDevice::convertToQImage(const KoColorProfile *  dstProfile, 
                 srcPtr += deviceWidth * pSize;
                 dstPtr += w * pSize;
             }
-            QImage image = colorSpace()->convertToQImage(newData, w, h, dstProfile, intent, conversionFlags);
+            PkImage image = colorSpace()->convertToQImage(newData, w, h, dstProfile, intent, conversionFlags);
             return image;
         }
         catch(const std::bad_alloc&) {
-            return QImage();
+            return PkImage();
         }
     }
 }
 
-void KisFixedPaintDevice::clear(const QRect & rc)
+void KisFixedPaintDevice::clear(const PkRect & rc)
 {
     KoColor c(Qt::black, m_colorSpace);
     quint8* black = new quint8[pixelSize()];
@@ -234,7 +234,7 @@ void KisFixedPaintDevice::clear(const QRect & rc)
     delete[] black;
 }
 
-void KisFixedPaintDevice::fill(const QRect &rc, const KoColor &color)
+void KisFixedPaintDevice::fill(const PkRect &rc, const KoColor &color)
 {
     KoColor realColor(color);
     realColor.convertTo(colorSpace());
@@ -244,11 +244,11 @@ void KisFixedPaintDevice::fill(const QRect &rc, const KoColor &color)
 void KisFixedPaintDevice::fill(qint32 x, qint32 y, qint32 w, qint32 h, const quint8 *fillPixel)
 {
     if (m_data.isEmpty() || m_bounds.isEmpty()) {
-        setRect(QRect(x, y, w, h));
+        setRect(PkRect(x, y, w, h));
         reallocateBufferWithoutInitialization();
     }
 
-    QRect rc(x, y, w, h);
+    PkRect rc(x, y, w, h);
     if (!m_bounds.contains(rc)) {
         rc = m_bounds;
     }
@@ -281,7 +281,7 @@ void KisFixedPaintDevice::readBytes(quint8* dstData, qint32 x, qint32 y, qint32 
         return;
     }
 
-    QRect rc(x, y, w, h);
+    PkRect rc(x, y, w, h);
     if (!m_bounds.contains(rc)){
         return;
     }

@@ -8,10 +8,9 @@
 #define KISOPTIMIZEDBYTEARRAY_H
 
 #include <utility>
-#include <QSharedDataPointer>
-#include <QSharedPointer>
-#include <QMutex>
-#include <QVector>
+#include <PkSharedPointer.h>
+#include <PkMutex.h>
+#include <PkList.h>
 
 #include "kritaimage_export.h"
 
@@ -29,7 +28,7 @@ public:
         virtual void free(MemoryChunk chunk) = 0;
     };
 
-    typedef QSharedPointer<MemoryAllocator> MemoryAllocatorSP;
+    typedef PkSharedPointer<MemoryAllocator> MemoryAllocatorSP;
 
     struct KRITAIMAGE_EXPORT PooledMemoryAllocator : public MemoryAllocator {
         PooledMemoryAllocator();
@@ -39,8 +38,8 @@ public:
         void free(MemoryChunk chunk) override;
 
     private:
-        QMutex m_mutex;
-        QVector<MemoryChunk> m_chunks;
+        PkMutex m_mutex;
+        PkList<MemoryChunk> m_chunks;
         KisRollingMeanAccumulatorWrapper m_meanSize;
     };
 
@@ -65,7 +64,7 @@ public:
 
 private:
      struct Private;
-     QSharedDataPointer<Private> m_d;
+     PkSharedPointer<Private> m_d;
 };
 
 #endif // KISOPTIMIZEDBYTEARRAY_H

@@ -267,7 +267,11 @@ namespace KritaUtils
         // rasterize all segments except the last one
         QPoint lastSegmentStart;
         if (polygonPoints.first() == polygonPoints.last()) {
-            rasterizePolylineDDA(polygonPoints.mid(0, polygonPoints.size() - 1), visitor);
+            // mid(0, size-1) == 去掉末尾重复闭合点后的子序列；PkVector 无 mid()，
+            // 用「拷贝 + resize 截断」等价实现（真 Qt QVector 与壳 PkVector 均成立）。
+            QVector<QPoint> subPoints(polygonPoints);
+            subPoints.resize(polygonPoints.size() - 1);
+            rasterizePolylineDDA(subPoints, visitor);
             lastSegmentStart = polygonPoints[polygonPoints.size() - 2];
         } else {
             rasterizePolylineDDA(polygonPoints, visitor);

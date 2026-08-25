@@ -6,9 +6,6 @@
 
 #include "KisOptimizedByteArray.h"
 
-#include <QGlobalStatic>
-#include <QMutexLocker>
-
 #include <string.h>
 
 namespace {
@@ -50,11 +47,10 @@ private:
     KisOptimizedByteArray::MemoryAllocatorSP m_allocator;
 };
 
-Q_GLOBAL_STATIC(DefaultMemoryAllocatorStore, s_instance)
-
 DefaultMemoryAllocatorStore *DefaultMemoryAllocatorStore::instance()
 {
-    return s_instance;
+    static DefaultMemoryAllocatorStore s_instance;
+    return &s_instance;
 }
 
 } // namespace
@@ -71,7 +67,7 @@ KisOptimizedByteArray::PooledMemoryAllocator::PooledMemoryAllocator()
 
 KisOptimizedByteArray::PooledMemoryAllocator::~PooledMemoryAllocator()
 {
-    Q_FOREACH (const MemoryChunk &chunk, m_chunks) {
+    for (const MemoryChunk &chunk : m_chunks) {
         delete[] chunk.first;
     }
 }
@@ -82,7 +78,7 @@ KisOptimizedByteArray::PooledMemoryAllocator::alloc(int size)
     MemoryChunk chunk;
 
     {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         if (!m_chunks.isEmpty()) {
             chunk = m_chunks.takeLast();
         }
@@ -105,7 +101,7 @@ KisOptimizedByteArray::PooledMemoryAllocator::alloc(int size)
 void KisOptimizedByteArray::PooledMemoryAllocator::free(KisOptimizedByteArray::MemoryChunk chunk)
 {
     if (chunk.first) {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
 
         // keep bigger chunks for ourselves and return the
         // smaller ones to the system
@@ -122,7 +118,7 @@ void KisOptimizedByteArray::PooledMemoryAllocator::free(KisOptimizedByteArray::M
 /*         KisOptimizedByteArray::Private                        */
 /*****************************************************************/
 
-struct KisOptimizedByteArray::Private : public QSharedData
+struct KisOptimizedByteArray::Private
 {
     Private(MemoryAllocatorSP _allocator)
     {
@@ -133,7 +129,6 @@ struct KisOptimizedByteArray::Private : public QSharedData
     }
 
     Private(const Private &rhs)
-        : QSharedData(rhs)
     {
         allocator = rhs.allocator;
         storedAllocator = rhs.storedAllocator;
@@ -170,13 +165,15 @@ KisOptimizedByteArray::KisOptimizedByteArray(MemoryAllocatorSP allocator)
 }
 
 KisOptimizedByteArray::KisOptimizedByteArray(const KisOptimizedByteArray &rhs)
-    : m_d(rhs.m_d)
+    : m_d(rhs.m_d ? new Private(*rhs.m_d) : nullptr)
 {
 }
 
 KisOptimizedByteArray &KisOptimizedByteArray::operator=(const KisOptimizedByteArray &rhs)
 {
-    m_d = rhs.m_d;
+    if (this != &rhs) {
+        m_d.reset(rhs.m_d ? new Private(*rhs.m_d) : nullptr);
+    }
     return *this;
 }
 
@@ -186,12 +183,12 @@ KisOptimizedByteArray::~KisOptimizedByteArray()
 
 quint8 *KisOptimizedByteArray::data()
 {
-    return const_cast<Private*>(m_d.data())->data.first;
+    return m_d.data()->data.first;
 }
 
 const quint8 *KisOptimizedByteArray::constData() const
 {
-    return const_cast<const Private*>(m_d.constData())->data.first;
+    return m_d.data()->data.first;
 }
 
 void KisOptimizedByteArray::resize(int size)

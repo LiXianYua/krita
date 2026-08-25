@@ -8,9 +8,10 @@
 #ifndef KIS_PAINT_DEVICE_IMPL_H_
 #define KIS_PAINT_DEVICE_IMPL_H_
 
-#include <QObject>
-#include <QRect>
-#include <QVector>
+#include <PkObject.h>
+#include <PkRect.h>
+#include <PkVector.h>
+#include <PkSharedPointer.h>
 
 #include "kis_debug.h"
 
@@ -23,12 +24,12 @@
 #include <kritaimage_export.h>
 
 class KUndo2Command;
-class QRect;
-class QImage;
-class QPoint;
-class QString;
-class QColor;
-class QIODevice;
+class PkRect;
+class PkImage;
+class PkPoint;
+class PkString;
+class PkColor;
+class PkStream;
 
 class KoColor;
 class KoColorSpace;
@@ -43,7 +44,7 @@ class KisRasterKeyframeChannel;
 class KisPaintDeviceFramesInterface;
 
 class KisInterstrokeData;
-using KisInterstrokeDataSP = QSharedPointer<KisInterstrokeData>;
+using KisInterstrokeDataSP = PkSharedPointer<KisInterstrokeData>;
 
 typedef KisSharedPtr<KisDataManager> KisDataManagerSP;
 
@@ -63,7 +64,7 @@ enum DeviceCopyMode {
  * when pixels are accessed by an iterator.
  */
 class KRITAIMAGE_EXPORT KisPaintDevice
-    : public QObject
+    : public PkObject
     , public KisShared
 {
 
@@ -77,7 +78,7 @@ public:
      * @param colorSpace the colorspace of this paint device
      * @param name for debugging purposes
      */
-    explicit KisPaintDevice(const KoColorSpace * colorSpace, const QString& name = QString());
+    explicit KisPaintDevice(const KoColorSpace * colorSpace, const PkString& name = PkString());
 
     /**
      * Create a new paint device with the specified colorspace. The
@@ -88,7 +89,7 @@ public:
      * @param defaultBounds boundaries of the device in case it is empty
      * @param name for debugging purposes
      */
-    KisPaintDevice(KisNodeWSP parent, const KoColorSpace * colorSpace, KisDefaultBoundsBaseSP defaultBounds = KisDefaultBoundsBaseSP(), const QString& name = QString());
+    KisPaintDevice(KisNodeWSP parent, const KoColorSpace * colorSpace, KisDefaultBoundsBaseSP defaultBounds = KisDefaultBoundsBaseSP(), const PkString& name = PkString());
 
     /**
      * Creates a copy of this device.
@@ -113,7 +114,7 @@ protected:
      * @param name for debugging purposes
      */
     KisPaintDevice(KisDataManagerSP explicitDataManager,
-                   KisPaintDeviceSP src, const QString& name = QString());
+                   KisPaintDeviceSP src, const PkString& name = PkString());
 
 public:
 
@@ -125,7 +126,7 @@ public:
     /**
      * Fill this paint device with the pixels from the specified file store.
      */
-    bool read(QIODevice *stream);
+    bool read(PkStream *stream);
 
 public:
 
@@ -153,12 +154,12 @@ public:
     /**
      * Convenience method for the above.
      */
-    virtual void moveTo(const QPoint& pt);
+    virtual void moveTo(const PkPoint& pt);
 
     /**
      * Return an X,Y offset of the device in a convenient form
      */
-    QPoint offset() const;
+    PkPoint offset() const;
 
     /**
      * The X offset of the paint device
@@ -190,7 +191,7 @@ public:
      * rect is united with the defaultBounds()->bounds() value
      * (the size of the image, usually).
      */
-    QRect extent() const;
+    PkRect extent() const;
 
     /// Convenience method for the above
     void extent(qint32 &x, qint32 &y, qint32 &w, qint32 &h) const;
@@ -212,7 +213,7 @@ public:
      * </ul>
      * \see calculateExactBounds()
      */
-    QRect exactBounds() const;
+    PkRect exactBounds() const;
 
     /**
      * Relaxed version of the exactBounds() that can be used in tight
@@ -221,7 +222,7 @@ public:
      * returns extent() and tries to recalculate the exact bounds not
      * faster than once in 1000 ms.
      */
-    QRect exactBoundsAmortized() const;
+    PkRect exactBoundsAmortized() const;
 
     /**
      * Returns exact rectangle of the paint device that contains
@@ -239,7 +240,7 @@ public:
      * </ul>
      * \see calculateExactBounds()
      */
-    QRect nonDefaultPixelArea() const;
+    PkRect nonDefaultPixelArea() const;
 
 
     /**
@@ -262,7 +263,7 @@ public:
     void crop(qint32 x, qint32 y, qint32 w, qint32 h);
 
     /// Convenience method for the above
-    void crop(const QRect & r);
+    void crop(const PkRect & r);
 
     /**
      * Complete erase the current paint device. Its size will become 0. This
@@ -274,7 +275,7 @@ public:
      * Clear the given rectangle to transparent black. The paint device will expand to
      * contain the given rect.
      */
-    void clear(const QRect & rc);
+    void clear(const PkRect & rc);
 
     /**
      * Frees the memory occupied by the pixels containing default
@@ -301,11 +302,11 @@ public:
      * Fill the given rectangle with the given pixel. The paint device will expand to
      * contain the given rect.
      */
-    void fill(const QRect & rc, const KoColor &color);
+    void fill(const PkRect & rc, const KoColor &color);
 
     /**
      * Overloaded function. For legacy purposes only.
-     * Please use fill(const QRect & rc, const KoColor &color) instead
+     * Please use fill(const PkRect & rc, const KoColor &color) instead
      */
     void fill(qint32 x, qint32 y, qint32 w, qint32 h, const quint8 *fillPixel);
 
@@ -331,7 +332,7 @@ public:
      * are the only owner of the destination paint device and you are
      * 100% sure no other thread has access to it"
      */
-    void makeCloneFrom(KisPaintDeviceSP src, const QRect &rect);
+    void makeCloneFrom(KisPaintDeviceSP src, const PkRect &rect);
 
     /**
      * Make this device to become a clone of \a src. It will have the same
@@ -347,7 +348,7 @@ public:
      * are the only owner of the destination paint device and you are
      * 100% sure no other thread has access to it"
      */
-    void makeCloneFromRough(KisPaintDeviceSP src, const QRect &minimalRect);
+    void makeCloneFromRough(KisPaintDeviceSP src, const PkRect &minimalRect);
 
 
 protected:
@@ -377,12 +378,12 @@ protected:
      * \see fastBitBltPossible
      * \see fastBitBltRough
      */
-    void fastBitBlt(KisPaintDeviceSP src, const QRect &rect);
+    void fastBitBlt(KisPaintDeviceSP src, const PkRect &rect);
 
     /**
      * The same as \ref fastBitBlt() but reads old data
      */
-    void fastBitBltOldData(KisPaintDeviceSP src, const QRect &rect);
+    void fastBitBltOldData(KisPaintDeviceSP src, const PkRect &rect);
 
     /**
      * Clones rect from another paint device in a rough and fast way.
@@ -394,12 +395,12 @@ protected:
      * \see fastBitBltPossible
      * \see fastBitBlt
      */
-    void fastBitBltRough(KisPaintDeviceSP src, const QRect &rect);
+    void fastBitBltRough(KisPaintDeviceSP src, const PkRect &rect);
 
     /**
      * The same as \ref fastBitBltRough() but reads old data
      */
-    void fastBitBltRoughOldData(KisPaintDeviceSP src, const QRect &rect);
+    void fastBitBltRoughOldData(KisPaintDeviceSP src, const PkRect &rect);
 
 public:
     /**
@@ -426,7 +427,7 @@ public:
      * @param data The address of the memory to receive the bytes read
      * @param rect The rectangle in the paint device to read from
      */
-    void readBytes(quint8 * data, const QRect &rect) const;
+    void readBytes(quint8 * data, const PkRect &rect) const;
 
     /**
      * Copy the bytes in data into the rect specified by x, y, w, h. If the
@@ -448,7 +449,7 @@ public:
      * @param data The address of the memory to write bytes from
      * @param rect The rectangle in the paint device to write to
      */
-    void writeBytes(const quint8 * data, const QRect &rect);
+    void writeBytes(const quint8 * data, const PkRect &rect);
 
     /**
      * Copy the bytes in the paint device into a vector of arrays of bytes,
@@ -456,7 +457,7 @@ public:
      * paint device. If the specified area is larger than the paint
      * device's extent, the default pixel will be read.
      */
-    QVector<quint8*> readPlanarBytes(qint32 x, qint32 y, qint32 w, qint32 h) const;
+    PkVector<quint8*> readPlanarBytes(qint32 x, qint32 y, qint32 w, qint32 h) const;
 
     /**
      * Write the data in the separate arrays to the channels. If there
@@ -471,7 +472,7 @@ public:
      *
      * XXX: what about undo?
      */
-    void writePlanarBytes(QVector<quint8*> planes, qint32 x, qint32 y, qint32 w, qint32 h);
+    void writePlanarBytes(PkVector<quint8*> planes, qint32 x, qint32 y, qint32 w, qint32 h);
 
     /**
      * Converts the paint device to a different colorspace
@@ -495,10 +496,10 @@ public:
      * @param offsetX x offset
      * @param offsetY y offset
      */
-    void convertFromQImage(const QImage& image, const KoColorProfile *profile, qint32 offsetX = 0, qint32 offsetY = 0);
+    void convertFromQImage(const PkImage& image, const KoColorProfile *profile, qint32 offsetX = 0, qint32 offsetY = 0);
 
     /**
-     * Create an RGBA QImage from a rectangle in the paint device.
+     * Create an RGBA PkImage from a rectangle in the paint device.
      *
      * @param dstProfile RGB profile to use in conversion. May be 0, in which
      * case it's up to the color strategy to choose a profile (most
@@ -510,20 +511,20 @@ public:
      * @param renderingIntent Rendering intent
      * @param conversionFlags Conversion flags
      */
-    QImage convertToQImage(const KoColorProfile *dstProfile, qint32 x, qint32 y, qint32 w, qint32 h,
+    PkImage convertToQImage(const KoColorProfile *dstProfile, qint32 x, qint32 y, qint32 w, qint32 h,
                            KoColorConversionTransformation::Intent renderingIntent = KoColorConversionTransformation::internalRenderingIntent(),
                            KoColorConversionTransformation::ConversionFlags conversionFlags = KoColorConversionTransformation::internalConversionFlags()) const;
 
     /**
      * Overridden method for convenience
      */
-    QImage convertToQImage(const KoColorProfile *dstProfile,
-                           const QRect &rc,
+    PkImage convertToQImage(const KoColorProfile *dstProfile,
+                           const PkRect &rc,
                            KoColorConversionTransformation::Intent renderingIntent = KoColorConversionTransformation::internalRenderingIntent(),
                            KoColorConversionTransformation::ConversionFlags conversionFlags = KoColorConversionTransformation::internalConversionFlags()) const;
 
     /**
-     * Create an RGBA QImage from a rectangle in the paint device. The
+     * Create an RGBA PkImage from a rectangle in the paint device. The
      * rectangle is defined by the parent image's bounds.
      *
      * @param dstProfile RGB profile to use in conversion. May be 0, in which
@@ -532,7 +533,7 @@ public:
      * @param renderingIntent Rendering intent
      * @param conversionFlags Conversion flags
      */
-    QImage convertToQImage(const KoColorProfile *  dstProfile,
+    PkImage convertToQImage(const KoColorProfile *  dstProfile,
                            KoColorConversionTransformation::Intent renderingIntent = KoColorConversionTransformation::internalRenderingIntent(),
                            KoColorConversionTransformation::ConversionFlags conversionFlags = KoColorConversionTransformation::internalConversionFlags()) const;
 
@@ -547,12 +548,12 @@ public:
      * @param outputRect output rectangle
      *
      */
-    KisPaintDeviceSP createThumbnailDevice(qint32 w, qint32 h, QRect rect = QRect(), QRect outputRect = QRect()) const;
-    KisPaintDeviceSP createThumbnailDeviceOversampled(qint32 w, qint32 h, qreal oversample, QRect rect = QRect(),  QRect outputRect = QRect()) const;
+    KisPaintDeviceSP createThumbnailDevice(qint32 w, qint32 h, PkRect rect = PkRect(), PkRect outputRect = PkRect()) const;
+    KisPaintDeviceSP createThumbnailDeviceOversampled(qint32 w, qint32 h, qreal oversample, PkRect rect = PkRect(),  PkRect outputRect = PkRect()) const;
 
     /**
      * Creates a thumbnail of the paint device, retaining the aspect ratio.
-     * The width and height of the returned QImage won't exceed \p maxw and \p maxw, but they may be smaller.
+     * The width and height of the returned PkImage won't exceed \p maxw and \p maxw, but they may be smaller.
      * The colors are not corrected for display!
      *
      * @param maxw: maximum width
@@ -562,14 +563,14 @@ public:
      * @param renderingIntent Rendering intent
      * @param conversionFlags Conversion flags
      */
-    QImage createThumbnailUncached(qint32 maxw, qint32 maxh, QRect rect, qreal oversample = 1,
+    PkImage createThumbnailUncached(qint32 maxw, qint32 maxh, PkRect rect, qreal oversample = 1,
                            KoColorConversionTransformation::Intent renderingIntent = KoColorConversionTransformation::internalRenderingIntent(),
                            KoColorConversionTransformation::ConversionFlags conversionFlags = KoColorConversionTransformation::internalConversionFlags());
 
     /**
-     * Cached version of createThumbnail(qint32 maxw, qint32 maxh, const KisSelection *selection, QRect rect)
+     * Cached version of createThumbnail(qint32 maxw, qint32 maxh, const KisSelection *selection, PkRect rect)
      */
-    QImage createThumbnail(qint32 maxw, qint32 maxh,
+    PkImage createThumbnail(qint32 maxw, qint32 maxh,
                            KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise,
                            qreal oversample = 1,
                            KoColorConversionTransformation::Intent renderingIntent = KoColorConversionTransformation::internalRenderingIntent(),
@@ -579,7 +580,7 @@ public:
      * Cached version of createThumbnail that also adjusts aspect ratio of the
      * thumbnail to fit the extents of the paint device.
      */
-    QImage createThumbnail(qint32 maxw, qint32 maxh,
+    PkImage createThumbnail(qint32 maxw, qint32 maxh,
                            Qt::AspectRatioMode aspectRatioMode,
                            KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise,
                            qreal oversample = 1,
@@ -594,7 +595,7 @@ public:
      *
      * @return true if the operation was successful.
      */
-    bool pixel(qint32 x, qint32 y, QColor *c) const;
+    bool pixel(qint32 x, qint32 y, PkColor *c) const;
 
     /**
      * Fill kc with the values found at x and y. This method differs
@@ -611,12 +612,12 @@ public:
      * Return pixel value in a form of KoColor. Please don't use this method
      * for iteration, it is highly inefficient. Use iterators instead.
      */
-    KoColor pixel(const QPoint &pos) const;
+    KoColor pixel(const PkPoint &pos) const;
 
     /**
      * Set the specified pixel to the specified color. Note that this
      * bypasses KisPainter. the PaintDevice is here used as an equivalent
-     * to QImage, not QPixmap. This means that this is not undoable; also,
+     * to PkImage, not PkPixmap. This means that this is not undoable; also,
      * there is no compositing with an existing value at this location.
      *
      * The color values will be transformed from the display profile to
@@ -627,7 +628,7 @@ public:
      *
      * @return true if the operation was successful
      */
-    bool setPixel(qint32 x, qint32 y, const QColor& c);
+    bool setPixel(qint32 x, qint32 y, const PkColor& c);
 
     /// Convenience method for the above
     bool setPixel(qint32 x, qint32 y, const KoColor& kc);
@@ -702,7 +703,7 @@ public:
      *
      * \see createCompositionSourceDevice()
      */
-    KisPaintDeviceSP createCompositionSourceDevice(KisPaintDeviceSP cloneSource, const QRect roughRect) const;
+    KisPaintDeviceSP createCompositionSourceDevice(KisPaintDeviceSP cloneSource, const PkRect roughRect) const;
 
     /**
      * This is a convenience method for createCompositionSourceDevice()
@@ -801,7 +802,7 @@ public:
      * Add the specified rect to the parent layer's set of dirty rects
      * (if there is a parent layer)
      */
-    void setDirty(const QRect & rc);
+    void setDirty(const PkRect & rc);
 
     void setDirty(const KisRegion &region);
 
@@ -811,7 +812,7 @@ public:
      */
     void setDirty();
 
-    void setDirty(const QVector<QRect> &rects);
+    void setDirty(const PkVector<PkRect> &rects);
 
     /**
      * Called by KisTransactionData when it thinks current time should
@@ -850,7 +851,7 @@ public:
      * @param w width of the border
      * @param _dataWidth indicates the rectangle that truly contains data
      */
-    KisRepeatHLineConstIteratorSP createRepeatHLineConstIterator(qint32 x, qint32 y, qint32 w, const QRect& _dataWidth) const;
+    KisRepeatHLineConstIteratorSP createRepeatHLineConstIterator(qint32 x, qint32 y, qint32 w, const PkRect& _dataWidth) const;
     /**
      * Create an iterator that will "artificially" extend the paint device with the
      * value of the border when trying to access values outside the range of data.
@@ -860,7 +861,7 @@ public:
      * @param h height of the border
      * @param _dataWidth indicates the rectangle that truly contains data
      */
-    KisRepeatVLineConstIteratorSP createRepeatVLineConstIterator(qint32 x, qint32 y, qint32 h, const QRect& _dataWidth) const;
+    KisRepeatVLineConstIteratorSP createRepeatVLineConstIterator(qint32 x, qint32 y, qint32 h, const PkRect& _dataWidth) const;
 
     /**
      * This function create a random accessor which can easily access to sub pixel values.
@@ -906,10 +907,10 @@ public:
      *
      * \see exactBounds(), nonDefaultPixelArea()
      */
-    QRect calculateExactBounds(bool nonDefaultOnly) const;
+    PkRect calculateExactBounds(bool nonDefaultOnly) const;
 
 public:
-    struct MemoryReleaseObject : public QObject {
+    struct MemoryReleaseObject : public PkObject {
         ~MemoryReleaseObject() override;
     };
 
@@ -922,10 +923,10 @@ public:
 
     KisRegion regionForLodSyncing() const;
     LodDataStruct* createLodDataStruct(int lod);
-    void updateLodDataStruct(LodDataStruct *dst, const QRect &srcRect);
+    void updateLodDataStruct(LodDataStruct *dst, const PkRect &srcRect);
     void uploadLodDataStruct(LodDataStruct *dst);
 
-    void generateLodCloneDevice(KisPaintDeviceSP dst, const QRect &originalRect, int lod);
+    void generateLodCloneDevice(KisPaintDeviceSP dst, const PkRect &originalRect, int lod);
 
     void setSupportsWraparoundMode(bool value);
     bool supportsWraproundMode() const;
@@ -937,7 +938,7 @@ private:
     KisPaintDevice& operator=(const KisPaintDevice&);
     void init(const KoColorSpace *colorSpace,
               KisDefaultBoundsBaseSP defaultBounds,
-              KisNodeWSP parent, const QString& name);
+              KisNodeWSP parent, const PkString& name);
 
     // Only KisPainter is allowed to have access to these low-level methods
     friend class KisPainter;
@@ -946,7 +947,7 @@ private:
      * Return a vector with in order the size in bytes of the channels
      * in the colorspace of this paint device.
      */
-    QVector<qint32> channelSizes() const;
+    PkVector<qint32> channelSizes() const;
 
     void emitColorSpaceChanged();
     void emitProfileChanged();

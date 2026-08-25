@@ -58,7 +58,7 @@ public:
         m_exactBoundsCache.invalidate();
         m_nonDefaultPixelAreaCache.invalidate();
         m_regionCache.invalidate();
-        m_sequenceNumber++;
+        m_sequenceNumber.fetchAndAddOrdered(1);
     }
 
     QRect exactBounds() {

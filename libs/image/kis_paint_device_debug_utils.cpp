@@ -4,6 +4,16 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_paint_device_debug_utils.cpp 阻塞登记（S-06 Task 8 批次B）
+//
+// 本文件不进薄壳，保留 Qt 原样。阻塞原因：
+//   * PkImage 缺 save()（kis_debug_save_device_incremental 中
+//     device->convertToQImage(...).save(filename) 无法替换成 Pk 等价物）
+//   * QString("%1_%2.png").arg(i).arg(suffix) 依赖 PkString::arg()（未实现）
+// 本文件是调试工具（把 device dump 成 png 文件），非核心路径。
+// 关闭条件：PkImage::save() 与 PkString::arg() 交付后，剥类型并编入薄壳。
+
 #include "kis_paint_device_debug_utils.h"
 
 #include <QRect>

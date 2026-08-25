@@ -11,8 +11,9 @@
 #include "kis_shared.h"
 #include <kis_shared_ptr.h>
 
-#include <QRect>
-#include <QImage>
+#include <PkRect.h>
+#include <PkImage.h>
+#include <PkString.h>
 #include "KisOptimizedByteArray.h"
 
 class KoColor;
@@ -50,7 +51,7 @@ public:
      * @param rc the bounds in pixels. The x,y of the rect represent the origin
      * of the fixed paint device.
      */
-    void setRect(const QRect& rc);
+    void setRect(const PkRect& rc);
 
     /**
      * setColorSpace reassigns the color space of the paint device
@@ -62,7 +63,7 @@ public:
     /**
      * @return the rect that the data represents
      */
-    QRect bounds() const;
+    PkRect bounds() const;
 
     /**
      * @return the amount of allocated pixels (you can fake the size with setRect/bounds)
@@ -140,10 +141,10 @@ public:
      * @param image the image
      * @param srcProfileName name of the RGB profile to interpret the image as. 0 is interpreted as sRGB
      */
-    virtual void convertFromQImage(const QImage& image, const QString &srcProfileName);
+    virtual void convertFromQImage(const PkImage& image, const PkString &srcProfileName);
 
     /**
-     * Create an RGBA QImage from a rectangle in the paint device.
+     * Create an RGBA PkImage from a rectangle in the paint device.
      *
      * @param dstProfile RGB profile to use in conversion. May be 0, in which
      * case it's up to the color strategy to choose a profile (most
@@ -155,12 +156,12 @@ public:
      * @param renderingIntent Rendering intent
      * @param conversionFlags Conversion flags
      */
-    virtual QImage convertToQImage(const KoColorProfile *dstProfile, qint32 x, qint32 y, qint32 w, qint32 h,
+    virtual PkImage convertToQImage(const KoColorProfile *dstProfile, qint32 x, qint32 y, qint32 w, qint32 h,
                                    KoColorConversionTransformation::Intent renderingIntent = KoColorConversionTransformation::internalRenderingIntent(),
                                    KoColorConversionTransformation::ConversionFlags conversionFlags = KoColorConversionTransformation::internalConversionFlags()) const;
 
     /**
-     * Create an RGBA QImage from a rectangle in the paint device. The
+     * Create an RGBA PkImage from a rectangle in the paint device. The
      * rectangle is defined by the parent image's bounds.
      *
      * @param dstProfile RGB profile to use in conversion. May be 0, in which
@@ -169,7 +170,7 @@ public:
      * @param renderingIntent The rendering intent of conversion.
      * @param conversionFlags The conversion flags.
      */
-    virtual QImage convertToQImage(const KoColorProfile *dstProfile,
+    virtual PkImage convertToQImage(const KoColorProfile *dstProfile,
                                    KoColorConversionTransformation::Intent renderingIntent = KoColorConversionTransformation::internalRenderingIntent(),
                                    KoColorConversionTransformation::ConversionFlags conversionFlags = KoColorConversionTransformation::internalConversionFlags()) const;
 
@@ -179,7 +180,7 @@ public:
      * XXX: this will not (yet) expand the paint device to contain the specified rect
      * but if the paintdevice has not been initialized, it will be.
      */
-    void clear(const QRect & rc);
+    void clear(const PkRect & rc);
 
     /**
      * Fill the given rectangle with the given pixel. This does not take the
@@ -190,7 +191,7 @@ public:
      */
     void fill(qint32 x, qint32 y, qint32 w, qint32 h, const quint8 *fillPixel);
 
-    void fill(const QRect &rc, const KoColor &color);
+    void fill(const PkRect &rc, const KoColor &color);
 
 
     /**
@@ -201,7 +202,7 @@ public:
 private:
 
     const KoColorSpace* m_colorSpace;
-    QRect m_bounds;
+    PkRect m_bounds;
     KisOptimizedByteArray m_data;
 };
 
