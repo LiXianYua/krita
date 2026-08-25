@@ -8,6 +8,7 @@
 #define KIS_DOCUMENT_REPLACE_TEST_H_
 
 #include <simpletest.h>
+#include <QObject>
 
 class KisDocument;
 class KisImage;
