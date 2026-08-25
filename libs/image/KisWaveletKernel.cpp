@@ -8,7 +8,6 @@
 
 #include "kis_convolution_kernel.h"
 #include <kis_convolution_painter.h>
-#include <QRect>
 
 
 
@@ -83,12 +82,12 @@ KisWaveletKernel::createVerticalKernel(qreal radius)
 }
 
 void KisWaveletKernel::applyWavelet(KisPaintDeviceSP device,
-                                      const QRect& rect,
+                                      const PkRect& rect,
                                       qreal xRadius, qreal yRadius,
-                                      const QBitArray &channelFlags,
+                                      const PkBitArray &channelFlags,
                                       KoUpdater *progressUpdater)
 {
-    QPoint srcTopLeft = rect.topLeft();
+    PkPoint srcTopLeft = rect.topLeft();
 
     if (xRadius > 0.0 && yRadius > 0.0) {
         KisPaintDeviceSP interm = new KisPaintDevice(device->colorSpace());
@@ -103,9 +102,9 @@ void KisWaveletKernel::applyWavelet(KisPaintDeviceSP device,
         horizPainter.setChannelFlags(channelFlags);
         horizPainter.setProgress(progressUpdater);
         horizPainter.applyMatrix(kernelHoriz, device,
-                                 srcTopLeft - QPoint(0, ceil(verticalCenter)),
-                                 srcTopLeft - QPoint(0, ceil(verticalCenter)),
-                                 rect.size() + QSize(0, 2 * ceil(verticalCenter)), BORDER_REPEAT);
+                                 srcTopLeft - PkPoint(0, ceil(verticalCenter)),
+                                 srcTopLeft - PkPoint(0, ceil(verticalCenter)),
+                                 rect.size() + PkSize(0, 2 * ceil(verticalCenter)), BORDER_REPEAT);
 
         KisConvolutionPainter verticalPainter(device);
         verticalPainter.setChannelFlags(channelFlags);

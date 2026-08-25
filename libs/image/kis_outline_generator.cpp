@@ -40,7 +40,7 @@ public:
     }
 
 private:
-    QScopedArrayPointer<quint8> m_marks;
+    PkScopedArrayPointer<quint8> m_marks;
     quint8 *m_buffer;
     int m_width;
     int m_pixelSize;
@@ -87,11 +87,11 @@ KisOutlineGenerator::KisOutlineGenerator(const KoColorSpace* cs, quint8 defaultO
 }
 
 template <class StorageStrategy>
-QVector<QPolygon> KisOutlineGenerator::outlineImpl(typename StorageStrategy::StorageType buffer,
+PkVector<PkPolygon> KisOutlineGenerator::outlineImpl(typename StorageStrategy::StorageType buffer,
                                                    qint32 xOffset, qint32 yOffset,
                                                    qint32 width, qint32 height)
 {
-    QVector<QPolygon> paths;
+    PkVector<PkPolygon> paths;
 
     try {
         StorageStrategy storage(buffer, width, height, m_cs->pixelSize());
@@ -115,7 +115,7 @@ QVector<QPolygon> KisOutlineGenerator::outlineImpl(typename StorageStrategy::Sto
                 }
 
                 if (startEdge != NoEdge) {
-                    QPolygon path;
+                    PkPolygon path;
                     const bool clockwise = startEdge == BottomEdge;
 
                     qint32 row = y, col = x;
@@ -127,7 +127,7 @@ QVector<QPolygon> KisOutlineGenerator::outlineImpl(typename StorageStrategy::Sto
                         lastEdge = BottomEdge;
                     }
 
-                    forever {
+                    for (;;) {
                         //qDebug() << "visit" << xOffset + col << yOffset + row << ppVar(currentEdge) << ppVar(lastEdge);
 
                         *storage.pickMark(col, row) |= 1 << currentEdge;
@@ -162,12 +162,12 @@ QVector<QPolygon> KisOutlineGenerator::outlineImpl(typename StorageStrategy::Sto
     return paths;
 }
 
-QVector<QPolygon> KisOutlineGenerator::outline(quint8* buffer, qint32 xOffset, qint32 yOffset, qint32 width, qint32 height)
+PkVector<PkPolygon> KisOutlineGenerator::outline(quint8* buffer, qint32 xOffset, qint32 yOffset, qint32 width, qint32 height)
 {
     return outlineImpl<LinearStorage>(buffer, xOffset, yOffset, width, height);
 }
 
-QVector<QPolygon> KisOutlineGenerator::outline(const KisPaintDevice *buffer, qint32 xOffset, qint32 yOffset, qint32 width, qint32 height)
+PkVector<PkPolygon> KisOutlineGenerator::outline(const KisPaintDevice *buffer, qint32 xOffset, qint32 yOffset, qint32 width, qint32 height)
 {
     return outlineImpl<PaintDeviceStorage>(buffer, xOffset, yOffset, width, height);
 }
@@ -243,11 +243,11 @@ void KisOutlineGenerator::nextOutlineEdge(StorageStrategy &storage, EdgeType *ed
         *edge = nextEdge(*edge);
 }
 
-void KisOutlineGenerator::appendCoordinate(QPolygon * path, int x, int y, EdgeType edge, EdgeType prevEdge)
+void KisOutlineGenerator::appendCoordinate(PkPolygon * path, int x, int y, EdgeType edge, EdgeType prevEdge)
 {
     Q_UNUSED(prevEdge);
 
-    //const QPoint origPt(x, y);
+    //const PkPoint origPt(x, y);
 
     if (edge == TopEdge) {
         x++;
@@ -258,9 +258,9 @@ void KisOutlineGenerator::appendCoordinate(QPolygon * path, int x, int y, EdgeTy
         y++;
     }
 
-    //qDebug() <<"add" << ppVar(origPt) << ppVar(edge) << ppVar(prevEdge) << "-->" << QPoint(x, y);
+    //qDebug() <<"add" << ppVar(origPt) << ppVar(edge) << ppVar(prevEdge) << "-->" << PkPoint(x, y);
 
-    *path << QPoint(x, y);
+    *path << PkPoint(x, y);
 }
 
 void KisOutlineGenerator::setSimpleOutline(bool simple)

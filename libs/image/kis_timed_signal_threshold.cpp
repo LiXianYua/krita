@@ -5,8 +5,9 @@
  */
 
 #include "kis_timed_signal_threshold.h"
-#include <QElapsedTimer>
 #include "kis_debug.h"
+
+#include <PkElapsedTimer.h>
 
 
 struct KisTimedSignalThreshold::Private
@@ -23,15 +24,15 @@ struct KisTimedSignalThreshold::Private
         cancelDelay = value >= 0 ? value : 2 * delay;
     }
 
-    QElapsedTimer timer;
+    PkElapsedTimer timer;
     int delay;
     int cancelDelay;
     bool enabled;
 };
 
 
-KisTimedSignalThreshold::KisTimedSignalThreshold(int delay, int cancelDelay, QObject *parent)
-    : QObject(parent),
+KisTimedSignalThreshold::KisTimedSignalThreshold(int delay, int cancelDelay, PkObject *parent)
+    : PkShellObject(parent),
       m_d(new Private(delay, cancelDelay))
 {
 }

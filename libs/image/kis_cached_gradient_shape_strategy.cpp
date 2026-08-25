@@ -6,7 +6,6 @@
 
 #include "kis_cached_gradient_shape_strategy.h"
 
-#include <QRect>
 #include "bsplines/kis_bspline_2d.h"
 
 #include <cmath>
@@ -21,14 +20,14 @@ using namespace KisBSplines;
 
 struct Q_DECL_HIDDEN KisCachedGradientShapeStrategy::Private
 {
-    QRect rc;
+    PkRect rc;
     qreal xStep;
     qreal yStep;
-    QScopedPointer<KisGradientShapeStrategy> baseStrategy;
-    QScopedPointer<KisBSpline2D> spline;
+    PkScopedPointer<KisGradientShapeStrategy> baseStrategy;
+    PkScopedPointer<KisBSpline2D> spline;
 };
 
-KisCachedGradientShapeStrategy::KisCachedGradientShapeStrategy(const QRect &rc,
+KisCachedGradientShapeStrategy::KisCachedGradientShapeStrategy(const PkRect &rc,
                                                                qreal xStep,
                                                                qreal yStep,
                                                                KisGradientShapeStrategy *baseStrategy)
@@ -84,6 +83,6 @@ KisCachedGradientShapeStrategy::~KisCachedGradientShapeStrategy()
 
 double KisCachedGradientShapeStrategy::valueAt(double x, double y) const
 {
-    QPointF pt = KisAlgebra2D::ensureInRect(QPointF(x, y), m_d->rc);
+    PkPointF pt = KisAlgebra2D::ensureInRect(PkPointF(x, y), m_d->rc);
     return m_d->spline->value(pt.x(), pt.y());
 }

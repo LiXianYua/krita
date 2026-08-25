@@ -5,6 +5,7 @@
  */
 
 #include "kis_processing_applicator.h"
+#include <cstdlib>
 
 #include "kis_image.h"
 #include "kis_paint_layer.h"
@@ -65,7 +66,7 @@ class UpdateCommand : public KisCommandUtils::FlipFlopCommand, public KisAsynchr
 public:
     UpdateCommand(KisImageWSP image, KisNodeList nodes,
                   KisProcessingApplicator::ProcessingFlags flags,
-                  State initialState, QSharedPointer<bool> sharedAllFramesToken)
+                  State initialState, PkSharedPointer<bool> sharedAllFramesToken)
         : FlipFlopCommand(initialState),
           m_image(image),
           m_nodes(nodes),
@@ -91,7 +92,7 @@ private:
 
         if (*m_sharedAllFramesToken) {
             KisLayerUtils::recursiveApplyNodes(m_image->root(), [](KisNodeSP node){
-                KisPaintLayer* paintLayer = qobject_cast<KisPaintLayer*>(node.data());
+                KisPaintLayer* paintLayer = dynamic_cast<KisPaintLayer*>(node.data());
                 if (paintLayer && paintLayer->onionSkinEnabled()) {
                     paintLayer->flushOnionSkinCache();
                 }
@@ -125,7 +126,7 @@ private:
          * (deprecated?) code.
          */
 
-        if (qEnvironmentVariableIsSet("KRITA_ENABLE_CLONE_UPDATES_IN_APPLICATOR")) {
+        if (std::getenv("KRITA_ENABLE_CLONE_UPDATES_IN_APPLICATOR")) {
             // simple tail-recursive iteration
             KisNodeSP prevNode = node->lastChild();
             while(prevNode) {
@@ -134,13 +135,13 @@ private:
             }
 
             Q_FOREACH(KisNodeSP node, m_nodes) {
-                KisLayer *layer = qobject_cast<KisLayer*>(node.data());
+                KisLayer *layer = dynamic_cast<KisLayer*>(node.data());
                 if(layer && layer->hasClones()) {
                     Q_FOREACH (KisCloneLayerSP clone, layer->registeredClones()) {
                         if(!clone) continue;
 
-                        QPoint offset(clone->x(), clone->y());
-                        QRegion dirtyRegion(m_image->bounds());
+                        PkPoint offset(clone->x(), clone->y());
+                        PkRegion dirtyRegion(m_image->bounds());
                         dirtyRegion -= m_image->bounds().translated(offset);
 
                         clone->setDirty(KisRegion::fromQRegion(dirtyRegion));
@@ -174,7 +175,7 @@ private:
     KisImageWSP m_image;
     KisNodeList m_nodes;
     KisProcessingApplicator::ProcessingFlags m_flags;
-    QSharedPointer<bool> m_sharedAllFramesToken;
+    PkSharedPointer<bool> m_sharedAllFramesToken;
 };
 
 class EmitImageSignalsCommand : public KisCommandUtils::FlipFlopCommand, public KisAsynchronouslyMergeableCommandInterface
@@ -250,7 +251,7 @@ struct StrategyWithStatusPromise : KisStrokeStrategyUndoCommandBased
     }
 
     void cancelStrokeCallback() override {
-        QVector<KisStrokeJobData *> jobs;
+        PkVector<KisStrokeJobData *> jobs;
         cancelStrokeCallbackImpl(jobs);
         KritaUtils::addJobBarrier(jobs, [this] () { m_successfullyCompleted.set_value(false);});
         addMutatedJobs(jobs);
@@ -390,7 +391,7 @@ void KisProcessingApplicator::applyVisitorAllFrames(KisProcessingVisitorSP visit
 
     for (; it != end; ++it) {
         const int frame = it.key();
-        const QSet<KisNodeSP> &nodes = it.value();
+        const PkSet<KisNodeSP> &nodes = it.value();
 
         applyCommand(new KisLayerUtils::SwitchFrameCommand(m_image, frame, false, switchFrameStorage), KisStrokeJobData::BARRIER, KisStrokeJobData::EXCLUSIVE);
 

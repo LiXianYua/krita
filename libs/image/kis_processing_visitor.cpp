@@ -10,8 +10,6 @@
 #include <KoProgressUpdater.h>
 #include "kis_node_progress_proxy.h"
 #include "kis_node.h"
-#include <KLocalizedString>
-#include <QTimer>
 
 KisProcessingVisitor::ProgressHelper::ProgressHelper(const KisNode *node)
 {
@@ -20,8 +18,7 @@ KisProcessingVisitor::ProgressHelper::ProgressHelper(const KisNode *node)
 
     if(progressProxy) {
         m_progressUpdater = new KoProgressUpdater(progressProxy);
-        m_progressUpdater->setObjectName("ProgressHelper::m_progressUpdater");
-        m_progressUpdater->start(100, i18n("Processing"));
+        m_progressUpdater->start(100, "Processing");
         m_progressUpdater->moveToThread(node->thread());
     }
     else {
@@ -44,7 +41,8 @@ KoUpdater* KisProcessingVisitor::ProgressHelper::updater() const
 void KisProcessingVisitor::ProgressHelper::cancel()
 {
     if (m_progressUpdater) {
-        QTimer::singleShot(0, m_progressUpdater, &KoProgressUpdater::cancel);
+        // 壳内无事件队列：Qt 的 singleShot(0, receiver, method) 改为直接调用（R-30 契约）。
+        m_progressUpdater->cancel();
     }
 }
 

@@ -8,12 +8,7 @@
 #include "kis_pixel_selection.h"
 
 
-#include <QImage>
-#include <QVector>
 
-#include <QMutex>
-#include <QPoint>
-#include <QPolygon>
 
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
@@ -35,20 +30,20 @@
 struct Q_DECL_HIDDEN KisPixelSelection::Private {
     KisSelectionWSP parentSelection;
 
-    QPainterPath outlineCache;
+    PkPainterPath outlineCache;
     bool outlineCacheValid;
-    QMutex outlineCacheMutex;
+    PkMutex outlineCacheMutex;
 
     bool thumbnailImageValid;
-    QImage thumbnailImage;
-    QTransform thumbnailImageTransform;
+    PkImage thumbnailImage;
+    PkTransform thumbnailImageTransform;
 
-    QPoint lod0CachesOffset;
+    PkPoint lod0CachesOffset;
 
     void invalidateThumbnailImage() {
         thumbnailImageValid = false;
-        thumbnailImage = QImage();
-        thumbnailImageTransform = QTransform();
+        thumbnailImage = PkImage();
+        thumbnailImageTransform = PkTransform();
     }
 };
 
@@ -105,10 +100,10 @@ const KoColorSpace *KisPixelSelection::compositionSourceColorSpace() const
     return KoColorSpaceRegistry::instance()->
         colorSpace(GrayAColorModelID.id(),
                    Integer8BitsColorDepthID.id(),
-                   QString());
+                   PkString());
 }
 
-bool KisPixelSelection::read(QIODevice *stream)
+bool KisPixelSelection::read(PkStream *stream)
 {
     bool retval = KisPaintDevice::read(stream);
     m_d->outlineCacheValid = false;
@@ -116,9 +111,9 @@ bool KisPixelSelection::read(QIODevice *stream)
     return retval;
 }
 
-void KisPixelSelection::select(const QRect & rc, quint8 selectedness)
+void KisPixelSelection::select(const PkRect & rc, quint8 selectedness)
 {
-    QRect r = rc.normalized();
+    PkRect r = rc.normalized();
     if (r.isEmpty()) return;
 
     KisFillPainter painter(KisPaintDeviceSP(this));
@@ -126,7 +121,7 @@ void KisPixelSelection::select(const QRect & rc, quint8 selectedness)
     painter.fillRect(r, KoColor(Qt::white, cs), selectedness);
 
     if (m_d->outlineCacheValid) {
-        QPainterPath path;
+        PkPainterPath path;
         path.addRect(r);
 
         if (selectedness != MIN_SELECTED) {
@@ -162,7 +157,7 @@ void KisPixelSelection::applySelection(KisPixelSelectionSP selection, SelectionA
     }
 }
 
-void KisPixelSelection::copyAlphaFrom(KisPaintDeviceSP src, const QRect &processRect)
+void KisPixelSelection::copyAlphaFrom(KisPaintDeviceSP src, const PkRect &processRect)
 {
     const KoColorSpace *srcCS = src->colorSpace();
 
@@ -177,13 +172,13 @@ void KisPixelSelection::copyAlphaFrom(KisPaintDeviceSP src, const QRect &process
     }
 
     m_d->outlineCacheValid = false;
-    m_d->outlineCache = QPainterPath();
+    m_d->outlineCache = PkPainterPath();
     m_d->invalidateThumbnailImage();
 }
 
 void KisPixelSelection::addSelection(KisPixelSelectionSP selection)
 {
-    QRect r = selection->selectedRect();
+    PkRect r = selection->selectedRect();
     if (r.isEmpty()) return;
 
     KisHLineIteratorSP dst = createHLineIteratorNG(r.x(), r.y(), r.width());
@@ -214,7 +209,7 @@ void KisPixelSelection::addSelection(KisPixelSelectionSP selection)
 
 void KisPixelSelection::subtractSelection(KisPixelSelectionSP selection)
 {
-    QRect r = selection->selectedRect();
+    PkRect r = selection->selectedRect();
     if (r.isEmpty()) return;
 
 
@@ -248,7 +243,7 @@ void KisPixelSelection::subtractSelection(KisPixelSelectionSP selection)
 
 void KisPixelSelection::intersectSelection(KisPixelSelectionSP selection)
 {
-    const QRect r = selection->selectedRect().united(selectedRect());
+    const PkRect r = selection->selectedRect().united(selectedRect());
     if (r.isEmpty()) {
         clear();
         return;
@@ -280,7 +275,7 @@ void KisPixelSelection::intersectSelection(KisPixelSelectionSP selection)
 
 void KisPixelSelection::symmetricdifferenceSelection(KisPixelSelectionSP selection)
 {
-    QRect r = selection->selectedRect().united(selectedRect());
+    PkRect r = selection->selectedRect().united(selectedRect());
     if (r.isEmpty()) return;
 
     KisHLineIteratorSP dst = createHLineIteratorNG(r.x(), r.y(), r.width());
@@ -307,7 +302,7 @@ void KisPixelSelection::symmetricdifferenceSelection(KisPixelSelectionSP selecti
     m_d->invalidateThumbnailImage();
 }
 
-void KisPixelSelection::clear(const QRect & r)
+void KisPixelSelection::clear(const PkRect & r)
 {
     if (*defaultPixel().data() != MIN_SELECTED) {
         KisFillPainter painter(KisPaintDeviceSP(this));
@@ -318,7 +313,7 @@ void KisPixelSelection::clear(const QRect & r)
     }
 
     if (m_d->outlineCacheValid) {
-        QPainterPath path;
+        PkPainterPath path;
         path.addRect(r);
 
         m_d->outlineCache -= path;
@@ -333,7 +328,7 @@ void KisPixelSelection::clear()
     KisPaintDevice::clear();
 
     m_d->outlineCacheValid = true;
-    m_d->outlineCache = QPainterPath();
+    m_d->outlineCache = PkPainterPath();
 
     // Empty the thumbnail image. It is a valid state.
     m_d->invalidateThumbnailImage();
@@ -344,7 +339,7 @@ void KisPixelSelection::invert()
 {
     // Region is needed here (not exactBounds or extent), because
     // unselected but existing pixels need to be inverted too
-    QRect rc = region().boundingRect();
+    PkRect rc = region().boundingRect();
 
     if (!rc.isEmpty()) {
         KisSequentialIterator it(this, rc);
@@ -356,7 +351,7 @@ void KisPixelSelection::invert()
     setDefaultPixel(KoColor(&defPixel, colorSpace()));
 
     if (m_d->outlineCacheValid) {
-        QPainterPath path;
+        PkPainterPath path;
         path.addRect(defaultBounds()->bounds());
 
         m_d->outlineCache = path - m_d->outlineCache;
@@ -365,13 +360,13 @@ void KisPixelSelection::invert()
     m_d->invalidateThumbnailImage();
 }
 
-void KisPixelSelection::moveTo(const QPoint &pt)
+void KisPixelSelection::moveTo(const PkPoint &pt)
 {
     const int lod = defaultBounds()->currentLevelOfDetail();
-    const QPoint lod0Point = !lod ? pt :
+    const PkPoint lod0Point = !lod ? pt :
         pt * KisLodTransform::lodToInvScale(lod);
 
-    const QPoint offset = lod0Point - m_d->lod0CachesOffset;
+    const PkPoint offset = lod0Point - m_d->lod0CachesOffset;
 
     if (m_d->outlineCacheValid) {
         m_d->outlineCache.translate(offset);
@@ -379,7 +374,7 @@ void KisPixelSelection::moveTo(const QPoint &pt)
 
     if (m_d->thumbnailImageValid) {
         m_d->thumbnailImageTransform =
-            QTransform::fromTranslate(offset.x(), offset.y()) *
+            PkTransform::fromTranslate(offset.x(), offset.y()) *
             m_d->thumbnailImageTransform;
     }
 
@@ -388,27 +383,27 @@ void KisPixelSelection::moveTo(const QPoint &pt)
     KisPaintDevice::moveTo(pt);
 }
 
-bool KisPixelSelection::isTotallyUnselected(const QRect & r) const
+bool KisPixelSelection::isTotallyUnselected(const PkRect & r) const
 {
     if (*defaultPixel().data() != MIN_SELECTED)
         return false;
-    QRect sr = selectedExactRect();
+    PkRect sr = selectedExactRect();
     return ! r.intersects(sr);
 }
 
-QRect KisPixelSelection::selectedRect() const
+PkRect KisPixelSelection::selectedRect() const
 {
     return extent();
 }
 
-QRect KisPixelSelection::selectedExactRect() const
+PkRect KisPixelSelection::selectedExactRect() const
 {
     return exactBounds();
 }
 
-QVector<QPolygon> KisPixelSelection::outline() const
+PkVector<PkPolygon> KisPixelSelection::outline() const
 {
-    QRect selectionExtent = selectedExactRect();
+    PkRect selectionExtent = selectedExactRect();
 
     /**
      * When the default pixel is not fully transparent, the
@@ -431,7 +426,7 @@ QVector<QPolygon> KisPixelSelection::outline() const
         quint8* buffer = new quint8[width*height];
         readBytes(buffer, xOffset, yOffset, width, height);
 
-        QVector<QPolygon> paths = generator.outline(buffer, xOffset, yOffset, width, height);
+        PkVector<PkPolygon> paths = generator.outline(buffer, xOffset, yOffset, width, height);
 
         delete[] buffer;
         return paths;
@@ -449,15 +444,15 @@ bool KisPixelSelection::isEmpty() const
     return *defaultPixel().data() == MIN_SELECTED && selectedRect().isEmpty();
 }
 
-QPainterPath KisPixelSelection::outlineCache() const
+PkPainterPath KisPixelSelection::outlineCache() const
 {
-    QMutexLocker locker(&m_d->outlineCacheMutex);
+    PkMutexLocker locker(&m_d->outlineCacheMutex);
     return m_d->outlineCache;
 }
 
-void KisPixelSelection::setOutlineCache(const QPainterPath &cache)
+void KisPixelSelection::setOutlineCache(const PkPainterPath &cache)
 {
-    QMutexLocker locker(&m_d->outlineCacheMutex);
+    PkMutexLocker locker(&m_d->outlineCacheMutex);
     m_d->outlineCache = cache;
     m_d->outlineCacheValid = true;
     m_d->thumbnailImageValid = false;
@@ -465,25 +460,32 @@ void KisPixelSelection::setOutlineCache(const QPainterPath &cache)
 
 bool KisPixelSelection::outlineCacheValid() const
 {
-    QMutexLocker locker(&m_d->outlineCacheMutex);
+    PkMutexLocker locker(&m_d->outlineCacheMutex);
     return m_d->outlineCacheValid;
 }
 
 void KisPixelSelection::invalidateOutlineCache()
 {
-    QMutexLocker locker(&m_d->outlineCacheMutex);
+    PkMutexLocker locker(&m_d->outlineCacheMutex);
     m_d->outlineCacheValid = false;
     m_d->thumbnailImageValid = false;
 }
 
 void KisPixelSelection::recalculateOutlineCache()
 {
-    QMutexLocker locker(&m_d->outlineCacheMutex);
+    PkMutexLocker locker(&m_d->outlineCacheMutex);
 
-    m_d->outlineCache = QPainterPath();
+    m_d->outlineCache = PkPainterPath();
 
-    Q_FOREACH (const QPolygon &polygon, outline()) {
-        m_d->outlineCache.addPolygon(polygon);
+    Q_FOREACH (const PkPolygon &polygon, outline()) {
+        // PkPolygon(int) -> PkPolygonF(qreal)：PkPolygonF 无 PkPolygon 构造
+        // （Qt 的 PkPolygonF(PkPolygon) 在 pk 未实现），逐点转换。
+        PkPolygonF polygonF;
+        polygonF.reserve(polygon.size());
+        for (const auto &pt : polygon) {
+            polygonF.append(pt);
+        }
+        m_d->outlineCache.addPolygon(polygonF);
 
         /**
          * The outline generation algorithm has a small bug, which
@@ -505,23 +507,23 @@ bool KisPixelSelection::thumbnailImageValid() const
     return m_d->thumbnailImageValid;
 }
 
-QImage KisPixelSelection::thumbnailImage() const
+PkImage KisPixelSelection::thumbnailImage() const
 {
     return m_d->thumbnailImage;
 }
 
-QTransform KisPixelSelection::thumbnailImageTransform() const
+PkTransform KisPixelSelection::thumbnailImageTransform() const
 {
     return m_d->thumbnailImageTransform;
 }
 
-QImage deviceToQImage(KisPaintDeviceSP device,
-                      const QRect &rc,
-                      const QColor &maskColor)
+PkImage deviceToPkImage(KisPaintDeviceSP device,
+                      const PkRect &rc,
+                      const PkColor &maskColor)
 {
-    QImage image(rc.size(), QImage::Format_ARGB32);
+    PkImage image(rc.size(), PkImage::Format_ARGB32);
 
-    QColor color = maskColor;
+    PkColor color = maskColor;
     const qreal alphaScale = maskColor.alphaF();
 
     KisSequentialConstIterator it(device, rc);
@@ -529,7 +531,7 @@ QImage deviceToQImage(KisPaintDeviceSP device,
         quint8 value = (MAX_SELECTED - *(it.rawDataConst())) * alphaScale;
         color.setAlpha(value);
 
-        QPoint pt(it.x(), it.y());
+        PkPoint pt(it.x(), it.y());
         pt -= rc.topLeft();
 
         image.setPixel(pt.x(), pt.y(), color.rgba());
@@ -538,14 +540,14 @@ QImage deviceToQImage(KisPaintDeviceSP device,
     return image;
 }
 
-void KisPixelSelection::recalculateThumbnailImage(const QColor &maskColor)
+void KisPixelSelection::recalculateThumbnailImage(const PkColor &maskColor)
 {
-    QRect rc = selectedExactRect();
+    PkRect rc = selectedExactRect();
     const int maxPreviewSize = 2000;
 
     if (rc.isEmpty()) {
-        m_d->thumbnailImageTransform = QTransform();
-        m_d->thumbnailImage = QImage();
+        m_d->thumbnailImageTransform = PkTransform();
+        m_d->thumbnailImage = PkImage();
         return;
     }
 
@@ -565,19 +567,19 @@ void KisPixelSelection::recalculateThumbnailImage(const QColor &maskColor)
         int newHeight = qRound(rc.height() * factor);
 
         m_d->thumbnailImageTransform =
-            QTransform::fromScale(qreal(rc.width()) / newWidth,
+            PkTransform::fromScale(qreal(rc.width()) / newWidth,
                                   qreal(rc.height()) / newHeight) *
-            QTransform::fromTranslate(rc.x(), rc.y());
+            PkTransform::fromTranslate(rc.x(), rc.y());
 
         KisPaintDeviceSP thumbDevice =
             createThumbnailDevice(newWidth, newHeight, rc);
 
-        QRect thumbRect(0, 0, newWidth, newHeight);
-        m_d->thumbnailImage = deviceToQImage(thumbDevice, thumbRect, maskColor);
+        PkRect thumbRect(0, 0, newWidth, newHeight);
+        m_d->thumbnailImage = deviceToPkImage(thumbDevice, thumbRect, maskColor);
 
     } else {
-        m_d->thumbnailImageTransform = QTransform::fromTranslate(rc.x(), rc.y());
-        m_d->thumbnailImage = deviceToQImage(this, rc, maskColor);
+        m_d->thumbnailImageTransform = PkTransform::fromTranslate(rc.x(), rc.y());
+        m_d->thumbnailImage = deviceToPkImage(this, rc, maskColor);
     }
 
     m_d->thumbnailImageValid = true;
@@ -598,9 +600,9 @@ void KisPixelSelection::renderToProjection(KisPaintDeviceSP projection)
     renderToProjection(projection, selectedExactRect());
 }
 
-void KisPixelSelection::renderToProjection(KisPaintDeviceSP projection, const QRect& rc)
+void KisPixelSelection::renderToProjection(KisPaintDeviceSP projection, const PkRect& rc)
 {
-    QRect updateRect = rc & selectedExactRect();
+    PkRect updateRect = rc & selectedExactRect();
 
     if (updateRect.isValid()) {
         KisPainter::copyAreaOptimized(updateRect.topLeft(), KisPaintDeviceSP(this), projection, updateRect);

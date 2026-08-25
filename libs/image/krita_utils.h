@@ -7,18 +7,23 @@
 #ifndef __KRITA_UTILS_H
 #define __KRITA_UTILS_H
 
-class QRect;
-class QRectF;
-class QSize;
-class QPen;
-class QPointF;
-class QPainterPath;
-class QBitArray;
-class QPainter;
+class PkRect;
+class PkRectF;
+class PkSize;
+class PkPen;
+class PkPoint;
+class PkPointF;
+class PkPainterPath;
+class PkBitArray;
+class PkPainter;
+class PkImage;
+class PkRegion;
+class PkTransform;
 struct KisRenderedDab;
 class KisRegion;
 
-#include <QVector>
+#include <PkVector.h>
+#include <PkList.h>
 #include "kritaimage_export.h"
 #include "kis_types.h"
 #include "krita_container_utils.h"
@@ -27,20 +32,20 @@ class KisRegion;
 
 namespace KritaUtils
 {
-    QSize KRITAIMAGE_EXPORT optimalPatchSize();
+    PkSize KRITAIMAGE_EXPORT optimalPatchSize();
 
-    QVector<QRect> KRITAIMAGE_EXPORT splitRectIntoPatches(const QRect &rc, const QSize &patchSize);
-    QVector<QRect> KRITAIMAGE_EXPORT splitRectIntoPatchesTight(const QRect &rc, const QSize &patchSize);
-    QVector<QRect> KRITAIMAGE_EXPORT splitRegionIntoPatches(const QRegion &region, const QSize &patchSize);
-    QVector<QRect> KRITAIMAGE_EXPORT splitRegionIntoPatches(const KisRegion &region, const QSize &patchSize);
+    PkVector<PkRect> KRITAIMAGE_EXPORT splitRectIntoPatches(const PkRect &rc, const PkSize &patchSize);
+    PkVector<PkRect> KRITAIMAGE_EXPORT splitRectIntoPatchesTight(const PkRect &rc, const PkSize &patchSize);
+    PkVector<PkRect> KRITAIMAGE_EXPORT splitRegionIntoPatches(const PkRegion &region, const PkSize &patchSize);
+    PkVector<PkRect> KRITAIMAGE_EXPORT splitRegionIntoPatches(const KisRegion &region, const PkSize &patchSize);
 
-    KRITAIMAGE_EXPORT KisRegion splitTriangles(const QPointF &center,
-                                             const QVector<QPointF> &points);
-    KRITAIMAGE_EXPORT KisRegion splitPath(const QPainterPath &path);
+    KRITAIMAGE_EXPORT KisRegion splitTriangles(const PkPointF &center,
+                                             const PkVector<PkPointF> &points);
+    KRITAIMAGE_EXPORT KisRegion splitPath(const PkPainterPath &path);
 
-    QString KRITAIMAGE_EXPORT prettyFormatReal(qreal value);
+    PkString KRITAIMAGE_EXPORT prettyFormatReal(qreal value);
 
-    qreal KRITAIMAGE_EXPORT maxDimensionPortion(const QRectF &bounds, qreal portion, qreal minValue);
+    qreal KRITAIMAGE_EXPORT maxDimensionPortion(const PkRectF &bounds, qreal portion, qreal minValue);
 
 
     /**
@@ -53,15 +58,15 @@ namespace KritaUtils
      * although it shouldn't according to odd-even-fill rule. It is still
      * to be fixed.
      */
-    QList<QPainterPath> KRITAIMAGE_EXPORT splitDisjointPaths(const QPainterPath &path);
+    PkList<PkPainterPath> KRITAIMAGE_EXPORT splitDisjointPaths(const PkPainterPath &path);
 
 
     quint8 KRITAIMAGE_EXPORT mergeOpacityU8(quint8 opacity, quint8 parentOpacity);
     qreal KRITAIMAGE_EXPORT mergeOpacityF(qreal opacity, qreal parentOpacity);
-    QBitArray KRITAIMAGE_EXPORT mergeChannelFlags(const QBitArray &flags, const QBitArray &parentFlags);
+    PkBitArray KRITAIMAGE_EXPORT mergeChannelFlags(const PkBitArray &flags, const PkBitArray &parentFlags);
 
-    bool KRITAIMAGE_EXPORT compareChannelFlags(QBitArray f1, QBitArray f2);
-    QString KRITAIMAGE_EXPORT toLocalizedOnOff(bool value);
+    bool KRITAIMAGE_EXPORT compareChannelFlags(PkBitArray f1, PkBitArray f2);
+    PkString KRITAIMAGE_EXPORT toLocalizedOnOff(bool value);
 
     KisNodeSP KRITAIMAGE_EXPORT nearestNodeAfterRemoval(KisNodeSP node);
 
@@ -75,27 +80,27 @@ namespace KritaUtils
      *  outside the virtual rectangle the rect defines. This methods overcome this issue by
      *  painting the adjusted rect.
      */
-    void KRITAIMAGE_EXPORT renderExactRect(QPainter *p, const QRect &rc);
+    void KRITAIMAGE_EXPORT renderExactRect(PkPainter *p, const PkRect &rc);
 
     /**
-     * \see renderExactRect(QPainter *p, const QRect &rc)
+     * \see renderExactRect(PkPainter *p, const PkRect &rc)
      */
-    void KRITAIMAGE_EXPORT renderExactRect(QPainter *p, const QRect &rc, const QPen &pen);
+    void KRITAIMAGE_EXPORT renderExactRect(PkPainter *p, const PkRect &rc, const PkPen &pen);
 
-    QImage KRITAIMAGE_EXPORT convertQImageToGrayA(const QImage &image);
+    PkImage KRITAIMAGE_EXPORT convertQImageToGrayA(const PkImage &image);
 
-    void KRITAIMAGE_EXPORT applyToAlpha8Device(KisPaintDeviceSP dev, const QRect &rc, std::function<void(quint8)> func);
-    void KRITAIMAGE_EXPORT filterAlpha8Device(KisPaintDeviceSP dev, const QRect &rc, std::function<quint8(quint8)> func);
+    void KRITAIMAGE_EXPORT applyToAlpha8Device(KisPaintDeviceSP dev, const PkRect &rc, std::function<void(quint8)> func);
+    void KRITAIMAGE_EXPORT filterAlpha8Device(KisPaintDeviceSP dev, const PkRect &rc, std::function<quint8(quint8)> func);
 
-    qreal KRITAIMAGE_EXPORT estimatePortionOfTransparentPixels(KisPaintDeviceSP dev, const QRect &rect, qreal samplePortion);
+    qreal KRITAIMAGE_EXPORT estimatePortionOfTransparentPixels(KisPaintDeviceSP dev, const PkRect &rect, qreal samplePortion);
 
-    void KRITAIMAGE_EXPORT mirrorDab(Qt::Orientation dir, const QPoint &center, KisRenderedDab *dab, bool skipMirrorPixels = false);
-    void KRITAIMAGE_EXPORT mirrorDab(Qt::Orientation dir, const QPointF &center, KisRenderedDab *dab, bool skipMirrorPixels = false);
+    void KRITAIMAGE_EXPORT mirrorDab(Qt::Orientation dir, const PkPoint &center, KisRenderedDab *dab, bool skipMirrorPixels = false);
+    void KRITAIMAGE_EXPORT mirrorDab(Qt::Orientation dir, const PkPointF &center, KisRenderedDab *dab, bool skipMirrorPixels = false);
 
-    void KRITAIMAGE_EXPORT mirrorRect(Qt::Orientation dir, const QPoint &center, QRect *rc);
-    void KRITAIMAGE_EXPORT mirrorRect(Qt::Orientation dir, const QPointF &center, QRect *rc);
-    void KRITAIMAGE_EXPORT mirrorPoint(Qt::Orientation dir, const QPoint &center, QPointF *pt);
-    void KRITAIMAGE_EXPORT mirrorPoint(Qt::Orientation dir, const QPointF &center, QPointF *pt);
+    void KRITAIMAGE_EXPORT mirrorRect(Qt::Orientation dir, const PkPoint &center, PkRect *rc);
+    void KRITAIMAGE_EXPORT mirrorRect(Qt::Orientation dir, const PkPointF &center, PkRect *rc);
+    void KRITAIMAGE_EXPORT mirrorPoint(Qt::Orientation dir, const PkPoint &center, PkPointF *pt);
+    void KRITAIMAGE_EXPORT mirrorPoint(Qt::Orientation dir, const PkPointF &center, PkPointF *pt);
 
 
     /**
@@ -105,17 +110,17 @@ namespace KritaUtils
      *
      * The problem is that Qt's path boolean operation do not support curves,
      * therefore all the curves are converted into lines
-     * (see QPathSegments::addPath()). The curves are split into lines using
+     * (见 Qt 原始 path 分段器 addPath). The curves are split into lines using
      * absolute size of the curve for the threshold. Therefore, when applying
      * boolean operations we should convert them into 'image pixel' coordinate
      * space first.
      *
      * See https://bugs.kde.org/show_bug.cgi?id=411056
      */
-    QTransform KRITAIMAGE_EXPORT pathShapeBooleanSpaceWorkaround(KisImageSP image);
+    PkTransform KRITAIMAGE_EXPORT pathShapeBooleanSpaceWorkaround(KisImageSP image);
 
     /**
-     * Sometimes, when intersecting two paths, QPainterPath
+     * Sometimes, when intersecting two paths, 路径类型
      * does not close some of the subpaths. It causes glitches
      * when rendering them on screen. So we should just close
      * them explicitly.
@@ -126,7 +131,7 @@ namespace KritaUtils
      *
      * See: https://bugs.kde.org/show_bug.cgi?id=408369
      */
-    QPainterPath KRITAIMAGE_EXPORT tryCloseTornSubpathsAfterIntersection(QPainterPath path);
+    PkPainterPath KRITAIMAGE_EXPORT tryCloseTornSubpathsAfterIntersection(PkPainterPath path);
 
     enum ThresholdMode {
         ThresholdNone = 0,
@@ -135,13 +140,13 @@ namespace KritaUtils
         ThresholdMaxOut
     };
 
-    void thresholdOpacity(KisPaintDeviceSP device, const QRect &rect, ThresholdMode mode);
-    void thresholdOpacityAlpha8(KisPaintDeviceSP device, const QRect &rect, ThresholdMode mode);
+    void thresholdOpacity(KisPaintDeviceSP device, const PkRect &rect, ThresholdMode mode);
+    void thresholdOpacityAlpha8(KisPaintDeviceSP device, const PkRect &rect, ThresholdMode mode);
 
     template <typename Visitor>
-    void rasterizeHLine(const QPoint &startPoint, const QPoint &endPoint, Visitor visitor)
+    void rasterizeHLine(const PkPoint &startPoint, const PkPoint &endPoint, Visitor visitor)
     {
-        QVector<QPoint> points;
+        PkVector<PkPoint> points;
         int startX, endX;
         if (startPoint.x() < endPoint.x()) {
             startX = startPoint.x();
@@ -151,14 +156,14 @@ namespace KritaUtils
             endX = startPoint.x();
         }
         for (int x = startX; x <= endX; ++x) {
-            visitor(QPoint(x, startPoint.y()));
+            visitor(PkPoint(x, startPoint.y()));
         }
     }
 
     template <typename Visitor>
-    void rasterizeVLine(const QPoint &startPoint, const QPoint &endPoint, Visitor visitor)
+    void rasterizeVLine(const PkPoint &startPoint, const PkPoint &endPoint, Visitor visitor)
     {
-        QVector<QPoint> points;
+        PkVector<PkPoint> points;
         int startY, endY;
         if (startPoint.y() < endPoint.y()) {
             startY = startPoint.y();
@@ -168,14 +173,14 @@ namespace KritaUtils
             endY = startPoint.y();
         }
         for (int y = startY; y <= endY; ++y) {
-            visitor(QPoint(startPoint.x(), y));
+            visitor(PkPoint(startPoint.x(), y));
         }
     }
 
     template <typename Visitor>
-    void rasterizeLineDDA(const QPoint &startPoint, const QPoint &endPoint, Visitor visitor)
+    void rasterizeLineDDA(const PkPoint &startPoint, const PkPoint &endPoint, Visitor visitor)
     {
-        QVector<QPoint> points;
+        PkVector<PkPoint> points;
 
         if (startPoint == endPoint) {
             visitor(startPoint);
@@ -190,9 +195,9 @@ namespace KritaUtils
             return;
         }
 
-        const QPoint delta = endPoint - startPoint;
-        QPoint currentPosition = startPoint;
-        QPointF currentPositionF = startPoint;
+        const PkPoint delta = endPoint - startPoint;
+        PkPoint currentPosition = startPoint;
+        PkPointF currentPositionF = startPoint;
         qreal m = static_cast<qreal>(delta.y()) / static_cast<qreal>(delta.x());
         int increment;
 
@@ -206,7 +211,7 @@ namespace KritaUtils
             }
             while (currentPosition.y() != endPoint.y()) {
                 currentPositionF.setX(currentPositionF.x() + m);
-                currentPosition = QPoint(static_cast<int>(qRound(currentPositionF.x())),
+                currentPosition = PkPoint(static_cast<int>(qRound(currentPositionF.x())),
                                         currentPosition.y() + increment);
                 visitor(currentPosition);
             }
@@ -219,7 +224,7 @@ namespace KritaUtils
             }
             while (currentPosition.x() != endPoint.x()) {
                 currentPositionF.setY(currentPositionF.y() + m);
-                currentPosition = QPoint(currentPosition.x() + increment,
+                currentPosition = PkPoint(currentPosition.x() + increment,
                                         static_cast<int>(qRound(currentPositionF.y())));
                 visitor(currentPosition);
             }
@@ -227,7 +232,7 @@ namespace KritaUtils
     }
 
     template <typename Visitor>
-    void rasterizePolylineDDA(const QVector<QPoint> &polylinePoints, Visitor visitor)
+    void rasterizePolylineDDA(const PkVector<PkPoint> &polylinePoints, Visitor visitor)
     {
         if (polylinePoints.size() == 0) {
             return;
@@ -245,7 +250,7 @@ namespace KritaUtils
             int pointIndex = 0;
             rasterizeLineDDA(
                 polylinePoints[i], polylinePoints[i + 1],
-                [&pointIndex, &visitor](const QPoint &point) -> void
+                [&pointIndex, &visitor](const PkPoint &point) -> void
                 {
                     if (pointIndex > 0) {
                         visitor(point);
@@ -257,7 +262,7 @@ namespace KritaUtils
     }
 
     template <typename Visitor>
-    void rasterizePolygonDDA(const QVector<QPoint> &polygonPoints, Visitor visitor)
+    void rasterizePolygonDDA(const PkVector<PkPoint> &polygonPoints, Visitor visitor)
     {
         // this is a line
         if (polygonPoints.size() < 3) {
@@ -265,11 +270,11 @@ namespace KritaUtils
             return;
         }
         // rasterize all segments except the last one
-        QPoint lastSegmentStart;
+        PkPoint lastSegmentStart;
         if (polygonPoints.first() == polygonPoints.last()) {
             // mid(0, size-1) == 去掉末尾重复闭合点后的子序列；PkVector 无 mid()，
-            // 用「拷贝 + resize 截断」等价实现（真 Qt QVector 与壳 PkVector 均成立）。
-            QVector<QPoint> subPoints(polygonPoints);
+            // 用「拷贝 + resize 截断」等价实现（真 Qt 容器与壳 PkVector 均成立）。
+            PkVector<PkPoint> subPoints(polygonPoints);
             subPoints.resize(polygonPoints.size() - 1);
             rasterizePolylineDDA(subPoints, visitor);
             lastSegmentStart = polygonPoints[polygonPoints.size() - 2];
@@ -279,8 +284,8 @@ namespace KritaUtils
         }
         // close the polygon
         {
-            QVector<QPoint> points;
-            auto addPoint = [&points](const QPoint &point) -> void { points.append(point); };
+            PkVector<PkPoint> points;
+            auto addPoint = [&points](const PkPoint &point) -> void { points.append(point); };
             rasterizeLineDDA(lastSegmentStart, polygonPoints.first(), addPoint);
             for (int i = 1; i < points.size() - 1; ++i) {
                 visitor(points[i]);
@@ -289,11 +294,11 @@ namespace KritaUtils
     }
 
     // Convenience functions
-    QVector<QPoint> KRITAIMAGE_EXPORT rasterizeHLine(const QPoint &startPoint, const QPoint &endPoint);
-    QVector<QPoint> KRITAIMAGE_EXPORT rasterizeVLine(const QPoint &startPoint, const QPoint &endPoint);
-    QVector<QPoint> KRITAIMAGE_EXPORT rasterizeLineDDA(const QPoint &startPoint, const QPoint &endPoint);
-    QVector<QPoint> KRITAIMAGE_EXPORT rasterizePolylineDDA(const QVector<QPoint> &polylinePoints);
-    QVector<QPoint> KRITAIMAGE_EXPORT rasterizePolygonDDA(const QVector<QPoint> &polygonPoints);
+    PkVector<PkPoint> KRITAIMAGE_EXPORT rasterizeHLine(const PkPoint &startPoint, const PkPoint &endPoint);
+    PkVector<PkPoint> KRITAIMAGE_EXPORT rasterizeVLine(const PkPoint &startPoint, const PkPoint &endPoint);
+    PkVector<PkPoint> KRITAIMAGE_EXPORT rasterizeLineDDA(const PkPoint &startPoint, const PkPoint &endPoint);
+    PkVector<PkPoint> KRITAIMAGE_EXPORT rasterizePolylineDDA(const PkVector<PkPoint> &polylinePoints);
+    PkVector<PkPoint> KRITAIMAGE_EXPORT rasterizePolygonDDA(const PkVector<PkPoint> &polygonPoints);
 }
 
 #endif /* __KRITA_UTILS_H */

@@ -30,7 +30,7 @@ KUndo2MagicString KisSelectionFilter::name()
     return KUndo2MagicString();
 }
 
-QRect KisSelectionFilter::changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds)
+PkRect KisSelectionFilter::changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds)
 {
     Q_UNUSED(defaultBounds);
     return rect;
@@ -113,10 +113,10 @@ void KisSelectionFilter::computeTransition(quint8* transition, quint8** buf, qin
 
 KUndo2MagicString KisErodeSelectionFilter::name()
 {
-    return kundo2_i18n("Erode Selection");
+    return kundo2_text("Erode Selection");
 }
 
-QRect KisErodeSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsBaseSP defaultBounds)
+PkRect KisErodeSelectionFilter::changeRect(const PkRect& rect, KisDefaultBoundsBaseSP defaultBounds)
 {
     Q_UNUSED(defaultBounds);
 
@@ -124,7 +124,7 @@ QRect KisErodeSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsBas
     return rect.adjusted(-radius, -radius, radius, radius);
 }
 
-void KisErodeSelectionFilter::process(KisPixelSelectionSP pixelSelection, const QRect& rect)
+void KisErodeSelectionFilter::process(KisPixelSelectionSP pixelSelection, const PkRect& rect)
 {
     // Erode (radius 1 pixel) a mask (1bpp)
     quint8* buf[3];
@@ -179,10 +179,10 @@ void KisErodeSelectionFilter::process(KisPixelSelectionSP pixelSelection, const 
 
 KUndo2MagicString KisDilateSelectionFilter::name()
 {
-    return kundo2_i18n("Dilate Selection");
+    return kundo2_text("Dilate Selection");
 }
 
-QRect KisDilateSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsBaseSP defaultBounds)
+PkRect KisDilateSelectionFilter::changeRect(const PkRect& rect, KisDefaultBoundsBaseSP defaultBounds)
 {
     Q_UNUSED(defaultBounds);
 
@@ -190,7 +190,7 @@ QRect KisDilateSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsBa
     return rect.adjusted(-radius, -radius, radius, radius);
 }
 
-void KisDilateSelectionFilter::process(KisPixelSelectionSP pixelSelection, const QRect& rect)
+void KisDilateSelectionFilter::process(KisPixelSelectionSP pixelSelection, const PkRect& rect)
  {
     // dilate (radius 1 pixel) a mask (1bpp)
     quint8* buf[3];
@@ -252,17 +252,17 @@ KisBorderSelectionFilter::KisBorderSelectionFilter(qint32 xRadius, qint32 yRadiu
 
 KUndo2MagicString KisBorderSelectionFilter::name()
 {
-    return kundo2_i18n("Border Selection");
+    return kundo2_text("Border Selection");
 }
 
-QRect KisBorderSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsBaseSP defaultBounds)
+PkRect KisBorderSelectionFilter::changeRect(const PkRect& rect, KisDefaultBoundsBaseSP defaultBounds)
 {
     Q_UNUSED(defaultBounds);
 
     return rect.adjusted(-m_xRadius, -m_yRadius, m_xRadius, m_yRadius);
 }
 
-void KisBorderSelectionFilter::process(KisPixelSelectionSP pixelSelection, const QRect& rect)
+void KisBorderSelectionFilter::process(KisPixelSelectionSP pixelSelection, const PkRect& rect)
 {
     if (m_xRadius <= 0 || m_yRadius <= 0) return;
 
@@ -496,10 +496,10 @@ KisFeatherSelectionFilter::KisFeatherSelectionFilter(qint32 radius)
 
 KUndo2MagicString KisFeatherSelectionFilter::name()
 {
-    return kundo2_i18n("Feather Selection");
+    return kundo2_text("Feather Selection");
 }
 
-QRect KisFeatherSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsBaseSP defaultBounds)
+PkRect KisFeatherSelectionFilter::changeRect(const PkRect& rect, KisDefaultBoundsBaseSP defaultBounds)
 {
     Q_UNUSED(defaultBounds);
 
@@ -507,7 +507,7 @@ QRect KisFeatherSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsB
                          m_radius, m_radius);
 }
 
-void KisFeatherSelectionFilter::process(KisPixelSelectionSP pixelSelection, const QRect& rect)
+void KisFeatherSelectionFilter::process(KisPixelSelectionSP pixelSelection, const PkRect& rect)
 {
     // compute horizontal kernel
     const uint kernelSize = m_radius * 2 + 1;
@@ -547,17 +547,17 @@ KisGrowSelectionFilter::KisGrowSelectionFilter(qint32 xRadius, qint32 yRadius)
 
 KUndo2MagicString KisGrowSelectionFilter::name()
 {
-    return kundo2_i18n("Grow Selection");
+    return kundo2_text("Grow Selection");
 }
 
-QRect KisGrowSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsBaseSP defaultBounds)
+PkRect KisGrowSelectionFilter::changeRect(const PkRect& rect, KisDefaultBoundsBaseSP defaultBounds)
 {
     Q_UNUSED(defaultBounds);
 
     return rect.adjusted(-m_xRadius, -m_yRadius, m_xRadius, m_yRadius);
 }
 
-void KisGrowSelectionFilter::process(KisPixelSelectionSP pixelSelection, const QRect& rect)
+void KisGrowSelectionFilter::process(KisPixelSelectionSP pixelSelection, const PkRect& rect)
 {
     if (m_xRadius <= 0 || m_yRadius <= 0) return;
 
@@ -676,15 +676,15 @@ KisShrinkSelectionFilter::KisShrinkSelectionFilter(qint32 xRadius, qint32 yRadiu
 
 KUndo2MagicString KisShrinkSelectionFilter::name()
 {
-    return kundo2_i18n("Shrink Selection");
+    return kundo2_text("Shrink Selection");
 }
 
-QRect KisShrinkSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsBaseSP defaultBounds)
+PkRect KisShrinkSelectionFilter::changeRect(const PkRect& rect, KisDefaultBoundsBaseSP defaultBounds)
 {
     return m_edgeLock ? defaultBounds->imageBorderRect() : rect;
 }
 
-void KisShrinkSelectionFilter::process(KisPixelSelectionSP pixelSelection, const QRect& rect)
+void KisShrinkSelectionFilter::process(KisPixelSelectionSP pixelSelection, const PkRect& rect)
 {
     if (m_xRadius <= 0 || m_yRadius <= 0) return;
 
@@ -819,10 +819,10 @@ void KisShrinkSelectionFilter::process(KisPixelSelectionSP pixelSelection, const
 
 KUndo2MagicString KisSmoothSelectionFilter::name()
 {
-    return kundo2_i18n("Smooth Selection");
+    return kundo2_text("Smooth Selection");
 }
 
-QRect KisSmoothSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsBaseSP defaultBounds)
+PkRect KisSmoothSelectionFilter::changeRect(const PkRect& rect, KisDefaultBoundsBaseSP defaultBounds)
 {
     Q_UNUSED(defaultBounds);
 
@@ -830,7 +830,7 @@ QRect KisSmoothSelectionFilter::changeRect(const QRect& rect, KisDefaultBoundsBa
     return rect.adjusted(-radius, -radius, radius, radius);
 }
 
-void KisSmoothSelectionFilter::process(KisPixelSelectionSP pixelSelection, const QRect& rect)
+void KisSmoothSelectionFilter::process(KisPixelSelectionSP pixelSelection, const PkRect& rect)
 {
     // Simple convolution filter to smooth a mask (1bpp)
     quint8      *buf[3];
@@ -882,16 +882,16 @@ void KisSmoothSelectionFilter::process(KisPixelSelectionSP pixelSelection, const
 
 KUndo2MagicString KisInvertSelectionFilter::name()
 {
-    return kundo2_i18n("Invert Selection");
+    return kundo2_text("Invert Selection");
 }
 
-QRect KisInvertSelectionFilter::changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds)
+PkRect KisInvertSelectionFilter::changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds)
 {
     Q_UNUSED(rect);
     return defaultBounds->bounds();
 }
 
-void KisInvertSelectionFilter::process(KisPixelSelectionSP pixelSelection, const QRect& rect)
+void KisInvertSelectionFilter::process(KisPixelSelectionSP pixelSelection, const PkRect& rect)
 {
     Q_UNUSED(rect);
 
@@ -900,8 +900,8 @@ void KisInvertSelectionFilter::process(KisPixelSelectionSP pixelSelection, const
      * of the parent device, which is not what we want here. Hence we
      * should request imageBorderRect() directly.
      */
-    const QRect imageRect = pixelSelection->defaultBounds()->imageBorderRect();
-    const QRect selectionRect = pixelSelection->selectedExactRect();
+    const PkRect imageRect = pixelSelection->defaultBounds()->imageBorderRect();
+    const PkRect selectionRect = pixelSelection->selectedExactRect();
 
     /**
      * A special treatment for the user-visible selection inversion:
@@ -932,7 +932,7 @@ constexpr qint32 KisAntiAliasSelectionFilter::offsets[numSteps];
 
 KUndo2MagicString KisAntiAliasSelectionFilter::name()
 {
-    return kundo2_i18n("Anti-Alias Selection");
+    return kundo2_text("Anti-Alias Selection");
 }
 
 bool KisAntiAliasSelectionFilter::getInterpolationValue(qint32 negativeSpanEndDistance,
@@ -1028,7 +1028,7 @@ void KisAntiAliasSelectionFilter::findSpanExtremes(quint8 **scanlines, qint32 x,
                     currentPixelDiff, positiveSpanEndDistance, positivePixelDiff, positiveSpanExtremeValid);
 }
 
-void KisAntiAliasSelectionFilter::process(KisPixelSelectionSP pixelSelection, const QRect &rect)
+void KisAntiAliasSelectionFilter::process(KisPixelSelectionSP pixelSelection, const PkRect &rect)
 {
     const quint8 defaultPixel = *pixelSelection->defaultPixel().data();
     // Size of a scanline
@@ -1038,7 +1038,7 @@ void KisAntiAliasSelectionFilter::process(KisPixelSelectionSP pixelSelection, co
 
     // This buffer contains the number of consecutive scanlines needed to
     // process the current scanline
-    QVector<quint8> buffer(bytesPerPaddedScanline * numberOfScanlines);
+    PkVector<quint8> buffer(bytesPerPaddedScanline * numberOfScanlines);
 
     // These pointers point to the individual scanlines in the buffer
     quint8 *scanlines[numberOfScanlines];
@@ -1068,7 +1068,7 @@ void KisAntiAliasSelectionFilter::process(KisPixelSelectionSP pixelSelection, co
         }
     }
     // Buffer that contains the current output scanline
-    QVector<quint8> antialiasedScanline(rect.width());
+    PkVector<quint8> antialiasedScanline(rect.width());
     // Main loop
     for (int y = 0; y < rect.height(); ++y)
     {
@@ -1197,17 +1197,17 @@ KisGrowUntilDarkestPixelSelectionFilter::KisGrowUntilDarkestPixelSelectionFilter
 
 KUndo2MagicString KisGrowUntilDarkestPixelSelectionFilter::name()
 {
-    return kundo2_i18n("Grow Selection Until Darkest Pixel");
+    return kundo2_text("Grow Selection Until Darkest Pixel");
 }
 
-QRect KisGrowUntilDarkestPixelSelectionFilter::changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds)
+PkRect KisGrowUntilDarkestPixelSelectionFilter::changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds)
 {
     Q_UNUSED(defaultBounds);
 
     return rect.adjusted(-m_radius, -m_radius, m_radius, m_radius);
 }
 
-void KisGrowUntilDarkestPixelSelectionFilter::process(KisPixelSelectionSP pixelSelection, const QRect &rect)
+void KisGrowUntilDarkestPixelSelectionFilter::process(KisPixelSelectionSP pixelSelection, const PkRect &rect)
 {
     // Copy the original selection. We will grow this adaptively until the
     // darkest or more opaque pixels or until the maximum grow is reached.
@@ -1226,9 +1226,9 @@ void KisGrowUntilDarkestPixelSelectionFilter::process(KisPixelSelectionSP pixelS
     const qint32 referencePixelSize = referenceColorSpace->pixelSize();
     const qint32 referenceScanLineSize = maskScanLineSize * referencePixelSize;
     // Some buffers to store the working scanlines
-    QVector<quint8> maskBuffer(maskScanLineSize * 2);
-    QVector<quint8> referenceBuffer(referenceScanLineSize * 2);
-    QVector<quint8> selectionBuffer(maskScanLineSize);
+    PkVector<quint8> maskBuffer(maskScanLineSize * 2);
+    PkVector<quint8> referenceBuffer(referenceScanLineSize * 2);
+    PkVector<quint8> selectionBuffer(maskScanLineSize);
     quint8 *maskScanLines[2] = {maskBuffer.data(), maskBuffer.data() + maskScanLineSize};
     quint8 *referenceScanLines[2] = {referenceBuffer.data(), referenceBuffer.data() + referenceScanLineSize};
     quint8 *selectionScanLine = selectionBuffer.data();

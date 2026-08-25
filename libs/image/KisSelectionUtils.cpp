@@ -18,7 +18,7 @@ KisLayerSP activeLayerForNode(KisNodeSP node)
     if (dynamic_cast<KisMask *>(node.data())) {
         node = node->parent();
     }
-    return qobject_cast<KisLayer *>(node.data());
+    return dynamic_cast<KisLayer *>(node.data());
 }
 
 }

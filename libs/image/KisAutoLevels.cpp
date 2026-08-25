@@ -15,7 +15,7 @@
 namespace KisAutoLevels
 {
 
-QPair<qreal, qreal> getMeanAndMedian(ChannelHistogram histogram, qreal begin, qreal end)
+PkPair<qreal, qreal> getMeanAndMedian(ChannelHistogram histogram, qreal begin, qreal end)
 {
     Q_ASSERT(histogram.histogram);
     Q_ASSERT(histogram.channel >= 0 && histogram.channel < histogram.histogram->producer()->channels().size());
@@ -51,7 +51,7 @@ QPair<qreal, qreal> getMeanAndMedian(ChannelHistogram histogram, qreal begin, qr
     return {mean, median};
 }
 
-QPair<qreal, qreal> getInputBlackAndWhitePoints(ChannelHistogram histogram,
+PkPair<qreal, qreal> getInputBlackAndWhitePoints(ChannelHistogram histogram,
                                                 qreal shadowsClipping,
                                                 qreal highlightsClipping)
 {
@@ -112,7 +112,7 @@ QPair<qreal, qreal> getInputBlackAndWhitePoints(ChannelHistogram histogram,
         };
 }
 
-QPair<KoColor, KoColor> getDarkestAndWhitestColors(const KisPaintDeviceSP device,
+PkPair<KoColor, KoColor> getDarkestAndWhitestColors(const KisPaintDeviceSP device,
                                                    qreal shadowsClipping,
                                                    qreal highlightsClipping);
 
@@ -135,16 +135,16 @@ qreal getGamma(qreal blackPoint, qreal whitePoint, qreal inputIntensity, qreal o
 }
 
 
-QVector<KisLevelsCurve> adjustMonochromaticContrast(ChannelHistogram lightnessHistogram,
-                                                   QVector<ChannelHistogram> &channelsHistograms,
+PkVector<KisLevelsCurve> adjustMonochromaticContrast(ChannelHistogram lightnessHistogram,
+                                                   PkVector<ChannelHistogram> &channelsHistograms,
                                                    qreal shadowsClipping,
                                                    qreal highlightsClipping,
                                                    qreal maximumInputBlackAndWhiteOffset,
                                                    MidtonesAdjustmentMethod midtonesAdjustmentMethod,
                                                    qreal midtonesAdjustmentAmount,
-                                                   const QVector<qreal> &outputBlackPoints,
-                                                   const QVector<qreal> &outputWhitePoints,
-                                                   const QVector<qreal> &outputMidtones)
+                                                   const PkVector<qreal> &outputBlackPoints,
+                                                   const PkVector<qreal> &outputWhitePoints,
+                                                   const PkVector<qreal> &outputMidtones)
 {
     Q_ASSERT(lightnessHistogram.histogram);
     Q_ASSERT(lightnessHistogram.channel >= 0);
@@ -153,9 +153,9 @@ QVector<KisLevelsCurve> adjustMonochromaticContrast(ChannelHistogram lightnessHi
     Q_ASSERT(outputWhitePoints.size() == channelsHistograms.size());
     Q_ASSERT(outputMidtones.size() == channelsHistograms.size());
 
-    QVector<KisLevelsCurve> levelsCurves;
+    PkVector<KisLevelsCurve> levelsCurves;
 
-    const QPair<qreal, qreal> inputBlackAndWhitePoints =
+    const PkPair<qreal, qreal> inputBlackAndWhitePoints =
         getInputBlackAndWhitePoints(lightnessHistogram, shadowsClipping, highlightsClipping);
     const qreal inputBlackPoint = qMin(maximumInputBlackAndWhiteOffset, inputBlackAndWhitePoints.first);
     const qreal inputWhitePoint = qMax(1.0 - maximumInputBlackAndWhiteOffset, inputBlackAndWhitePoints.second);
@@ -171,7 +171,7 @@ QVector<KisLevelsCurve> adjustMonochromaticContrast(ChannelHistogram lightnessHi
             channelHistogram.channel < channelHistogram.histogram->producer()->channels().size()) {
 
             qreal inputIntensity;
-            QPair<qreal, qreal> meanAndMedian = getMeanAndMedian(channelHistogram, inputBlackPoint, inputWhitePoint);
+            PkPair<qreal, qreal> meanAndMedian = getMeanAndMedian(channelHistogram, inputBlackPoint, inputWhitePoint);
 
             if (midtonesAdjustmentMethod == MidtonesAdjustmentMethod_UseMean) {
                 inputIntensity = meanAndMedian.first;
@@ -197,20 +197,20 @@ QVector<KisLevelsCurve> adjustMonochromaticContrast(ChannelHistogram lightnessHi
     return levelsCurves;
 }
 
-QVector<KisLevelsCurve> adjustPerChannelContrast(QVector<ChannelHistogram> &channelsHistograms,
+PkVector<KisLevelsCurve> adjustPerChannelContrast(PkVector<ChannelHistogram> &channelsHistograms,
                                                 qreal shadowsClipping,
                                                 qreal highlightsClipping,
                                                 qreal maximumInputBlackAndWhiteOffset,
                                                 MidtonesAdjustmentMethod midtonesAdjustmentMethod,
                                                 qreal midtonesAdjustmentAmount,
-                                                const QVector<qreal> &outputBlackPoints,
-                                                const QVector<qreal> &outputWhitePoints,
-                                                const QVector<qreal> &outputMidtones)
+                                                const PkVector<qreal> &outputBlackPoints,
+                                                const PkVector<qreal> &outputWhitePoints,
+                                                const PkVector<qreal> &outputMidtones)
 {
-    QVector<KisLevelsCurve> levelsCurves;
+    PkVector<KisLevelsCurve> levelsCurves;
 
     for (int i = 0; i < channelsHistograms.size(); ++i) {
-        QVector<ChannelHistogram> channelHistogram{channelsHistograms[i]};
+        PkVector<ChannelHistogram> channelHistogram{channelsHistograms[i]};
         levelsCurves.append(
             adjustMonochromaticContrast(
                 channelHistogram[0],

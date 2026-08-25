@@ -13,10 +13,10 @@ struct Q_DECL_HIDDEN KisConstProcessingInformation::Private {
     Private() : device(0), selection(0) {}
     KisPaintDeviceSP device;
     KisSelectionSP selection;
-    QPoint topLeft;
+    PkPoint topLeft;
 };
 
-KisConstProcessingInformation::KisConstProcessingInformation(const KisPaintDeviceSP device, const QPoint& topLeft, const KisSelectionSP selection) : d(new Private)
+KisConstProcessingInformation::KisConstProcessingInformation(const KisPaintDeviceSP device, const PkPoint& topLeft, const KisSelectionSP selection) : d(new Private)
 {
     d->device = device;
     d->selection = selection;
@@ -49,7 +49,7 @@ const KisSelectionSP KisConstProcessingInformation::selection() const
     return d->selection;
 }
 
-const QPoint& KisConstProcessingInformation::topLeft() const
+const PkPoint& KisConstProcessingInformation::topLeft() const
 {
     return d->topLeft;
 }
@@ -58,7 +58,7 @@ struct Q_DECL_HIDDEN KisProcessingInformation::Private {
     KisPaintDeviceSP device;
 };
 
-KisProcessingInformation::KisProcessingInformation(KisPaintDeviceSP device, const QPoint& topLeft, const KisSelectionSP selection) : KisConstProcessingInformation(device, topLeft, selection), d(new Private)
+KisProcessingInformation::KisProcessingInformation(KisPaintDeviceSP device, const PkPoint& topLeft, const KisSelectionSP selection) : KisConstProcessingInformation(device, topLeft, selection), d(new Private)
 {
     d->device = device;
 }

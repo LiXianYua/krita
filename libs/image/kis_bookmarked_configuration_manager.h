@@ -7,11 +7,10 @@
 #ifndef _KIS_BOOKMARKED_CONFIGURATION_MANAGER_H_
 #define _KIS_BOOKMARKED_CONFIGURATION_MANAGER_H_
 
-#include <QList>
+#include <PkList.h>
 #include "kis_serializable_configuration.h"
 
-class QString;
-class KLocalizedString;
+class PkString;
 
 #include "kritaimage_export.h"
 
@@ -25,24 +24,24 @@ public:
      * @param configEntryGroup name of the configuration entry with the
      * bookmarked configurations.
      */
-    KisBookmarkedConfigurationManager(const QString & configEntryGroup, KisSerializableConfigurationFactory*);
+    KisBookmarkedConfigurationManager(const PkString & configEntryGroup, KisSerializableConfigurationFactory*);
     ~KisBookmarkedConfigurationManager();
     /**
      * Load the configuration.
      */
-    KisSerializableConfigurationSP load(const QString & configname) const;
+    KisSerializableConfigurationSP load(const PkString & configname) const;
     /**
      * Save the configuration.
      */
-    void save(const QString & configname, const KisSerializableConfigurationSP);
+    void save(const PkString & configname, const KisSerializableConfigurationSP);
     /**
      * @return true if the configuration configname exists
      */
-    bool exists(const QString & configname) const;
+    bool exists(const PkString & configname) const;
     /**
      * @return the list of the names of configurations.
      */
-    QList<QString> configurations() const;
+    PkList<PkString> configurations() const;
     /**
      * @return the default configuration
      */
@@ -50,7 +49,7 @@ public:
     /**
      * Remove a bookmarked configuration
      */
-    void remove(const QString & name);
+    void remove(const PkString & name);
     /**
      * Generate an unique name, for instance when the user is creating a new
      * entry.
@@ -59,12 +58,12 @@ public:
      *      will return the string where %1 will be replaced by the lowest number
      *      and be nonexistent in the lists of configuration
      */
-    QString uniqueName(const KLocalizedString & base);
+    PkString uniqueName(const PkString & base);
 
 
 
 private:
-    QString configEntryGroup() const;
+    PkString configEntryGroup() const;
 private:
     struct Private;
     Private* const d;

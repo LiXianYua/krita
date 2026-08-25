@@ -8,7 +8,6 @@
 
 #include <math.h>
 
-#include <QImage>
 #include <kis_mask_generator.h>
 
 struct Q_DECL_HIDDEN KisConvolutionKernel::Private {
@@ -70,7 +69,7 @@ const Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic>* KisConvolutionKernel
     return &(d->data);
 }
 
-KisConvolutionKernelSP KisConvolutionKernel::fromQImage(const QImage& image)
+KisConvolutionKernelSP KisConvolutionKernel::fromQImage(const PkImage& image)
 {
     KisConvolutionKernelSP kernel = new KisConvolutionKernel(image.width(), image.height(), 0, 0);
 
@@ -172,7 +171,7 @@ if (n > 1)
 
 #include "kis_debug.h"
 
-QDebug operator<<(QDebug debug, const KisConvolutionKernel &c)
+PkDebug operator<<(PkDebug debug, const KisConvolutionKernel &c)
 {
     debug.nospace() << "[" << c.width() << "," << c.height() << "]{";
     for (unsigned int i = 0; i < c.width(); ++i) {

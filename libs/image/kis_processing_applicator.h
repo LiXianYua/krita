@@ -115,7 +115,7 @@ private:
     KisImageSignalVector m_emitSignals;
     KisStrokeId m_strokeId;
     bool m_finalSignalsEmitted;
-    QSharedPointer<bool> m_sharedAllFramesToken;
+    PkSharedPointer<bool> m_sharedAllFramesToken;
     std::future<bool> m_successfullyCompletedFuture;
 };
 

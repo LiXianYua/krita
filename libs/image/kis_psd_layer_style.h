@@ -6,8 +6,6 @@
 #ifndef KIS_PSD_LAYER_STYLE_H
 #define KIS_PSD_LAYER_STYLE_H
 
-class QIODevice;
-class QUuid;
 
 
 #include <psd.h>
@@ -16,7 +14,7 @@ class QUuid;
 #include "kritaimage_export.h"
 
 class KisPSDLayerStyle;
-typedef QSharedPointer<KisPSDLayerStyle> KisPSDLayerStyleSP;
+typedef PkSharedPointer<KisPSDLayerStyle> KisPSDLayerStyleSP;
 
 
 /**
@@ -30,7 +28,7 @@ class KRITAIMAGE_EXPORT KisPSDLayerStyle : public KoResource
 {
 
 public:
-    KisPSDLayerStyle(const QString &filename = "", KisResourcesInterfaceSP resourcesInterface = KisResourcesInterfaceSP());
+    KisPSDLayerStyle(const PkString &filename = "", KisResourcesInterfaceSP resourcesInterface = KisResourcesInterfaceSP());
     virtual ~KisPSDLayerStyle();
     KisPSDLayerStyle(const KisPSDLayerStyle& rhs);
     KisPSDLayerStyle operator=(const KisPSDLayerStyle& rhs) = delete;
@@ -38,23 +36,23 @@ public:
     KoResourceSP clone() const override;
 
     bool isSerializable() const override;
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice *dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream *dev) const override;
 
     void clear();
 
-    QString name() const override;
-    void setName(const QString &value);
+    PkString name() const override;
+    void setName(const PkString &value);
 
-    QUuid uuid() const;
-    void setUuid(const QUuid &value);
+    PkNodeId uuid() const;
+    void setUuid(const PkNodeId &value);
 
-    QString psdUuid() const;
-    void setPsdUuid(const QString &value);
+    PkString psdUuid() const;
+    void setPsdUuid(const PkString &value);
 
-    QPair<QString, QString> resourceType() const override
+    PkPair<PkString, PkString> resourceType() const override
     {
-        return QPair<QString, QString>(ResourceType::LayerStyles, "");
+        return PkPair<PkString, PkString>(ResourceType::LayerStyles, "");
     }
 
     /**
@@ -112,19 +110,19 @@ public:
      */
     KisPSDLayerStyleSP cloneWithResourcesSnapshot(KisResourcesInterfaceSP globalResourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface) const;
 
-    QList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
 
-    QList<KoResourceLoadResult> sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkList<KoResourceLoadResult> sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
     void clearSideLoadedResources() override;
 
 
 
-    QList<int> requiredCanvasResources() const override;
+    PkList<int> requiredCanvasResources() const override;
 
 private:
     friend class KisDlgLayerStyle;
     friend class KisAslLayerStyleSerializer;
-    void setSideLoadedResources(const QList<KoEmbeddedResource> &value);
+    void setSideLoadedResources(const PkList<KoEmbeddedResource> &value);
 
 private:
     struct Private;

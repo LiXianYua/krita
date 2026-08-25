@@ -10,7 +10,6 @@
 #include "kis_convolution_kernel.h"
 #include <kis_convolution_painter.h>
 #include <kis_transaction.h>
-#include <QRect>
 
 
 qreal KisGaussianKernel::sigmaFromRadius(qreal radius)
@@ -100,14 +99,14 @@ KisGaussianKernel::createUniform2DKernel(qreal xRadius, qreal yRadius)
 
 
 void KisGaussianKernel::applyGaussian(KisPaintDeviceSP device,
-                                      const QRect& rect,
+                                      const PkRect& rect,
                                       qreal xRadius, qreal yRadius,
-                                      const QBitArray &channelFlags,
+                                      const PkBitArray &channelFlags,
                                       KoUpdater *progressUpdater,
                                       bool createTransaction,
                                       KisConvolutionBorderOp borderOp)
 {
-    QPoint srcTopLeft = rect.topLeft();
+    PkPoint srcTopLeft = rect.topLeft();
 
 
     if (KisConvolutionPainter::supportsFFTW()) {
@@ -117,7 +116,7 @@ void KisGaussianKernel::applyGaussian(KisPaintDeviceSP device,
 
         KisConvolutionKernelSP kernel2D = KisGaussianKernel::createUniform2DKernel(xRadius, yRadius);
 
-        QScopedPointer<KisTransaction> transaction;
+        PkScopedPointer<KisTransaction> transaction;
         if (createTransaction && painter.needsTransaction(kernel2D)) {
             transaction.reset(new KisTransaction(device));
         }
@@ -137,9 +136,9 @@ void KisGaussianKernel::applyGaussian(KisPaintDeviceSP device,
         horizPainter.setChannelFlags(channelFlags);
         horizPainter.setProgress(progressUpdater);
         horizPainter.applyMatrix(kernelHoriz, device,
-                                 srcTopLeft - QPoint(0, ceil(verticalCenter)),
-                                 srcTopLeft - QPoint(0, ceil(verticalCenter)),
-                                 rect.size() + QSize(0, 2 * ceil(verticalCenter)), borderOp);
+                                 srcTopLeft - PkPoint(0, ceil(verticalCenter)),
+                                 srcTopLeft - PkPoint(0, ceil(verticalCenter)),
+                                 rect.size() + PkSize(0, 2 * ceil(verticalCenter)), borderOp);
 
 
         KisConvolutionPainter verticalPainter(device);
@@ -154,7 +153,7 @@ void KisGaussianKernel::applyGaussian(KisPaintDeviceSP device,
 
         KisConvolutionKernelSP kernelHoriz = KisGaussianKernel::createHorizontalKernel(xRadius);
 
-        QScopedPointer<KisTransaction> transaction;
+        PkScopedPointer<KisTransaction> transaction;
         if (createTransaction && painter.needsTransaction(kernelHoriz)) {
             transaction.reset(new KisTransaction(device));
         }
@@ -168,7 +167,7 @@ void KisGaussianKernel::applyGaussian(KisPaintDeviceSP device,
 
         KisConvolutionKernelSP kernelVertical = KisGaussianKernel::createVerticalKernel(yRadius);
 
-        QScopedPointer<KisTransaction> transaction;
+        PkScopedPointer<KisTransaction> transaction;
         if (createTransaction && painter.needsTransaction(kernelVertical)) {
             transaction.reset(new KisTransaction(device));
         }
@@ -262,12 +261,12 @@ KisGaussianKernel::createLoGMatrix(qreal radius, qreal coeff, bool zeroCentered,
 }
 
 void KisGaussianKernel::applyLoG(KisPaintDeviceSP device,
-                                 const QRect& rect,
+                                 const PkRect& rect,
                                  qreal radius, qreal coeff,
-                                 const QBitArray &channelFlags,
+                                 const PkBitArray &channelFlags,
                                  KoUpdater *progressUpdater)
 {
-    QPoint srcTopLeft = rect.topLeft();
+    PkPoint srcTopLeft = rect.topLeft();
 
     KisConvolutionPainter painter(device);
     painter.setChannelFlags(channelFlags);
@@ -284,12 +283,12 @@ void KisGaussianKernel::applyLoG(KisPaintDeviceSP device,
 }
 
 void KisGaussianKernel::applyTightLoG(KisPaintDeviceSP device,
-                                      const QRect& rect,
+                                      const PkRect& rect,
                                       qreal radius, qreal coeff,
-                                      const QBitArray &channelFlags,
+                                      const PkBitArray &channelFlags,
                                       KoUpdater *progressUpdater)
 {
-    QPoint srcTopLeft = rect.topLeft();
+    PkPoint srcTopLeft = rect.topLeft();
 
     KisConvolutionPainter painter(device);
     painter.setChannelFlags(channelFlags);
@@ -341,11 +340,11 @@ Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> KisGaussianKernel::createDi
     return matrix;
 }
 
-void KisGaussianKernel::applyDilate(KisPaintDeviceSP device, const QRect &rect, qreal radius, const QBitArray &channelFlags, KoUpdater *progressUpdater, bool createTransaction)
+void KisGaussianKernel::applyDilate(KisPaintDeviceSP device, const PkRect &rect, qreal radius, const PkBitArray &channelFlags, KoUpdater *progressUpdater, bool createTransaction)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(device->colorSpace()->pixelSize() == 1);
 
-    QPoint srcTopLeft = rect.topLeft();
+    PkPoint srcTopLeft = rect.topLeft();
 
     KisConvolutionPainter painter(device);
     painter.setChannelFlags(channelFlags);
@@ -357,7 +356,7 @@ void KisGaussianKernel::applyDilate(KisPaintDeviceSP device, const QRect &rect, 
                                          0,
                                          1.0);
 
-    QScopedPointer<KisTransaction> transaction;
+    PkScopedPointer<KisTransaction> transaction;
     if (createTransaction && painter.needsTransaction(kernel)) {
         transaction.reset(new KisTransaction(device));
     }
@@ -367,7 +366,7 @@ void KisGaussianKernel::applyDilate(KisPaintDeviceSP device, const QRect &rect, 
 
 #include "kis_sequential_iterator.h"
 
-void KisGaussianKernel::applyErodeU8(KisPaintDeviceSP device, const QRect &rect, qreal radius, const QBitArray &channelFlags, KoUpdater *progressUpdater, bool createTransaction)
+void KisGaussianKernel::applyErodeU8(KisPaintDeviceSP device, const PkRect &rect, qreal radius, const PkBitArray &channelFlags, KoUpdater *progressUpdater, bool createTransaction)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(device->colorSpace()->pixelSize() == 1);
 

@@ -16,25 +16,23 @@
 #include <gsl/gsl_multimin.h>
 #endif /* HAVE_GSL */
 
-#include <QtCore/qmath.h>
 #include <limits>
 
 #include <boost/math/distributions/normal.hpp>
 
-#include <QPainterPath>
 #include "krita_utils.h"
 
 
 
 namespace Private {
 
-    QPointF centerFromPath(const QPainterPath &selectionPath) {
-        QPointF center;
+    PkPointF centerFromPath(const PkPainterPath &selectionPath) {
+        PkPointF center;
         int numPoints = 0;
 
         for (int i = 0; i < selectionPath.elementCount(); i++) {
-            QPainterPath::Element element = selectionPath.elementAt(i);
-            if (element.type == QPainterPath::CurveToDataElement) continue;
+            PkPainterPath::Element element = selectionPath.elementAt(i);
+            if (element.type == PkPainterPath::CurveToDataElement) continue;
 
             center += element;
             numPoints++;
@@ -47,7 +45,7 @@ namespace Private {
         return center;
     }
 
-    qreal getDisnormedGradientValue(const QPointF &pt, const QPainterPath &selectionPath, qreal exponent)
+    qreal getDisnormedGradientValue(const PkPointF &pt, const PkPainterPath &selectionPath, qreal exponent)
     {
         // FIXME: exponent = 2.0
         //        We explicitly use pow2() and sqrt() functions here
@@ -60,12 +58,12 @@ namespace Private {
             if (selectionPath.elementAt(i).isMoveTo()) continue;
 
             const int prevI = i > 0 ? i - 1 : selectionPath.elementCount() - 1;
-            const QPointF edgeP1 = selectionPath.elementAt(prevI);
-            const QPointF edgeP2 = selectionPath.elementAt(i);
+            const PkPointF edgeP1 = selectionPath.elementAt(prevI);
+            const PkPointF edgeP2 = selectionPath.elementAt(i);
 
-            const QPointF edgeVec = edgeP1 - edgeP2;
-            const QPointF q1 = pt - edgeP1;
-            const QPointF q2 = pt - edgeP2;
+            const PkPointF edgeVec = edgeP1 - edgeP2;
+            const PkPointF q1 = pt - edgeP1;
+            const PkPointF q2 = pt - edgeP2;
 
             const qreal proj1 = KisAlgebra2D::dotProduct(edgeVec, q1);
             const qreal proj2 = KisAlgebra2D::dotProduct(edgeVec, q2);
@@ -76,12 +74,12 @@ namespace Private {
             // when the projections has the same sign
 
             if (proj1 * proj2 >= 0) {
-                QPointF nearestPointVec =
+                PkPointF nearestPointVec =
                     qAbs(proj1) < qAbs(proj2) ? q1 : q2;
 
                 hi = KisAlgebra2D::norm(nearestPointVec);
             } else {
-                QLineF line(edgeP1, edgeP2);
+                PkLineF line(edgeP1, edgeP2);
                 hi = kisDistanceToLine(pt, line);
             }
 
@@ -105,10 +103,10 @@ namespace Private {
             std::numeric_limits<qreal>::max();
     }
 
-    bool findBestStartingPoint(int numSamples, const QPainterPath &path,
+    bool findBestStartingPoint(int numSamples, const PkPainterPath &path,
                                qreal exponent, bool searchForMax,
                                qreal initialExtremumValue,
-                               QPointF *result) {
+                               PkPointF *result) {
 
         const qreal minStepThreshold = 0.3;
         const int numCandidatesThreshold = 4;
@@ -122,7 +120,7 @@ namespace Private {
         int effectiveSamples = numSamples & 0x1 ?
             (numSamples - 1) / 2 + 1 : numSamples;
 
-        QRectF rect = path.boundingRect();
+        PkRectF rect = path.boundingRect();
 
         qreal xOffset = rect.width() / (totalSamples + 1);
         qreal xStep = effectiveSamples == totalSamples ? xOffset : 2 * xOffset;
@@ -136,7 +134,7 @@ namespace Private {
 
         int numFound = 0;
         int numCandidates = 0;
-        QPointF extremumPoint;
+        PkPointF extremumPoint;
         qreal extremumValue = initialExtremumValue;
 
         const qreal eps = 1e-3;
@@ -148,7 +146,7 @@ namespace Private {
             for (qreal x = rect.x() + xOffset; x < rect.right() - eps; x += xStep) {
                 sanityNumColumns++;
 
-                const QPointF pt(x, y);
+                const PkPointF pt(x, y);
                 if (!path.contains(pt)) continue;
 
                 qreal value = getDisnormedGradientValue(pt, path, exponent);
@@ -190,7 +188,7 @@ namespace Private {
 #ifdef HAVE_GSL
 
     struct GradientDescentParams {
-        QPainterPath selectionPath;
+        PkPainterPath selectionPath;
         qreal exponent;
         bool searchForMax;
     };
@@ -203,14 +201,14 @@ namespace Private {
         const GradientDescentParams *params =
             static_cast<const GradientDescentParams*>(paramsPtr);
 
-        qreal weight = getDisnormedGradientValue(QPointF(vX, vY),
+        qreal weight = getDisnormedGradientValue(PkPointF(vX, vY),
                                                  params->selectionPath,
                                                  params->exponent);
 
         return params->searchForMax ? 1.0 / weight : weight;
     }
 
-    qreal calculateMaxWeight(const QPainterPath &selectionPath,
+    qreal calculateMaxWeight(const PkPainterPath &selectionPath,
                              qreal exponent,
                              bool searchForMax)
     {
@@ -224,7 +222,7 @@ namespace Private {
         int status;
         double size;
 
-        QPointF center;
+        PkPointF center;
         bool centerExists =
             findBestStartingPoint(4, selectionPath,
                                   exponent, searchForMax,
@@ -302,11 +300,11 @@ namespace Private {
 
 #else /* HAVE_GSL */
 
-    qreal calculateMaxWeight(const QPainterPath &selectionPath,
+    qreal calculateMaxWeight(const PkPainterPath &selectionPath,
                              qreal exponent,
                              bool searchForMax)
     {
-        QPointF center = centerFromPath(selectionPath);
+        PkPointF center = centerFromPath(selectionPath);
         return searchForMax ?
             getDisnormedGradientValue(center, selectionPath, exponent) : 0.0;
     }
@@ -315,16 +313,16 @@ namespace Private {
 
 }
 
-QPainterPath simplifyPath(const QPainterPath &path,
+PkPainterPath simplifyPath(const PkPainterPath &path,
                           qreal sizePortion,
                           qreal minLinearSize,
                           int minNumSamples)
 {
-    QPainterPath finalPath;
+    PkPainterPath finalPath;
 
-    QList<QPolygonF> polygons = path.toSubpathPolygons();
-    Q_FOREACH (const QPolygonF poly, polygons) {
-        QPainterPath p;
+    const auto polygons = path.toSubpathPolygons(PkTransform());
+    Q_FOREACH (const PkPolygonF poly, polygons) {
+        PkPainterPath p;
         p.addPolygon(poly);
 
         const qreal length = p.length();
@@ -342,7 +340,7 @@ QPainterPath simplifyPath(const QPainterPath &path,
 
         const qreal portionStep = 1.0 / numSamples;
 
-        QPolygonF newPoly;
+        PkPolygonF newPoly;
         for (qreal t = 0.0; t < 1.0; t += portionStep) {
             newPoly << p.pointAtPercent(t);
         }
@@ -354,7 +352,7 @@ QPainterPath simplifyPath(const QPainterPath &path,
     return finalPath;
 }
 
-KisPolygonalGradientShapeStrategy::KisPolygonalGradientShapeStrategy(const QPainterPath &selectionPath,
+KisPolygonalGradientShapeStrategy::KisPolygonalGradientShapeStrategy(const PkPainterPath &selectionPath,
                                                                      qreal exponent)
     : m_exponent(exponent)
 {
@@ -372,7 +370,7 @@ KisPolygonalGradientShapeStrategy::~KisPolygonalGradientShapeStrategy()
 
 double KisPolygonalGradientShapeStrategy::valueAt(double x, double y) const
 {
-    QPointF pt(x, y);
+    PkPointF pt(x, y);
     qreal value = 0.0;
 
     if (m_selectionPath.contains(pt)) {
@@ -383,9 +381,9 @@ double KisPolygonalGradientShapeStrategy::valueAt(double x, double y) const
     return value;
 }
 
-QPointF KisPolygonalGradientShapeStrategy::testingCalculatePathCenter(int numSamples, const QPainterPath &path, qreal exponent, bool searchForMax)
+PkPointF KisPolygonalGradientShapeStrategy::testingCalculatePathCenter(int numSamples, const PkPainterPath &path, qreal exponent, bool searchForMax)
 {
-    QPointF result;
+    PkPointF result;
 
     qreal extremumValue = Private::initialExtremumValue(searchForMax);
     bool success = Private::findBestStartingPoint(numSamples, path,

@@ -10,7 +10,7 @@
 #include "kis_properties_configuration.h"
 
 namespace {
-const QString configGroupName = QStringLiteral("tool_color_sampler");
+const PkString configGroupName = PkString("tool_color_sampler");
 }
 
 KisColorSamplerConfig::KisColorSamplerConfig()
@@ -43,7 +43,7 @@ void KisColorSamplerConfig::load()
 {
     KisPropertiesConfiguration props;
     KConfigGroup config = KSharedConfig::openConfig()->group(configGroupName);
-    props.fromXML(config.readEntry("ColorSamplerDefaultActivation"));
+    props.fromXML(config.readEntry("ColorSamplerDefaultActivation", PkString()));
 
     toForegroundColor = props.getBool("toForegroundColor", true);
     updateColor = props.getBool("updateColor", true);

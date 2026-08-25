@@ -9,8 +9,6 @@
 
 
 #include <kis_debug.h>
-#include <QDomDocument>
-#include <QString>
 
 #include "kis_image.h"
 #include "kis_transaction.h"
@@ -24,8 +22,8 @@
 #include <KoColorSpaceRegistry.h>
 
 struct Q_DECL_HIDDEN KisPropertiesConfiguration::Private {
-    QMap<QString, QVariant> properties;
-    QSet<QString> notSavedProperties;
+    PkMap<PkString, PkVariant> properties;
+    PkSet<PkString> notSavedProperties;
 };
 
 KisPropertiesConfiguration::KisPropertiesConfiguration() : d(new Private)
@@ -52,67 +50,67 @@ KisPropertiesConfiguration &KisPropertiesConfiguration::operator=(const KisPrope
     return *this;
 }
 
-bool KisPropertiesConfiguration::fromXML(const QString & xml, bool clear)
+bool KisPropertiesConfiguration::fromXML(const PkString & xml, bool clear)
 {
     if (clear) {
         clearProperties();
     }
 
-    QDomDocument doc;
+    PkXmlDocument doc;
     bool retval = bool(doc.setContent(xml));
     if (retval) {
-        QDomElement e = doc.documentElement();
+        PkXmlElement e = doc.documentElement();
         fromXML(e);
     }
     return retval;
 }
 
-void KisPropertiesConfiguration::fromXML(const QDomElement &root)
+void KisPropertiesConfiguration::fromXML(const PkXmlElement &root)
 {
-    QDomElement e;
+    PkXmlElement e;
     for (e = root.firstChildElement("param"); !e.isNull(); e = e.nextSiblingElement("param")) {
-        QString name = e.attribute("name");
-        QString value = e.text();
+        PkString name = e.attribute("name");
+        PkString value = e.text();
 
         // Older versions didn't have a "type" parameter,
         // so fall back to the old behavior if it's missing.
         if (!e.hasAttribute("type")) {
-            d->properties[name] = QVariant(value);
+            d->properties[name] = PkVariant(value);
         } else if (e.attribute("type") == "bytearray") {
-            d->properties[name] = QVariant(QByteArray::fromBase64(value.toLatin1()));
+            d->properties[name] = PkVariant(PkByteArray::fromBase64(value.toLatin1()));
         } else {
             d->properties[name] = value;
         }
     }
 }
 
-void KisPropertiesConfiguration::toXML(QDomDocument& doc, QDomElement& root) const
+void KisPropertiesConfiguration::toXML(PkXmlDocument& doc, PkXmlElement& root) const
 {
-    QMap<QString, QVariant>::ConstIterator it;
+    PkMap<PkString, PkVariant>::ConstIterator it;
     for (it = d->properties.constBegin(); it != d->properties.constEnd(); ++it) {
         if (d->notSavedProperties.contains(it.key())) {
             continue;
         }
 
-        QDomElement e = doc.createElement("param");
-        e.setAttribute("name", QString(it.key().toLatin1()));
-        QString type = "string";
-        QVariant v = it.value();
-        QDomText text;
+        PkXmlElement e = doc.createElement("param");
+        e.setAttribute("name", PkString(it.key().toLatin1()));
+        PkString type = "string";
+        PkVariant v = it.value();
+        PkXmlText text;
         if (v.userType() == qMetaTypeId<KisCubicCurve>()) {
             text = doc.createCDATASection(v.value<KisCubicCurve>().toString());
         } else if (v.userType() == qMetaTypeId<KoColor>()) {
-            QDomDocument cdataDoc = QDomDocument("color");
-            QDomElement cdataRoot = cdataDoc.createElement("color");
+            PkXmlDocument cdataDoc = PkXmlDocument("color");
+            PkXmlElement cdataRoot = cdataDoc.createElement("color");
             cdataDoc.appendChild(cdataRoot);
             v.value<KoColor>().toXML(cdataDoc, cdataRoot);
             text = cdataDoc.createCDATASection(cdataDoc.toString());
             type = "color";
-        } else if(v.type() == QMetaType::QString ) {
+        } else if(v.type() == PkMetaType::PkString ) {
             text = doc.createCDATASection(v.toString());  // XXX: Unittest this!
             type = "string";
-        } else if(v.type() == QMetaType::QByteArray ) {
-            text = doc.createTextNode(QString::fromLatin1(v.toByteArray().toBase64())); // Arbitrary Data
+        } else if(v.type() == PkMetaType::PkByteArray ) {
+            text = doc.createTextNode(PkString::fromLatin1(v.toByteArray().toBase64())); // Arbitrary Data
             type = "bytearray";
         } else {
             text = doc.createTextNode(v.toString());
@@ -124,22 +122,22 @@ void KisPropertiesConfiguration::toXML(QDomDocument& doc, QDomElement& root) con
     }
 }
 
-QString KisPropertiesConfiguration::toXML() const
+PkString KisPropertiesConfiguration::toXML() const
 {
-    QDomDocument doc = QDomDocument("params");
-    QDomElement root = doc.createElement("params");
+    PkXmlDocument doc = PkXmlDocument("params");
+    PkXmlElement root = doc.createElement("params");
     doc.appendChild(root);
     toXML(doc, root);
     return doc.toString();
 }
 
 
-bool KisPropertiesConfiguration::hasProperty(const QString& name) const
+bool KisPropertiesConfiguration::hasProperty(const PkString& name) const
 {
     return d->properties.contains(name);
 }
 
-void KisPropertiesConfiguration::setProperty(const QString & name, const QVariant & value)
+void KisPropertiesConfiguration::setProperty(const PkString & name, const PkVariant & value)
 {
     if (d->properties.find(name) == d->properties.end()) {
         d->properties.insert(name, value);
@@ -148,7 +146,7 @@ void KisPropertiesConfiguration::setProperty(const QString & name, const QVarian
     }
 }
 
-bool KisPropertiesConfiguration::getProperty(const QString & name, QVariant & value) const
+bool KisPropertiesConfiguration::getProperty(const PkString & name, PkVariant & value) const
 {
     if (d->properties.constFind(name) == d->properties.constEnd()) {
         return false;
@@ -158,15 +156,15 @@ bool KisPropertiesConfiguration::getProperty(const QString & name, QVariant & va
     }
 }
 
-QVariant KisPropertiesConfiguration::getProperty(const QString & name) const
+PkVariant KisPropertiesConfiguration::getProperty(const PkString & name) const
 {
-    return d->properties.value(name, QVariant());
+    return d->properties.value(name, PkVariant());
 }
 
 
-int KisPropertiesConfiguration::getInt(const QString & name, int def) const
+int KisPropertiesConfiguration::getInt(const PkString & name, int def) const
 {
-    QVariant v = getProperty(name);
+    PkVariant v = getProperty(name);
     if (v.isValid())
         return v.toInt();
     else
@@ -174,18 +172,18 @@ int KisPropertiesConfiguration::getInt(const QString & name, int def) const
 
 }
 
-double KisPropertiesConfiguration::getDouble(const QString & name, double def) const
+double KisPropertiesConfiguration::getDouble(const PkString & name, double def) const
 {
-    QVariant v = getProperty(name);
+    PkVariant v = getProperty(name);
     if (v.isValid())
         return v.toDouble();
     else
         return def;
 }
 
-float KisPropertiesConfiguration::getFloat(const QString & name, float def) const
+float KisPropertiesConfiguration::getFloat(const PkString & name, float def) const
 {
-    QVariant v = getProperty(name);
+    PkVariant v = getProperty(name);
     if (v.isValid())
         return (float)v.toDouble();
     else
@@ -193,29 +191,29 @@ float KisPropertiesConfiguration::getFloat(const QString & name, float def) cons
 }
 
 
-bool KisPropertiesConfiguration::getBool(const QString & name, bool def) const
+bool KisPropertiesConfiguration::getBool(const PkString & name, bool def) const
 {
-    QVariant v = getProperty(name);
+    PkVariant v = getProperty(name);
     if (v.isValid())
         return v.toBool();
     else
         return def;
 }
 
-QString KisPropertiesConfiguration::getString(const QString & name, const QString & def) const
+PkString KisPropertiesConfiguration::getString(const PkString & name, const PkString & def) const
 {
-    QVariant v = getProperty(name);
+    PkVariant v = getProperty(name);
     if (v.isValid())
         return v.toString();
     else
         return def;
 }
 
-KisCubicCurve KisPropertiesConfiguration::getCubicCurve(const QString & name, const KisCubicCurve & curve) const
+KisCubicCurve KisPropertiesConfiguration::getCubicCurve(const PkString & name, const KisCubicCurve & curve) const
 {
-    QVariant v = getProperty(name);
+    PkVariant v = getProperty(name);
     if (v.isValid()) {
-        if (v.type() == QVariant::UserType && v.userType() == qMetaTypeId<KisCubicCurve>()) {
+        if (v.type() == PkVariant::UserType && v.userType() == qMetaTypeId<KisCubicCurve>()) {
             return v.value<KisCubicCurve>();
         } else {
             return KisCubicCurve(v.toString());
@@ -224,24 +222,24 @@ KisCubicCurve KisPropertiesConfiguration::getCubicCurve(const QString & name, co
         return curve;
 }
 
-KoColor KisPropertiesConfiguration::getColor(const QString& name, const KoColor& color) const
+KoColor KisPropertiesConfiguration::getColor(const PkString& name, const KoColor& color) const
 {
-    QVariant v = getProperty(name);
+    PkVariant v = getProperty(name);
 
     if (v.isValid()) {
         switch(v.type()) {
-        case QVariant::UserType:
+        case PkVariant::UserType:
         {
             if (v.userType() == qMetaTypeId<KoColor>()) {
                 return v.value<KoColor>();
             }
             break;
         }
-        case QMetaType::QString:
+        case PkMetaType::PkString:
         {
-            QDomDocument doc;
+            PkXmlDocument doc;
             if (doc.setContent(v.toString())) {
-                QDomElement e = doc.documentElement().firstChild().toElement();
+                PkXmlElement e = doc.documentElement().firstChild().toElement();
                 bool ok;
                 KoColor c = KoColor::fromXML(e, Integer16BitsColorDepthID.id(), &ok);
                 if (ok) {
@@ -249,7 +247,7 @@ KoColor KisPropertiesConfiguration::getColor(const QString& name, const KoColor&
                 }
             }
             else {
-                QColor c(v.toString());
+                PkColor c(v.toString());
                 if (c.isValid()) {
                     KoColor kc(c, KoColorSpaceRegistry::instance()->rgb8());
                     return kc;
@@ -257,15 +255,15 @@ KoColor KisPropertiesConfiguration::getColor(const QString& name, const KoColor&
             }
             break;
         }
-        case QMetaType::QColor:
+        case PkMetaType::PkColor:
         {
-            QColor c = v.value<QColor>();
+            PkColor c = v.value<PkColor>();
             KoColor kc(c, KoColorSpaceRegistry::instance()->rgb8());
             return kc;
         }
-        case QMetaType::Int:
+        case PkMetaType::Int:
         {
-            QColor c(v.toInt());
+            PkColor c(v.toInt());
             if (c.isValid()) {
                 KoColor kc(c, KoColorSpaceRegistry::instance()->rgb8());
                 return kc;
@@ -281,13 +279,13 @@ KoColor KisPropertiesConfiguration::getColor(const QString& name, const KoColor&
 
 void KisPropertiesConfiguration::dump() const
 {
-    QMap<QString, QVariant>::ConstIterator it;
+    PkMap<PkString, PkVariant>::ConstIterator it;
     for (it = d->properties.constBegin(); it != d->properties.constEnd(); ++it) {
-        if (it->type() == QMetaType::QByteArray) {
-            QByteArray ba = it->toByteArray();
+        if (it->type() == PkMetaType::PkByteArray) {
+            PkByteArray ba = it->toByteArray();
 
             if (ba.size() > 32) {
-                qDebug() << it.key() << " = " << QString("...skipped total %1 bytes...").arg(ba.size()) << it.value().typeName();
+                qDebug() << it.key() << " = " << PkString("...skipped total %1 bytes...").arg(ba.size()) << it.value().typeName();
             } else {
                 qDebug() << it.key() << " = " << it.value() << it.value().typeName();
             }
@@ -303,39 +301,39 @@ void KisPropertiesConfiguration::clearProperties()
     d->properties.clear();
 }
 
-void KisPropertiesConfiguration::setPropertyNotSaved(const QString& name)
+void KisPropertiesConfiguration::setPropertyNotSaved(const PkString& name)
 {
     d->notSavedProperties.insert(name);
 }
 
-QMap<QString, QVariant> KisPropertiesConfiguration::getProperties() const
+PkMap<PkString, PkVariant> KisPropertiesConfiguration::getProperties() const
 {
     return d->properties;
 }
 
-void KisPropertiesConfiguration::removeProperty(const QString & name)
+void KisPropertiesConfiguration::removeProperty(const PkString & name)
 {
     d->properties.remove(name);
 }
 
-QList<QString> KisPropertiesConfiguration::getPropertiesKeys() const
+PkList<PkString> KisPropertiesConfiguration::getPropertiesKeys() const
 {
     return d->properties.keys();
 }
 
-void KisPropertiesConfiguration::getPrefixedProperties(const QString &prefix, KisPropertiesConfiguration *config) const
+void KisPropertiesConfiguration::getPrefixedProperties(const PkString &prefix, KisPropertiesConfiguration *config) const
 {
     const int prefixSize = prefix.size();
 
-    const QList<QString> keys = getPropertiesKeys();
-    Q_FOREACH (const QString &key, keys) {
+    const PkList<PkString> keys = getPropertiesKeys();
+    Q_FOREACH (const PkString &key, keys) {
         if (key.startsWith(prefix)) {
             config->setProperty(key.mid(prefixSize), getProperty(key));
         }
     }
 
-    QString fullPrefix;
-    const QString parentPrefix = getString(extractedPrefixKey());
+    PkString fullPrefix;
+    const PkString parentPrefix = getString(extractedPrefixKey());
     if (!parentPrefix.isEmpty()) {
         fullPrefix = parentPrefix + "/" + prefix;
     } else {
@@ -346,67 +344,67 @@ void KisPropertiesConfiguration::getPrefixedProperties(const QString &prefix, Ki
     config->setPropertyNotSaved(extractedPrefixKey());
 }
 
-void KisPropertiesConfiguration::getPrefixedProperties(const QString &prefix, KisPropertiesConfigurationSP config) const
+void KisPropertiesConfiguration::getPrefixedProperties(const PkString &prefix, KisPropertiesConfigurationSP config) const
 {
     getPrefixedProperties(prefix, config.data());
 }
 
-void KisPropertiesConfiguration::setPrefixedProperties(const QString &prefix, const KisPropertiesConfiguration *config)
+void KisPropertiesConfiguration::setPrefixedProperties(const PkString &prefix, const KisPropertiesConfiguration *config)
 {
-    const QList<QString> keys = config->getPropertiesKeys();
-    Q_FOREACH (const QString &key, keys) {
+    const PkList<PkString> keys = config->getPropertiesKeys();
+    Q_FOREACH (const PkString &key, keys) {
         this->setProperty(prefix + key, config->getProperty(key));
     }
 }
 
-void KisPropertiesConfiguration::setPrefixedProperties(const QString &prefix, const KisPropertiesConfigurationSP config)
+void KisPropertiesConfiguration::setPrefixedProperties(const PkString &prefix, const KisPropertiesConfigurationSP config)
 {
     setPrefixedProperties(prefix, config.data());
 }
 
-QString KisPropertiesConfiguration::extractedPrefixKey()
+PkString KisPropertiesConfiguration::extractedPrefixKey()
 {
-    static const QString key = "__extractedFromPrefix";
+    static const PkString key = "__extractedFromPrefix";
     return key;
 }
 
-QString KisPropertiesConfiguration::escapeString(const QString &string)
+PkString KisPropertiesConfiguration::escapeString(const PkString &string)
 {
-    QString result = string;
+    PkString result = string;
     result.replace(";", "\\;");
     result.replace("]", "\\]");
     result.replace(">", "\\>");
     return result;
 }
 
-QString KisPropertiesConfiguration::unescapeString(const QString &string)
+PkString KisPropertiesConfiguration::unescapeString(const PkString &string)
 {
-    QString result = string;
+    PkString result = string;
     result.replace("\\;", ";");
     result.replace("\\]", "]");
     result.replace("\\>", ">");
     return result;
 }
 
-void KisPropertiesConfiguration::setProperty(const QString &name, const QStringList &value)
+void KisPropertiesConfiguration::setProperty(const PkString &name, const PkStringList &value)
 {
-    QStringList escapedList;
+    PkStringList escapedList;
     escapedList.reserve(value.size());
 
-    Q_FOREACH (const QString &str, value) {
+    Q_FOREACH (const PkString &str, value) {
         escapedList << escapeString(str);
     }
 
     setProperty(name, escapedList.join(';'));
 }
 
-QStringList KisPropertiesConfiguration::getStringList(const QString &name, const QStringList &defaultValue) const
+PkStringList KisPropertiesConfiguration::getStringList(const PkString &name, const PkStringList &defaultValue) const
 {
     if (!hasProperty(name)) return defaultValue;
 
-    const QString joined = getString(name);
+    const PkString joined = getString(name);
 
-    QStringList result;
+    PkStringList result;
 
     int afterLastMatch = -1;
     for (int i = 0; i < joined.size(); i++) {
@@ -419,14 +417,14 @@ QStringList KisPropertiesConfiguration::getStringList(const QString &name, const
         }
 
         if (lastChunk && matchedSplitter) {
-            result << QString();
+            result << PkString();
         }
     }
 
     return result;
 }
 
-QStringList KisPropertiesConfiguration::getPropertyLazy(const QString &name, const QStringList &defaultValue) const
+PkStringList KisPropertiesConfiguration::getPropertyLazy(const PkString &name, const PkStringList &defaultValue) const
 {
     return getStringList(name, defaultValue);
 }
@@ -463,7 +461,7 @@ KisSerializableConfigurationSP KisPropertiesConfigurationFactory::createDefault(
     return new KisPropertiesConfiguration();
 }
 
-KisSerializableConfigurationSP KisPropertiesConfigurationFactory::create(const QDomElement& e)
+KisSerializableConfigurationSP KisPropertiesConfigurationFactory::create(const PkXmlElement& e)
 {
     KisPropertiesConfigurationSP pc = new KisPropertiesConfiguration();
     pc->fromXML(e);

@@ -11,7 +11,7 @@ KisGradientShapeStrategy::KisGradientShapeStrategy()
 {
 }
 
-KisGradientShapeStrategy::KisGradientShapeStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd)
+KisGradientShapeStrategy::KisGradientShapeStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd)
     : m_gradientVectorStart(gradientVectorStart),
       m_gradientVectorEnd(gradientVectorEnd)
 {

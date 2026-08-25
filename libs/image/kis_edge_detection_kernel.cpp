@@ -9,10 +9,9 @@
 #include "kis_convolution_kernel.h"
 #include <kis_convolution_painter.h>
 #include <KoCompositeOpRegistry.h>
-#include <QRect>
 #include <KoColorSpace.h>
 #include <kis_iterator_ng.h>
-#include <QVector3D>
+#include <PkVectorND.h>
 
 KisEdgeDetectionKernel::KisEdgeDetectionKernel()
 {
@@ -180,16 +179,16 @@ qreal KisEdgeDetectionKernel::sigmaFromRadius(qreal radius)
 }
 
 void KisEdgeDetectionKernel::applyEdgeDetection(KisPaintDeviceSP device,
-                                                const QRect &rect,
+                                                const PkRect &rect,
                                                 qreal xRadius,
                                                 qreal yRadius,
                                                 KisEdgeDetectionKernel::FilterType type,
-                                                const QBitArray &channelFlags,
+                                                const PkBitArray &channelFlags,
                                                 KoUpdater *progressUpdater,
                                                 FilterOutput output,
                                                 bool writeToAlpha)
 {
-    QPoint srcTopLeft = rect.topLeft();
+    PkPoint srcTopLeft = rect.topLeft();
     KisPainter finalPainter(device);
     finalPainter.setChannelFlags(channelFlags);
     finalPainter.setProgress(progressUpdater);
@@ -229,9 +228,9 @@ void KisEdgeDetectionKernel::applyEdgeDetection(KisPaintDeviceSP device,
         const int alphaPos = device->colorSpace()->alphaPos();
         KIS_SAFE_ASSERT_RECOVER_RETURN(alphaPos >= 0);
 
-        QVector<float> yNormalised(channels);
-        QVector<float> xNormalised(channels);
-        QVector<float> finalNorm(channels);
+        PkVector<float> yNormalised(channels);
+        PkVector<float> xNormalised(channels);
+        PkVector<float> finalNorm(channels);
 
         while(yIterator.nextPixel() && xIterator.nextPixel() && finalIt.nextPixel()) {
             device->colorSpace()->normalisedChannelsValue(yIterator.rawData(), yNormalised);
@@ -294,7 +293,7 @@ void KisEdgeDetectionKernel::applyEdgeDetection(KisPaintDeviceSP device,
             KisSequentialIterator finalIt(device, rect);
             const int pixelSize = device->colorSpace()->pixelSize();
             const int channels = device->colorSpace()->colorChannelCount();
-            QVector<float> normalised(channels);
+            PkVector<float> normalised(channels);
             while (iterator.nextPixel() && finalIt.nextPixel()) {
                 device->colorSpace()->normalisedChannelsValue(iterator.rawData(), normalised);
                 KoColor col(finalIt.rawData(), device->colorSpace());
@@ -327,20 +326,20 @@ void KisEdgeDetectionKernel::applyEdgeDetection(KisPaintDeviceSP device,
 }
 
 void KisEdgeDetectionKernel::convertToNormalMap(KisPaintDeviceSP device,
-                                                const QRect &rect,
+                                                const PkRect &rect,
                                                 qreal xRadius,
                                                 qreal yRadius,
                                                 KisEdgeDetectionKernel::FilterType type,
                                                 int channelToConvert,
-                                                QVector<int> channelOrder,
-                                                QVector<bool> channelFlip,
-                                                const QBitArray &channelFlags,
+                                                PkVector<int> channelOrder,
+                                                PkVector<bool> channelFlip,
+                                                const PkBitArray &channelFlags,
                                                 KoUpdater *progressUpdater,
                                                 boost::optional<bool> useFftw)
 {
     KIS_ASSERT_RECOVER_RETURN(device->colorSpace()->channelCount() > 3);
 
-    QPoint srcTopLeft = rect.topLeft();
+    PkPoint srcTopLeft = rect.topLeft();
     KisPainter finalPainter(device);
     finalPainter.setChannelFlags(channelFlags);
     finalPainter.setProgress(progressUpdater);
@@ -349,8 +348,8 @@ void KisEdgeDetectionKernel::convertToNormalMap(KisPaintDeviceSP device,
     x_denormalised->prepareClone(device);
     y_denormalised->prepareClone(device);
 
-    KisConvolutionKernelSP kernelHorizLeftRight = KisEdgeDetectionKernel::createHorizontalKernel(yRadius, type, true, !channelFlip[1]);
-    KisConvolutionKernelSP kernelVerticalTopBottom = KisEdgeDetectionKernel::createVerticalKernel(xRadius, type, true, !channelFlip[0]);
+    KisConvolutionKernelSP kernelHorizLeftRight = KisEdgeDetectionKernel::createHorizontalKernel(yRadius, type, true, !channelFlip.value(1));
+    KisConvolutionKernelSP kernelVerticalTopBottom = KisEdgeDetectionKernel::createVerticalKernel(xRadius, type, true, !channelFlip.value(0));
 
     KisConvolutionPainter horizPainterLR(y_denormalised);
 
@@ -386,21 +385,21 @@ void KisEdgeDetectionKernel::convertToNormalMap(KisPaintDeviceSP device,
     const int alphaPos = device->colorSpace()->alphaPos();
     KIS_SAFE_ASSERT_RECOVER_RETURN(alphaPos >= 0);
 
-    QVector<float> yNormalised(channels);
-    QVector<float> xNormalised(channels);
-    QVector<float> finalNorm(channels);
+    PkVector<float> yNormalised(channels);
+    PkVector<float> xNormalised(channels);
+    PkVector<float> finalNorm(channels);
 
-    const QList<KoChannelInfo *> channelInfo = device->colorSpace()->channels();
+    const PkList<KoChannelInfo *> channelInfo = device->colorSpace()->channels();
 
     while(yIterator.nextPixel() && xIterator.nextPixel() && finalIt.nextPixel()) {
         device->colorSpace()->normalisedChannelsValue(yIterator.rawData(), yNormalised);
         device->colorSpace()->normalisedChannelsValue(xIterator.rawData(), xNormalised);
 
         qreal z = 1.0;
-        if (channelFlip[2]==true){
+        if (channelFlip.value(2)==true){
             z=-1.0;
         }
-        QVector3D normal = QVector3D((xNormalised[channelToConvert]-0.5)*2, (yNormalised[channelToConvert]-0.5)*2, z);
+        PkVector3D normal = PkVector3D((xNormalised[channelToConvert]-0.5)*2, (yNormalised[channelToConvert]-0.5)*2, z);
         normal.normalize();
         finalNorm.fill(1.0);
         for (int c = 0; c < 3; c++) {

@@ -25,9 +25,6 @@
 #include "KisDeleteLaterWrapper.h"
 #include "kis_command_utils.h"
 
-#include <QReadWriteLock>
-#include <QReadLocker>
-#include <QWriteLocker>
 
 
 struct Q_DECL_HIDDEN KisSelection::Private {
@@ -55,7 +52,7 @@ struct Q_DECL_HIDDEN KisSelection::Private {
      * This lock makes sure that the shape selection is not reincarnated,
      * while some update jobs still access it via KisSelection::updateProjection().
      */
-    QReadWriteLock shapeSelectionPointerLock;
+    PkReadWriteLock shapeSelectionPointerLock;
 };
 
 template <typename T>
@@ -195,12 +192,12 @@ struct KisSelection::ChangeShapeSelectionCommand : public KUndo2Command
         }
 
         {
-            QWriteLocker l(&m_selection->m_d->shapeSelectionPointerLock);
+            PkWriteLocker l(&m_selection->m_d->shapeSelectionPointerLock);
             std::swap(m_selection->m_d->shapeSelection, m_shapeSelection);
         }
 
         if (!m_isFlatten) {
-            m_selection->requestCompressedProjectionUpdate(QRect());
+            m_selection->requestCompressedProjectionUpdate(PkRect());
         }
     }
 
@@ -209,7 +206,7 @@ struct KisSelection::ChangeShapeSelectionCommand : public KUndo2Command
         KIS_SAFE_ASSERT_RECOVER_RETURN(m_selection);
 
         if (m_firstRedo) {
-            QReadLocker l(&m_selection->m_d->shapeSelectionPointerLock);
+            PkReadLocker l(&m_selection->m_d->shapeSelectionPointerLock);
 
             if (bool(m_selection->m_d->shapeSelection) != bool(m_shapeSelection)) {
                 m_reincarnationCommand.reset(
@@ -224,12 +221,12 @@ struct KisSelection::ChangeShapeSelectionCommand : public KUndo2Command
         }
 
         {
-            QWriteLocker l(&m_selection->m_d->shapeSelectionPointerLock);
+            PkWriteLocker l(&m_selection->m_d->shapeSelectionPointerLock);
             std::swap(m_selection->m_d->shapeSelection, m_shapeSelection);
         }
 
         if (!m_isFlatten) {
-            m_selection->requestCompressedProjectionUpdate(QRect());
+            m_selection->requestCompressedProjectionUpdate(PkRect());
         }
     }
 
@@ -303,8 +300,8 @@ void KisSelection::copyFrom(const KisSelection &rhs)
     m_d->pixelSelection = new KisPixelSelection(*rhs.m_d->pixelSelection, KritaUtils::CopyAllFrames);
     m_d->pixelSelection->setParentSelection(this);
 
-    QReadLocker l1(&rhs.m_d->shapeSelectionPointerLock);
-    QWriteLocker l2(&m_d->shapeSelectionPointerLock);
+    PkReadLocker l1(&rhs.m_d->shapeSelectionPointerLock);
+    PkWriteLocker l2(&m_d->shapeSelectionPointerLock);
 
     if (rhs.m_d->shapeSelection && !rhs.m_d->shapeSelection->isEmpty()) {
         m_d->shapeSelection = rhs.m_d->shapeSelection->clone(this);
@@ -348,16 +345,16 @@ KisNodeWSP KisSelection::parentNode() const
 
 bool KisSelection::outlineCacheValid() const
 {
-    QReadLocker l(&m_d->shapeSelectionPointerLock);
+    PkReadLocker l(&m_d->shapeSelectionPointerLock);
     return m_d->shapeSelection ||
         m_d->pixelSelection->outlineCacheValid();
 }
 
-QPainterPath KisSelection::outlineCache() const
+PkPainterPath KisSelection::outlineCache() const
 {
-    QReadLocker l(&m_d->shapeSelectionPointerLock);
+    PkReadLocker l(&m_d->shapeSelectionPointerLock);
 
-    QPainterPath outline;
+    PkPainterPath outline;
 
     if (m_d->shapeSelection) {
         outline += m_d->shapeSelection->outlineCache();
@@ -370,7 +367,7 @@ QPainterPath KisSelection::outlineCache() const
 
 void KisSelection::recalculateOutlineCache()
 {
-    QReadLocker l(&m_d->shapeSelectionPointerLock);
+    PkReadLocker l(&m_d->shapeSelectionPointerLock);
 
     Q_ASSERT(m_d->pixelSelection);
 
@@ -386,17 +383,17 @@ bool KisSelection::thumbnailImageValid() const
     return m_d->pixelSelection->thumbnailImageValid();
 }
 
-void KisSelection::recalculateThumbnailImage(const QColor &maskColor)
+void KisSelection::recalculateThumbnailImage(const PkColor &maskColor)
 {
     m_d->pixelSelection->recalculateThumbnailImage(maskColor);
 }
 
-QImage KisSelection::thumbnailImage() const
+PkImage KisSelection::thumbnailImage() const
 {
     return m_d->pixelSelection->thumbnailImage();
 }
 
-QTransform KisSelection::thumbnailImageTransform() const
+PkTransform KisSelection::thumbnailImageTransform() const
 {
     return m_d->pixelSelection->thumbnailImageTransform();
 }
@@ -408,13 +405,13 @@ bool KisSelection::hasNonEmptyPixelSelection() const
 
 bool KisSelection::hasNonEmptyShapeSelection() const
 {
-    QReadLocker l(&m_d->shapeSelectionPointerLock);
+    PkReadLocker l(&m_d->shapeSelectionPointerLock);
     return m_d->shapeSelection && !m_d->shapeSelection->isEmpty();
 }
 
 bool KisSelection::hasShapeSelection() const
 {
-    QReadLocker l(&m_d->shapeSelectionPointerLock);
+    PkReadLocker l(&m_d->shapeSelectionPointerLock);
     return m_d->shapeSelection;
 }
 
@@ -433,7 +430,7 @@ void KisSelection::convertToVectorSelectionNoUndo(KisSelectionComponent* shapeSe
     KIS_SAFE_ASSERT_RECOVER_RETURN(shapeSelection);
 
     shapeSelection->setResolutionProxy(m_d->resolutionProxy);
-    QScopedPointer<KUndo2Command> cmd(new ChangeShapeSelectionCommand(this, shapeSelection));
+    PkScopedPointer<KUndo2Command> cmd(new ChangeShapeSelectionCommand(this, shapeSelection));
     cmd->redo();
 }
 
@@ -450,9 +447,9 @@ KisPixelSelectionSP KisSelection::projection() const
     return m_d->pixelSelection;
 }
 
-void KisSelection::updateProjection(const QRect &rc)
+void KisSelection::updateProjection(const PkRect &rc)
 {
-    QReadLocker l(&m_d->shapeSelectionPointerLock);
+    PkReadLocker l(&m_d->shapeSelectionPointerLock);
 
     if(m_d->shapeSelection) {
         m_d->shapeSelection->renderToProjection(m_d->pixelSelection, rc);
@@ -462,7 +459,7 @@ void KisSelection::updateProjection(const QRect &rc)
 
 void KisSelection::updateProjection()
 {
-    QReadLocker l(&m_d->shapeSelectionPointerLock);
+    PkReadLocker l(&m_d->shapeSelectionPointerLock);
 
     if(m_d->shapeSelection) {
         m_d->pixelSelection->clear();
@@ -487,17 +484,17 @@ bool KisSelection::isVisible()
     return m_d->isVisible;
 }
 
-bool KisSelection::isTotallyUnselected(const QRect & r) const
+bool KisSelection::isTotallyUnselected(const PkRect & r) const
 {
     return m_d->pixelSelection->isTotallyUnselected(r);
 }
 
-QRect KisSelection::selectedRect() const
+PkRect KisSelection::selectedRect() const
 {
     return m_d->pixelSelection->selectedRect();
 }
 
-QRect KisSelection::selectedExactRect() const
+PkRect KisSelection::selectedExactRect() const
 {
     return m_d->pixelSelection->selectedExactRect();
 }
@@ -514,7 +511,7 @@ qint32 KisSelection::y() const
 
 void KisSelection::setX(qint32 x)
 {
-    QReadLocker l(&m_d->shapeSelectionPointerLock);
+    PkReadLocker l(&m_d->shapeSelectionPointerLock);
 
     Q_ASSERT(m_d->pixelSelection);
 
@@ -527,7 +524,7 @@ void KisSelection::setX(qint32 x)
 
 void KisSelection::setY(qint32 y)
 {
-    QReadLocker l(&m_d->shapeSelectionPointerLock);
+    PkReadLocker l(&m_d->shapeSelectionPointerLock);
 
     Q_ASSERT(m_d->pixelSelection);
 
@@ -558,11 +555,11 @@ KisImageResolutionProxySP KisSelection::resolutionProxy() const
 
 void KisSelection::clear()
 {
-    QReadLocker readLocker(&m_d->shapeSelectionPointerLock);
+    PkReadLocker readLocker(&m_d->shapeSelectionPointerLock);
 
     if (m_d->shapeSelection) {
         readLocker.unlock();
-        QWriteLocker writeLocker(&m_d->shapeSelectionPointerLock);
+        PkWriteLocker writeLocker(&m_d->shapeSelectionPointerLock);
         if (m_d->shapeSelection) {
             Private::safeDeleteShapeSelection(m_d->shapeSelection, this);
             m_d->shapeSelection = 0;
@@ -574,7 +571,7 @@ void KisSelection::clear()
 
 KUndo2Command* KisSelection::flatten()
 {
-    QReadLocker readLocker(&m_d->shapeSelectionPointerLock);
+    PkReadLocker readLocker(&m_d->shapeSelectionPointerLock);
 
     KUndo2Command *command = 0;
 
@@ -606,7 +603,7 @@ void KisSelection::notifySelectionChanged()
     listener->notifySelectionChanged();
 }
 
-void KisSelection::requestCompressedProjectionUpdate(const QRect &rc)
+void KisSelection::requestCompressedProjectionUpdate(const PkRect &rc)
 {
     m_d->updateCompressor->requestUpdate(rc);
 }

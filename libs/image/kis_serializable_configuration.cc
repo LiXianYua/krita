@@ -6,9 +6,6 @@
 
 #include "kis_serializable_configuration.h"
 
-#include <QDomElement>
-#include <QDomDocument>
-#include <QString>
 
 KisSerializableConfiguration::KisSerializableConfiguration()
 {
@@ -19,21 +16,21 @@ KisSerializableConfiguration::KisSerializableConfiguration(const KisSerializable
 {
 }
 
-bool KisSerializableConfiguration::fromXML(const QString &s, bool)
+bool KisSerializableConfiguration::fromXML(const PkString &s, bool)
 {
-    QDomDocument doc;
+    PkXmlDocument doc;
     bool rv = bool(doc.setContent(s));
     if (rv) {
-        QDomElement e = doc.documentElement();
+        PkXmlElement e = doc.documentElement();
         fromXML(e);
     }
     return rv;
 }
 
-QString KisSerializableConfiguration::toXML() const
+PkString KisSerializableConfiguration::toXML() const
 {
-    QDomDocument doc = QDomDocument("params");
-    QDomElement root = doc.createElement("params");
+    PkXmlDocument doc = PkXmlDocument("params");
+    PkXmlElement root = doc.createElement("params");
     doc.appendChild(root);
     toXML(doc, root);
     return doc.toString();

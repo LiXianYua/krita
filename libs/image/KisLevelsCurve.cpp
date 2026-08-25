@@ -31,7 +31,7 @@ KisLevelsCurve::KisLevelsCurve(qreal inputBlackPoint, qreal inputWhitePoint, qre
     , m_mustRecomputeFTransfer(true)
 {}
 
-KisLevelsCurve::KisLevelsCurve(const QString &text)
+KisLevelsCurve::KisLevelsCurve(const PkString &text)
     : KisLevelsCurve()
 {
     fromString(text);
@@ -162,17 +162,17 @@ bool KisLevelsCurve::isIdentity() const
         m_outputWhitePoint == 1.0;
 }
 
-const QString& KisLevelsCurve::name() const
+const PkString& KisLevelsCurve::name() const
 {
     return m_name;
 }
 
-void KisLevelsCurve::setName(const QString &newName)
+void KisLevelsCurve::setName(const PkString &newName)
 {
     m_name = newName;
 }
 
-const QVector<quint16>& KisLevelsCurve::uint16Transfer(int size) const
+const PkVector<quint16>& KisLevelsCurve::uint16Transfer(int size) const
 {
 
     if (!m_mustRecomputeU16Transfer && size == m_u16Transfer.size()) {
@@ -190,7 +190,7 @@ const QVector<quint16>& KisLevelsCurve::uint16Transfer(int size) const
     return m_u16Transfer;
 }
 
-const QVector<qreal>& KisLevelsCurve::floatTransfer(int size) const
+const PkVector<qreal>& KisLevelsCurve::floatTransfer(int size) const
 {
     if (!m_mustRecomputeFTransfer && size == m_fTransfer.size()) {
         return m_fTransfer;
@@ -206,7 +206,7 @@ const QVector<qreal>& KisLevelsCurve::floatTransfer(int size) const
     return m_fTransfer;
 }
 
-QString KisLevelsCurve::toString() const
+PkString KisLevelsCurve::toString() const
 {
     return
         KisDomUtils::toString(m_inputBlackPoint) + ";" +
@@ -216,7 +216,7 @@ QString KisLevelsCurve::toString() const
         KisDomUtils::toString(m_outputWhitePoint);
 }
 
-void KisLevelsCurve::fromString(const QString &text, bool *ok)
+void KisLevelsCurve::fromString(const PkString &text, bool *ok)
 {
     KIS_SAFE_ASSERT_RECOVER(!text.isEmpty()) {
         resetAll();
@@ -226,7 +226,7 @@ void KisLevelsCurve::fromString(const QString &text, bool *ok)
         return;
     }
     
-    const QStringList data = text.split(';');
+    const auto data = text.split(';');
     KIS_SAFE_ASSERT_RECOVER(data.size() == 5) {
         resetAll();
         if (ok) {

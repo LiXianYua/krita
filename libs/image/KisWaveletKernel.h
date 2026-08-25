@@ -12,7 +12,7 @@
 
 #include <Eigen/Core>
 
-class QRect;
+class PkRect;
 
 class KRITAIMAGE_EXPORT KisWaveletKernel
 {
@@ -32,9 +32,9 @@ public:
     static int kernelSizeFromRadius(qreal radius);
 
     static void applyWavelet(KisPaintDeviceSP device,
-                              const QRect& rect,
+                              const PkRect& rect,
                               qreal xRadius, qreal yRadius,
-                              const QBitArray &channelFlags,
+                              const PkBitArray &channelFlags,
                               KoUpdater *updater);
 };
 

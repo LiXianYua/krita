@@ -6,7 +6,6 @@
 #ifndef KIS_SELECTION_H_
 #define KIS_SELECTION_H_
 
-#include <QRect>
 
 #include "kis_types.h"
 #include "kritaimage_export.h"
@@ -17,7 +16,7 @@
 
 
 class KisSelectionComponent;
-class QPainterPath;
+class PkPainterPath;
 
 /**
  * KisSelection is a composite object. It may contain an instance
@@ -86,7 +85,7 @@ public:
     bool hasShapeSelection() const;
 
     bool outlineCacheValid() const;
-    QPainterPath outlineCache() const;
+    PkPainterPath outlineCache() const;
     void recalculateOutlineCache();
 
 
@@ -98,18 +97,18 @@ public:
     /**
      * Recalculates the thumbnail of the selection
      */
-    void recalculateThumbnailImage(const QColor &maskColor);
+    void recalculateThumbnailImage(const PkColor &maskColor);
 
     /**
      * Returns the thumbnail of the selection.
      */
-    QImage thumbnailImage() const;
+    PkImage thumbnailImage() const;
 
     /**
      * Returns the transformation which should be applied to the thumbnail before
      * being painted over the image
      */
-    QTransform thumbnailImageTransform() const;
+    PkTransform thumbnailImageTransform() const;
 
 
     /**
@@ -161,7 +160,7 @@ public:
      * method after the every change of the selection components.
      * There is no automatic updates framework present
      */
-    void updateProjection(const QRect& rect);
+    void updateProjection(const PkRect& rect);
     void updateProjection();
 
     void setVisible(bool visible);
@@ -171,9 +170,9 @@ public:
      * Convenience functions. Just call the corresponding methods
      * of the underlying projection
      */
-    bool isTotallyUnselected(const QRect & r) const;
+    bool isTotallyUnselected(const PkRect & r) const;
 
-    QRect selectedRect() const;
+    PkRect selectedRect() const;
 
     /**
      * @brief Slow, but exact way of determining the rectangle
@@ -183,7 +182,7 @@ public:
      * selectedExactRect() handles all these cases.
      *
      */
-    QRect selectedExactRect() const;
+    PkRect selectedExactRect() const;
 
     void setX(qint32 x);
     void setY(qint32 y);
@@ -211,7 +210,7 @@ public:
      * compressed way. Usually, you don't need to call it manually,
      * because all the work is done by KisShapeSelectionModel.
      */
-    void requestCompressedProjectionUpdate(const QRect &rc);
+    void requestCompressedProjectionUpdate(const PkRect &rc);
 
     /// XXX: This method was marked KDE_DEPRECATED but without information on what to
     /// replace it with. Undeprecate, therefore.

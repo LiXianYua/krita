@@ -25,9 +25,9 @@ public:
     bool useBlackPointCompensationFirstTransform; ///< Whether to use BCP on the first transform. All other flags are handled by displayFlags;
     KoColorConversionTransformation::ConversionFlags displayFlags; ///< flags for the second transform.
     KoColor warningColor;
-    QString proofingProfile;
-    QString proofingModel;
-    QString proofingDepth;
+    PkString proofingProfile;
+    PkString proofingModel;
+    PkString proofingDepth;
 
     qreal legacyAdaptationState() const {
         return displayFlags.testFlag(KoColorConversionTransformation::NoAdaptationAbsoluteIntent) ? 0.0 : 1.0;

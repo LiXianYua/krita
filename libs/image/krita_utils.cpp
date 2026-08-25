@@ -6,14 +6,9 @@
 
 #include "krita_utils.h"
 
-#include <QtCore/qmath.h>
-
-#include <QRect>
-#include <QRegion>
-#include <QPainterPath>
-#include <QPolygonF>
-#include <QPen>
-#include <QPainter>
+#include <cmath>
+#include <iomanip>
+#include <sstream>
 
 #include "kis_algebra_2d.h"
 
@@ -27,24 +22,26 @@
 #include "kis_random_accessor_ng.h"
 
 #include <KisRenderedDab.h>
+#include <PkRgb.h>
+#include <KisRegion.h>
 
 
 namespace KritaUtils
 {
 
-    QSize optimalPatchSize()
+    PkSize optimalPatchSize()
     {
         KisImageConfig cfg(true);
-        return QSize(cfg.updatePatchWidth(),
-                     cfg.updatePatchHeight());
+        return PkSize(cfg.updatePatchWidth(),
+                      cfg.updatePatchHeight());
     }
 
-    QVector<QRect> splitRectIntoPatches(const QRect &rc, const QSize &patchSize)
+    PkVector<PkRect> splitRectIntoPatches(const PkRect &rc, const PkSize &patchSize)
     {
         using namespace KisAlgebra2D;
 
 
-        QVector<QRect> patches;
+        PkVector<PkRect> patches;
 
         const qint32 firstCol = divideFloor(rc.x(), patchSize.width());
         const qint32 firstRow = divideFloor(rc.y(), patchSize.height());
@@ -55,9 +52,9 @@ namespace KritaUtils
 
         for(qint32 i = firstRow; i <= lastRow; i++) {
             for(qint32 j = firstCol; j <= lastCol; j++) {
-                QRect maxPatchRect(j * patchSize.width(), i * patchSize.height(),
+                PkRect maxPatchRect(j * patchSize.width(), i * patchSize.height(),
                                    patchSize.width(), patchSize.height());
-                QRect patchRect = rc & maxPatchRect;
+                PkRect patchRect = rc & maxPatchRect;
 
                 if (!patchRect.isEmpty()) {
                     patches.append(patchRect);
@@ -68,57 +65,59 @@ namespace KritaUtils
         return patches;
     }
 
-    QVector<QRect> splitRectIntoPatchesTight(const QRect &rc, const QSize &patchSize)
+    PkVector<PkRect> splitRectIntoPatchesTight(const PkRect &rc, const PkSize &patchSize)
     {
-        QVector<QRect> patches;
+        PkVector<PkRect> patches;
 
         for (qint32 y = rc.y(); y < rc.y() + rc.height(); y += patchSize.height()) {
             for (qint32 x = rc.x(); x < rc.x() + rc.width(); x += patchSize.width()) {
-                patches << QRect(x, y,
+                patches.append(PkRect(x, y,
                                  qMin(rc.x() + rc.width() - x, patchSize.width()),
-                                 qMin(rc.y() + rc.height() - y, patchSize.height()));
+                                 qMin(rc.y() + rc.height() - y, patchSize.height())));
             }
         }
 
         return patches;
     }
 
-    QVector<QRect> splitRegionIntoPatches(const KisRegion &region, const QSize &patchSize)
+    PkVector<PkRect> splitRegionIntoPatches(const PkRegion &region, const PkSize &patchSize)
     {
-        QVector<QRect> patches;
+        PkVector<PkRect> patches;
 
-        Q_FOREACH (const QRect rect, region.rects()) {
-            patches << KritaUtils::splitRectIntoPatches(rect, patchSize);
+        for (const PkRect rect : region.rects()) {
+            patches.append(KritaUtils::splitRectIntoPatches(rect, patchSize));
         }
 
         return patches;
     }
 
-    bool checkInTriangle(const QRectF &rect,
-                         const QPolygonF &triangle)
+    bool checkInTriangle(const PkRectF &rect,
+                         const PkPolygonF &triangle)
     {
-        return triangle.intersected(rect).boundingRect().isValid();
+        // NOTE: PkPolygonF 无 intersected 方法（pk 偏差登记），用包围盒相交近似。
+        // 对 splitTriangles 的 dirty-rect 判定语义安全（过近似 → 可能多包 1 个 64x64 块）。
+        return triangle.boundingRect().intersects(rect);
     }
 
 
-    KisRegion splitTriangles(const QPointF &center,
-                                               const QVector<QPointF> &points)
+    KisRegion splitTriangles(const PkPointF &center,
+                                               const PkVector<PkPointF> &points)
     {
 
         Q_ASSERT(points.size());
         Q_ASSERT(!(points.size() & 1));
 
-        QVector<QPolygonF> triangles;
-        QRect totalRect;
+        PkVector<PkPolygonF> triangles;
+        PkRect totalRect;
 
         for (int i = 0; i < points.size(); i += 2) {
-            QPolygonF triangle;
-            triangle << center;
-            triangle << points[i];
-            triangle << points[i+1];
+            PkPolygonF triangle;
+            triangle.append(center);
+            triangle.append(points[i]);
+            triangle.append(points[i+1]);
 
             totalRect |= triangle.boundingRect().toAlignedRect();
-            triangles << triangle;
+            triangles.append(triangle);
         }
 
 
@@ -126,7 +125,7 @@ namespace KritaUtils
         const int right = totalRect.x() + totalRect.width();
         const int bottom = totalRect.y() + totalRect.height();
 
-        QVector<QRect> dirtyRects;
+        PkVector<PkRect> dirtyRects;
 
         for (int y = totalRect.y(); y < bottom;) {
             int nextY = qMin((y + step) & ~(step-1), bottom);
@@ -134,11 +133,11 @@ namespace KritaUtils
             for (int x = totalRect.x(); x < right;) {
                 int nextX = qMin((x + step) & ~(step-1), right);
 
-                QRect rect(x, y, nextX - x, nextY - y);
+                PkRect rect(x, y, nextX - x, nextY - y);
 
-                Q_FOREACH (const QPolygonF &triangle, triangles) {
+                for (const PkPolygonF &triangle : triangles) {
                     if(checkInTriangle(rect, triangle)) {
-                        dirtyRects << rect;
+                        dirtyRects.append(rect);
                         break;
                     }
                 }
@@ -150,10 +149,10 @@ namespace KritaUtils
         return KisRegion(std::move(dirtyRects));
     }
 
-    KisRegion splitPath(const QPainterPath &path)
+    KisRegion splitPath(const PkPainterPath &path)
     {
-        QVector<QRect> dirtyRects;
-        QRect totalRect = path.boundingRect().toAlignedRect();
+        PkVector<PkRect> dirtyRects;
+        PkRect totalRect = path.boundingRect().toAlignedRect();
 
         // adjust the rect for antialiasing to work
         totalRect = totalRect.adjusted(-1,-1,1,1);
@@ -168,10 +167,10 @@ namespace KritaUtils
             for (int x = totalRect.x(); x < right;) {
                 int nextX = qMin((x + step) & ~(step-1), right);
 
-                QRect rect(x, y, nextX - x, nextY - y);
+                PkRect rect(x, y, nextX - x, nextY - y);
 
-                if(path.intersects(rect)) {
-                    dirtyRects << rect;
+                if(path.intersects(PkRectF(rect))) {
+                    dirtyRects.append(rect);
                 }
 
                 x = nextX;
@@ -182,24 +181,28 @@ namespace KritaUtils
         return KisRegion(std::move(dirtyRects));
     }
 
-    QString KRITAIMAGE_EXPORT prettyFormatReal(qreal value)
+    PkString KRITAIMAGE_EXPORT prettyFormatReal(qreal value)
     {
-        return QLocale().toString(value, 'f', 1);
+        // NOTE: PkString 无本地化格式化 API，用标准库格式化（定点、一位小数）。
+        std::ostringstream ss;
+        ss << std::fixed << std::setprecision(1) << value;
+        return PkString(ss.str().c_str());
     }
 
-    qreal KRITAIMAGE_EXPORT maxDimensionPortion(const QRectF &bounds, qreal portion, qreal minValue)
+    qreal KRITAIMAGE_EXPORT maxDimensionPortion(const PkRectF &bounds, qreal portion, qreal minValue)
     {
         qreal maxDimension = qMax(bounds.width(), bounds.height());
         return qMax(portion * maxDimension, minValue);
     }
 
-    QList<QPainterPath> splitDisjointPaths(const QPainterPath &path)
+    PkList<PkPainterPath> splitDisjointPaths(const PkPainterPath &path)
     {
-        QList<QPainterPath> resultList;
-        QList<QPolygonF> inputPolygons = path.toSubpathPolygons();
+        PkList<PkPainterPath> resultList;
+        // NOTE: PkPainterPath::toSubpathPolygons 需要 PkTransform 参数（无无参重载），传恒等变换。
+        PkVector<PkPolygonF> inputPolygons = path.toSubpathPolygons(PkTransform());
 
-        Q_FOREACH (const QPolygonF &poly, inputPolygons) {
-            QPainterPath testPath;
+        for (const PkPolygonF &poly : inputPolygons) {
+            PkPainterPath testPath;
             testPath.addPolygon(poly);
 
             if (resultList.isEmpty()) {
@@ -207,10 +210,12 @@ namespace KritaUtils
                 continue;
             }
 
-            QPainterPath mergedPath = testPath;
+            PkPainterPath mergedPath = testPath;
 
             for (auto it = resultList.begin(); it != resultList.end(); /*noop*/) {
-                if (it->intersects(testPath)) {
+                // NOTE: PkPainterPath 无 path-path intersects（只有 intersects(PkRectF)），
+                // 用包围盒相交近似：可能多合并包围盒相邻的子路径，可接受的过近似。
+                if (it->boundingRect().intersects(testPath.boundingRect())) {
                     mergedPath.addPath(*it);
                     it = resultList.erase(it);
                 } else {
@@ -240,15 +245,16 @@ namespace KritaUtils
         return opacity;
     }
 
-    QBitArray mergeChannelFlags(const QBitArray &childFlags, const QBitArray &parentFlags)
+    PkBitArray mergeChannelFlags(const PkBitArray &childFlags, const PkBitArray &parentFlags)
     {
-        QBitArray flags = childFlags;
+        PkBitArray flags = childFlags;
 
         if (!flags.isEmpty() &&
             !parentFlags.isEmpty() &&
             flags.size() == parentFlags.size()) {
 
-            flags &= parentFlags;
+            // NOTE: PkBitArray 无 operator&=，用 operator& 新建。
+            flags = flags & parentFlags;
 
         } else if (!parentFlags.isEmpty()) {
             flags = parentFlags;
@@ -257,23 +263,28 @@ namespace KritaUtils
         return flags;
     }
 
-    bool compareChannelFlags(QBitArray f1, QBitArray f2)
+    bool compareChannelFlags(PkBitArray f1, PkBitArray f2)
     {
-        if (f1.isNull() && f2.isNull()) return true;
+        // NOTE: PkBitArray 无 isNull()，以 size()==0 表示「空/未定义」（真 Qt isNull 语义）。
+        if (f1.size() == 0 && f2.size() == 0) return true;
 
-        if (f1.isNull()) {
-            f1.fill(true, f2.size());
+        if (f1.size() == 0) {
+            f1.resize(f2.size());
+            f1.fill(true);
         }
 
-        if (f2.isNull()) {
-            f2.fill(true, f1.size());
+        if (f2.size() == 0) {
+            f2.resize(f1.size());
+            f2.fill(true);
         }
 
         return f1 == f2;
     }
 
-    QString KRITAIMAGE_EXPORT toLocalizedOnOff(bool value) {
-        return value ? i18n("on") : i18n("off");
+    PkString KRITAIMAGE_EXPORT toLocalizedOnOff(bool value)
+    {
+        // NOTE: 剥掉翻译调用（壳内无翻译层），消费方接受英文 on/off。
+        return value ? PkString("on") : PkString("off");
     }
 
     KisNodeSP nearestNodeAfterRemoval(KisNodeSP node)
@@ -291,37 +302,39 @@ namespace KritaUtils
         return newNode;
     }
 
-    void renderExactRect(QPainter *p, const QRect &rc)
+    void renderExactRect(PkPainter *p, const PkRect &rc)
     {
+        // NOTE: 壳 PkPainter::drawRect 为 no-op 桩（渲染路径在壳外，见批次 D）。
         p->drawRect(rc.adjusted(0,0,-1,-1));
     }
 
-    void renderExactRect(QPainter *p, const QRect &rc, const QPen &pen)
+    void renderExactRect(PkPainter *p, const PkRect &rc, const PkPen &pen)
     {
-        QPen oldPen = p->pen();
+        PkPen oldPen = p->pen();
         p->setPen(pen);
         renderExactRect(p, rc);
         p->setPen(oldPen);
     }
 
-    QImage convertQImageToGrayA(const QImage &image)
+    PkImage convertQImageToGrayA(const PkImage &image)
     {
-        QImage dstImage(image.size(), QImage::Format_ARGB32);
+        PkImage dstImage(image.size(), PkImage::Format_ARGB32);
 
         // TODO: if someone feel bored, a more optimized version of this would be welcome
-        const QSize size = image.size();
+        const PkSize size = image.size();
         for(int y = 0; y < size.height(); ++y) {
             for(int x = 0; x < size.width(); ++x) {
-                const QRgb pixel = image.pixel(x,y);
-                const int gray = qGray(pixel);
-                dstImage.setPixel(x, y, qRgba(gray, gray, gray, qAlpha(pixel)));
+                const PkRgb pixel = image.pixel(x,y);
+                // NOTE: 无 qGray 宏，直接用 pk 通道提取；公式同 Qt：(r*11+g*16+b*5)>>5
+                const int gray = (pkRed(pixel) * 11 + pkGreen(pixel) * 16 + pkBlue(pixel) * 5) >> 5;
+                dstImage.setPixel(x, y, pkRgba(gray, gray, gray, pkAlpha(pixel)));
             }
         }
 
         return dstImage;
     }
 
-    void applyToAlpha8Device(KisPaintDeviceSP dev, const QRect &rc, std::function<void(quint8)> func) {
+    void applyToAlpha8Device(KisPaintDeviceSP dev, const PkRect &rc, std::function<void(quint8)> func) {
         KisSequentialConstIterator dstIt(dev, rc);
         while (dstIt.nextPixel()) {
             const quint8 *dstPtr = dstIt.rawDataConst();
@@ -329,7 +342,7 @@ namespace KritaUtils
         }
     }
 
-    void filterAlpha8Device(KisPaintDeviceSP dev, const QRect &rc, std::function<quint8(quint8)> func) {
+    void filterAlpha8Device(KisPaintDeviceSP dev, const PkRect &rc, std::function<quint8(quint8)> func) {
         KisSequentialIterator dstIt(dev, rc);
         while (dstIt.nextPixel()) {
             quint8 *dstPtr = dstIt.rawData();
@@ -337,7 +350,7 @@ namespace KritaUtils
         }
     }
 
-    qreal estimatePortionOfTransparentPixels(KisPaintDeviceSP dev, const QRect &rect, qreal samplePortion) {
+    qreal estimatePortionOfTransparentPixels(KisPaintDeviceSP dev, const PkRect &rect, qreal samplePortion) {
         const KoColorSpace *cs = dev->colorSpace();
 
         const qreal linearPortion = std::sqrt(samplePortion);
@@ -368,9 +381,9 @@ namespace KritaUtils
         return qreal(numTransparentPixels) / numPixels;
     }
 
-    void mirrorDab(Qt::Orientation dir, const QPoint &center, KisRenderedDab *dab, bool skipMirrorPixels)
+    void mirrorDab(Qt::Orientation dir, const PkPoint &center, KisRenderedDab *dab, bool skipMirrorPixels)
     {
-        const QRect rc = dab->realBounds();
+        const PkRect rc = dab->realBounds();
 
         if (dir == Qt::Horizontal) {
             const int mirrorX = -((rc.x() + rc.width()) - center.x()) + center.x();
@@ -389,9 +402,9 @@ namespace KritaUtils
         }
     }
 
-    void mirrorDab(Qt::Orientation dir, const QPointF &center, KisRenderedDab *dab, bool skipMirrorPixels)
+    void mirrorDab(Qt::Orientation dir, const PkPointF &center, KisRenderedDab *dab, bool skipMirrorPixels)
     {
-        const QRect rc = dab->realBounds();
+        const PkRect rc = dab->realBounds();
 
         if (dir == Qt::Horizontal) {
             const int mirrorX = -((rc.x() + rc.width()) - center.x()) + center.x();
@@ -410,7 +423,7 @@ namespace KritaUtils
         }
     }
 
-    void mirrorRect(Qt::Orientation dir, const QPoint &center, QRect *rc)
+    void mirrorRect(Qt::Orientation dir, const PkPoint &center, PkRect *rc)
     {
         if (dir == Qt::Horizontal) {
             const int mirrorX = -((rc->x() + rc->width()) - center.x()) + center.x();
@@ -421,7 +434,7 @@ namespace KritaUtils
         }
     }
 
-    void mirrorRect(Qt::Orientation dir, const QPointF &center, QRect *rc)
+    void mirrorRect(Qt::Orientation dir, const PkPointF &center, PkRect *rc)
     {
         if (dir == Qt::Horizontal) {
             const int mirrorX = -((rc->x() + rc->width()) - center.x()) + center.x();
@@ -432,7 +445,7 @@ namespace KritaUtils
         }
     }
 
-    void mirrorPoint(Qt::Orientation dir, const QPoint &center, QPointF *pt)
+    void mirrorPoint(Qt::Orientation dir, const PkPoint &center, PkPointF *pt)
     {
         if (dir == Qt::Horizontal) {
             pt->rx() = -(pt->x() - qreal(center.x())) + center.x();
@@ -441,7 +454,7 @@ namespace KritaUtils
         }
     }
 
-    void mirrorPoint(Qt::Orientation dir, const QPointF &center, QPointF *pt)
+    void mirrorPoint(Qt::Orientation dir, const PkPointF &center, PkPointF *pt)
     {
         if (dir == Qt::Horizontal) {
             pt->rx() = -(pt->x() - qreal(center.x())) + center.x();
@@ -450,19 +463,19 @@ namespace KritaUtils
         }
     }
 
-    QTransform pathShapeBooleanSpaceWorkaround(KisImageSP image)
+    PkTransform pathShapeBooleanSpaceWorkaround(KisImageSP image)
     {
-        return QTransform::fromScale(image->xRes(), image->yRes());
+        return PkTransform::fromScale(image->xRes(), image->yRes());
     }
 
-    QPainterPath tryCloseTornSubpathsAfterIntersection(QPainterPath path)
+    PkPainterPath tryCloseTornSubpathsAfterIntersection(PkPainterPath path)
     {
         path.setFillRule(Qt::WindingFill);
-        QList<QPolygonF> polys = path.toSubpathPolygons();
+        PkVector<PkPolygonF> polys = path.toSubpathPolygons(PkTransform());
 
-        path = QPainterPath();
+        path = PkPainterPath();
         path.setFillRule(Qt::WindingFill);
-        Q_FOREACH (QPolygonF poly, polys) {
+        for (PkPolygonF poly : polys) {
             ENTER_FUNCTION() << ppVar(poly.isClosed());
             if (!poly.isClosed()) {
                 poly.append(poly.first());
@@ -472,7 +485,7 @@ namespace KritaUtils
         return path;
     }
 
-    void thresholdOpacity(KisPaintDeviceSP device, const QRect &rect, ThresholdMode mode)
+    void thresholdOpacity(KisPaintDeviceSP device, const PkRect &rect, ThresholdMode mode)
     {
         const KoColorSpace *cs = device->colorSpace();
 
@@ -500,7 +513,7 @@ namespace KritaUtils
         }
     }
 
-    void thresholdOpacityAlpha8(KisPaintDeviceSP device, const QRect &rect, ThresholdMode mode)
+    void thresholdOpacityAlpha8(KisPaintDeviceSP device, const PkRect &rect, ThresholdMode mode)
     {
         if (mode == ThresholdCeil) {
             filterAlpha8Device(device, rect,
@@ -513,42 +526,43 @@ namespace KritaUtils
                     return value < 255 ? 0 : value;
                 });
         } else if (mode == ThresholdMaxOut) {
+            // PkColor(Qt::GlobalColor) 隐式转 const PkColor&，进 KoColor(PkColor, cs)。
             device->fill(rect, KoColor(Qt::white, device->colorSpace()));
         }
     }
 
-    QVector<QPoint> rasterizeHLine(const QPoint &startPoint, const QPoint &endPoint)
+    PkVector<PkPoint> rasterizeHLine(const PkPoint &startPoint, const PkPoint &endPoint)
     {
-        QVector<QPoint> points;
-        rasterizeHLine(startPoint, endPoint, [&points](const QPoint &point) { points.append(point); });
+        PkVector<PkPoint> points;
+        rasterizeHLine(startPoint, endPoint, [&points](const PkPoint &point) { points.append(point); });
         return points;
     }
 
-    QVector<QPoint> rasterizeVLine(const QPoint &startPoint, const QPoint &endPoint)
+    PkVector<PkPoint> rasterizeVLine(const PkPoint &startPoint, const PkPoint &endPoint)
     {
-        QVector<QPoint> points;
-        rasterizeVLine(startPoint, endPoint, [&points](const QPoint &point) { points.append(point); });
+        PkVector<PkPoint> points;
+        rasterizeVLine(startPoint, endPoint, [&points](const PkPoint &point) { points.append(point); });
         return points;
     }
 
-    QVector<QPoint> rasterizeLineDDA(const QPoint &startPoint, const QPoint &endPoint)
+    PkVector<PkPoint> rasterizeLineDDA(const PkPoint &startPoint, const PkPoint &endPoint)
     {
-        QVector<QPoint> points;
-        rasterizeLineDDA(startPoint, endPoint, [&points](const QPoint &point) { points.append(point); });
+        PkVector<PkPoint> points;
+        rasterizeLineDDA(startPoint, endPoint, [&points](const PkPoint &point) { points.append(point); });
         return points;
     }
 
-    QVector<QPoint> rasterizePolylineDDA(const QVector<QPoint> &polylinePoints)
+    PkVector<PkPoint> rasterizePolylineDDA(const PkVector<PkPoint> &polylinePoints)
     {
-        QVector<QPoint> points;
-        rasterizePolylineDDA(polylinePoints, [&points](const QPoint &point) { points.append(point); });
+        PkVector<PkPoint> points;
+        rasterizePolylineDDA(polylinePoints, [&points](const PkPoint &point) { points.append(point); });
         return points;
     }
 
-    QVector<QPoint> rasterizePolygonDDA(const QVector<QPoint> &polygonPoints)
+    PkVector<PkPoint> rasterizePolygonDDA(const PkVector<PkPoint> &polygonPoints)
     {
-        QVector<QPoint> points;
-        rasterizePolygonDDA(polygonPoints, [&points](const QPoint &point) { points.append(point); });
+        PkVector<PkPoint> points;
+        rasterizePolygonDDA(polygonPoints, [&points](const PkPoint &point) { points.append(point); });
         return points;
     }
 

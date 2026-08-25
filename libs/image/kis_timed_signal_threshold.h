@@ -8,8 +8,7 @@
 #define __KIS_TIMED_SIGNAL_THRESHOLD_H
 
 #include "kritaimage_export.h"
-#include <QScopedPointer>
-#include <QObject>
+#include <PkObject.h>
 
 
 /**
@@ -18,11 +17,11 @@
  * If the events were not coming for \p cancelDelay of milliseconds the
  * counting is dropped and the new period is started.
  */
-class KRITAIMAGE_EXPORT KisTimedSignalThreshold : public QObject
+class KRITAIMAGE_EXPORT KisTimedSignalThreshold : public PkShellObject
 {
     Q_OBJECT
 public:
-    KisTimedSignalThreshold(int delay, int cancelDelay = -1, QObject *parent = 0);
+    KisTimedSignalThreshold(int delay, int cancelDelay = -1, PkObject *parent = 0);
     ~KisTimedSignalThreshold() override;
 
 public Q_SLOTS:
@@ -59,7 +58,7 @@ Q_SIGNALS:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_TIMED_SIGNAL_THRESHOLD_H */

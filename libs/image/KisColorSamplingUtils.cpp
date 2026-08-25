@@ -14,7 +14,7 @@
 
 bool KisColorSamplingUtils::sampleColor(KoColor &outColor,
                                         KisPaintDeviceSP device,
-                                        const QPoint &position,
+                                        const PkPoint &position,
                                         const KoColor *blendColor,
                                         int radius,
                                         int blend,
@@ -35,9 +35,9 @@ bool KisColorSamplingUtils::sampleColor(KoColor &outColor,
     device->setSupportsWraparoundMode(true);
 
     if (!pure && radius > 1) {
-        QScopedPointer<KoMixColorsOp::Mixer> mixer(colorSpace->mixColorsOp()->createMixer());
+        PkScopedPointer<KoMixColorsOp::Mixer> mixer(colorSpace->mixColorsOp()->createMixer());
         const int effectiveRadius = radius - 1;
-        const QRect sampleRect(position.x() - effectiveRadius,
+        const PkRect sampleRect(position.x() - effectiveRadius,
                                position.y() - effectiveRadius,
                                2 * effectiveRadius + 1,
                                2 * effectiveRadius + 1);
@@ -46,7 +46,7 @@ bool KisColorSamplingUtils::sampleColor(KoColor &outColor,
 
         int consecutivePixels = iterator.nConseqPixels();
         while (iterator.nextPixels(consecutivePixels)) {
-            const QPoint realPosition(iterator.x(), iterator.y());
+            const PkPoint realPosition(iterator.x(), iterator.y());
             if (kisSquareDistance(realPosition, position) < radiusSquared) {
                 mixer->accumulateAverage(iterator.oldRawData(), consecutivePixels);
             }

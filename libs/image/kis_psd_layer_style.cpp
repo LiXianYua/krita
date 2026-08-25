@@ -5,10 +5,7 @@
  */
 #include "kis_psd_layer_style.h"
 
-#include <QBuffer>
-#include <QIODevice>
-#include <QUuid>
-#include <KLocalizedString>
+#include <klocalizedstring.h>
 
 #include <kis_assert.h>
 #include <kis_global.h>
@@ -78,8 +75,8 @@ struct Q_DECL_HIDDEN KisPSDLayerStyle::Private
         return *this;
     }
 
-    QString name;
-    QUuid uuid;
+    PkString name;
+    PkNodeId uuid;
     quint16 version;
     bool effectEnabled;
     psd_layer_effects_context context;
@@ -96,10 +93,10 @@ struct Q_DECL_HIDDEN KisPSDLayerStyle::Private
 
     KisResourcesInterfaceSP resourcesInterface;
 
-    QList<KoEmbeddedResource> sideLoadedResources;
+    PkList<KoEmbeddedResource> sideLoadedResources;
 };
 
-KisPSDLayerStyle::KisPSDLayerStyle(const QString &filename, KisResourcesInterfaceSP resourcesInterface)
+KisPSDLayerStyle::KisPSDLayerStyle(const PkString &filename, KisResourcesInterfaceSP resourcesInterface)
     : KoResource(filename)
     , d(new Private(resourcesInterface))
 {
@@ -139,14 +136,14 @@ bool KisPSDLayerStyle::isSerializable() const
     return false;
 }
 
-bool KisPSDLayerStyle::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KisPSDLayerStyle::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(dev);
     Q_UNUSED(resourcesInterface);
     return false;
 }
 
-bool KisPSDLayerStyle::saveToDevice(QIODevice *) const
+bool KisPSDLayerStyle::saveToDevice(PkStream *) const
 {
     KIS_SAFE_ASSERT_RECOVER_NOOP(false && "KisPSDLayerStyle is not meant to be serializable!");
     return false;
@@ -171,40 +168,40 @@ bool KisPSDLayerStyle::isEmpty() const
              d->stroke.effectEnabled());
 }
 
-QString KisPSDLayerStyle::name() const
+PkString KisPSDLayerStyle::name() const
 {
     return d->name;
 }
 
-void KisPSDLayerStyle::setName(const QString &value)
+void KisPSDLayerStyle::setName(const PkString &value)
 {
     d->name = value;
     dynamic_cast<KoResource*>(this)->setName(value);
 }
 
-QUuid KisPSDLayerStyle::uuid() const
+PkNodeId KisPSDLayerStyle::uuid() const
 {
     if (d->uuid.isNull()) {
-        d->uuid = QUuid::createUuid();
+        d->uuid = PkNodeId::createUuid();
     }
 
     return d->uuid;
 }
 
-void KisPSDLayerStyle::setUuid(const QUuid &value)
+void KisPSDLayerStyle::setUuid(const PkNodeId &value)
 {
     d->uuid = value;
     this->setMD5Sum(KoMD5Generator::generateHash(value.toByteArray()));
 }
 
-QString KisPSDLayerStyle::psdUuid() const
+PkString KisPSDLayerStyle::psdUuid() const
 {
     return uuid().toString().mid(1, 36);
 }
 
-void KisPSDLayerStyle::setPsdUuid(const QString &value)
+void KisPSDLayerStyle::setPsdUuid(const PkString &value)
 {
-    setUuid(QUuid(QString("{%1}").arg(value)));
+    setUuid(PkNodeId(PkString("{%1}").arg(value)));
 }
 
 const psd_layer_effects_context* KisPSDLayerStyle::context() const
@@ -351,7 +348,7 @@ KisPSDLayerStyleSP KisPSDLayerStyle::cloneWithResourcesSnapshot(KisResourcesInte
 
     if (canvasResourcesInterface) {
 
-        QSharedPointer<KisLocalStrokeResources> localResourcesSnapshot =
+        PkSharedPointer<KisLocalStrokeResources> localResourcesSnapshot =
              style->resourcesInterface().dynamicCast<KisLocalStrokeResources>();
         KIS_ASSERT_RECOVER_RETURN_VALUE(localResourcesSnapshot, style);
 
@@ -392,9 +389,9 @@ KisPSDLayerStyleSP KisPSDLayerStyle::cloneWithResourcesSnapshot(KisResourcesInte
     return style;
 }
 
-QList<KoResourceLoadResult> KisPSDLayerStyle::sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KisPSDLayerStyle::sideLoadedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    QList<KoResourceLoadResult> resources;
+    PkList<KoResourceLoadResult> resources;
 
     Q_FOREACH(const KoEmbeddedResource &resource, d->sideLoadedResources) {
         KoResourceSignature sig = resource.signature();
@@ -417,14 +414,14 @@ void KisPSDLayerStyle::clearSideLoadedResources()
     d->sideLoadedResources.clear();
 }
 
-void KisPSDLayerStyle::setSideLoadedResources(const QList<KoEmbeddedResource> &value)
+void KisPSDLayerStyle::setSideLoadedResources(const PkList<KoEmbeddedResource> &value)
 {
     d->sideLoadedResources = value;
 }
 
-QList<KoResourceLoadResult> KisPSDLayerStyle::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KisPSDLayerStyle::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    QList<KoResourceLoadResult> result;
+    PkList<KoResourceLoadResult> result;
     const auto linkedResourceSignatures = KisAslLayerStyleSerializer::fetchLinkedResourceSignatures(this);
 
     Q_FOREACH(const KoResourceSignature &sig, linkedResourceSignatures) {
@@ -434,9 +431,9 @@ QList<KoResourceLoadResult> KisPSDLayerStyle::linkedResources(KisResourcesInterf
     return result;
 }
 
-QList<int> KisPSDLayerStyle::requiredCanvasResources() const
+PkList<int> KisPSDLayerStyle::requiredCanvasResources() const
 {
-    QList<int> result;
+    PkList<int> result;
 
     auto addCanvasResources = [&result] (KoAbstractGradientSP gradient) {
         if (gradient) {

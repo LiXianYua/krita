@@ -6,8 +6,6 @@
 #ifndef KIS_PIXEL_SELECTION_H_
 #define KIS_PIXEL_SELECTION_H_
 
-#include <QRect>
-#include <QPainterPath>
 
 #include "kis_types.h"
 #include "kis_global.h"
@@ -48,12 +46,12 @@ public:
 
     const KoColorSpace* compositionSourceColorSpace() const override;
 
-    bool read(QIODevice *stream);
+    bool read(PkStream *stream);
 
     /**
      * Fill the specified rect with the specified selectedness.
      */
-    void select(const QRect & r, quint8 selectedness = MAX_SELECTED);
+    void select(const PkRect & r, quint8 selectedness = MAX_SELECTED);
 
     /**
      * Invert the total selection. This will also invert the default value
@@ -65,7 +63,7 @@ public:
     /**
      * Set the specified rect to MIN_SELECTED.
      */
-    void clear(const QRect & r);
+    void clear(const PkRect & r);
 
     /**
      * Reset the entire selection. The selectedRect and selectedExactRect
@@ -76,7 +74,7 @@ public:
     /**
      * Copies alpha channel form the specified \p src device
      */
-    void copyAlphaFrom(KisPaintDeviceSP src, const QRect &processRect);
+    void copyAlphaFrom(KisPaintDeviceSP src, const PkRect &processRect);
 
     /**
      * Apply a selection to the selection using the specified selection mode
@@ -84,51 +82,51 @@ public:
     void applySelection(KisPixelSelectionSP selection, SelectionAction action);
 
     /// Tests if the rect is totally outside the selection
-    bool isTotallyUnselected(const QRect & r) const;
+    bool isTotallyUnselected(const PkRect & r) const;
 
     /**
      * Rough, but fastish way of determining the area
      * of the tiles used by the selection.
      */
-    QRect selectedRect() const;
+    PkRect selectedRect() const;
 
     /**
      * Slow, but exact way of determining the rectangle
      * that encloses the selection.
      */
-    QRect selectedExactRect() const;
+    PkRect selectedExactRect() const;
 
     /**
      * @brief outline returns the outline of the current selection
      * @return a vector of polygons that can be used to draw the outline
      */
-    QVector<QPolygon> outline() const;
+    PkVector<PkPolygon> outline() const;
 
     /**
      * Overridden from KisPaintDevice to handle outline cache moves
      */
-    void moveTo(const QPoint& pt) override;
+    void moveTo(const PkPoint& pt) override;
     using KisPaintDevice::moveTo;
 
     bool isEmpty() const override;
-    QPainterPath outlineCache() const override;
+    PkPainterPath outlineCache() const override;
     bool outlineCacheValid() const override;
     void recalculateOutlineCache() override;
 
-    void setOutlineCache(const QPainterPath &cache);
+    void setOutlineCache(const PkPainterPath &cache);
     void invalidateOutlineCache();
 
     bool thumbnailImageValid() const;
-    QImage thumbnailImage() const;
-    QTransform thumbnailImageTransform() const;
-    void recalculateThumbnailImage(const QColor &maskColor);
+    PkImage thumbnailImage() const;
+    PkTransform thumbnailImageTransform() const;
+    void recalculateThumbnailImage(const PkColor &maskColor);
 
 
     void setParentSelection(KisSelectionWSP selection);
     KisSelectionWSP parentSelection() const;
 
     void renderToProjection(KisPaintDeviceSP projection) override;
-    void renderToProjection(KisPaintDeviceSP projection, const QRect& r) override;
+    void renderToProjection(KisPaintDeviceSP projection, const PkRect& r) override;
 
 private:
     /**

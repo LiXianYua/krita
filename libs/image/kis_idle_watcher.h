@@ -9,23 +9,22 @@
 
 #include "kritaimage_export.h"
 
-#include <QScopedPointer>
-#include <QObject>
+#include <PkObject.h>
 
 #include "kis_types.h"
 
 
-class KRITAIMAGE_EXPORT KisIdleWatcher : public QObject
+class KRITAIMAGE_EXPORT KisIdleWatcher : public PkShellObject
 {
     Q_OBJECT
 public:
-    KisIdleWatcher(int delay = 200, QObject* parent = 0);
+    KisIdleWatcher(int delay = 200, PkObject* parent = 0);
     ~KisIdleWatcher() override;
 
     bool isIdle() const;
     bool isCounting() const;
 
-    void setTrackedImages(const QVector<KisImageSP> &images);
+    void setTrackedImages(const PkVector<KisImageSP> &images);
     void setTrackedImage(KisImageSP image);
 
     //Force to image modified state and start countdown to event
@@ -46,7 +45,7 @@ private Q_SLOTS:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_IDLE_WATCHER_H */

@@ -6,10 +6,12 @@
 
 #include "kis_idle_watcher.h"
 
-#include <QTimer>
 #include "kis_image.h"
 #include "kis_signal_auto_connection.h"
 #include "kis_signal_compressor.h"
+
+#include <PkTimer.h>
+#include <chrono>
 
 
 struct KisIdleWatcher::Private
@@ -19,18 +21,28 @@ struct KisIdleWatcher::Private
     Private(int delay, KisIdleWatcher *q)
         : imageModifiedCompressor(delay,
                                   KisSignalCompressor::POSTPONE, q),
-          idleCheckCounter(0)
+          idleCheckCounter(0),
+          q(q),
+          idleCheckDelay(delay)
     {
-        idleCheckTimer.setSingleShot(true);
-        idleCheckTimer.setInterval(delay);
+    }
+
+    // PkTimer 无单发定时信号，改用回调式 API：
+    // 每次 start() 都带上固定间隔 + 回调（对齐 Qt 侧 singleShot=true + start()）。
+    void startIdleCheckTimer()
+    {
+        idleCheckTimer.start(std::chrono::milliseconds(idleCheckDelay),
+                             [this]() { q->slotIdleCheckTick(); }, true);
     }
 
     KisSignalAutoConnectionsStore connectionsStore;
-    QVector<KisImageWSP> trackedImages;
+    PkVector<KisImageWSP> trackedImages;
 
     KisSignalCompressor imageModifiedCompressor;
 
-    QTimer idleCheckTimer;
+    PkTimer idleCheckTimer;
+    KisIdleWatcher *q;
+    int idleCheckDelay;
 
     /**
      * We wait until the counter reaches IDLE_CHECK_COUNT, then consider the
@@ -41,11 +53,11 @@ struct KisIdleWatcher::Private
     int idleCheckCounter;
 };
 
-KisIdleWatcher::KisIdleWatcher(int delay, QObject *parent)
-    : QObject(parent), m_d(new Private(delay, this))
+KisIdleWatcher::KisIdleWatcher(int delay, PkObject *parent)
+    : PkShellObject(parent), m_d(new Private(delay, this))
 {
-    connect(&m_d->imageModifiedCompressor, SIGNAL(timeout()), SLOT(startIdleCheck()));
-    connect(&m_d->idleCheckTimer, SIGNAL(timeout()), SLOT(slotIdleCheckTick()));
+    PkObject::connect(&m_d->imageModifiedCompressor, &KisSignalCompressor::timeout,
+                      this, &KisIdleWatcher::startIdleCheck);
 }
 
 KisIdleWatcher::~KisIdleWatcher()
@@ -73,7 +85,7 @@ bool KisIdleWatcher::isCounting() const
     return m_d->idleCheckTimer.isActive();
 }
 
-void KisIdleWatcher::setTrackedImages(const QVector<KisImageSP> &images)
+void KisIdleWatcher::setTrackedImages(const PkVector<KisImageSP> &images)
 {
     m_d->connectionsStore.clear();
     m_d->trackedImages.clear();
@@ -81,18 +93,18 @@ void KisIdleWatcher::setTrackedImages(const QVector<KisImageSP> &images)
     Q_FOREACH (KisImageSP image, images) {
         if (image) {
             m_d->trackedImages << image;
-            m_d->connectionsStore.addConnection(image, SIGNAL(sigImageModified()),
-                                                this, SLOT(slotImageModified()));
+            m_d->connectionsStore.addConnection(image.data(), &KisImage::sigImageModified,
+                                                this, &KisIdleWatcher::slotImageModified);
 
-            m_d->connectionsStore.addConnection(image, SIGNAL(sigIsolatedModeChanged()),
-                                                this, SLOT(slotImageModified()));
+            m_d->connectionsStore.addConnection(image.data(), &KisImage::sigIsolatedModeChanged,
+                                                this, &KisIdleWatcher::slotImageModified);
         }
     }
 }
 
 void KisIdleWatcher::setTrackedImage(KisImageSP image)
 {
-    QVector<KisImageSP> images;
+    PkVector<KisImageSP> images;
     images << image;
     setTrackedImages(images);
 }
@@ -107,7 +119,7 @@ void KisIdleWatcher::triggerCountdownNoDelay()
 {
     stopIdleCheck();
     m_d->idleCheckCounter = -1;
-    m_d->idleCheckTimer.start();
+    m_d->startIdleCheckTimer();
 }
 
 void KisIdleWatcher::slotImageModified()
@@ -121,7 +133,7 @@ void KisIdleWatcher::slotImageModified()
 void KisIdleWatcher::startIdleCheck()
 {
     m_d->idleCheckCounter = 0;
-    m_d->idleCheckTimer.start();
+    m_d->startIdleCheckTimer();
 }
 
 void KisIdleWatcher::stopIdleCheck()
@@ -142,13 +154,13 @@ void KisIdleWatcher::slotIdleCheckTick()
             }
         } else {
             m_d->idleCheckCounter++;
-            m_d->idleCheckTimer.start();
+            m_d->startIdleCheckTimer();
         }
     } else {
         if (m_d->idleCheckCounter >= 0) {
             restartCountdown();
         } else {
-            m_d->idleCheckTimer.start();
+            m_d->startIdleCheckTimer();
         }
     }
 }

@@ -43,17 +43,17 @@ struct KisResourcesSnapshot::Private {
     KisNodeList selectedNodes;
     bool isUsingOtherColor {false};
 
-    QPointF axesCenter;
+    PkPointF axesCenter;
     bool mirrorMaskHorizontal {false};
     bool mirrorMaskVertical {false};
 
     qreal opacity {OPACITY_OPAQUE_F};
-    QString compositeOpId {COMPOSITE_OVER};
+    PkString compositeOpId {COMPOSITE_OVER};
     const KoCompositeOp *compositeOp {0};
 
     KisPainter::StrokeStyle strokeStyle {KisPainter::StrokeStyleBrush};
     KisPainter::FillStyle fillStyle {KisPainter::FillStyleForegroundColor};
-    QTransform fillTransform;
+    PkTransform fillTransform;
 
     bool globalAlphaLock {false};
     qreal effectiveZoom {1.0};
@@ -127,7 +127,7 @@ KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNo
         m_d->currentGenerator = m_d->currentGenerator->cloneWithResourcesSnapshot();
     }
 
-    QPointF relativeAxesCenter(0.5, 0.5);
+    PkPointF relativeAxesCenter(0.5, 0.5);
     if (m_d->image) {
         relativeAxesCenter = m_d->image->mirrorAxesCenter();
     }
@@ -173,7 +173,7 @@ KisResourcesSnapshot::KisResourcesSnapshot(KisImageSP image, KisNodeSP currentNo
     KisPaintOpRegistry::instance()->preinitializePaintOpIfNeeded(m_d->currentPaintOpPreset);
 #endif /* HAVE_THREADED_TEXT_RENDERING_WORKAROUND */
 
-    QPointF relativeAxesCenter(0.5, 0.5);
+    PkPointF relativeAxesCenter(0.5, 0.5);
     if (m_d->image) {
         relativeAxesCenter = m_d->image->mirrorAxesCenter();
     }
@@ -206,7 +206,7 @@ void KisResourcesSnapshot::setupPainter(KisPainter* painter)
     painter->setPattern(m_d->currentPattern);
     painter->setGradient(m_d->currentGradient);
 
-    QBitArray lockflags = channelLockFlags();
+    PkBitArray lockflags = channelLockFlags();
     if (lockflags.size() > 0) {
         painter->setChannelFlags(lockflags);
     }
@@ -236,7 +236,7 @@ void KisResourcesSnapshot::setupMaskingBrushPainter(KisPainter *painter)
     painter->setBackgroundColor(KoColor(Qt::black, painter->device()->colorSpace()));
 
     painter->setOpacityToUnit();
-    painter->setChannelFlags(QBitArray());
+    painter->setChannelFlags(PkBitArray());
 
     // masked brush always paints in indirect mode
     painter->setCompositeOpId(COMPOSITE_ALPHA_DARKEN);
@@ -273,7 +273,7 @@ void KisResourcesSnapshot::setFillStyle(KisPainter::FillStyle fillStyle)
     m_d->fillStyle = fillStyle;
 }
 
-void KisResourcesSnapshot::setFillTransform(QTransform transform)
+void KisResourcesSnapshot::setFillTransform(PkTransform transform)
 {
     m_d->fillTransform = transform;
 }
@@ -298,7 +298,7 @@ bool KisResourcesSnapshot::needsIndirectPainting() const
     return !m_d->currentPaintOpPreset->settings()->paintIncremental();
 }
 
-QString KisResourcesSnapshot::indirectPaintingCompositeOp() const
+PkString KisResourcesSnapshot::indirectPaintingCompositeOp() const
 {
     return m_d->currentPaintOpPreset ?
             m_d->currentPaintOpPreset->settings()->indirectPaintingCompositeOp()
@@ -372,7 +372,7 @@ qreal KisResourcesSnapshot::opacity() const
     return m_d->opacity;
 }
 
-QString KisResourcesSnapshot::compositeOpId() const
+PkString KisResourcesSnapshot::compositeOpId() const
 {
     return m_d->compositeOpId;
 }
@@ -407,7 +407,7 @@ KisPaintOpPresetSP KisResourcesSnapshot::currentPaintOpPreset() const
     return m_d->currentPaintOpPreset;
 }
 
-QTransform KisResourcesSnapshot::fillTransform() const
+PkTransform KisResourcesSnapshot::fillTransform() const
 {
     return m_d->fillTransform;
 }
@@ -427,9 +427,9 @@ bool KisResourcesSnapshot::isUsingOtherColor() const
     return m_d->isUsingOtherColor;
 }
 
-QBitArray KisResourcesSnapshot::channelLockFlags() const
+PkBitArray KisResourcesSnapshot::channelLockFlags() const
 {
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
     KisPaintLayer *paintLayer;
     if ((paintLayer = dynamic_cast<KisPaintLayer*>(m_d->currentNode.data()))) {
 
@@ -439,7 +439,7 @@ QBitArray KisResourcesSnapshot::channelLockFlags() const
                 channelFlags = paintLayer->colorSpace()->channelFlags(true, true);
             }
 
-            channelFlags &= paintLayer->colorSpace()->channelFlags(true, false);
+            channelFlags = channelFlags & paintLayer->colorSpace()->channelFlags(true, false);
         }
     }
     return channelFlags;

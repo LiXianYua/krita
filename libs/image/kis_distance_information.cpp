@@ -9,10 +9,8 @@
 #include <brushengine/kis_paint_information.h>
 #include "kis_spacing_information.h"
 #include "kis_timing_information.h"
+#include <cmath>
 #include "kis_debug.h"
-#include <QtCore/qmath.h>
-#include <QVector2D>
-#include <QTransform>
 #include "kis_algebra_2d.h"
 #include "kis_dom_utils.h"
 
@@ -44,7 +42,7 @@ struct Q_DECL_HIDDEN KisDistanceInformation::Private {
     }
 
     // Accumulators of time/distance passed since the last painted dab
-    QPointF accumDistance;
+    PkPointF accumDistance;
     qreal accumTime;
 
     KisSpacingInformation spacing;
@@ -58,7 +56,7 @@ struct Q_DECL_HIDDEN KisDistanceInformation::Private {
     qreal timeSinceTimingUpdate;
 
     // Information about the last position considered (not necessarily a painted dab)
-    QPointF lastPosition;
+    PkPointF lastPosition;
     qreal lastAngle;
     bool lastDabInfoValid;
 
@@ -90,7 +88,7 @@ struct Q_DECL_HIDDEN KisDistanceInitInfo::Private {
     // Indicates whether lastPosition,  and lastAngle are valid or not.
     bool hasLastInfo;
 
-    QPointF lastPosition;
+    PkPointF lastPosition;
     qreal lastAngle;
 
     qreal spacingUpdateInterval;
@@ -112,7 +110,7 @@ KisDistanceInitInfo::KisDistanceInitInfo(qreal spacingUpdateInterval, qreal timi
     m_d->currentDabSeqNo = currentDabSeqNo;
 }
 
-KisDistanceInitInfo::KisDistanceInitInfo(const QPointF &lastPosition,
+KisDistanceInitInfo::KisDistanceInitInfo(const PkPointF &lastPosition,
                                          qreal lastAngle, int currentDabSeqNo)
     : m_d(new Private)
 {
@@ -122,7 +120,7 @@ KisDistanceInitInfo::KisDistanceInitInfo(const QPointF &lastPosition,
     m_d->currentDabSeqNo = currentDabSeqNo;
 }
 
-KisDistanceInitInfo::KisDistanceInitInfo(const QPointF &lastPosition,
+KisDistanceInitInfo::KisDistanceInitInfo(const PkPointF &lastPosition,
                                          qreal lastAngle, qreal spacingUpdateInterval,
                                          qreal timingUpdateInterval,
                                          int currentDabSeqNo)
@@ -187,29 +185,29 @@ KisDistanceInformation KisDistanceInitInfo::makeDistInfo()
     }
 }
 
-void KisDistanceInitInfo::toXML(QDomDocument &doc, QDomElement &elt) const
+void KisDistanceInitInfo::toXML(PkXmlDocument &doc, PkXmlElement &elt) const
 {
-    elt.setAttribute("spacingUpdateInterval", QString::number(m_d->spacingUpdateInterval, 'g', 15));
-    elt.setAttribute("timingUpdateInterval", QString::number(m_d->timingUpdateInterval, 'g', 15));
-    elt.setAttribute("currentDabSeqNo", QString::number(m_d->currentDabSeqNo));
+    elt.setAttribute("spacingUpdateInterval", KisDomUtils::toString(m_d->spacingUpdateInterval));
+    elt.setAttribute("timingUpdateInterval", KisDomUtils::toString(m_d->timingUpdateInterval));
+    elt.setAttribute("currentDabSeqNo", KisDomUtils::toString(m_d->currentDabSeqNo));
     if (m_d->hasLastInfo) {
-        QDomElement lastInfoElt = doc.createElement("LastInfo");
-        lastInfoElt.setAttribute("lastPosX", QString::number(m_d->lastPosition.x(), 'g', 15));
-        lastInfoElt.setAttribute("lastPosY", QString::number(m_d->lastPosition.y(), 'g', 15));
-        lastInfoElt.setAttribute("lastAngle", QString::number(m_d->lastAngle, 'g', 15));
+        PkXmlElement lastInfoElt = doc.createElement("LastInfo");
+        lastInfoElt.setAttribute("lastPosX", KisDomUtils::toString(m_d->lastPosition.x()));
+        lastInfoElt.setAttribute("lastPosY", KisDomUtils::toString(m_d->lastPosition.y()));
+        lastInfoElt.setAttribute("lastAngle", KisDomUtils::toString(m_d->lastAngle));
         elt.appendChild(lastInfoElt);
     }
 }
 
-KisDistanceInitInfo KisDistanceInitInfo::fromXML(const QDomElement &elt)
+KisDistanceInitInfo KisDistanceInitInfo::fromXML(const PkXmlElement &elt)
 {
     const qreal spacingUpdateInterval = qreal(KisDomUtils::toDouble(elt.attribute("spacingUpdateInterval",
-                                                                                  QString::number(LONG_TIME, 'g', 15))));
+                                                                                  KisDomUtils::toString(LONG_TIME))));
     const qreal timingUpdateInterval = qreal(KisDomUtils::toDouble(elt.attribute("timingUpdateInterval",
-                                                                                  QString::number(LONG_TIME, 'g', 15))));
+                                                                                  KisDomUtils::toString(LONG_TIME))));
     const qreal currentDabSeqNo = KisDomUtils::toInt(elt.attribute("currentDabSeqNo", "0"));
 
-    const QDomElement lastInfoElt = elt.firstChildElement("LastInfo");
+    const PkXmlElement lastInfoElt = elt.firstChildElement("LastInfo");
     const bool hasLastInfo = !lastInfoElt.isNull();
 
     if (hasLastInfo) {
@@ -220,7 +218,7 @@ KisDistanceInitInfo KisDistanceInitInfo::fromXML(const QDomElement &elt)
         const qreal lastAngle = qreal(KisDomUtils::toDouble(lastInfoElt.attribute("lastAngle",
                                                                                   "0.0")));
 
-        return KisDistanceInitInfo(QPointF(lastPosX, lastPosY), lastAngle,
+        return KisDistanceInitInfo(PkPointF(lastPosX, lastPosY), lastAngle,
                                    spacingUpdateInterval, timingUpdateInterval,
                                    currentDabSeqNo);
     }
@@ -245,7 +243,7 @@ KisDistanceInformation::KisDistanceInformation(qreal spacingUpdateInterval,
     m_d->currentDabSeqNo = currentDabSeqNo;
 }
 
-KisDistanceInformation::KisDistanceInformation(const QPointF &lastPosition,
+KisDistanceInformation::KisDistanceInformation(const PkPointF &lastPosition,
                                                qreal lastAngle)
     : m_d(new Private)
 {
@@ -255,7 +253,7 @@ KisDistanceInformation::KisDistanceInformation(const QPointF &lastPosition,
     m_d->lastDabInfoValid = true;
 }
 
-KisDistanceInformation::KisDistanceInformation(const QPointF &lastPosition,
+KisDistanceInformation::KisDistanceInformation(const PkPointF &lastPosition,
                                                qreal lastAngle,
                                                qreal spacingUpdateInterval,
                                                qreal timingUpdateInterval,
@@ -293,7 +291,7 @@ KisDistanceInformation& KisDistanceInformation::operator=(const KisDistanceInfor
     return *this;
 }
 
-void KisDistanceInformation::overrideLastValues(const QPointF &lastPosition,
+void KisDistanceInformation::overrideLastValues(const PkPointF &lastPosition,
                                                 qreal lastAngle)
 {
     m_d->lastPosition = lastPosition;
@@ -344,7 +342,7 @@ bool KisDistanceInformation::hasLastDabInformation() const
     return m_d->lastDabInfoValid;
 }
 
-QPointF KisDistanceInformation::lastPosition() const
+PkPointF KisDistanceInformation::lastPosition() const
 {
     return m_d->lastPosition;
 }
@@ -402,8 +400,8 @@ void KisDistanceInformation::registerPaintedDab(const KisPaintInformation &info,
     m_d->lastMaxPressure = qMax(info.pressure(), m_d->lastMaxPressure);
 }
 
-qreal KisDistanceInformation::getNextPointPosition(const QPointF &start,
-                                                   const QPointF &end,
+qreal KisDistanceInformation::getNextPointPosition(const PkPointF &start,
+                                                   const PkPointF &end,
                                                    qreal startTime,
                                                    qreal endTime)
 {
@@ -457,8 +455,8 @@ qreal KisDistanceInformation::getTimingUpdateInterval() const
     return m_d->timingUpdateInterval;
 }
 
-qreal KisDistanceInformation::getNextPointPositionIsotropic(const QPointF &start,
-                                                            const QPointF &end)
+qreal KisDistanceInformation::getNextPointPositionIsotropic(const PkPointF &start,
+                                                            const PkPointF &end)
 {
     qreal distance = m_d->accumDistance.x();
     qreal spacing = qMax(MIN_DISTANCE_SPACING, m_d->spacing.distanceSpacing().x());
@@ -489,8 +487,8 @@ qreal KisDistanceInformation::getNextPointPositionIsotropic(const QPointF &start
     return t;
 }
 
-qreal KisDistanceInformation::getNextPointPositionAnisotropic(const QPointF &start,
-                                                              const QPointF &end)
+qreal KisDistanceInformation::getNextPointPositionAnisotropic(const PkPointF &start,
+                                                              const PkPointF &end)
 {
     if (start == end) {
         return -1;
@@ -519,10 +517,10 @@ qreal KisDistanceInformation::getNextPointPositionAnisotropic(const QPointF &sta
         currentRotation = 2 * M_PI - currentRotation;
     }
 
-    QPointF diff = end - start;
+    PkPointF diff = end - start;
 
     if (currentRotation > eps) {
-        QTransform rot;
+        PkTransform rot;
         // since the ellipse is symmetrical, the sign
         // of rotation doesn't matter
         rot.rotateRadians(currentRotation);
@@ -539,7 +537,7 @@ qreal KisDistanceInformation::getNextPointPositionAnisotropic(const QPointF &sta
     qreal t = -1.0;
 
     if (D_4 >= 0) {
-        qreal k = (-beta + qSqrt(D_4)) / alpha;
+        qreal k = (-beta + std::sqrt(D_4)) / alpha;
 
         if (k >= 0.0 && k <= 1.0) {
             t = k;
@@ -588,7 +586,7 @@ qreal KisDistanceInformation::getNextPointPositionTimed(qreal startTime,
 
 void KisDistanceInformation::resetAccumulators()
 {
-    m_d->accumDistance = QPointF();
+    m_d->accumDistance = PkPointF();
     m_d->accumTime = 0.0;
 }
 
