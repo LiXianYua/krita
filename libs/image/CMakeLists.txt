@@ -2,9 +2,15 @@ add_subdirectory( tests )
 
 add_subdirectory( tiles3 )
 
+# 判据⑧：与薄壳 SHELL_INCLUDE_DIRS 的 libs/image 子目录集一致（补上
+# 拆分时漏掉的 tiles3/tiles3-swap/lazybrush/3rdparty-lock_free_map 与 libs/image 根），
+# 再补全部 pk 模块源目录。compat 垫片目录不加进主树——那是薄壳专属的
+# Q→Pk 宏映射机制，主树 GAP 文件仍依赖真实 Qt 头。
 include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tiles3
+    ${CMAKE_CURRENT_SOURCE_DIR}/tiles3/swap
     ${CMAKE_CURRENT_SOURCE_DIR}/brushengine
     ${CMAKE_CURRENT_SOURCE_DIR}/commands
     ${CMAKE_CURRENT_SOURCE_DIR}/commands_new
@@ -12,7 +18,28 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/floodfill
     ${CMAKE_CURRENT_SOURCE_DIR}/generator
     ${CMAKE_CURRENT_SOURCE_DIR}/layerstyles
+    ${CMAKE_CURRENT_SOURCE_DIR}/lazybrush
     ${CMAKE_CURRENT_SOURCE_DIR}/processing
+    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
+    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/lock_free_map
+    ${CMAKE_SOURCE_DIR}/pk/string
+    ${CMAKE_SOURCE_DIR}/pk/container
+    ${CMAKE_SOURCE_DIR}/pk/variant
+    ${CMAKE_SOURCE_DIR}/pk/port
+    ${CMAKE_SOURCE_DIR}/pk/pointer
+    ${CMAKE_SOURCE_DIR}/pk/geometry
+    ${CMAKE_SOURCE_DIR}/pk/global
+    ${CMAKE_SOURCE_DIR}/pk/log
+    ${CMAKE_SOURCE_DIR}/pk/concurrent
+    ${CMAKE_SOURCE_DIR}/pk/image
+    ${CMAKE_SOURCE_DIR}/pk/time
+    ${CMAKE_SOURCE_DIR}/pk/config
+    ${CMAKE_SOURCE_DIR}/pk/flags
+    ${CMAKE_SOURCE_DIR}/pk/color
+    ${CMAKE_SOURCE_DIR}/pk/signal
+    ${CMAKE_SOURCE_DIR}/pk/sql
+    ${CMAKE_SOURCE_DIR}/pk/xml
+    ${CMAKE_SOURCE_DIR}/pk/namespace
 )
 
 if(FFTW3_FOUND)
@@ -51,6 +78,12 @@ set(kritaimage_OBJECT_DEPS
     kritaresources
     Eigen3::Eigen
     Boost::boost
+    # 判据⑨：pk 库接入主构建（add_subdirectory(pk) 已在顶层无条件开启）。
+    # 与薄壳 SHELL_LINK_LIBRARIES 同集：pkstring pkcontainer pkzip pkxml。
+    pkstring
+    pkcontainer
+    pkzip
+    pkxml
 )
 if(HAVE_CXX_ATOMICS_WITH_LIB OR HAVE_CXX_ATOMICS64_WITH_LIB)
     list(APPEND kritaimage_OBJECT_DEPS atomic)
@@ -121,7 +154,6 @@ kis_define_image_object_lib(kritaimage_brushengine_objects SOURCES
     brushengine/KisStrokeSpeedMeasurer.cpp
     brushengine/KisPaintopSettingsIds.cpp
     brushengine/KisOptimizedBrushOutline.cpp
-    brushengine/kis_paintop_lod_limitations.cpp
 )
 
 # —— commands + commands_new（命令/撤销栈）——
@@ -493,6 +525,12 @@ target_link_libraries(kritaimage
         kritaresources
         Eigen3::Eigen
         Boost::boost
+        # 判据⑨：pk 库接入主构建。PUBLIC——kritaimage 公开头引用 Pk 类型，
+        # 下游消费方需经此传递获得 pk 头目录与链接。
+        pkstring
+        pkcontainer
+        pkzip
+        pkxml
 )
 
 if(HAVE_CXX_ATOMICS_WITH_LIB OR HAVE_CXX_ATOMICS64_WITH_LIB)
