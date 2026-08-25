@@ -9,7 +9,7 @@
 
 #include "kis_types.h"
 #include "kis_external_layer_iface.h"
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KisDocument;
 
@@ -44,9 +44,9 @@ public:
     KisPaintDeviceSP paintDevice() const override;
     bool isFakeNode() const override;
 
-    KUndo2Command* crop(const QRect & rect) override;
+    KUndo2Command* crop(const PkRect & rect) override;
 
-    KUndo2Command* transform(const QTransform &transform) override;
+    KUndo2Command* transform(const PkTransform &transform) override;
 
     bool supportsPerspectiveTransform() const override;
 
@@ -54,7 +54,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 typedef KisSharedPtr<KisDecorationsWrapperLayer> KisDecorationsWrapperLayerSP;

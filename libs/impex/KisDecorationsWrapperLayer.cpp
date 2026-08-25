@@ -6,6 +6,10 @@
 
 #include "KisDecorationsWrapperLayer.h"
 
+#include <PkList.h>
+#include <PkRect.h>
+#include <PkTransform.h>
+
 #include "KisDocument.h"
 #include "kis_node_visitor.h"
 #include "kis_processing_visitor.h"
@@ -100,18 +104,18 @@ void KisDecorationsWrapperLayer::setImage(KisImageWSP image)
     KisExternalLayer::setImage(image);
 }
 
-KUndo2Command *KisDecorationsWrapperLayer::crop(const QRect &rect)
+KUndo2Command *KisDecorationsWrapperLayer::crop(const PkRect &rect)
 {
-    return transform(QTransform::fromTranslate(-rect.x(), -rect.y()));
+    return transform(PkTransform::fromTranslate(-rect.x(), -rect.y()));
 }
 
-KUndo2Command *KisDecorationsWrapperLayer::transform(const QTransform &transform)
+KUndo2Command *KisDecorationsWrapperLayer::transform(const PkTransform &transform)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_d->document, 0);
 
     struct UndoCommand : public KUndo2Command
     {
-        UndoCommand(KisDocument *document, const QTransform &transform)
+        UndoCommand(KisDocument *document, const PkTransform &transform)
             : m_document(document),
               m_transform(transform)
         {}
@@ -125,10 +129,10 @@ KUndo2Command *KisDecorationsWrapperLayer::transform(const QTransform &transform
         }
 
     private:
-        void doTransform(const QTransform &transform) {
-            const QTransform imageToDocument =
-                QTransform::fromScale(1 / m_document->image()->xRes(),
-                                      1 / m_document->image()->yRes());
+        void doTransform(const PkTransform &transform) {
+            const PkTransform imageToDocument =
+                PkTransform::fromScale(1 / m_document->image()->xRes(),
+                                       1 / m_document->image()->yRes());
 
             KisGridConfig gridConfig = m_document->gridConfig();
             if (gridConfig.showGrid()) {
@@ -142,8 +146,8 @@ KUndo2Command *KisDecorationsWrapperLayer::transform(const QTransform &transform
                 m_document->setGuidesConfig(guidesConfig);
             }
 
-            QList<KisPaintingAssistantSP> assistants = m_document->assistants();
-            Q_FOREACH(KisPaintingAssistantSP assistant, assistants) {
+            PkList<KisPaintingAssistantSP> assistants = m_document->assistants();
+            for (KisPaintingAssistantSP assistant : assistants) {
                 assistant->transform(imageToDocument.inverted() * transform * imageToDocument);
             }
             m_document->setAssistants(assistants);
@@ -151,7 +155,7 @@ KUndo2Command *KisDecorationsWrapperLayer::transform(const QTransform &transform
 
     private:
         KisDocument *m_document;
-        QTransform m_transform;
+        PkTransform m_transform;
     };
 
     return new UndoCommand(m_d->document, transform);

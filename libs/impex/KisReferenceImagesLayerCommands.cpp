@@ -6,11 +6,14 @@
 
 #include "KisReferenceImagesLayer.h"
 
+#include <PkList.h>
+
 #include <KoKeepShapesSelectedCommand.h>
 #include <KoSelection.h>
 #include <KoShapeCreateCommand.h>
 #include <KoShapeDeleteCommand.h>
 #include <KoShapeManager.h>
+#include <kundo2magicstring.h>
 
 #include "KisDocument.h"
 
@@ -18,13 +21,13 @@ struct AddReferenceImagesCommand : KoShapeCreateCommand
 {
     AddReferenceImagesCommand(KisDocument *document,
                               KisSharedPtr<KisReferenceImagesLayer> layer,
-                              const QList<KoShape *> referenceImages,
+                              const PkList<KoShape *> referenceImages,
                               KUndo2Command *parent = nullptr)
         : KoShapeCreateCommand(layer->shapeController(),
                                referenceImages,
                                layer.data(),
                                parent,
-                               kundo2_i18n("Add reference image"))
+                               kundo2_text("Add reference image"))
         , m_document(document)
         , m_layer(layer)
     {
@@ -60,7 +63,7 @@ struct RemoveReferenceImagesCommand : KoShapeDeleteCommand
 {
     RemoveReferenceImagesCommand(KisDocument *document,
                                  KisSharedPtr<KisReferenceImagesLayer> layer,
-                                 QList<KoShape *> referenceImages,
+                                 PkList<KoShape *> referenceImages,
                                  KUndo2Command *parent = nullptr)
         : KoShapeDeleteCommand(layer->shapeController(), referenceImages, parent)
         , m_document(document)
@@ -95,7 +98,7 @@ private:
 };
 
 KUndo2Command *KisReferenceImagesLayer::addReferenceImages(KisDocument *document,
-                                                           const QList<KoShape *> referenceImages)
+                                                           const PkList<KoShape *> referenceImages)
 {
     KisSharedPtr<KisReferenceImagesLayer> layer = document->referenceImagesLayer();
     if (!layer) {
@@ -122,7 +125,7 @@ KUndo2Command *KisReferenceImagesLayer::addReferenceImages(KisDocument *document
 }
 
 KUndo2Command *KisReferenceImagesLayer::removeReferenceImages(KisDocument *document,
-                                                              QList<KoShape *> referenceImages)
+                                                              PkList<KoShape *> referenceImages)
 {
     return new RemoveReferenceImagesCommand(document, this, referenceImages);
 }
