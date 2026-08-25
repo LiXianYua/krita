@@ -7,7 +7,7 @@
 #ifndef __KIS_MACRO_BASED_UNDO_STORE_H
 #define __KIS_MACRO_BASED_UNDO_STORE_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include "kis_undo_store.h"
 
 class KisSavedMacroCommand;
@@ -39,7 +39,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_MACRO_BASED_UNDO_STORE_H */

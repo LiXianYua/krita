@@ -7,18 +7,18 @@
 #ifndef KIS_UNDO_ADAPTER_H_
 #define KIS_UNDO_ADAPTER_H_
 
-#include <QObject>
+#include <PkObject.h>
 
 #include <kritaimage_export.h>
 #include <kis_undo_store.h>
 
 
-class KRITAIMAGE_EXPORT KisUndoAdapter : public QObject
+class KRITAIMAGE_EXPORT KisUndoAdapter : public PkShellObject
 {
     Q_OBJECT
 
 public:
-    KisUndoAdapter(KisUndoStore *undoStore, QObject *parent = 0);
+    KisUndoAdapter(KisUndoStore *undoStore, PkObject *parent = 0);
     ~KisUndoAdapter() override;
 
 public:

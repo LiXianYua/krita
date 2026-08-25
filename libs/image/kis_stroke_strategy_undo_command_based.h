@@ -8,8 +8,8 @@
 #define __KIS_STROKE_STRATEGY_UNDO_COMMAND_BASED_H
 
 #include <kundo2command.h>
-#include <QVector>
-#include <QMutex>
+#include <PkVector.h>
+#include <PkMutex.h>
 
 #include "kis_types.h"
 #include "kis_simple_stroke_strategy.h"
@@ -144,7 +144,7 @@ protected:
 
 protected:
     void executeCommand(KUndo2CommandSP command, bool undo);
-    void cancelStrokeCallbackImpl(QVector<KisStrokeJobData*> &mutatedJobs);
+    void cancelStrokeCallbackImpl(PkVector<KisStrokeJobData*> &mutatedJobs);
 private:
     bool m_undo;
     KUndo2CommandSP m_initCommand;
@@ -155,7 +155,7 @@ private:
     int m_macroId;
 
     // protects done commands only
-    QMutex m_mutex;
+    PkMutex m_mutex;
     KisSavedMacroCommand *m_macroCommand {nullptr};
 };
 

@@ -7,8 +7,8 @@
 #include "kis_undo_adapter.h"
 
 
-KisUndoAdapter::KisUndoAdapter(KisUndoStore *undoStore, QObject *parent)
-    : QObject(parent),
+KisUndoAdapter::KisUndoAdapter(KisUndoStore *undoStore, PkObject *parent)
+    : PkShellObject(parent),
       m_undoStore(undoStore)
 {
 }

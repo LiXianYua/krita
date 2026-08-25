@@ -6,7 +6,7 @@
 
 #include "kis_stroke_strategy_undo_command_based.h"
 
-#include <QMutexLocker>
+#include <PkMutex.h>
 #include "kis_image_interfaces.h"
 #include "kis_post_execution_undo_adapter.h"
 #include "commands_new/kis_saved_commands.h"
@@ -91,7 +91,7 @@ void KisStrokeStrategyUndoCommandBased::finishStrokeCallback()
                       KisStrokeJobData::SEQUENTIAL,
                       KisStrokeJobData::NORMAL);
 
-    QMutexLocker locker(&m_mutex);
+    PkMutexLocker locker(&m_mutex);
     if(m_macroCommand) {
         Q_ASSERT(m_undoFacade);
         postProcessToplevelCommand(m_macroCommand);
@@ -102,14 +102,14 @@ void KisStrokeStrategyUndoCommandBased::finishStrokeCallback()
 
 void KisStrokeStrategyUndoCommandBased::cancelStrokeCallback()
 {
-    QVector<KisStrokeJobData *> jobs;
+    PkVector<KisStrokeJobData *> jobs;
     cancelStrokeCallbackImpl(jobs);
     addMutatedJobs(jobs);
 }
 
-void KisStrokeStrategyUndoCommandBased::cancelStrokeCallbackImpl(QVector<KisStrokeJobData*> &mutatedJobs)
+void KisStrokeStrategyUndoCommandBased::cancelStrokeCallbackImpl(PkVector<KisStrokeJobData*> &mutatedJobs)
 {
-    QMutexLocker locker(&m_mutex);
+    PkMutexLocker locker(&m_mutex);
     if(m_macroCommand) {
         m_macroCommand->getCommandExecutionJobs(&mutatedJobs, !m_undo);
 
@@ -151,7 +151,7 @@ void KisStrokeStrategyUndoCommandBased::notifyCommandDone(KUndo2CommandSP comman
 {
     if(!command) return;
 
-    QMutexLocker locker(&m_mutex);
+    PkMutexLocker locker(&m_mutex);
     if(m_macroCommand) {
         m_macroCommand->addCommand(command, sequentiality, exclusivity);
     }
