@@ -28,7 +28,7 @@ void TestResourceManager::koShapeResource()
 void TestResourceManager::testUnitChanged()
 {
     KoCanvasResourceProvider rm(0);
-    QSignalSpy spy(&rm, SIGNAL(canvasResourceChanged(int,QVariant)));
+    QSignalSpy spy(&rm, &KoCanvasResourceProvider::canvasResourceChanged);
 
     KoUnit a;
     rm.setResource(KoCanvasResource::Unit, a);
@@ -103,7 +103,7 @@ void TestResourceManager::testDerivedChanged()
     QCOMPARE(m.resource(key2).toInt(), 5);
     QCOMPARE(m.resource(derivedKey).toInt(), 15);
 
-    QSignalSpy spy(&m, SIGNAL(canvasResourceChanged(int,QVariant)));
+    QSignalSpy spy(&m, &KoCanvasResourceProvider::canvasResourceChanged);
 
     m.setResource(derivedKey, 16);
 
@@ -196,7 +196,7 @@ void TestResourceManager::testComplexResource()
     ComplexMediatorSP mediator(new ComplexMediator(key));
     m.addResourceUpdateMediator(mediator);
 
-    QSignalSpy spy(&m, SIGNAL(canvasResourceChanged(int,QVariant)));
+    QSignalSpy spy(&m, &KoCanvasResourceProvider::canvasResourceChanged);
 
     ComplexResourceSP r1(new ComplexResource());
     r1->m_resources[complex1] = 10;
@@ -442,7 +442,7 @@ void TestResourceManager::testAbstractResource()
     const int key1 = 1;
 
     KoResourceManager m;
-    QSignalSpy spy(&m, SIGNAL(resourceChanged(int,QVariant)));
+    QSignalSpy spy(&m, &KoResourceManager::resourceChanged);
 
     QSharedPointer<CanvasResource> resourceValue1(new CanvasResource(key1, 10));
     QSharedPointer<CanvasResource> resourceValue2(new CanvasResource(key1, 20));

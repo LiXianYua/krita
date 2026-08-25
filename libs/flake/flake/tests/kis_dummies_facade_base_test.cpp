@@ -19,12 +19,12 @@ void KisDummiesFacadeBaseTest::init()
 
     m_activatedNodes.clear();
     m_movedDummies.clear();
-    connect(m_dummiesFacade, SIGNAL(sigActivateNode(KisNodeSP)),
-            SLOT(slotNodeActivated(KisNodeSP)));
-    connect(m_dummiesFacade, SIGNAL(sigEndInsertDummy(KisNodeDummy*)),
-            SLOT(slotEndInsertDummy(KisNodeDummy*)));
-    connect(m_dummiesFacade, SIGNAL(sigBeginRemoveDummy(KisNodeDummy*)),
-            SLOT(slotBeginRemoveDummy(KisNodeDummy*)));
+    connect(m_dummiesFacade, &KisDummiesFacadeBase::sigActivateNode,
+            this, &KisDummiesFacadeBaseTest::slotNodeActivated);
+    connect(m_dummiesFacade, &KisDummiesFacadeBase::sigEndInsertDummy,
+            this, &KisDummiesFacadeBaseTest::slotEndInsertDummy);
+    connect(m_dummiesFacade, &KisDummiesFacadeBase::sigBeginRemoveDummy,
+            this, &KisDummiesFacadeBaseTest::slotBeginRemoveDummy);
 }
 
 void KisDummiesFacadeBaseTest::cleanup()
