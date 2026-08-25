@@ -92,12 +92,12 @@ void KisDummiesFacadeBase::setImage(KisImageWSP image, KisNodeSP activeNode)
     if (image) {
         slotNodeAdded(image->root(), KisNodeAdditionFlag::None);
 
-        connect(image, SIGNAL(sigNodeAddedAsync(KisNodeSP, KisNodeAdditionFlags)),
-                SLOT(slotNodeAdded(KisNodeSP, KisNodeAdditionFlags)), Qt::DirectConnection);
-        connect(image, SIGNAL(sigRemoveNodeAsync(KisNodeSP)),
-                SLOT(slotRemoveNode(KisNodeSP)), Qt::DirectConnection);
-        connect(image, SIGNAL(sigLayersChangedAsync()),
-                SLOT(slotLayersChanged()), Qt::DirectConnection);
+        connect(image, &KisImage::sigNodeAddedAsync,
+                this, &KisDummiesFacadeBase::slotNodeAdded, Qt::DirectConnection);
+        connect(image, &KisImage::sigRemoveNodeAsync,
+                this, &KisDummiesFacadeBase::slotRemoveNode, Qt::DirectConnection);
+        connect(image, &KisImage::sigLayersChangedAsync,
+                this, &KisDummiesFacadeBase::slotLayersChanged, Qt::DirectConnection);
 
         m_d->nodeChangedConnection.connectInputSignal(image, &KisImage::sigNodeChanged);
         m_d->activateNodeConnection.connectInputSignal(image, &KisImage::sigNodeAddedAsync);

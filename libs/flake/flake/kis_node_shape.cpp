@@ -30,7 +30,7 @@ KisNodeShape::KisNodeShape(KisNodeSP node)
 
     setSelectable(false);
 
-    connect(node, SIGNAL(sigNodeChangedInternal()), SLOT(editabilityChanged()));
+    connect(node, &KisNode::sigNodeChangedInternal, this, &KisNodeShape::editabilityChanged);
     editabilityChanged();  // Correctly set the lock at loading
 }
 
