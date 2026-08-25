@@ -5,6 +5,10 @@
 // 上方；位值探针证据在 .superpowers/sdd/R-27/probe_qnamespace.out。任何一位与
 // Qt 不一致默认都是缺陷。
 //
+// **与真 Qt 的让位**（R-37）：真 Qt qnamespace.h 进 TU（QNAMESPACE_H 定义）时，本头
+// 整个 `namespace Qt` 枚举族让位给真 Qt（见 line 44 的守卫注释）。无 Qt 世界（薄壳/
+// 纯 pk）由本头提供全部枚举。
+//
 // **与 pk/global 的分权**（R-18 已交付）：PkGlobal.h 已定义 `namespace Qt` 的
 // `AspectRatioMode` / `Axis` / `SizeMode` / `FillRule` / `GlobalColor` /
 // `TransformationMode` 六个枚举（qnamespace.h:1235-1239 / 1386-1390 /
@@ -41,6 +45,15 @@
 #include "../global/PkGlobal.h"   // 标量 + Qt 六个枚举：AspectRatioMode/Axis/SizeMode/FillRule/GlobalColor/TransformationMode（同一 namespace Qt 的成员）
 #include "../flags/PkFlags.h"     // PkFlags<Enum> + PK_DECLARE_FLAGS / PK_DECLARE_OPERATORS_FOR_FLAGS
 
+// ⚠ 让位给真 Qt（R-37）：本头整个 `namespace Qt` 枚举族在真 Qt qnamespace.h 进 TU 时
+// **全部让位**——R-36 只让了 ConnectionType（删给 pk/signal 别名），其余枚举未让位，
+// transition TU（主树 flake 经 PkColor.h 拉本头、同 TU 又有真 Qt 头）与真 Qt
+// qnamespace.h 重定义（S-08 实测 KoPathTool 590 错）。守卫口径同 R-35：
+// `!QT_CORE_LIB || !QNAMESPACE_H`——主树编译行**全局**带 -DQT_CORE_LIB，但 TU 不一定
+// include 真 Qt qnamespace.h；只有 QNAMESPACE_H（真 Qt qnamespace.h 的 include guard）
+// 在场才让位，不在场（含 -DQT_CORE_LIB 无真 Qt 头）就由本头提供。mixed TU 必须
+// 「Qt 头在前」（同 R-35 已登记约定）。枚举位值与 R-27 探针对拍结果不变。
+#if !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H)
 namespace Qt {
 
 // ── qnamespace.h:98-108 ──────────────────────────────────────────────────────
@@ -449,3 +462,5 @@ enum TimerType {
 };
 
 } // namespace Qt
+
+#endif // !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H) —— namespace Qt 整墙至此（真 Qt qnamespace.h 在场则让位）
