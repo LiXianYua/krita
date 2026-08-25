@@ -10,14 +10,14 @@
 
 class KisReferenceImage;
 class KoStore;
-class QImage;
-class QString;
+class PkImage;
+class PkString;
 
 /**
  * Loads reference-image data with the document importer as a fallback for
- * formats that QImageReader cannot decode.
+ * formats that the libpng-based decoder cannot decode.
  */
-KRITAIMPEX_EXPORT QImage loadReferenceImageFileWithDocumentFallback(const QString &filename);
+KRITAIMPEX_EXPORT PkImage loadReferenceImageFileWithDocumentFallback(const PkString &filename);
 KRITAIMPEX_EXPORT bool loadReferenceImageWithDocumentFallback(KisReferenceImage *reference,
                                                               KoStore *store);
 

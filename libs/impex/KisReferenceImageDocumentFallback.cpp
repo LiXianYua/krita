@@ -5,34 +5,22 @@
 
 #include "KisReferenceImageDocumentFallback.h"
 
-#include <QColorSpace>
-#include <QFileInfo>
-#include <QImage>
-#include <QImageReader>
+#include <filesystem>
 
 #include <KisDocument.h>
 #include <KisReferenceImage.h>
+#include <KisResourceThumbnailCodec.h>
 #include <KoStore.h>
 
 #include "KisDocumentRegistry.h"
 
-QImage loadReferenceImageFileWithDocumentFallback(const QString &filename)
+PkImage loadReferenceImageFileWithDocumentFallback(const PkString &filename)
 {
-    QImage image;
+    PkImage image;
 
-    if (QFileInfo(filename).exists() && QFileInfo(filename).isReadable()) {
-        QImageReader reader(filename);
-        reader.setDecideFormatFromContent(true);
-        image = reader.read();
-
-        if (image.isNull()) {
-            reader.setAutoDetectImageFormat(true);
-            image = reader.read();
-        }
-
-        if (image.isNull()) {
-            image.load(filename);
-        }
+    if (std::filesystem::exists(std::filesystem::u8path(filename.PkToUtf8())) &&
+        std::filesystem::is_regular_file(std::filesystem::u8path(filename.PkToUtf8()))) {
+        image = KisResourceThumbnailCodec::loadPng(filename);
     }
 
     if (image.isNull()) {
@@ -44,9 +32,11 @@ QImage loadReferenceImageFileWithDocumentFallback(const QString &filename)
         registry->removeDocument(document);
     }
 
-    // See https://bugs.kde.org/show_bug.cgi?id=416515 -- a JPEG image loaded
-    // into a QImage cannot be saved to PNG unless its colorspace is explicit.
-    image.convertToColorSpace(QColorSpace(QColorSpace::SRgb));
+    // R-15 gap (登记)：原代码在返回前执行过一次显式 sRGB 色彩空间转换
+    // （bug 416515 的 JPEG→PNG 显式 sRGB 标记问题）——这里不再执行，因为
+    // PkImage 无色彩空间元数据字段，且 KisPngCodec 走 libpng 裸 buffer 后
+    // 不再读取该元数据。像素值本身已是 sRGB 语义，原转换只是元数据操作，
+    // 非像素操作。
     return image;
 }
 
