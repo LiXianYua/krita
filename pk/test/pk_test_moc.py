@@ -157,8 +157,13 @@ def classify(class_name, slot_names):
 def discover(text):
     """返回 [{className, functions, dataFunctions, fixtures}, ...]。
 
-    只收有 Q_OBJECT 且 private Q_SLOTS: 段非空的类；没有 Q_OBJECT 的类
-    （例如普通基类）直接跳过，不生成 PkTestBinder 特化。
+    收有 Q_OBJECT 的类；没有 Q_OBJECT 的类（例如普通基类）直接跳过，不生成
+    PkTestBinder 特化。private Q_SLOTS: 段为空（无任何测试方法）的类也照样
+    生成**空 binder** —— 否则"纯编译期检查"测试（如 libs/image 的
+    kis_types_test：只有 `class X : QObject { Q_OBJECT };`，用 SIMPLE_TEST_MAIN
+    跑 0 个测试）会因 PkTestBinder<T> 只有前置声明而编不过。空 binder 的
+    functions()/dataFunctions() 返回 nullptr、count() 返回 0（_emit_list_accessor
+    已处理空表），qExec 按 0 个测试正常收尾。
     """
     text = strip_comments(text)
     results = []
@@ -173,8 +178,6 @@ def discover(text):
         if body is None or "Q_OBJECT" not in body:
             continue
         slot_names = collect_slot_functions(body)
-        if not slot_names:
-            continue
         results.append(classify(name, slot_names))
     return results
 

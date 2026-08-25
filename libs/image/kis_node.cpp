@@ -12,6 +12,8 @@
 #include <PkRect.h>
 #include <PkObject.h>
 #include <PkThread.h>
+#include <cxxabi.h>
+#include <cstdlib>
 
 #include <KoProperties.h>
 
@@ -494,6 +496,19 @@ bool KisNode::inherits(const PkString &className) const
         return dynamic_cast<const KisTransparencyMask *>(this);
     }
 
+    // 兜底：RTTI 动态类型名。真实 QObject::inherits 走 metaobject 继承链（含测试
+    // 自定义节点类 TestNodeA 等）；壳内无 moc，上述硬编码只能覆盖核心类型。对
+    // 核心类型之外的对象，用 typeid(*this) 精确匹配叶子类型名（__cxa_demangle
+    // 去符号后即 "TestNodeA" 这类全局类名）。跨 DSO 成立：对象的 typeinfo 在创建
+    // 它的测试二进制里，typeid(*this) 在 shell.so 内做运行时查询。
+    const std::type_info &ti = typeid(*this);
+    int status = 0;
+    char *demangled = abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status);
+    if (demangled && status == 0) {
+        const PkString dynName(demangled);
+        std::free(demangled);
+        return dynName == className;
+    }
     return false;
 }
 
