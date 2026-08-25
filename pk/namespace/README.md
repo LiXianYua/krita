@@ -24,6 +24,13 @@
 口径：本头若再定义（enum vs using）会让同 TU include
 pk/namespace + pk/signal 硬错（S-08 实测阻塞主树 flake 构建）。
 
+### 与真 Qt 的让位（R-37）
+
+整个 `namespace Qt` 枚举族包在 `#if !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H)`
+守卫内（R-35 同型）：真 Qt qnamespace.h 进 TU（QNAMESPACE_H 定义）就让位给真 Qt，
+不在场（含 `-DQT_CORE_LIB` 无真 Qt 头）就由本头提供。transition TU 的共存由
+`tests/transition_qt_probe.sh` 钉住。
+
 ## 范围表（2026-08-18 收口）
 
 | 枚举 | 覆盖 | 备注 |

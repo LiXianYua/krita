@@ -112,6 +112,13 @@ Task 5 试接 + 本文档 + 收口验证。**R-29（2026-08-19）**把 `PkDateTi
 一字不改。`compat/QDateTime` 只留 `#define QDateTime PkDateTime`（别名值已由
 PkDateTime.h 提供）。
 
+### 与真 Qt 的让位（R-37）
+
+`namespace Qt` 的 DateFormat 别名（ISODate/RFC2822Date/ISODateWithMs）包在
+`#if !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H)` 守卫内：真 Qt qnamespace.h 进 TU
+就让位（真 Qt `enum DateFormat` 接管），不在场由本头提供。transition TU 的共存由
+`tests/transition_qt_probe.sh` 钉住。
+
 **不做**（保留范围内零调用点，Qt 头文件通读 + 逐处核实后确认没有余项）：
 `setTimeSpec()`/`timeZone()`/`toTimeZone()`/`toOffsetFromUtc()`/`toUTC()`/
 `toLocalTime()`/`fromString(..., QCalendar)`/`QDateTime::toTimeSpec`、
