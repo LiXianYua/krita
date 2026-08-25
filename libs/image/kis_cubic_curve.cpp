@@ -8,14 +8,16 @@
 
 #include "kis_cubic_curve.h"
 
-#include <QPointF>
-#include <QList>
-#include <QSharedData>
-#include <QStringList>
+#include <PkPoint.h>
+#include <PkList.h>
+#include <PkSharedPointer.h>
+#include <PkString.h>
+#include <PkVector.h>
+#include <algorithm>
 #include "kis_dom_utils.h"
 #include "kis_algebra_2d.h"
 
-KisCubicCurvePoint::KisCubicCurvePoint(const QPointF &position, bool setAsCorner)
+KisCubicCurvePoint::KisCubicCurvePoint(const PkPointF &position, bool setAsCorner)
     : m_position(position), m_isCorner(setAsCorner)
 {}
 
@@ -38,7 +40,7 @@ qreal KisCubicCurvePoint::y() const
     return m_position.y();
 }
 
-const QPointF& KisCubicCurvePoint::position() const
+const PkPointF& KisCubicCurvePoint::position() const
 {
     return m_position;
 }
@@ -58,7 +60,7 @@ void KisCubicCurvePoint::setY(qreal newY)
     m_position.setY(newY);
 }
 
-void KisCubicCurvePoint::setPosition(const QPointF &newPosition)
+void KisCubicCurvePoint::setPosition(const PkPointF &newPosition)
 {
     m_position = newPosition;
 }
@@ -73,25 +75,25 @@ static bool pointLessThan(const KisCubicCurvePoint &a, const KisCubicCurvePoint 
     return a.x() < b.x();
 }
 
-struct Q_DECL_HIDDEN KisCubicCurve::Data : public QSharedData {
+struct Q_DECL_HIDDEN KisCubicCurve::Data {
     Data() {
     }
-    Data(const Data& data) : QSharedData() {
+    Data(const Data& data) {
         points = data.points;
         name = data.name;
     }
     ~Data() {
     }
 
-    mutable QString name;
+    mutable PkString name;
     mutable KisCubicSpline<KisCubicCurvePoint, qreal> spline;
-    QList<KisCubicCurvePoint> points;
+    PkList<KisCubicCurvePoint> points;
     mutable bool validSpline {false};
-    mutable QVector<quint8> u8Transfer;
+    mutable PkVector<quint8> u8Transfer;
     mutable bool validU8Transfer {false};
-    mutable QVector<quint16> u16Transfer;
+    mutable PkVector<quint16> u16Transfer;
     mutable bool validU16Transfer {false};
-    mutable QVector<qreal> fTransfer;
+    mutable PkVector<qreal> fTransfer;
     mutable bool validFTransfer {false};
 
     void updateSpline();
@@ -100,7 +102,7 @@ struct Q_DECL_HIDDEN KisCubicCurve::Data : public QSharedData {
     void invalidate();
 
     template<typename _T_, typename _T2_>
-    void updateTransfer(QVector<_T_>* transfer, bool& valid, _T2_ min, _T2_ max, int size);
+    void updateTransfer(PkVector<_T_>* transfer, bool& valid, _T2_ min, _T2_ max, int size);
 };
 
 void KisCubicCurve::Data::updateSpline()
@@ -134,7 +136,7 @@ qreal KisCubicCurve::Data::value(qreal x)
 }
 
 template<typename _T_, typename _T2_>
-void KisCubicCurve::Data::updateTransfer(QVector<_T_>* transfer, bool& valid, _T2_ min, _T2_ max, int size)
+void KisCubicCurve::Data::updateTransfer(PkVector<_T_>* transfer, bool& valid, _T2_ min, _T2_ max, int size)
 {
     if (!valid || transfer->size() != size) {
         if (transfer->size() != size) {
@@ -152,32 +154,32 @@ void KisCubicCurve::Data::updateTransfer(QVector<_T_>* transfer, bool& valid, _T
 }
 
 struct Q_DECL_HIDDEN KisCubicCurve::Private {
-    QSharedDataPointer<Data> data;
+    PkSharedPointer<Data> data;
 };
 
 KisCubicCurve::KisCubicCurve()
     : d(new Private)
 {
-    d->data = new Data;
+    d->data = PkSharedPointer<Data>(new Data);
     d->data->points.append({ 0.0, 0.0, false });
     d->data->points.append({ 1.0, 1.0, false });
 }
 
-KisCubicCurve::KisCubicCurve(const QList<QPointF> &points)
+KisCubicCurve::KisCubicCurve(const PkList<PkPointF> &points)
     : d(new Private)
 {
-    d->data = new Data;
+    d->data = PkSharedPointer<Data>(new Data);
     d->data->points.reserve(points.size());
-    Q_FOREACH(const QPointF p, points) {
+    for (const PkPointF p : points) {
         d->data->points.append({ p, false });
     }
     d->data->keepSorted();
 }
 
-KisCubicCurve::KisCubicCurve(const QList<KisCubicCurvePoint> &points)
+KisCubicCurve::KisCubicCurve(const PkList<KisCubicCurvePoint> &points)
     : d(new Private)
 {
-    d->data = new Data;
+    d->data = PkSharedPointer<Data>(new Data);
     d->data->points = points;
     d->data->keepSorted();
 }
@@ -187,7 +189,16 @@ KisCubicCurve::KisCubicCurve(const KisCubicCurve& curve)
 {
 }
 
-KisCubicCurve::KisCubicCurve(const QString &curveString)
+static std::vector<PkString> splitSkipEmpty(const PkString &s, char16_t sep)
+{
+    std::vector<PkString> out = s.split(sep);
+    out.erase(std::remove_if(out.begin(), out.end(),
+                             [](const PkString &e) { return e.isEmpty(); }),
+              out.end());
+    return out;
+}
+
+KisCubicCurve::KisCubicCurve(const PkString &curveString)
     : d(new Private)
 {
     // Curve string format: a semi-colon separated list of point entries.
@@ -206,18 +217,18 @@ KisCubicCurve::KisCubicCurve(const QString &curveString)
     //      Examples: identity "0.0,0.0;1.0,1.0;"
     //                V-shaped curve "0.0,1.0;0.5,0.0,is_corner;1.0,1.0"
 
-    d->data = new Data;
+    d->data = PkSharedPointer<Data>(new Data);
 
     KIS_SAFE_ASSERT_RECOVER(!curveString.isEmpty()) {
         *this = KisCubicCurve();
         return;
     }
 
-    const QStringList data = curveString.split(';', Qt::SkipEmptyParts);
+    const std::vector<PkString> data = splitSkipEmpty(curveString, ';');
 
-    QList<KisCubicCurvePoint> points;
-    Q_FOREACH (const QString &entry, data) {
-        const QStringList entryData = entry.split(',', Qt::SkipEmptyParts);
+    PkList<KisCubicCurvePoint> points;
+    for (const PkString &entry : data) {
+        const std::vector<PkString> entryData = splitSkipEmpty(entry, ',');
         KIS_SAFE_ASSERT_RECOVER(entryData.size() > 1) {
             *this = KisCubicCurve();
             return;
@@ -270,58 +281,58 @@ qreal KisCubicCurve::value(qreal x) const
     return value;
 }
 
-QList<QPointF> KisCubicCurve::points() const
+PkList<PkPointF> KisCubicCurve::points() const
 {
-    QList<QPointF> pointPositions;
-    Q_FOREACH(const KisCubicCurvePoint &point, d->data->points) {
+    PkList<PkPointF> pointPositions;
+    for (const KisCubicCurvePoint &point : d->data->points) {
         pointPositions.append(point.position());
     }
     return pointPositions;
 }
 
-const QList<KisCubicCurvePoint>& KisCubicCurve::curvePoints() const
+const PkList<KisCubicCurvePoint>& KisCubicCurve::curvePoints() const
 {
     return d->data->points;
 }
 
-void KisCubicCurve::setPoints(const QList<QPointF>& points)
+void KisCubicCurve::setPoints(const PkList<PkPointF>& points)
 {
-    d->data.detach();
+    d->data = PkSharedPointer<Data>(new Data(*d->data.data()));
     d->data->points.clear();
-    Q_FOREACH(const QPointF &p, points) {
+    for (const PkPointF &p : points) {
         d->data->points.append({ p, false });
     }
     d->data->invalidate();
 }
 
-void KisCubicCurve::setPoints(const QList<KisCubicCurvePoint>& points)
+void KisCubicCurve::setPoints(const PkList<KisCubicCurvePoint>& points)
 {
-    d->data.detach();
+    d->data = PkSharedPointer<Data>(new Data(*d->data.data()));
     d->data->points = points;
     d->data->invalidate();
 }
 
 void KisCubicCurve::setPoint(int idx, const KisCubicCurvePoint& point)
 {
-    d->data.detach();
+    d->data = PkSharedPointer<Data>(new Data(*d->data.data()));
     d->data->points[idx] = point;
     d->data->keepSorted();
     d->data->invalidate();
 }
 
-void KisCubicCurve::setPoint(int idx, const QPointF& position, bool setAsCorner)
+void KisCubicCurve::setPoint(int idx, const PkPointF& position, bool setAsCorner)
 {
     setPoint(idx, { position, setAsCorner });
 }
 
-void KisCubicCurve::setPoint(int idx, const QPointF& position)
+void KisCubicCurve::setPoint(int idx, const PkPointF& position)
 {
     setPointPosition(idx, position);
 }
 
-void KisCubicCurve::setPointPosition(int idx, const QPointF& position)
+void KisCubicCurve::setPointPosition(int idx, const PkPointF& position)
 {
-    d->data.detach();
+    d->data = PkSharedPointer<Data>(new Data(*d->data.data()));
     d->data->points[idx].setPosition(position);
     d->data->keepSorted();
     d->data->invalidate();
@@ -329,14 +340,14 @@ void KisCubicCurve::setPointPosition(int idx, const QPointF& position)
 
 void KisCubicCurve::setPointAsCorner(int idx, bool setAsCorner)
 {
-    d->data.detach();
+    d->data = PkSharedPointer<Data>(new Data(*d->data.data()));
     d->data->points[idx].setAsCorner(setAsCorner);
     d->data->invalidate();
 }
 
 int KisCubicCurve::addPoint(const KisCubicCurvePoint& point)
 {
-    d->data.detach();
+    d->data = PkSharedPointer<Data>(new Data(*d->data.data()));
     d->data->points.append(point);
     d->data->keepSorted();
     d->data->invalidate();
@@ -344,26 +355,26 @@ int KisCubicCurve::addPoint(const KisCubicCurvePoint& point)
     return d->data->points.indexOf(point);
 }
 
-int KisCubicCurve::addPoint(const QPointF& position, bool setAsCorner)
+int KisCubicCurve::addPoint(const PkPointF& position, bool setAsCorner)
 {
     return addPoint({ position, setAsCorner });
 }
 
-int KisCubicCurve::addPoint(const QPointF& position)
+int KisCubicCurve::addPoint(const PkPointF& position)
 {
     return addPoint({ position, false });
 }
 
 void KisCubicCurve::removePoint(int idx)
 {
-    d->data.detach();
+    d->data = PkSharedPointer<Data>(new Data(*d->data.data()));
     d->data->points.removeAt(idx);
     d->data->invalidate();
 }
 
 bool KisCubicCurve::isIdentity() const
 {
-    const QList<KisCubicCurvePoint> &points = d->data->points;
+    const PkList<KisCubicCurvePoint> &points = d->data->points;
 
     if (points.first().x() != 0.0 || points.first().y() != 0.0 ||
         points.last().x() != 1.0 || points.last().y() != 1.0) {
@@ -381,9 +392,9 @@ bool KisCubicCurve::isIdentity() const
 
 bool KisCubicCurve::isConstant(qreal c) const
 {
-    const QList<KisCubicCurvePoint> &points = d->data->points;
+    const PkList<KisCubicCurvePoint> &points = d->data->points;
 
-    Q_FOREACH (const KisCubicCurvePoint &pt, points) {
+    for (const KisCubicCurvePoint &pt : points) {
         if (!qFuzzyCompare(c, pt.y())) {
             return false;
         }
@@ -392,12 +403,12 @@ bool KisCubicCurve::isConstant(qreal c) const
     return true;
 }
 
-const QString& KisCubicCurve::name() const
+const PkString& KisCubicCurve::name() const
 {
     return d->data->name;
 }
 
-qreal KisCubicCurve::interpolateLinear(qreal normalizedValue, const QVector<qreal> &transfer)
+qreal KisCubicCurve::interpolateLinear(qreal normalizedValue, const PkVector<qreal> &transfer)
 {
     const qreal maxValue = transfer.size() - 1;
 
@@ -425,47 +436,47 @@ qreal KisCubicCurve::interpolateLinear(qreal normalizedValue, const QVector<qrea
     return KisAlgebra2D::copysign(newValue, normalizedValue);
 }
 
-void KisCubicCurve::setName(const QString& name)
+void KisCubicCurve::setName(const PkString& name)
 {
     d->data->name = name;
 }
 
-QString KisCubicCurve::toString() const
+PkString KisCubicCurve::toString() const
 {
-    // See comments in KisCubicCurve(const QString &curveString) for the
+    // See comments in KisCubicCurve(const PkString &curveString) for the
     // specification of the string format
-    
-    QString sCurve;
+
+    PkString sCurve;
 
     if(d->data->points.count() < 1)
         return sCurve;
 
-    Q_FOREACH (const KisCubicCurvePoint &point, d->data->points) {
-        sCurve += QString::number(point.x());
-        sCurve += ',';
-        sCurve += QString::number(point.y());
+    for (const KisCubicCurvePoint &point : d->data->points) {
+        sCurve += PkString().arg(point.x());
+        sCurve += ",";
+        sCurve += PkString().arg(point.y());
         if (point.isSetAsCorner()) {
-            sCurve += ',';
+            sCurve += ",";
             sCurve += "is_corner";
         }
-        sCurve += ';';
+        sCurve += ";";
     }
 
     return sCurve;
 }
 
-void KisCubicCurve::fromString(const QString& string)
+void KisCubicCurve::fromString(const PkString& string)
 {
     *this = KisCubicCurve(string);
 }
 
-const QVector<quint16> KisCubicCurve::uint16Transfer(int size) const
+const PkVector<quint16> KisCubicCurve::uint16Transfer(int size) const
 {
     d->data->updateTransfer<quint16, int>(&d->data->u16Transfer, d->data->validU16Transfer, 0x0, 0xFFFF, size);
     return d->data->u16Transfer;
 }
 
-const QVector<qreal> KisCubicCurve::floatTransfer(int size) const
+const PkVector<qreal> KisCubicCurve::floatTransfer(int size) const
 {
     d->data->updateTransfer<qreal, qreal>(&d->data->fTransfer, d->data->validFTransfer, 0.0, 1.0, size);
     return d->data->fTransfer;

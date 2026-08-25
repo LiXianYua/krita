@@ -8,14 +8,16 @@
 
 #include "kis_node.h"
 #include "kis_layer_utils.h"
+#include <PkRect.h>
+#include <PkDebug.h>
 
-KisBatchNodeUpdate::KisBatchNodeUpdate(const std::vector<std::pair<KisNodeSP, QRect>> &rhs)
-    : std::vector<std::pair<KisNodeSP, QRect>>(rhs)
+KisBatchNodeUpdate::KisBatchNodeUpdate(const std::vector<std::pair<KisNodeSP, PkRect>> &rhs)
+    : std::vector<std::pair<KisNodeSP, PkRect>>(rhs)
 {
 
 }
 
-void KisBatchNodeUpdate::addUpdate(KisNodeSP node, const QRect &rc)
+void KisBatchNodeUpdate::addUpdate(KisNodeSP node, const PkRect &rc)
 {
     push_back(std::make_pair(node, rc));
 }
@@ -32,12 +34,12 @@ KisBatchNodeUpdate KisBatchNodeUpdate::compressed() const
     KisNodeList rootNodes;
 
     std::transform(begin(), end(), std::back_inserter(rootNodes),
-              [] (const std::pair<KisNodeSP, QRect> &update) {return update.first; });
+              [] (const std::pair<KisNodeSP, PkRect> &update) {return update.first; });
 
     rootNodes = KisLayerUtils::sortAndFilterMergeableInternalNodes(rootNodes, true);
 
-    Q_FOREACH (KisNodeSP root, rootNodes) {
-        QRect dirtyRect;
+    for (KisNodeSP root : rootNodes) {
+        PkRect dirtyRect;
 
         for (auto it = begin(); it != end(); ++it) {
             if (it->first == root || KisLayerUtils::checkIsChildOf(it->first, {root})) {
@@ -59,7 +61,7 @@ KisBatchNodeUpdate &KisBatchNodeUpdate::operator|=(const KisBatchNodeUpdate &rhs
     reserve(size() + rhs.size());
 
     std::copy(rhs.begin(), rhs.end(), std::back_inserter(*this));
-    std::sort(begin(), end(), [](const std::pair<KisNodeSP, QRect> &lhs, const std::pair<KisNodeSP, QRect> &rhs) { return lhs.first.data() < rhs.first.data(); });
+    std::sort(begin(), end(), [](const std::pair<KisNodeSP, PkRect> &lhs, const std::pair<KisNodeSP, PkRect> &rhs) { return lhs.first.data() < rhs.first.data(); });
 
     if (size() <= 1)
         return *this;
@@ -77,7 +79,7 @@ KisBatchNodeUpdate &KisBatchNodeUpdate::operator|=(const KisBatchNodeUpdate &rhs
     return *this;
 }
 
-QDebug operator<<(QDebug dbg, const KisBatchNodeUpdate &update)
+PkDebug operator<<(PkDebug dbg, const KisBatchNodeUpdate &update)
 {
     dbg.nospace() << "KisBatchNodeUpdate (";
 

@@ -16,7 +16,10 @@
 #include <cmath>
 #include "kis_fast_math.h"
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkString.h>
+#include <PkList.h>
 
 #include "kis_circle_mask_generator.h"
 #include "kis_rect_mask_generator.h"
@@ -74,7 +77,7 @@ struct KisMaskGenerator::Private {
     bool empty;
     bool antialiasEdges;
     Type type;
-    QString curveString;
+    PkString curveString;
     qreal scaleX;
     qreal scaleY;
 };
@@ -135,21 +138,21 @@ bool KisMaskGenerator::isEmpty() const
     return d->empty;
 }
 
-void KisMaskGenerator::toXML(QDomDocument& doc, QDomElement& e) const
+void KisMaskGenerator::toXML(PkXmlDocument& doc, PkXmlElement& e) const
 {
-    Q_UNUSED(doc);
+    (void)doc;
     //e.setAttribute("radius", d->radius);
-    e.setAttribute("diameter", QString::number(d->diameter));
-    e.setAttribute("ratio", QString::number(d->ratio));
-    e.setAttribute("hfade", QString::number(horizontalFade()));
-    e.setAttribute("vfade", QString::number(verticalFade()));
-    e.setAttribute("spikes", d->spikes);
+    e.setAttribute("diameter", PkString().arg(d->diameter));
+    e.setAttribute("ratio", PkString().arg(d->ratio));
+    e.setAttribute("hfade", PkString().arg(horizontalFade()));
+    e.setAttribute("vfade", PkString().arg(verticalFade()));
+    e.setAttribute("spikes", PkString().arg(d->spikes));
     e.setAttribute("type", d->type == CIRCLE ? "circle" : "rect");
-    e.setAttribute("antialiasEdges", d->antialiasEdges);
+    e.setAttribute("antialiasEdges", PkString().arg(int(d->antialiasEdges)));
     e.setAttribute("id", id());
 }
 
-KisMaskGenerator* KisMaskGenerator::fromXML(const QDomElement& elt)
+KisMaskGenerator* KisMaskGenerator::fromXML(const PkXmlElement& elt)
 {
     double diameter = 1.0;
     // backward compatibility -- it was mistakenly named radius for 2.2
@@ -164,8 +167,8 @@ KisMaskGenerator* KisMaskGenerator::fromXML(const QDomElement& elt)
     double vfade = KisDomUtils::toDouble(elt.attribute("vfade", "0.0"));
 
     int spikes = elt.attribute("spikes", "2").toInt();
-    QString typeShape = elt.attribute("type", "circle");
-    QString id = elt.attribute("id", DefaultId.id());
+    PkString typeShape = elt.attribute("type", "circle");
+    PkString id = elt.attribute("id", DefaultId.id());
     bool antialiasEdges = elt.attribute("antialiasEdges", "0").toInt();
 
     if (id == DefaultId.id()) {
@@ -275,19 +278,21 @@ KisMaskGenerator::Type KisMaskGenerator::type() const
     return d->type;
 }
 
-QList< KoID > KisMaskGenerator::maskGeneratorIds()
+PkList< KoID > KisMaskGenerator::maskGeneratorIds()
 {
-    QList<KoID> ids;
-    ids << DefaultId << SoftId << GaussId;
+    PkList<KoID> ids;
+    ids.append(DefaultId);
+    ids.append(SoftId);
+    ids.append(GaussId);
     return ids;
 }
 
-QString KisMaskGenerator::curveString() const
+PkString KisMaskGenerator::curveString() const
 {
     return d->curveString;
 }
 
-void KisMaskGenerator::setCurveString(const QString& curveString)
+void KisMaskGenerator::setCurveString(const PkString& curveString)
 {
     d->curveString = curveString;
 }

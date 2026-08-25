@@ -6,8 +6,10 @@
 
 #include <cmath>
 
-#include <QDomDocument>
-#include <QVector>
+#include <PkVector.h>
+#include <PkList.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 #include <KoColorSpaceConstants.h>
 
@@ -104,7 +106,7 @@ quint8 KisCurveCircleMaskGenerator::valueAt(qreal x, qreal y) const
     return d->value(dist);
 }
 
-void KisCurveCircleMaskGenerator::toXML(QDomDocument& doc, QDomElement& e) const
+void KisCurveCircleMaskGenerator::toXML(PkXmlDocument& doc, PkXmlElement& e) const
 {
     KisMaskGenerator::toXML(doc, e);
     e.setAttribute("softness_curve", curveString());
@@ -121,10 +123,9 @@ void KisCurveCircleMaskGenerator::setSoftness(qreal softness)
     d->dirty = false;
 }
 
-void KisCurveCircleMaskGenerator::transformCurveForSoftness(qreal softness,const QList<KisCubicCurvePoint> &points, int curveResolution, QVector< qreal >& result)
+void KisCurveCircleMaskGenerator::transformCurveForSoftness(qreal softness,const PkList<KisCubicCurvePoint> &points, int curveResolution, PkVector<qreal>& result)
 {
-    QList<KisCubicCurvePoint> newList = points;
-    newList.detach();
+    PkList<KisCubicCurvePoint> newList = points;
 
     int size = newList.size();
     if (size == 2){

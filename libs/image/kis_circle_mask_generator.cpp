@@ -8,8 +8,6 @@
 
 #include <cmath>
 
-#include <QDomDocument>
-
 #include "kis_fast_math.h"
 #include "kis_circle_mask_generator.h"
 #include "kis_circle_mask_generator_p.h"

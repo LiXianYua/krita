@@ -5,12 +5,9 @@
  */
 #include "KisBusyWaitBroker.h"
 
-#include <QGlobalStatic>
-#include <QMutex>
-#include <QMutexLocker>
-
-#include <QThread>
-#include <QApplication>
+#include <PkMutex.h>
+#include <PkHash.h>
+#include <PkThread.h>
 
 #include "kis_image.h"
 
@@ -20,8 +17,8 @@ Q_GLOBAL_STATIC(KisBusyWaitBroker, s_instance)
 
 struct KisBusyWaitBroker::Private
 {
-    QMutex lock;
-    QHash<KisImage*, int> waitingOnImages;
+    PkMutex lock;
+    PkHash<KisImage*, int> waitingOnImages;
     int guiThreadLockCount = 0;
 
     std::function<void(KisImageSP)> feedbackCallback;
@@ -44,12 +41,12 @@ KisBusyWaitBroker *KisBusyWaitBroker::instance()
 
 void KisBusyWaitBroker::notifyWaitOnImageStarted(KisImage* image)
 {
-    if (QThread::currentThread() != qApp->thread()) return;
+    if (PkThread::currentThreadId() != PkThread::mainThreadId()) return;
 
     bool needsStartCallback = false;
 
     {
-        QMutexLocker l(&m_d->lock);
+        PkMutexLocker l(&m_d->lock);
 
         m_d->guiThreadLockCount++;
         m_d->waitingOnImages[image]++;
@@ -64,10 +61,10 @@ void KisBusyWaitBroker::notifyWaitOnImageStarted(KisImage* image)
 
 void KisBusyWaitBroker::notifyWaitOnImageEnded(KisImage* image)
 {
-    if (QThread::currentThread() != qApp->thread()) return;
+    if (PkThread::currentThreadId() != PkThread::mainThreadId()) return;
 
     {
-        QMutexLocker l(&m_d->lock);
+        PkMutexLocker l(&m_d->lock);
         m_d->guiThreadLockCount--;
 
         m_d->waitingOnImages[image]--;
@@ -81,17 +78,17 @@ void KisBusyWaitBroker::notifyWaitOnImageEnded(KisImage* image)
 
 void KisBusyWaitBroker::notifyGeneralWaitStarted()
 {
-    if (QThread::currentThread() != qApp->thread()) return;
+    if (PkThread::currentThreadId() != PkThread::mainThreadId()) return;
 
-    QMutexLocker l(&m_d->lock);
+    PkMutexLocker l(&m_d->lock);
     m_d->guiThreadLockCount++;
 }
 
 void KisBusyWaitBroker::notifyGeneralWaitEnded()
 {
-    if (QThread::currentThread() != qApp->thread()) return;
+    if (PkThread::currentThreadId() != PkThread::mainThreadId()) return;
 
-    QMutexLocker l(&m_d->lock);
+    PkMutexLocker l(&m_d->lock);
     m_d->guiThreadLockCount--;
 }
 

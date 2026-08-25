@@ -6,7 +6,8 @@
 
 #include <cmath>
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 #include <kis_fast_math.h>
 #include "kis_antialiasing_fade_maker.h"
@@ -94,7 +95,7 @@ quint8 KisCurveRectangleMaskGenerator::valueAt(qreal x, qreal y) const
     return d->value(xr, yr);
 }
 
-void KisCurveRectangleMaskGenerator::toXML(QDomDocument& doc, QDomElement& e) const
+void KisCurveRectangleMaskGenerator::toXML(PkXmlDocument& doc, PkXmlElement& e) const
 {
     KisMaskGenerator::toXML(doc, e);
     e.setAttribute("softness_curve", curveString());

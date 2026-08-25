@@ -8,6 +8,10 @@
 
 #include "kis_paint_device.h"
 #include <KoColor.h>
+#include <PkRect.h>
+#include <PkVector.h>
+#include <PkSharedPointer.h>
+#include <PkScopedPointer.h>
 #include "KisRectsGrid.h"
 #include "kis_painter.h"
 #include "KoColorModelStandardIds.h"
@@ -26,16 +30,16 @@ struct KisChangeOverlayWrapperCommand;
 struct KisOverlayPaintDeviceWrapper::Private
 {
     KisPaintDeviceSP source;
-    QVector<KisPaintDeviceSP> overlays;
+    PkVector<KisPaintDeviceSP> overlays;
     KisRectsGrid grid;
     bool usePreciseMode = false;
-    QScopedPointer<KoOptimizedPixelDataScalerU8ToU16Base> scaler;
+    PkScopedPointer<KoOptimizedPixelDataScalerU8ToU16Base> scaler;
     KisPaintDeviceSP externalDestination;
 
     std::unique_ptr<KUndo2Command> rootTransactionData;
     KisChangeOverlayWrapperCommand *changeOverlayCommand;
     std::vector<std::unique_ptr<KisTransaction>> overlayTransactions;
-    QSharedPointer<KisRectsGrid> previousGrid;
+    PkSharedPointer<KisRectsGrid> previousGrid;
 };
 
 struct KisChangeOverlayWrapperCommand : public KUndo2Command
@@ -58,8 +62,8 @@ struct KisChangeOverlayWrapperCommand : public KUndo2Command
         m_d->previousGrid = m_newRectsGrid;
     }
 
-    QSharedPointer<KisRectsGrid> m_oldRectsGrid;
-    QSharedPointer<KisRectsGrid> m_newRectsGrid;
+    PkSharedPointer<KisRectsGrid> m_oldRectsGrid;
+    PkSharedPointer<KisRectsGrid> m_newRectsGrid;
     KisOverlayPaintDeviceWrapper::Private *m_d;
 };
 
@@ -153,29 +157,29 @@ KisPaintDeviceSP KisOverlayPaintDeviceWrapper::overlay(int index) const
     return !m_d->overlays.isEmpty() ? m_d->overlays[index] : m_d->source;
 }
 
-void KisOverlayPaintDeviceWrapper::readRect(const QRect &rc)
+void KisOverlayPaintDeviceWrapper::readRect(const PkRect &rc)
 {
     readRects({rc});
 }
 
-void KisOverlayPaintDeviceWrapper::writeRect(const QRect &rc, int index)
+void KisOverlayPaintDeviceWrapper::writeRect(const PkRect &rc, int index)
 {
     writeRects({rc}, index);
 }
 
-void KisOverlayPaintDeviceWrapper::readRects(const QVector<QRect> &rects)
+void KisOverlayPaintDeviceWrapper::readRects(const PkVector<PkRect> &rects)
 {
     if (rects.isEmpty()) return;
     if (m_d->overlays.isEmpty()) return;
 
-    QRect cropRect = m_d->source->extent();
-    QVector<QRect> rectsToRead;
+    PkRect cropRect = m_d->source->extent();
+    PkVector<PkRect> rectsToRead;
 
-    Q_FOREACH (const QRect &rc, rects) {
+    for (const PkRect &rc : rects) {
         if (m_d->source->defaultBounds()->wrapAroundMode()) {
-            const QRect wrapRect = m_d->source->defaultBounds()->imageBorderRect();
+            const PkRect wrapRect = m_d->source->defaultBounds()->imageBorderRect();
             KisWrappedRect wrappedRect(rc, wrapRect, m_d->source->defaultBounds()->wrapAroundModeAxis());
-            Q_FOREACH (const QRect &wrc, wrappedRect) {
+            for (const PkRect &wrc : wrappedRect) {
                 rectsToRead += m_d->grid.addRect(wrc);
             }
             cropRect &= wrapRect;
@@ -189,9 +193,9 @@ void KisOverlayPaintDeviceWrapper::readRects(const QVector<QRect> &rects)
     //TODO: implement synchronization of the offset between the grid and devices
 
     if (!m_d->scaler) {
-        Q_FOREACH (KisPaintDeviceSP overlay, m_d->overlays) {
-            Q_FOREACH (const QRect &rect, rectsToRead) {
-                const QRect croppedRect = rect & cropRect;
+        for (KisPaintDeviceSP overlay : m_d->overlays) {
+            for (const PkRect &rect : rectsToRead) {
+                const PkRect croppedRect = rect & cropRect;
                 if (croppedRect.isEmpty()) continue;
 
                 KisPainter::copyAreaOptimized(croppedRect.topLeft(), m_d->source, overlay, croppedRect);
@@ -205,7 +209,7 @@ void KisOverlayPaintDeviceWrapper::readRects(const QVector<QRect> &rects)
 
         auto rectIter = rectsToRead.begin();
         while (rectIter != rectsToRead.end()) {
-            const QRect croppedRect = *rectIter & cropRect;
+            const PkRect croppedRect = *rectIter & cropRect;
 
             if (!croppedRect.isEmpty()) {
 
@@ -231,7 +235,7 @@ void KisOverlayPaintDeviceWrapper::readRects(const QVector<QRect> &rects)
     }
 }
 
-void KisOverlayPaintDeviceWrapper::writeRects(const QVector<QRect> &rects, int index)
+void KisOverlayPaintDeviceWrapper::writeRects(const PkVector<PkRect> &rects, int index)
 {
     if (rects.isEmpty()) return;
     if (m_d->overlays.isEmpty()) return;
@@ -243,7 +247,7 @@ void KisOverlayPaintDeviceWrapper::writeRects(const QVector<QRect> &rects, int i
         (destinationDevice != m_d->source &&
          *destinationDevice->colorSpace() != *m_d->source->colorSpace())) {
 
-        Q_FOREACH (const QRect &rc, rects) {
+        for (const PkRect &rc : rects) {
             KIS_SAFE_ASSERT_RECOVER_NOOP(m_d->grid.contains(rc));
             KisPainter::copyAreaOptimized(rc.topLeft(), m_d->overlays[index], destinationDevice, rc);
         }
@@ -254,7 +258,7 @@ void KisOverlayPaintDeviceWrapper::writeRects(const QVector<QRect> &rects, int i
         KisRandomConstAccessorSP srcIt = overlay->createRandomConstAccessorNG();
         KisRandomAccessorSP dstIt = destinationDevice->createRandomAccessorNG();
 
-        Q_FOREACH (const QRect &rc, rects) {
+        for (const PkRect &rc : rects) {
             KritaUtils::processTwoDevicesWithStrides(rc,
                                                      srcIt, dstIt,
                 [this] (const quint8 *src, int srcRowStride,
