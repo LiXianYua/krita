@@ -30,6 +30,7 @@
 #include "KisImportExportErrorCode.h"
 #include "KisImportExportFilter.h"
 
+#include <atomic>
 #include <cstdio>
 #include <filesystem>
 #include <functional>
@@ -47,6 +48,11 @@ static PkByteArray pkToByteArray(const PkString &s) {
     std::string u = s.PkToUtf8();
     return PkByteArray(u.data(), (int)u.size());
 }
+
+// 临时文件唯一名计数器。std::async 每次调用新起一线程，两个文档并发异步导出
+// 会竞争该计数器 —— 必须原子（原临时文件 API 线程安全且唯一）。Linux 与非
+// Linux 分支共用。
+static std::atomic<long long> s_tmpCounter = 0;
 
 class KisImportExportManager::Private
 {
@@ -507,16 +513,18 @@ KisImportExportErrorCode KisImportExportManager::doExport(const PkString &locati
 
 // 剥离说明：Linux 分支原用原子写 API（临时文件 + commit 时改名，规避网盘对目标
 // 文件的锁）；macOS/Android 沙箱里原子写不可靠，改走「临时文件 + 复制」。本实现
-// Linux 分支用 PkFileStream 直接写目标（WriteOnly|Truncate），原子改名语义不保留
-// （行为差异登记在 Task 8 报告）；非 Linux 分支保留临时文件结构。
+// Linux 分支用「目标同目录临时文件 + std::filesystem::rename」恢复原子替换语义，
+// 非 Linux 分支保留「临时文件 + 复制/逐块拷贝」结构。
 #if !(defined(_WIN32) || defined(__APPLE__) || defined(__ANDROID__))
 
 KisImportExportErrorCode KisImportExportManager::doExportImpl(const PkString &location, PkSharedPointer<KisImportExportFilter> filter, KisPropertiesConfigurationSP exportConfiguration)
 {
-    // Linux（主分支）。原原子写 API 的 setDirectWriteFallback(true) 原意是退化直写，
-    // 这里恒直写目标文件。原 getFileOpenError(file)：PkStream 无错误码 API，归一
-    // PkOpenError。
-    PkFileStream file(location);
+    // Linux（主分支）。恢复原子替换：写目标同目录唯一临时文件 → flush → close →
+    // std::filesystem::rename 原子改名为目标。rename 失败等价于原 commit() 失败，
+    // 目标文件保持原样。临时文件必须与目标同目录，否则 rename 跨文件系统失败
+    // （EXDEV）。原 getFileOpenError(file)：PkStream 无错误码 API，归一 PkOpenError。
+    const PkString tmpLocation = location + PkString(".tmp_") + pkNumber(++s_tmpCounter);
+    PkFileStream file(tmpLocation);
     if (filter->supportsIO() && !file.open(PkStream::WriteOnly | PkStream::Truncate)) {
         return KisImportExportErrorCannotWrite(PkOpenError);
     }
@@ -525,17 +533,23 @@ KisImportExportErrorCode KisImportExportManager::doExportImpl(const PkString &lo
 
     if (filter->supportsIO()) {
         if (!status.isOk()) {
-            // 原 cancelWriting() 取消落盘；直写模式下无撤销手段（目标已写入部分
-            // 内容，与原子写 API 的直写退化模式一致），仍 close 落盘。
+            // 原 cancelWriting() 取消落盘：临时文件模式失败即丢弃临时文件，
+            // 目标文件保持原样（原子替换语义）。
             file.close();
+            std::error_code ec;
+            std::filesystem::remove(tmpLocation.PkToUtf8(), ec);
         } else {
-            // 原 commit() 改名失败检测不保留：直写无 rename 步骤可失败，
-            // flush() 失败视为写盘失败。
-            if (!file.flush()) {
-                qWarning() << "Could not flush export file" << location;
+            // PkFileStream::flush() 恒成功（无用户态缓冲，见 PkFileStream.cpp），
+            // 真正可失败的 commit 等价步是 rename —— 它就是原 commit() 失败检测
+            // 的替代品。
+            file.flush();
+            file.close();
+            std::error_code ec;
+            std::filesystem::rename(tmpLocation.PkToUtf8(), location.PkToUtf8(), ec);
+            if (ec) {
+                qWarning() << "Could not rename temporary export file" << location;
                 status = KisImportExportErrorCannotWrite(PkOpenError);
             }
-            file.close();
         }
     }
 
@@ -557,8 +571,8 @@ KisImportExportErrorCode KisImportExportManager::doExportImpl(const PkString &lo
 {
     // 非 Linux（Windows/macOS/Android 沙箱）：先写唯一临时路径，再复制到目标。
     // 原临时文件 API 由 Qt 保证全局唯一；PkFileStream 无自动临时文件，用
-    // temp_directory_path() + 进程内计数器构造唯一路径。
-    static long long s_tmpCounter = 0;
+    // temp_directory_path() + 进程内计数器构造唯一路径（s_tmpCounter 为文件级
+    // 原子计数器，Linux/非 Linux 分支共用）。
     const PkString tmpLocation =
             PkString(std::filesystem::temp_directory_path().string().c_str()) +
             PkString("/.kra_tmp_") + pkNumber(++s_tmpCounter) + PkString(".kra");
