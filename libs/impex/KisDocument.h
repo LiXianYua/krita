@@ -8,11 +8,21 @@
 #ifndef KISDOCUMENT_H
 #define KISDOCUMENT_H
 
-#include <QDateTime>
-#include <QList>
-#include <QFileInfo>
+#include <PkList.h>
+#include <PkVector.h>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkAuxTypes.h>
+#include <PkImage.h>
+#include <PkSize.h>
+#include <PkRect.h>
+#include <PkColor.h>
+#include <PkXmlDocument.h>
+#include <PkObject.h>
+#include <PkFlags.h>
 
-#include <klocalizedstring.h>
+#include <filesystem>
+#include <functional>
 
 #include <kundo2stack.h>
 #include <KoColorSet.h>
@@ -25,15 +35,17 @@
 #include <kis_debug.h>
 #include <KisImportExportUtils.h>
 #include "StoryboardItem.h"
+#include <KoUnit.h>
+#include <KisImportExportErrorCode.h>
+#include <kis_grid_config.h>
+#include <kis_guides_config.h>
+#include <KisMirrorAxisConfig.h>
 
 #include "kritaimpex_export.h"
 
 #include <memory>
 
-class QString;
-
 class KUndo2Command;
-class KoUnit;
 
 class KoColor;
 class KoColorSpace;
@@ -43,10 +55,6 @@ class KoStore;
 class KoDocumentInfo;
 class KisImportExportManager;
 class KisUndoStore;
-class KisGridConfig;
-class KisGuidesConfig;
-class KisMirrorAxisConfig;
-class QDomDocument;
 
 #define KIS_MIME_TYPE "application/x-krita"
 
@@ -54,7 +62,10 @@ class QDomDocument;
  *  KisDocument contains the image and keeps track of loading,
  *  modification, undo stack and saving.
  */
-class KRITAIMPEX_EXPORT KisDocument : public QObject
+// 背景保存完成回调：替代原 SIGNAL/SLOT 老式连接里传 (接收者对象, 槽方法名) 的参数形态。
+using SavingCompletedCallback = std::function<void(const KritaUtils::ExportFileJob &, KisImportExportErrorCode, const PkString &, const PkString &)>;
+
+class KRITAIMPEX_EXPORT KisDocument : public PkObject
 {
     Q_OBJECT
 protected:
@@ -83,7 +94,7 @@ public:
         DontAddToRecent = 0x1,
         RecoveryFile = 0x2
     };
-    Q_DECLARE_FLAGS(OpenFlags, OpenFlag)
+    PK_DECLARE_FLAGS(OpenFlags, OpenFlag)
 
     /**
      *  Destructor.
@@ -98,7 +109,7 @@ public:
      * resources used by the document. E.g. patterns embedded into layer
      * styles.
      */
-    QString embeddedResourcesStorageId() const;
+    PkString embeddedResourcesStorageId() const;
 
     /**
      * Persistent storage for the resources that are linked but the resources
@@ -108,7 +119,7 @@ public:
      * All these resources are saved into the document itself and loaded
      * alongside the document.
      */
-    QString linkedResourcesStorageId() const;
+    PkString linkedResourcesStorageId() const;
 
     /**
      * @brief creates a clone of the document and returns it. Please make sure that you
@@ -122,7 +133,7 @@ public:
      * @param flags Control specific behavior
      * @return success status
      */
-    bool openPath(const QString &path, OpenFlags flags = None);
+    bool openPath(const PkString &path, OpenFlags flags = None);
 
     /**
      * Opens the document given by @p path, without storing the Path
@@ -134,7 +145,7 @@ public:
      *       Open operation (in any reimplementation of openPath() or openFile())
      *       call isImporting().
      */
-    bool importDocument(const QString &path);
+    bool importDocument(const PkString &path);
 
     /**
      * Saves the document as @p path without changing the state of the
@@ -142,13 +153,13 @@ public:
      * saveAs() to implement KisMainWindow's File --> Export feature.
      * Make sure to provide two separate bool parameters otherwise it will mix them
      */
-    bool exportDocument(const QString &path, const QByteArray &mimeType,bool isAdvancedExporting = false, bool showWarnings = false, KisPropertiesConfigurationSP exportConfiguration = 0);
+    bool exportDocument(const PkString &path, const PkByteArray &mimeType,bool isAdvancedExporting = false, bool showWarnings = false, KisPropertiesConfigurationSP exportConfiguration = 0);
     /**
      * Exports he document is a synchronous way. The caller must ensure that the
      * image is not accessed by any other actors, because the exporting happens
      * without holding the image lock.
      */
-    bool exportDocumentSync(const QString &path, const QByteArray &mimeType, KisPropertiesConfigurationSP exportConfiguration = 0);
+    bool exportDocumentSync(const PkString &path, const PkByteArray &mimeType, KisPropertiesConfigurationSP exportConfiguration = 0);
 
 private:
     bool exportDocumentImpl(const KritaUtils::ExportFileJob &job, KisPropertiesConfigurationSP exportConfiguration, bool isAdvancedExporting= false);
@@ -169,19 +180,19 @@ public:
      * delivers.
      * This comes from the X-KDE-NativeMimeType key in the .desktop file.
      */
-    static QByteArray nativeFormatMimeType() { return KIS_MIME_TYPE; }
+    static PkByteArray nativeFormatMimeType() { return PkByteArray(KIS_MIME_TYPE, int(sizeof(KIS_MIME_TYPE) - 1)); }
 
     /// Checks whether a given mimeType can be handled natively.
-    bool isNativeFormat(const QByteArray& mimeType) const;
+    bool isNativeFormat(const PkByteArray& mimeType) const;
 
     /// Returns a list of the mimeTypes considered "native", i.e. which can
     /// be saved by KisDocument without a filter, in *addition* to the main one
-    static QStringList extraNativeMimeTypes() { return QStringList() << KIS_MIME_TYPE; }
+    static PkStringList extraNativeMimeTypes() { return PkStringList() << KIS_MIME_TYPE; }
 
     /**
      * Returns the actual mimeType of the document
      */
-    QByteArray mimeType() const;
+    PkByteArray mimeType() const;
 
     /**
      * @brief Sets the mime type for the document.
@@ -189,7 +200,7 @@ public:
      * When choosing "save as" this is also the mime type
      * selected by default.
      */
-    void setMimeType(const QByteArray & mimeType);
+    void setMimeType(const PkByteArray & mimeType);
 
     /**
      * @return true if file operations should inhibit the option dialog
@@ -202,36 +213,36 @@ public:
     void setFileBatchMode(const bool batchMode);
 
     /**
-     * Sets the error message to be shown to the user (use i18n()!)
+     * Sets the error message to be shown to the user (pass a source string; translation happens at the Flutter layer)
      * when loading or saving fails.
      * If you asked the user about something and they chose "Cancel",
      */
-    void setErrorMessage(const QString& errMsg);
+    void setErrorMessage(const PkString& errMsg);
 
     /**
      * Return the last error message. Usually KisDocument takes care of
      * showing it; this method is mostly provided for non-interactive use.
      */
-    QString errorMessage() const;
+    PkString errorMessage() const;
 
     /**
-     * Sets the warning message to be shown to the user (use i18n()!)
+     * Sets the warning message to be shown to the user (pass a source string; translation happens at the Flutter layer)
      * when loading or saving fails.
      */
-    void setWarningMessage(const QString& warningMsg);
+    void setWarningMessage(const PkString& warningMsg);
 
     /**
      * Return the last warning message set by loading or saving. Warnings
      * mean that the document could not be completely loaded, but the errors
      * were not absolutely fatal.
      */
-    QString warningMessage() const;
+    PkString warningMessage() const;
 
     /**
      * @brief Generates a preview picture of the document
      * @note The preview is used in the File Dialog and also to create the Thumbnail
      */
-    QPixmap generatePreview(const QSize& size);
+    PkImage generatePreview(const PkSize& size);
 
     /**
      *  @brief Sets the document to empty.
@@ -244,22 +255,22 @@ public:
     void setEmpty(bool empty = true);
 
     /**
-     *  Return a correctly created QDomDocument for this KisDocument,
+     *  Return a correctly created PkXmlDocument for this KisDocument,
      *  including processing instruction, complete DOCTYPE tag (with systemId and publicId), and root element.
      *  @param tagName the name of the tag for the root element
      *  @param version the DTD version (usually the application's version).
      */
-    QDomDocument createDomDocument(const QString& tagName, const QString& version) const;
+    PkXmlDocument createDomDocument(const PkString& tagName, const PkString& version) const;
 
     /**
-     *  Return a correctly created QDomDocument for an old (1.3-style) Krita document,
+     *  Return a correctly created PkXmlDocument for an old (1.3-style) Krita document,
      *  including processing instruction, complete DOCTYPE tag (with systemId and publicId), and root element.
      *  This static method can be used e.g. by filters.
      *  @param appName the app's instance name, e.g. words, kspread, kpresenter etc.
      *  @param tagName the name of the tag for the root element, e.g. DOC for words/kpresenter.
      *  @param version the DTD version (usually the application's version).
      */
-    static QDomDocument createDomDocument(const QString& appName, const QString& tagName, const QString& version);
+    static PkXmlDocument createDomDocument(const PkString& appName, const PkString& tagName, const PkString& version);
 
    /**
      *  Loads a document in the native format from a given Path.
@@ -267,7 +278,7 @@ public:
      *
      *  @param file the file to load - usually KReadOnlyPart::m_file or the result of a filter
      */
-    bool loadNativeFormat(const QString & file);
+    bool loadNativeFormat(const PkString & file);
 
     /**
      * Allow to activate or deactivate autosave on document, independently of auto save delay
@@ -308,7 +319,7 @@ public:
     /**
      * Performs a cleanup of unneeded backup files
      */
-    void removeAutoSaveFiles(const QString &autosaveBaseName, bool wasRecovered);
+    void removeAutoSaveFiles(const PkString &autosaveBaseName, bool wasRecovered);
 
     /**
      * Returns true if this document or any of its internal child documents are modified.
@@ -323,19 +334,19 @@ public:
      * document Path.
      * If the title is not present, only the Path it returned.
      */
-    QString caption() const;
+    PkString caption() const;
 
     /**
      * Sets the document Path to empty Path
      * After using loadNativeFormat on a template, one wants
-     * to set the path to QString()
+     * to set the path to PkString()
      */
     void resetPath();
 
     /**
      * @internal (public for KisMainWindow)
      */
-    void setMimeTypeAfterLoading(const QString& mimeType);
+    void setMimeTypeAfterLoading(const PkString& mimeType);
 
     /**
      * Returns the unit used to display all measures/distances.
@@ -375,14 +386,14 @@ public:
      *
      * NOTE: the returned result can **NOT** have ExistingResource state!
      */
-    QList<KoResourceLoadResult> linkedDocumentResources();
+    PkList<KoResourceLoadResult> linkedDocumentResources();
 
     /**
      * @brief setPaletteList replaces the palettes in the document's local resource storage with the list
-     * of palettes passed to this function. It will then Q_EMIT sigPaletteListChanged with both the old and
+     * of palettes passed to this function. It will then emit sigPaletteListChanged with both the old and
      * the new list, if emitSignal is true.
      */
-    void setPaletteList(const QList<KoColorSetSP> &paletteList, bool emitSignal = false);
+    void setPaletteList(const PkList<KoColorSetSP> &paletteList, bool emitSignal = false);
 
     /**
      * @brief returns the list of pointers to storyboard Items for the document
@@ -397,15 +408,15 @@ public:
     /**
      * @brief returns the list of comments for the storyboard docker in the document
      */
-    QVector<StoryboardComment> getStoryboardCommentsList();
+    PkVector<StoryboardComment> getStoryboardCommentsList();
 
     /**
      * @brief sets the  list of comments for the storyboard docker in the document, emits empty signal if emitSignal is true.
      */
-    void setStoryboardCommentList(const QVector<StoryboardComment> &storyboardCommentList, bool emitSignal = false);
+    void setStoryboardCommentList(const PkVector<StoryboardComment> &storyboardCommentList, bool emitSignal = false);
 
-    QVector<QFileInfo> getAudioTracks() const;
-    void setAudioTracks(QVector<QFileInfo> f);
+    PkVector<std::filesystem::path> getAudioTracks() const;
+    void setAudioTracks(PkVector<std::filesystem::path> f);
 
     void setAudioVolume(qreal level);
     qreal getAudioLevel();
@@ -443,7 +454,7 @@ public:
      * to a memory-based byte-array
      * @return a byte array containing the .kra file
      */
-    QByteArray serializeToNativeByteArray();
+    PkByteArray serializeToNativeByteArray();
 
 
     /**
@@ -465,7 +476,7 @@ Q_SIGNALS:
      * Emitted e.g. at the beginning of a save operation
      * This is emitted by KisDocument and used by KisView to display a statusbar message
      */
-    void statusBarMessage(const QString& text, int timeout = 0);
+    void statusBarMessage(const PkString& text, int timeout);
 
     /**
      * Emitted e.g. at the end of a save operation
@@ -480,17 +491,17 @@ Q_SIGNALS:
 
     void sigReadWriteChanged(bool value);
     void sigRecoveredChanged(bool value);
-    void sigPathChanged(const QString &path);
+    void sigPathChanged(const PkString &path);
 
     void sigLoadingFinished();
 
-    void sigSavingFinished(const QString &filePath);
+    void sigSavingFinished(const PkString &filePath);
 
     void sigGuidesConfigChanged(const KisGuidesConfig &config);
 
-    void sigBackgroundSavingFinished(KisImportExportErrorCode status, const QString &errorMessage, const QString &warningMessage);
+    void sigBackgroundSavingFinished(KisImportExportErrorCode status, const PkString &errorMessage, const PkString &warningMessage);
 
-    void sigCompleteBackgroundSaving(const KritaUtils::ExportFileJob &job, KisImportExportErrorCode status, const QString &errorMessage, const QString &warningMessage);
+    void sigCompleteBackgroundSaving(const KritaUtils::ExportFileJob &job, KisImportExportErrorCode status, const PkString &errorMessage, const PkString &warningMessage);
 
     void sigReferenceImagesChanged();
 
@@ -504,7 +515,7 @@ Q_SIGNALS:
      * Emitted when the palette list has changed.
      * The pointers in oldPaletteList are to be deleted by the resource server.
      **/
-    void sigPaletteListChanged(const QList<KoColorSetSP> &oldPaletteList, const QList<KoColorSetSP> &newPaletteList);
+    void sigPaletteListChanged(const PkList<KoColorSetSP> &oldPaletteList, const PkList<KoColorSetSP> &newPaletteList);
 
     void sigAssistantsChanged();
 
@@ -516,12 +527,12 @@ Q_SIGNALS:
 
     void sigAudioLevelChanged(qreal level);
 
-private Q_SLOTS:
+private:
     void finishExportInBackground();
-    void slotChildCompletedSavingInBackground(KisImportExportErrorCode status, const QString &errorMessage, const QString &warningMessage);
-    void slotCompleteAutoSaving(const KritaUtils::ExportFileJob &job, KisImportExportErrorCode status, const QString &errorMessage, const QString &warningMessage);
+    void slotChildCompletedSavingInBackground(KisImportExportErrorCode status, const PkString &errorMessage, const PkString &warningMessage);
+    void slotCompleteAutoSaving(const KritaUtils::ExportFileJob &job, KisImportExportErrorCode status, const PkString &errorMessage, const PkString &warningMessage);
 
-    void slotCompleteSavingDocument(const KritaUtils::ExportFileJob &job, KisImportExportErrorCode status, const QString &errorMessage, const QString &warningMessage);
+    void slotCompleteSavingDocument(const KritaUtils::ExportFileJob &job, KisImportExportErrorCode status, const PkString &errorMessage, const PkString &warningMessage);
 
     void slotInitiateAsyncAutosaving(KisDocument *clonedDocument);
     void slotDocumentCloningCancelled();
@@ -532,20 +543,20 @@ private:
 
     friend class SafeSavingLocker;
 
-    KritaUtils::BackgroudSavingStartResult initiateSavingInBackground(const QString actionName,
-                                    const QObject *receiverObject, const char *receiverMethod,
+    KritaUtils::BackgroudSavingStartResult initiateSavingInBackground(const PkString actionName,
+                                    SavingCompletedCallback completedCallback,
                                     const KritaUtils::ExportFileJob &job,
                                     KisPropertiesConfigurationSP exportConfiguration,
                                     std::unique_ptr<KisDocument> &&optionalClonedDocument, bool isAdvancedExporting = false);
 
-    KritaUtils::BackgroudSavingStartResult initiateSavingInBackground(const QString actionName,
-                                    const QObject *receiverObject, const char *receiverMethod,
+    KritaUtils::BackgroudSavingStartResult initiateSavingInBackground(const PkString actionName,
+                                    SavingCompletedCallback completedCallback,
                                     const KritaUtils::ExportFileJob &job,
                                     KisPropertiesConfigurationSP exportConfiguration, bool isAdvancedExporting =false );
 
-    KisImportExportErrorCode startExportInBackground(const QString &actionName, const QString &location,
-                                 const QString &realLocation,
-                                 const QByteArray &mimeType,
+    KisImportExportErrorCode startExportInBackground(const PkString &actionName, const PkString &location,
+                                 const PkString &realLocation,
+                                 const PkByteArray &mimeType,
                                  bool showWarnings,
                                  KisPropertiesConfigurationSP exportConfiguration, bool isAdvancedExporting= false);
 
@@ -558,9 +569,9 @@ private:
     /**
      * Generate a name for the document.
      */
-    QString newObjectName();
+    PkString newObjectName();
 
-    QString generateAutoSaveFileName(const QString & path) const;
+    PkString generateAutoSaveFileName(const PkString & path) const;
 
     /**
      *  Loads a document
@@ -580,24 +591,24 @@ public:
 
 public:
 
-    QString localFilePath() const;
-    void setLocalFilePath( const QString &localFilePath );
+    PkString localFilePath() const;
+    void setLocalFilePath( const PkString &localFilePath );
 
     bool isReadWrite() const;
 
-    QString path() const;
-    void setPath(const QString &path);
+    PkString path() const;
+    void setPath(const PkString &path);
 
     bool closePath(bool promptToSave = true);
 
-    bool saveAs(const QString &path, const QByteArray &mimeType, bool showWarnings, KisPropertiesConfigurationSP exportConfiguration = 0);
+    bool saveAs(const PkString &path, const PkByteArray &mimeType, bool showWarnings, KisPropertiesConfigurationSP exportConfiguration = 0);
 
     /**
      * Create a new image that has this document as a parent and
      * replace the current image with this image.
      */
-    bool newImage(const QString& name, qint32 width, qint32 height, const KoColorSpace * cs, const KoColor &bgColor, NewImageBackgroundStyle bgStyle,
-                  int numberOfLayers, const QString &imageDescription, const double imageResolution);
+    bool newImage(const PkString& name, qint32 width, qint32 height, const KoColorSpace * cs, const KoColor &bgColor, NewImageBackgroundStyle bgStyle,
+                  int numberOfLayers, const PkString &imageDescription, const double imageResolution);
 
     bool isSaving() const;
     void waitForSavingToComplete();
@@ -651,18 +662,18 @@ public:
     KisNodeSP preActivatedNode() const;
 
     /// @return the list of assistants associated with this document
-    QList<KisPaintingAssistantSP> assistants() const;
+    PkList<KisPaintingAssistantSP> assistants() const;
 
     /// @replace the current list of assistants with @param value
-    void setAssistants(const QList<KisPaintingAssistantSP> &value);
+    void setAssistants(const PkList<KisPaintingAssistantSP> &value);
 
 
-    void setAssistantsGlobalColor(QColor color);
-    QColor assistantsGlobalColor();
+    void setAssistantsGlobalColor(PkColor color);
+    PkColor assistantsGlobalColor();
 
     // Color history if per document (configuration dependent)
-    void setColorHistory(const QList<KoColor> &colors);
-    QList<KoColor> colorHistory();
+    void setColorHistory(const PkList<KoColor> &colors);
+    PkList<KoColor> colorHistory();
 
     /**
      * Get existing reference images layer or null if none exists.
@@ -676,7 +687,7 @@ public:
     /**
      * Return the bounding box of the image and associated elements (e.g. reference images)
      */
-    QRectF documentBounds() const;
+    PkRectF documentBounds() const;
 
     /**
      * @brief Start saving when android activity is pushed to the background
@@ -686,9 +697,9 @@ public:
 Q_SIGNALS:
 
     void completed();
-    void canceled(const QString &);
+    void canceled(const PkString &);
 
-private Q_SLOTS:
+private:
 
     void setImageModified();
     void setImageModifiedWithoutUndo();
@@ -723,24 +734,23 @@ private:
 
     void copyFromDocumentImpl(const KisDocument &rhs, CopyPolicy policy);
 
-    QString exportErrorToUserMessage(KisImportExportErrorCode status, const QString &errorMessage);
+    PkString exportErrorToUserMessage(KisImportExportErrorCode status, const PkString &errorMessage);
 
-    QString prettyPath() const;
+    PkString prettyPath() const;
 
-    bool openPathInternal(const QString &path);
+    bool openPathInternal(const PkString &path);
 
     void slotAutoSaveImpl(std::unique_ptr<KisDocument> &&optionalClonedDocument);
 
     /// Checks whether we are saving a resource we've been editing, and if so,
     /// uses the resource server to update the resource.
     /// @return true if this was a resource, false if the document needs to be saved
-    bool resourceSavingFilter(const QString &path, const QByteArray &mimeType, KisPropertiesConfigurationSP exportConfiguration);
+    bool resourceSavingFilter(const PkString &path, const PkByteArray &mimeType, KisPropertiesConfigurationSP exportConfiguration);
 
     class Private;
     Private *const d;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisDocument::OpenFlags)
-Q_DECLARE_METATYPE(KisDocument*)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisDocument::OpenFlags)
 
 #endif
