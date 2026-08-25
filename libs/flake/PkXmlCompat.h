@@ -26,8 +26,21 @@
 #define PK_CAT_(a, b) a##b
 #define PK_INC_(x) <x>
 
-// 真 Qt 头在前：激活 pk 各 compat 的让位守卫（R-38 约定）。
+// 真 Qt 头在前（R-38 约定）：本头**先 include 真 Qt 全量**（QtCore/QtGui/
+// QtWidgets/QtXml/QtSvg），把主树过渡 TU 里未剥头会拉到的真 Qt 头一次性全部
+// 干净处理。真 Qt 头内部只用 `<QtCore/...>` 形态相对 include（实测零裸
+// `<QName>`，唯一例外 QtGui 一处 `<QSurfaceFormat>` 也无 pk 垫片、解析回真 Qt）；
+// 一旦下面 compat 宏激活，任何后到的真 Qt 头内容都会被改写（String→PkString
+// 等）整片报错——先处理全量后，后到的真 Qt include 被 include guard 挡住不再
+// 被改写。副作用两个都是我们需要的：真 Qt qobjectdefs.h 先到 → Q_OBJECT/
+// Q_SLOTS/Q_SIGNALS 先定义，未剥头（kundo2stack.h 等）直接用；pk 各 compat 的
+// 让位守卫（qAbs/qMin/qMax/…）见到 QGLOBAL_H 已定义就整段让位。
 #include <QtGlobal>
+#include <QtCore/QtCore>
+#include <QtGui/QtGui>
+#include <QtWidgets/QtWidgets>
+#include <QtXml/QtXml>
+#include <QtSvg/QtSvg>
 
 // ---- Q 名 token 拼装 ----
 // `PK_Q*_` 宏名里的 Q 前是 `_`（word 字符），不构成 `\bQ`；`PK_CAT_(Q, Xxx)`
@@ -126,3 +139,19 @@
 // PkMapIterator：SvgStyleParser/SvgCssHelper/KoShapeDistributeCommand 直接 include
 // <pk/container/PkMapIterator.h>；这里补上，保证经 PkXmlCompat.h 的路径也齐全。
 #include <pk/container/PkMapIterator.h>
+
+// ---- Q_OBJECT 空置（S 线-spec S-06 交接「阻断 B」）----
+// 未剥头（kundo2stack.h 等）里 Q_OBJECT 类派生自 PkObject（compat/QObject 的
+// `#define QObject PkObject`），**但真 Qt 的 qobjectdefs.h 已先到**（上面 umbrella），
+// 真 Q_OBJECT 宏展开出的 `QString tr()` 在 compat 宏激活后被改写成
+// `PkString tr()`，函数体却调真 QMetaObject::tr 返回真 QString —— 类型对不上。
+// 处置：本头**无条件**把 Q_OBJECT 空置成 friend 形式（与 pk/signal/compat/QObject
+// 的让位分支同款）——混合 TU 里 PkObject 派生类的元对象成员由 AUTOMOC 在
+// mocs_compilation.cpp.o 里用**真** Q_OBJECT（那个 TU 不含本头）生成，本头只
+// 消掉混合 TU 类声明里的真 Q_OBJECT 成员（tr/staticMetaObject/qt_metacast…），
+// 让声明侧与实现侧不再打架。真 QObject 派生类（KoShapeManager 等）的 moc 与
+// 实现同样在 mocs_compilation.cpp.o / 真 Qt TU 侧，不受影响。
+// 后面的 Q_SIGNALS/Q_SLOTS/Q_EMIT/emit/signals/slots 真 Qt 已在 umbrella 定义，
+// 语义即真 Qt（signals→public、slots→空、emit→空），无需重定义。
+#undef Q_OBJECT
+#define Q_OBJECT template <typename PkTestBinderArgT> friend struct PkTestBinder;
