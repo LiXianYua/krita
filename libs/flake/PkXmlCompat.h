@@ -42,6 +42,24 @@
 #include <QtXml/QtXml>
 #include <QtSvg/QtSvg>
 
+// ---- 真 Qt 调试宏让位（R-34 守卫的消费方侧）----
+// umbrella 先到，真 Qt qlogging.h 的 qCDebug/qDebug 等已定义；PkMessageLogger.h
+// 的 R-34 守卫 `#if !defined(...)` 见到它们就整段让位 → 剥离 TU 里
+// `qCDebug(...) << PkString` 落到真 QDebug << PkString 报错（kis_debug.h 的
+// ppVar/warnKrita 是重灾区）。这里把真 Qt 版本全部 #undef，让 PkMessageLogger.h
+// 的版本接手——其 PkDebug 鸭子类型 operator<<（PkToUtf8 探测）收 PkString 族。
+// 只影响含本头的 TU；过渡 TU 不含本头 → 真 Qt 宏原样生效。
+// ⚠ 顺序：必须在本头自己的 include 面里排在任何会碰 qCDebug 的 Pk 头之前。
+#undef qCDebug
+#undef qCInfo
+#undef qCWarning
+#undef qCCritical
+#undef qDebug
+#undef qInfo
+#undef qWarning
+#undef qCritical
+#undef qFatal
+
 // ---- Q 名 token 拼装 ----
 // `PK_Q*_` 宏名里的 Q 前是 `_`（word 字符），不构成 `\bQ`；`PK_CAT_(Q, Xxx)`
 // 里的 `Q` 后是 `,`，均不匹配 `\bQ[A-Z]` —— 本头因此 gate 干净。
