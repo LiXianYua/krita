@@ -372,7 +372,7 @@ public:
         : q(_q)
         , docInfo(new KoDocumentInfo(_q)) // explicitly deleted in ~KisDocument (no parent-child teardown)
         , importExportManager(new KisImportExportManager(_q)) // deleted manually
-        , autoSaveTimer(new PkTimer())
+        , autoSaveTimer(new PkTimer()) // explicitly deleted in ~KisDocument (PkTimer is not a PkObject)
         , undoStack(new UndoStack(_q)) // explicitly deleted in ~KisDocument (no parent-child teardown)
         , m_bAutoDetectedMime(false)
         , modified(false)
@@ -735,6 +735,7 @@ KisDocument::~KisDocument()
 
     d->autoSaveTimer->stop();
     d->autoSaveTimer->stop();
+    delete d->autoSaveTimer;
 
     delete d->importExportManager;
 
@@ -1635,7 +1636,9 @@ bool KisDocument::resourceSavingFilter(const PkString &path, const PkByteArray &
                             PkByteArray ba = f2.readAll();
 
                             PkMemoryStream buf;
-                            buf.open(PkStream::ReadOnly);
+                            buf.open(PkStream::ReadWrite);
+                            buf.write(ba.constData(), ba.size());
+                            buf.seek(0);
 
 
 
@@ -2695,8 +2698,8 @@ bool KisDocument::newImage(const PkString& name,
 
     KIS_SAFE_ASSERT_RECOVER_NOOP(image);
 
-    PkObject::connect(image, &KisImage::sigImageModified, this, &KisDocument::setImageModified);
-    PkObject::connect(image, &KisImage::sigImageModifiedWithoutUndo, this, &KisDocument::setImageModifiedWithoutUndo);
+    PkObject::connect(image, &KisImage::sigImageModified, this, &KisDocument::setImageModified, PkConnectionType::Unique);
+    PkObject::connect(image, &KisImage::sigImageModifiedWithoutUndo, this, &KisDocument::setImageModifiedWithoutUndo, PkConnectionType::Unique);
     image->setResolution(imageResolution, imageResolution);
 
     image->assignImageProfile(cs->profile());
@@ -2889,7 +2892,7 @@ void KisDocument::setCurrentImage(KisImageSP image, bool forceInitialUpdate, Kis
     if (d->image) {
         // Disconnect existing sig/slot connections
         d->image->setUndoStore(new KisDumbUndoStore());
-        d->image->disconnect();
+        PkObject::disconnect(d->image, nullptr, this, nullptr);
         d->shapeController->setImage(0);
         d->image = 0;
     }
@@ -2905,8 +2908,8 @@ void KisDocument::setCurrentImage(KisImageSP image, bool forceInitialUpdate, Kis
     d->shapeController->setImage(image, preActivatedNode);
     d->image->setMirrorAxesCenter(KisAlgebra2D::absoluteToRelative(d->mirrorAxisConfig.axisPosition(), image->bounds()));
     setModified(false);
-    PkObject::connect(d->image, &KisImage::sigImageModified, this, &KisDocument::setImageModified);
-    PkObject::connect(d->image, &KisImage::sigImageModifiedWithoutUndo, this, &KisDocument::setImageModifiedWithoutUndo);
+    PkObject::connect(d->image, &KisImage::sigImageModified, this, &KisDocument::setImageModified, PkConnectionType::Unique);
+    PkObject::connect(d->image, &KisImage::sigImageModifiedWithoutUndo, this, &KisDocument::setImageModifiedWithoutUndo, PkConnectionType::Unique);
     PkObject::connect(d->image, &KisImage::sigLayersChangedAsync, this, &KisDocument::slotImageRootChanged);
 
     if (forceInitialUpdate) {
