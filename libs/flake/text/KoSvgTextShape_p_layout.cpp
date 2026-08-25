@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoSvgTextShape.h"
 #include "KoSvgTextShape_p.h"
 #include "KoSvgTextShapeLayoutFunc.h"

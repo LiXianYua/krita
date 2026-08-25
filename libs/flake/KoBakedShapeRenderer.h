@@ -35,8 +35,8 @@ struct KoBakedShapeRenderer {
         QTransform relativeToBakedShape;
 
         if (referenceIsObb || contentIsObb) {
-            m_relativeToShape = KisAlgebra2D::mapToRect(dstShapeBoundingRect);
-            relativeToBakedShape = KisAlgebra2D::mapToRect(bakedShapeBoundingRect);
+            m_relativeToShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(dstShapeBoundingRect)));
+            relativeToBakedShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(bakedShapeBoundingRect)));
         }
 
 

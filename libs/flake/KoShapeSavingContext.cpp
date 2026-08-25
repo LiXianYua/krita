@@ -7,6 +7,8 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoShapeSavingContext.h"
 
 #include "KoShapeLayer.h"
@@ -117,7 +119,7 @@ void KoShapeSavingContext::saveLayerSet(KoXmlWriter &xmlWriter) const
     xmlWriter.startElement("draw:layer-set");
     Q_FOREACH (const KoShapeLayer * layer, d->layers) {
         xmlWriter.startElement("draw:layer");
-        xmlWriter.addAttribute("draw:name", layer->name());
+        xmlWriter.addAttribute("draw:name", toPkString(layer->name()));
         if (layer->isGeometryProtected())
             xmlWriter.addAttribute("draw:protected", "true");
         if (! layer->isVisible(false))

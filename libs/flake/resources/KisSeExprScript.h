@@ -13,6 +13,10 @@
 #include <QMetaType>
 #include <kritaflake_export.h>
 
+#include <KisResourceTypes.h>
+#include <PkString.h>
+#include <pk/port/PkStream.h>
+
 class KisSeExprScript;
 typedef QSharedPointer<KisSeExprScript> KisSeExprScriptSP;
 
@@ -56,17 +60,17 @@ public:
      * Load this resource.
      * @return true if loading the resource succeeded.
      */
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
 
     /**
      * Save this resource.
      * @return true if saving the resource succeeded.
      */
-    bool saveToDevice(QIODevice *dev) const override;
+    bool saveToDevice(PkStream *dev) const override;
 
-    QPair<QString, QString> resourceType() const override;
+    std::pair<PkString, PkString> resourceType() const override;
 
-    QString defaultFileExtension() const override;
+    PkString defaultFileExtension() const override;
 
     /**
      * @brief script the actual script
@@ -74,7 +78,7 @@ public:
      */
     QString script() const;
 
-    QString name() const override;
+    PkString name() const override;
 
     /**
      * @brief set SeExpr expression script

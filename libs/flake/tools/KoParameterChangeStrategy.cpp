@@ -4,6 +4,8 @@
 
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoParameterChangeStrategy.h"
 #include "KoParameterChangeStrategy_p.h"
 #include "KoParameterShape.h"
@@ -50,7 +52,7 @@ KUndo2Command* KoParameterChangeStrategy::createCommand()
     KoParameterHandleMoveCommand *cmd = 0;
     // check if handle position changed
     if (d->startPoint != QPointF(0, 0) && d->startPoint != d->releasePoint) {
-        cmd = new KoParameterHandleMoveCommand(d->parameterShape, d->handleId, d->startPoint, d->releasePoint, d->lastModifierUsed);
+        cmd = new KoParameterHandleMoveCommand(d->parameterShape, d->handleId, toPkPointF(d->startPoint), toPkPointF(d->releasePoint), d->lastModifierUsed);
     }
     return cmd;
 }

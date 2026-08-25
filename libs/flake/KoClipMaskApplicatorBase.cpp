@@ -3,6 +3,9 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <QtCore/QtGlobal>
+#include <QtGui/QtGui>
+
 #include "KoClipMaskApplicatorBase.h"
 
 void KoClipMaskApplicatorBase::fallbackLuminanceMask(quint8 *pixels, quint8 *maskPixels, const int nPixels) const{

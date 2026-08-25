@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
 #include "KoPathShapeMarkerCommand.h"
 #include "KoMarker.h"
 #include "KoPathShape.h"

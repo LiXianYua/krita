@@ -4,6 +4,8 @@
  *
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathShapeFactory.h"
 #include "KoPathShape.h"
 #include "KoShapeStroke.h"
@@ -25,7 +27,7 @@ KoPathShapeFactory::KoPathShapeFactory(const QStringList&)
     setIconName("pathshape");
     QStringList elementNames;
     elementNames << "path" << "line" << "polyline" << "polygon";
-    setXmlElementNames(KoXmlNS::draw, elementNames);
+    setXmlElementNames(toQString(KoXmlNS::draw), elementNames);
     setLoadingPriority(0);
 }
 
@@ -36,14 +38,14 @@ KoShape *KoPathShapeFactory::createDefaultShape(KoDocumentResourceManager *) con
     path->curveTo(QPointF(0, 120), QPointF(50, 120), QPointF(50, 50));
     path->curveTo(QPointF(50, -20), QPointF(100, -20), QPointF(100, 50));
     path->normalize();
-    path->setStroke(toQShared(new KoShapeStroke(1.0)));
+    path->setStroke(QSharedPointer<KoShapeStroke>(new KoShapeStroke(1.0)));
     return path;
 }
 
 bool KoPathShapeFactory::supports(const QDomElement & e, KoShapeLoadingContext &context) const
 {
     Q_UNUSED(context);
-    if (e.namespaceURI() == KoXmlNS::draw) {
+    if (e.namespaceURI() == toQString(KoXmlNS::draw)) {
         if (e.localName() == "path")
             return true;
         if (e.localName() == "line")

@@ -2,6 +2,8 @@
  *  SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoMeshGradientBackground.h"
 #include <KoColorSpaceRegistry.h>
 #include <KoMixColorsOp.h>
@@ -71,12 +73,14 @@ void KoMeshGradientBackground::paint(QPainter &painter,
 
     QScopedPointer<SvgMeshGradient> gradient(new SvgMeshGradient(*d->gradient));
 
-    QRectF meshBoundingRect = gradient->boundingRect();
+    QRectF meshBoundingRect = toQRectF(gradient->boundingRect());
 
     if (gradient->gradientUnits() == KoFlake::ObjectBoundingBox) {
-        const QTransform relativeToShape = KisAlgebra2D::mapToRect(fillPath.boundingRect());
+        // KisAlgebra2D::mapToRect 剥离后收 PkRectF 返 PkTransform；gradient->setTransform
+        // 也收 PkTransform，故此处 relativeToShape 直接用 Pk 侧类型。
+        const PkTransform relativeToShape = KisAlgebra2D::mapToRect(toPkRectF(fillPath.boundingRect()));
         gradient->setTransform(relativeToShape);
-        meshBoundingRect = gradient->boundingRect();
+        meshBoundingRect = toQRectF(gradient->boundingRect());
     }
 
     if (d->renderer->patchImage()->isNull()) {

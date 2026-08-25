@@ -6,6 +6,8 @@
 
    SPDX-License-Identifier: LGPL-2.0-or-later
  */
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoCanvasResourceProvider.h"
 
 #include <QVariant>
@@ -25,8 +27,8 @@ struct Q_DECL_HIDDEN CanvasResourceProviderInterfaceWrapper : public KoCanvasRes
     {
     }
 
-    QVariant resource(int key) const override {
-        return m_provider->resource(key);
+    PkVariant resource(int key) const override {
+        return PkVariant::fromValue(m_provider->resource(key));
     }
 
 private:
@@ -43,7 +45,7 @@ public:
     }
 
     KoResourceManager manager;
-    QSharedPointer<CanvasResourceProviderInterfaceWrapper> interfaceWrapper;
+    PkSharedPointer<CanvasResourceProviderInterfaceWrapper> interfaceWrapper;
 };
 
 KoCanvasResourceProvider::KoCanvasResourceProvider(QObject *parent)

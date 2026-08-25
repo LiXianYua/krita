@@ -5,6 +5,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
+
 #include "KoSvgTextShapeLayoutFunc.h"
 
 #include "KoPolygonUtils.h"
@@ -45,14 +48,14 @@ getShapes(QList<KoShape *> shapesInside, QList<KoShape *> shapesSubtract, const 
             p.setFillRule(path->fillRule());
             // grow each polygon here with the shape margin size.
             if (shapeMargin > 0) {
-                QList<QPolygon> subpathPolygons;
+                PkList<PkPolygon> subpathPolygons;
                 Q_FOREACH(QPolygonF subPath, p.toSubpathPolygons()) {
-                    subpathPolygons.append(precisionTF.map(subPath).toPolygon());
+                    subpathPolygons.append(toPkPolygon(precisionTF.map(subPath).toPolygon()));
                 }
                 subpathPolygons = KoPolygonUtils::offsetPolygons(subpathPolygons, shapeMargin);
                 p.clear();
-                Q_FOREACH (const QPolygon poly, subpathPolygons) {
-                    p.addPolygon(poly);
+                for (const PkPolygon &poly : subpathPolygons) {
+                    p.addPolygon(toQPolygon(poly));
                 }
             } else {
                 p = precisionTF.map(p);
@@ -71,14 +74,14 @@ getShapes(QList<KoShape *> shapesInside, QList<KoShape *> shapesSubtract, const 
             QPainterPath p2;
             p2.setFillRule(path->fillRule());
 
-            QList<QPolygon> subpathPolygons;
+            PkList<PkPolygon> subpathPolygons;
             Q_FOREACH(QPolygonF subPath, p.toSubpathPolygons()) {
-                subpathPolygons.append(precisionTF.map(subPath).toPolygon());
+                subpathPolygons.append(toPkPolygon(precisionTF.map(subPath).toPolygon()));
             }
             subpathPolygons = KoPolygonUtils::offsetPolygons(subpathPolygons, -shapePadding);
 
             for (int i=0; i < subpathPolygons.size(); i++) {
-                QPolygonF subpathPoly = subpathPolygons.at(i);
+                QPolygonF subpathPoly = toQPolygon(subpathPolygons.at(i));
                 Q_FOREACH(QPolygonF subtractPoly, subtract.toSubpathPolygons()) {
                     if (subpathPoly.intersects(subtractPoly)) {
                         subpathPoly = subpathPoly.subtracted(subtractPoly);
@@ -86,7 +89,7 @@ getShapes(QList<KoShape *> shapesInside, QList<KoShape *> shapesSubtract, const 
                 }
                 p2.addPolygon(subpathPoly);
             }
-            p2 = KisAlgebra2D::trySimplifyPath(precisionTF.inverted().map(p2), 1.0);
+            p2 = toQPainterPath(KisAlgebra2D::trySimplifyPath(toPkPainterPath(precisionTF.inverted().map(p2)), 1.0));
             p2.closeSubpath();
             shapes.append(p2);
         }
@@ -152,7 +155,7 @@ static bool getFirstPosition(QPointF &firstPoint,
             } else {
                 qreal tAngle = fmod(line.angle(), 180.0);
                 QPointF cPos = tAngle > 90? line.center() + QPointF(-word.center().x(), word.center().y()): line.center() + word.center();
-                qreal offset = kisDistanceToLine(cPos, line);
+                qreal offset = kisDistanceToLine(toPkPointF(cPos), toPkLineF(line));
                 const QPointF vectorT(qCos(qDegreesToRadians(tAngle)), -qSin(qDegreesToRadians(tAngle)));
                 QPointF vectorN(-vectorT.y(), vectorT.x());
                 QPointF offsetP = QPointF() - (0.0 * vectorT) + (offset * vectorN);

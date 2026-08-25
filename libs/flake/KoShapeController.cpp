@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoShapeController.h"
 #include "KoShapeControllerBase.h"
 #include "KoShapeRegistry.h"
@@ -41,10 +43,10 @@ public:
         if (!parentShape) {
             resultCommand = new KUndo2Command(parent);
             parentShape = shapeController->createParentForShapes(shapes, false, resultCommand);
-            KUndo2Command *addShapeCommand = new KoShapeCreateCommand(shapeController, shapes, parentShape, resultCommand);
+            KUndo2Command *addShapeCommand = new KoShapeCreateCommand(shapeController, toPkList(shapes), parentShape, resultCommand);
             resultCommand->setText(addShapeCommand->text());
         } else {
-            resultCommand = new KoShapeCreateCommand(shapeController, shapes, parentShape, parent);
+            resultCommand = new KoShapeCreateCommand(shapeController, toPkList(shapes), parentShape, parent);
         }
 
         return resultCommand;
@@ -72,7 +74,7 @@ void KoShapeController::reset()
 KUndo2Command* KoShapeController::addShape(KoShape *shape, KoShapeContainer *parentShape, KUndo2Command *parent)
 {
     if (d->canvas && !shape->shapeId().isEmpty()) {
-        KoShapeFactoryBase *factory = KoShapeRegistry::instance()->value(shape->shapeId());
+        KoShapeFactoryBase *factory = KoShapeRegistry::instance()->value(toPkString(shape->shapeId()));
         Q_ASSERT(factory);
         qint16 z = 0;
         Q_FOREACH (KoShape *sh, d->canvas->shapeManager()->shapes()) {
@@ -100,7 +102,7 @@ KUndo2Command* KoShapeController::removeShape(KoShape *shape, KUndo2Command *par
 
 KUndo2Command* KoShapeController::removeShapes(const QList<KoShape*> &shapes, KUndo2Command *parent)
 {
-    KUndo2Command *cmd = new KoShapeDeleteCommand(d->shapeController, shapes, parent);
+    KUndo2Command *cmd = new KoShapeDeleteCommand(d->shapeController, toPkList(shapes), parent);
     return cmd;
 }
 

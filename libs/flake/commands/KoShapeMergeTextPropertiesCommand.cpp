@@ -3,6 +3,7 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <QtCore/QtCore>
 #include "KoShapeMergeTextPropertiesCommand.h"
 
 #include <KoSvgTextShape.h>

@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathTool.h"
 #include "KoCanvasBase.h"
 #include "KoDocumentResourceManager.h"
@@ -36,6 +38,7 @@
 #include "commands/KoPathSegmentTypeCommand.h"
 #include "commands/KoSubpathJoinCommand.h"
 #include "kis_command_utils.h"
+#include "kis_global.h"
 #include "kis_pointer_utils.h"
 #include <KisHandlePainterHelper.h>
 #include <KoShapeStrokeModel.h>
@@ -139,7 +142,7 @@ void KoPathTool::pointTypeChanged(KoPathPointTypeCommand::PointType type)
         }
 
         KUndo2Command *command =
-                new KoPathPointTypeCommand(selectedPoints, type);
+                new KoPathPointTypeCommand(toPkList(selectedPoints), type);
 
         if (initialConversionCommand) {
             using namespace KisCommandUtils;
@@ -164,7 +167,7 @@ void KoPathTool::insertPoints()
             positionInSegment = m_activeSegment->positionOnSegment;
         }
 
-        KoPathPointInsertCommand *cmd = new KoPathPointInsertCommand(segments, positionInSegment);
+        KoPathPointInsertCommand *cmd = new KoPathPointInsertCommand(toPkList(segments), positionInSegment);
         d->canvas->addCommand(cmd);
 
         // TODO: this construction is dangerous. The canvas can remove the command right after
@@ -180,7 +183,7 @@ void KoPathTool::removePoints()
 {
     Q_D(KoToolBase);
     if (m_pointSelection.size() > 0) {
-        KUndo2Command *cmd = KoPathPointRemoveCommand::createCommand(m_pointSelection.selectedPointsData(), d->canvas->shapeController());
+        KUndo2Command *cmd = KoPathPointRemoveCommand::createCommand(toPkList(m_pointSelection.selectedPointsData()), d->canvas->shapeController());
         PointHandle *pointHandle = dynamic_cast<PointHandle*>(m_activeHandle.data());
         if (pointHandle && m_pointSelection.contains(pointHandle->activePoint())) {
             m_activeHandle.reset();
@@ -205,7 +208,7 @@ void KoPathTool::pointToLine()
         }
 
         if (! pointToChange.isEmpty()) {
-            d->canvas->addCommand(new KoPathPointTypeCommand(pointToChange, KoPathPointTypeCommand::Line));
+            d->canvas->addCommand(new KoPathPointTypeCommand(toPkList(pointToChange), KoPathPointTypeCommand::Line));
         }
     }
 }
@@ -237,7 +240,7 @@ KUndo2Command* KoPathTool::createPointToCurveCommand(const QList<KoPathPointData
     }
 
     if (!pointToChange.isEmpty()) {
-        command = new KoPathPointTypeCommand(pointToChange, KoPathPointTypeCommand::Curve);
+        command = new KoPathPointTypeCommand(toPkList(pointToChange), KoPathPointTypeCommand::Curve);
     }
 
     return command;
@@ -249,7 +252,7 @@ void KoPathTool::segmentToLine()
     if (m_pointSelection.size() > 1) {
         QList<KoPathPointData> segments(m_pointSelection.selectedSegmentsData());
         if (segments.size() > 0) {
-            d->canvas->addCommand(new KoPathSegmentTypeCommand(segments, KoPathSegmentTypeCommand::Line));
+            d->canvas->addCommand(new KoPathSegmentTypeCommand(toPkList(segments), KoPathSegmentTypeCommand::Line));
         }
     }
 }
@@ -260,7 +263,7 @@ void KoPathTool::segmentToCurve()
     if (m_pointSelection.size() > 1) {
         QList<KoPathPointData> segments(m_pointSelection.selectedSegmentsData());
         if (segments.size() > 0) {
-            d->canvas->addCommand(new KoPathSegmentTypeCommand(segments, KoPathSegmentTypeCommand::Curve));
+            d->canvas->addCommand(new KoPathSegmentTypeCommand(toPkList(segments), KoPathSegmentTypeCommand::Curve));
         }
     }
 }
@@ -281,7 +284,7 @@ void KoPathTool::convertToPath()
     }
 
     if (!parameterShapes.isEmpty()) {
-        d->canvas->addCommand(new KoParameterToPathCommand(parameterShapes));
+        d->canvas->addCommand(new KoParameterToPathCommand(toPkList(parameterShapes)));
     }
 
     QList<KoSvgTextShape*> textShapes;
@@ -296,7 +299,7 @@ void KoPathTool::convertToPath()
         const QList<KoShape*> oldSelectedShapes = implicitCastList<KoShape*>(textShapes);
 
 
-        new KoKeepShapesSelectedCommand(oldSelectedShapes, {}, canvas()->selectedShapesProxy(),
+        new KoKeepShapesSelectedCommand(toPkList(oldSelectedShapes), {}, canvas()->selectedShapesProxy(),
                                         KisCommandUtils::FlipFlopCommand::State::INITIALIZING, cmd);
 
         QList<KoShape*> newSelectedShapes;
@@ -311,7 +314,7 @@ void KoPathTool::convertToPath()
 
         canvas()->shapeController()->removeShapes(oldSelectedShapes, cmd);
 
-        new KoKeepShapesSelectedCommand({}, newSelectedShapes, canvas()->selectedShapesProxy(),
+        new KoKeepShapesSelectedCommand({}, toPkList(newSelectedShapes), canvas()->selectedShapesProxy(),
                                         KisCommandUtils::FlipFlopCommand::State::FINALIZING, cmd);
 
         canvas()->addCommand(cmd);
@@ -386,7 +389,7 @@ void KoPathTool::breakAtPoint()
 {
     Q_D(KoToolBase);
     if (m_pointSelection.hasSelection()) {
-        d->canvas->addCommand(new KoPathBreakAtPointCommand(m_pointSelection.selectedPointsData()));
+        d->canvas->addCommand(new KoPathBreakAtPointCommand(toPkList(m_pointSelection.selectedPointsData())));
     }
 }
 
@@ -400,7 +403,7 @@ void KoPathTool::breakAtSelection()
             d->canvas->addCommand(new KoPathSegmentBreakCommand(segments.at(0)));
         }
     } else if (m_pointSelection.hasSelection()) {
-        d->canvas->addCommand(new KoPathBreakAtPointCommand(m_pointSelection.selectedPointsData()));
+        d->canvas->addCommand(new KoPathBreakAtPointCommand(toPkList(m_pointSelection.selectedPointsData())));
     }
 }
 
@@ -796,7 +799,7 @@ void KoPathTool::mouseDoubleClickEvent(KoPointerEvent */*event*/)
                     KoPathPointData(m_activeSegment->path,
                                     m_activeSegment->path->pathPointIndex(m_activeSegment->segmentStart)));
 
-        KoPathPointInsertCommand *cmd = new KoPathPointInsertCommand(segments, m_activeSegment->positionOnSegment);
+        KoPathPointInsertCommand *cmd = new KoPathPointInsertCommand(toPkList(segments), m_activeSegment->positionOnSegment);
         d->canvas->addCommand(cmd);
 
         m_pointSelection.clear();

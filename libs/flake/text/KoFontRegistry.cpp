@@ -3,6 +3,8 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoFontRegistry.h"
 #include "FlakeDebug.h"
 #include "KoCssTextUtils.h"
@@ -136,7 +138,7 @@ public:
             } else {
                 // Otherwise use default, which is defined in src/fcinit.c , windows and macos
                 // default locations *are* defined in fontconfig's meson build system.
-                appdir = QDir(KoResourcePaths::getApplicationRoot() +"/etc/fonts");
+                appdir = QDir(pkToQString(KoResourcePaths::getApplicationRoot()) + "/etc/fonts");
                 if (QFile::exists(appdir.absoluteFilePath("fonts.conf"))) {
                     configSearchPath = QDir::toNativeSeparators(appdir.absolutePath());
                 }
@@ -149,7 +151,7 @@ public:
         }
 
         // Add fonts folder from resource folder.
-        const QString fontsFolder = KoResourcePaths::saveLocation("data", "/fonts/", true);
+        const QString fontsFolder = pkToQString(KoResourcePaths::saveLocation("data", "/fonts/", true));
         m_fontProvider->addFontDirectory(qStringToPk(fontsFolder));
 
         /// Setup the change tracker.

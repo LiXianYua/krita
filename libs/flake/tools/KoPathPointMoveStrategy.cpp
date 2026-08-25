@@ -6,6 +6,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathPointMoveStrategy.h"
 #include "KoInteractionStrategy_p.h"
 
@@ -45,7 +47,7 @@ void KoPathPointMoveStrategy::handleMouseMove(const QPointF &mouseLocation, Qt::
         return;
 
     KisCommandUtils::redoAndMergeIntoAccumulatingCommand(
-        new KoPathPointMoveCommand(selection->selectedPointsData(), move - m_move),
+        new KoPathPointMoveCommand(toPkList(selection->selectedPointsData()), toPkPointF(move - m_move)),
         m_intermediateCommand);
 
     m_move = move;

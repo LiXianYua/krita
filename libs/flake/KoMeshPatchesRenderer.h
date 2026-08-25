@@ -13,6 +13,7 @@
 #include <QVector>
 #include <QRectF>
 
+#include <PkFlakeBridge.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoMixColorsOp.h>
 #include <SvgMeshArray.h>
@@ -59,18 +60,18 @@ public:
                    const int row = -1,
                    const int col = -1) {
 
-        QColor color0 = patch->getStop(SvgMeshPatch::Top).color;
-        QColor color1 = patch->getStop(SvgMeshPatch::Right).color;
-        QColor color2 = patch->getStop(SvgMeshPatch::Bottom).color;
-        QColor color3 = patch->getStop(SvgMeshPatch::Left).color;
+        QColor color0 = toQColor(patch->getStop(SvgMeshPatch::Top).color);
+        QColor color1 = toQColor(patch->getStop(SvgMeshPatch::Right).color);
+        QColor color2 = toQColor(patch->getStop(SvgMeshPatch::Bottom).color);
+        QColor color3 = toQColor(patch->getStop(SvgMeshPatch::Left).color);
 
         const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
 
         quint8 c[4][4];
-        cs->fromQColor(color0, c[0]);
-        cs->fromQColor(color1, c[1]);
-        cs->fromQColor(color2, c[2]);
-        cs->fromQColor(color3, c[3]);
+        cs->fromQColor(toPkColor(color0), c[0]);
+        cs->fromQColor(toPkColor(color1), c[1]);
+        cs->fromQColor(toPkColor(color2), c[2]);
+        cs->fromQColor(toPkColor(color3), c[3]);
 
         bool verticalDiv = patch->isDivisibleVertically();
         bool horizontalDiv = patch->isDivisibleHorizontally();
@@ -90,29 +91,33 @@ public:
                 colors = getColorsBilinear(patch);
             }
 
+            // SvgMeshPatch::subdivide* 收 PkVector<PkColor>，此处把 QVector<QColor> 转过去。
+            PkVector<PkColor> colorsPk;
+            for (const QColor &c : colors) colorsPk.append(toPkColor(c));
+
             if (verticalDiv && horizontalDiv) {
-                QVector<SvgMeshPatch*> patches;
+                PkVector<SvgMeshPatch*> patches;
                 patches.reserve(4);
 
-                patch->subdivide(patches, colors);
+                patch->subdivide(patches, colorsPk);
                 for (const auto& p: patches) {
                     fillPatch(p, type);
                     delete p;
                 }
             } else if (verticalDiv) {
-                QVector<SvgMeshPatch*> patches;
+                PkVector<SvgMeshPatch*> patches;
                 patches.reserve(2);
 
-                patch->subdivideVertically(patches, colors);
+                patch->subdivideVertically(patches, colorsPk);
                 for (const auto& p: patches) {
                     fillPatch(p, type);
                     delete p;
                 }
             } else if (horizontalDiv) {
-                QVector<SvgMeshPatch*> patches;
+                PkVector<SvgMeshPatch*> patches;
                 patches.reserve(2);
 
-                patch->subdivideHorizontally(patches, colors);
+                patch->subdivideHorizontally(patches, colorsPk);
                 for (const auto& p: patches) {
                     fillPatch(p, type);
                     delete p;
@@ -120,14 +125,16 @@ public:
             }
 
         } else {
-            const QPainterPath outline = patch->getPath();
+            const QPainterPath outline = toQPainterPath(patch->getPath());
             const QRectF patchRect = outline.boundingRect();
 
             quint8 mixed[4];
             cs->mixColorsOp()->mixColors(c[0], 4, mixed);
 
-            QColor average;
-            cs->toQColor(mixed, &average);
+            // KoColorSpace::toQColor 剥离后收 PkColor*，先转 Pk 再经桥接回真 Qt 颜色。
+            PkColor averagePk;
+            cs->toQColor(mixed, &averagePk);
+            QColor average = toQColor(averagePk);
 
             QPen pen(average);
             pen.setWidth(0);
@@ -282,7 +289,7 @@ public:
 
     QVector<qreal> secant(const SvgMeshStop& stop1, const SvgMeshStop& stop2)
     {
-        qreal distance = QLineF(stop1.point, stop2.point).length();
+        qreal distance = QLineF(toQPointF(stop1.point), toQPointF(stop2.point)).length();
 
         if (distance == 0.0) {  // NaN
             return {0.0, 0.0, 0.0, 0.0};
@@ -527,14 +534,14 @@ public:
                              mesharray->getPatch(row + 1, col));
         }
 
-        QVector<QVector<qreal>> c = {split(f11.color), split(f12.color), split(f21.color), split(f22.color)};
+        QVector<QVector<qreal>> c = {split(toQColor(f11.color)), split(toQColor(f12.color)), split(toQColor(f21.color)), split(toQColor(f22.color))};
         QVector<QVector<qreal>> alpha(4, QVector<qreal>(16, 0));
 
-        qreal width01 = QLineF(f11.point, f12.point).length();
-        qreal width23 = QLineF(f21.point, f22.point).length();
+        qreal width01 = QLineF(toQPointF(f11.point), toQPointF(f12.point)).length();
+        qreal width23 = QLineF(toQPointF(f21.point), toQPointF(f22.point)).length();
 
-        qreal height01 = QLineF(f11.point, f21.point).length();
-        qreal height23 = QLineF(f12.point, f22.point).length();
+        qreal height01 = QLineF(toQPointF(f11.point), toQPointF(f21.point)).length();
+        qreal height23 = QLineF(toQPointF(f12.point), toQPointF(f22.point)).length();
 
         for (int i = 0; i < 4; ++i) {
             QVector<qreal> X {
@@ -567,10 +574,10 @@ public:
 
     QVector<QColor> getColorsBicubic(const SvgMeshPatch* patch)
     {
-        QPointF midTop    = patch->getMidpointParametric(SvgMeshPatch::Top);
-        QPointF midRight  = patch->getMidpointParametric(SvgMeshPatch::Right);
-        QPointF midBottom = patch->getMidpointParametric(SvgMeshPatch::Bottom);
-        QPointF midLeft   = patch->getMidpointParametric(SvgMeshPatch::Left);
+        QPointF midTop    = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Top));
+        QPointF midRight  = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Right));
+        QPointF midBottom = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Bottom));
+        QPointF midLeft   = toQPointF(patch->getMidpointParametric(SvgMeshPatch::Left));
         QPointF center    = (midTop + midBottom) / 2;
 
         QVector<QColor> result(5);
@@ -599,10 +606,10 @@ public:
     {
         QVector<QColor> result(5);
 
-        QColor c1 = patch->getStop(SvgMeshPatch::Top).color;
-        QColor c2 = patch->getStop(SvgMeshPatch::Right).color;
-        QColor c3 = patch->getStop(SvgMeshPatch::Bottom).color;
-        QColor c4 = patch->getStop(SvgMeshPatch::Left).color;
+        QColor c1 = toQColor(patch->getStop(SvgMeshPatch::Top).color);
+        QColor c2 = toQColor(patch->getStop(SvgMeshPatch::Right).color);
+        QColor c3 = toQColor(patch->getStop(SvgMeshPatch::Bottom).color);
+        QColor c4 = toQColor(patch->getStop(SvgMeshPatch::Left).color);
 
         result[0] = midPointColor(c1, c2);
         result[1] = midPointColor(c2, c3);

@@ -5,6 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathControlPointMoveStrategy.h"
 #include "KoCanvasBase.h"
 #include "KoSnapGuide.h"
@@ -40,7 +42,7 @@ void KoPathControlPointMoveStrategy::handleMouseMove(const QPointF &mouseLocatio
     m_move += move;
 
     KisCommandUtils::redoAndMergeIntoAccumulatingCommand(
-        new KoPathControlPointMoveCommand(m_pointData, move, m_pointType),
+        new KoPathControlPointMoveCommand(m_pointData, toPkPointF(move), m_pointType),
         m_intermediateCommand);
 }
 

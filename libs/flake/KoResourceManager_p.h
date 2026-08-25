@@ -11,6 +11,8 @@
 #include <QObject>
 #include <QSizeF>
 #include <QHash>
+#include <QMetaType>
+#include <QVariant>
 
 #include "kritaflake_export.h"
 #include <KoColor.h>
@@ -20,8 +22,13 @@
 #include "KoActiveCanvasResourceDependency.h"
 #include "KoAbstractCanvasResourceInterface.h"
 
+// S-08 过渡期：libs/pigment 的 KoColor 与 libs/global 的 KoUnit 已剥离掉原 Q_DECLARE_METATYPE，
+// 而本头是 real-Qt-first（QObject/QVariant 存资源），QVariant::setValue(KoColor) 需要 metatype。
+// 在 flake 侧补声明（真实 Qt 宏，KoColor/KoUnit 均已完整定义）。flake 剥完 Qt 后随本头删除。
+Q_DECLARE_METATYPE(KoColor)
+Q_DECLARE_METATYPE(KoUnit)
+
 class KoShape;
-class QVariant;
 
 /**
  * @brief The KoResourceManager class provides access to the currently

@@ -8,6 +8,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 // flake
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoToolManager.h"
 #include "KoToolManager_p.h"
 #include "KoToolRegistry.h"
@@ -92,7 +94,7 @@ public:
             if (action->property("tool_action").isValid()) {
                 QStringList tools = action->property("tool_action").toStringList();
 
-                if (KoToolRegistry::instance()->keys().contains(action->objectName())) {
+                if (KoToolRegistry::instance()->keys().contains(toPkString(action->objectName()))) {
                     //qDebug() << "This action needs to be enabled!";
                     action->setEnabled(true);
                     toolActions << action->objectName();
@@ -429,7 +431,7 @@ void KoToolManager::Private::setup()
 
     KoShapeRegistry::instance();
     KoToolRegistry *registry = KoToolRegistry::instance();
-    Q_FOREACH (const QString & id, registry->keys()) {
+    Q_FOREACH (const PkString & id, registry->keys()) {
         toolActionList.append(new KoToolAction(registry->value(id)));
     }
 }

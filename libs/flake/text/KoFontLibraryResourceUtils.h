@@ -16,6 +16,7 @@
 #include <hb-ot.h>
 #include <hb.h>
 
+#include <QDebug>
 #include <QSharedPointer>
 
 #include <kis_debug.h>

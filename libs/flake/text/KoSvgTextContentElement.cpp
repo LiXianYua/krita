@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoSvgTextContentElement.h"
 
 #include "KoCssTextUtils.h"
@@ -54,8 +56,8 @@ QVector<qreal> parseListAttributeX(const QString &value, SvgLoadingContext &cont
 {
     QVector<qreal> result;
 
-    QStringList list = SvgUtil::simplifyList(value);
-    Q_FOREACH (const QString &str, list) {
+    PkStringList list = SvgUtil::simplifyList(toPkString(value));
+    for (const PkString &str : list) {
         result << SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), str);
     }
 
@@ -66,8 +68,8 @@ QVector<qreal> parseListAttributeY(const QString &value, SvgLoadingContext &cont
 {
     QVector<qreal> result;
 
-    QStringList list = SvgUtil::simplifyList(value);
-    Q_FOREACH (const QString &str, list) {
+    PkStringList list = SvgUtil::simplifyList(toPkString(value));
+    for (const PkString &str : list) {
         result << SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), str);
     }
 
@@ -78,8 +80,8 @@ QVector<qreal> parseListAttributeAngular(const QString &value, SvgLoadingContext
 {
     QVector<qreal> result;
 
-    QStringList list = SvgUtil::simplifyList(value);
-    Q_FOREACH (const QString &str, list) {
+    PkStringList list = SvgUtil::simplifyList(toPkString(value));
+    for (const PkString &str : list) {
         result << SvgUtil::parseUnitAngular(context.currentGC(), str);
     }
 
@@ -90,7 +92,7 @@ QString convertListAttribute(const QVector<qreal> &values) {
     QStringList stringValues;
 
     Q_FOREACH (qreal value, values) {
-        stringValues.append(KisDomUtils::toString(value));
+        stringValues.append(toQString(KisDomUtils::toString(value)));
     }
 
     return stringValues.join(',');
@@ -100,7 +102,7 @@ void writeTextListAttribute(const QString &attribute, const QVector<qreal> &valu
 {
     const QString value = convertListAttribute(values);
     if (!value.isEmpty()) {
-        writer.addAttribute(attribute.toLatin1().data(), value);
+        writer.addAttribute(attribute.toLatin1().data(), toPkString(value));
     }
 }
 }
@@ -224,10 +226,10 @@ bool KoSvgTextContentElement::loadSvg(const QDomElement &e, SvgLoadingContext &c
         if (e.hasAttribute("startOffset")) {
             QString offset = e.attribute("startOffset", "0");
             if (offset.endsWith("%")) {
-                textPathInfo.startOffset = SvgUtil::parseNumber(offset.left(offset.size() - 1));
+                textPathInfo.startOffset = SvgUtil::parseNumber(toPkString(offset.left(offset.size() - 1)));
                 textPathInfo.startOffsetIsPercentage = true;
             } else {
-                textPathInfo.startOffset = SvgUtil::parseUnit(context.currentGC(), context.resolvedProperties(), offset);
+                textPathInfo.startOffset = SvgUtil::parseUnit(context.currentGC(), context.resolvedProperties(), toPkString(offset));
             }
         }
     }
@@ -239,7 +241,7 @@ bool KoSvgTextContentElement::loadSvg(const QDomElement &e, SvgLoadingContext &c
             if (resolution.endsWith("dpi")) {
                 resolution.chop(3);
             }
-            properties.setProperty(KoSvgTextProperties::KraTextStyleResolution, KisDomUtils::toInt(resolution));
+            properties.setProperty(KoSvgTextProperties::KraTextStyleResolution, KisDomUtils::toInt(toPkString(resolution)));
         }
     }
 
@@ -278,24 +280,24 @@ bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
             QString id = textPath->isVisible(false) && !context.strippedTextMode()? context.getID(textPath): SvgStyleWriter::embedShape(textPath, context);
             // inkscape can only read 'xlink:href'
             if (!id.isEmpty()) {
-                context.shapeWriter().addAttribute("xlink:href", "#" + id);
+                context.shapeWriter().addAttribute("xlink:href", toPkString("#" + id));
             }
         }
         if (textPathInfo.startOffset != 0) {
-            QString offset = KisDomUtils::toString(textPathInfo.startOffset);
+            QString offset = toQString(KisDomUtils::toString(textPathInfo.startOffset));
             if (textPathInfo.startOffsetIsPercentage) {
                 offset += "%";
             }
-            context.shapeWriter().addAttribute("startOffset", offset);
+            context.shapeWriter().addAttribute("startOffset", toPkString(offset));
         }
         if (textPathInfo.method != KoSvgText::TextPathAlign) {
-            context.shapeWriter().addAttribute("method", KoSvgText::writeTextPathMethod(textPathInfo.method));
+            context.shapeWriter().addAttribute("method", toPkString(KoSvgText::writeTextPathMethod(textPathInfo.method)));
         }
         if (textPathInfo.side != KoSvgText::TextPathSideLeft) {
-            context.shapeWriter().addAttribute("side", KoSvgText::writeTextPathSide(textPathInfo.side));
+            context.shapeWriter().addAttribute("side", toPkString(KoSvgText::writeTextPathSide(textPathInfo.side)));
         }
         if (textPathInfo.spacing != KoSvgText::TextPathAuto) {
-            context.shapeWriter().addAttribute("spacing", KoSvgText::writeTextPathSpacing(textPathInfo.spacing));
+            context.shapeWriter().addAttribute("spacing", toPkString(KoSvgText::writeTextPathSpacing(textPathInfo.spacing)));
         }
     }
 
@@ -357,24 +359,24 @@ bool KoSvgTextContentElement::saveSvg(SvgSavingContext &context,
     }
     for (auto it = attributes.constBegin(); it != attributes.constEnd(); ++it) {
         if (allowedAttributes.contains(it.key())) {
-            context.shapeWriter().addAttribute(it.key().toLatin1().data(), it.value());
+            context.shapeWriter().addAttribute(it.key().toLatin1().data(), toPkString(it.value()));
         } else {
             styleString.append(it.key().toLatin1().data()).append(": ").append(it.value()).append(";");
         }
     }
     if (!styleString.isEmpty()) {
-        context.shapeWriter().addAttribute("style", styleString);
+        context.shapeWriter().addAttribute("style", toPkString(styleString));
     }
 
     if (properties.hasProperty(KoSvgTextProperties::KraTextStyleType)) {
-        context.shapeWriter().addAttribute(TEXT_STYLE_TYPE.toLatin1().data(), properties.property(KoSvgTextProperties::KraTextStyleType).toString());
+        context.shapeWriter().addAttribute(TEXT_STYLE_TYPE.toLatin1().data(), toPkString(properties.property(KoSvgTextProperties::KraTextStyleType).toString()));
         if (properties.hasProperty(KoSvgTextProperties::KraTextStyleResolution)) {
-            context.shapeWriter().addAttribute(TEXT_STYLE_RES.toLatin1().data(), QString::number(properties.property(KoSvgTextProperties::KraTextStyleResolution).toInt())+"dpi");
+            context.shapeWriter().addAttribute(TEXT_STYLE_RES.toLatin1().data(), toPkString(QString::number(properties.property(KoSvgTextProperties::KraTextStyleResolution).toInt())+"dpi"));
         }
     }
 
     if (saveText) {
-        context.shapeWriter().addTextNode(text);
+        context.shapeWriter().addTextNode(toPkString(text));
     }
     return true;
 }

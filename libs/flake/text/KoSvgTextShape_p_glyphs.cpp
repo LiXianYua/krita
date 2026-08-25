@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoSvgTextShape.h"
 #include "KoSvgTextShape_p.h"
 
@@ -538,7 +540,7 @@ bool KoSvgTextShape::Private::loadGlyph(const KoSvgText::ResolutionHandler &resH
             // For whatever reason we don't have a glyph for this char. Draw a
             // tofu block for it.
             const auto height = ftTF.map(QPointF(currentGlyph.ftface->size->metrics.height, 0)).x() * 0.6;
-            QPainterPath glyph = KisTofuGlyph::create(firstCodepoint, height);
+            QPainterPath glyph = toQPainterPath(KisTofuGlyph::create(firstCodepoint, height));
             if (isHorizontal) {
                 glyph.translate(0, -height);
                 const qreal newAdvance =

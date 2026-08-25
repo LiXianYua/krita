@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoSvgTextProperties.h"
 
 #include <QFontMetrics>
@@ -358,7 +360,7 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
         KoSvgText::BaselineShiftMode mode = KoSvgText::parseBaselineShiftMode(value);
         setProperty(BaselineShiftModeId, mode);
         if (mode == KoSvgText::ShiftLengthPercentage) {
-            KoSvgText::CssLengthPercentage shift = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
+            KoSvgText::CssLengthPercentage shift = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
             setProperty(BaselineShiftValueId, QVariant::fromValue(shift));
         }
     } else if (command == "vertical-align") {
@@ -385,9 +387,9 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
         }
         setProperty(KerningId, KoSvgText::fromAutoValue(kerning));
     } else if (command == "letter-spacing") {
-        setProperty(LetterSpacingId, QVariant::fromValue(KoSvgText::parseAutoLengthPercentageXY(value, context, "normal", context.currentGC()->currentBoundingBox, true)));
+        setProperty(LetterSpacingId, QVariant::fromValue(KoSvgText::parseAutoLengthPercentageXY(value, context, "normal", toQRectF(context.currentGC()->currentBoundingBox), true)));
     } else if (command == "word-spacing") {
-        setProperty(WordSpacingId, QVariant::fromValue(KoSvgText::parseAutoLengthPercentageXY(value, context, "normal", context.currentGC()->currentBoundingBox, true)));
+        setProperty(WordSpacingId, QVariant::fromValue(KoSvgText::parseAutoLengthPercentageXY(value, context, "normal", toQRectF(context.currentGC()->currentBoundingBox), true)));
     } else if (command == "font-family") {
         QStringList familiesList;
         Q_FOREACH (const QString &fam, value.split(',', Qt::SkipEmptyParts)) {
@@ -450,7 +452,7 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
         setProperty(FontWeightId, weight);
 
     } else if (command == "font-size") {
-        const KoSvgText::CssLengthPercentage pointSize = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
+        const KoSvgText::CssLengthPercentage pointSize = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
         if (pointSize.value > 0.0) {
             setProperty(FontSizeId, QVariant::fromValue(pointSize));
         }
@@ -599,10 +601,10 @@ void KoSvgTextProperties::parseSvgTextAttribute(const SvgLoadingContext &context
     } else if (command == "tab-size") {
         setProperty(TabSizeId, QVariant::fromValue(KoSvgText::parseTabSize(value, context)));
     } else if (command == "shape-padding") {
-        const KoSvgText::CssLengthPercentage size = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
+        const KoSvgText::CssLengthPercentage size = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
         setProperty(ShapePaddingId, QVariant::fromValue(size));
     } else if (command == "shape-margin") {
-        const KoSvgText::CssLengthPercentage size = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
+        const KoSvgText::CssLengthPercentage size = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
         setProperty(ShapeMarginId, QVariant::fromValue(size));
     } else if (command == "font-synthesis") {
         setProperty(FontSynthesisBoldId, false);
@@ -802,12 +804,12 @@ QMap<QString, QString> KoSvgTextProperties::convertToSvgTextAttributes() const
                 result.insert("font-stretch", KoSvgText::fontStretchNames.at(static_cast<size_t>(index)));
             }
         } else {
-            result.insert("font-stretch", KisDomUtils::toString(stretch));
+            result.insert("font-stretch", toQString(KisDomUtils::toString(stretch)));
         }
     }
 
     if (hasProperty(FontWeightId)) {
-        result.insert("font-weight", KisDomUtils::toString(property(FontWeightId).toInt()));
+        result.insert("font-weight", toQString(KisDomUtils::toString(property(FontWeightId).toInt())));
     }
 
     if (hasProperty(FontSizeId)) {

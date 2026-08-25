@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathToolHandle.h"
 #include "KoPathTool.h"
 #include "KoPathPointMoveStrategy.h"
@@ -125,7 +127,7 @@ KoInteractionStrategy * PointHandle::handleMousePress(KoPointerEvent *event)
 
         QList<KoPathPointData> pointData;
         pointData.append(KoPathPointData(m_activePoint->parent(), m_activePoint->parent()->pathPointIndex(m_activePoint)));
-        m_tool->canvas()->addCommand(new KoPathPointTypeCommand(pointData, pointType));
+        m_tool->canvas()->addCommand(new KoPathPointTypeCommand(toPkList(pointData), pointType));
     }
     return 0;
 }

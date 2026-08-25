@@ -4,6 +4,8 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoMarkerCollection.h"
 
 #include <QFile>
@@ -93,7 +95,7 @@ void KoMarkerCollection::loadMarkersFromFile(const QString &svgFile)
 
 void KoMarkerCollection::loadDefaultMarkers()
 {
-    QString filePath = KoResourcePaths::findAsset("markers", "markers.svg");
+    QString filePath = toQString(KoResourcePaths::findAsset("markers", "markers.svg"));
     loadMarkersFromFile(filePath);
 }
 

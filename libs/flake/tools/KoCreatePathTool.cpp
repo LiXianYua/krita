@@ -6,6 +6,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoCreatePathTool.h"
 #include "KoCreatePathTool_p.h"
 
@@ -212,7 +214,7 @@ void KoCreatePathTool::mousePressEvent(KoPointerEvent *event)
         const qreal size = canvas()->resourceManager()->resource(KoCanvasResource::Size).toReal();
 
         stroke->setLineWidth(canvas()->unit().fromUserValue(size));
-        stroke->setColor(canvas()->resourceManager()->foregroundColor().toQColor());
+        stroke->setColor(toQColor(canvas()->resourceManager()->foregroundColor().toQColor()));
 
         pathShape->setStroke(stroke);
         QPointF point = canvas()->snapGuide()->snap(event->point, event->modifiers());
@@ -580,11 +582,11 @@ QList<QPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
     list.append(widget);
 
     connect(smoothCurves, &QAbstractButton::toggled, this,
-            [this](bool value) { d->autoSmoothCurvesChanged(value); });
+            [this, d](bool value) { d->autoSmoothCurvesChanged(value); });
     connect(this, &KoCreatePathTool::sigUpdateAutoSmoothCurvesGUI, smoothCurves,
             &QAbstractButton::setChecked);
     connect(angleSnap, &QCheckBox::stateChanged, this,
-            [this](int state) { d->angleSnapChanged(state); });
+            [this, d](int state) { d->angleSnapChanged(state); });
 
     return list;
 }

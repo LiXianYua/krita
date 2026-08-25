@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoSvgTextShapeMarkupConverter.h"
 
 #include "klocalizedstring.h"
@@ -784,9 +786,9 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
             }
 
             if (blockAlignment & Qt::AlignHCenter) {
-                svgWriter.writeAttribute("x", KisDomUtils::toString(0.5 * maxParagraphWidth) + "pt");
+                svgWriter.writeAttribute("x", toQString(KisDomUtils::toString(0.5 * maxParagraphWidth) + "pt"));
             } else if (blockAlignment & Qt::AlignRight) {
-                svgWriter.writeAttribute("x", KisDomUtils::toString(maxParagraphWidth) + "pt");
+                svgWriter.writeAttribute("x", toQString(KisDomUtils::toString(maxParagraphWidth) + "pt"));
             } else {
                 svgWriter.writeAttribute("x", "0");
             }
@@ -798,7 +800,7 @@ bool KoSvgTextShapeMarkupConverter::convertDocumentToSvg(const QTextDocument *do
                     (prevBlockAscent + prevBlockDescent) * qreal(prevBlockRelativeLineSpacing) / 100.0;
 
             const qreal currentLineSpacing = (info.numSkippedLines + 1) * lineHeightPt;
-            svgWriter.writeAttribute("dy", KisDomUtils::toString(currentLineSpacing) + "pt");
+            svgWriter.writeAttribute("dy", toQString(KisDomUtils::toString(currentLineSpacing) + "pt"));
         }
 
         prevBlockRelativeLineSpacing =
@@ -992,7 +994,7 @@ bool KoSvgTextShapeMarkupConverter::convertSvgToDocument(const QString &svgText,
                     if (xString.contains("pt")) {
                         xString = xString.remove("pt").trimmed();
                     }
-                    blockAbsoluteXOffset = fixToQtDpi(KisDomUtils::toDouble(xString));
+                    blockAbsoluteXOffset = fixToQtDpi(KisDomUtils::toDouble(toPkString(xString)));
                 }
 
                 // Get current text alignment: If current block has alignment,
@@ -1018,7 +1020,7 @@ bool KoSvgTextShapeMarkupConverter::convertSvgToDocument(const QString &svgText,
 
                     KIS_SAFE_ASSERT_RECOVER_NOOP(formatStack.isEmpty() == (svgReader.name() == "text"));
 
-                    absoluteLineOffset = fixToQtDpi(KisDomUtils::toDouble(dyString));
+                    absoluteLineOffset = fixToQtDpi(KisDomUtils::toDouble(toPkString(dyString)));
                     newBlock = absoluteLineOffset > 0;
                 }
 
@@ -1430,7 +1432,7 @@ QVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(QStringList
             }
 
             if (property == "font-size") {
-                qreal val = SvgUtil::parseUnitX(context.data(), resolved, value);
+                qreal val = SvgUtil::parseUnitX(context.data(), resolved, toPkString(value));
                 charFormat.setFontPointSize(val);
             }
 
@@ -1542,13 +1544,13 @@ QVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(QStringList
             }
 
             if (property == "letter-spacing") {
-                qreal val = SvgUtil::parseUnitX(context.data(), resolved, value);
+                qreal val = SvgUtil::parseUnitX(context.data(), resolved, toPkString(value));
                 charFormat.setFontLetterSpacingType(QFont::AbsoluteSpacing);
                 charFormat.setFontLetterSpacing(val);
             }
 
             if (property == "word-spacing") {
-                qreal val = SvgUtil::parseUnitX(context.data(), resolved, value);
+                qreal val = SvgUtil::parseUnitX(context.data(), resolved, toPkString(value));
                 charFormat.setFontWordSpacing(val);
             }
 
@@ -1556,7 +1558,7 @@ QVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(QStringList
                 if (value == "auto") {
                     charFormat.setFontKerning(true);
                 } else {
-                    qreal val = SvgUtil::parseUnitX(context.data(), resolved, value);
+                    qreal val = SvgUtil::parseUnitX(context.data(), resolved, toPkString(value));
                     charFormat.setFontKerning(false);
                     charFormat.setFontLetterSpacingType(QFont::AbsoluteSpacing);
                     charFormat.setFontLetterSpacing(charFormat.fontLetterSpacing() + val);
@@ -1601,7 +1603,7 @@ QVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(QStringList
             if (property == "fill-opacity") {
                 QColor color = charFormat.foreground().color();
                 bool ok = true;
-                qreal alpha = qBound(0.0, SvgUtil::fromPercentage(value, &ok), 1.0);
+                qreal alpha = qBound(0.0, SvgUtil::fromPercentage(toPkString(value), &ok), 1.0);
 
                 // if conversion fails due to non-numeric input,
                 // it defaults to 0.0, default to current alpha instead
@@ -1655,7 +1657,7 @@ QVector<QTextFormat> KoSvgTextShapeMarkupConverter::stylesFromString(QStringList
             }
 
             if (property == "inline-size") {
-                const qreal val = SvgUtil::parseUnitX(context.data(), resolved, value);
+                const qreal val = SvgUtil::parseUnitX(context.data(), resolved, toPkString(value));
                 if (val > 0.0) {
                     extraStyles.inlineSize = val;
                 }

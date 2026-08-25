@@ -5,6 +5,8 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include <QKeyEvent>
 
 #include "KoInteractionTool.h"
@@ -154,7 +156,7 @@ void KoInteractionTool::addInteractionFactory(KoInteractionStrategyFactory *fact
         KIS_SAFE_ASSERT_RECOVER_RETURN(f->id() != factory->id());
     }
 
-    d->interactionFactories.append(toQShared(factory));
+    d->interactionFactories.append(QSharedPointer<KoInteractionStrategyFactory>(factory));
     std::sort(d->interactionFactories.begin(),
           d->interactionFactories.end(),
           KoInteractionStrategyFactory::compareLess);

@@ -4,6 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtGlobal>
+#include <QtGui/QtGui>
+
 #include "KoClipMaskApplicatorFactoryImpl.h"
 
 #ifndef DISABLE_CLIP_MASK_PAINTER_ON_MACOS

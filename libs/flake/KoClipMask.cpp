@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoClipMask.h"
 
 #include <QRectF>
@@ -150,7 +152,7 @@ void KoClipMask::drawMask(QPainter *painter, KoShape *shape)
     QPainterPath clipPathInShapeSpace;
 
     if (m_d->coordinates == KoFlake::ObjectBoundingBox) {
-        QTransform relativeToShape = KisAlgebra2D::mapToRect(shape->outlineRect());
+        QTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shape->outlineRect())));
         clipPathInShapeSpace.addPolygon(relativeToShape.map(m_d->maskRect));
     } else {
         clipPathInShapeSpace.addRect(m_d->maskRect);
@@ -160,7 +162,7 @@ void KoClipMask::drawMask(QPainter *painter, KoShape *shape)
     painter->setClipPath(clipPathInShapeSpace, Qt::IntersectClip);
 
     if (m_d->contentCoordinates == KoFlake::ObjectBoundingBox) {
-        QTransform relativeToShape = KisAlgebra2D::mapToRect(shape->outlineRect());
+        QTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shape->outlineRect())));
 
         painter->setTransform(relativeToShape, true);
     } else {

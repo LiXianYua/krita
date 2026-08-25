@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathSegmentChangeStrategy.h"
 #include "KoPathShape.h"
 #include "KoPathPoint.h"
@@ -75,16 +77,18 @@ void KoPathSegmentChangeStrategy::handleMouseMove(const QPointF &mouseLocation, 
         QPointF lastLocalPos = m_path->documentToShape(m_lastPosition);
         QPointF delta = localPos - lastLocalPos;
 
-        std::tie(move2, move1) =
-            KisBezierUtils::offsetSegment(m_segmentParam, delta);
+        std::pair<PkPointF, PkPointF> offsetSegmentResult =
+            KisBezierUtils::offsetSegment(m_segmentParam, toPkPointF(delta));
+        move2 = toQPointF(offsetSegmentResult.first);
+        move1 = toQPointF(offsetSegmentResult.second);
     }
 
     if(m_segment.first()->activeControlPoint2()) {
-        KoPathControlPointMoveCommand cmd(m_pointData1, move2, KoPathPoint::ControlPoint2);
+        KoPathControlPointMoveCommand cmd(m_pointData1, toPkPointF(move2), KoPathPoint::ControlPoint2);
         cmd.redo();
     }
     if(m_segment.second()->activeControlPoint1()) {
-        KoPathControlPointMoveCommand cmd(m_pointData2, move1, KoPathPoint::ControlPoint1);
+        KoPathControlPointMoveCommand cmd(m_pointData2, toPkPointF(move1), KoPathPoint::ControlPoint1);
         cmd.redo();
     }
     m_path->normalize();
@@ -112,10 +116,10 @@ KUndo2Command* KoPathSegmentChangeStrategy::createCommand()
     }
 
     if (hasControlPoint2) {
-        new KoPathControlPointMoveCommand(m_pointData1, m_ctrlPoint2Move, KoPathPoint::ControlPoint2, cmd);
+        new KoPathControlPointMoveCommand(m_pointData1, toPkPointF(m_ctrlPoint2Move), KoPathPoint::ControlPoint2, cmd);
     }
     if (hasControlPoint1) {
-        new KoPathControlPointMoveCommand(m_pointData2, m_ctrlPoint1Move, KoPathPoint::ControlPoint1, cmd);
+        new KoPathControlPointMoveCommand(m_pointData2, toPkPointF(m_ctrlPoint1Move), KoPathPoint::ControlPoint1, cmd);
     }
 
     if (cmd) {

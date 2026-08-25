@@ -4,6 +4,8 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoMarker.h"
 
 #include <KoXmlNS.h>
@@ -326,7 +328,7 @@ void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *strok
                         KoShapeStrokeSP();
 
             if (shapeStroke) {
-                shapeStroke = toQShared(new KoShapeStroke(*shapeStroke));
+                shapeStroke = QSharedPointer<KoShapeStroke>(new KoShapeStroke(*shapeStroke));
 
                 shapeStroke->setLineBrush(QBrush());
                 shapeStroke->setColor(stroke->color());
@@ -375,7 +377,7 @@ void KoMarker::applyShapeStroke(const KoShape *parentShape, KoShapeStroke *strok
                         KoShapeStrokeSP();
 
             if (shapeStroke) {
-                shapeStroke = toQShared(new KoShapeStroke(*shapeStroke));
+                shapeStroke = QSharedPointer<KoShapeStroke>(new KoShapeStroke(*shapeStroke));
 
                 QBrush brush(*g);
                 brush.setTransform(t);

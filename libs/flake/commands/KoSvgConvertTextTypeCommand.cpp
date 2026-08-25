@@ -3,6 +3,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+#include <QtCore/QtCore>
 #include "KoSvgConvertTextTypeCommand.h"
 #include <KoShapeBulkActionLock.h>
 

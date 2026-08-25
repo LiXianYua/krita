@@ -333,8 +333,8 @@ struct FontMetrics : public boost::equality_comparable<FontMetrics> {
 
     qint32 xHeight = 0; ///< height of X, defaults to 0.5 fontsize.
     qint32 capHeight = 0; ///< Height of capital letters, defaults to ascender.
-    QPair<qint32, qint32> subScriptOffset = qMakePair(0, 0); ///< subscript baseline height, defaults to 1/5th em below alphabetic.
-    QPair<qint32, qint32> superScriptOffset = qMakePair(0, 0); ///< superscript baseline height, defaults to 2/3rd above alphabetic.
+    QPair<qint32, qint32> subScriptOffset = QPair<qint32, qint32>(0, 0); ///< subscript baseline height, defaults to 1/5th em below alphabetic.
+    QPair<qint32, qint32> superScriptOffset = QPair<qint32, qint32>(0, 0); ///< superscript baseline height, defaults to 2/3rd above alphabetic.
 
     qint32 ascender = 0; ///< distance from origin to top.
     qint32 descender = 0; ///< distance for origin to bottom.
@@ -826,7 +826,7 @@ struct FontFamilyStyleInfo : public boost::equality_comparable<FontFamilyStyleIn
         QStringList coords;
         for (int i = 0; i < instanceCoords.size(); i++) {
             QString key = instanceCoords.keys().at(i);
-            coords.append(key+"="+QString::number(instanceCoords.value(key)));
+            coords.append(key+"="+QString("%1").arg(instanceCoords.value(key)));
         }
         return QString("Instance: %1, coords: [ %2 ]").arg(label).arg(coords.join(" "));
     }
@@ -861,17 +861,17 @@ struct FontFeatureLigatures : public boost::equality_comparable<FontFeatureLigat
         QStringList list;
         const QString length = QString("[%1:%2]").arg(start).arg(end);
         if (!commonLigatures) {
-            list << "clig" + length + "=0";
-            list << "liga" + length + "=0";
+            list << QString("clig%1=0").arg(length);
+            list << QString("liga%1=0").arg(length);
         }
         if (discretionaryLigatures) {
-            list << "dlig" + length + "=1";
+            list << QString("dlig%1=0").arg(length);
         }
         if (historicalLigatures) {
-            list << "hlig" + length + "=1";
+            list << QString("hlig%1=0").arg(length);
         }
         if (!contextualAlternates) {
-            list << "calt" + length + "=0";
+            list << QString("calt%1=0").arg(length);
         }
         return list;
     }
@@ -953,39 +953,39 @@ struct FontFeatureNumeric : public boost::equality_comparable<FontFeatureNumeric
         const QString length = QString("[%1:%2]").arg(start).arg(end);
         switch (style) {
         case NumericFigureStyleLining:
-            list << "lnum" + length + "=1";
+            list << QString("lnum%1=1").arg(length);
             break;
         case NumericFigureStyleOld:
-            list << "onum" + length + "=1";
+            list << QString("onum%1=1").arg(length);
             break;
         default:
             break;
         }
         switch (spacing) {
         case NumericFigureSpacingProportional:
-            list << "pnum" + length + "=1";
+            list << QString("pnum%1=1").arg(length);
             break;
         case NumericFigureSpacingTabular:
-            list << "tnum" + length + "=1";
+            list << QString("tnum%1=1").arg(length);
             break;
         default:
             break;
         }
         switch (fractions) {
         case NumericFractionsDiagonal:
-            list << "frac" + length + "=1";
+            list << QString("frac%1=1").arg(length);
             break;
         case NumericFractionsStacked:
-            list << "afrc" + length + "=1";
+            list << QString("afrc%1=1").arg(length);
             break;
         default:
             break;
         }
         if (ordinals) {
-            list << "ordn" + length + "=1";
+            list << QString("ordn%1=1").arg(length);
         }
         if (slashedZero) {
-            list << "zero" + length + "=1";
+            list << QString("zero%1=1").arg(length);
         }
         return list;
     }
@@ -1025,38 +1025,38 @@ struct FontFeatureEastAsian : public boost::equality_comparable<FontFeatureEastA
         const QString length = QString("[%1:%2]").arg(start).arg(end);
         switch (variant) {
         case EastAsianJis78:
-            list << "jp78" + length + "=1";
+            list << QString("jp78%1=1").arg(length);
             break;
         case EastAsianJis83:
-            list << "jp83" + length + "=1";
+            list << QString("jp83%1=1").arg(length);
             break;
         case EastAsianJis90:
-            list << "jp90" + length + "=1";
+            list << QString("jp90%1=1").arg(length);
             break;
         case EastAsianJis04:
-            list << "jp04" + length + "=1";
+            list << QString("jp04%1=1").arg(length);
             break;
         case EastAsianSimplified:
-            list << "smpl" + length + "=1";
+            list << QString("smpl%1=1").arg(length);
             break;
         case EastAsianTraditional:
-            list << "trad" + length + "=1";
+            list << QString("trad%1=1").arg(length);
             break;
         default:
             break;
         }
         switch (width) {
         case EastAsianFullWidth:
-            list << "fwid" + length + "=1";
+            list << QString("fwid%1=1").arg(length);
             break;
         case EastAsianProportionalWidth:
-            list << "pwid" + length + "=1";
+            list << QString("pwid%1=1").arg(length);
             break;
         default:
             break;
         }
         if (ruby) {
-            list << "ruby" + length + "=1";
+            list << QString("ruby%1=1").arg(length);
         }
         return list;
     }

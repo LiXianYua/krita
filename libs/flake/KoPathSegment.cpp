@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathSegment.h"
 #include "KoPathPoint.h"
 #include <FlakeDebug.h>
@@ -116,7 +118,13 @@ QList<qreal> KoPathSegment::Private::roots() const
 
     // Calculate how often the control polygon crosses the x-axis
     // This is the upper limit for the number of roots.
-    int xAxisCrossings = KisBezierUtils::controlPolygonZeros(q->controlPoints());
+    const QList<QPointF> segmentControlPoints = q->controlPoints();
+    PkList<PkPointF> pkControlPoints;
+    pkControlPoints.reserve(segmentControlPoints.size());
+    for (const QPointF &pt : segmentControlPoints) {
+        pkControlPoints.append(toPkPointF(pt));
+    }
+    int xAxisCrossings = KisBezierUtils::controlPolygonZeros(pkControlPoints);
 
     if (!xAxisCrossings) {
         // No solutions.
@@ -1036,7 +1044,13 @@ qreal KoPathSegment::nearestPoint(const QPointF &point) const
     if (!isValid())
         return -1.0;
 
-    return KisBezierUtils::nearestPoint(controlPoints(), point);
+    const QList<QPointF> segmentControlPoints = controlPoints();
+    PkList<PkPointF> pkControlPoints;
+    pkControlPoints.reserve(segmentControlPoints.size());
+    for (const QPointF &pt : segmentControlPoints) {
+        pkControlPoints.append(toPkPointF(pt));
+    }
+    return KisBezierUtils::nearestPoint(pkControlPoints, toPkPointF(point));
 }
 
 KoPathSegment KoPathSegment::interpolate(const QPointF &p0, const QPointF &p1, const QPointF &p2, qreal t)

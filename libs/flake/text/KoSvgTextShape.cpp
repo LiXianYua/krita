@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoSvgTextShape.h"
 #include "KoSvgTextShape_p.h"
 
@@ -825,7 +827,7 @@ int KoSvgTextShape::posForPoint(QPointF point, int start, int end, bool *overlap
         CharacterResult res = d->result.at(pos.cluster);
         QPointF cursorStart = res.finalPosition;
         cursorStart += res.cursorInfo.offsets.value(pos.offset, res.advance);
-        double distance = kisDistance(cursorStart, point);
+        double distance = kisDistance(toPkPointF(cursorStart), toPkPointF(point));
         if (distance < closest) {
             candidate = i;
             closest = distance;
@@ -858,7 +860,7 @@ int KoSvgTextShape::posForPointLineSensitive(QPointF point)
             caret.translate(res.finalPosition);
             QPointF cursorStart = res.finalPosition;
             cursorStart += res.cursorInfo.offsets.value(pos.offset, res.advance);
-            double distance = kisDistance(cursorStart, point);
+            double distance = kisDistance(toPkPointF(cursorStart), toPkPointF(point));
             if (mode == KoSvgText::HorizontalTB) {
                 if (caret.p1().y() > point.y() && caret.p2().y() <= point.y() && closest > distance) {
                     candidateLineStart = i;
@@ -1738,10 +1740,10 @@ bool KoSvgTextShape::saveSvg(SvgSavingContext &context)
     const bool writeGroup = !(visibleShapes.isEmpty() || context.strippedTextMode());
     if (writeGroup) {
         context.shapeWriter().startElement("g", false);
-        context.shapeWriter().addAttribute("id", context.createUID("group"));
+        context.shapeWriter().addAttribute("id", toPkString(context.createUID("group")));
         context.shapeWriter().addAttribute(KoSvgTextShape_TEXTCONTOURGROUP, "true");
 
-        SvgUtil::writeTransformAttributeLazy("transform", transformation(), context.shapeWriter());
+        SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(transformation()), context.shapeWriter());
         SvgWriter writer(visibleShapes);
         writer.saveDetached(context);
     }
@@ -1756,7 +1758,7 @@ bool KoSvgTextShape::saveSvg(SvgSavingContext &context)
                 context.shapeWriter().startElement("text", false);
 
                 if (!context.strippedTextMode()) {
-                    context.shapeWriter().addAttribute("id", context.getID(this));
+                    context.shapeWriter().addAttribute("id", toPkString(context.getID(this)));
 
                     // save the version to distinguish from the buggy Krita version
                     // 2: Wrong font-size.
@@ -1764,7 +1766,7 @@ bool KoSvgTextShape::saveSvg(SvgSavingContext &context)
                     context.shapeWriter().addAttribute("krita:textVersion", 3);
 
                     if (visibleShapes.isEmpty()) {
-                        SvgUtil::writeTransformAttributeLazy("transform", transformation(), context.shapeWriter());
+                        SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(transformation()), context.shapeWriter());
                     }
                     SvgStyleWriter::saveSvgStyle(this, context);
                 } else {
@@ -1872,12 +1874,12 @@ bool KoSvgTextShape::saveHtml(HtmlSavingContext &context)
                                 .append(";" );
                     }
                 }
-                context.shapeWriter().addAttribute("style", styleString);
+                context.shapeWriter().addAttribute("style", toPkString(styleString));
 
                 if (d->childCount(siblingCurrent(it)) == 0) {
                     debugFlake << "saveHTML" << this << it->text;
                     // After adding all the styling to the <p> element, add the text
-                    context.shapeWriter().addTextNode(it->text);
+                    context.shapeWriter().addTextNode(toPkString(it->text));
                 }
             }
         } else {
@@ -2616,7 +2618,7 @@ KoSvgTextShapeFactory::KoSvgTextShapeFactory()
     setToolTip(i18n("SVG Text Shape"));
     setIconName("x-shape-text");
     setLoadingPriority(5);
-    setXmlElementNames(KoXmlNS::svg, QStringList("text"));
+    setXmlElementNames(toQString(KoXmlNS::svg), QStringList("text"));
 
     KoShapeTemplate t;
     t.name = i18n("SVG Text");
@@ -2642,18 +2644,14 @@ KoShape *KoSvgTextShapeFactory::createShape(const KoProperties *params, KoDocume
     KoSvgTextShape *shape = new KoSvgTextShape();
     shape->setShapeId(KoSvgTextShape_SHAPEID);
 
-    QString svgText = params->stringProperty("svgText", i18nc("Default text for the text shape", "<text>Placeholder Text</text>"));
-    QString defs = params->stringProperty("defs" , "<defs/>");
+    QString svgText = toQString(params->stringProperty("svgText", toPkString(i18nc("Default text for the text shape", "<text>Placeholder Text</text>"))));
+    QString defs = toQString(params->stringProperty("defs"));
     QRectF shapeRect = QRectF(0, 0, 200, 60);
-    QVariant rect = params->property("shapeRect");
-    QVariant origin = params->property("origin");
+    PkVariant rect = params->property("shapeRect");
+    PkVariant origin = params->property("origin");
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    if (rect.type()==QVariant::RectF) {
-#else
-    if (rect.typeId() == QMetaType::QRectF) {
-#endif
-        shapeRect = rect.toRectF();
+    if (rect.type() == PkVariant::RectF) {
+        shapeRect = toQRectF(rect.toRectF());
     }
 
     KoSvgTextShapeMarkupConverter converter(shape);
@@ -2661,12 +2659,8 @@ KoShape *KoSvgTextShapeFactory::createShape(const KoProperties *params, KoDocume
                              defs,
                              shapeRect,
                              documentResources->documentResolution());
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    if (origin.type() == QVariant::PointF) {
-#else
-    if (origin.typeId() == QMetaType::QPointF) {
-#endif
-        shape->setPosition(origin.toPointF());
+    if (origin.type() == PkVariant::PointF) {
+        shape->setPosition(toQPointF(origin.toPointF()));
     } else {
         shape->setPosition(shapeRect.topLeft());
     }

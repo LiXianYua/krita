@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "SvgSavingContext.h"
 #include "SvgUtil.h"
 
@@ -32,9 +34,11 @@ public:
         , shapeWriter(0)
         , saveInlineImages(true)
     {
-        styleWriter.reset(new KoXmlWriter(&styleBuffer, 1));
+        styleBufferStream.attach(&styleBuffer);
+        styleWriter.reset(new KoXmlWriter(&styleBufferStream, 1));
         styleWriter->startElement("defs");
-        shapeWriter.reset(new KoXmlWriter(&shapeBuffer, 1));
+        shapeBufferStream.attach(&shapeBuffer);
+        shapeWriter.reset(new KoXmlWriter(&shapeBufferStream, 1));
 
         const qreal scaleToUserSpace = SvgUtil::toUserSpace(1.0);
         userSpaceMatrix.scale(scaleToUserSpace, scaleToUserSpace);
@@ -48,6 +52,8 @@ public:
     QIODevice *styleDevice;
     QBuffer styleBuffer;
     QBuffer shapeBuffer;
+    PkDeviceStream styleBufferStream;
+    PkDeviceStream shapeBufferStream;
     QScopedPointer<KoXmlWriter> styleWriter;
     QScopedPointer<KoXmlWriter> shapeWriter;
 

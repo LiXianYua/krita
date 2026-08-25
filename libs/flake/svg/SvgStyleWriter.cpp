@@ -20,6 +20,8 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "SvgStyleWriter.h"
 #include "SvgSavingContext.h"
 #include "SvgUtil.h"
@@ -45,6 +47,7 @@
 #include <KisMimeDatabase.h>
 #include "kis_dom_utils.h"
 #include "kis_algebra_2d.h"
+#include <KisPortingUtils.h>
 #include <SvgWriter.h>
 #include <KoFlakeCoordinateSystem.h>
 
@@ -89,7 +92,7 @@ void SvgStyleWriter::saveSvgBasicStyle(const bool isVisible, const qreal transpa
                     order.append("markers");
                 }
             }
-            context.shapeWriter().addAttribute("paint-order", order.join(" "));
+            context.shapeWriter().addAttribute("paint-order", toPkString(order.join(" ")));
         }
     }
 
@@ -104,29 +107,29 @@ void SvgStyleWriter::saveSvgFill(QSharedPointer<KoShapeBackground> background, c
     QBrush fill(Qt::NoBrush);
     QSharedPointer<KoColorBackground>  cbg = qSharedPointerDynamicCast<KoColorBackground>(background);
     if (cbg) {
-        context.shapeWriter().addAttribute("fill", cbg->color().name());
+        context.shapeWriter().addAttribute("fill", toPkString(cbg->color().name()));
         if (cbg->color().alphaF() < 1.0)
             context.shapeWriter().addAttribute("fill-opacity", cbg->color().alphaF());
     }
     QSharedPointer<KoGradientBackground>  gbg = qSharedPointerDynamicCast<KoGradientBackground>(background);
     if (gbg) {
         QString gradientId = saveSvgGradient(gbg->gradient(), gbg->transform(), context);
-        context.shapeWriter().addAttribute("fill", "url(#" + gradientId + ")");
+        context.shapeWriter().addAttribute("fill", toPkString(QString("url(#" + gradientId + ")")));
     }
     QSharedPointer<KoMeshGradientBackground> mgbg = qSharedPointerDynamicCast<KoMeshGradientBackground>(background);
     if (mgbg) {
         QString gradientId = saveSvgMeshGradient(mgbg->gradient(), mgbg->transform(), context);
-        context.shapeWriter().addAttribute("fill", "url(#" + gradientId + ")");
+        context.shapeWriter().addAttribute("fill", toPkString(QString("url(#" + gradientId + ")")));
     }
     QSharedPointer<KoPatternBackground>  pbg = qSharedPointerDynamicCast<KoPatternBackground>(background);
     if (pbg) {
         const QString patternId = saveSvgPattern(pbg, size, absoluteTransform, context);
-        context.shapeWriter().addAttribute("fill", "url(#" + patternId + ")");
+        context.shapeWriter().addAttribute("fill", toPkString(QString("url(#" + patternId + ")")));
     }
     QSharedPointer<KoVectorPatternBackground>  vpbg = qSharedPointerDynamicCast<KoVectorPatternBackground>(background);
     if (vpbg) {
         const QString patternId = saveSvgVectorPattern(vpbg, outlineRect, context);
-        context.shapeWriter().addAttribute("fill", "url(#" + patternId + ")");
+        context.shapeWriter().addAttribute("fill", toPkString(QString("url(#" + patternId + ")")));
     }
 
     // non-zero is default, so only write fillrule if evenodd is set
@@ -154,7 +157,7 @@ void SvgStyleWriter::saveSvgStroke(KoShapeStrokeModelSP stroke, SvgSavingContext
         }
     }
     if (!strokeStr.isEmpty())
-        context.shapeWriter().addAttribute("stroke", strokeStr);
+        context.shapeWriter().addAttribute("stroke", toPkString(strokeStr));
 
     context.shapeWriter().addAttribute("stroke-width", SvgUtil::toUserSpace(lineBorder->lineWidth()));
 
@@ -186,9 +189,9 @@ void SvgStyleWriter::saveSvgStroke(KoShapeStrokeModelSP stroke, SvgSavingContext
         for (int i = 0; i < dashCount; ++i) {
             if (i > 0)
                 dashStr += ",";
-            dashStr += QString("%1").arg(KisDomUtils::toString(dashes[i] * dashFactor));
+            dashStr += QString("%1").arg(toQString(KisDomUtils::toString(dashes[i] * dashFactor)));
         }
-        context.shapeWriter().addAttribute("stroke-dasharray", dashStr);
+        context.shapeWriter().addAttribute("stroke-dasharray", toPkString(dashStr));
     }
 }
 
@@ -201,7 +204,9 @@ void embedShapes(const QList<KoShape*> &shapes, KoXmlWriter &outWriter)
         shapesWriter.saveDetached(buffer);
     }
     buffer.close();
-    outWriter.addCompleteElement(&buffer);
+    PkDeviceStream stream;
+    stream.attach(&buffer);
+    outWriter.addCompleteElement(&stream);
 }
 
 QString SvgStyleWriter::embedShape(const KoShape *shape, SvgSavingContext &context)
@@ -223,13 +228,13 @@ void SvgStyleWriter::saveMetadata(const KoShape *shape, SvgSavingContext &contex
     const QString title = shape->additionalAttribute("title");
     if (!title.trimmed().isEmpty()) {
         context.shapeWriter().startElement("title");
-        context.shapeWriter().addTextNode(title);
+        context.shapeWriter().addTextNode(toPkString(title));
         context.shapeWriter().endElement();
     }
     const QString desc = shape->additionalAttribute("desc");
     if (!desc.trimmed().isEmpty()) {
         context.shapeWriter().startElement("desc");
-        context.shapeWriter().addTextNode(desc);
+        context.shapeWriter().addTextNode(toPkString(desc));
         context.shapeWriter().endElement();
     }
 }
@@ -243,14 +248,14 @@ void SvgStyleWriter::saveSvgClipping(KoShape *shape, SvgSavingContext &context)
     const QString uid = context.createUID("clippath");
 
     context.styleWriter().startElement("clipPath");
-    context.styleWriter().addAttribute("id", uid);
-    context.styleWriter().addAttribute("clipPathUnits", KoFlake::coordinateToString(clipPath->coordinates()));
+    context.styleWriter().addAttribute("id", toPkString(uid));
+    context.styleWriter().addAttribute("clipPathUnits", toPkString(KoFlake::coordinateToString(clipPath->coordinates())));
 
     embedShapes(clipPath->clipShapes(), context.styleWriter());
 
     context.styleWriter().endElement(); // clipPath
 
-    context.shapeWriter().addAttribute("clip-path", "url(#" + uid + ")");
+    context.shapeWriter().addAttribute("clip-path", toPkString(QString("url(#" + uid + ")")));
     if (clipPath->clipRule() != Qt::WindingFill)
         context.shapeWriter().addAttribute("clip-rule", "evenodd");
 }
@@ -264,9 +269,9 @@ void SvgStyleWriter::saveSvgMasking(KoShape *shape, SvgSavingContext &context)
     const QString uid = context.createUID("clipmask");
 
     context.styleWriter().startElement("mask");
-    context.styleWriter().addAttribute("id", uid);
-    context.styleWriter().addAttribute("maskUnits", KoFlake::coordinateToString(clipMask->coordinates()));
-    context.styleWriter().addAttribute("maskContentUnits", KoFlake::coordinateToString(clipMask->contentCoordinates()));
+    context.styleWriter().addAttribute("id", toPkString(uid));
+    context.styleWriter().addAttribute("maskUnits", toPkString(KoFlake::coordinateToString(clipMask->coordinates())));
+    context.styleWriter().addAttribute("maskContentUnits", toPkString(KoFlake::coordinateToString(clipMask->contentCoordinates())));
 
     const QRectF rect = clipMask->maskRect();
 
@@ -279,15 +284,15 @@ void SvgStyleWriter::saveSvgMasking(KoShape *shape, SvgSavingContext &context)
 
     context.styleWriter().endElement(); // clipMask
 
-    context.shapeWriter().addAttribute("mask", "url(#" + uid + ")");
+    context.shapeWriter().addAttribute("mask", toPkString(QString("url(#" + uid + ")")));
 }
 
 namespace {
 void writeMarkerStyle(KoXmlWriter &styleWriter, const KoMarker *marker, const QString &assignedId) {
 
     styleWriter.startElement("marker");
-    styleWriter.addAttribute("id", assignedId);
-    styleWriter.addAttribute("markerUnits", KoMarker::coordinateSystemToString(marker->coordinateSystem()));
+    styleWriter.addAttribute("id", toPkString(assignedId));
+    styleWriter.addAttribute("markerUnits", toPkString(KoMarker::coordinateSystemToString(marker->coordinateSystem())));
 
     const QPointF refPoint = marker->referencePoint();
     styleWriter.addAttribute("refX", refPoint.x());
@@ -320,7 +325,7 @@ void tryEmbedMarker(const KoPathShape *pathShape,
     if (marker) {
         const QString uid = context.createUID("lineMarker");
         writeMarkerStyle(context.styleWriter(), marker, uid);
-        context.shapeWriter().addAttribute(markerTag.toLatin1().data(), "url(#" + uid + ")");
+        context.shapeWriter().addAttribute(markerTag.toLatin1().data(), toPkString(QString("url(#" + uid + ")")));
     }
 }
 
@@ -345,7 +350,7 @@ void SvgStyleWriter::saveSvgColorStops(const QGradientStops &colorStops, SvgSavi
 {
     Q_FOREACH (const QGradientStop &stop, colorStops) {
         context.styleWriter().startElement("stop");
-        context.styleWriter().addAttribute("stop-color", stop.second.name());
+        context.styleWriter().addAttribute("stop-color", toPkString(stop.second.name()));
         context.styleWriter().addAttribute("offset", stop.first);
         context.styleWriter().addAttribute("stop-opacity", stop.second.alphaF());
         context.styleWriter().endElement();
@@ -378,29 +383,29 @@ QString SvgStyleWriter::saveSvgGradient(const QGradient *gradient, const QTransf
     if (gradient->type() == QGradient::LinearGradient) {
         const QLinearGradient * g = static_cast<const QLinearGradient*>(gradient);
         context.styleWriter().startElement("linearGradient");
-        context.styleWriter().addAttribute("id", uid);
-        SvgUtil::writeTransformAttributeLazy("gradientTransform", gradientTransform, context.styleWriter());
-        context.styleWriter().addAttribute("gradientUnits", convertGradientMode(g->coordinateMode()));
+        context.styleWriter().addAttribute("id", toPkString(uid));
+        SvgUtil::writeTransformAttributeLazy("gradientTransform", toPkTransform(gradientTransform), context.styleWriter());
+        context.styleWriter().addAttribute("gradientUnits", toPkString(convertGradientMode(g->coordinateMode())));
         context.styleWriter().addAttribute("x1", g->start().x());
         context.styleWriter().addAttribute("y1", g->start().y());
         context.styleWriter().addAttribute("x2", g->finalStop().x());
         context.styleWriter().addAttribute("y2", g->finalStop().y());
-        context.styleWriter().addAttribute("spreadMethod", spreadMethod[g->spread()]);
+        context.styleWriter().addAttribute("spreadMethod", toPkString(spreadMethod[g->spread()]));
         // color stops
         saveSvgColorStops(gradient->stops(), context);
         context.styleWriter().endElement();
     } else if (gradient->type() == QGradient::RadialGradient) {
         const QRadialGradient * g = static_cast<const QRadialGradient*>(gradient);
         context.styleWriter().startElement("radialGradient");
-        context.styleWriter().addAttribute("id", uid);
-        SvgUtil::writeTransformAttributeLazy("gradientTransform", gradientTransform, context.styleWriter());
-        context.styleWriter().addAttribute("gradientUnits", convertGradientMode(g->coordinateMode()));
+        context.styleWriter().addAttribute("id", toPkString(uid));
+        SvgUtil::writeTransformAttributeLazy("gradientTransform", toPkTransform(gradientTransform), context.styleWriter());
+        context.styleWriter().addAttribute("gradientUnits", toPkString(convertGradientMode(g->coordinateMode())));
         context.styleWriter().addAttribute("cx", g->center().x());
         context.styleWriter().addAttribute("cy", g->center().y());
         context.styleWriter().addAttribute("fx", g->focalPoint().x());
         context.styleWriter().addAttribute("fy", g->focalPoint().y());
         context.styleWriter().addAttribute("r", g->radius());
-        context.styleWriter().addAttribute("spreadMethod", spreadMethod[g->spread()]);
+        context.styleWriter().addAttribute("spreadMethod", toPkString(spreadMethod[g->spread()]));
         // color stops
         saveSvgColorStops(gradient->stops(), context);
         context.styleWriter().endElement();
@@ -442,7 +447,7 @@ QString SvgStyleWriter::saveSvgMeshGradient(SvgMeshGradient *gradient,
 
     const QString uid = context.createUID("meshgradient");
     context.styleWriter().startElement("meshgradient");
-    context.styleWriter().addAttribute("id", uid);
+    context.styleWriter().addAttribute("id", toPkString(uid));
 
     if (gradient->gradientUnits() == KoFlake::ObjectBoundingBox) {
         context.styleWriter().addAttribute("gradientUnits", "objectBoundingBox");
@@ -450,10 +455,10 @@ QString SvgStyleWriter::saveSvgMeshGradient(SvgMeshGradient *gradient,
         context.styleWriter().addAttribute("gradientUnits", "userSpaceOnUse");
     }
 
-    SvgUtil::writeTransformAttributeLazy("transform", transform, context.styleWriter());
+    SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(transform), context.styleWriter());
 
     SvgMeshArray *mesharray = gradient->getMeshArray().data();
-    QPointF start = mesharray->getPatch(0, 0)->getStop(SvgMeshPatch::Top).point;
+    QPointF start = toQPointF(mesharray->getPatch(0, 0)->getStop(SvgMeshPatch::Top).point);
 
     context.styleWriter().addAttribute("x", start.x());
     context.styleWriter().addAttribute("y", start.y());
@@ -468,13 +473,13 @@ QString SvgStyleWriter::saveSvgMeshGradient(SvgMeshGradient *gradient,
 
         const QString uid = context.createUID("meshrow");
         context.styleWriter().startElement("meshrow");
-        context.styleWriter().addAttribute("id", uid);
+        context.styleWriter().addAttribute("id", toPkString(uid));
 
         for (int col = 0; col < mesharray->numColumns(); ++col) {
 
             const QString uid = context.createUID("meshpatch");
             context.styleWriter().startElement("meshpatch");
-            context.styleWriter().addAttribute("id", uid);
+            context.styleWriter().addAttribute("id", toPkString(uid));
 
             SvgMeshPatch *patch = mesharray->getPatch(row, col);
 
@@ -489,7 +494,11 @@ QString SvgStyleWriter::saveSvgMeshGradient(SvgMeshGradient *gradient,
 
                 context.styleWriter().startElement("stop");
 
-                std::array<QPointF, 4> segment = patch->getSegment(type);
+                const std::array<PkPointF, 4> pkSegment = patch->getSegment(type);
+                std::array<QPointF, 4> segment;
+                for (int i = 0; i < 4; ++i) {
+                    segment[i] = toQPointF(pkSegment[i]);
+                }
 
                 QString pathstr;
                 QTextStream stream(&pathstr);
@@ -502,7 +511,7 @@ QString SvgStyleWriter::saveSvgMeshGradient(SvgMeshGradient *gradient,
                        << segment[2].x() << "," << segment[2].y() << " "
                        << segment[3].x() << "," << segment[3].y(); // I don't see any harm, inkscape does this too
 
-                context.styleWriter().addAttribute("path", pathstr);
+                context.styleWriter().addAttribute("path", toPkString(pathstr));
 
                 // don't add color/opacity if stop is in first row and stop == Top (or)
                 // don't add color/opacity if stop is not in first row and stop == Right
@@ -571,7 +580,7 @@ QString SvgStyleWriter::saveSvgPattern(QSharedPointer<KoPatternBackground> patte
     offset = absoluteTransform.map(offset);
 
     context.styleWriter().startElement("pattern");
-    context.styleWriter().addAttribute("id", uid);
+    context.styleWriter().addAttribute("id", toPkString(uid));
     context.styleWriter().addAttribute("x", SvgUtil::toUserSpace(offset.x()));
     context.styleWriter().addAttribute("y", SvgUtil::toUserSpace(offset.y()));
 
@@ -585,20 +594,20 @@ QString SvgStyleWriter::saveSvgPattern(QSharedPointer<KoPatternBackground> patte
         context.styleWriter().addAttribute("patternUnits", "userSpaceOnUse");
     }
 
-    context.styleWriter().addAttribute("viewBox", QString("0 0 %1 %2").arg(KisDomUtils::toString(imageSize.width())).arg(KisDomUtils::toString(imageSize.height())));
+    context.styleWriter().addAttribute("viewBox", toPkString(QString("0 0 %1 %2").arg(toQString(KisDomUtils::toString(imageSize.width()))).arg(toQString(KisDomUtils::toString(imageSize.height())))));
     //*m_defs << " patternContentUnits=\"userSpaceOnUse\"";
 
     context.styleWriter().startElement("image");
     context.styleWriter().addAttribute("x", "0");
     context.styleWriter().addAttribute("y", "0");
-    context.styleWriter().addAttribute("width", QString("%1px").arg(KisDomUtils::toString(imageSize.width())));
-    context.styleWriter().addAttribute("height", QString("%1px").arg(KisDomUtils::toString(imageSize.height())));
+    context.styleWriter().addAttribute("width", toPkString(QString("%1px").arg(toQString(KisDomUtils::toString(imageSize.width())))));
+    context.styleWriter().addAttribute("height", toPkString(QString("%1px").arg(toQString(KisDomUtils::toString(imageSize.height())))));
 
     QBuffer buffer;
     buffer.open(QIODevice::WriteOnly);
     if (pattern->pattern().save(&buffer, "PNG")) {
-        const QString mimeType = KisMimeDatabase::mimeTypeForSuffix("*.png");
-        context.styleWriter().addAttribute("xlink:href", "data:"+ mimeType + ";base64," + buffer.data().toBase64());
+        const QString mimeType = toQString(KisMimeDatabase::mimeTypeForSuffix("*.png"));
+        context.styleWriter().addAttribute("xlink:href", toPkString(QString("data:"+ mimeType + ";base64," + buffer.data().toBase64())));
     }
 
     context.styleWriter().endElement(); // image
@@ -612,10 +621,10 @@ QString SvgStyleWriter::saveSvgVectorPattern(QSharedPointer<KoVectorPatternBackg
     const QString uid = context.createUID("pattern");
 
     context.styleWriter().startElement("pattern");
-    context.styleWriter().addAttribute("id", uid);
+    context.styleWriter().addAttribute("id", toPkString(uid));
 
-    context.styleWriter().addAttribute("patternUnits", KoFlake::coordinateToString(pattern->referenceCoordinates()));
-    context.styleWriter().addAttribute("patternContentUnits", KoFlake::coordinateToString(pattern->contentCoordinates()));
+    context.styleWriter().addAttribute("patternUnits", toPkString(KoFlake::coordinateToString(pattern->referenceCoordinates())));
+    context.styleWriter().addAttribute("patternContentUnits", toPkString(KoFlake::coordinateToString(pattern->contentCoordinates())));
 
     const QRectF rect = pattern->referenceRect();
 
@@ -624,7 +633,7 @@ QString SvgStyleWriter::saveSvgVectorPattern(QSharedPointer<KoVectorPatternBackg
     context.styleWriter().addAttribute("width", rect.width());
     context.styleWriter().addAttribute("height", rect.height());
 
-    SvgUtil::writeTransformAttributeLazy("patternTransform", pattern->patternTransform(), context.styleWriter());
+    SvgUtil::writeTransformAttributeLazy("patternTransform", toPkTransform(pattern->patternTransform()), context.styleWriter());
 
     if (pattern->contentCoordinates() == KoFlake::ObjectBoundingBox) {
         // TODO: move this normalization into the KoVectorPatternBackground itself
@@ -632,7 +641,7 @@ QString SvgStyleWriter::saveSvgVectorPattern(QSharedPointer<KoVectorPatternBackg
         QList<KoShape*> shapes = pattern->shapes();
         QList<KoShape*> clonedShapes;
 
-        const QTransform relativeToShape = KisAlgebra2D::mapToRect(outlineRect);
+        const QTransform relativeToShape = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(outlineRect)));
         const QTransform shapeToRelative = relativeToShape.inverted();
 
         Q_FOREACH (KoShape *shape, shapes) {

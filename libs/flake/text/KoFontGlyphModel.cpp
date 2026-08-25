@@ -3,11 +3,14 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoFontGlyphModel.h"
 #include "KoOpenTypeFeatureInfoFactory.h"
 #include <QDebug>
 #include <hb.h>
 #include <hb-ft.h>
+#include <klocalizedstring.h>
 
 static constexpr uint invalidUnicodeCodePoint = std::numeric_limits<uint>::max();
 

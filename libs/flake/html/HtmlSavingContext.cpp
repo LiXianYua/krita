@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "HtmlSavingContext.h"
 #include <KoXmlWriter.h>
 #include <KoShape.h>
@@ -15,11 +17,13 @@ struct HtmlSavingContext::Private {
         : shapeDevice(_shapeDevice)
         , shapeWriter(0)
     {
-        shapeWriter.reset(new KoXmlWriter(&shapeBuffer, 1));
+        shapeBufferStream.attach(&shapeBuffer);
+        shapeWriter.reset(new KoXmlWriter(&shapeBufferStream, 1));
     }
 
     QIODevice *shapeDevice;
     QBuffer shapeBuffer;
+    PkDeviceStream shapeBufferStream;
     QScopedPointer<KoXmlWriter> shapeWriter;
 };
 

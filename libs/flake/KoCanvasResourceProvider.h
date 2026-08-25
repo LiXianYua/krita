@@ -17,9 +17,7 @@
 #include <KoCanvasResourcesIds.h>
 #include "KoAbstractCanvasResourceInterface.h"
 
-template<class T> class QSharedPointer;
-class KoCanvasResourcesInterface;
-using KoCanvasResourcesInterfaceSP = QSharedPointer<KoCanvasResourcesInterface>;
+#include <KoCanvasResourcesInterface.h>
 
 class KoShape;
 class KoShapeStroke;

@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathShapeLoader.h"
 #include "KoPathShape.h"
 #include <math.h>
@@ -483,10 +485,10 @@ void KoPathShapeLoaderPrivate::calculateArc(bool relative, qreal &curx, qreal &c
     // Step 4: Compute angle and delta
     const QPointF v = {(x1Prime - cxPrime) / rx, (y1Prime - cyPrime) / ry};
     // eq. 5.5
-    const qreal theta = KisAlgebra2D::angleBetweenVectors({1.0, 0.0}, v);
+    const qreal theta = KisAlgebra2D::angleBetweenVectors({1.0, 0.0}, toPkPointF(v));
     // eq. 5.6
     qreal delta = std::fmod(
-        KisAlgebra2D::angleBetweenVectors(v, {(-x1Prime - cxPrime) / rx, (-y1Prime - cyPrime) / ry}),
+        KisAlgebra2D::angleBetweenVectors(toPkPointF(v), {(-x1Prime - cxPrime) / rx, (-y1Prime - cyPrime) / ry}),
         M_PI * 2);
 
     if (sweepFlag && delta < 0) {

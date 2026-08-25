@@ -5,6 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoToolRegistry.h"
 
 #include <FlakeDebug.h>
@@ -15,7 +17,6 @@
 #include "tools/KoZoomTool.h"
 #include "tools/KoZoomToolFactory.h"
 #include "KoToolManager.h"
-#include <KoPluginLoader.h>
 
 #include <QGlobalStatic>
 
@@ -28,21 +29,19 @@ KoToolRegistry::KoToolRegistry()
 
 void KoToolRegistry::init()
 {
-    KoPluginLoader::PluginsConfig config;
-    config.group = "krita";
-    config.blacklist = "ToolPluginsDisabled";
-    KoPluginLoader::instance()->load(QString::fromLatin1("Krita/Tool"),
-                                     config);
+    // S-08: 插件加载已随 D-18 删除，只保留硬编码 factory。
 
     // register generic tools
-    add(new KoPathToolFactory());
-    add(new KoZoomToolFactory());
+    KoToolFactoryBase *pathToolFactory = new KoPathToolFactory();
+    add(toPkString(pathToolFactory->id()), pathToolFactory);
+    KoToolFactoryBase *zoomToolFactory = new KoZoomToolFactory();
+    add(toPkString(zoomToolFactory->id()), zoomToolFactory);
 
     KConfigGroup cfg =  KSharedConfig::openConfig()->group("krita");
     QStringList toolsBlacklist = cfg.readEntry("ToolsBlacklist", QStringList());
     foreach (const QString& toolID, toolsBlacklist) {
-        delete value(toolID);
-        remove(toolID);
+        delete value(toPkString(toolID));
+        remove(toPkString(toolID));
     }
 }
 

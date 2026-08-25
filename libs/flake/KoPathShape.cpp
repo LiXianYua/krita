@@ -7,6 +7,8 @@
    SPDX-License-Identifier: GPL-2.0-or-later
 */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathShape.h"
 #include "KoPathShape_p.h"
 
@@ -1241,7 +1243,7 @@ KoPathShape * KoPathShape::createShapeFromPainterPath(const QPainterPath &path)
     for (int i = 0; i < elementCount; i++) {
         QPainterPath::Element element = path.elementAt(i);
         bool nextIsMove = (i == elementCount - 1) || (path.elementAt(i + 1).isMoveTo());
-        bool merge = nextIsMove && KisAlgebra2D::fuzzyPointCompare(lastTeleportedToPoint, QPointF(element.x, element.y));
+        bool merge = nextIsMove && KisAlgebra2D::fuzzyPointCompare(toPkPointF(lastTeleportedToPoint), toPkPointF(QPointF(element.x, element.y)));
 
         switch (element.type) {
         case QPainterPath::MoveToElement:
@@ -1346,7 +1348,7 @@ KoPathSegment KoPathShape::segmentAtPoint(const QPointF &point, const QRectF &gr
     foreach (KoPathSegment s, segments) {
         const qreal nearestPointParam = s.nearestPoint(p);
         const QPointF nearestPoint = s.pointAt(nearestPointParam);
-        const qreal distance = kisDistance(p, nearestPoint);
+        const qreal distance = kisDistance(toPkPointF(p), toPkPointF(nearestPoint));
 
         // are we within the allowed distance ?
         if (distance > distanceThreshold)

@@ -20,6 +20,8 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "SvgWriter.h"
 
 #include "SvgUtil.h"
@@ -98,7 +100,7 @@ bool SvgWriter::save(QIODevice &outputDevice, const QSizeF &pageSize)
 
     svgStream << "<svg xmlns=\"http://www.w3.org/2000/svg\" \n";
     svgStream << "    xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n";
-    svgStream << QString("    xmlns:krita=\"%1\"\n").arg(KoXmlNS::krita);
+    svgStream << QString("    xmlns:krita=\"%1\"\n").arg(toQString(KoXmlNS::krita));
     svgStream << "    xmlns:sodipodi=\"http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd\"\n";
     svgStream << "    width=\"" << pageSize.width() << "pt\"\n";
     svgStream << "    height=\"" << pageSize.height() << "pt\"\n";
@@ -167,7 +169,7 @@ void SvgWriter::saveShapes(const QList<KoShape *> shapes, SvgSavingContext &savi
 void SvgWriter::saveLayer(KoShapeLayer *layer, SvgSavingContext &context)
 {
     context.shapeWriter().startElement("g");
-    context.shapeWriter().addAttribute("id", context.getID(layer));
+    context.shapeWriter().addAttribute("id", toPkString(context.getID(layer)));
 
     QList<KoShape*> sortedShapes = layer->shapes();
     std::sort(sortedShapes.begin(), sortedShapes.end(), KoShape::compareShapeZIndex);
@@ -186,9 +188,9 @@ void SvgWriter::saveLayer(KoShapeLayer *layer, SvgSavingContext &context)
 void SvgWriter::saveGroup(KoShapeGroup * group, SvgSavingContext &context)
 {
     context.shapeWriter().startElement("g");
-    context.shapeWriter().addAttribute("id", context.getID(group));
+    context.shapeWriter().addAttribute("id", toPkString(context.getID(group)));
 
-    SvgUtil::writeTransformAttributeLazy("transform", group->transformation(), context.shapeWriter());
+    SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(group->transformation()), context.shapeWriter());
 
 
     SvgStyleWriter::saveMetadata(group, context);
@@ -227,13 +229,13 @@ void SvgWriter::saveShape(KoShape *shape, SvgSavingContext &context)
 void SvgWriter::savePath(KoPathShape *path, SvgSavingContext &context)
 {
     context.shapeWriter().startElement("path");
-    context.shapeWriter().addAttribute("id", context.getID(path));
+    context.shapeWriter().addAttribute("id", toPkString(context.getID(path)));
 
-    SvgUtil::writeTransformAttributeLazy("transform", path->transformation(), context.shapeWriter());
+    SvgUtil::writeTransformAttributeLazy("transform", toPkTransform(path->transformation()), context.shapeWriter());
     SvgStyleWriter::saveSvgStyle(path, context);
 
-    context.shapeWriter().addAttribute("d", path->toString(context.userSpaceTransform()));
-    context.shapeWriter().addAttribute("sodipodi:nodetypes", path->nodeTypes());
+    context.shapeWriter().addAttribute("d", toPkString(path->toString(context.userSpaceTransform())));
+    context.shapeWriter().addAttribute("sodipodi:nodetypes", toPkString(path->nodeTypes()));
     SvgStyleWriter::saveMetadata(path, context);
     context.shapeWriter().endElement();
 }
@@ -268,7 +270,7 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
 
     QPainter svgPainter;
     svgPainter.begin(&svgGenerator);
-    painter.paint(svgPainter, SvgUtil::toUserSpace(bbox).toRect(), bbox);
+    painter.paint(svgPainter, toQRectF(SvgUtil::toUserSpace(toPkRectF(bbox))).toRect(), bbox);
     svgPainter.end();
 
     // remove anything before the start of the svg element from the buffer
@@ -285,16 +287,18 @@ void SvgWriter::saveGeneric(KoShape *shape, SvgSavingContext &context)
         painter.paint(image);
 
         context.shapeWriter().startElement("image");
-        context.shapeWriter().addAttribute("id", context.getID(shape));
+        context.shapeWriter().addAttribute("id", toPkString(context.getID(shape)));
         context.shapeWriter().addAttribute("x", bbox.x());
         context.shapeWriter().addAttribute("y", bbox.y());
         context.shapeWriter().addAttribute("width", bbox.width());
         context.shapeWriter().addAttribute("height", bbox.height());
-        context.shapeWriter().addAttribute("xlink:href", context.saveImage(image));
+        context.shapeWriter().addAttribute("xlink:href", toPkString(context.saveImage(image)));
         context.shapeWriter().endElement(); // image
 
     } else {
-        context.shapeWriter().addCompleteElement(&svgBuffer);
+        PkDeviceStream stream;
+        stream.attach(&svgBuffer);
+        context.shapeWriter().addCompleteElement(&stream);
     }
 
     // TODO: once we support saving single (flat) odf files

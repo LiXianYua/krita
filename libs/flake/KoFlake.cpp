@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoFlake.h"
 #include "KoShape.h"
 
@@ -94,7 +96,7 @@ QGradient *KoFlake::mergeGradient(const QGradient *coordsSource, const QGradient
         clone = new QLinearGradient(start, end);
         break;
     case QGradient::RadialGradient:
-        clone = new QRadialGradient(start, kisDistance(start, end), focalPoint);
+        clone = new QRadialGradient(start, kisDistance(toPkPointF(start), toPkPointF(end)), focalPoint);
         break;
     case QGradient::ConicalGradient: {
         QLineF l(start, end);
@@ -360,7 +362,7 @@ QPointF KoFlake::anchorToPoint(AnchorPosition anchor, const QRectF rect, bool *v
         case AnchorPosition::BottomRight:
             if (valid)
                 *valid = true;
-            return KisAlgebra2D::relativeToAbsolute(anchorTable[int(anchor)], rect);
+            return toQPointF(KisAlgebra2D::relativeToAbsolute(toPkPointF(anchorTable[int(anchor)]), toPkRectF(rect)));
         default:
             KIS_SAFE_ASSERT_RECOVER_NOOP(anchor >= AnchorPosition::TopLeft && anchor < AnchorPosition::NumAnchorPositions);
             return rect.topLeft();

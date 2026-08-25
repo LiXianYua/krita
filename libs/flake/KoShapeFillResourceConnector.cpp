@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoShapeFillResourceConnector.h"
 
 #include <KoCanvasResourceProvider.h>
@@ -17,6 +19,10 @@
 #include <KoShapeFillWrapper.h>
 #include <KoSelection.h>
 #include <KoCanvasBase.h>
+
+// S-08 过渡期：libs/pigment 的 KoColor 已剥离掉 Q_DECLARE_METATYPE，而本 TU 用
+// QVariant::value<KoColor>()（资源系统以 QVariant 存 KoColor），在此补声明。
+Q_DECLARE_METATYPE(KoColor)
 
 
 
@@ -81,7 +87,8 @@ void KoShapeFillResourceConnector::Private::applyShapeColoring(KoFlake::FillVari
     }
 
     KoShapeFillWrapper wrapper(selectedEditableShapes, fillVariant);
-    KUndo2Command *command = wrapper.setColor(color.toQColor()); // TODO: do the conversion in a better way!
+    // KoColor::toQColor() 在剥离后返回 PkColor，经桥接转回真 Qt 颜色再喂给 setColor。
+    KUndo2Command *command = wrapper.setColor(toQColor(color.toQColor()));
 
     if (command) {
         canvas->addCommand(command);

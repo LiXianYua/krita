@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KisSnapPointStrategy.h"
 
 #include <QPainterPath>
@@ -33,7 +35,7 @@ bool KisSnapPointStrategy::snap(const QPointF &mousePosition, KoSnapProxy *proxy
     qreal minDistance = std::numeric_limits<qreal>::max();
 
     Q_FOREACH (const QPointF &pt, m_d->points) {
-        const qreal dist = kisDistance(mousePosition, pt);
+        const qreal dist = kisDistance(toPkPointF(mousePosition), toPkPointF(pt));
 
         if (dist < maxSnapDistance && dist < minDistance) {
             minDistance = dist;

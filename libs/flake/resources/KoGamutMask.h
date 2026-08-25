@@ -16,6 +16,10 @@
 #include <KoResource.h>
 #include <KoShape.h>
 
+#include <KisResourceTypes.h>
+#include <PkString.h>
+#include <pk/port/PkStream.h>
+
 //class KoViewConverter;
 class QTransform;
 
@@ -54,12 +58,12 @@ public:
     ~KoGamutMask() override;
 
     bool coordIsClear(const QPointF& coord, bool preview);
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice* dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream* dev) const override;
 
-    QPair<QString, QString> resourceType() const override
+    std::pair<PkString, PkString> resourceType() const override
     {
-        return QPair<QString, QString>(ResourceType::GamutMasks, "");
+        return std::pair<PkString, PkString>(ResourceType::GamutMasks, PkString());
     }
 
     void paint(QPainter &painter, bool preview);
@@ -74,7 +78,7 @@ public:
     QString description() const;
     void setDescription(QString description);
 
-    QString defaultFileExtension() const override;
+    PkString defaultFileExtension() const override;
 
     int rotation();
     void setRotation(int rotation);

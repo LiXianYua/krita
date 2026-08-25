@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoSnapGuide.h"
 #include "KoSnapProxy.h"
 #include "KoSnapStrategy.h"
@@ -53,12 +55,12 @@ public:
 KoSnapGuide::KoSnapGuide(KoCanvasBase *canvas)
     : d(new Private(canvas))
 {
-    d->strategies.append(toQShared(new GridSnapStrategy()));
-    d->strategies.append(toQShared(new NodeSnapStrategy()));
-    d->strategies.append(toQShared(new OrthogonalSnapStrategy()));
-    d->strategies.append(toQShared(new ExtensionSnapStrategy()));
-    d->strategies.append(toQShared(new IntersectionSnapStrategy()));
-    d->strategies.append(toQShared(new BoundingBoxSnapStrategy()));
+    d->strategies.append(QSharedPointer<GridSnapStrategy>(new GridSnapStrategy()));
+    d->strategies.append(QSharedPointer<NodeSnapStrategy>(new NodeSnapStrategy()));
+    d->strategies.append(QSharedPointer<OrthogonalSnapStrategy>(new OrthogonalSnapStrategy()));
+    d->strategies.append(QSharedPointer<ExtensionSnapStrategy>(new ExtensionSnapStrategy()));
+    d->strategies.append(QSharedPointer<IntersectionSnapStrategy>(new IntersectionSnapStrategy()));
+    d->strategies.append(QSharedPointer<BoundingBoxSnapStrategy>(new BoundingBoxSnapStrategy()));
 }
 
 KoSnapGuide::~KoSnapGuide()
@@ -104,7 +106,7 @@ bool KoSnapGuide::addCustomSnapStrategy(KoSnapStrategy *customStrategy)
     if (!customStrategy || customStrategy->type() != CustomSnapping)
         return false;
 
-    d->strategies.append(toQShared(customStrategy));
+    d->strategies.append(QSharedPointer<KoSnapStrategy>(customStrategy));
     return true;
 }
 
@@ -113,7 +115,7 @@ void KoSnapGuide::overrideSnapStrategy(Strategy type, KoSnapStrategy *strategy)
     for (auto it = d->strategies.begin(); it != d->strategies.end(); /*noop*/) {
         if ((*it)->type() == type) {
             if (strategy) {
-                *it = toQShared(strategy);
+                *it = QSharedPointer<KoSnapStrategy>(strategy);
             } else {
                 it = d->strategies.erase(it);
             }
@@ -124,7 +126,7 @@ void KoSnapGuide::overrideSnapStrategy(Strategy type, KoSnapStrategy *strategy)
     }
 
     if (strategy) {
-        d->strategies.append(toQShared(strategy));
+        d->strategies.append(QSharedPointer<KoSnapStrategy>(strategy));
     }
 }
 

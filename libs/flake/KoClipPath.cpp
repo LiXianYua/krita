@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoClipPath.h"
 #include "KoPathShape.h"
 #include "KoShapeGroup.h"
@@ -152,7 +154,7 @@ void KoClipPath::applyClipping(KoShape *shape, QPainter &painter)
 
         if (shape->clipPath()->coordinates() == KoFlake::ObjectBoundingBox) {
             const QRectF shapeLocalBoundingRect = shape->outline().boundingRect();
-            path = KisAlgebra2D::mapToRect(shapeLocalBoundingRect).map(path);
+            path = toQTransform(KisAlgebra2D::mapToRect(toPkRectF(shapeLocalBoundingRect))).map(path);
         }
 
         if (!path.isEmpty()) {

@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoSvgText.h"
 
 #include <QDebug>
@@ -106,22 +108,22 @@ namespace KoSvgText {
 
 AutoValue parseAutoValueX(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword)
 {
-    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), value);
+    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitX(context.currentGC(), context.resolvedProperties(), toPkString(value));
 }
 
 AutoValue parseAutoValueY(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword)
 {
-    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), value);
+    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitY(context.currentGC(), context.resolvedProperties(), toPkString(value));
 }
 
 AutoValue parseAutoValueXY(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword)
 {
-    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitXY(context.currentGC(), context.resolvedProperties(), value);
+    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitXY(context.currentGC(), context.resolvedProperties(), toPkString(value));
 }
 
 AutoValue parseAutoValueAngular(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword)
 {
-    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitAngular(context.currentGC(), value);
+    return value == autoKeyword ? AutoValue() : SvgUtil::parseUnitAngular(context.currentGC(), toPkString(value));
 }
 
 WritingMode parseWritingMode(const QString &value) {
@@ -200,7 +202,7 @@ LengthAdjust parseLengthAdjust(const QString &value)
 
 QString writeAutoValue(const AutoValue &value, const QString &autoKeyword)
 {
-    return value.isAuto ? autoKeyword : KisDomUtils::toString(value.customValue);
+    return value.isAuto ? autoKeyword : toQString(KisDomUtils::toString(value.customValue));
 }
 
 QString writeWritingMode(WritingMode value, bool svg1_1)
@@ -724,7 +726,7 @@ TextIndentInfo parseTextIndent(const QString &value, const SvgLoadingContext &co
         } else if (param == "each-line") {
             textIndent.eachLine = true;
         } else {
-            textIndent.length = SvgUtil::parseTextUnitStruct(context.currentGC(), param);
+            textIndent.length = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(param));
             //ToDo: figure out how to detect value is number.
             //qWarning() << "Unknown parameter in text-indent" << param;
         }
@@ -748,11 +750,11 @@ QString writeTextIndent(const TextIndentInfo textIndent)
 TabSizeInfo parseTabSize(const QString &value, const SvgLoadingContext &context)
 {
     TabSizeInfo tabSizeInfo;
-    qreal val = KisDomUtils::toDouble(value, &tabSizeInfo.isNumber);
+    qreal val = KisDomUtils::toDouble(toPkString(value), &tabSizeInfo.isNumber);
     if (tabSizeInfo.isNumber) {
         tabSizeInfo.value = qMax(0.0, val);
     } else {
-        tabSizeInfo.length = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
+        tabSizeInfo.length = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
     }
     if ((tabSizeInfo.isNumber && tabSizeInfo.value < 0) || tabSizeInfo.length.value < 0) {
         tabSizeInfo.isNumber = true;
@@ -764,7 +766,7 @@ TabSizeInfo parseTabSize(const QString &value, const SvgLoadingContext &context)
 
 QString writeTabSize(const TabSizeInfo tabSize)
 {
-    QString val = KisDomUtils::toString(tabSize.value);
+    QString val = toQString(KisDomUtils::toString(tabSize.value));
     if (!tabSize.isNumber) {
 
         // Tabsize does not support percentage, so if we accidentally set it somewhere, convert to em.
@@ -853,7 +855,7 @@ LineHeightInfo parseLineHeight(const QString &value, const SvgLoadingContext &co
     if (lineHeight.isNumber) {
         lineHeight.value = parsed;
     } else {
-        lineHeight.length = SvgUtil::parseTextUnitStruct(context.currentGC(), value);
+        lineHeight.length = SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value));
     }
 
     // Negative line-height is invalid
@@ -870,7 +872,7 @@ LineHeightInfo parseLineHeight(const QString &value, const SvgLoadingContext &co
 QString writeLineHeight(LineHeightInfo lineHeight)
 {
     if (lineHeight.isNormal) return QString("normal");
-    QString val = KisDomUtils::toString(lineHeight.value);
+    QString val = toQString(KisDomUtils::toString(lineHeight.value));
     if (!lineHeight.isNumber) {
         val = writeLengthPercentage(lineHeight.length);
         if (lineHeight.length.unit == CssLengthPercentage::Absolute) {
@@ -926,9 +928,9 @@ QString writeLengthPercentage(const CssLengthPercentage &length, bool percentage
 {
     QString val;
     if (length.unit == CssLengthPercentage::Percentage && !percentageAsEm) {
-        val = KisDomUtils::toString(length.value*100.0) + "%";
+        val = toQString(KisDomUtils::toString(length.value*100.0)) + "%";
     } else {
-        val = KisDomUtils::toString(length.value);
+        val = toQString(KisDomUtils::toString(length.value));
         if (length.unit == CssLengthPercentage::Em || length.unit == CssLengthPercentage::Percentage) {
             val += "em";
         } else if (length.unit == CssLengthPercentage::Ex) {
@@ -972,8 +974,8 @@ void CssLengthPercentage::convertToAbsolute(const KoSvgText::FontMetrics metrics
 AutoLengthPercentage parseAutoLengthPercentageXY(const QString &value, const SvgLoadingContext &context, const QString &autoKeyword, QRectF bbox, bool percentageIsViewPort)
 {
     return value == autoKeyword ? AutoLengthPercentage()
-                                : percentageIsViewPort? AutoLengthPercentage(SvgUtil::parseUnitStruct(context.currentGC(), value, true, true, bbox))
-                                                      : AutoLengthPercentage(SvgUtil::parseTextUnitStruct(context.currentGC(), value));
+                                : percentageIsViewPort? AutoLengthPercentage(SvgUtil::parseUnitStruct(context.currentGC(), toPkString(value), true, true, toPkRectF(bbox)))
+                                                      : AutoLengthPercentage(SvgUtil::parseTextUnitStruct(context.currentGC(), toPkString(value)));
 }
 
 QString writeAutoLengthPercentage(const AutoLengthPercentage &value, const QString &autoKeyword, bool percentageToEm)

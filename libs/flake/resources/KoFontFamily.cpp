@@ -3,6 +3,8 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoFontFamily.h"
 #include "KoFontFamilyMetadata.h"
 #include "KoLcLocale.h"
@@ -14,6 +16,7 @@
 #include <QBuffer>
 #include <QDebug>
 #include <KoShapePainter.h>
+#include <KisResourceTypes.h>
 
 #include <PkRect.h>
 #include <PkDateTime.h>
@@ -136,7 +139,7 @@ PkVariantMap buildStyleEntryFromQt(const KoSvgText::FontFamilyStyleInfo &style)
 // 像素逐 scanLine 拷贝；索引色表也拷贝。
 PkImage qimageToPkImage(const QImage &img)
 {
-    PkImage out(static_cast<PkImage::Format>(img.format()), img.width(), img.height());
+    PkImage out(img.width(), img.height(), static_cast<PkImage::Format>(img.format()));
     for (int y = 0; y < img.height(); ++y) {
         const uchar *src = img.constScanLine(y);
         uint8_t *dst = out.scanLine(y);
@@ -267,7 +270,7 @@ void KoFontFamily::updateThumbnail()
     addMetaData(KoFontFamilyMetadata::KEY_SAMPLE_SVG, sampleSVG);
     addMetaData(KoFontFamilyMetadata::KEY_SAMPLE_BBOX, sampleSVGBbox);
     QString sample;
-    if (samples.isEmpty()) {
+    if (samples.empty()) {
         sample = QStringLiteral("AaBbGg");
     } else {
         // ⚠ 行为归一化：旧 getter 用 .toHash()，对 Map(8) 类型的 SAMPLE_STRING 恒返回

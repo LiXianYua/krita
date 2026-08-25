@@ -13,11 +13,11 @@
 namespace KritaUtils
 {
 
-template <class T>
-    bool compareListsUnordered(const PkList<T> &a, const PkList<T> &b) {
+template <class C>
+    bool compareListsUnordered(const C &a, const C &b) {
     if (a.size() != b.size()) return false;
 
-    for (const T &t : a) {
+    for (const auto &t : a) {
         if (!b.contains(t)) return false;
     }
 

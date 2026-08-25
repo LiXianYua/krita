@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoShapeFactoryBase.h"
 
 #include <QDebug>
@@ -17,10 +19,7 @@
 #include "KoShapeLoadingContext.h"
 
 #include <KoProperties.h>
-#include <KoJsonTrader.h>
 
-#include <KPluginFactory>
-#include <QPluginLoader>
 #include <QMutexLocker>
 #include <QMutex>
 #include <QPointer>
@@ -194,21 +193,9 @@ KoShape *KoShapeFactoryBase::createShape(const KoProperties* properties,
 
 void KoShapeFactoryBase::getDeferredPlugin()
 {
-    QMutexLocker(&d->pluginLoadingMutex);
-    if (d->deferredFactory) return;
-
-    const QList<KoJsonTrader::Plugin> offers =
-        KoJsonTrader::instance()->query("Krita/Deferred", QString());
-    Q_ASSERT(offers.size() > 0);
-
-    Q_FOREACH (const KoJsonTrader::Plugin &pluginLoader, offers) {
-        KPluginFactory *factory = qobject_cast<KPluginFactory *>(pluginLoader.instance());
-        KoDeferredShapeFactoryBase *plugin = factory->create<KoDeferredShapeFactoryBase>(this, QVariantList());
-
-        if (plugin && plugin->deferredPluginName() == d->deferredPluginName) {
-            d->deferredFactory = plugin;
-        }
-    }
+    // S-08: 插件加载已随 D-18 删除。deferredPluginName 恒为空（无子类传第三参），
+    // deferredFactory 永不填充，本函数为 no-op；createShape/createDefaultShape 的
+    // deferredFactory 分支同样不可达。
 }
 
 void KoShapeFactoryBase::pruneDocumentResourceManager(QObject *)

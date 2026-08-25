@@ -5,6 +5,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoSvgTextShape.h"
 #include "KoSvgTextShape_p.h"
 
@@ -326,7 +328,7 @@ QSharedPointer<KoShapeBackground> transformBackgroundToBounds(QSharedPointer<KoS
     KoGradientBackground *g = dynamic_cast<KoGradientBackground *>(bg.data());
 
     if (g) {
-        QRectF relative = KisAlgebra2D::absoluteToRelative(oldBounds, newBounds);
+        QRectF relative = toQRectF(KisAlgebra2D::absoluteToRelative(toPkRectF(oldBounds), toPkRectF(newBounds)));
         QTransform newTf = QTransform::fromTranslate(relative.x(), relative.y());
         newTf.scale(relative.width(), relative.height());
 
@@ -351,7 +353,7 @@ KoShapeStrokeModelSP transformStrokeBgToNewBounds(KoShapeStrokeModelSP stroke, c
                 ob.adjust(-insets.left, -insets.top, insets.right, insets.bottom);
             }
 
-            QRectF relative = KisAlgebra2D::absoluteToRelative(ob, nb);
+            QRectF relative = toQRectF(KisAlgebra2D::absoluteToRelative(toPkRectF(ob), toPkRectF(nb)));
             KoShapeStrokeSP newStroke(new KoShapeStroke(*s.data()));
             QTransform newTf = QTransform::fromTranslate(relative.x(), relative.y());
             newTf.scale(relative.width(), relative.height());
@@ -498,8 +500,8 @@ KoSvgTextShape::Private::collectPaths(const KoSvgTextShape *rootShape, QVector<C
                                 QTransform imageTf = QTransform::fromTranslate(drawRect.x(), drawRect.y());
                                 QTransform viewBox = QTransform::fromScale(drawRect.width()/img.width(),
                                                                            drawRect.height()/img.height());
-                                params.setProperty(imageProp, img);
-                                params.setProperty(imageViewTransformProp, viewBox);
+                                params.setProperty(toPkString(imageProp), PkVariant::fromValue(img));
+                                params.setProperty(toPkString(imageViewTransformProp), PkVariant::fromValue(viewBox));
                                 KoShape *shape = imageFactory->createShape(&params);
                                 if (img.format() == QImage::Format_Grayscale8 || img.format() == QImage::Format_Mono) {
                                     KoShape *rect = rectangleFactory->createDefaultShape();
@@ -582,7 +584,7 @@ KoSvgTextShape::Private::collectPaths(const KoSvgTextShape *rootShape, QVector<C
         parentShape = shapes.first();
     } else if (shapes.size() > 1) {
         KoShapeGroup *group = new KoShapeGroup();
-        KoShapeGroupCommand cmd(group, shapes, false);
+        KoShapeGroupCommand cmd(group, toPkList(shapes), false);
         cmd.redo();
 
         group->setBackground(rootShape->background());

@@ -15,6 +15,8 @@
 #include <QPainter>
 
 #include <KoResource.h>
+#include <KisResourceTypes.h>
+#include <PkString.h>
 
 #include <KoShape.h>
 #include <KoShapeGroup.h>
@@ -59,7 +61,7 @@ public:
 
     /**
      */
-    explicit KoSvgSymbolCollectionResource(const QString &filename);
+    explicit KoSvgSymbolCollectionResource(const PkString &filename);
 
     /// Create an empty color set
     KoSvgSymbolCollectionResource();
@@ -69,14 +71,14 @@ public:
     KoSvgSymbolCollectionResource &operator=(const KoSvgSymbolCollectionResource &rhs) = delete;
     KoResourceSP clone() const override;
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice* dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream* dev) const override;
 
-    QString defaultFileExtension() const override;
+    PkString defaultFileExtension() const override;
 
-    QPair<QString, QString> resourceType() const override
+    std::pair<PkString, PkString> resourceType() const override
     {
-        return QPair<QString, QString>(ResourceType::Symbols, "");
+        return std::pair<PkString, PkString>(ResourceType::Symbols, PkString());
     }
 
     QString title() const;

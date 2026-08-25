@@ -10,6 +10,10 @@
 #include <KoSvgTextProperties.h>
 #include <kritaflake_export.h>
 
+#include <KisResourceTypes.h>
+#include <PkString.h>
+#include <pk/port/PkStream.h>
+
 class KoCssStylePreset;
 typedef QSharedPointer<KoCssStylePreset> KoCssStylePresetSP;
 
@@ -103,11 +107,11 @@ public:
     // KoResource interface
 public:
     KoResourceSP clone() const override;
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice *dev) const override;
-    QString defaultFileExtension() const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream *dev) const override;
+    PkString defaultFileExtension() const override;
     void updateThumbnail() override;
-    QPair<QString, QString> resourceType() const override;
+    std::pair<PkString, PkString> resourceType() const override;
 private:
     struct Private;
     QScopedPointer<Private> d;

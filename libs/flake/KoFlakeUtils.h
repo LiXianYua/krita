@@ -31,7 +31,7 @@ template <typename ModifyFunction>
                 KoShapeStrokeSP();
 
             KoShapeStrokeSP newStroke =
-                toQShared(shapeStroke ?
+                QSharedPointer<KoShapeStroke>(shapeStroke ?
                               new KoShapeStroke(*shapeStroke) :
                               new KoShapeStroke());
 
@@ -40,7 +40,7 @@ template <typename ModifyFunction>
             newStrokes << newStroke;
         }
 
-        return new KoShapeStrokeCommand(shapes, newStrokes);
+        return new KoShapeStrokeCommand(toPkList(shapes), toPkList(newStrokes));
 }
 
 template <class Policy>

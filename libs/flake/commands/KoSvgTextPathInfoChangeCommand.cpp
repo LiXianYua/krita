@@ -3,6 +3,7 @@
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+#include <QtCore/QtCore>
 #include "KoSvgTextPathInfoChangeCommand.h"
 #include "kis_command_ids.h"
 #include <KoShapeBulkActionLock.h>

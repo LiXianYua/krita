@@ -3,11 +3,14 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoFontStorage.h"
 #include "KoFontFamily.h"
 #include "KoFontRegistry.h"
 #include "KisStaticInitializer.h"
 #include <KoMD5Generator.h>
+#include <KisResourceTypes.h>
 #include <optional>
 
 KIS_DECLARE_STATIC_INITIALIZER {
@@ -18,7 +21,7 @@ class FontTagIterator : public KisResourceStorage::TagIterator
 {
 public:
 
-    FontTagIterator(QVector<KisTagSP> /*tags*/, const QString &resourceType)
+    FontTagIterator(QVector<KisTagSP> /*tags*/, const PkString &resourceType)
         : m_resourceType(resourceType)
     {
     }
@@ -38,17 +41,17 @@ public:
     }
 
 private:
-    QString m_resourceType;
+    PkString m_resourceType;
 };
 
 class FontIterator : public KisResourceStorage::ResourceIterator
 {
 public:
-    FontIterator(const QString resourceType): m_isLoaded(false), m_resourceType(resourceType) {
+    FontIterator(const PkString resourceType): m_isLoaded(false), m_resourceType(resourceType) {
 
     }
 
-    QString type() const override {
+    PkString type() const override {
         return ResourceType::FontFamilies;
     }
 
@@ -71,9 +74,9 @@ public:
         m_currentResource = KoFontFamilySP (new KoFontFamily(rep));
     }
 
-    QString url() const override {
+    PkString url() const override {
         if (m_currentResource.isNull()) {
-            return QString();
+            return PkString();
         }
         return m_currentResource->filename();
     }
@@ -84,12 +87,12 @@ public:
     }
 private:
     bool m_isLoaded;
-    QString m_resourceType;
+    PkString m_resourceType;
     KoFontFamilySP m_currentResource;
     QScopedPointer<QListIterator<KoFontFamilyWWSRepresentation>> m_representationIterator;
 };
 
-KoFontStorage::KoFontStorage(const QString &location)
+KoFontStorage::KoFontStorage(const PkString &location)
     : KisStoragePlugin(location)
 {
 }
@@ -98,7 +101,7 @@ KoFontStorage::~KoFontStorage()
 {
 }
 
-KisResourceStorage::ResourceItem KoFontStorage::resourceItem(const QString &url)
+KisResourceStorage::ResourceItem KoFontStorage::resourceItem(const PkString &url)
 {
     KisResourceStorage::ResourceItem item;
     item.resourceType = ResourceType::FontFamilies;
@@ -108,11 +111,11 @@ KisResourceStorage::ResourceItem KoFontStorage::resourceItem(const QString &url)
     return item;
 }
 
-KoResourceSP KoFontStorage::resource(const QString &url)
+KoResourceSP KoFontStorage::resource(const PkString &url)
 {
     KoFontFamilySP fam;
-    QString familyName = url;
-    QString prefix (ResourceType::FontFamilies+"/");
+    QString familyName = toQString(url);
+    QString prefix(toQString(ResourceType::FontFamilies) + "/");
     if (familyName.startsWith(prefix)) {
         familyName.remove(0, prefix.size());
     }
@@ -132,14 +135,14 @@ bool KoFontStorage::supportsVersioning() const
     return true;
 }
 
-QSharedPointer<KisResourceStorage::ResourceIterator> KoFontStorage::resources(const QString &resourceType)
+PkSharedPointer<KisResourceStorage::ResourceIterator> KoFontStorage::resources(const PkString &resourceType)
 {
-    return QSharedPointer<KisResourceStorage::ResourceIterator>(new FontIterator(resourceType));
+    return PkSharedPointer<KisResourceStorage::ResourceIterator>(new FontIterator(resourceType));
 }
 
-QSharedPointer<KisResourceStorage::TagIterator> KoFontStorage::tags(const QString &resourceType)
+PkSharedPointer<KisResourceStorage::TagIterator> KoFontStorage::tags(const PkString &resourceType)
 {
-    return QSharedPointer<KisResourceStorage::TagIterator>(new FontTagIterator(QVector<KisTagSP>(), resourceType));
+    return PkSharedPointer<KisResourceStorage::TagIterator>(new FontTagIterator(QVector<KisTagSP>(), resourceType));
 }
 
 bool KoFontStorage::isValid() const

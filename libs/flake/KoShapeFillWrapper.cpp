@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoShapeFillWrapper.h"
 
 #include <KoShape.h>
@@ -167,16 +169,16 @@ struct KoShapeFillWrapper::Private
     QList<KoShape*> shapes;
     KoFlake::FillVariant fillVariant= KoFlake::Fill;
 
-    QSharedPointer<KoShapeBackground> applyFillGradientStops(KoShape *shape, const QGradient *srcQGradient);
+    PkSharedPointer<KoShapeBackground> applyFillGradientStops(KoShape *shape, const QGradient *srcQGradient);
     void applyFillGradientStops(KoShapeStrokeSP shapeStroke, const QGradient *stopGradient);
 };
 
-QSharedPointer<KoShapeBackground> KoShapeFillWrapper::Private::applyFillGradientStops(KoShape *shape, const QGradient *stopGradient)
+PkSharedPointer<KoShapeBackground> KoShapeFillWrapper::Private::applyFillGradientStops(KoShape *shape, const QGradient *stopGradient)
 {
     QGradientStops stops = stopGradient->stops();
 
     if (!shape || !stops.count()) {
-        return QSharedPointer<KoShapeBackground>();
+        return PkSharedPointer<KoShapeBackground>();
     }
 
     KoGradientBackground *newGradient = 0;
@@ -195,7 +197,7 @@ QSharedPointer<KoShapeBackground> KoShapeFillWrapper::Private::applyFillGradient
         QGradient *g = KoFlake::mergeGradient(fakeShapeGradient.data(), stopGradient);
         newGradient = new KoGradientBackground(g);
     }
-    return QSharedPointer<KoGradientBackground>(newGradient);
+    return PkSharedPointer<KoGradientBackground>(newGradient);
 }
 
 void KoShapeFillWrapper::Private::applyFillGradientStops(KoShapeStrokeSP shapeStroke, const QGradient *stopGradient)
@@ -334,14 +336,14 @@ KUndo2Command *KoShapeFillWrapper::setColor(const QColor &color)
     KUndo2Command *command = 0;
 
     if (m_d->fillVariant == KoFlake::Fill) {
-         QSharedPointer<KoShapeBackground> bg;
+         PkSharedPointer<KoShapeBackground> bg;
 
         if (color.isValid()) {
-            bg = toQShared(new KoColorBackground(color));
+            bg = PkSharedPointer<KoColorBackground>(new KoColorBackground(color));
         }
 
-        QSharedPointer<KoShapeBackground> fill(bg);
-        command = new KoShapeBackgroundCommand(m_d->shapes, fill);
+        PkSharedPointer<KoShapeBackground> fill(bg);
+        command = new KoShapeBackgroundCommand(toPkList(m_d->shapes), fill);
     } else {
         command = KoFlake::modifyShapesStrokes(m_d->shapes,
             [color] (KoShapeStrokeSP stroke) {
@@ -391,17 +393,17 @@ KUndo2Command *KoShapeFillWrapper::setGradient(const QGradient *gradient, const 
     KUndo2Command *command = 0;
 
     if (m_d->fillVariant == KoFlake::Fill) {
-        QList<QSharedPointer<KoShapeBackground>> newBackgrounds;
+        QList<PkSharedPointer<KoShapeBackground>> newBackgrounds;
 
         foreach (KoShape *shape, m_d->shapes) {
             Q_UNUSED(shape);
 
             KoGradientBackground *newGradient = new KoGradientBackground(KoFlake::cloneGradient(gradient));
             newGradient->setTransform(transform);
-            newBackgrounds << toQShared(newGradient);
+            newBackgrounds << PkSharedPointer<KoGradientBackground>(newGradient);
         }
 
-        command = new KoShapeBackgroundCommand(m_d->shapes, newBackgrounds);
+        command = new KoShapeBackgroundCommand(toPkList(m_d->shapes), toPkList(newBackgrounds));
 
     } else {
         command = KoFlake::modifyShapesStrokes(m_d->shapes,
@@ -427,13 +429,13 @@ KUndo2Command* KoShapeFillWrapper::applyGradientStopsOnly(const QGradient *gradi
     KUndo2Command *command = 0;
 
     if (m_d->fillVariant == KoFlake::Fill) {
-        QList<QSharedPointer<KoShapeBackground>> newBackgrounds;
+        QList<PkSharedPointer<KoShapeBackground>> newBackgrounds;
 
         foreach (KoShape *shape, m_d->shapes) {
             newBackgrounds <<  m_d->applyFillGradientStops(shape, gradient);
         }
 
-        command = new KoShapeBackgroundCommand(m_d->shapes, newBackgrounds);
+        command = new KoShapeBackgroundCommand(toPkList(m_d->shapes), toPkList(newBackgrounds));
 
     } else {
         command = KoFlake::modifyShapesStrokes(m_d->shapes,
@@ -450,16 +452,16 @@ KUndo2Command* KoShapeFillWrapper::setMeshGradient(const SvgMeshGradient *gradie
 {
     KUndo2Command *command = nullptr;
     if (m_d->fillVariant == KoFlake::Fill) {
-        QList<QSharedPointer<KoShapeBackground>> newBackgrounds;
+        QList<PkSharedPointer<KoShapeBackground>> newBackgrounds;
 
         for (const auto &shape: m_d->shapes) {
             Q_UNUSED(shape);
             KoMeshGradientBackground *newBackground =
                 new KoMeshGradientBackground(gradient, transform);
 
-            newBackgrounds << toQShared(newBackground);
+            newBackgrounds << PkSharedPointer<KoMeshGradientBackground>(newBackground);
         }
-        command = new KoShapeBackgroundCommand(m_d->shapes, newBackgrounds);
+        command = new KoShapeBackgroundCommand(toPkList(m_d->shapes), toPkList(newBackgrounds));
     }
     // TODO: for strokes!!
     return command;

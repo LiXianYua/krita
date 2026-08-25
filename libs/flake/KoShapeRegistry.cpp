@@ -9,6 +9,8 @@
  */
 
 // Own
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoShapeRegistry.h"
 
 #include "KoSvgTextShape.h"
@@ -18,7 +20,6 @@
 #include "KoShapeGroup.h"
 #include "KoShapeLayer.h"
 
-#include <KoPluginLoader.h>
 #include <KoXmlNS.h>
 
 #include <QString>
@@ -55,24 +56,19 @@ KoShapeRegistry::~KoShapeRegistry()
 
 void KoShapeRegistry::Private::init(KoShapeRegistry *q)
 {
-    KoPluginLoader::PluginsConfig config;
-    config.blacklist = "FlakePluginsDisabled";
-    config.group = "krita";
-    KoPluginLoader::instance()->load(QString::fromLatin1("Krita/Flake"),
-                                     config);
-    config.blacklist = "ShapePluginsDisabled";
-    KoPluginLoader::instance()->load(QString::fromLatin1("Krita/Shape"),
-                                     config);
+    // S-08: 插件加载已随 D-18 删除，只保留硬编码 factory。
 
     // Also add our hard-coded basic shapes
-    q->add(new KoSvgTextShapeFactory());
-    q->add(new KoPathShapeFactory(QStringList()));
+    KoShapeFactoryBase *svgTextFactory = new KoSvgTextShapeFactory();
+    q->add(toPkString(svgTextFactory->id()), svgTextFactory);
+    KoShapeFactoryBase *pathFactory = new KoPathShapeFactory(QStringList());
+    q->add(toPkString(pathFactory->id()), pathFactory);
 
     // Now all shape factories are registered with us, determine their
     // associated odf tagname & priority and prepare ourselves for
     // loading ODF.
 
-    QList<KoShapeFactoryBase*> factories = q->values();
+    QList<KoShapeFactoryBase*> factories = toQList(q->values());
     for (int i = 0; i < factories.size(); ++i) {
         insertFactory(factories[i]);
     }
@@ -88,7 +84,7 @@ KoShapeRegistry* KoShapeRegistry::instance()
 
 void KoShapeRegistry::addFactory(KoShapeFactoryBase * factory)
 {
-    add(factory);
+    add(toPkString(factory->id()), factory);
     d->insertFactory(factory);
 }
 
