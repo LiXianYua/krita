@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoGamutMask.h"
 
 #include <cstring>
@@ -85,7 +87,7 @@ struct KoGamutMask::Private {
 };
 
 KoGamutMask::KoGamutMask(const QString& filename)
-    : KoResource(filename)
+    : KoResource(toPkString(filename))
     , d(new Private)
 {
     d->maskSize = QSizeF(144.0,144.0);
@@ -93,7 +95,7 @@ KoGamutMask::KoGamutMask(const QString& filename)
 }
 
 KoGamutMask::KoGamutMask()
-    : KoResource(QString())
+    : KoResource(PkString())
     , d(new Private)
 {
     d->maskSize = QSizeF(144.0,144.0);
@@ -213,24 +215,24 @@ QTransform KoGamutMask::viewToMaskTransform(qreal viewSize)
     return transform;
 }
 
-bool KoGamutMask::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KoGamutMask::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
 
-    if (!dev->isOpen()) dev->open(QIODevice::ReadOnly);
+    if (!dev->isOpen()) dev->open(PkStream::ReadOnly);
 
-    d->data = dev->readAll();
+    d->data = pkReadAllAsQByteArray(dev);
 
     // TODO: test
     KIS_ASSERT_RECOVER_RETURN_VALUE(d->data.size() != 0, false);
 
-    if (filename().isNull()) {
+    if (filename().isEmpty()) {
         warnFlake << "Cannot load gamut mask" << name() << "there is no filename set";
         return false;
     }
 
     if (d->data.isNull()) {
-        QFile file(filename());
+        QFile file(toQString(filename()));
         if (file.size() == 0) {
             warnFlake << "Cannot load gamut mask" << name() << "there is no data available";
             return false;
@@ -246,16 +248,16 @@ bool KoGamutMask::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourc
 
     QBuffer buf(&d->data);
     buf.open(QBuffer::ReadOnly);
+    PkDeviceStream bufStream;
+    bufStream.attach(&buf);
 
-    QScopedPointer<KoStore> store(KoStore::createStore(&buf, KoStore::Read, "application/x-krita-gamutmask", KoStore::Zip));
+    QScopedPointer<KoStore> store(KoStore::createStore(&bufStream, KoStore::Read, toPkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
     if (!store || store->bad()) return false;
 
     bool storeOpened = store->open("gamutmask.svg");
     if (!storeOpened) { return false; }
 
-    QByteArray data;
-    data.resize(store->size());
-    QByteArray ba = store->read(store->size());
+    QByteArray ba = toQByteArray(store->read(store->size()));
     store->close();
 
     if (ba.size() == 0) { // empty gamutmask.svg is possible when the first temporary resource is saved
@@ -291,7 +293,7 @@ bool KoGamutMask::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourc
         d->maskSize = fragmentSize;
 
         d->title = parser.documentTitle();
-        setName(d->title);
+        setName(toPkString(d->title));
         setDescription(parser.documentDescription());
 
         setMaskShapes(shapes);
@@ -302,11 +304,13 @@ bool KoGamutMask::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourc
 
     if (store->open("preview.png")) {
         KoStoreDevice previewDev(store.data());
-        previewDev.open(QIODevice::ReadOnly);
+        previewDev.open(PkStream::ReadOnly);
+        PkStreamIoDevice previewIo;
+        previewIo.attach(&previewDev);
 
         QImage preview = QImage();
-        preview.load(&previewDev, "PNG");
-        setImage(preview);
+        preview.load(&previewIo, "PNG");
+        setImage(toPkImage(preview));
 
         (void)store->close();
     }
@@ -333,9 +337,9 @@ QList<KoShape*> KoGamutMask::koShapes() const
     return shapes;
 }
 
-bool KoGamutMask::saveToDevice(QIODevice *dev) const
+bool KoGamutMask::saveToDevice(PkStream *dev) const
 {
-    KoStore* store(KoStore::createStore(dev, KoStore::Write, "application/x-krita-gamutmask", KoStore::Zip));
+    KoStore* store(KoStore::createStore(dev, KoStore::Write, toPkByteArray("application/x-krita-gamutmask"), KoStore::Zip));
     if (!store || store->bad()) return false;
 
     QList<KoShape*> shapes = koShapes();
@@ -347,13 +351,15 @@ bool KoGamutMask::saveToDevice(QIODevice *dev) const
     }
 
     KoStoreDevice storeDev(store);
-    storeDev.open(QIODevice::WriteOnly);
+    storeDev.open(PkStream::WriteOnly);
+    PkStreamIoDevice storeIo;
+    storeIo.attach(&storeDev);
 
     SvgWriter writer(shapes);
     writer.setDocumentTitle(d->title);
     writer.setDocumentDescription(description());
 
-    writer.save(storeDev, d->maskSize);
+    writer.save(storeIo, d->maskSize);
 
     if (!store->close()) { return false; }
 
@@ -363,9 +369,11 @@ bool KoGamutMask::saveToDevice(QIODevice *dev) const
     }
 
     KoStoreDevice previewDev(store);
-    previewDev.open(QIODevice::WriteOnly);
+    previewDev.open(PkStream::WriteOnly);
+    PkStreamIoDevice previewIo;
+    previewIo.attach(&previewDev);
 
-    image().save(&previewDev, "PNG");
+    toQImage(image()).save(&previewIo, "PNG");
     if (!store->close()) { return false; }
 
     return store->finalize();
@@ -379,23 +387,23 @@ QString KoGamutMask::title() const
 void KoGamutMask::setTitle(QString title)
 {
     d->title = title;
-    setName(title);
+    setName(toPkString(title));
 }
 
 QString KoGamutMask::description() const
 {
-    QMap<QString, QVariant> m = metadata();
-    return m["description"].toString();
+    PkMap<PkString, PkVariant> m = metadata();
+    return toQString(m.value(PkString("description")).toString());
 }
 
 void KoGamutMask::setDescription(QString description)
 {
-    addMetaData("description", description);
+    addMetaData(PkString("description"), PkVariant(toPkString(description)));
 }
 
-QString KoGamutMask::defaultFileExtension() const
+PkString KoGamutMask::defaultFileExtension() const
 {
-    return ".kgm";
+    return PkString(".kgm");
 }
 
 int KoGamutMask::rotation()

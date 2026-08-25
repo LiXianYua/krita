@@ -5,6 +5,8 @@
 
    SPDX-License-Identifier: LGPL-2.1-or-later
  */
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include <resources/KoSvgSymbolCollectionResource.h>
 
 #include <QDebug>
@@ -75,20 +77,20 @@ struct KoSvgSymbolCollectionResource::Private {
 };
 
 
-KoSvgSymbolCollectionResource::KoSvgSymbolCollectionResource(const QString& filename)
+KoSvgSymbolCollectionResource::KoSvgSymbolCollectionResource(const PkString& filename)
     : KoResource(filename)
     , d(new Private())
 {
 }
 
 KoSvgSymbolCollectionResource::KoSvgSymbolCollectionResource()
-    : KoResource(QString())
+    : KoResource(PkString())
     , d(new Private())
 {
 }
 
 KoSvgSymbolCollectionResource::KoSvgSymbolCollectionResource(const KoSvgSymbolCollectionResource& rhs)
-    : KoResource(QString())
+    : KoResource(PkString())
     , d(new Private(*rhs.d))
 {
     setFilename(rhs.filename());
@@ -110,16 +112,16 @@ KoSvgSymbolCollectionResource::~KoSvgSymbolCollectionResource()
     qDeleteAll(d->symbols);
 }
 
-bool KoSvgSymbolCollectionResource::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KoSvgSymbolCollectionResource::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
 
     if (!dev->isOpen()) {
-        dev->open(QIODevice::ReadOnly);
+        dev->open(PkStream::ReadOnly);
     }
 
-    d->data = dev->readAll();
-    setMD5Sum(KoMD5Generator::generateHash(d->data));
+    d->data = pkReadAllAsQByteArray(dev);
+    setMD5Sum(KoMD5Generator::generateHash(toPkByteArray(d->data)));
 
     dev->seek(0);
 
@@ -127,7 +129,7 @@ bool KoSvgSymbolCollectionResource::loadFromDevice(QIODevice *dev, KisResourcesI
     int errorLine = 0;
     int errorColumn;
 
-    QDomDocument doc = SvgParser::createDocumentFromSvg(dev, &errorMsg, &errorLine, &errorColumn);
+    QDomDocument doc = SvgParser::createDocumentFromSvg(d->data, &errorMsg, &errorLine, &errorColumn);
     if (doc.isNull()) {
 
         errKrita << "Parsing error in " << filename() << "! Aborting!" << Qt::endl
@@ -154,9 +156,9 @@ bool KoSvgSymbolCollectionResource::loadFromDevice(QIODevice *dev, KisResourcesI
 
     d->title = parser.documentTitle();
     if (d->title.isEmpty()) {
-        d->title = filename();
+        d->title = toQString(filename());
     }
-    setName(d->title);
+    setName(toPkString(d->title));
     d->description = parser.documentDescription();
 
     if (d->symbols.size() < 1) {
@@ -164,21 +166,21 @@ bool KoSvgSymbolCollectionResource::loadFromDevice(QIODevice *dev, KisResourcesI
         return false;
     }
     setValid(true);
-    setImage(d->symbols[0]->icon(256));
+    setImage(toPkImage(d->symbols[0]->icon(256)));
     return true;
 }
 
-bool KoSvgSymbolCollectionResource::saveToDevice(QIODevice *dev) const
+bool KoSvgSymbolCollectionResource::saveToDevice(PkStream *dev) const
 {
-    dev->open(QIODevice::WriteOnly);
-    dev->write(d->data);
+    dev->open(PkStream::WriteOnly);
+    dev->write(d->data.constData(), d->data.size());
     dev->close();
     return true;
 }
 
-QString KoSvgSymbolCollectionResource::defaultFileExtension() const
+PkString KoSvgSymbolCollectionResource::defaultFileExtension() const
 {
-    return QString(".svg");
+    return PkString(".svg");
 }
 
 QString KoSvgSymbolCollectionResource::title() const

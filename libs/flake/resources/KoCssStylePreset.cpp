@@ -3,6 +3,8 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoCssStylePreset.h"
 
 #include <KoShapePainter.h>
@@ -48,13 +50,14 @@ struct KoCssStylePreset::Private {
 };
 
 KoCssStylePreset::KoCssStylePreset(const QString &filename)
-    : KoResource(filename)
+    : KoResource(toPkString(filename))
     , d(new Private())
 {
-    setName(name().replace("_", " "));
-    if (name().endsWith(defaultFileExtension())) {
-        const QFileInfo f(name());
-        setName(f.completeBaseName());
+    QString n = toQString(name()).replace("_", " ");
+    setName(toPkString(n));
+    if (n.endsWith(toQString(defaultFileExtension()))) {
+        const QFileInfo f(n);
+        setName(toPkString(f.completeBaseName()));
     }
 }
 
@@ -106,36 +109,36 @@ void KoCssStylePreset::setProperties(const KoSvgTextProperties &properties)
     d->properties = properties;
     QStringList fonts = d->properties.property(KoSvgTextProperties::FontFamiliesId).toStringList();
     //TODO: Apparantly we cannot remove metadata, only set it to nothing...
-    addMetaData(PRIMARY_FONT_FAMILY, fonts.value(0));
+    addMetaData(toPkString(PRIMARY_FONT_FAMILY), PkVariant(toPkString(fonts.value(0))));
     setValid(true);
     setDirty(true);
 }
 
 QString KoCssStylePreset::description() const
 {
-    QMap<QString, QVariant> m = metadata();
-    return m[DESCRIPTION].toString();
+    PkMap<PkString, PkVariant> m = metadata();
+    return toQString(m.value(toPkString(DESCRIPTION)).toString());
 }
 
 void KoCssStylePreset::setDescription(const QString &desc)
 {
-    QMap<QString, QVariant> m = metadata();
-    if (m[DESCRIPTION].toString() == desc) return;
-    addMetaData(DESCRIPTION, desc);
+    PkMap<PkString, PkVariant> m = metadata();
+    if (toQString(m.value(toPkString(DESCRIPTION)).toString()) == desc) return;
+    addMetaData(toPkString(DESCRIPTION), PkVariant(toPkString(desc)));
     setDirty(true);
 }
 
 QString KoCssStylePreset::styleType() const
 {
-    QMap<QString, QVariant> m = metadata();
-    return m.value(STYLE_TYPE, STYLE_TYPE_PARAGRAPH).toString();
+    PkMap<PkString, PkVariant> m = metadata();
+    return toQString(m.value(toPkString(STYLE_TYPE), PkVariant(toPkString(STYLE_TYPE_PARAGRAPH))).toString());
 }
 
 void KoCssStylePreset::setStyleType(const QString &type)
 {
-    QMap<QString, QVariant> m = metadata();
-    if (m[STYLE_TYPE].toString() == type) return;
-    addMetaData(STYLE_TYPE, type);
+    PkMap<PkString, PkVariant> m = metadata();
+    if (toQString(m.value(toPkString(STYLE_TYPE)).toString()) == type) return;
+    addMetaData(toPkString(STYLE_TYPE), PkVariant(toPkString(type)));
     setDirty(true);
 }
 
@@ -159,7 +162,7 @@ KoShape* KoCssStylePreset::generateSampleShape() const
     const QString before = d->beforeText;
 
     std::unique_ptr<KoSvgTextShape> sampleText(new KoSvgTextShape());
-    sampleText->insertText(0, sample.isEmpty()? name().isEmpty()? SAMPLE_PLACEHOLDER.toString(): name(): sample);
+    sampleText->insertText(0, sample.isEmpty()? toQString(name()).isEmpty()? SAMPLE_PLACEHOLDER.toString(): toQString(name()): sample);
     const QString type = styleType().isEmpty()? STYLE_TYPE_CHARACTER: styleType();
 
     bool removeParagraph = type == STYLE_TYPE_CHARACTER;
@@ -230,15 +233,15 @@ KoShape* KoCssStylePreset::generateSampleShape() const
 
 Qt::Alignment KoCssStylePreset::alignSample() const
 {
-    QMap<QString, QVariant> m = metadata();
-    QVariant v = m.value(SAMPLE_ALIGN, static_cast<Qt::Alignment::Int>(Qt::AlignHCenter | Qt::AlignVCenter));
-    return static_cast<Qt::Alignment>(v.value<Qt::Alignment::Int>());
+    PkMap<PkString, PkVariant> m = metadata();
+    PkVariant v = m.value(toPkString(SAMPLE_ALIGN), PkVariant(static_cast<int>(Qt::AlignHCenter | Qt::AlignVCenter)));
+    return static_cast<Qt::Alignment>(v.toInt());
 }
 
 QString KoCssStylePreset::primaryFontFamily() const
 {
-    QMap<QString, QVariant> m = metadata();
-    return m.value(PRIMARY_FONT_FAMILY).toString();
+    PkMap<PkString, PkVariant> m = metadata();
+    return toQString(m.value(toPkString(PRIMARY_FONT_FAMILY)).toString());
 }
 
 void KoCssStylePreset::updateAlignSample()
@@ -336,7 +339,7 @@ void KoCssStylePreset::updateAlignSample()
         }
     }
 
-    addMetaData(SAMPLE_ALIGN, static_cast<Qt::Alignment::Int>(hComponent | vComponent));
+    addMetaData(toPkString(SAMPLE_ALIGN), PkVariant(static_cast<int>(hComponent | vComponent)));
 }
 
 QString KoCssStylePreset::beforeText() const
@@ -365,8 +368,8 @@ void KoCssStylePreset::setAfterText(const QString &text)
 
 QString KoCssStylePreset::sampleSvg() const
 {
-    QMap<QString, QVariant> m = metadata();
-    return m[SAMPLE_SVG].toString();
+    PkMap<PkString, PkVariant> m = metadata();
+    return toQString(m.value(toPkString(SAMPLE_SVG)).toString());
 }
 
 QSizeF KoCssStylePreset::paragraphSampleSize() const
@@ -382,13 +385,13 @@ void KoCssStylePreset::setParagraphSampleSize(const QSizeF size)
 
 int KoCssStylePreset::storedPPIResolution() const
 {
-    QMap<QString, QVariant> m = metadata();
-    return m.value(STORED_PPI, 0).toInt();
+    PkMap<PkString, PkVariant> m = metadata();
+    return m.value(toPkString(STORED_PPI), PkVariant(0)).toInt();
 }
 
 void KoCssStylePreset::setStoredPPIResolution(const int ppi)
 {
-    addMetaData(STORED_PPI, ppi);
+    addMetaData(toPkString(STORED_PPI), PkVariant(ppi));
 }
 
 
@@ -397,14 +400,15 @@ KoResourceSP KoCssStylePreset::clone() const
     return KoResourceSP(new KoCssStylePreset(*this));
 }
 
-bool KoCssStylePreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KoCssStylePreset::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface)
-    if (!dev->isOpen()) dev->open(QIODevice::ReadOnly);
+    if (!dev->isOpen()) dev->open(PkStream::ReadOnly);
     QString errorMsg;
     int errorLine = 0;
     int errorColumn = 0;
-    QDomDocument xmlDocument = SvgParser::createDocumentFromSvg(dev, &errorMsg, &errorLine, &errorColumn);
+    QByteArray ba = pkReadAllAsQByteArray(dev);
+    QDomDocument xmlDocument = SvgParser::createDocumentFromSvg(ba, &errorMsg, &errorLine, &errorColumn);
     if (xmlDocument.isNull()) {
 
         errorFlake << "Parsing error in " << filename() << "! Aborting!" << Qt::endl
@@ -428,19 +432,19 @@ bool KoCssStylePreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP re
     Q_FOREACH(KoShape *shape, shapes) {
         KoSvgTextShape *textShape = dynamic_cast<KoSvgTextShape*>(shape);
         if (textShape) {
-            setName(textShape->additionalAttribute(TITLE));
-            addMetaData(DESCRIPTION, textShape->additionalAttribute(DESC));
+            setName(toPkString(textShape->additionalAttribute(TITLE)));
+            addMetaData(toPkString(DESCRIPTION), PkVariant(toPkString(textShape->additionalAttribute(DESC))));
             KoSvgTextNodeIndex node = textShape->findNodeIndexForPropertyId(KoSvgTextProperties::KraTextStyleType);
             QString styleType = STYLE_TYPE_PARAGRAPH;
             if (node.properties()) {
                 KoSvgTextProperties props = *(node.properties());
                 styleType = props.property(KoSvgTextProperties::KraTextStyleType).toString();
                 if (props.hasProperty(KoSvgTextProperties::KraTextStyleResolution)) {
-                    addMetaData(STORED_PPI, props.property(KoSvgTextProperties::KraTextStyleResolution));
+                    addMetaData(toPkString(STORED_PPI), PkVariant(props.property(KoSvgTextProperties::KraTextStyleResolution).toInt()));
                 }
                 if (props.hasProperty(KoSvgTextProperties::FontFamiliesId)) {
                     QStringList fonts = props.property(KoSvgTextProperties::FontFamiliesId).toStringList();
-                    addMetaData(PRIMARY_FONT_FAMILY, fonts.value(0));
+                    addMetaData(toPkString(PRIMARY_FONT_FAMILY), PkVariant(toPkString(fonts.value(0))));
                 }
                 setProperties(props);
 
@@ -458,7 +462,7 @@ bool KoCssStylePreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP re
 
             }
 
-            addMetaData(STYLE_TYPE, styleType);
+            addMetaData(toPkString(STYLE_TYPE), PkVariant(toPkString(styleType)));
 
             updateThumbnail();
             setValid(true);
@@ -470,23 +474,25 @@ bool KoCssStylePreset::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP re
     return false;
 }
 
-bool KoCssStylePreset::saveToDevice(QIODevice *dev) const
+bool KoCssStylePreset::saveToDevice(PkStream *dev) const
 {
     std::unique_ptr<KoShape> shape(generateSampleShape());
     if (!shape) return false;
 
-    QMap<QString, QVariant> m = metadata();
-    shape->setAdditionalAttribute(DESC, m[DESCRIPTION].toString());
-    shape->setAdditionalAttribute(TITLE, name());
+    PkMap<PkString, PkVariant> m = metadata();
+    shape->setAdditionalAttribute(DESC, toQString(m.value(toPkString(DESCRIPTION)).toString()));
+    shape->setAdditionalAttribute(TITLE, toQString(name()));
 
     const QRectF boundingRect = shape->boundingRect();
     SvgWriter writer({shape.release()});
-    return writer.save(*dev, boundingRect.size());
+    PkStreamIoDevice devIo;
+    devIo.attach(dev);
+    return writer.save(devIo, boundingRect.size());
 }
 
-QString KoCssStylePreset::defaultFileExtension() const
+PkString KoCssStylePreset::defaultFileExtension() const
 {
-    return ".svg";
+    return PkString(".svg");
 }
 
 QString generateSVG(const KoSvgTextShape *shape) {
@@ -514,13 +520,13 @@ void KoCssStylePreset::updateThumbnail()
     painter.paint(img);
 
     /// generate SVG sample.
-    addMetaData(SAMPLE_SVG, generateSVG(shape.data()));
+    addMetaData(toPkString(SAMPLE_SVG), PkVariant(toPkString(generateSVG(shape.data()))));
     updateAlignSample();
 
-    setImage(img);
+    setImage(toPkImage(img));
 }
 
-QPair<QString, QString> KoCssStylePreset::resourceType() const
+std::pair<PkString, PkString> KoCssStylePreset::resourceType() const
 {
-    return QPair<QString, QString>(ResourceType::CssStyles, "");
+    return std::pair<PkString, PkString>(ResourceType::CssStyles, PkString());
 }

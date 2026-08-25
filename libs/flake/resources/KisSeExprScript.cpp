@@ -6,6 +6,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include <FlakeDebug.h>
 #include <KoStore.h>
 #include <KoStoreDevice.h>
@@ -23,33 +25,34 @@ struct KisSeExprScript::Private {
 };
 
 KisSeExprScript::KisSeExprScript(const QString &filename)
-    : KoResource(filename)
+    : KoResource(toPkString(filename))
     , d(new Private)
 {
-    setName(name().replace("_", " "));
-    if (name().endsWith(defaultFileExtension())) {
-        const QFileInfo f(name());
-        setName(f.completeBaseName());
+    QString n = toQString(name()).replace("_", " ");
+    setName(toPkString(n));
+    if (n.endsWith(toQString(defaultFileExtension()))) {
+        const QFileInfo f(n);
+        setName(toPkString(f.completeBaseName()));
     }
 }
 
 KisSeExprScript::KisSeExprScript(const QImage &image, const QString &script, const QString &name, const QString &folderName)
-    : KoResource(QString())
+    : KoResource(PkString())
     , d(new Private)
 {
     setScript(script);
-    setImage(image);
-    setName(name);
+    setImage(toPkImage(image));
+    setName(toPkString(name));
 
-    QFileInfo fileInfo(folderName + QDir::separator() + name + defaultFileExtension());
+    QFileInfo fileInfo(folderName + QDir::separator() + name + toQString(defaultFileExtension()));
 
     int i = 1;
     while (fileInfo.exists()) {
-        fileInfo.setFile(folderName + QDir::separator() + name + QString::number(i) + defaultFileExtension());
+        fileInfo.setFile(folderName + QDir::separator() + name + QString::number(i) + toQString(defaultFileExtension()));
         i++;
     }
 
-    setFilename(fileInfo.filePath());
+    setFilename(toPkString(fileInfo.filePath()));
 }
 
 KisSeExprScript::KisSeExprScript(KisSeExprScript *rhs)
@@ -72,25 +75,25 @@ KisSeExprScript::~KisSeExprScript()
     delete d;
 }
 
-bool KisSeExprScript::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KisSeExprScript::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
 
     if (!dev->isOpen())
-        dev->open(QIODevice::ReadOnly);
+        dev->open(PkStream::ReadOnly);
 
-    d->data = dev->readAll();
+    d->data = pkReadAllAsQByteArray(dev);
 
     // TODO: test
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(d->data.size() != 0, false);
 
-    if (filename().isNull()) {
+    if (filename().isEmpty()) {
         warnFlake << "Cannot load SeExpr script" << name() << ", there is no filename set";
         return false;
     }
 
     if (d->data.isNull()) {
-        QFile file(filename());
+        QFile file(toQString(filename()));
         if (file.size() == 0) {
             warnFlake << "Cannot load SeExpr script" << name() << "there is no data available";
             return false;
@@ -106,8 +109,10 @@ bool KisSeExprScript::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP res
 
     QBuffer buf(&d->data);
     buf.open(QBuffer::ReadOnly);
+    PkDeviceStream bufStream;
+    bufStream.attach(&buf);
 
-    QScopedPointer<KoStore> store(KoStore::createStore(&buf, KoStore::Read, "application/x-krita-seexpr-script", KoStore::Zip));
+    QScopedPointer<KoStore> store(KoStore::createStore(&bufStream, KoStore::Read, toPkByteArray("application/x-krita-seexpr-script"), KoStore::Zip));
     if (!store || store->bad())
         return false;
 
@@ -116,16 +121,18 @@ bool KisSeExprScript::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP res
         return false;
     }
 
-    d->script = QString(store->read(store->size()));
+    d->script = QString(toQByteArray(store->read(store->size())));
     store->close();
 
     if (store->open("preview.png")) {
         KoStoreDevice previewDev(store.data());
-        previewDev.open(QIODevice::ReadOnly);
+        previewDev.open(PkStream::ReadOnly);
+        PkStreamIoDevice previewIo;
+        previewIo.attach(&previewDev);
 
         QImage preview = QImage();
-        preview.load(&previewDev, "PNG");
-        setImage(preview);
+        preview.load(&previewIo, "PNG");
+        setImage(toPkImage(preview));
 
         (void)store->close();
     }
@@ -138,9 +145,9 @@ bool KisSeExprScript::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP res
     return true;
 }
 
-bool KisSeExprScript::saveToDevice(QIODevice *dev) const
+bool KisSeExprScript::saveToDevice(PkStream *dev) const
 {
-    KoStore *store(KoStore::createStore(dev, KoStore::Write, "application/x-krita-seexpr-script", KoStore::Zip));
+    KoStore *store(KoStore::createStore(dev, KoStore::Write, toPkByteArray("application/x-krita-seexpr-script"), KoStore::Zip));
     if (!store || store->bad())
         return false;
 
@@ -149,9 +156,10 @@ bool KisSeExprScript::saveToDevice(QIODevice *dev) const
     }
 
     KoStoreDevice storeDev(store);
-    storeDev.open(QIODevice::WriteOnly);
+    storeDev.open(PkStream::WriteOnly);
 
-    storeDev.write(d->script.toUtf8());
+    const QByteArray scriptUtf8 = d->script.toUtf8();
+    storeDev.write(scriptUtf8.constData(), scriptUtf8.size());
 
     if (!store->close()) {
         return false;
@@ -162,9 +170,11 @@ bool KisSeExprScript::saveToDevice(QIODevice *dev) const
     }
 
     KoStoreDevice previewDev(store);
-    previewDev.open(QIODevice::WriteOnly);
+    previewDev.open(PkStream::WriteOnly);
+    PkStreamIoDevice previewIo;
+    previewIo.attach(&previewDev);
 
-    image().save(&previewDev, "PNG");
+    toQImage(image()).save(&previewIo, "PNG");
     if (!store->close()) {
         return false;
     }
@@ -172,14 +182,14 @@ bool KisSeExprScript::saveToDevice(QIODevice *dev) const
     return store->finalize();
 }
 
-QPair<QString, QString> KisSeExprScript::resourceType() const
+std::pair<PkString, PkString> KisSeExprScript::resourceType() const
 {
-    return QPair<QString, QString>(ResourceType::SeExprScripts, "");
+    return std::pair<PkString, PkString>(ResourceType::SeExprScripts, PkString());
 }
 
-QString KisSeExprScript::defaultFileExtension() const
+PkString KisSeExprScript::defaultFileExtension() const
 {
-    return QString(".kse");
+    return PkString(".kse");
 }
 
 QString KisSeExprScript::script() const
@@ -197,7 +207,7 @@ KoResourceSP KisSeExprScript::clone() const
     return KoResourceSP(new KisSeExprScript(*this));
 }
 
-QString KisSeExprScript::name() const
+PkString KisSeExprScript::name() const
 {
-    return KoResource::name().replace("_", " ");
+    return toPkString(toQString(KoResource::name()).replace("_", " "));
 }
