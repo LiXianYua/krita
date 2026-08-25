@@ -4,6 +4,15 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] stroke_testing_utils.cpp 阻塞登记（S-06 Task 9）
+//
+// 本文件不进薄壳，保留 Qt 类型。用 QImage 从文件读参考图/保存结果
+// （PkImage 无文件 I/O），并依赖 KoCanvasResourceProvider（libs/ui）。
+// StrokeTester 默认容差 m_baseFuzziness=1 保持原样。
+// 关闭条件：libs/ui 进壳 + PkImage 文件 I/O（R-15）。
+
+
 #include "stroke_testing_utils.h"
 
 #include <simpletest.h>

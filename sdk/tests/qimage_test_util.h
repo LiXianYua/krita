@@ -4,6 +4,17 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] qimage_test_util.h 阻塞登记（S-06 Task 9）
+//
+// 本文件不进薄壳，保留 Qt 类型。checkQImage/compareQImages 族的目标类型
+// PkImage 无文件 I/O（无 load/save/文件构造），参考图从文件读入与写出的逻辑
+// 无法端口化；目标类型 R-15 未交付（见 sdk/tests/README.md「已知缺口」）。
+// 五族默认容差保持原样：checkQImage 族 fuzzy=0、fuzzyAlpha=-1→0、
+// maxNumFailingPixels=0；compareQImages 族 0,0,0。
+// 关闭条件：R-15 交付 PkImage 文件 I/O 后端口化。
+
+
 #ifndef QIMAGE_TEST_UTIL_H
 #define QIMAGE_TEST_UTIL_H
 

@@ -6,7 +6,8 @@
 
 #include "KisDumbTransformMaskParams.h"
 
-#include <QDomElement>
+#include <PkXmlElement.h>
+#include <PkXmlDocument.h>
 #include "kis_algebra_2d.h"
 #include "kis_dom_utils.h"
 #include "kis_node.h"
@@ -17,7 +18,7 @@ struct Q_DECL_HIDDEN KisDumbTransformMaskParams::Private
 {
     Private() : isHidden(false) {}
 
-    QTransform transform;
+    PkTransform transform;
     bool isHidden;
 };
 
@@ -26,7 +27,7 @@ KisDumbTransformMaskParams::KisDumbTransformMaskParams()
 {
 }
 
-KisDumbTransformMaskParams::KisDumbTransformMaskParams(const QTransform &transform)
+KisDumbTransformMaskParams::KisDumbTransformMaskParams(const PkTransform &transform)
     : m_d(new Private)
 {
     m_d->isHidden = false;
@@ -43,7 +44,7 @@ KisDumbTransformMaskParams::~KisDumbTransformMaskParams()
 {
 }
 
-QTransform KisDumbTransformMaskParams::finalAffineTransform() const
+PkTransform KisDumbTransformMaskParams::finalAffineTransform() const
 {
     return m_d->transform;
 }
@@ -68,15 +69,15 @@ void KisDumbTransformMaskParams::transformDevice(KisNodeSP node, KisPaintDeviceS
     Q_UNUSED(node);
     Q_UNUSED(forceSubPixelTranslation);
 
-    QRect rc = src->exactBounds();
-    QPoint dstTopLeft = rc.topLeft();
+    PkRect rc = src->exactBounds();
+    PkPoint dstTopLeft = rc.topLeft();
 
-    QTransform t = finalAffineTransform();
-    if (t.type() <= QTransform::TxTranslate) {
+    PkTransform t = finalAffineTransform();
+    if (t.type() <= PkTransform::TxTranslate) {
         dstTopLeft = t.map(dstTopLeft);
         KisPainter::copyAreaOptimized(dstTopLeft, src, dst, rc);
     } else if (!t.isIdentity()) {
-        KisPerspectiveTransformWorker worker(nullptr, QTransform(), true, 0);
+        KisPerspectiveTransformWorker worker(nullptr, PkTransform(), true, 0);
         worker.setForceSubPixelTranslation(forceSubPixelTranslation);
         worker.setForwardTransform(t);
         worker.runPartialDst(src, dst, src->defaultBounds()->bounds());
@@ -85,26 +86,26 @@ void KisDumbTransformMaskParams::transformDevice(KisNodeSP node, KisPaintDeviceS
     }
 }
 
-QString KisDumbTransformMaskParams::id() const
+PkString KisDumbTransformMaskParams::id() const
 {
     return "dumbparams";
 }
 
-void KisDumbTransformMaskParams::toXML(QDomElement *e) const
+void KisDumbTransformMaskParams::toXML(PkXmlElement *e) const
 {
-    QDomDocument doc = e->ownerDocument();
-    QDomElement transformEl = doc.createElement("dumb_transform");
+    PkXmlDocument doc = e->ownerDocument();
+    PkXmlElement transformEl = doc.createElement("dumb_transform");
     e->appendChild(transformEl);
 
     KisDomUtils::saveValue(&transformEl, "transform", m_d->transform);
 }
 
-KisTransformMaskParamsInterfaceSP KisDumbTransformMaskParams::fromXML(const QDomElement &e)
+KisTransformMaskParamsInterfaceSP KisDumbTransformMaskParams::fromXML(const PkXmlElement &e)
 {
-    QDomElement transformEl;
+    PkXmlElement transformEl;
     bool result = false;
 
-    QTransform transform;
+    PkTransform transform;
 
     result =
         KisDomUtils::findOnlyElement(e, "dumb_transform", &transformEl) &&
@@ -118,7 +119,7 @@ KisTransformMaskParamsInterfaceSP KisDumbTransformMaskParams::fromXML(const QDom
         new KisDumbTransformMaskParams(transform));
 }
 
-void KisDumbTransformMaskParams::translateSrcAndDst(const QPointF &offset)
+void KisDumbTransformMaskParams::translateSrcAndDst(const PkPointF &offset)
 {
     Q_UNUSED(offset);
 
@@ -129,7 +130,7 @@ void KisDumbTransformMaskParams::translateSrcAndDst(const QPointF &offset)
      */
 }
 
-void KisDumbTransformMaskParams::transformSrcAndDst(const QTransform &t)
+void KisDumbTransformMaskParams::transformSrcAndDst(const PkTransform &t)
 {
     Q_UNUSED(t);
 
@@ -140,17 +141,17 @@ void KisDumbTransformMaskParams::transformSrcAndDst(const QTransform &t)
      */
 }
 
-void KisDumbTransformMaskParams::translateDstSpace(const QPointF &offset)
+void KisDumbTransformMaskParams::translateDstSpace(const PkPointF &offset)
 {
     m_d->transform.translate(offset.x(), offset.y());
 }
 
-QRect KisDumbTransformMaskParams::nonAffineChangeRect(const QRect &rc)
+PkRect KisDumbTransformMaskParams::nonAffineChangeRect(const PkRect &rc)
 {
     return rc;
 }
 
-QRect KisDumbTransformMaskParams::nonAffineNeedRect(const QRect &rc, const QRect &srcBounds)
+PkRect KisDumbTransformMaskParams::nonAffineNeedRect(const PkRect &rc, const PkRect &srcBounds)
 {
     Q_UNUSED(srcBounds);
     return rc;
@@ -161,7 +162,7 @@ bool KisDumbTransformMaskParams::isAnimated() const
     return false;
 }
 
-KisKeyframeChannel *KisDumbTransformMaskParams::getKeyframeChannel(const QString&, KisDefaultBoundsBaseSP)
+KisKeyframeChannel *KisDumbTransformMaskParams::getKeyframeChannel(const PkString&, KisDefaultBoundsBaseSP)
 {
     return 0;
 }
@@ -173,18 +174,18 @@ KisTransformMaskParamsInterfaceSP KisDumbTransformMaskParams::clone() const
 
 bool KisDumbTransformMaskParams::compareTransform(KisTransformMaskParamsInterfaceSP rhs) const
 {
-    QSharedPointer<KisDumbTransformMaskParams> rhsParams =
+    PkSharedPointer<KisDumbTransformMaskParams> rhsParams =
             rhs.dynamicCast<KisDumbTransformMaskParams>();
 
     return KisAlgebra2D::fuzzyMatrixCompare(m_d->transform, rhsParams->m_d->transform, 1e-5);
 }
 
-QTransform KisDumbTransformMaskParams::testingGetTransform() const
+PkTransform KisDumbTransformMaskParams::testingGetTransform() const
 {
     return m_d->transform;
 }
 
-void KisDumbTransformMaskParams::testingSetTransform(const QTransform &t)
+void KisDumbTransformMaskParams::testingSetTransform(const PkTransform &t)
 {
     m_d->transform = t;
 }

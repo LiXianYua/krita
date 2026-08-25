@@ -4,6 +4,15 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] ui_manager_test.h 阻塞登记（S-06 Task 9）
+//
+// 本文件不进薄壳，保留 Qt 类型。UiManagerTest 依赖 KisViewManager/KisView/
+// KisPart/KisMainWindow（libs/ui，壳闭包外）。析构函数内两处
+// QApplication::processEvents() 为 PATTERN-2，保留待 S-06/S-08 确认。
+// 关闭条件：libs/ui 进壳。
+
+
 #ifndef __UI_MANAGER_TEST_H
 #define __UI_MANAGER_TEST_H
 

@@ -10,41 +10,45 @@
 #include "kritatransformmaskstubs_export.h"
 #include "kis_transform_mask_params_interface.h"
 
+#include <PkTransform.h>
+#include <PkRect.h>
+#include <PkString.h>
+#include <PkScopedPointer.h>
 
-class QDomElement;
+class PkXmlElement;
 
 class KRITATRANSFORMMASKSTUBS_EXPORT KisDumbTransformMaskParams : public KisTransformMaskParamsInterface
 {
 public:
     KisDumbTransformMaskParams();
-    KisDumbTransformMaskParams(const QTransform &transform);
+    KisDumbTransformMaskParams(const PkTransform &transform);
     KisDumbTransformMaskParams(bool isHidden);
     ~KisDumbTransformMaskParams() override;
 
 
-    QTransform finalAffineTransform() const override;
+    PkTransform finalAffineTransform() const override;
     bool isAffine() const override;
     bool isHidden() const override;
     void setHidden(bool value) override;
     void transformDevice(KisNodeSP node, KisPaintDeviceSP src, KisPaintDeviceSP dst, bool forceSubPixelTranslation) const override;
 
-    QString id() const override;
-    void toXML(QDomElement *e) const override;
-    static KisTransformMaskParamsInterfaceSP fromXML(const QDomElement &e);
+    PkString id() const override;
+    void toXML(PkXmlElement *e) const override;
+    static KisTransformMaskParamsInterfaceSP fromXML(const PkXmlElement &e);
 
-    void translateSrcAndDst(const QPointF &offset) override;
-    void transformSrcAndDst(const QTransform &t) override;
-    void translateDstSpace(const QPointF &offset) override;
+    void translateSrcAndDst(const PkPointF &offset) override;
+    void transformSrcAndDst(const PkTransform &t) override;
+    void translateDstSpace(const PkPointF &offset) override;
 
     // for testing purposes only
-    QTransform testingGetTransform() const;
-    void testingSetTransform(const QTransform &t);
+    PkTransform testingGetTransform() const;
+    void testingSetTransform(const PkTransform &t);
 
-    QRect nonAffineChangeRect(const QRect &rc) override;
-    QRect nonAffineNeedRect(const QRect &rc, const QRect &srcBounds) override;
+    PkRect nonAffineChangeRect(const PkRect &rc) override;
+    PkRect nonAffineNeedRect(const PkRect &rc, const PkRect &srcBounds) override;
 
     bool isAnimated() const;
-    KisKeyframeChannel *getKeyframeChannel(const QString &id, KisDefaultBoundsBaseSP defaultBounds);
+    KisKeyframeChannel *getKeyframeChannel(const PkString &id, KisDefaultBoundsBaseSP defaultBounds);
 
     KisTransformMaskParamsInterfaceSP clone() const override;
 
@@ -52,7 +56,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISDUMBTRANSFORMMASKPARAMS_H

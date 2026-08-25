@@ -4,6 +4,16 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kistest.h 阻塞登记（S-06 Task 9）
+//
+// 本文件不进薄壳，保留 Qt 类型。KISTEST_MAIN 创建 GUI 应用对象并做资源目录
+// 初始化（QStandardPaths/QLocale/QImageReader/QImageWriter），Pk 侧尚无应用
+// 对象与图像文件 I/O 的对应物；依赖 KoTestConfig.h 等未剥头。
+// 关闭条件：Pk 应用对象 + PkImage 文件 I/O（R-15）交付后按 simpletest.h 的
+// R-10 模式改写。
+
+
 #ifndef KISTEST
 #define KISTEST
 

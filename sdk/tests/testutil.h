@@ -4,6 +4,16 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] testutil.h 阻塞登记（S-06 Task 9）
+//
+// 本文件不进薄壳，保留 Qt 类型。经 qimage_test_util.h 依赖 QImage 文件 I/O；
+// TestNode 用 Q_OBJECT；另有 GUI 应用对象调用点。PATTERN-1 一处
+// qApp->processEvents() 已删除；PATTERN-2 一处 QTest::qWait 保留待 S-08
+// flush 方法。
+// 关闭条件：PkImage 文件 I/O（R-15）+ TestNode 的 Q_OBJECT 端口化。
+
+
 #ifndef TEST_UTIL
 #define TEST_UTIL
 
@@ -396,9 +406,8 @@ struct MaskParent
 
     void waitForImageAndShapeLayers() {
         // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
-        // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
-        // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
-        qApp->processEvents();
+        // waitForDone() 已经是同步等待，原 qApp->processEvents() 是历史遗留
+        // 保险动作；S-06 按模式删除。
         image->waitForDone();
         KisLayerUtils::forceAllDelayedNodesUpdate(image->root());
         /**

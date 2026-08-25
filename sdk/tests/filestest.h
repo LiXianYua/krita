@@ -3,6 +3,17 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+
+// ===========================================================================
+// [GAP] filestest.h 阻塞登记（S-06 Task 9）
+//
+// 本文件不进薄壳，保留 Qt 类型。testFiles() 用 QFile/QFileDevice/QFileInfo/
+// QStandardPaths/QTemporaryFile 做文件 I/O（PkImage 无文件 I/O），且依赖
+// KisDocument/KisImportExportManager（libs/ui + libs/importexport，壳闭包外）。
+// PATTERN-1 五处 qApp->processEvents() 已按 sdk/tests/README.md 删除；
+// TestUtil::testFiles 默认容差 fuzzy=0、maxNumFailingPixels=0 保持原样。
+// 关闭条件：PkImage 文件 I/O（R-15）+ 文档导入导出进壳。
+
 #ifndef FILESTEST
 #define FILESTEST
 
@@ -80,9 +91,8 @@ void testFiles(const QString& _dirname, const QStringList& exclusions, const QSt
             }
 
             // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
-            // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
-            // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
-            qApp->processEvents();
+            // waitForDone() 已经是同步等待，原 qApp->processEvents() 是历史遗留
+            // 保险动作；S-06 按模式删除。
             doc->image()->waitForDone();
             QImage sourceImage = doc->image()->projection()->convertToQImage(0, doc->image()->bounds());
 
@@ -213,9 +223,8 @@ void testImportFromWriteonly(QString mimetype)
     }
 
     // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
-    // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
-    // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
-    qApp->processEvents();
+    // waitForDone() 已经是同步等待，原 qApp->processEvents() 是历史遗留
+    // 保险动作；S-06 按模式删除。
 
     if (doc->image()) {
         doc->image()->waitForDone();
@@ -271,9 +280,8 @@ void testExportToReadonly(QString mimetype)
     qDebug() << "export result = " << status;
 
     // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
-    // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
-    // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
-    qApp->processEvents();
+    // waitForDone() 已经是同步等待，原 qApp->processEvents() 是历史遗留
+    // 保险动作；S-06 按模式删除。
 
     if (doc->image()) {
         doc->image()->waitForDone();
@@ -312,9 +320,8 @@ void testImportIncorrectFormat(QString mimetype)
     qDebug() << "import result = " << status;
 
     // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
-    // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
-    // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
-    qApp->processEvents();
+    // waitForDone() 已经是同步等待，原 qApp->processEvents() 是历史遗留
+    // 保险动作；S-06 按模式删除。
 
     if (doc->image()) {
         doc->image()->waitForDone();
@@ -373,9 +380,8 @@ void testExportToColorSpace(QString mimetype, const KoColorSpace* space, KisImpo
     }
 
     // PATTERN-1（sdk/tests/README.md「事件循环测试改造模式」）：
-    // waitForDone() 已经是同步等待，qApp->processEvents() 是历史遗留
-    // 保险动作，libs/image 剥 Qt 时（S-06）应直接删除本行。
-    qApp->processEvents();
+    // waitForDone() 已经是同步等待，原 qApp->processEvents() 是历史遗留
+    // 保险动作；S-06 按模式删除。
 
     if (doc->image()) {
         doc->image()->waitForDone();

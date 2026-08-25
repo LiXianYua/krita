@@ -10,6 +10,8 @@
 #include "kritatransformmaskstubs_export.h"
 #include "kis_transform_mask_params_interface.h"
 
+#include <PkString.h>
+
 
 class KRITATRANSFORMMASKSTUBS_EXPORT KisDumbAnimatedTransformMaskParamsHolder : public KisAnimatedTransformParamsHolderInterface
 {
@@ -20,8 +22,8 @@ public:
 
     bool isAnimated() const override;
 
-    KisKeyframeChannel* requestKeyframeChannel(const QString &id) override;
-    KisKeyframeChannel* getKeyframeChannel(const QString &id) const override;
+    KisKeyframeChannel* requestKeyframeChannel(const PkString &id) override;
+    KisKeyframeChannel* getKeyframeChannel(const PkString &id) const override;
 
     KisTransformMaskParamsInterfaceSP bakeIntoParams() const override;
 

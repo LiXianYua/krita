@@ -27,12 +27,12 @@ bool KisDumbAnimatedTransformMaskParamsHolder::isAnimated() const
     return false;
 }
 
-KisKeyframeChannel *KisDumbAnimatedTransformMaskParamsHolder::requestKeyframeChannel(const QString &id) {
+KisKeyframeChannel *KisDumbAnimatedTransformMaskParamsHolder::requestKeyframeChannel(const PkString &id) {
     Q_UNUSED(id);
     return nullptr;
 }
 
-KisKeyframeChannel *KisDumbAnimatedTransformMaskParamsHolder::getKeyframeChannel(const QString &id) const {
+KisKeyframeChannel *KisDumbAnimatedTransformMaskParamsHolder::getKeyframeChannel(const PkString &id) const {
     Q_UNUSED(id);
     return nullptr;
 }

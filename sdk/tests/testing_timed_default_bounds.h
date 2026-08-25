@@ -9,19 +9,20 @@
 #define __TESTING_TIMED_DEFAULT_BOUNDS_H
 
 #include "kis_default_bounds_base.h"
+#include <PkRect.h>
 
 
 namespace TestUtil {
 
 struct TestingTimedDefaultBounds : public KisDefaultBoundsBase {
-    TestingTimedDefaultBounds(const QRect &bounds = QRect(0,0,100,100))
+    TestingTimedDefaultBounds(const PkRect &bounds = PkRect(0,0,100,100))
         : m_time(0),
           m_lod(0),
           m_bounds(bounds)
     {
     }
 
-    QRect bounds() const override {
+    PkRect bounds() const override {
         return m_bounds;
     }
 
@@ -60,7 +61,7 @@ struct TestingTimedDefaultBounds : public KisDefaultBoundsBase {
 private:
     int m_time;
     int m_lod;
-    QRect m_bounds;
+    PkRect m_bounds;
 };
 
 }

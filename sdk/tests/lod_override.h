@@ -8,6 +8,7 @@
 #define __LOD_OVERRIDE_H
 
 #include "kis_default_bounds_base.h"
+#include <PkRect.h>
 
 
 namespace TestUtil {
@@ -24,11 +25,11 @@ private:
         {
         }
 
-        QRect bounds() const override {
+        PkRect bounds() const override {
             return m_parent->bounds();
         }
 
-        virtual QRect imageBorderRect() const override {
+        virtual PkRect imageBorderRect() const override {
             return m_parent->imageBorderRect();
         }
 

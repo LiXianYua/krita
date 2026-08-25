@@ -11,6 +11,8 @@
 
 #include "KoColorSpace.h"
 #include "KoColor.h"
+#include <PkColor.h>
+#include <PkRect.h>
 
 #include "kis_image.h"
 #include "kis_painter.h"
@@ -31,11 +33,11 @@ protected:
     void initPaintDevice(KisNodeSP node, int seed) {
         Q_ASSERT(node->paintDevice());
         KisRandomSource source(seed);
-        QColor color(source.generate(10,255), source.generate(10,255), source.generate(10, 255));
-        QRect rc(source.generate(128,255),
-                 source.generate(128,255),
-                 source.generate(128,255),
-                 source.generate(128,255));
+        PkColor color(source.generate(10,255), source.generate(10,255), source.generate(10, 255));
+        PkRect rc(source.generate(128,255),
+                  source.generate(128,255),
+                  source.generate(128,255),
+                  source.generate(128,255));
 
         KisPaintDeviceSP dev = node->paintDevice()->createCompositionSourceDevice();
         dev->fill(rc, KoColor(color, dev->colorSpace()));

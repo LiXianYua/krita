@@ -9,8 +9,7 @@
 #include <boost/operators.hpp>
 
 #include <kis_debug.h>
-#include <QMutex>
-#include <QMutexLocker>
+#include <PkMutex.h>
 
 #include <KisTransformMaskTestingInterface.h>
 
@@ -37,41 +36,41 @@ struct KisTransformMaskTestingListener : KisTransformMaskTestingInterface
     };
 
     void notifyForceUpdateTimedNode() override {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         m_data.forceUpdateTimedNode++;
     }
     void notifyThreadSafeForceStaticImageUpdate() override {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         m_data.threadSafeForceStaticImageUpdate++;
     }
     void notifySlotDelayedStaticUpdate() override {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         m_data.slotDelayedStaticImageUpdate++;
     }
     void notifyDecorateRectTriggeredStaticImageUpdate() override {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         m_data.decorateRectTriggeredStaticImageUpdate++;
     }
     void notifyRecalculateStaticImage() override {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         m_data.recalculateStaticImage++;
     }
 
     Data stats() const {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         return m_data;
     }
     void clear() {
-        QMutexLocker l(&m_mutex);
+        PkMutexLocker l(&m_mutex);
         m_data = Data();
     }
 
 private:
-    mutable QMutex m_mutex;
+    mutable PkMutex m_mutex;
     Data m_data;
 };
 
-inline QDebug operator<<(QDebug dbg, const KisTransformMaskTestingListener::Data &d)
+inline PkDebug operator<<(PkDebug dbg, const KisTransformMaskTestingListener::Data &d)
 {
     dbg.nospace() << "("
                   << ppVar(d.decorateRectTriggeredStaticImageUpdate) << " "

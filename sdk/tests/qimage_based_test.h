@@ -4,6 +4,17 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] qimage_based_test.h 阻塞登记（S-06 Task 9）
+//
+// 本文件不进薄壳，保留 Qt 类型。QImageBasedTest 从文件读参考图并 save()，
+// PkImage 无文件 I/O；依赖 flake（KoShape*）未剥。QImageBasedTest::check*
+// 默认容差保持原样：baseFuzzyness=0，root/blur1/shape 隐式 fuzzy++ 保留。
+// PATTERN-2 一处 QApplication::processEvents()（addShapeLayer 内）保留待
+// S-08 flush 方法。
+// 关闭条件：PkImage 文件 I/O（R-15）+ flake 进壳后端口化。
+
+
 #ifndef __QIMAGE_BASED_TEST_H
 #define __QIMAGE_BASED_TEST_H
 
