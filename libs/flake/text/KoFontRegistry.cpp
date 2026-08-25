@@ -275,7 +275,7 @@ KoFontRegistry::KoFontRegistry(QObject *parent)
     : QObject(parent)
     , d(new Private())
 {
-    connect(d->fontChangeTracker().data(), SIGNAL(sigUpdateConfig()), this, SLOT(updateConfig()), Qt::UniqueConnection);
+    connect(d->fontChangeTracker().data(), &KoFontChangeTracker::sigUpdateConfig, this, &KoFontRegistry::updateConfig, Qt::UniqueConnection);
 }
 
 KoFontRegistry::~KoFontRegistry() {
