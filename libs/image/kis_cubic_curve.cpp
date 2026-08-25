@@ -452,7 +452,7 @@ PkString KisCubicCurve::toString() const
         return sCurve;
 
     for (const KisCubicCurvePoint &point : d->data->points) {
-        // 原代码 QString::number(x)（C locale，固定格式）；PkString().arg(x)
+        // 原代码数字格式化（C locale，固定格式）（C locale，固定格式）；PkString().arg(x)
         // 对空接收者没有 %1 占位符可替换，返回空串 —— 必须显式给占位符。
         sCurve += PkString("%1").arg(point.x());
         sCurve += ",";

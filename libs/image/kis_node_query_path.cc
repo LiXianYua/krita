@@ -156,7 +156,7 @@ PkString KisNodeQueryPath::toString() const
             str += "..";
             break;
         case PathElement::Index:
-            // 剥离修正：原文 QString::number(pe.index)。PkString().arg(int) 语义
+            // 剥离修正：原文数字格式化(pe.index)。PkString().arg(int) 语义
             // 是替换占位符（空串无占位符 → 返回空），须带 "%1" 占位符（与
             // kis_cubic_curve.cpp 同款写法）。
             str += PkString("%1").arg(static_cast<int>(pe.index));
