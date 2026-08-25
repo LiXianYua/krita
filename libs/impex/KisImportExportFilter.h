@@ -10,13 +10,15 @@
 #ifndef KIS_IMPORT_EXPORT_FILTER_H
 #define KIS_IMPORT_EXPORT_FILTER_H
 
-#include <QObject>
-#include <QIODevice>
-#include <QMap>
-#include <QPointer>
-#include <QString>
-#include <QPair>
-#include <QList>
+#include <PkObject.h>
+#include <PkStream.h>
+#include <PkMap.h>
+#include <PkPointer.h>
+#include <PkString.h>
+#include <PkList.h>
+#include <PkAuxTypes.h>
+#include <PkStringList.h>
+#include <utility>
 #include <KoID.h>
 #include <kis_properties_configuration.h>
 #include <kis_types.h>
@@ -49,28 +51,28 @@ class KisImportUserFeedbackInterface;
  * @author Werner Trobin <trobin@kde.org>
  * @todo the class has no constructor and therefore cannot initialize its private class
  */
-class KRITAIMPEX_EXPORT KisImportExportFilter : public QObject
+class KRITAIMPEX_EXPORT KisImportExportFilter : public PkObject
 {
     Q_OBJECT
 public:
-    static const QString ImageContainsTransparencyTag;
-    static const QString ColorModelIDTag;
-    static const QString ColorDepthIDTag;
-    static const QString sRGBTag;
-    static const QString HDRTag;
-    static const QString CICPPrimariesTag;
-    static const QString CICPTransferCharacteristicsTag;
+    static const PkString ImageContainsTransparencyTag;
+    static const PkString ColorModelIDTag;
+    static const PkString ColorDepthIDTag;
+    static const PkString sRGBTag;
+    static const PkString HDRTag;
+    static const PkString CICPPrimariesTag;
+    static const PkString CICPTransferCharacteristicsTag;
 public:
 
     ~KisImportExportFilter() override;
 
     void setBatchMode(bool batchmode);
     void setImportUserFeedBackInterface(KisImportUserFeedbackInterface *interface);
-    void setFilename(const QString &filename);
-    void setRealFilename(const QString &filename);
-    void setMimeType(const QString &mime);
-    void setUpdater(QPointer<KoUpdater> updater);
-    QPointer<KoUpdater> updater();
+    void setFilename(const PkString &filename);
+    void setRealFilename(const PkString &filename);
+    void setMimeType(const PkString &mime);
+    void setUpdater(PkPointer<KoUpdater> updater);
+    PkPointer<KoUpdater> updater();
 
     /**
      * The filter chain calls this method to perform the actual conversion.
@@ -81,7 +83,7 @@ public:
      * @return The error status, see the @ref #ConversionStatus enum.
      *         KisImportExportFilter::OK means that everything is alright.
      */
-    virtual KisImportExportErrorCode convert(KisDocument *document, QIODevice *io, KisPropertiesConfigurationSP configuration = 0) = 0;
+    virtual KisImportExportErrorCode convert(KisDocument *document, PkStream *io, KisPropertiesConfigurationSP configuration = 0) = 0;
 
     /**
      * @brief defaultConfiguration defines the default settings for the given import export filter
@@ -89,7 +91,7 @@ public:
      * @param to The mimetype of the destination file/document
      * @return a serializable KisPropertiesConfiguration object
      */
-    virtual KisPropertiesConfigurationSP defaultConfiguration(const QByteArray& from = "", const QByteArray& to = "") const;
+    virtual KisPropertiesConfigurationSP defaultConfiguration(const PkByteArray& from = PkByteArray(), const PkByteArray& to = PkByteArray()) const;
 
     /**
      * @brief lastSavedConfiguration return the last saved configuration for this filter
@@ -97,13 +99,13 @@ public:
      * @param to The mimetype of the destination file/document
      * @return a serializable KisPropertiesConfiguration object
      */
-    KisPropertiesConfigurationSP lastSavedConfiguration(const QByteArray &from = "", const QByteArray &to = "") const;
+    KisPropertiesConfigurationSP lastSavedConfiguration(const PkByteArray &from = PkByteArray(), const PkByteArray &to = PkByteArray()) const;
 
     /**
      * @brief generate and return the list of capabilities of this export filter. The list
      * @return returns the list of capabilities of this export filter
      */
-    virtual QMap<QString, KisExportCheckBase*> exportChecks();
+    virtual PkMap<PkString, KisExportCheckBase*> exportChecks();
 
     /**
      * @brief exportSupportsGuides
@@ -117,26 +119,26 @@ public:
     virtual bool supportsIO() const { return true; }
 
     /// Verify whether the given file is correct and readable
-    virtual QString verify(const QString &fileName) const;
+    virtual PkString verify(const PkString &fileName) const;
 
 protected:
     /**
      * This is the constructor your filter has to call, obviously.
      */
-    KisImportExportFilter(QObject *parent = 0);
+    KisImportExportFilter(PkObject *parent = 0);
 
-    QString filename() const;
-    QString realFilename() const;
+    PkString filename() const;
+    PkString realFilename() const;
     bool batchMode() const;
     KisImportUserFeedbackInterface* importUserFeedBackInterface() const;
-    QByteArray mimeType() const;
+    PkByteArray mimeType() const;
 
     void setProgress(int value);
     virtual void initializeCapabilities();
     void addCapability(KisExportCheckBase *capability);
-    void addSupportedColorModels(QList<QPair<KoID, KoID> > supportedColorModels, const QString &name, KisExportCheckBase::Level level = KisExportCheckBase::PARTIALLY);
+    void addSupportedColorModels(PkList<std::pair<KoID, KoID> > supportedColorModels, const PkString &name, KisExportCheckBase::Level level = KisExportCheckBase::PARTIALLY);
 
-    QString verifyZiPBasedFiles(const QString &fileName, const QStringList &filesToCheck) const;
+    PkString verifyZiPBasedFiles(const PkString &fileName, const PkStringList &filesToCheck) const;
 
 private:
 

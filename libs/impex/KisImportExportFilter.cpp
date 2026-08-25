@@ -9,55 +9,77 @@
 
 #include "KisImportExportFilter.h"
 
-#include <QFile>
-#include <QFileInfo>
 #include <kis_debug.h>
-#include <QStack>
-#include "KisImportExportManager.h"
-#include "KisImportExportBackend.h"
+#include <kis_assert.h>
+#include "KoUpdater.h"
+#include <KoStore.h>
+#include <PkFileStream.h>
+#include <PkScopedPointer.h>
+
 #include <KoColorSpaceRegistry.h>
 #include <KoColorModelStandardIds.h>
 #include <KisExportCheckBase.h>
 #include <KisExportCheckRegistry.h>
-#include "KoUpdater.h"
-#include <klocalizedstring.h>
-#include <KoStore.h>
 
-const QString KisImportExportFilter::ImageContainsTransparencyTag = "ImageContainsTransparency";
-const QString KisImportExportFilter::ColorModelIDTag = "ColorModelID";
-const QString KisImportExportFilter::ColorDepthIDTag = "ColorDepthID";
-const QString KisImportExportFilter::sRGBTag = "sRGB";
-const QString KisImportExportFilter::CICPPrimariesTag = "CICPCompatiblePrimaries";
-const QString KisImportExportFilter::CICPTransferCharacteristicsTag = "CICPCompatibleTransferFunction";
-const QString KisImportExportFilter::HDRTag = "HDRSupported";
+#include <unistd.h>
+#include <filesystem>
+#include <string>
+#include <algorithm>
+
+// Task 7 剥完 KisImportExportBackend.h 后切回真包含；此局部类镜像真实
+// KisImportExportBackend.h 的全部 4 个纯虚（声明顺序一致，类型按已剥映射为
+// 对应 Pk 类型），虚表布局与 Task 7 剥离后的真实头同构，避免任何链接到真实
+// 实现时的方法错分发。与 KisImportExportUtils.cpp 的局部类定义一致（ODR）。
+// #include "KisImportExportBackend.h"
+class PkWidget;
+class KoColorSpace;
+class KisImportExportUiServices {
+public:
+    virtual ~KisImportExportUiServices() = default;
+    virtual PkString askForAudioFileName(const PkString &, PkWidget *) = 0;
+    virtual PkString getUriForAdditionalFile(const PkString &, PkWidget *) = 0;
+    virtual PkString exportConfigurationXml(const PkByteArray &) = 0;
+    virtual bool chooseColorSpace(PkWidget *, const KoColorSpace *, const KoColorSpace **, int *, int *) = 0;
+};
+KisImportExportUiServices *kisImportExportUiServices();
+
+const PkString KisImportExportFilter::ImageContainsTransparencyTag = "ImageContainsTransparency";
+const PkString KisImportExportFilter::ColorModelIDTag = "ColorModelID";
+const PkString KisImportExportFilter::ColorDepthIDTag = "ColorDepthID";
+const PkString KisImportExportFilter::sRGBTag = "sRGB";
+const PkString KisImportExportFilter::CICPPrimariesTag = "CICPCompatiblePrimaries";
+const PkString KisImportExportFilter::CICPTransferCharacteristicsTag = "CICPCompatibleTransferFunction";
+const PkString KisImportExportFilter::HDRTag = "HDRSupported";
 
 class Q_DECL_HIDDEN KisImportExportFilter::Private
 {
 public:
-    QPointer<KoUpdater> updater;
-    QByteArray mime;
-    QString filename;
-    QString realFilename;
+    PkPointer<KoUpdater> updater;
+    PkByteArray mime;
+    PkString filename;
+    PkString realFilename;
     bool batchmode;
     KisImportUserFeedbackInterface *importUserFeedBackInterface {nullptr};
 
-    QMap<QString, KisExportCheckBase*> capabilities;
+    PkMap<PkString, KisExportCheckBase*> capabilities;
 
     Private()
-        : updater(0), mime("")
+        : updater(0)
         , batchmode(false)
     {}
 
     ~Private()
     {
-        qDeleteAll(capabilities);
+        for (auto it = capabilities.begin(); it != capabilities.end(); ++it) {
+            delete it.value();
+        }
     }
 
 };
 
 
-KisImportExportFilter::KisImportExportFilter(QObject *parent)
-    : QObject(parent)
+KisImportExportFilter::KisImportExportFilter(PkObject *parent)
+    : PkObject(parent)
     , d(new Private)
 {
 }
@@ -70,12 +92,12 @@ KisImportExportFilter::~KisImportExportFilter()
     delete d;
 }
 
-QString KisImportExportFilter::filename() const
+PkString KisImportExportFilter::filename() const
 {
     return d->filename;
 }
 
-QString KisImportExportFilter::realFilename() const
+PkString KisImportExportFilter::realFilename() const
 {
     return d->realFilename;
 }
@@ -100,47 +122,51 @@ void KisImportExportFilter::setImportUserFeedBackInterface(KisImportUserFeedback
     d->importUserFeedBackInterface = interface;
 }
 
-void KisImportExportFilter::setFilename(const QString &filename)
+void KisImportExportFilter::setFilename(const PkString &filename)
 {
     d->filename = filename;
 }
 
-void KisImportExportFilter::setRealFilename(const QString &filename)
+void KisImportExportFilter::setRealFilename(const PkString &filename)
 {
     d->realFilename = filename;
 }
 
 
-void KisImportExportFilter::setMimeType(const QString &mime)
+void KisImportExportFilter::setMimeType(const PkString &mime)
 {
-    d->mime = mime.toLatin1();
+    const std::string utf8 = mime.PkToUtf8();
+    d->mime = PkByteArray(utf8.data(), static_cast<int>(utf8.size()));
 }
 
-QByteArray KisImportExportFilter::mimeType() const
+PkByteArray KisImportExportFilter::mimeType() const
 {
     return d->mime;
 }
 
-KisPropertiesConfigurationSP KisImportExportFilter::defaultConfiguration(const QByteArray &from, const QByteArray &to) const
+KisPropertiesConfigurationSP KisImportExportFilter::defaultConfiguration(const PkByteArray &from, const PkByteArray &to) const
 {
-    Q_UNUSED(from);
-    Q_UNUSED(to);
+    (void)from;
+    (void)to;
     return 0;
 }
 
-KisPropertiesConfigurationSP KisImportExportFilter::lastSavedConfiguration(const QByteArray &from, const QByteArray &to) const
+KisPropertiesConfigurationSP KisImportExportFilter::lastSavedConfiguration(const PkByteArray &from, const PkByteArray &to) const
 {
     KisPropertiesConfigurationSP cfg = defaultConfiguration(from, to);
-    const QString filterConfig = kisImportExportUiServices() ? kisImportExportUiServices()->exportConfigurationXml(to) : QString();
+    const PkString filterConfig = kisImportExportUiServices() ? kisImportExportUiServices()->exportConfigurationXml(to) : PkString();
     if (cfg && !filterConfig.isEmpty()) {
         cfg->fromXML(filterConfig, false);
     }
     return cfg;
 }
 
-QMap<QString, KisExportCheckBase *> KisImportExportFilter::exportChecks()
+PkMap<PkString, KisExportCheckBase *> KisImportExportFilter::exportChecks()
 {
-    qDeleteAll(d->capabilities);
+    for (auto it = d->capabilities.begin(); it != d->capabilities.end(); ++it) {
+        delete it.value();
+    }
+    d->capabilities.clear();
     initializeCapabilities();
     return d->capabilities;
 }
@@ -150,48 +176,56 @@ bool KisImportExportFilter::exportSupportsGuides() const
     return false;
 }
 
-QString KisImportExportFilter::verify(const QString &fileName) const
+PkString KisImportExportFilter::verify(const PkString &fileName) const
 {
-    QFileInfo fi(fileName);
+    const std::string utf8Name = fileName.PkToUtf8();
 
-    if (!fi.exists()) {
-        return i18n("%1 does not exist after writing. Try saving again under a different name, in another location.", fileName);
+    if (!std::filesystem::exists(utf8Name)) {
+        return PkString("%1 does not exist after writing. Try saving again under a different name, in another location.").arg(fileName);
     }
 
-    if (!fi.isReadable()) {
-        return i18n("%1 is not readable", fileName);
+    if (::access(utf8Name.c_str(), R_OK) != 0) {
+        return PkString("%1 is not readable").arg(fileName);
     }
 
-    if (fi.size() < 10)  {
-        return i18n("%1 is smaller than 10 bytes, it must be corrupt. Try saving again under a different name, in another location.", fileName);
+    if (std::filesystem::file_size(utf8Name) < 10)  {
+        return PkString("%1 is smaller than 10 bytes, it must be corrupt. Try saving again under a different name, in another location.").arg(fileName);
     }
 
-    QFile f(fileName);
-    if (!f.open(QFile::ReadOnly)) {
-        return i18n("%1 could not be opened", fileName);
+    PkFileStream f(fileName);
+    if (!f.open(PkStream::ReadOnly)) {
+        return PkString("%1 could not be opened").arg(fileName);
     }
-    QByteArray ba = f.read(std::min(f.size(), (qint64)1000));
+    PkByteArray ba;
+    const PkStream::pk_int64 fileSize = f.size();
+    const PkStream::pk_int64 bytesToRead = std::min(fileSize, static_cast<PkStream::pk_int64>(1000));
+    ba.resize(static_cast<int>(bytesToRead));
+    const PkStream::pk_int64 n = f.read(ba.data(), bytesToRead);
+    if (n >= 0) {
+        ba.resize(static_cast<int>(n));
+    }
+
     bool found = false;
     for(int i = 0; i < ba.size(); ++i) {
-        if (ba.at(i) > 0) {
+        if (ba.data()[i] > 0) {
             found = true;
             break;
         }
     }
 
     if (!found) {
-        return i18n("%1 has only zero bytes in the first 1000 bytes, it's probably corrupt. Try saving again under a different name, in another location.", fileName);
+        return PkString("%1 has only zero bytes in the first 1000 bytes, it's probably corrupt. Try saving again under a different name, in another location.").arg(fileName);
     }
 
-    return QString();
+    return PkString();
 }
 
-void KisImportExportFilter::setUpdater(QPointer<KoUpdater> updater)
+void KisImportExportFilter::setUpdater(PkPointer<KoUpdater> updater)
 {
     d->updater = updater;
 }
 
-QPointer<KoUpdater> KisImportExportFilter::updater()
+PkPointer<KoUpdater> KisImportExportFilter::updater()
 {
     return d->updater;
 }
@@ -215,55 +249,47 @@ void KisImportExportFilter::addCapability(KisExportCheckBase *capability)
 
 
 
-void KisImportExportFilter::addSupportedColorModels(QList<QPair<KoID, KoID> > supportedColorModels, const QString &name, KisExportCheckBase::Level level)
+void KisImportExportFilter::addSupportedColorModels(PkList<std::pair<KoID, KoID> > supportedColorModels, const PkString &name, KisExportCheckBase::Level level)
 {
-    Q_ASSERT(level != KisExportCheckBase::SUPPORTED);
-    QString layerMessage;
-    QString imageMessage;
-    QList<KoID> allColorModels = KoColorSpaceRegistry::instance()->colorModelsList(KoColorSpaceRegistry::AllColorSpaces);
-    Q_FOREACH(const KoID &colorModelID, allColorModels) {
-        QList<KoID> allColorDepths = KoColorSpaceRegistry::instance()->colorDepthList(colorModelID.id(), KoColorSpaceRegistry::AllColorSpaces);
-        Q_FOREACH(const KoID &colorDepthID, allColorDepths) {
+    KIS_SAFE_ASSERT_RECOVER_NOOP(level != KisExportCheckBase::SUPPORTED);
+    PkString layerMessage;
+    PkString imageMessage;
+    PkList<KoID> allColorModels = KoColorSpaceRegistry::instance()->colorModelsList(KoColorSpaceRegistry::AllColorSpaces);
+    for (const KoID &colorModelID : allColorModels) {
+        PkList<KoID> allColorDepths = KoColorSpaceRegistry::instance()->colorDepthList(colorModelID.id(), KoColorSpaceRegistry::AllColorSpaces);
+        for (const KoID &colorDepthID : allColorDepths) {
 
             KisExportCheckFactory *colorModelCheckFactory =
-                    KisExportCheckRegistry::instance()->get("ColorModelCheck/" + colorModelID.id() + "/" + colorDepthID.id());
+                    KisExportCheckRegistry::instance()->get(PkString("ColorModelCheck/") + colorModelID.id() + "/" + colorDepthID.id());
             KisExportCheckFactory *colorModelPerLayerCheckFactory =
-                    KisExportCheckRegistry::instance()->get("ColorModelPerLayerCheck/" + colorModelID.id() + "/" + colorDepthID.id());
+                    KisExportCheckRegistry::instance()->get(PkString("ColorModelPerLayerCheck/") + colorModelID.id() + "/" + colorDepthID.id());
 
             if(!colorModelCheckFactory || !colorModelPerLayerCheckFactory) {
-                qWarning() << "No factory for" << colorModelID << colorDepthID;
+                warnKrita << "No factory for" << colorModelID << colorDepthID;
                 continue;
             }
 
-            if (supportedColorModels.contains(QPair<KoID, KoID>(colorModelID, colorDepthID))) {
+            if (supportedColorModels.contains(std::make_pair(colorModelID, colorDepthID))) {
                 addCapability(colorModelCheckFactory->create(KisExportCheckBase::SUPPORTED));
                 addCapability(colorModelPerLayerCheckFactory->create(KisExportCheckBase::SUPPORTED));
             }
             else {
-
-
                 if (level == KisExportCheckBase::PARTIALLY) {
-                    imageMessage = i18nc("image conversion warning",
-                                         "%1 cannot save images with color model <b>%2</b> and depth <b>%3</b>. The image will be converted."
-                                         ,name, colorModelID.name(), colorDepthID.name());
+                    imageMessage = PkString("%1 cannot save images with color model <b>%2</b> and depth <b>%3</b>. The image will be converted.")
+                            .arg(name, colorModelID.name(), colorDepthID.name());
 
                     layerMessage =
-                            i18nc("image conversion warning",
-                                  "%1 cannot save layers with color model <b>%2</b> and depth <b>%3</b>. The layers will be converted or skipped."
-                                  ,name, colorModelID.name(), colorDepthID.name());
+                            PkString("%1 cannot save layers with color model <b>%2</b> and depth <b>%3</b>. The layers will be converted or skipped.")
+                            .arg(name, colorModelID.name(), colorDepthID.name());
                 }
                 else {
-                    imageMessage = i18nc("image conversion warning",
-                                         "%1 cannot save images with color model <b>%2</b> and depth <b>%3</b>. The image will not be saved."
-                                         ,name, colorModelID.name(), colorDepthID.name());
+                    imageMessage = PkString("%1 cannot save images with color model <b>%2</b> and depth <b>%3</b>. The image will not be saved.")
+                            .arg(name, colorModelID.name(), colorDepthID.name());
 
                     layerMessage =
-                            i18nc("image conversion warning",
-                                  "%1 cannot save layers with color model <b>%2</b> and depth <b>%3</b>. The layers will be skipped."
-                                  , name, colorModelID.name(), colorDepthID.name());
-                 }
-
-
+                            PkString("%1 cannot save layers with color model <b>%2</b> and depth <b>%3</b>. The layers will be skipped.")
+                            .arg(name, colorModelID.name(), colorDepthID.name());
+                }
 
                 addCapability(colorModelCheckFactory->create(level, imageMessage));
                 addCapability(colorModelPerLayerCheckFactory->create(level, layerMessage));
@@ -272,20 +298,22 @@ void KisImportExportFilter::addSupportedColorModels(QList<QPair<KoID, KoID> > su
     }
 }
 
-QString KisImportExportFilter::verifyZiPBasedFiles(const QString &fileName, const QStringList &filesToCheck) const
+PkString KisImportExportFilter::verifyZiPBasedFiles(const PkString &fileName, const PkStringList &filesToCheck) const
 {
-    QScopedPointer<KoStore> store(KoStore::createStore(fileName, KoStore::Read, "application/x-krita", KoStore::Zip));
+    const std::string appId = PkString("application/x-krita").PkToUtf8();
+    PkScopedPointer<KoStore> store(KoStore::createStore(fileName, KoStore::Read,
+        PkByteArray(appId.data(), static_cast<int>(appId.size())), KoStore::Zip));
 
     if (!store || store->bad()) {
-        return i18n("Could not open the saved file %1. Please try to save again in a different location.", fileName);
+        return PkString("Could not open the saved file %1. Please try to save again in a different location.").arg(fileName);
     }
 
-    Q_FOREACH(const QString &file, filesToCheck) {
+    for (const PkString &file : filesToCheck) {
         if (!store->hasFile(file)) {
-            return i18n("Component %1 is missing in %2. Please try to save again in a different location.", file, fileName);
+            return PkString("Component %1 is missing in %2. Please try to save again in a different location.").arg(file, fileName);
         }
     }
 
-    return QString();
+    return PkString();
 
 }
