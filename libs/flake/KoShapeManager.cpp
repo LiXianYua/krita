@@ -311,7 +311,7 @@ KoShapeManager::KoShapeManager(KoCanvasBase *canvas, const QList<KoShape *> &sha
     : d(new Private(this, canvas))
 {
     Q_ASSERT(d->canvas); // not optional.
-    connect(d->selection, SIGNAL(selectionChanged()), this, SIGNAL(selectionChanged()));
+    connect(d->selection, &KoSelection::selectionChanged, this, &KoShapeManager::selectionChanged);
     setShapes(shapes);
 
     /**
@@ -319,18 +319,18 @@ KoShapeManager::KoShapeManager(KoCanvasBase *canvas, const QList<KoShape *> &sha
      * to the GUI thread.
      */
     this->moveToThread(qApp->thread());
-    connect(this, SIGNAL(forwardUpdate()), this, SLOT(forwardCompressedUpdate()));
+    connect(this, &KoShapeManager::forwardUpdate, this, [this]() { d->forwardCompressedUpdate(); });
 }
 
 KoShapeManager::KoShapeManager(KoCanvasBase *canvas)
     : d(new Private(this, canvas))
 {
     Q_ASSERT(d->canvas); // not optional.
-    connect(d->selection, SIGNAL(selectionChanged()), this, SIGNAL(selectionChanged()));
+    connect(d->selection, &KoSelection::selectionChanged, this, &KoShapeManager::selectionChanged);
 
     // see a comment in another constructor
     this->moveToThread(qApp->thread());
-    connect(this, SIGNAL(forwardUpdate()), this, SLOT(forwardCompressedUpdate()));
+    connect(this, &KoShapeManager::forwardUpdate, this, [this]() { d->forwardCompressedUpdate(); });
 }
 
 void KoShapeManager::Private::unlinkFromShapesRecursively(const QList<KoShape*> &shapes)

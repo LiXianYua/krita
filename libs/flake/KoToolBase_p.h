@@ -49,13 +49,13 @@ public:
             KoCanvasResourceProvider * crp = canvas->resourceManager();
             Q_ASSERT_X(crp, "KoToolBase::KoToolBase", "No Canvas KoResourceManager");
             if (crp)
-                q->connect(crp, SIGNAL(canvasResourceChanged(int, const QVariant &)),
-                        SLOT(canvasResourceChanged(int, const QVariant &)));
+                q->connect(crp, &KoCanvasResourceProvider::canvasResourceChanged, q,
+                        &KoToolBase::canvasResourceChanged);
 
             KoDocumentResourceManager *scrm = canvas->shapeController()->resourceManager();
             if (scrm) {
-                q->connect(scrm, SIGNAL(resourceChanged(int, const QVariant &)),
-                        SLOT(documentResourceChanged(int, const QVariant &)));
+                q->connect(scrm, &KoDocumentResourceManager::resourceChanged, q,
+                        &KoToolBase::documentResourceChanged);
             }
         }
     }
