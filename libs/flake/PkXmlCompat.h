@@ -95,6 +95,7 @@
 // 其他
 #define PK_QVARIANT_     PK_CAT_(Q, Variant)
 #define PK_QDEBUG_       PK_CAT_(Q, Debug)
+#define PK_QLOGGINGCATEGORY_ PK_CAT_(Q, LoggingCategory)
 #define PK_QDOMDOC_      PK_CAT_(Q, DomDocument)
 #define PK_QDOMEL_       PK_CAT_(Q, DomElement)
 #define PK_QDOMNODE_     PK_CAT_(Q, DomNode)
@@ -139,6 +140,11 @@
 #include PK_INC_(compat/PK_QSHAREDPOINTER_)
 #include PK_INC_(compat/PK_QVARIANT_)
 #include PK_INC_(compat/PK_QDEBUG_)
+// ⚠ QLoggingCategory 垫片必须在含 FlakeDebug.h 的 TU 生效：FlakeDebug.h 的
+// `#include <QLoggingCategory>` 与 `extern const QLoggingCategory &FLAKE_LOG()`
+// 经此垫片落到 PkLoggingCategory，qCDebug 才拿到 PkLoggingCategory*。
+// 依赖：仅自含（../PkLoggingCategory.h），无与其它垫片的顺序约束。
+#include PK_INC_(compat/PK_QLOGGINGCATEGORY_)
 // ⚠ Dom 族同型：compat/DomDocument、DomElement、DomAttr、DomText 内部都
 // 自带 `#include "DomNode"`，DomElement 还带 DomDocument 与 DomNodeList，
 // DomCDATASection 带 DomText——被拉的必须先排在前，否则角括号形态的
