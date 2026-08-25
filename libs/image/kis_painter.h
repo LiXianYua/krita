@@ -12,7 +12,7 @@
 
 #include <math.h>
 
-#include <QVector>
+#include <PkVector.h>
 
 #include <KoColorSpaceConstants.h>
 #include <KoColorConversionTransformation.h>
@@ -25,12 +25,12 @@
 #include <kritaimage_export.h>
 
 
-class QPen;
+class PkPen;
 class KUndo2Command;
-class QRect;
-class QRectF;
-class QBitArray;
-class QPainterPath;
+class PkRect;
+class PkRectF;
+class PkBitArray;
+class PkPainterPath;
 
 class KoUpdater;
 class KoColor;
@@ -48,7 +48,7 @@ class KisRunnableStrokeJobsInterface;
 /**
  * KisPainter contains the graphics primitives necessary to draw on a
  * KisPaintDevice. This is the same kind of abstraction as used in Qt
- * itself, where you have QPainter and QPaintDevice.
+ * itself, where you have a painter and a paint device.
  *
  * However, KisPainter works on a tiled image and supports different
  * color models, and that's a lot more complicated.
@@ -78,20 +78,20 @@ public:
     virtual ~KisPainter();
 
 public:
-    static void copyAreaOptimized(const QPoint &dstPt,
+    static void copyAreaOptimized(const PkPoint &dstPt,
                                   KisPaintDeviceSP src,
                                   KisPaintDeviceSP dst,
-                                  const QRect &originalSrcRect);
+                                  const PkRect &originalSrcRect);
 
-    static void copyAreaOptimizedOldData(const QPoint &dstPt,
+    static void copyAreaOptimizedOldData(const PkPoint &dstPt,
                                          KisPaintDeviceSP src,
                                          KisPaintDeviceSP dst,
-                                         const QRect &originalSrcRect);
+                                         const PkRect &originalSrcRect);
 
-    static void copyAreaOptimized(const QPoint &dstPt,
+    static void copyAreaOptimized(const PkPoint &dstPt,
                                   KisPaintDeviceSP src,
                                   KisPaintDeviceSP dst,
-                                  const QRect &originalSrcRect,
+                                  const PkRect &originalSrcRect,
                                   KisSelectionSP selection);
 
     static KisPaintDeviceSP convertToAlphaAsAlpha(KisPaintDeviceSP src);
@@ -184,7 +184,7 @@ public:
                 qint32 srcWidth, qint32 srcHeight);
 
     /**
-     * Convenience method that uses QPoint and QRect.
+     * Convenience method that uses PkPoint and PkRect.
      *
      * @param pos the destination coordinate, it replaces @p dstX and @p dstY.
      * @param srcDev the source device.
@@ -192,7 +192,7 @@ public:
      * @p srcRect replaces @p srcX, @p srcY, @p srcWidth and @p srcHeight.
      *
      */
-    void bitBlt(const QPoint & pos, const KisPaintDeviceSP srcDev, const QRect & srcRect);
+    void bitBlt(const PkPoint & pos, const KisPaintDeviceSP srcDev, const PkRect & srcRect);
 
     /**
      * The same as @ref bitBlt() but reads data from oldData() part of the device
@@ -211,7 +211,7 @@ public:
                        qint32 srcWidth, qint32 srcHeight);
 
     /**
-     * Convenience method that uses QPoint and QRect.
+     * Convenience method that uses PkPoint and PkRect.
      *
      * @param pos the destination coordinate, it replaces @p dstX and @p dstY.
      * @param srcDev the source device.
@@ -219,7 +219,7 @@ public:
      * @p srcRect replaces @p srcX, @p srcY, @p srcWidth and @p srcHeight.
      *
      */
-    void bitBltOldData(const QPoint & pos, const KisPaintDeviceSP srcDev, const QRect & srcRect);
+    void bitBltOldData(const PkPoint & pos, const KisPaintDeviceSP srcDev, const PkRect & srcRect);
 
     /**
      * Blasts a @param selection of srcWidth @param srcWidth and srcHeight @param srcHeight
@@ -298,10 +298,10 @@ public:
      * If \p rc doesn't cross the device's rect, then the device is not
      * rendered at all.
      */
-    void bltFixed(const QRect &rc, const QList<KisRenderedDab> allSrcDevices);
+    void bltFixed(const PkRect &rc, const PkList<KisRenderedDab> allSrcDevices);
 
     /**
-     * Convenience method that uses QPoint and QRect.
+     * Convenience method that uses PkPoint and PkRect.
      *
      * @param pos the destination coordinate, it replaces @p dstX and @p dstY.
      * @param srcDev the source device.
@@ -309,7 +309,7 @@ public:
      * @param srcRect replaces @p srcX, @p srcY, @p srcWidth and @p srcHeight.
      *
      */
-    void bltFixed(const QPoint & pos, const KisFixedPaintDeviceSP srcDev, const QRect & srcRect);
+    void bltFixed(const PkPoint & pos, const KisFixedPaintDeviceSP srcDev, const PkRect & srcRect);
 
     /**
      * Blasts a @p selection of srcWidth @p srcWidth and srcHeight @p srcHeight
@@ -384,10 +384,10 @@ public:
      * @param rc rectangle area covered by dab
      * @param dab this device will be mirrored in-place, it means that it will be changed
      */
-    void renderMirrorMask(QRect rc, KisFixedPaintDeviceSP dab);
-    void renderMirrorMask(QRect rc, KisFixedPaintDeviceSP dab, KisFixedPaintDeviceSP mask);
-    void renderMirrorMask(QRect rc, KisPaintDeviceSP dab);
-    void renderMirrorMask(QRect rc, KisPaintDeviceSP dab, int sx, int sy, KisFixedPaintDeviceSP mask);
+    void renderMirrorMask(PkRect rc, KisFixedPaintDeviceSP dab);
+    void renderMirrorMask(PkRect rc, KisFixedPaintDeviceSP dab, KisFixedPaintDeviceSP mask);
+    void renderMirrorMask(PkRect rc, KisPaintDeviceSP dab);
+    void renderMirrorMask(PkRect rc, KisPaintDeviceSP dab, int sx, int sy, KisFixedPaintDeviceSP mask);
 
     /**
      * Convenience method for renderMirrorMask(), allows to choose whether
@@ -399,8 +399,8 @@ public:
      * @param preserveDab states whether a temporary device should be
      *                    created to do the transformations
      */
-    void renderMirrorMaskSafe(QRect rc, KisFixedPaintDeviceSP dab, bool preserveDab);
-    void renderMirrorMaskSafe(QRect rc, KisFixedPaintDeviceSP dab, KisFixedPaintDeviceSP mask, bool preserveDab);
+    void renderMirrorMaskSafe(PkRect rc, KisFixedPaintDeviceSP dab, bool preserveDab);
+    void renderMirrorMaskSafe(PkRect rc, KisFixedPaintDeviceSP dab, KisFixedPaintDeviceSP mask, bool preserveDab);
 
     /**
      * Convenience method for renderMirrorMask(), allows to choose whether
@@ -414,7 +414,7 @@ public:
      * @param preserveMask states whether a temporary device should be
      *                    created to do the transformations
      */
-    void renderMirrorMaskSafe(QRect rc, KisPaintDeviceSP dab, int sx, int sy, KisFixedPaintDeviceSP mask, bool preserveMask);
+    void renderMirrorMaskSafe(PkRect rc, KisPaintDeviceSP dab, int sx, int sy, KisFixedPaintDeviceSP mask, bool preserveMask);
 
     /**
      * A complex method that re-renders a dab on an \p rc area.
@@ -425,7 +425,7 @@ public:
      *
      * \see KisExperimentPaintOp
      */
-    void renderDabWithMirroringNonIncremental(QRect rc, KisPaintDeviceSP dab);
+    void renderDabWithMirroringNonIncremental(PkRect rc, KisPaintDeviceSP dab);
 
     /**
      * @return true if the painter has some rects marked as dirty
@@ -437,12 +437,12 @@ public:
       * The methods in this class do not tell the paintdevice to update, but they calculate the
       * dirty area. This method returns this dirty area and resets it.
       */
-    QVector<QRect> takeDirtyRegion();
+    PkVector<PkRect> takeDirtyRegion();
 
     /**
      * Paint a line that connects the dots in points
      */
-    void paintPolyline(const QVector <QPointF> &points,
+    void paintPolyline(const PkVector <PkPointF> &points,
                        int index = 0, int numPoints = -1);
 
     /**
@@ -464,8 +464,8 @@ public:
      * because the currently set brush has a spacing greater than that distance.
      */
     void paintBezierCurve(const KisPaintInformation &pi1,
-                          const QPointF &control1,
-                          const QPointF &control2,
+                          const PkPointF &control1,
+                          const PkPointF &control2,
                           const KisPaintInformation &pi2,
                           KisDistanceInformation *currentDistance);
 
@@ -473,17 +473,17 @@ public:
      * Fill the given vector points with the points needed to draw the Bezier curve between
      * @p pos1 and @p pos2 using control points @p control1 and @p control2, excluding the final pos2.
      */
-    void getBezierCurvePoints(const QPointF &pos1,
-                              const QPointF &control1,
-                              const QPointF &control2,
-                              const QPointF &pos2,
+    void getBezierCurvePoints(const PkPointF &pos1,
+                              const PkPointF &control1,
+                              const PkPointF &control2,
+                              const PkPointF &pos2,
                               vQPointF& points) const;
 
     /**
      * Paint a rectangle.
      * @param rect the rectangle to paint.
      */
-    void paintRect(const QRectF &rect);
+    void paintRect(const PkRectF &rect);
 
     /**
      * Paint a rectangle.
@@ -503,7 +503,7 @@ public:
      *
      * @param rect the rectangle containing the ellipse to paint.
      */
-    void paintEllipse(const QRectF &rect);
+    void paintEllipse(const PkRectF &rect);
 
     /**
      * Paint the ellipse that fills the given rectangle.
@@ -529,46 +529,46 @@ public:
                  KisDistanceInformation *savedDist);
 
     /**
-     * Stroke the given QPainterPath.
+     * Stroke the given PkPainterPath.
      */
-    void paintPainterPath(const QPainterPath& path);
+    void paintPainterPath(const PkPainterPath& path);
 
     /**
-     * Fills the area enclosed by the given QPainterPath
+     * Fills the area enclosed by the given PkPainterPath
      * Convenience method for fillPainterPath(path, rect)
      */
-    void fillPainterPath(const QPainterPath& path);
+    void fillPainterPath(const PkPainterPath& path);
 
     /**
-     * Fills the portion of an area enclosed by the given QPainterPath
+     * Fills the portion of an area enclosed by the given PkPainterPath
      *
      * \param path the portion of the path to fill
      * \param requestedRect the rectangle containing the area
      */
-    void fillPainterPath(const QPainterPath& path, const QRect &requestedRect);
+    void fillPainterPath(const PkPainterPath& path, const PkRect &requestedRect);
 
     /**
      * Draw the path using the Pen
      *
      * if \p requestedRect is null, the entire path is painted
      */
-    void drawPainterPath(const QPainterPath& path, const QPen& pen, const QRect &requestedRect);
+    void drawPainterPath(const PkPainterPath& path, const PkPen& pen, const PkRect &requestedRect);
 
     // convenience overload
-    void drawPainterPath(const QPainterPath& path, const QPen& pen);
+    void drawPainterPath(const PkPainterPath& path, const PkPen& pen);
 
     /**
      * paint an unstroked one-pixel wide line from specified start position to the
      * specified end position.
      *
      */
-    void drawLine(const QPointF & start, const QPointF & end);
+    void drawLine(const PkPointF & start, const PkPointF & end);
 
     /**
      * paint an unstroked line with thickness from specified start position to the
      * specified end position. Scanline algorithm is used.
      */
-    void drawLine(const QPointF &start, const QPointF &end, qreal width, bool antialias);
+    void drawLine(const PkPointF &start, const PkPointF &end, qreal width, bool antialias);
 
 
     /**
@@ -576,20 +576,20 @@ public:
      * specified end position.
      *
      */
-    void drawDDALine(const QPointF & start, const QPointF & end);
+    void drawDDALine(const PkPointF & start, const PkPointF & end);
 
     /**
      * Paint an unstroked, wobbly one-pixel wide line from the specified start to the specified
      * end position.
      *
      */
-    void drawWobblyLine(const QPointF & start, const QPointF & end);
+    void drawWobblyLine(const PkPointF & start, const PkPointF & end);
 
     /**
      * Paint an unstroked, anti-aliased one-pixel wide line from the specified start to the specified
      * end position using the Wu algorithm
      */
-    void drawWuLine(const QPointF & start, const QPointF & end);
+    void drawWuLine(const PkPointF & start, const PkPointF & end);
 
     /**
      * Paint an unstroked wide line from the specified start to the specified
@@ -598,7 +598,7 @@ public:
      *
      * XXX: the width should be set in doubles, not integers.
      */
-    void drawThickLine(const QPointF & start, const QPointF & end, int startWidth, int endWidth);
+    void drawThickLine(const PkPointF & start, const PkPointF & end, int startWidth, int endWidth);
 
     /**
      * Set the channelflags: a bit array where true means that the
@@ -612,10 +612,10 @@ public:
      * the channels where the corresponding bit is true it will be
      * composited onto the destination device.
      */
-    void setChannelFlags(QBitArray channelFlags);
+    void setChannelFlags(PkBitArray channelFlags);
 
     /// @return the channel flags
-    QBitArray channelFlags();
+    PkBitArray channelFlags();
 
     /**
      * Set the paintop preset to use. If @p image is given,
@@ -634,7 +634,7 @@ public:
      */
     KisPaintOp* paintOp() const;
 
-    void setMirrorInformation(const QPointF &axesCenter, bool mirrorHorizontally, bool mirrorVertically);
+    void setMirrorInformation(const PkPointF &axesCenter, bool mirrorHorizontally, bool mirrorVertically);
 
     void copyMirrorInformationFrom(const KisPainter *other);
 
@@ -658,7 +658,7 @@ public:
      * Mirror \p rc in the requested \p direction around the center point defined
      * in the painter.
      */
-    void mirrorRect(Qt::Orientation direction, QRect *rc) const;
+    void mirrorRect(Qt::Orientation direction, PkRect *rc) const;
 
     /**
      * Mirror \p dab in the requested direction around the center point defined
@@ -670,19 +670,19 @@ public:
      * Calculate the list of the mirrored rects that will be painted on the
      * the canvas when calling renderMirrorMask() at al
      */
-    const QVector<QRect> calculateAllMirroredRects(const QRect &rc);
+    const PkVector<PkRect> calculateAllMirroredRects(const PkRect &rc);
 
     /**
      * Calculate the list of the mirrored points according to the current
      * mirroring configuration.
      */
-    const QVector<QPointF> calculateAllMirroredPoints(const QPointF &pos);
+    const PkVector<PkPointF> calculateAllMirroredPoints(const PkPointF &pos);
 
     /**
      * Calculate the list of the mirrored point pairs according to the current
      * mirroring configuration.
      */
-    const QVector<QPair<QPointF, QPointF>> calculateAllMirroredPoints(const QPair<QPointF, QPointF> &pair);
+    const PkVector<PkPair<PkPointF, PkPointF>> calculateAllMirroredPoints(const PkPair<PkPointF, PkPointF> &pair);
 
     /// Set the current pattern
     void setPattern(const KoPatternSP pattern);
@@ -730,10 +730,10 @@ public:
     FillStyle fillStyle() const;
 
     /// Set the transform on the pattern.
-    void setPatternTransform(QTransform transform);
+    void setPatternTransform(PkTransform transform);
 
     /// get the current transform on the pattern.
-    QTransform patternTransform();
+    PkTransform patternTransform();
 
     /// Set whether a polygon's filled area should be anti-aliased or not. The default is true.
     void setAntiAliasPolygonFill(bool antiAliasPolygonFill);
@@ -786,25 +786,25 @@ public:
 
     /**
      * Set the composite op ID for this painter
-     * Only kept for convenience, it will just call ::setCompositeOpId(QString) with op->Id().
+     * Only kept for convenience, it will just call ::setCompositeOpId(PkString) with op->Id().
      */
     void setCompositeOpId(const KoCompositeOp * op);
 
     /// Returns the current composite op Id
-    QString compositeOpId();
+    PkString compositeOpId();
 
     /// Set the composite op for this painter by string.
-    void setCompositeOpId(const QString& op);
+    void setCompositeOpId(const PkString& op);
 
     /**
      * Add \p r to the current set of dirty rects
      */
-    void addDirtyRect(const QRect &r);
+    void addDirtyRect(const PkRect &r);
 
     /**
      * Add \p rects to the current set of dirty rects
      */
-    void addDirtyRects(const QVector<QRect> &rects);
+    void addDirtyRects(const PkVector<PkRect> &rects);
 
     /**
      * Reset the selection to the given selection. All painter actions will be
@@ -822,7 +822,7 @@ public:
 
     /**
     * Set the size of the tile in fillPainterPath, useful when optimizing the use of fillPainterPath
-    * e.g. Spray paintop uses more small tiles, although selections uses bigger tiles. QImage::fill
+    * e.g. Spray paintop uses more small tiles, although selections uses bigger tiles. PkImage::fill
     * is quite expensive so with smaller images you can save instructions
     * Default and maximum size is 256x256 image
     */

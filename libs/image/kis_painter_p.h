@@ -30,7 +30,7 @@ struct Q_DECL_HIDDEN KisPainter::Private {
     KisTransaction*             transaction {nullptr};
     KoUpdater*                  progressUpdater {nullptr};
 
-    QVector<QRect>              dirtyRects;
+    PkVector<PkRect>              dirtyRects;
     KisPaintOp*                 paintOp {nullptr};
     KoColor                     paintColor;
     KoColor                     backgroundColor;
@@ -41,22 +41,22 @@ struct Q_DECL_HIDDEN KisPainter::Private {
     StrokeStyle                 strokeStyle {StrokeStyleBrush};
     bool                        antiAliasPolygonFill {true};
     KoPatternSP                 pattern;
-    QPointF                     duplicateOffset;
+    PkPointF                     duplicateOffset;
     quint32                     pixelSize {0};
     const KoColorSpace*         colorSpace {nullptr};
     KoColorProfile*             profile {nullptr};
     const KoColorSpace*         cachedSourceColorSpace {nullptr};
     const KoCompositeOp*        cachedCompositeOp {nullptr};
-    QString                     compositeOpId;
+    PkString                     compositeOpId;
     KoAbstractGradientSP        gradient;
     KisPaintOpPresetSP          paintOpPreset;
-    QImage                      polygonMaskImage;
-    QPainter*                   maskPainter {nullptr};
+    PkImage                      polygonMaskImage;
+    PkPainter*                   maskPainter {nullptr};
     KisFillPainter*             fillPainter {nullptr};
     KisPaintDeviceSP            polygon;
     qint32                      maskImageWidth {255};
     qint32                      maskImageHeight {255};
-    QPointF                     axesCenter;
+    PkPointF                     axesCenter;
     bool                        mirrorHorizontally {false};
     bool                        mirrorVertically {false};
     bool                        isOpacityUnit {true}; // TODO: move into ParameterInfo
@@ -64,13 +64,13 @@ struct Q_DECL_HIDDEN KisPainter::Private {
     KoColorConversionTransformation::Intent renderingIntent {KoColorConversionTransformation::IntentPerceptual};
     KoColorConversionTransformation::ConversionFlags conversionFlags {KoColorConversionTransformation::Empty};
     KisRunnableStrokeJobsInterface *runnableStrokeJobsInterface {nullptr};
-    QScopedPointer<KisRunnableStrokeJobsInterface> fakeRunnableStrokeJobsInterface;
-    QTransform                  patternTransform;
+    PkScopedPointer<KisRunnableStrokeJobsInterface> fakeRunnableStrokeJobsInterface;
+    PkTransform                  patternTransform;
 
     const KoCompositeOp*        compositeOp(const KoColorSpace *srcCS);
 
     bool tryReduceSourceRect(const KisPaintDevice *srcDev,
-                             QRect *srcRect,
+                             PkRect *srcRect,
                              qint32 *srcX,
                              qint32 *srcY,
                              qint32 *srcWidth,
@@ -78,22 +78,22 @@ struct Q_DECL_HIDDEN KisPainter::Private {
                              qint32 *dstX,
                              qint32 *dstY);
 
-    void fillPainterPathImpl(const QPainterPath& path, const QRect &requestedRect);
+    void fillPainterPathImpl(const PkPainterPath& path, const PkRect &requestedRect);
 
-    void applyDevice(const QRect &applyRect,
+    void applyDevice(const PkRect &applyRect,
                      const KisRenderedDab &dab,
                      KisRandomAccessorSP dstIt,
                      const KoColorSpace *srcColorSpace,
                      KoCompositeOp::ParameterInfo &localParamInfo);
 
-    void applyDeviceWithSelection(const QRect &applyRect,
+    void applyDeviceWithSelection(const PkRect &applyRect,
                                   const KisRenderedDab &dab,
                                   KisRandomAccessorSP dstIt,
                                   KisRandomConstAccessorSP maskIt,
                                   const KoColorSpace *srcColorSpace,
                                   KoCompositeOp::ParameterInfo &localParamInfo);
 
-    template<class T> QVector<T> calculateMirroredObjects(const T &object);
+    template<class T> PkVector<T> calculateMirroredObjects(const T &object);
 
 };
 

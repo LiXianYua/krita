@@ -13,13 +13,7 @@
 #include <cfloat>
 #include <stack>
 
-#include <QFontInfo>
-#include <QFontMetrics>
-#include <QPen>
-#include <QImage>
-#include <QMap>
-#include <QPainter>
-#include <QRect>
+#include <PkRect.h>
 
 #include <klocalizedstring.h>
 
@@ -82,7 +76,7 @@ void KisFillPainter::initFillPainter()
     m_stopGrowingAtDarkestPixel = false;
 }
 
-void KisFillPainter::fillSelection(const QRect &rc, const KoColor &color)
+void KisFillPainter::fillSelection(const PkRect &rc, const KoColor &color)
 {
     KisPaintDeviceSP fillDevice = new KisPaintDevice(device()->colorSpace());
     fillDevice->setDefaultPixel(color);
@@ -105,16 +99,16 @@ void KisFillPainter::fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const Ko
 
         device()->fill(x1, y1, w, h, data);
 
-        addDirtyRect(QRect(x1, y1, w, h));
+        addDirtyRect(PkRect(x1, y1, w, h));
     }
 }
 
-void KisFillPainter::fillRect(const QRect &rc, const KoPatternSP pattern, const QPoint &offset)
+void KisFillPainter::fillRect(const PkRect &rc, const KoPatternSP pattern, const PkPoint &offset)
 {
     fillRect(rc.x(), rc.y(), rc.width(), rc.height(), pattern, offset);
 }
 
-void KisFillPainter::fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const KoPatternSP pattern, const QPoint &offset)
+void KisFillPainter::fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const KoPatternSP pattern, const PkPoint &offset)
 {
     if (!pattern) return;
     if (!pattern->valid()) return;
@@ -129,10 +123,10 @@ void KisFillPainter::fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const Ko
         patternLayer->moveTo(offset);
     }
 
-    fillRect(x1, y1, w, h, patternLayer, QRect(offset.x(), offset.y(), pattern->width(), pattern->height()));
+    fillRect(x1, y1, w, h, patternLayer, PkRect(offset.x(), offset.y(), pattern->width(), pattern->height()));
 }
 
-void KisFillPainter::fillRectNoCompose(const QRect &rc, const KoPatternSP pattern, const QTransform transform)
+void KisFillPainter::fillRectNoCompose(const PkRect &rc, const KoPatternSP pattern, const PkTransform transform)
 {
     if (!pattern) return;
     if (!pattern->valid()) return;
@@ -143,10 +137,10 @@ void KisFillPainter::fillRectNoCompose(const QRect &rc, const KoPatternSP patter
     KisPaintDeviceSP patternLayer = new KisPaintDevice(device()->colorSpace(), pattern->name());
     patternLayer->convertFromQImage(pattern->pattern(), 0);
 
-    fillRectNoCompose(rc.x(), rc.y(), rc.width(), rc.height(), patternLayer, QRect(0, 0, pattern->width(), pattern->height()), transform);
+    fillRectNoCompose(rc.x(), rc.y(), rc.width(), rc.height(), patternLayer, PkRect(0, 0, pattern->width(), pattern->height()), transform);
 }
 
-void KisFillPainter::fillRectNoCompose(qint32 x1, qint32 y1, qint32 w, qint32 h, const KisPaintDeviceSP device, const QRect& deviceRect, const QTransform transform)
+void KisFillPainter::fillRectNoCompose(qint32 x1, qint32 y1, qint32 w, qint32 h, const KisPaintDeviceSP device, const PkRect& deviceRect, const PkTransform transform)
 {
     /**
      * Since this function doesn't do any kind of compositing, so the pixel size
@@ -164,22 +158,22 @@ void KisFillPainter::fillRectNoCompose(qint32 x1, qint32 y1, qint32 w, qint32 h,
 
 
     KisPerspectiveTransformWorker worker(this->device(), transform, false, this->progressUpdater());
-    worker.runPartialDst(device, this->device(), QRect(x1, y1, w, h));
+    worker.runPartialDst(device, this->device(), PkRect(x1, y1, w, h));
 
-    addDirtyRect(QRect(x1, y1, w, h));
+    addDirtyRect(PkRect(x1, y1, w, h));
     wrapped->setDefaultBounds(oldBounds);
     wrapped->setSupportsWraparoundMode(oldSupportsWrapAroundMode);
 }
 
-void KisFillPainter::fillRect(const QRect &rc, const KisPaintDeviceSP device, const QRect& deviceRect)
+void KisFillPainter::fillRect(const PkRect &rc, const KisPaintDeviceSP device, const PkRect& deviceRect)
 {
     fillRect(rc.x(), rc.y(), rc.width(), rc.height(), device, deviceRect);
 }
 
-void KisFillPainter::fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const KisPaintDeviceSP device, const QRect& deviceRect)
+void KisFillPainter::fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const KisPaintDeviceSP device, const PkRect& deviceRect)
 {
-    const QRect &patternRect = deviceRect;
-    const QRect fillRect(x1, y1, w, h);
+    const PkRect &patternRect = deviceRect;
+    const PkRect fillRect(x1, y1, w, h);
 
     auto toPatternLocal = [](int value, int offset, int width) {
         const int normalizedValue = value - offset;
@@ -209,7 +203,7 @@ void KisFillPainter::fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const Ki
         dstY += height;
     }
 
-    addDirtyRect(QRect(x1, y1, w, h));
+    addDirtyRect(PkRect(x1, y1, w, h));
 }
 
 void KisFillPainter::fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const KisFilterConfigurationSP generator)
@@ -220,7 +214,7 @@ void KisFillPainter::fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const Ki
     if (w < 1) return;
     if (h < 1) return;
 
-    QRect tmpRc(x1, y1, w, h);
+    PkRect tmpRc(x1, y1, w, h);
 
     KisProcessingInformation dstCfg(device(), tmpRc.topLeft(), 0);
 
@@ -245,8 +239,8 @@ void KisFillPainter::fillColor(int startX, int startY, KisPaintDeviceSP sourceDe
                        << "devices";
         }
 
-        QRect fillBoundsRect(0, 0, m_width, m_height);
-        QPoint startPoint(startX, startY);
+        PkRect fillBoundsRect(0, 0, m_width, m_height);
+        PkPoint startPoint(startX, startY);
 
         if (!fillBoundsRect.contains(startPoint)) return;
 
@@ -274,7 +268,7 @@ void KisFillPainter::fillColor(int startX, int startY, KisPaintDeviceSP sourceDe
     }
 }
 
-void KisFillPainter::fillPattern(int startX, int startY, KisPaintDeviceSP sourceDevice, QTransform patternTransform)
+void KisFillPainter::fillPattern(int startX, int startY, KisPaintDeviceSP sourceDevice, PkTransform patternTransform)
 {
     genericFillStart(startX, startY, sourceDevice);
 
@@ -282,7 +276,7 @@ void KisFillPainter::fillPattern(int startX, int startY, KisPaintDeviceSP source
     KisPaintDeviceSP filled = device()->createCompositionSourceDevice();
     Q_CHECK_PTR(filled);
     KisFillPainter painter(filled);
-    painter.fillRectNoCompose(QRect(0, 0, m_width, m_height), pattern(), patternTransform);
+    painter.fillRectNoCompose(PkRect(0, 0, m_width, m_height), pattern(), patternTransform);
     painter.end();
 
     genericFillEnd(filled);
@@ -313,14 +307,14 @@ void KisFillPainter::genericFillEnd(KisPaintDeviceSP filled)
 //  TODO: filling using the correct bound of the selection would be better, *but*
 //  the selection is limited to the exact bound of a layer, while in reality, we don't
 //  want that, since we want a transparent layer to be completely filled
-//     QRect rc = m_fillSelection->selectedExactRect();
+//     PkRect rc = m_fillSelection->selectedExactRect();
 
 
     /**
      * Apply the real selection to a filled one
      */
     KisSelectionSP realSelection = selection();
-    QRect rc;
+    PkRect rc;
 
     if (realSelection) {
         rc = m_fillSelection->selectedExactRect().intersected(realSelection->projection()->selectedExactRect());
@@ -352,7 +346,7 @@ KisPixelSelectionSP KisFillPainter::createFloodSelection(KisPixelSelectionSP pix
 
     if (m_width < 0 || m_height < 0) {
         if (selection() && m_careForSelection) {
-            QRect rc = selection()->selectedExactRect();
+            PkRect rc = selection()->selectedExactRect();
             m_width = rc.width() - (startX - rc.x());
             m_height = rc.height() - (startY - rc.y());
         }
@@ -361,8 +355,8 @@ KisPixelSelectionSP KisFillPainter::createFloodSelection(KisPixelSelectionSP pix
     // Otherwise the width and height should have been set
     Q_ASSERT(m_width > 0 && m_height > 0);
 
-    QRect fillBoundsRect(0, 0, m_width, m_height);
-    QPoint startPoint(startX, startY);
+    PkRect fillBoundsRect(0, 0, m_width, m_height);
+    PkPoint startPoint(startX, startY);
 
     if (!fillBoundsRect.contains(startPoint)) {
         return pixelSelection;
@@ -418,7 +412,7 @@ KisPixelSelectionSP KisFillPainter::createFloodSelection(KisPixelSelectionSP pix
 template <typename DifferencePolicy, typename SelectionPolicy>
 void createSimilarColorsSelectionImpl(KisPixelSelectionSP outSelection,
                                       KisPaintDeviceSP referenceDevice,
-                                      const QRect &rect,
+                                      const PkRect &rect,
                                       KisPixelSelectionSP mask,
                                       DifferencePolicy differencePolicy,
                                       SelectionPolicy selectionPolicy,
@@ -476,7 +470,7 @@ void createSimilarColorsSelectionImpl(KisPixelSelectionSP outSelection,
 void KisFillPainter::createSimilarColorsSelection(KisPixelSelectionSP outSelection,
                                                   const KoColor &referenceColor,
                                                   KisPaintDeviceSP referenceDevice,
-                                                  const QRect &rect,
+                                                  const PkRect &rect,
                                                   KisPixelSelectionSP mask)
 {
     if (rect.isEmpty()) {
@@ -530,21 +524,21 @@ void KisFillPainter::createSimilarColorsSelection(KisPixelSelectionSP outSelecti
     }
 }
 
-QVector<KisStrokeJobData*> KisFillPainter::createSimilarColorsSelectionJobs(
+PkVector<KisStrokeJobData*> KisFillPainter::createSimilarColorsSelectionJobs(
     KisPixelSelectionSP outSelection,
-    const QSharedPointer<KoColor> referenceColor,
+    const PkSharedPointer<KoColor> referenceColor,
     KisPaintDeviceSP referenceDevice,
-    const QRect &rect,
+    const PkRect &rect,
     KisPixelSelectionSP mask,
-    QSharedPointer<KisProcessingVisitor::ProgressHelper> progressHelper
+    PkSharedPointer<KisProcessingVisitor::ProgressHelper> progressHelper
 )
 {
     if (rect.isEmpty()) {
         return {};
     }
 
-    QVector<KisStrokeJobData*> jobsData;
-    QVector<QRect> fillPatches =
+    PkVector<KisStrokeJobData*> jobsData;
+    PkVector<PkRect> fillPatches =
         KritaUtils::splitRectIntoPatches(rect, KritaUtils::optimalPatchSize());
     const int threshold = fillThreshold();
     const int softness = 100 - opacitySpread();
@@ -555,7 +549,7 @@ QVector<KisStrokeJobData*> KisFillPainter::createSimilarColorsSelectionJobs(
 
     KritaUtils::addJobBarrier(jobsData, nullptr);
 
-    for (const QRect &patch : fillPatches) {
+    for (const PkRect &patch : fillPatches) {
         KritaUtils::addJobConcurrent(
             jobsData,
             [referenceDevice, outSelection, mask, referenceColor,

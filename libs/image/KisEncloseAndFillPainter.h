@@ -9,8 +9,8 @@
 #ifndef KISENCLOSEANDFILLPAINTER_H
 #define KISENCLOSEANDFILLPAINTER_H
 
-#include <QPoint>
-#include <QScopedPointer>
+#include <PkPoint.h>
+#include <PkScopedPointer.h>
 
 #include <kis_pixel_selection.h>
 #include <kis_paint_device.h>
@@ -85,13 +85,13 @@ public:
      * Construct an empty painter. Use the begin(KisPaintDeviceSP) method to attach
      * to a paint device
      */
-    KisEncloseAndFillPainter(const QSize &imageSize);
+    KisEncloseAndFillPainter(const PkSize &imageSize);
     /**
      * Start painting on the specified paint device
      */
-    KisEncloseAndFillPainter(KisPaintDeviceSP device, const QSize &imageSize);
+    KisEncloseAndFillPainter(KisPaintDeviceSP device, const PkSize &imageSize);
 
-    KisEncloseAndFillPainter(KisPaintDeviceSP device, KisSelectionSP selection, const QSize &imageSize);
+    KisEncloseAndFillPainter(KisPaintDeviceSP device, KisSelectionSP selection, const PkSize &imageSize);
 
     ~KisEncloseAndFillPainter() override;
 
@@ -120,7 +120,7 @@ public:
      */
     void encloseAndFillPattern(KisPixelSelectionSP enclosingMask,
                                KisPaintDeviceSP referenceDevice,
-                               QTransform patternTransform = QTransform());
+                               PkTransform patternTransform = PkTransform());
 
     /**
      * Returns a selection mask for the closed regions inside of the enclosing mask.
@@ -205,7 +205,7 @@ protected:
 
 private:
     class Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif

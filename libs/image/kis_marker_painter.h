@@ -7,7 +7,7 @@
 #ifndef __KIS_MARKER_PAINTER_H
 #define __KIS_MARKER_PAINTER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "kis_types.h"
 #include "kritaimage_export.h"
@@ -25,16 +25,16 @@ public:
     KisMarkerPainter(KisPaintDeviceSP device, const KoColor &color);
     ~KisMarkerPainter();
 
-    void fillFullCircle(const QPointF &center, qreal radius);
-    void fillHalfBrushDiff(const QPointF &p1, const QPointF &p2, const QPointF &p3,
-                           const QPointF &center, qreal radius);
+    void fillFullCircle(const PkPointF &center, qreal radius);
+    void fillHalfBrushDiff(const PkPointF &p1, const PkPointF &p2, const PkPointF &p3,
+                           const PkPointF &center, qreal radius);
 
-    void fillCirclesDiff(const QPointF &c1, qreal r1,
-                         const QPointF &c2, qreal r2);
+    void fillCirclesDiff(const PkPointF &c1, qreal r1,
+                         const PkPointF &c2, qreal r2);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 
     /// This method is to check whether the number is not infinite
     /// or negative infinite with some epsilon
@@ -50,7 +50,7 @@ private:
     /// (@see isNumberInValidRange, ValidNumberRangeValue)
     /// @param number value entered by the user
     /// @return true if rect's values is in range, false otherwise
-    bool isRectInValidRange(const QRect &rect);
+    bool isRectInValidRange(const PkRect &rect);
 };
 
 #endif /* __KIS_MARKER_PAINTER_H */

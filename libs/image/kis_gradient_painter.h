@@ -7,7 +7,7 @@
 #ifndef KIS_GRADIENT_PAINTER_H_
 #define KIS_GRADIENT_PAINTER_H_
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include <KoColor.h>
 
@@ -56,8 +56,8 @@ public:
     /**
      * Paint a gradient in the rect between startx, starty, width and height.
      */
-    bool paintGradient(const QPointF& gradientVectorStart,
-                       const QPointF& gradientVectorEnd,
+    bool paintGradient(const PkPointF& gradientVectorStart,
+                       const PkPointF& gradientVectorEnd,
                        enumGradientRepeat repeat,
                        double antiAliasThreshold,
                        bool reverseGradient,
@@ -68,26 +68,26 @@ public:
                        bool useDithering = false);
 
     // convenience overload
-    bool paintGradient(const QPointF& gradientVectorStart,
-                       const QPointF& gradientVectorEnd,
+    bool paintGradient(const PkPointF& gradientVectorStart,
+                       const PkPointF& gradientVectorEnd,
                        enumGradientRepeat repeat,
                        double antiAliasThreshold,
                        bool reverseGradient,
-                       const QRect &applyRect,
+                       const PkRect &applyRect,
                        bool useDithering = false);
 
     template <class T> 
-    bool paintGradient(const QPointF& gradientVectorStart,
-                       const QPointF& gradientVectorEnd,
+    bool paintGradient(const PkPointF& gradientVectorStart,
+                       const PkPointF& gradientVectorEnd,
                        enumGradientRepeat repeat,
                        double antiAliasThreshold,
                        bool reverseGradient,
                        bool useDithering,
-                       const QRect &applyRect,
+                       const PkRect &applyRect,
                        T & paintPolicy);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 #endif //KIS_GRADIENT_PAINTER_H_

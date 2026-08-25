@@ -52,7 +52,7 @@ public:
      *
      * WARNING: The painter will read **more** pixels than you pass in \p areaSize.
      *          The actual processing area will be:
-     *          QRect(x - kernel.width() / 2,
+     *          PkRect(x - kernel.width() / 2,
      *                y - kernel.height() / 2,
      *                w + 2 * (kernel.width() / 2),
      *                h + 2 * (kernel.height() / 2))
@@ -68,7 +68,7 @@ public:
      * If you want to convolve a subset of the channels in a pixel,
      * set those channels with KisPainter::setChannelFlags();
      */
-    void applyMatrix(const KisConvolutionKernelSP kernel, const KisPaintDeviceSP src, QPoint srcPos, QPoint dstPos, QSize areaSize,
+    void applyMatrix(const KisConvolutionKernelSP kernel, const KisPaintDeviceSP src, PkPoint srcPos, PkPoint dstPos, PkSize areaSize,
                      KisConvolutionBorderOp borderOp = BORDER_REPEAT);
 
     /**

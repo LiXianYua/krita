@@ -12,14 +12,14 @@
 #include "kis_random_accessor_ng.h"
 #include "KisRenderedDab.h"
 
-void KisPainter::Private::applyDevice(const QRect &applyRect,
+void KisPainter::Private::applyDevice(const PkRect &applyRect,
                                       const KisRenderedDab &dab,
                                       KisRandomAccessorSP dstIt,
                                       const KoColorSpace *srcColorSpace,
                                       KoCompositeOp::ParameterInfo &localParamInfo)
 {
-    const QRect dabRect = dab.realBounds();
-    const QRect rc = applyRect & dabRect;
+    const PkRect dabRect = dab.realBounds();
+    const PkRect rc = applyRect & dabRect;
 
     const int srcPixelSize = srcColorSpace->pixelSize();
     const int dabRowStride = srcPixelSize * dabRect.width();
@@ -71,15 +71,15 @@ void KisPainter::Private::applyDevice(const QRect &applyRect,
 
 }
 
-void KisPainter::Private::applyDeviceWithSelection(const QRect &applyRect,
+void KisPainter::Private::applyDeviceWithSelection(const PkRect &applyRect,
                                                    const KisRenderedDab &dab,
                                                    KisRandomAccessorSP dstIt,
                                                    KisRandomConstAccessorSP maskIt,
                                                    const KoColorSpace *srcColorSpace,
                                                    KoCompositeOp::ParameterInfo &localParamInfo)
 {
-    const QRect dabRect = dab.realBounds();
-    const QRect rc = applyRect & dabRect;
+    const PkRect dabRect = dab.realBounds();
+    const PkRect rc = applyRect & dabRect;
 
     const int srcPixelSize = srcColorSpace->pixelSize();
     const int dabRowStride = srcPixelSize * dabRect.width();
@@ -135,17 +135,17 @@ void KisPainter::Private::applyDeviceWithSelection(const QRect &applyRect,
 
 }
 
-void KisPainter::bltFixed(const QRect &applyRect, const QList<KisRenderedDab> allSrcDevices)
+void KisPainter::bltFixed(const PkRect &applyRect, const PkList<KisRenderedDab> allSrcDevices)
 {
     const KoColorSpace *srcColorSpace = 0;
-    QList<KisRenderedDab> devices;
-    QRect rc = applyRect;
+    PkList<KisRenderedDab> devices;
+    PkRect rc = applyRect;
 
     if (d->selection) {
         rc &= d->selection->selectedRect();
     }
 
-    QRect totalDevicesRect;
+    PkRect totalDevicesRect;
 
     Q_FOREACH (const KisRenderedDab &dab, allSrcDevices) {
         if (rc.intersects(dab.realBounds())) {
@@ -184,7 +184,7 @@ void KisPainter::bltFixed(const QRect &applyRect, const QList<KisRenderedDab> al
     // but more efficiently :)
 
     Q_FOREACH (KisFixedPaintDeviceSP dev, devices) {
-        const QRect copyRect = dev->bounds() & rc;
+        const PkRect copyRect = dev->bounds() & rc;
         if (copyRect.isEmpty()) continue;
 
         bltFixed(copyRect.topLeft(), dev, copyRect);

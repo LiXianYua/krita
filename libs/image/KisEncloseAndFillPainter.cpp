@@ -132,185 +132,185 @@ public:
     bool regionSelectionInvert {false};
     bool regionSelectionIncludeContourRegions {true};
     bool regionSelectionIncludeSurroundingRegions {true};
-    QRect imageRect;
+    PkRect imageRect;
 
     Private(KisEncloseAndFillPainter *q) : q(q) {}
     
     void computeEnclosedRegionsMask(KisPixelSelectionSP resultMask,
-                                    QRect *resultMaskRect,
+                                    PkRect *resultMaskRect,
                                     KisPixelSelectionSP enclosingMask,
-                                    const QRect &enclosingMaskRect,
+                                    const PkRect &enclosingMaskRect,
                                     KisPaintDeviceSP referenceDevice) const;
 
     void selectAllRegions(KisPixelSelectionSP resultMask,
-                          QRect *resultMaskRect,
+                          PkRect *resultMaskRect,
                           KisPixelSelectionSP enclosingMask,
-                          const QRect &enclosingMaskRect,
+                          const PkRect &enclosingMaskRect,
                           KisPaintDeviceSP referenceDevice) const;
 
     void selectRegionsFilledWithSpecificColor(KisPixelSelectionSP resultMask,
-                                              QRect *resultMaskRect,
+                                              PkRect *resultMaskRect,
                                               KisPixelSelectionSP enclosingMask,
-                                              const QRect &enclosingMaskRect,
+                                              const PkRect &enclosingMaskRect,
                                               KisPaintDeviceSP referenceDevice) const;
     void selectRegionsFilledWithTransparent(KisPixelSelectionSP resultMask,
-                                            QRect *resultMaskRect,
+                                            PkRect *resultMaskRect,
                                             KisPixelSelectionSP enclosingMask,
-                                            const QRect &enclosingMaskRect,
+                                            const PkRect &enclosingMaskRect,
                                             KisPaintDeviceSP referenceDevice) const;
     void selectRegionsFilledWithSpecificColorOrTransparent(KisPixelSelectionSP resultMask,
-                                                           QRect *resultMaskRect,
+                                                           PkRect *resultMaskRect,
                                                            KisPixelSelectionSP enclosingMask,
-                                                           const QRect &enclosingMaskRect,
+                                                           const PkRect &enclosingMaskRect,
                                                            KisPaintDeviceSP referenceDevice) const;
     template <typename SelectionPolicy>
     void selectRegionsFilledWithSpecificColorGeneric(KisPixelSelectionSP resultMask,
-                                                     QRect *resultMaskRect,
+                                                     PkRect *resultMaskRect,
                                                      KisPixelSelectionSP enclosingMask,
-                                                     const QRect &enclosingMaskRect,
+                                                     const PkRect &enclosingMaskRect,
                                                      KisPaintDeviceSP referenceDevice,
                                                      SelectionPolicy selectionPolicy) const;
 
     void selectAllRegionsExceptFilledWithSpecificColor(KisPixelSelectionSP resultMask,
-                                                       QRect *resultMaskRect,
+                                                       PkRect *resultMaskRect,
                                                        KisPixelSelectionSP enclosingMask,
-                                                       const QRect &enclosingMaskRect,
+                                                       const PkRect &enclosingMaskRect,
                                                        KisPaintDeviceSP referenceDevice) const;
     void selectAllRegionsExceptFilledWithTransparent(KisPixelSelectionSP resultMask,
-                                                     QRect *resultMaskRect,
+                                                     PkRect *resultMaskRect,
                                                      KisPixelSelectionSP enclosingMask,
-                                                     const QRect &enclosingMaskRect,
+                                                     const PkRect &enclosingMaskRect,
                                                      KisPaintDeviceSP referenceDevice) const;
     void selectAllRegionsExceptFilledWithSpecificColorOrTransparent(KisPixelSelectionSP resultMask,
-                                                                    QRect *resultMaskRect,
+                                                                    PkRect *resultMaskRect,
                                                                     KisPixelSelectionSP enclosingMask,
-                                                                    const QRect &enclosingMaskRect,
+                                                                    const PkRect &enclosingMaskRect,
                                                                     KisPaintDeviceSP referenceDevice) const;
     template <typename SelectionPolicy>
     void selectAllRegionsExceptFilledWithSpecificColorGeneric(KisPixelSelectionSP resultMask,
-                                                              QRect *resultMaskRect,
+                                                              PkRect *resultMaskRect,
                                                               KisPixelSelectionSP enclosingMask,
-                                                              const QRect &enclosingMaskRect,
+                                                              const PkRect &enclosingMaskRect,
                                                               KisPaintDeviceSP referenceDevice,
                                                               SelectionPolicy selectionPolicy) const;
 
     void selectRegionsSurroundedBySpecificColor(KisPixelSelectionSP resultMask,
-                                                QRect *resultMaskRect,
+                                                PkRect *resultMaskRect,
                                                 KisPixelSelectionSP enclosingMask,
-                                                const QRect &enclosingMaskRect,
+                                                const PkRect &enclosingMaskRect,
                                                 KisPaintDeviceSP referenceDevice) const;
     void selectRegionsSurroundedByTransparent(KisPixelSelectionSP resultMask,
-                                              QRect *resultMaskRect,
+                                              PkRect *resultMaskRect,
                                               KisPixelSelectionSP enclosingMask,
-                                              const QRect &enclosingMaskRect,
+                                              const PkRect &enclosingMaskRect,
                                               KisPaintDeviceSP referenceDevice) const;
     void selectRegionsSurroundedBySpecificColorOrTransparent(KisPixelSelectionSP resultMask,
-                                                             QRect *resultMaskRect,
+                                                             PkRect *resultMaskRect,
                                                              KisPixelSelectionSP enclosingMask,
-                                                             const QRect &enclosingMaskRect,
+                                                             const PkRect &enclosingMaskRect,
                                                              KisPaintDeviceSP referenceDevice) const;
     template <typename SelectionPolicy>
     void selectRegionsSurroundedBySpecificColorGeneric(KisPixelSelectionSP resultMask,
-                                                       QRect *resultMaskRect,
+                                                       PkRect *resultMaskRect,
                                                        KisPixelSelectionSP enclosingMask,
-                                                       const QRect &enclosingMaskRect,
+                                                       const PkRect &enclosingMaskRect,
                                                        KisPaintDeviceSP referenceDevice,
                                                        SelectionPolicy selectionPolicy,
                                                        bool colorOrTransparent = false) const;
 
-    QVector<QPoint> getEnclosingContourPoints(KisPixelSelectionSP enclosingMask,
-                                              const QRect &enclosingMaskRect) const;
+    PkVector<PkPoint> getEnclosingContourPoints(KisPixelSelectionSP enclosingMask,
+                                              const PkRect &enclosingMaskRect) const;
 
     void applyPostProcessing(KisPixelSelectionSP mask,
                              KisPaintDeviceSP referenceDevice) const;
 
-    void invertIfNeeded(KisPixelSelectionSP resultMask, KisPixelSelectionSP enclosingMask, const QRect &enclosingMaskRect) const;
+    void invertIfNeeded(KisPixelSelectionSP resultMask, KisPixelSelectionSP enclosingMask, const PkRect &enclosingMaskRect) const;
 
     template <typename SelectionPolicy>
     int selectSimilarRegions(KisPixelSelectionSP resultMask,
                              KisPixelSelectionSP enclosingMask,
-                             const QRect &enclosingMaskRect,
+                             const PkRect &enclosingMaskRect,
                              KisPaintDeviceSP referenceDevice,
                              SelectionPolicy selectionPolicy) const;
     template <typename SelectionPolicy>
     int selectDissimilarRegions(KisPixelSelectionSP resultMask,
                                 KisPixelSelectionSP enclosingMask,
-                                const QRect &enclosingMaskRect,
+                                const PkRect &enclosingMaskRect,
                                 KisPaintDeviceSP referenceDevice,
                                 SelectionPolicy selectionPolicy) const;
 
     void selectRegionsFromContour(KisPixelSelectionSP resultMask,
                                   KisPixelSelectionSP enclosingMask,
-                                  const QRect &enclosingMaskRect,
+                                  const PkRect &enclosingMaskRect,
                                   KisPaintDeviceSP referenceDevice) const;
     void selectRegionsFromContour(KisPixelSelectionSP resultMask,
                                   KisPixelSelectionSP enclosingMask,
-                                  const QVector<QPoint> &enclosingPoints,
-                                  const QRect &enclosingMaskRect,
+                                  const PkVector<PkPoint> &enclosingPoints,
+                                  const PkRect &enclosingMaskRect,
                                   KisPaintDeviceSP referenceDevice) const;
 
     void selectRegionsFromContourUntilColor(KisPixelSelectionSP resultMask,
                                             KisPixelSelectionSP enclosingMask,
-                                            const QRect &enclosingMaskRect,
+                                            const PkRect &enclosingMaskRect,
                                             KisPaintDeviceSP referenceDevice,
                                             const KoColor &color) const;
     void selectRegionsFromContourUntilColor(KisPixelSelectionSP resultMask,
                                             KisPixelSelectionSP enclosingMask,
-                                            const QVector<QPoint> &enclosingPoints,
-                                            const QRect &enclosingMaskRect,
+                                            const PkVector<PkPoint> &enclosingPoints,
+                                            const PkRect &enclosingMaskRect,
                                             KisPaintDeviceSP referenceDevice,
                                             const KoColor &color) const;
 
     void selectRegionsFromContourUntilColorOrTransparent(KisPixelSelectionSP resultMask,
                                                          KisPixelSelectionSP enclosingMask,
-                                                         const QRect &enclosingMaskRect,
+                                                         const PkRect &enclosingMaskRect,
                                                          KisPaintDeviceSP referenceDevice,
                                                          const KoColor &color) const;
     void selectRegionsFromContourUntilColorOrTransparent(KisPixelSelectionSP resultMask,
                                                          KisPixelSelectionSP enclosingMask,
-                                                         const QVector<QPoint> &enclosingPoints,
-                                                         const QRect &enclosingMaskRect,
+                                                         const PkVector<PkPoint> &enclosingPoints,
+                                                         const PkRect &enclosingMaskRect,
                                                          KisPaintDeviceSP referenceDevice,
                                                          const KoColor &color) const;
 
     void removeContourRegions(KisPixelSelectionSP resultMask,
                               KisPixelSelectionSP enclosingMask,
-                              const QRect &enclosingMaskRect,
+                              const PkRect &enclosingMaskRect,
                               KisPaintDeviceSP referenceDevice) const;
     void removeContourRegions(KisPixelSelectionSP resultMask,
                               KisPixelSelectionSP enclosingMask,
-                              const QVector<QPoint> &enclosingPoints,
-                              const QRect &enclosingMaskRect,
+                              const PkVector<PkPoint> &enclosingPoints,
+                              const PkRect &enclosingMaskRect,
                               KisPaintDeviceSP referenceDevice) const;
 
-    void invertMaskRect(KisPixelSelectionSP resultMask, const QRect &rect) const;
+    void invertMaskRect(KisPixelSelectionSP resultMask, const PkRect &rect) const;
 
 };
 
-KisEncloseAndFillPainter::KisEncloseAndFillPainter(const QSize &imageSize)
+KisEncloseAndFillPainter::KisEncloseAndFillPainter(const PkSize &imageSize)
     : m_d(new Private(this))
 {
     setWidth(imageSize.width());
     setHeight(imageSize.height());
-    m_d->imageRect = QRect(QPoint(0, 0), imageSize);
+    m_d->imageRect = PkRect(PkPoint(0, 0), imageSize);
 }
 
-KisEncloseAndFillPainter::KisEncloseAndFillPainter(KisPaintDeviceSP device, const QSize &imageSize)
+KisEncloseAndFillPainter::KisEncloseAndFillPainter(KisPaintDeviceSP device, const PkSize &imageSize)
     : KisFillPainter(device)
     , m_d(new Private(this))
 {
     setWidth(imageSize.width());
     setHeight(imageSize.height());
-    m_d->imageRect = QRect(QPoint(0, 0), imageSize);
+    m_d->imageRect = PkRect(PkPoint(0, 0), imageSize);
 }
 
-KisEncloseAndFillPainter::KisEncloseAndFillPainter(KisPaintDeviceSP device, KisSelectionSP selection, const QSize &imageSize)
+KisEncloseAndFillPainter::KisEncloseAndFillPainter(KisPaintDeviceSP device, KisSelectionSP selection, const PkSize &imageSize)
     : KisFillPainter(device, selection)
     , m_d(new Private(this))
 {
     setWidth(imageSize.width());
     setHeight(imageSize.height());
-    m_d->imageRect = QRect(QPoint(0, 0), imageSize);
+    m_d->imageRect = PkRect(PkPoint(0, 0), imageSize);
 }
 
 KisEncloseAndFillPainter::~KisEncloseAndFillPainter()
@@ -320,7 +320,7 @@ void KisEncloseAndFillPainter::encloseAndFillColor(KisPixelSelectionSP enclosing
 {
     genericEncloseAndFillStart(enclosingMask, referenceDevice);
 
-    const QRect fillRect = currentFillSelection()->selectedExactRect();
+    const PkRect fillRect = currentFillSelection()->selectedExactRect();
     if (fillRect.isEmpty()) {
         return;
     }
@@ -337,11 +337,11 @@ void KisEncloseAndFillPainter::encloseAndFillColor(KisPixelSelectionSP enclosing
 
 void KisEncloseAndFillPainter::encloseAndFillPattern(KisPixelSelectionSP enclosingMask,
                                                      KisPaintDeviceSP referenceDevice,
-                                                     QTransform patternTransform)
+                                                     PkTransform patternTransform)
 {
     genericEncloseAndFillStart(enclosingMask, referenceDevice);
 
-    const QRect fillRect = currentFillSelection()->selectedExactRect();
+    const PkRect fillRect = currentFillSelection()->selectedExactRect();
     if (fillRect.isEmpty()) {
         return;
     }
@@ -388,11 +388,11 @@ KisPixelSelectionSP KisEncloseAndFillPainter::createEncloseAndFillSelection(KisP
     Q_ASSERT(enclosingMask);
     Q_ASSERT(referenceDevice);
 
-    const QRect enclosingMaskRect = enclosingMask->selectedExactRect();
+    const PkRect enclosingMaskRect = enclosingMask->selectedExactRect();
     if (enclosingMaskRect.isEmpty()) {
         return newSelection;
     }
-    QRect newSelectionRect;
+    PkRect newSelectionRect;
     // Get the mask that includes all the closed regions inside the enclosing mask
     m_d->computeEnclosedRegionsMask(newSelection, &newSelectionRect, enclosingMask, enclosingMaskRect, referenceDevice);
     if (newSelectionRect.isEmpty()) {
@@ -461,9 +461,9 @@ bool KisEncloseAndFillPainter::regionSelectionIncludeSurroundingRegions() const
 }
 
 void KisEncloseAndFillPainter::Private::computeEnclosedRegionsMask(KisPixelSelectionSP resultMask,
-                                                                   QRect *resultMaskRect,
+                                                                   PkRect *resultMaskRect,
                                                                    KisPixelSelectionSP enclosingMask,
-                                                                   const QRect &enclosingMaskRect,
+                                                                   const PkRect &enclosingMaskRect,
                                                                    KisPaintDeviceSP referenceDevice) const
 {
     // Create the regions mask
@@ -503,9 +503,9 @@ void KisEncloseAndFillPainter::Private::computeEnclosedRegionsMask(KisPixelSelec
 }
 
 void KisEncloseAndFillPainter::Private::selectAllRegions(KisPixelSelectionSP resultMask,
-                                                         QRect *resultMaskRect,
+                                                         PkRect *resultMaskRect,
                                                          KisPixelSelectionSP enclosingMask,
-                                                         const QRect &enclosingMaskRect,
+                                                         const PkRect &enclosingMaskRect,
                                                          KisPaintDeviceSP referenceDevice) const
 {
     if (regionSelectionIncludeContourRegions && regionSelectionInvert) {
@@ -524,9 +524,9 @@ void KisEncloseAndFillPainter::Private::selectAllRegions(KisPixelSelectionSP res
 }
 
 void KisEncloseAndFillPainter::Private::selectRegionsFilledWithSpecificColor(KisPixelSelectionSP resultMask,
-                                                                             QRect *resultMaskRect,
+                                                                             PkRect *resultMaskRect,
                                                                              KisPixelSelectionSP enclosingMask,
-                                                                             const QRect &enclosingMaskRect,
+                                                                             const PkRect &enclosingMaskRect,
                                                                              KisPaintDeviceSP referenceDevice) const
 {
     using namespace KisEncloseAndFillPainterDetail;
@@ -541,9 +541,9 @@ void KisEncloseAndFillPainter::Private::selectRegionsFilledWithSpecificColor(Kis
 }
 
 void KisEncloseAndFillPainter::Private::selectRegionsFilledWithTransparent(KisPixelSelectionSP resultMask,
-                                                                           QRect *resultMaskRect,
+                                                                           PkRect *resultMaskRect,
                                                                            KisPixelSelectionSP enclosingMask,
-                                                                           const QRect &enclosingMaskRect,
+                                                                           const PkRect &enclosingMaskRect,
                                                                            KisPaintDeviceSP referenceDevice) const
 {
     using namespace KisEncloseAndFillPainterDetail;
@@ -558,9 +558,9 @@ void KisEncloseAndFillPainter::Private::selectRegionsFilledWithTransparent(KisPi
 }
 
 void KisEncloseAndFillPainter::Private::selectRegionsFilledWithSpecificColorOrTransparent(KisPixelSelectionSP resultMask,
-                                                                                          QRect *resultMaskRect,
+                                                                                          PkRect *resultMaskRect,
                                                                                           KisPixelSelectionSP enclosingMask,
-                                                                                          const QRect &enclosingMaskRect,
+                                                                                          const PkRect &enclosingMaskRect,
                                                                                           KisPaintDeviceSP referenceDevice) const
 {
     using namespace KisEncloseAndFillPainterDetail;
@@ -589,9 +589,9 @@ void KisEncloseAndFillPainter::Private::selectRegionsFilledWithSpecificColorOrTr
 
 template <typename SelectionPolicy>
 void KisEncloseAndFillPainter::Private::selectRegionsFilledWithSpecificColorGeneric(KisPixelSelectionSP resultMask,
-                                                                                    QRect *resultMaskRect,
+                                                                                    PkRect *resultMaskRect,
                                                                                     KisPixelSelectionSP enclosingMask,
-                                                                                    const QRect &enclosingMaskRect,
+                                                                                    const PkRect &enclosingMaskRect,
                                                                                     KisPaintDeviceSP referenceDevice,
                                                                                     SelectionPolicy selectionPolicy) const
 {
@@ -599,7 +599,7 @@ void KisEncloseAndFillPainter::Private::selectRegionsFilledWithSpecificColorGene
     // return if there are no selected pixels
     if (selectSimilarRegions(resultMask, enclosingMask, enclosingMaskRect, referenceDevice, selectionPolicy) == 0) {
         if (resultMaskRect) {
-            *resultMaskRect = QRect();
+            *resultMaskRect = PkRect();
         }
         return;
     }
@@ -613,9 +613,9 @@ void KisEncloseAndFillPainter::Private::selectRegionsFilledWithSpecificColorGene
 }
 
 void KisEncloseAndFillPainter::Private::selectAllRegionsExceptFilledWithSpecificColor(KisPixelSelectionSP resultMask,
-                                                                                      QRect *resultMaskRect,
+                                                                                      PkRect *resultMaskRect,
                                                                                       KisPixelSelectionSP enclosingMask,
-                                                                                      const QRect &enclosingMaskRect,
+                                                                                      const PkRect &enclosingMaskRect,
                                                                                       KisPaintDeviceSP referenceDevice) const
 {
     using namespace KisEncloseAndFillPainterDetail;
@@ -630,9 +630,9 @@ void KisEncloseAndFillPainter::Private::selectAllRegionsExceptFilledWithSpecific
 }
 
 void KisEncloseAndFillPainter::Private::selectAllRegionsExceptFilledWithTransparent(KisPixelSelectionSP resultMask,
-                                                                                    QRect *resultMaskRect,
+                                                                                    PkRect *resultMaskRect,
                                                                                     KisPixelSelectionSP enclosingMask,
-                                                                                    const QRect &enclosingMaskRect,
+                                                                                    const PkRect &enclosingMaskRect,
                                                                                     KisPaintDeviceSP referenceDevice) const
 {
     using namespace KisEncloseAndFillPainterDetail;
@@ -647,9 +647,9 @@ void KisEncloseAndFillPainter::Private::selectAllRegionsExceptFilledWithTranspar
 }
 
 void KisEncloseAndFillPainter::Private::selectAllRegionsExceptFilledWithSpecificColorOrTransparent(KisPixelSelectionSP resultMask,
-                                                                                                   QRect *resultMaskRect,
+                                                                                                   PkRect *resultMaskRect,
                                                                                                    KisPixelSelectionSP enclosingMask,
-                                                                                                   const QRect &enclosingMaskRect,
+                                                                                                   const PkRect &enclosingMaskRect,
                                                                                                    KisPaintDeviceSP referenceDevice) const
 {
     using namespace KisEncloseAndFillPainterDetail;
@@ -666,17 +666,17 @@ void KisEncloseAndFillPainter::Private::selectAllRegionsExceptFilledWithSpecific
 
 template <typename SelectionPolicy>
 void KisEncloseAndFillPainter::Private::selectAllRegionsExceptFilledWithSpecificColorGeneric(KisPixelSelectionSP resultMask,
-                                                                                             QRect *resultMaskRect,
+                                                                                             PkRect *resultMaskRect,
                                                                                              KisPixelSelectionSP enclosingMask,
-                                                                                             const QRect &enclosingMaskRect,
+                                                                                             const PkRect &enclosingMaskRect,
                                                                                              KisPaintDeviceSP referenceDevice,
                                                                                              SelectionPolicy selectionPolicy) const
 {
-    const QVector<QPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
+    const PkVector<PkPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
     // Remove the regions that touch the enclosing area
     if (selectDissimilarRegions(resultMask, enclosingMask, enclosingMaskRect, referenceDevice, selectionPolicy) == 0) {
         if (resultMaskRect) {
-            *resultMaskRect = QRect();
+            *resultMaskRect = PkRect();
         }
         return;
     }
@@ -693,9 +693,9 @@ void KisEncloseAndFillPainter::Private::selectAllRegionsExceptFilledWithSpecific
 }
 
 void KisEncloseAndFillPainter::Private::selectRegionsSurroundedBySpecificColor(KisPixelSelectionSP resultMask,
-                                                                               QRect *resultMaskRect,
+                                                                               PkRect *resultMaskRect,
                                                                                KisPixelSelectionSP enclosingMask,
-                                                                               const QRect &enclosingMaskRect,
+                                                                               const PkRect &enclosingMaskRect,
                                                                                KisPaintDeviceSP referenceDevice) const
 {
     using namespace KisEncloseAndFillPainterDetail;
@@ -710,9 +710,9 @@ void KisEncloseAndFillPainter::Private::selectRegionsSurroundedBySpecificColor(K
 }
 
 void KisEncloseAndFillPainter::Private::selectRegionsSurroundedByTransparent(KisPixelSelectionSP resultMask,
-                                                                             QRect *resultMaskRect,
+                                                                             PkRect *resultMaskRect,
                                                                              KisPixelSelectionSP enclosingMask,
-                                                                             const QRect &enclosingMaskRect,
+                                                                             const PkRect &enclosingMaskRect,
                                                                              KisPaintDeviceSP referenceDevice) const
 {
     using namespace KisEncloseAndFillPainterDetail;
@@ -727,9 +727,9 @@ void KisEncloseAndFillPainter::Private::selectRegionsSurroundedByTransparent(Kis
 }
 
 void KisEncloseAndFillPainter::Private::selectRegionsSurroundedBySpecificColorOrTransparent(KisPixelSelectionSP resultMask,
-                                                                                            QRect *resultMaskRect,
+                                                                                            PkRect *resultMaskRect,
                                                                                             KisPixelSelectionSP enclosingMask,
-                                                                                            const QRect &enclosingMaskRect,
+                                                                                            const PkRect &enclosingMaskRect,
                                                                                             KisPaintDeviceSP referenceDevice) const
 {
     using namespace KisEncloseAndFillPainterDetail;
@@ -747,15 +747,15 @@ void KisEncloseAndFillPainter::Private::selectRegionsSurroundedBySpecificColorOr
 
 template <typename SelectionPolicy>
 void KisEncloseAndFillPainter::Private::selectRegionsSurroundedBySpecificColorGeneric(KisPixelSelectionSP resultMask,
-                                                                                      QRect *resultMaskRect,
+                                                                                      PkRect *resultMaskRect,
                                                                                       KisPixelSelectionSP enclosingMask,
-                                                                                      const QRect &enclosingMaskRect,
+                                                                                      const PkRect &enclosingMaskRect,
                                                                                       KisPaintDeviceSP referenceDevice,
                                                                                       SelectionPolicy selectionPolicy,
                                                                                       bool colorOrTransparent) const
 {
     // Get the enclosing mask contour points
-    const QVector<QPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
+    const PkVector<PkPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
     if (enclosingPoints.isEmpty()) {
         return;
     }
@@ -791,12 +791,12 @@ void KisEncloseAndFillPainter::Private::selectRegionsSurroundedBySpecificColorGe
     }
 }
 
-QVector<QPoint> KisEncloseAndFillPainter::Private::getEnclosingContourPoints(KisPixelSelectionSP enclosingMask,
-                                                                             const QRect &enclosingMaskRect) const
+PkVector<PkPoint> KisEncloseAndFillPainter::Private::getEnclosingContourPoints(KisPixelSelectionSP enclosingMask,
+                                                                             const PkRect &enclosingMaskRect) const
 {
-    QVector<QPoint> enclosingPoints;
+    PkVector<PkPoint> enclosingPoints;
     const int scanlineWidth = enclosingMaskRect.width() + 2;
-    QVector<quint8> buffer(scanlineWidth * 3);
+    PkVector<quint8> buffer(scanlineWidth * 3);
     quint8 *scanlines[3] = {buffer.data(), buffer.data() + scanlineWidth, buffer.data() + scanlineWidth * 2};
     // Initialize the buffer
     // Top, outside row
@@ -862,7 +862,7 @@ QVector<QPoint> KisEncloseAndFillPainter::Private::getEnclosingContourPoints(Kis
             neighbors |= (*(bottomPixel    ) == MIN_SELECTED) << 1;
             neighbors |= (*(bottomPixel + 1) == MIN_SELECTED) << 0;
             if (neighbors != 0) {
-                enclosingPoints.push_back(QPoint(enclosingMaskRect.x() + x, enclosingMaskRect.y() + y));
+                enclosingPoints.push_back(PkPoint(enclosingMaskRect.x() + x, enclosingMaskRect.y() + y));
             }
         }
     }
@@ -906,7 +906,7 @@ void KisEncloseAndFillPainter::Private::applyPostProcessing(KisPixelSelectionSP 
     }
 }
 
-void KisEncloseAndFillPainter::Private::invertIfNeeded(KisPixelSelectionSP resultMask, KisPixelSelectionSP enclosingMask, const QRect &enclosingMaskRect) const
+void KisEncloseAndFillPainter::Private::invertIfNeeded(KisPixelSelectionSP resultMask, KisPixelSelectionSP enclosingMask, const PkRect &enclosingMaskRect) const
 {
     if (!regionSelectionInvert) {
         return;
@@ -921,7 +921,7 @@ void KisEncloseAndFillPainter::Private::invertIfNeeded(KisPixelSelectionSP resul
 template <typename SelectionPolicy>
 int KisEncloseAndFillPainter::Private::selectSimilarRegions(KisPixelSelectionSP resultMask,
                                                             KisPixelSelectionSP enclosingMask,
-                                                            const QRect &enclosingMaskRect,
+                                                            const PkRect &enclosingMaskRect,
                                                             KisPaintDeviceSP referenceDevice,
                                                             SelectionPolicy selectionPolicy) const
 {
@@ -946,7 +946,7 @@ int KisEncloseAndFillPainter::Private::selectSimilarRegions(KisPixelSelectionSP 
 template <typename SelectionPolicy>
 int KisEncloseAndFillPainter::Private::selectDissimilarRegions(KisPixelSelectionSP resultMask,
                                                                KisPixelSelectionSP enclosingMask,
-                                                               const QRect &enclosingMaskRect,
+                                                               const PkRect &enclosingMaskRect,
                                                                KisPaintDeviceSP referenceDevice,
                                                                SelectionPolicy selectionPolicy) const
 {
@@ -970,27 +970,27 @@ int KisEncloseAndFillPainter::Private::selectDissimilarRegions(KisPixelSelection
 
 void KisEncloseAndFillPainter::Private::selectRegionsFromContour(KisPixelSelectionSP resultMask,
                                                                  KisPixelSelectionSP enclosingMask,
-                                                                 const QRect &enclosingMaskRect,
+                                                                 const PkRect &enclosingMaskRect,
                                                                  KisPaintDeviceSP referenceDevice) const
 {
-    const QVector<QPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
+    const PkVector<PkPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
     selectRegionsFromContour(resultMask, enclosingMask, enclosingPoints, enclosingMaskRect, referenceDevice);
 }
 
 void KisEncloseAndFillPainter::Private::selectRegionsFromContour(KisPixelSelectionSP resultMask,
                                                                  KisPixelSelectionSP enclosingMask,
-                                                                 const QVector<QPoint> &enclosingPoints,
-                                                                 const QRect &enclosingMaskRect,
+                                                                 const PkVector<PkPoint> &enclosingPoints,
+                                                                 const PkRect &enclosingMaskRect,
                                                                  KisPaintDeviceSP referenceDevice) const
 {
     if (enclosingPoints.isEmpty()) {
         return;
     }
-    const QRect inclusionRect = q->device()->defaultBounds()->wrapAroundMode()
+    const PkRect inclusionRect = q->device()->defaultBounds()->wrapAroundMode()
                                 ? enclosingMaskRect
                                 : imageRect;
     // Here we just fill all the areas from the border towards inside
-    for (const QPoint &point : enclosingPoints) {
+    for (const PkPoint &point : enclosingPoints) {
         if (!inclusionRect.contains(point)) {
             continue;
         }
@@ -1012,29 +1012,29 @@ void KisEncloseAndFillPainter::Private::selectRegionsFromContour(KisPixelSelecti
 
 void KisEncloseAndFillPainter::Private::selectRegionsFromContourUntilColor(KisPixelSelectionSP resultMask,
                                                                            KisPixelSelectionSP enclosingMask,
-                                                                           const QRect &enclosingMaskRect,
+                                                                           const PkRect &enclosingMaskRect,
                                                                            KisPaintDeviceSP referenceDevice,
                                                                            const KoColor &color) const
 {
-    const QVector<QPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
+    const PkVector<PkPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
     selectRegionsFromContourUntilColor(resultMask, enclosingMask, enclosingPoints, enclosingMaskRect, referenceDevice, color);
 }
 
 void KisEncloseAndFillPainter::Private::selectRegionsFromContourUntilColor(KisPixelSelectionSP resultMask,
                                                                            KisPixelSelectionSP enclosingMask,
-                                                                           const QVector<QPoint> &enclosingPoints,
-                                                                           const QRect &enclosingMaskRect,
+                                                                           const PkVector<PkPoint> &enclosingPoints,
+                                                                           const PkRect &enclosingMaskRect,
                                                                            KisPaintDeviceSP referenceDevice,
                                                                            const KoColor &color) const
 {
     if (enclosingPoints.isEmpty()) {
         return;
     }
-    const QRect inclusionRect = q->device()->defaultBounds()->wrapAroundMode()
+    const PkRect inclusionRect = q->device()->defaultBounds()->wrapAroundMode()
                                 ? enclosingMaskRect
                                 : imageRect;
     // Here we just fill all the areas from the border towards inside until the specific color
-    for (const QPoint &point : enclosingPoints) {
+    for (const PkPoint &point : enclosingPoints) {
         if (!inclusionRect.contains(point)) {
             continue;
         }
@@ -1056,29 +1056,29 @@ void KisEncloseAndFillPainter::Private::selectRegionsFromContourUntilColor(KisPi
 
 void KisEncloseAndFillPainter::Private::selectRegionsFromContourUntilColorOrTransparent(KisPixelSelectionSP resultMask,
                                                                                         KisPixelSelectionSP enclosingMask,
-                                                                                        const QRect &enclosingMaskRect,
+                                                                                        const PkRect &enclosingMaskRect,
                                                                                         KisPaintDeviceSP referenceDevice,
                                                                                         const KoColor &color) const
 {
-    const QVector<QPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
+    const PkVector<PkPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
     selectRegionsFromContourUntilColorOrTransparent(resultMask, enclosingMask, enclosingPoints, enclosingMaskRect, referenceDevice, color);
 }
 
 void KisEncloseAndFillPainter::Private::selectRegionsFromContourUntilColorOrTransparent(KisPixelSelectionSP resultMask,
                                                                                         KisPixelSelectionSP enclosingMask,
-                                                                                        const QVector<QPoint> &enclosingPoints,
-                                                                                        const QRect &enclosingMaskRect,
+                                                                                        const PkVector<PkPoint> &enclosingPoints,
+                                                                                        const PkRect &enclosingMaskRect,
                                                                                         KisPaintDeviceSP referenceDevice,
                                                                                         const KoColor &color) const
 {
     if (enclosingPoints.isEmpty()) {
         return;
     }
-    const QRect inclusionRect = q->device()->defaultBounds()->wrapAroundMode()
+    const PkRect inclusionRect = q->device()->defaultBounds()->wrapAroundMode()
                                 ? enclosingMaskRect
                                 : imageRect;
     // Here we just fill all the areas from the border towards inside until the specific color
-    for (const QPoint &point : enclosingPoints) {
+    for (const PkPoint &point : enclosingPoints) {
         if (!inclusionRect.contains(point)) {
             continue;
         }
@@ -1100,17 +1100,17 @@ void KisEncloseAndFillPainter::Private::selectRegionsFromContourUntilColorOrTran
 
 void KisEncloseAndFillPainter::Private::removeContourRegions(KisPixelSelectionSP resultMask,
                                                              KisPixelSelectionSP enclosingMask,
-                                                             const QRect &enclosingMaskRect,
+                                                             const PkRect &enclosingMaskRect,
                                                              KisPaintDeviceSP referenceDevice) const
 {
-    const QVector<QPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
+    const PkVector<PkPoint> enclosingPoints = getEnclosingContourPoints(enclosingMask, enclosingMaskRect);
     removeContourRegions(resultMask, enclosingMask, enclosingPoints, enclosingMaskRect, referenceDevice);
 }
 
 void KisEncloseAndFillPainter::Private::removeContourRegions(KisPixelSelectionSP resultMask,
                                                              KisPixelSelectionSP enclosingMask,
-                                                             const QVector<QPoint> &enclosingPoints,
-                                                             const QRect &enclosingMaskRect,
+                                                             const PkVector<PkPoint> &enclosingPoints,
+                                                             const PkRect &enclosingMaskRect,
                                                              KisPaintDeviceSP referenceDevice) const
 {
     if (enclosingPoints.isEmpty()) {
@@ -1122,7 +1122,7 @@ void KisEncloseAndFillPainter::Private::removeContourRegions(KisPixelSelectionSP
     resultMask->applySelection(contourRegionsMask, SELECTION_SUBTRACT);
 }
 
-void KisEncloseAndFillPainter::Private::invertMaskRect(KisPixelSelectionSP resultMask, const QRect &rect) const
+void KisEncloseAndFillPainter::Private::invertMaskRect(KisPixelSelectionSP resultMask, const PkRect &rect) const
 {
     KisSequentialIterator resultMaskIterator(resultMask, rect);
     while (resultMaskIterator.nextPixel()) {

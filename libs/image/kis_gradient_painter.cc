@@ -40,7 +40,7 @@ class LinearGradientStrategy : public KisGradientShapeStrategy
 {
 
 public:
-    LinearGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd);
+    LinearGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd);
 
     double valueAt(double x, double y) const override;
 
@@ -50,7 +50,7 @@ protected:
     double m_vectorLength;
 };
 
-LinearGradientStrategy::LinearGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd)
+LinearGradientStrategy::LinearGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd)
         : KisGradientShapeStrategy(gradientVectorStart, gradientVectorEnd)
 {
     double dx = gradientVectorEnd.x() - gradientVectorStart.x();
@@ -90,12 +90,12 @@ class BiLinearGradientStrategy : public LinearGradientStrategy
 {
 
 public:
-    BiLinearGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd);
+    BiLinearGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd);
 
     double valueAt(double x, double y) const override;
 };
 
-BiLinearGradientStrategy::BiLinearGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd)
+BiLinearGradientStrategy::BiLinearGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd)
         : LinearGradientStrategy(gradientVectorStart, gradientVectorEnd)
 {
 }
@@ -117,7 +117,7 @@ class RadialGradientStrategy : public KisGradientShapeStrategy
 {
 
 public:
-    RadialGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd);
+    RadialGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd);
 
     double valueAt(double x, double y) const override;
 
@@ -125,7 +125,7 @@ protected:
     double m_radius;
 };
 
-RadialGradientStrategy::RadialGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd)
+RadialGradientStrategy::RadialGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd)
         : KisGradientShapeStrategy(gradientVectorStart, gradientVectorEnd)
 {
     double dx = gradientVectorEnd.x() - gradientVectorStart.x();
@@ -157,7 +157,7 @@ class SquareGradientStrategy : public KisGradientShapeStrategy
 {
 
 public:
-    SquareGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd);
+    SquareGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd);
 
     double valueAt(double x, double y) const override;
 
@@ -167,7 +167,7 @@ protected:
     double m_vectorLength;
 };
 
-SquareGradientStrategy::SquareGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd)
+SquareGradientStrategy::SquareGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd)
         : KisGradientShapeStrategy(gradientVectorStart, gradientVectorEnd)
 {
     double dx = gradientVectorEnd.x() - gradientVectorStart.x();
@@ -221,7 +221,7 @@ class ConicalGradientStrategy : public KisGradientShapeStrategy
 {
 
 public:
-    ConicalGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd);
+    ConicalGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd);
 
     double valueAt(double x, double y) const override;
 
@@ -229,7 +229,7 @@ protected:
     double m_vectorAngle;
 };
 
-ConicalGradientStrategy::ConicalGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd)
+ConicalGradientStrategy::ConicalGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd)
         : KisGradientShapeStrategy(gradientVectorStart, gradientVectorEnd)
 {
     double dx = gradientVectorEnd.x() - gradientVectorStart.x();
@@ -261,7 +261,7 @@ double ConicalGradientStrategy::valueAt(double x, double y) const
 class ConicalSymetricGradientStrategy : public KisGradientShapeStrategy
 {
 public:
-    ConicalSymetricGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd);
+    ConicalSymetricGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd);
 
     double valueAt(double x, double y) const override;
 
@@ -269,7 +269,7 @@ protected:
     double m_vectorAngle;
 };
 
-ConicalSymetricGradientStrategy::ConicalSymetricGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd)
+ConicalSymetricGradientStrategy::ConicalSymetricGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd)
         : KisGradientShapeStrategy(gradientVectorStart, gradientVectorEnd)
 {
     double dx = gradientVectorEnd.x() - gradientVectorStart.x();
@@ -306,7 +306,7 @@ double ConicalSymetricGradientStrategy::valueAt(double x, double y) const
 class SpiralGradientStrategy : public KisGradientShapeStrategy
 {
 public:
-   SpiralGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd);
+   SpiralGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd);
 
    double valueAt(double x, double y) const override;
 
@@ -315,7 +315,7 @@ protected:
     double m_radius;
 };
 
-SpiralGradientStrategy::SpiralGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd)
+SpiralGradientStrategy::SpiralGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd)
        : KisGradientShapeStrategy(gradientVectorStart, gradientVectorEnd)
 {
     double dx = gradientVectorEnd.x() - gradientVectorStart.x();
@@ -356,7 +356,7 @@ double SpiralGradientStrategy::valueAt(double x, double y) const
 class ReverseSpiralGradientStrategy : public KisGradientShapeStrategy
 {
 public:
-   ReverseSpiralGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd);
+   ReverseSpiralGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd);
 
    double valueAt(double x, double y) const override;
 
@@ -365,7 +365,7 @@ protected:
     double m_radius;
 };
 
-ReverseSpiralGradientStrategy::ReverseSpiralGradientStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd)
+ReverseSpiralGradientStrategy::ReverseSpiralGradientStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd)
        : KisGradientShapeStrategy(gradientVectorStart, gradientVectorEnd)
 {
     double dx = gradientVectorEnd.x() - gradientVectorStart.x();
@@ -586,9 +586,9 @@ class RepeatForwardsPaintPolicy
 public:
     RepeatForwardsPaintPolicy(KisGradientPainter::enumGradientShape shape);
 
-    void setup(const QPointF& gradientVectorStart,
-               const QPointF& gradientVectorEnd,
-               const QSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
+    void setup(const PkPointF& gradientVectorStart,
+               const PkPointF& gradientVectorEnd,
+               const PkSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
                const GradientRepeatStrategy *repeatStrategy,
                qreal antiAliasThreshold,
                bool reverseGradient,
@@ -601,22 +601,22 @@ private:
     qreal m_antiAliasThresholdNormalized {0};
     qreal m_antiAliasThresholdNormalizedRev {0};
     qreal m_antiAliasThresholdNormalizedDbl {0};
-    QSharedPointer<KisGradientShapeStrategy> m_shapeStrategy;
+    PkSharedPointer<KisGradientShapeStrategy> m_shapeStrategy;
     const GradientRepeatStrategy *m_repeatStrategy {0};
     bool m_reverseGradient {false};
     const KoCachedGradient *m_cachedGradient {0};
     const quint8 *m_extremeColors[2];
     const KoColorSpace *m_colorSpace {0};
-    mutable QVector<quint8> m_resultColor;
+    mutable PkVector<quint8> m_resultColor;
 };
 
 RepeatForwardsPaintPolicy::RepeatForwardsPaintPolicy(KisGradientPainter::enumGradientShape shape)
     : m_shape(shape)
 {}
 
-void RepeatForwardsPaintPolicy::setup(const QPointF& gradientVectorStart,
-                                      const QPointF& gradientVectorEnd,
-                                      const QSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
+void RepeatForwardsPaintPolicy::setup(const PkPointF& gradientVectorStart,
+                                      const PkPointF& gradientVectorEnd,
+                                      const PkSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
                                       const GradientRepeatStrategy *repeatStrategy,
                                       qreal antiAliasThreshold,
                                       bool reverseGradient,
@@ -642,7 +642,7 @@ void RepeatForwardsPaintPolicy::setup(const QPointF& gradientVectorStart,
 
     m_colorSpace = m_cachedGradient->colorSpace();
 
-    m_resultColor = QVector<quint8>(m_colorSpace->pixelSize());
+    m_resultColor = PkVector<quint8>(m_colorSpace->pixelSize());
 }
 
 const quint8 *RepeatForwardsPaintPolicy::colorAt(qreal x, qreal y) const
@@ -693,9 +693,9 @@ const quint8 *RepeatForwardsPaintPolicy::colorAt(qreal x, qreal y) const
 class ConicalGradientPaintPolicy
 {
 public:
-    void setup(const QPointF& gradientVectorStart,
-               const QPointF& gradientVectorEnd,
-               const QSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
+    void setup(const PkPointF& gradientVectorStart,
+               const PkPointF& gradientVectorEnd,
+               const PkSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
                const GradientRepeatStrategy *repeatStrategy,
                qreal antiAliasThreshold,
                bool reverseGradient,
@@ -704,8 +704,8 @@ public:
     const quint8 *colorAt(qreal x, qreal y) const;
 
 private:
-    QPointF m_gradientVectorStart;
-    QSharedPointer<KisGradientShapeStrategy> m_shapeStrategy;
+    PkPointF m_gradientVectorStart;
+    PkSharedPointer<KisGradientShapeStrategy> m_shapeStrategy;
     const GradientRepeatStrategy *m_repeatStrategy;
     qreal m_singularityThreshold;
     qreal m_antiAliasThreshold;
@@ -713,12 +713,12 @@ private:
     const KoCachedGradient *m_cachedGradient;
     const quint8 *m_extremeColors[2];
     const KoColorSpace *m_colorSpace;
-    mutable QVector<quint8> m_resultColor;
+    mutable PkVector<quint8> m_resultColor;
 };
 
-void ConicalGradientPaintPolicy::setup(const QPointF& gradientVectorStart,
-                                       const QPointF& gradientVectorEnd,
-                                       const QSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
+void ConicalGradientPaintPolicy::setup(const PkPointF& gradientVectorStart,
+                                       const PkPointF& gradientVectorEnd,
+                                       const PkSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
                                        const GradientRepeatStrategy *repeatStrategy,
                                        qreal antiAliasThreshold,
                                        bool reverseGradient,
@@ -742,7 +742,7 @@ void ConicalGradientPaintPolicy::setup(const QPointF& gradientVectorStart,
 
     m_colorSpace = m_cachedGradient->colorSpace();
 
-    m_resultColor = QVector<quint8>(m_colorSpace->pixelSize());
+    m_resultColor = PkVector<quint8>(m_colorSpace->pixelSize());
 }
 
 const quint8 *ConicalGradientPaintPolicy::colorAt(qreal x, qreal y) const
@@ -801,9 +801,9 @@ class SpyralGradientRepeatNonePaintPolicy
 public:
     SpyralGradientRepeatNonePaintPolicy(bool isReverseSpiral = false);
 
-    void setup(const QPointF& gradientVectorStart,
-               const QPointF& gradientVectorEnd,
-               const QSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
+    void setup(const PkPointF& gradientVectorStart,
+               const PkPointF& gradientVectorEnd,
+               const PkSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
                const GradientRepeatStrategy *repeatStrategy,
                qreal antiAliasThreshold,
                bool reverseGradient,
@@ -812,18 +812,18 @@ public:
     const quint8 *colorAt(qreal x, qreal y) const;
 
 private:
-    QPointF m_gradientVectorStart;
+    PkPointF m_gradientVectorStart;
     qreal m_distanceInPixels {0};
     qreal m_singularityThreshold {0};
     qreal m_angle {0};
-    QSharedPointer<KisGradientShapeStrategy> m_shapeStrategy;
+    PkSharedPointer<KisGradientShapeStrategy> m_shapeStrategy;
     const GradientRepeatStrategy *m_repeatStrategy {0};
     qreal m_antiAliasThreshold {0};
     bool m_reverseGradient {false};
     const KoCachedGradient *m_cachedGradient {0};
     mutable const quint8 *m_extremeColors[2];
     const KoColorSpace *m_colorSpace {0};
-    mutable QVector<quint8> m_resultColor;
+    mutable PkVector<quint8> m_resultColor;
     bool m_isReverseSpiral {false};
 };
 
@@ -832,9 +832,9 @@ SpyralGradientRepeatNonePaintPolicy::SpyralGradientRepeatNonePaintPolicy(bool is
 {
 }
 
-void SpyralGradientRepeatNonePaintPolicy::setup(const QPointF& gradientVectorStart,
-                                                const QPointF& gradientVectorEnd,
-                                                const QSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
+void SpyralGradientRepeatNonePaintPolicy::setup(const PkPointF& gradientVectorStart,
+                                                const PkPointF& gradientVectorEnd,
+                                                const PkSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
                                                 const GradientRepeatStrategy *repeatStrategy,
                                                 qreal antiAliasThreshold,
                                                 bool reverseGradient,
@@ -859,7 +859,7 @@ void SpyralGradientRepeatNonePaintPolicy::setup(const QPointF& gradientVectorSta
 
     m_colorSpace = m_cachedGradient->colorSpace();
 
-    m_resultColor = QVector<quint8>(m_colorSpace->pixelSize());
+    m_resultColor = PkVector<quint8>(m_colorSpace->pixelSize());
 }
 
 const quint8 *SpyralGradientRepeatNonePaintPolicy::colorAt(qreal x, qreal y) const
@@ -941,9 +941,9 @@ const quint8 *SpyralGradientRepeatNonePaintPolicy::colorAt(qreal x, qreal y) con
 class NoAntialiasPaintPolicy
 {
 public:
-    void setup(const QPointF& gradientVectorStart,
-               const QPointF& gradientVectorEnd,
-               const QSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
+    void setup(const PkPointF& gradientVectorStart,
+               const PkPointF& gradientVectorEnd,
+               const PkSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
                const GradientRepeatStrategy *repeatStrategy,
                qreal antiAliasThreshold,
                bool reverseGradient,
@@ -952,15 +952,15 @@ public:
     const quint8 *colorAt(qreal x, qreal y) const;
 
 private:
-    QSharedPointer<KisGradientShapeStrategy> m_shapeStrategy;
+    PkSharedPointer<KisGradientShapeStrategy> m_shapeStrategy;
     const GradientRepeatStrategy *m_repeatStrategy {0};
     bool m_reverseGradient {false};
     const KoCachedGradient *m_cachedGradient {0};
 };
 
-void NoAntialiasPaintPolicy::setup(const QPointF& gradientVectorStart,
-                                   const QPointF& gradientVectorEnd,
-                                   const QSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
+void NoAntialiasPaintPolicy::setup(const PkPointF& gradientVectorStart,
+                                   const PkPointF& gradientVectorEnd,
+                                   const PkSharedPointer<KisGradientShapeStrategy> &shapeStrategy,
                                    const GradientRepeatStrategy *repeatStrategy,
                                    qreal antiAliasThreshold,
                                    bool reverseGradient,
@@ -995,16 +995,16 @@ struct Q_DECL_HIDDEN KisGradientPainter::Private
 
     struct ProcessRegion {
         ProcessRegion() {}
-        ProcessRegion(QSharedPointer<KisGradientShapeStrategy> _precalculatedShapeStrategy,
-                      const QRect &_processRect)
+        ProcessRegion(PkSharedPointer<KisGradientShapeStrategy> _precalculatedShapeStrategy,
+                      const PkRect &_processRect)
             : precalculatedShapeStrategy(_precalculatedShapeStrategy),
               processRect(_processRect) {}
 
-        QSharedPointer<KisGradientShapeStrategy> precalculatedShapeStrategy;
-        QRect processRect;
+        PkSharedPointer<KisGradientShapeStrategy> precalculatedShapeStrategy;
+        PkRect processRect;
     };
 
-    QVector<ProcessRegion> processRegions;
+    PkVector<ProcessRegion> processRegions;
 };
 
 KisGradientPainter::KisGradientPainter()
@@ -1033,7 +1033,7 @@ void KisGradientPainter::setGradientShape(enumGradientShape shape)
     m_d->shape = shape;
 }
 
-KisGradientShapeStrategy* createPolygonShapeStrategy(const QPainterPath &path, const QRect &boundingRect)
+KisGradientShapeStrategy* createPolygonShapeStrategy(const PkPainterPath &path, const PkRect &boundingRect)
 {
     // TODO: implement UI for exponent option
     const qreal exponent = 2.0;
@@ -1056,7 +1056,7 @@ void KisGradientPainter::precalculateShape()
 {
     if (!m_d->processRegions.isEmpty()) return;
 
-    QPainterPath path;
+    PkPainterPath path;
 
     if (selection()) {
         if (!selection()->outlineCacheValid()) {
@@ -1071,10 +1071,10 @@ void KisGradientPainter::precalculateShape()
         path.addRect(device()->defaultBounds()->bounds());
     }
 
-    QList<QPainterPath> splitPaths = KritaUtils::splitDisjointPaths(path);
+    PkList<PkPainterPath> splitPaths = KritaUtils::splitDisjointPaths(path);
 
-    Q_FOREACH (const QPainterPath &subpath, splitPaths) {
-        QRect boundingRect = subpath.boundingRect().toAlignedRect();
+    Q_FOREACH (const PkPainterPath &subpath, splitPaths) {
+        PkRect boundingRect = subpath.boundingRect().toAlignedRect();
 
         if (boundingRect.width() < 3 || boundingRect.height() < 3) {
             boundingRect = kisGrowRect(boundingRect, 2);
@@ -1086,8 +1086,8 @@ void KisGradientPainter::precalculateShape()
     }
 }
 
-bool KisGradientPainter::paintGradient(const QPointF& gradientVectorStart,
-                                       const QPointF& gradientVectorEnd,
+bool KisGradientPainter::paintGradient(const PkPointF& gradientVectorStart,
+                                       const PkPointF& gradientVectorEnd,
                                        enumGradientRepeat repeat,
                                        double antiAliasThreshold,
                                        bool reverseGradient,
@@ -1102,16 +1102,16 @@ bool KisGradientPainter::paintGradient(const QPointF& gradientVectorStart,
                          repeat,
                          antiAliasThreshold,
                          reverseGradient,
-                         QRect(startx, starty, width, height),
+                         PkRect(startx, starty, width, height),
                          useDithering);
 }
 
-bool KisGradientPainter::paintGradient(const QPointF& gradientVectorStart,
-                                       const QPointF& gradientVectorEnd,
+bool KisGradientPainter::paintGradient(const PkPointF& gradientVectorStart,
+                                       const PkPointF& gradientVectorEnd,
                                        enumGradientRepeat repeat,
                                        double antiAliasThreshold,
                                        bool reverseGradient,
-                                       const QRect &applyRect,
+                                       const PkRect &applyRect,
                                        bool useDithering)
 {
     // The following combinations of options have aliasing artifacts
@@ -1172,25 +1172,25 @@ bool KisGradientPainter::paintGradient(const QPointF& gradientVectorStart,
 }
 
 template <class T> 
-bool KisGradientPainter::paintGradient(const QPointF& gradientVectorStart,
-                                       const QPointF& gradientVectorEnd,
+bool KisGradientPainter::paintGradient(const PkPointF& gradientVectorStart,
+                                       const PkPointF& gradientVectorEnd,
                                        enumGradientRepeat repeat,
                                        double antiAliasThreshold,
                                        bool reverseGradient,
                                        bool useDithering,
-                                       const QRect &applyRect,
+                                       const PkRect &applyRect,
                                        T & paintPolicy)
 {
     if (!gradient()) return false;
 
-    QRect requestedRect = applyRect;
+    PkRect requestedRect = applyRect;
 
     //If the device has a selection only iterate over that selection united with our area of interest
     if (selection()) {
         requestedRect &= selection()->selectedExactRect();
     }
 
-    QSharedPointer<KisGradientShapeStrategy> shapeStrategy;
+    PkSharedPointer<KisGradientShapeStrategy> shapeStrategy;
 
     switch (m_d->shape) {
     case GradientShapeLinear: {
@@ -1293,8 +1293,8 @@ bool KisGradientPainter::paintGradient(const QPointF& gradientVectorStart,
     const KisDitherOp* op = mixCs->ditherOp(destCs->colorDepthId().id(), useDithering ? DITHER_BEST : DITHER_NONE);
 
     Q_FOREACH (const Private::ProcessRegion &r, m_d->processRegions) {
-        QRect processRect = r.processRect;
-        QSharedPointer<KisGradientShapeStrategy> shapeStrategy = r.precalculatedShapeStrategy;
+        PkRect processRect = r.processRect;
+        PkSharedPointer<KisGradientShapeStrategy> shapeStrategy = r.precalculatedShapeStrategy;
 
         KoCachedGradient cachedGradient(gradient(), qMax(processRect.width(), processRect.height()), mixCs);
 

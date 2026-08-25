@@ -7,7 +7,7 @@
 #ifndef KIS_FILL_PAINTER_H_
 #define KIS_FILL_PAINTER_H_
 
-#include <QRect>
+#include <PkRect.h>
 
 #include <KoColor.h>
 #include <KoColorSpaceRegistry.h>
@@ -63,7 +63,7 @@ public:
      * The filling rect is limited by \p rc to allow multithreaded
      * filling/processing.
      */
-    void fillSelection(const QRect &rc, const KoColor &color);
+    void fillSelection(const PkRect &rc, const KoColor &color);
 
     /**
      * Fill a rectangle with a certain color and opacity.
@@ -78,7 +78,7 @@ public:
     /**
      * Overloaded version of the above function.
      */
-    inline void fillRect(const QRect &rc, const KoColor &c, quint8 opacity)
+    inline void fillRect(const PkRect &rc, const KoColor &c, quint8 opacity)
     {
         fillRect(rc.x(), rc.y(), rc.width(), rc.height(), c, opacity);
     }
@@ -95,7 +95,7 @@ public:
     /**
      * Overloaded version of the above function.
      */
-    inline void fillRect(const QRect &rc, const KoColor &c)
+    inline void fillRect(const PkRect &rc, const KoColor &c)
     {
         fillRect(rc.x(), rc.y(), rc.width(), rc.height(), c, OPACITY_OPAQUE_U8);
     }
@@ -104,7 +104,7 @@ public:
      * Fill a rectangle with a certain pattern. The pattern is repeated if it does not fit the
      * entire rectangle.
      */
-    void fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const KoPatternSP pattern, const QPoint &offset = QPoint());
+    void fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const KoPatternSP pattern, const PkPoint &offset = PkPoint());
 
     /**
      * Fill a rectangle with a certain pattern. The pattern is repeated if it does not fit the
@@ -112,17 +112,17 @@ public:
      *
      * This one uses blitting and thus makes use of proper composition.
      */
-    void fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const KisPaintDeviceSP device, const QRect& deviceRect);
+    void fillRect(qint32 x1, qint32 y1, qint32 w, qint32 h, const KisPaintDeviceSP device, const PkRect& deviceRect);
 
     /**
      * Overloaded version of the above function.
      */
-    void fillRect(const QRect &rc, const KisPaintDeviceSP device, const QRect &deviceRect);
+    void fillRect(const PkRect &rc, const KisPaintDeviceSP device, const PkRect &deviceRect);
 
     /**
      * Overloaded version of the above function.
      */
-    void fillRect(const QRect& rc, const KoPatternSP pattern, const QPoint &offset = QPoint());
+    void fillRect(const PkRect& rc, const KoPatternSP pattern, const PkPoint &offset = PkPoint());
 
     /**
      * Fill a rectangle with black transparent pixels (0, 0, 0, 0 for RGBA).
@@ -137,7 +137,7 @@ public:
     /**
      * Overloaded version of the above function.
      */
-    inline void eraseRect(const QRect &rc)
+    inline void eraseRect(const PkRect &rc)
     {
         const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
         KoColor c(Qt::black, cs);
@@ -158,7 +158,7 @@ public:
      * @param pattern pattern to use.
      * @param transform transformation to apply to the pattern.
      */
-    void fillRectNoCompose(const QRect& rc, const KoPatternSP pattern, const QTransform transform);
+    void fillRectNoCompose(const PkRect& rc, const KoPatternSP pattern, const PkTransform transform);
 
     /**
      * Fill a rectangle with a certain pattern. The pattern is repeated if it does not fit the
@@ -166,7 +166,7 @@ public:
      *
      * This one supports transforms, but does not use blitting.
      */
-    void fillRectNoCompose(qint32 x1, qint32 y1, qint32 w, qint32 h, const KisPaintDeviceSP device, const QRect& deviceRect, const QTransform transform);
+    void fillRectNoCompose(qint32 x1, qint32 y1, qint32 w, qint32 h, const KisPaintDeviceSP device, const PkRect& deviceRect, const PkTransform transform);
 
     /**
      * Fill the specified area with the output of the generator plugin that is configured
@@ -199,7 +199,7 @@ public:
      * is floodfilled if sampleMerged is on
      * @param patternTransform transform applied to the pattern;
      */
-    void fillPattern(int startX, int startY, KisPaintDeviceSP sourceDevice, QTransform patternTransform = QTransform());
+    void fillPattern(int startX, int startY, KisPaintDeviceSP sourceDevice, PkTransform patternTransform = PkTransform());
 
     /**
      * Returns a selection mask for the floodfill starting at the specified position.
@@ -243,7 +243,7 @@ public:
     void createSimilarColorsSelection(KisPixelSelectionSP outSelection,
                                       const KoColor &referenceColor,
                                       KisPaintDeviceSP referenceDevice,
-                                      const QRect &rect,
+                                      const PkRect &rect,
                                       KisPixelSelectionSP mask);
 
     /**
@@ -259,13 +259,13 @@ public:
      * @param rect the rectangle that defines the area to be processed
      * @param mask a selection to mask the results. Set to nullptr if not needed
      */
-    QVector<KisStrokeJobData*> createSimilarColorsSelectionJobs(
+    PkVector<KisStrokeJobData*> createSimilarColorsSelectionJobs(
         KisPixelSelectionSP outSelection,
-        const QSharedPointer<KoColor> referenceColor,
+        const PkSharedPointer<KoColor> referenceColor,
         KisPaintDeviceSP referenceDevice,
-        const QRect &rect,
+        const PkRect &rect,
         KisPixelSelectionSP mask,
-        QSharedPointer<KisProcessingVisitor::ProgressHelper> progressHelper = nullptr
+        PkSharedPointer<KisProcessingVisitor::ProgressHelper> progressHelper = nullptr
     );
 
     /**
@@ -451,7 +451,7 @@ private:
     int m_opacitySpread;
     int m_closeGap;
     int m_width, m_height;
-    QRect m_rect;
+    PkRect m_rect;
     bool m_careForSelection;
     bool m_useCompositing;
     bool m_useSelectionAsBoundary;

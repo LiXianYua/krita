@@ -10,12 +10,7 @@
 #include <string.h>
 #include <cfloat>
 
-#include <QBrush>
-#include <QColor>
-#include <QPen>
-#include <QMap>
-#include <QPainter>
-#include <QRect>
+#include <PkRect.h>
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
@@ -123,7 +118,7 @@ void KisConvolutionPainter::setEnginePreference(EnginePreference value)
     m_enginePreference = value;
 }
 
-void KisConvolutionPainter::applyMatrix(const KisConvolutionKernelSP kernel, const KisPaintDeviceSP src, QPoint srcPos, QPoint dstPos, QSize areaSize, KisConvolutionBorderOp borderOp)
+void KisConvolutionPainter::applyMatrix(const KisConvolutionKernelSP kernel, const KisPaintDeviceSP src, PkPoint srcPos, PkPoint dstPos, PkSize areaSize, KisConvolutionBorderOp borderOp)
 {
     /**
      * Force BORDER_IGNORE op for the wraparound mode,
@@ -144,9 +139,9 @@ void KisConvolutionPainter::applyMatrix(const KisConvolutionKernelSP kernel, con
          * than the image, then it should be wrapped around the mask
          * instead.
          */
-        const QRect boundsRect = src->defaultBounds()->bounds();
-        const QRect requestedRect = QRect(srcPos, areaSize);
-        QRect dataRect = requestedRect | boundsRect;
+        const PkRect boundsRect = src->defaultBounds()->bounds();
+        const PkRect requestedRect = PkRect(srcPos, areaSize);
+        PkRect dataRect = requestedRect | boundsRect;
 
         KIS_SAFE_ASSERT_RECOVER(boundsRect != KisDefaultBounds().bounds()) {
             dataRect = requestedRect | src->exactBounds();
@@ -174,7 +169,7 @@ void KisConvolutionPainter::applyMatrix(const KisConvolutionKernelSP kernel, con
     default: {
         KisConvolutionWorker<StandardIteratorFactory> *worker;
         worker = createWorker<StandardIteratorFactory>(kernel, this, progressUpdater());
-        worker->execute(kernel, src, srcPos, dstPos, areaSize, QRect());
+        worker->execute(kernel, src, srcPos, dstPos, areaSize, PkRect());
         delete worker;
     }
     }

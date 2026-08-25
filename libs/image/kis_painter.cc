@@ -21,9 +21,9 @@
 #include <strings.h>
 #endif
 
-#include <QImage>
-#include <QRect>
-#include <QString>
+#include <PkImage.h>
+#include <PkRect.h>
+#include <PkString.h>
 #include <kundo2command.h>
 
 #include <kis_debug.h>
@@ -86,7 +86,7 @@ void KisPainter::init()
     d->paramInfo = KoCompositeOp::ParameterInfo();
     d->renderingIntent = KoColorConversionTransformation::internalRenderingIntent();
     d->conversionFlags = KoColorConversionTransformation::internalConversionFlags();
-    d->patternTransform = QTransform();
+    d->patternTransform = PkTransform();
 }
 
 KisPainter::~KisPainter()
@@ -102,18 +102,18 @@ KisPainter::~KisPainter()
 }
 
 template <bool useOldData>
-void copyAreaOptimizedImpl(const QPoint &dstPt,
+void copyAreaOptimizedImpl(const PkPoint &dstPt,
                            KisPaintDeviceSP src,
                            KisPaintDeviceSP dst,
-                           const QRect &srcRect)
+                           const PkRect &srcRect)
 {
-    const QRect dstRect(dstPt, srcRect.size());
+    const PkRect dstRect(dstPt, srcRect.size());
 
-    const QRect srcExtent = src->extent();
-    const QRect dstExtent = dst->extent();
+    const PkRect srcExtent = src->extent();
+    const PkRect dstExtent = dst->extent();
 
-    const QRect srcSampleRect = srcExtent & srcRect;
-    const QRect dstSampleRect = dstExtent & dstRect;
+    const PkRect srcSampleRect = srcExtent & srcRect;
+    const PkRect dstSampleRect = dstExtent & dstRect;
 
     const bool srcEmpty = srcSampleRect.isEmpty();
     const bool dstEmpty = dstSampleRect.isEmpty();
@@ -122,19 +122,19 @@ void copyAreaOptimizedImpl(const QPoint &dstPt,
         if (srcEmpty) {
             dst->clear(dstRect);
         } else {
-            QRect srcCopyRect = srcRect;
-            QRect dstCopyRect = dstRect;
+            PkRect srcCopyRect = srcRect;
+            PkRect dstCopyRect = dstRect;
 
             if (!srcExtent.contains(srcRect)) {
                 if (src->defaultPixel() == dst->defaultPixel()) {
-                    const QRect dstSampleInSrcCoords = dstSampleRect.translated(srcRect.topLeft() - dstPt);
+                    const PkRect dstSampleInSrcCoords = dstSampleRect.translated(srcRect.topLeft() - dstPt);
 
                     if (dstSampleInSrcCoords.isEmpty() || srcSampleRect.contains(dstSampleInSrcCoords)) {
                         srcCopyRect = srcSampleRect;
                     } else {
                         srcCopyRect = srcSampleRect | dstSampleInSrcCoords;
                     }
-                    dstCopyRect = QRect(dstPt + srcCopyRect.topLeft() - srcRect.topLeft(), srcCopyRect.size());
+                    dstCopyRect = PkRect(dstPt + srcCopyRect.topLeft() - srcRect.topLeft(), srcCopyRect.size());
                 }
             }
 
@@ -150,26 +150,26 @@ void copyAreaOptimizedImpl(const QPoint &dstPt,
     }
 }
 
-void KisPainter::copyAreaOptimized(const QPoint &dstPt,
+void KisPainter::copyAreaOptimized(const PkPoint &dstPt,
                                    KisPaintDeviceSP src,
                                    KisPaintDeviceSP dst,
-                                   const QRect &srcRect)
+                                   const PkRect &srcRect)
 {
     copyAreaOptimizedImpl<false>(dstPt, src, dst, srcRect);
 }
 
-void KisPainter::copyAreaOptimizedOldData(const QPoint &dstPt,
+void KisPainter::copyAreaOptimizedOldData(const PkPoint &dstPt,
                                           KisPaintDeviceSP src,
                                           KisPaintDeviceSP dst,
-                                          const QRect &srcRect)
+                                          const PkRect &srcRect)
 {
     copyAreaOptimizedImpl<true>(dstPt, src, dst, srcRect);
 }
 
-void KisPainter::copyAreaOptimized(const QPoint &dstPt,
+void KisPainter::copyAreaOptimized(const PkPoint &dstPt,
                                    KisPaintDeviceSP src,
                                    KisPaintDeviceSP dst,
-                                   const QRect &originalSrcRect,
+                                   const PkRect &originalSrcRect,
                                    KisSelectionSP selection)
 {
     if (!selection) {
@@ -177,10 +177,10 @@ void KisPainter::copyAreaOptimized(const QPoint &dstPt,
         return;
     }
 
-    const QRect selectionRect = selection->selectedRect();
-    const QRect srcRect = originalSrcRect & selectionRect;
-    const QPoint dstOffset = srcRect.topLeft() - originalSrcRect.topLeft();
-    const QRect dstRect = QRect(dstPt + dstOffset, srcRect.size());
+    const PkRect selectionRect = selection->selectedRect();
+    const PkRect srcRect = originalSrcRect & selectionRect;
+    const PkPoint dstOffset = srcRect.topLeft() - originalSrcRect.topLeft();
+    const PkRect dstRect = PkRect(dstPt + dstOffset, srcRect.size());
 
     const bool srcEmpty = (src->extent() & srcRect).isEmpty();
     const bool dstEmpty = (dst->extent() & dstRect).isEmpty();
@@ -202,7 +202,7 @@ void KisPainter::copyAreaOptimized(const QPoint &dstPt,
 KisPaintDeviceSP KisPainter::convertToAlphaAsAlpha(KisPaintDeviceSP src)
 {
     const KoColorSpace *srcCS = src->colorSpace();
-    const QRect processRect = src->extent();
+    const PkRect processRect = src->extent();
     KisPaintDeviceSP dst(new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8()));
 
     if (processRect.isEmpty()) return dst;
@@ -226,7 +226,7 @@ KisPaintDeviceSP KisPainter::convertToAlphaAsAlpha(KisPaintDeviceSP src)
 KisPaintDeviceSP KisPainter::convertToAlphaAsGray(KisPaintDeviceSP src)
 {
     const KoColorSpace *srcCS = src->colorSpace();
-    const QRect processRect = src->extent();
+    const PkRect processRect = src->extent();
     KisPaintDeviceSP dst(new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8()));
 
     if (processRect.isEmpty()) return dst;
@@ -247,7 +247,7 @@ KisPaintDeviceSP KisPainter::convertToAlphaAsGray(KisPaintDeviceSP src)
 KisPaintDeviceSP KisPainter::convertToAlphaAsPureAlpha(KisPaintDeviceSP src)
 {
     const KoColorSpace *srcCS = src->colorSpace();
-    const QRect processRect = src->extent();
+    const PkRect processRect = src->extent();
     KisPaintDeviceSP dst(new KisPaintDevice(KoColorSpaceRegistry::instance()->alpha8()));
 
     if (processRect.isEmpty()) return dst;
@@ -267,8 +267,8 @@ KisPaintDeviceSP KisPainter::convertToAlphaAsPureAlpha(KisPaintDeviceSP src)
 
 bool KisPainter::checkDeviceHasTransparency(KisPaintDeviceSP dev)
 {
-    const QRect deviceBounds = dev->exactBounds();
-    const QRect imageBounds = dev->defaultBounds()->bounds();
+    const PkRect deviceBounds = dev->exactBounds();
+    const PkRect imageBounds = dev->defaultBounds()->bounds();
 
     if (deviceBounds.isEmpty() ||
         (deviceBounds & imageBounds) != imageBounds) {
@@ -398,28 +398,28 @@ KisTransaction* KisPainter::takeTransaction()
 
 
 
-QVector<QRect> KisPainter::takeDirtyRegion()
+PkVector<PkRect> KisPainter::takeDirtyRegion()
 {
-    QVector<QRect> vrect = d->dirtyRects;
+    PkVector<PkRect> vrect = d->dirtyRects;
     d->dirtyRects.clear();
     return vrect;
 }
 
 
-void KisPainter::addDirtyRect(const QRect & rc)
+void KisPainter::addDirtyRect(const PkRect & rc)
 {
-    QRect r = rc.normalized();
+    PkRect r = rc.normalized();
     if (r.isValid()) {
         d->dirtyRects.append(rc);
     }
 }
 
-void KisPainter::addDirtyRects(const QVector<QRect> &rects)
+void KisPainter::addDirtyRects(const PkVector<PkRect> &rects)
 {
     d->dirtyRects.reserve(d->dirtyRects.size() + rects.size());
 
-    Q_FOREACH (const QRect &rc, rects) {
-        const QRect r = rc.normalized();
+    Q_FOREACH (const PkRect &rc, rects) {
+        const PkRect r = rc.normalized();
         if (r.isValid()) {
             d->dirtyRects.append(rc);
         }
@@ -437,7 +437,7 @@ const KoCompositeOp *KisPainter::Private::compositeOp(const KoColorSpace *srcCS)
 }
 
 inline bool KisPainter::Private::tryReduceSourceRect(const KisPaintDevice *srcDev,
-                                                     QRect *srcRect,
+                                                     PkRect *srcRect,
                                                      qint32 *srcX,
                                                      qint32 *srcY,
                                                      qint32 *srcWidth,
@@ -484,7 +484,7 @@ inline bool KisPainter::Private::tryReduceSourceRect(const KisPaintDevice *srcDe
     }
 
     if (!paramInfo.channelFlags.isEmpty()) {
-        const QBitArray onlyColor = srcDev->colorSpace()->channelFlags(true, false);
+        const PkBitArray onlyColor = srcDev->colorSpace()->channelFlags(true, false);
         KIS_SAFE_ASSERT_RECOVER_NOOP(onlyColor.size() == paramInfo.channelFlags.size());
 
         // check if we have alpha channel locked
@@ -527,7 +527,7 @@ void KisPainter::bitBltWithFixedSelection(qint32 dstX, qint32 dstY,
 
     const KoCompositeOp *compositeOp = d->compositeOp(srcDev->colorSpace());
 
-    QRect srcRect = QRect(srcX, srcY, srcWidth, srcHeight);
+    PkRect srcRect = PkRect(srcX, srcY, srcWidth, srcHeight);
 
     // save selection offset in case tryReduceSourceRect() will change rects
     const int xSelectionOffset = selX - srcX;
@@ -542,7 +542,7 @@ void KisPainter::bitBltWithFixedSelection(qint32 dstX, qint32 dstY,
                                &srcWidth, &srcHeight,
                                &dstX, &dstY)) return;
 
-    const QRect selRect = QRect(srcX + xSelectionOffset,
+    const PkRect selRect = PkRect(srcX + xSelectionOffset,
                                 srcY + ySelectionOffset,
                                 srcWidth, srcHeight);
 
@@ -575,7 +575,7 @@ void KisPainter::bitBltWithFixedSelection(qint32 dstX, qint32 dstY,
 
     srcDev->readBytes(srcBytes, srcX, srcY, srcWidth, srcHeight);
 
-    const QRect selBounds = selection->bounds();
+    const PkRect selBounds = selection->bounds();
     const quint8 *selRowStart = selection->data() +
         (selBounds.width() * (selRect.y() - selBounds.top()) + (selRect.x() - selBounds.left())) * selection->pixelSize();
 
@@ -642,7 +642,7 @@ void KisPainter::bitBltWithFixedSelection(qint32 dstX, qint32 dstY,
     delete[] dstBytes;
     delete[] srcBytes;
 
-    addDirtyRect(QRect(dstX, dstY, srcWidth, srcHeight));
+    addDirtyRect(PkRect(dstX, dstY, srcWidth, srcHeight));
 }
 
 
@@ -666,7 +666,7 @@ void KisPainter::bitBltImpl(qint32 dstX, qint32 dstY,
     if (srcDev.isNull()) return;
     if (d->device.isNull()) return;
 
-    QRect srcRect = QRect(srcX, srcY, srcWidth, srcHeight);
+    PkRect srcRect = PkRect(srcX, srcY, srcWidth, srcHeight);
 
     if (d->compositeOpId == COMPOSITE_COPY) {
         if(!d->selection && d->isOpacityUnit &&
@@ -815,7 +815,7 @@ void KisPainter::bitBltImpl(qint32 dstX, qint32 dstY,
         }
     }
 
-    addDirtyRect(QRect(dstX, dstY, srcWidth, srcHeight));
+    addDirtyRect(PkRect(dstX, dstY, srcWidth, srcHeight));
 
 }
 
@@ -828,7 +828,7 @@ void KisPainter::bitBlt(qint32 dstX, qint32 dstY,
 }
 
 
-void KisPainter::bitBlt(const QPoint & pos, const KisPaintDeviceSP srcDev, const QRect & srcRect)
+void KisPainter::bitBlt(const PkPoint & pos, const KisPaintDeviceSP srcDev, const PkRect & srcRect)
 {
     bitBlt(pos.x(), pos.y(), srcDev, srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height());
 }
@@ -842,7 +842,7 @@ void KisPainter::bitBltOldData(qint32 dstX, qint32 dstY,
 }
 
 
-void KisPainter::bitBltOldData(const QPoint & pos, const KisPaintDeviceSP srcDev, const QRect & srcRect)
+void KisPainter::bitBltOldData(const PkPoint & pos, const KisPaintDeviceSP srcDev, const PkRect & srcRect)
 {
     bitBltOldData(pos.x(), pos.y(), srcDev, srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height());
 }
@@ -943,7 +943,7 @@ void KisPainter::fill(qint32 x, qint32 y, qint32 width, qint32 height, const KoC
         }
     }
 
-    addDirtyRect(QRect(x, y, width, height));
+    addDirtyRect(PkRect(x, y, width, height));
 }
 
 
@@ -958,8 +958,8 @@ void KisPainter::bltFixed(qint32 dstX, qint32 dstY,
     if (srcDev.isNull()) return;
     if (d->device.isNull()) return;
 
-    QRect srcRect = QRect(srcX, srcY, srcWidth, srcHeight);
-    QRect srcBounds = srcDev->bounds();
+    PkRect srcRect = PkRect(srcX, srcY, srcWidth, srcHeight);
+    PkRect srcBounds = srcDev->bounds();
 
     /* Trying to read outside a KisFixedPaintDevice is inherently wrong and shouldn't be done,
     so crash if someone attempts to do this. Don't resize as it would obfuscate the mistake. */
@@ -1016,10 +1016,10 @@ void KisPainter::bltFixed(qint32 dstX, qint32 dstY,
     delete[] d->paramInfo.maskRowStart;
     delete[] dstBytes;
 
-    addDirtyRect(QRect(dstX, dstY, srcWidth, srcHeight));
+    addDirtyRect(PkRect(dstX, dstY, srcWidth, srcHeight));
 }
 
-void KisPainter::bltFixed(const QPoint & pos, const KisFixedPaintDeviceSP srcDev, const QRect & srcRect)
+void KisPainter::bltFixed(const PkPoint & pos, const KisFixedPaintDeviceSP srcDev, const PkRect & srcRect)
 {
     bltFixed(pos.x(), pos.y(), srcDev, srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height());
 }
@@ -1044,11 +1044,11 @@ void KisPainter::bltFixedWithFixedSelection(qint32 dstX, qint32 dstY,
 
     const KoCompositeOp *compositeOp = d->compositeOp(srcDev->colorSpace());
 
-    QRect srcRect = QRect(srcX, srcY, srcWidth, srcHeight);
-    QRect selRect = QRect(selX, selY, srcWidth, srcHeight);
+    PkRect srcRect = PkRect(srcX, srcY, srcWidth, srcHeight);
+    PkRect selRect = PkRect(selX, selY, srcWidth, srcHeight);
 
-    QRect srcBounds = srcDev->bounds();
-    QRect selBounds = selection->bounds();
+    PkRect srcBounds = srcDev->bounds();
+    PkRect selBounds = selection->bounds();
 
     /* Trying to read outside a KisFixedPaintDevice is inherently wrong and shouldn't be done,
     so crash if someone attempts to do this. Don't resize as it would obfuscate the mistake. */
@@ -1133,7 +1133,7 @@ void KisPainter::bltFixedWithFixedSelection(qint32 dstX, qint32 dstY,
 
     delete[] dstBytes;
 
-    addDirtyRect(QRect(dstX, dstY, srcWidth, srcHeight));
+    addDirtyRect(PkRect(dstX, dstY, srcWidth, srcHeight));
 }
 
 void KisPainter::bltFixedWithFixedSelection(qint32 dstX, qint32 dstY,
@@ -1180,7 +1180,7 @@ void KisPainter::paintPolyline(const vQPointF &points,
         KisRandomSourceSP rnd = new KisRandomSource();
         KisPerStrokeRandomSourceSP strokeRnd = new KisPerStrokeRandomSource();
 
-        auto point = [rnd, strokeRnd] (const QPointF &pt) {
+        auto point = [rnd, strokeRnd] (const PkPointF &pt) {
             KisPaintInformation pi(pt);
             pi.setRandomSource(rnd);
             pi.setPerStrokeRandomSource(strokeRnd);
@@ -1223,18 +1223,18 @@ static void getBezierCurvePoints(const KisVector2D &pos1,
     }
 }
 
-void KisPainter::getBezierCurvePoints(const QPointF &pos1,
-                                      const QPointF &control1,
-                                      const QPointF &control2,
-                                      const QPointF &pos2,
+void KisPainter::getBezierCurvePoints(const PkPointF &pos1,
+                                      const PkPointF &control1,
+                                      const PkPointF &control2,
+                                      const PkPointF &pos2,
                                       vQPointF& points) const
 {
     ::getBezierCurvePoints(toKisVector2D(pos1), toKisVector2D(control1), toKisVector2D(control2), toKisVector2D(pos2), points);
 }
 
 void KisPainter::paintBezierCurve(const KisPaintInformation &pi1,
-                                  const QPointF &control1,
-                                  const QPointF &control2,
+                                  const PkPointF &control1,
+                                  const PkPointF &control2,
                                   const KisPaintInformation &pi2,
                                   KisDistanceInformation *currentDistance)                              
 {   
@@ -1244,9 +1244,9 @@ void KisPainter::paintBezierCurve(const KisPaintInformation &pi1,
 }
 
 
-void KisPainter::paintRect(const QRectF &rect)
+void KisPainter::paintRect(const PkRectF &rect)
 {
-    QRectF normalizedRect = rect.normalized();
+    PkRectF normalizedRect = rect.normalized();
 
     vQPointF points;
 
@@ -1263,12 +1263,12 @@ void KisPainter::paintRect(const qreal x,
                            const qreal w,
                            const qreal h)
 {
-    paintRect(QRectF(x, y, w, h));
+    paintRect(PkRectF(x, y, w, h));
 }
 
-void KisPainter::paintEllipse(const QRectF &rect)
+void KisPainter::paintEllipse(const PkRectF &rect)
 {
-    QRectF r = rect.normalized(); // normalize before checking as negative width and height are empty too
+    PkRectF r = rect.normalized(); // normalize before checking as negative width and height are empty too
     if (r.isEmpty()) return;
 
     // See http://www.whizkidtech.redprince.net/bezier/circle/ for explanation.
@@ -1277,31 +1277,31 @@ void KisPainter::paintEllipse(const QRectF &rect)
     const qreal lx = (r.width() / 2) * kappa;
     const qreal ly = (r.height() / 2) * kappa;
 
-    QPointF center = r.center();
+    PkPointF center = r.center();
 
-    QPointF p0(r.left(), center.y());
-    QPointF p1(r.left(), center.y() - ly);
-    QPointF p2(center.x() - lx, r.top());
-    QPointF p3(center.x(), r.top());
+    PkPointF p0(r.left(), center.y());
+    PkPointF p1(r.left(), center.y() - ly);
+    PkPointF p2(center.x() - lx, r.top());
+    PkPointF p3(center.x(), r.top());
 
     vQPointF points;
 
     getBezierCurvePoints(p0, p1, p2, p3, points);
 
-    QPointF p4(center.x() + lx, r.top());
-    QPointF p5(r.right(), center.y() - ly);
-    QPointF p6(r.right(), center.y());
+    PkPointF p4(center.x() + lx, r.top());
+    PkPointF p5(r.right(), center.y() - ly);
+    PkPointF p6(r.right(), center.y());
 
     getBezierCurvePoints(p3, p4, p5, p6, points);
 
-    QPointF p7(r.right(), center.y() + ly);
-    QPointF p8(center.x() + lx, r.bottom());
-    QPointF p9(center.x(), r.bottom());
+    PkPointF p7(r.right(), center.y() + ly);
+    PkPointF p8(center.x() + lx, r.bottom());
+    PkPointF p9(center.x(), r.bottom());
 
     getBezierCurvePoints(p6, p7, p8, p9, points);
 
-    QPointF p10(center.x() - lx, r.bottom());
-    QPointF p11(r.left(), center.y() + ly);
+    PkPointF p10(center.x() - lx, r.bottom());
+    PkPointF p11(r.left(), center.y() + ly);
 
     getBezierCurvePoints(p9, p10, p11, p0, points);
 
@@ -1313,7 +1313,7 @@ void KisPainter::paintEllipse(const qreal x,
                               const qreal w,
                               const qreal h)
 {
-    paintEllipse(QRectF(x, y, w, h));
+    paintEllipse(PkRectF(x, y, w, h));
 }
 
 void KisPainter::paintAt(const KisPaintInformation& pi,
@@ -1334,7 +1334,7 @@ void KisPainter::fillPolygon(const vQPointF& points, FillStyle fillStyle)
         return;
     }
 
-    QPainterPath polygonPath;
+    PkPainterPath polygonPath;
 
     polygonPath.moveTo(points.at(0));
 
@@ -1362,7 +1362,7 @@ void KisPainter::paintPolygon(const vQPointF& points)
             KisRandomSourceSP rnd = new KisRandomSource();
             KisPerStrokeRandomSourceSP strokeRnd = new KisPerStrokeRandomSource();
 
-            auto point = [rnd, strokeRnd] (const QPointF &pt) {
+            auto point = [rnd, strokeRnd] (const PkPointF &pt) {
                 KisPaintInformation pi(pt);
                 pi.setRandomSource(rnd);
                 pi.setPerStrokeRandomSource(strokeRnd);
@@ -1377,7 +1377,7 @@ void KisPainter::paintPolygon(const vQPointF& points)
     }
 }
 
-void KisPainter::paintPainterPath(const QPainterPath& path)
+void KisPainter::paintPainterPath(const PkPainterPath& path)
 {
     if (d->fillStyle != FillStyleNone) {
         fillPainterPath(path);
@@ -1385,14 +1385,14 @@ void KisPainter::paintPainterPath(const QPainterPath& path)
 
     if (d->strokeStyle == StrokeStyleNone) return;
 
-    QPointF lastPoint, nextPoint;
+    PkPointF lastPoint, nextPoint;
     int elementCount = path.elementCount();
     KisDistanceInformation saveDist;
 
     KisRandomSourceSP rnd = new KisRandomSource();
     KisPerStrokeRandomSourceSP strokeRnd = new KisPerStrokeRandomSource();
 
-    auto point = [rnd, strokeRnd] (const QPointF &pt) {
+    auto point = [rnd, strokeRnd] (const PkPointF &pt) {
         KisPaintInformation pi(pt);
         pi.setRandomSource(rnd);
         pi.setPerStrokeRandomSource(strokeRnd);
@@ -1400,21 +1400,21 @@ void KisPainter::paintPainterPath(const QPainterPath& path)
     };
 
     for (int i = 0; i < elementCount; i++) {
-        QPainterPath::Element element = path.elementAt(i);
+        PkPainterPath::Element element = path.elementAt(i);
         switch (element.type) {
-        case QPainterPath::MoveToElement:
-            lastPoint = QPointF(element.x, element.y);
+        case PkPainterPath::MoveToElement:
+            lastPoint = PkPointF(element.x, element.y);
             break;
-        case QPainterPath::LineToElement:
-            nextPoint = QPointF(element.x, element.y);
+        case PkPainterPath::LineToElement:
+            nextPoint = PkPointF(element.x, element.y);
             paintLine(point(lastPoint), point(nextPoint), &saveDist);
             lastPoint = nextPoint;
             break;
-        case QPainterPath::CurveToElement:
-            nextPoint = QPointF(path.elementAt(i + 2).x, path.elementAt(i + 2).y);
+        case PkPainterPath::CurveToElement:
+            nextPoint = PkPointF(path.elementAt(i + 2).x, path.elementAt(i + 2).y);
             paintBezierCurve(point(lastPoint),
-                             QPointF(path.elementAt(i).x, path.elementAt(i).y),
-                             QPointF(path.elementAt(i + 1).x, path.elementAt(i + 1).y),
+                             PkPointF(path.elementAt(i).x, path.elementAt(i).y),
+                             PkPointF(path.elementAt(i + 1).x, path.elementAt(i + 1).y),
                              point(nextPoint), &saveDist);
             lastPoint = nextPoint;
             break;
@@ -1424,40 +1424,40 @@ void KisPainter::paintPainterPath(const QPainterPath& path)
     }
 }
 
-void KisPainter::fillPainterPath(const QPainterPath& path)
+void KisPainter::fillPainterPath(const PkPainterPath& path)
 {
-    fillPainterPath(path, QRect());
+    fillPainterPath(path, PkRect());
 }
 
-void KisPainter::fillPainterPath(const QPainterPath& path, const QRect &requestedRect)
+void KisPainter::fillPainterPath(const PkPainterPath& path, const PkRect &requestedRect)
 {
     if (d->mirrorHorizontally || d->mirrorVertically) {
         KisLodTransform lod(d->device);
-        QPointF effectiveAxesCenter = lod.map(d->axesCenter);
+        PkPointF effectiveAxesCenter = lod.map(d->axesCenter);
 
-        QTransform C1 = QTransform::fromTranslate(-effectiveAxesCenter.x(), -effectiveAxesCenter.y());
-        QTransform C2 = QTransform::fromTranslate(effectiveAxesCenter.x(), effectiveAxesCenter.y());
+        PkTransform C1 = PkTransform::fromTranslate(-effectiveAxesCenter.x(), -effectiveAxesCenter.y());
+        PkTransform C2 = PkTransform::fromTranslate(effectiveAxesCenter.x(), effectiveAxesCenter.y());
 
-        QTransform t;
-        QPainterPath newPath;
-        QRect newRect;
+        PkTransform t;
+        PkPainterPath newPath;
+        PkRect newRect;
 
         if (d->mirrorHorizontally) {
-            t = C1 * QTransform::fromScale(-1,1) * C2;
+            t = C1 * PkTransform::fromScale(-1,1) * C2;
             newPath = t.map(path);
             newRect = t.mapRect(requestedRect);
             d->fillPainterPathImpl(newPath, newRect);
         }
 
         if (d->mirrorVertically) {
-            t = C1 * QTransform::fromScale(1,-1) * C2;
+            t = C1 * PkTransform::fromScale(1,-1) * C2;
             newPath = t.map(path);
             newRect = t.mapRect(requestedRect);
             d->fillPainterPathImpl(newPath, newRect);
         }
 
         if (d->mirrorHorizontally && d->mirrorVertically) {
-            t = C1 * QTransform::fromScale(-1,-1) * C2;
+            t = C1 * PkTransform::fromScale(-1,-1) * C2;
             newPath = t.map(path);
             newRect = t.mapRect(requestedRect);
             d->fillPainterPathImpl(newPath, newRect);
@@ -1467,7 +1467,7 @@ void KisPainter::fillPainterPath(const QPainterPath& path, const QRect &requeste
     d->fillPainterPathImpl(path, requestedRect);
 }
 
-void KisPainter::Private::fillPainterPathImpl(const QPainterPath& path, const QRect &requestedRect)
+void KisPainter::Private::fillPainterPathImpl(const PkPainterPath& path, const PkRect &requestedRect)
 {
     if (fillStyle == FillStyleNone) {
         return;
@@ -1485,8 +1485,8 @@ void KisPainter::Private::fillPainterPathImpl(const QPainterPath& path, const QR
 
     Q_CHECK_PTR(polygon);
 
-    QRectF boundingRect = path.boundingRect();
-    QRect fillRect = boundingRect.toAlignedRect();
+    PkRectF boundingRect = path.boundingRect();
+    PkRect fillRect = boundingRect.toAlignedRect();
 
     // Expand the rectangle to allow for anti-aliasing.
     fillRect.adjust(-1, -1, 1, 1);
@@ -1517,14 +1517,14 @@ void KisPainter::Private::fillPainterPathImpl(const QPainterPath& path, const QR
     }
 
     if (polygonMaskImage.isNull() || (maskPainter == 0)) {
-        polygonMaskImage = QImage(maskImageWidth, maskImageHeight, QImage::Format_ARGB32_Premultiplied);
-        maskPainter = new QPainter(&polygonMaskImage);
-        maskPainter->setRenderHint(QPainter::Antialiasing, q->antiAliasPolygonFill());
+        polygonMaskImage = PkImage(maskImageWidth, maskImageHeight, PkImage::Format_ARGB32_Premultiplied);
+        maskPainter = new PkPainter(&polygonMaskImage);
+        maskPainter->setRenderHint(PkPainter::Antialiasing, q->antiAliasPolygonFill());
     }
 
-    // Break the mask up into chunks so we don't have to allocate a potentially very large QImage.
-    const QColor black(Qt::black);
-    const QBrush brush(Qt::white);
+    // Break the mask up into chunks so we don't have to allocate a potentially very large PkImage.
+    const PkColor black(Qt::black);
+    const PkBrush brush(Qt::white);
     for (qint32 x = fillRect.x(); x < fillRect.x() + fillRect.width(); x += maskImageWidth) {
         for (qint32 y = fillRect.y(); y < fillRect.y() + fillRect.height(); y += maskImageHeight) {
 
@@ -1540,7 +1540,7 @@ void KisPainter::Private::fillPainterPathImpl(const QPainterPath& path, const QR
 
             quint8 tmp;
             for (int row = y; row < y + rectHeight; row++) {
-                QRgb* line = reinterpret_cast<QRgb*>(polygonMaskImage.scanLine(row - y));
+                PkRgb* line = reinterpret_cast<PkRgb*>(polygonMaskImage.scanLine(row - y));
                 do {
                     tmp = qRed(line[lineIt->x() - x]);
                     polygon->colorSpace()->applyAlphaU8Mask(lineIt->rawData(), &tmp, 1);
@@ -1551,18 +1551,18 @@ void KisPainter::Private::fillPainterPathImpl(const QPainterPath& path, const QR
         }
     }
 
-    QRect bltRect = !requestedRect.isEmpty() ? requestedRect : fillRect;
+    PkRect bltRect = !requestedRect.isEmpty() ? requestedRect : fillRect;
     q->bitBlt(bltRect.x(), bltRect.y(), polygon, bltRect.x(), bltRect.y(), bltRect.width(), bltRect.height());
 }
 
-void KisPainter::drawPainterPath(const QPainterPath& path, const QPen& pen)
+void KisPainter::drawPainterPath(const PkPainterPath& path, const PkPen& pen)
 {
-    drawPainterPath(path, pen, QRect());
+    drawPainterPath(path, pen, PkRect());
 }
 
-void KisPainter::drawPainterPath(const QPainterPath& path, const QPen& _pen, const QRect &requestedRect)
+void KisPainter::drawPainterPath(const PkPainterPath& path, const PkPen& _pen, const PkRect &requestedRect)
 {
-    QPen pen(_pen);
+    PkPen pen(_pen);
     pen.setColor(Qt::white);
 
     if (!d->fillPainter) {
@@ -1574,8 +1574,8 @@ void KisPainter::drawPainterPath(const QPainterPath& path, const QPen& _pen, con
 
     Q_CHECK_PTR(d->polygon);
 
-    QRectF boundingRect = path.boundingRect();
-    QRect fillRect = boundingRect.toAlignedRect();
+    PkRectF boundingRect = path.boundingRect();
+    PkRect fillRect = boundingRect.toAlignedRect();
 
     // take width of the pen into account
     int penWidth = qRound(pen.widthF());
@@ -1591,14 +1591,14 @@ void KisPainter::drawPainterPath(const QPainterPath& path, const QPen& _pen, con
     d->fillPainter->fillRect(fillRect, paintColor(), OPACITY_OPAQUE_U8);
 
     if (d->polygonMaskImage.isNull() || (d->maskPainter == 0)) {
-        d->polygonMaskImage = QImage(d->maskImageWidth, d->maskImageHeight, QImage::Format_ARGB32_Premultiplied);
-        d->maskPainter = new QPainter(&d->polygonMaskImage);
-        d->maskPainter->setRenderHint(QPainter::Antialiasing, antiAliasPolygonFill());
+        d->polygonMaskImage = PkImage(d->maskImageWidth, d->maskImageHeight, PkImage::Format_ARGB32_Premultiplied);
+        d->maskPainter = new PkPainter(&d->polygonMaskImage);
+        d->maskPainter->setRenderHint(PkPainter::Antialiasing, antiAliasPolygonFill());
     }
 
-    // Break the mask up into chunks so we don't have to allocate a potentially very large QImage.
-    const QColor black(Qt::black);
-    QPen oldPen = d->maskPainter->pen();
+    // Break the mask up into chunks so we don't have to allocate a potentially very large PkImage.
+    const PkColor black(Qt::black);
+    PkPen oldPen = d->maskPainter->pen();
     d->maskPainter->setPen(pen);
 
     for (qint32 x = fillRect.x(); x < fillRect.x() + fillRect.width(); x += d->maskImageWidth) {
@@ -1616,7 +1616,7 @@ void KisPainter::drawPainterPath(const QPainterPath& path, const QPen& _pen, con
 
             quint8 tmp;
             for (int row = y; row < y + rectHeight; row++) {
-                QRgb* line = reinterpret_cast<QRgb*>(d->polygonMaskImage.scanLine(row - y));
+                PkRgb* line = reinterpret_cast<PkRgb*>(d->polygonMaskImage.scanLine(row - y));
                 do {
                     tmp = qRed(line[lineIt->x() - x]);
                     d->polygon->colorSpace()->applyAlphaU8Mask(lineIt->rawData(), &tmp, 1);
@@ -1628,7 +1628,7 @@ void KisPainter::drawPainterPath(const QPainterPath& path, const QPen& _pen, con
     }
 
     d->maskPainter->setPen(oldPen);
-    QRect r = d->polygon->extent();
+    PkRect r = d->polygon->extent();
 
     bitBlt(r.x(), r.y(), d->polygon, r.x(), r.y(), r.width(), r.height());
 }
@@ -1650,7 +1650,7 @@ inline void KisPainter::compositeOnePixel(quint8 *dst, const KoColor &color)
 }
 
 /**/
-void KisPainter::drawLine(const QPointF& start, const QPointF& end, qreal width, bool antialias){
+void KisPainter::drawLine(const PkPointF& start, const PkPointF& end, qreal width, bool antialias){
     int x1 = qFloor(start.x());
     int y1 = qFloor(start.y());
     int x2 = qFloor(end.x());
@@ -1732,12 +1732,12 @@ void KisPainter::drawLine(const QPointF& start, const QPointF& end, qreal width,
 
 /**/
 
-void KisPainter::drawLine(const QPointF & start, const QPointF & end)
+void KisPainter::drawLine(const PkPointF & start, const PkPointF & end)
 {
     drawThickLine(start, end, 1, 1);
 }
 
-void KisPainter::drawDDALine(const QPointF & start, const QPointF & end)
+void KisPainter::drawDDALine(const PkPointF & start, const PkPointF & end)
 {
     int x = qFloor(start.x());
     int y = qFloor(start.y());
@@ -1810,7 +1810,7 @@ void KisPainter::drawDDALine(const QPointF & start, const QPointF & end)
     }
 }
 
-void KisPainter::drawWobblyLine(const QPointF & start, const QPointF & end)
+void KisPainter::drawWobblyLine(const PkPointF & start, const PkPointF & end)
 {
     KoColor mycolor(d->paintColor);
 
@@ -1895,7 +1895,7 @@ void KisPainter::drawWobblyLine(const QPointF & start, const QPointF & end)
 
 }
 
-void KisPainter::drawWuLine(const QPointF & start, const QPointF & end)
+void KisPainter::drawWuLine(const PkPointF & start, const PkPointF & end)
 {
     KoColor lineColor(d->paintColor);
 
@@ -2165,7 +2165,7 @@ void KisPainter::drawWuLine(const QPointF & start, const QPointF & end)
 
 }
 
-void KisPainter::drawThickLine(const QPointF & start, const QPointF & end, int startWidth, int endWidth)
+void KisPainter::drawThickLine(const PkPointF & start, const PkPointF & end, int startWidth, int endWidth)
 {
 
     KisRandomAccessorSP accessor = d->device->createRandomAccessorNG();
@@ -2572,19 +2572,19 @@ KisPaintDeviceSP KisPainter::device()
     return d->device;
 }
 
-void KisPainter::setChannelFlags(QBitArray channelFlags)
+void KisPainter::setChannelFlags(PkBitArray channelFlags)
 {
     // Q_ASSERT(channelFlags.isEmpty() || quint32(channelFlags.size()) == d->colorSpace->channelCount());
     // Now, if all bits in the channelflags are true, pass an empty channel flags bitarray
     // because otherwise the compositeops cannot optimize.
     d->paramInfo.channelFlags = channelFlags;
 
-    if (!channelFlags.isEmpty() && channelFlags == QBitArray(channelFlags.size(), true)) {
-        d->paramInfo.channelFlags = QBitArray();
+    if (!channelFlags.isEmpty() && channelFlags == PkBitArray(channelFlags.size(), true)) {
+        d->paramInfo.channelFlags = PkBitArray();
     }
 }
 
-QBitArray KisPainter::channelFlags()
+PkBitArray KisPainter::channelFlags()
 {
     return d->paramInfo.channelFlags;
 }
@@ -2645,12 +2645,12 @@ KisPainter::FillStyle KisPainter::fillStyle() const
     return d->fillStyle;
 }
 
-void KisPainter::setPatternTransform(QTransform transform)
+void KisPainter::setPatternTransform(PkTransform transform)
 {
     d->patternTransform = transform;
 }
 
-QTransform KisPainter::patternTransform()
+PkTransform KisPainter::patternTransform()
 {
     return d->patternTransform;
 }
@@ -2737,12 +2737,12 @@ void KisPainter::setCompositeOpId(const KoCompositeOp * op)
     setCompositeOpId(op->id());
 }
 
-QString KisPainter::compositeOpId()
+PkString KisPainter::compositeOpId()
 {
     return d->compositeOpId;
 }
 
-void KisPainter::setCompositeOpId(const QString& op)
+void KisPainter::setCompositeOpId(const PkString& op)
 {
     if (op != d->compositeOpId) {
         d->compositeOpId = op;
@@ -2799,7 +2799,7 @@ KisPaintOp* KisPainter::paintOp() const
     return d->paintOp;
 }
 
-void KisPainter::setMirrorInformation(const QPointF& axesCenter, bool mirrorHorizontally, bool mirrorVertically)
+void KisPainter::setMirrorInformation(const PkPointF& axesCenter, bool mirrorHorizontally, bool mirrorVertically)
 {
     d->axesCenter = axesCenter;
     d->mirrorHorizontally = mirrorHorizontally;
@@ -2834,7 +2834,7 @@ void KisPainter::setMaskImageSize(qint32 width, qint32 height)
     d->maskImageWidth = qBound(1, width, 256);
     d->maskImageHeight = qBound(1, height, 256);
     d->fillPainter = 0;
-    d->polygonMaskImage = QImage();
+    d->polygonMaskImage = PkImage();
 }
 
 //void KisPainter::setLockAlpha(bool protect)
@@ -2843,7 +2843,7 @@ void KisPainter::setMaskImageSize(qint32 width, qint32 height)
 //        d->paramInfo.channelFlags = d->colorSpace->channelFlags(true, true);
 //    }
 
-//    QBitArray switcher =
+//    PkBitArray switcher =
 //        d->colorSpace->channelFlags(protect, !protect);
 
 //    if(protect) {
@@ -2858,7 +2858,7 @@ void KisPainter::setMaskImageSize(qint32 width, qint32 height)
 
 //bool KisPainter::alphaLocked() const
 //{
-//    QBitArray switcher = d->colorSpace->channelFlags(false, true);
+//    PkBitArray switcher = d->colorSpace->channelFlags(false, true);
 //    return !(d->paramInfo.channelFlags & switcher).count(true);
 //}
 
@@ -2889,7 +2889,7 @@ KisRunnableStrokeJobsInterface *KisPainter::runnableStrokeJobsInterface() const
     return d->runnableStrokeJobsInterface;
 }
 
-void KisPainter::renderMirrorMaskSafe(QRect rc, KisFixedPaintDeviceSP dab, bool preserveDab)
+void KisPainter::renderMirrorMaskSafe(PkRect rc, KisFixedPaintDeviceSP dab, bool preserveDab)
 {
     if (!d->mirrorHorizontally && !d->mirrorVertically) return;
 
@@ -2900,7 +2900,7 @@ void KisPainter::renderMirrorMaskSafe(QRect rc, KisFixedPaintDeviceSP dab, bool 
     renderMirrorMask(rc, dabToProcess);
 }
 
-void KisPainter::renderMirrorMaskSafe(QRect rc, KisFixedPaintDeviceSP dab, KisFixedPaintDeviceSP mask, bool preserveDab)
+void KisPainter::renderMirrorMaskSafe(PkRect rc, KisFixedPaintDeviceSP dab, KisFixedPaintDeviceSP mask, bool preserveDab)
 {
     if (!d->mirrorHorizontally && !d->mirrorVertically) return;
 
@@ -2911,7 +2911,7 @@ void KisPainter::renderMirrorMaskSafe(QRect rc, KisFixedPaintDeviceSP dab, KisFi
     renderMirrorMask(rc, dabToProcess, mask);
 }
 
-void KisPainter::renderMirrorMaskSafe(QRect rc, KisPaintDeviceSP dab, int sx, int sy, KisFixedPaintDeviceSP mask, bool preserveMask)
+void KisPainter::renderMirrorMaskSafe(PkRect rc, KisPaintDeviceSP dab, int sx, int sy, KisFixedPaintDeviceSP mask, bool preserveMask)
 {
     if (!d->mirrorHorizontally && !d->mirrorVertically) return;
 
@@ -2922,13 +2922,13 @@ void KisPainter::renderMirrorMaskSafe(QRect rc, KisPaintDeviceSP dab, int sx, in
     renderMirrorMask(rc, dab, sx, sy, maskToProcess);
 }
 
-void KisPainter::renderMirrorMask(QRect rc, KisFixedPaintDeviceSP dab)
+void KisPainter::renderMirrorMask(PkRect rc, KisFixedPaintDeviceSP dab)
 {
     int x = rc.topLeft().x();
     int y = rc.topLeft().y();
 
     KisLodTransform t(d->device);
-    QPoint effectiveAxesCenter = t.map(d->axesCenter).toPoint();
+    PkPoint effectiveAxesCenter = t.map(d->axesCenter).toPoint();
 
     int mirrorX = -((x+rc.width()) - effectiveAxesCenter.x()) + effectiveAxesCenter.x();
     int mirrorY = -((y+rc.height()) - effectiveAxesCenter.y()) + effectiveAxesCenter.y();
@@ -2953,13 +2953,13 @@ void KisPainter::renderMirrorMask(QRect rc, KisFixedPaintDeviceSP dab)
 
 }
 
-void KisPainter::renderMirrorMask(QRect rc, KisFixedPaintDeviceSP dab, KisFixedPaintDeviceSP mask)
+void KisPainter::renderMirrorMask(PkRect rc, KisFixedPaintDeviceSP dab, KisFixedPaintDeviceSP mask)
 {
     int x = rc.topLeft().x();
     int y = rc.topLeft().y();
 
     KisLodTransform t(d->device);
-    QPoint effectiveAxesCenter = t.map(d->axesCenter).toPoint();
+    PkPoint effectiveAxesCenter = t.map(d->axesCenter).toPoint();
 
     int mirrorX = -((x+rc.width()) - effectiveAxesCenter.x()) + effectiveAxesCenter.x();
     int mirrorY = -((y+rc.height()) - effectiveAxesCenter.y()) + effectiveAxesCenter.y();
@@ -2991,40 +2991,40 @@ void KisPainter::renderMirrorMask(QRect rc, KisFixedPaintDeviceSP dab, KisFixedP
 }
 
 
-void KisPainter::renderMirrorMask(QRect rc, KisPaintDeviceSP dab){
+void KisPainter::renderMirrorMask(PkRect rc, KisPaintDeviceSP dab){
     if (d->mirrorHorizontally || d->mirrorVertically){
         KisFixedPaintDeviceSP mirrorDab(new KisFixedPaintDevice(dab->colorSpace()));
-        QRect dabRc( QPoint(0,0), QSize(rc.width(),rc.height()) );
+        PkRect dabRc( PkPoint(0,0), PkSize(rc.width(),rc.height()) );
         mirrorDab->setRect(dabRc);
         mirrorDab->lazyGrowBufferWithoutInitialization();
 
         dab->readBytes(mirrorDab->data(),rc);
 
-        renderMirrorMask( QRect(rc.topLeft(),dabRc.size()), mirrorDab);
+        renderMirrorMask( PkRect(rc.topLeft(),dabRc.size()), mirrorDab);
     }
 }
 
-void KisPainter::renderMirrorMask(QRect rc, KisPaintDeviceSP dab, int sx, int sy, KisFixedPaintDeviceSP mask)
+void KisPainter::renderMirrorMask(PkRect rc, KisPaintDeviceSP dab, int sx, int sy, KisFixedPaintDeviceSP mask)
 {
     if (d->mirrorHorizontally || d->mirrorVertically){
         KisFixedPaintDeviceSP mirrorDab(new KisFixedPaintDevice(dab->colorSpace()));
-        QRect dabRc( QPoint(0,0), QSize(rc.width(),rc.height()) );
+        PkRect dabRc( PkPoint(0,0), PkSize(rc.width(),rc.height()) );
         mirrorDab->setRect(dabRc);
         mirrorDab->lazyGrowBufferWithoutInitialization();
-        dab->readBytes(mirrorDab->data(),QRect(QPoint(sx,sy),rc.size()));
+        dab->readBytes(mirrorDab->data(),PkRect(PkPoint(sx,sy),rc.size()));
         renderMirrorMask(rc, mirrorDab, mask);
     }
 }
 
-void KisPainter::renderDabWithMirroringNonIncremental(QRect rc, KisPaintDeviceSP dab)
+void KisPainter::renderDabWithMirroringNonIncremental(PkRect rc, KisPaintDeviceSP dab)
 {
-    QVector<QRect> rects;
+    PkVector<PkRect> rects;
 
     int x = rc.topLeft().x();
     int y = rc.topLeft().y();
 
     KisLodTransform t(d->device);
-    QPoint effectiveAxesCenter = t.map(d->axesCenter).toPoint();
+    PkPoint effectiveAxesCenter = t.map(d->axesCenter).toPoint();
 
     int mirrorX = -((x+rc.width()) - effectiveAxesCenter.x()) + effectiveAxesCenter.x();
     int mirrorY = -((y+rc.height()) - effectiveAxesCenter.y()) + effectiveAxesCenter.y();
@@ -3032,20 +3032,20 @@ void KisPainter::renderDabWithMirroringNonIncremental(QRect rc, KisPaintDeviceSP
     rects << rc;
 
     if (d->mirrorHorizontally && d->mirrorVertically){
-        rects << QRect(mirrorX, y, rc.width(), rc.height());
-        rects << QRect(mirrorX, mirrorY, rc.width(), rc.height());
-        rects << QRect(x, mirrorY, rc.width(), rc.height());
+        rects << PkRect(mirrorX, y, rc.width(), rc.height());
+        rects << PkRect(mirrorX, mirrorY, rc.width(), rc.height());
+        rects << PkRect(x, mirrorY, rc.width(), rc.height());
     } else if (d->mirrorHorizontally) {
-        rects << QRect(mirrorX, y, rc.width(), rc.height());
+        rects << PkRect(mirrorX, y, rc.width(), rc.height());
     } else if (d->mirrorVertically) {
-        rects << QRect(x, mirrorY, rc.width(), rc.height());
+        rects << PkRect(x, mirrorY, rc.width(), rc.height());
     }
 
-    Q_FOREACH (const QRect &rc, rects) {
+    Q_FOREACH (const PkRect &rc, rects) {
         d->device->clear(rc);
     }
 
-    QRect resultRect = dab->extent() | rc;
+    PkRect resultRect = dab->extent() | rc;
     bool intersects = false;
 
     for (int i = 1; i < rects.size(); i++) {
@@ -3063,11 +3063,11 @@ void KisPainter::renderDabWithMirroringNonIncremental(QRect rc, KisPaintDeviceSP
         rects.resize(1);
     }
 
-    Q_FOREACH (const QRect &rc, rects) {
+    Q_FOREACH (const PkRect &rc, rects) {
         bitBlt(rc.topLeft(), dab, rc);
     }
 
-    Q_FOREACH (const QRect &rc, rects) {
+    Q_FOREACH (const PkRect &rc, rects) {
         renderMirrorMask(rc, dab);
     }
 }
@@ -3077,10 +3077,10 @@ bool KisPainter::hasDirtyRegion() const
     return !d->dirtyRects.isEmpty();
 }
 
-void KisPainter::mirrorRect(Qt::Orientation direction, QRect *rc) const
+void KisPainter::mirrorRect(Qt::Orientation direction, PkRect *rc) const
 {
     KisLodTransform t(d->device);
-    QPoint effectiveAxesCenter = t.map(d->axesCenter).toPoint();
+    PkPoint effectiveAxesCenter = t.map(d->axesCenter).toPoint();
 
     KritaUtils::mirrorRect(direction, effectiveAxesCenter, rc);
 }
@@ -3088,33 +3088,33 @@ void KisPainter::mirrorRect(Qt::Orientation direction, QRect *rc) const
 void KisPainter::mirrorDab(Qt::Orientation direction, KisRenderedDab *dab, bool skipMirrorPixels) const
 {
     KisLodTransform t(d->device);
-    QPointF effectiveAxesCenter = t.map(d->axesCenter);
+    PkPointF effectiveAxesCenter = t.map(d->axesCenter);
 
     KritaUtils::mirrorDab(direction, effectiveAxesCenter, dab, skipMirrorPixels);
 }
 
 namespace {
 
-inline void mirrorOneObject(Qt::Orientation dir, const QPointF &center, QRect *rc) {
+inline void mirrorOneObject(Qt::Orientation dir, const PkPointF &center, PkRect *rc) {
     KritaUtils::mirrorRect(dir, center, rc);
 }
 
-inline void mirrorOneObject(Qt::Orientation dir, const QPointF &center, QPointF *pt) {
+inline void mirrorOneObject(Qt::Orientation dir, const PkPointF &center, PkPointF *pt) {
     KritaUtils::mirrorPoint(dir, center, pt);
 }
 
-inline void mirrorOneObject(Qt::Orientation dir, const QPointF &center, QPair<QPointF, QPointF> *pair) {
+inline void mirrorOneObject(Qt::Orientation dir, const PkPointF &center, PkPair<PkPointF, PkPointF> *pair) {
     KritaUtils::mirrorPoint(dir, center, &pair->first);
     KritaUtils::mirrorPoint(dir, center, &pair->second);
 }
 }
 
-template<class T> QVector<T> KisPainter::Private::calculateMirroredObjects(const T &object)
+template<class T> PkVector<T> KisPainter::Private::calculateMirroredObjects(const T &object)
 {
-    QVector<T> result;
+    PkVector<T> result;
 
     KisLodTransform t(this->device);
-    const QPointF effectiveAxesCenter = t.map(this->axesCenter);
+    const PkPointF effectiveAxesCenter = t.map(this->axesCenter);
 
     T baseObject = object;
     result << baseObject;
@@ -3137,17 +3137,17 @@ template<class T> QVector<T> KisPainter::Private::calculateMirroredObjects(const
     return result;
 }
 
-const QVector<QRect> KisPainter::calculateAllMirroredRects(const QRect &rc)
+const PkVector<PkRect> KisPainter::calculateAllMirroredRects(const PkRect &rc)
 {
     return d->calculateMirroredObjects(rc);
 }
 
-const QVector<QPointF> KisPainter::calculateAllMirroredPoints(const QPointF &pos)
+const PkVector<PkPointF> KisPainter::calculateAllMirroredPoints(const PkPointF &pos)
 {
     return d->calculateMirroredObjects(pos);
 }
 
-const QVector<QPair<QPointF, QPointF>> KisPainter::calculateAllMirroredPoints(const QPair<QPointF, QPointF> &pair)
+const PkVector<PkPair<PkPointF, PkPointF>> KisPainter::calculateAllMirroredPoints(const PkPair<PkPointF, PkPointF> &pair)
 {
     return d->calculateMirroredObjects(pair);
 }
