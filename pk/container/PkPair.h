@@ -32,8 +32,21 @@ using PkPair = std::pair<A, B>;
 
 // Qt5 的 qMakePair 按值推导两个类型（不做 decay 之外的手脚），返回一个新 pair。
 // 与 std::make_pair 的区别只在名字，语义一致。
+
+// R 线让位守卫（R-35/R-37/R-38 同型，S-08 主树 flake 链接验证压出）：真 Qt
+// qpair.h 的 qMakePair 是 `template <typename T1, typename T2> QPair<...>
+// qMakePair(const T1 &, const T2 &)` —— 参数列表与本文件逐形同、只差返回类型
+// （QPair 对 PkPair），两组 inline 自由函数模板在同一翻译单元里是硬重定义。
+// 真 Qt 的 qpair.h 在场时本文件让位，由真 Qt 版本覆盖（其返回 QPair 与 std::pair
+// 在 Qt5 是不同类，但混合 TU 里调用点走真 Qt 语义、自洽）。薄壳（QT_CORE_LIB
+// 未定义）与主树纯 Pk TU（QT_CORE_LIB 定义但 qpair.h 不在场）由第二析取让位
+// 条件继续由本文件提供。
+#if !defined(QT_CORE_LIB) || !defined(QPAIR_H)
+
 template <typename A, typename B>
 PkPair<A, B> qMakePair(const A &a, const B &b)
 {
     return PkPair<A, B>(a, b);
 }
+
+#endif  // !defined(QT_CORE_LIB) || !defined(QPAIR_H)

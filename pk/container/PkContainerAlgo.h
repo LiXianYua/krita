@@ -107,6 +107,15 @@ public:
 // （PkPair.h）同一条口径 —— Qt 的自由函数名在本仓库里原样保留，垫片不映射它们。
 // ---------------------------------------------------------------------------
 
+// R 线让位守卫（R-35/R-37/R-38 同型，S-08 主树 flake 链接验证压出）：主树保留
+// 过渡真 Qt，真 Qt qalgorithms.h 定义了**同名同签名**的 qDeleteAll 双重载
+// （template<FwdIt> 与 template<Container>，参数列表逐形同），两组 inline 自由
+// 函数模板在同一翻译单元里是硬重定义。真 Qt 的 qalgorithms.h 在场时本文件让位，
+// 由真 Qt 版本覆盖（其模板实现同样只 delete 元素，行为一致）。薄壳（QT_CORE_LIB
+// 未定义）与主树纯 Pk TU（QT_CORE_LIB 定义但 qalgorithms.h 不在场）由第二析取
+// 让位条件继续由本文件提供。
+#if !defined(QT_CORE_LIB) || !defined(QALGORITHMS_H)
+
 template <typename PkForwardIt>
 void qDeleteAll(PkForwardIt begin, PkForwardIt end)
 {
@@ -124,3 +133,5 @@ void qDeleteAll(const PkContainer &c)
 {
     qDeleteAll(c.begin(), c.end());
 }
+
+#endif  // !defined(QT_CORE_LIB) || !defined(QALGORITHMS_H)
