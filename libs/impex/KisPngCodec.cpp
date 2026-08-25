@@ -251,7 +251,7 @@ void decode_meta_data(png_textp text, KisMetaData::Store* store, PkString type, 
     }
     if (rawProfile.size() > 0) {
         PkMemoryStream buffer;
-        buffer.open(PkStream::WriteOnly);
+        buffer.open(PkStream::ReadWrite);
         buffer.write(rawProfile.data(), rawProfile.size());
         buffer.seek(0);
         exifIO->loadFrom(store, &buffer);
