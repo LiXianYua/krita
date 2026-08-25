@@ -12,7 +12,8 @@
 #ifndef KIS_OUTLINE_GENERATOR_H
 #define KIS_OUTLINE_GENERATOR_H
 
-#include <QPolygon>
+#include <PkPolygon.h>
+#include <PkContainerAlgo.h>
 
 #include "kritaimage_export.h"
 #include "kis_types.h"
@@ -43,9 +44,9 @@ public:
      * @param height height of the buffer
      * @returns list of polygons around every non-transparent area
      **/
-    QVector<QPolygon> outline(quint8* buffer, qint32 xOffset, qint32 yOffset, qint32 width, qint32 height);
+    PkVector<PkPolygon> outline(quint8* buffer, qint32 xOffset, qint32 yOffset, qint32 width, qint32 height);
 
-    QVector<QPolygon> outline(const KisPaintDevice *buffer, qint32 xOffset, qint32 yOffset, qint32 width, qint32 height);
+    PkVector<PkPolygon> outline(const KisPaintDevice *buffer, qint32 xOffset, qint32 yOffset, qint32 width, qint32 height);
 
 
     /**
@@ -64,7 +65,7 @@ private:
     };
 
     template <class StorageStrategy>
-    QVector<QPolygon> outlineImpl(typename StorageStrategy::StorageType buffer,
+    PkVector<PkPolygon> outlineImpl(typename StorageStrategy::StorageType buffer,
                                   qint32 xOffset, qint32 yOffset,
                                   qint32 width, qint32 height);
 
@@ -78,7 +79,7 @@ private:
         return edge == NoEdge ? edge : static_cast<EdgeType>((edge + 1) % 4);
     }
 
-    void appendCoordinate(QPolygon * path, int x, int y, EdgeType edge, EdgeType prevEdge);
+    void appendCoordinate(PkPolygon * path, int x, int y, EdgeType edge, EdgeType prevEdge);
 
 private:
 

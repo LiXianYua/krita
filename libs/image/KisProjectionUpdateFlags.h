@@ -6,7 +6,7 @@
 #ifndef KISPROJECTIONUPDATEFLAGS_H
 #define KISPROJECTIONUPDATEFLAGS_H
 
-#include <QFlags>
+#include <PkFlags.h>
 
 enum class KisProjectionUpdateFlag
 {

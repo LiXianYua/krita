@@ -7,7 +7,8 @@
 #ifndef KISCOLORSELECTIONPOLICIES
 #define KISCOLORSELECTIONPOLICIES
 
-#include <QStack>
+#include <PkContainerAlgo.h>
+#include <PkAuxTypes.h>
 
 #include <KoAlwaysInline.h>
 #include <KoColor.h>
@@ -79,7 +80,7 @@ public:
 
 protected:
     using HashKeyType = SrcPixelType;
-    using HashType = QHash<HashKeyType, quint8>;
+    using HashType = PkHash<HashKeyType, quint8>;
 
     mutable HashType m_differences;
 };
@@ -146,8 +147,9 @@ class SlowIsNonNullDifferencePolicy
 public:
     SlowIsNonNullDifferencePolicy(int pixelSize)
         : m_pixelSize(pixelSize)
-        , m_testColor(pixelSize, 0)
-    {}
+    {
+        m_testColor.resize(pixelSize); // == PkByteArray(pixelSize, 0): resize 尾补 0
+    }
 
     ALWAYS_INLINE quint8 difference(const quint8 *colorPtr) const
     {
@@ -159,7 +161,7 @@ public:
 
 private:
     int m_pixelSize {0};
-    QByteArray m_testColor;
+    PkByteArray m_testColor;
 };
 
 template <typename SrcPixelType>

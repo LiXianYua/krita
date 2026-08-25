@@ -8,6 +8,8 @@
 #define KISRENDEREDDAB_H
 
 #include "kis_types.h"
+#include <PkPoint.h>
+#include <PkRect.h>
 #include "kis_fixed_paint_device.h"
 
 struct KisRenderedDab
@@ -22,14 +24,14 @@ struct KisRenderedDab
     KisRenderedDab(const KisRenderedDab &/*rhs*/) = default;
 
     KisFixedPaintDeviceSP device;
-    QPoint offset;
+    PkPoint offset;
 
     qreal opacity = OPACITY_OPAQUE_F;
     qreal flow = OPACITY_OPAQUE_F;
     qreal averageOpacity = OPACITY_TRANSPARENT_F;
 
-    inline QRect realBounds() const {
-        return QRect(offset, device->bounds().size());
+    inline PkRect realBounds() const {
+        return PkRect(offset, device->bounds().size());
     }
 };
 

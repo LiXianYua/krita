@@ -8,7 +8,7 @@
 #ifndef KIS_FILTER_REGISTRY_H_
 #define KIS_FILTER_REGISTRY_H_
 
-#include <compat/QObject>
+#include <PkObject.h>
 #include <PkString.h>
 
 #include "kis_filter.h"

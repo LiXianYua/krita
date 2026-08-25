@@ -8,6 +8,7 @@
 #define KISFASTDEVICEPROCESSINGUTILS_H
 
 #include "kis_random_accessor_ng.h"
+#include <PkRect.h>
 #include <KoAlwaysInline.h>
 
 namespace KritaUtils {
@@ -19,7 +20,7 @@ namespace KritaUtils {
  * should either pass a functor or a lambda to it.
  */
 template <class PixelProcessor>
-void processTwoDevices(const QRect &rc,
+void processTwoDevices(const PkRect &rc,
                        KisRandomConstAccessorSP srcIt,
                        KisRandomAccessorSP dstIt,
                        const int srcPixelSize,
@@ -83,7 +84,7 @@ void processTwoDevices(const QRect &rc,
  * lambda to it.
  */
 template <class PixelProcessor>
-void processTwoDevicesWithStrides(const QRect &rc,
+void processTwoDevicesWithStrides(const PkRect &rc,
                                   KisRandomConstAccessorSP srcIt,
                                   KisRandomAccessorSP dstIt,
                                   PixelProcessor pixelProcessor)

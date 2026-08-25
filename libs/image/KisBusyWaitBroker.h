@@ -7,6 +7,7 @@
 #define KISBUSYWAITBROKER_H
 
 #include <kis_types.h>
+#include <PkScopedPointer.h>
 #include "kritaimage_export.h"
 
 /**
@@ -53,7 +54,7 @@ private:
     Q_DISABLE_COPY(KisBusyWaitBroker);
 
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif // KISBUSYWAITBROKER_H

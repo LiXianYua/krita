@@ -8,6 +8,7 @@
 #define __KIS_STROKE_JOB_H
 
 #include "kis_runnable_with_debug_name.h"
+#include <PkString.h>
 #include "kis_stroke_job_strategy.h"
 
 class KRITAIMAGE_EXPORT KisStrokeJob : public KisRunnableWithDebugName
@@ -65,14 +66,14 @@ public:
         return m_isOwnJob;
     }
 
-    QString debugName() const override {
+    PkString debugName() const override {
         return m_dabStrategy->debugId();
     }
 
 private:
     // for testing use only, do not use in real code
-    friend QString getJobName(KisStrokeJob *job);
-    friend QString getCommandName(KisStrokeJob *job);
+    friend PkString getJobName(KisStrokeJob *job);
+    friend PkString getCommandName(KisStrokeJob *job);
     friend int cancelSeqNo(KisStrokeJob *job);
 
     KisStrokeJobStrategy* testingGetDabStrategy() {

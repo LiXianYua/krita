@@ -8,12 +8,13 @@
 #define __KIS_STROKE_STRATEGY_FACTORY_H
 
 #include <functional>
+#include <PkContainerAlgo.h>
 using KisStrokeStrategyFactory = std::function<KisStrokeStrategy*()>;
 
-using KisLodSyncPair = std::pair<KisStrokeStrategy*, QList<KisStrokeJobData*>>;
+using KisLodSyncPair = std::pair<KisStrokeStrategy*, PkList<KisStrokeJobData*>>;
 using KisLodSyncStrokeStrategyFactory = std::function<KisLodSyncPair(bool /*forgettable*/)>;
 
-using KisSuspendResumePair = std::pair<KisStrokeStrategy*, QList<KisStrokeJobData*>>;
+using KisSuspendResumePair = std::pair<KisStrokeStrategy*, PkList<KisStrokeJobData*>>;
 using KisSuspendResumeStrategyFactory = std::function<KisSuspendResumePair()>;
 using KisSuspendResumeStrategyPairFactory = std::function<std::pair<KisSuspendResumePair, KisSuspendResumePair>()>;
 

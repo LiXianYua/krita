@@ -8,6 +8,7 @@
 #define __KIS_REFRESH_SUBTREE_WALKER_H
 
 #include "kis_types.h"
+#include <PkRect.h>
 #include "kis_base_rects_walker.h"
 
 
@@ -25,7 +26,7 @@ public:
     Q_DECLARE_FLAGS(Flags, Flag);
 
 public:
-    KisRefreshSubtreeWalker(QRect cropRect, Flags flags = None)
+    KisRefreshSubtreeWalker(PkRect cropRect, Flags flags = None)
         : m_flags(flags)
     {
         setCropRect(cropRect);
@@ -49,21 +50,21 @@ protected:
 
 
     static
-    std::pair<QRect, bool>
+    std::pair<PkRect, bool>
     calculateChangeRect(KisProjectionLeafSP startWith,
-                        const QRect &requestedRect) {
+                        const PkRect &requestedRect) {
 
         if(!startWith->isLayer())
             return std::make_pair(requestedRect, false);
 
-        QRect finalChangeRect = requestedRect;
+        PkRect finalChangeRect = requestedRect;
         bool changeRectVaries = false;
 
         KisProjectionLeafSP currentLeaf = startWith->firstChild();
 
         while (currentLeaf) {
             if (currentLeaf->isLayer() && currentLeaf->shouldBeRendered()) {
-                QRect leafRect;
+                PkRect leafRect;
 
                 std::tie(leafRect, changeRectVaries) =
                     calculateChangeRect(currentLeaf, requestedRect);

@@ -1,7 +1,7 @@
 #ifndef KISLODPREFERENCES_H
 #define KISLODPREFERENCES_H
 
-#include <QFlags>
+#include <PkFlags.h>
 #include "kis_assert.h"
 
 struct KisLodPreferences

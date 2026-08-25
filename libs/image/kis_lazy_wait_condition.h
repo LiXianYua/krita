@@ -7,9 +7,9 @@
 #ifndef __KIS_LAZY_WAIT_CONDITION_H
 #define __KIS_LAZY_WAIT_CONDITION_H
 
-#include <QMutex>
-#include <QMutexLocker>
-#include <QWaitCondition>
+#include <PkMutex.h>
+#include <PkWaitCondition.h>
+#include <climits>
 
 /**
  * This class is used for catching a particular condition met.
@@ -57,7 +57,7 @@ public:
     }
 
     void initWaiting() {
-        QMutexLocker locker(&m_mutex);
+        PkMutexLocker locker(&m_mutex);
         if(!m_waitCounter) {
             m_wakeupCounter = 0;
         }
@@ -66,15 +66,20 @@ public:
     }
 
     void endWaiting() {
-        QMutexLocker locker(&m_mutex);
+        PkMutexLocker locker(&m_mutex);
         m_waitCounter--;
     }
 
     bool wait(unsigned long time = ULONG_MAX) {
-        QMutexLocker locker(&m_mutex);
+        PkMutexLocker locker(&m_mutex);
         bool result = true;
         if(!m_wakeupCounter) {
-            result = m_condition.wait(&m_mutex, time);
+            // PkWaitCondition 只有一参 wait（永久等待）。壳内唯一消费方
+            // kis_update_scheduler.cpp 只以默认 ULONG_MAX 调用，永不超时，
+            // 行为与壳垫片对超时参数的既有降级语义一致；带真实超时的
+            // 消费方（libs/image/tests）在壳闭包外。
+            (void)time;
+            m_condition.wait(&m_mutex); // PkWaitCondition::wait(PkMutex*) 返回 void；永久等待仅被唤醒返回
         }
         if(result) {
             m_wakeupCounter--;
@@ -85,7 +90,7 @@ public:
     void wakeAll() {
         if(!m_waitCounter) return;
 
-        QMutexLocker locker(&m_mutex);
+        PkMutexLocker locker(&m_mutex);
         if(m_waitCounter) {
             m_wakeupCounter += m_waitCounter;
             m_condition.wakeAll();
@@ -97,8 +102,8 @@ public:
     }
 
 private:
-    QMutex m_mutex;
-    QWaitCondition m_condition;
+    PkMutex m_mutex;
+    PkWaitCondition m_condition;
     volatile int m_waitCounter;
     int m_wakeupCounter;
 };

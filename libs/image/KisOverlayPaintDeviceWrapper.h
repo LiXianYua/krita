@@ -8,6 +8,9 @@
 #define KISOVERLAYPAINTDEVICEWRAPPER_H
 
 #include <kis_types.h>
+#include <PkContainerAlgo.h>
+#include <PkRect.h>
+#include <PkScopedPointer.h>
 #include "kritaimage_export.h"
 
 class KoColorSpace;
@@ -106,11 +109,11 @@ public:
     KisPaintDeviceSP source() const;
     KisPaintDeviceSP overlay(int index = 0) const;
 
-    void readRect(const QRect &rc);
-    void writeRect(const QRect &rc, int index = 0);
+    void readRect(const PkRect &rc);
+    void writeRect(const PkRect &rc, int index = 0);
 
-    void readRects(const QVector<QRect> &rects);
-    void writeRects(const QVector<QRect> &rects, int index = 0);
+    void readRects(const PkVector<PkRect> &rects);
+    void writeRects(const PkVector<PkRect> &rects, int index = 0);
 
     const KoColorSpace* overlayColorSpace() const;
 
@@ -135,7 +138,7 @@ private:
 
     friend struct KisChangeOverlayWrapperCommand;
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISOVERLAYPAINTDEVICEWRAPPER_H

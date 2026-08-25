@@ -8,6 +8,7 @@
 #define __KIS_FULL_REFRESH_WALKER_H
 
 #include "kis_merge_walker.h"
+#include <PkRect.h>
 #include "kis_refresh_subtree_walker.h"
 
 
@@ -18,7 +19,7 @@ public:
     using KisRefreshSubtreeWalker::Flags;
 
 public:
-    KisFullRefreshWalker(QRect cropRect, Flags flags = None)
+    KisFullRefreshWalker(PkRect cropRect, Flags flags = None)
         : KisRefreshSubtreeWalker(cropRect, flags | DontAdjustChangeRect),
           KisMergeWalker(cropRect, NO_FILTHY | (flags.testFlag(ClonesDontInvalidateFrames) ? CLONES_DONT_INVALIDATE_FRAMES : DEFAULT))
     {
@@ -72,7 +73,7 @@ public:
              */
 
             if(isStartLeaf(leaf)&& !leaf->isRoot()) {
-                QRect changeRect;
+                PkRect changeRect;
                 bool changeRectVaries = false;
                 std::tie(changeRect, changeRectVaries) =
                     KisRefreshSubtreeWalker::calculateChangeRect(leaf, requestedRect());
@@ -83,7 +84,7 @@ public:
             }
         }
     }
-    void registerNeedRect(KisProjectionLeafSP leaf, NodePosition position, KisRenderPassFlags renderFlags, const QRect &cropRect) override {
+    void registerNeedRect(KisProjectionLeafSP leaf, NodePosition position, KisRenderPassFlags renderFlags, const PkRect &cropRect) override {
         if(m_currentUpdateType == FULL_REFRESH) {
             KisRefreshSubtreeWalker::registerNeedRect(leaf, position, renderFlags, cropRect);
         }

@@ -7,10 +7,12 @@
 #define KIS_SELECTION_COMPONENT_H
 
 #include <kritaimage_export.h>
+#include <PkPainterPath.h>
+#include <PkRect.h>
 
-#include <QTransform>
+#include <PkTransform.h>
 
-class QRect;
+class PkRect;
 class KUndo2Command;
 class KisSelection;
 
@@ -25,18 +27,18 @@ public:
     virtual KisSelectionComponent* clone(KisSelection* selection) = 0;
 
     virtual void renderToProjection(KisPaintDeviceSP projection) = 0;
-    virtual void renderToProjection(KisPaintDeviceSP projection, const QRect& r) = 0;
+    virtual void renderToProjection(KisPaintDeviceSP projection, const PkRect& r) = 0;
 
     virtual void moveX(qint32 x);
     virtual void moveY(qint32 y) { Q_UNUSED(y); }
 
-    virtual KUndo2Command* transform(const QTransform &transform) {
+    virtual KUndo2Command* transform(const PkTransform &transform) {
         Q_UNUSED(transform);
         return 0;
     }
 
     virtual bool isEmpty() const = 0;
-    virtual QPainterPath outlineCache() const = 0;
+    virtual PkPainterPath outlineCache() const = 0;
     virtual bool outlineCacheValid() const = 0;
     virtual void recalculateOutlineCache() = 0;
 

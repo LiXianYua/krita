@@ -13,7 +13,7 @@
 #include "kritaimage_export.h"
 #include "kis_default_bounds_base.h"
 
-#include <QRect>
+#include <PkRect.h>
 
 class KUndo2MagicString;
 class KoColorSpace;
@@ -24,10 +24,10 @@ public:
     virtual ~KisSelectionFilter();
 
     virtual void process(KisPixelSelectionSP pixelSelection,
-                         const QRect &rect) = 0;
+                         const PkRect &rect) = 0;
 
     virtual KUndo2MagicString name();
-    virtual QRect changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds);
+    virtual PkRect changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds);
 
 protected:
     void computeBorder(qint32  *circ, qint32  xradius, qint32  yradius);
@@ -42,9 +42,9 @@ class KRITAIMAGE_EXPORT KisErodeSelectionFilter : public KisSelectionFilter
 public:
     KUndo2MagicString name() override;
 
-    QRect changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
+    PkRect changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
 
-    void process(KisPixelSelectionSP pixelSelection, const QRect &rect) override;
+    void process(KisPixelSelectionSP pixelSelection, const PkRect &rect) override;
 };
 
 class KRITAIMAGE_EXPORT KisDilateSelectionFilter : public KisSelectionFilter
@@ -52,9 +52,9 @@ class KRITAIMAGE_EXPORT KisDilateSelectionFilter : public KisSelectionFilter
 public:
     KUndo2MagicString name() override;
 
-    QRect changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
+    PkRect changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
 
-    void process(KisPixelSelectionSP pixelSelection, const QRect &rect) override;
+    void process(KisPixelSelectionSP pixelSelection, const PkRect &rect) override;
 };
 
 class KRITAIMAGE_EXPORT KisBorderSelectionFilter : public KisSelectionFilter
@@ -64,9 +64,9 @@ public:
 
     KUndo2MagicString name() override;
 
-    QRect changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
+    PkRect changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
 
-    void process(KisPixelSelectionSP pixelSelection, const QRect &rect) override;
+    void process(KisPixelSelectionSP pixelSelection, const PkRect &rect) override;
 
 private:
     qint32 m_xRadius;
@@ -81,9 +81,9 @@ public:
 
     KUndo2MagicString name() override;
 
-    QRect changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
+    PkRect changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
 
-    void process(KisPixelSelectionSP pixelSelection, const QRect &rect) override;
+    void process(KisPixelSelectionSP pixelSelection, const PkRect &rect) override;
 private:
     qint32 m_radius;
 };
@@ -95,9 +95,9 @@ public:
 
     KUndo2MagicString name() override;
 
-    QRect changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
+    PkRect changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
 
-    void process(KisPixelSelectionSP pixelSelection, const QRect &rect) override;
+    void process(KisPixelSelectionSP pixelSelection, const PkRect &rect) override;
 
 private:
     qint32 m_xRadius;
@@ -111,9 +111,9 @@ public:
 
     KUndo2MagicString name() override;
 
-    QRect changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
+    PkRect changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
 
-    void process(KisPixelSelectionSP pixelSelection, const QRect &rect) override;
+    void process(KisPixelSelectionSP pixelSelection, const PkRect &rect) override;
 
 private:
     qint32 m_xRadius;
@@ -126,9 +126,9 @@ class KRITAIMAGE_EXPORT KisSmoothSelectionFilter : public KisSelectionFilter
 public:
     KUndo2MagicString name() override;
 
-    QRect changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
+    PkRect changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
 
-    void process(KisPixelSelectionSP pixelSelection, const QRect &rect) override;
+    void process(KisPixelSelectionSP pixelSelection, const PkRect &rect) override;
 };
 
 class KRITAIMAGE_EXPORT KisInvertSelectionFilter : public KisSelectionFilter
@@ -136,9 +136,9 @@ class KRITAIMAGE_EXPORT KisInvertSelectionFilter : public KisSelectionFilter
 public:
     KUndo2MagicString name() override;
 
-    QRect changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
+    PkRect changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
 
-    void process(KisPixelSelectionSP pixelSelection, const QRect &rect) override;
+    void process(KisPixelSelectionSP pixelSelection, const PkRect &rect) override;
 };
 
 /**
@@ -148,7 +148,7 @@ class KRITAIMAGE_EXPORT KisAntiAliasSelectionFilter : public KisSelectionFilter
 {
 public:
     KUndo2MagicString name() override;
-    void process(KisPixelSelectionSP pixelSelection, const QRect &rect) override;
+    void process(KisPixelSelectionSP pixelSelection, const PkRect &rect) override;
 
 private:
     /**
@@ -234,8 +234,8 @@ public:
     KisGrowUntilDarkestPixelSelectionFilter(qint32 radius, KisPaintDeviceSP referenceDevice);
 
     KUndo2MagicString name() override;
-    QRect changeRect(const QRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
-    void process(KisPixelSelectionSP pixelSelection, const QRect &rect) override;
+    PkRect changeRect(const PkRect &rect, KisDefaultBoundsBaseSP defaultBounds) override;
+    void process(KisPixelSelectionSP pixelSelection, const PkRect &rect) override;
 
 private:
     qint32 m_radius;

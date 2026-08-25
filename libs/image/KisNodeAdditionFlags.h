@@ -1,7 +1,7 @@
 #ifndef KISNODEADDITIONFLAGS_H
 #define KISNODEADDITIONFLAGS_H
 
-#include <QFlags>
+#include <PkFlags.h>
 
 enum class KisNodeAdditionFlag
 {

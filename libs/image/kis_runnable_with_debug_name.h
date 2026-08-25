@@ -8,12 +8,12 @@
 #define KIS_RUNNABLE_WITH_DEBUG_NAME_H
 
 #include "kis_runnable.h"
-#include <QString>
+#include <PkString.h>
 
 class KRITAIMAGE_EXPORT KisRunnableWithDebugName : public KisRunnable
 {
 public:
-    virtual QString debugName() const = 0;
+    virtual PkString debugName() const = 0;
 };
 
 #endif // KIS_RUNNABLE_WITH_DEBUG_NAME_H

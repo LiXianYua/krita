@@ -8,9 +8,9 @@
 #define __KIS_THREADED_TEXT_RENDERING_WORKAROUND_H
 
 /**
- * There is a bug in Qt/X11 which prevents the QPainter::drawText() call
+ * There is a bug in Qt/X11 which prevents the the painter drawText() call
  * be used in any non-gui thread, even when
- * QFontDatabase::supportsThreadedFontRendering() returns true. It seems
+ * font database threaded font rendering returns true. It seems
  * like some function in the font rendering routine eats the X11 replies
  * which are awaited by the GUI thread, effectively making the GUI thread
  * to hang up. The hangup happens in xcb_wait_for_reply().

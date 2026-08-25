@@ -8,9 +8,10 @@
 #define KISBATCHNODEUPDATE_H
 
 #include "kritaimage_export.h"
+#include <PkDebug.h>
 
-#include <QRect>
-#include <QSharedPointer>
+#include <PkRect.h>
+#include <PkSharedPointer.h>
 #include <boost/operators.hpp>
 #include <kis_types.h>
 
@@ -21,7 +22,7 @@
  * In such a case the update should be issued as refreshGraphAsync().
  */
 class KRITAIMAGE_EXPORT KisBatchNodeUpdate
-        : public std::vector<std::pair<KisNodeSP, QRect>>,
+        : public std::vector<std::pair<KisNodeSP, PkRect>>,
         boost::orable<KisBatchNodeUpdate>
 {
 public:
@@ -30,7 +31,7 @@ public:
     KisBatchNodeUpdate(KisBatchNodeUpdate &&rhs) = default;
     KisBatchNodeUpdate& operator=(const KisBatchNodeUpdate &rhs) = default;
 
-    KisBatchNodeUpdate(const std::vector<std::pair<KisNodeSP, QRect>> &rhs);
+    KisBatchNodeUpdate(const std::vector<std::pair<KisNodeSP, PkRect>> &rhs);
 
     /**
      * Add an update designated for \p node with dirty rect \p rc
@@ -42,7 +43,7 @@ public:
      *
      * \see compress()
      */
-    void addUpdate(KisNodeSP node, const QRect &rc);
+    void addUpdate(KisNodeSP node, const PkRect &rc);
 
     /**
      * Compress the stored updates:
@@ -74,9 +75,9 @@ public:
 
 };
 
-KRITAIMAGE_EXPORT QDebug operator<<(QDebug dbg, const KisBatchNodeUpdate &update);
+KRITAIMAGE_EXPORT PkDebug operator<<(PkDebug dbg, const KisBatchNodeUpdate &update);
 
-using KisBatchNodeUpdateSP = QSharedPointer<KisBatchNodeUpdate>;
-using KisBatchNodeUpdateWSP = QWeakPointer<KisBatchNodeUpdate>;
+using KisBatchNodeUpdateSP = PkSharedPointer<KisBatchNodeUpdate>;
+using KisBatchNodeUpdateWSP = PkWeakPointer<KisBatchNodeUpdate>;
 
 #endif // KISBATCHNODEUPDATE_H

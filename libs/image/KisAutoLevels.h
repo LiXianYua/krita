@@ -9,7 +9,7 @@
 #ifndef KIS_AUTO_LEVELS_H
 #define KIS_AUTO_LEVELS_H
 
-#include <QVector>
+#include <PkContainerAlgo.h>
 
 #include <KoColor.h>
 #include <kis_paint_device.h>
@@ -61,7 +61,7 @@ struct KRITAIMAGE_EXPORT ChannelHistogram
  *        the clipping.
  * @return A pair containing the black and white points indices
  */
-QPair<qreal, qreal> KRITAIMAGE_EXPORT getInputBlackAndWhitePoints(ChannelHistogram histogram,
+PkPair<qreal, qreal> KRITAIMAGE_EXPORT getInputBlackAndWhitePoints(ChannelHistogram histogram,
                                                                   qreal shadowsClipping,
                                                                   qreal highlightsClipping);
 
@@ -70,7 +70,7 @@ QPair<qreal, qreal> KRITAIMAGE_EXPORT getInputBlackAndWhitePoints(ChannelHistogr
  *        the clipping
  * @return A pair containing the "darkest" and "lighter" colors 
  */
-QPair<KoColor, KoColor> KRITAIMAGE_EXPORT getDarkestAndWhitestColors(const KisPaintDeviceSP device,
+PkPair<KoColor, KoColor> KRITAIMAGE_EXPORT getDarkestAndWhitestColors(const KisPaintDeviceSP device,
                                                                      qreal shadowsClipping,
                                                                      qreal highlightsClipping);
 
@@ -125,16 +125,16 @@ qreal KRITAIMAGE_EXPORT getGamma(qreal blackPoint,
  * @param outputMidtones The desired output midtone values for the gamma adjustment
  * @return A list of levels infos containing parameters for the levels adjustment
  */
-QVector<KisLevelsCurve> KRITAIMAGE_EXPORT adjustMonochromaticContrast(ChannelHistogram lightnessHistogram,
-                                                                      QVector<ChannelHistogram> &channelsHistograms,
+PkVector<KisLevelsCurve> KRITAIMAGE_EXPORT adjustMonochromaticContrast(ChannelHistogram lightnessHistogram,
+                                                                      PkVector<ChannelHistogram> &channelsHistograms,
                                                                       qreal shadowsClipping,
                                                                       qreal highlightsClipping,
                                                                       qreal maximumInputBlackAndWhiteOffset,
                                                                       MidtonesAdjustmentMethod midtonesAdjustmentMethod,
                                                                       qreal midtonesAdjustmentAmount,
-                                                                      const QVector<qreal> &outputBlackPoints,
-                                                                      const QVector<qreal> &outputWhitePoints,
-                                                                      const QVector<qreal> &outputMidtones);
+                                                                      const PkVector<qreal> &outputBlackPoints,
+                                                                      const PkVector<qreal> &outputWhitePoints,
+                                                                      const PkVector<qreal> &outputMidtones);
 
 /**
  * @brief Creates a KisLevelsCurve for every channel in "channelsHistograms".
@@ -162,15 +162,15 @@ QVector<KisLevelsCurve> KRITAIMAGE_EXPORT adjustMonochromaticContrast(ChannelHis
  * @param outputMidtones The desired output midtone values for the gamma adjustment
  * @return A list of levels infos containing parameters for the levels adjustment
  */
-QVector<KisLevelsCurve> KRITAIMAGE_EXPORT adjustPerChannelContrast(QVector<ChannelHistogram> &channelsHistograms,
+PkVector<KisLevelsCurve> KRITAIMAGE_EXPORT adjustPerChannelContrast(PkVector<ChannelHistogram> &channelsHistograms,
                                                                    qreal shadowsClipping,
                                                                    qreal highlightsClipping,
                                                                    qreal maximumInputBlackAndWhiteOffset,
                                                                    MidtonesAdjustmentMethod midtonesAdjustmentMethod,
                                                                    qreal midtonesAdjustmentAmount,
-                                                                   const QVector<qreal> &outputBlackPoints,
-                                                                   const QVector<qreal> &outputWhitePoints,
-                                                                   const QVector<qreal> &outputMidtones);
+                                                                   const PkVector<qreal> &outputBlackPoints,
+                                                                   const PkVector<qreal> &outputWhitePoints,
+                                                                   const PkVector<qreal> &outputMidtones);
 
 }
 

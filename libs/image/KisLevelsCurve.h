@@ -10,7 +10,8 @@
 #define KIS_LEVELS_CURVE_H
 
 #include <QtGlobal>
-#include <QVector>
+#include <PkString.h>
+#include <PkContainerAlgo.h>
 
 #include "kritaimage_export.h"
 
@@ -49,7 +50,7 @@ public:
      * @see toString()
      * @see fromString() 
      */
-    KisLevelsCurve(const QString &text);
+    KisLevelsCurve(const PkString &text);
     KisLevelsCurve(const KisLevelsCurve &rhs) = default;
     KisLevelsCurve& operator=(const KisLevelsCurve &rhs) = default;
     bool operator==(const KisLevelsCurve& rhs) const;
@@ -123,34 +124,34 @@ public:
     /**
      * @brief Get the name associated with this levels info object
      */
-    const QString& name() const;
+    const PkString& name() const;
     /**
      * @brief Set the name associated with this levels info object. This allows
      * us to carry around a display name for the level info internally. It could
      * potentially be useful anywhere level info are used in the UI
      */
-    void setName(const QString &newName);
+    void setName(const PkString &newName);
 
     /**
      * @brief Returns a vector of size @param size with values obtained by
      * evaluating the function formed by the levels parameters from 0.0 to 1.0.
      * The resulting values are scaled to the range [0, 0xFF]
      * @param size The size of the returned vector
-     * @return const QVector<quint16>& The vector with the values
+     * @return const PkVector<quint16>& The vector with the values
      * @see value()
      * @see floatTransfer()
      */
-    const QVector<quint16>& uint16Transfer(int size = 256) const;
+    const PkVector<quint16>& uint16Transfer(int size = 256) const;
     /**
      * @brief Returns a vector of size @param size with values obtained by
      * evaluating the function formed by the levels parameters from 0.0 to 1.0.
      * The resulting values are in the range [0, 1]
      * @param size The size of the returned vector
-     * @return const QVector<qreal>& The vector with the values
+     * @return const PkVector<qreal>& The vector with the values
      * @see value()
      * @see uint16Transfer()
      */
-    const QVector<qreal>& floatTransfer(int size = 256) const;
+    const PkVector<qreal>& floatTransfer(int size = 256) const;
 
     /**
      * @brief Get a text representation of the parameters. The format is:
@@ -158,20 +159,20 @@ public:
      * For example: "0;1;0.6;0;1", "0.2;0.8;1.2;0.25;0.75"
      * @see fromString()
      */
-    QString toString() const;
+    PkString toString() const;
     /**
      * @brief Parses the parameters from a given text
      * @see toString
      */
-    void fromString(const QString &text, bool *ok = nullptr);
+    void fromString(const PkString &text, bool *ok = nullptr);
 
 private:
     qreal m_inputBlackPoint, m_inputWhitePoint, m_inputGamma;
     qreal m_outputBlackPoint, m_outputWhitePoint;
     qreal m_inputLevelsDelta, m_inverseInputGamma, m_outputLevelsDelta;
-    QString m_name;
-    mutable QVector<quint16> m_u16Transfer;
-    mutable QVector<qreal> m_fTransfer;
+    PkString m_name;
+    mutable PkVector<quint16> m_u16Transfer;
+    mutable PkVector<qreal> m_fTransfer;
     mutable bool m_mustRecomputeU16Transfer;
     mutable bool m_mustRecomputeFTransfer;
 
