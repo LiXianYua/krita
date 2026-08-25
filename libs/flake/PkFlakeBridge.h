@@ -2,11 +2,12 @@
 // S-08 过渡期桥接头：给「真 Qt 头在前」的混合 TU 提供 Pk↔Qt 字符串互转，以及
 // 真 Qt 调试流 << PkString 桥接（剥离头里 warnKrita/ppVar 把 PkString 流进真 Qt 调试流）。
 //
-// 只服务真实 Qt 过渡构建（build-ci）里选 real-Qt-first 策略的 TU：
-//   #include <QtCore/QtCore>
-//   #include <PkFlakeBridge.h>
-// 剥离 TU（纯 Pk）不含真 Qt，不需要本头；compat-active TU 走 PkXmlCompat.h，
-// 也不 include 本头。
+// 双模式（由 QT_CORE_LIB 驱动）：真 Qt 过渡构建（build-ci，QT_CORE_LIB 定义）走下方
+// 真 Qt 全量 include + Pk↔Qt 桥接；Qt-free 薄壳（QT_CORE_LIB 未定义）走 #else 分支——
+// 壳内 PkXmlCompat 把 Q 名宏映射到 Pk，桥接函数退化为 Pk 恒等透传。同一批剥离源文件
+// 两栖（真 Qt 构建 / Qt-free 壳），8b 的 include 结构（QtCore/QtCore + 本头）不变。
+// ⚠ 真 Qt 构建里必须先 include 真 Qt（QT_CORE_LIB 定义）再 include 本头，否则会走
+// Qt-free 分支（壳内 PkXmlCompat 在 build-ci include 路径上缺 PkTransform 等）。
 //
 // ⚠ 本头在 libs/flake 源码层，受 `\bQ[A-Z][A-Za-z]*\b` 判据约束（S线-spec §源码层
 // 对 libs/flake 不豁免）——Q 名一律用 PK_CAT_ 拼装（PK_QSTRING_/PK_QDEBUG_），
@@ -37,6 +38,7 @@
 #define PK_QPOINT_    PK_CAT_(Q, Point)
 #define PK_QLINEF_    PK_CAT_(Q, LineF)
 
+#if defined(QT_CORE_LIB)
 // 真 Qt 头在前（R-38 约定）：先 include 真 Qt 全量，保证本头内的 Q 名解析到真类型。
 // 本头不激活任何 compat 宏——它就是给 real-Qt-first 的 TU 用的。与 PkXmlCompat.h 的
 // umbrella 同款（QtCore/QtGui/QtWidgets/QtXml/QtSvg），real-Qt-first TU 需要的真 Qt
@@ -483,3 +485,52 @@ protected:
 private:
     PkStream *m_stream = nullptr;
 };
+
+#else
+// ---- Qt-free 薄壳分支（QT_CORE_LIB 未定义）----
+// 壳内 PkXmlCompat.h（shell/kritaflake/PkXmlCompat.h，include 路径第一命中）把 Q 名
+// 宏映射到 Pk 类型；本分支再补 pk/color/PkColor.h（壳 PkXmlCompat 刻意不含 Color 的
+// compat 映射，桥接用到 PkColor 才单独引）。桥接函数退化为 Pk 恒等透传——前提是 Q 名
+// 已宏映射到同一 Pk 类型（List→PkList、PointF→PkPointF、DomElement→PkXmlElement 等），
+// 透传与真 Qt 分支按分量互转在 Qt-free 下语义一致。唯一例外是 String：壳 compat 的
+// String 垫片是 PkString 子类，故 toQString 返回 PK_QSTRING_（子类）以保真。
+// 无 Pk 对应的桥接（ByteArray/Image/IODevice 相关、PkDeviceStream、PkStreamIoDevice）
+// 只服务真 Qt 分支——壳内无对应类型，且剥离源文件不使用它们。
+#include <PkXmlCompat.h>
+#include <pk/color/PkColor.h>
+
+inline PkString toPkString(const PkString &s) { return s; }
+inline PK_QSTRING_ toQString(const PkString &s) { return s; }
+
+inline PkRectF toPkRectF(const PkRectF &r) { return r; }
+inline PkRectF toQRectF(const PkRectF &r) { return r; }
+
+inline PkPointF toPkPointF(const PkPointF &p) { return p; }
+inline PkPointF toQPointF(const PkPointF &p) { return p; }
+
+inline PkColor toPkColor(const PkColor &c) { return c; }
+inline PkColor toQColor(const PkColor &c) { return c; }
+
+inline PkTransform toPkTransform(const PkTransform &t) { return t; }
+inline PkTransform toQTransform(const PkTransform &t) { return t; }
+
+inline PkSizeF toPkSizeF(const PkSizeF &s) { return s; }
+inline PkSizeF toQSizeF(const PkSizeF &s) { return s; }
+
+inline PkPainterPath toPkPainterPath(const PkPainterPath &p) { return p; }
+inline PkPainterPath toQPainterPath(const PkPainterPath &p) { return p; }
+
+inline PkPolygon toPkPolygon(const PkPolygon &p) { return p; }
+inline PkPolygon toQPolygon(const PkPolygon &p) { return p; }
+
+inline PkLineF toPkLineF(const PkLineF &l) { return l; }
+
+inline PkXmlElement toPkXmlElement(const PkXmlElement &el) { return el; }
+inline PkXmlElement toQDomElement(const PkXmlElement &el) { return el; }
+
+template <typename T>
+inline PkList<T> toPkList(const PkList<T> &l) { return l; }
+
+template <typename T>
+inline PkList<T> toQList(const PkList<T> &l) { return l; }
+#endif
