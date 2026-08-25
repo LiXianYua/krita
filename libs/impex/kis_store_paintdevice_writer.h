@@ -18,8 +18,8 @@ public:
 
     ~KisStorePaintDeviceWriter() override {}
 
-    bool write(const QByteArray &data) override {
-        qint64 len = m_store->write(data);
+    bool write(const PkByteArray &data) override {
+        PkStream::pk_int64 len = m_store->write(data);
         return (len == data.size());
     }
 
