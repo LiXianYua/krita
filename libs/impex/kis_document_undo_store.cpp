@@ -22,7 +22,7 @@ KisDocumentUndoStore::KisDocumentUndoStore(KisDocument *doc)
     KIS_SAFE_ASSERT_RECOVER_NOOP(doc->thread() == this->thread());
 
     // Use direct connection to avoid queueing the signal forwarding (BUG:447985)
-    connect(doc->undoStack(), SIGNAL(indexChanged(int)), this, SIGNAL(historyStateChanged()), Qt::DirectConnection);
+    PkObject::connect(doc->undoStack(), &KUndo2QStack::indexChanged, this, &KisUndoStore::historyStateChanged, PkConnectionType::Direct);
 }
 
 const KUndo2Command* KisDocumentUndoStore::presentCommand()

@@ -5,10 +5,11 @@
  */
 #include "KisCloneDocumentStroke.h"
 
+#include <PkString.h>
+#include <PkThread.h>
+
 #include "KisDocument.h"
 #include "kis_layer_utils.h"
-
-#include <QCoreApplication>
 
 
 struct KRITAIMAGE_NO_EXPORT KisCloneDocumentStroke::Private
@@ -22,7 +23,7 @@ struct KRITAIMAGE_NO_EXPORT KisCloneDocumentStroke::Private
 };
 
 KisCloneDocumentStroke::KisCloneDocumentStroke(KisDocument *document)
-    : KisSimpleStrokeStrategy(QLatin1String("clone-document-stroke"), kundo2_i18n("Clone Document")),
+    : KisSimpleStrokeStrategy(PkString("clone-document-stroke"), kundo2_text("Clone Document")),
       m_d(new Private(document))
 {
     setClearsRedoOnStart(false);
@@ -45,11 +46,11 @@ void KisCloneDocumentStroke::initStrokeCallback()
 void KisCloneDocumentStroke::finishStrokeCallback()
 {
     KisDocument *doc = m_d->document->clone();
-    doc->moveToThread(QCoreApplication::instance()->thread());
-    Q_EMIT sigDocumentCloned(doc);
+    doc->moveToThread(PkThread::mainThreadId());
+    sigDocumentCloned(doc);
 }
 
 void KisCloneDocumentStroke::cancelStrokeCallback()
 {
-    Q_EMIT sigCloningCancelled();
+    sigCloningCancelled();
 }

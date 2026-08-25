@@ -7,12 +7,13 @@
 #define KISCLONEDOCUMENTSTROKE_H
 
 #include "kritaimage_export.h"
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <PkScopedPointer.h>
 #include "kis_simple_stroke_strategy.h"
 
 class KisDocument;
 
-class KisCloneDocumentStroke : public QObject, public KisSimpleStrokeStrategy
+class KisCloneDocumentStroke : public PkObject, public KisSimpleStrokeStrategy
 {
     Q_OBJECT
 public:
@@ -29,7 +30,7 @@ Q_SIGNALS:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISCLONEDOCUMENTSTROKE_H
