@@ -26,7 +26,7 @@ inline T syncLodNValue(const T &value, int lod) {
  * Otherwise just use specialized functions for that
  */
 KRITAIMAGE_EXPORT
-QPoint syncLodNValue(const QPoint &value, int lod);
+PkPoint syncLodNValue(const PkPoint &value, int lod);
 
 } // namespace KisLodSwitchingWrapperDetail
 
@@ -126,6 +126,6 @@ private:
     T m_lodNData;
 };
 
-using KisLodCapableLayerOffset = KisLodSwitchingWrapper<QPoint>;
+using KisLodCapableLayerOffset = KisLodSwitchingWrapper<PkPoint>;
 
 #endif /* __KIS_LOD_CAPABLE_LAYER_OFFSET_H */

@@ -7,7 +7,7 @@
 #ifndef __KIS_LAYER_PROPERTIES_ICONS_H
 #define __KIS_LAYER_PROPERTIES_ICONS_H
 
-#include <QScopedPointer>
+#include <pk/pointer/PkScopedPointer.h>
 #include <KoID.h>
 
 #include <kis_base_node.h>
@@ -43,19 +43,19 @@ public:
     static KisBaseNode::Property getProperty(const KoID &id, bool state,
                                               bool isInStasis, bool stateInStasis);
 
-    static KisBaseNode::Property getErrorProperty(const QString &message);
+    static KisBaseNode::Property getErrorProperty(const PkString &message);
     static KisBaseNode::Property getColorSpaceMismatchProperty(const KoColorSpace *cs);
 
     /**
      * Sets the specified property of the node and updates it
      */
-    static void setNodePropertyAutoUndo(KisNodeSP node, const KoID &id, const QVariant &value, KisImageSP image);
-    static void setNodeProperty(KisBaseNode::PropertyList *props, const KoID &id, const QVariant &value);
+    static void setNodePropertyAutoUndo(KisNodeSP node, const KoID &id, const PkVariant &value, KisImageSP image);
+    static void setNodeProperty(KisBaseNode::PropertyList *props, const KoID &id, const PkVariant &value);
 
     /**
      * Gets the specified property of the node
      */
-    static QVariant nodeProperty(KisNodeSP node, const KoID &id, const QVariant &defaultValue);
+    static PkVariant nodeProperty(KisNodeSP node, const KoID &id, const PkVariant &defaultValue);
 
     void updateIcons();
 
@@ -69,11 +69,11 @@ public:
      * not expect the value to actually change. That also
      * means that they don't need undo/redo functionality.
      */
-    static bool isStatelessProperty(const QString &id);
+    static bool isStatelessProperty(const PkString &id);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_LAYER_PROPERTIES_ICONS_H */

@@ -9,12 +9,11 @@
 
 #include "kritaimage_export.h"
 
-#include <QMap>
-#include <QUuid>
-#include <QDomDocument>
-#include <QDomElement>
 
 #include "kis_image.h"
+
+class PkXmlDocument;
+class PkXmlElement;
 
 /**
  * Storage class for layer compositions. Layer compositions allow to have several states for visible layers
@@ -23,7 +22,7 @@
 class KRITAIMAGE_EXPORT KisLayerComposition
 {
 public:
-    KisLayerComposition(KisImageWSP image, const QString& name);
+    KisLayerComposition(KisImageWSP image, const PkString& name);
     ~KisLayerComposition();
 
     KisLayerComposition(const KisLayerComposition &rhs, KisImageWSP otherImage = 0);
@@ -31,13 +30,13 @@ public:
    /**
     * Sets name of the composition
     */
-    void setName(const QString& name);
+    void setName(const PkString& name);
 
    /**
     * Name of the composition as show in the docker
     * \return name of the composition
     */
-    QString name();
+    PkString name();
 
    /**
     * Stores the current visibility of all layers in the composition
@@ -60,17 +59,17 @@ public:
     */
     bool isExportEnabled();
 
-    void setVisible(QUuid id, bool visible);
+    void setVisible(PkNodeId id, bool visible);
 
-    void setCollapsed(QUuid id, bool collapsed);
+    void setCollapsed(PkNodeId id, bool collapsed);
 
-    void save(QDomDocument& doc, QDomElement& element);
+    void save(PkXmlDocument& doc, PkXmlElement& element);
 
 private:
     KisImageWSP m_image;
-    QString m_name;
-    QMap<QUuid, bool> m_visibilityMap;
-    QMap<QUuid, bool> m_collapsedMap;
+    PkString m_name;
+    PkMap<PkNodeId, bool> m_visibilityMap;
+    PkMap<PkNodeId, bool> m_collapsedMap;
     bool m_exportEnabled;
     
     friend class KisCompositionVisitor;

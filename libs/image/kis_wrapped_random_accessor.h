@@ -18,7 +18,7 @@ public:
                              qint32 offsetX, qint32 offsetY,
                              bool writable,
                              KisIteratorCompleteListener *completeListener,
-                             const QRect &wrapRect,
+                             const PkRect &wrapRect,
                              const WrapAroundAxis wrapAroundModeAxis);
 
     void moveTo(qint32 x, qint32 y) override;
@@ -30,8 +30,8 @@ public:
     qint32 y() const override;
 
 private:
-    QRect m_wrapRect;
-    QPoint m_currentPos;
+    PkRect m_wrapRect;
+    PkPoint m_currentPos;
     WrapAroundAxis m_wrapAxis;
 };
 

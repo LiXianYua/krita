@@ -6,9 +6,10 @@
 
 #include "kis_layer_properties_icons.h"
 
-#include <QMap>
+#include <pk/container/PkMap.h>
 
-#include <QGlobalStatic>
+#include <klocalizedstring.h> // ki18n/i18nc 编译期占位（S-06 薄壳 compat，PkString 原文）
+
 Q_GLOBAL_STATIC(KisLayerPropertiesIcons, s_instance)
 
 #include <KoColorSpace.h>
@@ -39,31 +40,31 @@ const KoID KisLayerPropertiesIcons::antialiased("antialiased", ki18n("Anti-alias
 
 struct IconsPair {
     IconsPair() {}
-    IconsPair(const QIcon &_on, const QIcon &_off) : on(_on), off(_off) {}
+    IconsPair(const PkIcon &_on, const PkIcon &_off) : on(_on), off(_off) {}
 
-    QIcon on;
-    QIcon off;
+    PkIcon on;
+    PkIcon off;
 
-    const QIcon& getIcon(bool state) {
+    const PkIcon& getIcon(bool state) {
         return state ? on : off;
     }
 };
 
 struct KisLayerPropertiesIcons::Private
 {
-    QMap<QString, IconsPair> icons;
+    PkMap<PkString, IconsPair> icons;
 };
 
 namespace {
 /**
  * Read-only lookup into the shared icon map.
  *
- * Must not use QMap::operator[]: KisLayerPropertiesIcons is a Q_GLOBAL_STATIC and
+ * Must not use PkMap::operator[]: KisLayerPropertiesIcons is a Q_GLOBAL_STATIC and
  * getProperty() is reached from image stroke/update jobs as well as from the GUI
  * thread, so an inserting lookup would be a concurrent write to shared state.
  * Missing ids resolve to a pair of null icons.
  */
-IconsPair lookupIconsPair(const QMap<QString, IconsPair> &icons, const QString &id)
+IconsPair lookupIconsPair(const PkMap<PkString, IconsPair> &icons, const PkString &id)
 {
     return icons.value(id);
 }
@@ -108,7 +109,7 @@ KisBaseNode::Property KisLayerPropertiesIcons::getProperty(const KoID &id, bool 
                                  isInStasis, stateInStasis);
 }
 
-KisBaseNode::Property KisLayerPropertiesIcons::getErrorProperty(const QString &message)
+KisBaseNode::Property KisLayerPropertiesIcons::getErrorProperty(const PkString &message)
 {
     const IconsPair pair = lookupIconsPair(instance()->m_d->icons, layerError.id());
 
@@ -124,7 +125,7 @@ KisBaseNode::Property KisLayerPropertiesIcons::getErrorProperty(const QString &m
 
 KisBaseNode::Property KisLayerPropertiesIcons::getColorSpaceMismatchProperty(const KoColorSpace *cs)
 {
-    const QString message =
+    const PkString message =
         i18nc("a tooltip shown in when hovering layer's property",
               "Layer color space is different from the image color space:\n%1 [%2],\noperations may be slow",
               cs->name(),
@@ -142,14 +143,14 @@ KisBaseNode::Property KisLayerPropertiesIcons::getColorSpaceMismatchProperty(con
     return prop;
 }
 
-void KisLayerPropertiesIcons::setNodePropertyAutoUndo(KisNodeSP node, const KoID &id, const QVariant &value, KisImageSP image)
+void KisLayerPropertiesIcons::setNodePropertyAutoUndo(KisNodeSP node, const KoID &id, const PkVariant &value, KisImageSP image)
 {
     KisBaseNode::PropertyList props = node->sectionModelProperties();
     setNodeProperty(&props, id, value);
     KisNodePropertyListCommand::setNodePropertiesAutoUndo(node, image, props);
 }
 
-void KisLayerPropertiesIcons::setNodeProperty(KisBaseNode::PropertyList *props, const KoID &id, const QVariant &value)
+void KisLayerPropertiesIcons::setNodeProperty(KisBaseNode::PropertyList *props, const KoID &id, const PkVariant &value)
 {
     KisBaseNode::PropertyList::iterator it = props->begin();
     KisBaseNode::PropertyList::iterator end = props->end();
@@ -161,7 +162,7 @@ void KisLayerPropertiesIcons::setNodeProperty(KisBaseNode::PropertyList *props, 
     }
 }
 
-QVariant KisLayerPropertiesIcons::nodeProperty(KisNodeSP node, const KoID &id, const QVariant &defaultValue)
+PkVariant KisLayerPropertiesIcons::nodeProperty(KisNodeSP node, const KoID &id, const PkVariant &defaultValue)
 {
     KisBaseNode::PropertyList props = node->sectionModelProperties();
 
@@ -176,7 +177,7 @@ QVariant KisLayerPropertiesIcons::nodeProperty(KisNodeSP node, const KoID &id, c
     return defaultValue;
 }
 
-bool KisLayerPropertiesIcons::isStatelessProperty(const QString &id)
+bool KisLayerPropertiesIcons::isStatelessProperty(const PkString &id)
 {
     return
         id == colorizeNeedsUpdate.id() ||

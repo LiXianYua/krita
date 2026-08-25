@@ -10,7 +10,6 @@
 #include <algorithm>
 
 
-#include <QDomDocument>
 
 #include <KoColorSpaceConstants.h>
 

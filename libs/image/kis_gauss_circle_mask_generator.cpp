@@ -7,7 +7,6 @@
 
 #include <cmath>
 
-#include <QDomDocument>
 
 #include <KoColorSpaceConstants.h>
 

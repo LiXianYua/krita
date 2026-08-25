@@ -6,15 +6,18 @@
 #ifndef _KIS_PROPERTIES_CONFIGURATION_H_
 #define _KIS_PROPERTIES_CONFIGURATION_H_
 
-#include <QString>
-#include <QMap>
-#include <QVariant>
+#include <PkString.h>
+#include <pk/container/PkMap.h>
+#include <PkVariant.h>
+#include <pk/container/PkSet.h>
+#include <pk/container/PkList.h>
+#include <pk/container/PkStringList.h>
 #include <kis_debug.h>
 #include <kis_cubic_curve.h>
 #include <KoColor.h>
 
-class QDomElement;
-class QDomDocument;
+class PkXmlElement;
+class PkXmlDocument;
 
 #include "kis_serializable_configuration.h"
 #include "kritaimage_export.h"
@@ -59,7 +62,7 @@ public:
      * @param clear if true, the properties map will be emptied.
      * @return true is the xml document could be parsed
      */
-    bool fromXML(const QString& xml, bool clear = true) override;
+    bool fromXML(const PkString& xml, bool clear = true) override;
 
     /**
      * Fill the properties  configuration object from the XML encoded representation in s.
@@ -67,29 +70,29 @@ public:
      *
      * Note: the existing properties will not be cleared
      */
-    void fromXML(const QDomElement&) override;
+    void fromXML(const PkXmlElement&) override;
 
     /**
      * Create a serialized version of this properties  config
      * This function use the "Legacy" style XML  of the 1.x .kra file format.
      */
-    void toXML(QDomDocument&, QDomElement&) const override;
+    void toXML(PkXmlDocument&, PkXmlElement&) const override;
 
     /**
      * Create a serialized version of this properties  config
      * This function use the "Legacy" style XML  of the 1.x .kra file format.
      */
-    QString toXML() const override;
+    PkString toXML() const override;
 
     /**
      * @return true if the map contains a property with the specified name
      */
-    virtual bool hasProperty(const QString& name) const;
+    virtual bool hasProperty(const PkString& name) const;
 
     /**
      * Set the property with name to value.
      */
-    virtual void setProperty(const QString & name, const QVariant & value);
+    virtual void setProperty(const PkString & name, const PkVariant & value);
 
     /**
      * Set value to the value associated with property name
@@ -98,31 +101,31 @@ public:
      *
      * @return false if the specified property did not exist.
      */
-    virtual bool getProperty(const QString & name, QVariant & value) const;
+    virtual bool getProperty(const PkString & name, PkVariant & value) const;
 
-    virtual QVariant getProperty(const QString & name) const;
+    virtual PkVariant getProperty(const PkString & name) const;
 
     template <typename T>
-        T getPropertyLazy(const QString & name, const T &defaultValue) const {
-        QVariant value = getProperty(name);
+        T getPropertyLazy(const PkString & name, const T &defaultValue) const {
+        PkVariant value = getProperty(name);
         return value.isValid() ? value.value<T>() : defaultValue;
     }
 
-    QString getPropertyLazy(const QString & name, const char *defaultValue) const {
-        return getPropertyLazy(name, QString(defaultValue));
+    PkString getPropertyLazy(const PkString & name, const char *defaultValue) const {
+        return getPropertyLazy(name, PkString(defaultValue));
     }
 
-    int getInt(const QString & name, int def = 0) const;
+    int getInt(const PkString & name, int def = 0) const;
 
-    double getDouble(const QString & name, double def = 0.0) const;
+    double getDouble(const PkString & name, double def = 0.0) const;
 
-    float getFloat(const QString& name, float def = 0.0) const;
+    float getFloat(const PkString& name, float def = 0.0) const;
 
-    bool getBool(const QString & name, bool def = false) const;
+    bool getBool(const PkString & name, bool def = false) const;
 
-    QString getString(const QString & name, const QString & def = QString()) const;
+    PkString getString(const PkString & name, const PkString & def = PkString()) const;
 
-    KisCubicCurve getCubicCurve(const QString & name, const KisCubicCurve & curve = KisCubicCurve()) const;
+    KisCubicCurve getCubicCurve(const PkString & name, const KisCubicCurve & curve = KisCubicCurve()) const;
 
     /**
      * @brief getColor fetch the given property as a KoColor.
@@ -130,10 +133,10 @@ public:
      * The color can be stored as
      * <ul>
      * <li>A KoColor
-     * <li>A QColor
+     * <li>A PkColor
      * <li>A string that can be parsed as an XML color definition
-     * <li>A string that QColor can convert to a color (see https://doc.qt.io/qt-6/qcolor.html#fromString)
-     * <li>An integer that QColor can convert to a color
+     * <li>A string that PkColor can convert to a color (see PkColor::fromString)
+     * <li>An integer that PkColor can convert to a color
      * </ul>
      *
      * @param name the name of the property
@@ -141,58 +144,58 @@ public:
      * @return returns the named property as a KoColor if the value can be converted to a color,
      * otherwise a empty KoColor is returned.
      */
-    KoColor getColor(const QString& name, const KoColor& color = KoColor()) const;
+    KoColor getColor(const PkString& name, const KoColor& color = KoColor()) const;
 
-    virtual QMap<QString, QVariant> getProperties() const;
+    virtual PkMap<PkString, PkVariant> getProperties() const;
 
     /// Clear the map of properties
     void clearProperties();
 
     /// Marks a property that should not be saved by toXML
-    void setPropertyNotSaved(const QString & name);
+    void setPropertyNotSaved(const PkString & name);
 
-    void removeProperty(const QString & name);
+    void removeProperty(const PkString & name);
 
     /**
      * Get the keys of all the properties in the object
      */
-    virtual QList<QString> getPropertiesKeys() const;
+    virtual PkList<PkString> getPropertiesKeys() const;
 
     /**
      * Get a set of properties, which keys are prefixed with \p prefix. The settings object
      * \p config will have all these properties with the prefix stripped from them.
      */
-    void getPrefixedProperties(const QString &prefix, KisPropertiesConfiguration *config) const;
+    void getPrefixedProperties(const PkString &prefix, KisPropertiesConfiguration *config) const;
 
     /**
      * A convenience override
      */
-    void getPrefixedProperties(const QString &prefix, KisPropertiesConfigurationSP config) const;
+    void getPrefixedProperties(const PkString &prefix, KisPropertiesConfigurationSP config) const;
 
     /**
      * Takes all the properties from \p config, adds \p prefix to all their keys and puts them
      * into this properties object
      */
-    void setPrefixedProperties(const QString &prefix, const KisPropertiesConfiguration *config);
+    void setPrefixedProperties(const PkString &prefix, const KisPropertiesConfiguration *config);
 
     /**
      * A convenience override
      */
-    void setPrefixedProperties(const QString &prefix, const KisPropertiesConfigurationSP config);
+    void setPrefixedProperties(const PkString &prefix, const KisPropertiesConfigurationSP config);
 
     /**
      * After calling `getPropertiesConfiguration()` the resulting properties
      * will contain the prefix they were packed with. The prefix can be requested
      * with the key returned by `extractedPrefixKey()` function.
      */
-    static QString extractedPrefixKey();
+    static PkString extractedPrefixKey();
 
-    static QString escapeString(const QString &string);
-    static QString unescapeString(const QString &string);
+    static PkString escapeString(const PkString &string);
+    static PkString unescapeString(const PkString &string);
 
-    void setProperty(const QString &name, const QStringList &value);
-    QStringList getStringList(const QString &name, const QStringList &defaultValue = QStringList()) const;
-    QStringList getPropertyLazy(const QString &name, const QStringList &defaultValue) const;
+    void setProperty(const PkString &name, const PkStringList &value);
+    PkStringList getStringList(const PkString &name, const PkStringList &defaultValue = PkStringList()) const;
+    PkStringList getPropertyLazy(const PkString &name, const PkStringList &defaultValue) const;
 
     /**
      * Structural comparison between two instances.
@@ -215,7 +218,7 @@ public:
     KisPropertiesConfigurationFactory();
     ~KisPropertiesConfigurationFactory() override;
     KisSerializableConfigurationSP createDefault() override;
-    KisSerializableConfigurationSP create(const QDomElement& e) override;
+    KisSerializableConfigurationSP create(const PkXmlElement& e) override;
 private:
     struct Private;
     Private* const d;

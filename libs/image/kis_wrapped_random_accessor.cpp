@@ -13,18 +13,18 @@ KisWrappedRandomAccessor::KisWrappedRandomAccessor(KisTiledDataManager *ktm,
                                                    qint32 offsetX, qint32 offsetY,
                                                    bool writable,
                                                    KisIteratorCompleteListener *completeListener,
-                                                   const QRect &wrapRect,
+                                                   const PkRect &wrapRect,
                                                    const WrapAroundAxis wrapAroundModeAxis)
     : KisRandomAccessor2(ktm, offsetX, offsetY, writable, completeListener),
       m_wrapRect(wrapRect),
-      m_currentPos(QPoint()),
+      m_currentPos(PkPoint()),
       m_wrapAxis(wrapAroundModeAxis)
 {
 }
 
 void KisWrappedRandomAccessor::moveTo(qint32 x, qint32 y)
 {
-    m_currentPos = QPoint(x, y);
+    m_currentPos = PkPoint(x, y);
 
     x = KisWrappedRect::xToWrappedX(x, m_wrapRect, m_wrapAxis);
     y = KisWrappedRect::yToWrappedY(y, m_wrapRect, m_wrapAxis);

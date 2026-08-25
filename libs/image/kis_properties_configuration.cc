@@ -21,6 +21,72 @@
 #include <KoColorModelStandardIds.h>
 #include <KoColorSpaceRegistry.h>
 
+#include <string>
+#include <vector>
+
+namespace {
+
+// PkByteArray 缺 fromBase64/toBase64（R-31 拥有 wire codec，S 线先壳本地兜底）。
+// 纯 ASCII 往返，语义对齐 base64 标准编码（含换行跳过、
+// 末尾 '=' 填充）。
+PkByteArray pkFromBase64(const PkString &text)
+{
+    static const signed char b64[256] = {
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,62,-1,-1,-1,63,
+        52,53,54,55,56,57,58,59,60,61,-1,-1,-1,-1,-1,-1,
+        -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,
+        15,16,17,18,19,20,21,22,23,24,25,-1,-1,-1,-1,-1,
+        -1,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,
+        41,42,43,44,45,46,47,48,49,50,51,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+    };
+    const std::string in = text.PkToUtf8();
+    std::vector<uint8_t> out;
+    out.reserve((in.size() / 4) * 3);
+    int val = 0;
+    int valb = -8;
+    for (unsigned char c : in) {
+        if (b64[c] == -1) continue; // 跳过换行/填充等非 base64 字符
+        val = (val << 6) + b64[c];
+        valb += 6;
+        if (valb >= 0) {
+            out.push_back(static_cast<uint8_t>((val >> valb) & 0xFF));
+            valb -= 8;
+        }
+    }
+    return PkByteArray(reinterpret_cast<const char *>(out.data()), static_cast<int>(out.size()));
+}
+
+PkString pkToBase64(const PkByteArray &data)
+{
+    static const char b64c[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const char *in = data.constData();
+    const int n = data.size();
+    std::string out;
+    out.reserve(((n + 2) / 3) * 4);
+    for (int i = 0; i < n; i += 3) {
+        const uint32_t v = (static_cast<uint8_t>(in[i]) << 16)
+            | ((i + 1 < n ? static_cast<uint8_t>(in[i + 1]) : 0) << 8)
+            | (i + 2 < n ? static_cast<uint8_t>(in[i + 2]) : 0);
+        out.push_back(b64c[(v >> 18) & 0x3F]);
+        out.push_back(b64c[(v >> 12) & 0x3F]);
+        out.push_back(i + 1 < n ? b64c[(v >> 6) & 0x3F] : '=');
+        out.push_back(i + 2 < n ? b64c[v & 0x3F] : '=');
+    }
+    return PkString(out.c_str());
+}
+
+} // namespace
+
 struct Q_DECL_HIDDEN KisPropertiesConfiguration::Private {
     PkMap<PkString, PkVariant> properties;
     PkSet<PkString> notSavedProperties;
@@ -77,7 +143,7 @@ void KisPropertiesConfiguration::fromXML(const PkXmlElement &root)
         if (!e.hasAttribute("type")) {
             d->properties[name] = PkVariant(value);
         } else if (e.attribute("type") == "bytearray") {
-            d->properties[name] = PkVariant(PkByteArray::fromBase64(value.toLatin1()));
+            d->properties[name] = PkVariant(pkFromBase64(value));
         } else {
             d->properties[name] = value;
         }
@@ -93,24 +159,24 @@ void KisPropertiesConfiguration::toXML(PkXmlDocument& doc, PkXmlElement& root) c
         }
 
         PkXmlElement e = doc.createElement("param");
-        e.setAttribute("name", PkString(it.key().toLatin1()));
+        e.setAttribute("name", it.key());
         PkString type = "string";
         PkVariant v = it.value();
         PkXmlText text;
-        if (v.userType() == qMetaTypeId<KisCubicCurve>()) {
+        if (v.canConvert<KisCubicCurve>()) {
             text = doc.createCDATASection(v.value<KisCubicCurve>().toString());
-        } else if (v.userType() == qMetaTypeId<KoColor>()) {
+        } else if (v.canConvert<KoColor>()) {
             PkXmlDocument cdataDoc = PkXmlDocument("color");
             PkXmlElement cdataRoot = cdataDoc.createElement("color");
             cdataDoc.appendChild(cdataRoot);
             v.value<KoColor>().toXML(cdataDoc, cdataRoot);
             text = cdataDoc.createCDATASection(cdataDoc.toString());
             type = "color";
-        } else if(v.type() == PkMetaType::PkString ) {
+        } else if(v.type() == PkVariant::String ) {
             text = doc.createCDATASection(v.toString());  // XXX: Unittest this!
             type = "string";
-        } else if(v.type() == PkMetaType::PkByteArray ) {
-            text = doc.createTextNode(PkString::fromLatin1(v.toByteArray().toBase64())); // Arbitrary Data
+        } else if(v.type() == PkVariant::ByteArray ) {
+            text = doc.createTextNode(pkToBase64(v.toByteArray())); // Arbitrary Data
             type = "bytearray";
         } else {
             text = doc.createTextNode(v.toString());
@@ -213,7 +279,7 @@ KisCubicCurve KisPropertiesConfiguration::getCubicCurve(const PkString & name, c
 {
     PkVariant v = getProperty(name);
     if (v.isValid()) {
-        if (v.type() == PkVariant::UserType && v.userType() == qMetaTypeId<KisCubicCurve>()) {
+        if (v.canConvert<KisCubicCurve>()) {
             return v.value<KisCubicCurve>();
         } else {
             return KisCubicCurve(v.toString());
@@ -230,12 +296,17 @@ KoColor KisPropertiesConfiguration::getColor(const PkString& name, const KoColor
         switch(v.type()) {
         case PkVariant::UserType:
         {
-            if (v.userType() == qMetaTypeId<KoColor>()) {
+            if (v.canConvert<KoColor>()) {
                 return v.value<KoColor>();
+            }
+            if (v.canConvert<PkColor>()) {
+                PkColor c = v.value<PkColor>();
+                KoColor kc(c, KoColorSpaceRegistry::instance()->rgb8());
+                return kc;
             }
             break;
         }
-        case PkMetaType::PkString:
+        case PkVariant::String:
         {
             PkXmlDocument doc;
             if (doc.setContent(v.toString())) {
@@ -255,15 +326,10 @@ KoColor KisPropertiesConfiguration::getColor(const PkString& name, const KoColor
             }
             break;
         }
-        case PkMetaType::PkColor:
+        case PkVariant::Int:
         {
-            PkColor c = v.value<PkColor>();
-            KoColor kc(c, KoColorSpaceRegistry::instance()->rgb8());
-            return kc;
-        }
-        case PkMetaType::Int:
-        {
-            PkColor c(v.toInt());
+            PkColor c;
+            c.setRgba(static_cast<quint32>(v.toInt()));
             if (c.isValid()) {
                 KoColor kc(c, KoColorSpaceRegistry::instance()->rgb8());
                 return kc;
@@ -281,16 +347,16 @@ void KisPropertiesConfiguration::dump() const
 {
     PkMap<PkString, PkVariant>::ConstIterator it;
     for (it = d->properties.constBegin(); it != d->properties.constEnd(); ++it) {
-        if (it->type() == PkMetaType::PkByteArray) {
+        if (it->type() == PkVariant::ByteArray) {
             PkByteArray ba = it->toByteArray();
 
             if (ba.size() > 32) {
                 qDebug() << it.key() << " = " << PkString("...skipped total %1 bytes...").arg(ba.size()) << it.value().typeName();
             } else {
-                qDebug() << it.key() << " = " << it.value() << it.value().typeName();
+                qDebug() << it.key() << " = " << it.value().toString() << it.value().typeName();
             }
         } else {
-            qDebug() << it.key() << " = " << it.value() << it.value().typeName();
+            qDebug() << it.key() << " = " << it.value().toString() << it.value().typeName();
         }
     }
 
@@ -326,7 +392,7 @@ void KisPropertiesConfiguration::getPrefixedProperties(const PkString &prefix, K
     const int prefixSize = prefix.size();
 
     const PkList<PkString> keys = getPropertiesKeys();
-    Q_FOREACH (const PkString &key, keys) {
+    for (const PkString &key : keys) {
         if (key.startsWith(prefix)) {
             config->setProperty(key.mid(prefixSize), getProperty(key));
         }
@@ -352,7 +418,7 @@ void KisPropertiesConfiguration::getPrefixedProperties(const PkString &prefix, K
 void KisPropertiesConfiguration::setPrefixedProperties(const PkString &prefix, const KisPropertiesConfiguration *config)
 {
     const PkList<PkString> keys = config->getPropertiesKeys();
-    Q_FOREACH (const PkString &key, keys) {
+    for (const PkString &key : keys) {
         this->setProperty(prefix + key, config->getProperty(key));
     }
 }
@@ -370,19 +436,17 @@ PkString KisPropertiesConfiguration::extractedPrefixKey()
 
 PkString KisPropertiesConfiguration::escapeString(const PkString &string)
 {
-    PkString result = string;
-    result.replace(";", "\\;");
-    result.replace("]", "\\]");
-    result.replace(">", "\\>");
+    PkString result = pkStringReplaceAll(string, PkString(";"), PkString("\\;"), PkCaseSensitive);
+    result = pkStringReplaceAll(result, PkString("]"), PkString("\\]"), PkCaseSensitive);
+    result = pkStringReplaceAll(result, PkString(">"), PkString("\\>"), PkCaseSensitive);
     return result;
 }
 
 PkString KisPropertiesConfiguration::unescapeString(const PkString &string)
 {
-    PkString result = string;
-    result.replace("\\;", ";");
-    result.replace("\\]", "]");
-    result.replace("\\>", ">");
+    PkString result = pkStringReplaceAll(string, PkString("\\;"), PkString(";"), PkCaseSensitive);
+    result = pkStringReplaceAll(result, PkString("\\]"), PkString("]"), PkCaseSensitive);
+    result = pkStringReplaceAll(result, PkString("\\>"), PkString(">"), PkCaseSensitive);
     return result;
 }
 
@@ -391,7 +455,7 @@ void KisPropertiesConfiguration::setProperty(const PkString &name, const PkStrin
     PkStringList escapedList;
     escapedList.reserve(value.size());
 
-    Q_FOREACH (const PkString &str, value) {
+    for (const PkString &str : value) {
         escapedList << escapeString(str);
     }
 

@@ -6,8 +6,6 @@
 
 #include "kis_memory_statistics_server.h"
 
-#include <QGlobalStatic>
-#include <QApplication>
 
 #include "kis_image.h"
 #include "kis_image_config.h"
@@ -36,8 +34,9 @@ KisMemoryStatisticsServer::KisMemoryStatisticsServer()
      * so we should ensure the signals and timers are running in the
      * correct (GUI) thread.
      */
-    moveToThread(qApp->thread());
-    connect(&m_d->updateCompressor, SIGNAL(timeout()), SIGNAL(sigUpdateMemoryStatistics()));
+    moveToThread(PkThread::mainThreadId());
+    PkObject::connect(&m_d->updateCompressor, &KisSignalCompressor::timeout,
+                  this, &KisMemoryStatisticsServer::sigUpdateMemoryStatistics);
 }
 
 KisMemoryStatisticsServer::~KisMemoryStatisticsServer()
@@ -51,7 +50,7 @@ KisMemoryStatisticsServer* KisMemoryStatisticsServer::instance()
 
 inline void addDevice(KisPaintDeviceSP dev,
                       bool isProjection,
-                      QSet<KisPaintDevice*> &devices,
+                      PkSet<KisPaintDevice*> &devices,
                       qint64 &memBound,
                       qint64 &layersSize,
                       qint64 &projectionsSize,
@@ -80,7 +79,7 @@ inline void addDevice(KisPaintDeviceSP dev,
 }
 
 qint64 calculateNodeMemoryHiBoundStep(KisNodeSP node,
-                                      QSet<KisPaintDevice*> &devices,
+                                      PkSet<KisPaintDevice*> &devices,
                                       qint64 &layersSize,
                                       qint64 &projectionsSize,
                                       qint64 &lodSize)
@@ -115,7 +114,7 @@ qint64 calculateNodeMemoryHiBound(KisNodeSP node,
     projectionsSize = 0;
     lodSize = 0;
 
-    QSet<KisPaintDevice*> devices;
+    PkSet<KisPaintDevice*> devices;
     return calculateNodeMemoryHiBoundStep(node,
                                           devices,
                                           layersSize,

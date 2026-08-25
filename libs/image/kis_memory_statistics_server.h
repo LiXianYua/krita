@@ -7,15 +7,14 @@
 #ifndef __KIS_MEMORY_STATISTICS_SERVER_H
 #define __KIS_MEMORY_STATISTICS_SERVER_H
 
-#include <QtGlobal>
-#include <QObject>
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <pk/pointer/PkScopedPointer.h>
 
 #include "kritaimage_export.h"
 #include "kis_types.h"
 
 
-class KRITAIMAGE_EXPORT KisMemoryStatisticsServer : public QObject
+class KRITAIMAGE_EXPORT KisMemoryStatisticsServer : public PkShellObject
 {
     Q_OBJECT
 public:
@@ -78,7 +77,7 @@ Q_SIGNALS:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_MEMORY_STATISTICS_SERVER_H */

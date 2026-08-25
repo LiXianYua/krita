@@ -10,7 +10,7 @@
 
 namespace KisLodSwitchingWrapperDetail
 {
-QPoint syncLodNValue(const QPoint &value, int lod) {
+PkPoint syncLodNValue(const PkPoint &value, int lod) {
     return {KisLodTransform::coordToLodCoord(value.x(), lod),
             KisLodTransform::coordToLodCoord(value.y(), lod)};
 }

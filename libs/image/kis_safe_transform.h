@@ -7,40 +7,40 @@
 #ifndef __KIS_SAFE_TRANSFORM_H
 #define __KIS_SAFE_TRANSFORM_H
 
-#include <QScopedPointer>
+#include <pk/pointer/PkScopedPointer.h>
 
 #include "kritaimage_export.h"
 
-class QTransform;
-class QRect;
-class QRectF;
-class QPolygonF;
+class PkTransform;
+class PkRect;
+class PkRectF;
+class PkPolygonF;
 
 
 class KRITAIMAGE_EXPORT KisSafeTransform
 {
 public:
-    KisSafeTransform(const QTransform &transform,
-                     const QRect &bounds,
-                     const QRect &srcInterestRect);
+    KisSafeTransform(const PkTransform &transform,
+                     const PkRect &bounds,
+                     const PkRect &srcInterestRect);
 
     ~KisSafeTransform();
 
-    QPolygonF srcClipPolygon() const;
-    QPolygonF dstClipPolygon() const;
+    PkPolygonF srcClipPolygon() const;
+    PkPolygonF dstClipPolygon() const;
 
-    QPolygonF mapForward(const QPolygonF &p);
-    QPolygonF mapBackward(const QPolygonF &p);
+    PkPolygonF mapForward(const PkPolygonF &p);
+    PkPolygonF mapBackward(const PkPolygonF &p);
 
-    QRectF mapRectForward(const QRectF &rc);
-    QRectF mapRectBackward(const QRectF &rc);
+    PkRectF mapRectForward(const PkRectF &rc);
+    PkRectF mapRectBackward(const PkRectF &rc);
 
-    QRect mapRectForward(const QRect &rc);
-    QRect mapRectBackward(const QRect &rc);
+    PkRect mapRectForward(const PkRect &rc);
+    PkRect mapRectBackward(const PkRect &rc);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_SAFE_TRANSFORM_H */
