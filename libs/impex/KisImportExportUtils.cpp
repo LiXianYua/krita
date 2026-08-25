@@ -7,14 +7,19 @@
 #include "KisImportExportUtils.h"
 
 // KisImportExportBackend.h 尚未剥离（Task 7 范围），其字节数组类型无 pk compat 头，
-// 直接包含会编译失败。此处用最小类声明替代（只含本文件用到的 chooseColorSpace，
-// 其余三个纯虚接口壳闭包内无人调用），待 Task 7 完成后切回真包含。
+// 直接包含会编译失败。此处用本地类声明替代，待 Task 7 完成后切回真包含。
+// 本地类已镜像真实 KisImportExportBackend.h 的全部 4 个纯虚（声明顺序一致，类型按已剥
+// 映射为对应 Pk 类型），虚表布局与 Task 7 剥离后的真实头同构，避免任何链接到真实实现
+// 时的方法错分发。
 // #include "KisImportExportBackend.h"
 class PkWidget;
 class KoColorSpace;
 class KisImportExportUiServices {
 public:
     virtual ~KisImportExportUiServices() = default;
+    virtual PkString askForAudioFileName(const PkString &, PkWidget *) = 0;
+    virtual PkString getUriForAdditionalFile(const PkString &, PkWidget *) = 0;
+    virtual PkString exportConfigurationXml(const PkByteArray &) = 0;
     virtual bool chooseColorSpace(PkWidget *, const KoColorSpace *, const KoColorSpace **, int *, int *) = 0;
 };
 KisImportExportUiServices *kisImportExportUiServices();
