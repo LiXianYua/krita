@@ -16,6 +16,7 @@
 #include <PkColor.h>      // PkColor
 #include <PkPoint.h>      // PkPointF
 #include <PkVector.h>     // PkVector
+#include "kritapigment_export.h"
 
 namespace PkGradientEnums {
 enum Type { NoGradient, LinearGradient, RadialGradient, ConicalGradient };
@@ -34,7 +35,7 @@ using PkGradientStops = PkVector<PkGradientStop>;
 using GradientStop = PkGradientStop;
 using GradientStops = PkGradientStops;
 
-class PkGradient
+class KRITAPIGMENT_EXPORT PkGradient
 {
 public:
     PkGradient();                                    // Type=NoGradient

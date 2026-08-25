@@ -9,6 +9,14 @@
 #pragma once
 #include "../PkFlags.h"
 
+// 保存调用点进入前这三个宏的状态（真 Qt 或未定义），供 real-Qt-first TU 在
+// 消费完垫片后用 `#pragma pop_macro` 精确恢复，而不是被 #undef 直接删掉——
+// Q_DECLARE_FLAGS/Q_DECLARE_OPERATORS_FOR_FLAGS 是函数式宏，真 Qt 的定义被本
+// 垫片同名覆盖后，光 #undef 找不回（只剩未定义），pop_macro 才能还原。
+#pragma push_macro("QFlags")
+#pragma push_macro("Q_DECLARE_FLAGS")
+#pragma push_macro("Q_DECLARE_OPERATORS_FOR_FLAGS")
+
 #define QFlags PkFlags
 #define Q_DECLARE_FLAGS(Flags, Enum) PK_DECLARE_FLAGS(Flags, Enum)
 #define Q_DECLARE_OPERATORS_FOR_FLAGS(Flags) PK_DECLARE_OPERATORS_FOR_FLAGS(Flags)

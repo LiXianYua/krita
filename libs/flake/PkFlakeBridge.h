@@ -19,6 +19,7 @@
 #define PK_QSTRING_ PK_CAT_(Q, String)
 #define PK_QDEBUG_  PK_CAT_(Q, Debug)
 #define PK_QRECTF_  PK_CAT_(Q, RectF)
+#define PK_QSIZEF_  PK_CAT_(Q, SizeF)
 #define PK_QIODEVICE_ PK_CAT_(Q, IODevice)
 #define PK_QPOINTF_  PK_CAT_(Q, PointF)
 #define PK_QCOLOR_   PK_CAT_(Q, Color)
@@ -27,6 +28,14 @@
 #define PK_QDOMEL_   PK_CAT_(Q, DomElement)
 #define PK_QBYTEARRAY_ PK_CAT_(Q, ByteArray)
 #define PK_QLIST_    PK_CAT_(Q, List)
+#define PK_QVECTOR_  PK_CAT_(Q, Vector)
+#define PK_QIMAGE_   PK_CAT_(Q, Image)
+#define PK_QRGB_     PK_CAT_(Q, Rgb)
+#define PK_QPAINTERPATH_ PK_CAT_(Q, PainterPath)
+#define PK_QPOLYGON_  PK_CAT_(Q, Polygon)
+#define PK_QPOLYGONF_ PK_CAT_(Q, PolygonF)
+#define PK_QPOINT_    PK_CAT_(Q, Point)
+#define PK_QLINEF_    PK_CAT_(Q, LineF)
 
 // 真 Qt 头在前（R-38 约定）：先 include 真 Qt 全量，保证本头内的 Q 名解析到真类型。
 // 本头不激活任何 compat 宏——它就是给 real-Qt-first 的 TU 用的。与 PkXmlCompat.h 的
@@ -42,12 +51,23 @@
 #include <pk/geometry/PkRect.h>
 #include <pk/geometry/PkPoint.h>
 #include <pk/geometry/PkTransform.h>
+#include <pk/geometry/PkPainterPath.h>
+#include <pk/geometry/PkPolygon.h>
+#include <pk/geometry/PkLine.h>
+#include <pk/geometry/PkSize.h>
 #include <pk/color/PkColor.h>
 #include <pk/port/PkStream.h>
 #include <pk/container/PkList.h>
+#include <pk/container/PkStringHash.h>
 #include <pk/xml/PkXmlElement.h>
 #include <pk/xml/PkXmlDocument.h>
 #include <pk/variant/PkAuxTypes.h>
+#include <pk/variant/PkVariant.h>
+#include <pk/image/PkImage.h>
+
+#include <cstdint>
+#include <cstring>
+#include <vector>
 
 // 字符串互转（显式：编译器不会在 Q/Pk 字符串之间隐式转换，所有跨界调用点都报错，
 // 这里提供唯一通道。之后清理时 grep toPkString 与反向转换即可全部找回）。
@@ -109,6 +129,91 @@ inline PK_QTRANSFORM_ toQTransform(const PkTransform &t)
                           t.m31(), t.m32(), t.m33());
 }
 
+// PkSizeF <-> QSizeF（命令类存 shape->size() 到 PkList<PkSizeF> 等边界用）。
+inline PkSizeF toPkSizeF(const PK_QSIZEF_ &s)
+{
+    return PkSizeF(s.width(), s.height());
+}
+
+inline PK_QSIZEF_ toQSizeF(const PkSizeF &s)
+{
+    return PK_QSIZEF_(s.width(), s.height());
+}
+
+// PkPainterPath → 真 Qt 路径：按元素逐段重建。PkPainterPath 的 Element 与真 Qt 同构
+// （isMoveTo/isLineTo/isCurveTo + 后续两个 CurveToDataElement 构成 cubic），逐元素
+// moveTo/lineTo/cubicTo 拷贝。反方向（真 Qt → Pk）暂无消费方，需要时再补。
+inline PK_QPAINTERPATH_ toQPainterPath(const PkPainterPath &path)
+{
+    PK_QPAINTERPATH_ out;
+    out.setFillRule(path.fillRule());
+    const int n = path.elementCount();
+    for (int i = 0; i < n; ++i) {
+        const PkPainterPath::Element e = path.elementAt(i);
+        if (e.isMoveTo()) {
+            out.moveTo(e.x, e.y);
+        } else if (e.isLineTo()) {
+            out.lineTo(e.x, e.y);
+        } else if (e.isCurveTo()) {
+            const PkPainterPath::Element e2 = path.elementAt(i + 1);
+            const PkPainterPath::Element e3 = path.elementAt(i + 2);
+            out.cubicTo(e.x, e.y, e2.x, e2.y, e3.x, e3.y);
+            i += 2;
+        }
+    }
+    return out;
+}
+
+// 真 Qt 路径 → PkPainterPath：toQPainterPath 的反方向，按元素逐段重建。真 Qt
+// 的 QPainterPath::Element 与 PkPainterPath 同构（isMoveTo/isLineTo/isCurveTo +
+// 后续两个 CurveToDataElement 构成 cubic），逐元素 moveTo/lineTo/cubicTo 拷贝。
+inline PkPainterPath toPkPainterPath(const PK_QPAINTERPATH_ &path)
+{
+    PkPainterPath out;
+    out.setFillRule(path.fillRule());
+    const int n = path.elementCount();
+    for (int i = 0; i < n; ++i) {
+        const PK_QPAINTERPATH_::Element e = path.elementAt(i);
+        if (e.isMoveTo()) {
+            out.moveTo(e.x, e.y);
+        } else if (e.isLineTo()) {
+            out.lineTo(e.x, e.y);
+        } else if (e.isCurveTo()) {
+            const PK_QPAINTERPATH_::Element e2 = path.elementAt(i + 1);
+            const PK_QPAINTERPATH_::Element e3 = path.elementAt(i + 2);
+            out.cubicTo(e.x, e.y, e2.x, e2.y, e3.x, e3.y);
+            i += 2;
+        }
+    }
+    return out;
+}
+
+// 真 Qt 多边形 ↔ PkPolygon：逐点拷贝（PkPolygon 继承自 PkVector<PkPoint>，
+// 真 Qt 的 QPolygon 是 QVector<QPoint>，逐点 PkPoint(int)/QPoint(int,int) 互转）。
+inline PK_QPOLYGON_ toQPolygon(const PkPolygon &p)
+{
+    PK_QPOLYGON_ out;
+    for (const PkPoint &pt : p) {
+        out.append(PK_QPOINT_(pt.x(), pt.y()));
+    }
+    return out;
+}
+
+inline PkPolygon toPkPolygon(const PK_QPOLYGON_ &p)
+{
+    PkPolygon out;
+    for (const PK_QPOINT_ &pt : p) {
+        out.append(PkPoint(pt.x(), pt.y()));
+    }
+    return out;
+}
+
+// 真 Qt 直线 → PkLineF：按 p1/p2 两点分量转换（PkLineF 有 (PkPointF,PkPointF) 构造）。
+inline PkLineF toPkLineF(const PK_QLINEF_ &l)
+{
+    return PkLineF(toPkPointF(l.p1()), toPkPointF(l.p2()));
+}
+
 // 真 Qt 字节数组 ↔ PkByteArray（PkByteArray 的 (const char*, int) 构造与 constData()）。
 inline PK_QBYTEARRAY_ toQByteArray(const PkByteArray &b)
 {
@@ -118,6 +223,14 @@ inline PK_QBYTEARRAY_ toQByteArray(const PkByteArray &b)
 inline PkByteArray toPkByteArray(const PK_QBYTEARRAY_ &b)
 {
     return PkByteArray(b.constData(), b.size());
+}
+
+// 字符串字面量 → PkByteArray：KoStore::createStore 的 appIdentification 参数
+// （"application/x-krita-..."）等从 const char* 造 PkByteArray 的场景。PkByteArray
+// 无 const char* 隐式构造（只有 (const char*,int) 与 vector 两个显式），这里补显式通道。
+inline PkByteArray toPkByteArray(const char *s)
+{
+    return PkByteArray(s, static_cast<int>(std::strlen(s)));
 }
 
 // 真 Qt 列表<T> ↔ PkList<T>（元素类型相同才可互转；真 Qt 对 vs std::pair 之类形状不同的
@@ -140,9 +253,19 @@ inline PK_QLIST_<T> toQList(const PkList<T> &l)
 
 // PkStream 全读 → 真 Qt 字节数组：剥离侧（KoResource::loadFromDevice(PkStream*) 等）
 // 拿到 PkStream*，读全部字节转真 Qt 字节数组再走真 Qt 解析路径。
+// PkStream::readAll()/peek()/readLine() 按 pk/port/README.md 登记**只声明不定义**（等 R-02
+// 交付 PkByteArray 语义）。消费方要「读完整个设备」时不能用它——这里用 read()/atEnd() 循环
+// 手工读完，直接累积进真 Qt QByteArray（调用方 data 成员就是 QByteArray）。
 inline PK_QBYTEARRAY_ pkReadAllAsQByteArray(PkStream *dev)
 {
-    return toQByteArray(dev->readAll());
+    PK_QBYTEARRAY_ buf;
+    char tmp[4096];
+    while (!dev->atEnd()) {
+        const auto n = dev->read(tmp, sizeof(tmp));
+        if (n <= 0) break;
+        buf.append(tmp, static_cast<int>(n));
+    }
+    return buf;
 }
 
 // 真 Qt 元素 → PkXmlElement：真 Qt DOM 子树深拷到 pugixml 的临时文档，交给剥离侧
@@ -168,6 +291,69 @@ inline PkXmlElement toPkXmlElement(const PK_QDOMEL_ &el)
     return pkDoc.documentElement();
 }
 
+// PkXmlElement → 真 Qt 元素：toPkXmlElement 的反方向。SvgParser.cpp 的
+// SvgLoadingContext::definition() 返回 PkXmlElement，而该文件是 real-Qt-first
+// （内部用 QDomElement），需要转回真 Qt 元素。toPkXmlElement 造出的 PkXmlElement
+// 是「每元素一文档」，ownerDocument().toString() 序列化出的正是该元素子树，再交给
+// 真 Qt QDomDocument 解析、取 documentElement 即还原。过渡期行为——每次跨界一次
+// 序列化+解析，正确性优先；flake 剥完后（源码层 Q* 归零）本转换连同调用点一起删。
+inline PK_QDOMEL_ toQDomElement(const PkXmlElement &el)
+{
+    if (el.isNull()) {
+        return PK_QDOMEL_();
+    }
+    PK_QDOMDOC_ doc;
+    const PkXmlDocument pkDoc = el.ownerDocument();
+    if (!doc.setContent(toQString(pkDoc.toString(0)))) {
+        return PK_QDOMEL_();
+    }
+    return doc.documentElement();
+}
+
+// 真 Qt 图像 → PkImage：PkImage::Format 数值与真 Qt 图像 Format 顺序一致
+// （pk/image/PkImage.h 自 Format_Invalid 起逐项对应），static_cast 直转；像素逐
+// scanLine 拷贝，索引色表也拷（与 KoFontFamily.cpp 的 qimageToPkImage 同款）。
+// 用于剥离侧 setImage(const PkImage&) 收真 Qt 图像的场景（资源 .cpp 缩略图）。
+inline PkImage toPkImage(const PK_QIMAGE_ &img)
+{
+    PkImage out(img.width(), img.height(), static_cast<PkImage::Format>(img.format()));
+    for (int y = 0; y < img.height(); ++y) {
+        const uchar *src = img.constScanLine(y);
+        uint8_t *dst = out.scanLine(y);
+        std::memcpy(dst, src, size_t(img.bytesPerLine()));
+    }
+    if (img.colorCount() > 0) {
+        std::vector<uint32_t> table;
+        table.reserve(size_t(img.colorCount()));
+        for (int i = 0; i < img.colorCount(); ++i) {
+            table.push_back(img.color(i));
+        }
+        out.setColorTable(table);
+    }
+    return out;
+}
+
+// PkImage → 真 Qt 图像：反向拷贝（像素逐 scanLine，索引色表）。资源 .cpp 的
+// 缩略图/预览走真 Qt 渲染路径（save/fromData 等）时用。
+inline PK_QIMAGE_ toQImage(const PkImage &img)
+{
+    PK_QIMAGE_ out(img.width(), img.height(), static_cast<PK_QIMAGE_::Format>(img.format()));
+    for (int y = 0; y < img.height(); ++y) {
+        const uint8_t *src = img.constScanLine(y);
+        uchar *dst = out.scanLine(y);
+        std::memcpy(dst, src, size_t(img.bytesPerLine()));
+    }
+    if (img.colorCount() > 0) {
+        PK_QVECTOR_<PK_QRGB_> table;
+        table.reserve(size_t(img.colorCount()));
+        for (int i = 0; i < img.colorCount(); ++i) {
+            table.append(PK_QRGB_(img.color(i)));
+        }
+        out.setColorTable(table);
+    }
+    return out;
+}
+
 // 真 Qt 调试流 << PkString：剥离头（kis_dom_utils.h 的 toInt/toDouble 等）里
 // `warnKrita << ... << PkString` 在 real-Qt-first TU 落到真 Qt 调试流，PkString 在全局
 // 命名空间 → ADL 自动命中本操作符，无需在各剥离头里加东西。
@@ -177,6 +363,14 @@ inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkString &s)
     return dbg;
 }
 
+// 真 Qt 调试流 << PkByteArray：剥离头（kis_debug.h 的 ppVar/warnKrita 等）把 PkByteArray
+// 流进真 Qt 调试流时命中（实测 SvgLoadingContext.cpp）。与 PkString 版同理，ADL 收全局
+// 命名空间的 PkByteArray。
+inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkByteArray &b)
+{
+    dbg << toQByteArray(b);
+    return dbg;
+}
 // PkDeviceStream —— 过渡期适配器：把真 真 Qt 设备* 包成 PkStream*，供剥离侧收 PkStream*
 // 的 API（KoXmlWriter 等）消费真 Qt 设备。只服务过渡构建（build-ci）；flake 剥完、
 // 调用点改用 Pk 设备后与调用点一起删除。
@@ -231,4 +425,61 @@ protected:
 
 private:
     PK_QIODEVICE_ *m_dev = nullptr;
+};
+
+// PkStreamIoDevice —— 过渡期适配器（PkDeviceStream 的反向）：把 PkStream* 包成
+// 真 Qt 设备*，供仍要真 Qt 设备* 的 API（SvgWriter::save、图像 save 等）消费剥离
+// 侧收 PkStream* 的场景。PkZipArchive 不持有传入 stream 的所有权
+// （pk/port/zip/PkZipArchive.cpp 注释），本适配器可安全放栈上、传地址给消费方，
+// 调用点负责保证其生命周期盖过消费方。
+//
+// 与 PkDeviceStream 同构：构造后调用 attach() 绑定 PkStream；open/close/读写全
+// 转发。真 Qt 设备::OpenMode 位值与 PkStream::OpenMode 逐位相同。
+class PkStreamIoDevice : public PK_QIODEVICE_
+{
+public:
+    void attach(PkStream *stream)
+    {
+        m_stream = stream;
+        setOpenMode(static_cast<PK_QIODEVICE_::OpenMode>(stream->openMode()));
+    }
+
+    bool open(OpenMode mode) override
+    {
+        const bool ok = m_stream && m_stream->open(static_cast<PkStream::OpenMode>(mode));
+        if (ok) {
+            setOpenMode(mode);
+        }
+        return ok;
+    }
+
+    void close() override
+    {
+        if (m_stream) {
+            m_stream->close();
+        }
+        setOpenMode(PK_QIODEVICE_::NotOpen);
+    }
+
+    bool isSequential() const override { return m_stream ? m_stream->isSequential() : false; }
+    qint64 size() const override { return m_stream ? m_stream->size() : 0; }
+    qint64 pos() const override { return m_stream ? m_stream->pos() : 0; }
+    bool seek(qint64 pos) override { return m_stream ? m_stream->seek(pos) : false; }
+    bool atEnd() const override { return m_stream ? m_stream->atEnd() : true; }
+    qint64 bytesAvailable() const override { return m_stream ? m_stream->bytesAvailable() : 0; }
+    bool canReadLine() const override { return m_stream ? m_stream->canReadLine() : false; }
+
+protected:
+    qint64 readData(char *data, qint64 maxSize) override
+    {
+        return m_stream ? m_stream->read(data, maxSize) : -1;
+    }
+
+    qint64 writeData(const char *data, qint64 maxSize) override
+    {
+        return m_stream ? m_stream->write(data, maxSize) : -1;
+    }
+
+private:
+    PkStream *m_stream = nullptr;
 };
