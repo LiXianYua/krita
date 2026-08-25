@@ -32,6 +32,17 @@
 // typedef；`uint` 由 compat 垫片在调用点侧提供，与本文件无关。
 // ---------------------------------------------------------------------------
 
+// R 线让位守卫（R-35/R-37/R-38 同型，S-08 主树 flake 链接验证压出）：
+// 主树保留过渡真 Qt，真 Qt 的 qhashfunctions.h 定义了**同名同签名**的 qHash
+// 重载族（char/int/long/double/指针/枚举……，逐一相同），两组 inline 自由函数
+// 在同一翻译单元里是硬重定义。所以真 Qt 的 qhashfunctions.h 在场时本文件让位
+// （不定义 qHash），由真 Qt 版本覆盖内建类型与指针；PkHasher 仍在（PkHash.h
+// 两种形态都要），它管内建类型时经模板定义点的普通查找命中真 Qt 的 qHash。
+// 薄壳（QT_CORE_LIB 未定义）与主树纯 Pk TU（QT_CORE_LIB 定义但 qhashfunctions.h
+// 不在场）由第二析取让位条件继续由本文件提供。PkStringHash.h 的
+// qHash(const PkString&) 与真 Qt 无同名冲突，不受本守卫影响。
+#if !defined(QT_CORE_LIB) || !defined(QHASHFUNCTIONS_H)
+
 // 所有整型先折算成 64 位再混合成 32 位，避免为每个宽度各写一套混合逻辑。
 inline unsigned int pkHashMix64(unsigned long long key, unsigned int seed) noexcept
 {
@@ -156,6 +167,8 @@ qHash(Enum key, unsigned int seed = 0) noexcept
 {
     return qHash(static_cast<typename std::underlying_type<Enum>::type>(key), seed);
 }
+
+#endif  // !defined(QT_CORE_LIB) || !defined(QHASHFUNCTIONS_H)
 
 // ---------------------------------------------------------------------------
 // PkHasher —— 交给 std::unordered_map / std::unordered_set 的 Hash 策略。
