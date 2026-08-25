@@ -6,9 +6,6 @@
 
 #include "kis_onion_skin_cache.h"
 
-#include <QReadWriteLock>
-#include <QReadLocker>
-#include <QWriteLocker>
 
 
 #include "kis_paint_device.h"
@@ -28,7 +25,7 @@ struct KisOnionSkinCache::Private
     int cacheTime = 0;
     int cacheConfigSeqNo = 0;
     int framesHash = 0;
-    QReadWriteLock lock;
+    PkReadWriteLock lock;
 
     bool checkCacheValid(KisPaintDeviceSP source, KisOnionSkinCompositor *compositor) {
         const KisRasterKeyframeChannel *keyframes = source->keyframeChannel();
@@ -69,14 +66,14 @@ KisPaintDeviceSP KisOnionSkinCache::projection(KisPaintDeviceSP source)
 
     KisPaintDeviceSP cachedProjection;
 
-    QReadLocker readLocker(&m_d->lock);
+    PkReadLocker readLocker(&m_d->lock);
     cachedProjection = m_d->cachedProjection;
     
     
     if (!cachedProjection || !m_d->checkCacheValid(source, compositor)) {
 
         readLocker.unlock();
-        QWriteLocker writeLocker(&m_d->lock);
+        PkWriteLocker writeLocker(&m_d->lock);
         cachedProjection = m_d->cachedProjection;
         if (!cachedProjection ||
             !m_d->checkCacheValid(source, compositor) ||
@@ -93,7 +90,7 @@ KisPaintDeviceSP KisOnionSkinCache::projection(KisPaintDeviceSP source)
                 }
             }
 
-            const QRect extent = compositor->calculateExtent(source);
+            const PkRect extent = compositor->calculateExtent(source);
             compositor->composite(source, cachedProjection, extent);
 
             cachedProjection->setDefaultBounds(source->defaultBounds());
@@ -105,7 +102,7 @@ KisPaintDeviceSP KisOnionSkinCache::projection(KisPaintDeviceSP source)
              */
             const int lod = source->defaultBounds()->currentLevelOfDetail();
             if (lod > 0) {
-                QScopedPointer<KisPaintDevice::LodDataStruct> data(cachedProjection->createLodDataStruct(lod));
+                PkScopedPointer<KisPaintDevice::LodDataStruct> data(cachedProjection->createLodDataStruct(lod));
                 cachedProjection->updateLodDataStruct(data.data(), extent);
                 cachedProjection->uploadLodDataStruct(data.data());
             }
@@ -120,7 +117,7 @@ KisPaintDeviceSP KisOnionSkinCache::projection(KisPaintDeviceSP source)
 
 void KisOnionSkinCache::reset()
 {
-    QWriteLocker writeLocker(&m_d->lock);
+    PkWriteLocker writeLocker(&m_d->lock);
     m_d->cachedProjection = 0;
 }
 

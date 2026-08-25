@@ -6,17 +6,11 @@
 
 #include "kis_time_span.h"
 
-#include <QDebug>
 #include "kis_keyframe_channel.h"
 #include "kis_node.h"
 #include "kis_layer_utils.h"
-#include <KisStaticInitializer.h>
 
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<KisTimeSpan>("KisTimeSpan");
-}
-
-QDebug operator<<(QDebug dbg, const KisTimeSpan &r)
+PkDebug operator<<(PkDebug dbg, const KisTimeSpan &r)
 {
     dbg.nospace() << "KisTimeSpan(" << r.start() << ", " << r.end() << ")";
 
@@ -55,10 +49,10 @@ KisTimeSpan KisTimeSpan::calculateNodeIdenticalFrames(const KisNode *node, int t
 {
     KisTimeSpan range = KisTimeSpan::infinite(0);
 
-    const QMap<QString, KisKeyframeChannel*> channels =
+    const PkMap<PkString, KisKeyframeChannel*> channels =
         node->keyframeChannels();
 
-    Q_FOREACH (const KisKeyframeChannel *channel, channels) {
+    for (const KisKeyframeChannel *channel : channels) {
         // Intersection
         range &= channel->identicalFrames(time);
     }
@@ -72,7 +66,7 @@ KisTimeSpan KisTimeSpan::calculateNodeAffectedFrames(const KisNode *node, int ti
 
     if (!node->visible()) return range;
 
-    const QMap<QString, KisKeyframeChannel*> channels =
+    const PkMap<PkString, KisKeyframeChannel*> channels =
         node->keyframeChannels();
 
     // TODO: channels should report to the image which channel exactly has changed
@@ -84,7 +78,7 @@ KisTimeSpan KisTimeSpan::calculateNodeAffectedFrames(const KisNode *node, int ti
         return range;
     }
 
-    Q_FOREACH (const KisKeyframeChannel *channel, channels) {
+    for (const KisKeyframeChannel *channel : channels) {
         // Union
         range |= channel->affectedFrames(time);
     }
@@ -94,10 +88,10 @@ KisTimeSpan KisTimeSpan::calculateNodeAffectedFrames(const KisNode *node, int ti
 
 namespace KisDomUtils {
 
-void saveValue(QDomElement *parent, const QString &tag, const KisTimeSpan &range)
+void saveValue(PkXmlElement *parent, const PkString &tag, const KisTimeSpan &range)
 {
-    QDomDocument doc = parent->ownerDocument();
-    QDomElement e = doc.createElement(tag);
+    PkXmlDocument doc = parent->ownerDocument();
+    PkXmlElement e = doc.createElement(tag);
     parent->appendChild(e);
 
     e.setAttribute("type", "timerange");
@@ -112,9 +106,9 @@ void saveValue(QDomElement *parent, const QString &tag, const KisTimeSpan &range
 }
 
 
-bool loadValue(const QDomElement &parent, const QString &tag, KisTimeSpan *range)
+bool loadValue(const PkXmlElement &parent, const PkString &tag, KisTimeSpan *range)
 {
-    QDomElement e;
+    PkXmlElement e;
     if (!findOnlyElement(parent, tag, &e)) return false;
 
     if (!Private::checkType(e, "timerange")) return false;

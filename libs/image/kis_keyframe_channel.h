@@ -9,9 +9,8 @@
 #ifndef KIS_KEYFRAME_CHANNEL_H
 #define KIS_KEYFRAME_CHANNEL_H
 
-#include <QVariant>
-#include <QDomElement>
 #include <kundo2command.h>
+#include <PkObject.h>
 
 #include "kis_types.h"
 #include "KoID.h"
@@ -29,7 +28,7 @@ class KisTimeSpan;
  * This class is a key piece of Krita's animation backend.
  * Abstract base class of KisRasterKeyframeChannel, KisScalarKeyframeChannel, etc.
  */
-class KRITAIMAGE_EXPORT KisKeyframeChannel : public QObject
+class KRITAIMAGE_EXPORT KisKeyframeChannel : public PkObject
 {
     Q_OBJECT
 
@@ -83,12 +82,12 @@ public:
 
     // Quick casting convenience templates..
     template <class KeyframeType>
-    QSharedPointer<KeyframeType> keyframeAt(int time) const {
+    PkSharedPointer<KeyframeType> keyframeAt(int time) const {
         return keyframeAt(time).dynamicCast<KeyframeType>();
     }
 
     template <class KeyframeType>
-    QSharedPointer<KeyframeType> activeKeyframeAt(int time) const {
+    PkSharedPointer<KeyframeType> activeKeyframeAt(int time) const {
         return activeKeyframeAt(time).dynamicCast<KeyframeType>();
     }
 
@@ -115,10 +114,10 @@ public:
     int lastKeyframeTime() const;
 
     /** @brief Get a set of all integer times that map to a keyframe. */
-    QSet<int> allKeyframeTimes() const;
+    PkSet<int> allKeyframeTimes() const;
 
-    QString id() const;
-    QString name() const;
+    PkString id() const;
+    PkString name() const;
 
     void setNode(KisNodeWSP node);
     KisNodeWSP node() const;
@@ -142,12 +141,12 @@ public:
     /**
      * The rect that is affected by a frame at the given time
      */
-    virtual QRect affectedRect(int time) const = 0;
+    virtual PkRect affectedRect(int time) const = 0;
 
-    virtual QDomElement toXML(QDomDocument doc, const QString &layerFilename);
-    virtual void loadXML(const QDomElement &channelNode);
+    virtual PkXmlElement toXML(PkXmlDocument doc, const PkString &layerFilename);
+    virtual void loadXML(const PkXmlElement &channelNode);
 
-    static KoID channelIdToKoId(const QString &id);
+    static KoID channelIdToKoId(const PkString &id);
 
 Q_SIGNALS:
     /** @brief This signal is emitted just AFTER a keyframe was added to the channel. */
@@ -170,7 +169,7 @@ Q_SIGNALS:
     void sigAnyKeyframeChange();
 
 protected:
-    typedef QMap<int, KisKeyframeSP> TimeKeyframeMap;
+    typedef PkMap<int, KisKeyframeSP> TimeKeyframeMap;
     TimeKeyframeMap &keys();
     const TimeKeyframeMap &constKeys() const;
     int currentTime() const;
@@ -192,15 +191,15 @@ protected:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 
     /** @brief Virtual keyframe creation function.
      * Derived classes implement this function based on the needs
      * of their specific KisKeyframe subclasses.
      */
     virtual KisKeyframeSP createKeyframe() = 0;
-    virtual QPair<int, KisKeyframeSP> loadKeyframe(const QDomElement &keyframeNode) = 0;
-    virtual void saveKeyframe(KisKeyframeSP keyframe, QDomElement keyframeElement, const QString &layerFilename) = 0;
+    virtual PkPair<int, KisKeyframeSP> loadKeyframe(const PkXmlElement &keyframeNode) = 0;
+    virtual void saveKeyframe(KisKeyframeSP keyframe, PkXmlElement keyframeElement, const PkString &layerFilename) = 0;
 };
 
 #endif // KIS_KEYFRAME_CHANNEL_H

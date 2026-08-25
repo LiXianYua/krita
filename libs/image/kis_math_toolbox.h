@@ -9,8 +9,6 @@
 #ifndef KIS_MATH_TOOLBOX_H
 #define KIS_MATH_TOOLBOX_H
 
-#include <QObject>
-#include <QRect>
 
 #include <new>
 
@@ -64,9 +62,9 @@ public:
      * @param lay the layer that will be used for the transformation
      * @param rect the rectangular for transformation
      */
-    inline KisWavelet* initWavelet(KisPaintDeviceSP lay, const QRect&);
+    inline KisWavelet* initWavelet(KisPaintDeviceSP lay, const PkRect&);
 
-    inline uint fastWaveletTotalSteps(const QRect&);
+    inline uint fastWaveletTotalSteps(const PkRect&);
 
     /**
      * This function reconstruct the layer from the information of a wavelet
@@ -77,7 +75,7 @@ public:
      * in transformToWavelet and in untransformToWavelet, use initWavelet to initialize
      * the buffer
      */
-    KisWavelet* fastWaveletTransformation(KisPaintDeviceSP src, const QRect&, KisWavelet* buff = 0);
+    KisWavelet* fastWaveletTransformation(KisPaintDeviceSP src, const PkRect&, KisWavelet* buff = 0);
 
     /**
      * This function reconstruct the layer from the information of a wavelet
@@ -89,11 +87,11 @@ public:
      * in transformToWavelet and in untransformToWavelet, use initWavelet to initialize
      * the buffer
      */
-    void fastWaveletUntransformation(KisPaintDeviceSP dst, const QRect&, KisWavelet* wav, KisWavelet* buff = 0);
+    void fastWaveletUntransformation(KisPaintDeviceSP dst, const PkRect&, KisWavelet* wav, KisWavelet* buff = 0);
 
-    bool getToDoubleChannelPtr(QList<KoChannelInfo *> cis, QVector<PtrToDouble>& f);
-    bool getFromDoubleChannelPtr(QList<KoChannelInfo *> cis, QVector<PtrFromDouble>& f);
-    bool getFromDoubleCheckNullChannelPtr(QList<KoChannelInfo *> cis, QVector<PtrFromDoubleCheckNull>& f);
+    bool getToDoubleChannelPtr(PkList<KoChannelInfo *> cis, PkVector<PtrToDouble>& f);
+    bool getFromDoubleChannelPtr(PkList<KoChannelInfo *> cis, PkVector<PtrFromDouble>& f);
+    bool getFromDoubleCheckNullChannelPtr(PkList<KoChannelInfo *> cis, PkVector<PtrFromDoubleCheckNull>& f);
 
     double minChannelValue(KoChannelInfo *);
     double maxChannelValue(KoChannelInfo *);
@@ -107,17 +105,17 @@ private:
      * This function transform a paint device into a KisFloatRepresentation, this function is colorspace independent,
      * for Wavelet, Pyramid and FFT the data is always the exact value of the channel stored in a float.
      */
-    void transformToFR(KisPaintDeviceSP src, KisFloatRepresentation*, const QRect&);
+    void transformToFR(KisPaintDeviceSP src, KisFloatRepresentation*, const PkRect&);
 
     /**
      * This function transform a KisFloatRepresentation into a paint device, this function is colorspace independent,
      * for Wavelet, Pyramid and FFT the data is always the exact value of the channel stored in a float.
      */
-    void transformFromFR(KisPaintDeviceSP dst, KisFloatRepresentation*, const QRect&);
+    void transformFromFR(KisPaintDeviceSP dst, KisFloatRepresentation*, const PkRect&);
 
 };
 
-inline KisMathToolbox::KisWavelet* KisMathToolbox::initWavelet(KisPaintDeviceSP src, const QRect& rect)
+inline KisMathToolbox::KisWavelet* KisMathToolbox::initWavelet(KisPaintDeviceSP src, const PkRect& rect)
 {
     int size;
     int maxrectsize = (rect.height() < rect.width()) ? rect.width() : rect.height();
@@ -126,7 +124,7 @@ inline KisMathToolbox::KisWavelet* KisMathToolbox::initWavelet(KisPaintDeviceSP 
     return new KisWavelet(size, depth);
 }
 
-inline uint KisMathToolbox::fastWaveletTotalSteps(const QRect& rect)
+inline uint KisMathToolbox::fastWaveletTotalSteps(const PkRect& rect)
 {
     int size, steps;
     int maxrectsize = (rect.height() < rect.width()) ? rect.width() : rect.height();

@@ -10,7 +10,7 @@ KisDefaultBoundsBase::~KisDefaultBoundsBase()
 {
 }
 
-QRect KisDefaultBoundsBase::imageBorderRect() const
+PkRect KisDefaultBoundsBase::imageBorderRect() const
 {
     return bounds();
 }

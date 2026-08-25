@@ -10,9 +10,9 @@
 #include "kis_types.h"
 #include "kritaimage_export.h"
 
-#include <QObject>
+#include <PkObject.h>
 
-class KRITAIMAGE_EXPORT KisOnionSkinCompositor : public QObject
+class KRITAIMAGE_EXPORT KisOnionSkinCompositor : public PkObject
 {
     Q_OBJECT
 
@@ -21,18 +21,18 @@ public:
     ~KisOnionSkinCompositor() override;
     static KisOnionSkinCompositor *instance();
 
-    void composite(const KisPaintDeviceSP sourceDevice, KisPaintDeviceSP targetDevice, const QRect &rect);
+    void composite(const KisPaintDeviceSP sourceDevice, KisPaintDeviceSP targetDevice, const PkRect &rect);
 
-    QRect calculateFullExtent(const KisPaintDeviceSP device);
-    QRect calculateExtent(const KisPaintDeviceSP device, int time);
-    QRect calculateExtent(const KisPaintDeviceSP device);
+    PkRect calculateFullExtent(const KisPaintDeviceSP device);
+    PkRect calculateExtent(const KisPaintDeviceSP device, int time);
+    PkRect calculateExtent(const KisPaintDeviceSP device);
 
-    QRect updateExtentOnAddition(const KisPaintDeviceSP device, int addedTime);
+    PkRect updateExtentOnAddition(const KisPaintDeviceSP device, int addedTime);
 
     int configSeqNo() const;
 
-    void setColorLabelFilter(QSet<int> colors);
-    QSet<int> colorLabelFilter();
+    void setColorLabelFilter(PkSet<int> colors);
+    PkSet<int> colorLabelFilter();
 
 public Q_SLOTS:
     void configChanged();
@@ -42,7 +42,7 @@ Q_SIGNALS:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 
 };
 

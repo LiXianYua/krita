@@ -38,13 +38,13 @@ public:
     inline void moveTo(qreal x, qreal y) {
         m_currentPoint.setX(x); m_currentPoint.setY(y);
     }
-    inline void moveTo(const QPointF& p) {
+    inline void moveTo(const PkPointF& p) {
         m_currentPoint = p;
     }
 
 private:
     KisPaintDeviceSP m_device;
-    QPointF m_currentPoint;
+    PkPointF m_currentPoint;
     KisRandomConstAccessorSP m_randomAccessor;
 };
 

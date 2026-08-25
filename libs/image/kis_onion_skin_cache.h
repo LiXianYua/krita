@@ -7,7 +7,6 @@
 #ifndef __KIS_ONION_SKIN_CACHE_H
 #define __KIS_ONION_SKIN_CACHE_H
 
-#include <QScopedPointer>
 #include "kis_types.h"
 
 
@@ -24,7 +23,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_ONION_SKIN_CACHE_H */

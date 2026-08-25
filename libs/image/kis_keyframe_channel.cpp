@@ -19,23 +19,23 @@
 #include "kis_mask.h"
 #include "kis_image.h"
 #include "kis_command_utils.h"
+#include <iterator>
 
-#include <QMap>
 
 
-const KoID KisKeyframeChannel::Raster = KoID("content", ki18n("Content"));
-const KoID KisKeyframeChannel::Opacity = KoID("opacity", ki18n("Opacity"));
-const KoID KisKeyframeChannel::PositionX = KoID("transform_pos_x", ki18n("Position (X)"));
-const KoID KisKeyframeChannel::PositionY = KoID("transform_pos_y", ki18n("Position (Y)"));
-const KoID KisKeyframeChannel::ScaleX = KoID("transform_scale_x", ki18n("Scale (X)"));
-const KoID KisKeyframeChannel::ScaleY = KoID("transform_scale_y", ki18n("Scale (Y)"));
-const KoID KisKeyframeChannel::ShearX = KoID("transform_shear_x", ki18n("Shear (X)"));
-const KoID KisKeyframeChannel::ShearY = KoID("transform_shear_y", ki18n("Shear (Y)"));
-const KoID KisKeyframeChannel::RotationX = KoID("transform_rotation_x", ki18n("Rotation (X)"));
-const KoID KisKeyframeChannel::RotationY = KoID("transform_rotation_y", ki18n("Rotation (Y)"));
-const KoID KisKeyframeChannel::RotationZ = KoID("transform_rotation_z", ki18n("Rotation (Z)"));
+const KoID KisKeyframeChannel::Raster = KoID("content", PkString("Content"));
+const KoID KisKeyframeChannel::Opacity = KoID("opacity", PkString("Opacity"));
+const KoID KisKeyframeChannel::PositionX = KoID("transform_pos_x", PkString("Position (X)"));
+const KoID KisKeyframeChannel::PositionY = KoID("transform_pos_y", PkString("Position (Y)"));
+const KoID KisKeyframeChannel::ScaleX = KoID("transform_scale_x", PkString("Scale (X)"));
+const KoID KisKeyframeChannel::ScaleY = KoID("transform_scale_y", PkString("Scale (Y)"));
+const KoID KisKeyframeChannel::ShearX = KoID("transform_shear_x", PkString("Shear (X)"));
+const KoID KisKeyframeChannel::ShearY = KoID("transform_shear_y", PkString("Shear (Y)"));
+const KoID KisKeyframeChannel::RotationX = KoID("transform_rotation_x", PkString("Rotation (X)"));
+const KoID KisKeyframeChannel::RotationY = KoID("transform_rotation_y", PkString("Rotation (Y)"));
+const KoID KisKeyframeChannel::RotationZ = KoID("transform_rotation_z", PkString("Rotation (Z)"));
 
-KoID KisKeyframeChannel::channelIdToKoId(const QString &id)
+KoID KisKeyframeChannel::channelIdToKoId(const PkString &id)
 {
     KoID channelId;
 
@@ -83,7 +83,7 @@ struct KisKeyframeChannel::Private
     }
 
     KoID id;
-    QMap<int, KisKeyframeSP> keys; /**< Maps unique times to individual keyframes. */
+    PkMap<int, KisKeyframeSP> keys; /**< Maps unique times to individual keyframes. */
     KisDefaultBoundsBaseSP bounds; /**< Stores pixel dimensions as well as current time. */
 
     KisNodeWSP parentNode;
@@ -95,15 +95,15 @@ KisKeyframeChannel::KisKeyframeChannel(const KoID &id, KisDefaultBoundsBaseSP bo
     : m_d(new Private(id, bounds))
 {
     // Added keyframes should fire channel updated signal..
-    connect(this, &KisKeyframeChannel::sigAddedKeyframe, [this](const KisKeyframeChannel *, int) {
+    connect(this, &KisKeyframeChannel::sigAddedKeyframe, this, [this](const KisKeyframeChannel *, int) {
         Q_EMIT sigAnyKeyframeChange();
     });
 
-    connect(this, &KisKeyframeChannel::sigKeyframeHasBeenRemoved, [this](const KisKeyframeChannel *, int) {
+    connect(this, &KisKeyframeChannel::sigKeyframeHasBeenRemoved, this, [this](const KisKeyframeChannel *, int) {
         Q_EMIT sigAnyKeyframeChange();
     });
 
-    connect(this, &KisKeyframeChannel::sigKeyframeChanged, [this](const KisKeyframeChannel *, int) {
+    connect(this, &KisKeyframeChannel::sigKeyframeChanged, this, [this](const KisKeyframeChannel *, int) {
         Q_EMIT sigAnyKeyframeChange();
     });
 }
@@ -217,7 +217,7 @@ void KisKeyframeChannel::swapKeyframes(KisKeyframeChannel *channelA, int timeA, 
 
 KisKeyframeSP KisKeyframeChannel::keyframeAt(int time) const
 {
-    QMap<int, KisKeyframeSP>::const_iterator iter = m_d->keys.constFind(time);
+    PkMap<int, KisKeyframeSP>::const_iterator iter = m_d->keys.constFind(time);
     if (iter != m_d->keys.constEnd()) {
         return iter.value();
     } else {
@@ -232,20 +232,14 @@ int KisKeyframeChannel::keyframeCount() const
 
 int KisKeyframeChannel::activeKeyframeTime(int time) const
 {
-    QMap<int, KisKeyframeSP>::const_iterator iter = const_cast<const QMap<int, KisKeyframeSP>*>(&m_d->keys)->upperBound(time);
+    PkMap<int, KisKeyframeSP>::const_iterator iter = m_d->keys.upperBound(time);
 
     // If the next keyframe is the first keyframe, that means there's no active frame.
     if (iter == m_d->keys.constBegin()) {
         return -1;
     }
 
-    iter--;
-
-    if (iter == m_d->keys.constEnd()) {
-        return -1;
-    }
-
-    return iter.key();
+    return std::prev(iter.PkInner())->first;
 }
 
 int KisKeyframeChannel::lookupKeyframeTime(KisKeyframeSP toLookup)
@@ -260,7 +254,7 @@ int KisKeyframeChannel::firstKeyframeTime() const
     if (m_d->keys.isEmpty()) {
         return -1;
     } else {
-        return m_d->keys.firstKey();
+        return m_d->keys.constBegin().key();
     }
 }
 
@@ -270,19 +264,18 @@ int KisKeyframeChannel::previousKeyframeTime(const int time) const
         return activeKeyframeTime(time);
     }
 
-    QMap<int, KisKeyframeSP>::const_iterator iter = m_d->keys.constFind(time);
+    PkMap<int, KisKeyframeSP>::const_iterator iter = m_d->keys.constFind(time);
 
     if (iter == m_d->keys.constBegin() || iter == m_d->keys.constEnd()) {
         return -1;
     }
 
-    iter--;
-    return iter.key();
+    return std::prev(iter.PkInner())->first;
 }
 
 int KisKeyframeChannel::nextKeyframeTime(const int time) const
 {
-    QMap<int, KisKeyframeSP>::const_iterator iter = const_cast<const QMap<int, KisKeyframeSP>*>(&m_d->keys)->upperBound(time);
+    PkMap<int, KisKeyframeSP>::const_iterator iter = const_cast<const PkMap<int, KisKeyframeSP>*>(&m_d->keys)->upperBound(time);
 
     if (iter == m_d->keys.constEnd()) {
         return -1;
@@ -297,12 +290,12 @@ int KisKeyframeChannel::lastKeyframeTime() const
         return -1;
     }
 
-    return m_d->keys.lastKey();
+    return std::prev(m_d->keys.constEnd().PkInner())->first;
 }
 
-QSet<int> KisKeyframeChannel::allKeyframeTimes() const
+PkSet<int> KisKeyframeChannel::allKeyframeTimes() const
 {
-    QSet<int> frames;
+    PkSet<int> frames;
 
     TimeKeyframeMap::const_iterator it = m_d->keys.constBegin();
     TimeKeyframeMap::const_iterator end = m_d->keys.constEnd();
@@ -315,12 +308,12 @@ QSet<int> KisKeyframeChannel::allKeyframeTimes() const
     return frames;
 }
 
-QString KisKeyframeChannel::id() const
+PkString KisKeyframeChannel::id() const
 {
     return m_d->id.id();
 }
 
-QString KisKeyframeChannel::name() const
+PkString KisKeyframeChannel::name() const
 {
     return m_d->id.name();
 }
@@ -338,10 +331,10 @@ void KisKeyframeChannel::setNode(KisNodeWSP node)
     m_d->bounds = KisDefaultBoundsNodeWrapperSP( new KisDefaultBoundsNodeWrapper( node ));
 
     if (m_d->parentNode) { // Connect new..
-        connect(this, &KisKeyframeChannel::sigAddedKeyframe, m_d->parentNode, &KisNode::handleKeyframeChannelFrameAdded, Qt::DirectConnection);
-        connect(this, &KisKeyframeChannel::sigKeyframeAboutToBeRemoved, m_d->parentNode, &KisNode::handleKeyframeChannelFrameAboutToBeRemoved, Qt::DirectConnection);
-        connect(this, &KisKeyframeChannel::sigKeyframeHasBeenRemoved, m_d->parentNode, &KisNode::handleKeyframeChannelFrameHasBeenRemoved, Qt::DirectConnection);
-        connect(this, &KisKeyframeChannel::sigKeyframeChanged, m_d->parentNode, &KisNode::handleKeyframeChannelFrameChange, Qt::DirectConnection);
+        connect(this, &KisKeyframeChannel::sigAddedKeyframe, m_d->parentNode, &KisNode::handleKeyframeChannelFrameAdded, PkConnectionType::Direct);
+        connect(this, &KisKeyframeChannel::sigKeyframeAboutToBeRemoved, m_d->parentNode, &KisNode::handleKeyframeChannelFrameAboutToBeRemoved, PkConnectionType::Direct);
+        connect(this, &KisKeyframeChannel::sigKeyframeHasBeenRemoved, m_d->parentNode, &KisNode::handleKeyframeChannelFrameHasBeenRemoved, PkConnectionType::Direct);
+        connect(this, &KisKeyframeChannel::sigKeyframeChanged, m_d->parentNode, &KisNode::handleKeyframeChannelFrameChange, PkConnectionType::Direct);
     }
 }
 
@@ -394,18 +387,18 @@ KisTimeSpan KisKeyframeChannel::identicalFrames(int time) const
     return affectedFrames(time);
 }
 
-QDomElement KisKeyframeChannel::toXML(QDomDocument doc, const QString &layerFilename)
+PkXmlElement KisKeyframeChannel::toXML(PkXmlDocument doc, const PkString &layerFilename)
 {
-    QDomElement channelElement = doc.createElement("channel");
+    PkXmlElement channelElement = doc.createElement("channel");
 
     channelElement.setAttribute("name", id());
 
-    Q_FOREACH (int time, m_d->keys.keys()) {
-        QDomElement keyframeElement = doc.createElement("keyframe");
+    for (int time : m_d->keys.keys()) {
+        PkXmlElement keyframeElement = doc.createElement("keyframe");
         KisKeyframeSP keyframe = keyframeAt(time);
 
-        keyframeElement.setAttribute("time", time);
-        keyframeElement.setAttribute("color-label", keyframe->colorLabel());
+        keyframeElement.setAttribute("time", PkString().arg(time));
+        keyframeElement.setAttribute("color-label", PkString().arg(keyframe->colorLabel()));
 
         saveKeyframe(keyframe, keyframeElement, layerFilename);
 
@@ -415,16 +408,16 @@ QDomElement KisKeyframeChannel::toXML(QDomDocument doc, const QString &layerFile
     return channelElement;
 }
 
-void KisKeyframeChannel::loadXML(const QDomElement &channelNode)
+void KisKeyframeChannel::loadXML(const PkXmlElement &channelNode)
 {
-    for (QDomElement keyframeNode = channelNode.firstChildElement(); !keyframeNode.isNull(); keyframeNode = keyframeNode.nextSiblingElement()) {
+    for (PkXmlElement keyframeNode = channelNode.firstChildElement(); !keyframeNode.isNull(); keyframeNode = keyframeNode.nextSiblingElement()) {
         if (keyframeNode.nodeName().toUpper() != "KEYFRAME") continue;
 
-        QPair<int, KisKeyframeSP> timeKeyPair = loadKeyframe(keyframeNode);
+        PkPair<int, KisKeyframeSP> timeKeyPair = loadKeyframe(keyframeNode);
         KIS_SAFE_ASSERT_RECOVER(timeKeyPair.second) { continue; }
 
         if (keyframeNode.hasAttribute("color-label")) {
-            timeKeyPair.second->setColorLabel(keyframeNode.attribute("color-label").toUInt());
+            timeKeyPair.second->setColorLabel(keyframeNode.attribute("color-label").toInt());
         }
 
         insertKeyframe(timeKeyPair.first, timeKeyPair.second);

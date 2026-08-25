@@ -21,8 +21,8 @@ using namespace KisAlgebra2D;
 
 struct PrecalculatedCoords
 {
-    QVector<qreal> psi; // for each edge
-    QVector<qreal> phi; // for each vertex
+    PkVector<qreal> psi; // for each edge
+    PkVector<qreal> phi; // for each vertex
 };
 
 
@@ -30,20 +30,20 @@ struct Q_DECL_HIDDEN KisGreenCoordinatesMath::Private
 {
     Private () : transformedCageDirection(0) {}
 
-    QVector<qreal> originalCageEdgeSizes;
-    QVector<QPointF> transformedCageNormals;
+    PkVector<qreal> originalCageEdgeSizes;
+    PkVector<PkPointF> transformedCageNormals;
     int transformedCageDirection;
 
-    QVector<PrecalculatedCoords> precalculatedCoords;
+    PkVector<PrecalculatedCoords> precalculatedCoords;
 
-    void precalculateOnePoint(const QVector<QPointF> &originalCage,
+    void precalculateOnePoint(const PkVector<PkPointF> &originalCage,
                               PrecalculatedCoords *coords,
-                              const QPointF &pt,
+                              const PkPointF &pt,
                               int polygonDirection);
 
-    inline void precalculateOneEdge(const QPointF &pt,
-                                    const QPointF &v1,
-                                    const QPointF &v2,
+    inline void precalculateOneEdge(const PkPointF &pt,
+                                    const PkPointF &v1,
+                                    const PkPointF &v2,
                                     qreal *edge_psi,
                                     qreal *vertex1_phi,
                                     qreal *vertex2_phi,
@@ -51,16 +51,16 @@ struct Q_DECL_HIDDEN KisGreenCoordinatesMath::Private
 };
 
 inline void KisGreenCoordinatesMath::
-Private::precalculateOneEdge(const QPointF &pt,
-                             const QPointF &v1,
-                             const QPointF &v2,
+Private::precalculateOneEdge(const PkPointF &pt,
+                             const PkPointF &v1,
+                             const PkPointF &v2,
                              qreal *edge_psi,
                              qreal *vertex1_phi,
                              qreal *vertex2_phi,
                              int polygonDirection)
 {
-    QPointF a = v2 - v1;
-    QPointF b = v1 - pt;
+    PkPointF a = v2 - v1;
+    PkPointF b = v1 - pt;
     qreal Q = dotProduct(a, a);
     qreal S = dotProduct(b, b);
     qreal R = dotProduct(2 * a, b);
@@ -88,9 +88,9 @@ Private::precalculateOneEdge(const QPointF &pt,
     *vertex1_phi +=  BA / (2 * M_PI) * (L10 / (2 * Q) - A10 * (2 + R / Q));
 }
 
-void KisGreenCoordinatesMath::Private::precalculateOnePoint(const QVector<QPointF> &originalCage,
+void KisGreenCoordinatesMath::Private::precalculateOnePoint(const PkVector<PkPointF> &originalCage,
                                                             PrecalculatedCoords *coords,
-                                                            const QPointF &pt,
+                                                            const PkPointF &pt,
                                                             int polygonDirection)
 {
     const int numCagePoints = originalCage.size();
@@ -121,7 +121,7 @@ KisGreenCoordinatesMath::~KisGreenCoordinatesMath()
 {
 }
 
-void KisGreenCoordinatesMath::precalculateGreenCoordinates(const QVector<QPointF> &originalCage, const QVector<QPointF> &points)
+void KisGreenCoordinatesMath::precalculateGreenCoordinates(const PkVector<PkPointF> &originalCage, const PkVector<PkPointF> &points)
 {
     const int cageDirection = polygonDirection(originalCage);
     const int numPoints = points.size();
@@ -150,7 +150,7 @@ void KisGreenCoordinatesMath::precalculateGreenCoordinates(const QVector<QPointF
     }
 }
 
-void KisGreenCoordinatesMath::generateTransformedCageNormals(const QVector<QPointF> &transformedCage)
+void KisGreenCoordinatesMath::generateTransformedCageNormals(const PkVector<PkPointF> &transformedCage)
 {
     m_d->transformedCageDirection = polygonDirection(transformedCage);
 
@@ -161,7 +161,7 @@ void KisGreenCoordinatesMath::generateTransformedCageNormals(const QVector<QPoin
         int endIndex = i != numCagePoints ? i : 0;
         int startIndex = i - 1;
 
-        QPointF transformedEdge =
+        PkPointF transformedEdge =
             transformedCage[endIndex] - transformedCage[startIndex];
 
         qreal scaleCoeff =
@@ -172,9 +172,9 @@ void KisGreenCoordinatesMath::generateTransformedCageNormals(const QVector<QPoin
     }
 }
 
-QPointF KisGreenCoordinatesMath::transformedPoint(int pointIndex, const QVector<QPointF> &transformedCage)
+PkPointF KisGreenCoordinatesMath::transformedPoint(int pointIndex, const PkVector<PkPointF> &transformedCage)
 {
-    QPointF result;
+    PkPointF result;
 
     const int numCagePoints = transformedCage.size();
 

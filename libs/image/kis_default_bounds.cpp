@@ -13,8 +13,8 @@
 #include "kis_image.h"
 
 
-const QRect KisDefaultBounds::infiniteRect =
-    QRect(qint32_MIN/2, qint32_MIN/2, qint32_MAX, qint32_MAX);
+const PkRect KisDefaultBounds::infiniteRect =
+    PkRect(qint32_MIN/2, qint32_MIN/2, qint32_MAX, qint32_MAX);
 
 
 /******************************************************************/
@@ -42,7 +42,7 @@ KisDefaultBounds::~KisDefaultBounds()
     delete m_d;
 }
 
-QRect KisDefaultBounds::bounds() const
+PkRect KisDefaultBounds::bounds() const
 {
     /**
      * By default return infinite rect to cover everything
@@ -94,19 +94,19 @@ KisSelectionDefaultBoundsBase::~KisSelectionDefaultBoundsBase()
 {
 }
 
-QRect KisSelectionDefaultBoundsBase::bounds() const
+PkRect KisSelectionDefaultBoundsBase::bounds() const
 {
     KisPaintDeviceSP parentDevice = this->parentPaintDevice();
 
     return parentDevice ?
-                parentDevice->extent() | parentDevice->defaultBounds()->bounds() : QRect();
+                parentDevice->extent() | parentDevice->defaultBounds()->bounds() : PkRect();
 }
 
-QRect KisSelectionDefaultBoundsBase::imageBorderRect() const
+PkRect KisSelectionDefaultBoundsBase::imageBorderRect() const
 {
     KisPaintDeviceSP parentDevice = this->parentPaintDevice();
 
-    return parentDevice ? parentDevice->defaultBounds()->bounds() : QRect();
+    return parentDevice ? parentDevice->defaultBounds()->bounds() : PkRect();
 }
 
 bool KisSelectionDefaultBoundsBase::wrapAroundMode() const
@@ -208,9 +208,9 @@ KisSelectionEmptyBounds::~KisSelectionEmptyBounds()
 {
 }
 
-QRect KisSelectionEmptyBounds::bounds() const
+PkRect KisSelectionEmptyBounds::bounds() const
 {
-    return QRect(0, 0, 0, 0);
+    return PkRect(0, 0, 0, 0);
 }
 
 /******************************************************************/
@@ -221,10 +221,10 @@ QRect KisSelectionEmptyBounds::bounds() const
 struct Q_DECL_HIDDEN KisWrapAroundBoundsWrapper::Private
 {
     KisDefaultBoundsBaseSP base;
-    QRect bounds;
+    PkRect bounds;
 };
 
-KisWrapAroundBoundsWrapper::KisWrapAroundBoundsWrapper(KisDefaultBoundsBaseSP base, QRect bounds)
+KisWrapAroundBoundsWrapper::KisWrapAroundBoundsWrapper(KisDefaultBoundsBaseSP base, PkRect bounds)
 : m_d(new Private())
 {
     m_d->base = base;
@@ -235,7 +235,7 @@ KisWrapAroundBoundsWrapper::~KisWrapAroundBoundsWrapper()
 {
 }
 
-QRect KisWrapAroundBoundsWrapper::bounds() const
+PkRect KisWrapAroundBoundsWrapper::bounds() const
 {
     return m_d->bounds;
 }

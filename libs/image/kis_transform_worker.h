@@ -12,12 +12,11 @@
 #include "kis_types.h"
 #include "kritaimage_export.h"
 
-#include <QRect>
 #include <KoUpdater.h>
 
 class KisPaintDevice;
 class KisFilterStrategy;
-class QTransform;
+class PkTransform;
 
 class KRITAIMAGE_EXPORT KisTransformWorker
 {
@@ -52,20 +51,20 @@ public:
     static void mirrorY(KisPaintDeviceSP dev);
 
     /**
-     * Offset the specified device with wrapping around edges of rect specified as QRect(0,0,wrapSize.width, wrapSize.height)*
+     * Offset the specified device with wrapping around edges of rect specified as PkRect(0,0,wrapSize.width, wrapSize.height)*
      * @param device device to be offset
      * @param offsetPosition position where the new origin will be
      * @param wrapRect width and height of the wrap edge, usual scenario is to use canvas width&height
      *
      **/
-    static void offset(KisPaintDeviceSP device, const QPoint &offsetPosition, const QRect &wrapRect);
+    static void offset(KisPaintDeviceSP device, const PkPoint &offsetPosition, const PkRect &wrapRect);
 
 
 public:
 
     // returns false if interrupted
     bool run();
-    bool runPartial(const QRect &processRect);
+    bool runPartial(const PkRect &processRect);
 
     /**
      * Returns a matrix of the transformation executed by the worker.
@@ -85,7 +84,7 @@ public:
      * The result always differs 1-3 pixel. So be careful with it
      * (or fix it)
      */
-    QTransform transform() const;
+    PkTransform transform() const;
 
     /**
      * Transforms the outline of the pixel selection (if it is valid)
@@ -108,18 +107,18 @@ private:
 
     friend class KisTransformWorkerTest;
 
-    static QRect rotateRight90(KisPaintDeviceSP dev,
-                               QRect boundRect,
+    static PkRect rotateRight90(KisPaintDeviceSP dev,
+                               PkRect boundRect,
                                KoUpdaterPtr progressUpdater,
                                int portion);
 
-    static QRect rotateLeft90(KisPaintDeviceSP dev,
-                              QRect boundRect,
+    static PkRect rotateLeft90(KisPaintDeviceSP dev,
+                              PkRect boundRect,
                               KoUpdaterPtr progressUpdater,
                               int portion);
 
-    static QRect rotate180(KisPaintDeviceSP dev,
-                           QRect boundRect,
+    static PkRect rotate180(KisPaintDeviceSP dev,
+                           PkRect boundRect,
                            KoUpdaterPtr progressUpdater,
                            int portion);
 
@@ -131,7 +130,7 @@ private:
     qreal  m_xtranslate, m_ytranslate;
     KoUpdaterPtr m_progressUpdater;
     KisFilterStrategy *m_filter;
-    QRect m_boundRect;
+    PkRect m_boundRect;
     bool m_forceSubPixelTranslation {false};
 };
 

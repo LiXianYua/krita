@@ -7,7 +7,6 @@
 #ifndef KIS_DEFAULT_BOUNDS_H
 #define KIS_DEFAULT_BOUNDS_H
 
-#include <QRect>
 #include "kis_types.h"
 #include "kis_default_bounds_base.h"
 
@@ -27,7 +26,7 @@ public:
     KisDefaultBounds(KisImageWSP image);
     ~KisDefaultBounds() override;
 
-    QRect bounds() const override;
+    PkRect bounds() const override;
     bool wrapAroundMode() const override;
     WrapAroundAxis wrapAroundModeAxis() const override;
     int currentLevelOfDetail() const override;
@@ -37,7 +36,7 @@ public:
 
 protected:
     friend class KisPaintDeviceTest;
-    static const QRect infiniteRect;
+    static const PkRect infiniteRect;
 
 private:
     Q_DISABLE_COPY(KisDefaultBounds)
@@ -62,8 +61,8 @@ public:
     KisSelectionDefaultBoundsBase();
     ~KisSelectionDefaultBoundsBase() override;
 
-    QRect bounds() const override;
-    QRect imageBorderRect() const override;
+    PkRect bounds() const override;
+    PkRect imageBorderRect() const override;
     bool wrapAroundMode() const override;
     WrapAroundAxis wrapAroundModeAxis() const override;
     int currentLevelOfDetail() const override;
@@ -133,7 +132,7 @@ public:
     KisSelectionEmptyBounds();
     KisSelectionEmptyBounds(KisImageWSP image);
     ~KisSelectionEmptyBounds() override;
-    QRect bounds() const override;
+    PkRect bounds() const override;
 };
 
 /**
@@ -144,10 +143,10 @@ public:
 class KRITAIMAGE_EXPORT KisWrapAroundBoundsWrapper :  public KisDefaultBoundsBase
 {
 public:
-    KisWrapAroundBoundsWrapper(KisDefaultBoundsBaseSP base, QRect bounds);
+    KisWrapAroundBoundsWrapper(KisDefaultBoundsBaseSP base, PkRect bounds);
     ~KisWrapAroundBoundsWrapper() override;
 
-    QRect bounds() const override;
+    PkRect bounds() const override;
     bool wrapAroundMode() const override;
     WrapAroundAxis wrapAroundModeAxis() const override;
     int currentLevelOfDetail() const override;
@@ -162,7 +161,7 @@ private:
     Q_DISABLE_COPY(KisWrapAroundBoundsWrapper)
 
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KIS_DEFAULT_BOUNDS_H

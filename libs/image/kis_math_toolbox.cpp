@@ -14,8 +14,6 @@
 #include <half.h>
 #endif
 
-#include <QVector>
-#include <QGlobalStatic>
 
 #include <KoColorSpaceMaths.h>
 
@@ -59,16 +57,16 @@ void fromDoubleCheckNullF(quint8* data, int channelpos, double v, bool *isNull)
 }
 
 
-void KisMathToolbox::transformToFR(KisPaintDeviceSP src, KisFloatRepresentation* fr, const QRect& rect)
+void KisMathToolbox::transformToFR(KisPaintDeviceSP src, KisFloatRepresentation* fr, const PkRect& rect)
 {
     qint32 depth = src->colorSpace()->colorChannelCount();
-    QList<KoChannelInfo *> cis = src->colorSpace()->channels();
+    PkList<KoChannelInfo *> cis = src->colorSpace()->channels();
     // remove non-color channels
     for (qint32 c = 0; c < cis.count(); ++c) {
         if (cis[c]->channelType() != KoChannelInfo::COLOR)
             cis.removeAt(c--);
     }
-    QVector<PtrToDouble> f(depth);
+    PkVector<PtrToDouble> f(depth);
     if (!getToDoubleChannelPtr(cis, f))
         return;
 
@@ -87,7 +85,7 @@ void KisMathToolbox::transformToFR(KisPaintDeviceSP src, KisFloatRepresentation*
     }
 }
 
-bool KisMathToolbox::getToDoubleChannelPtr(QList<KoChannelInfo *> cis, QVector<PtrToDouble>& f)
+bool KisMathToolbox::getToDoubleChannelPtr(PkList<KoChannelInfo *> cis, PkVector<PtrToDouble>& f)
 {
     qint32 channels = cis.count();
 
@@ -122,17 +120,17 @@ bool KisMathToolbox::getToDoubleChannelPtr(QList<KoChannelInfo *> cis, QVector<P
     return true;
 }
 
-void KisMathToolbox::transformFromFR(KisPaintDeviceSP dst, KisFloatRepresentation* fr, const QRect& rect)
+void KisMathToolbox::transformFromFR(KisPaintDeviceSP dst, KisFloatRepresentation* fr, const PkRect& rect)
 {
     qint32 depth = dst->colorSpace()->colorChannelCount();
-    QList<KoChannelInfo *> cis = dst->colorSpace()->channels();
+    PkList<KoChannelInfo *> cis = dst->colorSpace()->channels();
     // remove non-color channels
     for (qint32 c = 0; c < cis.count(); ++c) {
         if (cis[c]->channelType() != KoChannelInfo::COLOR)
             cis.removeAt(c--);
     }
 
-    QVector<PtrFromDouble> f(depth);
+    PkVector<PtrFromDouble> f(depth);
     if (!getFromDoubleChannelPtr(cis, f))
         return;
 
@@ -150,7 +148,7 @@ void KisMathToolbox::transformFromFR(KisPaintDeviceSP dst, KisFloatRepresentatio
     }
 }
 
-bool KisMathToolbox::getFromDoubleChannelPtr(QList<KoChannelInfo *> cis, QVector<PtrFromDouble>& f)
+bool KisMathToolbox::getFromDoubleChannelPtr(PkList<KoChannelInfo *> cis, PkVector<PtrFromDouble>& f)
 {
     qint32 channels = cis.count();
 
@@ -185,7 +183,7 @@ bool KisMathToolbox::getFromDoubleChannelPtr(QList<KoChannelInfo *> cis, QVector
     return true;
 }
 
-bool KisMathToolbox::getFromDoubleCheckNullChannelPtr(QList<KoChannelInfo *> cis, QVector<PtrFromDoubleCheckNull>& f)
+bool KisMathToolbox::getFromDoubleCheckNullChannelPtr(PkList<KoChannelInfo *> cis, PkVector<PtrFromDoubleCheckNull>& f)
 {
     qint32 channels = cis.count();
 
@@ -325,7 +323,7 @@ void KisMathToolbox::waveuntrans(KisMathToolbox::KisWavelet* wav, KisMathToolbox
     }
 }
 
-KisMathToolbox::KisWavelet* KisMathToolbox::fastWaveletTransformation(KisPaintDeviceSP src, const QRect& rect,  KisWavelet* buff)
+KisMathToolbox::KisWavelet* KisMathToolbox::fastWaveletTransformation(KisPaintDeviceSP src, const PkRect& rect,  KisWavelet* buff)
 {
     if (buff == 0) {
         buff = initWavelet(src, rect);
@@ -337,7 +335,7 @@ KisMathToolbox::KisWavelet* KisMathToolbox::fastWaveletTransformation(KisPaintDe
     return wav;
 }
 
-void KisMathToolbox::fastWaveletUntransformation(KisPaintDeviceSP dst, const QRect& rect, KisWavelet* wav, KisWavelet* buff)
+void KisMathToolbox::fastWaveletUntransformation(KisPaintDeviceSP dst, const PkRect& rect, KisWavelet* wav, KisWavelet* buff)
 {
     if (buff == 0) {
         buff = initWavelet(dst, rect);

@@ -15,11 +15,11 @@ void KisBaseRectsWalker::addCloneSourceRegenerationJobs()
      * caused by calling to visitSubtreeTopToBottom() in the
      * loop
      */
-    QVector<JobItem> cloneLayers;
+    PkVector<JobItem> cloneLayers;
     std::copy_if(m_mergeTask.begin(), m_mergeTask.end(),
                  std::back_inserter(cloneLayers),
                  [] (const JobItem &item) {
-                     return item.m_leaf->node()->inherits("KisCloneLayer") &&
+                     return dynamic_cast<KisCloneLayer*>(item.m_leaf->node().data()) &&
                          (item.m_position & (N_FILTHY | N_ABOVE_FILTHY | N_EXTRA));
                  });
 
@@ -29,13 +29,13 @@ void KisBaseRectsWalker::addCloneSourceRegenerationJobs()
         KisNodeSP source = clone->copyFrom();
         if (!source) continue;
 
-        QVector<QRect> preparedRects;
+        PkVector<PkRect> preparedRects;
 
         if (!m_cropRect.isEmpty()) {
             preparedRects << m_cropRect;
         }
 
-        Q_FOREACH (const JobItem &job, m_mergeTask) {
+        for (const JobItem &job : m_mergeTask) {
             if (job.m_leaf->node() == source &&
                 ((job.m_position & (N_FILTHY | N_EXTRA)) ||
                  (job.m_leaf->dependsOnLowerNodes() && (job.m_position & N_ABOVE_FILTHY)))) {
@@ -43,20 +43,20 @@ void KisBaseRectsWalker::addCloneSourceRegenerationJobs()
             }
         }
 
-        const QRect srcRect = it->m_applyRect.translated(-clone->x(), -clone->y());
+        const PkRect srcRect = it->m_applyRect.translated(-clone->x(), -clone->y());
 
-        QRegion prepareRegion(srcRect);
+        PkRegion prepareRegion(srcRect);
 
         /**
          * If a clone has complicated masks, we should prepare additional
          * source area to ensure the rect is prepared.
          */
-        const QRect needRectOnSource = clone->needRectOnSourceForMasks(srcRect);
+        const PkRect needRectOnSource = clone->needRectOnSourceForMasks(srcRect);
         if (!needRectOnSource.isEmpty()) {
             prepareRegion += needRectOnSource;
         }
 
-        Q_FOREACH (const QRect &rc, preparedRects) {
+        for (const PkRect &rc : preparedRects) {
             prepareRegion -= rc;
         }
 
@@ -65,13 +65,13 @@ void KisBaseRectsWalker::addCloneSourceRegenerationJobs()
             visitSubtreeTopToBottom(source->projectionLeaf(),
                                     SkipNonRenderableNodes | DontNotifyClones,
                                     KisRenderPassFlag::NoTransformMaskUpdates,
-                                    QRect());
+                                    PkRect());
         }
     }
 }
 
 void KisBaseRectsWalker::visitSubtreeTopToBottom(KisProjectionLeafSP startWith, SubtreeVisitFlags flags,
-                                                 KisRenderPassFlags renderFlags, const QRect &cropRect)
+                                                 KisRenderPassFlags renderFlags, const PkRect &cropRect)
 {
     /**
      * If the node is not renderable and we don't care about hidden groups,

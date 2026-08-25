@@ -7,7 +7,6 @@
 #ifndef KIS_DEFAULT_BOUNDS_BASE_H
 #define KIS_DEFAULT_BOUNDS_BASE_H
 
-#include <QRect>
 #include "kis_shared.h"
 #include "kis_shared_ptr.h"
 #include "kritaimage_export.h"
@@ -38,7 +37,7 @@ public:
      * KisPaintDevice adds `defaultBounds->bounds()` to its `extent()`
      * and `exactBounds()` when its default pixel is non-transparent.
      */
-    virtual QRect bounds() const = 0;
+    virtual PkRect bounds() const = 0;
 
     /**
      * Returns the rectangle of the official image size. This rect is
@@ -48,7 +47,7 @@ public:
      * NOTE: don't use it unless you know what you are doing,
      *       most probably you want to use `bounds()` instead!
      */
-    virtual QRect imageBorderRect() const;
+    virtual PkRect imageBorderRect() const;
 
     virtual bool wrapAroundMode() const = 0;
     virtual WrapAroundAxis wrapAroundModeAxis() const = 0;

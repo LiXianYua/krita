@@ -15,28 +15,32 @@
 #include "kis_image_config.h"
 #include "kis_raster_keyframe_channel.h"
 
-Q_GLOBAL_STATIC(KisOnionSkinCompositor, s_instance)
+static KisOnionSkinCompositor* s_instance()
+{
+    static KisOnionSkinCompositor instance;
+    return &instance;
+}
 
 struct KisOnionSkinCompositor::Private
 {
     int numberOfSkins = 0;
     int tintFactor = 0;
-    QColor backwardTintColor;
-    QColor forwardTintColor;
-    QVector<int> backwardOpacities;
-    QVector<int> forwardOpacities;
+    PkColor backwardTintColor;
+    PkColor forwardTintColor;
+    PkVector<int> backwardOpacities;
+    PkVector<int> forwardOpacities;
     int configSeqNo = 0;
-    QSet<int> colorLabelFilter;
+    PkSet<int> colorLabelFilter;
 
     int skinOpacity(int offset)
     {
-        const QVector<int> &bo = backwardOpacities;
-        const QVector<int> &fo = forwardOpacities;
+        const PkVector<int> &bo = backwardOpacities;
+        const PkVector<int> &fo = forwardOpacities;
 
         return offset > 0 ? fo[qAbs(offset) - 1] : bo[qAbs(offset) - 1];
     }
 
-    KisPaintDeviceSP setUpTintDevice(const QColor &tintColor, const KoColorSpace *colorSpace)
+    KisPaintDeviceSP setUpTintDevice(const PkColor &tintColor, const KoColorSpace *colorSpace)
     {
         KisPaintDeviceSP tintDevice = new KisPaintDevice(colorSpace);
         KoColor color = KoColor(tintColor, colorSpace);
@@ -60,7 +64,7 @@ struct KisOnionSkinCompositor::Private
         return channel->keyframeAt<KisRasterKeyframe>(outFrame);
     }
 
-    void tryCompositeFrame(KisRasterKeyframeSP keyframe, KisPainter &gcFrame, KisPainter &gcDest, KisPaintDeviceSP tintSource, int opacity, const QRect &rect)
+    void tryCompositeFrame(KisRasterKeyframeSP keyframe, KisPainter &gcFrame, KisPainter &gcDest, KisPaintDeviceSP tintSource, int opacity, const PkRect &rect)
     {
         if (keyframe.isNull() || opacity == OPACITY_TRANSPARENT_U8) return;
 
@@ -98,7 +102,7 @@ struct KisOnionSkinCompositor::Private
         configSeqNo++;
     }
 
-    QRect updateExtentOnFrameChange(KisRasterKeyframeChannel *channel,
+    PkRect updateExtentOnFrameChange(KisRasterKeyframeChannel *channel,
                                     int prevActiveTime, int prevIgnoredTime,
                                     int nowActiveTime, int nowIgnoredTime);
 
@@ -106,7 +110,7 @@ struct KisOnionSkinCompositor::Private
 
 KisOnionSkinCompositor *KisOnionSkinCompositor::instance()
 {
-    return s_instance;
+    return s_instance();
 }
 
 KisOnionSkinCompositor::KisOnionSkinCompositor()
@@ -123,23 +127,23 @@ int KisOnionSkinCompositor::configSeqNo() const
     return m_d->configSeqNo;
 }
 
-void KisOnionSkinCompositor::setColorLabelFilter(QSet<int> colors)
+void KisOnionSkinCompositor::setColorLabelFilter(PkSet<int> colors)
 {
     m_d->colorLabelFilter = colors;
 }
 
-QSet<int> KisOnionSkinCompositor::colorLabelFilter()
+PkSet<int> KisOnionSkinCompositor::colorLabelFilter()
 {
     return m_d->colorLabelFilter;
 }
 
-void KisOnionSkinCompositor::composite(const KisPaintDeviceSP sourceDevice, KisPaintDeviceSP targetDevice, const QRect& rect)
+void KisOnionSkinCompositor::composite(const KisPaintDeviceSP sourceDevice, KisPaintDeviceSP targetDevice, const PkRect& rect)
 {
     KisRasterKeyframeChannel *keyframes = sourceDevice->keyframeChannel();
 
     KisPaintDeviceSP frameDevice = new KisPaintDevice(sourceDevice->colorSpace());
     KisPainter gcFrame(frameDevice);
-    QBitArray channelFlags = sourceDevice->colorSpace()->channelFlags(true, false);
+    PkBitArray channelFlags = sourceDevice->colorSpace()->channelFlags(true, false);
     gcFrame.setChannelFlags(channelFlags);
     gcFrame.setOpacityU8(m_d->tintFactor);
 
@@ -175,9 +179,9 @@ void KisOnionSkinCompositor::composite(const KisPaintDeviceSP sourceDevice, KisP
 
 }
 
-QRect KisOnionSkinCompositor::calculateFullExtent(const KisPaintDeviceSP device)
+PkRect KisOnionSkinCompositor::calculateFullExtent(const KisPaintDeviceSP device)
 {
-    QRect rect;
+    PkRect rect;
 
     KisRasterKeyframeChannel *channel = device->keyframeChannel();
     if (!channel) return rect;
@@ -192,9 +196,9 @@ QRect KisOnionSkinCompositor::calculateFullExtent(const KisPaintDeviceSP device)
     return rect;
 }
 
-QRect KisOnionSkinCompositor::calculateExtent(const KisPaintDeviceSP device, int time)
+PkRect KisOnionSkinCompositor::calculateExtent(const KisPaintDeviceSP device, int time)
 {
-    QRect rect;
+    PkRect rect;
     int keyframeTimeBack;
     int keyframeTimeFwd;
 
@@ -227,23 +231,23 @@ QRect KisOnionSkinCompositor::calculateExtent(const KisPaintDeviceSP device, int
     return rect;
 }
 
-QRect KisOnionSkinCompositor::calculateExtent(const KisPaintDeviceSP device)
+PkRect KisOnionSkinCompositor::calculateExtent(const KisPaintDeviceSP device)
 {
     KisRasterKeyframeChannel *channel = device->keyframeChannel(); //TODO: take in channel instead of device...?
 
     if (!channel) { // it happens when you try to show onion skins on non-animated layer with opacity keyframes
-        return QRect();
+        return PkRect();
     }
 
     return calculateExtent(device, channel->activeKeyframeTime());
 }
 
 
-QRect KisOnionSkinCompositor::Private::updateExtentOnFrameChange(KisRasterKeyframeChannel *channel,
+PkRect KisOnionSkinCompositor::Private::updateExtentOnFrameChange(KisRasterKeyframeChannel *channel,
                                                                  int prevActiveTime, int prevIgnoredTime,
                                                                  int nowActiveTime, int nowIgnoredTime)
 {
-    QRect rect;
+    PkRect rect;
 
     std::vector<int> skinsBefore;
     std::vector<int> skinsAfter;
@@ -299,9 +303,9 @@ QRect KisOnionSkinCompositor::Private::updateExtentOnFrameChange(KisRasterKeyfra
     return rect;
 }
 
-QRect KisOnionSkinCompositor::updateExtentOnAddition(const KisPaintDeviceSP device, int addedTime)
+PkRect KisOnionSkinCompositor::updateExtentOnAddition(const KisPaintDeviceSP device, int addedTime)
 {
-    QRect rect;
+    PkRect rect;
 
     KisRasterKeyframeChannel *channel = device->keyframeChannel(); //TODO: take in channel instead of device...?
 

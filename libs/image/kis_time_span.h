@@ -11,7 +11,6 @@
 
 #include <algorithm>
 #include <limits>
-#include <QMetaType>
 #include <boost/operators.hpp>
 #include "kis_types.h"
 #include <kis_dom_utils.h>
@@ -169,15 +168,15 @@ private:
 };
 
 namespace KisDomUtils {
-    void KRITAIMAGE_EXPORT saveValue(QDomElement *parent, const QString &tag, const KisTimeSpan &range);
-    bool KRITAIMAGE_EXPORT loadValue(const QDomElement &parent, const QString &tag, KisTimeSpan *range);
+    void KRITAIMAGE_EXPORT saveValue(PkXmlElement *parent, const PkString &tag, const KisTimeSpan &range);
+    bool KRITAIMAGE_EXPORT loadValue(const PkXmlElement &parent, const PkString &tag, KisTimeSpan *range);
 }
 
 
 
 Q_DECLARE_METATYPE(KisTimeSpan)
 
-KRITAIMAGE_EXPORT QDebug operator<<(QDebug dbg, const KisTimeSpan &r);
+KRITAIMAGE_EXPORT PkDebug operator<<(PkDebug dbg, const KisTimeSpan &r);
 
 
 #endif /* __KIS_TIME_RANGE_H */

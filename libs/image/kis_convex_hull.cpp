@@ -6,9 +6,9 @@
 #include "KoColor.h"
 #include "KoColorModelStandardIds.h"
 
+#include <PkElapsedTimer.h>
 #include <boost/geometry.hpp>
 
-#include <QElapsedTimer>
 
 namespace boost
 {
@@ -16,70 +16,70 @@ namespace boost
     {
         namespace traits
         {
-            // Adapt QPoint to Boost.Geometry
+            // Adapt PkPoint to Boost.Geometry
 
-            template<> struct tag<QPoint>
+            template<> struct tag<PkPoint>
             { typedef point_tag type; };
 
-            template<> struct coordinate_type<QPoint>
+            template<> struct coordinate_type<PkPoint>
             { typedef int type; };
 
-            template<> struct coordinate_system<QPoint>
+            template<> struct coordinate_system<PkPoint>
             { typedef cs::cartesian type; };
 
-            template<> struct dimension<QPoint> : boost::mpl::int_<2> {};
+            template<> struct dimension<PkPoint> : boost::mpl::int_<2> {};
 
             template<>
-            struct access<QPoint, 0>
+            struct access<PkPoint, 0>
             {
-                static int get(QPoint const& p)
+                static int get(PkPoint const& p)
                 {
                     return p.x();
                 }
 
-                static void set(QPoint& p, int const& value)
+                static void set(PkPoint& p, int const& value)
                 {
                     p.rx() = value;
                 }
             };
 
             template<>
-            struct access<QPoint, 1>
+            struct access<PkPoint, 1>
             {
-                static int get(QPoint const& p)
+                static int get(PkPoint const& p)
                 {
                     return p.y();
                 }
 
-                static void set(QPoint& p, int const& value)
+                static void set(PkPoint& p, int const& value)
                 {
                     p.ry() = value;
                 }
             };
 
-            // Adapt QPolygon to Boost.Geometry as Linestring
+            // Adapt PkPolygon to Boost.Geometry as Linestring
 
-            template<> struct tag<QPolygon>
+            template<> struct tag<PkPolygon>
             { typedef linestring_tag type; };
             
         }
     }
 
     template <>
-    struct range_iterator<QPolygon>
-    { typedef QPolygon::iterator type; };
+    struct range_iterator<PkPolygon>
+    { typedef PkPolygon::iterator type; };
 
     template<>
-    struct range_const_iterator<QPolygon>
-    { typedef QPolygon::const_iterator type; };
+    struct range_const_iterator<PkPolygon>
+    { typedef PkPolygon::const_iterator type; };
 } // namespace boost::geometry::traits
 
 namespace {
 
-QPolygon convexHull(const QVector<QPoint> &points)
+PkPolygon convexHull(const PkVector<PkPoint> &points)
 {
-    QPolygon hull;
-    boost::geometry::convex_hull(QPolygon(points), hull);
+    PkPolygon hull;
+    boost::geometry::convex_hull(PkPolygon(points), hull);
     return hull;
 }
 
@@ -139,13 +139,13 @@ private:
 };
 
 template <class ComparePixelOp>
-QVector<QPoint> retrieveAllBoundaryPointsImpl(const KisPaintDevice *device, const QRect &rect, const QRect &skip, ComparePixelOp compareOp)
+PkVector<PkPoint> retrieveAllBoundaryPointsImpl(const KisPaintDevice *device, const PkRect &rect, const PkRect &skip, ComparePixelOp compareOp)
 {
-    QVector<QPoint> points;
+    PkVector<PkPoint> points;
     int defaultMin = rect.x() + rect.width() + 1;
     int defaultMax = rect.x() - 1;
-    QVector<int> minX(rect.height(), defaultMin);
-    QVector<int> maxX(rect.height(), defaultMax);
+    PkVector<int> minX(rect.height(), defaultMin);
+    PkVector<int> maxX(rect.height(), defaultMax);
     int base = rect.top();
     if (!skip.isEmpty()) {
         for (int y = skip.top(); y <= skip.bottom(); y++) {
@@ -181,73 +181,79 @@ QVector<QPoint> retrieveAllBoundaryPointsImpl(const KisPaintDevice *device, cons
     for (int y = rect.top(); y <= rect.bottom(); y++) {
         int index = y - base;
         if (minX[index] < defaultMin) {
-            points << QPoint(minX[index], y);
-            points << QPoint(minX[index], y + 1);
+            points.append(PkPoint(minX[index], y));
+            points.append(PkPoint(minX[index], y + 1));
         }
         if (maxX[index] > defaultMax) {
-            points << QPoint(maxX[index] + 1, y);
-            points << QPoint(maxX[index] + 1, y + 1);
+            points.append(PkPoint(maxX[index] + 1, y));
+            points.append(PkPoint(maxX[index] + 1, y + 1));
         }
     }
     
     return points;
 }
 // This matches the behavior of KisPaintDevice::calculateExactBounds(false), whose result is returned by KisPaintDevice::exactBounds()
-QVector<QPoint> retrieveAllBoundaryPoints(const KisPaintDevice *device) {
-    QRect rect = device->extent();
+PkVector<PkPoint> retrieveAllBoundaryPoints(const KisPaintDevice *device) {
+    PkRect rect = device->extent();
 
     const KoColor defaultPixel = device->defaultPixel();
     const quint8 defaultOpacity = defaultPixel.opacityU8();
 
-    QVector<QPoint> points;
+    PkVector<PkPoint> points;
 
     if (defaultOpacity != OPACITY_TRANSPARENT_U8) {
-        QRect skip = device->defaultBounds()->bounds();
+        PkRect skip = device->defaultBounds()->bounds();
         CheckNonDefault compareOp(device->pixelSize(), defaultPixel.data());
 
         points = retrieveAllBoundaryPointsImpl(device, rect, skip, compareOp);
         if (!skip.isEmpty()) {
             int x, y, w, h;
             skip.getRect(&x, &y, &w, &h);
-            points << QPoint(x, y) << QPoint(x + w, y) << QPoint(x + w, y + h) << QPoint(x, y + h);
+            points.append(PkPoint(x, y));
+            points.append(PkPoint(x + w, y));
+            points.append(PkPoint(x + w, y + h));
+            points.append(PkPoint(x, y + h));
         }
     } else {
         CheckFullyTransparent compareOp(device->colorSpace());
-        points = retrieveAllBoundaryPointsImpl(device, rect, QRect(), compareOp);
+        points = retrieveAllBoundaryPointsImpl(device, rect, PkRect(), compareOp);
     }
     return points;
 }
 
-QVector<QPoint> retrieveAllBoundaryPointsSelectionLike(const KisPaintDevice *device) {
-    QRect rect = device->extent();
+PkVector<PkPoint> retrieveAllBoundaryPointsSelectionLike(const KisPaintDevice *device) {
+    PkRect rect = device->extent();
 
     const KoColor defaultPixel = device->defaultPixel();
     const quint8 defaultOpacity = defaultPixel.opacityU8();
 
-    QVector<QPoint> points;
+    PkVector<PkPoint> points;
 
     if (defaultOpacity != OPACITY_TRANSPARENT_U8 &&
         defaultPixel != KoColor(Qt::black, defaultPixel.colorSpace())) {
 
-        QRect skip = device->defaultBounds()->bounds();
+        PkRect skip = device->defaultBounds()->bounds();
         CheckNonDefault compareOp(device->pixelSize(), defaultPixel.data());
 
         points = retrieveAllBoundaryPointsImpl(device, rect, skip, compareOp);
         if (!skip.isEmpty()) {
             int x, y, w, h;
             skip.getRect(&x, &y, &w, &h);
-            points << QPoint(x, y) << QPoint(x + w, y) << QPoint(x + w, y + h) << QPoint(x, y + h);
+            points.append(PkPoint(x, y));
+            points.append(PkPoint(x + w, y));
+            points.append(PkPoint(x + w, y + h));
+            points.append(PkPoint(x, y + h));
         }
     } else if (device->colorSpace()->colorModelId() == AlphaColorModelID) {
         CheckFullyTransparent compareOp(device->colorSpace());
-        points = retrieveAllBoundaryPointsImpl(device, rect, QRect(), compareOp);
+        points = retrieveAllBoundaryPointsImpl(device, rect, PkRect(), compareOp);
     } else {
         // pre-condition:
         // defaultOpacity == OPACITY_TRANSPARENT_U8 ||
         // defaultPixel == "deselected"
 
         CheckDeselected compareOp(device->colorSpace());
-        points = retrieveAllBoundaryPointsImpl(device, rect, QRect(), compareOp);
+        points = retrieveAllBoundaryPointsImpl(device, rect, PkRect(), compareOp);
     }
     return points;
 }
@@ -256,24 +262,24 @@ QVector<QPoint> retrieveAllBoundaryPointsSelectionLike(const KisPaintDevice *dev
 
 namespace KisConvexHull {
 
-QPolygon findConvexHull(const QVector<QPoint> &points)
+PkPolygon findConvexHull(const PkVector<PkPoint> &points)
 {
-    QPolygon hull = convexHull(points);
+    PkPolygon hull = convexHull(points);
     return hull;
 }
 
-QPolygon findConvexHull(KisPaintDeviceSP device)
+PkPolygon findConvexHull(KisPaintDeviceSP device)
 {
-    QElapsedTimer timer;
+    PkElapsedTimer timer;
     timer.start();
     auto ps = retrieveAllBoundaryPoints(device);
     auto p = findConvexHull(ps);
     return p;
 }
 
-QPolygon findConvexHullSelectionLike(KisPaintDeviceSP device)
+PkPolygon findConvexHullSelectionLike(KisPaintDeviceSP device)
 {
-    QElapsedTimer timer;
+    PkElapsedTimer timer;
     timer.start();
     auto ps = retrieveAllBoundaryPointsSelectionLike(device);
     auto p = findConvexHull(ps);

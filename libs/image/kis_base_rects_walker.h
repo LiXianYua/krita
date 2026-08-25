@@ -7,7 +7,6 @@
 #ifndef __KIS_BASE_RECTS_WALKER_H
 #define __KIS_BASE_RECTS_WALKER_H
 
-#include <QStack>
 
 #include "kis_layer.h"
 
@@ -68,9 +67,9 @@ public:
 
     struct CloneNotification {
         CloneNotification() {}
-        CloneNotification(KisNodeSP node, const QRect &dirtyRect,
+        CloneNotification(KisNodeSP node, const PkRect &dirtyRect,
                           bool dontInvalidateFrames)
-            : m_layer(qobject_cast<KisLayer*>(node.data())),
+            : m_layer(dynamic_cast<KisLayer*>(node.data())),
               m_dirtyRect(dirtyRect),
             m_dontInvalidateFrames(dontInvalidateFrames) {}
 
@@ -83,11 +82,11 @@ public:
         friend class KisWalkersTest;
 
         KisLayerSP m_layer;
-        QRect m_dirtyRect;
+        PkRect m_dirtyRect;
         bool m_dontInvalidateFrames {false};
     };
 
-    typedef QVector<CloneNotification> CloneNotificationsVector;
+    typedef PkVector<CloneNotification> CloneNotificationsVector;
 
     struct JobItem {
         KisProjectionLeafSP m_leaf;
@@ -99,12 +98,12 @@ public:
          * or an area of a paint layer that will be copied to
          * the projection.
          */
-        QRect m_applyRect;
+        PkRect m_applyRect;
 
         KisRenderPassFlags m_renderFlags = KisRenderPassFlag::None;
     };
 
-    typedef QStack<JobItem> LeafStack;
+    typedef PkStack<JobItem> LeafStack;
 
     enum SubtreeVisitFlag {
         None = 0x0,
@@ -124,7 +123,7 @@ public:
     virtual ~KisBaseRectsWalker() {
     }
 
-    void collectRects(KisNodeSP node, const QRect& requestedRect) {
+    void collectRects(KisNodeSP node, const PkRect& requestedRect) {
         clear();
 
         KisProjectionLeafSP startLeaf = node->projectionLeaf();
@@ -140,7 +139,7 @@ public:
         addCloneSourceRegenerationJobs();
     }
 
-    inline void recalculate(const QRect& requestedRect) {
+    inline void recalculate(const PkRect& requestedRect) {
         KIS_SAFE_ASSERT_RECOVER_RETURN(m_startNode);
 
         KisProjectionLeafSP startLeaf = m_startNode->projectionLeaf();
@@ -164,8 +163,8 @@ public:
             clear();
             m_nodeChecksum = calculateChecksum(startLeaf, requestedRect);
             m_graphChecksum = m_startNode->graphSequenceNumber();
-            m_resultChangeRect = QRect();
-            m_resultUncroppedChangeRect = QRect();
+            m_resultChangeRect = PkRect();
+            m_resultUncroppedChangeRect = PkRect();
         }
     }
 
@@ -184,11 +183,11 @@ public:
         return m_clonesDontInvalidateFrames;
     }
 
-    inline void setCropRect(QRect cropRect) {
+    inline void setCropRect(PkRect cropRect) {
         m_cropRect = cropRect;
     }
 
-    inline QRect cropRect() const{
+    inline PkRect cropRect() const{
         return m_cropRect;
     }
 
@@ -202,15 +201,15 @@ public:
         return m_cloneNotifications;
     }
 
-    inline QRect accessRect() const {
+    inline PkRect accessRect() const {
         return m_resultAccessRect;
     }
 
-    inline QRect changeRect() const {
+    inline PkRect changeRect() const {
         return m_resultChangeRect;
     }
 
-    inline QRect uncroppedChangeRect() const {
+    inline PkRect uncroppedChangeRect() const {
         return m_resultUncroppedChangeRect;
     }
 
@@ -226,7 +225,7 @@ public:
         return m_startNode;
     }
 
-    inline QRect requestedRect() const {
+    inline PkRect requestedRect() const {
         return m_requestedRect;
     }
 
@@ -251,7 +250,7 @@ protected:
     }
 
     static inline bool hasClones(KisNodeSP node) {
-        KisLayer *layer = qobject_cast<KisLayer*>(node.data());
+        KisLayer *layer = dynamic_cast<KisLayer*>(node.data());
         return layer && layer->hasClones();
     }
 
@@ -273,7 +272,7 @@ protected:
 
     inline void clear() {
         m_resultAccessRect = m_resultNeedRect = /*m_resultChangeRect =*/
-            m_childNeedRect = m_lastNeedRect = QRect();
+            m_childNeedRect = m_lastNeedRect = PkRect();
 
         m_needRectVaries = m_changeRectVaries = false;
         m_mergeTask.clear();
@@ -281,22 +280,22 @@ protected:
 
         // Not needed really. Think over removing.
         //m_startNode = 0;
-        //m_requestedRect = QRect();
+        //m_requestedRect = PkRect();
     }
 
-    inline void pushJob(KisProjectionLeafSP leaf, NodePosition position, QRect applyRect, KisRenderPassFlags flags) {
+    inline void pushJob(KisProjectionLeafSP leaf, NodePosition position, PkRect applyRect, KisRenderPassFlags flags) {
         JobItem item = {leaf, position, applyRect, flags};
         m_mergeTask.push(item);
     }
 
-    inline QRect cropThisRect(const QRect& rect, const QRect &cropRect) {
+    inline PkRect cropThisRect(const PkRect& rect, const PkRect &cropRect) {
         return cropRect.isValid() ? rect & cropRect : rect;
     }
 
     /**
      * Used by KisFullRefreshWalker as it has a special changeRect strategy
      */
-    inline void setExplicitChangeRect(const QRect &changeRect, bool changeRectVaries) {
+    inline void setExplicitChangeRect(const PkRect &changeRect, bool changeRectVaries) {
         m_resultChangeRect = changeRect;
         m_resultUncroppedChangeRect = changeRect;
         m_changeRectVaries = changeRectVaries;
@@ -310,7 +309,7 @@ protected:
         if(!leaf->isLayer()) return;
         if(!(position & N_FILTHY) && !leaf->visible()) return;
 
-        QRect currentChangeRect = leaf->projectionPlane()->changeRect(m_resultChangeRect,
+        PkRect currentChangeRect = leaf->projectionPlane()->changeRect(m_resultChangeRect,
                                                                       convertPositionToFilthy(position));
         currentChangeRect = cropThisRect(currentChangeRect, m_cropRect);
 
@@ -347,7 +346,7 @@ protected:
      * Called for every node we meet on a backward way of the trip.
      */
     virtual void registerNeedRect(KisProjectionLeafSP leaf, NodePosition position,
-                                  KisRenderPassFlags flags, const QRect &cropRect) {
+                                  KisRenderPassFlags flags, const PkRect &cropRect) {
         // We do not work with masks here. It is KisLayer's job.
         if(!leaf->isLayer()) return;
 
@@ -357,7 +356,7 @@ protected:
 
         if (leaf->parent() && position & N_TOPMOST) {
             bool parentNeedRectFound = false;
-            QRect parentNeedRect;
+            PkRect parentNeedRect;
 
             for (auto it = std::make_reverse_iterator(m_mergeTask.end());
                  it != std::make_reverse_iterator(m_mergeTask.begin());
@@ -437,7 +436,7 @@ protected:
                      (!currentLeaf->isMask() || !currentLeaf->visible()));
 
             if(currentLeaf) {
-                QRect changeRect = currentLeaf->projectionPlane()->changeRect(m_resultChangeRect);
+                PkRect changeRect = currentLeaf->projectionPlane()->changeRect(m_resultChangeRect);
                 m_changeRectVaries |= changeRect != m_resultChangeRect;
                 m_resultChangeRect = changeRect;
                 m_resultUncroppedChangeRect = changeRect;
@@ -450,10 +449,10 @@ protected:
         registerCloneNotification(parentLayer->node(), N_FILTHY_PROJECTION);
     }
 
-    static qint32 calculateChecksum(KisProjectionLeafSP leaf, const QRect &requestedRect) {
+    static qint32 calculateChecksum(KisProjectionLeafSP leaf, const PkRect &requestedRect) {
         qint32 checksum = 0;
         qint32 x, y, w, h;
-        QRect tempRect;
+        PkRect tempRect;
 
         tempRect = leaf->projectionPlane()->changeRect(requestedRect);
         tempRect.getRect(&x, &y, &w, &h);
@@ -469,7 +468,7 @@ protected:
     }
 
     void addCloneSourceRegenerationJobs();
-    void visitSubtreeTopToBottom(KisProjectionLeafSP startWith, SubtreeVisitFlags flags, KisRenderPassFlags renderFlags, const QRect &cropRect);
+    void visitSubtreeTopToBottom(KisProjectionLeafSP startWith, SubtreeVisitFlags flags, KisRenderPassFlags renderFlags, const PkRect &cropRect);
 
 private:
     inline int getNodeLevelOfDetail(KisProjectionLeafSP leaf) {
@@ -497,10 +496,10 @@ private:
      * By the end of a recursion they will store a complete
      * data for a successful merge operation.
      */
-    QRect m_resultAccessRect;
-    QRect m_resultNeedRect;
-    QRect m_resultChangeRect;
-    QRect m_resultUncroppedChangeRect;
+    PkRect m_resultAccessRect;
+    PkRect m_resultNeedRect;
+    PkRect m_resultChangeRect;
+    PkRect m_resultUncroppedChangeRect;
     bool m_needRectVaries {false};
     bool m_changeRectVaries {false};
     LeafStack m_mergeTask;
@@ -510,7 +509,7 @@ private:
      * Used by update optimization framework
      */
     KisNodeSP m_startNode;
-    QRect m_requestedRect;
+    PkRect m_requestedRect;
 
     /**
      * Used for getting know whether the start node
@@ -529,10 +528,10 @@ private:
     /**
      * Temporary variables
      */
-    QRect m_cropRect;
+    PkRect m_cropRect;
 
-    QRect m_childNeedRect;
-    QRect m_lastNeedRect;
+    PkRect m_childNeedRect;
+    PkRect m_lastNeedRect;
 
     int m_levelOfDetail {0};
 

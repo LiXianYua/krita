@@ -9,11 +9,10 @@
 
 #include "kis_perspective_math.h"
 
-#include <QRect>
 
 #include <Eigen/LU>
 
-Matrix3qreal KisPerspectiveMath::computeMatrixTransfo(const QPointF& topLeft1, const QPointF& topRight1, const QPointF& bottomLeft1, const QPointF& bottomRight1 , const QPointF& topLeft2, const QPointF& topRight2, const QPointF& bottomLeft2, const QPointF& bottomRight2)
+Matrix3qreal KisPerspectiveMath::computeMatrixTransfo(const PkPointF& topLeft1, const PkPointF& topRight1, const PkPointF& bottomLeft1, const PkPointF& bottomRight1 , const PkPointF& topLeft2, const PkPointF& topRight2, const PkPointF& bottomLeft2, const PkPointF& bottomRight2)
 {
     Matrix9qreal a = Matrix9qreal::Zero();
     Vector9qreal b = Vector9qreal::Zero();
@@ -80,12 +79,12 @@ Matrix3qreal KisPerspectiveMath::computeMatrixTransfo(const QPointF& topLeft1, c
     return matrix;
 }
 
-Matrix3qreal KisPerspectiveMath::computeMatrixTransfoToPerspective(const QPointF& topLeft, const QPointF& topRight, const QPointF& bottomLeft, const QPointF& bottomRight, const QRect& r)
+Matrix3qreal KisPerspectiveMath::computeMatrixTransfoToPerspective(const PkPointF& topLeft, const PkPointF& topRight, const PkPointF& bottomLeft, const PkPointF& bottomRight, const PkRect& r)
 {
     return KisPerspectiveMath::computeMatrixTransfo(topLeft, topRight, bottomLeft, bottomRight, r.topLeft(), r.topRight(), r.bottomLeft(), r.bottomRight());
 }
 
-Matrix3qreal KisPerspectiveMath::computeMatrixTransfoFromPerspective(const QRect& r, const QPointF& topLeft, const QPointF& topRight, const QPointF& bottomLeft, const QPointF& bottomRight)
+Matrix3qreal KisPerspectiveMath::computeMatrixTransfoFromPerspective(const PkRect& r, const PkPointF& topLeft, const PkPointF& topRight, const PkPointF& bottomLeft, const PkPointF& bottomRight)
 {
     return KisPerspectiveMath::computeMatrixTransfo(r.topLeft(), r.topRight(), r.bottomLeft(), r.bottomRight(), topLeft, topRight, bottomLeft, bottomRight);
 }

@@ -31,7 +31,7 @@ public:
     /** @brief Get the frameID of the "physical" raster frame on the associated KisPaintDevice. */
     int frameID() const;
     bool hasContent();
-    QRect contentBounds();
+    PkRect contentBounds();
 
     /** @brief Write this frame's raster content to another paint device.
      * Useful for things like onion skinning where the contents of the frame
@@ -85,14 +85,14 @@ public:
     void importFrame(int time, KisPaintDeviceSP sourceDevice, KUndo2Command *parentCommand);
 
     /** Get the rectangular area that the content of this frame occupies. */
-    QRect frameExtents(KisKeyframeSP keyframe);
+    PkRect frameExtents(KisKeyframeSP keyframe);
 
-    QString frameFilename(int frameId) const;
+    PkString frameFilename(int frameId) const;
     /** When choosing filenames for frames, this will be appended to the node filename. */
-    void setFilenameSuffix(const QString &suffix);
+    void setFilenameSuffix(const PkString &suffix);
 
-    QDomElement toXML(QDomDocument doc, const QString &layerFilename) override;
-    void loadXML(const QDomElement &channelNode) override;
+    PkXmlElement toXML(PkXmlDocument doc, const PkString &layerFilename) override;
+    void loadXML(const PkXmlElement &channelNode) override;
 
     void setOnionSkinsEnabled(bool value);
     bool onionSkinsEnabled() const;
@@ -104,26 +104,26 @@ public:
 
     void cloneKeyframe(int source, int destination, KUndo2Command *parentUndoCmd = nullptr);
     bool areClones(int timeA, int timeB);
-    QSet<int> clonesOf(int time);
-    QSet<int> timesForFrameID(int frameID) const;
-    static QSet<int> clonesOf(const KisNode *node, int time);
+    PkSet<int> clonesOf(int time);
+    PkSet<int> timesForFrameID(int frameID) const;
+    static PkSet<int> clonesOf(const KisNode *node, int time);
 
     void makeUnique(int time, KUndo2Command *parentUndoCmd = nullptr);
 
 
 private:
-    QRect affectedRect(int time) const override;
+    PkRect affectedRect(int time) const override;
 
-    void saveKeyframe(KisKeyframeSP keyframe, QDomElement keyframeElement, const QString &layerFilename) override;
-    QPair<int, KisKeyframeSP> loadKeyframe(const QDomElement &keyframeNode) override;
+    void saveKeyframe(KisKeyframeSP keyframe, PkXmlElement keyframeElement, const PkString &layerFilename) override;
+    PkPair<int, KisKeyframeSP> loadKeyframe(const PkXmlElement &keyframeNode) override;
 
     KisKeyframeSP createKeyframe() override;
 
-    void setFrameFilename(int frameId, const QString &filename);
-    QString chooseFrameFilename(int frameId, const QString &layerFilename);
+    void setFrameFilename(int frameId, const PkString &filename);
+    PkString chooseFrameFilename(int frameId, const PkString &layerFilename);
 
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif

@@ -9,9 +9,7 @@
 #ifndef KIS_KEYFRAME_H
 #define KIS_KEYFRAME_H
 
-#include <qglobal.h>
-#include <qmetatype.h>
-#include <QScopedPointer>
+#include <PkObject.h>
 
 #include "kritaimage_export.h"
 #include "kis_types.h"
@@ -22,7 +20,7 @@ class KisKeyframeChannel;
  * Mainly contained by KisKeyframeChannels.
  * A core part of Krita's animation bankend.
  */
-class KRITAIMAGE_EXPORT KisKeyframe : public QObject {
+class KRITAIMAGE_EXPORT KisKeyframe : public PkObject {
     Q_OBJECT
 public:
     KisKeyframe();
@@ -39,7 +37,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif

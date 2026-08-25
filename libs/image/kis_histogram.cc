@@ -7,7 +7,6 @@
 
 #include "kis_histogram.h"
 
-#include <QVector>
 
 #include "kis_image.h"
 #include "kis_paint_layer.h"
@@ -36,7 +35,7 @@ KisHistogram::KisHistogram(const KisPaintLayerSP layer,
 }
 
 KisHistogram::KisHistogram(const KisPaintDeviceSP paintdev,
-                           const QRect &bounds,
+                           const PkRect &bounds,
                            KoHistogramProducer *producer,
                            const enumHistogramType type)
     : m_paintDevice(paintdev)
@@ -123,9 +122,9 @@ KisHistogram::Calculations KisHistogram::selectionCalculations()
     return m_selectionCalculations.at(m_channel);
 }
 
-QVector<KisHistogram::Calculations> KisHistogram::calculateForRange(double from, double to)
+PkVector<KisHistogram::Calculations> KisHistogram::calculateForRange(double from, double to)
 {
-    QVector<Calculations> calculations;
+    PkVector<Calculations> calculations;
     if (m_producer) {
         uint count = m_producer->channels().count();
 
@@ -212,22 +211,22 @@ void KisHistogram::dump()
 
     /*        for( int i = 0; i <256; ++i ) {
             dbgMath <<"Value"
-                  << QString().setNum(i)
+                  << PkString().arg(i)
                   << ": "
-                  <<  QString().setNum(m_values[i])
+                  <<  PkString().arg(m_values[i])
                   << "\n";
             }*/
     dbgMath << "";
 
-    dbgMath << "Max:" << QString().setNum(c.getMax()) << "";
-    dbgMath << "Min:" << QString().setNum(c.getMin()) << "";
-    dbgMath << "High:" << QString().setNum(c.getHighest()) << "";
-    dbgMath << "Low:" << QString().setNum(c.getLowest()) << "";
+    dbgMath << "Max:" << PkString().arg(c.getMax()) << "";
+    dbgMath << "Min:" << PkString().arg(c.getMin()) << "";
+    dbgMath << "High:" << PkString().arg(static_cast<int>(c.getHighest())) << "";
+    dbgMath << "Low:" << PkString().arg(static_cast<int>(c.getLowest())) << "";
     dbgMath << "Mean:" << m_producer->positionToString(c.getMean()) << "";
-    dbgMath << "Total:" << QString().setNum(c.getTotal()) << "";
-    //    dbgMath <<"Median:" << QString().setNum(m_median) <<"";
-    //    dbgMath <<"Stddev:" << QString().setNum(m_stddev) <<"";
-    //    dbgMath <<"percentile:" << QString().setNum(m_percentile) <<"";
+    dbgMath << "Total:" << PkString().arg(c.getTotal()) << "";
+    //    dbgMath <<"Median:" << PkString().arg(m_median) <<"";
+    //    dbgMath <<"Stddev:" << PkString().arg(m_stddev) <<"";
+    //    dbgMath <<"percentile:" << PkString().arg(m_percentile) <<"";
 
     dbgMath << "";
 }

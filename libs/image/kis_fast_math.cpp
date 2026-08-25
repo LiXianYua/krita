@@ -11,8 +11,6 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <QtGlobal>
-#include <QGlobalStatic>
 
 // Algorithm from http://web.archive.org/web/20090728150504/http://www.snippetcenter.org/en/a-fast-atan2-function-s1868.aspx
 const qreal MAX_SECOND_DERIV_IN_RANGE = 0.6495;
@@ -45,7 +43,11 @@ struct KisATanTable {
     qreal* ATanTable;
 };
 
-Q_GLOBAL_STATIC(KisATanTable, kisATanTable)
+KisATanTable* kisATanTable()
+{
+    static KisATanTable instance;
+    return &instance;
+}
 
 /// private functions
 
@@ -56,9 +58,9 @@ inline qreal interp(qreal r, qreal a, qreal b)
 
 inline qreal calcAngle(qreal x, qreal y)
 {
-    static qreal af = kisATanTable->NUM_ATAN_ENTRIES;
-    static int ai = kisATanTable->NUM_ATAN_ENTRIES;
-    static qreal* ATanTable = kisATanTable->ATanTable;
+    static qreal af = kisATanTable()->NUM_ATAN_ENTRIES;
+    static int ai = kisATanTable()->NUM_ATAN_ENTRIES;
+    static qreal* ATanTable = kisATanTable()->ATanTable;
     qreal di = (y / x) * af;
     int i = (int)(di);
     if (i >= ai) return ::atan2(y, x);

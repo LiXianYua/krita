@@ -10,10 +10,9 @@
 
 #include "kis_transform_worker.h"
 
-#include <qmath.h>
+#include <PkGlobal.h>
 #include <klocalizedstring.h>
 
-#include <QTransform>
 
 #include <KoColorSpace.h>
 #include <KoCompositeOpRegistry.h>
@@ -56,12 +55,12 @@ KisTransformWorker::~KisTransformWorker()
 {
 }
 
-QTransform KisTransformWorker::transform() const
+PkTransform KisTransformWorker::transform() const
 {
-    QTransform SC = QTransform::fromScale(m_xscale, m_yscale);
-    QTransform S; S.shear(0, m_yshear); S.shear(m_xshear, 0);
-    QTransform R; R.rotateRadians(m_rotation);
-    QTransform T = QTransform::fromTranslate(m_xtranslate, m_ytranslate);
+    PkTransform SC = PkTransform::fromScale(m_xscale, m_yscale);
+    PkTransform S; S.shear(0, m_yshear); S.shear(m_xshear, 0);
+    PkTransform R; R.rotateRadians(m_rotation);
+    PkTransform T = PkTransform::fromTranslate(m_xtranslate, m_ytranslate);
 
     return SC * S * R * T;
 }
@@ -69,18 +68,18 @@ QTransform KisTransformWorker::transform() const
 void KisTransformWorker::transformPixelSelectionOutline(KisPixelSelectionSP pixelSelection) const
 {
     if (pixelSelection->outlineCacheValid()) {
-        QPainterPath outlineCache = pixelSelection->outlineCache();
+        PkPainterPath outlineCache = pixelSelection->outlineCache();
         pixelSelection->setOutlineCache(transform().map(outlineCache));
     }
 }
 
-QRect rotateWithTf(int rotation, KisPaintDeviceSP dev,
-                   QRect boundRect,
+PkRect rotateWithTf(int rotation, KisPaintDeviceSP dev,
+                   PkRect boundRect,
                    KoUpdaterPtr progressUpdater,
                    int portion)
 {
     qint32 pixelSize = dev->pixelSize();
-    QRect r(boundRect);
+    PkRect r(boundRect);
 
     KisPaintDeviceSP tmp = new KisPaintDevice(dev->colorSpace());
     tmp->prepareClone(dev);
@@ -89,7 +88,7 @@ QRect rotateWithTf(int rotation, KisPaintDeviceSP dev,
     KisRandomAccessorSP tmpAcc = tmp->createRandomAccessorNG();
     KisProgressUpdateHelper progressHelper(progressUpdater, portion, r.height());
 
-    QTransform tf;
+    PkTransform tf;
     tf = tf.rotate(rotation);
 
     int ty = 0;
@@ -110,34 +109,34 @@ QRect rotateWithTf(int rotation, KisPaintDeviceSP dev,
     return r;
 }
 
-QRect KisTransformWorker::rotateRight90(KisPaintDeviceSP dev,
-                                        QRect boundRect,
+PkRect KisTransformWorker::rotateRight90(KisPaintDeviceSP dev,
+                                        PkRect boundRect,
                                         KoUpdaterPtr progressUpdater,
                                         int portion)
 {
-    QRect r = rotateWithTf(90, dev, boundRect, progressUpdater, portion);
+    PkRect r = rotateWithTf(90, dev, boundRect, progressUpdater, portion);
     dev->moveTo(dev->x() - 1, dev->y());
-    return QRect(- r.top() - r.height(), r.x(), r.height(), r.width());
+    return PkRect(- r.top() - r.height(), r.x(), r.height(), r.width());
 }
 
-QRect KisTransformWorker::rotateLeft90(KisPaintDeviceSP dev,
-                                       QRect boundRect,
+PkRect KisTransformWorker::rotateLeft90(KisPaintDeviceSP dev,
+                                       PkRect boundRect,
                                        KoUpdaterPtr progressUpdater,
                                        int portion)
 {
-    QRect r = rotateWithTf(270, dev, boundRect, progressUpdater, portion);
+    PkRect r = rotateWithTf(270, dev, boundRect, progressUpdater, portion);
     dev->moveTo(dev->x(), dev->y() - 1);
-    return QRect(r.top(), - r.x() - r.width(), r.height(), r.width());
+    return PkRect(r.top(), - r.x() - r.width(), r.height(), r.width());
 }
 
-QRect KisTransformWorker::rotate180(KisPaintDeviceSP dev,
-                                    QRect boundRect,
+PkRect KisTransformWorker::rotate180(KisPaintDeviceSP dev,
+                                    PkRect boundRect,
                                     KoUpdaterPtr progressUpdater,
                                     int portion)
 {
-    QRect r = rotateWithTf(180, dev, boundRect, progressUpdater, portion);
+    PkRect r = rotateWithTf(180, dev, boundRect, progressUpdater, portion);
     dev->moveTo(dev->x() - 1, dev->y() -1);
-    return QRect(- r.x() - r.width(), - r.top() - r.height(), r.width(), r.height());
+    return PkRect(- r.x() - r.width(), - r.top() - r.height(), r.width(), r.height());
 }
 
 bool KisTransformWorker::forceSubPixelTranslation() const
@@ -150,10 +149,10 @@ void KisTransformWorker::setForceSubPixelTranslation(bool value)
     m_forceSubPixelTranslation = value;
 }
 
-template <class iter> void calcDimensions(QRect rc, qint32 &srcStart, qint32 &srcLen, qint32 &firstLine, qint32 &numLines);
+template <class iter> void calcDimensions(PkRect rc, qint32 &srcStart, qint32 &srcLen, qint32 &firstLine, qint32 &numLines);
 
 template <> void calcDimensions <KisHLineIteratorSP>
-(QRect rc, qint32 &srcStart, qint32 &srcLen, qint32 &firstLine, qint32 &numLines)
+(PkRect rc, qint32 &srcStart, qint32 &srcLen, qint32 &firstLine, qint32 &numLines)
 {
     srcStart = rc.x();
     srcLen = rc.width();
@@ -162,7 +161,7 @@ template <> void calcDimensions <KisHLineIteratorSP>
 }
 
 template <> void calcDimensions <KisVLineIteratorSP>
-(QRect rc, qint32 &srcStart, qint32 &srcLen, qint32 &firstLine, qint32 &numLines)
+(PkRect rc, qint32 &srcStart, qint32 &srcLen, qint32 &firstLine, qint32 &numLines)
 {
     srcStart = rc.y();
     srcLen = rc.height();
@@ -172,18 +171,18 @@ template <> void calcDimensions <KisVLineIteratorSP>
 }
 
 template <class iter>
-void updateBounds(QRect &boundRect,
+void updateBounds(PkRect &boundRect,
                   const KisFilterWeightsApplicator::LinePos &newBounds);
 
 template <>
-void updateBounds<KisHLineIteratorSP>(QRect &boundRect, const KisFilterWeightsApplicator::LinePos &newBounds)
+void updateBounds<KisHLineIteratorSP>(PkRect &boundRect, const KisFilterWeightsApplicator::LinePos &newBounds)
 {
     boundRect.setLeft(newBounds.start());
     boundRect.setWidth(newBounds.size());
 }
 
 template <>
-void updateBounds<KisVLineIteratorSP>(QRect &boundRect, const KisFilterWeightsApplicator::LinePos &newBounds)
+void updateBounds<KisVLineIteratorSP>(PkRect &boundRect, const KisFilterWeightsApplicator::LinePos &newBounds)
 {
     boundRect.setTop(newBounds.start());
     boundRect.setHeight(newBounds.size());
@@ -231,7 +230,7 @@ bool KisTransformWorker::run()
     return runPartial(m_dev->exactBounds());
 }
 
-bool KisTransformWorker::runPartial(const QRect &processRect)
+bool KisTransformWorker::runPartial(const PkRect &processRect)
 {
     /* Check for nonsense and let the user know, this helps debugging.
     Otherwise the program will crash at a later point, in a very obscure way, probably by division by zero */
@@ -341,7 +340,7 @@ bool KisTransformWorker::runPartial(const QRect &processRect)
 
         // Flipping horizontally
         if (qFuzzyCompare(xscale, -1.0)) {
-            QRect bounds = m_dev->exactBounds();
+            PkRect bounds = m_dev->exactBounds();
             double center_x = bounds.topLeft().x() + bounds.width() / 2.0;
             xtranslate -= 2 * center_x;
             mirrorX(m_dev);
@@ -349,7 +348,7 @@ bool KisTransformWorker::runPartial(const QRect &processRect)
 
         // Flipping vertically
         if (qFuzzyCompare(yscale, -1.0)) {
-            QRect bounds = m_dev->exactBounds();
+            PkRect bounds = m_dev->exactBounds();
             double center_y = bounds.topLeft().y() + bounds.height() / 2.0;
             ytranslate -= 2 * center_y;
             mirrorY(m_dev);
@@ -363,10 +362,10 @@ bool KisTransformWorker::runPartial(const QRect &processRect)
         m_dev->moveTo(m_dev->x() + intXTranslate, m_dev->y() + intYTranslate);
 
     } else {
-        QTransform SC = QTransform::fromScale(xscale, yscale);
-        QTransform R; R.rotateRadians(rotation);
-        QTransform T = QTransform::fromTranslate(xtranslate, ytranslate);
-        QTransform m = SC * R * T;
+        PkTransform SC = PkTransform::fromScale(xscale, yscale);
+        PkTransform R; R.rotateRadians(rotation);
+        PkTransform T = PkTransform::fromTranslate(xtranslate, ytranslate);
+        PkTransform m = SC * R * T;
 
         /**
          * First X-pass, then Y-pass
@@ -445,7 +444,7 @@ void mirror_impl(KisPaintDeviceSP dev, qreal axis, bool isHorizontal)
 {
     KIS_ASSERT_RECOVER_RETURN(qFloor(axis) == axis || (axis - qFloor(axis) == 0.5));
 
-    QRect mirrorRect = dev->exactBounds();
+    PkRect mirrorRect = dev->exactBounds();
     if (mirrorRect.width() <= 1) return;
 
     /**
@@ -516,7 +515,8 @@ void mirror_impl(KisPaintDeviceSP dev, qreal axis, bool isHorizontal)
     const quint8 *defaultPixel = defaultPixelObject.data();
 
     const int pixelSize = dev->pixelSize();
-    QByteArray buf(pixelSize, 0);
+    PkByteArray buf;
+    buf.resize(pixelSize);
 
     // Map (column, row) -> (x, y)
     int rowsRemaining;
@@ -626,13 +626,13 @@ void KisTransformWorker::mirrorY(KisPaintDeviceSP dev, qreal axis)
 
 void KisTransformWorker::mirrorX(KisPaintDeviceSP dev)
 {
-    QRect bounds = dev->exactBounds();
+    PkRect bounds = dev->exactBounds();
     mirrorX(dev, bounds.x() + 0.5 * bounds.width());
 }
 
 void KisTransformWorker::mirrorY(KisPaintDeviceSP dev)
 {
-    QRect bounds = dev->exactBounds();
+    PkRect bounds = dev->exactBounds();
     mirrorY(dev, bounds.y() + 0.5 * bounds.height());
 }
 
@@ -641,7 +641,7 @@ void KisTransformWorker::mirror(KisPaintDeviceSP dev, qreal axis, Qt::Orientatio
     mirror_impl(dev, axis, orientation == Qt::Horizontal);
 }
 
-void KisTransformWorker::offset(KisPaintDeviceSP device, const QPoint& offsetPosition, const QRect& wrapRect)
+void KisTransformWorker::offset(KisPaintDeviceSP device, const PkPoint& offsetPosition, const PkRect& wrapRect)
 {
     Q_ASSERT(wrapRect == wrapRect.normalized());
 
@@ -684,7 +684,7 @@ void KisTransformWorker::offset(KisPaintDeviceSP device, const QPoint& offsetPos
 
     if ((width != 0) && (height != 0)) {
         // convert back to paint device space
-        KisPainter::copyAreaOptimized(QPoint(destX + sx, destY + sy), device, offsetDevice, QRect(srcX + sx, srcY + sy, width, height));
+        KisPainter::copyAreaOptimized(PkPoint(destX + sx, destY + sy), device, offsetDevice, PkRect(srcX + sx, srcY + sy, width, height));
     }
 
     srcX = wrapRect.width() - offsetX;
@@ -694,19 +694,19 @@ void KisTransformWorker::offset(KisPaintDeviceSP device, const QPoint& offsetPos
     destY = (srcY + offsetY) % wrapRect.height();
 
     if (offsetX != 0 && offsetY != 0) {
-          KisPainter::copyAreaOptimized(QPoint(destX + sx, destY + sy), device, offsetDevice, QRect(srcX + sx, srcY + sy, offsetX, offsetY));
+          KisPainter::copyAreaOptimized(PkPoint(destX + sx, destY + sy), device, offsetDevice, PkRect(srcX + sx, srcY + sy, offsetX, offsetY));
     }
 
     if (offsetX != 0) {
-        KisPainter::copyAreaOptimized(QPoint(destX + sx, (destY + offsetY) + sy), device, offsetDevice, QRect(srcX + sx, 0 + sy, offsetX, wrapRect.height() - offsetY));
+        KisPainter::copyAreaOptimized(PkPoint(destX + sx, (destY + offsetY) + sy), device, offsetDevice, PkRect(srcX + sx, 0 + sy, offsetX, wrapRect.height() - offsetY));
     }
 
     if (offsetY != 0) {
-        KisPainter::copyAreaOptimized(QPoint((destX + offsetX) + sx, destY + sy), device, offsetDevice, QRect(0 + sx, srcY + sy, wrapRect.width() - offsetX, offsetY));
+        KisPainter::copyAreaOptimized(PkPoint((destX + offsetX) + sx, destY + sy), device, offsetDevice, PkRect(0 + sx, srcY + sy, wrapRect.width() - offsetX, offsetY));
     }
 
     // bitblt the result back
-    QRect resultRect(sx, sy, wrapRect.width(), wrapRect.height());
+    PkRect resultRect(sx, sy, wrapRect.width(), wrapRect.height());
     KisPainter::copyAreaOptimized(resultRect.topLeft(), offsetDevice, device, resultRect);
 }
 

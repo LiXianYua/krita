@@ -7,9 +7,6 @@
 #ifndef __KIS_GREEN_COORDINATES_MATH_H
 #define __KIS_GREEN_COORDINATES_MATH_H
 
-#include <QScopedPointer>
-#include <QVector>
-#include <QPointF>
 
 #include "kritaimage_export.h"
 
@@ -26,22 +23,22 @@ public:
      * Please note that the points in \p points will later be accessed
      * with indexes only.
      */
-    void precalculateGreenCoordinates(const QVector<QPointF> &originalCage, const QVector<QPointF> &points);
+    void precalculateGreenCoordinates(const PkVector<PkPointF> &originalCage, const PkVector<PkPointF> &points);
 
     /**
      * Precalculate coefficients of the destination cage. Should be
      * called once for every cage change
      */
-    void generateTransformedCageNormals(const QVector<QPointF> &transformedCage);
+    void generateTransformedCageNormals(const PkVector<PkPointF> &transformedCage);
 
     /**
      * Transform one point according to its index
      */
-    QPointF transformedPoint(int pointIndex, const QVector<QPointF> &transformedCage);
+    PkPointF transformedPoint(int pointIndex, const PkVector<PkPointF> &transformedCage);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_GREEN_COORDINATES_MATH_H */

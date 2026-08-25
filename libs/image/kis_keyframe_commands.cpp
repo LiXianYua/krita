@@ -7,7 +7,6 @@
 
 #include "kis_keyframe_commands.h"
 #include "kis_scalar_keyframe_channel.h"
-#include "kis_signals_blocker.h"
 
 KisInsertKeyframeCommand::KisInsertKeyframeCommand(KisKeyframeChannel *channel, int time, KisKeyframeSP keyframe, KUndo2Command *parentCmd)
     : KUndo2Command(parentCmd),
@@ -51,7 +50,7 @@ void KisRemoveKeyframeCommand::undo()
     m_channel->insertKeyframe(m_time, m_cached);
 }
 
-KisScalarKeyframeUpdateCommand::KisScalarKeyframeUpdateCommand(KisScalarKeyframe *keyframe, qreal value, KisScalarKeyframe::InterpolationMode interpolationMode, KisScalarKeyframe::TangentsMode tangentMode, QPointF tangentLeft, QPointF tangentRight, KUndo2Command *parentCmd)
+KisScalarKeyframeUpdateCommand::KisScalarKeyframeUpdateCommand(KisScalarKeyframe *keyframe, qreal value, KisScalarKeyframe::InterpolationMode interpolationMode, KisScalarKeyframe::TangentsMode tangentMode, PkPointF tangentLeft, PkPointF tangentRight, KUndo2Command *parentCmd)
     : KUndo2Command(parentCmd),
       keyframe(keyframe),
       cachedValue(keyframe->value(), value),
@@ -65,7 +64,7 @@ void KisScalarKeyframeUpdateCommand::redo()
 {
     KIS_ASSERT(keyframe);
 
-    QSharedPointer<ScalarKeyframeLimits> limits = keyframe->m_channelLimits.toStrongRef();
+    PkSharedPointer<ScalarKeyframeLimits> limits = keyframe->m_channelLimits.toStrongRef();
     if (limits) {
         keyframe->m_value = limits->clamp(cachedValue.second);
     } else {
@@ -84,7 +83,7 @@ void KisScalarKeyframeUpdateCommand::undo()
 {
     KIS_ASSERT(keyframe);
 
-    QSharedPointer<ScalarKeyframeLimits> limits = keyframe->m_channelLimits.toStrongRef();
+    PkSharedPointer<ScalarKeyframeLimits> limits = keyframe->m_channelLimits.toStrongRef();
     if (limits) {
         keyframe->m_value = limits->clamp(cachedValue.first);
     } else {

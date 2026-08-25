@@ -7,8 +7,6 @@
 #ifndef KIS_HISTOGRAM_
 #define KIS_HISTOGRAM_
 
-#include <QVector>
-#include <QRect>
 
 #include "KoHistogramProducer.h"
 
@@ -104,7 +102,7 @@ public:
                  const enumHistogramType type);
 
     KisHistogram(KisPaintDeviceSP paintdev,
-                 const QRect &bounds,
+                 const PkRect &bounds,
                  KoHistogramProducer *producer,
                  const enumHistogramType type);
 
@@ -170,11 +168,11 @@ public:
 private:
     // Dump the histogram to debug.
     void dump();
-    QVector<Calculations> calculateForRange(double from, double to);
+    PkVector<Calculations> calculateForRange(double from, double to);
     Calculations calculateSingleRange(int channel, double from, double to);
 
     const KisPaintDeviceSP m_paintDevice;
-    QRect m_bounds;
+    PkRect m_bounds;
     KoHistogramProducer *m_producer {nullptr};
     enumHistogramType m_type {LINEAR};
 
@@ -183,7 +181,7 @@ private:
     double m_selTo {0.0};
     bool m_selection {false};
 
-    QVector<Calculations> m_completeCalculations, m_selectionCalculations;
+    PkVector<Calculations> m_completeCalculations, m_selectionCalculations;
 };
 
 

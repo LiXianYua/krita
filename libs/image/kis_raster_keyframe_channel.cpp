@@ -16,6 +16,7 @@
 #include "kundo2command.h"
 #include "kis_onion_skin_compositor.h"
 #include "kis_layer_utils.h"
+#include <map>
 
 KisRasterKeyframe::KisRasterKeyframe(KisPaintDeviceWSP paintDevice)
     : KisKeyframe()
@@ -23,7 +24,7 @@ KisRasterKeyframe::KisRasterKeyframe(KisPaintDeviceWSP paintDevice)
     m_paintDevice = paintDevice;
     KIS_ASSERT(m_paintDevice);
 
-    m_frameID = m_paintDevice->framesInterface()->createFrame(false, 0, QPoint(), nullptr);
+    m_frameID = m_paintDevice->framesInterface()->createFrame(false, 0, PkPoint(), nullptr);
 }
 
 KisRasterKeyframe::KisRasterKeyframe(KisPaintDeviceWSP paintDevice, const int &premadeFrameID, const int &colorLabelId)
@@ -50,10 +51,10 @@ int KisRasterKeyframe::frameID() const
     return m_frameID;
 }
 
-QRect KisRasterKeyframe::contentBounds()
+PkRect KisRasterKeyframe::contentBounds()
 {
     if (!m_paintDevice) {
-        return QRect();
+        return PkRect();
     }
 
     return m_paintDevice->framesInterface()->frameBounds(m_frameID);
@@ -79,7 +80,7 @@ KisKeyframeSP KisRasterKeyframe::duplicate(KisKeyframeChannel *newChannel)
         KisPaintDeviceWSP targetDevice = rasterChannel->paintDevice();
 
         if (targetDevice != m_paintDevice) {
-            int targetFrameID = targetDevice->framesInterface()->createFrame(false, 0, QPoint(), nullptr);
+            int targetFrameID = targetDevice->framesInterface()->createFrame(false, 0, PkPoint(), nullptr);
             targetDevice->framesInterface()->uploadFrame(m_frameID, targetFrameID, m_paintDevice);
             KisKeyframeSP key = toQShared(new KisRasterKeyframe(targetDevice, targetFrameID ));
             key->setColorLabel(colorLabel());
@@ -87,7 +88,7 @@ KisKeyframeSP KisRasterKeyframe::duplicate(KisKeyframeChannel *newChannel)
         }
     }
 
-    int copyFrameID = m_paintDevice->framesInterface()->createFrame(true, m_frameID, QPoint(), nullptr);
+    int copyFrameID = m_paintDevice->framesInterface()->createFrame(true, m_frameID, PkPoint(), nullptr);
     KisKeyframeSP key = toQShared(new KisRasterKeyframe(m_paintDevice, copyFrameID));
     key->setColorLabel(colorLabel());
     return key;
@@ -101,7 +102,7 @@ KisKeyframeSP KisRasterKeyframe::duplicate(KisKeyframeChannel *newChannel)
 
 struct KisRasterKeyframeChannel::Private
 {
-    Private(KisPaintDeviceWSP paintDevice, const QString filenameSuffix)
+    Private(KisPaintDeviceWSP paintDevice, const PkString filenameSuffix)
         : paintDevice(paintDevice),
           filenameSuffix(filenameSuffix),
           onionSkinsEnabled(false)
@@ -113,16 +114,16 @@ struct KisRasterKeyframeChannel::Private
      * within this paint device at the frameID index held in the KisRasterKeyframe. */
     KisPaintDeviceWSP paintDevice;
 
-    QMultiHash<int, int> frameIDTimesMap;
+    std::multimap<int, int> frameIDTimesMap;
 
-    QMap<int, QString> frameFilenames;
-    QString filenameSuffix;
+    PkMap<int, PkString> frameFilenames;
+    PkString filenameSuffix;
     bool onionSkinsEnabled;
 };
 
 KisRasterKeyframeChannel::KisRasterKeyframeChannel(const KoID &id, const KisPaintDeviceWSP paintDevice, const KisDefaultBoundsBaseSP bounds)
     : KisKeyframeChannel(id, bounds),
-      m_d(new Private(paintDevice, QString()))
+      m_d(new Private(paintDevice, PkString()))
 {
 }
 
@@ -136,16 +137,17 @@ KisRasterKeyframeChannel::KisRasterKeyframeChannel(const KisRasterKeyframeChanne
     m_d->onionSkinsEnabled = rhs.m_d->onionSkinsEnabled;
 
     // Copy keyframes with attention to clones..
-    foreach (const int& frame, rhs.constKeys().keys()) {
+    for (const int& frame : rhs.constKeys().keys()) {
         KisRasterKeyframeSP copySource = rhs.keyframeAt<KisRasterKeyframe>(frame);
-        if (m_d->frameIDTimesMap.contains(copySource->frameID())){
+        if (m_d->frameIDTimesMap.find(copySource->frameID()) != m_d->frameIDTimesMap.end()){
             continue;
         }
 
         KisRasterKeyframeSP transferredKey = toQShared(new KisRasterKeyframe(newPaintDevice, copySource->frameID(), copySource->colorLabel()));
-        foreach (const int& time, rhs.m_d->frameIDTimesMap.values(transferredKey->frameID())) {
-            keys().insert(time, transferredKey);
-            m_d->frameIDTimesMap.insert(transferredKey->frameID(), time);
+        const auto timeRange = rhs.m_d->frameIDTimesMap.equal_range(transferredKey->frameID());
+        for (auto timeIt = timeRange.first; timeIt != timeRange.second; ++timeIt) {
+            keys().insert(timeIt->second, transferredKey);
+            m_d->frameIDTimesMap.emplace(transferredKey->frameID(), timeIt->second);
         }
     }
 }
@@ -171,36 +173,36 @@ void KisRasterKeyframeChannel::importFrame(int time, KisPaintDeviceSP sourceDevi
     m_d->paintDevice->framesInterface()->uploadFrame(keyframe->frameID(), sourceDevice);
 }
 
-QRect KisRasterKeyframeChannel::frameExtents(KisKeyframeSP keyframe)
+PkRect KisRasterKeyframeChannel::frameExtents(KisKeyframeSP keyframe)
 {
     return m_d->paintDevice->framesInterface()->frameBounds(keyframe.dynamicCast<KisRasterKeyframe>()->frameID());
 }
 
-QString KisRasterKeyframeChannel::frameFilename(int frameId) const
+PkString KisRasterKeyframeChannel::frameFilename(int frameId) const
 {
-    return m_d->frameFilenames.value(frameId, QString());
+    return m_d->frameFilenames.value(frameId, PkString());
 }
 
-void KisRasterKeyframeChannel::setFilenameSuffix(const QString &suffix)
+void KisRasterKeyframeChannel::setFilenameSuffix(const PkString &suffix)
 {
     m_d->filenameSuffix = suffix;
 }
 
-void KisRasterKeyframeChannel::setFrameFilename(int frameId, const QString &filename)
+void KisRasterKeyframeChannel::setFrameFilename(int frameId, const PkString &filename)
 {
     Q_ASSERT(!m_d->frameFilenames.contains(frameId));
     m_d->frameFilenames.insert(frameId, filename);
 }
 
-QString KisRasterKeyframeChannel::chooseFrameFilename(int frameId, const QString &layerFilename)
+PkString KisRasterKeyframeChannel::chooseFrameFilename(int frameId, const PkString &layerFilename)
 {
-    QString filename;
+    PkString filename;
 
     if (m_d->frameFilenames.isEmpty()) {
         // Use legacy naming convention for first keyframe
         filename = layerFilename + m_d->filenameSuffix;
     } else {
-        filename = layerFilename + m_d->filenameSuffix + ".f" + QString::number(frameId);
+        filename = layerFilename + m_d->filenameSuffix + ".f" + PkString().arg(frameId);
     }
 
     setFrameFilename(frameId, filename);
@@ -208,14 +210,14 @@ QString KisRasterKeyframeChannel::chooseFrameFilename(int frameId, const QString
     return filename;
 }
 
-QDomElement KisRasterKeyframeChannel::toXML(QDomDocument doc, const QString &layerFilename)
+PkXmlElement KisRasterKeyframeChannel::toXML(PkXmlDocument doc, const PkString &layerFilename)
 {
     m_d->frameFilenames.clear();
 
     return KisKeyframeChannel::toXML(doc, layerFilename);
 }
 
-void KisRasterKeyframeChannel::loadXML(const QDomElement &channelNode)
+void KisRasterKeyframeChannel::loadXML(const PkXmlElement &channelNode)
 {
     m_d->frameFilenames.clear();
 
@@ -241,7 +243,7 @@ void KisRasterKeyframeChannel::insertKeyframe(int time, KisKeyframeSP keyframe, 
 {
     KisRasterKeyframeSP rasterKey = keyframe.dynamicCast<KisRasterKeyframe>();
     if (rasterKey) {
-        m_d->frameIDTimesMap.insert(rasterKey->frameID(), time);
+        m_d->frameIDTimesMap.emplace(rasterKey->frameID(), time);
     }
 
     KisKeyframeChannel::insertKeyframe(time, keyframe, parentUndoCmd);
@@ -253,7 +255,13 @@ void KisRasterKeyframeChannel::removeKeyframe(int time, KUndo2Command *parentUnd
 
     KisRasterKeyframeSP rasterKey = keyframeAt<KisRasterKeyframe>(time);
     if (rasterKey) {
-        m_d->frameIDTimesMap.remove(rasterKey->frameID(), time);
+        const auto range = m_d->frameIDTimesMap.equal_range(rasterKey->frameID());
+        for (auto it = range.first; it != range.second; ++it) {
+            if (it->second == time) {
+                m_d->frameIDTimesMap.erase(it);
+                break;
+            }
+        }
     }
 
     KisKeyframeChannel::removeKeyframeImpl(time, parentUndoCmd);
@@ -281,43 +289,56 @@ bool KisRasterKeyframeChannel::areClones(int timeA, int timeB)
     return (keyframeAt(timeA) == keyframeAt(timeB));
 }
 
-QSet<int> KisRasterKeyframeChannel::clonesOf(int time)
+PkSet<int> KisRasterKeyframeChannel::clonesOf(int time)
 {
     KisRasterKeyframeSP rasterKey = keyframeAt<KisRasterKeyframe>(time);
 
     if (!rasterKey) {
-        return QSet<int>();
+        return PkSet<int>();
     }
 
-    QList<int> values = m_d->frameIDTimesMap.values(rasterKey->frameID());
-    QSet<int> clones = QSet<int>(values.cbegin(), values.cend());
+    PkList<int> values;
+    const auto range = m_d->frameIDTimesMap.equal_range(rasterKey->frameID());
+    for (auto it = range.first; it != range.second; ++it) {
+        values.append(it->second);
+    }
+    PkSet<int> clones;
+    for (int value : values) {
+        clones.insert(value);
+    }
     clones.remove(time); // Clones only! Remove input time from the list.
     return clones;
 }
 
-QSet<int> KisRasterKeyframeChannel::timesForFrameID(int frameID) const
+PkSet<int> KisRasterKeyframeChannel::timesForFrameID(int frameID) const
 {
-    QSet<int> clones;
-    if (m_d->frameIDTimesMap.contains(frameID)) {
-        QList<int> values = m_d->frameIDTimesMap.values(frameID);
-        clones = QSet<int>(values.cbegin(), values.cend());
+    PkSet<int> clones;
+    if (m_d->frameIDTimesMap.find(frameID) != m_d->frameIDTimesMap.end()) {
+        PkList<int> values;
+        const auto range = m_d->frameIDTimesMap.equal_range(frameID);
+        for (auto it = range.first; it != range.second; ++it) {
+            values.append(it->second);
+        }
+        for (int value : values) {
+            clones.insert(value);
+        }
     }
     return clones;
 }
 
-QSet<int> KisRasterKeyframeChannel::clonesOf(const KisNode *node, int time)
+PkSet<int> KisRasterKeyframeChannel::clonesOf(const KisNode *node, int time)
 {
-    QSet<int> clones;
+    PkSet<int> clones;
 
-    QMap<QString, KisKeyframeChannel*> chans = node->keyframeChannels();
-    foreach (KisKeyframeChannel* channel, chans.values()){
+    PkMap<PkString, KisKeyframeChannel*> chans = node->keyframeChannels();
+    for (KisKeyframeChannel* channel : chans.values()){
         KisRasterKeyframeChannel* rasterChan = dynamic_cast<KisRasterKeyframeChannel*>(channel);
         if (!rasterChan) {
             continue;
         }
 
-        QSet<int> chanClones = rasterChan->clonesOf(rasterChan->activeKeyframeTime(time));
-        clones += chanClones;
+        PkSet<int> chanClones = rasterChan->clonesOf(rasterChan->activeKeyframeTime(time));
+        clones.unite(chanClones);
     }
 
     return clones;
@@ -332,15 +353,15 @@ void KisRasterKeyframeChannel::makeUnique(int time, KUndo2Command* parentUndoCmd
     }
 }
 
-QRect KisRasterKeyframeChannel::affectedRect(int time) const
+PkRect KisRasterKeyframeChannel::affectedRect(int time) const
 {
-    QRect affectedRect;
+    PkRect affectedRect;
 
-    QList<KisRasterKeyframeSP> relevantFrames;
+    PkList<KisRasterKeyframeSP> relevantFrames;
     relevantFrames.append(keyframeAt<KisRasterKeyframe>(time));
     relevantFrames.append(keyframeAt<KisRasterKeyframe>(previousKeyframeTime(time)));
 
-    Q_FOREACH (KisRasterKeyframeSP frame, relevantFrames) {
+    for (KisRasterKeyframeSP frame : relevantFrames) {
         if (frame) {
             affectedRect |= frame->contentBounds();
         }
@@ -349,33 +370,33 @@ QRect KisRasterKeyframeChannel::affectedRect(int time) const
     return affectedRect;
 }
 
-void KisRasterKeyframeChannel::saveKeyframe(KisKeyframeSP keyframe, QDomElement keyframeElement, const QString &layerFilename)
+void KisRasterKeyframeChannel::saveKeyframe(KisKeyframeSP keyframe, PkXmlElement keyframeElement, const PkString &layerFilename)
 {
     KisRasterKeyframeSP rasterKeyframe = keyframe.dynamicCast<KisRasterKeyframe>();
     KIS_SAFE_ASSERT_RECOVER_RETURN(rasterKeyframe);
 
     int frame = rasterKeyframe->frameID();
 
-    QString filename = frameFilename(frame);
+    PkString filename = frameFilename(frame);
     if (filename.isEmpty()) {
         filename = chooseFrameFilename(frame, layerFilename);
     }
     keyframeElement.setAttribute("frame", filename);
 
-    QPoint offset = m_d->paintDevice->framesInterface()->frameOffset(frame);
+    PkPoint offset = m_d->paintDevice->framesInterface()->frameOffset(frame);
     KisDomUtils::saveValue(&keyframeElement, "offset", offset);
 }
 
-QPair<int, KisKeyframeSP> KisRasterKeyframeChannel::loadKeyframe(const QDomElement &keyframeNode)
+PkPair<int, KisKeyframeSP> KisRasterKeyframeChannel::loadKeyframe(const PkXmlElement &keyframeNode)
 {
     int time = keyframeNode.attribute("time").toInt();
     workaroundBrokenFrameTimeBug(&time);
 
     KisRasterKeyframeSP keyframe;
 
-    QPoint offset;
+    PkPoint offset;
     KisDomUtils::loadValue(keyframeNode, "offset", &offset);
-    QString frameFilename = keyframeNode.attribute("frame");
+    PkString frameFilename = keyframeNode.attribute("frame");
 
     if (m_d->frameFilenames.isEmpty()) {
 
@@ -393,9 +414,9 @@ QPair<int, KisKeyframeSP> KisRasterKeyframeChannel::loadKeyframe(const QDomEleme
         if (m_d->frameFilenames.values().contains(frameFilename)) {
 
             const int frameId = m_d->frameFilenames.key(frameFilename);
-            const int cloneOf = m_d->frameIDTimesMap.values(frameId).first();
+            const int cloneOf = m_d->frameIDTimesMap.equal_range(frameId).first->second;
             const KisRasterKeyframeSP instance = keyframeAt<KisRasterKeyframe>(cloneOf);
-            return QPair<int, KisKeyframeSP>(time, instance);
+            return PkPair<int, KisKeyframeSP>(time, instance);
         } else {
 
             keyframe = toQShared(new KisRasterKeyframe(m_d->paintDevice));
@@ -405,7 +426,7 @@ QPair<int, KisKeyframeSP> KisRasterKeyframeChannel::loadKeyframe(const QDomEleme
 
     setFrameFilename(keyframe->frameID(), frameFilename);
 
-    return QPair<int, KisKeyframeSP>(time, keyframe);
+    return PkPair<int, KisKeyframeSP>(time, keyframe);
 }
 
 KisKeyframeSP KisRasterKeyframeChannel::createKeyframe()
