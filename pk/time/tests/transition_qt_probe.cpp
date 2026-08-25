@@ -1,7 +1,7 @@
 // transition_qt_probe.cpp —— R-37「pk/time DateFormat 别名让位守卫」的 transition TU 探针。
 //
 // 同一源文件三种编译模式（transition_qt_probe.sh 各编一次、各跑一次）：
-//   模式 A（真 Qt 已进 TU，QT_CORE_LIB 与 QNAMESPACE_H 都定义）：真 Qt 头在前
+//   模式 A（真 Qt 已进 TU，QT_CORE_LIB 与 QT_GUI_LIB 都定义）：真 Qt 头在前
 //     （R-35 约定），include <QDateTime>（拉 qnamespace.h 的 DateFormat）+ PkDateTime.h。
 //     守卫生效后 PkDateTime.h 的 constexpr ISODate/RFC2822Date/ISODateWithMs 让位
 //     （!QT_CORE_LIB 为假、!QNAMESPACE_H 为假 → 整墙让位），不再与真 Qt 枚举重定义。
@@ -12,7 +12,9 @@
 //
 // 能编过本身就是断言的一半——redeclared as different kind of entity 是硬错误
 // （修复前模式 A 实测报 Qt::ISODate redeclared）。
-#if defined(QT_CORE_LIB) && defined(QNAMESPACE_H)
+// include 闸门用 QT_GUI_LIB（sh 模式 A 的唯一标识）而非 QNAMESPACE_H：QNAMESPACE_H 是
+// include 真 Qt qnamespace.h **之后**才定义，拿它当闸门会循环依赖（Critical 1 修复）。
+#if defined(QT_CORE_LIB) && defined(QT_GUI_LIB)
 #include <QDateTime>
 #endif
 #include "PkDateTime.h"

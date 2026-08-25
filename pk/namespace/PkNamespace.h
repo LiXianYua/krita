@@ -6,7 +6,7 @@
 // Qt 不一致默认都是缺陷。
 //
 // **与真 Qt 的让位**（R-37）：真 Qt qnamespace.h 进 TU（QNAMESPACE_H 定义）时，本头
-// 整个 `namespace Qt` 枚举族让位给真 Qt（见 line 44 的守卫注释）。无 Qt 世界（薄壳/
+// 整个 `namespace Qt` 枚举族让位给真 Qt（见下方守卫注释）。无 Qt 世界（薄壳/
 // 纯 pk）由本头提供全部枚举。
 //
 // **与 pk/global 的分权**（R-18 已交付）：PkGlobal.h 已定义 `namespace Qt` 的

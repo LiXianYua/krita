@@ -207,7 +207,9 @@ private:
 // 照 Qt 组织：qdatetime.h 里 QDate/QTime/QDateTime 全在，QVariant 只前向声明引用。
 // 这些是 `PkDateTime::DateFormat`（enum class）的 constexpr 别名值——`toString(Qt::ISODate)`
 // 这类调用点把 `Qt::` 限定名直接映射到枚举值，一字不改。
-// 探针取值（R-27）：TextDate=0 ISODate=1 RFC2822Date=8 ISODateWithMs=9。
+// 探针取值（R-27，真 Qt qnamespace.h 的 enum DateFormat 位值）：TextDate=0 ISODate=1
+// RFC2822Date=8 ISODateWithMs=9。pk 的 enum class DateFormat 无显式初始化器（实际 0/1/2），
+// 与真 Qt 只按成员身份对齐（同名成员 ↔ 同名成员），不跨边界传位值。
 //
 // ⚠ 让位给真 Qt（R-37）：真 Qt qnamespace.h 也定义 `Qt::DateFormat`（qnamespace.h:1276-1290），
 // transition TU 里 `constexpr PkDateTime::DateFormat ISODate` 与 `enum DateFormat { ISODate }`
