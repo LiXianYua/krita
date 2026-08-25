@@ -6,6 +6,17 @@
 // （线级 spec 判据①）。下面每一项都标着它现在唯一的真实调用点，方便下一个人
 // 一眼判断范围对不对：新增前先在这批文件里搜有没有第二个调用点，没有就不加。
 
+// ⚠ 让位给真 Qt（R-38）：本头无条件定义的 qAbs 模板与 qFuzzyCompare/qFuzzyIsNull
+// 宏在真 Qt qglobal.h 进 TU（QGLOBAL_H 定义）时**全部让位**——过渡 TU（真 Qt + pk
+// test 同 TU，S-08 主树 flake 构建经 pk/color compat 链拉入本头、同 TU 又有真 Qt 头）
+// 与真 Qt qglobal.h 的 qAbs 重定义（实测 493 条冲突）。守卫口径同 R-35/R-37：
+// `!QT_CORE_LIB || !QGLOBAL_H`——主树编译行**全局**带 -DQT_CORE_LIB，但 TU 不一定
+// include 真 Qt qglobal.h；只有 QGLOBAL_H（真 Qt qglobal.h 的 include guard）在场才
+// 让位，不在场（含 -DQT_CORE_LIB 无真 Qt 头）就由本头提供。mixed TU 必须「Qt 头在
+// 前」（同 R-35 已登记约定）。让位后 qAbs 解析到真 Qt 实现、qFuzzyCompare/qFuzzyIsNull
+// 解析到真 Qt 函数，公式逐字同源、语义等价。守卫**不改变任何调用点**——下面每项
+// 标注的唯一真实调用点不变。
+#if !defined(QT_CORE_LIB) || !defined(QGLOBAL_H)
 // libs/pigment/tests/TestKoIntegerMaths.cpp:36
 template <typename T> constexpr T qAbs(const T &t) { return t >= T(0) ? t : -t; }
 
@@ -13,3 +24,4 @@ template <typename T> constexpr T qAbs(const T &t) { return t >= T(0) ? t : -t; 
 // 本任务的交付内容，不是顺手加的便利设施。qFuzzyIsNull 是它的支撑，一并留下。
 #define qFuzzyCompare pkFuzzyCompare
 #define qFuzzyIsNull  pkFuzzyIsNull
+#endif // !defined(QT_CORE_LIB) || !defined(QGLOBAL_H) —— 真 Qt qglobal.h 在场则让位
