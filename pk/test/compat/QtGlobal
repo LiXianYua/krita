@@ -9,7 +9,7 @@
 // ⚠ 让位给真 Qt（R-38）：本头无条件定义的 qAbs 模板与 qFuzzyCompare/qFuzzyIsNull
 // 宏在真 Qt qglobal.h 进 TU（QGLOBAL_H 定义）时**全部让位**——过渡 TU（真 Qt + pk
 // test 同 TU，S-08 主树 flake 构建经 pk/color compat 链拉入本头、同 TU 又有真 Qt 头）
-// 与真 Qt qglobal.h 的 qAbs 重定义（实测 493 条冲突）。守卫口径同 R-35/R-37：
+// 与真 Qt qglobal.h 的 qAbs 重定义（任务行判据 493 条冲突；本扫描口径实测 512 行）。守卫口径同 R-35/R-37：
 // `!QT_CORE_LIB || !QGLOBAL_H`——主树编译行**全局**带 -DQT_CORE_LIB，但 TU 不一定
 // include 真 Qt qglobal.h；只有 QGLOBAL_H（真 Qt qglobal.h 的 include guard）在场才
 // 让位，不在场（含 -DQT_CORE_LIB 无真 Qt 头）就由本头提供。mixed TU 必须「Qt 头在
