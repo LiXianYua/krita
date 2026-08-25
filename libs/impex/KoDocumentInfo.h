@@ -9,16 +9,15 @@
 #ifndef KO_DOCUMENT_INFO_H
 #define KO_DOCUMENT_INFO_H
 
-#include <QObject>
-#include <QMap>
-#include <QString>
-#include <QStringList>
+#include <PkObject.h>
+#include <PkMap.h>
+#include <PkString.h>
+#include <PkStringList.h>
 
 #include "kritaimpex_export.h"
-#include <QDomDocument>
 
-class QDomDocument;
-class QDomElement;
+class PkXmlDocument;
+class PkXmlElement;
 class KoStore;
 
 /**
@@ -30,10 +29,10 @@ class KoStore;
  * @see KoDocumentInfoDlg
  *
  * This class contains the meta information for a document. They are
- * stored in two QMap and can be accessed through aboutInfo() and authorInfo().
+ * stored in two PkMap and can be accessed through aboutInfo() and authorInfo().
  * The about info can be changed with setAboutInfo() and setAuthorInfo()
  */
-class KRITAIMPEX_EXPORT KoDocumentInfo : public QObject
+class KRITAIMPEX_EXPORT KoDocumentInfo : public PkObject
 {
     Q_OBJECT
 
@@ -42,25 +41,25 @@ public:
      * The constructor
      * @param parent a pointer to the parent object
      */
-    explicit KoDocumentInfo(QObject *parent = 0);
-    explicit KoDocumentInfo(const KoDocumentInfo &rhs, QObject *parent = 0);
+    explicit KoDocumentInfo(PkObject *parent = 0);
+    explicit KoDocumentInfo(const KoDocumentInfo &rhs, PkObject *parent = 0);
 
     /** The destructor */
     ~KoDocumentInfo() override;
     /**
      * Load the KoDocumentInfo from an Calligra-1.3 DomDocument
-     * @param doc the QDomDocument to load from
+     * @param doc the PkXmlDocument to load from
      * @return true if success
      */
-    bool load(const QDomDocument& doc);
+    bool load(const PkXmlDocument& doc);
 
     /**
      * Save the KoDocumentInfo to an Calligra-1.3 DomDocument
      * @param autosaving whether the owning document is being autosaved
      * @param documentModified whether the owning document has unsaved changes
-     * @return the QDomDocument to which was saved
+     * @return the PkXmlDocument to which was saved
      */
-    QDomDocument save(QDomDocument &doc, bool autosaving, bool documentModified);
+    PkXmlDocument save(PkXmlDocument &doc, bool autosaving, bool documentModified);
 
     /**
      * Set information about the author.
@@ -71,46 +70,46 @@ public:
      * @param info the kind of information to set
      * @param data the data to set for this information
      */
-    void setAuthorInfo(const QString& info, const QString& data);
+    void setAuthorInfo(const PkString& info, const PkString& data);
 
     /**
      * Obtain information about the author
      * @param info the kind of information to obtain
-     * @return a QString with the information
+     * @return a PkString with the information
      */
-    QString authorInfo(const QString& info) const;
+    PkString authorInfo(const PkString& info) const;
 
     /**
      * @brief authorContactInfo
      * @return returns list of contact info for author.
      */
-    QStringList authorContactInfo() const;
+    PkStringList authorContactInfo() const;
 
     /**
      * Set information about the document
      * @param info the kind of information to set
      * @param data the data to set for this information
      */
-    void setAboutInfo(const QString& info, const QString& data);
+    void setAboutInfo(const PkString& info, const PkString& data);
 
     /**
      * Obtain information about the document
      * @param info the kind of information to obtain
-     * @return a QString with the information
+     * @return a PkString with the information
      */
-    QString aboutInfo(const QString& info) const;
+    PkString aboutInfo(const PkString& info) const;
 
     /**
      * Obtain the generator of the document, as it was loaded from the document
      */
-    QString originalGenerator() const;
+    PkString originalGenerator() const;
 
     /**
      * Sets the original generator of the document. This does not affect what gets
      * saved to a document in the meta:generator field, it only changes what
      * originalGenerator() will return.
      */
-    void setOriginalGenerator(const QString& generator);
+    void setOriginalGenerator(const PkString& generator);
 
     /** Resets part of the meta data */
     void resetMetaData();
@@ -130,55 +129,55 @@ private:
      * @param info the kind of information to set
      * @param data the data to set for this information
      */
-    void setActiveAuthorInfo(const QString& info, const QString& data);
+    void setActiveAuthorInfo(const PkString& info, const PkString& data);
 
     /**
      * Load the information about the document from a Calligra-1.3 file
      * @param e the element to load from
      * @return true if success
      */
-    bool loadAboutInfo(const QDomElement& e);
+    bool loadAboutInfo(const PkXmlElement& e);
 
     /**
      * Save the information about the document to a Calligra-1.3 file
-     * @param doc the QDomDocument to save in
-     * @return the QDomElement to which was saved
+     * @param doc the PkXmlDocument to save in
+     * @return the PkXmlElement to which was saved
      */
-    QDomElement saveAboutInfo(QDomDocument& doc);
+    PkXmlElement saveAboutInfo(PkXmlDocument& doc);
 
     /**
      * Load the information about the document from a Calligra-1.3 file
      * @param e the element to load from
      * @return true if success
      */
-    bool loadAuthorInfo(const QDomElement& e);
+    bool loadAuthorInfo(const PkXmlElement& e);
 
     /**
      * Save the information about the author to a Calligra-1.3 file
-     * @param doc the QDomDocument to save in
-     * @return the QDomElement to which was saved
+     * @param doc the PkXmlDocument to save in
+     * @return the PkXmlElement to which was saved
      */
-    QDomElement saveAuthorInfo(QDomDocument& doc);
+    PkXmlElement saveAuthorInfo(PkXmlDocument& doc);
 
-    /** A QStringList containing all tags for the document information */
-    QStringList m_aboutTags;
-    /** A QStringList containing all tags for the author information */
-    QStringList m_authorTags;
-    /** A QStringList containing all valid contact tags */
-    QStringList m_contactTags;
-    /** A QMap with the contact modes and their type in the second string */
-    QMap <QString, QString> m_contact;
+    /** A PkStringList containing all tags for the document information */
+    PkStringList m_aboutTags;
+    /** A PkStringList containing all tags for the author information */
+    PkStringList m_authorTags;
+    /** A PkStringList containing all valid contact tags */
+    PkStringList m_contactTags;
+    /** A PkMap with the contact modes and their type in the second string */
+    PkMap <PkString, PkString> m_contact;
     /** The map containing information about the author */
-    QMap<QString, QString> m_authorInfo;
+    PkMap<PkString, PkString> m_authorInfo;
     /** The map containing information about the author set programmatically*/
-    QMap<QString, QString> m_authorInfoOverride;
+    PkMap<PkString, PkString> m_authorInfoOverride;
     /** The map containing information about the document */
-    QMap<QString, QString> m_aboutInfo;
+    PkMap<PkString, PkString> m_aboutInfo;
     /** The original meta:generator of the document */
-    QString m_generator;
+    PkString m_generator;
 
 Q_SIGNALS:
-    void infoUpdated(const QString &info, const QString &data);
+    void infoUpdated(const PkString &info, const PkString &data);
 };
 
 #endif

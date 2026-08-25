@@ -9,17 +9,18 @@
 
 #include "KoXmlNS.h"
 #include <KoResourcePaths.h>
-#include <QDateTime>
-#include <QDomDocument>
-#include <QDir>
-#include <QFile>
+#include <PkDateTime.h>
+#include <PkXmlDocument.h>
+#include <PkFileStream.h>
 
-#include <kconfig.h>
-#include <kconfiggroup.h>
-#include <klocalizedstring.h>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
+
+#include <filesystem>
+#include <string>
 
 
-KoDocumentInfo::KoDocumentInfo(QObject *parent) : QObject(parent)
+KoDocumentInfo::KoDocumentInfo(PkObject *parent) : PkObject(parent)
 {
     m_aboutTags << "title" << "description" << "subject" << "abstract"
     << "keyword" << "initial-creator" << "editing-cycles" << "editing-time"
@@ -29,13 +30,13 @@ KoDocumentInfo::KoDocumentInfo(QObject *parent) : QObject(parent)
     m_contactTags << "email" << "telephone" << "telephone-work" << "fax" << "country" << "postal-code" << "city" << "street";
     setAboutInfo("editing-cycles", "0");
     setAboutInfo("time-elapsed", "0");
-    setAboutInfo("initial-creator", i18n("Unknown"));
-    setAboutInfo("creation-date", QDateTime::currentDateTime()
-                 .toString(Qt::ISODate));
+    setAboutInfo("initial-creator", PkString("Unknown"));
+    setAboutInfo("creation-date", PkString(PkDateTime::currentDateTime()
+                 .toString(PkDateTime::DateFormat::ISODate).c_str()));
 }
 
-KoDocumentInfo::KoDocumentInfo(const KoDocumentInfo &rhs, QObject *parent)
-    : QObject(parent),
+KoDocumentInfo::KoDocumentInfo(const KoDocumentInfo &rhs, PkObject *parent)
+    : PkObject(parent),
       m_aboutTags(rhs.m_aboutTags),
       m_authorTags(rhs.m_authorTags),
       m_contact(rhs.m_contact),
@@ -50,7 +51,7 @@ KoDocumentInfo::~KoDocumentInfo()
 {
 }
 
-bool KoDocumentInfo::load(const QDomDocument &doc)
+bool KoDocumentInfo::load(const PkXmlDocument &doc)
 {
     m_authorInfo.clear();
 
@@ -64,11 +65,11 @@ bool KoDocumentInfo::load(const QDomDocument &doc)
 }
 
 
-QDomDocument KoDocumentInfo::save(QDomDocument &doc, bool autosaving, bool documentModified)
+PkXmlDocument KoDocumentInfo::save(PkXmlDocument &doc, bool autosaving, bool documentModified)
 {
     updateParametersAndBumpNumCycles(autosaving, documentModified);
 
-    QDomElement s = saveAboutInfo(doc);
+    PkXmlElement s = saveAboutInfo(doc);
     if (!s.isNull())
         doc.documentElement().appendChild(s);
 
@@ -78,12 +79,12 @@ QDomDocument KoDocumentInfo::save(QDomDocument &doc, bool autosaving, bool docum
 
 
     if (doc.documentElement().isNull())
-        return QDomDocument();
+        return PkXmlDocument();
 
     return doc;
 }
 
-void KoDocumentInfo::setAuthorInfo(const QString &info, const QString &data)
+void KoDocumentInfo::setAuthorInfo(const PkString &info, const PkString &data)
 {
     if (!m_authorTags.contains(info) && !m_contactTags.contains(info) && !info.contains("contact-mode-")) {
         return;
@@ -92,7 +93,7 @@ void KoDocumentInfo::setAuthorInfo(const QString &info, const QString &data)
     m_authorInfoOverride.insert(info, data);
 }
 
-void KoDocumentInfo::setActiveAuthorInfo(const QString &info, const QString &data)
+void KoDocumentInfo::setActiveAuthorInfo(const PkString &info, const PkString &data)
 {
     if (!m_authorTags.contains(info) && !m_contactTags.contains(info) && !info.contains("contact-mode-")) {
         return;
@@ -105,20 +106,20 @@ void KoDocumentInfo::setActiveAuthorInfo(const QString &info, const QString &dat
     Q_EMIT infoUpdated(info, data);
 }
 
-QString KoDocumentInfo::authorInfo(const QString &info) const
+PkString KoDocumentInfo::authorInfo(const PkString &info) const
 {
     if (!m_authorTags.contains(info)  && !m_contactTags.contains(info) && !info.contains("contact-mode-"))
-        return QString();
+        return PkString();
 
     return m_authorInfo[ info ];
 }
 
-QStringList KoDocumentInfo::authorContactInfo() const
+PkStringList KoDocumentInfo::authorContactInfo() const
 {
     return m_contact.keys();
 }
 
-void KoDocumentInfo::setAboutInfo(const QString &info, const QString &data)
+void KoDocumentInfo::setAboutInfo(const PkString &info, const PkString &data)
 {
     if (!m_aboutTags.contains(info))
         return;
@@ -127,28 +128,28 @@ void KoDocumentInfo::setAboutInfo(const QString &info, const QString &data)
     Q_EMIT infoUpdated(info, data);
 }
 
-QString KoDocumentInfo::aboutInfo(const QString &info) const
+PkString KoDocumentInfo::aboutInfo(const PkString &info) const
 {
     if (!m_aboutTags.contains(info)) {
-        return QString();
+        return PkString();
     }
 
     return m_aboutInfo[info];
 }
 
 
-bool KoDocumentInfo::loadAuthorInfo(const QDomElement &root)
+bool KoDocumentInfo::loadAuthorInfo(const PkXmlElement &root)
 {
     m_contact.clear();
 
-    QDomElement e = root.firstChildElement("author");
+    PkXmlElement e = root.firstChildElement("author");
     if(e.isNull()) {
         return false;
     }
 
     for (e = e.firstChildElement(); !e.isNull(); e = e.nextSiblingElement()) {
-        QString field = e.tagName();
-        QString value = e.text();
+        PkString field = e.tagName();
+        PkString value = e.text();
 
         if (field == "full-name") {
             setActiveAuthorInfo("creator", value.trimmed());
@@ -162,12 +163,12 @@ bool KoDocumentInfo::loadAuthorInfo(const QDomElement &root)
     return true;
 }
 
-QDomElement KoDocumentInfo::saveAuthorInfo(QDomDocument &doc)
+PkXmlElement KoDocumentInfo::saveAuthorInfo(PkXmlDocument &doc)
 {
-    QDomElement e = doc.createElement("author");
-    QDomElement t;
+    PkXmlElement e = doc.createElement("author");
+    PkXmlElement t;
 
-    Q_FOREACH (const QString &tag, m_authorTags) {
+    for (const PkString &tag : m_authorTags) {
         if (tag == "creator")
             t = doc.createElement("full-name");
         else
@@ -179,7 +180,7 @@ QDomElement KoDocumentInfo::saveAuthorInfo(QDomDocument &doc)
     for (int i=0; i<m_contact.keys().size(); i++) {
         t = doc.createElement("contact");
         e.appendChild(t);
-        QString key = m_contact.keys().at(i);
+        PkString key = m_contact.keys().at(i);
         t.setAttribute("type", m_contact[key]);
         t.appendChild(doc.createTextNode(key));
     }
@@ -188,9 +189,9 @@ QDomElement KoDocumentInfo::saveAuthorInfo(QDomDocument &doc)
 }
 
 
-bool KoDocumentInfo::loadAboutInfo(const QDomElement &root)
+bool KoDocumentInfo::loadAboutInfo(const PkXmlElement &root)
 {
-    QDomElement e = root.firstChildElement("about");
+    PkXmlElement e = root.firstChildElement("about");
     if(e.isNull()) {
         return false;
     }
@@ -202,12 +203,12 @@ bool KoDocumentInfo::loadAboutInfo(const QDomElement &root)
     return true;
 }
 
-QDomElement KoDocumentInfo::saveAboutInfo(QDomDocument &doc)
+PkXmlElement KoDocumentInfo::saveAboutInfo(PkXmlDocument &doc)
 {
-    QDomElement e = doc.createElement("about");
-    QDomElement t;
+    PkXmlElement e = doc.createElement("about");
+    PkXmlElement t;
 
-    Q_FOREACH (const QString &tag, m_aboutTags) {
+    for (const PkString &tag : m_aboutTags) {
         if (tag == "abstract") {
             t = doc.createElement("abstract");
             e.appendChild(t);
@@ -228,8 +229,8 @@ void KoDocumentInfo::updateParametersAndBumpNumCycles(bool autosaving, bool docu
         return;
     }
 
-    setAboutInfo("editing-cycles", QString::number(aboutInfo("editing-cycles").toInt() + 1));
-    setAboutInfo("date", QDateTime::currentDateTime().toString(Qt::ISODate));
+    setAboutInfo("editing-cycles", PkString(std::to_string(aboutInfo("editing-cycles").toInt() + 1).c_str()));
+    setAboutInfo("date", PkString(PkDateTime::currentDateTime().toString(PkDateTime::DateFormat::ISODate).c_str()));
 
     updateParameters(documentModified);
 }
@@ -240,31 +241,29 @@ void KoDocumentInfo::updateParameters(bool documentModified)
         return;
     }
 
-    KConfig config("kritarc");
-    config.reparseConfiguration();
-    KConfigGroup appAuthorGroup(&config, "Author");
-    QString profile = appAuthorGroup.readEntry("active-profile", "");
+    PkSharedConfig *config = PkSharedConfig::openConfig();
+    PkConfigGroup appAuthorGroup(config, "Author");
+    PkString profile = appAuthorGroup.readEntry("active-profile", "");
 
-    QString authorInfo = KoResourcePaths::getAppDataLocation() + "/authorinfo/";
-    QDir dir(authorInfo);
-    QStringList filters = QStringList() << "*.authorinfo";
+    PkString authorInfo = KoResourcePaths::getAppDataLocation() + "/authorinfo/";
+    const std::filesystem::path authorInfoDir(authorInfo.PkToUtf8());
+    const std::string profileFile = profile.PkToUtf8() + ".authorinfo";
 
     //Anon case
-    setActiveAuthorInfo("creator", QString());
+    setActiveAuthorInfo("creator", PkString());
     setActiveAuthorInfo("initial", "");
     setActiveAuthorInfo("author-title", "");
     setActiveAuthorInfo("position", "");
     setActiveAuthorInfo("company", "");
-    if (dir.entryList(filters).contains(profile+".authorinfo")) {
-        QFile file(dir.absoluteFilePath(profile+".authorinfo"));
-        if (file.open(QFile::ReadOnly)) {
-            QByteArray ba = file.readAll();
+    if (std::filesystem::exists(authorInfoDir / profileFile)) {
+        PkFileStream file(PkString((authorInfoDir / profileFile).c_str()));
+        if (file.open(PkStream::ReadOnly)) {
+            PkXmlDocument doc;
+            doc.setContent(&file);
             file.close();
-            QDomDocument doc = QDomDocument();
-            doc.setContent(ba);
-            QDomElement root = doc.firstChildElement();
+            PkXmlElement root = doc.firstChildElement();
 
-            QDomElement el = root.firstChildElement("nickname");
+            PkXmlElement el = root.firstChildElement("nickname");
             if (!el.isNull()) {
                 setActiveAuthorInfo("creator", el.text());
             }
@@ -303,7 +302,7 @@ void KoDocumentInfo::updateParameters(bool documentModified)
     }
 
     //allow author info set programmatically to override info from author profile
-    Q_FOREACH (const QString &tag, m_authorTags) {
+    for (const PkString &tag : m_authorTags) {
         if (m_authorInfoOverride.contains(tag)) {
             setActiveAuthorInfo(tag, m_authorInfoOverride.value(tag));
         }
@@ -312,18 +311,18 @@ void KoDocumentInfo::updateParameters(bool documentModified)
 
 void KoDocumentInfo::resetMetaData()
 {
-    setAboutInfo("editing-cycles", QString::number(0));
+    setAboutInfo("editing-cycles", PkString(std::to_string(0).c_str()));
     setAboutInfo("initial-creator", authorInfo("creator"));
-    setAboutInfo("creation-date", QDateTime::currentDateTime().toString(Qt::ISODate));
-    setAboutInfo("editing-time", QString::number(0));
+    setAboutInfo("creation-date", PkString(PkDateTime::currentDateTime().toString(PkDateTime::DateFormat::ISODate).c_str()));
+    setAboutInfo("editing-time", PkString(std::to_string(0).c_str()));
 }
 
-QString KoDocumentInfo::originalGenerator() const
+PkString KoDocumentInfo::originalGenerator() const
 {
     return m_generator;
 }
 
-void KoDocumentInfo::setOriginalGenerator(const QString &generator)
+void KoDocumentInfo::setOriginalGenerator(const PkString &generator)
 {
     m_generator = generator;
 }
