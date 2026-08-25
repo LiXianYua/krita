@@ -8,6 +8,8 @@
 #define KIS_CURVE_CIRCLE_MASK_GENERATOR_P_H
 
 #include "kis_antialiasing_fade_maker.h"
+#include <PkContainerAlgo.h>
+#include <PkScopedPointer.h>
 #include "kis_brush_mask_applicator_base.h"
 #include "kis_cubic_curve.h"
 
@@ -32,12 +34,12 @@ struct Q_DECL_HIDDEN KisCurveCircleMaskGenerator::Private
     qreal xcoef {0.0};
     qreal ycoef {0.0};
     qreal curveResolution {0.0};
-    QVector<qreal> curveData;
-    QList<KisCubicCurvePoint> curvePoints;
+    PkVector<qreal> curveData;
+    PkList<KisCubicCurvePoint> curvePoints;
     bool dirty {false};
 
     KisAntialiasingFadeMaker1D<Private> fadeMaker;
-    QScopedPointer<KisBrushMaskApplicatorBase> applicator;
+    PkScopedPointer<KisBrushMaskApplicatorBase> applicator;
 
     inline quint8 value(qreal dist) const;
 };

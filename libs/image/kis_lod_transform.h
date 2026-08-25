@@ -8,6 +8,7 @@
 #define __KIS_LOD_TRANSFORM_H
 
 #include <kritaimage_export.h>
+#include <PkPoint.h>
 #include <brushengine/kis_paint_information.h>
 #include "kis_lod_transform_base.h"
 
@@ -29,7 +30,7 @@ public:
     using KisLodTransformBase::map;
 
     KisPaintInformation map(KisPaintInformation pi) const {
-        QPointF pos = pi.pos();
+        PkPointF pos = pi.pos();
         pi.setPos(this->map(pos));
         pi.setLevelOfDetail(m_levelOfDetail);
         return pi;

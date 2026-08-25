@@ -8,24 +8,24 @@
 #define _KIS_CUBIC_CURVE_H_
 
 #include <boost/operators.hpp>
+#include <PkString.h>
+#include <PkVariant.h>
 
-#include<QList>
-#include<QVector>
-#include<QPointF>
-#include<QVariant>
+#include<PkContainerAlgo.h>
+#include<PkPoint.h>
 
 #include "kis_cubic_curve_spline.h"
 
 #include <kritaimage_export.h>
 
-const QString DEFAULT_CURVE_STRING = "0,0;1,1;";
+const PkString DEFAULT_CURVE_STRING = "0,0;1,1;";
 
 class KRITAIMAGE_EXPORT KisCubicCurvePoint
 {
 public:
     KisCubicCurvePoint() = default;
     KisCubicCurvePoint(const KisCubicCurvePoint&) = default;
-    KisCubicCurvePoint(const QPointF &position, bool setAsCorner = false);
+    KisCubicCurvePoint(const PkPointF &position, bool setAsCorner = false);
     KisCubicCurvePoint(qreal x, qreal y, bool setAsCorner = false);
     KisCubicCurvePoint& operator=(const KisCubicCurvePoint&) = default;
 
@@ -33,16 +33,16 @@ public:
 
     qreal x() const;
     qreal y() const;
-    const QPointF& position() const;
+    const PkPointF& position() const;
     bool isSetAsCorner() const;
 
     void setX(qreal newX);
     void setY(qreal newY);
-    void setPosition(const QPointF &newPosition);
+    void setPosition(const PkPointF &newPosition);
     void setAsCorner(bool newIsSetAsCorner);
 
 private:
-    QPointF m_position;
+    PkPointF m_position;
     bool m_isCorner { false };
 };
 
@@ -56,10 +56,10 @@ class KRITAIMAGE_EXPORT KisCubicCurve : public boost::equality_comparable<KisCub
 public:
     KisCubicCurve();
 
-    KisCubicCurve(const QList<QPointF>& points);
-    KisCubicCurve(const QList<KisCubicCurvePoint>& points);
+    KisCubicCurve(const PkList<PkPointF>& points);
+    KisCubicCurve(const PkList<KisCubicCurvePoint>& points);
 
-    KisCubicCurve(const QString &curveString);
+    KisCubicCurve(const PkString &curveString);
     KisCubicCurve(const KisCubicCurve& curve);
     ~KisCubicCurve();
     KisCubicCurve& operator=(const KisCubicCurve& curve);
@@ -69,22 +69,22 @@ public:
     /**
      * Deprecated. Use curvePoints instead
      */
-    Q_DECL_DEPRECATED QList<QPointF> points() const;
-    const QList<KisCubicCurvePoint>& curvePoints() const;
-    void setPoints(const QList<QPointF>& points);
-    void setPoints(const QList<KisCubicCurvePoint>& points);
+    Q_DECL_DEPRECATED PkList<PkPointF> points() const;
+    const PkList<KisCubicCurvePoint>& curvePoints() const;
+    void setPoints(const PkList<PkPointF>& points);
+    void setPoints(const PkList<KisCubicCurvePoint>& points);
     void setPoint(int idx, const KisCubicCurvePoint& point);
-    void setPoint(int idx, const QPointF& position, bool setAsCorner);
-    void setPoint(int idx, const QPointF& position);
-    void setPointPosition(int idx, const QPointF& position);
+    void setPoint(int idx, const PkPointF& position, bool setAsCorner);
+    void setPoint(int idx, const PkPointF& position);
+    void setPointPosition(int idx, const PkPointF& position);
     void setPointAsCorner(int idx, bool setAsCorner);
     /**
      * Add a point to the curve, the list of point is always sorted.
      * @return the index of the inserted point
      */
     int addPoint(const KisCubicCurvePoint& point);
-    int addPoint(const QPointF& position, bool setAsCorner);
-    int addPoint(const QPointF& position);
+    int addPoint(const PkPointF& position, bool setAsCorner);
+    int addPoint(const PkPointF& position);
     void removePoint(int idx);
 
     /*
@@ -102,17 +102,17 @@ public:
      * currently in Sketch for perchannel, but would potentially be useful anywhere
      * curves are used in the UI
      */
-    void setName(const QString& name);
-    const QString& name() const;
+    void setName(const PkString& name);
+    const PkString& name() const;
 
-    static qreal interpolateLinear(qreal normalizedValue, const QVector<qreal> &transfer);
+    static qreal interpolateLinear(qreal normalizedValue, const PkVector<qreal> &transfer);
 
 public:
-    const QVector<quint16> uint16Transfer(int size = 256) const;
-    const QVector<qreal> floatTransfer(int size = 256) const;
+    const PkVector<quint16> uint16Transfer(int size = 256) const;
+    const PkVector<qreal> floatTransfer(int size = 256) const;
 public:
-    QString toString() const;
-    Q_DECL_DEPRECATED void fromString(const QString&);
+    PkString toString() const;
+    Q_DECL_DEPRECATED void fromString(const PkString&);
 private:
     struct Data;
     struct Private;

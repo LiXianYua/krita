@@ -7,8 +7,8 @@
 #ifndef __KIS_FOUR_POINT_INTERPOLATOR_FORWARD_H
 #define __KIS_FOUR_POINT_INTERPOLATOR_FORWARD_H
 
-#include <QPolygon>
-#include <QPointF>
+#include <PkPolygon.h>
+#include <PkPoint.h>
 
 
 
@@ -22,7 +22,7 @@
 class KisFourPointInterpolatorForward
 {
 public:
-    KisFourPointInterpolatorForward(const QPolygonF &srcPolygon, const QPolygonF &dstPolygon) {
+    KisFourPointInterpolatorForward(const PkPolygonF &srcPolygon, const PkPolygonF &dstPolygon) {
         m_srcBase = srcPolygon[0];
         m_dstBase = dstPolygon[0];
 
@@ -38,7 +38,7 @@ public:
         m_yProp = 0;
     }
 
-    inline QPointF map(const QPointF &pt) {
+    inline PkPointF map(const PkPointF &pt) {
         setX(pt.x());
         setY(pt.y());
         return getValue();
@@ -54,8 +54,8 @@ public:
         m_yProp = diff * m_forwardCoeffY;
     }
 
-    inline QPointF getValue() const {
-        QPointF dstPoint = m_dstBase +
+    inline PkPointF getValue() const {
+        PkPointF dstPoint = m_dstBase +
             m_yProp * m_v0 +
             m_xProp * (m_yProp * m_h1 + (1.0 - m_yProp) * m_h0);
 
@@ -63,12 +63,12 @@ public:
     }
 
 private:
-    QPointF m_srcBase;
-    QPointF m_dstBase;
+    PkPointF m_srcBase;
+    PkPointF m_dstBase;
 
-    QPointF m_h0;
-    QPointF m_h1;
-    QPointF m_v0;
+    PkPointF m_h0;
+    PkPointF m_h1;
+    PkPointF m_v0;
 
     qreal m_forwardCoeffX;
     qreal m_forwardCoeffY;

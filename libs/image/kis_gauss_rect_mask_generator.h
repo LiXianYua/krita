@@ -10,6 +10,7 @@
 #define _KIS_GAUSS_RECT_MASK_GENERATOR_H_
 
 #include "kritaimage_export.h"
+#include <PkScopedPointer.h>
 
 #include "kis_base_mask_generator.h"
 
@@ -37,7 +38,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 
     friend struct FastRowProcessor<KisGaussRectangleMaskGenerator>;
 };

@@ -9,6 +9,7 @@
 #define __KIS_BRUSH_MASK_APPLICATOR_BASE_H
 
 #include <cmath>
+#include <PkRect.h>
 
 #include "kis_fixed_paint_device.h"
 #include "kis_types.h"
@@ -53,7 +54,7 @@ class KisBrushMaskApplicatorBase
 {
 public:
     virtual ~KisBrushMaskApplicatorBase() = default;
-    virtual void process(const QRect &rect) = 0;
+    virtual void process(const PkRect &rect) = 0;
 
     inline void initializeData(const MaskProcessingData *data) {
         m_d = data;
@@ -67,7 +68,7 @@ struct OperatorWrapper {
     OperatorWrapper(KisBrushMaskApplicatorBase *applicator)
         : m_applicator(applicator) {}
 
-    inline void operator()(const QRect &rect) const
+    inline void operator()(const PkRect &rect) const
     {
         m_applicator->process(rect);
     }

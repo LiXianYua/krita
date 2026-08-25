@@ -9,6 +9,10 @@
 #define KIS_CONVOLUTION_WORKER_SPATIAL_H
 
 #include "kis_convolution_worker.h"
+#include <PkContainerAlgo.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSize.h>
 #include "kis_math_toolbox.h"
 
 template <class _IteratorFactory_>
@@ -46,7 +50,7 @@ public:
 
     }
 
-    void execute(const KisConvolutionKernelSP kernel, const KisPaintDeviceSP src, QPoint srcPos, QPoint dstPos, QSize areaSize, const QRect& dataRect) override {
+    void execute(const KisConvolutionKernelSP kernel, const KisPaintDeviceSP src, PkPoint srcPos, PkPoint dstPos, PkSize areaSize, const PkRect& dataRect) override {
         // store some kernel characteristics
         m_kw = kernel->width();
         m_kh = kernel->height();
@@ -69,7 +73,7 @@ public:
 
         // Make the area we cover as small as possible
         if (this->m_painter->selection()) {
-            QRect r = this->m_painter->selection()->selectedRect().intersected(QRect(srcPos, areaSize));
+            PkRect r = this->m_painter->selection()->selectedRect().intersected(PkRect(srcPos, areaSize));
             dstPos += r.topLeft() - srcPos;
             srcPos = r.topLeft();
             areaSize = r.size();
@@ -112,11 +116,11 @@ public:
         }
 
         KisMathToolbox mathToolbox;
-        m_toDoubleFuncPtr = QVector<PtrToDouble>(m_convolveChannelsNo);
+        m_toDoubleFuncPtr = PkVector<PtrToDouble>(m_convolveChannelsNo);
         if (!mathToolbox.getToDoubleChannelPtr(m_convChannelList, m_toDoubleFuncPtr))
             return;
 
-        m_fromDoubleFuncPtr = QVector<PtrFromDouble>(m_convolveChannelsNo);
+        m_fromDoubleFuncPtr = PkVector<PtrFromDouble>(m_convolveChannelsNo);
         if (!mathToolbox.getFromDoubleChannelPtr(m_convChannelList, m_fromDoubleFuncPtr))
             return;
 
@@ -365,9 +369,9 @@ private:
     qreal* m_minClamp, *m_maxClamp, *m_absoluteOffset;
 
     qreal m_kernelFactor;
-    QList<KoChannelInfo *> m_convChannelList;
-    QVector<PtrToDouble> m_toDoubleFuncPtr;
-    QVector<PtrFromDouble> m_fromDoubleFuncPtr;
+    PkList<KoChannelInfo *> m_convChannelList;
+    PkVector<PtrToDouble> m_toDoubleFuncPtr;
+    PkVector<PtrFromDouble> m_fromDoubleFuncPtr;
 };
 
 

@@ -8,19 +8,21 @@
 #ifndef _KIS_CURVE_CIRCLE_MASK_GENERATOR_H_
 #define _KIS_CURVE_CIRCLE_MASK_GENERATOR_H_
 
-#include <QList>
-#include <QVector>
-#include <QScopedPointer>
+#include <PkContainerAlgo.h>
+#include <PkPoint.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkScopedPointer.h>
 
 #include "kritaimage_export.h"
 #include "kis_base_mask_generator.h"
 #include "kis_cubic_curve.h"
 
 class KisCubicCurve;
-class QDomElement;
-class QDomDocument;
+class PkXmlElement;
+class PkXmlDocument;
 
-class QPointF;
+class PkPointF;
 
 template<typename V>
 struct FastRowProcessor;
@@ -42,7 +44,7 @@ public:
 
     void setScale(qreal scaleX, qreal scaleY) override;
 
-    void toXML(QDomDocument& , QDomElement&) const override;
+    void toXML(PkXmlDocument& , PkXmlElement&) const override;
     void setSoftness(qreal softness) override;
 
     bool shouldVectorize() const override;
@@ -50,7 +52,7 @@ public:
 
     void setMaskScalarApplicator();
 
-    static void transformCurveForSoftness(qreal softness,const QList<KisCubicCurvePoint> &points, int curveResolution, QVector<qreal> &result);
+    static void transformCurveForSoftness(qreal softness,const PkList<KisCubicCurvePoint> &points, int curveResolution, PkVector<qreal> &result);
 
 private:
 
@@ -60,7 +62,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 
     friend struct FastRowProcessor<KisCurveCircleMaskGenerator>;
 };

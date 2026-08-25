@@ -8,8 +8,8 @@
 #ifndef __KIS_FOUR_POINT_INTERPOLATOR_BACKWARD_H
 #define __KIS_FOUR_POINT_INTERPOLATOR_BACKWARD_H
 
-#include <QPolygon>
-#include <QPointF>
+#include <PkPolygon.h>
+#include <PkPoint.h>
 
 #include "kis_global.h"
 #include "kis_algebra_2d.h"
@@ -27,7 +27,7 @@
 class KisFourPointInterpolatorBackward
 {
 public:
-    KisFourPointInterpolatorBackward(const QPolygonF &srcPolygon, const QPolygonF &dstPolygon) {
+    KisFourPointInterpolatorBackward(const PkPolygonF &srcPolygon, const PkPolygonF &dstPolygon) {
 #ifdef FPIB_DEBUG
         m_dbgSrcPolygon = srcPolygon;
         m_dbgDstPolygon = dstPolygon;
@@ -63,11 +63,11 @@ public:
         return sq1 + sq2 > 2 * toleranceSq;
     }
 
-    inline QPointF fallbackSourcePoint() const {
-        return m_srcBase + QPointF(0.5 * m_xCoeff, 0.5 * m_yCoeff);
+    inline PkPointF fallbackSourcePoint() const {
+        return m_srcBase + PkPointF(0.5 * m_xCoeff, 0.5 * m_yCoeff);
     }
 
-    inline QPointF map(const QPointF &pt) {
+    inline PkPointF map(const PkPointF &pt) {
         setX(pt.x());
         setY(pt.y());
         return getValue();
@@ -96,7 +96,7 @@ public:
     }
 
 
-    inline QPointF getValue() const {
+    inline PkPointF getValue() const {
         static const qreal eps = 1e-6; // pixels in Krita only get to 32-33k in every direction
 
 
@@ -169,7 +169,7 @@ public:
         qreal denoms[count] = {xDenomNu1, yDenomNu1, xDenomNu2, yDenomNu2};
         qreal mus[count] = {xMu1, yMu1, xMu2, yMu2};
         qreal nus[count] = {nu1, nu1, nu2, nu2};
-        QPointF results[count];
+        PkPointF results[count];
 #ifdef FPIB_DEBUG
         qCritical() << "For point: x = " << m_dbgOrigX << " y = " << m_dbgOrigY << " | src polygon = " << m_dbgSrcPolygon << " | dst polygon = " << m_dbgDstPolygon;
         for (int i = 0; i < count; i++) {
@@ -179,7 +179,7 @@ public:
 
         int bestI = -1;
         qreal distanceFromCenter = 0.0;
-        QPointF center = fallbackSourcePoint();
+        PkPointF center = fallbackSourcePoint();
 
         int meaningfulCount = dontCheckOtherNu ? 2 : 4;
         for (int i = 0; i < meaningfulCount; i++) {
@@ -231,8 +231,8 @@ private:
         return (m_py - nu * m_c.y()) / yBasedDenominator;
     }
 
-    inline QPointF getResult(qreal nu, qreal mu) const {
-        return m_srcBase + QPointF(mu * m_xCoeff, nu * m_yCoeff);
+    inline PkPointF getResult(qreal nu, qreal mu) const {
+        return m_srcBase + PkPointF(mu * m_xCoeff, nu * m_yCoeff);
     }
 
     inline bool inGoodRange(qreal value) const {
@@ -241,10 +241,10 @@ private:
 
 
 private:
-    QPointF m_a; // AB
-    QPointF m_b; // BD
-    QPointF m_c; // AC
-    QPointF m_d; // m_b - m_c
+    PkPointF m_a; // AB
+    PkPointF m_b; // BD
+    PkPointF m_c; // AC
+    PkPointF m_d; // m_b - m_c
 
     qreal m_qA {0.0}; // quadratic equation A coeff
     qreal m_qB_const {0.0}; // quadratic equation B coeff, const part
@@ -256,14 +256,14 @@ private:
     qreal m_px {0.0}; // saved relative X coordinate
     qreal m_py {0.0}; // saved relative Y coordinate
 
-    QPointF m_srcBase;
-    QPointF m_dstBase;
+    PkPointF m_srcBase;
+    PkPointF m_dstBase;
     qreal m_xCoeff {0.0};
     qreal m_yCoeff {0.0};
 
 #ifdef FPIB_DEBUG
-    QPolygonF m_dbgDstPolygon;
-    QPolygonF m_dbgSrcPolygon;
+    PkPolygonF m_dbgDstPolygon;
+    PkPolygonF m_dbgSrcPolygon;
 
     qreal m_dbgOrigX;
     qreal m_dbgOrigY;

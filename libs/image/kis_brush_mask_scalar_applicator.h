@@ -10,6 +10,7 @@
 #define KIS_BRUSH_SCALAR_APPLICATOR_H
 
 #include "kis_brush_mask_applicator_base.h"
+#include <PkRect.h>
 #include "kis_global.h"
 #include "kis_random_source.h"
 
@@ -20,13 +21,13 @@ struct KisBrushMaskScalarApplicator : public KisBrushMaskApplicatorBase {
     {
     }
 
-    void process(const QRect &rect) override
+    void process(const PkRect &rect) override
     {
         processScalar(rect);
     }
 
 protected:
-    void processScalar(const QRect &rect)
+    void processScalar(const PkRect &rect)
     {
         const MaskProcessingData *m_d = KisBrushMaskApplicatorBase::m_d;
         MaskGenerator *m_maskGenerator = KisBrushMaskScalarApplicator<MaskGenerator, impl>::m_maskGenerator;

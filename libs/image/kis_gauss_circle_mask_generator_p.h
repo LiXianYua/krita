@@ -8,6 +8,7 @@
 #define _KIS_GAUSS_MASK_GENERATOR_P_H_
 
 #include "kis_antialiasing_fade_maker.h"
+#include <PkScopedPointer.h>
 #include "kis_brush_mask_applicator_base.h"
 
 struct Q_DECL_HIDDEN KisGaussCircleMaskGenerator::Private
@@ -34,7 +35,7 @@ struct Q_DECL_HIDDEN KisGaussCircleMaskGenerator::Private
     qreal alphafactor {0.0};
     KisAntialiasingFadeMaker1D<Private> fadeMaker;
 
-    QScopedPointer<KisBrushMaskApplicatorBase> applicator;
+    PkScopedPointer<KisBrushMaskApplicatorBase> applicator;
 
     inline quint8 value(qreal dist) const;
 

@@ -8,7 +8,7 @@
 #ifndef KIS_GAUSS_RECT_MASK_GENERATOR_P_H
 #define KIS_GAUSS_RECT_MASK_GENERATOR_P_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "kis_antialiasing_fade_maker.h"
 #include "kis_brush_mask_applicator_base.h"
@@ -38,7 +38,7 @@ struct Q_DECL_HIDDEN KisGaussRectangleMaskGenerator::Private
 
     KisAntialiasingFadeMaker2D <Private> fadeMaker;
 
-    QScopedPointer<KisBrushMaskApplicatorBase> applicator;
+    PkScopedPointer<KisBrushMaskApplicatorBase> applicator;
 
     inline quint8 value(qreal x, qreal y) const;
 

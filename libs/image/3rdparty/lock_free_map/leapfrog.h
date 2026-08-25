@@ -12,6 +12,7 @@
 #define LEAPFROG_H
 
 #include "map_traits.h"
+#include <PkMutex.h>
 #include "simple_job_coordinator.h"
 #include "kis_assert.h"
 
@@ -50,7 +51,7 @@ struct Leapfrog {
 
     struct Table {
         const quint64 sizeMask;                 // a power of two minus one
-        QMutex mutex;                   // to DCLI the TableMigration (stored in the jobCoordinator)
+        PkMutex mutex;                   // to DCLI the TableMigration (stored in the jobCoordinator)
         SimpleJobCoordinator jobCoordinator; // makes all blocked threads participate in the migration
 
         Table(quint64 sizeMask) : sizeMask(sizeMask)
@@ -311,7 +312,7 @@ struct Leapfrog {
         if (job) {
             // new migration already exists
         } else {
-            QMutexLocker guard(&table->mutex);
+            PkMutexLocker guard(&table->mutex);
             job = table->jobCoordinator.loadConsume(); // Non-atomic would be sufficient, but that's OK.
 
             if (job) {
@@ -541,7 +542,7 @@ endMigration:
     } else {
         // The migration failed due to the overflow of the destination table.
         Table* origTable = getSources()[0].table;
-        QMutexLocker guard(&origTable->mutex);
+        PkMutexLocker guard(&origTable->mutex);
         SimpleJobCoordinator::Job* checkedJob = origTable->jobCoordinator.loadConsume();
 
         if (checkedJob != this) {

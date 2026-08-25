@@ -8,6 +8,7 @@
 #define __KIS_FILTER_WEIGHTS_APPLICATOR_H
 
 #include "kis_fixed_point_maths.h"
+#include <PkRect.h>
 #include "kis_filter_weights_buffer.h"
 #include "kis_iterator_ng.h"
 
@@ -152,8 +153,8 @@ public:
 
         /**
          * WARNING: be careful! This is not the same as
-         * QRect::right()!  This is an equivalent of (QRect::right() +
-         * QRect::width()) or QRectF::right(), that is it points to
+         * PkRect::right()!  This is an equivalent of (PkRect::right() +
+         * PkRect::width()) or PkRectF::right(), that is it points to
          * the pixel after(!) the actual last pixel.  See Qt docs for
          * more info about this historical difference.
          */

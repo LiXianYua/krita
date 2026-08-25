@@ -8,14 +8,15 @@
   See the LICENSE file for more information.
 ------------------------------------------------------------------------*/
 
-#ifndef QSBR_H
-#define QSBR_H
+#ifndef PkSbr_H
+#define PkSbr_H
 
 #include <kis_lockless_stack.h>
+#include <PkAtomic.h>
 
 #define CALL_MEMBER(obj, pmf) ((obj).*(pmf))
 
-class QSBR
+class PkSbr
 {
 private:
     struct Action {
@@ -36,7 +37,7 @@ private:
         }
     };
 
-    QAtomicInt m_rawPointerUsers;
+    PkAtomicInt m_rawPointerUsers;
     KisLocklessStack<Action> m_pendingActions;
     KisLocklessStack<Action> m_migrationReclaimActions;
 
@@ -117,4 +118,4 @@ public:
     }
 };
 
-#endif // QSBR_H
+#endif // PkSbr_H

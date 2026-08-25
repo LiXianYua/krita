@@ -10,8 +10,7 @@
 #ifndef _KIS_CUBIC_CURVE_SPLINE_H_
 #define _KIS_CUBIC_CURVE_SPLINE_H_
 
-#include <QVector>
-#include <QList>
+#include <PkContainerAlgo.h>
 
 #include <Eigen/Sparse>
 
@@ -35,13 +34,13 @@ public:
      * @return - vector that is storing x[]
      */
     static
-    QVector<T> calculate(QList<T> &a,
-                         QList<T> &b,
-                         QList<T> &c,
-                         QList<T> &f) {
-        QVector<T> x;
-        QVector<T> alpha;
-        QVector<T> beta;
+    PkVector<T> calculate(PkList<T> &a,
+                         PkList<T> &b,
+                         PkList<T> &c,
+                         PkList<T> &f) {
+        PkVector<T> x;
+        PkVector<T> alpha;
+        PkVector<T> beta;
 
         int i;
         int size = b.size();
@@ -106,19 +105,19 @@ class KisLegacyCubicSpline
      */
 
 protected:
-    QList<T> m_a;
-    QVector<T> m_b;
-    QVector<T> m_c;
-    QVector<T> m_d;
+    PkList<T> m_a;
+    PkVector<T> m_b;
+    PkVector<T> m_c;
+    PkVector<T> m_d;
 
-    QVector<T> m_h;
+    PkVector<T> m_h;
     T m_begin;
     T m_end;
     int m_intervals {0};
 
 public:
     KisLegacyCubicSpline() {}
-    KisLegacyCubicSpline(const QList<T_point> &a) {
+    KisLegacyCubicSpline(const PkList<T_point> &a) {
         createSpline(a);
     }
 
@@ -128,7 +127,7 @@ public:
      *
      * @a - base points of the spline
      */
-    void createSpline(const QList<T_point> &a) {
+    void createSpline(const PkList<T_point> &a) {
         int intervals = m_intervals = a.size() - 1;
         int i;
         m_begin = a.first().x();
@@ -147,9 +146,9 @@ public:
         m_a.append(a.last().y());
 
 
-        QList<T> tri_b;
-        QList<T> tri_f;
-        QList<T> tri_a; /* equals to @tri_c */
+        PkList<T> tri_b;
+        PkList<T> tri_f;
+        PkList<T> tri_a; /* equals to @tri_c */
 
         for (i = 0; i < intervals - 1; i++) {
             tri_b.append(2.*(m_h[i] + m_h[i+1]));
@@ -227,7 +226,7 @@ class KisCubicSpline
 {
 public:
     KisCubicSpline() {}
-    KisCubicSpline(const QList<T_point> &a) {
+    KisCubicSpline(const PkList<T_point> &a) {
         createSpline(a);
     }
 
@@ -237,7 +236,7 @@ public:
      *
      * @a - base points of the spline
      */
-    void createSpline(const QList<T_point> &a) {
+    void createSpline(const PkList<T_point> &a) {
         KIS_SAFE_ASSERT_RECOVER_RETURN(a.size() > 0);
 
         const int intervals = a.size() - 1;
@@ -387,8 +386,8 @@ private:
         T a, b, c, d;
     };
 
-    QList<T_point> m_points;
-    QList<Coefficients> m_coefficients;
+    PkList<T_point> m_points;
+    PkList<Coefficients> m_coefficients;
 };
 
 #endif

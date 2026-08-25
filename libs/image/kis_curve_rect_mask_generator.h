@@ -9,10 +9,13 @@
 #define _KIS_CURVE_RECT_MASK_GENERATOR_H_
 
 #include "kritaimage_export.h"
+#include <PkScopedPointer.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 class KisCubicCurve;
-class QDomElement;
-class QDomDocument;
+class PkXmlElement;
+class PkXmlDocument;
 
 #include "kis_base_mask_generator.h"
 
@@ -35,7 +38,7 @@ public:
 
     void setScale(qreal scaleX, qreal scaleY) override;
 
-    void toXML(QDomDocument& , QDomElement&) const override;
+    void toXML(PkXmlDocument& , PkXmlElement&) const override;
     
     void setSoftness(qreal softness) override;
 
@@ -45,7 +48,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 
     friend struct FastRowProcessor<KisCurveRectangleMaskGenerator>;
 };

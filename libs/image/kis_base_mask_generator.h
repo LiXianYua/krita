@@ -8,15 +8,19 @@
 #ifndef _KIS_MASK_GENERATOR_H_
 #define _KIS_MASK_GENERATOR_H_
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkContainerAlgo.h>
+#include <PkString.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 #include <KoID.h>
 #include <klocalizedstring.h>
 
 #include "kritaimage_export.h"
 
-class QDomElement;
-class QDomDocument;
+class PkXmlElement;
+class PkXmlDocument;
 class KisBrushMaskApplicatorBase;
 
 const KoID DefaultId("default", ki18n("Default")); ///< generate Krita default mask generator
@@ -74,12 +78,12 @@ public:
 
     virtual KisBrushMaskApplicatorBase *applicator() const = 0;
 
-    virtual void toXML(QDomDocument& , QDomElement&) const;
+    virtual void toXML(PkXmlDocument& , PkXmlElement&) const;
 
     /**
      * Unserialise a \ref KisMaskGenerator
      */
-    static KisMaskGenerator* fromXML(const QDomElement&);
+    static KisMaskGenerator* fromXML(const PkXmlElement&);
 
     qreal width() const;
 
@@ -96,16 +100,16 @@ public:
     bool isEmpty() const;
     void fixRotation(qreal &xr, qreal &yr) const;
     
-    inline QString id() const { return m_id.id(); }
-    inline QString name() const { return m_id.name(); }
+    inline PkString id() const { return m_id.id(); }
+    inline PkString name() const { return m_id.name(); }
 
-    static QList<KoID> maskGeneratorIds();
+    static PkList<KoID> maskGeneratorIds();
     
     qreal softness() const;
     virtual void setSoftness(qreal softness);
     
-    QString curveString() const;
-    void setCurveString(const QString& curveString);
+    PkString curveString() const;
+    void setCurveString(const PkString& curveString);
 
     bool antialiasEdges() const;
     virtual void setScale(qreal scaleX, qreal scaleY);
@@ -116,7 +120,7 @@ protected:
 
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
     const KoID& m_id;
 };
 

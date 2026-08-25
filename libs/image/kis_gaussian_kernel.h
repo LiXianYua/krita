@@ -8,12 +8,14 @@
 #define __KIS_GAUSSIAN_KERNEL_H
 
 #include "kritaimage_export.h"
+#include <PkBitArray.h>
+#include <PkRect.h>
 #include "kis_types.h"
 #include "kis_convolution_painter.h"
 
 #include <Eigen/Core>
 
-class QRect;
+class PkRect;
 
 class KRITAIMAGE_EXPORT KisGaussianKernel
 {
@@ -37,9 +39,9 @@ public:
     static int kernelSizeFromRadius(qreal radius);
 
     static void applyGaussian(KisPaintDeviceSP device,
-                              const QRect& rect,
+                              const PkRect& rect,
                               qreal xRadius, qreal yRadius,
-                              const QBitArray &channelFlags,
+                              const PkBitArray &channelFlags,
                               KoUpdater *updater,
                               bool createTransaction = false,
                               KisConvolutionBorderOp borderOp = BORDER_REPEAT);
@@ -47,32 +49,32 @@ public:
     static Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> createLoGMatrix(qreal radius, qreal coeff, bool zeroCentered, bool includeWrappedArea);
 
     static void applyLoG(KisPaintDeviceSP device,
-                         const QRect& rect,
+                         const PkRect& rect,
                          qreal radius,
                          qreal coeff,
-                         const QBitArray &channelFlags,
+                         const PkBitArray &channelFlags,
                          KoUpdater *progressUpdater);
 
     static void applyTightLoG(KisPaintDeviceSP device,
-                              const QRect& rect,
+                              const PkRect& rect,
                               qreal radius, qreal coeff,
-                              const QBitArray &channelFlags,
+                              const PkBitArray &channelFlags,
                               KoUpdater *progressUpdater);
 
 
     static Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> createDilateMatrix(qreal radius);
 
     static void applyDilate(KisPaintDeviceSP device,
-                            const QRect& rect,
+                            const PkRect& rect,
                             qreal radius,
-                            const QBitArray &channelFlags,
+                            const PkBitArray &channelFlags,
                             KoUpdater *progressUpdater,
                             bool createTransaction = false);
 
     static void applyErodeU8(KisPaintDeviceSP device,
-                             const QRect& rect,
+                             const PkRect& rect,
                              qreal radius,
-                             const QBitArray &channelFlags,
+                             const PkBitArray &channelFlags,
                              KoUpdater *progressUpdater,
                              bool createTransaction = false);
 };

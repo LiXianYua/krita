@@ -11,7 +11,7 @@
 #include "kritaimage_export.h"
 
 #include "kis_base_mask_generator.h"
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 template <typename V>
 struct FastRowProcessor;
@@ -46,7 +46,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 
     friend struct FastRowProcessor<KisCircleMaskGenerator>;
 };

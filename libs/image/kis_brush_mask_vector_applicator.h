@@ -10,6 +10,7 @@
 #define KIS_BRUSH_VECTOR_APPLICATOR_H
 
 #include <xsimd_extensions/xsimd.hpp>
+#include <PkRect.h>
 
 #if !defined(XSIMD_NO_SUPPORTED_ARCHITECTURE) && XSIMD_UNIVERSAL_BUILD_PASS
 
@@ -35,13 +36,13 @@ struct KisBrushMaskVectorApplicator : public KisBrushMaskScalarApplicator<MaskGe
     {
     }
 
-    void process(const QRect &rect) override
+    void process(const PkRect &rect) override
     {
         startProcessing(rect, TypeHelper<MaskGenerator, _impl>());
     }
 
 protected:
-    void processVector(const QRect &rect);
+    void processVector(const PkRect &rect);
 
 private:
     template<class U, typename V>
@@ -50,13 +51,13 @@ private:
 
 private:
     template<class U>
-    inline void startProcessing(const QRect &rect, TypeHelper<U, xsimd::generic>)
+    inline void startProcessing(const PkRect &rect, TypeHelper<U, xsimd::generic>)
     {
         KisBrushMaskScalarApplicator<MaskGenerator, _impl>::processScalar(rect);
     }
 
     template<class U, typename V>
-    inline void startProcessing(const QRect &rect, TypeHelper<U, V>)
+    inline void startProcessing(const PkRect &rect, TypeHelper<U, V>)
     {
         MaskGenerator *m_maskGenerator = KisBrushMaskScalarApplicator<MaskGenerator, _impl>::m_maskGenerator;
 
@@ -69,7 +70,7 @@ private:
 };
 
 template<class MaskGenerator, typename impl>
-void KisBrushMaskVectorApplicator<MaskGenerator, impl>::processVector(const QRect &rect)
+void KisBrushMaskVectorApplicator<MaskGenerator, impl>::processVector(const PkRect &rect)
 {
     using float_v = xsimd::batch<float, impl>;
 

@@ -7,7 +7,8 @@
 #ifndef KIS_CURVE_RECT_MASK_GENERATOR_P_H
 #define KIS_CURVE_RECT_MASK_GENERATOR_P_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
+#include <PkContainerAlgo.h>
 
 #include "kis_antialiasing_fade_maker.h"
 #include "kis_brush_mask_applicator_base.h"
@@ -34,12 +35,12 @@ struct Q_DECL_HIDDEN KisCurveRectangleMaskGenerator::Private
     qreal xcoeff {0.0};
     qreal ycoeff {0.0};
     qreal curveResolution {0.0};
-    QVector<qreal> curveData;
-    QList<KisCubicCurvePoint> curvePoints;
+    PkVector<qreal> curveData;
+    PkList<KisCubicCurvePoint> curvePoints;
     bool dirty {false};
 
     KisAntialiasingFadeMaker2D<Private> fadeMaker;
-    QScopedPointer<KisBrushMaskApplicatorBase> applicator;
+    PkScopedPointer<KisBrushMaskApplicatorBase> applicator;
 
     inline quint8 value(qreal xr, qreal yr) const;
 };

@@ -9,17 +9,17 @@
 #define KIS_CONVOLUTION_WORKER_FFT_H
 
 #include <iostream>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSize.h>
 
 #include <KoChannelInfo.h>
 
 #include "kis_convolution_worker.h"
 #include "kis_math_toolbox.h"
 
-#include <QMutex>
-#include <QVector>
-#include <QTextStream>
-#include <QFile>
-#include <QDir>
+#include <PkMutex.h>
+#include <PkContainerAlgo.h>
 
 #include <KisPortingUtils.h>
 
@@ -29,11 +29,11 @@ template<class _IteratorFactory_> class KisConvolutionWorkerFFT;
 class KisConvolutionWorkerFFTLock
 {
 private:
-    static QMutex fftwMutex;
+    static PkMutex fftwMutex;
     template<class _IteratorFactory_> friend class KisConvolutionWorkerFFT;
 };
 
-QMutex KisConvolutionWorkerFFTLock::fftwMutex;
+PkMutex KisConvolutionWorkerFFTLock::fftwMutex;
 
 
 template<class _IteratorFactory_>
@@ -51,15 +51,15 @@ public:
 
     void execute(const KisConvolutionKernelSP kernel,
                  const KisPaintDeviceSP src,
-                 QPoint srcPos,
-                 QPoint dstPos,
-                 QSize areaSize,
-                 const QRect &dataRect) override
+                 PkPoint srcPos,
+                 PkPoint dstPos,
+                 PkSize areaSize,
+                 const PkRect &dataRect) override
     {
         // Make the area we cover as small as possible
         if (this->m_painter->selection())
         {
-            QRect r = this->m_painter->selection()->selectedRect().intersected(QRect(srcPos, areaSize));
+            PkRect r = this->m_painter->selection()->selectedRect().intersected(PkRect(srcPos, areaSize));
             dstPos += r.topLeft() - srcPos;
             srcPos = r.topLeft();
             areaSize = r.size();
@@ -93,7 +93,7 @@ public:
         fftFillKernelMatrix(kernel, m_kernelFFT);
 
         // find out which channels need convolving
-        QList<KoChannelInfo*> convChannelList = this->convolvableChannelList(src);
+        PkList<KoChannelInfo*> convChannelList = this->convolvableChannelList(src);
 
         m_channelFFT.resize(convChannelList.count());
         for (auto i = m_channelFFT.begin(); i != m_channelFFT.end(); ++i) {
@@ -107,7 +107,7 @@ public:
         int cacheRowStride = m_fftWidth + m_extraMem;
 
         fillCacheFromDevice(src,
-                            QRect(srcPos.x() - halfKernelWidth,
+                            PkRect(srcPos.x() - halfKernelWidth,
                                   srcPos.y() - halfKernelHeight,
                                   m_fftWidth,
                                   m_fftHeight),
@@ -151,7 +151,7 @@ public:
         KisConvolutionWorkerFFTLock::fftwMutex.unlock();
 
 
-        writeResultToDevice(QRect(dstPos.x(), dstPos.y(), areaSize.width(), areaSize.height()),
+        writeResultToDevice(PkRect(dstPos.x(), dstPos.y(), areaSize.width(), areaSize.height()),
                             cacheRowStride, halfKernelWidth, halfKernelHeight,
                             info, dataRect);
 
@@ -161,7 +161,7 @@ public:
 
     struct FFTInfo {
         FFTInfo(qreal _fftScale,
-                const QList<KoChannelInfo*> &_convChannelList,
+                const PkList<KoChannelInfo*> &_convChannelList,
                 const KisConvolutionKernelSP kernel,
                 const KoColorSpace */*colorSpace*/)
             : fftScale(_fftScale),
@@ -196,26 +196,26 @@ public:
         }
 
 
-        QVector<qreal> minClamp;
-        QVector<qreal> maxClamp;
-        QVector<qreal> absoluteOffset;
+        PkVector<qreal> minClamp;
+        PkVector<qreal> maxClamp;
+        PkVector<qreal> absoluteOffset;
 
         qreal fftScale {0.0};
-        QList<KoChannelInfo*> convChannelList;
+        PkList<KoChannelInfo*> convChannelList;
 
-        QVector<PtrToDouble> toDoubleFuncPtr;
-        QVector<PtrFromDouble> fromDoubleFuncPtr;
-        QVector<PtrFromDoubleCheckNull> fromDoubleCheckNullFuncPtr;
+        PkVector<PtrToDouble> toDoubleFuncPtr;
+        PkVector<PtrFromDouble> fromDoubleFuncPtr;
+        PkVector<PtrFromDoubleCheckNull> fromDoubleCheckNullFuncPtr;
 
         int alphaCachePos {-1};
         int alphaRealPos {-1};
     };
 
     void fillCacheFromDevice(KisPaintDeviceSP src,
-                             const QRect &rect,
+                             const PkRect &rect,
                              const int cacheRowStride,
                              const FFTInfo &info,
-                             const QRect &dataRect) {
+                             const PkRect &dataRect) {
 
         typename _IteratorFactory_::HLineConstIterator hitSrc =
             _IteratorFactory_::createHLineConstIterator(src,
@@ -223,7 +223,7 @@ public:
                                                         dataRect);
 
         const int channelCount = info.numChannels();
-        QVector<double*> channelPtr(channelCount);
+        PkVector<double*> channelPtr(channelCount);
         const auto channelPtrBegin = channelPtr.begin();
         const auto channelPtrEnd = channelPtr.end();
 
@@ -233,7 +233,7 @@ public:
         }
 
         // prepare cache, reused in all loops
-        QVector<double*> cacheRowStart(channelCount);
+        PkVector<double*> cacheRowStart(channelCount);
         const auto cacheRowStartBegin = cacheRowStart.begin();
 
         for (int y = 0; y < rect.height(); ++y) {
@@ -315,12 +315,12 @@ public:
         return channelPixelValue;
     }
 
-    void writeResultToDevice(const QRect &rect,
+    void writeResultToDevice(const PkRect &rect,
                              const int cacheRowStride,
                              const int halfKernelWidth,
                              const int halfKernelHeight,
                              const FFTInfo &info,
-                             const QRect &dataRect) {
+                             const PkRect &dataRect) {
 
         typename _IteratorFactory_::HLineIterator hitDst =
             _IteratorFactory_::createHLineIterator(this->m_painter->device(),
@@ -330,7 +330,7 @@ public:
         int initialOffset = cacheRowStride * halfKernelHeight + halfKernelWidth;
 
         const int channelCount = info.numChannels();
-        QVector<double*> channelPtr(channelCount);
+        PkVector<double*> channelPtr(channelCount);
         const auto channelPtrBegin = channelPtr.begin();
         const auto channelPtrEnd = channelPtr.end();
 
@@ -340,7 +340,7 @@ public:
         }
 
         // prepare cache, reused in all loops
-        QVector<double*> cacheRowStart(channelCount);
+        PkVector<double*> cacheRowStart(channelCount);
         const auto cacheRowStartBegin = cacheRowStart.begin();
 
         for (int y = 0; y < rect.height(); ++y) {
@@ -415,7 +415,7 @@ private:
     void fftFillKernelMatrix(const KisConvolutionKernelSP kernel, fftw_complex *m_kernelFFT)
     {
         // find central item
-        QPoint offset((kernel->width() - 1) / 2, (kernel->height() - 1) / 2);
+        PkPoint offset((kernel->width() - 1) / 2, (kernel->height() - 1) / 2);
 
         qint32 xShift = m_fftWidth - offset.x();
         qint32 yShift = m_fftHeight - offset.y();
@@ -482,36 +482,6 @@ private:
         }
     }
 
-    void fftLogMatrix(double* channel, const QString &f)
-    {
-        KisConvolutionWorkerFFTLock::fftwMutex.lock();
-        QString filename(QDir::homePath() + "/log_" + f + ".txt");
-        dbgKrita << "Log File Name: " << filename;
-        QFile file (filename);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
-        {
-            dbgKrita << "Failed";
-            KisConvolutionWorkerFFTLock::fftwMutex.unlock();
-            return;
-        }
-
-        QTextStream in(&file);
-        KisPortingUtils::setUtf8OnStream(in);
-        for (quint32 y = 0; y < m_fftHeight; y++)
-        {
-            for (quint32 x = 0; x < m_fftWidth; x++)
-            {
-                QString num = QString::number(channel[y * m_fftWidth + x]);
-                while (num.length() < 15)
-                    num += " ";
-
-                in << num << " ";
-            }
-            in << "\n";
-        }
-        KisConvolutionWorkerFFTLock::fftwMutex.unlock();
-    }
-
     void addToProgress(float amount)
     {
         m_currentProgress += amount;
@@ -551,7 +521,7 @@ private:
     float m_currentProgress {0.0};
 
     fftw_complex* m_kernelFFT {0};
-    QVector<fftw_complex*> m_channelFFT;
+    PkVector<fftw_complex*> m_channelFFT;
 };
 
 #endif

@@ -7,6 +7,7 @@
 #ifndef _KIS_CIRCLE_MASK_GENERATOR_P_H_
 #define _KIS_CIRCLE_MASK_GENERATOR_P_H_
 
+#include <PkScopedPointer.h>
 struct Q_DECL_HIDDEN KisCircleMaskGenerator::Private {
     Private()
         : xcoef(0),
@@ -38,7 +39,7 @@ struct Q_DECL_HIDDEN KisCircleMaskGenerator::Private {
     double transformedFadeX, transformedFadeY;
     bool copyOfAntialiasEdges;
 
-    QScopedPointer<KisBrushMaskApplicatorBase> applicator;
+    PkScopedPointer<KisBrushMaskApplicatorBase> applicator;
 };
 
 #endif /* _KIS_CIRCLE_MASK_GENERATOR_P_H_ */

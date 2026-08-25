@@ -27,7 +27,7 @@ public:
 
 private:
     Atomic<typename Details::Table*> m_root;
-    QSBR m_gc;
+    PkSbr m_gc;
 
 public:
     ConcurrentMap(quint64 capacity = Details::InitialSize) : m_root(Details::Table::create(capacity))
@@ -41,7 +41,7 @@ public:
         m_gc.flush();
     }
 
-    QSBR &getGC()
+    PkSbr &getGC()
     {
         return m_gc;
     }
@@ -61,7 +61,7 @@ public:
 
     // A Mutator represents a known cell in the hash table.
     // It's meant for manipulations within a temporary function scope.
-    // Obviously you must not call QSBR::Update while holding a Mutator.
+    // Obviously you must not call PkSbr::Update while holding a Mutator.
     // Any operation that modifies the table (exchangeValue, eraseValue)
     // may be forced to follow a redirected cell, which changes the Mutator itself.
     // Note that even if the Mutator was constructed from an existing cell,

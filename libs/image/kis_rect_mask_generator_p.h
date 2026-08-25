@@ -8,6 +8,7 @@
 #ifndef KIS_RECT_MASK_GENERATOR_P_H
 #define KIS_RECT_MASK_GENERATOR_P_H
 
+#include <PkScopedPointer.h>
 struct Q_DECL_HIDDEN KisRectangleMaskGenerator::Private {
     Private()
         : xcoeff(0),
@@ -39,7 +40,7 @@ struct Q_DECL_HIDDEN KisRectangleMaskGenerator::Private {
 
     bool copyOfAntialiasEdges;
 
-    QScopedPointer<KisBrushMaskApplicatorBase> applicator;
+    PkScopedPointer<KisBrushMaskApplicatorBase> applicator;
 };
 
 

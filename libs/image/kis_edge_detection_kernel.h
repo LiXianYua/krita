@@ -8,12 +8,15 @@
 #define KIS_EDGE_DETECTION_KERNEL_H
 
 #include "kritaimage_export.h"
+#include <PkBitArray.h>
+#include <PkContainerAlgo.h>
+#include <PkRect.h>
 #include "kis_types.h"
 
 #include <Eigen/Core>
 #include <boost/optional.hpp>
 
-class QRect;
+class PkRect;
 
 class KRITAIMAGE_EXPORT KisEdgeDetectionKernel
 {
@@ -84,10 +87,10 @@ public:
      * this is useful for fringe effects.
      */
     static void applyEdgeDetection(KisPaintDeviceSP device,
-                              const QRect& rect,
+                              const PkRect& rect,
                               qreal xRadius, qreal yRadius,
                               FilterType type,
-                              const QBitArray &channelFlags,
+                              const PkBitArray &channelFlags,
                               KoUpdater *progressUpdater,
                               FilterOutput output = pythagorean,
                               bool writeToAlpha = false);
@@ -106,14 +109,14 @@ public:
      * @param progressUpdater
      */
     static void convertToNormalMap(KisPaintDeviceSP device,
-                                  const QRect & rect,
+                                  const PkRect & rect,
                                   qreal xRadius,
                                   qreal yRadius,
                                   FilterType type,
                                   int channelToConvert,
-                                  QVector<int> channelOrder,
-                                  QVector<bool> channelFlip,
-                                  const QBitArray &channelFlags,
+                                  PkVector<int> channelOrder,
+                                  PkVector<bool> channelFlip,
+                                  const PkBitArray &channelFlags,
                                   KoUpdater *progressUpdater,
                                   boost::optional<bool> useFftw = boost::none);
 };

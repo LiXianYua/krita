@@ -11,9 +11,8 @@
 #ifndef SIMPLEJOBCOORDINATOR_H
 #define SIMPLEJOBCOORDINATOR_H
 
-#include <QMutex>
-#include <QWaitCondition>
-#include <QMutexLocker>
+#include <PkMutex.h>
+#include <PkWaitCondition.h>
 
 #include "kis_assert.h"
 #include "atomic.h"
@@ -33,8 +32,8 @@ public:
 
 private:
     Atomic<quint64> m_job;
-    QMutex mutex;
-    QWaitCondition condVar;
+    PkMutex mutex;
+    PkWaitCondition condVar;
 
 public:
     SimpleJobCoordinator() : m_job(quint64(NULL))
@@ -49,7 +48,7 @@ public:
     void storeRelease(Job* job)
     {
         {
-            QMutexLocker guard(&mutex);
+            PkMutexLocker guard(&mutex);
             m_job.store(quint64(job), Release);
         }
 
@@ -63,7 +62,7 @@ public:
         for (;;) {
             quint64 job = m_job.load(Consume);
             if (job == prevJob) {
-                QMutexLocker guard(&mutex);
+                PkMutexLocker guard(&mutex);
 
                 for (;;) {
                     job = m_job.loadNonatomic(); // No concurrent writes inside lock
@@ -96,7 +95,7 @@ public:
     void end()
     {
         {
-            QMutexLocker guard(&mutex);
+            PkMutexLocker guard(&mutex);
             m_job.store(1, Release);
         }
 

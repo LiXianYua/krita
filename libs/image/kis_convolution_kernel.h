@@ -8,13 +8,15 @@
 #define _KIS_CONVOLUTION_KERNEL_H_
 
 #include <cstddef>
+#include <PkDebug.h>
+#include <PkImage.h>
 #include <Eigen/Core>
 #include "kis_shared.h"
 #include "kritaimage_export.h"
 #include "kis_types.h"
 
 class KisMaskGenerator;
-class QImage;
+class PkImage;
 
 class KRITAIMAGE_EXPORT KisConvolutionKernel : public KisShared
 {
@@ -35,7 +37,7 @@ public:
     Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic>& data();
     const Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> * data() const;
 
-    static KisConvolutionKernelSP fromQImage(const QImage& image);
+    static KisConvolutionKernelSP fromQImage(const PkImage& image);
     static KisConvolutionKernelSP fromMaskGenerator(KisMaskGenerator *, qreal angle = 0.0);
     static KisConvolutionKernelSP fromMatrix(Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> matrix, qreal offset, qreal factor);
 private:
@@ -44,7 +46,7 @@ private:
 
 };
 
-class QDebug;
+class PkDebug;
 
-QDebug operator<<(QDebug debug, const KisConvolutionKernel &c);
+PkDebug operator<<(PkDebug debug, const KisConvolutionKernel &c);
 #endif
