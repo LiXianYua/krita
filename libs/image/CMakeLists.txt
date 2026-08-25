@@ -289,6 +289,20 @@ kis_define_image_object_lib(kritaimage_bsplines_objects SOURCES
 # —— 顶层核心（KisImage/KisNode/KisPaintDevice/KisPainter 等）——
 
 kis_define_image_object_lib(kritaimage_core_objects SOURCES
+    # [GAP 排除] 14 个核心 GAP 文件（Task 8 批次A/C2 登记，判据⑨ 严格补）：仍依赖
+    # 真实 Qt 头（QImage/QPainter/QFile/QTimer/KConfig 等），主树去 Qt 配置下编不过
+    # （实测 kis_image_config.cpp.o 直接编译 exit=1）。与薄壳 SHELL_SOURCES 的
+    # [GAP 排除] 一致，从本 OBJECT 库源清单移除：
+    #   kis_asl_layer_style_serializer.cpp  kis_psd_layer_style.cpp
+    #   KisBezierGradientMesh.cpp           KisBezierTransformMesh.cpp
+    #   kis_cage_transform_worker.cpp       kis_liquify_transform_worker.cpp
+    #   kis_perspectivetransform_worker.cpp kis_warptransform_worker.cc
+    #   kis_file_layer.cpp                  kis_safe_document_loader.cpp
+    #   kis_image_config.cpp                kis_paint_device_debug_utils.cpp
+    #   KisSpatialContainer.cpp             kis_update_time_monitor.cpp
+    # 移除后这些文件的符号在 kritaimage.so 中为未定义——链接允许，除非其他 OBJECT
+    # 文件强引用（届时逐条登记）。GAP 配套头（kis_grid_interpolation_tools.h 等）
+    # 不在源清单，无需移除。
     KisColorSamplerConfig.cpp
     KisColorSamplingUtils.cpp
     kis_distance_information.cpp
@@ -368,12 +382,9 @@ kis_define_image_object_lib(kritaimage_core_objects SOURCES
     kis_composite_progress_proxy.cpp
     kis_sync_lod_cache_stroke_strategy.cpp
     kis_lod_capable_layer_offset.cpp
-    kis_update_time_monitor.cpp
     KisImageConfigNotifier.cpp
     kis_group_layer.cc
     kis_external_layer_iface.cc
-    kis_file_layer.cpp
-    kis_safe_document_loader.cpp
     kis_count_visitor.cpp
     kis_histogram.cc
     kis_image_interfaces.cpp
@@ -383,7 +394,6 @@ kis_define_image_object_lib(kritaimage_core_objects SOURCES
     kis_image.cc
     kis_image_signal_router.cpp
     KisImageSignals.cpp
-    kis_image_config.cpp
     KisImageResolutionProxy.cpp
     kis_projection_updates_filter.cpp
     kis_suspend_projection_updates_stroke_strategy.cpp
@@ -417,7 +427,6 @@ kis_define_image_object_lib(kritaimage_core_objects SOURCES
     kis_busy_progress_indicator.cpp
     kis_node_visitor.cpp
     kis_paint_device.cc
-    kis_paint_device_debug_utils.cpp
     kis_fixed_paint_device.cpp
     KisOptimizedByteArray.cpp
     kis_paint_layer.cc
@@ -442,10 +451,6 @@ kis_define_image_object_lib(kritaimage_core_objects SOURCES
     KisInterstrokeData.cpp
     KisInterstrokeDataFactory.cpp
     kis_transform_worker.cc
-    kis_perspectivetransform_worker.cpp
-    kis_warptransform_worker.cc
-    kis_cage_transform_worker.cpp
-    kis_liquify_transform_worker.cpp
     kis_green_coordinates_math.cpp
     kis_transparency_mask.cc
     kis_undo_adapter.cpp
@@ -474,16 +479,11 @@ kis_define_image_object_lib(kritaimage_core_objects SOURCES
     KisProofingConfiguration.cpp
     kis_node_query_path.cc
     KisTranslateLayerNamesVisitor.cpp
-    kis_asl_layer_style_serializer.cpp
     KisAslStorage.cpp
-    kis_psd_layer_style.cpp
-    KisBezierGradientMesh.cpp
-    KisBezierTransformMesh.cpp
     KisEncloseAndFillPainter.cpp
     KisBlockBackgroundFrameGenerationLock.cpp
     KisLockFrameGenerationLock.cpp
     kis_convex_hull.cpp
-    KisSpatialContainer.cpp
 )
 
 set(einspline_SRCS
