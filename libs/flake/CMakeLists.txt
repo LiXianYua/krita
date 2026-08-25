@@ -242,6 +242,8 @@ set(kritaflake_SRCS
     text/KoSvgTextShapeLayoutFunc_lines.cpp
     text/KoSvgTextShapeMarkupConverter.cpp
     text/KoFontRegistry.cpp
+    text/KoFontProviderFontconfig.cpp
+    text/KoLcLocale.cpp
     text/KoCssTextUtils.cpp
     text/KoPolygonUtils.cpp
     text/KoSvgTextPropertyData.cpp
@@ -257,6 +259,7 @@ set(kritaflake_SRCS
     resources/KoSvgSymbolCollectionResource.cpp
     resources/KoGamutMask.cpp
     resources/KoFontFamily.cpp
+    resources/KoFontFamilyMetadata.cpp
     resources/KoFontStorage.cpp
     resources/KoCssStylePreset.cpp
 
