@@ -6,51 +6,55 @@
 
 #include "kis_image_signal_router.h"
 
-#include <QThread>
-#include <KisStaticInitializer.h>
-
+#include <PkThread.h>
 #include "kis_image.h"
 
 
-#define CONNECT_TO_IMAGE(signal)                                        \
-    connect(this, SIGNAL(signal), m_image, SIGNAL(signal), Qt::DirectConnection)
-
-#define CONNECT_TO_IMAGE_QUEUED(signal)                                 \
-    connect(this, SIGNAL(signal), m_image, SIGNAL(signal), Qt::QueuedConnection)
-
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<KisImageSignalType>("KisImageSignalType");
-}
-
-
 KisImageSignalRouter::KisImageSignalRouter(KisImageWSP image)
-    : QObject(image.data()),
+    : PkShellObject(image.data()),
       m_image(image)
 {
-    connect(this, SIGNAL(sigNotification(KisImageSignalType)),
-            SLOT(slotNotification(KisImageSignalType)));
+    PkObject::connect(this, &KisImageSignalRouter::sigNotification,
+                      this, &KisImageSignalRouter::slotNotification);
 
-    CONNECT_TO_IMAGE(sigImageModified());
-    CONNECT_TO_IMAGE(sigImageModifiedWithoutUndo());
-    CONNECT_TO_IMAGE(sigSizeChanged(const QPointF&, const QPointF&));
-    CONNECT_TO_IMAGE(sigResolutionChanged(double, double));
-    CONNECT_TO_IMAGE(sigRequestNodeReselection(KisNodeSP, const KisNodeList&));
+    PkObject::connect(this, &KisImageSignalRouter::sigImageModified,
+                      m_image.data(), &KisImage::sigImageModified, PkConnectionType::Direct);
+    PkObject::connect(this, &KisImageSignalRouter::sigImageModifiedWithoutUndo,
+                      m_image.data(), &KisImage::sigImageModifiedWithoutUndo, PkConnectionType::Direct);
+    PkObject::connect(this, &KisImageSignalRouter::sigSizeChanged,
+                      m_image.data(), &KisImage::sigSizeChanged, PkConnectionType::Direct);
+    PkObject::connect(this, &KisImageSignalRouter::sigResolutionChanged,
+                      m_image.data(), &KisImage::sigResolutionChanged, PkConnectionType::Direct);
+    PkObject::connect(this, &KisImageSignalRouter::sigRequestNodeReselection,
+                      m_image.data(), &KisImage::sigRequestNodeReselection, PkConnectionType::Direct);
 
-    CONNECT_TO_IMAGE(sigNodeChanged(KisNodeSP));
-    CONNECT_TO_IMAGE(sigNodeAddedAsync(KisNodeSP, KisNodeAdditionFlags));
-    CONNECT_TO_IMAGE(sigRemoveNodeAsync(KisNodeSP));
-    CONNECT_TO_IMAGE(sigLayersChangedAsync());
+    PkObject::connect(this, &KisImageSignalRouter::sigNodeChanged,
+                      m_image.data(), &KisImage::sigNodeChanged, PkConnectionType::Direct);
+    PkObject::connect(this, &KisImageSignalRouter::sigNodeAddedAsync,
+                      m_image.data(), &KisImage::sigNodeAddedAsync, PkConnectionType::Direct);
+    PkObject::connect(this, &KisImageSignalRouter::sigRemoveNodeAsync,
+                      m_image.data(), &KisImage::sigRemoveNodeAsync, PkConnectionType::Direct);
+    PkObject::connect(this, &KisImageSignalRouter::sigLayersChangedAsync,
+                      m_image.data(), &KisImage::sigLayersChangedAsync, PkConnectionType::Direct);
 
     /**
      * Color space and profile conversion functions run without strokes,
-     * therefore they are executed in GUI hread under the global lock held.
+     * therefore they are executed in GUI thread under the global lock held.
      *
      * To ensure that the receiver of the signal will not deadlock by
      * barrier-locking the image, we should make these signals queued.
+     *
+     * NOTE (R-30): a Pk queued connection is delivered through the target
+     * thread's PkThreadCallQueue. The receiving (GUI) thread must have
+     * called PkThreadCallQueue::warmUpCurrentThread() before publishing
+     * its thread id anywhere (and keep pumping via processPendingCalls()),
+     * otherwise the queued delivery has no pump to drain into.
      */
 
-    CONNECT_TO_IMAGE_QUEUED(sigProfileChanged(const KoColorProfile*));
-    CONNECT_TO_IMAGE_QUEUED(sigColorSpaceChanged(const KoColorSpace*));
+    PkObject::connect(this, &KisImageSignalRouter::sigProfileChanged,
+                      m_image.data(), &KisImage::sigProfileChanged, PkConnectionType::Queued);
+    PkObject::connect(this, &KisImageSignalRouter::sigColorSpaceChanged,
+                      m_image.data(), &KisImage::sigColorSpaceChanged, PkConnectionType::Queued);
 }
 
 KisImageSignalRouter::~KisImageSignalRouter()

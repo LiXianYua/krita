@@ -28,7 +28,7 @@ KisMaskProjectionPlane::~KisMaskProjectionPlane()
 {
 }
 
-QRect KisMaskProjectionPlane::recalculate(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags)
+PkRect KisMaskProjectionPlane::recalculate(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags)
 {
     Q_UNUSED(filthyNode);
     Q_UNUSED(flags);
@@ -38,7 +38,7 @@ QRect KisMaskProjectionPlane::recalculate(const QRect& rect, KisNodeSP filthyNod
     return rect;
 }
 
-void KisMaskProjectionPlane::apply(KisPainter *painter, const QRect &rect)
+void KisMaskProjectionPlane::apply(KisPainter *painter, const PkRect &rect)
 {
     Q_UNUSED(painter);
     Q_UNUSED(rect);
@@ -52,34 +52,34 @@ KisPaintDeviceList KisMaskProjectionPlane::getLodCapableDevices() const
     return KisPaintDeviceList();
 }
 
-QRect KisMaskProjectionPlane::needRect(const QRect &rect, KisNode::PositionToFilthy pos) const
+PkRect KisMaskProjectionPlane::needRect(const PkRect &rect, KisNode::PositionToFilthy pos) const
 {
     return m_d->mask->needRect(rect, pos);
 }
 
-QRect KisMaskProjectionPlane::changeRect(const QRect &rect, KisNode::PositionToFilthy pos) const
+PkRect KisMaskProjectionPlane::changeRect(const PkRect &rect, KisNode::PositionToFilthy pos) const
 {
     return m_d->mask->changeRect(rect, pos);
 }
 
-QRect KisMaskProjectionPlane::accessRect(const QRect &rect, KisNode::PositionToFilthy pos) const
+PkRect KisMaskProjectionPlane::accessRect(const PkRect &rect, KisNode::PositionToFilthy pos) const
 {
     return m_d->mask->accessRect(rect, pos);
 }
 
-QRect KisMaskProjectionPlane::needRectForOriginal(const QRect &rect) const
+PkRect KisMaskProjectionPlane::needRectForOriginal(const PkRect &rect) const
 {
     return rect;
 }
 
-QRect KisMaskProjectionPlane::tightUserVisibleBounds() const
+PkRect KisMaskProjectionPlane::tightUserVisibleBounds() const
 {
     // masks don't have any internal rendering subtrees,
     // so just return the exact bounds of the mask
     return m_d->mask->exactBounds();
 }
 
-QRect KisMaskProjectionPlane::looseUserVisibleBounds() const
+PkRect KisMaskProjectionPlane::looseUserVisibleBounds() const
 {
     // masks don't have anything complex inside, so just
     // so just return the extent of the mask

@@ -14,16 +14,16 @@
 
 ComplexSizeChangedSignal::ComplexSizeChangedSignal() {}
 
-ComplexSizeChangedSignal::ComplexSizeChangedSignal(QPointF _oldStillPoint, QPointF _newStillPoint)
+ComplexSizeChangedSignal::ComplexSizeChangedSignal(PkPointF _oldStillPoint, PkPointF _newStillPoint)
     : oldStillPoint(_oldStillPoint),
       newStillPoint(_newStillPoint)
 {
 }
 
-ComplexSizeChangedSignal::ComplexSizeChangedSignal(const QRect &portionOfOldImage, const QSize &transformedIntoImageOfSize)
+ComplexSizeChangedSignal::ComplexSizeChangedSignal(const PkRect &portionOfOldImage, const PkSize &transformedIntoImageOfSize)
 {
-    oldStillPoint = QRectF(portionOfOldImage).center();
-    newStillPoint = QRectF(QPointF(), QSizeF(transformedIntoImageOfSize)).center();
+    oldStillPoint = PkRectF(portionOfOldImage).center();
+    newStillPoint = PkRectF(PkPointF(), PkSizeF(transformedIntoImageOfSize)).center();
 }
 
 ComplexSizeChangedSignal ComplexSizeChangedSignal::inverted() const {

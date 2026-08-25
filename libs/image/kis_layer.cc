@@ -10,13 +10,12 @@
 
 
 #include <klocalizedstring.h>
-#include <QImage>
-#include <QBitArray>
-#include <QStack>
-#include <QReadWriteLock>
-#include <QReadLocker>
-#include <QWriteLocker>
-
+#include <PkImage.h>
+#include <PkBitArray.h>
+#include <PkStack.h>
+#include <PkReadWriteLock.h>
+#include <PkReadWriteLock.h>
+#include <PkReadWriteLock.h>
 #include <KoProperties.h>
 #include <KoCompositeOpRegistry.h>
 #include <KoColorSpace.h>
@@ -57,7 +56,7 @@ public:
         m_clonesList.removeOne(cloneLayer);
     }
 
-    void setDirty(const QRect &rect, bool dontInvalidateFrames) {
+    void setDirty(const PkRect &rect, bool dontInvalidateFrames) {
         Q_FOREACH (KisCloneLayerSP clone, m_clonesList) {
             if (clone) {
                 clone->setDirtyOriginal(rect, dontInvalidateFrames);
@@ -65,7 +64,7 @@ public:
         }
     }
 
-    const QList<KisCloneLayerWSP> registeredClones() const {
+    const PkList<KisCloneLayerWSP> registeredClones() const {
         return m_clonesList;
     }
 
@@ -74,7 +73,7 @@ public:
     }
 
 private:
-    QList<KisCloneLayerWSP> m_clonesList;
+    PkList<KisCloneLayerWSP> m_clonesList;
 };
 
 class KisLayerMasksCache {
@@ -85,17 +84,17 @@ public:
     }
 
     KisSelectionMaskSP selectionMask() {
-        QReadLocker readLock(&m_lock);
+        PkReadLocker readLock(&m_lock);
 
         if (!m_isSelectionMaskValid) {
             readLock.unlock();
 
-            QWriteLocker writeLock(&m_lock);
+            PkWriteLocker writeLock(&m_lock);
             if (!m_isSelectionMaskValid) {
                 KoProperties properties;
                 properties.setProperty("active", true);
                 properties.setProperty("visible", true);
-                QList<KisNodeSP> masks = m_parent->childNodes(QStringList("KisSelectionMask"), properties);
+                PkList<KisNodeSP> masks = m_parent->childNodes(PkStringList({PkString("KisSelectionMask")}), properties);
 
                 // return the first visible mask
                 Q_FOREACH (KisNodeSP mask, masks) {
@@ -115,13 +114,13 @@ public:
         return m_selectionMask;
     }
 
-    QList<KisEffectMaskSP> effectMasks() {
-        QReadLocker readLock(&m_lock);
+    PkList<KisEffectMaskSP> effectMasks() {
+        PkReadLocker readLock(&m_lock);
 
         if (!m_isEffectMasksValid) {
             readLock.unlock();
 
-            QWriteLocker writeLock(&m_lock);
+            PkWriteLocker writeLock(&m_lock);
             if (!m_isEffectMasksValid) {
                 m_effectMasks = m_parent->searchEffectMasks(0);
                 m_isEffectMasksValid = true;
@@ -137,7 +136,7 @@ public:
 
     void setDirty()
     {
-        QWriteLocker l(&m_lock);
+        PkWriteLocker l(&m_lock);
         m_isSelectionMaskValid = false;
         m_isEffectMasksValid = false;
         m_selectionMask = 0;
@@ -147,12 +146,12 @@ public:
 private:
     KisLayer *m_parent;
 
-    QReadWriteLock m_lock;
+    PkReadWriteLock m_lock;
 
     bool m_isSelectionMaskValid = false;
     bool m_isEffectMasksValid = false;
     KisSelectionMaskSP m_selectionMask;
-    QList<KisEffectMaskSP> m_effectMasks;
+    PkList<KisEffectMaskSP> m_effectMasks;
 };
 
 struct Q_DECL_HIDDEN KisLayer::Private
@@ -162,7 +161,7 @@ struct Q_DECL_HIDDEN KisLayer::Private
     {
     }
 
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
     KisMetaData::Store* metaDataStore {nullptr};
     KisCloneLayersList clonesList;
 
@@ -176,7 +175,7 @@ struct Q_DECL_HIDDEN KisLayer::Private
 };
 
 
-KisLayer::KisLayer(KisImageWSP image, const QString &name, quint8 opacity)
+KisLayer::KisLayer(KisImageWSP image, const PkString &name, quint8 opacity)
         : KisNode(image)
         , m_d(new Private(this))
 {
@@ -270,12 +269,12 @@ void KisLayer::setLayerStyle(KisPSDLayerStyleSP layerStyle)
 KisBaseNode::PropertyList KisLayer::sectionModelProperties() const
 {
     KisBaseNode::PropertyList l = KisBaseNode::sectionModelProperties();
-    l << KisBaseNode::Property(KoID("opacity", i18n("Opacity")), i18n("%1%", percentOpacity()));
+    l << KisBaseNode::Property(KoID("opacity", PkString("Opacity")), PkString("%1%").arg(percentOpacity()));
 
     const KoCompositeOp * compositeOp = this->compositeOp();
 
     if (compositeOp) {
-        l << KisBaseNode::Property(KoID("compositeop", i18n("Blending Mode")), compositeOp->description());
+        l << KisBaseNode::Property(KoID("compositeop", PkString("Blending Mode")), compositeOp->description());
     }
 
     if (m_d->layerStyle && !m_d->layerStyle->isEmpty()) {
@@ -316,15 +315,15 @@ void KisLayer::setSectionModelProperties(const KisBaseNode::PropertyList &proper
 
 void KisLayer::disableAlphaChannel(bool disable)
 {
-    QBitArray newChannelFlags = m_d->channelFlags;
+    PkBitArray newChannelFlags = m_d->channelFlags;
 
     if(newChannelFlags.isEmpty())
         newChannelFlags = colorSpace()->channelFlags(true, true);
 
     if(disable)
-        newChannelFlags &= colorSpace()->channelFlags(true, false);
+        newChannelFlags = newChannelFlags & colorSpace()->channelFlags(true, false);
     else
-        newChannelFlags |= colorSpace()->channelFlags(false, true);
+        newChannelFlags = newChannelFlags | colorSpace()->channelFlags(false, true);
 
     setChannelFlags(newChannelFlags);
 }
@@ -332,12 +331,16 @@ void KisLayer::disableAlphaChannel(bool disable)
 bool KisLayer::alphaChannelDisabled() const
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(colorSpace(), false);
-    QBitArray flags = colorSpace()->channelFlags(false, true) & m_d->channelFlags;
-    return flags.count(true) == 0 && !m_d->channelFlags.isEmpty();
+    PkBitArray flags = colorSpace()->channelFlags(false, true) & m_d->channelFlags;
+    bool hasEnabledChannel = false;
+    for (int i = 0; i < flags.size(); ++i) {
+        if (flags.at(i)) { hasEnabledChannel = true; break; }
+    }
+    return !hasEnabledChannel && !m_d->channelFlags.isEmpty();
 }
 
 
-void KisLayer::setChannelFlags(const QBitArray & channelFlags)
+void KisLayer::setChannelFlags(const PkBitArray & channelFlags)
 {
     Q_ASSERT(channelFlags.isEmpty() ||((quint32)channelFlags.count() == colorSpace()->channelCount()));
 
@@ -347,9 +350,9 @@ void KisLayer::setChannelFlags(const QBitArray & channelFlags)
     }
 
     if (!channelFlags.isEmpty() &&
-        channelFlags == QBitArray(channelFlags.size(), true)) {
+        channelFlags == PkBitArray(channelFlags.size(), true)) {
 
-        m_d->channelFlags.clear();
+        m_d->channelFlags = PkBitArray();
     } else {
         m_d->channelFlags = channelFlags;
     }
@@ -358,7 +361,7 @@ void KisLayer::setChannelFlags(const QBitArray & channelFlags)
     baseNodeInvalidateAllFramesCallback();
 }
 
-QBitArray & KisLayer::channelFlags() const
+PkBitArray & KisLayer::channelFlags() const
 {
     return m_d->channelFlags;
 }
@@ -396,7 +399,7 @@ bool KisLayer::canMergeAndKeepBlendOptions(KisLayerSP otherLayer)
          *this->colorSpace() == *otherLayer->colorSpace());
 }
 
-KisLayerSP KisLayer::tryCreateInternallyMergedLayerFromMutipleLayers(QList<KisLayerSP> layers)
+KisLayerSP KisLayer::tryCreateInternallyMergedLayerFromMutipleLayers(PkList<KisLayerSP> layers)
 {
     Q_UNUSED(layers);
     return nullptr;
@@ -421,8 +424,8 @@ void KisLayer::fillMergedLayerTemplate(KisLayerSP dstLayer, KisLayerSP prevLayer
 {
     const bool keepBlendingOptions = canMergeAndKeepBlendOptions(prevLayer);
 
-    QRect layerProjectionExtent = this->projection()->extent();
-    QRect prevLayerProjectionExtent = prevLayer->projection()->extent();
+    PkRect layerProjectionExtent = this->projection()->extent();
+    PkRect prevLayerProjectionExtent = prevLayer->projection()->extent();
     bool alphaDisabled = this->alphaChannelDisabled();
     bool prevAlphaDisabled = prevLayer->alphaChannelDisabled();
 
@@ -479,7 +482,7 @@ void KisLayer::unregisterClone(KisCloneLayerWSP clone)
     m_d->clonesList.removeClone(clone);
 }
 
-const QList<KisCloneLayerWSP> KisLayer::registeredClones() const
+const PkList<KisCloneLayerWSP> KisLayer::registeredClones() const
 {
     return m_d->clonesList.registeredClones();
 }
@@ -489,7 +492,7 @@ bool KisLayer::hasClones() const
     return m_d->clonesList.hasClones();
 }
 
-void KisLayer::updateClones(const QRect &rect, bool dontInvalidateFrames)
+void KisLayer::updateClones(const PkRect &rect, bool dontInvalidateFrames)
 {
     m_d->clonesList.setDirty(rect, dontInvalidateFrames);
 }
@@ -522,12 +525,12 @@ KisSelectionSP KisLayer::selection() const
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
-QList<KisEffectMaskSP> KisLayer::effectMasks() const
+PkList<KisEffectMaskSP> KisLayer::effectMasks() const
 {
     return m_d->masksCache.effectMasks();
 }
 
-QList<KisEffectMaskSP> KisLayer::effectMasks(KisNodeSP lastNode) const
+PkList<KisEffectMaskSP> KisLayer::effectMasks(KisNodeSP lastNode) const
 {
     if (lastNode.isNull()) {
         return effectMasks();
@@ -537,9 +540,9 @@ QList<KisEffectMaskSP> KisLayer::effectMasks(KisNodeSP lastNode) const
     }
 }
 
-QList<KisEffectMaskSP> KisLayer::searchEffectMasks(KisNodeSP lastNode) const
+PkList<KisEffectMaskSP> KisLayer::searchEffectMasks(KisNodeSP lastNode) const
 {
-    QList<KisEffectMaskSP> masks;
+    PkList<KisEffectMaskSP> masks;
 
     KIS_SAFE_ASSERT_RECOVER_NOOP(projectionLeaf());
 
@@ -585,19 +588,19 @@ KisFilterMaskSP KisLayer::colorOverlayMask() const
     return nullptr;
 }
 
-QRect KisLayer::masksChangeRect(const QList<KisEffectMaskSP> &masks,
-                                const QRect &requestedRect,
+PkRect KisLayer::masksChangeRect(const PkList<KisEffectMaskSP> &masks,
+                                const PkRect &requestedRect,
                                 bool &rectVariesFlag) const
 {
     rectVariesFlag = false;
 
-    QRect prevChangeRect = requestedRect;
+    PkRect prevChangeRect = requestedRect;
 
     /**
      * We set default value of the change rect for the case
      * when there is no mask at all
      */
-    QRect changeRect = requestedRect;
+    PkRect changeRect = requestedRect;
 
     Q_FOREACH (const KisEffectMaskSP& mask, masks) {
         changeRect = mask->changeRect(prevChangeRect);
@@ -611,15 +614,15 @@ QRect KisLayer::masksChangeRect(const QList<KisEffectMaskSP> &masks,
     return changeRect;
 }
 
-QRect KisLayer::masksNeedRect(const QList<KisEffectMaskSP> &masks,
-                              const QRect &changeRect,
-                              QStack<QRect> &applyRects,
+PkRect KisLayer::masksNeedRect(const PkList<KisEffectMaskSP> &masks,
+                              const PkRect &changeRect,
+                              PkStack<PkRect> &applyRects,
                               bool &rectVariesFlag) const
 {
     rectVariesFlag = false;
 
-    QRect prevNeedRect = changeRect;
-    QRect needRect;
+    PkRect prevNeedRect = changeRect;
+    PkRect needRect;
     
     for (qint32 i = masks.size() - 1; i >= 0; i--) {
         applyRects.push(prevNeedRect);
@@ -658,9 +661,9 @@ KisNode::PositionToFilthy calculatePositionToFilthy(KisNodeSP nodeInQuestion,
     return KisNode::N_BELOW_FILTHY;
 }
 
-QRect KisLayer::applyMasks(const KisPaintDeviceSP source,
+PkRect KisLayer::applyMasks(const KisPaintDeviceSP source,
                            KisPaintDeviceSP destination,
-                           const QRect &requestedRect,
+                           const PkRect &requestedRect,
                            KisNodeSP filthyNode,
                            KisNodeSP lastNode,
                            KisRenderPassFlags flags) const
@@ -668,9 +671,9 @@ QRect KisLayer::applyMasks(const KisPaintDeviceSP source,
     Q_ASSERT(source);
     Q_ASSERT(destination);
 
-    QList<KisEffectMaskSP> masks = effectMasks(lastNode);
-    QRect changeRect;
-    QRect needRect;
+    PkList<KisEffectMaskSP> masks = effectMasks(lastNode);
+    PkRect changeRect;
+    PkRect needRect;
 
     if (masks.isEmpty()) {
         changeRect = requestedRect;
@@ -678,7 +681,7 @@ QRect KisLayer::applyMasks(const KisPaintDeviceSP source,
             copyOriginalToProjection(source, destination, requestedRect);
         }
     } else {
-        QStack<QRect> applyRects;
+        PkStack<PkRect> applyRects;
         bool changeRectVaries;
         bool needRectVaries;
 
@@ -708,8 +711,8 @@ QRect KisLayer::applyMasks(const KisPaintDeviceSP source,
             }
 
             Q_FOREACH (const KisEffectMaskSP& mask, masks) {
-                const QRect maskApplyRect = applyRects.pop();
-                const QRect maskNeedRect =
+                const PkRect maskApplyRect = applyRects.pop();
+                const PkRect maskNeedRect =
                     applyRects.isEmpty() ? needRect : applyRects.top();
                     
                 PositionToFilthy maskPosition = calculatePositionToFilthy(mask, filthyNode, const_cast<KisLayer*>(this));
@@ -727,8 +730,8 @@ QRect KisLayer::applyMasks(const KisPaintDeviceSP source,
             tempDevice->prepareClone(source);
             copyOriginalToProjection(source, tempDevice, needRect);
 
-            QRect maskApplyRect = applyRects.pop();
-            QRect maskNeedRect = needRect;
+            PkRect maskApplyRect = applyRects.pop();
+            PkRect maskNeedRect = needRect;
 
             Q_FOREACH (const KisEffectMaskSP& mask, masks) {
                 PositionToFilthy maskPosition = calculatePositionToFilthy(mask, filthyNode, const_cast<KisLayer*>(this));
@@ -748,13 +751,13 @@ QRect KisLayer::applyMasks(const KisPaintDeviceSP source,
     return changeRect;
 }
 
-QRect KisLayer::updateProjection(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags)
+PkRect KisLayer::updateProjection(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags)
 {
-    QRect updatedRect = rect;
+    PkRect updatedRect = rect;
     KisPaintDeviceSP originalDevice = original();
     if (!rect.isValid() ||
         (!visible() && !isIsolatedRoot() && !hasClones()) ||
-        !originalDevice) return QRect();
+        !originalDevice) return PkRect();
 
     if (!needProjection() && !hasEffectMasks()) {
         m_d->safeProjection->releaseDevice();
@@ -770,10 +773,10 @@ QRect KisLayer::updateProjection(const QRect& rect, KisNodeSP filthyNode, KisRen
     return updatedRect;
 }
 
-QRect KisLayer::partialChangeRect(KisNodeSP lastNode, const QRect& rect)
+PkRect KisLayer::partialChangeRect(KisNodeSP lastNode, const PkRect& rect)
 {
     bool changeRectVaries = false;
-    QRect changeRect = outgoingChangeRect(rect);
+    PkRect changeRect = outgoingChangeRect(rect);
     changeRect = masksChangeRect(effectMasks(lastNode), changeRect,
                                  changeRectVaries);
 
@@ -783,9 +786,9 @@ QRect KisLayer::partialChangeRect(KisNodeSP lastNode, const QRect& rect)
 /**
  * \p rect is a dirty rect in layer's original() coordinates!
  */
-void KisLayer::buildProjectionUpToNode(KisPaintDeviceSP projection, KisNodeSP lastNode, const QRect& rect)
+void KisLayer::buildProjectionUpToNode(KisPaintDeviceSP projection, KisNodeSP lastNode, const PkRect& rect)
 {
-    QRect changeRect = partialChangeRect(lastNode, rect);
+    PkRect changeRect = partialChangeRect(lastNode, rect);
 
     KisPaintDeviceSP originalDevice = original();
 
@@ -804,7 +807,7 @@ bool KisLayer::needProjection() const
 
 void KisLayer::copyOriginalToProjection(const KisPaintDeviceSP original,
                                         KisPaintDeviceSP projection,
-                                        const QRect& rect) const
+                                        const PkRect& rect) const
 {
     KisPainter::copyAreaOptimized(rect.topLeft(), original, projection, rect);
 }
@@ -829,9 +832,9 @@ KisPaintDeviceSP KisLayer::projection() const
         m_d->safeProjection->getDeviceLazy(originalDevice) : originalDevice;
 }
 
-QRect KisLayer::userVisibleBoundsImpl(bool exactBounds) const
+PkRect KisLayer::userVisibleBoundsImpl(bool exactBounds) const
 {
-    QRect changeRect = exactBounds ? this->exactBounds() : this->extent();
+    PkRect changeRect = exactBounds ? this->exactBounds() : this->extent();
 
     /// we do not use incomingChangeRect() here, because
     /// exactBounds() already takes it into account (it
@@ -845,28 +848,28 @@ QRect KisLayer::userVisibleBoundsImpl(bool exactBounds) const
 }
 
 
-QRect KisLayer::tightUserVisibleBounds() const
+PkRect KisLayer::tightUserVisibleBounds() const
 {
     return userVisibleBoundsImpl(true);
 }
 
-QRect KisLayer::looseUserVisibleBounds() const
+PkRect KisLayer::looseUserVisibleBounds() const
 {
     return userVisibleBoundsImpl(false);
 }
 
-QRect KisLayer::amortizedProjectionRectForCleanupInChangePass() const
+PkRect KisLayer::amortizedProjectionRectForCleanupInChangePass() const
 {
     return projection()->exactBoundsAmortized();
 }
 
-QRect KisLayer::changeRect(const QRect &rect, PositionToFilthy pos) const
+PkRect KisLayer::changeRect(const PkRect &rect, PositionToFilthy pos) const
 {
-    QRect changeRect = rect;
+    PkRect changeRect = rect;
     changeRect = incomingChangeRect(changeRect);
 
     if(pos == KisNode::N_FILTHY) {
-        QRect projectionToBeUpdated = amortizedProjectionRectForCleanupInChangePass() & changeRect;
+        PkRect projectionToBeUpdated = amortizedProjectionRectForCleanupInChangePass() & changeRect;
 
         bool changeRectVaries;
         changeRect = outgoingChangeRect(changeRect);
@@ -904,24 +907,24 @@ void KisLayer::childNodeChanged(KisNodeSP changedChildNode)
     }
 }
 
-QRect KisLayer::incomingChangeRect(const QRect &rect) const
+PkRect KisLayer::incomingChangeRect(const PkRect &rect) const
 {
     return rect;
 }
 
-QRect KisLayer::outgoingChangeRect(const QRect &rect) const
+PkRect KisLayer::outgoingChangeRect(const PkRect &rect) const
 {
     return rect;
 }
 
-QRect KisLayer::needRectForOriginal(const QRect &rect) const
+PkRect KisLayer::needRectForOriginal(const PkRect &rect) const
 {
-    QRect needRect = rect;
+    PkRect needRect = rect;
 
-    const QList<KisEffectMaskSP> masks = effectMasks();
+    const PkList<KisEffectMaskSP> masks = effectMasks();
 
     if (!masks.isEmpty()) {
-        QStack<QRect> applyRects;
+        PkStack<PkRect> applyRects;
         bool needRectVaries;
 
         needRect = masksNeedRect(masks, rect,
@@ -931,17 +934,17 @@ QRect KisLayer::needRectForOriginal(const QRect &rect) const
     return needRect;
 }
 
-QImage KisLayer::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisLayer::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     if (w == 0 || h == 0) {
-        return QImage();
+        return PkImage();
     }
 
     KisPaintDeviceSP originalDevice = original();
 
     return originalDevice
         ? originalDevice->createThumbnail(w, h, aspectRatioMode, boundsMode)
-        : QImage();
+        : PkImage();
 }
 
 int KisLayer::thumbnailSeqNo() const
@@ -950,10 +953,10 @@ int KisLayer::thumbnailSeqNo() const
     return originalDevice ? originalDevice->sequenceNumber() : -1;
 }
 
-QImage KisLayer::createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisLayer::createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     if (w == 0 || h == 0) {
-        return QImage();
+        return PkImage();
     }
 
     KisPaintDeviceSP originalDevice = original();
@@ -994,17 +997,17 @@ void KisLayer::setY(qint32 y)
         originalDevice->setY(y);
 }
 
-QRect KisLayer::layerExtentImpl(bool needExactBounds) const
+PkRect KisLayer::layerExtentImpl(bool needExactBounds) const
 {
-    QRect additionalMaskExtent = QRect();
-    QList<KisEffectMaskSP> effectMasks = this->effectMasks();
+    PkRect additionalMaskExtent = PkRect();
+    PkList<KisEffectMaskSP> effectMasks = this->effectMasks();
 
     Q_FOREACH(KisEffectMaskSP mask, effectMasks) {
         additionalMaskExtent |= mask->nonDependentExtent();
     }
 
     KisPaintDeviceSP originalDevice = original();
-    QRect layerExtent;
+    PkRect layerExtent;
 
     if (originalDevice) {
         layerExtent = needExactBounds ?
@@ -1012,7 +1015,7 @@ QRect KisLayer::layerExtentImpl(bool needExactBounds) const
             originalDevice->extent();
     }
 
-    QRect additionalCompositeOpExtent;
+    PkRect additionalCompositeOpExtent;
     if (compositeOpId() == COMPOSITE_COPY ||
         compositeOpId() == COMPOSITE_DESTINATION_IN ||
         compositeOpId() == COMPOSITE_DESTINATION_ATOP) {
@@ -1023,12 +1026,12 @@ QRect KisLayer::layerExtentImpl(bool needExactBounds) const
     return layerExtent | additionalMaskExtent | additionalCompositeOpExtent;
 }
 
-QRect KisLayer::extent() const
+PkRect KisLayer::extent() const
 {
     return layerExtentImpl(false);
 }
 
-QRect KisLayer::exactBounds() const
+PkRect KisLayer::exactBounds() const
 {
     return layerExtentImpl(true);
 }

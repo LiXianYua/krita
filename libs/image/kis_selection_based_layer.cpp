@@ -42,7 +42,7 @@ public:
 
 
 KisSelectionBasedLayer::KisSelectionBasedLayer(KisImageWSP image,
-        const QString &name,
+        const PkString &name,
         KisSelectionSP selection,
         KisFilterConfigurationSP filterConfig)
         : KisLayer(image.data(), name, OPACITY_OPAQUE_U8),
@@ -60,7 +60,7 @@ KisSelectionBasedLayer::KisSelectionBasedLayer(KisImageWSP image,
         return;
     }
     m_d->paintDevice = KisPaintDeviceSP(new KisPaintDevice(this, imageSP->colorSpace(), KisDefaultBoundsSP(new KisDefaultBounds(image))));
-    m_d->imageConnections.addConnection(imageSP.data(), SIGNAL(sigSizeChanged(QPointF,QPointF)), this, SLOT(slotImageSizeChanged()));
+    m_d->imageConnections.addConnection(imageSP.data(), &KisImage::sigSizeChanged, this, &KisSelectionBasedLayer::slotImageSizeChanged);
 }
 
 KisSelectionBasedLayer::KisSelectionBasedLayer(const KisSelectionBasedLayer& rhs)
@@ -110,7 +110,7 @@ void KisSelectionBasedLayer::setImage(KisImageWSP image)
     KisLayer::setImage(image);
 
     if (image) {
-        m_d->imageConnections.addConnection(image.data(), SIGNAL(sigSizeChanged(QPointF,QPointF)), this, SLOT(slotImageSizeChanged()));
+        m_d->imageConnections.addConnection(image.data(), &KisImage::sigSizeChanged, this, &KisSelectionBasedLayer::slotImageSizeChanged);
     }
 }
 
@@ -140,7 +140,7 @@ void KisSelectionBasedLayer::setUseSelectionInProjection(bool value) const
     m_d->useSelectionInProjection = value;
 }
 
-KisSelectionSP KisSelectionBasedLayer::fetchComposedInternalSelection(const QRect &rect) const
+KisSelectionSP KisSelectionBasedLayer::fetchComposedInternalSelection(const PkRect &rect) const
 {
     if (!m_d->selection) return KisSelectionSP();
     m_d->selection->updateProjection(rect);
@@ -171,7 +171,7 @@ KisSelectionSP KisSelectionBasedLayer::fetchComposedInternalSelection(const QRec
 
 void KisSelectionBasedLayer::copyOriginalToProjection(const KisPaintDeviceSP original,
         KisPaintDeviceSP projection,
-        const QRect& rect) const
+        const PkRect& rect) const
 {
     KisSelectionSP tempSelection;
 
@@ -188,14 +188,14 @@ void KisSelectionBasedLayer::copyOriginalToProjection(const KisPaintDeviceSP ori
     KisPainter::copyAreaOptimized(rect.topLeft(), original, projection, rect, tempSelection);
 }
 
-QRect KisSelectionBasedLayer::cropChangeRectBySelection(const QRect &rect) const
+PkRect KisSelectionBasedLayer::cropChangeRectBySelection(const PkRect &rect) const
 {
     return m_d->selection ?
         rect & m_d->selection->selectedRect() :
         rect;
 }
 
-QRect KisSelectionBasedLayer::needRect(const QRect &rect, PositionToFilthy pos) const
+PkRect KisSelectionBasedLayer::needRect(const PkRect &rect, PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
     return rect;
@@ -291,7 +291,7 @@ bool KisSelectionBasedLayer::supportsLodPainting() const
     return !m_d->selection || !m_d->selection->hasShapeSelection();
 }
 
-KisKeyframeChannel *KisSelectionBasedLayer::requestKeyframeChannel(const QString &id)
+KisKeyframeChannel *KisSelectionBasedLayer::requestKeyframeChannel(const PkString &id)
 {
     if (id == KisKeyframeChannel::Raster.id()) {
         KisRasterKeyframeChannel *contentChannel = m_d->selection->pixelSelection()->createKeyframeChannel(KisKeyframeChannel::Raster);
@@ -302,7 +302,7 @@ KisKeyframeChannel *KisSelectionBasedLayer::requestKeyframeChannel(const QString
     return KisLayer::requestKeyframeChannel(id);
 }
 
-bool KisSelectionBasedLayer::supportsKeyframeChannel(const QString &id)
+bool KisSelectionBasedLayer::supportsKeyframeChannel(const PkString &id)
 {
     if (id == KisKeyframeChannel::Raster.id()) {
         return true;
@@ -321,9 +321,9 @@ void KisSelectionBasedLayer::setDirty()
     setDirty(imageSP->bounds());
 }
 
-QRect KisSelectionBasedLayer::extent() const
+PkRect KisSelectionBasedLayer::extent() const
 {
-    QRect resultRect;
+    PkRect resultRect;
 
     if (m_d->selection) {
         resultRect = m_d->selection->selectedRect();
@@ -337,16 +337,16 @@ QRect KisSelectionBasedLayer::extent() const
 
     } else {
         KisImageSP image = this->image().toStrongRef();
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(image, QRect());
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(image, PkRect());
         resultRect = image->bounds();
     }
 
     return resultRect;
 }
 
-QRect KisSelectionBasedLayer::exactBounds() const
+PkRect KisSelectionBasedLayer::exactBounds() const
 {
-    QRect resultRect;
+    PkRect resultRect;
 
     if (m_d->selection) {
         resultRect = m_d->selection->selectedExactRect();
@@ -360,21 +360,21 @@ QRect KisSelectionBasedLayer::exactBounds() const
 
     } else {
         KisImageSP image = this->image().toStrongRef();
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(image, QRect());
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(image, PkRect());
         resultRect = image->bounds();
     }
 
     return resultRect;
 }
 
-QImage KisSelectionBasedLayer::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisSelectionBasedLayer::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     KisSelectionSP originalSelection = internalSelection();
     KisPaintDeviceSP originalDevice = original();
 
     return originalDevice && originalSelection ?
            originalDevice->createThumbnail(w, h, aspectRatioMode, boundsMode) :
-           QImage();
+           PkImage();
 }
 
 int KisSelectionBasedLayer::thumbnailSeqNo() const

@@ -10,7 +10,7 @@
 
 
 KisCropSavedExtraData::KisCropSavedExtraData(Type type,
-                                             QRect cropRect,
+                                             PkRect cropRect,
                                              KisNodeSP cropNode)
     : m_type(type),
       m_cropRect(cropRect),

@@ -6,8 +6,7 @@
 
 #include "kis_image_animation_interface.h"
 
-#include <QMutex>
-
+#include <PkMutex.h>
 #include "kis_global.h"
 #include "kis_image.h"
 #include "kis_regenerate_frame_stroke_strategy.h"
@@ -61,16 +60,16 @@ struct KisImageAnimationInterface::Private
     int framerate;
     int cachedLastFrameValue;
 
-    QSet<int> activeLayerSelectedTimes;
+    PkSet<int> activeLayerSelectedTimes;
 
-    QString exportSequenceFilePath;
-    QString exportSequenceBaseName;
+    PkString exportSequenceFilePath;
+    PkString exportSequenceBaseName;
     int exportInitialFrameNumber;
 
     KisSwitchTimeStrokeStrategy::SharedTokenWSP switchToken;
 
-    QAtomicInt backgroundFrameGenerationBlocked;
-    QMutex frameGenerationLock;
+    PkAtomicInt backgroundFrameGenerationBlocked;
+    PkMutex frameGenerationLock;
 
     inline int currentTime() const {
         return m_currentTime;
@@ -94,7 +93,7 @@ private:
 
 
 KisImageAnimationInterface::KisImageAnimationInterface(KisImage *image)
-    : QObject(image),
+    : PkShellObject(image),
       m_d(new Private)
 {
     m_d->image = image;
@@ -183,22 +182,22 @@ int KisImageAnimationInterface::framerate() const
     return m_d->framerate;
 }
 
-QString KisImageAnimationInterface::exportSequenceFilePath()
+PkString KisImageAnimationInterface::exportSequenceFilePath()
 {
     return m_d->exportSequenceFilePath;
 }
 
-void KisImageAnimationInterface::setExportSequenceFilePath(const QString &filePath)
+void KisImageAnimationInterface::setExportSequenceFilePath(const PkString &filePath)
 {
     m_d->exportSequenceFilePath = filePath;
 }
 
-QString KisImageAnimationInterface::exportSequenceBaseName()
+PkString KisImageAnimationInterface::exportSequenceBaseName()
 {
     return m_d->exportSequenceBaseName;
 }
 
-void KisImageAnimationInterface::setExportSequenceBaseName(const QString &baseName)
+void KisImageAnimationInterface::setExportSequenceBaseName(const PkString &baseName)
 {
     m_d->exportSequenceBaseName = baseName;
 }
@@ -213,12 +212,12 @@ void KisImageAnimationInterface::setExportInitialFrameNumber(const int frameNum)
     m_d->exportInitialFrameNumber = frameNum;
 }
 
-QSet<int> KisImageAnimationInterface::activeLayerSelectedTimes()
+PkSet<int> KisImageAnimationInterface::activeLayerSelectedTimes()
 {
     return m_d->activeLayerSelectedTimes;
 }
 
-void KisImageAnimationInterface::setActiveLayerSelectedTimes(const QSet<int>& times)
+void KisImageAnimationInterface::setActiveLayerSelectedTimes(const PkSet<int>& times)
 {
     m_d->activeLayerSelectedTimes = times;
 }
@@ -321,7 +320,7 @@ void KisImageAnimationInterface::requestFrameRegeneration(int frameId, const Kis
                                              this,
                                              std::move(lock));
 
-    QList<KisStrokeJobData*> jobs = KisRegenerateFrameStrokeStrategy::createJobsData(m_d->image);
+    PkList<KisStrokeJobData*> jobs = KisRegenerateFrameStrokeStrategy::createJobsData(m_d->image);
 
     KisStrokeId stroke = m_d->image->startStroke(strategy);
     Q_FOREACH (KisStrokeJobData* job, jobs) {
@@ -374,14 +373,14 @@ KisUpdatesFacade* KisImageAnimationInterface::updatesFacade() const
 }
 
 void KisImageAnimationInterface::notifyNodeChanged(const KisNode *node,
-                                                   const QRect &rect,
+                                                   const PkRect &rect,
                                                    bool recursive)
 {
-    notifyNodeChanged(node, QVector<QRect>({rect}), recursive);
+    notifyNodeChanged(node, PkVector<PkRect>({rect}), recursive);
 }
 
 void KisImageAnimationInterface::notifyNodeChanged(const KisNode *node,
-                                                   const QVector<QRect> &rects,
+                                                   const PkVector<PkRect> &rects,
                                                    bool recursive)
 {
     if (externalFrameActive() || m_d->frameInvalidationBlocked) return;
@@ -389,20 +388,20 @@ void KisImageAnimationInterface::notifyNodeChanged(const KisNode *node,
     // even overlay selection masks are not rendered in the cache
     if (node->inherits("KisSelectionMask")) return;
 
-    QSet<int> affectedTimes;
-    affectedTimes << m_d->currentTime();
+    PkSet<int> affectedTimes;
+    affectedTimes.insert(m_d->currentTime());
 
     // We need to also invalidate ranges that contain cloned keyframe data.
     if (recursive) {
-        QSet<int> clonedTimes;
+        PkSet<int> clonedTimes;
         const int time = m_d->currentTime();
         KisLayerUtils::recursiveApplyNodes(node, [&clonedTimes, time](const KisNode* node){
-            clonedTimes += KisRasterKeyframeChannel::clonesOf(node, time);
+            clonedTimes = clonedTimes.unite(KisRasterKeyframeChannel::clonesOf(node, time));
         });
 
-        affectedTimes += clonedTimes;
+        affectedTimes.unite(clonedTimes);
     } else {
-        affectedTimes += KisRasterKeyframeChannel::clonesOf(node, m_d->currentTime());
+        affectedTimes.unite(KisRasterKeyframeChannel::clonesOf(node, m_d->currentTime()));
     }
 
     foreach (const int& time, affectedTimes ){
@@ -415,8 +414,8 @@ void KisImageAnimationInterface::notifyNodeChanged(const KisNode *node,
         }
 
         // we compress the updated rect (atm, no one uses it anyway)
-        QRect unitedRect;
-        Q_FOREACH (const QRect &rc, rects) {
+        PkRect unitedRect;
+        Q_FOREACH (const PkRect &rc, rects) {
             unitedRect |= rc;
         }
 
@@ -424,7 +423,7 @@ void KisImageAnimationInterface::notifyNodeChanged(const KisNode *node,
     }
 }
 
-void KisImageAnimationInterface::invalidateFrames(const KisTimeSpan &range, const QRect &rect)
+void KisImageAnimationInterface::invalidateFrames(const KisTimeSpan &range, const PkRect &rect)
 {
     m_d->cachedLastFrameValue = -1;
     Q_EMIT sigFramesChanged(range, rect);
@@ -436,7 +435,7 @@ void KisImageAnimationInterface::invalidateFrame(const int time, KisNodeSP targe
 
     Q_EMIT sigFramesChanged(KisLayerUtils::fetchLayerActiveRasterFrameSpan(target, time), m_d->image->bounds());
 
-    QSet<int> identicalFrames = KisLayerUtils::fetchLayerIdenticalRasterFrameTimes(target, time);
+    PkSet<int> identicalFrames = KisLayerUtils::fetchLayerIdenticalRasterFrameTimes(target, time);
     Q_FOREACH(const int& identicalTime, identicalFrames) {
         Q_EMIT sigFramesChanged(KisLayerUtils::fetchLayerActiveRasterFrameSpan(target, identicalTime), m_d->image->bounds());
     }

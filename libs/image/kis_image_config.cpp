@@ -4,6 +4,18 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_image_config.cpp 阻塞登记（S-06 Task 8 批次C2）
+// 
+// 本文件不进薄壳，保留 Qt 原样。阻塞原因：
+//   * KConfig 体系未剥：KSharedConfig::openConfig()->group() / KConfigGroup
+//     readEntry/writeEntry 全量落在 libs/config，薄壳无对应；
+//   * QDir/QStandardPaths/QTemporaryFile/QThread/qApp->thread() 等
+//     平台/文件系统依赖未剥，且整文件围绕 swap 目录/临时目录的 OS 交互；
+//   * 调用方（kis_image_config 的消费点）需待 config 子系统剥离批次。
+// ===========================================================================
+
+
 #include "kis_image_config.h"
 
 #include <ksharedconfig.h>

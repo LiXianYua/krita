@@ -14,7 +14,7 @@
 #include "kis_abstract_projection_plane.h"
 #include "kis_transform_mask_params_interface.h"
 
-KisRecalculateTransformMaskJob::KisRecalculateTransformMaskJob(KisTransformMaskSP mask, const QRect &extraUpdateRect)
+KisRecalculateTransformMaskJob::KisRecalculateTransformMaskJob(KisTransformMaskSP mask, const PkRect &extraUpdateRect)
     : m_mask(mask)
     , m_extraUpdateRect(extraUpdateRect)
 {
@@ -40,7 +40,7 @@ void KisRecalculateTransformMaskJob::run()
     if (!m_mask->visible()) return;
     if (m_mask->staticImageCacheIsValid()) return;
 
-    const QRect oldMaskExtent = m_mask->extent();
+    const PkRect oldMaskExtent = m_mask->extent();
     m_mask->recalculateStaticImage();
 
     KisLayerSP layer = qobject_cast<KisLayer*>(m_mask->parent().data());
@@ -61,7 +61,7 @@ void KisRecalculateTransformMaskJob::run()
      * KisRecalculateTransformMaskJob.
      */
     if (m_mask->transformParams()->isHidden()) {
-        QRect updateRect = m_mask->extent() | oldMaskExtent;
+        PkRect updateRect = m_mask->extent() | oldMaskExtent;
 
         updateRect |= m_extraUpdateRect;
 
@@ -81,7 +81,7 @@ void KisRecalculateTransformMaskJob::run()
          * to be N_ABOVE_FILTHY. Therefore, we should expand the dirty
          * rect manually to get the correct update
          */
-        QRect updateRect = oldMaskExtent |
+        PkRect updateRect = oldMaskExtent |
             layer->projectionPlane()->changeRect(layer->extent(), KisLayer::N_FILTHY);
 
         updateRect |= m_extraUpdateRect;
@@ -98,10 +98,9 @@ int KisRecalculateTransformMaskJob::levelOfDetail() const
     return 0;
 }
 
-QString KisRecalculateTransformMaskJob::debugName() const
+PkString KisRecalculateTransformMaskJob::debugName() const
 {
-    QString result;
-    QDebug dbg(&result);
-    dbg << "KisRecalculateTransformMaskJob" << m_mask;
-    return result;
+    std::ostringstream ss;
+    ss << "KisRecalculateTransformMaskJob" << m_mask.data();
+    return PkString(ss.str().c_str());
 }

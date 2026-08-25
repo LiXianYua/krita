@@ -22,7 +22,11 @@ struct IdentityResolutionProxyHolder
     KisImageResolutionProxySP identity;
 };
 
-Q_GLOBAL_STATIC(IdentityResolutionProxyHolder, s_holder)
+static IdentityResolutionProxyHolder *s_holder()
+{
+    static IdentityResolutionProxyHolder holder;
+    return &holder;
+}
 }
 
 struct KisImageResolutionProxy::Private {
@@ -42,19 +46,18 @@ struct KisImageResolutionProxy::Private {
 
     ~Private() {
         /**
-         * Since we are not using QObject for the connection,
-         * we should disconnect the connection automatically
-         * on destruction.
+         * The connection's receiver is the image (Private is not
+         * a PkObject), so we disconnect manually on destruction.
          */
-        if (imageConnection) {
-            QObject::disconnect(imageConnection);
+        if (imageConnection.isValid()) {
+            PkObject::disconnect(imageConnection);
         }
     }
 
     KisImageWSP image;
     qreal lastKnownXRes;
     qreal lastKnownYRes;
-    QMetaObject::Connection imageConnection;
+    PkConnection imageConnection;
 
     void setImage(KisImageWSP image);
     void slotImageResolutionChanged(qreal xRes, qreal yRes);
@@ -71,7 +74,7 @@ KisImageResolutionProxy::KisImageResolutionProxy(KisImageWSP image)
 }
 
 KisImageResolutionProxy::KisImageResolutionProxy(const KisImageResolutionProxy &rhs)
-    : QObject(nullptr)
+    : PkShellObject(nullptr)
     , m_d(new Private(*rhs.m_d))
 {
 }
@@ -111,7 +114,7 @@ KisImageResolutionProxySP KisImageResolutionProxy::createOrCloneDetached(KisImag
 
 KisImageResolutionProxySP KisImageResolutionProxy::identity()
 {
-    return s_holder->identity;
+    return s_holder()->identity;
 }
 
 void KisImageResolutionProxy::Private::slotImageResolutionChanged(qreal xRes, qreal yRes)
@@ -122,7 +125,7 @@ void KisImageResolutionProxy::Private::slotImageResolutionChanged(qreal xRes, qr
 
 void KisImageResolutionProxy::Private::setImage(KisImageWSP image)
 {
-    QObject::disconnect(imageConnection);
+    PkObject::disconnect(imageConnection);
 
     if (image) {
         /**
@@ -137,9 +140,10 @@ void KisImageResolutionProxy::Private::setImage(KisImageWSP image)
         lastKnownXRes = image->xRes();
         lastKnownYRes = image->yRes();
 
-        imageConnection = connect(image.data(), &KisImage::sigResolutionChanged,
-                                    std::bind(&Private::slotImageResolutionChanged, this,
-                                              std::placeholders::_1, std::placeholders::_2));
+        imageConnection = PkObject::connect(image.data(), &KisImage::sigResolutionChanged,
+                                            image.data(),
+                                            std::bind(&Private::slotImageResolutionChanged, this,
+                                                      std::placeholders::_1, std::placeholders::_2));
     } else {
         /**
          * The layer will keep "the lastly used resolution"

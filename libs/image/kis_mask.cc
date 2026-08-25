@@ -13,8 +13,7 @@
 // to prevent incomplete class types on "delete selection->flatten();"
 #include <kundo2command.h>
 
-#include <QScopedPointer>
-
+#include <PkScopedPointer.h>
 #include <KoColor.h>
 #include <KoColorSpace.h>
 #include <KoCompositeOpRegistry.h>
@@ -53,7 +52,7 @@ struct Q_DECL_HIDDEN KisMask::Private {
      * lost, since the selection does not exist at the moment. That is
      * why we save it separately.
      */
-    QScopedPointer<QPoint> deferredSelectionOffset;
+    PkScopedPointer<PkPoint> deferredSelectionOffset;
 
     KisAbstractProjectionPlaneSP projectionPlane;
     KisSafeSelectionNodeProjectionStoreSP safeProjection;
@@ -61,7 +60,7 @@ struct Q_DECL_HIDDEN KisMask::Private {
     void initSelectionImpl(KisSelectionSP copyFrom, KisLayerSP parentLayer, KisPaintDeviceSP copyFromDevice, KisImageWSP image);
 };
 
-KisMask::KisMask(KisImageWSP image, const QString &name)
+KisMask::KisMask(KisImageWSP image, const PkString &name)
         : KisNode(image)
         , m_d(new Private(this))
 {
@@ -258,7 +257,7 @@ void KisMask::setSelection(KisSelectionSP selection)
     m_d->selection->pixelSelection()->setSupportsWraparoundMode(true);
 }
 
-void KisMask::select(const QRect & rc, quint8 selectedness)
+void KisMask::select(const PkRect & rc, quint8 selectedness)
 {
     KisSelectionSP sel = selection();
     KisPixelSelectionSP psel = sel->pixelSelection();
@@ -267,9 +266,9 @@ void KisMask::select(const QRect & rc, quint8 selectedness)
 }
 
 
-QRect KisMask::decorateRect(KisPaintDeviceSP &src,
+PkRect KisMask::decorateRect(KisPaintDeviceSP &src,
                             KisPaintDeviceSP &dst,
-                            const QRect & rc,
+                            const PkRect & rc,
                             PositionToFilthy maskPos,
                             KisRenderPassFlags flags) const
 {
@@ -286,7 +285,7 @@ bool KisMask::paintsOutsideSelection() const
     return false;
 }
 
-void KisMask::apply(KisPaintDeviceSP projection, const QRect &applyRect, const QRect &needRect, PositionToFilthy maskPos, KisRenderPassFlags flags) const
+void KisMask::apply(KisPaintDeviceSP projection, const PkRect &applyRect, const PkRect &needRect, PositionToFilthy maskPos, KisRenderPassFlags flags) const
 {
     if (selection()) {
 
@@ -301,7 +300,7 @@ void KisMask::apply(KisPaintDeviceSP projection, const QRect &applyRect, const Q
             if (!paintsOutsideSelection()) {
                 // extent of m_d->selection should also be accessed under a lock,
                 // because it might be being merged in by the temporary target atm
-                QRect effectiveExtent = m_d->selection->selectedRect();
+                PkRect effectiveExtent = m_d->selection->selectedRect();
 
                 if (hasTemporaryTarget()) {
                     effectiveExtent |= temporaryTarget()->extent();
@@ -336,8 +335,8 @@ void KisMask::apply(KisPaintDeviceSP projection, const QRect &applyRect, const Q
 
 void KisMask::mergeInMaskInternal(KisPaintDeviceSP projection,
                                   KisSelectionSP effectiveSelection,
-                                  const QRect &applyRect,
-                                  const QRect &preparedNeedRect,
+                                  const PkRect &applyRect,
+                                  const PkRect &preparedNeedRect,
                                   KisNode::PositionToFilthy maskPos,
                                   KisRenderPassFlags flags) const
 {
@@ -345,7 +344,7 @@ void KisMask::mergeInMaskInternal(KisPaintDeviceSP projection,
     KisPaintDeviceSP cacheDevice = d1.device();
 
     if (effectiveSelection) {
-        QRect updatedRect = decorateRect(projection, cacheDevice, applyRect, maskPos, flags);
+        PkRect updatedRect = decorateRect(projection, cacheDevice, applyRect, maskPos, flags);
 
         // masks don't have any compositing
         KisPainter::copyAreaOptimized(updatedRect.topLeft(), cacheDevice, projection, updatedRect, effectiveSelection);
@@ -358,17 +357,17 @@ void KisMask::mergeInMaskInternal(KisPaintDeviceSP projection,
     }
 }
 
-void KisMask::flattenSelectionProjection(KisSelectionSP selection, const QRect &dirtyRect) const
+void KisMask::flattenSelectionProjection(KisSelectionSP selection, const PkRect &dirtyRect) const
 {
     selection->updateProjection(dirtyRect);
 }
 
-QRect KisMask::needRect(const QRect &rect,  PositionToFilthy pos) const
+PkRect KisMask::needRect(const PkRect &rect,  PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
-    QRect resultRect = rect;
+    PkRect resultRect = rect;
     if (m_d->selection) {
-        QRect selectionExtent = m_d->selection->selectedRect();
+        PkRect selectionExtent = m_d->selection->selectedRect();
 
         // copy for thread safety!
         KisPaintDeviceSP temporaryTarget = this->temporaryTarget();
@@ -383,14 +382,14 @@ QRect KisMask::needRect(const QRect &rect,  PositionToFilthy pos) const
     return resultRect;
 }
 
-QRect KisMask::changeRect(const QRect &rect, PositionToFilthy pos) const
+PkRect KisMask::changeRect(const PkRect &rect, PositionToFilthy pos) const
 {
     return KisMask::needRect(rect, pos);
 }
 
-QRect KisMask::extent() const
+PkRect KisMask::extent() const
 {
-    QRect resultRect;
+    PkRect resultRect;
 
     if (m_d->selection) {
         resultRect = m_d->selection->selectedRect();
@@ -408,9 +407,9 @@ QRect KisMask::extent() const
     return resultRect;
 }
 
-QRect KisMask::exactBounds() const
+PkRect KisMask::exactBounds() const
 {
-    QRect resultRect;
+    PkRect resultRect;
 
     if (m_d->selection) {
         resultRect = m_d->selection->selectedExactRect();
@@ -447,7 +446,7 @@ void KisMask::setX(qint32 x)
     if (m_d->selection) {
         m_d->selection->setX(x);
     } else if (!m_d->deferredSelectionOffset) {
-        m_d->deferredSelectionOffset.reset(new QPoint(x, 0));
+        m_d->deferredSelectionOffset.reset(new PkPoint(x, 0));
     } else {
         m_d->deferredSelectionOffset->rx() = x;
     }
@@ -458,24 +457,24 @@ void KisMask::setY(qint32 y)
     if (m_d->selection) {
         m_d->selection->setY(y);
     } else if (!m_d->deferredSelectionOffset) {
-        m_d->deferredSelectionOffset.reset(new QPoint(0, y));
+        m_d->deferredSelectionOffset.reset(new PkPoint(0, y));
     } else {
         m_d->deferredSelectionOffset->ry() = y;
     }
 }
 
-QRect KisMask::nonDependentExtent() const
+PkRect KisMask::nonDependentExtent() const
 {
-    return QRect();
+    return PkRect();
 }
 
-QImage KisMask::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisMask::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     KisPaintDeviceSP originalDevice =
         selection() ? selection()->projection() : 0;
 
     return originalDevice ?
-           originalDevice->createThumbnail(w, h, aspectRatioMode, boundsMode) : QImage();
+           originalDevice->createThumbnail(w, h, aspectRatioMode, boundsMode) : PkImage();
 }
 
 int KisMask::thumbnailSeqNo() const
@@ -485,7 +484,7 @@ int KisMask::thumbnailSeqNo() const
     return originalDevice ? originalDevice->sequenceNumber() : -1;
 }
 
-void KisMask::testingInitSelection(const QRect &rect, KisLayerSP parentLayer)
+void KisMask::testingInitSelection(const PkRect &rect, KisLayerSP parentLayer)
 {
     if (parentLayer) {
         m_d->selection = new KisSelection(new KisMaskDefaultBounds(parentLayer), toQShared(new KisImageResolutionProxy(image())));
@@ -504,7 +503,7 @@ bool KisMask::supportsLodPainting() const
     return !m_d->selection || !m_d->selection->hasShapeSelection();
 }
 
-KisKeyframeChannel *KisMask::requestKeyframeChannel(const QString &id)
+KisKeyframeChannel *KisMask::requestKeyframeChannel(const PkString &id)
 {
     if (id == KisKeyframeChannel::Raster.id()) {
         KisPaintDeviceSP device = paintDevice();
@@ -518,7 +517,7 @@ KisKeyframeChannel *KisMask::requestKeyframeChannel(const QString &id)
     return KisNode::requestKeyframeChannel(id);
 }
 
-bool KisMask::supportsKeyframeChannel(const QString &id)
+bool KisMask::supportsKeyframeChannel(const PkString &id)
 {
     if (id == KisKeyframeChannel::Raster.id() && paintDevice()) {
         return true;

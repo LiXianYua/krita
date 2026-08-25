@@ -7,7 +7,7 @@
 #ifndef __KIS_IMAGE_SIGNAL_ROUTER_H
 #define __KIS_IMAGE_SIGNAL_ROUTER_H
 
-#include <QObject>
+#include <PkObject.h>
 #include "KisImageSignals.h"
 #include "KisNodeAdditionFlags.h"
 
@@ -15,7 +15,7 @@ class KoColorSpace;
 class KoColorProfile;
 
 
-class KRITAIMAGE_EXPORT KisImageSignalRouter : public QObject
+class KRITAIMAGE_EXPORT KisImageSignalRouter : public PkShellObject
 {
     Q_OBJECT
 
@@ -79,7 +79,7 @@ Q_SIGNALS:
     void sigImageModified();
     void sigImageModifiedWithoutUndo();
 
-    void sigSizeChanged(const QPointF &oldStillPoint, const QPointF &newStillPoint);
+    void sigSizeChanged(const PkPointF &oldStillPoint, const PkPointF &newStillPoint);
     void sigProfileChanged(const KoColorProfile *  profile);
     void sigColorSpaceChanged(const KoColorSpace*  cs);
     void sigResolutionChanged(double xRes, double yRes);

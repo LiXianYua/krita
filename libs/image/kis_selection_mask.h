@@ -6,8 +6,7 @@
 #ifndef _KIS_SELECTION_MASK_
 #define _KIS_SELECTION_MASK_
 
-#include <QRect>
-
+#include <PkRect.h>
 #include "kis_base_node.h"
 
 #include "kis_types.h"
@@ -28,7 +27,7 @@ public:
      * Create an empty selection mask. There is filter and no layer
      * associated with this mask.
      */
-    KisSelectionMask(KisImageWSP image, const QString &name = QString());
+    KisSelectionMask(KisImageWSP image, const PkString &name = PkString());
 
     ~KisSelectionMask() override;
     KisSelectionMask(const KisSelectionMask& rhs);
@@ -50,11 +49,11 @@ public:
     bool active() const;
     void setActive(bool active);
 
-    QRect needRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
-    QRect changeRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect needRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect changeRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
 
-    QRect extent() const override;
-    QRect exactBounds() const override;
+    PkRect extent() const override;
+    PkRect exactBounds() const override;
 
     /**
      * This method works like the one in KisSelection, but it
@@ -67,15 +66,15 @@ public:
     void setDecorationsVisible(bool value, bool update) override;
     using KisDecoratedNodeInterface::setDecorationsVisible;
 
-    void setDirty(const QVector<QRect> &rects) override;
+    void setDirty(const PkVector<PkRect> &rects) override;
     using KisEffectMask::setDirty;
 
 protected:
-    void flattenSelectionProjection(KisSelectionSP selection, const QRect &dirtyRect) const override;
+    void flattenSelectionProjection(KisSelectionSP selection, const PkRect &dirtyRect) const override;
 
     void mergeInMaskInternal(KisPaintDeviceSP projection,
                              KisSelectionSP effectiveSelection,
-                             const QRect &applyRect, const QRect &preparedNeedRect,
+                             const PkRect &applyRect, const PkRect &preparedNeedRect,
                              KisNode::PositionToFilthy maskPos, KisRenderPassFlags flags) const override;
 
     bool paintsOutsideSelection() const override;

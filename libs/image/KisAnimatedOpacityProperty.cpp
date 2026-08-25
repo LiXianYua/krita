@@ -7,8 +7,8 @@
 
 #include "KisAnimatedOpacityProperty.h"
 
-KisAnimatedOpacityProperty::KisAnimatedOpacityProperty(KisDefaultBoundsBaseSP bounds, KoProperties * const props, quint8 defaultValue, QObject *parent)
-    : QObject(parent),
+KisAnimatedOpacityProperty::KisAnimatedOpacityProperty(KisDefaultBoundsBaseSP bounds, KoProperties * const props, quint8 defaultValue, PkShellObject *parent)
+    : PkShellObject(parent),
       m_bounds(bounds),
       m_props(props),
       m_defaultValue(defaultValue)
@@ -16,7 +16,7 @@ KisAnimatedOpacityProperty::KisAnimatedOpacityProperty(KisDefaultBoundsBaseSP bo
 }
 
 quint8 KisAnimatedOpacityProperty::get() {
-    QVariant variant;
+    PkVariant variant;
     bool ok = m_props->property("opacity", variant);
     const quint8 value =  ok ? variant.toInt() : m_defaultValue;
 
@@ -77,8 +77,10 @@ void KisAnimatedOpacityProperty::makeAnimated(KisNode *parentNode) {
     m_channel->setDefaultInterpolationMode(KisScalarKeyframe::Linear);
     m_channel->setDefaultValue(100);
 
-    connect(m_channel.data(), SIGNAL(sigKeyframeChanged(const KisKeyframeChannel*,int)), this, SLOT(slotKeyChanged(const KisKeyframeChannel*,int)));
-    connect(m_channel.data(), SIGNAL(sigKeyframeHasBeenRemoved(const KisKeyframeChannel*,int)), this, SLOT(slotKeyRemoval(const KisKeyframeChannel*,int)));
+    PkObject::connect(m_channel.data(), &KisKeyframeChannel::sigKeyframeChanged,
+                     this, &KisAnimatedOpacityProperty::slotKeyChanged);
+    PkObject::connect(m_channel.data(), &KisKeyframeChannel::sigKeyframeHasBeenRemoved,
+                     this, &KisAnimatedOpacityProperty::slotKeyRemoval);
 }
 
 void KisAnimatedOpacityProperty::transferKeyframeData(const KisAnimatedOpacityProperty &rhs){
@@ -89,8 +91,10 @@ void KisAnimatedOpacityProperty::transferKeyframeData(const KisAnimatedOpacityPr
     m_channel.reset(channelNew);
     m_channel->setDefaultBounds(m_bounds);
 
-    connect(m_channel.data(), SIGNAL(sigKeyframeChanged(const KisKeyframeChannel*,int)), this, SLOT(slotKeyChanged(const KisKeyframeChannel*,int)));
-    connect(m_channel.data(), SIGNAL(sigKeyframeHasBeenRemoved(const KisKeyframeChannel*,int)), this, SLOT(slotKeyRemoval(const KisKeyframeChannel*,int)));
+    PkObject::connect(m_channel.data(), &KisKeyframeChannel::sigKeyframeChanged,
+                     this, &KisAnimatedOpacityProperty::slotKeyChanged);
+    PkObject::connect(m_channel.data(), &KisKeyframeChannel::sigKeyframeHasBeenRemoved,
+                     this, &KisAnimatedOpacityProperty::slotKeyRemoval);
 }
 
 void KisAnimatedOpacityProperty::updateDefaultBounds(KisDefaultBoundsBaseSP bounds) {

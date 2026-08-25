@@ -10,7 +10,7 @@
 #include "kis_types.h"
 #include "kis_effect_mask.h"
 
-class QRect;
+class PkRect;
 
 /**
  *  A transparency mask is a single channel mask that applies a particular
@@ -27,7 +27,7 @@ class KRITAIMAGE_EXPORT KisTransparencyMask : public KisEffectMask
 
 public:
 
-    KisTransparencyMask(KisImageWSP image, const QString &name);
+    KisTransparencyMask(KisImageWSP image, const PkString &name);
     KisTransparencyMask(const KisTransparencyMask& rhs);
     ~KisTransparencyMask() override;
 
@@ -35,18 +35,18 @@ public:
         return KisNodeSP(new KisTransparencyMask(*this));
     }
 
-    QRect decorateRect(KisPaintDeviceSP &src, KisPaintDeviceSP &dst,
-                       const QRect & rc,
+    PkRect decorateRect(KisPaintDeviceSP &src, KisPaintDeviceSP &dst,
+                       const PkRect & rc,
                        PositionToFilthy maskPos,
                        KisRenderPassFlags flags) const override;
     bool accept(KisNodeVisitor &v) override;
     void accept(KisProcessingVisitor &visitor, KisUndoAdapter *undoAdapter) override;
 
-    QRect extent() const override;
-    QRect exactBounds() const override;
+    PkRect extent() const override;
+    PkRect exactBounds() const override;
 
-    QRect changeRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
-    QRect needRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect changeRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect needRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
 
     bool paintsOutsideSelection() const override;
 };

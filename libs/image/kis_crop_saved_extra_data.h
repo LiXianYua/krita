@@ -7,8 +7,7 @@
 #ifndef __KIS_CROP_SAVED_EXTRA_DATA_H
 #define __KIS_CROP_SAVED_EXTRA_DATA_H
 
-#include <QRect>
-
+#include <PkRect.h>
 #include "kundo2commandextradata.h"
 #include "kis_types.h"
 #include "kritaimage_export.h"
@@ -25,14 +24,14 @@ public:
 
 public:
 
-    KisCropSavedExtraData(Type type, QRect cropRect, KisNodeSP cropNode = 0);
+    KisCropSavedExtraData(Type type, PkRect cropRect, KisNodeSP cropNode = 0);
     ~KisCropSavedExtraData() override;
 
     inline Type type() const {
         return m_type;
     }
 
-    inline QRect cropRect() const {
+    inline PkRect cropRect() const {
         return m_cropRect;
     }
 
@@ -46,7 +45,7 @@ public:
 
 private:
     Type m_type;
-    QRect m_cropRect;
+    PkRect m_cropRect;
     KisNodeSP m_cropNode;
 };
 

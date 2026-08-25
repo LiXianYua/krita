@@ -12,7 +12,7 @@ void KisExternalLayer::resetCache(const KoColorSpace *colorSpace)
     Q_UNUSED(colorSpace);
 }
 
-QRect KisExternalLayer::theoreticalBoundingRect() const
+PkRect KisExternalLayer::theoreticalBoundingRect() const
 {
     return KisLayer::exactBounds();
 }

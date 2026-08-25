@@ -46,7 +46,7 @@ public:
     void slotConfigChanged();
 };
 
-KisSelectionMask::KisSelectionMask(KisImageWSP image, const QString &name)
+KisSelectionMask::KisSelectionMask(KisImageWSP image, const PkString &name)
     : KisEffectMask(image, name)
     , m_d(new Private(this))
 {
@@ -56,9 +56,11 @@ KisSelectionMask::KisSelectionMask(KisImageWSP image, const QString &name)
     m_d->updatesCompressor =
             new KisThreadSafeSignalCompressor(50, KisSignalCompressor::FIRST_ACTIVE);
 
-    connect(m_d->updatesCompressor, SIGNAL(timeout()), SLOT(slotSelectionChangedCompressed()));
+    PkObject::connect(m_d->updatesCompressor, &KisThreadSafeSignalCompressor::timeout,
+                  this, [this]() { m_d->slotSelectionChangedCompressed(); });
 
-    connect(KisImageConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(slotConfigChanged()));
+    PkObject::connect(KisImageConfigNotifier::instance(), &KisImageConfigNotifier::configChanged,
+                  this, [this]() { m_d->slotConfigChanged(); });
     m_d->slotConfigChangedImpl(false);
 }
 
@@ -69,9 +71,11 @@ KisSelectionMask::KisSelectionMask(const KisSelectionMask& rhs)
     m_d->updatesCompressor =
             new KisThreadSafeSignalCompressor(300, KisSignalCompressor::POSTPONE);
 
-    connect(m_d->updatesCompressor, SIGNAL(timeout()), SLOT(slotSelectionChangedCompressed()));
+    PkObject::connect(m_d->updatesCompressor, &KisThreadSafeSignalCompressor::timeout,
+                  this, [this]() { m_d->slotSelectionChangedCompressed(); });
 
-    connect(KisImageConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(slotConfigChanged()));
+    PkObject::connect(KisImageConfigNotifier::instance(), &KisImageConfigNotifier::configChanged,
+                  this, [this]() { m_d->slotConfigChanged(); });
     m_d->slotConfigChangedImpl(false);
 }
 
@@ -83,8 +87,8 @@ KisSelectionMask::~KisSelectionMask()
 
 void KisSelectionMask::mergeInMaskInternal(KisPaintDeviceSP projection,
                                            KisSelectionSP effectiveSelection,
-                                           const QRect &applyRect,
-                                           const QRect &preparedNeedRect,
+                                           const PkRect &applyRect,
+                                           const PkRect &preparedNeedRect,
                                            KisNode::PositionToFilthy maskPos,
                                            KisRenderPassFlags flags) const
 {
@@ -108,7 +112,7 @@ void KisSelectionMask::mergeInMaskInternal(KisPaintDeviceSP projection,
     KisPaintDeviceSP fillDevice = d1.device();
     fillDevice->setDefaultPixel(m_d->maskColor);
 
-    const QRect selectionExtent = effectiveSelection->selectedRect();
+    const PkRect selectionExtent = effectiveSelection->selectedRect();
 
     if (selectionExtent.contains(applyRect) || selectionExtent.intersects(applyRect)) {
         KisCachedSelection::Guard s1(m_d->cachedSelection);
@@ -216,7 +220,7 @@ void KisSelectionMask::setActive(bool active)
     }
 }
 
-QRect KisSelectionMask::needRect(const QRect &rect, KisNode::PositionToFilthy pos) const
+PkRect KisSelectionMask::needRect(const PkRect &rect, KisNode::PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
     
@@ -224,7 +228,7 @@ QRect KisSelectionMask::needRect(const QRect &rect, KisNode::PositionToFilthy po
     return rect;
 }
 
-QRect KisSelectionMask::changeRect(const QRect &rect, KisNode::PositionToFilthy pos) const
+PkRect KisSelectionMask::changeRect(const PkRect &rect, KisNode::PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
 
@@ -232,11 +236,11 @@ QRect KisSelectionMask::changeRect(const QRect &rect, KisNode::PositionToFilthy 
     return rect;
 }
 
-QRect KisSelectionMask::extent() const
+PkRect KisSelectionMask::extent() const
 {
     // since mask overlay is inverted, the mask paints over
     // the entire image bounds
-    QRect resultRect;
+    PkRect resultRect;
     KisSelectionSP selection = this->selection();
     
     if (selection) {
@@ -256,7 +260,7 @@ QRect KisSelectionMask::extent() const
     return resultRect;
 }
 
-QRect KisSelectionMask::exactBounds() const
+PkRect KisSelectionMask::exactBounds() const
 {
     return extent();
 }
@@ -275,7 +279,7 @@ void KisSelectionMask::setDecorationsVisible(bool value, bool update)
 {
     if (value == decorationsVisible()) return;
 
-    const QRect oldExtent = extent();
+    const PkRect oldExtent = extent();
 
     selection()->setVisible(value);
 
@@ -284,7 +288,7 @@ void KisSelectionMask::setDecorationsVisible(bool value, bool update)
     }
 }
 
-void KisSelectionMask::setDirty(const QVector<QRect> &rects)
+void KisSelectionMask::setDirty(const PkVector<PkRect> &rects)
 {
     KisImageSP image = this->image();
 
@@ -293,7 +297,7 @@ void KisSelectionMask::setDirty(const QVector<QRect> &rects)
     }
 }
 
-void KisSelectionMask::flattenSelectionProjection(KisSelectionSP selection, const QRect &dirtyRect) const
+void KisSelectionMask::flattenSelectionProjection(KisSelectionSP selection, const PkRect &dirtyRect) const
 {
     Q_UNUSED(selection);
     Q_UNUSED(dirtyRect);
@@ -329,4 +333,3 @@ void KisSelectionMask::Private::slotConfigChanged()
     slotConfigChangedImpl(true);
 }
 
-#include "moc_kis_selection_mask.cpp"

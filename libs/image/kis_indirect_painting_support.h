@@ -13,7 +13,7 @@
 
 #include <mutex>
 
-class QBitArray;
+class PkBitArray;
 class KisUndoAdapter;
 class KisPostExecutionUndoAdapter;
 class KisPainter;
@@ -41,9 +41,9 @@ public:
 
     virtual void setCurrentColor(const KoColor &color);
     void setTemporaryTarget(KisPaintDeviceSP t);
-    void setTemporaryCompositeOp(const QString &id);
+    void setTemporaryCompositeOp(const PkString &id);
     void setTemporaryOpacity(qreal o);
-    void setTemporaryChannelFlags(const QBitArray& channelFlags);
+    void setTemporaryChannelFlags(const PkBitArray& channelFlags);
     void setTemporarySelection(KisSelectionSP selection);
 
     /**
@@ -59,7 +59,7 @@ public:
      * This action will lock the temporary target itself.
      */
     void mergeToLayer(KisNodeSP layer, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText, int timedID);
-    virtual void mergeToLayerThreaded(KisNodeSP layer, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText, int timedID, QVector<KisRunnableStrokeJobData *> *jobs);
+    virtual void mergeToLayerThreaded(KisNodeSP layer, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText, int timedID, PkVector<KisRunnableStrokeJobData *> *jobs);
 
     KisPaintDeviceSP temporaryTarget() const;
 
@@ -91,7 +91,7 @@ public:
     private:
         const KisIndirectPaintingSupport *m_lock;
     };
-    using FinalMergeSuspenderSP = QSharedPointer<FinalMergeSuspender>;
+    using FinalMergeSuspenderSP = PkSharedPointer<FinalMergeSuspender>;
 
     /**
      * When the stroke uses multithreaded final merge and supports
@@ -146,13 +146,13 @@ protected:
         bool m_locked = false;
     };
 
-    using WriteLockerSP = QSharedPointer<WriteLocker>;
+    using WriteLockerSP = PkSharedPointer<WriteLocker>;
 
-    void mergeToLayerImpl(KisPaintDeviceSP dst, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText, int timedID, bool cleanResources, WriteLockerSP sharedWriteLock, QVector<KisRunnableStrokeJobData *> *jobs);
-    virtual void writeMergeData(KisPainter *painter, KisPaintDeviceSP src, const QRect &rc);
+    void mergeToLayerImpl(KisPaintDeviceSP dst, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText, int timedID, bool cleanResources, WriteLockerSP sharedWriteLock, PkVector<KisRunnableStrokeJobData *> *jobs);
+    virtual void writeMergeData(KisPainter *painter, KisPaintDeviceSP src, const PkRect &rc);
     void lockTemporaryTargetForWrite() const;
 
-    QString temporaryCompositeOp() const;
+    PkString temporaryCompositeOp() const;
     void releaseResources();
 
 private:

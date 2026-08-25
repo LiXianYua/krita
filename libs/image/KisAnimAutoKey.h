@@ -9,8 +9,6 @@
 #define _KIS_ANIM_AUTOKEY_H
 
 #include "kritaimage_export.h"
-#include <QFlags>
-#include <QMetaType>
 
 template<class T>
 class KisSharedPtr;

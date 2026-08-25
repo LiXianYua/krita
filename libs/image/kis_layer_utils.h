@@ -19,7 +19,6 @@
 
 class KoProperties;
 class KoColor;
-class QUuid;
 
 namespace KisMetaData
 {
@@ -34,14 +33,14 @@ namespace KisLayerUtils
     };
     Q_DECLARE_FLAGS(MergeFlags, MergeFlag)
 
-    KRITAIMAGE_EXPORT void sortMergeableNodes(KisNodeSP root, QList<KisNodeSP> &inputNodes, QList<KisNodeSP> &outputNodes);
+    KRITAIMAGE_EXPORT void sortMergeableNodes(KisNodeSP root, PkList<KisNodeSP> &inputNodes, PkList<KisNodeSP> &outputNodes);
     KRITAIMAGE_EXPORT KisNodeList sortMergeableNodes(KisNodeSP root, KisNodeList nodes);
     KRITAIMAGE_EXPORT void filterMergeableNodes(KisNodeList &nodes, bool allowMasks = false);
     KRITAIMAGE_EXPORT KisNodeList sortAndFilterAnyMergeableNodesSafe(const KisNodeList &nodes, KisImageSP image);
     KRITAIMAGE_EXPORT bool checkIsChildOf(KisNodeSP node, const KisNodeList &parents);
     KRITAIMAGE_EXPORT void filterUnlockedNodes(KisNodeList &nodes);
-    KRITAIMAGE_EXPORT void refreshHiddenAreaAsync(KisImageSP image, KisNodeSP rootNode, const QRect &preparedArea);
-    KRITAIMAGE_EXPORT QRect recursiveTightNodeVisibleBounds(KisNodeSP rootNode);
+    KRITAIMAGE_EXPORT void refreshHiddenAreaAsync(KisImageSP image, KisNodeSP rootNode, const PkRect &preparedArea);
+    KRITAIMAGE_EXPORT PkRect recursiveTightNodeVisibleBounds(KisNodeSP rootNode);
 
     /**
      * Returns true if:
@@ -61,8 +60,8 @@ namespace KisLayerUtils
 
     KRITAIMAGE_EXPORT void mergeDown(KisImageSP image, KisLayerSP layer, const KisMetaData::MergeStrategy* strategy, MergeFlags flags = None);
 
-    KRITAIMAGE_EXPORT QSet<int> fetchLayerFrames(KisNodeSP node);
-    KRITAIMAGE_EXPORT QSet<int> fetchLayerFramesRecursive(KisNodeSP rootNode);
+    KRITAIMAGE_EXPORT PkSet<int> fetchLayerFrames(KisNodeSP node);
+    KRITAIMAGE_EXPORT PkSet<int> fetchLayerFramesRecursive(KisNodeSP rootNode);
 
     KRITAIMAGE_EXPORT void mergeMultipleLayers(KisImageSP image, KisNodeList mergedNodes, KisNodeSP putAfter, MergeFlags flags = None);
     KRITAIMAGE_EXPORT void newLayerFromVisible(KisImageSP image, KisNodeSP putAfter, MergeFlags flags = None);
@@ -87,11 +86,11 @@ namespace KisLayerUtils
 
     KRITAIMAGE_EXPORT bool canChangeImageProfileInvisibly(KisImageSP image);
 
-    KRITAIMAGE_EXPORT void splitAlphaToMask(KisImageSP image, KisNodeSP node, const QString& maskName);
+    KRITAIMAGE_EXPORT void splitAlphaToMask(KisImageSP image, KisNodeSP node, const PkString& maskName);
 
     KRITAIMAGE_EXPORT std::future<KisNodeSP> convertToPaintLayer(KisImageSP image, KisNodeSP src);
 
-    typedef QMap<int, QSet<KisNodeSP> > FrameJobs;
+    typedef PkMap<int, PkSet<KisNodeSP> > FrameJobs;
     void updateFrameJobs(FrameJobs *jobs, KisNodeSP node);
     void updateFrameJobsRecursive(FrameJobs *jobs, KisNodeSP rootNode);
 
@@ -109,7 +108,7 @@ namespace KisLayerUtils
             int value;
         };
 
-        typedef QSharedPointer<SharedStorage> SharedStorageSP;
+        typedef PkSharedPointer<SharedStorage> SharedStorageSP;
 
     public:
         SwitchFrameCommand(KisImageSP image, int time, bool finalize, SharedStorageSP storage);
@@ -172,7 +171,7 @@ namespace KisLayerUtils
             KisNodeSP putAfter;
             bool doRedoUpdates = true;
             bool doUndoUpdates = true;
-            QVector<KisSelectionMaskSP> selectionMasks;
+            PkVector<KisSelectionMaskSP> selectionMasks;
             bool relinkClones = false;
         };
 
@@ -255,11 +254,11 @@ namespace KisLayerUtils
     /**
      * Recursively searches for a node with specified Uuid
      */
-    KRITAIMAGE_EXPORT KisNodeSP findNodeByUuid(KisNodeSP root, const QUuid &uuid);
+    KRITAIMAGE_EXPORT KisNodeSP findNodeByUuid(KisNodeSP root, const PkNodeId &uuid);
 
-    KRITAIMAGE_EXPORT QList<KisNodeSP> findNodesByName(KisNodeSP root, const QString &name, bool recursive, bool partialMatch);
+    KRITAIMAGE_EXPORT PkList<KisNodeSP> findNodesByName(KisNodeSP root, const PkString &name, bool recursive, bool partialMatch);
 
-    KRITAIMAGE_EXPORT KisNodeSP findNodeByName(KisNodeSP root, const QString &name);
+    KRITAIMAGE_EXPORT KisNodeSP findNodeByName(KisNodeSP root, const PkString &name);
 
     KRITAIMAGE_EXPORT KisNodeSP findIsolationRoot(KisNodeSP node);
 
@@ -276,12 +275,12 @@ namespace KisLayerUtils
     // Important for avoiding instanced frame data being processed twice!
     KRITAIMAGE_EXPORT int fetchLayerActiveRasterFrameTime(KisNodeSP node);
     KRITAIMAGE_EXPORT KisTimeSpan fetchLayerActiveRasterFrameSpan(KisNodeSP node, const int time);
-    KRITAIMAGE_EXPORT QSet<int> fetchLayerIdenticalRasterFrameTimes(KisNodeSP node, const int& frameTime);
+    KRITAIMAGE_EXPORT PkSet<int> fetchLayerIdenticalRasterFrameTimes(KisNodeSP node, const int& frameTime);
 
-    KRITAIMAGE_EXPORT QSet<int> filterTimesForOnlyRasterKeyedTimes(KisNodeSP node, const QSet<int> &times);
+    KRITAIMAGE_EXPORT PkSet<int> filterTimesForOnlyRasterKeyedTimes(KisNodeSP node, const PkSet<int> &times);
 
     /* Returns a set of times associated with every unique frame from a selection. */
-    KRITAIMAGE_EXPORT QSet<int> fetchUniqueFrameTimes(KisNodeSP node, QSet<int> selectedTimes, bool filterActiveFrameID);
+    KRITAIMAGE_EXPORT PkSet<int> fetchUniqueFrameTimes(KisNodeSP node, PkSet<int> selectedTimes, bool filterActiveFrameID);
 }
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(KisLayerUtils::MergeFlags);

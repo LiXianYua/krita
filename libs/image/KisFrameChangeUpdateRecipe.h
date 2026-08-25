@@ -1,14 +1,14 @@
 #ifndef KISFRAMECHANGEUPDATERECIPE_H
 #define KISFRAMECHANGEUPDATERECIPE_H
 
-#include <QRect>
+#include <PkRect.h>
 #include <kis_time_span.h>
 
 struct KisFrameChangeUpdateRecipe
 {
     KisTimeSpan affectedRange;
-    QRect affectedRect;
-    QRect totalDirtyRect;
+    PkRect affectedRect;
+    PkRect totalDirtyRect;
 
     void notify(KisNode *node) const;
 };

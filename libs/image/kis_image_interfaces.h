@@ -11,7 +11,7 @@
 #include <kritaimage_export.h>
 #include <KisProjectionUpdateFlags.h>
 
-class QRect;
+class PkRect;
 class KisStrokeStrategy;
 class KisStrokeJobData;
 class KisPostExecutionUndoAdapter;
@@ -36,23 +36,23 @@ public:
     virtual void unblockUpdates() = 0;
 
     virtual void disableUIUpdates() = 0;
-    virtual QVector<QRect> enableUIUpdates() = 0;
+    virtual PkVector<PkRect> enableUIUpdates() = 0;
 
     virtual bool hasUpdatesRunning() const = 0;
 
     virtual void notifyBatchUpdateStarted() = 0;
     virtual void notifyBatchUpdateEnded() = 0;
-    virtual void notifyUIUpdateCompleted(const QRect &rc) = 0;
+    virtual void notifyUIUpdateCompleted(const PkRect &rc) = 0;
 
-    virtual QRect bounds() const = 0;
+    virtual PkRect bounds() const = 0;
 
     virtual void disableDirtyRequests() = 0;
     virtual void enableDirtyRequests() = 0;
 
     void refreshGraphAsync(KisNodeSP root = nullptr, KisProjectionUpdateFlags flags = KisProjectionUpdateFlag::None);
-    void refreshGraphAsync(KisNodeSP root, const QRect &rc, KisProjectionUpdateFlags flags = KisProjectionUpdateFlag::None);
-    void refreshGraphAsync(KisNodeSP root, const QRect &rc, const QRect &cropRect, KisProjectionUpdateFlags flags = KisProjectionUpdateFlag::None);
-    virtual void refreshGraphAsync(KisNodeSP root, const QVector<QRect> &rc, const QRect &cropRect, KisProjectionUpdateFlags flags = KisProjectionUpdateFlag::None) = 0;
+    void refreshGraphAsync(KisNodeSP root, const PkRect &rc, KisProjectionUpdateFlags flags = KisProjectionUpdateFlag::None);
+    void refreshGraphAsync(KisNodeSP root, const PkRect &rc, const PkRect &cropRect, KisProjectionUpdateFlags flags = KisProjectionUpdateFlag::None);
+    virtual void refreshGraphAsync(KisNodeSP root, const PkVector<PkRect> &rc, const PkRect &cropRect, KisProjectionUpdateFlags flags = KisProjectionUpdateFlag::None) = 0;
 
     virtual KisProjectionUpdatesFilterCookie addProjectionUpdatesFilter(KisProjectionUpdatesFilterSP filter) = 0;
     virtual KisProjectionUpdatesFilterSP removeProjectionUpdatesFilter(KisProjectionUpdatesFilterCookie cookie) = 0;
@@ -64,7 +64,7 @@ class KRITAIMAGE_EXPORT KisProjectionUpdateListener
 {
 public:
     virtual ~KisProjectionUpdateListener();
-    virtual void notifyProjectionUpdated(const QRect &rc) = 0;
+    virtual void notifyProjectionUpdated(const PkRect &rc) = 0;
 };
 
 class KRITAIMAGE_EXPORT KisStrokeUndoFacade

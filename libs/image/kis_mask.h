@@ -8,7 +8,9 @@
 #ifndef _KIS_MASK_
 #define _KIS_MASK_
 
-#include <QRect>
+#include <PkRect.h>
+#include <PkString.h>
+#include <PkImage.h>
 
 #include "kis_types.h"
 #include "kis_global.h"
@@ -63,7 +65,7 @@ public:
     /**
      * Create a new KisMask.
      */
-    KisMask(KisImageWSP image, const QString &name);
+    KisMask(KisImageWSP image, const PkString &name);
 
     /**
      * Copy the mask
@@ -133,13 +135,13 @@ public:
     /**
      * Selected the specified rect with the specified amount of selectedness.
      */
-    void select(const QRect & rc, quint8 selectedness = MAX_SELECTED);
+    void select(const PkRect & rc, quint8 selectedness = MAX_SELECTED);
 
     /**
      * The extent and bounds of the mask are those of the selection inside
      */
-    QRect extent() const override;
-    QRect exactBounds() const override;
+    PkRect extent() const override;
+    PkRect exactBounds() const override;
 
     /**
      * overridden from KisBaseNode
@@ -172,14 +174,14 @@ public:
      * area of the parent layer. This additional "non-dependent" extent
      * is added to the extent of the parent layer.
      */
-    virtual QRect nonDependentExtent() const;
+    virtual PkRect nonDependentExtent() const;
 
-    QRect needRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
-    QRect changeRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
-    QImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
+    PkRect needRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect changeRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
     int thumbnailSeqNo() const override;
 
-    void testingInitSelection(const QRect &rect, KisLayerSP parentLayer);
+    void testingInitSelection(const PkRect &rect, KisLayerSP parentLayer);
 
     bool supportsLodPainting() const override;
 
@@ -188,11 +190,11 @@ protected:
      * Apply the effect the projection using the mask as a selection.
      * Made public in KisEffectMask
      */
-    void apply(KisPaintDeviceSP projection, const QRect & applyRect, const QRect & needRect, PositionToFilthy maskPos, KisRenderPassFlags flags) const;
+    void apply(KisPaintDeviceSP projection, const PkRect & applyRect, const PkRect & needRect, PositionToFilthy maskPos, KisRenderPassFlags flags) const;
 
     virtual void mergeInMaskInternal(KisPaintDeviceSP projection,
                                      KisSelectionSP effectiveSelection,
-                                     const QRect &applyRect, const QRect &preparedNeedRect,
+                                     const PkRect &applyRect, const PkRect &preparedNeedRect,
                                      PositionToFilthy maskPos,
                                      KisRenderPassFlags flags) const;
 
@@ -201,18 +203,18 @@ protected:
      * the projection calculation process. Some masks (e.g. selection masks)
      * don't need it, because they do it separately.
      */
-    virtual void flattenSelectionProjection(KisSelectionSP selection, const QRect &dirtyRect) const;
+    virtual void flattenSelectionProjection(KisSelectionSP selection, const PkRect &dirtyRect) const;
 
-    virtual QRect decorateRect(KisPaintDeviceSP &src,
+    virtual PkRect decorateRect(KisPaintDeviceSP &src,
                                KisPaintDeviceSP &dst,
-                               const QRect & rc,
+                               const PkRect & rc,
                                PositionToFilthy maskPos,
                                KisRenderPassFlags flags) const;
 
     virtual bool paintsOutsideSelection() const;
 
-    KisKeyframeChannel *requestKeyframeChannel(const QString &id) override;
-    bool supportsKeyframeChannel(const QString &id) override;
+    KisKeyframeChannel *requestKeyframeChannel(const PkString &id) override;
+    bool supportsKeyframeChannel(const PkString &id) override;
 
     void baseNodeChangedCallback() override;
 

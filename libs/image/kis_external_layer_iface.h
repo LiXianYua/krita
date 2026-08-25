@@ -12,7 +12,7 @@
 #include "kis_image.h"
 #include "kis_layer.h"
 
-class QString;
+class PkString;
 class KUndo2Command;
 
 /**
@@ -23,17 +23,17 @@ class KRITAIMAGE_EXPORT KisExternalLayer : public KisLayer
 {
 
 public:
-    KisExternalLayer(KisImageWSP image, const QString &name, quint8 opacity)
+    KisExternalLayer(KisImageWSP image, const PkString &name, quint8 opacity)
             : KisLayer(image, name, opacity) {}
 
     virtual void resetCache(const KoColorSpace *colorSpace = 0);
 
-    virtual KUndo2Command* crop(const QRect & rect) {
+    virtual KUndo2Command* crop(const PkRect & rect) {
         Q_UNUSED(rect);
         return 0;
     }
 
-    virtual KUndo2Command* transform(const QTransform &transform) {
+    virtual KUndo2Command* transform(const PkTransform &transform) {
         Q_UNUSED(transform);
         return 0;
     }
@@ -65,7 +65,7 @@ public:
      * asynchronously. theoreticalBoundingRect() is used to get real bounding
      * rect of a layer without relying on original().
      */
-    virtual QRect theoreticalBoundingRect() const;
+    virtual PkRect theoreticalBoundingRect() const;
 };
 
 #endif // KIS_EXTERNAL_IFACE_LAYER_IFACE_

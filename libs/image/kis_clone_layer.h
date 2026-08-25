@@ -6,7 +6,7 @@
 #ifndef KIS_CLONE_LAYER_H_
 #define KIS_CLONE_LAYER_H_
 
-#include <QObject>
+#include <PkObject.h>
 #include "kis_types.h"
 #include "kis_layer.h"
 
@@ -37,7 +37,7 @@ class KRITAIMAGE_EXPORT KisCloneLayer : public KisLayer
 
 public:
 
-    KisCloneLayer(KisLayerSP from, KisImageWSP image, const QString &name, quint8 opacity);
+    KisCloneLayer(KisLayerSP from, KisImageWSP image, const PkString &name, quint8 opacity);
     KisCloneLayer(const KisCloneLayer& rhs);
     ~KisCloneLayer() override;
 
@@ -71,10 +71,10 @@ public:
     void setY(qint32) override;
 
     /// Returns an approximation of where the bounds on actual data are in this layer
-    QRect extent() const override;
+    PkRect extent() const override;
 
     /// Returns the exact bounds of where the actual data resides in this layer
-    QRect exactBounds() const override;
+    PkRect exactBounds() const override;
 
     bool accept(KisNodeVisitor &) override;
     void accept(KisProcessingVisitor &visitor, KisUndoAdapter *undoAdapter) override;
@@ -97,23 +97,23 @@ public:
      * This function is called by the original to notify
      * us that it is dirty
      */
-    void setDirtyOriginal(const QRect &rect, bool dontInvalidateFrames);
+    void setDirtyOriginal(const PkRect &rect, bool dontInvalidateFrames);
 
-    QRect needRectOnSourceForMasks(const QRect &rc) const;
+    PkRect needRectOnSourceForMasks(const PkRect &rc) const;
 
     void syncLodCache() override;
 
 protected:
     // override from KisNode
-    QRect accessRect(const QRect &rect, PositionToFilthy pos) const override;
+    PkRect accessRect(const PkRect &rect, PositionToFilthy pos) const override;
 
     // override from KisLayer
     void copyOriginalToProjection(const KisPaintDeviceSP original,
                                   KisPaintDeviceSP projection,
-                                  const QRect& rect) const override;
+                                  const PkRect& rect) const override;
 
     void notifyParentVisibilityChanged(bool value) override;
-    QRect outgoingChangeRect(const QRect &rect) const override;
+    PkRect outgoingChangeRect(const PkRect &rect) const override;
 private:
 
     struct Private;

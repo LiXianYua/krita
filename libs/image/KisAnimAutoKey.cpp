@@ -7,11 +7,8 @@
 
 #include "KisAnimAutoKey.h"
 
-#include <QReadWriteLock>
-
-#include <QApplication>
-#include <QThread>
-
+#include <PkReadWriteLock.h>
+#include <PkThread.h>
 #include "kis_image_config.h"
 #include "KisImageConfigNotifier.h"
 
@@ -22,32 +19,33 @@
 namespace KisAutoKey
 {
 
-class AutoKeyFrameStateHolder : public QObject
+class AutoKeyFrameStateHolder : public PkShellObject
 {
     Q_OBJECT
 public:
 
     AutoKeyFrameStateHolder() {
-        KIS_SAFE_ASSERT_RECOVER_NOOP(qApp->thread() == QThread::currentThread());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(PkThread::mainThreadId() == PkThread::currentThreadId());
 
-        connect(KisImageConfigNotifier::instance(), SIGNAL(autoKeyFrameConfigurationChanged()),
-                this, SLOT(slotAutoKeyFrameSettingChanged()));
+        PkObject::connect(KisImageConfigNotifier::instance(),
+                          &KisImageConfigNotifier::autoKeyFrameConfigurationChanged,
+                          this, &AutoKeyFrameStateHolder::slotAutoKeyFrameSettingChanged);
         slotAutoKeyFrameSettingChanged();
     }
 
     Mode mode() const {
-        QReadLocker l(&m_lock);
+        PkReadLocker l(&m_lock);
         return m_mode;
     }
 
     void testingSetActiveMode(Mode mode) {
-        QWriteLocker l(&m_lock);
+        PkWriteLocker l(&m_lock);
         m_mode = mode;
     }
 
 private Q_SLOTS:
     void slotAutoKeyFrameSettingChanged() {
-        QWriteLocker l(&m_lock);
+        PkWriteLocker l(&m_lock);
 
         KisImageConfig cfg(true);
 
@@ -60,21 +58,19 @@ private Q_SLOTS:
     }
 
 private:
-    mutable QReadWriteLock m_lock;
+    mutable PkReadWriteLock m_lock;
     KisAutoKey::Mode m_mode {NONE};
 };
 
-QScopedPointer<AutoKeyFrameStateHolder> s_holder;
-void initHolder () {
-    if (!s_holder) {
-        s_holder.reset(new AutoKeyFrameStateHolder());
-    }
+AutoKeyFrameStateHolder *holder()
+{
+    static AutoKeyFrameStateHolder h;
+    return &h;
 }
-Q_COREAPP_STARTUP_FUNCTION(initHolder)
 
 Mode activeMode()
 {
-    return s_holder->mode();
+    return holder()->mode();
 }
 
 KUndo2Command* tryAutoCreateDuplicatedFrame(KisPaintDeviceSP device, AutoCreateKeyframeFlags flags) {
@@ -98,7 +94,7 @@ KUndo2Command* tryAutoCreateDuplicatedFrame(KisPaintDeviceSP device, AutoCreateK
 
     if (isLodNMode) {
         if (flags & AllowBlankMode && autoKeyMode == KisAutoKey::BLANK) {
-            const QRect originalDirtyRect = device->exactBounds();
+            const PkRect originalDirtyRect = device->exactBounds();
             KisTransaction transaction(device);
             device->clear();
             device->setDirty(originalDirtyRect);
@@ -132,10 +128,9 @@ KUndo2Command* tryAutoCreateDuplicatedFrame(KisPaintDeviceSP device, AutoCreateK
 
 void testingSetActiveMode(Mode mode)
 {
-    s_holder->testingSetActiveMode(mode);
+    holder()->testingSetActiveMode(mode);
 }
 
 
 } // namespace KisAutoKey
 
-#include "KisAnimAutoKey.moc"

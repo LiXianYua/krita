@@ -22,7 +22,7 @@
 
 
 KisAdjustmentLayer::KisAdjustmentLayer(KisImageWSP image,
-                                       const QString &name,
+                                       const PkString &name,
                                        KisFilterConfigurationSP kfc,
                                        KisSelectionSP selection)
     : KisSelectionBasedLayer(image.data(), name, selection, kfc)
@@ -55,11 +55,11 @@ void KisAdjustmentLayer::setFilter(KisFilterConfigurationSP filterConfig, bool c
     KisSelectionBasedLayer::setFilter(filterConfig, checkCompareConfig);
 }
 
-QRect KisAdjustmentLayer::incomingChangeRect(const QRect &rect) const
+PkRect KisAdjustmentLayer::incomingChangeRect(const PkRect &rect) const
 {
     KisFilterConfigurationSP filterConfig = filter();
 
-    QRect filteredRect = rect;
+    PkRect filteredRect = rect;
 
     if (filterConfig) {
         KisFilterSP filter = KisFilterRegistry::instance()->value(filterConfig->name());
@@ -77,7 +77,7 @@ QRect KisAdjustmentLayer::incomingChangeRect(const QRect &rect) const
     return filteredRect;
 }
 
-QRect KisAdjustmentLayer::needRect(const QRect& rect, PositionToFilthy pos) const
+PkRect KisAdjustmentLayer::needRect(const PkRect& rect, PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
 
@@ -93,7 +93,7 @@ QRect KisAdjustmentLayer::needRect(const QRect& rect, PositionToFilthy pos) cons
      * That's why simply we do not call
      * KisSelectionBasedLayer::needRect here :)
      */
-    QRect needRect = rect;
+    PkRect needRect = rect;
     needRect |= needRectForOriginal(needRect);
     needRect = filter->neededRect(needRect, filterConfig.data(), projection()->defaultBounds()->currentLevelOfDetail());
     return needRect;
@@ -114,12 +114,12 @@ KisBaseNode::PropertyList KisAdjustmentLayer::sectionModelProperties() const
     KisFilterConfigurationSP filterConfig = filter();
     KisBaseNode::PropertyList l = KisLayer::sectionModelProperties();
     if (filterConfig)
-        l << KisBaseNode::Property(KoID("filter", i18nc("property of a filter layer, noun", "Filter")), KisFilterRegistry::instance()->value(filterConfig->name())->name());
+        l << KisBaseNode::Property(KoID("filter", PkString("Filter")), KisFilterRegistry::instance()->value(filterConfig->name())->name());
 
     return l;
 }
 
-void KisAdjustmentLayer::setChannelFlags(const QBitArray & channelFlags)
+void KisAdjustmentLayer::setChannelFlags(const PkBitArray & channelFlags)
 {
     KisFilterConfigurationSP filterConfig = filter();
 

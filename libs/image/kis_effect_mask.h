@@ -26,7 +26,7 @@ public:
     /**
      * Create an empty effect mask.
      */
-    KisEffectMask(KisImageWSP image, const QString &name);
+    KisEffectMask(KisImageWSP image, const PkString &name);
 
     ~KisEffectMask() override;
     KisEffectMask(const KisEffectMask& rhs);

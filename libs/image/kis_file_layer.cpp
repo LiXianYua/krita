@@ -3,6 +3,17 @@
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
+
+// ===========================================================================
+// [GAP] kis_file_layer.cpp 阻塞登记（S-06 Task 8 批次C2）
+// 
+// 本文件不进薄壳，保留 Qt 原样。阻塞原因：
+//   * QFile/QFileInfo/QDir/QIcon/QSize/QRect/QPoint/QTransform 等
+//     Qt 类型与信号槽字符串连接（loadingFinished 等）全量未剥；
+//   * 文件层走异步 KisFileLayerLoader + QFileSystemWatcher 依赖 Qt 事件循环；
+//   * i18n/i18nc 工具提示文案依赖翻译层。待文件层子系统专用批次。
+// ===========================================================================
+
 #include "kis_file_layer.h"
 
 #include <utility>

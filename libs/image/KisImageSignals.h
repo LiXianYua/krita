@@ -7,10 +7,11 @@
 #ifndef KISIMAGESIGNALS_H
 #define KISIMAGESIGNALS_H
 
-#include <QVector>
-#include <QRectF>
+#include <PkVector.h>
+#include <PkRect.h>
 #include "kritaimage_export.h"
 #include "kis_types.h"
+#include "kis_node.h"
 
 enum KisImageSignalTypeEnum {
     LayersChangedSignal,
@@ -29,7 +30,7 @@ enum KisImageSignalTypeEnum {
  */
 struct KRITAIMAGE_EXPORT ComplexSizeChangedSignal {
     ComplexSizeChangedSignal();
-    ComplexSizeChangedSignal(QPointF _oldStillPoint, QPointF _newStillPoint);
+    ComplexSizeChangedSignal(PkPointF _oldStillPoint, PkPointF _newStillPoint);
 
     /**
      * A helper method calculating the still points from image areas
@@ -39,12 +40,12 @@ struct KRITAIMAGE_EXPORT ComplexSizeChangedSignal {
      *
      * Note, that \p portionOfTheImage may be equal to the image bounds().
      */
-    ComplexSizeChangedSignal(const QRect &portionOfOldImage, const QSize &transformedIntoImageOfSize);
+    ComplexSizeChangedSignal(const PkRect &portionOfOldImage, const PkSize &transformedIntoImageOfSize);
 
     ComplexSizeChangedSignal inverted() const;
 
-    QPointF oldStillPoint;
-    QPointF newStillPoint;
+    PkPointF oldStillPoint;
+    PkPointF newStillPoint;
 };
 
 /**
@@ -78,6 +79,6 @@ struct KRITAIMAGE_EXPORT KisImageSignalType {
     ComplexNodeReselectionSignal nodeReselectionSignal;
 };
 
-typedef QVector<KisImageSignalType> KisImageSignalVector;
+typedef PkVector<KisImageSignalType> KisImageSignalVector;
 
 #endif // KISIMAGESIGNALS_H

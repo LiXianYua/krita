@@ -6,8 +6,7 @@
 #ifndef _KIS_TRANSFORM_MASK_
 #define _KIS_TRANSFORM_MASK_
 
-#include <QScopedPointer>
-
+#include <PkScopedPointer.h>
 #include "kis_types.h"
 #include "kis_effect_mask.h"
 #include "KisDelayedUpdateNodeInterface.h"
@@ -27,7 +26,7 @@ public:
     /**
      * Create an empty transform mask.
      */
-    KisTransformMask(KisImageWSP image, const QString &name);
+    KisTransformMask(KisImageWSP image, const PkString &name);
 
     ~KisTransformMask() override;
 
@@ -42,18 +41,18 @@ public:
 
     KisTransformMask(const KisTransformMask& rhs);
 
-    QRect decorateRect(KisPaintDeviceSP &src,
+    PkRect decorateRect(KisPaintDeviceSP &src,
                        KisPaintDeviceSP &dst,
-                       const QRect & rc,
+                       const PkRect & rc,
                        PositionToFilthy maskPos,
                        KisRenderPassFlags flags) const override;
 
-    QRect changeRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
-    QRect needRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect changeRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect needRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
 
-    QRect extent() const override;
-    QRect exactBounds() const override;
-    QRect sourceDataBounds() const;
+    PkRect extent() const override;
+    PkRect exactBounds() const override;
+    PkRect sourceDataBounds() const;
 
     void setImage(KisImageWSP image) override;
 
@@ -81,7 +80,7 @@ public:
     void forceUpdateTimedNode() override;
     bool hasPendingTimedUpdates() const override;
 
-    void threadSafeForceStaticImageUpdate(const QRect &extraUpdateRect);
+    void threadSafeForceStaticImageUpdate(const PkRect &extraUpdateRect);
     void threadSafeForceStaticImageUpdate();
 
     void syncLodCache() override;
@@ -92,8 +91,8 @@ public:
     KisTransformMaskTestingInterface* testingInterface() const;
 
 protected:
-    KisKeyframeChannel *requestKeyframeChannel(const QString &id) override;
-    bool supportsKeyframeChannel(const QString &id) override;
+    KisKeyframeChannel *requestKeyframeChannel(const PkString &id) override;
+    bool supportsKeyframeChannel(const PkString &id) override;
 
 Q_SIGNALS:
     void sigInternalForceStaticImageUpdate();
@@ -108,7 +107,7 @@ private Q_SLOTS:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif //_KIS_TRANSFORM_MASK_

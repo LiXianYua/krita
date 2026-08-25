@@ -16,7 +16,7 @@
 #include "kis_processing_visitor.h"
 #include "kis_image.h"
 
-KisTransparencyMask::KisTransparencyMask(KisImageWSP image, const QString &name)
+KisTransparencyMask::KisTransparencyMask(KisImageWSP image, const PkString &name)
         : KisEffectMask(image, name)
 {
 }
@@ -30,9 +30,9 @@ KisTransparencyMask::~KisTransparencyMask()
 {
 }
 
-QRect KisTransparencyMask::decorateRect(KisPaintDeviceSP &src,
+PkRect KisTransparencyMask::decorateRect(KisPaintDeviceSP &src,
                                         KisPaintDeviceSP &dst,
-                                        const QRect & rc,
+                                        const PkRect & rc,
                                         PositionToFilthy maskPos,
                                         KisRenderPassFlags flags) const
 {
@@ -47,17 +47,17 @@ QRect KisTransparencyMask::decorateRect(KisPaintDeviceSP &src,
     return rc;
 }
 
-QRect KisTransparencyMask::extent() const
+PkRect KisTransparencyMask::extent() const
 {
-    return parent() ? parent()->extent() : QRect();
+    return parent() ? parent()->extent() : PkRect();
 }
 
-QRect KisTransparencyMask::exactBounds() const
+PkRect KisTransparencyMask::exactBounds() const
 {
-    return parent() ? parent()->exactBounds() : QRect();
+    return parent() ? parent()->exactBounds() : PkRect();
 }
 
-QRect KisTransparencyMask::changeRect(const QRect &rect, PositionToFilthy pos) const
+PkRect KisTransparencyMask::changeRect(const PkRect &rect, PositionToFilthy pos) const
 {
     /**
      * Selection on transparency masks have no special meaning:
@@ -66,7 +66,7 @@ QRect KisTransparencyMask::changeRect(const QRect &rect, PositionToFilthy pos) c
     return KisMask::changeRect(rect, pos);
 }
 
-QRect KisTransparencyMask::needRect(const QRect &rect, PositionToFilthy pos) const
+PkRect KisTransparencyMask::needRect(const PkRect &rect, PositionToFilthy pos) const
 {
     /**
      * Selection on transparency masks have no special meaning:

@@ -7,10 +7,9 @@
 #ifndef KISSAFENODEPROJECTIONSTORE_H
 #define KISSAFENODEPROJECTIONSTORE_H
 
-#include <QObject>
+#include <PkObject.h>
 
-#include <QScopedPointer>
-
+#include <PkScopedPointer.h>
 #include "kritaimage_export.h"
 #include "kis_shared.h"
 #include "kis_types.h"
@@ -18,7 +17,7 @@
 
 struct StoreImplementationInterface;
 
-class KRITAIMAGE_EXPORT KisSafeNodeProjectionStoreBase : public QObject, public KisShared
+class KRITAIMAGE_EXPORT KisSafeNodeProjectionStoreBase : public PkShellObject, public KisShared
 {
     Q_OBJECT
 
@@ -52,7 +51,7 @@ private:
 
 protected:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 class KRITAIMAGE_EXPORT KisSafeNodeProjectionStore : public KisSafeNodeProjectionStoreBase

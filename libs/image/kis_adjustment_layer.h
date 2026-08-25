@@ -16,7 +16,7 @@
 #ifndef KIS_ADJUSTMENT_LAYER_H_
 #define KIS_ADJUSTMENT_LAYER_H_
 
-#include <QObject>
+#include <PkObject.h>
 #include <kritaimage_export.h>
 #include "kis_selection_based_layer.h"
 
@@ -37,7 +37,7 @@ public:
      * @param selection is a mask used by the adjustment layer to
      * know where to apply the filter.
      */
-    KisAdjustmentLayer(KisImageWSP image, const QString &name, KisFilterConfigurationSP  kfc, KisSelectionSP selection);
+    KisAdjustmentLayer(KisImageWSP image, const PkString &name, KisFilterConfigurationSP  kfc, KisSelectionSP selection);
     KisAdjustmentLayer(const KisAdjustmentLayer& rhs);
     ~KisAdjustmentLayer() override;
 
@@ -71,13 +71,13 @@ public:
      */
     void setFilter(KisFilterConfigurationSP filterConfig, bool checkCompareConfig = true) override;
 
-    void setChannelFlags(const QBitArray & channelFlags) override;
+    void setChannelFlags(const PkBitArray & channelFlags) override;
 
 protected:
     // override from KisLayer
-    QRect incomingChangeRect(const QRect &rect) const override;
+    PkRect incomingChangeRect(const PkRect &rect) const override;
     // override from KisNode
-    QRect needRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect needRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
 
 public Q_SLOTS:
     /**

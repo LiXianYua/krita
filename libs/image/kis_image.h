@@ -7,11 +7,9 @@
 #ifndef KIS_IMAGE_H_
 #define KIS_IMAGE_H_
 
-#include <QObject>
-#include <QString>
-#include <QPainter>
-#include <QRect>
-
+#include <PkObject.h>
+#include <PkString.h>
+#include <PkRect.h>
 #include <KoColorConversionTransformation.h>
 
 #include "kis_types.h"
@@ -53,7 +51,7 @@ class MergeStrategy;
  * meta information about the image. And it also provides some
  * functions to manipulate the whole image.
  */
-class KRITAIMAGE_EXPORT KisImage : public QObject,
+class KRITAIMAGE_EXPORT KisImage : public PkShellObject,
         public KisStrokesFacade,
         public KisStrokeUndoFacade,
         public KisUpdatesFacade,
@@ -67,10 +65,10 @@ class KRITAIMAGE_EXPORT KisImage : public QObject,
 
 public:    
     /// @p colorSpace can be null. In that case, it will be initialised to a default color space.
-    KisImage(KisUndoStore *undoStore, qint32 width, qint32 height, const KoColorSpace *colorSpace, const QString& name);
+    KisImage(KisUndoStore *undoStore, qint32 width, qint32 height, const KoColorSpace *colorSpace, const PkString& name);
     ~KisImage() override;
 
-    static KisImageSP fromQImage(const QImage &image, KisUndoStore *undoStore);
+    static KisImageSP fromQImage(const PkImage &image, KisUndoStore *undoStore);
 
 public: // KisNodeGraphListener implementation
 
@@ -81,8 +79,8 @@ public: // KisNodeGraphListener implementation
     void nodeCollapsedChanged(KisNode *node) override;
     void invalidateAllFrames() override;
     void notifySelectionChanged() override;
-    void requestProjectionUpdate(KisNode *node, const QVector<QRect> &rects, KisProjectionUpdateFlags flags) override;
-    void invalidateFrames(const KisTimeSpan &range, const QRect &rect) override;
+    void requestProjectionUpdate(KisNode *node, const PkVector<PkRect> &rects, KisProjectionUpdateFlags flags) override;
+    void invalidateFrames(const KisTimeSpan &range, const PkRect &rect) override;
     void requestTimeSwitch(int time) override;
     KisNode* graphOverlayNode() const override;
 
@@ -90,7 +88,7 @@ public: // KisNodeGraphListener implementation
     void keyframeChannelAboutToBeRemoved(KisNode *node, KisKeyframeChannel *channel) override;
 
 public: // KisProjectionUpdateListener implementation
-    void notifyProjectionUpdated(const QRect &rc) override;
+    void notifyProjectionUpdated(const PkRect &rc) override;
 
 public:
 
@@ -132,26 +130,26 @@ private:
 public:
 
     /**
-     * Render the projection onto a QImage.
+     * Render the projection onto a PkImage.
      */
-    QImage convertToQImage(qint32 x1,
+    PkImage convertToQImage(qint32 x1,
                            qint32 y1,
                            qint32 width,
                            qint32 height,
                            const KoColorProfile * profile);
 
     /**
-     * Render the projection onto a QImage.
+     * Render the projection onto a PkImage.
      * (this is an overloaded function)
      */
-    QImage convertToQImage(QRect imageRect,
+    PkImage convertToQImage(PkRect imageRect,
                            const KoColorProfile * profile);
 
 
     /**
-     * Render a thumbnail of the projection onto a QImage.
+     * Render a thumbnail of the projection onto a PkImage.
      */
-    QImage convertToQImage(const QSize& scaledImageSize, const KoColorProfile *profile);
+    PkImage convertToQImage(const PkSize& scaledImageSize, const KoColorProfile *profile);
 
     /**
      * [low-level] Lock the image without waiting for all the internal job queues are processed
@@ -215,7 +213,7 @@ public:
     /**
      * Retrieve the next automatic layername (XXX: fix to add option to return Mask X)
      */
-    QString nextLayerName(const QString &baseName = "") const;
+    PkString nextLayerName(const PkString &baseName = "") const;
 
     /**
      * @brief start asynchronous operation on resizing the image
@@ -232,7 +230,7 @@ public:
      * a background, so you cannot expect the image having new size
      * right after this call.
      */
-    void resizeImage(const QRect& newRect);
+    void resizeImage(const PkRect& newRect);
 
     /**
      * @brief start asynchronous operation on cropping the image
@@ -248,7 +246,7 @@ public:
      * a background, so you cannot expect the image having new size
      * right after this call.
      */
-    void cropImage(const QRect& newRect);
+    void cropImage(const PkRect& newRect);
 
     /**
      * @brief purge all pixels that have default pixel to free up memory
@@ -273,8 +271,8 @@ public:
      * a background, so you cannot expect the image having new size
      * right after this call.
      */
-    void cropNode(KisNodeSP node, const QRect& newRect, const bool activeFrameOnly = false);
-    void cropNodes(KisNodeList nodes, const QRect& newRect, const bool activeFrameOnly = false);
+    void cropNode(KisNodeSP node, const PkRect& newRect, const bool activeFrameOnly = false);
+    void cropNodes(KisNodeList nodes, const PkRect& newRect, const bool activeFrameOnly = false);
 
     /**
      * @brief start asynchronous operation on scaling the image
@@ -287,7 +285,7 @@ public:
      * a background, so you cannot expect the image having new size
      * right after this call.
      */
-    void scaleImage(const QSize &size, qreal xres, qreal yres, KisFilterStrategy *filterStrategy);
+    void scaleImage(const PkSize &size, qreal xres, qreal yres, KisFilterStrategy *filterStrategy);
 
     /**
      * @brief start asynchronous operation on scaling a subtree of nodes starting at \p node
@@ -302,8 +300,8 @@ public:
      * a background, so you cannot expect the image having new size
      * right after this call.
      */
-    void scaleNode(KisNodeSP node, const QPointF &center, qreal scaleX, qreal scaleY, KisFilterStrategy *filterStrategy, KisSelectionSP selection);
-    void scaleNodes(KisNodeList nodes, const QPointF &center, qreal scaleX, qreal scaleY, KisFilterStrategy *filterStrategy, KisSelectionSP selection);
+    void scaleNode(KisNodeSP node, const PkPointF &center, qreal scaleX, qreal scaleY, KisFilterStrategy *filterStrategy, KisSelectionSP selection);
+    void scaleNodes(KisNodeList nodes, const PkPointF &center, qreal scaleX, qreal scaleY, KisFilterStrategy *filterStrategy, KisSelectionSP selection);
 
     /**
      * @brief start asynchronous operation on rotating the image
@@ -493,28 +491,28 @@ public:
      *
      * @param documentCoord PostScript Pt coordinate to convert.
      */
-    QPointF documentToPixel(const QPointF &documentCoord) const;
+    PkPointF documentToPixel(const PkPointF &documentCoord) const;
 
     /**
      * Convert a document coordinate to an integer pixel coordinate rounded down.
      *
      * @param documentCoord PostScript Pt coordinate to convert.
      */
-    QPoint documentToImagePixelFloored(const QPointF &documentCoord) const;
+    PkPoint documentToImagePixelFloored(const PkPointF &documentCoord) const;
 
     /**
      * Convert a document rectangle to a pixel rectangle.
      *
      * @param documentRect PostScript Pt rectangle to convert.
      */
-    QRectF documentToPixel(const QRectF &documentRect) const;
+    PkRectF documentToPixel(const PkRectF &documentRect) const;
 
     /**
      * Convert a pixel coordinate to a document coordinate.
      *
      * @param pixelCoord pixel coordinate to convert.
      */
-    QPointF pixelToDocument(const QPointF &pixelCoord) const;
+    PkPointF pixelToDocument(const PkPointF &pixelCoord) const;
 
     /**
      * Convert an integer pixel coordinate to a document coordinate.
@@ -522,14 +520,14 @@ public:
      *
      * @param pixelCoord pixel coordinate to convert.
      */
-    QPointF pixelToDocument(const QPoint &pixelCoord) const;
+    PkPointF pixelToDocument(const PkPoint &pixelCoord) const;
 
     /**
      * Convert a document rectangle to an integer pixel rectangle.
      *
      * @param pixelCoord pixel coordinate to convert.
      */
-    QRectF pixelToDocument(const QRectF &pixelCoord) const;
+    PkRectF pixelToDocument(const PkRectF &pixelCoord) const;
 
     /**
      * Return the width of the image
@@ -544,8 +542,8 @@ public:
     /**
      * Return the size of the image
      */
-    QSize size() const {
-        return QSize(width(), height());
+    PkSize size() const {
+        return PkSize(width(), height());
     }
 
     /**
@@ -599,17 +597,17 @@ public:
      * Merges layers in \p mergedLayers and creates a new layer above
      * \p putAfter
      */
-    void mergeMultipleLayers(QList<KisNodeSP> mergedLayers, KisNodeSP putAfter);
+    void mergeMultipleLayers(PkList<KisNodeSP> mergedLayers, KisNodeSP putAfter);
 
     /// @return the exact bounds of the image in pixel coordinates.
-    QRect bounds() const override;
+    PkRect bounds() const override;
 
     /**
      * Returns the actual bounds of the image, taking LevelOfDetail
      * into account.  This value is used as a bounds() value of
      * KisDefaultBounds object.
      */
-    QRect effectiveLodBounds() const;
+    PkRect effectiveLodBounds() const;
 
     /// use if the layers have changed _completely_ (eg. when flattening)
     void notifyLayersChanged();
@@ -635,10 +633,10 @@ public:
     void addAnnotation(KisAnnotationSP annotation);
 
     /** get the annotation with the given type, can return 0 */
-    KisAnnotationSP annotation(const QString& type);
+    KisAnnotationSP annotation(const PkString& type);
 
     /** delete the annotation, if the image contains it */
-    void removeAnnotation(const QString& type);
+    void removeAnnotation(const PkString& type);
 
     /**
      * Start of an iteration over the annotations of this image (including the ICC Profile)
@@ -665,7 +663,7 @@ public:
     /**
      * Returns the layer compositions for the image
      */
-    QList<KisLayerCompositionSP> compositions();
+    PkList<KisLayerCompositionSP> compositions();
 
     /**
      * Adds a new layer composition, will be saved with the image
@@ -738,13 +736,13 @@ public:
      *     0,0 - topleft corner of the image
      *     1,1 - bottomright corner of the image
      */
-    QPointF mirrorAxesCenter() const;
+    PkPointF mirrorAxesCenter() const;
 
     /**
      * Sets the relative position of the axes center
      * \see mirrorAxesCenter() for details
      */
-    void setMirrorAxesCenter(const QPointF &value) const;
+    void setMirrorAxesCenter(const PkPointF &value) const;
 
     /**
      * Configure the image to allow masks on the root not (as reported by
@@ -815,7 +813,7 @@ Q_SIGNALS:
      *  Emitted whenever an action has caused the image to be
      *  recomposited. Parameter is the rect that has been recomposited.
      */
-    void sigImageUpdated(const QRect &);
+    void sigImageUpdated(const PkRect &);
 
     /**
        Emitted whenever the image has been modified, so that it
@@ -845,7 +843,7 @@ Q_SIGNALS:
      * \param newStillPoint is a still point represented in *new*
      *                      image coordinates
      */
-    void sigSizeChanged(const QPointF &oldStillPoint, const QPointF &newStillPoint);
+    void sigSizeChanged(const PkPointF &oldStillPoint, const PkPointF &newStillPoint);
 
     void sigProfileChanged(const KoColorProfile *  profile);
     void sigColorSpaceChanged(const KoColorSpace*  cs);
@@ -1066,12 +1064,12 @@ public:
      *          signal, so exclusive access to the area must be guaranteed
      *          by the caller.
      */
-    void notifyUIUpdateCompleted(const QRect &rc) override;
+    void notifyUIUpdateCompleted(const PkRect &rc) override;
 
     /**
      * \see disableUIUpdates
      */
-    QVector<QRect> enableUIUpdates() override;
+    PkVector<PkRect> enableUIUpdates() override;
 
     /**
      * Disables the processing of all the setDirty() requests that
@@ -1145,7 +1143,7 @@ public:
     KisProjectionUpdatesFilterCookie currentProjectionUpdatesFilter() const override;
 
     using KisUpdatesFacade::refreshGraphAsync;
-    void refreshGraphAsync(KisNodeSP root, const QVector<QRect> &rects, const QRect &cropRect, KisProjectionUpdateFlags flags = KisProjectionUpdateFlag::None) override;
+    void refreshGraphAsync(KisNodeSP root, const PkVector<PkRect> &rects, const PkRect &cropRect, KisProjectionUpdateFlags flags = KisProjectionUpdateFlag::None) override;
 
     /**
      * Triggers synchronous recomposition of the projection on the document
@@ -1249,7 +1247,7 @@ private:
 
     void emitSizeChanged();
 
-    void resizeImageImpl(const QRect& newRect, bool cropLayers);
+    void resizeImageImpl(const PkRect& newRect, bool cropLayers);
     void rotateImpl(const KUndo2MagicString &actionName, KisNodeSP rootNode, double radians,
                     bool resizeImage, KisSelectionSP selection);
     void rotateImpl(const KUndo2MagicString &actionName, KisNodeList nodes, double radians,
@@ -1261,10 +1259,10 @@ private:
 
     void safeRemoveTwoNodes(KisNodeSP node1, KisNodeSP node2);
 
-    void refreshHiddenArea(KisNodeSP rootNode, const QRect &preparedArea);
+    void refreshHiddenArea(KisNodeSP rootNode, const PkRect &preparedArea);
 
     friend class KisImageResizeCommand;
-    void setSize(const QSize& size);
+    void setSize(const PkSize& size);
 
     void setProjectionColorSpace(const KoColorSpace * colorSpace);
 

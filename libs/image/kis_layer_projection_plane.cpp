@@ -6,7 +6,7 @@
 
 #include "kis_layer_projection_plane.h"
 
-#include <QBitArray>
+#include <PkBitArray.h>
 #include <KoColorSpace.h>
 #include <KoChannelInfo.h>
 #include <KoCompositeOpRegistry.h>
@@ -33,17 +33,17 @@ KisLayerProjectionPlane::~KisLayerProjectionPlane()
 {
 }
 
-QRect KisLayerProjectionPlane::recalculate(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags)
+PkRect KisLayerProjectionPlane::recalculate(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags)
 {
     return m_d->layer->updateProjection(rect, filthyNode, flags);
 }
 
-void KisLayerProjectionPlane::applyImpl(KisPainter *painter, const QRect &rect, KritaUtils::ThresholdMode thresholdMode)
+void KisLayerProjectionPlane::applyImpl(KisPainter *painter, const PkRect &rect, KritaUtils::ThresholdMode thresholdMode)
 {
     KisPaintDeviceSP device = m_d->layer->projection();
     if (!device) return;
 
-    QRect needRect = rect;
+    PkRect needRect = rect;
 
     if (m_d->layer->compositeOpId() != COMPOSITE_COPY &&
         m_d->layer->compositeOpId() != COMPOSITE_DESTINATION_IN  &&
@@ -54,9 +54,9 @@ void KisLayerProjectionPlane::applyImpl(KisPainter *painter, const QRect &rect, 
 
     if(needRect.isEmpty()) return;
 
-    const QBitArray channelFlags = m_d->layer->projectionLeaf()->channelFlags();
+    const PkBitArray channelFlags = m_d->layer->projectionLeaf()->channelFlags();
 
-    QScopedPointer<KisCachedPaintDevice::Guard> d1;
+    PkScopedPointer<KisCachedPaintDevice::Guard> d1;
 
     if (thresholdMode != KritaUtils::ThresholdNone) {
         d1.reset(new KisCachedPaintDevice::Guard(device, m_d->cachedDevice));
@@ -74,12 +74,12 @@ void KisLayerProjectionPlane::applyImpl(KisPainter *painter, const QRect &rect, 
     painter->bitBlt(needRect.topLeft(), device, needRect);
 }
 
-void KisLayerProjectionPlane::apply(KisPainter *painter, const QRect &rect)
+void KisLayerProjectionPlane::apply(KisPainter *painter, const PkRect &rect)
 {
     applyImpl(painter, rect, KritaUtils::ThresholdNone);
 }
 
-void KisLayerProjectionPlane::applyMaxOutAlpha(KisPainter *painter, const QRect &rect, KritaUtils::ThresholdMode thresholdMode)
+void KisLayerProjectionPlane::applyMaxOutAlpha(KisPainter *painter, const PkRect &rect, KritaUtils::ThresholdMode thresholdMode)
 {
     applyImpl(painter, rect, thresholdMode);
 }
@@ -89,32 +89,32 @@ KisPaintDeviceList KisLayerProjectionPlane::getLodCapableDevices() const
     return KisPaintDeviceList() << m_d->layer->projection();
 }
 
-QRect KisLayerProjectionPlane::needRect(const QRect &rect, KisLayer::PositionToFilthy pos) const
+PkRect KisLayerProjectionPlane::needRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const
 {
     return m_d->layer->needRect(rect, pos);
 }
 
-QRect KisLayerProjectionPlane::changeRect(const QRect &rect, KisLayer::PositionToFilthy pos) const
+PkRect KisLayerProjectionPlane::changeRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const
 {
     return m_d->layer->changeRect(rect, pos);
 }
 
-QRect KisLayerProjectionPlane::accessRect(const QRect &rect, KisLayer::PositionToFilthy pos) const
+PkRect KisLayerProjectionPlane::accessRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const
 {
     return m_d->layer->accessRect(rect, pos);
 }
 
-QRect KisLayerProjectionPlane::needRectForOriginal(const QRect &rect) const
+PkRect KisLayerProjectionPlane::needRectForOriginal(const PkRect &rect) const
 {
     return m_d->layer->needRectForOriginal(rect);
 }
 
-QRect KisLayerProjectionPlane::tightUserVisibleBounds() const
+PkRect KisLayerProjectionPlane::tightUserVisibleBounds() const
 {
     return m_d->layer->tightUserVisibleBounds();
 }
 
-QRect KisLayerProjectionPlane::looseUserVisibleBounds() const
+PkRect KisLayerProjectionPlane::looseUserVisibleBounds() const
 {
     return m_d->layer->looseUserVisibleBounds();
 }

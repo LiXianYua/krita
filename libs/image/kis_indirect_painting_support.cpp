@@ -7,8 +7,7 @@
 
 #include "kis_indirect_painting_support.h"
 
-#include <QReadWriteLock>
-
+#include <PkReadWriteLock.h>
 #include <KoCompositeOp.h>
 #include "kis_layer.h"
 #include "kis_paint_layer.h"
@@ -25,12 +24,12 @@
 struct Q_DECL_HIDDEN KisIndirectPaintingSupport::Private {
     // To simulate the indirect painting
     KisPaintDeviceSP temporaryTarget;
-    QString compositeOp;
+    PkString compositeOp;
     qreal compositeOpacity;
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
     KisSelectionSP selection;
 
-    QReadWriteLock lock;
+    PkReadWriteLock lock;
     bool finalMergeInProgress = true;
 };
 
@@ -55,7 +54,7 @@ void KisIndirectPaintingSupport::setTemporaryTarget(KisPaintDeviceSP t)
     d->temporaryTarget = t;
 }
 
-void KisIndirectPaintingSupport::setTemporaryCompositeOp(const QString &id)
+void KisIndirectPaintingSupport::setTemporaryCompositeOp(const PkString &id)
 {
     d->compositeOp = id;
 }
@@ -65,7 +64,7 @@ void KisIndirectPaintingSupport::setTemporaryOpacity(qreal o)
     d->compositeOpacity = o;
 }
 
-void KisIndirectPaintingSupport::setTemporaryChannelFlags(const QBitArray& channelFlags)
+void KisIndirectPaintingSupport::setTemporaryChannelFlags(const PkBitArray& channelFlags)
 {
     d->channelFlags = channelFlags;
 }
@@ -107,7 +106,7 @@ KisIndirectPaintingSupport::FinalMergeSuspenderSP KisIndirectPaintingSupport::tr
     return toQShared(d->finalMergeInProgress ? new FinalMergeSuspender(this) : nullptr);
 }
 
-QString KisIndirectPaintingSupport::temporaryCompositeOp() const
+PkString KisIndirectPaintingSupport::temporaryCompositeOp() const
 {
     return d->compositeOp;
 }
@@ -132,7 +131,7 @@ void KisIndirectPaintingSupport::setupTemporaryPainter(KisPainter *painter) cons
 
 void KisIndirectPaintingSupport::mergeToLayer(KisNodeSP layer, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText, int timedID)
 {
-    QVector<KisRunnableStrokeJobData*> jobs;
+    PkVector<KisRunnableStrokeJobData*> jobs;
     mergeToLayerThreaded(layer, parentCommand, transactionText, timedID, &jobs);
 
     /**
@@ -146,7 +145,7 @@ void KisIndirectPaintingSupport::mergeToLayer(KisNodeSP layer, KUndo2Command *pa
     executor.addRunnableJobs(implicitCastList<KisRunnableStrokeJobDataBase*>(jobs));
 }
 
-void KisIndirectPaintingSupport::mergeToLayerThreaded(KisNodeSP layer, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText,int timedID, QVector<KisRunnableStrokeJobData*> *jobs)
+void KisIndirectPaintingSupport::mergeToLayerThreaded(KisNodeSP layer, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText,int timedID, PkVector<KisRunnableStrokeJobData*> *jobs)
 {
     /**
      * We create the lock in an unlocked state to avoid a deadlock, when
@@ -170,13 +169,13 @@ void KisIndirectPaintingSupport::mergeToLayerThreaded(KisNodeSP layer, KUndo2Com
 }
 
 void KisIndirectPaintingSupport::mergeToLayerImpl(KisPaintDeviceSP dst, KUndo2Command *parentCommand, const KUndo2MagicString &transactionText, int timedID, bool cleanResources,
-                                                  WriteLockerSP sharedWriteLock, QVector<KisRunnableStrokeJobData*> *jobs)
+                                                  WriteLockerSP sharedWriteLock, PkVector<KisRunnableStrokeJobData*> *jobs)
 {
     struct SharedState {
-        QScopedPointer<KisTransaction> transaction;
+        PkScopedPointer<KisTransaction> transaction;
     };
 
-    QSharedPointer<SharedState> sharedState(new SharedState());
+    PkSharedPointer<SharedState> sharedState(new SharedState());
 
     KritaUtils::addJobSequential(*jobs,
         [sharedState, sharedWriteLock, dst, parentCommand, transactionText, timedID] () {
@@ -193,7 +192,7 @@ void KisIndirectPaintingSupport::mergeToLayerImpl(KisPaintDeviceSP dst, KUndo2Co
     );
 
     KisPaintDeviceSP src = d->temporaryTarget;
-    Q_FOREACH (const QRect &rc, src->region().rects()) {
+    Q_FOREACH (const PkRect &rc, src->region().rects()) {
         KritaUtils::addJobConcurrent(*jobs,
             [this, rc, src, dst, sharedState, sharedWriteLock] () {
                 Q_UNUSED(sharedWriteLock); // just a RAII holder object for the lock
@@ -227,7 +226,7 @@ void KisIndirectPaintingSupport::mergeToLayerImpl(KisPaintDeviceSP dst, KUndo2Co
     );
 }
 
-void KisIndirectPaintingSupport::writeMergeData(KisPainter *painter, KisPaintDeviceSP src, const QRect &rc)
+void KisIndirectPaintingSupport::writeMergeData(KisPainter *painter, KisPaintDeviceSP src, const PkRect &rc)
 {
     painter->bitBlt(rc.topLeft(), src, rc);
 }
@@ -238,7 +237,7 @@ void KisIndirectPaintingSupport::releaseResources()
     d->selection = 0;
     d->compositeOp = COMPOSITE_OVER;
     d->compositeOpacity = OPACITY_OPAQUE_F;
-    d->channelFlags.clear();
+    d->channelFlags = PkBitArray();
 }
 
 KisIndirectPaintingSupport::FinalMergeSuspender::FinalMergeSuspender(KisIndirectPaintingSupport *indirect)

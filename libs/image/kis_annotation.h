@@ -99,8 +99,8 @@ public:
     /**
      * @brief displayText: override this to return an interpreted version of the annotation
      */
-    virtual QString displayText() const {
-        return QString::fromUtf8(m_annotation);
+    virtual PkString displayText() const {
+        return PkString::PkFromUtf8(m_annotation.data(), m_annotation.size());
     }
 
 protected:

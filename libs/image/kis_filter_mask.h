@@ -28,7 +28,7 @@ public:
     /**
      * Create an empty filter mask.
      */
-    KisFilterMask(KisImageWSP image, const QString &name = QString());
+    KisFilterMask(KisImageWSP image, const PkString &name = PkString());
 
     KisFilterMask(const KisFilterMask& rhs);
 
@@ -43,24 +43,24 @@ public:
 
     void setFilter(KisFilterConfigurationSP filterConfig, bool checkCompareConfig = true) override;
 
-    QRect decorateRect(KisPaintDeviceSP &src,
+    PkRect decorateRect(KisPaintDeviceSP &src,
                        KisPaintDeviceSP &dst,
-                       const QRect & rc,
+                       const PkRect & rc,
                        PositionToFilthy maskPos,
                        KisRenderPassFlags flags) const override;
 
-    QRect extent() const override;
-    QRect exactBounds() const override;
+    PkRect extent() const override;
+    PkRect exactBounds() const override;
 
-    QRect changeRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
-    QRect needRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect changeRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect needRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
 
 private:
     bool filterNeedsTransparentPixels() const;
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif //_KIS_FILTER_MASK_

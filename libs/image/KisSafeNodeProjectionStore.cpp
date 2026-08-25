@@ -6,10 +6,10 @@
 
 #include "KisSafeNodeProjectionStore.h"
 
-#include <QCoreApplication>
-#include <QMutex>
-#include <QMutexLocker>
-#include <QVector>
+#include <PkMutex.h>
+#include <PkThread.h>
+#include <PkMutex.h>
+#include <PkVector.h>
 #include <KoColorSpace.h>
 
 #include "kis_image.h"
@@ -67,8 +67,8 @@ struct StoreImplementation : public StoreImplementationInterface
 
 protected:
     DeviceSP m_projection;
-    QVector<DeviceSP> m_dirtyProjections;
-    QVector<DeviceSP> m_cleanProjections;
+    PkVector<DeviceSP> m_dirtyProjections;
+    PkVector<DeviceSP> m_cleanProjections;
 };
 
 
@@ -94,7 +94,8 @@ struct StoreImplementationForDevice : StoreImplementation<KisPaintDeviceSP>
            *m_projection->colorSpace() != *prototype->colorSpace()) {
 
             if (!m_cleanProjections.isEmpty()) {
-                m_projection = m_cleanProjections.takeLast();
+                m_projection = m_cleanProjections.last();
+                m_cleanProjections.remove(m_cleanProjections.size() - 1);
                 m_projection->makeCloneFromRough(prototype, prototype->extent());
             } else {
                 m_projection = new KisPaintDevice(*prototype);
@@ -127,7 +128,8 @@ struct StoreImplementationForSelection : StoreImplementation<KisSelectionSP>
     KisSelectionSP getDeviceLazy(KisSelectionSP prototype) {
         if(!m_projection) {
             if (!m_cleanProjections.isEmpty()) {
-                m_projection = m_cleanProjections.takeLast();
+                m_projection = m_cleanProjections.last();
+                m_cleanProjections.remove(m_cleanProjections.size() - 1);
                 m_projection->pixelSelection()->makeCloneFromRough(prototype->pixelSelection(), prototype->selectedRect());
             } else {
                 m_projection = new KisSelection(*prototype);
@@ -146,33 +148,35 @@ struct StoreImplementationForSelection : StoreImplementation<KisSelectionSP>
 
 struct KisSafeNodeProjectionStoreBase::Private
 {
-    mutable QMutex lock;
+    mutable PkMutex lock;
     KisImageWSP image;
-    QScopedPointer<StoreImplementationInterface> store;
+    PkScopedPointer<StoreImplementationInterface> store;
 };
 
 KisSafeNodeProjectionStoreBase::KisSafeNodeProjectionStoreBase(StoreImplementationInterface *storeImpl)
     : m_d(new Private)
 {
     m_d->store.reset(storeImpl);
-    moveToThread(qApp->thread());
-    connect(this, SIGNAL(internalInitiateProjectionsCleanup()), this, SLOT(slotInitiateProjectionsCleanup()));
+    moveToThread(PkThread::mainThreadId());
+    PkObject::connect(this, &KisSafeNodeProjectionStoreBase::internalInitiateProjectionsCleanup,
+                  this, &KisSafeNodeProjectionStoreBase::slotInitiateProjectionsCleanup);
 }
 
 KisSafeNodeProjectionStoreBase::KisSafeNodeProjectionStoreBase(const KisSafeNodeProjectionStoreBase &rhs)
-    : QObject(),
+    : PkShellObject(),
       KisShared(),
       m_d(new Private)
 {
     {
-        QMutexLocker rhsLocker(&rhs.m_d->lock);
+        PkMutexLocker rhsLocker(&rhs.m_d->lock);
 
         m_d->image = rhs.m_d->image;
         m_d->store.reset(rhs.m_d->store->clone());
     }
 
-    moveToThread(qApp->thread());
-    connect(this, SIGNAL(internalInitiateProjectionsCleanup()), this, SLOT(slotInitiateProjectionsCleanup()));
+    moveToThread(PkThread::mainThreadId());
+    PkObject::connect(this, &KisSafeNodeProjectionStoreBase::internalInitiateProjectionsCleanup,
+                  this, &KisSafeNodeProjectionStoreBase::slotInitiateProjectionsCleanup);
 }
 
 KisSafeNodeProjectionStoreBase::~KisSafeNodeProjectionStoreBase()
@@ -181,7 +185,7 @@ KisSafeNodeProjectionStoreBase::~KisSafeNodeProjectionStoreBase()
 
 void KisSafeNodeProjectionStoreBase::releaseDevice()
 {
-    QMutexLocker locker(&m_d->lock);
+    PkMutexLocker locker(&m_d->lock);
     if (m_d->store->releaseDevice()) {
         locker.unlock();
         Q_EMIT internalInitiateProjectionsCleanup();
@@ -214,13 +218,13 @@ void KisSafeNodeProjectionStoreBase::slotInitiateProjectionsCleanup()
 
 void KisSafeNodeProjectionStoreBase::discardCaches()
 {
-    QMutexLocker locker(&m_d->lock);
+    PkMutexLocker locker(&m_d->lock);
     m_d->store->discardCaches();
 }
 
 void KisSafeNodeProjectionStoreBase::recycleProjectionsInSafety()
 {
-    QMutexLocker locker(&m_d->lock);
+    PkMutexLocker locker(&m_d->lock);
     m_d->store->recycleProjectionsInSafety();
 }
 
@@ -241,7 +245,7 @@ KisSafeNodeProjectionStore::KisSafeNodeProjectionStore(const KisSafeNodeProjecti
 
 KisPaintDeviceSP KisSafeNodeProjectionStore::getDeviceLazy(KisPaintDeviceSP prototype)
 {
-    QMutexLocker locker(&m_d->lock);
+    PkMutexLocker locker(&m_d->lock);
     StoreImplementationForDevice *store = dynamic_cast<StoreImplementationForDevice*>(m_d->store.data());
     KIS_ASSERT(store);
 
@@ -265,7 +269,7 @@ KisSafeSelectionNodeProjectionStore::KisSafeSelectionNodeProjectionStore(const K
 
 KisSelectionSP KisSafeSelectionNodeProjectionStore::getDeviceLazy(KisSelectionSP prototype)
 {
-    QMutexLocker locker(&m_d->lock);
+    PkMutexLocker locker(&m_d->lock);
     StoreImplementationForSelection *store = dynamic_cast<StoreImplementationForSelection*>(m_d->store.data());
     KIS_ASSERT(store);
 

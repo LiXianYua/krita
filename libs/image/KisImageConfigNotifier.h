@@ -7,10 +7,10 @@
 #ifndef KISIMAGECONFIGNOTIFIER_H
 #define KISIMAGECONFIGNOTIFIER_H
 
-#include <QObject>
+#include <PkObject.h>
 #include "kritaimage_export.h"
 
-class KRITAIMAGE_EXPORT KisImageConfigNotifier : public QObject
+class KRITAIMAGE_EXPORT KisImageConfigNotifier : public PkShellObject
 {
     Q_OBJECT
 public:
@@ -23,7 +23,7 @@ public:
      * Notify that the configuration has changed. This will cause the
      * configChanged() signal to be emitted.
      */
-    void notifyConfigChanged(void);
+    void notifyConfigChanged();
 
     /**
      * Notify that the animation keyframing configuration has changed.
@@ -42,7 +42,7 @@ Q_SIGNALS:
     /**
      * This signal is emitted whenever notifyConfigChanged() is called.
      */
-    void configChanged(void);
+    void configChanged();
 
     /**
      * This signal is also emitted whenever notifyConfigChanged() is called.
@@ -59,7 +59,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISIMAGECONFIGNOTIFIER_H

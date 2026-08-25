@@ -22,14 +22,14 @@ void KisUpdatesFacade::refreshGraphAsync(KisNodeSP root, KisProjectionUpdateFlag
     refreshGraphAsync(root, bounds(), bounds(), flags);
 }
 
-void KisUpdatesFacade::refreshGraphAsync(KisNodeSP root, const QRect &rc, KisProjectionUpdateFlags flags)
+void KisUpdatesFacade::refreshGraphAsync(KisNodeSP root, const PkRect &rc, KisProjectionUpdateFlags flags)
 {
     refreshGraphAsync(root, rc, bounds(), flags);
 }
 
-void KisUpdatesFacade::refreshGraphAsync(KisNodeSP root, const QRect &rc, const QRect &cropRect, KisProjectionUpdateFlags flags)
+void KisUpdatesFacade::refreshGraphAsync(KisNodeSP root, const PkRect &rc, const PkRect &cropRect, KisProjectionUpdateFlags flags)
 {
-    refreshGraphAsync(root, QVector<QRect>({rc}), cropRect, flags);
+    refreshGraphAsync(root, PkVector<PkRect>({rc}), cropRect, flags);
 }
 
 

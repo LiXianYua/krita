@@ -4,8 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QMutex>
-#include <QMutexLocker>
+#include <PkMutex.h>
+#include <PkMutex.h>
 #include <KoCompositeOpRegistry.h>
 
 #include "kis_filter_mask.h"
@@ -25,11 +25,11 @@ struct KisFilterMask::Private
         bool value {false};
         const KoColorSpace *colorSpace {nullptr};
     };
-    QMutex transparentPixelsCacheLock;
+    PkMutex transparentPixelsCacheLock;
     std::optional<NeedsTransparentPixelsCache> needsTransparentPixelsCache;
 };
 
-KisFilterMask::KisFilterMask(KisImageWSP image, const QString &name)
+KisFilterMask::KisFilterMask(KisImageWSP image, const PkString &name)
     : KisEffectMask(image, name)
     , KisNodeFilterInterface(0)
     , m_d(new Private())
@@ -51,7 +51,7 @@ bool KisFilterMask::filterNeedsTransparentPixels() const
     const KoColorSpace *cs = this->colorSpace();
     if (!cs) return false;
 
-    QMutexLocker l(&m_d->transparentPixelsCacheLock);
+    PkMutexLocker l(&m_d->transparentPixelsCacheLock);
     
     if (m_d->needsTransparentPixelsCache) {
         if (*m_d->needsTransparentPixelsCache->colorSpace != *cs) {
@@ -81,9 +81,9 @@ void KisFilterMask::setFilter(KisFilterConfigurationSP filterConfig, bool checkC
     m_d->needsTransparentPixelsCache = std::nullopt;
 }
 
-QRect KisFilterMask::decorateRect(KisPaintDeviceSP &src,
+PkRect KisFilterMask::decorateRect(KisPaintDeviceSP &src,
                                   KisPaintDeviceSP &dst,
-                                  const QRect & rc,
+                                  const PkRect & rc,
                                   PositionToFilthy maskPos,
                                   KisRenderPassFlags flags) const
 {
@@ -101,7 +101,7 @@ QRect KisFilterMask::decorateRect(KisPaintDeviceSP &src,
         rc);
 
     if (!filterConfig) {
-        return QRect();
+        return PkRect();
     }
 
     KisFilterSP filter =
@@ -109,7 +109,7 @@ QRect KisFilterMask::decorateRect(KisPaintDeviceSP &src,
 
     if (!filter) {
         warnKrita << "Could not retrieve filter \"" << filterConfig->name() << "\"";
-        return QRect();
+        return PkRect();
     }
 
     KIS_ASSERT_RECOVER_NOOP(this->busyProgressIndicator());
@@ -117,7 +117,7 @@ QRect KisFilterMask::decorateRect(KisPaintDeviceSP &src,
 
     filter->process(src, dst, 0, rc, filterConfig.data(), 0);
 
-    QRect r = filter->changedRect(rc, filterConfig.data(), dst->defaultBounds()->currentLevelOfDetail());
+    PkRect r = filter->changedRect(rc, filterConfig.data(), dst->defaultBounds()->currentLevelOfDetail());
     return r;
 }
 
@@ -131,7 +131,7 @@ void KisFilterMask::accept(KisProcessingVisitor &visitor, KisUndoAdapter *undoAd
     return visitor.visit(this, undoAdapter);
 }
 
-QRect KisFilterMask::extent() const
+PkRect KisFilterMask::extent() const
 {
     KisNodeSP parentNode = parent();
 
@@ -139,7 +139,7 @@ QRect KisFilterMask::extent() const
         return {};
     }
 
-    QRect rect = KisEffectMask::extent();
+    PkRect rect = KisEffectMask::extent();
 
     if (!filterNeedsTransparentPixels()) {
         rect &= parentNode->extent();
@@ -148,7 +148,7 @@ QRect KisFilterMask::extent() const
     return rect;
 }
 
-QRect KisFilterMask::exactBounds() const
+PkRect KisFilterMask::exactBounds() const
 {
     KisNodeSP parentNode = parent();
 
@@ -156,7 +156,7 @@ QRect KisFilterMask::exactBounds() const
         return {};
     }
 
-    QRect rect = KisEffectMask::exactBounds();
+    PkRect rect = KisEffectMask::exactBounds();
 
     if (!filterNeedsTransparentPixels()) {
         rect &= parentNode->exactBounds();
@@ -165,7 +165,7 @@ QRect KisFilterMask::exactBounds() const
     return rect;
 }
 
-QRect KisFilterMask::changeRect(const QRect &rect, PositionToFilthy pos) const
+PkRect KisFilterMask::changeRect(const PkRect &rect, PositionToFilthy pos) const
 {
     /**
      * FIXME: This check of the emptiness should be done
@@ -173,7 +173,7 @@ QRect KisFilterMask::changeRect(const QRect &rect, PositionToFilthy pos) const
      */
     if (rect.isEmpty()) return rect;
 
-    QRect filteredRect = rect;
+    PkRect filteredRect = rect;
 
     KisFilterConfigurationSP filterConfig = filter();
     if (filterConfig) {
@@ -201,7 +201,7 @@ QRect KisFilterMask::changeRect(const QRect &rect, PositionToFilthy pos) const
     return rect | filteredRect;
 }
 
-QRect KisFilterMask::needRect(const QRect& rect, PositionToFilthy pos) const
+PkRect KisFilterMask::needRect(const PkRect& rect, PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
 

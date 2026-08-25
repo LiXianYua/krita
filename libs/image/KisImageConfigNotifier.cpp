@@ -6,12 +6,15 @@
 
 #include "KisImageConfigNotifier.h"
 
-#include <QGlobalStatic>
 
 #include <kis_debug.h>
 #include "kis_signal_compressor.h"
 
-Q_GLOBAL_STATIC(KisImageConfigNotifier, s_instance)
+static KisImageConfigNotifier *s_instance()
+{
+    static KisImageConfigNotifier instance;
+    return &instance;
+}
 
 struct KisImageConfigNotifier::Private
 {
@@ -27,9 +30,12 @@ struct KisImageConfigNotifier::Private
 KisImageConfigNotifier::KisImageConfigNotifier()
     : m_d(new Private)
 {
-    connect(&m_d->updateCompressor, SIGNAL(timeout()), SIGNAL(configChanged()));
-    connect(&m_d->updateCompressor, SIGNAL(timeout()), SIGNAL(autoKeyFrameConfigurationChanged()));
-    connect(&m_d->autoKeyframeUpdateCompressor, SIGNAL(timeout()), SIGNAL(autoKeyFrameConfigurationChanged()));
+    PkObject::connect(&m_d->updateCompressor, &KisSignalCompressor::timeout,
+                      this, &KisImageConfigNotifier::configChanged);
+    PkObject::connect(&m_d->updateCompressor, &KisSignalCompressor::timeout,
+                      this, &KisImageConfigNotifier::autoKeyFrameConfigurationChanged);
+    PkObject::connect(&m_d->autoKeyframeUpdateCompressor, &KisSignalCompressor::timeout,
+                      this, &KisImageConfigNotifier::autoKeyFrameConfigurationChanged);
 }
 
 KisImageConfigNotifier::~KisImageConfigNotifier()
@@ -38,7 +44,7 @@ KisImageConfigNotifier::~KisImageConfigNotifier()
 
 KisImageConfigNotifier *KisImageConfigNotifier::instance()
 {
-    return s_instance;
+    return s_instance();
 }
 
 void KisImageConfigNotifier::notifyConfigChanged()

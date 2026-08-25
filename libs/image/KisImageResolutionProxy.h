@@ -10,10 +10,10 @@
 #include <kis_types.h>
 #include <kritaimage_export.h>
 
-#include <QObject>
+#include <PkObject.h>
 
 class KisImageResolutionProxy;
-using KisImageResolutionProxySP = QSharedPointer<KisImageResolutionProxy>;
+using KisImageResolutionProxySP = PkSharedPointer<KisImageResolutionProxy>;
 
 
 /**
@@ -26,7 +26,7 @@ using KisImageResolutionProxySP = QSharedPointer<KisImageResolutionProxy>;
  * to any image. Then is stored the "last known image resolution
  * value".
  */
-class KRITAIMAGE_EXPORT KisImageResolutionProxy : public QObject
+class KRITAIMAGE_EXPORT KisImageResolutionProxy : public PkShellObject
 {
     Q_OBJECT
 public:
@@ -74,7 +74,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 

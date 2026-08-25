@@ -23,7 +23,7 @@ class KRITAIMAGE_EXPORT KisGroupLayer : public KisLayer
     Q_OBJECT
 
 public:
-    KisGroupLayer(KisImageWSP image, const QString &name, quint8 opacity, const KoColorSpace * colorSpace = 0);
+    KisGroupLayer(KisImageWSP image, const PkString &name, quint8 opacity, const KoColorSpace * colorSpace = 0);
     KisGroupLayer(const KisGroupLayer& rhs);
     ~KisGroupLayer() override;
 
@@ -95,20 +95,20 @@ public:
     bool passThroughMode() const;
     void setPassThroughMode(bool value);
 
-    QRect extent() const override;
-    QRect exactBounds() const override;
+    PkRect extent() const override;
+    PkRect exactBounds() const override;
 
     bool projectionIsValid() const;
 
-    QRect calculateChildrenTightUserVisibleBounds() const;
-    QRect calculateChildrenLooseUserVisibleBounds() const;
+    PkRect calculateChildrenTightUserVisibleBounds() const;
+    PkRect calculateChildrenLooseUserVisibleBounds() const;
 
 protected:
     KisLayer* onlyMeaningfulChild() const;
     KisPaintDeviceSP tryObligeChild() const;
     std::tuple<KisPaintDeviceSP, bool> originalImpl() const;
 
-    QRect amortizedProjectionRectForCleanupInChangePass() const override;
+    PkRect amortizedProjectionRectForCleanupInChangePass() const override;
 private:
     bool checkCloneLayer(KisCloneLayerSP clone) const;
     bool checkNodeRecursively(KisNodeSP node) const;

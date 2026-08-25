@@ -9,8 +9,7 @@
 
 #include "kis_abstract_projection_plane.h"
 
-#include <QScopedPointer>
-
+#include <PkScopedPointer.h>
 /**
  * An implementation of the KisAbstractProjectionPlane interface for a
  * layer object.
@@ -25,21 +24,21 @@ public:
     KisMaskProjectionPlane(KisMask *mask);
     ~KisMaskProjectionPlane() override;
 
-    QRect recalculate(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags) override;
-    void apply(KisPainter *painter, const QRect &rect) override;
+    PkRect recalculate(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags) override;
+    void apply(KisPainter *painter, const PkRect &rect) override;
 
-    QRect needRect(const QRect &rect, KisNode::PositionToFilthy pos) const override;
-    QRect changeRect(const QRect &rect, KisNode::PositionToFilthy pos) const override;
-    QRect accessRect(const QRect &rect, KisNode::PositionToFilthy pos) const override;
-    QRect needRectForOriginal(const QRect &rect) const override;
-    QRect tightUserVisibleBounds() const override;
-    QRect looseUserVisibleBounds() const override;
+    PkRect needRect(const PkRect &rect, KisNode::PositionToFilthy pos) const override;
+    PkRect changeRect(const PkRect &rect, KisNode::PositionToFilthy pos) const override;
+    PkRect accessRect(const PkRect &rect, KisNode::PositionToFilthy pos) const override;
+    PkRect needRectForOriginal(const PkRect &rect) const override;
+    PkRect tightUserVisibleBounds() const override;
+    PkRect looseUserVisibleBounds() const override;
 
     KisPaintDeviceList getLodCapableDevices() const override;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_MASK_PROJECTION_PLANE_H */

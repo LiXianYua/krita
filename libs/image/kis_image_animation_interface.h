@@ -7,10 +7,10 @@
 #ifndef __KIS_IMAGE_ANIMATION_INTERFACE_H
 #define __KIS_IMAGE_ANIMATION_INTERFACE_H
 
-#include <QObject>
-#include <QScopedPointer>
-
+#include <PkObject.h>
+#include <PkScopedPointer.h>
 #include "kis_types.h"
+#include "kis_time_span.h"
 #include "kritaimage_export.h"
 
 class KisUpdatesFacade;
@@ -24,7 +24,7 @@ namespace KisLayerUtils {
     struct SwitchFrameCommand;
 }
 
-class KRITAIMAGE_EXPORT KisImageAnimationInterface : public QObject
+class KRITAIMAGE_EXPORT KisImageAnimationInterface : public PkShellObject
 {
     Q_OBJECT
 
@@ -86,9 +86,9 @@ public:
      */
     void requestFrameRegeneration(int frameId, const KisRegion &dirtyRegion, bool isCancellable, KisLockFrameGenerationLock &&lock);
 
-    void notifyNodeChanged(const KisNode *node, const QRect &rect, bool recursive);
-    void notifyNodeChanged(const KisNode *node, const QVector<QRect> &rects, bool recursive);
-    void invalidateFrames(const KisTimeSpan &range, const QRect &rect);
+    void notifyNodeChanged(const KisNode *node, const PkRect &rect, bool recursive);
+    void notifyNodeChanged(const KisNode *node, const PkVector<PkRect> &rects, bool recursive);
+    void invalidateFrames(const KisTimeSpan &range, const PkRect &rect);
     void invalidateFrame(const int time, KisNodeSP target);
 
     /**
@@ -117,17 +117,17 @@ public:
 
     int framerate() const;
 
-    QString exportSequenceFilePath();
-    void setExportSequenceFilePath(const QString &filePath);
+    PkString exportSequenceFilePath();
+    void setExportSequenceFilePath(const PkString &filePath);
 
-    QString exportSequenceBaseName();
-    void setExportSequenceBaseName(const QString &baseName);
+    PkString exportSequenceBaseName();
+    void setExportSequenceBaseName(const PkString &baseName);
 
     int exportInitialFrameNumber();
     void setExportInitialFrameNumber(const int frameNum);
 
-    QSet<int> activeLayerSelectedTimes();
-    void setActiveLayerSelectedTimes(const QSet<int> &times);
+    PkSet<int> activeLayerSelectedTimes();
+    void setActiveLayerSelectedTimes(const PkSet<int> &times);
 
     KisImageWSP image() const;
 
@@ -246,7 +246,7 @@ Q_SIGNALS:
 
     void sigFrameCancelled();
     void sigUiTimeChanged(int newTime);
-    void sigFramesChanged(const KisTimeSpan &range, const QRect &rect);
+    void sigFramesChanged(const KisTimeSpan &range, const PkRect &rect);
 
     void sigInternalRequestTimeSwitch(int frameId, bool useUndo);
 
@@ -279,7 +279,7 @@ private:
     friend class TransformStrokeStrategy;
     void explicitlySetCurrentTime(int frameId);
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_IMAGE_ANIMATION_INTERFACE_H */

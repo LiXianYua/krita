@@ -4,6 +4,17 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+// ===========================================================================
+// [GAP] kis_safe_document_loader.cpp 阻塞登记（S-06 Task 8 批次C2）
+// 
+// 本文件不进薄壳，保留 Qt 原样。阻塞原因：
+//   * QFileSystemWatcher/QTimer::singleShot/QCoreApplication::processEvents/
+//     QRandomGenerator/QDateTime/QDir/QTemporaryFile 全量未剥；
+//   * FileSystemWatcherWrapper 的 Qt 信号槽（fileChanged/fileExistsStateChanged）
+//     与 QObject 生命周期绑定，且文本流输出走 QTextStream。
+// ===========================================================================
+
+
 #include "kis_safe_document_loader.h"
 
 #include <utility>

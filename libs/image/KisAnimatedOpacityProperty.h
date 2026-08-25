@@ -8,9 +8,8 @@
 #ifndef KIS_PROPERTY_WRAPPER_H
 #define KIS_PROPERTY_WRAPPER_H
 
-#include <QObject>
-#include <QVariant>
-
+#include <PkObject.h>
+#include <PkVariant.h>
 #include "kis_scalar_keyframe_channel.h"
 #include "kis_time_span.h"
 #include "kis_image.h"
@@ -18,10 +17,10 @@
 
 #include "kritaimage_export.h"
 
-class KRITAIMAGE_EXPORT KisAnimatedOpacityProperty : public QObject {
+class KRITAIMAGE_EXPORT KisAnimatedOpacityProperty : public PkShellObject {
     Q_OBJECT
 public:
-    KisAnimatedOpacityProperty(KisDefaultBoundsBaseSP bounds, KoProperties* const props, quint8 defaultValue, QObject *parent = nullptr);
+    KisAnimatedOpacityProperty(KisDefaultBoundsBaseSP bounds, KoProperties* const props, quint8 defaultValue, PkShellObject *parent = nullptr);
 
     quint8 get();
     void set(const quint8 value);
@@ -44,7 +43,7 @@ public Q_SLOTS:
 private:
     KisDefaultBoundsBaseSP m_bounds;
     KoProperties* const m_props;
-    QScopedPointer<KisScalarKeyframeChannel> m_channel;
+    PkScopedPointer<KisScalarKeyframeChannel> m_channel;
     quint8 m_defaultValue;
 };
 

@@ -21,7 +21,7 @@
 #include "kis_processing_visitor.h"
 #include "kis_paint_layer.h"
 
-#include <QStack>
+#include <PkStack.h>
 #include <kis_effect_mask.h>
 #include "kis_lod_capable_layer_offset.h"
 
@@ -41,7 +41,7 @@ struct Q_DECL_HIDDEN KisCloneLayer::Private
     CopyLayerType type {COPY_PROJECTION};
 };
 
-KisCloneLayer::KisCloneLayer(KisLayerSP from, KisImageWSP image, const QString &name, quint8 opacity)
+KisCloneLayer::KisCloneLayer(KisLayerSP from, KisImageWSP image, const PkString &name, quint8 opacity)
         : KisLayer(image, name, opacity)
         , m_d(new Private(new KisDefaultBounds(image)))
 {
@@ -143,15 +143,15 @@ const KoColorSpace *KisCloneLayer::colorSpace() const
 
 void KisCloneLayer::copyOriginalToProjection(const KisPaintDeviceSP original,
         KisPaintDeviceSP projection,
-        const QRect& rect) const
+        const PkRect& rect) const
 {
-    QRect copyRect = rect;
+    PkRect copyRect = rect;
     copyRect.translate(-m_d->offset->x(), -m_d->offset->y());
 
     KisPainter::copyAreaOptimized(rect.topLeft(), original, projection, copyRect);
 }
 
-void KisCloneLayer::setDirtyOriginal(const QRect &rect, bool dontInvalidateFrames)
+void KisCloneLayer::setDirtyOriginal(const PkRect &rect, bool dontInvalidateFrames)
 {
     /**
      * The original will be updated when the clone becomes visible
@@ -188,15 +188,15 @@ void KisCloneLayer::notifyParentVisibilityChanged(bool value)
     KisLayer::notifyParentVisibilityChanged(value);
 }
 
-QRect KisCloneLayer::needRectOnSourceForMasks(const QRect &rc) const
+PkRect KisCloneLayer::needRectOnSourceForMasks(const PkRect &rc) const
 {
-    QStack<QRect> applyRects_unused;
+    PkStack<PkRect> applyRects_unused;
     bool rectVariesFlag;
 
-    QList<KisEffectMaskSP> effectMasks = this->effectMasks();
-    if (effectMasks.isEmpty()) return QRect();
+    PkList<KisEffectMaskSP> effectMasks = this->effectMasks();
+    if (effectMasks.isEmpty()) return PkRect();
 
-    QRect needRect = this->masksNeedRect(effectMasks,
+    PkRect needRect = this->masksNeedRect(effectMasks,
                                          rc,
                                          applyRects_unused,
                                          rectVariesFlag);
@@ -204,7 +204,7 @@ QRect KisCloneLayer::needRectOnSourceForMasks(const QRect &rc) const
     if (needRect.isEmpty() ||
         (!rectVariesFlag && needRect == rc)) {
 
-        return QRect();
+        return PkRect();
     }
 
     return needRect;
@@ -227,25 +227,25 @@ void KisCloneLayer::setY(qint32 y)
     m_d->offset->setY(y);
 }
 
-QRect KisCloneLayer::extent() const
+PkRect KisCloneLayer::extent() const
 {
-    QRect rect = original()->extent();
+    PkRect rect = original()->extent();
 
     // HINT: no offset now. See a comment in setDirtyOriginal()
     return rect | projection()->extent();
 }
 
-QRect KisCloneLayer::exactBounds() const
+PkRect KisCloneLayer::exactBounds() const
 {
-    QRect rect = original()->exactBounds();
+    PkRect rect = original()->exactBounds();
 
     // HINT: no offset now. See a comment in setDirtyOriginal()
     return rect | projection()->exactBounds();
 }
 
-QRect KisCloneLayer::accessRect(const QRect &rect, PositionToFilthy pos) const
+PkRect KisCloneLayer::accessRect(const PkRect &rect, PositionToFilthy pos) const
 {
-    QRect resultRect = rect;
+    PkRect resultRect = rect;
 
     if(pos & (N_FILTHY_PROJECTION | N_FILTHY)) {
         if (m_d->offset->x() || m_d->offset->y()) {
@@ -263,7 +263,7 @@ QRect KisCloneLayer::accessRect(const QRect &rect, PositionToFilthy pos) const
     return resultRect;
 }
 
-QRect KisCloneLayer::outgoingChangeRect(const QRect &rect) const
+PkRect KisCloneLayer::outgoingChangeRect(const PkRect &rect) const
 {
     return rect.translated(m_d->offset->x(), m_d->offset->y());
 }
@@ -321,7 +321,7 @@ KisBaseNode::PropertyList KisCloneLayer::sectionModelProperties() const
 {
     KisBaseNode::PropertyList l = KisLayer::sectionModelProperties();
     if (m_d->copyFrom)
-        l << KisBaseNode::Property(KoID("copy_from", i18n("Copy From")), m_d->copyFrom->name());
+        l << KisBaseNode::Property(KoID("copy_from", PkString("Copy From")), m_d->copyFrom->name());
 
     return l;
 }

@@ -8,7 +8,7 @@
 #include "kis_effect_mask.h"
 #include "kis_image.h"
 
-KisEffectMask::KisEffectMask(KisImageWSP image, const QString &name)
+KisEffectMask::KisEffectMask(KisImageWSP image, const PkString &name)
         : KisMask(image, name)
 {
 }

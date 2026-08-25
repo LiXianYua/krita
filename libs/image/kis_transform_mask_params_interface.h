@@ -13,17 +13,17 @@
 
 
 
-class QTransform;
-class QDomElement;
+class PkTransform;
+class PkXmlElement;
 class KisKeyframeChannel;
 
 class KisTransformMaskParamsInterface;
-typedef QSharedPointer<KisTransformMaskParamsInterface> KisTransformMaskParamsInterfaceSP;
-typedef QWeakPointer<KisTransformMaskParamsInterface> KisTransformMaskParamsInterfaceWSP;
+typedef PkSharedPointer<KisTransformMaskParamsInterface> KisTransformMaskParamsInterfaceSP;
+typedef PkWeakPointer<KisTransformMaskParamsInterface> KisTransformMaskParamsInterfaceWSP;
 
 class KisAnimatedTransformParamsHolderInterface;
-typedef QSharedPointer<KisAnimatedTransformParamsHolderInterface> KisAnimatedTransformParamsHolderInterfaceSP;
-typedef QWeakPointer<KisAnimatedTransformParamsHolderInterface> KisAnimatedTransformParamsHolderInterfaceWSP;
+typedef PkSharedPointer<KisAnimatedTransformParamsHolderInterface> KisAnimatedTransformParamsHolderInterfaceSP;
+typedef PkWeakPointer<KisAnimatedTransformParamsHolderInterface> KisAnimatedTransformParamsHolderInterfaceWSP;
 
 
 class KRITAIMAGE_EXPORT KisTransformMaskParamsInterface
@@ -31,7 +31,7 @@ class KRITAIMAGE_EXPORT KisTransformMaskParamsInterface
 public:
     virtual ~KisTransformMaskParamsInterface();
 
-    virtual QTransform finalAffineTransform() const = 0;
+    virtual PkTransform finalAffineTransform() const = 0;
     virtual bool isAffine() const = 0;
 
     /**
@@ -44,15 +44,15 @@ public:
 
     virtual void transformDevice(KisNodeSP node, KisPaintDeviceSP src, KisPaintDeviceSP dst, bool forceSubPixelTranslation) const = 0;
 
-    virtual QString id() const = 0;
-    virtual void toXML(QDomElement *e) const = 0;
+    virtual PkString id() const = 0;
+    virtual void toXML(PkXmlElement *e) const = 0;
 
-    virtual void translateSrcAndDst(const QPointF &offset) = 0;
-    virtual void transformSrcAndDst(const QTransform &t) = 0;
-    virtual void translateDstSpace(const QPointF &offset) = 0;
+    virtual void translateSrcAndDst(const PkPointF &offset) = 0;
+    virtual void transformSrcAndDst(const PkTransform &t) = 0;
+    virtual void translateDstSpace(const PkPointF &offset) = 0;
 
-    virtual QRect nonAffineChangeRect(const QRect &rc) = 0;
-    virtual QRect nonAffineNeedRect(const QRect &rc, const QRect &srcBounds) = 0;
+    virtual PkRect nonAffineChangeRect(const PkRect &rc) = 0;
+    virtual PkRect nonAffineNeedRect(const PkRect &rc, const PkRect &srcBounds) = 0;
 
     virtual bool compareTransform(KisTransformMaskParamsInterfaceSP rhs) const = 0;
 
@@ -66,8 +66,8 @@ public:
 
     virtual bool isAnimated() const = 0;
 
-    virtual KisKeyframeChannel* requestKeyframeChannel(const QString &id) = 0;
-    virtual KisKeyframeChannel* getKeyframeChannel(const QString &id) const = 0;
+    virtual KisKeyframeChannel* requestKeyframeChannel(const PkString &id) = 0;
+    virtual KisKeyframeChannel* getKeyframeChannel(const PkString &id) const = 0;
 
     virtual KisTransformMaskParamsInterfaceSP bakeIntoParams() const = 0;
     virtual void setParamsAtCurrentPosition(const KisTransformMaskParamsInterface *params, KUndo2Command *parentCommand) = 0;

@@ -9,7 +9,7 @@
 
 #include "kis_abstract_projection_plane.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include "krita_utils.h"
 
 /**
@@ -22,29 +22,29 @@ public:
     KisLayerProjectionPlane(KisLayer *layer);
     ~KisLayerProjectionPlane() override;
 
-    QRect recalculate(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags) override;
-    void apply(KisPainter *painter, const QRect &rect) override;
-    void applyMaxOutAlpha(KisPainter *painter, const QRect &rect, KritaUtils::ThresholdMode thresholdMode);
+    PkRect recalculate(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags) override;
+    void apply(KisPainter *painter, const PkRect &rect) override;
+    void applyMaxOutAlpha(KisPainter *painter, const PkRect &rect, KritaUtils::ThresholdMode thresholdMode);
 
-    QRect needRect(const QRect &rect, KisLayer::PositionToFilthy pos) const override;
-    QRect changeRect(const QRect &rect, KisLayer::PositionToFilthy pos) const override;
-    QRect accessRect(const QRect &rect, KisLayer::PositionToFilthy pos) const override;
-    QRect needRectForOriginal(const QRect &rect) const override;
-    QRect tightUserVisibleBounds() const override;
-    QRect looseUserVisibleBounds() const override;
+    PkRect needRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const override;
+    PkRect changeRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const override;
+    PkRect accessRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const override;
+    PkRect needRectForOriginal(const PkRect &rect) const override;
+    PkRect tightUserVisibleBounds() const override;
+    PkRect looseUserVisibleBounds() const override;
 
     KisPaintDeviceList getLodCapableDevices() const override;
 
 private:
-    void applyImpl(KisPainter *painter, const QRect &rect, KritaUtils::ThresholdMode thresholdMode);
+    void applyImpl(KisPainter *painter, const PkRect &rect, KritaUtils::ThresholdMode thresholdMode);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
-typedef QSharedPointer<KisLayerProjectionPlane> KisLayerProjectionPlaneSP;
-typedef QWeakPointer<KisLayerProjectionPlane> KisLayerProjectionPlaneWSP;
+typedef PkSharedPointer<KisLayerProjectionPlane> KisLayerProjectionPlaneSP;
+typedef PkWeakPointer<KisLayerProjectionPlane> KisLayerProjectionPlaneWSP;
 
 
 #endif /* __KIS_LAYER_PROJECTION_PLANE_H */

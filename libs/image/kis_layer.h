@@ -9,9 +9,8 @@
 #ifndef KIS_LAYER_H_
 #define KIS_LAYER_H_
 
-#include <QRect>
-#include <QMetaType>
-#include <QObject>
+#include <PkRect.h>
+#include <PkObject.h>
 
 #include "kritaimage_export.h"
 
@@ -24,14 +23,14 @@
 #include "KisRenderPassFlags.h"
 
 template <class T>
-class QStack;
+class PkStack;
 
-class QBitArray;
+class PkBitArray;
 class KisCloneLayer;
 class KisPSDLayerStyle;
 class KisAbstractProjectionPlane;
 class KisLayerProjectionPlane;
-typedef QSharedPointer<KisLayerProjectionPlane> KisLayerProjectionPlaneSP;
+typedef PkSharedPointer<KisLayerProjectionPlane> KisLayerProjectionPlaneSP;
 
 
 namespace KisMetaData
@@ -62,7 +61,7 @@ public:
      * @param image is the pointer of the image or null
      * @param opacity is a value between OPACITY_TRANSPARENT_U8 and OPACITY_OPAQUE_U8
     **/
-    KisLayer(KisImageWSP image, const QString &name, quint8 opacity);
+    KisLayer(KisImageWSP image, const PkString &name, quint8 opacity);
     KisLayer(const KisLayer& rhs);
     ~KisLayer() override;
 
@@ -87,8 +86,8 @@ public:
      */
     virtual KisLayerProjectionPlaneSP internalProjectionPlane() const;
 
-    QRect partialChangeRect(KisNodeSP lastNode, const QRect& rect);
-    void buildProjectionUpToNode(KisPaintDeviceSP projection, KisNodeSP lastNode, const QRect& rect);
+    PkRect partialChangeRect(KisNodeSP lastNode, const PkRect& rect);
+    void buildProjectionUpToNode(KisPaintDeviceSP projection, KisNodeSP lastNode, const PkRect& rect);
 
     virtual bool needProjection() const;
 
@@ -137,14 +136,14 @@ public:
      * the colorspace this layer is in, or be empty, in which case all
      * channels are active.
      */
-    virtual void setChannelFlags(const QBitArray & channelFlags);
+    virtual void setChannelFlags(const PkBitArray & channelFlags);
 
     /**
      * Return a bit array where each bit indicates whether a
      * particular channel is active or not. If the channelflags bit
      * array is empty, all channels are active.
      */
-    QBitArray & channelFlags() const;
+    PkBitArray & channelFlags() const;
 
     /**
      * Returns true if this layer is temporary: i.e., it should not
@@ -175,7 +174,7 @@ public:
      * Currently only used for merging a set of shape layers into a single shape
      * layer.
      */
-    virtual KisLayerSP tryCreateInternallyMergedLayerFromMutipleLayers(QList<KisLayerSP> layers);
+    virtual KisLayerSP tryCreateInternallyMergedLayerFromMutipleLayers(PkList<KisLayerSP> layers);
 
     /**
      * Create and return a layer that is the result of merging
@@ -208,7 +207,7 @@ public:
      * Return the list of the clones of this node. Be careful
      * with the list, because it is not thread safe.
      */
-    const QList<KisCloneLayerWSP> registeredClones() const;
+    const PkList<KisCloneLayerWSP> registeredClones() const;
 
 
     /**
@@ -222,7 +221,7 @@ public:
     /**
      * It is called by the async merger after projection update is done
      */
-    void updateClones(const QRect &rect, bool dontInvalidateFrames);
+    void updateClones(const PkRect &rect, bool dontInvalidateFrames);
 
     /**
      * Informs this layers that its masks might have changed.
@@ -240,19 +239,19 @@ public:
      * Returns an approximation of where the bounds
      * of actual data of this layer are
      */
-    QRect extent() const override;
+    PkRect extent() const override;
 
     /**
      * Returns the exact bounds of where the actual data
      * of this layer resides
      */
-    QRect exactBounds() const override;
+    PkRect exactBounds() const override;
 
-    QImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
+    PkImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
 
     int thumbnailSeqNo() const override;
 
-    QImage createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
+    PkImage createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
 
     /**
      * Return a tight rectangle, where the contents of the layer
@@ -260,7 +259,7 @@ public:
      * all the masks and effects the layer has (excluding layer
      * styles, they report their bounds via projection plane).
      */
-    QRect tightUserVisibleBounds() const;
+    PkRect tightUserVisibleBounds() const;
 
     /**
      * Return an approximated (loose) rectangle, where the contents of
@@ -270,7 +269,7 @@ public:
      *
      * This rect is always equal or bigger than tightUserVisibleBounds()
      */
-    QRect looseUserVisibleBounds() const;
+    PkRect looseUserVisibleBounds() const;
 
 public:
     /**
@@ -281,12 +280,12 @@ public:
     /**
      * @return the list of effect masks
      */
-    QList<KisEffectMaskSP> effectMasks() const;
+    PkList<KisEffectMaskSP> effectMasks() const;
 
     /**
      * @return the list of effect masks up to a certain node
      */
-    QList<KisEffectMaskSP> effectMasks(KisNodeSP lastNode) const;
+    PkList<KisEffectMaskSP> effectMasks(KisNodeSP lastNode) const;
 
     /**
      * @return the top fast color overlay mask, or nullptr if there's none.
@@ -309,10 +308,10 @@ protected:
      * changeRect pass even when the change rect is cropped by
      * masks or something like that
      */
-    virtual QRect amortizedProjectionRectForCleanupInChangePass() const;
+    virtual PkRect amortizedProjectionRectForCleanupInChangePass() const;
 
     // override from KisNode
-    QRect changeRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect changeRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
 
     void childNodeChanged(KisNodeSP changedChildNode) override;
 
@@ -322,7 +321,7 @@ protected:
      * Ask the layer to assemble its data & apply all the effect masks
      * to it.
      */
-    QRect updateProjection(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags);
+    PkRect updateProjection(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags);
 
     /**
      * Layers can override this method to get some special behavior
@@ -333,7 +332,7 @@ protected:
      */
     virtual void copyOriginalToProjection(const KisPaintDeviceSP original,
                                           KisPaintDeviceSP projection,
-                                          const QRect& rect) const;
+                                          const PkRect& rect) const;
     /**
      * For KisLayer classes change rect transformation consists of two
      * parts: incoming and outgoing.
@@ -375,12 +374,12 @@ protected:
      *
      * So in the end rect R4 will be passed up to the next layers in the stack.
      */
-    virtual QRect incomingChangeRect(const QRect &rect) const;
+    virtual PkRect incomingChangeRect(const PkRect &rect) const;
 
     /**
      * \see incomingChangeRect()
      */
-    virtual QRect outgoingChangeRect(const QRect &rect) const;
+    virtual PkRect outgoingChangeRect(const PkRect &rect) const;
 
     /**
      * Return need rect that should be prepared on original()
@@ -395,7 +394,7 @@ protected:
      * more pixels than requested, therefore child nodes should do
      * a bit more work to prepare them.
      */
-    QRect needRectForOriginal(const QRect &rect) const;
+    PkRect needRectForOriginal(const PkRect &rect) const;
 
     /**
      * @param rectVariesFlag (out param) a flag, showing whether
@@ -403,8 +402,8 @@ protected:
      * @return an area that should be updated because of
      *         the change of @requestedRect of the layer
      */
-    QRect masksChangeRect(const QList<KisEffectMaskSP> &masks,
-                          const QRect &requestedRect,
+    PkRect masksChangeRect(const PkList<KisEffectMaskSP> &masks,
+                          const PkRect &requestedRect,
                           bool &rectVariesFlag) const;
 
     /**
@@ -419,21 +418,21 @@ protected:
      * @return a needRect that should be prepared on the layer's
      *         paintDevice for all masks to succeed
      */
-    QRect masksNeedRect(const QList<KisEffectMaskSP> &masks,
-                        const QRect &changeRect,
-                        QStack<QRect> &applyRects,
+    PkRect masksNeedRect(const PkList<KisEffectMaskSP> &masks,
+                        const PkRect &changeRect,
+                        PkStack<PkRect> &applyRects,
                         bool &rectVariesFlag) const;
 
-    QRect applyMasks(const KisPaintDeviceSP source,
+    PkRect applyMasks(const KisPaintDeviceSP source,
                      KisPaintDeviceSP destination,
-                     const QRect &requestedRect,
+                     const PkRect &requestedRect,
                      KisNodeSP filthyNode,
                      KisNodeSP lastNode,
                      KisRenderPassFlags flags) const;
 
     bool canMergeAndKeepBlendOptions(KisLayerSP otherLayer);
 
-    QList<KisEffectMaskSP> searchEffectMasks(KisNodeSP lastNode) const;
+    PkList<KisEffectMaskSP> searchEffectMasks(KisNodeSP lastNode) const;
 
 private:
     friend class KisLayerMasksCache;
@@ -442,8 +441,8 @@ private:
     friend class KisLayerTest;
 
 private:
-    QRect layerExtentImpl(bool exactBounds) const;
-    QRect userVisibleBoundsImpl(bool exactBounds) const;
+    PkRect layerExtentImpl(bool exactBounds) const;
+    PkRect userVisibleBoundsImpl(bool exactBounds) const;
 
 private:
     struct Private;

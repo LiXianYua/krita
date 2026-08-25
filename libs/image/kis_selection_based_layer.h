@@ -8,7 +8,7 @@
 #ifndef KIS_SELECTION_BASED_LAYER_H_
 #define KIS_SELECTION_BASED_LAYER_H_
 
-#include <QObject>
+#include <PkObject.h>
 #include "kis_types.h"
 #include "kis_layer.h"
 #include "kis_indirect_painting_support.h"
@@ -38,7 +38,7 @@ public:
      * @param selection is a mask used by the layer to know
      * where to apply the filter/generator.
      */
-    KisSelectionBasedLayer(KisImageWSP image, const QString &name, KisSelectionSP selection, KisFilterConfigurationSP filterConfig);
+    KisSelectionBasedLayer(KisImageWSP image, const PkString &name, KisSelectionSP selection, KisFilterConfigurationSP filterConfig);
     KisSelectionBasedLayer(const KisSelectionBasedLayer& rhs);
     ~KisSelectionBasedLayer() override;
 
@@ -101,7 +101,7 @@ public:
      * guaranteed to be prepared. The content of the rest of the
      * selection is undefined.
      */
-    KisSelectionSP fetchComposedInternalSelection(const QRect &rect) const;
+    KisSelectionSP fetchComposedInternalSelection(const PkRect &rect) const;
 
     /**
      * gets this layer's x coordinate, taking selection into account
@@ -135,13 +135,13 @@ public:
      * gets an approximation of where the bounds on actual data
      * are in this layer, taking selection into account
      */
-    QRect extent() const override;
+    PkRect extent() const override;
 
     /**
      * returns the exact bounds of where the actual data resides
      * in this layer, taking selection into account
      */
-    QRect exactBounds() const override;
+    PkRect exactBounds() const override;
 
     /**
      * copies the image and reformats it to thumbnail size
@@ -150,7 +150,7 @@ public:
      * @param h height of the thumbnail to create
      * @return the thumbnail image created.
      */
-    QImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
+    PkImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode) override;
 
     int thumbnailSeqNo() const override;
 
@@ -159,14 +159,14 @@ protected:
     // override from KisLayer
     void copyOriginalToProjection(const KisPaintDeviceSP original,
                                   KisPaintDeviceSP projection,
-                                  const QRect& rect) const override;
+                                  const PkRect& rect) const override;
     // override from KisNode
-    QRect needRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const override;
+    PkRect needRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const override;
 
 protected:
     void initSelection();
 
-    QRect cropChangeRectBySelection(const QRect &rect) const;
+    PkRect cropChangeRectBySelection(const PkRect &rect) const;
 
     /**
      * Sets if the selection should be used in
@@ -179,8 +179,8 @@ protected:
      */
     void setUseSelectionInProjection(bool value) const;
 
-    KisKeyframeChannel *requestKeyframeChannel(const QString &id) override;
-    bool supportsKeyframeChannel(const QString &id) override;
+    KisKeyframeChannel *requestKeyframeChannel(const PkString &id) override;
+    bool supportsKeyframeChannel(const PkString &id) override;
 
 
 public Q_SLOTS:

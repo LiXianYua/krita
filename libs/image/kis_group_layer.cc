@@ -45,7 +45,7 @@ public:
     std::tuple<KisPaintDeviceSP, bool> originalImpl() const;
 };
 
-KisGroupLayer::KisGroupLayer(KisImageWSP image, const QString &name, quint8 opacity, const KoColorSpace * colorSpace) :
+KisGroupLayer::KisGroupLayer(KisImageWSP image, const PkString &name, quint8 opacity, const KoColorSpace * colorSpace) :
     KisLayer(image, name, opacity),
     m_d(new Private())
 {
@@ -283,7 +283,7 @@ KisPaintDeviceSP KisGroupLayer::lazyDestinationForSubtreeComposition() const
     return ownsOriginal ? originalDev : nullptr;
 }
 
-QRect KisGroupLayer::amortizedProjectionRectForCleanupInChangePass() const
+PkRect KisGroupLayer::amortizedProjectionRectForCleanupInChangePass() const
 {
     return hasEffectMasks() ? projection()->exactBoundsAmortized() : m_d->paintDevice->exactBoundsAmortized();
 }
@@ -339,7 +339,7 @@ KisBaseNode::PropertyList KisGroupLayer::sectionModelProperties() const
 void KisGroupLayer::setSectionModelProperties(const KisBaseNode::PropertyList &properties)
 {
     Q_FOREACH (const KisBaseNode::Property &property, properties) {
-        if (property.name == i18n("Pass Through")) {
+        if (property.name == PkString("Pass Through")) {
             setPassThroughMode(property.state.toBool());
         }
     }
@@ -385,22 +385,22 @@ void KisGroupLayer::setY(qint32 y)
 
 struct ExtentPolicy
 {
-    inline QRect operator() (const KisNode *node) {
+    inline PkRect operator() (const KisNode *node) {
         return node->projectionPlane()->looseUserVisibleBounds();
     }
 };
 
 struct ExactBoundsPolicy
 {
-    inline QRect operator() (const KisNode *node) {
+    inline PkRect operator() (const KisNode *node) {
         return node->projectionPlane()->tightUserVisibleBounds();
     }
 };
 
 template <class MetricPolicy>
-QRect collectRects(const KisNode *node, MetricPolicy policy)
+PkRect collectRects(const KisNode *node, MetricPolicy policy)
 {
-    QRect accumulator;
+    PkRect accumulator;
 
     const KisNode *child = node->firstChild();
     while (child) {
@@ -415,26 +415,26 @@ QRect collectRects(const KisNode *node, MetricPolicy policy)
     return accumulator;
 }
 
-QRect KisGroupLayer::extent() const
+PkRect KisGroupLayer::extent() const
 {
     return m_d->passThroughMode ?
         calculateChildrenLooseUserVisibleBounds() :
         KisLayer::extent();
 }
 
-QRect KisGroupLayer::exactBounds() const
+PkRect KisGroupLayer::exactBounds() const
 {
     return m_d->passThroughMode ?
         calculateChildrenTightUserVisibleBounds() :
         KisLayer::exactBounds();
 }
 
-QRect KisGroupLayer::calculateChildrenTightUserVisibleBounds() const
+PkRect KisGroupLayer::calculateChildrenTightUserVisibleBounds() const
 {
     return collectRects(this, ExactBoundsPolicy());
 }
 
-QRect KisGroupLayer::calculateChildrenLooseUserVisibleBounds() const
+PkRect KisGroupLayer::calculateChildrenLooseUserVisibleBounds() const
 {
     return collectRects(this, ExtentPolicy());
 }
