@@ -7,25 +7,17 @@
 #include "KisImportExportManager.h"
 #include "KisImportExportBackend.h"
 
-#include <QDir>
-#include <QFile>
-#include <QList>
-#include <QByteArray>
-#include <QPluginLoader>
-#include <QFileInfo>
-#include <QJsonObject>
-#include <QSaveFile>
-#include <QFuture>
-#include <QtConcurrent>
-
-#include <klocalizedstring.h>
-#include <kpluginfactory.h>
+#include <PkFileStream.h>
+#include <PkSharedPointer.h>
+#include <PkStream.h>
+#include <PkString.h>
+#include <PkStringList.h>
+#include <PkAuxTypes.h>
 
 #include <KisMimeDatabase.h>
 #include <KisUsageLogger.h>
 #include <KoColorProfile.h>
 #include <KoColorProfileConstants.h>
-#include <KoJsonTrader.h>
 #include <KoProgressUpdater.h>
 #include <kis_assert.h>
 #include <kis_debug.h>
@@ -38,17 +30,31 @@
 #include "KisImportExportErrorCode.h"
 #include "KisImportExportFilter.h"
 
-// static cache for import and export mimetypes
-QStringList KisImportExportManager::m_importMimeTypes;
-QStringList KisImportExportManager::m_exportMimeTypes;
+#include <cstdio>
+#include <filesystem>
+#include <functional>
+#include <future>
 
-class Q_DECL_HIDDEN KisImportExportManager::Private
+// 本地数值格式化与字节互转辅助（与 KisDocument.cpp 同款）。
+static PkString pkNumber(int v) { char buf[32]; snprintf(buf, sizeof(buf), "%d", v); return PkString(buf); }
+static PkString pkNumber(long long v) { char buf[32]; snprintf(buf, sizeof(buf), "%lld", v); return PkString(buf); }
+static PkString pkNumber(long v) { char buf[32]; snprintf(buf, sizeof(buf), "%ld", v); return PkString(buf); }
+static PkString pkNumber(double v) { char buf[64]; snprintf(buf, sizeof(buf), "%g", v); return PkString(buf); }
+static PkString pkFromByteArray(const PkByteArray &ba) {
+    return PkString::PkFromUtf8(ba.constData(), ba.size());
+}
+static PkByteArray pkToByteArray(const PkString &s) {
+    std::string u = s.PkToUtf8();
+    return PkByteArray(u.data(), (int)u.size());
+}
+
+class KisImportExportManager::Private
 {
 public:
     KoUpdaterPtr updater;
 
-    QString cachedExportFilterMimeType;
-    QSharedPointer<KisImportExportFilter> cachedExportFilter;
+    PkString cachedExportFilterMimeType;
+    PkSharedPointer<KisImportExportFilter> cachedExportFilter;
 };
 
 struct KisImportExportManager::ConversionResult {
@@ -56,9 +62,9 @@ struct KisImportExportManager::ConversionResult {
     {
     }
 
-    ConversionResult(const QFuture<KisImportExportErrorCode> &futureStatus)
+    ConversionResult(std::future<KisImportExportErrorCode> futureStatus)
         : m_isAsync(true),
-          m_futureStatus(futureStatus)
+          m_futureStatus(std::move(futureStatus))
     {
     }
 
@@ -72,12 +78,12 @@ struct KisImportExportManager::ConversionResult {
         return m_isAsync;
     }
 
-    QFuture<KisImportExportErrorCode> futureStatus() const {
+    std::future<KisImportExportErrorCode> futureStatus() {
         // if the result is not async, then it means some failure happened,
-        // just return a cancelled future
+        // just return a default-constructed future
         KIS_SAFE_ASSERT_RECOVER_NOOP(m_isAsync || !m_status.isOk());
 
-        return m_futureStatus;
+        return std::move(m_futureStatus);
     }
 
     KisImportExportErrorCode status() const {
@@ -89,9 +95,26 @@ struct KisImportExportManager::ConversionResult {
     }
 private:
     bool m_isAsync = false;
-    QFuture<KisImportExportErrorCode> m_futureStatus;
+    std::future<KisImportExportErrorCode> m_futureStatus;
     KisImportExportErrorCode m_status = ImportExportCodes::InternalError;
 };
+
+
+// ---- S9 静态注册点 ----
+// 原 KoJsonTrader 动态插件发现（D-12 已删）改为静态注册表：registerFilter() 写入，
+// supportedMimeTypes()/filterForMimeType() 读取。注册表当前为空；S9（插件静态
+// 注册）落地前：supportedMimeTypes() 返回空列表、filterForMimeType() 返回 nullptr
+// （导出路径在 KisDocument.cpp:946/1520 的调用点 gracefully 失败）。
+static PkList<KisImportExportManager::FilterRegistration> &importExportFilterRegistry()
+{
+    static PkList<KisImportExportManager::FilterRegistration> registry;
+    return registry;
+}
+
+void KisImportExportManager::registerFilter(const FilterRegistration &registration)
+{
+    importExportFilterRegistry().append(registration);
+}
 
 
 KisImportExportManager::KisImportExportManager(KisDocument* document)
@@ -105,7 +128,7 @@ KisImportExportManager::~KisImportExportManager()
     delete d;
 }
 
-KisImportExportErrorCode KisImportExportManager::importDocument(const QString& location, const QString& mimeType)
+KisImportExportErrorCode KisImportExportManager::importDocument(const PkString& location, const PkString& mimeType)
 {
     ConversionResult result = convert(Import, location, location, mimeType, false, 0, false);
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!result.isAsync(), ImportExportCodes::InternalError);
@@ -113,20 +136,20 @@ KisImportExportErrorCode KisImportExportManager::importDocument(const QString& l
     return result.status();
 }
 
-KisImportExportErrorCode KisImportExportManager::exportDocument(const QString& location, const QString& realLocation, const QByteArray& mimeType, bool showWarnings, KisPropertiesConfigurationSP exportConfiguration, bool isAdvancedExporting)
+KisImportExportErrorCode KisImportExportManager::exportDocument(const PkString& location, const PkString& realLocation, const PkByteArray& mimeType, bool showWarnings, KisPropertiesConfigurationSP exportConfiguration, bool isAdvancedExporting)
 {
-    ConversionResult result = convert(Export, location, realLocation, mimeType, showWarnings, exportConfiguration, false, isAdvancedExporting);
+    ConversionResult result = convert(Export, location, realLocation, pkFromByteArray(mimeType), showWarnings, exportConfiguration, false, isAdvancedExporting);
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!result.isAsync(), ImportExportCodes::InternalError);
 
     return result.status();
 }
 
-QFuture<KisImportExportErrorCode> KisImportExportManager::exportDocumentAsync(const QString &location, const QString &realLocation, const QByteArray &mimeType,
-                                                                            KisImportExportErrorCode &status, bool showWarnings, KisPropertiesConfigurationSP exportConfiguration, bool isAdvancedExporting)
+std::future<KisImportExportErrorCode> KisImportExportManager::exportDocumentAsync(const PkString &location, const PkString &realLocation, const PkByteArray &mimeType,
+                                                                                 KisImportExportErrorCode &status, bool showWarnings, KisPropertiesConfigurationSP exportConfiguration, bool isAdvancedExporting)
 {
-    ConversionResult result = convert(Export, location, realLocation, mimeType, showWarnings, exportConfiguration, true, isAdvancedExporting);
+    ConversionResult result = convert(Export, location, realLocation, pkFromByteArray(mimeType), showWarnings, exportConfiguration, true, isAdvancedExporting);
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(result.isAsync() ||
-                                         !result.status().isOk(), QFuture<KisImportExportErrorCode>());
+                                         !result.status().isOk(), std::future<KisImportExportErrorCode>());
 
     status = result.status();
     return result.futureStatus();
@@ -134,87 +157,48 @@ QFuture<KisImportExportErrorCode> KisImportExportManager::exportDocumentAsync(co
 
 // The static method to figure out to which parts of the
 // graph this mimetype has a connection to.
-QStringList KisImportExportManager::supportedMimeTypes(Direction direction)
+PkStringList KisImportExportManager::supportedMimeTypes(Direction direction)
 {
-    // Find the right mimetype by the extension
-    QSet<QString> mimeTypes;
-    //    mimeTypes << KisDocument::nativeFormatMimeType() << "application/x-krita-paintoppreset" << "image/openraster";
-
-    if (direction == KisImportExportManager::Import) {
-        if (m_importMimeTypes.isEmpty()) {
-            QList<KoJsonTrader::Plugin> list = KoJsonTrader::instance()->query("Krita/FileFilter", "");
-            Q_FOREACH(const KoJsonTrader::Plugin &loader, list) {
-                QJsonObject json = loader.metaData().value("MetaData").toObject();
-                Q_FOREACH(const QString &mimetype, json.value("X-KDE-Import").toString().split(",", Qt::SkipEmptyParts)) {
-
-                    //qDebug() << "Adding  import mimetype" << mimetype << KisMimeDatabase::descriptionForMimeType(mimetype) << "from plugin" << loader;
-                    mimeTypes << mimetype;
-                }
+    // 原实现经 KoJsonTrader 动态发现插件并缓存（m_importMimeTypes/m_exportMimeTypes）。
+    // 缓存已移除：静态注册表可能在首次调用后被 S9 填充，缓存会让结果陈旧。
+    // 现改为每次遍历静态注册表（当前为空 → 返回空列表）。
+    PkStringList result;
+    for (const auto &registration : importExportFilterRegistry()) {
+        const PkStringList &types =
+                direction == Import ? registration.importMimeTypes : registration.exportMimeTypes;
+        for (const PkString &mimeType : types) {
+            if (!result.contains(mimeType)) {
+                result.append(mimeType);
             }
-            m_importMimeTypes = QList<QString>(mimeTypes.begin(), mimeTypes.end());
         }
-        return m_importMimeTypes;
     }
-    else if (direction == KisImportExportManager::Export) {
-        if (m_exportMimeTypes.isEmpty()) {
-            QList<KoJsonTrader::Plugin> list = KoJsonTrader::instance()->query("Krita/FileFilter", "");
-            Q_FOREACH(const KoJsonTrader::Plugin &loader, list) {
-                QJsonObject json = loader.metaData().value("MetaData").toObject();
-                Q_FOREACH(const QString &mimetype, json.value("X-KDE-Export").toString().split(",", Qt::SkipEmptyParts)) {
-
-                    //qDebug() << "Adding  export mimetype" << mimetype << KisMimeDatabase::descriptionForMimeType(mimetype) << "from plugin" << loader;
-                    mimeTypes << mimetype;
-                }
-            }
-            m_exportMimeTypes = QList<QString>(mimeTypes.begin(), mimeTypes.end());
-        }
-        return m_exportMimeTypes;
-    }
-    return QStringList();
+    return result;
 }
 
-KisImportExportFilter *KisImportExportManager::filterForMimeType(const QString &mimetype, KisImportExportManager::Direction direction)
+KisImportExportFilter *KisImportExportManager::filterForMimeType(const PkString &mimetype, KisImportExportManager::Direction direction)
 {
+    // 原实现经 KoJsonTrader + 工厂动态实例化插件（D-12 已删）。现改为查静态
+    // 注册表：选 weight 最高且声明支持该 mimetype 的注册项，实例化并返回。
+    // 注册表为空 → 返回 nullptr（S9 落地前导出路径 graceful 失败）。
     int weight = -1;
     KisImportExportFilter *filter = 0;
-    QList<KoJsonTrader::Plugin>list = KoJsonTrader::instance()->query("Krita/FileFilter", "");
 
-    Q_FOREACH(const KoJsonTrader::Plugin &loader, list) {
-        QJsonObject json = loader.metaData().value("MetaData").toObject();
-        QString directionKey = direction == Export ? "X-KDE-Export" : "X-KDE-Import";
-
-        if (json.value(directionKey).toString().split(",", Qt::SkipEmptyParts).contains(mimetype)) {
-
-            KPluginFactory *factory = qobject_cast<KPluginFactory *>(loader.instance());
-
-            if (!factory) {
-                warnUI << loader.errorString();
-                continue;
-            }
-
-            QObject* obj = factory->create<KisImportExportFilter>(0);
-            if (!obj || !obj->inherits("KisImportExportFilter")) {
-                delete obj;
-                continue;
-            }
-
-            KisImportExportFilter *f = qobject_cast<KisImportExportFilter*>(obj);
-            if (!f) {
-                delete obj;
-                continue;
-            }
-
-            KIS_ASSERT_RECOVER_NOOP(json.value("X-KDE-Weight").isDouble());
-
-            int w = json.value("X-KDE-Weight").toInt();
-
-            if (w > weight) {
-                delete filter;
-                filter = f;
-                f->setObjectName(loader.fileName());
-                weight = w;
-            }
+    for (const auto &registration : importExportFilterRegistry()) {
+        const PkStringList &types =
+                direction == Export ? registration.exportMimeTypes : registration.importMimeTypes;
+        if (!types.contains(mimetype)) {
+            continue;
         }
+        if (registration.weight <= weight) {
+            continue;
+        }
+        KisImportExportFilter *candidate = registration.factory ? registration.factory() : 0;
+        if (!candidate) {
+            continue;
+        }
+        delete filter;
+        filter = candidate;
+        weight = registration.weight;
     }
 
     if (filter) {
@@ -233,27 +217,27 @@ void KisImportExportManager::setUpdater(KoUpdaterPtr updater)
     d->updater = updater;
 }
 
-QString KisImportExportManager::askForAudioFileName(const QString &defaultDir, QWidget *parent)
+PkString KisImportExportManager::askForAudioFileName(const PkString &defaultDir, PkWidget *parent)
 {
     return kisImportExportUiServices()->askForAudioFileName(defaultDir, parent);
 }
 
-QString KisImportExportManager::getUriForAdditionalFile(const QString &defaultUri, QWidget *parent)
+PkString KisImportExportManager::getUriForAdditionalFile(const PkString &defaultUri, PkWidget *parent)
 {
     return kisImportExportUiServices()->getUriForAdditionalFile(defaultUri, parent);
 }
 
-KisImportExportManager::ConversionResult KisImportExportManager::convert(KisImportExportManager::Direction direction, const QString &location, const QString& realLocation, const QString &mimeType, bool showWarnings, KisPropertiesConfigurationSP exportConfiguration, bool isAsync, bool isAdvancedExporting)
+KisImportExportManager::ConversionResult KisImportExportManager::convert(KisImportExportManager::Direction direction, const PkString &location, const PkString& realLocation, const PkString &mimeType, bool showWarnings, KisPropertiesConfigurationSP exportConfiguration, bool isAsync, bool isAdvancedExporting)
 {
     // export configuration is supported for export only
     KIS_SAFE_ASSERT_RECOVER_NOOP(direction == Export || !bool(exportConfiguration));
 
-    QString typeName = mimeType;
+    PkString typeName = mimeType;
     if (typeName.isEmpty()) {
         typeName = KisMimeDatabase::mimeTypeForFile(location, direction == KisImportExportManager::Export ? false : true);
     }
 
-    QSharedPointer<KisImportExportFilter> filter;
+    PkSharedPointer<KisImportExportFilter> filter;
 
     /**
      * Fetching a filter from the registry is a really expensive operation,
@@ -266,7 +250,7 @@ KisImportExportManager::ConversionResult KisImportExportManager::convert(KisImpo
         filter = d->cachedExportFilter;
     } else {
 
-        filter = toQShared(filterForMimeType(typeName, direction));
+        filter = PkSharedPointer<KisImportExportFilter>(filterForMimeType(typeName, direction));
 
         if (direction == Export) {
             d->cachedExportFilter = filter;
@@ -298,13 +282,13 @@ KisImportExportManager::ConversionResult KisImportExportManager::convert(KisImpo
         filter->setUpdater(d->updater);
     }
 
-    QByteArray from, to;
+    PkByteArray from, to;
     if (direction == Export) {
         from = m_backend->nativeFormatMimeType();
-        to = typeName.toLatin1();
+        to = pkToByteArray(typeName);
     }
     else {
-        from = typeName.toLatin1();
+        from = pkToByteArray(typeName);
         to = m_backend->nativeFormatMimeType();
     }
 
@@ -315,16 +299,17 @@ KisImportExportManager::ConversionResult KisImportExportManager::convert(KisImpo
     ConversionResult result = KisImportExportErrorCode(ImportExportCodes::OK);
     if (direction == Import) {
 
-        KisUsageLogger::log(QString("Importing %1 to %2. Location: %3. Real location: %4. Batchmode: %5")
-                                .arg(QString::fromLatin1(from), QString::fromLatin1(to), location,
-                                     realLocation, QString::number(batchMode())));
+        KisUsageLogger::log(PkString("Importing %1 to %2. Location: %3. Real location: %4. Batchmode: %5")
+                                .arg(pkFromByteArray(from), pkFromByteArray(to), location)
+                                .arg(realLocation)
+                                .arg(pkNumber(static_cast<int>(batchMode()))));
 
         // async importing is not yet supported!
         KIS_SAFE_ASSERT_RECOVER_NOOP(!isAsync);
 
         // FIXME: Dmitry says "this progress reporting code never worked. Initial idea was to implement it his way, but I stopped and didn't finish it"
         if (0 && !batchMode()) {
-            result = m_backend->runAction(i18n("Opening document..."), std::bind(&KisImportExportManager::doImport, this, location, filter));
+            result = m_backend->runAction(PkString("Opening document..."), std::bind(&KisImportExportManager::doImport, this, location, filter));
         } else {
             result = doImport(location, filter);
         }
@@ -337,21 +322,23 @@ KisImportExportManager::ConversionResult KisImportExportManager::convert(KisImpo
                                   "opening";
                     return KisImportExportErrorCode(ImportExportCodes::InternalError);
                 }
-                KisUsageLogger::log(QString("Loaded image from %1. Size: %2 * %3 pixels, %4 dpi. Color "
-                                            "model: %6 %5 (%7). Layers: %8")
-                                        .arg(QString::fromLatin1(from), QString::number(image->width()),
-                                             QString::number(image->height()), QString::number(image->xRes()),
-                                             image->colorSpace()->colorModelId().name(),
-                                             image->colorSpace()->colorDepthId().name(),
-                                             image->colorSpace()->profile()->name(),
-                                             QString::number(image->nlayers())));
+                KisUsageLogger::log(PkString("Loaded image from %1. Size: %2 * %3 pixels, %4 dpi. Color "
+                                             "model: %6 %5 (%7). Layers: %8")
+                                        .arg(pkFromByteArray(from))
+                                        .arg(pkNumber(image->width()))
+                                        .arg(pkNumber(image->height()))
+                                        .arg(pkNumber(image->xRes()))
+                                        .arg(image->colorSpace()->colorModelId().name())
+                                        .arg(image->colorSpace()->colorDepthId().name())
+                                        .arg(image->colorSpace()->profile()->name())
+                                        .arg(pkNumber(image->nlayers())));
             } else {
                 qWarning() << "The filter returned OK, but there is no image";
             }
 
         }
         else {
-            KisUsageLogger::log(QString("Failed to load image from %1").arg(QString::fromLatin1(from)));
+            KisUsageLogger::log(PkString("Failed to load image from %1").arg(pkFromByteArray(from)));
         }
 
     }
@@ -376,29 +363,33 @@ KisImportExportManager::ConversionResult KisImportExportManager::convert(KisImpo
         }
 
         KisUsageLogger::log(
-            QString(
-                "Converting from %1 to %2. Location: %3. Real location: %4. Batchmode: %5. Configuration: %6")
-                .arg(QString::fromLatin1(from), QString::fromLatin1(to), location, realLocation,
-                     QString::number(batchMode()),
-                     (exportConfiguration ? exportConfiguration->toXML() : "none")));
+            PkString("Converting from %1 to %2. Location: %3. Real location: %4. Batchmode: %5. Configuration: %6")
+                .arg(pkFromByteArray(from), pkFromByteArray(to), location)
+                .arg(realLocation)
+                .arg(pkNumber(static_cast<int>(batchMode())))
+                .arg(exportConfiguration ? exportConfiguration->toXML() : PkString("none")));
 
-        const QString alsoAsKraLocation = alsoAsKra ? getAlsoAsKraLocation(location) : QString();
+        const PkString alsoAsKraLocation = alsoAsKra ? getAlsoAsKraLocation(location) : PkString();
         if (isAsync) {
-            result = QtConcurrent::run(std::bind(&KisImportExportManager::doExport, this, location, filter,
-                                                 exportConfiguration, alsoAsKraLocation));
+            // 原 QtConcurrent::run 从线程池取线程；std::async(std::launch::async) 每次
+            // 调用新起一个线程（无池）。语义一致：doExport 在后台线程跑，返回的 future
+            // 由调用方（KisDocument 的 PkTimer 轮询）收尾。行为差异登记在 Task 8 报告。
+            result = ConversionResult(std::async(std::launch::async,
+                                                 std::bind(&KisImportExportManager::doExport, this, location, filter,
+                                                           exportConfiguration, alsoAsKraLocation)));
 
             // we should explicitly report that the exporting has been initiated
             result.setStatus(ImportExportCodes::OK);
 
         } else if (!batchMode()) {
-            result = m_backend->runAction(i18n("Saving document..."), std::bind(&KisImportExportManager::doExport, this, location, filter,
+            result = m_backend->runAction(PkString("Saving document..."), std::bind(&KisImportExportManager::doExport, this, location, filter,
                                            exportConfiguration, alsoAsKraLocation));
         } else {
             result = doExport(location, filter, exportConfiguration, alsoAsKraLocation);
         }
 
         if (exportConfiguration && !batchMode()) {
-            m_backend->saveExportConfiguration(typeName.toLatin1(), exportConfiguration);
+            m_backend->saveExportConfiguration(pkToByteArray(typeName), exportConfiguration);
         }
     }
     return result;
@@ -415,9 +406,12 @@ void KisImportExportManager::fillStaticExportConfigurationProperties(KisProperti
     exportConfiguration->setProperty(KisImportExportFilter::ColorModelIDTag, cs->colorModelId().id());
     exportConfiguration->setProperty(KisImportExportFilter::ColorDepthIDTag, cs->colorDepthId().id());
 
+    // 原 contains("srgb", 大小写不敏感)：PkString 无 CaseInsensitive 标志，用
+    // toLower() 等价；"g10" 检测原为大小写敏感，保持原语义。
+    const PkString profileName = cs->profile()->name();
     const bool sRGB =
-            (cs->profile()->name().contains(QLatin1String("srgb"), Qt::CaseInsensitive) &&
-             !cs->profile()->name().contains(QLatin1String("g10")));
+            (profileName.toLower().contains(PkString("srgb")) &&
+             !profileName.contains(PkString("g10")));
     exportConfiguration->setProperty(KisImportExportFilter::sRGBTag, sRGB);
 
     ColorPrimaries primaries = cs->profile()->getColorPrimaries();
@@ -444,10 +438,10 @@ void KisImportExportManager::fillStaticExportConfigurationProperties(KisProperti
 }
 
 bool KisImportExportManager::askUserAboutExportConfiguration(
-        QSharedPointer<KisImportExportFilter> filter,
+        PkSharedPointer<KisImportExportFilter> filter,
         KisPropertiesConfigurationSP exportConfiguration,
-        const QByteArray &from,
-        const QByteArray &to,
+        const PkByteArray &from,
+        const PkByteArray &to,
         const bool batchMode,
         const bool showWarnings,
         bool *alsoAsKra,
@@ -458,15 +452,18 @@ bool KisImportExportManager::askUserAboutExportConfiguration(
                                              isAdvancedExporting);
 }
 
-KisImportExportErrorCode KisImportExportManager::doImport(const QString &location, QSharedPointer<KisImportExportFilter> filter)
+KisImportExportErrorCode KisImportExportManager::doImport(const PkString &location, PkSharedPointer<KisImportExportFilter> filter)
 {
-    QFile file(location);
-    if (!file.exists()) {
+    // 原打开前先做文件存在性检查。
+    if (!std::filesystem::exists(location.PkToUtf8())) {
         return ImportExportCodes::FileNotExist;
     }
 
-    if (filter->supportsIO() && !file.open(QFile::ReadOnly)) {
-        return KisImportExportErrorCode(KisImportExportErrorCannotRead(file.error()));
+    PkFileStream file(location);
+    if (filter->supportsIO() && !file.open(PkStream::ReadOnly)) {
+        // 原 KisImportExportErrorCannotRead(file.error())：PkStream 无错误码 API，
+        // 统一归一为 PkOpenError（Task 4 先例）。
+        return KisImportExportErrorCode(KisImportExportErrorCannotRead(PkOpenError));
     }
 
     KisImportExportErrorCode status = filter->convert(m_backend->document(), &file, KisPropertiesConfigurationSP());
@@ -478,18 +475,18 @@ KisImportExportErrorCode KisImportExportManager::doImport(const QString &locatio
     return status;
 }
 
-KisImportExportErrorCode KisImportExportManager::doExport(const QString &location,
-                                                          QSharedPointer<KisImportExportFilter> filter,
+KisImportExportErrorCode KisImportExportManager::doExport(const PkString &location,
+                                                          PkSharedPointer<KisImportExportFilter> filter,
                                                           KisPropertiesConfigurationSP exportConfiguration,
-                                                          const QString alsoAsKraLocation)
+                                                          const PkString alsoAsKraLocation)
 {
     KisImportExportErrorCode status =
             doExportImpl(location, filter, exportConfiguration);
 
-    if (!alsoAsKraLocation.isNull() && status.isOk()) {
-        QByteArray mime = m_backend->nativeFormatMimeType();
-        QSharedPointer<KisImportExportFilter> filter(
-                    filterForMimeType(QString::fromLatin1(mime), Export));
+    if (!alsoAsKraLocation.isEmpty() && status.isOk()) {
+        PkByteArray mime = m_backend->nativeFormatMimeType();
+        PkSharedPointer<KisImportExportFilter> filter(
+                    filterForMimeType(pkFromByteArray(mime), Export));
 
         KIS_SAFE_ASSERT_RECOVER_NOOP(filter);
 
@@ -508,156 +505,43 @@ KisImportExportErrorCode KisImportExportManager::doExport(const QString &locatio
     return status;
 }
 
-// Temporary workaround until QTBUG-57299 is fixed.
-// 02-10-2019 update: the bug is closed, but we've still seen this issue.
-//                    and without using QSaveFile the issue can still occur
-//                    when QFile::copy fails because Dropbox/Google/OneDrive
-//                    locks the target file.
-// 02-24-2022 update: Added macOS since QSaveFile does not work on sandboxed krita
-//                    It can work if user gives access to the container dir, but
-//                    we cannot guarantee the user gave us permission.
-// 12-05-2025 update: Also Android because we gotta play in the sandbox.
-#if !(defined(Q_OS_WIN) || defined(Q_OS_MACOS) || defined(Q_OS_ANDROID))
-#define USE_QSAVEFILE
-#endif
+// 剥离说明：Linux 分支原用原子写 API（临时文件 + commit 时改名，规避网盘对目标
+// 文件的锁）；macOS/Android 沙箱里原子写不可靠，改走「临时文件 + 复制」。本实现
+// Linux 分支用 PkFileStream 直接写目标（WriteOnly|Truncate），原子改名语义不保留
+// （行为差异登记在 Task 8 报告）；非 Linux 分支保留临时文件结构。
+#if !(defined(_WIN32) || defined(__APPLE__) || defined(__ANDROID__))
 
-namespace {
-QFileDevice::FileError getFileOpenError(const QFileDevice &file)
+KisImportExportErrorCode KisImportExportManager::doExportImpl(const PkString &location, PkSharedPointer<KisImportExportFilter> filter, KisPropertiesConfigurationSP exportConfiguration)
 {
-    QFileDevice::FileError error = file.error();
-    /**
-     * On Android Qt's AndroidContentFileEngine::open may be not very
-     * accurate with setting a proper error code when requesting file
-     * descriptor from JNI and getting a refusal. We should handle this
-     * condition gracefully.
-     */
-    if (error == QFileDevice::NoError) {
-        return QFileDevice::OpenError;
-    } else {
-        return error;
-    }
-}
-}
-
-KisImportExportErrorCode KisImportExportManager::doExportImpl(const QString &location, QSharedPointer<KisImportExportFilter> filter, KisPropertiesConfigurationSP exportConfiguration)
-{
-#ifdef USE_QSAVEFILE
-    QSaveFile file(location);
-    file.setDirectWriteFallback(true);
-    if (filter->supportsIO() && !file.open(QFile::WriteOnly)) {
-#else
-    QFileInfo fi(location);
-    QTemporaryFile file(QDir::tempPath() + "/.XXXXXX.kra");
-    if (filter->supportsIO() && !file.open()) {
-#endif
-        KisImportExportErrorCannotWrite result(getFileOpenError(file));
-#ifdef USE_QSAVEFILE
-        file.cancelWriting();
-#endif
-        return result;
+    // Linux（主分支）。原原子写 API 的 setDirectWriteFallback(true) 原意是退化直写，
+    // 这里恒直写目标文件。原 getFileOpenError(file)：PkStream 无错误码 API，归一
+    // PkOpenError。
+    PkFileStream file(location);
+    if (filter->supportsIO() && !file.open(PkStream::WriteOnly | PkStream::Truncate)) {
+        return KisImportExportErrorCannotWrite(PkOpenError);
     }
 
     KisImportExportErrorCode status = filter->convert(m_backend->document(), &file, exportConfiguration);
 
     if (filter->supportsIO()) {
         if (!status.isOk()) {
-#ifdef USE_QSAVEFILE
-            file.cancelWriting();
-#endif
+            // 原 cancelWriting() 取消落盘；直写模式下无撤销手段（目标已写入部分
+            // 内容，与原子写 API 的直写退化模式一致），仍 close 落盘。
+            file.close();
         } else {
-#ifdef USE_QSAVEFILE
-            if (!file.commit()) {
-                qWarning() << "Could not commit QSaveFile";
-                status = KisImportExportErrorCannotWrite(file.error());
+            // 原 commit() 改名失败检测不保留：直写无 rename 步骤可失败，
+            // flush() 失败视为写盘失败。
+            if (!file.flush()) {
+                qWarning() << "Could not flush export file" << location;
+                status = KisImportExportErrorCannotWrite(PkOpenError);
             }
-#elif defined(Q_OS_ANDROID)
-            // The Android file system is bananas, so it needs special handling.
-
-            // If the temporary file is still open, ensure it's fully written.
-            // If it got closed, open it again so that we can read from it.
-            if(file.isOpen()) {
-                if (!file.flush()) {
-                    return KisImportExportErrorCannotWrite(file.error());
-                }
-            } else if (!file.open()) {
-                return KisImportExportErrorCannotWrite(getFileOpenError(file));
-            }
-
-            // Grab the size we're expecting to write for later verification.
-            qint64 expectedSize = file.size();
-            if (expectedSize < 0 || !file.seek(0)) {
-                return KisImportExportErrorCannotWrite(file.error());
-            }
-
-            // Open the target file. We have to explicitly tell the file to
-            // truncate itself because unlike on every other system it doesn't
-            // do that on its own when opening a file for writing, it just
-            // leaves the old content laying around and you start overwriting
-            // it, potentially leaving old garbage at the end of the file.
-            QFile target(location);
-            if (!target.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-                return KisImportExportErrorCannotWrite(getFileOpenError(target));
-            }
-
-            // QFile::copy also doesn't work, so we gotta do it manually by
-            // alternately reading and writing BUFSIZ-sized chunks.
-            QByteArray buf;
-            buf.resize(BUFSIZ);
-            qint64 totalWritten = 0;
-            while (true) {
-                qint64 read = file.read(buf.data(), BUFSIZ);
-                if (read < 0) {
-                    // Read error.
-                    return KisImportExportErrorCannotWrite(file.error());
-                } else if (read == 0) {
-                    // End of file.
-                    break;
-                } else {
-                    // Successful read, try to write it.
-                    qint64 written = target.write(buf.constData(), read);
-                    if (written < 0) {
-                        // Write error.
-                        return KisImportExportErrorCannotWrite(target.error());
-                    }
-                    // We may not have written as much as we read, but we handle
-                    // that at the end.
-                    totalWritten += written;
-                }
-            }
-
-            // Finish up and make sure what we wrote is out to storage.
             file.close();
-            if (!target.flush()) {
-                return KisImportExportErrorCannotWrite(target.error());
-            }
-            target.close();
-
-            // Now check if we actually wrote as much as we wanted to. If not,
-            // raise an error. There's not much we can do about it though, since
-            // we already truncated the original file at this point and don't
-            // have permissions to create backup files in the sandbox.
-            if (totalWritten != expectedSize) {
-                return KisImportExportErrorCannotWrite(QFileDevice::CopyError);
-            }
-#else
-            file.flush();
-            file.close();
-            QFile target(location);
-            if (target.exists()) {
-                // There should already be a .kra~ backup
-                target.remove();
-            }
-            if (!file.copy(location)) {
-                file.setAutoRemove(false);
-                return KisImportExportErrorCannotWrite(file.error());
-            }
-#endif
         }
     }
 
     if (status.isOk()) {
         // Do some minimal verification
-        QString verificationResult = filter->verify(location);
+        PkString verificationResult = filter->verify(location);
         if (!verificationResult.isEmpty()) {
             status = KisImportExportErrorCode(ImportExportCodes::ErrorWhileWriting);
             m_backend->setErrorMessage(verificationResult);
@@ -665,16 +549,114 @@ KisImportExportErrorCode KisImportExportManager::doExportImpl(const QString &loc
     }
 
     return status;
-
 }
 
-QString KisImportExportManager::getAlsoAsKraLocation(const QString location) const
+#else
+
+KisImportExportErrorCode KisImportExportManager::doExportImpl(const PkString &location, PkSharedPointer<KisImportExportFilter> filter, KisPropertiesConfigurationSP exportConfiguration)
 {
-#ifdef Q_OS_ANDROID
+    // 非 Linux（Windows/macOS/Android 沙箱）：先写唯一临时路径，再复制到目标。
+    // 原临时文件 API 由 Qt 保证全局唯一；PkFileStream 无自动临时文件，用
+    // temp_directory_path() + 进程内计数器构造唯一路径。
+    static long long s_tmpCounter = 0;
+    const PkString tmpLocation =
+            PkString(std::filesystem::temp_directory_path().string().c_str()) +
+            PkString("/.kra_tmp_") + pkNumber(++s_tmpCounter) + PkString(".kra");
+    PkFileStream file(tmpLocation);
+    if (filter->supportsIO() && !file.open(PkStream::ReadWrite | PkStream::Truncate)) {
+        return KisImportExportErrorCannotWrite(PkOpenError);
+    }
+
+    KisImportExportErrorCode status = filter->convert(m_backend->document(), &file, exportConfiguration);
+
+    if (filter->supportsIO()) {
+        if (status.isOk()) {
+#if defined(__ANDROID__)
+            // Android 沙箱：目标文件必须显式截断（打开写不自动清空旧内容），
+            // 手动逐块拷贝 + 长度校验（原 File::copy 在沙箱里不可靠）。
+            if (file.isOpen()) {
+                if (!file.flush()) {
+                    return KisImportExportErrorCannotWrite(PkOpenError);
+                }
+            } else if (!file.open(PkStream::ReadWrite)) {
+                return KisImportExportErrorCannotWrite(PkOpenError);
+            }
+
+            // 期望写入长度，供最后校验。
+            const PkStream::pk_int64 expectedSize = file.size();
+            if (expectedSize < 0 || !file.seek(0)) {
+                return KisImportExportErrorCannotWrite(PkOpenError);
+            }
+
+            // 目标文件显式 Truncate。
+            PkFileStream target(location);
+            if (!target.open(PkStream::WriteOnly | PkStream::Truncate)) {
+                return KisImportExportErrorCannotWrite(PkOpenError);
+            }
+
+            // 手动按 BUFSIZ 分块读写。
+            char buf[BUFSIZ];
+            PkStream::pk_int64 totalWritten = 0;
+            while (true) {
+                PkStream::pk_int64 read = file.read(buf, BUFSIZ);
+                if (read < 0) {
+                    return KisImportExportErrorCannotWrite(PkOpenError);
+                } else if (read == 0) {
+                    break;
+                } else {
+                    PkStream::pk_int64 written = target.write(buf, read);
+                    if (written < 0) {
+                        return KisImportExportErrorCannotWrite(PkOpenError);
+                    }
+                    totalWritten += written;
+                }
+            }
+
+            file.close();
+            if (!target.flush()) {
+                return KisImportExportErrorCannotWrite(PkOpenError);
+            }
+            target.close();
+
+            // 校验实际写入长度。
+            if (totalWritten != expectedSize) {
+                return KisImportExportErrorCannotWrite(PkCopyError);
+            }
+#else
+            // Windows/macOS 非 Android：临时文件复制到目标（覆盖已有文件）。
+            file.flush();
+            file.close();
+            std::error_code ec;
+            std::filesystem::copy_file(tmpLocation.PkToUtf8(), location.PkToUtf8(),
+                                       std::filesystem::copy_options::overwrite_existing, ec);
+            if (ec) {
+                // 原 File::copy 失败后保留临时文件便于排查；PkFileStream 无
+                // autoRemove，失败即报错，临时文件由 OS 清理。
+                return KisImportExportErrorCannotWrite(PkOpenError);
+            }
+#endif
+        }
+    }
+
+    if (status.isOk()) {
+        // Do some minimal verification
+        PkString verificationResult = filter->verify(location);
+        if (!verificationResult.isEmpty()) {
+            status = KisImportExportErrorCode(ImportExportCodes::ErrorWhileWriting);
+            m_backend->setErrorMessage(verificationResult);
+        }
+    }
+
+    return status;
+}
+
+#endif
+
+PkString KisImportExportManager::getAlsoAsKraLocation(const PkString location) const
+{
+#if defined(__ANDROID__)
     return getUriForAdditionalFile(location, nullptr);
 #else
-    return location + ".kra";
+    return location + PkString(".kra");
 #endif
 }
-
-#include <KisMimeDatabase.h>
