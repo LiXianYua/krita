@@ -483,7 +483,7 @@ bool KisResourceLocator::resourceCached(PkString storageLocation, const PkString
 void KisResourceLocator::loadRequiredResources(KoResourceSP resource)
 {
     auto loadResourcesGroup =
-            [this, parentResource = resource] (PkVector<KoResourceLoadResult> resources,
+            [this, parentResource = resource] (PkList<KoResourceLoadResult> resources,
             const PkString &resourceGroup) {
 
         for (KoResourceLoadResult res : resources) {
