@@ -10,7 +10,6 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_assert.h>
 #include <kis_image.h>
 #include <kis_generator_registry.h>
@@ -25,7 +24,7 @@ public:
 
     using KisNodeVisitor::visit;
 
-    FillLayerTypeCheckVisitor (QString fillLayerID)
+    FillLayerTypeCheckVisitor (PkString fillLayerID)
         : m_count(0)
         , m_fillLayerID(fillLayerID)
     {
@@ -74,7 +73,7 @@ private:
     }
 
     quint32 m_count;
-    const QString m_fillLayerID;
+    const PkString m_fillLayerID;
 
 };
 
@@ -83,13 +82,13 @@ class FillLayerTypeCheck : public KisExportCheckBase
 {
 public:
 
-    FillLayerTypeCheck(const QString &generatorID, const QString &id, Level level, const QString &customWarning = QString())
+    FillLayerTypeCheck(const PkString &generatorID, const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning),
           m_fillLayerID(generatorID)
     {
         if (customWarning.isEmpty()) {
-            QString name = KisGeneratorRegistry::instance()->get(generatorID)->name();
-            m_warning = i18nc("image conversion warning", "The image contains a Fill Layer of type <b>%1</b>, which is not supported, the layer will be converted to a paintlayer", name);
+            PkString name = KisGeneratorRegistry::instance()->get(generatorID)->name();
+            m_warning = PkString("The image contains a Fill Layer of type <b>%1</b>, which is not supported, the layer will be converted to a paintlayer").arg(name);
         }
     }
 
@@ -105,29 +104,29 @@ public:
         return m_level;
     }
 
-    const QString m_fillLayerID;
+    const PkString m_fillLayerID;
 };
 
 class FillLayerTypeCheckFactory : public KisExportCheckFactory
 {
 public:
 
-    FillLayerTypeCheckFactory(const QString &generatorID)
+    FillLayerTypeCheckFactory(const PkString &generatorID)
         : m_fillLayerID(generatorID)
     {
     }
 
     ~FillLayerTypeCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new FillLayerTypeCheck(m_fillLayerID, id(), level, customWarning);
     }
 
-    QString id() const override {
-        return "FillLayerTypeCheck/" + m_fillLayerID;
+    PkString id() const override {
+        return PkString("FillLayerTypeCheck/") + m_fillLayerID;
     }
 
-    const QString m_fillLayerID;
+    const PkString m_fillLayerID;
 };
 #endif // FILLLAYERTYPECHECK_H

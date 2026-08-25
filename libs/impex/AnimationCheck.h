@@ -9,7 +9,6 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_image.h>
 #include <kis_image_animation_interface.h>
 #include <KoColorSpace.h>
@@ -18,11 +17,11 @@ class AnimationCheck : public KisExportCheckBase
 {
 public:
 
-    AnimationCheck(const QString &id, Level level, const QString &customWarning = QString())
+    AnimationCheck(const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning, true)
     {
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning", "This image has <b>animated layers</b>. Animation cannot be saved to this format.");
+            m_warning = PkString( "This image has <b>animated layers</b>. Animation cannot be saved to this format.");
         }
     }
 
@@ -45,12 +44,12 @@ public:
 
     ~AnimationCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new AnimationCheck(id(), level, customWarning);
     }
 
-    QString id() const override {
+    PkString id() const override {
         return "AnimationCheck";
     }
 };

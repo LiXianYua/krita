@@ -9,7 +9,6 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_image.h>
 #include <kis_group_layer.h> 
 #include <kis_layer_utils.h>
@@ -18,11 +17,11 @@ class MultiTransparencyMaskCheck : public KisExportCheckBase
 {
 public:
 
-    MultiTransparencyMaskCheck(const QString &id, Level level, const QString &customWarning = QString())
+    MultiTransparencyMaskCheck(const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning, true)
     {
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning", "The image has <b>more than one transparency mask on a layer</b>. For all layers that have multiple transparency masks, only the rendered result will be saved.");
+            m_warning = PkString( "The image has <b>more than one transparency mask on a layer</b>. For all layers that have multiple transparency masks, only the rendered result will be saved.");
         }
     }
 
@@ -64,12 +63,12 @@ public:
 
     ~MultiTransparencyMaskCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new MultiTransparencyMaskCheck(id(), level, customWarning);
     }
 
-    QString id() const override {
+    PkString id() const override {
         return "MultiTransparencyMaskCheck";
     }
 };

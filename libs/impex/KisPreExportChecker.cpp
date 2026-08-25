@@ -15,14 +15,14 @@ KisPreExportChecker::KisPreExportChecker()
     KisExportCheckRegistry::instance();
 }
 
-bool KisPreExportChecker::check(KisImageSP image, QMap<QString, KisExportCheckBase*> filterChecks)
+bool KisPreExportChecker::check(KisImageSP image, PkMap<PkString, KisExportCheckBase*> filterChecks)
 {
     bool doPerLayerChecks = false;
     if (filterChecks.contains("MultiLayerCheck") && filterChecks["MultiLayerCheck"]->check(image) == KisExportCheckBase::SUPPORTED) {
         doPerLayerChecks = true;
     }
 
-    Q_FOREACH(const QString &id, KisExportCheckRegistry::instance()->keys()) {
+    for (const PkString &id : KisExportCheckRegistry::instance()->keys()) {
 
         KisExportCheckFactory *factory = KisExportCheckRegistry::instance()->get(id);
         KisExportCheckBase *check = factory->create(KisExportCheckBase::SUPPORTED);
@@ -38,7 +38,7 @@ bool KisPreExportChecker::check(KisImageSP image, QMap<QString, KisExportCheckBa
             else {
                 KisExportCheckBase *filterCheck = filterChecks[id];
                 KisExportCheckBase::Level level = filterCheck->check(image);
-                QString warning = filterCheck->warning();
+                PkString warning = filterCheck->warning();
 
                 if (level == KisExportCheckBase::PARTIALLY) {
                     m_warnings << warning;
@@ -56,14 +56,13 @@ bool KisPreExportChecker::check(KisImageSP image, QMap<QString, KisExportCheckBa
     return m_warnings.isEmpty() && m_errors.isEmpty();
 }
 
-QStringList KisPreExportChecker::errors() const
+PkStringList KisPreExportChecker::errors() const
 {
     return m_errors;
 }
 
 
-QStringList KisPreExportChecker::warnings() const
+PkStringList KisPreExportChecker::warnings() const
 {
     return m_warnings;
 }
-

@@ -9,7 +9,6 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_assert.h>
 #include <kis_image.h>
 #include <KoColorSpace.h>
@@ -21,11 +20,11 @@ class ExifCheck : public KisExportCheckBase
 {
 public:
 
-    ExifCheck(const QString &id, Level level, const QString &customWarning = QString())
+    ExifCheck(const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning)
     {
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning", "The image contains <b>Exif</b> metadata. The metadata will not be saved.");
+            m_warning = PkString( "The image contains <b>Exif</b> metadata. The metadata will not be saved.");
         }
     }
 
@@ -53,12 +52,12 @@ public:
 
     ~ExifCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new ExifCheck(id(), level, customWarning);
     }
 
-    QString id() const override {
+    PkString id() const override {
         return "ExifCheck";
     }
 
@@ -67,11 +66,11 @@ public:
 class TiffExifCheck : public KisExportCheckBase
 {
 public:
-    TiffExifCheck(const QString &id, Level level, const QString &customWarning = QString())
+    TiffExifCheck(const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning)
     {
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning",
+            m_warning = PkString(
                               "The image has <b>Exif</b> metadata and multiple layers. Only metadata <b>in the first "
                               "layer</b> will be saved.");
         }
@@ -102,12 +101,12 @@ public:
     {
     }
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new TiffExifCheck(id(), level, customWarning);
     }
 
-    QString id() const override
+    PkString id() const override
     {
         return "TiffExifCheck";
     }

@@ -7,8 +7,6 @@
 #ifndef KISEXPORTCHECKREGISTRY_H
 #define KISEXPORTCHECKREGISTRY_H
 
-#include <QObject>
-
 #include <KoGenericRegistry.h>
 
 #include "KisExportCheckBase.h"
@@ -16,7 +14,7 @@
 #include "kritaimpex_export.h"
 
 
-class KRITAIMPEX_EXPORT KisExportCheckRegistry : public QObject, public KoGenericRegistry<KisExportCheckFactory*>
+class KRITAIMPEX_EXPORT KisExportCheckRegistry : public KoGenericRegistry<KisExportCheckFactory*>
 {
 public:
     KisExportCheckRegistry();
@@ -24,7 +22,8 @@ public:
     static KisExportCheckRegistry *instance();
 
 private:
-    Q_DISABLE_COPY(KisExportCheckRegistry)
+    KisExportCheckRegistry(const KisExportCheckRegistry&) = delete;
+    KisExportCheckRegistry& operator=(const KisExportCheckRegistry&) = delete;
 };
 
 

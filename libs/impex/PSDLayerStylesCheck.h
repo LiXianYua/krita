@@ -9,7 +9,6 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_image.h>
 #include <KoColorSpace.h>
 #include <kis_node_visitor.h>
@@ -97,11 +96,11 @@ class PSDLayerStyleCheck : public KisExportCheckBase
 {
 public:
 
-    PSDLayerStyleCheck(const QString &id, Level level, const QString &customWarning = QString())
+    PSDLayerStyleCheck(const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning, true)
     {
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning", "The image contains <b>layer styles</b>. The layer styles will not be saved.");
+            m_warning = PkString( "The image contains <b>layer styles</b>. The layer styles will not be saved.");
         }
     }
 
@@ -126,12 +125,12 @@ public:
 
     ~PSDLayerStyleCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new PSDLayerStyleCheck(id(), level, customWarning);
     }
 
-    QString id() const override {
+    PkString id() const override {
         return "PSDLayerStyleCheck";
     }
 };

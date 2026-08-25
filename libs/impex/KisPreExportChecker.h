@@ -9,6 +9,9 @@
 #include <kis_types.h>
 #include "kritaimpex_export.h"
 
+#include <PkMap.h>
+#include <PkStringList.h>
+
 #include "KisExportCheckBase.h"
 
 class KisExportConverterBase;
@@ -24,14 +27,14 @@ public:
      * @param filterChecks the list of capabilities the filter possesses
      * @return true if no warnings and no conversions are needed
      */
-    bool check(KisImageSP image, QMap<QString, KisExportCheckBase *> filterChecks);
-    QStringList warnings() const;
-    QStringList errors() const;
+    bool check(KisImageSP image, PkMap<PkString, KisExportCheckBase *> filterChecks);
+    PkStringList warnings() const;
+    PkStringList errors() const;
 
 private:
 
-    QStringList m_errors;
-    QStringList m_warnings;
+    PkStringList m_errors;
+    PkStringList m_warnings;
 };
 
 #endif // KISPREEXPORTCHECKER_H

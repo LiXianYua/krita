@@ -6,7 +6,7 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
+#include <kis_assert.h>
 #include <kis_image.h>
 #include <KoColorSpace.h>
 #include <KoColorModelStandardIds.h>
@@ -30,9 +30,13 @@
 #include <sRGBProfileCheck.h>
 #include <ShapeLayerTypeCheck.h>
 
-#include <QGlobalStatic>
+#include <PkString.h>
 
-Q_GLOBAL_STATIC(KisExportCheckRegistry, s_instance)
+KisExportCheckRegistry *KisExportCheckRegistry::instance()
+{
+    static KisExportCheckRegistry s_instance;
+    return &s_instance;
+}
 
 KisExportCheckRegistry::KisExportCheckRegistry ()
 {
@@ -87,13 +91,13 @@ KisExportCheckRegistry::KisExportCheckRegistry ()
     chkFactory = new LayerOpacityCheckFactory();
     add(chkFactory->id(), chkFactory);
 
-    QList<KoID> allColorModels = KoColorSpaceRegistry::instance()->colorModelsList(KoColorSpaceRegistry::AllColorSpaces);
-    Q_FOREACH(const KoID &colorModelID, allColorModels) {
-        QList<KoID> allColorDepths = KoColorSpaceRegistry::instance()->colorDepthList(colorModelID.id(), KoColorSpaceRegistry::AllColorSpaces);
-        Q_FOREACH(const KoID &colorDepthID, allColorDepths) {
+    PkList<KoID> allColorModels = KoColorSpaceRegistry::instance()->colorModelsList(KoColorSpaceRegistry::AllColorSpaces);
+    for (const KoID &colorModelID : allColorModels) {
+        PkList<KoID> allColorDepths = KoColorSpaceRegistry::instance()->colorDepthList(colorModelID.id(), KoColorSpaceRegistry::AllColorSpaces);
+        for (const KoID &colorDepthID : allColorDepths) {
 
-            Q_ASSERT(!colorModelID.name().isEmpty());
-            Q_ASSERT(!colorDepthID.name().isEmpty());
+            KIS_SAFE_ASSERT_RECOVER_NOOP(!colorModelID.name().isEmpty());
+            KIS_SAFE_ASSERT_RECOVER_NOOP(!colorDepthID.name().isEmpty());
 
             // Per layer color model/channel depth checks
             chkFactory = new ColorModelPerLayerCheckFactory(colorModelID, colorDepthID);
@@ -106,31 +110,31 @@ KisExportCheckRegistry::KisExportCheckRegistry ()
     }
 
     // Node type checks
-    chkFactory = new NodeTypeCheckFactory("KisCloneLayer", i18n("Clone Layer"));
+    chkFactory = new NodeTypeCheckFactory("KisCloneLayer", PkString("Clone Layer"));
     add(chkFactory->id(), chkFactory);
-    chkFactory = new NodeTypeCheckFactory("KisGroupLayer", i18nc("A group of layers", "Group"));
+    chkFactory = new NodeTypeCheckFactory("KisGroupLayer", PkString("Group"));
     add(chkFactory->id(), chkFactory);
-    chkFactory = new NodeTypeCheckFactory("KisFileLayer", i18n("File Layer"));
+    chkFactory = new NodeTypeCheckFactory("KisFileLayer", PkString("File Layer"));
     add(chkFactory->id(), chkFactory);
-    chkFactory = new NodeTypeCheckFactory("KisShapeLayer", i18n("Vector Layer"));
+    chkFactory = new NodeTypeCheckFactory("KisShapeLayer", PkString("Vector Layer"));
     add(chkFactory->id(), chkFactory);
-    chkFactory = new NodeTypeCheckFactory("KisAdjustmentLayer", i18n("Filter Layer"));
+    chkFactory = new NodeTypeCheckFactory("KisAdjustmentLayer", PkString("Filter Layer"));
     add(chkFactory->id(), chkFactory);
-    chkFactory = new NodeTypeCheckFactory("KisGeneratorLayer", i18n("Generator Layer"));
+    chkFactory = new NodeTypeCheckFactory("KisGeneratorLayer", PkString("Generator Layer"));
     add(chkFactory->id(), chkFactory);
-    chkFactory = new NodeTypeCheckFactory("KisColorizeMask", i18n("Colorize Mask"));
+    chkFactory = new NodeTypeCheckFactory("KisColorizeMask", PkString("Colorize Mask"));
     add(chkFactory->id(), chkFactory);
-    chkFactory = new NodeTypeCheckFactory("KisFilterMask", i18n("Filter Mask"));
+    chkFactory = new NodeTypeCheckFactory("KisFilterMask", PkString("Filter Mask"));
     add(chkFactory->id(), chkFactory);
-    chkFactory = new NodeTypeCheckFactory("KisTransformMask", i18n("Transform Mask"));
+    chkFactory = new NodeTypeCheckFactory("KisTransformMask", PkString("Transform Mask"));
     add(chkFactory->id(), chkFactory);
-    chkFactory = new NodeTypeCheckFactory("KisTransparencyMask", i18n("Transparency Mask"));
+    chkFactory = new NodeTypeCheckFactory("KisTransparencyMask", PkString("Transparency Mask"));
     add(chkFactory->id(), chkFactory);
-    chkFactory = new NodeTypeCheckFactory("KisSelectionMask", i18n("Selection Mask"));
+    chkFactory = new NodeTypeCheckFactory("KisSelectionMask", PkString("Selection Mask"));
     add(chkFactory->id(), chkFactory);
 
     // Fill layer/generator types.
-    for (QString generatorId : KisGeneratorRegistry::instance()->keys()) {
+    for (PkString generatorId : KisGeneratorRegistry::instance()->keys()) {
         chkFactory = new FillLayerTypeCheckFactory(generatorId);
         add(chkFactory->id(), chkFactory);
     }
@@ -156,11 +160,8 @@ KisExportCheckRegistry::KisExportCheckRegistry ()
 
 KisExportCheckRegistry::~KisExportCheckRegistry ()
 {
-    qDeleteAll(values());
+    const auto registered = values();
+    for (auto *item : registered) {
+        delete item;
+    }
 }
-
-KisExportCheckRegistry *KisExportCheckRegistry ::instance()
-{
-    return s_instance;
-}
-

@@ -6,7 +6,7 @@
 #ifndef KISEXPORTCHECKBASE_H
 #define KISEXPORTCHECKBASE_H
 
-#include <QString>
+#include <PkString.h>
 
 #include <kis_types.h>
 
@@ -33,12 +33,12 @@ public:
      * @param level the level of support the filter has for the given feature
      * @param customWarning A custom warning to use instead of the default one
      */
-    KisExportCheckBase(const QString &id, Level level, const QString &customWarning = QString(), bool perLayerCheck = false);
+    KisExportCheckBase(const PkString &id, Level level, const PkString &customWarning = PkString(), bool perLayerCheck = false);
 
     virtual ~KisExportCheckBase();
 
     /// @return the unique id of the check
-    virtual QString id() const;
+    virtual PkString id() const;
 
     /// @return whether the image uses this feature
     virtual bool checkNeeded(KisImageSP image) const = 0;
@@ -50,13 +50,13 @@ public:
     virtual Level check(KisImageSP image) const = 0;
 
     /// @return the message to show the user
-    QString warning() const;
+    PkString warning() const;
 
 protected:
 
-    QString m_id;
+    PkString m_id;
     Level m_level {UNSUPPORTED};
-    QString m_warning;
+    PkString m_warning;
     bool m_perLayerCheck {false};
 
 };
@@ -64,9 +64,9 @@ protected:
 class KRITAIMPEX_EXPORT KisExportCheckFactory
 {
 public:
-    virtual KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning = QString()) = 0;
+    virtual KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning = PkString()) = 0;
     virtual ~KisExportCheckFactory() {}
-    virtual QString id() const = 0;
+    virtual PkString id() const = 0;
 };
 
 

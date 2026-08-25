@@ -10,7 +10,6 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_assert.h>
 #include <kis_image.h>
 #include <kis_generator_registry.h>
@@ -19,6 +18,7 @@
 #include <KoShapeLayer.h>
 #include <KoShapeGroup.h>
 #include <KoPathShape.h>
+#include <PkList.h>
 
 class ShapeLayerTypeCheckVisitor : public KisNodeVisitor
 {
@@ -26,7 +26,7 @@ public:
 
     using KisNodeVisitor::visit;
 
-    ShapeLayerTypeCheckVisitor (QString shapeId, QString pathId)
+    ShapeLayerTypeCheckVisitor (PkString shapeId, PkString pathId)
         : m_count(0)
         , m_shapeId(shapeId)
         , m_pathShapeId(pathId)
@@ -72,8 +72,8 @@ public:
 
 
 private:
-    bool check(QList<KoShape*> shapes) {
-        Q_FOREACH(KoShape* shape, shapes) {
+    bool check(PkList<KoShape*> shapes) {
+        for (KoShape *shape : shapes) {
             if (KoShapeGroup *group = dynamic_cast<KoShapeGroup*>(shape)) {
                 // ShapeGroups have no id...
                 if (m_shapeId == "KoShapeGroup") {
@@ -97,8 +97,8 @@ private:
     }
 
     quint32 m_count;
-    const QString m_shapeId;
-    const QString m_pathShapeId;
+    const PkString m_shapeId;
+    const PkString m_pathShapeId;
 
 };
 
@@ -107,17 +107,17 @@ class ShapeLayerTypeCheck : public KisExportCheckBase
 {
 public:
 
-    ShapeLayerTypeCheck(const QString &ShapeId, const QString &PathShapeId, const QString &id, Level level, const QString &customWarning = QString())
+    ShapeLayerTypeCheck(const PkString &ShapeId, const PkString &PathShapeId, const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning)
         , m_shapeId(ShapeId)
         , m_pathShapeId(PathShapeId)
     {
         if (customWarning.isEmpty()) {
             if (m_pathShapeId.isEmpty()) {
-                QString name = m_shapeId;
-                m_warning = i18nc("image conversion warning", "The image contains a Vector Layer with Shapes of type <b>%1</b>, which is not supported, these will not be saved.", name);
+                PkString name = m_shapeId;
+                m_warning = PkString("The image contains a Vector Layer with Shapes of type <b>%1</b>, which is not supported, these will not be saved.").arg(name);
             } else {
-                m_warning = i18nc("image conversion warning", "The image contains a Vector Layer with Shapes of type <b>%1</b>, which is not supported, these will be saved as paths", m_pathShapeId);
+                m_warning = PkString("The image contains a Vector Layer with Shapes of type <b>%1</b>, which is not supported, these will be saved as paths").arg(m_pathShapeId);
             }
         }
     }
@@ -134,15 +134,15 @@ public:
         return m_level;
     }
 
-    QString m_shapeId;
-    QString m_pathShapeId;
+    PkString m_shapeId;
+    PkString m_pathShapeId;
 };
 
 class ShapeLayerTypeCheckFactory : public KisExportCheckFactory
 {
 public:
 
-    ShapeLayerTypeCheckFactory(const QString &ShapeId, const QString &PathShapeId = "")
+    ShapeLayerTypeCheckFactory(const PkString &ShapeId, const PkString &PathShapeId = "")
         : m_shapeId(ShapeId)
         , m_pathShapeId(PathShapeId)
     {
@@ -150,19 +150,19 @@ public:
 
     ~ShapeLayerTypeCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new ShapeLayerTypeCheck(m_shapeId, m_pathShapeId, id(), level, customWarning);
     }
 
-    QString id() const override {
+    PkString id() const override {
         if (m_pathShapeId.isEmpty()) {
-            return "ShapeLayerTypeCheck/" + m_shapeId;
+            return PkString("ShapeLayerTypeCheck/") + m_shapeId;
         }
-        return "ShapeLayerTypeCheck/" + m_shapeId + "/" + m_pathShapeId;
+        return PkString("ShapeLayerTypeCheck/") + m_shapeId + "/" + m_pathShapeId;
     }
 
-    const QString m_shapeId;
-    const QString m_pathShapeId;
+    const PkString m_shapeId;
+    const PkString m_pathShapeId;
 };
 #endif // SHAPELAYERTYPECHECK_H

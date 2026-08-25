@@ -9,8 +9,9 @@
 
 #include <mutex>
 
-#include <QFlags>
-#include <QString>
+#include <PkFlags.h>
+#include <PkString.h>
+#include <PkAuxTypes.h>
 
 #include <kritaimpex_export.h>
 #include "KisImportExportErrorCode.h"
@@ -36,8 +37,7 @@ enum BackgroudSavingStartResult {
     Cancelled = 4
 };
 
-Q_DECLARE_FLAGS(SaveFlags, SaveFlag)
-Q_DECLARE_OPERATORS_FOR_FLAGS(SaveFlags)
+using SaveFlags = PkFlags<SaveFlag>;
 
 struct ExportFileJob {
     ExportFileJob()
@@ -45,7 +45,7 @@ struct ExportFileJob {
     {
     }
 
-    ExportFileJob(QString _filePath, QByteArray _mimeType, SaveFlags _flags = SaveNone)
+    ExportFileJob(PkString _filePath, PkByteArray _mimeType, SaveFlags _flags = SaveNone)
         : filePath(_filePath), mimeType(_mimeType), flags(_flags)
     {
     }
@@ -54,8 +54,8 @@ struct ExportFileJob {
         return !filePath.isEmpty();
     }
 
-    QString filePath;
-    QByteArray mimeType;
+    PkString filePath;
+    PkByteArray mimeType;
     SaveFlags flags;
 };
 

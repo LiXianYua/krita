@@ -5,23 +5,22 @@
  */
 
 #include "KisImportExportAdditionalChecks.h"
-#include <QFileInfo>
+
+#include <unistd.h>
+#include <filesystem>
 
 
-bool KisImportExportAdditionalChecks::isFileWritable(QString filepath)
+bool KisImportExportAdditionalChecks::isFileWritable(PkString filepath)
 {
-    QFileInfo finfo(filepath);
-    return finfo.isWritable();
+    return ::access(filepath.PkToUtf8().c_str(), W_OK) == 0;
 }
 
-bool KisImportExportAdditionalChecks::isFileReadable(QString filepath)
+bool KisImportExportAdditionalChecks::isFileReadable(PkString filepath)
 {
-    QFileInfo finfo(filepath);
-    return finfo.isReadable();
+    return ::access(filepath.PkToUtf8().c_str(), R_OK) == 0;
 }
 
-bool KisImportExportAdditionalChecks::doesFileExist(QString filepath)
+bool KisImportExportAdditionalChecks::doesFileExist(PkString filepath)
 {
-    return QFile::exists(filepath);
+    return std::filesystem::exists(filepath.PkToUtf8());
 }
-

@@ -9,7 +9,6 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_image.h>
 #include <kis_count_visitor.h>
 
@@ -17,18 +16,18 @@ class NodeTypeCheck : public KisExportCheckBase
 {
 public:
 
-    NodeTypeCheck(const QString &nodeType, const QString &description, const QString &id, Level level, const QString &customWarning = QString())
+    NodeTypeCheck(const PkString &nodeType, const PkString &description, const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning, true)
         , m_nodeType(nodeType)
     {
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning", "The image contains layers of unsupported type <b>%1</b>. Only the rendered result will be saved.", description);
+            m_warning = PkString("The image contains layers of unsupported type <b>%1</b>. Only the rendered result will be saved.").arg(description);
         }
     }
 
     bool checkNeeded(KisImageSP image) const override
     {
-        QStringList nodetypes = QStringList() << m_nodeType;
+        PkStringList nodetypes = PkStringList() << m_nodeType;
         KoProperties props;
         KisCountVisitor v(nodetypes, props);
         image->rootLayer()->accept(v);
@@ -47,31 +46,31 @@ public:
         return m_level;
     }
 
-    QString m_nodeType;
+    PkString m_nodeType;
 };
 
 class NodeTypeCheckFactory : public KisExportCheckFactory
 {
 public:
 
-    NodeTypeCheckFactory(const QString &nodeType, const QString &description)
+    NodeTypeCheckFactory(const PkString &nodeType, const PkString &description)
         : m_nodeType(nodeType)
         , m_description(description)
     {}
 
     ~NodeTypeCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new NodeTypeCheck(m_nodeType, m_description, id(), level, customWarning);
     }
 
-    QString id() const override {
-        return "NodeTypeCheck/" + m_nodeType;
+    PkString id() const override {
+        return PkString("NodeTypeCheck/") + m_nodeType;
     }
 
-    QString m_nodeType;
-    QString m_description;
+    PkString m_nodeType;
+    PkString m_description;
 
 };
 

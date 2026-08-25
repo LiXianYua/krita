@@ -5,7 +5,19 @@
  */
 
 #include "KisImportExportUtils.h"
-#include "KisImportExportBackend.h"
+
+// KisImportExportBackend.h 尚未剥离（Task 7 范围），其字节数组类型无 pk compat 头，
+// 直接包含会编译失败。此处用最小类声明替代（只含本文件用到的 chooseColorSpace，
+// 其余三个纯虚接口壳闭包内无人调用），待 Task 7 完成后切回真包含。
+// #include "KisImportExportBackend.h"
+class PkWidget;
+class KoColorSpace;
+class KisImportExportUiServices {
+public:
+    virtual ~KisImportExportUiServices() = default;
+    virtual bool chooseColorSpace(PkWidget *, const KoColorSpace *, const KoColorSpace **, int *, int *) = 0;
+};
+KisImportExportUiServices *kisImportExportUiServices();
 
 #include <KoColorSpaceRegistry.h>
 #include <KoColorSpace.h>
@@ -34,7 +46,7 @@ KisImportExportErrorCode workaroundUnsuitableImageColorSpace(KisImageSP image,
         KIS_SAFE_ASSERT_RECOVER_NOOP(feedbackInterface);
         if (feedbackInterface) {
             KisImportUserFeedbackInterface::Result result =
-                feedbackInterface->askUser([&] (QWidget *parent) {
+                feedbackInterface->askUser([&] (PkWidget *parent) {
                     const KoColorSpace* fallbackColorSpace =
                         KoColorSpaceRegistry::instance()->colorSpace(
                             colorSpace->colorModelId().id(),

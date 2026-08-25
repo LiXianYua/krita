@@ -9,7 +9,6 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_image.h>
 #include "kritaimpex_export.h"
 
@@ -17,13 +16,13 @@ class KRITAIMPEX_EXPORT ImageSizeCheck : public KisExportCheckBase
 {
 public:
 
-    ImageSizeCheck(int maxWidth, int maxHeight, const QString &id, Level level, const QString &customWarning = QString())
+    ImageSizeCheck(int maxWidth, int maxHeight, const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning, true)
         , m_maxW(maxWidth)
         , m_maxH(maxHeight)
     {
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning", "This image is larger than <b>%1 x %2</b>. Images this size cannot be saved to this format.", m_maxW, m_maxH);
+            m_warning = PkString("This image is larger than <b>%1 x %2</b>. Images this size cannot be saved to this format.").arg(m_maxW).arg(m_maxH);
         }
     }
 
@@ -49,17 +48,17 @@ public:
 
     ~ImageSizeCheckFactory() override {}
 
-    KisExportCheckBase *create( KisExportCheckBase::Level level, const QString &customWarning = QString()) override
+    KisExportCheckBase *create( KisExportCheckBase::Level level, const PkString &customWarning = PkString()) override
     {
         return new ImageSizeCheck(100000000, 100000000, id(), level, customWarning);
     }
 
-    KisExportCheckBase *create(int maxWidth, int maxHeight, KisExportCheckBase::Level level, const QString &customWarning = QString())
+    KisExportCheckBase *create(int maxWidth, int maxHeight, KisExportCheckBase::Level level, const PkString &customWarning = PkString())
     {
         return new ImageSizeCheck(maxWidth, maxHeight, id(), level, customWarning);
     }
 
-    QString id() const override {
+    PkString id() const override {
         return "ImageSizeCheck";
     }
 };

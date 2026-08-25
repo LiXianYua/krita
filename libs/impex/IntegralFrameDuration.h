@@ -9,7 +9,6 @@
 
 #include <cmath>
 
-#include <klocalizedstring.h>
 
 #include <KoID.h>
 #include <kis_image.h>
@@ -21,14 +20,14 @@
 class KRITAIMPEX_EXPORT IntegralFrameDurationCheck : public KisExportCheckBase
 {
 public:
-    IntegralFrameDurationCheck(const QString &id,
+    IntegralFrameDurationCheck(const PkString &id,
                                Level level,
-                               const QString &customWarning = QString())
+                               const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning)
     {
         if (customWarning.isEmpty()) {
             m_warning =
-                i18nc("image conversion warning",
+                PkString(
                       "The image is animated with a frame duration in "
                       "<b>fractions of a millisecond</b>. The "
                       "format cannot represent this, and the frame "
@@ -64,12 +63,12 @@ public:
 
     KisExportCheckBase *
     create(KisExportCheckBase::Level level,
-           const QString &customWarning = QString()) override
+           const PkString &customWarning = PkString()) override
     {
         return new IntegralFrameDurationCheck(id(), level, customWarning);
     }
 
-    QString id() const override
+    PkString id() const override
     {
         return "IntegralFrameDurationCheck";
     }

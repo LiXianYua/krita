@@ -8,8 +8,8 @@
 #define ColorModelPerLayerCHECK_H
 
 #include "KisExportCheckRegistry.h"
+#include <kis_assert.h>
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_image.h>
 #include <KoColorSpace.h>
 #include <KoColorModelStandardIds.h>
@@ -104,18 +104,18 @@ class ColorModelPerLayerCheck : public KisExportCheckBase
 {
 public:
 
-    ColorModelPerLayerCheck(const KoID &colorModelID, const KoID &colorDepthID, const QString &id, Level level, const QString &customWarning = QString())
+    ColorModelPerLayerCheck(const KoID &colorModelID, const KoID &colorDepthID, const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning, true)
         , m_ColorModelID(colorModelID)
         , m_colorDepthID(colorDepthID)
     {
-        Q_ASSERT(!colorModelID.name().isEmpty());
-        Q_ASSERT(!colorDepthID.name().isEmpty());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(!colorModelID.name().isEmpty());
+        KIS_SAFE_ASSERT_RECOVER_NOOP(!colorDepthID.name().isEmpty());
 
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning", "Your image contains layers with the color model <b>%1</b> and channel depth <b>%2</b> which cannot be saved to this format. The layers will be converted."
-            , m_ColorModelID.name()
-            ,m_colorDepthID.name());
+            m_warning = PkString("Your image contains layers with the color model <b>%1</b> and channel depth <b>%2</b> which cannot be saved to this format. The layers will be converted.")
+                        .arg(m_ColorModelID.name())
+                        .arg(m_colorDepthID.name());
         }
     }
 
@@ -147,13 +147,13 @@ public:
 
     ~ColorModelPerLayerCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new ColorModelPerLayerCheck(m_colorModelID, m_colorDepthID, id(), level, customWarning);
     }
 
-    QString id() const override {
-        return "ColorModelPerLayerCheck/" + m_colorModelID.id() + "/" + m_colorDepthID.id();
+    PkString id() const override {
+        return PkString("ColorModelPerLayerCheck/") + m_colorModelID.id() + "/" + m_colorDepthID.id();
     }
 
     const KoID m_colorModelID;

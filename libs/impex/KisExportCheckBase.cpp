@@ -6,7 +6,7 @@
 
 #include "KisExportCheckBase.h"
 
-KisExportCheckBase::KisExportCheckBase(const QString &id, Level level, const QString &customWarning, bool _perLayerCheck)
+KisExportCheckBase::KisExportCheckBase(const PkString &id, Level level, const PkString &customWarning, bool _perLayerCheck)
     : m_id(id)
     , m_level(level)
     , m_perLayerCheck(_perLayerCheck)
@@ -20,7 +20,7 @@ KisExportCheckBase::~KisExportCheckBase()
 {
 }
 
-QString KisExportCheckBase::id() const
+PkString KisExportCheckBase::id() const
 {
     return m_id;
 }
@@ -30,7 +30,7 @@ bool KisExportCheckBase::perLayerCheck() const
     return m_perLayerCheck;
 }
 
-QString KisExportCheckBase::warning() const
+PkString KisExportCheckBase::warning() const
 {
     return m_warning;
 }

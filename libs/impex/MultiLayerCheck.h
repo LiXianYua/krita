@@ -9,7 +9,6 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_image.h>
 #include <kis_group_layer.h>
 
@@ -17,11 +16,11 @@ class MultiLayerCheck : public KisExportCheckBase
 {
 public:
 
-    MultiLayerCheck(const QString &id, Level level, const QString &customWarning = QString())
+    MultiLayerCheck(const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning)
     {
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning", "The image has <b>more than one layer or a mask or an active selection</b>. Only the flattened image will be saved.");
+            m_warning = PkString( "The image has <b>more than one layer or a mask or an active selection</b>. Only the flattened image will be saved.");
         }
     }
 
@@ -45,12 +44,12 @@ public:
 
     ~MultiLayerCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new MultiLayerCheck(id(), level, customWarning);
     }
 
-    QString id() const override {
+    PkString id() const override {
         return "MultiLayerCheck";
     }
 };

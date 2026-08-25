@@ -7,11 +7,32 @@
 #define KIS_IMPORT_EXPORT_ERROR_CODES_H
 
 
-#include <QFile>
-#include <QFileDevice>
-#include <QString>
+#include <PkString.h>
+#include <PkDebug.h>
 #include <kritaimpex_export.h>
-#include <QDebug>
+
+
+// 原文件系统错误枚举的零 Qt 替代。枚举值顺序与 Qt 5.15 对齐
+// （NoError=0 ... CopyError=14），便于将来 Task 4/8 从 PkFileStream /
+// std::error_code 转换时静态映射。
+enum PkFileError
+{
+    PkNoError = 0,
+    PkReadError,
+    PkWriteError,
+    PkFatalError,
+    PkResourceError,
+    PkOpenError,
+    PkAbortError,
+    PkTimeOutError,
+    PkUnspecifiedError,
+    PkRemoveError,
+    PkRenameError,
+    PkPositionError,
+    PkResizeError,
+    PkPermissionsError,
+    PkCopyError
+};
 
 
 namespace ImportExportCodes
@@ -56,23 +77,23 @@ class KisImportExportErrorCode;
 
 struct KRITAIMPEX_EXPORT KisImportExportComplexError
 {
-    virtual QString errorMessage() const = 0;
-    KisImportExportComplexError(QFileDevice::FileError error);
+    virtual PkString errorMessage() const = 0;
+    KisImportExportComplexError(PkFileError error);
 
-    friend inline QDebug &operator<<(QDebug &d,
-                                     const KisImportExportErrorCode &errorCode);
+    friend inline PkDebug &operator<<(PkDebug &d,
+                                      const KisImportExportErrorCode &errorCode);
     virtual ~KisImportExportComplexError() = default;
 
 protected:
-    QString qtErrorMessage() const;
-    QFileDevice::FileError m_error;
+    PkString qtErrorMessage() const;
+    PkFileError m_error;
 };
 
 struct KRITAIMPEX_EXPORT KisImportExportErrorCannotWrite : KisImportExportComplexError
 {
 
-    KisImportExportErrorCannotWrite(QFileDevice::FileError error);
-    QString errorMessage() const override;
+    KisImportExportErrorCannotWrite(PkFileError error);
+    PkString errorMessage() const override;
 
     ~KisImportExportErrorCannotWrite() override = default;
 
@@ -89,8 +110,8 @@ private:
 struct KRITAIMPEX_EXPORT KisImportExportErrorCannotRead : KisImportExportComplexError
 {
 
-    KisImportExportErrorCannotRead(QFileDevice::FileError error);
-    QString errorMessage() const override;
+    KisImportExportErrorCannotRead(PkFileError error);
+    PkString errorMessage() const override;
 
     ~KisImportExportErrorCannotRead() override = default;
 
@@ -116,13 +137,13 @@ public:
     KisImportExportErrorCode(KisImportExportErrorCannotRead code);
     KisImportExportErrorCode(KisImportExportErrorCannotWrite code);
 
-    QString errorMessage() const;
+    PkString errorMessage() const;
     bool isOk() const;
     bool isCancelled() const;
     bool isInternalError() const;
 
-    friend inline QDebug &operator<<(QDebug &d,
-                                     const KisImportExportErrorCode &errorCode);
+    friend inline PkDebug &operator<<(PkDebug &d,
+                                      const KisImportExportErrorCode &errorCode);
 
     bool operator==(KisImportExportErrorCode errorCode);
 
@@ -142,7 +163,7 @@ private:
     KisImportExportErrorCannotWrite cannotWrite;
 };
 
-inline QDebug &operator<<(QDebug &d, const KisImportExportErrorCode &errorCode)
+inline PkDebug &operator<<(PkDebug &d, const KisImportExportErrorCode &errorCode)
 {
     switch (errorCode.errorFieldUsed) {
     case KisImportExportErrorCode::None:

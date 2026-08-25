@@ -9,18 +9,17 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_image.h>
 
 class CompositionsCheck : public KisExportCheckBase
 {
 public:
 
-    CompositionsCheck(const QString &id, Level level, const QString &customWarning = QString())
+    CompositionsCheck(const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning)
     {
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning", "The image contains <b>compositions</b>. The compositions will not be saved.");
+            m_warning = PkString( "The image contains <b>compositions</b>. The compositions will not be saved.");
         }
     }
 
@@ -45,12 +44,12 @@ public:
 
     ~CompositionsCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new CompositionsCheck(id(), level, customWarning);
     }
 
-    QString id() const override {
+    PkString id() const override {
         return "CompositionsCheck";
     }
 };

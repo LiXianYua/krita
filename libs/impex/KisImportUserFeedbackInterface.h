@@ -6,12 +6,11 @@
 #ifndef KISIMPORTUSERFEEDBACKINTERFACE_H
 #define KISIMPORTUSERFEEDBACKINTERFACE_H
 
-#include <QtGlobal>
 #include <functional>
 
 #include "kritaimpex_export.h"
 
-class QWidget;
+class PkWidget;
 
 /**
  * Sometimes the importing filter may face some werd issue that needs
@@ -20,7 +19,7 @@ class QWidget;
 class KRITAIMPEX_EXPORT KisImportUserFeedbackInterface
 {
 public:
-    using AskCallback = std::function<bool(QWidget*)>;
+    using AskCallback = std::function<bool(PkWidget*)>;
 
     enum Result {
         Success = 0,
@@ -43,12 +42,10 @@ public:
     virtual Result askUser(AskCallback callback) = 0;
 
 private:
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 13, 0))
-    Q_DISABLE_COPY_MOVE(KisImportUserFeedbackInterface);
-#else
     KisImportUserFeedbackInterface(const KisImportUserFeedbackInterface&) = delete;
     KisImportUserFeedbackInterface(KisImportUserFeedbackInterface&&) = delete;
-#endif
+    KisImportUserFeedbackInterface& operator=(const KisImportUserFeedbackInterface&) = delete;
+    KisImportUserFeedbackInterface& operator=(KisImportUserFeedbackInterface&&) = delete;
 };
 
 #endif // KISIMPORTUSERFEEDBACKINTERFACE_H

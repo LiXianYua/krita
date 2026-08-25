@@ -5,64 +5,63 @@
  */
 
 #include "KisImportExportErrorCode.h"
-#include <KLocalizedString>
 #include <kis_assert.h>
 
 
 
-KisImportExportComplexError::KisImportExportComplexError(QFileDevice::FileError error) : m_error(error) { }
+KisImportExportComplexError::KisImportExportComplexError(PkFileError error) : m_error(error) { }
 
 
-QString KisImportExportComplexError::qtErrorMessage() const
+PkString KisImportExportComplexError::qtErrorMessage() const
 {
     // Error descriptions in most cases taken from https://doc.qt.io/qt-5/qfiledevice.html
-    QString unspecifiedError = i18n("An unspecified error occurred.");
+    PkString unspecifiedError = PkString("An unspecified error occurred.");
     switch (m_error) {
-        case QFileDevice::FileError::NoError :
+        case PkNoError :
             // Returning this file error may mean that something is wrong in our code.
             // Successful operation should return ImportExportCodes::OK instead.
-            return i18n("The action has been completed successfully.");
-        case QFileDevice::FileError::ReadError :
-            return i18n("An error occurred when reading from the file.");
-        case QFileDevice::FileError::WriteError :
-            return i18n("An error occurred when writing to the file.");
-        case QFileDevice::FileError::FatalError :
-            return i18n("A fatal error occurred.");
-        case QFileDevice::FileError::ResourceError :
-            return i18n("Out of resources (e.g. out of memory).");
-        case QFileDevice::FileError::OpenError :
-            return i18n("The file could not be opened.");
-        case QFileDevice::FileError::AbortError :
-            return i18n("The operation was aborted.");
-        case QFileDevice::FileError::TimeOutError :
-            return i18n("A timeout occurred.");
-        case QFileDevice::FileError::UnspecifiedError :
+            return PkString("The action has been completed successfully.");
+        case PkReadError :
+            return PkString("An error occurred when reading from the file.");
+        case PkWriteError :
+            return PkString("An error occurred when writing to the file.");
+        case PkFatalError :
+            return PkString("A fatal error occurred.");
+        case PkResourceError :
+            return PkString("Out of resources (e.g. out of memory).");
+        case PkOpenError :
+            return PkString("The file could not be opened.");
+        case PkAbortError :
+            return PkString("The operation was aborted.");
+        case PkTimeOutError :
+            return PkString("A timeout occurred.");
+        case PkUnspecifiedError :
             return unspecifiedError;
-        case QFileDevice::FileError::RemoveError :
-            return i18n("The file could not be removed.");
-        case QFileDevice::FileError::RenameError :
-            return i18n("The file could not be renamed.");
-        case QFileDevice::FileError::PositionError :
-            return i18n("The position in the file could not be changed.");
-        case QFileDevice::FileError::ResizeError :
-            return i18n("The file could not be resized.");
-        case QFileDevice::FileError::PermissionsError :
-            return i18n("Permission denied. Krita is not allowed to read or write to the file.");
-        case QFileDevice::FileError::CopyError :
-            return i18n("The file could not be copied.");
+        case PkRemoveError :
+            return PkString("The file could not be removed.");
+        case PkRenameError :
+            return PkString("The file could not be renamed.");
+        case PkPositionError :
+            return PkString("The position in the file could not be changed.");
+        case PkResizeError :
+            return PkString("The file could not be resized.");
+        case PkPermissionsError :
+            return PkString("Permission denied. Krita is not allowed to read or write to the file.");
+        case PkCopyError :
+            return PkString("The file could not be copied.");
     }
     return unspecifiedError;
 }
 
-KisImportExportErrorCannotRead::KisImportExportErrorCannotRead() : KisImportExportComplexError(QFileDevice::FileError()) { }
+KisImportExportErrorCannotRead::KisImportExportErrorCannotRead() : KisImportExportComplexError(PkFileError()) { }
 
-KisImportExportErrorCannotRead::KisImportExportErrorCannotRead(QFileDevice::FileError error) : KisImportExportComplexError(error) {
-    KIS_SAFE_ASSERT_RECOVER(error != QFileDevice::NoError) {m_error = QFileDevice::ReadError; }
+KisImportExportErrorCannotRead::KisImportExportErrorCannotRead(PkFileError error) : KisImportExportComplexError(error) {
+    KIS_SAFE_ASSERT_RECOVER(error != PkNoError) {m_error = PkReadError; }
 }
 
-QString KisImportExportErrorCannotRead::errorMessage() const
+PkString KisImportExportErrorCannotRead::errorMessage() const
 {
-    return i18n("Cannot open file for reading. Reason: %1", qtErrorMessage());
+    return PkString("Cannot open file for reading. Reason: %1").arg(qtErrorMessage());
 }
 
 bool KisImportExportErrorCannotRead::operator==(KisImportExportErrorCannotRead other)
@@ -70,15 +69,15 @@ bool KisImportExportErrorCannotRead::operator==(KisImportExportErrorCannotRead o
     return other.m_error == m_error;
 }
 
-KisImportExportErrorCannotWrite::KisImportExportErrorCannotWrite() : KisImportExportComplexError(QFileDevice::FileError()) { }
+KisImportExportErrorCannotWrite::KisImportExportErrorCannotWrite() : KisImportExportComplexError(PkFileError()) { }
 
-KisImportExportErrorCannotWrite::KisImportExportErrorCannotWrite(QFileDevice::FileError error) : KisImportExportComplexError(error) {
-    KIS_SAFE_ASSERT_RECOVER(error != QFileDevice::NoError) {m_error = QFileDevice::WriteError; }
+KisImportExportErrorCannotWrite::KisImportExportErrorCannotWrite(PkFileError error) : KisImportExportComplexError(error) {
+    KIS_SAFE_ASSERT_RECOVER(error != PkNoError) {m_error = PkWriteError; }
 }
 
-QString KisImportExportErrorCannotWrite::errorMessage() const
+PkString KisImportExportErrorCannotWrite::errorMessage() const
 {
-    return i18n("Cannot open file for writing. Reason: %1", qtErrorMessage());
+    return PkString("Cannot open file for writing. Reason: %1").arg(qtErrorMessage());
 }
 
 bool KisImportExportErrorCannotWrite::operator==(KisImportExportErrorCannotWrite other)
@@ -134,9 +133,9 @@ bool KisImportExportErrorCode::isInternalError() const
     return errorFieldUsed == CodeId && codeId == ImportExportCodes::InternalError;
 }
 
-QString KisImportExportErrorCode::errorMessage() const
+PkString KisImportExportErrorCode::errorMessage() const
 {
-    QString internal = i18n("Unexpected error.");
+    PkString internal = PkString("Unexpected error.");
     if (errorFieldUsed == CannotRead) {
         return cannotRead.errorMessage();
     } else if (errorFieldUsed == CannotWrite) {
@@ -145,44 +144,44 @@ QString KisImportExportErrorCode::errorMessage() const
         switch (codeId) {
             // Reading
             case ImportExportCodes::FileNotExist:
-                return i18n("The file doesn't exist.");
+                return PkString("The file doesn't exist.");
             case ImportExportCodes::NoAccessToRead:
-                return i18n("Permission denied: Krita is not allowed to read the file.");
+                return PkString("Permission denied: Krita is not allowed to read the file.");
             case ImportExportCodes::FileFormatIncorrect:
-                return i18n("The file format cannot be parsed.");
+                return PkString("The file format cannot be parsed.");
             case ImportExportCodes::FormatFeaturesUnsupported:
-                return i18n("The file format contains unsupported features.");
+                return PkString("The file format contains unsupported features.");
             case ImportExportCodes::FormatColorSpaceUnsupported:
-                return i18n("The file format contains unsupported color space.");
+                return PkString("The file format contains unsupported color space.");
             case ImportExportCodes::ErrorWhileReading:
-                return i18n("Error occurred while reading from the file.");
+                return PkString("Error occurred while reading from the file.");
 
             // Writing
             case ImportExportCodes::CannotCreateFile:
-                return i18n("The file cannot be created.");
+                return PkString("The file cannot be created.");
             case ImportExportCodes::NoAccessToWrite:
-                return i18n("Permission denied: Krita is not allowed to write to the file.");
+                return PkString("Permission denied: Krita is not allowed to write to the file.");
             case ImportExportCodes::InsufficientMemory:
-                return i18n("There is not enough disk space left to save the file.");
+                return PkString("There is not enough disk space left to save the file.");
             case ImportExportCodes::ErrorWhileWriting:
-                return i18n("Error occurred while writing to the file.");
+                return PkString("Error occurred while writing to the file.");
             case ImportExportCodes::FileFormatNotSupported:
-                return i18n("Krita does not support this file format.");
+                return PkString("Krita does not support this file format.");
 
             // Both
             case ImportExportCodes::Cancelled:
-                return i18n("The action was cancelled by the user.");
+                return PkString("The action was cancelled by the user.");
 
             // Other
             case ImportExportCodes::Failure:
-                return i18n("Unknown error.");
+                return PkString("Unknown error.");
             case ImportExportCodes::InternalError:
                 return internal;
             case ImportExportCodes::Busy:
-                return i18n("Image is busy.");
+                return PkString("Image is busy.");
             // OK
             case ImportExportCodes::OK:
-                return i18n("The action has been completed successfully.");
+                return PkString("The action has been completed successfully.");
             default:
                 return internal;
 

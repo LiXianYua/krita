@@ -9,7 +9,6 @@
 
 #include "KisExportCheckRegistry.h"
 #include <KoID.h>
-#include <klocalizedstring.h>
 #include <kis_image.h>
 #include <KoColorSpace.h>
 #include <KoColorModelStandardIds.h>
@@ -105,11 +104,11 @@ class ColorModelHomogenousCheck : public KisExportCheckBase
 {
 public:
 
-    ColorModelHomogenousCheck(const QString &id, Level level, const QString &customWarning = QString())
+    ColorModelHomogenousCheck(const PkString &id, Level level, const PkString &customWarning = PkString())
         : KisExportCheckBase(id, level, customWarning, true)
     {
         if (customWarning.isEmpty()) {
-            m_warning = i18nc("image conversion warning", "Your image contains layers with a color model that is different from the image. The layers will be converted.");
+            m_warning = PkString( "Your image contains layers with a color model that is different from the image. The layers will be converted.");
         }
     }
 
@@ -138,12 +137,12 @@ public:
 
     ~ColorModelHomogenousCheckFactory() override {}
 
-    KisExportCheckBase *create(KisExportCheckBase::Level level, const QString &customWarning) override
+    KisExportCheckBase *create(KisExportCheckBase::Level level, const PkString &customWarning) override
     {
         return new ColorModelHomogenousCheck(id(), level, customWarning);
     }
 
-    QString id() const override {
+    PkString id() const override {
         return "ColorModelHomogenousCheck";
     }
 
