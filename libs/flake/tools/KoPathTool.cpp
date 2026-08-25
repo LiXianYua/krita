@@ -851,22 +851,22 @@ void KoPathTool::activate(const QSet<KoShape*> &shapes)
     m_canvasConnections.addConnection(d->canvas->selectedShapesProxy(), &KoSelectedShapesProxy::selectionContentChanged, this, &KoPathTool::repaintDecorations);
     m_shapeFillResourceConnector.connectToCanvas(d->canvas);
     initializeWithShapes(QList<KoShape*>(shapes.begin(), shapes.end()));
-    connect(m_actionCurvePoint, SIGNAL(triggered()), this, SLOT(pointToCurve()), Qt::UniqueConnection);
-    connect(m_actionLinePoint, SIGNAL(triggered()), this, SLOT(pointToLine()), Qt::UniqueConnection);
-    connect(m_actionLineSegment, SIGNAL(triggered()), this, SLOT(segmentToLine()), Qt::UniqueConnection);
-    connect(m_actionCurveSegment, SIGNAL(triggered()), this, SLOT(segmentToCurve()), Qt::UniqueConnection);
-    connect(m_actionAddPoint, SIGNAL(triggered()), this, SLOT(insertPoints()), Qt::UniqueConnection);
-    connect(m_actionRemovePoint, SIGNAL(triggered()), this, SLOT(removePoints()), Qt::UniqueConnection);
-    connect(m_actionBreakPoint, SIGNAL(triggered()), this, SLOT(breakAtPoint()), Qt::UniqueConnection);
-    connect(m_actionBreakSegment, SIGNAL(triggered()), this, SLOT(breakAtSegment()), Qt::UniqueConnection);
-    connect(m_actionBreakSelection, SIGNAL(triggered()), this, SLOT(breakAtSelection()), Qt::UniqueConnection);
-    connect(m_actionJoinSegment, SIGNAL(triggered()), this, SLOT(joinPoints()), Qt::UniqueConnection);
-    connect(m_actionMergePoints, SIGNAL(triggered()), this, SLOT(mergePoints()), Qt::UniqueConnection);
-    connect(m_actionConvertToPath, SIGNAL(triggered()), this, SLOT(convertToPath()), Qt::UniqueConnection);
-    connect(m_actionPathPointCorner, SIGNAL(triggered()), this, SLOT(pointTypeChangedCorner()), Qt::UniqueConnection);
-    connect(m_actionPathPointSmooth, SIGNAL(triggered()), this, SLOT(pointTypeChangedSmooth()), Qt::UniqueConnection);
-    connect(m_actionPathPointSymmetric, SIGNAL(triggered()), this, SLOT(pointTypeChangedSymmetric()), Qt::UniqueConnection);
-    connect(&m_pointSelection, SIGNAL(selectionChanged()), this, SLOT(pointSelectionChanged()), Qt::UniqueConnection);
+    connect(m_actionCurvePoint, &QAction::triggered, this, &KoPathTool::pointToCurve, Qt::UniqueConnection);
+    connect(m_actionLinePoint, &QAction::triggered, this, &KoPathTool::pointToLine, Qt::UniqueConnection);
+    connect(m_actionLineSegment, &QAction::triggered, this, &KoPathTool::segmentToLine, Qt::UniqueConnection);
+    connect(m_actionCurveSegment, &QAction::triggered, this, &KoPathTool::segmentToCurve, Qt::UniqueConnection);
+    connect(m_actionAddPoint, &QAction::triggered, this, &KoPathTool::insertPoints, Qt::UniqueConnection);
+    connect(m_actionRemovePoint, &QAction::triggered, this, &KoPathTool::removePoints, Qt::UniqueConnection);
+    connect(m_actionBreakPoint, &QAction::triggered, this, &KoPathTool::breakAtPoint, Qt::UniqueConnection);
+    connect(m_actionBreakSegment, &QAction::triggered, this, &KoPathTool::breakAtSegment, Qt::UniqueConnection);
+    connect(m_actionBreakSelection, &QAction::triggered, this, &KoPathTool::breakAtSelection, Qt::UniqueConnection);
+    connect(m_actionJoinSegment, &QAction::triggered, this, &KoPathTool::joinPoints, Qt::UniqueConnection);
+    connect(m_actionMergePoints, &QAction::triggered, this, &KoPathTool::mergePoints, Qt::UniqueConnection);
+    connect(m_actionConvertToPath, &QAction::triggered, this, &KoPathTool::convertToPath, Qt::UniqueConnection);
+    connect(m_actionPathPointCorner, &QAction::triggered, this, &KoPathTool::pointTypeChangedCorner, Qt::UniqueConnection);
+    connect(m_actionPathPointSmooth, &QAction::triggered, this, &KoPathTool::pointTypeChangedSmooth, Qt::UniqueConnection);
+    connect(m_actionPathPointSymmetric, &QAction::triggered, this, &KoPathTool::pointTypeChangedSymmetric, Qt::UniqueConnection);
+    connect(&m_pointSelection, &KoPathToolSelection::selectionChanged, this, &KoPathTool::pointSelectionChanged, Qt::UniqueConnection);
 
 }
 
