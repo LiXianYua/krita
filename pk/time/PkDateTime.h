@@ -208,10 +208,18 @@ private:
 // 这些是 `PkDateTime::DateFormat`（enum class）的 constexpr 别名值——`toString(Qt::ISODate)`
 // 这类调用点把 `Qt::` 限定名直接映射到枚举值，一字不改。
 // 探针取值（R-27）：TextDate=0 ISODate=1 RFC2822Date=8 ISODateWithMs=9。
+//
+// ⚠ 让位给真 Qt（R-37）：真 Qt qnamespace.h 也定义 `Qt::DateFormat`（qnamespace.h:1276-1290），
+// transition TU 里 `constexpr PkDateTime::DateFormat ISODate` 与 `enum DateFormat { ISODate }`
+// 重定义（S-08 实测 KoFFWWSConverter.cpp +3 错）。守卫口径同 R-35：`!QT_CORE_LIB ||
+// !QNAMESPACE_H`——真 Qt qnamespace.h 进 TU（QNAMESPACE_H 定义）就让位，不在场（含
+// -DQT_CORE_LIB 无真 Qt 头）就由本头提供。mixed TU 必须「Qt 头在前」。
+#if !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H)
 namespace Qt {
 constexpr PkDateTime::DateFormat ISODate = PkDateTime::DateFormat::ISODate;
 constexpr PkDateTime::DateFormat RFC2822Date = PkDateTime::DateFormat::RFC2822Date;
 constexpr PkDateTime::DateFormat ISODateWithMs = PkDateTime::DateFormat::ISODateWithMs;
 }
+#endif // !defined(QT_CORE_LIB) || !defined(QNAMESPACE_H) —— 真 Qt qnamespace.h 在场则让位
 
 #endif // PK_TIME_PKDATETIME_H
