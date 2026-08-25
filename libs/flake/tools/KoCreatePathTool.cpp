@@ -579,15 +579,12 @@ QList<QPointer<QWidget> > KoCreatePathTool::createOptionWidgets()
 
     list.append(widget);
 
-    connect(smoothCurves,
-            SIGNAL(toggled(bool)),
-            this,
-            SLOT(autoSmoothCurvesChanged(bool)));
-    connect(this,
-            SIGNAL(sigUpdateAutoSmoothCurvesGUI(bool)),
-            smoothCurves,
-            SLOT(setChecked(bool)));
-    connect(angleSnap, SIGNAL(stateChanged(int)), this, SLOT(angleSnapChanged(int)));
+    connect(smoothCurves, &QAbstractButton::toggled, this,
+            [this](bool value) { d->autoSmoothCurvesChanged(value); });
+    connect(this, &KoCreatePathTool::sigUpdateAutoSmoothCurvesGUI, smoothCurves,
+            &QAbstractButton::setChecked);
+    connect(angleSnap, &QCheckBox::stateChanged, this,
+            [this](int state) { d->angleSnapChanged(state); });
 
     return list;
 }
