@@ -85,6 +85,7 @@ kis_add_library(kritapigment SHARED ${kritapigment_SRCS})
 generate_export_header(kritapigment)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
+find_package(PNG REQUIRED)
 
 # S-03-a Task8 迁到 PkSignal 形态的 3 个 moc 头：信号定义由 pk_signal_moc.py
 # 生成（替代 Qt moc 的 Q_SIGNALS 段 → activateSignal 调用）。
@@ -165,6 +166,7 @@ target_link_libraries( kritapigment
         pkconfig
         pkflags
         pknamespace
+        ${PNG_LIBRARIES}
 )
 
 set_target_properties(kritapigment PROPERTIES
