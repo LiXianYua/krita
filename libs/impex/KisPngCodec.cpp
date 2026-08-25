@@ -20,14 +20,19 @@
 #include <KoStore.h>
 #include <KoStoreDevice.h>
 
+#include <PkAuxTypes.h> // PkByteArray
+#include <PkFileStream.h>
+#include <PkMemoryStream.h>
+#include <PkScopedPointer.h>
+#include <PkStringList.h>
+
+#include <cstring>
+#include <filesystem>
 #include <limits.h>
 #include <stdio.h>
+#include <string>
+#include <utility>
 #include <zlib.h>
-
-#include <QBuffer>
-#include <QFile>
-#include <klocalizedstring.h>
-#include <QUrl>
 
 #include <KoColorSpace.h>
 #include <KoDocumentInfo.h>
@@ -58,7 +63,7 @@ namespace
 int getColorTypeforColorSpace(const KoColorSpace * cs , bool alpha)
 {
 
-    QString id = cs->id();
+    PkString id = cs->id();
 
     if (id == "GRAYA" || id == "GRAYAU16" || id == "GRAYA16") {
         return alpha ? PNG_COLOR_TYPE_GRAY_ALPHA : PNG_COLOR_TYPE_GRAY;
@@ -71,15 +76,15 @@ int getColorTypeforColorSpace(const KoColorSpace * cs , bool alpha)
 
 }
 
-bool colorSpaceIdSupported(const QString &id)
+bool colorSpaceIdSupported(const PkString &id)
 {
     return id == "RGBA" || id == "RGBA16" ||
         id == "GRAYA" || id == "GRAYAU16" || id == "GRAYA16";
 }
 
-QPair<QString, QString> getColorSpaceForColorType(int color_type, int color_nb_bits)
+std::pair<PkString, PkString> getColorSpaceForColorType(int color_type, int color_nb_bits)
 {
-    QPair<QString, QString> r;
+    std::pair<PkString, PkString> r;
 
     if (color_type ==  PNG_COLOR_TYPE_PALETTE) {
         r.first = RGBAColorModelID.id();
@@ -100,14 +105,15 @@ QPair<QString, QString> getColorSpaceForColorType(int color_type, int color_nb_b
 }
 
 
-void fillText(png_text* p_text, const char* key, QString& text)
+void fillText(png_text* p_text, const char* key, PkString& text)
 {
     p_text->compression = PNG_TEXT_COMPRESSION_zTXt;
     p_text->key = const_cast<char *>(key);
-    char* textc = new char[text.length()+1];
-    strcpy(textc, text.toLatin1());
+    const std::string utf8 = text.PkToUtf8();
+    char* textc = new char[utf8.size() + 1];
+    strcpy(textc, utf8.c_str());
     p_text->text = textc;
-    p_text->text_length = text.length() + 1;
+    p_text->text_length = utf8.size() + 1;
 }
 
 long formatStringList(char *string, const size_t length, const char *format, va_list operands)
@@ -132,7 +138,7 @@ long formatString(char *string, const size_t length, const char *format, ...)
     return(n);
 }
 
-void writeRawProfile(png_struct *ping, png_info *ping_info, QString profile_type, QByteArray profile_data)
+void writeRawProfile(png_struct *ping, png_info *ping_info, PkString profile_type, PkByteArray profile_data)
 {
 
     png_textp      text;
@@ -141,33 +147,34 @@ void writeRawProfile(png_struct *ping, png_info *ping_info, QString profile_type
 
     const uchar hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
-    dbgFile << "Writing Raw profile: type=" << profile_type << ", length=" << profile_data.length() << Qt::endl;
+    dbgFile << "Writing Raw profile: type=" << profile_type << ", length=" << profile_data.size() << "\n";
 
     text               = (png_textp) png_malloc(ping, (png_uint_32) sizeof(png_text));
-    description_length = profile_type.length();
-    allocated_length   = (png_uint_32)(profile_data.length() * 2 + (profile_data.length() >> 5) + 20 + description_length);
+    description_length = profile_type.size();
+    allocated_length   = (png_uint_32)(profile_data.size() * 2 + (profile_data.size() >> 5) + 20 + description_length);
 
     text[0].text   = (png_charp) png_malloc(ping, allocated_length);
     memset(text[0].text, 0, allocated_length);
 
-    QString key = QLatin1String("Raw profile type ") + profile_type.toLatin1();
-    QByteArray keyData = key.toLatin1();
-    text[0].key = keyData.data();
+    // png_set_text 会把 key/text 复制进 png_info 自有内存；这里只需要活到调用点。
+    std::string keyUtf8 = std::string("Raw profile type ") + profile_type.PkToUtf8();
+    text[0].key = const_cast<char *>(keyUtf8.c_str());
 
     uchar* sp = (uchar*)profile_data.data();
     png_charp dp = text[0].text;
     *dp++ = '\n';
 
-    memcpy(dp, profile_type.toLatin1().constData(), profile_type.length());
+    const std::string profileTypeUtf8 = profile_type.PkToUtf8();
+    memcpy(dp, profileTypeUtf8.c_str(), profile_type.size());
 
     dp += description_length;
     *dp++ = '\n';
 
-    formatString(dp, allocated_length - strlen(text[0].text), "%8lu ", (unsigned long)profile_data.length());
+    formatString(dp, allocated_length - strlen(text[0].text), "%8lu ", (unsigned long)profile_data.size());
 
     dp += 8;
 
-    for (long i = 0; i < (long) profile_data.length(); i++) {
+    for (long i = 0; i < (long) profile_data.size(); i++) {
         if (i % 36 == 0)
             *dp++ = '\n';
 
@@ -187,9 +194,9 @@ void writeRawProfile(png_struct *ping, png_info *ping_info, QString profile_type
     png_free(ping, text);
 }
 
-QByteArray png_read_raw_profile(png_textp text)
+PkByteArray png_read_raw_profile(png_textp text)
 {
-    QByteArray profile;
+    PkByteArray profile;
 
     static const unsigned char unhex[103] = {
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -220,7 +227,7 @@ QByteArray png_read_raw_profile(png_textp text)
     for (png_uint_32 i = 0; i < nibbles; i++) {
         while (*sp < '0' || (*sp > '9' && *sp < 'a') || *sp > 'f') {
             if (*sp == '\0') {
-                return QByteArray();
+                return PkByteArray();
             }
             sp++;
         }
@@ -232,19 +239,21 @@ QByteArray png_read_raw_profile(png_textp text)
     return profile;
 }
 
-void decode_meta_data(png_textp text, KisMetaData::Store* store, QString type, int headerSize)
+void decode_meta_data(png_textp text, KisMetaData::Store* store, PkString type, int headerSize)
 {
     dbgFile << "Decoding " << type << " " << text[0].key;
     KisMetaData::IOBackend *exifIO = KisMetadataBackendRegistry::instance()->value(type);
-    Q_ASSERT(exifIO);
+    KIS_SAFE_ASSERT_RECOVER_NOOP(exifIO);
 
-    QByteArray rawProfile = png_read_raw_profile(text);
+    PkByteArray rawProfile = png_read_raw_profile(text);
     if (headerSize > 0) {
-        rawProfile.remove(0, headerSize);
+        rawProfile = PkByteArray(rawProfile.data() + headerSize, rawProfile.size() - headerSize);
     }
     if (rawProfile.size() > 0) {
-        QBuffer buffer;
-        buffer.setData(rawProfile);
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly);
+        buffer.write(rawProfile.data(), rawProfile.size());
+        buffer.seek(0);
         exifIO->loadFrom(store, &buffer);
     } else {
         dbgFile << "Decoding failed";
@@ -255,7 +264,7 @@ void decode_meta_data(png_textp text, KisMetaData::Store* store, QString type, i
 extern "C" {
 static void kis_png_warning(png_structp /*png_ptr*/, png_const_charp message)
 {
-    qWarning("libpng warning: %s", message);
+    fprintf(stderr, "libpng warning: %s\n", message);
 }
 
 }
@@ -369,25 +378,25 @@ private:
 static
 void _read_fn(png_structp png_ptr, png_bytep data, png_size_t length)
 {
-    QIODevice *in = (QIODevice *)png_get_io_ptr(png_ptr);
+    PkStream *in = (PkStream *)png_get_io_ptr(png_ptr);
 
     while (length) {
-        int nr = in->read((char*)data, length);
+        PkStream::pk_int64 nr = in->read((char*)data, length);
         if (nr <= 0) {
             png_error(png_ptr, "Read Error");
             return;
         }
-        length -= nr;
+        length -= (png_size_t)nr;
     }
 }
 
 static
 void _write_fn(png_structp png_ptr, png_bytep data, png_size_t length)
 {
-    QIODevice* out = (QIODevice*)png_get_io_ptr(png_ptr);
+    PkStream* out = (PkStream*)png_get_io_ptr(png_ptr);
 
-    uint nr = out->write((char*)data, length);
-    if (nr != length) {
+    PkStream::pk_int64 nr = out->write((char*)data, length);
+    if (nr != (PkStream::pk_int64)length) {
         png_error(png_ptr, "Write Error");
         return;
     }
@@ -396,10 +405,10 @@ void _write_fn(png_structp png_ptr, png_bytep data, png_size_t length)
 static
 void _flush_fn(png_structp png_ptr)
 {
-    Q_UNUSED(png_ptr);
+    (void)png_ptr;
 }
 
-KisImportExportErrorCode KisPngCodec::buildImage(QIODevice* iod)
+KisImportExportErrorCode KisPngCodec::buildImage(PkStream* iod)
 {
     dbgFile << "Start decoding PNG File";
 
@@ -485,7 +494,7 @@ KisImportExportErrorCode KisPngCodec::buildImage(QIODevice* iod)
     png_uint_32 width, height;
     int color_nb_bits, color_type, interlace_type;
     png_get_IHDR(png_ptr, info_ptr, &width, &height, &color_nb_bits, &color_type, &interlace_type, 0, 0);
-    dbgFile << "width = " << width << " height = " << height << " color_nb_bits = " << color_nb_bits << " color_type = " << color_type << " interlace_type = " << interlace_type << Qt::endl;
+    dbgFile << "width = " << width << " height = " << height << " color_nb_bits = " << color_nb_bits << " color_type = " << color_type << " interlace_type = " << interlace_type << "\n";
     // swap byte order on little endian machines.
 #ifndef WORDS_BIGENDIAN
     if (color_nb_bits > 8)
@@ -493,7 +502,7 @@ KisImportExportErrorCode KisPngCodec::buildImage(QIODevice* iod)
 #endif
 
     // Determine the colorspace
-    QPair<QString, QString> csName = getColorSpaceForColorType(color_type, color_nb_bits);
+    std::pair<PkString, PkString> csName = getColorSpaceForColorType(color_type, color_nb_bits);
     if (csName.first.isEmpty()) {
         png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
         iod->close();
@@ -544,10 +553,10 @@ KisImportExportErrorCode KisPngCodec::buildImage(QIODevice* iod)
     png_get_text(png_ptr, info_ptr, &text_ptr, &num_comments);
 
     for (int i = 0; i < num_comments; i++) {
-        QString key = QString(text_ptr[i].key).toLower();
+        PkString key = PkString(text_ptr[i].key).toLower();
         if (key == "file") {
-            QString relatedFile = text_ptr[i].text;
-            if (relatedFile.contains(".blend", Qt::CaseInsensitive)){
+            PkString relatedFile = PkString(text_ptr[i].text).toLower();
+            if (relatedFile.contains(".blend")) {
                 fromBlender=true;
             }
         }
@@ -557,7 +566,7 @@ KisImportExportErrorCode KisPngCodec::buildImage(QIODevice* iod)
     const KoColorProfile* profile = KoColorSpaceRegistry::instance()->p709SRGBProfile();
 
     if (png_get_iCCP(png_ptr, info_ptr, &profile_name, &compression_type, &profile_data, &proflen)) {
-        QByteArray profile_rawdata(reinterpret_cast<char*>(profile_data), proflen);
+        PkByteArray profile_rawdata(reinterpret_cast<char*>(profile_data), proflen);
         profile = KoColorSpaceRegistry::instance()->createColorProfile(csName.first, csName.second, profile_rawdata);
         if (profile) {
             if (!profile->isSuitableForWorkspace()) {
@@ -573,7 +582,7 @@ KisImportExportErrorCode KisPngCodec::buildImage(QIODevice* iod)
             csName.first,
             csName.second
         };
-        const QString profileName =
+        const PkString profileName =
             m_context.importProfilePolicy->chooseColorProfile(request);
         if (!profileName.isEmpty()) {
             profile = KoColorSpaceRegistry::instance()->profileByName(profileName);
@@ -583,7 +592,7 @@ KisImportExportErrorCode KisPngCodec::buildImage(QIODevice* iod)
         dbgFile << "no embedded profile, will use the default sRGB profile";
     }
 
-    const QString colorSpaceId =
+    const PkString colorSpaceId =
         KoColorSpaceRegistry::instance()->colorSpaceId(csName.first, csName.second);
 
     // Check that the profile is used by the color space
@@ -655,7 +664,7 @@ KisImportExportErrorCode KisPngCodec::buildImage(QIODevice* iod)
         KoDocumentInfo * info = m_context.documentContext->documentInfo();
         dbgFile << "There are " << num_comments << " comments in the text";
         for (int i = 0; i < num_comments; i++) {
-            QString key = QString(text_ptr[i].key).toLower();
+            PkString key = PkString(text_ptr[i].key).toLower();
             dbgFile << "key: " << text_ptr[i].key
                     << ", containing: " << text_ptr[i].text
                     << ": " << (key == "raw profile type exif " ? "isExif" : "something else");
@@ -672,14 +681,14 @@ KisImportExportErrorCode KisPngCodec::buildImage(QIODevice* iod)
             } else if (key.contains("raw profile type xmp")) {
                 decode_meta_data(text_ptr + i, layer->metaData(), "xmp", 0);
             } else if (key == "version") {
-                m_image->addAnnotation(new KisAnnotation("kpp_version", "version", QByteArray(text_ptr[i].text)));
+                m_image->addAnnotation(new KisAnnotation("kpp_version", "version", PkByteArray(text_ptr[i].text, (int)strlen(text_ptr[i].text))));
             } else if (key == "preset") {
-                m_image->addAnnotation(new KisAnnotation("kpp_preset", "preset", QByteArray(text_ptr[i].text)));
+                m_image->addAnnotation(new KisAnnotation("kpp_preset", "preset", PkByteArray(text_ptr[i].text, (int)strlen(text_ptr[i].text))));
             }
         }
     }
     // Read image data
-    QScopedPointer<KisPNGReaderAbstract> reader;
+    PkScopedPointer<KisPNGReaderAbstract> reader;
     try {
         if (interlace_type == PNG_INTERLACE_ADAM7) {
             reader.reset(new KisPNGReaderFullImage(png_ptr, info_ptr, width, height));
@@ -810,13 +819,13 @@ KisImportExportErrorCode KisPngCodec::buildImage(QIODevice* iod)
 
 }
 
-KisImportExportErrorCode KisPngCodec::buildImage(const QString &filename)
+KisImportExportErrorCode KisPngCodec::buildImage(const PkString &filename)
 {
     m_path = filename;
 
-    QFile fp(filename);
-    if (fp.exists()) {
-        if (!fp.open(QIODevice::ReadOnly)) {
+    if (std::filesystem::exists(filename.PkToUtf8())) {
+        PkFileStream fp(filename);
+        if (!fp.open(PkStream::ReadOnly)) {
             dbgFile << "Failed to open PNG File";
             return (ImportExportCodes::FileFormatIncorrect);
         }
@@ -833,11 +842,11 @@ KisImageSP KisPngCodec::image() const
     return m_image;
 }
 
-bool KisPngCodec::saveDeviceToStore(const QString &filename, const QRect &imageRect, const qreal xRes, const qreal yRes, KisPaintDeviceSP dev, KoStore *store, KisMetaData::Store* metaData)
+bool KisPngCodec::saveDeviceToStore(const PkString &filename, const PkRect &imageRect, const qreal xRes, const qreal yRes, KisPaintDeviceSP dev, KoStore *store, KisMetaData::Store* metaData)
 {
     if (store->open(filename)) {
         KoStoreDevice io(store);
-        if (!io.open(QIODevice::WriteOnly)) {
+        if (!io.open(PkStream::WriteOnly)) {
             dbgFile << "Could not open for writing:" << filename;
             return false;
         }
@@ -880,14 +889,14 @@ bool KisPngCodec::saveDeviceToStore(const QString &filename, const QRect &imageR
 }
 
 
-KisImportExportErrorCode KisPngCodec::buildFile(const QString &filename, const QRect &imageRect, const qreal xRes, const qreal yRes, KisPaintDeviceSP device, vKisAnnotationSP_it annotationsStart, vKisAnnotationSP_it annotationsEnd, KisPNGOptions options, KisMetaData::Store* metaData)
+KisImportExportErrorCode KisPngCodec::buildFile(const PkString &filename, const PkRect &imageRect, const qreal xRes, const qreal yRes, KisPaintDeviceSP device, vKisAnnotationSP_it annotationsStart, vKisAnnotationSP_it annotationsEnd, KisPNGOptions options, KisMetaData::Store* metaData)
 {
     dbgFile << "Start writing PNG File " << filename;
-    // Open a QIODevice for writing
-    QFile fp (filename);
-    if (!fp.open(QIODevice::WriteOnly)) {
+    // Open a PkStream for writing
+    PkFileStream fp (filename);
+    if (!fp.open(PkStream::WriteOnly)) {
         dbgFile << "Failed to open PNG File for writing";
-        return (KisImportExportErrorCannotWrite(fp.error()));
+        return (KisImportExportErrorCannotWrite(PkFileError::PkOpenError));
     }
 
     KisImportExportErrorCode result = buildFile(&fp, imageRect, xRes, yRes, device, annotationsStart, annotationsEnd, options, metaData);
@@ -895,7 +904,7 @@ KisImportExportErrorCode KisPngCodec::buildFile(const QString &filename, const Q
     return result;
 }
 
-KisImportExportErrorCode KisPngCodec::buildFile(QIODevice* iodevice, const QRect &imageRect, const qreal xRes, const qreal yRes, KisPaintDeviceSP device, vKisAnnotationSP_it annotationsStart, vKisAnnotationSP_it annotationsEnd, KisPNGOptions options, KisMetaData::Store* metaData)
+KisImportExportErrorCode KisPngCodec::buildFile(PkStream* iodevice, const PkRect &imageRect, const qreal xRes, const qreal yRes, KisPaintDeviceSP device, vKisAnnotationSP_it annotationsStart, vKisAnnotationSP_it annotationsEnd, KisPNGOptions options, KisMetaData::Store* metaData)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(device, ImportExportCodes::InternalError);
 
@@ -913,9 +922,9 @@ KisImportExportErrorCode KisPngCodec::buildFile(QIODevice* iodevice, const QRect
         options.forceSRGB = false;
     }
 
-    QStringList colormodels = QStringList() << RGBAColorModelID.id() << GrayAColorModelID.id();
-    QString dstModel = device->colorSpace()->colorModelId().id();
-    QString dstDepth = device->colorSpace()->colorDepthId().id();
+    PkStringList colormodels = PkStringList() << RGBAColorModelID.id() << GrayAColorModelID.id();
+    PkString dstModel = device->colorSpace()->colorModelId().id();
+    PkString dstDepth = device->colorSpace()->colorDepthId().id();
     const KoColorProfile *dstProfile = device->colorSpace()->profile();
     bool needColorTransform = false;
 
@@ -1017,10 +1026,10 @@ KisImportExportErrorCode KisPngCodec::buildFile(QIODevice* iodevice, const QRect
     int color_nb_bits = 8 * device->pixelSize() / device->channelCount();
     int color_type = getColorTypeforColorSpace(device->colorSpace(), options.alpha);
 
-    Q_ASSERT(color_type > -1);
+    KIS_SAFE_ASSERT_RECOVER_NOOP(color_type > -1);
 
     // Try to compute a table of color if the colorspace is RGB8f
-    QScopedArrayPointer<png_color> palette;
+    PkScopedArrayPointer<png_color> palette;
     int num_palette = 0;
     if (!options.alpha && options.tryToSaveAsIndexed && KoID(device->colorSpace()->id()) == KoID("RGBA")) { // png doesn't handle indexed images and alpha, and only have indexed for RGB8
         palette.reset(new png_color[255]);
@@ -1126,7 +1135,7 @@ KisImportExportErrorCode KisPngCodec::buildFile(QIODevice* iodevice, const QRect
 
 
     // we should ensure we don't access non-existing palette object
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(palette || color_type != PNG_COLOR_TYPE_PALETTE, ImportExportCodes::Failure);
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(palette.data() || color_type != PNG_COLOR_TYPE_PALETTE, ImportExportCodes::Failure);
 
     // set the palette
     if (color_type == PNG_COLOR_TYPE_PALETTE) {
@@ -1143,7 +1152,7 @@ KisImportExportErrorCode KisPngCodec::buildFile(QIODevice* iodevice, const QRect
 
         dbgFile << "Trying to store annotation of type " << (*it) -> type() << " of size " << (*it) -> annotation() . size();
 
-        if ((*it) -> type().startsWith(QString("krita_attribute:"))) { //
+        if ((*it) -> type().startsWith(PkString("krita_attribute:"))) { //
             // Attribute
             // XXX: it should be possible to save krita_attributes in the \"CHUNKs\""
             dbgFile << "cannot save this annotation : " << (*it) -> type();
@@ -1151,8 +1160,8 @@ KisImportExportErrorCode KisPngCodec::buildFile(QIODevice* iodevice, const QRect
             dbgFile << "Saving preset information " << (*it)->description();
             png_textp      text = (png_textp) png_malloc(png_ptr, (png_uint_32) sizeof(png_text));
 
-            QByteArray keyData = (*it)->description().toLatin1();
-            text[0].key = keyData.data();
+            std::string keyUtf8 = (*it)->description().PkToUtf8();
+            text[0].key = const_cast<char *>(keyUtf8.c_str());
             text[0].text = (char*)(*it)->annotation().data();
             text[0].text_length = (*it)->annotation().size();
             text[0].compression = -1;
@@ -1165,7 +1174,7 @@ KisImportExportErrorCode KisPngCodec::buildFile(QIODevice* iodevice, const QRect
 
     // Save the color profile
     const KoColorProfile* colorProfile = device->colorSpace()->profile();
-    QByteArray colorProfileData = colorProfile->rawData();
+    PkByteArray colorProfileData = colorProfile->rawData();
     if (!sRGB || options.saveSRGBProfile) {
 
 #if PNG_LIBPNG_VER_MAJOR >= 1 && PNG_LIBPNG_VER_MINOR >= 5
@@ -1186,36 +1195,36 @@ KisImportExportErrorCode KisPngCodec::buildFile(QIODevice* iodevice, const QRect
         png_text texts[4];
         int nbtexts = 0;
         KoDocumentInfo * info = m_context.documentContext->documentInfo();
-        QString title = info->aboutInfo("title");
+        PkString title = info->aboutInfo("title");
         if (!title.isEmpty() && options.storeMetaData) {
             fillText(texts + nbtexts, "Title", title);
             nbtexts++;
         }
-        QString abstract = info->aboutInfo("subject");
+        PkString abstract = info->aboutInfo("subject");
         if (abstract.isEmpty()) {
             abstract = info->aboutInfo("abstract");
         }
         if (!abstract.isEmpty() && options.storeMetaData) {
-            QString keywords = info->aboutInfo("keyword");
+            PkString keywords = info->aboutInfo("keyword");
             if (!keywords.isEmpty()) {
-                abstract = abstract + " keywords: " + keywords;
+                abstract = abstract + PkString(" keywords: ") + keywords;
             }
             fillText(texts + nbtexts, "Description", abstract);
             nbtexts++;
         }
 
-        QString license = info->aboutInfo("license");
+        PkString license = info->aboutInfo("license");
         if (!license.isEmpty() && options.storeMetaData) {
             fillText(texts + nbtexts, "Copyright", license);
             nbtexts++;
         }
 
-        QString author = info->authorInfo("creator");
+        PkString author = info->authorInfo("creator");
         if (!author.isEmpty() && options.storeAuthor) {
             if (!info->authorContactInfo().isEmpty()) {
-                QString contact = info->authorContactInfo().at(0);
+                PkString contact = info->authorContactInfo().at(0);
                 if (!contact.isEmpty()) {
-                    author = author+"("+contact+")";
+                    author = author + PkString("(") + contact + PkString(")");
                 }
             }
             fillText(texts + nbtexts, "Author", author);
@@ -1233,35 +1242,38 @@ KisImportExportErrorCode KisPngCodec::buildFile(QIODevice* iodevice, const QRect
             dbgFile << "Trying to save exif information";
 
             KisMetaData::IOBackend *exifIO = KisMetadataBackendRegistry::instance()->value("exif");
-            Q_ASSERT(exifIO);
+            KIS_SAFE_ASSERT_RECOVER_NOOP(exifIO);
 
-            QBuffer buffer;
+            PkMemoryStream buffer;
+            buffer.open(PkStream::WriteOnly);
             exifIO->saveTo(metaData, &buffer, KisMetaData::IOBackend::JpegHeader);
-            writeRawProfile(png_ptr, info_ptr, "exif", buffer.data());
+            writeRawProfile(png_ptr, info_ptr, "exif", PkByteArray(buffer.data(), (int)buffer.size()));
         }
         // Save IPTC
         if (options.iptc) {
             dbgFile << "Trying to save iptc information";
             KisMetaData::IOBackend *iptcIO = KisMetadataBackendRegistry::instance()->value("iptc");
-            Q_ASSERT(iptcIO);
+            KIS_SAFE_ASSERT_RECOVER_NOOP(iptcIO);
 
-            QBuffer buffer;
+            PkMemoryStream buffer;
+            buffer.open(PkStream::WriteOnly);
             iptcIO->saveTo(metaData, &buffer, KisMetaData::IOBackend::JpegHeader);
 
-            dbgFile << "IPTC information size is" << buffer.data().size();
-            writeRawProfile(png_ptr, info_ptr, "iptc", buffer.data());
+            dbgFile << "IPTC information size is" << buffer.size();
+            writeRawProfile(png_ptr, info_ptr, "iptc", PkByteArray(buffer.data(), (int)buffer.size()));
         }
         // Save XMP
         if (options.xmp) {
             dbgFile << "Trying to save XMP information";
             KisMetaData::IOBackend *xmpIO = KisMetadataBackendRegistry::instance()->value("xmp");
-            Q_ASSERT(xmpIO);
+            KIS_SAFE_ASSERT_RECOVER_NOOP(xmpIO);
 
-            QBuffer buffer;
+            PkMemoryStream buffer;
+            buffer.open(PkStream::WriteOnly);
             xmpIO->saveTo(metaData, &buffer, KisMetaData::IOBackend::NoHeader);
 
-            dbgFile << "XMP information size is" << buffer.data().size();
-            writeRawProfile(png_ptr, info_ptr, "xmp", buffer.data());
+            dbgFile << "XMP information size is" << buffer.size();
+            writeRawProfile(png_ptr, info_ptr, "xmp", PkByteArray(buffer.data(), (int)buffer.size()));
         }
     }
 #if 0 // Unimplemented?
@@ -1285,7 +1297,7 @@ KisImportExportErrorCode KisPngCodec::buildFile(QIODevice* iodevice, const QRect
     //     png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, 0);
 
     struct RowPointersStruct {
-        RowPointersStruct(const QSize &size, int pixelSize)
+        RowPointersStruct(const PkSize &size, int pixelSize)
             : numRows(size.height())
         {
             rows = new png_byte*[numRows];

@@ -7,17 +7,17 @@
 #ifndef KIS_PNG_CODEC_H
 #define KIS_PNG_CODEC_H
 
-#include <QColor>
-#include <QList>
-#include <QRect>
-#include <QString>
+#include <PkColor.h>
+#include <PkList.h>
+#include <PkRect.h>
+#include <PkString.h>
 
 #include "KisImportExportErrorCode.h"
 #include "kis_annotation.h"
 #include "kis_types.h"
 #include "kritaimpex_export.h"
 
-class QIODevice;
+class PkStream;
 class KoColorSpace;
 class KoDocumentInfo;
 class KoStore;
@@ -61,8 +61,8 @@ struct KRITAIMPEX_EXPORT KisPNGOptions
     bool storeMetaData;
     bool storeAuthor;
     bool saveAsHDR;
-    QList<const KisMetaData::Filter *> filters;
-    QColor transparencyFillColor;
+    PkList<const KisMetaData::Filter *> filters;
+    PkColor transparencyFillColor;
     bool downsample;
 };
 
@@ -82,9 +82,9 @@ public:
 
 struct KRITAIMPEX_EXPORT KisPngImportProfileRequest
 {
-    QString sourcePath;
-    QString colorModelId;
-    QString colorDepthId;
+    PkString sourcePath;
+    PkString colorModelId;
+    PkString colorDepthId;
 };
 
 /**
@@ -97,7 +97,7 @@ class KRITAIMPEX_EXPORT KisPngImportProfilePolicy
 public:
     virtual ~KisPngImportProfilePolicy() = default;
 
-    virtual QString chooseColorProfile(const KisPngImportProfileRequest &request) = 0;
+    virtual PkString chooseColorProfile(const KisPngImportProfileRequest &request) = 0;
 };
 
 struct KRITAIMPEX_EXPORT KisPngCodecContext
@@ -116,11 +116,11 @@ public:
     explicit KisPngCodec(const KisPngCodecContext &context = KisPngCodecContext());
     ~KisPngCodec();
 
-    KisImportExportErrorCode buildImage(const QString &filename);
-    KisImportExportErrorCode buildImage(QIODevice *device);
+    KisImportExportErrorCode buildImage(const PkString &filename);
+    KisImportExportErrorCode buildImage(PkStream *device);
 
-    KisImportExportErrorCode buildFile(const QString &filename,
-                                       const QRect &imageRect,
+    KisImportExportErrorCode buildFile(const PkString &filename,
+                                       const PkRect &imageRect,
                                        qreal xRes,
                                        qreal yRes,
                                        KisPaintDeviceSP device,
@@ -128,8 +128,8 @@ public:
                                        vKisAnnotationSP_it annotationsEnd,
                                        KisPNGOptions options,
                                        KisMetaData::Store *metaData);
-    KisImportExportErrorCode buildFile(QIODevice *device,
-                                       const QRect &imageRect,
+    KisImportExportErrorCode buildFile(PkStream *device,
+                                       const PkRect &imageRect,
                                        qreal xRes,
                                        qreal yRes,
                                        KisPaintDeviceSP paintDevice,
@@ -140,8 +140,8 @@ public:
 
     KisImageSP image() const;
 
-    static bool saveDeviceToStore(const QString &filename,
-                                  const QRect &imageRect,
+    static bool saveDeviceToStore(const PkString &filename,
+                                  const PkRect &imageRect,
                                   qreal xRes,
                                   qreal yRes,
                                   KisPaintDeviceSP device,
@@ -156,7 +156,7 @@ private:
     KisPngCodecContext m_context;
     KisImageSP m_image;
     bool m_stop {false};
-    QString m_path;
+    PkString m_path;
 };
 
 #endif
