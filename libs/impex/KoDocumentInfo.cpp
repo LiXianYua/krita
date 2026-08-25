@@ -255,7 +255,8 @@ void KoDocumentInfo::updateParameters(bool documentModified)
     setActiveAuthorInfo("author-title", "");
     setActiveAuthorInfo("position", "");
     setActiveAuthorInfo("company", "");
-    if (std::filesystem::exists(authorInfoDir / profileFile)) {
+    std::error_code ec;
+    if (std::filesystem::exists(authorInfoDir / profileFile, ec)) {
         PkFileStream file(PkString((authorInfoDir / profileFile).c_str()));
         if (file.open(PkStream::ReadOnly)) {
             PkXmlDocument doc;

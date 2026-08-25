@@ -134,6 +134,10 @@ KUndo2Command *KisDecorationsWrapperLayer::transform(const PkTransform &transfor
                 PkTransform::fromScale(1 / m_document->image()->xRes(),
                                        1 / m_document->image()->yRes());
 
+            // 跨锁交接登记（S-08/S-09）：壳桩头 grid/guides/painting_assistant 的
+            // transform 以 PkTransform 传入，但真实头（libs/canvas kis_grid_config.h /
+            // kis_guides_config.h、plugins/assistants kis_painting_assistant.h）仍为
+            // const QTransform& —— S-08 剥 canvas 时需对齐。
             KisGridConfig gridConfig = m_document->gridConfig();
             if (gridConfig.showGrid()) {
                 gridConfig.transform(transform);

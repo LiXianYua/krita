@@ -823,7 +823,8 @@ KisImportExportErrorCode KisPngCodec::buildImage(const PkString &filename)
 {
     m_path = filename;
 
-    if (std::filesystem::exists(filename.PkToUtf8())) {
+    std::error_code ec;
+    if (std::filesystem::exists(filename.PkToUtf8(), ec)) {
         PkFileStream fp(filename);
         if (!fp.open(PkStream::ReadOnly)) {
             dbgFile << "Failed to open PNG File";

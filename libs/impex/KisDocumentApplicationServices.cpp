@@ -116,7 +116,8 @@ PkString KisDocumentApplicationServices::autoSaveLocation() const
     // $HOME/Documents/krita-backup（行为变化，登记 S9 交接——桌面壳适配器经
     // setInstance 注入的仍是权威）。
     const PkString path = homeDirectory() + PkString("/Documents/krita-backup");
-    if (!std::filesystem::exists(path.PkToUtf8())) {
+    std::error_code ec;
+    if (!std::filesystem::exists(path.PkToUtf8(), ec)) {
         std::filesystem::create_directories(path.PkToUtf8());
     }
     return path;

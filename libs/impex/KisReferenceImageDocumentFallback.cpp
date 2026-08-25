@@ -18,8 +18,9 @@ PkImage loadReferenceImageFileWithDocumentFallback(const PkString &filename)
 {
     PkImage image;
 
-    if (std::filesystem::exists(std::filesystem::u8path(filename.PkToUtf8())) &&
-        std::filesystem::is_regular_file(std::filesystem::u8path(filename.PkToUtf8()))) {
+    std::error_code ec;
+    if (std::filesystem::exists(std::filesystem::u8path(filename.PkToUtf8()), ec) &&
+        std::filesystem::is_regular_file(std::filesystem::u8path(filename.PkToUtf8()), ec)) {
         image = KisResourceThumbnailCodec::loadPng(filename);
     }
 

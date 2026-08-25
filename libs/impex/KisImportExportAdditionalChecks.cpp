@@ -22,5 +22,6 @@ bool KisImportExportAdditionalChecks::isFileReadable(PkString filepath)
 
 bool KisImportExportAdditionalChecks::doesFileExist(PkString filepath)
 {
-    return std::filesystem::exists(filepath.PkToUtf8());
+    std::error_code ec;
+    return std::filesystem::exists(filepath.PkToUtf8(), ec);
 }

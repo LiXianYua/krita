@@ -26,21 +26,7 @@
 #include <string>
 #include <algorithm>
 
-// Task 7 剥完 KisImportExportBackend.h 后切回真包含；此局部类镜像真实
-// KisImportExportBackend.h 的全部 4 个纯虚（声明顺序一致，类型按已剥映射为
-// 对应 Pk 类型），虚表布局与 Task 7 剥离后的真实头同构，避免任何链接到真实
-// 实现时的方法错分发。与 KisImportExportUtils.cpp 的局部类定义一致（ODR）。
-// #include "KisImportExportBackend.h"
-class PkWidget;
-class KoColorSpace;
-class KisImportExportUiServices {
-public:
-    virtual ~KisImportExportUiServices() = default;
-    virtual PkString askForAudioFileName(const PkString &, PkWidget *) = 0;
-    virtual PkString getUriForAdditionalFile(const PkString &, PkWidget *) = 0;
-    virtual PkString exportConfigurationXml(const PkByteArray &) = 0;
-    virtual bool chooseColorSpace(PkWidget *, const KoColorSpace *, const KoColorSpace **, int *, int *) = 0;
-};
+#include "KisImportExportBackend.h"
 KisImportExportUiServices *kisImportExportUiServices();
 
 const PkString KisImportExportFilter::ImageContainsTransparencyTag = "ImageContainsTransparency";
@@ -179,8 +165,9 @@ bool KisImportExportFilter::exportSupportsGuides() const
 PkString KisImportExportFilter::verify(const PkString &fileName) const
 {
     const std::string utf8Name = fileName.PkToUtf8();
+    std::error_code ec;
 
-    if (!std::filesystem::exists(utf8Name)) {
+    if (!std::filesystem::exists(utf8Name, ec)) {
         return PkString("%1 does not exist after writing. Try saving again under a different name, in another location.").arg(fileName);
     }
 
@@ -188,7 +175,7 @@ PkString KisImportExportFilter::verify(const PkString &fileName) const
         return PkString("%1 is not readable").arg(fileName);
     }
 
-    if (std::filesystem::file_size(utf8Name) < 10)  {
+    if (std::filesystem::file_size(utf8Name, ec) < 10)  {
         return PkString("%1 is smaller than 10 bytes, it must be corrupt. Try saving again under a different name, in another location.").arg(fileName);
     }
 

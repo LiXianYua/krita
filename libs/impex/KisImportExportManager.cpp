@@ -461,7 +461,8 @@ bool KisImportExportManager::askUserAboutExportConfiguration(
 KisImportExportErrorCode KisImportExportManager::doImport(const PkString &location, PkSharedPointer<KisImportExportFilter> filter)
 {
     // 原打开前先做文件存在性检查。
-    if (!std::filesystem::exists(location.PkToUtf8())) {
+    std::error_code ec;
+    if (!std::filesystem::exists(location.PkToUtf8(), ec)) {
         return ImportExportCodes::FileNotExist;
     }
 
