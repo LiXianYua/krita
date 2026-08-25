@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPencilTool.h"
 #include "KoCurveFit.h"
 
@@ -13,6 +15,15 @@
 #include <KoPointerEvent.h>
 #include <KoCanvasBase.h>
 #include <KoUnit.h>
+
+// KoUnit.h 是剥离头，显式 `#include <compat/QFlags>` 拉进 pk 垫片（垫片顶部已
+// push_macro 保存进入前的宏状态）。本 TU 是 real-Qt-first：垫片在 KoUnit.h 内部
+// 消费完即 pop 恢复真 Qt 宏（QFlags 类 + Q_DECLARE_FLAGS 等函数式宏），让后续
+// real-Qt 头（KoPathPoint.h / KoSnapGuide.h / KSharedConfig）保持真 QFlags，
+// 命中 Q-mangled 定义而非 PkFlags。
+#pragma pop_macro("QFlags")
+#pragma pop_macro("Q_DECLARE_FLAGS")
+#pragma pop_macro("Q_DECLARE_OPERATORS_FOR_FLAGS")
 #include <KoShapeController.h>
 #include <KoShapeManager.h>
 #include <KoSelection.h>
@@ -350,8 +361,8 @@ QList<QPointer<QWidget> > KoPencilTool::createOptionWidgets()
     layout->addWidget(stackedWidget);
     layout->addStretch(1);
 
-    connect(modeBox, &QComboBox::activated, stackedWidget, &QStackedWidget::setCurrentIndex);
-    connect(modeBox, &QComboBox::activated, this, &KoPencilTool::selectMode);
+    connect(modeBox, QOverload<int>::of(&QComboBox::activated), stackedWidget, &QStackedWidget::setCurrentIndex);
+    connect(modeBox, QOverload<int>::of(&QComboBox::activated), this, &KoPencilTool::selectMode);
     connect(optimizeRaw, &QCheckBox::stateChanged, this, &KoPencilTool::setOptimize);
     connect(optimizeCurve, &QCheckBox::stateChanged, this, &KoPencilTool::setOptimize);
     connect(fittingError, &QDoubleSpinBox::valueChanged, this, &KoPencilTool::setDelta);
