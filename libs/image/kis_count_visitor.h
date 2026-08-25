@@ -37,7 +37,7 @@ public:
 
     using KisNodeVisitor::visit;
 
-    KisCountVisitor(const QStringList & nodeTypes, const KoProperties & properties)
+    KisCountVisitor(const PkStringList & nodeTypes, const KoProperties & properties)
         : m_nodeTypes(nodeTypes)
         , m_properties(properties)
         , m_count(0) {
@@ -105,7 +105,7 @@ private:
     bool inList(KisNode* node);
     bool check(KisNode * node);
 
-    const QStringList m_nodeTypes;
+    const PkStringList m_nodeTypes;
     const KoProperties m_properties;
     quint32 m_count;
 };

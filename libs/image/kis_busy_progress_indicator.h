@@ -7,12 +7,12 @@
 #ifndef __KIS_BUSY_PROGRESS_INDICATOR_H
 #define __KIS_BUSY_PROGRESS_INDICATOR_H
 
-#include <QObject>
-#include <QScopedPointer>
+#include <PkObject.h>
+#include <PkScopedPointer.h>
 
 class KoProgressProxy;
 
-class KisBusyProgressIndicator : public QObject
+class KisBusyProgressIndicator : public PkShellObject
 {
     Q_OBJECT
 public:
@@ -35,7 +35,7 @@ public Q_SLOTS:
 private Q_SLOTS:
     /**
      * Call only via emitting sigStartTimer, to ensure it is called in
-     * the context of the QObject's thread.
+     * the context of the PkShellObject's thread.
      */
     void slotStartTimer();
     void timerFinished();
@@ -45,7 +45,7 @@ Q_SIGNALS:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_BUSY_PROGRESS_INDICATOR_H */

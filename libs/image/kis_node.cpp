@@ -6,13 +6,12 @@
 
 #include "kis_node.h"
 
-#include <QList>
-#include <QReadWriteLock>
-#include <QReadLocker>
-#include <QWriteLocker>
-#include <QPainterPath>
-#include <QRect>
-#include <QCoreApplication>
+#include <PkList.h>
+#include <PkReadWriteLock.h>
+#include <PkPainterPath.h>
+#include <PkRect.h>
+#include <PkObject.h>
+#include <PkThread.h>
 
 #include <KoProperties.h>
 
@@ -25,6 +24,12 @@
 #include "KisFrameChangeUpdateRecipe.h"
 
 #include "kis_clone_layer.h"
+#include "kis_group_layer.h"
+#include "kis_adjustment_layer.h"
+#include "kis_mask.h"
+#include "kis_selection_mask.h"
+#include "kis_filter_mask.h"
+#include "kis_transparency_mask.h"
 
 #include "kis_time_span.h"
 
@@ -41,15 +46,7 @@ typedef KisSafeReadList<KisNodeSP> KisSafeReadNodeList;
 #include <KisStaticInitializer.h>
 
 /**
- * The link between KisProjection and KisImageUpdater
- * uses queued signals with an argument of KisNodeSP type,
- * so we should register it beforehand
- */
-KIS_DECLARE_STATIC_INITIALIZER {
-    qRegisterMetaType<KisNodeSP>("KisNodeSP");
-    qRegisterMetaType<KisNodeList>("KisNodeList");
-    qRegisterMetaType<KisNodeAdditionFlags>("KisNodeAdditionFlags");
-}
+
 
 
 /**
@@ -88,7 +85,7 @@ public:
     KisSafeReadNodeList nodes;
     KisNodeProgressProxy *nodeProgressProxy;
     KisBusyProgressIndicator *busyProgressIndicator;
-    QReadWriteLock nodeSubgraphLock;
+    PkReadWriteLock nodeSubgraphLock;
 
     KisProjectionLeafSP projectionLeaf;
 
@@ -150,7 +147,7 @@ void KisNode::Private::processDuplicatedClones(const KisNode *srcDuplicationRoot
                                                         clone->copyFrom());
 
         if (newCopyFrom) {
-            KisLayer *newCopyFromLayer = qobject_cast<KisLayer*>(const_cast<KisNode*>(newCopyFrom));
+            KisLayer *newCopyFromLayer = dynamic_cast<KisLayer*>(const_cast<KisNode*>(newCopyFrom));
             KIS_ASSERT_RECOVER_RETURN(newCopyFromLayer);
 
             clone->setCopyFrom(newCopyFromLayer);
@@ -170,7 +167,7 @@ KisNode::KisNode(KisImageWSP image)
 {
     m_d->parent = 0;
     m_d->graphListener = 0;
-    moveToThread(qApp->thread());
+    moveToThread(PkThread::mainThreadId());
 }
 
 KisNode::KisNode(const KisNode & rhs)
@@ -179,7 +176,7 @@ KisNode::KisNode(const KisNode & rhs)
 {
     m_d->parent = 0;
     m_d->graphListener = 0;
-    moveToThread(qApp->thread());
+    moveToThread(PkThread::mainThreadId());
 
     // NOTE: the nodes are not supposed to be added/removed while
     // creation of another node, so we do *no* locking here!
@@ -208,26 +205,26 @@ KisNode::~KisNode()
     }
 
     {
-        QWriteLocker l(&m_d->nodeSubgraphLock);
+        PkWriteLocker l(&m_d->nodeSubgraphLock);
         m_d->nodes.clear();
     }
 
     delete m_d;
 }
 
-QRect KisNode::needRect(const QRect &rect, PositionToFilthy pos) const
+PkRect KisNode::needRect(const PkRect &rect, PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
     return rect;
 }
 
-QRect KisNode::changeRect(const QRect &rect, PositionToFilthy pos) const
+PkRect KisNode::changeRect(const PkRect &rect, PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
     return rect;
 }
 
-QRect KisNode::accessRect(const QRect &rect, PositionToFilthy pos) const
+PkRect KisNode::accessRect(const PkRect &rect, PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
     return rect;
@@ -290,7 +287,7 @@ void KisNode::setGraphListener(KisNodeGraphListener *graphListener)
 {
     m_d->graphListener = graphListener;
 
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
     KisSafeReadNodeList::const_iterator iter;
     FOREACH_SAFE(iter, m_d->nodes) {
         KisNodeSP child = (*iter);
@@ -300,13 +297,13 @@ void KisNode::setGraphListener(KisNodeGraphListener *graphListener)
 
 void KisNode::setParent(KisNodeWSP parent)
 {
-    QWriteLocker l(&m_d->nodeSubgraphLock);
+    PkWriteLocker l(&m_d->nodeSubgraphLock);
     m_d->parent = parent;
 }
 
 KisNodeSP KisNode::parent() const
 {
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
     return m_d->parent.isValid() ? KisNodeSP(m_d->parent) : KisNodeSP();
 }
 
@@ -317,7 +314,7 @@ KisBaseNodeSP KisNode::parentCallback() const
 
 void KisNode::notifyParentVisibilityChanged(bool value)
 {
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
 
     KisSafeReadNodeList::const_iterator iter;
     FOREACH_SAFE(iter, m_d->nodes) {
@@ -360,13 +357,13 @@ void KisNode::addKeyframeChannel(KisKeyframeChannel *channel)
 
 KisNodeSP KisNode::firstChild() const
 {
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
     return !m_d->nodes.isEmpty() ? m_d->nodes.first() : 0;
 }
 
 KisNodeSP KisNode::lastChild() const
 {
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
     return !m_d->nodes.isEmpty() ? m_d->nodes.last() : 0;
 }
 
@@ -382,7 +379,7 @@ KisNodeSP KisNode::prevChildImpl(KisNodeSP child)
      * same.  Otherwise you'll get a deadlock.
      */
 
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
 
     int i = m_d->nodes.indexOf(child) - 1;
     return i >= 0 ? m_d->nodes.at(i) : 0;
@@ -393,7 +390,7 @@ KisNodeSP KisNode::nextChildImpl(KisNodeSP child)
     /**
      * See a comment in KisNode::prevChildImpl()
      */
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
 
     int i = m_d->nodes.indexOf(child) + 1;
     return i > 0 && i < m_d->nodes.size() ? m_d->nodes.at(i) : 0;
@@ -413,14 +410,14 @@ KisNodeSP KisNode::nextSibling() const
 
 quint32 KisNode::childCount() const
 {
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
     return m_d->nodes.size();
 }
 
 
 KisNodeSP KisNode::at(quint32 index) const
 {
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
 
     if (!m_d->nodes.isEmpty() && index < (quint32)m_d->nodes.size()) {
         return m_d->nodes.at(index);
@@ -431,16 +428,16 @@ KisNodeSP KisNode::at(quint32 index) const
 
 int KisNode::index(const KisNodeSP node) const
 {
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
 
     return m_d->nodes.indexOf(node);
 }
 
-QList<KisNodeSP> KisNode::childNodes(const QStringList & nodeTypes, const KoProperties & properties) const
+PkList<KisNodeSP> KisNode::childNodes(const PkStringList & nodeTypes, const KoProperties & properties) const
 {
-    QReadLocker l(&m_d->nodeSubgraphLock);
+    PkReadLocker l(&m_d->nodeSubgraphLock);
 
-    QList<KisNodeSP> nodes;
+    PkList<KisNodeSP> nodes;
 
     KisSafeReadNodeList::const_iterator iter;
     FOREACH_SAFE(iter, m_d->nodes) {
@@ -450,8 +447,8 @@ QList<KisNodeSP> KisNode::childNodes(const QStringList & nodeTypes, const KoProp
 
                 if(!nodeTypes.isEmpty()) {
                     rightType = false;
-                    Q_FOREACH (const QString &nodeType,  nodeTypes) {
-                        if ((*iter)->inherits(nodeType.toLatin1())) {
+                    for (const PkString &nodeType : nodeTypes) {
+                        if ((*iter)->inherits(nodeType)) {
                             rightType = true;
                             break;
                         }
@@ -464,6 +461,40 @@ QList<KisNodeSP> KisNode::childNodes(const QStringList & nodeTypes, const KoProp
         }
     }
     return nodes;
+}
+
+bool KisNode::inherits(const PkString &className) const
+{
+    if (className == "KisNode" || className == "KisBaseNode") {
+        return true;
+    }
+
+    if (className == "KisLayer") {
+        return dynamic_cast<const KisLayer *>(this);
+    }
+    if (className == "KisGroupLayer") {
+        return dynamic_cast<const KisGroupLayer *>(this);
+    }
+    if (className == "KisCloneLayer") {
+        return dynamic_cast<const KisCloneLayer *>(this);
+    }
+    if (className == "KisAdjustmentLayer") {
+        return dynamic_cast<const KisAdjustmentLayer *>(this);
+    }
+    if (className == "KisMask") {
+        return dynamic_cast<const KisMask *>(this);
+    }
+    if (className == "KisSelectionMask") {
+        return dynamic_cast<const KisSelectionMask *>(this);
+    }
+    if (className == "KisFilterMask") {
+        return dynamic_cast<const KisFilterMask *>(this);
+    }
+    if (className == "KisTransparencyMask") {
+        return dynamic_cast<const KisTransparencyMask *>(this);
+    }
+
+    return false;
 }
 
 bool KisNode::add(KisNodeSP newNode, KisNodeSP aboveThis, KisNodeAdditionFlags flags)
@@ -486,7 +517,7 @@ bool KisNode::add(KisNodeSP newNode, KisNodeSP aboveThis, KisNodeAdditionFlags f
     }
 
     {
-        QWriteLocker l(&m_d->nodeSubgraphLock);
+        PkWriteLocker l(&m_d->nodeSubgraphLock);
 
         newNode->createNodeProgressProxy();
 
@@ -519,7 +550,7 @@ bool KisNode::remove(quint32 index)
         removedNode->setImage(0);
 
         {
-            QWriteLocker l(&m_d->nodeSubgraphLock);
+            PkWriteLocker l(&m_d->nodeSubgraphLock);
 
             removedNode->setGraphListener(0);
 
@@ -579,7 +610,7 @@ void KisNode::setDirty()
     setDirty(extent());
 }
 
-void KisNode::setDirty(const QVector<QRect> &rects)
+void KisNode::setDirty(const PkVector<PkRect> &rects)
 {
     if(m_d->graphListener) {
         m_d->graphListener->requestProjectionUpdate(this, rects, KisProjectionUpdateFlag::None);
@@ -591,29 +622,29 @@ void KisNode::setDirty(const KisRegion &region)
     setDirty(region.rects());
 }
 
-void KisNode::setDirty(const QRect & rect)
+void KisNode::setDirty(const PkRect & rect)
 {
-    setDirty(QVector<QRect>({rect}));
+    setDirty(PkVector<PkRect>({rect}));
 }
 
 void KisNode::setDirtyDontResetAnimationCache()
 {
-    setDirtyDontResetAnimationCache(QVector<QRect>({extent()}));
+    setDirtyDontResetAnimationCache(PkVector<PkRect>({extent()}));
 }
 
-void KisNode::setDirtyDontResetAnimationCache(const QRect &rect)
+void KisNode::setDirtyDontResetAnimationCache(const PkRect &rect)
 {
-    setDirtyDontResetAnimationCache(QVector<QRect>({rect}));
+    setDirtyDontResetAnimationCache(PkVector<PkRect>({rect}));
 }
 
-void KisNode::setDirtyDontResetAnimationCache(const QVector<QRect> &rects)
+void KisNode::setDirtyDontResetAnimationCache(const PkVector<PkRect> &rects)
 {
     if(m_d->graphListener) {
         m_d->graphListener->requestProjectionUpdate(this, rects, KisProjectionUpdateFlag::DontInvalidateFrames);
     }
 }
 
-void KisNode::invalidateFrames(const KisTimeSpan &range, const QRect &rect)
+void KisNode::invalidateFrames(const KisTimeSpan &range, const PkRect &rect)
 {
     if(m_d->graphListener) {
         m_d->graphListener->invalidateFrames(range, rect);

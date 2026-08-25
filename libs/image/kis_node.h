@@ -14,10 +14,10 @@
 
 #include "kritaimage_export.h"
 
-#include <QVector>
+#include <PkVector.h>
 #include <KisRegion.h>
 
-class QRect;
+class PkRect;
 class KoProperties;
 
 class KisNodeVisitor;
@@ -103,14 +103,14 @@ public:
      * this percolates up to parent nodes all the way to the root
      * node.
      */
-    void setDirty(const QRect & rect);
+    void setDirty(const PkRect & rect);
 
     /**
      * Add the given rects to the set of dirty rects for this node;
      * this percolates up to parent nodes all the way to the root
      * node.
      */
-    virtual void setDirty(const QVector<QRect> &rects);
+    virtual void setDirty(const PkVector<PkRect> &rects);
 
     /**
      * Add the given region to the set of dirty rects for this node;
@@ -122,30 +122,30 @@ public:
     /**
      * Convenience override of multirect version of setDirtyDontResetAnimationCache()
      *
-     * @see setDirtyDontResetAnimationCache(const QVector<QRect> &rects)
+     * @see setDirtyDontResetAnimationCache(const PkVector<PkRect> &rects)
      */
     void setDirtyDontResetAnimationCache();
 
     /**
      * Convenience override of multirect version of setDirtyDontResetAnimationCache()
      *
-     * @see setDirtyDontResetAnimationCache(const QVector<QRect> &rects)
+     * @see setDirtyDontResetAnimationCache(const PkVector<PkRect> &rects)
      */
-    void setDirtyDontResetAnimationCache(const QRect &rect);
+    void setDirtyDontResetAnimationCache(const PkRect &rect);
 
     /**
      * @brief setDirtyDontResetAnimationCache does almost the same thing as usual
      * setDirty() call, but doesn't reset the animation cache (since onion skins are
      * not used when rendering animation.
      */
-    void setDirtyDontResetAnimationCache(const QVector<QRect> &rects);
+    void setDirtyDontResetAnimationCache(const PkVector<PkRect> &rects);
 
     /**
      * Informs animation cache that the frames in the given range are
      * no longer valid and need to be recached.
      * @param range frames to invalidate
      */
-    void invalidateFrames(const KisTimeSpan &range, const QRect &rect);
+    void invalidateFrames(const KisTimeSpan &range, const PkRect &rect);
 
     virtual void handleKeyframeChannelFrameChange(const KisKeyframeChannel *channel, int time);
     virtual void handleKeyframeChannelFrameAdded(const KisKeyframeChannel *channel, int time);
@@ -206,7 +206,7 @@ protected:
      * on the layer will be exactly 8x8. More than that the needRect for
      * that update will be 14x14. See \ref needRect.
      */
-    virtual QRect changeRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const;
+    virtual PkRect changeRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const;
 
     /**
      * \return internal needRect() of the node. Do not mix with \see
@@ -217,7 +217,7 @@ protected:
      * See \ref changeRect
      * See \ref accessRect
      */
-    virtual QRect needRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const;
+    virtual PkRect needRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const;
 
 
     /**
@@ -241,7 +241,7 @@ protected:
      * Currently, this method has nondefault value for shifted clone
      * layers only.
      */
-    virtual QRect accessRect(const QRect &rect, PositionToFilthy pos = N_FILTHY) const;
+    virtual PkRect accessRect(const PkRect &rect, PositionToFilthy pos = N_FILTHY) const;
 
     /**
      * Called each time direct child nodes are added or removed under this
@@ -337,7 +337,15 @@ public: // Graph methods
      * @param properties. if not empty, only nodes for which
      * KisNodeBase::check(properties) returns true will be returned.
      */
-    QList<KisNodeSP> childNodes(const QStringList & nodeTypes, const KoProperties & properties) const;
+    PkList<KisNodeSP> childNodes(const PkStringList & nodeTypes, const KoProperties & properties) const;
+
+    /**
+     * Returns true if this node is an instance of the class named @p className
+     * (or a subclass thereof). Replaces the Qt meta-object inherits(); the shell
+     * implementation uses dynamic_cast against the known Krita node classes.
+     */
+    virtual bool inherits(const PkString &className) const;
+    bool inherits(const char *className) const { return inherits(PkString(className)); }
 
 Q_SIGNALS:
     /**
@@ -416,9 +424,4 @@ private:
 
 };
 
-#ifndef Q_DECLARE_KISNODE
-#define  Q_DECLARE_KISNODE
-Q_DECLARE_METATYPE(KisNodeSP)
-Q_DECLARE_METATYPE(KisNodeWSP)
-#endif
 #endif

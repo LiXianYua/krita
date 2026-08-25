@@ -6,7 +6,7 @@
 #ifndef KISTRANSLATELAYERNAMESVISITOR_H
 #define KISTRANSLATELAYERNAMESVISITOR_H
 
-#include <QMap>
+#include <PkMap.h>
 #include "kis_node_visitor.h"
 
 #include <kritaimage_export.h>
@@ -19,7 +19,7 @@
 class KRITAIMAGE_EXPORT KisTranslateLayerNamesVisitor : public KisNodeVisitor
 {
 public:
-    KisTranslateLayerNamesVisitor(QMap<QString, QString> dictionary);
+    KisTranslateLayerNamesVisitor(PkMap<PkString, PkString> dictionary);
 
     using KisNodeVisitor::visit;
 
@@ -47,13 +47,13 @@ public:
 
     bool visit(KisColorizeMask* mask) override;
 
-    QMap<QString, QString> defaultDictionary();
+    PkMap<PkString, PkString> defaultDictionary();
 
 private:
 
     bool translate(KisNode *node);
 
-    QMap<QString, QString> m_dictionary;
+    PkMap<PkString, PkString> m_dictionary;
 };
 
 #endif // KISTRANSLATELAYERNAMESVISITOR_H

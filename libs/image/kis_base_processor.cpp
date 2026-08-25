@@ -6,7 +6,7 @@
 
 #include "kis_base_processor.h"
 
-#include <QString>
+#include <PkString.h>
 
 #include "kis_bookmarked_configuration_manager.h"
 #include "filter/kis_filter_configuration.h"
@@ -24,7 +24,7 @@ public:
     KisSerializableConfigurationSP createDefault() override {
         return m_generator->defaultConfiguration(KisGlobalResourcesInterface::instance());
     }
-    KisSerializableConfigurationSP create(const QDomElement& e) override {
+    KisSerializableConfigurationSP create(const PkXmlElement& e) override {
         KisSerializableConfigurationSP config = m_generator->factoryConfiguration(KisGlobalResourcesInterface::instance());
         config->fromXML(e);
         return config;
@@ -47,8 +47,8 @@ struct Q_DECL_HIDDEN KisBaseProcessor::Private {
 
     KoID id;
     KoID category; // The category in the filter menu this filter fits
-    QString entry; // the i18n'ed accelerated menu text
-    QKeySequence shortcut;
+    PkString entry; // the translated accelerated menu text
+    PkKeySequence shortcut;
     bool supportsPainting;
     bool supportsAdjustmentLayers;
     bool supportsThreading;
@@ -56,7 +56,7 @@ struct Q_DECL_HIDDEN KisBaseProcessor::Private {
     ColorSpaceIndependence colorSpaceIndependence;
 };
 
-KisBaseProcessor::KisBaseProcessor(const KoID& id, const KoID & category, const QString & entry)
+KisBaseProcessor::KisBaseProcessor(const KoID& id, const KoID & category, const PkString & entry)
         : d(new Private)
 {
     d->id = id;
@@ -64,7 +64,7 @@ KisBaseProcessor::KisBaseProcessor(const KoID& id, const KoID & category, const 
     d->entry = entry;
 }
 
-void KisBaseProcessor::init(const QString& configEntryGroup)
+void KisBaseProcessor::init(const PkString& configEntryGroup)
 {
     d->bookmarkManager = new KisBookmarkedConfigurationManager(configEntryGroup, new KisBaseProcessorConfigurationFactory(this));
 }
@@ -95,12 +95,12 @@ const KisBookmarkedConfigurationManager* KisBaseProcessor::bookmarkManager() con
     return d->bookmarkManager;
 }
 
-QString KisBaseProcessor::id() const
+PkString KisBaseProcessor::id() const
 {
     return d->id.id();
 }
 
-QString KisBaseProcessor::name() const
+PkString KisBaseProcessor::name() const
 {
     return d->id.name();
 }
@@ -110,17 +110,17 @@ KoID KisBaseProcessor::menuCategory() const
     return d->category;
 }
 
-QString KisBaseProcessor::menuEntry() const
+PkString KisBaseProcessor::menuEntry() const
 {
     return d->entry;
 }
 
-QKeySequence KisBaseProcessor::shortcut() const
+PkKeySequence KisBaseProcessor::shortcut() const
 {
     return d->shortcut;
 }
 
-void KisBaseProcessor::setShortcut(const QKeySequence & shortcut)
+void KisBaseProcessor::setShortcut(const PkKeySequence & shortcut)
 {
     d->shortcut = shortcut;
 }

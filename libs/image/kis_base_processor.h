@@ -8,10 +8,10 @@
 
 #include <list>
 
-#include <QString>
+#include <PkString.h>
 
 #include <klocalizedstring.h>
-#include <QKeySequence>
+#include <PkKeySequence>
 
 #include "KoID.h"
 #include "KoColorSpace.h"
@@ -22,15 +22,14 @@
 #include "kis_filter_configuration.h"
 #include "kritaimage_export.h"
 
-class QWidget;
 
 class KisBookmarkedConfigurationManager;
 
 class KoResource;
-typedef QSharedPointer<KoResource> KoResourceSP;
+typedef PkSharedPointer<KoResource> KoResourceSP;
 
 class KisResourcesInterface;
-typedef QSharedPointer<KisResourcesInterface> KisResourcesInterfaceSP;
+typedef PkSharedPointer<KisResourcesInterface> KisResourcesInterfaceSP;
 
 /**
  * Base class for classes that process areas of pixels.
@@ -51,7 +50,7 @@ class KRITAIMAGE_EXPORT KisBaseProcessor : public KisShared
 public:
 
 
-    KisBaseProcessor(const KoID& id, const KoID & category, const QString & entry);
+    KisBaseProcessor(const KoID& id, const KoID & category, const PkString & entry);
 
     virtual ~KisBaseProcessor();
 
@@ -77,23 +76,23 @@ public:
     const KisBookmarkedConfigurationManager* bookmarkManager() const;
 
     /// @return Unique identification for this processor
-    QString id() const;
+    PkString id() const;
 
     /// @return User-visible identification for this processor
-    QString name() const;
+    PkString name() const;
 
     /// @return the submenu in the filters menu does processor want to go?
     KoID menuCategory() const;
 
-    /// @return the i18n'ed string this filter wants to show itself in the menu
-    QString menuEntry() const;
+    /// @return the translated string this filter wants to show itself in the menu
+    PkString menuEntry() const;
 
     /**
      * Return the default keyboard shortcut for activation of this filter
      *
      * @return the shortcut
      */
-    QKeySequence shortcut() const;
+    PkKeySequence shortcut() const;
 
     /**
      * Create the configuration widget for this processor.
@@ -146,11 +145,11 @@ protected:
     /**
      * Set the default shortcut for activation of this filter.
      */
-    void setShortcut(const QKeySequence & shortcut);
+    void setShortcut(const PkKeySequence & shortcut);
 
 protected:
 
-    void init(const QString& configEntryGroup);
+    void init(const PkString& configEntryGroup);
 
 private:
     struct Private;

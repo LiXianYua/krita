@@ -6,7 +6,6 @@
 
 #include "kis_node_progress_proxy.h"
 
-#include <QApplication>
 
 #include "kis_node.h"
 
@@ -83,7 +82,7 @@ void KisNodeProgressProxy::setRange(int _minimum, int _maximum)
     }
 }
 
-void KisNodeProgressProxy::setFormat(const QString & _format)
+void KisNodeProgressProxy::setFormat(const PkString & _format)
 {
     Q_UNUSED(_format);
 }

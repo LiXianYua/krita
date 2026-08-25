@@ -6,22 +6,22 @@
 
 #include "kis_busy_progress_indicator.h"
 
-#include <QTimer>
-#include <QAtomicInt>
+#include <PkTimer.h>
+#include <PkAtomic.h>
 
 #include "KoProgressProxy.h"
 
 
 struct KisBusyProgressIndicator::Private
 {
-    Private(KisBusyProgressIndicator *_q)
-        : timer(new QTimer(_q))
+    Private()
+        : timer(new PkTimer())
         {}
 
-    QTimer *timer {nullptr}; // owned by QObject hierarchy
+    PkTimer *timer {nullptr}; // owned by KisBusyProgressIndicator (deleted in dtor)
     int numEmptyTicks {0};
-    QAtomicInt numUpdates;
-    QAtomicInt timerStarted;
+    PkAtomicInt numUpdates;
+    PkAtomicInt timerStarted;
     KoProgressProxy *progressProxy {nullptr};
 
     bool isStarted {false};
@@ -48,16 +48,18 @@ struct KisBusyProgressIndicator::Private
 
 
 KisBusyProgressIndicator::KisBusyProgressIndicator(KoProgressProxy *progressProxy)
-    : m_d(new Private(this))
+    : m_d(new Private())
 {
-    connect(m_d->timer, SIGNAL(timeout()), SLOT(timerFinished()));
-    connect(this, SIGNAL(sigStartTimer()), SLOT(slotStartTimer()));
-    m_d->timer->setInterval(200);
+    PkObject::connect(this, &KisBusyProgressIndicator::sigStartTimer,
+                      this, &KisBusyProgressIndicator::slotStartTimer);
     m_d->progressProxy = progressProxy;
 }
 
 KisBusyProgressIndicator::~KisBusyProgressIndicator()
 {
+    m_d->timer->stop();
+    delete m_d->timer;
+    m_d->timer = nullptr;
     m_d->stopProgressReport();
 }
 
@@ -88,13 +90,13 @@ void KisBusyProgressIndicator::update()
     m_d->numUpdates.ref();
 
     if (!m_d->timerStarted) {
-        Q_EMIT sigStartTimer();
+        sigStartTimer();
     }
 }
 
 void KisBusyProgressIndicator::slotStartTimer()
 {
     m_d->timerStarted.ref();
-    m_d->timer->start();
+    m_d->timer->start(std::chrono::milliseconds(200), [this]() { timerFinished(); });
     m_d->startProgressReport();
 }

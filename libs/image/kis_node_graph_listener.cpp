@@ -8,7 +8,7 @@
 #include "kis_node_graph_listener.h"
 
 #include "kis_time_span.h"
-#include <QRect>
+#include <PkRect.h>
 #include <QtGlobal>
 
 
@@ -88,11 +88,11 @@ void KisNodeGraphListener::notifySelectionChanged()
 {
 }
 
-void KisNodeGraphListener::requestProjectionUpdate(KisNode * /*node*/, const QVector<QRect> &/*rects*/, KisProjectionUpdateFlags /*flags*/)
+void KisNodeGraphListener::requestProjectionUpdate(KisNode * /*node*/, const PkVector<PkRect> &/*rects*/, KisProjectionUpdateFlags /*flags*/)
 {
 }
 
-void KisNodeGraphListener::invalidateFrames(const KisTimeSpan &range, const QRect &rect)
+void KisNodeGraphListener::invalidateFrames(const KisTimeSpan &range, const PkRect &rect)
 {
     Q_UNUSED(range);
     Q_UNUSED(rect);

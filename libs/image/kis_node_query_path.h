@@ -20,7 +20,7 @@ public:
     ~KisNodeQueryPath();
     KisNodeQueryPath(const KisNodeQueryPath&);
     KisNodeQueryPath& operator=(const KisNodeQueryPath&);
-    QList<KisNodeSP> queryNodes(KisImageWSP image, KisNodeSP currentNode) const;
+    PkList<KisNodeSP> queryNodes(KisImageWSP image, KisNodeSP currentNode) const;
     KisNodeSP queryUniqueNode(KisImageWSP image, KisNodeSP currentNode = 0) const;
     bool isRelative() const;
     // Use "///" style because of the needed "/*"
@@ -33,13 +33,13 @@ public:
     /// For instance: "1/*" return all children of the first layer, "../3" return the third layer of the parent
     /// of the current layer
     /// If the string starts with "/" then it's an absolute path, otherwise it's a relative path.
-    QString toString() const;
+    PkString toString() const;
     /**
      * @param path
      * @param err if non null, it will be filled with an error message
      * @see toString for an explanation of the string format
      */
-    static KisNodeQueryPath fromString(const QString& path);
+    static KisNodeQueryPath fromString(const PkString& path);
     static KisNodeQueryPath absolutePath(KisNodeSP node);
 private:
     struct Private;

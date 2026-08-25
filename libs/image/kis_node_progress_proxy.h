@@ -8,16 +8,18 @@
 #define _KIS_NODE_PROGRESS_PROXY_H_
 
 #include <KoProgressProxy.h>
-#include <QObject>
+#include <PkObject.h>
 
 #include <kis_types.h>
+#include "kis_node.h" // 信号 percentageChanged(int, const KisNodeSP&) 的参数是 KisSharedPtr<KisNode>，
+                     // PkObject::activateSignal 排队路径按值捕获参数，要求 KisNode 完整（pk_signal_moc TU 同）
 
 #include "kritaimage_export.h"
 
 /**
  * This class implements \ref KoProgressProxy and allows node to report progress.
  */
-class KRITAIMAGE_EXPORT KisNodeProgressProxy : public QObject, public KoProgressProxy
+class KRITAIMAGE_EXPORT KisNodeProgressProxy : public PkShellObject, public KoProgressProxy
 {
     Q_OBJECT
     friend class KisNode;
@@ -33,7 +35,7 @@ public:
     int maximum() const override;
     void setValue(int value) override;
     void setRange(int minimum, int maximum) override;
-    void setFormat(const QString & format) override;
+    void setFormat(const PkString & format) override;
     /**
      * @return the current percentage (return -1 if no progress)
      */

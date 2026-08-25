@@ -6,7 +6,7 @@
 #ifndef _KIS_NODE_FACADE_H
 #define _KIS_NODE_FACADE_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "kis_types.h"
 #include "kis_node.h"
@@ -100,6 +100,6 @@ public:
 private:
 
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 #endif

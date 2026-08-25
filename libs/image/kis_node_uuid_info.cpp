@@ -13,12 +13,12 @@ KisNodeUuidInfo::KisNodeUuidInfo()
 {
 }
 
-KisNodeUuidInfo::KisNodeUuidInfo(const QUuid& uuid)
+KisNodeUuidInfo::KisNodeUuidInfo(const PkNodeId& uuid)
 {
     m_uuid = uuid;
 }
 
-KisNodeUuidInfo::KisNodeUuidInfo(const QString& name)
+KisNodeUuidInfo::KisNodeUuidInfo(const PkString& name)
 {
     m_name = name;
 }

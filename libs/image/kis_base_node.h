@@ -6,10 +6,9 @@
 #ifndef _KIS_BASE_NODE_H
 #define _KIS_BASE_NODE_H
 
-#include <QObject>
-#include <QIcon>
-#include <QUuid>
-#include <QString>
+#include <PkObject.h>
+#include <PkIcon>
+#include <PkString.h>
 
 #include <KoID.h>
 
@@ -34,7 +33,7 @@ class KisKeyframeChannel;
  * anything about its peers. You should not directly inherit from a
  * KisBaseNode; inherit from KisNode instead.
  */
-class KRITAIMAGE_EXPORT KisBaseNode : public QObject, public KisShared
+class KRITAIMAGE_EXPORT KisBaseNode : public PkShellObject, public KisShared
 {
 
     Q_OBJECT
@@ -43,27 +42,27 @@ public:
     /**
      *  Describes a property of a document section.
      *
-     * FIXME: using a QList instead of QMap and not having an untranslated identifier,
+     * FIXME: using a PkList instead of PkMap and not having an untranslated identifier,
      * either enum or string, forces applications to rely on the order of properties
      * or to compare the translated strings. This makes it hard to robustly extend the
      * properties of document section items.
      */
     struct Property
     {
-        QString id;
+        PkString id;
 
         /** i18n-ed name, suitable for displaying */
-        QString name;
+        PkString name;
 
         /** Whether the property is a boolean (e.g. locked, visible) which can be toggled directly from the widget itself. */
         bool isMutable {false};
 
         /** Provide these if the property isMutable. */
-        QIcon onIcon;
-        QIcon offIcon;
+        PkIcon onIcon;
+        PkIcon offIcon;
 
         /** If the property isMutable, provide a boolean. Otherwise, a string suitable for displaying. */
-        QVariant state;
+        PkVariant state;
 
         /** If the property is mutable, specifies whether it can be put into stasis. When a property
         is in stasis, a new state is created, and the old one is stored in stateInStasis. When
@@ -84,23 +83,23 @@ public:
         Property(): isMutable( false ), isInStasis(false) { }
 
         /// Constructor for a mutable property.
-        Property( const KoID &n, const QIcon &on, const QIcon &off, bool isOn )
+        Property( const KoID &n, const PkIcon &on, const PkIcon &off, bool isOn )
                 : id(n.id()), name( n.name() ), isMutable( true ), onIcon( on ), offIcon( off ), state( isOn ),
                   canHaveStasis( false ), isInStasis(false) { }
 
         /** Constructor for a mutable property accepting stasis */
-        Property( const KoID &n, const QIcon &on, const QIcon &off, bool isOn,
+        Property( const KoID &n, const PkIcon &on, const PkIcon &off, bool isOn,
                   bool _isInStasis, bool _stateInStasis = false )
                 : id(n.id()), name(n.name()), isMutable( true ), onIcon( on ), offIcon( off ), state( isOn ),
                   canHaveStasis( true ), isInStasis( _isInStasis ), stateInStasis( _stateInStasis ) { }
 
         /// Constructor for a nonmutable property.
-        Property( const KoID &n, const QString &s )
+        Property( const KoID &n, const PkString &s )
                 : id(n.id()), name(n.name()), isMutable( false ), state( s ), isInStasis(false) { }
     };
 
     /** Return this type for PropertiesRole. */
-    typedef QList<Property> PropertyList;
+    typedef PkList<Property> PropertyList;
 
 public:
 
@@ -186,39 +185,39 @@ public:
      * Return the composite op associated with this layer.
      */
     virtual const KoCompositeOp *compositeOp() const = 0;
-    const QString& compositeOpId() const;
+    const PkString& compositeOpId() const;
 
     /**
      * Set a new composite op for this layer. The layer will be marked
      * dirty.
      */
-    void setCompositeOpId(const QString& compositeOpId);
+    void setCompositeOpId(const PkString& compositeOpId);
 
     /**
      * @return unique id, which is now used by clone layers.
      */
-    QUuid uuid() const;
+    PkNodeId uuid() const;
 
     /**
      * Set the uuid of node. This should only be used when loading
      * existing node and in constructor.
      */
-    void setUuid(const QUuid& id);
+    void setUuid(const PkNodeId& id);
 
     /**
      * return the name of this node. This is the same as the
-     * QObject::objectName.
+     * PkShellObject::objectName.
      */
-    QString name() const {
+    PkString name() const {
         return objectName();
     }
 
     /**
-     * set the QObject::objectName. This is also the user-visible name
+     * set the PkShellObject::objectName. This is also the user-visible name
      * of the layer. The reason for this is that we want to see the
      * layer name also when debugging.
      */
-    void setName(const QString& name) {
+    void setName(const PkString& name) {
         setObjectName(name);
         baseNodeChangedCallback();
     }
@@ -227,8 +226,8 @@ public:
      * @return the icon used to represent the node type, for instance
      * in the layerbox and in the menu.
      */
-    virtual QIcon icon() const {
-        return QIcon();
+    virtual PkIcon icon() const {
+        return PkIcon();
     }
 
     /**
@@ -264,7 +263,7 @@ public:
      * @param name name of the property to be set.
      * @param value value to set the property to.
      */
-    void setNodeProperty(const QString & name, const QVariant & value);
+    void setNodeProperty(const PkString & name, const PkVariant & value);
 
     /**
      * Merge the specified properties with the properties of this
@@ -315,19 +314,19 @@ public:
 
     /**
      * @return a thumbnail in requested size. The thumbnail is a rgba
-     * QImage and may have transparent parts. Returns a fully
-     * transparent QImage of the requested size if the current node
+     * PkImage and may have transparent parts. Returns a fully
+     * transparent PkImage of the requested size if the current node
      * type cannot generate a thumbnail. If the requested size is too
-     * big, return a null QImage.
+     * big, return a null PkImage.
      */
-    virtual QImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio, KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise);
+    virtual PkImage createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio, KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise);
 
     /**
      * Create a thumbnail in the currently preferred bounds mode
      *
      * @see preferredThumbnailBoundsMode()
      */
-    QImage createPreferredThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio);
+    PkImage createPreferredThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio);
 
     /**
      * @return the currently preferred bounds mode for the thumbnails
@@ -358,12 +357,12 @@ public:
     /**
      * @return a thumbnail in requested size for the defined timestamp.
      * The thumbnail is a rgba Image and may have transparent parts.
-     * Returns a fully transparent QImage of the requested size if the
+     * Returns a fully transparent PkImage of the requested size if the
      * current node type cannot generate a thumbnail. If the requested
-     * size is too big, return a null QImage.
+     * size is too big, return a null PkImage.
      */
-    virtual QImage createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio, KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise);
-    QImage createPreferredThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio);
+    virtual PkImage createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio, KisThumbnailBoundsMode boundsMode = KisThumbnailBoundsMode::Precise);
+    PkImage createPreferredThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode = Qt::IgnoreAspectRatio);
 
     /**
      * Ask this node to re-read the pertinent settings from the krita
@@ -470,16 +469,16 @@ public:
     * Returns an approximation of where the bounds on actual data are
     * in this node.
     */
-    virtual QRect extent() const {
-        return QRect();
+    virtual PkRect extent() const {
+        return PkRect();
     }
 
     /**
      * Returns the exact bounds of where the actual data resides in
      * this node.
      */
-    virtual QRect exactBounds() const {
-        return QRect();
+    virtual PkRect exactBounds() const {
+        return PkRect();
     }
 
     /**
@@ -520,7 +519,7 @@ public:
      * Return the keyframe channels associated with this node
      * @return list of keyframe channels
      */
-    QMap<QString, KisKeyframeChannel*> keyframeChannels() const;
+    PkMap<PkString, KisKeyframeChannel*> keyframeChannels() const;
 
     /**
      * Get the keyframe channel with given id.
@@ -530,8 +529,8 @@ public:
      * @param create attempt to create the channel if it does not exist yet
      * @return keyframe channel with the id, or null if not found
      */
-    KisKeyframeChannel *getKeyframeChannel(const QString &id, bool create);
-    KisKeyframeChannel *getKeyframeChannel(const QString &id) const;
+    KisKeyframeChannel *getKeyframeChannel(const PkString &id, bool create);
+    KisKeyframeChannel *getKeyframeChannel(const PkString &id) const;
 
     /**
      * @return If true, node will be visible on animation timeline even when inactive.
@@ -614,7 +613,7 @@ protected:
      * @param id channel to create
      * @return newly created channel or null
      */
-    virtual KisKeyframeChannel * requestKeyframeChannel(const QString &id);
+    virtual KisKeyframeChannel * requestKeyframeChannel(const PkString &id);
 
 public:
     /**
@@ -626,7 +625,7 @@ public:
      * @param id queried channel
      * @return bool whether it supports said channel or not.
      */
-    virtual bool supportsKeyframeChannel(const QString &id);
+    virtual bool supportsKeyframeChannel(const PkString &id);
 
 Q_SIGNALS:
     void keyframeChannelAdded(KisKeyframeChannel *channel);
@@ -639,9 +638,7 @@ private:
 
 };
 
-KRITAIMAGE_EXPORT QDebug operator<<(QDebug dbg, const KisBaseNode::Property &prop);
-
-Q_DECLARE_METATYPE( KisBaseNode::PropertyList )
+KRITAIMAGE_EXPORT PkDebug operator<<(PkDebug dbg, const KisBaseNode::Property &prop);
 
 
 #endif

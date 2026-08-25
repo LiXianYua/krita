@@ -8,13 +8,13 @@
 
 #include "kritaimage_export.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include <KisProjectionUpdateFlags.h>
 #include <KisNodeAdditionFlags.h>
 
 class KisTimeSpan;
 class KisNode;
-class QRect;
+class PkRect;
 class KisKeyframeChannel;
 
 /**
@@ -24,7 +24,7 @@ class KisKeyframeChannel;
  * changes.
  *
  * The reason for this go-between is that we don't want our nodes to
- * be QObjects, nor to have sig-slot connections between every node
+ * derive from a signal-capable base, nor to have sig-slot connections between every node
  * and every mode.
  *
  * It also manages the sequence number of the graph. This is a number
@@ -88,9 +88,9 @@ public:
     /**
      * Inform the model that a node has been changed (setDirty)
      */
-    virtual void requestProjectionUpdate(KisNode * node, const QVector<QRect> &rects, KisProjectionUpdateFlags flags);
+    virtual void requestProjectionUpdate(KisNode * node, const PkVector<PkRect> &rects, KisProjectionUpdateFlags flags);
 
-    virtual void invalidateFrames(const KisTimeSpan &range, const QRect &rect);
+    virtual void invalidateFrames(const KisTimeSpan &range, const PkRect &rect);
 
     virtual void requestTimeSwitch(int time);
 
@@ -118,7 +118,7 @@ public:
 
 private:
     struct Private;
-    QScopedPointer<Private> m_d;
+    PkScopedPointer<Private> m_d;
 };
 
 #endif

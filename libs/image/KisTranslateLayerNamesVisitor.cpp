@@ -21,11 +21,11 @@
 
 #include <klocalizedstring.h>
 
-KisTranslateLayerNamesVisitor::KisTranslateLayerNamesVisitor(QMap<QString, QString> dictionary)
+KisTranslateLayerNamesVisitor::KisTranslateLayerNamesVisitor(PkMap<PkString, PkString> dictionary)
     : m_dictionary(dictionary)
 {
-    QMap<QString, QString> d = defaultDictionary();
-    QMap<QString, QString>::const_iterator i = d.constBegin();
+    PkMap<PkString, PkString> d = defaultDictionary();
+    PkMap<PkString, PkString>::const_iterator i = d.constBegin();
     while (i != d.constEnd()) {
         if (!dictionary.contains(i.key())) {
             dictionary[i.key()] = i.value();
@@ -40,8 +40,8 @@ bool KisTranslateLayerNamesVisitor::translate(KisNode *node)
     if (m_dictionary.contains(node->name())) {
         node->setName(m_dictionary[node->name()]);
     }
-    node->setName(node->name().replace("Layer", i18n("Layer")));
-    node->setName(node->name().replace("layer", i18n("layer")));
+    // 壳内翻译宏为恒等映射，"Layer"/"layer" 后缀替换无实际效果（PkString 无 replace()），
+    // 模板层名翻译走上方 dictionary 查找。
     return true;
 }
 
@@ -49,9 +49,9 @@ bool KisTranslateLayerNamesVisitor::visit(KisNode* node) {
     return translate(node);
 }
 
-QMap<QString, QString> KisTranslateLayerNamesVisitor::defaultDictionary()
+PkMap<PkString, PkString> KisTranslateLayerNamesVisitor::defaultDictionary()
 {
-    QMap<QString, QString> dictionary;
+    PkMap<PkString, PkString> dictionary;
 
     dictionary["Background"] = i18nc("Layer name for translation of template", "Background");
     dictionary["Group"] = i18nc("Layer name for translation of template", "Group");

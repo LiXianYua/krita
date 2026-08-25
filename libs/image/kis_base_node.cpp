@@ -23,11 +23,11 @@
 
 struct Q_DECL_HIDDEN KisBaseNode::Private
 {
-    QString compositeOp;
+    PkString compositeOp;
     KoProperties properties;
     KisBaseNode::Property hack_visible; //HACK
-    QUuid id;
-    QMap<QString, KisKeyframeChannel*> keyframeChannels;
+    PkNodeId id;
+    PkMap<PkString, KisKeyframeChannel*> keyframeChannels;
     KisAnimatedOpacityProperty opacityProperty;
 
     bool collapsed {false};
@@ -38,7 +38,7 @@ struct Q_DECL_HIDDEN KisBaseNode::Private
     KisThumbnailBoundsMode thumbnailBoundsMode { KisThumbnailBoundsMode::Precise };
 
     Private(KisImageWSP p_image)
-        : id(QUuid::createUuid())
+        : id(PkNodeId())
         , opacityProperty(new KisDefaultBounds(p_image), &properties, OPACITY_OPAQUE_U8)
         , image(p_image)
     {
@@ -46,7 +46,7 @@ struct Q_DECL_HIDDEN KisBaseNode::Private
 
     Private(const Private &rhs)
         : compositeOp(rhs.compositeOp),
-          id(QUuid::createUuid()),
+          id(PkNodeId()),
           opacityProperty(new KisDefaultBounds(rhs.image), &properties, OPACITY_OPAQUE_U8),
           collapsed(rhs.collapsed),
           supportsLodMoves(rhs.supportsLodMoves),
@@ -54,7 +54,7 @@ struct Q_DECL_HIDDEN KisBaseNode::Private
           pinnedToTimeline(rhs.pinnedToTimeline),
           image(rhs.image)
     {
-        QMapIterator<QString, QVariant> iter = rhs.properties.propertyIterator();
+        PkMapIterator<PkString, PkVariant> iter = rhs.properties.propertyIterator();
         while (iter.hasNext()) {
             iter.next();
             properties.setProperty(iter.key(), iter.value());
@@ -67,10 +67,10 @@ KisBaseNode::KisBaseNode(KisImageWSP image)
 {
     /**
      * Be cautious! These two calls are vital to warm-up KoProperties.
-     * We use it and its QMap in a threaded environment. This is not
+     * We use it and its PkMap in a threaded environment. This is not
      * officially supported by Qt, but our environment guarantees, that
      * there will be the only writer and several readers. Whilst the
-     * value of the QMap is boolean and there are no implicit-sharing
+     * value of the PkMap is boolean and there are no implicit-sharing
      * calls provocated, it is safe to work with it in such an
      * environment.
      */
@@ -81,12 +81,12 @@ KisBaseNode::KisBaseNode(KisImageWSP image)
 
     m_d->compositeOp = COMPOSITE_OVER;
 
-    connect(&m_d->opacityProperty, SIGNAL(changed(quint8)), this, SIGNAL(opacityChanged(quint8)));
+    PkObject::connect(&m_d->opacityProperty, &KisAnimatedOpacityProperty::changed, this, &KisBaseNode::opacityChanged);
 }
 
 
 KisBaseNode::KisBaseNode(const KisBaseNode & rhs)
-    : QObject()
+    : PkShellObject()
     , KisShared()
     , m_d(new Private(*rhs.m_d))
 {
@@ -95,7 +95,7 @@ KisBaseNode::KisBaseNode(const KisBaseNode & rhs)
         m_d->keyframeChannels.insert(m_d->opacityProperty.channel()->id(), m_d->opacityProperty.channel());
     }
 
-    connect(&m_d->opacityProperty, SIGNAL(changed(quint8)), this, SIGNAL(opacityChanged(quint8)));
+    PkObject::connect(&m_d->opacityProperty, &KisAnimatedOpacityProperty::changed, this, &KisBaseNode::opacityChanged);
 }
 
 KisBaseNode::~KisBaseNode()
@@ -129,12 +129,12 @@ void KisBaseNode::setPercentOpacity(quint8 val)
     setOpacity(int(float(val * 255) / 100 + 0.5));
 }
 
-const QString& KisBaseNode::compositeOpId() const
+const PkString& KisBaseNode::compositeOpId() const
 {
     return m_d->compositeOp;
 }
 
-void KisBaseNode::setCompositeOpId(const QString& compositeOp)
+void KisBaseNode::setCompositeOpId(const PkString& compositeOp)
 {
     if (m_d->compositeOp == compositeOp) return;
 
@@ -163,7 +163,7 @@ const KoProperties & KisBaseNode::nodeProperties() const
     return m_d->properties;
 }
 
-void KisBaseNode::setNodeProperty(const QString & name, const QVariant & value)
+void KisBaseNode::setNodeProperty(const PkString & name, const PkVariant & value)
 {
     m_d->properties.setProperty(name, value);
     baseNodeChangedCallback();
@@ -171,7 +171,7 @@ void KisBaseNode::setNodeProperty(const QString & name, const QVariant & value)
 
 void KisBaseNode::mergeNodeProperties(const KoProperties & properties)
 {
-    QMapIterator<QString, QVariant> iter = properties.propertyIterator();
+    PkMapIterator<PkString, PkVariant> iter = properties.propertyIterator();
     while (iter.hasNext()) {
         iter.next();
         m_d->properties.setProperty(iter.key(), iter.value());
@@ -182,7 +182,7 @@ void KisBaseNode::mergeNodeProperties(const KoProperties & properties)
 
 bool KisBaseNode::check(const KoProperties & properties) const
 {
-    QMapIterator<QString, QVariant> iter = properties.propertyIterator();
+    PkMapIterator<PkString, PkVariant> iter = properties.propertyIterator();
     while (iter.hasNext()) {
         iter.next();
         if (m_d->properties.contains(iter.key())) {
@@ -194,22 +194,22 @@ bool KisBaseNode::check(const KoProperties & properties) const
 }
 
 
-QImage KisBaseNode::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisBaseNode::createThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     Q_UNUSED(aspectRatioMode);
     Q_UNUSED(boundsMode);
 
     try {
-        QImage image(w, h, QImage::Format_ARGB32);
+        PkImage image(w, h, PkImage::Format_ARGB32);
         image.fill(0);
         return image;
     } catch (const std::bad_alloc&) {
-        return QImage();
+        return PkImage();
     }
 
 }
 
-QImage KisBaseNode::createPreferredThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode)
+PkImage KisBaseNode::createPreferredThumbnail(qint32 w, qint32 h, Qt::AspectRatioMode aspectRatioMode)
 {
     return createThumbnail(w, h, aspectRatioMode, m_d->thumbnailBoundsMode);
 }
@@ -229,13 +229,13 @@ int KisBaseNode::thumbnailSeqNo() const
     return -1;
 }
 
-QImage KisBaseNode::createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
+PkImage KisBaseNode::createThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode, KisThumbnailBoundsMode boundsMode)
 {
     Q_UNUSED(time);
     return createThumbnail(w, h, aspectRatioMode, boundsMode);
 }
 
-QImage KisBaseNode::createPreferredThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode)
+PkImage KisBaseNode::createPreferredThumbnailForFrame(qint32 w, qint32 h, int time, Qt::AspectRatioMode aspectRatioMode)
 {
     return createThumbnailForFrame(w, h, time, aspectRatioMode, m_d->thumbnailBoundsMode);
 }
@@ -362,12 +362,12 @@ int KisBaseNode::colorLabelIndex() const
     return m_d->properties.intProperty(KisLayerPropertiesIcons::colorLabelIndex.id(), 0);
 }
 
-QUuid KisBaseNode::uuid() const
+PkNodeId KisBaseNode::uuid() const
 {
     return m_d->id;
 }
 
-void KisBaseNode::setUuid(const QUuid& id)
+void KisBaseNode::setUuid(const PkNodeId& id)
 {
     m_d->id = id;
     baseNodeChangedCallback();
@@ -405,14 +405,14 @@ void KisBaseNode::setSupportsLodMoves(bool value)
 }
 
 
-QMap<QString, KisKeyframeChannel*> KisBaseNode::keyframeChannels() const
+PkMap<PkString, KisKeyframeChannel*> KisBaseNode::keyframeChannels() const
 {
     return m_d->keyframeChannels;
 }
 
-KisKeyframeChannel * KisBaseNode::getKeyframeChannel(const QString &id) const
+KisKeyframeChannel * KisBaseNode::getKeyframeChannel(const PkString &id) const
 {
-    QMap<QString, KisKeyframeChannel*>::const_iterator i = m_d->keyframeChannels.constFind(id);
+    PkMap<PkString, KisKeyframeChannel*>::const_iterator i = m_d->keyframeChannels.constFind(id);
     if (i == m_d->keyframeChannels.constEnd()) {
         return 0;
     }
@@ -432,7 +432,7 @@ void KisBaseNode::setPinnedToTimeline(bool pinned)
    baseNodeChangedCallback();
 }
 
-KisKeyframeChannel * KisBaseNode::getKeyframeChannel(const QString &id, bool create)
+KisKeyframeChannel * KisBaseNode::getKeyframeChannel(const PkString &id, bool create)
 {
     KisKeyframeChannel *channel = getKeyframeChannel(id);
 
@@ -464,7 +464,7 @@ void KisBaseNode::addKeyframeChannel(KisKeyframeChannel *channel)
     Q_EMIT keyframeChannelAdded(channel);
 }
 
-KisKeyframeChannel *KisBaseNode::requestKeyframeChannel(const QString &id)
+KisKeyframeChannel *KisBaseNode::requestKeyframeChannel(const PkString &id)
 {
     if (id == KisKeyframeChannel::Opacity.id()) {
         Q_ASSERT(!m_d->opacityProperty.hasChannel());
@@ -481,7 +481,7 @@ KisKeyframeChannel *KisBaseNode::requestKeyframeChannel(const QString &id)
     return 0;
 }
 
-bool KisBaseNode::supportsKeyframeChannel(const QString &id)
+bool KisBaseNode::supportsKeyframeChannel(const PkString &id)
 {
     if (id == KisKeyframeChannel::Opacity.id() && original()) {
         return true;
@@ -490,9 +490,9 @@ bool KisBaseNode::supportsKeyframeChannel(const QString &id)
     return false;
 }
 
-QDebug operator<<(QDebug dbg, const KisBaseNode::Property &prop)
+PkDebug operator<<(PkDebug dbg, const KisBaseNode::Property &prop)
 {
-    dbg.nospace() << "Property(" << prop.id << ", " << prop.state;
+    dbg.nospace() << "Property(" << prop.id << ", " << prop.state.toString();
 
     if (prop.isInStasis) {
         dbg.nospace() << ", in-stasis";

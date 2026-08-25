@@ -15,51 +15,51 @@ KisAbstractProjectionPlane::~KisAbstractProjectionPlane()
 {
 }
 
-QRect KisDumbProjectionPlane::recalculate(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags)
+PkRect KisDumbProjectionPlane::recalculate(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags)
 {
     Q_UNUSED(filthyNode);
     Q_UNUSED(flags);
     return rect;
 }
 
-void KisDumbProjectionPlane::apply(KisPainter *painter, const QRect &rect)
+void KisDumbProjectionPlane::apply(KisPainter *painter, const PkRect &rect)
 {
     Q_UNUSED(painter);
     Q_UNUSED(rect);
 }
 
 
-QRect KisDumbProjectionPlane::needRect(const QRect &rect, KisLayer::PositionToFilthy pos) const
+PkRect KisDumbProjectionPlane::needRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
     return rect;
 }
 
-QRect KisDumbProjectionPlane::changeRect(const QRect &rect, KisLayer::PositionToFilthy pos) const
+PkRect KisDumbProjectionPlane::changeRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
     return rect;
 }
 
-QRect KisDumbProjectionPlane::accessRect(const QRect &rect, KisLayer::PositionToFilthy pos) const
+PkRect KisDumbProjectionPlane::accessRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const
 {
     Q_UNUSED(pos);
     return rect;
 }
 
-QRect KisDumbProjectionPlane::needRectForOriginal(const QRect &rect) const
+PkRect KisDumbProjectionPlane::needRectForOriginal(const PkRect &rect) const
 {
     return rect;
 }
 
-QRect KisDumbProjectionPlane::tightUserVisibleBounds() const
+PkRect KisDumbProjectionPlane::tightUserVisibleBounds() const
 {
-    return QRect();
+    return PkRect();
 }
 
-QRect KisDumbProjectionPlane::looseUserVisibleBounds() const
+PkRect KisDumbProjectionPlane::looseUserVisibleBounds() const
 {
-    return QRect();
+    return PkRect();
 }
 
 KisPaintDeviceList KisDumbProjectionPlane::getLodCapableDevices() const

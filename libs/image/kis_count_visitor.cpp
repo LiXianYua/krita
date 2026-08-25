@@ -9,8 +9,8 @@
 
 bool KisCountVisitor::inList(KisNode* node)
 {
-    Q_FOREACH (const QString& nodeType, m_nodeTypes) {
-        if (node->inherits(nodeType.toLatin1()))
+    for (const PkString &nodeType : m_nodeTypes) {
+        if (node->inherits(nodeType))
             return true;
     }
     return false;

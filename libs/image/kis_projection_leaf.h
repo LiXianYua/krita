@@ -7,7 +7,7 @@
 #ifndef __KIS_PROJECTION_LEAF_H
 #define __KIS_PROJECTION_LEAF_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include "kis_types.h"
 #include "kritaimage_export.h"
@@ -44,7 +44,7 @@ public:
     bool dependsOnLowerNodes() const;
     bool visible() const;
     quint8 opacity() const;
-    QBitArray channelFlags() const;
+    PkBitArray channelFlags() const;
     bool isStillInGraph() const;
     bool hasClones() const;
 
@@ -93,7 +93,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_PROJECTION_LEAF_H */

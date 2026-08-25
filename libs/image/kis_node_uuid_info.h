@@ -8,8 +8,7 @@
 #ifndef kis_node_uuid_info_H
 #define kis_node_uuid_info_H
 
-#include <QUuid>
-#include <QString>
+#include <PkString.h>
 #include "kritaimage_export.h"
 #include "kis_node.h"
 
@@ -18,17 +17,17 @@ class KRITAIMAGE_EXPORT KisNodeUuidInfo
 
 public:
     KisNodeUuidInfo();
-    KisNodeUuidInfo(const QUuid& uuid);
-    KisNodeUuidInfo(const QString& name);
+    KisNodeUuidInfo(const PkNodeId& uuid);
+    KisNodeUuidInfo(const PkString& name);
     KisNodeUuidInfo(KisNodeSP node);
     
 public:
-    QUuid uuid()
+    PkNodeId uuid()
     {
         return m_uuid;
     }
     
-    QString name()
+    PkString name()
     {
         return m_name;
     }
@@ -40,8 +39,8 @@ private:
     bool check(KisNodeSP node);
     
 private:
-    QUuid m_uuid;
-    QString m_name;
+    PkNodeId m_uuid;
+    PkString m_name;
 };
 
 #endif // kis_node_uuid_info_H

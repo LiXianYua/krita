@@ -6,7 +6,7 @@
 
 #include "kis_node_query_path.h"
 
-#include <QStringList>
+#include <PkStringList.h>
 #include <kis_node.h>
 #include <kis_image.h>
 #include <kis_paint_device.h>
@@ -26,13 +26,13 @@ struct PathElement {
 };
 
 struct Q_DECL_HIDDEN KisNodeQueryPath::Private {
-    QList<PathElement> elements;
+    PkList<PathElement> elements;
     bool relative;
     /// This function will remove unneeded call to parent, for instance, "1/../3/../5" => "5"
     void simplifyPath() {
         // No elements then return
         if (elements.isEmpty()) return;
-        QList<PathElement> newelements;
+        PkList<PathElement> newelements;
         int i = 0;
         for (; i < elements.count() && elements[i].type == PathElement::Parent; ++i) {
             newelements.push_back(PathElement::Parent);
@@ -54,7 +54,7 @@ struct Q_DECL_HIDDEN KisNodeQueryPath::Private {
         // Set the new list
         elements = newelements;
     }
-    void queryLevel(int _level, KisNodeSP _node, QList<KisNodeSP>& _result) {
+    void queryLevel(int _level, KisNodeSP _node, PkList<KisNodeSP>& _result) {
         if (_level >= elements.size()) {
             _result.push_back(_node);
         } else {
@@ -114,7 +114,7 @@ bool KisNodeQueryPath::isRelative() const
 }
 
 
-QList<KisNodeSP> KisNodeQueryPath::queryNodes(KisImageWSP image, KisNodeSP currentNode) const
+PkList<KisNodeSP> KisNodeQueryPath::queryNodes(KisImageWSP image, KisNodeSP currentNode) const
 {
     KisNodeSP _node;
     if (d->relative) {
@@ -123,7 +123,7 @@ QList<KisNodeSP> KisNodeQueryPath::queryNodes(KisImageWSP image, KisNodeSP curre
         _node = image->root();
     }
 
-    QList<KisNodeSP> result;
+    PkList<KisNodeSP> result;
 
     d->queryLevel(0, _node, result);
 
@@ -132,41 +132,41 @@ QList<KisNodeSP> KisNodeQueryPath::queryNodes(KisImageWSP image, KisNodeSP curre
 
 KisNodeSP KisNodeQueryPath::queryUniqueNode(KisImageWSP image, KisNodeSP currentNode) const
 {
-    QList<KisNodeSP> result = queryNodes(image, currentNode);
+    PkList<KisNodeSP> result = queryNodes(image, currentNode);
     KIS_ASSERT_RECOVER_NOOP(result.size() <= 1);
 
     return !result.isEmpty() ? result.first() : 0;
 }
 
-QString KisNodeQueryPath::toString() const
+PkString KisNodeQueryPath::toString() const
 {
-    QString str;
+    PkString str;
     if (!d->relative) {
-        str = '/';
+        str = PkString("/");
     } else if (d->elements.count() == 0) {
-        return QString('.');
+        return PkString(".");
     }
     for (int i = 0; i < d->elements.count(); ++i) {
         PathElement pe = d->elements[i];
         switch (pe.type) {
         case PathElement::Wildcard:
-            str += '*';
+            str += PkString("*");
             break;
         case PathElement::Parent:
             str += "..";
             break;
         case PathElement::Index:
-            str += QString::number(pe.index);
+            str += PkString().arg(static_cast<int>(pe.index));
             break;
         }
         if (i != d->elements.count() - 1) {
-            str += '/';
+            str += PkString("/");
         }
     }
     return str;
 }
 
-KisNodeQueryPath KisNodeQueryPath::fromString(const QString& _path)
+KisNodeQueryPath KisNodeQueryPath::fromString(const PkString& _path)
 {
     KisNodeQueryPath path;
     if (_path.size() == 0 || _path == ".") {
@@ -178,11 +178,11 @@ KisNodeQueryPath KisNodeQueryPath::fromString(const QString& _path)
         return path;
     }
     path.d->relative = !(_path.at(0) == '/');
-    QStringList indexes = _path.split('/');
+    std::vector<PkString> indexes = _path.split('/');
     if (!path.d->relative) {
-        indexes.pop_front(); // In case of an absolute path "/1/2", the list is "", "1", "2" which is not good
+        indexes.erase(indexes.begin()); // In case of an absolute path "/1/2", the list is "", "1", "2" which is not good
     }
-    Q_FOREACH (const QString& index, indexes) {
+    for (const PkString& index : indexes) {
         if (index == "*") {
             path.d->elements.push_back(PathElement::Wildcard);
         } else if (index == "..") {

@@ -10,7 +10,7 @@
 #include "kis_types.h"
 #include "kis_layer.h"
 
-class QRect;
+class PkRect;
 class KisPainter;
 
 
@@ -41,44 +41,44 @@ public:
      * should recalculate its internal representation. For usual
      * layers it means just calling updateProjection().
      */
-    virtual QRect recalculate(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags) = 0;
+    virtual PkRect recalculate(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags) = 0;
 
     /**
      * Writes the data of the projection plane onto a global
      * projection using \p painter object.
      */
-    virtual void apply(KisPainter *painter, const QRect &rect) = 0;
+    virtual void apply(KisPainter *painter, const PkRect &rect) = 0;
 
     /**
      * Works like KisNode::needRect(), but includes more
      * transformations of the layer
      */
-    virtual QRect needRect(const QRect &rect, KisLayer::PositionToFilthy pos = KisLayer::N_FILTHY) const = 0;
+    virtual PkRect needRect(const PkRect &rect, KisLayer::PositionToFilthy pos = KisLayer::N_FILTHY) const = 0;
 
     /**
      * Works like KisNode::changeRect(), but includes more
      * transformations of the layer
      */
-    virtual QRect changeRect(const QRect &rect, KisLayer::PositionToFilthy pos = KisLayer::N_FILTHY) const = 0;
+    virtual PkRect changeRect(const PkRect &rect, KisLayer::PositionToFilthy pos = KisLayer::N_FILTHY) const = 0;
 
     /**
      * Works like KisNode::needRect(), but includes more
      * transformations of the layer
      */
-    virtual QRect accessRect(const QRect &rect, KisLayer::PositionToFilthy pos = KisLayer::N_FILTHY) const = 0;
+    virtual PkRect accessRect(const PkRect &rect, KisLayer::PositionToFilthy pos = KisLayer::N_FILTHY) const = 0;
 
     /**
      * Works like KisLayer::needRectForOriginal(), but includes needed
      * rects of layer styles
      */
-    virtual QRect needRectForOriginal(const QRect &rect) const = 0;
+    virtual PkRect needRectForOriginal(const PkRect &rect) const = 0;
 
     /**
      * Return a tight rectangle, where the contents of the plane
      * is placed from user's point of view. It includes everything
      * belonging to the plane (e.g. layer styles).
      */
-    virtual QRect tightUserVisibleBounds() const = 0;
+    virtual PkRect tightUserVisibleBounds() const = 0;
 
     /**
      * Return an approximate (loose) rectangle, where the contents of the
@@ -88,7 +88,7 @@ public:
      * This rectangle contains or is bigger than the rectangle returned by
      * tightUserVisibleBounds().
      */
-    virtual QRect looseUserVisibleBounds() const = 0;
+    virtual PkRect looseUserVisibleBounds() const = 0;
 
     /**
      * Returns a list of devices which should synchronize the lod cache on update
@@ -103,15 +103,15 @@ public:
 class KisDumbProjectionPlane : public KisAbstractProjectionPlane
 {
 public:
-    QRect recalculate(const QRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags) override;
-    void apply(KisPainter *painter, const QRect &rect) override;
+    PkRect recalculate(const PkRect& rect, KisNodeSP filthyNode, KisRenderPassFlags flags) override;
+    void apply(KisPainter *painter, const PkRect &rect) override;
 
-    QRect needRect(const QRect &rect, KisLayer::PositionToFilthy pos) const override;
-    QRect changeRect(const QRect &rect, KisLayer::PositionToFilthy pos) const override;
-    QRect accessRect(const QRect &rect, KisLayer::PositionToFilthy pos) const override;
-    QRect needRectForOriginal(const QRect &rect) const override;
-    QRect tightUserVisibleBounds() const override;
-    QRect looseUserVisibleBounds() const override;
+    PkRect needRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const override;
+    PkRect changeRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const override;
+    PkRect accessRect(const PkRect &rect, KisLayer::PositionToFilthy pos) const override;
+    PkRect needRectForOriginal(const PkRect &rect) const override;
+    PkRect tightUserVisibleBounds() const override;
+    PkRect looseUserVisibleBounds() const override;
 
     KisPaintDeviceList getLodCapableDevices() const override;
 };
