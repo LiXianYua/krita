@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoSubpathJoinCommand.h"
 #include "kis_assert.h"
@@ -102,7 +103,7 @@ void KoSubpathJoinCommand::redo()
     PkList<KoPathPointIndex> pointIndexes;
     pointIndexes << pathShape->pathPointIndex(point1);
     pointIndexes << pathShape->pathPointIndex(point2);
-    pathShape->recommendPointSelectionChange(pointIndexes);
+    pathShape->recommendPointSelectionChange(toQList(pointIndexes));
 
     pathShape->normalize();
     pathShape->update();
@@ -148,7 +149,7 @@ void KoSubpathJoinCommand::undo()
     PkList<KoPathPointIndex> pointIndexes;
     pointIndexes << pathShape->pathPointIndex(point1);
     pointIndexes << pathShape->pathPointIndex(point2);
-    pathShape->recommendPointSelectionChange(pointIndexes);
+    pathShape->recommendPointSelectionChange(toQList(pointIndexes));
 
     pathShape->normalize();
     pathShape->update();

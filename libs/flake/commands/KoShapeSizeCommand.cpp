@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoShapeSizeCommand.h"
 
@@ -41,7 +42,7 @@ void KoShapeSizeCommand::redo()
     int i = 0;
     for (KoShape *shape : d->shapes) {
         shape->update();
-        shape->setSize(d->newSizes[i++]);
+        shape->setSize(toQSizeF(d->newSizes[i++]));
         shape->update();
     }
 }
@@ -52,7 +53,7 @@ void KoShapeSizeCommand::undo()
     int i = 0;
     for (KoShape *shape : d->shapes) {
         shape->update();
-        shape->setSize(d->previousSizes[i++]);
+        shape->setSize(toQSizeF(d->previousSizes[i++]));
         shape->update();
     }
 }

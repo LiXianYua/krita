@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoShapeCreateCommand.h"
 #include "KoShape.h"
@@ -76,7 +77,7 @@ void KoShapeCreateCommand::redo()
                                          dynamic_cast<KoShapeLayer*>(shape));
 
             if (shapeParent) {
-                d->undoStore.addCommand(KoShapeReorderCommand::mergeInShape(shapeParent->shapes(), shape));
+                d->undoStore.addCommand(KoShapeReorderCommand::mergeInShape(toPkList(shapeParent->shapes()), shape));
             }
         }
         d->firstRedo = false;

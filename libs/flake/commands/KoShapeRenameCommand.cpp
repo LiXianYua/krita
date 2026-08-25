@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoShapeRenameCommand.h"
 
 #include "KoShape.h"
@@ -15,7 +16,7 @@ public:
     Private(KoShape *shape, const PkString &newName)
     : shape(shape)
     , newName(newName)
-    , oldName(shape->name())
+    , oldName(toPkString(shape->name()))
     {}
 
     KoShape *shape;
@@ -37,11 +38,11 @@ KoShapeRenameCommand::~KoShapeRenameCommand()
 void KoShapeRenameCommand::redo()
 {
     KUndo2Command::redo();
-    d->shape->setName(d->newName);
+    d->shape->setName(toQString(d->newName));
 }
 
 void KoShapeRenameCommand::undo()
 {
     KUndo2Command::undo();
-    d->shape->setName(d->oldName);
+    d->shape->setName(toQString(d->oldName));
 }

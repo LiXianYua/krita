@@ -6,9 +6,11 @@
  *  https://www.unicode.org/Public/16.0.0/ucd/Blocks.txt
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoUnicodeBlockData.h"
+#include <pk/container/PkVector.h>
 
 struct Q_DECL_HIDDEN KoUnicodeBlockDataFactory::Private
 {

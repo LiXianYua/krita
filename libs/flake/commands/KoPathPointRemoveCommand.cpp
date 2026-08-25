@@ -5,7 +5,9 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
+#include <pk/container/PkMap.h>
 #include "KoPathPointRemoveCommand.h"
 #include "KoSubpathRemoveCommand.h"
 #include "KoShapeController.h"
@@ -97,7 +99,7 @@ KUndo2Command *KoPathPointRemoveCommand::createCommand(
         new KoSubpathRemoveCommand(pd.pathShape, pd.pointIndex.first, cmd);
     }
     if (shapesToDelete.size() > 0) {
-        shapeController->removeShapes(shapesToDelete, cmd);
+        shapeController->removeShapes(toQList(shapesToDelete), cmd);
     }
 
     return cmd;
@@ -137,12 +139,12 @@ void KoPathPointRemoveCommand::redo()
 
         if (lastPathShape != pd.pathShape) {
             if (lastPathShape) {
-                PkPointF offset = lastPathShape->normalize();
+                PkPointF offset = toPkPointF(lastPathShape->normalize());
 
                 PkTransform matrix;
                 matrix.translate(-offset.x(), -offset.y());
                 for (int j = i + 1; j < updateBefore; ++j) {
-                    d->points.at(j)->map(matrix);
+                    d->points.at(j)->map(toQTransform(matrix));
                 }
                 lastPathShape->update();
                 updateBefore = i + 1;
@@ -152,12 +154,12 @@ void KoPathPointRemoveCommand::redo()
     }
 
     if (lastPathShape) {
-        PkPointF offset = lastPathShape->normalize();
+        PkPointF offset = toPkPointF(lastPathShape->normalize());
 
         PkTransform matrix;
         matrix.translate(-offset.x(), -offset.y());
         for (int j = 0; j < updateBefore; ++j) {
-            d->points.at(j)->map(matrix);
+            d->points.at(j)->map(toQTransform(matrix));
         }
         lastPathShape->update();
     }
@@ -190,7 +192,7 @@ void KoPathPointRemoveCommand::undo()
     }
 
     for (auto it = pointsMap.constBegin(); it != pointsMap.constEnd(); ++it) {
-        it.key()->recommendPointSelectionChange(it.value());
+        it.key()->recommendPointSelectionChange(toQList(it.value()));
     }
 
     d->deletePoints = false;

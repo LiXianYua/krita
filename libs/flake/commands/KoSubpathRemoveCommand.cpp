@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoSubpathRemoveCommand.h"
 
@@ -35,12 +36,12 @@ void KoSubpathRemoveCommand::redo()
     m_pathShape->update();
     m_subpath = m_pathShape->removeSubpath(m_subpathIndex);
     if (m_subpath) {
-        PkPointF offset = m_pathShape->normalize();
+        PkPointF offset = toPkPointF(m_pathShape->normalize());
 
         PkTransform matrix;
         matrix.translate(-offset.x(), -offset.y());
         for (KoPathPoint *point : *m_subpath) {
-            point->map(matrix);
+            point->map(toQTransform(matrix));
         }
         m_pathShape->update();
     }

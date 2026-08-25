@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoShapeClipCommand.h"
 #include "KoClipPath.h"
@@ -46,7 +47,7 @@ KoShapeClipCommand::KoShapeClipCommand(KoShapeControllerBase *controller, const 
 
     for (KoShape *shape : d->shapesToClip) {
         d->oldClipPaths.append(shape->clipPath());
-        d->newClipPaths.append(new KoClipPath(implicitCastList<KoShape*>(clipPathShapes), KoFlake::UserSpaceOnUse));
+        d->newClipPaths.append(new KoClipPath(toQList(implicitCastList<KoShape*>(clipPathShapes)), KoFlake::UserSpaceOnUse));
     }
 
     for (KoPathShape *path : clipPathShapes) {
@@ -62,7 +63,7 @@ KoShapeClipCommand::KoShapeClipCommand(KoShapeControllerBase *controller, KoShap
     d->shapesToClip.append(shape);
     d->clipPathShapes = clipPathShapes;
     d->oldClipPaths.append(shape->clipPath());
-    d->newClipPaths.append(new KoClipPath(implicitCastList<KoShape*>(clipPathShapes), KoFlake::UserSpaceOnUse));
+    d->newClipPaths.append(new KoClipPath(toQList(implicitCastList<KoShape*>(clipPathShapes)), KoFlake::UserSpaceOnUse));
 
     for (KoPathShape *path : clipPathShapes) {
         d->oldParents.append(path->parent());

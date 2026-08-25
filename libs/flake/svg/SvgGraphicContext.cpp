@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "SvgGraphicContext.h"
 
@@ -13,17 +14,17 @@
 
 
 SvgGraphicsContext::SvgGraphicsContext()
-: stroke(toQShared(new KoShapeStroke()))
+: stroke(QSharedPointer<KoShapeStroke>(new KoShapeStroke()))
 , textProperties(KoSvgTextProperties())
 {
-    stroke->setLineStyle(Qt::NoPen, PkVector<qreal>());   // default is no stroke
+    stroke->setLineStyle(Qt::NoPen, QVector<qreal>());   // default is no stroke
     stroke->setLineWidth(1.0);
     stroke->setCapStyle(Qt::FlatCap);
     stroke->setJoinStyle(Qt::MiterJoin);
 }
 
 SvgGraphicsContext::SvgGraphicsContext(const SvgGraphicsContext &gc)
-    : stroke(toQShared(new KoShapeStroke(*(gc.stroke.data()))))
+    : stroke(QSharedPointer<KoShapeStroke>(new KoShapeStroke(*(gc.stroke.data()))))
 {
     KoShapeStrokeSP newStroke = stroke;
     *this = gc;
@@ -43,8 +44,8 @@ void SvgGraphicsContext::workaroundClearInheritedFillProperties()
 
     strokeType = None;
 
-    stroke = toQShared(new KoShapeStroke());
-    stroke->setLineStyle(Qt::NoPen, PkVector<qreal>());   // default is no stroke
+    stroke = QSharedPointer<KoShapeStroke>(new KoShapeStroke());
+    stroke->setLineStyle(Qt::NoPen, QVector<qreal>());   // default is no stroke
     stroke->setLineWidth(1.0);
     stroke->setCapStyle(Qt::FlatCap);
     stroke->setJoinStyle(Qt::MiterJoin);

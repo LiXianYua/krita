@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoShapeAlignCommand.h"
 #include "KoShape.h"
@@ -39,9 +40,9 @@ KoShapeAlignCommand::KoShapeAlignCommand(const PkList<KoShape*> &shapes, Align a
 //       debugFlake <<"Found Container";
 //   else
 //       debugFlake <<"Found shape";
-        position = shape->absolutePosition();
+        position = toPkPointF(shape->absolutePosition());
         previousPositions  << position;
-        bRect = shape->absoluteOutlineRect();
+        bRect = toPkRectF(shape->absoluteOutlineRect());
         switch (align) {
         case HorizontalLeftAlignment:
             delta = PkPointF(boundingRect.left(), bRect.y()) - bRect.topLeft();

@@ -5,13 +5,15 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoShapeDistributeCommand.h"
 
 #include "commands/KoShapeMoveCommand.h"
 #include "KoShape.h"
 #include <pk/container/PkMap.h>
+#include <pk/container/PkMapIterator.h>
 class Q_DECL_HIDDEN KoShapeDistributeCommand::Private
 {
 public:
@@ -36,7 +38,7 @@ KoShapeDistributeCommand::KoShapeDistributeCommand(const PkList<KoShape*> &shape
     qreal extent = 0.0;
     // sort by position and calculate sum of objects width/height
     for (KoShape *shape : shapes) {
-        bRect = shape->absoluteOutlineRect();
+        bRect = toPkRectF(shape->absoluteOutlineRect());
         switch (d->distribute) {
         case HorizontalCenterDistribution:
             sortedPos[bRect.center().x()] = shape;
@@ -79,10 +81,10 @@ KoShapeDistributeCommand::KoShapeDistributeCommand(const PkList<KoShape*> &shape
     PkMapIterator<qreal, KoShape*> it(sortedPos);
     while (it.hasNext()) {
         it.next();
-        position = it.value()->absolutePosition();
+        position = toPkPointF(it.value()->absolutePosition());
         previousPositions  << position;
 
-        bRect = it.value()->absoluteOutlineRect();
+        bRect = toPkRectF(it.value()->absoluteOutlineRect());
         switch (d->distribute)        {
         case HorizontalCenterDistribution:
             delta = PkPointF(boundingRect.x() + first->absoluteOutlineRect().width() / 2 + pos - bRect.width() / 2, bRect.y()) - bRect.topLeft();

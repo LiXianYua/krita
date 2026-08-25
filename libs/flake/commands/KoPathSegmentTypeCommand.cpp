@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathSegmentTypeCommand.h"
 
 #include <KoPathSegment.h>
@@ -43,7 +44,7 @@ void KoPathSegmentTypeCommand::redo()
 
         if (m_segmentType == Curve) {
             // we change type to curve -> set control point positions
-            PkPointF pointDiff = segment.second()->point() - segment.first()->point();
+            QPointF pointDiff = segment.second()->point() - segment.first()->point();
             segment.first()->setControlPoint2(segment.first()->point() + pointDiff / 3.0);
             segment.second()->setControlPoint1(segment.first()->point() + pointDiff * 2.0 / 3.0);
         } else {
@@ -68,8 +69,8 @@ void KoPathSegmentTypeCommand::undo()
 
         if (m_segmentType == Line) {
             // change type back to curve -> reactivate control points and their positions
-            segment.first()->setControlPoint2(pd.pathShape->documentToShape(segmentData.m_controlPoint2));
-            segment.second()->setControlPoint1(pd.pathShape->documentToShape(segmentData.m_controlPoint1));
+            segment.first()->setControlPoint2(pd.pathShape->documentToShape(toQPointF(segmentData.m_controlPoint2)));
+            segment.second()->setControlPoint1(pd.pathShape->documentToShape(toQPointF(segmentData.m_controlPoint1)));
         } else {
             // change back to line -> remove control points
             segment.first()->removeControlPoint2();
@@ -107,8 +108,8 @@ void KoPathSegmentTypeCommand::initialize(const PkList<KoPathPointData> & pointD
 
             // we are changing a curve to a line -> save control point positions
             if (m_segmentType == Line) {
-                segmentData.m_controlPoint2 = pathShape->shapeToDocument(segment.first()->controlPoint2());
-                segmentData.m_controlPoint1 = pathShape->shapeToDocument(segment.second()->controlPoint1());
+                segmentData.m_controlPoint2 = toPkPointF(pathShape->shapeToDocument(segment.first()->controlPoint2()));
+                segmentData.m_controlPoint1 = toPkPointF(pathShape->shapeToDocument(segment.second()->controlPoint1()));
             }
             // save point properties
             segmentData.m_properties2 = segment.first()->properties();

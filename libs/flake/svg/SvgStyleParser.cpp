@@ -10,7 +10,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "SvgStyleParser.h"
 #include "SvgLoadingContext.h"
@@ -26,6 +27,7 @@
 #include <pk/container/PkStringList.h>
 #include <pk/container/PkMap.h>
 #include <pk/container/PkMapIterator.h>
+#include <pk/container/PkVector.h>
 #include <pk/xml/PkXmlElement.h>
 #include <pk/color/PkColor.h>
 #include <PkGradient.h>
@@ -114,6 +116,29 @@ float pkToFloat(const PkString &s, bool *ok = nullptr)
     return static_cast<float>(d);
 }
 
+// PkVector<qreal> → QVector<qreal>：KoShapeStroke::setLineStyle 的 dashes 参数
+// 是 Qt 型（QVector<qreal>），本文件内部用 PkVector<qreal> 攒 dash 数组。
+static inline QVector<qreal> toQVectorReals(const PkVector<qreal> &v)
+{
+    QVector<qreal> out;
+    out.reserve(v.size());
+    for (qreal x : v) {
+        out.append(x);
+    }
+    return out;
+}
+
+// QStringList → PkStringList：KoSvgTextProperties::supportedXmlAttributes() 返回
+// Qt 型 QStringList，本文件存进 Pk 型 textAttributes。
+static inline PkStringList toPkStringList(const QStringList &list)
+{
+    PkStringList out;
+    for (const QString &s : list) {
+        out.append(toPkString(s));
+    }
+    return out;
+}
+
 } // namespace
 
 class Q_DECL_HIDDEN SvgStyleParser::Private
@@ -122,7 +147,7 @@ public:
     Private(SvgLoadingContext &loadingContext)
         : context(loadingContext)
     {
-        textAttributes << KoSvgTextProperties::supportedXmlAttributes();
+        textAttributes << toPkStringList(KoSvgTextProperties::supportedXmlAttributes());
         textAttributes.removeAll("xml:space");
 
         // the order of the font attributes is important, don't change without reason !!!
@@ -247,7 +272,7 @@ void SvgStyleParser::parseFont(const SvgStyles &styles)
 void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const PkString &command, const PkString &params)
 {
     PkColor fillcolor = gc->fillColor;
-    PkColor strokecolor = gc->stroke->color();
+    PkColor strokecolor = toPkColor(gc->stroke->color());
 
     if (params == "inherit")
         return;
@@ -319,7 +344,7 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const PkString &command, co
                 array << array;
             }
         }
-        gc->stroke->setLineStyle(Qt::CustomDashLine, array);
+        gc->stroke->setLineStyle(Qt::CustomDashLine, toQVectorReals(array));
     } else if (command == "stroke-dashoffset") {
         gc->stroke->setDashOffset(pkToFloat(params));
     }
@@ -338,37 +363,37 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const PkString &command, co
     } else if (command == "paint-order") {
         gc->paintOrder = params;
     } else if (command == "font-family") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     } else if (command == "font-size") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     } else if (command == "font-style") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
 
     } else if (command == "font-variant" || command == "font-variant-caps" || command == "font-variant-alternates" || command == "font-variant-ligatures"
                || command == "font-variant-numeric" || command == "font-variant-east-asian" || command == "font-variant-position") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
 
     } else if (command == "font-feature-settings") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     } else if (command == "font-stretch") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     } else if (command == "font-weight") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     } else if (command == "font-variation-settings") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     } else if (command == "font-optical-sizing") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     } else if (command == "font-size-adjust") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     } else if (command == "font-synthesis"
                || command == "font-synthesis-weight" || command == "font-synthesis-style"
                || command == "font-synthesis-small-caps" || command == "font-synthesis-position") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     } else if (command == "font") {
         qWarning() << "Krita does not support the 'font' shorthand";
     } else if (command == "text-decoration" || command == "text-decoration-line" || command == "text-decoration-style" || command == "text-decoration-color"
                || command == "text-decoration-position") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
 
     } else if (command == "color") {
         PkColor color;
@@ -438,15 +463,15 @@ void SvgStyleParser::parsePA(SvgGraphicsContext *gc, const PkString &command, co
                || command == "text-align-all" || command == "text-align-last" || command == "inline-size" || command == "overflow" || command == "text-overflow"
                || command == "tab-size" || command == "overflow-wrap" || command == "word-wrap" || command == "vertical-align"
                || command ==  "shape-padding" || command ==   "shape-margin" || command == "text-orientation" || command == "text-rendering") {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     } else if (command == "krita:marker-fill-method") {
         gc->autoFillMarkers = params == "auto";
     } else if (d->textAttributes.contains(command)) {
-        gc->textProperties.parseSvgTextAttribute(d->context, command, params);
+        gc->textProperties.parseSvgTextAttribute(d->context, toQString(command), toQString(params));
     }
 
     gc->fillColor = fillcolor;
-    gc->stroke->setColor(strokecolor);
+    gc->stroke->setColor(toQColor(strokecolor));
 }
 
 bool SvgStyleParser::parseColor(PkColor &color, const PkString &s)

@@ -4,12 +4,13 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoInsets.h"
 
 #ifndef QT_NO_DEBUG_STREAM
-PkDebug operator<<(PkDebug debug, const KoInsets &insets)
+QDebug operator<<(QDebug debug, const KoInsets &insets)
 {
 #ifndef NDEBUG
     debug.nospace() << "KoInsets [top=" << insets.top;

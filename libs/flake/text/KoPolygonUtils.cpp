@@ -4,7 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoPolygonUtils.h"
 #include <boost/polygon/polygon.hpp>

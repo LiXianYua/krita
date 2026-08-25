@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoShapeReorderCommand.h"
 #include "KoShape.h"
@@ -13,6 +14,7 @@
 #include "KoShapeContainer.h"
 #include <FlakeDebug.h>
 #include <limits.h>
+#include <pk/container/PkMap.h>
 
 KoShapeReorderCommand::IndexedShape::IndexedShape()
 {
@@ -100,11 +102,11 @@ static void prepare(KoShape *s, PkMap<KoShape*, PkList<KoShape*> > &newOrder, Ko
     if (it == newOrder.end()) {
         PkList<KoShape*> children;
         if (parent != 0) {
-            children = parent->shapes();
+            children = toPkList(parent->shapes());
         }
         else {
             // get all toplevel shapes
-            children = manager->topLevelShapes();
+            children = toPkList(manager->topLevelShapes());
         }
         std::sort(children.begin(), children.end(), KoShape::compareShapeZIndex);
         // the append and prepend are needed so that the raise/lower of all shapes works as expected.

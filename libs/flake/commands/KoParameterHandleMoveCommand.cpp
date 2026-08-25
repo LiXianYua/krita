@@ -6,7 +6,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoParameterHandleMoveCommand.h"
 #include "KoParameterShape.h"
@@ -32,7 +33,7 @@ void KoParameterHandleMoveCommand::redo()
 {
     KUndo2Command::redo();
     m_shape->update();
-    m_shape->moveHandle(m_handleId, m_endPoint, m_keyModifiers);
+    m_shape->moveHandle(m_handleId, toQPointF(m_endPoint), m_keyModifiers);
     m_shape->update();
 }
 
@@ -41,7 +42,7 @@ void KoParameterHandleMoveCommand::undo()
 {
     KUndo2Command::undo();
     m_shape->update();
-    m_shape->moveHandle(m_handleId, m_startPoint);
+    m_shape->moveHandle(m_handleId, toQPointF(m_startPoint));
     m_shape->update();
 }
 

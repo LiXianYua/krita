@@ -5,7 +5,9 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
+#include <pk/container/PkPair.h>
 #include "KoPathPointInsertCommand.h"
 
 #include "KoPathPoint.h"
@@ -49,7 +51,7 @@ KoPathPointInsertCommand::KoPathPointInsertCommand(const PkList<KoPathPointData>
 
         d->pointDataList.append(*it);
 
-        PkPair<KoPathSegment, KoPathSegment> splitSegments = segment.splitAt(insertPosition);
+        QPair<KoPathSegment, KoPathSegment> splitSegments = segment.splitAt(insertPosition);
 
         KoPathPoint * split1 = splitSegments.first.second();
         KoPathPoint * split2 = splitSegments.second.first();
@@ -60,8 +62,8 @@ KoPathPointInsertCommand::KoPathPointInsertCommand(const PkList<KoPathPointData>
             splitPoint->setControlPoint2(split2->controlPoint2());
 
         d->points.append(splitPoint);
-        PkPointF cp1 = splitSegments.first.first()->controlPoint2();
-        PkPointF cp2 = splitSegments.second.second()->controlPoint1();
+        PkPointF cp1 = toPkPointF(splitSegments.first.first()->controlPoint2());
+        PkPointF cp2 = toPkPointF(splitSegments.second.second()->controlPoint1());
         d->controlPoints.append(PkPair<PkPointF, PkPointF>(cp1, cp2));
     }
     setText(kundo2_text("Insert points"));
@@ -84,15 +86,15 @@ void KoPathPointInsertCommand::redo()
         ++pointData.pointIndex.second;
 
         if (segment.first()->activeControlPoint2()) {
-            PkPointF controlPoint2 = segment.first()->controlPoint2();
+            PkPointF controlPoint2 = toPkPointF(segment.first()->controlPoint2());
             std::swap(controlPoint2, d->controlPoints[i].first);
-            segment.first()->setControlPoint2(controlPoint2);
+            segment.first()->setControlPoint2(toQPointF(controlPoint2));
         }
 
         if (segment.second()->activeControlPoint1()) {
-            PkPointF controlPoint1 = segment.second()->controlPoint1();
+            PkPointF controlPoint1 = toPkPointF(segment.second()->controlPoint1());
             std::swap(controlPoint1, d->controlPoints[i].second);
-            segment.second()->setControlPoint1(controlPoint1);
+            segment.second()->setControlPoint1(toQPointF(controlPoint1));
         }
 
         pathShape->insertPoint(d->points.at(i), pointData.pointIndex);
@@ -122,15 +124,15 @@ void KoPathPointInsertCommand::undo()
         KoPathPoint * after = pathShape->pointByIndex(piAfter);
 
         if (before->activeControlPoint2()) {
-            PkPointF controlPoint2 = before->controlPoint2();
+            PkPointF controlPoint2 = toPkPointF(before->controlPoint2());
             std::swap(controlPoint2, d->controlPoints[i].first);
-            before->setControlPoint2(controlPoint2);
+            before->setControlPoint2(toQPointF(controlPoint2));
         }
 
         if (after->activeControlPoint1()) {
-            PkPointF controlPoint1 = after->controlPoint1();
+            PkPointF controlPoint1 = toPkPointF(after->controlPoint1());
             std::swap(controlPoint1, d->controlPoints[i].second);
-            after->setControlPoint1(controlPoint1);
+            after->setControlPoint1(toQPointF(controlPoint1));
         }
 
         PkList<KoPathPointIndex> segmentPoints;
@@ -141,7 +143,7 @@ void KoPathPointInsertCommand::undo()
             segmentPoints << nextPoint;
         }
 
-        pathShape->recommendPointSelectionChange(segmentPoints);
+        pathShape->recommendPointSelectionChange(toQList(segmentPoints));
         pathShape->update();
     }
     d->deletePoints = true;

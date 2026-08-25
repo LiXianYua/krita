@@ -4,8 +4,12 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
+#include <pk/container/PkMap.h>
+#include <pk/container/PkMapIterator.h>
+#include <pk/xml/PkXmlCDATASection.h>
 #include "SvgCssHelper.h"
 #include <FlakeDebug.h>
 #include <pk/container/PkContainerAlgo.h>

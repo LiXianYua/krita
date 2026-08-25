@@ -7,7 +7,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoShapeStrokeCommand.h"
 #include "KoShape.h"
@@ -93,7 +94,7 @@ void KoShapeStrokeCommand::redo()
 {
     KUndo2Command::redo();
 
-    KoShapeBulkActionLock lock(d->shapes);
+    KoShapeBulkActionLock lock(toQList(d->shapes));
 
     PkList<KoShapeStrokeModelSP>::iterator strokeIt = d->newStrokes.begin();
     for (KoShape *shape : d->shapes) {
@@ -108,7 +109,7 @@ void KoShapeStrokeCommand::undo()
 {
     KUndo2Command::undo();
 
-    KoShapeBulkActionLock lock(d->shapes);
+    KoShapeBulkActionLock lock(toQList(d->shapes));
 
     PkList<KoShapeStrokeModelSP>::iterator strokeIt = d->oldStrokes.begin();
     for (KoShape *shape : d->shapes) {

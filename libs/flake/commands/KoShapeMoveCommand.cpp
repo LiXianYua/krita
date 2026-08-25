@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "KoShapeMoveCommand.h"
 
@@ -43,7 +44,7 @@ KoShapeMoveCommand::KoShapeMoveCommand(const PkList<KoShape *> &shapes, const Pk
     d->anchor = KoFlake::Center;
 
     for (KoShape *shape : d->shapes) {
-        const PkPointF pos = shape->absolutePosition();
+        const PkPointF pos = toPkPointF(shape->absolutePosition());
 
         d->previousPositions << pos;
         d->newPositions << pos + offset;
@@ -59,11 +60,11 @@ void KoShapeMoveCommand::redo()
 {
     KUndo2Command::redo();
 
-    KoShapeBulkActionLock lock(d->shapes);
+    KoShapeBulkActionLock lock(toQList(d->shapes));
 
     for (int i = 0; i < d->shapes.count(); i++) {
         KoShape *shape = d->shapes.at(i);
-        shape->setAbsolutePosition(d->newPositions.at(i), d->anchor);
+        shape->setAbsolutePosition(toQPointF(d->newPositions.at(i)), d->anchor);
     }
 
     KoShapeBulkActionLock::bulkShapesUpdate(lock.unlock());
@@ -73,11 +74,11 @@ void KoShapeMoveCommand::undo()
 {
     KUndo2Command::undo();
 
-    KoShapeBulkActionLock lock(d->shapes);
+    KoShapeBulkActionLock lock(toQList(d->shapes));
 
     for (int i = 0; i < d->shapes.count(); i++) {
         KoShape *shape = d->shapes.at(i);
-        shape->setAbsolutePosition(d->previousPositions.at(i), d->anchor);
+        shape->setAbsolutePosition(toQPointF(d->previousPositions.at(i)), d->anchor);
     }
 
     KoShapeBulkActionLock::bulkShapesUpdate(lock.unlock());

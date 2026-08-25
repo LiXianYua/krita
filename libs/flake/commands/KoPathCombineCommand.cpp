@@ -5,7 +5,9 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
+#include <pk/container/PkHash.h>
 #include "KoPathCombineCommand.h"
 #include "KoShapeControllerBase.h"
 #include "KoShapeContainer.h"

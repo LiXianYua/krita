@@ -5,7 +5,9 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
+#include <pk/container/PkMap.h>
 #include "KoPathBreakAtPointCommand.h"
 
 #include "KoPathPoint.h"
@@ -146,7 +148,7 @@ void KoPathBreakAtPointCommand::undo()
     }
 
     for (auto it = pointsMap.constBegin(); it != pointsMap.constEnd(); ++it) {
-        it.key()->recommendPointSelectionChange(it.value());
+        it.key()->recommendPointSelectionChange(toQList(it.value()));
     }
 
     m_deletePoints = true;

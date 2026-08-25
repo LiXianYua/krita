@@ -5,12 +5,34 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
+#include <pk/pointer/PkSharedPointer.h>
 
 #include "KoShapeBackgroundCommand.h"
 #include "KoShape.h"
 #include "KoShapeBackground.h"
 #include "kis_command_ids.h"
+
+namespace {
+// PkSharedPointer ↔ QSharedPointer 过渡助手（桥接头没有共享指针互转：真 Qt 的
+// QSharedPointer 无 std::shared_ptr 互操作构造）。用「保活 deleter」模式——两边
+// 各自持有独立控制块，转换方把原指针的副本捕获进 deleter，借副本维持所有权；
+// 对象只被原控制块删除一次，不会双删。
+template <typename T>
+inline PkSharedPointer<T> toPkSharedPointer(const QSharedPointer<T> &p)
+{
+    QSharedPointer<T> keep = p;
+    return PkSharedPointer<T>(p.data(), [keep](T *) { (void)keep; });
+}
+
+template <typename T>
+inline QSharedPointer<T> toQSharedPointer(const PkSharedPointer<T> &p)
+{
+    PkSharedPointer<T> keep = p;
+    return QSharedPointer<T>(p.data(), [keep](T *) { (void)keep; });
+}
+}
 
 
 class Q_DECL_HIDDEN KoShapeBackgroundCommand::Private
@@ -45,7 +67,7 @@ KoShapeBackgroundCommand::KoShapeBackgroundCommand(const PkList<KoShape*> &shape
 {
     d->shapes = shapes;
     for (KoShape *shape : d->shapes) {
-        d->addOldFill(shape->background());
+        d->addOldFill(toPkSharedPointer(shape->background()));
         d->addNewFill(fill);
     }
 
@@ -57,7 +79,7 @@ KoShapeBackgroundCommand::KoShapeBackgroundCommand(KoShape * shape, PkSharedPoin
         , d(new Private())
 {
     d->shapes.append(shape);
-    d->addOldFill(shape->background());
+    d->addOldFill(toPkSharedPointer(shape->background()));
     d->addNewFill(fill);
 
     setText(kundo2_text("Set background"));
@@ -69,7 +91,7 @@ KoShapeBackgroundCommand::KoShapeBackgroundCommand(const PkList<KoShape*> &shape
 {
     d->shapes = shapes;
     for (KoShape *shape : d->shapes) {
-        d->addOldFill(shape->background());
+        d->addOldFill(toPkSharedPointer(shape->background()));
     }
     for (PkSharedPointer<KoShapeBackground>  fill : fills) {
         d->addNewFill(fill);
@@ -83,7 +105,7 @@ void KoShapeBackgroundCommand::redo()
     KUndo2Command::redo();
     PkList<PkSharedPointer<KoShapeBackground> >::iterator brushIt = d->newFills.begin();
     for (KoShape *shape : d->shapes) {
-        shape->setBackground(*brushIt);
+        shape->setBackground(toQSharedPointer(*brushIt));
         shape->update();
         ++brushIt;
     }
@@ -94,7 +116,7 @@ void KoShapeBackgroundCommand::undo()
     KUndo2Command::undo();
     PkList<PkSharedPointer<KoShapeBackground> >::iterator brushIt = d->oldFills.begin();
     for (KoShape *shape : d->shapes) {
-        shape->setBackground(*brushIt);
+        shape->setBackground(toQSharedPointer(*brushIt));
         shape->update();
         ++brushIt;
     }

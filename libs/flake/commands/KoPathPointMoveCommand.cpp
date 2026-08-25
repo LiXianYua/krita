@@ -6,7 +6,10 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
+#include <pk/container/PkMap.h>
+#include <pk/container/PkSet.h>
 #include "KoPathPointMoveCommand.h"
 #include "KoPathPoint.h"
 #include "kis_command_ids.h"
@@ -103,19 +106,19 @@ void KoPathPointMoveCommandPrivate::applyOffset(qreal factor)
     PkList<KoShape*> shapes;
     std::copy(paths.begin(), paths.end(), std::back_inserter(shapes));
 
-    KoShapeBulkActionLock lock(shapes);
+    KoShapeBulkActionLock lock(toQList(shapes));
 
     PkMap<KoPathPointData, PkPointF>::iterator it(points.begin());
     for (; it != points.end(); ++it) {
         KoPathShape *path = it.key().pathShape;
         // transform offset from document to shape coordinate system
-        PkPointF shapeOffset = path->documentToShape(factor*it.value()) - path->documentToShape(PkPointF());
+        QPointF shapeOffset = path->documentToShape(toQPointF(factor*it.value())) - path->documentToShape(toQPointF(PkPointF()));
         PkTransform matrix;
         matrix.translate(shapeOffset.x(), shapeOffset.y());
 
         KoPathPoint *p = path->pointByIndex(it.key().pointIndex);
         if (p)
-            p->map(matrix);
+            p->map(toQTransform(matrix));
     }
 
     for (KoPathShape *path : paths) {

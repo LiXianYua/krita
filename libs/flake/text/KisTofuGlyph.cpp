@@ -4,7 +4,9 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
+#include <pk/geometry/PkTransform.h>
 
 #include "KisTofuGlyph.h"
 

@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 #include "KoPathPointTypeCommand.h"
 
 #include <math.h>
@@ -24,8 +25,8 @@ KoPathPointTypeCommand::KoPathPointTypeCommand(
         KoPathPoint *point = it->pathShape->pointByIndex(it->pointIndex);
         if (point) {
             PointData pointData(*it);
-            pointData.m_oldControlPoint1 = it->pathShape->shapeToDocument(point->controlPoint1());
-            pointData.m_oldControlPoint2 = it->pathShape->shapeToDocument(point->controlPoint2());
+            pointData.m_oldControlPoint1 = toPkPointF(it->pathShape->shapeToDocument(point->controlPoint1()));
+            pointData.m_oldControlPoint2 = toPkPointF(it->pathShape->shapeToDocument(point->controlPoint2()));
             pointData.m_oldProperties = point->properties();
             pointData.m_hadControlPoint1 = point->activeControlPoint1();
             pointData.m_hadControlPoint2 = point->activeControlPoint2();
@@ -101,11 +102,11 @@ void KoPathPointTypeCommand::redo()
             properties |= KoPathPoint::IsSymmetric;
 
             // calculate vector from node point to first control point and normalize it
-            PkPointF directionC1 = point->controlPoint1() - point->point();
+            QPointF directionC1 = point->controlPoint1() - point->point();
             qreal dirLengthC1 = sqrt(directionC1.x() * directionC1.x() + directionC1.y() * directionC1.y());
             directionC1 /= dirLengthC1;
             // calculate vector from node point to second control point and normalize it
-            PkPointF directionC2 = point->controlPoint2() - point->point();
+            QPointF directionC2 = point->controlPoint2() - point->point();
             qreal dirLengthC2 = sqrt(directionC2.x() * directionC2.x() + directionC2.y() * directionC2.y());
             directionC2 /= dirLengthC2;
             // calculate the average distance of the control points to the node point
@@ -169,11 +170,11 @@ void KoPathPointTypeCommand::makeCubicPointSmooth(KoPathPoint *point)
     properties |= KoPathPoint::IsSmooth;
 
     // calculate vector from node point to first control point and normalize it
-    PkPointF directionC1 = point->controlPoint1() - point->point();
+    QPointF directionC1 = point->controlPoint1() - point->point();
     qreal dirLengthC1 = sqrt(directionC1.x() * directionC1.x() + directionC1.y() * directionC1.y());
     directionC1 /= dirLengthC1;
     // calculate vector from node point to second control point and normalize it
-    PkPointF directionC2 = point->controlPoint2() - point->point();
+    QPointF directionC2 = point->controlPoint2() - point->point();
     qreal dirLengthC2 = sqrt(directionC2.x() * directionC2.x() + directionC2.y() * directionC2.y());
     directionC2 /= dirLengthC2;
     // compute position of the control points so that they lie on a line going through the node point
@@ -193,11 +194,11 @@ void KoPathPointTypeCommand::undoChanges(const PkList<PointData> &data)
 
         point->setProperties(it->m_oldProperties);
         if (it->m_hadControlPoint1)
-            point->setControlPoint1(pathShape->documentToShape(it->m_oldControlPoint1));
+            point->setControlPoint1(pathShape->documentToShape(toQPointF(it->m_oldControlPoint1)));
         else
             point->removeControlPoint1();
         if (it->m_hadControlPoint2)
-            point->setControlPoint2(pathShape->documentToShape(it->m_oldControlPoint2));
+            point->setControlPoint2(pathShape->documentToShape(toQPointF(it->m_oldControlPoint2)));
         else
             point->removeControlPoint2();
     }
@@ -210,8 +211,8 @@ bool KoPathPointTypeCommand::appendPointData(KoPathPointData data)
         return false;
 
     PointData pointData(data);
-    pointData.m_oldControlPoint1 = data.pathShape->shapeToDocument(point->controlPoint1());
-    pointData.m_oldControlPoint2 = data.pathShape->shapeToDocument(point->controlPoint2());
+    pointData.m_oldControlPoint1 = toPkPointF(data.pathShape->shapeToDocument(point->controlPoint1()));
+    pointData.m_oldControlPoint2 = toPkPointF(data.pathShape->shapeToDocument(point->controlPoint2()));
     pointData.m_oldProperties = point->properties();
     pointData.m_hadControlPoint1 = point->activeControlPoint1();
     pointData.m_hadControlPoint2 = point->activeControlPoint2();

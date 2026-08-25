@@ -5,7 +5,8 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
-#include <PkXmlCompat.h>
+#include <QtCore/QtCore>
+#include <PkFlakeBridge.h>
 
 #include "kis_command_ids.h"
 
@@ -46,12 +47,12 @@ void KoShapeTransformCommand::redo()
 {
     KUndo2Command::redo();
 
-    KoShapeBulkActionLock lock(d->shapes);
+    KoShapeBulkActionLock lock(toQList(d->shapes));
 
     const int shapeCount = d->shapes.count();
     for (int i = 0; i < shapeCount; ++i) {
         KoShape * shape = d->shapes[i];
-        shape->setTransformation(d->newState[i]);
+        shape->setTransformation(toQTransform(d->newState[i]));
     }
 
     KoShapeBulkActionLock::bulkShapesUpdate(lock.unlock());
@@ -61,12 +62,12 @@ void KoShapeTransformCommand::undo()
 {
     KUndo2Command::undo();
 
-    KoShapeBulkActionLock lock(d->shapes);
+    KoShapeBulkActionLock lock(toQList(d->shapes));
 
     const int shapeCount = d->shapes.count();
     for (int i = 0; i < shapeCount; ++i) {
         KoShape * shape = d->shapes[i];
-        shape->setTransformation(d->oldState[i]);
+        shape->setTransformation(toQTransform(d->oldState[i]));
     }
 
     KoShapeBulkActionLock::bulkShapesUpdate(lock.unlock());
