@@ -8,6 +8,32 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/libs/flake/xsimd
     ${CMAKE_SOURCE_DIR}/libs/flake/resources
     ${CMAKE_BINARY_DIR}/libs/flake
+    # S-08 Task 8（判据⑧/⑨）：flake 源码 include 面已含 pk 头（PkString/PkVariant/
+    # PkDateTime/PkXmlElement 等），并经 PkXmlCompat.h（libs/pigment）激活
+    # `#include <compat/QXxx>` 垫片——pk/<dir> 在 include 路径上即可解析到
+    # pk/<dir>/compat/ 同名垫片。主树保留过渡 Qt（绘图层），故**只加 pk/<dir>，
+    # 不加 pk/*/compat**——后者会把真实 Qt 头（QString/QtGlobal 等）遮蔽掉。
+    # 与薄壳 SHELL_INCLUDE_DIRS 的 pk 段对齐（18 目录全列）；实测 pk 模块根无
+    # Qt 同名头（Q*/q* 均只在各 compat/ 下），加全 18 目录无遮蔽风险。
+    # 剥离期整树不编（决策 D-19），此路径面供编译层判据⑧核对。
+    ${CMAKE_SOURCE_DIR}/pk/string
+    ${CMAKE_SOURCE_DIR}/pk/container
+    ${CMAKE_SOURCE_DIR}/pk/variant
+    ${CMAKE_SOURCE_DIR}/pk/port
+    ${CMAKE_SOURCE_DIR}/pk/pointer
+    ${CMAKE_SOURCE_DIR}/pk/geometry
+    ${CMAKE_SOURCE_DIR}/pk/global
+    ${CMAKE_SOURCE_DIR}/pk/log
+    ${CMAKE_SOURCE_DIR}/pk/concurrent
+    ${CMAKE_SOURCE_DIR}/pk/image
+    ${CMAKE_SOURCE_DIR}/pk/time
+    ${CMAKE_SOURCE_DIR}/pk/config
+    ${CMAKE_SOURCE_DIR}/pk/flags
+    ${CMAKE_SOURCE_DIR}/pk/color
+    ${CMAKE_SOURCE_DIR}/pk/signal
+    ${CMAKE_SOURCE_DIR}/pk/sql
+    ${CMAKE_SOURCE_DIR}/pk/xml
+    ${CMAKE_SOURCE_DIR}/pk/namespace
 )
 
 add_subdirectory(styles)
@@ -261,6 +287,11 @@ set(kritaflake_OBJECT_DEPS
     Raqm::Raqm
     Fontconfig::Fontconfig
     libunibreak::libunibreak
+    # S-08 Task 8（判据⑨）：pk 库显式接入 flake 编译/链接层。与 libs/pigment 的
+    # PUBLIC 传递集一致（flake 已经 kritapigment 传递拿到，这里显式化）；
+    # pkglobal 纯 header-only（inline constexpr）无需链；pksql/pktest flake 不用。
+    pkstring pkcontainer pkcolor pkgeometry pkvariant pkxml pkimage pkport pkpointer
+    pkconcurrent pklog pksignal pktime pkconfig pkflags pknamespace
 )
 
 if (QT_MAJOR_VERSION STREQUAL "6")
@@ -419,6 +450,27 @@ target_include_directories(kritaflake
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/svg>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/text>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/resources>
+    # S-08 Task 8（判据⑧）：pk include 面 PUBLIC 传播给消费方（kritashapemodel /
+    # 插件 / 测试）。只加 pk/<dir> 不加 pk/*/compat（见顶部 include_directories 注释，
+    # 主树保留过渡 Qt 需要真实 Qt 头不被遮蔽）。
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/container>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/variant>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/port>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/pointer>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/geometry>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/global>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/log>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/concurrent>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/image>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/time>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/config>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/flags>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/color>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/signal>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/sql>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/xml>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/namespace>
 )
 
 set_target_properties(libraqm PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -434,6 +486,11 @@ target_link_libraries(kritaflake
         KF${KF_MAJOR}::I18n
         Qt${QT_MAJOR_VERSION}::Gui
         Qt${QT_MAJOR_VERSION}::Xml
+        # S-08 Task 8（判据⑨）：pk 库显式链入主树 kritaflake（与 kritaflake_OBJECT_DEPS
+        # 同集），让主树链接层可见 pk 符号。pk 库 target 由根 CMakeLists.txt:1642 的
+        # add_subdirectory(pk) 定义，此处只接线。
+        pkstring pkcontainer pkcolor pkgeometry pkvariant pkxml pkimage pkport pkpointer
+        pkconcurrent pklog pksignal pktime pkconfig pkflags pknamespace
         Boost::boost
         Freetype::Freetype
         HarfBuzz::HarfBuzz
