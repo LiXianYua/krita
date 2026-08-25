@@ -9,26 +9,26 @@
 #ifndef __kis_vec_h__
 #define __kis_vec_h__
 
-#include <QPoint>
+#include <PkPoint.h>
 #include <Eigen/Core>
-#include <QVector2D>
+#include <PkVectorND.h>
 
 
 typedef Eigen::Matrix<qreal, 2, 1> KisVector2D;
 
-inline KisVector2D toKisVector2D(const QPointF& p)
+inline KisVector2D toKisVector2D(const PkPointF& p)
 {
     return KisVector2D(p.x(), p.y());
 }
-inline KisVector2D toKisVector2D(const QPoint& p)
+inline KisVector2D toKisVector2D(const PkPoint& p)
 {
     return KisVector2D(p.x(), p.y());
 }
 
 template<typename ExpressionType>
-inline QPointF toQPointF(const ExpressionType& expr)
+inline PkPointF toQPointF(const ExpressionType& expr)
 {
-    return QPointF(expr.x(), expr.y());
+    return PkPointF(expr.x(), expr.y());
 }
 
 #endif

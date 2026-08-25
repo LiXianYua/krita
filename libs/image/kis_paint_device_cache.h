@@ -8,14 +8,16 @@
 #define __KIS_PAINT_DEVICE_CACHE_H
 
 #include "kis_lock_free_cache.h"
-#include <QReadWriteLock>
-#include <QReadLocker>
-#include <QWriteLocker>
-#include <QImage>
+#include <PkAtomic.h>
+#include <PkContainerAlgo.h>
+#include <PkRect.h>
+#include <PkSize.h>
+#include <PkReadWriteLock.h>
+#include <PkImage.h>
 
 #include <kis_paint_device.h>
 
-using ThumbnailCacheKey = std::tuple<QSize, qreal, KisThumbnailBoundsMode>;
+using ThumbnailCacheKey = std::tuple<PkSize, qreal, KisThumbnailBoundsMode>;
 
 size_t qHash(const ThumbnailCacheKey &key) {
     const auto &[size, oversample, mode] = key;
@@ -61,12 +63,12 @@ public:
         m_sequenceNumber.fetchAndAddOrdered(1);
     }
 
-    QRect exactBounds() {
+    PkRect exactBounds() {
         return m_exactBoundsCache.getValue(m_paintDevice->defaultBounds()->wrapAroundMode());
     }
 
-    QRect exactBoundsAmortized() {
-        QRect bounds;
+    PkRect exactBoundsAmortized() {
+        PkRect bounds;
         bool result = m_exactBoundsCache.tryGetValue(bounds, m_paintDevice->defaultBounds()->wrapAroundMode());
 
         if (!result) {
@@ -82,7 +84,7 @@ public:
         return bounds;
     }
 
-    QRect nonDefaultPixelArea() {
+    PkRect nonDefaultPixelArea() {
         return m_nonDefaultPixelAreaCache.getValue(m_paintDevice->defaultBounds()->wrapAroundMode());
     }
 
@@ -90,17 +92,17 @@ public:
         return m_regionCache.getValue(m_paintDevice->defaultBounds()->wrapAroundMode());
     }
 
-    QImage createThumbnail(qint32 w, qint32 h, KisThumbnailBoundsMode boundsMode, qreal oversample, KoColorConversionTransformation::Intent renderingIntent, KoColorConversionTransformation::ConversionFlags conversionFlags) {
-        QImage thumbnail;
+    PkImage createThumbnail(qint32 w, qint32 h, KisThumbnailBoundsMode boundsMode, qreal oversample, KoColorConversionTransformation::Intent renderingIntent, KoColorConversionTransformation::ConversionFlags conversionFlags) {
+        PkImage thumbnail;
 
         if (h == 0 || w == 0) {
             return thumbnail;
         }
 
-        auto key = std::make_tuple(QSize(w, h), oversample, boundsMode);
+        auto key = std::make_tuple(PkSize(w, h), oversample, boundsMode);
 
         {
-            QReadLocker readLocker(&m_thumbnailsLock);
+            PkReadLocker readLocker(&m_thumbnailsLock);
             if (m_thumbnailsValid) {
                 if (m_thumbnails.contains(key)) {
                     thumbnail = m_thumbnails[key];
@@ -108,17 +110,17 @@ public:
             }
             else {
                 readLocker.unlock();
-                QWriteLocker writeLocker(&m_thumbnailsLock);
+                PkWriteLocker writeLocker(&m_thumbnailsLock);
                 m_thumbnails.clear();
                 m_thumbnailsValid = true;
             }
         }
 
         if (thumbnail.isNull()) {
-            const QRect bounds = boundsMode == KisThumbnailBoundsMode::Precise ? m_paintDevice->exactBounds() : m_paintDevice->extent();
+            const PkRect bounds = boundsMode == KisThumbnailBoundsMode::Precise ? m_paintDevice->exactBounds() : m_paintDevice->extent();
             thumbnail = m_paintDevice->createThumbnailUncached(w, h, bounds, oversample, renderingIntent, conversionFlags);
 
-            QWriteLocker writeLocker(&m_thumbnailsLock);
+            PkWriteLocker writeLocker(&m_thumbnailsLock);
             m_thumbnails[key] = thumbnail;
             m_thumbnailsValid = true;
         }
@@ -133,20 +135,20 @@ public:
 private:
     KisPaintDevice *m_paintDevice {nullptr};
 
-    struct ExactBoundsCache : KisLockFreeCacheWithModeConsistency<QRect, bool> {
+    struct ExactBoundsCache : KisLockFreeCacheWithModeConsistency<PkRect, bool> {
         ExactBoundsCache(KisPaintDevice *paintDevice) : m_paintDevice(paintDevice) {}
 
-        QRect calculateNewValue() const override {
+        PkRect calculateNewValue() const override {
             return m_paintDevice->calculateExactBounds(false);
         }
     private:
         KisPaintDevice *m_paintDevice;
     };
 
-    struct NonDefaultPixelCache : KisLockFreeCacheWithModeConsistency<QRect, bool> {
+    struct NonDefaultPixelCache : KisLockFreeCacheWithModeConsistency<PkRect, bool> {
         NonDefaultPixelCache(KisPaintDevice *paintDevice) : m_paintDevice(paintDevice) {}
 
-        QRect calculateNewValue() const override {
+        PkRect calculateNewValue() const override {
             return m_paintDevice->calculateExactBounds(true);
         }
     private:
@@ -167,12 +169,12 @@ private:
     NonDefaultPixelCache m_nonDefaultPixelAreaCache;
     RegionCache m_regionCache;
 
-    QReadWriteLock m_thumbnailsLock;
+    PkReadWriteLock m_thumbnailsLock;
     bool m_thumbnailsValid {false};
 
-    QHash<ThumbnailCacheKey, QImage> m_thumbnails;
+    PkHash<ThumbnailCacheKey, PkImage> m_thumbnails;
 
-    QAtomicInt m_sequenceNumber;
+    PkAtomicInt m_sequenceNumber;
 };
 
 #endif /* __KIS_PAINT_DEVICE_CACHE_H */

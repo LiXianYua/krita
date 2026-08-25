@@ -8,7 +8,7 @@
 #define __KIS_FIXED_POINT_MATHS_H
 
 #include <boost/operators.hpp>
-#include <QDataStream>
+#include <PkDebug.h>
 
 class KisFixedPoint : boost::ordered_field_operators<KisFixedPoint>
 {
@@ -115,7 +115,7 @@ public:
 
 private:
     friend KisFixedPoint operator-(KisFixedPoint x);
-    friend QDebug operator<<(QDebug dbg, const KisFixedPoint &v);
+    friend PkDebug operator<<(PkDebug dbg, const KisFixedPoint &v);
 
 private:
     qint32 d;
@@ -126,7 +126,7 @@ inline KisFixedPoint operator-(KisFixedPoint x) {
     return x;
 }
 
-QDebug operator<<(QDebug dbg, const KisFixedPoint &v) {
+PkDebug operator<<(PkDebug dbg, const KisFixedPoint &v) {
     dbg.nospace() << v.toFloat() << " (d = " << v.d << ")";
     return dbg.space();
 }

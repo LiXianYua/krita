@@ -8,6 +8,10 @@
 #define __KIS_WRAPPED_LINE_ITERATOR_BASE_H
 
 
+#include <PkContainerAlgo.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSize.h>
 template <class IteratorStrategy, class BaseClass>
     class KisWrappedLineIteratorBase : public BaseClass
 {
@@ -23,7 +27,7 @@ public:
 
         m_iterators.resize(4);
         for (int i = 0; i < 4; i++) {
-            QRect rc = m_splitRect[i];
+            PkRect rc = m_splitRect[i];
             if (rc.isEmpty()) continue;
 
             m_iterators[i] = m_strategy.createIterator(dataManager,
@@ -137,9 +141,9 @@ private:
 private:
 
     KisWrappedRect m_splitRect;
-    QSize m_iterationAreaSize; // columns x rows
-    QPoint m_currentPos; // column, row
-    QVector<typename IteratorStrategy::IteratorTypeSP> m_iterators;
+    PkSize m_iterationAreaSize; // columns x rows
+    PkPoint m_currentPos; // column, row
+    PkVector<typename IteratorStrategy::IteratorTypeSP> m_iterators;
     typename IteratorStrategy::IteratorTypeSP m_currentIterator;
     IteratorStrategy m_strategy;
 };

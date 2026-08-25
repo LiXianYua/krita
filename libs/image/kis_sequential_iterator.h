@@ -8,6 +8,7 @@
 #define __KIS_SEQUENTIAL_ITERATOR_H
 
 #include <KoAlwaysInline.h>
+#include <PkRect.h>
 
 #include "kis_types.h"
 #include "kis_paint_device.h"
@@ -20,11 +21,11 @@ struct DevicePolicy {
     template <typename Convertible>
     DevicePolicy(Convertible sel) : m_dev(sel) {}
 
-    KisHLineConstIteratorSP createConstIterator(const QRect &rect) {
+    KisHLineConstIteratorSP createConstIterator(const PkRect &rect) {
         return m_dev->createHLineConstIteratorNG(rect.x(), rect.y(), rect.width());
     }
 
-    KisHLineIteratorSP createIterator(const QRect &rect) {
+    KisHLineIteratorSP createIterator(const PkRect &rect) {
         return m_dev->createHLineIteratorNG(rect.x(), rect.y(), rect.width());
     }
 
@@ -39,7 +40,7 @@ template <class SourcePolicy = DevicePolicy>
 struct ReadOnlyIteratorPolicy {
     typedef KisHLineConstIteratorSP IteratorTypeSP;
 
-    ReadOnlyIteratorPolicy(SourcePolicy source, const QRect &rect) {
+    ReadOnlyIteratorPolicy(SourcePolicy source, const PkRect &rect) {
         m_iter = !rect.isEmpty() ? source.createConstIterator(rect) : 0;
     }
 
@@ -67,7 +68,7 @@ template <class SourcePolicy = DevicePolicy>
 struct WritableIteratorPolicy {
     typedef KisHLineIteratorSP IteratorTypeSP;
 
-    WritableIteratorPolicy(SourcePolicy source, const QRect &rect) {
+    WritableIteratorPolicy(SourcePolicy source, const PkRect &rect) {
         m_iter = !rect.isEmpty() ? source.createIterator(rect) : 0;
     }
 
@@ -177,7 +178,7 @@ template <class IteratorPolicy, class SourcePolicy = DevicePolicy, class Progres
 class KisSequentialIteratorBase
 {
 public:
-    KisSequentialIteratorBase(SourcePolicy source, const QRect &rect, ProgressPolicy progressPolicy = ProgressPolicy())
+    KisSequentialIteratorBase(SourcePolicy source, const PkRect &rect, ProgressPolicy progressPolicy = ProgressPolicy())
         : m_policy(source, rect),
           m_progressPolicy(progressPolicy),
           m_pixelSize(source.pixelSize()),

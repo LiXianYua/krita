@@ -7,7 +7,7 @@
 #ifndef __KIS_LOCK_FREE_LOD_COUNTER_H
 #define __KIS_LOCK_FREE_LOD_COUNTER_H
 
-#include <QAtomicInt>
+#include <PkAtomic.h>
 
 
 class KisLockFreeLodCounter
@@ -78,7 +78,7 @@ private:
     }
 
 private:
-    QAtomicInt m_num;
+    PkAtomicInt m_num;
 };
 
 #endif /* __KIS_LOCK_FREE_LOD_COUNTER_H */

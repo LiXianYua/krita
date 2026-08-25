@@ -8,6 +8,7 @@
 #define _KIS_PROCESSING_INFORMATION_H_
 
 #include "kis_types.h"
+#include <PkPoint.h>
 
 #include "kritaimage_export.h"
 
@@ -20,7 +21,7 @@
 class KRITAIMAGE_EXPORT KisConstProcessingInformation
 {
 public:
-    KisConstProcessingInformation(const KisPaintDeviceSP device, const QPoint& topLeft, const KisSelectionSP selection);
+    KisConstProcessingInformation(const KisPaintDeviceSP device, const PkPoint& topLeft, const KisSelectionSP selection);
     KisConstProcessingInformation(const KisConstProcessingInformation& _rhs);
     KisConstProcessingInformation& operator=(const KisConstProcessingInformation& _rhs);
     ~KisConstProcessingInformation();
@@ -36,7 +37,7 @@ public:
     /**
      * @return the top left pixel that need to process
      */
-    const QPoint& topLeft() const;
+    const PkPoint& topLeft() const;
 private:
     struct Private;
     Private* const d;
@@ -50,7 +51,7 @@ private:
 class KRITAIMAGE_EXPORT KisProcessingInformation : public KisConstProcessingInformation
 {
 public:
-    KisProcessingInformation(KisPaintDeviceSP device, const QPoint& topLeft, const KisSelectionSP selection);
+    KisProcessingInformation(KisPaintDeviceSP device, const PkPoint& topLeft, const KisSelectionSP selection);
     KisProcessingInformation(const KisProcessingInformation& _rhs);
     KisProcessingInformation& operator=(const KisProcessingInformation& _rhs);
     ~KisProcessingInformation();

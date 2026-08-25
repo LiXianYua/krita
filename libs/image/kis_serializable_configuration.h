@@ -6,11 +6,14 @@
 #ifndef _KIS_SERIALIZABLE_CONFIGURATION_H_
 #define _KIS_SERIALIZABLE_CONFIGURATION_H_
 
-class QDomElement;
-class QDomDocument;
-class QString;
+class PkXmlElement;
+class PkXmlDocument;
+class PkString;
 
 #include "kritaimage_export.h"
+#include <PkString.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 #include "kis_shared.h"
 #include "kis_shared_ptr.h"
 
@@ -32,22 +35,22 @@ public:
     /**
      * Fill the object from the XML encoded representation in s.
      */
-    virtual bool fromXML(const QString&, bool);
+    virtual bool fromXML(const PkString&, bool);
 
     /**
      * Fill the object from the XML encoded representation in s.
      */
-    virtual void fromXML(const QDomElement&) = 0;
+    virtual void fromXML(const PkXmlElement&) = 0;
 
     /**
      * Create a serialized version of this object
      */
-    virtual void toXML(QDomDocument&, QDomElement&) const = 0;
+    virtual void toXML(PkXmlDocument&, PkXmlElement&) const = 0;
 
     /**
      * Create a serialized version of this object
      */
-    virtual QString toXML() const;
+    virtual PkString toXML() const;
 };
 
 typedef KisSharedPtr<KisSerializableConfiguration> KisSerializableConfigurationSP;
@@ -66,7 +69,7 @@ public:
     /**
      * @return an unserialized version of the configuration
      */
-    virtual KisSerializableConfigurationSP create(const QDomElement&) = 0;
+    virtual KisSerializableConfigurationSP create(const PkXmlElement&) = 0;
 };
 
 

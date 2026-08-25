@@ -8,6 +8,7 @@
 #define __KIS_CACHED_PAINT_DEVICE_H
 
 #include "kis_lockless_stack.h"
+#include <PkPoint.h>
 #include "kis_default_bounds.h"
 #include "KisImageResolutionProxy.h"
 #include "kis_paint_device.h"
@@ -103,7 +104,7 @@ public:
         selection->clear();
         selection->setDefaultBounds(new KisSelectionEmptyBounds());
         selection->setResolutionProxy(KisImageResolutionProxy::identity());
-        selection->pixelSelection()->moveTo(QPoint());
+        selection->pixelSelection()->moveTo(PkPoint());
         m_stack.push(selection);
     }
 

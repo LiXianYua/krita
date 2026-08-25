@@ -9,6 +9,8 @@
 #define __KIS_PAINT_DEVICE_DATA_H
 
 #include "KisInterstrokeData.h"
+#include <PkRect.h>
+#include <PkScopedPointer.h>
 #include "KisSequentialIteratorProgress.h"
 #include "KoAlwaysInline.h"
 #include "kis_command_utils.h"
@@ -20,13 +22,13 @@ struct DirectDataAccessPolicy {
           m_completionListener(completionListener){}
 
 
-    KisHLineConstIteratorSP createConstIterator(const QRect &rect) {
+    KisHLineConstIteratorSP createConstIterator(const PkRect &rect) {
         const int xOffset = 0;
         const int yOffset = 0;
         return new KisHLineIterator2(m_dataManager, rect.x(), rect.y(), rect.width(), xOffset, yOffset, false, m_completionListener);
     }
 
-    KisHLineIteratorSP createIterator(const QRect &rect) {
+    KisHLineIteratorSP createIterator(const PkRect &rect) {
         const int xOffset = 0;
         const int yOffset = 0;
         return new KisHLineIterator2(m_dataManager, rect.x(), rect.y(), rect.width(), xOffset, yOffset, true, m_completionListener);
@@ -173,10 +175,10 @@ public:
             return;
         }
 
-        QRect rc = m_dataManager->region().boundingRect();
+        PkRect rc = m_dataManager->region().boundingRect();
 
         const int dstPixelSize = dstColorSpace->pixelSize();
-        QScopedArrayPointer<quint8> dstDefaultPixel(new quint8[dstPixelSize]);
+        PkScopedArrayPointer<quint8> dstDefaultPixel(new quint8[dstPixelSize]);
         memset(dstDefaultPixel.data(), 0, dstPixelSize);
         m_colorSpace->convertPixelsTo(m_dataManager->defaultPixel(), dstDefaultPixel.data(), dstColorSpace, 1, renderingIntent, conversionFlags);
 

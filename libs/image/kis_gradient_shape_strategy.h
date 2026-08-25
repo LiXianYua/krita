@@ -7,7 +7,7 @@
 #ifndef __KIS_GRADIENT_SHAPE_STRATEGY_H
 #define __KIS_GRADIENT_SHAPE_STRATEGY_H
 
-#include <QPointF>
+#include <PkPoint.h>
 
 #include "kritaimage_export.h"
 
@@ -15,14 +15,14 @@ class KRITAIMAGE_EXPORT KisGradientShapeStrategy
 {
 public:
     KisGradientShapeStrategy();
-    KisGradientShapeStrategy(const QPointF& gradientVectorStart, const QPointF& gradientVectorEnd);
+    KisGradientShapeStrategy(const PkPointF& gradientVectorStart, const PkPointF& gradientVectorEnd);
     virtual ~KisGradientShapeStrategy();
 
     virtual double valueAt(double x, double y) const = 0;
 
 protected:
-    QPointF m_gradientVectorStart;
-    QPointF m_gradientVectorEnd;
+    PkPointF m_gradientVectorStart;
+    PkPointF m_gradientVectorEnd;
 };
 
 #endif /* __KIS_GRADIENT_SHAPE_STRATEGY_H */

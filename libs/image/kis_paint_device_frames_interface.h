@@ -8,6 +8,11 @@
 #define __KIS_PAINT_DEVICE_FRAMES_INTERFACE_H
 
 #include "kis_types.h"
+#include <PkContainerAlgo.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSharedPointer.h>
+#include <PkStream.h>
 #include "kritaimage_export.h"
 
 class KisPaintDeviceData;
@@ -16,7 +21,7 @@ class KisDataManager;
 typedef KisSharedPtr<KisDataManager> KisDataManagerSP;
 
 class KisInterstrokeData;
-using KisInterstrokeDataSP = QSharedPointer<KisInterstrokeData>;
+using KisInterstrokeDataSP = PkSharedPointer<KisInterstrokeData>;
 
 
 class KRITAIMAGE_EXPORT KisPaintDeviceFramesInterface
@@ -28,13 +33,13 @@ public:
      * Return a list of IDs for the frames contained in this paint device
      * @return list of frame IDs
      */
-    QList<int> frames();
+    PkList<int> frames();
 
     /**
      * Creates a new frame on the device and returns an identifier for it.
      * @return frame id of the newly created frame
      */
-    int createFrame(bool copy, int copySrc, const QPoint &offset, KUndo2Command *parentCommand);
+    int createFrame(bool copy, int copySrc, const PkPoint &offset, KUndo2Command *parentCommand);
 
     /**
      * Delete the frame with given id
@@ -68,12 +73,12 @@ public:
     /**
      * @return extent() of \p frameId
      */
-    QRect frameBounds(int frameId);
+    PkRect frameBounds(int frameId);
 
     /**
      * @return offset of a data on \p frameId
      */
-    QPoint frameOffset(int frameId) const;
+    PkPoint frameOffset(int frameId) const;
 
     /**
      * Sets default pixel for \p frameId
@@ -96,7 +101,7 @@ public:
      * NOTE: the frame must be created manually with createFrame()
      *       beforehand!
      */
-    bool readFrame(QIODevice *stream, int frameId);
+    bool readFrame(PkStream *stream, int frameId);
 
 
     /**
@@ -121,11 +126,11 @@ public:
      * Sets the offset for \p frameId.
      * Should be used by Undo framework only!
      */
-    void setFrameOffset(int frameId, const QPoint &offset);
+    void setFrameOffset(int frameId, const PkPoint &offset);
 
     struct TestingDataObjects {
         typedef KisPaintDeviceData Data;
-        typedef QHash<int, Data*> FramesHash;
+        typedef PkHash<int, Data*> FramesHash;
 
         Data *m_data;
         Data *m_lodData;
@@ -137,7 +142,7 @@ public:
     };
 
     TestingDataObjects testingGetDataObjects() const;
-    QList<KisPaintDeviceData*> testingGetDataObjectsList() const;
+    PkList<KisPaintDeviceData*> testingGetDataObjectsList() const;
 
 private:
     KisPaintDevice *q;

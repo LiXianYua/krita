@@ -7,11 +7,12 @@
 #define KIS_PAINT_DEVICE_WRITER_H
 
 #include <kritaimage_export.h>
+#include <PkAuxTypes.h>
 
 class KRITAIMAGE_EXPORT KisPaintDeviceWriter {
 public:
     virtual ~KisPaintDeviceWriter() {}
-    virtual bool write(const QByteArray &data) = 0;
+    virtual bool write(const PkByteArray &data) = 0;
     virtual bool write(const char* data, qint64 length) = 0;
 };
 

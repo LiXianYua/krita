@@ -8,24 +8,25 @@
 #define __KIS_CACHED_GRADIENT_SHAPE_STRATEGY_H
 
 #include "kis_gradient_shape_strategy.h"
+#include <PkRect.h>
 #include "kritaimage_export.h"
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
-class QRect;
+class PkRect;
 
 
 class KRITAIMAGE_EXPORT KisCachedGradientShapeStrategy : public KisGradientShapeStrategy
 {
 public:
-    KisCachedGradientShapeStrategy(const QRect &rc, qreal xStep, qreal yStep, KisGradientShapeStrategy *baseStrategy);
+    KisCachedGradientShapeStrategy(const PkRect &rc, qreal xStep, qreal yStep, KisGradientShapeStrategy *baseStrategy);
     ~KisCachedGradientShapeStrategy() override;
 
     double valueAt(double x, double y) const override;
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_CACHED_GRADIENT_SHAPE_STRATEGY_H */

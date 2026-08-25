@@ -7,10 +7,13 @@
 #define KIS_DATAMANAGER_H_
 
 #include <QtGlobal>
+#include <PkContainerAlgo.h>
+#include <PkRect.h>
+#include <PkStream.h>
 
-class QRect;
+class PkRect;
 class KisPaintDeviceWriter;
-class QIODevice;
+class PkStream;
 
 #include <tiles3/kis_tiled_data_manager.h>
 #include <tiles3/kis_memento.h>
@@ -113,11 +116,11 @@ public:
         return ACTUAL_DATAMGR::write(writer);
     }
 
-    inline bool read(QIODevice *io) {
+    inline bool read(PkStream *io) {
         return ACTUAL_DATAMGR::read(io);
     }
 
-    inline void purge(const QRect& area) {
+    inline void purge(const PkRect& area) {
         ACTUAL_DATAMGR::purge(area);
     }
 
@@ -147,7 +150,7 @@ public:
         return ACTUAL_DATAMGR::extent(x, y, w, h);
     }
 
-    QRect extent() const {
+    PkRect extent() const {
         return ACTUAL_DATAMGR::extent();
     }
 
@@ -164,7 +167,7 @@ public:
         return ACTUAL_DATAMGR::setExtent(x, y, w, h);
     }
 
-    inline void setExtent(const QRect & rect) {
+    inline void setExtent(const PkRect & rect) {
         setExtent(rect.x(), rect.y(), rect.width(), rect.height());
     }
 
@@ -204,14 +207,14 @@ public:
      * copy-on-write. Parts of the rect that cannot be shared
      * (cross tiles) are deep-copied,
      */
-    inline void bitBlt(KisTiledDataManagerSP srcDM, const QRect &rect) {
+    inline void bitBlt(KisTiledDataManagerSP srcDM, const PkRect &rect) {
         ACTUAL_DATAMGR::bitBlt(const_cast<KisTiledDataManager*>(srcDM.data()), rect);
     }
 
     /**
      * The same as \ref bitBlt() but reads old data
      */
-    inline void bitBltOldData(KisTiledDataManagerSP srcDM, const QRect &rect) {
+    inline void bitBltOldData(KisTiledDataManagerSP srcDM, const PkRect &rect) {
         ACTUAL_DATAMGR::bitBltOldData(const_cast<KisTiledDataManager*>(srcDM.data()), rect);
     }
 
@@ -222,14 +225,14 @@ public:
      * requested. This method is supposed to be used for bitBlt'ing
      * into temporary paint devices.
      */
-    inline void bitBltRough(KisTiledDataManagerSP srcDM, const QRect &rect) {
+    inline void bitBltRough(KisTiledDataManagerSP srcDM, const PkRect &rect) {
         ACTUAL_DATAMGR::bitBltRough(const_cast<KisTiledDataManager*>(srcDM.data()), rect);
     }
 
     /**
      * The same as \ref bitBltRough() but reads old data
      */
-    inline void bitBltRoughOldData(KisTiledDataManagerSP srcDM, const QRect &rect) {
+    inline void bitBltRoughOldData(KisTiledDataManagerSP srcDM, const PkRect &rect) {
         ACTUAL_DATAMGR::bitBltRoughOldData(const_cast<KisTiledDataManager*>(srcDM.data()), rect);
     }
 
@@ -278,7 +281,7 @@ public:
      * @param w width
      * @param h height
      */
-    QVector<quint8*> readPlanarBytes(QVector<qint32> channelsizes, qint32 x, qint32 y, qint32 w, qint32 h) const {
+    PkVector<quint8*> readPlanarBytes(PkVector<qint32> channelsizes, qint32 x, qint32 y, qint32 w, qint32 h) const {
         return ACTUAL_DATAMGR::readPlanarBytes(channelsizes, x, y, w, h);
     }
 
@@ -303,7 +306,7 @@ public:
      *
      * XXX: what about undo?
      */
-    void writePlanarBytes(QVector<quint8*> planes, QVector<qint32> channelsizes,  qint32 x, qint32 y, qint32 w, qint32 h) {
+    void writePlanarBytes(PkVector<quint8*> planes, PkVector<qint32> channelsizes,  qint32 x, qint32 y, qint32 w, qint32 h) {
         ACTUAL_DATAMGR::writePlanarBytes(planes, channelsizes, x, y, w, h);
     }
 

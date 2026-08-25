@@ -8,10 +8,10 @@
 #ifndef _KIS_DISTANCE_INFORMATION_H_
 #define _KIS_DISTANCE_INFORMATION_H_
 
-#include <QPointF>
-#include <QVector2D>
-#include <QDomDocument>
-#include <QDomElement>
+#include <PkPoint.h>
+#include <PkVectorND.h>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 #include "kritaimage_export.h"
 #include <boost/optional.hpp>
 #include <boost/operators.hpp>
@@ -46,13 +46,13 @@ public:
      * Creates a KisDistanceInitInfo with the specified last dab information, and spacing and timing
      * update intervals set to LONG_TIME.
      */
-    explicit KisDistanceInitInfo(const QPointF &lastPosition, qreal lastAngle, int currentDabSeqNo);
+    explicit KisDistanceInitInfo(const PkPointF &lastPosition, qreal lastAngle, int currentDabSeqNo);
 
     /**
      * Creates a KisDistanceInitInfo with the specified last dab information and spacing and timing
      * update intervals.
      */
-    explicit KisDistanceInitInfo(const QPointF &lastPosition, qreal lastAngle,
+    explicit KisDistanceInitInfo(const PkPointF &lastPosition, qreal lastAngle,
                                  qreal spacingUpdateInterval, qreal timingUpdateInterval, int currentDabSeqNo);
 
     KisDistanceInitInfo(const KisDistanceInitInfo &rhs);
@@ -68,9 +68,9 @@ public:
      */
     KisDistanceInformation makeDistInfo();
 
-    void toXML(QDomDocument &doc, QDomElement &elt) const;
+    void toXML(PkXmlDocument &doc, PkXmlElement &elt) const;
 
-    static KisDistanceInitInfo fromXML(const QDomElement &elt);
+    static KisDistanceInitInfo fromXML(const PkXmlElement &elt);
 
 private:
     struct Private;
@@ -85,7 +85,7 @@ class KRITAIMAGE_EXPORT KisDistanceInformation {
 public:
     KisDistanceInformation();
     KisDistanceInformation(qreal spacingUpdateInterval, qreal timingUpdateInterval, int currentDabSeqNo = 0);
-    KisDistanceInformation(const QPointF &lastPosition, qreal lastAngle);
+    KisDistanceInformation(const PkPointF &lastPosition, qreal lastAngle);
     /**
      * @param spacingUpdateInterval The amount of time allowed between spacing updates, in
      *                              milliseconds. Use LONG_TIME to only allow spacing updates when a
@@ -94,7 +94,7 @@ public:
      *                             milliseconds. Use LONG_TIME to only allow timing updates when a
      *                             dab is painted.
      */
-    KisDistanceInformation(const QPointF &lastPosition, qreal lastAngle,
+    KisDistanceInformation(const PkPointF &lastPosition, qreal lastAngle,
                            qreal spacingUpdateInterval, qreal timingUpdateInterval, int currentDabSeqNo);
     KisDistanceInformation(const KisDistanceInformation &rhs);
     KisDistanceInformation(const KisDistanceInformation &rhs, int levelOfDetail);
@@ -119,7 +119,7 @@ public:
     bool needsTimingUpdate() const;
 
     bool hasLastDabInformation() const;
-    QPointF lastPosition() const;
+    PkPointF lastPosition() const;
     qreal lastDrawingAngle() const;
 
     bool hasLastPaintInformation() const;
@@ -139,8 +139,8 @@ public:
                             const KisSpacingInformation &spacing,
                             const KisTimingInformation &timing);
 
-    qreal getNextPointPosition(const QPointF &start,
-                               const QPointF &end,
+    qreal getNextPointPosition(const PkPointF &start,
+                               const PkPointF &end,
                                qreal startTime,
                                qreal endTime);
 
@@ -163,13 +163,13 @@ public:
 
     qreal scalarDistanceApprox() const;
 
-    void overrideLastValues(const QPointF &lastPosition, qreal lastAngle);
+    void overrideLastValues(const PkPointF &lastPosition, qreal lastAngle);
 
 private:
-    qreal getNextPointPositionIsotropic(const QPointF &start,
-                                        const QPointF &end);
-    qreal getNextPointPositionAnisotropic(const QPointF &start,
-                                          const QPointF &end);
+    qreal getNextPointPositionIsotropic(const PkPointF &start,
+                                        const PkPointF &end);
+    qreal getNextPointPositionAnisotropic(const PkPointF &start,
+                                          const PkPointF &end);
     qreal getNextPointPositionTimed(qreal startTime,
                                     qreal endTime);
     void resetAccumulators();

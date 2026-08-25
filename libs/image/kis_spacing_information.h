@@ -6,6 +6,8 @@
 #define KIS_SPACING_INFORMATION_H
 
 #include "kritaimage_export.h"
+#include <PkPoint.h>
+#include <PkVectorND.h>
 
 /**
  * Contains information about distance-based spacing settings in a stroke. The spacing settings may
@@ -30,7 +32,7 @@ public:
     {
     }
 
-    explicit KisSpacingInformation(const QPointF &anisotropicSpacing, qreal rotation,
+    explicit KisSpacingInformation(const PkPointF &anisotropicSpacing, qreal rotation,
                                    bool coordinateSystemFlipped)
         : m_distanceSpacingEnabled(true)
         , m_distanceSpacing(anisotropicSpacing)
@@ -48,7 +50,7 @@ public:
     }
 
     explicit KisSpacingInformation(bool distanceSpacingEnabled,
-                                   const QPointF &anisotropicSpacing,
+                                   const PkPointF &anisotropicSpacing,
                                    qreal rotation,
                                    bool coordinateSystemFlipped)
         : m_distanceSpacingEnabled(distanceSpacingEnabled)
@@ -65,7 +67,7 @@ public:
         return m_distanceSpacingEnabled;
     }
 
-    inline QPointF distanceSpacing() const {
+    inline PkPointF distanceSpacing() const {
         return m_distanceSpacing;
     }
 
@@ -74,7 +76,7 @@ public:
     }
 
     inline qreal scalarApprox() const {
-        return isIsotropic() ? m_distanceSpacing.x() : QVector2D(m_distanceSpacing).length();
+        return isIsotropic() ? m_distanceSpacing.x() : PkVector2D(m_distanceSpacing).length();
     }
 
     inline qreal rotation() const {
@@ -89,7 +91,7 @@ private:
 
     // Distance-based spacing
     bool m_distanceSpacingEnabled;
-    QPointF m_distanceSpacing;
+    PkPointF m_distanceSpacing;
 
     qreal m_rotation;
     bool m_coordinateSystemFlipped;

@@ -7,6 +7,7 @@
 #define KIS_DEFAULT_BOUNDS_NODE_WRAPPER_H
 
 #include "kis_default_bounds_base.h"
+#include <PkRect.h>
 #include "kis_node.h"
 #include "kritaimage_export.h"
 
@@ -19,8 +20,8 @@ public:
     KisDefaultBoundsNodeWrapper(KisDefaultBoundsNodeWrapper& rhs);
     ~KisDefaultBoundsNodeWrapper() override;
 
-    QRect bounds() const override;
-    QRect imageBorderRect() const override;
+    PkRect bounds() const override;
+    PkRect imageBorderRect() const override;
     bool wrapAroundMode() const override;
     WrapAroundAxis wrapAroundModeAxis() const override;
     int currentLevelOfDetail() const override;
@@ -28,7 +29,7 @@ public:
     bool externalFrameActive() const override;
     void *sourceCookie() const override;
 
-    static const QRect infiniteRect;
+    static const PkRect infiniteRect;
 
 private:
     struct Private;

@@ -8,6 +8,9 @@
 #define __KIS_RESOURCES_SNAPSHOT_H
 
 #include "kis_shared.h"
+#include <PkBitArray.h>
+#include <PkString.h>
+#include <PkTransform.h>
 #include "kis_shared_ptr.h"
 #include "kis_types.h"
 #include "kritaimage_export.h"
@@ -41,13 +44,13 @@ public:
     void setCurrentNode(KisNodeSP node);
     void setStrokeStyle(KisPainter::StrokeStyle strokeStyle);
     void setFillStyle(KisPainter::FillStyle fillStyle);
-    void setFillTransform(QTransform transform);
+    void setFillTransform(PkTransform transform);
 
     KisNodeList selectedNodes() const;
     KisNodeSP currentNode() const;
     KisImageSP image() const;
     bool needsIndirectPainting() const;
-    QString indirectPaintingCompositeOp() const;
+    PkString indirectPaintingCompositeOp() const;
 
     bool needsMaskingBrushRendering() const;
 
@@ -67,7 +70,7 @@ public:
     void setOpacity(qreal opacity);
     void setMirroring(bool horizontal, bool vertical);
     qreal opacity() const;
-    QString compositeOpId() const;
+    PkString compositeOpId() const;
 
     KoPatternSP currentPattern() const;
     KoColor currentFgColor() const;
@@ -77,10 +80,10 @@ public:
     KisFilterConfigurationSP currentGenerator() const;
     bool isUsingOtherColor() const;
 
-    QTransform fillTransform() const;
+    PkTransform fillTransform() const;
 
     /// @return the channel lock flags of the current node with the global override applied
-    QBitArray channelLockFlags() const;
+    PkBitArray channelLockFlags() const;
 
     qreal effectiveZoom() const;
     bool presetAllowsLod() const;

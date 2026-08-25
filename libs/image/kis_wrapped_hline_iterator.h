@@ -8,6 +8,10 @@
 #define __KIS_WRAPPED_HLINE_ITERATOR_H
 
 #include "kis_iterator_ng.h"
+#include <PkContainerAlgo.h>
+#include <PkPoint.h>
+#include <PkRect.h>
+#include <PkSize.h>
 #include "kis_wrapped_rect.h"
 
 
@@ -23,16 +27,16 @@ public:
     {
     }
 
-    inline QSize originalRectToColumnsRows(const QRect &rect) {
+    inline PkSize originalRectToColumnsRows(const PkRect &rect) {
         return rect.size();
     }
 
-    inline QPoint columnRowToXY(const QPoint &pt) const {
+    inline PkPoint columnRowToXY(const PkPoint &pt) const {
         return pt;
     }
 
     inline IteratorTypeSP createIterator(KisDataManager *dataManager,
-                                         const QRect &rc,
+                                         const PkRect &rc,
                                          qint32 offsetX, qint32 offsetY,
                                          bool writable,
                                          KisIteratorCompleteListener *listener) {
@@ -45,7 +49,7 @@ public:
                                      listener);
     }
 
-    inline void completeInitialization(QVector<IteratorTypeSP> *iterators,
+    inline void completeInitialization(PkVector<IteratorTypeSP> *iterators,
                                        KisWrappedRect *splitRect) {
         m_splitRect = splitRect;
         m_iterators = iterators;
@@ -102,7 +106,7 @@ public:
 
 private:
     KisWrappedRect *m_splitRect;
-    QVector<IteratorTypeSP> *m_iterators;
+    PkVector<IteratorTypeSP> *m_iterators;
     int m_iteratorRowStart; // may be either KisWrappedRect::TOPLEFT or KisWrappedRect::BOTTOMLEFT
     int m_lastRowCoord;
 };

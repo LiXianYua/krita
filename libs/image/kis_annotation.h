@@ -19,8 +19,8 @@
 
 #include <kis_shared.h>
 
-#include <QByteArray>
-#include <QString>
+#include <PkAuxTypes.h>
+#include <PkString.h>
 
 #include "kritaimage_export.h"
 
@@ -28,7 +28,7 @@
  * @class KisAnnotation
  * @brief A data extension mechanism for Krita.
  *
- * An annotation can be of something like a QByteArray or a QString or
+ * An annotation can be of something like a PkByteArray or a PkString or
  * a more specific datatype that can be attached to an image (or maybe
  * later, if needed, to a layer) and contains data that must be
  * associated with an image for purposes of import/export.
@@ -53,7 +53,7 @@ public:
      * @param description a localized string describing the annotation
      * @param data a binary blob containing the annotation data
      */
-    KisAnnotation(const QString & type, const QString & description, const QByteArray & data)
+    KisAnnotation(const PkString & type, const PkString & description, const PkByteArray & data)
         : m_type(type)
         , m_description(description)
         , m_annotation(data) {}
@@ -70,7 +70,7 @@ public:
      * @return a non-localized string identifying the type of the
      * annotation
      */
-    const QString & type() const {
+    const PkString & type() const {
         return m_type;
     }
 
@@ -80,7 +80,7 @@ public:
      * @return a localized string describing the type of the
      * annotations for user interface purposes.
      */
-    const QString & description() const {
+    const PkString & description() const {
         return m_description;
     }
 
@@ -88,11 +88,11 @@ public:
      * gets a binary blob representation of this annotation
      * @return a binary blob representation of this annotation
      */
-    const QByteArray & annotation() const {
+    const PkByteArray & annotation() const {
         return m_annotation;
     }
 
-    void setAnnotation(const QByteArray ba) {
+    void setAnnotation(const PkByteArray ba) {
         m_annotation = ba;
     }
 
@@ -114,9 +114,9 @@ protected:
 
 protected:
 
-    QString m_type;
-    QString m_description;
-    QByteArray m_annotation;
+    PkString m_type;
+    PkString m_description;
+    PkByteArray m_annotation;
 
 };
 

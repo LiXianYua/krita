@@ -7,7 +7,7 @@
 #ifndef __KIS_CACHE_STATE_VALUE_H
 #define __KIS_CACHE_STATE_VALUE_H
 
-#include <QAtomicInt>
+#include <PkAtomic.h>
 
 /**
  * This class implements a state variable for a lockfree cache object.
@@ -91,7 +91,7 @@ private:
     }
 
 private:
-    QAtomicInt m_value;
+    PkAtomicInt m_value;
 };
 
 template <typename T>
