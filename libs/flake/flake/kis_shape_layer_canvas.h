@@ -15,7 +15,7 @@
 #include <KoSelectedShapesProxy.h>
 #include <KoShapeManager.h>
 #include <KisSafeBlockingQueueConnectionProxy.h>
-#include <kis_signal_auto_connection.h>
+#include "KisQtConnectionsStore.h"
 #include "kis_image_view_converter.h"
 #include "kis_default_bounds_base.h"
 #include "KoColorConversionTransformation.h"
@@ -128,7 +128,7 @@ private:
     QRect m_cachedImageRect;
 
     KisImageWSP m_image;
-    KisSignalAutoConnectionsStore m_imageConnections;
+    KisQtConnectionsStore m_imageConnections;
 };
 
 #endif

@@ -144,7 +144,8 @@ KisShapeLayerCanvas::KisShapeLayerCanvas(const KoColorSpace *cs, KisDefaultBound
     m_shapeManager->addShape(parent, KoShapeManager::AddWithoutRepaint);
     m_shapeManager->selection()->setActiveLayer(parent);
 
-    connect(&m_asyncUpdateSignalCompressor, SIGNAL(timeout()), SLOT(slotStartAsyncRepaint()));
+    PkObject::connect(&m_asyncUpdateSignalCompressor, &KisThreadSafeSignalCompressor::timeout,
+                      &m_asyncUpdateSignalCompressor, [this]() { slotStartAsyncRepaint(); });
 }
 
 KisShapeLayerCanvas::KisShapeLayerCanvas(const KisShapeLayerCanvas &rhs, KisShapeLayer *parent)
@@ -161,7 +162,8 @@ KisShapeLayerCanvas::KisShapeLayerCanvas(const KisShapeLayerCanvas &rhs, KisShap
     m_shapeManager->addShape(parent, KoShapeManager::AddWithoutRepaint);
     m_shapeManager->selection()->setActiveLayer(parent);
 
-    connect(&m_asyncUpdateSignalCompressor, SIGNAL(timeout()), SLOT(slotStartAsyncRepaint()));
+    PkObject::connect(&m_asyncUpdateSignalCompressor, &KisThreadSafeSignalCompressor::timeout,
+                      &m_asyncUpdateSignalCompressor, [this]() { slotStartAsyncRepaint(); });
     m_projection->setParentNode(parent);
 }
 
@@ -188,7 +190,7 @@ void KisShapeLayerCanvas::setImage(KisImageWSP image)
     m_image = image;
 
     if (image) {
-        m_imageConnections.addUniqueConnection(m_image, SIGNAL(sigSizeChanged(QPointF,QPointF)), this, SLOT(slotImageSizeChanged()));
+        m_imageConnections.addUniqueConnection(m_image, &KisImage::sigSizeChanged, this, &KisShapeLayerCanvas::slotImageSizeChanged);
         m_cachedImageRect = m_image->bounds();
         m_projection->convertTo(image->colorSpace());
     }

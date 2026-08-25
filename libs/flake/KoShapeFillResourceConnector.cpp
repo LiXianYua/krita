@@ -10,7 +10,7 @@
 #include <KoSelectedShapesProxy.h>
 
 #include "kis_assert.h"
-#include "kis_signal_auto_connection.h"
+#include "KisQtConnectionsStore.h"
 
 #include <KoColor.h>
 #include <KoFlake.h>
@@ -23,7 +23,7 @@
 struct KoShapeFillResourceConnector::Private
 {
     KoCanvasBase *canvas;
-    KisSignalAutoConnectionsStore resourceManagerConnections;
+    KisQtConnectionsStore resourceManagerConnections;
 
     void applyShapeColoring(KoFlake::FillVariant fillVariant, const KoColor &color);
 };
@@ -50,8 +50,8 @@ void KoShapeFillResourceConnector::connectToCanvas(KoCanvasBase *canvas)
 
     if (m_d->canvas) {
         m_d->resourceManagerConnections.addConnection(
-            canvas->resourceManager(), SIGNAL(canvasResourceChanged(int,QVariant)),
-            this, SLOT(slotCanvasResourceChanged(int,QVariant)));
+            canvas->resourceManager(), &KoCanvasResourceProvider::canvasResourceChanged,
+            this, &KoShapeFillResourceConnector::slotCanvasResourceChanged);
     }
 }
 
