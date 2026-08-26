@@ -8,8 +8,8 @@
 #ifndef KISASYNCHRONOUSSTROKEUPDATEHELPER_H
 #define KISASYNCHRONOUSSTROKEUPDATEHELPER_H
 
-#include <QObject>
-#include <QTimer>
+#include <PkObject.h>
+#include <PkTimer.h>
 #include "kis_types.h"
 #include "kis_stroke_job_strategy.h"
 #include <kritapaintop_export.h>
@@ -17,9 +17,8 @@
 class KisStrokesFacade;
 
 
-class PAINTOP_EXPORT KisAsynchronousStrokeUpdateHelper : public QObject
+class PAINTOP_EXPORT KisAsynchronousStrokeUpdateHelper : public PkObject
 {
-    Q_OBJECT
 public:
     class UpdateData : public KisStrokeJobData {
     public:
@@ -81,12 +80,12 @@ public:
 
     void setCustomUpdateDataFactory(UpdateDataFactory factory);
 
-private Q_SLOTS:
+private:
     void slotAsyncUpdateCame(bool forceUpdate = false);
 
 private:
     KisStrokesFacade *m_strokesFacade;
-    QTimer m_updateThresholdTimer;
+    PkTimer m_updateThresholdTimer;
     KisStrokeId m_strokeId;
     UpdateDataFactory m_customUpdateFactory;
 };

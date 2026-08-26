@@ -7,28 +7,13 @@
 #ifndef KISSTROKESPEEDMONITOR_H
 #define KISSTROKESPEEDMONITOR_H
 
-#include <QObject>
+#include <PkObject.h>
 
 #include "kis_types.h"
 #include <kritapaintop_export.h>
 
-class PAINTOP_EXPORT KisStrokeSpeedMonitor : public QObject
+class PAINTOP_EXPORT KisStrokeSpeedMonitor : public PkObject
 {
-    Q_OBJECT
-
-    Q_PROPERTY(QString lastPresetName READ lastPresetName NOTIFY sigStatsUpdated)
-    Q_PROPERTY(qreal lastPresetSize READ lastPresetSize NOTIFY sigStatsUpdated)
-
-    Q_PROPERTY(qreal lastCursorSpeed READ lastCursorSpeed NOTIFY sigStatsUpdated)
-    Q_PROPERTY(qreal lastRenderingSpeed READ lastRenderingSpeed NOTIFY sigStatsUpdated)
-    Q_PROPERTY(qreal lastFps READ lastFps NOTIFY sigStatsUpdated)
-
-    Q_PROPERTY(bool lastStrokeSaturated READ lastCursorSpeed NOTIFY sigStatsUpdated)
-
-    Q_PROPERTY(qreal avgCursorSpeed READ avgCursorSpeed NOTIFY sigStatsUpdated)
-    Q_PROPERTY(qreal avgRenderingSpeed READ avgRenderingSpeed NOTIFY sigStatsUpdated)
-    Q_PROPERTY(qreal avgFps READ avgFps NOTIFY sigStatsUpdated)
-
 public:
     KisStrokeSpeedMonitor();
     ~KisStrokeSpeedMonitor();
@@ -40,7 +25,7 @@ public:
     void notifyStrokeFinished(qreal cursorSpeed, qreal renderingSpeed, qreal fps, KisPaintOpPresetSP preset);
 
 
-    QString lastPresetName() const;
+    PkString lastPresetName() const;
     qreal lastPresetSize() const;
 
     qreal lastCursorSpeed() const;
@@ -56,15 +41,14 @@ public:
 Q_SIGNALS:
     void sigStatsUpdated();
 
-public Q_SLOTS:
+public:
     void setHaveStrokeSpeedMeasurement(bool value);
 
-private Q_SLOTS:
+private:
     void resetAccumulatedValues();
 
-private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISSTROKESPEEDMONITOR_H
