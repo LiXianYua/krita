@@ -12,8 +12,6 @@
 #include <KisCppQuirks.h>
 #include <KoResourceLoadResult.h>
 
-class QWidget;
-
 #ifdef HAVE_THREADED_TEXT_RENDERING_WORKAROUND
 
 namespace detail {
@@ -51,7 +49,7 @@ template< class T >
 struct has_prepare_linked_resources<T, std::void_t<decltype(std::declval<T>().prepareLinkedResources(KisPaintOpSettingsSP(),KisResourcesInterfaceSP()))>> : std::true_type { };
 
 template <typename T>
-QList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings,
+PkList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings,
                                            KisResourcesInterfaceSP resourcesInterface,
                                            std::enable_if_t<has_prepare_linked_resources<T>::value> * = 0)
 {
@@ -59,7 +57,7 @@ QList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP se
 }
 
 template <typename T>
-QList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings,
+PkList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings,
                                            KisResourcesInterfaceSP resourcesInterface,
                                            std::enable_if_t<!has_prepare_linked_resources<T>::value> * = 0)
 {
@@ -77,7 +75,7 @@ template< class T >
 struct has_prepare_embedded_resources<T, std::void_t<decltype(std::declval<T>().prepareEmbeddedResources(KisPaintOpSettingsSP(),KisResourcesInterfaceSP()))>> : std::true_type { };
 
 template <typename T>
-QList<KoResourceLoadResult> prepareEmbeddedResources(const KisPaintOpSettingsSP settings,
+PkList<KoResourceLoadResult> prepareEmbeddedResources(const KisPaintOpSettingsSP settings,
                                                      KisResourcesInterfaceSP resourcesInterface,
                                                      std::enable_if_t<has_prepare_embedded_resources<T>::value> * = 0)
 {
@@ -85,7 +83,7 @@ QList<KoResourceLoadResult> prepareEmbeddedResources(const KisPaintOpSettingsSP 
 }
 
 template <typename T>
-QList<KoResourceLoadResult> prepareEmbeddedResources(const KisPaintOpSettingsSP settings,
+PkList<KoResourceLoadResult> prepareEmbeddedResources(const KisPaintOpSettingsSP settings,
                                                      KisResourcesInterfaceSP resourcesInterface,
                                                      std::enable_if_t<!has_prepare_embedded_resources<T>::value> * = 0)
 {
@@ -128,9 +126,9 @@ template <class Op, class OpSettings> class KisSimplePaintOpFactory  : public Ki
 
 public:
 
-    KisSimplePaintOpFactory(const QString& id, const QString& name, const QString& category,
-                            const QString& pixmap, const QString& model = QString(),
-                            const QStringList& whiteListedCompositeOps = QStringList(), int priority = 100,
+    KisSimplePaintOpFactory(const PkString& id, const PkString& name, const PkString& category,
+                            const PkString& pixmap, const PkString& model = PkString(),
+                            const PkStringList& whiteListedCompositeOps = PkStringList(), int priority = 100,
                             bool lodSizeThresholdSupported = true)
         : KisPaintOpFactory(whiteListedCompositeOps)
         , m_id(id)
@@ -158,11 +156,11 @@ public:
         return op;
     }
 
-    QList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface) override {
+    PkList<KoResourceLoadResult> prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface) override {
         return detail::prepareLinkedResources<Op>(settings, resourcesInterface);
     }
 
-    QList<KoResourceLoadResult> prepareEmbeddedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface) override {
+    PkList<KoResourceLoadResult> prepareEmbeddedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface) override {
         return detail::prepareEmbeddedResources<Op>(settings, resourcesInterface);
     }
 
@@ -176,19 +174,15 @@ public:
         return settings;
     }
 
-    QString id() const override {
+    PkString id() const override {
         return m_id;
     }
 
-    QString name() const override {
+    PkString name() const override {
         return m_name;
     }
 
-    QIcon icon() override {
-        return KisPaintOpFactory::icon();
-    }
-
-    QString category() const override {
+    PkString category() const override {
         return m_category;
     }
 
@@ -197,11 +191,11 @@ public:
     }
 
 private:
-    QString m_id;
-    QString m_name;
-    QString m_category;
-    QString m_pixmap;
-    QString m_model;
+    PkString m_id;
+    PkString m_name;
+    PkString m_category;
+    PkString m_pixmap;
+    PkString m_model;
     bool m_lodSizeThresholdSupported;
 };
 

@@ -14,7 +14,7 @@ struct KisOpacityOptionData : KisCurveOptionData
     KisOpacityOptionData(const PkString &prefix = PkString())
         : KisCurveOptionData(
               prefix,
-              KoID("Opacity", i18n("Opacity")),
+              KoID("Opacity", PkString("Opacity")),
               KisKritaSensorPack::Checkability::NotCheckable)
     {
     }
@@ -25,7 +25,7 @@ struct KisFlowOptionData : KisCurveOptionData
     KisFlowOptionData(const PkString &prefix = PkString())
         : KisCurveOptionData(
               prefix,
-              KoID("Flow", i18n("Flow")),
+              KoID("Flow", PkString("Flow")),
               KisKritaSensorPack::Checkability::NotCheckable)
     {
     }
@@ -37,7 +37,7 @@ struct KisRatioOptionData : KisCurveOptionData
     KisRatioOptionData(const PkString &prefix = PkString())
         : KisCurveOptionData(
               prefix,
-              KoID("Ratio", i18n("Ratio")))
+              KoID("Ratio", PkString("Ratio")))
     {
     }
 };
@@ -46,7 +46,7 @@ struct KisSoftnessOptionData : KisCurveOptionData
 {
     KisSoftnessOptionData()
         : KisCurveOptionData(
-              KoID("Softness", i18n("Softness")),
+              KoID("Softness", PkString("Softness")),
               Checkability::Checkable, std::nullopt,
               std::make_pair(0.1, 1.0))
     {}
@@ -57,7 +57,7 @@ struct KisRotationOptionData : KisCurveOptionData
     KisRotationOptionData(const PkString &prefix = PkString())
         : KisCurveOptionData(
               prefix,
-              KoID("Rotation", i18n("Rotation")))
+              KoID("Rotation", PkString("Rotation")))
     {
     }
 };
@@ -66,7 +66,7 @@ struct KisDarkenOptionData : KisCurveOptionData
 {
     KisDarkenOptionData()
         : KisCurveOptionData(
-              KoID("Darken", i18n("Darken")))
+              KoID("Darken", PkString("Darken")))
     {}
 };
 
@@ -74,7 +74,7 @@ struct KisMixOptionData : KisCurveOptionData
 {
     KisMixOptionData()
         : KisCurveOptionData(
-              KoID("Mix", i18nc("Mixing of colors", "Mix")))
+              KoID("Mix", PkString("Mix")))
     {}
 };
 
@@ -82,7 +82,7 @@ struct KisHueOptionData : KisCurveOptionData
 {
     KisHueOptionData()
         : KisCurveOptionData(
-              KoID("h", i18n("Hue")))
+              KoID("h", PkString("Hue")))
     {}
 };
 
@@ -90,7 +90,7 @@ struct KisSaturationOptionData : KisCurveOptionData
 {
     KisSaturationOptionData()
         : KisCurveOptionData(
-              KoID("s", i18n("Saturation")))
+              KoID("s", PkString("Saturation")))
     {}
 };
 
@@ -98,7 +98,7 @@ struct KisValueOptionData : KisCurveOptionData
 {
     KisValueOptionData()
         : KisCurveOptionData(
-              KoID("v", i18nc("Label of Brightness value in Color Smudge brush engine options", "Value")))
+              KoID("v", PkString("Value")))
     {}
 };
 
@@ -106,7 +106,7 @@ struct KisRateOptionData : KisCurveOptionData
 {
     KisRateOptionData()
         : KisCurveOptionData(
-              KoID("Rate", i18n("Rate")))
+              KoID("Rate", PkString("Rate")))
     {}
 };
 
@@ -114,7 +114,7 @@ struct KisStrengthOptionData : KisCurveOptionData
 {
     KisStrengthOptionData()
         : KisCurveOptionData(
-              KoID("Texture/Strength/", i18n("Strength")))
+              KoID("Texture/Strength/", PkString("Strength")))
     {}
 };
 
@@ -122,7 +122,7 @@ struct KisLightnessStrengthOptionData : KisCurveOptionData
 {
     KisLightnessStrengthOptionData()
         : KisCurveOptionData(
-              KoID("LightnessStrength", i18n("Lightness Strength")))
+              KoID("LightnessStrength", PkString("Lightness Strength")))
     {
     }
 };

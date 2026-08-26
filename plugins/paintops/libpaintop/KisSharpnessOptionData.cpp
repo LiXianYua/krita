@@ -31,7 +31,7 @@ void KisSharpnessOptionMixInImpl::write(KisPropertiesConfiguration *setting) con
 }
 
 KisSharpnessOptionData::KisSharpnessOptionData(const PkString &prefix)
-    : KisOptionTuple<KisCurveOptionData, KisSharpnessOptionMixIn>(prefix, KoID("Sharpness", i18n("Sharpness")))
+    : KisOptionTuple<KisCurveOptionData, KisSharpnessOptionMixIn>(prefix, KoID("Sharpness", PkString("Sharpness")))
 {
     valueFixUpReadCallback = [] (KisCurveOptionDataCommon *data, const KisPropertiesConfiguration *setting) {
 

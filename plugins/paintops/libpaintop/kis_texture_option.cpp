@@ -7,12 +7,7 @@
  */
 #include "kis_texture_option.h"
 
-#include <QString>
-#include <QCheckBox>
-#include <QBuffer>
-#include <QFormLayout>
-#include <QPainter>
-#include <QBoxLayout>
+#include <PkString.h>
 
 #include <klocalizedstring.h>
 
@@ -76,7 +71,7 @@ void KisTextureOption::fillProperties(const KisPropertiesConfiguration *setting,
 
     const bool preserveAlpha = m_texturingMode == KisTextureOptionData::LIGHTNESS || m_texturingMode == KisTextureOptionData::GRADIENT;
 
-    QString effectiveCompositeOp = COMPOSITE_OVER;
+    PkString effectiveCompositeOp = COMPOSITE_OVER;
     bool additionalInvert = false;
 
     if (canvasResourcesInterface && data.autoInvertOnErase) {
@@ -127,14 +122,14 @@ int KisTextureOption::effectiveOffsetY(const KisPaintInformation &info) const
         m_offsetY;
 }
 
-QList<KoResourceLoadResult> KisTextureOption::prepareEmbeddedResources(const KisPropertiesConfigurationSP setting, KisResourcesInterfaceSP resourcesInterface)
+PkList<KoResourceLoadResult> KisTextureOption::prepareEmbeddedResources(const KisPropertiesConfigurationSP setting, KisResourcesInterfaceSP resourcesInterface)
 {
     /**
      * We cannot use m_enabled here because it is not initialized at this stage.
      * fillProperties() is not necessary for this call, because it is extremely slow.
      */
 
-    QList<KoResourceLoadResult> patterns;
+    PkList<KoResourceLoadResult> patterns;
 
     KisTextureOptionData data;
     data.read(setting.data());
@@ -146,14 +141,14 @@ QList<KoResourceLoadResult> KisTextureOption::prepareEmbeddedResources(const Kis
     return patterns;
 }
 
-QList<KoResourceLoadResult> KisTextureOption::prepareLinkedResources(const KisPropertiesConfigurationSP setting, KisResourcesInterfaceSP resourcesInterface)
+PkList<KoResourceLoadResult> KisTextureOption::prepareLinkedResources(const KisPropertiesConfigurationSP setting, KisResourcesInterfaceSP resourcesInterface)
 {
     /**
      * We cannot use m_enabled here because it is not initialized at this stage.
      * fillProperties() is not necessary for this call, because it is extremely slow.
      */
 
-    QList<KoResourceLoadResult> patterns;
+    PkList<KoResourceLoadResult> patterns;
 
     KisTextureOptionData data;
     data.read(setting.data());
@@ -187,14 +182,14 @@ bool KisTextureOption::requiresEffectiveCompositeOp(const KisPropertiesConfigura
 }
 
 
-void KisTextureOption::applyLightness(KisFixedPaintDeviceSP dab, const QPoint& offset, const KisPaintInformation& info) {
+void KisTextureOption::applyLightness(KisFixedPaintDeviceSP dab, const PkPoint& offset, const KisPaintInformation& info) {
     if (!m_enabled) return;
     if (!m_maskInfo->isValid()) return;
 
     KisPaintDeviceSP mask = m_maskInfo->mask();
 
-    const QRect rect = dab->bounds();
-    const QRect maskBounds = m_maskInfo->maskBounds();
+    const PkRect rect = dab->bounds();
+    const PkRect maskBounds = m_maskInfo->maskBounds();
 
     KisCachedPaintDevice::Guard g(mask, KoColorSpaceRegistry::instance()->rgb8(), m_cachedPaintDevice);
     KisPaintDeviceSP fillMaskDevice = g.device();
@@ -202,7 +197,7 @@ void KisTextureOption::applyLightness(KisFixedPaintDeviceSP dab, const QPoint& o
     int x = offset.x() % maskBounds.width() - effectiveOffsetX(info);
     int y = offset.y() % maskBounds.height() - effectiveOffsetY(info);
 
-    const QRect maskPatchRect = QRect(x, y, rect.width(), rect.height());
+    const PkRect maskPatchRect = PkRect(x, y, rect.width(), rect.height());
 
     KisFillPainter fillMaskPainter(fillMaskDevice);
     fillMaskPainter.setCompositeOpId(COMPOSITE_COPY);
@@ -212,23 +207,23 @@ void KisTextureOption::applyLightness(KisFixedPaintDeviceSP dab, const QPoint& o
     qreal pressure = m_strengthOption.apply(info);
     quint8* dabData = dab->data();
 
-    KisSequentialConstIterator it(fillMaskDevice, QRect(x, y, rect.width(), rect.height()));
+    KisSequentialConstIterator it(fillMaskDevice, PkRect(x, y, rect.width(), rect.height()));
     while (it.nextPixel()) {
-        const QRgb *maskQRgb = reinterpret_cast<const QRgb*>(it.oldRawData());
+        const PkRgb *maskQRgb = reinterpret_cast<const PkRgb*>(it.oldRawData());
         dab->colorSpace()->fillGrayBrushWithColorAndLightnessWithStrength(dabData, maskQRgb, dabData, pressure, 1);
         dabData += dab->pixelSize();
     }
 }
 
-void KisTextureOption::applyGradient(KisFixedPaintDeviceSP dab, const QPoint& offset, const KisPaintInformation& info) {
+void KisTextureOption::applyGradient(KisFixedPaintDeviceSP dab, const PkPoint& offset, const KisPaintInformation& info) {
     if (!m_enabled) return;
     if (!m_maskInfo->isValid()) return;
 
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_gradient && m_gradient->valid());
 
     KisPaintDeviceSP mask = m_maskInfo->mask();
-    const QRect maskBounds = m_maskInfo->maskBounds();
-    QRect rect = dab->bounds();
+    const PkRect maskBounds = m_maskInfo->maskBounds();
+    PkRect rect = dab->bounds();
 
     KisCachedPaintDevice::Guard g(mask, KoColorSpaceRegistry::instance()->rgb8(), m_cachedPaintDevice);
     KisPaintDeviceSP fillDevice = g.device();
@@ -236,7 +231,7 @@ void KisTextureOption::applyGradient(KisFixedPaintDeviceSP dab, const QPoint& of
     int x = offset.x() % maskBounds.width() - effectiveOffsetX(info);
     int y = offset.y() % maskBounds.height() - effectiveOffsetY(info);
 
-    const QRect maskPatchRect = QRect(x, y, rect.width(), rect.height());
+    const PkRect maskPatchRect = PkRect(x, y, rect.width(), rect.height());
 
     KisFillPainter fillPainter(fillDevice);
     fillPainter.setCompositeOpId(COMPOSITE_COPY);
@@ -258,11 +253,11 @@ void KisTextureOption::applyGradient(KisFixedPaintDeviceSP dab, const QPoint& of
     for (int row = 0; row < rect.height(); ++row) {
         for (int col = 0; col < rect.width(); ++col) {
 
-            const QRgb* maskQRgb = reinterpret_cast<const QRgb*>(iter->oldRawData());
-            qreal gradientvalue = qreal(qGray(*maskQRgb))/255.0;//qreal(*iter->oldRawData()) / 255.0;
+            const PkRgb* maskQRgb = reinterpret_cast<const PkRgb*>(iter->oldRawData());
+            qreal gradientvalue = qreal((pkRed(*maskQRgb) * 11 + pkGreen(*maskQRgb) * 16 + pkBlue(*maskQRgb) * 5) / 32) / 255.0;//qreal(*iter->oldRawData()) / 255.0;
             KoColor paintcolor;
             paintcolor.setColor(m_cachedGradient.cachedAt(gradientvalue), dab->colorSpace());
-            qreal paintOpacity = paintcolor.opacityF() * (qreal(qAlpha(*maskQRgb)) / 255.0);
+            qreal paintOpacity = paintcolor.opacityF() * (qreal(pkAlpha(*maskQRgb)) / 255.0);
             paintcolor.setOpacity(qMin(paintOpacity, dab->colorSpace()->opacityF(dabData)));
             colors[0] = paintcolor.data();
             KoColor dabColor(dabData, dab->colorSpace());
@@ -276,7 +271,7 @@ void KisTextureOption::applyGradient(KisFixedPaintDeviceSP dab, const QPoint& of
     }
 }
 
-void KisTextureOption::apply(KisFixedPaintDeviceSP dab, const QPoint &offset, const KisPaintInformation & info)
+void KisTextureOption::apply(KisFixedPaintDeviceSP dab, const PkPoint &offset, const KisPaintInformation & info)
 {
     if (!m_enabled) return;
     if (!m_maskInfo->isValid()) return;
@@ -290,9 +285,9 @@ void KisTextureOption::apply(KisFixedPaintDeviceSP dab, const QPoint &offset, co
         return;
     }
 
-    QRect rect = dab->bounds();
+    PkRect rect = dab->bounds();
     KisPaintDeviceSP mask = m_maskInfo->mask();
-    const QRect maskBounds = m_maskInfo->maskBounds();
+    const PkRect maskBounds = m_maskInfo->maskBounds();
 
     KisCachedPaintDevice::Guard g(mask, KoColorSpaceRegistry::instance()->alpha8(), m_cachedPaintDevice);
     KisPaintDeviceSP maskPatch = g.device();
@@ -300,7 +295,7 @@ void KisTextureOption::apply(KisFixedPaintDeviceSP dab, const QPoint &offset, co
     int x = offset.x() % maskBounds.width() - effectiveOffsetX(info);
     int y = offset.y() % maskBounds.height() - effectiveOffsetY(info);
 
-    const QRect maskPatchRect = QRect(x, y, rect.width(), rect.height());
+    const PkRect maskPatchRect = PkRect(x, y, rect.width(), rect.height());
 
     KisFillPainter fillPainter(maskPatch);
     fillPainter.setCompositeOpId(COMPOSITE_COPY);
@@ -314,7 +309,7 @@ void KisTextureOption::apply(KisFixedPaintDeviceSP dab, const QPoint &offset, co
     KoChannelInfo::enumChannelValueType alphaChannelType = KoChannelInfo::UINT8;
     int alphaChannelOffset = -1;
 
-    const QList<KoChannelInfo *> channels = dab->colorSpace()->channels();
+    const PkList<KoChannelInfo *> channels = dab->colorSpace()->channels();
     for (quint32 i = 0; i < dab->pixelSize(); i++) {
         if (channels[i]->channelType() == KoChannelInfo::ALPHA) {
             // TODO: check correctness for 16bits!
@@ -328,8 +323,8 @@ void KisTextureOption::apply(KisFixedPaintDeviceSP dab, const QPoint &offset, co
         alphaChannelOffset = 0;
     }
 
-    QScopedPointer<KisMaskingBrushCompositeOpBase> compositeOp;
-    QString compositeOpId;
+    PkScopedPointer<KisMaskingBrushCompositeOpBase> compositeOp;
+    PkString compositeOpId;
 
     switch (m_texturingMode) {
     case KisTextureOptionData::MULTIPLY: compositeOpId = COMPOSITE_MULT; break;

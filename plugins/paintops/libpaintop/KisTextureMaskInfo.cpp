@@ -18,8 +18,7 @@
 #include <kis_lod_transform.h>
 #include <kis_iterator_ng.h>
 
-#include <QGlobalStatic>
-#include <QMutexLocker>
+#include <PkMutex.h>
 
 /**********************************************************************/
 /*       KisTextureMaskInfo                                           */
@@ -104,7 +103,7 @@ KisPaintDeviceSP KisTextureMaskInfo::mask() {
     return m_mask;
 }
 
-QRect KisTextureMaskInfo::maskBounds() const {
+PkRect KisTextureMaskInfo::maskBounds() const {
     return m_maskBounds;
 }
 
@@ -152,26 +151,26 @@ void KisTextureMaskInfo::recalculateMask()
         m_mask = new KisPaintDevice(cs);
     }
 
-    QImage mask = m_pattern->pattern();
+    PkImage mask = m_pattern->pattern();
 
-    if ((mask.format() != QImage::Format_RGB32)
-        || (mask.format() != QImage::Format_ARGB32)) {
-        mask.convertTo(QImage::Format_ARGB32);
+    if ((mask.format() != PkImage::Format_RGB32)
+        || (mask.format() != PkImage::Format_ARGB32)) {
+        mask.convertTo(PkImage::Format_ARGB32);
     }
 
     qreal scale = m_scale * KisLodTransform::lodToScale(m_levelOfDetail);
 
     if (!qFuzzyCompare(scale, 0.0) && !qFuzzyCompare(scale, 1.0)) {
-        QTransform tf;
+        PkTransform tf;
         tf.scale(scale, scale);
-        QRect rc = KisAlgebra2D::ensureRectNotSmaller(tf.mapRect(mask.rect()), QSize(2,2));
+        PkRect rc = KisAlgebra2D::ensureRectNotSmaller(tf.mapRect(mask.rect()), PkSize(2,2));
         mask = mask.scaled(rc.size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
     } else {
         // detach the mask from the file loaded from the storage
-        mask = QImage(mask);
+        mask = PkImage(mask);
     }
 
-    QRgb* pixel = reinterpret_cast<QRgb*>(mask.bits());
+    PkRgb* pixel = reinterpret_cast<PkRgb*>(mask.bits());
     const int width = mask.width();
     const int height = mask.height();
 
@@ -179,12 +178,12 @@ void KisTextureMaskInfo::recalculateMask()
 
     for (int row = 0; row < height; ++row) {
         for (int col = 0; col < width; ++col) {
-            const QRgb currentPixel = pixel[row * width + col];
+            const PkRgb currentPixel = pixel[row * width + col];
 
-            const int red = qRed(currentPixel);
-            const int green = qGreen(currentPixel);
-            const int blue = qBlue(currentPixel);
-            float alpha = qAlpha(currentPixel) / 255.0;
+            const int red = pkRed(currentPixel);
+            const int green = pkGreen(currentPixel);
+            const int blue = pkBlue(currentPixel);
+            float alpha = pkAlpha(currentPixel) / 255.0;
 
             const int grayValue = (red * 11 + green * 16 + blue * 5) / 32;
             float maskValue = (grayValue / 255.0) * alpha + (1 - alpha);
@@ -227,7 +226,7 @@ void KisTextureMaskInfo::recalculateMask()
 
             if (useAlpha) {
                 int finalValue = qRound(neutralAdjustedValue * 255.0);
-                pixel[row * width + col] = QColor(finalValue, finalValue, finalValue, qRound(alpha * 255.0)).rgba();
+                pixel[row * width + col] = PkColor(finalValue, finalValue, finalValue, qRound(alpha * 255.0)).rgba();
             } else {
                 cs->setOpacity(iter->rawData(), neutralAdjustedValue, 1);
                 iter->nextPixel();
@@ -240,7 +239,7 @@ void KisTextureMaskInfo::recalculateMask()
     if (useAlpha) {
         m_mask->convertFromQImage(mask, 0);
     }
-    m_maskBounds = QRect(0, 0, width, height);
+    m_maskBounds = PkRect(0, 0, width, height);
 }
 
 bool KisTextureMaskInfo::hasAlpha() {
@@ -251,15 +250,19 @@ bool KisTextureMaskInfo::hasAlpha() {
 /*       KisTextureMaskInfoCache                                      */
 /**********************************************************************/
 
-Q_GLOBAL_STATIC(KisTextureMaskInfoCache, s_instance)
+static KisTextureMaskInfoCache *s_instance()
+{
+    static KisTextureMaskInfoCache inst;
+    return &inst;
+}
 
 KisTextureMaskInfoCache *KisTextureMaskInfoCache::instance()
 {
-    return s_instance;
+    return s_instance();
 }
 
 KisTextureMaskInfoSP KisTextureMaskInfoCache::fetchCachedTextureInfo(KisTextureMaskInfoSP info) {
-    QMutexLocker locker(&m_mutex);
+    PkMutexLocker locker(&m_mutex);
 
     KisTextureMaskInfoSP &cachedInfo =
             info->levelOfDetail() > 0 ? m_lodInfo : m_mainInfo;

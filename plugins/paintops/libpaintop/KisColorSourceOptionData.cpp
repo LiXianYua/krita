@@ -13,12 +13,12 @@ namespace {
 
 struct ColorSourceTypeMapper {
     ColorSourceTypeMapper() {
-        addType(KisColorSourceOptionData::PLAIN, KoID("plain", i18n("Plain color")));
-        addType(KisColorSourceOptionData::GRADIENT, KoID("gradient", i18n("Gradient")));
-        addType(KisColorSourceOptionData::UNIFORM_RANDOM, KoID("uniform_random", i18n("Uniform random")));
-        addType(KisColorSourceOptionData::TOTAL_RANDOM, KoID("total_random", i18n("Total random")));
-        addType(KisColorSourceOptionData::PATTERN, KoID("pattern", i18n("Pattern")));
-        addType(KisColorSourceOptionData::PATTERN_LOCKED, KoID("lockedpattern", i18n("Locked pattern")));
+        addType(KisColorSourceOptionData::PLAIN, KoID("plain", PkString("Plain color")));
+        addType(KisColorSourceOptionData::GRADIENT, KoID("gradient", PkString("Gradient")));
+        addType(KisColorSourceOptionData::UNIFORM_RANDOM, KoID("uniform_random", PkString("Uniform random")));
+        addType(KisColorSourceOptionData::TOTAL_RANDOM, KoID("total_random", PkString("Total random")));
+        addType(KisColorSourceOptionData::PATTERN, KoID("pattern", PkString("Pattern")));
+        addType(KisColorSourceOptionData::PATTERN_LOCKED, KoID("lockedpattern", PkString("Locked pattern")));
     }
     PkMap<KisColorSourceOptionData::Type, KoID> type2id;
     PkMap<PkString, KisColorSourceOptionData::Type> id2type;

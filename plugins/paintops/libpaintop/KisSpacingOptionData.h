@@ -32,7 +32,7 @@ using KisSpacingOptionMixIn = KisPrefixedOptionDataWrapper<KisSpacingOptionMixIn
 struct PAINTOP_EXPORT KisSpacingOptionData : KisOptionTuple<KisCurveOptionData, KisSpacingOptionMixIn>
 {
     KisSpacingOptionData(const PkString &prefix = "")
-        : KisOptionTuple<KisCurveOptionData, KisSpacingOptionMixIn>(prefix, KoID("Spacing", i18n("Spacing")))
+        : KisOptionTuple<KisCurveOptionData, KisSpacingOptionMixIn>(prefix, KoID("Spacing", PkString("Spacing")))
     {
     }
 };

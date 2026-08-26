@@ -28,7 +28,7 @@ void KisScatterOptionMixInImpl::write(KisPropertiesConfiguration *setting) const
 
 KisScatterOptionData::KisScatterOptionData(const PkString &prefix)
     : KisOptionTuple<KisCurveOptionData, KisScatterOptionMixIn>(prefix,
-                                                                KoID("Scatter", i18n("Scatter")),
+                                                                KoID("Scatter", PkString("Scatter")),
                                                                 Checkability::Checkable,
                                                                 std::nullopt,
                                                                 std::make_pair(0.0, 5.0))

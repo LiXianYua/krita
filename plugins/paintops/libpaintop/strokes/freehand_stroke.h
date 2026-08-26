@@ -9,6 +9,7 @@
 
 
 #include <PkPen.h>
+#include <PkFlags.h>
 #include <kritapaintop_export.h>
 #include "kis_types.h"
 #include "kis_node.h"
@@ -28,7 +29,7 @@ public:
         SupportsContinuedInterstrokeData = 0x1,
         SupportsTimedMergeId = 0x2
     };
-    Q_DECLARE_FLAGS(Flags, Flag)
+    PK_DECLARE_FLAGS(Flags, Flag)
 
 public:
     class Data : public KisStrokeJobData {
@@ -209,6 +210,6 @@ private:
     const PkScopedPointer<Private> m_d;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(FreehandStrokeStrategy::Flags)
+PK_DECLARE_OPERATORS_FOR_FLAGS(FreehandStrokeStrategy::Flags)
 
 #endif /* __FREEHAND_STROKE_H */
