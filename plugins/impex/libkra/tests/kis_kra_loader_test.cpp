@@ -6,7 +6,6 @@
 
 #include "kis_kra_loader_test.h"
 
-#include <simpletest.h>
 
 #include <KisDocument.h>
 #include <KoDocumentInfo.h>
@@ -29,7 +28,7 @@
 
 #include <testui.h>
 
-const QString KraMimetype = "application/x-krita";
+const PkString KraMimetype = "application/x-krita";
 
 void KisKraLoaderTest::initTestCase()
 {
@@ -39,57 +38,57 @@ void KisKraLoaderTest::initTestCase()
 
 void KisKraLoaderTest::testLoading()
 {
-    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
-    doc->loadNativeFormat(QString(FILES_DATA_DIR) + '/' + "load_test.kra");
+    PkScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
+    doc->loadNativeFormat(PkString(FILES_DATA_DIR) + '/' + "load_test.kra");
     KisImageSP image = doc->image();
     image->waitForDone();
-    QCOMPARE(image->nlayers(), 12);
-    QCOMPARE(doc->documentInfo()->aboutInfo("title"), QString("test image for loading"));
-    QCOMPARE(image->height(), 753);
-    QCOMPARE(image->width(), 1000);
-    QCOMPARE(image->colorSpace()->id(), KoColorSpaceRegistry::instance()->rgb8()->id());
+    PK_COMPARE(image->nlayers(), 12);
+    PK_COMPARE(doc->documentInfo()->aboutInfo("title"), PkString("test image for loading"));
+    PK_COMPARE(image->height(), 753);
+    PK_COMPARE(image->width(), 1000);
+    PK_COMPARE(image->colorSpace()->id(), KoColorSpaceRegistry::instance()->rgb8()->id());
 
     KisNodeSP node = image->root()->firstChild();
-    QVERIFY(node);
-    QCOMPARE(node->name(), QString("Background"));
-    QVERIFY(node->inherits("KisPaintLayer"));
+    PK_VERIFY(node);
+    PK_COMPARE(node->name(), PkString("Background"));
+    PK_VERIFY(node->inherits("KisPaintLayer"));
 
     node = node->nextSibling();
-    QVERIFY(node);
-    QCOMPARE(node->name(), QString("Group 1"));
-    QVERIFY(node->inherits("KisGroupLayer"));
-    QCOMPARE((int) node->childCount(), 2);
+    PK_VERIFY(node);
+    PK_COMPARE(node->name(), PkString("Group 1"));
+    PK_VERIFY(node->inherits("KisGroupLayer"));
+    PK_COMPARE((int) node->childCount(), 2);
 }
 
 void testObligeSingleChildImpl(bool transpDefaultPixel)
 {
 
-    QString id = !transpDefaultPixel ?
+    PkString id = !transpDefaultPixel ?
         "single_layer_no_channel_flags_nontransp_def_pixel.kra" :
         "single_layer_no_channel_flags_transp_def_pixel.kra";
 
-    QString fileName = TestUtil::fetchDataFileLazy(id);
+    PkString fileName = TestUtil::fetchDataFileLazy(id);
 
-    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
+    PkScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
     const bool result = doc->loadNativeFormat(fileName);
-    QVERIFY(result);
+    PK_VERIFY(result);
 
     KisImageSP image = doc->image();
 
-    QVERIFY(image);
-    QCOMPARE(image->nlayers(), 2);
+    PK_VERIFY(image);
+    PK_COMPARE(image->nlayers(), 2);
 
     KisNodeSP root = image->root();
     KisNodeSP child = root->firstChild();
 
-    QVERIFY(child);
+    PK_VERIFY(child);
 
-    QCOMPARE(root->original(), root->projection());
+    PK_COMPARE(root->original(), root->projection());
 
     if (transpDefaultPixel) {
-        QCOMPARE(root->original(), child->projection());
+        PK_COMPARE(root->original(), child->projection());
     } else {
-        QVERIFY(root->original() != child->projection());
+        PK_VERIFY(root->original() != child->projection());
     }
 }
 
@@ -105,60 +104,60 @@ void KisKraLoaderTest::testObligeSingleChildNonTranspPixel()
 
 void KisKraLoaderTest::testLoadAnimated()
 {
-    QScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
-    doc->loadNativeFormat(QString(FILES_DATA_DIR) + '/' + "load_test_animation.kra");
+    PkScopedPointer<KisDocument> doc(KisDocumentRegistry::instance()->createDocument());
+    doc->loadNativeFormat(PkString(FILES_DATA_DIR) + '/' + "load_test_animation.kra");
     KisImageSP image = doc->image();
 
     KisNodeSP node1 = image->root()->firstChild();
     KisNodeSP node2 = node1->nextSibling();
 
-    QVERIFY(node1->inherits("KisPaintLayer"));
-    QVERIFY(node2->inherits("KisPaintLayer"));
+    PK_VERIFY(node1->inherits("KisPaintLayer"));
+    PK_VERIFY(node2->inherits("KisPaintLayer"));
 
-    KisPaintLayerSP layer1 = qobject_cast<KisPaintLayer*>(node1.data());
-    KisPaintLayerSP layer2 = qobject_cast<KisPaintLayer*>(node2.data());
+    KisPaintLayerSP layer1 = dynamic_cast<KisPaintLayer*>(node1.data());
+    KisPaintLayerSP layer2 = dynamic_cast<KisPaintLayer*>(node2.data());
 
-    QVERIFY(layer1->isAnimated());
-    QVERIFY(!layer2->isAnimated());
+    PK_VERIFY(layer1->isAnimated());
+    PK_VERIFY(!layer2->isAnimated());
 
     KisKeyframeChannel *channel1 = layer1->getKeyframeChannel(KisKeyframeChannel::Raster.id());
-    QVERIFY(channel1);
-    QCOMPARE(channel1->keyframeCount(), 3);
+    PK_VERIFY(channel1);
+    PK_COMPARE(channel1->keyframeCount(), 3);
 
-    QCOMPARE(image->animationInterface()->framerate(), 17);
-    QCOMPARE(image->animationInterface()->documentPlaybackRange(), KisTimeSpan::fromTimeToTime(15, 45));
-    QCOMPARE(image->animationInterface()->currentTime(), 19);
+    PK_COMPARE(image->animationInterface()->framerate(), 17);
+    PK_COMPARE(image->animationInterface()->documentPlaybackRange(), KisTimeSpan::fromTimeToTime(15, 45));
+    PK_COMPARE(image->animationInterface()->currentTime(), 19);
 
     KisPaintDeviceSP dev = layer1->paintDevice();
 
     const KoColorSpace *cs = dev->colorSpace();
-    KoColor transparent(Qt::transparent, cs);
-    KoColor white(Qt::white, cs);
-    KoColor red(Qt::red, cs);
+    KoColor transparent(PkColor(0, 0, 0, 0), cs);
+    KoColor white(PkColor(255, 255, 255), cs);
+    KoColor red(PkColor(255, 0, 0), cs);
 
     image->animationInterface()->switchCurrentTimeAsync(0);
     image->waitForDone();
 
-    QCOMPARE(dev->exactBounds(), QRect(506, 378, 198, 198));
-    QCOMPARE(dev->x(), -26);
-    QCOMPARE(dev->y(), -128);
-    QCOMPARE(dev->defaultPixel(), transparent);
+    PK_COMPARE(dev->exactBounds(), PkRect(506, 378, 198, 198));
+    PK_COMPARE(dev->x(), -26);
+    PK_COMPARE(dev->y(), -128);
+    PK_COMPARE(dev->defaultPixel(), transparent);
 
     image->animationInterface()->switchCurrentTimeAsync(20);
     image->waitForDone();
 
-    QCOMPARE(dev->nonDefaultPixelArea(), QRect(615, 416, 129, 129));
-    QCOMPARE(dev->x(), 502);
-    QCOMPARE(dev->y(), 224);
-    QCOMPARE(dev->defaultPixel(), white);
+    PK_COMPARE(dev->nonDefaultPixelArea(), PkRect(615, 416, 129, 129));
+    PK_COMPARE(dev->x(), 502);
+    PK_COMPARE(dev->y(), 224);
+    PK_COMPARE(dev->defaultPixel(), white);
 
     image->animationInterface()->switchCurrentTimeAsync(30);
     image->waitForDone();
 
-    QCOMPARE(dev->nonDefaultPixelArea(), QRect(729, 452, 45, 44));
-    QCOMPARE(dev->x(), 645);
-    QCOMPARE(dev->y(), -10);
-    QCOMPARE(dev->defaultPixel(), red);
+    PK_COMPARE(dev->nonDefaultPixelArea(), PkRect(729, 452, 45, 44));
+    PK_COMPARE(dev->x(), 645);
+    PK_COMPARE(dev->y(), -10);
+    PK_COMPARE(dev->defaultPixel(), red);
 }
 
 
@@ -176,4 +175,8 @@ void KisKraLoaderTest::testImportIncorrectFormat()
 
 
 
-KISTEST_MAIN(KisKraLoaderTest)
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_kis_kra_loader_test.inc"
+#endif
+
+PK_TEST_GUILESS_MAIN(KisKraLoaderTest)

@@ -6,8 +6,9 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
-#include <simpletest.h>
-#include <QBitArray>
+#include <PkTest.h>
+#include <kis_assert.h>
+#include <PkBitArray.h>
 
 #include <KisDocument.h>
 #include <KoDocumentInfo.h>
@@ -47,7 +48,7 @@ KisSelectionSP createPixelSelection(KisPaintDeviceSP paintDevice)
 
     KisFillPainter gc(pixelSelection->pixelSelection());
     gc.fillRect(10, 10, 200, 200, KoColor(gc.device()->colorSpace()));
-    gc.fillRect(150, 150, 200, 200, KoColor(QColor(100, 100, 100, 100), gc.device()->colorSpace()));
+    gc.fillRect(150, 150, 200, 200, KoColor(PkColor(100, 100, 100, 100), gc.device()->colorSpace()));
     gc.end();
 
     return pixelSelection;
@@ -58,10 +59,10 @@ KisSelectionSP createVectorSelection(KisPaintDeviceSP paintDevice, KisImageSP im
     KisSelectionSP selection = new KisSelection(new KisSelectionDefaultBounds(paintDevice), toQShared(new KisImageResolutionProxy(image)));
     KoPathShape* path = new KoPathShape();
     path->setShapeId(KoPathShapeId);
-    path->moveTo(QPointF(10, 10));
-    path->lineTo(QPointF(10, 10) + QPointF(100, 0));
-    path->lineTo(QPointF(100, 100));
-    path->lineTo(QPointF(10, 10) + QPointF(0, 100));
+    path->moveTo(PkPointF(10, 10));
+    path->lineTo(PkPointF(10, 10) + PkPointF(100, 0));
+    path->lineTo(PkPointF(100, 100));
+    path->lineTo(PkPointF(10, 10) + PkPointF(0, 100));
     path->close();
     path->normalize();
     KisShapeSelection* shapeSelection = new KisShapeSelection(shapeController, selection);
@@ -71,15 +72,15 @@ KisSelectionSP createVectorSelection(KisPaintDeviceSP paintDevice, KisImageSP im
     return selection;
 }
 
-QTransform createTestingTransform() {
-    return QTransform(1,2,3,4,5,6,7,8,9);
+PkTransform createTestingTransform() {
+    return PkTransform(1,2,3,4,5,6,7,8,9);
 }
 
 KisDocument* createCompleteDocument()
 {
     KisImageSP image = new KisImage(0, 1024, 1024, KoColorSpaceRegistry::instance()->rgb8(), "test for roundtrip");
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
+    KisDocument *doc = KisDocumentRegistry::instance()->createDocument();
 
     doc->setCurrentImage(image);
     doc->documentInfo()->setAboutInfo("title", image->objectName());
@@ -90,14 +91,14 @@ KisDocument* createCompleteDocument()
 
     KisPaintLayerSP paintLayer1 = new KisPaintLayer(image, "paintlayer1", OPACITY_OPAQUE_U8);
     paintLayer1->setUserLocked(true);
-    QBitArray channelFlags(4);
+    PkBitArray channelFlags(4);
     channelFlags[0] = true;
     channelFlags[2] = true;
     paintLayer1->setChannelFlags(channelFlags);
 
     {
         KisFillPainter gc(paintLayer1->paintDevice());
-        gc.fillRect(10, 10, 200, 200, KoColor(Qt::red, paintLayer1->paintDevice()->colorSpace()));
+        gc.fillRect(10, 10, 200, 200, KoColor(PkColor(255, 0, 0), paintLayer1->paintDevice()->colorSpace()));
         gc.end();
     }
 
@@ -105,7 +106,7 @@ KisDocument* createCompleteDocument()
     paintLayer2->setVisible(false);
     {
         KisFillPainter gc(paintLayer2->paintDevice());
-        gc.fillRect(0, 0, 900, 1024, KoColor(QColor(10, 20, 30), paintLayer2->paintDevice()->colorSpace()));
+        gc.fillRect(0, 0, 900, 1024, KoColor(PkColor(10, 20, 30), paintLayer2->paintDevice()->colorSpace()));
         gc.end();
     }
 
@@ -116,7 +117,7 @@ KisDocument* createCompleteDocument()
 
     KisSelectionSP pixelSelection = createPixelSelection(paintLayer1->paintDevice());
     KisFilterConfigurationSP kfc = KisFilterRegistry::instance()->get("pixelize")->defaultConfiguration(KisGlobalResourcesInterface::instance());
-    Q_ASSERT(kfc);
+    KIS_ASSERT(kfc);
     KisAdjustmentLayerSP adjustmentLayer1 = new KisAdjustmentLayer(image, "adjustmentLayer1", kfc->cloneWithResourcesSnapshot(), pixelSelection);
 
     KisSelectionSP vectorSelection = createVectorSelection(paintLayer2->paintDevice(), image, doc->shapeController());
@@ -134,10 +135,10 @@ KisDocument* createCompleteDocument()
 
     KoPathShape* path = new KoPathShape();
     path->setShapeId(KoPathShapeId);
-    path->moveTo(QPointF(10, 10));
-    path->lineTo(QPointF(10, 10) + QPointF(100, 0));
-    path->lineTo(QPointF(100, 100));
-    path->lineTo(QPointF(10, 10) + QPointF(0, 100));
+    path->moveTo(PkPointF(10, 10));
+    path->lineTo(PkPointF(10, 10) + PkPointF(100, 0));
+    path->lineTo(PkPointF(100, 100));
+    path->lineTo(PkPointF(10, 10) + PkPointF(0, 100));
     path->close();
     path->normalize();
     KisShapeLayerSP shapeLayer = new KisShapeLayer(doc->shapeController(), image, "shapeLayer1", 75);
@@ -192,7 +193,7 @@ KisDocument *createEmptyDocument()
 {
     KisImageSP image = new KisImage(0, 1024, 1024, KoColorSpaceRegistry::instance()->rgb8(), "test for roundtrip");
 
-    KisDocument *doc = qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument());
+    KisDocument *doc = KisDocumentRegistry::instance()->createDocument();
 
     doc->setCurrentImage(image);
     doc->documentInfo()->setAboutInfo("title", image->objectName());
