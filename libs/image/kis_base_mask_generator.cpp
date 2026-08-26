@@ -142,13 +142,13 @@ void KisMaskGenerator::toXML(PkXmlDocument& doc, PkXmlElement& e) const
 {
     (void)doc;
     //e.setAttribute("radius", d->radius);
-    e.setAttribute("diameter", PkString().arg(d->diameter));
-    e.setAttribute("ratio", PkString().arg(d->ratio));
-    e.setAttribute("hfade", PkString().arg(horizontalFade()));
-    e.setAttribute("vfade", PkString().arg(verticalFade()));
-    e.setAttribute("spikes", PkString().arg(d->spikes));
+    e.setAttribute("diameter", PkString("%1").arg(d->diameter));
+    e.setAttribute("ratio", PkString("%1").arg(d->ratio));
+    e.setAttribute("hfade", PkString("%1").arg(horizontalFade()));
+    e.setAttribute("vfade", PkString("%1").arg(verticalFade()));
+    e.setAttribute("spikes", PkString("%1").arg(d->spikes));
     e.setAttribute("type", d->type == CIRCLE ? "circle" : "rect");
-    e.setAttribute("antialiasEdges", PkString().arg(int(d->antialiasEdges)));
+    e.setAttribute("antialiasEdges", PkString("%1").arg(int(d->antialiasEdges)));
     e.setAttribute("id", id());
 }
 

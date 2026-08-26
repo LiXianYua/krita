@@ -211,22 +211,22 @@ void KisHistogram::dump()
 
     /*        for( int i = 0; i <256; ++i ) {
             dbgMath <<"Value"
-                  << PkString().arg(i)
+                  << PkString("%1").arg(i)
                   << ": "
-                  <<  PkString().arg(m_values[i])
+                  <<  PkString("%1").arg(m_values[i])
                   << "\n";
             }*/
     dbgMath << "";
 
-    dbgMath << "Max:" << PkString().arg(c.getMax()) << "";
-    dbgMath << "Min:" << PkString().arg(c.getMin()) << "";
-    dbgMath << "High:" << PkString().arg(static_cast<int>(c.getHighest())) << "";
-    dbgMath << "Low:" << PkString().arg(static_cast<int>(c.getLowest())) << "";
+    dbgMath << "Max:" << PkString("%1").arg(c.getMax()) << "";
+    dbgMath << "Min:" << PkString("%1").arg(c.getMin()) << "";
+    dbgMath << "High:" << PkString("%1").arg(static_cast<int>(c.getHighest())) << "";
+    dbgMath << "Low:" << PkString("%1").arg(static_cast<int>(c.getLowest())) << "";
     dbgMath << "Mean:" << m_producer->positionToString(c.getMean()) << "";
-    dbgMath << "Total:" << PkString().arg(c.getTotal()) << "";
-    //    dbgMath <<"Median:" << PkString().arg(m_median) <<"";
-    //    dbgMath <<"Stddev:" << PkString().arg(m_stddev) <<"";
-    //    dbgMath <<"percentile:" << PkString().arg(m_percentile) <<"";
+    dbgMath << "Total:" << PkString("%1").arg(c.getTotal()) << "";
+    //    dbgMath <<"Median:" << PkString("%1").arg(m_median) <<"";
+    //    dbgMath <<"Stddev:" << PkString("%1").arg(m_stddev) <<"";
+    //    dbgMath <<"percentile:" << PkString("%1").arg(m_percentile) <<"";
 
     dbgMath << "";
 }

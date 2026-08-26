@@ -202,7 +202,7 @@ PkString KisRasterKeyframeChannel::chooseFrameFilename(int frameId, const PkStri
         // Use legacy naming convention for first keyframe
         filename = layerFilename + m_d->filenameSuffix;
     } else {
-        filename = layerFilename + m_d->filenameSuffix + ".f" + PkString().arg(frameId);
+        filename = layerFilename + m_d->filenameSuffix + ".f" + PkString("%1").arg(frameId);
     }
 
     setFrameFilename(frameId, filename);

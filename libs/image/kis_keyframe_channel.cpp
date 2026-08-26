@@ -397,8 +397,8 @@ PkXmlElement KisKeyframeChannel::toXML(PkXmlDocument doc, const PkString &layerF
         PkXmlElement keyframeElement = doc.createElement("keyframe");
         KisKeyframeSP keyframe = keyframeAt(time);
 
-        keyframeElement.setAttribute("time", PkString().arg(time));
-        keyframeElement.setAttribute("color-label", PkString().arg(keyframe->colorLabel()));
+        keyframeElement.setAttribute("time", PkString("%1").arg(time));
+        keyframeElement.setAttribute("color-label", PkString("%1").arg(keyframe->colorLabel()));
 
         saveKeyframe(keyframe, keyframeElement, layerFilename);
 
