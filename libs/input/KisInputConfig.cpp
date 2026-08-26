@@ -3,6 +3,7 @@
 
 #include <PkConfigGroup.h>
 #include <PkSharedConfig.h>
+#include <PkString.h>
 
 bool KisInputConfig::disableTouchOnCanvas() const
 {

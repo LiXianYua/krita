@@ -4,6 +4,8 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include "kis_input_transform_policy_test.h"
+
 #include <simpletest.h>
 
 #include "KisInputTransformPolicy.h"
@@ -18,26 +20,13 @@ bool closeEnough(qreal lhs, qreal rhs)
 }
 }
 
-class KisInputTransformPolicyTest : public QObject
-{
-    Q_OBJECT
-
-private Q_SLOTS:
-    void testContinuousAndDiscreteZoomMapping();
-    void testPinchZoomValidationAndState();
-    void testCombinedGestureScaleAndRotation();
-    void testCombinedRotationModes();
-    void testDiscreteCanvasRotation();
-    void testTouchRotationState();
-};
-
 void KisInputTransformPolicyTest::testContinuousAndDiscreteZoomMapping()
 {
     using namespace KisInputTransformPolicy;
 
-    QVERIFY(closeEnough(continuousZoom(2.0, QPointF(0.0, 100.0), false, false), 4.0));
-    QVERIFY(closeEnough(continuousZoom(2.0, QPointF(-100.0, 0.0), true, false), 4.0));
-    QVERIFY(closeEnough(continuousZoom(2.0, QPointF(0.0, 100.0), false, true), 1.0));
+    QVERIFY(closeEnough(continuousZoom(2.0, PkPointF(0.0, 100.0), false, false), 4.0));
+    QVERIFY(closeEnough(continuousZoom(2.0, PkPointF(-100.0, 0.0), true, false), 4.0));
+    QVERIFY(closeEnough(continuousZoom(2.0, PkPointF(0.0, 100.0), false, true), 1.0));
 
     qreal accumulator = 0.0;
     QCOMPARE(consumeDiscreteZoomSteps(50.0, accumulator), 0);
@@ -53,36 +42,36 @@ void KisInputTransformPolicyTest::testPinchZoomValidationAndState()
     using namespace KisInputTransformPolicy;
 
     PinchZoomState state;
-    auto result = updatePinchZoom(state, QPointF(0, 0), QPointF(5, 4), false, 2.0);
+    auto result = updatePinchZoom(state, PkPointF(0, 0), PkPointF(5, 4), false, 2.0);
     QVERIFY(!result.shouldApply);
     QVERIFY(!state.hasReference);
 
     PinchZoomState exactThresholdState;
-    result = updatePinchZoom(exactThresholdState, QPointF(0, 0), QPointF(6, 4), false, 2.0);
+    result = updatePinchZoom(exactThresholdState, PkPointF(0, 0), PkPointF(6, 4), false, 2.0);
     QVERIFY(!result.shouldApply);
     QVERIFY(exactThresholdState.hasReference);
 
-    result = updatePinchZoom(state, QPointF(0, 0), QPointF(100, 0), false, 2.0);
+    result = updatePinchZoom(state, PkPointF(0, 0), PkPointF(100, 0), false, 2.0);
     QVERIFY(!result.shouldApply);
     QVERIFY(state.hasReference);
 
-    result = updatePinchZoom(state, QPointF(0, 0), QPointF(100, 0), false, 2.0);
+    result = updatePinchZoom(state, PkPointF(0, 0), PkPointF(100, 0), false, 2.0);
     QVERIFY(result.shouldApply);
     QVERIFY(closeEnough(result.zoom, 2.0));
 
-    result = updatePinchZoom(state, QPointF(0, 0), QPointF(79, 0), false, 2.0);
+    result = updatePinchZoom(state, PkPointF(0, 0), PkPointF(79, 0), false, 2.0);
     QVERIFY(!result.shouldApply);
-    result = updatePinchZoom(state, QPointF(0, 0), QPointF(80, 0), false, 2.0);
+    result = updatePinchZoom(state, PkPointF(0, 0), PkPointF(80, 0), false, 2.0);
     QVERIFY(result.shouldApply);
     QVERIFY(closeEnough(result.zoom, 1.6));
 
-    result = updatePinchZoom(state, QPointF(0, 0), QPointF(97, 0), false, result.zoom);
+    result = updatePinchZoom(state, PkPointF(0, 0), PkPointF(97, 0), false, result.zoom);
     QVERIFY(!result.shouldApply);
-    result = updatePinchZoom(state, QPointF(0, 0), QPointF(96, 0), false, 1.6);
+    result = updatePinchZoom(state, PkPointF(0, 0), PkPointF(96, 0), false, 1.6);
     QVERIFY(result.shouldApply);
     QVERIFY(closeEnough(result.zoom, 1.92));
 
-    result = updatePinchZoom(state, QPointF(), QPointF(), true, 1.92);
+    result = updatePinchZoom(state, PkPointF(), PkPointF(), true, 1.92);
     QVERIFY(!result.shouldApply);
     QVERIFY(!state.hasReference);
 }
@@ -98,8 +87,8 @@ void KisInputTransformPolicyTest::testCombinedGestureScaleAndRotation()
     auto result = updateCombinedGesture(
         state,
         CombinedRotationMode::Discrete,
-        QPointF(),
-        QPointF(100.0 * std::cos(initialAngle), 100.0 * std::sin(initialAngle)),
+        PkPointF(),
+        PkPointF(100.0 * std::cos(initialAngle), 100.0 * std::sin(initialAngle)),
         0.0);
     QCOMPARE(result.scaleDelta, 1.0f);
     QCOMPARE(result.rotationDelta, 0.0);
@@ -108,8 +97,8 @@ void KisInputTransformPolicyTest::testCombinedGestureScaleAndRotation()
     result = updateCombinedGesture(
         state,
         CombinedRotationMode::Discrete,
-        QPointF(),
-        QPointF(120.0 * std::cos(nextAngle), 120.0 * std::sin(nextAngle)),
+        PkPointF(),
+        PkPointF(120.0 * std::cos(nextAngle), 120.0 * std::sin(nextAngle)),
         0.0);
     QVERIFY(closeEnough(result.scaleDelta, 1.2));
     QCOMPARE(result.rotationDelta, 15.0);
@@ -175,28 +164,28 @@ void KisInputTransformPolicyTest::testTouchRotationState()
     using namespace KisInputTransformPolicy;
 
     TouchRotationState state;
-    auto result = updateTouchRotation(state, QPointF(0, 0), QPointF(4, 5), false);
+    auto result = updateTouchRotation(state, PkPointF(0, 0), PkPointF(4, 5), false);
     QVERIFY(!result.shouldApply);
     QVERIFY(!state.hasPreviousAngle);
 
     TouchRotationState exactThresholdState;
-    result = updateTouchRotation(exactThresholdState, QPointF(0, 0), QPointF(6, 4), false);
+    result = updateTouchRotation(exactThresholdState, PkPointF(0, 0), PkPointF(6, 4), false);
     QVERIFY(!result.shouldApply);
     QVERIFY(exactThresholdState.hasPreviousAngle);
 
-    result = updateTouchRotation(state, QPointF(0, 0), QPointF(100, 0), false);
+    result = updateTouchRotation(state, PkPointF(0, 0), PkPointF(100, 0), false);
     QVERIFY(!result.shouldApply);
     QVERIFY(state.hasPreviousAngle);
 
-    result = updateTouchRotation(state, QPointF(0, 0), QPointF(0, 100), false);
+    result = updateTouchRotation(state, PkPointF(0, 0), PkPointF(0, 100), false);
     QVERIFY(result.shouldApply);
     QVERIFY(closeEnough(result.rotation, 90.0));
 
-    result = updateTouchRotation(state, QPointF(), QPointF(), true);
+    result = updateTouchRotation(state, PkPointF(), PkPointF(), true);
     QVERIFY(!result.shouldApply);
     QVERIFY(state.hasPreviousAngle);
 }
 
-SIMPLE_TEST_MAIN(KisInputTransformPolicyTest)
+#include "pk_binder_kis_input_transform_policy_test.inc"
 
-#include "kis_input_transform_policy_test.moc"
+SIMPLE_TEST_MAIN(KisInputTransformPolicyTest)
