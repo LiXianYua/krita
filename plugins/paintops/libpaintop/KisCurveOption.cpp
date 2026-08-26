@@ -104,7 +104,7 @@ KisCurveOption::ValueComponents KisCurveOption::computeValueComponents(const Kis
     ValueComponents components;
 
     if (m_useCurve) {
-        QList<double> sensorValues;
+        PkList<double> sensorValues;
         for (auto i = m_sensors.cbegin(); i != m_sensors.cend(); ++i) {
             KisDynamicSensor *s(i->get());
 

@@ -8,8 +8,8 @@
 
 #include <KisDynamicSensorIds.h>
 
-#include <QDomDocument>
-#include <QDomElement>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 KisSensorData::KisSensorData(const KoID &sensorId)
     : id(sensorId),
@@ -21,32 +21,32 @@ KisSensorData::~KisSensorData()
 {
 }
 
-void KisSensorData::setBaseCurveRange(const QRectF &rect)
+void KisSensorData::setBaseCurveRange(const PkRectF &rect)
 {
     Q_UNUSED(rect);
     KIS_SAFE_ASSERT_RECOVER_NOOP(0 && "setBaseCurveRange is not implemented for standard Krita sensors");
 }
 
-QRectF KisSensorData::baseCurveRange() const
+PkRectF KisSensorData::baseCurveRange() const
 {
-    return QRectF(0.0,0.0,1.0,1.0);
+    return PkRectF(0.0,0.0,1.0,1.0);
 }
 
-void KisSensorData::write(QDomDocument& doc, QDomElement &e) const
+void KisSensorData::write(PkXmlDocument& doc, PkXmlElement &e) const
 {
     e.setAttribute("id", id.id());
     if (curve != DEFAULT_CURVE_STRING) {
-        QDomElement curve_elt = doc.createElement("curve");
-        QDomText text = doc.createTextNode(curve);
+        PkXmlElement curve_elt = doc.createElement("curve");
+        PkXmlText text = doc.createTextNode(curve);
         curve_elt.appendChild(text);
         e.appendChild(curve_elt);
     }
 }
 
-void KisSensorData::read(const QDomElement& e)
+void KisSensorData::read(const PkXmlElement& e)
 {
     KIS_ASSERT(e.attribute("id", "") == id.id());
-    QDomElement curve_elt = e.firstChildElement("curve");
+    PkXmlElement curve_elt = e.firstChildElement("curve");
     if (!curve_elt.isNull()) {
         curve = curve_elt.text();
     } else {
@@ -61,7 +61,7 @@ void KisSensorData::reset()
 
 KisSensorWithLengthData::KisSensorWithLengthData(const KoID &sensorId, const QLatin1String &lengthTag)
     : KisSensorData(sensorId)
-    , m_lengthTag(lengthTag.isNull() ? QLatin1String("length") : lengthTag)
+    , m_lengthTag(lengthTag.isEmpty() ? QLatin1String("length") : lengthTag)
 {
     if (sensorId == FadeId) {
         isPeriodic = false;
@@ -73,18 +73,18 @@ KisSensorWithLengthData::KisSensorWithLengthData(const KoID &sensorId, const QLa
         isPeriodic = false;
         length = 30;
     } else {
-        qFatal("This sensor type \"%s\" has no length associated!", sensorId.id().toLatin1().data());
+        qFatal("This sensor type \"%s\" has no length associated!", sensorId.id().PkToUtf8().c_str());
     }
 }
 
-void KisSensorWithLengthData::write(QDomDocument &doc, QDomElement &e) const
+void KisSensorWithLengthData::write(PkXmlDocument &doc, PkXmlElement &e) const
 {
     KisSensorData::write(doc, e);
-    e.setAttribute("periodic", isPeriodic);
-    e.setAttribute(m_lengthTag, length);
+    e.setAttribute("periodic", isPeriodic ? "1" : "0");
+    e.setAttribute(m_lengthTag, PkString(std::to_string(length).c_str()));
 }
 
-void KisSensorWithLengthData::read(const QDomElement &e)
+void KisSensorWithLengthData::read(const PkXmlElement &e)
 {
     reset();
     KisSensorData::read(e);
@@ -108,16 +108,16 @@ KisDrawingAngleSensorData::KisDrawingAngleSensorData()
 {
 }
 
-void KisDrawingAngleSensorData::write(QDomDocument &doc, QDomElement &e) const
+void KisDrawingAngleSensorData::write(PkXmlDocument &doc, PkXmlElement &e) const
 {
     KisSensorData::write(doc, e);
-    e.setAttribute("fanCornersEnabled", fanCornersEnabled);
-    e.setAttribute("fanCornersStep", fanCornersStep);
-    e.setAttribute("angleOffset", angleOffset);
-    e.setAttribute("lockedAngleMode", lockedAngleMode);
+    e.setAttribute("fanCornersEnabled", fanCornersEnabled ? "1" : "0");
+    e.setAttribute("fanCornersStep", PkString(std::to_string(fanCornersStep).c_str()));
+    e.setAttribute("angleOffset", PkString(std::to_string(angleOffset).c_str()));
+    e.setAttribute("lockedAngleMode", lockedAngleMode ? "1" : "0");
 }
 
-void KisDrawingAngleSensorData::read(const QDomElement &e)
+void KisDrawingAngleSensorData::read(const PkXmlElement &e)
 {
     reset();
     KisSensorData::read(e);
@@ -129,7 +129,7 @@ void KisDrawingAngleSensorData::read(const QDomElement &e)
         fanCornersStep = e.attribute("fanCornersStep").toInt();
     }
     if (e.hasAttribute("angleOffset")) {
-        angleOffset = e.attribute("angleOffset").toFloat();
+        angleOffset = e.attribute("angleOffset").toDouble();
     }
     if (e.hasAttribute("lockedAngleMode")) {
         lockedAngleMode = e.attribute("lockedAngleMode").toInt();
