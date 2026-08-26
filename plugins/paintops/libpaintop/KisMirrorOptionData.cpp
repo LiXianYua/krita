@@ -7,8 +7,8 @@
 
 #include <kis_properties_configuration.h>
 
-const QString MIRROR_HORIZONTAL_ENABLED = "HorizontalMirrorEnabled";
-const QString MIRROR_VERTICAL_ENABLED = "VerticalMirrorEnabled";
+const PkString MIRROR_HORIZONTAL_ENABLED = "HorizontalMirrorEnabled";
+const PkString MIRROR_VERTICAL_ENABLED = "VerticalMirrorEnabled";
 
 
 bool KisMirrorOptionMixInImpl::read(const KisPropertiesConfiguration *setting)

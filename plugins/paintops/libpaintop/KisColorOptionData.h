@@ -15,17 +15,17 @@
 class KisPropertiesConfiguration;
 
 
-const QString COLOROP_HUE = "ColorOption/hue";
-const QString COLOROP_SATURATION = "ColorOption/saturation";
-const QString COLOROP_VALUE = "ColorOption/value";
+const PkString COLOROP_HUE = "ColorOption/hue";
+const PkString COLOROP_SATURATION = "ColorOption/saturation";
+const PkString COLOROP_VALUE = "ColorOption/value";
 
-const QString COLOROP_USE_RANDOM_HSV = "ColorOption/useRandomHSV";
-const QString COLOROP_USE_RANDOM_OPACITY = "ColorOption/useRandomOpacity";
-const QString COLOROP_SAMPLE_COLOR = "ColorOption/sampleInputColor";
+const PkString COLOROP_USE_RANDOM_HSV = "ColorOption/useRandomHSV";
+const PkString COLOROP_USE_RANDOM_OPACITY = "ColorOption/useRandomOpacity";
+const PkString COLOROP_SAMPLE_COLOR = "ColorOption/sampleInputColor";
 
-const QString COLOROP_FILL_BG = "ColorOption/fillBackground";
-const QString COLOROP_COLOR_PER_PARTICLE = "ColorOption/colorPerParticle";
-const QString COLOROP_MIX_BG_COLOR = "ColorOption/mixBgColor";
+const PkString COLOROP_FILL_BG = "ColorOption/fillBackground";
+const PkString COLOROP_COLOR_PER_PARTICLE = "ColorOption/colorPerParticle";
+const PkString COLOROP_MIX_BG_COLOR = "ColorOption/mixBgColor";
 
 
 struct PAINTOP_EXPORT KisColorOptionData : boost::equality_comparable<KisColorOptionData>

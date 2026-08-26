@@ -7,7 +7,7 @@
 #ifndef _KIS_DYNAMIC_COLORING_H_
 #define _KIS_DYNAMIC_COLORING_H_
 
-#include <QRect>
+#include <PkRect.h>
 
 #include <KoColor.h>
 #include <KoAbstractGradient.h>
@@ -43,7 +43,7 @@ public:
     /**
      * Apply the color on a paint device
      */
-    virtual void colorize(KisPaintDeviceSP, const QRect& rect, const QPoint& _offset) const = 0;
+    virtual void colorize(KisPaintDeviceSP, const PkRect& rect, const PkPoint& _offset) const = 0;
 };
 
 class PAINTOP_EXPORT KisUniformColorSource : public KisColorSource
@@ -55,7 +55,7 @@ public:
     virtual void resize(double , double);
     void applyColorTransformation(const KoColorTransformation* transfo) override;
     const KoColorSpace* colorSpace() const override;
-    void colorize(KisPaintDeviceSP, const QRect& rect, const QPoint& offset) const override;
+    void colorize(KisPaintDeviceSP, const PkRect& rect, const PkPoint& offset) const override;
     const KoColor& uniformColor() const;
 protected:
     KoColor m_color;
@@ -100,7 +100,7 @@ public:
     void selectColor(double mix, const KisPaintInformation &pi) override;
     void applyColorTransformation(const KoColorTransformation* transfo) override;
     const KoColorSpace* colorSpace() const override;
-    void colorize(KisPaintDeviceSP, const QRect& rect, const QPoint& offset) const override;
+    void colorize(KisPaintDeviceSP, const PkRect& rect, const PkPoint& offset) const override;
     virtual void rotate(double r);
     virtual void resize(double xs, double ys);
 private:
@@ -116,12 +116,12 @@ public:
     void selectColor(double mix, const KisPaintInformation &pi) override;
     void applyColorTransformation(const KoColorTransformation* transfo) override;
     const KoColorSpace* colorSpace() const override;
-    void colorize(KisPaintDeviceSP, const QRect& rect, const QPoint& _offset) const override;
+    void colorize(KisPaintDeviceSP, const PkRect& rect, const PkPoint& _offset) const override;
     virtual void rotate(double r);
     virtual void resize(double xs, double ys);
 private:
     const KisPaintDeviceSP m_device;
-    QRect m_bounds;
+    PkRect m_bounds;
     bool m_locked;
 };
 

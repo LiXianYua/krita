@@ -6,7 +6,7 @@
 #ifndef KISCURVEOPTIONDATAUNIFORMPROPERTY_H
 #define KISCURVEOPTIONDATAUNIFORMPROPERTY_H
 
-#include <QScopedPointer>
+#include <PkPointer.h>
 #include "kis_slider_based_paintop_property.h"
 #include <kritapaintop_export.h>
 
@@ -16,8 +16,8 @@ class KisPaintOpPresetUpdateProxy;
 class PAINTOP_EXPORT KisCurveOptionDataUniformProperty : public KisDoubleSliderBasedPaintOpProperty
 {
 public:
-    KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
-    KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, const QString &propertyId, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
+    KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
+    KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, const PkString &propertyId, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
     ~KisCurveOptionDataUniformProperty() override;
 
     void readValueImpl() override;
@@ -26,9 +26,9 @@ public:
     bool isVisible() const override;
 
 private:
-    KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, const KoID &propertyId, KisPaintOpSettingsRestrictedSP settings, QObject *parent);
+    KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, const KoID &propertyId, KisPaintOpSettingsRestrictedSP settings, PkObject *parent);
 private:
-    QScopedPointer<KisCurveOptionData> m_data;
+    PkScopedPointer<KisCurveOptionData> m_data;
 };
 
 #endif // KISCURVEOPTIONDATAUNIFORMPROPERTY_H

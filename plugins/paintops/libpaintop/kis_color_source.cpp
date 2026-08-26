@@ -39,7 +39,7 @@ void KisUniformColorSource::resize(double , double)
     // Do nothing as plain color does not have size
 }
 
-void KisUniformColorSource::colorize(KisPaintDeviceSP dev, const QRect& size, const QPoint&) const
+void KisUniformColorSource::colorize(KisPaintDeviceSP dev, const PkRect& size, const PkPoint&) const
 {
     Q_UNUSED(size);
     KoColor c(dev->colorSpace());
@@ -142,7 +142,7 @@ void KisUniformRandomColorSource::selectColor(double mix, const KisPaintInformat
     Q_UNUSED(mix);
 
     KisRandomSourceSP source = pi.randomSource();
-    m_color.fromQColor(QColor((int)source->generate(0, 255),
+    m_color.fromQColor(PkColor((int)source->generate(0, 255),
                               (int)source->generate(0, 255),
                               (int)source->generate(0, 255)));
 }
@@ -172,11 +172,11 @@ const KoColorSpace* KisTotalRandomColorSource::colorSpace() const
     return m_colorSpace;
 }
 
-void KisTotalRandomColorSource::colorize(KisPaintDeviceSP dev, const QRect& rect, const QPoint&) const
+void KisTotalRandomColorSource::colorize(KisPaintDeviceSP dev, const PkRect& rect, const PkPoint&) const
 {
     KoColor kc(dev->colorSpace());
 
-    QColor qc;
+    PkColor qc;
 
     std::random_device rand_dev;
     std::default_random_engine rand_engine{rand_dev()};
@@ -203,7 +203,7 @@ void KisTotalRandomColorSource::resize(double , double) {}
 
 KoPatternColorSource::KoPatternColorSource(KisPaintDeviceSP _pattern, int _width, int _height, bool _locked)
     : m_device(_pattern)
-    , m_bounds(QRect(0, 0, _width, _height))
+    , m_bounds(PkRect(0, 0, _width, _height))
     , m_locked(_locked)
 {
 }
@@ -228,7 +228,7 @@ const KoColorSpace* KoPatternColorSource::colorSpace() const
     return m_device->colorSpace();
 }
 
-void KoPatternColorSource::colorize(KisPaintDeviceSP device, const QRect& rect, const QPoint& offset) const
+void KoPatternColorSource::colorize(KisPaintDeviceSP device, const PkRect& rect, const PkPoint& offset) const
 {
     KisFillPainter painter(device);
     if (m_locked) {

@@ -11,17 +11,17 @@
 #include "kis_paintop_preset.h"
 #include "KisPaintOpPresetUpdateProxy.h"
 
-KisCurveOptionDataUniformProperty::KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
+KisCurveOptionDataUniformProperty::KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
     : KisCurveOptionDataUniformProperty(data, data.id, settings, parent)
 {
 }
 
-KisCurveOptionDataUniformProperty::KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, const QString &propertyId, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
+KisCurveOptionDataUniformProperty::KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, const PkString &propertyId, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
     : KisCurveOptionDataUniformProperty(data, KoID(propertyId, data.id.name()), settings, parent)
 {
 }
 
-KisCurveOptionDataUniformProperty::KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, const KoID &propertyId, KisPaintOpSettingsRestrictedSP settings, QObject *parent)
+KisCurveOptionDataUniformProperty::KisCurveOptionDataUniformProperty(const KisCurveOptionData &data, const KoID &propertyId, KisPaintOpSettingsRestrictedSP settings, PkObject *parent)
     : KisDoubleSliderBasedPaintOpProperty(Double, propertyId, settings, parent)
     , m_data(new KisCurveOptionData(data))
 {

@@ -20,7 +20,7 @@ struct PAINTOP_EXPORT KisCurveOptionData : KisCurveOptionDataCommon
      * is deduced from the checkability property. Non-checkable options
      * will always be checked, checkable --- unchecked
      */
-    KisCurveOptionData(const QString &prefix,
+    KisCurveOptionData(const PkString &prefix,
                        const KoID &id,
                        Checkability checkability = Checkability::Checkable,
                        std::optional<bool> isChecked = std::nullopt,

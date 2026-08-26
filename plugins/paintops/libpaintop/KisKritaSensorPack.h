@@ -87,7 +87,7 @@ public:
     bool read(KisCurveOptionDataCommon &data, const KisPropertiesConfiguration *setting) const override;
     void write(const KisCurveOptionDataCommon &data, KisPropertiesConfiguration *setting) const override;
 
-    int calcActiveSensorLength(const QString &activeSensorId) const override;
+    int calcActiveSensorLength(const PkString &activeSensorId) const override;
 
 private:
     KisKritaSensorData m_data;

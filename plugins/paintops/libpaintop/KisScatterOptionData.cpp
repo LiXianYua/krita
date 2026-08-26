@@ -8,9 +8,9 @@
 #include <kis_paintop_settings.h>
 #include <kis_properties_configuration.h>
 
-const QString SCATTER_X = "Scattering/AxisX";
-const QString SCATTER_Y = "Scattering/AxisY";
-const QString SCATTER_AMOUNT = "Scattering/Amount";
+const PkString SCATTER_X = "Scattering/AxisX";
+const PkString SCATTER_Y = "Scattering/AxisY";
+const PkString SCATTER_AMOUNT = "Scattering/Amount";
 
 bool KisScatterOptionMixInImpl::read(const KisPropertiesConfiguration *setting)
 {
@@ -26,7 +26,7 @@ void KisScatterOptionMixInImpl::write(KisPropertiesConfiguration *setting) const
     setting->setProperty(SCATTER_Y, axisY);
 }
 
-KisScatterOptionData::KisScatterOptionData(const QString &prefix)
+KisScatterOptionData::KisScatterOptionData(const PkString &prefix)
     : KisOptionTuple<KisCurveOptionData, KisScatterOptionMixIn>(prefix,
                                                                 KoID("Scatter", i18n("Scatter")),
                                                                 Checkability::Checkable,

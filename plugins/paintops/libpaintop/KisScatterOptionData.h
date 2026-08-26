@@ -31,7 +31,7 @@ using KisScatterOptionMixIn = KisPrefixedOptionDataWrapper<KisScatterOptionMixIn
 
 struct PAINTOP_EXPORT KisScatterOptionData : KisOptionTuple<KisCurveOptionData, KisScatterOptionMixIn>
 {
-    KisScatterOptionData(const QString &prefix = "");
+    KisScatterOptionData(const PkString &prefix = "");
 };
 
 

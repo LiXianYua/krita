@@ -10,7 +10,7 @@
 #include <kis_paint_information.h>
 #include <KisCurveOptionData.h>
 
-KisDynamicSensorFuzzyBase::KisDynamicSensorFuzzyBase(const KoID &id, bool fuzzyPerStroke, const QString &perStrokeRandomSourceKey, const KisSensorData &data, std::optional<KisCubicCurve> curveOverride)
+KisDynamicSensorFuzzyBase::KisDynamicSensorFuzzyBase(const KoID &id, bool fuzzyPerStroke, const PkString &perStrokeRandomSourceKey, const KisSensorData &data, std::optional<KisCubicCurve> curveOverride)
     : KisDynamicSensor(id, data, curveOverride)
     , m_fuzzyPerStroke(fuzzyPerStroke)
     , m_perStrokeRandomSourceKey(perStrokeRandomSourceKey)
@@ -42,7 +42,7 @@ KisDynamicSensorFuzzyPerDab::KisDynamicSensorFuzzyPerDab(const KisSensorData &da
 
 }
 
-KisDynamicSensorFuzzyPerStroke::KisDynamicSensorFuzzyPerStroke(const KisSensorData &data, std::optional<KisCubicCurve> curveOverride, const QString &parentOptionName)
+KisDynamicSensorFuzzyPerStroke::KisDynamicSensorFuzzyPerStroke(const KisSensorData &data, std::optional<KisCubicCurve> curveOverride, const PkString &parentOptionName)
    : KisDynamicSensorFuzzyBase(FuzzyPerStrokeId, true, parentOptionName + "FuzzyStroke", data, curveOverride)
 {
 }

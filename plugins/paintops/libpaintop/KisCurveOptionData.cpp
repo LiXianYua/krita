@@ -6,7 +6,7 @@
 
 #include "KisCurveOptionData.h"
 
-KisCurveOptionData::KisCurveOptionData(const QString &prefix,
+KisCurveOptionData::KisCurveOptionData(const PkString &prefix,
                                        const KoID &id,
                                        Checkability checkability,
                                        std::optional<bool> isChecked,

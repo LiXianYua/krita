@@ -6,7 +6,7 @@
 #ifndef KISFILTEROPTIONDATA_H
 #define KISFILTEROPTIONDATA_H
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <boost/operators.hpp>
 #include <kritapaintop_export.h>
 #include <kis_filter_registry.h>
@@ -22,15 +22,15 @@ struct PAINTOP_EXPORT KisFilterOptionData : boost::equality_comparable<KisFilter
                 lhs.smudgeMode == rhs.smudgeMode;
     }
 
-    QString filterId;
-    QString filterConfig;
+    PkString filterId;
+    PkString filterConfig;
     bool smudgeMode {false};
 
     bool read(const KisPropertiesConfiguration *setting);
     void write(KisPropertiesConfiguration *setting) const;
 
-    static QString filterIdTag();
-    static QString filterConfigTag();
+    static PkString filterIdTag();
+    static PkString filterConfigTag();
 };
 
 #endif // KISFILTEROPTIONDATA_H

@@ -31,7 +31,7 @@ using KisSharpnessOptionMixIn = KisPrefixedOptionDataWrapper<KisSharpnessOptionM
 
 struct PAINTOP_EXPORT KisSharpnessOptionData : KisOptionTuple<KisCurveOptionData, KisSharpnessOptionMixIn>
 {
-    KisSharpnessOptionData(const QString &prefix = "");
+    KisSharpnessOptionData(const PkString &prefix = "");
 };
 
 #endif // KISSHARPNESSOPTIONDATA_H

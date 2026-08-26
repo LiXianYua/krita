@@ -8,7 +8,7 @@
 #include <kis_paintop_settings.h>
 #include <kis_properties_configuration.h>
 
-const QString ISOTROPIC_SPACING = "Spacing/Isotropic";
+const PkString ISOTROPIC_SPACING = "Spacing/Isotropic";
 
 bool KisSpacingOptionMixInImpl::read(const KisPropertiesConfiguration *setting)
 {

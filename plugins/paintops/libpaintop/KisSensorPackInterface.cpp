@@ -10,7 +10,7 @@ KisSensorPackInterface::~KisSensorPackInterface()
 {
 }
 
-int KisSensorPackInterface::calcActiveSensorLength(const QString &) const
+int KisSensorPackInterface::calcActiveSensorLength(const PkString &) const
 {
     return -1;
 }

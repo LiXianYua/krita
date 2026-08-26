@@ -17,11 +17,11 @@ public:
     qreal value(const KisPaintInformation &info) const override;
 
 protected:
-    KisDynamicSensorFuzzyBase(const KoID &id, bool fuzzyPerStroke, const QString &parentOptionName, const KisSensorData &data, std::optional<KisCubicCurve> curveOverride);
+    KisDynamicSensorFuzzyBase(const KoID &id, bool fuzzyPerStroke, const PkString &parentOptionName, const KisSensorData &data, std::optional<KisCubicCurve> curveOverride);
 
 private:
     const bool m_fuzzyPerStroke;
-    QString m_perStrokeRandomSourceKey;
+    PkString m_perStrokeRandomSourceKey;
 };
 
 class KisDynamicSensorFuzzyPerDab : public KisDynamicSensorFuzzyBase
@@ -33,7 +33,7 @@ public:
 class KisDynamicSensorFuzzyPerStroke : public KisDynamicSensorFuzzyBase
 {
 public:
-    KisDynamicSensorFuzzyPerStroke(const KisSensorData &data, std::optional<KisCubicCurve> curveOverride, const QString &parentOptionName);
+    KisDynamicSensorFuzzyPerStroke(const KisSensorData &data, std::optional<KisCubicCurve> curveOverride, const PkString &parentOptionName);
 };
 
 #endif // KISDYNAMICSENSORFUZZY_H

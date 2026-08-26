@@ -33,7 +33,7 @@ struct PAINTOP_EXPORT KisColorSourceOptionData : boost::equality_comparable<KisC
     bool read(const KisPropertiesConfiguration *setting);
     void write(KisPropertiesConfiguration *setting) const;
 
-    static QVector<KoID> colorSourceTypeIds();
+    static PkVector<KoID> colorSourceTypeIds();
     static KoID type2Id(Type type);
     static Type id2Type(const KoID &id);
 };

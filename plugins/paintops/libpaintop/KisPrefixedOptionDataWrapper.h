@@ -6,7 +6,7 @@
 #ifndef KISPREFIXEDOPTIONDATAWRAPPER_H
 #define KISPREFIXEDOPTIONDATAWRAPPER_H
 
-#include <QString>
+#include <PkString.h>
 #include <kis_properties_configuration.h>
 
 /**
@@ -20,7 +20,7 @@ struct KisPrefixedOptionDataWrapper : public T
 {
     static constexpr bool supports_prefix = true;
 
-    KisPrefixedOptionDataWrapper(const QString &_prefix)
+    KisPrefixedOptionDataWrapper(const PkString &_prefix)
         : prefix(_prefix)
     {
     }
@@ -47,7 +47,7 @@ struct KisPrefixedOptionDataWrapper : public T
         }
     }
 
-    QString prefix;
+    PkString prefix;
 };
 
 #endif // KISPREFIXEDOPTIONDATAWRAPPER_H

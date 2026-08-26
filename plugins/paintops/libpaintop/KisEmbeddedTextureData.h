@@ -25,11 +25,11 @@ public:
                 lhs.patternBase64 == rhs.patternBase64;
     }
 
-    QString md5Base64;
-    QString md5sum;
-    QString fileName;
-    QString name;
-    QString patternBase64;
+    PkString md5Base64;
+    PkString md5sum;
+    PkString fileName;
+    PkString name;
+    PkString patternBase64;
 
     bool isNull() const;
 

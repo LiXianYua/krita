@@ -11,7 +11,7 @@
 
 struct KisOpacityOptionData : KisCurveOptionData
 {
-    KisOpacityOptionData(const QString &prefix = QString())
+    KisOpacityOptionData(const PkString &prefix = PkString())
         : KisCurveOptionData(
               prefix,
               KoID("Opacity", i18n("Opacity")),
@@ -22,7 +22,7 @@ struct KisOpacityOptionData : KisCurveOptionData
 
 struct KisFlowOptionData : KisCurveOptionData
 {
-    KisFlowOptionData(const QString &prefix = QString())
+    KisFlowOptionData(const PkString &prefix = PkString())
         : KisCurveOptionData(
               prefix,
               KoID("Flow", i18n("Flow")),
@@ -34,7 +34,7 @@ struct KisFlowOptionData : KisCurveOptionData
 
 struct KisRatioOptionData : KisCurveOptionData
 {
-    KisRatioOptionData(const QString &prefix = QString())
+    KisRatioOptionData(const PkString &prefix = PkString())
         : KisCurveOptionData(
               prefix,
               KoID("Ratio", i18n("Ratio")))
@@ -54,7 +54,7 @@ struct KisSoftnessOptionData : KisCurveOptionData
 
 struct KisRotationOptionData : KisCurveOptionData
 {
-    KisRotationOptionData(const QString &prefix = QString())
+    KisRotationOptionData(const PkString &prefix = PkString())
         : KisCurveOptionData(
               prefix,
               KoID("Rotation", i18n("Rotation")))

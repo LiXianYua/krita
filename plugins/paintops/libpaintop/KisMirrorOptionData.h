@@ -30,7 +30,7 @@ using KisMirrorOptionMixIn = KisPrefixedOptionDataWrapper<KisMirrorOptionMixInIm
 
 struct PAINTOP_EXPORT KisMirrorOptionData : KisOptionTuple<KisCurveOptionData, KisMirrorOptionMixIn>
 {
-    KisMirrorOptionData(const QString &prefix = "")
+    KisMirrorOptionData(const PkString &prefix = "")
         : KisOptionTuple<KisCurveOptionData, KisMirrorOptionMixIn>(prefix, KoID("Mirror", i18n("Mirror")))
     {
     }

@@ -68,7 +68,7 @@ struct KisOptionTupleImpl<true, false, FirstData, RestData...>
       public boost::equality_comparable<KisOptionTupleImpl<true, false, FirstData, RestData...>>
 {
     template <typename... T>
-    KisOptionTupleImpl(const QString &prefix, T... args)
+    KisOptionTupleImpl(const PkString &prefix, T... args)
         : FirstData(prefix, std::forward<decltype(args)>(args)...),
           RestData(prefix)...
     {

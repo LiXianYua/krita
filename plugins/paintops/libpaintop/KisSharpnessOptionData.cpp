@@ -7,9 +7,9 @@
 
 #include <kis_properties_configuration.h>
 
-const QString SHARPNESS_FACTOR = "Sharpness/factor";
-const QString SHARPNESS_ALIGN_OUTLINE_PIXELS = "Sharpness/alignoutline";
-const QString SHARPNESS_SOFTNESS  = "Sharpness/softness";
+const PkString SHARPNESS_FACTOR = "Sharpness/factor";
+const PkString SHARPNESS_ALIGN_OUTLINE_PIXELS = "Sharpness/alignoutline";
+const PkString SHARPNESS_SOFTNESS  = "Sharpness/softness";
 
 
 bool KisSharpnessOptionMixInImpl::read(const KisPropertiesConfiguration *setting)
@@ -30,7 +30,7 @@ void KisSharpnessOptionMixInImpl::write(KisPropertiesConfiguration *setting) con
     setting->setProperty(SHARPNESS_SOFTNESS, softness);
 }
 
-KisSharpnessOptionData::KisSharpnessOptionData(const QString &prefix)
+KisSharpnessOptionData::KisSharpnessOptionData(const PkString &prefix)
     : KisOptionTuple<KisCurveOptionData, KisSharpnessOptionMixIn>(prefix, KoID("Sharpness", i18n("Sharpness")))
 {
     valueFixUpReadCallback = [] (KisCurveOptionDataCommon *data, const KisPropertiesConfiguration *setting) {

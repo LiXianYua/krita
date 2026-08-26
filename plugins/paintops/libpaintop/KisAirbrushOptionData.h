@@ -6,7 +6,7 @@
 #ifndef KISAIRBRUSHOPTIONDATA_H
 #define KISAIRBRUSHOPTIONDATA_H
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <boost/operators.hpp>
 #include <kritapaintop_export.h>
 
