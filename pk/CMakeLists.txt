@@ -65,8 +65,11 @@ add_library(pkuuid STATIC
 target_include_directories(pkuuid PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/uuid
     ${CMAKE_CURRENT_SOURCE_DIR}/string
+    ${CMAKE_CURRENT_SOURCE_DIR}/variant
 )
-target_link_libraries(pkuuid PUBLIC pkstring)
+# toByteArray() 依赖 PkByteArray（pk/variant）。pkvariant 在本文件后续段定义，
+# CMake 按 target link edge 建真实构建顺序，先后无碍。
+target_link_libraries(pkuuid PUBLIC pkstring pkvariant)
 
 # =========================================================================
 # 3. pk/global + pk/geometry

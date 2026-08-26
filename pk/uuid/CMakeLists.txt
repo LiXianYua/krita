@@ -20,5 +20,6 @@ target_include_directories(pkuuid PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../string
     ${CMAKE_CURRENT_SOURCE_DIR}/../container
+    ${CMAKE_CURRENT_SOURCE_DIR}/../variant   # PkByteArray（toByteArray()，静态库不真链接，只补 include 路径）
 )
 target_link_libraries(pkuuid PUBLIC pkstring)

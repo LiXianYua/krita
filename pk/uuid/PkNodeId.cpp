@@ -9,6 +9,8 @@
 //     4 位）、variant=10（byte8 高 2 位）。
 #include "PkNodeId.h"
 
+#include "PkAuxTypes.h"   // PkByteArray
+
 #include <cctype>
 #include <cstdio>
 #include <random>
@@ -124,6 +126,14 @@ PkString PkNodeId::toString() const
     std::string s;
     formatUuid(m_data, s);
     return PkString::PkFromUtf8(s.c_str(), static_cast<int>(s.size()));
+}
+
+PkByteArray PkNodeId::toByteArray() const
+{
+    // 对拍 QUuid::toByteArray()：返回 16 字节大端序二进制（RFC 4122 字段序）。
+    // m_data 自解析/生成起就按显示顺序（time-low/mid/hi-version/clock-seq/node）
+    // 存储，与 QUuid::toByteArray 的字节序一致，直接原样导出。
+    return PkByteArray(reinterpret_cast<const char *>(m_data.data()), static_cast<int>(m_data.size()));
 }
 
 bool PkNodeId::operator==(const PkNodeId &o) const

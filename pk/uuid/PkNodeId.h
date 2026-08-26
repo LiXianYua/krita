@@ -23,6 +23,8 @@
 #include <array>
 #include <cstdint>
 
+class PkByteArray;   // 只前置声明：toByteArray() 返回值按值传，定义在 pk/variant/PkAuxTypes.h
+
 class PkNodeId
 {
 public:
@@ -34,6 +36,7 @@ public:
 
     bool isNull() const;
     PkString toString() const;
+    PkByteArray toByteArray() const;   // 对拍 QUuid::toByteArray()：16 字节大端序（m_data 已是大端字段序）
 
     bool operator==(const PkNodeId &o) const;
     bool operator!=(const PkNodeId &o) const;
