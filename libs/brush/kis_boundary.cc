@@ -6,7 +6,7 @@
 
 #include "kis_boundary.h"
 #include <QPainter>
-#include <QPainterPath>
+#include <PkPainterPath.h>
 #include <QPen>
 
 #include "KoColorSpace.h"
@@ -15,8 +15,8 @@
 
 struct KisBoundary::Private {
     KisFixedPaintDeviceSP m_device;
-    QVector<QPolygon> m_boundary;
-    QPainterPath path;
+    PkVector<QPolygon> m_boundary;
+    PkPainterPath path;
 };
 
 KisBoundary::KisBoundary(KisFixedPaintDeviceSP dev) : d(new Private)
@@ -38,7 +38,7 @@ void KisBoundary::generateBoundary()
     generator.setSimpleOutline(true);
     d->m_boundary = generator.outline(d->m_device->data(), 0, 0, d->m_device->bounds().width(), d->m_device->bounds().height());
 
-    d->path = QPainterPath();
+    d->path = PkPainterPath();
     Q_FOREACH (const QPolygon & polygon, d->m_boundary) {
         d->path.addPolygon(polygon);
         d->path.closeSubpath();
@@ -58,7 +58,7 @@ void KisBoundary::paint(QPainter& painter) const
     }
 }
 
-QPainterPath KisBoundary::path() const
+PkPainterPath KisBoundary::path() const
 {
     return d->path;
 }

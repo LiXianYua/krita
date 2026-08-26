@@ -35,8 +35,8 @@ public:
 
     void paint(QPainter& painter) const;
 
-    /// returns the outline saved in QPainterPath
-    QPainterPath path() const;
+    /// returns the outline saved in PkPainterPath
+    PkPainterPath path() const;
 
 private:
     struct Private;

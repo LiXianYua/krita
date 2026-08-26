@@ -26,11 +26,11 @@ void TestAbrStorage::initTestCase()
 
 void TestAbrStorage::testResourceIterator()
 {
-    QString filename = "brushes_by_mar_ka_d338ela.abr";
+    PkString filename = "brushes_by_mar_ka_d338ela.abr";
 
-    KisAbrStorage storage(QString(FILES_DATA_DIR) + '/' + filename);
+    KisAbrStorage storage(PkString(FILES_DATA_DIR) + "/" + filename);
 
-    QSharedPointer<KisResourceStorage::ResourceIterator> iter(storage.resources(ResourceType::Brushes));
+    PkSharedPointer<KisResourceStorage::ResourceIterator> iter(storage.resources(ResourceType::Brushes));
     QVERIFY(iter->hasNext());
     int count = 0;
     while (iter->hasNext()) {
@@ -41,7 +41,7 @@ void TestAbrStorage::testResourceIterator()
     }
     QVERIFY(count > 0);
 
-    QSharedPointer<KisResourceStorage::ResourceIterator> iter2(storage.resources(ResourceType::LayerStyles));
+    PkSharedPointer<KisResourceStorage::ResourceIterator> iter2(storage.resources(ResourceType::LayerStyles));
     QVERIFY(!iter2->hasNext());
     count = 0;
     while (iter2->hasNext()) {
@@ -56,10 +56,10 @@ void TestAbrStorage::testResourceIterator()
 
 void TestAbrStorage::testTagIterator()
 {
-    QString filename = "brushes_by_mar_ka_d338ela.abr";
-    KisAbrStorage storage(QString(FILES_DATA_DIR) + '/' + filename);
+    PkString filename = "brushes_by_mar_ka_d338ela.abr";
+    KisAbrStorage storage(PkString(FILES_DATA_DIR) + "/" + filename);
 
-    QSharedPointer<KisResourceStorage::TagIterator> iter = storage.tags(ResourceType::Brushes);
+    PkSharedPointer<KisResourceStorage::TagIterator> iter = storage.tags(ResourceType::Brushes);
     int count = 0;
     while (iter->hasNext()) {
         iter->next();
@@ -70,10 +70,10 @@ void TestAbrStorage::testTagIterator()
 
 void TestAbrStorage::testResourceItem()
 {
-    QString name = "brushes_by_mar_ka_d338ela";
-    QString filename = name + ".abr";
-    QString resourceName = name + "_2"; // "1" seem to be invalid or something; it isn't not loaded in any case.
-    KisAbrStorage storage(QString(FILES_DATA_DIR) + '/' + filename);
+    PkString name = "brushes_by_mar_ka_d338ela";
+    PkString filename = name + ".abr";
+    PkString resourceName = name + "_2"; // "1" seem to be invalid or something; it isn't not loaded in any case.
+    KisAbrStorage storage(PkString(FILES_DATA_DIR) + "/" + filename);
 
     KisResourceStorage::ResourceItem item = storage.resourceItem(resourceName);
     QVERIFY(!item.url.isEmpty());
@@ -81,10 +81,10 @@ void TestAbrStorage::testResourceItem()
 
 void TestAbrStorage::testResource()
 {
-    QString name = "brushes_by_mar_ka_d338ela";
-    QString filename = name + ".abr";
-    QString resourceName = name + "_2"; // "1" seem to be invalid or something; it isn't not loaded in any case.
-    KisAbrStorage storage(QString(FILES_DATA_DIR) + '/' + filename);
+    PkString name = "brushes_by_mar_ka_d338ela";
+    PkString filename = name + ".abr";
+    PkString resourceName = name + "_2"; // "1" seem to be invalid or something; it isn't not loaded in any case.
+    KisAbrStorage storage(PkString(FILES_DATA_DIR) + "/" + filename);
     KoResourceSP res = storage.resource(resourceName);
     QVERIFY(res);
     QVERIFY(res->filename() == resourceName);

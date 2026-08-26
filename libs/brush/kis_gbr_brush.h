@@ -8,7 +8,7 @@
 #ifndef KIS_GBR_BRUSH_
 #define KIS_GBR_BRUSH_
 
-#include <QImage>
+#include <PkImage.h>
 
 #include "KisColorfulBrush.h"
 #include <kis_types.h>
@@ -20,8 +20,8 @@
 class KisQImagemask;
 typedef KisSharedPtr<KisQImagemask> KisQImagemaskSP;
 
-class QString;
-class QIODevice;
+class PkString;
+class PkStream;
 
 class BRUSH_EXPORT KisGbrBrush : public KisColorfulBrush
 {
@@ -31,18 +31,18 @@ protected:
 public:
 
     /// Construct brush to load filename later as brush
-    KisGbrBrush(const QString& filename);
+    KisGbrBrush(const PkString& filename);
 
     /// Load brush from the specified data, at position dataPos, and set the filename
-    KisGbrBrush(const QString& filename,
-                const QByteArray & data,
+    KisGbrBrush(const PkString& filename,
+                const PkByteArray & data,
                 qint32 & dataPos);
 
     /// Load brush from the specified paint device, in the specified region
     KisGbrBrush(KisPaintDeviceSP image, int x, int y, int w, int h);
 
-    /// Load brush as a copy from the specified QImage (handy when you need to copy a brush!)
-    KisGbrBrush(const QImage& image, const QString& name = QString());
+    /// Load brush as a copy from the specified PkImage (handy when you need to copy a brush!)
+    KisGbrBrush(const PkImage& image, const PkString& name = PkString());
 
     ~KisGbrBrush() override;
 
@@ -52,11 +52,11 @@ public:
 
     KisGbrBrush &operator=(const KisGbrBrush &rhs);
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice* dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream* dev) const override;
 
-    QPair<QString, QString> resourceType() const override {
-        return QPair<QString, QString>(ResourceType::Brushes, ResourceSubType::GbrBrushes);
+    std::pair<PkString, PkString> resourceType() const override {
+        return std::pair<PkString, PkString>(ResourceType::Brushes, ResourceSubType::GbrBrushes);
     }
 
     /**
@@ -72,7 +72,7 @@ public:
     /**
      * @return default file extension for saving the brush
      */
-    QString defaultFileExtension() const override;
+    PkString defaultFileExtension() const override;
 
 protected:
     /**
@@ -81,9 +81,9 @@ protected:
     friend class KisImageBrushesPipe;
     friend class KisBrushExport;
 
-    void setBrushTipImage(const QImage& image) override;
+    void setBrushTipImage(const PkImage& image) override;
 
-    void toXML(QDomDocument& d, QDomElement& e) const override;
+    void toXML(PkXmlDocument& d, PkXmlElement& e) const override;
 
 private:
 
@@ -94,7 +94,7 @@ private:
     Private* const d;
 };
 
-typedef QSharedPointer<KisGbrBrush> KisGbrBrushSP;
+typedef PkSharedPointer<KisGbrBrush> KisGbrBrushSP;
 
 #endif // KIS_GBR_BRUSH_
 

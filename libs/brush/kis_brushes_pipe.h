@@ -24,9 +24,9 @@ public:
 
     KisBrushesPipe(const KisBrushesPipe &rhs) {
         m_brushes.clear();
-        Q_FOREACH (QSharedPointer<BrushType> brush, rhs.m_brushes) {
+        Q_FOREACH (PkSharedPointer<BrushType> brush, rhs.m_brushes) {
             KoResourceSP clonedBrush = brush->clone();
-            QSharedPointer<BrushType> actualClonedBrush = clonedBrush.dynamicCast<BrushType>();
+            PkSharedPointer<BrushType> actualClonedBrush = clonedBrush.dynamicCast<BrushType>();
             m_brushes.append(actualClonedBrush );
             KIS_ASSERT_RECOVER(clonedBrush) {continue;}
         }
@@ -39,70 +39,70 @@ public:
         m_brushes.clear();
     }
 
-    QSharedPointer<BrushType> firstBrush() const {
+    PkSharedPointer<BrushType> firstBrush() const {
         return m_brushes.first();
     }
 
-    QSharedPointer<BrushType> lastBrush() const {
+    PkSharedPointer<BrushType> lastBrush() const {
         return m_brushes.last();
     }
 
 
-    QSharedPointer<BrushType> currentBrush(const KisPaintInformation& info) {
+    PkSharedPointer<BrushType> currentBrush(const KisPaintInformation& info) {
         Q_UNUSED(info);
         return !m_brushes.isEmpty() ? m_brushes.at(currentBrushIndex()) : 0;
     }
 
     qint32 maskWidth(KisDabShape const& shape, double subPixelX, double subPixelY, const KisPaintInformation& info) {
-        QSharedPointer<BrushType> brush = currentBrush(info);
+        PkSharedPointer<BrushType> brush = currentBrush(info);
         return brush ? brush->maskWidth(shape, subPixelX, subPixelY, info) : 0;
     }
 
     qint32 maskHeight(KisDabShape const& shape, double subPixelX, double subPixelY, const KisPaintInformation& info) {
-        QSharedPointer<BrushType> brush = currentBrush(info);
+        PkSharedPointer<BrushType> brush = currentBrush(info);
         return brush ? brush->maskHeight(shape, subPixelX, subPixelY, info) : 0;
     }
 
     void setAngle(qreal angle) {
-        Q_FOREACH (QSharedPointer<BrushType> brush, m_brushes) {
+        Q_FOREACH (PkSharedPointer<BrushType> brush, m_brushes) {
             brush->setAngle(angle);
         }
     }
 
     void setScale(qreal scale) {
-        Q_FOREACH (QSharedPointer<BrushType> brush, m_brushes) {
+        Q_FOREACH (PkSharedPointer<BrushType> brush, m_brushes) {
             brush->setScale(scale);
         }
     }
 
     void setSpacing(double spacing) {
-        Q_FOREACH (QSharedPointer<BrushType> brush, m_brushes) {
+        Q_FOREACH (PkSharedPointer<BrushType> brush, m_brushes) {
             brush->setSpacing(spacing);
         }
     }
 
     bool isImageType() const {
-        Q_FOREACH (QSharedPointer<BrushType> brush, m_brushes) {
+        Q_FOREACH (PkSharedPointer<BrushType> brush, m_brushes) {
             if (brush->isImageType()) return true;
         }
         return false;
     }
 
     bool hasColorAndTransparency() const {
-        Q_FOREACH (QSharedPointer<BrushType> brush, m_brushes) {
+        Q_FOREACH (PkSharedPointer<BrushType> brush, m_brushes) {
             if (brush->hasColorAndTransparency()) return true;
         }
         return false;
     }
 
     void setBrushApplication(enumBrushApplication brushApplication) const {
-        Q_FOREACH(QSharedPointer<BrushType> brush, m_brushes) {
+        Q_FOREACH(PkSharedPointer<BrushType> brush, m_brushes) {
             brush->setBrushApplication(brushApplication);
         }
     }
 
     void setGradient(KoAbstractGradientSP gradient) const {
-        Q_FOREACH(QSharedPointer<BrushType> brush, m_brushes) {
+        Q_FOREACH(PkSharedPointer<BrushType> brush, m_brushes) {
             brush->setGradient(gradient);
         }
     }
@@ -123,7 +123,7 @@ public:
             double subPixelX , double subPixelY,
             qreal softnessFactor, qreal lightnessStrength = DEFAULT_LIGHTNESS_STRENGTH) {
 
-        QSharedPointer<BrushType> brush = currentBrush(info);
+        PkSharedPointer<BrushType> brush = currentBrush(info);
         if (!brush) return;
 
 
@@ -135,7 +135,7 @@ public:
                                       const KisPaintInformation& info,
                                       double subPixelX, double subPixelY) {
 
-        QSharedPointer<BrushType> brush = currentBrush(info);
+        PkSharedPointer<BrushType> brush = currentBrush(info);
         if (!brush) return 0;
 
         KisFixedPaintDeviceSP device = brush->paintDevice(colorSpace, shape, info, subPixelX, subPixelY);
@@ -143,12 +143,12 @@ public:
     }
 
     void notifyBrushIsGoingToBeClonedForStroke() {
-        Q_FOREACH(QSharedPointer<BrushType> brush, m_brushes) {
+        Q_FOREACH(PkSharedPointer<BrushType> brush, m_brushes) {
             brush->notifyBrushIsGoingToBeClonedForStroke();
         }
     }
 
-    QVector<QSharedPointer<BrushType>> brushes() {
+    PkVector<PkSharedPointer<BrushType>> brushes() {
         return m_brushes;
     }
 
@@ -165,7 +165,7 @@ public:
     virtual void notifyStrokeStarted() = 0;
 
 protected:
-    void addBrush(QSharedPointer<BrushType> brush) {
+    void addBrush(PkSharedPointer<BrushType> brush) {
         m_brushes.append(brush);
     }
 
@@ -202,7 +202,7 @@ protected:
     virtual void updateBrushIndexes(KisRandomSourceSP randomSource, int seqNo) = 0;
 
 protected:
-    QVector<QSharedPointer<BrushType>> m_brushes;
+    PkVector<PkSharedPointer<BrushType>> m_brushes;
 };
 
 #endif /* __KIS_BRUSHES_PIPE_H */

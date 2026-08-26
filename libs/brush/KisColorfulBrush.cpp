@@ -7,7 +7,7 @@
 #include "KisColorfulBrush.h"
 
 
-KisColorfulBrush::KisColorfulBrush(const QString &filename)
+KisColorfulBrush::KisColorfulBrush(const PkString &filename)
     : KisScalingSizeBrush(filename)
 {
 }
@@ -17,14 +17,14 @@ KisColorfulBrush::KisColorfulBrush(const QString &filename)
 
 namespace {
 
-qreal estimateImageAverage(const QImage &image) {
+qreal estimateImageAverage(const PkImage &image) {
     qint64 lightnessSum = 0;
     qint64 alphaSum = 0;
 
-    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(image.format() == QImage::Format_ARGB32, 0.5);
+    KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(image.format() == PkImage::Format_ARGB32, 0.5);
 
     for (int y = 0; y < image.height(); ++y) {
-        const QRgb *pixel = reinterpret_cast<const QRgb*>(image.scanLine(y));
+        const PkRgb *pixel = reinterpret_cast<const PkRgb*>(image.scanLine(y));
 
         for (int i = 0; i < image.width(); ++i) {
             lightnessSum += qRound(qGray(*pixel) * qAlpha(*pixel) / 255.0);
@@ -61,12 +61,12 @@ void KisColorfulBrush::setAutoAdjustMidPoint(bool autoAdjustMidPoint)
     m_autoAdjustMidPoint = autoAdjustMidPoint;
 }
 
-QImage KisColorfulBrush::brushTipImage() const
+PkImage KisColorfulBrush::brushTipImage() const
 {
-    QImage image = KisBrush::brushTipImage();
+    PkImage image = KisBrush::brushTipImage();
     if (isImageType() && brushApplication() != IMAGESTAMP) {
 
-        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(image.format() == QImage::Format_ARGB32, image);
+        KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(image.format() == PkImage::Format_ARGB32, image);
 
         const qreal adjustmentMidPoint =
                 m_autoAdjustMidPoint ?
@@ -105,9 +105,9 @@ QImage KisColorfulBrush::brushTipImage() const
             }
 
             for (int y = 0; y < image.height(); y++) {
-                QRgb *pixel = reinterpret_cast<QRgb *>(image.scanLine(y));
+                PkRgb *pixel = reinterpret_cast<PkRgb *>(image.scanLine(y));
                 for (int x = 0; x < image.width(); x++) {
-                    QRgb c = pixel[x];
+                    PkRgb c = pixel[x];
 
                     int v = qGray(c);
 
@@ -122,9 +122,9 @@ QImage KisColorfulBrush::brushTipImage() const
             }
         } else {
             for (int y = 0; y < image.height(); y++) {
-                QRgb *pixel = reinterpret_cast<QRgb *>(image.scanLine(y));
+                PkRgb *pixel = reinterpret_cast<PkRgb *>(image.scanLine(y));
                 for (int x = 0; x < image.width(); x++) {
-                    QRgb c = pixel[x];
+                    PkRgb c = pixel[x];
 
                     int v = qGray(c);
                     pixel[x] = qRgba(v, v, v, qAlpha(c));
@@ -179,18 +179,18 @@ qreal KisColorfulBrush::contrastAdjustment() const
     return m_contrastAdjustment;
 }
 
-#include <QDomElement>
+#include <PkXmlElement.h>
 
-void KisColorfulBrush::toXML(QDomDocument& d, QDomElement& e) const
+void KisColorfulBrush::toXML(PkXmlDocument& d, PkXmlElement& e) const
 {
     // legacy setting, now 'brushApplication' is used instead
-    e.setAttribute("ColorAsMask", QString::number((int)(brushApplication() != IMAGESTAMP)));
+    e.setAttribute("ColorAsMask", PkString("%1").arg((int)(brushApplication() != IMAGESTAMP)));
 
-    e.setAttribute("AdjustmentMidPoint", QString::number(m_adjustmentMidPoint));
-    e.setAttribute("BrightnessAdjustment", QString::number(m_brightnessAdjustment));
-    e.setAttribute("ContrastAdjustment", QString::number(m_contrastAdjustment));
-    e.setAttribute("AutoAdjustMidPoint", QString::number(m_autoAdjustMidPoint));
-    e.setAttribute("AdjustmentVersion", QString::number(2));
+    e.setAttribute("AdjustmentMidPoint", PkString("%1").arg(m_adjustmentMidPoint));
+    e.setAttribute("BrightnessAdjustment", PkString("%1").arg(m_brightnessAdjustment));
+    e.setAttribute("ContrastAdjustment", PkString("%1").arg(m_contrastAdjustment));
+    e.setAttribute("AutoAdjustMidPoint", PkString("%1").arg(m_autoAdjustMidPoint));
+    e.setAttribute("AdjustmentVersion", PkString("%1").arg(2));
     KisBrush::toXML(d, e);
 }
 

@@ -11,8 +11,8 @@
 #include <math.h>
 #include <limits.h>
 
-#include <QFile>
-#include <QPoint>
+#include <PkFileStream.h>
+#include <PkPoint.h>
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
@@ -63,13 +63,13 @@ public:
     void setBrushesCount();
 
     /// Load the parasite from the source string
-    KisPipeBrushParasite(QStringView source);
+    KisPipeBrushParasite(const PkString& source);
 
     /**
      * Saves a GIMP-compatible representation of this parasite to the device. Also writes the
      * number of brushes (== ncells) (no trailing '\n') */
-    bool saveToDevice(QIODevice* dev) const;
-    bool loadFromDevice(QIODevice *dev);
+    bool saveToDevice(PkStream* dev) const;
+    bool loadFromDevice(PkStream *dev);
 
     enum Placement { DefaultPlacement, ConstantPlacement, RandomPlacement };
 
@@ -88,7 +88,7 @@ public:
     qint32 rank[MaxDim] {};
 
     KisParasite::SelectionMode selection[MaxDim];
-    QString selectionMode; // for UI
+    PkString selectionMode; // for UI
 
     /// The total count of brushes in each dimension (helper)
     qint32 brushesCount[MaxDim];

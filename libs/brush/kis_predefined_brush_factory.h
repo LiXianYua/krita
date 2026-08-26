@@ -7,8 +7,8 @@
 #ifndef __KIS_PREDEFINED_BRUSH_FACTORY_H
 #define __KIS_PREDEFINED_BRUSH_FACTORY_H
 
-#include <QString>
-#include <QDomElement>
+#include <PkString.h>
+#include <PkXmlElement.h>
 
 #include "kis_brush_factory.h"
 #include "kis_brush.h"
@@ -18,20 +18,20 @@
 class BRUSH_EXPORT KisPredefinedBrushFactory : public KisBrushFactory
 {
 public:
-    KisPredefinedBrushFactory(const QString &brushType);
+    KisPredefinedBrushFactory(const PkString &brushType);
 
-    QString id() const override;
+    PkString id() const override;
     KoResourceLoadResult createBrush(const KisBrushModel::BrushData &brushData, KisResourcesInterfaceSP resourcesInterface) override;
-    KoResourceLoadResult createBrush(const QDomElement& brushDefinition, KisResourcesInterfaceSP resourcesInterface) override;
-    std::optional<KisBrushModel::BrushData> createBrushModel(const QDomElement& element, KisResourcesInterfaceSP resourcesInterface) override;
+    KoResourceLoadResult createBrush(const PkXmlElement& brushDefinition, KisResourcesInterfaceSP resourcesInterface) override;
+    std::optional<KisBrushModel::BrushData> createBrushModel(const PkXmlElement& element, KisResourcesInterfaceSP resourcesInterface) override;
     static void loadFromBrushResource(KisBrushModel::CommonData &commonData, KisBrushModel::PredefinedBrushData &predefinedBrushData, KisBrushSP brushResource);
-    void toXML(QDomDocument &doc, QDomElement &element, const KisBrushModel::BrushData &model) override;
+    void toXML(PkXmlDocument &doc, PkXmlElement &element, const KisBrushModel::BrushData &model) override;
 
 private:
-    std::variant<KisBrushModel::BrushData, KoResourceSignature> createBrushModelImpl(const QDomElement& element, KisResourcesInterfaceSP resourcesInterface);
+    std::variant<KisBrushModel::BrushData, KoResourceSignature> createBrushModelImpl(const PkXmlElement& element, KisResourcesInterfaceSP resourcesInterface);
 
 private:
-    const QString m_id;
+    const PkString m_id;
 };
 
 #endif /* __KIS_PREDEFINED_BRUSH_FACTORY_H */

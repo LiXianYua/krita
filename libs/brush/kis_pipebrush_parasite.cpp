@@ -8,46 +8,49 @@
 
 #include <KisPortingUtils.h>
 
-KisPipeBrushParasite::KisPipeBrushParasite(QStringView source)
+KisPipeBrushParasite::KisPipeBrushParasite(const PkString& source)
 {
     init();
     needsMovement = false;
 
-    const QList<QStringView> parasites = source.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    // 原 Qt: source.split(QLatin1Char(' '), Qt::SkipEmptyParts)。PkString::split(char16_t)
+    // 不跳空段，但 parasite 串是单空格分隔、无连续分隔符，行为等价；畸形输入的真空段
+    // 会被下方 else 链忽略，优雅降级（不为 skip-empty 语义额外加过滤）。
+    const std::vector<PkString> parasites = source.split(u' ');
 
-    for (int i = 0; i < parasites.count(); i++) {
-        const QList<QStringView> split = parasites.at(i).split(QLatin1Char(':'), Qt::SkipEmptyParts);
+    for (int i = 0; i < static_cast<int>(parasites.size()); i++) {
+        const std::vector<PkString> split = parasites.at(i).split(u':');
 
-        if (split.count() != 2) {
+        if (static_cast<int>(split.size()) != 2) {
             warnImage << "Wrong count for this parasite key/value:" << parasites.at(i);
             continue;
         }
-        const QStringView &index = split.at(0);
-        if (index == QLatin1String("dim")) {
+        const PkString &index = split.at(0);
+        if (index == "dim") {
             dim = (split.at(1)).toInt();
             if (dim < 1 || dim > MaxDim) {
                 dim = 1;
             }
-        } else if (index.startsWith(QLatin1String("sel"))) {
-            int selIndex = index.mid(strlen("sel")).toInt();
+        } else if (index.startsWith("sel")) {
+            int selIndex = index.mid(3).toInt();
 
             if (selIndex >= 0 && selIndex < dim) {
-                selectionMode = split.at(1).toString();
+                selectionMode = split.at(1);
 
-                if (selectionMode == QLatin1String("incremental")) {
+                if (selectionMode == "incremental") {
                     selection[selIndex] = KisParasite::Incremental;
-                } else if (selectionMode == QLatin1String("angular")) {
+                } else if (selectionMode == "angular") {
                     selection[selIndex] = KisParasite::Angular;
                     needsMovement = true;
-                } else if (selectionMode == QLatin1String("random")) {
+                } else if (selectionMode == "random") {
                     selection[selIndex] = KisParasite::Random;
-                } else if (selectionMode == QLatin1String("pressure")) {
+                } else if (selectionMode == "pressure") {
                     selection[selIndex] = KisParasite::Pressure;
-                } else if (selectionMode == QLatin1String("xtilt")) {
+                } else if (selectionMode == "xtilt") {
                     selection[selIndex] = KisParasite::TiltX;
-                } else if (selectionMode == QLatin1String("ytilt")) {
+                } else if (selectionMode == "ytilt") {
                     selection[selIndex] = KisParasite::TiltY;
-                } else if (selectionMode == QLatin1String("velocity")) {
+                } else if (selectionMode == "velocity") {
                     selection[selIndex] = KisParasite::Velocity;
                 } else {
                     selection[selIndex] = KisParasite::Constant;
@@ -56,14 +59,14 @@ KisPipeBrushParasite::KisPipeBrushParasite(QStringView source)
             else {
                 warnImage << "Sel: wrong index: " << selIndex << "(dim = " << dim << ")";
             }
-        } else if (index.startsWith(QLatin1String("rank"))) {
-            int rankIndex = index.mid(strlen("rank")).toInt();
+        } else if (index.startsWith("rank")) {
+            int rankIndex = index.mid(4).toInt();
             if (rankIndex < 0 || rankIndex > dim) {
                 warnImage << "Rankindex out of range: " << rankIndex;
                 continue;
             }
             rank[rankIndex] = (split.at(1)).toInt();
-        } else if (index == QLatin1String("ncells")) {
+        } else if (index == "ncells") {
             ncells = (split.at(1)).toInt();
             if (ncells < 1) {
                 warnImage << "ncells out of range: " << ncells;
@@ -121,12 +124,12 @@ void KisPipeBrushParasite::setBrushesCount()
     }
 }
 
-bool KisPipeBrushParasite::saveToDevice(QIODevice* dev) const
+bool KisPipeBrushParasite::saveToDevice(PkStream* dev) const
 {
     // write out something like
     // <count> ncells:<count> dim:<dim> rank0:<rank0> sel0:<sel0> <...>
 
-    QTextStream stream(dev);
+    PkTextStream stream(dev);
     KisPortingUtils::setUtf8OnStream(stream);
 
     // XXX: FIXME things like step, placement and so are not added (nor loaded, as a matter of fact)"
@@ -157,7 +160,7 @@ bool KisPipeBrushParasite::saveToDevice(QIODevice* dev) const
     return true;
 }
 
-bool loadFromDevice(QIODevice */*dev*/)
+bool loadFromDevice(PkStream */*dev*/)
 {
     // XXX: implement...
     return true;

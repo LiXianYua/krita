@@ -7,8 +7,8 @@
 #ifndef KIS_IMAGEPIPE_BRUSH_
 #define KIS_IMAGEPIPE_BRUSH_
 
-#include <QMap>
-#include <QString>
+#include <PkMap.h>
+#include <PkString.h>
 
 #include <KoResource.h>
 #include "kis_gbr_brush.h"
@@ -38,14 +38,14 @@ class BRUSH_EXPORT KisImagePipeBrush : public KisGbrBrush
 {
 
 public:
-    KisImagePipeBrush(const QString& filename);
+    KisImagePipeBrush(const PkString& filename);
     /**
      * Specialized constructor that makes a new pipe brush from a sequence of samesize
      * devices. The fact that it's a vector of a vector, is to support multidimensional
      * brushes (not yet supported!) */
-    KisImagePipeBrush(const QString& name, int w, int h,
-                      QVector< QVector<KisPaintDevice*> > devices,
-                      QVector<KisParasite::SelectionMode> modes);
+    KisImagePipeBrush(const PkString& name, int w, int h,
+                      PkVector< PkVector<KisPaintDevice*> > devices,
+                      PkVector<KisParasite::SelectionMode> modes);
 
     ~KisImagePipeBrush() override;
 
@@ -56,8 +56,8 @@ public:
 
     KoResourceSP clone() const override;
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice* dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream* dev) const override;
 
     /**
      * @return the next image in the pipe.
@@ -72,7 +72,7 @@ public:
     void setContrastAdjustment(qreal value) override;
     void setAutoAdjustMidPoint(bool value) override;
 
-    QString parasiteSelection(); // returns random, constant, etc
+    PkString parasiteSelection(); // returns random, constant, etc
 
     KisOptimizedBrushOutline outline(bool forcePreciseOutline = false) const override;
 
@@ -81,7 +81,7 @@ public:
     void makeMaskImage(bool preserveAlpha) override;
 
 
-    QString defaultFileExtension() const override;
+    PkString defaultFileExtension() const override;
     void setAngle(qreal _angle) override;
     void setScale(qreal _scale) override;
     void setSpacing(double _spacing) override;
@@ -101,12 +101,12 @@ public:
 
     void notifyBrushIsGoingToBeClonedForStroke() override;
 
-    QVector<KisGbrBrushSP> brushes() const;
+    PkVector<KisGbrBrushSP> brushes() const;
 
     const KisPipeBrushParasite &parasite() const;
 
     void setParasite(const KisPipeBrushParasite& parasite);
-    void setDevices(QVector< QVector<KisPaintDevice*> > devices, int w, int h);
+    void setDevices(PkVector< PkVector<KisPaintDevice*> > devices, int w, int h);
 
     void coldInitBrush() override;
 
@@ -121,15 +121,15 @@ private:
     KisGbrBrushSP testingGetCurrentBrush(const KisPaintInformation& info) const;
     void testingSelectNextBrush(const KisPaintInformation& info) const;
 
-    bool initFromData(const QByteArray &data);
+    bool initFromData(const PkByteArray &data);
 
-    QString parasiteSelectionString; // incremental, random, etc.
+    PkString parasiteSelectionString; // incremental, random, etc.
 
 private:
     struct Private;
     Private * const d;
 };
 
-typedef QSharedPointer<KisImagePipeBrush> KisImagePipeBrushSP;
+typedef PkSharedPointer<KisImagePipeBrush> KisImagePipeBrushSP;
 
 #endif // KIS_IMAGEPIPE_BRUSH_

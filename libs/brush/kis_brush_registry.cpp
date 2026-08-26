@@ -5,7 +5,7 @@
  */
 #include "kis_brush_registry.h"
 
-#include <QString>
+#include <PkString.h>
 
 #include <QGlobalStatic>
 #include <klocalizedstring.h>
@@ -28,7 +28,7 @@ KisBrushRegistry::KisBrushRegistry()
 
 KisBrushRegistry::~KisBrushRegistry()
 {
-    Q_FOREACH (const QString & id, keys()) {
+    Q_FOREACH (const PkString & id, keys()) {
         delete get(id);
     }
     dbgRegistry << "deleting KisBrushRegistry";
@@ -48,9 +48,9 @@ KisBrushRegistry* KisBrushRegistry::instance()
 }
 
 
-KoResourceLoadResult KisBrushRegistry::createBrush(const QDomElement& element, KisResourcesInterfaceSP resourcesInterface)
+KoResourceLoadResult KisBrushRegistry::createBrush(const PkXmlElement& element, KisResourcesInterfaceSP resourcesInterface)
 {
-    QString brushType = element.attribute("type");
+    PkString brushType = element.attribute("type");
 
     if (brushType.isEmpty()) {
         return KoResourceSignature(ResourceType::Brushes, "", "unknown", "unknown");
@@ -66,15 +66,15 @@ KoResourceLoadResult KisBrushRegistry::createBrush(const QDomElement& element, K
 
 KoResourceLoadResult KisBrushRegistry::createBrush(const KisBrushModel::BrushData &data, KisResourcesInterfaceSP resourcesInterface)
 {
-    QDomDocument doc;
-    QDomElement element = doc.createElement("brush_definition");
+    PkXmlDocument doc;
+    PkXmlElement element = doc.createElement("brush_definition");
     toXML(doc, element, data);
     return createBrush(element, resourcesInterface);
 }
 
-std::optional<KisBrushModel::BrushData> KisBrushRegistry::createBrushModel(const QDomElement& element, KisResourcesInterfaceSP resourcesInterface)
+std::optional<KisBrushModel::BrushData> KisBrushRegistry::createBrushModel(const PkXmlElement& element, KisResourcesInterfaceSP resourcesInterface)
 {
-    QString brushType = element.attribute("type");
+    PkString brushType = element.attribute("type");
 
     if (brushType.isEmpty()) {
         return std::nullopt;
@@ -89,9 +89,9 @@ std::optional<KisBrushModel::BrushData> KisBrushRegistry::createBrushModel(const
     return factory->createBrushModel(element, resourcesInterface);
 }
 
-void KisBrushRegistry::toXML(QDomDocument &doc, QDomElement &element, const KisBrushModel::BrushData &model)
+void KisBrushRegistry::toXML(PkXmlDocument &doc, PkXmlElement &element, const KisBrushModel::BrushData &model)
 {
-    QString brushType;
+    PkString brushType;
 
     if (model.type == KisBrushModel::Auto) {
         brushType = "auto_brush";

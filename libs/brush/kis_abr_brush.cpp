@@ -8,11 +8,11 @@
 #include "kis_abr_brush.h"
 #include "kis_abr_brush_collection.h"
 
-#include <QDomElement>
-#include <QFile>
-#include <QImage>
-#include <QPoint>
-#include <QBuffer>
+#include <PkXmlElement.h>
+#include <PkFileStream.h>
+#include <PkImage.h>
+#include <PkPoint.h>
+#include <PkMemoryStream.h>
 #include <QCryptographicHash>
 
 #include <klocalizedstring.h>
@@ -26,7 +26,7 @@
 
 #define DEFAULT_SPACING 0.25
 
-KisAbrBrush::KisAbrBrush(const QString& filename, KisAbrBrushCollection *parent)
+KisAbrBrush::KisAbrBrush(const PkString& filename, KisAbrBrushCollection *parent)
     : KisScalingSizeBrush(filename)
     , m_parent(parent)
 {
@@ -57,20 +57,20 @@ bool KisAbrBrush::isSerializable() const
     return false;
 }
 
-bool KisAbrBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KisAbrBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(dev);
     Q_UNUSED(resourcesInterface);
     return false;
 }
 
-bool KisAbrBrush::saveToDevice(QIODevice *dev) const
+bool KisAbrBrush::saveToDevice(PkStream *dev) const
 {
     Q_UNUSED(dev);
     return false;
 }
 
-void KisAbrBrush::setBrushTipImage(const QImage& image)
+void KisAbrBrush::setBrushTipImage(const PkImage& image)
 {
     setValid(true);
     setBrushType(MASK);
@@ -78,19 +78,19 @@ void KisAbrBrush::setBrushTipImage(const QImage& image)
     KisBrush::setBrushTipImage(image);
 }
 
-void KisAbrBrush::toXML(QDomDocument& d, QDomElement& e) const
+void KisAbrBrush::toXML(PkXmlDocument& d, PkXmlElement& e) const
 {
     e.setAttribute("name", name()); // legacy
     predefinedBrushToXML("abr_brush", e);
     KisBrush::toXML(d, e);
 }
 
-QString KisAbrBrush::defaultFileExtension() const
+PkString KisAbrBrush::defaultFileExtension() const
 {
-    return QString();
+    return PkString();
 }
 
-QImage KisAbrBrush::brushTipImage() const
+PkImage KisAbrBrush::brushTipImage() const
 {
     if (KisBrush::brushTipImage().isNull() && m_parent) {
         m_parent->load();

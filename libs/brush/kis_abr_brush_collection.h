@@ -8,9 +8,9 @@
 #ifndef KIS_ABR_BRUSH_COLLECTION_H
 #define KIS_ABR_BRUSH_COLLECTION_H
 
-#include <QImage>
-#include <QDataStream>
-#include <QString>
+#include <PkImage.h>
+#include <PkDataStream.h>
+#include <PkString.h>
 #include <kis_debug.h>
 
 #include <kis_scaling_size_brush.h>
@@ -20,8 +20,8 @@
 #include <kis_abr_brush.h>
 
 
-class QString;
-class QIODevice;
+class PkString;
+class PkStream;
 
 
 struct AbrInfo;
@@ -37,71 +37,71 @@ protected:
 public:
 
     /// Construct brush to load filename later as brush
-    KisAbrBrushCollection(const QString& filename);
+    KisAbrBrushCollection(const PkString& filename);
 
     ~KisAbrBrushCollection() {}
 
     bool load();
 
-    bool loadFromDevice(QIODevice *dev);
+    bool loadFromDevice(PkStream *dev);
 
     bool save();
 
-    bool saveToDevice(QIODevice* dev) const;
+    bool saveToDevice(PkStream* dev) const;
 
     bool isLoaded() const;
 
     /**
      * @return a preview of the brush
      */
-    QImage image() const;
+    PkImage image() const;
 
     /**
      * @return default file extension for saving the brush
      */
-    QString defaultFileExtension() const;
+    PkString defaultFileExtension() const;
 
-    QList<KisAbrBrushSP> brushes() const {
+    PkList<KisAbrBrushSP> brushes() const {
         return m_abrBrushes->values();
     }
 
-    QSharedPointer<QMap<QString, KisAbrBrushSP>> brushesMap() const {
+    PkSharedPointer<PkMap<PkString, KisAbrBrushSP>> brushesMap() const {
         return m_abrBrushes;
     }
 
-    KisAbrBrushSP brushByName(QString name) const {
+    KisAbrBrushSP brushByName(PkString name) const {
         if (m_abrBrushes->contains(name)) {
             return m_abrBrushes.data()->operator[](name);
         }
         return KisAbrBrushSP();
     }
 
-    QDateTime lastModified() const {
+    PkDateTime lastModified() const {
         return m_lastModified;
     }
 
-    QString filename() const {
+    PkString filename() const {
         return m_filename;
     }
 
 protected:
     KisAbrBrushCollection(const KisAbrBrushCollection& rhs);
 
-    void toXML(QDomDocument& d, QDomElement& e) const;
+    void toXML(PkXmlDocument& d, PkXmlElement& e) const;
 
 private:
 
-    qint32 abr_brush_load(QDataStream & abr, AbrInfo *abr_hdr, const QString filename, qint32 image_ID, qint32 id);
-    qint32 abr_brush_load_v12(QDataStream & abr, AbrInfo *abr_hdr, const QString filename, qint32 image_ID, qint32 id);
-    quint32 abr_brush_load_v6(QDataStream & abr, AbrInfo *abr_hdr, const QString filename, qint32 image_ID, qint32 id);
+    qint32 abr_brush_load(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id);
+    qint32 abr_brush_load_v12(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id);
+    quint32 abr_brush_load_v6(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id);
 
     bool m_isLoaded;
-    QDateTime m_lastModified;
-    QString m_filename;
-    QSharedPointer<QMap<QString, KisAbrBrushSP>> m_abrBrushes;
+    PkDateTime m_lastModified;
+    PkString m_filename;
+    PkSharedPointer<PkMap<PkString, KisAbrBrushSP>> m_abrBrushes;
 };
 
-typedef QSharedPointer<KisAbrBrushCollection> KisAbrBrushCollectionSP;
+typedef PkSharedPointer<KisAbrBrushCollection> KisAbrBrushCollectionSP;
 
 #endif
 

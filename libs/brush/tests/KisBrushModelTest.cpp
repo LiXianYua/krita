@@ -24,7 +24,7 @@
 void KisBrushModelTest::initTestCase()
 {
     {
-        QString fullFileName = TestUtil::fetchDataFileLazy("kritaTransparent.png");
+        PkString fullFileName = TestUtil::fetchDataFileLazy("kritaTransparent.png");
         KIS_ASSERT(!fullFileName.isEmpty());
         KIS_ASSERT(QFileInfo(fullFileName).exists());
 

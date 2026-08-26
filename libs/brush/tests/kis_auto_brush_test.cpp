@@ -32,32 +32,32 @@ void KisAutoBrushTest::testMaskGeneration()
     KisBrushSP a(new KisAutoBrush(circle, 0.0, 0.0));
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
 
-    KisPaintInformation info(QPointF(100.0, 100.0), 0.5);
+    KisPaintInformation info(PkPointF(100.0, 100.0), 0.5);
 
     // check masking an existing paint device
     KisFixedPaintDeviceSP fdev = new KisFixedPaintDevice(cs);
-    fdev->setRect(QRect(0, 0, 100, 100));
+    fdev->setRect(PkRect(0, 0, 100, 100));
     fdev->initialize();
     cs->setOpacity(fdev->data(), OPACITY_OPAQUE_U8, 100 * 100);
 
-    QPoint errpoint;
-    QImage result(QString(FILES_DATA_DIR) + '/' + "result_autobrush_1.png");
-    QImage image = fdev->convertToQImage(0);
+    PkPoint errpoint;
+    PkImage result(PkString(FILES_DATA_DIR) + "/" + "result_autobrush_1.png");
+    PkImage image = fdev->convertToQImage(0);
 
     if (!TestUtil::compareQImages(errpoint, image, result)) {
         image.save("kis_autobrush_test_1.png");
-        QFAIL(QString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+        QFAIL(PkString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).PkToUtf8().c_str());
     }
 
     // Check creating a mask dab with a single color
     fdev = new KisFixedPaintDevice(cs);
     a->mask(fdev, KoColor(Qt::black, cs), KisDabShape(), info);
 
-    result = QImage(QString(FILES_DATA_DIR) + '/' + "result_autobrush_3.png");
+    result = PkImage(PkString(FILES_DATA_DIR) + "/" + "result_autobrush_3.png");
     image = fdev->convertToQImage(0);
     if (!TestUtil::compareQImages(errpoint, image, result)) {
         image.save("kis_autobrush_test_3.png");
-        QFAIL(QString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+        QFAIL(PkString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).PkToUtf8().c_str());
     }
 
     // Check creating a mask dab with a color taken from a paint device
@@ -69,17 +69,17 @@ void KisAutoBrushTest::testMaskGeneration()
     fdev = new KisFixedPaintDevice(cs);
     a->mask(fdev, dev, KisDabShape(), info);
 
-    result = QImage(QString(FILES_DATA_DIR) + '/' + "result_autobrush_4.png");
+    result = PkImage(PkString(FILES_DATA_DIR) + "/" + "result_autobrush_4.png");
     image = fdev->convertToQImage(0);
     if (!TestUtil::compareQImages(errpoint, image, result)) {
         image.save("kis_autobrush_test_4.png");
-        QFAIL(QString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+        QFAIL(PkString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).PkToUtf8().c_str());
     }
 
 }
 
 static void dabSizeHelper(KisBrushSP const& brush,
-    QString const& name, KisDabShape const& shape, int expectedWidth, int expectedHeight)
+    PkString const& name, KisDabShape const& shape, int expectedWidth, int expectedHeight)
 {
     qDebug() << name;
     QCOMPARE(brush->maskWidth(shape, 0.0, 0.0, KisPaintInformation()), expectedWidth);
@@ -113,7 +113,7 @@ void KisAutoBrushTest::testCopyMasking()
     int h = 64;
     int x = 0;
     int y = 0;
-    QRect rc(x, y, w, h);
+    PkRect rc(x, y, w, h);
 
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
 
@@ -165,17 +165,17 @@ void KisAutoBrushTest::testClone()
     KisCircleMaskGenerator* circle = new KisCircleMaskGenerator(10, 0.7, 0.85, 0.5, 2, true);
     KisBrushSP brush(new KisAutoBrush(circle, 0.5, 0.0));
 
-    KisPaintInformation info(QPointF(100.0, 100.0), 0.5);
+    KisPaintInformation info(PkPointF(100.0, 100.0), 0.5);
 
     KisFixedPaintDeviceSP fdev1 = new KisFixedPaintDevice(cs);
     brush->mask(fdev1, KoColor(Qt::black, cs), KisDabShape(0.8, 1.0, 8.0), info);
-    QImage res1 = fdev1->convertToQImage(0);
+    PkImage res1 = fdev1->convertToQImage(0);
 
     KisBrushSP clone = brush->clone().dynamicCast<KisBrush>();
 
     KisFixedPaintDeviceSP fdev2 = new KisFixedPaintDevice(cs);
     clone->mask(fdev2, KoColor(Qt::black, cs), KisDabShape(0.8, 1.0, 8.0), info);
-    QImage res2 = fdev2->convertToQImage(0);
+    PkImage res2 = fdev2->convertToQImage(0);
 
     QCOMPARE(res1, res2);
 }

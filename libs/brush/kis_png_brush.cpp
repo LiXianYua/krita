@@ -6,16 +6,16 @@
 
 #include "kis_png_brush.h"
 
-#include <QDomElement>
+#include <PkXmlElement.h>
 #include <QFileInfo>
 #include <QImageReader>
-#include <QByteArray>
-#include <QBuffer>
+#include <PkAuxTypes.h>
+#include <PkMemoryStream.h>
 #include <QPainter>
 
 #include <kis_dom_utils.h>
 
-KisPngBrush::KisPngBrush(const QString& filename)
+KisPngBrush::KisPngBrush(const PkString& filename)
     : KisColorfulBrush(filename)
 {
     setBrushType(INVALID);
@@ -32,15 +32,15 @@ KoResourceSP KisPngBrush::clone() const
     return KoResourceSP(new KisPngBrush(*this));
 }
 
-bool KisPngBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KisPngBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
 
-    // Workaround for some OS (Debian, Ubuntu), where loading directly from the QIODevice
+    // Workaround for some OS (Debian, Ubuntu), where loading directly from the PkStream
     // fails with "libpng error: IDAT: CRC error"
-    QByteArray data = dev->readAll();
-    QBuffer buf(&data);
-    buf.open(QIODevice::ReadOnly);
+    PkByteArray data = dev->readAll();
+    PkMemoryStream buf(&data);
+    buf.open(PkStream::ReadOnly);
     QImageReader reader(&buf, "PNG");
 
     if (!reader.canRead()) {
@@ -61,7 +61,7 @@ bool KisPngBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourc
         setName(info.completeBaseName());
     }
 
-    QImage image = reader.read();
+    PkImage image = reader.read();
 
     if (image.isNull()) {
         dbgKrita << "Could not create image for" << filename() << ". Error:" << reader.errorString();
@@ -88,15 +88,15 @@ bool KisPngBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourc
         // NOTE: drawing it over white background can probably be skipped now...
         //       Any images with an Alpha channel should be loaded as RGBA so
         //       they can have the lightness and gradient options available
-        QImage base(image.size(), image.format());
-        if ((int)base.format() < (int)QImage::Format_RGB32) {
-            base.convertTo(QImage::Format_ARGB32);
+        PkImage base(image.size(), image.format());
+        if ((int)base.format() < (int)PkImage::Format_RGB32) {
+            base.convertTo(PkImage::Format_ARGB32);
         }
         QPainter gc(&base);
         gc.fillRect(base.rect(), Qt::white);
         gc.drawImage(0, 0, image);
         gc.end();
-        QImage converted = base.convertToFormat(QImage::Format_Grayscale8);
+        PkImage converted = base.convertToFormat(PkImage::Format_Grayscale8);
         setBrushTipImage(converted);
         setBrushType(MASK);
         setBrushApplication(ALPHAMASK);
@@ -105,8 +105,8 @@ bool KisPngBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourc
     else {
         // see bug https://bugs.kde.org/show_bug.cgi?id=484115 if you want to edit this condition
         // keep it in sync with KisColorfulBrush code
-        if ((int)image.format() != (int)QImage::Format_ARGB32) {
-            image.convertTo(QImage::Format_ARGB32);
+        if ((int)image.format() != (int)PkImage::Format_ARGB32) {
+            image.convertTo(PkImage::Format_ARGB32);
         }
 
         setBrushTipImage(image);
@@ -122,17 +122,17 @@ bool KisPngBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourc
     return valid();
 }
 
-bool KisPngBrush::saveToDevice(QIODevice *dev) const
+bool KisPngBrush::saveToDevice(PkStream *dev) const
 {
     return brushTipImage().save(dev, "PNG");
 }
 
-QString KisPngBrush::defaultFileExtension() const
+PkString KisPngBrush::defaultFileExtension() const
 {
-    return QString(".png");
+    return PkString(".png");
 }
 
-void KisPngBrush::toXML(QDomDocument& d, QDomElement& e) const
+void KisPngBrush::toXML(PkXmlDocument& d, PkXmlElement& e) const
 {
     predefinedBrushToXML("png_brush", e);
     KisColorfulBrush::toXML(d, e);

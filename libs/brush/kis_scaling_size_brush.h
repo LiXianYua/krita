@@ -16,7 +16,7 @@ class BRUSH_EXPORT KisScalingSizeBrush : public KisBrush
 public:
 
     KisScalingSizeBrush();
-    KisScalingSizeBrush(const QString& filename);
+    KisScalingSizeBrush(const PkString& filename);
     KisScalingSizeBrush(const KisScalingSizeBrush &rhs);
 
     qreal userEffectiveSize() const override;

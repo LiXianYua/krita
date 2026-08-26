@@ -21,8 +21,8 @@ void KisAutoBrushFactoryTest::testXMLClone()
     brush->setAutoSpacing(true, 0.1);
 
     // Try to clone the brush by converting to XML and back.
-    QDomDocument d;
-    QDomElement e = d.createElement("Brush");
+    PkXmlDocument d;
+    PkXmlElement e = d.createElement("Brush");
     brush->toXML(d, e);
     KisBrushSP clone = KisAutoBrushFactory().createBrush(e, KisGlobalResourcesInterface::instance()).resource<KisBrush>();
 
@@ -37,17 +37,17 @@ void KisAutoBrushFactoryTest::testXMLClone()
     // Test that the clone draws the same as the original brush.
 
     const KoColorSpace *cs = KoColorSpaceRegistry::instance()->rgb8();
-    KisPaintInformation info(QPointF(100.0, 100.0), 0.5);
+    KisPaintInformation info(PkPointF(100.0, 100.0), 0.5);
     KisDabShape shape(0.9, 0.7, 1.0);
     KoColor color(Qt::yellow, cs);
 
     KisFixedPaintDeviceSP fdev1 = new KisFixedPaintDevice(cs);
     brush->mask(fdev1, color, shape, info);
-    QImage res1 = fdev1->convertToQImage(0);
+    PkImage res1 = fdev1->convertToQImage(0);
 
     KisFixedPaintDeviceSP fdev2 = new KisFixedPaintDevice(cs);
     clone->mask(fdev2, color, shape, info);
-    QImage res2 = fdev2->convertToQImage(0);
+    PkImage res2 = fdev2->convertToQImage(0);
 
     QCOMPARE(res1, res2);
 }

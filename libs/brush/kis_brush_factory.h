@@ -9,7 +9,7 @@
 #include "kis_brush.h"
 #include "KisBrushModel.h"
 
-class QDomElement;
+class PkXmlElement;
 
 /**
  * A brush factory can create a new brush instance based
@@ -25,10 +25,10 @@ public:
     virtual ~KisBrushFactory() {}
 
 
-    virtual QString id() const = 0;
+    virtual PkString id() const = 0;
 
-    virtual QString name() const {
-        return QString();
+    virtual PkString name() const {
+        return PkString();
     }
 
     /**
@@ -36,10 +36,10 @@ public:
      * object. If this call leads to the creation of a resource, it should be
      * added to the resource provider, too.
      */
-    virtual KoResourceLoadResult createBrush(const QDomElement& element, KisResourcesInterfaceSP resourcesInterface) = 0;
+    virtual KoResourceLoadResult createBrush(const PkXmlElement& element, KisResourcesInterfaceSP resourcesInterface) = 0;
     virtual KoResourceLoadResult createBrush(const KisBrushModel::BrushData &data, KisResourcesInterfaceSP resourcesInterface) = 0;
-    virtual std::optional<KisBrushModel::BrushData> createBrushModel(const QDomElement& element, KisResourcesInterfaceSP resourcesInterface) = 0;
-    virtual void toXML(QDomDocument &doc, QDomElement &element, const KisBrushModel::BrushData &model) = 0;
+    virtual std::optional<KisBrushModel::BrushData> createBrushModel(const PkXmlElement& element, KisResourcesInterfaceSP resourcesInterface) = 0;
+    virtual void toXML(PkXmlDocument &doc, PkXmlElement &element, const KisBrushModel::BrushData &model) = 0;
 };
 
 #endif

@@ -11,7 +11,7 @@ KisScalingSizeBrush::KisScalingSizeBrush()
 {
 }
 
-KisScalingSizeBrush::KisScalingSizeBrush(const QString &filename)
+KisScalingSizeBrush::KisScalingSizeBrush(const PkString &filename)
     : KisBrush(filename)
 {
 }

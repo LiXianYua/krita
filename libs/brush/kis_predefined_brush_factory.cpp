@@ -7,8 +7,8 @@
 #include "kis_predefined_brush_factory.h"
 
 #include <QApplication>
-#include <QThread>
-#include <QDomDocument>
+#include <PkThread.h>
+#include <PkXmlDocument.h>
 #include "kis_gbr_brush.h"
 #include "kis_png_brush.h"
 #include "kis_abr_brush.h"
@@ -17,12 +17,12 @@
 #include <KisResourcesInterface.h>
 #include "kis_imagepipe_brush.h"
 
-KisPredefinedBrushFactory::KisPredefinedBrushFactory(const QString &brushType)
+KisPredefinedBrushFactory::KisPredefinedBrushFactory(const PkString &brushType)
     : m_id(brushType)
 {
 }
 
-QString KisPredefinedBrushFactory::id() const
+PkString KisPredefinedBrushFactory::id() const
 {
     return m_id;
 }
@@ -30,8 +30,8 @@ QString KisPredefinedBrushFactory::id() const
 KoResourceLoadResult KisPredefinedBrushFactory::createBrush(const KisBrushModel::BrushData &brushData, KisResourcesInterfaceSP resourcesInterface)
 {
     auto resourceSourceAdapter = resourcesInterface->source<KisBrush>(ResourceType::Brushes);
-    const QString brushFileName = brushData.predefinedBrush.resourceSignature.filename;
-    const QString brushMD5Sum = brushData.predefinedBrush.resourceSignature.md5sum;
+    const PkString brushFileName = brushData.predefinedBrush.resourceSignature.filename;
+    const PkString brushMD5Sum = brushData.predefinedBrush.resourceSignature.md5sum;
     KisBrushSP brush = resourceSourceAdapter.bestMatch(brushMD5Sum, brushFileName, "");
     if (!brush) {
         return KoResourceSignature(ResourceType::Brushes, brushMD5Sum, brushFileName, "");
@@ -58,7 +58,7 @@ KoResourceLoadResult KisPredefinedBrushFactory::createBrush(const KisBrushModel:
     return brush;
 }
 
-KoResourceLoadResult KisPredefinedBrushFactory::createBrush(const QDomElement& brushDefinition, KisResourcesInterfaceSP resourcesInterface)
+KoResourceLoadResult KisPredefinedBrushFactory::createBrush(const PkXmlElement& brushDefinition, KisResourcesInterfaceSP resourcesInterface)
 {
     auto data = createBrushModelImpl(brushDefinition, resourcesInterface);
 
@@ -72,7 +72,7 @@ KoResourceLoadResult KisPredefinedBrushFactory::createBrush(const QDomElement& b
     return KoResourceSignature(ResourceType::Brushes, "", "", "");
 }
 
-std::optional<KisBrushModel::BrushData> KisPredefinedBrushFactory::createBrushModel(const QDomElement &element, KisResourcesInterfaceSP resourcesInterface)
+std::optional<KisBrushModel::BrushData> KisPredefinedBrushFactory::createBrushModel(const PkXmlElement &element, KisResourcesInterfaceSP resourcesInterface)
 {
     auto data = createBrushModelImpl(element, resourcesInterface);
     return std::holds_alternative<KisBrushModel::BrushData>(data) ?
@@ -80,13 +80,13 @@ std::optional<KisBrushModel::BrushData> KisPredefinedBrushFactory::createBrushMo
         std::nullopt;
 }
 
-std::variant<KisBrushModel::BrushData, KoResourceSignature> KisPredefinedBrushFactory::createBrushModelImpl(const QDomElement &element, KisResourcesInterfaceSP resourcesInterface)
+std::variant<KisBrushModel::BrushData, KoResourceSignature> KisPredefinedBrushFactory::createBrushModelImpl(const PkXmlElement &element, KisResourcesInterfaceSP resourcesInterface)
 {
     KisBrushModel::BrushData brush;
 
     auto resourceSourceAdapter = resourcesInterface->source<KisBrush>(ResourceType::Brushes);
-    const QString brushFileName = element.attribute("filename", "");
-    const QString brushMD5Sum = element.attribute("md5sum", "");
+    const PkString brushFileName = element.attribute("filename", "");
+    const PkString brushMD5Sum = element.attribute("md5sum", "");
     KisBrushSP brushResource = resourceSourceAdapter.bestMatch(brushMD5Sum, brushFileName, "");
     if (!brushResource) {
         return KoResourceSignature(ResourceType::Brushes, brushMD5Sum, brushFileName, "");
@@ -221,7 +221,7 @@ void KisPredefinedBrushFactory::loadFromBrushResource(KisBrushModel::CommonData 
     }
 }
 
-void KisPredefinedBrushFactory::toXML(QDomDocument &doc, QDomElement &e, const KisBrushModel::BrushData &model)
+void KisPredefinedBrushFactory::toXML(PkXmlDocument &doc, PkXmlElement &e, const KisBrushModel::BrushData &model)
 {
     Q_UNUSED(doc);
 
@@ -230,12 +230,12 @@ void KisPredefinedBrushFactory::toXML(QDomDocument &doc, QDomElement &e, const K
 
     e.setAttribute("filename", model.predefinedBrush.resourceSignature.filename);
     e.setAttribute("md5sum", model.predefinedBrush.resourceSignature.md5sum);
-    e.setAttribute("spacing", QString::number(model.common.spacing));
-    e.setAttribute("useAutoSpacing", QString::number(model.common.useAutoSpacing));
-    e.setAttribute("autoSpacingCoeff", QString::number(model.common.autoSpacingCoeff));
-    e.setAttribute("angle", QString::number(model.common.angle));
-    e.setAttribute("scale", QString::number(model.predefinedBrush.scale));
-    e.setAttribute("brushApplication", QString::number((int)model.predefinedBrush.application));
+    e.setAttribute("spacing", PkString("%1").arg(model.common.spacing));
+    e.setAttribute("useAutoSpacing", PkString("%1").arg(model.common.useAutoSpacing));
+    e.setAttribute("autoSpacingCoeff", PkString("%1").arg(model.common.autoSpacingCoeff));
+    e.setAttribute("angle", PkString("%1").arg(model.common.angle));
+    e.setAttribute("scale", PkString("%1").arg(model.predefinedBrush.scale));
+    e.setAttribute("brushApplication", PkString("%1").arg((int)model.predefinedBrush.application));
 
     if (id() == "abr_brush") {
         e.setAttribute("name", model.predefinedBrush.resourceSignature.name);
@@ -244,12 +244,12 @@ void KisPredefinedBrushFactory::toXML(QDomDocument &doc, QDomElement &e, const K
         // all other brushes are derived from KisColorfulBrush
 
         // legacy setting, now 'brushApplication' is used instead
-        e.setAttribute("ColorAsMask", QString::number((int)(model.predefinedBrush.application != IMAGESTAMP)));
+        e.setAttribute("ColorAsMask", PkString("%1").arg((int)(model.predefinedBrush.application != IMAGESTAMP)));
 
-        e.setAttribute("AdjustmentMidPoint", QString::number(model.predefinedBrush.adjustmentMidPoint));
-        e.setAttribute("BrightnessAdjustment", QString::number(model.predefinedBrush.brightnessAdjustment));
-        e.setAttribute("ContrastAdjustment", QString::number(model.predefinedBrush.contrastAdjustment));
-        e.setAttribute("AutoAdjustMidPoint", QString::number(model.predefinedBrush.autoAdjustMidPoint));
-        e.setAttribute("AdjustmentVersion", QString::number(2));
+        e.setAttribute("AdjustmentMidPoint", PkString("%1").arg(model.predefinedBrush.adjustmentMidPoint));
+        e.setAttribute("BrightnessAdjustment", PkString("%1").arg(model.predefinedBrush.brightnessAdjustment));
+        e.setAttribute("ContrastAdjustment", PkString("%1").arg(model.predefinedBrush.contrastAdjustment));
+        e.setAttribute("AutoAdjustMidPoint", PkString("%1").arg(model.predefinedBrush.autoAdjustMidPoint));
+        e.setAttribute("AdjustmentVersion", PkString("%1").arg(2));
     }
 }

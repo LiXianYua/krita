@@ -8,7 +8,7 @@
 #ifndef KIS_BRUSH_
 #define KIS_BRUSH_
 
-#include <QImage>
+#include <PkImage.h>
 
 #include <KoResource.h>
 
@@ -17,7 +17,7 @@
 #include <kis_dab_shape.h>
 #include <kritabrush_export.h>
 
-class QString;
+class PkString;
 class KoColor;
 class KoColorSpace;
 
@@ -25,7 +25,7 @@ class KisPaintInformation;
 class KisPaintopLodLimitations;
 class KoAbstractGradient;
 class KisOptimizedBrushOutline;
-typedef QSharedPointer<KoAbstractGradient> KoAbstractGradientSP;
+typedef PkSharedPointer<KoAbstractGradient> KoAbstractGradientSP;
 
 enum enumBrushType {
     INVALID,
@@ -46,7 +46,7 @@ static const qreal DEFAULT_SOFTNESS_FACTOR = 1.0;
 static const qreal DEFAULT_LIGHTNESS_STRENGTH = 1.0;
 
 class KisBrush;
-typedef QSharedPointer<KisBrush> KisBrushSP;
+typedef PkSharedPointer<KisBrush> KisBrushSP;
 
 /**
  * KisBrush is the base class for brush resources. A brush resource
@@ -109,7 +109,7 @@ protected:
 public:
 
     KisBrush();
-    KisBrush(const QString& filename);
+    KisBrush(const PkString& filename);
     ~KisBrush() override;
 
     KisBrush(const KisBrush &rhs);
@@ -118,16 +118,16 @@ public:
     virtual qreal userEffectiveSize() const = 0;
     virtual void setUserEffectiveSize(qreal value) = 0;
 
-    QPair<QString, QString> resourceType() const override {
-        return QPair<QString, QString>(ResourceType::Brushes, "");
+    std::pair<PkString, PkString> resourceType() const override {
+        return std::pair<PkString, PkString>(ResourceType::Brushes, "");
     }
 
     /**
      * @brief brushImage the image the brush tip can paint with. Not all brush types have a single
      * image.
-     * @return a valid QImage.
+     * @return a valid PkImage.
      */
-    virtual QImage brushTipImage() const;
+    virtual PkImage brushTipImage() const;
 
     /**
      * Is a paint device of the brush that should be used for generation
@@ -185,7 +185,7 @@ public:
      *         of this metric is calculation of brush-size derivatives like
      *         hotspots and spacing.
      */
-     virtual QSizeF characteristicSize(KisDabShape const&) const;
+     virtual PkSizeF characteristicSize(KisDabShape const&) const;
 
     /**
      * @return the angle of the mask adding the given angle
@@ -205,7 +205,7 @@ public:
      */
     virtual enumBrushType brushType() const;
 
-    QPointF hotSpot(KisDabShape const&, const KisPaintInformation& info) const;
+    PkPointF hotSpot(KisDabShape const&, const KisPaintInformation& info) const;
 
     /**
      * Returns true if this brush can return something useful for the info. This is used
@@ -319,11 +319,11 @@ public:
     /**
      * Serialize this brush to XML.
      */
-    virtual void toXML(QDomDocument& , QDomElement&) const;
+    virtual void toXML(PkXmlDocument& , PkXmlElement&) const;
 
-    static KisBrushSP fromXML(const QDomElement& element, KisResourcesInterfaceSP resourcesInterface);
+    static KisBrushSP fromXML(const PkXmlElement& element, KisResourcesInterfaceSP resourcesInterface);
 
-    static KoResourceLoadResult fromXMLLoadResult(const QDomElement& element, KisResourcesInterfaceSP resourcesInterface);
+    static KoResourceLoadResult fromXMLLoadResult(const PkXmlElement& element, KisResourcesInterfaceSP resourcesInterface);
 
     virtual KisOptimizedBrushOutline outline(bool forcePreciseOutline = false) const;
 
@@ -340,7 +340,7 @@ public:
 
     virtual void coldInitBrush();
 
-    static const QString brushTypeMetaDataKey;
+    static const PkString brushTypeMetaDataKey;
 
 protected:
 
@@ -348,7 +348,7 @@ protected:
 
     void setHeight(qint32 height);
 
-    void setHotSpot(QPointF);
+    void setHotSpot(PkPointF);
 
     /**
      * XXX
@@ -361,7 +361,7 @@ public:
      * The image is used to represent the brush in the gui, and may also, depending on the brush type
      * be used to define the actual brush instance.
      */
-    virtual void setBrushTipImage(const QImage& image);
+    virtual void setBrushTipImage(const PkImage& image);
 
     /**
      * Returns true if the brush has a bunch of pixels almost
@@ -379,7 +379,7 @@ protected:
     void generateOutlineCache();
     bool outlineCacheIsValid() const;
 
-    void predefinedBrushToXML(const QString &type, QDomElement& e) const;
+    void predefinedBrushToXML(const PkString &type, PkXmlElement& e) const;
 
 private:
 

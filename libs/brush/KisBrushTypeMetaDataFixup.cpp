@@ -15,9 +15,9 @@
 #include "kis_brush.h"
 
 
-QStringList KisBrushTypeMetaDataFixup::executeFix()
+PkStringList KisBrushTypeMetaDataFixup::executeFix()
 {
-    QStringList errorMessages;
+    PkStringList errorMessages;
 
     QSqlQuery q;
     const bool r = q.prepare("SELECT resources.id FROM resources "

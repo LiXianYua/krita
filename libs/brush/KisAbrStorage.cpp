@@ -18,7 +18,7 @@ KIS_DECLARE_STATIC_INITIALIZER {
 class AbrTagIterator : public KisResourceStorage::TagIterator
 {
 public:
-    AbrTagIterator(KisAbrBrushCollectionSP brushCollection, const QString &location, const QString &resourceType)
+    AbrTagIterator(KisAbrBrushCollectionSP brushCollection, const PkString &location, const PkString &resourceType)
         : m_brushCollection(brushCollection)
         , m_location(location)
         , m_resourceType(resourceType)
@@ -40,7 +40,7 @@ public:
         abrTag->setFilename(QFileInfo(m_location).fileName());
         abrTag->setResourceType(m_resourceType);
         abrTag->setValid(true);
-        QStringList brushes;
+        PkStringList brushes;
         Q_FOREACH(const KisAbrBrushSP brush, m_brushCollection->brushes()) {
             brushes << brush->filename();
         }
@@ -53,23 +53,23 @@ private:
 
     bool m_taggingDone {false};
     KisAbrBrushCollectionSP m_brushCollection;
-    QString m_location;
-    QString m_resourceType;
+    PkString m_location;
+    PkString m_resourceType;
 };
 
 class AbrIterator : public KisResourceStorage::ResourceIterator
 {
 public:
     KisAbrBrushCollectionSP m_brushCollection;
-    QSharedPointer<QMap<QString, KisAbrBrushSP>> m_brushesMap;
-    QMap<QString, KisAbrBrushSP>::const_iterator m_brushCollectionIterator;
+    PkSharedPointer<PkMap<PkString, KisAbrBrushSP>> m_brushesMap;
+    PkMap<PkString, KisAbrBrushSP>::const_iterator m_brushCollectionIterator;
     KisAbrBrushSP m_currentResource;
     bool isLoaded;
-    QString m_currentUrl;
-    QString m_resourceType;
+    PkString m_currentUrl;
+    PkString m_resourceType;
 
 
-    AbrIterator(KisAbrBrushCollectionSP brushCollection, const QString& resourceType)
+    AbrIterator(KisAbrBrushCollectionSP brushCollection, const PkString& resourceType)
         : m_brushCollection(brushCollection)
         , isLoaded(false)
         , m_resourceType(resourceType)
@@ -109,9 +109,9 @@ public:
         m_brushCollectionIterator++;
     }
 
-    QString url() const override { return m_currentUrl; }
-    QString type() const override { return ResourceType::Brushes; }
-    QDateTime lastModified() const override { return m_brushCollection->lastModified(); }
+    PkString url() const override { return m_currentUrl; }
+    PkString type() const override { return ResourceType::Brushes; }
+    PkDateTime lastModified() const override { return m_brushCollection->lastModified(); }
 
     KoResourceSP resourceImpl() const override
     {
@@ -119,7 +119,7 @@ public:
     }
 };
 
-KisAbrStorage::KisAbrStorage(const QString &location)
+KisAbrStorage::KisAbrStorage(const PkString &location)
     : KisStoragePlugin(location)
     , m_brushCollection(new KisAbrBrushCollection(location))
 {
@@ -130,13 +130,13 @@ KisAbrStorage::~KisAbrStorage()
 
 }
 
-KisResourceStorage::ResourceItem KisAbrStorage::resourceItem(const QString &url)
+KisResourceStorage::ResourceItem KisAbrStorage::resourceItem(const PkString &url)
 {
     KisResourceStorage::ResourceItem item;
     item.url = url;
     // last "_" with index is the suffix added by abr_collection
     int indexOfUnderscore = url.lastIndexOf("_");
-    QString filenameUrl = url;
+    PkString filenameUrl = url;
     // filenameUrl contains the name of the collection (filename without .abr, brush name without index)
     filenameUrl.remove(indexOfUnderscore, url.length() - indexOfUnderscore);
     item.folder = filenameUrl;
@@ -146,7 +146,7 @@ KisResourceStorage::ResourceItem KisAbrStorage::resourceItem(const QString &url)
 }
 
 
-KoResourceSP KisAbrStorage::resource(const QString &url)
+KoResourceSP KisAbrStorage::resource(const PkString &url)
 {
     if (!m_brushCollection->isLoaded()) {
         m_brushCollection->load();
@@ -164,17 +164,17 @@ bool KisAbrStorage::supportsVersioning() const
     return false;
 }
 
-QSharedPointer<KisResourceStorage::ResourceIterator> KisAbrStorage::resources(const QString &resourceType)
+PkSharedPointer<KisResourceStorage::ResourceIterator> KisAbrStorage::resources(const PkString &resourceType)
 {
-    return QSharedPointer<KisResourceStorage::ResourceIterator>(new AbrIterator(m_brushCollection, resourceType));
+    return PkSharedPointer<KisResourceStorage::ResourceIterator>(new AbrIterator(m_brushCollection, resourceType));
 }
 
-QSharedPointer<KisResourceStorage::TagIterator> KisAbrStorage::tags(const QString &resourceType)
+PkSharedPointer<KisResourceStorage::TagIterator> KisAbrStorage::tags(const PkString &resourceType)
 {
-    return QSharedPointer<KisResourceStorage::TagIterator>(new AbrTagIterator(m_brushCollection, location(), resourceType));
+    return PkSharedPointer<KisResourceStorage::TagIterator>(new AbrTagIterator(m_brushCollection, location(), resourceType));
 }
 
-QImage KisAbrStorage::thumbnail() const
+PkImage KisAbrStorage::thumbnail() const
 {
     return m_brushCollection->image();
 }

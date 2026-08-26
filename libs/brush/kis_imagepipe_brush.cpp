@@ -182,7 +182,7 @@ public:
         }
     }
 
-    bool saveToDevice(QIODevice* dev) const {
+    bool saveToDevice(PkStream* dev) const {
         Q_FOREACH (KisGbrBrushSP brush, m_brushes) {
             if (!brush->saveToDevice(dev)) {
                 return false;
@@ -213,16 +213,16 @@ public:
     KisImageBrushesPipe brushesPipe;
 };
 
-KisImagePipeBrush::KisImagePipeBrush(const QString& filename)
+KisImagePipeBrush::KisImagePipeBrush(const PkString& filename)
     : KisGbrBrush(filename)
     , d(new Private())
 {
 }
 
-KisImagePipeBrush::KisImagePipeBrush(const QString& name, int w, int h,
-                                     QVector< QVector<KisPaintDevice*> > devices,
-                                     QVector<KisParasite::SelectionMode > modes)
-    : KisGbrBrush(QString())
+KisImagePipeBrush::KisImagePipeBrush(const PkString& name, int w, int h,
+                                     PkVector< PkVector<KisPaintDevice*> > devices,
+                                     PkVector<KisParasite::SelectionMode > modes)
+    : KisGbrBrush(PkString())
     , d(new Private())
 {
     Q_ASSERT(devices.count() == modes.count());
@@ -265,22 +265,22 @@ KisImagePipeBrush::~KisImagePipeBrush()
     delete d;
 }
 
-bool KisImagePipeBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KisImagePipeBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
 
-    QByteArray data = dev->readAll();
+    PkByteArray data = dev->readAll();
     return initFromData(data);
 }
 
-bool KisImagePipeBrush::initFromData(const QByteArray &data)
+bool KisImagePipeBrush::initFromData(const PkByteArray &data)
 {
     if (data.size() == 0) return false;
     // XXX: this doesn't correctly load the image pipe brushes yet.
 
     // XXX: This stuff is in utf-8, too.
     // The first line contains the name -- this means we look until we arrive at the first newline
-    QByteArray line1;
+    PkByteArray line1;
 
     qint32 i = 0;
 
@@ -288,22 +288,22 @@ bool KisImagePipeBrush::initFromData(const QByteArray &data)
         line1.append(data[i]);
         i++;
     }
-    setName(QString::fromUtf8(line1, line1.size()));
+    setName(PkString::PkFromUtf8(line1.data(), line1.size()));
 
     i++; // Skip past the first newline
 
     // The second line contains the number of brushes, separated by a space from the parasite
 
     // XXX: This stuff is in utf-8, too.
-    QByteArray line2;
+    PkByteArray line2;
     while (i < data.size() && data[i] != '\n') {
         line2.append(data[i]);
         i++;
     }
 
-    QString paramline = QString::fromUtf8(line2, line2.size());
+    PkString paramline = PkString::PkFromUtf8(line2.data(), line2.size());
     qint32 numOfBrushes = paramline.left(paramline.indexOf(' ')).toUInt();
-    QString parasiteString = paramline.mid(paramline.indexOf(' ') + 1);
+    PkString parasiteString = paramline.mid(paramline.indexOf(' ') + 1);
 
     KisPipeBrushParasite parasite = KisPipeBrushParasite(parasiteString);
     parasite.sanitize();
@@ -316,7 +316,7 @@ bool KisImagePipeBrush::initFromData(const QByteArray &data)
     for (int brushIndex = d->brushesPipe.sizeBrush();
             brushIndex < numOfBrushes && i < data.size(); brushIndex++) {
 
-        KisGbrBrushSP brush = KisGbrBrushSP(new KisGbrBrush(name() + '_' + QString().setNum(brushIndex),
+        KisGbrBrushSP brush = KisGbrBrushSP(new KisGbrBrush(name() + "_" + PkString("%1").arg(brushIndex),
                                              data,
                                              i));
 
@@ -337,9 +337,9 @@ bool KisImagePipeBrush::initFromData(const QByteArray &data)
     return true;
 }
 
-bool KisImagePipeBrush::saveToDevice(QIODevice* dev) const
+bool KisImagePipeBrush::saveToDevice(PkStream* dev) const
 {
-    QByteArray utf8Name = name().toUtf8(); // Names in v2 brushes are in UTF-8
+    const std::string utf8Name = name().PkToUtf8(); // Names in v2 brushes are in UTF-8
     char const* name = utf8Name.data();
     int len = qstrlen(name);
 
@@ -395,7 +395,7 @@ void KisImagePipeBrush::notifyBrushIsGoingToBeClonedForStroke()
     d->brushesPipe.notifyBrushIsGoingToBeClonedForStroke();
 }
 
-QVector<KisGbrBrushSP> KisImagePipeBrush::brushes() const
+PkVector<KisGbrBrushSP> KisImagePipeBrush::brushes() const
 {
     return d->brushesPipe.brushes();
 }
@@ -409,7 +409,7 @@ KisFixedPaintDeviceSP KisImagePipeBrush::paintDevice(
     return d->brushesPipe.paintDevice(colorSpace, shape, info, subPixelX, subPixelY);
 }
 
-QString KisImagePipeBrush::parasiteSelection()
+PkString KisImagePipeBrush::parasiteSelection()
 {
     return parasiteSelectionString;
 }
@@ -460,9 +460,9 @@ bool KisImagePipeBrush::canPaintFor(const KisPaintInformation& info)
     return (!d->brushesPipe.parasite().needsMovement || info.drawingDistance() >= 0.5);
 }
 
-QString KisImagePipeBrush::defaultFileExtension() const
+PkString KisImagePipeBrush::defaultFileExtension() const
 {
-    return QString(".gih");
+    return PkString(".gih");
 }
 
 quint32 KisImagePipeBrush::brushIndex() const
@@ -531,7 +531,7 @@ void KisImagePipeBrush::setParasite(const KisPipeBrushParasite &parasite)
     d->brushesPipe.setParasite(parasite);
 }
 
-void KisImagePipeBrush::setDevices(QVector<QVector<KisPaintDevice *> > devices, int w, int h)
+void KisImagePipeBrush::setDevices(PkVector<PkVector<KisPaintDevice *> > devices, int w, int h)
 {
 
     for (int i = 0; i < devices.at(0).count(); i++) {

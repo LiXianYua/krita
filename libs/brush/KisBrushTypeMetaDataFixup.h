@@ -13,7 +13,7 @@
 class BRUSH_EXPORT KisBrushTypeMetaDataFixup : public KisResourceLoaderRegistry::ResourceCacheFixup
 {
 public:
-    QStringList executeFix() override;
+    PkStringList executeFix() override;
 };
 
 #endif // KISBRUSHTYPEMETADATAFIXUP_H

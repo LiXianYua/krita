@@ -13,19 +13,19 @@ class BRUSH_EXPORT  KisPngBrush : public KisColorfulBrush
 {
 public:
     /// Construct brush to load filename later as brush
-    KisPngBrush(const QString& filename);
+    KisPngBrush(const PkString& filename);
     KisPngBrush(const KisPngBrush &rhs);
     KoResourceSP clone() const override;
     KisPngBrush &operator=(const KisPngBrush &rhs) = delete;
 
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice *dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream *dev) const override;
 
-    QString defaultFileExtension() const override;
-    void toXML(QDomDocument& d, QDomElement& e) const override;
+    PkString defaultFileExtension() const override;
+    void toXML(PkXmlDocument& d, PkXmlElement& e) const override;
 
-    QPair<QString, QString> resourceType() const override {
-        return QPair<QString, QString>(ResourceType::Brushes, ResourceSubType::PngBrushes);
+    std::pair<PkString, PkString> resourceType() const override {
+        return std::pair<PkString, PkString>(ResourceType::Brushes, ResourceSubType::PngBrushes);
     }
 
 };

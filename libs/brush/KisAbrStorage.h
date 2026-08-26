@@ -16,17 +16,17 @@
 class BRUSH_EXPORT KisAbrStorage : public KisStoragePlugin
 {
 public:
-    KisAbrStorage(const QString &location);
+    KisAbrStorage(const PkString &location);
     virtual ~KisAbrStorage();
 
-    KisResourceStorage::ResourceItem resourceItem(const QString &url) override;
+    KisResourceStorage::ResourceItem resourceItem(const PkString &url) override;
 
-    KoResourceSP resource(const QString &url) override;
+    KoResourceSP resource(const PkString &url) override;
     bool loadVersionedResource(KoResourceSP resource) override;
     bool supportsVersioning() const override;
-    QSharedPointer<KisResourceStorage::ResourceIterator> resources(const QString &resourceType) override;
-    QSharedPointer<KisResourceStorage::TagIterator> tags(const QString &resourceType) override;
-    QImage thumbnail() const override;
+    PkSharedPointer<KisResourceStorage::ResourceIterator> resources(const PkString &resourceType) override;
+    PkSharedPointer<KisResourceStorage::TagIterator> tags(const PkString &resourceType) override;
+    PkImage thumbnail() const override;
     KisAbrBrushCollectionSP m_brushCollection;
 };
 

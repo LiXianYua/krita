@@ -7,7 +7,7 @@
 #include "kis_gbr_brush_test.h"
 
 #include <QRandomGenerator>
-#include <QString>
+#include <PkString.h>
 #include <QDir>
 
 #include <simpletest.h>
@@ -25,16 +25,16 @@
 
 void KisGbrBrushTest::testMaskGenerationSingleColor()
 {
-    QScopedPointer<KisGbrBrush> brush(new KisGbrBrush(QString(FILES_DATA_DIR) + '/' + "brush.gbr"));
+    PkScopedPointer<KisGbrBrush> brush(new KisGbrBrush(PkString(FILES_DATA_DIR) + "/" + "brush.gbr"));
     brush->load(KisGlobalResourcesInterface::instance());
     Q_ASSERT(brush->valid());
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
 
-    KisPaintInformation info(QPointF(100.0, 100.0), 0.5);
+    KisPaintInformation info(PkPointF(100.0, 100.0), 0.5);
 
     // check masking an existing paint device
     KisFixedPaintDeviceSP fdev = new KisFixedPaintDevice(cs);
-    fdev->setRect(QRect(0, 0, 100, 100));
+    fdev->setRect(PkRect(0, 0, 100, 100));
     fdev->initialize();
     cs->setOpacity(fdev->data(), OPACITY_OPAQUE_U8, 100 * 100);
 
@@ -42,27 +42,27 @@ void KisGbrBrushTest::testMaskGenerationSingleColor()
     fdev = new KisFixedPaintDevice(cs);
     brush->mask(fdev, KoColor(Qt::black, cs), KisDabShape(), info);
 
-    QPoint errpoint;
-    QImage result = QImage(QString(FILES_DATA_DIR) + '/' + "result_brush_3.png");
-    QImage image = fdev->convertToQImage(0);
+    PkPoint errpoint;
+    PkImage result = PkImage(PkString(FILES_DATA_DIR) + "/" + "result_brush_3.png");
+    PkImage image = fdev->convertToQImage(0);
     if (!TestUtil::compareQImages(errpoint, image, result)) {
         image.save("kis_gbr_brush_test_3.png");
-        QFAIL(QString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+        QFAIL(PkString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).PkToUtf8().c_str());
     }
 }
 
 void KisGbrBrushTest::testMaskGenerationDevColor()
 {
-    QScopedPointer<KisGbrBrush> brush(new KisGbrBrush(QString(FILES_DATA_DIR) + '/' + "brush.gbr"));
+    PkScopedPointer<KisGbrBrush> brush(new KisGbrBrush(PkString(FILES_DATA_DIR) + "/" + "brush.gbr"));
     brush->load(KisGlobalResourcesInterface::instance());
     Q_ASSERT(brush->valid());
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
 
-    KisPaintInformation info(QPointF(100.0, 100.0), 0.5);
+    KisPaintInformation info(PkPointF(100.0, 100.0), 0.5);
 
     // check masking an existing paint device
     KisFixedPaintDeviceSP fdev = new KisFixedPaintDevice(cs);
-    fdev->setRect(QRect(0, 0, 100, 100));
+    fdev->setRect(PkRect(0, 0, 100, 100));
     fdev->initialize();
     cs->setOpacity(fdev->data(), OPACITY_OPAQUE_U8, 100 * 100);
 
@@ -75,18 +75,18 @@ void KisGbrBrushTest::testMaskGenerationDevColor()
     fdev = new KisFixedPaintDevice(cs);
     brush->mask(fdev, dev, KisDabShape(), info);
 
-    QPoint errpoint;
-    QImage result = QImage(QString(FILES_DATA_DIR) + '/' + "result_brush_4.png");
-    QImage image = fdev->convertToQImage(0);
+    PkPoint errpoint;
+    PkImage result = PkImage(PkString(FILES_DATA_DIR) + "/" + "result_brush_4.png");
+    PkImage image = fdev->convertToQImage(0);
     if (!TestUtil::compareQImages(errpoint, image, result)) {
         image.save("kis_gbr_brush_test_4.png");
-        QFAIL(QString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).toLatin1());
+        QFAIL(PkString("Failed to create identical image, first different pixel: %1,%2 \n").arg(errpoint.x()).arg(errpoint.y()).PkToUtf8().c_str());
     }
 }
 
 void KisGbrBrushTest::testImageGeneration()
 {
-    QScopedPointer<KisGbrBrush> brush(new KisGbrBrush(QString(FILES_DATA_DIR) + '/' + "testing_brush_512_bars.gbr"));
+    PkScopedPointer<KisGbrBrush> brush(new KisGbrBrush(PkString(FILES_DATA_DIR) + "/" + "testing_brush_512_bars.gbr"));
     bool res = brush->load(KisGlobalResourcesInterface::instance());
     Q_UNUSED(res);
     Q_ASSERT(res);
@@ -94,15 +94,15 @@ void KisGbrBrushTest::testImageGeneration()
     QRandomGenerator rng{};
 
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
-    KisPaintInformation info(QPointF(100.0, 100.0), 0.5);
+    KisPaintInformation info(PkPointF(100.0, 100.0), 0.5);
     KisFixedPaintDeviceSP dab;
 
     for (int i = 0; i < 200; i++) {
         qreal scale = rng.bounded(2.0);
         qreal rotation = rng.bounded(2.0 * M_PI);
         qreal subPixelX = rng.bounded(0.5);
-        QString testName =
-            QString("brush_%1_sc_%2_rot_%3_sub_%4")
+        PkString testName =
+            PkString("brush_%1_sc_%2_rot_%3_sub_%4")
             .arg(i).arg(scale).arg(rotation).arg(subPixelX);
 
         dab = brush->paintDevice(cs, KisDabShape(scale, 1.0, rotation), info, subPixelX);
@@ -111,7 +111,7 @@ void KisGbrBrushTest::testImageGeneration()
          * Compare first 10 images. Others are tested for asserts only
          */
         if (i < 10) {
-            QImage result = dab->convertToQImage(0);
+            PkImage result = dab->convertToQImage(0);
             TestUtil::checkQImage(result, "brush_masks", "", testName);
         }
     }
@@ -121,26 +121,26 @@ void KisGbrBrushTest::testImageGeneration()
 
 void KisGbrBrushTest::benchmarkPyramidCreation()
 {
-    QScopedPointer<KisGbrBrush> brush(new KisGbrBrush(QString(FILES_DATA_DIR) + '/' + "testing_brush_512_bars.gbr"));
+    PkScopedPointer<KisGbrBrush> brush(new KisGbrBrush(PkString(FILES_DATA_DIR) + "/" + "testing_brush_512_bars.gbr"));
     brush->load(KisGlobalResourcesInterface::instance());
     QVERIFY(!brush->brushTipImage().isNull());
 
     QBENCHMARK {
         KisQImagePyramid pyramid(brush->brushTipImage());
         qreal temp = 0.0;
-        QVERIFY(!pyramid.getClosest(QTransform(), &temp).isNull()); // avoid compiler elimination of unused code!
+        QVERIFY(!pyramid.getClosest(PkTransform(), &temp).isNull()); // avoid compiler elimination of unused code!
     }
 }
 
 void KisGbrBrushTest::benchmarkScaling()
 {
-    QScopedPointer<KisGbrBrush> brush(new KisGbrBrush(QString(FILES_DATA_DIR) + '/' + "testing_brush_512_bars.gbr"));
+    PkScopedPointer<KisGbrBrush> brush(new KisGbrBrush(PkString(FILES_DATA_DIR) + "/" + "testing_brush_512_bars.gbr"));
     brush->load(KisGlobalResourcesInterface::instance());
     QVERIFY(!brush->brushTipImage().isNull());
     QRandomGenerator rng{};
 
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
-    KisPaintInformation info(QPointF(100.0, 100.0), 0.5);
+    KisPaintInformation info(PkPointF(100.0, 100.0), 0.5);
     KisFixedPaintDeviceSP dab;
 
     {
@@ -152,19 +152,19 @@ void KisGbrBrushTest::benchmarkScaling()
 
     QBENCHMARK {
         dab = brush->paintDevice(cs, KisDabShape(rng.bounded(2.0), 1.0, 0.0), info);
-        //dab->convertToQImage(0).save(QString("dab_%1_new_smooth.png").arg(i++));
+        //dab->convertToQImage(0).save(PkString("dab_%1_new_smooth.png").arg(i++));
     }
 }
 
 void KisGbrBrushTest::benchmarkRotation()
 {
-    QScopedPointer<KisGbrBrush> brush(new KisGbrBrush(QString(FILES_DATA_DIR) + '/' + "testing_brush_512_bars.gbr"));
+    PkScopedPointer<KisGbrBrush> brush(new KisGbrBrush(PkString(FILES_DATA_DIR) + "/" + "testing_brush_512_bars.gbr"));
     brush->load(KisGlobalResourcesInterface::instance());
     QVERIFY(!brush->brushTipImage().isNull());
     QRandomGenerator rng{};
 
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
-    KisPaintInformation info(QPointF(100.0, 100.0), 0.5);
+    KisPaintInformation info(PkPointF(100.0, 100.0), 0.5);
     KisFixedPaintDeviceSP dab;
 
     QBENCHMARK {
@@ -174,13 +174,13 @@ void KisGbrBrushTest::benchmarkRotation()
 
 void KisGbrBrushTest::benchmarkMaskScaling()
 {
-    QScopedPointer<KisGbrBrush> brush(new KisGbrBrush(QString(FILES_DATA_DIR) + '/' + "testing_brush_512_bars.gbr"));
+    PkScopedPointer<KisGbrBrush> brush(new KisGbrBrush(PkString(FILES_DATA_DIR) + "/" + "testing_brush_512_bars.gbr"));
     brush->load(KisGlobalResourcesInterface::instance());
     QVERIFY(!brush->brushTipImage().isNull());
     QRandomGenerator rng{};
 
     const KoColorSpace* cs = KoColorSpaceRegistry::instance()->rgb8();
-    KisPaintInformation info(QPointF(100.0, 100.0), 0.5);
+    KisPaintInformation info(PkPointF(100.0, 100.0), 0.5);
     KisFixedPaintDeviceSP dab = new KisFixedPaintDevice(cs);
 
     QBENCHMARK {
@@ -192,8 +192,8 @@ void KisGbrBrushTest::benchmarkMaskScaling()
 
 void KisGbrBrushTest::testPyramidLevelRounding()
 {
-    QSize imageSize(41, 41);
-    QImage image(imageSize, QImage::Format_ARGB32);
+    PkSize imageSize(41, 41);
+    PkImage image(imageSize, PkImage::Format_ARGB32);
     image.fill(0);
 
     KisQImagePyramid pyramid(image);
@@ -226,9 +226,9 @@ void KisGbrBrushTest::testPyramidLevelRounding()
     QCOMPARE(baseLevel, 5);
 }
 
-static QSize dabTransformHelper(KisDabShape const& shape)
+static PkSize dabTransformHelper(KisDabShape const& shape)
 {
-    QSize const testSize(150, 150);
+    PkSize const testSize(150, 150);
     qreal const subPixelX = 0.0,
                 subPixelY = 0.0;
     return KisQImagePyramid::imageSize(testSize, shape, subPixelX, subPixelY);
@@ -236,55 +236,55 @@ static QSize dabTransformHelper(KisDabShape const& shape)
 
 void KisGbrBrushTest::testPyramidDabTransform()
 {
-    QCOMPARE(dabTransformHelper(KisDabShape(1.0, 1.0, 0.0)),      QSize(150, 150));
-    QCOMPARE(dabTransformHelper(KisDabShape(1.0, 0.5, 0.0)),      QSize(150,  75));
-    QCOMPARE(dabTransformHelper(KisDabShape(1.0, 1.0, M_PI / 4)), QSize(213, 213));
-    QCOMPARE(dabTransformHelper(KisDabShape(1.0, 0.5, M_PI / 4)), QSize(160, 160));
+    QCOMPARE(dabTransformHelper(KisDabShape(1.0, 1.0, 0.0)),      PkSize(150, 150));
+    QCOMPARE(dabTransformHelper(KisDabShape(1.0, 0.5, 0.0)),      PkSize(150,  75));
+    QCOMPARE(dabTransformHelper(KisDabShape(1.0, 1.0, M_PI / 4)), PkSize(213, 213));
+    QCOMPARE(dabTransformHelper(KisDabShape(1.0, 0.5, M_PI / 4)), PkSize(160, 160));
 }
 
 // see comment in KisQImagePyramid::appendPyramidLevel
 void KisGbrBrushTest::testQPainterTransformationBorder()
 {
-    QImage image1(10, 10, QImage::Format_ARGB32);
-    QImage image2(12, 12, QImage::Format_ARGB32);
+    PkImage image1(10, 10, PkImage::Format_ARGB32);
+    PkImage image2(12, 12, PkImage::Format_ARGB32);
 
     image1.fill(0);
     image2.fill(0);
 
     {
         QPainter gc(&image1);
-        gc.fillRect(QRect(0, 0, 10, 10), Qt::black);
+        gc.fillRect(PkRect(0, 0, 10, 10), Qt::black);
     }
 
     {
         QPainter gc(&image2);
-        gc.fillRect(QRect(1, 1, 10, 10), Qt::black);
+        gc.fillRect(PkRect(1, 1, 10, 10), Qt::black);
     }
 
     image1.save("src1.png");
     image2.save("src2.png");
 
     {
-        QImage canvas(100, 100, QImage::Format_ARGB32);
+        PkImage canvas(100, 100, PkImage::Format_ARGB32);
         canvas.fill(0);
         QPainter gc(&canvas);
-        QTransform transform;
+        PkTransform transform;
         transform.rotate(15);
         gc.setTransform(transform);
         gc.setRenderHints(QPainter::SmoothPixmapTransform);
-        gc.drawImage(QPointF(50, 50), image1);
+        gc.drawImage(PkPointF(50, 50), image1);
         gc.end();
         canvas.save("canvas1.png");
     }
     {
-        QImage canvas(100, 100, QImage::Format_ARGB32);
+        PkImage canvas(100, 100, PkImage::Format_ARGB32);
         canvas.fill(0);
         QPainter gc(&canvas);
-        QTransform transform;
+        PkTransform transform;
         transform.rotate(15);
         gc.setTransform(transform);
         gc.setRenderHints(QPainter::SmoothPixmapTransform);
-        gc.drawImage(QPointF(50, 50), image2);
+        gc.drawImage(PkPointF(50, 50), image2);
         gc.end();
         canvas.save("canvas2.png");
     }

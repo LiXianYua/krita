@@ -36,14 +36,14 @@ qreal effectiveSizeForBrush(BrushType type,
     return result;
 }
 
-QDomElement getBrushXMLElement(const KisPropertiesConfiguration *setting)
+PkXmlElement getBrushXMLElement(const KisPropertiesConfiguration *setting)
 {
-    QDomElement element;
+    PkXmlElement element;
 
-    QString brushDefinition = setting->getString("brush_definition");
+    PkString brushDefinition = setting->getString("brush_definition");
 
     if (!brushDefinition.isEmpty()) {
-        QDomDocument d;
+        PkXmlDocument d;
         d.setContent(brushDefinition);
         element = d.firstChildElement("Brush");
     }
@@ -55,8 +55,8 @@ QDomElement getBrushXMLElement(const KisPropertiesConfiguration *setting)
 
 void BrushData::write(KisPropertiesConfiguration *settings) const
 {
-    QDomDocument d;
-    QDomElement e = d.createElement("Brush");
+    PkXmlDocument d;
+    PkXmlElement e = d.createElement("Brush");
     KisBrushRegistry::instance()->toXML(d, e, *this);
     d.appendChild(e);
     settings->setProperty("brush_definition", d.toString());
@@ -64,7 +64,7 @@ void BrushData::write(KisPropertiesConfiguration *settings) const
 
 std::optional<BrushData> BrushData::read(const KisPropertiesConfiguration *settings, KisResourcesInterfaceSP resourcesInterface)
 {
-    QDomElement element = detail::getBrushXMLElement(settings);
+    PkXmlElement element = detail::getBrushXMLElement(settings);
     return KisBrushRegistry::instance()->createBrushModel(element, resourcesInterface);
 }
 

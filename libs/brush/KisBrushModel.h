@@ -8,9 +8,7 @@
 #define KISBRUSHMODEL_H
 
 #include <QtGlobal>
-#include <QSize>
-#include <QGuiApplication>
-#include <QFont>
+#include <PkSize.h>
 #include <KoResourceSignature.h>
 #include <lager/cursor.hpp>
 #include <lager/extra/qt.hpp>
@@ -75,7 +73,7 @@ struct BRUSH_EXPORT AutoBrushGeneratorData : public boost::equality_comparable<A
     bool antialiasEdges = true;
     AutoBrushGeneratorShape shape = Circle;
     AutoBrushGeneratorType type = Default;
-    QString curveString;
+    PkString curveString;
 };
 
 struct BRUSH_EXPORT AutoBrushData : public boost::equality_comparable<AutoBrushData>
@@ -110,8 +108,8 @@ struct BRUSH_EXPORT PredefinedBrushData : public boost::equality_comparable<Pred
 
     KoResourceSignature resourceSignature;
 
-    QString subtype;
-    QSize baseSize = QSize(42, 42);
+    PkString subtype;
+    PkSize baseSize = PkSize(42, 42);
     qreal scale = 1.0;
     enumBrushApplication application = ALPHAMASK;
     enumBrushType brushType = MASK;
@@ -120,7 +118,7 @@ struct BRUSH_EXPORT PredefinedBrushData : public boost::equality_comparable<Pred
     quint8 adjustmentMidPoint = 127;
     qreal brightnessAdjustment = 0.0;
     qreal contrastAdjustment = 0.0;
-    QString parasiteSelection;
+    PkString parasiteSelection;
 };
 
 struct BRUSH_EXPORT TextBrushData : boost::equality_comparable<TextBrushData>
@@ -133,10 +131,13 @@ struct BRUSH_EXPORT TextBrushData : boost::equality_comparable<TextBrushData>
                 lhs.usePipeMode == rhs.usePipeMode;
     }
 
-    QSize baseSize = QSize(42, 42);
+    PkSize baseSize = PkSize(42, 42);
     qreal scale = 1.0;
-    QString text = "The quick brown fox ate your text";
-    QString font = QGuiApplication::font().toString();
+    PkString text = "The quick brown fox ate your text";
+    // 默认字体：QGuiApplication::font().toString() 的静态替代。
+    // 格式契约见 impact-map §4：family,pointSizeF,pixelSize,styleHint,weight,style,underline,strikeOut,fixedPitch,0。
+    // 这是显式接受的偏差（不再查询运行时系统字体）。
+    PkString font = "Sans Serif,9,-1,5,50,0,0,0,0,0";
     bool usePipeMode = false;
 };
 

@@ -10,15 +10,15 @@
 #include "kis_abr_brush_collection.h"
 #include "kis_abr_brush.h"
 
-#include <QDomElement>
-#include <QFile>
-#include <QImage>
-#include <QPoint>
-#include <QColor>
-#include <QByteArray>
+#include <PkXmlElement.h>
+#include <PkFileStream.h>
+#include <PkImage.h>
+#include <PkPoint.h>
+#include <PkColor.h>
+#include <PkAuxTypes.h>
 #include <kis_debug.h>
-#include <QString>
-#include <QBuffer>
+#include <PkString.h>
+#include <PkMemoryStream.h>
 #include <QFileInfo>
 #include <KoMD5Generator.h>
 #include <klocalizedstring.h>
@@ -35,14 +35,14 @@ struct AbrInfo {
 };
 
 /// save the QImages as png files to directory image_tests
-static QImage convertToQImage(char * buffer, qint32 width, qint32 height)
+static PkImage convertToQImage(char * buffer, qint32 width, qint32 height)
 {
     // create 8-bit indexed image
-    QImage img(width, height, QImage::Format_RGB32);
+    PkImage img(width, height, PkImage::Format_RGB32);
     int pos = 0;
     int value = 0;
     for (int y = 0; y < height; y++) {
-        QRgb *pixel = reinterpret_cast<QRgb *>(img.scanLine(y));
+        PkRgb *pixel = reinterpret_cast<PkRgb *>(img.scanLine(y));
         for (int x = 0; x < width; x++, pos++) {
             value = 255 - buffer[pos];
             pixel[x] = qRgb(value, value , value);
@@ -53,7 +53,7 @@ static QImage convertToQImage(char * buffer, qint32 width, qint32 height)
     return img;
 }
 
-static qint32 rle_decode(QDataStream & abr, char *buffer, qint32 height)
+static qint32 rle_decode(PkDataStream & abr, char *buffer, qint32 height)
 {
     qint32 n;
     char ptmp;
@@ -111,12 +111,12 @@ static qint32 rle_decode(QDataStream & abr, char *buffer, qint32 height)
 }
 
 
-static QString abr_v1_brush_name(const QString filename, qint32 id)
+static PkString abr_v1_brush_name(const PkString filename, qint32 id)
 {
-    QString result = filename;
+    PkString result = filename;
     int pos = filename.lastIndexOf('.');
     result.remove(pos, 4);
-    QTextStream(&result) << "_" << id;
+    PkTextStream(&result) << "_" << id;
     return result;
 }
 
@@ -135,7 +135,7 @@ static bool abr_supported_content(AbrInfo *abr_hdr)
     return false;
 }
 
-static bool abr_reach_8BIM_section(QDataStream & abr, const QString name)
+static bool abr_reach_8BIM_section(PkDataStream & abr, const PkString name)
 {
     char tag[4];
     char tagname[5];
@@ -164,7 +164,8 @@ static bool abr_reach_8BIM_section(QDataStream & abr, const QString name)
         }
         tagname[4] = '\0';
 
-        QString s1 = QString::fromLatin1(tagname, 4);
+        // ABR 节名是 4 字节 ASCII 码（"Brushes" 等），PkFromUtf8 逐字节精确；原 Qt fromLatin1 亦按字节映射。
+        PkString s1 = PkString::PkFromUtf8(tagname, 4);
 
         if (!s1.compare(name)) {
             return true;
@@ -177,7 +178,7 @@ static bool abr_reach_8BIM_section(QDataStream & abr, const QString name)
     return true;
 }
 
-static qint32 find_sample_count_v6(QDataStream & abr, AbrInfo *abr_info)
+static qint32 find_sample_count_v6(PkDataStream & abr, AbrInfo *abr_info)
 {
     qint64 origin;
     qint32 sample_section_size;
@@ -234,7 +235,7 @@ static qint32 find_sample_count_v6(QDataStream & abr, AbrInfo *abr_info)
 
 
 
-static bool abr_read_content(QDataStream & abr, AbrInfo *abr_hdr)
+static bool abr_read_content(PkDataStream & abr, AbrInfo *abr_hdr)
 {
 
     abr >> abr_hdr->version;
@@ -260,7 +261,7 @@ static bool abr_read_content(QDataStream & abr, AbrInfo *abr_hdr)
 }
 
 
-static QString abr_read_ucs2_text(QDataStream & abr)
+static PkString abr_read_ucs2_text(PkDataStream & abr)
 {
     quint32 name_size;
     quint32 buf_size;
@@ -274,7 +275,7 @@ static QString abr_read_ucs2_text(QDataStream & abr)
     // long
     abr >> name_size;
     if (name_size == 0) {
-        return QString();
+        return PkString();
     }
 
     //buf_size = name_size * 2;
@@ -291,14 +292,18 @@ static QString abr_read_ucs2_text(QDataStream & abr)
         // I will use ushort as that is input to fromUtf16
         abr >>  name_ucs2[i];
     }
-    QString name_utf8 = QString::fromUtf16(name_ucs2, buf_size);
+    // GAP: PkString 内部是 vector<char16_t>（UTF-16），但公开 API 无 fromUtf16/
+    // PkFromUtf16 构造入口（仅 PkFromUtf8/const char*）。ABR 名是 UTF-16 码元。
+    // 建议 pk 库补：static PkString PkFromUtf16(const char16_t* s, int len)（实现约 3 行）。
+    // 本行保持 migrate 产物不动，待 Task 6/7 compat 桩或 pk 侧补 API 后接上。
+    PkString name_utf8 = PkString::fromUtf16(name_ucs2, buf_size);
     delete [] name_ucs2;
 
     return name_utf8;
 }
 
 
-quint32 KisAbrBrushCollection::abr_brush_load_v6(QDataStream & abr, AbrInfo *abr_hdr, const QString filename, qint32 image_ID, qint32 id)
+quint32 KisAbrBrushCollection::abr_brush_load_v6(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id)
 {
     Q_UNUSED(image_ID);
     qint32 brush_size = 0;
@@ -351,7 +356,7 @@ quint32 KisAbrBrushCollection::abr_brush_load_v6(QDataStream & abr, AbrInfo *abr
     size = width * (depth >> 3) * height;
 
     // remove .abr and add some id, so something like test.abr -> test_12345
-    QString name = abr_v1_brush_name(filename, id);
+    PkString name = abr_v1_brush_name(filename, id);
 
     buffer = (char*)malloc(size);
 
@@ -368,14 +373,14 @@ quint32 KisAbrBrushCollection::abr_brush_load_v6(QDataStream & abr, AbrInfo *abr
         // filename - filename of the file , e.g. test.abr
         // name - test_number_of_the_brush, e.g test_1, test_2
         KisAbrBrushSP abrBrush;
-        QImage brushTipImage = convertToQImage(buffer, width, height);
+        PkImage brushTipImage = convertToQImage(buffer, width, height);
         if (m_abrBrushes->contains(name)) {
             abrBrush = m_abrBrushes.data()->operator[](name);
         }
         else {
             abrBrush = KisAbrBrushSP(new KisAbrBrush(name, this));
-            QBuffer buf;
-            buf.open(QFile::ReadWrite);
+            PkMemoryStream buf;
+            buf.open(PkFileStream::ReadWrite);
             brushTipImage.save(&buf, "PNG");
             abrBrush->setMD5Sum(KoMD5Generator::generateHash(buf.data()));
         }
@@ -396,7 +401,7 @@ quint32 KisAbrBrushCollection::abr_brush_load_v6(QDataStream & abr, AbrInfo *abr
 }
 
 
-qint32 KisAbrBrushCollection::abr_brush_load_v12(QDataStream & abr, AbrInfo *abr_hdr, const QString filename, qint32 image_ID, qint32 id)
+qint32 KisAbrBrushCollection::abr_brush_load_v12(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id)
 {
     Q_UNUSED(image_ID);
     short brush_type;
@@ -406,7 +411,7 @@ qint32 KisAbrBrushCollection::abr_brush_load_v12(QDataStream & abr, AbrInfo *abr
     qint32 top, left, bottom, right;
     qint16 depth;
     char compression;
-    QString name;
+    PkString name;
 
     qint32 width, height;
     qint32 size;
@@ -471,14 +476,14 @@ qint32 KisAbrBrushCollection::abr_brush_load_v12(QDataStream & abr, AbrInfo *abr
             }
 
             KisAbrBrushSP abrBrush;
-            QImage brushTipImage = convertToQImage(buffer, width, height);
+            PkImage brushTipImage = convertToQImage(buffer, width, height);
             if (m_abrBrushes->contains(name)) {
                 abrBrush = m_abrBrushes.data()->operator[](name);
             }
             else {
                 abrBrush = KisAbrBrushSP(new KisAbrBrush(name, this));
-                QBuffer buf;
-                buf.open(QFile::ReadWrite);
+                PkMemoryStream buf;
+                buf.open(PkFileStream::ReadWrite);
                 brushTipImage.save(&buf, "PNG");
                 abrBrush->setMD5Sum(KoMD5Generator::generateHash(buf.data()));
             }
@@ -500,7 +505,7 @@ qint32 KisAbrBrushCollection::abr_brush_load_v12(QDataStream & abr, AbrInfo *abr
 }
 
 
-qint32 KisAbrBrushCollection::abr_brush_load(QDataStream & abr, AbrInfo *abr_hdr, const QString filename, qint32 image_ID, qint32 id)
+qint32 KisAbrBrushCollection::abr_brush_load(PkDataStream & abr, AbrInfo *abr_hdr, const PkString filename, qint32 image_ID, qint32 id)
 {
     qint32 layer_ID = -1;
     switch (abr_hdr->version) {
@@ -519,11 +524,11 @@ qint32 KisAbrBrushCollection::abr_brush_load(QDataStream & abr, AbrInfo *abr_hdr
 }
 
 
-KisAbrBrushCollection::KisAbrBrushCollection(const QString& filename)
+KisAbrBrushCollection::KisAbrBrushCollection(const PkString& filename)
     : m_isLoaded(false)
     , m_lastModified()
     , m_filename(filename)
-    , m_abrBrushes(new QMap<QString, KisAbrBrushSP>())
+    , m_abrBrushes(new PkMap<PkString, KisAbrBrushSP>())
 {
 }
 
@@ -531,7 +536,7 @@ KisAbrBrushCollection::KisAbrBrushCollection(const KisAbrBrushCollection& rhs)
     : m_isLoaded(rhs.m_isLoaded)
     , m_lastModified(rhs.m_lastModified)
 {
-    m_abrBrushes.reset(new QMap<QString, KisAbrBrushSP>());
+    m_abrBrushes.reset(new PkMap<PkString, KisAbrBrushSP>());
     for (auto it = rhs.m_abrBrushes->begin();
          it != rhs.m_abrBrushes->end();
          ++it) {
@@ -543,11 +548,11 @@ KisAbrBrushCollection::KisAbrBrushCollection(const KisAbrBrushCollection& rhs)
 bool KisAbrBrushCollection::load()
 {
     m_isLoaded = true;
-    QFile file(filename());
+    PkFileStream file(filename());
     QFileInfo info(file);
     m_lastModified = info.lastModified();
     // check if the file is open correctly
-    if (!file.open(QIODevice::ReadOnly)) {
+    if (!file.open(PkStream::ReadOnly)) {
         warnKrita << "Can't open file " << filename();
         return false;
     }
@@ -559,17 +564,17 @@ bool KisAbrBrushCollection::load()
 
 }
 
-bool KisAbrBrushCollection::loadFromDevice(QIODevice *dev)
+bool KisAbrBrushCollection::loadFromDevice(PkStream *dev)
 {
     AbrInfo abr_hdr;
     qint32 image_ID;
     int i;
     qint32 layer_ID;
 
-    QByteArray ba = dev->readAll();
-    QBuffer buf(&ba);
-    buf.open(QIODevice::ReadOnly);
-    QDataStream abr(&buf);
+    PkByteArray ba = dev->readAll();
+    PkMemoryStream buf(&ba);
+    buf.open(PkStream::ReadOnly);
+    PkDataStream abr(&buf);
 
 
     if (!abr_read_content(abr, &abr_hdr)) {
@@ -605,7 +610,7 @@ bool KisAbrBrushCollection::save()
     return false;
 }
 
-bool KisAbrBrushCollection::saveToDevice(QIODevice */*dev*/) const
+bool KisAbrBrushCollection::saveToDevice(PkStream */*dev*/) const
 {
     return false;
 }
@@ -615,22 +620,22 @@ bool KisAbrBrushCollection::isLoaded() const
     return m_isLoaded;
 }
 
-QImage KisAbrBrushCollection::image() const
+PkImage KisAbrBrushCollection::image() const
 {
     if (m_abrBrushes->size() > 0) {
         return m_abrBrushes->values().first()->image();
     }
-    return QImage();
+    return PkImage();
 }
 
-void KisAbrBrushCollection::toXML(QDomDocument& d, QDomElement& e) const
+void KisAbrBrushCollection::toXML(PkXmlDocument& d, PkXmlElement& e) const
 {
     Q_UNUSED(d);
     Q_UNUSED(e);
     // Do nothing...
 }
 
-QString KisAbrBrushCollection::defaultFileExtension() const
+PkString KisAbrBrushCollection::defaultFileExtension() const
 {
-    return QString(".abr");
+    return PkString(".abr");
 }

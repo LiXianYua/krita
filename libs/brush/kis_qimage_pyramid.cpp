@@ -16,7 +16,7 @@
 #define QPAINTER_WORKAROUND_BORDER 1
 
 
-KisQImagePyramid::KisQImagePyramid(const QImage &baseImage, bool useSmoothingForEnlarging)
+KisQImagePyramid::KisQImagePyramid(const PkImage &baseImage, bool useSmoothingForEnlarging)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(!baseImage.isNull());
 
@@ -26,7 +26,7 @@ KisQImagePyramid::KisQImagePyramid(const QImage &baseImage, bool useSmoothingFor
     qreal scale = MAX_MIPMAP_SCALE;
 
     while (scale > 1.0) {
-        QSize scaledSize = m_originalSize * scale;
+        PkSize scaledSize = m_originalSize * scale;
 
         if (scaledSize.width() <= MIPMAP_SIZE_THRESHOLD ||
                 scaledSize.height() <= MIPMAP_SIZE_THRESHOLD) {
@@ -52,7 +52,7 @@ KisQImagePyramid::KisQImagePyramid(const QImage &baseImage, bool useSmoothingFor
 
     scale = 0.5;
     while (true) {
-        QSize scaledSize = m_originalSize * scale;
+        PkSize scaledSize = m_originalSize * scale;
 
         if (scaledSize.width() == 0 ||
                 scaledSize.height() == 0) break;
@@ -88,18 +88,18 @@ int KisQImagePyramid::findNearestLevel(qreal scale, qreal *baseScale) const
     return level;
 }
 
-inline QRect roundRect(const QRectF &rc)
+inline PkRect roundRect(const PkRectF &rc)
 {
     /**
      * This is an analog of toAlignedRect() with the only difference
      * that it ensures the rect position will never be below zero.
      *
      * Warning: be *very* careful with using bottom()/right() values
-     *          of a pure QRect (we don't use it here for the dangers
+     *          of a pure PkRect (we don't use it here for the dangers
      *          it can lead to).
      */
 
-    QRectF rect(rc);
+    PkRectF rect(rc);
 
     KIS_SAFE_ASSERT_RECOVER_NOOP(rect.x() > -0.000001);
     KIS_SAFE_ASSERT_RECOVER_NOOP(rect.y() > -0.000001);
@@ -128,26 +128,26 @@ inline QRect roundRect(const QRectF &rc)
     return rect.toAlignedRect();
 }
 
-QTransform baseBrushTransform(KisDabShape const& shape,
+PkTransform baseBrushTransform(KisDabShape const& shape,
                               qreal subPixelX, qreal subPixelY,
-                              const QRectF &baseBounds)
+                              const PkRectF &baseBounds)
 {
-    QTransform transform;
+    PkTransform transform;
     transform.scale(shape.scaleX(), shape.scaleY());
 
     if (!qFuzzyCompare(shape.rotation(), 0) && !qIsNaN(shape.rotation())) {
-        transform = transform * QTransform().rotateRadians(shape.rotation());
-        QRectF rotatedBounds = transform.mapRect(baseBounds);
-        transform = transform * QTransform::fromTranslate(-rotatedBounds.x(), -rotatedBounds.y());
+        transform = transform * PkTransform().rotateRadians(shape.rotation());
+        PkRectF rotatedBounds = transform.mapRect(baseBounds);
+        transform = transform * PkTransform::fromTranslate(-rotatedBounds.x(), -rotatedBounds.y());
     }
 
-    return transform * QTransform::fromTranslate(subPixelX, subPixelY);
+    return transform * PkTransform::fromTranslate(subPixelX, subPixelY);
 }
 
 void KisQImagePyramid::calculateParams(KisDabShape const& shape,
                                        qreal subPixelX, qreal subPixelY,
-                                       const QSize &originalSize,
-                                       QTransform *outputTransform, QSize *outputSize)
+                                       const PkSize &originalSize,
+                                       PkTransform *outputTransform, PkSize *outputSize)
 {
     calculateParams(shape,
                     subPixelX, subPixelY,
@@ -157,14 +157,14 @@ void KisQImagePyramid::calculateParams(KisDabShape const& shape,
 
 void KisQImagePyramid::calculateParams(KisDabShape shape,
                                        qreal subPixelX, qreal subPixelY,
-                                       const QSize &originalSize,
-                                       qreal baseScale, const QSize &baseSize,
-                                       QTransform *outputTransform, QSize *outputSize)
+                                       const PkSize &originalSize,
+                                       qreal baseScale, const PkSize &baseSize,
+                                       PkTransform *outputTransform, PkSize *outputSize)
 {
     Q_UNUSED(baseScale);
 
-    QRectF originalBounds = QRectF(QPointF(), originalSize);
-    QTransform originalTransform = baseBrushTransform(shape, subPixelX, subPixelY, originalBounds);
+    PkRectF originalBounds = PkRectF(PkPointF(), originalSize);
+    PkTransform originalTransform = baseBrushTransform(shape, subPixelX, subPixelY, originalBounds);
 
     qreal realBaseScaleX = qreal(baseSize.width()) / originalSize.width();
     qreal realBaseScaleY = qreal(baseSize.height()) / originalSize.height();
@@ -172,22 +172,22 @@ void KisQImagePyramid::calculateParams(KisDabShape shape,
     qreal scaleY = shape.scaleY() / realBaseScaleY;
     shape = KisDabShape(scaleX, scaleY/scaleX, shape.rotation());
 
-    QRectF baseBounds = QRectF(QPointF(), baseSize);
-    QTransform transform = baseBrushTransform(shape, subPixelX, subPixelY, baseBounds);
-    QRectF mappedRect = originalTransform.mapRect(originalBounds);
+    PkRectF baseBounds = PkRectF(PkPointF(), baseSize);
+    PkTransform transform = baseBrushTransform(shape, subPixelX, subPixelY, baseBounds);
+    PkRectF mappedRect = originalTransform.mapRect(originalBounds);
 
     // Set up a 0,0,1,1 size and identity transform in case the transform fails to
     // produce a usable result.
     int width = 1;
     int height = 1;
-    *outputTransform = QTransform();
+    *outputTransform = PkTransform();
 
     if (mappedRect.isValid()) {
-        QRect expectedDstRect = roundRect(mappedRect);
+        PkRect expectedDstRect = roundRect(mappedRect);
 
 #if 0 // Only enable when debugging; users shouldn't see this warning
         {
-            QRect testingRect = roundRect(transform.mapRect(baseBounds));
+            PkRect testingRect = roundRect(transform.mapRect(baseBounds));
             if (testingRect != expectedDstRect) {
                 warnKrita << "WARNING: expected and real dab rects do not coincide!";
                 warnKrita << "         expected rect:" << expectedDstRect;
@@ -220,15 +220,15 @@ void KisQImagePyramid::calculateParams(KisDabShape shape,
     }
 
     *outputTransform = transform;
-    *outputSize = QSize(width, height);
+    *outputSize = PkSize(width, height);
 }
 
-QSize KisQImagePyramid::imageSize(const QSize &originalSize,
+PkSize KisQImagePyramid::imageSize(const PkSize &originalSize,
                                   KisDabShape const& shape,
                                   qreal subPixelX, qreal subPixelY)
 {
-    QTransform transform;
-    QSize dstSize;
+    PkTransform transform;
+    PkSize dstSize;
 
     calculateParams(shape, subPixelX, subPixelY,
                     originalSize,
@@ -237,18 +237,18 @@ QSize KisQImagePyramid::imageSize(const QSize &originalSize,
     return dstSize;
 }
 
-QSizeF KisQImagePyramid::characteristicSize(const QSize &originalSize,
+PkSizeF KisQImagePyramid::characteristicSize(const PkSize &originalSize,
                                             KisDabShape const& shape)
 {
-    QRectF originalRect(QPointF(), originalSize);
-    QTransform transform = baseBrushTransform(shape,
+    PkRectF originalRect(PkPointF(), originalSize);
+    PkTransform transform = baseBrushTransform(shape,
                                               0.0, 0.0,
                                               originalRect);
 
     return transform.mapRect(originalRect).size();
 }
 
-void KisQImagePyramid::appendPyramidLevel(const QImage &image)
+void KisQImagePyramid::appendPyramidLevel(const PkImage &image)
 {
     /**
      * QPainter has a bug: when doing a transformation it decides that
@@ -261,8 +261,8 @@ void KisQImagePyramid::appendPyramidLevel(const QImage &image)
      * See a unittest in: KisGbrBrushTest::testQPainterTransformationBorder
      */
     
-QSize levelSize = image.size();
-    QImage tmp = image.convertToFormat(QImage::Format_ARGB32);
+PkSize levelSize = image.size();
+    PkImage tmp = image.convertToFormat(PkImage::Format_ARGB32);
     tmp = tmp.copy(-QPAINTER_WORKAROUND_BORDER,
                    -QPAINTER_WORKAROUND_BORDER,
                    image.width() + 2 * QPAINTER_WORKAROUND_BORDER,
@@ -270,25 +270,25 @@ QSize levelSize = image.size();
     m_levels.append(PyramidLevel(tmp, levelSize));
 }
 
-QImage KisQImagePyramid::createImage(KisDabShape const& shape,
+PkImage KisQImagePyramid::createImage(KisDabShape const& shape,
                                      qreal subPixelX, qreal subPixelY) const
 {
-    if (m_levels.isEmpty()) return QImage();
+    if (m_levels.isEmpty()) return PkImage();
 
     qreal baseScale = -1.0;
     int level = findNearestLevel(shape.scale(), &baseScale);
 
-    const QImage &srcImage = m_levels[level].image;
+    const PkImage &srcImage = m_levels[level].image;
 
-    QTransform transform;
-    QSize dstSize;
+    PkTransform transform;
+    PkSize dstSize;
 
     calculateParams(shape, subPixelX, subPixelY,
                     m_originalSize, baseScale, m_levels[level].size,
                     &transform, &dstSize);
 
     if (transform.isIdentity() &&
-            srcImage.format() == QImage::Format_ARGB32) {
+            srcImage.format() == PkImage::Format_ARGB32) {
 
         return srcImage.copy(QPAINTER_WORKAROUND_BORDER,
                              QPAINTER_WORKAROUND_BORDER,
@@ -296,41 +296,41 @@ QImage KisQImagePyramid::createImage(KisDabShape const& shape,
                              srcImage.height() - 2 * QPAINTER_WORKAROUND_BORDER);
     }
 
-    QImage dstImage(dstSize, QImage::Format_ARGB32);
+    PkImage dstImage(dstSize, PkImage::Format_ARGB32);
     dstImage.fill(0);
 
 
     /**
-     * QPainter has one more bug: when a QTransform is TxTranslate, it
+     * QPainter has one more bug: when a PkTransform is TxTranslate, it
      * does wrong sampling (probably, Nearest Neighbour) even though
      * we tell it directly that we need SmoothPixmapTransform.
      *
      * So here is a workaround: we set a negligible scale to convince
      * Qt we use a non-only-translating transform.
      */
-    while (transform.type() == QTransform::TxTranslate) {
+    while (transform.type() == PkTransform::TxTranslate) {
         const qreal scale = transform.m11();
         const qreal fakeScale = scale - 10 * std::numeric_limits<qreal>::epsilon();
-        transform *= QTransform::fromScale(fakeScale, fakeScale);
+        transform *= PkTransform::fromScale(fakeScale, fakeScale);
     }
 
     QPainter gc(&dstImage);
     gc.setTransform(
-        QTransform::fromTranslate(-QPAINTER_WORKAROUND_BORDER,
+        PkTransform::fromTranslate(-QPAINTER_WORKAROUND_BORDER,
                                   -QPAINTER_WORKAROUND_BORDER) * transform);
     gc.setRenderHints(QPainter::SmoothPixmapTransform);
-    gc.drawImage(QPointF(), srcImage);
+    gc.drawImage(PkPointF(), srcImage);
     gc.end();
 
     return dstImage;
 }
 
-QImage KisQImagePyramid::getClosest(QTransform transform, qreal *scale) const
+PkImage KisQImagePyramid::getClosest(PkTransform transform, qreal *scale) const
 {
-    if (m_levels.isEmpty()) return QImage();
+    if (m_levels.isEmpty()) return PkImage();
 
     // Estimate scale
-    QSizeF transformedUnitSquare = transform.mapRect(QRectF(0, 0, 1, 1)).size();
+    PkSizeF transformedUnitSquare = transform.mapRect(PkRectF(0, 0, 1, 1)).size();
     qreal x = qAbs(transformedUnitSquare.width());
     qreal y = qAbs(transformedUnitSquare.height());
     qreal estimatedScale = (x > y) ? transformedUnitSquare.width() : transformedUnitSquare.height();
@@ -339,9 +339,9 @@ QImage KisQImagePyramid::getClosest(QTransform transform, qreal *scale) const
     return m_levels[level].image;
 }
 
-QImage KisQImagePyramid::getClosestWithoutWorkaroundBorder(QTransform transform, qreal *scale) const
+PkImage KisQImagePyramid::getClosestWithoutWorkaroundBorder(PkTransform transform, qreal *scale) const
 {
-    QImage image = getClosest(transform, scale);
+    PkImage image = getClosest(transform, scale);
     return image.copy(QPAINTER_WORKAROUND_BORDER,
                QPAINTER_WORKAROUND_BORDER,
                image.width() - 2 * QPAINTER_WORKAROUND_BORDER,

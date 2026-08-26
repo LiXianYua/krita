@@ -14,10 +14,10 @@ class BRUSH_EXPORT KisColorfulBrush : public KisScalingSizeBrush
 {
 public:
     KisColorfulBrush() = default;
-    KisColorfulBrush(const QString& filename);
+    KisColorfulBrush(const PkString& filename);
     KisColorfulBrush(const KisColorfulBrush &rhs) = default;
 
-    QImage brushTipImage() const override;
+    PkImage brushTipImage() const override;
 
     virtual void setAdjustmentMidPoint(quint8 value);
     virtual void setBrightnessAdjustment(qreal value);
@@ -29,7 +29,7 @@ public:
     qreal brightnessAdjustment() const;
     qreal contrastAdjustment() const;
 
-    void toXML(QDomDocument& d, QDomElement& e) const override;
+    void toXML(PkXmlDocument& d, PkXmlElement& e) const override;
 
     void setHasColorAndTransparency(bool value);
     bool hasColorAndTransparency() const;

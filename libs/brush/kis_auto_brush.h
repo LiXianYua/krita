@@ -13,7 +13,7 @@
 
 #include "kis_brush.h"
 
-#include <QScopedPointer>
+#include <PkPointer.h>
 
 class KisMaskGenerator;
 
@@ -33,8 +33,8 @@ public:
     ~KisAutoBrush() override;
 
     bool isEphemeral() const override;
-    bool loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface) override;
-    bool saveToDevice(QIODevice *dev) const override;
+    bool loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface) override;
+    bool saveToDevice(PkStream *dev) const override;
 
     bool isPiercedApprox() const override;
 
@@ -47,7 +47,7 @@ public:
         const KisPaintInformation& info) const override;
     qint32 maskHeight(KisDabShape const& shape, qreal subPixelX, qreal subPixelY,
         const KisPaintInformation& info) const override;
-    QSizeF characteristicSize(KisDabShape const&) const override;
+    PkSizeF characteristicSize(KisDabShape const&) const override;
 
     KisFixedPaintDeviceSP paintDevice(const KoColorSpace*,
             KisDabShape const&,
@@ -71,7 +71,7 @@ public:
 
 public:
 
-    void toXML(QDomDocument& , QDomElement&) const override;
+    void toXML(PkXmlDocument& , PkXmlElement&) const override;
     const KisMaskGenerator* maskGenerator() const;
     qreal randomness() const;
     qreal density() const;
@@ -81,10 +81,10 @@ public:
     bool supportsCaching() const override;
 private:
 
-    QImage createBrushPreview(int maxSize = -1);
+    PkImage createBrushPreview(int maxSize = -1);
 
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 };
 #endif // _KIS_AUTOBRUSH_RESOURCE_H_

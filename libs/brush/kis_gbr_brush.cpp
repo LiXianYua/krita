@@ -14,10 +14,10 @@
 
 #include "kis_gbr_brush.h"
 
-#include <QDomElement>
-#include <QFile>
-#include <QImage>
-#include <QPoint>
+#include <PkXmlElement.h>
+#include <PkFileStream.h>
+#include <PkImage.h>
+#include <PkPoint.h>
 
 #include <kis_debug.h>
 #include <klocalizedstring.h>
@@ -57,7 +57,7 @@ quint32 const GimpV2BrushMagic = ('G' << 24) + ('I' << 16) + ('M' << 8) + ('P' <
 
 struct KisGbrBrush::Private {
 
-    QByteArray data;
+    PkByteArray data;
     quint32 header_size;  /*  header_size = sizeof (BrushHeader) + brush name  */
     quint32 version;      /*  brush file version #  */
     quint32 bytes;        /*  depth of brush in bytes */
@@ -66,22 +66,22 @@ struct KisGbrBrush::Private {
 
 #define DEFAULT_SPACING 0.25
 
-KisGbrBrush::KisGbrBrush(const QString& filename)
+KisGbrBrush::KisGbrBrush(const PkString& filename)
     : KisColorfulBrush(filename)
     , d(new Private)
 {
     setSpacing(DEFAULT_SPACING);
 }
 
-KisGbrBrush::KisGbrBrush(const QString& filename,
-                         const QByteArray& data,
+KisGbrBrush::KisGbrBrush(const PkString& filename,
+                         const PkByteArray& data,
                          qint32 & dataPos)
     : KisColorfulBrush(filename)
     , d(new Private)
 {
     setSpacing(DEFAULT_SPACING);
 
-    d->data = QByteArray::fromRawData(data.data() + dataPos, data.size() - dataPos);
+    d->data = PkByteArray::fromRawData(data.data() + dataPos, data.size() - dataPos);
     init();
     d->data.clear();
     dataPos += d->header_size + (width() * height() * d->bytes);
@@ -95,7 +95,7 @@ KisGbrBrush::KisGbrBrush(KisPaintDeviceSP image, int x, int y, int w, int h)
     initFromPaintDev(image, x, y, w, h);
 }
 
-KisGbrBrush::KisGbrBrush(const QImage& image, const QString& name)
+KisGbrBrush::KisGbrBrush(const PkImage& image, const PkString& name)
     : KisColorfulBrush()
     , d(new Private)
 {
@@ -109,7 +109,7 @@ KisGbrBrush::KisGbrBrush(const KisGbrBrush& rhs)
     : KisColorfulBrush(rhs)
     , d(new Private(*rhs.d))
 {
-    d->data = QByteArray();
+    d->data = PkByteArray();
 }
 
 KoResourceSP KisGbrBrush::clone() const
@@ -122,7 +122,7 @@ KisGbrBrush::~KisGbrBrush()
     delete d;
 }
 
-bool KisGbrBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KisGbrBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
     d->data = dev->readAll();
@@ -174,18 +174,21 @@ bool KisGbrBrush::init()
         return false;
     }
 
-    QString name;
+    PkString name;
 
     if (bh.version == 1) {
         // Version 1 has no magic number or spacing, so the name
         // is at a different offset. Character encoding is undefined.
         const char *text = d->data.constData() + sizeof(GimpBrushV1Header);
-        name = QString::fromLatin1(text, bh.header_size - sizeof(GimpBrushV1Header) - 1);
+        // GBR v1 文件名编码未定义（原 Qt 用 fromLatin1 逐字节映射 U+00xx）。Pk 无 Latin-1
+        // codec：改用 PkFromUtf8。ASCII 名精确等价；非 ASCII 高字节（Latin-1 0x80-0xFF）
+        // 在 UTF-8 解码下退化为 U+FFFD 替换符——GBR v1 名实际几乎全 ASCII，可接受。
+        name = PkString::PkFromUtf8(text, bh.header_size - sizeof(GimpBrushV1Header) - 1);
     }
     else {
         // ### Version = 3->cinepaint; may be float16 data!
         // Version >=2: UTF-8 encoding is used
-        name = QString::fromUtf8(d->data.constData() + sizeof(GimpBrushHeader),
+        name = PkString::PkFromUtf8(d->data.constData() + sizeof(GimpBrushHeader),
                                  bh.header_size - sizeof(GimpBrushHeader) - 1);
     }
 
@@ -196,26 +199,26 @@ bool KisGbrBrush::init()
         return false;
     }
 
-    QImage::Format imageFormat;
+    PkImage::Format imageFormat;
 
     if (bh.bytes == 1) {
-        imageFormat = QImage::Format_Indexed8;
+        imageFormat = PkImage::Format_Indexed8;
     } else {
-        imageFormat = QImage::Format_ARGB32;
+        imageFormat = PkImage::Format_ARGB32;
     }
 
-    QImage image(QImage(bh.width, bh.height, imageFormat));
+    PkImage image(PkImage(bh.width, bh.height, imageFormat));
 
     if (image.isNull()) {
         qWarning() << filename()  << "GBR loading failed; image could not be created from following dimensions" << bh.width << bh.height
-                   << "QImage::Format" << imageFormat;
+                   << "PkImage::Format" << imageFormat;
         return false;
     }
 
     qint32 k = bh.header_size;
 
     if (bh.bytes == 1) {
-        QVector<QRgb> table;
+        PkVector<PkRgb> table;
         for (int i = 0; i < 256; ++i) table.append(qRgb(i, i, i));
         image.setColorTable(table);
         // Grayscale
@@ -251,7 +254,7 @@ bool KisGbrBrush::init()
         setBrushType(IMAGE);
 
         for (quint32 y = 0; y < bh.height; y++) {
-            QRgb *pixel = reinterpret_cast<QRgb *>(image.scanLine(y));
+            PkRgb *pixel = reinterpret_cast<PkRgb *>(image.scanLine(y));
             for (quint32 x = 0; x < bh.width; x++, k += 4) {
                 *pixel = qRgba(d->data.at(k), d->data.at(k + 1), d->data.at(k + 2), d->data.at(k + 3));
                 ++pixel;
@@ -288,14 +291,14 @@ bool KisGbrBrush::initFromPaintDev(KisPaintDeviceSP image, int x, int y, int w, 
     return true;
 }
 
-bool KisGbrBrush::saveToDevice(QIODevice* dev) const
+bool KisGbrBrush::saveToDevice(PkStream* dev) const
 {
     if (!valid() || brushTipImage().isNull()) {
         qWarning() << "this brush is not valid, set a brush tip image" << filename();
         return false;
     }
     GimpBrushHeader bh;
-    QByteArray utf8Name = name().toUtf8(); // Names in v2 brushes are in UTF-8
+    const std::string utf8Name = name().PkToUtf8(); // Names in v2 brushes are in UTF-8
     char const* name = utf8Name.data();
     int nameLength = qstrlen(name);
     int wrote;
@@ -315,7 +318,7 @@ bool KisGbrBrush::saveToDevice(QIODevice* dev) const
     bh.spacing = qToBigEndian(static_cast<quint32>(spacing() * 100.0));
 
     // Write header: first bh, then the name
-    QByteArray bytes = QByteArray::fromRawData(reinterpret_cast<char*>(&bh), sizeof(GimpBrushHeader));
+    PkByteArray bytes = PkByteArray::fromRawData(reinterpret_cast<char*>(&bh), sizeof(GimpBrushHeader));
     wrote = dev->write(bytes);
     bytes.clear();
 
@@ -331,13 +334,13 @@ bool KisGbrBrush::saveToDevice(QIODevice* dev) const
 
     int k = 0;
 
-    QImage image = brushTipImage();
+    PkImage image = brushTipImage();
 
     if (!isImageType()) {
         bytes.resize(width() * height());
         for (qint32 y = 0; y < height(); y++) {
             for (qint32 x = 0; x < width(); x++) {
-                QRgb c = image.pixel(x, y);
+                PkRgb c = image.pixel(x, y);
                 bytes[k++] = static_cast<char>(255 - qRed(c)); // red == blue == green
             }
         }
@@ -346,7 +349,7 @@ bool KisGbrBrush::saveToDevice(QIODevice* dev) const
         for (qint32 y = 0; y < height(); y++) {
             for (qint32 x = 0; x < width(); x++) {
                 // order for gimp brushes, v2 is: RGBA
-                QRgb pixel = image.pixel(x, y);
+                PkRgb pixel = image.pixel(x, y);
                 bytes[k++] = static_cast<char>(qRed(pixel));
                 bytes[k++] = static_cast<char>(qGreen(pixel));
                 bytes[k++] = static_cast<char>(qBlue(pixel));
@@ -362,7 +365,7 @@ bool KisGbrBrush::saveToDevice(QIODevice* dev) const
     return true;
 }
 
-void KisGbrBrush::setBrushTipImage(const QImage& image)
+void KisGbrBrush::setBrushTipImage(const PkImage& image)
 {
     KisBrush::setBrushTipImage(image);
     setValid(true);
@@ -374,23 +377,23 @@ void KisGbrBrush::makeMaskImage(bool preserveAlpha)
         return;
     }
 
-    QImage brushTip = brushTipImage();
+    PkImage brushTip = brushTipImage();
 
     if (!preserveAlpha) {
         const int imageWidth = brushTip.width();
         const int imageHeight = brushTip.height();
-        QImage image(imageWidth, imageHeight, QImage::Format_Indexed8);
-        QVector<QRgb> table;
+        PkImage image(imageWidth, imageHeight, PkImage::Format_Indexed8);
+        PkVector<PkRgb> table;
         for (int i = 0; i < 256; ++i) {
             table.append(qRgb(i, i, i));
         }
         image.setColorTable(table);
 
         for (int y = 0; y < imageHeight; y++) {
-            QRgb *pixel = reinterpret_cast<QRgb *>(brushTip.scanLine(y));
+            PkRgb *pixel = reinterpret_cast<PkRgb *>(brushTip.scanLine(y));
             uchar * dstPixel = image.scanLine(y);
             for (int x = 0; x < imageWidth; x++) {
-                QRgb c = pixel[x];
+                PkRgb c = pixel[x];
                 float alpha = qAlpha(c) / 255.0f;
                 // linear interpolation with maximum gray value which is transparent in the mask
                 //int a = (qGray(c) * alpha) + ((1.0 - alpha) * 255);
@@ -412,13 +415,13 @@ void KisGbrBrush::makeMaskImage(bool preserveAlpha)
     clearBrushPyramid();
 }
 
-void KisGbrBrush::toXML(QDomDocument& d, QDomElement& e) const
+void KisGbrBrush::toXML(PkXmlDocument& d, PkXmlElement& e) const
 {
     predefinedBrushToXML("gbr_brush", e);
     KisColorfulBrush::toXML(d, e);
 }
 
-QString KisGbrBrush::defaultFileExtension() const
+PkString KisGbrBrush::defaultFileExtension() const
 {
-    return QString(".gbr");
+    return PkString(".gbr");
 }

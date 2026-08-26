@@ -7,7 +7,7 @@
 
 #include "kis_auto_brush_factory.h"
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 
 #include "kis_auto_brush.h"
 #include "kis_mask_generator.h"
@@ -16,7 +16,7 @@
 #include "kis_mask_generator.h"
 
 
-KoResourceLoadResult KisAutoBrushFactory::createBrush(const QDomElement &brushDefinition, KisResourcesInterfaceSP resourcesInterface)
+KoResourceLoadResult KisAutoBrushFactory::createBrush(const PkXmlElement &brushDefinition, KisResourcesInterfaceSP resourcesInterface)
 {
     std::optional<KisBrushModel::BrushData> data =
         createBrushModel(brushDefinition, resourcesInterface);
@@ -35,7 +35,7 @@ KoResourceLoadResult KisAutoBrushFactory::createBrush(const KisBrushModel::Brush
 }
 
 std::optional<KisBrushModel::BrushData>
-KisAutoBrushFactory::createBrushModel(const QDomElement &element, KisResourcesInterfaceSP resourcesInterface)
+KisAutoBrushFactory::createBrushModel(const PkXmlElement &element, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
 
@@ -54,7 +54,7 @@ KisAutoBrushFactory::createBrushModel(const QDomElement &element, KisResourcesIn
 
     // generator settings
 
-    QDomElement generatorEl = element.firstChildElement("MaskGenerator");
+    PkXmlElement generatorEl = element.firstChildElement("MaskGenerator");
 
     // backward compatibility -- it was mistakenly named radius for 2.2
     brush.autoBrush.generator.diameter =
@@ -68,11 +68,11 @@ KisAutoBrushFactory::createBrushModel(const QDomElement &element, KisResourcesIn
     brush.autoBrush.generator.antialiasEdges = generatorEl.attribute("antialiasEdges", "0").toInt();
     brush.autoBrush.generator.spikes = generatorEl.attribute("spikes", "2").toInt();
 
-    const QString shape = generatorEl.attribute("type", "circle");
+    const PkString shape = generatorEl.attribute("type", "circle");
     brush.autoBrush.generator.shape =
             shape == "circle" ? KisBrushModel::Circle : KisBrushModel::Rectangle;
 
-    const QString type = generatorEl.attribute("id", DefaultId.id());
+    const PkString type = generatorEl.attribute("id", DefaultId.id());
     brush.autoBrush.generator.type =
             type == DefaultId.id() ? KisBrushModel::Default :
             type == SoftId.id() ? KisBrushModel::Soft :
@@ -85,31 +85,31 @@ KisAutoBrushFactory::createBrushModel(const QDomElement &element, KisResourcesIn
     return {brush};
 }
 
-void KisAutoBrushFactory::toXML(QDomDocument &doc, QDomElement &e, const KisBrushModel::BrushData &model)
+void KisAutoBrushFactory::toXML(PkXmlDocument &doc, PkXmlElement &e, const KisBrushModel::BrushData &model)
 {
     e.setAttribute("type", id());
     e.setAttribute("BrushVersion", "2");
 
-    e.setAttribute("spacing", QString::number(model.common.spacing));
-    e.setAttribute("useAutoSpacing", QString::number(model.common.useAutoSpacing));
-    e.setAttribute("autoSpacingCoeff", QString::number(model.common.autoSpacingCoeff));
-    e.setAttribute("angle", QString::number(model.common.angle));
-    e.setAttribute("randomness", QString::number(model.autoBrush.randomness));
-    e.setAttribute("density", QString::number(model.autoBrush.density));
+    e.setAttribute("spacing", PkString("%1").arg(model.common.spacing));
+    e.setAttribute("useAutoSpacing", PkString("%1").arg(model.common.useAutoSpacing));
+    e.setAttribute("autoSpacingCoeff", PkString("%1").arg(model.common.autoSpacingCoeff));
+    e.setAttribute("angle", PkString("%1").arg(model.common.angle));
+    e.setAttribute("randomness", PkString("%1").arg(model.autoBrush.randomness));
+    e.setAttribute("density", PkString("%1").arg(model.autoBrush.density));
 
     {
-        QDomElement shapeElt = doc.createElement("MaskGenerator");
+        PkXmlElement shapeElt = doc.createElement("MaskGenerator");
 
-        shapeElt.setAttribute("diameter", QString::number(model.autoBrush.generator.diameter));
-        shapeElt.setAttribute("ratio", QString::number(model.autoBrush.generator.ratio));
-        shapeElt.setAttribute("hfade", QString::number(model.autoBrush.generator.horizontalFade));
-        shapeElt.setAttribute("vfade", QString::number(model.autoBrush.generator.verticalFade));
+        shapeElt.setAttribute("diameter", PkString("%1").arg(model.autoBrush.generator.diameter));
+        shapeElt.setAttribute("ratio", PkString("%1").arg(model.autoBrush.generator.ratio));
+        shapeElt.setAttribute("hfade", PkString("%1").arg(model.autoBrush.generator.horizontalFade));
+        shapeElt.setAttribute("vfade", PkString("%1").arg(model.autoBrush.generator.verticalFade));
         shapeElt.setAttribute("spikes", model.autoBrush.generator.spikes);
         shapeElt.setAttribute("type", model.autoBrush.generator.shape == KisBrushModel::Circle ? "circle" : "rct");
         shapeElt.setAttribute("antialiasEdges", model.autoBrush.generator.antialiasEdges);
 
 
-        QString idString;
+        PkString idString;
         if (model.autoBrush.generator.type == KisBrushModel::Default) {
             idString = DefaultId.id();
         } else if (model.autoBrush.generator.type == KisBrushModel::Soft) {
@@ -157,7 +157,7 @@ KoResourceLoadResult KisAutoBrushFactory::createBrush(const KisBrushModel::Commo
 
     } else  if (autoBrushData.generator.type == KisBrushModel::Soft) {
 
-        QString curveString = autoBrushData.generator.curveString;
+        PkString curveString = autoBrushData.generator.curveString;
         if (curveString.isEmpty()) {
             curveString = "0,1;1,0";
         }

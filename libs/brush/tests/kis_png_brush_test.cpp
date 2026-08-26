@@ -13,7 +13,7 @@
 
 void KisPngBrushTest::testLoading_data()
 {
-    QTest::addColumn<QString>("filename");
+    QTest::addColumn<PkString>("filename");
     QTest::addColumn<int>("expectedBrushType");
     QTest::addColumn<int>("expectedBrushApplication");
     QTest::addColumn<bool>("expectedIsImageType");
@@ -27,13 +27,13 @@ void KisPngBrushTest::testLoading_data()
 
 void KisPngBrushTest::testLoading()
 {
-    QFETCH(QString, filename);
+    QFETCH(PkString, filename);
     QFETCH(int, expectedBrushType);
     QFETCH(int, expectedBrushApplication);
     QFETCH(bool, expectedIsImageType);
 
 
-    QScopedPointer<KisPngBrush> brush(new KisPngBrush(QString(FILES_DATA_DIR) + '/' + filename));
+    PkScopedPointer<KisPngBrush> brush(new KisPngBrush(PkString(FILES_DATA_DIR) + "/" + filename));
     bool res = brush->load(KisGlobalResourcesInterface::instance());
     QVERIFY(res);
     QVERIFY(!brush->brushTipImage().isNull());

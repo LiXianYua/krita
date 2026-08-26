@@ -11,11 +11,11 @@
 #include <kis_debug.h>
 #include <math.h>
 
-#include <QPainterPath>
-#include <QRect>
-#include <QDomElement>
-#include <QBuffer>
-#include <QFile>
+#include <PkPainterPath.h>
+#include <PkRect.h>
+#include <PkXmlElement.h>
+#include <PkMemoryStream.h>
+#include <PkFileStream.h>
 
 #include <KoColor.h>
 #include <KoColorSpace.h>
@@ -57,7 +57,7 @@ struct KisAutoBrush::Private {
     }
 
 
-    QScopedPointer<KisMaskGenerator> shape;
+    PkScopedPointer<KisMaskGenerator> shape;
     qreal randomness;
     qreal density;
     int idealThreadCountCached;
@@ -70,7 +70,7 @@ KisAutoBrush::KisAutoBrush(KisMaskGenerator* as, qreal angle, qreal randomness, 
     d->shape.reset(as);
     d->randomness = randomness;
     d->density = density;
-    d->idealThreadCountCached = QThread::idealThreadCount();
+    d->idealThreadCountCached = PkThread::idealThreadCount();
     setBrushType(MASK);
 
     {
@@ -93,7 +93,7 @@ KisAutoBrush::KisAutoBrush(KisMaskGenerator* as, qreal angle, qreal randomness, 
 
     // We don't initialize setBrushTipImage(), because
     // auto brush doesn't use image pyramid. And generation
-    // of a full-scaled QImage may cause a significant delay
+    // of a full-scaled PkImage may cause a significant delay
     // in the beginning of the stroke
 
     setAngle(angle);
@@ -109,14 +109,14 @@ bool KisAutoBrush::isEphemeral() const
     return true;
 }
 
-bool KisAutoBrush::loadFromDevice(QIODevice *dev, KisResourcesInterfaceSP resourcesInterface)
+bool KisAutoBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(dev);
     Q_UNUSED(resourcesInterface);
     return false;
 }
 
-bool KisAutoBrush::saveToDevice(QIODevice *dev) const
+bool KisAutoBrush::saveToDevice(PkStream *dev) const
 {
     Q_UNUSED(dev);
     return false;
@@ -187,7 +187,7 @@ qint32 KisAutoBrush::maskWidth(KisDabShape const& shape,
         lieAboutDabShape(shape, maskGenerator()->spikes()), subPixelX, subPixelY, info);
 }
 
-QSizeF KisAutoBrush::characteristicSize(KisDabShape const& shape) const
+PkSizeF KisAutoBrush::characteristicSize(KisDabShape const& shape) const
 {
     return KisBrush::characteristicSize(lieAboutDabShape(shape, maskGenerator()->spikes()));
 }
@@ -294,7 +294,7 @@ void KisAutoBrush::generateMaskAndApplyMaskOrCreateDab(KisFixedPaintDeviceSP dst
     // mask dimension methods already includes KisBrush::angle()
     int dstWidth = maskWidth(shape, subPixelX, subPixelY, info);
     int dstHeight = maskHeight(shape, subPixelX, subPixelY, info);
-    QPointF hotSpot = this->hotSpot(shape, info);
+    PkPointF hotSpot = this->hotSpot(shape, info);
 
     // mask size and hotSpot function take the KisBrush rotation into account
     qreal angle = shape.rotation() + KisBrush::angle();
@@ -303,7 +303,7 @@ void KisAutoBrush::generateMaskAndApplyMaskOrCreateDab(KisFixedPaintDeviceSP dst
     // the dab should be big enough!
     if (coloringInformation) {
         // new bounds. we don't care if there is some extra memory occupied.
-        dst->setRect(QRect(0, 0, dstWidth, dstHeight));
+        dst->setRect(PkRect(0, 0, dstWidth, dstHeight));
         dst->lazyGrowBufferWithoutInitialization();
     }
     else {
@@ -342,7 +342,7 @@ void KisAutoBrush::generateMaskAndApplyMaskOrCreateDab(KisFixedPaintDeviceSP dst
                             centerX, centerY,
                             angle);
 
-    const QRect rect(0, 0, dstWidth, dstHeight);
+    const PkRect rect(0, 0, dstWidth, dstHeight);
     KisBrushMaskApplicatorBase *applicator = d->shape->applicator();
     applicator->initializeData(&data);
     applicator->process(rect);
@@ -358,29 +358,29 @@ void KisAutoBrush::coldInitBrush()
     generateOutlineCache();
 }
 
-void KisAutoBrush::toXML(QDomDocument& doc, QDomElement& e) const
+void KisAutoBrush::toXML(PkXmlDocument& doc, PkXmlElement& e) const
 {
-    QDomElement shapeElt = doc.createElement("MaskGenerator");
+    PkXmlElement shapeElt = doc.createElement("MaskGenerator");
     d->shape->toXML(doc, shapeElt);
     e.appendChild(shapeElt);
     e.setAttribute("type", "auto_brush");
-    e.setAttribute("spacing", QString::number(spacing()));
-    e.setAttribute("useAutoSpacing", QString::number(autoSpacingActive()));
-    e.setAttribute("autoSpacingCoeff", QString::number(autoSpacingCoeff()));
-    e.setAttribute("angle", QString::number(KisBrush::angle()));
-    e.setAttribute("randomness", QString::number(d->randomness));
-    e.setAttribute("density", QString::number(d->density));
+    e.setAttribute("spacing", PkString("%1").arg(spacing()));
+    e.setAttribute("useAutoSpacing", PkString("%1").arg(autoSpacingActive()));
+    e.setAttribute("autoSpacingCoeff", PkString("%1").arg(autoSpacingCoeff()));
+    e.setAttribute("angle", PkString("%1").arg(KisBrush::angle()));
+    e.setAttribute("randomness", PkString("%1").arg(d->randomness));
+    e.setAttribute("density", PkString("%1").arg(d->density));
     KisBrush::toXML(doc, e);
 }
 
-QImage KisAutoBrush::createBrushPreview(int maxSize)
+PkImage KisAutoBrush::createBrushPreview(int maxSize)
 {
     KisDabShape shape;
 
     int width = maskWidth(KisDabShape(), 0.0, 0.0, KisPaintInformation());
     int height = maskHeight(KisDabShape(), 0.0, 0.0, KisPaintInformation());
 
-    QSize size(width, height);
+    PkSize size(width, height);
 
     if (maxSize > 0 && KisAlgebra2D::maxDimension(size) > maxSize) {
         size.scale(128, 128, Qt::KeepAspectRatio);
@@ -398,10 +398,10 @@ QImage KisAutoBrush::createBrushPreview(int maxSize)
         height = maskHeight(shape, 0.0, 0.0, KisPaintInformation());
     }
 
-    KisPaintInformation info(QPointF(width * 0.5, height * 0.5), 0.5, 0, 0, angle(), 0, 0, 0, 0);
+    KisPaintInformation info(PkPointF(width * 0.5, height * 0.5), 0.5, 0, 0, angle(), 0, 0, 0, 0);
 
     KisFixedPaintDeviceSP fdev = new KisFixedPaintDevice(KoColorSpaceRegistry::instance()->rgb8());
-    fdev->setRect(QRect(0, 0, width, height));
+    fdev->setRect(PkRect(0, 0, width, height));
     fdev->initialize();
 
     mask(fdev, KoColor(Qt::black, fdev->colorSpace()), shape, info);
@@ -428,8 +428,8 @@ KisOptimizedBrushOutline KisAutoBrush::outline(bool forcePreciseOutline) const
 {
     const bool requiresComplexOutline = d->shape->spikes() > 2;
     if (!requiresComplexOutline && !forcePreciseOutline) {
-        QPainterPath path;
-        QRectF brushBoundingbox(0, 0, width(), height());
+        PkPainterPath path;
+        PkRectF brushBoundingbox(0, 0, width(), height());
         if (maskGenerator()->type() == KisMaskGenerator::CIRCLE) {
             path.addEllipse(brushBoundingbox);
         }
