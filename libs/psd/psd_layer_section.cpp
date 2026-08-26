@@ -7,6 +7,7 @@
 #include "psd_layer_section.h"
 
 #include <PkStream.h>
+#include <PkFlakeBridge.h>
 
 #include <algorithm>
 #include <cstdlib>
@@ -443,7 +444,7 @@ void addBackgroundIfNeeded(KisNodeSP root, PkList<FlattenedNode> &nodes)
 
 void flattenShapes(const KisShapeLayer* parentShapeLayer, PkList<KoShape*> shapes, PkList<FlattenedNode> &nodes) {
     for (KoShape *shape : shapes) {
-        const PkString name = shape->name().isEmpty()? "shape "+PkString("%1").arg(static_cast<int>(nodes.size())): shape->name();
+        const PkString name = toPkString(shape->name()).isEmpty()? PkString("shape ") + PkString("%1").arg(static_cast<int>(nodes.size())): toPkString(shape->name());
         KoShapeGroup *group = dynamic_cast<KoShapeGroup*>(shape);
         if (group) {
             KisGroupLayerSP newGroup(new KisGroupLayer(parentShapeLayer->image(),

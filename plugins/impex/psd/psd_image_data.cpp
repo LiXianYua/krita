@@ -7,8 +7,6 @@
 
 #include <psd_image_data.h>
 
-#include <QtEndian>
-
 #include <PkFileStream.h>
 #include <kis_debug.h>
 #include <PkVector.h>

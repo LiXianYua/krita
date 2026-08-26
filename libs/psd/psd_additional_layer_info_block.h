@@ -971,9 +971,9 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
 
     double penWidth {1.0};
     double penDashOffset {0.0};
-    double penMiterLimit {0.0};
-    Qt::PenCapStyle penCapStyle {Qt::FlatCap};
-    Qt::PenJoinStyle penJoinStyle {Qt::MiterJoin};
+    double penMiterLimit {2.0};
+    Qt::PenCapStyle penCapStyle {Qt::SquareCap};
+    Qt::PenJoinStyle penJoinStyle {Qt::BevelJoin};
     PkColor penColor;
     PkGradient penGradient; // valid only when gradient == true
     bool gradient{false};
