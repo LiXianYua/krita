@@ -9,7 +9,7 @@
 
 #include <kritapaintop_export.h>
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 class KisColorSource;
 class KoID;
@@ -25,7 +25,7 @@ public:
     KisColorSource* createColorSource(const KisPainter* _painter) const;
 private:
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 };
 
 #endif

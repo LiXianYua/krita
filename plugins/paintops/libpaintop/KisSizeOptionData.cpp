@@ -6,7 +6,7 @@
 #include "KisSizeOptionData.h"
 
 
-KisSizeOptionData::KisSizeOptionData(const QString &prefix)
+KisSizeOptionData::KisSizeOptionData(const PkString &prefix)
     : KisCurveOptionData(prefix,
           KoID("Size", i18n("Size")),
           Checkability::Checkable)
@@ -20,11 +20,11 @@ KisPaintopLodLimitations KisSizeOptionData::lodLimitations() const
     if (!isCheckable || isChecked) {
         // HINT: FUZZY_PER_STROKE doesn't affect instant preview
         if (sensorStruct().sensorFuzzyPerDab.isActive) {
-            l.limitations << KoID("size-fade", i18nc("PaintOp instant preview limitation", "Size -> Fuzzy (sensor)"));
+            l.limitations.insert(KoID("size-fade", i18nc("PaintOp instant preview limitation", "Size -> Fuzzy (sensor)")));
         }
 
         if (sensorStruct().sensorFade.isActive) {
-            l.blockers << KoID("size-fuzzy", i18nc("PaintOp instant preview limitation", "Size -> Fade (sensor)"));
+            l.blockers.insert(KoID("size-fuzzy", i18nc("PaintOp instant preview limitation", "Size -> Fade (sensor)")));
         }
     }
 

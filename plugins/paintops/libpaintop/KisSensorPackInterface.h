@@ -8,13 +8,13 @@
 #define KISSENSORPACKINTERFACE_H
 
 #include "kritapaintop_export.h"
-#include <QSharedData>
+#include "PkSharedDataPointer.h"
 
 struct KisSensorData;
 struct KisCurveOptionDataCommon;
 class KisPropertiesConfiguration;
 
-class PAINTOP_EXPORT KisSensorPackInterface : public QSharedData
+class PAINTOP_EXPORT KisSensorPackInterface
 {
 public:
     virtual ~KisSensorPackInterface();
@@ -27,11 +27,11 @@ public:
     virtual bool compare(const KisSensorPackInterface *rhs) const = 0;
     virtual bool read(KisCurveOptionDataCommon &data, const KisPropertiesConfiguration *setting) const = 0;
     virtual void write(const KisCurveOptionDataCommon &data, KisPropertiesConfiguration *setting) const = 0;
-    virtual int calcActiveSensorLength(const QString &activeSensorId) const;
+    virtual int calcActiveSensorLength(const PkString &activeSensorId) const;
 };
 
 template<>
-inline KisSensorPackInterface* QSharedDataPointer<KisSensorPackInterface>::clone()
+inline KisSensorPackInterface* PkSharedDataPointer<KisSensorPackInterface>::clone()
 {
     return d->clone();
 }

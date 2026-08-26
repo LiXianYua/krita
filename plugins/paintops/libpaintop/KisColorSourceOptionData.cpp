@@ -20,8 +20,8 @@ struct ColorSourceTypeMapper {
         addType(KisColorSourceOptionData::PATTERN, KoID("pattern", i18n("Pattern")));
         addType(KisColorSourceOptionData::PATTERN_LOCKED, KoID("lockedpattern", i18n("Locked pattern")));
     }
-    QMap<KisColorSourceOptionData::Type, KoID> type2id;
-    QMap<QString, KisColorSourceOptionData::Type> id2type;
+    PkMap<KisColorSourceOptionData::Type, KoID> type2id;
+    PkMap<PkString, KisColorSourceOptionData::Type> id2type;
 
 private:
     void addType(KisColorSourceOptionData::Type _type, KoID _id) {
@@ -32,31 +32,35 @@ private:
 
 }
 
-Q_GLOBAL_STATIC(ColorSourceTypeMapper, s_instance)
+static ColorSourceTypeMapper *s_instance()
+{
+    static ColorSourceTypeMapper instance;
+    return &instance;
+}
 
 bool KisColorSourceOptionData::read(const KisPropertiesConfiguration *setting)
 {
-    const QString colorSourceType = setting->getString("ColorSource/Type", "plain");
-    type = s_instance->id2type.value(colorSourceType, PLAIN);
+    const PkString colorSourceType = setting->getString("ColorSource/Type", "plain");
+    type = s_instance()->id2type.value(colorSourceType, PLAIN);
     return true;
 }
 
 void KisColorSourceOptionData::write(KisPropertiesConfiguration *setting) const
 {
-    setting->setProperty("ColorSource/Type", s_instance->type2id.value(type).id());
+    setting->setProperty("ColorSource/Type", s_instance()->type2id.value(type).id());
 }
 
-QVector<KoID> KisColorSourceOptionData::colorSourceTypeIds()
+PkVector<KoID> KisColorSourceOptionData::colorSourceTypeIds()
 {
-    return s_instance->type2id.values().toVector();
+    return s_instance()->type2id.values().toVector();
 }
 
 KoID KisColorSourceOptionData::type2Id(Type type)
 {
-    return s_instance->type2id[type];
+    return s_instance()->type2id[type];
 }
 
 KisColorSourceOptionData::Type KisColorSourceOptionData::id2Type(const KoID &id)
 {
-    return s_instance->id2type[id.id()];
+    return s_instance()->id2type[id.id()];
 }

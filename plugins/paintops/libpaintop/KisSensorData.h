@@ -12,8 +12,8 @@
 #include "kis_assert.h"
 #include <kis_cubic_curve.h>
 #include <KoID.h>
-#include <QDomDocument>
-#include <QRectF>
+#include <PkXmlDocument.h>
+#include <PkRect.h>
 
 struct PAINTOP_EXPORT KisSensorData : public boost::equality_comparable<KisSensorData>
 {
@@ -26,14 +26,14 @@ struct PAINTOP_EXPORT KisSensorData : public boost::equality_comparable<KisSenso
                 lhs.isActive == rhs.isActive;
     }
 
-    virtual QRectF baseCurveRange() const;
-    virtual void setBaseCurveRange(const QRectF &rect);
-    virtual void write(QDomDocument& doc, QDomElement &e) const;
-    virtual void read(const QDomElement &e);
+    virtual PkRectF baseCurveRange() const;
+    virtual void setBaseCurveRange(const PkRectF &rect);
+    virtual void write(PkXmlDocument& doc, PkXmlElement &e) const;
+    virtual void read(const PkXmlElement &e);
     virtual void reset();
 
     KoID id;
-    QString curve;
+    PkString curve;
 
     // not a part of XML data, managed by the curve option
     bool isActive = false;
@@ -50,8 +50,8 @@ struct PAINTOP_EXPORT KisSensorWithLengthData : public KisSensorData, public boo
                 lhs.m_lengthTag == rhs.m_lengthTag;
     }
 
-    void write(QDomDocument& doc, QDomElement &e) const override;
-    void read(const QDomElement &e) override;
+    void write(PkXmlDocument& doc, PkXmlElement &e) const override;
+    void read(const PkXmlElement &e) override;
     void reset() override;
 
     int length = 30;
@@ -72,8 +72,8 @@ struct PAINTOP_EXPORT KisDrawingAngleSensorData : public KisSensorData, public b
                 lhs.lockedAngleMode == rhs.lockedAngleMode;
     }
 
-    void write(QDomDocument& doc, QDomElement &e) const override;
-    void read(const QDomElement &e) override;
+    void write(PkXmlDocument& doc, PkXmlElement &e) const override;
+    void read(const PkXmlElement &e) override;
     void reset() override;
 
     bool fanCornersEnabled = false;

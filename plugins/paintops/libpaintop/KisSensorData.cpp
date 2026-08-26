@@ -7,6 +7,7 @@
 #include "KisSensorData.h"
 
 #include <KisDynamicSensorIds.h>
+#include <kis_dom_utils.h>
 
 #include <PkXmlDocument.h>
 #include <PkXmlElement.h>
@@ -113,7 +114,7 @@ void KisDrawingAngleSensorData::write(PkXmlDocument &doc, PkXmlElement &e) const
     KisSensorData::write(doc, e);
     e.setAttribute("fanCornersEnabled", fanCornersEnabled ? "1" : "0");
     e.setAttribute("fanCornersStep", PkString(std::to_string(fanCornersStep).c_str()));
-    e.setAttribute("angleOffset", PkString(std::to_string(angleOffset).c_str()));
+    e.setAttribute("angleOffset", KisDomUtils::toString(angleOffset));
     e.setAttribute("lockedAngleMode", lockedAngleMode ? "1" : "0");
 }
 

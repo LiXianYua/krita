@@ -8,8 +8,8 @@
 #include "KisCppQuirks.h"
 #include "kis_assert.h"
 
-#include <QDomDocument>
-#include <QDomElement>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 #include <KisCurveOptionData.h>
 #include <kis_properties_configuration.h>
@@ -118,32 +118,32 @@ bool KisKritaSensorPack::read(KisCurveOptionDataCommon &data, const KisPropertie
          (!data.prefix.isEmpty() ||
           !setting->getString(KisPropertiesConfiguration::extractedPrefixKey()).isEmpty()));
 
-    data.isChecked = !data.isCheckable || setting->getBool("Pressure" + data.id.id(), false);
+    data.isChecked = !data.isCheckable || setting->getBool(PkString("Pressure") + data.id.id(), false);
 
     std::vector<KisSensorData*> sensors = data.sensors();
-    QMap<QString, KisSensorData*> sensorById;
+    PkMap<PkString, KisSensorData*> sensorById;
 
-    Q_FOREACH (KisSensorData *sensor, sensors) {
+    for (KisSensorData *sensor : sensors) {
         sensorById.insert(sensor->id.id(), sensor);
     }
 
-    QSet<KisSensorData*> sensorsToReset;
+    PkSet<KisSensorData*> sensorsToReset;
 
-    QList l = sensorById.values();
-    if (!l.isEmpty()) {
-        sensorsToReset = QSet<KisSensorData*>(l.begin(), l.end());
+    PkList<KisSensorData*> l = sensorById.values();
+    for (KisSensorData *sensor : l) {
+        sensorsToReset.insert(sensor);
     }
 
-    const QString sensorDefinition = setting->getString(data.id.id() + "Sensor");
+    const PkString sensorDefinition = setting->getString(data.id.id() + "Sensor");
 
     if (sensorDefinition.isEmpty()) {
         // noop
     } else if (!sensorDefinition.contains("sensorslist")) {
-        QDomDocument doc;
+        PkXmlDocument doc;
         doc.setContent(sensorDefinition);
-        QDomElement e = doc.documentElement();
+        PkXmlElement e = doc.documentElement();
 
-        const QString sensorId = e.attribute("id", "");
+        const PkString sensorId = e.attribute("id", "");
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!sensorId.isEmpty(), false);
         KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(sensorById.contains(sensorId), false);
 
@@ -155,18 +155,18 @@ bool KisKritaSensorPack::read(KisCurveOptionDataCommon &data, const KisPropertie
         data.commonCurve = sensor->curve;
 
     } else {
-        QString proposedCommonCurve;
+        PkString proposedCommonCurve;
 
-        QDomDocument doc;
+        PkXmlDocument doc;
         doc.setContent(sensorDefinition);
-        QDomElement elt = doc.documentElement();
-        QDomNode node = elt.firstChild();
+        PkXmlElement elt = doc.documentElement();
+        PkXmlNode node = elt.firstChild();
         while (!node.isNull()) {
             if (node.isElement())  {
-                QDomElement childelt = node.toElement();
+                PkXmlElement childelt = node.toElement();
                 if (childelt.tagName() == "ChildSensor") {
 
-                    const QString sensorId = childelt.attribute("id", "");
+                    const PkString sensorId = childelt.attribute("id", "");
                     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(!sensorId.isEmpty(), false);
                     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(sensorById.contains(sensorId), false);
 
@@ -191,9 +191,9 @@ bool KisKritaSensorPack::read(KisCurveOptionDataCommon &data, const KisPropertie
     // Only load the old curve format if the curve wasn't saved by the sensor
     // This will give every sensor the same curve.
     if (!sensorDefinition.contains("curve")) {
-        if (setting->getBool("Custom" + data.id.id(), false)) {
-            data.commonCurve = setting->getString("Curve" + data.id.id(), DEFAULT_CURVE_STRING);
-            Q_FOREACH (KisSensorData *sensor, sensors) {
+        if (setting->getBool(PkString("Custom") + data.id.id(), false)) {
+            data.commonCurve = setting->getString(PkString("Curve") + data.id.id(), DEFAULT_CURVE_STRING);
+            for (KisSensorData *sensor : sensors) {
                 sensor->curve = data.commonCurve;
                 sensorsToReset.remove(sensor);
             }
@@ -212,7 +212,7 @@ bool KisKritaSensorPack::read(KisCurveOptionDataCommon &data, const KisPropertie
         }
     }
 
-    Q_FOREACH (KisSensorData *sensor, sensorsToReset) {
+    for (KisSensorData *sensor : sensorsToReset) {
         sensor->reset();
     }
 
@@ -237,25 +237,25 @@ bool KisKritaSensorPack::read(KisCurveOptionDataCommon &data, const KisPropertie
 
 void KisKritaSensorPack::write(const KisCurveOptionDataCommon &data, KisPropertiesConfiguration *setting) const
 {
-    setting->setProperty("Pressure" + data.id.id(), data.isChecked || !data.isCheckable);
+    setting->setProperty(PkString("Pressure") + data.id.id(), data.isChecked || !data.isCheckable);
 
-    QVector<const KisSensorData*> activeSensors;
-    Q_FOREACH(const KisSensorData *sensor, data.sensors()) {
+    PkVector<const KisSensorData*> activeSensors;
+    for (const KisSensorData *sensor : data.sensors()) {
         if (sensor->isActive) {
             activeSensors.append(sensor);
         }
     }
 
-    QDomDocument doc = QDomDocument("params");
-    QDomElement root = doc.createElement("params");
+    PkXmlDocument doc = PkXmlDocument("params");
+    PkXmlElement root = doc.createElement("params");
     doc.appendChild(root);
 
     if (activeSensors.size() == 1) {
         activeSensors.first()->write(doc, root);
     } else {
         root.setAttribute("id", "sensorslist");
-        Q_FOREACH (const KisSensorData *sensor, activeSensors) {
-            QDomElement childelt = doc.createElement("ChildSensor");
+        for (const KisSensorData *sensor : activeSensors) {
+            PkXmlElement childelt = doc.createElement("ChildSensor");
             sensor->write(doc, childelt);
             root.appendChild(childelt);
         }
@@ -272,7 +272,7 @@ void KisKritaSensorPack::write(const KisCurveOptionDataCommon &data, KisProperti
     setting->setProperty(data.id.id() + "commonCurve", data.commonCurve);
 }
 
-int KisKritaSensorPack::calcActiveSensorLength(const QString &activeSensorId) const
+int KisKritaSensorPack::calcActiveSensorLength(const PkString &activeSensorId) const
 {
     if (activeSensorId == FadeId.id()) {
         return m_data.sensorFade.length;

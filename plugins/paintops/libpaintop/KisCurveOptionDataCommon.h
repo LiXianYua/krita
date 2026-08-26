@@ -14,13 +14,14 @@
 #include "kritapaintop_export.h"
 
 #include <KisSensorPackInterface.h>
+#include "PkSharedDataPointer.h"
 
 
 struct PAINTOP_EXPORT KisCurveOptionDataCommon : boost::equality_comparable<KisCurveOptionDataCommon>
 {
     static constexpr bool supports_prefix = true;
 
-    KisCurveOptionDataCommon(const QString &prefix,
+    KisCurveOptionDataCommon(const PkString &prefix,
                             const KoID &id,
                             bool isCheckable,
                             bool isChecked,
@@ -51,7 +52,7 @@ struct PAINTOP_EXPORT KisCurveOptionDataCommon : boost::equality_comparable<KisC
     }
 
     KoID id;
-    QString prefix;
+    PkString prefix;
     bool isCheckable = true;
     qreal strengthMinValue = 0.0;
     qreal strengthMaxValue = 1.0;
@@ -61,10 +62,10 @@ struct PAINTOP_EXPORT KisCurveOptionDataCommon : boost::equality_comparable<KisC
     bool useSameCurve = true;
 
     int curveMode = 0; // TODO: to enum!
-    QString commonCurve = DEFAULT_CURVE_STRING;
+    PkString commonCurve = DEFAULT_CURVE_STRING;
     qreal strengthValue = 1.0;
 
-    QSharedDataPointer<KisSensorPackInterface> sensorData;
+    PkSharedDataPointer<KisSensorPackInterface> sensorData;
 
     std::vector<const KisSensorData *> sensors() const;
     std::vector<KisSensorData*> sensors();

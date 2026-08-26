@@ -8,6 +8,7 @@
 
 #include <boost/operators.hpp>
 #include <kritapaintop_export.h>
+#include <PkFlags.h>
 
 #include "KisEmbeddedTextureData.h"
 
@@ -19,8 +20,8 @@ enum KisBrushTextureFlag
     SupportsLightnessMode = 0x1,
     SupportsGradientMode = 0x2,
 };
-Q_DECLARE_FLAGS(KisBrushTextureFlags, KisBrushTextureFlag)
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisBrushTextureFlags)
+PK_DECLARE_FLAGS(KisBrushTextureFlags, KisBrushTextureFlag)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisBrushTextureFlags)
 
 
 
