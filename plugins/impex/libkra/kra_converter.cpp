@@ -118,7 +118,7 @@ KraConverter::KraConverter(KisDocument *doc)
 {
 }
 
-KraConverter::KraConverter(KisDocument *doc, PkSharedPointer<KoUpdater> updater, KisImportUserFeedbackInterface *feedbackInterface)
+KraConverter::KraConverter(KisDocument *doc, PkPointer<KoUpdater> updater, KisImportUserFeedbackInterface *feedbackInterface)
     : m_doc(doc)
     ,  m_image(doc->savingImage())
     ,  m_updater(updater)

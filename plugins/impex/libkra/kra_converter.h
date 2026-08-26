@@ -31,7 +31,7 @@ class KRITALIBKRA_EXPORT KraConverter : public PkObject
 public:
 
     KraConverter(KisDocument *doc);
-    KraConverter(KisDocument *doc, PkSharedPointer<KoUpdater> updater, KisImportUserFeedbackInterface *feedbackInterface = nullptr);
+    KraConverter(KisDocument *doc, PkPointer<KoUpdater> updater, KisImportUserFeedbackInterface *feedbackInterface = nullptr);
     ~KraConverter() override;
 
     KisImportExportErrorCode buildImage(PkStream *io);
@@ -73,7 +73,7 @@ private:
     KoStore *m_store {0};
     KisKraSaver *m_kraSaver {0};
     KisKraLoader *m_kraLoader {0};
-    PkSharedPointer<KoUpdater> m_updater;
+    PkPointer<KoUpdater> m_updater;
     KisImportUserFeedbackInterface *m_feedbackInterface {nullptr};
 };
 
