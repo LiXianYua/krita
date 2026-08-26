@@ -9,22 +9,22 @@
 
 #include "kritapsdutils_export.h"
 #include "psd.h"
-#include <QtGlobal>
 
-class QDomDocument;
-class QIODevice;
+class PkXmlDocument;
+class PkStream;
+class PkTransform;
 
 class KRITAPSDUTILS_EXPORT KisAslReader
 {
 public:
-    QDomDocument readFile(QIODevice &device);
+    PkXmlDocument readFile(PkStream &device);
 
-    static QDomDocument readLfx2PsdSection(QIODevice &device, psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
-    static QDomDocument readFillLayer(QIODevice &device, psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
-    static QDomDocument readTypeToolObjectSettings(QIODevice &device, QTransform &transform, psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
-    static QDomDocument readVectorStroke(QIODevice &device, psd_byte_order byteOrder = psd_byte_order::psdBigEndian); 
-    static QDomDocument readVectorOriginationData(QIODevice &device, psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
-    static QDomDocument readPsdSectionPattern(QIODevice &device, qint64 bytesLeft, psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
+    static PkXmlDocument readLfx2PsdSection(PkStream &device, psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
+    static PkXmlDocument readFillLayer(PkStream &device, psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
+    static PkXmlDocument readTypeToolObjectSettings(PkStream &device, PkTransform &transform, psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
+    static PkXmlDocument readVectorStroke(PkStream &device, psd_byte_order byteOrder = psd_byte_order::psdBigEndian); 
+    static PkXmlDocument readVectorOriginationData(PkStream &device, psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
+    static PkXmlDocument readPsdSectionPattern(PkStream &device, qint64 bytesLeft, psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
 };
 
 #endif /* __KIS_ASL_READER_H */

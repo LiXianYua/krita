@@ -7,8 +7,8 @@
 
 #include "kis_asl_writer.h"
 
-#include <QDomDocument>
-#include <QIODevice>
+#include <PkXmlDocument.h>
+#include <PkStream.h>
 
 #include "kis_dom_utils.h"
 
@@ -16,6 +16,7 @@
 #include "psd.h"
 #include "psd_utils.h"
 
+#include "kis_asl_byte_utils.h"
 #include "kis_asl_patterns_writer.h"
 #include "kis_asl_writer_utils.h"
 
@@ -24,12 +25,12 @@ namespace Private
 using namespace KisAslWriterUtils;
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void parseElement(const QDomElement &el, QIODevice &device, bool forceTypeInfo = false)
+void parseElement(const PkXmlElement &el, PkStream &device, bool forceTypeInfo = false)
 {
     KIS_ASSERT_RECOVER_RETURN(el.tagName() == "node");
 
-    QString type = el.attribute("type", "<unknown>");
-    QString key = el.attribute("key", "");
+    PkString type = el.attribute("type", "<unknown>");
+    PkString key = el.attribute("key", "");
 
     // should be filtered on a higher level
     KIS_ASSERT_RECOVER_RETURN(key != ResourceType::Patterns);
@@ -43,8 +44,8 @@ void parseElement(const QDomElement &el, QIODevice &device, bool forceTypeInfo =
             writeFixedString<byteOrder>("Objc", device);
         }
 
-        QString classId = el.attribute("classId", "");
-        QString name = el.attribute("name", "");
+        PkString classId = el.attribute("classId", "");
+        PkString name = el.attribute("name", "");
 
         writeUnicodeString<byteOrder>(name, device);
         writeVarString<byteOrder>(classId, device);
@@ -52,7 +53,7 @@ void parseElement(const QDomElement &el, QIODevice &device, bool forceTypeInfo =
         quint32 numChildren = static_cast<quint32>(el.childNodes().size());
         SAFE_WRITE_EX(byteOrder, device, numChildren);
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
             parseElement<byteOrder>(child.toElement(), device);
             child = child.nextSibling();
@@ -65,7 +66,7 @@ void parseElement(const QDomElement &el, QIODevice &device, bool forceTypeInfo =
         quint32 numChildren = static_cast<quint32>(el.childNodes().size());
         SAFE_WRITE_EX(byteOrder, device, numChildren);
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
             parseElement<byteOrder>(child.toElement(), device, true);
             child = child.nextSibling();
@@ -79,7 +80,7 @@ void parseElement(const QDomElement &el, QIODevice &device, bool forceTypeInfo =
 
     } else if (type == "UnitFloat") {
         double v = KisDomUtils::toDouble(el.attribute("value", "0"));
-        QString unit = el.attribute("unit", "#Pxl");
+        PkString unit = el.attribute("unit", "#Pxl");
 
         if (!key.isEmpty()) {
             writeVarString<byteOrder>(key, device);
@@ -88,13 +89,13 @@ void parseElement(const QDomElement &el, QIODevice &device, bool forceTypeInfo =
         writeFixedString<byteOrder>(unit, device);
         SAFE_WRITE_EX(byteOrder, device, v);
     } else if (type == "Text") {
-        QString v = el.attribute("value", "");
+        PkString v = el.attribute("value", "");
         writeVarString<byteOrder>(key, device);
         writeFixedString<byteOrder>("TEXT", device);
         writeUnicodeString<byteOrder>(v, device);
     } else if (type == "Enum") {
-        QString v = el.attribute("value", "");
-        QString typeId = el.attribute("typeId", "DEAD");
+        PkString v = el.attribute("value", "");
+        PkString typeId = el.attribute("typeId", "DEAD");
         writeVarString<byteOrder>(key, device);
         writeFixedString<byteOrder>("enum", device);
         writeVarString<byteOrder>(typeId, device);
@@ -114,36 +115,35 @@ void parseElement(const QDomElement &el, QIODevice &device, bool forceTypeInfo =
         writeVarString<byteOrder>(key, device);
         writeFixedString<byteOrder>("tdta", device);
 
-        QDomNode dataNode = el.firstChild();
+        PkXmlNode dataNode = el.firstChild();
 
         if (!dataNode.isCDATASection()) {
             warnKrita << "WARNING: failed to parse RawData XML section!";
             return;
         }
 
-        QDomCDATASection dataSection = dataNode.toCDATASection();
-        QByteArray data = dataSection.data().toLatin1();
-        data = QByteArray::fromBase64(data);
+        PkXmlCDATASection dataSection = dataNode.toCDATASection();
+        PkByteArray data = pkFromBase64(dataSection.data());
 
         if (data.isEmpty()) {
             warnKrita << "WARNING: failed to parse RawData XML section!";
         }
         quint32 length = data.size();
         SAFE_WRITE_EX(byteOrder, device, length);
-        device.write(data);
+        device.write(data.constData(), data.size());
     } else {
         warnKrita << "WARNING: XML (ASL) Unknown element type:" << type << ppVar(key);
     }
 }
 
-int calculateNumStyles(const QDomElement &root)
+int calculateNumStyles(const PkXmlElement &root)
 {
     int numStyles = 0;
-    QDomNode child = root.firstChild();
+    PkXmlNode child = root.firstChild();
 
     while (!child.isNull()) {
-        QDomElement el = child.toElement();
-        QString classId = el.attribute("classId", "");
+        PkXmlElement el = child.toElement();
+        PkString classId = el.attribute("classId", "");
 
         if (classId == "null") {
             numStyles++;
@@ -156,7 +156,7 @@ int calculateNumStyles(const QDomElement &root)
 }
 
 // No need for endianness, Photoshop-specific
-void writeFileImpl(QIODevice &device, const QDomDocument &doc)
+void writeFileImpl(PkStream &device, const PkXmlDocument &doc)
 {
     {
         quint16 stylesVersion = 2;
@@ -164,8 +164,8 @@ void writeFileImpl(QIODevice &device, const QDomDocument &doc)
     }
 
     {
-        QString signature("8BSL");
-        if (!device.write(signature.toLatin1().data(), 4)) {
+        PkString signature("8BSL");
+        if (!device.write(psdToLatin1(signature).data(), 4)) {
             throw ASLWriteException("Failed to write ASL signature");
         }
     }
@@ -182,7 +182,7 @@ void writeFileImpl(QIODevice &device, const QDomDocument &doc)
         patternsWriter.writePatterns();
     }
 
-    QDomElement root = doc.documentElement();
+    PkXmlElement root = doc.documentElement();
     KIS_ASSERT_RECOVER_RETURN(root.tagName() == "asl");
 
     int numStyles = calculateNumStyles(root);
@@ -193,7 +193,7 @@ void writeFileImpl(QIODevice &device, const QDomDocument &doc)
         SAFE_WRITE_EX(psd_byte_order::psdBigEndian, device, numStylesTag);
     }
 
-    QDomNode child = root.firstChild();
+    PkXmlNode child = root.firstChild();
 
     for (int styleIndex = 0; styleIndex < numStyles; styleIndex++) {
         KisAslWriterUtils::OffsetStreamPusher<quint32, psd_byte_order::psdBigEndian> theOnlyStyleSizeField(device);
@@ -206,8 +206,8 @@ void writeFileImpl(QIODevice &device, const QDomDocument &doc)
         }
 
         while (!child.isNull()) {
-            QDomElement el = child.toElement();
-            QString key = el.attribute("key", "");
+            PkXmlElement el = child.toElement();
+            PkString key = el.attribute("key", "");
 
             if (key != ResourceType::Patterns)
                 break;
@@ -229,16 +229,17 @@ void writeFileImpl(QIODevice &device, const QDomDocument &doc)
         // ASL files' size should be 4-bytes aligned
         const qint64 paddingSize = 4 - (device.pos() & 0x3);
         if (paddingSize != 4) {
-            QByteArray padding(paddingSize, '\0');
-            device.write(padding);
+            PkByteArray padding;
+            padding.resize(static_cast<int>(paddingSize));
+            device.write(padding.constData(), padding.size());
         }
     }
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void writePsdLfx2SectionImpl(QIODevice &device, const QDomDocument &doc)
+void writePsdLfx2SectionImpl(PkStream &device, const PkXmlDocument &doc)
 {
-    QDomElement root = doc.documentElement();
+    PkXmlElement root = doc.documentElement();
     KIS_ASSERT_RECOVER_RETURN(root.tagName() == "asl");
 
     int numStyles = calculateNumStyles(root);
@@ -254,11 +255,11 @@ void writePsdLfx2SectionImpl(QIODevice &device, const QDomDocument &doc)
         SAFE_WRITE_EX(byteOrder, device, descriptorVersion);
     }
 
-    QDomNode child = root.firstChild();
+    PkXmlNode child = root.firstChild();
 
     while (!child.isNull()) {
-        QDomElement el = child.toElement();
-        QString key = el.attribute("key", "");
+        PkXmlElement el = child.toElement();
+        PkString key = el.attribute("key", "");
 
         if (key != ResourceType::Patterns)
             break;
@@ -272,15 +273,16 @@ void writePsdLfx2SectionImpl(QIODevice &device, const QDomDocument &doc)
     // ASL files' size should be 4-bytes aligned
     const qint64 paddingSize = 4 - (device.pos() & 0x3);
     if (paddingSize != 4) {
-        QByteArray padding(static_cast<int>(paddingSize), '\0');
-        device.write(padding);
+        PkByteArray padding;
+        padding.resize(static_cast<int>(paddingSize));
+        device.write(padding.constData(), padding.size());
     }
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void writeFillLayerSectionImpl(QIODevice &device, const QDomDocument &doc)
+void writeFillLayerSectionImpl(PkStream &device, const PkXmlDocument &doc)
 {
-    QDomElement root = doc.documentElement();
+    PkXmlElement root = doc.documentElement();
     KIS_ASSERT_RECOVER_RETURN(root.tagName() == "asl");
 
     {
@@ -288,11 +290,11 @@ void writeFillLayerSectionImpl(QIODevice &device, const QDomDocument &doc)
         SAFE_WRITE_EX(byteOrder, device, descriptorVersion);
     }
 
-    QDomNode child = root.firstChild();
+    PkXmlNode child = root.firstChild();
 
     while (!child.isNull()) {
-        QDomElement el = child.toElement();
-        QString key = el.attribute("key", "");
+        PkXmlElement el = child.toElement();
+        PkString key = el.attribute("key", "");
 
         if (key != ResourceType::Patterns)
             break;
@@ -306,15 +308,16 @@ void writeFillLayerSectionImpl(QIODevice &device, const QDomDocument &doc)
     // ASL files' size should be 4-bytes aligned
     const qint64 paddingSize = 4 - (device.pos() & 0x3);
     if (paddingSize != 4) {
-        QByteArray padding(static_cast<int>(paddingSize), '\0');
-        device.write(padding);
+        PkByteArray padding;
+        padding.resize(static_cast<int>(paddingSize));
+        device.write(padding.constData(), padding.size());
     }
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void writeTypeToolSectionImpl(QIODevice &device, const QDomDocument &doc, const QDomDocument &warpDoc, const QTransform tf, const QRectF bounds)
+void writeTypeToolSectionImpl(PkStream &device, const PkXmlDocument &doc, const PkXmlDocument &warpDoc, const PkTransform tf, const PkRectF bounds)
 {
-    QDomElement root = doc.documentElement();
+    PkXmlElement root = doc.documentElement();
     KIS_ASSERT_RECOVER_RETURN(root.tagName() == "asl");
 
     {
@@ -338,7 +341,7 @@ void writeTypeToolSectionImpl(QIODevice &device, const QDomDocument &doc, const 
         SAFE_WRITE_EX(byteOrder, device, descriptorVersion);
     }
 
-    QDomNode child = root.firstChild();
+    PkXmlNode child = root.firstChild();
     parseElement<byteOrder>(child.toElement(), device);
 
     // warp data
@@ -349,10 +352,10 @@ void writeTypeToolSectionImpl(QIODevice &device, const QDomDocument &doc, const 
         SAFE_WRITE_EX(byteOrder, device, descriptorVersion);
     }
 
-    QDomElement warpRoot = warpDoc.documentElement();
+    PkXmlElement warpRoot = warpDoc.documentElement();
     KIS_ASSERT_RECOVER_RETURN(warpRoot.tagName() == "asl");
 
-    QDomNode warpChild = warpRoot.firstChild();
+    PkXmlNode warpChild = warpRoot.firstChild();
     parseElement<byteOrder>(warpChild.toElement(), device);
 
     {
@@ -365,15 +368,16 @@ void writeTypeToolSectionImpl(QIODevice &device, const QDomDocument &doc, const 
     // ASL files' size should be 4-bytes aligned
     const qint64 paddingSize = 4 - (device.pos() & 0x3);
     if (paddingSize != 4) {
-        QByteArray padding(static_cast<int>(paddingSize), '\0');
-        device.write(padding);
+        PkByteArray padding;
+        padding.resize(static_cast<int>(paddingSize));
+        device.write(padding.constData(), padding.size());
     }
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void writeVectorStrokeDataImpl(QIODevice &device, const QDomDocument &doc)
+void writeVectorStrokeDataImpl(PkStream &device, const PkXmlDocument &doc)
 {
-    QDomElement root = doc.documentElement();
+    PkXmlElement root = doc.documentElement();
     KIS_ASSERT_RECOVER_RETURN(root.tagName() == "asl");
 
     {
@@ -381,21 +385,22 @@ void writeVectorStrokeDataImpl(QIODevice &device, const QDomDocument &doc)
         SAFE_WRITE_EX(byteOrder, device, descriptorVersion);
     }
 
-    QDomNode child = root.firstChild();
+    PkXmlNode child = root.firstChild();
     parseElement<byteOrder>(child.toElement(), device);
 
     // ASL files' size should be 4-bytes aligned
     const qint64 paddingSize = 4 - (device.pos() & 0x3);
     if (paddingSize != 4) {
-        QByteArray padding(static_cast<int>(paddingSize), '\0');
-        device.write(padding);
+        PkByteArray padding;
+        padding.resize(static_cast<int>(paddingSize));
+        device.write(padding.constData(), padding.size());
     }
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void writeVectorOriginationDataImpl(QIODevice &device, const QDomDocument &doc)
+void writeVectorOriginationDataImpl(PkStream &device, const PkXmlDocument &doc)
 {
-    QDomElement root = doc.documentElement();
+    PkXmlElement root = doc.documentElement();
     KIS_ASSERT_RECOVER_RETURN(root.tagName() == "asl");
 
     {
@@ -407,14 +412,15 @@ void writeVectorOriginationDataImpl(QIODevice &device, const QDomDocument &doc)
         SAFE_WRITE_EX(byteOrder, device, descriptorVersion);
     }
 
-    QDomNode child = root.firstChild();
+    PkXmlNode child = root.firstChild();
     parseElement<byteOrder>(child.toElement(), device);
 
     // ASL files' size should be 4-bytes aligned
     const qint64 paddingSize = 4 - (device.pos() & 0x3);
     if (paddingSize != 4) {
-        QByteArray padding(static_cast<int>(paddingSize), '\0');
-        device.write(padding);
+        PkByteArray padding;
+        padding.resize(static_cast<int>(paddingSize));
+        device.write(padding.constData(), padding.size());
     }
 }
 
@@ -425,7 +431,7 @@ KisAslWriter::KisAslWriter(psd_byte_order byteOrder)
 {
 }
 
-void KisAslWriter::writeFile(QIODevice &device, const QDomDocument &doc)
+void KisAslWriter::writeFile(PkStream &device, const PkXmlDocument &doc)
 {
     try {
         Private::writeFileImpl(device, doc);
@@ -434,7 +440,7 @@ void KisAslWriter::writeFile(QIODevice &device, const QDomDocument &doc)
     }
 }
 
-void KisAslWriter::writeFillLayerSectionEx(QIODevice &device, const QDomDocument &doc)
+void KisAslWriter::writeFillLayerSectionEx(PkStream &device, const PkXmlDocument &doc)
 {
     switch (m_byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -446,7 +452,7 @@ void KisAslWriter::writeFillLayerSectionEx(QIODevice &device, const QDomDocument
     }
 }
 
-void KisAslWriter::writePsdLfx2SectionEx(QIODevice &device, const QDomDocument &doc)
+void KisAslWriter::writePsdLfx2SectionEx(PkStream &device, const PkXmlDocument &doc)
 {
     switch (m_byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -458,7 +464,7 @@ void KisAslWriter::writePsdLfx2SectionEx(QIODevice &device, const QDomDocument &
     }
 }
 
-void KisAslWriter::writeTypeToolObjectSettings(QIODevice &device, const QDomDocument &doc, const QDomDocument &warpDoc, const QTransform tf, const QRectF bounds)
+void KisAslWriter::writeTypeToolObjectSettings(PkStream &device, const PkXmlDocument &doc, const PkXmlDocument &warpDoc, const PkTransform tf, const PkRectF bounds)
 {
     switch (m_byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -470,7 +476,7 @@ void KisAslWriter::writeTypeToolObjectSettings(QIODevice &device, const QDomDocu
     }
 }
 
-void KisAslWriter::writeVectorStrokeDataEx(QIODevice &device, const QDomDocument &doc)
+void KisAslWriter::writeVectorStrokeDataEx(PkStream &device, const PkXmlDocument &doc)
 {
     switch (m_byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -482,7 +488,7 @@ void KisAslWriter::writeVectorStrokeDataEx(QIODevice &device, const QDomDocument
     }
 }
 
-void KisAslWriter::writeVectorOriginationDataEx(QIODevice &device, const QDomDocument &doc)
+void KisAslWriter::writeVectorOriginationDataEx(PkStream &device, const PkXmlDocument &doc)
 {
     switch (m_byteOrder) {
     case psd_byte_order::psdLittleEndian:

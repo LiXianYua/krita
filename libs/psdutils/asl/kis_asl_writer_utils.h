@@ -10,11 +10,11 @@
 
 #include "kritapsdutils_export.h"
 
+#include <random>
 #include <stdexcept>
 #include <string>
 
-#include <QIODevice>
-#include <QUuid>
+#include <PkStream.h>
 
 #include <kis_debug.h>
 #include <resources/KoPattern.h>
@@ -28,8 +28,8 @@ namespace KisAslWriterUtils
  * Exception that is emitted when any write error appear.
  */
 struct KRITAPSDUTILS_EXPORT ASLWriteException : public std::runtime_error {
-    ASLWriteException(const QString &msg)
-        : std::runtime_error(msg.toLatin1().data())
+    ASLWriteException(const PkString &msg)
+        : std::runtime_error(psdToLatin1(msg).c_str())
     {
     }
 };
@@ -38,7 +38,7 @@ struct KRITAPSDUTILS_EXPORT ASLWriteException : public std::runtime_error {
 
 #define SAFE_WRITE_EX(byteOrder, device, varname)                                                                                                              \
     if (!psdwrite<byteOrder>(device, varname)) {                                                                                                               \
-        QString msg = QString("Failed to write \'%1\' tag!").arg(#varname);                                                                                    \
+        PkString msg = PkString("Failed to write \'%1\' tag!").arg(#varname);                                                                                    \
         throw KisAslWriterUtils::ASLWriteException(msg);                                                                                                       \
     }
 
@@ -46,7 +46,7 @@ namespace KisAslWriterUtils
 {
 // XXX: rect uses variable-sized type, is this correct?
 template<psd_byte_order byteOrder>
-inline void writeRect(const QRect &rect, QIODevice &device)
+inline void writeRect(const PkRect &rect, PkStream &device)
 {
     {
         const qint32 rectY0 = static_cast<qint32>(rect.y());
@@ -67,80 +67,147 @@ inline void writeRect(const QRect &rect, QIODevice &device)
 }
 
 template<psd_byte_order byteOrder>
-inline void writeUnicodeString(const QString &value, QIODevice &device)
+inline void writeUnicodeString(const PkString &value, PkStream &device)
 {
-    const quint32 len = static_cast<quint32>(value.length() + 1);
+    const quint32 len = static_cast<quint32>(value.size() + 1);
     SAFE_WRITE_EX(byteOrder, device, len);
 
-    const quint16 *ptr = value.utf16();
+    // PkString 无 utf16()，用 PkToU16() 取 UTF-16 码元数组；
+    // std::u16string 保证 [size()] == u'\0'，循环含结尾的 NUL（与 Qt utf16() 一致）。
+    const std::u16string u16 = value.PkToU16();
     for (quint32 i = 0; i < len; i++) {
-        SAFE_WRITE_EX(byteOrder, device, ptr[i]);
+        const quint16 c = static_cast<quint16>(u16[i]);
+        SAFE_WRITE_EX(byteOrder, device, c);
     }
 }
 
 template<psd_byte_order byteOrder>
-inline void writeVarString(const QString &value, QIODevice &device)
+inline void writeVarString(const PkString &value, PkStream &device)
 {
-    const quint32 lenTag = static_cast<quint32>(value.length() != 4 ? value.length() : 0);
+    const quint32 lenTag = static_cast<quint32>(value.size() != 4 ? value.size() : 0);
     SAFE_WRITE_EX(byteOrder, device, lenTag);
 
-    if (!device.write(value.toLatin1().data(), value.length())) {
+    const std::string latin1 = psdToLatin1(value);
+    if (!device.write(latin1.data(), value.size())) {
         warnKrita << "WARNING: ASL: Failed to write ASL string" << ppVar(value);
         return;
     }
 }
 
 template<psd_byte_order byteOrder>
-inline void writePascalString(const QString &value, QIODevice &device)
+inline void writePascalString(const PkString &value, PkStream &device)
 {
-    KIS_ASSERT_RECOVER_RETURN(value.length() < 256);
-    KIS_ASSERT_RECOVER_RETURN(value.length() >= 0);
-    const quint8 lenTag = static_cast<quint8>(value.length());
+    KIS_ASSERT_RECOVER_RETURN(value.size() < 256);
+    KIS_ASSERT_RECOVER_RETURN(value.size() >= 0);
+    const quint8 lenTag = static_cast<quint8>(value.size());
     SAFE_WRITE_EX(byteOrder, device, lenTag);
 
-    if (!device.write(value.toLatin1().data(), value.length())) {
+    const std::string latin1 = psdToLatin1(value);
+    if (!device.write(latin1.data(), value.size())) {
         warnKrita << "WARNING: ASL: Failed to write ASL string" << ppVar(value);
         return;
     }
 }
 
 template<psd_byte_order byteOrder>
-inline void writeFixedString(const QString &value, QIODevice &device)
+inline void writeFixedString(const PkString &value, PkStream &device)
 {
-    KIS_ASSERT_RECOVER_RETURN(value.length() == 4);
+    KIS_ASSERT_RECOVER_RETURN(value.size() == 4);
 
-    QByteArray data = value.toLatin1();
+    const std::string latin1 = psdToLatin1(value);
+    PkByteArray data(latin1.data(), static_cast<int>(latin1.size()));
 
     if (byteOrder == psd_byte_order::psdLittleEndian) {
-        std::reverse(data.begin(), data.end());
+        std::reverse(data.data(), data.data() + data.size());
     }
 
-    if (!device.write(data.data(), value.length())) {
+    if (!device.write(data.data(), value.size())) {
         warnKrita << "WARNING: ASL: Failed to write ASL string" << ppVar(value);
         return;
     }
+}
+
+// UUID 以「无花括号的 36 字符规范形式」的 PkString 表示，空串 = null。
+// aslParseUuid：对齐原 UUID 构造的严格解析（8-4-4-4-12，组间连字符，可带花括号），
+// 非法输入返回空串（原 UUID 类型解析失败时保持 null）。
+inline PkString aslParseUuid(const PkString &s)
+{
+    PkString t = s.trimmed();
+    if (t.size() == 38 && t.startsWith("{") && t.at(t.size() - 1) == u'}') {
+        t = t.mid(1, 36);
+    }
+    if (t.size() != 36) {
+        return PkString();
+    }
+
+    const int dashPositions[] = {8, 13, 18, 23};
+    int dashIdx = 0;
+    for (int i = 0; i < 36; ++i) {
+        const char16_t c = t.at(i);
+        if (dashIdx < 4 && i == dashPositions[dashIdx]) {
+            if (c != u'-') return PkString();
+            ++dashIdx;
+        } else {
+            const bool isHex = (c >= u'0' && c <= u'9') ||
+                               (c >= u'a' && c <= u'f') ||
+                               (c >= u'A' && c <= u'F');
+            if (!isHex) return PkString();
+        }
+    }
+    return t;
+}
+
+// 生成 RFC 4122 v4（随机）UUID，无花括号 36 字符。语义对齐原 createUuid()
+// 的格式；随机性来源用 std::random_device（值本身无测试依赖，只保格式）。
+inline PkString aslCreateUuid()
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dist(0, 255);
+
+    unsigned char bytes[16];
+    for (int i = 0; i < 16; ++i) {
+        bytes[i] = static_cast<unsigned char>(dist(gen));
+    }
+    bytes[6] = static_cast<unsigned char>((bytes[6] & 0x0F) | 0x40); // version 4
+    bytes[8] = static_cast<unsigned char>((bytes[8] & 0x3F) | 0x80); // variant 10xx
+
+    const char hex[] = "0123456789abcdef";
+    std::string s;
+    s.reserve(36);
+    for (int i = 0; i < 16; ++i) {
+        if (i == 4 || i == 6 || i == 8 || i == 10) {
+            s.push_back('-');
+        }
+        s.push_back(hex[bytes[i] >> 4]);
+        s.push_back(hex[bytes[i] & 0x0F]);
+    }
+    return PkString(s.c_str());
 }
 
 // Write UUID fetched from the file name or generate
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-inline QString getPatternUuidLazy(const KoPatternSP pattern)
+inline PkString getPatternUuidLazy(const KoPatternSP pattern)
 {
-    QUuid uuid;
-    QString patternFileName = pattern->filename();
+    PkString uuid; // 空 = null
+    PkString patternFileName = pattern->filename();
 
-    if (patternFileName.endsWith(".pat", Qt::CaseInsensitive)) {
-        QString strUuid = patternFileName.left(patternFileName.size() - 4);
+    // PkString 无 endsWith / 大小写不敏感比较：比较小写后缀。
+    if (patternFileName.size() >= 4 && patternFileName.right(4).toLower() == PkString(".pat")) {
+        PkString strUuid = patternFileName.left(patternFileName.size() - 4);
 
-        uuid = QUuid(strUuid);
+        uuid = aslParseUuid(strUuid);
     }
 
-    if (uuid.isNull()) {
+    if (uuid.isEmpty()) {
         warnKrita << "WARNING: Saved pattern doesn't have a UUID, generating...";
         warnKrita << ppVar(patternFileName) << ppVar(pattern->name());
-        uuid = QUuid::createUuid();
+        uuid = aslCreateUuid();
     }
 
-    return uuid.toString().mid(1, 36);
+    // 原 toString() 带花括号再 .mid(1, 36) 剥掉；这里直接以
+    // 36 字符无花括号形式持有，返回结果一致。
+    return uuid;
 }
 
 /**
@@ -160,7 +227,7 @@ template<class OffsetType, psd_byte_order byteOrder>
 class OffsetStreamPusher
 {
 public:
-    OffsetStreamPusher(QIODevice &device, qint64 alignOnExit = 0, qint64 externalSizeTagOffset = -1)
+    OffsetStreamPusher(PkStream &device, qint64 alignOnExit = 0, qint64 externalSizeTagOffset = -1)
         : m_device(device)
         , m_alignOnExit(alignOnExit)
         , m_externalSizeTagOffset(externalSizeTagOffset)
@@ -210,7 +277,7 @@ public:
 
 private:
     qint64 m_chunkStartPos;
-    QIODevice &m_device;
+    PkStream &m_device;
     qint64 m_alignOnExit;
     qint64 m_externalSizeTagOffset;
 };

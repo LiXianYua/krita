@@ -17,7 +17,7 @@
 #include "kis_asl_writer_utils.h"
 #include "kis_asl_xml_parser.h"
 
-KisAslPatternsWriter::KisAslPatternsWriter(const QDomDocument &doc, QIODevice &device, psd_byte_order byteOrder)
+KisAslPatternsWriter::KisAslPatternsWriter(const PkXmlDocument &doc, PkStream &device, psd_byte_order byteOrder)
     : m_doc(doc)
     , m_device(device)
     , m_numPatternsWritten(0)
@@ -35,12 +35,12 @@ void KisAslPatternsWriter::writePatterns()
     parser.parseXML(m_doc, c);
 }
 
-void sliceQImage(const QImage &image, QVector<QVector<QByteArray>> *dstPlanes, bool *isCompressed)
+void sliceQImage(const PkImage &image, PkVector<PkVector<PkByteArray>> *dstPlanes, bool *isCompressed)
 {
-    KIS_ASSERT_RECOVER_NOOP(image.format() == QImage::Format_ARGB32);
+    KIS_ASSERT_RECOVER_NOOP(image.format() == PkImage::Format_ARGB32);
 
-    QVector<QVector<QByteArray>> uncompressedRows;
-    QVector<QVector<QByteArray>> compressedRows;
+    PkVector<PkVector<PkByteArray>> uncompressedRows;
+    PkVector<PkVector<PkByteArray>> compressedRows;
 
     uncompressedRows.resize(3);
     compressedRows.resize(3);
@@ -53,7 +53,9 @@ void sliceQImage(const QImage &image, QVector<QVector<QByteArray>> *dstPlanes, b
         const int dstStep = 1;
 
         for (int row = 0; row < image.height(); row++) {
-            uncompressedRows[i].append(QByteArray(image.width(), '\0'));
+            PkByteArray rowBuf;
+            rowBuf.resize(image.width());
+            uncompressedRows[i].append(rowBuf);
             quint8 *dstPtr = (quint8 *)uncompressedRows[i].last().data();
 
             const quint8 *srcPtr = image.constScanLine(row) + srcRowOffset;
@@ -132,7 +134,7 @@ void KisAslPatternsWriter::addPatternImpl(const KoPatternSP pattern)
 
         // Write "Virtual Memory Array List"
 
-        const QRect patternRect(0, 0, pattern->width(), pattern->height());
+        const PkRect patternRect(0, 0, pattern->width(), pattern->height());
 
         {
             {
@@ -152,7 +154,7 @@ void KisAslPatternsWriter::addPatternImpl(const KoPatternSP pattern)
 
             KIS_ASSERT_RECOVER_RETURN(patternRect.size() == pattern->pattern().size());
 
-            QVector<QVector<QByteArray>> imagePlanes;
+            PkVector<PkVector<PkByteArray>> imagePlanes;
             bool isCompressed;
             sliceQImage(pattern->pattern(), &imagePlanes, &isCompressed);
 
@@ -186,14 +188,14 @@ void KisAslPatternsWriter::addPatternImpl(const KoPatternSP pattern)
                 KIS_ASSERT_RECOVER_RETURN(imagePlanes[i].size() == pattern->pattern().height());
 
                 if (isCompressed) {
-                    Q_FOREACH (const QByteArray &compressedRow, imagePlanes[i]) {
+                    for (const PkByteArray &compressedRow : imagePlanes[i]) {
                         const quint16 compressionRowSize = static_cast<quint16>(compressedRow.size());
                         SAFE_WRITE_EX(byteOrder, m_device, compressionRowSize);
                     }
                 }
 
-                Q_FOREACH (const QByteArray &rowData, imagePlanes[i]) {
-                    const qint64 bytesWritten = m_device.write(rowData);
+                for (const PkByteArray &rowData : imagePlanes[i]) {
+                    const qint64 bytesWritten = m_device.write(rowData.constData(), rowData.size());
                     if (bytesWritten != rowData.size()) {
                         throw KisAslWriterUtils::ASLWriteException("Failed to write a compressed pattern plane");
                     }

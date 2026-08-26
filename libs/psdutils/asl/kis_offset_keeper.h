@@ -9,7 +9,7 @@
 
 #include "kritapsdutils_export.h"
 
-#include <QIODevice>
+#include <PkStream.h>
 #include <kis_debug.h>
 
 /**
@@ -20,7 +20,7 @@
 class KisOffsetKeeper
 {
 public:
-    KisOffsetKeeper(QIODevice &device)
+    KisOffsetKeeper(PkStream &device)
         : m_device(device)
     {
         m_expectedPos = m_device.pos();
@@ -34,7 +34,7 @@ public:
     }
 
 private:
-    QIODevice &m_device;
+    PkStream &m_device;
     qint64 m_expectedPos;
 };
 

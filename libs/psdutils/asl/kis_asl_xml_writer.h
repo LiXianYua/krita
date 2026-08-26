@@ -7,18 +7,23 @@
 #ifndef __KIS_ASL_XML_WRITER_H
 #define __KIS_ASL_XML_WRITER_H
 
-#include <QScopedPointer>
-#include <QVector>
+#include <PkPointer.h>
+#include <PkScopedPointer.h>
+#include <PkVector.h>
 
 #include <KoPattern.h>
 #include <KoSegmentGradient.h>
 
 #include "kritapsdutils_export.h"
 
-class QString;
-class QColor;
-class QPointF;
-class QDomDocument;
+class PkString;
+class PkColor;
+class PkPointF;
+class PkXmlDocument;
+class PkByteArray;
+class PkPolygonF;
+class PkTransform;
+class PkRectF;
 
 class KoStopGradient;
 class KoSegmentGradient;
@@ -29,48 +34,48 @@ public:
     KisAslXmlWriter();
     ~KisAslXmlWriter();
 
-    QDomDocument document() const;
+    PkXmlDocument document() const;
 
-    void enterDescriptor(const QString &key, const QString &name, const QString &classId);
+    void enterDescriptor(const PkString &key, const PkString &name, const PkString &classId);
     void leaveDescriptor();
 
-    void enterList(const QString &key);
+    void enterList(const PkString &key);
     void leaveList();
 
-    void writeDouble(const QString &key, double value);
-    void writeInteger(const QString &key, int value);
-    void writeEnum(const QString &key, const QString &typeId, const QString &value);
-    void writeUnitFloat(const QString &key, const QString &unit, double value);
-    void writeText(const QString &key, const QString &value);
-    void writeBoolean(const QString &key, bool value);
-    void writeColor(const QString &key, const KoColor &value);
-    void writePoint(const QString &key, const QPointF &value);
-    void writePhasePoint(const QString &key, const QPointF &value);
-    void writeOffsetPoint(const QString &key, const QPointF &value);
-    void writeCurve(const QString &key, const QString &name, const QVector<QPointF> &points);
-    QString writePattern(const QString &key, const KoPatternSP pattern);
-    void writePatternRef(const QString &key, const KoPatternSP pattern, const QString &uuid);
-    void writeSegmentGradient(const QString &key, const KoSegmentGradient &gradient);
-    void writeStopGradient(const QString &key, const KoStopGradient &gradient);
-    void writeRawData(const QString key, const QByteArray *rawData);
-    void writeTransform(const QString &key, const QTransform &transform);
-    void writeUnitRect(const QString &key, const QString &unit, const QRectF &rect);
-    void writeFloatRect(const QString &key, const QRectF &rect);
-    void writePointRect(const QString &key, const QPolygonF &transformedRect);
+    void writeDouble(const PkString &key, double value);
+    void writeInteger(const PkString &key, int value);
+    void writeEnum(const PkString &key, const PkString &typeId, const PkString &value);
+    void writeUnitFloat(const PkString &key, const PkString &unit, double value);
+    void writeText(const PkString &key, const PkString &value);
+    void writeBoolean(const PkString &key, bool value);
+    void writeColor(const PkString &key, const KoColor &value);
+    void writePoint(const PkString &key, const PkPointF &value);
+    void writePhasePoint(const PkString &key, const PkPointF &value);
+    void writeOffsetPoint(const PkString &key, const PkPointF &value);
+    void writeCurve(const PkString &key, const PkString &name, const PkVector<PkPointF> &points);
+    PkString writePattern(const PkString &key, const KoPatternSP pattern);
+    void writePatternRef(const PkString &key, const KoPatternSP pattern, const PkString &uuid);
+    void writeSegmentGradient(const PkString &key, const KoSegmentGradient &gradient);
+    void writeStopGradient(const PkString &key, const KoStopGradient &gradient);
+    void writeRawData(const PkString key, const PkByteArray *rawData);
+    void writeTransform(const PkString &key, const PkTransform &transform);
+    void writeUnitRect(const PkString &key, const PkString &unit, const PkRectF &rect);
+    void writeFloatRect(const PkString &key, const PkRectF &rect);
+    void writePointRect(const PkString &key, const PkPolygonF &transformedRect);
 
 private:
-    QString getSegmentEndpointTypeString(KoGradientSegmentEndpointType segtype);
-    void writeGradientImpl(const QString &key,
-                           const QString &name,
-                           QVector<KoColor> colors,
-                           QVector<qreal> transparencies,
-                           QVector<qreal> positions,
-                           QVector<QString> types,
-                           QVector<qreal> middleOffsets);
+    PkString getSegmentEndpointTypeString(KoGradientSegmentEndpointType segtype);
+    void writeGradientImpl(const PkString &key,
+                           const PkString &name,
+                           PkVector<KoColor> colors,
+                           PkVector<qreal> transparencies,
+                           PkVector<qreal> positions,
+                           PkVector<PkString> types,
+                           PkVector<qreal> middleOffsets);
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_ASL_XML_WRITER_H */

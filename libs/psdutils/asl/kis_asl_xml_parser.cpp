@@ -9,12 +9,12 @@
 #include <stdexcept>
 #include <string>
 
-#include <QBuffer>
-#include <QDomDocument>
-#include <QIODevice>
-#include <QFileInfo>
+#include <PkXmlDocument.h>
+#include <PkStream.h>
+#include <PkCosMemoryStream.h>
 
-#include <QColor>
+#include <PkColor.h>
+#include "kis_asl_byte_utils.h"
 
 #include <KoColorSpaceRegistry.h>
 #include <KoColorConversions.h>
@@ -31,12 +31,12 @@
 
 namespace Private
 {
-void parseElement(const QDomElement &el, const QString &parentPath, KisAslObjectCatcher &catcher);
+void parseElement(const PkXmlElement &el, const PkString &parentPath, KisAslObjectCatcher &catcher);
 
 class CurveObjectCatcher : public KisAslObjectCatcher
 {
 public:
-    void addText(const QString &path, const QString &value) override
+    void addText(const PkString &path, const PkString &value) override
     {
         if (path == "/Nm  ") {
             m_name = value;
@@ -45,7 +45,7 @@ public:
         }
     }
 
-    void addPoint(const QString &path, const QPointF &value) override
+    void addPoint(const PkString &path, const PkPointF &value) override
     {
         if (!m_arrayMode) {
             warnKrita << "XML (ASL): failed to parse curve object (array fault)" << path << value << ppVar(m_arrayMode);
@@ -55,18 +55,18 @@ public:
     }
 
 public:
-    QVector<QPointF> m_points;
-    QString m_name;
+    PkVector<PkPointF> m_points;
+    PkString m_name;
 };
 
-KoColor parseColorObject(QDomElement parent, QString classID)
+KoColor parseColorObject(PkXmlElement parent, PkString classID)
 {
     KoColor color;
     KoColor error = KoColor::fromXML("<color channeldepth='U8'><sRGB r='1.0' g='0.0' b='0.0'/></color>");
-    QDomDocument doc;
-    QDomElement root;
-    QString spotBook;
-    QString spotName;
+    PkXmlDocument doc;
+    PkXmlElement root;
+    PkString spotBook;
+    PkString spotName;
     int spotValue = 0;
     double h = 0;
     double s = 0;
@@ -87,12 +87,12 @@ KoColor parseColorObject(QDomElement parent, QString classID)
         return error;
     }
 
-    QDomNode child = parent.firstChild();
+    PkXmlNode child = parent.firstChild();
     while (!child.isNull()) {
-        QDomElement childEl = child.toElement();
+        PkXmlElement childEl = child.toElement();
 
-        QString type = childEl.attribute("type", "<unknown>");
-        QString key = childEl.attribute("key", "");
+        PkString type = childEl.attribute("type", "<unknown>");
+        PkString key = childEl.attribute("key", "");
 
         if (type == "Double" || type == "UnitFloat") {
             if (classID == "RGBC") {
@@ -114,13 +114,13 @@ KoColor parseColorObject(QDomElement parent, QString classID)
                 double value = KisDomUtils::toDouble(childEl.attribute("value", "0")) * 0.01;
                 // CMYK is stored in percentages...
                 if (key == "Cyn ") {
-                    root.setAttribute("c", value);
+                    root.setAttribute("c", KisDomUtils::toString(value));
                 } else if (key == "Mgnt") {
-                    root.setAttribute("m", value);
+                    root.setAttribute("m", KisDomUtils::toString(value));
                 } else if (key == "Ylw ") {
-                    root.setAttribute("y", value);
+                    root.setAttribute("y", KisDomUtils::toString(value));
                 } else if (key == "Blck") {
-                    root.setAttribute("k", value);
+                    root.setAttribute("k", KisDomUtils::toString(value));
                 } else {
                     warnKrita << "Unknown color key value double:" << ppVar(key);
                     return error;
@@ -140,7 +140,7 @@ KoColor parseColorObject(QDomElement parent, QString classID)
                 // Unsure that grey is stored as a percentage, might also be 255.
                 double value = KisDomUtils::toDouble(childEl.attribute("value", "0")) * 0.01;
                 if (key == "Gry ") {
-                    root.setAttribute("g", value);
+                    root.setAttribute("g", KisDomUtils::toString(value));
                 } else {
                     warnKrita << "Unknown color key value:" << ppVar(key);
                     return error;
@@ -184,9 +184,9 @@ KoColor parseColorObject(QDomElement parent, QString classID)
         float b = 0.0;
         float g = 0.0;
         HSVToRGB(h, s, v, &r, &g, &b);
-        root.setAttribute("r", r);
-        root.setAttribute("g", g);
-        root.setAttribute("b", b);
+        root.setAttribute("r", KisDomUtils::toString(r));
+        root.setAttribute("g", KisDomUtils::toString(g));
+        root.setAttribute("b", KisDomUtils::toString(b));
     }
     if (classID != "RGBC") {
         color = KoColor::fromXML(root, "U8");
@@ -201,29 +201,29 @@ KoColor parseColorObject(QDomElement parent, QString classID)
     return color;
 }
 
-void parseColorStopsList(QDomElement parent,
-                         QVector<qreal> &startLocations,
-                         QVector<qreal> &middleOffsets,
-                         QVector<KoColor> &colors,
-                         QVector<KoGradientSegmentEndpointType> &types)
+void parseColorStopsList(PkXmlElement parent,
+                         PkVector<qreal> &startLocations,
+                         PkVector<qreal> &middleOffsets,
+                         PkVector<KoColor> &colors,
+                         PkVector<KoGradientSegmentEndpointType> &types)
 {
-    QDomNode child = parent.firstChild();
+    PkXmlNode child = parent.firstChild();
     while (!child.isNull()) {
-        QDomElement childEl = child.toElement();
+        PkXmlElement childEl = child.toElement();
 
-        QString type = childEl.attribute("type", "<unknown>");
-        QString key = childEl.attribute("key", "");
-        QString classId = childEl.attribute("classId", "");
+        PkString type = childEl.attribute("type", "<unknown>");
+        PkString key = childEl.attribute("key", "");
+        PkString classId = childEl.attribute("classId", "");
 
         if (type == "Descriptor" && classId == "Clrt") {
             // sorry for naming...
-            QDomNode child = childEl.firstChild();
+            PkXmlNode child = childEl.firstChild();
             while (!child.isNull()) {
-                QDomElement childEl = child.toElement();
+                PkXmlElement childEl = child.toElement();
 
-                QString type = childEl.attribute("type", "<unknown>");
-                QString key = childEl.attribute("key", "");
-                QString classId = childEl.attribute("classId", "");
+                PkString type = childEl.attribute("type", "<unknown>");
+                PkString key = childEl.attribute("key", "");
+                PkString classId = childEl.attribute("classId", "");
 
                 if (type == "Integer" && key == "Lctn") {
                     int value = KisDomUtils::toInt(childEl.attribute("value", "0"));
@@ -237,13 +237,13 @@ void parseColorStopsList(QDomElement parent,
                     colors.append(parseColorObject(childEl, classId));
 
                 } else if (type == "Enum" && key == "Type") {
-                    QString typeId = childEl.attribute("typeId", "");
+                    PkString typeId = childEl.attribute("typeId", "");
 
                     if (typeId != "Clry") {
                         warnKrita << "WARNING: Invalid typeId of a gradient stop type" << typeId;
                     }
 
-                    QString value = childEl.attribute("value", "");
+                    PkString value = childEl.attribute("value", "");
                     if (value == "BckC") {
                         types.append(BACKGROUND_ENDPOINT);
                     } else if (value == "FrgC") {
@@ -263,24 +263,24 @@ void parseColorStopsList(QDomElement parent,
     }
 }
 
-void parseTransparencyStopsList(QDomElement parent, QVector<qreal> &startLocations, QVector<qreal> &middleOffsets, QVector<qreal> &transparencies)
+void parseTransparencyStopsList(PkXmlElement parent, PkVector<qreal> &startLocations, PkVector<qreal> &middleOffsets, PkVector<qreal> &transparencies)
 {
-    QDomNode child = parent.firstChild();
+    PkXmlNode child = parent.firstChild();
     while (!child.isNull()) {
-        QDomElement childEl = child.toElement();
+        PkXmlElement childEl = child.toElement();
 
-        QString type = childEl.attribute("type", "<unknown>");
-        QString key = childEl.attribute("key", "");
-        QString classId = childEl.attribute("classId", "");
+        PkString type = childEl.attribute("type", "<unknown>");
+        PkString key = childEl.attribute("key", "");
+        PkString classId = childEl.attribute("classId", "");
 
         if (type == "Descriptor" && classId == "TrnS") {
             // sorry for naming again...
-            QDomNode child = childEl.firstChild();
+            PkXmlNode child = childEl.firstChild();
             while (!child.isNull()) {
-                QDomElement childEl = child.toElement();
+                PkXmlElement childEl = child.toElement();
 
-                QString type = childEl.attribute("type", "<unknown>");
-                QString key = childEl.attribute("key", "");
+                PkString type = childEl.attribute("type", "<unknown>");
+                PkString key = childEl.attribute("key", "");
 
                 if (type == "Integer" && key == "Lctn") {
                     int value = KisDomUtils::toInt(childEl.attribute("value", "0"));
@@ -289,7 +289,7 @@ void parseTransparencyStopsList(QDomElement parent, QVector<qreal> &startLocatio
                     int value = KisDomUtils::toInt(childEl.attribute("value", "0"));
                     middleOffsets.append(qreal(value) / 100.0);
                 } else if (type == "UnitFloat" && key == "Opct") {
-                    QString unit = childEl.attribute("unit", "");
+                    PkString unit = childEl.attribute("unit", "");
                     if (unit != "#Prc") {
                         warnKrita << "WARNING: Invalid unit of a gradient stop transparency" << unit;
                     }
@@ -309,12 +309,12 @@ void parseTransparencyStopsList(QDomElement parent, QVector<qreal> &startLocatio
     }
 }
 
-inline QString buildPath(const QString &parent, const QString &key)
+inline PkString buildPath(const PkString &parent, const PkString &key)
 {
     return parent + "/" + key;
 }
 
-bool tryParseDescriptor(const QDomElement &el, const QString &path, const QString &classId, KisAslObjectCatcher &catcher)
+bool tryParseDescriptor(const PkXmlElement &el, const PkString &path, const PkString &classId, KisAslObjectCatcher &catcher)
 {
     bool retval = true;
 
@@ -331,7 +331,7 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
     } else if (classId == "ShpC") {
         CurveObjectCatcher curveCatcher;
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
             parseElement(child.toElement(), "", curveCatcher);
             child = child.nextSibling();
@@ -340,14 +340,14 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
         catcher.addCurve(path, curveCatcher.m_name, curveCatcher.m_points);
 
     } else if (classId == "CrPt") {
-        QPointF point;
+        PkPointF point;
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
-            QDomElement childEl = child.toElement();
+            PkXmlElement childEl = child.toElement();
 
-            QString type = childEl.attribute("type", "<unknown>");
-            QString key = childEl.attribute("key", "");
+            PkString type = childEl.attribute("type", "<unknown>");
+            PkString key = childEl.attribute("key", "");
 
             if (type == "Boolean" && key == "Cnty") {
                 warnKrita << "WARNING: tryParseDescriptor: The points of the curve object contain \'Cnty\' flag which is unsupported by Krita";
@@ -379,15 +379,15 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
         catcher.addPoint(path, point);
 
     } else if (classId == "Pnt ") {
-        QPointF point;
+        PkPointF point;
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
-            QDomElement childEl = child.toElement();
+            PkXmlElement childEl = child.toElement();
 
-            QString type = childEl.attribute("type", "<unknown>");
-            QString key = childEl.attribute("key", "");
-            QString unit = childEl.attribute("unit", "");
+            PkString type = childEl.attribute("type", "<unknown>");
+            PkString key = childEl.attribute("key", "");
+            PkString unit = childEl.attribute("unit", "");
 
             if (type != "Double" && !(type == "UnitFloat" && unit == "#Prc")) {
                 warnKrita << "Unknown point component type:" << ppVar(unit) << ppVar(type) << ppVar(key) << ppVar(path);
@@ -411,32 +411,32 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
         catcher.addPoint(path, point);
 
     } else if (classId == "KisPattern") {
-        QByteArray patternData;
-        QString patternUuid;
+        PkByteArray patternData;
+        PkString patternUuid;
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
-            QDomElement childEl = child.toElement();
+            PkXmlElement childEl = child.toElement();
 
-            QString type = childEl.attribute("type", "<unknown>");
-            QString key = childEl.attribute("key", "");
+            PkString type = childEl.attribute("type", "<unknown>");
+            PkString key = childEl.attribute("key", "");
 
             if (type == "Text" && key == "Idnt") {
                 patternUuid = childEl.attribute("value", "").trimmed();
             }
 
             if (type == "KisPatternData" && key == "Data") {
-                QDomNode dataNode = child.firstChild();
+                PkXmlNode dataNode = child.firstChild();
 
                 if (!dataNode.isCDATASection()) {
                     warnKrita << "WARNING: failed to parse KisPatternData XML section!";
                     continue;
                 }
 
-                QDomCDATASection dataSection = dataNode.toCDATASection();
-                QByteArray data = dataSection.data().toLatin1();
-                data = QByteArray::fromBase64(data);
-                data = qUncompress(data);
+                PkXmlCDATASection dataSection = dataNode.toCDATASection();
+                // CDATA 内容是 base64 的 ASCII 串：fromBase64 直接收 PkString。
+                PkByteArray data = pkFromBase64(dataSection.data());
+                data = pkQUncompress(data);
 
                 if (data.isEmpty()) {
                     warnKrita << "WARNING: failed to parse KisPatternData XML section!";
@@ -450,12 +450,12 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
         }
 
         if (!patternUuid.isEmpty() && !patternData.isEmpty()) {
-            QString fileName = QString("%1.pat").arg(patternUuid);
+            PkString fileName = PkString("%1.pat").arg(patternUuid);
 
-            QSharedPointer<KoPattern> pattern(new KoPattern(fileName));
+            PkSharedPointer<KoPattern> pattern(new KoPattern(fileName));
 
-            QBuffer buffer(&patternData);
-            buffer.open(QIODevice::ReadOnly);
+            PkCosMemoryStream buffer(&patternData);
+            buffer.open(PkStream::ReadOnly);
 
             if (pattern->loadPatFromDevice(&buffer) && pattern->valid()) {
                 catcher.addPattern(path, pattern, patternUuid);
@@ -468,15 +468,15 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
         }
 
     } else if (classId == "Ptrn") { // reference to an existing pattern
-        QString patternUuid;
-        QString patternName;
+        PkString patternUuid;
+        PkString patternName;
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
-            QDomElement childEl = child.toElement();
+            PkXmlElement childEl = child.toElement();
 
-            QString type = childEl.attribute("type", "<unknown>");
-            QString key = childEl.attribute("key", "");
+            PkString type = childEl.attribute("type", "<unknown>");
+            PkString key = childEl.attribute("key", "");
 
             if (type == "Text" && key == "Idnt") {
                 patternUuid = childEl.attribute("value", "");
@@ -492,30 +492,30 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
         catcher.addPatternRef(path, patternUuid, patternName);
 
     } else if (classId == "Grdn") {
-        QString gradientName;
+        PkString gradientName;
         qreal gradientSmoothness = 100.0;
 
-        QVector<qreal> startLocations;
-        QVector<qreal> middleOffsets;
-        QVector<KoColor> colors;
-        QVector<KoGradientSegmentEndpointType> types;
+        PkVector<qreal> startLocations;
+        PkVector<qreal> middleOffsets;
+        PkVector<KoColor> colors;
+        PkVector<KoGradientSegmentEndpointType> types;
 
-        QVector<qreal> transpStartLocations;
-        QVector<qreal> transpMiddleOffsets;
-        QVector<qreal> transparencies;
+        PkVector<qreal> transpStartLocations;
+        PkVector<qreal> transpMiddleOffsets;
+        PkVector<qreal> transparencies;
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
-            QDomElement childEl = child.toElement();
+            PkXmlElement childEl = child.toElement();
 
-            QString type = childEl.attribute("type", "<unknown>");
-            QString key = childEl.attribute("key", "");
+            PkString type = childEl.attribute("type", "<unknown>");
+            PkString key = childEl.attribute("key", "");
 
             if (type == "Text" && key == "Nm  ") {
                 gradientName = childEl.attribute("value", "");
             } else if (type == "Enum" && key == "GrdF") {
-                QString typeId = childEl.attribute("typeId", "");
-                QString value = childEl.attribute("value", "");
+                PkString typeId = childEl.attribute("typeId", "");
+                PkString value = childEl.attribute("value", "");
 
                 if (typeId != "GrdF" || value != "CstS") {
                     warnKrita << "WARNING: Unsupported gradient type (probably, noise-based):" << value;
@@ -576,8 +576,12 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
          * are always embedded into the style) so we don't really care about
          * the contents of the filename field. It should just be somewhat unique.
          */
-        const QString fileName = QFileInfo(gradientName).fileName() + ".ggr";
-        QSharedPointer<KoSegmentGradient> gradient(new KoSegmentGradient(fileName));
+        // 原实现按路径取文件名，语义：取路径最后一个 '/' 之后的部分。
+        // PkString 无 lastIndexOf，用 split 取末段等价。
+        const std::vector<PkString> pathParts = gradientName.split(u'/');
+        const PkString baseName = pathParts.empty() ? PkString() : pathParts.back();
+        const PkString fileName = baseName + ".ggr";
+        PkSharedPointer<KoSegmentGradient> gradient(new KoSegmentGradient(fileName));
         Q_UNUSED(gradientSmoothness);
         gradient->setName(gradientName);
 
@@ -613,12 +617,12 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
         double tx = 0.0;
         double ty = 0.0;
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
-            QDomElement childEl = child.toElement();
+            PkXmlElement childEl = child.toElement();
 
-            QString type = childEl.attribute("type", "<unknown>");
-            QString key = childEl.attribute("key", "");
+            PkString type = childEl.attribute("type", "<unknown>");
+            PkString key = childEl.attribute("key", "");
             double value = KisDomUtils::toDouble(childEl.attribute("value"));
 
 
@@ -640,17 +644,17 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
 
             child = child.nextSibling();
         }
-        catcher.addTransform(path, QTransform(xx, xy, yx, yy, tx, ty));
+        catcher.addTransform(path, PkTransform(xx, xy, yx, yy, tx, ty));
     } else if (classId == "classFloatRect") {
 
-        QRectF rect;
+        PkRectF rect;
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
-            QDomElement childEl = child.toElement();
+            PkXmlElement childEl = child.toElement();
 
-            QString type = childEl.attribute("type", "<unknown>");
-            QString key = childEl.attribute("key", "");
+            PkString type = childEl.attribute("type", "<unknown>");
+            PkString key = childEl.attribute("key", "");
             double value = KisDomUtils::toDouble(childEl.attribute("value"));
 
 
@@ -674,15 +678,15 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
             catcher.addRect(path, rect);
         }
     } else if (classId == "unitRect") {
-        QRectF rect;
+        PkRectF rect;
 
-        QDomNode child = el.firstChild();
-        QString unit;
+        PkXmlNode child = el.firstChild();
+        PkString unit;
         while (!child.isNull()) {
-            QDomElement childEl = child.toElement();
+            PkXmlElement childEl = child.toElement();
 
-            QString type = childEl.attribute("type", "<unknown>");
-            QString key = childEl.attribute("key", "");
+            PkString type = childEl.attribute("type", "<unknown>");
+            PkString key = childEl.attribute("key", "");
             unit = childEl.attribute("unit", unit);
             double value = KisDomUtils::toDouble(childEl.attribute("value"));
 
@@ -710,20 +714,20 @@ bool tryParseDescriptor(const QDomElement &el, const QString &path, const QStrin
     return retval;
 }
 
-void parseElement(const QDomElement &el, const QString &parentPath, KisAslObjectCatcher &catcher)
+void parseElement(const PkXmlElement &el, const PkString &parentPath, KisAslObjectCatcher &catcher)
 {
     KIS_ASSERT_RECOVER_RETURN(el.tagName() == "node");
 
-    QString type = el.attribute("type", "<unknown>");
-    QString key = el.attribute("key", "");
+    PkString type = el.attribute("type", "<unknown>");
+    PkString key = el.attribute("key", "");
 
     if (type == "Descriptor") {
-        QString classId = el.attribute("classId", "<noClassId>");
-        QString containerName = key.isEmpty() ? classId : key;
-        QString containerPath = buildPath(parentPath, containerName);
+        PkString classId = el.attribute("classId", "<noClassId>");
+        PkString containerName = key.isEmpty() ? classId : key;
+        PkString containerPath = buildPath(parentPath, containerName);
 
         if (!tryParseDescriptor(el, containerPath, classId, catcher)) {
-            QDomNode child = el.firstChild();
+            PkXmlNode child = el.firstChild();
             while (!child.isNull()) {
                 parseElement(child.toElement(), containerPath, catcher);
                 child = child.nextSibling();
@@ -732,10 +736,10 @@ void parseElement(const QDomElement &el, const QString &parentPath, KisAslObject
     } else if (type == "List") {
         catcher.setArrayMode(true);
 
-        QString containerName = key;
-        QString containerPath = buildPath(parentPath, containerName);
+        PkString containerName = key;
+        PkString containerPath = buildPath(parentPath, containerName);
 
-        QDomNode child = el.firstChild();
+        PkXmlNode child = el.firstChild();
         while (!child.isNull()) {
             parseElement(child.toElement(), containerPath, catcher);
             child = child.nextSibling();
@@ -746,15 +750,15 @@ void parseElement(const QDomElement &el, const QString &parentPath, KisAslObject
         double v = KisDomUtils::toDouble(el.attribute("value", "0"));
         catcher.addDouble(buildPath(parentPath, key), v);
     } else if (type == "UnitFloat") {
-        QString unit = el.attribute("unit", "<unknown>");
+        PkString unit = el.attribute("unit", "<unknown>");
         double v = KisDomUtils::toDouble(el.attribute("value", "0"));
         catcher.addUnitFloat(buildPath(parentPath, key), unit, v);
     } else if (type == "Text") {
-        QString v = el.attribute("value", "");
+        PkString v = el.attribute("value", "");
         catcher.addText(buildPath(parentPath, key), v);
     } else if (type == "Enum") {
-        QString v = el.attribute("value", "");
-        QString typeId = el.attribute("typeId", "<unknown>");
+        PkString v = el.attribute("value", "");
+        PkString typeId = el.attribute("typeId", "<unknown>");
         catcher.addEnum(buildPath(parentPath, key), typeId, v);
     } else if (type == "Integer") {
         int v = KisDomUtils::toInt(el.attribute("value", "0"));
@@ -763,16 +767,16 @@ void parseElement(const QDomElement &el, const QString &parentPath, KisAslObject
         int v = KisDomUtils::toInt(el.attribute("value", "0"));
         catcher.addBoolean(buildPath(parentPath, key), v);
     } else if (type == "RawData") {
-        QDomNode dataNode = el.firstChild();
+        PkXmlNode dataNode = el.firstChild();
 
         if (!dataNode.isCDATASection()) {
             warnKrita << "WARNING: failed to parse RawData XML section!";
             return;
         }
 
-        QDomCDATASection dataSection = dataNode.toCDATASection();
-        QByteArray data = dataSection.data().toLatin1();
-        data = QByteArray::fromBase64(data);
+        PkXmlCDATASection dataSection = dataNode.toCDATASection();
+        // CDATA 内容是 base64 的 ASCII 串：fromBase64 直接收 PkString。
+        PkByteArray data = pkFromBase64(dataSection.data());
 
         if (data.isEmpty()) {
             warnKrita << "WARNING: failed to parse RawData XML section!";
@@ -785,14 +789,14 @@ void parseElement(const QDomElement &el, const QString &parentPath, KisAslObject
 
 } // namespace
 
-void KisAslXmlParser::parseXML(const QDomDocument &doc, KisAslObjectCatcher &catcher)
+void KisAslXmlParser::parseXML(const PkXmlDocument &doc, KisAslObjectCatcher &catcher)
 {
-    QDomElement root = doc.documentElement();
+    PkXmlElement root = doc.documentElement();
     if (root.tagName() != "asl") {
         return;
     }
 
-    QDomNode child = root.firstChild();
+    PkXmlNode child = root.firstChild();
     while (!child.isNull()) {
         Private::parseElement(child.toElement(), "", catcher);
         child = child.nextSibling();

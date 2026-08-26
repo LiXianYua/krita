@@ -9,8 +9,8 @@
 
 #include "kritapsdutils_export.h"
 
-#include <QIODevice>
-#include <QString>
+#include <PkStream.h>
+#include <PkString.h>
 #include <kis_debug.h>
 
 //#define DEBUG_OFFSET_ON_EXIT
@@ -21,10 +21,17 @@
  * a warning if needed.
  */
 
+// PkString 无静态 number()，这里补一个小整数→PkString 的便捷函数
+// （std::to_string + PkString 的 const char* 隐式构造）。
+inline PkString aslStringFromInt(int value)
+{
+    return PkString(std::to_string(value).c_str());
+}
+
 class KRITAPSDUTILS_EXPORT KisOffsetOnExitVerifier
 {
 public:
-    KisOffsetOnExitVerifier(QIODevice &device, qint64 expectedOffset, int maxPadding, const QString &objectName = "", const QString &domain = "")
+    KisOffsetOnExitVerifier(PkStream &device, qint64 expectedOffset, int maxPadding, const PkString &objectName = "", const PkString &domain = "")
         : m_device(device)
         , m_maxPadding(maxPadding)
         , m_domain(domain)
@@ -38,7 +45,7 @@ public:
         if (m_device.pos() < m_expectedPos - m_maxPadding || m_device.pos() > m_expectedPos) {
 #ifdef DEBUG_OFFSET_ON_EXIT
 
-            QString msg = QString("Incorrect offset on exit %1, expected %2!").arg(m_device.pos()).arg(m_expectedPos);
+            PkString msg = PkString("Incorrect offset on exit %1, expected %2!").arg(m_device.pos()).arg(m_expectedPos);
 
             warnKrita << "*** |" << m_objectName << msg;
             warnKrita << "    |" << m_domain;
@@ -50,14 +57,14 @@ public:
     }
 
 private:
-    QIODevice &m_device;
+    PkStream &m_device;
     int m_maxPadding;
     qint64 m_expectedPos;
-    QString m_domain;
-    QString m_objectName;
+    PkString m_domain;
+    PkString m_objectName;
 };
 
 #define SETUP_OFFSET_VERIFIER(name, device, expectedOffset, maxPadding)                                                                                        \
-    KisOffsetOnExitVerifier name(device, expectedOffset, maxPadding, QString(#name), QString(__FILE__) + ":" + QString::number(__LINE__))
+    KisOffsetOnExitVerifier name(device, expectedOffset, maxPadding, PkString(#name), PkString(__FILE__) + ":" + aslStringFromInt(__LINE__))
 
 #endif /* __KIS_OFFSET_ON_EXIT_VERIFIER_H */

@@ -11,20 +11,22 @@
 #include "kritapsdutils_export.h"
 #include "psd.h"
 
-class QDomDocument;
-class QIODevice;
+class PkXmlDocument;
+class PkStream;
+class PkTransform;
+class PkRectF;
 
 class KRITAPSDUTILS_EXPORT KisAslWriter
 {
 public:
     KisAslWriter(psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
 
-    void writeFile(QIODevice &device, const QDomDocument &doc);
-    void writeFillLayerSectionEx(QIODevice &device, const QDomDocument &doc);
-    void writePsdLfx2SectionEx(QIODevice &device, const QDomDocument &doc);
-    void writeTypeToolObjectSettings(QIODevice &device, const QDomDocument &doc, const QDomDocument &warpDoc, const QTransform tf, const QRectF bounds);
-    void writeVectorStrokeDataEx(QIODevice &device, const QDomDocument &doc);
-    void writeVectorOriginationDataEx(QIODevice &device, const QDomDocument &doc);
+    void writeFile(PkStream &device, const PkXmlDocument &doc);
+    void writeFillLayerSectionEx(PkStream &device, const PkXmlDocument &doc);
+    void writePsdLfx2SectionEx(PkStream &device, const PkXmlDocument &doc);
+    void writeTypeToolObjectSettings(PkStream &device, const PkXmlDocument &doc, const PkXmlDocument &warpDoc, const PkTransform tf, const PkRectF bounds);
+    void writeVectorStrokeDataEx(PkStream &device, const PkXmlDocument &doc);
+    void writeVectorOriginationDataEx(PkStream &device, const PkXmlDocument &doc);
 
 private:
     psd_byte_order m_byteOrder;

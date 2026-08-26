@@ -8,20 +8,37 @@
 
 #include "kis_dom_utils.h"
 
+#include <cstring>
 #include <stdexcept>
 #include <string>
 
-#include <QBuffer>
-#include <QDomDocument>
-#include <QIODevice>
+#include <PkXmlDocument.h>
+#include <PkStream.h>
+#include <PkCosMemoryStream.h>
+#include <PkRgb.h>
 
 #include "compression.h"
+#include "kis_asl_byte_utils.h"
 #include "kis_offset_on_exit_verifier.h"
 #include "psd.h"
 #include "psd_utils.h"
 
 #include "kis_asl_reader_utils.h"
 #include "kis_asl_writer_utils.h"
+
+
+namespace Private {
+// PkByteArray 无 append()/operator[]，RLE 逐行累积与按索引取字节在这里补齐。
+inline void pkAppendBytes(PkByteArray &dst, const PkByteArray &src)
+{
+    const int oldSize = dst.size();
+    const int addSize = src.size();
+    dst.resize(oldSize + addSize);
+    if (addSize > 0) {
+        std::memcpy(dst.data() + oldSize, src.constData(), static_cast<size_t>(addSize));
+    }
+}
+}
 
 namespace Private
 {
@@ -33,7 +50,7 @@ namespace Private
  */
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-QString readDoubleAsString(QIODevice &device)
+PkString readDoubleAsString(PkStream &device)
 {
     double value = 0.0;
     SAFE_READ_EX(byteOrder, device, value);
@@ -42,7 +59,7 @@ QString readDoubleAsString(QIODevice &device)
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-QString readIntAsString(QIODevice &device)
+PkString readIntAsString(PkStream &device)
 {
     quint32 value = 0.0;
     SAFE_READ_EX(byteOrder, device, value);
@@ -51,7 +68,7 @@ QString readIntAsString(QIODevice &device)
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-QString readBoolAsString(QIODevice &device)
+PkString readBoolAsString(PkStream &device)
 {
     quint8 value = 0.0;
     SAFE_READ_EX(byteOrder, device, value);
@@ -65,9 +82,9 @@ QString readBoolAsString(QIODevice &device)
  * Add a node and fill the corresponding attributes
  */
 
-QDomElement appendXMLNodeCommon(const QString &key, const QString &value, const QString &type, QDomElement *parent, QDomDocument *doc)
+PkXmlElement appendXMLNodeCommon(const PkString &key, const PkString &value, const PkString &type, PkXmlElement *parent, PkXmlDocument *doc)
 {
-    QDomElement el = doc->createElement("node");
+    PkXmlElement el = doc->createElement("node");
     if (!key.isEmpty()) {
         el.setAttribute("key", key);
     }
@@ -78,9 +95,9 @@ QDomElement appendXMLNodeCommon(const QString &key, const QString &value, const 
     return el;
 }
 
-QDomElement appendXMLNodeCommonNoValue(const QString &key, const QString &type, QDomElement *parent, QDomDocument *doc)
+PkXmlElement appendXMLNodeCommonNoValue(const PkString &key, const PkString &type, PkXmlElement *parent, PkXmlDocument *doc)
 {
-    QDomElement el = doc->createElement("node");
+    PkXmlElement el = doc->createElement("node");
     if (!key.isEmpty()) {
         el.setAttribute("key", key);
     }
@@ -90,24 +107,24 @@ QDomElement appendXMLNodeCommonNoValue(const QString &key, const QString &type, 
     return el;
 }
 
-void appendIntegerXMLNode(const QString &key, const QString &value, QDomElement *parent, QDomDocument *doc)
+void appendIntegerXMLNode(const PkString &key, const PkString &value, PkXmlElement *parent, PkXmlDocument *doc)
 {
     appendXMLNodeCommon(key, value, "Integer", parent, doc);
 }
 
-void appendDoubleXMLNode(const QString &key, const QString &value, QDomElement *parent, QDomDocument *doc)
+void appendDoubleXMLNode(const PkString &key, const PkString &value, PkXmlElement *parent, PkXmlDocument *doc)
 {
     appendXMLNodeCommon(key, value, "Double", parent, doc);
 }
 
-void appendTextXMLNode(const QString &key, const QString &value, QDomElement *parent, QDomDocument *doc)
+void appendTextXMLNode(const PkString &key, const PkString &value, PkXmlElement *parent, PkXmlDocument *doc)
 {
     appendXMLNodeCommon(key, value, "Text", parent, doc);
 }
 
-void appendPointXMLNode(const QString &key, const QPointF &pt, QDomElement *parent, QDomDocument *doc)
+void appendPointXMLNode(const PkString &key, const PkPointF &pt, PkXmlElement *parent, PkXmlDocument *doc)
 {
-    QDomElement el = appendXMLNodeCommonNoValue(key, "Descriptor", parent, doc);
+    PkXmlElement el = appendXMLNodeCommonNoValue(key, "Descriptor", parent, doc);
     el.setAttribute("classId", "CrPt");
     el.setAttribute("name", "");
 
@@ -120,20 +137,20 @@ void appendPointXMLNode(const QString &key, const QPointF &pt, QDomElement *pare
  */
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void readDescriptor(QIODevice &device, const QString &key, QDomElement *parent, QDomDocument *doc);
+void readDescriptor(PkStream &device, const PkString &key, PkXmlElement *parent, PkXmlDocument *doc);
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void readChildObject(QIODevice &device, QDomElement *parent, QDomDocument *doc, bool skipKey = false)
+void readChildObject(PkStream &device, PkXmlElement *parent, PkXmlDocument *doc, bool skipKey = false)
 {
     using namespace KisAslReaderUtils;
 
-    QString key;
+    PkString key;
 
     if (!skipKey) {
         key = readVarString<byteOrder>(device);
     }
 
-    QString OSType = readFixedString<byteOrder>(device);
+    PkString OSType = readFixedString<byteOrder>(device);
 
     // dbgKrita << "Child" << ppVar(key) << ppVar(OSType);
 
@@ -147,7 +164,7 @@ void readChildObject(QIODevice &device, QDomElement *parent, QDomDocument *doc, 
         quint32 numItems = GARBAGE_VALUE_MARK;
         SAFE_READ_EX(byteOrder, device, numItems);
 
-        QDomElement el = appendXMLNodeCommonNoValue(key, "List", parent, doc);
+        PkXmlElement el = appendXMLNodeCommonNoValue(key, "List", parent, doc);
         for (quint32 i = 0; i < numItems; i++) {
             readChildObject<byteOrder>(device, &el, doc, true);
         }
@@ -156,28 +173,28 @@ void readChildObject(QIODevice &device, QDomElement *parent, QDomDocument *doc, 
         appendDoubleXMLNode(key, readDoubleAsString<byteOrder>(device), parent, doc);
 
     } else if (OSType == "UntF") {
-        const QString unit = readFixedString<byteOrder>(device);
-        const QString value = readDoubleAsString<byteOrder>(device);
+        const PkString unit = readFixedString<byteOrder>(device);
+        const PkString value = readDoubleAsString<byteOrder>(device);
 
-        QDomElement el = appendXMLNodeCommon(key, value, "UnitFloat", parent, doc);
+        PkXmlElement el = appendXMLNodeCommon(key, value, "UnitFloat", parent, doc);
         el.setAttribute("unit", unit);
 
     } else if (OSType == "TEXT") {
-        QString unicodeString = readUnicodeString<byteOrder>(device);
+        PkString unicodeString = readUnicodeString<byteOrder>(device);
         appendTextXMLNode(key, unicodeString, parent, doc);
 
     } else if (OSType == "enum") {
-        const QString typeId = readVarString<byteOrder>(device);
-        const QString value = readVarString<byteOrder>(device);
+        const PkString typeId = readVarString<byteOrder>(device);
+        const PkString value = readVarString<byteOrder>(device);
 
-        QDomElement el = appendXMLNodeCommon(key, value, "Enum", parent, doc);
+        PkXmlElement el = appendXMLNodeCommon(key, value, "Enum", parent, doc);
         el.setAttribute("typeId", typeId);
 
     } else if (OSType == "long") {
         appendIntegerXMLNode(key, readIntAsString<byteOrder>(device), parent, doc);
 
     } else if (OSType == "bool") {
-        const QString value = readBoolAsString<byteOrder>(device);
+        const PkString value = readBoolAsString<byteOrder>(device);
         appendXMLNodeCommon(key, value, "Boolean", parent, doc);
 
     } else if (OSType == "type") {
@@ -193,11 +210,14 @@ void readChildObject(QIODevice &device, QDomElement *parent, QDomDocument *doc, 
             // Carousel Object Structure (PDF) data, much like the "Txt2" additional info block.
             quint32 len = 0.0;
             SAFE_READ_EX(byteOrder, device, len);
-            QByteArray ba = device.read(len);
+            PkByteArray ba;
+            ba.resize(len);
+            const PkStream::pk_int64 nRead = device.read(ba.data(), len);
+            ba.resize(static_cast<int>(nRead));
 
-            QDomCDATASection dataSection;
-            dataSection = doc->createCDATASection(ba.toBase64());
-            QDomElement dataElement = doc->createElement("node");
+            PkXmlCDATASection dataSection;
+            dataSection = doc->createCDATASection(pkToBase64(ba));
+            PkXmlElement dataElement = doc->createElement("node");
             dataElement.setAttribute("type", "RawData");
             dataElement.setAttribute("key", key);
             dataElement.appendChild(dataSection);
@@ -211,17 +231,17 @@ void readChildObject(QIODevice &device, QDomElement *parent, QDomDocument *doc, 
 
 
 template<psd_byte_order byteOrder>
-void readDescriptor(QIODevice &device, const QString &key, QDomElement *parent, QDomDocument *doc)
+void readDescriptor(PkStream &device, const PkString &key, PkXmlElement *parent, PkXmlDocument *doc)
 {
     using namespace KisAslReaderUtils;
 
-    QString name = readUnicodeString(device);
-    QString classId = readVarString(device);
+    PkString name = readUnicodeString(device);
+    PkString classId = readVarString(device);
 
     quint32 numChildren = GARBAGE_VALUE_MARK;
     SAFE_READ_EX(byteOrder, device, numChildren);
 
-    QDomElement el = appendXMLNodeCommonNoValue(key, "Descriptor", parent, doc);
+    PkXmlElement el = appendXMLNodeCommonNoValue(key, "Descriptor", parent, doc);
     el.setAttribute("classId", classId);
     el.setAttribute("name", name);
 
@@ -233,7 +253,7 @@ void readDescriptor(QIODevice &device, const QString &key, QDomElement *parent, 
 }
 
 template<psd_byte_order byteOrder>
-QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb> &palette)
+PkImage readVirtualArrayList(PkStream &device, int numPlanes, const PkVector<PkRgb> &palette)
 {
     using namespace KisAslReaderUtils;
 
@@ -257,7 +277,7 @@ QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb
     SAFE_READ_EX(byteOrder, device, x0);
     SAFE_READ_EX(byteOrder, device, y1);
     SAFE_READ_EX(byteOrder, device, x1);
-    QRect arrayRect(x0, y0, x1 - x0, y1 - y0);
+    PkRect arrayRect(x0, y0, x1 - x0, y1 - y0);
 
     quint32 numberOfChannels = GARBAGE_VALUE_MARK;
     SAFE_READ_EX(byteOrder, device, numberOfChannels);
@@ -275,7 +295,7 @@ QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb
         throw ASLParseException("VAList: unsupported number of planes!");
     }
 
-    QVector<QByteArray> dataPlanes;
+    PkVector<PkByteArray> dataPlanes;
     dataPlanes.resize(3);
 
     quint32 pixelDepth1 = GARBAGE_VALUE_MARK;
@@ -304,7 +324,7 @@ QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb
         SAFE_READ_EX(byteOrder, device, x0);
         SAFE_READ_EX(byteOrder, device, y1);
         SAFE_READ_EX(byteOrder, device, x1);
-        QRect planeRect(x0, y0, x1 - x0, y1 - y0);
+        PkRect planeRect(x0, y0, x1 - x0, y1 - y0);
 
         if (planeRect != arrayRect) {
             throw ASLParseException("VAList: planes are not uniform. Not supported yet!");
@@ -329,7 +349,7 @@ QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb
         }
 
         if (pixelDepth1 != 1 && pixelDepth1 != 8 && pixelDepth1 != 16) {
-            throw ASLParseException(QString("VAList: unsupported pixel depth: %1!").arg(pixelDepth1));
+            throw ASLParseException(PkString("VAList: unsupported pixel depth: %1!").arg(static_cast<int>(pixelDepth1)));
         }
 
         const int channelSize = (pixelDepth1 == 1 || pixelDepth1 == 8) ? 1 : 2;
@@ -337,11 +357,13 @@ QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb
         const int dataLength = planeRect.width() * planeRect.height() * channelSize;
 
         if (useCompression == psd_compression_type::Uncompressed) {
-            dataPlanes[i] = device.read(arrayPlaneLength - 23);
+            dataPlanes[i].resize(arrayPlaneLength - 23);
+            const PkStream::pk_int64 nRead = device.read(dataPlanes[i].data(), arrayPlaneLength - 23);
+            dataPlanes[i].resize(static_cast<int>(nRead));
         } else if (useCompression == psd_compression_type::RLE) {
             const int numRows = planeRect.height();
 
-            QVector<quint16> rowSizes;
+            PkVector<quint16> rowSizes;
             rowSizes.resize(numRows);
 
             for (int row = 0; row < numRows; row++) {
@@ -353,7 +375,10 @@ QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb
             for (int row = 0; row < numRows; row++) {
                 const quint16 rowSize = rowSizes[row];
 
-                QByteArray compressedData = device.read(rowSize);
+                PkByteArray compressedData;
+                compressedData.resize(rowSize);
+                const PkStream::pk_int64 nRead = device.read(compressedData.data(), rowSize);
+                compressedData.resize(static_cast<int>(nRead));
 
                 if (compressedData.size() != rowSize) {
                     throw ASLParseException("VAList: failed to read compressed data!");
@@ -361,17 +386,20 @@ QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb
 
                 dbgFile << "Going to decompress the pattern";
 
-                QByteArray uncompressedData =
+                PkByteArray uncompressedData =
                     Compression::uncompress(planeRect.width() * channelSize, compressedData, psd_compression_type::RLE);
 
                 if (uncompressedData.size() != planeRect.width()) {
                     throw ASLParseException("VAList: failed to decompress data!");
                 }
 
-                dataPlanes[i].append(uncompressedData);
+                Private::pkAppendBytes(dataPlanes[i], uncompressedData);
             }
         } else if (useCompression == psd_compression_type::ZIP) {
-            QByteArray compressedBytes = device.read(arrayPlaneLength - 23);
+            PkByteArray compressedBytes;
+            compressedBytes.resize(arrayPlaneLength - 23);
+            const PkStream::pk_int64 nRead = device.read(compressedBytes.data(), arrayPlaneLength - 23);
+            compressedBytes.resize(static_cast<int>(nRead));
             dataPlanes[i] = Compression::uncompress(dataLength, compressedBytes, psd_compression_type::ZIP);
         } else {
             throw ASLParseException("VAList: ZIP compression is not implemented yet!");
@@ -388,30 +416,32 @@ QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb
         device.seek(nextPos);
     }
 
-    QImage::Format format{};
+    PkImage::Format format{};
     
     if (pixelDepth1 == 1 || !palette.isEmpty()) {
         if (palette.isEmpty()) {
-            format = QImage::Format_Grayscale8;
+            format = PkImage::Format_Grayscale8;
         } else {
-            format = QImage::Format_Indexed8;
+            format = PkImage::Format_Indexed8;
         }
     } else if (pixelDepth1 == 8) {
-        format = QImage::Format_ARGB32;
+        format = PkImage::Format_ARGB32;
     } else {
-        format = QImage::Format_RGBA64;
+        format = PkImage::Format_RGBA64;
     }
 
-    QImage image(arrayRect.size(), format);
+    PkImage image(arrayRect.size(), format);
 
-    if (format == QImage::Format_Indexed8) {
-        image.setColorTable(palette);
+    if (format == PkImage::Format_Indexed8) {
+        // PkImage::setColorTable 收 std::vector<uint32_t>，palette 是 PkVector<PkRgb>，
+        // 用迭代器区间构造转换。
+        image.setColorTable(std::vector<uint32_t>(palette.begin(), palette.end()));
     }
     dbgFile << "Loading the data into an image of format" << format << arrayRect << "(" << device.pos() << ")";
 
     const int dataLength = arrayRect.width() * arrayRect.height();
 
-    if (format == QImage::Format_ARGB32) {
+    if (format == PkImage::Format_ARGB32) {
         quint8 *dstPtr = image.bits();
 
         // This copies the single channel data into all three rgb channels, creating a grayscale picture
@@ -424,11 +454,11 @@ QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb
                 else {
                     plane = j;
                 }
-                *dstPtr++ = dataPlanes[plane][i];
+                *dstPtr++ = dataPlanes[plane].constData()[i];
             }
             *dstPtr++ = 0xFF;
         }
-    } else if (format == QImage::Format_Indexed8 || format == QImage::Format_Grayscale8) {
+    } else if (format == PkImage::Format_Indexed8 || format == PkImage::Format_Grayscale8) {
         const auto *dataPlane = reinterpret_cast<const quint8 *>(dataPlanes[0].constData());
 
         for (int x = 0; x < arrayRect.height(); x++) {
@@ -445,22 +475,22 @@ QImage readVirtualArrayList(QIODevice &device, int numPlanes, const QVector<QRgb
             for (int j = 0; j <= 2; j++) {
                 const int plane = qMin(numPlanes, j);
                 const quint16 *dataPlane = reinterpret_cast<const quint16 *>(dataPlanes[plane].constData());
-                *dstPtr++ = qFromBigEndian(dataPlane[i]);
+                *dstPtr++ = psdFromBigEndian<quint16>(dataPlane[i]);
             }
             *dstPtr++ = 0xFFFF;
         }
     }
 
     // static int i = -1; i++;
-    // QString filename = QString("pattern_image_%1.png").arg(i);
+    // PkString filename = PkString("pattern_image_%1.png").arg(i);
     // dbgKrita << "### dumping pattern image" << ppVar(filename);
     // image.save(filename);
 
-    return image.convertToFormat(QImage::Format_ARGB32, Qt::AutoColor | Qt::PreferDither);
+    return image.convertToFormat(PkImage::Format_ARGB32);
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-qint64 readPattern(QIODevice &device, QDomElement *parent, QDomDocument *doc)
+qint64 readPattern(PkStream &device, PkXmlElement *parent, PkXmlDocument *doc)
 {
     using namespace KisAslReaderUtils;
 
@@ -494,12 +524,12 @@ qint64 readPattern(QIODevice &device, QDomElement *parent, QDomDocument *doc)
 
     dbgFile << "Pattern width:" << patternHeight << "(" << device.pos() << ")";
 
-    QString patternName;
+    PkString patternName;
     psdread_unicodestring<byteOrder>(device, patternName);
 
     dbgFile << "Pattern name:" << patternName << "(" << device.pos() << ")";
 
-    QString patternUuid = readPascalString<byteOrder>(device);
+    PkString patternUuid = readPascalString<byteOrder>(device);
 
     dbgFile << "Pattern UUID:" << patternUuid << "(" << device.pos() << ")";
 
@@ -524,12 +554,12 @@ qint64 readPattern(QIODevice &device, QDomElement *parent, QDomDocument *doc)
         numPlanes = 3;
         break;
     default: {
-        QString msg = QString("Unsupported image mode: %1!").arg(mode);
+        PkString msg = PkString("Unsupported image mode: %1!").arg(mode);
         throw ASLParseException(msg);
     }
     }
 
-    QVector<QRgb> palette;
+    PkVector<PkRgb> palette;
 
     if (mode == Indexed) {
 
@@ -542,7 +572,7 @@ qint64 readPattern(QIODevice &device, QDomElement *parent, QDomDocument *doc)
             psdread<byteOrder>(device, r);
             psdread<byteOrder>(device, g);
             psdread<byteOrder>(device, b);
-            palette[i] = qRgb(r, g, b);
+            palette[i] = pkRgb(r, g, b);
         }
 
         dbgFile << "Palette: " << palette << "(" << device.pos() << ")";
@@ -558,28 +588,29 @@ qint64 readPattern(QIODevice &device, QDomElement *parent, QDomDocument *doc)
         psdread<byteOrder>(device, transparentIdx);
         dbgFile << "Transparent index:" << transparentIdx << "(" << device.pos() << ")";
 
-        palette[transparentIdx] = qRgba(qRed(palette[transparentIdx]),
-                                        qGreen(palette[transparentIdx]),
-                                        qBlue(palette[transparentIdx]), 0x00);
+        palette[transparentIdx] = pkRgba(pkRed(palette[transparentIdx]),
+                                         pkGreen(palette[transparentIdx]),
+                                         pkBlue(palette[transparentIdx]), 0x00);
     }
 
     /**
      * Create XML data
      */
 
-    QDomElement pat = doc->createElement("node");
+    PkXmlElement pat = doc->createElement("node");
 
     pat.setAttribute("classId", "KisPattern");
     pat.setAttribute("type", "Descriptor");
     pat.setAttribute("name", "");
 
-    QBuffer patternBuf;
-    patternBuf.open(QIODevice::WriteOnly);
+    PkByteArray patBytes;
+    PkCosMemoryStream patternBuf(&patBytes);
+    patternBuf.open(PkStream::WriteOnly);
 
     { // ensure we don't keep resources for too long
-        // XXX: this QImage should tolerate 16-bit and higher
-        QString fileName = QString("%1.pat").arg(patternUuid);
-        QImage patternImage = readVirtualArrayList<byteOrder>(device, numPlanes, palette);
+        // XXX: this PkImage should tolerate 16-bit and higher
+        PkString fileName = PkString("%1.pat").arg(patternUuid);
+        PkImage patternImage = readVirtualArrayList<byteOrder>(device, numPlanes, palette);
         KoPattern realPattern(patternImage, patternName, fileName);
         realPattern.savePatToDevice(&patternBuf);
     }
@@ -592,9 +623,9 @@ qint64 readPattern(QIODevice &device, QDomElement *parent, QDomDocument *doc)
     appendTextXMLNode("Nm  ", patternName, &pat, doc);
     appendTextXMLNode("Idnt", patternUuid, &pat, doc);
 
-    QDomCDATASection dataSection = doc->createCDATASection(qCompress(patternBuf.buffer()).toBase64());
+    PkXmlCDATASection dataSection = doc->createCDATASection(pkToBase64(pkQCompress(patBytes)));
 
-    QDomElement dataElement = doc->createElement("node");
+    PkXmlElement dataElement = doc->createElement("node");
     dataElement.setAttribute("type", "KisPatternData");
     dataElement.setAttribute("key", "Data");
 
@@ -605,12 +636,12 @@ qint64 readPattern(QIODevice &device, QDomElement *parent, QDomDocument *doc)
     return sizeof(patternSize) + patternSize;
 }
 
-QDomDocument readFileImpl(QIODevice &device)
+PkXmlDocument readFileImpl(PkStream &device)
 {
     using namespace KisAslReaderUtils;
 
-    QDomDocument doc;
-    QDomElement root = doc.createElement("asl");
+    PkXmlDocument doc;
+    PkXmlElement root = doc.createElement("asl");
     doc.appendChild(root);
 
     {
@@ -638,7 +669,7 @@ QDomDocument readFileImpl(QIODevice &device)
         if (patternsSize > 0) {
             SETUP_OFFSET_VERIFIER(patternsSectionVerifier, device, patternsSize, 0);
 
-            QDomElement patternsRoot = doc.createElement("node");
+            PkXmlElement patternsRoot = doc.createElement("node");
             patternsRoot.setAttribute("type", "List");
             patternsRoot.setAttribute("key", ResourceType::Patterns);
             root.appendChild(patternsRoot);
@@ -686,9 +717,9 @@ QDomDocument readFileImpl(QIODevice &device)
 
 } // namespace Private
 
-QDomDocument KisAslReader::readFile(QIODevice &device)
+PkXmlDocument KisAslReader::readFile(PkStream &device)
 {
-    QDomDocument doc;
+    PkXmlDocument doc;
 
     if (device.isSequential()) {
         warnKrita << "WARNING: *** KisAslReader::readFile: the supplied"
@@ -706,9 +737,9 @@ QDomDocument KisAslReader::readFile(QIODevice &device)
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-QDomDocument readLfx2PsdSectionImpl(QIODevice &device);
+PkXmlDocument readLfx2PsdSectionImpl(PkStream &device);
 
-QDomDocument KisAslReader::readLfx2PsdSection(QIODevice &device, psd_byte_order byteOrder)
+PkXmlDocument KisAslReader::readLfx2PsdSection(PkStream &device, psd_byte_order byteOrder)
 {
     switch (byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -719,9 +750,9 @@ QDomDocument KisAslReader::readLfx2PsdSection(QIODevice &device, psd_byte_order 
 }
 
 template<psd_byte_order byteOrder>
-QDomDocument readLfx2PsdSectionImpl(QIODevice &device)
+PkXmlDocument readLfx2PsdSectionImpl(PkStream &device)
 {
-    QDomDocument doc;
+    PkXmlDocument doc;
 
     if (device.isSequential()) {
         warnKrita << "WARNING: *** KisAslReader::readLfx2PsdSection: the supplied"
@@ -742,7 +773,7 @@ QDomDocument readLfx2PsdSectionImpl(QIODevice &device)
             SAFE_READ_SIGNATURE_EX(byteOrder, device, descriptorVersion, ref);
         }
 
-        QDomElement root = doc.createElement("asl");
+        PkXmlElement root = doc.createElement("asl");
         doc.appendChild(root);
 
         Private::readDescriptor<byteOrder>(device, "", &root, &doc);
@@ -755,9 +786,9 @@ QDomDocument readLfx2PsdSectionImpl(QIODevice &device)
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-QDomDocument readFillLayerImpl(QIODevice &device);
+PkXmlDocument readFillLayerImpl(PkStream &device);
 
-QDomDocument KisAslReader::readFillLayer(QIODevice &device, psd_byte_order byteOrder)
+PkXmlDocument KisAslReader::readFillLayer(PkStream &device, psd_byte_order byteOrder)
 {
     switch (byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -768,9 +799,9 @@ QDomDocument KisAslReader::readFillLayer(QIODevice &device, psd_byte_order byteO
 }
 
 template<psd_byte_order byteOrder>
-QDomDocument readFillLayerImpl(QIODevice &device)
+PkXmlDocument readFillLayerImpl(PkStream &device)
 {
-    QDomDocument doc;
+    PkXmlDocument doc;
 
     if (device.isSequential()) {
         warnKrita << "WARNING: *** KisAslReader::readFillLayerPsdSection: the supplied"
@@ -784,7 +815,7 @@ QDomDocument readFillLayerImpl(QIODevice &device)
             SAFE_READ_SIGNATURE_EX(byteOrder, device, descriptorVersion, 16);
         }
 
-        QDomElement root = doc.createElement("asl");
+        PkXmlElement root = doc.createElement("asl");
         doc.appendChild(root);
 
         Private::readDescriptor<byteOrder>(device, "", &root, &doc);
@@ -797,9 +828,9 @@ QDomDocument readFillLayerImpl(QIODevice &device)
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-QDomDocument readTypeToolObjectSettingsImpl(QIODevice &device, QTransform &transform);
+PkXmlDocument readTypeToolObjectSettingsImpl(PkStream &device, PkTransform &transform);
 
-QDomDocument KisAslReader::readTypeToolObjectSettings(QIODevice &device, QTransform &transform, psd_byte_order byteOrder)
+PkXmlDocument KisAslReader::readTypeToolObjectSettings(PkStream &device, PkTransform &transform, psd_byte_order byteOrder)
 {
     switch (byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -810,9 +841,9 @@ QDomDocument KisAslReader::readTypeToolObjectSettings(QIODevice &device, QTransf
 }
 
 template<psd_byte_order byteOrder>
-QDomDocument readTypeToolObjectSettingsImpl(QIODevice &device, QTransform &transform)
+PkXmlDocument readTypeToolObjectSettingsImpl(PkStream &device, PkTransform &transform)
 {
-    QDomDocument doc;
+    PkXmlDocument doc;
 
     if (device.isSequential()) {
         warnKrita << "WARNING: *** KisAslReader::readTypeToolObjectSettings: the supplied"
@@ -848,9 +879,9 @@ QDomDocument readTypeToolObjectSettingsImpl(QIODevice &device, QTransform &trans
             SAFE_READ_SIGNATURE_EX(byteOrder, device, descriptorVersion, 16);
         }
 
-        transform = QTransform(xx, xy, yx, yy, tx, ty);
+        transform = PkTransform(xx, xy, yx, yy, tx, ty);
 
-        QDomElement root = doc.createElement("asl");
+        PkXmlElement root = doc.createElement("asl");
         doc.appendChild(root);
         // text layer data
         Private::readDescriptor<byteOrder>(device, "", &root, &doc);
@@ -885,9 +916,9 @@ QDomDocument readTypeToolObjectSettingsImpl(QIODevice &device, QTransform &trans
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-QDomDocument readVectorStrokeImpl(QIODevice &device);
+PkXmlDocument readVectorStrokeImpl(PkStream &device);
 
-QDomDocument KisAslReader::readVectorStroke(QIODevice &device, psd_byte_order byteOrder)
+PkXmlDocument KisAslReader::readVectorStroke(PkStream &device, psd_byte_order byteOrder)
 {
     switch (byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -898,9 +929,9 @@ QDomDocument KisAslReader::readVectorStroke(QIODevice &device, psd_byte_order by
 }
 
 template<psd_byte_order byteOrder>
-QDomDocument readVectorStrokeImpl(QIODevice &device)
+PkXmlDocument readVectorStrokeImpl(PkStream &device)
 {
-    QDomDocument doc;
+    PkXmlDocument doc;
 
     if (device.isSequential()) {
         warnKrita << "WARNING: *** KisAslReader::readVectorStroke: the supplied"
@@ -914,7 +945,7 @@ QDomDocument readVectorStrokeImpl(QIODevice &device)
             SAFE_READ_SIGNATURE_EX(byteOrder, device, descriptorVersion, 16);
         }
 
-        QDomElement root = doc.createElement("asl");
+        PkXmlElement root = doc.createElement("asl");
         doc.appendChild(root);
 
         Private::readDescriptor<byteOrder>(device, "", &root, &doc);
@@ -927,8 +958,8 @@ QDomDocument readVectorStrokeImpl(QIODevice &device)
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-QDomDocument readVectorOriginationDataImpl(QIODevice &device);
-QDomDocument KisAslReader::readVectorOriginationData(QIODevice &device, psd_byte_order byteOrder)
+PkXmlDocument readVectorOriginationDataImpl(PkStream &device);
+PkXmlDocument KisAslReader::readVectorOriginationData(PkStream &device, psd_byte_order byteOrder)
 {
     switch (byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -939,9 +970,9 @@ QDomDocument KisAslReader::readVectorOriginationData(QIODevice &device, psd_byte
 }
 
 template<psd_byte_order byteOrder>
-QDomDocument readVectorOriginationDataImpl(QIODevice &device)
+PkXmlDocument readVectorOriginationDataImpl(PkStream &device)
 {
-    QDomDocument doc;
+    PkXmlDocument doc;
 
     if (device.isSequential()) {
         warnKrita << "WARNING: *** KisAslReader::readVectorStroke: the supplied"
@@ -959,7 +990,7 @@ QDomDocument readVectorOriginationDataImpl(QIODevice &device)
             SAFE_READ_SIGNATURE_EX(byteOrder, device, descriptorVersion, 16);
         }
 
-        QDomElement root = doc.createElement("asl");
+        PkXmlElement root = doc.createElement("asl");
         doc.appendChild(root);
 
         Private::readDescriptor<byteOrder>(device, "", &root, &doc);
@@ -972,9 +1003,9 @@ QDomDocument readVectorOriginationDataImpl(QIODevice &device)
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-QDomDocument readPsdSectionPatternImpl(QIODevice &device, qint64 bytesLeft);
+PkXmlDocument readPsdSectionPatternImpl(PkStream &device, qint64 bytesLeft);
 
-QDomDocument KisAslReader::readPsdSectionPattern(QIODevice &device, qint64 bytesLeft, psd_byte_order byteOrder)
+PkXmlDocument KisAslReader::readPsdSectionPattern(PkStream &device, qint64 bytesLeft, psd_byte_order byteOrder)
 {
     switch (byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -985,14 +1016,14 @@ QDomDocument KisAslReader::readPsdSectionPattern(QIODevice &device, qint64 bytes
 }
 
 template<psd_byte_order byteOrder>
-QDomDocument readPsdSectionPatternImpl(QIODevice &device, qint64 bytesLeft)
+PkXmlDocument readPsdSectionPatternImpl(PkStream &device, qint64 bytesLeft)
 {
-    QDomDocument doc;
+    PkXmlDocument doc;
 
-    QDomElement root = doc.createElement("asl");
+    PkXmlElement root = doc.createElement("asl");
     doc.appendChild(root);
 
-    QDomElement pat = doc.createElement("node");
+    PkXmlElement pat = doc.createElement("node");
     root.appendChild(pat);
 
     pat.setAttribute("classId", ResourceType::Patterns);

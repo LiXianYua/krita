@@ -6,13 +6,18 @@
 
 #include "kis_asl_xml_writer.h"
 
-#include <QBuffer>
-#include <QColor>
-#include <QDomDocument>
-#include <QPointF>
-#include <QUuid>
+#include <PkColor.h>
+#include <PkXmlDocument.h>
+#include <PkPoint.h>
+#include <PkTransform.h>
+#include <PkRect.h>
+#include <PkPolygon.h>
+#include <PkVariant.h>
+#include <PkAuxTypes.h>
+#include <PkCosMemoryStream.h>
 
 #include <resources/KoPattern.h>
+#include "kis_asl_byte_utils.h"
 #include <resources/KoSegmentGradient.h>
 #include <resources/KoStopGradient.h>
 
@@ -22,14 +27,14 @@
 #include "kis_dom_utils.h"
 
 struct KisAslXmlWriter::Private {
-    QDomDocument document;
-    QDomElement currentElement;
+    PkXmlDocument document;
+    PkXmlElement currentElement;
 };
 
 KisAslXmlWriter::KisAslXmlWriter()
     : m_d(new Private)
 {
-    QDomElement el = m_d->document.createElement("asl");
+    PkXmlElement el = m_d->document.createElement("asl");
     m_d->document.appendChild(el);
     m_d->currentElement = el;
 }
@@ -38,18 +43,20 @@ KisAslXmlWriter::~KisAslXmlWriter()
 {
 }
 
-QDomDocument KisAslXmlWriter::document() const
+PkXmlDocument KisAslXmlWriter::document() const
 {
-    if (m_d->document.documentElement() != m_d->currentElement) {
+    // PkXmlElement 无 operator!=：以「currentElement 是否仍是文档的直接子元素」
+    // 等价判定「是否已平衡回根元素」。
+    if (m_d->currentElement.isNull() || m_d->currentElement.parentNode().isElement()) {
         warnKrita << "KisAslXmlWriter::document(): unbalanced enter/leave descriptor/array";
     }
 
     return m_d->document;
 }
 
-void KisAslXmlWriter::enterDescriptor(const QString &key, const QString &name, const QString &classId)
+void KisAslXmlWriter::enterDescriptor(const PkString &key, const PkString &name, const PkString &classId)
 {
-    QDomElement el = m_d->document.createElement("node");
+    PkXmlElement el = m_d->document.createElement("node");
 
     if (!key.isEmpty()) {
         el.setAttribute("key", key);
@@ -72,9 +79,9 @@ void KisAslXmlWriter::leaveDescriptor()
     }
 }
 
-void KisAslXmlWriter::enterList(const QString &key)
+void KisAslXmlWriter::enterList(const PkString &key)
 {
-    QDomElement el = m_d->document.createElement("node");
+    PkXmlElement el = m_d->document.createElement("node");
 
     if (!key.isEmpty()) {
         el.setAttribute("key", key);
@@ -95,9 +102,9 @@ void KisAslXmlWriter::leaveList()
     }
 }
 
-void KisAslXmlWriter::writeDouble(const QString &key, double value)
+void KisAslXmlWriter::writeDouble(const PkString &key, double value)
 {
-    QDomElement el = m_d->document.createElement("node");
+    PkXmlElement el = m_d->document.createElement("node");
 
     if (!key.isEmpty()) {
         el.setAttribute("key", key);
@@ -109,9 +116,9 @@ void KisAslXmlWriter::writeDouble(const QString &key, double value)
     m_d->currentElement.appendChild(el);
 }
 
-void KisAslXmlWriter::writeInteger(const QString &key, int value)
+void KisAslXmlWriter::writeInteger(const PkString &key, int value)
 {
-    QDomElement el = m_d->document.createElement("node");
+    PkXmlElement el = m_d->document.createElement("node");
 
     if (!key.isEmpty()) {
         el.setAttribute("key", key);
@@ -123,9 +130,9 @@ void KisAslXmlWriter::writeInteger(const QString &key, int value)
     m_d->currentElement.appendChild(el);
 }
 
-void KisAslXmlWriter::writeEnum(const QString &key, const QString &typeId, const QString &value)
+void KisAslXmlWriter::writeEnum(const PkString &key, const PkString &typeId, const PkString &value)
 {
-    QDomElement el = m_d->document.createElement("node");
+    PkXmlElement el = m_d->document.createElement("node");
 
     if (!key.isEmpty()) {
         el.setAttribute("key", key);
@@ -138,9 +145,9 @@ void KisAslXmlWriter::writeEnum(const QString &key, const QString &typeId, const
     m_d->currentElement.appendChild(el);
 }
 
-void KisAslXmlWriter::writeUnitFloat(const QString &key, const QString &unit, double value)
+void KisAslXmlWriter::writeUnitFloat(const PkString &key, const PkString &unit, double value)
 {
-    QDomElement el = m_d->document.createElement("node");
+    PkXmlElement el = m_d->document.createElement("node");
 
     if (!key.isEmpty()) {
         el.setAttribute("key", key);
@@ -153,9 +160,9 @@ void KisAslXmlWriter::writeUnitFloat(const QString &key, const QString &unit, do
     m_d->currentElement.appendChild(el);
 }
 
-void KisAslXmlWriter::writeText(const QString &key, const QString &value)
+void KisAslXmlWriter::writeText(const PkString &key, const PkString &value)
 {
-    QDomElement el = m_d->document.createElement("node");
+    PkXmlElement el = m_d->document.createElement("node");
 
     if (!key.isEmpty()) {
         el.setAttribute("key", key);
@@ -167,9 +174,9 @@ void KisAslXmlWriter::writeText(const QString &key, const QString &value)
     m_d->currentElement.appendChild(el);
 }
 
-void KisAslXmlWriter::writeBoolean(const QString &key, bool value)
+void KisAslXmlWriter::writeBoolean(const PkString &key, bool value)
 {
-    QDomElement el = m_d->document.createElement("node");
+    PkXmlElement el = m_d->document.createElement("node");
 
     if (!key.isEmpty()) {
         el.setAttribute("key", key);
@@ -181,12 +188,12 @@ void KisAslXmlWriter::writeBoolean(const QString &key, bool value)
     m_d->currentElement.appendChild(el);
 }
 
-void KisAslXmlWriter::writeColor(const QString &key, const KoColor &value)
+void KisAslXmlWriter::writeColor(const PkString &key, const KoColor &value)
 {
-    QDomDocument doc;
-    QDomElement el = doc.createElement("color");
+    PkXmlDocument doc;
+    PkXmlElement el = doc.createElement("color");
     value.toXML(doc, el);
-    QDomElement colorEl = el.firstChildElement();
+    PkXmlElement colorEl = el.firstChildElement();
     if (value.colorSpace()->colorModelId() == RGBAColorModelID) {
         enterDescriptor(key, "", "RGBC");
 
@@ -228,8 +235,8 @@ void KisAslXmlWriter::writeColor(const QString &key, const KoColor &value)
         writeDouble("Grn ", value.toQColor().green());
         writeDouble("Bl  ", value.toQColor().blue());
     }
-    if (value.metadata().keys().contains("psdSpotBook")) {
-        QVariant v;
+    if (value.metadata().contains("psdSpotBook")) {
+        PkVariant v;
         v = value.metadata().value("spotName");
         if (v.isValid()) {
             writeText("Nm  ", v.toString());
@@ -238,9 +245,12 @@ void KisAslXmlWriter::writeColor(const QString &key, const KoColor &value)
         if (v.isValid()) {
             writeText("Bk  ", v.toString());
         }
-        bool ok;
+        // PkVariant::toInt 无 bool* 重载；psdSpotBookId 以 Int 存入（见
+        // parseColorObject 的 addMetadata("psdSpotBookId", spotValue)），
+        // 用 type() 判断可转换，对齐原 variant 语义里 toInt(&ok) 的成功条件。
         v = value.metadata().value("psdSpotBookId");
-        int bookid = v.toInt(&ok);
+        const bool ok = v.isValid() && v.type() == PkVariant::Int;
+        const int bookid = v.toInt();
         if (ok) {
             writeInteger("bookID", bookid);
         }
@@ -249,7 +259,7 @@ void KisAslXmlWriter::writeColor(const QString &key, const KoColor &value)
     leaveDescriptor();
 }
 
-void KisAslXmlWriter::writePoint(const QString &key, const QPointF &value)
+void KisAslXmlWriter::writePoint(const PkString &key, const PkPointF &value)
 {
     enterDescriptor(key, "", "CrPt");
 
@@ -259,7 +269,7 @@ void KisAslXmlWriter::writePoint(const QString &key, const QPointF &value)
     leaveDescriptor();
 }
 
-void KisAslXmlWriter::writePhasePoint(const QString &key, const QPointF &value)
+void KisAslXmlWriter::writePhasePoint(const PkString &key, const PkPointF &value)
 {
     enterDescriptor(key, "", "Pnt ");
 
@@ -269,7 +279,7 @@ void KisAslXmlWriter::writePhasePoint(const QString &key, const QPointF &value)
     leaveDescriptor();
 }
 
-void KisAslXmlWriter::writeOffsetPoint(const QString &key, const QPointF &value)
+void KisAslXmlWriter::writeOffsetPoint(const PkString &key, const PkPointF &value)
 {
     enterDescriptor(key, "", "Pnt ");
 
@@ -279,7 +289,7 @@ void KisAslXmlWriter::writeOffsetPoint(const QString &key, const QPointF &value)
     leaveDescriptor();
 }
 
-void KisAslXmlWriter::writeCurve(const QString &key, const QString &name, const QVector<QPointF> &points)
+void KisAslXmlWriter::writeCurve(const PkString &key, const PkString &name, const PkVector<PkPointF> &points)
 {
     enterDescriptor(key, "", "ShpC");
 
@@ -287,7 +297,7 @@ void KisAslXmlWriter::writeCurve(const QString &key, const QString &name, const 
 
     enterList("Crv ");
 
-    Q_FOREACH (const QPointF &pt, points) {
+    for (const PkPointF &pt : points) {
         writePoint("", pt);
     }
 
@@ -295,24 +305,25 @@ void KisAslXmlWriter::writeCurve(const QString &key, const QString &name, const 
     leaveDescriptor();
 }
 
-QString KisAslXmlWriter::writePattern(const QString &key, const KoPatternSP pattern)
+PkString KisAslXmlWriter::writePattern(const PkString &key, const KoPatternSP pattern)
 {
     enterDescriptor(key, "", "KisPattern");
 
     writeText("Nm  ", pattern->name());
 
-    QString uuid = KisAslWriterUtils::getPatternUuidLazy(pattern);
+    PkString uuid = KisAslWriterUtils::getPatternUuidLazy(pattern);
     writeText("Idnt", uuid);
 
     // Write pattern data
 
-    QBuffer buffer;
-    buffer.open(QIODevice::WriteOnly);
+    PkByteArray patBytes;
+    PkCosMemoryStream buffer(&patBytes);
+    buffer.open(PkStream::WriteOnly);
     pattern->savePatToDevice(&buffer);
 
-    QDomCDATASection dataSection = m_d->document.createCDATASection(qCompress(buffer.buffer()).toBase64());
+    PkXmlCDATASection dataSection = m_d->document.createCDATASection(pkToBase64(pkQCompress(patBytes)));
 
-    QDomElement dataElement = m_d->document.createElement("node");
+    PkXmlElement dataElement = m_d->document.createElement("node");
     dataElement.setAttribute("type", "KisPatternData");
     dataElement.setAttribute("key", "Data");
     dataElement.appendChild(dataSection);
@@ -324,7 +335,7 @@ QString KisAslXmlWriter::writePattern(const QString &key, const KoPatternSP patt
     return uuid;
 }
 
-void KisAslXmlWriter::writePatternRef(const QString &key, const KoPatternSP pattern, const QString &uuid)
+void KisAslXmlWriter::writePatternRef(const PkString &key, const KoPatternSP pattern, const PkString &uuid)
 {
     enterDescriptor(key, "", "Ptrn");
 
@@ -334,13 +345,13 @@ void KisAslXmlWriter::writePatternRef(const QString &key, const KoPatternSP patt
     leaveDescriptor();
 }
 
-void KisAslXmlWriter::writeGradientImpl(const QString &key,
-                                        const QString &name,
-                                        QVector<KoColor> colors,
-                                        QVector<qreal> transparencies,
-                                        QVector<qreal> positions,
-                                        QVector<QString> types,
-                                        QVector<qreal> middleOffsets)
+void KisAslXmlWriter::writeGradientImpl(const PkString &key,
+                                        const PkString &name,
+                                        PkVector<KoColor> colors,
+                                        PkVector<qreal> transparencies,
+                                        PkVector<qreal> positions,
+                                        PkVector<PkString> types,
+                                        PkVector<qreal> middleOffsets)
 {
     enterDescriptor(key, "Gradient", "Grdn");
 
@@ -378,7 +389,7 @@ void KisAslXmlWriter::writeGradientImpl(const QString &key,
     leaveDescriptor();
 }
 
-QString KisAslXmlWriter::getSegmentEndpointTypeString(KoGradientSegmentEndpointType segtype)
+PkString KisAslXmlWriter::getSegmentEndpointTypeString(KoGradientSegmentEndpointType segtype)
 {
     switch (segtype) {
     case COLOR_ENDPOINT:
@@ -397,18 +408,18 @@ QString KisAslXmlWriter::getSegmentEndpointTypeString(KoGradientSegmentEndpointT
     }
 }
 
-void KisAslXmlWriter::writeSegmentGradient(const QString &key, const KoSegmentGradient &gradient)
+void KisAslXmlWriter::writeSegmentGradient(const PkString &key, const KoSegmentGradient &gradient)
 {
-    const QList<KoGradientSegment *> &segments = gradient.segments();
+    const PkList<KoGradientSegment *> &segments = gradient.segments();
     KIS_SAFE_ASSERT_RECOVER_RETURN(!segments.isEmpty());
 
-    QVector<KoColor> colors;
-    QVector<qreal> transparencies;
-    QVector<qreal> positions;
-    QVector<QString> types;
-    QVector<qreal> middleOffsets;
+    PkVector<KoColor> colors;
+    PkVector<qreal> transparencies;
+    PkVector<qreal> positions;
+    PkVector<PkString> types;
+    PkVector<qreal> middleOffsets;
 
-    Q_FOREACH (const KoGradientSegment *seg, segments) {
+    for (const KoGradientSegment *seg : segments) {
         const qreal start = seg->startOffset();
         const qreal end = seg->endOffset();
         const qreal mid = (end - start) > DBL_EPSILON ? (seg->middleOffset() - start) / (end - start) : 0.5;
@@ -417,7 +428,7 @@ void KisAslXmlWriter::writeSegmentGradient(const QString &key, const KoSegmentGr
         qreal transparency = color.opacityF();
         color.setOpacity(1.0);
 
-        QString type = getSegmentEndpointTypeString(seg->startType());
+        PkString type = getSegmentEndpointTypeString(seg->startType());
 
         colors << color;
         transparencies << transparency;
@@ -434,7 +445,7 @@ void KisAslXmlWriter::writeSegmentGradient(const QString &key, const KoSegmentGr
         KoColor color = lastSeg->endColor();
         qreal transparency = color.opacityF();
         color.setOpacity(1.0);
-        QString type = getSegmentEndpointTypeString(lastSeg->endType());
+        PkString type = getSegmentEndpointTypeString(lastSeg->endType());
 
         colors << color;
         transparencies << transparency;
@@ -446,20 +457,20 @@ void KisAslXmlWriter::writeSegmentGradient(const QString &key, const KoSegmentGr
     writeGradientImpl(key, gradient.name(), colors, transparencies, positions, types, middleOffsets);
 }
 
-void KisAslXmlWriter::writeStopGradient(const QString &key, const KoStopGradient &gradient)
+void KisAslXmlWriter::writeStopGradient(const PkString &key, const KoStopGradient &gradient)
 {
-    QVector<KoColor> colors;
-    QVector<qreal> transparencies;
-    QVector<qreal> positions;
-    QVector<QString> types;
-    QVector<qreal> middleOffsets;
+    PkVector<KoColor> colors;
+    PkVector<qreal> transparencies;
+    PkVector<qreal> positions;
+    PkVector<PkString> types;
+    PkVector<qreal> middleOffsets;
 
-    Q_FOREACH (const KoGradientStop &stop, gradient.stops()) {
+    for (const KoGradientStop &stop : gradient.stops()) {
         KoColor color = stop.color;
         qreal transparency = color.opacityF();
         color.setOpacity(1.0);
 
-        QString type;
+        PkString type;
         switch (stop.type) {
         case COLORSTOP:
             type = "UsrS";
@@ -482,17 +493,17 @@ void KisAslXmlWriter::writeStopGradient(const QString &key, const KoStopGradient
     writeGradientImpl(key, gradient.name(), colors, transparencies, positions, types, middleOffsets);
 }
 
-void KisAslXmlWriter::writeRawData(const QString key, const QByteArray *rawData)
+void KisAslXmlWriter::writeRawData(const PkString key, const PkByteArray *rawData)
 {
-    QDomCDATASection dataSection = m_d->document.createCDATASection(rawData->toBase64());
-    QDomElement dataElement = m_d->document.createElement("node");
+    PkXmlCDATASection dataSection = m_d->document.createCDATASection(pkToBase64(*rawData));
+    PkXmlElement dataElement = m_d->document.createElement("node");
     dataElement.setAttribute("type", "RawData");
     dataElement.setAttribute("key", key);
     dataElement.appendChild(dataSection);
     m_d->currentElement.appendChild(dataElement);
 }
 
-void KisAslXmlWriter::writeTransform(const QString &key, const QTransform &transform)
+void KisAslXmlWriter::writeTransform(const PkString &key, const PkTransform &transform)
 {
     enterDescriptor(key, "Transform", "Trnf");
 
@@ -506,7 +517,7 @@ void KisAslXmlWriter::writeTransform(const QString &key, const QTransform &trans
     leaveDescriptor();
 }
 
-void KisAslXmlWriter::writeUnitRect(const QString &key, const QString &unit, const QRectF &rect)
+void KisAslXmlWriter::writeUnitRect(const PkString &key, const PkString &unit, const PkRectF &rect)
 {
     enterDescriptor(key, "", "unitRect");
 
@@ -519,7 +530,7 @@ void KisAslXmlWriter::writeUnitRect(const QString &key, const QString &unit, con
     leaveDescriptor();
 }
 
-void KisAslXmlWriter::writeFloatRect(const QString &key, const QRectF &rect)
+void KisAslXmlWriter::writeFloatRect(const PkString &key, const PkRectF &rect)
 {
     enterDescriptor(key, "", "classFloatRect");
 
@@ -531,7 +542,7 @@ void KisAslXmlWriter::writeFloatRect(const QString &key, const QRectF &rect)
     leaveDescriptor();
 }
 
-void KisAslXmlWriter::writePointRect(const QString &key, const QPolygonF &transformedRect)
+void KisAslXmlWriter::writePointRect(const PkString &key, const PkPolygonF &transformedRect)
 {
     if (transformedRect.size() < 4) {
         warnKrita << "KisAslXmlWriter::writePointRect(): too few points to write descriptor.";

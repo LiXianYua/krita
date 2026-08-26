@@ -9,13 +9,13 @@
 
 #include "kritapsdutils_export.h"
 
-class QDomDocument;
+class PkXmlDocument;
 class KisAslObjectCatcher;
 
 class KRITAPSDUTILS_EXPORT KisAslXmlParser
 {
 public:
-    void parseXML(const QDomDocument &doc, KisAslObjectCatcher &catcher);
+    void parseXML(const PkXmlDocument &doc, KisAslObjectCatcher &catcher);
 };
 
 #endif /* __KIS_ASL_XML_PARSER_H */

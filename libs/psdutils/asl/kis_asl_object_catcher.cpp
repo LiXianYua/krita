@@ -6,9 +6,10 @@
 
 #include "kis_asl_object_catcher.h"
 
+#include <PkAuxTypes.h>
 #include <KoColor.h>
-#include <QPointF>
-#include <QString>
+#include <PkPoint.h>
+#include <PkString.h>
 
 #include <resources/KoAbstractGradient.h>
 
@@ -23,82 +24,82 @@ KisAslObjectCatcher::~KisAslObjectCatcher()
 {
 }
 
-void KisAslObjectCatcher::addDouble(const QString &path, double value)
+void KisAslObjectCatcher::addDouble(const PkString &path, double value)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "double" << value;
 }
 
-void KisAslObjectCatcher::addInteger(const QString &path, int value)
+void KisAslObjectCatcher::addInteger(const PkString &path, int value)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "int" << value;
 }
 
-void KisAslObjectCatcher::addEnum(const QString &path, const QString &typeId, const QString &value)
+void KisAslObjectCatcher::addEnum(const PkString &path, const PkString &typeId, const PkString &value)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "enum" << ppVar(typeId) << ppVar(value);
 }
 
-void KisAslObjectCatcher::addUnitFloat(const QString &path, const QString &unit, double value)
+void KisAslObjectCatcher::addUnitFloat(const PkString &path, const PkString &unit, double value)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "unitfloat" << ppVar(unit) << ppVar(value);
 }
 
-void KisAslObjectCatcher::addText(const QString &path, const QString &value)
+void KisAslObjectCatcher::addText(const PkString &path, const PkString &value)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "text" << value;
 }
 
-void KisAslObjectCatcher::addBoolean(const QString &path, bool value)
+void KisAslObjectCatcher::addBoolean(const PkString &path, bool value)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "bool" << value;
 }
 
-void KisAslObjectCatcher::addColor(const QString &path, const KoColor &value)
+void KisAslObjectCatcher::addColor(const PkString &path, const KoColor &value)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "color" << value;
 }
 
-void KisAslObjectCatcher::addPoint(const QString &path, const QPointF &value)
+void KisAslObjectCatcher::addPoint(const PkString &path, const PkPointF &value)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "point" << value;
 }
 
-void KisAslObjectCatcher::addCurve(const QString &path, const QString &name, const QVector<QPointF> &points)
+void KisAslObjectCatcher::addCurve(const PkString &path, const PkString &name, const PkVector<PkPointF> &points)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "curve" << name << ppVar(points.size());
 }
 
-void KisAslObjectCatcher::addPattern(const QString &path, const KoPatternSP value, const QString &patternUuid)
+void KisAslObjectCatcher::addPattern(const PkString &path, const KoPatternSP value, const PkString &patternUuid)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "pattern" << value << " uuid " << patternUuid;
 }
 
-void KisAslObjectCatcher::addPatternRef(const QString &path, const QString &patternUuid, const QString &patternName)
+void KisAslObjectCatcher::addPatternRef(const PkString &path, const PkString &patternUuid, const PkString &patternName)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "pattern-ref" << ppVar(patternUuid) << ppVar(patternName);
 }
 
-void KisAslObjectCatcher::addGradient(const QString &path, KoAbstractGradientSP value)
+void KisAslObjectCatcher::addGradient(const PkString &path, KoAbstractGradientSP value)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "gradient" << value;
 }
 
-void KisAslObjectCatcher::addRawData(const QString &path, QByteArray ba)
+void KisAslObjectCatcher::addRawData(const PkString &path, PkByteArray ba)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "bytearray";
 }
 
-void KisAslObjectCatcher::addTransform(const QString &path, const QTransform &transform)
+void KisAslObjectCatcher::addTransform(const PkString &path, const PkTransform &transform)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "transform" << transform;
 }
 
-void KisAslObjectCatcher::addRect(const QString &path, const QRectF &rect)
+void KisAslObjectCatcher::addRect(const PkString &path, const PkRectF &rect)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "corner rect" << rect;
 }
 
-void KisAslObjectCatcher::addUnitRect(const QString &path, const QString &unit, const QRectF &rect)
+void KisAslObjectCatcher::addUnitRect(const PkString &path, const PkString &unit, const PkRectF &rect)
 {
     dbgKrita << "Unhandled:" << (m_arrayMode ? "[A]" : "[ ]") << path << "unit rect" << unit << "rect" << rect;
 }

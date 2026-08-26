@@ -9,6 +9,7 @@ set(kritapsdutils_LIB_SRCS
     asl/kis_asl_xml_writer.cpp
     asl/kis_asl_patterns_writer.cpp
     asl/kis_asl_writer.cpp
+    asl/kis_asl_byte_utils.cpp
 
     cos/kis_cos_parser.cpp
     cos/kis_cos_writer.cpp
@@ -22,6 +23,7 @@ generate_export_header(kritapsdutils BASE_NAME kritapsdutils)
 
 target_include_directories(kritapsdutils
     PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/cos
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/string
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/container
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/variant
@@ -30,6 +32,9 @@ target_include_directories(kritapsdutils
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/log
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/global
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/color
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/pointer
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/image
 )
 
 target_link_libraries(kritapsdutils
@@ -45,6 +50,9 @@ target_link_libraries(kritapsdutils
         pkport
         pkgeometry
         pklog
+        pkxml
+        pkpointer
+        pkimage
     PRIVATE
         ZLIB::ZLIB
 )

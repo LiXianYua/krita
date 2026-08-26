@@ -10,8 +10,8 @@
 
 #include "kritapsdutils_export.h"
 
-class QDomDocument;
-class QIODevice;
+class PkXmlDocument;
+class PkStream;
 
 #include <KoPattern.h>
 
@@ -20,7 +20,7 @@ class QIODevice;
 class KRITAPSDUTILS_EXPORT KisAslPatternsWriter
 {
 public:
-    KisAslPatternsWriter(const QDomDocument &doc, QIODevice &device, psd_byte_order byteOrder);
+    KisAslPatternsWriter(const PkXmlDocument &doc, PkStream &device, psd_byte_order byteOrder);
 
     void writePatterns();
 
@@ -31,8 +31,8 @@ private:
     void addPatternImpl(const KoPatternSP pattern);
 
 private:
-    const QDomDocument &m_doc;
-    QIODevice &m_device;
+    const PkXmlDocument &m_doc;
+    PkStream &m_device;
 
     int m_numPatternsWritten;
     psd_byte_order m_byteOrder;

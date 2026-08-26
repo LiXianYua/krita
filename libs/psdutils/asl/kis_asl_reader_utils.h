@@ -15,9 +15,8 @@
 #include <stdexcept>
 #include <string>
 
-#include <QtEndian>
-
 #include <kis_debug.h>
+#include "kis_asl_byte_utils.h"
 
 /**
  * Default value for variable read from a file
@@ -34,8 +33,8 @@ namespace KisAslReaderUtils
  */
 
 struct KRITAPSDUTILS_EXPORT ASLParseException : public std::runtime_error {
-    ASLParseException(const QString &msg)
-        : std::runtime_error(msg.toLatin1().data())
+    ASLParseException(const PkString &msg)
+        : std::runtime_error(psdToLatin1(msg).c_str())
     {
     }
 };
@@ -44,51 +43,65 @@ struct KRITAPSDUTILS_EXPORT ASLParseException : public std::runtime_error {
 
 #define SAFE_READ_EX(byteOrder, device, varname)                                                                                                               \
     if (!psdread<byteOrder>(device, varname)) {                                                                                                                \
-        QString msg = QString("Failed to read \'%1\' tag!").arg(#varname);                                                                                     \
+        PkString msg = PkString("Failed to read \'%1\' tag!").arg(#varname);                                                                                     \
         throw KisAslReaderUtils::ASLParseException(msg);                                                                                                       \
     }
 
 #define SAFE_READ_SIGNATURE_EX(byteOrder, device, varname, expected)                                                                                           \
     if (!psdread<byteOrder>(device, varname) || varname != expected) {                                                                                         \
-        QString msg = QString(                                                                                                                                 \
+        PkString msg = PkString(                                                                                                                                 \
                           "Failed to check signature \'%1\' tag!\n"                                                                                            \
                           "Value: \'%2\' Expected: \'%3\'")                                                                                                    \
                           .arg(#varname)                                                                                                                       \
-                          .arg(varname)                                                                                                                        \
-                          .arg(expected);                                                                                                                      \
+                          .arg(static_cast<int>(varname))                                                                                                     \
+                          .arg(static_cast<int>(expected));                                                                                                   \
         throw KisAslReaderUtils::ASLParseException(msg);                                                                                                       \
     }
 
 template<psd_byte_order byteOrder, typename T, size_t S>
-inline bool TRY_READ_SIGNATURE_2OPS_EX(QIODevice &device, const std::array<T, S> &expected1, const std::array<T, S> &expected2)
+inline bool TRY_READ_SIGNATURE_2OPS_EX(PkStream &device, const std::array<T, S> &expected1, const std::array<T, S> &expected2)
 {
-    QByteArray bytes = device.peek(S);
+    PkByteArray bytes;
+    bytes.resize(static_cast<int>(S));
+
+    const PkStream::pk_int64 nRead = device.peek(bytes.data(), static_cast<PkStream::pk_int64>(S));
+    bytes.resize(static_cast<int>(nRead));
 
     if (byteOrder == psd_byte_order::psdLittleEndian) {
-        std::reverse(bytes.begin(), bytes.end());
+        std::reverse(bytes.data(), bytes.data() + bytes.size());
     }
 
-    if (bytes.size() != S) {
+    if (bytes.size() != static_cast<int>(S)) {
         return false;
     }
 
     // If read successfully, adjust current position of the io device
 
-    if (std::equal(bytes.constBegin(), bytes.constEnd(), expected1.begin()) 
-        || std::equal(bytes.constBegin(), bytes.constEnd(), expected2.begin())) {
+    bool match1 = true;
+    bool match2 = true;
+    for (size_t i = 0; i < S; ++i) {
+        if (static_cast<unsigned char>(bytes.data()[i]) != static_cast<unsigned char>(expected1[i])) {
+            match1 = false;
+        }
+        if (static_cast<unsigned char>(bytes.data()[i]) != static_cast<unsigned char>(expected2[i])) {
+            match2 = false;
+        }
+    }
+
+    if (match1 || match2) {
         // read, not seek, to support sequential devices
         auto bytesRead = psdreadBytes(device, S);
-        if (bytesRead.size() == S) {
+        if (bytesRead.size() == static_cast<int>(S)) {
             return true;
         }
     }
 
-    dbgFile << "Photoshop signature verification failed! Got: " << bytes.toHex() << "(" << QString(bytes) << ")";
+    dbgFile << "Photoshop signature verification failed! Got: " << pkToHex(bytes) << "(" << PkString::PkFromUtf8(bytes.constData(), bytes.size()) << ")";
     return false;
 }
 
 template<typename T, size_t S>
-inline bool TRY_READ_SIGNATURE_2OPS_EX(psd_byte_order byteOrder, QIODevice &device, const std::array<T, S> &expected1, const std::array<T, S> &expected2)
+inline bool TRY_READ_SIGNATURE_2OPS_EX(psd_byte_order byteOrder, PkStream &device, const std::array<T, S> &expected1, const std::array<T, S> &expected2)
 {
     switch (byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -112,12 +125,12 @@ namespace KisAslReaderUtils
  */
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-inline QString readStringCommon(QIODevice &device, int length)
+inline PkString readStringCommon(PkStream &device, int length)
 {
-    QByteArray data = psdreadBytes<byteOrder>(device, length);
+    PkByteArray data = psdreadBytes<byteOrder>(device, length);
 
     if (data.size() != length) {
-        QString msg = QString(
+        PkString msg = PkString(
                           "Failed to read a string! "
                           "Bytes read: %1 Expected: %2")
                           .arg(data.size())
@@ -125,17 +138,17 @@ inline QString readStringCommon(QIODevice &device, int length)
         throw ASLParseException(msg);
     }
 
-    return QString(data);
+    return PkString::PkFromUtf8(data.constData(), data.size());
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-inline QString readFixedString(QIODevice &device)
+inline PkString readFixedString(PkStream &device)
 {
     return readStringCommon<byteOrder>(device, 4);
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-inline QString readVarString(QIODevice &device)
+inline PkString readVarString(PkStream &device)
 {
     quint32 length = 0;
     SAFE_READ_EX(byteOrder, device, length);
@@ -148,7 +161,7 @@ inline QString readVarString(QIODevice &device)
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-inline QString readPascalString(QIODevice &device)
+inline PkString readPascalString(PkStream &device)
 {
     quint8 length = 0;
     SAFE_READ_EX(byteOrder, device, length);
@@ -157,12 +170,12 @@ inline QString readPascalString(QIODevice &device)
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-inline QString readUnicodeString(QIODevice &device)
+inline PkString readUnicodeString(PkStream &device)
 {
-    QString string;
+    PkString string;
 
     if (!psdread_unicodestring<byteOrder>(device, string)) {
-        QString msg = QString("Failed to read a unicode string!");
+        PkString msg = PkString("Failed to read a unicode string!");
         throw ASLParseException(msg);
     }
 
