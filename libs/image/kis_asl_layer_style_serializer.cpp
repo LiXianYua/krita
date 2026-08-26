@@ -8,11 +8,15 @@
 #include "kis_asl_layer_style_serializer.h"
 #include "kis_image.h"
 
-#include <QDomDocument>
-#include <QMultiHash>
-#include <QFile>
+#include <klocalizedstring.h>
 
-#include <QBuffer>
+#include <PkXmlDocument.h>
+#include <unordered_map>
+#include <PkFileStream.h>
+
+#include <PkMemoryStream.h>
+#include <PkAuxTypes.h>
+#include <PkNodeId.h>
 #include <KoMD5Generator.h>
 
 #include <KisResourceModel.h>
@@ -52,44 +56,44 @@ KisAslLayerStyleSerializer::~KisAslLayerStyleSerializer()
 {
 }
 
-QVector<KisPSDLayerStyleSP> KisAslLayerStyleSerializer::styles() const
+PkVector<KisPSDLayerStyleSP> KisAslLayerStyleSerializer::styles() const
 {
     return m_stylesVector;
 }
 
-void KisAslLayerStyleSerializer::setStyles(const QVector<KisPSDLayerStyleSP> &styles)
+void KisAslLayerStyleSerializer::setStyles(const PkVector<KisPSDLayerStyleSP> &styles)
 {
     m_stylesVector = styles;
-    Q_FOREACH(const KisPSDLayerStyleSP style, styles) {
+    for (const KisPSDLayerStyleSP style : styles) {
         m_stylesHash.insert(style->psdUuid(), style);
     }
     m_initialized = true;
 }
 
-QHash<QString, KoPatternSP> KisAslLayerStyleSerializer::patterns() const
+PkHash<PkString, KoPatternSP> KisAslLayerStyleSerializer::patterns() const
 {
     return m_patternsStore;
 }
 
-QVector<KoAbstractGradientSP> KisAslLayerStyleSerializer::gradients() const
+PkVector<KoAbstractGradientSP> KisAslLayerStyleSerializer::gradients() const
 {
     return m_gradientsStore;
 }
 
-QHash<QString, KisPSDLayerStyleSP> KisAslLayerStyleSerializer::stylesHash()
+PkHash<PkString, KisPSDLayerStyleSP> KisAslLayerStyleSerializer::stylesHash()
 {
     if (m_stylesHash.count() == 0 && m_stylesVector.count() != 0) {
         // build the hash
-        Q_FOREACH(KisPSDLayerStyleSP style, m_stylesVector) {
+        for (KisPSDLayerStyleSP style : m_stylesVector) {
             m_stylesHash.insert(style->psdUuid(), style);
         }
     }
     return m_stylesHash;
 }
 
-QString compositeOpToBlendMode(const QString &compositeOp)
+PkString compositeOpToBlendMode(const PkString &compositeOp)
 {
-    QString mode = "Nrml";
+    PkString mode = "Nrml";
 
     if (compositeOp == COMPOSITE_OVER) {
         mode = "Nrml";
@@ -152,9 +156,9 @@ QString compositeOpToBlendMode(const QString &compositeOp)
     return mode;
 }
 
-QString techniqueToString(psd_technique_type technique, const QString &typeId)
+PkString techniqueToString(psd_technique_type technique, const PkString &typeId)
 {
-    QString result = "SfBL";
+    PkString result = "SfBL";
 
     switch (technique) {
     case psd_technique_softer:
@@ -175,9 +179,9 @@ QString techniqueToString(psd_technique_type technique, const QString &typeId)
     return result;
 }
 
-QString bevelStyleToString(psd_bevel_style style)
+PkString bevelStyleToString(psd_bevel_style style)
 {
-    QString result = "OtrB";
+    PkString result = "OtrB";
 
     switch (style) {
     case psd_bevel_outer_bevel:
@@ -200,9 +204,9 @@ QString bevelStyleToString(psd_bevel_style style)
     return result;
 }
 
-QString gradientTypeToString(psd_gradient_style style)
+PkString gradientTypeToString(psd_gradient_style style)
 {
-    QString result = "Lnr ";
+    PkString result = "Lnr ";
 
     switch (style) {
     case psd_gradient_style_linear:
@@ -225,9 +229,9 @@ QString gradientTypeToString(psd_gradient_style style)
     return result;
 }
 
-QString strokePositionToString(psd_stroke_position position)
+PkString strokePositionToString(psd_stroke_position position)
 {
-    QString result = "OutF";
+    PkString result = "OutF";
 
     switch (position) {
     case psd_stroke_outside:
@@ -244,9 +248,9 @@ QString strokePositionToString(psd_stroke_position position)
     return result;
 }
 
-QString strokeFillTypeToString(psd_fill_type position)
+PkString strokeFillTypeToString(psd_fill_type position)
 {
-    QString result = "SClr";
+    PkString result = "SClr";
 
     switch (position) {
     case psd_fill_solid_color:
@@ -263,9 +267,9 @@ QString strokeFillTypeToString(psd_fill_type position)
     return result;
 }
 
-QVector<KoResourceSignature> KisAslLayerStyleSerializer::fetchAllPatternLinks(const KisPSDLayerStyle *style)
+PkVector<KoResourceSignature> KisAslLayerStyleSerializer::fetchAllPatternLinks(const KisPSDLayerStyle *style)
 {
-    QVector<KoResourceSignature> allPatternLinks;
+    PkVector<KoResourceSignature> allPatternLinks;
 
     if (style->patternOverlay()->effectEnabled()) {
         allPatternLinks << style->patternOverlay()->patternLink();
@@ -285,12 +289,12 @@ QVector<KoResourceSignature> KisAslLayerStyleSerializer::fetchAllPatternLinks(co
 
     return allPatternLinks;
 }
-QVector<KoPatternSP> KisAslLayerStyleSerializer::fetchAllPatterns(const KisPSDLayerStyle *style, KisResourcesInterfaceSP resourcesInterface)
+PkVector<KoPatternSP> KisAslLayerStyleSerializer::fetchAllPatterns(const KisPSDLayerStyle *style, KisResourcesInterfaceSP resourcesInterface)
 {
     const auto allPatternLinks = fetchAllPatternLinks(style);
-    QVector <KoPatternSP> allPatterns;
+    PkVector <KoPatternSP> allPatterns;
 
-    Q_FOREACH(const KoResourceSignature &sig, allPatternLinks) {
+    for (const KoResourceSignature &sig : allPatternLinks) {
         KoPatternSP pattern = resourcesInterface->source<KoPattern>(sig.type).bestMatch(sig.md5sum, sig.filename, sig.name);
         if (pattern) {
             allPatterns << pattern;
@@ -302,7 +306,7 @@ QVector<KoPatternSP> KisAslLayerStyleSerializer::fetchAllPatterns(const KisPSDLa
     return allPatterns;
 }
 
-QString fetchPatternUuidSafe(KoPatternSP pattern, QHash<KoPatternSP, QString> patternToUuid)
+PkString fetchPatternUuidSafe(KoPatternSP pattern, PkHash<KoPatternSP, PkString> patternToUuid)
 {
     if (patternToUuid.contains(pattern)) {
         return patternToUuid[pattern];
@@ -312,29 +316,29 @@ QString fetchPatternUuidSafe(KoPatternSP pattern, QHash<KoPatternSP, QString> pa
     }
 }
 
-QDomDocument KisAslLayerStyleSerializer::formXmlDocument() const
+PkXmlDocument KisAslLayerStyleSerializer::formXmlDocument() const
 {
-    KIS_ASSERT_RECOVER(!m_stylesVector.isEmpty()) { return QDomDocument(); }
+    KIS_ASSERT_RECOVER(!m_stylesVector.isEmpty()) { return PkXmlDocument(); }
 
-    QVector<KoPatternSP> allPatterns;
+    PkVector<KoPatternSP> allPatterns;
 
     /// the duplicated patterns will be resolved later at the
     /// uuid generation stage
-    Q_FOREACH (KisPSDLayerStyleSP style, m_stylesVector) {
+    for (KisPSDLayerStyleSP style : m_stylesVector) {
         allPatterns += fetchAllPatterns(style.data(), style->resourcesInterface());
     }
 
-    QHash<KoPatternSP, QString> patternToUuidMap;
+    PkHash<KoPatternSP, PkString> patternToUuidMap;
 
     KisAslXmlWriter w;
 
     if (!allPatterns.isEmpty()) {
         w.enterList(ResourceType::Patterns);
 
-        Q_FOREACH (KoPatternSP pattern, allPatterns) {
+        for (KoPatternSP pattern : allPatterns) {
             if (pattern) {
                 if (!patternToUuidMap.contains(pattern)) {
-                    QString uuid = w.writePattern("", pattern);
+                    PkString uuid = w.writePattern("", pattern);
                     patternToUuidMap.insert(pattern, uuid);
                 }
             } else {
@@ -345,7 +349,7 @@ QDomDocument KisAslLayerStyleSerializer::formXmlDocument() const
         w.leaveList();
     }
 
-    Q_FOREACH (KisPSDLayerStyleSP style, m_stylesVector) {
+    for (KisPSDLayerStyleSP style : m_stylesVector) {
 
         w.enterDescriptor("", "", "null");
         w.writeText("Nm  ", style->name());
@@ -385,7 +389,7 @@ QDomDocument KisAslLayerStyleSerializer::formXmlDocument() const
             // FIXME: save curves
             w.writeCurve("TrnS",
                          "Linear",
-                         QVector<QPointF>() << QPointF() << QPointF(255, 255));
+                         PkVector<PkPointF>() << PkPointF() << PkPointF(255, 255));
 
             w.writeBoolean("layerConceals", dropShadow->knocksOut());
             w.leaveDescriptor();
@@ -413,7 +417,7 @@ QDomDocument KisAslLayerStyleSerializer::formXmlDocument() const
             // FIXME: save curves
             w.writeCurve("TrnS",
                          "Linear",
-                         QVector<QPointF>() << QPointF() << QPointF(255, 255));
+                         PkVector<PkPointF>() << PkPointF() << PkPointF(255, 255));
 
             w.leaveDescriptor();
         }
@@ -458,7 +462,7 @@ QDomDocument KisAslLayerStyleSerializer::formXmlDocument() const
             // FIXME: save curves
             w.writeCurve("TrnS",
                          "Linear",
-                         QVector<QPointF>() << QPointF() << QPointF(255, 255));
+                         PkVector<PkPointF>() << PkPointF() << PkPointF(255, 255));
 
             w.writeUnitFloat("Inpr", "#Prc", outerGlow->range());
 
@@ -508,7 +512,7 @@ QDomDocument KisAslLayerStyleSerializer::formXmlDocument() const
             // FIXME: save curves
             w.writeCurve("TrnS",
                          "Linear",
-                         QVector<QPointF>() << QPointF() << QPointF(255, 255));
+                         PkVector<PkPointF>() << PkPointF() << PkPointF(255, 255));
 
             w.writeUnitFloat("Inpr", "#Prc", innerGlow->range());
 
@@ -544,7 +548,7 @@ QDomDocument KisAslLayerStyleSerializer::formXmlDocument() const
             // FIXME: save curves
             w.writeCurve("TrnS",
                          "Linear",
-                         QVector<QPointF>() << QPointF() << QPointF(255, 255));
+                         PkVector<PkPointF>() << PkPointF() << PkPointF(255, 255));
 
             w.writeBoolean("antialiasGloss", bevelAndEmboss->glossAntiAliased());
 
@@ -556,7 +560,7 @@ QDomDocument KisAslLayerStyleSerializer::formXmlDocument() const
                 // FIXME: save curves
                 w.writeCurve("MpgS",
                              "Linear",
-                             QVector<QPointF>() << QPointF() << QPointF(255, 255));
+                             PkVector<PkPointF>() << PkPointF() << PkPointF(255, 255));
 
                 w.writeBoolean("AntA", bevelAndEmboss->antiAliased());
                 w.writeUnitFloat("Inpr", "#Prc", bevelAndEmboss->contourRange());
@@ -597,7 +601,7 @@ QDomDocument KisAslLayerStyleSerializer::formXmlDocument() const
             // FIXME: save curves
             w.writeCurve("MpgS",
                          "Linear",
-                         QVector<QPointF>() << QPointF() << QPointF(255, 255));
+                         PkVector<PkPointF>() << PkPointF() << PkPointF(255, 255));
 
             w.leaveDescriptor();
         }
@@ -725,13 +729,13 @@ QDomDocument KisAslLayerStyleSerializer::formXmlDocument() const
     return w.document();
 }
 
-inline QDomNode findNodeByClassId(const QString &classId, QDomNode parent) {
+inline PkXmlNode findNodeByClassId(const PkString &classId, PkXmlNode parent) {
     return KisDomUtils::findElementByAttribute(parent, "node", "classId", classId);
 }
 
-void replaceAllChildren(QDomNode src, QDomNode dst)
+void replaceAllChildren(PkXmlNode src, PkXmlNode dst)
 {
-    QDomNode node;
+    PkXmlNode node;
 
     do {
         node = dst.lastChild();
@@ -749,22 +753,22 @@ void replaceAllChildren(QDomNode src, QDomNode dst)
     src.parentNode().removeChild(src);
 }
 
-QDomDocument KisAslLayerStyleSerializer::formPsdXmlDocument() const
+PkXmlDocument KisAslLayerStyleSerializer::formPsdXmlDocument() const
 {
-    QDomDocument doc = formXmlDocument();
+    PkXmlDocument doc = formXmlDocument();
 
-    QDomNode nullNode = findNodeByClassId("null", doc.documentElement());
-    QDomNode stylNode = findNodeByClassId("Styl", doc.documentElement());
-    QDomNode lefxNode = findNodeByClassId("Lefx", stylNode);
+    PkXmlNode nullNode = findNodeByClassId("null", doc.documentElement());
+    PkXmlNode stylNode = findNodeByClassId("Styl", doc.documentElement());
+    PkXmlNode lefxNode = findNodeByClassId("Lefx", stylNode);
 
     replaceAllChildren(lefxNode, nullNode);
 
     return doc;
 }
 
-QVector<KoResourceSignature> KisAslLayerStyleSerializer::fetchLinkedResourceSignatures(const KisPSDLayerStyle *style)
+PkVector<KoResourceSignature> KisAslLayerStyleSerializer::fetchLinkedResourceSignatures(const KisPSDLayerStyle *style)
 {
-    QVector<KoResourceSignature> embeddedResourceLinks = fetchAllPatternLinks(style);
+    PkVector<KoResourceSignature> embeddedResourceLinks = fetchAllPatternLinks(style);
 
     if (style->gradientOverlay()->effectEnabled()) {
         embeddedResourceLinks << style->gradientOverlay()->gradientLink();
@@ -785,20 +789,20 @@ QVector<KoResourceSignature> KisAslLayerStyleSerializer::fetchLinkedResourceSign
     return embeddedResourceLinks;
 }
 
-void KisAslLayerStyleSerializer::saveToDevice(QIODevice &device)
+void KisAslLayerStyleSerializer::saveToDevice(PkStream &device)
 {
-    QDomDocument doc = formXmlDocument();
+    PkXmlDocument doc = formXmlDocument();
     KIS_ASSERT(!doc.isNull());
 
     KisAslWriter writer;
     writer.writeFile(device, doc);
 }
 
-bool KisAslLayerStyleSerializer::saveToFile(const QString& filename)
+bool KisAslLayerStyleSerializer::saveToFile(const PkString& filename)
 {
-    QFile file(filename);
+    PkFileStream file(filename);
 
-    if (!file.open(QIODevice::WriteOnly)) {
+    if (!file.open(PkStream::WriteOnly)) {
         dbgKrita << "Can't open file " << filename;
         return false;
     }
@@ -808,9 +812,9 @@ bool KisAslLayerStyleSerializer::saveToFile(const QString& filename)
     return true;
 }
 
-void convertAndSetBlendMode(const QString &mode, std::function<void(const QString &)> setBlendMode)
+void convertAndSetBlendMode(const PkString &mode, std::function<void(const PkString &)> setBlendMode)
 {
-    QString compositeOp = COMPOSITE_OVER;
+    PkString compositeOp = COMPOSITE_OVER;
 
     if (mode == "Nrml") {
         compositeOp = COMPOSITE_OVER;
@@ -873,22 +877,22 @@ void convertAndSetBlendMode(const QString &mode, std::function<void(const QStrin
     setBlendMode(compositeOp);
 }
 
-void convertAndSetCurve(const QString &name, const QVector<QPointF> &points, std::function<void(const quint8 *)> setCurveLookupTable)
+void convertAndSetCurve(const PkString &name, const PkVector<PkPointF> &points, std::function<void(const quint8 *)> setCurveLookupTable)
 {
-    Q_UNUSED(name);
-    Q_UNUSED(points);
-    Q_UNUSED(setCurveLookupTable);
+    (void)name;
+    (void)points;
+    (void)setCurveLookupTable;
 
     warnKrita << "convertAndSetBlendMode:" << "Curve conversion is not implemented yet";
 }
 
 template<typename T>
-void convertAndSetEnum(const QString &value, const QMap<QString, T> map, std::function<void(T)> setMappedValue)
+void convertAndSetEnum(const PkString &value, const PkMap<PkString, T> map, std::function<void(T)> setMappedValue)
 {
     setMappedValue(map[value]);
 }
 
-inline QString _prepaddr(const QString &pref, const QString &addr) {
+inline PkString _prepaddr(const PkString &pref, const PkString &addr) {
     return pref + addr;
 }
 
@@ -901,7 +905,7 @@ inline QString _prepaddr(const QString &pref, const QString &addr) {
 
 #define CONN_COMPOSITE_OP(addr, method, object, type, prefix)                                                                                                  \
     {                                                                                                                                                          \
-        std::function<void(const QString &)> setter = std::bind(&type::method, object, _1);                                                                    \
+        std::function<void(const PkString &)> setter = std::bind(&type::method, object, _1);                                                                    \
         m_catcher.subscribeEnum(_prepaddr(prefix, addr), "BlnM", std::bind(convertAndSetBlendMode, _1, setter));                                               \
     }
 
@@ -929,7 +933,7 @@ inline QString _prepaddr(const QString &pref, const QString &addr) {
         m_catcher.subscribePatternRef(_prepaddr(prefix, addr), std::bind(&KisAslLayerStyleSerializer::assignPatternObject, this, _1, _2, setter));             \
     }
 
-void KisAslLayerStyleSerializer::registerPatternObject(const KoPatternSP pattern, const QString& patternUuid) {
+void KisAslLayerStyleSerializer::registerPatternObject(const KoPatternSP pattern, const PkString& patternUuid) {
 
     if (!pattern) {
         warnKrita << "WARNING: got an empty pattern:" << patternUuid;
@@ -939,15 +943,15 @@ void KisAslLayerStyleSerializer::registerPatternObject(const KoPatternSP pattern
     if (m_patternsStore.contains(patternUuid)) {
         warnKrita << "WARNING: ASL style contains a duplicated pattern!" << ppVar(pattern->name()) << ppVar(m_patternsStore[patternUuid]->name());
     } else {
-        pattern->setFilename(patternUuid + QString(".pat"));
+        pattern->setFilename(patternUuid + PkString(".pat"));
         m_patternsStore.insert(patternUuid, pattern);
         m_localResourcesInterface->addResource(pattern);
     }
 }
 
-void KisAslLayerStyleSerializer::assignPatternObject(const QString &patternUuid, const QString &patternName, std::function<void(KoPatternSP)> setPattern)
+void KisAslLayerStyleSerializer::assignPatternObject(const PkString &patternUuid, const PkString &patternName, std::function<void(KoPatternSP)> setPattern)
 {
-    Q_UNUSED(patternName);
+    (void)patternName;
 
     KoPatternSP pattern;
 
@@ -955,10 +959,10 @@ void KisAslLayerStyleSerializer::assignPatternObject(const QString &patternUuid,
         warnKrita << "WARNING: ASL style contains non-existent pattern reference! Searching for uuid: "
                   << patternUuid << " (name: " << patternName << ")";
 
-        QImage dumbImage(32, 32, QImage::Format_ARGB32);
+        PkImage dumbImage(32, 32, PkImage::Format_ARGB32);
         dumbImage.fill(Qt::red);
         KoPatternSP dumbPattern(new KoPattern(dumbImage, "invalid", ""));
-        registerPatternObject(dumbPattern, patternUuid + QString("_invalid"));
+        registerPatternObject(dumbPattern, patternUuid + PkString("_invalid"));
         pattern = dumbPattern;
     } else {
         pattern = m_patternsStore[patternUuid];
@@ -1006,7 +1010,7 @@ private:
     }
 };
 
-void KisAslLayerStyleSerializer::connectCatcherToStyle(KisPSDLayerStyle *style, const QString &prefix)
+void KisAslLayerStyleSerializer::connectCatcherToStyle(KisPSDLayerStyle *style, const PkString &prefix)
 {
     CONN_TEXT_RADDR("/null/Nm  ", setName, style, KisPSDLayerStyle);
     CONN_TEXT_RADDR("/null/Idnt", setPsdUuid, style, KisPSDLayerStyle);
@@ -1056,7 +1060,7 @@ void KisAslLayerStyleSerializer::connectCatcherToStyle(KisPSDLayerStyle *style, 
     CONN_BOOL("/OrGl/AntA", setAntiAliased, outerGlow, psd_layer_effects_outer_glow, prefix);
     CONN_CURVE("/OrGl/TrnS", setContourLookupTable, outerGlow, psd_layer_effects_outer_glow, prefix);
 
-    QMap<QString, psd_technique_type> fillTechniqueMap;
+    PkMap<PkString, psd_technique_type> fillTechniqueMap;
     fillTechniqueMap.insert("PrBL", psd_technique_precise);
     fillTechniqueMap.insert("SfBL", psd_technique_softer);
     CONN_ENUM("/OrGl/GlwT", "BETE", setTechnique, fillTechniqueMap, psd_technique_type, outerGlow, psd_layer_effects_outer_glow, prefix);
@@ -1086,7 +1090,7 @@ void KisAslLayerStyleSerializer::connectCatcherToStyle(KisPSDLayerStyle *style, 
     CONN_UNITF("/IrGl/Inpr", "#Prc", setRange, innerGlow, psd_layer_effects_inner_glow, prefix);
     CONN_UNITF("/IrGl/ShdN", "#Prc", setJitter, innerGlow, psd_layer_effects_inner_glow, prefix);
 
-    QMap<QString, psd_glow_source> glowSourceMap;
+    PkMap<PkString, psd_glow_source> glowSourceMap;
     glowSourceMap.insert("SrcC", psd_glow_center);
     glowSourceMap.insert("SrcE", psd_glow_edge);
     CONN_ENUM("/IrGl/glwS", "IGSr", setSource, glowSourceMap, psd_glow_source, innerGlow, psd_layer_effects_inner_glow, prefix);
@@ -1128,7 +1132,7 @@ void KisAslLayerStyleSerializer::connectCatcherToStyle(KisPSDLayerStyle *style, 
     CONN_GRADIENT("/GrFl/Grad", setGradient, gradientOverlay, psd_layer_effects_gradient_overlay, prefix);
 
 
-    QMap<QString, psd_gradient_style> gradientStyleMap;
+    PkMap<PkString, psd_gradient_style> gradientStyleMap;
     gradientStyleMap.insert("Lnr ", psd_gradient_style_linear);
     gradientStyleMap.insert("Rdl ", psd_gradient_style_radial);
     gradientStyleMap.insert("Angl", psd_gradient_style_angle);
@@ -1153,13 +1157,13 @@ void KisAslLayerStyleSerializer::connectCatcherToStyle(KisPSDLayerStyle *style, 
     CONN_UNITF("/FrFX/Opct", "#Prc", setOpacity, stroke, psd_layer_effects_stroke, prefix);
     CONN_UNITF("/FrFX/Sz  ", "#Pxl", setSize, stroke, psd_layer_effects_stroke, prefix);
 
-    QMap<QString, psd_stroke_position> strokeStyleMap;
+    PkMap<PkString, psd_stroke_position> strokeStyleMap;
     strokeStyleMap.insert("OutF", psd_stroke_outside);
     strokeStyleMap.insert("InsF", psd_stroke_inside);
     strokeStyleMap.insert("CtrF", psd_stroke_center);
     CONN_ENUM("/FrFX/Styl", "FStl", setPosition, strokeStyleMap, psd_stroke_position, stroke, psd_layer_effects_stroke, prefix);
 
-    QMap<QString, psd_fill_type> strokeFillType;
+    PkMap<PkString, psd_fill_type> strokeFillType;
     strokeFillType.insert("SClr", psd_fill_solid_color);
     strokeFillType.insert("GrFl", psd_fill_gradient);
     strokeFillType.insert("Ptrn", psd_fill_pattern);
@@ -1197,13 +1201,13 @@ void KisAslLayerStyleSerializer::connectCatcherToStyle(KisPSDLayerStyle *style, 
     CONN_COLOR("/ebbl/sdwC", setShadowColor, bevelAndEmboss, psd_layer_effects_bevel_emboss, prefix);
     CONN_UNITF("/ebbl/sdwO", "#Prc", setShadowOpacity, bevelAndEmboss, psd_layer_effects_bevel_emboss, prefix);
 
-    QMap<QString, psd_technique_type> bevelTechniqueMap;
+    PkMap<PkString, psd_technique_type> bevelTechniqueMap;
     bevelTechniqueMap.insert("PrBL", psd_technique_precise);
     bevelTechniqueMap.insert("SfBL", psd_technique_softer);
     bevelTechniqueMap.insert("Slmt", psd_technique_slope_limit);
     CONN_ENUM("/ebbl/bvlT", "bvlT", setTechnique, bevelTechniqueMap, psd_technique_type, bevelAndEmboss, psd_layer_effects_bevel_emboss, prefix);
 
-    QMap<QString, psd_bevel_style> bevelStyleMap;
+    PkMap<PkString, psd_bevel_style> bevelStyleMap;
     bevelStyleMap.insert("OtrB", psd_bevel_outer_bevel);
     bevelStyleMap.insert("InrB", psd_bevel_inner_bevel);
     bevelStyleMap.insert("Embs", psd_bevel_emboss);
@@ -1221,7 +1225,7 @@ void KisAslLayerStyleSerializer::connectCatcherToStyle(KisPSDLayerStyle *style, 
     CONN_UNITF("/ebbl/blur", "#Pxl", setSize, bevelAndEmboss, psd_layer_effects_bevel_emboss, prefix);
 
 
-    QMap<QString, psd_direction> bevelDirectionMap;
+    PkMap<PkString, psd_direction> bevelDirectionMap;
     bevelDirectionMap.insert("In  ", psd_direction_up);
     bevelDirectionMap.insert("Out ", psd_direction_down);
     CONN_ENUM("/ebbl/bvlD", "BESs", setDirection, bevelDirectionMap, psd_direction, bevelAndEmboss, psd_layer_effects_bevel_emboss, prefix);
@@ -1259,16 +1263,16 @@ void KisAslLayerStyleSerializer::newStyleStarted(bool isPsdStructure)
     psd_layer_effects_context *context = currentStyleSP->context();
     context->keep_original = 0;
 
-    QString prefix = isPsdStructure ? "/null" : "/Styl/Lefx";
+    PkString prefix = isPsdStructure ? "/null" : "/Styl/Lefx";
     connectCatcherToStyle(currentStyle, prefix);
 }
 
-bool KisAslLayerStyleSerializer::readFromFile(const QString& filename)
+bool KisAslLayerStyleSerializer::readFromFile(const PkString& filename)
 {
-    QFile file(filename);
+    PkFileStream file(filename);
     if (file.size() == 0) return false;
 
-    if (!file.open(QIODevice::ReadOnly)) {
+    if (!file.open(PkStream::ReadOnly)) {
         dbgKrita << "Can't open file " << filename;
         return false;
     }
@@ -1279,10 +1283,10 @@ bool KisAslLayerStyleSerializer::readFromFile(const QString& filename)
     return m_initialized;
 }
 
-QVector<KisPSDLayerStyleSP> KisAslLayerStyleSerializer::collectAllLayerStyles(KisNodeSP root)
+PkVector<KisPSDLayerStyleSP> KisAslLayerStyleSerializer::collectAllLayerStyles(KisNodeSP root)
 {
-    KisLayer* layer = qobject_cast<KisLayer*>(root.data());
-    QVector<KisPSDLayerStyleSP> layerStyles;
+    KisLayer* layer = dynamic_cast<KisLayer*>(root.data());
+    PkVector<KisPSDLayerStyleSP> layerStyles;
 
     if (layer && layer->layerStyle()) {
         KisPSDLayerStyleSP clone = layer->layerStyle()->clone().dynamicCast<KisPSDLayerStyle>();
@@ -1302,32 +1306,33 @@ QVector<KisPSDLayerStyleSP> KisAslLayerStyleSerializer::collectAllLayerStyles(Ki
 void KisAslLayerStyleSerializer::sideLoadLinkedResources(KisPSDLayerStyle *style,
                                                          KisResourcesInterfaceSP resourcesInterface)
 {
-    const QList<KoResourceLoadResult> linkedResources = style->linkedResources(resourcesInterface);
-    QList<KoEmbeddedResource> sideLoadedResourcesStorage;
-    Q_FOREACH (const KoResourceLoadResult &res, linkedResources) {
+    const PkList<KoResourceLoadResult> linkedResources = style->linkedResources(resourcesInterface);
+    PkList<KoEmbeddedResource> sideLoadedResourcesStorage;
+    for (const KoResourceLoadResult &res : linkedResources) {
         if (res.type() != KoResourceLoadResult::ExistingResource) {
             qWarning() << "WARNING: failed to load layer style's embedded resource into the database"
                        << res.signature();
             continue;
         }
 
-        QBuffer buffer;
-        buffer.open(QIODevice::WriteOnly);
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly);
         bool result = res.resource()->saveToDevice(&buffer);
         buffer.close();
         KIS_SAFE_ASSERT_RECOVER(result) { continue; }
-        KIS_SAFE_ASSERT_RECOVER(res.resource()->md5Sum() == KoMD5Generator::generateHash(buffer.data())) { continue; }
+        const PkByteArray bufferData(buffer.data(), static_cast<int>(buffer.size()));
+        KIS_SAFE_ASSERT_RECOVER(res.resource()->md5Sum() == KoMD5Generator::generateHash(bufferData)) { continue; }
 
-        sideLoadedResourcesStorage.append(KoEmbeddedResource(res.signature(), buffer.data()));
+        sideLoadedResourcesStorage.append(KoEmbeddedResource(res.signature(), bufferData));
     }
     style->setSideLoadedResources(sideLoadedResourcesStorage);
 }
 
-void KisAslLayerStyleSerializer::assignAllLayerStylesToLayers(KisNodeSP root, const QString &storageLocation)
+void KisAslLayerStyleSerializer::assignAllLayerStylesToLayers(KisNodeSP root, const PkString &storageLocation)
 {
     if (!storageLocation.isEmpty()) {
         KisResourceModel stylesModel(ResourceType::LayerStyles);
-        Q_FOREACH (KisPSDLayerStyleSP style, m_stylesVector) {
+        for (KisPSDLayerStyleSP style : m_stylesVector) {
             KisPSDLayerStyleSP newStyle = style->clone().dynamicCast<KisPSDLayerStyle>();
             sideLoadLinkedResources(newStyle.data(), m_localResourcesInterface);
             style->setResourcesInterface(KisGlobalResourcesInterface::instance());
@@ -1339,14 +1344,14 @@ void KisAslLayerStyleSerializer::assignAllLayerStylesToLayers(KisNodeSP root, co
     // we iterate over non-uploaded styles which store all the dependent resources
     // internally
     KisLayerUtils::recursiveApplyNodes(root, [styles = m_stylesVector] (KisNodeSP node) {
-        KisLayer* layer = qobject_cast<KisLayer*>(node.data());
+        KisLayer* layer = dynamic_cast<KisLayer*>(node.data());
 
         if (layer && layer->layerStyle()) {
-            QUuid uuid = layer->layerStyle()->uuid();
+            PkNodeId uuid = layer->layerStyle()->uuid();
 
             bool found = false;
 
-            Q_FOREACH (KisPSDLayerStyleSP style, styles) {
+            for (KisPSDLayerStyleSP style : styles) {
                 if (style->uuid() == uuid) {
                     layer->setLayerStyle(style->cloneWithResourcesSnapshot(style->resourcesInterface(), 0));
                     found = true;
@@ -1361,14 +1366,14 @@ void KisAslLayerStyleSerializer::assignAllLayerStylesToLayers(KisNodeSP root, co
     });
 }
 
-void KisAslLayerStyleSerializer::readFromDevice(QIODevice &device)
+void KisAslLayerStyleSerializer::readFromDevice(PkStream &device)
 {
     m_catcher.subscribePattern("/patterns/KisPattern", std::bind(&KisAslLayerStyleSerializer::registerPatternObject, this, _1, _2));
     m_catcher.subscribePattern("/Patterns/KisPattern", std::bind(&KisAslLayerStyleSerializer::registerPatternObject, this, _1, _2));
     m_catcher.subscribeNewStyleStarted(std::bind(&KisAslLayerStyleSerializer::newStyleStarted, this, false));
 
     KisAslReader reader;
-    const QDomDocument doc = reader.readFile(device);
+    const PkXmlDocument doc = reader.readFile(device);
 
     if (doc.isNull()) {
         m_initialized = false;
@@ -1381,14 +1386,16 @@ void KisAslLayerStyleSerializer::readFromDevice(QIODevice &device)
     KisAslXmlParser parser;
     parser.parseXML(doc, m_catcher);
 
-    QMultiHash<QString, KisPSDLayerStyleSP> allStyles;
-    QHash<QString, KisPSDLayerStyleSP> cleanedStyles;
+    std::unordered_multimap<PkString, KisPSDLayerStyleSP> allStyles;
+    PkHash<PkString, KisPSDLayerStyleSP> cleanedStyles;
 
     for(const auto &style : m_stylesVector)
-        allStyles.insert(style->psdUuid(), style);
+        allStyles.emplace(style->psdUuid(), style);
 
     // correct all the layer styles
-    for (const auto &style : allStyles) {
+    for (const auto &entry : allStyles) {
+        const KisPSDLayerStyleSP &style = entry.second;
+
         FillStylesCorrector::correct(style.data());
 
         if (allStyles.count(style->psdUuid()) > 1) {
@@ -1399,7 +1406,7 @@ void KisAslLayerStyleSerializer::readFromDevice(QIODevice &device)
                     qWarning() << "Duplicated UUID" << style->psdUuid() << "for styles" << style->name() << "and"
                                << existingStyle.value()->name();
                     style->setMD5Sum("");
-                    style->setUuid(QUuid::createUuid());
+                    style->setUuid(PkNodeId::createUuid());
                 } else {
                     qWarning() << "Duplicated style" << style->name();
                     continue;
@@ -1419,7 +1426,7 @@ void KisAslLayerStyleSerializer::readFromDevice(QIODevice &device)
     m_initialized = true;
 }
 
-void KisAslLayerStyleSerializer::registerPSDPattern(const QDomDocument &doc)
+void KisAslLayerStyleSerializer::registerPSDPattern(const PkXmlDocument &doc)
 {
     KisAslCallbackObjectCatcher catcher;
     catcher.subscribePattern("/Patterns/KisPattern", std::bind(&KisAslLayerStyleSerializer::registerPatternObject, this, _1, _2));
@@ -1430,12 +1437,12 @@ void KisAslLayerStyleSerializer::registerPSDPattern(const QDomDocument &doc)
     parser.parseXML(doc, catcher);
 }
 
-void KisAslLayerStyleSerializer::readFromPSDXML(const QDomDocument &doc)
+void KisAslLayerStyleSerializer::readFromPSDXML(const PkXmlDocument &doc)
 {
     // The caller prepares the document using the following code
     //
     // KisAslReader reader;
-    // QDomDocument doc = reader.readLfx2PsdSection(device);
+    // PkXmlDocument doc = reader.readLfx2PsdSection(device);
 
     m_stylesVector.clear();
 
@@ -1447,7 +1454,7 @@ void KisAslLayerStyleSerializer::readFromPSDXML(const QDomDocument &doc)
     parser.parseXML(doc, m_catcher);
 
     // correct all the layer styles
-    Q_FOREACH (KisPSDLayerStyleSP style, m_stylesVector) {
+    for (KisPSDLayerStyleSP style : m_stylesVector) {
         FillStylesCorrector::correct(style.data());
     }
 }

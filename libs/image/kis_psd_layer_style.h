@@ -14,6 +14,7 @@
 #include "kritaimage_export.h"
 
 class KisPSDLayerStyle;
+class PkNodeId;   // S-06 遗留：本头 uuid()/setUuid() 用 PkNodeId 但从未声明；前置声明补齐（实现归 pk/uuid）
 typedef PkSharedPointer<KisPSDLayerStyle> KisPSDLayerStyleSP;
 
 

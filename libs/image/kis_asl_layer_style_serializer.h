@@ -9,7 +9,8 @@
 
 #include "kritaimage_export.h"
 
-class QIODevice;
+class PkStream;
+class PkXmlDocument;
 class KoPattern;
 class KisResourceModel;
 
@@ -17,33 +18,36 @@ class KisResourceModel;
 #include "asl/kis_asl_callback_object_catcher.h"
 #include "KisLocalStrokeResources.h"
 
+#include <PkHash.h>        // PkHash<PkString, ...> 成员（PkVector/PkString 经 psd.h 传递可用）
+#include <PkStringHash.h>  // qHash(const PkString&)：PkHash<PkString, V> 实例化需要
+
 class KRITAIMAGE_EXPORT KisAslLayerStyleSerializer
 {
 public:
     KisAslLayerStyleSerializer();
     ~KisAslLayerStyleSerializer();
 
-    void saveToDevice(QIODevice &device);
-    bool saveToFile(const QString& filename);
-    void readFromDevice(QIODevice &device);
-    bool readFromFile(const QString& filename);
+    void saveToDevice(PkStream &device);
+    bool saveToFile(const PkString& filename);
+    void readFromDevice(PkStream &device);
+    bool readFromFile(const PkString& filename);
 
-    void assignAllLayerStylesToLayers(KisNodeSP root, const QString &storageLocation);
-    static QVector<KisPSDLayerStyleSP> collectAllLayerStyles(KisNodeSP root);
+    void assignAllLayerStylesToLayers(KisNodeSP root, const PkString &storageLocation);
+    static PkVector<KisPSDLayerStyleSP> collectAllLayerStyles(KisNodeSP root);
 
-    QVector<KisPSDLayerStyleSP> styles() const;
-    void setStyles(const QVector<KisPSDLayerStyleSP> &styles);
+    PkVector<KisPSDLayerStyleSP> styles() const;
+    void setStyles(const PkVector<KisPSDLayerStyleSP> &styles);
 
-    QHash<QString, KoPatternSP> patterns() const;
-    QVector<KoAbstractGradientSP> gradients() const;
-    QHash<QString, KisPSDLayerStyleSP> stylesHash();
+    PkHash<PkString, KoPatternSP> patterns() const;
+    PkVector<KoAbstractGradientSP> gradients() const;
+    PkHash<PkString, KisPSDLayerStyleSP> stylesHash();
 
 
-    void registerPSDPattern(const QDomDocument &doc);
-    void readFromPSDXML(const QDomDocument &doc);
+    void registerPSDPattern(const PkXmlDocument &doc);
+    void readFromPSDXML(const PkXmlDocument &doc);
 
-    QDomDocument formXmlDocument() const;
-    QDomDocument formPsdXmlDocument() const;
+    PkXmlDocument formXmlDocument() const;
+    PkXmlDocument formPsdXmlDocument() const;
 
     bool isInitialized() {
         return m_initialized;
@@ -54,30 +58,30 @@ public:
     }
 
     static void sideLoadLinkedResources(KisPSDLayerStyle *style, KisResourcesInterfaceSP resourcesInterface);
-    static QVector<KoResourceSignature> fetchLinkedResourceSignatures(const KisPSDLayerStyle *style);
+    static PkVector<KoResourceSignature> fetchLinkedResourceSignatures(const KisPSDLayerStyle *style);
 
 private:
-    void registerPatternObject(const KoPatternSP pattern, const  QString& patternUuid);
+    void registerPatternObject(const KoPatternSP pattern, const  PkString& patternUuid);
 
-    void assignPatternObject(const QString &patternUuid, const QString &patternName, std::function<void(KoPatternSP)> setPattern);
+    void assignPatternObject(const PkString &patternUuid, const PkString &patternName, std::function<void(KoPatternSP)> setPattern);
     void assignGradientObject(KoAbstractGradientSP gradient, std::function<void(KoAbstractGradientSP)> setGradient);
 
-    static QVector<KoResourceSignature> fetchAllPatternLinks(const KisPSDLayerStyle *style);
-    static QVector<KoPatternSP> fetchAllPatterns(const KisPSDLayerStyle *style, KisResourcesInterfaceSP resourcesInterface);
+    static PkVector<KoResourceSignature> fetchAllPatternLinks(const KisPSDLayerStyle *style);
+    static PkVector<KoPatternSP> fetchAllPatterns(const KisPSDLayerStyle *style, KisResourcesInterfaceSP resourcesInterface);
 
     void newStyleStarted(bool isPsdStructure);
-    void connectCatcherToStyle(KisPSDLayerStyle *style, const QString &prefix);
+    void connectCatcherToStyle(KisPSDLayerStyle *style, const PkString &prefix);
 
 private:
-    QHash<QString, KoPatternSP> m_patternsStore;
+    PkHash<PkString, KoPatternSP> m_patternsStore;
 
     KisAslCallbackObjectCatcher m_catcher;
-    QVector<KisPSDLayerStyleSP> m_stylesVector;
-    QVector<KoAbstractGradientSP> m_gradientsStore;
-    QHash<QString, KisPSDLayerStyleSP> m_stylesHash;
+    PkVector<KisPSDLayerStyleSP> m_stylesVector;
+    PkVector<KoAbstractGradientSP> m_gradientsStore;
+    PkHash<PkString, KisPSDLayerStyleSP> m_stylesHash;
     bool m_initialized {false};
     bool m_isValid {true};
-    QSharedPointer<KisLocalStrokeResources> m_localResourcesInterface;
+    PkSharedPointer<KisLocalStrokeResources> m_localResourcesInterface;
 };
 
 #endif /* __KIS_ASL_LAYER_STYLE_SERIALIZER_H */

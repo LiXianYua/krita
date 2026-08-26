@@ -6,6 +6,8 @@
 #include "kis_psd_layer_style.h"
 
 #include <klocalizedstring.h>
+#include <PkNodeId.h>
+
 
 #include <kis_assert.h>
 #include <kis_global.h>
@@ -138,8 +140,8 @@ bool KisPSDLayerStyle::isSerializable() const
 
 bool KisPSDLayerStyle::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
-    Q_UNUSED(dev);
-    Q_UNUSED(resourcesInterface);
+    (void)dev;
+    (void)resourcesInterface;
     return false;
 }
 
@@ -393,7 +395,7 @@ PkList<KoResourceLoadResult> KisPSDLayerStyle::sideLoadedResources(KisResourcesI
 {
     PkList<KoResourceLoadResult> resources;
 
-    Q_FOREACH(const KoEmbeddedResource &resource, d->sideLoadedResources) {
+    for (const KoEmbeddedResource &resource : d->sideLoadedResources) {
         KoResourceSignature sig = resource.signature();
 
         /**
@@ -424,7 +426,7 @@ PkList<KoResourceLoadResult> KisPSDLayerStyle::linkedResources(KisResourcesInter
     PkList<KoResourceLoadResult> result;
     const auto linkedResourceSignatures = KisAslLayerStyleSerializer::fetchLinkedResourceSignatures(this);
 
-    Q_FOREACH(const KoResourceSignature &sig, linkedResourceSignatures) {
+    for (const KoResourceSignature &sig : linkedResourceSignatures) {
         result << globalResourcesInterface->source(sig.type).bestMatchLoadResult(sig.md5sum, sig.filename, sig.name);
     }
 
