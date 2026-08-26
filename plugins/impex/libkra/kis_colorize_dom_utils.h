@@ -14,11 +14,11 @@ namespace KisLazyFillTools {
 }
 
 namespace KisDomUtils {
-    void KRITALIBKRA_EXPORT saveValue(QDomElement *parent, const QString &tag, const KisLazyFillTools::KeyStroke &stroke);
-    bool KRITALIBKRA_EXPORT loadValue(const QDomElement &e,
+    void KRITALIBKRA_EXPORT saveValue(PkXmlElement *parent, const PkString &tag, const KisLazyFillTools::KeyStroke &stroke);
+    bool KRITALIBKRA_EXPORT loadValue(const PkXmlElement &e,
                                       KisLazyFillTools::KeyStroke *stroke,
                                       const KoColorSpace *colorSpace,
-                                      const QPoint &offset);
+                                      const PkPoint &offset);
 }
 
 #endif /* __KIS_COLORIZE_DOM_UTILS_H */

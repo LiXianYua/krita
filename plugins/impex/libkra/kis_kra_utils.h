@@ -6,13 +6,13 @@
 #ifndef _KIS_KRA_UTILS_
 #define _KIS_KRA_UTILS_
 
-#include <QString>
-#include <QBitArray>
+#include <PkString.h>
+#include <PkBitArray.h>
 
 namespace KRA {
 
-QString   flagsToString(const QBitArray& flags, int size=-1, char trueToken='1', char falseToken='0', bool defaultTrue=true);
-QBitArray stringToFlags(const QString& string, int size=-1, char token='0', bool defaultTrue=true);
+PkString   flagsToString(const PkBitArray& flags, int size=-1, char trueToken='1', char falseToken='0', bool defaultTrue=true);
+PkBitArray stringToFlags(const PkString& string, int size=-1, char token='0', bool defaultTrue=true);
 
 }
 

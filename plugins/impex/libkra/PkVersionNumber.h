@@ -1,7 +1,7 @@
-// PkVersionNumber —— QVersionNumber 的零 Qt 对应物（libkra 锁内新建）。
+// PkVersionNumber —— PkVersionNumber 的零 Qt 对应物（libkra 锁内新建）。
 //
-// QVersionNumber 全树只有 libkra 3 文件用（实测 2026-08-25），故锁内垫片，
-// 不进 pk 层。API 对拍 Qt 5.15 QVersionNumber 的 libkra 实际用量：
+// PkVersionNumber 全树只有 libkra 3 文件用（实测 2026-08-25），故锁内垫片，
+// 不进 pk 层。API 对拍 Qt 5.15 PkVersionNumber 的 libkra 实际用量：
 //   - PkVersionNumber()                  空（isNull()==true）
 //   - PkVersionNumber(int maj, int min)
 //   - PkVersionNumber(int maj, int min, int patch)
@@ -37,7 +37,7 @@ public:
 
     static PkVersionNumber fromString(const PkString &s)
     {
-        // 对拍 QVersionNumber::fromString：按 '.' 切段，每段十进制数；
+        // 对拍 PkVersionNumber::fromString：按 '.' 切段，每段十进制数；
         // 空段/非法段截断（其后内容忽略）。全非法 → 空版本。
         PkVersionNumber result;
         const std::string utf8 = s.PkToUtf8();

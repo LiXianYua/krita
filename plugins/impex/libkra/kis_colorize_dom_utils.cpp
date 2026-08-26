@@ -13,27 +13,27 @@
 #include "kis_paint_device.h"
 
 namespace KisDomUtils {
-    void saveValue(QDomElement *parent, const QString &tag, const KisLazyFillTools::KeyStroke &stroke)
+    void saveValue(PkXmlElement *parent, const PkString &tag, const KisLazyFillTools::KeyStroke &stroke)
     {
         using namespace KRA;
 
-        QDomDocument doc = parent->ownerDocument();
-        QDomElement e = doc.createElement(tag);
+        PkXmlDocument doc = parent->ownerDocument();
+        PkXmlElement e = doc.createElement(tag);
         parent->appendChild(e);
 
         e.setAttribute("type", COLORIZE_KEYSTROKE);
 
-        QString fileName = tag;
+        PkString fileName = tag;
         fileName.replace("item", COLORIZE_KEYSTROKE);
 
         e.setAttribute(FILE_NAME, fileName);
         e.setAttribute(COLORIZE_KEYSTROKE_IS_TRANSPARENT, stroke.isTransparent);
 
-        QByteArray colorData = QByteArray::fromRawData((const char*)stroke.color.data(), stroke.color.colorSpace()->pixelSize());
-        e.setAttribute(COLORBYTEDATA, QString(colorData.toBase64()));
+        PkByteArray colorData = PkByteArray::fromRawData((const char*)stroke.color.data(), stroke.color.colorSpace()->pixelSize());
+        e.setAttribute(COLORBYTEDATA, PkString(colorData.toBase64()));
     }
 
-    bool loadValue(const QDomElement &e, KisLazyFillTools::KeyStroke *stroke, const KoColorSpace *colorSpace, const QPoint &offset)
+    bool loadValue(const PkXmlElement &e, KisLazyFillTools::KeyStroke *stroke, const KoColorSpace *colorSpace, const PkPoint &offset)
     {
         using namespace KRA;
 
@@ -41,7 +41,7 @@ namespace KisDomUtils {
 
         stroke->isTransparent = toInt(e.attribute(COLORIZE_KEYSTROKE_IS_TRANSPARENT, "0"));
 
-        QByteArray colorData = QByteArray::fromBase64(e.attribute(COLORBYTEDATA).toLatin1());
+        PkByteArray colorData = PkByteArray::fromBase64(e.attribute(COLORBYTEDATA).toLatin1());
         KoColor color((const quint8*)colorData.data(), colorSpace);
         stroke->color = color;
 
