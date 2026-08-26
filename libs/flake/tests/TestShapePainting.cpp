@@ -269,7 +269,7 @@ void TestShapePainting::testGroupUngroup()
 
             KUndo2Command groupingCommand;
             canvas.shapeController()->addShapeDirect(group, shapesFakeLayer.data(), &groupingCommand);
-            new KoShapeGroupCommand(group, groupedShapes, true, &groupingCommand);
+            new KoShapeGroupCommand(group, toPkList(groupedShapes), true, &groupingCommand);
 
             groupingCommand.redo();
 
@@ -283,7 +283,7 @@ void TestShapePainting::testGroupUngroup()
         {
             KUndo2Command ungroupingCommand;
 
-            new KoShapeUngroupCommand(group, group->shapes(), QList<KoShape*>(), &ungroupingCommand);
+            new KoShapeUngroupCommand(group, toPkList(group->shapes()), PkList<KoShape*>(), &ungroupingCommand);
             canvas.shapeController()->removeShape(group, &ungroupingCommand);
             // NOTE: group will be deleted in ungroupingCommand's d-tor
 

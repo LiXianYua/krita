@@ -4,11 +4,13 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtMath>
 #include "TestSvgParser.h"
 
 
 #include <QPainterPath>
 #include <simpletest.h>
+#include <PkFlakeBridge.h>
 #include <svg/SvgUtil.h>
 #include <KoColorBackground.h>
 #include <KoColorProfile.h>
@@ -454,7 +456,7 @@ void TestSvgParser::testParseTransform()
         QString str("translate(-111.0, 33) translate(-111.0, 33) matrix (1 1 0 0 1, 3), translate(1)"
                     "scale(0.5) rotate(10) rotate(10, 3 3) skewX(1) skewY(2)");
 
-        SvgTransformParser p(str);
+        SvgTransformParser p(toPkString(str));
         QCOMPARE(p.isValid(), true);
     }
 
@@ -463,38 +465,38 @@ void TestSvgParser::testParseTransform()
         QString str("translate(-111.0, 33) translate(-111.0, 33 matrix (1 1 0 0 1, 3), translate(1)"
                     "scale(0.5) rotate(10) rotate(10, 3 3) skewX(1) skewY(2)");
 
-        SvgTransformParser p(str);
+        SvgTransformParser p(toPkString(str));
         QCOMPARE(p.isValid(), false);
     }
 
     {
         SvgTransformParser p("translate(100, 50)");
         QCOMPARE(p.isValid(), true);
-        QCOMPARE(p.transform(), QTransform::fromTranslate(100, 50));
+        QCOMPARE(toQTransform(p.transform()), QTransform::fromTranslate(100, 50));
     }
 
     {
         SvgTransformParser p("translate(100 50)");
         QCOMPARE(p.isValid(), true);
-        QCOMPARE(p.transform(), QTransform::fromTranslate(100, 50));
+        QCOMPARE(toQTransform(p.transform()), QTransform::fromTranslate(100, 50));
     }
 
     {
         SvgTransformParser p("translate(100)");
         QCOMPARE(p.isValid(), true);
-        QCOMPARE(p.transform(), QTransform::fromTranslate(100, 0));
+        QCOMPARE(toQTransform(p.transform()), QTransform::fromTranslate(100, 0));
     }
 
     {
         SvgTransformParser p("scale(100, 50)");
         QCOMPARE(p.isValid(), true);
-        QCOMPARE(p.transform(), QTransform::fromScale(100, 50));
+        QCOMPARE(toQTransform(p.transform()), QTransform::fromScale(100, 50));
     }
 
     {
         SvgTransformParser p("scale(100)");
         QCOMPARE(p.isValid(), true);
-        QCOMPARE(p.transform(), QTransform::fromScale(100, 100));
+        QCOMPARE(toQTransform(p.transform()), QTransform::fromScale(100, 100));
     }
 
     {
@@ -504,7 +506,7 @@ void TestSvgParser::testParseTransform()
         t.rotate(90);
         t = QTransform::fromTranslate(-70, -74) * t * QTransform::fromTranslate(70, 74);
         qDebug() << ppVar(p.transform());
-        QCOMPARE(p.transform(), t);
+        QCOMPARE(toQTransform(p.transform()), t);
     }
 }
 
@@ -1149,7 +1151,7 @@ void TestSvgParser::testIccColor()
     {
         ScopedProfileRemover()
             : m_profile(KoColorSpaceRegistry::instance()->profileByUniqueId(
-                QByteArray::fromHex(PROFILE_UNIQUE_ID_HEX)))
+                toPkByteArray(QByteArray::fromHex(PROFILE_UNIQUE_ID_HEX))))
         {
             if (m_profile) {
                 qWarning() << "Profile already loaded, removing profile before test";
@@ -2948,7 +2950,7 @@ void TestSvgParser::testKoClipPathRendering()
     {
         QList<KoShape*> shapes({shape1.release(), shape2.release()});
 
-        KoShapeGroupCommand cmd(group.get(), shapes, false);
+        KoShapeGroupCommand cmd(group.get(), toPkList(shapes), false);
         cmd.redo();
     }
 
@@ -2992,7 +2994,7 @@ void TestSvgParser::testKoClipPathRelativeRendering()
     {
         QList<KoShape*> shapes({shape1.release(), shape2.release()});
 
-        KoShapeGroupCommand cmd(group.get(), shapes, false);
+        KoShapeGroupCommand cmd(group.get(), toPkList(shapes), false);
         cmd.redo();
     }
 

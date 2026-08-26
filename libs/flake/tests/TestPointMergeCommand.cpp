@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtMath>
 #include "TestPointMergeCommand.h"
 #include "KoPathPoint.h"
 #include "KoPathPointData.h"
@@ -262,7 +263,7 @@ void TestPointMergeCommand::testCombineShapes()
         rootContainer->addShape(shape);
     }
 
-    KoPathCombineCommand cmd(&mockController, shapesToCombine);
+    KoPathCombineCommand cmd(&mockController, toPkList(shapesToCombine));
     cmd.redo();
 
     QCOMPARE(rootContainer->shapes().size(), 1);
@@ -364,9 +365,13 @@ void testMultipathMergeShapesImpl(const int srcPointIndex1,
 
         QCOMPARE(combinedShape->subpathCount(), 1);
 
-        QRectF expectedOutlineRect;
-        KisAlgebra2D::accumulateBounds(expectedResultPoints, &expectedOutlineRect);
-        QVERIFY(KisAlgebra2D::fuzzyCompareRects(combinedShape->absoluteOutlineRect(), expectedOutlineRect, 0.01));
+        PkRectF expectedOutlineRect;
+        PkList<PkPointF> pkExpectedPoints;
+        for (const QPointF &pt : expectedResultPoints) {
+            pkExpectedPoints.append(toPkPointF(pt));
+        }
+        KisAlgebra2D::accumulateBounds(pkExpectedPoints, &expectedOutlineRect);
+        QVERIFY(KisAlgebra2D::fuzzyCompareRects(toPkRectF(combinedShape->absoluteOutlineRect()), expectedOutlineRect, 0.01));
 
         if (singleShape) {
             QCOMPARE(combinedShape->isClosedSubpath(0), true);

@@ -4,6 +4,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <QtMath>
 #include "TestSvgTextShape.h"
 
 #include <kis_algebra_2d.h>
@@ -12,6 +13,7 @@
 #include <QPainter>
 
 #include <kistest.h>
+#include <PkFlakeBridge.h>
 #include <KoSvgTextShape.h>
 #include <KoSvgTextShapeMarkupConverter.h>
 #include <KoShape.h>
@@ -30,6 +32,13 @@
 
 #include <KoParameterShape.h>
 #include <KisTransformComponents.h>
+#include <QMetaType>
+
+// QFETCH(KisTransformComponents, ...) 的 data-driven 测试需要 QMetaType 注册（kistest.h 的
+// QApplication/QtTest 已定义 QT_CORE_LIB）。KisTransformComponents 是 stripped 的
+// PkFlags<KisTransformComponent>，剥离头不带 Q_DECLARE_METATYPE——在 real-Qt 测试 TU
+// 补注册，语义不变，仅让 QFETCH/QCOMPARE 能编。
+Q_DECLARE_METATYPE(KisAlgebra2D::KisTransformComponents)
 
 namespace {
 
@@ -367,14 +376,14 @@ void TestSvgTextShape::testSetTextOnShape()
     debugShapes(b.textShape, b.shapes);
     paintShapes(b.textShape, {}, QString("ddd_%1_10_redo.png").arg(QTest::currentDataTag()));
 
-    QCOMPARE(componentsForTransform(b.textShape->absoluteTransformation()), expectedTextTransformComponents);
+    QCOMPARE(componentsForTransform(toPkTransform(b.textShape->absoluteTransformation())), expectedTextTransformComponents);
 
     QVERIFY(b.textShape->boundingRect() == originalContourShapeBoundingRect);
     QVERIFY(b.textShape->boundingRect() != originalTextBoundingRect);
     QVERIFY(b.textShape->outlineRect() != originalTextOutlineRect);
 
     Q_FOREACH (KoShape *shape, b.shapes) {
-        QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(shape->absoluteTransformation(), originalAbsoluteTransform[shape], 1e-3));
+        QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(shape->absoluteTransformation()), toPkTransform(originalAbsoluteTransform[shape]), 1e-3));
     }
 
     b.undoTextToContour();
@@ -389,8 +398,8 @@ void TestSvgTextShape::testSetTextOnShape()
     Q_FOREACH (KoShape *shape, b.shapes) {
         QVERIFY(shape->parent() == originalParent[shape]);
 
-        QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(shape->transformation(), originalTransform[shape], 1e-3));
-        QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(shape->absoluteTransformation(), originalAbsoluteTransform[shape], 1e-3));
+        QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(shape->transformation()), toPkTransform(originalTransform[shape]), 1e-3));
+        QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(shape->absoluteTransformation()), toPkTransform(originalAbsoluteTransform[shape]), 1e-3));
     }
 }
 
@@ -451,7 +460,7 @@ void TestSvgTextShape::testRemoveShapeFromText()
 
     QVERIFY(!textShape->shapeInContours(shapes.last()));
 
-    QCOMPARE(componentsForTransform(shapes.last()->absoluteTransformation()), expectedContourTransformComponents);
+    QCOMPARE(componentsForTransform(toPkTransform(shapes.last()->absoluteTransformation())), expectedContourTransformComponents);
 
     cmd->undo();
 
@@ -643,7 +652,7 @@ void TestSvgTextShape::testSetSize()
     const QPointF absoluteStillPoint = b.textShape->absolutePosition(stillPointAnchor);
     const QPointF firstContourAnchorPoint = b.shapes[0]->absolutePosition(stillPointAnchor);
 
-    if (contourCount == 1 && componentsForTransform(b.shapes[0]->transformation()) == KisTransformComponent::Translate) {
+    if (contourCount == 1 && componentsForTransform(toPkTransform(b.shapes[0]->transformation())) == KisTransformComponent::Translate) {
         QCOMPARE(absoluteStillPoint, firstContourAnchorPoint);
     }
 
@@ -666,10 +675,10 @@ void TestSvgTextShape::testSetSize()
         const qreal scaleY = currentCoeff(newSizeCoeffY);
 
         if (!cmd) {
-            cmd.reset(new KoShapeResizeCommand({b.textShape}, scaleX, scaleY, absoluteStillPoint, useGLobalMode, usePostScaling, QTransform()));
+            cmd.reset(new KoShapeResizeCommand(PkList<KoShape*>{b.textShape}, scaleX, scaleY, toPkPointF(absoluteStillPoint), useGLobalMode, usePostScaling, toPkTransform(QTransform())));
             cmd->redo();
         } else {
-            cmd->replaceResizeAction(scaleX, scaleY, absoluteStillPoint);
+            cmd->replaceResizeAction(scaleX, scaleY, toPkPointF(absoluteStillPoint));
         }
     }
 
@@ -679,7 +688,7 @@ void TestSvgTextShape::testSetSize()
     QCOMPARE(b.textShape->size(), newSize);
     QCOMPARE(b.textShape->absolutePosition(stillPointAnchor), absoluteStillPoint);
 
-    if (contourCount == 1 && componentsForTransform(b.shapes[0]->transformation()) == KisTransformComponent::Translate) {
+    if (contourCount == 1 && componentsForTransform(toPkTransform(b.shapes[0]->transformation())) == KisTransformComponent::Translate) {
         // the still point of the only contour was unchanged (applies only in translation mode)
         QCOMPARE(b.shapes[0]->absolutePosition(stillPointAnchor), firstContourAnchorPoint);
     }
@@ -689,7 +698,7 @@ void TestSvgTextShape::testSetSize()
         // When setSize() is passed down to the child change all components are preserved,
         // except the translation one. When the children are transformed using the transoform,
         // then their whole transformation will be messed up.
-        auto preservedComponents = compareTransformComponents(shape->transformation(), originalTransform[shape]);
+        auto preservedComponents = compareTransformComponents(toPkTransform(shape->transformation()), toPkTransform(originalTransform[shape]));
         QCOMPARE(preservedComponents, exprectedPreservedChildTransformComponents);
     }
 
@@ -700,8 +709,8 @@ void TestSvgTextShape::testSetSize()
 
     for (KoShape *shape : b.shapes) {
         QCOMPARE(shape->size(), originalSize[shape]);
-        QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(shape->transformation(), originalTransform[shape], 1e-4));
-        QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(shape->absoluteTransformation(), originalAbsoluteTransform[shape], 1e-4));
+        QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(shape->transformation()), toPkTransform(originalTransform[shape]), 1e-4));
+        QVERIFY(KisAlgebra2D::fuzzyMatrixCompare(toPkTransform(shape->absoluteTransformation()), toPkTransform(originalAbsoluteTransform[shape]), 1e-4));
     }
 }
 
