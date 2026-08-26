@@ -8,11 +8,13 @@
 #include <PkString.h>
 
 #include <kis_debug.h>
+#include <KisResourceLoaderRegistry.h>
 
 #include "KoResourceServer.h"
 #include "kis_auto_brush_factory.h"
 #include "kis_text_brush_factory.h"
 #include "kis_predefined_brush_factory.h"
+#include "KisBrushTypeMetaDataFixup.h"
 
 KisBrushRegistry::KisBrushRegistry()
 {
@@ -22,6 +24,12 @@ KisBrushRegistry::KisBrushRegistry()
     add(new KisTextBrushFactory());
     add(new KisPredefinedBrushFactory("png_brush"));
     add(new KisPredefinedBrushFactory("svg_brush"));
+
+    // S-02-b 交接：KisBrushTypeMetaDataFixup 原注册于 libs/ui/KisApplication.cpp:466（已删）。
+    // 恢复在 KisBrushRegistry 构造函数 —— magic static 只跑一次，幂等；registry 持有
+    // fixup 所有权（析构 delete）。排序警告：executeAllFixups 在资源定位器初始化时跑，
+    // 若本 registry 初始化晚于它，本次启动 fixup 不执行 —— 与 libs/ui 删除后现状一致。
+    KisResourceLoaderRegistry::instance()->registerFixup(10, new KisBrushTypeMetaDataFixup());
 }
 
 KisBrushRegistry::~KisBrushRegistry()

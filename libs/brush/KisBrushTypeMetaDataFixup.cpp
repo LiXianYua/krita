@@ -9,7 +9,6 @@
 #include "kis_debug.h"
 
 #include <QSqlQuery>
-#include <QSqlError>
 
 #include <KisResourceLocator.h>
 #include "kis_brush.h"
@@ -25,14 +24,14 @@ PkStringList KisBrushTypeMetaDataFixup::executeFix()
               "LEFT JOIN metadata ON metadata.foreign_id = resources.id AND metadata.key = :metadata_key "
               "WHERE resource_types.name = :resource_type AND metadata.value IS Null;");
     if (!r) {
-        errorMessages.append(i18n("Could not access brush tip metadata"));
+        errorMessages.append(PkString("Could not access brush tip metadata"));
         return errorMessages;
     }
     q.bindValue(":resource_type", ResourceType::Brushes);
     q.bindValue(":metadata_key", KisBrush::brushTypeMetaDataKey);
 
     if (!q.exec()) {
-        errorMessages.append(i18n("Could not access brush tip metadata"));
+        errorMessages.append(PkString("Could not access brush tip metadata"));
     }
     else {
         bool updatedAtLeastOneResource = false;
