@@ -222,7 +222,7 @@ void KisPredefinedBrushFactory::loadFromBrushResource(KisBrushModel::CommonData 
 
 void KisPredefinedBrushFactory::toXML(PkXmlDocument &doc, PkXmlElement &e, const KisBrushModel::BrushData &model)
 {
-    Q_UNUSED(doc);
+    (void)doc;
 
     e.setAttribute("type", id());
     e.setAttribute("BrushVersion", "2");

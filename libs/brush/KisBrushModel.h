@@ -7,7 +7,7 @@
 #ifndef KISBRUSHMODEL_H
 #define KISBRUSHMODEL_H
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <PkSize.h>
 #include <KoResourceSignature.h>
 #include <boost/operators.hpp>
@@ -24,10 +24,10 @@ namespace KisBrushModel {
 struct BRUSH_EXPORT CommonData : public boost::equality_comparable<CommonData>
 {
     inline friend bool operator==(const CommonData &lhs, const CommonData &rhs) {
-        return qFuzzyCompare(lhs.angle, rhs.angle) &&
-                qFuzzyCompare(lhs.spacing, rhs.spacing) &&
+        return pkQtFuzzyCompare(lhs.angle, rhs.angle) &&
+                pkQtFuzzyCompare(lhs.spacing, rhs.spacing) &&
                 lhs.useAutoSpacing == rhs.useAutoSpacing &&
-                qFuzzyCompare(lhs.autoSpacingCoeff, rhs.autoSpacingCoeff);
+                pkQtFuzzyCompare(lhs.autoSpacingCoeff, rhs.autoSpacingCoeff);
     }
 
     qreal angle = 0.0;
@@ -52,10 +52,10 @@ enum AutoBrushGeneratorType {
 struct BRUSH_EXPORT AutoBrushGeneratorData : public boost::equality_comparable<AutoBrushGeneratorData>
 {
     inline friend bool operator==(const AutoBrushGeneratorData &lhs, const AutoBrushGeneratorData &rhs) {
-        return qFuzzyCompare(lhs.diameter, rhs.diameter) &&
-                qFuzzyCompare(lhs.ratio, rhs.ratio) &&
-                qFuzzyCompare(lhs.horizontalFade, rhs.horizontalFade) &&
-                qFuzzyCompare(lhs.verticalFade, rhs.verticalFade) &&
+        return pkQtFuzzyCompare(lhs.diameter, rhs.diameter) &&
+                pkQtFuzzyCompare(lhs.ratio, rhs.ratio) &&
+                pkQtFuzzyCompare(lhs.horizontalFade, rhs.horizontalFade) &&
+                pkQtFuzzyCompare(lhs.verticalFade, rhs.verticalFade) &&
                 lhs.spikes == rhs.spikes &&
                 lhs.antialiasEdges == rhs.antialiasEdges &&
                 lhs.shape == rhs.shape &&
@@ -77,8 +77,8 @@ struct BRUSH_EXPORT AutoBrushGeneratorData : public boost::equality_comparable<A
 struct BRUSH_EXPORT AutoBrushData : public boost::equality_comparable<AutoBrushData>
 {
     inline friend bool operator==(const AutoBrushData &lhs, const AutoBrushData &rhs) {
-        return qFuzzyCompare(lhs.randomness, rhs.randomness) &&
-                qFuzzyCompare(lhs.density, rhs.density) &&
+        return pkQtFuzzyCompare(lhs.randomness, rhs.randomness) &&
+                pkQtFuzzyCompare(lhs.density, rhs.density) &&
                 lhs.generator == rhs.generator;
     }
 
@@ -93,14 +93,14 @@ struct BRUSH_EXPORT PredefinedBrushData : public boost::equality_comparable<Pred
         return lhs.resourceSignature == rhs.resourceSignature &&
                 lhs.subtype == rhs.subtype &&
                 lhs.baseSize == rhs.baseSize &&
-                qFuzzyCompare(lhs.scale, rhs.scale) &&
+                pkQtFuzzyCompare(lhs.scale, rhs.scale) &&
                 lhs.application == rhs.application &&
                 lhs.brushType == rhs.brushType &&
                 lhs.hasColorAndTransparency == rhs.hasColorAndTransparency &&
                 lhs.autoAdjustMidPoint == rhs.autoAdjustMidPoint &&
                 lhs.adjustmentMidPoint == rhs.adjustmentMidPoint &&
-                qFuzzyCompare(lhs.brightnessAdjustment, rhs.brightnessAdjustment) &&
-                qFuzzyCompare(lhs.contrastAdjustment, rhs.contrastAdjustment) &&
+                pkQtFuzzyCompare(lhs.brightnessAdjustment, rhs.brightnessAdjustment) &&
+                pkQtFuzzyCompare(lhs.contrastAdjustment, rhs.contrastAdjustment) &&
                 lhs.parasiteSelection == rhs.parasiteSelection;
     }
 
@@ -123,7 +123,7 @@ struct BRUSH_EXPORT TextBrushData : boost::equality_comparable<TextBrushData>
 {
     inline friend bool operator==(const TextBrushData &lhs, const TextBrushData &rhs) {
         return lhs.baseSize == rhs.baseSize &&
-                qFuzzyCompare(lhs.scale, rhs.scale) &&
+                pkQtFuzzyCompare(lhs.scale, rhs.scale) &&
                 lhs.text == rhs.text &&
                 lhs.font == rhs.font &&
                 lhs.usePipeMode == rhs.usePipeMode;

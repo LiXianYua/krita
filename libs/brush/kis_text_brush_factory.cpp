@@ -6,12 +6,13 @@
 #include "kis_text_brush_factory.h"
 
 #include <QFont>
+#include <QString>
 #include <kis_dom_utils.h>
 #include "kis_text_brush.h"
 #include <KoResourceLoadResult.h>
 
 
-KoResourceLoadResult KisTextBrushFactory::createBrush(const QDomElement& brushDefinition, KisResourcesInterfaceSP resourcesInterface)
+KoResourceLoadResult KisTextBrushFactory::createBrush(const PkXmlElement& brushDefinition, KisResourcesInterfaceSP resourcesInterface)
 {
     std::optional<KisBrushModel::BrushData> data =
         createBrushModel(brushDefinition, resourcesInterface);
@@ -26,14 +27,14 @@ KoResourceLoadResult KisTextBrushFactory::createBrush(const QDomElement& brushDe
 
 KoResourceLoadResult KisTextBrushFactory::createBrush(const KisBrushModel::BrushData& data, KisResourcesInterfaceSP resourcesInterface)
 {
-    Q_UNUSED(resourcesInterface);
+    (void)resourcesInterface;
 
     KisTextBrushSP brush = KisTextBrushSP(new KisTextBrush());
 
     QFont font;
-    font.fromString(data.textBrush.font);
+    font.fromString(QString::fromUtf8(data.textBrush.font.PkToUtf8().c_str()));
 
-    brush->setText(data.textBrush.text);
+    brush->setText(QString::fromUtf8(data.textBrush.text.PkToUtf8().c_str()));
     brush->setFont(font);
     brush->setPipeMode(data.textBrush.usePipeMode);
     brush->setSpacing(data.common.spacing);
@@ -43,9 +44,9 @@ KoResourceLoadResult KisTextBrushFactory::createBrush(const KisBrushModel::Brush
 }
 
 
-std::optional<KisBrushModel::BrushData> KisTextBrushFactory::createBrushModel(const QDomElement &element, KisResourcesInterfaceSP resourcesInterface)
+std::optional<KisBrushModel::BrushData> KisTextBrushFactory::createBrushModel(const PkXmlElement &element, KisResourcesInterfaceSP resourcesInterface)
 {
-    Q_UNUSED(resourcesInterface);
+    (void)resourcesInterface;
 
     KisBrushModel::BrushData brush;
 
@@ -70,9 +71,9 @@ std::optional<KisBrushModel::BrushData> KisTextBrushFactory::createBrushModel(co
     return {brush};
 }
 
-void KisTextBrushFactory::toXML(QDomDocument &doc, QDomElement &e, const KisBrushModel::BrushData &model)
+void KisTextBrushFactory::toXML(PkXmlDocument &doc, PkXmlElement &e, const KisBrushModel::BrushData &model)
 {
-    Q_UNUSED(doc);
+    (void)doc;
 
     e.setAttribute("type", id());
     e.setAttribute("BrushVersion", "2");

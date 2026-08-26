@@ -6,8 +6,8 @@
 #ifndef KIS_TEXT_BRUSH_FACTORY
 #define KIS_TEXT_BRUSH_FACTORY
 
-#include <QString>
-#include <QDomElement>
+#include <PkString.h>
+#include <PkXmlElement.h>
 #include "kis_brush_factory.h"
 #include "kis_brush.h"
 
@@ -24,7 +24,7 @@ public:
     KisTextBrushFactory() {}
     ~KisTextBrushFactory() override {}
 
-    QString id() const override {
+    PkString id() const override {
         return "kis_text_brush";
     }
 
@@ -34,10 +34,10 @@ public:
      * object. If this call leads to the creation of a resource, it should be
      * added to the resource provider, too.
      */
-    KoResourceLoadResult createBrush(const QDomElement& brushDefinition, KisResourcesInterfaceSP resourcesInterface) override;
+    KoResourceLoadResult createBrush(const PkXmlElement& brushDefinition, KisResourcesInterfaceSP resourcesInterface) override;
     KoResourceLoadResult createBrush(const KisBrushModel::BrushData &data, KisResourcesInterfaceSP resourcesInterface) override;
-    std::optional<KisBrushModel::BrushData> createBrushModel(const QDomElement &element, KisResourcesInterfaceSP resourcesInterface) override;
-    void toXML(QDomDocument &doc, QDomElement &element, const KisBrushModel::BrushData &model) override;
+    std::optional<KisBrushModel::BrushData> createBrushModel(const PkXmlElement &element, KisResourcesInterfaceSP resourcesInterface) override;
+    void toXML(PkXmlDocument &doc, PkXmlElement &element, const KisBrushModel::BrushData &model) override;
 
 };
 

@@ -73,16 +73,16 @@ KisPaintopLodLimitations brushLodLimitations(const BrushData &data)
     KisPaintopLodLimitations l;
 
     if (!data.common.useAutoSpacing && data.common.spacing > 0.5) {
-        l.limitations << KoID("huge-spacing", i18nc("PaintOp instant preview limitation", "Spacing > 0.5, consider disabling Instant Preview"));
+        l.limitations << KoID("huge-spacing", PkString("Spacing > 0.5, consider disabling Instant Preview"));
     }
 
     if (data.type == Auto) {
-        if (!qFuzzyCompare(data.autoBrush.density, 1.0)) {
-            l.limitations << KoID("auto-brush-density", i18nc("PaintOp instant preview limitation", "Brush Density recommended value 100.0"));
+        if (!pkQtFuzzyCompare(data.autoBrush.density, 1.0)) {
+            l.limitations << KoID("auto-brush-density", PkString("Brush Density recommended value 100.0"));
         }
 
-        if (!qFuzzyCompare(data.autoBrush.randomness, 0.0)) {
-            l.limitations << KoID("auto-brush-randomness", i18nc("PaintOp instant preview limitation", "Brush Randomness recommended value 0.0"));
+        if (!pkQtFuzzyCompare(data.autoBrush.randomness, 0.0)) {
+            l.limitations << KoID("auto-brush-randomness", PkString("Brush Randomness recommended value 0.0"));
         }
     }
 
