@@ -7,7 +7,6 @@
 #ifndef __KIS_INCREMENTAL_AVERAGE_H
 #define __KIS_INCREMENTAL_AVERAGE_H
 
-#include <kis_debug.h>
 #include <PkVector.h>
 
 

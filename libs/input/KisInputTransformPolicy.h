@@ -10,6 +10,7 @@
 
 #include <kritainput_export.h>
 
+#include <PkGlobal.h>
 #include <PkPoint.h>
 
 namespace KisInputTransformPolicy
