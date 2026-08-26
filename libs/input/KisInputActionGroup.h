@@ -7,7 +7,7 @@
 #ifndef KISINPUTACTIONGROUP_H
 #define KISINPUTACTIONGROUP_H
 
-#include <QFlags>
+#include <PkFlags.h>
 #include <PkSharedPointer.h>
 
 #include "kritainput_export.h"
@@ -20,8 +20,8 @@ enum KisInputActionGroup {
     AllActionGroup = ViewTransformActionGroup | ModifyingActionGroup | ToolInvoactionActionGroup
 };
 
-Q_DECLARE_FLAGS(KisInputActionGroupsMask, KisInputActionGroup)
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisInputActionGroupsMask)
+PK_DECLARE_FLAGS(KisInputActionGroupsMask, KisInputActionGroup)
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisInputActionGroupsMask)
 
 class KisInputActionGroupsMaskGuard;
 
