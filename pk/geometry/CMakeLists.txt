@@ -21,12 +21,20 @@ add_library(pkgeometry STATIC
     PkMatrix4x4.cpp
     PkRegion.cpp
     PkPainterPath.cpp
+    # PkPen（S-07-b 越锁补定义）是纯头 data-carrier，列进源仅为 IDE 可见性；
+    # 依赖 PkColor（pk/color），见下方 ../color include。
+    PkPen.h
 )
 target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # ../global：PkGlobal.h 已是转发头，quote-include 在 geometry 目录无同名文件后，
 # 落到这个 -I 时命中 pk/global/PkGlobal.h（R-18 折叠后标量与 Qt 枚举的唯一权威）。
 target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../global)
+
+# ../color：PkPen.h（S-07-b 越锁补定义）include <PkColor.h>。几何库本体
+# 不依赖颜色，但 PkPen 是几何族一员（QPen 在 Qt 里归 QtGui），消费 pkgeometry
+# 且 include PkPen.h 的人需要连带解析到 pk/color。
+target_include_directories(pkgeometry PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../color)
 
 # R-21 T2：PkPolygon/PkPolygonF 是 `PkVector<PkPoint>`/`PkVector<PkPointF>`
 # 的**继承**（不是包一层，理由见 PkPolygon.h 文件头），PkVector<T> 住在

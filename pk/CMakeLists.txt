@@ -99,6 +99,9 @@ target_include_directories(pkgeometry PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/geometry
     ${CMAKE_CURRENT_SOURCE_DIR}/container
     ${CMAKE_CURRENT_SOURCE_DIR}/global
+    # PkPen.h（S-07-b 越锁补定义）include <PkColor.h>；纯头 data-carrier，
+    # 只补 include 路径不链颜色库（头文件即定义）。
+    ${CMAKE_CURRENT_SOURCE_DIR}/color
 )
 target_compile_options(pkgeometry PUBLIC -fwrapv)
 target_link_libraries(pkgeometry PUBLIC pkglobal)
