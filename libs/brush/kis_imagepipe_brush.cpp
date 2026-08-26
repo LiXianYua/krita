@@ -265,6 +265,15 @@ KisImagePipeBrush::~KisImagePipeBrush()
     delete d;
 }
 
+// GAP: PkString 无 indexOf（R 线缺口，S-07-a Task7 登记）；手工找第一个字符 c。
+static int indexOfChar(const PkString &s, char16_t c)
+{
+    for (int i = 0; i < s.size(); ++i) {
+        if (s.at(i) == c) return i;
+    }
+    return -1;
+}
+
 bool KisImagePipeBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resourcesInterface)
 {
     Q_UNUSED(resourcesInterface);
@@ -280,14 +289,11 @@ bool KisImagePipeBrush::initFromData(const PkByteArray &data)
 
     // XXX: This stuff is in utf-8, too.
     // The first line contains the name -- this means we look until we arrive at the first newline
-    PkByteArray line1;
-
     qint32 i = 0;
-
-    while (i < data.size() && data[i] != '\n') {
-        line1.append(data[i]);
+    while (i < data.size() && data.constData()[i] != '\n') {
         i++;
     }
+    PkByteArray line1(data.constData(), i);
     setName(PkString::PkFromUtf8(line1.data(), line1.size()));
 
     i++; // Skip past the first newline
@@ -295,15 +301,16 @@ bool KisImagePipeBrush::initFromData(const PkByteArray &data)
     // The second line contains the number of brushes, separated by a space from the parasite
 
     // XXX: This stuff is in utf-8, too.
-    PkByteArray line2;
-    while (i < data.size() && data[i] != '\n') {
-        line2.append(data[i]);
+    const qint32 line2Start = i;
+    while (i < data.size() && data.constData()[i] != '\n') {
         i++;
     }
+    PkByteArray line2(data.constData() + line2Start, i - line2Start);
 
     PkString paramline = PkString::PkFromUtf8(line2.data(), line2.size());
-    qint32 numOfBrushes = paramline.left(paramline.indexOf(' ')).toUInt();
-    PkString parasiteString = paramline.mid(paramline.indexOf(' ') + 1);
+    const int spacePos = indexOfChar(paramline, u' ');
+    qint32 numOfBrushes = paramline.left(spacePos).toInt();
+    PkString parasiteString = paramline.mid(spacePos + 1);
 
     KisPipeBrushParasite parasite = KisPipeBrushParasite(parasiteString);
     parasite.sanitize();

@@ -179,7 +179,7 @@ static bool abr_reach_8BIM_section(PkDataStream & abr, const PkString name)
         // ABR 节名是 4 字节 ASCII 码（"Brushes" 等），PkFromUtf8 逐字节精确；原 Qt fromLatin1 亦按字节映射。
         PkString s1 = PkString::PkFromUtf8(tagname, 4);
 
-        if (!s1.compare(name)) {
+        if (s1 == name) {
             return true;
         }
 
@@ -437,10 +437,10 @@ quint32 KisAbrBrushCollection::abr_brush_load_v6(PkDataStream & abr, AbrInfo *ab
         }
         else {
             abrBrush = KisAbrBrushSP(new KisAbrBrush(name, this));
-            PkMemoryStream buf;
-            buf.open(PkFileStream::ReadWrite);
-            brushTipImage.save(&buf, "PNG");
-            abrBrush->setMD5Sum(KoMD5Generator::generateHash(buf.data()));
+            // GAP: PkImage::save 未交付（R-15/S-03-e PNG 编解码通道），笔刷位图
+            // 无法编码为 PNG 计算规范 MD5。沿用 png_brush saveToDevice 的桩化
+            // 先例，MD5 留空 —— 资源指纹只影响去重/身份，不影响 ABR 加载。
+            abrBrush->setMD5Sum(PkString());
         }
 
         abrBrush->setBrushTipImage(brushTipImage);
@@ -497,7 +497,7 @@ qint32 KisAbrBrushCollection::abr_brush_load_v12(PkDataStream & abr, AbrInfo *ab
 
         if (abr_hdr->version == 2)
             name = abr_read_ucs2_text(abr);
-        if (name.isNull()) {
+        if (name.isEmpty()) {
             name = abr_v1_brush_name(filename, id);
         }
 
@@ -540,10 +540,8 @@ qint32 KisAbrBrushCollection::abr_brush_load_v12(PkDataStream & abr, AbrInfo *ab
             }
             else {
                 abrBrush = KisAbrBrushSP(new KisAbrBrush(name, this));
-                PkMemoryStream buf;
-                buf.open(PkFileStream::ReadWrite);
-                brushTipImage.save(&buf, "PNG");
-                abrBrush->setMD5Sum(KoMD5Generator::generateHash(buf.data()));
+                // GAP: PkImage::save 未交付（同上一处），MD5 留空。
+                abrBrush->setMD5Sum(PkString());
             }
 
             abrBrush->setBrushTipImage(brushTipImage);
@@ -650,8 +648,12 @@ bool KisAbrBrushCollection::loadFromDevice(PkStream *dev)
     qint32 layer_ID;
 
     PkByteArray ba = dev->readAll();
-    PkMemoryStream buf(&ba);
-    buf.open(PkStream::ReadOnly);
+    // QBuffer(QByteArray*) 语义：以既有字节为内容的内存设备。PkMemoryStream
+    // （libs/store S-01 交付）没有该构造，改成 ReadWrite 写入字节再回卷读取。
+    PkMemoryStream buf;
+    buf.open(PkStream::ReadWrite);
+    buf.write(ba.constData(), ba.size());
+    buf.seek(0);
     PkDataStream abr(&buf);
 
 

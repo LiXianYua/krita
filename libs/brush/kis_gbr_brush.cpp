@@ -81,9 +81,9 @@ KisGbrBrush::KisGbrBrush(const PkString& filename,
 {
     setSpacing(DEFAULT_SPACING);
 
-    d->data = PkByteArray::fromRawData(data.data() + dataPos, data.size() - dataPos);
+    d->data = PkByteArray(data.data() + dataPos, data.size() - dataPos);
     init();
-    d->data.clear();
+    d->data.resize(0);
     dataPos += d->header_size + (width() * height() * d->bytes);
 }
 
@@ -218,8 +218,10 @@ bool KisGbrBrush::init()
     qint32 k = bh.header_size;
 
     if (bh.bytes == 1) {
-        PkVector<PkRgb> table;
-        for (int i = 0; i < 256; ++i) table.append(qRgb(i, i, i));
+        // PkImage::setColorTable 收 std::vector<uint32_t>（PkRgb 即 uint32_t，
+        // qRgb 合成值类型一致），用 std::vector 直配。
+        std::vector<uint32_t> table;
+        for (int i = 0; i < 256; ++i) table.push_back(qRgb(i, i, i));
         image.setColorTable(table);
         // Grayscale
 
@@ -236,7 +238,7 @@ bool KisGbrBrush::init()
         for (quint32 y = 0; y < bh.height; y++) {
             uchar *pixel = reinterpret_cast<uchar *>(image.scanLine(y));
             for (quint32 x = 0; x < bh.width; x++, k++) {
-                qint32 val = 255 - static_cast<uchar>(d->data.at(k));
+                qint32 val = 255 - static_cast<uchar>(d->data.constData()[k]);
                 *pixel = val;
                 ++pixel;
             }
@@ -256,7 +258,7 @@ bool KisGbrBrush::init()
         for (quint32 y = 0; y < bh.height; y++) {
             PkRgb *pixel = reinterpret_cast<PkRgb *>(image.scanLine(y));
             for (quint32 x = 0; x < bh.width; x++, k += 4) {
-                *pixel = qRgba(d->data.at(k), d->data.at(k + 1), d->data.at(k + 2), d->data.at(k + 3));
+                *pixel = qRgba(d->data.constData()[k], d->data.constData()[k + 1], d->data.constData()[k + 2], d->data.constData()[k + 3]);
                 ++pixel;
             }
         }
@@ -271,7 +273,7 @@ bool KisGbrBrush::init()
     setWidth(image.width());
     setHeight(image.height());
     if (!d->data.isEmpty()) {
-        d->data.clear(); // Save some memory, we're using enough of it as it is.
+        d->data.resize(0); // Save some memory, we're using enough of it as it is.
     }
     setValid(image.width() != 0 && image.height() != 0);
     setBrushTipImage(image);
@@ -318,9 +320,9 @@ bool KisGbrBrush::saveToDevice(PkStream* dev) const
     bh.spacing = qToBigEndian(static_cast<quint32>(spacing() * 100.0));
 
     // Write header: first bh, then the name
-    PkByteArray bytes = PkByteArray::fromRawData(reinterpret_cast<char*>(&bh), sizeof(GimpBrushHeader));
-    wrote = dev->write(bytes);
-    bytes.clear();
+    PkByteArray bytes(reinterpret_cast<char*>(&bh), sizeof(GimpBrushHeader));
+    wrote = dev->write(bytes.constData(), bytes.size());
+    bytes.resize(0);
 
     if (wrote == -1) {
         return false;
@@ -341,7 +343,7 @@ bool KisGbrBrush::saveToDevice(PkStream* dev) const
         for (qint32 y = 0; y < height(); y++) {
             for (qint32 x = 0; x < width(); x++) {
                 PkRgb c = image.pixel(x, y);
-                bytes[k++] = static_cast<char>(255 - qRed(c)); // red == blue == green
+                bytes.data()[k++] = static_cast<char>(255 - qRed(c)); // red == blue == green
             }
         }
     } else {
@@ -350,15 +352,15 @@ bool KisGbrBrush::saveToDevice(PkStream* dev) const
             for (qint32 x = 0; x < width(); x++) {
                 // order for gimp brushes, v2 is: RGBA
                 PkRgb pixel = image.pixel(x, y);
-                bytes[k++] = static_cast<char>(qRed(pixel));
-                bytes[k++] = static_cast<char>(qGreen(pixel));
-                bytes[k++] = static_cast<char>(qBlue(pixel));
-                bytes[k++] = static_cast<char>(qAlpha(pixel));
+                bytes.data()[k++] = static_cast<char>(qRed(pixel));
+                bytes.data()[k++] = static_cast<char>(qGreen(pixel));
+                bytes.data()[k++] = static_cast<char>(qBlue(pixel));
+                bytes.data()[k++] = static_cast<char>(qAlpha(pixel));
             }
         }
     }
 
-    wrote = dev->write(bytes);
+    wrote = dev->write(bytes.constData(), bytes.size());
     if (wrote == -1) {
         return false;
     }
@@ -383,9 +385,9 @@ void KisGbrBrush::makeMaskImage(bool preserveAlpha)
         const int imageWidth = brushTip.width();
         const int imageHeight = brushTip.height();
         PkImage image(imageWidth, imageHeight, PkImage::Format_Indexed8);
-        PkVector<PkRgb> table;
+        std::vector<uint32_t> table;
         for (int i = 0; i < 256; ++i) {
-            table.append(qRgb(i, i, i));
+            table.push_back(qRgb(i, i, i));
         }
         image.setColorTable(table);
 

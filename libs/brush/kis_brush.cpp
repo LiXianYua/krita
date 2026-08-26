@@ -753,7 +753,7 @@ KisOptimizedBrushOutline KisBrush::outline(bool forcePreciseOutline) const
 void KisBrush::lodLimitations(KisPaintopLodLimitations *l) const
 {
     if (spacing() > 0.5) {
-        l->limitations << KoID("huge-spacing", PkString("Spacing > 0.5, consider disabling Instant Preview"));
+        l->limitations.insert(KoID("huge-spacing", PkString("Spacing > 0.5, consider disabling Instant Preview")));
     }
 }
 

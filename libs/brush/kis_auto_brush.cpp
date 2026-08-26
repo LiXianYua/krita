@@ -448,11 +448,11 @@ void KisAutoBrush::lodLimitations(KisPaintopLodLimitations *l) const
     KisBrush::lodLimitations(l);
 
     if (!qFuzzyCompare(density(), 1.0)) {
-        l->limitations << KoID("auto-brush-density", PkString("Brush Density recommended value 100.0"));
+        l->limitations.insert(KoID("auto-brush-density", PkString("Brush Density recommended value 100.0")));
     }
 
     if (!qFuzzyCompare(randomness(), 0.0)) {
-        l->limitations << KoID("auto-brush-randomness", PkString("Brush Randomness recommended value 0.0"));
+        l->limitations.insert(KoID("auto-brush-randomness", PkString("Brush Randomness recommended value 0.0")));
     }
 }
 

@@ -104,9 +104,11 @@ void KisAutoBrushFactory::toXML(PkXmlDocument &doc, PkXmlElement &e, const KisBr
         shapeElt.setAttribute("ratio", PkString("%1").arg(model.autoBrush.generator.ratio));
         shapeElt.setAttribute("hfade", PkString("%1").arg(model.autoBrush.generator.horizontalFade));
         shapeElt.setAttribute("vfade", PkString("%1").arg(model.autoBrush.generator.verticalFade));
-        shapeElt.setAttribute("spikes", model.autoBrush.generator.spikes);
+        shapeElt.setAttribute("spikes", PkString("%1").arg(model.autoBrush.generator.spikes));
         shapeElt.setAttribute("type", model.autoBrush.generator.shape == KisBrushModel::Circle ? "circle" : "rct");
-        shapeElt.setAttribute("antialiasEdges", model.autoBrush.generator.antialiasEdges);
+        // PkXmlElement::setAttribute 只收 PkString（真 Qt 有 int/bool 重载）；
+        // bool 按真 Qt 语义序列化为 "true"/"false"。
+        shapeElt.setAttribute("antialiasEdges", model.autoBrush.generator.antialiasEdges ? "true" : "false");
 
 
         PkString idString;
