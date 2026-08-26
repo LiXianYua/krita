@@ -12,7 +12,7 @@
 //
 // COW via clone：存储 std::shared_ptr<T>；非 const operator-> / data() 在
 // use_count()>1 时先 detach（reset(d->clone())）；const 路径（constData()、
-// const operator->、operator*）直返，不分裂。
+// const operator->、const operator*）直返，不分裂；非 const operator* 也走 detach()。
 //
 // 特化形态照原 shared-data pointer：primary 模板只声明 `T *clone()`（无定义），
 // 只在 `PkSharedDataPointer<KisSensorPackInterface>::clone()` 的显式特化里定义
@@ -32,7 +32,8 @@ public:
     PkSharedDataPointer &operator=(PkSharedDataPointer &&) noexcept = default;
     ~PkSharedDataPointer() = default;
 
-    T &operator*() const { return *d; }
+    T &operator*() { detach(); return *d; }
+    const T &operator*() const { return *d; }
     const T *operator->() const { return d.get(); }
     T *operator->() { detach(); return d.get(); }
 
