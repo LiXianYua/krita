@@ -193,7 +193,7 @@ KoShape *KoShapeFactoryBase::createShape(const KoProperties* properties,
 
 void KoShapeFactoryBase::getDeferredPlugin()
 {
-    // S-08: 插件加载已随 D-18 删除。deferredPluginName 恒为空（无子类传第三参），
+    // S-08: 插件加载已随 D-12 删除。deferredPluginName 恒为空（无子类传第三参），
     // deferredFactory 永不填充，本函数为 no-op；createShape/createDefaultShape 的
     // deferredFactory 分支同样不可达。
 }

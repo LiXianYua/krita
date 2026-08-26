@@ -58,14 +58,14 @@ KoShapeRegistry::~KoShapeRegistry()
 
 void KoShapeRegistry::Private::init(KoShapeRegistry *q)
 {
-    // S-08: 插件加载已随 D-18 删除，只保留硬编码 factory。
+    // S-08: 插件加载已随 D-12 删除，只保留硬编码 factory。
 
     // Also add our hard-coded basic shapes
     KoShapeFactoryBase *svgTextFactory = new KoSvgTextShapeFactory();
     q->add(toPkString(svgTextFactory->id()), svgTextFactory);
     KoShapeFactoryBase *pathFactory = new KoPathShapeFactory(QStringList());
     q->add(toPkString(pathFactory->id()), pathFactory);
-    // S-08: ImageShape/RectangleShape 原由 Krita/Shape 插件提供，D-18 删插件加载后
+    // S-08: ImageShape/RectangleShape 原由 Krita/Shape 插件提供，D-12 删插件加载后
     // 在此硬编码补注册（D-07 崩溃根因 + TestKoDrag 缺 rect 工厂）。
     KoShapeFactoryBase *imageFactory = new ImageShapeFactory();
     q->add(toPkString(imageFactory->id()), imageFactory);

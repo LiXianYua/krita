@@ -29,7 +29,7 @@ KoToolRegistry::KoToolRegistry()
 
 void KoToolRegistry::init()
 {
-    // S-08: 插件加载已随 D-18 删除，只保留硬编码 factory。
+    // S-08: 插件加载已随 D-12 删除，只保留硬编码 factory。
 
     // register generic tools
     KoToolFactoryBase *pathToolFactory = new KoPathToolFactory();
