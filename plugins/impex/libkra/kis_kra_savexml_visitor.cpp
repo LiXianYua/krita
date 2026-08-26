@@ -12,7 +12,7 @@
 
 #include <filesystem>
 
-#include <uuid/PkNodeId.h>
+#include <PkNodeId.h>
 #include <KoProperties.h>
 #include <KoColorSpace.h>
 #include <KoCompositeOp.h>
