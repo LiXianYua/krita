@@ -24,7 +24,7 @@ public:
 
     KisBrushesPipe(const KisBrushesPipe &rhs) {
         m_brushes.clear();
-        Q_FOREACH (PkSharedPointer<BrushType> brush, rhs.m_brushes) {
+        for (const auto &brush : rhs.m_brushes) {
             KoResourceSP clonedBrush = brush->clone();
             PkSharedPointer<BrushType> actualClonedBrush = clonedBrush.dynamicCast<BrushType>();
             m_brushes.append(actualClonedBrush );
@@ -64,45 +64,45 @@ public:
     }
 
     void setAngle(qreal angle) {
-        Q_FOREACH (PkSharedPointer<BrushType> brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->setAngle(angle);
         }
     }
 
     void setScale(qreal scale) {
-        Q_FOREACH (PkSharedPointer<BrushType> brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->setScale(scale);
         }
     }
 
     void setSpacing(double spacing) {
-        Q_FOREACH (PkSharedPointer<BrushType> brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->setSpacing(spacing);
         }
     }
 
     bool isImageType() const {
-        Q_FOREACH (PkSharedPointer<BrushType> brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             if (brush->isImageType()) return true;
         }
         return false;
     }
 
     bool hasColorAndTransparency() const {
-        Q_FOREACH (PkSharedPointer<BrushType> brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             if (brush->hasColorAndTransparency()) return true;
         }
         return false;
     }
 
     void setBrushApplication(enumBrushApplication brushApplication) const {
-        Q_FOREACH(PkSharedPointer<BrushType> brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->setBrushApplication(brushApplication);
         }
     }
 
     void setGradient(KoAbstractGradientSP gradient) const {
-        Q_FOREACH(PkSharedPointer<BrushType> brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->setGradient(gradient);
         }
     }
@@ -143,7 +143,7 @@ public:
     }
 
     void notifyBrushIsGoingToBeClonedForStroke() {
-        Q_FOREACH(PkSharedPointer<BrushType> brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->notifyBrushIsGoingToBeClonedForStroke();
         }
     }

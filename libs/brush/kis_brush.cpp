@@ -17,8 +17,9 @@
 #include <PkPoint.h>
 #include <PkMemoryStream.h>
 
+#include <memory>
+
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 
 #include <KoColor.h>
 #include <KoColorSpaceMaths.h>
@@ -46,9 +47,6 @@
 
 KIS_DECLARE_STATIC_INITIALIZER {
     qRegisterMetaType<KisBrushSP>("KisBrushSP");
-#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-    QMetaType::registerEqualsComparator<KisBrushSP>();
-#endif
 }
 
 const PkString KisBrush::brushTypeMetaDataKey = "image-based-brush";
@@ -675,9 +673,9 @@ void KisBrush::generateMaskAndApplyMaskOrCreateDab(KisFixedPaintDeviceSP dst,
                 }
             }
 
-            QScopedArrayPointer<quint8> alphaArray(new quint8[maskWidth]);
-            fetchPremultipliedRed(reinterpret_cast<const PkRgb*>(maskPointer), alphaArray.data(), maskWidth);
-            cs->applyAlphaU8Mask(rowPointer, alphaArray.data(), maskWidth);
+            std::unique_ptr<quint8[]> alphaArray(new quint8[maskWidth]);
+            fetchPremultipliedRed(reinterpret_cast<const PkRgb*>(maskPointer), alphaArray.get(), maskWidth);
+            cs->applyAlphaU8Mask(rowPointer, alphaArray.get(), maskWidth);
         }
 
         rowPointer += maskWidth * pixelSize;
@@ -755,7 +753,7 @@ KisOptimizedBrushOutline KisBrush::outline(bool forcePreciseOutline) const
 void KisBrush::lodLimitations(KisPaintopLodLimitations *l) const
 {
     if (spacing() > 0.5) {
-        l->limitations << KoID("huge-spacing", i18nc("PaintOp instant preview limitation", "Spacing > 0.5, consider disabling Instant Preview"));
+        l->limitations << KoID("huge-spacing", PkString("Spacing > 0.5, consider disabling Instant Preview"));
     }
 }
 

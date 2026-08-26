@@ -7,7 +7,6 @@
 #include "kis_qimage_pyramid.h"
 
 #include <limits>
-#include <QPainter>
 #include <kis_debug.h>
 
 #define MIPMAP_SIZE_THRESHOLD 512
@@ -314,11 +313,11 @@ PkImage KisQImagePyramid::createImage(KisDabShape const& shape,
         transform *= PkTransform::fromScale(fakeScale, fakeScale);
     }
 
-    QPainter gc(&dstImage);
+    PkPainter gc(&dstImage);
     gc.setTransform(
         PkTransform::fromTranslate(-QPAINTER_WORKAROUND_BORDER,
                                   -QPAINTER_WORKAROUND_BORDER) * transform);
-    gc.setRenderHints(QPainter::SmoothPixmapTransform);
+    gc.setRenderHint(PkPainter::SmoothPixmapTransform);
     gc.drawImage(PkPointF(), srcImage);
     gc.end();
 
