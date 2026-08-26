@@ -96,7 +96,7 @@ namespace KisDomUtils {
         }
         e.setAttribute(FILE_NAME, PkString::PkFromUtf8(fileNameUtf8.c_str(), static_cast<int>(fileNameUtf8.size())));
 
-        e.setAttribute(COLORIZE_KEYSTROKE_IS_TRANSPARENT, stroke.isTransparent);
+        e.setAttribute(COLORIZE_KEYSTROKE_IS_TRANSPARENT, PkString(stroke.isTransparent ? "true" : "false"));
 
         // 对拍原 Qt：QByteArray::fromRawData(ptr, len) → QByteArray(ptr, len)；
         // toBase64 → 本地 pkBase64Encode。

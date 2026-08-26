@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <klocalizedstring.h>
 #include "kis_kra_loader.h"
 
 #include <PkStringList.h>
@@ -595,7 +596,7 @@ void KisKraLoader::loadResources(KoStore *store, KisDocument *doc)
     for (const KoResourceSignature &resourceItem : m_d->resources) {
         KisResourceModel model(resourceItem.type);
         if (model.resourcesForMD5(resourceItem.md5sum).isEmpty()) {
-            store->open(RESOURCE_PATH + '/' + resourceItem.type + '/' + resourceItem.filename);
+            store->open(RESOURCE_PATH + "/" + resourceItem.type + "/" + resourceItem.filename);
 
             if (!store->isOpen()) {
                 m_d->warningMessages.append(i18nc("Warning message on loading a .kra file", "Embedded resource cannot be read. The filename of the resource: %1", resourceItem.filename));
@@ -846,7 +847,7 @@ KisNodeSP KisKraLoader::loadNodes(const PkXmlElement& element, KisImageSP image,
 
                 KisSelectionMaskSP activeSelectionMask;
                 for (KisNodeSP node : topLevelSelectionMasks) {
-                    KisSelectionMask *mask = qobject_cast<KisSelectionMask*>(node.data());
+                    KisSelectionMask *mask = dynamic_cast<KisSelectionMask*>(node.data());
                     if (mask->active()) {
                         if (activeSelectionMask) {
                             m_d->warningMessages << i18n("Two global selection masks in active state found. \"%1\" is kept active, \"%2\" is deactivated", activeSelectionMask->name(), mask->name());
@@ -1012,7 +1013,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
     }
 
     if (node->inherits("KisLayer")) {
-        KisLayer* layer           = qobject_cast<KisLayer*>(node.data());
+        KisLayer* layer           = dynamic_cast<KisLayer*>(node.data());
         PkBitArray channelFlags    = stringToFlags(element.attribute(CHANNEL_FLAGS, ""), colorSpace->channelCount());
         layer->setChannelFlags(channelFlags);
 
@@ -1033,7 +1034,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
         if (element.hasAttribute(PASS_THROUGH_MODE)) {
             bool value = element.attribute(PASS_THROUGH_MODE, "0") != "0";
 
-            KisGroupLayer *group = qobject_cast<KisGroupLayer*>(node.data());
+            KisGroupLayer *group = dynamic_cast<KisGroupLayer*>(node.data());
             group->setPassThroughMode(value);
         }
     }
@@ -1042,7 +1043,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
         if (element.hasAttribute(ANTIALIASED)) {
             bool value = element.attribute(ANTIALIASED, "0") != "0";
 
-            KisShapeLayer *shapeLayer = qobject_cast<KisShapeLayer*>(node.data());
+            KisShapeLayer *shapeLayer = dynamic_cast<KisShapeLayer*>(node.data());
             shapeLayer->setAntialiased(value);
         }
     }
@@ -1052,7 +1053,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
     node->setPinnedToTimeline(timelineEnabled);
 
     if (node->inherits("KisPaintLayer")) {
-        KisPaintLayer* layer = qobject_cast<KisPaintLayer*>(node.data());
+        KisPaintLayer* layer = dynamic_cast<KisPaintLayer*>(node.data());
         PkBitArray channelLockFlags = stringToFlags(element.attribute(CHANNEL_LOCK_FLAGS, ""), colorSpace->channelCount());
         layer->setChannelLockFlags(channelLockFlags);
 

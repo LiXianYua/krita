@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <klocalizedstring.h>
 #include "kra_converter.h"
 
 #include <PkVersionNumber.h>
@@ -155,7 +156,7 @@ void fixCloneLayers(KisImageSP image, KisNodeSP root)
 
 KisImportExportErrorCode KraConverter::buildImage(PkStream *io)
 {
-    m_store = KoStore::createStore(io, KoStore::Read, "", KoStore::Zip);
+    m_store = KoStore::createStore(io, KoStore::Read, PkByteArray(), KoStore::Zip);
 
     if (m_store->bad()) {
         m_doc->setErrorMessage(i18n("Not a valid Krita file"));
@@ -227,7 +228,11 @@ KisImportExportErrorCode KraConverter::buildFile(PkStream *io, const PkString &f
     }
     
     setProgress(5);
-    m_store = KoStore::createStore(io, KoStore::Write, m_doc->nativeFormatMimeType(), KoStore::Zip);
+    const PkString mimeType = m_doc->nativeFormatMimeType();
+    const std::string mimeUtf8 = mimeType.PkToUtf8();
+    m_store = KoStore::createStore(io, KoStore::Write,
+                                   PkByteArray(mimeUtf8.data(), static_cast<int>(mimeUtf8.size())),
+                                   KoStore::Zip);
 
     bool success = true;
 
@@ -322,8 +327,9 @@ KisImportExportErrorCode KraConverter::saveRootDocuments(KoStore *store)
                                           m_doc->isAutosaving(),
                                           m_doc->isModified());
         KoStoreDevice dev(store);
-        PkByteArray s = doc.toByteArray(); // this is already Utf8!
-        bool success = dev.write(s.data(), s.size());
+        const PkString s = doc.toByteArray(); // this is already Utf8!
+        const std::string sUtf8 = s.PkToUtf8();
+        bool success = dev.write(sUtf8.data(), static_cast<long>(sUtf8.size()));
         if (!success) {
             return ImportExportCodes::ErrorWhileWriting;
         }
@@ -351,11 +357,12 @@ bool KraConverter::saveToStream(PkStream *dev)
 {
     PkXmlDocument doc = createDomDocument();
     // Save to buffer
-    PkByteArray s = doc.toByteArray(); // utf8 already
+    const PkString s = doc.toByteArray(); // utf8 already
+    const std::string sUtf8 = s.PkToUtf8();
     dev->open(PkStream::WriteOnly);
-    int nwritten = dev->write(s.data(), s.size());
-    if (nwritten != (int)s.size()) {
-        warnUI << "wrote " << nwritten << "- expected" <<  s.size();
+    const long nwritten = dev->write(sUtf8.data(), static_cast<long>(sUtf8.size()));
+    if (nwritten != static_cast<long>(sUtf8.size())) {
+        warnUI << "wrote " << nwritten << "- expected" <<  sUtf8.size();
     }
     return nwritten == (int)s.size();
 }
@@ -523,7 +530,7 @@ bool KraConverter::completeLoading(KoStore* store)
         // We might be hitting an encoding problem. Get the only folder in the toplevel
         for (const PkString &entry : m_store->directoryList()) {
             if (entry.contains("/layers/")) {
-                layerPathName = entry.split("/layers/").first();
+                layerPathName = entry.split("/layers/").front();
                 m_store->setSubstitution(m_kraLoader->imageName(), layerPathName);
                 break;
             }

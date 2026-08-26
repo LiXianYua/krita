@@ -103,7 +103,7 @@ bool KisSaveXmlVisitor::visit(KisExternalLayer * layer)
         else {
             layerElement.setAttribute("scale", "false");
         }
-        layerElement.setAttribute("scalingmethod", (int)fileLayer->scalingMethod());
+        layerElement.setAttribute("scalingmethod", PkString().arg((int)fileLayer->scalingMethod()));
         layerElement.setAttribute(COLORSPACE_NAME, layer->original()->colorSpace()->id());
         layerElement.setAttribute("scalingfilter", fileLayer->scalingFilter());
 
@@ -121,8 +121,8 @@ PkXmlElement KisSaveXmlVisitor::savePaintLayerAttributes(KisPaintLayer *layer, P
     element.setAttribute(CHANNEL_LOCK_FLAGS, flagsToString(layer->channelLockFlags()));
     element.setAttribute(COLORSPACE_NAME, layer->paintDevice()->colorSpace()->id());
 
-    element.setAttribute(ONION_SKIN_ENABLED, layer->onionSkinEnabled());
-    element.setAttribute(VISIBLE_IN_TIMELINE, layer->isPinnedToTimeline());
+    element.setAttribute(ONION_SKIN_ENABLED, PkString(layer->onionSkinEnabled() ? "true" : "false"));
+    element.setAttribute(VISIBLE_IN_TIMELINE, PkString(layer->isPinnedToTimeline() ? "true" : "false"));
 
     if (!saveLayerOffset) {
         element.removeAttribute(X);
@@ -165,7 +165,7 @@ bool KisSaveXmlVisitor::visit(KisGroupLayer *layer)
     else {
         layerElement = m_doc.createElement(LAYER);
         saveLayer(layerElement, GROUP_LAYER, layer);
-        layerElement.setAttribute(PASS_THROUGH_MODE, layer->passThroughMode());
+        layerElement.setAttribute(PASS_THROUGH_MODE, PkString(layer->passThroughMode() ? "true" : "false"));
         layerElement.setAttribute(COLORSPACE_NAME, layer->colorSpace()->id());
         layerElement.setAttribute(PROFILE, layer->colorSpace()->profile()->name());
         m_elem.appendChild(layerElement);
@@ -204,7 +204,7 @@ bool KisSaveXmlVisitor::visit(KisAdjustmentLayer* layer)
     PkXmlElement layerElement = m_doc.createElement(LAYER);
     saveLayer(layerElement, ADJUSTMENT_LAYER, layer);
     layerElement.setAttribute(FILTER_NAME, layer->filter()->name());
-    layerElement.setAttribute(FILTER_VERSION, layer->filter()->version());
+    layerElement.setAttribute(FILTER_VERSION, PkString().arg(layer->filter()->version()));
     m_elem.appendChild(layerElement);
 
     m_count++;
@@ -216,7 +216,7 @@ bool KisSaveXmlVisitor::visit(KisGeneratorLayer *layer)
     PkXmlElement layerElement = m_doc.createElement(LAYER);
     saveLayer(layerElement, GENERATOR_LAYER, layer);
     layerElement.setAttribute(GENERATOR_NAME, layer->filter()->name());
-    layerElement.setAttribute(GENERATOR_VERSION, layer->filter()->version());
+    layerElement.setAttribute(GENERATOR_VERSION, PkString().arg(layer->filter()->version()));
     m_elem.appendChild(layerElement);
 
     m_count++;
@@ -229,7 +229,7 @@ bool KisSaveXmlVisitor::visit(KisCloneLayer *layer)
     saveLayer(layerElement, CLONE_LAYER, layer);
     layerElement.setAttribute(CLONE_FROM, layer->copyFromInfo().name());
     layerElement.setAttribute(CLONE_FROM_UUID, layer->copyFromInfo().uuid().toString());
-    layerElement.setAttribute(CLONE_TYPE, layer->copyType());
+    layerElement.setAttribute(CLONE_TYPE, PkString().arg((int)layer->copyType()));
     m_elem.appendChild(layerElement);
 
     m_count++;
@@ -245,7 +245,7 @@ bool KisSaveXmlVisitor::visit(KisFilterMask *mask)
     PkXmlElement el = m_doc.createElement(MASK);
     saveMask(el, FILTER_MASK, mask);
     el.setAttribute(FILTER_NAME, mask->filter()->name());
-    el.setAttribute(FILTER_VERSION, mask->filter()->version());
+    el.setAttribute(FILTER_VERSION, PkString().arg(mask->filter()->version()));
 
     m_elem.appendChild(el);
 
@@ -385,9 +385,9 @@ void KisSaveXmlVisitor::saveLayer(PkXmlElement & el, const PkString & layerType,
 
     el.setAttribute(CHANNEL_FLAGS, flagsToString(layer->channelFlags()));
     el.setAttribute(NAME, layer->name());
-    el.setAttribute(OPACITY, layer->opacity());
+    el.setAttribute(OPACITY, PkString().arg((int)layer->opacity()));
     el.setAttribute(COMPOSITE_OP, layer->compositeOp()->id());
-    el.setAttribute(VISIBLE, layer->visible());
+    el.setAttribute(VISIBLE, PkString(layer->visible() ? "true" : "false"));
     el.setAttribute(LOCKED, layer->userLocked());
     el.setAttribute(NODE_TYPE, layerType);
     el.setAttribute(FILE_NAME, filename);
@@ -396,7 +396,7 @@ void KisSaveXmlVisitor::saveLayer(PkXmlElement & el, const PkString & layerType,
     el.setAttribute(UUID, layer->uuid().toString());
     el.setAttribute(COLLAPSED, layer->collapsed());
     el.setAttribute(COLOR_LABEL, layer->colorLabelIndex());
-    el.setAttribute(VISIBLE_IN_TIMELINE, layer->isPinnedToTimeline());
+    el.setAttribute(VISIBLE_IN_TIMELINE, PkString(layer->isPinnedToTimeline() ? "true" : "false"));
 
     if(layerType == SHAPE_LAYER) {
         const KisShapeLayer *shapeLayer = static_cast<const KisShapeLayer*>(layer);
@@ -437,7 +437,7 @@ void KisSaveXmlVisitor::saveMask(PkXmlElement & el, const PkString & maskType, c
     el.setAttribute(Y, mask->y());
     el.setAttribute(UUID, mask->uuid().toString());
     el.setAttribute(COLOR_LABEL, mask->colorLabelIndex());
-    el.setAttribute(VISIBLE_IN_TIMELINE, mask->isPinnedToTimeline());
+    el.setAttribute(VISIBLE_IN_TIMELINE, PkString(mask->isPinnedToTimeline() ? "true" : "false"));
 
     if (maskType == SELECTION_MASK) {
         el.setAttribute(ACTIVE, mask->nodeProperties().boolProperty("active"));
@@ -454,7 +454,7 @@ void KisSaveXmlVisitor::saveMask(PkXmlElement & el, const PkString & maskType, c
             el.setAttribute(COLORIZE_USE_EDGE_DETECTION, colorizeMask->useEdgeDetection());
             el.setAttribute(COLORIZE_EDGE_DETECTION_SIZE, KisDomUtils::toString(colorizeMask->edgeDetectionSize()));
             el.setAttribute(COLORIZE_FUZZY_RADIUS, KisDomUtils::toString(colorizeMask->fuzzyRadius()));
-            el.setAttribute(COLORIZE_CLEANUP, int(100 * colorizeMask->cleanUpAmount()));
+            el.setAttribute(COLORIZE_CLEANUP, PkString().arg(int(100 * colorizeMask->cleanUpAmount())));
             el.setAttribute(COLORIZE_LIMIT_TO_DEVICE, colorizeMask->limitToDeviceBounds());
         }
     }

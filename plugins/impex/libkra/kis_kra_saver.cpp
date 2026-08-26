@@ -3,6 +3,7 @@
  *
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
+#include <klocalizedstring.h>
 #include "kis_kra_saver.h"
 
 #include "kis_kra_tags.h"
@@ -223,7 +224,7 @@ bool KisKraSaver::saveResources(KoStore *store, KisImageSP image, const PkString
 
         const PkString fileName = resource.signature().filename;
 
-        if (!store->open(path  + '/' + fileName)) {
+        if (!store->open(path + "/" + fileName)) {
             m_d->warningMessages << i18nc("Error message when saving a .kra file", "Could not write resource: %1", result.signature().filename);
             continue;
         }

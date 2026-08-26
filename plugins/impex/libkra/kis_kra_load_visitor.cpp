@@ -5,6 +5,7 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+#include <klocalizedstring.h>
 #include "kis_kra_load_visitor.h"
 #include "kis_kra_tags.h"
 #include "flake/kis_shape_layer.h"
@@ -314,7 +315,7 @@ bool KisKraLoadVisitor::visit(KisCloneLayer *layer)
 
     KisNodeSP srcNode = layer->copyFromInfo().findNode(m_image->rootLayer());
     if (!srcNode.isNull()) {
-        KisLayerSP srcLayer = qobject_cast<KisLayer*>(srcNode.data());
+        KisLayerSP srcLayer = dynamic_cast<KisLayer*>(srcNode.data());
         Q_ASSERT(srcLayer);
 
         layer->setCopyFrom(srcLayer);
@@ -338,7 +339,7 @@ void KisKraLoadVisitor::initSelectionForMask(KisMask *mask)
         cloneLayer->accept(*this);
     }
 
-    KisLayer *parentLayer = qobject_cast<KisLayer*>(mask->parent().data());
+    KisLayer *parentLayer = dynamic_cast<KisLayer*>(mask->parent().data());
     // the KisKraLoader must have already set the parent for us
     Q_ASSERT(parentLayer);
     mask->initSelection(parentLayer);
@@ -705,7 +706,7 @@ void KisKraLoadVisitor::fixOldFilterConfigurations(KisFilterConfigurationSP kfc)
 
 bool KisKraLoadVisitor::loadMetaData(KisNode* node)
 {
-    KisLayer* layer = qobject_cast<KisLayer*>(node);
+    KisLayer* layer = dynamic_cast<KisLayer*>(node);
     if (!layer) return true;
 
     KisMetaData::IOBackend *backend = KisMetadataBackendRegistry::instance()->get("xmp");
