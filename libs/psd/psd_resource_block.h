@@ -15,7 +15,6 @@ class PkStream;
 #include <PkDataStream.h>
 #include <PkString.h>
 #include <kis_debug.h>
-#include <klocalizedstring.h>
 
 #include <kis_annotation.h>
 
@@ -110,7 +109,7 @@ public:
         if (resource) {
             return resource->displayText();
         }
-        return i18n("Unparsed Resource Block");
+        return PkString("Unparsed Resource Block");
     }
 
     bool read(PkStream &io);

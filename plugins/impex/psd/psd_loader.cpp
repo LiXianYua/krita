@@ -176,7 +176,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
     // Preserve the duotone colormode block for saving back to psd
     if (header.colormode == DuoTone) {
         KisAnnotationSP annotation = new KisAnnotation("DuotoneColormodeBlock",
-                                                       i18n("Duotone Colormode Block"),
+                                                       PkString("Duotone Colormode Block"),
                                                        colorModeBlock.data);
         m_image->addAnnotation(annotation);
     }
@@ -213,7 +213,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
     if (layerSection.nLayers == 0) {
         dbgFile << "Position" << io.pos() << "Going to read the projection into the first layer, which Photoshop calls 'Background'";
 
-        KisPaintLayerSP layer = new KisPaintLayer(m_image, i18nc("Name for the bottom-most layer in the layerstack", "Background"), OPACITY_OPAQUE_U8);
+        KisPaintLayerSP layer = new KisPaintLayer(m_image, PkString("Background"), OPACITY_OPAQUE_U8);
 
         PSDImageData imageData(&header);
         imageData.read(io, layer->paintDevice());
@@ -582,7 +582,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                     }
                 } else {
                     if (!(shapeLayer && hasVectorMask)) {
-                        KisTransparencyMaskSP mask = new KisTransparencyMask(m_image, i18n("Transparency Mask"));
+                        KisTransparencyMaskSP mask = new KisTransparencyMask(m_image, PkString("Transparency Mask"));
                         mask->initSelection(newLayer);
                         if (!layerRecord->readMask(io, mask->paintDevice(), channelInfo)) {
                             dbgFile << "failed reading masks for layer: " << layerRecord->layerName << layerRecord->error;

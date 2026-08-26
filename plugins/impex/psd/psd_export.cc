@@ -49,7 +49,7 @@ void psdExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("sRGBProfileCheck")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("MultiLayerCheck")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("NodeTypeCheck/KisTransparencyMask")->create(KisExportCheckBase::SUPPORTED));
-    addCapability(KisExportCheckRegistry::instance()->get("ColorModelHomogenousCheck")->create(KisExportCheckBase::UNSUPPORTED, i18nc("image conversion warning", "Your image contains one or more layers with a color model that is different from the image.")));
+    addCapability(KisExportCheckRegistry::instance()->get("ColorModelHomogenousCheck")->create(KisExportCheckBase::UNSUPPORTED, PkString("Your image contains one or more layers with a color model that is different from the image.")));
     addCapability(KisExportCheckRegistry::instance()->get("LayerOpacityCheck")->create(KisExportCheckBase::SUPPORTED));
 
     ImageSizeCheckFactory *factory = dynamic_cast<ImageSizeCheckFactory*>(KisExportCheckRegistry::instance()->get("ImageSizeCheck"));
@@ -81,7 +81,7 @@ void psdExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("ShapeLayerTypeCheck/KoPathShape/StarShape")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("ShapeLayerTypeCheck/KoShapeGroup")->create(KisExportCheckBase::SUPPORTED));
 
-    const PkString textShapeWarning = i18nc("image conversion warning", "While text shapes can be saved to psd, only basic features are supported. Advanced features, like text-on-path and opentype features will not be saved.");
+    const PkString textShapeWarning = PkString("While text shapes can be saved to psd, only basic features are supported. Advanced features, like text-on-path and opentype features will not be saved.");
     addCapability(KisExportCheckRegistry::instance()->get("ShapeLayerTypeCheck/KoSvgTextShapeID")->create(KisExportCheckBase::PARTIALLY, textShapeWarning));
 }
 

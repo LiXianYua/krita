@@ -429,7 +429,7 @@ void addBackgroundIfNeeded(KisNodeSP root, PkList<FlattenedNode> &nodes)
     if (projectionColor.opacityU8() == OPACITY_TRANSPARENT_U8)
         return;
 
-    KisPaintLayerSP layer = new KisPaintLayer(group->image(), i18nc("Automatically created layer name when saving into PSD", "Background"), OPACITY_OPAQUE_U8);
+    KisPaintLayerSP layer = new KisPaintLayer(group->image(), PkString("Background"), OPACITY_OPAQUE_U8);
 
     layer->paintDevice()->setDefaultPixel(projectionColor);
 
@@ -966,7 +966,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                 layerRecord->visible = nodeVisible;
                 layerRecord->irrelevant = nodeIrrelevant;
 
-                layerRecord->layerName = nodeName.isEmpty() ? i18n("Unnamed Layer") : nodeName;
+                layerRecord->layerName = nodeName.isEmpty() ? PkString("Unnamed Layer") : nodeName;
 
                 layerRecord->fillType = fillType;
                 layerRecord->fillConfig = fillConfig;
@@ -1144,7 +1144,7 @@ void PSDLayerMaskSection::writeTiffImpl(PkStream &io, KisNodeSP rootLayer, psd_c
                 layerRecord->irrelevant = nodeIrrelevant;
                 layerRecord->labelColor = nodeLabelColor;
 
-                layerRecord->layerName = nodeName.isEmpty() ? i18n("Unnamed Layer") : nodeName;
+                layerRecord->layerName = nodeName.isEmpty() ? PkString("Unnamed Layer") : nodeName;
 
                 layerRecord->write(io, layerContentDevice, nullptr, PkRect(), sectionType, stylesXmlDoc, node->inherits("KisGroupLayer"));
             }
