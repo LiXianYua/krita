@@ -14,7 +14,7 @@
 #include <brushengine/kis_paintop_settings.h>
 #include <kis_properties_configuration.h>
 #include "kis_paintop_settings.h"
-#include <QElapsedTimer>
+#include <PkElapsedTimer.h>
 #include "kis_algebra_2d.h"
 #include "KisOptimizedBrushOutline.h"
 
@@ -29,13 +29,13 @@ struct KisCurrentOutlineFetcher::Private {
 
     Options optionsAvailable;
 
-    QScopedPointer<KisSizeOption> sizeOption;
-    QScopedPointer<KisRotationOption> rotationOption;
-    QScopedPointer<KisMirrorOption> mirrorOption;
-    QScopedPointer<KisSharpnessOption> sharpnessOption;
+    PkScopedPointer<KisSizeOption> sizeOption;
+    PkScopedPointer<KisRotationOption> rotationOption;
+    PkScopedPointer<KisMirrorOption> mirrorOption;
+    PkScopedPointer<KisSharpnessOption> sharpnessOption;
 
     bool isDirty {false};
-    QElapsedTimer lastUpdateTime;
+    PkElapsedTimer lastUpdateTime;
 
     qreal lastRotationApplied {0.0};
     qreal lastSizeApplied {1.0};
@@ -126,31 +126,31 @@ KisOptimizedBrushOutline KisCurrentOutlineFetcher::fetchOutline(const KisPaintIn
         }
     }
 
-    QTransform rot;
+    PkTransform rot;
     rot.rotateRadians(-rotation);
 
-    QPointF hotSpot = originalOutline.boundingRect().center();
+    PkPointF hotSpot = originalOutline.boundingRect().center();
     if (tilt) {
         hotSpot.setX(tiltcenterx);
         hotSpot.setY(tiltcentery);
     }
 
-    QPointF pos = info.pos();
+    PkPointF pos = info.pos();
     if (d->sharpnessOption && d->sharpnessOption->alignOutlineToPixels()) {
         qint32 x = 0;
         qint32 y = 0;
         qreal subPixelX = 0.0;
         qreal subPixelY = 0.0;
         d->sharpnessOption->apply(info, pos - hotSpot, x, y, subPixelX, subPixelY);
-        pos = QPointF(x + subPixelX, y + subPixelY) + hotSpot;
+        pos = PkPointF(x + subPixelX, y + subPixelY) + hotSpot;
     }
 
     // align cursor position to widget pixel grid to avoid noise
     pos = KisAlgebra2D::alignForZoom(pos, alignForZoom);
 
-    QTransform T1 = QTransform::fromTranslate(-hotSpot.x(), -hotSpot.y());
-    QTransform T2 = QTransform::fromTranslate(pos.x(), pos.y());
-    QTransform S  = QTransform::fromScale(xFlip * scale, yFlip * scale);
+    PkTransform T1 = PkTransform::fromTranslate(-hotSpot.x(), -hotSpot.y());
+    PkTransform T2 = PkTransform::fromTranslate(pos.x(), pos.y());
+    PkTransform S  = PkTransform::fromScale(xFlip * scale, yFlip * scale);
 
     return originalOutline.mapped(T1 * rot * S * T2);
 }

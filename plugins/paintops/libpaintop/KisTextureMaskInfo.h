@@ -9,8 +9,8 @@
 
 
 #include <kis_paint_device.h>
-#include <QSharedPointer>
-#include <QMutex>
+#include <PkSharedPointer.h>
+#include <PkMutex.h>
 
 
 #include <boost/operators.hpp>
@@ -40,7 +40,7 @@ public:
 
     KisPaintDeviceSP mask();
 
-    QRect maskBounds() const;
+    PkRect maskBounds() const;
 
     bool fillProperties(const KisPropertiesConfiguration *setting, KisResourcesInterfaceSP resourcesInterface, bool invertAdditionally);
 
@@ -65,11 +65,11 @@ private:
     int m_cutoffPolicy = 0;
 
     KisPaintDeviceSP m_mask;
-    QRect m_maskBounds;
+    PkRect m_maskBounds;
 
 };
 
-typedef QSharedPointer<KisTextureMaskInfo> KisTextureMaskInfoSP;
+typedef PkSharedPointer<KisTextureMaskInfo> KisTextureMaskInfoSP;
 
 struct KisTextureMaskInfoCache
 {
@@ -77,9 +77,9 @@ struct KisTextureMaskInfoCache
     KisTextureMaskInfoSP fetchCachedTextureInfo(KisTextureMaskInfoSP info);
 
 private:
-    QMutex m_mutex;
-    QSharedPointer<KisTextureMaskInfo> m_lodInfo;
-    QSharedPointer<KisTextureMaskInfo> m_mainInfo;
+    PkMutex m_mutex;
+    PkSharedPointer<KisTextureMaskInfo> m_lodInfo;
+    PkSharedPointer<KisTextureMaskInfo> m_mainInfo;
 };
 
 #endif // KISTEXTUREMASKINFO_H

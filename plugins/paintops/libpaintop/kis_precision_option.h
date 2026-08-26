@@ -8,14 +8,14 @@
 #ifndef __KIS_PRECISION_OPTION_H
 #define __KIS_PRECISION_OPTION_H
 
-#include <QString>
+#include <PkString.h>
 #include <kritapaintop_export.h>
 #include <kis_properties_configuration.h>
 
-const QString PRECISION_LEVEL = "KisPrecisionOption/precisionLevel";
-const QString AUTO_PRECISION_ENABLED = "KisPrecisionOption/AutoPrecisionEnabled";
-const QString STARTING_SIZE = "KisPrecisionOption/SizeToStartFrom";
-const QString DELTA_VALUE = "KisPrecisionOption/DeltaValue";
+const PkString PRECISION_LEVEL = "KisPrecisionOption/precisionLevel";
+const PkString AUTO_PRECISION_ENABLED = "KisPrecisionOption/AutoPrecisionEnabled";
+const PkString STARTING_SIZE = "KisPrecisionOption/SizeToStartFrom";
+const PkString DELTA_VALUE = "KisPrecisionOption/DeltaValue";
 
 
 namespace KisBrushModel {

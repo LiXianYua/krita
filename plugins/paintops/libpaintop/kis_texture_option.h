@@ -44,17 +44,17 @@ public:
      * @param offset the position of the dab on the image. used to calculate the position of the mask pattern
      * @param info the paint information
      */
-    void apply(KisFixedPaintDeviceSP dab, const QPoint& offset, const KisPaintInformation & info);
-    static QList<KoResourceLoadResult> prepareLinkedResources(const KisPropertiesConfigurationSP setting, KisResourcesInterfaceSP resourcesInterface);
-    static QList<KoResourceLoadResult> prepareEmbeddedResources(const KisPropertiesConfigurationSP setting, KisResourcesInterfaceSP resourcesInterface);
+    void apply(KisFixedPaintDeviceSP dab, const PkPoint& offset, const KisPaintInformation & info);
+    static PkList<KoResourceLoadResult> prepareLinkedResources(const KisPropertiesConfigurationSP setting, KisResourcesInterfaceSP resourcesInterface);
+    static PkList<KoResourceLoadResult> prepareEmbeddedResources(const KisPropertiesConfigurationSP setting, KisResourcesInterfaceSP resourcesInterface);
     bool applyingGradient() const;
 
     static bool applyingGradient(const KisPropertiesConfiguration *settings);
     static bool requiresEffectiveCompositeOp(const KisPropertiesConfiguration *settings);
 
 private:
-    void applyLightness(KisFixedPaintDeviceSP dab, const QPoint& offset, const KisPaintInformation& info);
-    void applyGradient(KisFixedPaintDeviceSP dab, const QPoint& offset, const KisPaintInformation& info);
+    void applyLightness(KisFixedPaintDeviceSP dab, const PkPoint& offset, const KisPaintInformation& info);
+    void applyGradient(KisFixedPaintDeviceSP dab, const PkPoint& offset, const KisPaintInformation& info);
     void fillProperties(const KisPropertiesConfiguration *setting, KisResourcesInterfaceSP resourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface);
     int effectiveOffsetX(const KisPaintInformation &info) const;
     int effectiveOffsetY(const KisPaintInformation &info) const;

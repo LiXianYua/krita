@@ -9,9 +9,9 @@
 
 #include <kritapaintop_export.h>
 
-#include <QFlags>
-#include <QScopedPointer>
-#include <QPainterPath>
+#include <PkFlags.h>
+#include <PkScopedPointer.h>
+#include <PkPainterPath.h>
 
 #include <kis_paintop_settings.h>
 
@@ -31,7 +31,7 @@ public:
         SHARPNESS_OPTION
     };
 
-    Q_DECLARE_FLAGS(Options, Option);
+    PK_DECLARE_FLAGS(Options, Option);
 
 public:
     KisCurrentOutlineFetcher(Options optionsAvailable);
@@ -52,9 +52,9 @@ public:
 private:
     Q_DISABLE_COPY(KisCurrentOutlineFetcher);
     struct Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(KisCurrentOutlineFetcher::Options);
+PK_DECLARE_OPERATORS_FOR_FLAGS(KisCurrentOutlineFetcher::Options);
 
 #endif /* __KIS_CURRENT_OUTLINE_FETCHER_H */
