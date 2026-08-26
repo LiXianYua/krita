@@ -78,6 +78,7 @@ kis_add_tests(
     kis_types_test.cpp
     kis_vec_test.cpp
     kis_mask_generator_test.cpp
+    kis_mask_keyframe_roundtrip_test.cpp
     kis_cubic_curve_test.cpp
     kis_cubic_spline_test.cpp
     kis_fixed_point_maths_test.cpp
