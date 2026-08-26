@@ -14,26 +14,10 @@
 #include "KoShapeBackground.h"
 #include "kis_command_ids.h"
 
-namespace {
-// PkSharedPointer ↔ QSharedPointer 过渡助手（桥接头没有共享指针互转：真 Qt 的
-// QSharedPointer 无 std::shared_ptr 互操作构造）。用「保活 deleter」模式——两边
-// 各自持有独立控制块，转换方把原指针的副本捕获进 deleter，借副本维持所有权；
-// 对象只被原控制块删除一次，不会双删。
-template <typename T>
-inline PkSharedPointer<T> toPkSharedPointer(const QSharedPointer<T> &p)
-{
-    QSharedPointer<T> keep = p;
-    return PkSharedPointer<T>(p.data(), [keep](T *) { (void)keep; });
-}
-
-template <typename T>
-inline QSharedPointer<T> toQSharedPointer(const PkSharedPointer<T> &p)
-{
-    PkSharedPointer<T> keep = p;
-    return QSharedPointer<T>(p.data(), [keep](T *) { (void)keep; });
-}
-}
-
+// PkSharedPointer ↔ QSharedPointer 过渡助手现居 PkFlakeBridge.h（保活 deleter 模式，
+// 同款实现，本文件 include 该桥接头）：命令类在 KoShape::background()（真 Qt 返回
+// QSharedPointer）与命令参数（PkSharedPointer）之间跨界时调用。flake 剥完（共享指针
+// 归 Pk）后桥接连同本文件调用点一起删。
 
 class Q_DECL_HIDDEN KoShapeBackgroundCommand::Private
 {

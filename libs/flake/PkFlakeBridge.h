@@ -37,8 +37,19 @@
 #define PK_QPOLYGONF_ PK_CAT_(Q, PolygonF)
 #define PK_QPOINT_    PK_CAT_(Q, Point)
 #define PK_QLINEF_    PK_CAT_(Q, LineF)
+#define PK_QSHAREDPOINTER_ PK_CAT_(Q, SharedPointer)
 
 #if defined(QT_CORE_LIB)
+// QFlags 兼容垫片（pk/flags/compat/QFlags）会被剥离头（KoUnit.h 等）拉进 real-Qt-first
+// TU，把 QFlags / Q_DECLARE_FLAGS / Q_DECLARE_OPERATORS_FOR_FLAGS 三个宏无条件覆盖成 Pk
+// 版本。垫片用 push_macro 保存了进入前的状态；若不在 include 真 Qt 头之前 pop 回去，
+// 后续所有 QFlags token（含 QtTest 头的 QFlags<...> 参数，QCoreApplication::processEvents
+// 等）都被宏改名成 PkFlags，链接时 Qt 库里没有 processEvents(PkFlags) → undefined
+// reference。这里统一 pop 恢复真 Qt 状态，再 include 真 Qt 头。pop 未 push 的宏是 no-op
+// （GCC/Clang），纯 Qt-free TU 不进本分支、不 pop（compat 生效是期望）。
+#pragma pop_macro("QFlags")
+#pragma pop_macro("Q_DECLARE_FLAGS")
+#pragma pop_macro("Q_DECLARE_OPERATORS_FOR_FLAGS")
 // 真 Qt 头在前（R-38 约定）：先 include 真 Qt 全量，保证本头内的 Q 名解析到真类型。
 // 本头不激活任何 compat 宏——它就是给 real-Qt-first 的 TU 用的。与 PkXmlCompat.h 的
 // umbrella 同款（QtCore/QtGui/QtWidgets/QtXml/QtSvg），real-Qt-first TU 需要的真 Qt
@@ -63,6 +74,7 @@
 #include <pk/container/PkStringHash.h>
 #include <pk/xml/PkXmlElement.h>
 #include <pk/xml/PkXmlDocument.h>
+#include <pk/pointer/PkSharedPointer.h>
 #include <pk/variant/PkAuxTypes.h>
 #include <pk/variant/PkVariant.h>
 #include <pk/image/PkImage.h>
@@ -373,6 +385,35 @@ inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkByteArray &b)
     dbg << toQByteArray(b);
     return dbg;
 }
+
+// 真 Qt 调试流 << PkTransform：TestSvgParser.cpp 等测试里 `qDebug() << ppVar(p.transform())`
+// （p.transform() 返回 PkTransform）落到真 Qt 调试流时命中。直接复用 toQTransform 转成
+// 真 Qt 变换再流进 QDebug（QTransform 自带调试输出），打印语义与真 Qt 完全一致。
+inline PK_QDEBUG_ operator<<(PK_QDEBUG_ dbg, const PkTransform &t)
+{
+    dbg << toQTransform(t);
+    return dbg;
+}
+
+// PkSharedPointer ↔ QSharedPointer（保活 deleter 模式，与 KoShapeBackgroundCommand.cpp
+// 内匿名 namespace 的同名助手同款）：真 Qt 的 QSharedPointer 无 std::shared_ptr 互操作
+// 构造，两边各自持有独立控制块，转换方把原指针的副本捕获进 deleter，借副本维持所有权；
+// 对象只被原控制块删除一次，不会双删。测试 TU 传 QSharedPointer 给收 PkSharedPointer
+// 的 stripped 命令类（KoShapeBackgroundCommand 等）时用。flake 剥完（共享指针归 Pk）
+// 后本转换连同调用点一起删。
+template <typename T>
+inline PkSharedPointer<T> toPkSharedPointer(const PK_QSHAREDPOINTER_<T> &p)
+{
+    PK_QSHAREDPOINTER_<T> keep = p;
+    return PkSharedPointer<T>(p.data(), [keep](T *) { (void)keep; });
+}
+
+template <typename T>
+inline PK_QSHAREDPOINTER_<T> toQSharedPointer(const PkSharedPointer<T> &p)
+{
+    PkSharedPointer<T> keep = p;
+    return PK_QSHAREDPOINTER_<T>(p.data(), [keep](T *) { (void)keep; });
+}
 // PkDeviceStream —— 过渡期适配器：把真 真 Qt 设备* 包成 PkStream*，供剥离侧收 PkStream*
 // 的 API（KoXmlWriter 等）消费真 Qt 设备。只服务过渡构建（build-ci）；flake 剥完、
 // 调用点改用 Pk 设备后与调用点一起删除。
@@ -498,6 +539,7 @@ private:
 // 只服务真 Qt 分支——壳内无对应类型，且剥离源文件不使用它们。
 #include <PkXmlCompat.h>
 #include <pk/color/PkColor.h>
+#include <pk/pointer/PkSharedPointer.h>
 
 inline PkString toPkString(const PkString &s) { return s; }
 inline PK_QSTRING_ toQString(const PkString &s) { return s; }
@@ -533,4 +575,13 @@ inline PkList<T> toPkList(const PkList<T> &l) { return l; }
 
 template <typename T>
 inline PkList<T> toQList(const PkList<T> &l) { return l; }
+
+// 共享指针互转的 Qt-free 恒等版：真 Qt 分支的 toPkSharedPointer/toQSharedPointer 在
+// 保活 deleter（Pk↔Q 各持控制块）；Qt-free 下 QSharedPointer 已宏映射到 PkSharedPointer，
+// 恒等透传即可。KoShapeBackgroundCommand.cpp 等剥离源在薄壳编译时依赖本对。
+template <typename T>
+inline PkSharedPointer<T> toPkSharedPointer(const PkSharedPointer<T> &p) { return p; }
+
+template <typename T>
+inline PkSharedPointer<T> toQSharedPointer(const PkSharedPointer<T> &p) { return p; }
 #endif
