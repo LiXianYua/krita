@@ -7,7 +7,7 @@
 
 #include "kis_shortcut_configuration.h"
 
-#include <QStringList>
+#include <PkStringList.h>
 #include <QKeySequence>
 #include <KLocalizedString>
 
@@ -28,7 +28,7 @@ public:
     ShortcutType type;
     uint mode;
 
-    QList<Qt::Key> keys;
+    PkList<Qt::Key> keys;
     Qt::MouseButtons buttons;
     MouseWheelMovement wheel;
     GestureAction gesture;
@@ -76,25 +76,25 @@ KisShortcutConfiguration::~KisShortcutConfiguration()
     delete d;
 }
 
-QString KisShortcutConfiguration::serialize()
+PkString KisShortcutConfiguration::serialize()
 {
-    QString serialized("{");
+    PkString serialized("{");
 
-    serialized.append(QString::number(d->mode, 16));
+    serialized.append(PkString::number(d->mode, 16));
     serialized.append(';');
 #ifdef Q_OS_MACOS
     if (d->type == GestureType) {
-        serialized.append(QString::number(MacOSGestureType, 16));
+        serialized.append(PkString::number(MacOSGestureType, 16));
     } else {
-        serialized.append(QString::number(d->type, 16));
+        serialized.append(PkString::number(d->type, 16));
     }
 #else
-    serialized.append(QString::number(d->type, 16));
+    serialized.append(PkString::number(d->type, 16));
 #endif
     serialized.append(";[");
 
-    for (QList<Qt::Key>::iterator itr = d->keys.begin(); itr != d->keys.end(); ++itr) {
-        serialized.append(QString::number(*itr, 16));
+    for (PkList<Qt::Key>::iterator itr = d->keys.begin(); itr != d->keys.end(); ++itr) {
+        serialized.append(PkString::number(*itr, 16));
 
         if (itr + 1 != d->keys.end()) {
             serialized.append(',');
@@ -103,29 +103,29 @@ QString KisShortcutConfiguration::serialize()
 
     serialized.append("];");
 
-    serialized.append(QString::number(d->buttons, 16));
+    serialized.append(PkString::number(d->buttons, 16));
     serialized.append(';');
-    serialized.append(QString::number(d->wheel, 16));
+    serialized.append(PkString::number(d->wheel, 16));
     serialized.append(';');
-    serialized.append(QString::number(d->gesture, 16));
+    serialized.append(PkString::number(d->gesture, 16));
     serialized.append('}');
 
     return serialized;
 }
 
-bool KisShortcutConfiguration::unserialize(const QString &serialized)
+bool KisShortcutConfiguration::unserialize(const PkString &serialized)
 {
     if (!serialized.startsWith('{'))
         return false;
 
     //Parse the serialized data and apply it to the current shortcut
-    QString remainder = serialized;
+    PkString remainder = serialized;
 
     //Remove brackets
     remainder.remove('{').remove('}');
 
     //Split the remainder by ;
-    QStringList parts = remainder.split(';');
+    PkStringList parts = remainder.split(';');
 
     if (parts.size() < 6)
         return false; //Invalid input, abort
@@ -158,12 +158,12 @@ bool KisShortcutConfiguration::unserialize(const QString &serialized)
 #endif
 
     //Third entry is the list of keys
-    QString serializedKeys = parts.at(2);
+    PkString serializedKeys = parts.at(2);
     //Remove brackets
     serializedKeys.remove('[').remove(']');
     //Split by , and add each entry as a key
-    QStringList keylist = serializedKeys.split(',');
-    Q_FOREACH(QString key, keylist) {
+    PkStringList keylist = serializedKeys.split(',');
+    Q_FOREACH(PkString key, keylist) {
         if (!key.isEmpty()) {
             d->keys.append(static_cast<Qt::Key>(key.toUInt(nullptr, 16)));
         }
@@ -213,12 +213,12 @@ void KisShortcutConfiguration::setMode(uint newMode)
     }
 }
 
-QList< Qt::Key > KisShortcutConfiguration::keys() const
+PkList< Qt::Key > KisShortcutConfiguration::keys() const
 {
     return d->keys;
 }
 
-void KisShortcutConfiguration::setKeys(const QList< Qt::Key > &newKeys)
+void KisShortcutConfiguration::setKeys(const PkList< Qt::Key > &newKeys)
 {
     if (d->keys != newKeys) {
         d->keys = newKeys;
@@ -270,7 +270,7 @@ bool KisShortcutConfiguration::isNoOp() const
             && (d->gesture == NoGesture || d->gesture == MaxGesture));
 }
 
-QString KisShortcutConfiguration::getInputText() const
+PkString KisShortcutConfiguration::getInputText() const
 {
     switch (d->type) {
         case KeyCombinationType:
@@ -283,14 +283,14 @@ QString KisShortcutConfiguration::getInputText() const
         case MacOSGestureType:
             return gestureToText(d->gesture);
         default:
-            return QString();
+            return PkString();
     }
 }
 
-QString KisShortcutConfiguration::buttonsToText(Qt::MouseButtons buttons)
+PkString KisShortcutConfiguration::buttonsToText(Qt::MouseButtons buttons)
 {
-    QString text;
-    QString sep = i18nc("Separator in the list of mouse buttons for shortcut", " + ");
+    PkString text;
+    PkString sep = i18nc("Separator in the list of mouse buttons for shortcut", " + ");
 
     int buttonCount = 0;
 
@@ -361,9 +361,9 @@ BOOST_PP_REPEAT_FROM_TO(4, 25, EXTRA_BUTTON, _)
     return text;
 }
 
-QString KisShortcutConfiguration::keysToText(const QList<Qt::Key> &keys)
+PkString KisShortcutConfiguration::keysToText(const PkList<Qt::Key> &keys)
 {
-    QString output;
+    PkString output;
 
     Q_FOREACH (Qt::Key key, keys) {
 #if defined(Q_OS_MAC)
@@ -407,7 +407,7 @@ QString KisShortcutConfiguration::keysToText(const QList<Qt::Key> &keys)
     return output;
 }
 
-QString KisShortcutConfiguration::wheelToText(KisShortcutConfiguration::MouseWheelMovement wheel)
+PkString KisShortcutConfiguration::wheelToText(KisShortcutConfiguration::MouseWheelMovement wheel)
 {
     switch (wheel) {
     case KisShortcutConfiguration::WheelUp:
@@ -436,9 +436,9 @@ QString KisShortcutConfiguration::wheelToText(KisShortcutConfiguration::MouseWhe
     }
 }
 
-QString KisShortcutConfiguration::buttonsInputToText(const QList<Qt::Key> &keys, Qt::MouseButtons buttons)
+PkString KisShortcutConfiguration::buttonsInputToText(const PkList<Qt::Key> &keys, Qt::MouseButtons buttons)
 {
-    QString buttonsText = KisShortcutConfiguration::buttonsToText(buttons);
+    PkString buttonsText = KisShortcutConfiguration::buttonsToText(buttons);
 
     if (keys.size() > 0) {
         return i18nc(
@@ -452,9 +452,9 @@ QString KisShortcutConfiguration::buttonsInputToText(const QList<Qt::Key> &keys,
     }
 }
 
-QString KisShortcutConfiguration::wheelInputToText(const QList<Qt::Key> &keys, KisShortcutConfiguration::MouseWheelMovement wheel)
+PkString KisShortcutConfiguration::wheelInputToText(const PkList<Qt::Key> &keys, KisShortcutConfiguration::MouseWheelMovement wheel)
 {
-    QString wheelText = KisShortcutConfiguration::wheelToText(wheel);
+    PkString wheelText = KisShortcutConfiguration::wheelToText(wheel);
 
     if (keys.size() > 0) {
         return i18nc(
@@ -468,7 +468,7 @@ QString KisShortcutConfiguration::wheelInputToText(const QList<Qt::Key> &keys, K
     }
 }
 
-QString KisShortcutConfiguration::gestureToText(GestureAction action)
+PkString KisShortcutConfiguration::gestureToText(GestureAction action)
 {
     switch (action) {
 #ifdef Q_OS_MACOS

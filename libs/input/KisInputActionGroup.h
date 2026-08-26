@@ -8,7 +8,7 @@
 #define KISINPUTACTIONGROUP_H
 
 #include <QFlags>
-#include <QSharedPointer>
+#include <PkSharedPointer.h>
 
 #include "kritainput_export.h"
 
@@ -46,7 +46,7 @@ struct KRITAINPUT_EXPORT KisInputActionGroupsMaskInterface
      */
     virtual void setInputActionGroupsMask(KisInputActionGroupsMask mask) = 0;
 
-    using SharedInterface=QSharedPointer<KisInputActionGroupsMaskInterface>;
+    using SharedInterface=PkSharedPointer<KisInputActionGroupsMaskInterface>;
 };
 
 /**

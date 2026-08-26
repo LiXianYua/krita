@@ -10,13 +10,13 @@
 
 #include <kritainput_export.h>
 
-#include <QPointF>
+#include <PkPoint.h>
 
 namespace KisInputTransformPolicy
 {
 
 KRITAINPUT_EXPORT qreal continuousZoom(qreal startZoom,
-                                       const QPointF &dragDelta,
+                                       const PkPointF &dragDelta,
                                        bool horizontal,
                                        bool inverted);
 
@@ -35,8 +35,8 @@ struct KRITAINPUT_EXPORT PinchZoomResult
 };
 
 KRITAINPUT_EXPORT PinchZoomResult updatePinchZoom(PinchZoomState &state,
-                                                 const QPointF &firstPoint,
-                                                 const QPointF &secondPoint,
+                                                 const PkPointF &firstPoint,
+                                                 const PkPointF &secondPoint,
                                                  bool anyPointReleased,
                                                  qreal currentZoom);
 
@@ -67,8 +67,8 @@ KRITAINPUT_EXPORT qreal updateCombinedRotation(CombinedRotationState &state,
 KRITAINPUT_EXPORT CombinedGestureResult updateCombinedGesture(
     CombinedRotationState &state,
     CombinedRotationMode mode,
-    const QPointF &firstPoint,
-    const QPointF &secondPoint,
+    const PkPointF &firstPoint,
+    const PkPointF &secondPoint,
     qreal currentCanvasRotationDegrees);
 
 struct KRITAINPUT_EXPORT DiscreteCanvasRotationState
@@ -95,8 +95,8 @@ struct KRITAINPUT_EXPORT TouchRotationResult
 };
 
 KRITAINPUT_EXPORT TouchRotationResult updateTouchRotation(TouchRotationState &state,
-                                                          const QPointF &firstPoint,
-                                                          const QPointF &secondPoint,
+                                                          const PkPointF &firstPoint,
+                                                          const PkPointF &secondPoint,
                                                           bool anyPointReleased);
 
 } // namespace KisInputTransformPolicy

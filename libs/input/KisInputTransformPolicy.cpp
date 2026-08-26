@@ -7,7 +7,7 @@
 
 #include "KisInputTransformPolicy.h"
 
-#include <QLineF>
+#include <PkLine.h>
 
 #include <cmath>
 
@@ -20,7 +20,7 @@ constexpr int DiscreteZoomStep = 50;
 constexpr qreal DiscreteRotationStep = 15.0;
 }
 
-qreal continuousZoom(qreal startZoom, const QPointF &dragDelta, bool horizontal, bool inverted)
+qreal continuousZoom(qreal startZoom, const PkPointF &dragDelta, bool horizontal, bool inverted)
 {
     const qreal axisDelta = horizontal ? -dragDelta.x() : dragDelta.y();
     const qreal logarithmicDistance = std::pow(2.0, axisDelta / qreal(ContinuousZoomStep));
@@ -44,8 +44,8 @@ int consumeDiscreteZoomSteps(qreal axisDelta, qreal &accumulatedSteps)
 }
 
 PinchZoomResult updatePinchZoom(PinchZoomState &state,
-                                const QPointF &firstPoint,
-                                const QPointF &secondPoint,
+                                const PkPointF &firstPoint,
+                                const PkPointF &secondPoint,
                                 bool anyPointReleased,
                                 qreal currentZoom)
 {
@@ -65,7 +65,7 @@ PinchZoomResult updatePinchZoom(PinchZoomState &state,
         return {};
     }
 
-    const float distance = QLineF(firstPoint, secondPoint).length();
+    const float distance = PkLineF(firstPoint, secondPoint).length();
     const float delta = qFuzzyCompare(1.0f, 1.0f + state.lastDistance)
         ? 1.0f
         : distance / state.lastDistance;
@@ -130,18 +130,18 @@ qreal updateCombinedRotation(CombinedRotationState &state,
 
 CombinedGestureResult updateCombinedGesture(CombinedRotationState &state,
                                             CombinedRotationMode mode,
-                                            const QPointF &firstPoint,
-                                            const QPointF &secondPoint,
+                                            const PkPointF &firstPoint,
+                                            const PkPointF &secondPoint,
                                             qreal currentCanvasRotationDegrees)
 {
-    const QPointF slope = secondPoint - firstPoint;
+    const PkPointF slope = secondPoint - firstPoint;
     const qreal currentAngle = std::atan2(slope.y(), slope.x());
     const qreal rotationDelta = updateCombinedRotation(state,
                                                        mode,
                                                        currentAngle,
                                                        currentCanvasRotationDegrees);
 
-    const float distance = QLineF(firstPoint, secondPoint).length();
+    const float distance = PkLineF(firstPoint, secondPoint).length();
     const float scaleDelta = qFuzzyCompare(1.0f, 1.0f + state.lastDistance)
         ? 1.0f
         : distance / state.lastDistance;
@@ -169,15 +169,15 @@ qreal updateDiscreteCanvasRotation(DiscreteCanvasRotationState &state, qreal dra
 }
 
 TouchRotationResult updateTouchRotation(TouchRotationState &state,
-                                        const QPointF &firstPoint,
-                                        const QPointF &secondPoint,
+                                        const PkPointF &firstPoint,
+                                        const PkPointF &secondPoint,
                                         bool anyPointReleased)
 {
     if (anyPointReleased || (firstPoint - secondPoint).manhattanLength() < 10) {
         return {};
     }
 
-    const QPointF slope = secondPoint - firstPoint;
+    const PkPointF slope = secondPoint - firstPoint;
     const qreal newAngle = std::atan2(slope.y(), slope.x());
 
     if (!state.hasPreviousAngle) {

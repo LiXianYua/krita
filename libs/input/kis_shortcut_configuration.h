@@ -8,12 +8,12 @@
 #ifndef KISSHORTCUTCONFIGURATION_H
 #define KISSHORTCUTCONFIGURATION_H
 
-#include <QList>
+#include <PkList.h>
 #include <QMetaType>
 
 #include "kritainput_export.h"
 
-class QString;
+class PkString;
 class KisAbstractInputAction;
 
 /**
@@ -118,7 +118,7 @@ public:
      *
      * \return A serialized representation of this shortcut.
      */
-    QString serialize();
+    PkString serialize();
     /**
      * Apply the data from a serialized shortcut to this shortcut.
      *
@@ -130,7 +130,7 @@ public:
      *
      * \sa serialize()
      */
-    bool unserialize(const QString &serialized);
+    bool unserialize(const PkString &serialized);
 
     /**
      * \return The action this shortcut is associated with.
@@ -170,7 +170,7 @@ public:
      *
      * \note Not applicable when type is GestureType.
      */
-    QList<Qt::Key> keys() const;
+    PkList<Qt::Key> keys() const;
     /**
      * Set the list of keys that will trigger this shortcut.
      *
@@ -178,7 +178,7 @@ public:
      *
      * \note Not applicable when type is GestureType.
      */
-    void setKeys(const QList<Qt::Key> &newKeys);
+    void setKeys(const PkList<Qt::Key> &newKeys);
 
     /**
      * \return The mouse buttons that will trigger this shortcut.
@@ -234,7 +234,7 @@ public:
     /**
      * \return an input string for the shortcut type.
      */
-    QString getInputText() const;
+    PkString getInputText() const;
 
     /**
      * Convert a set of mouse buttons into a user-readable
@@ -252,7 +252,7 @@ public:
      *
      * \note An empty set will produce the string "None".
      */
-    static QString buttonsToText(Qt::MouseButtons buttons);
+    static PkString buttonsToText(Qt::MouseButtons buttons);
     /**
      * Convert a list of keys to a user-readable string.
      *
@@ -268,7 +268,7 @@ public:
      *
      * \note An empty list will produce the string "None".
      */
-    static QString keysToText(const QList<Qt::Key> &keys);
+    static PkString keysToText(const PkList<Qt::Key> &keys);
     /**
      * Convert the given mouse wheel movement to a string.
      *
@@ -283,7 +283,7 @@ public:
      *
      * \note NoMovement will produce the string "None".
      */
-    static QString wheelToText(MouseWheelMovement wheel);
+    static PkString wheelToText(MouseWheelMovement wheel);
     /**
      * Convert a shortcut build of a set of keys and a set of mouse
      * buttons into a user-readable string.
@@ -301,7 +301,7 @@ public:
      *
      * \note An empty set of buttons will appear as the string "None".
      */
-    static QString buttonsInputToText(const QList<Qt::Key> &keys, Qt::MouseButtons buttons);
+    static PkString buttonsInputToText(const PkList<Qt::Key> &keys, Qt::MouseButtons buttons);
     /**
      * Convert a shortcut build of a set of keys and a set of mouse
      * wheel buttons into a user-readable string.
@@ -320,9 +320,9 @@ public:
      * \note An empty set of wheel buttons will appear as
      * the string "None".
      */
-    static QString wheelInputToText(const QList<Qt::Key> &keys, MouseWheelMovement wheel);
+    static PkString wheelInputToText(const PkList<Qt::Key> &keys, MouseWheelMovement wheel);
 
-    static QString gestureToText(GestureAction action);
+    static PkString gestureToText(GestureAction action);
 
 private:
     class Private;

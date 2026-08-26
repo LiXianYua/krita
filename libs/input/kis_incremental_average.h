@@ -8,7 +8,7 @@
 #define __KIS_INCREMENTAL_AVERAGE_H
 
 #include <kis_debug.h>
-#include <QVector>
+#include <PkVector.h>
 
 
 class KisIncrementalAverage
@@ -48,7 +48,7 @@ private:
     int m_size;
     int m_index;
     int m_sum;
-    QVector<int> m_values;
+    PkVector<int> m_values;
 };
 
 #endif /* __KIS_INCREMENTAL_AVERAGE_H */
