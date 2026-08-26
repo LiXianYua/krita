@@ -5,18 +5,11 @@
  */
 #include "KisBrushServerProvider.h"
 
-#include <QDir>
-#include <QApplication>
-
-#include <QGlobalStatic>
 #include <KoResourcePaths.h>
 
 #include <KoResource.h>
 
 #include <kis_debug.h>
-
-Q_GLOBAL_STATIC(KisBrushServerProvider, s_instance)
-
 
 KisBrushServerProvider::KisBrushServerProvider()
 {
@@ -30,7 +23,8 @@ KisBrushServerProvider::~KisBrushServerProvider()
 
 KisBrushServerProvider* KisBrushServerProvider::instance()
 {
-    return s_instance;
+    static KisBrushServerProvider s_instance;
+    return &s_instance;
 }
 
 KoResourceServer<KisBrush>* KisBrushServerProvider::brushServer()

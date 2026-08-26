@@ -6,7 +6,6 @@
 
 #include "kis_predefined_brush_factory.h"
 
-#include <QApplication>
 #include <PkThread.h>
 #include <PkXmlDocument.h>
 #include "kis_gbr_brush.h"

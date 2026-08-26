@@ -7,7 +7,7 @@
 #ifndef KIS_BRUSH_REGISTRY_H_
 #define KIS_BRUSH_REGISTRY_H_
 
-#include <QObject>
+#include <PkObject.h>
 
 #include "kis_types.h"
 #include "KoGenericRegistry.h"
@@ -20,7 +20,7 @@
 
 class PkXmlElement;
 
-class BRUSH_EXPORT KisBrushRegistry : public QObject, public KoGenericRegistry<KisBrushFactory*>
+class BRUSH_EXPORT KisBrushRegistry : public PkObject, public KoGenericRegistry<KisBrushFactory*>
 {
 
     Q_OBJECT

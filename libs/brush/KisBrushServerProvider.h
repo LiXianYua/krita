@@ -7,6 +7,7 @@
 #define KIS_BRUSH_SERVER_PROVIDER_H
 
 
+#include <PkObject.h>
 #include <KoResourceServer.h>
 
 #include "kritabrush_export.h"
@@ -15,7 +16,7 @@
 /**
  *
  */
-class BRUSH_EXPORT KisBrushServerProvider : public QObject
+class BRUSH_EXPORT KisBrushServerProvider : public PkObject
 {
 
     Q_OBJECT

@@ -7,11 +7,6 @@
 
 #include <PkString.h>
 
-#include <QGlobalStatic>
-#include <klocalizedstring.h>
-
-#include <KoPluginLoader.h>
-
 #include <kis_debug.h>
 
 #include "KoResourceServer.h"
@@ -19,16 +14,19 @@
 #include "kis_text_brush_factory.h"
 #include "kis_predefined_brush_factory.h"
 
-Q_GLOBAL_STATIC(KisBrushRegistry, s_instance)
-
-
 KisBrushRegistry::KisBrushRegistry()
 {
+    add(new KisAutoBrushFactory());
+    add(new KisPredefinedBrushFactory("gbr_brush"));
+    add(new KisPredefinedBrushFactory("abr_brush"));
+    add(new KisTextBrushFactory());
+    add(new KisPredefinedBrushFactory("png_brush"));
+    add(new KisPredefinedBrushFactory("svg_brush"));
 }
 
 KisBrushRegistry::~KisBrushRegistry()
 {
-    Q_FOREACH (const PkString & id, keys()) {
+    for (const PkString &id : keys()) {
         delete get(id);
     }
     dbgRegistry << "deleting KisBrushRegistry";
@@ -36,15 +34,8 @@ KisBrushRegistry::~KisBrushRegistry()
 
 KisBrushRegistry* KisBrushRegistry::instance()
 {
-    if (!s_instance.exists()) {
-        s_instance->add(new KisAutoBrushFactory());
-        s_instance->add(new KisPredefinedBrushFactory("gbr_brush"));
-        s_instance->add(new KisPredefinedBrushFactory("abr_brush"));
-        s_instance->add(new KisTextBrushFactory());
-        s_instance->add(new KisPredefinedBrushFactory("png_brush"));
-        s_instance->add(new KisPredefinedBrushFactory("svg_brush"));
-    }
-    return s_instance;
+    static KisBrushRegistry s_instance;
+    return &s_instance;
 }
 
 

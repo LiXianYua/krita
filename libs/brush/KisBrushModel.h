@@ -10,8 +10,6 @@
 #include <QtGlobal>
 #include <PkSize.h>
 #include <KoResourceSignature.h>
-#include <lager/cursor.hpp>
-#include <lager/extra/qt.hpp>
 #include <boost/operators.hpp>
 #include <optional>
 
