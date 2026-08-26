@@ -5,42 +5,74 @@
  */
 
 #include "kis_txt2_utls.h"
-#include <QVariantHash>
-#include <QVariant>
-#include <QVariantList>
-#include <QDebug>
-#include <QRectF>
+#include <PkVariant.h>
+#include <PkStringList.h>
+#include <PkRect.h>
 
-QVariantHash uncompressColor(const QVariantHash object) {
-    QVariantHash newObject;
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+#include <algorithm>
+#include <map>
+
+// 哈希 value(key) 的 Pk 版：缺 key 返回 Invalid null PkVariant。
+static PkVariant pkHashValue(const PkVariantHash &h, const PkString &key) {
+    const auto it = h.find(key);
+    return it != h.end() ? it->second : PkVariant();
+}
+// 哈希 value(key, defaultValue) 的 Pk 版。
+static PkVariant pkHashValueDefault(const PkVariantHash &h, const PkString &key, const PkVariant &def) {
+    const auto it = h.find(key);
+    return it != h.end() ? it->second : def;
+}
+// 哈希 contains(key) 的 Pk 版。
+static bool pkHashContains(const PkVariantHash &h, const PkString &key) {
+    return h.find(key) != h.end();
+}
+// 旧 map 的 keys().contains(key) 的 Pk 版（std::map）。
+static bool pkMapContains(const std::map<PkString, PkString> &m, const PkString &key) {
+    return m.find(key) != m.end();
+}
+// 旧 map 的 value(key) 的 Pk 版：缺 key 返回空 PkString（对齐旧 map 的 value 默认值）。
+static PkString pkMapValue(const std::map<PkString, PkString> &m, const PkString &key) {
+    const auto it = m.find(key);
+    return it != m.end() ? it->second : PkString();
+}
+// 列表 value(index) 的 Pk 版：越界返回 Invalid null PkVariant。
+static PkVariant pkListValue(const PkVariantList &l, size_t index) {
+    return index < l.size() ? l[index] : PkVariant();
+}
+
+PkVariantHash uncompressColor(const PkVariantHash object) {
+    PkVariantHash newObject;
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
         if (key == "/0") {
-            QVariantHash color = val.toHash();
-            QVariantHash newColor;
-            Q_FOREACH(QString key, color.keys()) {
-                if (key == "/1") {
-                    newColor.insert("/Values", color.value(key));
-                } else if (key == "/0") {
-                    newColor.insert("/Type", color.value(key));
+            const PkVariantHash color = val.toHash();
+            PkVariantHash newColor;
+            for (const auto &cit : color) {
+                const PkString ckey = cit.first;
+                const PkVariant cval = cit.second;
+                if (ckey == "/1") {
+                    newColor[PkString("/Values")] = cval;
+                } else if (ckey == "/0") {
+                    newColor[PkString("/Type")] = cval;
                 } else {
-                    newColor.insert(key, color.value(key));
+                    newColor[ckey] = cval;
                 }
             }
-            newObject.insert("/Color", newColor);
+            newObject[PkString("/Color")] = newColor;
         } else if (key == "/99") {
-            newObject.insert("/StreamTag", val);
+            newObject[PkString("/StreamTag")] = val;
         } else {
-            newObject.insert(key, val);
+            newObject[key] = val;
         }
     }
     return newObject;
 }
 
-QVariantHash uncompressStyleSheetFeatures(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressStyleSheetFeatures(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    const QMap<QString, QString> keyList{
+    const std::map<PkString, PkString> keyList{
         {"/0", "/Font"},
         {"/1", "/FontSize"},
         {"/2", "/FauxBold"},
@@ -150,31 +182,33 @@ QVariantHash uncompressStyleSheetFeatures(const QVariantHash object) {
         {"/89", "/RefFontSize"},
 
         {"/90", "/FontSizeRefType"},
-        {"/92", "/MagicLineGap"},
+        // 原 map 里 /92 出现两次（"/MagicLineGap" 先、"/MagicWordGap" 后），map 重复 key
+        // 保留最后一个；std::map 保留第一个，所以这里只写胜出的 "/MagicWordGap"。
         {"/92", "/MagicWordGap"},
     };
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
         if (key == "/53") {
-            newObject.insert("/FillColor", uncompressColor(val.toHash()));
+            newObject[PkString("/FillColor")] = uncompressColor(val.toHash());
         } else if (key == "/54") {
-            newObject.insert("/StrokeColor", uncompressColor(val.toHash()));
+            newObject[PkString("/StrokeColor")] = uncompressColor(val.toHash());
         } else if (key == "/79") {
-            newObject.insert("/FillBackgroundColor", uncompressColor(val.toHash()));
-        } else if (keyList.keys().contains(key)) {
-            newObject.insert(keyList.value(key), val);
+            newObject[PkString("/FillBackgroundColor")] = uncompressColor(val.toHash());
+        } else if (pkMapContains(keyList, key)) {
+            newObject[pkMapValue(keyList, key)] = val;
         } else {
-            newObject.insert(key, val);
+            newObject[key] = val;
         }
     }
     return newObject;
 }
 
-QVariantHash uncompressParagraphSheetFeatures(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressParagraphSheetFeatures(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    const QMap<QString, QString> keyList{
+    const std::map<PkString, PkString> keyList{
         {"/0", "/Justification"},
         {"/1", "/FirstLineIndent"},
         {"/2", "/StartIndent"},
@@ -226,76 +260,79 @@ QVariantHash uncompressParagraphSheetFeatures(const QVariantHash object) {
         {"/40", "/KashidaWidth"}
     };
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
         if (key == "/32") {
-            newObject.insert("/DefaultStyle", uncompressStyleSheetFeatures(val.toHash()));
-        } else if (keyList.keys().contains(key)) {
-            newObject.insert(keyList.value(key), val);
+            newObject[PkString("/DefaultStyle")] = uncompressStyleSheetFeatures(val.toHash());
+        } else if (pkMapContains(keyList, key)) {
+            newObject[pkMapValue(keyList, key)] = val;
         } else {
-            newObject.insert(key, val);
+            newObject[key] = val;
         }
     }
     return newObject;
 }
 
-QVariantHash uncompressKeysStyleSheetSet(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressKeysStyleSheetSet(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    QVariantList resources = object.value("/0").toList();
-    QVariantList newResources;
+    const PkVariantList resources = pkHashValue(object, PkString("/0")).toList();
+    PkVariantList newResources;
+    const std::map<PkString, PkString> keyList {{"/0", "/Name"}, {"/5", "/Parent"}, {"/97", "/UUID"}};
 
-    Q_FOREACH(QVariant val, resources) {
-        QVariantHash resource = val.toHash().value("/0").toHash();
-        QVariantHash newResource;
-        Q_FOREACH(QString key, resource.keys()) {
-            QMap<QString, QString> keyList {{"/0", "/Name"}, {"/5", "/Parent"}, {"/97", "/UUID"}};
-            QVariant rdVal = resource.value(key);
+    for (const PkVariant &val : resources) {
+        const PkVariantHash resource = pkHashValue(val.toHash(), PkString("/0")).toHash();
+        PkVariantHash newResource;
+        for (const auto &rit : resource) {
+            const PkString key = rit.first;
+            const PkVariant rdVal = rit.second;
             if (key == "/6") {
-                newResource.insert("/Features", uncompressStyleSheetFeatures(rdVal.toHash()));
-            } else if (keyList.keys().contains(key)) {
-                newResource.insert(keyList.value(key), rdVal);
+                newResource[PkString("/Features")] = uncompressStyleSheetFeatures(rdVal.toHash());
+            } else if (pkMapContains(keyList, key)) {
+                newResource[pkMapValue(keyList, key)] = rdVal;
             } else {
-                newResource.insert(key, rdVal);
+                newResource[key] = rdVal;
             }
         }
 
-        newResources.append(QVariantHash({{"/Resource", newResource}}));
+        newResources.push_back(PkVariantHash({{PkString("/Resource"), newResource}}));
     }
-    newObject.insert("/Resources", newResources);
+    newObject[PkString("/Resources")] = newResources;
     return newObject;
 }
 
-QVariantHash uncompressKeysParagraphSheetSet(const QVariantHash object) {
-    QVariantHash newObject;
-    QVariantList resources = object.value("/0").toList();
-    QVariantList newResources;
+PkVariantHash uncompressKeysParagraphSheetSet(const PkVariantHash object) {
+    PkVariantHash newObject;
+    const PkVariantList resources = pkHashValue(object, PkString("/0")).toList();
+    PkVariantList newResources;
 
-    const QMap<QString, QString> keyList {{"/0", "/Name"}, {"/6", "/Parent"}, {"/97", "/UUID"}};
+    const std::map<PkString, PkString> keyList {{"/0", "/Name"}, {"/6", "/Parent"}, {"/97", "/UUID"}};
 
-    Q_FOREACH(QVariant val, resources) {
-        QVariantHash resource = val.toHash().value("/0").toHash();
-        QVariantHash newResource;
-        Q_FOREACH(QString key, resource.keys()) {
-            QVariant rdVal = resource.value(key);
+    for (const PkVariant &val : resources) {
+        const PkVariantHash resource = pkHashValue(val.toHash(), PkString("/0")).toHash();
+        PkVariantHash newResource;
+        for (const auto &rit : resource) {
+            const PkString key = rit.first;
+            const PkVariant rdVal = rit.second;
             if (key == "/5") {
-                newResource.insert("/Features", uncompressParagraphSheetFeatures(rdVal.toHash()));
-            } else if (keyList.keys().contains(key)) {
-                newResource.insert(keyList.value(key), rdVal);
+                newResource[PkString("/Features")] = uncompressParagraphSheetFeatures(rdVal.toHash());
+            } else if (pkMapContains(keyList, key)) {
+                newResource[pkMapValue(keyList, key)] = rdVal;
             } else {
-                newResource.insert(key, rdVal);
+                newResource[key] = rdVal;
             }
         }
 
-        newResources.append(QVariantHash({{"/Resource", newResource}}));
+        newResources.push_back(PkVariantHash({{PkString("/Resource"), newResource}}));
     }
-    newObject.insert("/Resources", newResources);
+    newObject[PkString("/Resources")] = newResources;
     return newObject;
 }
 
-QVariantHash uncompressTextFrameData(const QVariantHash object) {
-    QVariantHash newObject;
-    const QMap<QString, QString> keyList {
+PkVariantHash uncompressTextFrameData(const PkVariantHash object) {
+    PkVariantHash newObject;
+    const std::map<PkString, PkString> keyList {
         {"/0", "/Type"},
         {"/1", "/LineOrientation"},
         {"/2", "/FrameMatrix"},
@@ -314,7 +351,7 @@ QVariantHash uncompressTextFrameData(const QVariantHash object) {
         {"/13", "/_VerticalAlignment"},
     };
 
-    const QMap<QString, QString> pathDataList {
+    const std::map<PkString, PkString> pathDataList {
         {"/0", "/Flip"},
         {"/1", "/Effect"},
         {"/2", "/Alignment"},
@@ -322,188 +359,196 @@ QVariantHash uncompressTextFrameData(const QVariantHash object) {
         {"/18", "/_Spacing2"},
     };
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
         if (key == "/11") {
-            QVariantHash data = val.toHash();
-            QVariantHash newData;
-            Q_FOREACH(QString key2, data.keys()) {
-                if (pathDataList.keys().contains(key2)) {
-                    newData.insert(pathDataList.value(key2), data.value(key2));
+            const PkVariantHash data = val.toHash();
+            PkVariantHash newData;
+            for (const auto &dit : data) {
+                const PkString key2 = dit.first;
+                if (pkMapContains(pathDataList, key2)) {
+                    newData[pkMapValue(pathDataList, key2)] = dit.second;
                 } else {
-                    newData.insert(key2, data.value(key2));
+                    newData[key2] = dit.second;
                 }
             }
-            newObject.insert("/PathData", newData);
-        } else if (keyList.keys().contains(key)) {
-            newObject.insert(keyList.value(key), val);
+            newObject[PkString("/PathData")] = newData;
+        } else if (pkMapContains(keyList, key)) {
+            newObject[pkMapValue(keyList, key)] = val;
         } else {
-            newObject.insert(key, val);
+            newObject[key] = val;
         }
     }
     return newObject;
 }
 
-QVariantHash uncompressKeysTextFrameSet(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressKeysTextFrameSet(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    QVariantList resources = object.value("/0").toList();
-    QVariantList newResources;
-    const QMap<QString, QString> keyList {
+    const PkVariantList resources = pkHashValue(object, PkString("/0")).toList();
+    PkVariantList newResources;
+    const std::map<PkString, PkString> keyList {
         {"/0", "/_Position"},
         {"/1", "/Bezier"},
         //{"/2", "/Data"},
         {"/97", "/UUID"}
     };
 
-    Q_FOREACH(QVariant val, resources) {
-        QVariantHash resource = val.toHash().value("/0").toHash();
-        QVariantHash newResource;
-        Q_FOREACH(QString key2, resource.keys()) {
-            QVariant rdVal = resource.value(key2);
+    for (const PkVariant &val : resources) {
+        const PkVariantHash resource = pkHashValue(val.toHash(), PkString("/0")).toHash();
+        PkVariantHash newResource;
+        for (const auto &rit : resource) {
+            const PkString key2 = rit.first;
+            const PkVariant rdVal = rit.second;
             if (key2 == "/5") {
-                newResource.insert("/Features", uncompressStyleSheetFeatures(rdVal.toHash()));
+                newResource[PkString("/Features")] = uncompressStyleSheetFeatures(rdVal.toHash());
             } else if (key2 == "/1") {
-                QVariant pList = rdVal.toHash().value("/0");
+                const PkVariant pList = pkHashValue(rdVal.toHash(), PkString("/0"));
 
-                newResource.insert("/Bezier", QVariantHash({{"/Points", pList}}));
+                newResource[PkString("/Bezier")] = PkVariantHash({{PkString("/Points"), pList}});
             } else if (key2 == "/2") {
-                newResource.insert("/Data", uncompressTextFrameData(rdVal.toHash()));
-            } else if (keyList.keys().contains(key2)) {
-                newResource.insert(keyList.value(key2), rdVal);
+                newResource[PkString("/Data")] = uncompressTextFrameData(rdVal.toHash());
+            } else if (pkMapContains(keyList, key2)) {
+                newResource[pkMapValue(keyList, key2)] = rdVal;
             } else {
-                newResource.insert(key2, rdVal);
+                newResource[key2] = rdVal;
             }
         }
 
-        newResources.append(QVariantHash({{"/Resource", newResource}}));
+        newResources.push_back(PkVariantHash({{PkString("/Resource"), newResource}}));
     }
-    newObject.insert("/Resources", newResources);
+    newObject[PkString("/Resources")] = newResources;
     return newObject;
 }
 
-QVariantHash uncompressKeysKinsokuSet(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressKeysKinsokuSet(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    QVariantList resources = object.value("/0").toList();
-    QVariantList newResources;
+    const PkVariantList resources = pkHashValue(object, PkString("/0")).toList();
+    PkVariantList newResources;
 
-    const QMap<QString, QString> keyList {{"/0", "/Name"}, {"/5", "/Data"}};
-    const QMap<QString, QString> idKeyList {{"/0", "/NoStart"}, {"/1", "/NoEnd"}, {"/2", "/Keep"}, {"/3", "/Hanging"}, {"/4", "/PredefinedTag"}};
+    const std::map<PkString, PkString> keyList {{"/0", "/Name"}, {"/5", "/Data"}};
+    const std::map<PkString, PkString> idKeyList {{"/0", "/NoStart"}, {"/1", "/NoEnd"}, {"/2", "/Keep"}, {"/3", "/Hanging"}, {"/4", "/PredefinedTag"}};
 
 
-    Q_FOREACH(QVariant val, resources) {
-        QVariantHash resource = val.toHash().value("/0").toHash();
-        QVariantHash newResource;
-        Q_FOREACH(QString key, resource.keys()) {
+    for (const PkVariant &val : resources) {
+        const PkVariantHash resource = pkHashValue(val.toHash(), PkString("/0")).toHash();
+        PkVariantHash newResource;
+        for (const auto &rit : resource) {
+            const PkString key = rit.first;
+            const PkVariant rdVal = rit.second;
             if (key == "/5") {
-                QVariantHash id = resource.value(key).toHash();
-                QVariantHash newId;
-                Q_FOREACH(QString key2, id.keys()) {
-                    QVariant idVal = id.value(key2);
-                    if (idKeyList.keys().contains(key2)) {
-                        newId.insert(idKeyList.value(key2), idVal);
+                const PkVariantHash id = rdVal.toHash();
+                PkVariantHash newId;
+                for (const auto &iit : id) {
+                    const PkString key2 = iit.first;
+                    const PkVariant idVal = iit.second;
+                    if (pkMapContains(idKeyList, key2)) {
+                        newId[pkMapValue(idKeyList, key2)] = idVal;
                     } else {
-                        newId.insert(key2, idVal);
+                        newId[key2] = idVal;
                     }
                 }
-                newResource.insert("/Data", newId);
-            } else if (keyList.keys().contains(key)) {
-                newResource.insert(keyList.value(key), resource.value(key));
+                newResource[PkString("/Data")] = newId;
+            } else if (pkMapContains(keyList, key)) {
+                newResource[pkMapValue(keyList, key)] = rdVal;
             } else {
-                newResource.insert(key, resource.value(key));
+                newResource[key] = rdVal;
             }
         }
 
-        newResources.append(QVariantHash({{"/Resource", newResource}}));
+        newResources.push_back(PkVariantHash({{PkString("/Resource"), newResource}}));
     }
-    newObject.insert("/Resources", newResources);
+    newObject[PkString("/Resources")] = newResources;
     return newObject;
 }
 
-QVariantHash uncompressKeysMojiKumiTableSet(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressKeysMojiKumiTableSet(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
-        newObject.insert(key, val);
-    }
-    return newObject;
-}
-
-QVariantHash uncompressKeysMojiKumiCodeToClassSet(const QVariantHash object) {
-    QVariantHash newObject;
-
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
-        newObject.insert(key, val);
+    for (const auto &it : object) {
+        newObject[it.first] = it.second;
     }
     return newObject;
 }
 
-QVariantHash uncompressKeysFontSet(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressKeysMojiKumiCodeToClassSet(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    QVariantList resources = object.value("/0").toList();
-    QVariantList newResources;
+    for (const auto &it : object) {
+        newObject[it.first] = it.second;
+    }
+    return newObject;
+}
 
-    const QMap<QString, QString> keyList {{"/99", "/StreamTag"}, {"/97", "/UUID"}};
-    const QMap<QString, QString> idKeyList {{"/0", "/Name"}, {"/2", "/Type"}, {"/4", "/MMAxis"}, {"/5", "/VersionString"}};
+PkVariantHash uncompressKeysFontSet(const PkVariantHash object) {
+    PkVariantHash newObject;
+
+    const PkVariantList resources = pkHashValue(object, PkString("/0")).toList();
+    PkVariantList newResources;
+
+    const std::map<PkString, PkString> keyList {{"/99", "/StreamTag"}, {"/97", "/UUID"}};
+    const std::map<PkString, PkString> idKeyList {{"/0", "/Name"}, {"/2", "/Type"}, {"/4", "/MMAxis"}, {"/5", "/VersionString"}};
 
 
-    Q_FOREACH(QVariant val, resources) {
-        QVariantHash resource = val.toHash().value("/0").toHash();
-        QVariantHash newResource;
-        Q_FOREACH(QString key, resource.keys()) {
+    for (const PkVariant &val : resources) {
+        const PkVariantHash resource = pkHashValue(val.toHash(), PkString("/0")).toHash();
+        PkVariantHash newResource;
+        for (const auto &rit : resource) {
+            const PkString key = rit.first;
+            const PkVariant rdVal = rit.second;
             if (key == "/0") {
-                QVariantHash id = resource.value(key).toHash();
-                QVariantHash newId;
-                Q_FOREACH(QString key2, id.keys()) {
-                    QVariant idVal = id.value(key2);
-                    if (idKeyList.keys().contains(key2)) {
-                        newId.insert(idKeyList.value(key2), idVal);
+                const PkVariantHash id = rdVal.toHash();
+                PkVariantHash newId;
+                for (const auto &iit : id) {
+                    const PkString key2 = iit.first;
+                    const PkVariant idVal = iit.second;
+                    if (pkMapContains(idKeyList, key2)) {
+                        newId[pkMapValue(idKeyList, key2)] = idVal;
                     } else {
-                        newId.insert(key2, idVal);
+                        newId[key2] = idVal;
                     }
                 }
-                newResource.insert("/Identifier", newId);
-            } else if (keyList.keys().contains(key)) {
-                newResource.insert(keyList.value(key), resource.value(key));
+                newResource[PkString("/Identifier")] = newId;
+            } else if (pkMapContains(keyList, key)) {
+                newResource[pkMapValue(keyList, key)] = rdVal;
             } else {
-                newResource.insert(key, resource.value(key));
+                newResource[key] = rdVal;
             }
         }
 
-        newResources.append(QVariantHash({{"/Resource", newResource}}));
+        newResources.push_back(PkVariantHash({{PkString("/Resource"), newResource}}));
     }
-    newObject.insert("/Resources", newResources);
+    newObject[PkString("/Resources")] = newResources;
     return newObject;
 }
 
-QVariantHash uncompressKeysDocumentResources(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressKeysDocumentResources(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
 
          if (key == "/1") {
-             newObject.insert("/FontSet", uncompressKeysFontSet(val.toHash()));
+             newObject[PkString("/FontSet")] = uncompressKeysFontSet(val.toHash());
          } else if (key == "/2") {
-             newObject.insert("/MojiKumiCodeToClassSet", uncompressKeysMojiKumiCodeToClassSet(val.toHash()));
+             newObject[PkString("/MojiKumiCodeToClassSet")] = uncompressKeysMojiKumiCodeToClassSet(val.toHash());
          } else if (key == "/3") {
-             newObject.insert("/MojiKumiTableSet", uncompressKeysMojiKumiTableSet(val.toHash()));
+             newObject[PkString("/MojiKumiTableSet")] = uncompressKeysMojiKumiTableSet(val.toHash());
          } else if (key == "/4") {
-             newObject.insert("/KinsokuSet", uncompressKeysKinsokuSet(val.toHash()));
+             newObject[PkString("/KinsokuSet")] = uncompressKeysKinsokuSet(val.toHash());
          } else if (key == "/5") {
-             newObject.insert("/StyleSheetSet", uncompressKeysStyleSheetSet(val.toHash()));
+             newObject[PkString("/StyleSheetSet")] = uncompressKeysStyleSheetSet(val.toHash());
          } else if (key == "/6") {
-             newObject.insert("/ParagraphSheetSet", uncompressKeysParagraphSheetSet(val.toHash()));
+             newObject[PkString("/ParagraphSheetSet")] = uncompressKeysParagraphSheetSet(val.toHash());
          } else if (key == "/8") {
-             newObject.insert("/TextFrameSet", uncompressKeysTextFrameSet(val.toHash()));
+             newObject[PkString("/TextFrameSet")] = uncompressKeysTextFrameSet(val.toHash());
          } else if (key == "/9") {
-             newObject.insert("/ListStyleSet", val);
+             newObject[PkString("/ListStyleSet")] = val;
          } else {
-             newObject.insert(key, val);
+             newObject[key] = val;
          }
     }
     return newObject;
@@ -511,266 +556,279 @@ QVariantHash uncompressKeysDocumentResources(const QVariantHash object) {
 
 /*------- Document Objects ----------*/
 
-QVariantHash uncompressKeysTextModel(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressKeysTextModel(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    const QMap<QString, QString> runStyleKeyList {{"/0", "/Name"}, {"/5", "/Parent"}, {"/97", "/UUID"}};
+    const std::map<PkString, PkString> runStyleKeyList {{"/0", "/Name"}, {"/5", "/Parent"}, {"/97", "/UUID"}};
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
 
          if (key == "/0") {
-             newObject.insert("/Text", val);
+             newObject[PkString("/Text")] = val;
          } else if (key == "/5") {
-             QVariantList array = val.toHash().value("/0").toList();
-             QVariantList newArray;
+             const PkVariantList array = pkHashValue(val.toHash(), PkString("/0")).toList();
+             PkVariantList newArray;
 
-             Q_FOREACH(QVariant run, array) {
-                 QVariantHash runDataSheet = run.toHash().value("/0").toHash().value("/0").toHash();
-                 QVariantHash newDataSheet;
+             for (const PkVariant &run : array) {
+                 const PkVariantHash runDataSheet = pkHashValue(pkHashValue(run.toHash(), PkString("/0")).toHash(), PkString("/0")).toHash();
+                 PkVariantHash newDataSheet;
 
-                 Q_FOREACH(QString key2, runDataSheet.keys()) {
-                     QVariant rdVal = runDataSheet.value(key2);
+                 for (const auto &rit : runDataSheet) {
+                     const PkString key2 = rit.first;
+                     const PkVariant rdVal = rit.second;
                      if (key2 == "/5") {
-                         newDataSheet.insert("/Features", uncompressParagraphSheetFeatures(rdVal.toHash()));
+                         newDataSheet[PkString("/Features")] = uncompressParagraphSheetFeatures(rdVal.toHash());
                      } else if (key2 == "/6") {
-                         newDataSheet.insert("/Parent", rdVal);
-                     } else if (runStyleKeyList.keys().contains(key)) {
-                         newDataSheet.insert(runStyleKeyList.value(key2), rdVal);
+                         newDataSheet[PkString("/Parent")] = rdVal;
+                     } else if (pkMapContains(runStyleKeyList, key)) {
+                         // 原代码的 bug：contains 用外层 key（"/5"），value 用内层 key2。
+                         newDataSheet[pkMapValue(runStyleKeyList, key2)] = rdVal;
                      } else {
-                         newDataSheet.insert(key2, rdVal);
+                         newDataSheet[key2] = rdVal;
                      }
                  }
 
-                 QVariantHash newSheet =  {{"/ParagraphSheet", newDataSheet}};
-                 QVariantHash newRunData = {{"/RunData", newSheet}};
-                 newRunData.insert("/Length", run.toHash().value("/1"));
-                 newArray.append(newRunData);
+                 const PkVariantHash newSheet = {{PkString("/ParagraphSheet"), newDataSheet}};
+                 PkVariantHash newRunData = {{PkString("/RunData"), newSheet}};
+                 newRunData[PkString("/Length")] = pkHashValue(run.toHash(), PkString("/1"));
+                 newArray.push_back(newRunData);
              }
-             QVariantHash arrayParent = {{"/RunArray", newArray}};
-             newObject.insert("/ParagraphRun", arrayParent);
+             const PkVariantHash arrayParent = {{PkString("/RunArray"), newArray}};
+             newObject[PkString("/ParagraphRun")] = arrayParent;
          } else if (key == "/6") {
-             QVariantList array = val.toHash().value("/0").toList();
-             QVariantList newArray;
+             const PkVariantList array = pkHashValue(val.toHash(), PkString("/0")).toList();
+             PkVariantList newArray;
 
-             Q_FOREACH(QVariant run, array) {
-                 QVariantHash runDataSheet = run.toHash().value("/0").toHash().value("/0").toHash();
-                 QVariantHash newDataSheet;
+             for (const PkVariant &run : array) {
+                 const PkVariantHash runDataSheet = pkHashValue(pkHashValue(run.toHash(), PkString("/0")).toHash(), PkString("/0")).toHash();
+                 PkVariantHash newDataSheet;
 
-                 Q_FOREACH(QString key2, runDataSheet.keys()) {
-                     QVariant rdVal = runDataSheet.value(key2);
+                 for (const auto &rit : runDataSheet) {
+                     const PkString key2 = rit.first;
+                     const PkVariant rdVal = rit.second;
                      if (key2 == "/6") {
-                         newDataSheet.insert("/Features", uncompressStyleSheetFeatures(rdVal.toHash()));
+                         newDataSheet[PkString("/Features")] = uncompressStyleSheetFeatures(rdVal.toHash());
                      } else if (key2 == "/5") {
-                         newDataSheet.insert("/Parent", rdVal);
-                     } else if (runStyleKeyList.keys().contains(key)) {
-                         newDataSheet.insert(runStyleKeyList.value(key2), rdVal);
+                         newDataSheet[PkString("/Parent")] = rdVal;
+                     } else if (pkMapContains(runStyleKeyList, key)) {
+                         // 原代码的 bug：contains 用外层 key（"/6"，不在 runStyleKeyList），
+                         // 所以这里实际走不到，与 else 分支行为一致。
+                         newDataSheet[pkMapValue(runStyleKeyList, key2)] = rdVal;
                      } else {
-                         newDataSheet.insert(key2, rdVal);
+                         newDataSheet[key2] = rdVal;
                      }
                  }
 
-                 QVariantHash newSheet =  {{"/StyleSheet", newDataSheet}};
-                 QVariantHash newRunData = {{"/RunData", newSheet}};
-                 newRunData.insert("/Length", run.toHash().value("/1"));
-                 newArray.append(newRunData);
+                 const PkVariantHash newSheet = {{PkString("/StyleSheet"), newDataSheet}};
+                 PkVariantHash newRunData = {{PkString("/RunData"), newSheet}};
+                 newRunData[PkString("/Length")] = pkHashValue(run.toHash(), PkString("/1"));
+                 newArray.push_back(newRunData);
              }
-             QVariantHash arrayParent = {{"/RunArray", newArray}};
-             newObject.insert("/StyleRun", arrayParent);
+             const PkVariantHash arrayParent = {{PkString("/RunArray"), newArray}};
+             newObject[PkString("/StyleRun")] = arrayParent;
          } else if (key == "/10") {
-             newObject.insert("/StorySheet", val);
+             newObject[PkString("/StorySheet")] = val;
          } else {
-             newObject.insert(key, val);
+             newObject[key] = val;
          }
     }
     return newObject;
 }
 
-QVariantHash uncompressGlyphStrikeDef(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressGlyphStrikeDef(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
            // bounds,
          if (key == "/99") {
-             newObject.insert("/StreamTag", val);
+             newObject[PkString("/StreamTag")] = val;
          } else if (key == "/1") {
-             newObject.insert("/Bounds", val);
+             newObject[PkString("/Bounds")] = val;
          } else if (key == "/5") {
-             newObject.insert("/Glyphs", val);
+             newObject[PkString("/Glyphs")] = val;
          } else if (key == "/10") {
-             newObject.insert("/GlyphAdjustments", val);
+             newObject[PkString("/GlyphAdjustments")] = val;
          } else if (key == "/8") {
-             newObject.insert("/VisualBounds", val);
+             newObject[PkString("/VisualBounds")] = val;
          } else if (key == "/9") {
-             newObject.insert("/RenderedBounds", val);
+             newObject[PkString("/RenderedBounds")] = val;
          } else if (key == "/15") {
-             newObject.insert("/Invalidation", val);
+             newObject[PkString("/Invalidation")] = val;
          } else if (key == "/14") {
-             newObject.insert("/EndsInCR", val);
+             newObject[PkString("/EndsInCR")] = val;
          } else if (key == "/12") {
-             newObject.insert("/SelectionAscent", val);
+             newObject[PkString("/SelectionAscent")] = val;
          } else if (key == "/13") {
-             newObject.insert("/SelectionDescent", val);
+             newObject[PkString("/SelectionDescent")] = val;
          } else {
-             newObject.insert(key, val);
+             newObject[key] = val;
          }
     }
     return newObject;
 }
 
-QVariantHash uncompressSegmentDef(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressSegmentDef(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
 
          if (key == "/99") {
-             newObject.insert("/StreamTag", val);
+             newObject[PkString("/StreamTag")] = val;
          } else if (key == "/1") {
-             newObject.insert("/Bounds", val);
+             newObject[PkString("/Bounds")] = val;
          } else if (key == "/5") {
-             newObject.insert("/ChildProcession", val);
+             newObject[PkString("/ChildProcession")] = val;
          } else if (key == "/6") {
-             QVariantList array = val.toList();
-             QVariantList newArray;
-             Q_FOREACH(QVariant entry, array) {
-                 newArray.append(uncompressGlyphStrikeDef(entry.toHash()));
+             const PkVariantList array = val.toList();
+             PkVariantList newArray;
+             for (const PkVariant &entry : array) {
+                 newArray.push_back(uncompressGlyphStrikeDef(entry.toHash()));
              }
-             newObject.insert("/Children", newArray);
+             newObject[PkString("/Children")] = newArray;
          } else if (key == "/15") {
-             newObject.insert("/Mapping", val);
+             newObject[PkString("/Mapping")] = val;
          }  else if (key == "/20") {
-             newObject.insert("/FirstCharacterIndexInSegment", val);
+             newObject[PkString("/FirstCharacterIndexInSegment")] = val;
          } else {
-             newObject.insert(key, val);
+             newObject[key] = val;
          }
     }
     return newObject;
 }
 
-QVariantHash uncompressLineDef(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressLineDef(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
 
          if (key == "/99") {
-             newObject.insert("/StreamTag", val);
+             newObject[PkString("/StreamTag")] = val;
          } else if (key == "/0") {
-             newObject.insert("/Transform", val);
+             newObject[PkString("/Transform")] = val;
          } else if (key == "/1") {
-             newObject.insert("/Bounds", val);
+             newObject[PkString("/Bounds")] = val;
          } else if (key == "/5") {
-             newObject.insert("/ChildProcession", val);
+             newObject[PkString("/ChildProcession")] = val;
          } else if (key == "/6") {
-             QVariantList array = val.toList();
-             QVariantList newArray;
-             Q_FOREACH(QVariant entry, array) {
-                    newArray.append(uncompressSegmentDef(entry.toHash()));
+             const PkVariantList array = val.toList();
+             PkVariantList newArray;
+             for (const PkVariant &entry : array) {
+                    newArray.push_back(uncompressSegmentDef(entry.toHash()));
              }
-             newObject.insert("/Children", newArray);
+             newObject[PkString("/Children")] = newArray;
          } else if (key == "/10") {
-             newObject.insert("/Baseline", val);
+             newObject[PkString("/Baseline")] = val;
          } else if (key == "/14") {
-             newObject.insert("/SelectionAscent", val);
+             newObject[PkString("/SelectionAscent")] = val;
          } else if (key == "/15") {
-             newObject.insert("/SelectionDescent", val);
+             newObject[PkString("/SelectionDescent")] = val;
          } else {
-             newObject.insert(key, val);
+             newObject[key] = val;
          }
     }
     return newObject;
 }
 
-QVariantHash uncompressStrikeDef(const QVariantHash object, bool flip = false) {
-    QVariantHash newObject;
-    QString tag = object.contains("/99")? object.value("/99").toString()
-                                        : object.value("/StreamTag").toString();
+PkVariantHash uncompressStrikeDef(const PkVariantHash object, bool flip = false) {
+    PkVariantHash newObject;
+    const PkString tag = pkHashContains(object, PkString("/99"))? pkHashValue(object, PkString("/99")).toString()
+                                        : pkHashValue(object, PkString("/StreamTag")).toString();
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
 
          if (key == "/99") {
-             newObject.insert("/StreamTag", val);
+             newObject[PkString("/StreamTag")] = val;
          } else if ((key == "/0" && !flip) || (key == "/1" && flip)) {
-             newObject.insert("/Bounds", val);
+             newObject[PkString("/Bounds")] = val;
          } else if ((key == "/1" && !flip) || (key == "/0" && flip)) {
-             newObject.insert("/Transform", val);
+             newObject[PkString("/Transform")] = val;
          } else if (key == "/5") {
-             newObject.insert("/ChildProcession", val);
+             newObject[PkString("/ChildProcession")] = val;
          } else if (key == "/6") {
-             QVariantList array = val.toList();
-             QVariantList newArray;
-             Q_FOREACH(QVariant entry, array) {
-                 QString streamTag = entry.toHash().keys().contains("/99")? entry.toHash().value("/99").toString()
-                                                                          : entry.toHash().value("/StreamTag").toString();
+             const PkVariantList array = val.toList();
+             PkVariantList newArray;
+             for (const PkVariant &entry : array) {
+                 const PkVariantHash eh = entry.toHash();
+                 const PkString streamTag = pkHashContains(eh, PkString("/99"))? pkHashValue(eh, PkString("/99")).toString()
+                                                                          : pkHashValue(eh, PkString("/StreamTag")).toString();
                  if (streamTag == "/PC" || streamTag == "/PathSelectGroupCharacter"
                          || streamTag == "/F" || streamTag == "/FrameStrike" || streamTag == "/RowColStrike" || streamTag == "/R") {
-                    newArray.append(uncompressStrikeDef(entry.toHash(), true));
+                    newArray.push_back(uncompressStrikeDef(eh, true));
                  } else if (streamTag == "/L" || streamTag == "/LineStrike") {
-                     newArray.append(uncompressLineDef(entry.toHash()));
+                     newArray.push_back(uncompressLineDef(eh));
                  }
              }
-             newObject.insert("/Children", newArray);
+             newObject[PkString("/Children")] = newArray;
          } else if (key == "/10" && (tag == "/F" || tag == "/FrameStrike")) { // only for frame strike.
-             newObject.insert("/Frame", val);
+             newObject[PkString("/Frame")] = val;
          } else {
-             newObject.insert(key, val);
+             newObject[key] = val;
          }
     }
     return newObject;
 }
 
-QVariantHash uncompressKeysTextView(const QVariantHash object) {
-    QVariantHash newObject;
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+PkVariantHash uncompressKeysTextView(const PkVariantHash object) {
+    PkVariantHash newObject;
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
 
          if (key == "/0") {
-             QVariantList array = val.toList();
-             QVariantList newArray;
-             Q_FOREACH(QVariant entry, array) {
-                 QVariant resource = entry.toHash().value("/0");
+             const PkVariantList array = val.toList();
+             PkVariantList newArray;
+             for (const PkVariant &entry : array) {
+                 const PkVariant resource = pkHashValue(entry.toHash(), PkString("/0"));
 
-                newArray.append(QVariantHash({{"/Resource", resource}}));
+                newArray.push_back(PkVariantHash({{PkString("/Resource"), resource}}));
              }
 
-             newObject.insert("/Frames", newArray);
+             newObject[PkString("/Frames")] = newArray;
          } else if (key == "/2") {
-             QVariantList array = val.toList();
-             QVariantList newArray;
-             Q_FOREACH(QVariant entry, array) {
-                 newArray.append(uncompressStrikeDef(entry.toHash()));
+             const PkVariantList array = val.toList();
+             PkVariantList newArray;
+             for (const PkVariant &entry : array) {
+                 newArray.push_back(uncompressStrikeDef(entry.toHash()));
              }
-             newObject.insert("/Strikes", newArray);
+             newObject[PkString("/Strikes")] = newArray;
          } else {
-             newObject.insert(key, val);
+             newObject[key] = val;
          }
     }
     return newObject;
 }
 
-QVariantHash uncompressKeysTextObject(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressKeysTextObject(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
 
          if (key == "/0") {
-             newObject.insert("/Model", uncompressKeysTextModel(val.toHash()));
+             newObject[PkString("/Model")] = uncompressKeysTextModel(val.toHash());
          } else if (key == "/1") {
-             newObject.insert("/View", uncompressKeysTextView(val.toHash()));
+             newObject[PkString("/View")] = uncompressKeysTextView(val.toHash());
          } else {
-             newObject.insert(key, val);
+             newObject[key] = val;
          }
     }
     return newObject;
 }
 
-QVariantHash uncompressSmartQuoteSettings(const QVariantHash object) {
-    QVariantHash newObject;
-    const QMap<QString, QString> keyList {
+PkVariantHash uncompressSmartQuoteSettings(const PkVariantHash object) {
+    PkVariantHash newObject;
+    const std::map<PkString, PkString> keyList {
         {"/0", "/Language"},
         {"/1", "/OpenDoubleQuote"},
         {"/2", "/CloseDoubleQuote"},
@@ -779,41 +837,44 @@ QVariantHash uncompressSmartQuoteSettings(const QVariantHash object) {
 
     };
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
-        if (keyList.keys().contains(key)) {
-            newObject.insert(keyList.value(key), val);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
+        if (pkMapContains(keyList, key)) {
+            newObject[pkMapValue(keyList, key)] = val;
         } else {
-            newObject.insert(key, val);
+            newObject[key] = val;
         }
     }
     return newObject;
 }
 
-QVariantHash uncompressHiddenGlyphSettings(const QVariantHash object) {
-    QVariantHash newObject;
+PkVariantHash uncompressHiddenGlyphSettings(const PkVariantHash object) {
+    PkVariantHash newObject;
 
-    if (object.keys().contains("/0")) {
-        newObject.insert("/AlternateGlyphFont", object.value("/0"));
+    if (pkHashContains(object, PkString("/0"))) {
+        newObject[PkString("/AlternateGlyphFont")] = pkHashValue(object, PkString("/0"));
     }
-    if (object.keys().contains("/1")) {
-        QVariantList array = object.value("/1").toList();
-        QVariantList newArray;
-        Q_FOREACH(QVariant entry, array) {
-            QVariantHash newEntry;
-            newObject.insert("/WhitespaceCharacter", newEntry.value("/0"));
-            newObject.insert("/AlternateCharacter", newEntry.value("/1"));
-            newArray.append(newObject);
+    if (pkHashContains(object, PkString("/1"))) {
+        const PkVariantList array = pkHashValue(object, PkString("/1")).toList();
+        PkVariantList newArray;
+        for (const PkVariant &entry : array) {
+            // 原代码的 bug：newEntry 恒为空，/WhitespaceCharacter 与 /AlternateCharacter
+            // 读到的都是 Invalid null；且 append 的是整个 newObject 而不是 newEntry。
+            PkVariantHash newEntry;
+            newObject[PkString("/WhitespaceCharacter")] = pkHashValue(newEntry, PkString("/0"));
+            newObject[PkString("/AlternateCharacter")] = pkHashValue(newEntry, PkString("/1"));
+            newArray.push_back(newObject);
         }
-        newObject.insert("/WhitespaceCharacterMapping", newArray);
+        newObject[PkString("/WhitespaceCharacterMapping")] = newArray;
     }
 
     return newObject;
 }
 
-QVariantHash uncompressKeysDocumentSettings(const QVariantHash object) {
-    QVariantHash newObject;
-    const QMap<QString, QString> keyList {
+PkVariantHash uncompressKeysDocumentSettings(const PkVariantHash object) {
+    PkVariantHash newObject;
+    const std::map<PkString, PkString> keyList {
         //{"/0", "/HiddenGlyphFont"},
         {"/1", "/NormalStyleSheet"},
         {"/2", "/NormalParagraphSheet"},
@@ -837,64 +898,68 @@ QVariantHash uncompressKeysDocumentSettings(const QVariantHash object) {
         {"/17", "/DefaultStoryDir"},
     };
 
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
         if (key == "/0") {
-            newObject.insert("/HiddenGlyphFont", uncompressHiddenGlyphSettings(val.toHash()));
+            newObject[PkString("/HiddenGlyphFont")] = uncompressHiddenGlyphSettings(val.toHash());
         } else if (key == "/9") {
-            QVariantList array = val.toList();
-            QVariantList newArray;
-            Q_FOREACH(QVariant entry, array) {
-                newArray.append(uncompressSmartQuoteSettings(entry.toHash()));
+            const PkVariantList array = val.toList();
+            PkVariantList newArray;
+            for (const PkVariant &entry : array) {
+                newArray.push_back(uncompressSmartQuoteSettings(entry.toHash()));
             }
-            newObject.insert("/SmartQuoteSets", newArray);
-        } else if (keyList.keys().contains(key)) {
-            newObject.insert(keyList.value(key), val);
+            newObject[PkString("/SmartQuoteSets")] = newArray;
+        } else if (pkMapContains(keyList, key)) {
+            newObject[pkMapValue(keyList, key)] = val;
         } else {
-            newObject.insert(key, val);
+            newObject[key] = val;
         }
     }
 
     return newObject;
 }
 
-QVariantHash uncompressKeysDocumentObjects(const QVariantHash object) {
-    QVariantHash newObject;
-    Q_FOREACH(QString key, object.keys()) {
-        QVariant val = object.value(key);
+PkVariantHash uncompressKeysDocumentObjects(const PkVariantHash object) {
+    PkVariantHash newObject;
+    for (const auto &it : object) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
 
          if (key == "/0") {
-             newObject.insert("/DocumentSettings", uncompressKeysDocumentSettings(val.toHash()));
+             newObject[PkString("/DocumentSettings")] = uncompressKeysDocumentSettings(val.toHash());
          } else if (key == "/1") {
-             QVariantList array = val.toList();
-             QVariantList newArray;
-             Q_FOREACH(QVariant entry, array) {
-                 newArray.append(uncompressKeysTextObject(entry.toHash()));
+             const PkVariantList array = val.toList();
+             PkVariantList newArray;
+             for (const PkVariant &entry : array) {
+                 newArray.push_back(uncompressKeysTextObject(entry.toHash()));
              }
-             newObject.insert("/TextObjects", newArray);
+             newObject[PkString("/TextObjects")] = newArray;
          } else if (key == "/2") {
-             newObject.insert("/OriginalNormalStyleFeatures", uncompressStyleSheetFeatures(val.toHash()));
+             newObject[PkString("/OriginalNormalStyleFeatures")] = uncompressStyleSheetFeatures(val.toHash());
          } else if (key == "/3") {
-             newObject.insert("/OriginalNormalParagraphFeatures", uncompressParagraphSheetFeatures(val.toHash()));
+             newObject[PkString("/OriginalNormalParagraphFeatures")] = uncompressParagraphSheetFeatures(val.toHash());
          } else {
-             newObject.insert(key, val);
+             newObject[key] = val;
          }
     }
 
     return newObject;
 }
 
-QVariantHash KisTxt2Utils::uncompressKeys(QVariantHash doc)
+PkVariantHash KisTxt2Utils::uncompressKeys(PkVariantHash doc)
 {
 
-    QVariantHash newDoc;
-    Q_FOREACH(QString key, doc.keys()) {
+    PkVariantHash newDoc;
+    for (const auto &it : doc) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
         if (key == "/0") {
-            newDoc.insert("/DocumentResources", uncompressKeysDocumentResources(doc.value(key).toHash()));
+            newDoc[PkString("/DocumentResources")] = uncompressKeysDocumentResources(val.toHash());
         } else if (key == "/1") {
-            newDoc.insert("/DocumentObjects", uncompressKeysDocumentObjects(doc.value(key).toHash()));
+            newDoc[PkString("/DocumentObjects")] = uncompressKeysDocumentObjects(val.toHash());
         } else {
-            newDoc.insert(key, doc.value(key));
+            newDoc[key] = val;
         }
     }
     return newDoc;
@@ -902,21 +967,21 @@ QVariantHash KisTxt2Utils::uncompressKeys(QVariantHash doc)
 
 //-------------- Default Txt2 ----------------//
 
-static QVariantHash defaultFill {
+static PkVariantHash defaultFill {
     { "/StreamTag", "/SimplePaint"},
     {
-        "/Color", QVariantHash{{"/Type", 1}, {"/Values", QVariantList({1.0, 0.0, 0.0, 0.0})}}
+        "/Color", PkVariantHash{{"/Type", 1}, {"/Values", PkVariantList({1.0, 0.0, 0.0, 0.0})}}
     }
 };
 
-static QVariantHash defaultBGFill {
+static PkVariantHash defaultBGFill {
     { "/StreamTag", "/SimplePaint"},
     {
-        "/Color", QVariantHash{{"/Type", 1}, {"/Values", QVariantList({1.0, 1.0, 1.0, 0.0})}}
+        "/Color", PkVariantHash{{"/Type", 1}, {"/Values", PkVariantList({1.0, 1.0, 1.0, 0.0})}}
     }
 };
 
-static QVariantHash defaultStyle {
+static PkVariantHash defaultStyle {
     {"/Font", 1},
     {"/FontSize", 12.0},
     {"/FauxBold", false},
@@ -968,7 +1033,7 @@ static QVariantHash defaultStyle {
     {"/EnableWariChu", false},
     {"/WariChuLineCount", 2},
     {"/WariChuLineGap", 0},
-    {"/WariChuSubLineAmount", QVariantHash({{"/WariChuSubLineScale", 0.5}})},
+    {"/WariChuSubLineAmount", PkVariantHash({{"/WariChuSubLineScale", 0.5}})},
     {"/WariChuWidowAmount", 2},
 
     {"/WariChuOrphanAmount", 2},
@@ -983,7 +1048,7 @@ static QVariantHash defaultStyle {
     {"/FillColor", defaultFill},
     {"/StrokeColor", defaultFill},
 
-    {"/Blend",  QVariantHash({{"/StreamTag", "/SimpleBlender"}})},
+    {"/Blend",  PkVariantHash({{"/StreamTag", "/SimpleBlender"}})},
     {"/FillFlag", true},
     {"/StrokeFlag", false},
     {"/FillFirst", false},
@@ -996,8 +1061,8 @@ static QVariantHash defaultStyle {
     {"/MiterLimit", 4.0},
 
     {"/LineDashOffset", 0.0},
-    {"/LineDashArray", QVariantList()},
-    {"/Type", QVariantList()},
+    {"/LineDashArray", PkVariantList()},
+    {"/Type", PkVariantList()},
     {"/Kashidas", 0},
     {"/DirOverride", 0},
 
@@ -1020,11 +1085,11 @@ static QVariantHash defaultStyle {
     {"/SlashedZero", false},
 
     {"/StylisticSets", 0},
-    {"/CustomFeature", QVariantHash({{"/StreamTag", "/SimpleCustomFeature"}})},
+    {"/CustomFeature", PkVariantHash({{"/StreamTag", "/SimpleCustomFeature"}})},
     {"/MarkYDistFromBaseline", 100.0},
 };
 
-static QVariantHash defaultParagraph {
+static PkVariantHash defaultParagraph {
     {"/Justification", 0},
     {"/FirstLineIndent", 0.0},
     {"/StartIndent", 0.0},
@@ -1045,9 +1110,9 @@ static QVariantHash defaultParagraph {
 
     {"/HyphenateCapitalized", true},
     {"/HyphenationPreference", 0.5},
-    {"/WordSpacing", QVariantList({0.8, 1.0, 1.3})},
-    {"/LetterSpacing", QVariantList({0.0, 0.0, 0.0})},
-    {"/GlyphSpacing", QVariantList({1.0, 1.0, 1.0})},
+    {"/WordSpacing", PkVariantList({0.8, 1.0, 1.3})},
+    {"/LetterSpacing", PkVariantList({0.0, 0.0, 0.0})},
+    {"/GlyphSpacing", PkVariantList({1.0, 1.0, 1.0})},
 
     {"/SingleWordJustification", 6},
     {"/Hanging", false},
@@ -1061,9 +1126,9 @@ static QVariantHash defaultParagraph {
     {"/MojiKumiTable", "/nil"},
     {"/EveryLineComposer", false},
 
-    {"/TabStops", QVariantHash()},
+    {"/TabStops", PkVariantHash()},
     {"/DefaultTabWidth", 36.0},
-    {"/DefaultStyle", QVariantHash()},
+    {"/DefaultStyle", PkVariantHash()},
     {"/ParagraphDirection", 0},
     {"/JustificationMethod", 7},
 
@@ -1076,7 +1141,7 @@ static QVariantHash defaultParagraph {
     {"/KashidaWidth", 2}
 };
 
-static QVariantHash kinsokuNone {
+static PkVariantHash kinsokuNone {
     {"/NoStart", ""},
     {"/NoEnd", ""},
     {"/Keep", ""},
@@ -1084,7 +1149,7 @@ static QVariantHash kinsokuNone {
     {"/PredefinedTag", 0}
 };
 
-static QVariantHash kinsokuHard {
+static PkVariantHash kinsokuHard {
     {"/NoStart", "!),.:;?]}¢—’”‰℃℉、。々〉》」』】〕ぁぃぅぇぉっゃゅょゎ゛゜ゝゞァィゥェォッャュョヮヵヶ・ーヽヾ！％），．：；？］｝"},
     {"/NoEnd", "([{£§‘“〈《「『【〒〔＃＄（＠［｛￥"},
     {"/Keep", "—‥…"},
@@ -1092,7 +1157,7 @@ static QVariantHash kinsokuHard {
     {"/PredefinedTag", 1}
 };
 
-static QVariantHash kinsokuSoft {
+static PkVariantHash kinsokuSoft {
     {"/NoStart", "’”、。々〉》」』】〕ゝゞ・ヽヾ！），．：；？］｝"},
     {"/NoEnd", "‘“〈《「『【〔（［｛"},
     {"/Keep", "—‥…"},
@@ -1100,75 +1165,75 @@ static QVariantHash kinsokuSoft {
     {"/PredefinedTag", 2}
 };
 
-QVariantHash KisTxt2Utils::defaultTxt2()
+PkVariantHash KisTxt2Utils::defaultTxt2()
 {
-    QVariantHash doc;
+    PkVariantHash doc;
 
-    QVariantHash documentResources;
-    QVariantHash documentObjects;
+    PkVariantHash documentResources;
+    PkVariantHash documentObjects;
 
-    QVariantHash fontSet;
-    QVariantList fontResources;
+    PkVariantHash fontSet;
+    PkVariantList fontResources;
 
-    QVariantHash fontInvis {
+    PkVariantHash fontInvis {
         {"/Name", "AdobeInvisFont"},
         {"/Type", 0}
     };
 
-    QVariantHash fontMyriad {
+    PkVariantHash fontMyriad {
         {"/Name", "MyriadPro-Regular"},
         {"/Type", 0},
         {"/Version", "Version 2.115;PS 2.000;hotconv 1.0.81;makeotf.lib2.5.63406"}
     };
-    QVariantHash fR = {
-        {"/Resource", QVariantHash({{"/Identifier", fontMyriad}, {"/StreamTag", "/CoolTypeFont"}})}
+    PkVariantHash fR = {
+        {"/Resource", PkVariantHash({{"/Identifier", fontMyriad}, {"/StreamTag", "/CoolTypeFont"}})}
     };
-    fontResources.append(fR);
+    fontResources.push_back(fR);
     fR = {
-        {"/Resource", QVariantHash({{"/Identifier", fontInvis}, {"/StreamTag", "/CoolTypeFont"}})}
+        {"/Resource", PkVariantHash({{"/Identifier", fontInvis}, {"/StreamTag", "/CoolTypeFont"}})}
     };
-    fontResources.append(fR);
+    fontResources.push_back(fR);
 
-    fontSet.insert("/Resources", fontResources);
-    documentResources.insert("/FontSet", fontSet);
-    QVariantHash kinsokuSet;
-    QVariantList kinsokuResources;
-    QVariantList kinsokuDisplay;
-    QVariantHash kin =  QVariantHash ({{"/Resource", QVariantHash({ {"/Name", "None"}, {"/Data", kinsokuNone}})}});
-    kinsokuResources.append(kin);
-    kinsokuDisplay.append(QVariantHash({{"/Resource", 0}}));
-    kin =  QVariantHash ({{"/Resource", QVariantHash({ {"/Name", "PhotoshopKinsokuHard"}, {"/Data", kinsokuHard}})}});
-    kinsokuResources.append(kin);
-    kinsokuDisplay.append(QVariantHash({{"/Resource", 1}}));
-    kin =  QVariantHash ({{"/Resource", QVariantHash({ {"/Name", "PhotoshopKinsokuSoft"}, {"/Data", kinsokuSoft}})}});
-    kinsokuResources.append(kin);
-    kinsokuDisplay.append(QVariantHash({{"/Resource", 2}}));
-    kin =  QVariantHash ({{"/Resource", QVariantHash({ {"/Name", "Hard"}, {"/Data", kinsokuHard}})}});
-    kinsokuResources.append(kin);
-    kinsokuDisplay.append(QVariantHash({{"/Resource", 3}}));
-    kin =  QVariantHash ({{"/Resource", QVariantHash({ {"/Name", "Soft"}, {"/Data", kinsokuSoft}})}});
-    kinsokuResources.append(kin);
-    kinsokuDisplay.append(QVariantHash({{"/Resource", 4}}));
-    kinsokuSet.insert("/Resources", kinsokuResources);
-    kinsokuSet.insert("/DisplayList", kinsokuDisplay);
-    documentResources.insert("/KinsokuSet", kinsokuSet);
+    fontSet[PkString("/Resources")] = fontResources;
+    documentResources[PkString("/FontSet")] = fontSet;
+    PkVariantHash kinsokuSet;
+    PkVariantList kinsokuResources;
+    PkVariantList kinsokuDisplay;
+    PkVariantHash kin =  PkVariantHash ({{"/Resource", PkVariantHash({ {"/Name", "None"}, {"/Data", kinsokuNone}})}});
+    kinsokuResources.push_back(kin);
+    kinsokuDisplay.push_back(PkVariantHash({{"/Resource", 0}}));
+    kin =  PkVariantHash ({{"/Resource", PkVariantHash({ {"/Name", "PhotoshopKinsokuHard"}, {"/Data", kinsokuHard}})}});
+    kinsokuResources.push_back(kin);
+    kinsokuDisplay.push_back(PkVariantHash({{"/Resource", 1}}));
+    kin =  PkVariantHash ({{"/Resource", PkVariantHash({ {"/Name", "PhotoshopKinsokuSoft"}, {"/Data", kinsokuSoft}})}});
+    kinsokuResources.push_back(kin);
+    kinsokuDisplay.push_back(PkVariantHash({{"/Resource", 2}}));
+    kin =  PkVariantHash ({{"/Resource", PkVariantHash({ {"/Name", "Hard"}, {"/Data", kinsokuHard}})}});
+    kinsokuResources.push_back(kin);
+    kinsokuDisplay.push_back(PkVariantHash({{"/Resource", 3}}));
+    kin =  PkVariantHash ({{"/Resource", PkVariantHash({ {"/Name", "Soft"}, {"/Data", kinsokuSoft}})}});
+    kinsokuResources.push_back(kin);
+    kinsokuDisplay.push_back(PkVariantHash({{"/Resource", 4}}));
+    kinsokuSet[PkString("/Resources")] = kinsokuResources;
+    kinsokuSet[PkString("/DisplayList")] = kinsokuDisplay;
+    documentResources[PkString("/KinsokuSet")] = kinsokuSet;
 
-    //QVariantHash listStyleSet;
+    //PkVariantHash listStyleSet;
     //documentResources.insert("/ListStyleSet", listStyleSet);
-    QVariantHash mojiKumiCodeToClassSet = {
-        {"/Resources", QVariantList({
-             QVariantHash({
-                 {"/Resource", QVariantHash({
+    PkVariantHash mojiKumiCodeToClassSet = {
+        {"/Resources", PkVariantList({
+             PkVariantHash({
+                 {"/Resource", PkVariantHash({
                       {"/Name", ""}
-                  })
-                 }
+                  })}
              })
          })},
-        {"/DisplayList", QVariantList({QVariantHash({{"/Resource", 0}})})}
+        {"/DisplayList", PkVariantList({PkVariantHash({{"/Resource", 0}})})}
     };
-    documentResources.insert("/MojiKumiCodeToClassSet", mojiKumiCodeToClassSet);
+    documentResources[PkString("/MojiKumiCodeToClassSet")] = mojiKumiCodeToClassSet;
 
-    QHash<QString, int> mojilist {
+    // 旧哈希的迭代顺序本就不保证；Pk 侧用 std::map（按 key 排序）得到确定性顺序。
+    std::map<PkString, int> mojilist {
         {"Photoshop6MojiKumiSet4", 2},
         {"Photoshop6MojiKumiSet3", 4},
         {"Photoshop6MojiKumiSet2", 3},
@@ -1179,97 +1244,96 @@ QVariantHash KisTxt2Utils::defaultTxt2()
         {"YakumonoZenkaku", 2},
     };
 
-    QVariantHash mojiKumiTableSet;
+    PkVariantHash mojiKumiTableSet;
 
-    QVariantList mojiResources;
-    QVariantList mojiDisplay;
+    PkVariantList mojiResources;
+    PkVariantList mojiDisplay;
 
-    Q_FOREACH(const QString key, mojilist.keys()) {
-        mojiDisplay.append(QVariantHash({{"/Resource", mojiDisplay.size()}}));
-        QVariantHash mojikumiTable = {
+    for (const auto &mojiIt : mojilist) {
+        const PkString key = mojiIt.first;
+        mojiDisplay.push_back(PkVariantHash({{"/Resource", (long long)mojiDisplay.size()}}));
+        PkVariantHash mojikumiTable = {
             {"/Name", key},
-            {"/Members", QVariantHash({
+            {"/Members", PkVariantHash({
                  {"/CodeToClass", 0},
-                 {"/PredefinedTag", mojilist.value(key)}
+                 {"/PredefinedTag", mojiIt.second}
 
              })
             },
         };
 
-        mojiResources.append(mojikumiTable);
+        mojiResources.push_back(mojikumiTable);
     }
 
-    mojiKumiTableSet.insert("/Resources", mojiResources);
-    mojiKumiTableSet.insert("/DisplayList", mojiDisplay);
-    documentResources.insert("/MojiKumiTableSet", mojiKumiTableSet);
+    mojiKumiTableSet[PkString("/Resources")] = mojiResources;
+    mojiKumiTableSet[PkString("/DisplayList")] = mojiDisplay;
+    documentResources[PkString("/MojiKumiTableSet")] = mojiKumiTableSet;
 
-    QVariantHash paragraphSheetSet = {
-        {"/Resources", QVariantList({
-             QVariantHash({
-                 {"/Resource", QVariantHash({
+    PkVariantHash paragraphSheetSet = {
+        {"/Resources", PkVariantList({
+             PkVariantHash({
+                 {"/Resource", PkVariantHash({
                       {"/Name", "Normal RGB"},
                       {"/Features", defaultParagraph}
-                  })
-                 }
+                  })}
              })
          })},
-        {"/DisplayList", QVariantList({QVariantHash({{"/Resource", 0}})})}
+        {"/DisplayList", PkVariantList({PkVariantHash({{"/Resource", 0}})})}
     };
-    documentResources.insert("/ParagraphSheetSet", paragraphSheetSet);
-    QVariantHash styleSheetSet = {
-        {"/Resources", QVariantList({
-             QVariantHash({
-                 {"/Resource", QVariantHash({
+    documentResources[PkString("/ParagraphSheetSet")] = paragraphSheetSet;
+    PkVariantHash styleSheetSet = {
+        {"/Resources", PkVariantList({
+             PkVariantHash({
+                 {"/Resource", PkVariantHash({
                       {"/Name", "Normal RGB"},
                       {"/Features", defaultStyle}
-                  })
-                 }
+                  })}
              })
          })},
-        {"/DisplayList", QVariantList({QVariantHash({{"/Resource", 0}})})}
+        {"/DisplayList", PkVariantList({PkVariantHash({{"/Resource", 0}})})}
     };
-    documentResources.insert("/StyleSheetSet", styleSheetSet);
+    documentResources[PkString("/StyleSheetSet")] = styleSheetSet;
 
-    QVariantHash textFrameSet;
-    textFrameSet.insert("/Resources", QVariantList());
-    documentResources.insert("/TextFrameSet", textFrameSet);
+    PkVariantHash textFrameSet;
+    textFrameSet[PkString("/Resources")] = PkVariantList();
+    documentResources[PkString("/TextFrameSet")] = textFrameSet;
 
     // Document settings ----------
-    QVariantHash DocumentSettings;
-    DocumentSettings.insert("/DefaultStoryDir", 0);
+    PkVariantHash DocumentSettings;
+    DocumentSettings[PkString("/DefaultStoryDir")] = 0;
     // smart quote?
     // alternate glyph?
-    DocumentSettings.insert("/SubscriptPosition", 0.333);
-    DocumentSettings.insert("/SubscriptSize", 0.583);
-    DocumentSettings.insert("/SuperscriptPosition", 0.333);
-    DocumentSettings.insert("/SuperscriptSize", 0.583);
-    DocumentSettings.insert("/SmallCapSize", 0.7);
-    DocumentSettings.insert("/NormalParagraphSheet", 0);
-    DocumentSettings.insert("/NormalStyleSheet", 0);
-    documentObjects.insert("/DocumentSettings", DocumentSettings);
-    QVariantHash OriginalNormalParagraphFeatures = defaultParagraph;
-    documentObjects.insert("/OriginalNormalParagraphFeatures", OriginalNormalParagraphFeatures);
-    QVariantHash OriginalNormalStyleFeatures = defaultStyle;
-    documentObjects.insert("/OriginalNormalStyleFeatures", OriginalNormalStyleFeatures);
-    QVariantList TextObjects;
-    documentObjects.insert("/TextObjects", TextObjects);
+    DocumentSettings[PkString("/SubscriptPosition")] = 0.333;
+    DocumentSettings[PkString("/SubscriptSize")] = 0.583;
+    DocumentSettings[PkString("/SuperscriptPosition")] = 0.333;
+    DocumentSettings[PkString("/SuperscriptSize")] = 0.583;
+    DocumentSettings[PkString("/SmallCapSize")] = 0.7;
+    DocumentSettings[PkString("/NormalParagraphSheet")] = 0;
+    DocumentSettings[PkString("/NormalStyleSheet")] = 0;
+    documentObjects[PkString("/DocumentSettings")] = DocumentSettings;
+    const PkVariantHash OriginalNormalParagraphFeatures = defaultParagraph;
+    documentObjects[PkString("/OriginalNormalParagraphFeatures")] = OriginalNormalParagraphFeatures;
+    const PkVariantHash OriginalNormalStyleFeatures = defaultStyle;
+    documentObjects[PkString("/OriginalNormalStyleFeatures")] = OriginalNormalStyleFeatures;
+    PkVariantList TextObjects;
+    documentObjects[PkString("/TextObjects")] = TextObjects;
 
-    doc.insert("/DocumentResources", documentResources);
-    doc.insert("/DocumentObjects", documentObjects);
+    doc[PkString("/DocumentResources")] = documentResources;
+    doc[PkString("/DocumentObjects")] = documentObjects;
     return doc;
 }
 
-QVariantHash defaultGrid {
+PkVariantHash defaultGrid {
     {"/GridIsOn", false},
     {"/ShowGrid", false},
     {"/GridSize", 18.0},
     {"/GridLeading", 22.0},
-    {"/GridColor", QVariantHash{{"/Type", 1}, {"/Values", QVariantList({0.0, 0.0, 0.0, 1.0})}}},
-    {"/GridLeadingFillColor", QVariantHash{{"/Type", 1}, {"/Values", QVariantList({0.0, 0.0, 0.0, 1.0})}}},
+    {"/GridColor", PkVariantHash{{"/Type", 1}, {"/Values", PkVariantList({0.0, 0.0, 0.0, 1.0})}}},
+    {"/GridLeadingFillColor", PkVariantHash{{"/Type", 1}, {"/Values", PkVariantList({0.0, 0.0, 0.0, 1.0})}}},
     {"/AlignLineHeightToGridFlags", false},
 };
 
-static QStringList simpleStyleAllowed {
+static PkStringList simpleStyleAllowed {
     "/Font",
     "/FontSize",
     "/FauxBold",
@@ -1297,39 +1361,41 @@ static QStringList simpleStyleAllowed {
     "/FillFirst",
     "/Kashida",
 };
-static QVariantHash simplifyStyleSheet(const QVariantHash complex) {
-    QVariantHash simple;
-    Q_FOREACH(const QString key, complex.keys()) {
+static PkVariantHash simplifyStyleSheet(const PkVariantHash complex) {
+    PkVariantHash simple;
+    for (const auto &it : complex) {
+        const PkString key = it.first;
+        const PkVariant val = it.second;
         if (simpleStyleAllowed.contains(key)) {
-            simple.insert(key, complex.value(key));
+            simple[key] = val;
         }else if (key == "/StrokeColor" || key == "/FillColor") {
-            simple.insert(key, complex.value(key).toHash().value("/Color"));
+            simple[key] = pkHashValue(val.toHash(), PkString("/Color"));
         } else if (key == "/UnderlinePosition") {
-            bool val = complex.value(key).toBool();
-            simple.insert("/Underline", val);
-            if (complex.value(key).toInt() == 2) {
-                simple.insert("/YUnderline", 0);
+            const bool bval = val.toBool();
+            simple[PkString("/Underline")] = bval;
+            if (val.toInt() == 2) {
+                simple[PkString("/YUnderline")] = 0;
             } else {
-                simple.insert("/YUnderline", 1);
+                simple[PkString("/YUnderline")] = 1;
             }
         } else if (key == "/StrikethroughPosition") {
-            bool val = complex.value(key).toBool();
-            simple.insert("/Strikethrough", val);
+            const bool bval = val.toBool();
+            simple[PkString("/Strikethrough")] = bval;
         } else if (key == "/AutoKerning") {
-            bool val = complex.value(key).toBool();
-            simple.insert("/AutoKern", val);
+            const bool bval = val.toBool();
+            simple[PkString("/AutoKern")] = bval;
         } else if (key == "/LineWidth") {
-            simple.insert("/OutlineWidth", complex.value(key));
+            simple[PkString("/OutlineWidth")] = val;
         } else if (key == "/DiscretionaryLigatures") {
-            simple.insert("/DLigatures", complex.value(key));
+            simple[PkString("/DLigatures")] = val;
         }
     }
-    simple.insert("/Kerning", 0.0);
-    simple.insert("/HindiNumbers", false);
-    simple.insert("/DiacriticPos", 2);
+    simple[PkString("/Kerning")] = 0.0;
+    simple[PkString("/HindiNumbers")] = false;
+    simple[PkString("/DiacriticPos")] = 2;
     return simple;
 }
-static QStringList simpleParagraphAllowed {
+static PkStringList simpleParagraphAllowed {
     "/Justification",
     "/FirstLineIndent",
     "/StartIndent",
@@ -1354,188 +1420,188 @@ static QStringList simpleParagraphAllowed {
     "/KinsokuOrder",
     "/EveryLineComposer",
 };
-static QVariantHash simplifyParagraphSheet(const QVariantHash complex) {
-    QVariantHash simple;
-    Q_FOREACH(const QString key, complex.keys()) {
+static PkVariantHash simplifyParagraphSheet(const PkVariantHash complex) {
+    PkVariantHash simple;
+    for (const auto &it : complex) {
+        const PkString key = it.first;
         if (simpleParagraphAllowed.contains(key)) {
-            simple.insert(key, complex.value(key));
+            simple[key] = it.second;
         }
     }
     return simple;
 }
 
-QVariantHash KisTxt2Utils::tyShFromTxt2(const QVariantHash Txt2, const QRectF boundsInPx, int textIndex)
+PkVariantHash KisTxt2Utils::tyShFromTxt2(const PkVariantHash Txt2, const PkRectF boundsInPx, int textIndex)
 {
-    QVariantHash tySh;
+    PkVariantHash tySh;
 
-    const QVariantHash documentObjects = Txt2.value("/DocumentObjects").toHash();
-    const QVariantList textObjects = documentObjects.value("/TextObjects").toList();
-    QVariantHash textObject;
-    if (textIndex < textObjects.size()) {
-        textObject = textObjects.value(textIndex).toHash();
+    const PkVariantHash documentObjects = pkHashValue(Txt2, PkString("/DocumentObjects")).toHash();
+    const PkVariantList textObjects = pkHashValue(documentObjects, PkString("/TextObjects")).toList();
+    PkVariantHash textObject;
+    if (textIndex < (int)textObjects.size()) {
+        textObject = pkListValue(textObjects, static_cast<size_t>(textIndex)).toHash();
     }
 
 
-    const QVariantHash model = textObject.value("/Model").toHash();
-    const QVariantHash view = textObject.value("/View").toHash();
+    const PkVariantHash model = pkHashValue(textObject, PkString("/Model")).toHash();
+    const PkVariantHash view = pkHashValue(textObject, PkString("/View")).toHash();
 
-    const QVariantHash documentResources = Txt2.value("/DocumentResources").toHash();
-    const QVariantList textFrames = documentResources.value("/TextFrameSet").toHash().value("/Resources").toList();
+    const PkVariantHash documentResources = pkHashValue(Txt2, PkString("/DocumentResources")).toHash();
+    const PkVariantList textFrames = pkHashValue(pkHashValue(documentResources, PkString("/TextFrameSet")).toHash(), PkString("/Resources")).toList();
 
-    QVariantHash engineDict;
+    PkVariantHash engineDict;
 
-    QVariantHash editor;
-    editor.insert("/Text", model.value("/Text"));
-    engineDict.insert("/Editor", editor);
+    PkVariantHash editor;
+    editor[PkString("/Text")] = pkHashValue(model, PkString("/Text"));
+    engineDict[PkString("/Editor")] = editor;
 
 
-    engineDict.insert("/GridInfo", defaultGrid);
+    engineDict[PkString("/GridInfo")] = defaultGrid;
 
     // paragraph
-    const QVariantHash para = model.value("/ParagraphRun").toHash();
-    const QVariantList paraRunArray = para.value("/RunArray").toList();
+    const PkVariantHash para = pkHashValue(model, PkString("/ParagraphRun")).toHash();
+    const PkVariantList paraRunArray = pkHashValue(para, PkString("/RunArray")).toList();
     // if we want to go over each entry, here's the moment to do so.
-    const int length = paraRunArray.value(0).toHash().value("/Length").toInt();
-    const QVariantHash paraSheet = paraRunArray.value(0).toHash().value("/RunData").toHash()["/ParagraphSheet"].toHash();
-    const QVariantHash paragraphStyle = simplifyParagraphSheet(paraSheet.value("/Features").toHash());
-    QVariantHash paragraphRun;
-    paragraphRun["/RunLengthArray"] = QVariantList({QVariant(length)});
-    QVariantHash paragraphAdjustments  = QVariantHash {
-    {"/Axis", QVariantList({1.0, 0.0, 1.0})},
-    {"/XY", QVariantList({0.0, 0.0})}
+    const int length = pkHashValue(pkListValue(paraRunArray, 0).toHash(), PkString("/Length")).toInt();
+    const PkVariantHash paraSheet = pkHashValue(pkHashValue(pkListValue(paraRunArray, 0).toHash(), PkString("/RunData")).toHash(), PkString("/ParagraphSheet")).toHash();
+    const PkVariantHash paragraphStyle = simplifyParagraphSheet(pkHashValue(paraSheet, PkString("/Features")).toHash());
+    PkVariantHash paragraphRun;
+    paragraphRun[PkString("/RunLengthArray")] = PkVariantList({PkVariant(length)});
+    PkVariantHash paragraphAdjustments  = PkVariantHash {
+        {"/Axis", PkVariantList({1.0, 0.0, 1.0})},
+        {"/XY", PkVariantList({0.0, 0.0})}
     };
-    paragraphRun["/RunArray"] = QVariantList({ QVariantHash{
-                                                {"/ParagraphSheet", paragraphStyle},
-                                                {"/Adjustments", paragraphAdjustments}
-                                            }
-                                            });
-    paragraphRun.insert("/IsJoinable", 1); //no idea what this means.
-    paragraphRun.insert("/DefaultRunData", QVariantHash{
-    {"/ParagraphSheet",
-            QVariantHash{{"/DefaultStyleSheet", 0},
-                        {"/Properties", QVariantHash()}} },
-    {"/Adjustments", paragraphAdjustments}});
+    paragraphRun[PkString("/RunArray")] = PkVariantList({ PkVariantHash{
+        {"/ParagraphSheet", paragraphStyle},
+        {"/Adjustments", paragraphAdjustments}
+    }});
+    paragraphRun[PkString("/IsJoinable")] = 1; //no idea what this means.
+    paragraphRun[PkString("/DefaultRunData")] = PkVariantHash{
+        {"/ParagraphSheet",
+                PkVariantHash{{"/DefaultStyleSheet", 0},
+                            {"/Properties", PkVariantHash()}} },
+        {"/Adjustments", paragraphAdjustments}};
 
-    engineDict.insert("/ParagraphRun", paragraphRun);
+    engineDict[PkString("/ParagraphRun")] = paragraphRun;
 
-    const QVariantHash txt2StyleRun = model.value("/StyleRun").toHash();
-    const QVariantList txt2RunArray = txt2StyleRun.value("/RunArray").toList();
-    QVariantHash styleRun;
+    const PkVariantHash txt2StyleRun = pkHashValue(model, PkString("/StyleRun")).toHash();
+    const PkVariantList txt2RunArray = pkHashValue(txt2StyleRun, PkString("/RunArray")).toList();
+    PkVariantHash styleRun;
 
-    QVariantList properStyleRun;
-    QVariantList styleRunArray;
-    Q_FOREACH(const QVariant entry, txt2RunArray) {
-        QVariantHash properStyle;
-        const QVariantHash fea = entry.toHash().value("/RunData").toHash().value("/StyleSheet").toHash().value("/Features").toHash();
-        properStyle.insert("/StyleSheetData", simplifyStyleSheet(fea));
-        QVariantHash s;
-        s.insert("/StyleSheet", properStyle);
-        properStyleRun.append(s);
-        styleRunArray.append(entry.toHash().value("/Length").toInt());
+    PkVariantList properStyleRun;
+    PkVariantList styleRunArray;
+    for (const PkVariant &entry : txt2RunArray) {
+        PkVariantHash properStyle;
+        const PkVariantHash fea = pkHashValue(pkHashValue(pkHashValue(entry.toHash(), PkString("/RunData")).toHash(), PkString("/StyleSheet")).toHash(), PkString("/Features")).toHash();
+        properStyle[PkString("/StyleSheetData")] = simplifyStyleSheet(fea);
+        PkVariantHash s;
+        s[PkString("/StyleSheet")] = properStyle;
+        properStyleRun.push_back(s);
+        styleRunArray.push_back(pkHashValue(entry.toHash(), PkString("/Length")).toInt());
     }
-    styleRun.insert("/RunArray", properStyleRun);
-    styleRun.insert("/RunLengthArray", styleRunArray);
-    styleRun.insert("/IsJoinable", 2);
+    styleRun[PkString("/RunArray")] = properStyleRun;
+    styleRun[PkString("/RunLengthArray")] = styleRunArray;
+    styleRun[PkString("/IsJoinable")] = 2;
 
-    styleRun.insert("/DefaultRunData", QVariantHash{{"/StyleSheet", QVariantHash{{"/StyleSheetData", QVariantHash()}} }});
-    engineDict.insert("/StyleRun", styleRun);
+    styleRun[PkString("/DefaultRunData")] = PkVariantHash{{"/StyleSheet", PkVariantHash{{"/StyleSheetData", PkVariantHash()}} }};
+    engineDict[PkString("/StyleRun")] = styleRun;
     // rendered data...
 
-    const int frameIndex = view.value("/Frames").toList().value(0).toHash().value("/Resource").toInt();
-    const QVariantHash textFrame = textFrames.value(frameIndex).toHash().value("/Resource").toHash();
-    const QVariantHash textFrameData = textFrame.value("/Data").toHash();
-    QVariantHash rendered;
-    int shapeType = textFrameData.value("/Type", QVariant(0)).toInt(); // 0 point, 1 paragraph, 2, text on path
-    int writingDirection = textFrameData.value("/LineOrientation", QVariant(0)).toInt();
-    QVariantHash photoshop = QVariantHash {{"/ShapeType", qMax(1, shapeType)},
-    {"/TransformPoint0", QVariantList({1.0, 0.0})},
-    {"/TransformPoint1", QVariantList({0.0, 1.0})},
-    {"/TransformPoint2", QVariantList({0.0, 0.0})}};
+    const int frameIndex = pkHashValue(pkListValue(pkHashValue(view, PkString("/Frames")).toList(), 0).toHash(), PkString("/Resource")).toInt();
+    const PkVariantHash textFrame = pkHashValue(pkListValue(textFrames, static_cast<size_t>(frameIndex)).toHash(), PkString("/Resource")).toHash();
+    const PkVariantHash textFrameData = pkHashValue(textFrame, PkString("/Data")).toHash();
+    PkVariantHash rendered;
+    int shapeType = pkHashValueDefault(textFrameData, PkString("/Type"), PkVariant(0)).toInt(); // 0 point, 1 paragraph, 2, text on path
+    int writingDirection = pkHashValueDefault(textFrameData, PkString("/LineOrientation"), PkVariant(0)).toInt();
+    PkVariantHash photoshop = PkVariantHash {{"/ShapeType", std::max(1, shapeType)},
+        {"/TransformPoint0", PkVariantList({1.0, 0.0})},
+        {"/TransformPoint1", PkVariantList({0.0, 1.0})},
+        {"/TransformPoint2", PkVariantList({0.0, 0.0})}};
     if (shapeType == 0) {
-        photoshop["/PointBase"] = QVariantList({0.0, 0.0});
+        photoshop[PkString("/PointBase")] = PkVariantList({0.0, 0.0});
     } else if (shapeType == 1) {
         // this is the bounding box of the paragraph shape.
-        photoshop["/BoxBounds"] = QVariantList({0.0, 0.0, boundsInPx.width(), boundsInPx.height()});
+        photoshop[PkString("/BoxBounds")] = PkVariantList({0.0, 0.0, boundsInPx.width(), boundsInPx.height()});
     }
-    QVariantHash renderChild = QVariantHash{
-    {"/ShapeType", shapeType},
-    {"/Procession", 0},
-    {"/Lines", QVariantHash{{"/WritingDirection", writingDirection}, {"/Children", QVariantList()}}},
-    {"/Cookie", QVariantHash{{"/Photoshop", photoshop}}}};
-    rendered["/Version"] = 1;
-    rendered["/Shapes"] = QVariantHash{{"/WritingDirection", writingDirection}, {"/Children", QVariantList({renderChild})}};
+    PkVariantHash renderChild = PkVariantHash{
+        {"/ShapeType", shapeType},
+        {"/Procession", 0},
+        {"/Lines", PkVariantHash{{"/WritingDirection", writingDirection}, {"/Children", PkVariantList()}}},
+        {"/Cookie", PkVariantHash{{"/Photoshop", photoshop}}}};
+    rendered[PkString("/Version")] = 1;
+    rendered[PkString("/Shapes")] = PkVariantHash{{"/WritingDirection", writingDirection}, {"/Children", PkVariantList({renderChild})}};
 
-    engineDict.insert("/Rendered", rendered);
+    engineDict[PkString("/Rendered")] = rendered;
 
     // storysheet
-    const QVariantHash storySheet = textObject.value("/StorySheet").toHash();
-    engineDict.insert("/UseFractionalGlyphWidths", storySheet.value("/UseFractionalGlyphWidths", QVariant(true)).toBool());
-    engineDict.insert("/AntiAlias", storySheet.value("/AntiAlias", QVariant(1)).toInt());
+    const PkVariantHash storySheet = pkHashValue(textObject, PkString("/StorySheet")).toHash();
+    engineDict[PkString("/UseFractionalGlyphWidths")] = pkHashValueDefault(storySheet, PkString("/UseFractionalGlyphWidths"), PkVariant(true)).toBool();
+    engineDict[PkString("/AntiAlias")] = pkHashValueDefault(storySheet, PkString("/AntiAlias"), PkVariant(1)).toInt();
 
-    QVariantHash resourceDict;
+    PkVariantHash resourceDict;
 
-    const QVariantList docFontSet = documentResources.value("/FontSet").toHash().value("/Resources").toList();
-    QVariantList fontSet;
-    Q_FOREACH(QVariant entry, docFontSet) {
-        const QVariantHash docFont = entry.toHash().value("/Resource").toHash();
-        QVariantHash font = docFont.value("/Identifier").toHash();
-        font.insert("/FontType", font.value("/Type"));
-        font.remove("/Version");
-        font.remove("/Type");
-        font.insert("/Script", 0);
-        font.insert("/Synthetic", 0);
-        fontSet.append(font);
+    const PkVariantList docFontSet = pkHashValue(pkHashValue(documentResources, PkString("/FontSet")).toHash(), PkString("/Resources")).toList();
+    PkVariantList fontSet;
+    for (const PkVariant &entry : docFontSet) {
+        const PkVariantHash docFont = pkHashValue(entry.toHash(), PkString("/Resource")).toHash();
+        PkVariantHash font = pkHashValue(docFont, PkString("/Identifier")).toHash();
+        font[PkString("/FontType")] = pkHashValue(font, PkString("/Type"));
+        font.erase(PkString("/Version"));
+        font.erase(PkString("/Type"));
+        font[PkString("/Script")] = 0;
+        font[PkString("/Synthetic")] = 0;
+        fontSet.push_back(font);
     }
-    resourceDict.insert("/FontSet", fontSet);
+    resourceDict[PkString("/FontSet")] = fontSet;
 
-    const QVariantHash documentSettings = documentObjects.value("/DocumentSettings").toHash();
+    const PkVariantHash documentSettings = pkHashValue(documentObjects, PkString("/DocumentSettings")).toHash();
 
-    QVariantHash kinHard = kinsokuHard;
-    kinHard.remove("/PredefinedTag");
-    kinHard.insert("/Name", "PhotoshopKinsokuHard");
-    QVariantHash kinSoft = kinsokuSoft;
-    kinSoft.remove("/PredefinedTag");
-    kinSoft.insert("/Name", "PhotoshopKinsokuSoft");
-    resourceDict.insert("/KinsokuSet", QVariantList({kinHard, kinSoft}));
-    resourceDict.insert("/MojiKumiSet", QVariantList( {QVariantHash{{"/InternalName", "Photoshop6MojiKumiSet1"}},
-                                               QVariantHash{{"/InternalName", "Photoshop6MojiKumiSet2"}},
-                                               QVariantHash{{"/InternalName", "Photoshop6MojiKumiSet3"}},
-                                               QVariantHash{{"/InternalName", "Photoshop6MojiKumiSet4"}}
-                                              }));
-    resourceDict.insert("/SubscriptPosition", documentSettings.value("/SubscriptPosition"));
-    resourceDict.insert("/SubscriptSize", documentSettings.value("/SubscriptSize"));
-    resourceDict.insert("/SuperscriptPosition", documentSettings.value("/SuperscriptPosition"));
-    resourceDict.insert("/SuperscriptSize", documentSettings.value("/SuperscriptSize"));
-    resourceDict.insert("/SmallCapSize", documentSettings.value("/SmallCapSize"));
-    resourceDict.insert("/TheNormalParagraphSheet", documentSettings.value("/NormalParagraphSheet"));
-    resourceDict.insert("/TheNormalStyleSheet", documentSettings.value("/NormalStyleSheet"));
+    PkVariantHash kinHard = kinsokuHard;
+    kinHard.erase(PkString("/PredefinedTag"));
+    kinHard[PkString("/Name")] = "PhotoshopKinsokuHard";
+    PkVariantHash kinSoft = kinsokuSoft;
+    kinSoft.erase(PkString("/PredefinedTag"));
+    kinSoft[PkString("/Name")] = "PhotoshopKinsokuSoft";
+    resourceDict[PkString("/KinsokuSet")] = PkVariantList({kinHard, kinSoft});
+    resourceDict[PkString("/MojiKumiSet")] = PkVariantList( {PkVariantHash{{"/InternalName", "Photoshop6MojiKumiSet1"}},
+                                               PkVariantHash{{"/InternalName", "Photoshop6MojiKumiSet2"}},
+                                               PkVariantHash{{"/InternalName", "Photoshop6MojiKumiSet3"}},
+                                               PkVariantHash{{"/InternalName", "Photoshop6MojiKumiSet4"}}
+                                              });
+    resourceDict[PkString("/SubscriptPosition")] = pkHashValue(documentSettings, PkString("/SubscriptPosition"));
+    resourceDict[PkString("/SubscriptSize")] = pkHashValue(documentSettings, PkString("/SubscriptSize"));
+    resourceDict[PkString("/SuperscriptPosition")] = pkHashValue(documentSettings, PkString("/SuperscriptPosition"));
+    resourceDict[PkString("/SuperscriptSize")] = pkHashValue(documentSettings, PkString("/SuperscriptSize"));
+    resourceDict[PkString("/SmallCapSize")] = pkHashValue(documentSettings, PkString("/SmallCapSize"));
+    resourceDict[PkString("/TheNormalParagraphSheet")] = pkHashValue(documentSettings, PkString("/NormalParagraphSheet"));
+    resourceDict[PkString("/TheNormalStyleSheet")] = pkHashValue(documentSettings, PkString("/NormalStyleSheet"));
 
-    const QVariantList docStyleSheetSets = documentResources.value("/StyleSheetSet").toHash().value("/Resources").toList();
-    QVariantList resourceStyleSheetList;
-    Q_FOREACH(QVariant entry, docStyleSheetSets) {
-        const QVariantHash styleSheet = entry.toHash().value("/Resource").toHash();
-        QVariantHash newSheet;
-        newSheet.insert("/Name", styleSheet.value("/Name"));
-        newSheet.insert("/StyleSheetData", simplifyStyleSheet(styleSheet.value("/Features").toHash()));
-        resourceStyleSheetList.append(newSheet);
-    }
-
-    const QVariantList docParagraphSheetSets = documentResources.value("/ParagraphSheetSet").toHash().value("/Resources").toList();
-    QVariantList resourceParagraphSheetList;
-    Q_FOREACH(QVariant entry, docParagraphSheetSets) {
-        const QVariantHash styleSheet = entry.toHash().value("/Resource").toHash();
-        QVariantHash newSheet;
-        newSheet.insert("/Name", styleSheet.value("/Name"));
-        newSheet.insert("/Properties", simplifyParagraphSheet(styleSheet.value("/Features").toHash()));
-        newSheet.insert("/DefaultStyleSheet", 0);
-        resourceParagraphSheetList.append(newSheet);
+    const PkVariantList docStyleSheetSets = pkHashValue(pkHashValue(documentResources, PkString("/StyleSheetSet")).toHash(), PkString("/Resources")).toList();
+    PkVariantList resourceStyleSheetList;
+    for (const PkVariant &entry : docStyleSheetSets) {
+        const PkVariantHash styleSheet = pkHashValue(entry.toHash(), PkString("/Resource")).toHash();
+        PkVariantHash newSheet;
+        newSheet[PkString("/Name")] = pkHashValue(styleSheet, PkString("/Name"));
+        newSheet[PkString("/StyleSheetData")] = simplifyStyleSheet(pkHashValue(styleSheet, PkString("/Features")).toHash());
+        resourceStyleSheetList.push_back(newSheet);
     }
 
-    resourceDict.insert("/StyleSheetSet", resourceStyleSheetList);
-    resourceDict.insert("/ParagraphSheetSet", resourceParagraphSheetList);
+    const PkVariantList docParagraphSheetSets = pkHashValue(pkHashValue(documentResources, PkString("/ParagraphSheetSet")).toHash(), PkString("/Resources")).toList();
+    PkVariantList resourceParagraphSheetList;
+    for (const PkVariant &entry : docParagraphSheetSets) {
+        const PkVariantHash styleSheet = pkHashValue(entry.toHash(), PkString("/Resource")).toHash();
+        PkVariantHash newSheet;
+        newSheet[PkString("/Name")] = pkHashValue(styleSheet, PkString("/Name"));
+        newSheet[PkString("/Properties")] = simplifyParagraphSheet(pkHashValue(styleSheet, PkString("/Features")).toHash());
+        newSheet[PkString("/DefaultStyleSheet")] = 0;
+        resourceParagraphSheetList.push_back(newSheet);
+    }
 
-    tySh.insert("/EngineDict", engineDict);
-    tySh.insert("/DocumentResources", resourceDict);
-    tySh.insert("/ResourceDict", resourceDict);
+    resourceDict[PkString("/StyleSheetSet")] = resourceStyleSheetList;
+    resourceDict[PkString("/ParagraphSheetSet")] = resourceParagraphSheetList;
+
+    tySh[PkString("/EngineDict")] = engineDict;
+    tySh[PkString("/DocumentResources")] = resourceDict;
+    tySh[PkString("/ResourceDict")] = resourceDict;
     return tySh;
 }

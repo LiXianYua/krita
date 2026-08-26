@@ -7,7 +7,8 @@
 #ifndef KIS_TXT2_UTLS_H
 #define KIS_TXT2_UTLS_H
 
-#include <QVariantHash>
+#include <PkVariant.h>
+#include <PkRect.h>
 #include "kritapsdutils_export.h"
 
 /**
@@ -36,7 +37,7 @@ public:
      * @param doc input txt2 doc.
      * @return documented with keys translated to names.
      */
-    static QVariantHash uncompressKeys(QVariantHash doc);
+    static PkVariantHash uncompressKeys(PkVariantHash doc);
 
     /**
      * @brief defaultTxt2
@@ -44,7 +45,7 @@ public:
      * default fonts and other things that might be expected but Krita doesn't write itself.
      * @return a default txt2 hash.
      */
-    static QVariantHash defaultTxt2();
+    static PkVariantHash defaultTxt2();
 
     /**
      * @brief tyShFromTxt2
@@ -54,7 +55,7 @@ public:
      * @param textIndex the text object index for which to generate the tySh data.
      * @return the tySh variantHash
      */
-    static QVariantHash tyShFromTxt2(const QVariantHash Txt2, const QRectF boundsInPx, int textIndex);
+    static PkVariantHash tyShFromTxt2(const PkVariantHash Txt2, const PkRectF boundsInPx, int textIndex);
 };
 
 #endif // KIS_TXT2_UTLS_H

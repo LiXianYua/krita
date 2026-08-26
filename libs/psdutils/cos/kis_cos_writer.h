@@ -7,15 +7,15 @@
 #ifndef KISCOSWRITER_H
 #define KISCOSWRITER_H
 
-#include  <QJsonDocument>
+#include <PkVariant.h>
 #include "kritapsdutils_export.h"
 
 class KRITAPSDUTILS_EXPORT KisCosWriter
 {
 public:
-    static QByteArray writeCosFromVariantHash(const QVariantHash doc);
+    static PkByteArray writeCosFromVariantHash(const PkVariantHash doc);
 
-    static QByteArray writeTxt2FromVariantHash(const QVariantHash doc);
+    static PkByteArray writeTxt2FromVariantHash(const PkVariantHash doc);
 };
 
 #endif // KISCOSWRITER_H

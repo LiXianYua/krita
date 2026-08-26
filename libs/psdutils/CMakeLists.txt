@@ -13,11 +13,23 @@ set(kritapsdutils_LIB_SRCS
     cos/kis_cos_parser.cpp
     cos/kis_cos_writer.cpp
     cos/kis_txt2_utls.cpp
+    cos/PkCosMemoryStream.cpp
     cos/psd_text_data_converter.cpp
 )
 
 kis_add_library(kritapsdutils SHARED ${kritapsdutils_LIB_SRCS})
 generate_export_header(kritapsdutils BASE_NAME kritapsdutils)
+
+target_include_directories(kritapsdutils
+    PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/string
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/container
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/variant
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/port
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/geometry
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/log
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/global
+)
 
 target_link_libraries(kritapsdutils
     PUBLIC
@@ -26,6 +38,12 @@ target_link_libraries(kritapsdutils
         kritaflake
         Qt${QT_MAJOR_VERSION}::Core
         Qt${QT_MAJOR_VERSION}::Gui
+        pkstring
+        pkcontainer
+        pkvariant
+        pkport
+        pkgeometry
+        pklog
     PRIVATE
         ZLIB::ZLIB
 )

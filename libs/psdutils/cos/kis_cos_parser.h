@@ -7,8 +7,8 @@
 #ifndef KISCOSPARSER_H
 #define KISCOSPARSER_H
 
-#include <QVariant>
-#include <QIODevice>
+#include <PkVariant.h>
+#include <PkStream.h>
 #include "kritapsdutils_export.h"
 
 /**
@@ -17,9 +17,9 @@
  * PSD text engine data is written in PDF's Carousel Object Structure,
  * a format not unsimilar to (might be a precursor) to JSON.
  * JSON however doesn't differentiate between ints and doubles,
- * so we use QVariantHash instead.
+ * so we use PkVariantHash instead.
  *
- * This parser tries to parse the ByteArray as a QVariantHash, though
+ * This parser tries to parse the ByteArray as a PkVariantHash, though
  * not every data type is interpreted as such:
  *
  * For one, 'name' objects are interpreted as strings prepended with /
@@ -31,12 +31,12 @@
 class KRITAPSDUTILS_EXPORT KisCosParser
 {
 public:
-    QVariantHash parseCosToJson(QByteArray *ba);
+    PkVariantHash parseCosToJson(PkByteArray *ba);
 private:
 
-    bool parseValue(QIODevice &dev, QVariant &val);
-    bool parseObject(QIODevice &dev, QVariantHash &object, bool checkEnd = true);
-    bool parseArray(QIODevice &dev, QVariantList &array);
+    bool parseValue(PkStream &dev, PkVariant &val);
+    bool parseObject(PkStream &dev, PkVariantHash &object, bool checkEnd = true);
+    bool parseArray(PkStream &dev, PkVariantList &array);
 };
 
 #endif // KISCOSPARSER_H
