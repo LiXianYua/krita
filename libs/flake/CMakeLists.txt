@@ -382,6 +382,10 @@ set(kritaflake_painting_SRCS
     KoVectorPatternBackground.cpp
     resources/KoGamutMask.cpp
     resources/KoSvgSymbolCollectionResource.cpp
+    shapes/ImageShape.cpp
+    shapes/ImageShapeFactory.cpp
+    shapes/RectangleShape.cpp
+    shapes/RectangleShapeFactory.cpp
     svg/KoShapePainter.cpp
     svg/SvgParser.cpp
     svg/SvgStyleWriter.cpp

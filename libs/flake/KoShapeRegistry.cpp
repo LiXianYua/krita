@@ -15,6 +15,8 @@
 
 #include "KoSvgTextShape.h"
 #include "KoPathShapeFactory.h"
+#include "shapes/ImageShapeFactory.h"
+#include "shapes/RectangleShapeFactory.h"
 #include "KoShapeLoadingContext.h"
 #include "KoShapeSavingContext.h"
 #include "KoShapeGroup.h"
@@ -63,6 +65,12 @@ void KoShapeRegistry::Private::init(KoShapeRegistry *q)
     q->add(toPkString(svgTextFactory->id()), svgTextFactory);
     KoShapeFactoryBase *pathFactory = new KoPathShapeFactory(QStringList());
     q->add(toPkString(pathFactory->id()), pathFactory);
+    // S-08: ImageShape/RectangleShape 原由 Krita/Shape 插件提供，D-18 删插件加载后
+    // 在此硬编码补注册（D-07 崩溃根因 + TestKoDrag 缺 rect 工厂）。
+    KoShapeFactoryBase *imageFactory = new ImageShapeFactory();
+    q->add(toPkString(imageFactory->id()), imageFactory);
+    KoShapeFactoryBase *rectFactory = new RectangleShapeFactory();
+    q->add(toPkString(rectFactory->id()), rectFactory);
 
     // Now all shape factories are registered with us, determine their
     // associated odf tagname & priority and prepare ourselves for
