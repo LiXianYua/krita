@@ -7,7 +7,7 @@
 #ifndef __KIS_STABILIZED_EVENTS_SAMPLER_H
 #define __KIS_STABILIZED_EVENTS_SAMPLER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include <boost/iterator/iterator_facade.hpp>
 
@@ -68,7 +68,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 

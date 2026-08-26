@@ -9,6 +9,8 @@
 
 #include <kritacanvas_export.h>
 
+#include <PkString.h>
+
 #include "KisMultiSurfaceStateManager.h"
 
 #include <optional>
@@ -34,8 +36,8 @@ using SupportsDescription = std::function<bool(const SurfaceDescription &)>;
 using ProfileAvailable = std::function<bool(const SurfaceDescription &)>;
 using SupportsIntent = std::function<bool(RenderIntent)>;
 
-KRITACANVAS_EXPORT KisCanvasSurfaceMode surfaceModeFromConfig(const QString &value);
-KRITACANVAS_EXPORT QString surfaceModeToConfig(KisCanvasSurfaceMode mode);
+KRITACANVAS_EXPORT KisCanvasSurfaceMode surfaceModeFromConfig(const PkString &value);
+KRITACANVAS_EXPORT PkString surfaceModeToConfig(KisCanvasSurfaceMode mode);
 
 enum class ProfileSource {
     None,
@@ -47,7 +49,7 @@ struct KRITACANVAS_EXPORT SelectionResult
 {
     std::optional<SurfaceDescription> requestedDescription;
     ProfileSource profileSource {ProfileSource::None};
-    QString errorMessage;
+    PkString errorMessage;
 };
 
 KRITACANVAS_EXPORT SelectionResult selectSurfaceDescription(
@@ -85,7 +87,7 @@ struct KRITACANVAS_EXPORT NegotiationResult
     RenderIntent intent {RenderIntent::render_intent_perceptual};
     bool isCanvasHdr {false};
     ProfileSource profileSource {ProfileSource::None};
-    QString errorMessage;
+    PkString errorMessage;
 };
 
 KRITACANVAS_EXPORT NegotiationResult negotiate(

@@ -9,26 +9,26 @@
 namespace KisCanvasSurfaceColorSpacePolicy
 {
 
-KisCanvasSurfaceMode surfaceModeFromConfig(const QString &value)
+KisCanvasSurfaceMode surfaceModeFromConfig(const PkString &value)
 {
-    if (value == QStringLiteral("preferred")) return KisCanvasSurfaceMode::Preferred;
-    if (value == QStringLiteral("rec709g22")) return KisCanvasSurfaceMode::Rec709g22;
-    if (value == QStringLiteral("rec709g10")) return KisCanvasSurfaceMode::Rec709g10;
-    if (value == QStringLiteral("rec2020pq")) return KisCanvasSurfaceMode::Rec2020pq;
-    if (value == QStringLiteral("unmanaged")) return KisCanvasSurfaceMode::Unmanaged;
+    if (value == PkString("preferred")) return KisCanvasSurfaceMode::Preferred;
+    if (value == PkString("rec709g22")) return KisCanvasSurfaceMode::Rec709g22;
+    if (value == PkString("rec709g10")) return KisCanvasSurfaceMode::Rec709g10;
+    if (value == PkString("rec2020pq")) return KisCanvasSurfaceMode::Rec2020pq;
+    if (value == PkString("unmanaged")) return KisCanvasSurfaceMode::Unmanaged;
     return KisCanvasSurfaceMode::Preferred;
 }
 
-QString surfaceModeToConfig(KisCanvasSurfaceMode mode)
+PkString surfaceModeToConfig(KisCanvasSurfaceMode mode)
 {
     switch (mode) {
-    case KisCanvasSurfaceMode::Preferred: return QStringLiteral("preferred");
-    case KisCanvasSurfaceMode::Rec709g22: return QStringLiteral("rec709g22");
-    case KisCanvasSurfaceMode::Rec709g10: return QStringLiteral("rec709g10");
-    case KisCanvasSurfaceMode::Rec2020pq: return QStringLiteral("rec2020pq");
-    case KisCanvasSurfaceMode::Unmanaged: return QStringLiteral("unmanaged");
+    case KisCanvasSurfaceMode::Preferred: return PkString("preferred");
+    case KisCanvasSurfaceMode::Rec709g22: return PkString("rec709g22");
+    case KisCanvasSurfaceMode::Rec709g10: return PkString("rec709g10");
+    case KisCanvasSurfaceMode::Rec2020pq: return PkString("rec2020pq");
+    case KisCanvasSurfaceMode::Unmanaged: return PkString("unmanaged");
     }
-    return QStringLiteral("preferred");
+    return PkString("preferred");
 }
 
 SelectionResult selectSurfaceDescription(
@@ -100,7 +100,7 @@ SelectionResult selectSurfaceDescription(
             requestedDescription.colorSpace.transferFunction = NamedTransferFunction::transfer_function_gamma22;
             if (!supportsDescription(requestedDescription)) {
                 return {std::nullopt, ProfileSource::BuiltInSrgb,
-                        QStringLiteral("failed to find a suitable surface format for the compositor")};
+                        PkString("failed to find a suitable surface format for the compositor")};
             }
         }
     }
@@ -126,7 +126,7 @@ SelectionResult selectSurfaceDescription(
     }
     if (!hasProfile) {
         return {std::nullopt, ProfileSource::BuiltInSrgb,
-                QStringLiteral("failed to create a profile for the compositor's preferred color space")};
+                PkString("failed to create a profile for the compositor's preferred color space")};
     }
 
     return {requestedDescription, ProfileSource::Generated, {}};
@@ -170,7 +170,7 @@ NegotiationResult negotiate(const NegotiationInput &input,
         result.intent = RenderIntent::render_intent_perceptual;
         if (!supportsIntent(result.intent)) {
             result.deferred = true;
-            result.errorMessage = QStringLiteral("perceptual rendering intent is unsupported");
+            result.errorMessage = PkString("perceptual rendering intent is unsupported");
             return result;
         }
     }

@@ -7,10 +7,10 @@
 #ifndef __KIS_SPEED_SMOOTHER_H
 #define __KIS_SPEED_SMOOTHER_H
 
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 #include <kritacanvas_export.h>
 
-class QPointF;
+class PkPointF;
 
 
 class KRITACANVAS_EXPORT KisSpeedSmoother
@@ -20,16 +20,16 @@ public:
     ~KisSpeedSmoother();
 
     qreal lastSpeed() const;
-    qreal getNextSpeed(const QPointF &pt, ulong timestamp);
+    qreal getNextSpeed(const PkPointF &pt, ulong timestamp);
     void clear();
 
     void updateSettings();
 
 private:
-    qreal getNextSpeedImpl(const QPointF &pt, qreal time);
+    qreal getNextSpeedImpl(const PkPointF &pt, qreal time);
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif /* __KIS_SPEED_SMOOTHER_H */

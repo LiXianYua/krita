@@ -9,14 +9,15 @@
 #define KISMIRRORAXISCONFIG_H
 
 #include <QObject>
-#include <QPointF>
-#include <QScopedPointer>
+#include <PkPoint.h>
+#include <PkScopedPointer.h>
+#include <PkString.h>
 
 #include "kritacanvas_export.h"
 #include <boost/operators.hpp>
 
-class QDomElement;
-class QDomDocument;
+class PkXmlElement;
+class PkXmlDocument;
 
 /**
  * @brief The KisMirrorAxisConfig class stores configuration for the KisMirrorAxis
@@ -62,8 +63,8 @@ public:
     float verticalHandlePosition() const;
     void setVerticalHandlePosition(float position);
 
-    QPointF axisPosition() const;
-    void setAxisPosition(QPointF position);
+    PkPointF axisPosition() const;
+    void setAxisPosition(PkPointF position);
 
     /**
      * @brief saveToXml() function for KisKraSaver
@@ -71,14 +72,14 @@ public:
      * @param tag
      * @return
      */
-    QDomElement saveToXml(QDomDocument& doc, const QString &tag) const;
+    PkXmlElement saveToXml(PkXmlDocument& doc, const PkString &tag) const;
 
     /**
      * @brief loadFromXml() function for KisKraLoader
      * @param parent element
      * @return
      */
-    bool loadFromXml(const QDomElement &parent);
+    bool loadFromXml(const PkXmlElement &parent);
 
     /**
      * @brief Check whether the config object was changed, or is the class default.
@@ -88,7 +89,7 @@ public:
 
 private:
     class Private;
-    const QScopedPointer<Private> d;
+    const PkScopedPointer<Private> d;
 };
 
 #endif // KISMIRRORAXISCONFIG_H

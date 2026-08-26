@@ -6,8 +6,8 @@
 
 #include "kis_stabilized_events_sampler.h"
 
-#include <QList>
-#include <QElapsedTimer>
+#include <PkList.h>
+#include <PkElapsedTimer.h>
 #include <QtMath>
 
 #include "kis_paint_information.h"
@@ -17,8 +17,8 @@ struct KisStabilizedEventsSampler::Private
 {
     Private(int _sampleTime) : sampleTime(_sampleTime), elapsedTimeOverride(0) {}
 
-    QElapsedTimer lastPaintTime;
-    QList<KisPaintInformation> realEvents;
+    PkElapsedTimer lastPaintTime;
+    PkList<KisPaintInformation> realEvents;
     int sampleTime;
     int elapsedTimeOverride;
 

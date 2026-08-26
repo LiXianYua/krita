@@ -8,6 +8,7 @@
 #define __KIS_GUI_CONTEXT_COMMAND_H
 
 #include <QObject>
+#include <PkScopedPointer.h>
 #include "kundo2command.h"
 #include <kritacanvas_export.h>
 
@@ -33,8 +34,8 @@ Q_SIGNALS:
     void sigExecuteCommand(KUndo2Command *command, bool undo);
 
 private:
-    QScopedPointer<KUndo2Command> m_command;
-    QScopedPointer<KisGuiContextCommandDelegate> m_delegate;
+    PkScopedPointer<KUndo2Command> m_command;
+    PkScopedPointer<KisGuiContextCommandDelegate> m_delegate;
 };
 
 #endif /* __KIS_GUI_CONTEXT_COMMAND_H */

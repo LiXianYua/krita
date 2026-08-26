@@ -5,7 +5,7 @@
  */
 
 #include <kis_dom_utils.h>
-#include <QPointF>
+#include <PkPoint.h>
 
 #include "KisMirrorAxisConfig.h"
 
@@ -23,7 +23,7 @@ public:
         , handleSize(32.f)
         , horizontalHandlePosition(64.f)
         , verticalHandlePosition(64.f)
-        , axisPosition(QPointF(0.f,0.f))
+        , axisPosition(PkPointF(0.f,0.f))
     {}
 
     bool operator==(const Private& rhs) {
@@ -50,7 +50,7 @@ public:
     float horizontalHandlePosition;
     float verticalHandlePosition;
 
-    QPointF axisPosition;
+    PkPointF axisPosition;
 };
 
 
@@ -180,19 +180,19 @@ void KisMirrorAxisConfig::setVerticalHandlePosition(float position)
     d->verticalHandlePosition = position;
 }
 
-QPointF KisMirrorAxisConfig::axisPosition() const
+PkPointF KisMirrorAxisConfig::axisPosition() const
 {
     return d->axisPosition;
 }
 
-void KisMirrorAxisConfig::setAxisPosition(QPointF position)
+void KisMirrorAxisConfig::setAxisPosition(PkPointF position)
 {
     d->axisPosition = position;
 }
 
-QDomElement KisMirrorAxisConfig::saveToXml(QDomDocument &doc, const QString &tag) const
+PkXmlElement KisMirrorAxisConfig::saveToXml(PkXmlDocument &doc, const PkString &tag) const
 {
-    QDomElement mirrorAxisElement = doc.createElement(tag);
+    PkXmlElement mirrorAxisElement = doc.createElement(tag);
     KisDomUtils::saveValue(&mirrorAxisElement, "mirrorHorizontal", d->mirrorHorizontal);
     KisDomUtils::saveValue(&mirrorAxisElement, "mirrorVertical", d->mirrorVertical);
     KisDomUtils::saveValue(&mirrorAxisElement, "lockHorizontal", d->lockHorizontal);
@@ -211,7 +211,7 @@ QDomElement KisMirrorAxisConfig::saveToXml(QDomDocument &doc, const QString &tag
     return mirrorAxisElement;
 }
 
-bool KisMirrorAxisConfig::loadFromXml(const QDomElement &parent)
+bool KisMirrorAxisConfig::loadFromXml(const PkXmlElement &parent)
 {
     bool result = true;
 

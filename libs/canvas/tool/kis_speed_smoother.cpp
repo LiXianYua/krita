@@ -7,8 +7,8 @@
 #include "kis_speed_smoother.h"
 
 #include <boost/circular_buffer.hpp>
-#include <QElapsedTimer>
-#include <QPointF>
+#include <PkElapsedTimer.h>
+#include <PkPoint.h>
 
 #include "kis_debug.h"
 #include "kis_global.h"
@@ -53,8 +53,8 @@ struct KisSpeedSmoother::Private
 
     KisFilteredRollingMean timeDiffsMean;
 
-    QPointF lastPoint;
-    QElapsedTimer timer;
+    PkPointF lastPoint;
+    PkElapsedTimer timer;
     qreal lastTime {0.0};
     qreal lastSpeed {0.0};
 
@@ -78,7 +78,7 @@ qreal KisSpeedSmoother::lastSpeed() const
     return m_d->lastSpeed;
 }
 
-qreal KisSpeedSmoother::getNextSpeed(const QPointF &pt, ulong timestamp)
+qreal KisSpeedSmoother::getNextSpeed(const PkPointF &pt, ulong timestamp)
 {
     const qreal time = m_d->useTimestamps ?
         qreal(timestamp) :
@@ -92,7 +92,7 @@ void KisSpeedSmoother::clear()
     m_d->timer.restart();
     m_d->distances.clear();
     m_d->distances.push_back(Private::DistancePoint(0.0, 0.0));
-    m_d->lastPoint = QPointF();
+    m_d->lastPoint = PkPointF();
     m_d->lastSpeed = 0.0;
 }
 
@@ -104,7 +104,7 @@ void KisSpeedSmoother::updateSettings()
     m_d->numSmoothingSamples = cfg.readEntry("speedValueSmoothing", 3);
 }
 
-qreal KisSpeedSmoother::getNextSpeedImpl(const QPointF &pt, qreal time)
+qreal KisSpeedSmoother::getNextSpeedImpl(const PkPointF &pt, qreal time)
 {
     if (m_d->lastPoint.isNull()) {
         m_d->lastPoint = pt;
