@@ -7,9 +7,9 @@
 #ifndef INDEXCOLORPALETTE_H
 #define INDEXCOLORPALETTE_H
 
-#include <QVector>
-#include <QColor>
-#include <QPair>
+#include <PkVector.h>
+#include <PkColor.h>
+#include <PkPair.h>
 #include <KoColor.h>
 
 struct LabColor
@@ -21,7 +21,7 @@ struct LabColor
 
 struct IndexColorPalette
 {
-    QVector<LabColor> m_colors;
+    PkVector<LabColor> m_colors;
 
     struct
     {
@@ -31,20 +31,20 @@ struct IndexColorPalette
     } similarityFactors;
 
     IndexColorPalette();
-    void insertShades(QColor clrA, QColor clrB, int shades);
+    void insertShades(PkColor clrA, PkColor clrB, int shades);
     void insertShades(KoColor clrA, KoColor clrB, int shades);
     void insertShades(LabColor clrA, LabColor clrB, int shades);
-    
-    void insertColor(QColor clr);
+
+    void insertColor(PkColor clr);
     void insertColor(KoColor clr);
     void insertColor(LabColor clr);
-    
+
     void mergeMostRedundantColors();
-    
+
     LabColor getNearestIndex(LabColor clr) const;
     int numColors() const;
     float similarity(LabColor c0, LabColor c1) const;
-    QPair< int, int > getNeighbours(int mainClr) const;
+    PkPair< int, int > getNeighbours(int mainClr) const;
 };
 
 #endif // INDEXCOLORPALETTE_H

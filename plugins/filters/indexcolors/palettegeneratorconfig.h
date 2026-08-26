@@ -6,19 +6,20 @@
 
 #pragma once
 
-#include <QColor>
+#include <PkAuxTypes.h>
+#include <PkColor.h>
 #include "indexcolorpalette.h"
 
 struct PaletteGeneratorConfig
 {
-    QColor colors[4][4];
+    PkColor colors[4][4];
     bool   colorsEnabled[4][4];
     int    gradientSteps[3];
     int    inbetweenRampSteps;
     bool   diagonalGradients;
 
     PaletteGeneratorConfig();
-    QByteArray toByteArray();
-    void fromByteArray(const QByteArray& str);
+    PkByteArray toByteArray();
+    void fromByteArray(const PkByteArray& str);
     IndexColorPalette generate();
 };

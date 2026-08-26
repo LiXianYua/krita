@@ -6,8 +6,8 @@
 
 #include "indexcolorpalette.h"
 
-#include <qmath.h>
-#include <QThread>
+#include <cmath>
+#include <limits>
 
 #include <KoColorSpaceMaths.h>
 #include <KoColorSpaceRegistry.h>
@@ -17,16 +17,16 @@ float IndexColorPalette::similarity(LabColor c0, LabColor c1) const
 {
     static const qreal max = KoColorSpaceMathsTraits<quint16>::max;
 
-    quint16 diffL = qAbs(c0.L - c1.L);
-    quint16 diffa = qAbs(c0.a - c1.a);
-    quint16 diffb = qAbs(c0.b - c1.b);
+    quint16 diffL = std::abs(c0.L - c1.L);
+    quint16 diffa = std::abs(c0.a - c1.a);
+    quint16 diffb = std::abs(c0.b - c1.b);
 
 
     float valL = diffL / max * similarityFactors.L;
     float valA = diffa / max * similarityFactors.a;
     float valB = diffb / max * similarityFactors.b;
 
-    return 1.f - qSqrt(valL * valL + valA * valA + valB * valB);
+    return 1.f - std::sqrt(valL * valL + valA * valA + valB * valB);
 }
 
 IndexColorPalette::IndexColorPalette()
@@ -43,7 +43,7 @@ int IndexColorPalette::numColors() const
 
 LabColor IndexColorPalette::getNearestIndex(LabColor clr) const
 {
-    QVector<float> diffs;
+    PkVector<float> diffs;
 
     int colorCount = numColors();
     Q_ASSERT(colorCount > 0);
@@ -67,9 +67,9 @@ LabColor IndexColorPalette::getNearestIndex(LabColor clr) const
     return m_colors[primaryColor];
 }
 
-QPair<int, int> IndexColorPalette::getNeighbours(int mainClr) const
+PkPair<int, int> IndexColorPalette::getNeighbours(int mainClr) const
 {
-    QVector<float> diffs;
+    PkVector<float> diffs;
     diffs.resize(numColors());
     for(int i = 0; i < numColors(); ++i)
         diffs[i] = similarity(m_colors[i], m_colors[mainClr]);
@@ -93,7 +93,7 @@ QPair<int, int> IndexColorPalette::getNeighbours(int mainClr) const
         }
     }
 
-    return qMakePair(darkerColor, brighterColor);
+    return std::make_pair(darkerColor, brighterColor);
 }
 
 void IndexColorPalette::insertShades(LabColor clrA, LabColor clrB, int shades)
@@ -120,7 +120,7 @@ void IndexColorPalette::insertShades(KoColor koclrA, KoColor koclrB, int shades)
     insertShades(clrA, clrB, shades);
 }
 
-void IndexColorPalette::insertShades(QColor qclrA, QColor qclrB, int shades)
+void IndexColorPalette::insertShades(PkColor qclrA, PkColor qclrB, int shades)
 {
     KoColor koclrA;
     koclrA.fromQColor(qclrA);
@@ -145,7 +145,7 @@ void IndexColorPalette::insertColor(KoColor koclr)
     insertColor(clr);
 }
 
-void IndexColorPalette::insertColor(QColor qclr)
+void IndexColorPalette::insertColor(PkColor qclr)
 {
     KoColor koclr;
     koclr.fromQColor(qclr);
@@ -159,14 +159,14 @@ namespace
 struct ColorString
 {
     int color;
-    QPair<int, int> neighbours;
+    PkPair<int, int> neighbours;
     float similarity;
 };
 }
 
 void IndexColorPalette::mergeMostRedundantColors()
 {
-    QVector<ColorString> colorHood;
+    PkVector<ColorString> colorHood;
     colorHood.resize(numColors());
     for(int i = 0; i < numColors(); ++i)
     {

@@ -7,20 +7,11 @@
 #ifndef INDEXCOLORS_H
 #define INDEXCOLORS_H
 
-#include <QObject>
-#include <QVariant>
 #include "filter/kis_color_transformation_filter.h"
 #include <KoColor.h>
+#include <PkString.h>
 
 #include "indexcolorpalette.h"
-
-class IndexColors : public QObject
-{
-    Q_OBJECT
-public:
-    IndexColors(QObject *parent, const QVariantList &);
-    ~IndexColors() override;
-};
 
 class KisFilterIndexColors : public KisColorTransformationFilter
 {
@@ -29,7 +20,7 @@ public:
 public:
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
     static inline KoID id() {
-        return KoID("indexcolors", i18n("Index Colors"));
+        return KoID("indexcolors", PkString("Index Colors"));
     }
 protected:
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

@@ -6,7 +6,6 @@
 
 #include "indexcolors.h"
 
-#include <kpluginfactory.h>
 #include <filter/kis_filter_registry.h>
 #include <kis_global.h>
 #include <KoColorSpaceMaths.h>
@@ -16,19 +15,18 @@
 
 #include "palettegeneratorconfig.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(IndexColorsFactory, "kritaindexcolors.json", registerPlugin<IndexColors>();)
-
-IndexColors::IndexColors(QObject *parent, const QVariantList &)
-    : QObject(parent)
+namespace {
+struct IndexColorsFilterRegistration
 {
-    KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterIndexColors()));
-}
+    IndexColorsFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterIndexColors()));
+    }
+};
+} // namespace
+static IndexColorsFilterRegistration s_indexColorsFilterRegistration;
 
-IndexColors::~IndexColors()
-{
-}
-
-KisFilterIndexColors::KisFilterIndexColors() : KisColorTransformationFilter(id(), FiltersCategoryArtisticId, i18n("&Index Colors..."))
+KisFilterIndexColors::KisFilterIndexColors() : KisColorTransformationFilter(id(), FiltersCategoryArtisticId, PkString("&Index Colors..."))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT); // Technically it is TO_LAB16 but that would only display a warning we don't want
     // This filter will always degrade the color space, that is it's purpose
@@ -117,5 +115,3 @@ void KisIndexColorTransformation::transform(const quint8* src, quint8* dst, qint
         dst += m_psize;
     }
 }
-
-#include "indexcolors.moc"

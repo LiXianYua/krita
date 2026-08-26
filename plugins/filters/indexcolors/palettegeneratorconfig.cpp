@@ -5,17 +5,17 @@
  */
 
 #include "palettegeneratorconfig.h"
-#include <QTextStream>
-#include <QIODevice>
+#include <PkDataStream.h>
+#include <PkMessageLogger.h>
 
 PaletteGeneratorConfig::PaletteGeneratorConfig()
 {
     for(int j = 0; j < 4; ++j)
     {
-        colors[0][j] = QColor(Qt::white);
-        colors[1][j] = QColor(Qt::yellow);
-        colors[2][j] = QColor(Qt::gray);
-        colors[3][j] = QColor(Qt::black);
+        colors[0][j] = PkColor(Qt::white);
+        colors[1][j] = PkColor(Qt::yellow);
+        colors[2][j] = PkColor(Qt::gray);
+        colors[3][j] = PkColor(Qt::black);
     }
 
     for(int i = 0; i < 4; ++i)
@@ -29,15 +29,15 @@ PaletteGeneratorConfig::PaletteGeneratorConfig()
     diagonalGradients = false;
 }
 
-QByteArray PaletteGeneratorConfig::toByteArray()
+PkByteArray PaletteGeneratorConfig::toByteArray()
 {
-    QByteArray retVal;
-    QDataStream stream(&retVal, QIODevice::WriteOnly);
-    stream.setVersion(QDataStream::Qt_4_6);
-    stream.setByteOrder(QDataStream::BigEndian);
+    PkByteArray retVal;
+    PkDataStream stream(&retVal, PkStream::WriteOnly);
+    stream.setVersion(PkDataStream::Qt_4_6);
+    stream.setByteOrder(PkDataStream::BigEndian);
 
     // Version int
-    stream << 0;
+    stream << std::int32_t(0);
 
     for(int i = 0; i < 4; ++i)
         for(int j = 0; j < 4; ++j)
@@ -48,20 +48,20 @@ QByteArray PaletteGeneratorConfig::toByteArray()
             stream << colorsEnabled[i][j];
 
     for(int i = 0; i < 3; ++i)
-        stream << gradientSteps[i];
+        stream << std::int32_t(gradientSteps[i]);
 
-    stream << inbetweenRampSteps;
+    stream << std::int32_t(inbetweenRampSteps);
     stream << diagonalGradients;
     return retVal;
 }
 
-void PaletteGeneratorConfig::fromByteArray(const QByteArray& str)
+void PaletteGeneratorConfig::fromByteArray(const PkByteArray& str)
 {
-    QDataStream stream(str);
-    stream.setVersion(QDataStream::Qt_4_6);
-    stream.setByteOrder(QDataStream::BigEndian);
+    PkDataStream stream(str);
+    stream.setVersion(PkDataStream::Qt_4_6);
+    stream.setByteOrder(PkDataStream::BigEndian);
 
-    int version;
+    std::int32_t version;
     stream >> version;
     if(version == 0)
     {
@@ -74,9 +74,15 @@ void PaletteGeneratorConfig::fromByteArray(const QByteArray& str)
                 stream >> colorsEnabled[i][j];
 
         for(int i = 0; i < 3; ++i)
-            stream >> gradientSteps[i];
+        {
+            std::int32_t decoded;
+            stream >> decoded;
+            gradientSteps[i] = decoded;
+        }
 
-        stream >> inbetweenRampSteps;
+        std::int32_t rampSteps;
+        stream >> rampSteps;
+        inbetweenRampSteps = rampSteps;
         stream >> diagonalGradients;
     }
     else
