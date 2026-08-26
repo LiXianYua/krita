@@ -7,13 +7,14 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 
 #include <KoResourceLoadResult.h>
 #include <KoStopGradient.h>
 #include <KoAbstractGradient.h>
 #include <KisDitherConfigurationHelper.h>
-#include <QBuffer>
+#include <PkMemoryStream.h>
+#include <PkAuxTypes.h>
 #include <KoMD5Generator.h>
 
 #include "KisGradientMapFilterConfiguration.h"
@@ -35,9 +36,9 @@ KisFilterConfigurationSP KisGradientMapFilterConfiguration::clone() const
     return new KisGradientMapFilterConfiguration(*this);
 }
 
-QList<KoResourceLoadResult> KisGradientMapFilterConfiguration::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
+PkList<KoResourceLoadResult> KisGradientMapFilterConfiguration::linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const
 {
-    QList<KoResourceLoadResult> resources;
+    PkList<KoResourceLoadResult> resources;
 
     // only the first version of the filter loaded the gradient by name
     if (version() == 1) {
@@ -45,8 +46,8 @@ QList<KoResourceLoadResult> KisGradientMapFilterConfiguration::linkedResources(K
         if (gradient) {
             resources << gradient;
         } else {
-            QString md5sum = this->getString("md5sum");
-            QString gradientName = this->getString("gradientName");
+            PkString md5sum = this->getString("md5sum");
+            PkString gradientName = this->getString("gradientName");
 
             resources << KoResourceSignature(ResourceType::Gradients, md5sum, "", gradientName);
         }
@@ -57,20 +58,21 @@ QList<KoResourceLoadResult> KisGradientMapFilterConfiguration::linkedResources(K
     return resources;
 }
 
-QList<KoResourceLoadResult> KisGradientMapFilterConfiguration::embeddedResources(KisResourcesInterfaceSP) const
+PkList<KoResourceLoadResult> KisGradientMapFilterConfiguration::embeddedResources(KisResourcesInterfaceSP) const
 {
-    QList<KoResourceLoadResult> resources;
+    PkList<KoResourceLoadResult> resources;
 
     // the second version of the filter embeds the gradient
     if (version() > 1) {
         KoAbstractGradientSP gradient = this->gradient();
 
         // TODO: check if it is okay to resave the gradient on loading
-        QBuffer buffer;
-        buffer.open(QBuffer::WriteOnly);
+        PkMemoryStream buffer;
+        buffer.open(PkMemoryStream::WriteOnly);
         gradient->saveToDevice(&buffer);
 
-        resources << KoEmbeddedResource(KoResourceSignature(ResourceType::Gradients, KoMD5Generator::generateHash(buffer.data()), gradient->filename(), gradient->name()), buffer.data());
+        const PkByteArray bufData(buffer.data(), (int)buffer.size());
+        resources << KoEmbeddedResource(KoResourceSignature(ResourceType::Gradients, KoMD5Generator::generateHash(bufData), gradient->filename(), gradient->name()), bufData);
     }
 
     return resources;
@@ -80,8 +82,8 @@ KoAbstractGradientSP KisGradientMapFilterConfiguration::gradient(KoAbstractGradi
 {
     if (version() == 1) {
 
-        QString md5sum = this->getString("md5sum");
-        QString gradientName = this->getString("gradientName");
+        PkString md5sum = this->getString("md5sum");
+        PkString gradientName = this->getString("gradientName");
         auto source = resourcesInterface()->source<KoAbstractGradient>(ResourceType::Gradients);
 
         KoAbstractGradientSP resourceGradient = source.bestMatch(md5sum, "", gradientName);
@@ -94,11 +96,11 @@ KoAbstractGradientSP KisGradientMapFilterConfiguration::gradient(KoAbstractGradi
             qWarning() << "Could not find gradient" << getString("md5sum") << getString("gradientName");
         }
     } else if (version() == 2) {
-        QDomDocument document;
+        PkXmlDocument document;
         if (document.setContent(getString("gradientXML", ""))) {
-            const QDomElement gradientElement = document.firstChildElement();
+            const PkXmlElement gradientElement = document.firstChildElement();
             if (!gradientElement.isNull()) {
-                const QString gradientType = gradientElement.attribute("type");
+                const PkString gradientType = gradientElement.attribute("type");
                 KoAbstractGradientSP gradient = nullptr;
                 if (gradientType == "stop") {
                     gradient = KoStopGradient::fromXML(gradientElement).clone().dynamicCast<KoAbstractGradient>();
@@ -129,8 +131,8 @@ void KisGradientMapFilterConfiguration::setGradient(KoAbstractGradientSP newGrad
         return;
     }
 
-    QDomDocument document;
-    QDomElement gradientElement = document.createElement("gradient");
+    PkXmlDocument document;
+    PkXmlElement gradientElement = document.createElement("gradient");
     gradientElement.setAttribute("name", newGradient->name());
     gradientElement.setAttribute("md5sum", newGradient->md5Sum());
 

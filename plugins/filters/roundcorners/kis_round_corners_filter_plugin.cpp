@@ -16,7 +16,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisRoundCornersFilterPluginFactory, "kritaroundcornersfilter.json", registerPlugin<KisRoundCornersFilterPlugin>();)
 
-KisRoundCornersFilterPlugin::KisRoundCornersFilterPlugin(QObject *parent, const QVariantList &)
+KisRoundCornersFilterPlugin::KisRoundCornersFilterPlugin(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisRoundCornersFilter());

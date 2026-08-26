@@ -9,13 +9,13 @@
 #define _KIS_PIXELIZE_FILTER_PLUGIN_H_
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class KisPixelizeFilterPlugin : public QObject
 {
     Q_OBJECT
 public:
-    KisPixelizeFilterPlugin(QObject *parent, const QVariantList &);
+    KisPixelizeFilterPlugin(QObject *parent, const PkVariantList &);
     ~KisPixelizeFilterPlugin() override;
 };
 

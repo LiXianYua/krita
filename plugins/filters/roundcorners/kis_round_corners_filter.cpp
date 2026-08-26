@@ -15,7 +15,7 @@
 #include <vector>
 #include <math.h>
 
-#include <QPoint>
+#include <PkPoint.h>
 
 #include <klocalizedstring.h>
 #include <kpluginfactory.h>
@@ -44,8 +44,8 @@ KisRoundCornersFilter::KisRoundCornersFilter() : KisFilter(id(), FiltersCategory
 }
 
 void fadeOneCorner(KisPaintDeviceSP device,
-                   const QPoint &basePoint,
-                   const QRect &processRect,
+                   const PkPoint &basePoint,
+                   const PkRect &processRect,
                    const qreal thresholdSq,
                    KoUpdater* progressUpdater)
 {
@@ -53,7 +53,7 @@ void fadeOneCorner(KisPaintDeviceSP device,
     KisSequentialIteratorProgress dstIt(device, processRect, progressUpdater);
 
     while (dstIt.nextPixel()) {
-        const QPointF point(dstIt.x(), dstIt.y());
+        const PkPointF point(dstIt.x(), dstIt.y());
 
         const qreal distanceSq = kisSquareDistance(point, basePoint);
         if (distanceSq >= thresholdSq) {
@@ -64,7 +64,7 @@ void fadeOneCorner(KisPaintDeviceSP device,
 
 
 void KisRoundCornersFilter::processImpl(KisPaintDeviceSP device,
-                                        const QRect& applyRect,
+                                        const PkRect& applyRect,
                                         const KisFilterConfigurationSP config,
                                         KoUpdater* progressUpdater
                                         ) const
@@ -78,47 +78,47 @@ void KisRoundCornersFilter::processImpl(KisPaintDeviceSP device,
         return;
     }
 
-    const QRect bounds = device->defaultBounds()->imageBorderRect();
+    const PkRect bounds = device->defaultBounds()->imageBorderRect();
 
     const qint32 radius = qMin(KisAlgebra2D::minDimension(bounds) / 2, qMax(1, config->getInt("radius" , 30)));
     const qreal radiusSq = pow2(radius);
 
     struct CornerJob {
-        QRect rc;
-        QPoint pt;
+        PkRect rc;
+        PkPoint pt;
         KoUpdater *progressUpdater;
     };
 
-    QVector<CornerJob> jobs;
+    PkVector<CornerJob> jobs;
 
     KoProgressUpdater compositeUpdater(progressUpdater, KoProgressUpdater::Unthreaded);
 
     {
-        QRect rc(bounds.x(), bounds.y(), radius, radius);
-        QPoint pt(rc.bottomRight());
+        PkRect rc(bounds.x(), bounds.y(), radius, radius);
+        PkPoint pt(rc.bottomRight());
         jobs << CornerJob({rc, pt, compositeUpdater.startSubtask()});
     }
 
     {
-        QRect rc(bounds.x() + bounds.width() - radius, bounds.y(), radius, radius);
-        QPoint pt(rc.bottomLeft());
+        PkRect rc(bounds.x() + bounds.width() - radius, bounds.y(), radius, radius);
+        PkPoint pt(rc.bottomLeft());
         jobs << CornerJob({rc, pt, compositeUpdater.startSubtask()});
     }
 
     {
-        QRect rc(bounds.x(), bounds.y() + bounds.height() - radius, radius, radius);
-        QPoint pt(rc.topRight());
+        PkRect rc(bounds.x(), bounds.y() + bounds.height() - radius, radius, radius);
+        PkPoint pt(rc.topRight());
         jobs << CornerJob({rc, pt, compositeUpdater.startSubtask()});
     }
 
     {
-        QRect rc(bounds.x() + bounds.width() - radius, bounds.y() + bounds.height() - radius, radius, radius);
-        QPoint pt(rc.topLeft());
+        PkRect rc(bounds.x() + bounds.width() - radius, bounds.y() + bounds.height() - radius, radius, radius);
+        PkPoint pt(rc.topLeft());
         jobs << CornerJob({rc, pt, compositeUpdater.startSubtask()});
     }
 
     Q_FOREACH (const CornerJob &job, jobs) {
-        const QRect processRect = job.rc & applyRect;
+        const PkRect processRect = job.rc & applyRect;
         if (!processRect.isEmpty()) {
             fadeOneCorner(device, job.pt, processRect, radiusSq, job.progressUpdater);
         }

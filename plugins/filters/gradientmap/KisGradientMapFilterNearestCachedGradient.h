@@ -10,7 +10,7 @@
 #ifndef KIS_GRADIENT_MAP_FILTER_NEAREST_CACHED_GRADIENT_H
 #define KIS_GRADIENT_MAP_FILTER_NEAREST_CACHED_GRADIENT_H
 
-#include <QVector>
+#include <PkVector.h>
 
 #include <KoColor.h>
 
@@ -26,7 +26,7 @@ public:
 
 private:
     const qint32 m_max;
-    QVector<KoColor> m_colors;
+    PkVector<KoColor> m_colors;
     const KoColor m_black;
 };
 

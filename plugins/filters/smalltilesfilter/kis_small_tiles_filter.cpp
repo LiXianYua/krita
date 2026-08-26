@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
+#include <PkPoint.h>
 #include <QSpinBox>
 
 #include <klocalizedstring.h>
@@ -45,7 +45,7 @@ KisSmallTilesFilter::KisSmallTilesFilter() : KisFilter(id(), FiltersCategoryMapI
 }
 
 void KisSmallTilesFilter::processImpl(KisPaintDeviceSP device,
-                                      const QRect& applyRect,
+                                      const PkRect& applyRect,
                                       const KisFilterConfigurationSP config,
                                       KoUpdater* progressUpdater
                                       ) const
@@ -55,7 +55,7 @@ void KisSmallTilesFilter::processImpl(KisPaintDeviceSP device,
     //read the filter configuration values from the KisFilterConfiguration object
     const quint32 numberOfTiles = config->getInt("numberOfTiles", 2);
 
-    const QRect srcRect = applyRect;
+    const PkRect srcRect = applyRect;
 
     const int w = static_cast<int>(srcRect.width() / numberOfTiles);
     const int h = static_cast<int>(srcRect.height() / numberOfTiles);

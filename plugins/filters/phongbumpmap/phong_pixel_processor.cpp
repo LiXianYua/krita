@@ -30,7 +30,7 @@ void PhongPixelProcessor::initialize(const KisPropertiesConfigurationSP config)
     //setLightVector(QVector3D(-8, 8, 2));
 
     Illuminant light[PHONG_TOTAL_ILLUMINANTS];
-    QVariant guiLight[PHONG_TOTAL_ILLUMINANTS];
+    PkVariant guiLight[PHONG_TOTAL_ILLUMINANTS];
 
     qint32 azimuth;
     qint32 inclination;
@@ -38,9 +38,9 @@ void PhongPixelProcessor::initialize(const KisPropertiesConfigurationSP config)
     for (int i = 0; i < PHONG_TOTAL_ILLUMINANTS; i++) {
         if (config->getBool(PHONG_ILLUMINANT_IS_ENABLED[i])) {
             if (config->getProperty(PHONG_ILLUMINANT_COLOR[i], guiLight[i])) {
-                light[i].RGBvalue << guiLight[i].value<QColor>().redF();
-                light[i].RGBvalue << guiLight[i].value<QColor>().greenF();
-                light[i].RGBvalue << guiLight[i].value<QColor>().blueF();
+                light[i].RGBvalue << guiLight[i].value<PkColor>().redF();
+                light[i].RGBvalue << guiLight[i].value<PkColor>().greenF();
+                light[i].RGBvalue << guiLight[i].value<PkColor>().blueF();
 
                 azimuth = config->getInt(PHONG_ILLUMINANT_AZIMUTH[i]) - 90;
                 inclination = config->getInt(PHONG_ILLUMINANT_INCLINATION[i]);
@@ -76,7 +76,7 @@ void PhongPixelProcessor::initialize(const KisPropertiesConfigurationSP config)
     diffuseLightIsEnabled = config->getBool(PHONG_DIFFUSE_REFLECTIVITY_IS_ENABLED);
     specularLightIsEnabled = config->getBool(PHONG_SPECULAR_REFLECTIVITY_IS_ENABLED);
 
-    realheightmap = QVector<double>(m_pixelArea, 0);
+    realheightmap = PkVector<double>(m_pixelArea, 0);
 }
 
 
@@ -92,9 +92,9 @@ void PhongPixelProcessor::setLightVector(QVector3D lightVector)
     light_vector = lightVector;
 }
 
-QVector<quint16> PhongPixelProcessor::IlluminatePixelFromHeightmap(quint32 posup, quint32 posdown, quint32 posleft, quint32 posright)
+PkVector<quint16> PhongPixelProcessor::IlluminatePixelFromHeightmap(quint32 posup, quint32 posdown, quint32 posleft, quint32 posright)
 {
-    QVector<quint16> finalPixel(4, 0xFFFF);
+    PkVector<quint16> finalPixel(4, 0xFFFF);
 
     if (lightSources.size() == 0)
         return finalPixel;
@@ -112,13 +112,13 @@ QVector<quint16> PhongPixelProcessor::IlluminatePixelFromHeightmap(quint32 posup
     return finalPixel;
 }
 
-QVector<quint16> PhongPixelProcessor::IlluminatePixel()
+PkVector<quint16> PhongPixelProcessor::IlluminatePixel()
 {
     qreal temp;
     quint8 channel = 0;
     const quint8 totalChannels = 3; // The 4th is alpha and we'll fill it with a nice 0xFFFF
     qreal computation[] = {0, 0, 0};
-    QVector<quint16> finalPixel(4, 0xFFFF);
+    PkVector<quint16> finalPixel(4, 0xFFFF);
 
     if (lightSources.size() == 0)
         return finalPixel;
@@ -169,9 +169,9 @@ QVector<quint16> PhongPixelProcessor::IlluminatePixel()
     return finalPixel;
 }
 
-QVector<quint16> PhongPixelProcessor::IlluminatePixelFromNormalmap(qreal r, qreal g, qreal b)
+PkVector<quint16> PhongPixelProcessor::IlluminatePixelFromNormalmap(qreal r, qreal g, qreal b)
 {
-    QVector<quint16> finalPixel(4, 0xFFFF);
+    PkVector<quint16> finalPixel(4, 0xFFFF);
 
     if (lightSources.size() == 0)
         return finalPixel;

@@ -10,7 +10,7 @@
 #define CONVOLUTIONFILTERS_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include "kis_convolution_filter.h"
 
 class KisSharpenFilter : public KisConvolutionFilter
@@ -98,7 +98,7 @@ class KritaConvolutionFilters : public QObject
 {
     Q_OBJECT
 public:
-    KritaConvolutionFilters(QObject *parent, const QVariantList &);
+    KritaConvolutionFilters(QObject *parent, const PkVariantList &);
     ~KritaConvolutionFilters() override;
 };
 

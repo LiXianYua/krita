@@ -32,7 +32,7 @@
 K_PLUGIN_FACTORY_WITH_JSON(KritaFastColorTransferFactory, "kritafastcolortransfer.json", registerPlugin<FastColorTransferPlugin>();)
 
 
-FastColorTransferPlugin::FastColorTransferPlugin(QObject *parent, const QVariantList &)
+FastColorTransferPlugin::FastColorTransferPlugin(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisFilterFastColorTransfer());
@@ -62,7 +62,7 @@ KisFilterConfigurationSP KisFilterFastColorTransfer::defaultConfiguration(KisRes
 #define CLAMP(x,l,u) ((x)<(l)?(l):((x)>(u)?(u):(x)))
 
 void KisFilterFastColorTransfer::processImpl(KisPaintDeviceSP device,
-                                             const QRect& applyRect,
+                                             const PkRect& applyRect,
                                              const KisFilterConfigurationSP config,
                                              KoUpdater* progressUpdater) const
 {

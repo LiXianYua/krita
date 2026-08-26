@@ -13,7 +13,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(DodgeBurnPluginFactory, "kritadodgeburn.json", registerPlugin<DodgeBurnPlugin>();)
 
-DodgeBurnPlugin::DodgeBurnPlugin(QObject *parent, const QVariantList &)
+DodgeBurnPlugin::DodgeBurnPlugin(QObject *parent, const PkVariantList &)
 {
     Q_UNUSED(parent);
     KisFilterRegistry::instance()->add(new KisFilterDodgeBurn("dodge", "Dodge", i18n("Dodge...")));

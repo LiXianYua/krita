@@ -20,7 +20,7 @@ class Palettize : public QObject
 {
     Q_OBJECT
 public:
-    Palettize(QObject *parent, const QVariantList &);
+    Palettize(QObject *parent, const PkVariantList &);
 };
 
 class KisFilterPalettize : public KisFilter
@@ -52,7 +52,7 @@ public:
     static inline KoID id() { return KoID("palettize", i18n("Palettize")); }
     KisFilterConfigurationSP factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
-    void processImpl(KisPaintDeviceSP device, const QRect &applyRect, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const override;
+    void processImpl(KisPaintDeviceSP device, const PkRect &applyRect, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const override;
 };
 
 #endif

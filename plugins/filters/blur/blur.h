@@ -10,13 +10,13 @@
 #define BLURPLUGIN_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class BlurFilterPlugin : public QObject
 {
     Q_OBJECT
 public:
-    BlurFilterPlugin(QObject *parent, const QVariantList &);
+    BlurFilterPlugin(QObject *parent, const PkVariantList &);
     ~BlurFilterPlugin() override;
 };
 

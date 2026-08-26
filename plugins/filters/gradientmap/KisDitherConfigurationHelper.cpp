@@ -16,7 +16,7 @@
 
 #include "KisDitherUtil.h"
 
-void KisDitherConfigurationHelper::factoryConfiguration(KisPropertiesConfiguration &config, const QString &prefix)
+void KisDitherConfigurationHelper::factoryConfiguration(KisPropertiesConfiguration &config, const PkString &prefix)
 {
     config.setProperty(prefix + "thresholdMode", KisDitherUtil::ThresholdMode::Pattern);
     config.setProperty(prefix + "pattern", "DITH 0202 GEN ");
@@ -25,14 +25,14 @@ void KisDitherConfigurationHelper::factoryConfiguration(KisPropertiesConfigurati
     config.setProperty(prefix + "spread", 1.0);
 }
 
-QList<KoResourceLoadResult> KisDitherConfigurationHelper::prepareLinkedResources(const KisFilterConfiguration &config,
-                                                                                  const QString &prefix,
+PkList<KoResourceLoadResult> KisDitherConfigurationHelper::prepareLinkedResources(const KisFilterConfiguration &config,
+                                                                                  const PkString &prefix,
                                                                                   KisResourcesInterfaceSP resourcesInterface)
 {
     auto source = resourcesInterface->source<KoPattern>(ResourceType::Patterns);
 
-    QString patternMD5 = config.getString(prefix + "md5sum");
-    QString patternName = config.getString(prefix + "pattern");
+    PkString patternMD5 = config.getString(prefix + "md5sum");
+    PkString patternName = config.getString(prefix + "pattern");
 
     return {source.bestMatchLoadResult(patternMD5, "", patternName)};
 }

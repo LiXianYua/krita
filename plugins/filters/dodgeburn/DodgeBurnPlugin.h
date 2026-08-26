@@ -8,13 +8,13 @@
 #define _DODGE_BURN_PLUGIN_H_
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class DodgeBurnPlugin : public QObject
 {
     Q_OBJECT
 public:
-    DodgeBurnPlugin(QObject *parent, const QVariantList &);
+    DodgeBurnPlugin(QObject *parent, const PkVariantList &);
     ~DodgeBurnPlugin() override;
 };
 

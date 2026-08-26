@@ -9,8 +9,8 @@
 #ifndef KIS_DITHER_CONFIGURATION_HELPER_H
 #define KIS_DITHER_CONFIGURATION_HELPER_H
 
-#include <QList>
-#include <QString>
+#include <PkList.h>
+#include <PkString.h>
 
 #include <KisResourcesInterface.h>
 #include <kis_types.h>
@@ -22,9 +22,9 @@ class KoResourceLoadResult;
 class KisDitherConfigurationHelper
 {
 public:
-    static void factoryConfiguration(KisPropertiesConfiguration &config, const QString &prefix = "");
-    static QList<KoResourceLoadResult> prepareLinkedResources(const KisFilterConfiguration &config,
-                                                               const QString &prefix,
+    static void factoryConfiguration(KisPropertiesConfiguration &config, const PkString &prefix = "");
+    static PkList<KoResourceLoadResult> prepareLinkedResources(const KisFilterConfiguration &config,
+                                                               const PkString &prefix,
                                                                KisResourcesInterfaceSP resourcesInterface);
 };
 

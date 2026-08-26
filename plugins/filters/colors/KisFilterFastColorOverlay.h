@@ -12,14 +12,14 @@
 class KisFilterFastColorOverlay : public KisFilter
 {
 public:
-    static QColor defaultColor();
+    static PkColor defaultColor();
     static int defaultOpacity();
-    static QString defaultCompositeOp();
+    static PkString defaultCompositeOp();
 
     KisFilterFastColorOverlay();
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& rect,
+                     const PkRect& rect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;

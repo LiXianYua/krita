@@ -42,11 +42,11 @@ struct GenericExpansionStrategy
     KisPaintDeviceSP sourceDevice;
     const KoColorSpace *sourceDeviceColorSpace;
     const qint32 sourceDevicePixelSize;
-    const QRect rect;
+    const PkRect rect;
     const quint32 expansionAmount;
 
     GenericExpansionStrategy(KisPaintDeviceSP sourceDevice,
-                             const QRect &applyRect,
+                             const PkRect &applyRect,
                              qreal expansionAmount)
         : distanceMap(new KisPaintDevice(KoColorSpaceRegistry::instance()->rgb8()))
         , sourceDevice(sourceDevice)
@@ -226,8 +226,8 @@ void expand(ExpansionStrategy &expansionStrategy, KoUpdater *progressUpdater)
 {
     ScaledProgress progress(expansionStrategy.rect.height() * 2, progressUpdater);
 
-    QVector<quint8> distanceMapRows(expansionStrategy.rect.width() * 4 * 2);
-    QVector<quint8> deviceRows(expansionStrategy.rect.width() * expansionStrategy.sourceDevicePixelSize * 2);
+    PkVector<quint8> distanceMapRows(expansionStrategy.rect.width() * 4 * 2);
+    PkVector<quint8> deviceRows(expansionStrategy.rect.width() * expansionStrategy.sourceDevicePixelSize * 2);
     quint8 *distanceMapRow1, *distanceMapRow2;
     quint8 *deviceRow1, *deviceRow2;
 
@@ -454,7 +454,7 @@ void expand(ExpansionStrategy &expansionStrategy, KoUpdater *progressUpdater)
 
 template <quint32 DiagonalDistance, bool BoundedExpansion>
 void selectStrategyAndExpand2(KisPaintDeviceSP device,
-                              const QRect &applyRect,
+                              const PkRect &applyRect,
                               const KisPropagateColorsFilterConfiguration *filterConfig,
                               KoUpdater *progressUpdater)
 {
@@ -475,7 +475,7 @@ void selectStrategyAndExpand2(KisPaintDeviceSP device,
 
 template <quint32 DiagonalDistance>
 void selectStrategyAndExpand1(KisPaintDeviceSP device,
-                              const QRect &applyRect,
+                              const PkRect &applyRect,
                               const KisPropagateColorsFilterConfiguration *filterConfig,
                               KoUpdater *progressUpdater)
 {
@@ -489,7 +489,7 @@ void selectStrategyAndExpand1(KisPaintDeviceSP device,
 }
 
 void KisPropagateColorsFilter::processImpl(KisPaintDeviceSP device,
-                                           const QRect &applyRect,
+                                           const PkRect &applyRect,
                                            const KisFilterConfigurationSP config,
                                            KoUpdater *progressUpdater) const
 {
@@ -524,7 +524,7 @@ bool KisPropagateColorsFilter::needsTransparentPixels(const KisFilterConfigurati
     return filterConfig->expansionMode() == KisPropagateColorsFilterConfiguration::ExpansionMode_Unbounded;
 }
 
-QRect KisPropagateColorsFilter::neededRect(const QRect &rect, const KisFilterConfigurationSP config, int) const
+PkRect KisPropagateColorsFilter::neededRect(const PkRect &rect, const KisFilterConfigurationSP config, int) const
 {
     const KisPropagateColorsFilterConfiguration *filterConfig =
             dynamic_cast<const KisPropagateColorsFilterConfiguration*>(config.data());
@@ -538,7 +538,7 @@ QRect KisPropagateColorsFilter::neededRect(const QRect &rect, const KisFilterCon
     return rect.adjusted(-expansionAmount, -expansionAmount, expansionAmount, expansionAmount);
 }
 
-QRect KisPropagateColorsFilter::changedRect(const QRect &rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisPropagateColorsFilter::changedRect(const PkRect &rect, const KisFilterConfigurationSP config, int lod) const
 {
     return neededRect(rect, config, lod);
 }

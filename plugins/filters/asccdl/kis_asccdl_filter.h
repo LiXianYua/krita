@@ -14,7 +14,7 @@ class KritaASCCDL : public QObject
 {
     Q_OBJECT
 public:
-    KritaASCCDL(QObject *parent, const QVariantList &);
+    KritaASCCDL(QObject *parent, const PkVariantList &);
     ~KritaASCCDL() override;
 };
 
@@ -39,9 +39,9 @@ public:
     KisASCCDLTransformation(const KoColorSpace *cs, KoColor slope, KoColor offset, KoColor power);
     void transform(const quint8* src, quint8* dst, qint32 nPixels) const override;
 private:
-    QVector<float> m_slope;
-    QVector<float> m_offset;
-    QVector<float> m_power;
+    PkVector<float> m_slope;
+    PkVector<float> m_offset;
+    PkVector<float> m_power;
     const KoColorSpace *m_cs;
 };
 

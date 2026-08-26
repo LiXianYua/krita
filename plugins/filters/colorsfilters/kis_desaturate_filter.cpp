@@ -15,8 +15,8 @@
 #include <string.h>
 
 #include <QSlider>
-#include <QPoint>
-#include <QColor>
+#include <PkPoint.h>
+#include <PkColor.h>
 
 #include <klocalizedstring.h>
 
@@ -55,7 +55,7 @@ KisDesaturateFilter::~KisDesaturateFilter()
 
 KoColorTransformation* KisDesaturateFilter::createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const
 {
-    QHash<QString, QVariant> params;
+    PkHash<PkString, PkVariant> params;
     if (config) {
         params["type"] = config->getInt("type", 0);
     }

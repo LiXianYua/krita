@@ -39,7 +39,7 @@ VirtualChannelInfo::VirtualChannelInfo(Type type,
         m_valueTypeOverride = KoChannelInfo::FLOAT32;
         m_channelSizeOverride = 4;
     } else if (m_type == ALL_COLORS) {
-        const QList<KoChannelInfo*> channels = cs->channels();
+        const PkList<KoChannelInfo*> channels = cs->channels();
 
         if (cs->colorModelId() == RGBAColorModelID) {
             m_nameOverride = "RGB";
@@ -67,7 +67,7 @@ KoChannelInfo* VirtualChannelInfo::channelInfo() const {
     return m_realChannelInfo;
 }
 
-QString VirtualChannelInfo::name() const {
+PkString VirtualChannelInfo::name() const {
     return m_type == REAL ? m_realChannelInfo->name() : m_nameOverride;
 }
 

@@ -15,7 +15,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaGradientMapFilterFactory, "KritaGradientMapFilter.json", registerPlugin<KisGradientMapFilterPlugin>();)
 
-KisGradientMapFilterPlugin::KisGradientMapFilterPlugin(QObject *parent, const QVariantList &)
+KisGradientMapFilterPlugin::KisGradientMapFilterPlugin(QObject *parent, const PkVariantList &)
     : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisGradientMapFilter());

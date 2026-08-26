@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
+#include <PkPoint.h>
 #include <QSpinBox>
 
 #include <klocalizedstring.h>
@@ -68,12 +68,12 @@ KisFilterConfigurationSP KisEmbossFilter::defaultConfiguration(KisResourcesInter
  *                     increase it. After this, get the gray tone
  */
 void KisEmbossFilter::processImpl(KisPaintDeviceSP device,
-                                  const QRect& applyRect,
+                                  const PkRect& applyRect,
                                   const KisFilterConfigurationSP config,
                                   KoUpdater* progressUpdater
                                   ) const
 {
-    QPoint srcTopLeft = applyRect.topLeft();
+    PkPoint srcTopLeft = applyRect.topLeft();
     Q_ASSERT(device);
 
     //read the filter configuration values from the KisFilterConfiguration object
@@ -89,8 +89,8 @@ void KisEmbossFilter::processImpl(KisPaintDeviceSP device,
     int Height = applyRect.height();
 
     KisSequentialIteratorProgress it(device, applyRect, progressUpdater);
-    QColor color1;
-    QColor color2;
+    PkColor color1;
+    PkColor color2;
     KisRandomConstAccessorSP acc = device->createRandomAccessorNG();
     while (it.nextPixel()) {
 
@@ -106,7 +106,7 @@ void KisEmbossFilter::processImpl(KisPaintDeviceSP device,
 
         Gray = CLAMP((R + G + B) / 3, 0, quint8_MAX);
 
-        device->colorSpace()->fromQColor(QColor(Gray, Gray, Gray, color1.alpha()), it.rawData());
+        device->colorSpace()->fromQColor(PkColor(Gray, Gray, Gray, color1.alpha()), it.rawData());
     }
 }
 

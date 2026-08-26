@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
-#include <QTime>
+#include <PkPoint.h>
+#include <PkDateTime.h>
 #include <QVector3D>
 
 #include <kpluginfactory.h>
@@ -30,7 +30,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaNormalizeFilterFactory, "kritanormalize.json", registerPlugin<KritaNormalizeFilter>();)
 
-KritaNormalizeFilter::KritaNormalizeFilter(QObject *parent, const QVariantList &)
+KritaNormalizeFilter::KritaNormalizeFilter(QObject *parent, const PkVariantList &)
     : QObject(parent)
 {
     KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterNormalize()));
@@ -71,7 +71,7 @@ void KisNormalizeTransformation::transform(const quint8* src, quint8* dst, qint3
     }
 
     QVector3D normal_vector;
-    QVector<float> channelValues(4);
+    PkVector<float> channelValues(4);
     //if (m_colorSpace->colorDepthId().id()!="F16" && m_colorSpace->colorDepthId().id()!="F32" && m_colorSpace->colorDepthId().id()!="F64") {
     /* I don't know why, but the results of this are unexpected with a floating point space.
      * And manipulating the pixels gives strange results.

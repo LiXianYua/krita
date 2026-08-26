@@ -15,8 +15,8 @@
 #include <string.h>
 
 #include <QSlider>
-#include <QPoint>
-#include <QColor>
+#include <PkPoint.h>
+#include <PkColor.h>
 
 #include <klocalizedstring.h>
 
@@ -52,7 +52,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(ColorsFiltersFactory, "kritacolorsfilter.json", registerPlugin<ColorsFilters>();)
 
-ColorsFilters::ColorsFilters(QObject *parent, const QVariantList &)
+ColorsFilters::ColorsFilters(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry * manager = KisFilterRegistry::instance();
@@ -83,7 +83,7 @@ KisAutoContrast::KisAutoContrast() : KisFilter(id(), FiltersCategoryAdjustId, i1
 }
 
 void KisAutoContrast::processImpl(KisPaintDeviceSP device,
-                                  const QRect& applyRect,
+                                  const PkRect& applyRect,
                                   const KisFilterConfigurationSP config,
                                   KoUpdater* progressUpdater) const
 {
@@ -144,7 +144,7 @@ void KisAutoContrast::processImpl(KisPaintDeviceSP device,
             transfer[i] = 0xFFFF;
     }
     // apply
-    QScopedPointer<KoColorTransformation> adj(device->colorSpace()->createBrightnessContrastAdjustment(transfer.data()));
+    PkScopedPointer<KoColorTransformation> adj(device->colorSpace()->createBrightnessContrastAdjustment(transfer.data()));
     KIS_SAFE_ASSERT_RECOVER_RETURN(adj);
 
     KisSequentialIteratorProgress it(device, applyRect, progressUpdater);

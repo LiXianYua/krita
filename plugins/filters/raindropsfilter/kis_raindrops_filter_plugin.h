@@ -10,13 +10,13 @@
 #define _KIS_RAINDROPS_FILTER_PLUGIN_H_
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class KisRainDropsFilterPlugin : public QObject
 {
     Q_OBJECT
 public:
-    KisRainDropsFilterPlugin(QObject *parent, const QVariantList &);
+    KisRainDropsFilterPlugin(QObject *parent, const PkVariantList &);
     ~KisRainDropsFilterPlugin() override;
 };
 

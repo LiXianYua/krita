@@ -48,24 +48,24 @@ public:
 
     KisFilterConfigurationSP clone() const override;
 
-    const QVector<int> driverChannels() const;
+    const PkVector<int> driverChannels() const;
 
-    void setDriverChannels(QVector<int> driverChannels);
+    void setDriverChannels(PkVector<int> driverChannels);
     using KisFilterConfiguration::fromXML;
 
     using KisFilterConfiguration::toXML;
-    void fromXML(const QDomElement& e) override;
-    void toXML(QDomDocument& doc, QDomElement& root) const override;
+    void fromXML(const PkXmlElement& e) override;
+    void toXML(PkXmlDocument& doc, PkXmlElement& root) const override;
 
     KisCubicCurve getDefaultCurve() override;
 
     virtual bool compareTo(const KisPropertiesConfiguration* rhs) const override;
 
-    void setProperty(const QString& name, const QVariant& value) override;
+    void setProperty(const PkString& name, const PkVariant& value) override;
 
 private:
     const KoColorSpace *m_colorSpace {nullptr};
-    QVector<int> m_driverChannels;
+    PkVector<int> m_driverChannels;
 
     /**
      * @brief Takes a driver property name with format "driver#", where # is the
@@ -76,7 +76,7 @@ private:
      * @return true if "name" had a valid format
      * @return false if "name" had an invalid format
      */
-    bool channelIndexFromDriverPropertyName(const QString& name, int& channelIndex) const;
+    bool channelIndexFromDriverPropertyName(const PkString& name, int& channelIndex) const;
 };
 
 #endif

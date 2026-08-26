@@ -27,7 +27,7 @@ public:
 
     KisFilterConfigurationSP clone() const override;
 
-    static inline QString defaultName() { return "levels"; }
+    static inline PkString defaultName() { return "levels"; }
     static constexpr qint32 defaultVersion() { return 2; }
     static inline KisLevelsCurve defaultLevelsCurve() { return KisLevelsCurve(); }
     static constexpr bool defaultUseLightnessMode() { return true; }
@@ -41,18 +41,18 @@ public:
     using KisFilterConfiguration::toXML;
     using KisFilterConfiguration::fromLegacyXML;
     
-    void fromLegacyXML(const QDomElement& root) override;
-    void fromXML(const QDomElement& e) override;
-    void toXML(QDomDocument& doc, QDomElement& root) const override;
+    void fromLegacyXML(const PkXmlElement& root) override;
+    void fromXML(const PkXmlElement& e) override;
+    void toXML(PkXmlDocument& doc, PkXmlElement& root) const override;
 
-    void setProperty(const QString &name, const QVariant &value) override;
+    void setProperty(const PkString &name, const PkVariant &value) override;
 
-    const QVector<KisLevelsCurve> levelsCurves() const;
+    const PkVector<KisLevelsCurve> levelsCurves() const;
     const KisLevelsCurve lightnessLevelsCurve() const;
-    void setLevelsCurves(const QVector<KisLevelsCurve> &newLevelsCurves);
+    void setLevelsCurves(const PkVector<KisLevelsCurve> &newLevelsCurves);
     void setLightnessLevelsCurve(const KisLevelsCurve &newLightnessLevelsCurve);
-    const QVector<QVector<quint16>>& transfers() const;
-    const QVector<quint16>& lightnessTransfer() const;
+    const PkVector<PkVector<quint16>>& transfers() const;
+    const PkVector<quint16>& lightnessTransfer() const;
 
     bool useLightnessMode() const;
     bool showLogarithmicHistogram() const;
@@ -76,8 +76,8 @@ public:
     static AutoLevelsDefaults autoLevelsDefaults(const KoColorSpace *cs, bool lightnessMode, const VirtualChannelInfo &channel);
 
 private:
-    QVector<QVector<quint16>> m_transfers;
-    QVector<quint16> m_lightnessTransfer;
+    PkVector<PkVector<quint16>> m_transfers;
+    PkVector<quint16> m_lightnessTransfer;
 
     int channelCount() const;
     void setChannelCount(int newChannelCount);

@@ -10,13 +10,13 @@
 #define _GAUSSIANHIGHPASS_PLUGIN_H_
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class GaussianHighPassPlugin : public QObject
 {
     Q_OBJECT
 public:
-    GaussianHighPassPlugin(QObject *parent, const QVariantList &);
+    GaussianHighPassPlugin(QObject *parent, const PkVariantList &);
     ~GaussianHighPassPlugin() override;
 };
 

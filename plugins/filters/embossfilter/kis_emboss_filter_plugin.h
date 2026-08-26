@@ -8,13 +8,13 @@
 #define _KIS_EMBOSS_FILTER_PLUGIN_H_
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class KisEmbossFilterPlugin : public QObject
 {
     Q_OBJECT
 public:
-    KisEmbossFilterPlugin(QObject *parent, const QVariantList &);
+    KisEmbossFilterPlugin(QObject *parent, const PkVariantList &);
     ~KisEmbossFilterPlugin() override;
 };
 

@@ -12,7 +12,7 @@
 #include <QLayout>
 #include <QPixmap>
 #include <QPainter>
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QRegularExpression>
@@ -40,7 +40,7 @@
 
 #include "kis_multichannel_utils.h"
 
-KisMultiChannelFilter::KisMultiChannelFilter(const KoID& id, const QString &entry)
+KisMultiChannelFilter::KisMultiChannelFilter(const KoID& id, const PkString &entry)
         : KisColorTransformationFilter(id, FiltersCategoryAdjustId, entry)
 {
     setSupportsPainting(true);
@@ -53,19 +53,19 @@ bool KisMultiChannelFilter::needsTransparentPixels(const KisFilterConfigurationS
     return cs->colorModelId() == AlphaColorModelID;
 }
 
-QVector<VirtualChannelInfo> KisMultiChannelFilter::getVirtualChannels(const KoColorSpace *cs, int maxChannels)
+PkVector<VirtualChannelInfo> KisMultiChannelFilter::getVirtualChannels(const KoColorSpace *cs, int maxChannels)
 {
     return KisMultiChannelUtils::getVirtualChannels(cs, maxChannels);
 }
 
-int KisMultiChannelFilter::findChannel(const QVector<VirtualChannelInfo> &virtualChannels,
+int KisMultiChannelFilter::findChannel(const PkVector<VirtualChannelInfo> &virtualChannels,
                                        const VirtualChannelInfo::Type &channelType)
 {
     return KisMultiChannelUtils::findChannel(virtualChannels, channelType);
 }
 
 
-KisMultiChannelFilterConfiguration::KisMultiChannelFilterConfiguration(int channelCount, const QString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface)
+KisMultiChannelFilterConfiguration::KisMultiChannelFilterConfiguration(int channelCount, const PkString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface)
         : KisColorTransformationConfiguration(name, version, resourcesInterface)
         , m_channelCount(channelCount)
 {
@@ -91,8 +91,8 @@ void KisMultiChannelFilterConfiguration::init()
     for (int i = 0; i < m_channelCount; ++i) {
         m_curves.append(getDefaultCurve());
 
-        const QString name = QLatin1String("curve") + QString::number(i);
-        const QString value = m_curves.last().toString();
+        const PkString name = QLatin1String("curve") + PkString::number(i);
+        const PkString value = m_curves.last().toString();
         KisColorTransformationConfiguration::setProperty(name, value);
     }
 
@@ -104,12 +104,12 @@ bool KisMultiChannelFilterConfiguration::isCompatible(const KisPaintDeviceSP dev
     return (int)dev->compositionSourceColorSpace()->channelCount() == m_channelCount;
 }
 
-void KisMultiChannelFilterConfiguration::setCurves(QList<KisCubicCurve> &curves)
+void KisMultiChannelFilterConfiguration::setCurves(PkList<KisCubicCurve> &curves)
 {
     // Clean unused properties
     if (curves.size() < m_curves.size()) {
         for (int i = curves.size(); i < m_curves.size(); ++i) {
-            const QString name = QLatin1String("curve") + QString::number(i);
+            const PkString name = QLatin1String("curve") + PkString::number(i);
             KisColorTransformationConfiguration::removeProperty(name);
         }
     }
@@ -125,8 +125,8 @@ void KisMultiChannelFilterConfiguration::setCurves(QList<KisCubicCurve> &curves)
     KisColorTransformationConfiguration::setProperty("nTransfers", m_channelCount);
 
     for (int i = 0; i < m_curves.size(); ++i) {
-        const QString name = QLatin1String("curve") + QString::number(i);
-        const QString value = m_curves[i].toString();
+        const PkString name = QLatin1String("curve") + PkString::number(i);
+        const PkString value = m_curves[i].toString();
         KisColorTransformationConfiguration::setProperty(name, value);
     }
 }
@@ -151,34 +151,34 @@ void KisMultiChannelFilterConfiguration::updateTransfers()
     }
 }
 
-const QVector<QVector<quint16> >&
+const PkVector<PkVector<quint16> >&
 KisMultiChannelFilterConfiguration::transfers() const
 {
     return m_transfers;
 }
 
-const QList<KisCubicCurve>&
+const PkList<KisCubicCurve>&
 KisMultiChannelFilterConfiguration::curves() const
 {
     return m_curves;
 }
 
-void KisMultiChannelFilterConfiguration::fromLegacyXML(const QDomElement& root)
+void KisMultiChannelFilterConfiguration::fromLegacyXML(const PkXmlElement& root)
 {
     fromXML(root);
 }
 
-void KisMultiChannelFilterConfiguration::fromXML(const QDomElement& root)
+void KisMultiChannelFilterConfiguration::fromXML(const PkXmlElement& root)
 {
-    QList<KisCubicCurve> curves;
+    PkList<KisCubicCurve> curves;
     quint16 numTransfers = 0;
     quint16 numTransfersWithAlpha = 0;
     int activeCurve = -1;
     int version;
     version = root.attribute("version").toInt();
 
-    QDomElement e = root.firstChild().toElement();
-    QString attributeName;
+    PkXmlElement e = root.firstChild().toElement();
+    PkString attributeName;
     KisCubicCurve curve;
     quint16 index;
     QRegularExpression curveRegexp("curve(\\d+)");
@@ -251,21 +251,21 @@ void KisMultiChannelFilterConfiguration::fromXML(const QDomElement& root)
 /**
  * Inherited from KisPropertiesConfiguration
  */
-//void KisMultiChannelFilterConfiguration::fromXML(const QString& s)
+//void KisMultiChannelFilterConfiguration::fromXML(const PkString& s)
 
-void addParamNode(QDomDocument& doc,
-                  QDomElement& root,
-                  const QString &name,
-                  const QString &value)
+void addParamNode(PkXmlDocument& doc,
+                  PkXmlElement& root,
+                  const PkString &name,
+                  const PkString &value)
 {
-    QDomText text = doc.createTextNode(value);
-    QDomElement t = doc.createElement("param");
+    PkXmlText text = doc.createTextNode(value);
+    PkXmlElement t = doc.createElement("param");
     t.setAttribute("name", name);
     t.appendChild(text);
     root.appendChild(t);
 }
 
-void KisMultiChannelFilterConfiguration::toXML(QDomDocument& doc, QDomElement& root) const
+void KisMultiChannelFilterConfiguration::toXML(PkXmlDocument& doc, PkXmlElement& root) const
 {
     /**
      * @code
@@ -280,22 +280,22 @@ void KisMultiChannelFilterConfiguration::toXML(QDomDocument& doc, QDomElement& r
 
     root.setAttribute("version", version());
 
-    QDomText text;
-    QDomElement t;
+    PkXmlText text;
+    PkXmlElement t;
 
-    addParamNode(doc, root, "nTransfers", QString::number(m_channelCount));
+    addParamNode(doc, root, "nTransfers", PkString::number(m_channelCount));
 
     if (m_activeCurve >= 0) {
         // save active curve if only it has non-default value
-        addParamNode(doc, root, "activeCurve", QString::number(m_activeCurve));
+        addParamNode(doc, root, "activeCurve", PkString::number(m_activeCurve));
     }
 
     KisCubicCurve curve;
-    QString paramName;
+    PkString paramName;
 
     for (int i = 0; i < m_curves.size(); ++i) {
-        QString name = QLatin1String("curve") + QString::number(i);
-        QString value = m_curves[i].toString();
+        PkString name = QLatin1String("curve") + PkString::number(i);
+        PkString value = m_curves[i].toString();
 
         addParamNode(doc, root, name, value);
     }
@@ -313,7 +313,7 @@ bool KisMultiChannelFilterConfiguration::compareTo(const KisPropertiesConfigurat
         && m_activeCurve == otherConfig->m_activeCurve;
 }
 
-void KisMultiChannelFilterConfiguration::setProperty(const QString& name, const QVariant& value)
+void KisMultiChannelFilterConfiguration::setProperty(const PkString& name, const PkVariant& value)
 {
     if (name == "nTransfers") {
         KIS_SAFE_ASSERT_RECOVER_RETURN(value.canConvert<int>());
@@ -332,15 +332,15 @@ void KisMultiChannelFilterConfiguration::setProperty(const QString& name, const 
                 m_curves.append(getDefaultCurve());
                 updateTransfer(i);
 
-                const QString name = QLatin1String("curve") + QString::number(i);
-                const QString value = m_curves.last().toString();
+                const PkString name = QLatin1String("curve") + PkString::number(i);
+                const PkString value = m_curves.last().toString();
                 KisColorTransformationConfiguration::setProperty(name, value);
             }
         } else {
             for (qint32 i = newChannelCount; i < m_channelCount; ++i) {
                 m_curves.removeLast();
 
-                const QString name = QLatin1String("curve") + QString::number(i);
+                const PkString name = QLatin1String("curve") + PkString::number(i);
                 KisColorTransformationConfiguration::removeProperty(name);
             }
         }
@@ -362,7 +362,7 @@ void KisMultiChannelFilterConfiguration::setProperty(const QString& name, const 
         return;
     }
 
-    KIS_SAFE_ASSERT_RECOVER_RETURN(value.canConvert<QString>());
+    KIS_SAFE_ASSERT_RECOVER_RETURN(value.canConvert<PkString>());
 
     m_curves[curveIndex] = KisCubicCurve(value.toString());
     updateTransfer(curveIndex);
@@ -372,7 +372,7 @@ void KisMultiChannelFilterConfiguration::setProperty(const QString& name, const 
     KisColorTransformationConfiguration::setProperty(name, m_curves[curveIndex].toString());
 }
 
-bool KisMultiChannelFilterConfiguration::curveIndexFromCurvePropertyName(const QString& name, int& curveIndex) const
+bool KisMultiChannelFilterConfiguration::curveIndexFromCurvePropertyName(const PkString& name, int& curveIndex) const
 {
     QRegularExpression rx("curve(\\d+)");
     QRegularExpressionMatch match;
@@ -384,16 +384,16 @@ bool KisMultiChannelFilterConfiguration::curveIndexFromCurvePropertyName(const Q
     return true;
 }
 
-QList<KisCubicCurve> KisMultiChannelFilterConfiguration::remapLegacyCurves(const KoColorSpace *targetColorSpace,
-                                                                          const QList<KisCubicCurve> &loadedCurves,
-                                                                          const QList<KisCubicCurve> &defaultCurves)
+PkList<KisCubicCurve> KisMultiChannelFilterConfiguration::remapLegacyCurves(const KoColorSpace *targetColorSpace,
+                                                                          const PkList<KisCubicCurve> &loadedCurves,
+                                                                          const PkList<KisCubicCurve> &defaultCurves)
 {
     // The configuration does not cover all our channels.
     // This happens when loading a document from an older version, which supported fewer channels.
     // Reset to make sure the unspecified channels have their default values.
-    QList<KisCubicCurve> curves = defaultCurves;
+    PkList<KisCubicCurve> curves = defaultCurves;
 
-    QVector<VirtualChannelInfo> virtualChannels = KisMultiChannelFilter::getVirtualChannels(targetColorSpace);
+    PkVector<VirtualChannelInfo> virtualChannels = KisMultiChannelFilter::getVirtualChannels(targetColorSpace);
 
     auto compareChannels =
         [] (const VirtualChannelInfo &lhs, const VirtualChannelInfo &rhs) -> bool {
@@ -407,7 +407,7 @@ QList<KisCubicCurve> KisMultiChannelFilterConfiguration::remapLegacyCurves(const
      * to getVirtualChannels() it automatically detects the version of Krita
      * the configuration was created in.
      */
-    QVector<VirtualChannelInfo> detectedCurves = KisMultiChannelUtils::getVirtualChannels(targetColorSpace, loadedCurves.size());
+    PkVector<VirtualChannelInfo> detectedCurves = KisMultiChannelUtils::getVirtualChannels(targetColorSpace, loadedCurves.size());
 
     for (auto detectedIt = detectedCurves.begin(); detectedIt != detectedCurves.end(); ++detectedIt) {
         auto dstIt = std::find_if(virtualChannels.begin(), virtualChannels.end(),

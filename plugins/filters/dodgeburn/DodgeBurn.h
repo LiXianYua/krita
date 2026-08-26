@@ -18,13 +18,13 @@ public:
       HIGHLIGHTS
     };
 public:
-    KisFilterDodgeBurn(const QString& id, const QString& prefix, const QString& name );
+    KisFilterDodgeBurn(const PkString& id, const PkString& prefix, const PkString& name );
 public:
 
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 private:
-    QString m_prefix;
+    PkString m_prefix;
 };
 
 #endif

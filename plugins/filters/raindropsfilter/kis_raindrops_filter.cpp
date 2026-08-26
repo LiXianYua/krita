@@ -16,8 +16,8 @@
 #include <vector>
 #include <math.h>
 
-#include <QDateTime>
-#include <QPoint>
+#include <PkDateTime.h>
+#include <PkPoint.h>
 #include <QSpinBox>
 
 #include <klocalizedstring.h>
@@ -70,7 +70,7 @@ KisRainDropsFilter::KisRainDropsFilter()
 
 
 void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
-                                     const QRect& applyRect,
+                                     const PkRect& applyRect,
                                      const KisFilterConfigurationSP config,
                                      KoUpdater* progressUpdater ) const
 {
@@ -80,7 +80,7 @@ void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
      */
     KIS_SAFE_ASSERT_RECOVER_RETURN(!applyRect.isEmpty());
 
-    QPoint srcTopLeft = applyRect.topLeft();
+    PkPoint srcTopLeft = applyRect.topLeft();
     Q_ASSERT(device);
 
     //read the filter configuration values from the KisFilterConfiguration object
@@ -236,7 +236,7 @@ void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
 
                             BoolMatrix[n][m] = true;
 
-                            QColor originalColor;
+                            PkColor originalColor;
 
                             dstAccessor->moveTo(srcTopLeft.x() + l, srcTopLeft.y() + k);
                             cs->toQColor(dstAccessor->oldRawData(), &originalColor);
@@ -245,7 +245,7 @@ void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
                             int newGreen = CLAMP(originalColor.green() + Bright, 0, quint8_MAX);
                             int newBlue = CLAMP(originalColor.blue() + Bright, 0, quint8_MAX);
 
-                            QColor newColor;
+                            PkColor newColor;
                             newColor.setRgb(newRed, newGreen, newBlue);
 
                             dstAccessor->moveTo(srcTopLeft.x() + n, srcTopLeft.y() + m);
@@ -272,7 +272,7 @@ void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
                             n = y + j + l;
 
                             if ((m >= 0) && (m < Height) && (n >= 0) && (n < Width)) {
-                                QColor color;
+                                PkColor color;
                                 dstAccessor->moveTo(srcTopLeft.x() + n, srcTopLeft.y() + m);
                                 cs->toQColor(dstAccessor->rawData(), &color);
 
@@ -287,7 +287,7 @@ void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
                     n = y + j;
 
                     if ((m >= 0) && (m < Height) && (n >= 0) && (n < Width)) {
-                        QColor color;
+                        PkColor color;
 
                         if (BlurPixels == 0) {
                             // Coverity complains that it *is* possible
@@ -380,7 +380,7 @@ KisFilterConfigurationSP KisRainDropsFilter::defaultConfiguration(KisResourcesIn
     config->setProperty("dropsize", 80);
     config->setProperty("number", 80);
     config->setProperty("fishEyes", 30);
-    config->setProperty("seed", QTime::currentTime().msec());
+    config->setProperty("seed", PkTime::currentTime().msec());
 
 
     return config;

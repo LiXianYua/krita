@@ -18,7 +18,7 @@ public:
 public:
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater ) const override;
     static inline KoID id() {
@@ -26,15 +26,15 @@ public:
     }
 
 
-    QRect neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
-    QRect changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 
 private:
-    void OilPaint(const KisPaintDeviceSP src, KisPaintDeviceSP dst, const QRect &applyRect,
+    void OilPaint(const KisPaintDeviceSP src, KisPaintDeviceSP dst, const PkRect &applyRect,
                   int BrushSize, int Smoothness, KoUpdater* progressUpdater) const;
-    void MostFrequentColor(KisPaintDeviceSP src, quint8* dst, const QRect& bounds, int X, int Y, int Radius, int Intensity) const;
+    void MostFrequentColor(KisPaintDeviceSP src, quint8* dst, const PkRect& bounds, int X, int Y, int Radius, int Intensity) const;
 };
 
 #endif

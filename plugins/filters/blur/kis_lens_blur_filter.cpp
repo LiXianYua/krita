@@ -36,15 +36,15 @@ KisLensBlurFilter::KisLensBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, 
 
 }
 
-QSize KisLensBlurFilter::getKernelHalfSize(const KisFilterConfigurationSP config, int lod)
+PkSize KisLensBlurFilter::getKernelHalfSize(const KisFilterConfigurationSP config, int lod)
 {
-    QPolygonF iris = getIrisPolygon(config, lod);
-    QRect rect = iris.boundingRect().toAlignedRect();
+    PkPolygonF iris = getIrisPolygon(config, lod);
+    PkRect rect = iris.boundingRect().toAlignedRect();
 
     int w = std::ceil(qreal(rect.width()) / 2.0);
     int h = std::ceil(qreal(rect.height()) / 2.0);
 
-    return QSize(w, h);
+    return PkSize(w, h);
 }
 
 KisFilterConfigurationSP KisLensBlurFilter::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const
@@ -54,31 +54,31 @@ KisFilterConfigurationSP KisLensBlurFilter::defaultConfiguration(KisResourcesInt
     config->setProperty("irisRadius", 5);
     config->setProperty("irisRotation", 0);
 
-    QSize halfSize = getKernelHalfSize(config, 0);
+    PkSize halfSize = getKernelHalfSize(config, 0);
     config->setProperty("halfWidth", halfSize.width());
     config->setProperty("halfHeight", halfSize.height());
 
     return config;
 }
 
-QPolygonF KisLensBlurFilter::getIrisPolygon(const KisFilterConfigurationSP config, int lod)
+PkPolygonF KisLensBlurFilter::getIrisPolygon(const KisFilterConfigurationSP config, int lod)
 {
-    KIS_ASSERT_RECOVER(config) { return QPolygonF(); }
+    KIS_ASSERT_RECOVER(config) { return PkPolygonF(); }
 
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
     config->getProperty("irisShape", value);
-    QString irisShape = value.toString();
+    PkString irisShape = value.toString();
     config->getProperty("irisRadius", value);
     uint irisRadius = t.scale(value.toUInt());
     config->getProperty("irisRotation", value);
     uint irisRotation = value.toUInt();
 
     if (irisRadius < 1)
-        return QPolygon();
+        return PkPolygon();
 
-    QPolygonF irisShapePoly;
+    PkPolygonF irisShapePoly;
 
     int sides = 1;
     qreal angle = 0;
@@ -89,55 +89,55 @@ QPolygonF KisLensBlurFilter::getIrisPolygon(const KisFilterConfigurationSP confi
     else if (irisShape == "Hexagon (6)") sides = 6;
     else if (irisShape == "Heptagon (7)") sides = 7;
     else if (irisShape == "Octagon (8)") sides = 8;
-    else return QPolygonF();
+    else return PkPolygonF();
 
     for (int i = 0; i < sides; ++i) {
-        irisShapePoly << QPointF(0.5 * cos(angle), 0.5 * sin(angle));
+        irisShapePoly << PkPointF(0.5 * cos(angle), 0.5 * sin(angle));
         angle += 2 * M_PI / sides;
     }
 
-    QTransform transform;
+    PkTransform transform;
     transform.rotate(irisRotation);
     transform.scale(irisRadius * 2, irisRadius * 2);
 
-    QPolygonF transformedIris = transform.map(irisShapePoly);
+    PkPolygonF transformedIris = transform.map(irisShapePoly);
 
     return transformedIris;
 }
 
 void KisLensBlurFilter::processImpl(KisPaintDeviceSP device,
-                                    const QRect& rect,
+                                    const PkRect& rect,
                                     const KisFilterConfigurationSP config,
                                     KoUpdater* progressUpdater
                                     ) const
 {
-    QPoint srcTopLeft = rect.topLeft();
+    PkPoint srcTopLeft = rect.topLeft();
 
     Q_ASSERT(device != 0);
     KIS_SAFE_ASSERT_RECOVER_RETURN(config);
 
-    QBitArray channelFlags = config->channelFlags();
+    PkBitArray channelFlags = config->channelFlags();
     if (channelFlags.isEmpty()) {
-        channelFlags = QBitArray(device->colorSpace()->channelCount(), true);
+        channelFlags = PkBitArray(device->colorSpace()->channelCount(), true);
     }
 
     const int lod = device->defaultBounds()->currentLevelOfDetail();
-    QPolygonF transformedIris = getIrisPolygon(config, lod);
+    PkPolygonF transformedIris = getIrisPolygon(config, lod);
     if (transformedIris.isEmpty()) return;
 
-    QRectF boundingRect = transformedIris.boundingRect();
+    PkRectF boundingRect = transformedIris.boundingRect();
 
     int kernelWidth = boundingRect.toAlignedRect().width();
     int kernelHeight = boundingRect.toAlignedRect().height();
 
-    QImage kernelRepresentation(kernelWidth, kernelHeight, QImage::Format_RGB32);
+    PkImage kernelRepresentation(kernelWidth, kernelHeight, PkImage::Format_RGB32);
     kernelRepresentation.fill(0);
 
     QPainter imagePainter(&kernelRepresentation);
     imagePainter.setRenderHint(QPainter::Antialiasing);
-    imagePainter.setBrush(QColor::fromRgb(255, 255, 255));
+    imagePainter.setBrush(PkColor::fromRgb(255, 255, 255));
 
-    QTransform offsetTransform;
+    PkTransform offsetTransform;
     offsetTransform.translate(-boundingRect.x(), -boundingRect.y());
     imagePainter.setTransform(offsetTransform);
     imagePainter.drawPolygon(transformedIris, Qt::WindingFill);
@@ -159,22 +159,22 @@ void KisLensBlurFilter::processImpl(KisPaintDeviceSP device,
     painter.applyMatrix(kernel, device, srcTopLeft, srcTopLeft, rect.size(), BORDER_REPEAT);
 }
 
-QRect KisLensBlurFilter::neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisLensBlurFilter::neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
     const int halfWidth = t.scale(_config->getProperty("halfWidth", value) ? value.toUInt() : 5);
     const int halfHeight = t.scale(_config->getProperty("halfHeight", value) ? value.toUInt() : 5);
 
     return rect.adjusted(-halfWidth * 2, -halfHeight * 2, halfWidth * 2, halfHeight * 2);
 }
 
-QRect KisLensBlurFilter::changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisLensBlurFilter::changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
     const int halfWidth = t.scale(_config->getProperty("halfWidth", value) ? value.toUInt() : 5);
     const int halfHeight = t.scale(_config->getProperty("halfHeight", value) ? value.toUInt() : 5);
 

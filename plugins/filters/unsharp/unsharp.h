@@ -10,13 +10,13 @@
 #define _UNSHARP_PLUGIN_H_
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class UnsharpPlugin : public QObject
 {
     Q_OBJECT
 public:
-    UnsharpPlugin(QObject *parent, const QVariantList &);
+    UnsharpPlugin(QObject *parent, const PkVariantList &);
     ~UnsharpPlugin() override;
 };
 

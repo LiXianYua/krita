@@ -8,14 +8,14 @@
 #define POSTERIZE_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include "filter/kis_color_transformation_filter.h"
 
 class Posterize : public QObject
 {
     Q_OBJECT
 public:
-    Posterize(QObject *parent, const QVariantList &);
+    Posterize(QObject *parent, const PkVariantList &);
     ~Posterize() override;
 };
 

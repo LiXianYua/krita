@@ -8,17 +8,17 @@
 #define PHONG_PIXEL_PROCESSOR_H
 
 #include <QVector3D>
-#include <QTime>
-#include <QColor>
-#include <QList>
-#include <QMap>
+#include <PkDateTime.h>
+#include <PkColor.h>
+#include <PkList.h>
+#include <PkMap.h>
 
 #include "phong_bumpmap_constants.h"
 #include "kis_properties_configuration.h"
 
 struct Illuminant
 {
-    QList<qreal> RGBvalue;
+    PkList<qreal> RGBvalue;
     QVector3D lightVector;
 };
 
@@ -39,7 +39,7 @@ public:
     QVector3D light_vector;
     QVector3D vision_vector;
 
-    QVector<double> realheightmap;
+    PkVector<double> realheightmap;
 
     ///Ambient light coefficient
     qreal Ka;
@@ -62,14 +62,14 @@ public:
     ///Total specular light
     qreal Is;
 
-    QVector<quint16> IlluminatePixelFromHeightmap(quint32 posup, quint32 posdown, quint32 posleft, quint32 posright);
-    QVector<quint16> IlluminatePixel();
-    QVector<quint16> IlluminatePixelFromNormalmap(qreal r, qreal g, qreal b);
+    PkVector<quint16> IlluminatePixelFromHeightmap(quint32 posup, quint32 posdown, quint32 posleft, quint32 posright);
+    PkVector<quint16> IlluminatePixel();
+    PkVector<quint16> IlluminatePixelFromNormalmap(qreal r, qreal g, qreal b);
 
     void setLightVector(QVector3D light_vector);
 
     ///Light sources to use (those disabled in the GUI are not present here)
-    QList<Illuminant> lightSources;
+    PkList<Illuminant> lightSources;
 
     ///Size of this stuff
     quint8 size;

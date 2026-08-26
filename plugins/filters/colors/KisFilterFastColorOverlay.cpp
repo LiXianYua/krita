@@ -21,7 +21,7 @@ KisFilterFastColorOverlay::KisFilterFastColorOverlay()
 {
 }
 
-void KisFilterFastColorOverlay::processImpl(KisPaintDeviceSP device, const QRect &rect, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const
+void KisFilterFastColorOverlay::processImpl(KisPaintDeviceSP device, const PkRect &rect, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const
 {
     Q_UNUSED(progressUpdater);
 
@@ -86,9 +86,9 @@ KisFilterConfigurationSP KisFilterFastColorOverlay::defaultConfiguration(KisReso
     return config;
 }
 
-QColor KisFilterFastColorOverlay::defaultColor()
+PkColor KisFilterFastColorOverlay::defaultColor()
 {
-    return QColor(62, 140, 236);
+    return PkColor(62, 140, 236);
 }
 
 int KisFilterFastColorOverlay::defaultOpacity()
@@ -96,7 +96,7 @@ int KisFilterFastColorOverlay::defaultOpacity()
     return 100;
 }
 
-QString KisFilterFastColorOverlay::defaultCompositeOp()
+PkString KisFilterFastColorOverlay::defaultCompositeOp()
 {
     // Use the normal blending mode (OVER is "normal").
     // This offers the best performance, but will change the color of all opaque pixels,

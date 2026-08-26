@@ -15,7 +15,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisEmbossFilterPluginFactory, "kritaembossfilter.json", registerPlugin<KisEmbossFilterPlugin>();)
 
-KisEmbossFilterPlugin::KisEmbossFilterPlugin(QObject *parent, const QVariantList &) : QObject(parent)
+KisEmbossFilterPlugin::KisEmbossFilterPlugin(QObject *parent, const PkVariantList &) : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisEmbossFilter());
 

@@ -9,7 +9,7 @@
 #define COLORSFILTERS_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include "kis_perchannel_filter.h"
 #include "filter/kis_color_transformation_filter.h"
 
@@ -18,7 +18,7 @@ class ColorsFilters : public QObject
 {
     Q_OBJECT
 public:
-    ColorsFilters(QObject *parent, const QVariantList &);
+    ColorsFilters(QObject *parent, const PkVariantList &);
     ~ColorsFilters() override;
 };
 
@@ -29,7 +29,7 @@ public:
 public:
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;

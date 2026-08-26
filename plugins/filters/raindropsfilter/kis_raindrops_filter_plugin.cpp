@@ -17,7 +17,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisRainDropsFilterPluginFactory, "kritaraindropsfilter.json", registerPlugin<KisRainDropsFilterPlugin>();)
 
-KisRainDropsFilterPlugin::KisRainDropsFilterPlugin(QObject *parent, const QVariantList &) : QObject(parent)
+KisRainDropsFilterPlugin::KisRainDropsFilterPlugin(QObject *parent, const PkVariantList &) : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisRainDropsFilter());
 

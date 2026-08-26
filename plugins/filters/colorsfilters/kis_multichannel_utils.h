@@ -11,8 +11,8 @@
 #define KIS_MULTICHANNEL_FILTER_UTILS
 
 #include <QtGlobal>
-#include <QVector>
-#include <QList>
+#include <PkVector.h>
+#include <PkList.h>
 
 #include "virtual_channel_info.h"
 
@@ -26,13 +26,13 @@ namespace KisMultiChannelUtils {
  * If maxChannels is non-negative, the number of channels is capped to the number. This is useful configurations
  * from older documents (created in versions which supported fewer channels).
  */
-QVector<VirtualChannelInfo> getVirtualChannels(const KoColorSpace *cs,
+PkVector<VirtualChannelInfo> getVirtualChannels(const KoColorSpace *cs,
                                                int maxChannels = -1,
                                                bool supportsLightness = true,
                                                bool supportsHue = true,
                                                bool supportSaturation = true);
 
-int findChannel(const QVector<VirtualChannelInfo> &virtualChannels, const VirtualChannelInfo::Type &channelType);
+int findChannel(const PkVector<VirtualChannelInfo> &virtualChannels, const VirtualChannelInfo::Type &channelType);
 
 /**
  * @brief Create a composed per channel transformation object from the set of given transfers
@@ -42,8 +42,8 @@ int findChannel(const QVector<VirtualChannelInfo> &virtualChannels, const Virtua
  *        corresponding transfer has no effect (maps the input to itself)
  */
 KoColorTransformation* createPerChannelTransformationFromTransfers(const KoColorSpace *cs,
-                                                                   const QVector<QVector<quint16>> &transfers,
-                                                                   const QList<bool> &transferIsIdentity);
+                                                                   const PkVector<PkVector<quint16>> &transfers,
+                                                                   const PkList<bool> &transferIsIdentity);
 
 }
 

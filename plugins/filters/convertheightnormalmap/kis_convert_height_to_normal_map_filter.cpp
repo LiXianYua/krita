@@ -15,7 +15,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaConvertHeightToNormalMapFilterFactory, "kritaconvertheighttonormalmap.json", registerPlugin<KritaConvertHeightToNormalMapFilter>();)
 
-KritaConvertHeightToNormalMapFilter::KritaConvertHeightToNormalMapFilter(QObject *parent, const QVariantList &)
+KritaConvertHeightToNormalMapFilter::KritaConvertHeightToNormalMapFilter(QObject *parent, const PkVariantList &)
 : QObject(parent)
 {
     KisFilterRegistry::instance()->add(KisFilterSP(new KisConvertHeightToNormalMapFilter()));
@@ -34,7 +34,7 @@ KisConvertHeightToNormalMapFilter::KisConvertHeightToNormalMapFilter(): KisFilte
     setShowConfigurationWidget(true);
 }
 
-void KisConvertHeightToNormalMapFilter::processImpl(KisPaintDeviceSP device, const QRect &rect, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const
+void KisConvertHeightToNormalMapFilter::processImpl(KisPaintDeviceSP device, const PkRect &rect, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const
 {
     Q_ASSERT(device);
     Q_ASSERT(device->colorSpace());
@@ -47,7 +47,7 @@ void KisConvertHeightToNormalMapFilter::processImpl(KisPaintDeviceSP device, con
 
     KisLodTransformScalar t(device);
 
-    QVariant value;
+    PkVariant value;
     double horizontalRadius = 1.0;
     if (configuration->getProperty("horizRadius", value)) {
         horizontalRadius = t.scale(value.toDouble());
@@ -57,7 +57,7 @@ void KisConvertHeightToNormalMapFilter::processImpl(KisPaintDeviceSP device, con
         verticalRadius = t.scale(value.toDouble());
     }
 
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
     if (configuration) {
         channelFlags = configuration->channelFlags();
     }
@@ -72,8 +72,8 @@ void KisConvertHeightToNormalMapFilter::processImpl(KisPaintDeviceSP device, con
 
     int channelToConvert = configuration->getInt("channelToConvert", 0);
 
-    QVector<int> channelOrder(device->colorSpace()->channelCount());
-    QVector<bool> channelFlip(device->colorSpace()->channelCount());
+    PkVector<int> channelOrder(device->colorSpace()->channelCount());
+    PkVector<bool> channelFlip(device->colorSpace()->channelCount());
     channelFlip.fill(false);
 
 
@@ -85,7 +85,7 @@ void KisConvertHeightToNormalMapFilter::processImpl(KisPaintDeviceSP device, con
         channelFlip[0] = false;
     }
 
-    const QList<KoChannelInfo*> channels = device->colorSpace()->channels();
+    const PkList<KoChannelInfo*> channels = device->colorSpace()->channels();
 
     int displayPosition = channels.at(0)->displayPosition();
     channelOrder[displayPosition] = qMax(i/2,0);
@@ -141,11 +141,11 @@ KisFilterConfigurationSP KisConvertHeightToNormalMapFilter::defaultConfiguration
     return config;
 }
 
-QRect KisConvertHeightToNormalMapFilter::neededRect(const QRect &rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisConvertHeightToNormalMapFilter::neededRect(const PkRect &rect, const KisFilterConfigurationSP _config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
     /**
      * NOTE: integer division by two is done on purpose,
      *       because the kernel size is always odd
@@ -156,11 +156,11 @@ QRect KisConvertHeightToNormalMapFilter::neededRect(const QRect &rect, const Kis
     return rect.adjusted(-halfWidth * 2, -halfHeight * 2, halfWidth * 2, halfHeight * 2);
 }
 
-QRect KisConvertHeightToNormalMapFilter::changedRect(const QRect &rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisConvertHeightToNormalMapFilter::changedRect(const PkRect &rect, const KisFilterConfigurationSP _config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
 
     const int halfWidth = _config->getProperty("horizRadius", value) ? KisEdgeDetectionKernel::kernelSizeFromRadius(t.scale(value.toFloat())) / 2 : 5;
     const int halfHeight = _config->getProperty("vertRadius", value) ? KisEdgeDetectionKernel::kernelSizeFromRadius(t.scale(value.toFloat())) / 2 : 5;

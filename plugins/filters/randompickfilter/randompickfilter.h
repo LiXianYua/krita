@@ -10,7 +10,7 @@
 #define RANDOMPICKFILTER_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include "filter/kis_filter.h"
 
 
@@ -18,7 +18,7 @@ class KritaRandomPickFilter : public QObject
 {
     Q_OBJECT
 public:
-    KritaRandomPickFilter(QObject *parent, const QVariantList &);
+    KritaRandomPickFilter(QObject *parent, const PkVariantList &);
     ~KritaRandomPickFilter() override;
 };
 
@@ -28,7 +28,7 @@ public:
     KisFilterRandomPick();
 public:
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;
@@ -38,8 +38,8 @@ public:
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 public:
-    QRect neededRect(const QRect& rect, const KisFilterConfigurationSP config, int lod = 0) const override;
-    QRect changedRect(const QRect& rect, const KisFilterConfigurationSP config, int lod = 0) const override;
+    PkRect neededRect(const PkRect& rect, const KisFilterConfigurationSP config, int lod = 0) const override;
+    PkRect changedRect(const PkRect& rect, const KisFilterConfigurationSP config, int lod = 0) const override;
 };
 
 #endif

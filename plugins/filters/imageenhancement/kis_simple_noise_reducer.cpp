@@ -51,12 +51,12 @@ inline int ABS(int v)
 }
 
 void KisSimpleNoiseReducer::processImpl(KisPaintDeviceSP device,
-                                        const QRect& applyRect,
+                                        const PkRect& applyRect,
                                         const KisFilterConfigurationSP config,
                                         KoUpdater* progressUpdater
                                         ) const
 {
-    QPoint srcTopLeft = applyRect.topLeft();
+    PkPoint srcTopLeft = applyRect.topLeft();
     Q_ASSERT(device);
 
     KIS_SAFE_ASSERT_RECOVER_RETURN(config);
@@ -90,7 +90,7 @@ void KisSimpleNoiseReducer::processImpl(KisPaintDeviceSP device,
     }
 }
 
-QRect KisSimpleNoiseReducer::neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisSimpleNoiseReducer::neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
@@ -99,7 +99,7 @@ QRect KisSimpleNoiseReducer::neededRect(const QRect & rect, const KisFilterConfi
     return kisGrowRect(rect, margin);
 }
 
-QRect KisSimpleNoiseReducer::changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisSimpleNoiseReducer::changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const
 {
     return neededRect(rect, _config, lod);
 }

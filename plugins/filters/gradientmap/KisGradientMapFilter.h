@@ -27,13 +27,13 @@ public:
     }
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater *progressUpdater) const override;
 
     template <typename ColorModeStrategy>
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater *progressUpdater,
                      const ColorModeStrategy &colorModeStrategy) const;

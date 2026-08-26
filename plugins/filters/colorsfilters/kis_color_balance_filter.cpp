@@ -21,7 +21,7 @@ KisColorBalanceFilter::KisColorBalanceFilter()
 
 KoColorTransformation * KisColorBalanceFilter::createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const
 {
-	QHash<QString, QVariant> params;
+	PkHash<PkString, PkVariant> params;
     if (config) {
         params["cyan_red_midtones"] = config->getInt("cyan_red_midtones", 0) * 0.01;
         params["magenta_green_midtones"] = config->getInt("magenta_green_midtones", 0) * 0.01;

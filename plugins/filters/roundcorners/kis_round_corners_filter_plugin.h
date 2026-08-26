@@ -9,13 +9,13 @@
 #define _KIS_ROUND_CORNERS_FILTER_PLUGIN_H_
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class KisRoundCornersFilterPlugin : public QObject
 {
     Q_OBJECT
 public:
-    KisRoundCornersFilterPlugin(QObject *parent, const QVariantList &);
+    KisRoundCornersFilterPlugin(QObject *parent, const PkVariantList &);
     ~KisRoundCornersFilterPlugin() override;
 };
 

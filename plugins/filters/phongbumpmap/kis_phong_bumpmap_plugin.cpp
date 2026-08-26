@@ -12,7 +12,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisPhongBumpmapFactory, "kritaphongbumpmapfilter.json", registerPlugin<KisPhongBumpmapPlugin>();)
 
-KisPhongBumpmapPlugin::KisPhongBumpmapPlugin(QObject *parent, const QVariantList &)
+KisPhongBumpmapPlugin::KisPhongBumpmapPlugin(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisFilterPhongBumpmap());

@@ -10,13 +10,13 @@
 #define KIS_PROPAGATE_COLORS_FILTER_PLUGIN_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class KisPropagateColorsFilterPlugin : public QObject
 {
     Q_OBJECT
 public:
-    KisPropagateColorsFilterPlugin(QObject *parent, const QVariantList &);
+    KisPropagateColorsFilterPlugin(QObject *parent, const PkVariantList &);
     ~KisPropagateColorsFilterPlugin() override;
 };
 

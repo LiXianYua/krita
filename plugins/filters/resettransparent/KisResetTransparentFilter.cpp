@@ -19,7 +19,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(ResetTransparentFactory, "kritaresettransparent.json", registerPlugin<ResetTransparent>();)
 
-ResetTransparent::ResetTransparent(QObject *parent, const QVariantList &)
+ResetTransparent::ResetTransparent(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(KisFilterSP(new KisResetTransparentFilter()));
@@ -48,7 +48,7 @@ bool KisResetTransparentFilter::needsTransparentPixels(const KisFilterConfigurat
 }
 
 void KisResetTransparentFilter::processImpl(KisPaintDeviceSP device,
-                                            const QRect &applyRect,
+                                            const PkRect &applyRect,
                                             const KisFilterConfigurationSP config,
                                             KoUpdater *progressUpdater) const
 {

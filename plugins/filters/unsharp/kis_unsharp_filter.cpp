@@ -7,7 +7,7 @@
  */
 
 #include "kis_unsharp_filter.h"
-#include <QBitArray>
+#include <PkBitArray.h>
 
 #include <kis_mask_generator.h>
 #include <kis_convolution_kernel.h>
@@ -54,15 +54,15 @@ KisFilterConfigurationSP KisUnsharpFilter::defaultConfiguration(KisResourcesInte
 }
 
 void KisUnsharpFilter::processImpl(KisPaintDeviceSP device,
-                                   const QRect& applyRect,
+                                   const PkRect& applyRect,
                                    const KisFilterConfigurationSP config,
                                    KoUpdater* progressUpdater
                                    ) const
 {
 
-    QPointer<KoUpdater> filterUpdater = 0;
-    QPointer<KoUpdater> convolutionUpdater = 0;
-    QScopedPointer<KoProgressUpdater> updater;
+    PkPointer<KoUpdater> filterUpdater = 0;
+    PkPointer<KoUpdater> convolutionUpdater = 0;
+    PkScopedPointer<KoProgressUpdater> updater;
 
     if (progressUpdater) {
         updater.reset(new KoProgressUpdater(progressUpdater));
@@ -74,7 +74,7 @@ void KisUnsharpFilter::processImpl(KisPaintDeviceSP device,
 
     KIS_SAFE_ASSERT_RECOVER_RETURN(config);
 
-    QVariant value;
+    PkVariant value;
 
     KisLodTransformScalar t(device);
 
@@ -83,7 +83,7 @@ void KisUnsharpFilter::processImpl(KisPaintDeviceSP device,
     const uint threshold = (config->getProperty("threshold", value)) ? value.toUInt() : 0;
     const uint lightnessOnly = (config->getProperty("lightnessOnly", value)) ? value.toBool() : true;
 
-    QBitArray channelFlags = config->channelFlags();
+    PkBitArray channelFlags = config->channelFlags();
     KisGaussianKernel::applyGaussian(device, applyRect,
                                      halfSize, halfSize,
                                      channelFlags,
@@ -103,11 +103,11 @@ void KisUnsharpFilter::processImpl(KisPaintDeviceSP device,
 }
 
 void KisUnsharpFilter::processRaw(KisPaintDeviceSP device,
-                                  const QRect &rect,
+                                  const PkRect &rect,
                                   quint8 threshold,
                                   qreal weights[2],
                                   qreal factor,
-                                  const QBitArray &channelFlags,
+                                  const PkBitArray &channelFlags,
                                   KoUpdater *progressUpdater) const
 {
     const KoColorSpace *cs = device->colorSpace();
@@ -145,11 +145,11 @@ void KisUnsharpFilter::processRaw(KisPaintDeviceSP device,
 }
 
 void KisUnsharpFilter::processLightnessOnly(KisPaintDeviceSP device,
-                                            const QRect &rect,
+                                            const PkRect &rect,
                                             quint8 threshold,
                                             qreal weights[2],
                                             qreal factor,
-                                            const QBitArray & /*channelFlags*/,
+                                            const PkBitArray & /*channelFlags*/,
                                             KoUpdater *progressUpdater) const
 {
     const KoColorSpace *cs = device->colorSpace();
@@ -188,21 +188,21 @@ void KisUnsharpFilter::processLightnessOnly(KisPaintDeviceSP device,
     }
 }
 
-QRect KisUnsharpFilter::neededRect(const QRect & rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisUnsharpFilter::neededRect(const PkRect & rect, const KisFilterConfigurationSP config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
     const qreal halfSize = t.scale(config->getProperty("halfSize", value) ? value.toDouble() : 1.0);
 
     return rect.adjusted(-halfSize * 2, -halfSize * 2, halfSize * 2, halfSize * 2);
 }
 
-QRect KisUnsharpFilter::changedRect(const QRect & rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisUnsharpFilter::changedRect(const PkRect & rect, const KisFilterConfigurationSP config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
     const qreal halfSize = t.scale(config->getProperty("halfSize", value) ? value.toDouble() : 1.0);
 
     return rect.adjusted( -halfSize, -halfSize, halfSize, halfSize);

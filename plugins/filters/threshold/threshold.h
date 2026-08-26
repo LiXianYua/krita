@@ -10,7 +10,7 @@
 #define THRESHOLD_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include <filter/kis_filter.h>
 #include <kis_filter_configuration.h>
 
@@ -24,7 +24,7 @@ class KritaThreshold : public QObject
 {
     Q_OBJECT
 public:
-    KritaThreshold(QObject *parent, const QVariantList &);
+    KritaThreshold(QObject *parent, const PkVariantList &);
     ~KritaThreshold() override;
 };
 
@@ -39,7 +39,7 @@ public:
     }
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater *progressUpdater) const override;
 

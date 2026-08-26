@@ -16,7 +16,7 @@ class KisGradientMapFilterPlugin : public QObject
 {
     Q_OBJECT
 public:
-    KisGradientMapFilterPlugin(QObject *parent, const QVariantList &);
+    KisGradientMapFilterPlugin(QObject *parent, const PkVariantList &);
     ~KisGradientMapFilterPlugin() override;
 };
 

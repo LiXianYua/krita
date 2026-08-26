@@ -12,7 +12,7 @@
 #include <QLayout>
 #include <QPixmap>
 #include <QPainter>
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 #include <QHBoxLayout>
 
 #include "KoChannelInfo.h"
@@ -81,7 +81,7 @@ KoColorTransformation* KisPerChannelFilter::createTransformation(const KoColorSp
         dynamic_cast<const KisPerChannelFilterConfiguration*>(config.data()); // Somehow, this shouldn't happen
     Q_ASSERT(configBC);
 
-    QList<bool> isIdentityList;
+    PkList<bool> isIdentityList;
     for (const KisCubicCurve &curve : configBC->curves()) {
         isIdentityList.append(curve.isIdentity());
     }

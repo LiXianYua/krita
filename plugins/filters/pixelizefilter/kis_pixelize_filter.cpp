@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
+#include <PkPoint.h>
 #include <QSpinBox>
 
 #include <klocalizedstring.h>
@@ -50,7 +50,7 @@ KisPixelizeFilter::KisPixelizeFilter() : KisFilter(id(), FiltersCategoryArtistic
 }
 
 void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
-                                    const QRect& applyRect,
+                                    const PkRect& applyRect,
                                     const KisFilterConfigurationSP config,
                                     KoUpdater* progressUpdater
                                     ) const
@@ -63,7 +63,7 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
 
     const qint32 pixelSize = device->pixelSize();
 
-    const QRect deviceBounds = device->defaultBounds()->bounds();
+    const PkRect deviceBounds = device->defaultBounds()->bounds();
 
     const int bufferSize = pixelSize * pixelWidth * pixelHeight;
     QScopedArrayPointer<quint8> buffer(new quint8[bufferSize]);
@@ -82,9 +82,9 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
 
     for(qint32 i = firstRow; i <= lastRow; i++) {
         for(qint32 j = firstCol; j <= lastCol; j++) {
-            const QRect maxPatchRect(j * pixelWidth, i * pixelHeight,
+            const PkRect maxPatchRect(j * pixelWidth, i * pixelHeight,
                                      pixelWidth, pixelHeight);
-            const QRect pixelRect = maxPatchRect & deviceBounds;
+            const PkRect pixelRect = maxPatchRect & deviceBounds;
             const int numColors = pixelRect.width() * pixelRect.height();
 
 
@@ -103,7 +103,7 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
             mixOp->mixColors(buffer.data(), numColors, pixelColor.data());
 
             // write only colors in applyRect
-            const QRect writeRect = pixelRect & applyRect;
+            const PkRect writeRect = pixelRect & applyRect;
 
             KisSequentialIterator dstIt(device, writeRect);
             while (dstIt.nextPixel()) {
@@ -114,7 +114,7 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
     }
 }
 
-QRect KisPixelizeFilter::neededRect(const QRect &rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisPixelizeFilter::neededRect(const PkRect &rect, const KisFilterConfigurationSP config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
@@ -125,7 +125,7 @@ QRect KisPixelizeFilter::neededRect(const QRect &rect, const KisFilterConfigurat
     return rect.adjusted(-2*pixelWidth, -2*pixelHeight, 2*pixelWidth, 2*pixelHeight);
 }
 
-QRect KisPixelizeFilter::changedRect(const QRect &rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisPixelizeFilter::changedRect(const PkRect &rect, const KisFilterConfigurationSP config, int lod) const
 {
     return neededRect(rect, config, lod);
 }

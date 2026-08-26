@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
-#include <QTime>
+#include <PkPoint.h>
+#include <PkDateTime.h>
 
 #include <klocalizedstring.h>
 
@@ -29,7 +29,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(PosterizeFactory, "kritaposterize.json", registerPlugin<Posterize>();)
 
-Posterize::Posterize(QObject *parent, const QVariantList &)
+Posterize::Posterize(QObject *parent, const PkVariantList &)
     : QObject(parent)
 {
     KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterPosterize()));

@@ -30,7 +30,7 @@ KisFilterConfigurationSP KisPropagateColorsFilterConfiguration::clone() const
 
 KisPropagateColorsFilterConfiguration::DistanceMetric KisPropagateColorsFilterConfiguration::distanceMetric() const
 {
-    const QString distanceMetricStr = getString("distanceMetric", "");
+    const PkString distanceMetricStr = getString("distanceMetric", "");
     if (distanceMetricStr == "chessboard") {
         return DistanceMetric_Chessboard;
     } else if (distanceMetricStr == "cityBlock") {
@@ -43,7 +43,7 @@ KisPropagateColorsFilterConfiguration::DistanceMetric KisPropagateColorsFilterCo
 
 KisPropagateColorsFilterConfiguration::ExpansionMode KisPropagateColorsFilterConfiguration::expansionMode() const
 {
-    const QString expansionModeStr = getString("expansionMode", "");
+    const PkString expansionModeStr = getString("expansionMode", "");
     if (expansionModeStr == "bounded") {
         return ExpansionMode_Bounded;
     } else if (expansionModeStr == "unbounded") {
@@ -59,7 +59,7 @@ qreal KisPropagateColorsFilterConfiguration::expansionAmount() const
 
 KisPropagateColorsFilterConfiguration::AlphaChannelMode KisPropagateColorsFilterConfiguration::alphaChannelMode() const
 {
-    const QString alphaChannelModeStr = getString("alphaChannelMode", "expand");
+    const PkString alphaChannelModeStr = getString("alphaChannelMode", "expand");
     if (alphaChannelModeStr == "preserve") {
         return AlphaChannelMode_Preserve;
     } else if (alphaChannelModeStr == "expand") {

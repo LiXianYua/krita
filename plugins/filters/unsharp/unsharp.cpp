@@ -15,7 +15,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(UnsharpPluginFactory, "kritaunsharpfilter.json", registerPlugin<UnsharpPlugin>();)
 
-UnsharpPlugin::UnsharpPlugin(QObject *parent, const QVariantList &)
+UnsharpPlugin::UnsharpPlugin(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisUnsharpFilter());

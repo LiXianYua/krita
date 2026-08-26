@@ -21,7 +21,7 @@ public:
 public:
 
     void processImpl(KisPaintDeviceSP src,
-                     const QRect& size,
+                     const PkRect& size,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;
@@ -31,13 +31,13 @@ public:
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 
-    static QSize getKernelHalfSize(const KisFilterConfigurationSP config, int lod);
+    static PkSize getKernelHalfSize(const KisFilterConfigurationSP config, int lod);
 
-    QRect neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
-    QRect changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
 
 private:
-    static QPolygonF getIrisPolygon(const KisFilterConfigurationSP config, int lod);
+    static PkPolygonF getIrisPolygon(const KisFilterConfigurationSP config, int lod);
 };
 
 #endif

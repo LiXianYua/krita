@@ -9,8 +9,8 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
-#include <QTime>
+#include <PkPoint.h>
+#include <PkDateTime.h>
 
 #include <klocalizedstring.h>
 
@@ -29,7 +29,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaExampleFactory, "kritaexample.json", registerPlugin<KritaExample>();)
 
-KritaExample::KritaExample(QObject *parent, const QVariantList &)
+KritaExample::KritaExample(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterInvert()));

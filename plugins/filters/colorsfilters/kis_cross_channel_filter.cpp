@@ -12,7 +12,7 @@
 #include <QLayout>
 #include <QPixmap>
 #include <QPainter>
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 #include <QHBoxLayout>
 #include <QRegularExpression>
 
@@ -51,7 +51,7 @@ KisCrossChannelFilterConfiguration::KisCrossChannelFilterConfiguration(int chann
     int defaultDriver = 0;
 
     if (cs) {
-        QVector<VirtualChannelInfo> virtualChannels = KisMultiChannelFilter::getVirtualChannels(cs);
+        PkVector<VirtualChannelInfo> virtualChannels = KisMultiChannelFilter::getVirtualChannels(cs);
         defaultDriver = qMax(0, KisMultiChannelFilter::findChannel(virtualChannels, VirtualChannelInfo::LIGHTNESS));
     }
 
@@ -72,19 +72,19 @@ KisFilterConfigurationSP KisCrossChannelFilterConfiguration::clone() const
     return new KisCrossChannelFilterConfiguration(*this);
 }
 
-const QVector<int> KisCrossChannelFilterConfiguration::driverChannels() const
+const PkVector<int> KisCrossChannelFilterConfiguration::driverChannels() const
 {
     return m_driverChannels;
 }
 
-void KisCrossChannelFilterConfiguration::setDriverChannels(QVector<int> driverChannels)
+void KisCrossChannelFilterConfiguration::setDriverChannels(PkVector<int> driverChannels)
 {
     KIS_SAFE_ASSERT_RECOVER_RETURN(driverChannels.size() == m_curves.size());
 
     // Clean unused properties
     if (driverChannels.size() < m_driverChannels.size()) {
         for (int i = driverChannels.size(); i < m_driverChannels.size(); ++i) {
-            const QString name = QLatin1String("driver") + QString::number(i);
+            const PkString name = QLatin1String("driver") + PkString::number(i);
             KisColorTransformationConfiguration::removeProperty(name);
         }
     }
@@ -93,23 +93,23 @@ void KisCrossChannelFilterConfiguration::setDriverChannels(QVector<int> driverCh
 
     // Update properties for python
     for (int i = 0; i < m_driverChannels.size(); ++i) {
-        const QString name = QLatin1String("driver") + QString::number(i);
+        const PkString name = QLatin1String("driver") + PkString::number(i);
         const int value = m_driverChannels[i];
         KisColorTransformationConfiguration::setProperty(name, value);
     }
 }
 
-void KisCrossChannelFilterConfiguration::fromXML(const QDomElement& root)
+void KisCrossChannelFilterConfiguration::fromXML(const PkXmlElement& root)
 {
     KisMultiChannelFilterConfiguration::fromXML(root);
 
-    QVector<int> driverChannels;
+    PkVector<int> driverChannels;
     driverChannels.resize(m_curves.size());
 
     QRegularExpression rx("^driver(\\d+)$");
     QRegularExpressionMatch match;
-    for (QDomElement e = root.firstChildElement(); !e.isNull(); e = e.nextSiblingElement()) {
-        const QString attributeName = e.attribute("name");
+    for (PkXmlElement e = root.firstChildElement(); !e.isNull(); e = e.nextSiblingElement()) {
+        const PkString attributeName = e.attribute("name");
 
         if (attributeName.contains(rx, &match)) {
             int channel = match.captured(1).toUShort();
@@ -124,15 +124,15 @@ void KisCrossChannelFilterConfiguration::fromXML(const QDomElement& root)
     setDriverChannels(driverChannels);
 }
 
-void KisCrossChannelFilterConfiguration::toXML(QDomDocument& doc, QDomElement& root) const
+void KisCrossChannelFilterConfiguration::toXML(PkXmlDocument& doc, PkXmlElement& root) const
 {
     KisMultiChannelFilterConfiguration::toXML(doc, root);
 
     for (int i = 0; i < m_driverChannels.size(); i++) {
-        QDomElement param = doc.createElement("param");
-        param.setAttribute("name", QString("driver%1").arg(i));
+        PkXmlElement param = doc.createElement("param");
+        param.setAttribute("name", PkString("driver%1").arg(i));
 
-        QDomText text = doc.createTextNode(KisDomUtils::toString(m_driverChannels[i]));
+        PkXmlText text = doc.createTextNode(KisDomUtils::toString(m_driverChannels[i]));
         param.appendChild(text);
 
         root.appendChild(param);
@@ -141,7 +141,7 @@ void KisCrossChannelFilterConfiguration::toXML(QDomDocument& doc, QDomElement& r
 
 KisCubicCurve KisCrossChannelFilterConfiguration::getDefaultCurve()
 {
-    const QList<QPointF> points { QPointF(0.0f, 0.5f), QPointF(1.0f, 0.5f) };
+    const PkList<PkPointF> points { PkPointF(0.0f, 0.5f), PkPointF(1.0f, 0.5f) };
     return KisCubicCurve(points);
 }
 
@@ -154,7 +154,7 @@ bool KisCrossChannelFilterConfiguration::compareTo(const KisPropertiesConfigurat
         && m_driverChannels == otherConfig->m_driverChannels;
 }
 
-void KisCrossChannelFilterConfiguration::setProperty(const QString& name, const QVariant& value)
+void KisCrossChannelFilterConfiguration::setProperty(const PkString& name, const PkVariant& value)
 {
     if (name == "nTransfers") {
         KIS_SAFE_ASSERT_RECOVER_RETURN(value.canConvert<int>());
@@ -174,19 +174,19 @@ void KisCrossChannelFilterConfiguration::setProperty(const QString& name, const 
             int defaultDriver = 0;
 
             if (m_colorSpace) {
-                QVector<VirtualChannelInfo> virtualChannels = KisMultiChannelFilter::getVirtualChannels(m_colorSpace);
+                PkVector<VirtualChannelInfo> virtualChannels = KisMultiChannelFilter::getVirtualChannels(m_colorSpace);
                 defaultDriver = qMax(0, KisMultiChannelFilter::findChannel(virtualChannels, VirtualChannelInfo::LIGHTNESS));
             }
 
             for (qint32 i = prevChannelCount; i < newChannelCount; ++i) {
                 m_driverChannels[i] = defaultDriver;
 
-                const QString name = QLatin1String("driver") + QString::number(i);
+                const PkString name = QLatin1String("driver") + PkString::number(i);
                 KisColorTransformationConfiguration::setProperty(name, defaultDriver);
             }
         } else {
             for (qint32 i = newChannelCount; i < prevChannelCount; ++i) {
-                const QString name = QLatin1String("driver") + QString::number(i);
+                const PkString name = QLatin1String("driver") + PkString::number(i);
                 KisColorTransformationConfiguration::removeProperty(name);
             }
         }
@@ -214,7 +214,7 @@ void KisCrossChannelFilterConfiguration::setProperty(const QString& name, const 
     KisColorTransformationConfiguration::setProperty(name, driver);
 }
 
-bool KisCrossChannelFilterConfiguration::channelIndexFromDriverPropertyName(const QString& name, int& driverIndex) const
+bool KisCrossChannelFilterConfiguration::channelIndexFromDriverPropertyName(const PkString& name, int& driverIndex) const
 {
     QRegularExpression rx("driver(\\d+)");
     QRegularExpressionMatch match;
@@ -266,11 +266,11 @@ KoColorTransformation* KisCrossChannelFilter::createTransformation(const KoColor
         dynamic_cast<const KisCrossChannelFilterConfiguration*>(config.data());
     Q_ASSERT(configBC);
 
-    const QVector<QVector<quint16> > &originalTransfers = configBC->transfers();
-    const QList<KisCubicCurve> &curves = configBC->curves();
-    const QVector<int> &drivers = configBC->driverChannels();
+    const PkVector<PkVector<quint16> > &originalTransfers = configBC->transfers();
+    const PkList<KisCubicCurve> &curves = configBC->curves();
+    const PkVector<int> &drivers = configBC->driverChannels();
 
-    const QVector<VirtualChannelInfo> virtualChannels =
+    const PkVector<VirtualChannelInfo> virtualChannels =
         KisMultiChannelFilter::getVirtualChannels(cs, originalTransfers.size());
 
     if (originalTransfers.size() > int(virtualChannels.size())) {
@@ -278,16 +278,16 @@ KoColorTransformation* KisCrossChannelFilter::createTransformation(const KoColor
         return 0;
     }
 
-    QVector<KoColorTransformation*> transforms;
+    PkVector<KoColorTransformation*> transforms;
     // Channel order reversed in order to adjust saturation before hue. This allows mapping grays to colors.
     for (int i = virtualChannels.size() - 1; i >= 0; i--) {
         if (!curves[i].isConstant(0.5)) {
             int channel = mapChannel(virtualChannels[i]);
             int driverChannel = mapChannel(virtualChannels[drivers[i]]);
-            QHash<QString, QVariant> params;
+            PkHash<PkString, PkVariant> params;
             params["channel"] = channel;
             params["driverChannel"] = driverChannel;
-            params["curve"] = QVariant::fromValue(originalTransfers[i]);
+            params["curve"] = PkVariant::fromValue(originalTransfers[i]);
             params["relative"] = true;
             params["lumaRed"]   = cs->lumaCoefficients()[0];
             params["lumaGreen"] = cs->lumaCoefficients()[1];

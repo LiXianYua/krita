@@ -8,13 +8,13 @@
 #define KIS_PHONG_BUMPMAP_PLUGIN_H
 
 #include <QObject>
-#include <QVariantList>
+#include <PkVariant.h>
 
 class KisPhongBumpmapPlugin : public QObject
 {
     Q_OBJECT
 public:
-    KisPhongBumpmapPlugin(QObject *parent, const QVariantList &);
+    KisPhongBumpmapPlugin(QObject *parent, const PkVariantList &);
     ~KisPhongBumpmapPlugin() override;
 };
 

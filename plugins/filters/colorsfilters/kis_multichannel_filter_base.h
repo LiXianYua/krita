@@ -10,7 +10,7 @@
 #ifndef _KIS_MULTICHANNEL_FILTER_BASE_H_
 #define _KIS_MULTICHANNEL_FILTER_BASE_H_
 
-#include <QList>
+#include <PkList.h>
 
 #include <filter/kis_color_transformation_filter.h>
 #include <filter/kis_color_transformation_configuration.h>
@@ -31,11 +31,11 @@ public:
      * If maxChannels is non-negative, the number of channels is capped to the number. This is useful configurations
      * from older documents (created in versions which supported fewer channels).
      */
-    static QVector<VirtualChannelInfo> getVirtualChannels(const KoColorSpace *cs, int maxChannels = -1);
-    static int findChannel(const QVector<VirtualChannelInfo> &virtualChannels, const VirtualChannelInfo::Type &channelType);
+    static PkVector<VirtualChannelInfo> getVirtualChannels(const KoColorSpace *cs, int maxChannels = -1);
+    static int findChannel(const PkVector<VirtualChannelInfo> &virtualChannels, const VirtualChannelInfo::Type &channelType);
 
 protected:
-    KisMultiChannelFilter(const KoID &id, const QString &entry);
+    KisMultiChannelFilter(const KoID &id, const PkString &entry);
 };
 
 /**
@@ -44,7 +44,7 @@ protected:
 class KisMultiChannelFilterConfiguration : public KisColorTransformationConfiguration
 {
 public:
-    KisMultiChannelFilterConfiguration(int channelCount, const QString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface);
+    KisMultiChannelFilterConfiguration(int channelCount, const PkString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface);
     KisMultiChannelFilterConfiguration(const KisMultiChannelFilterConfiguration &rhs);
     ~KisMultiChannelFilterConfiguration() override;
 
@@ -52,20 +52,20 @@ public:
     using KisFilterConfiguration::toXML;
     using KisFilterConfiguration::fromLegacyXML;
 
-    void fromLegacyXML(const QDomElement& root) override;
+    void fromLegacyXML(const PkXmlElement& root) override;
 
-    void fromXML(const QDomElement& e) override;
-    void toXML(QDomDocument& doc, QDomElement& root) const override;
+    void fromXML(const PkXmlElement& e) override;
+    void toXML(PkXmlDocument& doc, PkXmlElement& root) const override;
 
-    void setCurves(QList<KisCubicCurve> &curves);
+    void setCurves(PkList<KisCubicCurve> &curves);
     bool isCompatible(const KisPaintDeviceSP) const override;
 
-    const QVector<QVector<quint16> >& transfers() const;
-    const QList<KisCubicCurve>& curves() const;
+    const PkVector<PkVector<quint16> >& transfers() const;
+    const PkList<KisCubicCurve>& curves() const;
 
     virtual bool compareTo(const KisPropertiesConfiguration* rhs) const override;
 
-    void setProperty(const QString& name, const QVariant& value) override;
+    void setProperty(const PkString& name, const PkVariant& value) override;
     void setActiveCurve(int value);
 
     /**
@@ -85,15 +85,15 @@ public:
      *        filter. Its size is expected to equal getVirtualChannels(targetColorSpace).size().
      * @return the whole curve list, remapped.
      */
-    static QList<KisCubicCurve> remapLegacyCurves(const KoColorSpace *targetColorSpace,
-                                                  const QList<KisCubicCurve> &loadedCurves,
-                                                  const QList<KisCubicCurve> &defaultCurves);
+    static PkList<KisCubicCurve> remapLegacyCurves(const KoColorSpace *targetColorSpace,
+                                                  const PkList<KisCubicCurve> &loadedCurves,
+                                                  const PkList<KisCubicCurve> &defaultCurves);
 
 protected:
     int m_channelCount {0};
     int m_activeCurve {-1};
-    QList<KisCubicCurve> m_curves;
-    QVector<QVector<quint16>> m_transfers;
+    PkList<KisCubicCurve> m_curves;
+    PkVector<PkVector<quint16>> m_transfers;
 
     void init();
     void updateTransfer(int index);
@@ -110,7 +110,7 @@ protected:
      * @return true if "name" had a valid format
      * @return false if "name" had an invalid format
      */
-    bool curveIndexFromCurvePropertyName(const QString& name, int& curveIndex) const;
+    bool curveIndexFromCurvePropertyName(const PkString& name, int& curveIndex) const;
 };
 
 #endif

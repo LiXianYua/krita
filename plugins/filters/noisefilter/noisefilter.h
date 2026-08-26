@@ -10,7 +10,7 @@
 #define NOISEFILTER_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include "filter/kis_filter.h"
 
 
@@ -18,7 +18,7 @@ class KritaNoiseFilter : public QObject
 {
     Q_OBJECT
 public:
-    KritaNoiseFilter(QObject *parent, const QVariantList &);
+    KritaNoiseFilter(QObject *parent, const PkVariantList &);
     ~KritaNoiseFilter() override;
 };
 
@@ -29,7 +29,7 @@ public:
 public:
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;

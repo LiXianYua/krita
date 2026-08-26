@@ -8,7 +8,7 @@
 #define RESET_TRANSPARENT_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <kis_filter.h>
 
@@ -16,7 +16,7 @@ class ResetTransparent : public QObject
 {
     Q_OBJECT
 public:
-    ResetTransparent(QObject *parent, const QVariantList &);
+    ResetTransparent(QObject *parent, const PkVariantList &);
     ~ResetTransparent() override;
 };
 
@@ -33,7 +33,7 @@ public:
 
 protected:
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater = 0 ) const override;
 

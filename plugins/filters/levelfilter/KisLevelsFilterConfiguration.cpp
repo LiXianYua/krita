@@ -42,11 +42,11 @@ bool KisLevelsFilterConfiguration::isCompatible(const KisPaintDeviceSP dev) cons
     return useLightnessMode() || (int)dev->compositionSourceColorSpace()->channelCount() == channelCount();
 }
 
-const QVector<KisLevelsCurve> KisLevelsFilterConfiguration::levelsCurves() const
+const PkVector<KisLevelsCurve> KisLevelsFilterConfiguration::levelsCurves() const
 {
-    QVector<KisLevelsCurve> levelsCurves_;
+    PkVector<KisLevelsCurve> levelsCurves_;
     for (qint32 i = 0; i < channelCount(); ++i) {
-        const QString levelsCurveStr = getString(QString("channel_") + KisDomUtils::toString(i), "");
+        const PkString levelsCurveStr = getString(PkString("channel_") + KisDomUtils::toString(i), "");
         levelsCurves_.append(levelsCurveStr.isEmpty() ? KisLevelsCurve() : KisLevelsCurve(levelsCurveStr));
     }
     return levelsCurves_;
@@ -54,14 +54,14 @@ const QVector<KisLevelsCurve> KisLevelsFilterConfiguration::levelsCurves() const
 
 const KisLevelsCurve KisLevelsFilterConfiguration::lightnessLevelsCurve() const
 {
-    const QString levelsCurveStr = getString("lightness", "");
+    const PkString levelsCurveStr = getString("lightness", "");
     return levelsCurveStr.isEmpty() ? KisLevelsCurve() : KisLevelsCurve(levelsCurveStr);
 }
 
-void KisLevelsFilterConfiguration::setLevelsCurves(const QVector<KisLevelsCurve> &newLevelsCurves)
+void KisLevelsFilterConfiguration::setLevelsCurves(const PkVector<KisLevelsCurve> &newLevelsCurves)
 {
     for (int i = 0; i < newLevelsCurves.size(); ++i) {
-        setProperty(QString("channel_") + KisDomUtils::toString(i), newLevelsCurves[i].toString());
+        setProperty(PkString("channel_") + KisDomUtils::toString(i), newLevelsCurves[i].toString());
     }
     setChannelCount(newLevelsCurves.size());
     updateTransfers();
@@ -74,7 +74,7 @@ void KisLevelsFilterConfiguration::setLightnessLevelsCurve(const KisLevelsCurve 
 
 void KisLevelsFilterConfiguration::updateTransfers()
 {
-    const QVector<KisLevelsCurve> lc = levelsCurves();
+    const PkVector<KisLevelsCurve> lc = levelsCurves();
     m_transfers.resize(lc.size());
     for (int i = 0; i < lc.size(); i++) {
         m_transfers[i] = lc[i].uint16Transfer();
@@ -88,19 +88,19 @@ void KisLevelsFilterConfiguration::updateLightnessTransfer()
     m_lightnessTransfer = lightnessLevelsCurve_.uint16Transfer();
 }
 
-const QVector<QVector<quint16>>& KisLevelsFilterConfiguration::transfers() const
+const PkVector<PkVector<quint16>>& KisLevelsFilterConfiguration::transfers() const
 {
     return m_transfers;
 }
 
-const QVector<quint16>& KisLevelsFilterConfiguration::lightnessTransfer() const
+const PkVector<quint16>& KisLevelsFilterConfiguration::lightnessTransfer() const
 {
     return m_lightnessTransfer;
 }
 
 bool KisLevelsFilterConfiguration::useLightnessMode() const
 {
-    const QString mode = getString("mode", "");
+    const PkString mode = getString("mode", "");
     if (mode == "lightness") {
         return true;
     } else if (mode == "channels") {
@@ -111,7 +111,7 @@ bool KisLevelsFilterConfiguration::useLightnessMode() const
 
 bool KisLevelsFilterConfiguration::showLogarithmicHistogram() const
 {
-    const QString mode = getString("histogram_mode", "");
+    const PkString mode = getString("histogram_mode", "");
     if (mode == "logarithmic") {
         return true;
     } else if (mode == "linear") {
@@ -181,7 +181,7 @@ void KisLevelsFilterConfiguration::setLegacyValuesFromLightnessLevelsCurve()
  * compact "lightness" property. Conversely, if the "lightness" property
  * is set, its values are copied to the legacy properties.
  */
-void KisLevelsFilterConfiguration::setProperty(const QString &name, const QVariant &value)
+void KisLevelsFilterConfiguration::setProperty(const PkString &name, const PkVariant &value)
 {
     KisColorTransformationConfiguration::setProperty(name, value);
 
@@ -207,20 +207,20 @@ void KisLevelsFilterConfiguration::setChannelCount(int newChannelCount)
     setProperty("number_of_channels", newChannelCount);
 }
 
-void KisLevelsFilterConfiguration::fromLegacyXML(const QDomElement& root)
+void KisLevelsFilterConfiguration::fromLegacyXML(const PkXmlElement& root)
 {
     fromXML(root);
 }
 
-void KisLevelsFilterConfiguration::fromXML(const QDomElement& root)
+void KisLevelsFilterConfiguration::fromXML(const PkXmlElement& root)
 {
     int version;
     version = root.attribute("version").toInt();
 
-    QDomElement e = root.firstChild().toElement();
-    QString attributeName;
+    PkXmlElement e = root.firstChild().toElement();
+    PkString attributeName;
     KisLevelsCurve lightnessLevelsCurve;
-    QVector<KisLevelsCurve> levelsCurves;
+    PkVector<KisLevelsCurve> levelsCurves;
     bool lightnessMode = defaultUseLightnessMode();
     bool logarithmicHistogram = defaultShowLogarithmicHistogram();
 
@@ -246,7 +246,7 @@ void KisLevelsFilterConfiguration::fromXML(const QDomElement& root)
         }
     } else if (version == 2) {
         int numChannels = 0;
-        QHash<int, KisLevelsCurve> unsortedLevelsCurves;
+        PkHash<int, KisLevelsCurve> unsortedLevelsCurves;
         KisLevelsCurve levelsCurve;
 
         while (!e.isNull()) {
@@ -289,14 +289,14 @@ void KisLevelsFilterConfiguration::fromXML(const QDomElement& root)
     setShowLogarithmicHistogram(logarithmicHistogram);
 }
 
-void addParamNode(QDomDocument& doc,
-                  QDomElement& root,
-                  const QString &name,
-                  const QString &value,
+void addParamNode(PkXmlDocument& doc,
+                  PkXmlElement& root,
+                  const PkString &name,
+                  const PkString &value,
                   bool internal = false)
 {
-    QDomText text = doc.createTextNode(value);
-    QDomElement t = doc.createElement("param");
+    PkXmlText text = doc.createTextNode(value);
+    PkXmlElement t = doc.createElement("param");
     t.setAttribute("name", name);
     if (internal) {
         t.setAttribute("type", "internal");
@@ -305,7 +305,7 @@ void addParamNode(QDomDocument& doc,
     root.appendChild(t);
 }
 
-void KisLevelsFilterConfiguration::toXML(QDomDocument& doc, QDomElement& root) const
+void KisLevelsFilterConfiguration::toXML(PkXmlDocument& doc, PkXmlElement& root) const
 {
     /**
      * levels curve param follows this format:
@@ -335,18 +335,18 @@ void KisLevelsFilterConfiguration::toXML(QDomDocument& doc, QDomElement& root) c
 
     root.setAttribute("version", version());
 
-    QDomText text;
-    QDomElement t;
+    PkXmlText text;
+    PkXmlElement t;
 
     addParamNode(doc, root, "mode", useLightnessMode() ? "lightness" : "channels");
     addParamNode(doc, root, "histogram_mode", showLogarithmicHistogram() ? "logarithmic" : "linear");
     addParamNode(doc, root, "lightness", lightnessLevelsCurve().toString());
     addParamNode(doc, root, "number_of_channels", KisDomUtils::toString(channelCount()));
 
-    const QVector<KisLevelsCurve> levelsCurves_ = levelsCurves();
+    const PkVector<KisLevelsCurve> levelsCurves_ = levelsCurves();
     for (int i = 0; i < levelsCurves_.size(); ++i) {
-        const QString name = QString("channel_") + KisDomUtils::toString(i);
-        const QString value = levelsCurves_[i].toString();
+        const PkString name = PkString("channel_") + KisDomUtils::toString(i);
+        const PkString value = levelsCurves_[i].toString();
         addParamNode(doc, root, name, value);
     }
     const KisLevelsCurve lightnessCurve_ = lightnessLevelsCurve();
@@ -363,7 +363,7 @@ void KisLevelsFilterConfiguration::setDefaults()
     setShowLogarithmicHistogram(defaultShowLogarithmicHistogram());
     setLightnessLevelsCurve(defaultLevelsCurve());
 
-    QVector<KisLevelsCurve> levelsCurves_;
+    PkVector<KisLevelsCurve> levelsCurves_;
     for (int i = 0; i < channelCount(); ++i) {
         levelsCurves_.append(defaultLevelsCurve());
     }

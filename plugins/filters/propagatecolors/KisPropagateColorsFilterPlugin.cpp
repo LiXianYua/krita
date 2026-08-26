@@ -15,7 +15,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(PropagateColorsFilterFactory, "kritapropagatecolorsfilter.json", registerPlugin<KisPropagateColorsFilterPlugin>();)
 
-KisPropagateColorsFilterPlugin::KisPropagateColorsFilterPlugin(QObject *parent, const QVariantList &)
+KisPropagateColorsFilterPlugin::KisPropagateColorsFilterPlugin(QObject *parent, const PkVariantList &)
     : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisPropagateColorsFilter());

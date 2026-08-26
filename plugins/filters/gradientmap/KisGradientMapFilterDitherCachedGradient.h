@@ -10,7 +10,7 @@
 #ifndef KIS_GRADIENT_MAP_FILTER_DITHER_CACHED_GRADIENT_H
 #define KIS_GRADIENT_MAP_FILTER_DITHER_CACHED_GRADIENT_H
 
-#include <QVector>
+#include <PkVector.h>
 
 #include <KoColor.h>
 
@@ -33,7 +33,7 @@ public:
 
 private:
     const qint32 m_max;
-    QVector<CachedEntry> m_cachedEntries;
+    PkVector<CachedEntry> m_cachedEntries;
     const CachedEntry m_nullEntry;
 };
 

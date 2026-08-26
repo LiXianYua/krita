@@ -20,7 +20,7 @@ public:
     KisGaussianHighPassFilter();
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater *
                      ) const override;
@@ -31,8 +31,8 @@ public:
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 
-    QRect changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
-    QRect neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
 
 private:
     mutable KisCachedPaintDevice m_cachedPaintDevice;

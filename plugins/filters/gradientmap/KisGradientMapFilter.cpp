@@ -99,7 +99,7 @@ DitherColorModePolicy::DitherColorModePolicy(const KisGradientMapFilterDitherCac
 const quint8* DitherColorModePolicy::colorAt(qreal t, int x, int y) const
 {
     const KisGradientMapFilterDitherCachedGradient::CachedEntry &cachedEntry = m_cachedGradient->cachedAt(t);
-    if (cachedEntry.localT < m_ditherUtil->threshold(QPoint(x, y))) {
+    if (cachedEntry.localT < m_ditherUtil->threshold(PkPoint(x, y))) {
         return cachedEntry.leftStop.data();
     }
     else {
@@ -108,7 +108,7 @@ const quint8* DitherColorModePolicy::colorAt(qreal t, int x, int y) const
 }
 
 void KisGradientMapFilter::processImpl(KisPaintDeviceSP device,
-                                       const QRect& applyRect,
+                                       const PkRect& applyRect,
                                        const KisFilterConfigurationSP config,
                                        KoUpdater *progressUpdater) const
 {
@@ -145,7 +145,7 @@ void KisGradientMapFilter::processImpl(KisPaintDeviceSP device,
 
 template <typename ColorModeStrategy>
 void KisGradientMapFilter::processImpl(KisPaintDeviceSP device,
-                                       const QRect& applyRect,
+                                       const PkRect& applyRect,
                                        const KisFilterConfigurationSP config,
                                        KoUpdater *progressUpdater,
                                        const ColorModeStrategy &colorModeStrategy) const

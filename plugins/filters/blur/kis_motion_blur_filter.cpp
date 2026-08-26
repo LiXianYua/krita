@@ -61,29 +61,29 @@ struct MotionBlurProperties
 
         kernelHalfSize.rwidth() = ceil(fabs(halfWidth));
         kernelHalfSize.rheight() = ceil(fabs(halfHeight));
-        kernelSize = kernelHalfSize * 2 + QSize(1, 1);
+        kernelSize = kernelHalfSize * 2 + PkSize(1, 1);
         this->blurLength = blurLength;
 
 
-        QPointF p1(0.5 * kernelSize.width(), 0.5 * kernelSize.height());
-        QPointF p2(halfWidth, halfHeight);
-        motionLine = QLineF(p1 - p2, p1 + p2);
+        PkPointF p1(0.5 * kernelSize.width(), 0.5 * kernelSize.height());
+        PkPointF p2(halfWidth, halfHeight);
+        motionLine = PkLineF(p1 - p2, p1 + p2);
     }
 
     int blurLength;
-    QSize kernelSize;
-    QSize kernelHalfSize;
-    QLineF motionLine;
+    PkSize kernelSize;
+    PkSize kernelHalfSize;
+    PkLineF motionLine;
 };
 }
 
 void KisMotionBlurFilter::processImpl(KisPaintDeviceSP device,
-                                      const QRect& rect,
+                                      const PkRect& rect,
                                       const KisFilterConfigurationSP config,
                                       KoUpdater* progressUpdater
                                       ) const
 {
-    QPoint srcTopLeft = rect.topLeft();
+    PkPoint srcTopLeft = rect.topLeft();
 
     Q_ASSERT(device);
     KIS_SAFE_ASSERT_RECOVER_RETURN(config);
@@ -95,22 +95,22 @@ void KisMotionBlurFilter::processImpl(KisPaintDeviceSP device,
         return;
     }
 
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
 
     if (config) {
         channelFlags = config->channelFlags();
     }
 
     if (channelFlags.isEmpty() || !config) {
-        channelFlags = QBitArray(device->colorSpace()->channelCount(), true);
+        channelFlags = PkBitArray(device->colorSpace()->channelCount(), true);
     }
 
-    QImage kernelRepresentation(props.kernelSize, QImage::Format_RGB32);
+    PkImage kernelRepresentation(props.kernelSize, PkImage::Format_RGB32);
     kernelRepresentation.fill(0);
 
     QPainter imagePainter(&kernelRepresentation);
     imagePainter.setRenderHint(QPainter::Antialiasing);
-    imagePainter.setPen(QPen(QColor::fromRgb(255, 255, 255), 1.0));
+    imagePainter.setPen(PkPen(PkColor::fromRgb(255, 255, 255), 1.0));
     imagePainter.drawLine(props.motionLine);
 
     // construct kernel from image
@@ -130,14 +130,14 @@ void KisMotionBlurFilter::processImpl(KisPaintDeviceSP device,
     painter.applyMatrix(kernel, device, srcTopLeft, srcTopLeft, rect.size(), BORDER_REPEAT);
 }
 
-QRect KisMotionBlurFilter::neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisMotionBlurFilter::neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const
 {
     KisLodTransformScalar t(lod);
     MotionBlurProperties props(_config, t);
     return rect.adjusted(-props.kernelHalfSize.width(), -props.kernelHalfSize.height(), props.kernelHalfSize.width(), props.kernelHalfSize.height());
 }
 
-QRect KisMotionBlurFilter::changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisMotionBlurFilter::changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const
 {
     return neededRect(rect, _config, lod);
 }

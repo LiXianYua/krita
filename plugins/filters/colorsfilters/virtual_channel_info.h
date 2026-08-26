@@ -56,7 +56,7 @@ public:
     int pixelIndex() const;
 
     Type type() const;
-    QString name() const;
+    PkString name() const;
 
     KoChannelInfo::enumChannelValueType valueType() const;
     int channelSize() const;
@@ -68,7 +68,7 @@ private:
     int m_pixelIndex {0};
     KoChannelInfo *m_realChannelInfo {nullptr};
 
-    QString m_nameOverride;
+    PkString m_nameOverride;
     KoChannelInfo::enumChannelValueType m_valueTypeOverride {KoChannelInfo::FLOAT32};
     int m_channelSizeOverride {4};
 };

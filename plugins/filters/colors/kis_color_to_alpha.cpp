@@ -36,7 +36,7 @@ KisFilterColorToAlpha::KisFilterColorToAlpha()
 KisFilterConfigurationSP KisFilterColorToAlpha::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const
 {
     KisFilterConfigurationSP config = factoryConfiguration(resourcesInterface);
-    config->setProperty("targetcolor", QColor(255, 255, 255));
+    config->setProperty("targetcolor", PkColor(255, 255, 255));
     config->setProperty("threshold", 100);
     return config;
 }
@@ -82,7 +82,7 @@ void applyToIterator(const int numChannels, const int *channelIndex,
 }
 
 void KisFilterColorToAlpha::processImpl(KisPaintDeviceSP device,
-                                        const QRect& rect,
+                                        const PkRect& rect,
                                         const KisFilterConfigurationSP config,
                                         KoUpdater* progressUpdater
                                         ) const
@@ -90,8 +90,8 @@ void KisFilterColorToAlpha::processImpl(KisPaintDeviceSP device,
     Q_ASSERT(device != 0);
     KIS_SAFE_ASSERT_RECOVER_RETURN(config);
 
-    QVariant value;
-    QColor cTA = (config->getProperty("targetcolor", value)) ? value.value<QColor>() : QColor(255, 255, 255);
+    PkVariant value;
+    PkColor cTA = (config->getProperty("targetcolor", value)) ? value.value<PkColor>() : PkColor(255, 255, 255);
     int threshold = (config->getProperty("threshold", value)) ? value.toInt() : 1;
 
     const KoColorSpace * cs = device->colorSpace();
@@ -99,10 +99,10 @@ void KisFilterColorToAlpha::processImpl(KisPaintDeviceSP device,
     KisSequentialIteratorProgress it(device, rect, progressUpdater);
     KoColor baseColor(cTA, cs);
 
-    QVector<int> channelIndex;
+    PkVector<int> channelIndex;
     KoChannelInfo::enumChannelValueType valueType = KoChannelInfo::OTHER;
 
-    const QList<KoChannelInfo*> channels = cs->channels();
+    const PkList<KoChannelInfo*> channels = cs->channels();
 
     for (int i = 0; i < channels.size(); i++) {
         const KoChannelInfo *info = channels[i];

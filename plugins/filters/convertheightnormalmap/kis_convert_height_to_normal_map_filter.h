@@ -12,7 +12,7 @@ class KritaConvertHeightToNormalMapFilter : public QObject
 {
     Q_OBJECT
 public:
-    KritaConvertHeightToNormalMapFilter(QObject *parent, const QVariantList &);
+    KritaConvertHeightToNormalMapFilter(QObject *parent, const PkVariantList &);
     ~KritaConvertHeightToNormalMapFilter() override;
 };
 
@@ -21,7 +21,7 @@ class KisConvertHeightToNormalMapFilter : public KisFilter
 public:
     KisConvertHeightToNormalMapFilter();
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& rect,
+                     const PkRect& rect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;
@@ -31,8 +31,8 @@ public:
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 public:
-    QRect neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
-    QRect changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
 };
 
 

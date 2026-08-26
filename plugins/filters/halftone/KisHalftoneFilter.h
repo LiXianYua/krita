@@ -10,7 +10,7 @@
 #define KIS_HALFTONE_FILTER_H
 
 #include <QObject>
-#include <QVector>
+#include <PkVector.h>
 
 #include <filter/kis_filter.h>
 #include <kis_filter_configuration.h>
@@ -23,7 +23,7 @@ class KritaHalftone : public QObject
 {
     Q_OBJECT
 public:
-    KritaHalftone(QObject *parent, const QVariantList &);
+    KritaHalftone(QObject *parent, const PkVariantList &);
     ~KritaHalftone() override;
 };
 
@@ -37,7 +37,7 @@ public:
     }
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater *progressUpdater) const override;
 
@@ -49,8 +49,8 @@ private:
     mutable KisCachedPaintDevice m_grayDevicesCache;
     mutable KisCachedPaintDevice m_genericDevicesCache;
 
-    static QVector<quint8> makeHardnessLut(qreal hardness);
-    static QVector<quint8> makeNoiseWeightLut(qreal hardness);
+    static PkVector<quint8> makeHardnessLut(qreal hardness);
+    static PkVector<quint8> makeNoiseWeightLut(qreal hardness);
     
     static inline quint8 mapU8ToRange(quint8 value, quint8 new_min, quint8 new_max) {
         Q_UNUSED(new_min);
@@ -63,34 +63,34 @@ private:
     }
 
     KisPaintDeviceSP makeGeneratorPaintDevice(KisPaintDeviceSP prototype,
-                                              const QString & prefix,
-                                              const QRect &applyRect,
+                                              const PkString & prefix,
+                                              const PkRect &applyRect,
                                               const KisHalftoneFilterConfiguration *config,
                                               KoUpdater *progressUpdater) const;
 
     bool checkUpdaterInterruptedAndSetPercent(KoUpdater *progressUpdater, int percent) const;
     
     void processIntensity(KisPaintDeviceSP device,
-                          const QRect& applyRect,
+                          const PkRect& applyRect,
                           const KisHalftoneFilterConfiguration *config,
                           KoUpdater *progressUpdater) const;
     template <typename ChannelType>
     void processChannel(KisPaintDeviceSP device,
                         KisPaintDeviceSP generatorDevice,
-                        const QRect &applyRect,
+                        const PkRect &applyRect,
                         const KisHalftoneFilterConfiguration *config,
-                        const QString & prefix,
+                        const PkString & prefix,
                         KoChannelInfo * channelInfo) const;
     void processChannels(KisPaintDeviceSP device,
-                         const QRect& applyRect,
+                         const PkRect& applyRect,
                          const KisHalftoneFilterConfiguration *config,
                          KoUpdater *progressUpdater) const;
     void processAlpha(KisPaintDeviceSP device,
-                      const QRect& applyRect,
+                      const PkRect& applyRect,
                       const KisHalftoneFilterConfiguration *config,
                       KoUpdater *progressUpdater) const;
     void processMask(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisHalftoneFilterConfiguration *config,
                      KoUpdater *progressUpdater) const;
 

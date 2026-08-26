@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <math.h>
-#include <QPoint>
+#include <PkPoint.h>
 
 #include <kis_debug.h>
 #include <kpluginfactory.h>
@@ -82,7 +82,7 @@ public:
     }
 private:
     int m_amplitude, m_wavelength, m_shift;
-}; KritaWaveFilter::KritaWaveFilter(QObject *parent, const QVariantList &)
+}; KritaWaveFilter::KritaWaveFilter(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisFilterWave());
@@ -114,14 +114,14 @@ KisFilterConfigurationSP KisFilterWave::defaultConfiguration(KisResourcesInterfa
 }
 
 void KisFilterWave::processImpl(KisPaintDeviceSP device,
-                                const QRect& applyRect,
+                                const PkRect& applyRect,
                                 const KisFilterConfigurationSP config,
                                 KoUpdater* progressUpdater
                                 ) const
 {
     Q_ASSERT(device.data() != 0);
 
-    QVariant value;
+    PkVariant value;
     int horizontalwavelength = (config && config->getProperty("horizontalwavelength", value)) ? value.toInt() : 50;
     int horizontalshift = (config && config->getProperty("horizontalshift", value)) ? value.toInt() : 50;
     int horizontalamplitude = (config && config->getProperty("horizontalamplitude", value)) ? value.toInt() : 4;
@@ -149,7 +149,7 @@ void KisFilterWave::processImpl(KisPaintDeviceSP device,
     while (destination.nextPixel()) {
         double xv = horizontalWave->valueAt(destination.y(), destination.x());
         double yv = verticalWave->valueAt(destination.x(), destination.y());
-        source->moveTo(QPointF(xv, yv));
+        source->moveTo(PkPointF(xv, yv));
         source->sampledOldRawData(destination.rawData());
     }
 
@@ -157,17 +157,17 @@ void KisFilterWave::processImpl(KisPaintDeviceSP device,
     delete horizontalWave;
 }
 
-QRect KisFilterWave::changedRect(const QRect &rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisFilterWave::changedRect(const PkRect &rect, const KisFilterConfigurationSP config, int lod) const
 {
     Q_UNUSED(lod);
 
-    QVariant value;
+    PkVariant value;
     int horizontalamplitude = (config && config->getProperty("horizontalamplitude", value)) ? value.toInt() : 4;
     int verticalamplitude = (config && config->getProperty("verticalamplitude", value)) ? value.toInt() : 4;
     return rect.adjusted(-horizontalamplitude, -verticalamplitude, horizontalamplitude, verticalamplitude);
 }
 
-QRect KisFilterWave::neededRect(const QRect& rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisFilterWave::neededRect(const PkRect& rect, const KisFilterConfigurationSP config, int lod) const
 {
     return changedRect(rect, config, lod);
 }

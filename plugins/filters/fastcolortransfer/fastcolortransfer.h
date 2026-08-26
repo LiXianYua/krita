@@ -10,14 +10,14 @@
 #define COLORTRANSFER_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include <filter/kis_filter.h>
 
 class FastColorTransferPlugin : public QObject
 {
     Q_OBJECT
 public:
-    FastColorTransferPlugin(QObject *parent, const QVariantList &);
+    FastColorTransferPlugin(QObject *parent, const PkVariantList &);
     ~FastColorTransferPlugin() override;
 };
 
@@ -28,7 +28,7 @@ public:
 public:
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater) const override;
     static inline KoID id() {

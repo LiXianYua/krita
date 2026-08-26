@@ -19,7 +19,7 @@ public:
 public:
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;
@@ -28,8 +28,8 @@ public:
         return KoID("gaussiannoisereducer", i18n("Gaussian Noise Reducer"));
     }
 
-    QRect changedRect(const QRect &rect, const KisFilterConfigurationSP _config, int lod) const override;
-    QRect neededRect(const QRect &rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect changedRect(const PkRect &rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect neededRect(const PkRect &rect, const KisFilterConfigurationSP _config, int lod) const override;
 
 protected:
     KisFilterConfigurationSP  defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

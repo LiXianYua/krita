@@ -17,7 +17,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(BlurFilterPluginFactory, "kritablurfilter.json", registerPlugin<BlurFilterPlugin>();)
 
-BlurFilterPlugin::BlurFilterPlugin(QObject *parent, const QVariantList &)
+BlurFilterPlugin::BlurFilterPlugin(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisBlurFilter());

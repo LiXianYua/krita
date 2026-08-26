@@ -16,7 +16,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisSmallTilesFilterPluginFactory, "kritasmalltilesfilter.json", registerPlugin<KisSmallTilesFilterPlugin>();)
 
-KisSmallTilesFilterPlugin::KisSmallTilesFilterPlugin(QObject *parent, const QVariantList &)
+KisSmallTilesFilterPlugin::KisSmallTilesFilterPlugin(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisSmallTilesFilter());

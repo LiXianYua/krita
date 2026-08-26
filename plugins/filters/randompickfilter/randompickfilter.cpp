@@ -11,7 +11,7 @@
 #include <vector>
 #include <math.h>
 
-#include <QPoint>
+#include <PkPoint.h>
 
 #include <kis_debug.h>
 
@@ -39,7 +39,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaRandomPickFilterFactory, "kritarandompickfilter.json", registerPlugin<KritaRandomPickFilter>();)
 
-KritaRandomPickFilter::KritaRandomPickFilter(QObject *parent, const QVariantList &)
+KritaRandomPickFilter::KritaRandomPickFilter(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisFilterRandomPick());
@@ -57,7 +57,7 @@ KisFilterRandomPick::KisFilterRandomPick() : KisFilter(id(), FiltersCategoryOthe
 
 
 void KisFilterRandomPick::processImpl(KisPaintDeviceSP device,
-                                      const QRect& applyRect,
+                                      const PkRect& applyRect,
                                       const KisFilterConfigurationSP config,
                                       KoUpdater* progressUpdater
                                       ) const
@@ -67,7 +67,7 @@ void KisFilterRandomPick::processImpl(KisPaintDeviceSP device,
 
     const KoColorSpace * cs = device->colorSpace();
 
-    QVariant value;
+    PkVariant value;
     int level = (config && config->getProperty("level", value)) ? value.toInt() : 50;
     int opacity = (config && config->getProperty("opacity", value)) ? value.toInt() : 100;
     double windowsize = (config && config->getProperty("windowsize", value)) ? value.toDouble() : 2.5;
@@ -120,16 +120,16 @@ KisFilterConfigurationSP KisFilterRandomPick::defaultConfiguration(KisResourcesI
     return config;
 }
 
-QRect KisFilterRandomPick::neededRect(const QRect& rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisFilterRandomPick::neededRect(const PkRect& rect, const KisFilterConfigurationSP config, int lod) const
 {
     Q_UNUSED(lod);
 
-    QVariant value;
+    PkVariant value;
     int windowsize = ceil((config && config->getProperty("windowsize", value)) ? value.toDouble() : 2.5);
     return rect.adjusted(-windowsize, -windowsize, windowsize, windowsize);
 }
 
-QRect KisFilterRandomPick::changedRect(const QRect &rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisFilterRandomPick::changedRect(const PkRect &rect, const KisFilterConfigurationSP config, int lod) const
 {
     return neededRect(rect, config, lod);
 }

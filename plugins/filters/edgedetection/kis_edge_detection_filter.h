@@ -14,7 +14,7 @@ class KritaEdgeDetectionFilter : public QObject
 {
     Q_OBJECT
 public:
-    KritaEdgeDetectionFilter(QObject *parent, const QVariantList &);
+    KritaEdgeDetectionFilter(QObject *parent, const PkVariantList &);
     ~KritaEdgeDetectionFilter() override;
 };
 
@@ -23,7 +23,7 @@ class KisEdgeDetectionFilter : public KisFilter
 public:
     KisEdgeDetectionFilter();
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& rect,
+                     const PkRect& rect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;
@@ -33,8 +33,8 @@ public:
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 public:
-    QRect neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
-    QRect changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
 };
 
 #endif // KIS_EDGE_DETECTION_FILTER_H

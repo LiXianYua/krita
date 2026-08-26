@@ -11,13 +11,13 @@
 #define KIS_LEVELS_FILTER_PLUGIN_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class KisLevelsFilterPlugin : public QObject
 {
     Q_OBJECT
 public:
-    KisLevelsFilterPlugin(QObject *parent, const QVariantList &);
+    KisLevelsFilterPlugin(QObject *parent, const PkVariantList &);
     ~KisLevelsFilterPlugin() override;
 };
 

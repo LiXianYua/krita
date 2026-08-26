@@ -16,7 +16,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaExtensionsColorsFactory, "kritaextensioncolorsfilters.json", registerPlugin<KritaExtensionsColors>();)
 
-KritaExtensionsColors::KritaExtensionsColors(QObject *parent, const QVariantList &)
+KritaExtensionsColors::KritaExtensionsColors(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry * manager = KisFilterRegistry::instance();

@@ -18,15 +18,15 @@ class KisConvolutionFilter : public KisFilter
 {
 
 public:
-    KisConvolutionFilter(const KoID& id, const KoID & category, const QString & entry);
+    KisConvolutionFilter(const KoID& id, const KoID & category, const PkString & entry);
 public:
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater) const override;
 
-    QRect neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
-    QRect changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
 
 protected:
     void setIgnoreAlpha(bool v);

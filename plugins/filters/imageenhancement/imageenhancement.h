@@ -10,13 +10,13 @@
 #define IMAGEENHANCEMENT_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class KritaImageEnhancement : public QObject
 {
     Q_OBJECT
 public:
-    KritaImageEnhancement(QObject *parent, const QVariantList &);
+    KritaImageEnhancement(QObject *parent, const PkVariantList &);
     ~KritaImageEnhancement() override;
 };
 

@@ -37,10 +37,10 @@ public:
     
     virtual KisFilterConfigurationSP clone() const override;
 
-    QList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
-    QList<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkList<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
     
-    static inline QString defaultName()
+    static inline PkString defaultName()
     {
         return "gradientmap";
     }
@@ -59,7 +59,7 @@ public:
         } else {
             KoStopGradientSP stopGradient(new KoStopGradient);
             stopGradient->setStops(
-                QList<KoGradientStop>()
+                PkList<KoGradientStop>()
                 << KoGradientStop(0.0, KoColor(Qt::black, KoColorSpaceRegistry::instance()->rgb8(0)), FOREGROUNDSTOP)
                 << KoGradientStop(1.0, KoColor(Qt::white, KoColorSpaceRegistry::instance()->rgb8(0)), BACKGROUNDSTOP)
             );

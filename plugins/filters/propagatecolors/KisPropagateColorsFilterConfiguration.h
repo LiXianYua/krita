@@ -9,7 +9,7 @@
 #ifndef KIS_PROPAGATE_COLORS_FILTER_CONFIGURATION_H
 #define KIS_PROPAGATE_COLORS_FILTER_CONFIGURATION_H
 
-#include <QString>
+#include <PkString.h>
 
 #include <kis_filter_configuration.h>
 #include <KoColorSpaceRegistry.h>
@@ -43,9 +43,9 @@ public:
 
     KisFilterConfigurationSP clone() const override;
 
-    static inline QString defaultId() { return "propagatecolors"; }
-    static inline QString defaultName() { return i18n("Propagate Colors"); }
-    static inline QString defaultMenuName() { return i18n("&Propagate Colors..."); }
+    static inline PkString defaultId() { return "propagatecolors"; }
+    static inline PkString defaultName() { return i18n("Propagate Colors"); }
+    static inline PkString defaultMenuName() { return i18n("&Propagate Colors..."); }
     static constexpr qint32 defaultVersion() { return 1; }
     static constexpr DistanceMetric defaultDistanceMetric() { return DistanceMetric_Euclidean; }
     static constexpr ExpansionMode defaultExpansionMode() { return ExpansionMode_Unbounded; }

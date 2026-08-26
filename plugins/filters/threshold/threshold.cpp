@@ -10,8 +10,8 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
-#include <QTime>
+#include <PkPoint.h>
+#include <PkDateTime.h>
 
 #include <klocalizedstring.h>
 
@@ -40,7 +40,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaThresholdFactory, "kritathreshold.json", registerPlugin<KritaThreshold>();)
 
-KritaThreshold::KritaThreshold(QObject *parent, const QVariantList &)
+KritaThreshold::KritaThreshold(QObject *parent, const PkVariantList &)
     : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisFilterThreshold());
@@ -63,7 +63,7 @@ KisFilterThreshold::KisFilterThreshold()
 }
 
 void KisFilterThreshold::processImpl(KisPaintDeviceSP device,
-                 const QRect& applyRect,
+                 const PkRect& applyRect,
                  const KisFilterConfigurationSP config,
                  KoUpdater *progressUpdater) const
 {

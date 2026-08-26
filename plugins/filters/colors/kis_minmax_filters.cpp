@@ -64,7 +64,7 @@ KisFilterMax::KisFilterMax() : KisFilter(id(), FiltersCategoryColorId, i18n("M&a
 }
 
 void KisFilterMax::processImpl(KisPaintDeviceSP device,
-                               const QRect& rect,
+                               const PkRect& rect,
                                const KisFilterConfigurationSP config,
                                KoUpdater* progressUpdater
                                ) const
@@ -101,7 +101,7 @@ KisFilterMin::KisFilterMin() : KisFilter(id(), FiltersCategoryColorId, i18n("M&i
 }
 
 void KisFilterMin::processImpl(KisPaintDeviceSP device,
-                               const QRect& rect,
+                               const PkRect& rect,
                                const KisFilterConfigurationSP config,
                                KoUpdater* progressUpdater
                                ) const

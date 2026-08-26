@@ -20,7 +20,7 @@
 
 namespace KisMultiChannelUtils {
 
-QVector<VirtualChannelInfo> getVirtualChannels(const KoColorSpace *cs,
+PkVector<VirtualChannelInfo> getVirtualChannels(const KoColorSpace *cs,
                                                int maxChannels,
                                                bool supportsLightness,
                                                bool supportsHue,
@@ -36,9 +36,9 @@ QVector<VirtualChannelInfo> getVirtualChannels(const KoColorSpace *cs,
     supportsHue = supportsHue && supportsLightness;
     supportsSaturation = supportsSaturation && supportsLightness;
 
-    QVector<VirtualChannelInfo> vchannels;
+    PkVector<VirtualChannelInfo> vchannels;
 
-    QList<KoChannelInfo *> sortedChannels =
+    PkList<KoChannelInfo *> sortedChannels =
         KoChannelInfo::displayOrderSorted(cs->channels());
 
     if (maxChannels >= 0 && maxChannels == sortedChannels.size()) {
@@ -91,7 +91,7 @@ QVector<VirtualChannelInfo> getVirtualChannels(const KoColorSpace *cs,
     return vchannels;
 }
 
-int findChannel(const QVector<VirtualChannelInfo> &virtualChannels,
+int findChannel(const PkVector<VirtualChannelInfo> &virtualChannels,
                 const VirtualChannelInfo::Type &channelType)
 {
     for (int i = 0; i < virtualChannels.size(); i++) {
@@ -103,8 +103,8 @@ int findChannel(const QVector<VirtualChannelInfo> &virtualChannels,
 }
 
 KoColorTransformation* createPerChannelTransformationFromTransfers(const KoColorSpace *cs,
-                                                                   const QVector<QVector<quint16>> &transfers,
-                                                                   const QList<bool> &transferIsIdentity)
+                                                                   const PkVector<PkVector<quint16>> &transfers,
+                                                                   const PkList<bool> &transferIsIdentity)
 {
     /**
      * TODO: What about the order of channels? (DK)
@@ -113,7 +113,7 @@ KoColorTransformation* createPerChannelTransformationFromTransfers(const KoColor
      * transforms in display order? Why on Earth it works?! Is it
      * documented anywhere?
      */
-    const QVector<VirtualChannelInfo> virtualChannels = getVirtualChannels(cs, transfers.size());
+    const PkVector<VirtualChannelInfo> virtualChannels = getVirtualChannels(cs, transfers.size());
 
     if (transfers.size() > int(virtualChannels.size())) {
         // We got an illegal number of colorchannels :(
@@ -127,11 +127,11 @@ KoColorTransformation* createPerChannelTransformationFromTransfers(const KoColor
     bool allColorsNull = true;
     int alphaIndexInReal = -1;
 
-    QVector<QVector<quint16> > realTransfers;
-    QVector<quint16> hueTransfer;
-    QVector<quint16> saturationTransfer;
-    QVector<quint16> lightnessTransfer;
-    QVector<quint16> allColorsTransfer;
+    PkVector<PkVector<quint16> > realTransfers;
+    PkVector<quint16> hueTransfer;
+    PkVector<quint16> saturationTransfer;
+    PkVector<quint16> lightnessTransfer;
+    PkVector<quint16> allColorsTransfer;
 
     for (int i = 0; i < virtualChannels.size(); i++) {
         if (virtualChannels[i].type() == VirtualChannelInfo::REAL) {
@@ -208,8 +208,8 @@ KoColorTransformation* createPerChannelTransformationFromTransfers(const KoColor
     }
 
     if (!hueNull) {
-        QHash<QString, QVariant> params;
-        params["curve"] = QVariant::fromValue(hueTransfer);
+        PkHash<PkString, PkVariant> params;
+        params["curve"] = PkVariant::fromValue(hueTransfer);
         params["channel"] = KisHSVCurve::Hue;
         params["relative"] = false;
         params["lumaRed"]   = cs->lumaCoefficients()[0];
@@ -220,8 +220,8 @@ KoColorTransformation* createPerChannelTransformationFromTransfers(const KoColor
     }
 
     if (!saturationNull) {
-        QHash<QString, QVariant> params;
-        params["curve"] = QVariant::fromValue(saturationTransfer);
+        PkHash<PkString, PkVariant> params;
+        params["curve"] = PkVariant::fromValue(saturationTransfer);
         params["channel"] = KisHSVCurve::Saturation;
         params["relative"] = false;
         params["lumaRed"]   = cs->lumaCoefficients()[0];
@@ -253,7 +253,7 @@ KoColorTransformation* createPerChannelTransformationFromTransfers(const KoColor
         delete[] allColorsTransfers;
     }
 
-    QVector<KoColorTransformation*> allTransforms;
+    PkVector<KoColorTransformation*> allTransforms;
     allTransforms << colorTransform;
     allTransforms << allColorsTransform;
     allTransforms << hueTransform;

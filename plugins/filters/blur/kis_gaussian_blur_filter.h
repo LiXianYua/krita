@@ -19,7 +19,7 @@ public:
     KisGaussianBlurFilter();
 public:
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& rect,
+                     const PkRect& rect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;
@@ -29,8 +29,8 @@ public:
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 public:
-    QRect neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
-    QRect changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
+    PkRect changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const override;
 
     bool configurationAllowedForMask(KisFilterConfigurationSP config) const override;
     void fixLoadedFilterConfigurationForMasks(KisFilterConfigurationSP config) const override;

@@ -18,7 +18,7 @@ public:
     KisFilterMax();
 
     void processImpl(KisPaintDeviceSP src,
-                     const QRect& size,
+                     const PkRect& size,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;
@@ -36,7 +36,7 @@ public:
 public:
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& rect,
+                     const PkRect& rect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater
                      ) const override;

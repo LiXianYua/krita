@@ -10,7 +10,7 @@
 #define WAVEFILTER_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include "filter/kis_filter.h"
 
 
@@ -18,7 +18,7 @@ class KritaWaveFilter : public QObject
 {
     Q_OBJECT
 public:
-    KritaWaveFilter(QObject *parent, const QVariantList &);
+    KritaWaveFilter(QObject *parent, const PkVariantList &);
     ~KritaWaveFilter() override;
 };
 
@@ -31,7 +31,7 @@ public:
 public:
 
     void processImpl(KisPaintDeviceSP device,
-                     const QRect& applyRect,
+                     const PkRect& applyRect,
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater) const override;
     static inline KoID id() {
@@ -40,8 +40,8 @@ public:
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 public:
-    QRect changedRect(const QRect& rect, const KisFilterConfigurationSP config = 0, int lod = 0) const override;
-    QRect neededRect(const QRect& rect, const KisFilterConfigurationSP config = 0, int lod = 0) const override;
+    PkRect changedRect(const PkRect& rect, const KisFilterConfigurationSP config = 0, int lod = 0) const override;
+    PkRect neededRect(const PkRect& rect, const KisFilterConfigurationSP config = 0, int lod = 0) const override;
 };
 
 #endif

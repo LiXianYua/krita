@@ -15,7 +15,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(GaussianHighPassPluginFactory, "kritagaussianhighpassfilter.json", registerPlugin<GaussianHighPassPlugin>();)
 
-GaussianHighPassPlugin::GaussianHighPassPlugin(QObject *parent, const QVariantList &)
+GaussianHighPassPlugin::GaussianHighPassPlugin(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisGaussianHighPassFilter());

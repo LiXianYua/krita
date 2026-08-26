@@ -9,13 +9,13 @@
 #define _KIS_OILPAINT_FILTER_PLUGIN_H_
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class KisOilPaintFilterPlugin : public QObject
 {
     Q_OBJECT
 public:
-    KisOilPaintFilterPlugin(QObject *parent, const QVariantList &);
+    KisOilPaintFilterPlugin(QObject *parent, const PkVariantList &);
     ~KisOilPaintFilterPlugin() override;
 };
 

@@ -10,13 +10,13 @@
 #define COLORS_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class KritaExtensionsColors : public QObject
 {
     Q_OBJECT
 public:
-    KritaExtensionsColors(QObject *parent, const QVariantList &);
+    KritaExtensionsColors(QObject *parent, const PkVariantList &);
     ~KritaExtensionsColors() override;
 };
 

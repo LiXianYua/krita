@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QHash>
+#include <PkHash.h>
 
 #include <kpluginfactory.h>
 #include <kis_filter_registry.h>
@@ -29,7 +29,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaHalftoneFactory, "KritaHalftone.json", registerPlugin<KritaHalftone>();)
 
-KritaHalftone::KritaHalftone(QObject *parent, const QVariantList &)
+KritaHalftone::KritaHalftone(QObject *parent, const PkVariantList &)
     : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisHalftoneFilter());
@@ -45,7 +45,7 @@ KisHalftoneFilter::KisHalftoneFilter()
 }
 
 void KisHalftoneFilter::processImpl(KisPaintDeviceSP device,
-                                    const QRect &applyRect,
+                                    const PkRect &applyRect,
                                     const KisFilterConfigurationSP config,
                                     KoUpdater *progressUpdater) const
 {
@@ -56,7 +56,7 @@ void KisHalftoneFilter::processImpl(KisPaintDeviceSP device,
     KIS_SAFE_ASSERT_RECOVER_RETURN(filterConfig);
     KIS_SAFE_ASSERT_RECOVER_NOOP(filterConfig->hasLocalResourcesSnapshot());
 
-    const QString mode = filterConfig->mode();
+    const PkString mode = filterConfig->mode();
     KIS_SAFE_ASSERT_RECOVER_RETURN(
         mode == KisHalftoneFilterConfiguration::HalftoneMode_Intensity ||
         mode == KisHalftoneFilterConfiguration::HalftoneMode_IndependentChannels ||
@@ -109,9 +109,9 @@ void KisHalftoneFilter::processImpl(KisPaintDeviceSP device,
     }
 }
 
-QVector<quint8> KisHalftoneFilter::makeHardnessLut(qreal hardness)
+PkVector<quint8> KisHalftoneFilter::makeHardnessLut(qreal hardness)
 {
-    QVector<quint8> hardnessLut(256);
+    PkVector<quint8> hardnessLut(256);
     if (qFuzzyCompare(hardness, 1.0)) {
         for (int i = 0; i < 256; ++i) {
             hardnessLut[i] = i < 128 ? 0 : 255;
@@ -126,9 +126,9 @@ QVector<quint8> KisHalftoneFilter::makeHardnessLut(qreal hardness)
     return hardnessLut;
 }
 
-QVector<quint8> KisHalftoneFilter::makeNoiseWeightLut(qreal hardness)
+PkVector<quint8> KisHalftoneFilter::makeNoiseWeightLut(qreal hardness)
 {
-    QVector<quint8> noiseWeightLut(256);
+    PkVector<quint8> noiseWeightLut(256);
     hardness *= 0.99;
     for (int i = 0; i < 256; ++i) {
         qreal iNorm = i / 255.0;
@@ -139,12 +139,12 @@ QVector<quint8> KisHalftoneFilter::makeNoiseWeightLut(qreal hardness)
 }
 
 KisPaintDeviceSP KisHalftoneFilter::makeGeneratorPaintDevice(KisPaintDeviceSP prototype,
-                                                             const QString & prefix,
-                                                             const QRect &applyRect,
+                                                             const PkString & prefix,
+                                                             const PkRect &applyRect,
                                                              const KisHalftoneFilterConfiguration *config,
                                                              KoUpdater *progressUpdater) const
 {
-    const QString generatorId = config->generatorId(prefix);
+    const PkString generatorId = config->generatorId(prefix);
     if (generatorId.isEmpty()) {
         return nullptr;
     }
@@ -186,11 +186,11 @@ bool KisHalftoneFilter::checkUpdaterInterruptedAndSetPercent(KoUpdater *progress
 }
 
 void KisHalftoneFilter::processIntensity(KisPaintDeviceSP device,
-                                         const QRect &applyRect,
+                                         const PkRect &applyRect,
                                          const KisHalftoneFilterConfiguration *config,
                                          KoUpdater *progressUpdater) const
 {
-    const QString prefix = "intensity_";
+    const PkString prefix = "intensity_";
 
     if (checkUpdaterInterruptedAndSetPercent(progressUpdater, 0)) {
         return;
@@ -207,8 +207,8 @@ void KisHalftoneFilter::processIntensity(KisPaintDeviceSP device,
 
     // Make the hardness and the noise weight LUT
     const qreal hardness = config->hardness(prefix) / 100.0;
-    const QVector<quint8> hardnessLut = makeHardnessLut(hardness);
-    const QVector<quint8> noiseWeightLut = makeNoiseWeightLut(hardness);
+    const PkVector<quint8> hardnessLut = makeHardnessLut(hardness);
+    const PkVector<quint8> noiseWeightLut = makeNoiseWeightLut(hardness);
 
     // Fill the mask device
     KisSelectionSP maskDevice = m_selectionsCache.getSelection();
@@ -310,16 +310,16 @@ void KisHalftoneFilter::processIntensity(KisPaintDeviceSP device,
 template <typename ChannelType>
 void KisHalftoneFilter::processChannel(KisPaintDeviceSP device,
                                        KisPaintDeviceSP generatorDevice,
-                                       const QRect &applyRect,
+                                       const PkRect &applyRect,
                                        const KisHalftoneFilterConfiguration *config,
-                                       const QString & prefix,
+                                       const PkString & prefix,
                                        KoChannelInfo * channelInfo) const
 {
     const int channelPos = channelInfo->pos() / sizeof(ChannelType);
     // Make the hardness and the noise weight LUT
     const qreal hardness = config->hardness(prefix) / 100.0;
-    const QVector<quint8> hardnessLut = makeHardnessLut(hardness);
-    const QVector<quint8> noiseWeightLut = makeNoiseWeightLut(hardness);
+    const PkVector<quint8> hardnessLut = makeHardnessLut(hardness);
+    const PkVector<quint8> noiseWeightLut = makeNoiseWeightLut(hardness);
 
     // Fill the device
     const bool invert = config->invert(prefix);
@@ -334,7 +334,7 @@ void KisHalftoneFilter::processChannel(KisPaintDeviceSP device,
                 int dst = 255 - device->colorSpace()->scaleToU8(dstIterator.rawData(), channelPos);
                 int src = srcIterator.rawData()[0];
                 int srcAlpha = srcIterator.rawData()[1];
-                KoColor c(QColor(src, src, src, srcAlpha), device->colorSpace());
+                KoColor c(PkColor(src, src, src, srcAlpha), device->colorSpace());
                 src = device->colorSpace()->scaleToU8(c.data(), 0);
                 srcAlpha = device->colorSpace()->scaleToU8(c.data(), device->colorSpace()->alphaPos());
 
@@ -354,7 +354,7 @@ void KisHalftoneFilter::processChannel(KisPaintDeviceSP device,
                 int dst = device->colorSpace()->scaleToU8(dstIterator.rawData(), channelPos);
                 int src = srcIterator.rawData()[0];
                 int srcAlpha = srcIterator.rawData()[1];
-                KoColor c(QColor(src, src, src, srcAlpha), device->colorSpace());
+                KoColor c(PkColor(src, src, src, srcAlpha), device->colorSpace());
                 src = device->colorSpace()->scaleToU8(c.data(), 0);
                 srcAlpha = device->colorSpace()->scaleToU8(c.data(), device->colorSpace()->alphaPos());
 
@@ -410,11 +410,11 @@ void KisHalftoneFilter::processChannel(KisPaintDeviceSP device,
 }
 
 void KisHalftoneFilter::processChannels(KisPaintDeviceSP device,
-                                        const QRect &applyRect,
+                                        const PkRect &applyRect,
                                         const KisHalftoneFilterConfiguration *config,
                                         KoUpdater *progressUpdater) const
 {
-    const QList<KoChannelInfo *> channels = device->colorSpace()->channels();
+    const PkList<KoChannelInfo *> channels = device->colorSpace()->channels();
     const int progressStep = 100 / (channels.count() * 2);
 
     if (checkUpdaterInterruptedAndSetPercent(progressUpdater, 0)) {
@@ -422,13 +422,13 @@ void KisHalftoneFilter::processChannels(KisPaintDeviceSP device,
     }
 
     // Make the generator devices
-    QVector<KisPaintDeviceSP> generatorDevices(channels.count());
+    PkVector<KisPaintDeviceSP> generatorDevices(channels.count());
     for (int i = 0; i < channels.count(); ++i) {
         if (channels.at(i)->channelType() == KoChannelInfo::ALPHA) {
             generatorDevices[i] = nullptr;
         } else {
-            const QString prefix =
-                device->colorSpace()->colorModelId().id() + "_channel" + QString::number(i) + "_";
+            const PkString prefix =
+                device->colorSpace()->colorModelId().id() + "_channel" + PkString::number(i) + "_";
             KisPaintDeviceSP generatorDevice = makeGeneratorPaintDevice(device, prefix, applyRect, config, nullptr);
             if (generatorDevice) {
                 generatorDevices[i] = generatorDevice;
@@ -448,7 +448,7 @@ void KisHalftoneFilter::processChannels(KisPaintDeviceSP device,
             continue;
         }
 
-        const QString prefix = device->colorSpace()->colorModelId().id() + "_channel" + QString::number(i) + "_";
+        const PkString prefix = device->colorSpace()->colorModelId().id() + "_channel" + PkString::number(i) + "_";
 
         switch (channels.at(i)->channelValueType()) {
         case KoChannelInfo::UINT8: {
@@ -495,11 +495,11 @@ void KisHalftoneFilter::processChannels(KisPaintDeviceSP device,
 }
 
 void KisHalftoneFilter::processAlpha(KisPaintDeviceSP device,
-                                     const QRect& applyRect,
+                                     const PkRect& applyRect,
                                      const KisHalftoneFilterConfiguration *config,
                                      KoUpdater *progressUpdater) const
 {
-    const QString prefix = "alpha_";
+    const PkString prefix = "alpha_";
     
     if (checkUpdaterInterruptedAndSetPercent(progressUpdater, 0)) {
         return;
@@ -516,8 +516,8 @@ void KisHalftoneFilter::processAlpha(KisPaintDeviceSP device,
 
     // Make the hardness and the noise weight LUT
     const qreal hardness = config->hardness(prefix) / 100.0;
-    const QVector<quint8> hardnessLut = makeHardnessLut(hardness);
-    const QVector<quint8> noiseWeightLut = makeNoiseWeightLut(hardness);
+    const PkVector<quint8> hardnessLut = makeHardnessLut(hardness);
+    const PkVector<quint8> noiseWeightLut = makeNoiseWeightLut(hardness);
 
     // Fill the device
     const bool invert = config->invert(prefix);
@@ -561,11 +561,11 @@ void KisHalftoneFilter::processAlpha(KisPaintDeviceSP device,
 }
 
 void KisHalftoneFilter::processMask(KisPaintDeviceSP device,
-                                    const QRect& applyRect,
+                                    const PkRect& applyRect,
                                     const KisHalftoneFilterConfiguration *config,
                                     KoUpdater *progressUpdater) const
 {
-    const QString prefix = "alpha_";
+    const PkString prefix = "alpha_";
     
     if (checkUpdaterInterruptedAndSetPercent(progressUpdater, 0)) {
         return;
@@ -582,8 +582,8 @@ void KisHalftoneFilter::processMask(KisPaintDeviceSP device,
 
     // Make the hardness and the noise weight LUT
     const qreal hardness = config->hardness(prefix) / 100.0;
-    const QVector<quint8> hardnessLut = makeHardnessLut(hardness);
-    const QVector<quint8> noiseWeightLut = makeNoiseWeightLut(hardness);
+    const PkVector<quint8> hardnessLut = makeHardnessLut(hardness);
+    const PkVector<quint8> noiseWeightLut = makeNoiseWeightLut(hardness);
 
     // Fill the device
     const bool invert = config->invert(prefix);
@@ -631,7 +631,7 @@ KisFilterConfigurationSP KisHalftoneFilter::defaultConfiguration(KisResourcesInt
         
     filterConfig->setMode(KisHalftoneFilterConfiguration::defaultMode());
 
-    QString defaultGeneratorId = KisHalftoneFilterConfiguration::defaultGeneratorId();
+    PkString defaultGeneratorId = KisHalftoneFilterConfiguration::defaultGeneratorId();
     KisGeneratorSP defaultGenerator = KisGeneratorRegistry::instance()->get(defaultGeneratorId);
 
     // intensity
@@ -670,7 +670,7 @@ KisFilterConfigurationSP KisHalftoneFilter::defaultConfiguration(KisResourcesInt
     // because there are predefined ways of presenting the patterns (screen angles)
 
     // Map channel prefixes to rotation angle
-    QHash<QString, qreal> channelDict;
+    PkHash<PkString, qreal> channelDict;
     channelDict.insert("RGBA_channel0_", 15.0);
     channelDict.insert("RGBA_channel1_", 45.0);
     channelDict.insert("RGBA_channel2_", 75.0);

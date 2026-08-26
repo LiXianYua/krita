@@ -19,7 +19,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisPixelizeFilterPluginFactory, "kritapixelizefilter.json", registerPlugin<KisPixelizeFilterPlugin>();)
 
-KisPixelizeFilterPlugin::KisPixelizeFilterPlugin(QObject *parent, const QVariantList &)
+KisPixelizeFilterPlugin::KisPixelizeFilterPlugin(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisPixelizeFilter());

@@ -24,7 +24,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaNoiseFilterFactory, "kritanoisefilter.json", registerPlugin<KritaNoiseFilter>();)
 
-KritaNoiseFilter::KritaNoiseFilter(QObject *parent, const QVariantList &)
+KritaNoiseFilter::KritaNoiseFilter(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisFilterNoise());
@@ -55,14 +55,14 @@ KisFilterConfigurationSP KisFilterNoise::defaultConfiguration(KisResourcesInterf
 }
 
 void KisFilterNoise::processImpl(KisPaintDeviceSP device,
-                                 const QRect& rect,
+                                 const PkRect& rect,
                                  const KisFilterConfigurationSP config,
                                  KoUpdater* progressUpdater) const
 {
     Q_UNUSED(progressUpdater);
     Q_ASSERT(!device.isNull());
 
-    QVariant value;
+    PkVariant value;
     const int level = (config && config->getProperty("level", value)) ? value.toInt() : 50;
     const int opacity = (config && config->getProperty("opacity", value)) ? value.toInt() : 100;
     const bool isGrayscale = (config && config->getProperty("grayscale", value)) ? value.toBool() : false;
@@ -122,7 +122,7 @@ void KisFilterNoise::processImpl(KisPaintDeviceSP device,
                     const int px = dstX_ + colIndex;
                     const int py = dstY_ + rowIndex;
                     if (randt.doubleRandomAt(px, py) > threshold) {
-                        QColor color;
+                        PkColor color;
                         if (isGrayscale) {
                             const int gray = static_cast<int>(randr.doubleRandomAt(px, py) * 255);
                             color = qRgb(gray, gray, gray);

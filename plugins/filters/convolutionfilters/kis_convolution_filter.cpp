@@ -21,7 +21,7 @@
 #include <kis_processing_information.h>
 #include "kis_lod_transform.h"
 
-KisConvolutionFilter::KisConvolutionFilter(const KoID& id, const KoID & category, const QString & entry)
+KisConvolutionFilter::KisConvolutionFilter(const KoID& id, const KoID & category, const PkString & entry)
         : KisFilter(id, category, entry)
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
@@ -30,23 +30,23 @@ KisConvolutionFilter::KisConvolutionFilter(const KoID& id, const KoID & category
 
 
 void KisConvolutionFilter::processImpl(KisPaintDeviceSP device,
-                                       const QRect& applyRect,
+                                       const PkRect& applyRect,
                                        const KisFilterConfigurationSP config,
                                        KoUpdater* progressUpdater) const
 {
     Q_UNUSED(config);
 
-    QPoint srcTopLeft = applyRect.topLeft();
+    PkPoint srcTopLeft = applyRect.topLeft();
     Q_ASSERT(device != 0);
 
     KisConvolutionPainter painter(device);
 
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
     if (config) {
         channelFlags = config->channelFlags();
     }
     if (channelFlags.isEmpty() || !config) {
-        channelFlags = QBitArray(device->colorSpace()->channelCount(), true);
+        channelFlags = PkBitArray(device->colorSpace()->channelCount(), true);
     }
  
     painter.setChannelFlags(channelFlags);
@@ -55,7 +55,7 @@ void KisConvolutionFilter::processImpl(KisPaintDeviceSP device,
 
 }
 
-QRect KisConvolutionFilter::neededRect(const QRect &rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisConvolutionFilter::neededRect(const PkRect &rect, const KisFilterConfigurationSP _config, int lod) const
 {
     Q_UNUSED(_config);
 
@@ -66,7 +66,7 @@ QRect KisConvolutionFilter::neededRect(const QRect &rect, const KisFilterConfigu
     return kisGrowRect(rect, margin);
 }
 
-QRect KisConvolutionFilter::changedRect(const QRect &rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisConvolutionFilter::changedRect(const PkRect &rect, const KisFilterConfigurationSP _config, int lod) const
 {
     return neededRect(rect, _config, lod);
 }

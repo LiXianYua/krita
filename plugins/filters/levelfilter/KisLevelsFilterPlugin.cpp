@@ -16,7 +16,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(LevelsFilterFactory, "kritalevelsfilter.json", registerPlugin<KisLevelsFilterPlugin>();)
 
-KisLevelsFilterPlugin::KisLevelsFilterPlugin(QObject *parent, const QVariantList &)
+KisLevelsFilterPlugin::KisLevelsFilterPlugin(QObject *parent, const PkVariantList &)
     : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisLevelsFilter());

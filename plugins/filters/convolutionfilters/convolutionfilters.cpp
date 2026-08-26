@@ -27,7 +27,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaConvolutionFiltersFactory, "kritaconvolutionfilters.json", registerPlugin<KritaConvolutionFilters>();)
 
-KritaConvolutionFilters::KritaConvolutionFilters(QObject *parent, const QVariantList &)
+KritaConvolutionFilters::KritaConvolutionFilters(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry * manager = KisFilterRegistry::instance();

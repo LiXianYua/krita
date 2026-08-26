@@ -9,9 +9,9 @@
 #ifndef KIS_HALFTONE_FILTER_CONFIGURATION_H
 #define KIS_HALFTONE_FILTER_CONFIGURATION_H
 
-#include <QHash>
-#include <QString>
-#include <QStringList>
+#include <PkHash.h>
+#include <PkString.h>
+#include <PkStringList.h>
 
 #include <kis_filter_configuration.h>
 #include <KoColor.h>
@@ -24,7 +24,7 @@ typedef KisPinnedSharedPtr<KisHalftoneFilterConfiguration> KisHalftoneFilterConf
 class KisHalftoneFilterConfiguration : public KisFilterConfiguration
 {
 public:
-    KisHalftoneFilterConfiguration(const QString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface);
+    KisHalftoneFilterConfiguration(const PkString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface);
     KisHalftoneFilterConfiguration(const KisHalftoneFilterConfiguration &rhs);
 
     ~KisHalftoneFilterConfiguration() override;
@@ -32,21 +32,21 @@ public:
     KisFilterConfigurationSP clone() const override;
 
     void setResourcesInterface(KisResourcesInterfaceSP resourcesInterface) override;
-    QList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
-    QList<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
+    PkList<KoResourceLoadResult> embeddedResources(KisResourcesInterfaceSP globalResourcesInterface) const override;
 
     static constexpr const char *HalftoneMode_Intensity = "intensity";
     static constexpr const char *HalftoneMode_IndependentChannels = "independent_channels";
     static constexpr const char *HalftoneMode_Alpha = "alpha";
 
     // default properties
-    inline static QString defaultMode() { return HalftoneMode_Intensity; }
+    inline static PkString defaultMode() { return HalftoneMode_Intensity; }
 
-    inline static QString defaultGeneratorId()
+    inline static PkString defaultGeneratorId()
     {
-        static QString defaultGeneratorId;
+        static PkString defaultGeneratorId;
         if (defaultGeneratorId.isNull()) {
-            QStringList generatorIds = KisGeneratorRegistry::instance()->keys();
+            PkStringList generatorIds = KisGeneratorRegistry::instance()->keys();
             if (generatorIds.size() == 0) {
                 defaultGeneratorId = "";
             } else {
@@ -81,32 +81,32 @@ public:
 
     static constexpr int defaultBackgroundOpacity() { return 100; }
 
-    QString colorModelId() const;
-    QString mode() const;
-    QString generatorId(const QString &prefix) const;
-    KisFilterConfigurationSP generatorConfiguration(const QString &prefix) const;
-    qreal hardness(const QString &prefix) const;
-    bool invert(const QString &prefix) const;
-    KoColor foregroundColor(const QString &prefix) const;
-    int foregroundOpacity(const QString &prefix) const;
-    KoColor backgroundColor(const QString &prefix) const;
-    int backgroundOpacity(const QString &prefix) const;
+    PkString colorModelId() const;
+    PkString mode() const;
+    PkString generatorId(const PkString &prefix) const;
+    KisFilterConfigurationSP generatorConfiguration(const PkString &prefix) const;
+    qreal hardness(const PkString &prefix) const;
+    bool invert(const PkString &prefix) const;
+    KoColor foregroundColor(const PkString &prefix) const;
+    int foregroundOpacity(const PkString &prefix) const;
+    KoColor backgroundColor(const PkString &prefix) const;
+    int backgroundOpacity(const PkString &prefix) const;
 
-    void setColorModelId(const QString &newColorModelId);
-    void setMode(const QString &newMode);
-    void setGeneratorId(const QString &prefix, const QString &id);
-    void setGeneratorConfiguration(const QString &prefix, KisFilterConfigurationSP config);
-    void setHardness(const QString &prefix, qreal newHardness);
-    void setInvert(const QString &prefix, bool newInvert);
-    void setForegroundColor(const QString &prefix, const KoColor &newForegroundColor);
-    void setForegroundOpacity(const QString &prefix, int newOpacity);
-    void setBackgroundColor(const QString &prefix, const KoColor &newBackgroundColor);
-    void setBackgroundOpacity(const QString &prefix, int newBackgroundOpacity);
+    void setColorModelId(const PkString &newColorModelId);
+    void setMode(const PkString &newMode);
+    void setGeneratorId(const PkString &prefix, const PkString &id);
+    void setGeneratorConfiguration(const PkString &prefix, KisFilterConfigurationSP config);
+    void setHardness(const PkString &prefix, qreal newHardness);
+    void setInvert(const PkString &prefix, bool newInvert);
+    void setForegroundColor(const PkString &prefix, const KoColor &newForegroundColor);
+    void setForegroundOpacity(const PkString &prefix, int newOpacity);
+    void setBackgroundColor(const PkString &prefix, const KoColor &newBackgroundColor);
+    void setBackgroundOpacity(const PkString &prefix, int newBackgroundOpacity);
 
-    void setProperty(const QString &name, const QVariant &value) override;
+    void setProperty(const PkString &name, const PkVariant &value) override;
 
 private:
-    mutable QHash<QString, KisFilterConfigurationSP> m_generatorConfigurationsCache;
+    mutable PkHash<PkString, KisFilterConfigurationSP> m_generatorConfigurationsCache;
 };
 
 #endif

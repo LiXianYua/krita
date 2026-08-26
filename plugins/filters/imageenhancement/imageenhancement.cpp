@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <vector>
 
-#include <QPoint>
+#include <PkPoint.h>
 
 #include <klocalizedstring.h>
 
@@ -26,7 +26,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaImageEnhancementFactory, "kritaimageenhancement.json", registerPlugin<KritaImageEnhancement>();)
 
-KritaImageEnhancement::KritaImageEnhancement(QObject *parent, const QVariantList &)
+KritaImageEnhancement::KritaImageEnhancement(QObject *parent, const PkVariantList &)
         : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisSimpleNoiseReducer());

@@ -114,7 +114,7 @@ KisHSVAdjustmentFilter::KisHSVAdjustmentFilter()
 
 KoColorTransformation *KisHSVAdjustmentFilter::createTransformation(const KoColorSpace *cs, const KisFilterConfigurationSP config) const
 {
-    QHash<QString, QVariant> params;
+    PkHash<PkString, PkVariant> params;
     if (config) {
         int type = config->getInt("type", 1);
         bool colorize = config->getBool("colorize", false);

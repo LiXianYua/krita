@@ -25,8 +25,8 @@ bool testFilterSrcNotIsDev(KisFilterSP f)
 {
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
 
-    QImage qimage(QString(FILES_DATA_DIR) + '/' + "carrot.png");
-    QImage result(QString(FILES_DATA_DIR) + '/' + "carrot_" + f->id() + ".png");
+    PkImage qimage(PkString(FILES_DATA_DIR) + '/' + "carrot.png");
+    PkImage result(PkString(FILES_DATA_DIR) + '/' + "carrot_" + f->id() + ".png");
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     dev->setDefaultBounds(new TestUtil::TestingTimedDefaultBounds(qimage.rect()));
 
@@ -38,19 +38,19 @@ bool testFilterSrcNotIsDev(KisFilterSP f)
     // Get the predefined configuration from a file
     KisFilterConfigurationSP  kfc = f->defaultConfiguration(KisGlobalResourcesInterface::instance());
 
-    QFile file(QString(FILES_DATA_DIR) + '/' + f->id() + ".cfg");
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    PkFileStream file(PkString(FILES_DATA_DIR) + '/' + f->id() + ".cfg");
+    if (!file.open(PkStream::ReadOnly | PkStream::Text)) {
         //qDebug() << "creating new file for " << f->id();
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream out(&file);
+        if (file.open(PkStream::WriteOnly | PkStream::Text)) {
+            PkTextStream out(&file);
             KisPortingUtils::setUtf8OnStream(out);
             out << kfc->toXML();
         } else {
             qDebug() << "Could not open" << file.fileName() << "for writing:" <<  file.errorString();
         }
     } else {
-        QString s;
-        QTextStream in(&file);
+        PkString s;
+        PkTextStream in(&file);
         KisPortingUtils::setUtf8OnStream(in);
         s = in.readAll();
         //qDebug() << "Read for " << f->id() << "\n" << s;
@@ -59,17 +59,17 @@ bool testFilterSrcNotIsDev(KisFilterSP f)
     dbgKrita << f->id();// << "\n" << kfc->toXML() << "\n";
 
     kfc->createLocalResourcesSnapshot(KisGlobalResourcesInterface::instance());
-    f->process(dev, dstdev, 0, QRect(QPoint(0,0), qimage.size()), kfc);
+    f->process(dev, dstdev, 0, PkRect(PkPoint(0,0), qimage.size()), kfc);
 
-    QPoint errpoint;
+    PkPoint errpoint;
 
-    QImage actualResult = dstdev->convertToQImage(0, 0, 0, qimage.width(), qimage.height());
+    PkImage actualResult = dstdev->convertToQImage(0, 0, 0, qimage.width(), qimage.height());
 
     if (!TestUtil::compareQImages(errpoint, result, actualResult, 1, 1)) {
         qDebug() << "Failed compare result images for: " << f->id();
         qDebug() << errpoint;
-        actualResult.save(QString("carrot_%1.png").arg(f->id()));
-        result.save(QString("carrot_%1_expected.png").arg(f->id()));
+        actualResult.save(PkString("carrot_%1.png").arg(f->id()));
+        result.save(PkString("carrot_%1_expected.png").arg(f->id()));
         return false;
     }
     return true;
@@ -79,9 +79,9 @@ bool testFilter(KisFilterSP f)
 {
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
 
-    QImage qimage(QString(FILES_DATA_DIR) + '/' + "carrot.png");
-    QString resultFileName = QString(FILES_DATA_DIR) + '/' + "carrot_" + f->id() + ".png";
-    QImage result(resultFileName);
+    PkImage qimage(PkString(FILES_DATA_DIR) + '/' + "carrot.png");
+    PkString resultFileName = PkString(FILES_DATA_DIR) + '/' + "carrot_" + f->id() + ".png";
+    PkImage result(resultFileName);
 
     //if (!f->id().contains("hsv")) return true;
 
@@ -93,19 +93,19 @@ bool testFilter(KisFilterSP f)
     // Get the predefined configuration from a file
     KisFilterConfigurationSP  kfc = f->defaultConfiguration(KisGlobalResourcesInterface::instance());
 
-    QFile file(QString(FILES_DATA_DIR) + '/' + f->id() + ".cfg");
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    PkFileStream file(PkString(FILES_DATA_DIR) + '/' + f->id() + ".cfg");
+    if (!file.open(PkStream::ReadOnly | PkStream::Text)) {
         //qDebug() << "creating new file for " << f->id();
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream out(&file);
+        if (file.open(PkStream::WriteOnly | PkStream::Text)) {
+            PkTextStream out(&file);
             KisPortingUtils::setUtf8OnStream(out);
             out << kfc->toXML();
         } else {
             qDebug() << "Could not open" << file.fileName() << "for writing:" <<  file.errorString();
         }
     } else {
-        QString s;
-        QTextStream in(&file);
+        PkString s;
+        PkTextStream in(&file);
         KisPortingUtils::setUtf8OnStream(in);
         s = in.readAll();
         //qDebug() << "Read for " << f->id() << "\n" << s;
@@ -113,26 +113,26 @@ bool testFilter(KisFilterSP f)
 
 
         if (!validConfig) {
-            qDebug() << QString("Couldn't parse XML settings for filter %1").arg(f->id()).toLatin1();
+            qDebug() << PkString("Couldn't parse XML settings for filter %1").arg(f->id()).toLatin1();
             return false;
         }
     }
     dbgKrita << f->id();// << "\n" << kfc->toXML() << "\n";
     kfc->createLocalResourcesSnapshot(KisGlobalResourcesInterface::instance());
 
-    f->process(dev, QRect(QPoint(0,0), qimage.size()), kfc);
+    f->process(dev, PkRect(PkPoint(0,0), qimage.size()), kfc);
 
-    QPoint errpoint;
+    PkPoint errpoint;
 
     delete cmd;
 
-    QImage actualResult = dev->convertToQImage(0, 0, 0, qimage.width(), qimage.height());
+    PkImage actualResult = dev->convertToQImage(0, 0, 0, qimage.width(), qimage.height());
 
     if (!TestUtil::compareQImages(errpoint, result, actualResult, 1, 1)) {
         qDebug() << "Failed compare result images for: " << f->id();
         qDebug() << errpoint;
-        actualResult.save(QString("carrot_%1.png").arg(f->id()));
-        result.save(QString("carrot_%1_expected.png").arg(f->id()));
+        actualResult.save(PkString("carrot_%1.png").arg(f->id()));
+        result.save(PkString("carrot_%1_expected.png").arg(f->id()));
         return false;
     }
     return true;
@@ -143,8 +143,8 @@ bool testFilterWithSelections(KisFilterSP f)
 {
     const KoColorSpace * cs = KoColorSpaceRegistry::instance()->rgb8();
 
-    QImage qimage(QString(FILES_DATA_DIR) + '/' + "carrot.png");
-    QImage result(QString(FILES_DATA_DIR) + '/' + "carrot_" + f->id() + ".png");
+    PkImage qimage(PkString(FILES_DATA_DIR) + '/' + "carrot.png");
+    PkImage result(PkString(FILES_DATA_DIR) + '/' + "carrot_" + f->id() + ".png");
     KisPaintDeviceSP dev = new KisPaintDevice(cs);
     dev->setDefaultBounds(new TestUtil::TestingTimedDefaultBounds(qimage.rect()));
     dev->convertFromQImage(qimage, 0, 0, 0);
@@ -152,19 +152,19 @@ bool testFilterWithSelections(KisFilterSP f)
     // Get the predefined configuration from a file
     KisFilterConfigurationSP  kfc = f->defaultConfiguration(KisGlobalResourcesInterface::instance());
 
-    QFile file(QString(FILES_DATA_DIR) + '/' + f->id() + ".cfg");
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    PkFileStream file(PkString(FILES_DATA_DIR) + '/' + f->id() + ".cfg");
+    if (!file.open(PkStream::ReadOnly | PkStream::Text)) {
         //qDebug() << "creating new file for " << f->id();
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream out(&file);
+        if (file.open(PkStream::WriteOnly | PkStream::Text)) {
+            PkTextStream out(&file);
             KisPortingUtils::setUtf8OnStream(out);
             out << kfc->toXML();
         } else {
             qDebug() << "Could not open" << file.fileName() << "for writing:" <<  file.errorString();
         }
     } else {
-        QString s;
-        QTextStream in(&file);
+        PkString s;
+        PkTextStream in(&file);
         KisPortingUtils::setUtf8OnStream(in);
         s = in.readAll();
         //qDebug() << "Read for " << f->id() << "\n" << s;
@@ -176,17 +176,17 @@ bool testFilterWithSelections(KisFilterSP f)
     sel1->pixelSelection()->select(qimage.rect());
 
     kfc->createLocalResourcesSnapshot(KisGlobalResourcesInterface::instance());
-    f->process(dev, dev, sel1, QRect(QPoint(0,0), qimage.size()), kfc);
+    f->process(dev, dev, sel1, PkRect(PkPoint(0,0), qimage.size()), kfc);
 
-    QPoint errpoint;
+    PkPoint errpoint;
 
-    QImage actualResult = dev->convertToQImage(0, 0, 0, qimage.width(), qimage.height());
+    PkImage actualResult = dev->convertToQImage(0, 0, 0, qimage.width(), qimage.height());
 
     if (!TestUtil::compareQImages(errpoint, result, actualResult, 1, 1)) {
         qDebug() << "Failed compare result images for: " << f->id();
         qDebug() << errpoint;
-        actualResult.save(QString("carrot_%1.png").arg(f->id()));
-        result.save(QString("carrot_%1_expected.png").arg(f->id()));
+        actualResult.save(PkString("carrot_%1.png").arg(f->id()));
+        result.save(PkString("carrot_%1_expected.png").arg(f->id()));
         return false;
     }
 
@@ -195,7 +195,7 @@ bool testFilterWithSelections(KisFilterSP f)
 
 void KisAllFilterTest::testAllFilters()
 {
-    QStringList excludeFilters;
+    PkStringList excludeFilters;
     excludeFilters << "colortransfer";
     excludeFilters << "gradientmap";
     excludeFilters << "phongbumpmap";
@@ -205,12 +205,12 @@ void KisAllFilterTest::testAllFilters()
     // let's just exclude it
     excludeFilters << "halftone";
 
-    QStringList failures;
-    QStringList successes;
+    PkStringList failures;
+    PkStringList successes;
 
-    QList<QString> filterList = KisFilterRegistry::instance()->keys();
+    PkList<PkString> filterList = KisFilterRegistry::instance()->keys();
     std::sort(filterList.begin(), filterList.end());
-    for (QList<QString>::Iterator it = filterList.begin(); it != filterList.end(); ++it) {
+    for (PkList<PkString>::Iterator it = filterList.begin(); it != filterList.end(); ++it) {
         if (excludeFilters.contains(*it)) continue;
 
         if (testFilter(KisFilterRegistry::instance()->value(*it)))
@@ -220,13 +220,13 @@ void KisAllFilterTest::testAllFilters()
     }
     dbgKrita << "Success: " << successes;
     if (failures.size() > 0) {
-        QFAIL(QString("Failed filters:\n\t %1").arg(failures.join("\n\t")).toLatin1());
+        QFAIL(PkString("Failed filters:\n\t %1").arg(failures.join("\n\t")).toLatin1());
     }
 }
 
 void KisAllFilterTest::testAllFiltersSrcNotIsDev()
 {
-    QStringList excludeFilters;
+    PkStringList excludeFilters;
     excludeFilters << "colortransfer";
     excludeFilters << "gradientmap";
     excludeFilters << "phongbumpmap";
@@ -236,12 +236,12 @@ void KisAllFilterTest::testAllFiltersSrcNotIsDev()
     // let's just exclude it
     excludeFilters << "halftone";
 
-    QStringList failures;
-    QStringList successes;
+    PkStringList failures;
+    PkStringList successes;
 
-    QList<QString> filterList = KisFilterRegistry::instance()->keys();
+    PkList<PkString> filterList = KisFilterRegistry::instance()->keys();
     std::sort(filterList.begin(), filterList.end());
-    for (QList<QString>::Iterator it = filterList.begin(); it != filterList.end(); ++it) {
+    for (PkList<PkString>::Iterator it = filterList.begin(); it != filterList.end(); ++it) {
         if (excludeFilters.contains(*it)) continue;
 
         if (testFilterSrcNotIsDev(KisFilterRegistry::instance()->value(*it)))
@@ -251,14 +251,14 @@ void KisAllFilterTest::testAllFiltersSrcNotIsDev()
     }
     dbgKrita << "Src!=Dev Success: " << successes;
     if (failures.size() > 0) {
-        QFAIL(QString("Src!=Dev Failed filters:\n\t %1").arg(failures.join("\n\t")).toLatin1());
+        QFAIL(PkString("Src!=Dev Failed filters:\n\t %1").arg(failures.join("\n\t")).toLatin1());
     }
 
 }
 
 void KisAllFilterTest::testAllFiltersWithSelections()
 {
-    QStringList excludeFilters;
+    PkStringList excludeFilters;
     excludeFilters << "colortransfer";
     excludeFilters << "gradientmap";
     excludeFilters << "phongbumpmap";
@@ -268,12 +268,12 @@ void KisAllFilterTest::testAllFiltersWithSelections()
     // let's just exclude it
     excludeFilters << "halftone";
 
-    QStringList failures;
-    QStringList successes;
+    PkStringList failures;
+    PkStringList successes;
 
-    QList<QString> filterList = KisFilterRegistry::instance()->keys();
+    PkList<PkString> filterList = KisFilterRegistry::instance()->keys();
     std::sort(filterList.begin(), filterList.end());
-    for (QList<QString>::Iterator it = filterList.begin(); it != filterList.end(); ++it) {
+    for (PkList<PkString>::Iterator it = filterList.begin(); it != filterList.end(); ++it) {
         if (excludeFilters.contains(*it)) continue;
 
         if (testFilterWithSelections(KisFilterRegistry::instance()->value(*it)))
@@ -283,7 +283,7 @@ void KisAllFilterTest::testAllFiltersWithSelections()
     }
     dbgKrita << "Success: " << successes;
     if (failures.size() > 0) {
-        QFAIL(QString("Failed filters with selections:\n\t %1").arg(failures.join("\n\t")).toLatin1());
+        QFAIL(PkString("Failed filters with selections:\n\t %1").arg(failures.join("\n\t")).toLatin1());
     }
 }
 

@@ -37,7 +37,7 @@ KoColorTransformation* KisLevelsFilter::createTransformation(const KoColorSpace*
             return cs->createBrightnessContrastAdjustment(config_->lightnessTransfer().constData());
         }
     } else {
-        QList<bool> isIdentityList;
+        PkList<bool> isIdentityList;
         for (const KisLevelsCurve &levelsCurve : config_->levelsCurves()) {
             isIdentityList.append(levelsCurve.isIdentity());
         }

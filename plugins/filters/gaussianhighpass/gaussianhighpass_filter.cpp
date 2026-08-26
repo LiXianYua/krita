@@ -7,7 +7,7 @@
  */
 
 #include "gaussianhighpass_filter.h"
-#include <QBitArray>
+#include <PkBitArray.h>
 
 #include <KoColorSpace.h>
 #include <KoChannelInfo.h>
@@ -49,20 +49,20 @@ KisFilterConfigurationSP KisGaussianHighPassFilter::defaultConfiguration(KisReso
 }
 
 void KisGaussianHighPassFilter::processImpl(KisPaintDeviceSP device,
-                                   const QRect& applyRect,
+                                   const PkRect& applyRect,
                                    const KisFilterConfigurationSP config,
                                    KoUpdater *
                                    ) const
 {
-    QPointer<KoUpdater> convolutionUpdater = 0;
+    PkPointer<KoUpdater> convolutionUpdater = 0;
     KIS_SAFE_ASSERT_RECOVER_RETURN(config);
 
-    QVariant value;
+    PkVariant value;
     KisLodTransformScalar t(device);
     const qreal blurAmount = t.scale(config->getProperty("blurAmount", value) ? value.toDouble() : 1.0);
-    QBitArray channelFlags = config->channelFlags();
+    PkBitArray channelFlags = config->channelFlags();
 
-    const QRect gaussNeedRect = this->neededRect(applyRect, config, device->defaultBounds()->currentLevelOfDetail());
+    const PkRect gaussNeedRect = this->neededRect(applyRect, config, device->defaultBounds()->currentLevelOfDetail());
 
     KisCachedPaintDevice::Guard d1(device, m_cachedPaintDevice);
     KisPaintDeviceSP blur = d1.device();
@@ -80,22 +80,22 @@ void KisGaussianHighPassFilter::processImpl(KisPaintDeviceSP device,
 }
 
 
-QRect KisGaussianHighPassFilter::neededRect(const QRect & rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisGaussianHighPassFilter::neededRect(const PkRect & rect, const KisFilterConfigurationSP config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
 
     const int halfSize = config->getProperty("blurAmount", value) ? KisGaussianKernel::kernelSizeFromRadius(t.scale(value.toFloat())) / 2 : 5;
 
     return rect.adjusted( -halfSize * 2, -halfSize * 2, halfSize * 2, halfSize * 2);
 }
 
-QRect KisGaussianHighPassFilter::changedRect(const QRect & rect, const KisFilterConfigurationSP config, int lod) const
+PkRect KisGaussianHighPassFilter::changedRect(const PkRect & rect, const KisFilterConfigurationSP config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
 
     const int halfSize = config->getProperty("blurAmount", value) ? KisGaussianKernel::kernelSizeFromRadius(t.scale(value.toFloat())) / 2 : 5;
 

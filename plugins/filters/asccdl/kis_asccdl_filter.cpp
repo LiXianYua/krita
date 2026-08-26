@@ -17,7 +17,7 @@ K_PLUGIN_FACTORY_WITH_JSON(KritaASCCDLFactory,
                            registerPlugin<KritaASCCDL>();)
 
 
-KritaASCCDL::KritaASCCDL(QObject *parent, const QVariantList &) : QObject(parent)
+KritaASCCDL::KritaASCCDL(QObject *parent, const PkVariantList &) : QObject(parent)
 {
     KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterASCCDL()));
 }
@@ -62,11 +62,11 @@ bool KisFilterASCCDL::needsTransparentPixels(const KisFilterConfigurationSP conf
 KisFilterConfigurationSP KisFilterASCCDL::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const
 {
     KisFilterConfigurationSP config = factoryConfiguration(resourcesInterface);
-    QVariant colorVariant("KoColor");
+    PkVariant colorVariant("KoColor");
     KoColor black;
-    black.fromQColor(QColor(Qt::black));
+    black.fromQColor(PkColor(Qt::black));
     KoColor white;
-    white.fromQColor(QColor(Qt::white));
+    white.fromQColor(PkColor(Qt::white));
     colorVariant.setValue(white);
     config->setProperty( "slope", colorVariant);
     config->setProperty( "power", colorVariant);
@@ -77,16 +77,16 @@ KisFilterConfigurationSP KisFilterASCCDL::defaultConfiguration(KisResourcesInter
 
 KisASCCDLTransformation::KisASCCDLTransformation(const KoColorSpace *cs, KoColor slope, KoColor offset, KoColor power)
 {
-    QVector<float> slopeN(cs->channelCount());
+    PkVector<float> slopeN(cs->channelCount());
     slope.convertTo(cs);
     slope.colorSpace()->normalisedChannelsValue(slope.data(), slopeN);
     m_slope = slopeN;
     offset.convertTo(cs);
-    QVector<float> offsetN(cs->channelCount());
+    PkVector<float> offsetN(cs->channelCount());
     offset.colorSpace()->normalisedChannelsValue(offset.data(), offsetN);
     m_offset = offsetN;
     power.convertTo(cs);
-    QVector<float> powerN(cs->channelCount());
+    PkVector<float> powerN(cs->channelCount());
     power.colorSpace()->normalisedChannelsValue(power.data(), powerN);
     m_power = powerN;
     m_cs = cs;
@@ -94,7 +94,7 @@ KisASCCDLTransformation::KisASCCDLTransformation(const KoColorSpace *cs, KoColor
 
 void KisASCCDLTransformation::transform(const quint8 *src, quint8 *dst, qint32 nPixels) const
 {
-    QVector<float> normalised(m_cs->channelCount());
+    PkVector<float> normalised(m_cs->channelCount());
     const quint32 pixelSize = m_cs->pixelSize();
     const quint32 alphaPos = m_cs->alphaPos();
     const quint32 channelCount = m_cs->channelCount();

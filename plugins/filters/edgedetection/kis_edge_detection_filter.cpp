@@ -25,7 +25,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KritaEdgeDetectionFilterFactory, "kritaedgedetection.json", registerPlugin<KritaEdgeDetectionFilter>();)
 
-KritaEdgeDetectionFilter::KritaEdgeDetectionFilter(QObject *parent, const QVariantList &)
+KritaEdgeDetectionFilter::KritaEdgeDetectionFilter(QObject *parent, const PkVariantList &)
     : QObject(parent)
 {
     KisFilterRegistry::instance()->add(KisFilterSP(new KisEdgeDetectionFilter()));
@@ -44,7 +44,7 @@ KisEdgeDetectionFilter::KisEdgeDetectionFilter(): KisFilter(id(), FiltersCategor
     setShowConfigurationWidget(true);
 }
 
-void KisEdgeDetectionFilter::processImpl(KisPaintDeviceSP device, const QRect &rect, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const
+void KisEdgeDetectionFilter::processImpl(KisPaintDeviceSP device, const PkRect &rect, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const
 {
     Q_ASSERT(device != 0);
     KIS_SAFE_ASSERT_RECOVER_RETURN(config);
@@ -53,13 +53,13 @@ void KisEdgeDetectionFilter::processImpl(KisPaintDeviceSP device, const QRect &r
 
     KisLodTransformScalar t(device);
 
-    QVariant value;
+    PkVariant value;
     configuration->getProperty("horizRadius", value);
     float horizontalRadius = t.scale(value.toFloat());
     configuration->getProperty("vertRadius", value);
     float verticalRadius = t.scale(value.toFloat());
 
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
     if (configuration) {
         channelFlags = configuration->channelFlags();
     }
@@ -108,11 +108,11 @@ KisFilterConfigurationSP KisEdgeDetectionFilter::defaultConfiguration(KisResourc
     return config;
 }
 
-QRect KisEdgeDetectionFilter::neededRect(const QRect &rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisEdgeDetectionFilter::neededRect(const PkRect &rect, const KisFilterConfigurationSP _config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
     /**
      * NOTE: integer division by two is done on purpose,
      *       because the kernel size is always odd
@@ -123,11 +123,11 @@ QRect KisEdgeDetectionFilter::neededRect(const QRect &rect, const KisFilterConfi
     return rect.adjusted(-halfWidth * 2, -halfHeight * 2, halfWidth * 2, halfHeight * 2);
 }
 
-QRect KisEdgeDetectionFilter::changedRect(const QRect &rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisEdgeDetectionFilter::changedRect(const PkRect &rect, const KisFilterConfigurationSP _config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
 
     const int halfWidth = _config->getProperty("horizRadius", value) ? KisEdgeDetectionKernel::kernelSizeFromRadius(t.scale(value.toFloat())) / 2 : 5;
     const int halfHeight = _config->getProperty("vertRadius", value) ? KisEdgeDetectionKernel::kernelSizeFromRadius(t.scale(value.toFloat())) / 2 : 5;

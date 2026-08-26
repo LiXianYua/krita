@@ -45,7 +45,7 @@ KisFilterConfigurationSP KisGaussianBlurFilter::defaultConfiguration(KisResource
 }
 
 void KisGaussianBlurFilter::processImpl(KisPaintDeviceSP device,
-                                        const QRect& rect,
+                                        const PkRect& rect,
                                         const KisFilterConfigurationSP config,
                                         KoUpdater* progressUpdater
                                         ) const
@@ -59,12 +59,12 @@ void KisGaussianBlurFilter::processImpl(KisPaintDeviceSP device,
     const qreal horizontalRadius = t.scale(config->getDouble("horizRadius", 5));
     const qreal verticalRadius = t.scale(config->getDouble("vertRadius", 5));
 
-    QBitArray channelFlags;
+    PkBitArray channelFlags;
     if (config) {
         channelFlags = config->channelFlags();
     }
     if (channelFlags.isEmpty() || !config) {
-        channelFlags = QBitArray(device->colorSpace()->channelCount(), true);
+        channelFlags = PkBitArray(device->colorSpace()->channelCount(), true);
     }
 
     KisGaussianKernel::applyGaussian(device, rect,
@@ -72,11 +72,11 @@ void KisGaussianBlurFilter::processImpl(KisPaintDeviceSP device,
                                      channelFlags, progressUpdater);
 }
 
-QRect KisGaussianBlurFilter::neededRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisGaussianBlurFilter::neededRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
     /**
      * NOTE: integer division by two is done on purpose,
      *       because the kernel size is always odd
@@ -87,11 +87,11 @@ QRect KisGaussianBlurFilter::neededRect(const QRect & rect, const KisFilterConfi
     return rect.adjusted(-halfWidth * 2, -halfHeight * 2, halfWidth * 2, halfHeight * 2);
 }
 
-QRect KisGaussianBlurFilter::changedRect(const QRect & rect, const KisFilterConfigurationSP _config, int lod) const
+PkRect KisGaussianBlurFilter::changedRect(const PkRect & rect, const KisFilterConfigurationSP _config, int lod) const
 {
     KisLodTransformScalar t(lod);
 
-    QVariant value;
+    PkVariant value;
 
     const int halfWidth = _config->getProperty("horizRadius", value) ? KisGaussianKernel::kernelSizeFromRadius(t.scale(value.toFloat())) / 2 : 5;
     const int halfHeight = _config->getProperty("vertRadius", value) ? KisGaussianKernel::kernelSizeFromRadius(t.scale(value.toFloat())) / 2 : 5;

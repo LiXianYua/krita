@@ -10,7 +10,7 @@
 #include <kis_paint_device.h>
 #include <KisGlobalResourcesInterface.h>
 
-KisFilterDodgeBurn::KisFilterDodgeBurn(const QString& id, const QString& prefix, const QString& name ) : KisColorTransformationFilter(KoID(id, name), FiltersCategoryAdjustId, name), m_prefix(prefix)
+KisFilterDodgeBurn::KisFilterDodgeBurn(const PkString& id, const PkString& prefix, const PkString& name ) : KisColorTransformationFilter(KoID(id, name), FiltersCategoryAdjustId, name), m_prefix(prefix)
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);
@@ -26,8 +26,8 @@ KisFilterConfigurationSP KisFilterDodgeBurn::defaultConfiguration(KisResourcesIn
 
 KoColorTransformation* KisFilterDodgeBurn::createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const
 {
-    QHash<QString, QVariant> params;
-    QString suffix = "Midtones";
+    PkHash<PkString, PkVariant> params;
+    PkString suffix = "Midtones";
     if (config) {
         params["exposure"] = config->getDouble("exposure", 0.5);
         int type = config->getInt("type", KisFilterDodgeBurn::MIDTONES);

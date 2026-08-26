@@ -29,7 +29,7 @@ KisFilterPhongBumpmap::KisFilterPhongBumpmap()
 }
 
 void KisFilterPhongBumpmap::processImpl(KisPaintDeviceSP device,
-                                        const QRect& applyRect,
+                                        const PkRect& applyRect,
                                         const KisFilterConfigurationSP config,
                                         KoUpdater *progressUpdater
                                         ) const
@@ -38,14 +38,14 @@ void KisFilterPhongBumpmap::processImpl(KisPaintDeviceSP device,
 
     if (progressUpdater) progressUpdater->setProgress(0);
 
-    QString userChosenHeightChannel = config->getString(PHONG_HEIGHT_CHANNEL, "FAIL");
+    PkString userChosenHeightChannel = config->getString(PHONG_HEIGHT_CHANNEL, "FAIL");
     bool m_usenormalmap = config->getBool(USE_NORMALMAP_IS_ENABLED);
 
     if (userChosenHeightChannel == "FAIL") {
         return;
     }
 
-    const QList<KoChannelInfo*> channels = device->colorSpace()->channels();
+    const PkList<KoChannelInfo*> channels = device->colorSpace()->channels();
     KoChannelInfo *m_heightChannel = 0;
 
     Q_FOREACH (KoChannelInfo* channel, channels) {
@@ -59,8 +59,8 @@ void KisFilterPhongBumpmap::processImpl(KisPaintDeviceSP device,
     }
     KIS_ASSERT_RECOVER_RETURN(m_heightChannel);
 
-    QRect inputArea = applyRect;
-    QRect outputArea = applyRect;
+    PkRect inputArea = applyRect;
+    PkRect outputArea = applyRect;
     if (m_usenormalmap==false) {
         inputArea.adjust(-1, -1, 1, 1);
     }
@@ -69,7 +69,7 @@ void KisFilterPhongBumpmap::processImpl(KisPaintDeviceSP device,
     quint32 posdown;
     quint32 posleft;
     quint32 posright;
-    //QColor I; //Reflected light
+    //PkColor I; //Reflected light
 
     if (progressUpdater) progressUpdater->setProgress(1);
 
@@ -82,7 +82,7 @@ void KisFilterPhongBumpmap::processImpl(KisPaintDeviceSP device,
     const quint32   pixelsOfOutputArea       = abs(outputArea.width() * outputArea.height());
     const quint8    pixelSize                = BYTE_DEPTH_OF_BUMPMAP * CHANNEL_COUNT_OF_BUMPMAP;
     const quint32   bytesToFillBumpmapArea   = pixelsOfOutputArea * pixelSize;
-    QVector<quint8> bumpmap(bytesToFillBumpmapArea);
+    PkVector<quint8> bumpmap(bytesToFillBumpmapArea);
     quint8         *bumpmapDataPointer       = bumpmap.data();
     quint32         ki                       = KoChannelInfo::displayPositionToChannelIndex(m_heightChannel->displayPosition(), channels);
     PhongPixelProcessor tileRenderer(pixelsOfInputArea, config);
@@ -92,7 +92,7 @@ void KisFilterPhongBumpmap::processImpl(KisPaintDeviceSP device,
 
     //===============RENDER=================
 
-    QVector<PtrToDouble> toDoubleFuncPtr(channels.count());
+    PkVector<PtrToDouble> toDoubleFuncPtr(channels.count());
     KisMathToolbox mathToolbox;
     if (!mathToolbox.getToDoubleChannelPtr(channels, toDoubleFuncPtr)) {
         return;
@@ -141,7 +141,7 @@ void KisFilterPhongBumpmap::processImpl(KisPaintDeviceSP device,
             do {
                 const quint8 *data = iterator->oldRawData();
                 tileRenderer.realheightmap[curPixel] = toDoubleFuncPtr[ki](data, channels[ki]->pos());
-                QVector <float> current_pixel_values(4);
+                PkVector <float> current_pixel_values(4);
                 device->colorSpace()->normalisedChannelsValue(data, current_pixel_values );
 
                 //dbgKrita<< "Vector:" << current_pixel_values[2] << "," << current_pixel_values[1] << "," << current_pixel_values[0];
@@ -190,10 +190,10 @@ KisFilterConfigurationSP KisFilterPhongBumpmap::defaultConfiguration(KisResource
     config->setProperty(PHONG_ILLUMINANT_IS_ENABLED[1], true);
     config->setProperty(PHONG_ILLUMINANT_IS_ENABLED[2], false);
     config->setProperty(PHONG_ILLUMINANT_IS_ENABLED[3], false);
-    config->setProperty(PHONG_ILLUMINANT_COLOR[0], QColor(255, 255, 0));
-    config->setProperty(PHONG_ILLUMINANT_COLOR[1], QColor(255, 0, 0));
-    config->setProperty(PHONG_ILLUMINANT_COLOR[2], QColor(0, 0, 255));
-    config->setProperty(PHONG_ILLUMINANT_COLOR[3], QColor(0, 255, 0));
+    config->setProperty(PHONG_ILLUMINANT_COLOR[0], PkColor(255, 255, 0));
+    config->setProperty(PHONG_ILLUMINANT_COLOR[1], PkColor(255, 0, 0));
+    config->setProperty(PHONG_ILLUMINANT_COLOR[2], PkColor(0, 0, 255));
+    config->setProperty(PHONG_ILLUMINANT_COLOR[3], PkColor(0, 255, 0));
     config->setProperty(PHONG_ILLUMINANT_AZIMUTH[0], 50);
     config->setProperty(PHONG_ILLUMINANT_AZIMUTH[1], 100);
     config->setProperty(PHONG_ILLUMINANT_AZIMUTH[2], 150);
@@ -205,12 +205,12 @@ KisFilterConfigurationSP KisFilterPhongBumpmap::defaultConfiguration(KisResource
     return config;
 }
 
-QRect KisFilterPhongBumpmap::neededRect(const QRect &rect, const KisFilterConfigurationSP /*config*/, int /*lod*/) const
+PkRect KisFilterPhongBumpmap::neededRect(const PkRect &rect, const KisFilterConfigurationSP /*config*/, int /*lod*/) const
 {
     return rect.adjusted(-1, -1, 1, 1);
 }
 
-QRect KisFilterPhongBumpmap::changedRect(const QRect &rect, const KisFilterConfigurationSP /*config*/, int /*lod*/) const
+PkRect KisFilterPhongBumpmap::changedRect(const PkRect &rect, const KisFilterConfigurationSP /*config*/, int /*lod*/) const
 {
     return rect;
 }

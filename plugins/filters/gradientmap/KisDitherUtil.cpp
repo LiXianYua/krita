@@ -11,6 +11,7 @@
 #include <kis_filter_configuration.h>
 #include <KisRandomGenerator2D.h>
 #include <KisResourcesInterface.h>
+#include <PkColor.h>
 
 KisDitherUtil::KisDitherUtil()
     : m_thresholdMode(ThresholdMode::Pattern), m_patternValueMode(PatternValueMode::Auto)
@@ -23,7 +24,7 @@ void KisDitherUtil::setThresholdMode(const ThresholdMode thresholdMode)
     m_thresholdMode = thresholdMode;
 }
 
-void KisDitherUtil::setPattern(const QString &md5sum, const QString &patternName, const PatternValueMode valueMode, KisResourcesInterfaceSP resourcesInterface)
+void KisDitherUtil::setPattern(const PkString &md5sum, const PkString &patternName, const PatternValueMode valueMode, KisResourcesInterfaceSP resourcesInterface)
 {
     m_patternValueMode = valueMode;
 
@@ -34,16 +35,16 @@ void KisDitherUtil::setPattern(const QString &md5sum, const QString &patternName
         // Automatically pick between lightness-based and alpha-based patterns by whichever has maximum range
 
         // FIXME QT6: remove after we derecate Qt5 (and use float all the time)
-        using float_type = decltype(std::declval<QColor>().alphaF());
+        using float_type = decltype(std::declval<PkColor>().alphaF());
 
         float_type lightnessMin = 1.0, lightnessMax = 0.0;
         float_type alphaMin = 1.0, alphaMax = 0.0;
-        const QImage &image = m_pattern->pattern();
+        const PkImage &image = m_pattern->pattern();
         for (int y = 0; y < image.height(); ++y) {
             for (int x = 0; x < image.width(); ++x) {
-                const QColor pixel = image.pixelColor(x, y);
-                lightnessMin = std::min(lightnessMin, pixel.lightnessF());
-                lightnessMax = std::max(lightnessMax, pixel.lightnessF());
+                const PkColor pixel = PkColor::fromRgba(image.pixelColor(x, y));
+                lightnessMin = std::min(lightnessMin, (pixel.lightness() / 255.0));
+                lightnessMax = std::max(lightnessMax, (pixel.lightness() / 255.0));
                 alphaMin = std::min(alphaMin, pixel.alphaF());
                 alphaMax = std::max(alphaMax, pixel.alphaF());
             }
@@ -65,13 +66,13 @@ void KisDitherUtil::setSpread(const qreal &spread)
     m_spread = spread;
 }
 
-qreal KisDitherUtil::threshold(const QPoint &pos)
+qreal KisDitherUtil::threshold(const PkPoint &pos)
 {
     qreal threshold;
     if (m_thresholdMode == ThresholdMode::Pattern && m_pattern) {
-        const QImage &image = m_pattern->pattern();
-        const QColor color = image.pixelColor(pos.x() % image.width(), pos.y() % image.height());
-        threshold = (m_patternUseAlpha ? color.alphaF() : color.lightnessF());
+        const PkImage &image = m_pattern->pattern();
+        const PkColor color = PkColor::fromRgba(image.pixelColor(pos.x() % image.width(), pos.y() % image.height()));
+        threshold = (m_patternUseAlpha ? color.alphaF() : (color.lightness() / 255.0));
     }
     else if (m_thresholdMode == ThresholdMode::Noise) {
         KisRandomGenerator2D random(m_noiseSeed);
@@ -82,7 +83,7 @@ qreal KisDitherUtil::threshold(const QPoint &pos)
     return 0.5 - (m_spread / 2.0) + threshold * m_spread;
 }
 
-void KisDitherUtil::setConfiguration(const KisFilterConfiguration &config, const QString &prefix)
+void KisDitherUtil::setConfiguration(const KisFilterConfiguration &config, const PkString &prefix)
 {
     setThresholdMode(ThresholdMode(config.getInt(prefix + "thresholdMode")));
     setPattern(config.getString(prefix + "md5sum"), config.getString(prefix + "pattern"), PatternValueMode(config.getInt(prefix + "patternValueMode")), config.resourcesInterface());

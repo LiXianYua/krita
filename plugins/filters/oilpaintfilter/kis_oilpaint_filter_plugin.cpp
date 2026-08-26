@@ -16,7 +16,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(KisOilPaintFilterPluginFactory, "kritaoilpaintfilter.json", registerPlugin<KisOilPaintFilterPlugin>();)
 
-KisOilPaintFilterPlugin::KisOilPaintFilterPlugin(QObject *parent, const QVariantList &) : QObject(parent)
+KisOilPaintFilterPlugin::KisOilPaintFilterPlugin(QObject *parent, const PkVariantList &) : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisOilPaintFilter());
 

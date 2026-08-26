@@ -10,14 +10,14 @@
 #define EXAMPLE_H
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 #include "filter/kis_color_transformation_filter.h"
 
 class KritaExample : public QObject
 {
     Q_OBJECT
 public:
-    KritaExample(QObject *parent, const QVariantList &);
+    KritaExample(QObject *parent, const PkVariantList &);
     ~KritaExample() override;
 };
 

@@ -25,7 +25,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(PalettizeFactory, "kritapalettize.json", registerPlugin<Palettize>();)
 
-Palettize::Palettize(QObject *parent, const QVariantList &)
+Palettize::Palettize(QObject *parent, const PkVariantList &)
     : QObject(parent)
 {
     KisFilterRegistry::instance()->add(new KisFilterPalettize());
@@ -41,7 +41,7 @@ Palettize::Palettize(QObject *parent, const QVariantList &)
 class KisFilterPalettizeConfiguration : public KisFilterConfiguration
 {
 public:
-    KisFilterPalettizeConfiguration(const QString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface)
+    KisFilterPalettizeConfiguration(const PkString & name, qint32 version, KisResourcesInterfaceSP resourcesInterface)
         : KisFilterConfiguration(name, version, resourcesInterface)
     {
     }
@@ -58,8 +58,8 @@ public:
     KoResourceLoadResult palette(KisResourcesInterfaceSP resourcesInterface) const
     {
         auto source = resourcesInterface->source<KoColorSet>(ResourceType::Palettes);
-        const QString md5sum = this->getString("md5sum");
-        const QString name = this->getString("palette");
+        const PkString md5sum = this->getString("md5sum");
+        const PkString name = this->getString("palette");
 
         return source.bestMatchLoadResult(md5sum, "", name) ;
     }
@@ -69,10 +69,10 @@ public:
         return palette(resourcesInterface()).resource<KoColorSet>();
     }
 
-    QList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override
+    PkList<KoResourceLoadResult> linkedResources(KisResourcesInterfaceSP globalResourcesInterface) const override
     {
 
-        QList<KoResourceLoadResult> resources;
+        PkList<KoResourceLoadResult> resources;
         resources << this->palette(globalResourcesInterface);
 
         resources << KisDitherConfigurationHelper::prepareLinkedResources(*this, "dither/", globalResourcesInterface);
@@ -118,7 +118,7 @@ KisFilterConfigurationSP KisFilterPalettize::defaultConfiguration(KisResourcesIn
     return config;
 }
 
-void KisFilterPalettize::processImpl(KisPaintDeviceSP device, const QRect& applyRect, const KisFilterConfigurationSP _config, KoUpdater* progressUpdater) const
+void KisFilterPalettize::processImpl(KisPaintDeviceSP device, const PkRect& applyRect, const KisFilterConfigurationSP _config, KoUpdater* progressUpdater) const
 {
     const KisFilterPalettizeConfiguration *config = dynamic_cast<const KisFilterPalettizeConfiguration*>(_config.data());
     KIS_SAFE_ASSERT_RECOVER_RETURN(config);
@@ -185,11 +185,11 @@ void KisFilterPalettize::processImpl(KisPaintDeviceSP device, const QRect& apply
             // Find dither threshold
             double threshold = 0.5;
             if (ditherEnabled) {
-                threshold = ditherUtil.threshold(QPoint(pixel.x(), pixel.y()));
+                threshold = ditherUtil.threshold(PkPoint(pixel.x(), pixel.y()));
 
                 // Traditional per-channel ordered dithering
                 if (colorMode == ColorMode::PerChannelOffset) {
-                    QVector<float> normalized(int(workColorspace->channelCount()));
+                    PkVector<float> normalized(int(workColorspace->channelCount()));
                     workColorspace->normalisedChannelsValue(workColor.data(), normalized);
                     for (int channel = 0; channel < int(workColorspace->channelCount()); ++channel) {
                         normalized[channel] += (threshold - 0.5) * offsetScale;
@@ -234,7 +234,7 @@ void KisFilterPalettize::processImpl(KisPaintDeviceSP device, const QRect& apply
                     newAlpha = (candidate.index == alphaIndex ? 0.0 : 1.0);
                 }
                 else if (alphaMode == AlphaMode::Dither) {
-                    newAlpha = oldAlpha < alphaDitherUtil.threshold(QPoint(pixel.x(), pixel.y())) ? 0.0 : 1.0;
+                    newAlpha = oldAlpha < alphaDitherUtil.threshold(PkPoint(pixel.x(), pixel.y())) ? 0.0 : 1.0;
                 }
             }
             colorspace->setOpacity(candidate.color.data(), newAlpha, 1);

@@ -9,13 +9,13 @@
 #define _KIS_SMALL_TILES_FILTER_PLUGIN_H_
 
 #include <QObject>
-#include <QVariant>
+#include <PkVariant.h>
 
 class KisSmallTilesFilterPlugin : public QObject
 {
     Q_OBJECT
 public:
-    KisSmallTilesFilterPlugin(QObject *parent, const QVariantList &);
+    KisSmallTilesFilterPlugin(QObject *parent, const PkVariantList &);
     ~KisSmallTilesFilterPlugin() override;
 };
 
