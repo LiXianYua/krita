@@ -25,6 +25,26 @@ set(kritalibbrush_LIB_SRCS
     KisBrushModel.cpp
 )
 
+include_directories(
+    ${CMAKE_SOURCE_DIR}/pk/string
+    ${CMAKE_SOURCE_DIR}/pk/container
+    ${CMAKE_SOURCE_DIR}/pk/geometry
+    ${CMAKE_SOURCE_DIR}/pk/xml
+    ${CMAKE_SOURCE_DIR}/pk/port
+    ${CMAKE_SOURCE_DIR}/pk/signal
+    ${CMAKE_SOURCE_DIR}/pk/concurrent
+    ${CMAKE_SOURCE_DIR}/pk/time
+    ${CMAKE_SOURCE_DIR}/pk/sql
+    ${CMAKE_SOURCE_DIR}/pk/image
+    ${CMAKE_SOURCE_DIR}/pk/pointer
+    ${CMAKE_SOURCE_DIR}/pk/global
+    ${CMAKE_SOURCE_DIR}/pk/variant
+    ${CMAKE_SOURCE_DIR}/pk/namespace
+    ${CMAKE_SOURCE_DIR}/pk/uuid
+    ${CMAKE_SOURCE_DIR}/pk/color
+    ${CMAKE_SOURCE_DIR}/pk/log
+)
+
 kis_add_library(kritalibbrush SHARED ${kritalibbrush_LIB_SRCS})
 generate_export_header(kritalibbrush BASE_NAME kritabrush EXPORT_MACRO_NAME BRUSH_EXPORT)
 
