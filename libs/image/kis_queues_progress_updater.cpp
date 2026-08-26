@@ -33,8 +33,8 @@ struct Q_DECL_HIDDEN KisQueuesProgressUpdater::Private
 
     bool tickingRequested;
 
-    static const int TIMER_INTERVAL = 500;
-    static const int PROGRESS_DELAY = 1000;
+    static constexpr int TIMER_INTERVAL = 500;
+    static constexpr int PROGRESS_DELAY = 1000;
 };
 
 
