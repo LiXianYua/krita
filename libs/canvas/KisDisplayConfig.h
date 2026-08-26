@@ -11,6 +11,7 @@
 #include <KoColorConversionTransformation.h>
 
 class KoColorProfile;
+class PkDebug;
 /**
  * @brief KisDisplayConfig
  * This class keeps track of the color management configuration for
@@ -51,7 +52,7 @@ public:
     bool isHDR { false };
 };
 
-KRITACANVAS_EXPORT QDebug operator<<(QDebug debug, const KisDisplayConfig &value);
+KRITACANVAS_EXPORT PkDebug operator<<(PkDebug debug, const KisDisplayConfig &value);
 
 class KRITACANVAS_EXPORT KisMultiSurfaceDisplayConfig : public boost::equality_comparable<KisMultiSurfaceDisplayConfig>
 {

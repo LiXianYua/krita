@@ -4,7 +4,7 @@
 #ifndef KIS_CANVAS_CONFIG_H
 #define KIS_CANVAS_CONFIG_H
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 
 class KisCanvasConfig
 {

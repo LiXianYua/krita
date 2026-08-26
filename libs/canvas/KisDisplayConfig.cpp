@@ -6,7 +6,7 @@
 #include "KisDisplayConfig.h"
 
 #include <KoColorProfile.h>
-#include <QDebug>
+#include <PkDebug.h>
 
 KisDisplayConfig::KisDisplayConfig()
     : profile(nullptr)
@@ -35,8 +35,7 @@ bool KisDisplayConfig::operator==(const KisDisplayConfig &rhs) const
             isHDR == rhs.isHDR;
 }
 
-QDebug operator<<(QDebug debug, const KisDisplayConfig &value) {
-    QDebugStateSaver saver(debug);
+PkDebug operator<<(PkDebug debug, const KisDisplayConfig &value) {
     debug.nospace() << "KisDisplayConfig(";
 
     debug.nospace() << "profile: " << value.profile;

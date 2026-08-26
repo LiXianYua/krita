@@ -8,7 +8,7 @@
 #ifndef KISMIRRORAXISCONFIG_H
 #define KISMIRRORAXISCONFIG_H
 
-#include <QObject>
+#include <PkObject.h>
 #include <PkPoint.h>
 #include <PkScopedPointer.h>
 #include <PkString.h>
@@ -24,9 +24,8 @@ class PkXmlDocument;
  * canvas decoration. Contents are saved to/loaded from KRA documents.
  */
 
-class KRITACANVAS_EXPORT KisMirrorAxisConfig : public QObject, boost::equality_comparable<KisMirrorAxisConfig>
+class KRITACANVAS_EXPORT KisMirrorAxisConfig : public PkObject, boost::equality_comparable<KisMirrorAxisConfig>
 {
-    Q_OBJECT
 
 public:
     KisMirrorAxisConfig();

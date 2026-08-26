@@ -6,10 +6,6 @@
 
 #include "kis_exposure_gamma_correction_interface.h"
 
-#include <QGlobalStatic>
-
-Q_GLOBAL_STATIC(KisDumbExposureGammaCorrectionInterface, s_instance)
-
 KisExposureGammaCorrectionInterface::~KisExposureGammaCorrectionInterface()
 {
 }
@@ -17,7 +13,8 @@ KisExposureGammaCorrectionInterface::~KisExposureGammaCorrectionInterface()
 KisDumbExposureGammaCorrectionInterface*
 KisDumbExposureGammaCorrectionInterface::instance()
 {
-    return s_instance;
+    static KisDumbExposureGammaCorrectionInterface s_instance;
+    return &s_instance;
 }
 
 bool KisDumbExposureGammaCorrectionInterface::canChangeExposureAndGamma() const
@@ -32,7 +29,7 @@ qreal KisDumbExposureGammaCorrectionInterface::currentExposure() const
 
 void KisDumbExposureGammaCorrectionInterface::setCurrentExposure(qreal value)
 {
-    Q_UNUSED(value);
+    (void)value;
 }
 
 qreal KisDumbExposureGammaCorrectionInterface::currentGamma() const
@@ -42,5 +39,5 @@ qreal KisDumbExposureGammaCorrectionInterface::currentGamma() const
 
 void KisDumbExposureGammaCorrectionInterface::setCurrentGamma(qreal value)
 {
-    Q_UNUSED(value);
+    (void)value;
 }

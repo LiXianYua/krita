@@ -3,16 +3,17 @@
  */
 #include "KisCanvasConfig.h"
 
-#include <KConfigGroup>
-#include <KSharedConfig>
+#include <PkConfigGroup.h>
+#include <PkSharedConfig.h>
+#include <PkString.h>
 
 #include <config-ocio.h>
 
 namespace
 {
-KConfigGroup rootConfig()
+PkConfigGroup rootConfig()
 {
-    return KSharedConfig::openConfig()->group("");
+    return PkSharedConfig::openConfig()->group(PkString(""));
 }
 }
 
@@ -23,18 +24,18 @@ KisCanvasConfig::KisCanvasConfig(bool defaultValues)
 
 qreal KisCanvasConfig::vastScrolling() const
 {
-    return m_defaultValues ? 0.9 : rootConfig().readEntry("vastScrolling", 0.9);
+    return m_defaultValues ? 0.9 : rootConfig().readEntry(PkString("vastScrolling"), 0.9);
 }
 
 bool KisCanvasConfig::showSingleChannelAsColor() const
 {
-    return m_defaultValues ? false : rootConfig().readEntry("showSingleChannelAsColor", false);
+    return m_defaultValues ? false : rootConfig().readEntry(PkString("showSingleChannelAsColor"), false);
 }
 
 bool KisCanvasConfig::useOcio() const
 {
 #ifdef HAVE_OCIO
-    return m_defaultValues ? false : rootConfig().readEntry("Krita/Ocio/UseOcio", false);
+    return m_defaultValues ? false : rootConfig().readEntry(PkString("Krita/Ocio/UseOcio"), false);
 #else
     return false;
 #endif

@@ -7,7 +7,7 @@
 #ifndef __KIS_EXPOSURE_GAMMA_CORRECTION_INTERFACE_H
 #define __KIS_EXPOSURE_GAMMA_CORRECTION_INTERFACE_H
 
-#include <QtGlobal>
+#include <PkGlobal.h>
 #include <kritacanvas_export.h>
 
 /**

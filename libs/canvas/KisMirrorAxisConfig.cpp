@@ -10,7 +10,7 @@
 #include "KisMirrorAxisConfig.h"
 
 
-class Q_DECL_HIDDEN KisMirrorAxisConfig::Private
+class KisMirrorAxisConfig::Private
 {
 public:
     Private()
@@ -55,7 +55,7 @@ public:
 
 
 KisMirrorAxisConfig::KisMirrorAxisConfig()
-    : QObject()
+    : PkObject()
     , d(new Private())
 {
 
@@ -67,7 +67,7 @@ KisMirrorAxisConfig::~KisMirrorAxisConfig()
 }
 
 KisMirrorAxisConfig::KisMirrorAxisConfig(const KisMirrorAxisConfig &rhs)
-    : QObject()
+    : PkObject()
     , d(new Private(*rhs.d))
 {
 
