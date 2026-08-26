@@ -528,7 +528,12 @@ void KisKraLoader::loadBinaryData(KoStore * store, KisImageSP image, const PkStr
              * so convert the device beforehand!
              */
             PkByteArray buf = device.readAll();
-            PkMemoryStream raDevice(&buf);
+            // PkMemoryStream 无 QBuffer(QByteArray*) 对应的构造（libs/store 锁内，
+            // S-05-b 不改）。等价语义：WriteOnly 写入 + seek(0) 回位 + 切 ReadOnly。
+            PkMemoryStream raDevice;
+            raDevice.open(PkStream::WriteOnly);
+            raDevice.write(buf.data(), buf.size());
+            raDevice.seek(0);
             raDevice.open(PkStream::ReadOnly);
             serializer.readFromDevice(raDevice);
         }
