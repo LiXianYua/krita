@@ -18,7 +18,7 @@
 
 namespace {
 
-// QByteArray::toBase64 / fromBase64 的零 Qt 对应（复制自 libs/global/KoProperties.cpp
+// 字节数组的 toBase64 / fromBase64 的零 Qt 对应（复制自 libs/global/KoProperties.cpp
 // 的 pkBase64Encode/Decode——那里是文件局部 helper，无公开头；此处照抄保持独立）。
 const char kB64Alphabet[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -84,7 +84,7 @@ namespace KisDomUtils {
 
         e.setAttribute("type", COLORIZE_KEYSTROKE);
 
-        // 对拍原 Qt：QString::replace("item", COLORIZE_KEYSTROKE) 全量替换。
+        // 对拍原 Qt：字符串 replace("item", COLORIZE_KEYSTROKE) 全量替换。
         // PkString 无 replace，用 std::string::replace 中转。
         std::string fileNameUtf8 = tag.PkToUtf8();
         const std::string from("item");
@@ -98,7 +98,7 @@ namespace KisDomUtils {
 
         e.setAttribute(COLORIZE_KEYSTROKE_IS_TRANSPARENT, PkString(stroke.isTransparent ? "true" : "false"));
 
-        // 对拍原 Qt：QByteArray::fromRawData(ptr, len) → QByteArray(ptr, len)；
+        // 对拍原 Qt：fromRawData(ptr, len) → 直接构造(ptr, len)；
         // toBase64 → 本地 pkBase64Encode。
         PkByteArray colorData((const char*)stroke.color.data(), stroke.color.colorSpace()->pixelSize());
         const std::string b64 = pkBase64Encode(colorData);
@@ -113,7 +113,7 @@ namespace KisDomUtils {
 
         stroke->isTransparent = toInt(e.attribute(COLORIZE_KEYSTROKE_IS_TRANSPARENT, "0"));
 
-        // 对拍原 Qt：QByteArray::fromBase64(attr.toLatin1()) → 本地 pkBase64Decode。
+        // 对拍原 Qt：fromBase64(attr.toLatin1()) → 本地 pkBase64Decode。
         // PkString 无 toLatin1，Base64 是 ASCII，PkToUtf8() 等价。
         PkByteArray colorData = pkBase64Decode(e.attribute(COLORBYTEDATA).PkToUtf8());
         KoColor color((const uint8_t*)colorData.data(), colorSpace);

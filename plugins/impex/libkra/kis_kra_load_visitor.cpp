@@ -480,7 +480,11 @@ bool KisKraLoadVisitor::visit(KisColorizeMask *mask)
         loadPaintDevice(stroke.dev, fileName);
     }
 
-    mask->setKeyStrokesDirect(PkList<KisLazyFillTools::KeyStroke>::fromVector(strokes));
+    PkList<KisLazyFillTools::KeyStroke> strokesList;
+    for (const auto &stroke : strokes) {
+        strokesList.append(stroke);
+    }
+    mask->setKeyStrokesDirect(strokesList);
 
     loadPaintDevice(mask->coloringProjection(), COLORIZE_COLORING_DEVICE);
 
@@ -727,7 +731,11 @@ bool KisKraLoadVisitor::loadMetaData(KisNode* node)
         m_store->open(location);
         data = m_store->read(m_store->size());
         m_store->close();
-        PkMemoryStream buffer(&data);
+        PkMemoryStream buffer;
+        buffer.open(PkStream::WriteOnly);
+        buffer.write(data.data(), data.size());
+        buffer.seek(0);
+        buffer.open(PkStream::ReadOnly);
         if (!backend->loadFrom(layer->metaData(), &buffer)) {
             m_warningMessages << i18n("Could not load metadata for layer %1.", layer->name());
         }
@@ -754,7 +762,7 @@ bool KisKraLoadVisitor::loadSelection(const PkString& location, KisSelectionSP d
         m_store->pushDirectory();
         m_store->enterDirectory(shapeSelectionLocation) ;
 
-        KisShapeSelection* shapeSelection = new KisShapeSelection(m_shapeController, dstSelection);
+        KisShapeSelection* shapeSelection = new KisShapeSelection(m_shapeController, dstSelection.data());
         dstSelection->convertToVectorSelectionNoUndo(shapeSelection);
         result = shapeSelection->loadSelection(m_store, m_image->bounds());
 

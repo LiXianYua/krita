@@ -229,8 +229,9 @@ bool KisKraSaveVisitor::visit(KisTransformMask *mask)
 
     PkString location = getLocation(mask, DOT_TRANSFORMCONFIG);
     if (m_store->open(location)) {
-        PkByteArray a = doc.toByteArray();
-        bool retval = m_store->write(a) == a.size();
+        const PkString a = doc.toByteArray();
+        const std::string aUtf8 = a.PkToUtf8();
+        bool retval = m_store->write(aUtf8.data(), static_cast<long>(aUtf8.size())) == static_cast<long>(aUtf8.size());
 
         if (!retval) {
             warnFile << "Could not write transform mask configuration";
@@ -490,9 +491,9 @@ bool KisKraSaveVisitor::saveFilterConfiguration(KisNode* node)
     if (filter) {
         PkString location = getLocation(node, DOT_FILTERCONFIG);
         if (m_store->open(location)) {
-            PkString s = filter->toXML();
-            PkByteArray sUtf8 = s.toUtf8();
-            retval = (m_store->write(sUtf8) == sUtf8.size()); m_store->close();
+            const PkString s = filter->toXML();
+            const std::string sUtf8 = s.PkToUtf8();
+            retval = (m_store->write(sUtf8.data(), static_cast<long>(sUtf8.size())) == static_cast<long>(sUtf8.size())); m_store->close();
         }
     }
     return retval;

@@ -228,11 +228,8 @@ KisImportExportErrorCode KraConverter::buildFile(PkStream *io, const PkString &f
     }
     
     setProgress(5);
-    const PkString mimeType = m_doc->nativeFormatMimeType();
-    const std::string mimeUtf8 = mimeType.PkToUtf8();
-    m_store = KoStore::createStore(io, KoStore::Write,
-                                   PkByteArray(mimeUtf8.data(), static_cast<int>(mimeUtf8.size())),
-                                   KoStore::Zip);
+    const PkByteArray mimeType = m_doc->nativeFormatMimeType();
+    m_store = KoStore::createStore(io, KoStore::Write, mimeType, KoStore::Zip);
 
     bool success = true;
 
@@ -530,7 +527,9 @@ bool KraConverter::completeLoading(KoStore* store)
         // We might be hitting an encoding problem. Get the only folder in the toplevel
         for (const PkString &entry : m_store->directoryList()) {
             if (entry.contains("/layers/")) {
-                layerPathName = entry.split("/layers/").front();
+                const std::string entryUtf8 = entry.PkToUtf8();
+                const std::size_t layersPos = entryUtf8.find("/layers/");
+                layerPathName = PkString::PkFromUtf8(entryUtf8.c_str(), static_cast<int>(layersPos));
                 m_store->setSubstitution(m_kraLoader->imageName(), layerPathName);
                 break;
             }

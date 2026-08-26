@@ -138,33 +138,33 @@ public:
 void convertColorSpaceNames(PkString &colorspacename, PkString &profileProductName) {
     if (colorspacename  == "Grayscale + Alpha") {
         colorspacename  = "GRAYA";
-        profileProductName.clear();
+        profileProductName = PkString();
     }
     else if (colorspacename == "RgbAF32") {
         colorspacename = "RGBAF32";
-        profileProductName.clear();
+        profileProductName = PkString();
     }
     else if (colorspacename == "RgbAF16") {
         colorspacename = "RGBAF16";
-        profileProductName.clear();
+        profileProductName = PkString();
     }
     else if (colorspacename == "CMYKA16") {
         colorspacename = "CMYKAU16";
     }
     else if (colorspacename == "GrayF32") {
         colorspacename =  "GRAYAF32";
-        profileProductName.clear();
+        profileProductName = PkString();
     }
     else if (colorspacename == "GRAYA16") {
         colorspacename  = "GRAYAU16";
     }
     else if (colorspacename == "XyzAF16") {
         colorspacename  = "XYZAF16";
-        profileProductName.clear();
+        profileProductName = PkString();
     }
     else if (colorspacename == "XyzAF32") {
         colorspacename  = "XYZAF32";
-        profileProductName.clear();
+        profileProductName = PkString();
     }
     else if (colorspacename == "YCbCrA") {
         colorspacename  = "YCBCRA8";
@@ -326,7 +326,7 @@ KisImageSP KisKraLoader::loadXML(const PkXmlElement& imageElement)
 
             if(e.tagName() == CANVASPROJECTIONCOLOR) {
                 if (e.hasAttribute(COLORBYTEDATA)) {
-                    PkByteArray colorData = PkByteArray::fromBase64(e.attribute(COLORBYTEDATA).toLatin1());
+                    const PkByteArray colorData = KRA::base64Decode(e.attribute(COLORBYTEDATA).PkToUtf8());
                     KoColor color((const quint8*)colorData.data(), image->colorSpace());
                     image->setDefaultProjectionColor(color);
                 }
@@ -529,7 +529,7 @@ void KisKraLoader::loadBinaryData(KoStore * store, KisImageSP image, const PkStr
              * so convert the device beforehand!
              */
             PkByteArray buf = device.readAll();
-            // PkMemoryStream 无 QBuffer(QByteArray*) 对应的构造（libs/store 锁内，
+            // PkMemoryStream 无内存缓冲(字节数组*) 对应的构造（libs/store 锁内，
             // S-05-b 不改）。等价语义：WriteOnly 写入 + seek(0) 回位 + 切 ReadOnly。
             PkMemoryStream raDevice;
             raDevice.open(PkStream::WriteOnly);
@@ -882,7 +882,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
     qint32 x = element.attribute(X, "0").toInt();
     qint32 y = element.attribute(Y, "0").toInt();
 
-    qint32 opacity = element.attribute(OPACITY, PkString::number(OPACITY_OPAQUE_U8)).toInt();
+    qint32 opacity = element.attribute(OPACITY, PkString().arg((int)(OPACITY_OPAQUE_U8))).toInt();
     if (opacity < OPACITY_TRANSPARENT_U8) opacity = OPACITY_TRANSPARENT_U8;
     if (opacity > OPACITY_OPAQUE_U8) opacity = OPACITY_OPAQUE_U8;
 

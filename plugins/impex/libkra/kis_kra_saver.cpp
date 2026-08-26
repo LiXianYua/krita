@@ -5,6 +5,7 @@
  */
 #include <klocalizedstring.h>
 #include "kis_kra_saver.h"
+#include "kis_kra_utils.h"
 
 #include "kis_kra_tags.h"
 #include "kis_kra_save_visitor.h"
@@ -268,7 +269,9 @@ bool KisKraSaver::saveStoryboard(KoStore *store, KisImageSP image, const PkStrin
         PkXmlElement root = storyboardDocument.documentElement();
         saveStoryboardToXML(storyboardDocument, root);
 
-        PkByteArray ba = storyboardDocument.toByteArray();
+        const PkString baStr = storyboardDocument.toByteArray();
+        const std::string baUtf8 = baStr.PkToUtf8();
+        PkByteArray ba(baUtf8.data(), static_cast<int>(baUtf8.size()));
         qint64 nwritten = 0;
         if (!ba.isEmpty()) {
             nwritten = store->write(ba);
@@ -304,7 +307,9 @@ bool KisKraSaver::saveAnimationMetadata(KoStore *store, KisImageSP image, const 
 
     bool success = true;
 
-    PkByteArray ba = animationDocument.toByteArray();
+    const PkString baStr = animationDocument.toByteArray();
+    const std::string baUtf8 = baStr.PkToUtf8();
+    PkByteArray ba(baUtf8.data(), static_cast<int>(baUtf8.size()));
     qint64 nwritten = 0;
     if (!ba.isEmpty()) {
         nwritten = store->write(ba);
@@ -340,7 +345,9 @@ bool KisKraSaver::saveAudio(KoStore *store)
     saveAudioXML(audioDocument, root);
 
     bool success = true;
-    PkByteArray byteArray = audioDocument.toByteArray();
+    const PkString byteArrayStr = audioDocument.toByteArray();
+    const std::string byteArrayUtf8 = byteArrayStr.PkToUtf8();
+    PkByteArray byteArray(byteArrayUtf8.data(), static_cast<int>(byteArrayUtf8.size()));
     qint64 bytesWriteCount = 0;
     if (!byteArray.isEmpty()) {
         bytesWriteCount = store->write(byteArray);
@@ -397,7 +404,7 @@ void KisKraSaver::saveStoryboardToXML(PkXmlDocument& doc, PkXmlElement &element)
     for (StoryboardComment comment: m_d->doc->getStoryboardCommentsList()) {
         PkXmlElement commentElement = doc.createElement("storyboardcomment");
         commentElement.setAttribute("name", comment.name);
-        commentElement.setAttribute("visibility", comment.visibility);
+        commentElement.setAttribute("visibility", PkString(comment.visibility ? "true" : "false"));
         eCommentList.appendChild(commentElement);
     }
     element.appendChild(eCommentList);
@@ -459,7 +466,9 @@ bool KisKraSaver::saveNodeKeyframes(KoStore *store, PkString location, const Kis
 
     bool success = true;
     if (store->open(location)) {
-        PkByteArray xml = doc.toByteArray();
+        const PkString xmlStr = doc.toByteArray();
+    const std::string xmlUtf8 = xmlStr.PkToUtf8();
+    PkByteArray xml(xmlUtf8.data(), static_cast<int>(xmlUtf8.size()));
         qint64 nwritten = store->write(xml);
         bool r = store->close();
         success = r && (nwritten == xml.size());
@@ -685,8 +694,9 @@ void KisKraSaver::saveBackgroundColor(PkXmlDocument& doc, PkXmlElement& element,
 {
     PkXmlElement e = doc.createElement(CANVASPROJECTIONCOLOR);
     KoColor color = image->defaultProjectionColor();
-    PkByteArray colorData = PkByteArray::fromRawData((const char*)color.data(), color.colorSpace()->pixelSize());
-    e.setAttribute(COLORBYTEDATA, PkString(colorData.toBase64()));
+    PkByteArray colorData((const char*)color.data(), color.colorSpace()->pixelSize());
+    const std::string b64 = KRA::base64Encode(colorData);
+    e.setAttribute(COLORBYTEDATA, PkString::PkFromUtf8(b64.c_str(), static_cast<int>(b64.size())));
     element.appendChild(e);
 }
 
