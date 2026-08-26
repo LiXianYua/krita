@@ -9,6 +9,8 @@
 
 #include "kis_abstract_shortcut.h"
 
+#include <QKeySequence>
+
 /**
  * This class represents a shortcut that executes a simple atomic
  * action. It can be initiated either by a keyboard hotkey or by

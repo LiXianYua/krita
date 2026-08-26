@@ -11,6 +11,7 @@
 #include "kis_single_action_shortcut.h"
 #include "KisInputActionGroup.h"
 #include <functional>
+#include <QKeySequence>
 #include "kritainput_export.h"
 
 class QEvent;
