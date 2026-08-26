@@ -19,7 +19,10 @@
 #include <kis_debug.h>
 #include <PkString.h>
 #include <PkMemoryStream.h>
-#include <QFileInfo>
+#include <chrono>
+#include <cstdint>
+#include <filesystem>
+#include <system_error>
 #include <KoMD5Generator.h>
 #include <klocalizedstring.h>
 
@@ -113,10 +116,19 @@ static qint32 rle_decode(PkDataStream & abr, char *buffer, qint32 height)
 
 static PkString abr_v1_brush_name(const PkString filename, qint32 id)
 {
-    PkString result = filename;
-    int pos = filename.lastIndexOf('.');
-    result.remove(pos, 4);
-    PkTextStream(&result) << "_" << id;
+    // 原 Qt 实现：lastIndexOf('.') 定位扩展名起点，remove(pos, 4) 剥掉 ".abr"，
+    // QTextStream 追加 "_<id>"。PkString 无 lastIndexOf/remove，且 PkTextStream
+    // 只接受 PkStream* 不接受 &PkString，故用 PkString 既有 API 复刻语义：
+    // 取最后一个 '.' 之前的部分 + "_<id>"。
+    int pos = -1;
+    for (int i = filename.size() - 1; i >= 0; --i) {
+        if (filename.at(i) == u'.') {
+            pos = i;
+            break;
+        }
+    }
+    PkString result = (pos >= 0) ? filename.left(pos) : filename;
+    result.append(PkString("_%1").arg(id));
     return result;
 }
 
@@ -261,6 +273,55 @@ static bool abr_read_content(PkDataStream & abr, AbrInfo *abr_hdr)
 }
 
 
+// ABR 笔刷名是 UTF-16 码元（ABR 6+ 可含代理对）。PkString 公开 API 无 fromUtf16/
+// PkFromUtf16 构造入口（R 线锁，不越权改 pk/string），这里在 libs/brush 内做
+// UTF-16→UTF-8 transcode，再经 PkString::PkFromUtf8 构造。代理对（U+10000+）正确
+// 合并；孤立高/低代理位替换为 U+FFFD。
+static PkString abr_ucs2_to_utf8(const char16_t *ucs2, int len)
+{
+    if (len <= 0) {
+        return PkString();
+    }
+    std::string utf8;
+    utf8.reserve(static_cast<std::size_t>(len));
+    for (int i = 0; i < len; ++i) {
+        std::uint32_t cp = static_cast<std::uint32_t>(ucs2[i]);
+        if (cp >= 0xD800u && cp <= 0xDBFFu) {
+            // 高代理位：必须后随低代理位，否则为孤立高代理 → U+FFFD
+            if (i + 1 < len) {
+                const std::uint32_t lo = static_cast<std::uint32_t>(ucs2[i + 1]);
+                if (lo >= 0xDC00u && lo <= 0xDFFFu) {
+                    cp = 0x10000u + ((cp - 0xD800u) << 10) + (lo - 0xDC00u);
+                    ++i;
+                } else {
+                    cp = 0xFFFDu;
+                }
+            } else {
+                cp = 0xFFFDu;
+            }
+        } else if (cp >= 0xDC00u && cp <= 0xDFFFu) {
+            // 孤立低代理位 → U+FFFD
+            cp = 0xFFFDu;
+        }
+        if (cp < 0x80u) {
+            utf8.push_back(static_cast<char>(cp));
+        } else if (cp < 0x800u) {
+            utf8.push_back(static_cast<char>(0xC0u | (cp >> 6)));
+            utf8.push_back(static_cast<char>(0x80u | (cp & 0x3Fu)));
+        } else if (cp < 0x10000u) {
+            utf8.push_back(static_cast<char>(0xE0u | (cp >> 12)));
+            utf8.push_back(static_cast<char>(0x80u | ((cp >> 6) & 0x3Fu)));
+            utf8.push_back(static_cast<char>(0x80u | (cp & 0x3Fu)));
+        } else {
+            utf8.push_back(static_cast<char>(0xF0u | (cp >> 18)));
+            utf8.push_back(static_cast<char>(0x80u | ((cp >> 12) & 0x3Fu)));
+            utf8.push_back(static_cast<char>(0x80u | ((cp >> 6) & 0x3Fu)));
+            utf8.push_back(static_cast<char>(0x80u | (cp & 0x3Fu)));
+        }
+    }
+    return PkString::PkFromUtf8(utf8.data(), static_cast<int>(utf8.size()));
+}
+
 static PkString abr_read_ucs2_text(PkDataStream & abr)
 {
     quint32 name_size;
@@ -292,11 +353,8 @@ static PkString abr_read_ucs2_text(PkDataStream & abr)
         // I will use ushort as that is input to fromUtf16
         abr >>  name_ucs2[i];
     }
-    // GAP: PkString 内部是 vector<char16_t>（UTF-16），但公开 API 无 fromUtf16/
-    // PkFromUtf16 构造入口（仅 PkFromUtf8/const char*）。ABR 名是 UTF-16 码元。
-    // 建议 pk 库补：static PkString PkFromUtf16(const char16_t* s, int len)（实现约 3 行）。
-    // 本行保持 migrate 产物不动，待 Task 6/7 compat 桩或 pk 侧补 API 后接上。
-    PkString name_utf8 = PkString::fromUtf16(name_ucs2, buf_size);
+    PkString name_utf8 = abr_ucs2_to_utf8(reinterpret_cast<const char16_t *>(name_ucs2),
+                                          static_cast<int>(buf_size));
     delete [] name_ucs2;
 
     return name_utf8;
@@ -545,12 +603,32 @@ KisAbrBrushCollection::KisAbrBrushCollection(const KisAbrBrushCollection& rhs)
     }
 }
 
+// QFileInfo 在 migrate 后无 Pk 等价（QFileInfo 无 PkFileStream/PkString 构造），
+// 这里按 S-02-b PkResourceStorageDesktop::lastModifiedMs 的模式用 std::filesystem
+// 复刻「PkString 路径 → 文件名 / 最后修改时间」。
+static PkString pathFileName(const PkString &path)
+{
+    const std::string name = std::filesystem::u8path(path.PkToUtf8()).filename().string();
+    return PkString::PkFromUtf8(name.c_str(), static_cast<int>(name.size()));
+}
+
+static PkDateTime pathLastModified(const PkString &path)
+{
+    std::error_code ec;
+    const std::filesystem::file_time_type writeTime = std::filesystem::last_write_time(path.PkToUtf8(), ec);
+    if (ec) {
+        return PkDateTime();
+    }
+    const auto systemTime = std::chrono::time_point_cast<std::chrono::milliseconds>(
+        writeTime - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+    return PkDateTime::fromMSecsSinceEpoch(systemTime.time_since_epoch().count());
+}
+
 bool KisAbrBrushCollection::load()
 {
     m_isLoaded = true;
     PkFileStream file(filename());
-    QFileInfo info(file);
-    m_lastModified = info.lastModified();
+    m_lastModified = pathLastModified(filename());
     // check if the file is open correctly
     if (!file.open(PkStream::ReadOnly)) {
         warnKrita << "Can't open file " << filename();
@@ -595,7 +673,7 @@ bool KisAbrBrushCollection::loadFromDevice(PkStream *dev)
     image_ID = 123456;
 
     for (i = 0; i < abr_hdr.count; i++) {
-        layer_ID = abr_brush_load(abr, &abr_hdr, QFileInfo(filename()).fileName(), image_ID, i + 1);
+        layer_ID = abr_brush_load(abr, &abr_hdr, pathFileName(filename()), image_ID, i + 1);
         if (layer_ID == -1) {
             warnKrita << "Warning: problem loading brush #" << i << " in " << filename();
         }

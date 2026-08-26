@@ -6,7 +6,7 @@
  */
 #include "kis_pipebrush_parasite.h"
 
-#include <KisPortingUtils.h>
+#include <PkTextStream.h>
 
 KisPipeBrushParasite::KisPipeBrushParasite(const PkString& source)
 {
@@ -130,7 +130,9 @@ bool KisPipeBrushParasite::saveToDevice(PkStream* dev) const
     // <count> ncells:<count> dim:<dim> rank0:<rank0> sel0:<sel0> <...>
 
     PkTextStream stream(dev);
-    KisPortingUtils::setUtf8OnStream(stream);
+    // setUtf8OnStream 无 Qt 世界为空操作（PkTextStream 原生 UTF-8），且
+    // KisPortingUtils::setUtf8OnStream 只接受真 QTextStream&，故不调用、不引
+    // libs/global/KisPortingUtils.h（与 libs/pigment KoSegmentGradient 同口径）。
 
     // XXX: FIXME things like step, placement and so are not added (nor loaded, as a matter of fact)"
     stream << ncells << " ncells:" << ncells << " dim:" << dim;
