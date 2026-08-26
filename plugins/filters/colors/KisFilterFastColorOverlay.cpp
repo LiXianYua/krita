@@ -80,7 +80,7 @@ void KisFilterFastColorOverlay::processImpl(KisPaintDeviceSP device, const PkRec
 KisFilterConfigurationSP KisFilterFastColorOverlay::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const
 {
     KisFilterConfigurationSP config = factoryConfiguration(resourcesInterface);
-    config->setProperty("color", defaultColor());
+    config->setProperty("color", PkVariant::fromValue(defaultColor()));
     config->setProperty("opacity", defaultOpacity());
     config->setProperty("compositeop", defaultCompositeOp());
     return config;

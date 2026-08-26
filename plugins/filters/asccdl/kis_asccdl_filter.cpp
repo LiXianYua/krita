@@ -8,7 +8,7 @@
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_registry.h>
 #include <filter/kis_color_transformation_configuration.h>
-#include <qmath.h>
+#include <cmath>
 
 namespace {
 struct KritaASCCDLFilterRegistration
@@ -99,7 +99,7 @@ void KisASCCDLTransformation::transform(const quint8 *src, quint8 *dst, qint32 n
 
         for (uint c = 0; c < channelCount; c++){
             if (c != alphaPos) {
-                normalised[c] = qPow( (normalised.at(c)*m_slope.at(c))+m_offset.at(c), m_power.at(c));
+                normalised[c] = std::pow( (normalised.at(c)*m_slope.at(c))+m_offset.at(c), m_power.at(c));
             }
         }
         m_cs->fromNormalisedChannelsValue(dst, normalised);

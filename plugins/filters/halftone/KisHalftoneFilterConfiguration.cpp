@@ -240,7 +240,7 @@ void KisHalftoneFilterConfiguration::setProperty(const PkString &name, const PkV
     // that property belongs to, so that the configuration can be regenerated
     // later. This is an issue mainly when setting the properties directly
     // (through python for example) instead of using the high level methods.
-    const PkStringList nameParts = name.split('_');
+    const std::vector<PkString> nameParts = name.split('_');
     if (nameParts.size() < 3) {
         return;
     }

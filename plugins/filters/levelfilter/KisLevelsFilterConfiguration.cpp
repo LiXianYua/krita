@@ -333,7 +333,7 @@ void KisLevelsFilterConfiguration::toXML(PkXmlDocument& doc, PkXmlElement& root)
      * @endcode
      */
 
-    root.setAttribute("version", version());
+    root.setAttribute("version", PkString("%1").arg(version()));
 
     PkXmlText text;
     PkXmlElement t;

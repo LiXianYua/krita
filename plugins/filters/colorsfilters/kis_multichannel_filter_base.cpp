@@ -20,8 +20,6 @@
 #include "KoCompositeOp.h"
 #include "KoID.h"
 
-#include "kis_signals_blocker.h"
-
 #include "kis_bookmarked_configuration_manager.h"
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
@@ -182,9 +180,9 @@ void KisMultiChannelFilterConfiguration::fromXML(const PkXmlElement& root)
         if ((attributeName = e.attribute("name")) == "activeCurve") {
             activeCurve = e.text().toInt();
         } else if ((attributeName = e.attribute("name")) == "nTransfers") {
-            numTransfers = e.text().toUShort();
+            numTransfers = static_cast<quint16>(e.text().toInt());
         } else if ((attributeName = e.attribute("name")) == "nTransfersWithAlpha") {
-            numTransfersWithAlpha = e.text().toUShort();
+            numTransfersWithAlpha = static_cast<quint16>(e.text().toInt());
         } else {
             const std::string attributeUtf8 = attributeName.PkToUtf8();
             if (std::regex_search(attributeUtf8, match, curveRegexp)) {
@@ -273,7 +271,7 @@ void KisMultiChannelFilterConfiguration::toXML(PkXmlDocument& doc, PkXmlElement&
      * @endcode
      */
 
-    root.setAttribute("version", version());
+    root.setAttribute("version", PkString("%1").arg(version()));
 
     PkXmlText text;
     PkXmlElement t;

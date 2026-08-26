@@ -8,7 +8,6 @@
 #ifndef KIS_DESATURATE_FILTER_H
 #define KIS_DESATURATE_FILTER_H
 
-#include <QObject>
 #include <PkVariant.h>
 
 #include <filter/kis_color_transformation_filter.h>

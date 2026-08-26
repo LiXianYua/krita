@@ -74,13 +74,19 @@ void KisConvertHeightToNormalMapFilter::processImpl(KisPaintDeviceSP device, con
     PkVector<bool> channelFlip(device->colorSpace()->channelCount());
     channelFlip.fill(false);
 
+    // [GAP] PkVector<bool>（std::vector<bool> 内层）的 operator[] 返回 bool&，绑定
+    // 不到代理对象上（原 QVector<bool> 不特化、可写；Pk 缺 bool 特化，跨锁 GAP 已
+    // 登记）。用迭代器代理写绕过：*begin() 返回 std::vector<bool>::reference，可赋值。
+    const auto setFlip = [&channelFlip](int idx, bool v) {
+        *(channelFlip.begin() + idx) = v;
+    };
 
     int i = config->getInt("redSwizzle", 0);
     if (i % 2 == 1 || i == 2) {
-        channelFlip[0] = true;
+        setFlip(0, true);
     }
     if (i == 3) {
-        channelFlip[0] = false;
+        setFlip(0, false);
     }
 
     const PkList<KoChannelInfo*> channels = device->colorSpace()->channels();
@@ -90,10 +96,10 @@ void KisConvertHeightToNormalMapFilter::processImpl(KisPaintDeviceSP device, con
 
     i = config->getInt("greenSwizzle", 2);
     if (i % 2 == 1 || i == 2) {
-        channelFlip[1] = true;
+        setFlip(1, true);
     }
     if (i == 3) {
-        channelFlip[1] = false;
+        setFlip(1, false);
     }
 
     displayPosition = channels.at(1)->displayPosition();
@@ -101,10 +107,10 @@ void KisConvertHeightToNormalMapFilter::processImpl(KisPaintDeviceSP device, con
 
     i = config->getInt("blueSwizzle", 4);
     if (i % 2 == 1 || i == 2) {
-        channelFlip[2] = true;
+        setFlip(2, true);
     }
     if (i == 3) {
-        channelFlip[2] = false;
+        setFlip(2, false);
     }
 
     displayPosition = channels.at(2)->displayPosition();

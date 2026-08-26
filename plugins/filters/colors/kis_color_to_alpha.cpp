@@ -34,7 +34,7 @@ KisFilterColorToAlpha::KisFilterColorToAlpha()
 KisFilterConfigurationSP KisFilterColorToAlpha::defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const
 {
     KisFilterConfigurationSP config = factoryConfiguration(resourcesInterface);
-    config->setProperty("targetcolor", PkColor(255, 255, 255));
+    config->setProperty("targetcolor", PkVariant::fromValue(PkColor(255, 255, 255)));
     config->setProperty("threshold", 100);
     return config;
 }

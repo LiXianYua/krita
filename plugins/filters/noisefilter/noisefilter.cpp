@@ -122,11 +122,11 @@ void KisFilterNoise::processImpl(KisPaintDeviceSP device,
                         PkColor color;
                         if (isGrayscale) {
                             const int gray = static_cast<int>(randr.doubleRandomAt(px, py) * 255);
-                            color = qRgb(gray, gray, gray);
+                            color = PkColor(gray, gray, gray);
                         } else {
-                            color = qRgb(static_cast<int>(randr.doubleRandomAt(px, py) * 255),
-                                         static_cast<int>(randg.doubleRandomAt(px, py) * 255),
-                                         static_cast<int>(randb.doubleRandomAt(px, py) * 255));
+                            color = PkColor(static_cast<int>(randr.doubleRandomAt(px, py) * 255),
+                                            static_cast<int>(randg.doubleRandomAt(px, py) * 255),
+                                            static_cast<int>(randb.doubleRandomAt(px, py) * 255));
                         }
                         const quint32 dataOffset = colIndex * pixelSize + rowIndex * dstRowStride;
                         if (opacity == 100) {

@@ -9,8 +9,6 @@
 #ifndef KIS_PROPAGATE_COLORS_FILTER_H
 #define KIS_PROPAGATE_COLORS_FILTER_H
 
-#include <QObject>
-
 #include <filter/kis_filter.h>
 #include <kis_filter_configuration.h>
 

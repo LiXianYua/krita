@@ -19,8 +19,6 @@
 #include "KoCompositeOp.h"
 #include "KoID.h"
 
-#include "kis_signals_blocker.h"
-
 #include "kis_bookmarked_configuration_manager.h"
 #include <filter/kis_filter_configuration.h>
 #include <kis_selection.h>

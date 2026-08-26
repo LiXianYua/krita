@@ -22,8 +22,6 @@
 #include <KoColorConversions.h>
 #include <KisGlobalResourcesInterface.h>
 
-#include "kis_signals_blocker.h"
-
 namespace {
 
 enum class SLIDER_TYPE {

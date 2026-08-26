@@ -45,7 +45,7 @@ public:
     inline static PkString defaultGeneratorId()
     {
         static PkString defaultGeneratorId;
-        if (defaultGeneratorId.isNull()) {
+        if (defaultGeneratorId.isEmpty()) {
             PkStringList generatorIds = KisGeneratorRegistry::instance()->keys();
             if (generatorIds.size() == 0) {
                 defaultGeneratorId = "";

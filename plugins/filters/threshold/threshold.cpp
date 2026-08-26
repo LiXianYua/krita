@@ -26,7 +26,6 @@
 #include <kis_selection.h>
 #include <kis_types.h>
 #include <KisSequentialIteratorProgress.h>
-#include <kis_signals_blocker.h>
 
 #include <KoBasicHistogramProducers.h>
 #include "KoColorModelStandardIds.h"
