@@ -12,16 +12,14 @@
 #include "KisReferenceImage.h"
 #include "KisReferenceImageDocumentFallback.h"
 #include <KisImportExportManager.h>
+#include <KisImportUserFeedbackInterface.h>
 
-#include <QBuffer>
-#include <QByteArray>
-#include <QMessageBox>
-#include <QApplication>
+#include <PkMemoryStream.h>
+#include <PkAuxTypes.h> // PkByteArray
 
 #include <KoMD5Generator.h>
 #include <KoColorSpaceRegistry.h>
 #include <KoColorProfile.h>
-#include <QFileDialog>
 #include <KoStore.h>
 #include <KoColorSpace.h>
 #include <KoShapeControllerBase.h>
@@ -61,21 +59,23 @@
 
 using namespace KRA;
 
-QString expandEncodedDirectory(const QString& _intern)
+PkString expandEncodedDirectory(const PkString& _intern)
 {
 
-    QString intern = _intern;
+    PkString intern = _intern;
 
-    QString result;
-    int pos;
-    while ((pos = intern.indexOf('/')) != -1) {
-        if (QChar(intern.at(0)).isDigit())
+    PkString result;
+    std::u16string u16 = intern.PkToU16();
+    std::u16string::size_type pos;
+    while ((pos = u16.find(u'/')) != std::u16string::npos) {
+        if (intern.at(0) >= u'0' && intern.at(0) <= u'9')
             result += "part";
-        result += intern.left(pos + 1);   // copy numbers (or "pictures") + "/"
-        intern = intern.mid(pos + 1);   // remove the dir we just processed
+        result += intern.left((int)pos + 1);   // copy numbers (or "pictures") + "/"
+        intern = intern.mid((int)pos + 1);   // remove the dir we just processed
+        u16 = intern.PkToU16();
     }
 
-    if (!intern.isEmpty() && QChar(intern.at(0)).isDigit())
+    if (!intern.isEmpty() && intern.at(0) >= u'0' && intern.at(0) <= u'9')
         result += "part";
     result += intern;
 
@@ -86,10 +86,11 @@ QString expandEncodedDirectory(const QString& _intern)
 KisKraLoadVisitor::KisKraLoadVisitor(KisImageSP image,
                                      KoStore *store,
                                      KoShapeControllerBase *shapeController,
-                                     QMap<KisNode *, QString> &layerFilenames,
-                                     QMap<KisNode *, QString> &keyframeFilenames,
-                                     const QString & name,
-                                     int syntaxVersion)
+                                     PkMap<KisNode *, PkString> &layerFilenames,
+                                     PkMap<KisNode *, PkString> &keyframeFilenames,
+                                     const PkString & name,
+                                     int syntaxVersion,
+                                     KisImportUserFeedbackInterface *feedbackInterface)
     : KisNodeVisitor()
     , m_image(image)
     , m_store(store)
@@ -98,11 +99,12 @@ KisKraLoadVisitor::KisKraLoadVisitor(KisImageSP image,
     , m_keyframeFilenames(keyframeFilenames)
     , m_name(name)
     , m_shapeController(shapeController)
+    , m_feedbackInterface(feedbackInterface)
 {
     m_store->pushDirectory();
 
     if (!m_store->enterDirectory(m_name)) {
-        QStringList directories = m_store->directoryList();
+        PkStringList directories = m_store->directoryList();
         dbgKrita << directories;
         if (directories.size() > 0) {
             dbgFile << "Could not locate the directory, maybe some encoding issue? Grab the first directory, that'll be the image one." << m_name << directories;
@@ -119,7 +121,7 @@ KisKraLoadVisitor::KisKraLoadVisitor(KisImageSP image,
     m_syntaxVersion = syntaxVersion;
 }
 
-void KisKraLoadVisitor::setExternalUri(const QString &uri)
+void KisKraLoadVisitor::setExternalUri(const PkString &uri)
 {
     m_external = true;
     m_uri = uri;
@@ -130,7 +132,7 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
     bool result = false;
 
     if (auto *referencesLayer = dynamic_cast<KisReferenceImagesLayer*>(layer)) {
-        Q_FOREACH(KoShape *shape, referencesLayer->shapes()) {
+        for (KoShape *shape : referencesLayer->shapes()) {
             auto *reference = dynamic_cast<KisReferenceImage*>(shape);
             KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(reference, false);
 
@@ -139,21 +141,18 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
                     m_errorMessages << i18n("Could not load embedded reference image %1 ", reference->internalFile());
                     break;
                 } else {
-                    QString msg = i18nc(
+                    PkString msg = i18nc(
                         "@info",
                         "A reference image linked to an external file could not be loaded.\n\n"
                         "Path: %1\n\n"
                         "Do you want to select another location?", reference->filename());
 
-                    // qApp->activeWindow() doesn't work here
-                    int locateManually = QMessageBox::warning(qApp->activeWindow(), i18nc("@title:window", "File not found"), msg, QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
-
-                    QString url;
-                    if (locateManually == QMessageBox::Yes) {
-                        QFileDialog dialog(0);
-                        dialog.setFileMode(QFileDialog::ExistingFile);
-                        dialog.setMimeTypeFilters(KisImportExportManager::supportedMimeTypes(KisImportExportManager::Import));
-                        if (dialog.exec()) url = dialog.selectedFiles().value(0);
+                    PkString url;
+                    if (m_feedbackInterface) {
+                        m_feedbackInterface->askUser([&](PkWidget *parent) {
+                            url = KisImportExportManager::getUriForAdditionalFile(msg, parent);
+                            return !url.isEmpty();
+                        });
                     }
 
                     if (url.isEmpty()) {
@@ -172,7 +171,7 @@ bool KisKraLoadVisitor::visit(KisExternalLayer * layer)
             return false;
         }
 
-        QStringList vectorWarnings;
+        PkStringList vectorWarnings;
 
         m_store->pushDirectory();
         m_store->enterDirectory(getLocation(layer, DOT_SHAPE_LAYER)) ;
@@ -204,7 +203,7 @@ bool KisKraLoadVisitor::visit(KisPaintLayer *layer)
         // Check whether there is a file with a .mask extension in the
         // layer directory, if so, it's an old-style transparency mask
         // that should be converted.
-        QString location = getLocation(layer, ".mask");
+        PkString location = getLocation(layer, ".mask");
 
         if (m_store->open(location)) {
 
@@ -367,25 +366,25 @@ bool KisKraLoadVisitor::visit(KisFilterMask *mask)
 
 bool KisKraLoadVisitor::visit(KisTransformMask *mask)
 {
-    QString location = getLocation(mask, DOT_TRANSFORMCONFIG);
+    PkString location = getLocation(mask, DOT_TRANSFORMCONFIG);
     if (m_store->hasFile(location)) {
-        QByteArray data;
+        PkByteArray data;
         m_store->open(location);
         data = m_store->read(m_store->size());
         m_store->close();
         if (!data.isEmpty()) {
-            QDomDocument doc;
+            PkXmlDocument doc;
             doc.setContent(data);
 
-            QDomElement rootElement = doc.documentElement();
+            PkXmlElement rootElement = doc.documentElement();
 
-            QDomElement main;
+            PkXmlElement main;
 
             if (!KisDomUtils::findOnlyElement(rootElement, "main", &main/*, &m_errorMessages*/)) {
                 return false;
             }
 
-            QString id = main.attribute("id", "not-valid");
+            PkString id = main.attribute("id", "not-valid");
 
             // backward compatibility
             if (id == "animatedtransformparams") {
@@ -396,7 +395,7 @@ bool KisKraLoadVisitor::visit(KisTransformMask *mask)
                 return false;
             }
 
-            QDomElement data;
+            PkXmlElement data;
 
             if (!KisDomUtils::findOnlyElement(rootElement, "data", &data, &m_errorMessages)) {
                 m_errorMessages << i18n("Could not find transform mask XML element");
@@ -416,8 +415,8 @@ bool KisKraLoadVisitor::visit(KisTransformMask *mask)
              * See: https://bugs.kde.org/show_bug.cgi?id=492320
              */
             if (id == "dumbparams") {
-                const QPointF center = m_image->bounds().center();
-                params->transformSrcAndDst(QTransform::fromTranslate(center.x(), center.y()));
+                const PkPointF center = m_image->bounds().center();
+                params->transformSrcAndDst(PkTransform::fromTranslate(center.x(), center.y()));
             }
 
             if (!params) {
@@ -454,33 +453,33 @@ bool KisKraLoadVisitor::visit(KisSelectionMask *mask)
 bool KisKraLoadVisitor::visit(KisColorizeMask *mask)
 {
     m_store->pushDirectory();
-    QString location = getLocation(mask, DOT_COLORIZE_MASK);
+    PkString location = getLocation(mask, DOT_COLORIZE_MASK);
     m_store->enterDirectory(location) ;
 
-    QByteArray data;
+    PkByteArray data;
     if (!m_store->extractFile("content.xml", data))
         return false;
 
-    QDomDocument doc;
+    PkXmlDocument doc;
     if (!doc.setContent(data))
         return false;
 
-    QVector<KisLazyFillTools::KeyStroke> strokes;
+    PkVector<KisLazyFillTools::KeyStroke> strokes;
     if (!KisDomUtils::loadValue(doc.documentElement(),
                                 COLORIZE_KEYSTROKES_SECTION,
                                 &strokes,
                                 mask->colorSpace(),
-                                QPoint(mask->x(), mask->y()))) {
+                                PkPoint(mask->x(), mask->y()))) {
         return false;
     }
 
     int i = 0;
-    Q_FOREACH (const KisLazyFillTools::KeyStroke &stroke, strokes) {
-        const QString fileName = QString("%1_%2").arg(COLORIZE_KEYSTROKE).arg(i++);
+    for (const KisLazyFillTools::KeyStroke &stroke : strokes) {
+        const PkString fileName = PkString("%1_%2").arg(COLORIZE_KEYSTROKE).arg(i++);
         loadPaintDevice(stroke.dev, fileName);
     }
 
-    mask->setKeyStrokesDirect(QList<KisLazyFillTools::KeyStroke>::fromVector(strokes));
+    mask->setKeyStrokesDirect(PkList<KisLazyFillTools::KeyStroke>::fromVector(strokes));
 
     loadPaintDevice(mask->coloringProjection(), COLORIZE_COLORING_DEVICE);
 
@@ -518,19 +517,19 @@ bool KisKraLoadVisitor::visit(KisColorizeMask *mask)
     return true;
 }
 
-QStringList KisKraLoadVisitor::errorMessages() const
+PkStringList KisKraLoadVisitor::errorMessages() const
 {
     return m_errorMessages;
 }
 
-QStringList KisKraLoadVisitor::warningMessages() const
+PkStringList KisKraLoadVisitor::warningMessages() const
 {
     return m_warningMessages;
 }
 
 struct SimpleDevicePolicy
 {
-    bool read(KisPaintDeviceSP dev, QIODevice *stream) {
+    bool read(KisPaintDeviceSP dev, PkStream *stream) {
         return dev->read(stream);
     }
 
@@ -544,7 +543,7 @@ struct FramedDevicePolicy
     FramedDevicePolicy(int frameId)
         :  m_frameId(frameId) {}
 
-    bool read(KisPaintDeviceSP dev, QIODevice *stream) {
+    bool read(KisPaintDeviceSP dev, PkStream *stream) {
         return dev->framesInterface()->readFrame(stream, m_frameId);
     }
 
@@ -555,11 +554,11 @@ struct FramedDevicePolicy
     int m_frameId;
 };
 
-bool KisKraLoadVisitor::loadPaintDevice(KisPaintDeviceSP device, const QString& location)
+bool KisKraLoadVisitor::loadPaintDevice(KisPaintDeviceSP device, const PkString& location)
 {
     // Layer data
     KisPaintDeviceFramesInterface *frameInterface = device->framesInterface();
-    QList<int> frames;
+    PkList<int> frames;
 
     if (frameInterface) {
         frames = device->framesInterface()->frames();
@@ -577,7 +576,7 @@ bool KisKraLoadVisitor::loadPaintDevice(KisPaintDeviceSP device, const QString& 
             }
             else {
                 Q_ASSERT(!keyframeChannel->frameFilename(id).isEmpty());
-                QString frameFilename = getLocation(keyframeChannel->frameFilename(id));
+                PkString frameFilename = getLocation(keyframeChannel->frameFilename(id));
                 Q_ASSERT(!frameFilename.isEmpty());
 
                 if (!loadPaintDeviceFrame(device, frameFilename, FramedDevicePolicy(id))) {
@@ -591,7 +590,7 @@ bool KisKraLoadVisitor::loadPaintDevice(KisPaintDeviceSP device, const QString& 
 }
 
 template<class DevicePolicy>
-bool KisKraLoadVisitor::loadPaintDeviceFrame(KisPaintDeviceSP device, const QString &location, DevicePolicy policy)
+bool KisKraLoadVisitor::loadPaintDeviceFrame(KisPaintDeviceSP device, const PkString &location, DevicePolicy policy)
 {
     {
         const int pixelSize = device->colorSpace()->pixelSize();
@@ -625,7 +624,7 @@ bool KisKraLoadVisitor::loadPaintDeviceFrame(KisPaintDeviceSP device, const QStr
 }
 
 
-bool KisKraLoadVisitor::loadProfile(KisPaintDeviceSP device, const QString& location)
+bool KisKraLoadVisitor::loadProfile(KisPaintDeviceSP device, const PkString& location)
 {
     const KoColorProfile *profile = loadProfile(location, device->colorSpace()->colorModelId().id(), device->colorSpace()->colorDepthId().id());
 
@@ -639,20 +638,20 @@ bool KisKraLoadVisitor::loadProfile(KisPaintDeviceSP device, const QString& loca
     return true;
 }
 
-const KoColorProfile *KisKraLoadVisitor::loadProfile(const QString &location, const QString &colorModelId, const QString &colorDepthId)
+const KoColorProfile *KisKraLoadVisitor::loadProfile(const PkString &location, const PkString &colorModelId, const PkString &colorDepthId)
 {
     const KoColorProfile *result = 0;
 
     if (m_store->hasFile(location)) {
         m_store->open(location);
-        QByteArray data;
+        PkByteArray data;
         data.resize(m_store->size());
         dbgFile << "Data to load: " << m_store->size() << " from " << location << " with color space " << colorModelId << colorDepthId;
         int read = m_store->read(data.data(), m_store->size());
         dbgFile << "Profile size: " << data.size() << " " << m_store->atEnd() << " " << m_store->device()->bytesAvailable() << " " << read;
         m_store->close();
 
-        QString hash = KoMD5Generator::generateHash(data);
+        PkString hash = KoMD5Generator::generateHash(data);
 
         if (m_profileCache.contains(hash)) {
             result = m_profileCache[hash];
@@ -668,17 +667,17 @@ const KoColorProfile *KisKraLoadVisitor::loadProfile(const QString &location, co
     return result;
 }
 
-bool KisKraLoadVisitor::loadFilterConfiguration(KisFilterConfigurationSP kfc, const QString& location)
+bool KisKraLoadVisitor::loadFilterConfiguration(KisFilterConfigurationSP kfc, const PkString& location)
 {
     if (m_store->hasFile(location)) {
-        QByteArray data;
+        PkByteArray data;
         m_store->open(location);
         data = m_store->read(m_store->size());
         m_store->close();
         if (!data.isEmpty()) {
-            QDomDocument doc;
+            PkXmlDocument doc;
             doc.setContent(data);
-            QDomElement e = doc.documentElement();
+            PkXmlElement e = doc.documentElement();
             if (e.tagName() == "filterconfig") {
                 kfc->fromLegacyXML(e);
             } else {
@@ -719,15 +718,15 @@ bool KisKraLoadVisitor::loadMetaData(KisNode* node)
         return true;
     }
 
-    QString location = getLocation(node, QString(".") + backend->id() +  DOT_METADATA);
+    PkString location = getLocation(node, PkString(".") + backend->id() +  DOT_METADATA);
     dbgFile << "going to load " << backend->id() << ", " << backend->name() << " from " << location;
 
     if (m_store->hasFile(location)) {
-        QByteArray data;
+        PkByteArray data;
         m_store->open(location);
         data = m_store->read(m_store->size());
         m_store->close();
-        QBuffer buffer(&data);
+        PkMemoryStream buffer(&data);
         if (!backend->loadFrom(layer->metaData(), &buffer)) {
             m_warningMessages << i18n("Could not load metadata for layer %1.", layer->name());
         }
@@ -735,7 +734,7 @@ bool KisKraLoadVisitor::loadMetaData(KisNode* node)
     return true;
 }
 
-bool KisKraLoadVisitor::loadSelection(const QString& location, KisSelectionSP dstSelection)
+bool KisKraLoadVisitor::loadSelection(const PkString& location, KisSelectionSP dstSelection)
 {
     // by default the selection is expected to be fully transparent
     {
@@ -747,7 +746,7 @@ bool KisKraLoadVisitor::loadSelection(const QString& location, KisSelectionSP ds
     bool result = true;
 
     // Shape selection
-    QString shapeSelectionLocation = location + DOT_SHAPE_SELECTION;
+    PkString shapeSelectionLocation = location + DOT_SHAPE_SELECTION;
     if (m_store->hasFile(shapeSelectionLocation + "/content.svg") ||
         m_store->hasFile(shapeSelectionLocation + "/content.xml")) {
 
@@ -783,7 +782,7 @@ bool KisKraLoadVisitor::loadSelection(const QString& location, KisSelectionSP ds
          */
 
         // Pixel selection
-        QString pixelSelectionLocation = location + DOT_PIXEL_SELECTION;
+        PkString pixelSelectionLocation = location + DOT_PIXEL_SELECTION;
         if (m_store->hasFile(pixelSelectionLocation)) {
             KisPixelSelectionSP pixelSelection = dstSelection->pixelSelection();
             result = loadPaintDevice(pixelSelection, pixelSelectionLocation);
@@ -797,14 +796,14 @@ bool KisKraLoadVisitor::loadSelection(const QString& location, KisSelectionSP ds
     return true;
 }
 
-QString KisKraLoadVisitor::getLocation(KisNode* node, const QString& suffix)
+PkString KisKraLoadVisitor::getLocation(KisNode* node, const PkString& suffix)
 {
     return getLocation(m_layerFilenames[node], suffix);
 }
 
-QString KisKraLoadVisitor::getLocation(const QString &filename, const QString& suffix)
+PkString KisKraLoadVisitor::getLocation(const PkString &filename, const PkString& suffix)
 {
-    QString location = m_external ? QString() : m_uri;
+    PkString location = m_external ? PkString() : m_uri;
     location += m_name + LAYER_PATH + filename + suffix;
     return location;
 }
@@ -815,7 +814,7 @@ void KisKraLoadVisitor::loadNodeKeyframes(KisNode *node)
 
     node->enableAnimation();
 
-    const QString &location = getLocation(m_keyframeFilenames[node]);
+    const PkString &location = getLocation(m_keyframeFilenames[node]);
 
     if (!m_store->open(location)) {
         m_errorMessages << i18n("Could not load keyframes from %1.", location);
@@ -823,32 +822,23 @@ void KisKraLoadVisitor::loadNodeKeyframes(KisNode *node)
     }
 
 
-    QDomDocument dom;
-#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
-    QString errorMsg;
+    PkXmlDocument dom;
+    PkString errorMsg;
     int errorLine;
     int errorColumn;
     bool ok = dom.setContent(m_store->device(), &errorMsg, &errorLine, &errorColumn);
-#else
-    QDomDocument::ParseResult result = dom.setContent(m_store->device());
-#endif
     m_store->close();
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
     if (!ok) {
-        m_errorMessages << i18n("parsing error in the keyframe file %1 at line %2, column %3\nError message: %4", location, errorLine, errorColumn, i18n(errorMsg.toUtf8()));
-#else
-    if (!result) {
-        m_errorMessages << i18n("parsing error in the keyframe file %1 at line %2, column %3\nError message: %4", location, result.errorLine, result.errorColumn, i18n(result.errorMessage.toUtf8()));
-#endif
+        m_errorMessages << i18n("parsing error in the keyframe file %1 at line %2, column %3\nError message: %4", location, errorLine, errorColumn, errorMsg);
         return;
     }
 
-    QDomElement root = dom.firstChildElement();
+    PkXmlElement root = dom.firstChildElement();
 
-    for (QDomElement child = root.firstChildElement(); !child.isNull(); child = child.nextSiblingElement()) {
+    for (PkXmlElement child = root.firstChildElement(); !child.isNull(); child = child.nextSiblingElement()) {
         if (child.nodeName().toUpper() == "CHANNEL") {
-            QString id = child.attribute("name");
+            PkString id = child.attribute("name");
 
             KisKeyframeChannel *channel = node->getKeyframeChannel(id, true);
 

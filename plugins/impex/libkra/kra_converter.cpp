@@ -6,9 +6,8 @@
 
 #include "kra_converter.h"
 
-#include <QApplication>
-#include <QUrl>
-#include <QVersionNumber>
+#include <PkVersionNumber.h>
+#include <PkAuxTypes.h> // PkByteArray
 
 #include <KoStore.h>
 #include <KoStoreDevice.h>
@@ -17,13 +16,101 @@
 #include <KoXmlWriter.h>
 
 #include <KisDocument.h>
+#include <KisImportExportManager.h>
+#include <KisImportUserFeedbackInterface.h>
 #include <KritaVersionWrapper.h>
 #include <kis_clone_layer.h>
 #include <kis_group_layer.h>
 #include <kis_image.h>
 #include <kis_paint_layer.h>
 
+#include <zlib.h>
+
+#include <cstdint>
+#include <vector>
+
 static const char CURRENT_DTD_VERSION[] = "2.0";
+
+namespace {
+
+// Minimal PNG (8-bit RGBA, non-interlaced) writer. The kernel has no Qt image
+// encoder, so the .kra thumbnail is produced directly with zlib.
+// Pixel packing follows PkImage::pixel(): uint32_t 0xAARRGGBB.
+
+void writeBe32(std::vector<uint8_t> &out, uint32_t v)
+{
+    out.push_back((v >> 24) & 0xFF);
+    out.push_back((v >> 16) & 0xFF);
+    out.push_back((v >> 8) & 0xFF);
+    out.push_back(v & 0xFF);
+}
+
+void writePngChunk(std::vector<uint8_t> &out, const char (&type)[5], const std::vector<uint8_t> &data)
+{
+    writeBe32(out, (uint32_t)data.size());
+    const size_t typeStart = out.size();
+    out.insert(out.end(), type, type + 4);
+    out.insert(out.end(), data.begin(), data.end());
+    uLong crc = crc32(0L, Z_NULL, 0);
+    crc = crc32(crc, reinterpret_cast<const Bytef *>(&out[typeStart]), (uInt)(out.size() - typeStart));
+    writeBe32(out, (uint32_t)crc);
+}
+
+std::vector<uint8_t> encodePng(const PkImage &image)
+{
+    const int w = image.width();
+    const int h = image.height();
+    if (w <= 0 || h <= 0 || image.isNull()) {
+        return {};
+    }
+
+    std::vector<uint8_t> out;
+    out.reserve(8 + 25 + (size_t)h * ((size_t)w * 4 + 1) + 12);
+    // PNG signature
+    static const uint8_t signature[8] = {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
+    out.insert(out.end(), signature, signature + 8);
+
+    // IHDR
+    std::vector<uint8_t> ihdr;
+    ihdr.reserve(13);
+    writeBe32(ihdr, (uint32_t)w);
+    writeBe32(ihdr, (uint32_t)h);
+    ihdr.push_back(8); // bit depth
+    ihdr.push_back(6); // color type: RGBA
+    ihdr.push_back(0); // compression method
+    ihdr.push_back(0); // filter method
+    ihdr.push_back(0); // interlace: none
+    writePngChunk(out, "IHDR", ihdr);
+
+    // IDAT: raw RGBA scanlines, each prefixed with filter byte 0 (None)
+    std::vector<uint8_t> raw;
+    raw.reserve((size_t)h * ((size_t)w * 4 + 1));
+    for (int y = 0; y < h; ++y) {
+        raw.push_back(0);
+        for (int x = 0; x < w; ++x) {
+            const uint32_t px = image.pixel(x, y); // 0xAARRGGBB
+            raw.push_back((px >> 16) & 0xFF); // R
+            raw.push_back((px >> 8) & 0xFF);  // G
+            raw.push_back(px & 0xFF);         // B
+            raw.push_back((px >> 24) & 0xFF); // A
+        }
+    }
+
+    uLongf bound = compressBound((uLong)raw.size());
+    std::vector<uint8_t> compressed(bound);
+    if (compress2(compressed.data(), &bound, raw.data(), (uLong)raw.size(), Z_BEST_COMPRESSION) != Z_OK) {
+        return {};
+    }
+    compressed.resize(bound);
+    writePngChunk(out, "IDAT", compressed);
+
+    // IEND
+    writePngChunk(out, "IEND", {});
+
+    return out;
+}
+
+} // namespace
 
 KraConverter::KraConverter(KisDocument *doc)
     : m_doc(doc)
@@ -31,10 +118,11 @@ KraConverter::KraConverter(KisDocument *doc)
 {
 }
 
-KraConverter::KraConverter(KisDocument *doc, QPointer<KoUpdater> updater)
+KraConverter::KraConverter(KisDocument *doc, PkSharedPointer<KoUpdater> updater, KisImportUserFeedbackInterface *feedbackInterface)
     : m_doc(doc)
     ,  m_image(doc->savingImage())
     ,  m_updater(updater)
+    ,  m_feedbackInterface(feedbackInterface)
 {
 }
 
@@ -65,7 +153,7 @@ void fixCloneLayers(KisImageSP image, KisNodeSP root)
     }
 }
 
-KisImportExportErrorCode KraConverter::buildImage(QIODevice *io)
+KisImportExportErrorCode KraConverter::buildImage(PkStream *io)
 {
     m_store = KoStore::createStore(io, KoStore::Read, "", KoStore::Zip);
 
@@ -77,7 +165,7 @@ KisImportExportErrorCode KraConverter::buildImage(QIODevice *io)
     bool success = false;
     {
         if (m_store->hasFile("root") || m_store->hasFile("maindoc.xml")) {   // Fallback to "old" file format (maindoc.xml)
-            QDomDocument doc;
+            PkXmlDocument doc;
 
             KisImportExportErrorCode res = oldLoadAndParse(m_store, "root", doc);
             if (res.isOk())
@@ -87,13 +175,13 @@ KisImportExportErrorCode KraConverter::buildImage(QIODevice *io)
             }
 
         } else {
-            errUI << "ERROR: No maindoc.xml" << Qt::endl;
+            errUI << "ERROR: No maindoc.xml";
             m_doc->setErrorMessage(i18n("Invalid document: no file 'maindoc.xml'."));
             return ImportExportCodes::FileFormatIncorrect;
         }
 
         if (m_store->hasFile("documentinfo.xml")) {
-            QDomDocument doc;
+            PkXmlDocument doc;
             KisImportExportErrorCode resultHere = oldLoadAndParse(m_store, "documentinfo.xml", doc);
             if (resultHere.isOk()) {
                 m_doc->documentInfo()->load(doc);
@@ -117,7 +205,7 @@ vKisNodeSP KraConverter::activeNodes()
     return m_activeNodes;
 }
 
-QList<KisPaintingAssistantSP> KraConverter::assistants()
+PkList<KisPaintingAssistantSP> KraConverter::assistants()
 {
     return m_assistants;
 }
@@ -132,7 +220,7 @@ StoryboardCommentList KraConverter::storyboardCommentList()
     return m_storyboardCommentList;
 }
 
-KisImportExportErrorCode KraConverter::buildFile(QIODevice *io, const QString &filename, bool addMergedImage)
+KisImportExportErrorCode KraConverter::buildFile(PkStream *io, const PkString &filename, bool addMergedImage)
 {
     if (m_image->size().isEmpty()) {
         return ImportExportCodes::Failure;
@@ -223,18 +311,18 @@ KisImportExportErrorCode KraConverter::saveRootDocuments(KoStore *store)
             return ImportExportCodes::NoAccessToWrite;
         }
     } else {
-        m_doc->setErrorMessage(i18n("Not able to write '%1'. Partition full?", QString("maindoc.xml")));
+        m_doc->setErrorMessage(i18n("Not able to write '%1'. Partition full?", PkString("maindoc.xml")));
         return ImportExportCodes::ErrorWhileWriting;
     }
 
     if (store->open("documentinfo.xml")) {
-        QDomDocument doc = KisDocument::createDomDocument("document-info"
+        PkXmlDocument doc = KisDocument::createDomDocument("document-info"
                                                           /*DTD name*/, "document-info" /*tag name*/, "1.1");
         doc = m_doc->documentInfo()->save(doc,
                                           m_doc->isAutosaving(),
                                           m_doc->isModified());
         KoStoreDevice dev(store);
-        QByteArray s = doc.toByteArray(); // this is already Utf8!
+        PkByteArray s = doc.toByteArray(); // this is already Utf8!
         bool success = dev.write(s.data(), s.size());
         if (!success) {
             return ImportExportCodes::ErrorWhileWriting;
@@ -259,12 +347,12 @@ KisImportExportErrorCode KraConverter::saveRootDocuments(KoStore *store)
     return ImportExportCodes::OK;
 }
 
-bool KraConverter::saveToStream(QIODevice *dev)
+bool KraConverter::saveToStream(PkStream *dev)
 {
-    QDomDocument doc = createDomDocument();
+    PkXmlDocument doc = createDomDocument();
     // Save to buffer
-    QByteArray s = doc.toByteArray(); // utf8 already
-    dev->open(QIODevice::WriteOnly);
+    PkByteArray s = doc.toByteArray(); // utf8 already
+    dev->open(PkStream::WriteOnly);
     int nwritten = dev->write(s.data(), s.size());
     if (nwritten != (int)s.size()) {
         warnUI << "wrote " << nwritten << "- expected" <<  s.size();
@@ -272,10 +360,10 @@ bool KraConverter::saveToStream(QIODevice *dev)
     return nwritten == (int)s.size();
 }
 
-QDomDocument KraConverter::createDomDocument()
+PkXmlDocument KraConverter::createDomDocument()
 {
-    QDomDocument doc = m_doc->createDomDocument("DOC", CURRENT_DTD_VERSION);
-    QDomElement root = doc.documentElement();
+    PkXmlDocument doc = m_doc->createDomDocument("DOC", CURRENT_DTD_VERSION);
+    PkXmlElement root = doc.documentElement();
 
     root.setAttribute("editor", "Krita");
     root.setAttribute("syntaxVersion", CURRENT_DTD_VERSION);
@@ -291,27 +379,32 @@ QDomDocument KraConverter::createDomDocument()
 
 KisImportExportErrorCode KraConverter::savePreview(KoStore *store)
 {
-    QPixmap pix = m_doc->generatePreview(QSize(256, 256));
-    QImage preview(pix.toImage().convertToFormat(QImage::Format_ARGB32, Qt::ColorOnly));
-    if (preview.size().isEmpty()) {
-        QSize newSize = m_doc->savingImage()->bounds().size();
+    PkImage preview = m_doc->generatePreview(PkSize(256, 256));
+    preview = preview.convertToFormat(PkImage::Format_ARGB32);
+    if (preview.isNull() || preview.size().isEmpty()) {
+        PkSize newSize = m_doc->savingImage()->bounds().size();
         // make sure dimensions are at least one pixel, because extreme aspect ratios may cause rounding to zero
-        newSize = newSize.scaled(QSize(256, 256), Qt::KeepAspectRatio).expandedTo({1, 1});
-        preview = QImage(newSize, QImage::Format_ARGB32);
-        preview.fill(QColor(0, 0, 0, 0));
+        newSize = newSize.scaled(PkSize(256, 256), Qt::KeepAspectRatio).expandedTo({1, 1});
+        preview = PkImage(newSize, PkImage::Format_ARGB32);
+        preview.fill(0u); // ARGB transparent black
+    }
+
+    const std::vector<uint8_t> png = encodePng(preview);
+    if (png.empty()) {
+        return ImportExportCodes::ErrorWhileWriting;
     }
 
     KoStoreDevice io(store);
-    if (!io.open(QIODevice::WriteOnly)) {
+    if (!io.open(PkStream::WriteOnly)) {
         return ImportExportCodes::NoAccessToWrite;
     }
-    bool ret = preview.save(&io, "PNG");
+    const PkStream::pk_int64 written = io.write(reinterpret_cast<const char *>(png.data()), (PkStream::pk_int64)png.size());
     io.close();
-    return ret ? ImportExportCodes::OK : ImportExportCodes::ErrorWhileWriting;
+    return written == (PkStream::pk_int64)png.size() ? ImportExportCodes::OK : ImportExportCodes::ErrorWhileWriting;
 }
 
 
-KisImportExportErrorCode KraConverter::oldLoadAndParse(KoStore *store, const QString &filename, QDomDocument &xmldoc)
+KisImportExportErrorCode KraConverter::oldLoadAndParse(KoStore *store, const PkString &filename, PkXmlDocument &xmldoc)
 {
     //dbgUI <<"Trying to open" << filename;
 
@@ -320,44 +413,29 @@ KisImportExportErrorCode KraConverter::oldLoadAndParse(KoStore *store, const QSt
         m_doc->setErrorMessage(i18n("Could not find %1", filename));
         return ImportExportCodes::FileNotExist;
     }
-#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
-    // Error variables for QDomDocument::setContent
-    QString errorMsg;
+    // Error variables for PkXmlDocument::setContent
+    PkString errorMsg;
     int errorLine, errorColumn;
-    bool ok = xmldoc.setContent(store->device(), &errorMsg, &errorLine, &errorColumn);
-#else
-    QDomDocument::ParseResult result = xmldoc.setContent(store->device());
-#endif
+    const bool ok = xmldoc.setContent(store->device(), &errorMsg, &errorLine, &errorColumn);
     store->close();
-#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
     if (!ok) {
-        errUI << "Parsing error in " << filename << "! Aborting!" << Qt::endl
-              << " In line: " << errorLine << ", column: " << errorColumn << Qt::endl
-              << " Error message: " << errorMsg << Qt::endl;
+        errUI << "Parsing error in " << filename << "! Aborting!\n"
+              << " In line: " << errorLine << ", column: " << errorColumn << "\n"
+              << " Error message: " << errorMsg;
         m_doc->setErrorMessage(i18n("Parsing error in %1 at line %2, column %3\nError message: %4",
-                                    filename, errorLine, errorColumn,
-                                    QCoreApplication::translate("QXml", errorMsg.toUtf8(), 0)));
-#else
-    if (!result) {
-        errUI << "Parsing error in " << filename << "! Aborting!" << Qt::endl
-            << " In line: " << result.errorLine << ", column: " << result.errorColumn << Qt::endl
-            << " Error message: " << result.errorMessage << Qt::endl;
-        m_doc->setErrorMessage(i18n("Parsing error in %1 at line %2, column %3\nError message: %4",
-                                    filename, result.errorLine, result.errorColumn,
-                                    QCoreApplication::translate("QXml", result.errorMessage.toUtf8(), 0)));
-#endif
+                                    filename, errorLine, errorColumn, errorMsg));
         return ImportExportCodes::FileFormatIncorrect;
     }
     dbgUI << "File" << filename << " loaded and parsed";
     return ImportExportCodes::OK;
 }
 
-KisImportExportErrorCode KraConverter::loadXML(const QDomDocument &doc, KoStore *store)
+KisImportExportErrorCode KraConverter::loadXML(const PkXmlDocument &doc, KoStore *store)
 {
     Q_UNUSED(store);
 
-    QDomElement root;
-    QDomNode node;
+    PkXmlElement root;
+    PkXmlNode node;
 
     if (doc.doctype().name() != "DOC") {
        errUI << "The format is not supported or the file is corrupted";
@@ -366,8 +444,8 @@ KisImportExportErrorCode KraConverter::loadXML(const QDomDocument &doc, KoStore 
     }
     root = doc.documentElement();
     
-    QString versionTag = root.attribute("syntaxVersion", "3.0");
-    QVersionNumber parsedVersionNumber = QVersionNumber::fromString(versionTag);
+    PkString versionTag = root.attribute("syntaxVersion", "3.0");
+    PkVersionNumber parsedVersionNumber = PkVersionNumber::fromString(versionTag);
     const int syntaxVersion = parsedVersionNumber.isNull() ? 3 : parsedVersionNumber.majorVersion();
     
     if (syntaxVersion > 2) {
@@ -382,13 +460,13 @@ KisImportExportErrorCode KraConverter::loadXML(const QDomDocument &doc, KoStore 
         return ImportExportCodes::FileFormatIncorrect;
     }
 
-    QString kritaVersionTag = root.attribute("kritaVersion", "6.0");
-    QVersionNumber kritaVersionNumber = QVersionNumber::fromString(kritaVersionTag);
+    PkString kritaVersionTag = root.attribute("kritaVersion", "6.0");
+    PkVersionNumber kritaVersionNumber = PkVersionNumber::fromString(kritaVersionTag);
     if (kritaVersionNumber.isNull()) {
-        kritaVersionNumber = QVersionNumber::fromString(KritaVersionWrapper::versionString(false));
+        kritaVersionNumber = PkVersionNumber::fromString(KritaVersionWrapper::versionString(false));
     }
 
-    m_kraLoader = new KisKraLoader(m_doc, syntaxVersion, kritaVersionNumber);
+    m_kraLoader = new KisKraLoader(m_doc, syntaxVersion, kritaVersionNumber, m_feedbackInterface);
 
     // reset the old image before loading the next one
     m_doc->setCurrentImage(0, false);
@@ -396,7 +474,7 @@ KisImportExportErrorCode KraConverter::loadXML(const QDomDocument &doc, KoStore 
     for (node = root.firstChild(); !node.isNull(); node = node.nextSibling()) {
         if (node.isElement()) {
             if (node.nodeName() == "IMAGE") {
-                QDomElement elem = node.toElement();
+                PkXmlElement elem = node.toElement();
                 if (!(m_image = m_kraLoader->loadXML(elem))) {
 
                     if (m_kraLoader->errorMessages().isEmpty()) {
@@ -440,10 +518,10 @@ bool KraConverter::completeLoading(KoStore* store)
 
     m_image->disableDirtyRequests();
 
-    QString layerPathName = m_kraLoader->imageName();
+    PkString layerPathName = m_kraLoader->imageName();
     if (!m_store->hasDirectory(layerPathName)) {
         // We might be hitting an encoding problem. Get the only folder in the toplevel
-        Q_FOREACH (const QString &entry, m_store->directoryList()) {
+        for (const PkString &entry : m_store->directoryList()) {
             if (entry.contains("/layers/")) {
                 layerPathName = entry.split("/layers/").first();
                 m_store->setSubstitution(m_kraLoader->imageName(), layerPathName);

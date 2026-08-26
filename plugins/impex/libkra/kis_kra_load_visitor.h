@@ -8,7 +8,7 @@
 #ifndef KIS_KRA_LOAD_VISITOR_H_
 #define KIS_KRA_LOAD_VISITOR_H_
 
-#include <QStringList>
+#include <PkStringList.h>
 
 // kritaimage
 #include "kis_types.h"
@@ -20,6 +20,7 @@ class KisFilterConfiguration;
 class KoStore;
 class KoShapeControllerBase;
 class KoColorProfile;
+class KisImportUserFeedbackInterface;
 class KisNodeFilterInterface;
 
 class KRITALIBKRA_EXPORT KisKraLoadVisitor : public KisNodeVisitor
@@ -30,13 +31,14 @@ public:
     KisKraLoadVisitor(KisImageSP image,
                       KoStore *store,
                       KoShapeControllerBase *shapeController,
-                      QMap<KisNode *, QString> &layerFilenames,
-                      QMap<KisNode *, QString> &keyframeFilenames,
-                      const QString & name,
-                      int syntaxVersion);
+                      PkMap<KisNode *, PkString> &layerFilenames,
+                      PkMap<KisNode *, PkString> &keyframeFilenames,
+                      const PkString & name,
+                      int syntaxVersion,
+                      KisImportUserFeedbackInterface *feedbackInterface = nullptr);
 
 public:
-    void setExternalUri(const QString &uri);
+    void setExternalUri(const PkString &uri);
 
     bool visit(KisNode*) override {
         return true;
@@ -53,25 +55,25 @@ public:
     bool visit(KisSelectionMask *mask) override;
     bool visit(KisColorizeMask *mask) override;
 
-    QStringList errorMessages() const;
-    QStringList warningMessages() const;
+    PkStringList errorMessages() const;
+    PkStringList warningMessages() const;
 
 private:
 
-    bool loadPaintDevice(KisPaintDeviceSP device, const QString& location);
+    bool loadPaintDevice(KisPaintDeviceSP device, const PkString& location);
 
     template<class DevicePolicy>
-    bool loadPaintDeviceFrame(KisPaintDeviceSP device, const QString &location, DevicePolicy policy);
+    bool loadPaintDeviceFrame(KisPaintDeviceSP device, const PkString &location, DevicePolicy policy);
 
-    bool loadProfile(KisPaintDeviceSP device,  const QString& location);
-    bool loadFilterConfiguration(KisFilterConfigurationSP kfc, const QString& location);
-    const KoColorProfile* loadProfile(const QString& location, const QString &colorModelId, const QString &colorDepthId);
+    bool loadProfile(KisPaintDeviceSP device,  const PkString& location);
+    bool loadFilterConfiguration(KisFilterConfigurationSP kfc, const PkString& location);
+    const KoColorProfile* loadProfile(const PkString& location, const PkString &colorModelId, const PkString &colorDepthId);
     void fixOldFilterConfigurations(KisFilterConfigurationSP kfc);
     bool loadMetaData(KisNode* node);
     void initSelectionForMask(KisMask *mask);
-    bool loadSelection(const QString& location, KisSelectionSP dstSelection);
-    QString getLocation(KisNode* node, const QString& suffix = QString());
-    QString getLocation(const QString &filename, const QString &suffix = QString());
+    bool loadSelection(const PkString& location, KisSelectionSP dstSelection);
+    PkString getLocation(KisNode* node, const PkString& suffix = PkString());
+    PkString getLocation(const PkString &filename, const PkString &suffix = PkString());
     void loadNodeKeyframes(KisNode *node);
 
     /**
@@ -86,15 +88,16 @@ private:
     KisImageSP m_image;
     KoStore *m_store;
     bool m_external;
-    QString m_uri;
-    QMap<KisNode *, QString> m_layerFilenames;
-    QMap<KisNode *, QString> m_keyframeFilenames;
-    QString m_name;
+    PkString m_uri;
+    PkMap<KisNode *, PkString> m_layerFilenames;
+    PkMap<KisNode *, PkString> m_keyframeFilenames;
+    PkString m_name;
     int m_syntaxVersion;
-    QStringList m_errorMessages;
-    QStringList m_warningMessages;
+    PkStringList m_errorMessages;
+    PkStringList m_warningMessages;
     KoShapeControllerBase *m_shapeController;
-    QMap<QString, const KoColorProfile *> m_profileCache;
+    PkMap<PkString, const KoColorProfile *> m_profileCache;
+    KisImportUserFeedbackInterface *m_feedbackInterface {nullptr};
 };
 
 #endif // KIS_KRA_LOAD_VISITOR_H_

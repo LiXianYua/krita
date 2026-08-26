@@ -7,9 +7,9 @@
 #ifndef _KRA_CONVERTER_H_
 #define _KRA_CONVERTER_H_
 
-#include <QDomDocument>
-#include <QObject>
-#include <QPointer>
+#include <PkXmlDocument.h>
+#include <PkObject.h>
+#include <PkPointer.h>
 
 #include <KisImportExportErrorCode.h>
 #include <KoProgressUpdater.h>
@@ -22,25 +22,26 @@
 #include "kritalibkra_export.h"
 
 class KisDocument;
+class KisImportUserFeedbackInterface;
 
-class KRITALIBKRA_EXPORT KraConverter : public QObject
+class KRITALIBKRA_EXPORT KraConverter : public PkObject
 {
     Q_OBJECT
 
 public:
 
     KraConverter(KisDocument *doc);
-    KraConverter(KisDocument *doc, QPointer<KoUpdater> updater);
+    KraConverter(KisDocument *doc, PkSharedPointer<KoUpdater> updater, KisImportUserFeedbackInterface *feedbackInterface = nullptr);
     ~KraConverter() override;
 
-    KisImportExportErrorCode buildImage(QIODevice *io);
-    KisImportExportErrorCode buildFile(QIODevice *io, const QString &filename, bool addMergedImage = true);
+    KisImportExportErrorCode buildImage(PkStream *io);
+    KisImportExportErrorCode buildFile(PkStream *io, const PkString &filename, bool addMergedImage = true);
     /**
      * Retrieve the constructed image
      */
     KisImageSP image();
     vKisNodeSP activeNodes();
-    QList<KisPaintingAssistantSP> assistants();
+    PkList<KisPaintingAssistantSP> assistants();
     StoryboardItemList storyboardItemList();
     StoryboardCommentList storyboardCommentList();
 
@@ -51,11 +52,11 @@ public Q_SLOTS:
 private:
 
     KisImportExportErrorCode saveRootDocuments(KoStore *store);
-    bool saveToStream(QIODevice *dev);
-    QDomDocument createDomDocument();
+    bool saveToStream(PkStream *dev);
+    PkXmlDocument createDomDocument();
     KisImportExportErrorCode savePreview(KoStore *store);
-    KisImportExportErrorCode oldLoadAndParse(KoStore *store, const QString &filename, QDomDocument &xmldoc);
-    KisImportExportErrorCode loadXML(const QDomDocument &doc, KoStore *store);
+    KisImportExportErrorCode oldLoadAndParse(KoStore *store, const PkString &filename, PkXmlDocument &xmldoc);
+    KisImportExportErrorCode loadXML(const PkXmlDocument &doc, KoStore *store);
     bool completeLoading(KoStore *store);
 
     void setProgress(int progress);
@@ -64,7 +65,7 @@ private:
     KisImageSP m_image;
 
     vKisNodeSP m_activeNodes;
-    QList<KisPaintingAssistantSP> m_assistants;
+    PkList<KisPaintingAssistantSP> m_assistants;
     StoryboardItemList m_storyboardItemList;
     StoryboardCommentList m_storyboardCommentList;
     bool m_stop {false};
@@ -72,7 +73,8 @@ private:
     KoStore *m_store {0};
     KisKraSaver *m_kraSaver {0};
     KisKraLoader *m_kraLoader {0};
-    QPointer<KoUpdater> m_updater;
+    PkSharedPointer<KoUpdater> m_updater;
+    KisImportUserFeedbackInterface *m_feedbackInterface {nullptr};
 };
 
 #endif
