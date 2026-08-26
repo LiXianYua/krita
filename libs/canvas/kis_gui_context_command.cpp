@@ -7,20 +7,18 @@
 #include "kis_gui_context_command.h"
 #include "kis_gui_context_command_p.h"
 
+#include <PkThreadCallQueue.h>
 
-KisGuiContextCommand::KisGuiContextCommand(KUndo2Command *command, QObject *guiObject)
+
+KisGuiContextCommand::KisGuiContextCommand(KUndo2Command *command, PkObject *guiObject)
     : m_command(command),
-      m_delegate(new KisGuiContextCommandDelegate(0))
+      m_delegate(new KisGuiContextCommandDelegate(nullptr))
 {
     /**
      * We owe the delegate ourselves, so don't assign a parent to it,
      * but just move it to the GUI thread
      */
     m_delegate->moveToThread(guiObject->thread());
-
-    connect(this, SIGNAL(sigExecuteCommand(KUndo2Command*,bool)),
-            m_delegate.data(), SLOT(executeCommand(KUndo2Command*,bool)),
-            Qt::BlockingQueuedConnection);
 }
 
 KisGuiContextCommand::~KisGuiContextCommand()
@@ -29,10 +27,14 @@ KisGuiContextCommand::~KisGuiContextCommand()
 
 void KisGuiContextCommand::undo()
 {
-    Q_EMIT sigExecuteCommand(m_command.data(), true);
+    PkThreadCallQueue::postBlocking(m_delegate->thread(), [this] {
+        m_delegate->executeCommand(m_command.data(), true);
+    });
 }
 
 void KisGuiContextCommand::redo()
 {
-    Q_EMIT sigExecuteCommand(m_command.data(), false);
+    PkThreadCallQueue::postBlocking(m_delegate->thread(), [this] {
+        m_delegate->executeCommand(m_command.data(), false);
+    });
 }

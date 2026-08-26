@@ -7,8 +7,8 @@
 #include "kis_gui_context_command_p.h"
 #include "kundo2command.h"
 
-KisGuiContextCommandDelegate::KisGuiContextCommandDelegate(QObject *parent)
-    : QObject(parent)
+KisGuiContextCommandDelegate::KisGuiContextCommandDelegate(PkObject *parent)
+    : PkObject(parent)
 {
 }
 

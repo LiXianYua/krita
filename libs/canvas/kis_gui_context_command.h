@@ -7,7 +7,7 @@
 #ifndef __KIS_GUI_CONTEXT_COMMAND_H
 #define __KIS_GUI_CONTEXT_COMMAND_H
 
-#include <QObject>
+#include <PkObject.h>
 #include <PkScopedPointer.h>
 #include "kundo2command.h"
 #include <kritacanvas_export.h>
@@ -20,18 +20,14 @@ class KisGuiContextCommandDelegate;
  * note that any activity done by the containing command must *not*
  * lead to the blocking on the image, otherwise you'll get a deadlock!
  */
-class KRITACANVAS_EXPORT KisGuiContextCommand : public QObject, public KUndo2Command
+class KRITACANVAS_EXPORT KisGuiContextCommand : public PkObject, public KUndo2Command
 {
-    Q_OBJECT
 public:
-    KisGuiContextCommand(KUndo2Command *command, QObject *guiObject);
+    KisGuiContextCommand(KUndo2Command *command, PkObject *guiObject);
     ~KisGuiContextCommand() override;
 
     void undo() override;
     void redo() override;
-
-Q_SIGNALS:
-    void sigExecuteCommand(KUndo2Command *command, bool undo);
 
 private:
     PkScopedPointer<KUndo2Command> m_command;

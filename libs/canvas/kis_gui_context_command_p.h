@@ -7,16 +7,14 @@
 #ifndef __KIS_GUI_CONTEXT_COMMAND_P_H
 #define __KIS_GUI_CONTEXT_COMMAND_P_H
 
-#include <QObject>
+#include <PkObject.h>
 class KUndo2Command;
 
-class KisGuiContextCommandDelegate : public QObject
+class KisGuiContextCommandDelegate : public PkObject
 {
-    Q_OBJECT
 public:
-    KisGuiContextCommandDelegate(QObject *parent = 0);
+    KisGuiContextCommandDelegate(PkObject *parent = nullptr);
 
-public Q_SLOTS:
     void executeCommand(KUndo2Command *command, bool undo);
 };
 
