@@ -10,9 +10,8 @@
 KisAsynchronousStrokeUpdateHelper::KisAsynchronousStrokeUpdateHelper()
     : m_strokesFacade(0)
 {
-    m_updateThresholdTimer.setSingleShot(false);
-    m_updateThresholdTimer.setInterval(80 /* ms */);
-    connect(&m_updateThresholdTimer, SIGNAL(timeout()), SLOT(slotAsyncUpdateCame()));
+    m_updateThresholdTimer.start(std::chrono::milliseconds(80 /* ms */),
+                                 [this] { slotAsyncUpdateCame(); });
 }
 
 KisAsynchronousStrokeUpdateHelper::~KisAsynchronousStrokeUpdateHelper()
@@ -31,7 +30,8 @@ void KisAsynchronousStrokeUpdateHelper::startUpdateStreamLowLevel()
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_strokesFacade);
     KIS_SAFE_ASSERT_RECOVER_RETURN(m_strokeId);
 
-    m_updateThresholdTimer.start();
+    m_updateThresholdTimer.start(std::chrono::milliseconds(80 /* ms */),
+                                 [this] { slotAsyncUpdateCame(); });
 }
 
 void KisAsynchronousStrokeUpdateHelper::startUpdateStream(KisStrokesFacade *strokesFacade, KisStrokeId strokeId)
@@ -53,7 +53,7 @@ void KisAsynchronousStrokeUpdateHelper::cancelUpdateStream()
     KIS_SAFE_ASSERT_RECOVER_RETURN(isActive());
 
     m_updateThresholdTimer.stop();
-    m_strokeId.clear();
+    m_strokeId = KisStrokeId();
     m_strokesFacade = 0;
 }
 

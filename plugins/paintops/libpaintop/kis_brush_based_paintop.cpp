@@ -14,21 +14,21 @@
 #include "kis_paintop_utils.h"
 #include "kis_paintop_plugin_utils.h"
 #include <KisResourceTypes.h>
-#include <QGlobalStatic>
 #include <kis_brush_registry.h>
 #include <KisUsageLogger.h>
 #include <KoResourceLoadResult.h>
 
-#include <QPainter>
-
 #ifdef HAVE_THREADED_TEXT_RENDERING_WORKAROUND
 
-Q_GLOBAL_STATIC(TextBrushInitializationWorkaround, s_instance)
-
+static TextBrushInitializationWorkaround *s_instance()
+{
+    static TextBrushInitializationWorkaround instance;
+    return &instance;
+}
 
 TextBrushInitializationWorkaround *TextBrushInitializationWorkaround::instance()
 {
-    return s_instance;
+    return s_instance();
 }
 
 void TextBrushInitializationWorkaround::preinitialize(KisPaintOpSettingsSP settings)
@@ -93,10 +93,10 @@ KisBrushBasedPaintOp::KisBrushBasedPaintOp(const KisPaintOpSettingsSP settings, 
 
         if (!m_brush) {
             qWarning() << "Could not find brush tip " << settings->getString("brush_definition") << ", will use a default brush instead";
-            QString brushDefinition("<Brush useAutoSpacing=\"1\" angle=\"0\" spacing=\"0.1\" density=\"1\" BrushVersion=\"2\" type=\"auto_brush\" randomness=\"0\" autoSpacingCoeff=\"0.8\"> <MaskGenerator spikes=\"2\" hfade=\"1\" ratio=\"1\" diameter=\"40\" id=\"default\" type=\"circle\" antialiasEdges=\"1\" vfade=\"1\"/> </Brush> ");
-            QDomDocument d;
+            PkString brushDefinition("<Brush useAutoSpacing=\"1\" angle=\"0\" spacing=\"0.1\" density=\"1\" BrushVersion=\"2\" type=\"auto_brush\" randomness=\"0\" autoSpacingCoeff=\"0.8\"> <MaskGenerator spikes=\"2\" hfade=\"1\" ratio=\"1\" diameter=\"40\" id=\"default\" type=\"circle\" antialiasEdges=\"1\" vfade=\"1\"/> </Brush> ");
+            PkXmlDocument d;
             d.setContent(brushDefinition);
-            QDomElement element = d.firstChildElement("Brush");
+            PkXmlElement element = d.firstChildElement("Brush");
             m_brush = KisBrushRegistry::instance()->createBrush(element, settings->resourcesInterface()).resource<KisBrush>();
             Q_ASSERT(m_brush);
         }
@@ -119,9 +119,9 @@ KisBrushBasedPaintOp::~KisBrushBasedPaintOp()
     delete m_dabCache;
 }
 
-QList<KoResourceLoadResult> KisBrushBasedPaintOp::prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
+PkList<KoResourceLoadResult> KisBrushBasedPaintOp::prepareLinkedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
 {
-    QList<KoResourceLoadResult> resources;
+    PkList<KoResourceLoadResult> resources;
 
     KisBrushOptionProperties brushOption;
     resources << brushOption.prepareLinkedResources(settings, resourcesInterface);
@@ -131,9 +131,9 @@ QList<KoResourceLoadResult> KisBrushBasedPaintOp::prepareLinkedResources(const K
     return resources;
 }
 
-QList<KoResourceLoadResult> KisBrushBasedPaintOp::prepareEmbeddedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
+PkList<KoResourceLoadResult> KisBrushBasedPaintOp::prepareEmbeddedResources(const KisPaintOpSettingsSP settings, KisResourcesInterfaceSP resourcesInterface)
 {
-    QList<KoResourceLoadResult> resources;
+    PkList<KoResourceLoadResult> resources;
 
     resources << KisTextureOption::prepareEmbeddedResources(settings, resourcesInterface);
 
@@ -149,7 +149,7 @@ bool KisBrushBasedPaintOp::checkSizeTooSmall(qreal scale)
 KisSpacingInformation KisBrushBasedPaintOp::effectiveSpacing(qreal scale) const
 {
     // we parse dab rotation separately, so don't count it
-    QSizeF metric = m_brush->characteristicSize(KisDabShape(scale, 1.0, 0));
+    PkSizeF metric = m_brush->characteristicSize(KisDabShape(scale, 1.0, 0));
     return effectiveSpacing(metric.width(), metric.height(), 1.0, false, 0.0, false);
 }
 
@@ -174,7 +174,7 @@ KisSpacingInformation KisBrushBasedPaintOp::effectiveSpacing(qreal scale, qreal 
     const bool implicitFlipped = prop.horizontalMirror != prop.verticalMirror;
 
     // we parse dab rotation separately, so don't count it
-    QSizeF metric = m_brush->characteristicSize(KisDabShape(scale, 1.0, 0));
+    PkSizeF metric = m_brush->characteristicSize(KisDabShape(scale, 1.0, 0));
 
     return KisPaintOpPluginUtils::effectiveSpacing(metric.width(), metric.height(),
                                                    isotropicSpacing, rotation, implicitFlipped,

@@ -6,9 +6,7 @@
 
 #include "KisStrokeSpeedMonitor.h"
 
-#include <QGlobalStatic>
-#include <QMutex>
-#include <QMutexLocker>
+#include <PkMutex.h>
 
 #include <KisRollingMeanAccumulatorWrapper.h>
 #include "kis_paintop_preset.h"
@@ -17,7 +15,11 @@
 #include "KisImageConfigNotifier.h"
 
 
-Q_GLOBAL_STATIC(KisStrokeSpeedMonitor, s_instance)
+static KisStrokeSpeedMonitor *s_instance()
+{
+    static KisStrokeSpeedMonitor instance;
+    return &instance;
+}
 
 
 struct KisStrokeSpeedMonitor::Private
@@ -44,20 +46,22 @@ struct KisStrokeSpeedMonitor::Private
     qreal lastFps = 0;
     bool lastStrokeSaturated = false;
 
-    QByteArray lastPresetMd5;
-    QString lastPresetName;
+    PkByteArray lastPresetMd5;
+    PkString lastPresetName;
     qreal lastPresetSize = 0;
 
     bool haveStrokeSpeedMeasurement = false;
 
-    QMutex mutex;
+    PkMutex mutex;
 };
 
 KisStrokeSpeedMonitor::KisStrokeSpeedMonitor()
     : m_d(new Private())
 {
-    connect(KisImageConfigNotifier::instance(), SIGNAL(configChanged()), SLOT(resetAccumulatedValues()));
-    connect(KisImageConfigNotifier::instance(), SIGNAL(configChanged()), SIGNAL(sigStatsUpdated()));
+    PkObject::connect(KisImageConfigNotifier::instance(), &KisImageConfigNotifier::configChanged,
+                      this, &KisStrokeSpeedMonitor::resetAccumulatedValues);
+    PkObject::connect(KisImageConfigNotifier::instance(), &KisImageConfigNotifier::configChanged,
+                      this, [this] { emit sigStatsUpdated(); });
 }
 
 KisStrokeSpeedMonitor::~KisStrokeSpeedMonitor()
@@ -66,7 +70,7 @@ KisStrokeSpeedMonitor::~KisStrokeSpeedMonitor()
 
 KisStrokeSpeedMonitor *KisStrokeSpeedMonitor::instance()
 {
-    return s_instance;
+    return s_instance();
 }
 
 bool KisStrokeSpeedMonitor::haveStrokeSpeedMeasurement() const
@@ -96,7 +100,7 @@ void KisStrokeSpeedMonitor::notifyStrokeFinished(qreal cursorSpeed, qreal render
 {
     if (qFuzzyCompare(cursorSpeed, 0.0) || qFuzzyCompare(renderingSpeed, 0.0)) return;
 
-    QMutexLocker locker(&m_d->mutex);
+    PkMutexLocker locker(&m_d->mutex);
 
     const bool isSamePreset =
         m_d->lastPresetName == preset->name() &&
@@ -133,19 +137,19 @@ void KisStrokeSpeedMonitor::notifyStrokeFinished(qreal cursorSpeed, qreal render
 
 
     ENTER_FUNCTION() <<
-        QString(" CS: %1  RS: %2  FPS: %3 %4")
+        PkString(" CS: %1  RS: %2  FPS: %3 %4")
             .arg(m_d->lastCursorSpeed, 5)
             .arg(m_d->lastRenderingSpeed, 5)
             .arg(m_d->lastFps, 5)
             .arg(m_d->lastStrokeSaturated ? "(saturated)" : "");
     ENTER_FUNCTION() <<
-        QString("ACS: %1 ARS: %2 AFPS: %3")
+        PkString("ACS: %1 ARS: %2 AFPS: %3")
             .arg(m_d->cachedAvgCursorSpeed, 5)
             .arg(m_d->cachedAvgRenderingSpeed, 5)
             .arg(m_d->cachedAvgFps, 5);
 }
 
-QString KisStrokeSpeedMonitor::lastPresetName() const
+PkString KisStrokeSpeedMonitor::lastPresetName() const
 {
     return m_d->lastPresetName;
 }

@@ -7,10 +7,6 @@
 #include "kis_brush_based_paintop_settings.h"
 
 #include <KisPaintingModeOptionData.h>
-#include <kis_boundary.h>
-#include "KisBrushServerProvider.h"
-#include <QLineF>
-#include "kis_signals_blocker.h"
 #include "kis_brush_option.h"
 #include <KisPaintopSettingsIds.h>
 #include <kis_paintop_preset.h>
@@ -117,7 +113,7 @@ KisOptimizedBrushOutline KisBrushBasedPaintOpSettings::brushOutlineImpl(const Ki
 
         if (mode.forceCircle) {
 
-            QPainterPath ellipse;
+            PkPainterPath ellipse;
             ellipse.addEllipse(realOutline.boundingRect());
             realOutline = ellipse;
         }
@@ -125,7 +121,7 @@ KisOptimizedBrushOutline KisBrushBasedPaintOpSettings::brushOutlineImpl(const Ki
         path = outlineFetcher()->fetchOutline(info, this, realOutline, mode, alignForZoom, finalScale, brush->angle());
 
         if (mode.showTiltDecoration) {
-            const QPainterPath tiltLine = makeTiltIndicator(info,
+            const PkPainterPath tiltLine = makeTiltIndicator(info,
                 realOutline.boundingRect().center(),
                 realOutline.boundingRect().width() * 0.5,
                 3.0);
@@ -210,9 +206,9 @@ qreal KisBrushBasedPaintOpSettings::paintOpAngle() const
 #include "kis_paintop_preset.h"
 #include "KisPaintOpPresetUpdateProxy.h"
 
-QList<KisUniformPaintOpPropertySP> KisBrushBasedPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy)
+PkList<KisUniformPaintOpPropertySP> KisBrushBasedPaintOpSettings::uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy)
 {
-    QList<KisUniformPaintOpPropertySP> props =
+    PkList<KisUniformPaintOpPropertySP> props =
         listWeakToStrong(m_uniformProperties);
 
     if (props.isEmpty()) {
@@ -220,7 +216,7 @@ QList<KisUniformPaintOpPropertySP> KisBrushBasedPaintOpSettings::uniformProperti
             KisIntSliderBasedPaintOpPropertyCallback *prop =
                 new KisIntSliderBasedPaintOpPropertyCallback(KisIntSliderBasedPaintOpPropertyCallback::Int,
                                                              KisIntSliderBasedPaintOpPropertyCallback::SubType_Angle,
-                                                             KoID("angle", i18n("Angle")),
+                                                             KoID("angle", PkString("Angle")),
                                                              settings,
                                                              0);
 
@@ -241,13 +237,13 @@ QList<KisUniformPaintOpPropertySP> KisBrushBasedPaintOpSettings::uniformProperti
                     s->setPaintOpAngle(prop->value().toReal());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
         {
             KisUniformPaintOpPropertyCallback *prop =
-                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("auto_spacing", i18n("Auto Spacing")), settings, 0);
+                new KisUniformPaintOpPropertyCallback(KisUniformPaintOpPropertyCallback::Bool, KoID("auto_spacing", PkString("Auto Spacing")), settings, 0);
 
             prop->setReadCallback(
                 [](KisUniformPaintOpProperty *prop) {
@@ -264,7 +260,7 @@ QList<KisUniformPaintOpPropertySP> KisBrushBasedPaintOpSettings::uniformProperti
                     s->setAutoSpacing(prop->value().toBool(), s->autoSpacingCoeff());
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
@@ -272,7 +268,7 @@ QList<KisUniformPaintOpPropertySP> KisBrushBasedPaintOpSettings::uniformProperti
         {
             KisDoubleSliderBasedPaintOpPropertyCallback *prop =
                 new KisDoubleSliderBasedPaintOpPropertyCallback(KisDoubleSliderBasedPaintOpPropertyCallback::Double,
-                                                                KoID("spacing", i18n("Spacing")),
+                                                                KoID("spacing", PkString("Spacing")),
                                                                 settings,
                                                                 0);
 
@@ -304,13 +300,16 @@ QList<KisUniformPaintOpPropertySP> KisBrushBasedPaintOpSettings::uniformProperti
                     }
                 });
 
-            QObject::connect(updateProxy, SIGNAL(sigSettingsChanged()), prop, SLOT(requestReadValue()));
+            PkObject::connect(updateProxy, &KisPaintOpPresetUpdateProxy::sigSettingsChanged, prop, &KisUniformPaintOpProperty::requestReadValue);
             prop->requestReadValue();
             props << toQShared(prop);
         }
     }
 
-    return KisPaintOpSettings::uniformProperties(settings, updateProxy) + props;
+    PkList<KisUniformPaintOpPropertySP> result =
+        KisPaintOpSettings::uniformProperties(settings, updateProxy);
+    result += props;
+    return result;
 }
 
 void KisBrushBasedPaintOpSettings::onPropertyChanged()
@@ -324,9 +323,9 @@ bool KisBrushBasedPaintOpSettings::hasPatternSettings() const
     return true;
 }
 
-QList<int> KisBrushBasedPaintOpSettings::requiredCanvasResources() const
+PkList<int> KisBrushBasedPaintOpSettings::requiredCanvasResources() const
 {
-    QList<int> result;
+    PkList<int> result;
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(this->brush(), result);
 
     if (brush()->applyingGradient() || KisTextureOption::applyingGradient(this)) {
@@ -346,7 +345,7 @@ void KisBrushBasedPaintOpSettings::setResourceCacheInterface(KoResourceCacheInte
 {
     m_savedBrush.clear();
 
-    QVariant brush = cacheInterface ? cacheInterface->fetch("settings/brush") : QVariant();
+    PkVariant brush = cacheInterface ? cacheInterface->fetch("settings/brush") : PkVariant();
 
     if (brush.isValid()) {
         KisBrushSP brushPointer = brush.value<KisBrushSP>();
@@ -369,5 +368,5 @@ void KisBrushBasedPaintOpSettings::regenerateResourceCache(KoResourceCacheInterf
 
     brush->coldInitBrush();
 
-    cacheInterface->put("settings/brush", QVariant::fromValue(brush->clone().dynamicCast<KisBrush>()));
+    cacheInterface->put("settings/brush", PkVariant::fromValue(brush->clone().dynamicCast<KisBrush>()));
 }

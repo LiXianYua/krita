@@ -6,9 +6,8 @@
 
 #include "KisStrokeEfficiencyMeasurer.h"
 
-#include <QPointF>
-#include <QVector>
-#include <QElapsedTimer>
+#include <PkVector.h>
+#include <PkElapsedTimer.h>
 
 #include <boost/optional.hpp>
 
@@ -16,10 +15,10 @@
 
 struct KisStrokeEfficiencyMeasurer::Private
 {
-    boost::optional<QPointF> lastSamplePos;
+    boost::optional<PkPointF> lastSamplePos;
     qreal distance = 0;
 
-    QElapsedTimer strokeTimeSource;
+    PkElapsedTimer strokeTimeSource;
     bool isEnabled = true;
 
     int renderingStartTime = 0;
@@ -52,7 +51,7 @@ bool KisStrokeEfficiencyMeasurer::isEnabled() const
     return m_d->isEnabled;
 }
 
-void KisStrokeEfficiencyMeasurer::addSample(const QPointF &pt)
+void KisStrokeEfficiencyMeasurer::addSample(const PkPointF &pt)
 {
     if (!m_d->isEnabled) return;
 
@@ -64,11 +63,11 @@ void KisStrokeEfficiencyMeasurer::addSample(const QPointF &pt)
     }
 }
 
-void KisStrokeEfficiencyMeasurer::addSamples(const QVector<QPointF> &points)
+void KisStrokeEfficiencyMeasurer::addSamples(const PkVector<PkPointF> &points)
 {
     if (!m_d->isEnabled) return;
 
-    Q_FOREACH (const QPointF &pt, points) {
+    Q_FOREACH (const PkPointF &pt, points) {
         addSample(pt);
     }
 }
