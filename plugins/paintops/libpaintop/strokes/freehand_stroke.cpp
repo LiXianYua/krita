@@ -6,8 +6,8 @@
 
 #include "freehand_stroke.h"
 
-#include <QElapsedTimer>
-#include <QThread>
+#include <PkElapsedTimer.h>
+#include <PkThread.h>
 
 #include <brushengine/kis_paintop_preset.h>
 #include <brushengine/kis_paintop_settings.h>
@@ -57,7 +57,7 @@ struct FreehandStrokeStrategy::Private
 
     KisStrokeEfficiencyMeasurer efficiencyMeasurer;
 
-    QElapsedTimer timeSinceLastUpdate;
+    PkElapsedTimer timeSinceLastUpdate;
     int currentUpdatePeriod = 40;
 
     const bool needsAsynchronousUpdates = false;
@@ -76,7 +76,7 @@ FreehandStrokeStrategy::FreehandStrokeStrategy(KisResourcesSnapshotSP resources,
 }
 
 FreehandStrokeStrategy::FreehandStrokeStrategy(KisResourcesSnapshotSP resources,
-                                               QVector<KisFreehandStrokeInfo*> strokeInfos,
+                                               PkVector<KisFreehandStrokeInfo*> strokeInfos,
                                                const KUndo2MagicString &name,
                                                Flags flags)
     : KisPainterBasedStrokeStrategy(QLatin1String("FREEHAND_STROKE"), name,
@@ -237,7 +237,7 @@ void FreehandStrokeStrategy::tryDoUpdate(bool forceEnd)
                 KisMaskedFreehandStrokePainter *maskedPainter = this->maskedPainter(i);
 
                 // TODO: well, we should count all N simultaneous painters for FPS rate!
-                QVector<KisRunnableStrokeJobData*> jobs;
+                PkVector<KisRunnableStrokeJobData*> jobs;
 
                 bool needsMoreUpdates = false;
 
@@ -278,7 +278,7 @@ void FreehandStrokeStrategy::tryDoUpdate(bool forceEnd)
 
 void FreehandStrokeStrategy::issueSetDirtySignals()
 {
-    QVector<QRect> dirtyRects;
+    PkVector<PkRect> dirtyRects;
 
     for (int i = 0; i < numMaskedPainters(); i++) {
         KisMaskedFreehandStrokePainter *maskedPainter = this->maskedPainter(i);
@@ -294,7 +294,7 @@ void FreehandStrokeStrategy::issueSetDirtySignals()
         //               to the wrapping rect
         const KisDefaultBoundsBaseSP defaultBounds = targetNode()->projection()->defaultBounds();
         if (defaultBounds->wrapAroundMode()) {
-            const QRect wrapRect = defaultBounds->imageBorderRect();
+            const PkRect wrapRect = defaultBounds->imageBorderRect();
             for (auto it = dirtyRects.begin(); it != dirtyRects.end(); ++it) {
                 KIS_SAFE_ASSERT_RECOVER(wrapRect.contains(*it)) {
                     ENTER_FUNCTION() << ppVar(*it) << ppVar(wrapRect);
@@ -304,12 +304,12 @@ void FreehandStrokeStrategy::issueSetDirtySignals()
         }
 
         const int maxPatchSizeForMaskingUpdates = 64;
-        const QRect totalRect =
-            std::accumulate(dirtyRects.constBegin(), dirtyRects.constEnd(), QRect(), std::bit_or<QRect>());
+        const PkRect totalRect =
+            std::accumulate(dirtyRects.constBegin(), dirtyRects.constEnd(), PkRect(), std::bit_or<PkRect>());
 
         dirtyRects = KisPaintOpUtils::splitAndFilterDabRect(totalRect, dirtyRects, maxPatchSizeForMaskingUpdates);
 
-        QVector<KisRunnableStrokeJobData*> jobs = doMaskingBrushUpdates(dirtyRects);
+        PkVector<KisRunnableStrokeJobData*> jobs = doMaskingBrushUpdates(dirtyRects);
 
         KritaUtils::addJobSequential(jobs,
             [this, dirtyRects] () {

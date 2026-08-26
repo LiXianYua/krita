@@ -29,7 +29,7 @@ KisSharpnessOption::KisSharpnessOption(const KisSharpnessOptionData &data)
 
 }
 
-void KisSharpnessOption::apply(const KisPaintInformation &info, const QPointF &pt, qint32 &x, qint32 &y, qreal &xFraction, qreal &yFraction) const
+void KisSharpnessOption::apply(const KisPaintInformation &info, const PkPointF &pt, qint32 &x, qint32 &y, qreal &xFraction, qreal &yFraction) const
 {
     if (isChecked() && m_alignOutlinePixels && strengthValue() > 0.0) {
         qreal processedSharpness = computeSizeLikeValue(info);
@@ -67,7 +67,7 @@ void KisSharpnessOption::applyThreshold(KisFixedPaintDeviceSP dab, const KisPain
     // Set all alpha > opaque/2 to opaque, the rest to transparent.
     // XXX: Using 4/10 as the 1x1 circle brush paints nothing with 0.5.
     quint8* dabPointer = dab->data();
-    QRect rc = dab->bounds();
+    PkRect rc = dab->bounds();
 
     qreal threshold = computeSizeLikeValue(info);
 

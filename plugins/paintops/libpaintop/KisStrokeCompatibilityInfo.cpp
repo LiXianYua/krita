@@ -29,7 +29,7 @@ KisStrokeCompatibilityInfo::KisStrokeCompatibilityInfo(KisResourcesSnapshot &res
     , currentGradient(lazySignature(resourcesSnapshot.currentGradient()))
     , currentPreset(lazySignature(resourcesSnapshot.currentPaintOpPreset()))
     , currentGeneratorXml(resourcesSnapshot.currentGenerator() ? resourcesSnapshot.currentGenerator()->toXML() : "")
-    , currentNode(resourcesSnapshot.currentNode() ? resourcesSnapshot.currentNode()->uuid() : QUuid())
+    , currentNode(resourcesSnapshot.currentNode() ? resourcesSnapshot.currentNode()->uuid() : PkNodeId())
     , opacity(resourcesSnapshot.opacity())
     , compositeOpId(resourcesSnapshot.compositeOpId())
     , channelLockFlags(resourcesSnapshot.channelLockFlags())

@@ -99,7 +99,7 @@ private:
                                                MirrorProperties mirrorProperties);
 
     inline KisDabCacheBase::DabPosition
-    calculateDabRect(KisBrushSP brush, const QPointF &cursorPoint,
+    calculateDabRect(KisBrushSP brush, const PkPointF &cursorPoint,
                      KisDabShape,
                      const KisPaintInformation& info,
                      const MirrorProperties &mirrorProperties, KisSharpnessOption *sharpnessOption);

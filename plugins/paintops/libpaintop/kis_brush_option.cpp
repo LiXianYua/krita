@@ -7,8 +7,8 @@
 
 #include "kis_brush_option.h"
 
-#include <QDomDocument>
-#include <QDomElement>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
 
 #include "kis_properties_configuration.h"
 #include <KisPaintopSettingsIds.h>
@@ -23,21 +23,21 @@ void KisBrushOptionProperties::writeOptionSettingImpl(KisPropertiesConfiguration
 {
     if (!m_brush) return;
 
-    QDomDocument d;
-    QDomElement e = d.createElement("Brush");
+    PkXmlDocument d;
+    PkXmlElement e = d.createElement("Brush");
     m_brush->toXML(d, e);
     d.appendChild(e);
     setting->setProperty("brush_definition", d.toString());
 }
 
-QDomElement getBrushXMLElement(const KisPropertiesConfiguration *setting)
+PkXmlElement getBrushXMLElement(const KisPropertiesConfiguration *setting)
 {
-    QDomElement element;
+    PkXmlElement element;
 
-    QString brushDefinition = setting->getString("brush_definition");
+    PkString brushDefinition = setting->getString("brush_definition");
 
     if (!brushDefinition.isEmpty()) {
-        QDomDocument d;
+        PkXmlDocument d;
         d.setContent(brushDefinition);
         element = d.firstChildElement("Brush");
     }
@@ -47,7 +47,7 @@ QDomElement getBrushXMLElement(const KisPropertiesConfiguration *setting)
 
 void KisBrushOptionProperties::readOptionSettingResourceImpl(const KisPropertiesConfiguration *setting, KisResourcesInterfaceSP resourcesInterface, KoCanvasResourcesInterfaceSP canvasResourcesInterface)
 {
-    QDomElement element = getBrushXMLElement(setting);
+    PkXmlElement element = getBrushXMLElement(setting);
     if (!element.isNull()) {
         m_brush = KisBrush::fromXML(element, resourcesInterface);
         if (m_brush && m_brush->applyingGradient() && canvasResourcesInterface) {
@@ -57,10 +57,10 @@ void KisBrushOptionProperties::readOptionSettingResourceImpl(const KisProperties
     }
 }
 
-QList<KoResourceLoadResult> KisBrushOptionProperties::prepareLinkedResourcesImpl(const KisPropertiesConfiguration *settings, KisResourcesInterfaceSP resourcesInterface) const
+PkList<KoResourceLoadResult> KisBrushOptionProperties::prepareLinkedResourcesImpl(const KisPropertiesConfiguration *settings, KisResourcesInterfaceSP resourcesInterface) const
 {
-    QList<KoResourceLoadResult> resources;
-    QDomElement element = getBrushXMLElement(settings);
+    PkList<KoResourceLoadResult> resources;
+    PkXmlElement element = getBrushXMLElement(settings);
     if (element.isNull()) return resources;
 
     KoResourceLoadResult result = KisBrush::fromXMLLoadResult(element, resourcesInterface);
@@ -73,7 +73,7 @@ QList<KoResourceLoadResult> KisBrushOptionProperties::prepareLinkedResourcesImpl
     return resources;
 }
 
-QList<KoResourceLoadResult> KisBrushOptionProperties::prepareEmbeddedResourcesImpl(const KisPropertiesConfiguration *settings, KisResourcesInterfaceSP resourcesInterface) const
+PkList<KoResourceLoadResult> KisBrushOptionProperties::prepareEmbeddedResourcesImpl(const KisPropertiesConfiguration *settings, KisResourcesInterfaceSP resourcesInterface) const
 {
     Q_UNUSED(settings);
     Q_UNUSED(resourcesInterface);
@@ -82,9 +82,9 @@ QList<KoResourceLoadResult> KisBrushOptionProperties::prepareEmbeddedResourcesIm
 
 enumBrushApplication KisBrushOptionProperties::brushApplication(const KisPropertiesConfiguration *settings, KisResourcesInterfaceSP resourcesInterface)
 {
-    QList<KoResourceSP> resources;
+    PkList<KoResourceSP> resources;
 
-    QDomElement element = getBrushXMLElement(settings);
+    PkXmlElement element = getBrushXMLElement(settings);
     if (element.isNull()) return ALPHAMASK;
 
     KisBrushSP brush = KisBrush::fromXML(element, resourcesInterface);
@@ -98,10 +98,10 @@ enumBrushApplication KisBrushOptionProperties::brushApplication(const KisPropert
 
 bool KisBrushOptionProperties::isTextBrush(const KisPropertiesConfiguration *setting)
 {
-    static QString textBrushId = KisTextBrushFactory().id();
+    static PkString textBrushId = KisTextBrushFactory().id();
 
-    QDomElement element = getBrushXMLElement(setting);
-    QString brushType = element.attribute("type");
+    PkXmlElement element = getBrushXMLElement(setting);
+    PkString brushType = element.attribute("type");
 
     return brushType == textBrushId;
 }

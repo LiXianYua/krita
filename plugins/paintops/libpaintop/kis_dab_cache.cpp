@@ -64,11 +64,11 @@ bool KisDabCache::needSeparateOriginal() const
 
 KisFixedPaintDeviceSP KisDabCache::fetchDab(const KoColorSpace *cs,
         KisColorSource *colorSource,
-        const QPointF &cursorPoint,
+        const PkPointF &cursorPoint,
         KisDabShape const& shape,
         const KisPaintInformation& info,
         qreal softnessFactor,
-        QRect *dstDabRect,
+        PkRect *dstDabRect,
         qreal lightnessStrength)
 {
     //Q_UNUSED(lightnessStrength);
@@ -84,11 +84,11 @@ KisFixedPaintDeviceSP KisDabCache::fetchDab(const KoColorSpace *cs,
 
 KisFixedPaintDeviceSP KisDabCache::fetchDab(const KoColorSpace *cs,
         const KoColor& color,
-        const QPointF &cursorPoint,
+        const PkPointF &cursorPoint,
         KisDabShape const& shape,
         const KisPaintInformation& info,
         qreal softnessFactor,
-        QRect *dstDabRect,
+        PkRect *dstDabRect,
         qreal lightnessStrength)
 {
     return fetchDabCommon(cs, 0, color,
@@ -101,11 +101,11 @@ KisFixedPaintDeviceSP KisDabCache::fetchDab(const KoColorSpace *cs,
 }
 
 KisFixedPaintDeviceSP KisDabCache::fetchNormalizedImageDab(const KoColorSpace *cs,
-                                                           const QPointF &cursorPoint,
+                                                           const PkPointF &cursorPoint,
                                                            KisDabShape const& shape,
                                                            const KisPaintInformation& info,
                                                            qreal softnessFactor,
-                                                           QRect *dstDabRect)
+                                                           PkRect *dstDabRect)
 {
     return fetchDabCommon(cs, 0, KoColor(),
                           cursorPoint,
@@ -120,7 +120,7 @@ KisFixedPaintDeviceSP KisDabCache::fetchNormalizedImageDab(const KoColorSpace *c
 inline
 KisFixedPaintDeviceSP KisDabCache::fetchFromCache(KisDabCacheUtils::DabRenderingResources *resources,
                                                   const KisPaintInformation& info,
-                                                  QRect *dstDabRect)
+                                                  PkRect *dstDabRect)
 {
     if (needSeparateOriginal()) {
         *m_d->dab = *m_d->dabOriginal;
@@ -153,11 +153,11 @@ inline
 KisFixedPaintDeviceSP KisDabCache::fetchDabCommon(const KoColorSpace *cs,
         KisColorSource *colorSource,
         const KoColor& color,
-        const QPointF &cursorPoint,
+        const PkPointF &cursorPoint,
         KisDabShape shape,
         const KisPaintInformation& info,
         qreal softnessFactor,
-        QRect *dstDabRect,
+        PkRect *dstDabRect,
         qreal lightnessStrength,
         bool forceNormalizedRGBAImageStamp)
 {

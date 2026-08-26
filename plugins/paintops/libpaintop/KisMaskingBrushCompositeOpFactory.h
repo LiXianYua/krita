@@ -17,21 +17,21 @@ class KisMaskingBrushCompositeOpBase;
 class PAINTOP_EXPORT KisMaskingBrushCompositeOpFactory
 {
 public:
-    static KisMaskingBrushCompositeOpBase* create(const QString &id, KoChannelInfo::enumChannelValueType channelType,
+    static KisMaskingBrushCompositeOpBase* create(const PkString &id, KoChannelInfo::enumChannelValueType channelType,
                                                   int pixelSize, int alphaOffset);
-    static KisMaskingBrushCompositeOpBase* create(const QString &id, KoChannelInfo::enumChannelValueType channelType,
+    static KisMaskingBrushCompositeOpBase* create(const PkString &id, KoChannelInfo::enumChannelValueType channelType,
                                                   int pixelSize, int alphaOffset, qreal strength,
                                                   bool useSoftTexturing = false);
 
-    static KisMaskingBrushCompositeOpBase* createForAlphaSrc(const QString &id,
+    static KisMaskingBrushCompositeOpBase* createForAlphaSrc(const PkString &id,
                                                              KoChannelInfo::enumChannelValueType channelType,
                                                              int pixelSize, int alphaOffset);
-    static KisMaskingBrushCompositeOpBase* createForAlphaSrc(const QString &id,
+    static KisMaskingBrushCompositeOpBase* createForAlphaSrc(const PkString &id,
                                                              KoChannelInfo::enumChannelValueType channelType,
                                                              int pixelSize, int alphaOffset, qreal strength,
                                                              bool useSoftTexturing = false);
 
-    static QStringList supportedCompositeOpIds();
+    static PkStringList supportedCompositeOpIds();
 };
 
 #endif // KISMASKINGBRUSHCOMPOSITEOPFACTORY_H

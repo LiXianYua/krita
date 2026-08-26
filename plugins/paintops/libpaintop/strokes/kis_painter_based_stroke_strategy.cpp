@@ -41,7 +41,7 @@
 KisPainterBasedStrokeStrategy::KisPainterBasedStrokeStrategy(const QLatin1String &id,
                                                              const KUndo2MagicString &name,
                                                              KisResourcesSnapshotSP resources,
-                                                             QVector<KisFreehandStrokeInfo*> strokeInfos)
+                                                             PkVector<KisFreehandStrokeInfo*> strokeInfos)
     : KisRunnableBasedStrokeStrategy(id, name),
       m_resources(resources),
       m_strokeInfos(strokeInfos),
@@ -59,7 +59,7 @@ KisPainterBasedStrokeStrategy::KisPainterBasedStrokeStrategy(const QLatin1String
                                                              KisFreehandStrokeInfo *strokeInfo)
     : KisRunnableBasedStrokeStrategy(id, name),
       m_resources(resources),
-      m_strokeInfos(QVector<KisFreehandStrokeInfo*>() <<  strokeInfo),
+      m_strokeInfos(PkVector<KisFreehandStrokeInfo*>() <<  strokeInfo),
       m_transaction(0),
       m_useMergeID(false),
       m_supportsMaskingBrush(false),
@@ -127,12 +127,12 @@ bool KisPainterBasedStrokeStrategy::needsMaskingUpdates() const
     return bool(m_maskingBrushRenderer);
 }
 
-QVector<KisRunnableStrokeJobData *> KisPainterBasedStrokeStrategy::doMaskingBrushUpdates(const QVector<QRect> &rects)
+PkVector<KisRunnableStrokeJobData *> KisPainterBasedStrokeStrategy::doMaskingBrushUpdates(const PkVector<PkRect> &rects)
 {
-    QVector<KisRunnableStrokeJobData *> jobs;
+    PkVector<KisRunnableStrokeJobData *> jobs;
     KIS_SAFE_ASSERT_RECOVER_RETURN_VALUE(m_maskingBrushRenderer, jobs);
 
-    Q_FOREACH (const QRect &rc, rects) {
+    Q_FOREACH (const PkRect &rc, rects) {
         KritaUtils::addJobConcurrent(jobs,
             [this, rc] () {
                 this->m_maskingBrushRenderer->updateProjection(rc);
@@ -187,7 +187,7 @@ void KisPainterBasedStrokeStrategy::initPainters(KisPaintDeviceSP targetDevice,
                                                  KisPaintDeviceSP maskingDevice,
                                                  KisSelectionSP selection,
                                                  bool hasIndirectPainting,
-                                                 const QString &indirectPaintingCompositeOp)
+                                                 const PkString &indirectPaintingCompositeOp)
 {
     Q_FOREACH (KisFreehandStrokeInfo *info, m_strokeInfos) {
         KisPainter *painter = info->painter;
@@ -199,7 +199,7 @@ void KisPainterBasedStrokeStrategy::initPainters(KisPaintDeviceSP targetDevice,
         if(hasIndirectPainting) {
             painter->setCompositeOpId(indirectPaintingCompositeOp);
             painter->setOpacityToUnit();
-            painter->setChannelFlags(QBitArray());
+            painter->setChannelFlags(PkBitArray());
         }
     }
 
@@ -249,7 +249,7 @@ void KisPainterBasedStrokeStrategy::deletePainters()
 
 void KisPainterBasedStrokeStrategy::initStrokeCallback()
 {
-    QVector<KisRunnableStrokeJobData*> jobs;
+    PkVector<KisRunnableStrokeJobData*> jobs;
 
     KritaUtils::addJobSequential(jobs, [this] () {
         KisNodeSP node = m_resources->currentNode();
@@ -269,7 +269,7 @@ void KisPainterBasedStrokeStrategy::initStrokeCallback()
         KisPaintDeviceSP targetDevice = paintDevice;
         KisSelectionSP selection =  m_resources->activeSelection();
         bool hasIndirectPainting = supportsIndirectPainting() && m_resources->needsIndirectPainting();
-        const QString indirectCompositeOp = m_resources->indirectPaintingCompositeOp();
+        const PkString indirectCompositeOp = m_resources->indirectPaintingCompositeOp();
 
         if (hasIndirectPainting) {
             KisIndirectPaintingSupport *indirect =
@@ -285,7 +285,7 @@ void KisPainterBasedStrokeStrategy::initStrokeCallback()
                 indirect->setTemporaryOpacity(m_resources->opacity());
                 indirect->setTemporarySelection(selection);
 
-                QBitArray channelLockFlags = m_resources->channelLockFlags();
+                PkBitArray channelLockFlags = m_resources->channelLockFlags();
                 indirect->setTemporaryChannelFlags(channelLockFlags);
             }
             else {
@@ -320,7 +320,7 @@ void KisPainterBasedStrokeStrategy::initStrokeCallback()
             supportsMaskingBrush() &&
             m_resources->needsMaskingBrushRendering()) {
 
-            const QString compositeOpId =
+            const PkString compositeOpId =
                 m_resources->currentPaintOpPreset()->settings()->maskingBrushCompositeOp();
 
             m_maskingBrushRenderer.reset(new KisMaskingBrushRenderer(targetDevice, compositeOpId));
@@ -401,7 +401,7 @@ void KisPainterBasedStrokeStrategy::finishStrokeCallback()
         undoAdapter = m_fakeUndoData->undoAdapter.data();
     }
 
-    QSharedPointer<KUndo2Command> parentCommand;
+    PkSharedPointer<KUndo2Command> parentCommand;
 
     if (!m_useMergeID) {
         parentCommand.reset(new KUndo2Command());
@@ -412,7 +412,7 @@ void KisPainterBasedStrokeStrategy::finishStrokeCallback()
 
     parentCommand->setText(name());
     parentCommand->setTime(m_transaction->undoCommand()->time());
-    parentCommand->setEndTime(QTime::currentTime());
+    parentCommand->setEndTime(PkTime::currentTime());
 
     if (m_autokeyCommand) {
         KisCommandUtils::CompositeCommand *wrapper = new KisCommandUtils::CompositeCommand(parentCommand.data());
@@ -425,7 +425,7 @@ void KisPainterBasedStrokeStrategy::finishStrokeCallback()
         m_transaction.reset();
         deletePainters();
 
-        QVector<KisRunnableStrokeJobData*> jobs;
+        PkVector<KisRunnableStrokeJobData*> jobs;
 
         indirect->mergeToLayerThreaded(node,
                                parentCommand.data(),
@@ -528,7 +528,7 @@ void KisPainterBasedStrokeStrategy::resumeStrokeCallback()
             indirect->setTemporaryOpacity(m_resources->opacity());
             indirect->setTemporarySelection(m_activeSelection);
 
-            QBitArray channelLockFlags = m_resources->channelLockFlags();
+            PkBitArray channelLockFlags = m_resources->channelLockFlags();
             indirect->setTemporaryChannelFlags(channelLockFlags);
         }
     }

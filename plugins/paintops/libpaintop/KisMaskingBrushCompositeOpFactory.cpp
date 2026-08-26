@@ -22,7 +22,7 @@
 namespace {
 
 template <typename channel_type, bool mask_is_alpha = false>
-KisMaskingBrushCompositeOpBase *createTypedOp(const QString &id, int pixelSize, int alphaOffset)
+KisMaskingBrushCompositeOpBase *createTypedOp(const PkString &id, int pixelSize, int alphaOffset)
 {
     KisMaskingBrushCompositeOpBase *result = 0;
 
@@ -56,7 +56,7 @@ KisMaskingBrushCompositeOpBase *createTypedOp(const QString &id, int pixelSize, 
 }
 
 template <typename channel_type, bool mask_is_alpha = false, bool use_soft_texturing = false>
-KisMaskingBrushCompositeOpBase *createTypedOp(const QString &id, int pixelSize, int alphaOffset, qreal strength)
+KisMaskingBrushCompositeOpBase *createTypedOp(const PkString &id, int pixelSize, int alphaOffset, qreal strength)
 {
     KisMaskingBrushCompositeOpBase *result = 0;
 
@@ -129,7 +129,7 @@ KisMaskingBrushCompositeOpBase *createTypedOp(const QString &id, int pixelSize, 
 }
 
 template <bool mask_is_alpha>
-KisMaskingBrushCompositeOpBase *createImpl(const QString &id, KoChannelInfo::enumChannelValueType channelType, int pixelSize, int alphaOffset)
+KisMaskingBrushCompositeOpBase *createImpl(const PkString &id, KoChannelInfo::enumChannelValueType channelType, int pixelSize, int alphaOffset)
 {
     KisMaskingBrushCompositeOpBase *result = 0;
 
@@ -171,7 +171,7 @@ KisMaskingBrushCompositeOpBase *createImpl(const QString &id, KoChannelInfo::enu
 }
 
 template <bool mask_is_alpha, bool use_soft_texturing>
-KisMaskingBrushCompositeOpBase *createImpl(const QString &id, KoChannelInfo::enumChannelValueType channelType, int pixelSize, int alphaOffset, qreal strength)
+KisMaskingBrushCompositeOpBase *createImpl(const PkString &id, KoChannelInfo::enumChannelValueType channelType, int pixelSize, int alphaOffset, qreal strength)
 {
     KisMaskingBrushCompositeOpBase *result = 0;
 
@@ -209,14 +209,14 @@ KisMaskingBrushCompositeOpBase *createImpl(const QString &id, KoChannelInfo::enu
 }
 
 KisMaskingBrushCompositeOpBase *KisMaskingBrushCompositeOpFactory::create(
-                                    const QString &id, KoChannelInfo::enumChannelValueType channelType,
+                                    const PkString &id, KoChannelInfo::enumChannelValueType channelType,
                                     int pixelSize, int alphaOffset)
 {
     return createImpl<false>(id, channelType, pixelSize, alphaOffset);
 }
 
 KisMaskingBrushCompositeOpBase *KisMaskingBrushCompositeOpFactory::create(
-                                    const QString &id, KoChannelInfo::enumChannelValueType channelType,
+                                    const PkString &id, KoChannelInfo::enumChannelValueType channelType,
                                     int pixelSize, int alphaOffset, qreal strength, bool useSoftTexturing)
 {
     if (useSoftTexturing) {
@@ -227,14 +227,14 @@ KisMaskingBrushCompositeOpBase *KisMaskingBrushCompositeOpFactory::create(
 }
 
 KisMaskingBrushCompositeOpBase *KisMaskingBrushCompositeOpFactory::createForAlphaSrc(
-                                    const QString &id, KoChannelInfo::enumChannelValueType channelType,
+                                    const PkString &id, KoChannelInfo::enumChannelValueType channelType,
                                     int pixelSize, int alphaOffset)
 {
     return createImpl<true>(id, channelType, pixelSize, alphaOffset);
 }
 
 KisMaskingBrushCompositeOpBase *KisMaskingBrushCompositeOpFactory::createForAlphaSrc(
-                                    const QString &id, KoChannelInfo::enumChannelValueType channelType,
+                                    const PkString &id, KoChannelInfo::enumChannelValueType channelType,
                                     int pixelSize, int alphaOffset, qreal strength, bool useSoftTexturing)
 {
     if (useSoftTexturing) {
@@ -244,9 +244,9 @@ KisMaskingBrushCompositeOpBase *KisMaskingBrushCompositeOpFactory::createForAlph
     }
 }
 
-QStringList KisMaskingBrushCompositeOpFactory::supportedCompositeOpIds()
+PkStringList KisMaskingBrushCompositeOpFactory::supportedCompositeOpIds()
 {
-    QStringList ids;
+    PkStringList ids;
     ids << COMPOSITE_MULT;
     ids << COMPOSITE_DARKEN;
     ids << COMPOSITE_OVERLAY;

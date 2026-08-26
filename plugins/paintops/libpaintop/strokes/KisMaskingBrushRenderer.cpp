@@ -20,7 +20,7 @@
 #include "KisMaskingBrushCompositeOpFactory.h"
 
 
-KisMaskingBrushRenderer::KisMaskingBrushRenderer(KisPaintDeviceSP dstDevice, const QString &compositeOpId)
+KisMaskingBrushRenderer::KisMaskingBrushRenderer(KisPaintDeviceSP dstDevice, const PkString &compositeOpId)
     : m_dstDevice(dstDevice)
 {
     m_strokeDevice = new KisPaintDevice(dstDevice->colorSpace());
@@ -42,7 +42,7 @@ KisMaskingBrushRenderer::KisMaskingBrushRenderer(KisPaintDeviceSP dstDevice, con
         alphaPos = 0;
     }
 
-    const QList<KoChannelInfo *> channels = dstCs->channels();
+    const PkList<KoChannelInfo *> channels = dstCs->channels();
     alphaChannelOffset = channels[alphaPos]->pos()/* * channels[i]->size()*/;
     alphaChannelType = channels[alphaPos]->channelValueType();
 
@@ -69,7 +69,7 @@ KisPaintDeviceSP KisMaskingBrushRenderer::maskDevice() const
     return m_maskDevice;
 }
 
-void KisMaskingBrushRenderer::updateProjection(const QRect &rc)
+void KisMaskingBrushRenderer::updateProjection(const PkRect &rc)
 {
     if (rc.isEmpty()) return;
 

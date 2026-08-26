@@ -19,7 +19,7 @@ public:
     /**
     * First part of the sharpness is the coordinates: in pen mode they are integers without fractions
     */
-    void apply(const KisPaintInformation &info, const QPointF &pt, qint32 &x, qint32 &y, qreal &xFraction, qreal &yFraction) const;
+    void apply(const KisPaintInformation &info, const PkPointF &pt, qint32 &x, qint32 &y, qreal &xFraction, qreal &yFraction) const;
 
     /**
     * Apply threshold specified by user

@@ -7,8 +7,8 @@
 #ifndef KISDABCACHEUTILS_H
 #define KISDABCACHEUTILS_H
 
-#include <QRect>
-#include <QSize>
+#include <PkRect.h>
+#include <PkSize.h>
 
 #include "kis_types.h"
 
@@ -22,7 +22,7 @@
 #include <memory>
 
 class KisBrush;
-typedef QSharedPointer<KisBrush> KisBrushSP;
+typedef PkSharedPointer<KisBrush> KisBrushSP;
 
 class KisColorSource;
 class KisSharpnessOption;
@@ -56,7 +56,7 @@ typedef std::function<DabRenderingResources*()> ResourcesFactory;
 struct PAINTOP_EXPORT DabRequestInfo
 {
     DabRequestInfo(const KoColor &_color,
-                   const QPointF &_cursorPoint,
+                   const PkPointF &_cursorPoint,
                    const KisDabShape &_shape,
                    const KisPaintInformation &_info,
                    qreal _softnessFactor,
@@ -71,7 +71,7 @@ struct PAINTOP_EXPORT DabRequestInfo
     }
 
     const KoColor &color;
-    const QPointF &cursorPoint;
+    const PkPointF &cursorPoint;
     const KisDabShape &shape;
     const KisPaintInformation &info;
     const qreal softnessFactor;
@@ -85,8 +85,8 @@ struct PAINTOP_EXPORT DabGenerationInfo
 {
     MirrorProperties mirrorProperties;
     KisDabShape shape;
-    QRect dstDabRect;
-    QPointF subPixel;
+    PkRect dstDabRect;
+    PkPointF subPixel;
     bool solidColorFill = true;
     KoColor paintColor;
     KisPaintInformation info;
@@ -96,8 +96,8 @@ struct PAINTOP_EXPORT DabGenerationInfo
     bool needsPostprocessing = false;
 };
 
-PAINTOP_EXPORT QRect correctDabRectWhenFetchedFromCache(const QRect &dabRect,
-                                                        const QSize &realDabSize);
+PAINTOP_EXPORT PkRect correctDabRectWhenFetchedFromCache(const PkRect &dabRect,
+                                                        const PkSize &realDabSize);
 
 PAINTOP_EXPORT void generateDab(const DabGenerationInfo &di,
                                 DabRenderingResources *resources,
@@ -105,14 +105,14 @@ PAINTOP_EXPORT void generateDab(const DabGenerationInfo &di,
                                 bool forceImageStamp = false);
 
 PAINTOP_EXPORT void postProcessDab(KisFixedPaintDeviceSP dab,
-                                   const QPoint &dabTopLeft,
+                                   const PkPoint &dabTopLeft,
                                    const KisPaintInformation& info,
                                    DabRenderingResources *resources);
 
 }
 
-template<class T> class QSharedPointer;
+template<class T> class PkSharedPointer;
 class KisDabRenderingJob;
-typedef QSharedPointer<KisDabRenderingJob> KisDabRenderingJobSP;
+typedef PkSharedPointer<KisDabRenderingJob> KisDabRenderingJobSP;
 
 #endif // KISDABCACHEUTILS_H

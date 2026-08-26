@@ -15,13 +15,13 @@ class KisMaskingBrushCompositeOpBase;
 class KisMaskingBrushRenderer
 {
 public:
-    KisMaskingBrushRenderer(KisPaintDeviceSP dstDevice, const QString &compositeOpId);
+    KisMaskingBrushRenderer(KisPaintDeviceSP dstDevice, const PkString &compositeOpId);
     ~KisMaskingBrushRenderer();
 
     KisPaintDeviceSP strokeDevice() const;
     KisPaintDeviceSP maskDevice() const;
 
-    void updateProjection(const QRect &rc);
+    void updateProjection(const PkRect &rc);
 
 
 private:
@@ -29,7 +29,7 @@ private:
     KisPaintDeviceSP m_maskDevice;
     KisPaintDeviceSP m_dstDevice;
 
-    QScopedPointer<KisMaskingBrushCompositeOpBase> m_compositeOp;
+    PkScopedPointer<KisMaskingBrushCompositeOpBase> m_compositeOp;
 };
 
 #endif // KISMASKINGBRUSHRENDERER_H

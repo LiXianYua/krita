@@ -9,22 +9,22 @@
 
 #include <kritapaintop_export.h>
 
-#include <QVector>
-#include <QSharedPointer>
+#include <PkVector.h>
+#include <PkSharedPointer.h>
 
 class KisFreehandStrokeInfo;
 class KisPaintInformation;
 class KisDistanceInformation;
-class QPointF;
-class QRectF;
-class QRect;
-class QPainterPath;
-class QPen;
+class PkPointF;
+class PkRectF;
+class PkRect;
+class PkPainterPath;
+class PkPen;
 class KoColor;
 class KisRunnableStrokeJobData;
 
 class KisPaintOpPreset;
-typedef QSharedPointer<KisPaintOpPreset> KisPaintOpPresetSP;
+typedef PkSharedPointer<KisPaintOpPreset> KisPaintOpPresetSP;
 
 
 class PAINTOP_EXPORT KisMaskedFreehandStrokePainter
@@ -42,26 +42,26 @@ public:
                    const KisPaintInformation &pi2);
 
     void paintBezierCurve(const KisPaintInformation &pi1,
-                          const QPointF &control1,
-                          const QPointF &control2,
+                          const PkPointF &control1,
+                          const PkPointF &control2,
                           const KisPaintInformation &pi2);
 
-    void paintPolyline(const QVector<QPointF> &points,
+    void paintPolyline(const PkVector<PkPointF> &points,
                        int index = 0, int numPoints = -1);
 
-    void paintPolygon(const QVector<QPointF> &points);
-    void paintRect(const QRectF &rect);
-    void paintEllipse(const QRectF &rect);
-    void paintPainterPath(const QPainterPath& path);
+    void paintPolygon(const PkVector<PkPointF> &points);
+    void paintRect(const PkRectF &rect);
+    void paintEllipse(const PkRectF &rect);
+    void paintPainterPath(const PkPainterPath& path);
 
-    void drawPainterPath(const QPainterPath& path, const QPen& pen);
-    void drawAndFillPainterPath(const QPainterPath& path, const QPen& pen, const KoColor &customColor);
+    void drawPainterPath(const PkPainterPath& path, const PkPen& pen);
+    void drawAndFillPainterPath(const PkPainterPath& path, const PkPen& pen, const KoColor &customColor);
 
     // paintop overrides
 
-    std::pair<int, bool> doAsynchronousUpdate(QVector<KisRunnableStrokeJobData*> &jobs);
+    std::pair<int, bool> doAsynchronousUpdate(PkVector<KisRunnableStrokeJobData*> &jobs);
     bool hasDirtyRegion() const;
-    QVector<QRect> takeDirtyRegion();
+    PkVector<PkRect> takeDirtyRegion();
 
     bool hasMasking() const;
 

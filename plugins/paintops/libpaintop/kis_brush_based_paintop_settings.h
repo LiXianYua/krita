@@ -45,11 +45,11 @@ public:
     void setPaintOpAngle(qreal value) override;
     qreal paintOpAngle() const override;
 
-    QList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, QPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
+    PkList<KisUniformPaintOpPropertySP> uniformProperties(KisPaintOpSettingsSP settings, PkPointer<KisPaintOpPresetUpdateProxy> updateProxy) override;
 
     virtual bool hasPatternSettings() const override;
 
-    QList<int> requiredCanvasResources() const override;
+    PkList<int> requiredCanvasResources() const override;
 
     void setResourceCacheInterface(KoResourceCacheInterfaceSP cacheInterface) override;
     void regenerateResourceCache(KoResourceCacheInterfaceSP cacheInterface) override;
@@ -59,7 +59,7 @@ protected:
     void onPropertyChanged() override;
     KisOptimizedBrushOutline brushOutlineImpl(const KisPaintInformation &info, const OutlineMode &mode, qreal alignForZoom, qreal additionalScale);
     mutable KisBrushSP m_savedBrush;
-    QList<KisUniformPaintOpPropertyWSP> m_uniformProperties;
+    PkList<KisUniformPaintOpPropertyWSP> m_uniformProperties;
 
 private:
 

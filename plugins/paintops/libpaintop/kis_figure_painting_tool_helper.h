@@ -25,28 +25,28 @@ public:
                                 KoCanvasResourcesInterfaceSP canvasResources,
                                 KisToolShapeUtils::StrokeStyle strokeStyle,
                                 KisToolShapeUtils::FillStyle fillStyle,
-                                QTransform fillTransform = QTransform());
+                                PkTransform fillTransform = PkTransform());
     ~KisFigurePaintingToolHelper();
 
     void paintLine(const KisPaintInformation &pi0,
                    const KisPaintInformation &pi1);
     void paintPolyline(const vQPointF &points);
     void paintPolygon(const vQPointF &points);
-    void paintRect(const QRectF &rect);
-    void paintEllipse(const QRectF &rect);
-    void paintPainterPath(const QPainterPath &path);
+    void paintRect(const PkRectF &rect);
+    void paintEllipse(const PkRectF &rect);
+    void paintPainterPath(const PkPainterPath &path);
     void setFGColorOverride(const KoColor &color);
     void setBGColorOverride(const KoColor &color);
     void setSelectionOverride(KisSelectionSP m_selection);
     void setBrush(const KisPaintOpPresetSP &brush);
-    void paintPainterPathQPen(const QPainterPath, const QPen &pen, const KoColor &color);
-    void paintPainterPathQPenFill(const QPainterPath, const QPen &pen, const KoColor &color);
+    void paintPainterPathQPen(const PkPainterPath, const PkPen &pen, const KoColor &color);
+    void paintPainterPathQPenFill(const PkPainterPath, const PkPen &pen, const KoColor &color);
 
 private:
     void setupPaintStyles(KisResourcesSnapshotSP resources,
                           KisToolShapeUtils::StrokeStyle strokeStyle,
                           KisToolShapeUtils::FillStyle fillStyle,
-                          QTransform fillTransform);
+                          PkTransform fillTransform);
 
 private:
     KisStrokeId m_strokeId;

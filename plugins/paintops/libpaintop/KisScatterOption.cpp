@@ -29,7 +29,7 @@ KisScatterOption::KisScatterOption(const KisScatterOptionData &data)
 {
 }
 
-QPointF KisScatterOption::apply(const KisPaintInformation& info, qreal width, qreal height) const
+PkPointF KisScatterOption::apply(const KisPaintInformation& info, qreal width, qreal height) const
 {
     if ((!m_axisX && !m_axisY) || (!isChecked())) {
         return info.pos();
@@ -40,11 +40,11 @@ QPointF KisScatterOption::apply(const KisPaintInformation& info, qreal width, qr
     qreal sensorValue = computeSizeLikeValue(info);
 
     qreal jitter = (2.0 * info.randomSource()->generateNormalized() - 1.0) * diameter * sensorValue;
-    QPointF result(0.0, 0.0);
+    PkPointF result(0.0, 0.0);
 
     if (m_axisX && m_axisY) {
         qreal jitterY = (2.0 * info.randomSource()->generateNormalized() - 1.0) * diameter * sensorValue;
-        result = QPointF(jitter, jitterY);
+        result = PkPointF(jitter, jitterY);
         return info.pos() + result;
     }
 

@@ -8,7 +8,7 @@
 #define __FREEHAND_STROKE_H
 
 
-#include <QPen>
+#include <PkPen.h>
 #include <kritapaintop_export.h>
 #include "kis_types.h"
 #include "kis_node.h"
@@ -63,8 +63,8 @@ public:
 
         Data(int _strokeInfoId,
              const KisPaintInformation &_pi1,
-             const QPointF &_control1,
-             const QPointF &_control2,
+             const PkPointF &_control1,
+             const PkPointF &_control2,
              const KisPaintInformation &_pi2)
             : KisStrokeJobData(KisStrokeJobData::UNIQUELY_CONCURRENT),
               strokeInfoId(_strokeInfoId),
@@ -82,7 +82,7 @@ public:
 
         Data(int _strokeInfoId,
              DabType _type,
-             const QRectF &_rect)
+             const PkRectF &_rect)
             : KisStrokeJobData(KisStrokeJobData::UNIQUELY_CONCURRENT),
               strokeInfoId(_strokeInfoId),
             type(_type), rect(_rect)
@@ -90,7 +90,7 @@ public:
 
         Data(int _strokeInfoId,
              DabType _type,
-             const QPainterPath &_path)
+             const PkPainterPath &_path)
             : KisStrokeJobData(KisStrokeJobData::UNIQUELY_CONCURRENT),
               strokeInfoId(_strokeInfoId),
             type(_type), path(_path)
@@ -98,8 +98,8 @@ public:
 
         Data(int _strokeInfoId,
              DabType _type,
-             const QPainterPath &_path,
-             const QPen &_pen, const KoColor &_customColor)
+             const PkPainterPath &_path,
+             const PkPen &_pen, const KoColor &_customColor)
             : KisStrokeJobData(KisStrokeJobData::UNIQUELY_CONCURRENT),
               strokeInfoId(_strokeInfoId),
             type(_type), path(_path),
@@ -162,13 +162,13 @@ public:
         DabType type;
         KisPaintInformation pi1;
         KisPaintInformation pi2;
-        QPointF control1;
-        QPointF control2;
+        PkPointF control1;
+        PkPointF control2;
 
         vQPointF points;
-        QRectF rect;
-        QPainterPath path;
-        QPen pen;
+        PkRectF rect;
+        PkPainterPath path;
+        PkPen pen;
         KoColor customColor;
     };
 
@@ -179,7 +179,7 @@ public:
                            Flags flags = None);
 
     FreehandStrokeStrategy(KisResourcesSnapshotSP resources,
-                           QVector<KisFreehandStrokeInfo*> strokeInfos,
+                           PkVector<KisFreehandStrokeInfo*> strokeInfos,
                            const KUndo2MagicString &name,
                            Flags flags = None);
 
@@ -206,7 +206,7 @@ private:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(FreehandStrokeStrategy::Flags)

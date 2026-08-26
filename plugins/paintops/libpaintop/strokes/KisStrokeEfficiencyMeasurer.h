@@ -8,11 +8,11 @@
 #define KISSTROKEEFFICIENCYMEASURER_H
 
 #include <kritapaintop_export.h>
-#include <QScopedPointer>
+#include <PkScopedPointer.h>
 
 #include <QtGlobal>
 
-class QPointF;
+class PkPointF;
 
 class PAINTOP_EXPORT KisStrokeEfficiencyMeasurer
 {
@@ -23,8 +23,8 @@ public:
     void setEnabled(bool value);
     bool isEnabled() const;
 
-    void addSample(const QPointF &pt);
-    void addSamples(const QVector<QPointF> &points);
+    void addSample(const PkPointF &pt);
+    void addSamples(const PkVector<PkPointF> &points);
 
     qreal averageCursorSpeed() const;
     qreal averageRenderingSpeed() const;
@@ -42,7 +42,7 @@ public:
 
 private:
     struct Private;
-    const QScopedPointer<Private> m_d;
+    const PkScopedPointer<Private> m_d;
 };
 
 #endif // KISSTROKEEFFICIENCYMEASURER_H

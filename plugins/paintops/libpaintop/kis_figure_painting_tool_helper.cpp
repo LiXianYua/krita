@@ -20,7 +20,7 @@ KisFigurePaintingToolHelper::KisFigurePaintingToolHelper(const KUndo2MagicString
                                                          KoCanvasResourcesInterfaceSP canvasResources,
                                                          KisToolShapeUtils::StrokeStyle strokeStyle,
                                                          KisToolShapeUtils::FillStyle fillStyle,
-                                                         QTransform fillTransform)
+                                                         PkTransform fillTransform)
 {
     m_strokesFacade = image.data();
 
@@ -42,7 +42,7 @@ KisFigurePaintingToolHelper::KisFigurePaintingToolHelper(const KUndo2MagicString
 void KisFigurePaintingToolHelper::setupPaintStyles(KisResourcesSnapshotSP resources,
                                                    KisToolShapeUtils::StrokeStyle strokeStyle,
                                                    KisToolShapeUtils::FillStyle fillStyle,
-                                                   QTransform fillTransform)
+                                                   PkTransform fillTransform)
 {
     using namespace KisToolShapeUtils;
 
@@ -120,7 +120,7 @@ void KisFigurePaintingToolHelper::paintPolygon(const vQPointF &points)
                                          points));
 }
 
-void KisFigurePaintingToolHelper::paintRect(const QRectF &rect)
+void KisFigurePaintingToolHelper::paintRect(const PkRectF &rect)
 {
     m_strokesFacade->addJob(m_strokeId,
         new FreehandStrokeStrategy::Data(0,
@@ -128,7 +128,7 @@ void KisFigurePaintingToolHelper::paintRect(const QRectF &rect)
                                          rect));
 }
 
-void KisFigurePaintingToolHelper::paintEllipse(const QRectF &rect)
+void KisFigurePaintingToolHelper::paintEllipse(const PkRectF &rect)
 {
     m_strokesFacade->addJob(m_strokeId,
         new FreehandStrokeStrategy::Data(0,
@@ -136,7 +136,7 @@ void KisFigurePaintingToolHelper::paintEllipse(const QRectF &rect)
                                          rect));
 }
 
-void KisFigurePaintingToolHelper::paintPainterPath(const QPainterPath &path)
+void KisFigurePaintingToolHelper::paintPainterPath(const PkPainterPath &path)
 {
     m_strokesFacade->addJob(m_strokeId,
         new FreehandStrokeStrategy::Data(0,
@@ -164,7 +164,7 @@ void KisFigurePaintingToolHelper::setBrush(const KisPaintOpPresetSP &brush)
     m_resources->setBrush(brush);
 }
 
-void KisFigurePaintingToolHelper::paintPainterPathQPen(const QPainterPath path, const QPen &pen, const KoColor &color)
+void KisFigurePaintingToolHelper::paintPainterPathQPen(const PkPainterPath path, const PkPen &pen, const KoColor &color)
 {
     m_strokesFacade->addJob(m_strokeId,
         new FreehandStrokeStrategy::Data(0,
@@ -172,7 +172,7 @@ void KisFigurePaintingToolHelper::paintPainterPathQPen(const QPainterPath path, 
                                          path, pen, color));
 }
 
-void KisFigurePaintingToolHelper::paintPainterPathQPenFill(const QPainterPath path, const QPen &pen, const KoColor &color)
+void KisFigurePaintingToolHelper::paintPainterPathQPenFill(const PkPainterPath path, const PkPen &pen, const KoColor &color)
 {
     m_strokesFacade->addJob(m_strokeId,
         new FreehandStrokeStrategy::Data(0,

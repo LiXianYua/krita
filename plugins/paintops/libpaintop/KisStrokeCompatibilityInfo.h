@@ -9,11 +9,11 @@
 #include <kritapaintop_export.h>
 #include <boost/operators.hpp>
 
-#include <QString>
+#include <PkString.h>
 #include <KoColor.h>
 #include <KoResourceSignature.h>
 #include <KoCompositeOpRegistry.h>
-#include <QUuid>
+#include <PkNodeId.h>
 
 
 class KisResourcesSnapshot;
@@ -31,13 +31,13 @@ struct PAINTOP_EXPORT KisStrokeCompatibilityInfo : public boost::equality_compar
     KoResourceSignature currentPattern;
     KoResourceSignature currentGradient;
     KoResourceSignature currentPreset;
-    QString currentGeneratorXml;
-    QUuid currentNode;
+    PkString currentGeneratorXml;
+    PkNodeId currentNode;
 
     qreal opacity {OPACITY_OPAQUE_F};
-    QString compositeOpId {COMPOSITE_OVER};
+    PkString compositeOpId {COMPOSITE_OVER};
 
-    QBitArray channelLockFlags;
+    PkBitArray channelLockFlags;
 };
 
 #endif // KISSTROKECOMPATIBILITYINFO_H

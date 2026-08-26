@@ -147,16 +147,16 @@ bool KisDabCacheBase::needSeparateOriginal(KisTextureOption *textureOption,
 }
 
 struct KisDabCacheBase::DabPosition {
-    DabPosition(const QRect &_rect,
-                const QPointF &_subPixel,
+    DabPosition(const PkRect &_rect,
+                const PkPointF &_subPixel,
                 qreal _realAngle)
         : rect(_rect),
           subPixel(_subPixel),
           realAngle(_realAngle) {
     }
 
-    QRect rect;
-    QPointF subPixel;
+    PkRect rect;
+    PkPointF subPixel;
     qreal realAngle;
 };
 
@@ -171,7 +171,7 @@ qreal KisDabCacheBase::Private::positiveFraction(qreal x) {
 inline
 KisDabCacheBase::DabPosition
 KisDabCacheBase::calculateDabRect(KisBrushSP brush,
-                                  const QPointF &cursorPoint,
+                                  const PkPointF &cursorPoint,
                                   KisDabShape shape,
                                   const KisPaintInformation& info,
                                   const MirrorProperties &mirrorProperties,
@@ -184,8 +184,8 @@ KisDabCacheBase::calculateDabRect(KisBrushSP brush,
         shape = KisDabShape(shape.scale(), shape.ratio(), 2 * M_PI - shape.rotation());
     }
 
-    QPointF hotSpot = brush->hotSpot(shape, info);
-    QPointF pt = cursorPoint - hotSpot;
+    PkPointF hotSpot = brush->hotSpot(shape, info);
+    PkPointF pt = cursorPoint - hotSpot;
 
     if (sharpnessOption) {
         sharpnessOption->apply(info, pt, x, y, subPixelX, subPixelY);
@@ -223,8 +223,8 @@ KisDabCacheBase::calculateDabRect(KisBrushSP brush,
         y = qRound(cursorPoint.y() + subPixelY + hotSpot.y()) - height;
     }
 
-    return DabPosition(QRect(x, y, width, height),
-                       QPointF(subPixelX, subPixelY),
+    return DabPosition(PkRect(x, y, width, height),
+                       PkPointF(subPixelX, subPixelY),
                        shape.rotation());
 }
 

@@ -32,13 +32,13 @@ void DabRenderingResources::syncResourcesToSeqNo(int seqNo, const KisPaintInform
     brush->prepareForSeqNo(info, seqNo);
 }
 
-QRect correctDabRectWhenFetchedFromCache(const QRect &dabRect,
-                                         const QSize &realDabSize)
+PkRect correctDabRectWhenFetchedFromCache(const PkRect &dabRect,
+                                         const PkSize &realDabSize)
 {
     int diffX = (realDabSize.width() - dabRect.width()) / 2;
     int diffY = (realDabSize.height() - dabRect.height()) / 2;
 
-    return QRect(dabRect.x() - diffX, dabRect.y() - diffY,
+    return PkRect(dabRect.x() - diffX, dabRect.y() - diffY,
                  realDabSize.width() , realDabSize.height());
 }
 
@@ -72,7 +72,7 @@ void generateDab(const DabGenerationInfo &di, DabRenderingResources *resources, 
             resources->colorSourceDevice->clear();
         }
 
-        QRect maskRect(QPoint(), di.dstDabRect.size());
+        PkRect maskRect(PkPoint(), di.dstDabRect.size());
         resources->colorSource->colorize(resources->colorSourceDevice, maskRect, di.info.pos().toPoint());
         resources->colorSourceDevice->convertTo(cs);
 
@@ -91,7 +91,7 @@ void generateDab(const DabGenerationInfo &di, DabRenderingResources *resources, 
 }
 
 void postProcessDab(KisFixedPaintDeviceSP dab,
-                    const QPoint &dabTopLeft,
+                    const PkPoint &dabTopLeft,
                     const KisPaintInformation& info,
                     DabRenderingResources *resources)
 {

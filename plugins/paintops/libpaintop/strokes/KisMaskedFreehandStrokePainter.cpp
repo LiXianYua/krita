@@ -49,56 +49,56 @@ void KisMaskedFreehandStrokePainter::paintLine(const KisPaintInformation &pi1, c
     });
 }
 
-void KisMaskedFreehandStrokePainter::paintBezierCurve(const KisPaintInformation &pi1, const QPointF &control1, const QPointF &control2, const KisPaintInformation &pi2)
+void KisMaskedFreehandStrokePainter::paintBezierCurve(const KisPaintInformation &pi1, const PkPointF &control1, const PkPointF &control2, const KisPaintInformation &pi2)
 {
     applyToAllPainters([&] (KisFreehandStrokeInfo *data) {
         data->painter->paintBezierCurve(pi1, control1, control2, pi2, data->dragDistance);
     });
 }
 
-void KisMaskedFreehandStrokePainter::paintPolyline(const QVector<QPointF> &points, int index, int numPoints)
+void KisMaskedFreehandStrokePainter::paintPolyline(const PkVector<PkPointF> &points, int index, int numPoints)
 {
     applyToAllPainters([&] (KisFreehandStrokeInfo *data) {
         data->painter->paintPolyline(points, index, numPoints);
     });
 }
 
-void KisMaskedFreehandStrokePainter::paintPolygon(const QVector<QPointF> &points)
+void KisMaskedFreehandStrokePainter::paintPolygon(const PkVector<PkPointF> &points)
 {
     applyToAllPainters([&] (KisFreehandStrokeInfo *data) {
         data->painter->paintPolygon(points);
     });
 }
 
-void KisMaskedFreehandStrokePainter::paintRect(const QRectF &rect)
+void KisMaskedFreehandStrokePainter::paintRect(const PkRectF &rect)
 {
     applyToAllPainters([&] (KisFreehandStrokeInfo *data) {
         data->painter->paintRect(rect);
     });
 }
 
-void KisMaskedFreehandStrokePainter::paintEllipse(const QRectF &rect)
+void KisMaskedFreehandStrokePainter::paintEllipse(const PkRectF &rect)
 {
     applyToAllPainters([&] (KisFreehandStrokeInfo *data) {
         data->painter->paintEllipse(rect);
     });
 }
 
-void KisMaskedFreehandStrokePainter::paintPainterPath(const QPainterPath &path)
+void KisMaskedFreehandStrokePainter::paintPainterPath(const PkPainterPath &path)
 {
     applyToAllPainters([&] (KisFreehandStrokeInfo *data) {
         data->painter->paintPainterPath(path);
     });
 }
 
-void KisMaskedFreehandStrokePainter::drawPainterPath(const QPainterPath &path, const QPen &pen)
+void KisMaskedFreehandStrokePainter::drawPainterPath(const PkPainterPath &path, const PkPen &pen)
 {
     applyToAllPainters([&] (KisFreehandStrokeInfo *data) {
         data->painter->drawPainterPath(path, pen);
     });
 }
 
-void KisMaskedFreehandStrokePainter::drawAndFillPainterPath(const QPainterPath &path, const QPen &pen, const KoColor &customColor)
+void KisMaskedFreehandStrokePainter::drawAndFillPainterPath(const PkPainterPath &path, const PkPen &pen, const KoColor &customColor)
 {
     applyToAllPainters([&] (KisFreehandStrokeInfo *data) {
         data->painter->setBackgroundColor(customColor);
@@ -107,7 +107,7 @@ void KisMaskedFreehandStrokePainter::drawAndFillPainterPath(const QPainterPath &
     });
 }
 
-std::pair<int, bool> KisMaskedFreehandStrokePainter::doAsynchronousUpdate(QVector<KisRunnableStrokeJobData *> &jobs)
+std::pair<int, bool> KisMaskedFreehandStrokePainter::doAsynchronousUpdate(PkVector<KisRunnableStrokeJobData *> &jobs)
 {
     KIS_SAFE_ASSERT_RECOVER_NOOP(m_stroke);
 
@@ -115,7 +115,7 @@ std::pair<int, bool> KisMaskedFreehandStrokePainter::doAsynchronousUpdate(QVecto
         m_stroke->painter->paintOp()->doAsynchronousUpdate(jobs);
 
     if (m_mask) {
-        QVector<KisRunnableStrokeJobData*> maskJobs;
+        PkVector<KisRunnableStrokeJobData*> maskJobs;
         std::pair<int, bool> maskMetrics =
             m_mask->painter->paintOp()->doAsynchronousUpdate(maskJobs);
 
@@ -141,11 +141,11 @@ bool KisMaskedFreehandStrokePainter::hasDirtyRegion() const
     return result;
 }
 
-QVector<QRect> KisMaskedFreehandStrokePainter::takeDirtyRegion()
+PkVector<PkRect> KisMaskedFreehandStrokePainter::takeDirtyRegion()
 {
     KIS_SAFE_ASSERT_RECOVER_NOOP(m_stroke);
 
-    QVector<QRect> result = m_stroke->painter->takeDirtyRegion();
+    PkVector<PkRect> result = m_stroke->painter->takeDirtyRegion();
 
     if (m_mask) {
         result += m_mask->painter->takeDirtyRegion();

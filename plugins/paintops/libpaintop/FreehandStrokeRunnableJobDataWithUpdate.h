@@ -13,7 +13,7 @@
 class FreehandStrokeRunnableJobDataWithUpdate : public KisRunnableStrokeJobData
 {
 public:
-    FreehandStrokeRunnableJobDataWithUpdate(QRunnable *runnable, KisStrokeJobData::Sequentiality sequentiality = KisStrokeJobData::SEQUENTIAL,
+    FreehandStrokeRunnableJobDataWithUpdate(PkRunnable *runnable, KisStrokeJobData::Sequentiality sequentiality = KisStrokeJobData::SEQUENTIAL,
                                             KisStrokeJobData::Exclusivity exclusivity = KisStrokeJobData::NORMAL)
         : KisRunnableStrokeJobData(runnable, sequentiality, exclusivity)
     {

@@ -15,7 +15,7 @@ class PAINTOP_EXPORT KisScatterOption : public KisCurveOption
 public:
     KisScatterOption(const KisPropertiesConfiguration *setting);
 
-    QPointF apply(const KisPaintInformation& info, qreal width, qreal height) const;
+    PkPointF apply(const KisPaintInformation& info, qreal width, qreal height) const;
 
 private:
     KisScatterOption(const KisScatterOptionData &data);

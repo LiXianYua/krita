@@ -7,7 +7,7 @@
 #ifndef __KIS_PAINTER_BASED_STROKE_STRATEGY_H
 #define __KIS_PAINTER_BASED_STROKE_STRATEGY_H
 
-#include <QVector>
+#include <PkVector.h>
 
 #include "KisRunnableBasedStrokeStrategy.h"
 #include <kritapaintop_export.h>
@@ -30,7 +30,7 @@ public:
     KisPainterBasedStrokeStrategy(const QLatin1String &id,
                                   const KUndo2MagicString &name,
                                   KisResourcesSnapshotSP resources,
-                                  QVector<KisFreehandStrokeInfo*> strokeInfos);
+                                  PkVector<KisFreehandStrokeInfo*> strokeInfos);
 
     KisPainterBasedStrokeStrategy(const QLatin1String &id,
                                   const KUndo2MagicString &name,
@@ -76,7 +76,7 @@ protected:
      *
      * \see needsMaskingUpdates()
      */
-    QVector<KisRunnableStrokeJobData*> doMaskingBrushUpdates(const QVector<QRect> &rects);
+    PkVector<KisRunnableStrokeJobData*> doMaskingBrushUpdates(const PkVector<PkRect> &rects);
 
 protected:
 
@@ -109,21 +109,21 @@ private:
     void initPainters(KisPaintDeviceSP targetDevice, KisPaintDeviceSP maskingDevice,
                       KisSelectionSP selection,
                       bool hasIndirectPainting,
-                      const QString &indirectPaintingCompositeOp);
+                      const PkString &indirectPaintingCompositeOp);
     void deletePainters();
-    inline int timedID(const QString &id){
+    inline int timedID(const PkString &id){
         return int(qHash(id));
     }
 
 private:
     KisResourcesSnapshotSP m_resources;
-    QVector<KisFreehandStrokeInfo*> m_strokeInfos;
-    QVector<KisFreehandStrokeInfo*> m_maskStrokeInfos;
-    QVector<KisMaskedFreehandStrokePainter*> m_maskedPainters;
+    PkVector<KisFreehandStrokeInfo*> m_strokeInfos;
+    PkVector<KisFreehandStrokeInfo*> m_maskStrokeInfos;
+    PkVector<KisMaskedFreehandStrokePainter*> m_maskedPainters;
 
-    QScopedPointer<KisTransaction> m_transaction;
+    PkScopedPointer<KisTransaction> m_transaction;
 
-    QScopedPointer<KisMaskingBrushRenderer> m_maskingBrushRenderer;
+    PkScopedPointer<KisMaskingBrushRenderer> m_maskingBrushRenderer;
 
     KisPaintDeviceSP m_targetDevice;
     KisSelectionSP m_activeSelection;
@@ -141,10 +141,10 @@ private:
     struct FakeUndoData {
         FakeUndoData();
         ~FakeUndoData();
-        QScopedPointer<KisUndoStore> undoStore;
-        QScopedPointer<KisPostExecutionUndoAdapter> undoAdapter;
+        PkScopedPointer<KisUndoStore> undoStore;
+        PkScopedPointer<KisPostExecutionUndoAdapter> undoAdapter;
     };
-    QScopedPointer<FakeUndoData> m_fakeUndoData;
+    PkScopedPointer<FakeUndoData> m_fakeUndoData;
 
 };
 
