@@ -21,6 +21,12 @@ set(kritalibkra_LIB_SRCS
 
 kis_add_library(kritalibkra SHARED ${kritalibkra_LIB_SRCS})
 target_link_libraries(kritalibkra kritaimpex kritaimage ZLIB::ZLIB)
+# 判据⑧：pk include 对齐。libkra 源码 include 的 pk 头 → 主树声明一致。
+# PkNodeId.h 在 pk/uuid（S-05-b 补定义）；其余 pk 头经 kritaimpex/kritaimage
+# 的链接闭包传递（pk/string pk/xml pk/signal pk/variant 等）。
+target_include_directories(kritalibkra PRIVATE
+    ${CMAKE_SOURCE_DIR}/pk/uuid
+)
 generate_export_header(kritalibkra BASE_NAME kritalibkra)
 
 set_target_properties(kritalibkra PROPERTIES
