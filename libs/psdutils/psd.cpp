@@ -5,17 +5,19 @@
  */
 #include "psd.h"
 
-#include <QPoint>
+#include <PkPoint.h>
 #include <kis_debug.h>
 
 #include <KoColorModelStandardIds.h>
 #include <KoCompositeOpRegistry.h>
 
+#include <utility>
+
 #include "kis_global.h"
 
-QPair<QString, QString> psd_colormode_to_colormodelid(psd_color_mode colormode, quint16 channelDepth)
+std::pair<PkString, PkString> psd_colormode_to_colormodelid(psd_color_mode colormode, quint16 channelDepth)
 {
-    QPair<QString, QString> colorSpaceId;
+    std::pair<PkString, PkString> colorSpaceId;
     switch (colormode) {
     case (Bitmap):
     case (Indexed):
@@ -56,7 +58,7 @@ QPair<QString, QString> psd_colormode_to_colormodelid(psd_color_mode colormode, 
     return colorSpaceId;
 }
 
-QString psd_blendmode_to_composite_op(const QString &blendmode)
+PkString psd_blendmode_to_composite_op(const PkString &blendmode)
 {
     // 'pass' = pass through
     if (blendmode == "pass")
@@ -147,7 +149,7 @@ QString psd_blendmode_to_composite_op(const QString &blendmode)
     return COMPOSITE_OVER;
 }
 
-QString composite_op_to_psd_blendmode(const QString &compositeop)
+PkString composite_op_to_psd_blendmode(const PkString &compositeop)
 {
     // 'pass' = pass through
     if (compositeop == COMPOSITE_PASS_THROUGH)
@@ -240,7 +242,7 @@ QString composite_op_to_psd_blendmode(const QString &compositeop)
     return "norm";
 }
 
-QPoint psd_layer_effects_shadow_base::calculateOffset(const psd_layer_effects_context *context) const
+PkPoint psd_layer_effects_shadow_base::calculateOffset(const psd_layer_effects_context *context) const
 {
     Q_UNUSED(context);
 
@@ -249,7 +251,7 @@ QPoint psd_layer_effects_shadow_base::calculateOffset(const psd_layer_effects_co
     qint32 distanceX = -qRound(this->m_distance * cos(kisDegreesToRadians(qreal(angle))));
     qint32 distanceY = qRound(this->m_distance * sin(kisDegreesToRadians(qreal(angle))));
 
-    return QPoint(distanceX, distanceY);
+    return PkPoint(distanceX, distanceY);
 }
 
 // key functions

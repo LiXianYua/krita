@@ -6,385 +6,433 @@
 
 #include "psd_utils_test.h"
 
-#include <QBuffer>
-#include <QCoreApplication>
-#include <klocalizedstring.h>
+#include <PkAuxTypes.h>
+
+#include <cmath>
+#include <cstdlib>
 
 #include <kis_debug.h>
 #include <psd.h>
 #include <psd_utils.h>
-#include <simpletest.h>
+
+#include "cos/PkCosMemoryStream.h"
 
 void PSDUtilsTest::test_psdwrite_quint8()
 {
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
         const quint8 i = 3;
-        QVERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, i));
-        QCOMPARE(buf.buffer().size(), 1);
-        QCOMPARE(buf.buffer().at(0), '\3');
+        PK_VERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, i));
+        PK_COMPARE(ba.size(), 1);
+        PK_COMPARE(ba.constData()[0], '\3');
     }
 
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
         const quint8 i = 3;
-        QVERIFY(psdwrite(buf, i));
-        QCOMPARE(buf.buffer().size(), 1);
-        QCOMPARE(buf.buffer().at(0), '\3');
+        PK_VERIFY(psdwrite(buf, i));
+        PK_COMPARE(ba.size(), 1);
+        PK_COMPARE(ba.constData()[0], '\3');
     }
 }
 
 void PSDUtilsTest::test_psdwrite_quint16()
 {
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
         const quint16 i = 0x3u;
-        QVERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, i));
-        QCOMPARE(buf.buffer().size(), 2);
-        QCOMPARE(buf.buffer().at(0), '\x03');
-        QCOMPARE(buf.buffer().at(1), '\x00');
+        PK_VERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, i));
+        PK_COMPARE(ba.size(), 2);
+        PK_COMPARE(ba.constData()[0], '\x03');
+        PK_COMPARE(ba.constData()[1], '\x00');
     }
 
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
         const quint16 i = 0x3u;
-        QVERIFY(psdwrite(buf, i));
-        QCOMPARE(buf.buffer().size(), 2);
-        QCOMPARE(buf.buffer().at(0), '\x00');
-        QCOMPARE(buf.buffer().at(1), '\x03');
+        PK_VERIFY(psdwrite(buf, i));
+        PK_COMPARE(ba.size(), 2);
+        PK_COMPARE(ba.constData()[0], '\x00');
+        PK_COMPARE(ba.constData()[1], '\x03');
     }
 }
 
 void PSDUtilsTest::test_psdwrite_quint32()
 {
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
         const quint32 i = 0x64u;
-        QVERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, i));
-        QCOMPARE(buf.buffer().size(), 4);
-        QCOMPARE(buf.buffer().at(0), '\x64');
-        QCOMPARE(buf.buffer().at(1), '\x00');
-        QCOMPARE(buf.buffer().at(2), '\x00');
-        QCOMPARE(buf.buffer().at(3), '\x00');
+        PK_VERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, i));
+        PK_COMPARE(ba.size(), 4);
+        PK_COMPARE(ba.constData()[0], '\x64');
+        PK_COMPARE(ba.constData()[1], '\x00');
+        PK_COMPARE(ba.constData()[2], '\x00');
+        PK_COMPARE(ba.constData()[3], '\x00');
     }
 
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
         const quint32 i = 0x64u;
-        QVERIFY(psdwrite(buf, i));
-        QCOMPARE(buf.buffer().size(), 4);
-        QCOMPARE(buf.buffer().at(0), '\x00');
-        QCOMPARE(buf.buffer().at(1), '\x00');
-        QCOMPARE(buf.buffer().at(2), '\x00');
-        QCOMPARE(buf.buffer().at(3), '\x64');
+        PK_VERIFY(psdwrite(buf, i));
+        PK_COMPARE(ba.size(), 4);
+        PK_COMPARE(ba.constData()[0], '\x00');
+        PK_COMPARE(ba.constData()[1], '\x00');
+        PK_COMPARE(ba.constData()[2], '\x00');
+        PK_COMPARE(ba.constData()[3], '\x64');
     }
 }
 
 void PSDUtilsTest::test_psdwrite_qstring()
 {
-    QBuffer buf;
-    buf.open(QBuffer::ReadWrite);
-    QString s = "8BPS";
-    QVERIFY(psdwrite(buf, s));
-    QCOMPARE(buf.buffer().size(), 4);
-    QCOMPARE(buf.buffer().at(0), '8');
-    QCOMPARE(buf.buffer().at(1), 'B');
-    QCOMPARE(buf.buffer().at(2), 'P');
-    QCOMPARE(buf.buffer().at(3), 'S');
+    PkByteArray ba;
+    PkCosMemoryStream buf(&ba);
+    buf.open(PkStream::ReadWrite);
+    PkString s = "8BPS";
+    PK_VERIFY(psdwrite(buf, s));
+    PK_COMPARE(ba.size(), 4);
+    PK_COMPARE(ba.constData()[0], '8');
+    PK_COMPARE(ba.constData()[1], 'B');
+    PK_COMPARE(ba.constData()[2], 'P');
+    PK_COMPARE(ba.constData()[3], 'S');
 }
 
 void PSDUtilsTest::test_psdwrite_pascalstring()
 {
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
 
         // test null string
-        QString s;
-        QVERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s));
-        QCOMPARE(buf.buffer().size(), 2);
-        QCOMPARE(buf.buffer().at(0), '\0');
-        QCOMPARE(buf.buffer().at(1), '\0');
+        PkString s;
+        PK_VERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s));
+        PK_COMPARE(ba.size(), 2);
+        PK_COMPARE(ba.constData()[0], '\0');
+        PK_COMPARE(ba.constData()[1], '\0');
 
         buf.close();
-        buf.buffer().clear();
-        buf.open(QBuffer::ReadWrite);
+        ba.resize(0);
+        buf.open(PkStream::ReadWrite);
+        buf.seek(0);
 
         // test even string
-        s = QString("bl");
-        QVERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s));
-        QCOMPARE(buf.buffer().size(), 3);
-        QCOMPARE(buf.buffer().at(0), '\x02');
-        QCOMPARE(buf.buffer().at(1), 'b');
-        QCOMPARE(buf.buffer().at(2), 'l');
+        s = PkString("bl");
+        PK_VERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s));
+        PK_COMPARE(ba.size(), 3);
+        PK_COMPARE(ba.constData()[0], '\x02');
+        PK_COMPARE(ba.constData()[1], 'b');
+        PK_COMPARE(ba.constData()[2], 'l');
 
         buf.close();
-        buf.buffer().clear();
-        buf.open(QBuffer::ReadWrite);
+        ba.resize(0);
+        buf.open(PkStream::ReadWrite);
+        buf.seek(0);
 
         // test uneven string
-        s = QString("bla");
-        QVERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s));
-        QCOMPARE(buf.buffer().size(), 5);
-        QCOMPARE(buf.buffer().at(0), '\x03');
-        QCOMPARE(buf.buffer().at(1), 'b');
-        QCOMPARE(buf.buffer().at(2), 'l');
-        QCOMPARE(buf.buffer().at(3), 'a');
-        QCOMPARE(buf.buffer().at(4), '\0');
+        s = PkString("bla");
+        PK_VERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s));
+        PK_COMPARE(ba.size(), 5);
+        PK_COMPARE(ba.constData()[0], '\x03');
+        PK_COMPARE(ba.constData()[1], 'b');
+        PK_COMPARE(ba.constData()[2], 'l');
+        PK_COMPARE(ba.constData()[3], 'a');
+        PK_COMPARE(ba.constData()[4], '\0');
     }
 
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
 
         // test null string
-        QString s;
-        QVERIFY(psdwrite_pascalstring(buf, s));
-        QCOMPARE(buf.buffer().size(), 2);
-        QCOMPARE(buf.buffer().at(0), '\0');
-        QCOMPARE(buf.buffer().at(1), '\0');
+        PkString s;
+        PK_VERIFY(psdwrite_pascalstring(buf, s));
+        PK_COMPARE(ba.size(), 2);
+        PK_COMPARE(ba.constData()[0], '\0');
+        PK_COMPARE(ba.constData()[1], '\0');
 
         buf.close();
-        buf.buffer().clear();
-        buf.open(QBuffer::ReadWrite);
+        ba.resize(0);
+        buf.open(PkStream::ReadWrite);
+        buf.seek(0);
 
         // test even string
-        s = QString("bl");
-        QVERIFY(psdwrite_pascalstring(buf, s));
-        QCOMPARE(buf.buffer().size(), 3);
-        QCOMPARE(buf.buffer().at(0), '\2');
-        QCOMPARE(buf.buffer().at(1), 'b');
-        QCOMPARE(buf.buffer().at(2), 'l');
+        s = PkString("bl");
+        PK_VERIFY(psdwrite_pascalstring(buf, s));
+        PK_COMPARE(ba.size(), 3);
+        PK_COMPARE(ba.constData()[0], '\2');
+        PK_COMPARE(ba.constData()[1], 'b');
+        PK_COMPARE(ba.constData()[2], 'l');
 
         buf.close();
-        buf.buffer().clear();
-        buf.open(QBuffer::ReadWrite);
+        ba.resize(0);
+        buf.open(PkStream::ReadWrite);
+        buf.seek(0);
 
         // test uneven string
-        s = QString("bla");
-        QVERIFY(psdwrite_pascalstring(buf, s));
-        QCOMPARE(buf.buffer().size(), 5);
-        QCOMPARE(buf.buffer().at(0), '\3');
-        QCOMPARE(buf.buffer().at(1), 'b');
-        QCOMPARE(buf.buffer().at(2), 'l');
-        QCOMPARE(buf.buffer().at(3), 'a');
-        QCOMPARE(buf.buffer().at(4), '\0');
+        s = PkString("bla");
+        PK_VERIFY(psdwrite_pascalstring(buf, s));
+        PK_COMPARE(ba.size(), 5);
+        PK_COMPARE(ba.constData()[0], '\3');
+        PK_COMPARE(ba.constData()[1], 'b');
+        PK_COMPARE(ba.constData()[2], 'l');
+        PK_COMPARE(ba.constData()[3], 'a');
+        PK_COMPARE(ba.constData()[4], '\0');
     }
 }
 
 void PSDUtilsTest::test_psdpad()
 {
-    QBuffer buf;
-    buf.open(QBuffer::ReadWrite);
-    QVERIFY(psdpad(buf, 6));
-    QCOMPARE(buf.buffer().size(), 6);
-    QCOMPARE(buf.buffer().at(0), '\x00');
-    QCOMPARE(buf.buffer().at(1), '\x00');
-    QCOMPARE(buf.buffer().at(2), '\x00');
-    QCOMPARE(buf.buffer().at(3), '\x00');
-    QCOMPARE(buf.buffer().at(4), '\x00');
-    QCOMPARE(buf.buffer().at(5), '\x00');
+    PkByteArray ba;
+    PkCosMemoryStream buf(&ba);
+    buf.open(PkStream::ReadWrite);
+    PK_VERIFY(psdpad(buf, 6));
+    PK_COMPARE(ba.size(), 6);
+    PK_COMPARE(ba.constData()[0], '\x00');
+    PK_COMPARE(ba.constData()[1], '\x00');
+    PK_COMPARE(ba.constData()[2], '\x00');
+    PK_COMPARE(ba.constData()[3], '\x00');
+    PK_COMPARE(ba.constData()[4], '\x00');
+    PK_COMPARE(ba.constData()[5], '\x00');
 }
 
 void PSDUtilsTest::test_psdread_quint8()
 {
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
         const quint8 s = 3;
-        QVERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, s));
+        PK_VERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, s));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
         quint8 r;
-        QVERIFY(psdread<psd_byte_order::psdLittleEndian>(buf, r));
-        QCOMPARE(r, s);
+        PK_VERIFY(psdread<psd_byte_order::psdLittleEndian>(buf, r));
+        PK_COMPARE(r, s);
     }
 
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
         const quint8 s = 3;
-        QVERIFY(psdwrite(buf, s));
+        PK_VERIFY(psdwrite(buf, s));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
         quint8 r;
-        QVERIFY(psdread(buf, r));
-        QCOMPARE(r, s);
+        PK_VERIFY(psdread(buf, r));
+        PK_COMPARE(r, s);
     }
 }
 
 void PSDUtilsTest::test_psdread_quint16()
 {
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
         const quint16 s = 1024;
-        QVERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, s));
+        PK_VERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, s));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
         quint16 r;
-        QVERIFY(psdread<psd_byte_order::psdLittleEndian>(buf, r));
-        QCOMPARE(r, s);
+        PK_VERIFY(psdread<psd_byte_order::psdLittleEndian>(buf, r));
+        PK_COMPARE(r, s);
     }
 
     {
-        QBuffer buf;
-        buf.open(QBuffer::ReadWrite);
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::ReadWrite);
         quint16 s = 1024;
-        QVERIFY(psdwrite(buf, s));
+        PK_VERIFY(psdwrite(buf, s));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
         quint16 r;
-        QVERIFY(psdread(buf, r));
-        QCOMPARE(r, s);
+        PK_VERIFY(psdread(buf, r));
+        PK_COMPARE(r, s);
     }
 }
 
 void PSDUtilsTest::test_psdread_quint32()
 {
     {
-        QBuffer buf;
-        QVERIFY(buf.open(QBuffer::ReadWrite));
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        PK_VERIFY(buf.open(PkStream::ReadWrite));
         const quint32 s = 300000;
-        QVERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, s));
+        PK_VERIFY(psdwrite<psd_byte_order::psdLittleEndian>(buf, s));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
         quint32 r;
-        QVERIFY(psdread<psd_byte_order::psdLittleEndian>(buf, r));
-        QCOMPARE(r, s);
+        PK_VERIFY(psdread<psd_byte_order::psdLittleEndian>(buf, r));
+        PK_COMPARE(r, s);
     }
 
     {
-        QBuffer buf;
-        QVERIFY(buf.open(QBuffer::ReadWrite));
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        PK_VERIFY(buf.open(PkStream::ReadWrite));
         quint32 s = 300000;
-        QVERIFY(psdwrite(buf, s));
+        PK_VERIFY(psdwrite(buf, s));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
         quint32 r;
-        QVERIFY(psdread(buf, r));
-        QCOMPARE(r, s);
+        PK_VERIFY(psdread(buf, r));
+        PK_COMPARE(r, s);
     }
 }
 
 void PSDUtilsTest::test_psdread_pascalstring()
 {
     {
-        QBuffer buf;
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
 
-        QString s;
-        QString r;
+        PkString s;
+        PkString r;
 
         // test null string
-        buf.open(QBuffer::ReadWrite);
-        QVERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s));
+        buf.open(PkStream::ReadWrite);
+        PK_VERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
-        QVERIFY(psdread_pascalstring<psd_byte_order::psdLittleEndian>(buf, r, 2));
-        QCOMPARE(r, s);
-        QVERIFY(buf.bytesAvailable() == 0);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
+        PK_VERIFY(psdread_pascalstring<psd_byte_order::psdLittleEndian>(buf, r, 2));
+        PK_COMPARE(r, s);
+        PK_VERIFY(buf.bytesAvailable() == 0);
 
         // test even string
         buf.close();
-        buf.buffer().clear();
-        r.clear();
-        buf.open(QBuffer::ReadWrite);
-        s = QString("bl");
-        QVERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s));
+        ba.resize(0);
+        r = PkString();
+        buf.open(PkStream::ReadWrite);
+        buf.seek(0);
+        s = PkString("bl");
+        PK_VERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
-        QVERIFY(psdread_pascalstring<psd_byte_order::psdLittleEndian>(buf, r, 1));
-        QCOMPARE(r, s);
-        QVERIFY(buf.bytesAvailable() == 0);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
+        PK_VERIFY(psdread_pascalstring<psd_byte_order::psdLittleEndian>(buf, r, 1));
+        PK_COMPARE(r, s);
+        PK_VERIFY(buf.bytesAvailable() == 0);
 
         // test uneven string
         buf.close();
-        buf.buffer().clear();
-        r.clear();
-        buf.open(QBuffer::ReadWrite);
-        s = QString("bla");
-        QVERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s, 2));
+        ba.resize(0);
+        r = PkString();
+        buf.open(PkStream::ReadWrite);
+        buf.seek(0);
+        s = PkString("bla");
+        PK_VERIFY(psdwrite_pascalstring<psd_byte_order::psdLittleEndian>(buf, s, 2));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
-        QVERIFY(psdread_pascalstring<psd_byte_order::psdLittleEndian>(buf, r, 2));
-        QCOMPARE(r, s);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
+        PK_VERIFY(psdread_pascalstring<psd_byte_order::psdLittleEndian>(buf, r, 2));
+        PK_COMPARE(r, s);
         dbgKrita << buf.bytesAvailable();
-        QVERIFY(buf.bytesAvailable() == 0);
+        PK_VERIFY(buf.bytesAvailable() == 0);
     }
 
     {
-        QBuffer buf;
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
 
-        QString s;
-        QString r;
+        PkString s;
+        PkString r;
 
         // test null string
-        buf.open(QBuffer::ReadWrite);
-        QVERIFY(psdwrite_pascalstring(buf, s));
+        buf.open(PkStream::ReadWrite);
+        PK_VERIFY(psdwrite_pascalstring(buf, s));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
-        QVERIFY(psdread_pascalstring(buf, r, 2));
-        QCOMPARE(r, s);
-        QVERIFY(buf.bytesAvailable() == 0);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
+        PK_VERIFY(psdread_pascalstring(buf, r, 2));
+        PK_COMPARE(r, s);
+        PK_VERIFY(buf.bytesAvailable() == 0);
 
         // test even string
         buf.close();
-        buf.buffer().clear();
-        r.clear();
-        buf.open(QBuffer::ReadWrite);
-        s = QString("bl");
-        QVERIFY(psdwrite_pascalstring(buf, s));
+        ba.resize(0);
+        r = PkString();
+        buf.open(PkStream::ReadWrite);
+        buf.seek(0);
+        s = PkString("bl");
+        PK_VERIFY(psdwrite_pascalstring(buf, s));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
-        QVERIFY(psdread_pascalstring(buf, r, 1));
-        QCOMPARE(r, s);
-        QVERIFY(buf.bytesAvailable() == 0);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
+        PK_VERIFY(psdread_pascalstring(buf, r, 1));
+        PK_COMPARE(r, s);
+        PK_VERIFY(buf.bytesAvailable() == 0);
 
         // test uneven string
         buf.close();
-        buf.buffer().clear();
-        r.clear();
-        buf.open(QBuffer::ReadWrite);
-        s = QString("bla");
-        QVERIFY(psdwrite_pascalstring(buf, s, 2));
+        ba.resize(0);
+        r = PkString();
+        buf.open(PkStream::ReadWrite);
+        buf.seek(0);
+        s = PkString("bla");
+        PK_VERIFY(psdwrite_pascalstring(buf, s, 2));
         buf.close();
-        buf.open(QBuffer::ReadOnly);
-        QVERIFY(psdread_pascalstring(buf, r, 2));
-        QCOMPARE(r, s);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
+        PK_VERIFY(psdread_pascalstring(buf, r, 2));
+        PK_COMPARE(r, s);
         dbgKrita << buf.bytesAvailable();
-        QVERIFY(buf.bytesAvailable() == 0);
+        PK_VERIFY(buf.bytesAvailable() == 0);
     }
 }
 
 void PSDUtilsTest::test_psdread_fixedpoint()
 {
     {
-        QBuffer buf;
-        QVERIFY(buf.open(QBuffer::ReadWrite));
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        PK_VERIFY(buf.open(PkStream::ReadWrite));
         const double s = -2.7;
         psdwriteFixedPoint<psd_byte_order::psdLittleEndian>(buf, s);
         buf.close();
-        buf.open(QBuffer::ReadOnly);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
         double r = psdreadFixedPoint<psd_byte_order::psdLittleEndian>(buf);
-        QVERIFY(fabs(r-s) < 0.001);
+        PK_VERIFY(fabs(r - s) < 0.001);
     }
 
     {
-        QBuffer buf;
-        QVERIFY(buf.open(QBuffer::ReadWrite));
+        PkByteArray ba;
+        PkCosMemoryStream buf(&ba);
+        PK_VERIFY(buf.open(PkStream::ReadWrite));
         const double s = -2.7;
         psdwriteFixedPoint(buf, s);
         buf.close();
-        buf.open(QBuffer::ReadOnly);
+        buf.open(PkStream::ReadOnly);
+        buf.seek(0);
         double r = psdreadFixedPoint(buf);
-        QVERIFY(fabs(r-s) < 0.001);
+        PK_VERIFY(fabs(r - s) < 0.001);
     }
 }
 
-SIMPLE_TEST_MAIN(PSDUtilsTest)
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_psd_utils_test.inc"
+#endif
+
+PK_TEST_GUILESS_MAIN(PSDUtilsTest)

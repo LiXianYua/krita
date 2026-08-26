@@ -9,14 +9,14 @@
 
 #include "kritapsdutils_export.h"
 
-#include <QByteArray>
+#include <PkAuxTypes.h>
 #include <psd.h>
 
 class KRITAPSDUTILS_EXPORT Compression
 {
 public:
-    static QByteArray uncompress(int unpacked_len, QByteArray bytes, psd_compression_type compressionType, int row_size = 0, int color_depth = 0);
-    static QByteArray compress(QByteArray bytes, psd_compression_type compressionType, int row_size = 0, int color_depth = 0);
+    static PkByteArray uncompress(int unpacked_len, PkByteArray bytes, psd_compression_type compressionType, int row_size = 0, int color_depth = 0);
+    static PkByteArray compress(PkByteArray bytes, psd_compression_type compressionType, int row_size = 0, int color_depth = 0);
 };
 
 #endif // PSD_COMPRESSION_H

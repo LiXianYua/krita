@@ -29,6 +29,7 @@ target_include_directories(kritapsdutils
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/geometry
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/log
     ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/global
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../pk/color
 )
 
 target_link_libraries(kritapsdutils

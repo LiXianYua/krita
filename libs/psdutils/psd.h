@@ -12,10 +12,15 @@
 
 #include "kritapsdutils_export.h"
 
-#include <QPair>
-#include <QString>
-#include <QVector>
+#include <PkColor.h>
+#include <PkDebug.h>
+#include <PkGlobal.h>
+#include <PkPoint.h>
+#include <PkString.h>
+#include <PkVector.h>
+#include <PkRgb.h>
 #include <cstdint>
+#include <utility>
 
 #include <KoColor.h>
 #include <KoColorModelStandardIds.h>
@@ -66,10 +71,10 @@ enum psd_color_mode {
 };
 
 struct PsdResource {
-    QString type;
-    QString md5;
-    QString filename;
-    QString name;
+    PkString type;
+    PkString md5;
+    PkString filename;
+    PkString name;
 };
 
 /**
@@ -177,9 +182,9 @@ struct psd_layer_gradient_map {
     qint8 showing_transparency_flag; // Flag for showing transparency
     qint8 using_vector_color_flag; // Flag for using vector color
     qint32 roughness_factor; // Roughness factor
-    QColor min_color;
-    QColor max_color;
-    QColor lookup_table[256];
+    PkColor min_color;
+    PkColor max_color;
+    PkColor lookup_table[256];
 };
 
 struct psd_gradient_color {
@@ -196,8 +201,8 @@ struct psd_pattern {
     psd_color_mode color_mode = Bitmap; // The image mode of the file.
     quint8 height = 0; // Point: vertical, 2 bytes and horizontal, 2 bytes
     quint8 width = 0;
-    QString name;
-    QString uuid;
+    PkString name;
+    PkString uuid;
     qint32 version = 0;
     quint8 top = 0; // Rectangle: top, left, bottom, right
     quint8 left = 0;
@@ -205,7 +210,7 @@ struct psd_pattern {
     quint8 right = 0;
     qint32 max_channel = 0; // Max channels
     qint32 channel_number = 0;
-    QVector<QRgb> color_table;
+    PkVector<PkRgb> color_table;
 };
 
 struct psd_layer_effects_context {
@@ -251,7 +256,7 @@ public:
 
     virtual ~psd_layer_effects_shadow_base();
 
-    QPoint calculateOffset(const psd_layer_effects_context *context) const;
+    PkPoint calculateOffset(const psd_layer_effects_context *context) const;
 
     void setEffectEnabled(bool value)
     {
@@ -263,7 +268,7 @@ public:
         return m_effectEnabled;
     }
 
-    QString blendMode() const
+    PkString blendMode() const
     {
         return m_blendMode;
     }
@@ -369,7 +374,7 @@ public:
     }
 
 public:
-    void setBlendMode(QString value)
+    void setBlendMode(PkString value)
     {
         m_blendMode = value;
     }
@@ -482,7 +487,7 @@ private:
 private:
     bool m_effectEnabled; // Effect enabled
 
-    QString m_blendMode; // already in Krita format!
+    PkString m_blendMode; // already in Krita format!
     KoColor m_color;
     KoColor m_nativeColor;
     qint32 m_opacity; // Opacity as a percent (0...100)
@@ -791,11 +796,11 @@ struct psd_layer_effects_bevel_emboss : public psd_layer_effects_shadow_base {
         m_glossAntiAliased = value;
     }
 
-    QString highlightBlendMode() const
+    PkString highlightBlendMode() const
     {
         return m_highlightBlendMode;
     }
-    void setHighlightBlendMode(QString value)
+    void setHighlightBlendMode(PkString value)
     {
         m_highlightBlendMode = value;
     }
@@ -818,11 +823,11 @@ struct psd_layer_effects_bevel_emboss : public psd_layer_effects_shadow_base {
         m_highlightOpacity = value;
     }
 
-    QString shadowBlendMode() const
+    PkString shadowBlendMode() const
     {
         return m_shadowBlendMode;
     }
-    void setShadowBlendMode(QString value)
+    void setShadowBlendMode(PkString value)
     {
         m_shadowBlendMode = value;
     }
@@ -927,15 +932,15 @@ struct psd_layer_effects_bevel_emboss : public psd_layer_effects_shadow_base {
         m_textureAlignWithLayer = value;
     }
 
-    void setTexturePhase(const QPointF &phase)
+    void setTexturePhase(const PkPointF &phase)
     {
         m_textureHorizontalPhase = phase.x();
         m_textureVerticalPhase = phase.y();
     }
 
-    QPointF texturePhase() const
+    PkPointF texturePhase() const
     {
-        return QPointF(m_textureHorizontalPhase, m_textureVerticalPhase);
+        return PkPointF(m_textureHorizontalPhase, m_textureVerticalPhase);
     }
 
     int textureHorizontalPhase() const
@@ -975,11 +980,11 @@ private:
     quint8 m_glossContourLookupTable[256];
     bool m_glossAntiAliased;
 
-    QString m_highlightBlendMode; // already in Krita format
+    PkString m_highlightBlendMode; // already in Krita format
     KoColor m_highlightColor;
     qint32 m_highlightOpacity; // Highlight opacity as a percent
 
-    QString m_shadowBlendMode; // already in Krita format
+    PkString m_shadowBlendMode; // already in Krita format
     KoColor m_shadowColor;
     qint32 m_shadowOpacity; // Shadow opacity as a percent
 
@@ -1101,15 +1106,15 @@ public:
         m_style = value;
     }
 
-    void setGradientOffset(const QPointF &pt)
+    void setGradientOffset(const PkPointF &pt)
     {
         m_gradientXOffset = qRound(pt.x());
         m_gradientYOffset = qRound(pt.y());
     }
 
-    QPointF gradientOffset() const
+    PkPointF gradientOffset() const
     {
-        return QPointF(m_gradientXOffset, m_gradientYOffset);
+        return PkPointF(m_gradientXOffset, m_gradientYOffset);
     }
 
     void setPattern(KoPatternSP value)
@@ -1120,15 +1125,15 @@ public:
         m_patternLink.name = value->name();
     }
 
-    void setPatternPhase(const QPointF &phase)
+    void setPatternPhase(const PkPointF &phase)
     {
         m_horizontalPhase = phase.x();
         m_verticalPhase = phase.y();
     }
 
-    QPointF patternPhase() const
+    PkPointF patternPhase() const
     {
-        return QPointF(m_horizontalPhase, m_verticalPhase);
+        return PkPointF(m_horizontalPhase, m_verticalPhase);
     }
 
     void scaleLinearSizes(qreal scale) override
@@ -1294,19 +1299,19 @@ private:
  * Convert PsdColorMode to pigment colormodelid and colordepthid.
  * @see KoColorModelStandardIds
  *
- * @return a QPair containing ColorModelId and ColorDepthID
+ * @return a std::pair containing ColorModelId and ColorDepthID
  */
-QPair<QString, QString> KRITAPSDUTILS_EXPORT psd_colormode_to_colormodelid(psd_color_mode colormode, quint16 channelDepth);
+std::pair<PkString, PkString> KRITAPSDUTILS_EXPORT psd_colormode_to_colormodelid(psd_color_mode colormode, quint16 channelDepth);
 
 /**
  * Convert the Photoshop blend mode strings to Pigment compositeop id's
  */
-QString KRITAPSDUTILS_EXPORT psd_blendmode_to_composite_op(const QString &blendmode);
-QString KRITAPSDUTILS_EXPORT composite_op_to_psd_blendmode(const QString &compositeOp);
+PkString KRITAPSDUTILS_EXPORT psd_blendmode_to_composite_op(const PkString &blendmode);
+PkString KRITAPSDUTILS_EXPORT composite_op_to_psd_blendmode(const PkString &compositeOp);
 
 
 #if defined(__clang__) && __clang_major__ < 10
-inline QDebug &operator<<(QDebug &self, psd_compression_type type)
+inline PkDebug &operator<<(PkDebug &self, psd_compression_type type)
 {
     self << static_cast<std::uint16_t>(type);
     return self;

@@ -9,22 +9,40 @@
 
 #include "compression.h"
 
-#include <QBuffer>
-#include <QtEndian>
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include <zlib.h>
 
 #include <kis_debug.h>
 #include <psd_utils.h>
 
+namespace {
+// Qt toHex() 的替代（仅用于错误诊断输出；小写十六进制，与 Qt 默认一致）。
+std::string pkToHex(const PkByteArray &ba)
+{
+    static const char digits[] = "0123456789abcdef";
+    std::string out;
+    out.reserve(static_cast<std::size_t>(ba.size()) * 2);
+    for (int i = 0; i < ba.size(); ++i) {
+        const unsigned char c = static_cast<unsigned char>(ba.constData()[i]);
+        out.push_back(digits[c >> 4]);
+        out.push_back(digits[c & 0x0F]);
+    }
+    return out;
+}
+}
+
 namespace KisRLE
 {
 // from gimp's psd-save.c
-int compress(const QByteArray &src, QByteArray &dst)
+int compress(const PkByteArray &src, PkByteArray &dst)
 {
     int length = src.size();
     dst.resize(length * 2);
-    dst.fill(0, length * 2);
+    // PkByteArray::resize 增长时尾部补 0，且本函数唯一调用方传入的是空 PkByteArray，
+    // 净效果与 Qt 的 resize+fill(0) 一致，无需再显式清零。
 
     int remaining = length;
     quint8 i, j;
@@ -40,8 +58,8 @@ int compress(const QByteArray &src, QByteArray &dst)
 
         if (i > 1) /* Match found */
         {
-            dst[dest_ptr++] = static_cast<char>(-(i - 1));
-            dst[dest_ptr++] = *start;
+            dst.data()[dest_ptr++] = static_cast<char>(-(i - 1));
+            dst.data()[dest_ptr++] = *start;
 
             start += i;
             remaining -= i;
@@ -60,9 +78,9 @@ int compress(const QByteArray &src, QByteArray &dst)
 
             if (i > 0) /* Some distinct ones found */
             {
-                dst[dest_ptr++] = static_cast<char>(i - 1U);
+                dst.data()[dest_ptr++] = static_cast<char>(i - 1U);
                 for (j = 0; j < i; j++) {
-                    dst[dest_ptr++] = start[j];
+                    dst.data()[dest_ptr++] = start[j];
                 }
                 start += i;
                 remaining -= i;
@@ -74,37 +92,44 @@ int compress(const QByteArray &src, QByteArray &dst)
     return length;
 }
 
-QByteArray compress(const QByteArray &data)
+PkByteArray compress(const PkByteArray &data)
 {
-    QByteArray output;
+    PkByteArray output;
     const int result = KisRLE::compress(data, output);
     if (result <= 0)
-        return QByteArray();
+        return PkByteArray();
     else
         return output;
 }
 
-QByteArray decompress(const QByteArray &input, int unpacked_len)
+PkByteArray decompress(const PkByteArray &input, int unpacked_len)
 {
-    QByteArray output;
+    PkByteArray output;
+    if (unpacked_len <= 0) {
+        // 退化输入：空输出，与 Qt 原路径的净结果一致。
+        return output;
+    }
     output.resize(unpacked_len);
 
-    const auto *src = input.cbegin();
-    auto *dst = output.begin();
+    // PkByteArray 无迭代器，用指针算术等价替换 Qt 的 begin()/end()。
+    const char *src = input.constData();
+    char *dst = output.data();
+    const char *const input_end = input.constData() + input.size();
+    char *const output_end = output.data() + output.size();
 
-    while (src < input.end() && dst < output.end()) {
+    while (src < input_end && dst < output_end) {
         // NOLINTNEXTLINE(*-reinterpret-cast,readability-identifier-length)
         const int8_t n = *reinterpret_cast<const int8_t *>(src);
         src += 1;
 
         if (n >= 0) { // copy next n+1 chars
             const int bytes = 1 + n;
-            if (src + bytes > input.cend()) {
-                errFile << "Input buffer exhausted in replicate of" << bytes << "chars, left" << (input.cend() - src);
+            if (src + bytes > input_end) {
+                errFile << "Input buffer exhausted in replicate of" << bytes << "chars, left" << (input_end - src);
                 return {};
             }
-            if (dst + bytes > output.end()) {
-                errFile << "Overrun in packbits replicate of" << bytes << "chars, left" << (output.end() - dst);
+            if (dst + bytes > output_end) {
+                errFile << "Overrun in packbits replicate of" << bytes << "chars, left" << (output_end - dst);
                 return {};
             }
             std::copy_n(src, bytes, dst);
@@ -112,15 +137,15 @@ QByteArray decompress(const QByteArray &input, int unpacked_len)
             dst += bytes;
         } else if (n >= -127 && n <= -1) { // replicate next char -n+1 times
             const int bytes = 1 - n;
-            if (src >= input.cend()) {
+            if (src >= input_end) {
                 errFile << "Input buffer exhausted in copy";
                 return {};
             }
-            if (dst + bytes > output.end()) {
-                errFile << "Output buffer exhausted in copy of" << bytes << "chars, left" << (output.end() - dst);
+            if (dst + bytes > output_end) {
+                errFile << "Output buffer exhausted in copy of" << bytes << "chars, left" << (output_end - dst);
                 return {};
             }
-            const auto byte = *src;
+            const char byte = *src;
             std::fill_n(dst, bytes, byte);
             src += 1;
             dst += bytes;
@@ -129,17 +154,16 @@ QByteArray decompress(const QByteArray &input, int unpacked_len)
         }
     }
 
-    if (dst < output.end()) {
-        errFile << "Packbits decode - unpack left" << (output.end() - dst);
-        std::fill(dst, output.end(), 0);
+    if (dst < output_end) {
+        errFile << "Packbits decode - unpack left" << (output_end - dst);
+        std::fill(dst, output_end, 0);
     }
 
     // If the input line was odd width, there's a padding byte
-    if (src + 1 < input.cend()) {
-        QByteArray leftovers;
-        leftovers.resize(static_cast<int>(input.cend() - src));
-        std::copy(src, input.cend(), leftovers.begin());
-        errFile << "Packbits decode - pack left" << leftovers.size() << leftovers.toHex();
+    if (src + 1 < input_end) {
+        const int leftCount = static_cast<int>(input_end - src);
+        PkByteArray leftovers(src, leftCount);
+        errFile << "Packbits decode - pack left" << leftovers.size() << pkToHex(leftovers);
     }
 
     return output;
@@ -190,9 +214,13 @@ int compress(const char *input, int unpacked_len, char *dst, int maxout)
     return static_cast<int>(stream.total_out);
 }
 
-QByteArray compress(const QByteArray &data)
+PkByteArray compress(const PkByteArray &data)
 {
-    QByteArray output(data.length() * 4, '\0');
+    if (data.isEmpty()) {
+        return PkByteArray();
+    }
+    PkByteArray output;
+    output.resize(data.size() * 4);
     const int result = KisZip::compress(data.constData(), data.size(), output.data(), output.size());
     output.resize(result);
     return output;
@@ -243,10 +271,10 @@ int psd_unzip_without_prediction(const char *src, int packed_len, char *dst, int
 }
 
 template<typename T>
-inline void psd_unzip_with_prediction(QByteArray &dst_buf, int row_size);
+inline void psd_unzip_with_prediction(PkByteArray &dst_buf, int row_size);
 
 template<>
-inline void psd_unzip_with_prediction<uint8_t>(QByteArray &dst_buf, const int row_size)
+inline void psd_unzip_with_prediction<uint8_t>(PkByteArray &dst_buf, const int row_size)
 {
     auto *buf = reinterpret_cast<uint8_t *>(dst_buf.data());
     int len = 0;
@@ -264,7 +292,7 @@ inline void psd_unzip_with_prediction<uint8_t>(QByteArray &dst_buf, const int ro
 }
 
 template<>
-inline void psd_unzip_with_prediction<uint16_t>(QByteArray &dst_buf, const int row_size)
+inline void psd_unzip_with_prediction<uint16_t>(PkByteArray &dst_buf, const int row_size)
 {
     auto *buf = reinterpret_cast<uint8_t *>(dst_buf.data());
     int len = 0;
@@ -282,9 +310,9 @@ inline void psd_unzip_with_prediction<uint16_t>(QByteArray &dst_buf, const int r
     }
 }
 
-QByteArray psd_unzip_with_prediction(const QByteArray &src, int dst_len, int row_size, int color_depth)
+PkByteArray psd_unzip_with_prediction(const PkByteArray &src, int dst_len, int row_size, int color_depth)
 {
-    QByteArray dst_buf = Compression::uncompress(dst_len, src, psd_compression_type::ZIP);
+    PkByteArray dst_buf = Compression::uncompress(dst_len, src, psd_compression_type::ZIP);
 
     if (dst_buf.size() == 0)
         return {};
@@ -307,10 +335,10 @@ QByteArray psd_unzip_with_prediction(const QByteArray &src, int dst_len, int row
 /**********************************************************************/
 
 template<typename T>
-inline void psd_zip_with_prediction(QByteArray &dst_buf, int row_size);
+inline void psd_zip_with_prediction(PkByteArray &dst_buf, int row_size);
 
 template<>
-inline void psd_zip_with_prediction<uint8_t>(QByteArray &dst_buf, const int row_size)
+inline void psd_zip_with_prediction<uint8_t>(PkByteArray &dst_buf, const int row_size)
 {
     auto *buf = reinterpret_cast<uint8_t *>(dst_buf.data());
     int len = 0;
@@ -328,7 +356,7 @@ inline void psd_zip_with_prediction<uint8_t>(QByteArray &dst_buf, const int row_
 }
 
 template<>
-inline void psd_zip_with_prediction<uint16_t>(QByteArray &dst_buf, const int row_size)
+inline void psd_zip_with_prediction<uint16_t>(PkByteArray &dst_buf, const int row_size)
 {
     auto *buf = reinterpret_cast<uint8_t *>(dst_buf.data());
     int len = 0;
@@ -346,9 +374,9 @@ inline void psd_zip_with_prediction<uint16_t>(QByteArray &dst_buf, const int row
     }
 }
 
-QByteArray psd_zip_with_prediction(const QByteArray &src, int row_size, int color_depth)
+PkByteArray psd_zip_with_prediction(const PkByteArray &src, int row_size, int color_depth)
 {
-    QByteArray dst_buf(src);
+    PkByteArray dst_buf(src);
     if (color_depth == 32) {
         // Placeholded for future implementation.
         errKrita << "Unsupported bit depth for prediction";
@@ -362,21 +390,26 @@ QByteArray psd_zip_with_prediction(const QByteArray &src, int row_size, int colo
     return Compression::compress(dst_buf, psd_compression_type::ZIP);
 }
 
-QByteArray decompress(const QByteArray &data, int expected_length)
+PkByteArray decompress(const PkByteArray &data, int expected_length)
 {
-    QByteArray output(expected_length, '\0');
+    PkByteArray output;
+    if (expected_length <= 0) {
+        // 退化输入：空输出，与 Qt 原路径的净结果一致。
+        return output;
+    }
+    output.resize(expected_length);
     const int result = psd_unzip_without_prediction(data.constData(), data.size(), output.data(), expected_length);
     if (result == 0)
-        return QByteArray();
+        return PkByteArray();
     else
         return output;
 }
 } // namespace KisZip
 
-QByteArray Compression::uncompress(int unpacked_len, QByteArray bytes, psd_compression_type compressionType, int row_size, int color_depth)
+PkByteArray Compression::uncompress(int unpacked_len, PkByteArray bytes, psd_compression_type compressionType, int row_size, int color_depth)
 {
     if (bytes.size() < 1)
-        return QByteArray();
+        return PkByteArray();
 
     switch (compressionType) {
     case Uncompressed:
@@ -391,13 +424,13 @@ QByteArray Compression::uncompress(int unpacked_len, QByteArray bytes, psd_compr
         qFatal("Cannot uncompress layer data: invalid compression type");
     }
 
-    return QByteArray();
+    return PkByteArray();
 }
 
-QByteArray Compression::compress(QByteArray bytes, psd_compression_type compressionType, int row_size, int color_depth)
+PkByteArray Compression::compress(PkByteArray bytes, psd_compression_type compressionType, int row_size, int color_depth)
 {
     if (bytes.size() < 1)
-        return QByteArray();
+        return PkByteArray();
 
     switch (compressionType) {
     case Uncompressed:
@@ -412,5 +445,5 @@ QByteArray Compression::compress(QByteArray bytes, psd_compression_type compress
         qFatal("Cannot compress layer data: invalid compression type");
     }
 
-    return QByteArray();
+    return PkByteArray();
 }
