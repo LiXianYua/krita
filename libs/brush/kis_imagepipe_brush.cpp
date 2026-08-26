@@ -153,37 +153,37 @@ public:
     }
 
     void setAdjustmentMidPoint(quint8 value) {
-        Q_FOREACH (KisGbrBrushSP brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->setAdjustmentMidPoint(value);
         }
     }
 
     void setBrightnessAdjustment(qreal value) {
-        Q_FOREACH (KisGbrBrushSP brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->setBrightnessAdjustment(value);
         }
     }
 
     void setContrastAdjustment(qreal value) {
-        Q_FOREACH (KisGbrBrushSP brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->setContrastAdjustment(value);
         }
     }
 
     void setAutoAdjustMidPoint(bool value) {
-        Q_FOREACH (KisGbrBrushSP brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->setAutoAdjustMidPoint(value);
         }
     }
 
     void makeMaskImage(bool preserveAlpha) {
-        Q_FOREACH (KisGbrBrushSP brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->makeMaskImage(preserveAlpha);
         }
     }
 
     bool saveToDevice(PkStream* dev) const {
-        Q_FOREACH (KisGbrBrushSP brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             if (!brush->saveToDevice(dev)) {
                 return false;
             }
@@ -192,7 +192,7 @@ public:
     }
 
     void coldInitBrush() {
-        Q_FOREACH (KisGbrBrushSP brush, m_brushes) {
+        for (const auto &brush : m_brushes) {
             brush->coldInitBrush();
         }
     }

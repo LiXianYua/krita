@@ -13,7 +13,6 @@
 #include <PkImage.h>
 #include <PkPoint.h>
 #include <PkMemoryStream.h>
-#include <QCryptographicHash>
 
 #include <klocalizedstring.h>
 

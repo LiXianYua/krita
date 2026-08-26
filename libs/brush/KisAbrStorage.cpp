@@ -64,7 +64,7 @@ public:
         abrTag->setResourceType(m_resourceType);
         abrTag->setValid(true);
         PkStringList brushes;
-        Q_FOREACH(const KisAbrBrushSP brush, m_brushCollection->brushes()) {
+        for (const auto &brush : m_brushCollection->brushes()) {
             brushes << brush->filename();
         }
         abrTag->setDefaultResources(brushes);
