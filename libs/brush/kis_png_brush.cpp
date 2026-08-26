@@ -167,9 +167,9 @@ bool KisPngBrush::loadFromDevice(PkStream *dev, KisResourcesInterfaceSP resource
 
 bool KisPngBrush::saveToDevice(PkStream *dev) const
 {
-    // GAP（登记）：PkImage 无 save()/文件 I/O，PNG 编码属 R-15/S-03-e 图像编解码
-    // 通道，未交付前本方法主树编不过。留待 R-15 后补（与加载路径同一条关闭条件）。
-    return brushTipImage().save(dev, "PNG");
+    Q_UNUSED(dev);
+    // GAP: PkImage::save 未交付（R-15/S-03-e libpng 通道）。PNG 编码待图像编解码任务。
+    return false;
 }
 
 PkString KisPngBrush::defaultFileExtension() const
