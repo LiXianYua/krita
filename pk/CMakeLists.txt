@@ -57,6 +57,18 @@ target_include_directories(pkstring PUBLIC
 )
 
 # =========================================================================
+# 2b. pk/uuid（S-05-b 补定义，QUuid 零 Qt 对应物；依赖 pkstring）
+# =========================================================================
+add_library(pkuuid STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/uuid/PkNodeId.cpp
+)
+target_include_directories(pkuuid PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/uuid
+    ${CMAKE_CURRENT_SOURCE_DIR}/string
+)
+target_link_libraries(pkuuid PUBLIC pkstring)
+
+# =========================================================================
 # 3. pk/global + pk/geometry
 #    注意：PkPolygon.h 继承 PkVector<PkPoint>（pk/container），
 #    PkVector<T> 是模板头文件，需要 include 路径。
