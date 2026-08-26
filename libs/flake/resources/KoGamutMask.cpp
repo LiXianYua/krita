@@ -86,6 +86,14 @@ struct KoGamutMask::Private {
     int rotation {0};
 };
 
+KoGamutMask::KoGamutMask(const PkString &filename)
+    : KoResource(filename)
+    , d(new Private)
+{
+    d->maskSize = QSizeF(144.0,144.0);
+    setRotation(0);
+}
+
 KoGamutMask::KoGamutMask(const QString& filename)
     : KoResource(toPkString(filename))
     , d(new Private)

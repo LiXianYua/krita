@@ -50,6 +50,10 @@ class KRITAFLAKE_EXPORT KoGamutMask : public QObject, public KoResource
 
 public:
     KoGamutMask(const QString &filename);
+    // 过渡期适配：stripped KisResourceLoader<T>::create() 用 PkString 构造资源（KisResourceLoader.h），
+    // real-Qt-first 的 KoGamutMask.cpp 只收 QString。加 PkString 版（内部 KoResource 直接收 PkString），
+    // 语义与 QString 版等价（QString 版也是 toPkString 后存 PkString）。flake 剥完（Q* 归零）后随 KisResourceLoader 一起删。
+    KoGamutMask(const PkString &filename);
     KoGamutMask();
     KoGamutMask(KoGamutMask *rhs);
     KoGamutMask(const KoGamutMask &rhs);

@@ -246,20 +246,20 @@ void registerResources()
     KisResourceLoaderRegistry *reg = KisResourceLoaderRegistry::instance();
 
     QList<QByteArray> src = QImageReader::supportedMimeTypes();
-    QStringList allImageMimes;
+    PkStringList allImageMimes;
     Q_FOREACH(const QByteArray ba, src) {
         if (QImageWriter::supportedMimeTypes().contains(ba)) {
-            allImageMimes << QString::fromUtf8(ba);
+            allImageMimes << PkString::PkFromUtf8(ba.constData(), ba.size());
         }
     }
     allImageMimes << KisMimeDatabase::mimeTypeForSuffix("pat");
 
-    reg->add(new KisResourceLoader<KoPattern>(ResourceType::Patterns, ResourceType::Patterns, i18n("Patterns"), allImageMimes));
-    reg->add(new KisResourceLoader<KoSegmentGradient>(ResourceSubType::SegmentedGradients, ResourceType::Gradients, i18n("Gradients"), QStringList() << "application/x-gimp-gradient"));
-    reg->add(new KisResourceLoader<KoStopGradient>(ResourceSubType::StopGradients, ResourceType::Gradients, i18n("Gradients"), QStringList() << "image/svg+xml"));
+    reg->add(new KisResourceLoader<KoPattern>(ResourceType::Patterns, ResourceType::Patterns, ResourceName::Patterns, allImageMimes));
+    reg->add(new KisResourceLoader<KoSegmentGradient>(ResourceSubType::SegmentedGradients, ResourceType::Gradients, ResourceName::Gradients, PkStringList() << "application/x-gimp-gradient"));
+    reg->add(new KisResourceLoader<KoStopGradient>(ResourceSubType::StopGradients, ResourceType::Gradients, ResourceName::Gradients, PkStringList() << "image/svg+xml"));
 
-    reg->add(new KisResourceLoader<KoColorSet>(ResourceType::Palettes, ResourceType::Palettes, i18n("Palettes"),
-                                     QStringList() << KisMimeDatabase::mimeTypeForSuffix("kpl")
+    reg->add(new KisResourceLoader<KoColorSet>(ResourceType::Palettes, ResourceType::Palettes, ResourceName::Palettes,
+                                     PkStringList() << KisMimeDatabase::mimeTypeForSuffix("kpl")
                                                << KisMimeDatabase::mimeTypeForSuffix("gpl")
                                                << KisMimeDatabase::mimeTypeForSuffix("pal")
                                                << KisMimeDatabase::mimeTypeForSuffix("act")
@@ -273,43 +273,44 @@ void registerResources()
 
 #if defined (TESTFLAKE) || defined(TESTIMAGE) || defined(TESTBRUSH) || defined(TESTUI)
 #if defined HAVE_SEEXPR
-    reg->add(new KisResourceLoader<KisSeExprScript>(ResourceType::SeExprScripts, ResourceType::SeExprScripts, i18n("SeExpr Scripts"), QStringList() << "application/x-krita-seexpr-script"));
+    reg->add(new KisResourceLoader<KisSeExprScript>(ResourceType::SeExprScripts, ResourceType::SeExprScripts, ResourceName::SeExprScripts, PkStringList() << "application/x-krita-seexpr-script"));
 #endif
-    reg->add(new KisResourceLoader<KoGamutMask>(ResourceType::GamutMasks, ResourceType::GamutMasks, i18n("Gamut masks"), QStringList() << "application/x-krita-gamutmasks"));
-    reg->add(new KisResourceLoader<KoSvgSymbolCollectionResource>(ResourceType::Symbols, ResourceType::Symbols, i18n("SVG symbol libraries"), QStringList() << "image/svg+xml"));
-    reg->add(new KisResourceLoader<KoFontFamily>(ResourceType::FontFamilies, ResourceType::FontFamilies, i18n("Font Families"), QStringList() << "application/x-font-ttf" << "application/x-font-otf"));
+    reg->add(new KisResourceLoader<KoGamutMask>(ResourceType::GamutMasks, ResourceType::GamutMasks, ResourceName::GamutMasks, PkStringList() << "application/x-krita-gamutmasks"));
+    reg->add(new KisResourceLoader<KoSvgSymbolCollectionResource>(ResourceType::Symbols, ResourceType::Symbols, ResourceName::Symbols, PkStringList() << "image/svg+xml"));
+    reg->add(new KisResourceLoader<KoFontFamily>(ResourceType::FontFamilies, ResourceType::FontFamilies, ResourceName::FontFamilies, PkStringList() << "application/x-font-ttf" << "application/x-font-otf"));
 #endif
 
 
 #if defined(TESTIMAGE) || defined(TESTBRUSH) || defined(TESTUI)
-     reg->add(new KisResourceLoader<KisPaintOpPreset>(ResourceType::PaintOpPresets, ResourceType::PaintOpPresets, i18n("Brush presets"), QStringList() << "application/x-krita-paintoppreset"));
+     reg->add(new KisResourceLoader<KisPaintOpPreset>(ResourceType::PaintOpPresets, ResourceType::PaintOpPresets, ResourceName::PaintOpPresets, PkStringList() << "application/x-krita-paintoppreset"));
      reg->add(new KisResourceLoader<KisPSDLayerStyle>(ResourceType::LayerStyles,
                                                      ResourceType::LayerStyles,
                                                      ResourceType::LayerStyles,
-                                                     QStringList() << "application/x-photoshop-style"));
+                                                     PkStringList() << "application/x-photoshop-style"));
 #endif
 
 #if defined(TESTBRUSH) || defined(TESTUI)
 
-    reg->add(new KisResourceLoader<KisGbrBrush>(ResourceSubType::GbrBrushes, ResourceType::Brushes, i18n("Brush tips"), QStringList() << "image/x-gimp-brush"));
-    reg->add(new KisResourceLoader<KisImagePipeBrush>(ResourceSubType::GihBrushes, ResourceType::Brushes, i18n("Brush tips"), QStringList() << "image/x-gimp-brush-animated"));
-    reg->add(new KisResourceLoader<KisSvgBrush>(ResourceSubType::SvgBrushes, ResourceType::Brushes, i18n("Brush tips"), QStringList() << "image/svg+xml"));
-    reg->add(new KisResourceLoader<KisPngBrush>(ResourceSubType::PngBrushes, ResourceType::Brushes, i18n("Brush tips"), QStringList() << "image/png"));
+    reg->add(new KisResourceLoader<KisGbrBrush>(ResourceSubType::GbrBrushes, ResourceType::Brushes, ResourceName::Brushes, PkStringList() << "image/x-gimp-brush"));
+    reg->add(new KisResourceLoader<KisImagePipeBrush>(ResourceSubType::GihBrushes, ResourceType::Brushes, ResourceName::Brushes, PkStringList() << "image/x-gimp-brush-animated"));
+    reg->add(new KisResourceLoader<KisSvgBrush>(ResourceSubType::SvgBrushes, ResourceType::Brushes, ResourceName::Brushes, PkStringList() << "image/svg+xml"));
+    reg->add(new KisResourceLoader<KisPngBrush>(ResourceSubType::PngBrushes, ResourceType::Brushes, ResourceName::Brushes, PkStringList() << "image/png"));
 
 #endif
 
 #if defined(TESTUI)
-    reg->add(new KisTestUiResourceLoader(ResourceType::WindowLayouts, ResourceType::WindowLayouts, i18n("Window layouts"), QStringList() << "application/x-krita-windowlayout"));
-    reg->add(new KisTestUiResourceLoader(ResourceType::Sessions, ResourceType::Sessions, i18n("Sessions"), QStringList() << "application/x-krita-session"));
-    reg->add(new KisTestUiResourceLoader(ResourceType::Workspaces, ResourceType::Workspaces, i18n("Workspaces"), QStringList() << "application/x-krita-workspace"));
+    reg->add(new KisTestUiResourceLoader(ResourceType::WindowLayouts, ResourceType::WindowLayouts, ResourceName::WindowLayouts, PkStringList() << "application/x-krita-windowlayout"));
+    reg->add(new KisTestUiResourceLoader(ResourceType::Sessions, ResourceType::Sessions, ResourceName::Sessions, PkStringList() << "application/x-krita-session"));
+    reg->add(new KisTestUiResourceLoader(ResourceType::Workspaces, ResourceType::Workspaces, ResourceName::Workspaces, PkStringList() << "application/x-krita-workspace"));
 #endif
 
 #if defined(TESTRESOURCES) || defined(TESTPIGMENT) || defined (TESTFLAKE) || defined(TESTBRUSH) || defined(TESTIMAGE) || defined(TESTUI)
-    if (!KisResourceCacheDb::initialize(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation))) {
+    const QByteArray appDataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toUtf8();
+    if (!KisResourceCacheDb::initialize(PkString::PkFromUtf8(appDataDir.constData(), appDataDir.size()))) {
         qFatal("Could not initialize the resource cachedb");
     }
 
-    KisResourceLocator::instance()->initialize(KoResourcePaths::getApplicationRoot() + "/share/krita");
+    KisResourceLocator::instance()->initialize(KoResourcePaths::getApplicationRoot() + PkString("/share/krita"));
 #endif
 
 }
