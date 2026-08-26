@@ -6,11 +6,15 @@
 #ifndef PSDTEXTDATAPARSER_H
 #define PSDTEXTDATAPARSER_H
 
-#include <QScopedPointer>
-#include <QStringList>
-#include <QRect>
-#include <QVariantHash>
-#include <QTransform>
+#include <memory>
+#include <PkColor.h>
+#include <PkMap.h>
+#include <PkRect.h>
+#include <PkStringList.h>
+#include <PkTransform.h>
+#include <PkVariant.h>
+#include <PkVector.h>
+#include <PkXmlElement.h>
 #include "kritapsdutils_export.h"
 
 class KoSvgTextShape;
@@ -18,7 +22,7 @@ class KoColorSpace;
 class KoShape;
 struct KoCSSFontInfo;
 class KoSvgTextProperties;
-class QDomElement;
+class PkXmlElement;
 
 /**
  * @brief The PsdTextDataConverter class
@@ -31,46 +35,46 @@ public:
     PsdTextDataConverter();
     ~PsdTextDataConverter();
 
-    bool convertPSDTextEngineDataToSVG(const QVariantHash tySh,
-                                       const QVariantHash txt2,
+    bool convertPSDTextEngineDataToSVG(const PkVariantHash tySh,
+                                       const PkVariantHash txt2,
                                        const KoColorSpace *imageCs,
                                        const int textIndex,
-                                       QString *svgText,
-                                       QString *svgStyles,
-                                       QPointF &offset,
+                                       PkString *svgText,
+                                       PkString *svgStyles,
+                                       PkPointF &offset,
                                        bool &offsetByAscent,
                                        bool &isHorizontal,
-                                       QTransform scaleToPt = QTransform());
-    bool convertToPSDTextEngineData(const QString &svgText,
-                                    QRectF &boundingBox,
-                                    const QList<KoShape *> &shapesInside,
-                                    QVariantHash &txt2,
+                                       PkTransform scaleToPt = PkTransform());
+    bool convertToPSDTextEngineData(const PkString &svgText,
+                                    PkRectF &boundingBox,
+                                    const PkList<KoShape *> &shapesInside,
+                                    PkVariantHash &txt2,
                                     int &textIndex,
-                                    QString &textTotal,
+                                    PkString &textTotal,
                                     bool &isHorizontal,
-                                    QTransform scaleToPx = QTransform());
+                                    PkTransform scaleToPx = PkTransform());
 
     /**
      * A list of errors happened during loading the user's text
      */
-    QStringList errors() const;
+    PkStringList errors() const;
     /**
      * A list of warnings produced during loading the user's text
      */
-    QStringList warnings() const;
+    PkStringList warnings() const;
 private:
 
-    QColor colorFromPSDStyleSheet(QVariantHash color, const KoColorSpace *imageCs);
-    QString stylesForPSDStyleSheet(QString &lang, QVariantHash PSDStyleSheet, QMap<int, KoCSSFontInfo> fontNames, QTransform scale, const KoColorSpace *imageCs);
-    QString stylesForPSDParagraphSheet(QVariantHash PSDParagraphSheet, QString &lang, QMap<int, KoCSSFontInfo> fontNames, QTransform scaleToPt, const KoColorSpace *imageCs);
+    PkColor colorFromPSDStyleSheet(PkVariantHash color, const KoColorSpace *imageCs);
+    PkString stylesForPSDStyleSheet(PkString &lang, PkVariantHash PSDStyleSheet, PkMap<int, KoCSSFontInfo> fontNames, PkTransform scale, const KoColorSpace *imageCs);
+    PkString stylesForPSDParagraphSheet(PkVariantHash PSDParagraphSheet, PkString &lang, PkMap<int, KoCSSFontInfo> fontNames, PkTransform scaleToPt, const KoColorSpace *imageCs);
 
-    QVariantHash styleToPSDStylesheet(const QMap<QString, QString> cssStyles, QVariantHash parentStyle, QTransform scaleToPx);
-    QVariantHash gatherParagraphStyle(QDomElement el, QVariantHash defaultProperties, bool &isHorizontal, QString *inlineSize, QTransform scaleToPx);
-    void gatherFonts(const QMap<QString, QString> cssStyles, const QString text, QVariantList &fontSet,
-                     QVector<int> &lengths, QVector<int> &fontIndices);
-    void gatherStyles(QDomElement el, QString &text, QVariantHash parentStyle, QMap<QString, QString> parentCssStyles, QVariantList &styles, QVariantList &fontSet, QTransform scaleToPx);
+    PkVariantHash styleToPSDStylesheet(const PkMap<PkString, PkString> cssStyles, PkVariantHash parentStyle, PkTransform scaleToPx);
+    PkVariantHash gatherParagraphStyle(PkXmlElement el, PkVariantHash defaultProperties, bool &isHorizontal, PkString *inlineSize, PkTransform scaleToPx);
+    void gatherFonts(const PkMap<PkString, PkString> cssStyles, const PkString text, PkVariantList &fontSet,
+                     PkVector<int> &lengths, PkVector<int> &fontIndices);
+    void gatherStyles(PkXmlElement el, PkString &text, PkVariantHash parentStyle, PkMap<PkString, PkString> parentCssStyles, PkVariantList &styles, PkVariantList &fontSet, PkTransform scaleToPx);
     struct Private;
-    const QScopedPointer<Private> d;
+    const std::unique_ptr<Private> d;
 };
 
 #endif // PSDTEXTDATAPARSER_H
