@@ -15,7 +15,6 @@
 #include <kis_filter_configuration.h>
 
 class WdgThreshold;
-class QWidget;
 class KisHistogram;
 
 

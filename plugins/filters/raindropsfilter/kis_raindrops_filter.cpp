@@ -18,7 +18,6 @@
 
 #include <PkDateTime.h>
 #include <PkPoint.h>
-#include <QSpinBox>
 
 #include <klocalizedstring.h>
 #include <kis_debug.h>
@@ -39,7 +38,7 @@
 #include <kis_random_accessor_ng.h>
 #include <KisGlobalResourcesInterface.h>
 
-#include <QRandomGenerator>
+#include <random>
 
 KisRainDropsFilter::KisRainDropsFilter()
     : KisFilter(id(), FiltersCategoryArtisticId, i18n("&Raindrops..."))
@@ -87,7 +86,7 @@ void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
     quint32 DropSize = config->getInt("dropSize", 80);
     quint32 number = config->getInt("number", 80);
     quint32 fishEyes = config->getInt("fishEyes", 30);
-    QRandomGenerator rng(config->getInt("seed"));
+    std::mt19937 rng(static_cast<unsigned int>(config->getInt("seed")));
 
     if (fishEyes <= 0) fishEyes = 1;
 
@@ -95,6 +94,12 @@ void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
 
     int Width = applyRect.width();
     int Height = applyRect.height();
+
+    // [GAP] QRandomGenerator::bounded(double) 语义：返回 [0, highest) 均匀分布。
+    // 用 std::mt19937 + uniform_real_distribution 复刻；seed 序列与 Qt 不保证一致（登记 Task 3 报告）。
+    std::uniform_real_distribution<double> dist01(0.0, 1.0);
+    std::uniform_real_distribution<double> distW(0.0, static_cast<double>(Width - 1));
+    std::uniform_real_distribution<double> distH(0.0, static_cast<double>(Height - 1));
 
     bool** BoolMatrix = CreateBoolArray(Width, Height);
 
@@ -130,7 +135,7 @@ void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
     KisRandomAccessorSP dstAccessor = device->createRandomAccessorNG();
     
     for (uint NumBlurs = 0; NumBlurs <= number; ++NumBlurs) {
-        NewSize = 5 + static_cast<int>(rng.bounded(1.0) * (DropSize - 5));
+        NewSize = 5 + static_cast<int>(dist01(rng) * (DropSize - 5));
         halfSize = NewSize / 2;
         Radius = halfSize;
         s = Radius / log(NewfishEyes * Radius + 1);
@@ -139,8 +144,8 @@ void KisRainDropsFilter::processImpl(KisPaintDeviceSP device,
 
         do {
             FindAnother = false;
-            y = static_cast<int>(rng.bounded(static_cast<double>(Width - 1)));
-            x = static_cast<int>(rng.bounded(static_cast<double>(Height - 1)));
+            y = static_cast<int>(distW(rng));
+            x = static_cast<int>(distH(rng));
 
             if (BoolMatrix[y][x])
                 FindAnother = true;

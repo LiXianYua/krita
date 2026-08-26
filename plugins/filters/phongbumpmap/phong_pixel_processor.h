@@ -7,8 +7,7 @@
 #ifndef PHONG_PIXEL_PROCESSOR_H
 #define PHONG_PIXEL_PROCESSOR_H
 
-#include <QVector3D>
-#include <PkDateTime.h>
+#include <PkVectorND.h>
 #include <PkColor.h>
 #include <PkList.h>
 #include <PkMap.h>
@@ -19,7 +18,7 @@
 struct Illuminant
 {
     PkList<qreal> RGBvalue;
-    QVector3D lightVector;
+    PkVector3D lightVector;
 };
 
 class PhongPixelProcessor
@@ -32,12 +31,12 @@ public:
     void initialize(const KisPropertiesConfigurationSP config);
     void normalizeHeightmap();
 
-    QVector3D reflection_vector;
-    QVector3D normal_vector;
-    QVector3D x_vector;
-    QVector3D y_vector;
-    QVector3D light_vector;
-    QVector3D vision_vector;
+    PkVector3D reflection_vector;
+    PkVector3D normal_vector;
+    PkVector3D x_vector;
+    PkVector3D y_vector;
+    PkVector3D light_vector;
+    PkVector3D vision_vector;
 
     PkVector<double> realheightmap;
 
@@ -66,7 +65,7 @@ public:
     PkVector<quint16> IlluminatePixel();
     PkVector<quint16> IlluminatePixelFromNormalmap(qreal r, qreal g, qreal b);
 
-    void setLightVector(QVector3D light_vector);
+    void setLightVector(PkVector3D light_vector);
 
     ///Light sources to use (those disabled in the GUI are not present here)
     PkList<Illuminant> lightSources;

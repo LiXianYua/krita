@@ -18,7 +18,6 @@ KisLevelsFilter::KisLevelsFilter()
 {
     setSupportsPainting(true);
     setColorSpaceIndependence(TO_LAB16);
-    setShortcut(QKeySequence(Qt::CTRL | Qt::Key_L));
 }
 
 KisFilterConfigurationSP KisLevelsFilter::factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const

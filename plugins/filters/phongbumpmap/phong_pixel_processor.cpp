@@ -18,16 +18,16 @@ PhongPixelProcessor::PhongPixelProcessor(quint32 pixelArea, const KisPropertiesC
 void PhongPixelProcessor::initialize(const KisPropertiesConfigurationSP config)
 {
     // Basic, fundamental
-    normal_vector = QVector3D(0, 0, 1);
-    vision_vector = QVector3D(0, 0, 1);
-    x_vector = QVector3D(1, 0, 0);
-    y_vector = QVector3D(0, 1, 0);
+    normal_vector = PkVector3D(0, 0, 1);
+    vision_vector = PkVector3D(0, 0, 1);
+    x_vector = PkVector3D(1, 0, 0);
+    y_vector = PkVector3D(0, 1, 0);
 
     // Mutable
-    light_vector = QVector3D(0, 0, 0);
-    reflection_vector = QVector3D(0, 0, 0);
+    light_vector = PkVector3D(0, 0, 0);
+    reflection_vector = PkVector3D(0, 0, 0);
 
-    //setLightVector(QVector3D(-8, 8, 2));
+    //setLightVector(PkVector3D(-8, 8, 2));
 
     Illuminant light[PHONG_TOTAL_ILLUMINANTS];
     PkVariant guiLight[PHONG_TOTAL_ILLUMINANTS];
@@ -86,7 +86,7 @@ PhongPixelProcessor::~PhongPixelProcessor()
 }
 
 
-void PhongPixelProcessor::setLightVector(QVector3D lightVector)
+void PhongPixelProcessor::setLightVector(PkVector3D lightVector)
 {
     lightVector.normalize();
     light_vector = lightVector;
@@ -133,7 +133,7 @@ PkVector<quint16> PhongPixelProcessor::IlluminatePixel()
             computation[channel] += Ia;
         }
         if (diffuseLightIsEnabled) {
-            temp = Kd * QVector3D::dotProduct(normal_vector, light_vector);
+            temp = Kd * PkVector3D::dotProduct(normal_vector, light_vector);
             for (channel = 0; channel < totalChannels; channel++) {
                 Id = lightSources.at(i).RGBvalue.at(channel) * temp;
                 if (Id < 0)     Id = 0;
@@ -143,8 +143,8 @@ PkVector<quint16> PhongPixelProcessor::IlluminatePixel()
         }
 
         if (specularLightIsEnabled) {
-            reflection_vector = (2 * pow(QVector3D::dotProduct(normal_vector, light_vector), shiny_exp)) * normal_vector - light_vector;
-            temp = Ks * QVector3D::dotProduct(vision_vector, reflection_vector);
+            reflection_vector = (2 * pow(PkVector3D::dotProduct(normal_vector, light_vector), shiny_exp)) * normal_vector - light_vector;
+            temp = Ks * PkVector3D::dotProduct(vision_vector, reflection_vector);
             for (channel = 0; channel < totalChannels; channel++) {
                 Is = lightSources.at(i).RGBvalue.at(channel) * temp;
                 if (Is < 0)     Is = 0;

@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <QSlider>
 #include <PkPoint.h>
 #include <PkColor.h>
 
@@ -45,7 +44,6 @@
 KisDesaturateFilter::KisDesaturateFilter()
    : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, i18n("&Desaturate..."))
 {
-    setShortcut(QKeySequence(Qt::CTRL, Qt::SHIFT, Qt::Key_U));
     setSupportsPainting(true);
 }
 

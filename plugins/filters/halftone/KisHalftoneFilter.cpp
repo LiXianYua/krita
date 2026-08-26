@@ -428,7 +428,7 @@ void KisHalftoneFilter::processChannels(KisPaintDeviceSP device,
             generatorDevices[i] = nullptr;
         } else {
             const PkString prefix =
-                device->colorSpace()->colorModelId().id() + "_channel" + PkString::number(i) + "_";
+                device->colorSpace()->colorModelId().id() + "_channel" + PkString("%1").arg(i) + "_";
             KisPaintDeviceSP generatorDevice = makeGeneratorPaintDevice(device, prefix, applyRect, config, nullptr);
             if (generatorDevice) {
                 generatorDevices[i] = generatorDevice;
@@ -448,7 +448,7 @@ void KisHalftoneFilter::processChannels(KisPaintDeviceSP device,
             continue;
         }
 
-        const PkString prefix = device->colorSpace()->colorModelId().id() + "_channel" + PkString::number(i) + "_";
+        const PkString prefix = device->colorSpace()->colorModelId().id() + "_channel" + PkString("%1").arg(i) + "_";
 
         switch (channels.at(i)->channelValueType()) {
         case KoChannelInfo::UINT8: {

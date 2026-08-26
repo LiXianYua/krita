@@ -8,14 +8,8 @@
 
 #include "kis_multichannel_filter_base.h"
 
-#include <Qt>
-#include <QLayout>
-#include <QPixmap>
-#include <QPainter>
 #include <PkXmlDocument.h>
-#include <QHBoxLayout>
-#include <QMessageBox>
-#include <QRegularExpression>
+#include <regex>
 
 #include "KoChannelInfo.h"
 #include "KoBasicHistogramProducers.h"
@@ -91,7 +85,7 @@ void KisMultiChannelFilterConfiguration::init()
     for (int i = 0; i < m_channelCount; ++i) {
         m_curves.append(getDefaultCurve());
 
-        const PkString name = QLatin1String("curve") + PkString::number(i);
+        const PkString name = PkString("curve%1").arg(i);
         const PkString value = m_curves.last().toString();
         KisColorTransformationConfiguration::setProperty(name, value);
     }
@@ -109,7 +103,7 @@ void KisMultiChannelFilterConfiguration::setCurves(PkList<KisCubicCurve> &curves
     // Clean unused properties
     if (curves.size() < m_curves.size()) {
         for (int i = curves.size(); i < m_curves.size(); ++i) {
-            const PkString name = QLatin1String("curve") + PkString::number(i);
+            const PkString name = PkString("curve%1").arg(i);
             KisColorTransformationConfiguration::removeProperty(name);
         }
     }
@@ -125,7 +119,7 @@ void KisMultiChannelFilterConfiguration::setCurves(PkList<KisCubicCurve> &curves
     KisColorTransformationConfiguration::setProperty("nTransfers", m_channelCount);
 
     for (int i = 0; i < m_curves.size(); ++i) {
-        const PkString name = QLatin1String("curve") + PkString::number(i);
+        const PkString name = PkString("curve%1").arg(i);
         const PkString value = m_curves[i].toString();
         KisColorTransformationConfiguration::setProperty(name, value);
     }
@@ -181,8 +175,8 @@ void KisMultiChannelFilterConfiguration::fromXML(const PkXmlElement& root)
     PkString attributeName;
     KisCubicCurve curve;
     quint16 index;
-    QRegularExpression curveRegexp("curve(\\d+)");
-    QRegularExpressionMatch match;
+    std::regex curveRegexp("curve(\\d+)");
+    std::smatch match;
 
     while (!e.isNull()) {
         if ((attributeName = e.attribute("name")) == "activeCurve") {
@@ -192,9 +186,10 @@ void KisMultiChannelFilterConfiguration::fromXML(const PkXmlElement& root)
         } else if ((attributeName = e.attribute("name")) == "nTransfersWithAlpha") {
             numTransfersWithAlpha = e.text().toUShort();
         } else {
-            if (attributeName.contains(curveRegexp, &match)) {
+            const std::string attributeUtf8 = attributeName.PkToUtf8();
+            if (std::regex_search(attributeUtf8, match, curveRegexp)) {
 
-                index = match.captured(1).toUShort();
+                index = static_cast<quint16>(std::stoi(match[1].str()));
                 index = qMin(index, quint16(curves.count()));
 
                 if (!e.text().isEmpty()) {
@@ -283,18 +278,18 @@ void KisMultiChannelFilterConfiguration::toXML(PkXmlDocument& doc, PkXmlElement&
     PkXmlText text;
     PkXmlElement t;
 
-    addParamNode(doc, root, "nTransfers", PkString::number(m_channelCount));
+    addParamNode(doc, root, "nTransfers", PkString("%1").arg(m_channelCount));
 
     if (m_activeCurve >= 0) {
         // save active curve if only it has non-default value
-        addParamNode(doc, root, "activeCurve", PkString::number(m_activeCurve));
+        addParamNode(doc, root, "activeCurve", PkString("%1").arg(m_activeCurve));
     }
 
     KisCubicCurve curve;
     PkString paramName;
 
     for (int i = 0; i < m_curves.size(); ++i) {
-        PkString name = QLatin1String("curve") + PkString::number(i);
+        PkString name = PkString("curve%1").arg(i);
         PkString value = m_curves[i].toString();
 
         addParamNode(doc, root, name, value);
@@ -332,7 +327,7 @@ void KisMultiChannelFilterConfiguration::setProperty(const PkString& name, const
                 m_curves.append(getDefaultCurve());
                 updateTransfer(i);
 
-                const PkString name = QLatin1String("curve") + PkString::number(i);
+                const PkString name = PkString("curve%1").arg(i);
                 const PkString value = m_curves.last().toString();
                 KisColorTransformationConfiguration::setProperty(name, value);
             }
@@ -340,7 +335,7 @@ void KisMultiChannelFilterConfiguration::setProperty(const PkString& name, const
             for (qint32 i = newChannelCount; i < m_channelCount; ++i) {
                 m_curves.removeLast();
 
-                const PkString name = QLatin1String("curve") + PkString::number(i);
+                const PkString name = PkString("curve%1").arg(i);
                 KisColorTransformationConfiguration::removeProperty(name);
             }
         }
@@ -374,13 +369,14 @@ void KisMultiChannelFilterConfiguration::setProperty(const PkString& name, const
 
 bool KisMultiChannelFilterConfiguration::curveIndexFromCurvePropertyName(const PkString& name, int& curveIndex) const
 {
-    QRegularExpression rx("curve(\\d+)");
-    QRegularExpressionMatch match;
-    if (!name.contains(rx, &match)) {
+    std::regex rx("curve(\\d+)");
+    std::smatch match;
+    const std::string nameUtf8 = name.PkToUtf8();
+    if (!std::regex_search(nameUtf8, match, rx)) {
         return false;
     }
 
-    curveIndex = match.captured(1).toUShort();
+    curveIndex = std::stoi(match[1].str());
     return true;
 }
 

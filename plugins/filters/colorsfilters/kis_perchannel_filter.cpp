@@ -8,12 +8,7 @@
 
 #include "kis_perchannel_filter.h"
 
-#include <Qt>
-#include <QLayout>
-#include <QPixmap>
-#include <QPainter>
 #include <PkXmlDocument.h>
-#include <QHBoxLayout>
 
 #include "KoChannelInfo.h"
 #include "KoBasicHistogramProducers.h"
@@ -67,7 +62,6 @@ KisCubicCurve KisPerChannelFilterConfiguration::getDefaultCurve()
 
 KisPerChannelFilter::KisPerChannelFilter() : KisMultiChannelFilter(id(), i18n("&Color Adjustment curves..."))
 {
-    setShortcut(QKeySequence(Qt::CTRL | Qt::Key_M));
 }
 
 KisFilterConfigurationSP  KisPerChannelFilter::factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const

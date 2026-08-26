@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <QRegularExpression>
+#include <regex>
 
 #include <kis_dom_utils.h>
 #include <KoColorSpace.h>
@@ -192,7 +192,7 @@ void KisLevelsFilterConfiguration::setProperty(const PkString &name, const PkVar
                name == "outblackvalue" || name == "outwhitevalue") {
         setLightessLevelsCurveFromLegacyValues();
         updateLightnessTransfer();
-    } else if (QRegularExpression("channel_\\d+").match(name).hasMatch()) {
+    } else if (std::regex_search(name.PkToUtf8(), std::regex("channel_\\d+"))) {
         updateTransfers();
     }
 }
@@ -260,10 +260,10 @@ void KisLevelsFilterConfiguration::fromXML(const PkXmlElement& root)
             } else if (attributeName == "number_of_channels") {
                 numChannels = e.text().toInt();
             } else {
-                const QRegularExpression rx("channel_(\\d+)");
-                const QRegularExpressionMatch match = rx.match(attributeName);
-                if (match.hasMatch()) {
-                    const int index = match.captured(1).toInt();
+                std::smatch match;
+                const std::string attributeUtf8 = attributeName.PkToUtf8();
+                if (std::regex_search(attributeUtf8, match, std::regex("channel_(\\d+)"))) {
+                    const int index = std::stoi(match[1].str());
                     if (!e.text().isEmpty()) {
                         levelsCurve.fromString(e.text());
                         unsortedLevelsCurves[index] = levelsCurve;

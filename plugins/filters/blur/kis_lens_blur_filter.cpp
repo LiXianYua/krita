@@ -22,8 +22,6 @@
 #include "kis_lod_transform.h"
 
 
-#include <QPainter>
-
 #include <math.h>
 
 
@@ -76,7 +74,7 @@ PkPolygonF KisLensBlurFilter::getIrisPolygon(const KisFilterConfigurationSP conf
     uint irisRotation = value.toUInt();
 
     if (irisRadius < 1)
-        return PkPolygon();
+        return PkPolygonF();
 
     PkPolygonF irisShapePoly;
 
@@ -130,25 +128,11 @@ void KisLensBlurFilter::processImpl(KisPaintDeviceSP device,
     int kernelWidth = boundingRect.toAlignedRect().width();
     int kernelHeight = boundingRect.toAlignedRect().height();
 
-    PkImage kernelRepresentation(kernelWidth, kernelHeight, PkImage::Format_RGB32);
-    kernelRepresentation.fill(0);
-
-    QPainter imagePainter(&kernelRepresentation);
-    imagePainter.setRenderHint(QPainter::Antialiasing);
-    imagePainter.setBrush(PkColor::fromRgb(255, 255, 255));
-
-    PkTransform offsetTransform;
-    offsetTransform.translate(-boundingRect.x(), -boundingRect.y());
-    imagePainter.setTransform(offsetTransform);
-    imagePainter.drawPolygon(transformedIris, Qt::WindingFill);
-
-    // construct kernel from image
+    // [GAP] QPainter 内核构造已剥离：原来用 QPainter 填充 transformedIris 多边形再读回像素。
+    // 现改用单位核（中心=1，其余=0），卷积退化为 no-op。恢复路径归 S-09/M5。
     Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> irisKernel(kernelHeight, kernelWidth);
-    for (int j = 0; j < kernelHeight; ++j) {
-        for (int i = 0; i < kernelWidth; ++i) {
-            irisKernel(j, i) = qRed(kernelRepresentation.pixel(i, j));
-        }
-    }
+    irisKernel.setZero();
+    irisKernel(kernelHeight / 2, kernelWidth / 2) = 1.0;
 
     // apply convolution
     KisConvolutionPainter painter(device);

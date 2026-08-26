@@ -7,8 +7,6 @@
  */
 
 #include "kis_color_to_alpha.h"
-#include <QCheckBox>
-#include <QSpinBox>
 
 #include <KoColorSpaceMaths.h>
 #include <KoConfig.h>

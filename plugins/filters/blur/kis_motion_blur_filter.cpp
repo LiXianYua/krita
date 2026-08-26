@@ -22,8 +22,6 @@
 #include "kis_lod_transform.h"
 
 
-#include <QPainter>
-
 #include <math.h>
 
 
@@ -105,21 +103,12 @@ void KisMotionBlurFilter::processImpl(KisPaintDeviceSP device,
         channelFlags = PkBitArray(device->colorSpace()->channelCount(), true);
     }
 
-    PkImage kernelRepresentation(props.kernelSize, PkImage::Format_RGB32);
-    kernelRepresentation.fill(0);
-
-    QPainter imagePainter(&kernelRepresentation);
-    imagePainter.setRenderHint(QPainter::Antialiasing);
-    imagePainter.setPen(PkPen(PkColor::fromRgb(255, 255, 255), 1.0));
-    imagePainter.drawLine(props.motionLine);
-
-    // construct kernel from image
+    // [GAP] QPainter 内核构造已剥离：原来用 QPainter 在 PkImage 上画 props.motionLine
+    // 再读回像素生成卷积核。现改用单位核（中心=1，其余=0），卷积退化为 no-op。
+    // 恢复路径归 S-09/M5（接回真实 QPainter 或软件光栅化）。
     Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> motionBlurKernel(props.kernelSize.height(), props.kernelSize.width());
-    for (int j = 0; j < props.kernelSize.height(); ++j) {
-        for (int i = 0; i < props.kernelSize.width(); ++i) {
-            motionBlurKernel(j, i) = qRed(kernelRepresentation.pixel(i, j));
-        }
-    }
+    motionBlurKernel.setZero();
+    motionBlurKernel(props.kernelSize.height() / 2, props.kernelSize.width() / 2) = 1.0;
 
     // apply convolution
     KisConvolutionPainter painter(device);

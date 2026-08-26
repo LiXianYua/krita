@@ -12,7 +12,6 @@
 #include "filter/kis_filter.h"
 #include "filter/kis_color_transformation_filter.h"
 
-class QWidget;
 class KoColorTransformation;
 
 /**

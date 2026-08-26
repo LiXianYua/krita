@@ -8,13 +8,8 @@
 
 #include "kis_cross_channel_filter.h"
 
-#include <Qt>
-#include <QLayout>
-#include <QPixmap>
-#include <QPainter>
 #include <PkXmlDocument.h>
-#include <QHBoxLayout>
-#include <QRegularExpression>
+#include <regex>
 
 #include "KoChannelInfo.h"
 #include "KoBasicHistogramProducers.h"
@@ -84,7 +79,7 @@ void KisCrossChannelFilterConfiguration::setDriverChannels(PkVector<int> driverC
     // Clean unused properties
     if (driverChannels.size() < m_driverChannels.size()) {
         for (int i = driverChannels.size(); i < m_driverChannels.size(); ++i) {
-            const PkString name = QLatin1String("driver") + PkString::number(i);
+            const PkString name = PkString("driver%1").arg(i);
             KisColorTransformationConfiguration::removeProperty(name);
         }
     }
@@ -93,7 +88,7 @@ void KisCrossChannelFilterConfiguration::setDriverChannels(PkVector<int> driverC
 
     // Update properties for python
     for (int i = 0; i < m_driverChannels.size(); ++i) {
-        const PkString name = QLatin1String("driver") + PkString::number(i);
+        const PkString name = PkString("driver%1").arg(i);
         const int value = m_driverChannels[i];
         KisColorTransformationConfiguration::setProperty(name, value);
     }
@@ -106,13 +101,14 @@ void KisCrossChannelFilterConfiguration::fromXML(const PkXmlElement& root)
     PkVector<int> driverChannels;
     driverChannels.resize(m_curves.size());
 
-    QRegularExpression rx("^driver(\\d+)$");
-    QRegularExpressionMatch match;
+    std::regex rx("^driver(\\d+)$");
+    std::smatch match;
     for (PkXmlElement e = root.firstChildElement(); !e.isNull(); e = e.nextSiblingElement()) {
         const PkString attributeName = e.attribute("name");
 
-        if (attributeName.contains(rx, &match)) {
-            int channel = match.captured(1).toUShort();
+        const std::string attributeUtf8 = attributeName.PkToUtf8();
+        if (std::regex_search(attributeUtf8, match, rx)) {
+            int channel = static_cast<quint16>(std::stoi(match[1].str()));
             int driver = KisDomUtils::toInt(e.text());
 
             if (0 <= channel && channel < driverChannels.size()) {
@@ -181,12 +177,12 @@ void KisCrossChannelFilterConfiguration::setProperty(const PkString& name, const
             for (qint32 i = prevChannelCount; i < newChannelCount; ++i) {
                 m_driverChannels[i] = defaultDriver;
 
-                const PkString name = QLatin1String("driver") + PkString::number(i);
+                const PkString name = PkString("driver%1").arg(i);
                 KisColorTransformationConfiguration::setProperty(name, defaultDriver);
             }
         } else {
             for (qint32 i = newChannelCount; i < prevChannelCount; ++i) {
-                const PkString name = QLatin1String("driver") + PkString::number(i);
+                const PkString name = PkString("driver%1").arg(i);
                 KisColorTransformationConfiguration::removeProperty(name);
             }
         }
@@ -216,13 +212,14 @@ void KisCrossChannelFilterConfiguration::setProperty(const PkString& name, const
 
 bool KisCrossChannelFilterConfiguration::channelIndexFromDriverPropertyName(const PkString& name, int& driverIndex) const
 {
-    QRegularExpression rx("driver(\\d+)");
-    QRegularExpressionMatch match;
-    if (!name.contains(rx, &match)) {
+    std::regex rx("driver(\\d+)");
+    std::smatch match;
+    const std::string nameUtf8 = name.PkToUtf8();
+    if (!std::regex_search(nameUtf8, match, rx)) {
         return false;
     }
 
-    driverIndex = match.captured(1).toUShort();
+    driverIndex = static_cast<quint16>(std::stoi(match[1].str()));
     return true;
 }
 

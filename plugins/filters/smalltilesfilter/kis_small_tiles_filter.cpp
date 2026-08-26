@@ -15,7 +15,6 @@
 #include <vector>
 
 #include <PkPoint.h>
-#include <QSpinBox>
 
 #include <klocalizedstring.h>
 #include <kpluginfactory.h>

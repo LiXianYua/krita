@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <QSlider>
+#include <PkScopedPointer.h>
 #include <PkPoint.h>
 #include <PkColor.h>
 
@@ -124,7 +124,7 @@ void KisAutoContrast::processImpl(KisPaintDeviceSP device,
     // build the transferfunction
     int diff = maxvalue - minvalue;
 
-    QScopedArrayPointer<quint16> transfer(new quint16[256]);
+    PkScopedArrayPointer<quint16> transfer(new quint16[256]);
     for (int i = 0; i < 255; i++)
         transfer[i] = 0xFFFF;
 

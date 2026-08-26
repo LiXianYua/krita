@@ -16,7 +16,7 @@
 #include <vector>
 
 #include <PkPoint.h>
-#include <QSpinBox>
+#include <PkScopedPointer.h>
 
 #include <klocalizedstring.h>
 #include <kpluginfactory.h>
@@ -66,7 +66,7 @@ void KisPixelizeFilter::processImpl(KisPaintDeviceSP device,
     const PkRect deviceBounds = device->defaultBounds()->bounds();
 
     const int bufferSize = pixelSize * pixelWidth * pixelHeight;
-    QScopedArrayPointer<quint8> buffer(new quint8[bufferSize]);
+    PkScopedArrayPointer<quint8> buffer(new quint8[bufferSize]);
 
     KoColor pixelColor(Qt::black, device->colorSpace());
     KoMixColorsOp *mixOp = device->colorSpace()->mixColorsOp();

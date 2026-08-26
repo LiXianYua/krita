@@ -11,7 +11,6 @@
 #include <vector>
 
 #include <PkPoint.h>
-#include <PkDateTime.h>
 
 #include <klocalizedstring.h>
 

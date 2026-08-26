@@ -17,8 +17,6 @@
 #include <vector>
 
 #include <PkPoint.h>
-#include <QSpinBox>
-#include <PkDateTime.h>
 
 #include <klocalizedstring.h>
 #include <kis_debug.h>

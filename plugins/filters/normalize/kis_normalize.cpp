@@ -9,8 +9,7 @@
 #include <vector>
 
 #include <PkPoint.h>
-#include <PkDateTime.h>
-#include <QVector3D>
+#include <PkVectorND.h>
 
 #include <kpluginfactory.h>
 #include <klocalizedstring.h>
@@ -70,7 +69,7 @@ void KisNormalizeTransformation::transform(const quint8* src, quint8* dst, qint3
         return;
     }
 
-    QVector3D normal_vector;
+    PkVector3D normal_vector;
     PkVector<float> channelValues(4);
     //if (m_colorSpace->colorDepthId().id()!="F16" && m_colorSpace->colorDepthId().id()!="F32" && m_colorSpace->colorDepthId().id()!="F64") {
     /* I don't know why, but the results of this are unexpected with a floating point space.

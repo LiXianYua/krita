@@ -21,9 +21,9 @@ KisHalftoneFilterConfiguration::KisHalftoneFilterConfiguration(const PkString & 
 KisHalftoneFilterConfiguration::KisHalftoneFilterConfiguration(const KisHalftoneFilterConfiguration &rhs)
     : KisFilterConfiguration(rhs)
 {
-    QHashIterator<PkString, KisFilterConfigurationSP> it(rhs.m_generatorConfigurationsCache);
-    while (it.hasNext()) {
-        it.next();
+    // PkHash 迭代器解引用得 value（Qt 形状，非 std::pair），键取 it.key()。
+    for (auto it = rhs.m_generatorConfigurationsCache.constBegin();
+         it != rhs.m_generatorConfigurationsCache.constEnd(); ++it) {
         m_generatorConfigurationsCache[it.key()] = it.value()->clone();
     }
 }
@@ -43,7 +43,7 @@ void KisHalftoneFilterConfiguration::setResourcesInterface(KisResourcesInterface
     if (mode() == HalftoneMode_IndependentChannels) {
         const PkString prefix = colorModelId() + "_channel";
         for (int i = 0; i < 4; ++i) {
-            const PkString fullPrefix = prefix + PkString::number(i) + "_";
+            const PkString fullPrefix = prefix + PkString("%1").arg(i) + "_";
             KisFilterConfigurationSP generatorConfig = generatorConfiguration(fullPrefix);
             if (generatorConfig) {
                 m_generatorConfigurationsCache[fullPrefix]->setResourcesInterface(resourcesInterface);
@@ -65,7 +65,7 @@ PkList<KoResourceLoadResult> KisHalftoneFilterConfiguration::linkedResources(Kis
     if (mode() == HalftoneMode_IndependentChannels) {
         const PkString prefix = colorModelId() + "_channel";
         for (int i = 0; i < 4; ++i) {
-            const PkString fullPrefix = prefix + PkString::number(i) + "_";
+            const PkString fullPrefix = prefix + PkString("%1").arg(i) + "_";
             KisFilterConfigurationSP generatorConfig = generatorConfiguration(fullPrefix);
             if (generatorConfig) {
                 resourcesList += generatorConfig->linkedResources(globalResourcesInterface);
@@ -89,7 +89,7 @@ PkList<KoResourceLoadResult> KisHalftoneFilterConfiguration::embeddedResources(K
     if (mode() == HalftoneMode_IndependentChannels) {
         const PkString prefix = colorModelId() + "_channel";
         for (int i = 0; i < 4; ++i) {
-            const PkString fullPrefix = prefix + PkString::number(i) + "_";
+            const PkString fullPrefix = prefix + PkString("%1").arg(i) + "_";
             KisFilterConfigurationSP generatorConfig = generatorConfiguration(fullPrefix);
             if (generatorConfig) {
                 resourcesList += generatorConfig->embeddedResources(globalResourcesInterface);
