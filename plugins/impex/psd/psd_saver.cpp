@@ -37,7 +37,7 @@
 
 
 
-QPair<psd_color_mode, quint16> colormodelid_to_psd_colormode(const PkString &colorSpaceId, const PkString &colorDepthId)
+std::pair<psd_color_mode, quint16> colormodelid_to_psd_colormode(const PkString &colorSpaceId, const PkString &colorDepthId)
 {
     psd_color_mode colorMode = COLORMODE_UNKNOWN;
     if (colorSpaceId == RGBAColorModelID.id()) {
@@ -68,7 +68,7 @@ QPair<psd_color_mode, quint16> colormodelid_to_psd_colormode(const PkString &col
         depth = 32;
     }
 
-    return QPair<psd_color_mode, quint16>(colorMode, depth);
+    return std::pair<psd_color_mode, quint16>(colorMode, depth);
 }
 
 
@@ -115,7 +115,7 @@ KisImportExportErrorCode PSDSaver::buildFile(PkStream &io)
     header.width = m_image->width();
     header.height = m_image->height();
 
-    QPair<psd_color_mode, quint16> colordef = colormodelid_to_psd_colormode(m_image->colorSpace()->colorModelId().id(),
+    std::pair<psd_color_mode, quint16> colordef = colormodelid_to_psd_colormode(m_image->colorSpace()->colorModelId().id(),
                                                                           m_image->colorSpace()->colorDepthId().id());
 
     if (colordef.first == COLORMODE_UNKNOWN || colordef.second == 0 || colordef.second == 32) {

@@ -13,7 +13,7 @@
 class psdImport : public KisImportExportFilter {
     Q_OBJECT
     public:
-        psdImport(QObject *parent, const PkVariantList &);
+        psdImport(PkObject *parent, const PkVariantList &);
         ~psdImport() override;
     public:
         KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;

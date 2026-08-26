@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-#include <QObject>
+#include <PkObject.h>
 
 
 #include "kis_types.h"
@@ -21,7 +21,7 @@ extern const int MAX_PSD_SIZE;
 
 class KisDocument;
 
-class PSDSaver : public QObject {
+class PSDSaver : public PkObject {
 
     Q_OBJECT
 

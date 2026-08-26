@@ -14,7 +14,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_psd_import.json", registerPlugin<psdImport>();)
 
-psdImport::psdImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+psdImport::psdImport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 

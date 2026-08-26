@@ -30,17 +30,20 @@ bool PSDColorModeBlock::read(PkStream &io)
     }
 
     if (colormode == Indexed && blocksize != 768) {
-        error = PkString("Indexed mode, but block size is %1.").arg(blocksize);
+        error = PkString("Indexed mode, but block size is %1.").arg(static_cast<int>(blocksize));
         return false;
     }
 
-    data = io.read(blocksize);
-    if ((quint32)data.size() != blocksize) return false;
+    data.resize(blocksize);
+    const auto bytesRead = io.read(data.data(), blocksize);
+    if (bytesRead != blocksize) return false;
 
     if (colormode == Indexed) {
         int i = 0;
         while (i <= 767) {
-            colormap.append(qRgb(data[i],data[i + 1],data[i + 2]));
+            colormap.append(PkColor::fromRgb(static_cast<quint8>(data.constData()[i]),
+                                             static_cast<quint8>(data.constData()[i + 1]),
+                                             static_cast<quint8>(data.constData()[i + 2])));
             i += 3;
         }
     }
@@ -82,7 +85,7 @@ bool PSDColorModeBlock::valid()
         return false;
     }
     if (colormode == Indexed && blocksize != 768) {
-        error = PkString("Indexed mode, but block size is %1.").arg(blocksize);
+        error = PkString("Indexed mode, but block size is %1.").arg(static_cast<int>(blocksize));
         return false;
     }
     if (colormode == DuoTone && blocksize == 0) {
@@ -90,7 +93,7 @@ bool PSDColorModeBlock::valid()
         return false;
     }
     if ((quint32)data.size() != blocksize) {
-        error = PkString("Data size is %1, but block size is %2").arg(data.size()).arg(blocksize);
+        error = PkString("Data size is %1, but block size is %2").arg(data.size()).arg(static_cast<int>(blocksize));
         return false;
     }
     return true;

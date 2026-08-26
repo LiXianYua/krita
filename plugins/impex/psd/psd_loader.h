@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-#include <QObject>
+#include <PkObject.h>
 
 
 #include "kis_types.h"
@@ -16,7 +16,7 @@
 class KisDocument;
 class KisImportUserFeedbackInterface;
 
-class PSDLoader : public QObject {
+class PSDLoader : public PkObject {
 
     Q_OBJECT
 

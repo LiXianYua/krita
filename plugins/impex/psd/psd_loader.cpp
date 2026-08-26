@@ -5,10 +5,7 @@
  */
 #include "psd_loader.h"
 
-#include <QApplication>
-
-#include <QStack>
-#include <QMessageBox>
+#include <stack>
 
 #include <KoColorSpace.h>
 #include <KoColorSpaceRegistry.h>
@@ -110,9 +107,9 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
     // are no layers.
 
     // Get the right colorspace
-    QPair<PkString, PkString> colorSpaceId = psd_colormode_to_colormodelid(header.colormode,
+    std::pair<PkString, PkString> colorSpaceId = psd_colormode_to_colormodelid(header.colormode,
                                                                          header.channelDepth);
-    if (colorSpaceId.first.isNull()) {
+    if (colorSpaceId.first.isEmpty()) {
         dbgFile << "Unsupported colorspace" << header.colormode << header.channelDepth;
         return ImportExportCodes::FormatColorSpaceUnsupported;
     }
@@ -229,7 +226,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
 
     // More than one layer, so now construct the Krita image from the info we read.
 
-    QStack<KisGroupLayerSP> groupStack;
+    std::stack<KisGroupLayerSP> groupStack;
     groupStack.push(m_image->rootLayer());
 
     /**
@@ -240,7 +237,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
      */
     KisNodeSP lastAddedLayer;
 
-    typedef QPair<PkXmlDocument, KisLayerSP> LayerStyleMapping;
+    typedef std::pair<PkXmlDocument, KisLayerSP> LayerStyleMapping;
     PkVector<LayerStyleMapping> allStylesXml;
     using namespace std::placeholders;
 
@@ -248,14 +245,10 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
     for (int i = 0; i < layerSection.nLayers; i++) {
         if (!layerSection.layers.at(i)->infoBlocks.textData.isNull()) {
             KisImportUserFeedbackInterface::Result result =
-                    m_feedbackInterface->askUser([&] (QWidget *parent) {
-                    QMessageBox::StandardButton btn = QMessageBox::question(parent,
-                                                i18nc("@title:window PSD import question about text.", "Found Text Layers"),
-                                                i18nc("PSD import question about text",
-                                                      "Found text objects, do you wish to load them as editable text shapes? "
-                                                      "If not, they will be loaded as pixel data, which will be visually"
-                                                      " more accurate to the original file."));
-                    return (btn == QMessageBox::Yes);
+                    m_feedbackInterface->askUser([&] (PkWidget *) {
+                // Pk headless: default to converting text to shapes. Dialog presentation
+                // is the UI layer's askUser implementation (S9).
+                return true;
             });
             convertTextToShape = (result == KisImportUserFeedbackInterface::Success
                                   || result == KisImportUserFeedbackInterface::SuppressedByBatchMode);
@@ -272,7 +265,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
         if (layerRecord->infoBlocks.keys.contains("lsct") &&
             layerRecord->infoBlocks.sectionDividerType != psd_other) {
 
-            if (layerRecord->infoBlocks.sectionDividerType == psd_bounding_divider && !groupStack.isEmpty()) {
+            if (layerRecord->infoBlocks.sectionDividerType == psd_bounding_divider && !groupStack.empty()) {
                 KisGroupLayerSP groupLayer = new KisGroupLayer(m_image, "temp", OPACITY_OPAQUE_U8);
                 m_image->addNode(groupLayer, groupStack.top());
                 groupStack.push(groupLayer);
@@ -280,7 +273,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
             }
             else if ((layerRecord->infoBlocks.sectionDividerType == psd_open_folder ||
                       layerRecord->infoBlocks.sectionDividerType == psd_closed_folder) &&
-                     (groupStack.size() > 1 || (lastAddedLayer && !groupStack.isEmpty()))) {
+                     (groupStack.size() > 1 || (lastAddedLayer && !groupStack.empty()))) {
                 KisGroupLayerSP groupLayer;
 
                 if (groupStack.size() <= 1) {
@@ -288,7 +281,8 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                     m_image->addNode(groupLayer, groupStack.top());
                     m_image->moveNode(lastAddedLayer, groupLayer, KisNodeSP());
                 } else {
-                    groupLayer = groupStack.pop();
+                    groupLayer = groupStack.top();
+                    groupStack.pop();
                 }
 
                 const PkXmlDocument &styleXml = layerRecord->infoBlocks.layerStyleXml;
@@ -553,7 +547,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                 allStylesXml << LayerStyleMapping(styleXml, layer);
             }
 
-            if (!groupStack.isEmpty()) {
+            if (!groupStack.empty()) {
                 m_image->addNode(layer, groupStack.top());
             }
             else {
@@ -637,7 +631,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                 layerStyle->setName(layer->name());
                 layerStyle->setResourcesInterface(resourceProxy.detachedResourcesInterface());
                 if (!layerStyle->uuid().isNull()) {
-                    layerStyle->setUuid(QUuid::createUuid());
+                    layerStyle->setUuid(PkNodeId::createUuid());
                 }
                 layerStyle->setValid(true);
 

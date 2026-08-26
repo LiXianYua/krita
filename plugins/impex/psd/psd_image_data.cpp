@@ -12,7 +12,6 @@
 #include <PkFileStream.h>
 #include <kis_debug.h>
 #include <PkVector.h>
-#include <QBuffer>
 
 #include <KoChannelInfo.h>
 #include <KoColorSpace.h>

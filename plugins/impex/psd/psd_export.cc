@@ -5,10 +5,6 @@
  */
 #include "psd_export.h"
 
-#include <QCheckBox>
-#include <QSlider>
-#include <QApplication>
-
 #include <kpluginfactory.h>
 
 #include <KisExportCheckRegistry.h>
@@ -29,7 +25,7 @@ class KisExternalLayer;
 
 K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_psd_export.json", registerPlugin<psdExport>();)
 
-psdExport::psdExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
+psdExport::psdExport(PkObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -61,18 +57,18 @@ void psdExport::initializeCapabilities()
         addCapability(factory->create(30000, 30000, KisExportCheckBase::SUPPORTED));
     }
 
-    PkList<QPair<KoID, KoID> > supportedColorModels;
-    supportedColorModels << QPair<KoID, KoID>()
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
-//            << QPair<KoID, KoID>(RGBAColorModelID, Float16BitsColorDepthID)
-//            << QPair<KoID, KoID>(RGBAColorModelID, Float32BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID)
-            << QPair<KoID, KoID>(CMYKAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(CMYKAColorModelID, Integer16BitsColorDepthID)
-            << QPair<KoID, KoID>(LABAColorModelID, Integer8BitsColorDepthID)
-            << QPair<KoID, KoID>(LABAColorModelID, Integer16BitsColorDepthID);
+    PkList<std::pair<KoID, KoID> > supportedColorModels;
+    supportedColorModels << std::pair<KoID, KoID>()
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
+//            << std::pair<KoID, KoID>(RGBAColorModelID, Float16BitsColorDepthID)
+//            << std::pair<KoID, KoID>(RGBAColorModelID, Float32BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(GrayAColorModelID, Integer16BitsColorDepthID)
+            << std::pair<KoID, KoID>(CMYKAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(CMYKAColorModelID, Integer16BitsColorDepthID)
+            << std::pair<KoID, KoID>(LABAColorModelID, Integer8BitsColorDepthID)
+            << std::pair<KoID, KoID>(LABAColorModelID, Integer16BitsColorDepthID);
     addSupportedColorModels(supportedColorModels, "PSD");
 
     addCapability(KisExportCheckRegistry::instance()->get("FillLayerTypeCheck/color")->create(KisExportCheckBase::SUPPORTED));
