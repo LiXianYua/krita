@@ -16,6 +16,20 @@
 #include <simpletest.h>
 
 
+// QList<QTransform> → PkList<PkTransform>：KoShapeTransformCommand 收 Pk 变换表
+// （stripped 命令类），本测试 TU 真 Qt 头在前、构造 QList<QTransform>，逐点
+// toPkTransform 转（PkFlakeBridge）。flake 剥完（变换归 Pk）后本辅助连同调用点一起删。
+static PkList<PkTransform> toPkTransforms(const QList<QTransform> &transforms)
+{
+    PkList<PkTransform> out;
+    for (const QTransform &t : transforms) {
+        out.append(toPkTransform(t));
+    }
+    return out;
+}
+
+
+
 void TestShapeContainer::testModel()
 {
     MockContainerModel *model = new MockContainerModel();
@@ -109,7 +123,7 @@ void TestShapeContainer::testScaling()
     groupedShapes.append(shape2);
 
     KoShapeGroup *group = new KoShapeGroup();
-    KoShapeGroupCommand* groupCommand = KoShapeGroupCommand::createCommand(group, groupedShapes);
+    KoShapeGroupCommand* groupCommand = KoShapeGroupCommand::createCommand(group, toPkList(groupedShapes));
     groupCommand->redo();
 
     QList<KoShape*> transformShapes;
@@ -134,7 +148,7 @@ void TestShapeContainer::testScaling()
     }
 
     KoShapeTransformCommand* transformCommand;
-    transformCommand = new KoShapeTransformCommand(transformShapes, oldTransformations, newTransformations);
+    transformCommand = new KoShapeTransformCommand(toPkList(transformShapes), toPkTransforms(oldTransformations), toPkTransforms(newTransformations));
     transformCommand->redo();
 
     for(int i=0; i< transformShapes.size(); i++) {
@@ -142,7 +156,7 @@ void TestShapeContainer::testScaling()
     }
 
     transformShapes.takeLast();
-    KoShapeUngroupCommand* ungroupCmd = new KoShapeUngroupCommand(group, transformShapes);
+    KoShapeUngroupCommand* ungroupCmd = new KoShapeUngroupCommand(group, toPkList(transformShapes));
     ungroupCmd->redo();
 
     for(int i=0; i< transformShapes.size(); i++) {
@@ -167,7 +181,7 @@ void TestShapeContainer::testScaling2()
 
     QScopedPointer<KoShapeGroup> group(new KoShapeGroup());
     QScopedPointer<KoShapeGroupCommand> groupCommand(
-        KoShapeGroupCommand::createCommand(group.data(), groupedShapes));
+        KoShapeGroupCommand::createCommand(group.data(), toPkList(groupedShapes)));
     groupCommand->redo();
 
     QScopedPointer<KoSelection> selection(new KoSelection());
@@ -195,7 +209,7 @@ void TestShapeContainer::testScaling2()
     }
 
     QScopedPointer<KoShapeTransformCommand> transformCommand(
-        new KoShapeTransformCommand(transformShapes, oldTransformations, newTransformations));
+        new KoShapeTransformCommand(toPkList(transformShapes), toPkTransforms(oldTransformations), toPkTransforms(newTransformations)));
     transformCommand->redo();
 
     QCOMPARE(selection->boundingRect(), group->boundingRect());

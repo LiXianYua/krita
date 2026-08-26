@@ -4,6 +4,7 @@
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+#include <QtMath>
 #include "TestResourceManager.h"
 
 #include "KoCanvasResourceProvider.h"
@@ -12,6 +13,7 @@
 #include "KoUnit.h"
 #include <QSignalSpy>
 #include <simpletest.h>
+#include <PkFlakeBridge.h>
 
 #include "kis_debug.h"
 
@@ -70,7 +72,7 @@ void TestResourceManager::testConverters()
     QCOMPARE(m.resource(key2).toInt(), 2);
     QVERIFY(!m.hasResource(derivedKey));
 
-    m.addDerivedResourceConverter(toQShared(new DerivedResource(derivedKey, key2)));
+    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new DerivedResource(derivedKey, key2))));
 
     QCOMPARE(m.resource(derivedKey).toInt(), 12);
     QVERIFY(m.hasResource(derivedKey));
@@ -95,8 +97,8 @@ void TestResourceManager::testDerivedChanged()
     const int otherDerivedKey = 4;
 
     KoCanvasResourceProvider m(0);
-    m.addDerivedResourceConverter(toQShared(new DerivedResource(derivedKey, key2)));
-    m.addDerivedResourceConverter(toQShared(new DerivedResource(otherDerivedKey, key2)));
+    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new DerivedResource(derivedKey, key2))));
+    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new DerivedResource(otherDerivedKey, key2))));
 
     m.setResource(derivedKey, 15);
 
@@ -190,8 +192,8 @@ void TestResourceManager::testComplexResource()
     const int complex2 = 4;
 
     KoCanvasResourceProvider m(0);
-    m.addDerivedResourceConverter(toQShared(new ComplexConverter(complex1, key)));
-    m.addDerivedResourceConverter(toQShared(new ComplexConverter(complex2, key)));
+    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new ComplexConverter(complex1, key))));
+    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new ComplexConverter(complex2, key))));
 
     ComplexMediatorSP mediator(new ComplexMediator(key));
     m.addResourceUpdateMediator(mediator);
@@ -402,7 +404,7 @@ void TestResourceManager::testNeverChangingConverters()
     QCOMPARE(m.resource(key2).toInt(), 2);
     QVERIFY(!m.hasResource(derivedKey));
 
-    m.addDerivedResourceConverter(toQShared(new NeverChangingResource(derivedKey, key2)));
+    m.addDerivedResourceConverter(toQSharedPointer(toQShared(new NeverChangingResource(derivedKey, key2))));
 
     QVERIFY(m.hasResource(derivedKey));
     QCOMPARE(m.resource(derivedKey).toInt(), 10);

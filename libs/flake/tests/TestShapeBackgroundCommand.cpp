@@ -24,7 +24,7 @@ void TestShapeBackgroundCommand::refCounting()
     QVERIFY(shape1->background() == whiteFill);
 
     // old fill is white, new fill is black
-    KUndo2Command *cmd1 = new KoShapeBackgroundCommand(shape1, blackFill);
+    KUndo2Command *cmd1 = new KoShapeBackgroundCommand(shape1, toPkSharedPointer(blackFill));
     cmd1->redo();
     QVERIFY(shape1->background() == blackFill);
 
@@ -33,7 +33,7 @@ void TestShapeBackgroundCommand::refCounting()
     QVERIFY(shape1->background() == whiteFill);
 
     // old fill is white, new fill is red
-    KUndo2Command *cmd2 = new KoShapeBackgroundCommand(shape1, redFill);
+    KUndo2Command *cmd2 = new KoShapeBackgroundCommand(shape1, toPkSharedPointer(redFill));
     cmd2->redo();
     QVERIFY(shape1->background() == redFill);
 

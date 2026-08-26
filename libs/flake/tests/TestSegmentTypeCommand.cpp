@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: LGPL-2.0-or-later
  */
 
+#include <QtMath>
 #include "TestSegmentTypeCommand.h"
 #include "KoPathSegmentTypeCommand.h"
 #include <KoPathSegment.h>
 #include <simpletest.h>
+#include <PkFlakeBridge.h>
 
 void TestSegmentTypeCommand::changeToCurve()
 {
@@ -22,7 +24,7 @@ void TestSegmentTypeCommand::changeToCurve()
     // get first segment
     KoPathSegment s = path.segmentByIndex(KoPathPointIndex(0,0));
 
-    KoPathSegmentTypeCommand cmd(segments, KoPathSegmentTypeCommand::Curve);
+    KoPathSegmentTypeCommand cmd(toPkList(segments), KoPathSegmentTypeCommand::Curve);
 
     QVERIFY(!s.first()->activeControlPoint2());
     QVERIFY(!s.second()->activeControlPoint1());
@@ -51,7 +53,7 @@ void TestSegmentTypeCommand::changeToLine()
     // get first segment
     KoPathSegment s = path.segmentByIndex(KoPathPointIndex(0,0));
 
-    KoPathSegmentTypeCommand cmd(segments, KoPathSegmentTypeCommand::Line);
+    KoPathSegmentTypeCommand cmd(toPkList(segments), KoPathSegmentTypeCommand::Line);
 
     QVERIFY(s.first()->activeControlPoint2());
     QVERIFY(s.second()->activeControlPoint1());

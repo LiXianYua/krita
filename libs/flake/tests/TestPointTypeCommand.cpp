@@ -3,6 +3,7 @@
 
    SPDX-License-Identifier: LGPL-2.0-or-later
 */
+#include <QtMath>
 #include "TestPointTypeCommand.h"
 
 #include <QPainterPath>
@@ -10,6 +11,7 @@
 #include "KoPathPointTypeCommand.h"
 
 #include <simpletest.h>
+#include <PkFlakeBridge.h>
 
 void TestPointTypeCommand::redoUndoSymmetric()
 {
@@ -34,7 +36,7 @@ void TestPointTypeCommand::redoUndoSymmetric()
     QPainterPath ppath1Org = path1.outline();
     QPainterPath ppath2Org = path2.outline();
 
-    KoPathPointTypeCommand cmd(pd, KoPathPointTypeCommand::Symmetric);
+    KoPathPointTypeCommand cmd(toPkList(pd), KoPathPointTypeCommand::Symmetric);
     cmd.redo();
 
     QPainterPath ppath(QPointF(0, 0));
@@ -77,7 +79,7 @@ void TestPointTypeCommand::redoUndoSmooth()
     QPainterPath ppath1Org = path1.outline();
     QPainterPath ppath2Org = path2.outline();
 
-    KoPathPointTypeCommand cmd(pd, KoPathPointTypeCommand::Smooth);
+    KoPathPointTypeCommand cmd(toPkList(pd), KoPathPointTypeCommand::Smooth);
     cmd.redo();
 
     QPainterPath ppath(QPointF(0, 0));
@@ -120,10 +122,10 @@ void TestPointTypeCommand::redoUndoCorner()
     QPainterPath ppath1Org = path1.outline();
     QPainterPath ppath2Org = path2.outline();
 
-    KoPathPointTypeCommand cmd1(pd, KoPathPointTypeCommand::Symmetric);
+    KoPathPointTypeCommand cmd1(toPkList(pd), KoPathPointTypeCommand::Symmetric);
     cmd1.redo();
 
-    KoPathPointTypeCommand cmd2(pd, KoPathPointTypeCommand::Corner);
+    KoPathPointTypeCommand cmd2(toPkList(pd), KoPathPointTypeCommand::Corner);
     cmd2.redo();
 
     QPainterPath ppath(QPointF(0, 0));

@@ -5,6 +5,7 @@
 #ifndef MOCKSHAPES_H
 #define MOCKSHAPES_H
 
+#include <QtMath>
 #include <KoSelectedShapesProxySimple.h>
 #include <KoShapeGroup.h>
 #include <KoCanvasBase.h>
@@ -33,6 +34,7 @@ public:
 };
 
 #include <SimpleShapeContainerModel.h>
+#include <PkFlakeBridge.h>
 
 class KRITAFLAKE_EXPORT MockContainer : public KoShapeContainer
 {
