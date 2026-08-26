@@ -7,8 +7,7 @@
 #include "psd_header_test.h"
 
 #include <simpletest.h>
-#include <QCoreApplication>
-#include <klocalizedstring.h>
+#include <PkFileStream.h>
 #include <psd_header.h>
 #ifndef FILES_DATA_DIR
 #error "FILES_DATA_DIR not set. A directory with the data used for testing the importing of files in krita"
@@ -17,7 +16,7 @@
 void PSDHeaderTest::testCreation()
 {
     PSDHeader header;
-    Q_ASSERT(!header.valid());
+    KIS_ASSERT(!header.valid());
 }
 
 void PSDHeaderTest::testLoading()
@@ -28,13 +27,13 @@ void PSDHeaderTest::testLoading()
     PSDHeader header;
     header.read(f);
 
-    QVERIFY(header.signature == PkString("8BPS"));
-    QVERIFY(header.version == 1);
-    QVERIFY(header.nChannels == 3);
-    QVERIFY(header.width == 100 );
-    QVERIFY(header.height == 100);
-    QVERIFY(header.channelDepth == 8);
-    QVERIFY(header.colormode == RGB);
+    PK_VERIFY(header.signature == PkString("8BPS"));
+    PK_VERIFY(header.version == 1);
+    PK_VERIFY(header.nChannels == 3);
+    PK_VERIFY(header.width == 100 );
+    PK_VERIFY(header.height == 100);
+    PK_VERIFY(header.channelDepth == 8);
+    PK_VERIFY(header.colormode == RGB);
 
 }
 
@@ -44,7 +43,7 @@ void PSDHeaderTest::testRoundTripping()
     PkFileStream f(filename);
     KIS_ASSERT(f.open(PkStream::ReadWrite));
     PSDHeader header;
-    Q_ASSERT(!header.valid());
+    KIS_ASSERT(!header.valid());
     header.signature = "8BPS";
     header.version = 1;
     header.nChannels = 3;
@@ -52,26 +51,29 @@ void PSDHeaderTest::testRoundTripping()
     header.height = 1000;
     header.channelDepth = 8;
     header.colormode = RGB;
-    Q_ASSERT(header.valid());
+    KIS_ASSERT(header.valid());
     bool retval = header.write(f);
-    Q_ASSERT(retval); Q_UNUSED(retval);
+    KIS_ASSERT(retval); (void)retval;
 
     f.close();
     KIS_ASSERT(f.open(PkStream::ReadOnly));
     PSDHeader header2;
     retval = header2.read(f);
-    Q_ASSERT(retval);
+    KIS_ASSERT(retval);
 
-    QCOMPARE(header.signature, header2.signature);
-    QVERIFY(header.version == header2.version);
-    QVERIFY(header.nChannels == header2.nChannels);
-    QVERIFY(header.width == header2.width);
-    QVERIFY(header.height == header2.height);
-    QVERIFY(header.channelDepth == header2.channelDepth);
-    QVERIFY(header.colormode == header2.colormode);
+    PK_COMPARE(header.signature, header2.signature);
+    PK_VERIFY(header.version == header2.version);
+    PK_VERIFY(header.nChannels == header2.nChannels);
+    PK_VERIFY(header.width == header2.width);
+    PK_VERIFY(header.height == header2.height);
+    PK_VERIFY(header.channelDepth == header2.channelDepth);
+    PK_VERIFY(header.colormode == header2.colormode);
 }
 
 
 
-SIMPLE_TEST_MAIN(PSDHeaderTest)
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_psd_header_test.inc"
+#endif
 
+SIMPLE_TEST_MAIN(PSDHeaderTest)

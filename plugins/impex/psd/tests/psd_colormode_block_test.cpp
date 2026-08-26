@@ -7,8 +7,7 @@
 #include "psd_colormode_block_test.h"
 
 #include <simpletest.h>
-#include <QCoreApplication>
-#include <klocalizedstring.h>
+#include <PkFileStream.h>
 #include <psd.h>
 #include <psd_header.h>
 #include <psd_colormode_block.h>
@@ -19,13 +18,13 @@
 void PSDColorModeBlockTest::testCreation()
 {
     PSDColorModeBlock colorModeBlock1(Indexed);
-    Q_ASSERT(!colorModeBlock1.valid());
+    KIS_ASSERT(!colorModeBlock1.valid());
 
     PSDColorModeBlock colorModeBlock2(DuoTone);
-    Q_ASSERT(!colorModeBlock2.valid());
+    KIS_ASSERT(!colorModeBlock2.valid());
 
     PSDColorModeBlock colorModeBlock3(RGB);
-    Q_ASSERT(colorModeBlock3.valid());
+    KIS_ASSERT(colorModeBlock3.valid());
 }
 
 void PSDColorModeBlockTest::testLoadingRGB()
@@ -36,12 +35,12 @@ void PSDColorModeBlockTest::testLoadingRGB()
     PSDHeader header;
     header.read(f);
 
-    QVERIFY(header.colormode == RGB);
+    PK_VERIFY(header.colormode == RGB);
 
     PSDColorModeBlock colorModeBlock(header.colormode);
     bool retval = colorModeBlock.read(f);
-    Q_ASSERT(retval); Q_UNUSED(retval);
-    Q_ASSERT(colorModeBlock.valid());
+    KIS_ASSERT(retval); (void)retval;
+    KIS_ASSERT(colorModeBlock.valid());
 
 }
 
@@ -53,15 +52,18 @@ void PSDColorModeBlockTest::testLoadingIndexed()
     PSDHeader header;
     header.read(f);
 
-    QVERIFY(header.colormode == Indexed);
+    PK_VERIFY(header.colormode == Indexed);
 
     PSDColorModeBlock colorModeBlock(header.colormode);
     bool retval = colorModeBlock.read(f);
-    Q_ASSERT(retval); Q_UNUSED(retval);
-    Q_ASSERT(colorModeBlock.valid());
+    KIS_ASSERT(retval); (void)retval;
+    KIS_ASSERT(colorModeBlock.valid());
 
 }
 
 
-SIMPLE_TEST_MAIN(PSDColorModeBlockTest)
+#ifdef PK_SHELL_MOC_BINDER
+#include "pk_binder_psd_colormode_block_test.inc"
+#endif
 
+SIMPLE_TEST_MAIN(PSDColorModeBlockTest)
