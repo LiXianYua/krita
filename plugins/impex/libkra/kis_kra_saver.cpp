@@ -9,15 +9,12 @@
 #include "kis_kra_save_visitor.h"
 #include "kis_kra_savexml_visitor.h"
 
-#include <QApplication>
-#include <QMessageBox>
-#include <QDomDocument>
-#include <QDomElement>
-#include <QString>
-#include <QStringList>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkString.h>
+#include <PkStringList.h>
 
-#include <QUrl>
-#include <QBuffer>
+#include <PkMemoryStream.h>
 
 #include <KoDocumentInfo.h>
 #include <KoColorSpaceRegistry.h>
@@ -37,7 +34,6 @@
 #include <kis_layer.h>
 #include <kis_adjustment_layer.h>
 #include <kis_layer_composition.h>
-#include <kis_painting_assistant.h>
 #include <KisPngCodec.h>
 #include <kis_image_config.h>
 #include "kis_keyframe_channel.h"
@@ -52,8 +48,7 @@
 
 #include <KisMirrorAxisConfig.h>
 
-#include <QFileInfo>
-#include <QDir>
+#include <filesystem>
 
 
 using namespace KRA;
@@ -61,15 +56,15 @@ using namespace KRA;
 struct KisKraSaver::Private
 {
     KisDocument* doc {nullptr};
-    QMap<const KisNode*, QString> nodeFileNames;
-    QMap<const KisNode*, QString> keyframeFilenames;
-    QString imageName;
-    QString filename;
-    QStringList errorMessages;
-    QStringList warningMessages;
-    QStringList specialAnnotations;
+    PkMap<const KisNode*, PkString> nodeFileNames;
+    PkMap<const KisNode*, PkString> keyframeFilenames;
+    PkString imageName;
+    PkString filename;
+    PkStringList errorMessages;
+    PkStringList warningMessages;
+    PkStringList specialAnnotations;
     bool addMergedImage {false};
-    QList<KoResourceLoadResult> linkedDocumentResources;
+    PkList<KoResourceLoadResult> linkedDocumentResources;
 
     Private() {
         specialAnnotations << "exif" << "icc";
@@ -77,7 +72,7 @@ struct KisKraSaver::Private
 
 };
 
-KisKraSaver::KisKraSaver(KisDocument* document, const QString &filename, bool addMergedImage)
+KisKraSaver::KisKraSaver(KisDocument* document, const PkString &filename, bool addMergedImage)
     : m_d(new Private)
 {
     m_d->doc = document;
@@ -96,9 +91,9 @@ KisKraSaver::~KisKraSaver()
     delete m_d;
 }
 
-QDomElement KisKraSaver::saveXML(QDomDocument& doc,  KisImageSP image)
+PkXmlElement KisKraSaver::saveXML(PkXmlDocument& doc,  KisImageSP image)
 {
-    QDomElement imageElement = doc.createElement("IMAGE");
+    PkXmlElement imageElement = doc.createElement("IMAGE");
 
     Q_ASSERT(image);
     imageElement.setAttribute(NAME, m_d->imageName);
@@ -129,7 +124,7 @@ QDomElement KisKraSaver::saveXML(QDomDocument& doc,  KisImageSP image)
         bcp = image->proofingConfiguration()->displayFlags.testFlag(
             KoColorConversionTransformation::BlackpointCompensation);
         imageElement.setAttribute(PROOFINGDISPLAYBLACKPOINTCOMPENSATION, bcp ? "true" : "false");
-        const QString mode = [&]() {
+        const PkString mode = [&]() {
             switch (image->proofingConfiguration()->displayMode) {
             case KisProofingConfiguration::Monitor:
                 return "monitor";
@@ -138,7 +133,7 @@ QDomElement KisKraSaver::saveXML(QDomDocument& doc,  KisImageSP image)
             case KisProofingConfiguration::Custom:
                 return "custom";
             }
-            Q_UNREACHABLE_RETURN("custom");
+            return "custom";
         }();
         imageElement.setAttribute(PROOFINGDISPLAYMODE, mode);
         imageElement.setAttribute(PROOFINGADAPTATIONSTATE,
@@ -167,7 +162,7 @@ QDomElement KisKraSaver::saveXML(QDomDocument& doc,  KisImageSP image)
     saveResourcesToXML(doc, imageElement);
 
     // Redundancy -- Save animation metadata in XML to prevent data loss for the time being...
-    QDomElement animationElement = doc.createElement("animation");
+    PkXmlElement animationElement = doc.createElement("animation");
     KisDomUtils::saveValue(&animationElement, "framerate", image->animationInterface()->framerate());
     KisDomUtils::saveValue(&animationElement, "range", image->animationInterface()->documentPlaybackRange());
     KisDomUtils::saveValue(&animationElement, "currentTime", image->animationInterface()->currentUITime());
@@ -177,19 +172,19 @@ QDomElement KisKraSaver::saveXML(QDomDocument& doc,  KisImageSP image)
     vKisAnnotationSP_it endIt = image->endAnnotations();
 
     if (beginIt != endIt) {
-        QDomElement annotationsElement = doc.createElement(ANNOTATIONS);
+        PkXmlElement annotationsElement = doc.createElement(ANNOTATIONS);
         vKisAnnotationSP_it it = beginIt;
         while (it != endIt) {
             if (!(*it) || (*it)->type().isEmpty()) {
                 it++;
                 continue;
             }
-            QString type = (*it)->type();
+            PkString type = (*it)->type();
 
             if (!m_d->specialAnnotations.contains(type)) {
 
-                QString description = (*it)->description();
-                QDomElement annotationElement = doc.createElement(ANNOTATION);
+                PkString description = (*it)->description();
+                PkXmlElement annotationElement = doc.createElement(ANNOTATION);
                 annotationsElement.appendChild(annotationElement);
                 annotationElement.setAttribute("type", type);
                 annotationElement.setAttribute("description", description);
@@ -203,12 +198,12 @@ QDomElement KisKraSaver::saveXML(QDomDocument& doc,  KisImageSP image)
     return imageElement;
 }
 
-bool KisKraSaver::saveResources(KoStore *store, KisImageSP image, const QString &uri)
+bool KisKraSaver::saveResources(KoStore *store, KisImageSP image, const PkString &uri)
 {
     Q_UNUSED(image);
     Q_UNUSED(uri);
 
-    QList<KoResourceLoadResult> embeddedResources = m_d->linkedDocumentResources;
+    PkList<KoResourceLoadResult> embeddedResources = m_d->linkedDocumentResources;
 
     Q_FOREACH (const KoResourceLoadResult &result, embeddedResources) {
         KIS_SAFE_ASSERT_RECOVER(result.type() != KoResourceLoadResult::ExistingResource) { continue; }
@@ -220,13 +215,13 @@ bool KisKraSaver::saveResources(KoStore *store, KisImageSP image, const QString 
 
         KoEmbeddedResource resource = result.embeddedResource();
 
-        QString path = RESOURCE_PATH + "/" + resource.signature().type;
+        PkString path = RESOURCE_PATH + "/" + resource.signature().type;
 
         if (resource.signature().type == ResourceType::Palettes) {
             path = m_d->imageName + PALETTE_PATH;
         }
 
-        const QString fileName = resource.signature().filename;
+        const PkString fileName = resource.signature().filename;
 
         if (!store->open(path  + '/' + fileName)) {
             m_d->warningMessages << i18nc("Error message when saving a .kra file", "Could not write resource: %1", result.signature().filename);
@@ -235,7 +230,7 @@ bool KisKraSaver::saveResources(KoStore *store, KisImageSP image, const QString 
 
         // we first read into a buffer to make sure the save operation is transactional,
         // that is, either resource is saves correctly, or the file is left empty.
-        QByteArray ba = resource.data();
+        PkByteArray ba = resource.data();
 
         qint64 nwritten = 0;
         if (!ba.isEmpty()) {
@@ -254,7 +249,7 @@ bool KisKraSaver::saveResources(KoStore *store, KisImageSP image, const QString 
     return true;
 }
 
-bool KisKraSaver::saveStoryboard(KoStore *store, KisImageSP image, const QString &uri)
+bool KisKraSaver::saveStoryboard(KoStore *store, KisImageSP image, const PkString &uri)
 {
     Q_UNUSED(image);
     Q_UNUSED(uri);
@@ -268,11 +263,11 @@ bool KisKraSaver::saveStoryboard(KoStore *store, KisImageSP image, const QString
             return false;
         }
 
-        QDomDocument storyboardDocument = m_d->doc->createDomDocument("storyboard-info", "1.1");
-        QDomElement root = storyboardDocument.documentElement();
+        PkXmlDocument storyboardDocument = m_d->doc->createDomDocument("storyboard-info", "1.1");
+        PkXmlElement root = storyboardDocument.documentElement();
         saveStoryboardToXML(storyboardDocument, root);
 
-        QByteArray ba = storyboardDocument.toByteArray();
+        PkByteArray ba = storyboardDocument.toByteArray();
         qint64 nwritten = 0;
         if (!ba.isEmpty()) {
             nwritten = store->write(ba);
@@ -293,7 +288,7 @@ bool KisKraSaver::saveStoryboard(KoStore *store, KisImageSP image, const QString
     return success;
 }
 
-bool KisKraSaver::saveAnimationMetadata(KoStore *store, KisImageSP image, const QString &uri)
+bool KisKraSaver::saveAnimationMetadata(KoStore *store, KisImageSP image, const PkString &uri)
 {
     Q_UNUSED(uri);
 
@@ -302,13 +297,13 @@ bool KisKraSaver::saveAnimationMetadata(KoStore *store, KisImageSP image, const 
         return false;
     }
 
-    QDomDocument animationDocument = m_d->doc->createDomDocument("animation-metadata", "1.1");
-    QDomElement root = animationDocument.documentElement();
+    PkXmlDocument animationDocument = m_d->doc->createDomDocument("animation-metadata", "1.1");
+    PkXmlElement root = animationDocument.documentElement();
     saveAnimationMetadataToXML(animationDocument, root, image);
 
     bool success = true;
 
-    QByteArray ba = animationDocument.toByteArray();
+    PkByteArray ba = animationDocument.toByteArray();
     qint64 nwritten = 0;
     if (!ba.isEmpty()) {
         nwritten = store->write(ba);
@@ -339,12 +334,12 @@ bool KisKraSaver::saveAudio(KoStore *store)
         return false;
     }
 
-    QDomDocument audioDocument = m_d->doc->createDomDocument("audio-info", "1.1");
-    QDomElement root = audioDocument.documentElement();
+    PkXmlDocument audioDocument = m_d->doc->createDomDocument("audio-info", "1.1");
+    PkXmlElement root = audioDocument.documentElement();
     saveAudioXML(audioDocument, root);
 
     bool success = true;
-    QByteArray byteArray = audioDocument.toByteArray();
+    PkByteArray byteArray = audioDocument.toByteArray();
     qint64 bytesWriteCount = 0;
     if (!byteArray.isEmpty()) {
         bytesWriteCount = store->write(byteArray);
@@ -365,10 +360,10 @@ bool KisKraSaver::saveAudio(KoStore *store)
     return true;
 }
 
-void KisKraSaver::saveResourcesToXML(QDomDocument &doc, QDomElement &element)
+void KisKraSaver::saveResourcesToXML(PkXmlDocument &doc, PkXmlElement &element)
 {
-    QDomElement ePalette = doc.createElement(PALETTES);
-    QDomElement eResources = doc.createElement(RESOURCES);
+    PkXmlElement ePalette = doc.createElement(PALETTES);
+    PkXmlElement eResources = doc.createElement(RESOURCES);
 
     Q_FOREACH (const KoResourceLoadResult resource, m_d->linkedDocumentResources) {
         // all warnings will be issued in KisKraSaver::saveResources()
@@ -376,7 +371,7 @@ void KisKraSaver::saveResourcesToXML(QDomDocument &doc, QDomElement &element)
 
         KoResourceSignature sig = resource.signature();
 
-        QDomElement eResource = doc.createElement("resource");
+        PkXmlElement eResource = doc.createElement("resource");
         eResource.setAttribute("type", sig.type);
         eResource.setAttribute("name", sig.name);
         eResource.setAttribute("filename", sig.filename);
@@ -394,12 +389,12 @@ void KisKraSaver::saveResourcesToXML(QDomDocument &doc, QDomElement &element)
     element.appendChild(eResources);
 }
 
-void KisKraSaver::saveStoryboardToXML(QDomDocument& doc, QDomElement &element)
+void KisKraSaver::saveStoryboardToXML(PkXmlDocument& doc, PkXmlElement &element)
 {
     //saving storyboard comments
-    QDomElement eCommentList = doc.createElement("StoryboardCommentList");
+    PkXmlElement eCommentList = doc.createElement("StoryboardCommentList");
     for (StoryboardComment comment: m_d->doc->getStoryboardCommentsList()) {
-        QDomElement commentElement = doc.createElement("storyboardcomment");
+        PkXmlElement commentElement = doc.createElement("storyboardcomment");
         commentElement.setAttribute("name", comment.name);
         commentElement.setAttribute("visibility", comment.visibility);
         eCommentList.appendChild(commentElement);
@@ -407,22 +402,22 @@ void KisKraSaver::saveStoryboardToXML(QDomDocument& doc, QDomElement &element)
     element.appendChild(eCommentList);
 
     //saving storyboard items
-    QDomElement eItemList = doc.createElement("StoryboardItemList");
+    PkXmlElement eItemList = doc.createElement("StoryboardItemList");
     for (StoryboardItemSP item : m_d->doc->getStoryboardItemList()) {
-        QDomElement eItem =  item->toXML(doc);
+        PkXmlElement eItem =  item->toXML(doc);
         eItemList.appendChild(eItem);
     }
     element.appendChild(eItemList);
 }
 
-void KisKraSaver::saveAnimationMetadataToXML(QDomDocument &doc, QDomElement &element, KisImageSP image)
+void KisKraSaver::saveAnimationMetadataToXML(PkXmlDocument &doc, PkXmlElement &element, KisImageSP image)
 {
     KisDomUtils::saveValue(&element, "framerate", image->animationInterface()->framerate());
     KisDomUtils::saveValue(&element, "range", image->animationInterface()->documentPlaybackRange());
     KisDomUtils::saveValue(&element, "currentTime", image->animationInterface()->currentUITime());
 
     {
-        QDomElement exportItemElem = doc.createElement("export-settings");
+        PkXmlElement exportItemElem = doc.createElement("export-settings");
         KisDomUtils::saveValue(&exportItemElem, "sequenceFilePath", image->animationInterface()->exportSequenceFilePath());
         KisDomUtils::saveValue(&exportItemElem, "sequenceBaseName", image->animationInterface()->exportSequenceBaseName());
         KisDomUtils::saveValue(&exportItemElem, "sequenceInitialFrameNumber", image->animationInterface()->exportInitialFrameNumber());
@@ -430,16 +425,16 @@ void KisKraSaver::saveAnimationMetadataToXML(QDomDocument &doc, QDomElement &ele
     }
 }
 
-bool KisKraSaver::saveKeyframes(KoStore *store, const QString &uri, bool external)
+bool KisKraSaver::saveKeyframes(KoStore *store, const PkString &uri, bool external)
 {
-    QMap<const KisNode*, QString>::iterator it;
+    PkMap<const KisNode*, PkString>::iterator it;
 
     for (it = m_d->keyframeFilenames.begin(); it != m_d->keyframeFilenames.end(); it++) {
         const KisNode *node = it.key();
-        QString filename = it.value();
+        PkString filename = it.value();
 
-        QString location =
-                (external ? QString() : uri)
+        PkString location =
+                (external ? PkString() : uri)
                 + m_d->imageName + LAYER_PATH + filename;
 
         if (!saveNodeKeyframes(store, location, node)) {
@@ -450,20 +445,20 @@ bool KisKraSaver::saveKeyframes(KoStore *store, const QString &uri, bool externa
     return true;
 }
 
-bool KisKraSaver::saveNodeKeyframes(KoStore *store, QString location, const KisNode *node)
+bool KisKraSaver::saveNodeKeyframes(KoStore *store, PkString location, const KisNode *node)
 {
-    QDomDocument doc = KisDocument::createDomDocument("krita-keyframes", "keyframes", "1.0");
-    QDomElement root = doc.documentElement();
+    PkXmlDocument doc = KisDocument::createDomDocument("krita-keyframes", "keyframes", "1.0");
+    PkXmlElement root = doc.documentElement();
 
     KisKeyframeChannel *channel;
     Q_FOREACH (channel, node->keyframeChannels()) {
-        QDomElement element = channel->toXML(doc, m_d->nodeFileNames[node]);
+        PkXmlElement element = channel->toXML(doc, m_d->nodeFileNames[node]);
         root.appendChild(element);
     }
 
     bool success = true;
     if (store->open(location)) {
-        QByteArray xml = doc.toByteArray();
+        PkByteArray xml = doc.toByteArray();
         qint64 nwritten = store->write(xml);
         bool r = store->close();
         success = r && (nwritten == xml.size());
@@ -478,9 +473,9 @@ bool KisKraSaver::saveNodeKeyframes(KoStore *store, QString location, const KisN
     return true;
 }
 
-bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const QString &uri, bool external, bool addMergedImage)
+bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const PkString &uri, bool external, bool addMergedImage)
 {
-    QString location;
+    PkString location;
 
     // Save the layers data
     KisKraSaveVisitor visitor(store, m_d->imageName, m_d->nodeFileNames);
@@ -503,7 +498,7 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const QString
     bool savingAnnotationsSuccess = true;
     KisAnnotationSP annotation = image->annotation("exif");
     if (annotation) {
-        location = external ? QString() : uri;
+        location = external ? PkString() : uri;
         location += m_d->imageName + EXIF_PATH;
         if (store->open(location)) {
             nwritten = store->write(annotation->annotation());
@@ -525,7 +520,7 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const QString
         const KoColorProfile *profile = image->profile();
         KisAnnotationSP annotation;
         if (profile) {
-            QByteArray profileRawData = profile->rawData();
+            PkByteArray profileRawData = profile->rawData();
             if (!profileRawData.isEmpty()) {
                 if (profile->type() == "icc") {
                     annotation = new KisAnnotation(ICC, profile->name(), profile->rawData());
@@ -536,7 +531,7 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const QString
         }
 
         if (annotation) {
-            location = external ? QString() : uri;
+            location = external ? PkString() : uri;
             location += m_d->imageName + ICC_PATH;
             if (store->open(location)) {
                 nwritten = store->write(annotation->annotation());
@@ -559,13 +554,13 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const QString
         const KoColorProfile *proofingProfile =
             KoColorSpaceRegistry::instance()->profileByName(image->proofingConfiguration()->proofingProfile);
         if (proofingProfile && proofingProfile->valid()) {
-            QByteArray proofingProfileRaw = proofingProfile->rawData();
+            PkByteArray proofingProfileRaw = proofingProfile->rawData();
             if (!proofingProfileRaw.isEmpty()) {
                 annotation = new KisAnnotation(ICCPROOFINGPROFILE, proofingProfile->name(), proofingProfile->rawData());
             }
         }
         if (annotation) {
-            location = external ? QString() : uri;
+            location = external ? PkString() : uri;
             location += m_d->imageName + ICC_PROOFING_PATH;
             if (store->open(location)) {
                 nwritten = store->write(annotation->annotation());
@@ -596,10 +591,10 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const QString
                 it++;
                 continue;
             }
-            QString type = (*it)->type();
+            PkString type = (*it)->type();
 
             if (!m_d->specialAnnotations.contains(type)) {
-                location = external ? QString() : uri;
+                location = external ? PkString() : uri;
                 location += m_d->imageName + ANNOTATIONS_PATH + type;
                 if (store->open(location)) {
                     nwritten = store->write((*it)->annotation());
@@ -622,19 +617,19 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const QString
     bool savingLayerStylesSuccess = true;
     {
         KisAslLayerStyleSerializer serializer;
-        QVector<KisPSDLayerStyleSP> stylesClones = serializer.collectAllLayerStyles(image->root());
+        PkVector<KisPSDLayerStyleSP> stylesClones = serializer.collectAllLayerStyles(image->root());
         if (stylesClones.size() > 0) {
-            location = external ? QString() : uri;
+            location = external ? PkString() : uri;
             location += m_d->imageName + LAYER_STYLES_PATH;
 
             if (store->open(location)) {
-                QBuffer aslBuffer;
-                if (aslBuffer.open(QIODevice::WriteOnly)) {
+                PkMemoryStream aslBuffer;
+                if (aslBuffer.open(PkStream::WriteOnly)) {
                     serializer.setStyles(stylesClones);
                     serializer.saveToDevice(aslBuffer);
                     aslBuffer.close();
-                    nwritten = store->write(aslBuffer.buffer());
-                    savingLayerStylesSuccess = savingLayerStylesSuccess && (nwritten == aslBuffer.buffer().size());
+                    nwritten = store->write(PkByteArray(aslBuffer.data(), static_cast<int>(aslBuffer.size())));
+                    savingLayerStylesSuccess = savingLayerStylesSuccess && (nwritten == aslBuffer.size());
                 } else {
                     savingLayerStylesSuccess = false;
                 }
@@ -675,55 +670,55 @@ bool KisKraSaver::saveBinaryData(KoStore* store, KisImageSP image, const QString
 
 
 
-QStringList KisKraSaver::errorMessages() const
+PkStringList KisKraSaver::errorMessages() const
 {
     return m_d->errorMessages;
 }
 
-QStringList KisKraSaver::warningMessages() const
+PkStringList KisKraSaver::warningMessages() const
 {
     return m_d->warningMessages;
 }
 
-void KisKraSaver::saveBackgroundColor(QDomDocument& doc, QDomElement& element, KisImageSP image)
+void KisKraSaver::saveBackgroundColor(PkXmlDocument& doc, PkXmlElement& element, KisImageSP image)
 {
-    QDomElement e = doc.createElement(CANVASPROJECTIONCOLOR);
+    PkXmlElement e = doc.createElement(CANVASPROJECTIONCOLOR);
     KoColor color = image->defaultProjectionColor();
-    QByteArray colorData = QByteArray::fromRawData((const char*)color.data(), color.colorSpace()->pixelSize());
-    e.setAttribute(COLORBYTEDATA, QString(colorData.toBase64()));
+    PkByteArray colorData = PkByteArray::fromRawData((const char*)color.data(), color.colorSpace()->pixelSize());
+    e.setAttribute(COLORBYTEDATA, PkString(colorData.toBase64()));
     element.appendChild(e);
 }
 
-void KisKraSaver::saveColorHistory(QDomDocument &doc, QDomElement &element)
+void KisKraSaver::saveColorHistory(PkXmlDocument &doc, PkXmlElement &element)
 {
-    QDomElement colorsElement = doc.createElement(COLORHISTORY);
+    PkXmlElement colorsElement = doc.createElement(COLORHISTORY);
     saveKoColors(doc, colorsElement, m_d->doc->colorHistory());
 
     element.appendChild(colorsElement);
 }
 
-void KisKraSaver::saveAssistantsGlobalColor(QDomDocument& doc, QDomElement& element)
+void KisKraSaver::saveAssistantsGlobalColor(PkXmlDocument& doc, PkXmlElement& element)
 {
-    QDomElement e = doc.createElement(GLOBALASSISTANTSCOLOR);
-    QString colorString = KisDomUtils::qColorToQString(m_d->doc->assistantsGlobalColor());
-    e.setAttribute(SIMPLECOLORDATA, QString(colorString));
+    PkXmlElement e = doc.createElement(GLOBALASSISTANTSCOLOR);
+    PkString colorString = KisDomUtils::qColorToQString(m_d->doc->assistantsGlobalColor());
+    e.setAttribute(SIMPLECOLORDATA, PkString(colorString));
     element.appendChild(e);
 }
 
-void KisKraSaver::saveWarningColor(QDomDocument& doc, QDomElement& element, KisImageSP image)
+void KisKraSaver::saveWarningColor(PkXmlDocument& doc, PkXmlElement& element, KisImageSP image)
 {
     if (image->proofingConfiguration()) {
-        QDomElement e = doc.createElement(PROOFINGWARNINGCOLOR);
+        PkXmlElement e = doc.createElement(PROOFINGWARNINGCOLOR);
         KoColor color = image->proofingConfiguration()->warningColor;
         color.toXML(doc, e);
         element.appendChild(e);
     }
 }
 
-void KisKraSaver::saveCompositions(QDomDocument& doc, QDomElement& element, KisImageSP image)
+void KisKraSaver::saveCompositions(PkXmlDocument& doc, PkXmlElement& element, KisImageSP image)
 {
     if (!image->compositions().isEmpty()) {
-        QDomElement e = doc.createElement("compositions");
+        PkXmlElement e = doc.createElement("compositions");
         Q_FOREACH (KisLayerCompositionSP composition, image->compositions()) {
             composition->save(doc, e);
         }
@@ -731,162 +726,71 @@ void KisKraSaver::saveCompositions(QDomDocument& doc, QDomElement& element, KisI
     }
 }
 
-bool KisKraSaver::saveAssistants(KoStore* store, QString uri, bool external)
+bool KisKraSaver::saveAssistants(KoStore* store, PkString uri, bool external)
 {
-    QString location;
-    QMap<QString, int> assistantcounters;
-    QByteArray data;
-
-    QList<KisPaintingAssistantSP> assistants =  m_d->doc->assistants();
-    QMap<KisPaintingAssistantHandleSP, int> handlemap;
-
-    bool success = true;
-    if (!assistants.isEmpty()) {
-
-        Q_FOREACH (KisPaintingAssistantSP assist, assistants){
-            if (!assistantcounters.contains(assist->id())){
-                assistantcounters.insert(assist->id(),0);
-            }
-            location = external ? QString() : uri;
-            location += m_d->imageName + ASSISTANTS_PATH;
-            location += QString(assist->id()+"%1.assistant").arg(assistantcounters[assist->id()]);
-
-            data = assist->saveXml(handlemap);
-            if (store->open(location)) {
-                qint64 nwritten = store->write(data);
-                bool r = store->close();
-                success = success && r && (nwritten == data.size());
-            } else {
-                success = false;
-            }
-            assistantcounters[assist->id()]++;
-        }
-    }
-    if (!success) {
-        m_d->errorMessages.append(i18nc("Saving .kra file error message", "Could not save assistants."));
-    }
+    // 跨锁桩（S-09-f 恢复）：assistant 保存功能在 plugins/assistants 剥 Qt 完成后
+    // 恢复。现在不写 .assistant 文件、不引用 assistant 相关符号。
+    (void)store;
+    (void)uri;
+    (void)external;
     return true;
 }
 
-bool KisKraSaver::saveAssistantsList(QDomDocument& doc, QDomElement& element)
+bool KisKraSaver::saveAssistantsList(PkXmlDocument& doc, PkXmlElement& element)
 {
-    int count_ellipse = 0,
-        count_twopoint = 0,
-        count_perspective = 0,
-        count_ruler = 0,
-        count_vanishingpoint = 0,
-        count_infiniteruler = 0,
-        count_parallelruler = 0,
-        count_concentricellipse = 0,
-        count_fisheyepoint = 0,
-        count_spline = 0,
-        count_perspectiveellipse = 0,
-        count_curvilinearperspective = 0;
-    QList<KisPaintingAssistantSP> assistants =  m_d->doc->assistants();
-    if (!assistants.isEmpty()) {
-        QDomElement assistantsElement = doc.createElement("assistants");
-        Q_FOREACH (KisPaintingAssistantSP assist, assistants){
-            if (assist->id() == "ellipse"){
-                assist->saveXmlList(doc, assistantsElement, count_ellipse);
-                count_ellipse++;
-            }
-            else if (assist->id() == "spline"){
-                assist->saveXmlList(doc, assistantsElement, count_spline);
-                count_spline++;
-            }
-            else if (assist->id() == "perspective"){
-                assist->saveXmlList(doc, assistantsElement, count_perspective);
-                count_perspective++;
-            }
-            else if (assist->id() == "vanishing point"){
-                assist->saveXmlList(doc, assistantsElement, count_vanishingpoint);
-                count_vanishingpoint++;
-            }
-            else if (assist->id() == "infinite ruler"){
-                assist->saveXmlList(doc, assistantsElement, count_infiniteruler);
-                count_infiniteruler++;
-            }
-            else if (assist->id() == "parallel ruler"){
-                assist->saveXmlList(doc, assistantsElement, count_parallelruler);
-                count_parallelruler++;
-            }
-            else if (assist->id() == "concentric ellipse"){
-                assist->saveXmlList(doc, assistantsElement, count_concentricellipse);
-                count_concentricellipse++;
-            }
-            else if (assist->id() == "fisheye-point"){
-                assist->saveXmlList(doc, assistantsElement, count_fisheyepoint);
-                count_fisheyepoint++;
-            }
-            else if (assist->id() == "two point"){
-                assist->saveXmlList(doc, assistantsElement, count_twopoint);
-                count_twopoint++;
-            }
-            else if (assist->id() == "ruler"){
-                assist->saveXmlList(doc, assistantsElement, count_ruler);
-                count_ruler++;
-            }
-            else if (assist->id() == "perspective ellipse"){
-                assist->saveXmlList(doc, assistantsElement, count_perspectiveellipse);
-                count_perspectiveellipse++;
-            }
-            else if (assist->id() == "curvilinear-perspective"){
-                assist->saveXmlList(doc, assistantsElement, count_curvilinearperspective);
-                count_curvilinearperspective++;
-            }
-        }
-        element.appendChild(assistantsElement);
-    }
+    // 跨锁桩（S-09-f 恢复）：不写 <assistants> 元素。
+    (void)doc;
+    (void)element;
     return true;
 }
 
-bool KisKraSaver::saveGrid(QDomDocument& doc, QDomElement& element)
+bool KisKraSaver::saveGrid(PkXmlDocument& doc, PkXmlElement& element)
 {
     KisGridConfig config = m_d->doc->gridConfig();
 
     if (!config.isDefault()) {
-        QDomElement gridElement = config.saveDynamicDataToXml(doc, "grid");
+        PkXmlElement gridElement = config.saveDynamicDataToXml(doc, "grid");
         element.appendChild(gridElement);
     }
 
     return true;
 }
 
-bool KisKraSaver::saveGuides(QDomDocument& doc, QDomElement& element)
+bool KisKraSaver::saveGuides(PkXmlDocument& doc, PkXmlElement& element)
 {
     KisGuidesConfig guides = m_d->doc->guidesConfig();
 
     if (!guides.isDefault()) {
-        QDomElement guidesElement = guides.saveToXml(doc, "guides");
+        PkXmlElement guidesElement = guides.saveToXml(doc, "guides");
         element.appendChild(guidesElement);
     }
 
     return true;
 }
 
-bool KisKraSaver::saveMirrorAxis(QDomDocument &doc, QDomElement &element)
+bool KisKraSaver::saveMirrorAxis(PkXmlDocument &doc, PkXmlElement &element)
 {
     KisMirrorAxisConfig mirrorAxisConfig = m_d->doc->mirrorAxisConfig();
 
     if (!mirrorAxisConfig.isDefault()) {
-        QDomElement mirrorAxisElement = mirrorAxisConfig.saveToXml(doc, MIRROR_AXIS);
+        PkXmlElement mirrorAxisElement = mirrorAxisConfig.saveToXml(doc, MIRROR_AXIS);
         element.appendChild(mirrorAxisElement);
     }
 
     return true;
 }
 
-bool KisKraSaver::saveAudioXML(QDomDocument& doc, QDomElement& element)
+bool KisKraSaver::saveAudioXML(PkXmlDocument& doc, PkXmlElement& element)
 {
-    QVector<QFileInfo> clips = m_d->doc->getAudioTracks();
+    PkVector<std::filesystem::path> clips = m_d->doc->getAudioTracks();
     const qreal volume = m_d->doc->getAudioLevel();
 
     if (!clips.isEmpty()) {
-        QDomElement audioClips = doc.createElement("audioClips");
-        Q_FOREACH(const QFileInfo& file, clips) {
-            QDomElement clip = doc.createElement(QString("Clip"));
-            clip.setAttribute("filePath", file.absoluteFilePath());
-            clip.setAttribute("volume", volume);
+        PkXmlElement audioClips = doc.createElement("audioClips");
+        for (const auto &file : clips) {
+            PkXmlElement clip = doc.createElement(PkString("Clip"));
+            clip.setAttribute("filePath", PkString::PkFromUtf8(file.string().c_str(), static_cast<int>(file.string().size())));
+            clip.setAttribute("volume", KisDomUtils::toString(volume));
             audioClips.appendChild(clip);
         }
         element.appendChild(audioClips);
@@ -895,8 +799,8 @@ bool KisKraSaver::saveAudioXML(QDomDocument& doc, QDomElement& element)
     return true;
 }
 
-bool KisKraSaver::saveKoColors(QDomDocument &doc, QDomElement &colorsElement,
-                               const QList<KoColor> &colors) const
+bool KisKraSaver::saveKoColors(PkXmlDocument &doc, PkXmlElement &colorsElement,
+                               const PkList<KoColor> &colors) const
 {
     // Writes like <colors><RGB ../><RGB .. /> ... </colors>
     Q_FOREACH(const KoColor & color, colors) {

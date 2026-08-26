@@ -8,10 +8,10 @@
 
 #include <kis_types.h>
 
-#include <QDomDocument>
-#include <QDomElement>
-#include <QStringList>
-#include <QString>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkStringList.h>
+#include <PkString.h>
 
 class KisDocument;
 class KoStore;
@@ -24,48 +24,48 @@ class KRITALIBKRA_EXPORT KisKraSaver
 {
 public:
 
-    KisKraSaver(KisDocument* document, const QString &filename, bool addMergedImage = true);
+    KisKraSaver(KisDocument* document, const PkString &filename, bool addMergedImage = true);
 
     ~KisKraSaver();
 
-    QDomElement saveXML(QDomDocument& doc,  KisImageSP image);
+    PkXmlElement saveXML(PkXmlDocument& doc,  KisImageSP image);
 
-    bool saveKeyframes(KoStore *store, const QString &uri, bool external);
+    bool saveKeyframes(KoStore *store, const PkString &uri, bool external);
 
-    bool saveBinaryData(KoStore* store, KisImageSP image, const QString & uri, bool external, bool addMergedImage);
+    bool saveBinaryData(KoStore* store, KisImageSP image, const PkString & uri, bool external, bool addMergedImage);
 
-    bool saveResources(KoStore *store, KisImageSP image, const QString &uri);
+    bool saveResources(KoStore *store, KisImageSP image, const PkString &uri);
 
-    bool saveStoryboard(KoStore *store, KisImageSP image, const QString &uri);
+    bool saveStoryboard(KoStore *store, KisImageSP image, const PkString &uri);
 
-    bool saveAnimationMetadata(KoStore *store, KisImageSP image, const QString &uri);
+    bool saveAnimationMetadata(KoStore *store, KisImageSP image, const PkString &uri);
 
     bool saveAudio(KoStore *store);
 
     /// @return a list with everything that went wrong while saving
-    QStringList errorMessages() const;
+    PkStringList errorMessages() const;
 
     /// @return a list with non-critical issues that happened while saving
-    QStringList warningMessages() const;
+    PkStringList warningMessages() const;
 
 private:
-    void saveBackgroundColor(QDomDocument& doc, QDomElement& element, KisImageSP image);
-    void saveAssistantsGlobalColor(QDomDocument& doc, QDomElement& element);
-    void saveWarningColor(QDomDocument& doc, QDomElement& element, KisImageSP image);
-    void saveCompositions(QDomDocument& doc, QDomElement& element, KisImageSP image);
-    bool saveAssistants(KoStore *store,QString uri, bool external);
-    bool saveAssistantsList(QDomDocument& doc, QDomElement& element);
-    bool saveGrid(QDomDocument& doc, QDomElement& element);
-    bool saveGuides(QDomDocument& doc, QDomElement& element);
-    bool saveMirrorAxis(QDomDocument& doc, QDomElement& element);
-    bool saveAudioXML(QDomDocument& doc, QDomElement& element);
-    bool saveNodeKeyframes(KoStore *store, QString location, const KisNode *node);
-    void saveResourcesToXML(QDomDocument& doc, QDomElement &element);
-    void saveStoryboardToXML(QDomDocument& doc, QDomElement &element);
-    void saveAnimationMetadataToXML(QDomDocument& doc, QDomElement &element, KisImageSP image);
-    void saveColorHistory(QDomDocument &doc, QDomElement &element);
+    void saveBackgroundColor(PkXmlDocument& doc, PkXmlElement& element, KisImageSP image);
+    void saveAssistantsGlobalColor(PkXmlDocument& doc, PkXmlElement& element);
+    void saveWarningColor(PkXmlDocument& doc, PkXmlElement& element, KisImageSP image);
+    void saveCompositions(PkXmlDocument& doc, PkXmlElement& element, KisImageSP image);
+    bool saveAssistants(KoStore *store,PkString uri, bool external);
+    bool saveAssistantsList(PkXmlDocument& doc, PkXmlElement& element);
+    bool saveGrid(PkXmlDocument& doc, PkXmlElement& element);
+    bool saveGuides(PkXmlDocument& doc, PkXmlElement& element);
+    bool saveMirrorAxis(PkXmlDocument& doc, PkXmlElement& element);
+    bool saveAudioXML(PkXmlDocument& doc, PkXmlElement& element);
+    bool saveNodeKeyframes(KoStore *store, PkString location, const KisNode *node);
+    void saveResourcesToXML(PkXmlDocument& doc, PkXmlElement &element);
+    void saveStoryboardToXML(PkXmlDocument& doc, PkXmlElement &element);
+    void saveAnimationMetadataToXML(PkXmlDocument& doc, PkXmlElement &element, KisImageSP image);
+    void saveColorHistory(PkXmlDocument &doc, PkXmlElement &element);
 
-    bool saveKoColors(QDomDocument& doc, QDomElement &element, const QList<KoColor> &colors) const;
+    bool saveKoColors(PkXmlDocument& doc, PkXmlElement &element, const PkList<KoColor> &colors) const;
 
     struct Private;
     Private * const m_d;

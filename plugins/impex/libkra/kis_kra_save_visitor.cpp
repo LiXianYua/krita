@@ -9,8 +9,8 @@
 #include "kis_kra_save_visitor.h"
 #include "kis_kra_tags.h"
 
-#include <QBuffer>
-#include <QByteArray>
+#include <PkMemoryStream.h>
+#include <PkAuxTypes.h> // PkByteArray
 
 #include <KoColorProfile.h>
 #include <KoStore.h>
@@ -57,7 +57,7 @@
 
 using namespace KRA;
 
-KisKraSaveVisitor::KisKraSaveVisitor(KoStore *store, const QString & name, QMap<const KisNode*, QString> nodeFileNames)
+KisKraSaveVisitor::KisKraSaveVisitor(KoStore *store, const PkString & name, PkMap<const KisNode*, PkString> nodeFileNames)
     : KisNodeVisitor()
     , m_store(store)
     , m_external(false)
@@ -72,7 +72,7 @@ KisKraSaveVisitor::~KisKraSaveVisitor()
     delete m_writer;
 }
 
-void KisKraSaveVisitor::setExternalUri(const QString &uri)
+void KisKraSaveVisitor::setExternalUri(const PkString &uri)
 {
     m_external = true;
     m_uri = uri;
@@ -83,7 +83,7 @@ bool KisKraSaveVisitor::visit(KisExternalLayer * layer)
     bool result = false;
     if (auto* referencesLayer = dynamic_cast<KisReferenceImagesLayer*>(layer)) {
         result = true;
-        QList <KoShape *> shapes = referencesLayer->shapes();
+        PkList <KoShape *> shapes = referencesLayer->shapes();
         std::sort(shapes.begin(), shapes.end(), KoShape::compareShapeZIndex);
         Q_FOREACH(KoShape *shape, shapes) {
             auto *reference = dynamic_cast<KisReferenceImage*>(shape);
@@ -101,7 +101,7 @@ bool KisKraSaveVisitor::visit(KisExternalLayer * layer)
             return false;
         }
         m_store->pushDirectory();
-        QString location = getLocation(layer, DOT_SHAPE_LAYER);
+        PkString location = getLocation(layer, DOT_SHAPE_LAYER);
         result = m_store->enterDirectory(location);
         if (!result) {
             m_errorMessages << i18n("Failed to open %1.", location);
@@ -211,23 +211,23 @@ bool KisKraSaveVisitor::visit(KisFilterMask *mask)
 
 bool KisKraSaveVisitor::visit(KisTransformMask *mask)
 {
-    QDomDocument doc("transform_params");
+    PkXmlDocument doc("transform_params");
 
-    QDomElement root = doc.createElement("transform_params");
+    PkXmlElement root = doc.createElement("transform_params");
 
-    QDomElement main = doc.createElement("main");
+    PkXmlElement main = doc.createElement("main");
     main.setAttribute("id", mask->transformParams()->id());
 
-    QDomElement data = doc.createElement("data");
+    PkXmlElement data = doc.createElement("data");
     mask->transformParams()->toXML(&data);
 
     doc.appendChild(root);
     root.appendChild(main);
     root.appendChild(data);
 
-    QString location = getLocation(mask, DOT_TRANSFORMCONFIG);
+    PkString location = getLocation(mask, DOT_TRANSFORMCONFIG);
     if (m_store->open(location)) {
-        QByteArray a = doc.toByteArray();
+        PkByteArray a = doc.toByteArray();
         bool retval = m_store->write(a) == a.size();
 
         if (!retval) {
@@ -263,7 +263,7 @@ bool KisKraSaveVisitor::visit(KisSelectionMask *mask)
 bool KisKraSaveVisitor::visit(KisColorizeMask *mask)
 {
     m_store->pushDirectory();
-    QString location = getLocation(mask, DOT_COLORIZE_MASK);
+    PkString location = getLocation(mask, DOT_COLORIZE_MASK);
     bool result = m_store->enterDirectory(location);
 
     if (!result) {
@@ -276,21 +276,20 @@ bool KisKraSaveVisitor::visit(KisColorizeMask *mask)
 
     KoStoreDevice storeDev(m_store);
 
-    QDomDocument doc("doc");
-    QDomElement root = doc.createElement("colorize");
+    PkXmlDocument doc("doc");
+    PkXmlElement root = doc.createElement("colorize");
     doc.appendChild(root);
-    KisDomUtils::saveValue(&root, COLORIZE_KEYSTROKES_SECTION, QVector<KisLazyFillTools::KeyStroke>::fromList(mask->fetchKeyStrokesDirect()));
+    KisDomUtils::saveValue(&root, COLORIZE_KEYSTROKES_SECTION, mask->fetchKeyStrokesDirect().toVector());
 
-    QTextStream stream(&storeDev);
-    KisPortingUtils::setUtf8OnStream(stream);
-    stream << doc;
+    PkTextStream stream(&storeDev);
+    stream << doc.toString();
 
     if (!m_store->close())
         return false;
 
     int i = 0;
     Q_FOREACH (const KisLazyFillTools::KeyStroke &stroke, mask->fetchKeyStrokesDirect()) {
-        const QString fileName = QString("%1_%2").arg(COLORIZE_KEYSTROKE).arg(i++);
+        const PkString fileName = PkString("%1_%2").arg(COLORIZE_KEYSTROKE).arg(i++);
         savePaintDevice(stroke.dev, fileName);
     }
 
@@ -302,7 +301,7 @@ bool KisKraSaveVisitor::visit(KisColorizeMask *mask)
     return true;
 }
 
-QStringList KisKraSaveVisitor::errorMessages() const
+PkStringList KisKraSaveVisitor::errorMessages() const
 {
     return m_errorMessages;
 }
@@ -335,14 +334,14 @@ struct FramedDevicePolicy
 };
 
 bool KisKraSaveVisitor::savePaintDevice(KisPaintDeviceSP device,
-                                        QString location)
+                                        PkString location)
 {
     // Layer data
     KisImageConfig cfg(true);
     m_store->setCompressionEnabled(cfg.compressKra());
 
     KisPaintDeviceFramesInterface *frameInterface = device->framesInterface();
-    QList<int> frames;
+    PkList<int> frames;
 
     if (frameInterface) {
         frames = frameInterface->frames();
@@ -356,7 +355,7 @@ bool KisKraSaveVisitor::savePaintDevice(KisPaintDeviceSP device,
         for (int i = 0; i < frames.count(); i++) {
             int id = frames[i];
 
-            QString frameFilename = getLocation(keyframeChannel->frameFilename(id));
+            PkString frameFilename = getLocation(keyframeChannel->frameFilename(id));
             Q_ASSERT(!frameFilename.isEmpty());
 
             if (!savePaintDeviceFrame(device, frameFilename, FramedDevicePolicy(id))) {
@@ -371,7 +370,7 @@ bool KisKraSaveVisitor::savePaintDevice(KisPaintDeviceSP device,
 
 
 template<class DevicePolicy>
-bool KisKraSaveVisitor::savePaintDeviceFrame(KisPaintDeviceSP device, QString location, DevicePolicy policy)
+bool KisKraSaveVisitor::savePaintDeviceFrame(KisPaintDeviceSP device, PkString location, DevicePolicy policy)
 {
     if (m_store->open(location)) {
         if (!policy.write(device, *m_writer)) {
@@ -408,7 +407,7 @@ bool KisKraSaveVisitor::saveIccProfile(KisNode *node, const KoColorProfile *prof
     if (profile) {
         KisAnnotationSP annotation;
         if (profile) {
-            QByteArray profileRawData = profile->rawData();
+            PkByteArray profileRawData = profile->rawData();
             if (!profileRawData.isEmpty()) {
                 if (profile->type() == "icc") {
                     annotation = new KisAnnotation(ICC, profile->name(), profile->rawData());
@@ -487,10 +486,11 @@ bool KisKraSaveVisitor::saveFilterConfiguration(KisNode* node)
     bool retval = false;
 
     if (filter) {
-        QString location = getLocation(node, DOT_FILTERCONFIG);
+        PkString location = getLocation(node, DOT_FILTERCONFIG);
         if (m_store->open(location)) {
-            QString s = filter->toXML();
-            retval = (m_store->write(s.toUtf8(), qstrlen(s.toUtf8())) == qstrlen(s.toUtf8())); m_store->close();
+            PkString s = filter->toXML();
+            PkByteArray sUtf8 = s.toUtf8();
+            retval = (m_store->write(sUtf8) == sUtf8.size()); m_store->close();
         }
     }
     return retval;
@@ -510,10 +510,10 @@ bool KisKraSaveVisitor::saveMetaData(KisNode* node)
         return false;
     }
 
-    QString location = getLocation(node, QString(".") + backend->id() +  DOT_METADATA);
+    PkString location = getLocation(node, PkString(".") + backend->id() +  DOT_METADATA);
     dbgFile << "going to save " << backend->id() << ", " << backend->name() << " to " << location;
 
-    QBuffer buffer;
+    PkMemoryStream buffer;
     // not that the metadata backends every return anything but true...
     bool retval = backend->saveTo(metadata, &buffer);
 
@@ -521,11 +521,11 @@ bool KisKraSaveVisitor::saveMetaData(KisNode* node)
         m_errorMessages << i18n("The metadata backend failed to save the metadata for %1", node->name());
     }
     else {
-        QByteArray data = buffer.data();
+        PkByteArray data(buffer.data(), static_cast<int>(buffer.size()));
         dbgFile << "\t information size is" << data.size();
 
         if (data.size() > 0 && m_store->open(location)) {
-            retval = m_store->write(data,  data.size());
+            retval = m_store->write(data);
             m_store->close();
         }
         if (!retval) {
@@ -535,16 +535,16 @@ bool KisKraSaveVisitor::saveMetaData(KisNode* node)
     return retval;
 }
 
-QString KisKraSaveVisitor::getLocation(KisNode* node, const QString& suffix)
+PkString KisKraSaveVisitor::getLocation(KisNode* node, const PkString& suffix)
 {
 
     Q_ASSERT(m_nodeFileNames.contains(node));
     return getLocation(m_nodeFileNames[node], suffix);
 }
 
-QString KisKraSaveVisitor::getLocation(const QString &filename, const QString& suffix)
+PkString KisKraSaveVisitor::getLocation(const PkString &filename, const PkString& suffix)
 {
-    QString location = m_external ? QString() : m_uri;
+    PkString location = m_external ? PkString() : m_uri;
     location += m_name + LAYER_PATH + filename + suffix;
     return location;
 }

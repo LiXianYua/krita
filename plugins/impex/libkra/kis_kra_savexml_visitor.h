@@ -7,9 +7,9 @@
 #ifndef KIS_KRA_SAVEXML_VISITOR_H_
 #define KIS_KRA_SAVEXML_VISITOR_H_
 
-#include <QDomDocument>
-#include <QDomElement>
-#include <QStringList>
+#include <PkXmlDocument.h>
+#include <PkXmlElement.h>
+#include <PkStringList.h>
 
 #include "kis_node_visitor.h"
 #include "kis_types.h"
@@ -18,13 +18,13 @@
 class KRITALIBKRA_EXPORT KisSaveXmlVisitor : public KisNodeVisitor
 {
 public:
-    KisSaveXmlVisitor(QDomDocument doc, const QDomElement & element, quint32 &count, const QString &url, bool root);
+    KisSaveXmlVisitor(PkXmlDocument doc, const PkXmlElement & element, quint32 &count, const PkString &url, bool root);
 
     void setSelectedNodes(vKisNodeSP selectedNodes);
 
     using KisNodeVisitor::visit;
 
-    QStringList errorMessages() const;
+    PkStringList errorMessages() const;
 
 public:
 
@@ -43,41 +43,41 @@ public:
     bool visit(KisSelectionMask *mask) override;
     bool visit(KisColorizeMask *mask) override;
 
-    QMap<const KisNode*, QString> nodeFileNames() {
+    PkMap<const KisNode*, PkString> nodeFileNames() {
         return m_nodeFileNames;
     }
 
-    QMap<const KisNode*, QString> keyframeFileNames() {
+    PkMap<const KisNode*, PkString> keyframeFileNames() {
         return m_keyframeFileNames;
     }
 
 public:
-    QDomElement savePaintLayerAttributes(KisPaintLayer *layer, QDomDocument &doc, bool saveLayerOffset);
+    PkXmlElement savePaintLayerAttributes(KisPaintLayer *layer, PkXmlDocument &doc, bool saveLayerOffset);
 
     // used by EXR to save properties of Krita layers inside .exr
-    static void loadPaintLayerAttributes(const QDomElement &el, KisPaintLayer *layer, bool loadLayerOffset);
+    static void loadPaintLayerAttributes(const PkXmlElement &el, KisPaintLayer *layer, bool loadLayerOffset);
 
 private:
-    static void loadLayerAttributes(const QDomElement &el, KisLayer *layer);
+    static void loadLayerAttributes(const PkXmlElement &el, KisLayer *layer);
 
 private:
 
-    void saveLayer(QDomElement & el, const QString & layerType, const KisLayer * layer);
-    void saveMask(QDomElement & el, const QString & maskType, const KisMaskSP mask);
-    bool saveMasks(KisNode * node, QDomElement & layerElement);
-    void saveNodeKeyframes(const KisNode *node, QString filename, QDomElement& el);
+    void saveLayer(PkXmlElement & el, const PkString & layerType, const KisLayer * layer);
+    void saveMask(PkXmlElement & el, const PkString & maskType, const KisMaskSP mask);
+    bool saveMasks(KisNode * node, PkXmlElement & layerElement);
+    void saveNodeKeyframes(const KisNode *node, PkString filename, PkXmlElement& el);
 
     friend class KisKraSaveXmlVisitorTest;
 
     vKisNodeSP m_selectedNodes;
-    QMap<const KisNode*,  QString> m_nodeFileNames;
-    QMap<const KisNode*,  QString> m_keyframeFileNames;
-    QDomDocument m_doc;
-    QDomElement m_elem;
+    PkMap<const KisNode*,  PkString> m_nodeFileNames;
+    PkMap<const KisNode*,  PkString> m_keyframeFileNames;
+    PkXmlDocument m_doc;
+    PkXmlElement m_elem;
     quint32 &m_count;
-    QString m_url;
+    PkString m_url;
     bool m_root;
-    QStringList m_errorMessages;
+    PkStringList m_errorMessages;
 
     bool saveReferenceImagesLayer(KisExternalLayer *layer);
 };

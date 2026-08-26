@@ -8,7 +8,7 @@
 #ifndef KIS_KRA_SAVE_VISITOR_H_
 #define KIS_KRA_SAVE_VISITOR_H_
 
-#include <QStringList>
+#include <PkStringList.h>
 
 #include "kis_types.h"
 #include "kis_node_visitor.h"
@@ -21,12 +21,12 @@ class KoStore;
 class KRITALIBKRA_EXPORT KisKraSaveVisitor : public KisNodeVisitor
 {
 public:
-    KisKraSaveVisitor(KoStore *store, const QString & name, QMap<const KisNode*, QString> nodeFileNames);
+    KisKraSaveVisitor(KoStore *store, const PkString & name, PkMap<const KisNode*, PkString> nodeFileNames);
     ~KisKraSaveVisitor() override;
     using KisNodeVisitor::visit;
 
 public:
-    void setExternalUri(const QString &uri);
+    void setExternalUri(const PkString &uri);
 
     bool visit(KisNode*) override {
         return true;
@@ -55,32 +55,32 @@ public:
     bool visit(KisColorizeMask *mask) override;
 
     /// @return a list with everything that went wrong while saving
-    QStringList errorMessages() const;
+    PkStringList errorMessages() const;
 
 private:
 
-    bool savePaintDevice(KisPaintDeviceSP device, QString location);
+    bool savePaintDevice(KisPaintDeviceSP device, PkString location);
 
     template<class DevicePolicy>
-    bool savePaintDeviceFrame(KisPaintDeviceSP device, QString location, DevicePolicy policy);
+    bool savePaintDeviceFrame(KisPaintDeviceSP device, PkString location, DevicePolicy policy);
 
     bool saveAnnotations(KisLayer* layer);
     bool saveSelection(KisNode* node);
     bool saveFilterConfiguration(KisNode* node);
     bool saveMetaData(KisNode* node);
     bool saveIccProfile(KisNode* node, const KoColorProfile *profile);
-    QString getLocation(KisNode* node, const QString& suffix = QString());
-    QString getLocation(const QString &filename, const QString &suffix = QString());
+    PkString getLocation(KisNode* node, const PkString& suffix = PkString());
+    PkString getLocation(const PkString &filename, const PkString &suffix = PkString());
 
 private:
 
     KoStore *m_store;
     bool m_external;
-    QString m_uri;
-    QString m_name;
-    QMap<const KisNode*, QString> m_nodeFileNames;
+    PkString m_uri;
+    PkString m_name;
+    PkMap<const KisNode*, PkString> m_nodeFileNames;
     KisPaintDeviceWriter *m_writer;
-    QStringList m_errorMessages;
+    PkStringList m_errorMessages;
 };
 
 #endif // KIS_KRA_SAVE_VISITOR_H_
