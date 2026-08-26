@@ -8,7 +8,7 @@
 
 #include <PkList.h>
 #include <PkElapsedTimer.h>
-#include <QtMath>
+#include <PkGlobal.h>
 
 #include "kis_paint_information.h"
 

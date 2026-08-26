@@ -14,6 +14,7 @@
 
 #include "kis_cubic_curve.h"
 #include "kis_speed_smoother.h"
+#include <PkPoint.h>
 
 #include <KoCanvasResourceProvider.h>
 
@@ -125,7 +126,8 @@ KisPaintInformation KisPaintingInformationBuilder::createPaintingInformation(KoP
     QPointF adjusted = adjustDocumentPoint(event->point, m_startPoint);
     QPointF imagePoint = documentToImage(adjusted);
     qreal perspective = calculatePerspective(adjusted);
-    const qreal speed = m_speedSmoother->getNextSpeed(imageToView(imagePoint), event->time());
+    const QPointF viewPoint = imageToView(imagePoint);
+    const qreal speed = m_speedSmoother->getNextSpeed(PkPointF(viewPoint.x(), viewPoint.y()), event->time());
 
     KisPaintInformation pi(imagePoint,
                            !m_pressureDisabled ? 1.0 : pressureToCurve(event->pressure()),
@@ -150,8 +152,9 @@ KisPaintInformation KisPaintingInformationBuilder::hover(const QPointF &imagePoi
 {
     const qreal perspective = calculatePerspective(imageToDocument(imagePoint));
 
+    const QPointF viewPoint = imageToView(imagePoint);
     const qreal speed = !isStrokeStarted && event ?
-        m_speedSmoother->getNextSpeed(imageToView(imagePoint), event->time()) :
+        m_speedSmoother->getNextSpeed(PkPointF(viewPoint.x(), viewPoint.y()), event->time()) :
         m_speedSmoother->lastSpeed();
 
     if (event) {
