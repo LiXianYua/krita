@@ -26,7 +26,7 @@
 #include <KisSequentialIteratorProgress.h>
 
 
-KisUnsharpFilter::KisUnsharpFilter() : KisFilter(id(), FiltersCategoryEnhanceId, i18n("&Unsharp Mask..."))
+KisUnsharpFilter::KisUnsharpFilter() : KisFilter(id(), FiltersCategoryEnhanceId, PkString("&Unsharp Mask..."))
 {
     setSupportsPainting(true);
     setSupportsAdjustmentLayers(true);
@@ -66,7 +66,7 @@ void KisUnsharpFilter::processImpl(KisPaintDeviceSP device,
 
     if (progressUpdater) {
         updater.reset(new KoProgressUpdater(progressUpdater));
-        updater->start(100, i18n("Unsharp Mask"));
+        updater->start(100, PkString("Unsharp Mask"));
         // Two sub-sub tasks that each go from 0 to 100.
         convolutionUpdater = updater->startSubtask();
         filterUpdater = updater->startSubtask();

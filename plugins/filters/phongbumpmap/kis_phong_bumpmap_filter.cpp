@@ -20,8 +20,8 @@
 #include "kis_painter.h"
 
 KisFilterPhongBumpmap::KisFilterPhongBumpmap()
-                      : KisFilter(KoID("phongbumpmap", i18n("Phong Bumpmap")),
-                                  FiltersCategoryMapId, i18n("&Phong Bumpmap..."))
+                      : KisFilter(KoID("phongbumpmap", PkString("Phong Bumpmap")),
+                                  FiltersCategoryMapId, PkString("&Phong Bumpmap..."))
 {
     setColorSpaceIndependence(TO_LAB16);
     setSupportsPainting(true);

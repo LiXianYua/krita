@@ -9,8 +9,6 @@
 #include "noisefilter.h"
 #include <vector>
 
-#include <kpluginfactory.h>
-#include <klocalizedstring.h>
 
 #include <KoUpdater.h>
 #include <KoMixColorsOp.h>
@@ -22,20 +20,19 @@
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_configuration.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaNoiseFilterFactory, "kritanoisefilter.json", registerPlugin<KritaNoiseFilter>();)
-
-KritaNoiseFilter::KritaNoiseFilter(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct KritaNoiseFilterFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisFilterNoise());
+    KritaNoiseFilterFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisFilterNoise());
+    }
+};
+} // namespace
+static KritaNoiseFilterFilterRegistration s_kritaNoiseFilterFilterRegistration;
 
-}
 
-KritaNoiseFilter::~KritaNoiseFilter()
-{
-}
-
-KisFilterNoise::KisFilterNoise() : KisFilter(id(), FiltersCategoryOtherId, i18n("&Random Noise..."))
+KisFilterNoise::KisFilterNoise() : KisFilter(id(), FiltersCategoryOtherId, PkString("&Random Noise..."))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);
@@ -151,6 +148,3 @@ void KisFilterNoise::processImpl(KisPaintDeviceSP device,
         rowsRemaining -= rows;
     }
 }
-
-#include "noisefilter.moc"
-

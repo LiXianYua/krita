@@ -9,17 +9,8 @@
 #ifndef EXAMPLE_H
 #define EXAMPLE_H
 
-#include <QObject>
-#include <PkVariant.h>
 #include "filter/kis_color_transformation_filter.h"
 
-class KritaExample : public QObject
-{
-    Q_OBJECT
-public:
-    KritaExample(QObject *parent, const PkVariantList &);
-    ~KritaExample() override;
-};
 
 class KisFilterInvert : public KisColorTransformationFilter
 {
@@ -30,7 +21,7 @@ public:
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
 
     static inline KoID id() {
-        return KoID("invert", i18n("Invert"));
+        return KoID("invert", PkString("Invert"));
     }
 
     bool needsTransparentPixels(const KisFilterConfigurationSP config, const KoColorSpace *cs) const override;

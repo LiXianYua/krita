@@ -31,7 +31,7 @@ public:
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
 
 	static inline KoID id() {
-        return KoID("colorbalance", i18n("Color Balance"));
+        return KoID("colorbalance", PkString("Color Balance"));
 	}
 
     KisFilterConfigurationSP  defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

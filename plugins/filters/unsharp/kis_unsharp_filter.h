@@ -24,7 +24,7 @@ public:
                      ) const override;
 
     static inline KoID id() {
-        return KoID("unsharp", i18n("Unsharp Mask"));
+        return KoID("unsharp", PkString("Unsharp Mask"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

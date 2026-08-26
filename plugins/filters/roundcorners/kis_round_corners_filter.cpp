@@ -17,8 +17,6 @@
 
 #include <PkPoint.h>
 
-#include <klocalizedstring.h>
-#include <kpluginfactory.h>
 
 #include <KoUpdater.h>
 
@@ -37,7 +35,7 @@
 #include <KoProgressUpdater.h>
 
 
-KisRoundCornersFilter::KisRoundCornersFilter() : KisFilter(id(), FiltersCategoryMapId, i18n("&Round Corners..."))
+KisRoundCornersFilter::KisRoundCornersFilter() : KisFilter(id(), FiltersCategoryMapId, PkString("&Round Corners..."))
 {
     setSupportsPainting(false);
 

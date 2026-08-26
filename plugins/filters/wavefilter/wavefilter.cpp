@@ -13,9 +13,7 @@
 #include <PkPoint.h>
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
-#include <klocalizedstring.h>
 
 #include <KoUpdater.h>
 
@@ -33,7 +31,16 @@
 #include <kis_iterator_ng.h>
 #include <KisSequentialIteratorProgress.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaWaveFilterFactory, "kritawavefilter.json", registerPlugin<KritaWaveFilter>();)
+namespace {
+struct KritaWaveFilterFilterRegistration
+{
+    KritaWaveFilterFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisFilterWave());
+    }
+};
+} // namespace
+static KritaWaveFilterFilterRegistration s_kritaWaveFilterFilterRegistration;
 
 class KisWaveCurve
 {
@@ -82,17 +89,10 @@ public:
     }
 private:
     int m_amplitude, m_wavelength, m_shift;
-}; KritaWaveFilter::KritaWaveFilter(QObject *parent, const PkVariantList &)
-        : QObject(parent)
-{
-    KisFilterRegistry::instance()->add(new KisFilterWave());
-}
+};
 
-KritaWaveFilter::~KritaWaveFilter()
-{
-}
 
-KisFilterWave::KisFilterWave() : KisFilter(id(), FiltersCategoryOtherId, i18n("&Wave..."))
+KisFilterWave::KisFilterWave() : KisFilter(id(), FiltersCategoryOtherId, PkString("&Wave..."))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(false);
@@ -171,5 +171,3 @@ PkRect KisFilterWave::neededRect(const PkRect& rect, const KisFilterConfiguratio
 {
     return changedRect(rect, config, lod);
 }
-
-#include "wavefilter.moc"

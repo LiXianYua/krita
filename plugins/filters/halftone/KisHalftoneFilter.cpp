@@ -8,7 +8,6 @@
 
 #include <PkHash.h>
 
-#include <kpluginfactory.h>
 #include <kis_filter_registry.h>
 #include <filter/kis_filter_category_ids.h>
 #include <KoUpdater.h>
@@ -27,19 +26,20 @@
 
 #include "KisHalftoneFilter.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaHalftoneFactory, "KritaHalftone.json", registerPlugin<KritaHalftone>();)
-
-KritaHalftone::KritaHalftone(QObject *parent, const PkVariantList &)
-    : QObject(parent)
+namespace {
+struct KritaHalftoneFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisHalftoneFilter());
-}
+    KritaHalftoneFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisHalftoneFilter());
+    }
+};
+} // namespace
+static KritaHalftoneFilterRegistration s_kritaHalftoneFilterRegistration;
 
-KritaHalftone::~KritaHalftone()
-{}
 
 KisHalftoneFilter::KisHalftoneFilter()
-    : KisFilter(id(), FiltersCategoryArtisticId, i18n("&Halftone..."))
+    : KisFilter(id(), FiltersCategoryArtisticId, PkString("&Halftone..."))
 {
     setSupportsPainting(true);
 }
@@ -701,5 +701,3 @@ KisFilterConfigurationSP KisHalftoneFilter::factoryConfiguration(KisResourcesInt
 {
     return new KisHalftoneFilterConfiguration("halftone", 1, resourcesInterface);
 }
-
-#include "KisHalftoneFilter.moc"

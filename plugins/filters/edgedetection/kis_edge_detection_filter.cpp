@@ -18,24 +18,22 @@
 #include <kis_processing_information.h>
 #include "kis_lod_transform.h"
 
-#include <kpluginfactory.h>
 
-#include <klocalizedstring.h>
 #include <filter/kis_filter_registry.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaEdgeDetectionFilterFactory, "kritaedgedetection.json", registerPlugin<KritaEdgeDetectionFilter>();)
-
-KritaEdgeDetectionFilter::KritaEdgeDetectionFilter(QObject *parent, const PkVariantList &)
-    : QObject(parent)
+namespace {
+struct KritaEdgeDetectionFilterFilterRegistration
 {
-    KisFilterRegistry::instance()->add(KisFilterSP(new KisEdgeDetectionFilter()));
-}
+    KritaEdgeDetectionFilterFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(KisFilterSP(new KisEdgeDetectionFilter()));
+    }
+};
+} // namespace
+static KritaEdgeDetectionFilterFilterRegistration s_kritaEdgeDetectionFilterFilterRegistration;
 
-KritaEdgeDetectionFilter::~KritaEdgeDetectionFilter()
-{
-}
 
-KisEdgeDetectionFilter::KisEdgeDetectionFilter(): KisFilter(id(), FiltersCategoryEdgeDetectionId, i18n("&Edge Detection..."))
+KisEdgeDetectionFilter::KisEdgeDetectionFilter(): KisFilter(id(), FiltersCategoryEdgeDetectionId, PkString("&Edge Detection..."))
 {
     setSupportsPainting(true);
     setSupportsAdjustmentLayers(true);
@@ -134,5 +132,3 @@ PkRect KisEdgeDetectionFilter::changedRect(const PkRect &rect, const KisFilterCo
 
     return rect.adjusted( -halfWidth, -halfHeight, halfWidth, halfHeight);
 }
-
-#include "kis_edge_detection_filter.moc"

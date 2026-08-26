@@ -13,7 +13,7 @@
 #include <KisGlobalResourcesInterface.h>
 
 KisColorBalanceFilter::KisColorBalanceFilter() 
-        : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, i18n("&Color Balance..."))
+        : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, PkString("&Color Balance..."))
 {
 	setSupportsPainting(true);
 }

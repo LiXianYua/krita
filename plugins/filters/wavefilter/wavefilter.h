@@ -9,18 +9,8 @@
 #ifndef WAVEFILTER_H
 #define WAVEFILTER_H
 
-#include <QObject>
-#include <PkVariant.h>
 #include "filter/kis_filter.h"
 
-
-class KritaWaveFilter : public QObject
-{
-    Q_OBJECT
-public:
-    KritaWaveFilter(QObject *parent, const PkVariantList &);
-    ~KritaWaveFilter() override;
-};
 
 class KisFilterWave : public KisFilter
 {
@@ -35,7 +25,7 @@ public:
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater) const override;
     static inline KoID id() {
-        return KoID("wave", i18n("Wave"));
+        return KoID("wave", PkString("Wave"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

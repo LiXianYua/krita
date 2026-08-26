@@ -6,24 +6,18 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "gaussianhighpass.h"
-#include <kpluginfactory.h>
 
 #include "gaussianhighpass_filter.h"
 
 #include <filter/kis_filter_registry.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(GaussianHighPassPluginFactory, "kritagaussianhighpassfilter.json", registerPlugin<GaussianHighPassPlugin>();)
-
-GaussianHighPassPlugin::GaussianHighPassPlugin(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct GaussianHighPassPluginFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisGaussianHighPassFilter());
-
-}
-
-GaussianHighPassPlugin::~GaussianHighPassPlugin()
-{
-}
-
-#include "gaussianhighpass.moc"
+    GaussianHighPassPluginFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisGaussianHighPassFilter());
+    }
+};
+} // namespace
+static GaussianHighPassPluginFilterRegistration s_gaussianHighPassPluginFilterRegistration;

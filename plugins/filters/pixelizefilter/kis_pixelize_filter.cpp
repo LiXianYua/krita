@@ -18,8 +18,6 @@
 #include <PkPoint.h>
 #include <PkScopedPointer.h>
 
-#include <klocalizedstring.h>
-#include <kpluginfactory.h>
 
 #include <KoUpdater.h>
 
@@ -40,7 +38,7 @@
 #include "kis_lod_transform.h"
 
 
-KisPixelizeFilter::KisPixelizeFilter() : KisFilter(id(), FiltersCategoryArtisticId, i18n("&Pixelize..."))
+KisPixelizeFilter::KisPixelizeFilter() : KisFilter(id(), FiltersCategoryArtisticId, PkString("&Pixelize..."))
 {
     setSupportsPainting(true);
     setSupportsThreading(true);

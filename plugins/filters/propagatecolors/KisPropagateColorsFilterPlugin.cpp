@@ -6,22 +6,18 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include <kpluginfactory.h>
 
 #include <filter/kis_filter_registry.h>
 
 #include "KisPropagateColorsFilter.h"
-#include "KisPropagateColorsFilterPlugin.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(PropagateColorsFilterFactory, "kritapropagatecolorsfilter.json", registerPlugin<KisPropagateColorsFilterPlugin>();)
-
-KisPropagateColorsFilterPlugin::KisPropagateColorsFilterPlugin(QObject *parent, const PkVariantList &)
-    : QObject(parent)
+namespace {
+struct KisPropagateColorsFilterPluginFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisPropagateColorsFilter());
-}
-
-KisPropagateColorsFilterPlugin::~KisPropagateColorsFilterPlugin()
-{}
-
-#include "KisPropagateColorsFilterPlugin.moc"
+    KisPropagateColorsFilterPluginFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisPropagateColorsFilter());
+    }
+};
+} // namespace
+static KisPropagateColorsFilterPluginFilterRegistration s_kisPropagateColorsFilterPluginFilterRegistration;

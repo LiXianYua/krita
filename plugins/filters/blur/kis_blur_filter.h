@@ -23,7 +23,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("blur", i18n("Blur"));
+        return KoID("blur", PkString("Blur"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

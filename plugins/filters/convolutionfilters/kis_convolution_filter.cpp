@@ -7,7 +7,6 @@
  */
 
 #include "kis_convolution_filter.h"
-#include <klocalizedstring.h>
 #include <kis_debug.h>
 
 #include <KoCompositeOp.h>

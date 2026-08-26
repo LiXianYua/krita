@@ -6,25 +6,19 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_raindrops_filter_plugin.h"
-
-#include <kpluginfactory.h>
 
 #include <filter/kis_filter_registry.h>
 
 
 #include "kis_raindrops_filter.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisRainDropsFilterPluginFactory, "kritaraindropsfilter.json", registerPlugin<KisRainDropsFilterPlugin>();)
-
-KisRainDropsFilterPlugin::KisRainDropsFilterPlugin(QObject *parent, const PkVariantList &) : QObject(parent)
+namespace {
+struct KisRainDropsFilterPluginFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisRainDropsFilter());
-
-}
-
-KisRainDropsFilterPlugin::~KisRainDropsFilterPlugin()
-{
-}
-
-#include "kis_raindrops_filter_plugin.moc"
+    KisRainDropsFilterPluginFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisRainDropsFilter());
+    }
+};
+} // namespace
+static KisRainDropsFilterPluginFilterRegistration s_kisRainDropsFilterPluginFilterRegistration;

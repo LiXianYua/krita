@@ -11,10 +11,8 @@
 
 #include <PkPoint.h>
 
-#include <klocalizedstring.h>
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include <kis_processing_information.h>
 #include <kis_types.h>
@@ -26,19 +24,19 @@
 #include "KoColorModelStandardIds.h"
 #include "kis_filter_configuration.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaExampleFactory, "kritaexample.json", registerPlugin<KritaExample>();)
-
-KritaExample::KritaExample(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct KritaExampleFilterRegistration
 {
-    KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterInvert()));
-}
+    KritaExampleFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterInvert()));
+    }
+};
+} // namespace
+static KritaExampleFilterRegistration s_kritaExampleFilterRegistration;
 
-KritaExample::~KritaExample()
-{
-}
 
-KisFilterInvert::KisFilterInvert() : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, i18n("&Invert"))
+KisFilterInvert::KisFilterInvert() : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, PkString("&Invert"))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);
@@ -57,5 +55,3 @@ bool KisFilterInvert::needsTransparentPixels(const KisFilterConfigurationSP conf
     Q_UNUSED(config);
     return cs->colorModelId() == AlphaColorModelID;
 }
-
-#include "example.moc"

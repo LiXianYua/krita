@@ -6,24 +6,18 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "unsharp.h"
-#include <kpluginfactory.h>
 
 #include "kis_unsharp_filter.h"
 
 #include <filter/kis_filter_registry.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(UnsharpPluginFactory, "kritaunsharpfilter.json", registerPlugin<UnsharpPlugin>();)
-
-UnsharpPlugin::UnsharpPlugin(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct UnsharpPluginFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisUnsharpFilter());
-
-}
-
-UnsharpPlugin::~UnsharpPlugin()
-{
-}
-
-#include "unsharp.moc"
+    UnsharpPluginFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisUnsharpFilter());
+    }
+};
+} // namespace
+static UnsharpPluginFilterRegistration s_unsharpPluginFilterRegistration;

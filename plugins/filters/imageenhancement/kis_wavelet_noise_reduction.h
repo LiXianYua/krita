@@ -33,7 +33,7 @@ public:
                      ) const override;
 
     static inline KoID id() {
-        return KoID("waveletnoisereducer", i18n("Wavelet Noise Reducer"));
+        return KoID("waveletnoisereducer", PkString("Wavelet Noise Reducer"));
     }
 
 private:

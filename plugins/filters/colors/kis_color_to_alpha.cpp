@@ -23,7 +23,7 @@
 #include <KisSequentialIteratorProgress.h>
 
 KisFilterColorToAlpha::KisFilterColorToAlpha()
-    : KisFilter(id(), FiltersCategoryColorId, i18n("&Color to Alpha..."))
+    : KisFilter(id(), FiltersCategoryColorId, PkString("&Color to Alpha..."))
 {
     setSupportsPainting(true);
     setSupportsAdjustmentLayers(true);

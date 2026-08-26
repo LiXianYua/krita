@@ -23,7 +23,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("roundcorners", i18n("Round Corners"));
+        return KoID("roundcorners", PkString("Round Corners"));
     }
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 private:

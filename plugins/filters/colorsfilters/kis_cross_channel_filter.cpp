@@ -225,7 +225,7 @@ bool KisCrossChannelFilterConfiguration::channelIndexFromDriverPropertyName(cons
 
 // KisCrossChannelFilter
 
-KisCrossChannelFilter::KisCrossChannelFilter() : KisMultiChannelFilter(id(), i18n("&Cross-channel adjustment curves..."))
+KisCrossChannelFilter::KisCrossChannelFilter() : KisMultiChannelFilter(id(), PkString("&Cross-channel adjustment curves..."))
 {}
 
 KisCrossChannelFilter::~KisCrossChannelFilter()

@@ -17,7 +17,7 @@
 #include <filter/kis_filter_configuration.h>
 
 KisFilterFastColorOverlay::KisFilterFastColorOverlay()
-    : KisFilter(id(), FiltersCategoryColorId, i18n("Fast Color &Overlay..."))
+    : KisFilter(id(), FiltersCategoryColorId, PkString("Fast Color &Overlay..."))
 {
 }
 

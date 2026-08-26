@@ -11,8 +11,6 @@
 #include <PkPoint.h>
 #include <PkVectorND.h>
 
-#include <kpluginfactory.h>
-#include <klocalizedstring.h>
 
 #include <kis_debug.h>
 
@@ -27,22 +25,21 @@
 #include <KoColorSpaceMaths.h>
 #include <filter/kis_color_transformation_configuration.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaNormalizeFilterFactory, "kritanormalize.json", registerPlugin<KritaNormalizeFilter>();)
-
-KritaNormalizeFilter::KritaNormalizeFilter(QObject *parent, const PkVariantList &)
-    : QObject(parent)
+namespace {
+struct KritaNormalizeFilterFilterRegistration
 {
-    KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterNormalize()));
-}
-
-KritaNormalizeFilter::~KritaNormalizeFilter()
-{
-}
+    KritaNormalizeFilterFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterNormalize()));
+    }
+};
+} // namespace
+static KritaNormalizeFilterFilterRegistration s_kritaNormalizeFilterFilterRegistration;
 
 
 KisFilterNormalize::KisFilterNormalize()
-    : KisColorTransformationFilter(KoID("normalize", i18n("Normalize")),
-                                   FiltersCategoryMapId, i18n("&Normalize"))
+    : KisColorTransformationFilter(KoID("normalize", PkString("Normalize")),
+                                   FiltersCategoryMapId, PkString("&Normalize"))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);
@@ -120,5 +117,3 @@ void KisNormalizeTransformation::transform(const quint8* src, quint8* dst, qint3
     }
     }*/
 }
-
-#include "kis_normalize.moc"

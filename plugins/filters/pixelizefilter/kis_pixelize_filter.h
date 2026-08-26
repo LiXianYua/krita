@@ -23,7 +23,7 @@ public:
                      KoUpdater* progressUpdater) const override;
 
     static inline KoID id() {
-        return KoID("pixelize", i18n("Pixelize"));
+        return KoID("pixelize", PkString("Pixelize"));
     }
 
     PkRect neededRect(const PkRect & rect, const KisFilterConfigurationSP config, int lod) const override;

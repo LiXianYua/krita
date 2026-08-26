@@ -9,17 +9,8 @@
 #ifndef COLORTRANSFER_H
 #define COLORTRANSFER_H
 
-#include <QObject>
-#include <PkVariant.h>
 #include <filter/kis_filter.h>
 
-class FastColorTransferPlugin : public QObject
-{
-    Q_OBJECT
-public:
-    FastColorTransferPlugin(QObject *parent, const PkVariantList &);
-    ~FastColorTransferPlugin() override;
-};
 
 class KisFilterFastColorTransfer : public KisFilter
 {
@@ -32,7 +23,7 @@ public:
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater) const override;
     static inline KoID id() {
-        return KoID("colortransfer", i18n("Color Transfer"));
+        return KoID("colortransfer", PkString("Color Transfer"));
     }
 
 public:

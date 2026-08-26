@@ -18,10 +18,8 @@
 #include <PkPoint.h>
 #include <PkColor.h>
 
-#include <klocalizedstring.h>
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include "KoBasicHistogramProducers.h"
 #include <KoColorSpace.h>
@@ -50,30 +48,27 @@
 #include "kis_color_balance_filter.h"
 #include "kis_desaturate_filter.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(ColorsFiltersFactory, "kritacolorsfilter.json", registerPlugin<ColorsFilters>();)
-
-ColorsFilters::ColorsFilters(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct ColorsFiltersFilterRegistration
 {
-    KisFilterRegistry * manager = KisFilterRegistry::instance();
-    manager->add(new KisAutoContrast());
-    manager->add(new KisPerChannelFilter());
-    manager->add(new KisCrossChannelFilter());
-    manager->add(new KisDesaturateFilter());
-    manager->add(new KisHSVAdjustmentFilter());
-    manager->add(new KisColorBalanceFilter());
-
-}
-
-ColorsFilters::~ColorsFilters()
-{
-}
+    ColorsFiltersFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisAutoContrast());
+        KisFilterRegistry::instance()->add(new KisPerChannelFilter());
+        KisFilterRegistry::instance()->add(new KisCrossChannelFilter());
+        KisFilterRegistry::instance()->add(new KisDesaturateFilter());
+        KisFilterRegistry::instance()->add(new KisHSVAdjustmentFilter());
+        KisFilterRegistry::instance()->add(new KisColorBalanceFilter());
+    }
+};
+} // namespace
+static ColorsFiltersFilterRegistration s_colorsFiltersFilterRegistration;
 
 
 //==================================================================
 
 
-KisAutoContrast::KisAutoContrast() : KisFilter(id(), FiltersCategoryAdjustId, i18n("&Auto Contrast"))
+KisAutoContrast::KisAutoContrast() : KisFilter(id(), FiltersCategoryAdjustId, PkString("&Auto Contrast"))
 {
     setSupportsPainting(false);
     setSupportsThreading(false);
@@ -157,5 +152,3 @@ void KisAutoContrast::processImpl(KisPaintDeviceSP device,
         adj->transform(it.oldRawData(), it.rawData(), npix);
     }
 }
-
-#include "colorsfilters.moc"

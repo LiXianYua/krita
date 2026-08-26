@@ -25,7 +25,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("smalltiles", i18n("Small Tiles"));
+        return KoID("smalltiles", PkString("Small Tiles"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

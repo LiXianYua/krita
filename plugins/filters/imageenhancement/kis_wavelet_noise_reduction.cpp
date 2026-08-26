@@ -21,7 +21,7 @@
 #include "kis_global.h"
 
 KisWaveletNoiseReduction::KisWaveletNoiseReduction()
-    : KisFilter(id(), FiltersCategoryEnhanceId, i18n("&Wavelet Noise Reducer..."))
+    : KisFilter(id(), FiltersCategoryEnhanceId, PkString("&Wavelet Noise Reducer..."))
 {
     setSupportsPainting(false);
     setSupportsThreading(false);

@@ -60,7 +60,7 @@ KisCubicCurve KisPerChannelFilterConfiguration::getDefaultCurve()
 
 // KisPerChannelFilter
 
-KisPerChannelFilter::KisPerChannelFilter() : KisMultiChannelFilter(id(), i18n("&Color Adjustment curves..."))
+KisPerChannelFilter::KisPerChannelFilter() : KisMultiChannelFilter(id(), PkString("&Color Adjustment curves..."))
 {
 }
 

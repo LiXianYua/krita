@@ -10,13 +10,6 @@
 
 #include <Eigen/Core>
 
-class KritaEdgeDetectionFilter : public QObject
-{
-    Q_OBJECT
-public:
-    KritaEdgeDetectionFilter(QObject *parent, const PkVariantList &);
-    ~KritaEdgeDetectionFilter() override;
-};
 
 class KisEdgeDetectionFilter : public KisFilter
 {
@@ -28,7 +21,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("edge detection", i18n("Edge Detection"));
+        return KoID("edge detection", PkString("Edge Detection"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

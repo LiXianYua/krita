@@ -25,7 +25,7 @@ public:
                      ) const override;
 
     static inline KoID id() {
-        return KoID("colortoalpha", i18n("Color to Alpha"));
+        return KoID("colortoalpha", PkString("Color to Alpha"));
     }
 
 public:

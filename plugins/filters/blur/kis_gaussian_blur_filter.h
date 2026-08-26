@@ -24,7 +24,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("gaussian blur", i18n("Gaussian Blur"));
+        return KoID("gaussian blur", PkString("Gaussian Blur"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

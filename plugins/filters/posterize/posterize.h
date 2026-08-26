@@ -7,17 +7,8 @@
 #ifndef POSTERIZE_H
 #define POSTERIZE_H
 
-#include <QObject>
-#include <PkVariant.h>
 #include "filter/kis_color_transformation_filter.h"
 
-class Posterize : public QObject
-{
-    Q_OBJECT
-public:
-    Posterize(QObject *parent, const PkVariantList &);
-    ~Posterize() override;
-};
 
 class KisFilterPosterize : public KisColorTransformationFilter
 {
@@ -26,7 +17,7 @@ public:
 public:
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
     static inline KoID id() {
-        return KoID("posterize", i18n("Posterize"));
+        return KoID("posterize", PkString("Posterize"));
     }
 protected:
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

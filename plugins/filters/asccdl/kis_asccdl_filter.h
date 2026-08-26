@@ -10,13 +10,6 @@
 #include <filter/kis_filter.h>
 #include "filter/kis_color_transformation_filter.h"
 
-class KritaASCCDL : public QObject
-{
-    Q_OBJECT
-public:
-    KritaASCCDL(QObject *parent, const PkVariantList &);
-    ~KritaASCCDL() override;
-};
 
 class KisFilterASCCDL: public KisColorTransformationFilter
 {
@@ -25,7 +18,7 @@ public:
 public:
 
     static inline KoID id() {
-        return KoID("asc-cdl", i18n("Slope, Offset, Power(ASC-CDL)"));
+        return KoID("asc-cdl", PkString("Slope, Offset, Power(ASC-CDL)"));
     }
     KoColorTransformation *createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
     bool needsTransparentPixels(const KisFilterConfigurationSP config, const KoColorSpace *cs) const override;

@@ -9,18 +9,8 @@
 #ifndef NOISEFILTER_H
 #define NOISEFILTER_H
 
-#include <QObject>
-#include <PkVariant.h>
 #include "filter/kis_filter.h"
 
-
-class KritaNoiseFilter : public QObject
-{
-    Q_OBJECT
-public:
-    KritaNoiseFilter(QObject *parent, const PkVariantList &);
-    ~KritaNoiseFilter() override;
-};
 
 class KisFilterNoise : public KisFilter
 {
@@ -34,7 +24,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("noise", i18n("Random Noise"));
+        return KoID("noise", PkString("Random Noise"));
     }
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
 };

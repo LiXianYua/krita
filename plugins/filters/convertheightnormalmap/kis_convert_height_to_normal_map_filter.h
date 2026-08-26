@@ -8,13 +8,6 @@
 
 #include "filter/kis_filter.h"
 
-class KritaConvertHeightToNormalMapFilter : public QObject
-{
-    Q_OBJECT
-public:
-    KritaConvertHeightToNormalMapFilter(QObject *parent, const PkVariantList &);
-    ~KritaConvertHeightToNormalMapFilter() override;
-};
 
 class KisConvertHeightToNormalMapFilter : public KisFilter
 {
@@ -26,7 +19,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("height to normal", i18n("Height to Normal Map"));
+        return KoID("height to normal", PkString("Height to Normal Map"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

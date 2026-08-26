@@ -26,7 +26,7 @@ public:
                      ) const override;
 
     static inline KoID id() {
-        return KoID("gaussianhighpass", i18n("Gaussian High Pass"));
+        return KoID("gaussianhighpass", PkString("Gaussian High Pass"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

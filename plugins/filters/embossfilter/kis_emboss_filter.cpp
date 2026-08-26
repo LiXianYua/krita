@@ -18,9 +18,7 @@
 
 #include <PkPoint.h>
 
-#include <klocalizedstring.h>
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include "KoIntegerMaths.h"
 #include <KoUpdater.h>
@@ -38,7 +36,7 @@
 #include <KisSequentialIteratorProgress.h>
 
 
-KisEmbossFilter::KisEmbossFilter() : KisFilter(id(), FiltersCategoryEmbossId, i18n("&Emboss with Variable Depth..."))
+KisEmbossFilter::KisEmbossFilter() : KisFilter(id(), FiltersCategoryEmbossId, PkString("&Emboss with Variable Depth..."))
 {
     setSupportsPainting(false);
     setColorSpaceIndependence(TO_RGBA8);

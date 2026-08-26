@@ -9,7 +9,6 @@
 
 #include "kis_hsv_adjustment_filter.h"
 
-#include <klocalizedstring.h>
 
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_color_transformation_configuration.h>
@@ -106,7 +105,7 @@ SliderSettings sliderSetting(SLIDER_TYPE type) {
 }
 
 KisHSVAdjustmentFilter::KisHSVAdjustmentFilter()
-        : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, i18n("&HSV Adjustment..."))
+        : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, PkString("&HSV Adjustment..."))
 {
     setSupportsPainting(true);
 }

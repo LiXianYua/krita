@@ -9,7 +9,6 @@
 #ifndef KIS_HALFTONE_FILTER_H
 #define KIS_HALFTONE_FILTER_H
 
-#include <QObject>
 #include <PkVector.h>
 
 #include <filter/kis_filter.h>
@@ -19,21 +18,13 @@
 #include "KisHalftoneFilterConfiguration.h"
 
 
-class KritaHalftone : public QObject
-{
-    Q_OBJECT
-public:
-    KritaHalftone(QObject *parent, const PkVariantList &);
-    ~KritaHalftone() override;
-};
-
 class KisHalftoneFilter : public KisFilter
 {
 public:
     KisHalftoneFilter();
 
     static inline KoID id() {
-        return KoID("halftone", i18n("Halftone"));
+        return KoID("halftone", PkString("Halftone"));
     }
 
     void processImpl(KisPaintDeviceSP device,

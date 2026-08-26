@@ -15,8 +15,6 @@
 
 #include <kis_debug.h>
 
-#include <kpluginfactory.h>
-#include <klocalizedstring.h>
 
 #include <KoUpdater.h>
 
@@ -37,19 +35,19 @@
 #include <kis_iterator_ng.h>
 #include <KisSequentialIteratorProgress.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaRandomPickFilterFactory, "kritarandompickfilter.json", registerPlugin<KritaRandomPickFilter>();)
-
-KritaRandomPickFilter::KritaRandomPickFilter(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct KritaRandomPickFilterFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisFilterRandomPick());
-}
+    KritaRandomPickFilterFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisFilterRandomPick());
+    }
+};
+} // namespace
+static KritaRandomPickFilterFilterRegistration s_kritaRandomPickFilterFilterRegistration;
 
-KritaRandomPickFilter::~KritaRandomPickFilter()
-{
-}
 
-KisFilterRandomPick::KisFilterRandomPick() : KisFilter(id(), FiltersCategoryOtherId, i18n("&Random Pick..."))
+KisFilterRandomPick::KisFilterRandomPick() : KisFilter(id(), FiltersCategoryOtherId, PkString("&Random Pick..."))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);
@@ -133,5 +131,3 @@ PkRect KisFilterRandomPick::changedRect(const PkRect &rect, const KisFilterConfi
 {
     return neededRect(rect, config, lod);
 }
-
-#include "randompickfilter.moc"

@@ -9,8 +9,6 @@
 #ifndef CONVOLUTIONFILTERS_H
 #define CONVOLUTIONFILTERS_H
 
-#include <QObject>
-#include <PkVariant.h>
 #include "kis_convolution_filter.h"
 
 class KisSharpenFilter : public KisConvolutionFilter
@@ -19,7 +17,7 @@ public:
     KisSharpenFilter();
 public:
     static inline KoID id() {
-        return KoID("sharpen", i18n("Sharpen"));
+        return KoID("sharpen", PkString("Sharpen"));
     }
 
 };
@@ -30,7 +28,7 @@ public:
     KisMeanRemovalFilter();
 public:
     static inline KoID id() {
-        return KoID("mean removal", i18n("Mean Removal"));
+        return KoID("mean removal", PkString("Mean Removal"));
     }
 };
 
@@ -40,7 +38,7 @@ public:
     KisEmbossLaplascianFilter();
 public:
     static inline KoID id() {
-        return KoID("emboss laplascian", i18n("Emboss (Laplacian)"));
+        return KoID("emboss laplascian", PkString("Emboss (Laplacian)"));
     }
 };
 
@@ -50,7 +48,7 @@ public:
     KisEmbossInAllDirectionsFilter();
 public:
     static inline KoID id() {
-        return KoID("emboss all directions", i18n("Emboss in All Directions"));
+        return KoID("emboss all directions", PkString("Emboss in All Directions"));
     }
 };
 
@@ -60,7 +58,7 @@ public:
     KisEmbossHorizontalVerticalFilter();
 public:
     static inline KoID id() {
-        return KoID("emboss horizontal and vertical", i18n("Emboss Horizontal & Vertical"));
+        return KoID("emboss horizontal and vertical", PkString("Emboss Horizontal & Vertical"));
     }
 };
 
@@ -70,7 +68,7 @@ public:
     KisEmbossVerticalFilter();
 public:
     static inline KoID id() {
-        return KoID("emboss vertical only", i18n("Emboss Vertical Only"));
+        return KoID("emboss vertical only", PkString("Emboss Vertical Only"));
     }
 };
 
@@ -80,7 +78,7 @@ public:
     KisEmbossHorizontalFilter();
 public:
     static inline KoID id() {
-        return KoID("emboss horizontal only", i18n("Emboss Horizontal Only"));
+        return KoID("emboss horizontal only", PkString("Emboss Horizontal Only"));
     }
 };
 
@@ -90,16 +88,9 @@ public:
     KisEmbossDiagonalFilter();
 public:
     static inline KoID id() {
-        return KoID("emboss diagonal", i18n("Emboss Diagonal"));
+        return KoID("emboss diagonal", PkString("Emboss Diagonal"));
     }
 };
 
-class KritaConvolutionFilters : public QObject
-{
-    Q_OBJECT
-public:
-    KritaConvolutionFilters(QObject *parent, const PkVariantList &);
-    ~KritaConvolutionFilters() override;
-};
 
 #endif

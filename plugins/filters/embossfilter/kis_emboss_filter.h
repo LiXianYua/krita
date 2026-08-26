@@ -23,7 +23,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("emboss", i18n("Emboss with Variable Depth"));
+        return KoID("emboss", PkString("Emboss with Variable Depth"));
     }
 
 protected:

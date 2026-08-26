@@ -9,23 +9,12 @@
 #ifndef THRESHOLD_H
 #define THRESHOLD_H
 
-#include <QObject>
-#include <PkVariant.h>
 #include <filter/kis_filter.h>
 #include <kis_filter_configuration.h>
 
 class WdgThreshold;
 class KisHistogram;
 
-
-
-class KritaThreshold : public QObject
-{
-    Q_OBJECT
-public:
-    KritaThreshold(QObject *parent, const PkVariantList &);
-    ~KritaThreshold() override;
-};
 
 class KisFilterThreshold : public KisFilter
 {
@@ -34,7 +23,7 @@ public:
 public:
 
     static inline KoID id() {
-        return KoID("threshold", i18n("Threshold"));
+        return KoID("threshold", PkString("Threshold"));
     }
 
     void processImpl(KisPaintDeviceSP device,
@@ -48,4 +37,3 @@ public:
 
 
 #endif
-

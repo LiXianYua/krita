@@ -17,10 +17,8 @@
 #include <PkPoint.h>
 #include <PkColor.h>
 
-#include <klocalizedstring.h>
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include "KoBasicHistogramProducers.h"
 #include <KoColorSpace.h>
@@ -42,7 +40,7 @@
 #include <KisGlobalResourcesInterface.h>
 
 KisDesaturateFilter::KisDesaturateFilter()
-   : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, i18n("&Desaturate..."))
+   : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, PkString("&Desaturate..."))
 {
     setSupportsPainting(true);
 }

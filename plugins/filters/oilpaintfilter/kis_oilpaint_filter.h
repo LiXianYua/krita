@@ -22,7 +22,7 @@ public:
                      const KisFilterConfigurationSP config,
                      KoUpdater* progressUpdater ) const override;
     static inline KoID id() {
-        return KoID("oilpaint", i18n("Oilpaint"));
+        return KoID("oilpaint", PkString("Oilpaint"));
     }
 
 

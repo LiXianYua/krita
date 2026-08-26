@@ -9,7 +9,6 @@
 #include "palettize.h"
 
 #include <kis_types.h>
-#include <kpluginfactory.h>
 #include <kis_filter_registry.h>
 #include <kis_filter_configuration.h>
 #include <kis_filter_category_ids.h>
@@ -23,15 +22,16 @@
 #include <KisGlobalResourcesInterface.h>
 #include <KoResourceLoadResult.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(PalettizeFactory, "kritapalettize.json", registerPlugin<Palettize>();)
-
-Palettize::Palettize(QObject *parent, const PkVariantList &)
-    : QObject(parent)
+namespace {
+struct PalettizeFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisFilterPalettize());
-}
-
-#include "palettize.moc"
+    PalettizeFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisFilterPalettize());
+    }
+};
+} // namespace
+static PalettizeFilterRegistration s_palettizeFilterRegistration;
 
 
 /*******************************************************************************/
@@ -86,7 +86,7 @@ public:
 /*                      KisFilterPalettize                                     */
 /*******************************************************************************/
 
-KisFilterPalettize::KisFilterPalettize() : KisFilter(id(), FiltersCategoryMapId, i18n("&Palettize..."))
+KisFilterPalettize::KisFilterPalettize() : KisFilter(id(), FiltersCategoryMapId, PkString("&Palettize..."))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);

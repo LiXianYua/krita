@@ -26,7 +26,7 @@
 
 
 KisSimpleNoiseReducer::KisSimpleNoiseReducer()
-    : KisFilter(id(), FiltersCategoryEnhanceId, i18n("&Gaussian Noise Reduction..."))
+    : KisFilter(id(), FiltersCategoryEnhanceId, PkString("&Gaussian Noise Reduction..."))
 {
     setSupportsPainting(false);
     setSupportsLevelOfDetail(true);

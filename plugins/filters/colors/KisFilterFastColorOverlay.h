@@ -25,7 +25,7 @@ public:
                      ) const override;
 
     static inline KoID id() {
-        return KoID("fastcoloroverlay", i18n("Fast Color Overlay"));
+        return KoID("fastcoloroverlay", PkString("Fast Color Overlay"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

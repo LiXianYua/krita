@@ -32,7 +32,7 @@
 #include <KisSequentialIteratorProgress.h>
 
 
-KisGaussianHighPassFilter::KisGaussianHighPassFilter() : KisFilter(id(), FiltersCategoryEdgeDetectionId, i18n("&Gaussian High Pass..."))
+KisGaussianHighPassFilter::KisGaussianHighPassFilter() : KisFilter(id(), FiltersCategoryEdgeDetectionId, PkString("&Gaussian High Pass..."))
 {
     setSupportsPainting(true);
     setSupportsAdjustmentLayers(true);

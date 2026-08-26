@@ -23,7 +23,7 @@ public:
     KisGradientMapFilter();
 
     static inline KoID id() {
-        return KoID("gradientmap", i18n("Gradient Map"));
+        return KoID("gradientmap", PkString("Gradient Map"));
     }
 
     void processImpl(KisPaintDeviceSP device,

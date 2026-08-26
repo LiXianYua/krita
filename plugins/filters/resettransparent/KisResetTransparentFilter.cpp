@@ -6,10 +6,8 @@
 
 #include "KisResetTransparentFilter.h"
 
-#include <klocalizedstring.h>
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include <KoUpdater.h>
 #include <KisSequentialIteratorProgress.h>
@@ -17,20 +15,20 @@
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_registry.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(ResetTransparentFactory, "kritaresettransparent.json", registerPlugin<ResetTransparent>();)
-
-ResetTransparent::ResetTransparent(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct ResetTransparentFilterRegistration
 {
-    KisFilterRegistry::instance()->add(KisFilterSP(new KisResetTransparentFilter()));
-}
+    ResetTransparentFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(KisFilterSP(new KisResetTransparentFilter()));
+    }
+};
+} // namespace
+static ResetTransparentFilterRegistration s_resetTransparentFilterRegistration;
 
-ResetTransparent::~ResetTransparent()
-{
-}
 
 KisResetTransparentFilter::KisResetTransparentFilter()
-    : KisFilter(id(), FiltersCategoryOtherId, i18n("Reset Transparent"))
+    : KisFilter(id(), FiltersCategoryOtherId, PkString("Reset Transparent"))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(false);
@@ -65,5 +63,3 @@ void KisResetTransparentFilter::processImpl(KisPaintDeviceSP device,
         }
     }
 }
-
-#include "KisResetTransparentFilter.moc"

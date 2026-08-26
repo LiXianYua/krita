@@ -18,9 +18,7 @@
 
 #include <PkPoint.h>
 
-#include <klocalizedstring.h>
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include <KoUpdater.h>
 
@@ -37,7 +35,7 @@
 #include <KisGlobalResourcesInterface.h>
 
 
-KisOilPaintFilter::KisOilPaintFilter() : KisFilter(id(), FiltersCategoryArtisticId, i18n("&Oilpaint..."))
+KisOilPaintFilter::KisOilPaintFilter() : KisFilter(id(), FiltersCategoryArtisticId, PkString("&Oilpaint..."))
 {
     setSupportsPainting(true);
     setSupportsThreading(false);

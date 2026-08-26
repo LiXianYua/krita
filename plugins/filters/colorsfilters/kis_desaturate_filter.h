@@ -26,7 +26,7 @@ public:
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
 
     static inline KoID id() {
-        return KoID("desaturate", i18n("Desaturate"));
+        return KoID("desaturate", PkString("Desaturate"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

@@ -9,18 +9,8 @@
 #ifndef RANDOMPICKFILTER_H
 #define RANDOMPICKFILTER_H
 
-#include <QObject>
-#include <PkVariant.h>
 #include "filter/kis_filter.h"
 
-
-class KritaRandomPickFilter : public QObject
-{
-    Q_OBJECT
-public:
-    KritaRandomPickFilter(QObject *parent, const PkVariantList &);
-    ~KritaRandomPickFilter() override;
-};
 
 class KisFilterRandomPick : public KisFilter
 {
@@ -33,7 +23,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("randompick", i18n("Random Pick"));
+        return KoID("randompick", PkString("Random Pick"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

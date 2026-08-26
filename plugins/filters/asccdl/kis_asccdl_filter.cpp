@@ -5,29 +5,24 @@
  */
 
 #include "kis_asccdl_filter.h"
-#include <kpluginfactory.h>
-#include <klocalizedstring.h>
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_registry.h>
 #include <filter/kis_color_transformation_configuration.h>
 #include <qmath.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaASCCDLFactory,
-                           "kritaasccdl.json",
-                           registerPlugin<KritaASCCDL>();)
-
-
-KritaASCCDL::KritaASCCDL(QObject *parent, const PkVariantList &) : QObject(parent)
+namespace {
+struct KritaASCCDLFilterRegistration
 {
-    KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterASCCDL()));
-}
+    KritaASCCDLFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterASCCDL()));
+    }
+};
+} // namespace
+static KritaASCCDLFilterRegistration s_kritaASCCDLFilterRegistration;
 
-KritaASCCDL::~KritaASCCDL()
-{
 
-}
-
-KisFilterASCCDL::KisFilterASCCDL(): KisColorTransformationFilter(id(), FiltersCategoryAdjustId, i18n("&Slope, Offset, Power..."))
+KisFilterASCCDL::KisFilterASCCDL(): KisColorTransformationFilter(id(), FiltersCategoryAdjustId, PkString("&Slope, Offset, Power..."))
 {
     setSupportsPainting(true);
     setSupportsAdjustmentLayers(true);
@@ -112,5 +107,3 @@ void KisASCCDLTransformation::transform(const quint8 *src, quint8 *dst, qint32 n
         dst += pixelSize;
     }
 }
-
-#include "kis_asccdl_filter.moc"

@@ -6,25 +6,18 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_round_corners_filter_plugin.h"
-
-#include <kpluginfactory.h>
 
 #include "kis_round_corners_filter.h"
 #include "kis_global.h"
 #include "filter/kis_filter_registry.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisRoundCornersFilterPluginFactory, "kritaroundcornersfilter.json", registerPlugin<KisRoundCornersFilterPlugin>();)
-
-KisRoundCornersFilterPlugin::KisRoundCornersFilterPlugin(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct KisRoundCornersFilterPluginFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisRoundCornersFilter());
-
-}
-
-KisRoundCornersFilterPlugin::~KisRoundCornersFilterPlugin()
-{
-}
-
-#include "kis_round_corners_filter_plugin.moc"
+    KisRoundCornersFilterPluginFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisRoundCornersFilter());
+    }
+};
+} // namespace
+static KisRoundCornersFilterPluginFilterRegistration s_kisRoundCornersFilterPluginFilterRegistration;

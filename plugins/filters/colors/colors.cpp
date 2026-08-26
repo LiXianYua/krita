@@ -6,29 +6,22 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "colors.h"
-#include <kpluginfactory.h>
 
 #include "kis_minmax_filters.h"
 #include "kis_color_to_alpha.h"
 #include "KisFilterFastColorOverlay.h"
 #include <filter/kis_filter_registry.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaExtensionsColorsFactory, "kritaextensioncolorsfilters.json", registerPlugin<KritaExtensionsColors>();)
-
-KritaExtensionsColors::KritaExtensionsColors(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct KritaExtensionsColorsFilterRegistration
 {
-    KisFilterRegistry * manager = KisFilterRegistry::instance();
-    manager->add(new KisFilterMax());
-    manager->add(new KisFilterMin());
-    manager->add(new KisFilterColorToAlpha());
-    manager->add(new KisFilterFastColorOverlay());
-
-}
-
-KritaExtensionsColors::~KritaExtensionsColors()
-{
-}
-
-#include "colors.moc"
+    KritaExtensionsColorsFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisFilterMax());
+        KisFilterRegistry::instance()->add(new KisFilterMin());
+        KisFilterRegistry::instance()->add(new KisFilterColorToAlpha());
+        KisFilterRegistry::instance()->add(new KisFilterFastColorOverlay());
+    }
+};
+} // namespace
+static KritaExtensionsColorsFilterRegistration s_kritaExtensionsColorsFilterRegistration;

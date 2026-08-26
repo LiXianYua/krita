@@ -16,12 +16,6 @@
 #include <boost/geometry/geometries/point.hpp>
 #include <boost/geometry/geometries/register/point.hpp>
 
-class Palettize : public QObject
-{
-    Q_OBJECT
-public:
-    Palettize(QObject *parent, const PkVariantList &);
-};
 
 class KisFilterPalettize : public KisFilter
 {
@@ -49,7 +43,7 @@ public:
         NearestColors
     };
     KisFilterPalettize();
-    static inline KoID id() { return KoID("palettize", i18n("Palettize")); }
+    static inline KoID id() { return KoID("palettize", PkString("Palettize")); }
     KisFilterConfigurationSP factoryConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;
     void processImpl(KisPaintDeviceSP device, const PkRect &applyRect, const KisFilterConfigurationSP config, KoUpdater *progressUpdater) const override;

@@ -5,7 +5,6 @@
  */
 
 #include "virtual_channel_info.h"
-#include <klocalizedstring.h>
 
 #include <KoColorSpace.h>
 #include <KoColorModelStandardIds.h>
@@ -27,15 +26,15 @@ VirtualChannelInfo::VirtualChannelInfo(Type type,
       m_realChannelInfo(realChannelInfo)
 {
     if (m_type == HUE) {
-        m_nameOverride = i18n("Hue");
+        m_nameOverride = PkString("Hue");
         m_valueTypeOverride = KoChannelInfo::FLOAT32;
         m_channelSizeOverride = 4;
     } else if (m_type == SATURATION) {
-        m_nameOverride = i18n("Saturation");
+        m_nameOverride = PkString("Saturation");
         m_valueTypeOverride = KoChannelInfo::FLOAT32;
         m_channelSizeOverride = 4;
     } else if (m_type == LIGHTNESS) {
-        m_nameOverride = i18nc("Lightness L*a*b*", "Lightness");
+        m_nameOverride = PkString("Lightness");
         m_valueTypeOverride = KoChannelInfo::FLOAT32;
         m_channelSizeOverride = 4;
     } else if (m_type == ALL_COLORS) {

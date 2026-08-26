@@ -7,18 +7,9 @@
 #ifndef RESET_TRANSPARENT_H
 #define RESET_TRANSPARENT_H
 
-#include <QObject>
-#include <PkVariant.h>
 
 #include <kis_filter.h>
 
-class ResetTransparent : public QObject
-{
-    Q_OBJECT
-public:
-    ResetTransparent(QObject *parent, const PkVariantList &);
-    ~ResetTransparent() override;
-};
 
 class KisResetTransparentFilter : public KisFilter
 {
@@ -26,7 +17,7 @@ public:
     KisResetTransparentFilter();
 public:
     static inline KoID id() {
-        return KoID("resettransparent", i18n("Reset Transparent"));
+        return KoID("resettransparent", PkString("Reset Transparent"));
     }
 
     bool needsTransparentPixels(const KisFilterConfigurationSP config, const KoColorSpace *cs) const override;

@@ -4,22 +4,17 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_phong_bumpmap_plugin.h"
 #include "kis_phong_bumpmap_filter.h"
 
-#include <kpluginfactory.h>
 #include <filter/kis_filter_registry.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KisPhongBumpmapFactory, "kritaphongbumpmapfilter.json", registerPlugin<KisPhongBumpmapPlugin>();)
-
-KisPhongBumpmapPlugin::KisPhongBumpmapPlugin(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct KisPhongBumpmapPluginFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisFilterPhongBumpmap());
-}
-
-KisPhongBumpmapPlugin::~KisPhongBumpmapPlugin()
-{
-}
-
-#include "kis_phong_bumpmap_plugin.moc"
+    KisPhongBumpmapPluginFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisFilterPhongBumpmap());
+    }
+};
+} // namespace
+static KisPhongBumpmapPluginFilterRegistration s_kisPhongBumpmapPluginFilterRegistration;

@@ -25,7 +25,7 @@ public:
 
     static inline KoID id()
     {
-        return KoID(KisLevelsFilterConfiguration::defaultName(), i18n("Levels"));
+        return KoID(KisLevelsFilterConfiguration::defaultName(), PkString("Levels"));
     }
 };
 

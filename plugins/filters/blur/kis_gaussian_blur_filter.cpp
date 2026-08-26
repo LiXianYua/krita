@@ -26,7 +26,7 @@
 #include <math.h>
 
 
-KisGaussianBlurFilter::KisGaussianBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, i18n("&Gaussian Blur..."))
+KisGaussianBlurFilter::KisGaussianBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, PkString("&Gaussian Blur..."))
 {
     setSupportsPainting(true);
     setSupportsAdjustmentLayers(true);

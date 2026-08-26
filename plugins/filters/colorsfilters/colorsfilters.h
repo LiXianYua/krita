@@ -8,19 +8,9 @@
 #ifndef COLORSFILTERS_H
 #define COLORSFILTERS_H
 
-#include <QObject>
-#include <PkVariant.h>
 #include "kis_perchannel_filter.h"
 #include "filter/kis_color_transformation_filter.h"
 
-
-class ColorsFilters : public QObject
-{
-    Q_OBJECT
-public:
-    ColorsFilters(QObject *parent, const PkVariantList &);
-    ~ColorsFilters() override;
-};
 
 class KisAutoContrast : public KisFilter
 {
@@ -34,7 +24,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("autocontrast", i18n("Auto Contrast"));
+        return KoID("autocontrast", PkString("Auto Contrast"));
     }
 
 };

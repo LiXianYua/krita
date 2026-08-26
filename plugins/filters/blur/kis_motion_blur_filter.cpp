@@ -25,7 +25,7 @@
 #include <math.h>
 
 
-KisMotionBlurFilter::KisMotionBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, i18n("&Motion Blur..."))
+KisMotionBlurFilter::KisMotionBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, PkString("&Motion Blur..."))
 {
     setSupportsPainting(true);
     setSupportsAdjustmentLayers(true);

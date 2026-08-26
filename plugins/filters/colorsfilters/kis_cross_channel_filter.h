@@ -34,7 +34,7 @@ public:
     KoColorTransformation* createTransformation(const KoColorSpace *cs, const KisFilterConfigurationSP config) const override;
 
     static inline KoID id() {
-        return KoID("crosschannel", i18n("Cross-channel color adjustment"));
+        return KoID("crosschannel", PkString("Cross-channel color adjustment"));
     }
 };
 

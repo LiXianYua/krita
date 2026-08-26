@@ -4,8 +4,6 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 #include "kis_convert_height_to_normal_map_filter.h"
-#include <kpluginfactory.h>
-#include <klocalizedstring.h>
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_registry.h>
 #include <filter/kis_filter_configuration.h>
@@ -13,19 +11,19 @@
 #include <kis_edge_detection_kernel.h>
 
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaConvertHeightToNormalMapFilterFactory, "kritaconvertheighttonormalmap.json", registerPlugin<KritaConvertHeightToNormalMapFilter>();)
-
-KritaConvertHeightToNormalMapFilter::KritaConvertHeightToNormalMapFilter(QObject *parent, const PkVariantList &)
-: QObject(parent)
+namespace {
+struct KritaConvertHeightToNormalMapFilterFilterRegistration
 {
-    KisFilterRegistry::instance()->add(KisFilterSP(new KisConvertHeightToNormalMapFilter()));
-}
+    KritaConvertHeightToNormalMapFilterFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(KisFilterSP(new KisConvertHeightToNormalMapFilter()));
+    }
+};
+} // namespace
+static KritaConvertHeightToNormalMapFilterFilterRegistration s_kritaConvertHeightToNormalMapFilterFilterRegistration;
 
-KritaConvertHeightToNormalMapFilter::~KritaConvertHeightToNormalMapFilter()
-{
-}
 
-KisConvertHeightToNormalMapFilter::KisConvertHeightToNormalMapFilter(): KisFilter(id(), FiltersCategoryEdgeDetectionId, i18n("&Height to Normal Map..."))
+KisConvertHeightToNormalMapFilter::KisConvertHeightToNormalMapFilter(): KisFilter(id(), FiltersCategoryEdgeDetectionId, PkString("&Height to Normal Map..."))
 {
     setSupportsPainting(true);
     setSupportsAdjustmentLayers(true);
@@ -167,5 +165,3 @@ PkRect KisConvertHeightToNormalMapFilter::changedRect(const PkRect &rect, const 
 
     return rect.adjusted( -halfWidth, -halfHeight, halfWidth, halfHeight);
 }
-
-#include "kis_convert_height_to_normal_map_filter.moc"

@@ -10,9 +10,6 @@
 
 #include <stdlib.h>
 
-#include <klocalizedstring.h>
-
-#include <kpluginfactory.h>
 
 #include <kis_convolution_kernel.h>
 #include <kis_convolution_painter.h>
@@ -25,27 +22,26 @@
 
 #include <Eigen/Core>
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaConvolutionFiltersFactory, "kritaconvolutionfilters.json", registerPlugin<KritaConvolutionFilters>();)
-
-KritaConvolutionFilters::KritaConvolutionFilters(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct KritaConvolutionFiltersFilterRegistration
 {
-    KisFilterRegistry * manager = KisFilterRegistry::instance();
-    manager->add(new KisSharpenFilter());
-    manager->add(new KisMeanRemovalFilter());
-    manager->add(new KisEmbossLaplascianFilter());
-    manager->add(new KisEmbossInAllDirectionsFilter());
-    manager->add(new KisEmbossHorizontalVerticalFilter());
-    manager->add(new KisEmbossVerticalFilter());
-    manager->add(new KisEmbossHorizontalFilter());
-}
+    KritaConvolutionFiltersFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisSharpenFilter());
+        KisFilterRegistry::instance()->add(new KisMeanRemovalFilter());
+        KisFilterRegistry::instance()->add(new KisEmbossLaplascianFilter());
+        KisFilterRegistry::instance()->add(new KisEmbossInAllDirectionsFilter());
+        KisFilterRegistry::instance()->add(new KisEmbossHorizontalVerticalFilter());
+        KisFilterRegistry::instance()->add(new KisEmbossVerticalFilter());
+        KisFilterRegistry::instance()->add(new KisEmbossHorizontalFilter());
+    }
+};
+} // namespace
+static KritaConvolutionFiltersFilterRegistration s_kritaConvolutionFiltersFilterRegistration;
 
-KritaConvolutionFilters::~KritaConvolutionFilters()
-{
-}
 
 KisSharpenFilter::KisSharpenFilter()
-        : KisConvolutionFilter(id(), FiltersCategoryEnhanceId, i18n("&Sharpen"))
+        : KisConvolutionFilter(id(), FiltersCategoryEnhanceId, PkString("&Sharpen"))
 {
     setSupportsPainting(true);
     setShowConfigurationWidget(false);
@@ -59,7 +55,7 @@ KisSharpenFilter::KisSharpenFilter()
 }
 
 KisMeanRemovalFilter::KisMeanRemovalFilter()
-        : KisConvolutionFilter(id(), FiltersCategoryEnhanceId, i18n("&Mean Removal"))
+        : KisConvolutionFilter(id(), FiltersCategoryEnhanceId, PkString("&Mean Removal"))
 {
     setSupportsPainting(false);
     setShowConfigurationWidget(false);
@@ -73,7 +69,7 @@ KisMeanRemovalFilter::KisMeanRemovalFilter()
 }
 
 KisEmbossLaplascianFilter::KisEmbossLaplascianFilter()
-        : KisConvolutionFilter(id(), FiltersCategoryEmbossId, i18n("Emboss (Laplacian)"))
+        : KisConvolutionFilter(id(), FiltersCategoryEmbossId, PkString("Emboss (Laplacian)"))
 {
     setSupportsPainting(false);
     setShowConfigurationWidget(false);
@@ -88,7 +84,7 @@ KisEmbossLaplascianFilter::KisEmbossLaplascianFilter()
 }
 
 KisEmbossInAllDirectionsFilter::KisEmbossInAllDirectionsFilter()
-        : KisConvolutionFilter(id(), FiltersCategoryEmbossId, i18n("Emboss in All Directions"))
+        : KisConvolutionFilter(id(), FiltersCategoryEmbossId, PkString("Emboss in All Directions"))
 {
     setSupportsPainting(false);
     setShowConfigurationWidget(false);
@@ -103,7 +99,7 @@ KisEmbossInAllDirectionsFilter::KisEmbossInAllDirectionsFilter()
 }
 
 KisEmbossHorizontalVerticalFilter::KisEmbossHorizontalVerticalFilter()
-        : KisConvolutionFilter(id(), FiltersCategoryEmbossId, i18n("Emboss Horizontal && Vertical"))
+        : KisConvolutionFilter(id(), FiltersCategoryEmbossId, PkString("Emboss Horizontal && Vertical"))
 {
     setSupportsPainting(false);
     setShowConfigurationWidget(false);
@@ -118,7 +114,7 @@ KisEmbossHorizontalVerticalFilter::KisEmbossHorizontalVerticalFilter()
 }
 
 KisEmbossVerticalFilter::KisEmbossVerticalFilter()
-        : KisConvolutionFilter(id(), FiltersCategoryEmbossId, i18n("Emboss Vertical Only"))
+        : KisConvolutionFilter(id(), FiltersCategoryEmbossId, PkString("Emboss Vertical Only"))
 {
     setSupportsPainting(false);
     setShowConfigurationWidget(false);
@@ -133,7 +129,7 @@ KisEmbossVerticalFilter::KisEmbossVerticalFilter()
 }
 
 KisEmbossHorizontalFilter::KisEmbossHorizontalFilter() :
-        KisConvolutionFilter(id(), FiltersCategoryEmbossId, i18n("Emboss Horizontal Only"))
+        KisConvolutionFilter(id(), FiltersCategoryEmbossId, PkString("Emboss Horizontal Only"))
 {
     setSupportsPainting(false);
     setShowConfigurationWidget(false);
@@ -148,7 +144,7 @@ KisEmbossHorizontalFilter::KisEmbossHorizontalFilter() :
 }
 
 KisEmbossDiagonalFilter::KisEmbossDiagonalFilter()
-        : KisConvolutionFilter(id(), FiltersCategoryEdgeDetectionId, i18n("Top Edge Detection"))
+        : KisConvolutionFilter(id(), FiltersCategoryEdgeDetectionId, PkString("Top Edge Detection"))
 {
     setSupportsPainting(false);
     setShowConfigurationWidget(false);
@@ -161,5 +157,3 @@ KisEmbossDiagonalFilter::KisEmbossDiagonalFilter()
     m_matrix = KisConvolutionKernel::fromMatrix(kernelMatrix, 0.5, 1);
     setIgnoreAlpha(true);
 }
-
-#include "convolutionfilters.moc"

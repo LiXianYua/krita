@@ -44,8 +44,8 @@ public:
     KisFilterConfigurationSP clone() const override;
 
     static inline PkString defaultId() { return "propagatecolors"; }
-    static inline PkString defaultName() { return i18n("Propagate Colors"); }
-    static inline PkString defaultMenuName() { return i18n("&Propagate Colors..."); }
+    static inline PkString defaultName() { return PkString("Propagate Colors"); }
+    static inline PkString defaultMenuName() { return PkString("&Propagate Colors..."); }
     static constexpr qint32 defaultVersion() { return 1; }
     static constexpr DistanceMetric defaultDistanceMetric() { return DistanceMetric_Euclidean; }
     static constexpr ExpansionMode defaultExpansionMode() { return ExpansionMode_Unbounded; }

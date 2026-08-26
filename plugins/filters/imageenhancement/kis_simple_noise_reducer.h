@@ -25,7 +25,7 @@ public:
                      ) const override;
 
     static inline KoID id() {
-        return KoID("gaussiannoisereducer", i18n("Gaussian Noise Reducer"));
+        return KoID("gaussiannoisereducer", PkString("Gaussian Noise Reducer"));
     }
 
     PkRect changedRect(const PkRect &rect, const KisFilterConfigurationSP _config, int lod) const override;

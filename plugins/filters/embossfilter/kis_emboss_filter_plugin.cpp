@@ -5,24 +5,18 @@
  *  SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "kis_emboss_filter_plugin.h"
-
-#include <kpluginfactory.h>
 
 #include "kis_emboss_filter.h"
 #include "kis_global.h"
 #include "filter/kis_filter_registry.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KisEmbossFilterPluginFactory, "kritaembossfilter.json", registerPlugin<KisEmbossFilterPlugin>();)
-
-KisEmbossFilterPlugin::KisEmbossFilterPlugin(QObject *parent, const PkVariantList &) : QObject(parent)
+namespace {
+struct KisEmbossFilterPluginFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisEmbossFilter());
-
-}
-
-KisEmbossFilterPlugin::~KisEmbossFilterPlugin()
-{
-}
-
-#include "kis_emboss_filter_plugin.moc"
+    KisEmbossFilterPluginFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisEmbossFilter());
+    }
+};
+} // namespace
+static KisEmbossFilterPluginFilterRegistration s_kisEmbossFilterPluginFilterRegistration;

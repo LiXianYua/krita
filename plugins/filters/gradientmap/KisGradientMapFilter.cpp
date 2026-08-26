@@ -28,7 +28,7 @@
 #include "KisGradientMapFilterDitherCachedGradient.h"
 
 KisGradientMapFilter::KisGradientMapFilter()
-    : KisFilter(id(), FiltersCategoryMapId, i18n("&Gradient Map..."))
+    : KisFilter(id(), FiltersCategoryMapId, PkString("&Gradient Map..."))
 {
     setSupportsPainting(true);
 }

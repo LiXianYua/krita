@@ -25,7 +25,7 @@
 #include <math.h>
 
 
-KisLensBlurFilter::KisLensBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, i18n("&Lens Blur..."))
+KisLensBlurFilter::KisLensBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, PkString("&Lens Blur..."))
 {
     setSupportsPainting(true);
     setSupportsAdjustmentLayers(true);

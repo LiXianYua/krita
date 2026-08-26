@@ -12,10 +12,8 @@
 
 #include <PkPoint.h>
 
-#include <klocalizedstring.h>
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include <filter/kis_filter_category_ids.h>
 #include <filter/kis_filter_registry.h>
@@ -37,20 +35,20 @@
 #include <KoUpdater.h>
 #include <KisGlobalResourcesInterface.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaThresholdFactory, "kritathreshold.json", registerPlugin<KritaThreshold>();)
-
-KritaThreshold::KritaThreshold(QObject *parent, const PkVariantList &)
-    : QObject(parent)
+namespace {
+struct KritaThresholdFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisFilterThreshold());
-}
+    KritaThresholdFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisFilterThreshold());
+    }
+};
+} // namespace
+static KritaThresholdFilterRegistration s_kritaThresholdFilterRegistration;
 
-KritaThreshold::~KritaThreshold()
-{
-}
 
 KisFilterThreshold::KisFilterThreshold()
-    : KisFilter(id(), FiltersCategoryAdjustId, i18n("&Threshold..."))
+    : KisFilter(id(), FiltersCategoryAdjustId, PkString("&Threshold..."))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
 
@@ -96,5 +94,3 @@ KisFilterConfigurationSP KisFilterThreshold::defaultConfiguration(KisResourcesIn
     config->setProperty("threshold", 128);
     return config;
 }
-
-#include "threshold.moc"

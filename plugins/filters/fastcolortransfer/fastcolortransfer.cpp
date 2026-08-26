@@ -10,7 +10,6 @@
 
 #include <math.h>
 
-#include <kpluginfactory.h>
 
 #include <kundo2command.h>
 
@@ -29,21 +28,19 @@
 #include <KoProgressUpdater.h>
 
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaFastColorTransferFactory, "kritafastcolortransfer.json", registerPlugin<FastColorTransferPlugin>();)
-
-
-FastColorTransferPlugin::FastColorTransferPlugin(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct FastColorTransferPluginFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisFilterFastColorTransfer());
+    FastColorTransferPluginFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisFilterFastColorTransfer());
+    }
+};
+} // namespace
+static FastColorTransferPluginFilterRegistration s_fastColorTransferPluginFilterRegistration;
 
-}
 
-FastColorTransferPlugin::~FastColorTransferPlugin()
-{
-}
-
-KisFilterFastColorTransfer::KisFilterFastColorTransfer() : KisFilter(id(), FiltersCategoryColorId, i18n("&Color Transfer..."))
+KisFilterFastColorTransfer::KisFilterFastColorTransfer() : KisFilter(id(), FiltersCategoryColorId, PkString("&Color Transfer..."))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsThreading(false);
@@ -147,5 +144,3 @@ void KisFilterFastColorTransfer::processImpl(KisPaintDeviceSP device,
         }
     }
 }
-
-#include "fastcolortransfer.moc"

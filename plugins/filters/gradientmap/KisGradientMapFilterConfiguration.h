@@ -66,7 +66,7 @@ public:
             gradient = stopGradient.staticCast<KoAbstractGradient>();
         }
         if (gradient) {
-            gradient->setName(i18nc("Default gradient name for the gradient generator", "Unnamed"));
+            gradient->setName(PkString("Unnamed"));
             gradient->setValid(true);
         }
         return gradient;

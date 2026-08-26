@@ -5,16 +5,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-#include "imageenhancement.h"
 #include <stdlib.h>
 #include <vector>
 
 #include <PkPoint.h>
 
-#include <klocalizedstring.h>
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include <kis_image.h>
 #include <kis_layer.h>
@@ -24,17 +21,14 @@
 #include "kis_simple_noise_reducer.h"
 #include "kis_wavelet_noise_reduction.h"
 
-K_PLUGIN_FACTORY_WITH_JSON(KritaImageEnhancementFactory, "kritaimageenhancement.json", registerPlugin<KritaImageEnhancement>();)
-
-KritaImageEnhancement::KritaImageEnhancement(QObject *parent, const PkVariantList &)
-        : QObject(parent)
+namespace {
+struct KritaImageEnhancementFilterRegistration
 {
-    KisFilterRegistry::instance()->add(new KisSimpleNoiseReducer());
-    KisFilterRegistry::instance()->add(new KisWaveletNoiseReduction());
-}
-
-KritaImageEnhancement::~KritaImageEnhancement()
-{
-}
-
-#include "imageenhancement.moc"
+    KritaImageEnhancementFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(new KisSimpleNoiseReducer());
+        KisFilterRegistry::instance()->add(new KisWaveletNoiseReduction());
+    }
+};
+} // namespace
+static KritaImageEnhancementFilterRegistration s_kritaImageEnhancementFilterRegistration;

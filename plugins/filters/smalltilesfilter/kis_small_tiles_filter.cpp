@@ -16,8 +16,6 @@
 
 #include <PkPoint.h>
 
-#include <klocalizedstring.h>
-#include <kpluginfactory.h>
 
 #include <KoUpdater.h>
 
@@ -36,7 +34,7 @@
 #include <kis_processing_information.h>
 #include <KoCompositeOpRegistry.h>
 
-KisSmallTilesFilter::KisSmallTilesFilter() : KisFilter(id(), FiltersCategoryMapId, i18n("&Small Tiles..."))
+KisSmallTilesFilter::KisSmallTilesFilter() : KisFilter(id(), FiltersCategoryMapId, PkString("&Small Tiles..."))
 {
     setSupportsPainting(true);
     setSupportsThreading(false);

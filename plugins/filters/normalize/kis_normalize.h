@@ -7,17 +7,8 @@
 #ifndef NORMALIZE_H
 #define NORMALIZE_H
 
-#include <QObject>
-#include <PkVariant.h>
 #include "filter/kis_color_transformation_filter.h"
 
-class KritaNormalizeFilter : public QObject
-{
-    Q_OBJECT
-public:
-    KritaNormalizeFilter(QObject *parent, const PkVariantList &);
-    ~KritaNormalizeFilter() override;
-};
 
 class KisFilterNormalize : public KisColorTransformationFilter
 {

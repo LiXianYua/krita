@@ -29,7 +29,7 @@ public:
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
 
     static inline KoID id() {
-        return KoID("hsvadjustment", i18n("HSV/HSL Adjustment"));
+        return KoID("hsvadjustment", PkString("HSV/HSL Adjustment"));
     }
 
     KisFilterConfigurationSP defaultConfiguration(KisResourcesInterfaceSP resourcesInterface) const override;

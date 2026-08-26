@@ -24,7 +24,7 @@ public:
                      ) const override;
 
     static inline KoID id() {
-        return KoID("maximize", i18n("Maximize Channel"));
+        return KoID("maximize", PkString("Maximize Channel"));
     }
 
 };
@@ -41,7 +41,7 @@ public:
                      KoUpdater* progressUpdater
                      ) const override;
     static inline KoID id() {
-        return KoID("minimize", i18n("Minimize Channel"));
+        return KoID("minimize", PkString("Minimize Channel"));
     }
 };
 

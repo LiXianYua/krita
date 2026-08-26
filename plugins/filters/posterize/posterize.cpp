@@ -10,10 +10,8 @@
 
 #include <PkPoint.h>
 
-#include <klocalizedstring.h>
 
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include <kis_processing_information.h>
 #include <kis_types.h>
@@ -26,19 +24,19 @@
 #include <KoColorSpaceMaths.h>
 #include <filter/kis_color_transformation_configuration.h>
 
-K_PLUGIN_FACTORY_WITH_JSON(PosterizeFactory, "kritaposterize.json", registerPlugin<Posterize>();)
-
-Posterize::Posterize(QObject *parent, const PkVariantList &)
-    : QObject(parent)
+namespace {
+struct PosterizeFilterRegistration
 {
-    KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterPosterize()));
-}
+    PosterizeFilterRegistration()
+    {
+        KisFilterRegistry::instance()->add(KisFilterSP(new KisFilterPosterize()));
+    }
+};
+} // namespace
+static PosterizeFilterRegistration s_posterizeFilterRegistration;
 
-Posterize::~Posterize()
-{
-}
 
-KisFilterPosterize::KisFilterPosterize() : KisColorTransformationFilter(id(), FiltersCategoryArtisticId, i18n("&Posterize..."))
+KisFilterPosterize::KisFilterPosterize() : KisColorTransformationFilter(id(), FiltersCategoryArtisticId, PkString("&Posterize..."))
 {
     setColorSpaceIndependence(FULLY_INDEPENDENT);
     setSupportsPainting(true);
@@ -102,5 +100,3 @@ void KisPosterizeColorTransformation::transform(const quint8* src, quint8* dst, 
         dst += m_psize;
     }
 }
-
-#include "posterize.moc"

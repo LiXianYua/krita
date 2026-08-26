@@ -19,9 +19,7 @@
 #include <PkDateTime.h>
 #include <PkPoint.h>
 
-#include <klocalizedstring.h>
 #include <kis_debug.h>
-#include <kpluginfactory.h>
 
 #include "KoIntegerMaths.h"
 #include <KoUpdater.h>
@@ -41,7 +39,7 @@
 #include <random>
 
 KisRainDropsFilter::KisRainDropsFilter()
-    : KisFilter(id(), FiltersCategoryArtisticId, i18n("&Raindrops..."))
+    : KisFilter(id(), FiltersCategoryArtisticId, PkString("&Raindrops..."))
 {
     setSupportsPainting(false);
     setSupportsThreading(false);

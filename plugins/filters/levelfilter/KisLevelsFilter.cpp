@@ -14,7 +14,7 @@
 #include "KisLevelsFilter.h"
 
 KisLevelsFilter::KisLevelsFilter()
-    : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, i18n("&Levels..."))
+    : KisColorTransformationFilter(id(), FiltersCategoryAdjustId, PkString("&Levels..."))
 {
     setSupportsPainting(true);
     setColorSpaceIndependence(TO_LAB16);

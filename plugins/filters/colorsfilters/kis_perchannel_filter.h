@@ -46,7 +46,7 @@ public:
     KoColorTransformation* createTransformation(const KoColorSpace* cs, const KisFilterConfigurationSP config) const override;
 
     static inline KoID id() {
-        return KoID("perchannel", i18n("Color Adjustment"));
+        return KoID("perchannel", PkString("Color Adjustment"));
     }
 };
 

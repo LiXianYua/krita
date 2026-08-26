@@ -22,7 +22,7 @@
 #include "kis_lod_transform.h"
 
 
-KisBlurFilter::KisBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, i18n("&Blur..."))
+KisBlurFilter::KisBlurFilter() : KisFilter(id(), FiltersCategoryBlurId, PkString("&Blur..."))
 {
     setSupportsPainting(true);
     setSupportsAdjustmentLayers(true);
