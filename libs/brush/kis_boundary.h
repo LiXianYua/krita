@@ -6,7 +6,7 @@
 #ifndef _KIS_BOUNDARY_H_
 #define _KIS_BOUNDARY_H_
 
-#include <QPainter>
+#include <PkPainterPath.h>
 
 #include <kritabrush_export.h>
 
@@ -20,7 +20,7 @@
  * it to be fast.
  *
  * Usage: construct a KisBoundary, and then run a generateBoundary(w, h) on it. After that,
- * you can use the KisBoundaryPainter::paint method to let it paint the outline, or get a pixmap.
+ * you can use the path() method to obtain the outline path.
  *
  * If you are debugging the brush outlines, be aware that the pipeline for this
  * data is somewhat complex, involving such user classes:
@@ -32,8 +32,6 @@ public:
     KisBoundary(KisFixedPaintDeviceSP dev);
     ~KisBoundary();
     void generateBoundary();
-
-    void paint(QPainter& painter) const;
 
     /// returns the outline saved in PkPainterPath
     PkPainterPath path() const;

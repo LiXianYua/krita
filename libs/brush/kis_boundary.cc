@@ -5,17 +5,28 @@
  */
 
 #include "kis_boundary.h"
-#include <QPainter>
+#include <PkPolygon.h>
 #include <PkPainterPath.h>
-#include <QPen>
 
 #include "KoColorSpace.h"
 #include "kis_fixed_paint_device.h"
 #include "kis_outline_generator.h"
 
+// PkPainterPath::addPolygon 只收 PkPolygonF（浮点），这里把 int 坐标的
+// PkPolygon 显式转一次（真 Qt 里 addPolygon(PkPolygon) 走隐式 PkPolygon→PkPolygonF
+// 转换；同 libs/flake/text/KisTofuGlyph.cpp 的 toPolygonF 处置）。
+static PkPolygonF toPolygonF(const PkPolygon &poly)
+{
+    PkVector<PkPointF> pts;
+    for (const PkPoint &pt : poly) {
+        pts.push_back(PkPointF(pt.x(), pt.y()));
+    }
+    return PkPolygonF(pts);
+}
+
 struct KisBoundary::Private {
     KisFixedPaintDeviceSP m_device;
-    PkVector<QPolygon> m_boundary;
+    PkVector<PkPolygon> m_boundary;
     PkPainterPath path;
 };
 
@@ -39,23 +50,11 @@ void KisBoundary::generateBoundary()
     d->m_boundary = generator.outline(d->m_device->data(), 0, 0, d->m_device->bounds().width(), d->m_device->bounds().height());
 
     d->path = PkPainterPath();
-    Q_FOREACH (const QPolygon & polygon, d->m_boundary) {
-        d->path.addPolygon(polygon);
+    for (const PkPolygon &polygon : d->m_boundary) {
+        d->path.addPolygon(toPolygonF(polygon));
         d->path.closeSubpath();
     }
 
-}
-
-void KisBoundary::paint(QPainter& painter) const
-{
-    QPen pen;
-    pen.setWidth(0);
-    pen.setBrush(Qt::black);
-    painter.setPen(pen);
-
-    Q_FOREACH (const QPolygon & polygon, d->m_boundary) {
-        painter.drawPolygon(polygon);
-    }
 }
 
 PkPainterPath KisBoundary::path() const
