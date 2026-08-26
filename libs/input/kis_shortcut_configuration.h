@@ -9,7 +9,7 @@
 #define KISSHORTCUTCONFIGURATION_H
 
 #include <PkList.h>
-#include <QMetaType>
+#include <PkNamespace.h>
 
 #include "kritainput_export.h"
 
@@ -328,7 +328,5 @@ private:
     class Private;
     Private *const d;
 };
-
-Q_DECLARE_METATYPE(KisShortcutConfiguration *);
 
 #endif // KISSHORTCUTCONFIGURATION_H
