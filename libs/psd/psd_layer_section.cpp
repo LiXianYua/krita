@@ -6,8 +6,10 @@
  */
 #include "psd_layer_section.h"
 
-#include <QBuffer>
 #include <PkStream.h>
+
+#include <algorithm>
+#include <cstdlib>
 
 #include <KoColor.h>
 #include <KoColorSpace.h>
@@ -90,9 +92,9 @@ bool PSDLayerMaskSection::read(PkStream &io)
 template<psd_byte_order byteOrder>
 bool PSDLayerMaskSection::readLayerInfoImpl(PkStream &io)
 {
-    quint64 layerInfoSectionSize = 0;
+    std::uint64_t layerInfoSectionSize = 0;
     if (m_header.version == 1) {
-        quint32 _layerInfoSectionSize = 0;
+        std::uint32_t _layerInfoSectionSize = 0;
         SAFE_READ_EX(byteOrder, io, _layerInfoSectionSize);
         layerInfoSectionSize = _layerInfoSectionSize;
     } else if (m_header.version == 2) {
@@ -115,7 +117,7 @@ bool PSDLayerMaskSection::readLayerInfoImpl(PkStream &io)
             }
 
             hasTransparency = nLayers < 0; // first alpha channel is the alpha channel of the projection.
-            nLayers = qAbs(nLayers);
+            nLayers = std::abs(nLayers);
 
             dbgFile << "Number of layers:" << nLayers;
             dbgFile << "Has separate projection transparency:" << hasTransparency;
@@ -149,7 +151,7 @@ bool PSDLayerMaskSection::readLayerInfoImpl(PkStream &io)
 
             for (int j = 0; j < layerRecord->nChannels; ++j) {
                 // save the current location so we can jump beyond this block later on.
-                quint64 channelStartPos = io.pos();
+                std::uint64_t channelStartPos = io.pos();
                 dbgFile << "\tReading channel image data for channel" << j << "from pos" << io.pos();
 
                 KIS_ASSERT_RECOVER(j < layerRecord->channelInfoRecords.size())
@@ -159,7 +161,7 @@ bool PSDLayerMaskSection::readLayerInfoImpl(PkStream &io)
 
                 ChannelInfo *channelInfo = layerRecord->channelInfoRecords.at(j);
 
-                quint16 compressionType;
+                std::uint16_t compressionType;
                 if (!psdread<byteOrder>(io, compressionType)) {
                     error = "Could not read compression type for channel";
                     return false;
@@ -171,12 +173,12 @@ bool PSDLayerMaskSection::readLayerInfoImpl(PkStream &io)
 
                 // read the rle row lengths;
                 if (channelInfo->compressionType == psd_compression_type::RLE) {
-                    for (qint64 row = 0; row < channelRect.height(); ++row) {
+                    for (std::int64_t row = 0; row < channelRect.height(); ++row) {
                         // dbgFile << "Reading the RLE byte count position of row" << row << "at pos" << io.pos();
 
-                        quint32 byteCount;
+                        std::uint32_t byteCount;
                         if (m_header.version == 1) {
-                            quint16 _byteCount;
+                            std::uint16_t _byteCount;
                             if (!psdread<byteOrder>(io, _byteCount)) {
                                 error = PkString("Could not read byteCount for rle-encoded channel");
                                 return 0;
@@ -221,17 +223,17 @@ bool PSDLayerMaskSection::readPsdImpl(PkStream &io)
     dbgFile << "(PSD) reading layer section. Pos:" << io.pos() << "bytes left:" << io.bytesAvailable();
 
     // https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/#50577409_21849
-    boost::optional<quint64> layerMaskBlockSize = 0;
+    boost::optional<std::uint64_t> layerMaskBlockSize = 0;
 
     if (m_header.version == 1) {
-        quint32 _layerMaskBlockSize = 0;
+        std::uint32_t _layerMaskBlockSize = 0;
         SAFE_READ_EX(psd_byte_order::psdBigEndian, io, _layerMaskBlockSize);
         layerMaskBlockSize = _layerMaskBlockSize;
     } else if (m_header.version == 2) {
         SAFE_READ_EX(psd_byte_order::psdBigEndian, io, *layerMaskBlockSize);
     }
 
-    qint64 start = io.pos();
+    std::int64_t start = io.pos();
 
     dbgFile << "layer block size" << *layerMaskBlockSize;
 
@@ -245,7 +247,7 @@ bool PSDLayerMaskSection::readPsdImpl(PkStream &io)
      * have invalid layer-mask-block-size set. Just do a simple
      * sanity check to catch this case
      */
-    if (static_cast<qint64>(*layerMaskBlockSize) > io.bytesAvailable()) {
+    if (static_cast<std::int64_t>(*layerMaskBlockSize) > io.bytesAvailable()) {
         warnKrita << "WARNING: invalid layer block size. Got" << *layerMaskBlockSize << "Bytes left" << io.bytesAvailable() << "Triggering a workaround...";
 
         // just don't use this value for offset recovery at the end
@@ -258,7 +260,7 @@ bool PSDLayerMaskSection::readPsdImpl(PkStream &io)
 
     dbgFile << "Leftover before additional blocks:" << io.pos() << io.bytesAvailable();
 
-    quint32 globalMaskBlockLength;
+    std::uint32_t globalMaskBlockLength;
     if (!psdread(io, globalMaskBlockLength)) {
         error = "Could not read global mask info block";
         return false;
@@ -317,7 +319,7 @@ bool PSDLayerMaskSection::readPsdImpl(PkStream &io)
 
     if (layerMaskBlockSize) {
         /* put us after this section so reading the next section will work even if we mess up */
-        io.seek(start + static_cast<qint64>(*layerMaskBlockSize));
+        io.seek(start + static_cast<std::int64_t>(*layerMaskBlockSize));
     }
 
     return true;
@@ -326,7 +328,7 @@ bool PSDLayerMaskSection::readPsdImpl(PkStream &io)
 template<psd_byte_order byteOrder>
 bool PSDLayerMaskSection::readGlobalMask(PkStream &io)
 {
-    quint32 globalMaskBlockLength;
+    std::uint32_t globalMaskBlockLength;
     if (!psdread<byteOrder>(io, globalMaskBlockLength)) {
         error = "Could not read global mask info block";
         return false;
@@ -367,7 +369,7 @@ bool PSDLayerMaskSection::readGlobalMask(PkStream &io)
         dbgFile << "\tKind:" << globalLayerMaskInfo.kind; // 128
 
         if (globalMaskBlockLength >= 15) {
-            io.skip(qMax(globalMaskBlockLength - 15, 0x0U));
+            io.skip(std::max(globalMaskBlockLength - 15, 0x0U));
         }
     }
 
@@ -440,8 +442,8 @@ void addBackgroundIfNeeded(KisNodeSP root, PkList<FlattenedNode> &nodes)
 }
 
 void flattenShapes(const KisShapeLayer* parentShapeLayer, PkList<KoShape*> shapes, PkList<FlattenedNode> &nodes) {
-    Q_FOREACH (KoShape *shape, shapes) {
-        const PkString name = shape->name().isEmpty()? "shape "+PkString::number(nodes.size()): shape->name();
+    for (KoShape *shape : shapes) {
+        const PkString name = shape->name().isEmpty()? "shape "+PkString("%1").arg(static_cast<int>(nodes.size())): shape->name();
         KoShapeGroup *group = dynamic_cast<KoShapeGroup*>(shape);
         if (group) {
             KisGroupLayerSP newGroup(new KisGroupLayer(parentShapeLayer->image(),
@@ -643,22 +645,22 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
     }
 
     {
-        KisAslWriterUtils::OffsetStreamPusher<quint32, psd_byte_order::psdBigEndian> layerAndMaskSectionSizeTag(io, 2);
+        KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, psd_byte_order::psdBigEndian> layerAndMaskSectionSizeTag(io, 2);
         PkXmlDocument mergedPatternsXmlDoc;
 
         {
-            KisAslWriterUtils::OffsetStreamPusher<quint32, psd_byte_order::psdBigEndian> layerInfoSizeTag(io, 2);
+            KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, psd_byte_order::psdBigEndian> layerInfoSizeTag(io, 2);
 
             {
                 // number of layers (negative, because krita always has alpha)
-                const qint16 layersSize = static_cast<qint16>(-nodes.size());
+                const std::int16_t layersSize = static_cast<std::int16_t>(-nodes.size());
                 SAFE_WRITE_EX(psd_byte_order::psdBigEndian, io, layersSize);
 
                 dbgFile << "Number of layers" << layersSize << "at" << io.pos();
             }
 
             // Layer records section
-            Q_FOREACH (const FlattenedNode &item, nodes) {
+            for (const FlattenedNode &item : nodes) {
                 KisNodeSP node = item.node;
 
                 PSDLayerRecord *layerRecord = new PSDLayerRecord(m_header);
@@ -669,8 +671,8 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
 
                 const bool nodeVisible = node->visible();
                 const KoColorSpace *colorSpace = node->colorSpace();
-                const quint8 nodeOpacity = node->opacity();
-                const quint8 nodeClipping = 0;
+                const std::uint8_t nodeOpacity = node->opacity();
+                const std::uint8_t nodeClipping = 0;
                 const int nodeLabelColor = node->colorLabelIndex();
                 const KisPaintLayer *paintLayer = qobject_cast<KisPaintLayer *>(node.data());
                 const bool alphaLocked = (paintLayer && paintLayer->alphaLocked());
@@ -829,7 +831,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                                     fillConfig = fill.getASLXML();
                                     fillType = psd_fill_solid_color;
                                 }
-                                KoShapeStrokeSP shapeStroke = qSharedPointerDynamicCast<KoShapeStroke>(pathShape->stroke());
+                                KoShapeStrokeSP shapeStroke = pkSharedPointerDynamicCast<KoShapeStroke>(pathShape->stroke());
                                 if (shapeStroke) {
                                     psd_vector_stroke_data strokeDataStruct;
                                     strokeDataStruct.loadFromShapeStroke(shapeStroke);
@@ -873,7 +875,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                                 if(selection->hasNonEmptyShapeSelection()) {
                                     KisShapeSelection* shapeSelection = dynamic_cast<KisShapeSelection*>(selection->shapeSelection());
                                     if (shapeSelection) {
-                                        Q_FOREACH(KoShape *shape, shapeSelection->shapes()) {
+                                        for (KoShape *shape : shapeSelection->shapes()) {
                                             KoPathShape *pathShape = dynamic_cast<KoPathShape*>(shape);
                                             if (pathShape){
                                                 layerRecord->addPathShapeToPSDPath(vectorMask.path, pathShape, vectorWidth, vectorHeight);
@@ -895,7 +897,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
                             if(selection->hasNonEmptyShapeSelection()) {
                                 KisShapeSelection* shapeSelection = dynamic_cast<KisShapeSelection*>(selection->shapeSelection());
                                 if (shapeSelection) {
-                                    Q_FOREACH(KoShape *shape, shapeSelection->shapes()) {
+                                    for (KoShape *shape : shapeSelection->shapes()) {
                                         KoPathShape *pathShape = dynamic_cast<KoPathShape*>(shape);
                                         if (pathShape){
                                             layerRecord->addPathShapeToPSDPath(vectorMask.path, pathShape, vectorWidth, vectorHeight);
@@ -940,14 +942,14 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
 
                 // colors + alpha channel
                 // note: transparency mask not included
-                layerRecord->nChannels = static_cast<quint16>(colorSpace->colorChannelCount() + 1);
+                layerRecord->nChannels = static_cast<std::uint16_t>(colorSpace->colorChannelCount() + 1);
 
                 ChannelInfo *info = new ChannelInfo;
                 info->channelId = -1; // For the alpha channel, which we always have in Krita, and should be saved first in
                 layerRecord->channelInfoRecords << info;
 
                 // the rest is in display order: rgb, cmyk, lab...
-                for (qint16 i = 0; i < (int)colorSpace->colorChannelCount(); ++i) {
+                for (std::int16_t i = 0; i < (int)colorSpace->colorChannelCount(); ++i) {
                     info = new ChannelInfo;
                     info->channelId = i; // 0 for red, 1 = green, etc
                     layerRecord->channelInfoRecords << info;
@@ -988,7 +990,7 @@ void PSDLayerMaskSection::writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_co
 
         {
             // write the global layer mask info -- which is empty
-            const quint32 globalMaskSize = 0;
+            const std::uint32_t globalMaskSize = 0;
             SAFE_WRITE_EX(psd_byte_order::psdBigEndian, io, globalMaskSize);
         }
 
@@ -1041,9 +1043,9 @@ void PSDLayerMaskSection::writeTiffImpl(PkStream &io, KisNodeSP rootLayer, psd_c
             KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
             KisAslWriterUtils::writeFixedString<byteOrder>("Layr", io);
 
-            KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> layerAndMaskSectionSizeTag(io, 4);
+            KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> layerAndMaskSectionSizeTag(io, 4);
             // number of layers (negative, because krita always has alpha)
-            const qint16 layersSize = nodes.size();
+            const std::int16_t layersSize = nodes.size();
             SAFE_WRITE_EX(byteOrder, io, layersSize);
 
             dbgFile << "Number of layers" << layersSize << "at" << io.pos();
@@ -1057,8 +1059,8 @@ void PSDLayerMaskSection::writeTiffImpl(PkStream &io, KisNodeSP rootLayer, psd_c
 
                 const bool nodeVisible = node->visible();
                 const KoColorSpace *colorSpace = node->colorSpace();
-                const quint8 nodeOpacity = node->opacity();
-                const quint8 nodeClipping = 0;
+                const std::uint8_t nodeOpacity = node->opacity();
+                const std::uint8_t nodeClipping = 0;
                 const int nodeLabelColor = node->colorLabelIndex();
                 const KisPaintLayer *paintLayer = qobject_cast<KisPaintLayer *>(node.data());
                 const bool alphaLocked = (paintLayer && paintLayer->alphaLocked());
@@ -1119,16 +1121,16 @@ void PSDLayerMaskSection::writeTiffImpl(PkStream &io, KisNodeSP rootLayer, psd_c
 
                 // colors + alpha channel
                 // note: transparency mask not included
-                layerRecord->nChannels = static_cast<quint16>(colorSpace->colorChannelCount() + 1);
+                layerRecord->nChannels = static_cast<std::uint16_t>(colorSpace->colorChannelCount() + 1);
 
                 ChannelInfo *info = new ChannelInfo;
                 info->channelId = -1; // For the alpha channel, which we always have in Krita, and should be saved first in
                 layerRecord->channelInfoRecords << info;
 
                 // the rest is in display order: rgb, cmyk, lab...
-                for (quint32 i = 0; i < colorSpace->colorChannelCount(); ++i) {
+                for (std::uint32_t i = 0; i < colorSpace->colorChannelCount(); ++i) {
                     info = new ChannelInfo;
-                    info->channelId = static_cast<qint16>(i); // 0 for red, 1 = green, etc
+                    info->channelId = static_cast<std::int16_t>(i); // 0 for red, 1 = green, etc
                     layerRecord->channelInfoRecords << info;
                 }
 
@@ -1160,15 +1162,15 @@ void PSDLayerMaskSection::writeTiffImpl(PkStream &io, KisNodeSP rootLayer, psd_c
         //     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
         //     KisAslWriterUtils::writeFixedString<byteOrder>("LMsk", io);
 
-        //     KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> layerAndMaskSectionSizeTag(io, 4);
+        //     KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> layerAndMaskSectionSizeTag(io, 4);
         //     // https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/#50577411_22664
-        //     psdwrite<byteOrder>(io, quint16(0));     // CS: RGB
-        //     psdwrite<byteOrder>(io, quint16(65535)); // Pure red verification
-        //     psdwrite<byteOrder>(io, quint16(0));
-        //     psdwrite<byteOrder>(io, quint16(0));
-        //     psdwrite<byteOrder>(io, quint16(0));
-        //     psdwrite<byteOrder>(io, quint16(50)); // opacity
-        //     psdwrite<byteOrder>(io, quint16(128)); // kind
+        //     psdwrite<byteOrder>(io, std::uint16_t(0));     // CS: RGB
+        //     psdwrite<byteOrder>(io, std::uint16_t(65535)); // Pure red verification
+        //     psdwrite<byteOrder>(io, std::uint16_t(0));
+        //     psdwrite<byteOrder>(io, std::uint16_t(0));
+        //     psdwrite<byteOrder>(io, std::uint16_t(0));
+        //     psdwrite<byteOrder>(io, std::uint16_t(50)); // opacity
+        //     psdwrite<byteOrder>(io, std::uint16_t(128)); // kind
         // }
 
         globalInfoSection.writePattBlockEx(io, mergedPatternsXmlDoc);

@@ -7,7 +7,6 @@
 #include "psd_header.h"
 
 #include <PkStream.h>
-#include <QtEndian>
 #include <psd_utils.h>
 
 struct Header {
@@ -36,7 +35,7 @@ PSDHeader::PSDHeader()
 bool PSDHeader::read(PkStream &device)
 {
     Header header;
-    quint64 bytesRead = device.read((char *)&header, sizeof(Header));
+    std::uint64_t bytesRead = device.read((char *)&header, sizeof(Header));
     if (bytesRead != sizeof(Header)) {
         error = "Could not read header: not enough bytes";
         return false;
@@ -44,17 +43,17 @@ bool PSDHeader::read(PkStream &device)
 
     signature = PkString(header.signature);
     memcpy(&version, header.version, 2);
-    version = qFromBigEndian(version);
+    version = psdFromBigEndian(version);
     memcpy(&nChannels, header.nChannels, 2);
-    nChannels = qFromBigEndian(nChannels);
+    nChannels = psdFromBigEndian(nChannels);
     memcpy(&height, header.height, 4);
-    height = qFromBigEndian(height);
+    height = psdFromBigEndian(height);
     memcpy(&width, header.width, 4);
-    width = qFromBigEndian(width);
+    width = psdFromBigEndian(width);
     memcpy(&channelDepth, header.channelDepth, 2);
-    channelDepth = qFromBigEndian(channelDepth);
+    channelDepth = psdFromBigEndian(channelDepth);
     memcpy(&colormode, header.colormode, 2);
-    colormode = (psd_color_mode)qFromBigEndian((quint16)colormode);
+    colormode = (psd_color_mode)psdFromBigEndian(static_cast<std::uint16_t>(colormode));
 
     return valid();
 }
@@ -77,7 +76,7 @@ bool PSDHeader::write(PkStream &device)
         return false;
     if (!psdwrite(device, channelDepth))
         return false;
-    if (!psdwrite(device, (quint16)colormode))
+    if (!psdwrite(device, static_cast<std::uint16_t>(colormode)))
         return false;
     return true;
 }
@@ -89,45 +88,45 @@ bool PSDHeader::valid()
         return false;
     }
     if (version < 1 || version > 2) {
-        error = PkString("Wrong version: %1").arg(version);
+        error = PkString("Wrong version: %1").arg(static_cast<int>(version));
         return false;
     }
     if (nChannels < 1 || nChannels > 56) {
-        error = PkString("Channel count out of range: %1").arg(nChannels);
+        error = PkString("Channel count out of range: %1").arg(static_cast<int>(nChannels));
         return false;
     }
     if (version == 1) {
         if (height < 1 || height > 30000) {
-            error = PkString("Height out of range: %1").arg(height);
+            error = PkString("Height out of range: %1").arg(static_cast<int>(height));
             return false;
         }
         if (width < 1 || width > 30000) {
-            error = PkString("Width out of range: %1").arg(width);
+            error = PkString("Width out of range: %1").arg(static_cast<int>(width));
             return false;
         }
     } else /* if (version == 2) */ {
         if (height < 1 || height > 300000) {
-            error = PkString("Height out of range: %1").arg(height);
+            error = PkString("Height out of range: %1").arg(static_cast<int>(height));
             return false;
         }
         if (width < 1 || width > 300000) {
-            error = PkString("Width out of range: %1").arg(width);
+            error = PkString("Width out of range: %1").arg(static_cast<int>(width));
             return false;
         }
     }
     if (channelDepth != 1 && channelDepth != 8 && channelDepth != 16) {
-        error = PkString("Channel depth incorrect: %1").arg(channelDepth);
+        error = PkString("Channel depth incorrect: %1").arg(static_cast<int>(channelDepth));
         return false;
     }
     if (colormode < 0 || colormode > 9) {
-        error = PkString("Colormode is out of range: %1").arg(colormode);
+        error = PkString("Colormode is out of range: %1").arg(static_cast<int>(colormode));
         return false;
     }
 
     return true;
 }
 
-QDebug operator<<(QDebug dbg, const PSDHeader &header)
+PkDebug operator<<(PkDebug dbg, const PSDHeader &header)
 {
 #ifndef NODEBUG
     dbg.nospace() << "(valid: " << const_cast<PSDHeader *>(&header)->valid();

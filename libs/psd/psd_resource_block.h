@@ -10,7 +10,9 @@
 
 class PkStream;
 
-#include <QBuffer>
+#include <cstdint>
+#include <cos/PkCosMemoryStream.h>
+#include <PkDataStream.h>
 #include <PkString.h>
 #include <kis_debug.h>
 #include <klocalizedstring.h>
@@ -52,15 +54,15 @@ public:
     PkString error;
 
 protected:
-    void startBlock(QBuffer &buf, PSDImageResourceSection::PSDResourceID id, quint32 size)
+    void startBlock(PkCosMemoryStream &buf, PSDImageResourceSection::PSDResourceID id, std::uint32_t size)
     {
         if (!buf.isOpen()) {
-            buf.open(QBuffer::WriteOnly);
+            buf.open(PkStream::WriteOnly);
         }
         buf.write("8BIM", 4);
-        psdwrite(buf, (quint16)id);
-        psdwrite(buf, (quint16)0); // We simply never save out the name, for now
-        psdwrite(buf, (quint32)size);
+        psdwrite(buf, (std::uint16_t)id);
+        psdwrite(buf, (std::uint16_t)0); // We simply never save out the name, for now
+        psdwrite(buf, (std::uint32_t)size);
     }
 };
 
@@ -82,8 +84,9 @@ public:
         // HACK ALERT: we are evil! use normal copying instead!
         PSDResourceBlock *copied = new PSDResourceBlock();
 
-        QBuffer buffer;
-        buffer.open(QBuffer::WriteOnly);
+        PkByteArray bufferData;
+        PkCosMemoryStream buffer(&bufferData);
+        buffer.open(PkStream::WriteOnly);
 
         if (!write(buffer)) {
             qWarning() << "Could not copy PSDResourceBlock" << error;
@@ -91,7 +94,7 @@ public:
             return 0;
         }
         buffer.close();
-        buffer.open(QBuffer::ReadOnly);
+        buffer.open(PkStream::ReadOnly);
 
         if (!copied->read(buffer)) {
             qWarning() << "Could not copy PSDResourceBlock" << copied->error;
@@ -114,9 +117,9 @@ public:
     bool write(PkStream &io) const;
     bool valid();
 
-    quint16 identifier;
+    std::uint16_t identifier;
     PkString name;
-    quint32 dataSize;
+    std::uint32_t dataSize;
     PkByteArray data;
 
     PSDInterpretedResource *resource;
@@ -158,11 +161,11 @@ struct KRITAPSD_EXPORT RESN_INFO_1005 : public PSDInterpretedResource {
     bool createBlock(PkByteArray &data) override;
 
     Fixed hRes;
-    quint16 hResUnit;
-    quint16 widthUnit;
+    std::uint16_t hResUnit;
+    std::uint16_t widthUnit;
     Fixed vRes;
-    quint16 vResUnit;
-    quint16 heightUnit;
+    std::uint16_t vResUnit;
+    std::uint16_t heightUnit;
 };
 
 /* 0x03ee - Alpha channel names */
@@ -378,15 +381,15 @@ struct KRITAPSD_EXPORT GRID_GUIDE_1032 : public PSDInterpretedResource {
         dbgFile << "Reading GRID_GUIDE_1032";
         PkDataStream ds(data);
         ds.setByteOrder(PkDataStream::BigEndian);
-        qint32 guidesLength;
+        std::int32_t guidesLength;
 
         // version == 1, adobe documentation says that grid values are for
         //'future implementation document-specific grids', but this future
         // does not seem to have come to pass as of yet.
         ds >> version >> gridHorizontal >> gridVertical >> guidesLength;
 
-        for (qint32 i=0; i < guidesLength; i++) {
-            quint32 guide;
+        for (std::int32_t i=0; i < guidesLength; i++) {
+            std::uint32_t guide;
             bool horizontal;
             ds >> guide >> horizontal;
             if (horizontal) {
@@ -396,26 +399,26 @@ struct KRITAPSD_EXPORT GRID_GUIDE_1032 : public PSDInterpretedResource {
             }
         }
 
-        return ds.atEnd();
+        return ds.status() == PkDataStream::Ok;
     }
 
     bool createBlock(PkByteArray &data) override
     {
-        QBuffer buf(&data);
-        quint32 size = 16;
+        PkCosMemoryStream buf(&data);
+        std::uint32_t size = 16;
         size += (horizontalGuides.size() * 5);
         size += (verticalGuides.size() * 5);
         startBlock(buf, PSDImageResourceSection::GRID_GUIDE, size);
         psdwrite(buf, version);
-        psdwrite(buf, (quint32)gridHorizontal);
-        psdwrite(buf, (quint32)gridVertical);
-        psdwrite(buf, quint32(horizontalGuides.size()+verticalGuides.size()));
-        Q_FOREACH(quint32 guide, verticalGuides) {
-            psdwrite(buf, quint32(guide * documentMultiplier));
+        psdwrite(buf, (std::uint32_t)gridHorizontal);
+        psdwrite(buf, (std::uint32_t)gridVertical);
+        psdwrite(buf, std::uint32_t(horizontalGuides.size()+verticalGuides.size()));
+        for (std::uint32_t guide : verticalGuides) {
+            psdwrite(buf, std::uint32_t(guide * documentMultiplier));
             psdwrite(buf, false);
         }
-        Q_FOREACH(quint32 guide, horizontalGuides) {
-            psdwrite(buf, quint32(guide * documentMultiplier));
+        for (std::uint32_t guide : horizontalGuides) {
+            psdwrite(buf, std::uint32_t(guide * documentMultiplier));
             psdwrite(buf, true);
         }
         buf.close();
@@ -430,16 +433,16 @@ struct KRITAPSD_EXPORT GRID_GUIDE_1032 : public PSDInterpretedResource {
     PkString displayText() override
     {
         PkStringList guidesText;
-        guidesText.append(PkString("Grids and Guides version: %1").arg(version));
+        guidesText.append(PkString("Grids and Guides version: %1").arg(static_cast<int>(version)));
         guidesText.append(PkString("Grids vertical: %1, horizontal: %2")
                           .arg(gridVertical).arg(gridHorizontal));
         PkStringList vertical;
         PkStringList horizontal;
-        Q_FOREACH(quint32 guide, verticalGuides) {
-            vertical.append(PkString::number(guide));
+        for (std::uint32_t guide : verticalGuides) {
+            vertical.append(PkString("%1").arg(static_cast<int>(guide)));
         }
-        Q_FOREACH(quint32 guide, horizontalGuides) {
-            horizontal.append(PkString::number(guide));
+        for (std::uint32_t guide : horizontalGuides) {
+            horizontal.append(PkString("%1").arg(static_cast<int>(guide)));
         }
         guidesText.append(PkString("Vertical guides: %1").arg(vertical.join(", ")));
         guidesText.append(PkString("Horizontal guides: %1").arg(horizontal.join(", ")));
@@ -447,11 +450,11 @@ struct KRITAPSD_EXPORT GRID_GUIDE_1032 : public PSDInterpretedResource {
     }
 
     const int documentMultiplier{32};
-    quint32 version;
-    qint32 gridHorizontal;
-    qint32 gridVertical;
-    PkList<quint32> horizontalGuides;
-    PkList<quint32> verticalGuides;
+    std::uint32_t version;
+    std::int32_t gridHorizontal;
+    std::int32_t gridVertical;
+    PkList<std::uint32_t> horizontalGuides;
+    PkList<std::uint32_t> verticalGuides;
 };
 
 /* 0x0409 - Thumbnail resource */
@@ -511,9 +514,9 @@ struct KRITAPSD_EXPORT GLOBAL_ANGLE_1037 : public PSDInterpretedResource {
 
     bool createBlock(PkByteArray &data) override
     {
-        QBuffer buf(&data);
+        PkCosMemoryStream buf(&data);
         startBlock(buf, PSDImageResourceSection::GLOBAL_ANGLE, 4);
-        psdwrite(buf, (quint32)angle);
+        psdwrite(buf, (std::uint32_t)angle);
         return true;
     }
 
@@ -527,7 +530,7 @@ struct KRITAPSD_EXPORT GLOBAL_ANGLE_1037 : public PSDInterpretedResource {
         return PkString("Global Angle: %1").arg(angle);
     }
 
-    qint32 angle;
+    std::int32_t angle;
 };
 
 /* 0x040e - Color samplers resource */
@@ -636,9 +639,9 @@ struct KRITAPSD_EXPORT GLOBAL_ALT_1049 : public PSDInterpretedResource {
 
     bool createBlock(PkByteArray &data) override
     {
-        QBuffer buf(&data);
+        PkCosMemoryStream buf(&data);
         startBlock(buf, PSDImageResourceSection::GLOBAL_ALT, 4);
-        psdwrite(buf, (quint32)altitude);
+        psdwrite(buf, (std::uint32_t)altitude);
         return true;
     }
 
@@ -652,7 +655,7 @@ struct KRITAPSD_EXPORT GLOBAL_ALT_1049 : public PSDInterpretedResource {
         return PkString("Global Altitude: %1").arg(altitude);
     }
 
-    qint32 altitude;
+    std::int32_t altitude;
 };
 
 /* 0x041a - Slices */

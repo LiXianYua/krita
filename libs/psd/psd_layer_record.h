@@ -13,6 +13,9 @@
 #include <PkString.h>
 #include <PkVector.h>
 
+#include <cstdint>
+#include <utility>
+
 #include <kis_node.h>
 #include <kis_paint_device.h>
 #include <kis_types.h>
@@ -56,11 +59,11 @@ struct KRITAPSD_EXPORT ChannelInfo {
     {
     }
 
-    qint16 channelId; // 0 red, 1 green, 2 blue, -1 transparency, -2 user-supplied layer mask
+    std::int16_t channelId; // 0 red, 1 green, 2 blue, -1 transparency, -2 user-supplied layer mask
     psd_compression_type compressionType;
-    quint64 channelDataStart;
-    quint64 channelDataLength;
-    PkVector<quint32> rleRowLengths;
+    std::uint64_t channelDataStart;
+    std::uint64_t channelDataLength;
+    PkVector<std::uint32_t> rleRowLengths;
     int channelOffset; // where the channel data starts
     int channelInfoPosition; // where the channelinfo record is saved in the file
 };
@@ -113,20 +116,20 @@ public:
 
     PkString error;
 
-    qint32 top {0};
-    qint32 left {0};
-    qint32 bottom {0};
-    qint32 right {0};
+    std::int32_t top {0};
+    std::int32_t left {0};
+    std::int32_t bottom {0};
+    std::int32_t right {0};
 
-    quint16 nChannels {0};
+    std::uint16_t nChannels {0};
 
     PkVector<ChannelInfo *> channelInfoRecords;
 
     PkString blendModeKey;
     bool isPassThrough {false};
 
-    quint8 opacity {0};
-    quint8 clipping {0};
+    std::uint8_t opacity {0};
+    std::uint8_t clipping {0};
     bool transparencyProtected {false};
     bool visible {true};
     bool irrelevant {false};
@@ -142,17 +145,17 @@ public:
     PkXmlDocument vectorOriginationData;
 
     struct LayerMaskData {
-        qint32 top {0};
-        qint32 left {0};
-        qint32 bottom {0};
-        qint32 right {0};
-        quint8 defaultColor {255}; // 0 or 255
+        std::int32_t top {0};
+        std::int32_t left {0};
+        std::int32_t bottom {0};
+        std::int32_t right {0};
+        std::uint8_t defaultColor {255}; // 0 or 255
         bool positionedRelativeToLayer {false};
         bool disabled {false};
         bool invertLayerMaskWhenBlending {false};
-        quint8 userMaskDensity {0};
+        std::uint8_t userMaskDensity {0};
         double userMaskFeather {0.0};
-        quint8 vectorMaskDensity {0};
+        std::uint8_t vectorMaskDensity {0};
         double vectorMaskFeather {0.0};
     };
 
@@ -160,14 +163,14 @@ public:
 
     struct LayerBlendingRanges {
         struct LayerBlendingRange {
-            std::array<quint8, 2> blackValues;
-            std::array<quint8, 2> whiteValues;
+            std::array<std::uint8_t, 2> blackValues;
+            std::array<std::uint8_t, 2> whiteValues;
         };
 
         PkByteArray data;
 
-        QPair<LayerBlendingRange, LayerBlendingRange> compositeGrayRange;
-        PkVector<QPair<LayerBlendingRange, LayerBlendingRange>> sourceDestinationRanges;
+        std::pair<LayerBlendingRange, LayerBlendingRange> compositeGrayRange;
+        PkVector<std::pair<LayerBlendingRange, LayerBlendingRange>> sourceDestinationRanges;
     };
 
     LayerBlendingRanges blendingRanges;
@@ -197,22 +200,22 @@ private:
 
     KisPaintDeviceSP convertMaskDeviceIfNeeded(KisPaintDeviceSP dev);
 
-    quint16 psdLabelColor(int colorLabelIndex);
-    int kritaColorLabelIndex(quint16 labelColor);
+    std::uint16_t psdLabelColor(int colorLabelIndex);
+    int kritaColorLabelIndex(std::uint16_t labelColor);
 
 private:
     KisPaintDeviceSP m_layerContentDevice;
     KisNodeSP m_onlyTransparencyMask;
     PkRect m_onlyTransparencyMaskRect;
-    qint64 m_transparencyMaskSizeOffset {0};
+    std::int64_t m_transparencyMaskSizeOffset {0};
 
     const PSDHeader m_header;
 };
 
-KRITAPSD_EXPORT QDebug operator<<(QDebug dbg, const PSDLayerRecord &layer);
-KRITAPSD_EXPORT QDebug operator<<(QDebug dbg, const ChannelInfo &layer);
+KRITAPSD_EXPORT PkDebug operator<<(PkDebug dbg, const PSDLayerRecord &layer);
+KRITAPSD_EXPORT PkDebug operator<<(PkDebug dbg, const ChannelInfo &layer);
 
-inline QDebug operator<<(QDebug dbg, const PSDLayerRecord::LayerBlendingRanges::LayerBlendingRange &data)
+inline PkDebug operator<<(PkDebug dbg, const PSDLayerRecord::LayerBlendingRanges::LayerBlendingRange &data)
 {
     return dbg << data.blackValues[0] << data.blackValues[1] << data.whiteValues[0] << data.whiteValues[1];
 }

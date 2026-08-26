@@ -5,7 +5,7 @@
  */
 #include "psd_resource_section.h"
 
-#include <QBuffer>
+#include <cos/PkCosMemoryStream.h>
 #include <PkStream.h>
 #include <kis_debug.h>
 
@@ -24,7 +24,7 @@ PSDImageResourceSection::~PSDImageResourceSection()
 
 bool PSDImageResourceSection::read(PkStream &io)
 {
-    quint32 resourceSectionLength = 0;
+    std::uint32_t resourceSectionLength = 0;
     if (!psdread(io, resourceSectionLength)) {
         error = "Could not read image resource section length";
         return false;
@@ -32,15 +32,17 @@ bool PSDImageResourceSection::read(PkStream &io)
 
     dbgFile << "Image Resource Sectionlength:" << resourceSectionLength << ", starts at:" << io.pos();
 
-    PkByteArray ba = io.read(resourceSectionLength);
-    if ((quint32)ba.size() != resourceSectionLength) {
+    PkByteArray ba;
+    ba.resize(static_cast<int>(resourceSectionLength));
+    const auto bytesRead = io.read(ba.data(), resourceSectionLength);
+    ba.resize(bytesRead > 0 ? static_cast<int>(bytesRead) : 0);
+    if (static_cast<std::uint32_t>(ba.size()) != resourceSectionLength) {
         error = "Could not read all resources";
         return false;
     }
 
-    QBuffer buf;
-    buf.setBuffer(&ba);
-    buf.open(QBuffer::ReadOnly);
+    PkCosMemoryStream buf(&ba);
+    buf.open(PkStream::ReadOnly);
 
     while (!buf.atEnd()) {
         PSDResourceBlock *block = new PSDResourceBlock();
@@ -71,11 +73,10 @@ bool PSDImageResourceSection::write(PkStream &io)
     }
     // First write all the sections
     PkByteArray ba;
-    QBuffer buf;
-    buf.setBuffer(&ba);
-    buf.open(QBuffer::WriteOnly);
+    PkCosMemoryStream buf(&ba);
+    buf.open(PkStream::WriteOnly);
 
-    Q_FOREACH (PSDResourceBlock *block, resources) {
+    for (PSDResourceBlock *block : resources) {
         if (!block->write(buf)) {
             error = block->error;
             return false;
@@ -85,7 +86,7 @@ bool PSDImageResourceSection::write(PkStream &io)
     buf.close();
 
     // Then get the size
-    quint32 resourceBlockLength = ba.size();
+    std::uint32_t resourceBlockLength = ba.size();
     dbgFile << "resource section has size" << resourceBlockLength;
     psdwrite(io, resourceBlockLength);
 

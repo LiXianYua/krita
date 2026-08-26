@@ -9,6 +9,7 @@
 
 #include "kritapsd_export.h"
 
+#include <cstdint>
 #include <PkString.h>
 
 class PkStream;
@@ -33,16 +34,16 @@ public:
     // layer info: https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/#50577409_16000
     bool hasTransparency{false};
 
-    qint16 nLayers{0}; // If layer count is a negative number, its absolute value is the number of layers and the first alpha channel contains the transparency
+    std::int16_t nLayers{0}; // If layer count is a negative number, its absolute value is the number of layers and the first alpha channel contains the transparency
                        // data for the merged result.
     PkVector<PSDLayerRecord *> layers;
 
     // mask info: https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/#50577409_17115
     struct GlobalLayerMaskInfo {
-        quint16 overlayColorSpace{0}; // Overlay color space (undocumented).
-        quint16 colorComponents[4]{0, 0, 0, 0}; // 4 * 2 byte color components
-        quint16 opacity{0}; // Opacity. 0 = transparent, 100 = opaque.
-        quint8 kind{0}; // Kind. 0 = Color selected--i.e. inverted; 1 = Color protected;128 = use value stored per layer. This value is preferred. The others
+        std::uint16_t overlayColorSpace{0}; // Overlay color space (undocumented).
+        std::uint16_t colorComponents[4]{0, 0, 0, 0}; // 4 * 2 byte color components
+        std::uint16_t opacity{0}; // Opacity. 0 = transparent, 100 = opaque.
+        std::uint8_t kind{0}; // Kind. 0 = Color selected--i.e. inverted; 1 = Color protected;128 = use value stored per layer. This value is preferred. The others
                         // are for backward compatibility with beta versions.
     };
     GlobalLayerMaskInfo globalLayerMaskInfo;

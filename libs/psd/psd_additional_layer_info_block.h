@@ -13,6 +13,8 @@
 #include <PkStream.h>
 #include <PkString.h>
 #include <PkVector.h>
+#include <algorithm>
+#include <cstdint>
 #include <functional>
 
 #include <kis_types.h>
@@ -30,6 +32,7 @@
 #include <KoGradientBackground.h>
 #include <KoPatternBackground.h>
 #include <KoShapeStroke.h>
+#include <PkFlakeBridge.h>
 #include <psd.h>
 
 #include <asl/kis_asl_xml_writer.h>
@@ -45,91 +48,91 @@
 // LEVELS
 // Level record
 struct KRITAPSD_EXPORT psd_layer_level_record {
-    quint16 input_floor {0}; // (0...253)
-    quint16 input_ceiling {2}; // (2...255)
-    quint16 output_floor {0}; // 255). Matched to input floor.
-    quint16 output_ceiling {0}; // (0...255)
+    std::uint16_t input_floor {0}; // (0...253)
+    std::uint16_t input_ceiling {2}; // (2...255)
+    std::uint16_t output_floor {0}; // 255). Matched to input floor.
+    std::uint16_t output_ceiling {0}; // (0...255)
     float gamma {0.0}; // Short integer from 10...999 representing 0.1...9.99. Applied to all image data.
 };
 
 // Levels settings files are loaded and saved in the Levels dialog.
 struct KRITAPSD_EXPORT psd_layer_levels {
-    psd_layer_level_record record[29]; // 29 sets of level records, each level containing 5 qint8 integers
+    psd_layer_level_record record[29]; // 29 sets of level records, each level containing 5 std::int8_t integers
     // Photoshop CS (8.0) Additional information
     // At the end of the Version 2 file is the following information:
-    quint16 extra_level_count {0}; // Count of total level record structures. Subtract the legacy number of level record structures, 29, to determine how many are
+    std::uint16_t extra_level_count {0}; // Count of total level record structures. Subtract the legacy number of level record structures, 29, to determine how many are
                                // remaining in the file for reading.
     psd_layer_level_record *extra_record {nullptr}; // Additional level records according to count
-    quint8 lookup_table[3][256];
+    std::uint8_t lookup_table[3][256];
 };
 
 // CURVES
 // The following is the data for each curve specified by count above
 struct KRITAPSD_EXPORT psd_layer_curves_data {
-    quint16 channel_index {0}; // Before each curve is a channel index.
-    quint16 point_count {0}; // Count of points in the curve (qint8 integer from 2...19)
-    quint16 output_value[19]; // All coordinates have range 0 to 255
-    quint16 input_value[19];
+    std::uint16_t channel_index {0}; // Before each curve is a channel index.
+    std::uint16_t point_count {0}; // Count of points in the curve (std::int8_t integer from 2...19)
+    std::uint16_t output_value[19]; // All coordinates have range 0 to 255
+    std::uint16_t input_value[19];
 };
 
 // Curves file format
 struct KRITAPSD_EXPORT psd_layer_curves {
-    quint16 curve_count {0}; // Count of curves in the file.
+    std::uint16_t curve_count {0}; // Count of curves in the file.
     psd_layer_curves_data *curve {nullptr};
-    quint8 lookup_table[3][256];
+    std::uint8_t lookup_table[3][256];
 };
 
 // BRIGHTNESS AND CONTRAST
 struct KRITAPSD_EXPORT psd_layer_brightness_contrast {
-    qint8 brightness {0};
-    qint8 contrast {0};
-    qint8 mean_value {0}; // for brightness and contrast
-    qint8 Lab_color {0};
-    quint8 lookup_table[256];
+    std::int8_t brightness {0};
+    std::int8_t contrast {0};
+    std::int8_t mean_value {0}; // for brightness and contrast
+    std::int8_t Lab_color {0};
+    std::uint8_t lookup_table[256];
 };
 
 // COLOR BALANCE
 struct KRITAPSD_EXPORT psd_layer_color_balance {
-    qint8 cyan_red[3]; // (-100...100). shadows, midtones, highlights
-    qint8 magenta_green[3];
-    qint8 yellow_blue[3];
+    std::int8_t cyan_red[3]; // (-100...100). shadows, midtones, highlights
+    std::int8_t magenta_green[3];
+    std::int8_t yellow_blue[3];
     bool preserve_luminosity {false};
-    quint8 lookup_table[3][256];
+    std::uint8_t lookup_table[3][256];
 };
 
 // HUE/SATURATION
 // Hue/Saturation settings files are loaded and saved in Photoshop¡¯s Hue/Saturation dialog
 struct KRITAPSD_EXPORT psd_layer_hue_saturation {
-    quint8 hue_or_colorization {0}; // 0 = Use settings for hue-adjustment; 1 = Use settings for colorization.
-    qint8 colorization_hue {0}; // Photoshop 5.0: The actual values are stored for the new version. Hue is - 180...180, Saturation is 0...100, and Lightness is
+    std::uint8_t hue_or_colorization {0}; // 0 = Use settings for hue-adjustment; 1 = Use settings for colorization.
+    std::int8_t colorization_hue {0}; // Photoshop 5.0: The actual values are stored for the new version. Hue is - 180...180, Saturation is 0...100, and Lightness is
                             // -100...100.
-    qint8 colorization_saturation {0}; // Photoshop 4.0: Three qint8 integers Hue, Saturation, and Lightness from ¨C100...100.
-    qint8 colorization_lightness {0}; // The user interface represents hue as ¨C180...180, saturation as 0...100, and Lightness as -100...1000, as the traditional
+    std::int8_t colorization_saturation {0}; // Photoshop 4.0: Three std::int8_t integers Hue, Saturation, and Lightness from ¨C100...100.
+    std::int8_t colorization_lightness {0}; // The user interface represents hue as ¨C180...180, saturation as 0...100, and Lightness as -100...1000, as the traditional
                                   // HSB color wheel, with red = 0.
-    qint8 master_hue {0}; // Master hue, saturation and lightness values.
-    qint8 master_saturation {0};
-    qint8 master_lightness {0};
-    qint8 range_values[6][4]; // For RGB and CMYK, those values apply to each of the six hextants in the HSB color wheel: those image pixels nearest to red,
+    std::int8_t master_hue {0}; // Master hue, saturation and lightness values.
+    std::int8_t master_saturation {0};
+    std::int8_t master_lightness {0};
+    std::int8_t range_values[6][4]; // For RGB and CMYK, those values apply to each of the six hextants in the HSB color wheel: those image pixels nearest to red,
                               // yellow, green, cyan, blue, or magenta. These numbers appear in the user interface from ¨C60...60, however the slider will
                               // reflect each of the possible 201 values from ¨C100...100.
-    qint8 setting_values[6][3]; // For Lab, the first four of the six values are applied to image pixels in the four Lab color quadrants, yellow, green, blue,
+    std::int8_t setting_values[6][3]; // For Lab, the first four of the six values are applied to image pixels in the four Lab color quadrants, yellow, green, blue,
                                 // and magenta. The other two values are ignored ( = 0). The values appear in the user interface from ¨C90 to 90.
-    quint8 lookup_table[6][360];
+    std::uint8_t lookup_table[6][360];
 };
 
 // SELECTIVE COLOR
 // Selective Color settings files are loaded and saved in Photoshop¡¯s Selective Color dialog.
 struct KRITAPSD_EXPORT psd_layer_selective_color {
-    quint16 correction_method {0}; // 0 = Apply color correction in relative mode; 1 = Apply color correction in absolute mode.
-    qint8 cyan_correction[10]; // Amount of cyan correction. Short integer from ¨C100...100.
-    qint8 magenta_correction[10]; // Amount of magenta correction. Short integer from ¨C100...100.
-    qint8 yellow_correction[10]; // Amount of yellow correction. Short integer from ¨C100...100.
-    qint8 black_correction[10]; // Amount of black correction. Short integer from ¨C100...100.
+    std::uint16_t correction_method {0}; // 0 = Apply color correction in relative mode; 1 = Apply color correction in absolute mode.
+    std::int8_t cyan_correction[10]; // Amount of cyan correction. Short integer from ¨C100...100.
+    std::int8_t magenta_correction[10]; // Amount of magenta correction. Short integer from ¨C100...100.
+    std::int8_t yellow_correction[10]; // Amount of yellow correction. Short integer from ¨C100...100.
+    std::int8_t black_correction[10]; // Amount of black correction. Short integer from ¨C100...100.
 };
 
 // THRESHOLD
 struct KRITAPSD_EXPORT psd_layer_threshold {
-    quint16 level {1}; // (1...255)
+    std::uint16_t level {1}; // (1...255)
 };
 
 // INVERT
@@ -137,26 +140,26 @@ struct KRITAPSD_EXPORT psd_layer_threshold {
 
 // POSTERIZE
 struct KRITAPSD_EXPORT psd_layer_posterize {
-    quint16 levels {2}; // (2...255)
-    quint8 lookup_table[256];
+    std::uint16_t levels {2}; // (2...255)
+    std::uint8_t lookup_table[256];
 };
 
 // CHANNEL MIXER
 struct KRITAPSD_EXPORT psd_layer_channel_mixer {
     bool monochrome {false};
-    qint8 red_cyan[4]; // RGB or CMYK color plus constant for the mixer settings. 4 * 2 bytes of color with 2 bytes of constant.
-    qint8 green_magenta[4]; // (-200...200)
-    qint8 blue_yellow[4];
-    qint8 black[4];
-    qint8 constant[4];
+    std::int8_t red_cyan[4]; // RGB or CMYK color plus constant for the mixer settings. 4 * 2 bytes of color with 2 bytes of constant.
+    std::int8_t green_magenta[4]; // (-200...200)
+    std::int8_t blue_yellow[4];
+    std::int8_t black[4];
+    std::int8_t constant[4];
 };
 
 // PHOTO FILTER
 struct KRITAPSD_EXPORT psd_layer_photo_filter {
-    qint32 x_color {0}; // 4 bytes each for XYZ color
-    qint32 y_color {0};
-    qint32 z_color {0};
-    qint32 density {0}; // (1...100)
+    std::int32_t x_color {0}; // 4 bytes each for XYZ color
+    std::int32_t y_color {0};
+    std::int32_t z_color {0};
+    std::int32_t density {0}; // (1...100)
     bool preserve_luminosity {true};
 };
 
@@ -225,14 +228,14 @@ struct KRITAPSD_EXPORT psd_layer_solid_color {
         }
     }
 
-    QBrush getBrush() {
+    PkColor getBrush() {
         PkColor c;
         fill_color.toQColor(&c);
-        return QBrush(c, Qt::SolidPattern);
+        return c;
     }
 
     PkSharedPointer<KoShapeBackground> getBackground() {
-        return PkSharedPointer<KoColorBackground>(new KoColorBackground(getBrush().color()));
+        return PkSharedPointer<KoColorBackground>(new KoColorBackground(getBrush()));
     }
 };
 
@@ -517,13 +520,8 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
         w.writePoint("Ofst", offset);
     }
 
-    QBrush getBrush() {
-        PkGradient *grad = getGradient();
-        if (grad) {
-            QBrush brush = *grad;
-            return brush;
-        }
-        return QBrush(Qt::transparent);
+    PkGradient *getBrush() {
+        return getGradient();
     }
     PkGradient *getGradient() {
         PkGradient *pointer = nullptr;
@@ -545,23 +543,25 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
             }
         }
         if (pointer) {
-            PkGradient::CoordinateMode mode = PkGradient::ObjectBoundingMode;
+            PkGradientEnums::CoordinateMode mode = PkGradientEnums::ObjectBoundingMode;
             pointer->setCoordinateMode(mode);
 
             if (reverse) {
-                QGradientStops newStops;
-                Q_FOREACH(QGradientStop stop, pointer->stops()) {
-                    newStops.append(QPair<double, PkColor>(1.0-stop.first, stop.second));
+                PkGradientStops newStops;
+                for (PkGradientStop stop : pointer->stops()) {
+                    newStops.push_back(PkGradientStop{1.0 - stop.offset, stop.color});
                 }
                 pointer->setStops(newStops);
             }
 
-            QLinearGradient *g = static_cast<QLinearGradient*>(pointer);
             PkLineF line = PkLineF::fromPolar(0.5*(scale*0.01), angle);
             line.translate(PkPointF(0.5, 0.5)+(offset*0.01));
 
             if (style == "radial") {
-                QRadialGradient *r = new QRadialGradient(line.p1(), line.length());
+                PkGradient *r = new PkGradient(PkGradientEnums::RadialGradient);
+                r->setCenter(line.p1());
+                r->setRadius(line.length());
+                r->setFocalPoint(line.p1());
                 r->setCoordinateMode(mode);
 
                 r->setSpread(pointer->spread());
@@ -569,13 +569,13 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
                 pointer = r;
 
             } else if (style == "bilinear") {
-                QLinearGradient *b = new QLinearGradient();
-                Q_FOREACH(QGradientStop stop, pointer->stops()) {
-                    double pos = 0.5 - stop.first*0.5;
-                    b->setColorAt(pos, stop.second);
+                PkGradient *b = new PkGradient(PkGradientEnums::LinearGradient);
+                for (PkGradientStop stop : pointer->stops()) {
+                    double pos = 0.5 - stop.offset*0.5;
+                    b->setColorAt(pos, stop.color);
                     double pos2 = 1.0 - pos;
                     if (pos != pos2) {
-                        b->setColorAt(pos2, stop.second);
+                        b->setColorAt(pos2, stop.color);
                     }
                 }
                 b->setCoordinateMode(mode);
@@ -584,11 +584,10 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
                 line.setAngle(180+angle);
                 b->setStart(line.p2());
                 pointer = b;
-            } else if (g) {
-                g->setFinalStop(line.p2());
+            } else {
+                pointer->setFinalStop(line.p2());
                 line.setAngle(180+angle);
-                g->setStart(line.p2());
-                pointer = g;
+                pointer->setStart(line.p2());
             }
         }
 
@@ -597,12 +596,11 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
 
     void setFromQGradient(const PkGradient *gradient) {
         setGradient(KoStopGradient::fromQGradient(gradient));
-        if (gradient->coordinateMode() == PkGradient::ObjectBoundingMode) {
+        if (gradient->coordinateMode() == PkGradientEnums::ObjectBoundingMode) {
             align_with_layer = true;
         }
-        if (gradient->type() == PkGradient::LinearGradient) {
-            const QLinearGradient *g = static_cast<const QLinearGradient*>(gradient);
-            PkLineF line(g->start(), g->finalStop());
+        if (gradient->type() == PkGradientEnums::LinearGradient) {
+            PkLineF line(gradient->start(), gradient->finalStop());
             offset = (line.center()-PkPointF(0.5, 0.5))*100.0;
             angle = line.angle();
             if (angle > 180) {
@@ -611,10 +609,9 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
             scale = (line.length())*100.0;
             style = "linear";
         } else {
-            const QRadialGradient *g = static_cast<const QRadialGradient*>(gradient);
-            offset = (g->center()-PkPointF(0.5, 0.5)) * 100.0;
+            offset = (gradient->center()-PkPointF(0.5, 0.5)) * 100.0;
             angle = 0;
-            scale = (g->radius()*2) * 100.0;
+            scale = (gradient->radius()*2) * 100.0;
             style = "radial";
         }
     }
@@ -779,68 +776,53 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
         bg->setReferencePointOffset(refPoint);
         return bg;
     }
-
-    QBrush getBrush(KisEmbeddedResourceStorageProxy &embeddedProxy) {
-        QBrush brush;
-        loadPattern(embeddedProxy);
-        if (pattern) {
-            brush.setTextureImage(pattern->pattern());
-        } else {
-            KoResourceLoadResult res = KisGlobalResourcesInterface::instance()->source(ResourceType::Patterns).fallbackResource();
-            brush.setTextureImage(res.resource<KoPattern>()->pattern());
-        }
-        PkTransform t = PkTransform::fromScale(scale*0.01, scale*0.01);
-        t.rotate(angle);
-        brush.setTransform(t);
-        return brush;
-    }
 };
 
 struct KRITAPSD_EXPORT psd_layer_type_face {
-    qint8 mark {0}; // Mark value
-    qint32 font_type {0}; // Font type data
-    qint8 font_name[256]; // Pascal string of font name
-    qint8 font_family_name[256]; // Pascal string of font family name
-    qint8 font_style_name[256]; // Pascal string of font style name
-    qint8 script {0}; // Script value
-    qint32 number_axes_vector {0}; // Number of design axes vector to follow
-    qint32 *vector {nullptr}; // Design vector value
+    std::int8_t mark {0}; // Mark value
+    std::int32_t font_type {0}; // Font type data
+    std::int8_t font_name[256]; // Pascal string of font name
+    std::int8_t font_family_name[256]; // Pascal string of font family name
+    std::int8_t font_style_name[256]; // Pascal string of font style name
+    std::int8_t script {0}; // Script value
+    std::int32_t number_axes_vector {0}; // Number of design axes vector to follow
+    std::int32_t *vector {nullptr}; // Design vector value
 };
 
 struct KRITAPSD_EXPORT psd_layer_type_style {
-    qint8 mark {0}; // Mark value
-    qint8 face_mark {0}; // Face mark value
-    qint32 size {0}; // Size value
-    qint32 tracking {0}; // Tracking value
-    qint32 kerning {0}; // Kerning value
-    qint32 leading {0}; // Leading value
-    qint32 base_shift {0}; // Base shift value
+    std::int8_t mark {0}; // Mark value
+    std::int8_t face_mark {0}; // Face mark value
+    std::int32_t size {0}; // Size value
+    std::int32_t tracking {0}; // Tracking value
+    std::int32_t kerning {0}; // Kerning value
+    std::int32_t leading {0}; // Leading value
+    std::int32_t base_shift {0}; // Base shift value
     bool auto_kern {false}; // Auto kern on/off
     bool rotate {false}; // Rotate up/down
 };
 
 struct KRITAPSD_EXPORT psd_layer_type_line {
-    qint32 char_count {0}; // Character count value
-    qint8 orientation {0}; // Orientation value
-    qint8 alignment {0}; // Alignment value
-    qint8 actual_char {0}; // Actual character as a double byte character
-    qint8 style {0}; // Style value
+    std::int32_t char_count {0}; // Character count value
+    std::int8_t orientation {0}; // Orientation value
+    std::int8_t alignment {0}; // Alignment value
+    std::int8_t actual_char {0}; // Actual character as a double byte character
+    std::int8_t style {0}; // Style value
 };
 
 struct KRITAPSD_EXPORT psd_layer_type_tool {
     double transform_info[6]; // 6 * 8 double precision numbers for the transform information
-    qint8 faces_count {0}; // Count of faces
+    std::int8_t faces_count {0}; // Count of faces
     psd_layer_type_face *face {nullptr};
-    qint8 styles_count {0}; // Count of styles
+    std::int8_t styles_count {0}; // Count of styles
     psd_layer_type_style *style {nullptr};
-    qint8 type {0}; // Type value
-    qint32 scaling_factor {0}; // Scaling factor value
-    qint32 character_count {0}; // Character count value
-    qint32 horz_place {0}; // Horizontal placement
-    qint32 vert_place {0}; // Vertical placement
-    qint32 select_start {0}; // Select start value
-    qint32 select_end {0}; // Select end value
-    qint8 lines_count {0}; // Line count
+    std::int8_t type {0}; // Type value
+    std::int32_t scaling_factor {0}; // Scaling factor value
+    std::int32_t character_count {0}; // Character count value
+    std::int32_t horz_place {0}; // Horizontal placement
+    std::int32_t vert_place {0}; // Vertical placement
+    std::int32_t select_start {0}; // Select start value
+    std::int32_t select_end {0}; // Select end value
+    std::int8_t lines_count {0}; // Line count
     psd_layer_type_line *line {nullptr};
     PkColor color;
     bool anti_alias {false}; // Anti alias on/off
@@ -986,24 +968,30 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
 
     bool strokeEnabled {false};
     bool fillEnabled {true};
-    
-    QPen pen;
+
+    double penWidth {1.0};
+    double penDashOffset {0.0};
+    double penMiterLimit {0.0};
+    Qt::PenCapStyle penCapStyle {Qt::FlatCap};
+    Qt::PenJoinStyle penJoinStyle {Qt::MiterJoin};
+    PkColor penColor;
+    PkGradient penGradient; // valid only when gradient == true
     bool gradient{false};
 
     bool scaleLock {false};
     bool strokeAdjust {false};
 
     PkVector<double> dashPattern;
-    
+
     double opacity {1.0};
-    
+
     double resolution {72.0};
     bool pixelWidth {false};
 
     void setVersion(int version) {
         strokeVersion = version;
     }
-    
+
     void setStrokeEnabled(bool enabled) {
         strokeEnabled = enabled;
     }
@@ -1011,36 +999,36 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         fillEnabled = enabled;
     }
     void setStrokeWidth(double width) {
-        pen.setWidthF(width);
+        penWidth = width;
         pixelWidth = false;
     }
     void setStrokePixel(double width) {
-        pen.setWidthF(width);
+        penWidth = width;
         pixelWidth = true;
     }
 
     void setStrokeDashOffset(double dashOffset) {
-        pen.setDashOffset(dashOffset);
+        penDashOffset = dashOffset;
     }
     void setStrokeMiterLimit(double limit) {
-        pen.setMiterLimit(limit);
+        penMiterLimit = limit;
     }
     void setLineCapType(const PkString val) {
         if (val == "strokeStyleButtCap") {
-            pen.setCapStyle(Qt::FlatCap);
+            penCapStyle = Qt::FlatCap;
         } else if (val == "strokeStyleSquareCap") {
-            pen.setCapStyle(Qt::SquareCap);
+            penCapStyle = Qt::SquareCap;
         } else if (val == "strokeStyleRoundCap") {
-            pen.setCapStyle(Qt::RoundCap);
+            penCapStyle = Qt::RoundCap;
         }
     }
     void setLineJoinType(const PkString val) {
         if (val == "strokeStyleMiterJoin") {
-            pen.setJoinStyle(Qt::MiterJoin);
+            penJoinStyle = Qt::MiterJoin;
         } else if (val == "strokeStyleBevelJoin") {
-            pen.setJoinStyle(Qt::BevelJoin);
+            penJoinStyle = Qt::BevelJoin;
         } else if (val == "strokeStyleRoundJoin") {
-            pen.setJoinStyle(Qt::RoundJoin);
+            penJoinStyle = Qt::RoundJoin;
         }
     }
 
@@ -1053,9 +1041,9 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
     }
 
     void appendToDashPattern(double val) {
-        // QPen doesn't like 0 in the dash pattern,
-        // even though it's necessary for some styles
-        dashPattern.append(qMax(val, 1e-6));
+        // 0 in the dash pattern breaks some stroke styles,
+        // even though it's necessary for some PSD styles
+        dashPattern.append(std::max(val, 1e-6));
     }
     void setOpacityFromPercentage(double o) {
         opacity = o * 0.01;
@@ -1065,10 +1053,19 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
     }
 
     void loadFromShapeStroke(KoShapeStrokeSP stroke) {
-        pen = stroke->resultLinePen();
+        auto pen = stroke->resultLinePen();
+        penWidth = pen.widthF();
+        penCapStyle = pen.capStyle();
+        penJoinStyle = pen.joinStyle();
+        penDashOffset = pen.dashOffset();
+        penMiterLimit = pen.miterLimit();
         gradient = stroke->lineBrush().gradient()? true: false;
         opacity = stroke->color().alphaF();
         dashPattern = stroke->lineDashes();
+        penColor = toPkColor(pen.color());
+        if (gradient) {
+            penGradient = toPkGradient(stroke->lineBrush().gradient());
+        }
     }
 
     static void setupCatcher(const PkString path, KisAslCallbackObjectCatcher &catcher, psd_vector_stroke_data *data) {
@@ -1100,34 +1097,34 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         w.writeInteger("strokeStyleVersion", 2);
         w.writeBoolean("strokeEnabled", strokeEnabled);
         w.writeBoolean("fillEnabled", fillEnabled);
-        
-        w.writeUnitFloat("strokeStyleLineWidth", "#Pxl", pen.widthF() * (resolution / 72.0));
-        w.writeUnitFloat("strokeStyleLineDashOffset ", "#Pnt", pen.dashOffset());
-        w.writeDouble("strokeStyleMiterLimit", pen.miterLimit());
-        
+
+        w.writeUnitFloat("strokeStyleLineWidth", "#Pxl", penWidth * (resolution / 72.0));
+        w.writeUnitFloat("strokeStyleLineDashOffset ", "#Pnt", penDashOffset);
+        w.writeDouble("strokeStyleMiterLimit", penMiterLimit);
+
         PkString linecap = "strokeStyleButtCap";
-        if (pen.capStyle() == Qt::SquareCap) {
+        if (penCapStyle == Qt::SquareCap) {
             linecap = "strokeStyleSquareCap";
-        } else if (pen.capStyle() == Qt::RoundCap) {
+        } else if (penCapStyle == Qt::RoundCap) {
             linecap = "strokeStyleRoundCap";
         }
         PkString linejoin = "strokeStyleMiterJoin";
-        if (pen.joinStyle() == Qt::BevelJoin) {
+        if (penJoinStyle == Qt::BevelJoin) {
             linejoin = "strokeStyleBevelJoin";
-        } else if (pen.joinStyle() == Qt::RoundJoin) {
+        } else if (penJoinStyle == Qt::RoundJoin) {
             linejoin = "strokeStyleRoundJoin";
         }
         w.writeEnum("strokeStyleLineCapType", "strokeStyleLineCapType", linecap);
         w.writeEnum("strokeStyleLineJoinType", "strokeStyleLineJoinType", linejoin);
-        
+
         // Other values are "strokeStyleAlignInside" and "strokeStyleAlignOutside" but we don't support these.
         w.writeEnum("strokeStyleLineAlignment", "strokeStyleLineAlignment", "strokeStyleAlignCenter");
-        
+
         w.writeBoolean("strokeStyleScaleLock", false);
         w.writeBoolean("strokeStyleStrokeAdjust", false);
-        
+
         w.enterList("strokeStyleLineDashSet");
-        Q_FOREACH(const double val, dashPattern) {
+        for (const double val : dashPattern) {
             if (val <= 1e-6) {
                  w.writeUnitFloat("", "#Nne", 0);
             } else {
@@ -1144,13 +1141,13 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         if (gradient) {
             w.enterDescriptor("strokeStyleContent", "", "gradientLayer");
             psd_layer_gradient_fill fill;
-            fill.setFromQGradient(pen.brush().gradient());
+            fill.setFromQGradient(&penGradient);
             fill.writeASL(w);
             w.leaveDescriptor();
         } else {
             w.enterDescriptor("strokeStyleContent", "", "solidColorLayer");
             KoColor c (KoColorSpaceRegistry::instance()->rgb8());
-            c.fromQColor(pen.color());
+            c.fromQColor(penColor);
             c.setOpacity(1.0);
             psd_layer_solid_color fill;
             fill.fill_color = c;
@@ -1166,13 +1163,13 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
     }
 
     void setupShapeStroke(KoShapeStrokeSP stroke) {
-        double width = pen.widthF();
+        double width = penWidth;
         width = (width / resolution) * 72.0;
         stroke->setLineWidth(width);
-        stroke->setCapStyle(pen.capStyle());
-        stroke->setJoinStyle(pen.joinStyle());
-        stroke->setDashOffset(pen.dashOffset());
-        stroke->setMiterLimit(pen.miterLimit());
+        stroke->setCapStyle(penCapStyle);
+        stroke->setJoinStyle(penJoinStyle);
+        stroke->setDashOffset(penDashOffset);
+        stroke->setMiterLimit(penMiterLimit);
         if (dashPattern.isEmpty()) {
             stroke->setLineStyle(Qt::SolidLine, PkVector<double>());
         } else {
@@ -1364,7 +1361,7 @@ public:
     void writeLsctBlockEx(PkStream &io, psd_section_type sectionType, bool isPassThrough, const PkString &blendModeKey);
     void writeLfx2BlockEx(PkStream &io, const PkXmlDocument &stylesXmlDoc, bool useLfxsLayerStyleFormat);
     void writePattBlockEx(PkStream &io, const PkXmlDocument &patternsXmlDoc);
-    void writeLclrBlockEx(PkStream &io, const quint16 &labelColor);
+    void writeLclrBlockEx(PkStream &io, const std::uint16_t &labelColor);
 
     void writeFillLayerBlockEx(PkStream &io, const PkXmlDocument &fillConfig, psd_fill_type type);
     void writeVmskBlockEx(PkStream &io, psd_vector_mask mask);
@@ -1385,7 +1382,7 @@ public:
     PkVector<PkXmlDocument> embeddedPatterns;
     PkVariantHash txt2Data;
 
-    quint16 labelColor{0}; // layer color.
+    std::uint16_t labelColor{0}; // layer color.
 
     PkXmlDocument fillConfig;
     psd_fill_type fillType {psd_fill_solid_color};
@@ -1417,7 +1414,7 @@ private:
     void writePattBlockExImpl(PkStream &io, const PkXmlDocument &patternsXmlDoc);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeLclrBlockExImpl(PkStream &io, const quint16 &lclr);
+    void writeLclrBlockExImpl(PkStream &io, const std::uint16_t &lclr);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
     void writeFillLayerBlockExImpl(PkStream &io, const PkXmlDocument &fillConfig, psd_fill_type type);

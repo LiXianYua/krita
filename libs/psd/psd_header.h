@@ -9,7 +9,7 @@
 
 #include "kritapsd_export.h"
 
-#include <QtGlobal>
+#include <cstdint>
 #include <kis_debug.h>
 #include <psd.h>
 
@@ -40,11 +40,11 @@ public:
     bool valid();
 
     PkString signature; // 8PBS
-    quint16 version; // 1 or 2
-    quint16 nChannels; // 1 - 56
-    quint32 height; // 1-30,000 or 1 - 300,000
-    quint32 width; // 1-30,000 or 1 - 300,000
-    quint16 channelDepth; // 1, 8, 16. XXX: check whether 32 is used!
+    std::uint16_t version; // 1 or 2
+    std::uint16_t nChannels; // 1 - 56
+    std::uint32_t height; // 1-30,000 or 1 - 300,000
+    std::uint32_t width; // 1-30,000 or 1 - 300,000
+    std::uint16_t channelDepth; // 1, 8, 16. XXX: check whether 32 is used!
     psd_color_mode colormode;
     psd_byte_order byteOrder;
     bool tiffStyleLayerBlock; // if true, treat layer section as 4-byte aligned blocks
@@ -52,6 +52,6 @@ public:
     PkString error;
 };
 
-KRITAPSD_EXPORT QDebug operator<<(QDebug dbg, const PSDHeader &header);
+KRITAPSD_EXPORT PkDebug operator<<(PkDebug dbg, const PSDHeader &header);
 
 #endif // PSD_HEADER_H

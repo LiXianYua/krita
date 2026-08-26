@@ -6,10 +6,7 @@
  */
 #include "psd_layer_record.h"
 
-#include <QtEndian>
-
 #include <KoColor.h>
-#include <QBuffer>
 #include <PkDataStream.h>
 #include <PkStream.h>
 
@@ -39,6 +36,24 @@
 
 #include "psd_pixel_utils.h"
 #include <kundo2command.h>
+
+namespace {
+
+// PkString::number() 尚未实现（R-01 已知缺口）；mask 参数的二进制调试输出用它。
+PkString toBinaryString(unsigned int value)
+{
+    if (value == 0) {
+        return PkString("0");
+    }
+    PkString out;
+    while (value > 0) {
+        out = ((value & 1) ? PkString("1") : PkString("0")) + out;
+        value >>= 1;
+    }
+    return out;
+}
+
+} // namespace
 
 // Just for pretty debug messages
 PkString channelIdToChannelType(int channelId, psd_color_mode colormode)
@@ -217,9 +232,9 @@ bool PSDLayerRecord::readImpl(PkStream &io)
         }
         bool r;
         if (m_header.version == 1) {
-            quint32 channelDataLength;
+            std::uint32_t channelDataLength;
             r = psdread<byteOrder>(io, channelDataLength);
-            info->channelDataLength = (quint64)channelDataLength;
+            info->channelDataLength = (std::uint64_t)channelDataLength;
         } else {
             r = psdread<byteOrder>(io, info->channelDataLength);
         }
@@ -256,7 +271,7 @@ bool PSDLayerRecord::readImpl(PkStream &io)
 
     dbgFile << "\tclipping" << clipping << io.pos();
 
-    quint8 flags;
+    std::uint8_t flags;
     if (!psdread<byteOrder>(io, flags)) {
         error = "Could not read flags";
         return false;
@@ -281,7 +296,7 @@ bool PSDLayerRecord::readImpl(PkStream &io)
 
     dbgFile << "\tfiller at " << io.pos();
 
-    quint8 filler;
+    std::uint8_t filler;
     if (!psdread<byteOrder>(io, filler) || filler != 0) {
         error = "Could not read padding";
         return false;
@@ -289,9 +304,9 @@ bool PSDLayerRecord::readImpl(PkStream &io)
 
     dbgFile << "\tGoing to read extra data length" << io.pos();
 
-    quint32 extraDataLength;
+    std::uint32_t extraDataLength;
     if (!psdread<byteOrder>(io, extraDataLength) || io.bytesAvailable() < extraDataLength) {
-        error = PkString("Could not read extra layer data: %1 at pos %2").arg(extraDataLength).arg(io.pos());
+        error = PkString("Could not read extra layer data: %1 at pos %2").arg(static_cast<int>(extraDataLength)).arg(static_cast<int>(io.pos()));
         return false;
     }
 
@@ -301,9 +316,9 @@ bool PSDLayerRecord::readImpl(PkStream &io)
         dbgFile << "Going to read extra data field. Bytes available: " << io.bytesAvailable() << "pos" << io.pos();
 
         // See https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/#50577409_22582
-        quint32 layerMaskLength = 1; // invalid...
+        std::uint32_t layerMaskLength = 1; // invalid...
         if (!psdread<byteOrder>(io, layerMaskLength) || io.bytesAvailable() < layerMaskLength) {
-            error = PkString("Could not read layer mask length: %1").arg(layerMaskLength);
+            error = PkString("Could not read layer mask length: %1").arg(static_cast<int>(layerMaskLength));
             return false;
         }
 
@@ -332,13 +347,13 @@ bool PSDLayerRecord::readImpl(PkStream &io)
                     << ", needs to read mask parameters" << hasMaskParameters;
 
             if (layerMaskLength == 20) {
-                quint16 padding = 0;
+                std::uint16_t padding = 0;
                 if (!psdread<byteOrder>(io, padding)) {
                     error = "Could not read layer mask padding";
                     return false;
                 }
             } else {
-                quint32 remainingBlockLength = layerMaskLength - 18;
+                std::uint32_t remainingBlockLength = layerMaskLength - 18;
 
                 dbgFile << "\tReading selective records from layer mask info. Remaining block length"
                         << remainingBlockLength;
@@ -351,11 +366,11 @@ bool PSDLayerRecord::readImpl(PkStream &io)
 
                     remainingBlockLength -= 1;
 
-                    dbgFile << "\t\tMask parameters" << PkString::number(flags, 2) << ". Remaining block length"
+                    dbgFile << "\t\tMask parameters" << toBinaryString(flags) << ". Remaining block length"
                             << remainingBlockLength;
 
                     if (flags & 1) {
-                        quint8 dummy = 0;
+                        std::uint8_t dummy = 0;
                         if (!psdread<byteOrder>(io, dummy)) {
                             error = "could not read user mask density";
                             return false;
@@ -373,7 +388,7 @@ bool PSDLayerRecord::readImpl(PkStream &io)
                     }
 
                     if (flags & 4) {
-                        quint8 dummy = 0;
+                        std::uint8_t dummy = 0;
                         if (!psdread<byteOrder>(io, dummy)) {
                             error = "could not read vector mask density";
                             return false;
@@ -433,13 +448,13 @@ bool PSDLayerRecord::readImpl(PkStream &io)
         }
 
         // layer blending thingies
-        quint32 blendingDataLength = 0;
+        std::uint32_t blendingDataLength = 0;
         if (!psdread<byteOrder>(io, blendingDataLength) || io.bytesAvailable() < blendingDataLength) {
             error = "Could not read extra blending data.";
             return false;
         }
 
-        quint32 blendingNchannels = blendingDataLength > 0 ? (blendingDataLength - 8) / 4 / 2 : 0;
+        std::uint32_t blendingNchannels = blendingDataLength > 0 ? (blendingDataLength - 8) / 4 / 2 : 0;
 
         dbgFile << "\tNumber of blending channels:" << blendingNchannels;
 
@@ -470,13 +485,13 @@ bool PSDLayerRecord::readImpl(PkStream &io)
             dbgFile << "\t\tcomposite gray (source) :" << blendingRanges.compositeGrayRange.first;
             dbgFile << "\t\tcomposite gray (dest):" << blendingRanges.compositeGrayRange.second;
 
-            for (quint32 i = 0; i < blendingNchannels; ++i) {
+            for (std::uint32_t i = 0; i < blendingNchannels; ++i) {
                 LayerBlendingRanges::LayerBlendingRange src{};
                 LayerBlendingRanges::LayerBlendingRange dst{};
                 if (!psdread<byteOrder>(io, src.blackValues[0]) || !psdread<byteOrder>(io, src.blackValues[1]) || !psdread<byteOrder>(io, src.whiteValues[0])
                     || !psdread<byteOrder>(io, src.whiteValues[1]) || !psdread<byteOrder>(io, dst.blackValues[0]) || !psdread<byteOrder>(io, dst.blackValues[1])
                     || !psdread<byteOrder>(io, dst.whiteValues[0]) || !psdread<byteOrder>(io, dst.whiteValues[1])) {
-                    error = PkString("could not read src/dst range for channel %1").arg(i);
+                    error = PkString("could not read src/dst range for channel %1").arg(static_cast<int>(i));
                     return false;
                 }
                 dbgFile << "\t\tread range " << src << "to" << dst << "for channel" << i;
@@ -485,7 +500,7 @@ bool PSDLayerRecord::readImpl(PkStream &io)
         }
 
         dbgFile << "\tGoing to read layer name at" << io.pos();
-        quint8 layerNameLength;
+        std::uint8_t layerNameLength;
         if (!psdread<byteOrder>(io, layerNameLength)) {
             error = "Could not read layer name length";
             return false;
@@ -496,7 +511,12 @@ bool PSDLayerRecord::readImpl(PkStream &io)
 
         dbgFile << "\tlayer name length padded" << layerNameLength << "pos" << io.pos();
         // XXX: This should use psdread_pascalstring
-        layerName = io.read(layerNameLength);
+        PkByteArray layerNameData;
+        layerNameData.resize(layerNameLength + 1);
+        const auto bytesRead = io.read(layerNameData.data(), layerNameLength);
+        const int layerNameLen = bytesRead > 0 ? static_cast<int>(bytesRead) : 0;
+        layerNameData.data()[layerNameLen] = '\0';
+        layerName = PkString(layerNameData.constData());
         dbgFile << "\tlayer name" << layerName << io.pos();
 
         dbgFile << "\tAbout to read additional info blocks at" << io.pos();
@@ -567,27 +587,27 @@ void PSDLayerRecord::writeImpl(PkStream &io,
         }
 
         {
-            quint16 realNumberOfChannels = nChannels + bool(m_onlyTransparencyMask);
+            std::uint16_t realNumberOfChannels = nChannels + bool(m_onlyTransparencyMask);
             SAFE_WRITE_EX(byteOrder, io, realNumberOfChannels);
         }
 
-        Q_FOREACH (ChannelInfo *channel, channelInfoRecords) {
-            SAFE_WRITE_EX(byteOrder, io, (quint16)channel->channelId);
+        for (ChannelInfo *channel : channelInfoRecords) {
+            SAFE_WRITE_EX(byteOrder, io, (std::uint16_t)channel->channelId);
 
             channel->channelInfoPosition = static_cast<int>(io.pos());
 
             // to be filled in when we know how big channel block is
-            const quint32 fakeChannelSize = 0;
+            const std::uint32_t fakeChannelSize = 0;
             SAFE_WRITE_EX(byteOrder, io, fakeChannelSize);
         }
 
         if (m_onlyTransparencyMask) {
-            const quint16 userSuppliedMaskChannelId = -2;
+            const std::uint16_t userSuppliedMaskChannelId = -2;
             SAFE_WRITE_EX(byteOrder, io, userSuppliedMaskChannelId);
 
             m_transparencyMaskSizeOffset = io.pos();
 
-            const quint32 fakeTransparencyMaskSize = 0;
+            const std::uint32_t fakeTransparencyMaskSize = 0;
             SAFE_WRITE_EX(byteOrder, io, fakeTransparencyMaskSize);
         }
 
@@ -601,7 +621,7 @@ void PSDLayerRecord::writeImpl(PkStream &io,
         SAFE_WRITE_EX(byteOrder, io, clipping); // unused
 
         // visibility and protection
-        quint8 flags = 0;
+        std::uint8_t flags = 0;
         if (transparencyProtected)
             flags |= 1;
         if (!visible)
@@ -614,17 +634,17 @@ void PSDLayerRecord::writeImpl(PkStream &io,
         SAFE_WRITE_EX(byteOrder, io, flags);
 
         {
-            quint8 padding = 0;
+            std::uint8_t padding = 0;
             SAFE_WRITE_EX(byteOrder, io, padding);
         }
 
         {
             // extra fields with their own length tag
-            KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> extraDataSizeTag(io);
+            KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> extraDataSizeTag(io);
 
             if (m_onlyTransparencyMask) {
                 {
-                    const quint32 layerMaskDataSize = 20; // support simple case only
+                    const std::uint32_t layerMaskDataSize = 20; // support simple case only
                     SAFE_WRITE_EX(byteOrder, io, layerMaskDataSize);
                 }
 
@@ -635,28 +655,28 @@ void PSDLayerRecord::writeImpl(PkStream &io,
                     //       Even when the mask is actually 16/32 bit! I have no idea how it is
                     //       actually treated in this case.
                     KIS_ASSERT_RECOVER_NOOP(m_onlyTransparencyMask->paintDevice()->pixelSize() == 1);
-                    const quint8 defaultPixel = *m_onlyTransparencyMask->paintDevice()->defaultPixel().data();
+                    const std::uint8_t defaultPixel = *m_onlyTransparencyMask->paintDevice()->defaultPixel().data();
                     SAFE_WRITE_EX(byteOrder, io, defaultPixel);
                 }
 
                 {
-                    quint8 maskFlags = 0; // nothing serious
+                    std::uint8_t maskFlags = 0; // nothing serious
                     if (!vectorMask.path.subPaths.isEmpty()) {
                         maskFlags |= 8; // bit 3 = indicates that the user mask actually came from rendering other data
                     }
                     SAFE_WRITE_EX(byteOrder, io, maskFlags);
 
-                    const quint16 padding = 0; // 2-byte padding
+                    const std::uint16_t padding = 0; // 2-byte padding
                     SAFE_WRITE_EX(byteOrder, io, padding);
                 }
             } else {
-                const quint32 nullLayerMaskDataSize = 0;
+                const std::uint32_t nullLayerMaskDataSize = 0;
                 SAFE_WRITE_EX(byteOrder, io, nullLayerMaskDataSize);
             }
 
             {
                 // blending ranges are not implemented yet
-                const quint32 nullBlendingRangesSize = 0;
+                const std::uint32_t nullBlendingRangesSize = 0;
                 SAFE_WRITE_EX(byteOrder, io, nullBlendingRangesSize);
             }
 
@@ -691,7 +711,7 @@ void PSDLayerRecord::writeImpl(PkStream &io,
             }
 
             // write 'tysh' data block
-            if (!textShape.engineData.isEmpty()) {
+            if (!textShape.engineData.empty()) {
                 additionalInfoBlock.writeTypeToolBlockEx(io, textShape);
             }
 
@@ -724,9 +744,9 @@ KisPaintDeviceSP PSDLayerRecord::convertMaskDeviceIfNeeded(KisPaintDeviceSP dev)
     return result;
 }
 
-quint16 PSDLayerRecord::psdLabelColor(int colorLabelIndex)
+std::uint16_t PSDLayerRecord::psdLabelColor(int colorLabelIndex)
 {
-    quint16 color = 0;
+    std::uint16_t color = 0;
     switch (colorLabelIndex) {
     case 0: // none
         color = 0;
@@ -761,7 +781,7 @@ quint16 PSDLayerRecord::psdLabelColor(int colorLabelIndex)
     return color;
 }
 
-int PSDLayerRecord::kritaColorLabelIndex(quint16 labelColor)
+int PSDLayerRecord::kritaColorLabelIndex(std::uint16_t labelColor)
 {
     int color = 0;
     switch (labelColor) {
@@ -801,11 +821,12 @@ void PSDLayerRecord::writeTransparencyMaskPixelData(PkStream &io)
     if (m_onlyTransparencyMask) {
         KisPaintDeviceSP device = convertMaskDeviceIfNeeded(m_onlyTransparencyMask->paintDevice());
 
-        PkByteArray buffer(static_cast<int>(device->pixelSize()) * m_onlyTransparencyMaskRect.width() * m_onlyTransparencyMaskRect.height(), 0);
-        device->readBytes((quint8 *)buffer.data(), m_onlyTransparencyMaskRect);
+        PkByteArray buffer;
+        buffer.resize(static_cast<int>(device->pixelSize()) * m_onlyTransparencyMaskRect.width() * m_onlyTransparencyMaskRect.height());
+        device->readBytes((std::uint8_t *)buffer.data(), m_onlyTransparencyMaskRect);
 
         PsdPixelUtils::writeChannelDataRLE(io,
-                                           (quint8 *)buffer.data(),
+                                           (std::uint8_t *)buffer.data(),
                                            static_cast<int>(device->pixelSize()),
                                            m_onlyTransparencyMaskRect,
                                            m_transparencyMaskSizeOffset,
@@ -844,8 +865,8 @@ void PSDLayerRecord::writePixelDataImpl(PkStream &io, psd_compression_type compr
 
         for (int i = 0; i < nChannels; i++) {
             const ChannelInfo *channelInfo = channelInfoRecords[i];
-            KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> channelBlockSizeExternalTag(io, 0, channelInfo->channelInfoPosition);
-            SAFE_WRITE_EX(byteOrder, io, static_cast<quint16>(psd_compression_type::Uncompressed));
+            KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> channelBlockSizeExternalTag(io, 0, channelInfo->channelInfoPosition);
+            SAFE_WRITE_EX(byteOrder, io, static_cast<std::uint16_t>(psd_compression_type::Uncompressed));
         }
 
         writeTransparencyMaskPixelData<byteOrder>(io);
@@ -860,7 +881,7 @@ void PSDLayerRecord::writePixelDataImpl(PkStream &io, psd_compression_type compr
     const psd_color_mode colorMode = m_header.colormode;
 
     PkVector<PsdPixelUtils::ChannelWritingInfo> writingInfoList;
-    Q_FOREACH (const ChannelInfo *channelInfo, channelInfoRecords) {
+    for (const ChannelInfo *channelInfo : channelInfoRecords) {
         writingInfoList << PsdPixelUtils::ChannelWritingInfo(channelInfo->channelId, channelInfo->channelInfoPosition);
     }
 
@@ -946,7 +967,7 @@ KoPathShape *PSDLayerRecord::constructPathShape(psd_path path, double shapeWidth
     PkTransform tf = PkTransform::fromScale(shapeWidth, shapeHeight);
 
     PkString nodeTypes;
-    Q_FOREACH(psd_path_sub_path subPath, path.subPaths) {
+    for (psd_path_sub_path subPath : path.subPaths) {
         for (int i = 0; i < subPath.nodes.size(); i++) {
             psd_path_node node = subPath.nodes.at(i);
             if (i == 0) {
@@ -1009,7 +1030,7 @@ void PSDLayerRecord::addPathShapeToPSDPath(psd_path &path, KoPathShape *shape, d
     }
 }
 
-QDebug operator<<(QDebug dbg, const PSDLayerRecord &layer)
+PkDebug operator<<(PkDebug dbg, const PSDLayerRecord &layer)
 {
 #ifndef NODEBUG
     dbg.nospace() << "valid: " << const_cast<PSDLayerRecord *>(&layer)->valid();
@@ -1025,14 +1046,14 @@ QDebug operator<<(QDebug dbg, const PSDLayerRecord &layer)
     dbg.nospace() << ", transparency protected: " << layer.transparencyProtected;
     dbg.nospace() << ", visible: " << layer.visible;
     dbg.nospace() << ", irrelevant: " << layer.irrelevant << "\n";
-    Q_FOREACH (const ChannelInfo *channel, layer.channelInfoRecords) {
+    for (const ChannelInfo *channel : layer.channelInfoRecords) {
         dbg.space() << channel;
     }
 #endif
     return dbg.nospace();
 }
 
-QDebug operator<<(QDebug dbg, const ChannelInfo &channel)
+PkDebug operator<<(PkDebug dbg, const ChannelInfo &channel)
 {
 #ifndef NODEBUG
     dbg.nospace() << "\tChannel type" << channel.channelId << "size: " << channel.channelDataLength << "compression type" << channel.compressionType << "\n";

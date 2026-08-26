@@ -10,6 +10,7 @@
 
 #include "kritapsd_export.h"
 
+#include <cstdint>
 #include <PkRect.h>
 #include <PkVector.h>
 #include <psd.h>
@@ -29,20 +30,20 @@ struct KRITAPSD_EXPORT ChannelWritingInfo {
         , rleBlockOffset(-1)
     {
     }
-    ChannelWritingInfo(qint16 _channelId, int _sizeFieldOffset)
+    ChannelWritingInfo(std::int16_t _channelId, int _sizeFieldOffset)
         : channelId(_channelId)
         , sizeFieldOffset(_sizeFieldOffset)
         , rleBlockOffset(-1)
     {
     }
-    ChannelWritingInfo(qint16 _channelId, int _sizeFieldOffset, int _rleBlockOffset)
+    ChannelWritingInfo(std::int16_t _channelId, int _sizeFieldOffset, int _rleBlockOffset)
         : channelId(_channelId)
         , sizeFieldOffset(_sizeFieldOffset)
         , rleBlockOffset(_rleBlockOffset)
     {
     }
 
-    qint16 channelId;
+    std::int16_t channelId;
     int sizeFieldOffset;
     int rleBlockOffset;
 };
@@ -63,11 +64,11 @@ void KRITAPSD_EXPORT readAlphaMaskChannels(PkStream &io,
                                            psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
 
 void KRITAPSD_EXPORT writeChannelDataRLE(PkStream &io,
-                                         const quint8 *plane,
+                                         const std::uint8_t *plane,
                                          const int channelSize,
                                          const PkRect &rc,
-                                         const qint64 sizeFieldOffset,
-                                         const qint64 rleBlockOffset,
+                                         const std::int64_t sizeFieldOffset,
+                                         const std::int64_t rleBlockOffset,
                                          const bool writeCompressionType,
                                          psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
 

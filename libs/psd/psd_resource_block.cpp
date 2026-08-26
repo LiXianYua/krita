@@ -5,7 +5,7 @@
  */
 #include "psd_resource_block.h"
 
-#include <QBuffer>
+#include <cos/PkCosMemoryStream.h>
 #include <PkDataStream.h>
 #include <PkStream.h>
 
@@ -31,10 +31,10 @@ bool PSDResourceBlock::read(PkStream &io)
         return false;
     }
 
-    PkByteArray b;
-    b = io.read(4);
-    if (b.size() != 4 || PkString(b) != "8BIM") {
-        error = PkString("Could not read resource block signature. Got %1.").arg(PkString(b));
+    char signature[5] = {};
+    const auto signatureBytes = io.read(signature, 4);
+    if (signatureBytes != 4 || PkString(signature) != "8BIM") {
+        error = PkString("Could not read resource block signature. Got %1.").arg(PkString(signature));
         return false;
     }
 
@@ -45,7 +45,7 @@ bool PSDResourceBlock::read(PkStream &io)
 
     dbgFile << "\tresource block identifier" << PSDImageResourceSection::idToString((PSDImageResourceSection::PSDResourceID)identifier) << identifier;
 
-    m_type = PkString("PSD Resource Block: %1").arg(identifier);
+    m_type = PkString("PSD Resource Block: %1").arg(static_cast<int>(identifier));
 
     if (!psdread_pascalstring(io, name, 2)) {
         error = "Could not read name of resource block";
@@ -55,7 +55,7 @@ bool PSDResourceBlock::read(PkStream &io)
     dbgFile << "\tresource block name" << name;
 
     if (!psdread(io, dataSize)) {
-        error = PkString("Could not read datasize for resource block with name %1 of type %2").arg(name).arg(identifier);
+        error = PkString("Could not read datasize for resource block with name %1 of type %2").arg(name).arg(static_cast<int>(identifier));
         return false;
     }
 
@@ -67,9 +67,11 @@ bool PSDResourceBlock::read(PkStream &io)
 
     m_description = PSDImageResourceSection::idToString((PSDImageResourceSection::PSDResourceID)identifier);
 
-    data = io.read(dataSize);
-    if (data.size() != (int)dataSize) {
-        error = PkString("Could not read data for resource block with name %1 of type %2").arg(name).arg(identifier);
+    data.resize(static_cast<int>(dataSize));
+    const auto bytesRead = io.read(data.data(), dataSize);
+    data.resize(bytesRead > 0 ? static_cast<int>(bytesRead) : 0);
+    if (data.size() != static_cast<int>(dataSize)) {
+        error = PkString("Could not read data for resource block with name %1 of type %2").arg(name).arg(static_cast<int>(identifier));
         return false;
     }
 
@@ -274,13 +276,13 @@ bool PSDResourceBlock::write(PkStream &io) const
         return false;
     } else if (!resource) {
         // reconstruct from the data
-        QBuffer buf(&ba);
-        buf.open(QBuffer::WriteOnly);
+        PkCosMemoryStream buf(&ba);
+        buf.open(PkStream::WriteOnly);
         psdwrite(buf, "8BIM");
         psdwrite(buf, identifier);
         psdwrite_pascalstring(buf, name);
         psdwrite(buf, dataSize);
-        buf.write(data);
+        buf.write(data.constData(), data.size());
         buf.close();
     }
     if (io.write(ba.constData(), ba.size()) != ba.size()) {
@@ -294,11 +296,11 @@ bool PSDResourceBlock::write(PkStream &io) const
 bool PSDResourceBlock::valid()
 {
     if (identifier == PSDImageResourceSection::UNKNOWN) {
-        error = PkString("Unknown ID: %1").arg(identifier);
+        error = PkString("Unknown ID: %1").arg(static_cast<int>(identifier));
         return false;
     }
-    if (data.size() != (int)dataSize) {
-        error = PkString("Needed %1 bytes, got %2 bytes of data").arg(dataSize).arg(data.length());
+    if (data.size() != static_cast<int>(dataSize)) {
+        error = PkString("Needed %1 bytes, got %2 bytes of data").arg(static_cast<int>(dataSize)).arg(data.size());
         return false;
     }
     return true;
@@ -324,13 +326,13 @@ bool RESN_INFO_1005::interpretBlock(PkByteArray data)
 
     dbgFile << hRes << hResUnit << widthUnit << vRes << vResUnit << heightUnit;
 
-    return ds.atEnd();
+    return ds.status() == PkDataStream::Ok;
 }
 
 bool RESN_INFO_1005::createBlock(PkByteArray &data)
 {
     dbgFile << "Writing RESN_INFO_1005";
-    QBuffer buf(&data);
+    PkCosMemoryStream buf(&data);
 
     startBlock(buf, PSDImageResourceSection::RESN_INFO, 16);
 
@@ -369,7 +371,7 @@ bool ICC_PROFILE_1039::createBlock(PkByteArray &data)
         error = "ICC_PROFILE_1039: Trying to save an empty profile";
         return false;
     }
-    QBuffer buf(&data);
+    PkCosMemoryStream buf(&data);
     startBlock(buf, PSDImageResourceSection::ICC_PROFILE, icc.size());
     buf.write(icc.constData(), icc.size());
     buf.close();

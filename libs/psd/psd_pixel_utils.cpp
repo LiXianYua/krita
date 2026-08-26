@@ -9,8 +9,9 @@
 
 #include <PkStream.h>
 #include <PkMap.h>
-#include <QtEndian>
-#include <QtGlobal>
+#include <psd_utils.h>
+
+#include <cstdint>
 
 #include <KoColorSpace.h>
 #include <KoColorSpaceMaths.h>
@@ -33,122 +34,122 @@ typename Traits::channels_type convertByteOrder(typename Traits::channels_type v
 // default implementation is undefined for every color space should be added manually
 
 template<>
-inline quint8 convertByteOrder<AlphaU8Traits>(quint8 value)
+inline std::uint8_t convertByteOrder<AlphaU8Traits>(std::uint8_t value)
 {
     return value;
 }
 
 template<>
-inline quint16 convertByteOrder<AlphaU16Traits>(quint16 value)
+inline std::uint16_t convertByteOrder<AlphaU16Traits>(std::uint16_t value)
 {
-    return qFromBigEndian((quint16)value);
+    return psdFromBigEndian((std::uint16_t)value);
 }
 
 template<>
 inline float convertByteOrder<AlphaF32Traits>(float value)
 {
-    return qFromBigEndian((quint32)value);
+    return psdFromBigEndian((std::uint32_t)value);
 }
 
 template<>
-inline quint8 convertByteOrder<KoGrayU8Traits>(quint8 value)
+inline std::uint8_t convertByteOrder<KoGrayU8Traits>(std::uint8_t value)
 {
     return value;
 }
 
 template<>
-inline quint16 convertByteOrder<KoGrayU16Traits>(quint16 value)
+inline std::uint16_t convertByteOrder<KoGrayU16Traits>(std::uint16_t value)
 {
-    return qFromBigEndian((quint16)value);
+    return psdFromBigEndian((std::uint16_t)value);
 }
 
 template<>
-inline quint32 convertByteOrder<KoGrayU32Traits>(quint32 value)
+inline std::uint32_t convertByteOrder<KoGrayU32Traits>(std::uint32_t value)
 {
-    return qFromBigEndian((quint32)value);
+    return psdFromBigEndian((std::uint32_t)value);
 }
 
 template<>
-inline quint8 convertByteOrder<KoBgrU8Traits>(quint8 value)
+inline std::uint8_t convertByteOrder<KoBgrU8Traits>(std::uint8_t value)
 {
     return value;
 }
 
 template<>
-inline quint16 convertByteOrder<KoBgrU16Traits>(quint16 value)
+inline std::uint16_t convertByteOrder<KoBgrU16Traits>(std::uint16_t value)
 {
-    return qFromBigEndian((quint16)value);
+    return psdFromBigEndian((std::uint16_t)value);
 }
 
 template<>
-inline quint32 convertByteOrder<KoBgrU32Traits>(quint32 value)
+inline std::uint32_t convertByteOrder<KoBgrU32Traits>(std::uint32_t value)
 {
-    return qFromBigEndian((quint32)value);
+    return psdFromBigEndian((std::uint32_t)value);
 }
 
 template<>
-inline quint8 convertByteOrder<KoCmykU8Traits>(quint8 value)
+inline std::uint8_t convertByteOrder<KoCmykU8Traits>(std::uint8_t value)
 {
     return value;
 }
 
 template<>
-inline quint16 convertByteOrder<KoCmykU16Traits>(quint16 value)
+inline std::uint16_t convertByteOrder<KoCmykU16Traits>(std::uint16_t value)
 {
-    return qFromBigEndian((quint16)value);
+    return psdFromBigEndian((std::uint16_t)value);
 }
 
 template<>
 inline float convertByteOrder<KoCmykF32Traits>(float value)
 {
-    return qFromBigEndian((quint32)value);
+    return psdFromBigEndian((std::uint32_t)value);
 }
 
 template<>
-inline quint8 convertByteOrder<KoLabU8Traits>(quint8 value)
+inline std::uint8_t convertByteOrder<KoLabU8Traits>(std::uint8_t value)
 {
     return value;
 }
 
 template<>
-inline quint16 convertByteOrder<KoLabU16Traits>(quint16 value)
+inline std::uint16_t convertByteOrder<KoLabU16Traits>(std::uint16_t value)
 {
-    return qFromBigEndian((quint16)value);
+    return psdFromBigEndian((std::uint16_t)value);
 }
 
 template<>
 inline float convertByteOrder<KoLabF32Traits>(float value)
 {
-    return qFromBigEndian((quint32)value);
+    return psdFromBigEndian((std::uint32_t)value);
 }
 
 template<class Traits>
-inline quint8 truncateToOpacity(typename Traits::channels_type value);
+inline std::uint8_t truncateToOpacity(typename Traits::channels_type value);
 
 template<>
-inline quint8 truncateToOpacity<AlphaU8Traits>(typename AlphaU8Traits::channels_type value)
+inline std::uint8_t truncateToOpacity<AlphaU8Traits>(typename AlphaU8Traits::channels_type value)
 {
     return value;
 }
 
 template<>
-inline quint8 truncateToOpacity<AlphaU16Traits>(typename AlphaU16Traits::channels_type value)
+inline std::uint8_t truncateToOpacity<AlphaU16Traits>(typename AlphaU16Traits::channels_type value)
 {
     return value >> 8;
 }
 
 template<>
-inline quint8 truncateToOpacity<AlphaF32Traits>(typename AlphaF32Traits::channels_type value)
+inline std::uint8_t truncateToOpacity<AlphaF32Traits>(typename AlphaF32Traits::channels_type value)
 {
-    return static_cast<quint8>(value * 255U);
+    return static_cast<std::uint8_t>(value * 255U);
 }
 
 template<class Traits, psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void readAlphaMaskPixel(const PkMap<quint16, PkByteArray> &channelBytes, int col, quint8 *dstPtr)
+void readAlphaMaskPixel(const PkMap<std::uint16_t, PkByteArray> &channelBytes, int col, std::uint8_t *dstPtr)
 {
     using channels_type = typename Traits::channels_type;
 
-    const channels_type data = reinterpret_cast<const channels_type *>(channelBytes.first().constData())[col];
+    const channels_type data = reinterpret_cast<const channels_type *>(channelBytes.begin()->constData())[col];
     if (byteOrder == psd_byte_order::psdBigEndian) {
         *dstPtr = truncateToOpacity<Traits>(convertByteOrder<Traits>(data));
     } else {
@@ -158,7 +159,7 @@ void readAlphaMaskPixel(const PkMap<quint16, PkByteArray> &channelBytes, int col
 
 template<class Traits, psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
 inline typename Traits::channels_type
-readChannelValue(const PkMap<quint16, PkByteArray> &channelBytes, quint16 channelId, int col, typename Traits::channels_type defaultValue)
+readChannelValue(const PkMap<std::uint16_t, PkByteArray> &channelBytes, std::uint16_t channelId, int col, typename Traits::channels_type defaultValue)
 {
     using channels_type = typename Traits::channels_type;
 
@@ -180,7 +181,7 @@ readChannelValue(const PkMap<quint16, PkByteArray> &channelBytes, quint16 channe
 }
 
 template<class Traits, psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void readGrayPixel(const PkMap<quint16, PkByteArray> &channelBytes, int col, quint8 *dstPtr)
+void readGrayPixel(const PkMap<std::uint16_t, PkByteArray> &channelBytes, int col, std::uint8_t *dstPtr)
 {
     using Pixel = typename Traits::Pixel;
     using channels_type = typename Traits::channels_type;
@@ -193,7 +194,7 @@ void readGrayPixel(const PkMap<quint16, PkByteArray> &channelBytes, int col, qui
 }
 
 template<class Traits, psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void readRgbPixel(const PkMap<quint16, PkByteArray> &channelBytes, int col, quint8 *dstPtr)
+void readRgbPixel(const PkMap<std::uint16_t, PkByteArray> &channelBytes, int col, std::uint8_t *dstPtr)
 {
     using Pixel = typename Traits::Pixel;
     using channels_type = typename Traits::channels_type;
@@ -208,7 +209,7 @@ void readRgbPixel(const PkMap<quint16, PkByteArray> &channelBytes, int col, quin
 }
 
 template<class Traits, psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void readCmykPixel(const PkMap<quint16, PkByteArray> &channelBytes, int col, quint8 *dstPtr)
+void readCmykPixel(const PkMap<std::uint16_t, PkByteArray> &channelBytes, int col, std::uint8_t *dstPtr)
 {
     using Pixel = typename Traits::Pixel;
     using channels_type = typename Traits::channels_type;
@@ -224,7 +225,7 @@ void readCmykPixel(const PkMap<quint16, PkByteArray> &channelBytes, int col, qui
 }
 
 template<class Traits, psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-void readLabPixel(const PkMap<quint16, PkByteArray> &channelBytes, int col, quint8 *dstPtr)
+void readLabPixel(const PkMap<std::uint16_t, PkByteArray> &channelBytes, int col, std::uint8_t *dstPtr)
 {
     using Pixel = typename Traits::Pixel;
     using channels_type = typename Traits::channels_type;
@@ -239,7 +240,7 @@ void readLabPixel(const PkMap<quint16, PkByteArray> &channelBytes, int col, quin
 }
 
 template<psd_byte_order byteOrder>
-void readRgbPixelCommon(int channelSize, const PkMap<quint16, PkByteArray> &channelBytes, int col, quint8 *dstPtr)
+void readRgbPixelCommon(int channelSize, const PkMap<std::uint16_t, PkByteArray> &channelBytes, int col, std::uint8_t *dstPtr)
 {
     if (channelSize == 1) {
         readRgbPixel<KoBgrU8Traits, byteOrder>(channelBytes, col, dstPtr);
@@ -251,7 +252,7 @@ void readRgbPixelCommon(int channelSize, const PkMap<quint16, PkByteArray> &chan
 }
 
 template<psd_byte_order byteOrder>
-void readGrayPixelCommon(int channelSize, const PkMap<quint16, PkByteArray> &channelBytes, int col, quint8 *dstPtr)
+void readGrayPixelCommon(int channelSize, const PkMap<std::uint16_t, PkByteArray> &channelBytes, int col, std::uint8_t *dstPtr)
 {
     if (channelSize == 1) {
         readGrayPixel<KoGrayU8Traits, byteOrder>(channelBytes, col, dstPtr);
@@ -263,7 +264,7 @@ void readGrayPixelCommon(int channelSize, const PkMap<quint16, PkByteArray> &cha
 }
 
 template<psd_byte_order byteOrder>
-void readCmykPixelCommon(int channelSize, const PkMap<quint16, PkByteArray> &channelBytes, int col, quint8 *dstPtr)
+void readCmykPixelCommon(int channelSize, const PkMap<std::uint16_t, PkByteArray> &channelBytes, int col, std::uint8_t *dstPtr)
 {
     if (channelSize == 1) {
         readCmykPixel<KoCmykU8Traits, byteOrder>(channelBytes, col, dstPtr);
@@ -275,7 +276,7 @@ void readCmykPixelCommon(int channelSize, const PkMap<quint16, PkByteArray> &cha
 }
 
 template<psd_byte_order byteOrder>
-void readLabPixelCommon(int channelSize, const PkMap<quint16, PkByteArray> &channelBytes, int col, quint8 *dstPtr)
+void readLabPixelCommon(int channelSize, const PkMap<std::uint16_t, PkByteArray> &channelBytes, int col, std::uint8_t *dstPtr)
 {
     if (channelSize == 1) {
         readLabPixel<KoLabU8Traits, byteOrder>(channelBytes, col, dstPtr);
@@ -287,7 +288,7 @@ void readLabPixelCommon(int channelSize, const PkMap<quint16, PkByteArray> &chan
 }
 
 template<psd_byte_order byteOrder>
-void readAlphaMaskPixelCommon(int channelSize, const PkMap<quint16, PkByteArray> &channelBytes, int col, quint8 *dstPtr)
+void readAlphaMaskPixelCommon(int channelSize, const PkMap<std::uint16_t, PkByteArray> &channelBytes, int col, std::uint8_t *dstPtr)
 {
     if (channelSize == 1) {
         readAlphaMaskPixel<AlphaU8Traits, byteOrder>(channelBytes, col, dstPtr);
@@ -298,13 +299,13 @@ void readAlphaMaskPixelCommon(int channelSize, const PkMap<quint16, PkByteArray>
     }
 }
 
-PkMap<quint16, PkByteArray> fetchChannelsBytes(PkStream &io, PkVector<ChannelInfo *> channelInfoRecords, int row, int width, int channelSize, bool processMasks)
+PkMap<std::uint16_t, PkByteArray> fetchChannelsBytes(PkStream &io, PkVector<ChannelInfo *> channelInfoRecords, int row, int width, int channelSize, bool processMasks)
 {
     const int uncompressedLength = width * channelSize;
 
-    PkMap<quint16, PkByteArray> channelBytes;
+    PkMap<std::uint16_t, PkByteArray> channelBytes;
 
-    Q_FOREACH (ChannelInfo *channelInfo, channelInfoRecords) {
+    for (ChannelInfo *channelInfo : channelInfoRecords) {
         // user supplied masks are ignored here
         if (!processMasks && channelInfo->channelId < -1)
             continue;
@@ -312,11 +313,18 @@ PkMap<quint16, PkByteArray> fetchChannelsBytes(PkStream &io, PkVector<ChannelInf
         io.seek(channelInfo->channelDataStart + channelInfo->channelOffset);
 
         if (channelInfo->compressionType == psd_compression_type::Uncompressed) {
-            channelBytes[channelInfo->channelId] = io.read(uncompressedLength);
+            PkByteArray uncompressedData;
+            uncompressedData.resize(uncompressedLength);
+            const auto uncompressedBytesRead = io.read(uncompressedData.data(), uncompressedLength);
+            uncompressedData.resize(uncompressedBytesRead > 0 ? static_cast<int>(uncompressedBytesRead) : 0);
+            channelBytes[channelInfo->channelId] = uncompressedData;
             channelInfo->channelOffset += uncompressedLength;
         } else if (channelInfo->compressionType == psd_compression_type::RLE) {
             int rleLength = channelInfo->rleRowLengths[row];
-            PkByteArray compressedBytes = io.read(rleLength);
+            PkByteArray compressedBytes;
+            compressedBytes.resize(rleLength);
+            const auto compressedBytesRead = io.read(compressedBytes.data(), rleLength);
+            compressedBytes.resize(compressedBytesRead > 0 ? static_cast<int>(compressedBytesRead) : 0);
             PkByteArray uncompressedBytes = Compression::uncompress(uncompressedLength, compressedBytes, channelInfo->compressionType);
             channelBytes.insert(channelInfo->channelId, uncompressedBytes);
             channelInfo->channelOffset += rleLength;
@@ -331,7 +339,7 @@ PkMap<quint16, PkByteArray> fetchChannelsBytes(PkStream &io, PkVector<ChannelInf
     return channelBytes;
 }
 
-using PixelFunc = std::function<void(int, const PkMap<quint16, PkByteArray> &, int, quint8 *)>;
+using PixelFunc = std::function<void(int, const PkMap<std::uint16_t, PkByteArray> &, int, std::uint8_t *)>;
 
 void readCommon(KisPaintDeviceSP dev,
                 PkStream &io,
@@ -348,17 +356,20 @@ void readCommon(KisPaintDeviceSP dev,
         return;
     }
 
-    if (infoRecords.first()->compressionType == psd_compression_type::ZIP || infoRecords.first()->compressionType == psd_compression_type::ZIPWithPrediction) {
+    if (infoRecords.at(0)->compressionType == psd_compression_type::ZIP || infoRecords.at(0)->compressionType == psd_compression_type::ZIPWithPrediction) {
         const int numPixels = channelSize * layerRect.width() * layerRect.height();
 
-        PkMap<quint16, PkByteArray> channelBytes;
+        PkMap<std::uint16_t, PkByteArray> channelBytes;
 
-        Q_FOREACH (ChannelInfo *info, infoRecords) {
+        for (ChannelInfo *info : infoRecords) {
             io.seek(info->channelDataStart);
-            PkByteArray compressedBytes = io.read(info->channelDataLength);
+            PkByteArray compressedBytes;
+            compressedBytes.resize(static_cast<int>(info->channelDataLength));
+            const auto compressedBytesRead = io.read(compressedBytes.data(), info->channelDataLength);
+            compressedBytes.resize(compressedBytesRead > 0 ? static_cast<int>(compressedBytesRead) : 0);
             PkByteArray uncompressedBytes;
 
-            uncompressedBytes = Compression::uncompress(numPixels, compressedBytes, infoRecords.first()->compressionType, layerRect.width(), channelSize * 8);
+            uncompressedBytes = Compression::uncompress(numPixels, compressedBytes, infoRecords.at(0)->compressionType, layerRect.width(), channelSize * 8);
 
             if (uncompressedBytes.size() != numPixels) {
                 PkString error = PkString("Failed to unzip channel data: id = %1, compression = %2")
@@ -385,7 +396,7 @@ void readCommon(KisPaintDeviceSP dev,
     } else {
         KisHLineIteratorSP it = dev->createHLineIteratorNG(layerRect.left(), layerRect.top(), layerRect.width());
         for (int i = 0; i < layerRect.height(); i++) {
-            PkMap<quint16, PkByteArray> channelBytes;
+            PkMap<std::uint16_t, PkByteArray> channelBytes;
 
             channelBytes = fetchChannelsBytes(io, infoRecords, i, layerRect.width(), channelSize, processMasks);
 
@@ -475,27 +486,27 @@ void readAlphaMaskChannels(PkStream &io,
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
 void writeChannelDataRLEImpl(PkStream &io,
-                             const quint8 *plane,
+                             const std::uint8_t *plane,
                              const int channelSize,
                              const PkRect &rc,
-                             const qint64 sizeFieldOffset,
-                             const qint64 rleBlockOffset,
+                             const std::int64_t sizeFieldOffset,
+                             const std::int64_t rleBlockOffset,
                              const bool writeCompressionType)
 {
-    using Pusher = KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder>;
+    using Pusher = KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder>;
     PkScopedPointer<Pusher> channelBlockSizeExternalTag;
     if (sizeFieldOffset >= 0) {
         channelBlockSizeExternalTag.reset(new Pusher(io, 0, sizeFieldOffset));
     }
 
     if (writeCompressionType) {
-        SAFE_WRITE_EX(byteOrder, io, static_cast<quint16>(psd_compression_type::RLE));
+        SAFE_WRITE_EX(byteOrder, io, static_cast<std::uint16_t>(psd_compression_type::RLE));
     }
 
     const bool externalRleBlock = rleBlockOffset >= 0;
 
     // the start of RLE sizes block
-    const qint64 channelRLESizePos = externalRleBlock ? rleBlockOffset : io.pos();
+    const std::int64_t channelRLESizePos = externalRleBlock ? rleBlockOffset : io.pos();
 
     {
         PkScopedPointer<KisOffsetKeeper> rleOffsetKeeper;
@@ -508,19 +519,19 @@ void writeChannelDataRLEImpl(PkStream &io,
         // write zero's for the channel lengths block
         for (int i = 0; i < rc.height(); ++i) {
             // XXX: choose size for PSB!
-            const quint16 fakeRLEBLockSize = 0;
+            const std::uint16_t fakeRLEBLockSize = 0;
             SAFE_WRITE_EX(byteOrder, io, fakeRLEBLockSize);
         }
     }
 
     const int stride = channelSize * rc.width();
-    for (qint32 row = 0; row < rc.height(); ++row) {
-        PkByteArray uncompressed = PkByteArray::fromRawData((const char *)plane + row * stride, stride);
+    for (std::int32_t row = 0; row < rc.height(); ++row) {
+        PkByteArray uncompressed((const char *)plane + row * stride, stride);
         PkByteArray compressed = Compression::compress(uncompressed, psd_compression_type::RLE);
 
-        KisAslWriterUtils::OffsetStreamPusher<quint16, byteOrder> rleExternalTag(io, 0, channelRLESizePos + row * static_cast<qint64>(sizeof(quint16)));
+        KisAslWriterUtils::OffsetStreamPusher<std::uint16_t, byteOrder> rleExternalTag(io, 0, channelRLESizePos + row * static_cast<std::int64_t>(sizeof(std::uint16_t)));
 
-        if (io.write(compressed) != compressed.size()) {
+        if (io.write(compressed.constData(), compressed.size()) != compressed.size()) {
             throw KisAslWriterUtils::ASLWriteException("Failed to write image data");
         }
     }
@@ -528,36 +539,36 @@ void writeChannelDataRLEImpl(PkStream &io,
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
 void writeChannelDataZIPImpl(PkStream &io,
-                             const quint8 *plane,
+                             const std::uint8_t *plane,
                              const int channelSize,
                              const PkRect &rc,
-                             const qint64 sizeFieldOffset,
+                             const std::int64_t sizeFieldOffset,
                              const bool writeCompressionType)
 {
-    using Pusher = KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder>;
+    using Pusher = KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder>;
     PkScopedPointer<Pusher> channelBlockSizeExternalTag;
     if (sizeFieldOffset >= 0) {
         channelBlockSizeExternalTag.reset(new Pusher(io, 0, sizeFieldOffset));
     }
 
     if (writeCompressionType) {
-        SAFE_WRITE_EX(byteOrder, io, static_cast<quint16>(psd_compression_type::ZIP));
+        SAFE_WRITE_EX(byteOrder, io, static_cast<std::uint16_t>(psd_compression_type::ZIP));
     }
 
     PkByteArray uncompressed(reinterpret_cast<const char *>(plane), rc.width() * rc.height() * channelSize);
     PkByteArray compressed(Compression::compress(uncompressed, psd_compression_type::ZIP));
 
-    if (compressed.size() == 0 || io.write(compressed) != compressed.size()) {
+    if (compressed.size() == 0 || io.write(compressed.constData(), compressed.size()) != compressed.size()) {
         throw KisAslWriterUtils::ASLWriteException("Failed to write image data");
     }
 }
 
 void writeChannelDataRLE(PkStream &io,
-                         const quint8 *plane,
+                         const std::uint8_t *plane,
                          const int channelSize,
                          const PkRect &rc,
-                         const qint64 sizeFieldOffset,
-                         const qint64 rleBlockOffset,
+                         const std::int64_t sizeFieldOffset,
+                         const std::int64_t rleBlockOffset,
                          const bool writeCompressionType,
                          psd_byte_order byteOrder)
 {
@@ -570,7 +581,7 @@ void writeChannelDataRLE(PkStream &io,
 }
 
 template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-inline void preparePixelForWrite(quint8 *dataPlane, int numPixels, int channelSize, int channelId, psd_color_mode colorMode)
+inline void preparePixelForWrite(std::uint8_t *dataPlane, int numPixels, int channelSize, int channelId, psd_color_mode colorMode)
 {
     // if the bitdepth > 8, place the bytes in the right order
     // if cmyk, invert the pixel value
@@ -581,28 +592,28 @@ inline void preparePixelForWrite(quint8 *dataPlane, int numPixels, int channelSi
             }
         }
     } else if (channelSize == 2) {
-        quint16 val;
+        std::uint16_t val;
         for (int i = 0; i < numPixels; ++i) {
-            quint16 *pixelPtr = reinterpret_cast<quint16 *>(dataPlane) + i;
+            std::uint16_t *pixelPtr = reinterpret_cast<std::uint16_t *>(dataPlane) + i;
 
             val = *pixelPtr;
             if (byteOrder == psd_byte_order::psdBigEndian)
-                val = qFromBigEndian(val);
+                val = psdFromBigEndian(val);
             if (channelId >= 0 && (colorMode == CMYK || colorMode == CMYK64)) {
                 val = quint16_MAX - val;
             }
             *pixelPtr = val;
         }
     } else if (channelSize == 4) {
-        quint32 val;
+        std::uint32_t val;
         for (int i = 0; i < numPixels; ++i) {
-            quint32 *pixelPtr = reinterpret_cast<quint32 *>(dataPlane) + i;
+            std::uint32_t *pixelPtr = reinterpret_cast<std::uint32_t *>(dataPlane) + i;
 
             val = *pixelPtr;
             if (byteOrder == psd_byte_order::psdBigEndian)
-                val = qFromBigEndian(val);
+                val = psdFromBigEndian(val);
             if (channelId >= 0 && (colorMode == CMYK || colorMode == CMYK64)) {
-                val = std::numeric_limits<quint32>::max() - val;
+                val = std::numeric_limits<std::uint32_t>::max() - val;
             }
             *pixelPtr = val;
         }
@@ -623,20 +634,20 @@ void writePixelDataCommonImpl(PkStream &io,
     // Empty rects must be processed separately on a higher level!
     KIS_ASSERT_RECOVER_RETURN(!rc.isEmpty());
 
-    PkVector<quint8 *> tmp = dev->readPlanarBytes(rc.x() - dev->x(), rc.y() - dev->y(), rc.width(), rc.height());
+    PkVector<std::uint8_t *> tmp = dev->readPlanarBytes(rc.x() - dev->x(), rc.y() - dev->y(), rc.width(), rc.height());
     const KoColorSpace *colorSpace = dev->colorSpace();
 
-    PkVector<quint8 *> planes;
+    PkVector<std::uint8_t *> planes;
 
     { // prepare 'planes' array
 
-        quint8 *alphaPlanePtr = 0;
+        std::uint8_t *alphaPlanePtr = 0;
 
         const PkList<KoChannelInfo *> origChannels = colorSpace->channels();
-        Q_FOREACH (KoChannelInfo *ch, KoChannelInfo::displayOrderSorted(origChannels)) {
+        for (KoChannelInfo *ch : KoChannelInfo::displayOrderSorted(origChannels)) {
             int channelIndex = KoChannelInfo::displayPositionToChannelIndex(ch->displayPosition(), origChannels);
 
-            quint8 *holder = 0;
+            std::uint8_t *holder = 0;
             std::swap(holder, tmp[channelIndex]);
 
             if (ch->channelType() == KoChannelInfo::ALPHA) {
@@ -649,14 +660,14 @@ void writePixelDataCommonImpl(PkStream &io,
         if (alphaPlanePtr) {
             if (alphaFirst) {
                 planes.insert(0, alphaPlanePtr);
-                KIS_ASSERT_RECOVER_NOOP(writingInfoList.first().channelId == -1);
+                KIS_ASSERT_RECOVER_NOOP(writingInfoList.at(0).channelId == -1);
             } else {
                 planes.append(alphaPlanePtr);
-                KIS_ASSERT_RECOVER_NOOP((writingInfoList.size() == planes.size() - 1) || (writingInfoList.last().channelId == -1));
+                KIS_ASSERT_RECOVER_NOOP((writingInfoList.size() == planes.size() - 1) || (writingInfoList.at(writingInfoList.size() - 1).channelId == -1));
             }
         }
 
-        // now planes are holding pointers to quint8 arrays
+        // now planes are holding pointers to std::uint8_t arrays
         tmp.clear();
     }
 
@@ -692,7 +703,7 @@ void writePixelDataCommonImpl(PkStream &io,
         }
 
     } catch (KisAslWriterUtils::ASLWriteException &e) {
-        Q_FOREACH (quint8 *plane, planes) {
+        for (std::uint8_t *plane : planes) {
             delete[] plane;
         }
         planes.clear();
@@ -700,7 +711,7 @@ void writePixelDataCommonImpl(PkStream &io,
         throw KisAslWriterUtils::ASLWriteException(PREPEND_METHOD(e.what()));
     }
 
-    Q_FOREACH (quint8 *plane, planes) {
+    for (std::uint8_t *plane : planes) {
         delete[] plane;
     }
     planes.clear();

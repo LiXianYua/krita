@@ -465,7 +465,7 @@ KisImportExportErrorCode PSDLoader::decode(PkStream &io)
                             vectorMask->setBackground(PkSharedPointer<KoShapeBackground>(0));
                         }
                         if (data.strokeEnabled) {
-                            PkColor c = fill.getBrush().color();
+                            PkColor c = fill.getBrush();
                             c.setAlphaF(data.opacity);
                             stroke->setColor(c);
                             if (!grad.gradient.isNull()) {

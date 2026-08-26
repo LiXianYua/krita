@@ -81,8 +81,8 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
 
     while (!io.atEnd()) {
         {
-            const std::array<quint8, 4> refSignature1 = {'8', 'B', 'I', 'M'}; // '8BIM' in big-endian
-            const std::array<quint8, 4> refSignature2 = {'8', 'B', '6', '4'}; // '8B64' in big-endian
+            const std::array<std::uint8_t, 4> refSignature1 = {'8', 'B', 'I', 'M'}; // '8BIM' in big-endian
+            const std::array<std::uint8_t, 4> refSignature2 = {'8', 'B', '6', '4'}; // '8B64' in big-endian
 
             if (!TRY_READ_SIGNATURE_2OPS_EX<byteOrder>(io, refSignature1, refSignature2)) {
                 break;
@@ -92,11 +92,11 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
         PkString key = readFixedString<byteOrder>(io);
         dbgFile << "found info block with key" << key << "(" << io.pos() << ")";
 
-        quint64 blockSize = GARBAGE_VALUE_MARK;
+        std::uint64_t blockSize = GARBAGE_VALUE_MARK;
         if (longBlocks.contains(key)) {
             SAFE_READ_EX(byteOrder, io, blockSize);
         } else {
-            quint32 size32;
+            std::uint32_t size32;
             SAFE_READ_EX(byteOrder, io, size32);
             blockSize = size32;
         }
@@ -177,7 +177,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
             unicodeLayerName = readUnicodeString<byteOrder>(io);
             dbgFile << "\t" << "unicodeLayerName" << unicodeLayerName;
         } else if (key == "lyid") {
-            quint32 id;
+            std::uint32_t id;
             psdread<byteOrder>(io, id);
             dbgFile << "\t" << "layer ID:" << id;
         } else if (key == "lfx2" || key == "lfxs") {
@@ -193,10 +193,10 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
         } else if (key == "spf") {
         } else if (key == "lclr") {
             // layer label color.
-            quint16 col1 = 0;
-            quint16 col2 = 0;
-            quint16 col3 = 0;
-            quint16 col4 = 0;
+            std::uint16_t col1 = 0;
+            std::uint16_t col2 = 0;
+            std::uint16_t col3 = 0;
+            std::uint16_t col4 = 0;
             psdread<byteOrder>(io, col1);
             psdread<byteOrder>(io, col2);
             psdread<byteOrder>(io, col3);
@@ -206,7 +206,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
         } else if (key == "fxrp") {
         } else if (key == "grdm") {
         } else if (key == "lsct") {
-            quint32 dividerType = GARBAGE_VALUE_MARK;
+            std::uint32_t dividerType = GARBAGE_VALUE_MARK;
             SAFE_READ_EX(byteOrder, io, dividerType);
             this->sectionDividerType = (psd_section_type)dividerType;
 
@@ -215,8 +215,8 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
             dbgFile << ppVar(dividerType);
 
             if (blockSize >= 12) {
-                quint32 lsctSignature = GARBAGE_VALUE_MARK;
-                const quint32 refSignature1 = 0x3842494D; // '8BIM' in little-endian
+                std::uint32_t lsctSignature = GARBAGE_VALUE_MARK;
+                const std::uint32_t refSignature1 = 0x3842494D; // '8BIM' in little-endian
                 SAFE_READ_SIGNATURE_EX(byteOrder, io, lsctSignature, refSignature1);
 
                 this->sectionDividerBlendMode = readFixedString<byteOrder>(io);
@@ -234,22 +234,22 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
 
         } else if (key == "brst") {
         } else if (key == "vmsk" || key == "vsms") { // If key is "vsms" then we are writing for (Photoshop CS6) and the document will have a "vscg" key
-            quint32 version; // ( = 3 for Photoshop 6.0)
+            std::uint32_t version; // ( = 3 for Photoshop 6.0)
             psdread<byteOrder>(io, version);
 
-            quint32 flags;
+            std::uint32_t flags;
             psdread<byteOrder>(io, flags);
             // read the flags.
             vectorMask.invert  = flags & 1? true: false;
             vectorMask.notLink = flags & 2? true: false;
             vectorMask.disable = flags & 4? true: false;
 
-            quint64 currentPos = 8;
+            std::uint64_t currentPos = 8;
             psd_path_sub_path currentPath;
             bool firstPath = true;
 
             while (currentPos < blockSize) {
-                quint16 recordType;
+                std::uint16_t recordType;
                 psdread<byteOrder>(io, recordType);
 
                 if (recordType == 6) {
@@ -267,7 +267,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
                     dbgFile << "\trecord" << recordType << "top" << bounds << "res" << vectorMask.path.clipBoardResolution;
                     io.skip(4);
                 } else if (recordType == 0 || recordType == 3) {
-                    quint16 length;
+                    std::uint16_t length;
                     psdread<byteOrder>(io, length);
                     dbgFile << "\trecord" << recordType << "length" << length;
                     if (firstPath) {
@@ -280,7 +280,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
                     firstPath = false;
                     io.skip(22);
                 } else if (recordType == 8) {
-                    quint16 length;
+                    std::uint16_t length;
                     psdread<byteOrder>(io, length);
                     dbgFile << "\trecord" << recordType << "length" << length;
                     vectorMask.path.initialFillRecord = (length > 0);
@@ -321,7 +321,10 @@ void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
         } else if (key == "CgEd") {
         } else if (key == "Txt2") { // global text data, basically the same as an Illustrator text object.
             // Docs say "first 4 are length", this is not true for this particular block, only when in ASL is first 4 length.
-            PkByteArray ba = io.read(blockSize);
+            PkByteArray ba;
+            ba.resize(static_cast<int>(blockSize));
+            const auto bytesRead = io.read(ba.data(), blockSize);
+            ba.resize(bytesRead > 0 ? static_cast<int>(bytesRead) : 0);
             KisCosParser p;
             txt2Data = KisTxt2Utils::uncompressKeys(p.parseCosToJson(&ba));
         } else if (key == "pths") {
@@ -390,7 +393,7 @@ void PsdAdditionalLayerInfoBlock::writeLuniBlockExImpl(PkStream &io, const PkStr
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("luni", io);
-    KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> layerNameSizeTag(io, 2);
+    KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> layerNameSizeTag(io, 2);
     KisAslWriterUtils::writeUnicodeString<byteOrder>(layerName, io);
 }
 
@@ -411,8 +414,8 @@ void PsdAdditionalLayerInfoBlock::writeLsctBlockExImpl(PkStream &io, psd_section
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("lsct", io);
-    KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> sectionTypeSizeTag(io, 2);
-    SAFE_WRITE_EX(byteOrder, io, (quint32)sectionType);
+    KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> sectionTypeSizeTag(io, 2);
+    SAFE_WRITE_EX(byteOrder, io, (std::uint32_t)sectionType);
 
     PkString realBlendModeKey = isPassThrough ? PkString("pass") : blendModeKey;
 
@@ -438,7 +441,7 @@ void PsdAdditionalLayerInfoBlock::writeLfx2BlockExImpl(PkStream &io, const PkXml
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     // 'lfxs' format is used for Group layers in PS
     KisAslWriterUtils::writeFixedString<byteOrder>(!useLfxsLayerStyleFormat ? "lfx2" : "lfxs", io);
-    KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> lfx2SizeTag(io, 2);
+    KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> lfx2SizeTag(io, 2);
 
     try {
         KisAslWriter writer(byteOrder);
@@ -464,7 +467,7 @@ void PsdAdditionalLayerInfoBlock::writePattBlockEx(PkStream &io, const PkXmlDocu
     }
 }
 
-void PsdAdditionalLayerInfoBlock::writeLclrBlockEx(PkStream &io, const quint16 &labelColor)
+void PsdAdditionalLayerInfoBlock::writeLclrBlockEx(PkStream &io, const std::uint16_t &labelColor)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -541,8 +544,8 @@ void PsdAdditionalLayerInfoBlock::writePattBlockExImpl(PkStream &io, const PkXml
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("Patt", io);
-    const quint32 padding = m_header.tiffStyleLayerBlock ? 4 : 2;
-    KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> pattSizeTag(io, padding);
+    const std::uint32_t padding = m_header.tiffStyleLayerBlock ? 4 : 2;
+    KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> pattSizeTag(io, padding);
 
     try {
         KisAslPatternsWriter writer(patternsXmlDoc, io, byteOrder);
@@ -557,14 +560,14 @@ void PsdAdditionalLayerInfoBlock::writePattBlockExImpl(PkStream &io, const PkXml
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeLclrBlockExImpl(PkStream &io, const quint16 &lclr)
+void PsdAdditionalLayerInfoBlock::writeLclrBlockExImpl(PkStream &io, const std::uint16_t &lclr)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("lclr", io);
-    // 4x2 quint16
-    const quint32 len = 8;
+    // 4x2 std::uint16_t
+    const std::uint32_t len = 8;
     SAFE_WRITE_EX(byteOrder, io, len);
-    quint16 zero = 0;
+    std::uint16_t zero = 0;
     SAFE_WRITE_EX(byteOrder, io, lclr);
     SAFE_WRITE_EX(byteOrder, io, zero);
     SAFE_WRITE_EX(byteOrder, io, zero);
@@ -584,7 +587,7 @@ void PsdAdditionalLayerInfoBlock::writeFillLayerBlockExImpl(PkStream &io, const 
     } else {
         KisAslWriterUtils::writeFixedString<byteOrder>("PtFl", io);
     }
-    KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> fillSizeTag(io, 2);
+    KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> fillSizeTag(io, 2);
 
     try {
         KisAslWriter writer(byteOrder);
@@ -605,7 +608,7 @@ void PsdAdditionalLayerInfoBlock::writeVectorMaskImpl(PkStream &io, psd_vector_m
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("vmsk", io);
 
-    quint32 len = 8; //, 4 version, 4 flags
+    std::uint32_t len = 8; //, 4 version, 4 flags
     len += 52; // 26 path record, 26 initial fill rule.
     Q_FOREACH(psd_path_sub_path subPath, mask.path.subPaths) {
         len += 26; // subpath record;
@@ -614,9 +617,9 @@ void PsdAdditionalLayerInfoBlock::writeVectorMaskImpl(PkStream &io, psd_vector_m
 
     SAFE_WRITE_EX(byteOrder, io, len);
 
-    quint32 version = 3;
+    std::uint32_t version = 3;
     SAFE_WRITE_EX(byteOrder, io, version);
-    quint32 flags = 0;
+    std::uint32_t flags = 0;
     if (mask.invert) {
         flags |= 1;
     }
@@ -629,8 +632,8 @@ void PsdAdditionalLayerInfoBlock::writeVectorMaskImpl(PkStream &io, psd_vector_m
     SAFE_WRITE_EX(byteOrder, io, flags);
 
     // start path records
-    quint16 recordType = 6;
-    quint32 zero = 0;
+    std::uint16_t recordType = 6;
+    std::uint32_t zero = 0;
     SAFE_WRITE_EX(byteOrder, io, recordType);
     // 24 empty bits
     SAFE_WRITE_EX(byteOrder, io, zero);
@@ -642,10 +645,10 @@ void PsdAdditionalLayerInfoBlock::writeVectorMaskImpl(PkStream &io, psd_vector_m
     // initial fill rule record
     recordType = 8;
     SAFE_WRITE_EX(byteOrder, io, recordType);
-    quint16 fillType = mask.path.initialFillRecord? 1: 0;
+    std::uint16_t fillType = mask.path.initialFillRecord? 1: 0;
     SAFE_WRITE_EX(byteOrder, io, fillType);
     // 22 empty bits
-    const quint16 halfZero = 0;
+    const std::uint16_t halfZero = 0;
     SAFE_WRITE_EX(byteOrder, io, halfZero);
     SAFE_WRITE_EX(byteOrder, io, zero);
     SAFE_WRITE_EX(byteOrder, io, zero);
@@ -655,7 +658,7 @@ void PsdAdditionalLayerInfoBlock::writeVectorMaskImpl(PkStream &io, psd_vector_m
     // write the subpaths.
     Q_FOREACH(psd_path_sub_path subPath, mask.path.subPaths) {
         recordType = subPath.isClosed? 0: 3;
-        quint16 length = subPath.nodes.size();
+        std::uint16_t length = subPath.nodes.size();
         dbgFile << "writing subpath" << subPath.nodes.size();
         SAFE_WRITE_EX(byteOrder, io, recordType);
         SAFE_WRITE_EX(byteOrder, io, length);
@@ -690,7 +693,7 @@ void PsdAdditionalLayerInfoBlock::writeTypeToolImpl(PkStream &io, psd_layer_type
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("TySh", io);
 
-    KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> tyshSizeTag(io, 2);
+    KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> tyshSizeTag(io, 2);
 
     try {
         KisAslWriter writer(byteOrder);
@@ -710,7 +713,7 @@ void PsdAdditionalLayerInfoBlock::writeVectorStrokeDataImpl(PkStream &io, const 
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("vstk", io);
-    KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> strokeSizeTag(io, 2);
+    KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> strokeSizeTag(io, 2);
     try {
         KisAslWriter writer(byteOrder);
 
@@ -743,9 +746,9 @@ void PsdAdditionalLayerInfoBlock::writeTxt2BlockExImpl(PkStream &io, const PkVar
     KisAslWriterUtils::writeFixedString<byteOrder>("Txt2", io);
 
     PkByteArray ba = KisCosWriter::writeTxt2FromVariantHash(txt2Hash);
-    quint32 length = ba.size();
+    std::uint32_t length = ba.size();
     SAFE_WRITE_EX(byteOrder, io, length);
-    io.write(ba);
+    io.write(ba.constData(), ba.size());
 }
 
 template<psd_byte_order byteOrder>
@@ -753,7 +756,7 @@ void PsdAdditionalLayerInfoBlock::writeVectorOriginationDataImpl(PkStream &io, c
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("vogk", io);
-    KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> strokeSizeTag(io, 2);
+    KisAslWriterUtils::OffsetStreamPusher<std::uint32_t, byteOrder> strokeSizeTag(io, 2);
     try {
         KisAslWriter writer(byteOrder);
 
