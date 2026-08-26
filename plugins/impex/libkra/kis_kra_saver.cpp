@@ -122,10 +122,10 @@ PkXmlElement KisKraSaver::saveXML(PkXmlDocument& doc,  KisImageSP image)
         imageElement.setAttribute(PROOFINGDISPLAYINTENT,
                                   KisDomUtils::toString(image->proofingConfiguration()->displayIntent));
         bool bcp = image->proofingConfiguration()->useBlackPointCompensationFirstTransform;
-        imageElement.setAttribute(PROOFINGBLACKPOINTCOMPENSATION, bcp ? "true" : "false");
+        imageElement.setAttribute(PROOFINGBLACKPOINTCOMPENSATION, bcp ? "1" : "0");
         bcp = image->proofingConfiguration()->displayFlags.testFlag(
             KoColorConversionTransformation::BlackpointCompensation);
-        imageElement.setAttribute(PROOFINGDISPLAYBLACKPOINTCOMPENSATION, bcp ? "true" : "false");
+        imageElement.setAttribute(PROOFINGDISPLAYBLACKPOINTCOMPENSATION, bcp ? "1" : "0");
         const PkString mode = [&]() {
             switch (image->proofingConfiguration()->displayMode) {
             case KisProofingConfiguration::Monitor:
@@ -404,7 +404,7 @@ void KisKraSaver::saveStoryboardToXML(PkXmlDocument& doc, PkXmlElement &element)
     for (StoryboardComment comment: m_d->doc->getStoryboardCommentsList()) {
         PkXmlElement commentElement = doc.createElement("storyboardcomment");
         commentElement.setAttribute("name", comment.name);
-        commentElement.setAttribute("visibility", PkString(comment.visibility ? "true" : "false"));
+        commentElement.setAttribute("visibility", PkString(comment.visibility ? "1" : "0"));
         eCommentList.appendChild(commentElement);
     }
     element.appendChild(eCommentList);

@@ -762,7 +762,10 @@ PkString KisKraLoader::imageName() const
 void KisKraLoader::loadAssistants(KoStore *store, const PkString &uri, bool external)
 {
     // 跨锁桩（S-09-f 恢复）：assistant 加载功能在 plugins/assistants 剥 Qt 完成后
-    // 恢复。现在不读 .assistant 文件、不引用 KisPaintingAssistant 族。
+    // 跨锁桩（S-09-f 恢复）：不读 .assistant 文件、不构造 KisPaintingAssistant 对象。
+    // 类型（KisPaintingAssistantSP 成员/getter）仍引用——PkSharedPointer 对不完全
+    // 类型，列表恒空时析构安全；S-09-f 恢复时必须加回 kritaassistanttool_static
+    // 链接并保证完整类型可见，否则非空列表析构是 UB。
     (void)store;
     (void)uri;
     (void)external;
@@ -882,7 +885,7 @@ KisNodeSP KisKraLoader::loadNode(const PkXmlElement& element, KisImageSP image)
     qint32 x = element.attribute(X, "0").toInt();
     qint32 y = element.attribute(Y, "0").toInt();
 
-    qint32 opacity = element.attribute(OPACITY, PkString().arg((int)(OPACITY_OPAQUE_U8))).toInt();
+    qint32 opacity = element.attribute(OPACITY, PkString("%1").arg((int)(OPACITY_OPAQUE_U8))).toInt();
     if (opacity < OPACITY_TRANSPARENT_U8) opacity = OPACITY_TRANSPARENT_U8;
     if (opacity > OPACITY_OPAQUE_U8) opacity = OPACITY_OPAQUE_U8;
 

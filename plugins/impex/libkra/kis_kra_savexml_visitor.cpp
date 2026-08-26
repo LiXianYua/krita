@@ -103,7 +103,7 @@ bool KisSaveXmlVisitor::visit(KisExternalLayer * layer)
         else {
             layerElement.setAttribute("scale", "false");
         }
-        layerElement.setAttribute("scalingmethod", PkString().arg((int)fileLayer->scalingMethod()));
+        layerElement.setAttribute("scalingmethod", PkString("%1").arg((int)fileLayer->scalingMethod()));
         layerElement.setAttribute(COLORSPACE_NAME, layer->original()->colorSpace()->id());
         layerElement.setAttribute("scalingfilter", fileLayer->scalingFilter());
 
@@ -121,8 +121,8 @@ PkXmlElement KisSaveXmlVisitor::savePaintLayerAttributes(KisPaintLayer *layer, P
     element.setAttribute(CHANNEL_LOCK_FLAGS, flagsToString(layer->channelLockFlags()));
     element.setAttribute(COLORSPACE_NAME, layer->paintDevice()->colorSpace()->id());
 
-    element.setAttribute(ONION_SKIN_ENABLED, PkString(layer->onionSkinEnabled() ? "true" : "false"));
-    element.setAttribute(VISIBLE_IN_TIMELINE, PkString(layer->isPinnedToTimeline() ? "true" : "false"));
+    element.setAttribute(ONION_SKIN_ENABLED, PkString(layer->onionSkinEnabled() ? "1" : "0"));
+    element.setAttribute(VISIBLE_IN_TIMELINE, PkString(layer->isPinnedToTimeline() ? "1" : "0"));
 
     if (!saveLayerOffset) {
         element.removeAttribute(X);
@@ -165,7 +165,7 @@ bool KisSaveXmlVisitor::visit(KisGroupLayer *layer)
     else {
         layerElement = m_doc.createElement(LAYER);
         saveLayer(layerElement, GROUP_LAYER, layer);
-        layerElement.setAttribute(PASS_THROUGH_MODE, PkString(layer->passThroughMode() ? "true" : "false"));
+        layerElement.setAttribute(PASS_THROUGH_MODE, PkString(layer->passThroughMode() ? "1" : "0"));
         layerElement.setAttribute(COLORSPACE_NAME, layer->colorSpace()->id());
         layerElement.setAttribute(PROFILE, layer->colorSpace()->profile()->name());
         m_elem.appendChild(layerElement);
@@ -204,7 +204,7 @@ bool KisSaveXmlVisitor::visit(KisAdjustmentLayer* layer)
     PkXmlElement layerElement = m_doc.createElement(LAYER);
     saveLayer(layerElement, ADJUSTMENT_LAYER, layer);
     layerElement.setAttribute(FILTER_NAME, layer->filter()->name());
-    layerElement.setAttribute(FILTER_VERSION, PkString().arg(layer->filter()->version()));
+    layerElement.setAttribute(FILTER_VERSION, PkString("%1").arg(layer->filter()->version()));
     m_elem.appendChild(layerElement);
 
     m_count++;
@@ -216,7 +216,7 @@ bool KisSaveXmlVisitor::visit(KisGeneratorLayer *layer)
     PkXmlElement layerElement = m_doc.createElement(LAYER);
     saveLayer(layerElement, GENERATOR_LAYER, layer);
     layerElement.setAttribute(GENERATOR_NAME, layer->filter()->name());
-    layerElement.setAttribute(GENERATOR_VERSION, PkString().arg(layer->filter()->version()));
+    layerElement.setAttribute(GENERATOR_VERSION, PkString("%1").arg(layer->filter()->version()));
     m_elem.appendChild(layerElement);
 
     m_count++;
@@ -229,7 +229,7 @@ bool KisSaveXmlVisitor::visit(KisCloneLayer *layer)
     saveLayer(layerElement, CLONE_LAYER, layer);
     layerElement.setAttribute(CLONE_FROM, layer->copyFromInfo().name());
     layerElement.setAttribute(CLONE_FROM_UUID, layer->copyFromInfo().uuid().toString());
-    layerElement.setAttribute(CLONE_TYPE, PkString().arg((int)layer->copyType()));
+    layerElement.setAttribute(CLONE_TYPE, PkString("%1").arg((int)layer->copyType()));
     m_elem.appendChild(layerElement);
 
     m_count++;
@@ -245,7 +245,7 @@ bool KisSaveXmlVisitor::visit(KisFilterMask *mask)
     PkXmlElement el = m_doc.createElement(MASK);
     saveMask(el, FILTER_MASK, mask);
     el.setAttribute(FILTER_NAME, mask->filter()->name());
-    el.setAttribute(FILTER_VERSION, PkString().arg(mask->filter()->version()));
+    el.setAttribute(FILTER_VERSION, PkString("%1").arg(mask->filter()->version()));
 
     m_elem.appendChild(el);
 
@@ -381,26 +381,26 @@ void KisSaveXmlVisitor::saveNodeKeyframes(const KisNode* node, PkString nodeFile
 
 void KisSaveXmlVisitor::saveLayer(PkXmlElement & el, const PkString & layerType, const KisLayer * layer)
 {
-    PkString filename = LAYER + PkString().arg((int)m_count);
+    PkString filename = LAYER + PkString("%1").arg((int)m_count);
 
     el.setAttribute(CHANNEL_FLAGS, flagsToString(layer->channelFlags()));
     el.setAttribute(NAME, layer->name());
-    el.setAttribute(OPACITY, PkString().arg((int)layer->opacity()));
+    el.setAttribute(OPACITY, PkString("%1").arg((int)layer->opacity()));
     el.setAttribute(COMPOSITE_OP, layer->compositeOp()->id());
-    el.setAttribute(VISIBLE, PkString(layer->visible() ? "true" : "false"));
-    el.setAttribute(LOCKED, PkString(layer->userLocked() ? "true" : "false"));
+    el.setAttribute(VISIBLE, PkString(layer->visible() ? "1" : "0"));
+    el.setAttribute(LOCKED, PkString(layer->userLocked() ? "1" : "0"));
     el.setAttribute(NODE_TYPE, layerType);
     el.setAttribute(FILE_NAME, filename);
-    el.setAttribute(X, PkString().arg(layer->x()));
-    el.setAttribute(Y, PkString().arg(layer->y()));
+    el.setAttribute(X, PkString("%1").arg(layer->x()));
+    el.setAttribute(Y, PkString("%1").arg(layer->y()));
     el.setAttribute(UUID, layer->uuid().toString());
-    el.setAttribute(COLLAPSED, PkString(layer->collapsed() ? "true" : "false"));
-    el.setAttribute(COLOR_LABEL, PkString().arg(layer->colorLabelIndex()));
-    el.setAttribute(VISIBLE_IN_TIMELINE, PkString(layer->isPinnedToTimeline() ? "true" : "false"));
+    el.setAttribute(COLLAPSED, PkString(layer->collapsed() ? "1" : "0"));
+    el.setAttribute(COLOR_LABEL, PkString("%1").arg(layer->colorLabelIndex()));
+    el.setAttribute(VISIBLE_IN_TIMELINE, PkString(layer->isPinnedToTimeline() ? "1" : "0"));
 
     if(layerType == SHAPE_LAYER) {
         const KisShapeLayer *shapeLayer = static_cast<const KisShapeLayer*>(layer);
-        el.setAttribute(ANTIALIASED, PkString(shapeLayer->antialiased() ? "true" : "false"));
+        el.setAttribute(ANTIALIASED, PkString(shapeLayer->antialiased() ? "1" : "0"));
     }
 
     if (layer->layerStyle()) {
@@ -421,41 +421,41 @@ void KisSaveXmlVisitor::saveLayer(PkXmlElement & el, const PkString & layerType,
     dbgFile << "Saved layer "
             << layer->name()
             << " of type " << layerType
-            << " with filename " << LAYER + PkString().arg((int)m_count);
+            << " with filename " << LAYER + PkString("%1").arg((int)m_count);
 }
 
 void KisSaveXmlVisitor::saveMask(PkXmlElement & el, const PkString & maskType, const KisMaskSP mask)
 {
-    PkString filename = MASK + PkString().arg((int)m_count);
+    PkString filename = MASK + PkString("%1").arg((int)m_count);
 
     el.setAttribute(NAME, mask->name());
-    el.setAttribute(VISIBLE, PkString(mask->visible() ? "true" : "false"));
-    el.setAttribute(LOCKED, PkString(mask->userLocked() ? "true" : "false"));
+    el.setAttribute(VISIBLE, PkString(mask->visible() ? "1" : "0"));
+    el.setAttribute(LOCKED, PkString(mask->userLocked() ? "1" : "0"));
     el.setAttribute(NODE_TYPE, maskType);
     el.setAttribute(FILE_NAME, filename);
-    el.setAttribute(X, PkString().arg(mask->x()));
-    el.setAttribute(Y, PkString().arg(mask->y()));
+    el.setAttribute(X, PkString("%1").arg(mask->x()));
+    el.setAttribute(Y, PkString("%1").arg(mask->y()));
     el.setAttribute(UUID, mask->uuid().toString());
-    el.setAttribute(COLOR_LABEL, PkString().arg(mask->colorLabelIndex()));
-    el.setAttribute(VISIBLE_IN_TIMELINE, PkString(mask->isPinnedToTimeline() ? "true" : "false"));
+    el.setAttribute(COLOR_LABEL, PkString("%1").arg(mask->colorLabelIndex()));
+    el.setAttribute(VISIBLE_IN_TIMELINE, PkString(mask->isPinnedToTimeline() ? "1" : "0"));
 
     if (maskType == SELECTION_MASK) {
-        el.setAttribute(ACTIVE, PkString(mask->nodeProperties().boolProperty("active") ? "true" : "false"));
+        el.setAttribute(ACTIVE, PkString(mask->nodeProperties().boolProperty("active") ? "1" : "0"));
     } else if (maskType == COLORIZE_MASK) {
         el.setAttribute(COLORSPACE_NAME, mask->colorSpace()->id());
         el.setAttribute(COMPOSITE_OP, mask->compositeOpId());
-        el.setAttribute(COLORIZE_EDIT_KEYSTROKES, PkString(KisLayerPropertiesIcons::nodeProperty(mask, KisLayerPropertiesIcons::colorizeEditKeyStrokes, true).toBool() ? "true" : "false"));
-        el.setAttribute(COLORIZE_SHOW_COLORING, PkString(KisLayerPropertiesIcons::nodeProperty(mask, KisLayerPropertiesIcons::colorizeShowColoring, true).toBool() ? "true" : "false"));
+        el.setAttribute(COLORIZE_EDIT_KEYSTROKES, PkString(KisLayerPropertiesIcons::nodeProperty(mask, KisLayerPropertiesIcons::colorizeEditKeyStrokes, true).toBool() ? "1" : "0"));
+        el.setAttribute(COLORIZE_SHOW_COLORING, PkString(KisLayerPropertiesIcons::nodeProperty(mask, KisLayerPropertiesIcons::colorizeShowColoring, true).toBool() ? "1" : "0"));
 
         const KisColorizeMask *colorizeMask = dynamic_cast<const KisColorizeMask*>(mask.data());
         KIS_SAFE_ASSERT_RECOVER_NOOP(colorizeMask);
 
         if (colorizeMask) {
-            el.setAttribute(COLORIZE_USE_EDGE_DETECTION, PkString(colorizeMask->useEdgeDetection() ? "true" : "false"));
+            el.setAttribute(COLORIZE_USE_EDGE_DETECTION, PkString(colorizeMask->useEdgeDetection() ? "1" : "0"));
             el.setAttribute(COLORIZE_EDGE_DETECTION_SIZE, KisDomUtils::toString(colorizeMask->edgeDetectionSize()));
             el.setAttribute(COLORIZE_FUZZY_RADIUS, KisDomUtils::toString(colorizeMask->fuzzyRadius()));
-            el.setAttribute(COLORIZE_CLEANUP, PkString().arg(int(100 * colorizeMask->cleanUpAmount())));
-            el.setAttribute(COLORIZE_LIMIT_TO_DEVICE, PkString(colorizeMask->limitToDeviceBounds() ? "true" : "false"));
+            el.setAttribute(COLORIZE_CLEANUP, PkString("%1").arg(int(100 * colorizeMask->cleanUpAmount())));
+            el.setAttribute(COLORIZE_LIMIT_TO_DEVICE, PkString(colorizeMask->limitToDeviceBounds() ? "1" : "0"));
         }
     }
 
