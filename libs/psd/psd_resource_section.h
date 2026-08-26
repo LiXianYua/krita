@@ -8,10 +8,10 @@
 
 #include "kritapsd_export.h"
 
-#include <QMap>
-#include <QString>
+#include <PkMap.h>
+#include <PkString.h>
 
-class QIODevice;
+class PkStream;
 class PSDResourceBlock;
 
 /**
@@ -148,15 +148,15 @@ public:
     PSDImageResourceSection();
     ~PSDImageResourceSection();
 
-    bool read(QIODevice &io);
-    bool write(QIODevice &io);
+    bool read(PkStream &io);
+    bool write(PkStream &io);
     bool valid();
 
-    static QString idToString(PSDResourceID id);
+    static PkString idToString(PSDResourceID id);
 
-    QMap<PSDResourceID, PSDResourceBlock *> resources;
+    PkMap<PSDResourceID, PSDResourceBlock *> resources;
 
-    QString error;
+    PkString error;
 };
 
 #endif // PSD_RESOURCE_SECTION_H

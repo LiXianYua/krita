@@ -22,13 +22,13 @@ void PSDHeaderTest::testCreation()
 
 void PSDHeaderTest::testLoading()
 {
-    QString filename = QString(FILES_DATA_DIR) + "/sources/2.psd";
-    QFile f(filename);
-    KIS_ASSERT(f.open(QIODevice::ReadOnly));
+    PkString filename = PkString(FILES_DATA_DIR) + "/sources/2.psd";
+    PkFileStream f(filename);
+    KIS_ASSERT(f.open(PkStream::ReadOnly));
     PSDHeader header;
     header.read(f);
 
-    QVERIFY(header.signature == QString("8BPS"));
+    QVERIFY(header.signature == PkString("8BPS"));
     QVERIFY(header.version == 1);
     QVERIFY(header.nChannels == 3);
     QVERIFY(header.width == 100 );
@@ -40,9 +40,9 @@ void PSDHeaderTest::testLoading()
 
 void PSDHeaderTest::testRoundTripping()
 {
-    QString filename = "test.psd";
-    QFile f(filename);
-    KIS_ASSERT(f.open(QIODevice::ReadWrite));
+    PkString filename = "test.psd";
+    PkFileStream f(filename);
+    KIS_ASSERT(f.open(PkStream::ReadWrite));
     PSDHeader header;
     Q_ASSERT(!header.valid());
     header.signature = "8BPS";
@@ -57,7 +57,7 @@ void PSDHeaderTest::testRoundTripping()
     Q_ASSERT(retval); Q_UNUSED(retval);
 
     f.close();
-    KIS_ASSERT(f.open(QIODevice::ReadOnly));
+    KIS_ASSERT(f.open(PkStream::ReadOnly));
     PSDHeader header2;
     retval = header2.read(f);
     Q_ASSERT(retval);

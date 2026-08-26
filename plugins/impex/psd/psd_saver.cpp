@@ -37,7 +37,7 @@
 
 
 
-QPair<psd_color_mode, quint16> colormodelid_to_psd_colormode(const QString &colorSpaceId, const QString &colorDepthId)
+QPair<psd_color_mode, quint16> colormodelid_to_psd_colormode(const PkString &colorSpaceId, const PkString &colorDepthId)
 {
     psd_color_mode colorMode = COLORMODE_UNKNOWN;
     if (colorSpaceId == RGBAColorModelID.id()) {
@@ -89,7 +89,7 @@ KisImageSP PSDSaver::image()
     return m_image;
 }
 
-KisImportExportErrorCode PSDSaver::buildFile(QIODevice &io)
+KisImportExportErrorCode PSDSaver::buildFile(PkStream &io)
 {
     KIS_ASSERT_RECOVER_RETURN_VALUE(m_image, ImportExportCodes::InternalError);
 
@@ -163,7 +163,7 @@ KisImportExportErrorCode PSDSaver::buildFile(QIODevice &io)
 
         dbgFile << "Annotation:" << annotation->type() << annotation->description();
 
-        if (annotation->type().startsWith(QString("PSD Resource Block:"))) { //
+        if (annotation->type().startsWith(PkString("PSD Resource Block:"))) { //
             PSDResourceBlock *resourceBlock = dynamic_cast<PSDResourceBlock*>(annotation.data());
             if (resourceBlock) {
                 dbgFile << "Adding PSD Resource Block" << resourceBlock->identifier;
@@ -188,11 +188,11 @@ KisImportExportErrorCode PSDSaver::buildFile(QIODevice &io)
     // Add grid/guides block
     {
         GRID_GUIDE_1032 *gridGuidesInfo = new GRID_GUIDE_1032;
-        QList<quint32> verticalGuides;
+        PkList<quint32> verticalGuides;
         Q_FOREACH(qreal guide, m_doc->guidesConfig().verticalGuideLines()) {
             verticalGuides.append(guide * m_image->xRes());
         }
-        QList<quint32> horizontalGuides;
+        PkList<quint32> horizontalGuides;
         Q_FOREACH(qreal guide, m_doc->guidesConfig().horizontalGuideLines()) {
             horizontalGuides.append(guide * m_image->xRes());
         }

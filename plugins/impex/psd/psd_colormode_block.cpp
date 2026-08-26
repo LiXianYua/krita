@@ -6,7 +6,7 @@
 #include "psd_colormode_block.h"
 
 #include <psd_utils.h>
-#include <QColor>
+#include <PkColor.h>
 
 PSDColorModeBlock::PSDColorModeBlock(psd_color_mode colormode)
     : blocksize(0)
@@ -14,7 +14,7 @@ PSDColorModeBlock::PSDColorModeBlock(psd_color_mode colormode)
 {
 }
 
-bool PSDColorModeBlock::read(QIODevice &io)
+bool PSDColorModeBlock::read(PkStream &io)
 {
     // get length
     psdread(io, blocksize);
@@ -30,7 +30,7 @@ bool PSDColorModeBlock::read(QIODevice &io)
     }
 
     if (colormode == Indexed && blocksize != 768) {
-        error = QString("Indexed mode, but block size is %1.").arg(blocksize);
+        error = PkString("Indexed mode, but block size is %1.").arg(blocksize);
         return false;
     }
 
@@ -50,7 +50,7 @@ bool PSDColorModeBlock::read(QIODevice &io)
     return valid();
 }
 
-bool PSDColorModeBlock::write(QIODevice &io)
+bool PSDColorModeBlock::write(PkStream &io)
 {
     if (!valid()) {
         error = "Cannot write an invalid Color Mode Block";
@@ -82,15 +82,15 @@ bool PSDColorModeBlock::valid()
         return false;
     }
     if (colormode == Indexed && blocksize != 768) {
-        error = QString("Indexed mode, but block size is %1.").arg(blocksize);
+        error = PkString("Indexed mode, but block size is %1.").arg(blocksize);
         return false;
     }
     if (colormode == DuoTone && blocksize == 0) {
-        error = QString("DuoTone mode, but data block is empty");
+        error = PkString("DuoTone mode, but data block is empty");
         return false;
     }
     if ((quint32)data.size() != blocksize) {
-        error = QString("Data size is %1, but block size is %2").arg(data.size()).arg(blocksize);
+        error = PkString("Data size is %1, but block size is %2").arg(data.size()).arg(blocksize);
         return false;
     }
     return true;

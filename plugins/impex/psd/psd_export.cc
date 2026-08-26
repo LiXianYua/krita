@@ -29,7 +29,7 @@ class KisExternalLayer;
 
 K_PLUGIN_FACTORY_WITH_JSON(ExportFactory, "krita_psd_export.json", registerPlugin<psdExport>();)
 
-psdExport::psdExport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+psdExport::psdExport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -37,7 +37,7 @@ psdExport::~psdExport()
 {
 }
 
-KisImportExportErrorCode psdExport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode psdExport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     PSDSaver psdSaver(document);
     return psdSaver.buildFile(*io);
@@ -61,7 +61,7 @@ void psdExport::initializeCapabilities()
         addCapability(factory->create(30000, 30000, KisExportCheckBase::SUPPORTED));
     }
 
-    QList<QPair<KoID, KoID> > supportedColorModels;
+    PkList<QPair<KoID, KoID> > supportedColorModels;
     supportedColorModels << QPair<KoID, KoID>()
             << QPair<KoID, KoID>(RGBAColorModelID, Integer8BitsColorDepthID)
             << QPair<KoID, KoID>(RGBAColorModelID, Integer16BitsColorDepthID)
@@ -85,7 +85,7 @@ void psdExport::initializeCapabilities()
     addCapability(KisExportCheckRegistry::instance()->get("ShapeLayerTypeCheck/KoPathShape/StarShape")->create(KisExportCheckBase::SUPPORTED));
     addCapability(KisExportCheckRegistry::instance()->get("ShapeLayerTypeCheck/KoShapeGroup")->create(KisExportCheckBase::SUPPORTED));
 
-    const QString textShapeWarning = i18nc("image conversion warning", "While text shapes can be saved to psd, only basic features are supported. Advanced features, like text-on-path and opentype features will not be saved.");
+    const PkString textShapeWarning = i18nc("image conversion warning", "While text shapes can be saved to psd, only basic features are supported. Advanced features, like text-on-path and opentype features will not be saved.");
     addCapability(KisExportCheckRegistry::instance()->get("ShapeLayerTypeCheck/KoSvgTextShapeID")->create(KisExportCheckBase::PARTIALLY, textShapeWarning));
 }
 

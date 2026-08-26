@@ -6,7 +6,7 @@
 #include "psd_resource_section.h"
 
 #include <QBuffer>
-#include <QIODevice>
+#include <PkStream.h>
 #include <kis_debug.h>
 
 #include "psd.h"
@@ -22,7 +22,7 @@ PSDImageResourceSection::~PSDImageResourceSection()
     resources.clear();
 }
 
-bool PSDImageResourceSection::read(QIODevice &io)
+bool PSDImageResourceSection::read(PkStream &io)
 {
     quint32 resourceSectionLength = 0;
     if (!psdread(io, resourceSectionLength)) {
@@ -32,7 +32,7 @@ bool PSDImageResourceSection::read(QIODevice &io)
 
     dbgFile << "Image Resource Sectionlength:" << resourceSectionLength << ", starts at:" << io.pos();
 
-    QByteArray ba = io.read(resourceSectionLength);
+    PkByteArray ba = io.read(resourceSectionLength);
     if ((quint32)ba.size() != resourceSectionLength) {
         error = "Could not read all resources";
         return false;
@@ -61,7 +61,7 @@ bool PSDImageResourceSection::read(QIODevice &io)
     return valid();
 }
 
-bool PSDImageResourceSection::write(QIODevice &io)
+bool PSDImageResourceSection::write(PkStream &io)
 {
     Q_UNUSED(io);
 
@@ -70,7 +70,7 @@ bool PSDImageResourceSection::write(QIODevice &io)
         return false;
     }
     // First write all the sections
-    QByteArray ba;
+    PkByteArray ba;
     QBuffer buf;
     buf.setBuffer(&ba);
     buf.open(QBuffer::WriteOnly);
@@ -98,7 +98,7 @@ bool PSDImageResourceSection::valid()
     return true;
 }
 
-QString PSDImageResourceSection::idToString(PSDImageResourceSection::PSDResourceID id)
+PkString PSDImageResourceSection::idToString(PSDImageResourceSection::PSDResourceID id)
 {
     switch (id) {
     case UNKNOWN:
@@ -316,5 +316,5 @@ QString PSDImageResourceSection::idToString(PSDImageResourceSection::PSDResource
             return "Plug-In Resource";
     }
     };
-    return QString("Unknown Resource Block: %1").arg(id);
+    return PkString("Unknown Resource Block: %1").arg(id);
 }

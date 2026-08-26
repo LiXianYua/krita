@@ -9,10 +9,10 @@
 
 #include "kritapsd_export.h"
 
-#include <QDomDocument>
-#include <QIODevice>
-#include <QString>
-#include <QVector>
+#include <PkXmlDocument.h>
+#include <PkStream.h>
+#include <PkString.h>
+#include <PkVector.h>
 #include <functional>
 
 #include <kis_types.h>
@@ -36,7 +36,7 @@
 #include <asl/kis_asl_callback_object_catcher.h>
 #include <cos/kis_cos_parser.h>
 #include <cos/kis_cos_writer.h>
-#include <QVariantHash>
+#include <PkVariant.h>
 
 #include "psd_header.h"
 
@@ -185,17 +185,17 @@ struct KRITAPSD_EXPORT psd_layer_solid_color {
         }
     }
 
-    static void setupCatcher(const QString path, KisAslCallbackObjectCatcher &catcher, psd_layer_solid_color *data) {
+    static void setupCatcher(const PkString path, KisAslCallbackObjectCatcher &catcher, psd_layer_solid_color *data) {
         catcher.subscribeColor(path + "/Clr ", std::bind(&psd_layer_solid_color::setColor, data, std::placeholders::_1));
     }
 
-    QDomDocument getFillLayerConfig() {
+    PkXmlDocument getFillLayerConfig() {
         KisFilterConfigurationSP cfg;
         cfg = KisGeneratorRegistry::instance()->value("color")->defaultConfiguration(KisGlobalResourcesInterface::instance());
-        QVariant v;
+        PkVariant v;
         v.setValue(fill_color);
         cfg->setProperty("color", v);
-        QDomDocument doc;
+        PkXmlDocument doc;
         doc.setContent(cfg->toXML());
         return doc;
     }
@@ -208,7 +208,7 @@ struct KRITAPSD_EXPORT psd_layer_solid_color {
         return true;
     }
     
-    QDomDocument getASLXML() {
+    PkXmlDocument getASLXML() {
         KisAslXmlWriter w;
         w.enterDescriptor("", "", "null");
         writeASL(w);
@@ -226,33 +226,33 @@ struct KRITAPSD_EXPORT psd_layer_solid_color {
     }
 
     QBrush getBrush() {
-        QColor c;
+        PkColor c;
         fill_color.toQColor(&c);
         return QBrush(c, Qt::SolidPattern);
     }
 
-    QSharedPointer<KoShapeBackground> getBackground() {
-        return QSharedPointer<KoColorBackground>(new KoColorBackground(getBrush().color()));
+    PkSharedPointer<KoShapeBackground> getBackground() {
+        return PkSharedPointer<KoColorBackground>(new KoColorBackground(getBrush().color()));
     }
 };
 
 struct KRITAPSD_EXPORT psd_layer_gradient_fill {
     double angle {0.0};
-    QString style {QString("linear")};
-    QString repeat {QString("none")};
+    PkString style {PkString("linear")};
+    PkString repeat {PkString("none")};
     double scale {100.0};
     bool reverse {false}; // Is gradient reverse
     bool dithered {false}; // Is gradient dithered
     bool align_with_layer {false};
-    QPointF offset;
-    QDomDocument gradient;
+    PkPointF offset;
+    PkXmlDocument gradient;
     int imageWidth {1}; // Set when loading.
     int imageHeight {1};
 
     // Used by ASL callback;
     void setGradient(const KoAbstractGradientSP &newGradient) {
-        QDomDocument document;
-        QDomElement gradientElement = document.createElement("gradient");
+        PkXmlDocument document;
+        PkXmlElement gradientElement = document.createElement("gradient");
         gradientElement.setAttribute("name", newGradient->name());
 
         if (dynamic_cast<KoStopGradient*>(newGradient.data())) {
@@ -279,7 +279,7 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
         angle = Angl;
     }
 
-    void setType(const QString type) {
+    void setType(const PkString type) {
         repeat = "none";
         if (type == "Lnr "){
             style = "linear";
@@ -303,11 +303,11 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
         scale = Scl;
     }
 
-    void setOffset(QPointF Ofst) {
+    void setOffset(PkPointF Ofst) {
         offset = Ofst;
     }
 
-    static void setupCatcher(const QString path, KisAslCallbackObjectCatcher &catcher, psd_layer_gradient_fill *data) {
+    static void setupCatcher(const PkString path, KisAslCallbackObjectCatcher &catcher, psd_layer_gradient_fill *data) {
         catcher.subscribeGradient(path + "/Grad", std::bind(&psd_layer_gradient_fill::setGradient, data, std::placeholders::_1));
         catcher.subscribeBoolean(path + "/Dthr", std::bind(&psd_layer_gradient_fill::setDither, data, std::placeholders::_1));
         catcher.subscribeBoolean(path + "/Rvrs", std::bind(&psd_layer_gradient_fill::setReverse, data, std::placeholders::_1));
@@ -318,7 +318,7 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
         catcher.subscribePoint(path + "/Ofst", std::bind(&psd_layer_gradient_fill::setOffset, data, std::placeholders::_1));
     }
 
-    QDomDocument getFillLayerConfig() {
+    PkXmlDocument getFillLayerConfig() {
         KisFilterConfigurationSP cfg;
         cfg = KisGeneratorRegistry::instance()->value("gradient")->defaultConfiguration(KisGlobalResourcesInterface::instance());
         cfg->setProperty("gradient", gradient.toString());
@@ -363,13 +363,13 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
         if (style == "linear") {
             // linear has the problem that in Krita it rotates around the top-left,
             // while in psd it rotates around the middle.
-            QPointF center(imageWidth*0.5, imageHeight*0.5);
+            PkPointF center(imageWidth*0.5, imageHeight*0.5);
 
-            QTransform rotate;
+            PkTransform rotate;
             rotate.rotate(fixedAngle);
-            QTransform tf = QTransform::fromTranslate(-center.x(), -center.y())
-                    * rotate * QTransform::fromTranslate(center.x(), center.y());
-            QPointF topleft = tf.inverted().map(QPointF(0.0, 0.0));
+            PkTransform tf = PkTransform::fromTranslate(-center.x(), -center.y())
+                    * rotate * PkTransform::fromTranslate(center.x(), center.y());
+            PkPointF topleft = tf.inverted().map(PkPointF(0.0, 0.0));
             double xPercentage = (topleft.x()/double(imageWidth)) * 100.0;
             double yPercentage = (topleft.y()/double(imageHeight)) * 100.0;
 
@@ -382,7 +382,7 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
             cfg->setProperty("start_position_y", (50.0)+offset.y());
         }
 
-        QDomDocument doc;
+        PkXmlDocument doc;
         doc.setContent(cfg->toXML());
         return doc;
     }
@@ -402,13 +402,13 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
 
         bool polar = (cfg->getString("end_position_coordinate_system") == "polar");
 
-        QPointF start(cfg->getDouble("start_position_x", 0.0), cfg->getDouble("start_position_y", 0.0));
+        PkPointF start(cfg->getDouble("start_position_x", 0.0), cfg->getDouble("start_position_y", 0.0));
         if (polar) {
             angle = cfg->getDouble("end_position_angle", 0.0);
             scale = cfg->getDouble("end_position_distance", 100.0);
         } else {
             // assume cartesian
-            QPointF end(cfg->getDouble("end_position_x", 1.0), cfg->getDouble("end_position_y", 1.0));
+            PkPointF end(cfg->getDouble("end_position_x", 1.0), cfg->getDouble("end_position_y", 1.0));
             // calculate angle and scale.
             double width  = start.x() - end.x();
             double height = start.y() - end.y();
@@ -418,19 +418,19 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
 
 
         if (style == "linear") {
-            QPointF center(imageWidth*0.5, imageHeight*0.5);
+            PkPointF center(imageWidth*0.5, imageHeight*0.5);
 
-            QTransform rotate;
+            PkTransform rotate;
             rotate.rotate(angle);
-            QTransform tf = QTransform::fromTranslate(-center.x(), -center.y())
-                    * rotate * QTransform::fromTranslate(center.x(), center.y());
-            QPointF topleft = tf.inverted().map(QPointF(0.0, 0.0));
+            PkTransform tf = PkTransform::fromTranslate(-center.x(), -center.y())
+                    * rotate * PkTransform::fromTranslate(center.x(), center.y());
+            PkPointF topleft = tf.inverted().map(PkPointF(0.0, 0.0));
             double xPercentage = (topleft.x()/double(imageWidth)) * 100.0;
             double yPercentage = (topleft.y()/double(imageHeight)) * 100.0;
-            offset = QPointF((start.x() - xPercentage), (start.y() - yPercentage));
+            offset = PkPointF((start.x() - xPercentage), (start.y() - yPercentage));
         } else {
             scale = scale*2;
-            offset = QPointF((start.x() - 50.0), (start.y() - 50.0));
+            offset = PkPointF((start.x() - 50.0), (start.y() - 50.0));
         }
 
         double scaleModifier = 1.0;
@@ -466,7 +466,7 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
         return res;
     }
 
-    QDomDocument getASLXML() {
+    PkXmlDocument getASLXML() {
         KisAslXmlWriter w;
         w.enterDescriptor("", "", "null");
         writeASL(w);
@@ -478,9 +478,9 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
 
     void writeASL(KisAslXmlWriter &w) {
         if (!gradient.isNull()) {
-            const QDomElement gradientElement = gradient.firstChildElement();
+            const PkXmlElement gradientElement = gradient.firstChildElement();
             if (!gradientElement.isNull()) {
-                const QString gradientType = gradientElement.attribute("type");
+                const PkString gradientType = gradientElement.attribute("type");
                 if (gradientType == "stop") {
                     const KoStopGradient grad = KoStopGradient::fromXML(gradientElement);
                     if (grad.valid()) {
@@ -498,7 +498,7 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
         w.writeBoolean("Rvrs", reverse);
         w.writeUnitFloat("Angl", "#Ang", angle);
 
-        QString type = "Lnr ";
+        PkString type = "Lnr ";
         if (style == "linear"){
             type = "Lnr ";
         } else if (style == "radial") {
@@ -518,19 +518,19 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
     }
 
     QBrush getBrush() {
-        QGradient *grad = getGradient();
+        PkGradient *grad = getGradient();
         if (grad) {
             QBrush brush = *grad;
             return brush;
         }
         return QBrush(Qt::transparent);
     }
-    QGradient *getGradient() {
-        QGradient *pointer = nullptr;
+    PkGradient *getGradient() {
+        PkGradient *pointer = nullptr;
         if (!gradient.isNull()) {
-            const QDomElement gradientElement = gradient.firstChildElement();
+            const PkXmlElement gradientElement = gradient.firstChildElement();
             if (!gradientElement.isNull()) {
-                const QString gradientType = gradientElement.attribute("type");
+                const PkString gradientType = gradientElement.attribute("type");
                 if (gradientType == "stop") {
                     const KoStopGradient grad = KoStopGradient::fromXML(gradientElement);
                     if (grad.valid()) {
@@ -545,20 +545,20 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
             }
         }
         if (pointer) {
-            QGradient::CoordinateMode mode = QGradient::ObjectBoundingMode;
+            PkGradient::CoordinateMode mode = PkGradient::ObjectBoundingMode;
             pointer->setCoordinateMode(mode);
 
             if (reverse) {
                 QGradientStops newStops;
                 Q_FOREACH(QGradientStop stop, pointer->stops()) {
-                    newStops.append(QPair<double, QColor>(1.0-stop.first, stop.second));
+                    newStops.append(QPair<double, PkColor>(1.0-stop.first, stop.second));
                 }
                 pointer->setStops(newStops);
             }
 
             QLinearGradient *g = static_cast<QLinearGradient*>(pointer);
-            QLineF line = QLineF::fromPolar(0.5*(scale*0.01), angle);
-            line.translate(QPointF(0.5, 0.5)+(offset*0.01));
+            PkLineF line = PkLineF::fromPolar(0.5*(scale*0.01), angle);
+            line.translate(PkPointF(0.5, 0.5)+(offset*0.01));
 
             if (style == "radial") {
                 QRadialGradient *r = new QRadialGradient(line.p1(), line.length());
@@ -595,15 +595,15 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
         return pointer;
     }
 
-    void setFromQGradient(const QGradient *gradient) {
+    void setFromQGradient(const PkGradient *gradient) {
         setGradient(KoStopGradient::fromQGradient(gradient));
-        if (gradient->coordinateMode() == QGradient::ObjectBoundingMode) {
+        if (gradient->coordinateMode() == PkGradient::ObjectBoundingMode) {
             align_with_layer = true;
         }
-        if (gradient->type() == QGradient::LinearGradient) {
+        if (gradient->type() == PkGradient::LinearGradient) {
             const QLinearGradient *g = static_cast<const QLinearGradient*>(gradient);
-            QLineF line(g->start(), g->finalStop());
-            offset = (line.center()-QPointF(0.5, 0.5))*100.0;
+            PkLineF line(g->start(), g->finalStop());
+            offset = (line.center()-PkPointF(0.5, 0.5))*100.0;
             angle = line.angle();
             if (angle > 180) {
                 angle = (0.0 - fmod(angle, 180.0));
@@ -612,16 +612,16 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
             style = "linear";
         } else {
             const QRadialGradient *g = static_cast<const QRadialGradient*>(gradient);
-            offset = (g->center()-QPointF(0.5, 0.5)) * 100.0;
+            offset = (g->center()-PkPointF(0.5, 0.5)) * 100.0;
             angle = 0;
             scale = (g->radius()*2) * 100.0;
             style = "radial";
         }
     }
 
-    QSharedPointer<KoShapeBackground> getBackground() {
-        QGradient *pointer = getGradient();
-        QSharedPointer<KoGradientBackground> bg = QSharedPointer<KoGradientBackground>(new KoGradientBackground(pointer));
+    PkSharedPointer<KoShapeBackground> getBackground() {
+        PkGradient *pointer = getGradient();
+        PkSharedPointer<KoGradientBackground> bg = PkSharedPointer<KoGradientBackground>(new KoGradientBackground(pointer));
         return bg;
     }
 
@@ -636,9 +636,9 @@ struct KRITAPSD_EXPORT psd_layer_gradient_fill {
 struct KRITAPSD_EXPORT psd_layer_pattern_fill {
     double angle {0.0};
     double scale {100.0};
-    QPointF offset;
-    QString patternName;
-    QString patternID;
+    PkPointF offset;
+    PkString patternName;
+    PkString patternID;
     KoPatternSP pattern;
     bool align_with_layer {false};
     
@@ -648,11 +648,11 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
     void setScale(float Scl) {
         scale = Scl;
     }
-    void setOffset(QPointF phase) {
+    void setOffset(PkPointF phase) {
         offset = phase;
     }
 
-    void setPatternRef(const QString Idnt, const QString name) {
+    void setPatternRef(const PkString Idnt, const PkString name) {
         patternName = name;
         patternID = Idnt;
     }
@@ -661,7 +661,7 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
         align_with_layer = align;
     }
 
-    static void setupCatcher(const QString path, KisAslCallbackObjectCatcher &catcher, psd_layer_pattern_fill *data) {
+    static void setupCatcher(const PkString path, KisAslCallbackObjectCatcher &catcher, psd_layer_pattern_fill *data) {
         catcher.subscribeUnitFloat(path + "/Angl", "#Ang", std::bind(&psd_layer_pattern_fill::setAngle, data, std::placeholders::_1));
         catcher.subscribeUnitFloat(path + "/Scl ", "#Prc", std::bind(&psd_layer_pattern_fill::setScale, data, std::placeholders::_1));
         catcher.subscribeBoolean(path + "/Algn", std::bind(&psd_layer_pattern_fill::setAlignWithLayer, data, std::placeholders::_1));
@@ -669,12 +669,12 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
         catcher.subscribePatternRef(path + "/Ptrn", std::bind(&psd_layer_pattern_fill::setPatternRef, data, std::placeholders::_1, std::placeholders::_2));
     }
     
-    QDomDocument getFillLayerConfig() const {
+    PkXmlDocument getFillLayerConfig() const {
         KisFilterConfigurationSP cfg;
         cfg = KisGeneratorRegistry::instance()->value("pattern")->defaultConfiguration(KisGlobalResourcesInterface::instance());
 
         cfg->setProperty("pattern", patternName);
-        cfg->setProperty("fileName", QString(patternID + ".pat"));
+        cfg->setProperty("fileName", PkString(patternID + ".pat"));
         cfg->setProperty("md5", ""); // Zero out MD5, PSD patterns are looked up by UUID in filename
 
         //angle is flipped for patterns in Krita.
@@ -686,7 +686,7 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
 
         cfg->setProperty("transform_offset_x", offset.x());
         cfg->setProperty("transform_offset_y", offset.y());
-        QDomDocument doc;
+        PkXmlDocument doc;
         doc.setContent(cfg->toXML());
         return doc;
     }
@@ -696,9 +696,9 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
             return false;
         }
 
-        const QString patternMD5 = cfg->getString("md5", "");
-        const QString patternNameTemp = cfg->getString("pattern", "Grid01.pat");
-        const QString patternFileName = cfg->getString("fileName", "");
+        const PkString patternMD5 = cfg->getString("md5", "");
+        const PkString patternNameTemp = cfg->getString("pattern", "Grid01.pat");
+        const PkString patternFileName = cfg->getString("fileName", "");
 
         KoResourceLoadResult res = KisGlobalResourcesInterface::instance()->source(ResourceType::Patterns).bestMatchLoadResult(patternMD5, patternFileName, patternNameTemp);
         pattern = res.resource<KoPattern>();
@@ -716,18 +716,18 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
             angle = (180.0 - angle);
         }
 
-        offset  = QPointF(cfg->getInt("transform_offset_x", 0), cfg->getInt("transform_offset_y", 0));
+        offset  = PkPointF(cfg->getInt("transform_offset_x", 0), cfg->getInt("transform_offset_y", 0));
 
         return true;
     }
 
-    QDomDocument getASLXML() {
+    PkXmlDocument getASLXML() {
         KisAslXmlWriter w;
         w.enterDescriptor("", "", "null");
 
         if (patternID.isEmpty()) {
             qWarning() << "This pattern cannot be saved: No pattern UUID available.";
-            return QDomDocument();
+            return PkXmlDocument();
         }
 
         writeASL(w);
@@ -754,16 +754,16 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
     }
 
     void loadPattern(KisEmbeddedResourceStorageProxy &embeddedProxy) {
-        const QString patternMD5 = "";
-        const QString patternNameTemp = patternName;
-        const QString patternFileName = QString(patternID + ".pat");
+        const PkString patternMD5 = "";
+        const PkString patternNameTemp = patternName;
+        const PkString patternFileName = PkString(patternID + ".pat");
 
         KoResourceLoadResult res = embeddedProxy.resourcesInterface()->source(ResourceType::Patterns).bestMatchLoadResult(patternMD5, patternFileName, patternNameTemp);
         pattern = res.resource<KoPattern>();
     }
 
-    QSharedPointer<KoShapeBackground> getBackground(KisEmbeddedResourceStorageProxy &embeddedProxy) {
-        QSharedPointer<KoPatternBackground> bg = QSharedPointer<KoPatternBackground>(new KoPatternBackground());
+    PkSharedPointer<KoShapeBackground> getBackground(KisEmbeddedResourceStorageProxy &embeddedProxy) {
+        PkSharedPointer<KoPatternBackground> bg = PkSharedPointer<KoPatternBackground>(new KoPatternBackground());
 
         loadPattern(embeddedProxy);
         if (pattern) {
@@ -772,9 +772,9 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
             KoResourceLoadResult res = KisGlobalResourcesInterface::instance()->source(ResourceType::Patterns).fallbackResource();
             bg->setPattern(res.resource<KoPattern>()->pattern());
         }
-        QSizeF size = bg->patternOriginalSize();
-        QPointF refPoint(offset.x()/size.width(), offset.y()/size.height());
-        size = QSizeF(size.width() * (0.01*scale), size.height() * (0.01*scale));
+        PkSizeF size = bg->patternOriginalSize();
+        PkPointF refPoint(offset.x()/size.width(), offset.y()/size.height());
+        size = PkSizeF(size.width() * (0.01*scale), size.height() * (0.01*scale));
         bg->setPatternDisplaySize(size);
         bg->setReferencePointOffset(refPoint);
         return bg;
@@ -789,7 +789,7 @@ struct KRITAPSD_EXPORT psd_layer_pattern_fill {
             KoResourceLoadResult res = KisGlobalResourcesInterface::instance()->source(ResourceType::Patterns).fallbackResource();
             brush.setTextureImage(res.resource<KoPattern>()->pattern());
         }
-        QTransform t = QTransform::fromScale(scale*0.01, scale*0.01);
+        PkTransform t = PkTransform::fromScale(scale*0.01, scale*0.01);
         t.rotate(angle);
         brush.setTransform(t);
         return brush;
@@ -842,21 +842,21 @@ struct KRITAPSD_EXPORT psd_layer_type_tool {
     qint32 select_end {0}; // Select end value
     qint8 lines_count {0}; // Line count
     psd_layer_type_line *line {nullptr};
-    QColor color;
+    PkColor color;
     bool anti_alias {false}; // Anti alias on/off
 };
 
 struct KRITAPSD_EXPORT psd_layer_type_shape {
-    QTransform transform;
+    PkTransform transform;
 
-    QVariantHash engineData;
-    QRectF bounds; // bounding box of the text in pixels, relative to first baseline, absent in point text.
-    QRectF boundingBox; //no clue, maybe relative to topleft of first glyph(?), same size as bounds, absent in point text.
+    PkVariantHash engineData;
+    PkRectF bounds; // bounding box of the text in pixels, relative to first baseline, absent in point text.
+    PkRectF boundingBox; //no clue, maybe relative to topleft of first glyph(?), same size as bounds, absent in point text.
     int textIndex;
-    QString text;
+    PkString text;
     bool isHorizontal {true};
 
-    void setEngineData(QByteArray ba) {
+    void setEngineData(PkByteArray ba) {
         KisCosParser parser;
         engineData = parser.parseCosToJson(&ba);
     }
@@ -875,7 +875,7 @@ struct KRITAPSD_EXPORT psd_layer_type_shape {
     void setBottom(float val) {
         bounds.setBottom(val);
     }
-    void setWritingMode(const QString val) {
+    void setWritingMode(const PkString val) {
         if (val == "Hrzn") {
             isHorizontal = true;
         } else {
@@ -883,7 +883,7 @@ struct KRITAPSD_EXPORT psd_layer_type_shape {
         }
     }
 
-    static void setupCatcher(const QString path, KisAslCallbackObjectCatcher &catcher, psd_layer_type_shape *data) {
+    static void setupCatcher(const PkString path, KisAslCallbackObjectCatcher &catcher, psd_layer_type_shape *data) {
         catcher.subscribeInteger(path + "/TxLr/TextIndex", std::bind(&psd_layer_type_shape::setIndex, data, std::placeholders::_1));
         catcher.subscribeRawData(path + "/TxLr/EngineData", std::bind(&psd_layer_type_shape::setEngineData, data, std::placeholders::_1));
         catcher.subscribeEnum(path + "/TxLr/Ornt", "Ornt", std::bind(&psd_layer_type_shape::setWritingMode, data, std::placeholders::_1));
@@ -901,7 +901,7 @@ struct KRITAPSD_EXPORT psd_layer_type_shape {
         catcher.subscribeUnitFloat(path + "/TxLr/bounds/Btom", "#Pxl", std::bind(&psd_layer_type_shape::setBottom, data, std::placeholders::_1));
     }
 
-    QDomDocument textDataASLXML() {
+    PkXmlDocument textDataASLXML() {
         KisAslXmlWriter w;
         w.enterDescriptor("", "", "TxLr");
 
@@ -930,7 +930,7 @@ struct KRITAPSD_EXPORT psd_layer_type_shape {
             w.leaveDescriptor();
         }
         w.writeInteger("TextIndex", textIndex);
-        QByteArray ba = KisCosWriter::writeCosFromVariantHash(engineData);
+        PkByteArray ba = KisCosWriter::writeCosFromVariantHash(engineData);
         w.writeRawData("EngineData", &ba);
 
         w.leaveDescriptor();
@@ -938,7 +938,7 @@ struct KRITAPSD_EXPORT psd_layer_type_shape {
         return w.document();
     }
 
-    QDomDocument textWarpXML() {
+    PkXmlDocument textWarpXML() {
         KisAslXmlWriter w;
         w.enterDescriptor("", "", "warp");
 
@@ -956,21 +956,21 @@ struct KRITAPSD_EXPORT psd_layer_type_shape {
 };
 
 struct KRITAPSD_EXPORT psd_path_node {
-    QPointF control1;
-    QPointF node;
-    QPointF control2;
+    PkPointF control1;
+    PkPointF node;
+    PkPointF control2;
     bool isSmooth {false};
 };
 
 struct KRITAPSD_EXPORT psd_path_sub_path {
-    QList<psd_path_node> nodes;
+    PkList<psd_path_node> nodes;
     bool isClosed {false};
 };
 struct KRITAPSD_EXPORT psd_path {
     bool initialFillRecord {false};
-    QRectF clipBoardBounds;
+    PkRectF clipBoardBounds;
     double clipBoardResolution;
-    QList<psd_path_sub_path> subPaths;
+    PkList<psd_path_sub_path> subPaths;
 };
 
 struct KRITAPSD_EXPORT psd_vector_mask {
@@ -993,7 +993,7 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
     bool scaleLock {false};
     bool strokeAdjust {false};
 
-    QVector<double> dashPattern;
+    PkVector<double> dashPattern;
     
     double opacity {1.0};
     
@@ -1025,7 +1025,7 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
     void setStrokeMiterLimit(double limit) {
         pen.setMiterLimit(limit);
     }
-    void setLineCapType(const QString val) {
+    void setLineCapType(const PkString val) {
         if (val == "strokeStyleButtCap") {
             pen.setCapStyle(Qt::FlatCap);
         } else if (val == "strokeStyleSquareCap") {
@@ -1034,7 +1034,7 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
             pen.setCapStyle(Qt::RoundCap);
         }
     }
-    void setLineJoinType(const QString val) {
+    void setLineJoinType(const PkString val) {
         if (val == "strokeStyleMiterJoin") {
             pen.setJoinStyle(Qt::MiterJoin);
         } else if (val == "strokeStyleBevelJoin") {
@@ -1071,7 +1071,7 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         dashPattern = stroke->lineDashes();
     }
 
-    static void setupCatcher(const QString path, KisAslCallbackObjectCatcher &catcher, psd_vector_stroke_data *data) {
+    static void setupCatcher(const PkString path, KisAslCallbackObjectCatcher &catcher, psd_vector_stroke_data *data) {
         catcher.subscribeInteger(path + "/strokeStyle/strokeStyleVersion", std::bind(&psd_vector_stroke_data::setVersion, data, std::placeholders::_1));
         catcher.subscribeBoolean(path + "/strokeStyle/strokeEnabled", std::bind(&psd_vector_stroke_data::setStrokeEnabled, data, std::placeholders::_1));
         catcher.subscribeBoolean(path + "/strokeStyle/fillEnabled", std::bind(&psd_vector_stroke_data::setFillEnabled, data, std::placeholders::_1));
@@ -1093,7 +1093,7 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         catcher.subscribeDouble(path + "/strokeStyle/strokeStyleResolution", std::bind(&psd_vector_stroke_data::setResolution, data, std::placeholders::_1));
     }
     
-    QDomDocument getASLXML() {
+    PkXmlDocument getASLXML() {
         KisAslXmlWriter w;
         w.enterDescriptor("", "", "strokeStyle");
         
@@ -1105,13 +1105,13 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         w.writeUnitFloat("strokeStyleLineDashOffset ", "#Pnt", pen.dashOffset());
         w.writeDouble("strokeStyleMiterLimit", pen.miterLimit());
         
-        QString linecap = "strokeStyleButtCap";
+        PkString linecap = "strokeStyleButtCap";
         if (pen.capStyle() == Qt::SquareCap) {
             linecap = "strokeStyleSquareCap";
         } else if (pen.capStyle() == Qt::RoundCap) {
             linecap = "strokeStyleRoundCap";
         }
-        QString linejoin = "strokeStyleMiterJoin";
+        PkString linejoin = "strokeStyleMiterJoin";
         if (pen.joinStyle() == Qt::BevelJoin) {
             linejoin = "strokeStyleBevelJoin";
         } else if (pen.joinStyle() == Qt::RoundJoin) {
@@ -1174,10 +1174,10 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
         stroke->setDashOffset(pen.dashOffset());
         stroke->setMiterLimit(pen.miterLimit());
         if (dashPattern.isEmpty()) {
-            stroke->setLineStyle(Qt::SolidLine, QVector<double>());
+            stroke->setLineStyle(Qt::SolidLine, PkVector<double>());
         } else {
             if (dashPattern.size() % 2 > 0) {
-                QVector<double> pattern = dashPattern;
+                PkVector<double> pattern = dashPattern;
                 pattern.append(dashPattern);
                 stroke->setLineStyle(Qt::CustomDashLine, pattern);
             } else {
@@ -1190,25 +1190,25 @@ struct KRITAPSD_EXPORT psd_vector_stroke_data {
 struct psd_vector_origination_data {
     int originType = -1; ///< 1 = rect, 2 = rounded rect?, 3 = ? 4 = ? 5 = ellipse, 6 = ?, 7 = polygon, 8 = star, 9 = premade path shape.
 
-    const QMap<int, QString> typeToName {
+    const PkMap<int, PkString> typeToName {
         {1, "RectangleShape"},
         {5, "EllipseShape"},
         {7, "StarShape"},
         {8, "StarShape"},
     };
 
-    QRectF originShapeBBox; ///< pre-transform bbox.
+    PkRectF originShapeBBox; ///< pre-transform bbox.
     double originResolution = 72.0; ///< Resolution of the coordinates.
-    QTransform transform;
+    PkTransform transform;
     int originIndex = 0; // unknown, always 0.
 
-    QPolygonF originBoxCorners; ///< post-transform bbox as a polygon, seen on 1, 7, 8 and 9.
+    PkPolygonF originBoxCorners; ///< post-transform bbox as a polygon, seen on 1, 7, 8 and 9.
     int originPolySides = 0; ///< Only for 7 and 8.
     double originPolyStarRatio = 100.0; ///< Only for 8, percentage of small radius to big radius.
     bool isStar = false;
     double originPolyPixelHSF = 1.0; ///< Only 7 and 8, no clue.
-    QPolygonF originPolyPreviousTightBoxCorners; ///< Only 7 an 8, same as originBoxCorners.
-    QPolygonF originPolyTrueRectCorners;///< Only 7 an 8, same as originBoxCorners.
+    PkPolygonF originPolyPreviousTightBoxCorners; ///< Only 7 an 8, same as originBoxCorners.
+    PkPolygonF originPolyTrueRectCorners;///< Only 7 an 8, same as originBoxCorners.
 
     void setOriginType(int type) {
         originType = type;
@@ -1218,20 +1218,20 @@ struct psd_vector_origination_data {
         originResolution = res;
     }
 
-    void setTransform(QTransform t) {
+    void setTransform(PkTransform t) {
         transform = t;
     }
 
-    void setOriginShapeBBox(QRectF ShapeBBox) {
+    void setOriginShapeBBox(PkRectF ShapeBBox) {
         originShapeBBox = ShapeBBox;
     }
-    void setOriginBoxCorners(QPointF p) {
+    void setOriginBoxCorners(PkPointF p) {
         originBoxCorners.append(p);
     }
-    void setOriginPolyTightBoxCorners(QPointF p) {
+    void setOriginPolyTightBoxCorners(PkPointF p) {
         originPolyPreviousTightBoxCorners.append(p);
     }
-    void setOriginPolyTrueRectCorners(QPointF p) {
+    void setOriginPolyTrueRectCorners(PkPointF p) {
         originPolyTrueRectCorners.append(p);
     }
 
@@ -1244,8 +1244,8 @@ struct psd_vector_origination_data {
         isStar = true;
     }
 
-    static void setupCatcher(const QString path, KisAslCallbackObjectCatcher &catcher, psd_vector_origination_data *data) {
-        QString descriptorPath = path+"/keyDescriptorList/null";
+    static void setupCatcher(const PkString path, KisAslCallbackObjectCatcher &catcher, psd_vector_origination_data *data) {
+        PkString descriptorPath = path+"/keyDescriptorList/null";
         catcher.subscribeInteger(descriptorPath + "/keyOriginType", std::bind(&psd_vector_origination_data::setOriginType, data, std::placeholders::_1));
         catcher.subscribeDouble(descriptorPath + "/keyOriginResolution", std::bind(&psd_vector_origination_data::setOriginResolution, data, std::placeholders::_1));
         catcher.subscribeTransform(descriptorPath + "/Trnf", std::bind(&psd_vector_origination_data::setTransform, data, std::placeholders::_1));
@@ -1271,7 +1271,7 @@ struct psd_vector_origination_data {
 
     }
 
-    QDomDocument getASL() {
+    PkXmlDocument getASL() {
         KisAslXmlWriter w;
         w.enterDescriptor("", "", "null");
 
@@ -1312,8 +1312,8 @@ struct psd_vector_origination_data {
 
 
 
-    QString shapeName () {
-        return typeToName.value(originType, QString());
+    PkString shapeName () {
+        return typeToName.value(originType, PkString());
     }
 
     bool canMakeParametricShape() {
@@ -1328,15 +1328,15 @@ struct psd_vector_origination_data {
      * one must first untransform this polygon and use it to determine the appropriate
      * values.
      */
-    void OriginalSizeAndAngle(QSizeF &size, double &angle) {
+    void OriginalSizeAndAngle(PkSizeF &size, double &angle) {
         size = originShapeBBox.size();
-        angle = QLineF(originShapeBBox.topLeft(), originShapeBBox.topRight()).angle();
+        angle = PkLineF(originShapeBBox.topLeft(), originShapeBBox.topRight()).angle();
         if (originBoxCorners.size() == 4) {
-            QPolygonF poly = transform.inverted().map(originBoxCorners);
-            angle = QLineF(poly.first(), poly.value(1)).angle();
-            double w = QLineF(poly.first(), poly.value(1)).length();
-            double h = QLineF(poly.first(), poly.value(3)).length();
-            size = QSizeF(w, h);
+            PkPolygonF poly = transform.inverted().map(originBoxCorners);
+            angle = PkLineF(poly.first(), poly.value(1)).angle();
+            double w = PkLineF(poly.first(), poly.value(1)).length();
+            double h = PkLineF(poly.first(), poly.value(3)).length();
+            size = PkSizeF(w, h);
         }
     }
 };
@@ -1351,91 +1351,91 @@ class KRITAPSD_EXPORT PsdAdditionalLayerInfoBlock
 public:
     PsdAdditionalLayerInfoBlock(const PSDHeader &header);
 
-    using ExtraLayerInfoBlockHandler = std::function<bool(QIODevice &)>;
-    using UserMaskInfoBlockHandler = std::function<bool(QIODevice &)>;
+    using ExtraLayerInfoBlockHandler = std::function<bool(PkStream &)>;
+    using UserMaskInfoBlockHandler = std::function<bool(PkStream &)>;
 
     void setExtraLayerInfoBlockHandler(ExtraLayerInfoBlockHandler handler);
     void setUserMaskInfoBlockHandler(UserMaskInfoBlockHandler handler);
 
-    bool read(QIODevice &io);
-    bool write(QIODevice &io, KisNodeSP node);
+    bool read(PkStream &io);
+    bool write(PkStream &io, KisNodeSP node);
 
-    void writeLuniBlockEx(QIODevice &io, const QString &layerName);
-    void writeLsctBlockEx(QIODevice &io, psd_section_type sectionType, bool isPassThrough, const QString &blendModeKey);
-    void writeLfx2BlockEx(QIODevice &io, const QDomDocument &stylesXmlDoc, bool useLfxsLayerStyleFormat);
-    void writePattBlockEx(QIODevice &io, const QDomDocument &patternsXmlDoc);
-    void writeLclrBlockEx(QIODevice &io, const quint16 &labelColor);
+    void writeLuniBlockEx(PkStream &io, const PkString &layerName);
+    void writeLsctBlockEx(PkStream &io, psd_section_type sectionType, bool isPassThrough, const PkString &blendModeKey);
+    void writeLfx2BlockEx(PkStream &io, const PkXmlDocument &stylesXmlDoc, bool useLfxsLayerStyleFormat);
+    void writePattBlockEx(PkStream &io, const PkXmlDocument &patternsXmlDoc);
+    void writeLclrBlockEx(PkStream &io, const quint16 &labelColor);
 
-    void writeFillLayerBlockEx(QIODevice &io, const QDomDocument &fillConfig, psd_fill_type type);
-    void writeVmskBlockEx(QIODevice &io, psd_vector_mask mask);
-    void writeTypeToolBlockEx(QIODevice &io, psd_layer_type_shape typeTool);
-    void writeVectorStrokeDataEx(QIODevice &io, const QDomDocument &vectorStroke);
-    void writeVectorOriginationDataEx(QIODevice &io, const QDomDocument &vectorOrigination);
-    void writeTxt2BlockEx(QIODevice &io, const QVariantHash txt2Hash);
+    void writeFillLayerBlockEx(PkStream &io, const PkXmlDocument &fillConfig, psd_fill_type type);
+    void writeVmskBlockEx(PkStream &io, psd_vector_mask mask);
+    void writeTypeToolBlockEx(PkStream &io, psd_layer_type_shape typeTool);
+    void writeVectorStrokeDataEx(PkStream &io, const PkXmlDocument &vectorStroke);
+    void writeVectorOriginationDataEx(PkStream &io, const PkXmlDocument &vectorOrigination);
+    void writeTxt2BlockEx(PkStream &io, const PkVariantHash txt2Hash);
 
     bool valid();
 
     const PSDHeader &m_header;
-    QString error;
-    QStringList keys; // List of all the keys that we've seen
+    PkString error;
+    PkStringList keys; // List of all the keys that we've seen
 
-    QString unicodeLayerName;
-    QDomDocument layerStyleXml;
+    PkString unicodeLayerName;
+    PkXmlDocument layerStyleXml;
 
-    QVector<QDomDocument> embeddedPatterns;
-    QVariantHash txt2Data;
+    PkVector<PkXmlDocument> embeddedPatterns;
+    PkVariantHash txt2Data;
 
     quint16 labelColor{0}; // layer color.
 
-    QDomDocument fillConfig;
+    PkXmlDocument fillConfig;
     psd_fill_type fillType {psd_fill_solid_color};
 
-    QTransform textTransform;
-    QDomDocument textData;
+    PkTransform textTransform;
+    PkXmlDocument textData;
 
     psd_vector_mask vectorMask;
-    QDomDocument vectorStroke;
-    QDomDocument vectorOriginationData;
+    PkXmlDocument vectorStroke;
+    PkXmlDocument vectorOriginationData;
 
     psd_section_type sectionDividerType;
-    QString sectionDividerBlendMode;
+    PkString sectionDividerBlendMode;
 
 private:
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void readImpl(QIODevice &io);
+    void readImpl(PkStream &io);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeLuniBlockExImpl(QIODevice &io, const QString &layerName);
+    void writeLuniBlockExImpl(PkStream &io, const PkString &layerName);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeLsctBlockExImpl(QIODevice &io, psd_section_type sectionType, bool isPassThrough, const QString &blendModeKey);
+    void writeLsctBlockExImpl(PkStream &io, psd_section_type sectionType, bool isPassThrough, const PkString &blendModeKey);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeLfx2BlockExImpl(QIODevice &io, const QDomDocument &stylesXmlDoc, bool useLfxsLayerStyleFormat);
+    void writeLfx2BlockExImpl(PkStream &io, const PkXmlDocument &stylesXmlDoc, bool useLfxsLayerStyleFormat);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writePattBlockExImpl(QIODevice &io, const QDomDocument &patternsXmlDoc);
+    void writePattBlockExImpl(PkStream &io, const PkXmlDocument &patternsXmlDoc);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeLclrBlockExImpl(QIODevice &io, const quint16 &lclr);
+    void writeLclrBlockExImpl(PkStream &io, const quint16 &lclr);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeFillLayerBlockExImpl(QIODevice &io, const QDomDocument &fillConfig, psd_fill_type type);
+    void writeFillLayerBlockExImpl(PkStream &io, const PkXmlDocument &fillConfig, psd_fill_type type);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeVectorMaskImpl(QIODevice &io, psd_vector_mask mask);
+    void writeVectorMaskImpl(PkStream &io, psd_vector_mask mask);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeTypeToolImpl(QIODevice &io, psd_layer_type_shape tool);
+    void writeTypeToolImpl(PkStream &io, psd_layer_type_shape tool);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeVectorStrokeDataImpl(QIODevice &io, const QDomDocument &vectorStroke);
+    void writeVectorStrokeDataImpl(PkStream &io, const PkXmlDocument &vectorStroke);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeVectorOriginationDataImpl(QIODevice &io, const QDomDocument &vectorOrigination);
+    void writeVectorOriginationDataImpl(PkStream &io, const PkXmlDocument &vectorOrigination);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeTxt2BlockExImpl(QIODevice &io, const QVariantHash txt2Hash);
+    void writeTxt2BlockExImpl(PkStream &io, const PkVariantHash txt2Hash);
 
 private:
     ExtraLayerInfoBlockHandler m_layerInfoBlockHandler;

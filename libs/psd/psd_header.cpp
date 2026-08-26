@@ -6,7 +6,7 @@
  */
 #include "psd_header.h"
 
-#include <QIODevice>
+#include <PkStream.h>
 #include <QtEndian>
 #include <psd_utils.h>
 
@@ -33,7 +33,7 @@ PSDHeader::PSDHeader()
 {
 }
 
-bool PSDHeader::read(QIODevice &device)
+bool PSDHeader::read(PkStream &device)
 {
     Header header;
     quint64 bytesRead = device.read((char *)&header, sizeof(Header));
@@ -42,7 +42,7 @@ bool PSDHeader::read(QIODevice &device)
         return false;
     }
 
-    signature = QString(header.signature);
+    signature = PkString(header.signature);
     memcpy(&version, header.version, 2);
     version = qFromBigEndian(version);
     memcpy(&nChannels, header.nChannels, 2);
@@ -59,7 +59,7 @@ bool PSDHeader::read(QIODevice &device)
     return valid();
 }
 
-bool PSDHeader::write(QIODevice &device)
+bool PSDHeader::write(PkStream &device)
 {
     if (!valid())
         return false;
@@ -89,38 +89,38 @@ bool PSDHeader::valid()
         return false;
     }
     if (version < 1 || version > 2) {
-        error = QString("Wrong version: %1").arg(version);
+        error = PkString("Wrong version: %1").arg(version);
         return false;
     }
     if (nChannels < 1 || nChannels > 56) {
-        error = QString("Channel count out of range: %1").arg(nChannels);
+        error = PkString("Channel count out of range: %1").arg(nChannels);
         return false;
     }
     if (version == 1) {
         if (height < 1 || height > 30000) {
-            error = QString("Height out of range: %1").arg(height);
+            error = PkString("Height out of range: %1").arg(height);
             return false;
         }
         if (width < 1 || width > 30000) {
-            error = QString("Width out of range: %1").arg(width);
+            error = PkString("Width out of range: %1").arg(width);
             return false;
         }
     } else /* if (version == 2) */ {
         if (height < 1 || height > 300000) {
-            error = QString("Height out of range: %1").arg(height);
+            error = PkString("Height out of range: %1").arg(height);
             return false;
         }
         if (width < 1 || width > 300000) {
-            error = QString("Width out of range: %1").arg(width);
+            error = PkString("Width out of range: %1").arg(width);
             return false;
         }
     }
     if (channelDepth != 1 && channelDepth != 8 && channelDepth != 16) {
-        error = QString("Channel depth incorrect: %1").arg(channelDepth);
+        error = PkString("Channel depth incorrect: %1").arg(channelDepth);
         return false;
     }
     if (colormode < 0 || colormode > 9) {
-        error = QString("Colormode is out of range: %1").arg(colormode);
+        error = PkString("Colormode is out of range: %1").arg(colormode);
         return false;
     }
 

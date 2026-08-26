@@ -13,7 +13,7 @@
 #include <kis_debug.h>
 #include <psd.h>
 
-class QIODevice;
+class PkStream;
 
 class KRITAPSD_EXPORT PSDHeader
 {
@@ -28,18 +28,18 @@ public:
      *   <li>if the 8BPS signature is not found
      *   <li>if the version is not 1 or 2
      */
-    bool read(QIODevice &device);
+    bool read(PkStream &device);
 
     /**
      * write the header data to the given device
      *
      * @return false if writing failed or if this is not a valid header
      */
-    bool write(QIODevice &device);
+    bool write(PkStream &device);
 
     bool valid();
 
-    QString signature; // 8PBS
+    PkString signature; // 8PBS
     quint16 version; // 1 or 2
     quint16 nChannels; // 1 - 56
     quint32 height; // 1-30,000 or 1 - 300,000
@@ -49,7 +49,7 @@ public:
     psd_byte_order byteOrder;
     bool tiffStyleLayerBlock; // if true, treat layer section as 4-byte aligned blocks
 
-    QString error;
+    PkString error;
 };
 
 KRITAPSD_EXPORT QDebug operator<<(QDebug dbg, const PSDHeader &header);

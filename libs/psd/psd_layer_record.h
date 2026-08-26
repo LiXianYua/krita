@@ -9,9 +9,9 @@
 
 #include "kritapsd_export.h"
 
-#include <QByteArray>
-#include <QString>
-#include <QVector>
+#include <PkByteArray.h>
+#include <PkString.h>
+#include <PkVector.h>
 
 #include <kis_node.h>
 #include <kis_paint_device.h>
@@ -21,7 +21,7 @@
 #include "psd_additional_layer_info_block.h"
 #include "psd_header.h"
 
-class QIODevice;
+class PkStream;
 class KoPathShape;
 
 enum psd_layer_type {
@@ -60,7 +60,7 @@ struct KRITAPSD_EXPORT ChannelInfo {
     psd_compression_type compressionType;
     quint64 channelDataStart;
     quint64 channelDataLength;
-    QVector<quint32> rleRowLengths;
+    PkVector<quint32> rleRowLengths;
     int channelOffset; // where the channel data starts
     int channelInfoPosition; // where the channelinfo record is saved in the file
 };
@@ -75,11 +75,11 @@ public:
         qDeleteAll(channelInfoRecords);
     }
 
-    QRect channelRect(ChannelInfo *channel) const;
+    PkRect channelRect(ChannelInfo *channel) const;
 
-    bool read(QIODevice &io);
-    bool readPixelData(QIODevice &io, KisPaintDeviceSP device);
-    bool readMask(QIODevice &io, KisPaintDeviceSP dev, ChannelInfo *channel);
+    bool read(PkStream &io);
+    bool readPixelData(PkStream &io, KisPaintDeviceSP device);
+    bool readMask(PkStream &io, KisPaintDeviceSP dev, ChannelInfo *channel);
 
     /**
      * @brief constructPathShape
@@ -100,18 +100,18 @@ public:
      */
     void addPathShapeToPSDPath(psd_path &path, KoPathShape *shape, double shapeWidth, double shapeHeight);
 
-    void write(QIODevice &io,
+    void write(PkStream &io,
                KisPaintDeviceSP layerContentDevice,
                KisNodeSP onlyTransparencyMask,
-               const QRect &maskRect,
+               const PkRect &maskRect,
                psd_section_type sectionType,
-               const QDomDocument &stylesXmlDoc,
+               const PkXmlDocument &stylesXmlDoc,
                bool useLfxsLayerStyleFormat);
-    void writePixelData(QIODevice &io, psd_compression_type compressionType);
+    void writePixelData(PkStream &io, psd_compression_type compressionType);
 
     bool valid();
 
-    QString error;
+    PkString error;
 
     qint32 top {0};
     qint32 left {0};
@@ -120,9 +120,9 @@ public:
 
     quint16 nChannels {0};
 
-    QVector<ChannelInfo *> channelInfoRecords;
+    PkVector<ChannelInfo *> channelInfoRecords;
 
-    QString blendModeKey;
+    PkString blendModeKey;
     bool isPassThrough {false};
 
     quint8 opacity {0};
@@ -134,12 +134,12 @@ public:
     int labelColor {0};
 
     psd_fill_type fillType {psd_fill_solid_color};
-    QDomDocument fillConfig;
+    PkXmlDocument fillConfig;
 
     psd_vector_mask vectorMask;
     psd_layer_type_shape textShape;
-    QDomDocument vectorStroke;
-    QDomDocument vectorOriginationData;
+    PkXmlDocument vectorStroke;
+    PkXmlDocument vectorOriginationData;
 
     struct LayerMaskData {
         qint32 top {0};
@@ -164,36 +164,36 @@ public:
             std::array<quint8, 2> whiteValues;
         };
 
-        QByteArray data;
+        PkByteArray data;
 
         QPair<LayerBlendingRange, LayerBlendingRange> compositeGrayRange;
-        QVector<QPair<LayerBlendingRange, LayerBlendingRange>> sourceDestinationRanges;
+        PkVector<QPair<LayerBlendingRange, LayerBlendingRange>> sourceDestinationRanges;
     };
 
     LayerBlendingRanges blendingRanges;
 
-    QString layerName {"UNINITIALIZED"}; // pascal, not unicode!
+    PkString layerName {"UNINITIALIZED"}; // pascal, not unicode!
 
     PsdAdditionalLayerInfoBlock infoBlocks;
 
 private:
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    bool readImpl(QIODevice &io);
+    bool readImpl(PkStream &io);
 
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeImpl(QIODevice &io,
+    void writeImpl(PkStream &io,
                    KisPaintDeviceSP layerContentDevice,
                    KisNodeSP onlyTransparencyMask,
-                   const QRect &maskRect,
+                   const PkRect &maskRect,
                    psd_section_type sectionType,
-                   const QDomDocument &stylesXmlDoc,
+                   const PkXmlDocument &stylesXmlDoc,
                    bool useLfxsLayerStyleFormat);
 
     template<psd_byte_order = psd_byte_order::psdBigEndian>
-    void writeTransparencyMaskPixelData(QIODevice &io);
+    void writeTransparencyMaskPixelData(PkStream &io);
 
     template<psd_byte_order = psd_byte_order::psdBigEndian>
-    void writePixelDataImpl(QIODevice &io, psd_compression_type compressionType);
+    void writePixelDataImpl(PkStream &io, psd_compression_type compressionType);
 
     KisPaintDeviceSP convertMaskDeviceIfNeeded(KisPaintDeviceSP dev);
 
@@ -203,7 +203,7 @@ private:
 private:
     KisPaintDeviceSP m_layerContentDevice;
     KisNodeSP m_onlyTransparencyMask;
-    QRect m_onlyTransparencyMaskRect;
+    PkRect m_onlyTransparencyMaskRect;
     qint64 m_transparencyMaskSizeOffset {0};
 
     const PSDHeader m_header;

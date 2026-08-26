@@ -9,8 +9,8 @@
 #include <psd.h>
 #include "psd_header.h"
 
-#include <QByteArray>
-#include <QColor>
+#include <PkByteArray.h>
+#include <PkColor.h>
 
 class PSDColorModeBlock
 {
@@ -18,20 +18,20 @@ public:
 
     PSDColorModeBlock(psd_color_mode colormode);
 
-    bool read(QIODevice &io);
-    bool write(QIODevice &io);
+    bool read(PkStream &io);
+    bool write(PkStream &io);
     bool valid();
 
     quint32 blocksize;
     psd_color_mode colormode;
-    QByteArray data;
+    PkByteArray data;
 
-    QString error;
+    PkString error;
 
     /* to store rgb colormap values of indexed image
     */
-    QList<QColor> colormap;
-    QByteArray duotoneSpecification; // Krita should save this in an annotation and write it back, if present
+    PkList<PkColor> colormap;
+    PkByteArray duotoneSpecification; // Krita should save this in an annotation and write it back, if present
 
 };
 

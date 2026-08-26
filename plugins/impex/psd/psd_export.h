@@ -6,17 +6,17 @@
 #ifndef _PSD_EXPORT_H_
 #define _PSD_EXPORT_H_
 
-#include <QVariant>
+#include <PkVariant.h>
 
 #include <KisImportExportFilter.h>
 
 class psdExport : public KisImportExportFilter {
     Q_OBJECT
     public:
-        psdExport(QObject *parent, const QVariantList &);
+        psdExport(QObject *parent, const PkVariantList &);
         ~psdExport() override;
     public:
-        KisImportExportErrorCode convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP configuration = 0) override;
+        KisImportExportErrorCode convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP configuration = 0) override;
         void initializeCapabilities() override;
         bool exportSupportsGuides() const override;
 };

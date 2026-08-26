@@ -6,8 +6,8 @@
 #include "psd_resource_block.h"
 
 #include <QBuffer>
-#include <QDataStream>
-#include <QIODevice>
+#include <PkDataStream.h>
+#include <PkStream.h>
 
 #include <kis_debug.h>
 
@@ -16,14 +16,14 @@
 #include "psd_utils.h"
 
 PSDResourceBlock::PSDResourceBlock()
-    : KisAnnotation("PSD Resource Block", "", QByteArray())
+    : KisAnnotation("PSD Resource Block", "", PkByteArray())
     , identifier(PSDImageResourceSection::UNKNOWN)
     , dataSize(0)
     , resource(0)
 {
 }
 
-bool PSDResourceBlock::read(QIODevice &io)
+bool PSDResourceBlock::read(PkStream &io)
 {
     dbgFile << "Reading resource block";
     if (io.atEnd()) {
@@ -31,10 +31,10 @@ bool PSDResourceBlock::read(QIODevice &io)
         return false;
     }
 
-    QByteArray b;
+    PkByteArray b;
     b = io.read(4);
-    if (b.size() != 4 || QString(b) != "8BIM") {
-        error = QString("Could not read resource block signature. Got %1.").arg(QString(b));
+    if (b.size() != 4 || PkString(b) != "8BIM") {
+        error = PkString("Could not read resource block signature. Got %1.").arg(PkString(b));
         return false;
     }
 
@@ -45,7 +45,7 @@ bool PSDResourceBlock::read(QIODevice &io)
 
     dbgFile << "\tresource block identifier" << PSDImageResourceSection::idToString((PSDImageResourceSection::PSDResourceID)identifier) << identifier;
 
-    m_type = QString("PSD Resource Block: %1").arg(identifier);
+    m_type = PkString("PSD Resource Block: %1").arg(identifier);
 
     if (!psdread_pascalstring(io, name, 2)) {
         error = "Could not read name of resource block";
@@ -55,7 +55,7 @@ bool PSDResourceBlock::read(QIODevice &io)
     dbgFile << "\tresource block name" << name;
 
     if (!psdread(io, dataSize)) {
-        error = QString("Could not read datasize for resource block with name %1 of type %2").arg(name).arg(identifier);
+        error = PkString("Could not read datasize for resource block with name %1 of type %2").arg(name).arg(identifier);
         return false;
     }
 
@@ -69,7 +69,7 @@ bool PSDResourceBlock::read(QIODevice &io)
 
     data = io.read(dataSize);
     if (data.size() != (int)dataSize) {
-        error = QString("Could not read data for resource block with name %1 of type %2").arg(name).arg(identifier);
+        error = PkString("Could not read data for resource block with name %1 of type %2").arg(name).arg(identifier);
         return false;
     }
 
@@ -245,12 +245,12 @@ bool PSDResourceBlock::read(QIODevice &io)
     return valid();
 }
 
-bool PSDResourceBlock::write(QIODevice &io) const
+bool PSDResourceBlock::write(PkStream &io) const
 {
     dbgFile << "Writing Resource Block" << PSDImageResourceSection::idToString((PSDImageResourceSection::PSDResourceID)identifier) << identifier;
 
     if (resource && !resource->valid()) {
-        error = QString("Cannot write an invalid Resource Block");
+        error = PkString("Cannot write an invalid Resource Block");
         return false;
     }
 
@@ -266,7 +266,7 @@ bool PSDResourceBlock::write(QIODevice &io) const
         return true;
     }
 
-    QByteArray ba;
+    PkByteArray ba;
 
     // createBlock returns true by default but does not change the data.
     if (resource && !resource->createBlock(ba)) {
@@ -284,7 +284,7 @@ bool PSDResourceBlock::write(QIODevice &io) const
         buf.close();
     }
     if (io.write(ba.constData(), ba.size()) != ba.size()) {
-        error = QString("Could not write complete resource");
+        error = PkString("Could not write complete resource");
         return false;
     }
 
@@ -294,23 +294,23 @@ bool PSDResourceBlock::write(QIODevice &io) const
 bool PSDResourceBlock::valid()
 {
     if (identifier == PSDImageResourceSection::UNKNOWN) {
-        error = QString("Unknown ID: %1").arg(identifier);
+        error = PkString("Unknown ID: %1").arg(identifier);
         return false;
     }
     if (data.size() != (int)dataSize) {
-        error = QString("Needed %1 bytes, got %2 bytes of data").arg(dataSize).arg(data.length());
+        error = PkString("Needed %1 bytes, got %2 bytes of data").arg(dataSize).arg(data.length());
         return false;
     }
     return true;
 }
 
-bool RESN_INFO_1005::interpretBlock(QByteArray data)
+bool RESN_INFO_1005::interpretBlock(PkByteArray data)
 {
     dbgFile << "Reading RESN_INFO_1005";
 
     // the resolution we set on the image should be dpi; we can also set the unit on the KisDocument.
-    QDataStream ds(data);
-    ds.setByteOrder(QDataStream::BigEndian);
+    PkDataStream ds(data);
+    ds.setByteOrder(PkDataStream::BigEndian);
 
     ds >> hRes >> hResUnit >> widthUnit >> vRes >> vResUnit >> heightUnit;
 
@@ -327,7 +327,7 @@ bool RESN_INFO_1005::interpretBlock(QByteArray data)
     return ds.atEnd();
 }
 
-bool RESN_INFO_1005::createBlock(QByteArray &data)
+bool RESN_INFO_1005::createBlock(PkByteArray &data)
 {
     dbgFile << "Writing RESN_INFO_1005";
     QBuffer buf(&data);
@@ -353,7 +353,7 @@ bool RESN_INFO_1005::createBlock(QByteArray &data)
     return true;
 }
 
-bool ICC_PROFILE_1039::interpretBlock(QByteArray data)
+bool ICC_PROFILE_1039::interpretBlock(PkByteArray data)
 {
     dbgFile << "Reading ICC_PROFILE_1039";
 
@@ -362,7 +362,7 @@ bool ICC_PROFILE_1039::interpretBlock(QByteArray data)
     return true;
 }
 
-bool ICC_PROFILE_1039::createBlock(QByteArray &data)
+bool ICC_PROFILE_1039::createBlock(PkByteArray &data)
 {
     dbgFile << "Writing ICC_PROFILE_1039";
     if (icc.size() == 0) {

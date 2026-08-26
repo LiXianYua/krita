@@ -69,7 +69,7 @@ PSDLoader::~PSDLoader()
 {
 }
 
-KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
+KisImportExportErrorCode PSDLoader::decode(PkStream &io)
 {
     // open the file
 
@@ -110,7 +110,7 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
     // are no layers.
 
     // Get the right colorspace
-    QPair<QString, QString> colorSpaceId = psd_colormode_to_colormodelid(header.colormode,
+    QPair<PkString, PkString> colorSpaceId = psd_colormode_to_colormodelid(header.colormode,
                                                                          header.channelDepth);
     if (colorSpaceId.first.isNull()) {
         dbgFile << "Unsupported colorspace" << header.colormode << header.channelDepth;
@@ -137,8 +137,8 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
     }
 
     // Creating the KisImage
-    QFile *file = dynamic_cast<QFile *>(&io);
-    QString name = file ? file->fileName() : "Imported";
+    PkFileStream *file = dynamic_cast<PkFileStream *>(&io);
+    PkString name = file ? file->fileName() : "Imported";
     m_image = new KisImage(m_doc->createUndoStore(),  header.width, header.height, cs, name);
     Q_CHECK_PTR(m_image);
 
@@ -186,16 +186,16 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
 
     // Load embedded patterns early for fill layers.
 
-    const QVector<QDomDocument> &embeddedPatterns =
+    const PkVector<PkXmlDocument> &embeddedPatterns =
         layerSection.globalInfoSection.embeddedPatterns;
 
-    const QString storageLocation = m_doc->embeddedResourcesStorageId();
+    const PkString storageLocation = m_doc->embeddedResourcesStorageId();
 
     KisEmbeddedResourceStorageProxy resourceProxy(storageLocation);
 
     KisAslLayerStyleSerializer serializer;
     if (!embeddedPatterns.isEmpty()) {
-        Q_FOREACH (const QDomDocument &doc, embeddedPatterns) {
+        Q_FOREACH (const PkXmlDocument &doc, embeddedPatterns) {
             serializer.registerPSDPattern(doc);
         }
         Q_FOREACH (KoPatternSP pattern, serializer.patterns()) {
@@ -240,8 +240,8 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
      */
     KisNodeSP lastAddedLayer;
 
-    typedef QPair<QDomDocument, KisLayerSP> LayerStyleMapping;
-    QVector<LayerStyleMapping> allStylesXml;
+    typedef QPair<PkXmlDocument, KisLayerSP> LayerStyleMapping;
+    PkVector<LayerStyleMapping> allStylesXml;
     using namespace std::placeholders;
 
     bool convertTextToShape = true;
@@ -291,7 +291,7 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
                     groupLayer = groupStack.pop();
                 }
 
-                const QDomDocument &styleXml = layerRecord->infoBlocks.layerStyleXml;
+                const PkXmlDocument &styleXml = layerRecord->infoBlocks.layerStyleXml;
 
                 if (!styleXml.isNull()) {
                     allStylesXml << LayerStyleMapping(styleXml, groupLayer);
@@ -300,7 +300,7 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
                 groupLayer->setName(layerRecord->layerName);
                 groupLayer->setVisible(layerRecord->visible);
 
-                QString compositeOp = psd_blendmode_to_composite_op(layerRecord->infoBlocks.sectionDividerBlendMode);
+                PkString compositeOp = psd_blendmode_to_composite_op(layerRecord->infoBlocks.sectionDividerBlendMode);
 
                 // Krita doesn't support pass-through blend
                 // mode. Instead it is just a property of a group
@@ -338,7 +338,7 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
             KisLayerSP layer;
             if (!layerRecord->infoBlocks.fillConfig.isNull()) {
                 KisFilterConfigurationSP cfg;
-                QDomDocument fillConfig;
+                PkXmlDocument fillConfig;
                 KisAslCallbackObjectCatcher catcher;
 
                 KoShape *vectorMask = nullptr;
@@ -350,7 +350,7 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
                         KisAslXmlParser parser;
                         parser.parseXML(layerRecord->infoBlocks.vectorOriginationData, catcher);
                     }
-                    QString shapeName = data.shapeName();
+                    PkString shapeName = data.shapeName();
                     const KoShapeFactoryBase *f = KoShapeRegistry::instance()->value(shapeName);
                     if (!(data.canMakeParametricShape() && f)) {
                         double width = m_image->width() / m_image->xRes();
@@ -358,12 +358,12 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
                         vectorMask = layerRecord->constructPathShape(layerRecord->infoBlocks.vectorMask.path, width, height);
                         vectorMask->setUserData(new KisShapeSelectionMarker);
                     } else {
-                        QSizeF size;
+                        PkSizeF size;
                         double angle;
                         data.OriginalSizeAndAngle(size, angle);
                         double resMultiplier = data.originResolution/72.0;
-                        QTransform scaleToPt = QTransform::fromScale(resMultiplier, resMultiplier).inverted();
-                        size = QSizeF(size.width()/resMultiplier, size.height()/resMultiplier);
+                        PkTransform scaleToPt = PkTransform::fromScale(resMultiplier, resMultiplier).inverted();
+                        size = PkSizeF(size.width()/resMultiplier, size.height()/resMultiplier);
 
                         KoDocumentResourceManager manager;
                         KoProperties props;
@@ -394,7 +394,7 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
                         if (!shape)
                             continue;
                         shape->setSize(size);
-                        QTransform t;
+                        PkTransform t;
                         t.rotate(360.0-angle);
 
                         shape->setTransformation(t * scaleToPt.inverted() * data.transform * scaleToPt);
@@ -462,10 +462,10 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
                         parser.parseXML(layerRecord->infoBlocks.vectorStroke, strokeCatcher);
 
                         if (!data.fillEnabled) {
-                            vectorMask->setBackground(QSharedPointer<KoShapeBackground>(0));
+                            vectorMask->setBackground(PkSharedPointer<KoShapeBackground>(0));
                         }
                         if (data.strokeEnabled) {
-                            QColor c = fill.getBrush().color();
+                            PkColor c = fill.getBrush().color();
                             c.setAlphaF(data.opacity);
                             stroke->setColor(c);
                             if (!grad.gradient.isNull()) {
@@ -494,22 +494,22 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
                 KisShapeLayerSP textLayer = new KisShapeLayer(m_doc->shapeController(), m_image, layerRecord->layerName, layerRecord->opacity);
                 KisAslCallbackObjectCatcher catcher;
                 psd_layer_type_shape text;
-                psd_layer_type_shape::setupCatcher(QString(), catcher, &text);
+                psd_layer_type_shape::setupCatcher(PkString(), catcher, &text);
                 KisAslXmlParser parser;
                 parser.parseXML(layerRecord->infoBlocks.textData, catcher);
                 KoSvgTextShape *shape = new KoSvgTextShape();
                 PsdTextDataConverter converter;
                 KoSvgTextShapeMarkupConverter svgConverter(shape);
 
-                QString svg;
-                QString styles;
+                PkString svg;
+                PkString styles;
                 // This is to align inlinesize appropriately.
                 bool offsetByAscent = false;
-                QPointF offset1;
+                PkPointF offset1;
                 // PSD text layers have all their coordinates in pixels, and because fonts can be very precise-unit sensitive,
                 // we want to ensure all values are scaled appropriately.
 
-                QTransform scaleToPt = QTransform::fromScale(m_image->xRes(), m_image->yRes()).inverted();
+                PkTransform scaleToPt = PkTransform::fromScale(m_image->xRes(), m_image->yRes()).inverted();
                 bool res = converter.convertPSDTextEngineDataToSVG(text.engineData,
                                                                    layerSection.globalInfoSection.txt2Data,
                                                                    m_image->colorSpace(),
@@ -523,13 +523,13 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
                 dbgFile << converter.warnings();
                 svgConverter.convertFromSvg(svg, styles, m_image->bounds(), m_image->xRes()*72.0);
                 if (offsetByAscent) {
-                    QPointF offset2 = QPointF() - shape->outlineRect().topLeft();
+                    PkPointF offset2 = PkPointF() - shape->outlineRect().topLeft();
                     if (text.isHorizontal) {
                         offset2.setX(offset1.x());
                     } else {
                         offset2.setY(offset1.y());
                     }
-                    shape->setTransformation(QTransform::fromTranslate(offset2.x(), offset2.y()) * scaleToPt.inverted()
+                    shape->setTransformation(PkTransform::fromTranslate(offset2.x(), offset2.y()) * scaleToPt.inverted()
                                              * layerRecord->infoBlocks.textTransform * scaleToPt);
                 } else {
                     shape->setTransformation(scaleToPt.inverted() * layerRecord->infoBlocks.textTransform * scaleToPt);
@@ -547,7 +547,7 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
 
             layer->setColorLabelIndex(layerRecord->labelColor);
 
-            const QDomDocument &styleXml = layerRecord->infoBlocks.layerStyleXml;
+            const PkXmlDocument &styleXml = layerRecord->infoBlocks.layerStyleXml;
 
             if (!styleXml.isNull()) {
                 allStylesXml << LayerStyleMapping(styleXml, layer);
@@ -654,7 +654,7 @@ KisImportExportErrorCode PSDLoader::decode(QIODevice &io)
     return KritaUtils::workaroundUnsuitableImageColorSpace(m_image, m_feedbackInterface, lock);
 }
 
-KisImportExportErrorCode PSDLoader::buildImage(QIODevice &io)
+KisImportExportErrorCode PSDLoader::buildImage(PkStream &io)
 {
     return decode(io);
 }

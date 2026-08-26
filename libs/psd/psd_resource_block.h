@@ -8,10 +8,10 @@
 
 #include "kritapsd_export.h"
 
-class QIODevice;
+class PkStream;
 
 #include <QBuffer>
-#include <QString>
+#include <PkString.h>
 #include <kis_debug.h>
 #include <klocalizedstring.h>
 
@@ -31,11 +31,11 @@ public:
     {
     }
 
-    virtual bool interpretBlock(QByteArray /*data*/)
+    virtual bool interpretBlock(PkByteArray /*data*/)
     {
         return true;
     }
-    virtual bool createBlock(QByteArray & /*data*/)
+    virtual bool createBlock(PkByteArray & /*data*/)
     {
         return true;
     }
@@ -44,12 +44,12 @@ public:
         return true;
     }
 
-    virtual QString displayText()
+    virtual PkString displayText()
     {
-        return QString();
+        return PkString();
     }
 
-    QString error;
+    PkString error;
 
 protected:
     void startBlock(QBuffer &buf, PSDImageResourceSection::PSDResourceID id, quint32 size)
@@ -102,7 +102,7 @@ public:
         return copied;
     }
 
-    QString displayText() const override
+    PkString displayText() const override
     {
         if (resource) {
             return resource->displayText();
@@ -110,23 +110,23 @@ public:
         return i18n("Unparsed Resource Block");
     }
 
-    bool read(QIODevice &io);
-    bool write(QIODevice &io) const;
+    bool read(PkStream &io);
+    bool write(PkStream &io) const;
     bool valid();
 
     quint16 identifier;
-    QString name;
+    PkString name;
     quint32 dataSize;
-    QByteArray data;
+    PkByteArray data;
 
     PSDInterpretedResource *resource;
 
-    mutable QString error;
+    mutable PkString error;
 };
 
 /* 0x03e9 - Optional - Mac print manager print info record */
 struct KRITAPSD_EXPORT MAC_PRINT_INFO_1001 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading MAC_PRINT_INFO_1001";
         return true;
@@ -154,8 +154,8 @@ struct KRITAPSD_EXPORT RESN_INFO_1005 : public PSDInterpretedResource {
     {
     }
 
-    bool interpretBlock(QByteArray data) override;
-    bool createBlock(QByteArray &data) override;
+    bool interpretBlock(PkByteArray data) override;
+    bool createBlock(PkByteArray &data) override;
 
     Fixed hRes;
     quint16 hResUnit;
@@ -167,7 +167,7 @@ struct KRITAPSD_EXPORT RESN_INFO_1005 : public PSDInterpretedResource {
 
 /* 0x03ee - Alpha channel names */
 struct KRITAPSD_EXPORT ALPHA_NAMES_1006 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading ALPHA_NAMES_1006";
 
@@ -177,7 +177,7 @@ struct KRITAPSD_EXPORT ALPHA_NAMES_1006 : public PSDInterpretedResource {
 
 /* 0x03ef - DisplayInfo structure */
 struct KRITAPSD_EXPORT DISPLAY_INFO_1007 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading DISPLAY_INFO_1007";
         return true;
@@ -186,7 +186,7 @@ struct KRITAPSD_EXPORT DISPLAY_INFO_1007 : public PSDInterpretedResource {
 
 /* 0x03f0 - Optional - Caption string */
 struct KRITAPSD_EXPORT CAPTION_1008 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading CAPTION_1008";
         return true;
@@ -195,7 +195,7 @@ struct KRITAPSD_EXPORT CAPTION_1008 : public PSDInterpretedResource {
 
 /* 0x03f1 - Border info */
 struct KRITAPSD_EXPORT BORDER_INFO_1009 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading BORDER_INFO_1009";
         return true;
@@ -204,7 +204,7 @@ struct KRITAPSD_EXPORT BORDER_INFO_1009 : public PSDInterpretedResource {
 
 /* 0x03f2 - Background color */
 struct KRITAPSD_EXPORT BACKGROUND_COL_1010 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading BACKGROUND_COL_1010";
         return true;
@@ -213,7 +213,7 @@ struct KRITAPSD_EXPORT BACKGROUND_COL_1010 : public PSDInterpretedResource {
 
 /* 0x03f3 - Print flags */
 struct KRITAPSD_EXPORT PRINT_FLAGS_1011 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading PRINT_FLAGS_1011";
         return true;
@@ -222,7 +222,7 @@ struct KRITAPSD_EXPORT PRINT_FLAGS_1011 : public PSDInterpretedResource {
 
 /* 0x03f4 - Greyscale and multichannel halftoning info */
 struct KRITAPSD_EXPORT GREY_HALFTONE_1012 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading GREY_HALFTONE_1012";
         return true;
@@ -231,7 +231,7 @@ struct KRITAPSD_EXPORT GREY_HALFTONE_1012 : public PSDInterpretedResource {
 
 /* 0x03f5 - Color halftoning info */
 struct KRITAPSD_EXPORT COLOR_HALFTONE_1013 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading COLOR_HALFTONE_1013";
         return true;
@@ -240,7 +240,7 @@ struct KRITAPSD_EXPORT COLOR_HALFTONE_1013 : public PSDInterpretedResource {
 
 /* 0x03f6 - Duotone halftoning info */
 struct KRITAPSD_EXPORT DUOTONE_HALFTONE_1014 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading DUOTONE_HALFTONE_1014";
         return true;
@@ -249,7 +249,7 @@ struct KRITAPSD_EXPORT DUOTONE_HALFTONE_1014 : public PSDInterpretedResource {
 
 /* 0x03f7 - Greyscale and multichannel transfer functions */
 struct KRITAPSD_EXPORT GREY_XFER_1015 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading GREY_XFER_1015";
         return true;
@@ -258,7 +258,7 @@ struct KRITAPSD_EXPORT GREY_XFER_1015 : public PSDInterpretedResource {
 
 /* 0x03f8 - Color transfer functions */
 struct KRITAPSD_EXPORT COLOR_XFER_1016 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading COLOR_XFER_1016";
         return true;
@@ -267,7 +267,7 @@ struct KRITAPSD_EXPORT COLOR_XFER_1016 : public PSDInterpretedResource {
 
 /* 0x03f9 - Duotone transfer functions */
 struct KRITAPSD_EXPORT DUOTONE_XFER_1017 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading DUOTONE_XFER_1017";
         return true;
@@ -276,7 +276,7 @@ struct KRITAPSD_EXPORT DUOTONE_XFER_1017 : public PSDInterpretedResource {
 
 /* 0x03fa - Duotone image information */
 struct KRITAPSD_EXPORT DUOTONE_INFO_1018 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading DUOTONE_INFO_1018";
         return true;
@@ -285,7 +285,7 @@ struct KRITAPSD_EXPORT DUOTONE_INFO_1018 : public PSDInterpretedResource {
 
 /* 0x03fb - Effective black & white values for dot range */
 struct KRITAPSD_EXPORT EFFECTIVE_BW_1019 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading EFFECTIVE_BW_1019";
         return true;
@@ -294,7 +294,7 @@ struct KRITAPSD_EXPORT EFFECTIVE_BW_1019 : public PSDInterpretedResource {
 
 /* 0x03fd - EPS options */
 struct KRITAPSD_EXPORT EPS_OPT_1021 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading EPS_OPT_1021";
         return true;
@@ -303,7 +303,7 @@ struct KRITAPSD_EXPORT EPS_OPT_1021 : public PSDInterpretedResource {
 
 /* 0x03fe - Quick mask info */
 struct KRITAPSD_EXPORT QUICK_MASK_1022 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading QUICK_MASK_1022";
         return true;
@@ -312,7 +312,7 @@ struct KRITAPSD_EXPORT QUICK_MASK_1022 : public PSDInterpretedResource {
 
 /* 0x0400 - Layer state info */
 struct KRITAPSD_EXPORT LAYER_STATE_1024 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading LAYER_STATE_1024";
         return true;
@@ -321,7 +321,7 @@ struct KRITAPSD_EXPORT LAYER_STATE_1024 : public PSDInterpretedResource {
 
 /* 0x0401 - Working path (not saved) */
 struct KRITAPSD_EXPORT WORKING_PATH_1025 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading WORKING_PATH_1025";
         return true;
@@ -330,7 +330,7 @@ struct KRITAPSD_EXPORT WORKING_PATH_1025 : public PSDInterpretedResource {
 
 /* 0x0402 - Layers group info */
 struct KRITAPSD_EXPORT LAYER_GROUP_1026 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading LAYER_GROUP_1026";
         return true;
@@ -339,7 +339,7 @@ struct KRITAPSD_EXPORT LAYER_GROUP_1026 : public PSDInterpretedResource {
 
 /* 0x0404 - IPTC-NAA record (IMV4.pdf) */
 struct KRITAPSD_EXPORT IPTC_NAA_DATA_1028 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading IPTC_NAA_DATA_1028";
         return true;
@@ -348,7 +348,7 @@ struct KRITAPSD_EXPORT IPTC_NAA_DATA_1028 : public PSDInterpretedResource {
 
 /* 0x0405 - Image mode for raw format files */
 struct KRITAPSD_EXPORT IMAGE_MODE_RAW_1029 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading IMAGE_MODE_RAW_1029";
         return true;
@@ -357,7 +357,7 @@ struct KRITAPSD_EXPORT IMAGE_MODE_RAW_1029 : public PSDInterpretedResource {
 
 /* 0x0406 - JPEG quality */
 struct KRITAPSD_EXPORT JPEG_QUAL_1030 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading JPEG_QUAL_1030";
         return true;
@@ -373,11 +373,11 @@ struct KRITAPSD_EXPORT GRID_GUIDE_1032 : public PSDInterpretedResource {
     {
     }
 
-    bool interpretBlock(QByteArray data) override
+    bool interpretBlock(PkByteArray data) override
     {
         dbgFile << "Reading GRID_GUIDE_1032";
-        QDataStream ds(data);
-        ds.setByteOrder(QDataStream::BigEndian);
+        PkDataStream ds(data);
+        ds.setByteOrder(PkDataStream::BigEndian);
         qint32 guidesLength;
 
         // version == 1, adobe documentation says that grid values are for
@@ -399,7 +399,7 @@ struct KRITAPSD_EXPORT GRID_GUIDE_1032 : public PSDInterpretedResource {
         return ds.atEnd();
     }
 
-    bool createBlock(QByteArray &data) override
+    bool createBlock(PkByteArray &data) override
     {
         QBuffer buf(&data);
         quint32 size = 16;
@@ -427,22 +427,22 @@ struct KRITAPSD_EXPORT GRID_GUIDE_1032 : public PSDInterpretedResource {
         return true;
     }
 
-    QString displayText() override
+    PkString displayText() override
     {
-        QStringList guidesText;
-        guidesText.append(QString("Grids and Guides version: %1").arg(version));
-        guidesText.append(QString("Grids vertical: %1, horizontal: %2")
+        PkStringList guidesText;
+        guidesText.append(PkString("Grids and Guides version: %1").arg(version));
+        guidesText.append(PkString("Grids vertical: %1, horizontal: %2")
                           .arg(gridVertical).arg(gridHorizontal));
-        QStringList vertical;
-        QStringList horizontal;
+        PkStringList vertical;
+        PkStringList horizontal;
         Q_FOREACH(quint32 guide, verticalGuides) {
-            vertical.append(QString::number(guide));
+            vertical.append(PkString::number(guide));
         }
         Q_FOREACH(quint32 guide, horizontalGuides) {
-            horizontal.append(QString::number(guide));
+            horizontal.append(PkString::number(guide));
         }
-        guidesText.append(QString("Vertical guides: %1").arg(vertical.join(", ")));
-        guidesText.append(QString("Horizontal guides: %1").arg(horizontal.join(", ")));
+        guidesText.append(PkString("Vertical guides: %1").arg(vertical.join(", ")));
+        guidesText.append(PkString("Horizontal guides: %1").arg(horizontal.join(", ")));
         return guidesText.join("\n");
     }
 
@@ -450,13 +450,13 @@ struct KRITAPSD_EXPORT GRID_GUIDE_1032 : public PSDInterpretedResource {
     quint32 version;
     qint32 gridHorizontal;
     qint32 gridVertical;
-    QList<quint32> horizontalGuides;
-    QList<quint32> verticalGuides;
+    PkList<quint32> horizontalGuides;
+    PkList<quint32> verticalGuides;
 };
 
 /* 0x0409 - Thumbnail resource */
 struct KRITAPSD_EXPORT THUMB_RES_1033 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading THUMB_RES_1033";
         return true;
@@ -465,7 +465,7 @@ struct KRITAPSD_EXPORT THUMB_RES_1033 : public PSDInterpretedResource {
 
 /* 0x040a - Copyright flag */
 struct KRITAPSD_EXPORT COPYRIGHT_FLG_1034 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading COPYRIGHT_FLG_1034";
         return true;
@@ -474,7 +474,7 @@ struct KRITAPSD_EXPORT COPYRIGHT_FLG_1034 : public PSDInterpretedResource {
 
 /* 0x040b - URL string */
 struct KRITAPSD_EXPORT URL_1035 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading URL_1035";
         return true;
@@ -483,7 +483,7 @@ struct KRITAPSD_EXPORT URL_1035 : public PSDInterpretedResource {
 
 /* 0x040c - Thumbnail resource */
 struct KRITAPSD_EXPORT THUMB_RES2_1036 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading THUMB_RES2_1036";
         return true;
@@ -497,19 +497,19 @@ struct KRITAPSD_EXPORT GLOBAL_ANGLE_1037 : public PSDInterpretedResource {
     {
     }
 
-    bool interpretBlock(QByteArray data) override
+    bool interpretBlock(PkByteArray data) override
     {
         dbgFile << "Reading GLOBAL_ANGLE_1037";
 
-        QDataStream ds(data);
-        ds.setByteOrder(QDataStream::BigEndian);
+        PkDataStream ds(data);
+        ds.setByteOrder(PkDataStream::BigEndian);
 
         ds >> angle;
 
         return true;
     }
 
-    bool createBlock(QByteArray &data) override
+    bool createBlock(PkByteArray &data) override
     {
         QBuffer buf(&data);
         startBlock(buf, PSDImageResourceSection::GLOBAL_ANGLE, 4);
@@ -522,9 +522,9 @@ struct KRITAPSD_EXPORT GLOBAL_ANGLE_1037 : public PSDInterpretedResource {
         return true;
     }
 
-    QString displayText() override
+    PkString displayText() override
     {
-        return QString("Global Angle: %1").arg(angle);
+        return PkString("Global Angle: %1").arg(angle);
     }
 
     qint32 angle;
@@ -532,7 +532,7 @@ struct KRITAPSD_EXPORT GLOBAL_ANGLE_1037 : public PSDInterpretedResource {
 
 /* 0x040e - Color samplers resource */
 struct KRITAPSD_EXPORT COLOR_SAMPLER_1038 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading COLOR_SAMPLER_1038";
         return true;
@@ -541,15 +541,15 @@ struct KRITAPSD_EXPORT COLOR_SAMPLER_1038 : public PSDInterpretedResource {
 
 /* 0x040f - ICC Profile */
 struct KRITAPSD_EXPORT ICC_PROFILE_1039 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray data) override;
-    bool createBlock(QByteArray &data) override;
+    bool interpretBlock(PkByteArray data) override;
+    bool createBlock(PkByteArray &data) override;
 
-    QByteArray icc;
+    PkByteArray icc;
 };
 
 /* 0x0410 - Watermark */
 struct KRITAPSD_EXPORT WATERMARK_1040 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading WATERMARK_1040";
         return true;
@@ -558,7 +558,7 @@ struct KRITAPSD_EXPORT WATERMARK_1040 : public PSDInterpretedResource {
 
 /* 0x0411 - Do not use ICC profile flag */
 struct KRITAPSD_EXPORT ICC_UNTAGGED_1041 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading ICC_UNTAGGED_1041";
         return true;
@@ -567,7 +567,7 @@ struct KRITAPSD_EXPORT ICC_UNTAGGED_1041 : public PSDInterpretedResource {
 
 /* 0x0412 - Show / hide all effects layers */
 struct KRITAPSD_EXPORT EFFECTS_VISIBLE_1042 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading EFFECTS_VISIBLE_1042";
         return true;
@@ -576,7 +576,7 @@ struct KRITAPSD_EXPORT EFFECTS_VISIBLE_1042 : public PSDInterpretedResource {
 
 /* 0x0413 - Spot halftone */
 struct KRITAPSD_EXPORT SPOT_HALFTONE_1043 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading SPOT_HALFTONE_1043";
         return true;
@@ -585,7 +585,7 @@ struct KRITAPSD_EXPORT SPOT_HALFTONE_1043 : public PSDInterpretedResource {
 
 /* 0x0414 - Document specific IDs */
 struct KRITAPSD_EXPORT DOC_IDS_1044 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading DOC_IDS_1044";
         return true;
@@ -594,7 +594,7 @@ struct KRITAPSD_EXPORT DOC_IDS_1044 : public PSDInterpretedResource {
 
 /* 0x0415 - Unicode alpha names */
 struct KRITAPSD_EXPORT ALPHA_NAMES_UNI_1045 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading ALPHA_NAMES_UNI_1045";
         return true;
@@ -603,7 +603,7 @@ struct KRITAPSD_EXPORT ALPHA_NAMES_UNI_1045 : public PSDInterpretedResource {
 
 /* 0x0416 - Indexed color table count */
 struct KRITAPSD_EXPORT IDX_COL_TAB_CNT_1046 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading IDX_COL_TAB_CNT_1046";
         return true;
@@ -612,7 +612,7 @@ struct KRITAPSD_EXPORT IDX_COL_TAB_CNT_1046 : public PSDInterpretedResource {
 
 /* 0x0417 - Index of transparent color (if any) */
 struct KRITAPSD_EXPORT IDX_TRANSPARENT_1047 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading IDX_TRANSPARENT_1047";
         return true;
@@ -625,16 +625,16 @@ struct KRITAPSD_EXPORT GLOBAL_ALT_1049 : public PSDInterpretedResource {
         : altitude(30)
     {
     }
-    bool interpretBlock(QByteArray data) override
+    bool interpretBlock(PkByteArray data) override
     {
         dbgFile << "Reading GLOBAL_ALT_1049";
-        QDataStream ds(data);
-        ds.setByteOrder(QDataStream::BigEndian);
+        PkDataStream ds(data);
+        ds.setByteOrder(PkDataStream::BigEndian);
         ds >> altitude;
         return true;
     }
 
-    bool createBlock(QByteArray &data) override
+    bool createBlock(PkByteArray &data) override
     {
         QBuffer buf(&data);
         startBlock(buf, PSDImageResourceSection::GLOBAL_ALT, 4);
@@ -647,9 +647,9 @@ struct KRITAPSD_EXPORT GLOBAL_ALT_1049 : public PSDInterpretedResource {
         return true;
     }
 
-    QString displayText() override
+    PkString displayText() override
     {
-        return QString("Global Altitude: %1").arg(altitude);
+        return PkString("Global Altitude: %1").arg(altitude);
     }
 
     qint32 altitude;
@@ -657,7 +657,7 @@ struct KRITAPSD_EXPORT GLOBAL_ALT_1049 : public PSDInterpretedResource {
 
 /* 0x041a - Slices */
 struct KRITAPSD_EXPORT SLICES_1050 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading SLICES_1050";
         return true;
@@ -666,7 +666,7 @@ struct KRITAPSD_EXPORT SLICES_1050 : public PSDInterpretedResource {
 
 /* 0x041b - Workflow URL - Unicode string */
 struct KRITAPSD_EXPORT WORKFLOW_URL_UNI_1051 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading WORKFLOW_URL_UNI_1051";
         return true;
@@ -675,7 +675,7 @@ struct KRITAPSD_EXPORT WORKFLOW_URL_UNI_1051 : public PSDInterpretedResource {
 
 /* 0x041c - Jump to XPEP (?) */
 struct KRITAPSD_EXPORT JUMP_TO_XPEP_1052 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "JUMP_TO_XPEP_1052";
         return true;
@@ -684,7 +684,7 @@ struct KRITAPSD_EXPORT JUMP_TO_XPEP_1052 : public PSDInterpretedResource {
 
 /* 0x041d - Alpha IDs */
 struct KRITAPSD_EXPORT ALPHA_ID_1053 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "ALPHA_ID_1053";
         return true;
@@ -693,7 +693,7 @@ struct KRITAPSD_EXPORT ALPHA_ID_1053 : public PSDInterpretedResource {
 
 /* 0x041e - URL list - unicode */
 struct KRITAPSD_EXPORT URL_LIST_UNI_1054 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "URL_LIST_UNI_1054";
         return true;
@@ -702,7 +702,7 @@ struct KRITAPSD_EXPORT URL_LIST_UNI_1054 : public PSDInterpretedResource {
 
 /* 0x0421 - Version info */
 struct KRITAPSD_EXPORT VERSION_INFO_1057 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "VERSION_INFO_1057";
         return true;
@@ -711,7 +711,7 @@ struct KRITAPSD_EXPORT VERSION_INFO_1057 : public PSDInterpretedResource {
 
 /* 0x0422 - Exif data block */
 struct KRITAPSD_EXPORT EXIF_DATA_1058 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading EXIF_DATA_1058";
         return true;
@@ -720,7 +720,7 @@ struct KRITAPSD_EXPORT EXIF_DATA_1058 : public PSDInterpretedResource {
 
 /* 0x0424 - XMP data block */
 struct KRITAPSD_EXPORT XMP_DATA_1060 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading XMP_DATA_1060";
         return true;
@@ -729,7 +729,7 @@ struct KRITAPSD_EXPORT XMP_DATA_1060 : public PSDInterpretedResource {
 
 /* 0x07d0 - First path info block */
 struct KRITAPSD_EXPORT PATH_INFO_FIRST_2000 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "PATH_INFO_FIRST_2000";
         return true;
@@ -738,7 +738,7 @@ struct KRITAPSD_EXPORT PATH_INFO_FIRST_2000 : public PSDInterpretedResource {
 
 /* 0x0bb6 - Last path info block */
 struct KRITAPSD_EXPORT PATH_INFO_LAST_2998 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "PATH_INFO_LAST_2998";
         return true;
@@ -747,7 +747,7 @@ struct KRITAPSD_EXPORT PATH_INFO_LAST_2998 : public PSDInterpretedResource {
 
 /* 0x0bb7 - Name of clipping path */
 struct KRITAPSD_EXPORT CLIPPING_PATH_2999 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading CLIPPING_PATH_2999";
         return true;
@@ -756,7 +756,7 @@ struct KRITAPSD_EXPORT CLIPPING_PATH_2999 : public PSDInterpretedResource {
 
 /* 0x2710 - Print flags */
 struct KRITAPSD_EXPORT PRINT_FLAGS_2_10000 : public PSDInterpretedResource {
-    bool interpretBlock(QByteArray /*data*/) override
+    bool interpretBlock(PkByteArray /*data*/) override
     {
         dbgFile << "Reading PRINT_FLAGS_2_10000";
         return true;

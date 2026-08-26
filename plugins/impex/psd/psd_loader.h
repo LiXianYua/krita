@@ -25,7 +25,7 @@ public:
     PSDLoader(KisDocument *doc, KisImportUserFeedbackInterface *feedbackInterface);
     ~PSDLoader() override;
 
-    KisImportExportErrorCode buildImage(QIODevice &io);
+    KisImportExportErrorCode buildImage(PkStream &io);
 
     KisImageSP image();
 
@@ -34,7 +34,7 @@ public Q_SLOTS:
     virtual void cancel();
 
 private:
-    KisImportExportErrorCode decode(QIODevice &io);
+    KisImportExportErrorCode decode(PkStream &io);
 
 private:
 

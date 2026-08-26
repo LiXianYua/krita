@@ -10,13 +10,13 @@
 
 #include "kritapsd_export.h"
 
-#include <QRect>
-#include <QVector>
+#include <PkRect.h>
+#include <PkVector.h>
 #include <psd.h>
 
 #include "kis_types.h"
 
-class QIODevice;
+class PkStream;
 struct ChannelInfo;
 struct ChannelWritingInfo;
 
@@ -47,38 +47,38 @@ struct KRITAPSD_EXPORT ChannelWritingInfo {
     int rleBlockOffset;
 };
 
-void KRITAPSD_EXPORT readChannels(QIODevice &io,
+void KRITAPSD_EXPORT readChannels(PkStream &io,
                                   KisPaintDeviceSP device,
                                   psd_color_mode colorMode,
                                   int channelSize,
-                                  const QRect &layerRect,
-                                  QVector<ChannelInfo *> infoRecords,
+                                  const PkRect &layerRect,
+                                  PkVector<ChannelInfo *> infoRecords,
                                   psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
 
-void KRITAPSD_EXPORT readAlphaMaskChannels(QIODevice &io,
+void KRITAPSD_EXPORT readAlphaMaskChannels(PkStream &io,
                                            KisPaintDeviceSP device,
                                            int channelSize,
-                                           const QRect &layerRect,
-                                           QVector<ChannelInfo *> infoRecords,
+                                           const PkRect &layerRect,
+                                           PkVector<ChannelInfo *> infoRecords,
                                            psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
 
-void KRITAPSD_EXPORT writeChannelDataRLE(QIODevice &io,
+void KRITAPSD_EXPORT writeChannelDataRLE(PkStream &io,
                                          const quint8 *plane,
                                          const int channelSize,
-                                         const QRect &rc,
+                                         const PkRect &rc,
                                          const qint64 sizeFieldOffset,
                                          const qint64 rleBlockOffset,
                                          const bool writeCompressionType,
                                          psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
 
-void KRITAPSD_EXPORT writePixelDataCommon(QIODevice &io,
+void KRITAPSD_EXPORT writePixelDataCommon(PkStream &io,
                                           KisPaintDeviceSP dev,
-                                          const QRect &rc,
+                                          const PkRect &rc,
                                           psd_color_mode colorMode,
                                           int channelSize,
                                           bool alphaFirst,
                                           const bool writeCompressionType,
-                                          QVector<ChannelWritingInfo> &writingInfoList,
+                                          PkVector<ChannelWritingInfo> &writingInfoList,
                                           psd_compression_type compressionType,
                                           psd_byte_order byteOrder = psd_byte_order::psdBigEndian);
 }

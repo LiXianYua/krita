@@ -9,9 +9,9 @@
 
 #include <QtEndian>
 
-#include <QFile>
+#include <PkFileStream.h>
 #include <kis_debug.h>
-#include <QVector>
+#include <PkVector.h>
 #include <QBuffer>
 
 #include <KoChannelInfo.h>
@@ -33,7 +33,7 @@ PSDImageData::~PSDImageData() {
 
 }
 
-bool PSDImageData::read(QIODevice &io, KisPaintDeviceSP dev)
+bool PSDImageData::read(PkStream &io, KisPaintDeviceSP dev)
 {
     psdread(io, m_compression);
     quint64 start = io.pos();
@@ -105,16 +105,16 @@ bool PSDImageData::read(QIODevice &io, KisPaintDeviceSP dev)
     }
 
     if (!m_channelInfoRecords.isEmpty()) {
-        QVector<ChannelInfo*> infoRecords;
+        PkVector<ChannelInfo*> infoRecords;
 
-        QVector<ChannelInfo>::iterator it = m_channelInfoRecords.begin();
-        QVector<ChannelInfo>::iterator end = m_channelInfoRecords.end();
+        PkVector<ChannelInfo>::iterator it = m_channelInfoRecords.begin();
+        PkVector<ChannelInfo>::iterator end = m_channelInfoRecords.end();
 
         for (; it != end; ++it) {
             infoRecords << &(*it);
         }
 
-        const QRect imageRect(0, 0, m_header->width, m_header->height);
+        const PkRect imageRect(0, 0, m_header->width, m_header->height);
 
         try {
             PsdPixelUtils::readChannels(io, dev,
@@ -131,18 +131,18 @@ bool PSDImageData::read(QIODevice &io, KisPaintDeviceSP dev)
     return true;
 }
 
-bool PSDImageData::write(QIODevice &io, KisPaintDeviceSP dev, bool hasAlpha, psd_compression_type compressionType)
+bool PSDImageData::write(PkStream &io, KisPaintDeviceSP dev, bool hasAlpha, psd_compression_type compressionType)
 {
     psdwrite(io, static_cast<quint16>(compressionType));
 
     // now write all the channels in display order
     // fill in the channel chooser, in the display order, but store the pixel index as well.
-    QRect rc(0, 0, m_header->width, m_header->height);
+    PkRect rc(0, 0, m_header->width, m_header->height);
 
     const int channelSize = m_header->channelDepth / 8;
     const psd_color_mode colorMode = m_header->colormode;
 
-    QVector<PsdPixelUtils::ChannelWritingInfo> writingInfoList;
+    PkVector<PsdPixelUtils::ChannelWritingInfo> writingInfoList;
 
     bool writeAlpha = hasAlpha &&
         dev->colorSpace()->channelCount() != dev->colorSpace()->colorChannelCount();

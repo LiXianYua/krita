@@ -38,12 +38,12 @@
 
 
 
-const QString PSDMimetype = "image/vnd.adobe.photoshop";
+const PkString PSDMimetype = "image/vnd.adobe.photoshop";
 
 
 void KisPSDTest::testFiles()
 {
-    QStringList exclusions;
+    PkStringList exclusions;
     exclusions << "100x100indexed.psd";
     exclusions << "100x100rgb16.psd";
     exclusions << "100x100cmyk16.psd";
@@ -65,32 +65,32 @@ void KisPSDTest::testFiles()
     exclusions << "test_shapes.psd";
 
 
-    TestUtil::testFiles(QString(FILES_DATA_DIR) + "/sources", exclusions, QString(), 2);
+    TestUtil::testFiles(PkString(FILES_DATA_DIR) + "/sources", exclusions, PkString(), 2);
 }
 
 void KisPSDTest::testOpening()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "testing_psd_ls.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "testing_psd_ls.psd");
 
-    QScopedPointer<KisDocument> doc(qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument()));
+    PkScopedPointer<KisDocument> doc(qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc.data());
     doc->setFileBatchMode(true);
 
-    KisImportExportErrorCode status = manager.importDocument(sourceFileInfo.absoluteFilePath(), QString());
+    KisImportExportErrorCode status = manager.importDocument(sourceFileInfo.absoluteFilePath(), PkString());
     QVERIFY(status.isOk());
 
     Q_ASSERT(doc->image());
 }
 
-QSharedPointer<KisDocument> openPsdDocument(const QFileInfo &fileInfo)
+PkSharedPointer<KisDocument> openPsdDocument(const QFileInfo &fileInfo)
 {
-    QSharedPointer<KisDocument> doc(qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument()));
+    PkSharedPointer<KisDocument> doc(qobject_cast<KisDocument*>(KisDocumentRegistry::instance()->createDocument()));
 
     KisImportExportManager manager(doc.data());
     doc->setFileBatchMode(true);
 
-    KisImportExportErrorCode status = manager.importDocument(fileInfo.absoluteFilePath(), QString());
+    KisImportExportErrorCode status = manager.importDocument(fileInfo.absoluteFilePath(), PkString());
     Q_UNUSED(status);
 
     return doc;
@@ -98,14 +98,14 @@ QSharedPointer<KisDocument> openPsdDocument(const QFileInfo &fileInfo)
 
 void KisPSDTest::testTransparencyMask()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "sources/masks.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "sources/masks.psd");
 
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
 
-    QImage result = doc->image()->projection()->convertToQImage(0, doc->image()->bounds());
+    PkImage result = doc->image()->projection()->convertToQImage(0, doc->image()->bounds());
     QVERIFY(TestUtil::checkQImageExternal(result, "psd_test", "transparency_masks", "kiki_single", 1, 1));
 
 
@@ -117,10 +117,10 @@ void KisPSDTest::testTransparencyMask()
     QVERIFY(retval);
 
     {
-        QSharedPointer<KisDocument> doc = openPsdDocument(dstFileInfo);
+        PkSharedPointer<KisDocument> doc = openPsdDocument(dstFileInfo);
         QVERIFY(doc->image());
 
-        QImage result = doc->image()->projection()->convertToQImage(0, doc->image()->bounds());
+        PkImage result = doc->image()->projection()->convertToQImage(0, doc->image()->bounds());
         QVERIFY(TestUtil::checkQImageExternal(result, "psd_test", "transparency_masks", "kiki_single", 1, 1));
 
         QVERIFY(doc->image()->root()->lastChild());
@@ -131,22 +131,22 @@ void KisPSDTest::testTransparencyMask()
 
 void KisPSDTest::testOpenGrayscaleMultilayered()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "sources/gray.psd");
-    //QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "sources/100x100gray8.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "sources/gray.psd");
+    //QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "sources/100x100gray8.psd");
 
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
 }
 
 void KisPSDTest::testOpenGroupLayers()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "group_layers.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "group_layers.psd");
 
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
 
     KisNodeSP node = TestUtil::findNode(doc->image()->root(), "Group 1 PT");
@@ -158,11 +158,11 @@ void KisPSDTest::testOpenGroupLayers()
 
 void KisPSDTest::testOpenLayerStyles()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "testing_psd_ls.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "testing_psd_ls.psd");
 
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
 
     KisLayerSP layer = qobject_cast<KisLayer*>(doc->image()->root()->lastChild().data());
@@ -173,11 +173,11 @@ void KisPSDTest::testOpenLayerStyles()
 
 void KisPSDTest::testOpenFillLayers()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "sources/angle2.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "sources/angle2.psd");
 
         Q_ASSERT(sourceFileInfo.exists());
 
-        QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+        PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
         QVERIFY(doc->image());
         KisGeneratorLayerSP layer = qobject_cast<KisGeneratorLayer*>(doc->image()->root()->lastChild().data());
         QVERIFY(layer);
@@ -186,7 +186,7 @@ void KisPSDTest::testOpenFillLayers()
         QVERIFY(layer->filter()->getDouble("end_position_distance") == 50);
         QVERIFY(layer->filter()->getString("shape") == "conical");
 
-        QFileInfo sourceFileInfo2(QString(FILES_DATA_DIR) + '/' + "sources/diamond2.psd");
+        QFileInfo sourceFileInfo2(PkString(FILES_DATA_DIR) + '/' + "sources/diamond2.psd");
 
         Q_ASSERT(sourceFileInfo2.exists());
 
@@ -199,7 +199,7 @@ void KisPSDTest::testOpenFillLayers()
         QVERIFY(layer->filter()->getDouble("end_position_distance") - double(40.2306) < 0.001);
         QVERIFY(layer->filter()->getString("shape") == "square");
 
-        QFileInfo sourceFileInfo3(QString(FILES_DATA_DIR) + '/' + "sources/linear3.psd");
+        QFileInfo sourceFileInfo3(PkString(FILES_DATA_DIR) + '/' + "sources/linear3.psd");
 
         Q_ASSERT(sourceFileInfo3.exists());
 
@@ -211,7 +211,7 @@ void KisPSDTest::testOpenFillLayers()
         QVERIFY(layer->filter()->getDouble("end_position_angle") == 270);
         QVERIFY(layer->filter()->getString("shape") == "linear");
 
-        QFileInfo sourceFileInfo4(QString(FILES_DATA_DIR) + '/' + "sources/cmyk8-pantone_solid_coated_688c-L51_a33_b-8.psd");
+        QFileInfo sourceFileInfo4(PkString(FILES_DATA_DIR) + '/' + "sources/cmyk8-pantone_solid_coated_688c-L51_a33_b-8.psd");
 
         Q_ASSERT(sourceFileInfo4.exists());
 
@@ -224,11 +224,11 @@ void KisPSDTest::testOpenFillLayers()
         KoColor l = KoColor::fromXML("<color channeldepth='U16'><Lab space='"+KoColorSpaceRegistry::instance()->lab16()->name()+"' L='51.0' a='33.0' b='-8.0' /></color>");
         c.convertTo(l.colorSpace());
         QVERIFY(doc->image()->colorSpace()->difference(c.data(), l.data()) < 3);
-        QVERIFY(c.metadata().value("spotName", QVariant()).toString() == "PANTONE 688 C");
-        QVERIFY(c.metadata().value("psdSpotBook", QVariant()).toString().contains("Solid Coated"));
-        QVERIFY(c.metadata().value("psdSpotBookId", QVariant()).toInt() == 3060);
+        QVERIFY(c.metadata().value("spotName", PkVariant()).toString() == "PANTONE 688 C");
+        QVERIFY(c.metadata().value("psdSpotBook", PkVariant()).toString().contains("Solid Coated"));
+        QVERIFY(c.metadata().value("psdSpotBookId", PkVariant()).toInt() == 3060);
 
-        QFileInfo sourceFileInfo5(QString(FILES_DATA_DIR) + '/' + "sources/pattern2_uncompressed.psd");
+        QFileInfo sourceFileInfo5(PkString(FILES_DATA_DIR) + '/' + "sources/pattern2_uncompressed.psd");
 
         Q_ASSERT(sourceFileInfo5.exists());
 
@@ -238,9 +238,9 @@ void KisPSDTest::testOpenFillLayers()
         QVERIFY(layer);
         QVERIFY(layer->filter()->name() == "pattern");
         if (layer) {
-            const QString patternMD5 = layer->filter()->getString("md5", "");
-            const QString patternNameTemp = layer->filter()->getString("pattern", "Grid01.pat");
-            const QString patternFileName = layer->filter()->getString("fileName", "");
+            const PkString patternMD5 = layer->filter()->getString("md5", "");
+            const PkString patternNameTemp = layer->filter()->getString("pattern", "Grid01.pat");
+            const PkString patternFileName = layer->filter()->getString("fileName", "");
 
             KoResourceLoadResult res = KisGlobalResourcesInterface::instance()->source(ResourceType::Patterns).bestMatchLoadResult(patternMD5, patternFileName, patternNameTemp);
             QVERIFY(res.resource<KoPattern>());
@@ -249,7 +249,7 @@ void KisPSDTest::testOpenFillLayers()
         QVERIFY(layer->filter()->getDouble("transform_scale_x") - 3.63 < 0.001);
         QVERIFY(layer->filter()->getDouble("transform_scale_y") - 3.63 < 0.001);
 
-        QFileInfo sourceFileInfo6(QString(FILES_DATA_DIR) + '/' + "sources/pattern4_rle.psd");
+        QFileInfo sourceFileInfo6(PkString(FILES_DATA_DIR) + '/' + "sources/pattern4_rle.psd");
 
         Q_ASSERT(sourceFileInfo6.exists());
 
@@ -259,9 +259,9 @@ void KisPSDTest::testOpenFillLayers()
         QVERIFY(layer);
         QVERIFY(layer->filter()->name() == "pattern");
         if (layer) {
-            const QString patternMD5 = layer->filter()->getString("md5", "");
-            const QString patternNameTemp = layer->filter()->getString("pattern", "Grid01.pat");
-            const QString patternFileName = layer->filter()->getString("fileName", "");
+            const PkString patternMD5 = layer->filter()->getString("md5", "");
+            const PkString patternNameTemp = layer->filter()->getString("pattern", "Grid01.pat");
+            const PkString patternFileName = layer->filter()->getString("fileName", "");
 
             KoResourceLoadResult res = KisGlobalResourcesInterface::instance()->source(ResourceType::Patterns).bestMatchLoadResult(patternMD5, patternFileName, patternNameTemp);
             QVERIFY(res.resource<KoPattern>());
@@ -270,10 +270,10 @@ void KisPSDTest::testOpenFillLayers()
 
 void KisPSDTest::testLoadVectorMasks()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "sources/vector_mask.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "sources/vector_mask.psd");
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
 
     KisLayerSP layer = qobject_cast<KisLayer*>(doc->image()->root()->lastChild().data());
@@ -288,10 +288,10 @@ void KisPSDTest::testLoadVectorMasks()
 void KisPSDTest::testLoadText()
 {
     qDebug() << "test rgb-paragraph-text.psd";
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "sources/rgb-paragraph-text.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "sources/rgb-paragraph-text.psd");
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
     KisShapeLayerSP layer = qobject_cast<KisShapeLayer*>(doc->image()->root()->lastChild().data());
     QVERIFY(layer);
@@ -306,7 +306,7 @@ void KisPSDTest::testLoadText()
 
     qDebug() << "test cmyk-text-in-shape.psd";
 
-    QFileInfo sourceFileInfo2(QString(FILES_DATA_DIR) + '/' + "sources/cmyk-text-in-shape.psd");
+    QFileInfo sourceFileInfo2(PkString(FILES_DATA_DIR) + '/' + "sources/cmyk-text-in-shape.psd");
     Q_ASSERT(sourceFileInfo2.exists());
 
     doc = openPsdDocument(sourceFileInfo2);
@@ -326,7 +326,7 @@ void KisPSDTest::testLoadText()
     /*
     qDebug() << "test lab-vertical-point-text.psd";
 
-    QFileInfo sourceFileInfo3(QString(FILES_DATA_DIR) + '/' + "sources/lab-vertical-point-text.psd");
+    QFileInfo sourceFileInfo3(PkString(FILES_DATA_DIR) + '/' + "sources/lab-vertical-point-text.psd");
     Q_ASSERT(sourceFileInfo3.exists());
 
     doc = openPsdDocument(sourceFileInfo3);
@@ -344,7 +344,7 @@ void KisPSDTest::testLoadText()
 
     qDebug() << "test gray-text-on-path.psd";
 
-    QFileInfo sourceFileInfo4(QString(FILES_DATA_DIR) + '/' + "sources/gray-text-on-path.psd");
+    QFileInfo sourceFileInfo4(PkString(FILES_DATA_DIR) + '/' + "sources/gray-text-on-path.psd");
     Q_ASSERT(sourceFileInfo4.exists());
 
     doc = openPsdDocument(sourceFileInfo4);
@@ -361,10 +361,10 @@ void KisPSDTest::testLoadText()
 
 void KisPSDTest::testLoadVectorShapes()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "sources/test_shapes.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "sources/test_shapes.psd");
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
 
     // Test guides, both are at 100 of 200.
@@ -436,11 +436,11 @@ void KisPSDTest::testLoadVectorShapes()
 
 void KisPSDTest::testOpenLayerStylesWithPattern()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "test_ls_pattern.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "test_ls_pattern.psd");
 
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
 
     KisLayerSP layer = qobject_cast<KisLayer*>(doc->image()->root()->lastChild().data());
@@ -458,11 +458,11 @@ void KisPSDTest::testOpenLayerStylesWithPattern()
 
 void KisPSDTest::testOpenLayerStylesWithPatternMulti()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "test_ls_pattern_multi.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "test_ls_pattern_multi.psd");
 
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
 
     KisLayerSP layer = qobject_cast<KisLayer*>(doc->image()->root()->lastChild().data());
@@ -493,11 +493,11 @@ void KisPSDTest::testOpenLayerStylesWithPatternMulti()
 
 void KisPSDTest::testSaveLayerStylesWithPatternMulti()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "test_ls_pattern_multi.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "test_ls_pattern_multi.psd");
 
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
 
     KisLayerSP layer = qobject_cast<KisLayer*>(doc->image()->root()->lastChild().data());
@@ -526,16 +526,16 @@ void KisPSDTest::testSaveLayerStylesWithPatternMulti()
     }
 
     doc->setFileBatchMode(true);
-    const QByteArray mimeType("image/vnd.adobe.photoshop");
+    const PkByteArray mimeType("image/vnd.adobe.photoshop");
     QFileInfo dstFileInfo(QDir::currentPath() + '/' + "test_save_styles.psd");
     bool retval = doc->exportDocumentSync(dstFileInfo.absoluteFilePath(), mimeType);
     QVERIFY(retval);
 
     {
-        QSharedPointer<KisDocument> doc = openPsdDocument(dstFileInfo);
+        PkSharedPointer<KisDocument> doc = openPsdDocument(dstFileInfo);
         QVERIFY(doc->image());
 
-        QImage result = doc->image()->projection()->convertToQImage(0, doc->image()->bounds());
+        PkImage result = doc->image()->projection()->convertToQImage(0, doc->image()->bounds());
         //QVERIFY(TestUtil::checkQImageExternal(result, "psd_test", "transparency_masks", "kiki_single"));
 
         KisLayerSP layer = qobject_cast<KisLayer*>(doc->image()->root()->lastChild().data());
@@ -568,18 +568,18 @@ void KisPSDTest::testSaveLayerStylesWithPatternMulti()
 
 void KisPSDTest::testOpeningFromOpenCanvas()
 {
-    QFileInfo sourceFileInfo(QString(FILES_DATA_DIR) + '/' + "test_krita_psd_from_opencanvas.psd");
+    QFileInfo sourceFileInfo(PkString(FILES_DATA_DIR) + '/' + "test_krita_psd_from_opencanvas.psd");
 
     Q_ASSERT(sourceFileInfo.exists());
 
-    QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+    PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
     QVERIFY(doc->image());
     QVERIFY(doc->image()->root()->firstChild());
 }
 
 void KisPSDTest::testOpeningAllFormats()
 {
-    QString path = TestUtil::fetchExternalDataFileName("psd_format_test_files");
+    PkString path = TestUtil::fetchExternalDataFileName("psd_format_test_files");
     QDir dirSources(path);
 
     if (path.isEmpty()) {
@@ -602,7 +602,7 @@ void KisPSDTest::testOpeningAllFormats()
 
         //dbgKrita << "Opening" << ppVar(sourceFileInfo.fileName());
 
-        QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+        PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
 
         if (!doc->image()) {
             /**
@@ -617,7 +617,7 @@ void KisPSDTest::testOpeningAllFormats()
         }
 
         // just check visually if the file loads fine
-        KIS_DUMP_DEVICE_2(doc->image()->projection(), QRect(0,0,100,100), sourceFileInfo.fileName(), "dd");
+        KIS_DUMP_DEVICE_2(doc->image()->projection(), PkRect(0,0,100,100), sourceFileInfo.fileName(), "dd");
     }
 
     QVERIFY(!shouldFailTheTest);
@@ -625,7 +625,7 @@ void KisPSDTest::testOpeningAllFormats()
 
 void KisPSDTest::testSavingAllFormats()
 {
-    QString path = TestUtil::fetchExternalDataFileName("psd_format_test_files");
+    PkString path = TestUtil::fetchExternalDataFileName("psd_format_test_files");
     QDir dirSources(path);
 
     if (path.isEmpty()) {
@@ -646,23 +646,23 @@ void KisPSDTest::testSavingAllFormats()
 
         dbgKrita << "Opening" << ppVar(sourceFileInfo.fileName());
 
-        QSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
+        PkSharedPointer<KisDocument> doc = openPsdDocument(sourceFileInfo);
 
         if (!doc->image()) {
             errKrita << "FAILED to open" << sourceFileInfo.fileName();
             continue;
         }
 
-        QString baseName = sourceFileInfo.fileName();
+        PkString baseName = sourceFileInfo.fileName();
 
-        //QString originalName = QString("%1_0orig").arg(baseName);
-        //QString resultName = QString("%1_1result").arg(baseName);
-        QString tempPsdName = QString("%1_3interm.psd").arg(baseName);
+        //PkString originalName = PkString("%1_0orig").arg(baseName);
+        //PkString resultName = PkString("%1_1result").arg(baseName);
+        PkString tempPsdName = PkString("%1_3interm.psd").arg(baseName);
 
-        QImage refImage = doc->image()->projection()->convertToQImage(0, QRect(0,0,100,100));
+        PkImage refImage = doc->image()->projection()->convertToQImage(0, PkRect(0,0,100,100));
 
         // uncomment to do a visual check
-        // KIS_DUMP_DEVICE_2(doc->image()->projection(), QRect(0,0,100,100), originalName, "dd");
+        // KIS_DUMP_DEVICE_2(doc->image()->projection(), PkRect(0,0,100,100), originalName, "dd");
 
         doc->setFileBatchMode(true);
         doc->setMimeType("image/vnd.adobe.photoshop");
@@ -675,13 +675,13 @@ void KisPSDTest::testSavingAllFormats()
         QVERIFY(retval);
 
         {
-            QSharedPointer<KisDocument> doc = openPsdDocument(dstFileInfo);
+            PkSharedPointer<KisDocument> doc = openPsdDocument(dstFileInfo);
             QVERIFY(doc->image());
 
             // uncomment to do a visual check
-            //KIS_DUMP_DEVICE_2(doc->image()->projection(), QRect(0,0,100,100), resultName, "dd");
+            //KIS_DUMP_DEVICE_2(doc->image()->projection(), PkRect(0,0,100,100), resultName, "dd");
 
-            QImage resultImage = doc->image()->projection()->convertToQImage(0, QRect(0,0,100,100));
+            PkImage resultImage = doc->image()->projection()->convertToQImage(0, PkRect(0,0,100,100));
             QCOMPARE(resultImage, refImage);
         }
     }

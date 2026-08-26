@@ -8,7 +8,7 @@
 #include "psd_additional_layer_info_block.h"
 #include "psd.h"
 
-#include <QDomDocument>
+#include <PkXmlDocument.h>
 
 #include <asl/kis_offset_on_exit_verifier.h>
 
@@ -36,7 +36,7 @@ void PsdAdditionalLayerInfoBlock::setUserMaskInfoBlockHandler(UserMaskInfoBlockH
     m_userMaskBlockHandler = handler;
 }
 
-bool PsdAdditionalLayerInfoBlock::read(QIODevice &io)
+bool PsdAdditionalLayerInfoBlock::read(PkStream &io)
 {
     bool result = true;
 
@@ -58,11 +58,11 @@ bool PsdAdditionalLayerInfoBlock::read(QIODevice &io)
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::readImpl(QIODevice &io)
+void PsdAdditionalLayerInfoBlock::readImpl(PkStream &io)
 {
     using namespace KisAslReaderUtils;
 
-    QStringList longBlocks;
+    PkStringList longBlocks;
     if (m_header.version > 1) {
         longBlocks << "LMsk"
                    << "Lr16"
@@ -89,7 +89,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(QIODevice &io)
             }
         }
 
-        QString key = readFixedString<byteOrder>(io);
+        PkString key = readFixedString<byteOrder>(io);
         dbgFile << "found info block with key" << key << "(" << io.pos() << ")";
 
         quint64 blockSize = GARBAGE_VALUE_MARK;
@@ -184,7 +184,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(QIODevice &io)
             // lfxs is a special variant of layer styles for group layers
             layerStyleXml = KisAslReader::readLfx2PsdSection(io, byteOrder);
         } else if (key == "Patt" || key == "Pat2" || key == "Pat3") {
-            QDomDocument pattern = KisAslReader::readPsdSectionPattern(io, blockSize, byteOrder);
+            PkXmlDocument pattern = KisAslReader::readPsdSectionPattern(io, blockSize, byteOrder);
             embeddedPatterns << pattern;
         } else if (key == "Anno") {
         } else if (key == "clbl") {
@@ -256,7 +256,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(QIODevice &io)
                     io.skip(24);
                     dbgFile << "\trecord" << recordType;
                 } else if (recordType == 7) {
-                    QRectF bounds;
+                    PkRectF bounds;
                     // unsure if there can be multiple clipboard records...
                     bounds.setTop(psdreadFixedPoint<byteOrder>(io));
                     bounds.setLeft(psdreadFixedPoint<byteOrder>(io));
@@ -321,7 +321,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(QIODevice &io)
         } else if (key == "CgEd") {
         } else if (key == "Txt2") { // global text data, basically the same as an Illustrator text object.
             // Docs say "first 4 are length", this is not true for this particular block, only when in ASL is first 4 length.
-            QByteArray ba = io.read(blockSize);
+            PkByteArray ba = io.read(blockSize);
             KisCosParser p;
             txt2Data = KisTxt2Utils::uncompressKeys(p.parseCosToJson(&ba));
         } else if (key == "pths") {
@@ -332,7 +332,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(QIODevice &io)
             vectorStroke = KisAslReader::readVectorStroke(io, byteOrder);
         } else if (key == "vscg") {
             if (blockSize > 4) {
-                QString vscgKey = readFixedString<byteOrder>(io);
+                PkString vscgKey = readFixedString<byteOrder>(io);
                 fillConfig = KisAslReader::readFillLayer(io, byteOrder);
                 if (vscgKey == "SoCo") {
                     fillType = psd_fill_solid_color;
@@ -363,7 +363,7 @@ void PsdAdditionalLayerInfoBlock::readImpl(QIODevice &io)
     }
 }
 
-bool PsdAdditionalLayerInfoBlock::write(QIODevice & /*io*/, KisNodeSP /*node*/)
+bool PsdAdditionalLayerInfoBlock::write(PkStream & /*io*/, KisNodeSP /*node*/)
 {
     return true;
 }
@@ -373,7 +373,7 @@ bool PsdAdditionalLayerInfoBlock::valid()
     return true;
 }
 
-void PsdAdditionalLayerInfoBlock::writeLuniBlockEx(QIODevice &io, const QString &layerName)
+void PsdAdditionalLayerInfoBlock::writeLuniBlockEx(PkStream &io, const PkString &layerName)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -386,7 +386,7 @@ void PsdAdditionalLayerInfoBlock::writeLuniBlockEx(QIODevice &io, const QString 
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeLuniBlockExImpl(QIODevice &io, const QString &layerName)
+void PsdAdditionalLayerInfoBlock::writeLuniBlockExImpl(PkStream &io, const PkString &layerName)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("luni", io);
@@ -394,7 +394,7 @@ void PsdAdditionalLayerInfoBlock::writeLuniBlockExImpl(QIODevice &io, const QStr
     KisAslWriterUtils::writeUnicodeString<byteOrder>(layerName, io);
 }
 
-void PsdAdditionalLayerInfoBlock::writeLsctBlockEx(QIODevice &io, psd_section_type sectionType, bool isPassThrough, const QString &blendModeKey)
+void PsdAdditionalLayerInfoBlock::writeLsctBlockEx(PkStream &io, psd_section_type sectionType, bool isPassThrough, const PkString &blendModeKey)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -407,20 +407,20 @@ void PsdAdditionalLayerInfoBlock::writeLsctBlockEx(QIODevice &io, psd_section_ty
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeLsctBlockExImpl(QIODevice &io, psd_section_type sectionType, bool isPassThrough, const QString &blendModeKey)
+void PsdAdditionalLayerInfoBlock::writeLsctBlockExImpl(PkStream &io, psd_section_type sectionType, bool isPassThrough, const PkString &blendModeKey)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("lsct", io);
     KisAslWriterUtils::OffsetStreamPusher<quint32, byteOrder> sectionTypeSizeTag(io, 2);
     SAFE_WRITE_EX(byteOrder, io, (quint32)sectionType);
 
-    QString realBlendModeKey = isPassThrough ? QString("pass") : blendModeKey;
+    PkString realBlendModeKey = isPassThrough ? PkString("pass") : blendModeKey;
 
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>(realBlendModeKey, io);
 }
 
-void PsdAdditionalLayerInfoBlock::writeLfx2BlockEx(QIODevice &io, const QDomDocument &stylesXmlDoc, bool useLfxsLayerStyleFormat)
+void PsdAdditionalLayerInfoBlock::writeLfx2BlockEx(PkStream &io, const PkXmlDocument &stylesXmlDoc, bool useLfxsLayerStyleFormat)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -433,7 +433,7 @@ void PsdAdditionalLayerInfoBlock::writeLfx2BlockEx(QIODevice &io, const QDomDocu
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeLfx2BlockExImpl(QIODevice &io, const QDomDocument &stylesXmlDoc, bool useLfxsLayerStyleFormat)
+void PsdAdditionalLayerInfoBlock::writeLfx2BlockExImpl(PkStream &io, const PkXmlDocument &stylesXmlDoc, bool useLfxsLayerStyleFormat)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     // 'lfxs' format is used for Group layers in PS
@@ -452,7 +452,7 @@ void PsdAdditionalLayerInfoBlock::writeLfx2BlockExImpl(QIODevice &io, const QDom
     }
 }
 
-void PsdAdditionalLayerInfoBlock::writePattBlockEx(QIODevice &io, const QDomDocument &patternsXmlDoc)
+void PsdAdditionalLayerInfoBlock::writePattBlockEx(PkStream &io, const PkXmlDocument &patternsXmlDoc)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -464,7 +464,7 @@ void PsdAdditionalLayerInfoBlock::writePattBlockEx(QIODevice &io, const QDomDocu
     }
 }
 
-void PsdAdditionalLayerInfoBlock::writeLclrBlockEx(QIODevice &io, const quint16 &labelColor)
+void PsdAdditionalLayerInfoBlock::writeLclrBlockEx(PkStream &io, const quint16 &labelColor)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -476,7 +476,7 @@ void PsdAdditionalLayerInfoBlock::writeLclrBlockEx(QIODevice &io, const quint16 
     }
 }
 
-void PsdAdditionalLayerInfoBlock::writeFillLayerBlockEx(QIODevice &io, const QDomDocument &fillConfig, psd_fill_type type)
+void PsdAdditionalLayerInfoBlock::writeFillLayerBlockEx(PkStream &io, const PkXmlDocument &fillConfig, psd_fill_type type)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -488,7 +488,7 @@ void PsdAdditionalLayerInfoBlock::writeFillLayerBlockEx(QIODevice &io, const QDo
     }
 }
 
-void PsdAdditionalLayerInfoBlock::writeVmskBlockEx(QIODevice &io, psd_vector_mask mask)
+void PsdAdditionalLayerInfoBlock::writeVmskBlockEx(PkStream &io, psd_vector_mask mask)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -500,7 +500,7 @@ void PsdAdditionalLayerInfoBlock::writeVmskBlockEx(QIODevice &io, psd_vector_mas
     }
 }
 
-void PsdAdditionalLayerInfoBlock::writeTypeToolBlockEx(QIODevice &io, psd_layer_type_shape typeTool)
+void PsdAdditionalLayerInfoBlock::writeTypeToolBlockEx(PkStream &io, psd_layer_type_shape typeTool)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -512,7 +512,7 @@ void PsdAdditionalLayerInfoBlock::writeTypeToolBlockEx(QIODevice &io, psd_layer_
     }
 }
 
-void PsdAdditionalLayerInfoBlock::writeVectorStrokeDataEx(QIODevice &io, const QDomDocument &vectorStroke)
+void PsdAdditionalLayerInfoBlock::writeVectorStrokeDataEx(PkStream &io, const PkXmlDocument &vectorStroke)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -524,7 +524,7 @@ void PsdAdditionalLayerInfoBlock::writeVectorStrokeDataEx(QIODevice &io, const Q
     }
 }
 
-void PsdAdditionalLayerInfoBlock::writeVectorOriginationDataEx(QIODevice &io, const QDomDocument &vectorOrigination)
+void PsdAdditionalLayerInfoBlock::writeVectorOriginationDataEx(PkStream &io, const PkXmlDocument &vectorOrigination)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -537,7 +537,7 @@ void PsdAdditionalLayerInfoBlock::writeVectorOriginationDataEx(QIODevice &io, co
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writePattBlockExImpl(QIODevice &io, const QDomDocument &patternsXmlDoc)
+void PsdAdditionalLayerInfoBlock::writePattBlockExImpl(PkStream &io, const PkXmlDocument &patternsXmlDoc)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("Patt", io);
@@ -557,7 +557,7 @@ void PsdAdditionalLayerInfoBlock::writePattBlockExImpl(QIODevice &io, const QDom
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeLclrBlockExImpl(QIODevice &io, const quint16 &lclr)
+void PsdAdditionalLayerInfoBlock::writeLclrBlockExImpl(PkStream &io, const quint16 &lclr)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("lclr", io);
@@ -574,7 +574,7 @@ void PsdAdditionalLayerInfoBlock::writeLclrBlockExImpl(QIODevice &io, const quin
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeFillLayerBlockExImpl(QIODevice &io, const QDomDocument &fillConfig, psd_fill_type type)
+void PsdAdditionalLayerInfoBlock::writeFillLayerBlockExImpl(PkStream &io, const PkXmlDocument &fillConfig, psd_fill_type type)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     if (type == psd_fill_solid_color) {
@@ -600,7 +600,7 @@ void PsdAdditionalLayerInfoBlock::writeFillLayerBlockExImpl(QIODevice &io, const
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeVectorMaskImpl(QIODevice &io, psd_vector_mask mask)
+void PsdAdditionalLayerInfoBlock::writeVectorMaskImpl(PkStream &io, psd_vector_mask mask)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("vmsk", io);
@@ -685,7 +685,7 @@ void PsdAdditionalLayerInfoBlock::writeVectorMaskImpl(QIODevice &io, psd_vector_
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeTypeToolImpl(QIODevice &io, psd_layer_type_shape tool)
+void PsdAdditionalLayerInfoBlock::writeTypeToolImpl(PkStream &io, psd_layer_type_shape tool)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("TySh", io);
@@ -706,7 +706,7 @@ void PsdAdditionalLayerInfoBlock::writeTypeToolImpl(QIODevice &io, psd_layer_typ
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeVectorStrokeDataImpl(QIODevice &io, const QDomDocument &vectorStroke)
+void PsdAdditionalLayerInfoBlock::writeVectorStrokeDataImpl(PkStream &io, const PkXmlDocument &vectorStroke)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("vstk", io);
@@ -724,7 +724,7 @@ void PsdAdditionalLayerInfoBlock::writeVectorStrokeDataImpl(QIODevice &io, const
     }
 }
 
-void PsdAdditionalLayerInfoBlock::writeTxt2BlockEx(QIODevice &io, const QVariantHash txt2Hash)
+void PsdAdditionalLayerInfoBlock::writeTxt2BlockEx(PkStream &io, const PkVariantHash txt2Hash)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -737,19 +737,19 @@ void PsdAdditionalLayerInfoBlock::writeTxt2BlockEx(QIODevice &io, const QVariant
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeTxt2BlockExImpl(QIODevice &io, const QVariantHash txt2Hash)
+void PsdAdditionalLayerInfoBlock::writeTxt2BlockExImpl(PkStream &io, const PkVariantHash txt2Hash)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("Txt2", io);
 
-    QByteArray ba = KisCosWriter::writeTxt2FromVariantHash(txt2Hash);
+    PkByteArray ba = KisCosWriter::writeTxt2FromVariantHash(txt2Hash);
     quint32 length = ba.size();
     SAFE_WRITE_EX(byteOrder, io, length);
     io.write(ba);
 }
 
 template<psd_byte_order byteOrder>
-void PsdAdditionalLayerInfoBlock::writeVectorOriginationDataImpl(QIODevice &io, const QDomDocument &vectorOrigination)
+void PsdAdditionalLayerInfoBlock::writeVectorOriginationDataImpl(PkStream &io, const PkXmlDocument &vectorOrigination)
 {
     KisAslWriterUtils::writeFixedString<byteOrder>("8BIM", io);
     KisAslWriterUtils::writeFixedString<byteOrder>("vogk", io);

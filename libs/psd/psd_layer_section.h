@@ -9,9 +9,9 @@
 
 #include "kritapsd_export.h"
 
-#include <QString>
+#include <PkString.h>
 
-class QIODevice;
+class PkStream;
 
 #include <kis_types.h>
 #include <psd.h>
@@ -25,17 +25,17 @@ public:
     PSDLayerMaskSection(const PSDHeader &header);
     ~PSDLayerMaskSection();
 
-    bool read(QIODevice &io);
-    bool write(QIODevice &io, KisNodeSP rootLayer, psd_compression_type compressionType);
+    bool read(PkStream &io);
+    bool write(PkStream &io, KisNodeSP rootLayer, psd_compression_type compressionType);
 
-    QString error;
+    PkString error;
 
     // layer info: https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/#50577409_16000
     bool hasTransparency{false};
 
     qint16 nLayers{0}; // If layer count is a negative number, its absolute value is the number of layers and the first alpha channel contains the transparency
                        // data for the merged result.
-    QVector<PSDLayerRecord *> layers;
+    PkVector<PSDLayerRecord *> layers;
 
     // mask info: https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/#50577409_17115
     struct GlobalLayerMaskInfo {
@@ -50,15 +50,15 @@ public:
 
 private:
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    bool readLayerInfoImpl(QIODevice &io);
-    bool readPsdImpl(QIODevice &io);
+    bool readLayerInfoImpl(PkStream &io);
+    bool readPsdImpl(PkStream &io);
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    bool readTiffImpl(QIODevice &io);
+    bool readTiffImpl(PkStream &io);
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    bool readGlobalMask(QIODevice &io);
-    void writePsdImpl(QIODevice &io, KisNodeSP rootLayer, psd_compression_type compressionType);
+    bool readGlobalMask(PkStream &io);
+    void writePsdImpl(PkStream &io, KisNodeSP rootLayer, psd_compression_type compressionType);
     template<psd_byte_order byteOrder = psd_byte_order::psdBigEndian>
-    void writeTiffImpl(QIODevice &io, KisNodeSP rootLayer, psd_compression_type compressionType);
+    void writeTiffImpl(PkStream &io, KisNodeSP rootLayer, psd_compression_type compressionType);
 private:
     const PSDHeader m_header;
 };

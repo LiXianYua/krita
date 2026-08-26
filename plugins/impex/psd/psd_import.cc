@@ -14,7 +14,7 @@
 
 K_PLUGIN_FACTORY_WITH_JSON(ImportFactory, "krita_psd_import.json", registerPlugin<psdImport>();)
 
-psdImport::psdImport(QObject *parent, const QVariantList &) : KisImportExportFilter(parent)
+psdImport::psdImport(QObject *parent, const PkVariantList &) : KisImportExportFilter(parent)
 {
 }
 
@@ -22,7 +22,7 @@ psdImport::~psdImport()
 {
 }
 
-KisImportExportErrorCode psdImport::convert(KisDocument *document, QIODevice *io,  KisPropertiesConfigurationSP /*configuration*/)
+KisImportExportErrorCode psdImport::convert(KisDocument *document, PkStream *io,  KisPropertiesConfigurationSP /*configuration*/)
 {
     PSDLoader ib(document, importUserFeedBackInterface());
     KisImportExportErrorCode result = ib.buildImage(*io);

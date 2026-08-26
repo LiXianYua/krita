@@ -10,8 +10,8 @@
 
 #include <KoColor.h>
 #include <QBuffer>
-#include <QDataStream>
-#include <QIODevice>
+#include <PkDataStream.h>
+#include <PkStream.h>
 
 #include "kis_iterator_ng.h"
 #include <algorithm>
@@ -41,7 +41,7 @@
 #include <kundo2command.h>
 
 // Just for pretty debug messages
-QString channelIdToChannelType(int channelId, psd_color_mode colormode)
+PkString channelIdToChannelType(int channelId, psd_color_mode colormode)
 {
     switch (channelId) {
     case -3:
@@ -54,7 +54,7 @@ QString channelIdToChannelType(int channelId, psd_color_mode colormode)
         switch (colormode) {
         case Bitmap:
         case Indexed:
-            return QString("bitmap or indexed: %1").arg(channelId);
+            return PkString("bitmap or indexed: %1").arg(channelId);
         case Grayscale:
         case Gray16:
             return "gray";
@@ -69,21 +69,21 @@ QString channelIdToChannelType(int channelId, psd_color_mode colormode)
             return "cyan";
         case MultiChannel:
         case DeepMultichannel:
-            return QString("multichannel channel %1").arg(channelId);
+            return PkString("multichannel channel %1").arg(channelId);
         case DuoTone:
         case Duotone16:
-            return QString("duotone channel %1").arg(channelId);
+            return PkString("duotone channel %1").arg(channelId);
         default:
-            return QString("unknown: %1").arg(channelId);
+            return PkString("unknown: %1").arg(channelId);
         };
     case 1:
         switch (colormode) {
         case Bitmap:
         case Indexed:
-            return QString("WARNING bitmap or indexed: %1").arg(channelId);
+            return PkString("WARNING bitmap or indexed: %1").arg(channelId);
         case Grayscale:
         case Gray16:
-            return QString("WARNING: %1").arg(channelId);
+            return PkString("WARNING: %1").arg(channelId);
         case RGB:
         case RGB48:
             return "green";
@@ -95,21 +95,21 @@ QString channelIdToChannelType(int channelId, psd_color_mode colormode)
             return "Magenta";
         case MultiChannel:
         case DeepMultichannel:
-            return QString("multichannel channel %1").arg(channelId);
+            return PkString("multichannel channel %1").arg(channelId);
         case DuoTone:
         case Duotone16:
-            return QString("duotone channel %1").arg(channelId);
+            return PkString("duotone channel %1").arg(channelId);
         default:
-            return QString("unknown: %1").arg(channelId);
+            return PkString("unknown: %1").arg(channelId);
         };
     case 2:
         switch (colormode) {
         case Bitmap:
         case Indexed:
-            return QString("WARNING bitmap or indexed: %1").arg(channelId);
+            return PkString("WARNING bitmap or indexed: %1").arg(channelId);
         case Grayscale:
         case Gray16:
-            return QString("WARNING: %1").arg(channelId);
+            return PkString("WARNING: %1").arg(channelId);
         case RGB:
         case RGB48:
             return "blue";
@@ -121,41 +121,41 @@ QString channelIdToChannelType(int channelId, psd_color_mode colormode)
             return "yellow";
         case MultiChannel:
         case DeepMultichannel:
-            return QString("multichannel channel %1").arg(channelId);
+            return PkString("multichannel channel %1").arg(channelId);
         case DuoTone:
         case Duotone16:
-            return QString("duotone channel %1").arg(channelId);
+            return PkString("duotone channel %1").arg(channelId);
         default:
-            return QString("unknown: %1").arg(channelId);
+            return PkString("unknown: %1").arg(channelId);
         };
     case 3:
         switch (colormode) {
         case Bitmap:
         case Indexed:
-            return QString("WARNING bitmap or indexed: %1").arg(channelId);
+            return PkString("WARNING bitmap or indexed: %1").arg(channelId);
         case Grayscale:
         case Gray16:
-            return QString("WARNING: %1").arg(channelId);
+            return PkString("WARNING: %1").arg(channelId);
         case RGB:
         case RGB48:
-            return QString("alpha: %1").arg(channelId);
+            return PkString("alpha: %1").arg(channelId);
         case Lab:
         case Lab48:
-            return QString("alpha: %1").arg(channelId);
+            return PkString("alpha: %1").arg(channelId);
         case CMYK:
         case CMYK64:
             return "Key";
         case MultiChannel:
         case DeepMultichannel:
-            return QString("multichannel channel %1").arg(channelId);
+            return PkString("multichannel channel %1").arg(channelId);
         case DuoTone:
         case Duotone16:
-            return QString("duotone channel %1").arg(channelId);
+            return PkString("duotone channel %1").arg(channelId);
         default:
-            return QString("unknown: %1").arg(channelId);
+            return PkString("unknown: %1").arg(channelId);
         };
     default:
-        return QString("unknown: %1").arg(channelId);
+        return PkString("unknown: %1").arg(channelId);
     };
 }
 
@@ -165,7 +165,7 @@ PSDLayerRecord::PSDLayerRecord(const PSDHeader &header)
 {
 }
 
-bool PSDLayerRecord::read(QIODevice &io)
+bool PSDLayerRecord::read(PkStream &io)
 {
     switch (m_header.byteOrder) {
     case psd_byte_order::psdLittleEndian:
@@ -176,7 +176,7 @@ bool PSDLayerRecord::read(QIODevice &io)
 }
 
 template<psd_byte_order byteOrder>
-bool PSDLayerRecord::readImpl(QIODevice &io)
+bool PSDLayerRecord::readImpl(PkStream &io)
 {
     dbgFile << "Going to read layer record. Pos:" << io.pos();
 
@@ -193,12 +193,12 @@ bool PSDLayerRecord::readImpl(QIODevice &io)
     Q_ASSERT(nChannels > 0);
 
     if (nChannels < 1) {
-        error = QString("Not enough channels. Got: %1").arg(nChannels);
+        error = PkString("Not enough channels. Got: %1").arg(nChannels);
         return false;
     }
 
     if (nChannels > MAX_CHANNELS) {
-        error = QString("Too many channels. Got: %1").arg(nChannels);
+        error = PkString("Too many channels. Got: %1").arg(nChannels);
         return false;
     }
 
@@ -236,7 +236,7 @@ bool PSDLayerRecord::readImpl(QIODevice &io)
     }
 
     if (!psd_read_blendmode<byteOrder>(io, blendModeKey)) {
-        error = QString("Could not read blend mode key. Got: %1").arg(blendModeKey);
+        error = PkString("Could not read blend mode key. Got: %1").arg(blendModeKey);
         return false;
     }
 
@@ -291,7 +291,7 @@ bool PSDLayerRecord::readImpl(QIODevice &io)
 
     quint32 extraDataLength;
     if (!psdread<byteOrder>(io, extraDataLength) || io.bytesAvailable() < extraDataLength) {
-        error = QString("Could not read extra layer data: %1 at pos %2").arg(extraDataLength).arg(io.pos());
+        error = PkString("Could not read extra layer data: %1 at pos %2").arg(extraDataLength).arg(io.pos());
         return false;
     }
 
@@ -303,7 +303,7 @@ bool PSDLayerRecord::readImpl(QIODevice &io)
         // See https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/#50577409_22582
         quint32 layerMaskLength = 1; // invalid...
         if (!psdread<byteOrder>(io, layerMaskLength) || io.bytesAvailable() < layerMaskLength) {
-            error = QString("Could not read layer mask length: %1").arg(layerMaskLength);
+            error = PkString("Could not read layer mask length: %1").arg(layerMaskLength);
             return false;
         }
 
@@ -351,7 +351,7 @@ bool PSDLayerRecord::readImpl(QIODevice &io)
 
                     remainingBlockLength -= 1;
 
-                    dbgFile << "\t\tMask parameters" << QString::number(flags, 2) << ". Remaining block length"
+                    dbgFile << "\t\tMask parameters" << PkString::number(flags, 2) << ". Remaining block length"
                             << remainingBlockLength;
 
                     if (flags & 1) {
@@ -476,7 +476,7 @@ bool PSDLayerRecord::readImpl(QIODevice &io)
                 if (!psdread<byteOrder>(io, src.blackValues[0]) || !psdread<byteOrder>(io, src.blackValues[1]) || !psdread<byteOrder>(io, src.whiteValues[0])
                     || !psdread<byteOrder>(io, src.whiteValues[1]) || !psdread<byteOrder>(io, dst.blackValues[0]) || !psdread<byteOrder>(io, dst.blackValues[1])
                     || !psdread<byteOrder>(io, dst.whiteValues[0]) || !psdread<byteOrder>(io, dst.whiteValues[1])) {
-                    error = QString("could not read src/dst range for channel %1").arg(i);
+                    error = PkString("could not read src/dst range for channel %1").arg(i);
                     return false;
                 }
                 dbgFile << "\t\tread range " << src << "to" << dst << "for channel" << i;
@@ -516,12 +516,12 @@ bool PSDLayerRecord::readImpl(QIODevice &io)
     return valid();
 }
 
-void PSDLayerRecord::write(QIODevice &io,
+void PSDLayerRecord::write(PkStream &io,
                            KisPaintDeviceSP layerContentDevice,
                            KisNodeSP onlyTransparencyMask,
-                           const QRect &maskRect,
+                           const PkRect &maskRect,
                            psd_section_type sectionType,
-                           const QDomDocument &stylesXmlDoc,
+                           const PkXmlDocument &stylesXmlDoc,
                            bool useLfxsLayerStyleFormat)
 {
     switch (m_header.byteOrder) {
@@ -539,12 +539,12 @@ void PSDLayerRecord::write(QIODevice &io,
 }
 
 template<psd_byte_order byteOrder>
-void PSDLayerRecord::writeImpl(QIODevice &io,
+void PSDLayerRecord::writeImpl(PkStream &io,
                                KisPaintDeviceSP layerContentDevice,
                                KisNodeSP onlyTransparencyMask,
-                               const QRect &maskRect,
+                               const PkRect &maskRect,
                                psd_section_type sectionType,
-                               const QDomDocument &stylesXmlDoc,
+                               const PkXmlDocument &stylesXmlDoc,
                                bool useLfxsLayerStyleFormat)
 {
     dbgFile << "writing layer info record"
@@ -562,7 +562,7 @@ void PSDLayerRecord::writeImpl(QIODevice &io,
 
     try {
         {
-            const QRect layerRect(left, top, right - left, bottom - top);
+            const PkRect layerRect(left, top, right - left, bottom - top);
             KisAslWriterUtils::writeRect<byteOrder>(layerRect, io);
         }
 
@@ -796,12 +796,12 @@ int PSDLayerRecord::kritaColorLabelIndex(quint16 labelColor)
 }
 
 template<psd_byte_order byteOrder>
-void PSDLayerRecord::writeTransparencyMaskPixelData(QIODevice &io)
+void PSDLayerRecord::writeTransparencyMaskPixelData(PkStream &io)
 {
     if (m_onlyTransparencyMask) {
         KisPaintDeviceSP device = convertMaskDeviceIfNeeded(m_onlyTransparencyMask->paintDevice());
 
-        QByteArray buffer(static_cast<int>(device->pixelSize()) * m_onlyTransparencyMaskRect.width() * m_onlyTransparencyMaskRect.height(), 0);
+        PkByteArray buffer(static_cast<int>(device->pixelSize()) * m_onlyTransparencyMaskRect.width() * m_onlyTransparencyMaskRect.height(), 0);
         device->readBytes((quint8 *)buffer.data(), m_onlyTransparencyMaskRect);
 
         PsdPixelUtils::writeChannelDataRLE(io,
@@ -815,7 +815,7 @@ void PSDLayerRecord::writeTransparencyMaskPixelData(QIODevice &io)
     }
 }
 
-void PSDLayerRecord::writePixelData(QIODevice &io, psd_compression_type compressionType)
+void PSDLayerRecord::writePixelData(PkStream &io, psd_compression_type compressionType)
 {
     try {
         switch (m_header.byteOrder) {
@@ -832,12 +832,12 @@ void PSDLayerRecord::writePixelData(QIODevice &io, psd_compression_type compress
 }
 
 template<psd_byte_order byteOrder>
-void PSDLayerRecord::writePixelDataImpl(QIODevice &io, psd_compression_type compressionType)
+void PSDLayerRecord::writePixelDataImpl(PkStream &io, psd_compression_type compressionType)
 {
     dbgFile << "writing pixel data for layer" << layerName << "at" << io.pos();
 
     KisPaintDeviceSP dev = m_layerContentDevice;
-    const QRect rc(left, top, right - left, bottom - top);
+    const PkRect rc(left, top, right - left, bottom - top);
 
     if (rc.isEmpty()) {
         dbgFile << "Layer is empty! Writing placeholder information.";
@@ -859,7 +859,7 @@ void PSDLayerRecord::writePixelDataImpl(QIODevice &io, psd_compression_type comp
     const int channelSize = m_header.channelDepth / 8;
     const psd_color_mode colorMode = m_header.colormode;
 
-    QVector<PsdPixelUtils::ChannelWritingInfo> writingInfoList;
+    PkVector<PsdPixelUtils::ChannelWritingInfo> writingInfoList;
     Q_FOREACH (const ChannelInfo *channelInfo, channelInfoRecords) {
         writingInfoList << PsdPixelUtils::ChannelWritingInfo(channelInfo->channelId, channelInfo->channelInfoPosition);
     }
@@ -874,12 +874,12 @@ bool PSDLayerRecord::valid()
     return true;
 }
 
-bool PSDLayerRecord::readPixelData(QIODevice &io, KisPaintDeviceSP device)
+bool PSDLayerRecord::readPixelData(PkStream &io, KisPaintDeviceSP device)
 {
     dbgFile << "Reading pixel data for layer" << layerName << "pos" << io.pos();
 
     const int channelSize = m_header.channelDepth / 8;
-    const QRect layerRect = QRect(left, top, right - left, bottom - top);
+    const PkRect layerRect = PkRect(left, top, right - left, bottom - top);
 
     try {
         // WARNING: Pixel data is ALWAYS in big endian!!!
@@ -893,20 +893,20 @@ bool PSDLayerRecord::readPixelData(QIODevice &io, KisPaintDeviceSP device)
     return true;
 }
 
-QRect PSDLayerRecord::channelRect(ChannelInfo *channel) const
+PkRect PSDLayerRecord::channelRect(ChannelInfo *channel) const
 {
-    QRect result;
+    PkRect result;
 
     if (channel->channelId < -1) {
-        result = QRect(layerMask.left, layerMask.top, layerMask.right - layerMask.left, layerMask.bottom - layerMask.top);
+        result = PkRect(layerMask.left, layerMask.top, layerMask.right - layerMask.left, layerMask.bottom - layerMask.top);
     } else {
-        result = QRect(left, top, right - left, bottom - top);
+        result = PkRect(left, top, right - left, bottom - top);
     }
 
     return result;
 }
 
-bool PSDLayerRecord::readMask(QIODevice &io, KisPaintDeviceSP dev, ChannelInfo *channelInfo)
+bool PSDLayerRecord::readMask(PkStream &io, KisPaintDeviceSP dev, ChannelInfo *channelInfo)
 {
     KIS_ASSERT_RECOVER(channelInfo->channelId < -1)
     {
@@ -915,7 +915,7 @@ bool PSDLayerRecord::readMask(QIODevice &io, KisPaintDeviceSP dev, ChannelInfo *
 
     dbgFile << "Going to read" << channelIdToChannelType(channelInfo->channelId, m_header.colormode) << "mask";
 
-    QRect maskRect = channelRect(channelInfo);
+    PkRect maskRect = channelRect(channelInfo);
     if (maskRect.isEmpty()) {
         dbgFile << "Empty Channel";
         return true;
@@ -931,7 +931,7 @@ bool PSDLayerRecord::readMask(QIODevice &io, KisPaintDeviceSP dev, ChannelInfo *
 
     const int pixelSize = m_header.channelDepth == 16 ? 2 : m_header.channelDepth == 32 ? 4 : 1;
 
-    QVector<ChannelInfo *> infoRecords;
+    PkVector<ChannelInfo *> infoRecords;
     infoRecords << channelInfo;
     PsdPixelUtils::readAlphaMaskChannels(io, dev, pixelSize, maskRect, infoRecords);
 
@@ -943,9 +943,9 @@ KoPathShape *PSDLayerRecord::constructPathShape(psd_path path, double shapeWidth
     KoPathShape *shape = new KoPathShape();
 
     // psd paths are stored normalized.
-    QTransform tf = QTransform::fromScale(shapeWidth, shapeHeight);
+    PkTransform tf = PkTransform::fromScale(shapeWidth, shapeHeight);
 
-    QString nodeTypes;
+    PkString nodeTypes;
     Q_FOREACH(psd_path_sub_path subPath, path.subPaths) {
         for (int i = 0; i < subPath.nodes.size(); i++) {
             psd_path_node node = subPath.nodes.at(i);
@@ -986,7 +986,7 @@ KoPathShape *PSDLayerRecord::constructPathShape(psd_path path, double shapeWidth
 
 void PSDLayerRecord::addPathShapeToPSDPath(psd_path &path, KoPathShape *shape, double shapeWidth, double shapeHeight)
 {
-    QTransform tf = QTransform::fromScale(shapeWidth, shapeHeight).inverted();
+    PkTransform tf = PkTransform::fromScale(shapeWidth, shapeHeight).inverted();
     tf = shape->absoluteTransformation()*tf;
 
 
