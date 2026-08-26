@@ -199,7 +199,8 @@ inline PkString getPatternUuidLazy(const KoPatternSP pattern)
         uuid = aslParseUuid(strUuid);
     }
 
-    if (uuid.isEmpty()) {
+    // 全零 UUID 对齐原 Qt UUID 类型的 isNull()（空 UUID）→ 重新生成
+    if (uuid.isEmpty() || uuid == PkString("00000000-0000-0000-0000-000000000000")) {
         warnKrita << "WARNING: Saved pattern doesn't have a UUID, generating...";
         warnKrita << ppVar(patternFileName) << ppVar(pattern->name());
         uuid = aslCreateUuid();
