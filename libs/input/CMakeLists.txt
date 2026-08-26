@@ -19,12 +19,28 @@ target_include_directories(kritainput
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+        # S-08-a Task 7（判据⑧）：pk include 面 PUBLIC 传播给消费方。只加 pk/<dir>
+        # 不加 pk/*/compat——主树保留过渡 Qt，真实 Qt 头（QString/QtGlobal 等）不能被遮蔽。
+        # 覆盖剥-ed 源 include 的 PkString/PkList/PkVector/PkPoint/PkLine/PkFlags/
+        # PkSharedPointer/PkConfigGroup/PkSharedConfig/PkGlobal/PkNamespace。
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/string>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/container>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/geometry>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/flags>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/pointer>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/config>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/global>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/pk/namespace>
 )
 
 target_link_libraries(kritainput
     PUBLIC
         Qt${QT_MAJOR_VERSION}::Core
         Qt${QT_MAJOR_VERSION}::Gui
+        # S-08-a Task 7（判据⑨）：剥-ed 源引用的 pk 库显式链入主树 kritainput。
+        # pk 库 target 由根 CMakeLists.txt:1642 的 add_subdirectory(pk) 定义，此处只接线。
+        # pkflags/pknamespace 是 INTERFACE 头库，无需 link。
+        pkstring pkcontainer pkgeometry pkpointer pkconfig pkglobal
     PRIVATE
         KF${KF_MAJOR}::ConfigCore
         KF${KF_MAJOR}::I18n
