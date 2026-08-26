@@ -6,7 +6,7 @@
 #ifndef KISCURVEOPTIONDATAUNIFORMPROPERTY_H
 #define KISCURVEOPTIONDATAUNIFORMPROPERTY_H
 
-#include <PkPointer.h>
+#include <PkScopedPointer.h>
 #include "kis_slider_based_paintop_property.h"
 #include <kritapaintop_export.h>
 
