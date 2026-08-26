@@ -49,7 +49,7 @@ public:
 
 
     PkSharedPointer<BrushType> currentBrush(const KisPaintInformation& info) {
-        Q_UNUSED(info);
+        (void)info;
         return !m_brushes.isEmpty() ? m_brushes.at(currentBrushIndex()) : 0;
     }
 
