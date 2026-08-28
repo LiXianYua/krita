@@ -7,7 +7,8 @@
 #ifndef KIS_ANIMATION_IMPORTER_TEST_H
 #define KIS_ANIMATION_IMPORTER_TEST_H
 
-#include <simpletest.h>
+#include <QObject>
+#include <QtTest/QTest>
 
 class KisAnimationImporterTest : public QObject {
     Q_OBJECT

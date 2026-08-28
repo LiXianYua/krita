@@ -8,7 +8,6 @@
 
 #include <PkObject.h>
 
-#include <simpletest.h>
 #include <testutil.h>
 
 #include "kis_animation_frame_cache.h"
